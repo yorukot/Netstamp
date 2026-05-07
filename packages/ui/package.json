@@ -11,6 +11,8 @@
 		"src"
 	],
 	"scripts": {
+		"build:storybook": "storybook build",
+		"storybook": "storybook dev -p 6006",
 		"typecheck": "tsc -p tsconfig.json --noEmit"
 	},
 	"dependencies": {
@@ -19,10 +21,14 @@
 		"@radix-ui/react-slot": "^1.2.3"
 	},
 	"devDependencies": {
+		"@netstamp/brand": "workspace:*",
+		"@storybook/react-vite": "^10.3.6",
 		"@types/react": "^19.0.0",
 		"react": "^19.2.5",
 		"react-dom": "^19.2.5",
-		"typescript": "^5.8.3"
+		"storybook": "^10.3.6",
+		"typescript": "^5.8.3",
+		"vite": "^8.0.10"
 	},
 	"peerDependencies": {
 		"react": ">=19.0.0",
