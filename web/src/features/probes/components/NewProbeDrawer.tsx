@@ -1,9 +1,11 @@
 import { pathForRoute } from "@/routes/routePaths";
 import { classNames } from "@/shared/utils/classNames";
-import { Badge, Button, FieldLabel, Terminal, TextField } from "@netstamp/ui";
+import { Badge, Button, Terminal, TextField } from "@netstamp/ui";
 import { type FormEvent, type MouseEvent, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styles from "./NewProbeDrawer.module.css";
+import { ProbeWizardTimeline } from "./ProbeWizardTimeline";
+import { TagPicker } from "./TagPicker";
 
 const defaultProbeTags = ["Edge", "Home", "VPS", "Bare metal", "IPv6", "Web3", "Lab"];
 const drawerCloseDurationMs = 180;
@@ -141,15 +143,7 @@ export function NewProbeDrawer() {
 					</Button>
 				</div>
 
-				<ol className={styles.stepTimeline} aria-label="Create probe progress">
-					{createProbeSteps.map((step, index) => (
-						<li className={classNames("ns-cut-frame", styles.stepItem, index === currentStep && styles.stepActive, index < currentStep && styles.stepComplete)} key={step.number}>
-							<span>{step.number}</span>
-							<strong>{step.title}</strong>
-							<small>{step.copy}</small>
-						</li>
-					))}
-				</ol>
+				<ProbeWizardTimeline steps={createProbeSteps} currentStep={currentStep} />
 
 				<div className={styles.workflowViewport}>
 					<div className={styles.workflowTrack} style={{ transform: `translateX(-${currentStep * 100}%)` }}>
@@ -221,41 +215,15 @@ export function NewProbeDrawer() {
 								<TextField label="AS (optional)" value={asn} placeholder="AS3462" disabled={currentStep !== 2} onChange={event => setAsn(event.currentTarget.value)} />
 							</div>
 
-							<div className={styles.tagPicker}>
-								<FieldLabel>Tags</FieldLabel>
-								<div className={styles.tagCloud}>
-									{tagOptions.map(tag => (
-										<Button
-											variant="plain"
-											className={classNames(styles.tagButton, selectedTags.includes(tag) && styles.tagSelected)}
-											key={tag}
-											type="button"
-											disabled={currentStep !== 2}
-											onClick={() => toggleTag(tag)}
-										>
-											{tag}
-										</Button>
-									))}
-								</div>
-								<div className={styles.tagCreate}>
-									<TextField
-										label="Create tag"
-										value={newTag}
-										placeholder="backbone"
-										disabled={currentStep !== 2}
-										onChange={event => setNewTag(event.currentTarget.value)}
-										onKeyDown={event => {
-											if (event.key === "Enter") {
-												event.preventDefault();
-												addTag();
-											}
-										}}
-									/>
-									<Button type="button" variant="outline" disabled={currentStep !== 2} onClick={addTag}>
-										Add tag
-									</Button>
-								</div>
-							</div>
+							<TagPicker
+								tagOptions={tagOptions}
+								selectedTags={selectedTags}
+								newTag={newTag}
+								disabled={currentStep !== 2}
+								onToggleTag={toggleTag}
+								onNewTagChange={setNewTag}
+								onAddTag={addTag}
+							/>
 
 							<div className={styles.actions}>
 								<Button type="button" variant="ghost" disabled={currentStep !== 2} onClick={() => setCurrentStep(1)}>
