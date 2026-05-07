@@ -13,55 +13,10 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-type CheckResultStatus string
-
-const (
-	CheckResultStatusSuccess CheckResultStatus = "success"
-	CheckResultStatusPartial CheckResultStatus = "partial"
-	CheckResultStatusTimeout CheckResultStatus = "timeout"
-	CheckResultStatusError   CheckResultStatus = "error"
-)
-
-func (e *CheckResultStatus) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = CheckResultStatus(s)
-	case string:
-		*e = CheckResultStatus(s)
-	default:
-		return fmt.Errorf("unsupported scan type for CheckResultStatus: %T", src)
-	}
-	return nil
-}
-
-type NullCheckResultStatus struct {
-	CheckResultStatus CheckResultStatus `json:"check_result_status"`
-	Valid             bool              `json:"valid"` // Valid is true if CheckResultStatus is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullCheckResultStatus) Scan(value interface{}) error {
-	if value == nil {
-		ns.CheckResultStatus, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.CheckResultStatus.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullCheckResultStatus) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.CheckResultStatus), nil
-}
-
 type CheckType string
 
 const (
-	CheckTypePing       CheckType = "ping"
-	CheckTypeTraceroute CheckType = "traceroute"
+	CheckTypePing CheckType = "ping"
 )
 
 func (e *CheckType) Scan(src interface{}) error {
@@ -141,12 +96,54 @@ func (ns NullIpFamily) Value() (driver.Value, error) {
 	return string(ns.IpFamily), nil
 }
 
+type PingStatus string
+
+const (
+	PingStatusSuccessful PingStatus = "successful"
+	PingStatusTimeout    PingStatus = "timeout"
+	PingStatusError      PingStatus = "error"
+)
+
+func (e *PingStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = PingStatus(s)
+	case string:
+		*e = PingStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for PingStatus: %T", src)
+	}
+	return nil
+}
+
+type NullPingStatus struct {
+	PingStatus PingStatus `json:"ping_status"`
+	Valid      bool       `json:"valid"` // Valid is true if PingStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullPingStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.PingStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.PingStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullPingStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.PingStatus), nil
+}
+
 type ProbeState string
 
 const (
-	ProbeStateOnline   ProbeState = "online"
-	ProbeStateOffline  ProbeState = "offline"
-	ProbeStateDegraded ProbeState = "degraded"
+	ProbeStateOnline  ProbeState = "online"
+	ProbeStateOffline ProbeState = "offline"
 )
 
 func (e *ProbeState) Scan(src interface{}) error {
@@ -228,103 +225,18 @@ func (ns NullProjectMemberRole) Value() (driver.Value, error) {
 	return string(ns.ProjectMemberRole), nil
 }
 
-type TargetType string
-
-const (
-	TargetTypeHost TargetType = "host"
-	TargetTypeIp   TargetType = "ip"
-)
-
-func (e *TargetType) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = TargetType(s)
-	case string:
-		*e = TargetType(s)
-	default:
-		return fmt.Errorf("unsupported scan type for TargetType: %T", src)
-	}
-	return nil
-}
-
-type NullTargetType struct {
-	TargetType TargetType `json:"target_type"`
-	Valid      bool       `json:"valid"` // Valid is true if TargetType is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullTargetType) Scan(value interface{}) error {
-	if value == nil {
-		ns.TargetType, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.TargetType.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullTargetType) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.TargetType), nil
-}
-
-type TracerouteProtocol string
-
-const (
-	TracerouteProtocolIcmp TracerouteProtocol = "icmp"
-	TracerouteProtocolUdp  TracerouteProtocol = "udp"
-	TracerouteProtocolTcp  TracerouteProtocol = "tcp"
-)
-
-func (e *TracerouteProtocol) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = TracerouteProtocol(s)
-	case string:
-		*e = TracerouteProtocol(s)
-	default:
-		return fmt.Errorf("unsupported scan type for TracerouteProtocol: %T", src)
-	}
-	return nil
-}
-
-type NullTracerouteProtocol struct {
-	TracerouteProtocol TracerouteProtocol `json:"traceroute_protocol"`
-	Valid              bool               `json:"valid"` // Valid is true if TracerouteProtocol is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullTracerouteProtocol) Scan(value interface{}) error {
-	if value == nil {
-		ns.TracerouteProtocol, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.TracerouteProtocol.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullTracerouteProtocol) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.TracerouteProtocol), nil
-}
-
 type Check struct {
-	ID          uuid.UUID          `json:"id"`
-	ProjectID   uuid.UUID          `json:"project_id"`
-	Name        string             `json:"name"`
-	CheckType   CheckType          `json:"check_type"`
-	Target      string             `json:"target"`
-	TargetType  TargetType         `json:"target_type"`
-	Description *string            `json:"description"`
-	Enabled     bool               `json:"enabled"`
-	CreatedAt   pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
-	DeletedAt   pgtype.Timestamptz `json:"deleted_at"`
+	ID              uuid.UUID          `json:"id"`
+	ProjectID       uuid.UUID          `json:"project_id"`
+	Name            string             `json:"name"`
+	CheckType       CheckType          `json:"check_type"`
+	Target          string             `json:"target"`
+	Selector        []byte             `json:"selector"`
+	Description     *string            `json:"description"`
+	IntervalSeconds int32              `json:"interval_seconds"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt       pgtype.Timestamptz `json:"deleted_at"`
 }
 
 type CheckLabel struct {
@@ -333,10 +245,23 @@ type CheckLabel struct {
 	LabelID   uuid.UUID `json:"label_id"`
 }
 
+type EffectiveProbeCheck struct {
+	ID              uuid.UUID          `json:"id"`
+	ProjectID       uuid.UUID          `json:"project_id"`
+	ProbeID         uuid.UUID          `json:"probe_id"`
+	CheckID         uuid.UUID          `json:"check_id"`
+	CheckVersion    string             `json:"check_version"`
+	SelectorVersion string             `json:"selector_version"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt       pgtype.Timestamptz `json:"deleted_at"`
+}
+
 type Label struct {
 	ID        uuid.UUID          `json:"id"`
 	ProjectID uuid.UUID          `json:"project_id"`
-	Name      string             `json:"name"`
+	Key       string             `json:"key"`
+	Value     string             `json:"value"`
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
 	DeletedAt pgtype.Timestamptz `json:"deleted_at"`
@@ -344,7 +269,6 @@ type Label struct {
 
 type PingCheckConfig struct {
 	CheckID         uuid.UUID    `json:"check_id"`
-	CheckType       CheckType    `json:"check_type"`
 	PacketCount     int32        `json:"packet_count"`
 	PacketSizeBytes int32        `json:"packet_size_bytes"`
 	TimeoutMs       int32        `json:"timeout_ms"`
@@ -354,11 +278,12 @@ type PingCheckConfig struct {
 type PingResult struct {
 	ID            uuid.UUID          `json:"id"`
 	ProjectID     uuid.UUID          `json:"project_id"`
-	ProbeCheckID  uuid.UUID          `json:"probe_check_id"`
+	CheckID       uuid.UUID          `json:"check_id"`
+	ProbeID       uuid.UUID          `json:"probe_id"`
 	StartedAt     pgtype.Timestamptz `json:"started_at"`
 	FinishedAt    pgtype.Timestamptz `json:"finished_at"`
 	DurationMs    int32              `json:"duration_ms"`
-	Status        CheckResultStatus  `json:"status"`
+	Status        PingStatus         `json:"status"`
 	SentCount     int32              `json:"sent_count"`
 	ReceivedCount int32              `json:"received_count"`
 	LossPercent   float64            `json:"loss_percent"`
@@ -380,27 +305,12 @@ type Probe struct {
 	ID        uuid.UUID          `json:"id"`
 	ProjectID uuid.UUID          `json:"project_id"`
 	Name      string             `json:"name"`
-	Hostname  *string            `json:"hostname"`
-	Latitude  *float64           `json:"latitude"`
-	Longitude *float64           `json:"longitude"`
 	Enabled   bool               `json:"enabled"`
+	Location  pgtype.Point       `json:"location"`
+	City      *string            `json:"city"`
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
 	DeletedAt pgtype.Timestamptz `json:"deleted_at"`
-}
-
-type ProbeCheck struct {
-	ID              uuid.UUID          `json:"id"`
-	ProjectID       uuid.UUID          `json:"project_id"`
-	ProbeID         uuid.UUID          `json:"probe_id"`
-	CheckID         uuid.UUID          `json:"check_id"`
-	Name            *string            `json:"name"`
-	Enabled         bool               `json:"enabled"`
-	IntervalSeconds int32              `json:"interval_seconds"`
-	JitterSeconds   int32              `json:"jitter_seconds"`
-	CreatedAt       pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
-	DeletedAt       pgtype.Timestamptz `json:"deleted_at"`
 }
 
 type ProbeCredential struct {
@@ -421,10 +331,10 @@ type ProbeStatus struct {
 	Status       ProbeState         `json:"status"`
 	LastSeenAt   pgtype.Timestamptz `json:"last_seen_at"`
 	AgentVersion *string            `json:"agent_version"`
-	IpFamilies   []IpFamily         `json:"ip_families"`
+	PublicV4     *netip.Addr        `json:"public_v4"`
+	PublicV6     *netip.Addr        `json:"public_v6"`
+	Addrs        []netip.Addr       `json:"addrs"`
 	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
-	PublicIp     *netip.Addr        `json:"public_ip"`
-	Asn          *int64             `json:"asn"`
 }
 
 type Project struct {
@@ -445,50 +355,6 @@ type ProjectMember struct {
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
 	DeletedAt pgtype.Timestamptz `json:"deleted_at"`
-}
-
-type TracerouteCheckConfig struct {
-	CheckID       uuid.UUID          `json:"check_id"`
-	CheckType     CheckType          `json:"check_type"`
-	Protocol      TracerouteProtocol `json:"protocol"`
-	MaxHops       int32              `json:"max_hops"`
-	TimeoutMs     int32              `json:"timeout_ms"`
-	QueriesPerHop int32              `json:"queries_per_hop"`
-	Port          *int32             `json:"port"`
-}
-
-type TracerouteHop struct {
-	TracerouteResultID uuid.UUID          `json:"traceroute_result_id"`
-	ProjectID          uuid.UUID          `json:"project_id"`
-	ProbeCheckID       uuid.UUID          `json:"probe_check_id"`
-	StartedAt          pgtype.Timestamptz `json:"started_at"`
-	HopNumber          int32              `json:"hop_number"`
-	HopIp              *netip.Addr        `json:"hop_ip"`
-	Hostname           *string            `json:"hostname"`
-	RttsMs             []float64          `json:"rtts_ms"`
-	LossPercent        float64            `json:"loss_percent"`
-	ErrorCode          *string            `json:"error_code"`
-	ErrorMessage       *string            `json:"error_message"`
-	CreatedAt          pgtype.Timestamptz `json:"created_at"`
-}
-
-type TracerouteResult struct {
-	ID           uuid.UUID          `json:"id"`
-	ProjectID    uuid.UUID          `json:"project_id"`
-	ProbeCheckID uuid.UUID          `json:"probe_check_id"`
-	StartedAt    pgtype.Timestamptz `json:"started_at"`
-	FinishedAt   pgtype.Timestamptz `json:"finished_at"`
-	DurationMs   int32              `json:"duration_ms"`
-	Status       CheckResultStatus  `json:"status"`
-	ResolvedIp   *netip.Addr        `json:"resolved_ip"`
-	Reached      bool               `json:"reached"`
-	HopCount     int32              `json:"hop_count"`
-	PathHash     *string            `json:"path_hash"`
-	Protocol     TracerouteProtocol `json:"protocol"`
-	Raw          []byte             `json:"raw"`
-	ErrorCode    *string            `json:"error_code"`
-	ErrorMessage *string            `json:"error_message"`
-	CreatedAt    pgtype.Timestamptz `json:"created_at"`
 }
 
 type User struct {
