@@ -1,6 +1,6 @@
-import { Surface, type SurfaceTone } from "@netstamp/ui/components/Surface/Surface";
 import * as Separator from "@radix-ui/react-separator";
 import type { ComponentPropsWithoutRef, ElementType, ReactNode } from "react";
+import { Surface, type SurfaceTone } from "../Surface/Surface";
 import styles from "./Panel.module.css";
 
 export type PanelTone = Extract<SurfaceTone, "glass" | "matte" | "deep">;

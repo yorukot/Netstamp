@@ -1,6 +1,6 @@
-import { Badge, type BadgeTone } from "@netstamp/ui/components/Badge/Badge";
-import { Surface } from "@netstamp/ui/components/Surface/Surface";
 import type { ReactNode } from "react";
+import { Badge, type BadgeTone } from "../Badge/Badge";
+import { Surface } from "../Surface/Surface";
 import styles from "./MetricCard.module.css";
 
 export interface MetricCardProps {
