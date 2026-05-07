@@ -7,6 +7,8 @@ export { DataTable } from "./components/DataTable/DataTable";
 export type { DataColumn, DataTableProps } from "./components/DataTable/DataTable";
 export { Checkbox, FieldLabel, Input, Select, SelectField, TextAreaField, TextField } from "./components/Field/Field";
 export type { CheckboxProps, ControlVariant, FieldLabelProps, InputProps, SelectFieldProps, SelectProps, TextAreaFieldProps, TextFieldProps } from "./components/Field/Field";
+export { GlobalFooter } from "./components/GlobalFooter/GlobalFooter";
+export type { GlobalFooterProps } from "./components/GlobalFooter/GlobalFooter";
 export { MetricCard } from "./components/MetricCard/MetricCard";
 export type { MetricCardProps } from "./components/MetricCard/MetricCard";
 export { PageShell } from "./components/PageShell/PageShell";

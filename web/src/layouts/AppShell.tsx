@@ -1,6 +1,5 @@
 import { useSession } from "@/features/auth/session/SessionContext";
-import { GlobalFooter } from "@/shared/components/GlobalFooter";
-import { PageShell } from "@netstamp/ui";
+import { GlobalFooter, PageShell } from "@netstamp/ui";
 import { Outlet } from "react-router-dom";
 import styles from "./AppShell.module.css";
 import { Sidebar } from "./components/Sidebar";
