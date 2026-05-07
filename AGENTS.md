@@ -14,7 +14,7 @@ Only proceed from root guidance when the task is clearly limited to workspace me
 - `server/`: Go API service, commands in `cmd/`, app code in `internal/`, SQL and migrations in `db/`, protobuf config in `proto/`.
 - `web/`: React 19 + Vite app source in `web/src/`.
 - `packages/ui/`: shared React UI components and design tokens exported as `@netstamp/ui`.
-- `docs/`: Astro/Starlight documentation site.
+- `docs/`: Astro public site and Markdown documentation. The docs build also publishes static Storybook output for shared UI components.
 - `deployments/`: deployment and Docker-related configuration.
 - `Justfile`: canonical local task runner for backend, web, docs, lint, build, and test commands.
 
@@ -24,6 +24,8 @@ Only proceed from root guidance when the task is clearly limited to workspace me
 - `just dev` or `pnpm dev:server`: start the backend with Air hot reload.
 - `just web-dev` or `pnpm dev:web`: start the Vite web app.
 - `just docs-dev` or `pnpm dev:docs`: start the documentation site.
+- `pnpm dev:storybook`: start Storybook for `@netstamp/ui` components.
+- `pnpm generate:openapi`: regenerate `docs/public/openapi.json` from backend Huma routes.
 - `just build`: build backend, web, and docs.
 - `just test`: run available tests, currently backend tests.
 - `just lint`: run web ESLint and backend golangci-lint.

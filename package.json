@@ -4,11 +4,14 @@
 	"scripts": {
 		"build:docs": "pnpm --filter @netstamp/docs build",
 		"build:server": "just backend-build",
+		"build:storybook": "pnpm --filter @netstamp/ui build:storybook",
 		"build:web": "pnpm --filter @netstamp/web build",
 		"dev:docs": "pnpm --filter @netstamp/docs dev",
 		"dev:server": "just backend-dev",
+		"dev:storybook": "pnpm --filter @netstamp/ui storybook",
 		"dev:web": "pnpm --filter @netstamp/web dev",
 		"format": "prettier --write .",
+		"generate:openapi": "cd server && go run ./cmd/openapi -output ../docs/public/openapi.json && cd .. && pnpm exec prettier --write docs/public/openapi.json",
 		"preinstall": "npx only-allow pnpm",
 		"prepare": "sh -c 'command -v git >/dev/null 2>&1 && [ -d .git ] && git config core.hooksPath .githooks || exit 0'",
 		"test:server": "just backend-test"

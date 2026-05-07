@@ -46,6 +46,14 @@ docs-dev:
 docs-build:
     pnpm --filter {{ docs_filter }} build
 
+# Start Storybook for shared UI components.
+storybook-dev:
+    pnpm --filter @netstamp/ui storybook
+
+# Build static Storybook into the docs output directory.
+storybook-build:
+    pnpm --filter @netstamp/ui build:storybook -o ../../docs/dist/storybook
+
 # Preview the built documentation.
 docs-preview:
     pnpm --filter {{ docs_filter }} preview
@@ -77,6 +85,11 @@ backend-dev:
 # Build the backend API binary.
 backend-build:
     cd {{ server_dir }} && go build -o bin/api ./cmd/api
+
+# Generate OpenAPI JSON for the docs explorer.
+backend-openapi:
+    cd {{ server_dir }} && go run ./cmd/openapi -output ../docs/public/openapi.json
+    pnpm exec prettier --write docs/public/openapi.json
 
 # Run backend tests.
 backend-test:

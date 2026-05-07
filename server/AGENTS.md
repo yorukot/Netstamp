@@ -76,6 +76,7 @@ Commands below come from the root `Justfile`, root `package.json`, `server/.air.
 - `pnpm install`: install workspace dependencies; root `package.json` enforces pnpm.
 - `just backend-dev` or `pnpm dev:server`: run Air hot reload using `server/.air.toml`.
 - `just backend-build` or `pnpm build:server`: build `server/bin/api` from `./cmd/api`.
+- `just backend-openapi` or `pnpm generate:openapi`: write the Huma OpenAPI schema to `docs/public/openapi.json`.
 - `just backend-test` or `pnpm test:server`: run `go test ./...` inside `server/`.
 - `just backend-fmt`: run `go fmt ./...`.
 - `just golangci-lint`: run `golangci-lint` with `../golangci.yaml`.
