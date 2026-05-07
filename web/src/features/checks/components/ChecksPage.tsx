@@ -7,8 +7,8 @@ import { classNames } from "@/shared/utils/classNames";
 import { toneForStatus } from "@/shared/utils/statusTone";
 import { Badge, Button, Checkbox, DataTable, FieldLabel, Panel, SelectField, TextField, type DataColumn } from "@netstamp/ui";
 import { useState } from "react";
-import { assignedProbeNames, checkRows, displayProbeSelection, logsForCheck, type LogRow } from "./checksPageData";
 import styles from "./ChecksPage.module.css";
+import { assignedProbeNames, checkRows, displayProbeSelection, logsForCheck, type LogRow } from "./checksPageData";
 
 const checkColumns: DataColumn<CheckDefinition>[] = [
 	{ key: "name", label: "Check name" },
@@ -27,7 +27,6 @@ const logColumns: DataColumn<LogRow>[] = [
 	{ key: "latency", label: "Latency" },
 	{ key: "event", label: "Event" }
 ];
-
 
 export function ChecksPage() {
 	const [selectedId, setSelectedId] = useState("api-latency");

@@ -18,7 +18,14 @@ export function TagPicker({ tagOptions, selectedTags, newTag, disabled, onToggle
 			<FieldLabel>Tags</FieldLabel>
 			<div className={styles.tagCloud}>
 				{tagOptions.map(tag => (
-					<Button variant="plain" className={classNames(styles.tagButton, selectedTags.includes(tag) && styles.tagSelected)} key={tag} type="button" disabled={disabled} onClick={() => onToggleTag(tag)}>
+					<Button
+						variant="plain"
+						className={classNames(styles.tagButton, selectedTags.includes(tag) && styles.tagSelected)}
+						key={tag}
+						type="button"
+						disabled={disabled}
+						onClick={() => onToggleTag(tag)}
+					>
 						{tag}
 					</Button>
 				))}

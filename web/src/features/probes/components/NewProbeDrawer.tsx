@@ -215,15 +215,7 @@ export function NewProbeDrawer() {
 								<TextField label="AS (optional)" value={asn} placeholder="AS3462" disabled={currentStep !== 2} onChange={event => setAsn(event.currentTarget.value)} />
 							</div>
 
-							<TagPicker
-								tagOptions={tagOptions}
-								selectedTags={selectedTags}
-								newTag={newTag}
-								disabled={currentStep !== 2}
-								onToggleTag={toggleTag}
-								onNewTagChange={setNewTag}
-								onAddTag={addTag}
-							/>
+							<TagPicker tagOptions={tagOptions} selectedTags={selectedTags} newTag={newTag} disabled={currentStep !== 2} onToggleTag={toggleTag} onNewTagChange={setNewTag} onAddTag={addTag} />
 
 							<div className={styles.actions}>
 								<Button type="button" variant="ghost" disabled={currentStep !== 2} onClick={() => setCurrentStep(1)}>

@@ -6,12 +6,12 @@
 	justify-content: flex-end;
 	background: rgba(3, 5, 7, 0.58);
 	backdrop-filter: blur(10px);
-	animation: drawerBackdropIn 180ms ease-out;
+	animation: drawerBackdropIn 300ms ease-out;
 }
 
 .backdropClosing {
 	pointer-events: none;
-	animation: drawerBackdropOut 180ms ease-in forwards;
+	animation: drawerBackdropOut 300ms ease-in forwards;
 }
 
 .drawer {

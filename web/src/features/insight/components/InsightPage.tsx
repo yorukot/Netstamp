@@ -1,8 +1,8 @@
-import { checks, assignments, results, type CheckDefinition } from "@/features/checks/data/checks";
+import { assignments, checks, results, type CheckDefinition } from "@/features/checks/data/checks";
 import { dnsData, latencyData, routeDiffData } from "@/features/insight/data/series";
 import { probes, type Probe } from "@/features/probes/data/probes";
-import { ChartPanel } from "@/shared/components/ChartPanel";
 import { BodyCopy } from "@/shared/components/BodyCopy";
+import { ChartPanel } from "@/shared/components/ChartPanel";
 import { KeyValueGrid } from "@/shared/components/KeyValueGrid";
 import { PageStack } from "@/shared/components/PageStack";
 import { ResponsiveGrid } from "@/shared/components/ResponsiveGrid";

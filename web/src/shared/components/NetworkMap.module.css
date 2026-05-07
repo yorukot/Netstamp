@@ -103,7 +103,9 @@
 	width: 14px;
 	height: 14px;
 	border: 3px solid #fff;
-	box-shadow: 0 0 0 2px rgba(255, 106, 0, 1), 0 0 24px 8px rgba(255, 106, 0, 0.72);
+	box-shadow:
+		0 0 0 2px rgba(255, 106, 0, 1),
+		0 0 24px 8px rgba(255, 106, 0, 0.72);
 	outline: 2px solid #000;
 }
 
