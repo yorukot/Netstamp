@@ -1,0 +1,1474 @@
+{
+	"components": {
+		"schemas": {
+			"AddMemberInputBody": {
+				"additionalProperties": false,
+				"properties": {
+					"$schema": {
+						"description": "A URL to the JSON Schema for this object.",
+						"examples": ["/api/v1/schemas/AddMemberInputBody.json"],
+						"format": "uri",
+						"readOnly": true,
+						"type": "string"
+					},
+					"role": {
+						"description": "Team member role.",
+						"enum": ["owner", "admin", "editor", "viewer"],
+						"examples": ["viewer"],
+						"type": "string"
+					},
+					"userId": {
+						"description": "User ID to add to the team.",
+						"format": "uuid",
+						"type": "string"
+					}
+				},
+				"required": ["userId", "role"],
+				"type": "object"
+			},
+			"CreateTeamInputBody": {
+				"additionalProperties": false,
+				"properties": {
+					"$schema": {
+						"description": "A URL to the JSON Schema for this object.",
+						"examples": ["/api/v1/schemas/CreateTeamInputBody.json"],
+						"format": "uri",
+						"readOnly": true,
+						"type": "string"
+					},
+					"name": {
+						"description": "Team display name.",
+						"examples": ["Engineering"],
+						"maxLength": 100,
+						"minLength": 1,
+						"type": "string"
+					},
+					"slug": {
+						"description": "Stable team slug.",
+						"examples": ["engineering"],
+						"maxLength": 100,
+						"minLength": 1,
+						"pattern": "^[a-z0-9-]+$",
+						"patternDescription": "lowercase letters, numbers, and dashes",
+						"type": "string"
+					}
+				},
+				"required": ["name", "slug"],
+				"type": "object"
+			},
+			"ErrorDetail": {
+				"additionalProperties": false,
+				"properties": {
+					"location": {
+						"description": "Where the error occurred, e.g. 'body.items[3].tags' or 'path.thing-id'",
+						"type": "string"
+					},
+					"message": {
+						"description": "Error message text",
+						"type": "string"
+					},
+					"value": {
+						"description": "The value at the given location"
+					}
+				},
+				"type": "object"
+			},
+			"ErrorModel": {
+				"additionalProperties": false,
+				"properties": {
+					"$schema": {
+						"description": "A URL to the JSON Schema for this object.",
+						"examples": ["/api/v1/schemas/ErrorModel.json"],
+						"format": "uri",
+						"readOnly": true,
+						"type": "string"
+					},
+					"detail": {
+						"description": "A human-readable explanation specific to this occurrence of the problem.",
+						"examples": ["Property foo is required but is missing."],
+						"type": "string"
+					},
+					"errors": {
+						"description": "Optional list of individual error details",
+						"items": {
+							"$ref": "#/components/schemas/ErrorDetail"
+						},
+						"type": ["array", "null"]
+					},
+					"instance": {
+						"description": "A URI reference that identifies the specific occurrence of the problem.",
+						"examples": ["https://example.com/error-log/abc123"],
+						"format": "uri",
+						"type": "string"
+					},
+					"status": {
+						"description": "HTTP status code",
+						"examples": [400],
+						"format": "int64",
+						"type": "integer"
+					},
+					"title": {
+						"description": "A short, human-readable summary of the problem type. This value should not change between occurrences of the error.",
+						"examples": ["Bad Request"],
+						"type": "string"
+					},
+					"type": {
+						"default": "about:blank",
+						"description": "A URI reference to human-readable documentation for the error.",
+						"examples": ["https://example.com/errors/example"],
+						"format": "uri",
+						"type": "string"
+					}
+				},
+				"type": "object"
+			},
+			"HealthBody": {
+				"additionalProperties": false,
+				"properties": {
+					"$schema": {
+						"description": "A URL to the JSON Schema for this object.",
+						"examples": ["/api/v1/schemas/HealthBody.json"],
+						"format": "uri",
+						"readOnly": true,
+						"type": "string"
+					},
+					"status": {
+						"description": "Current health status.",
+						"examples": ["ready"],
+						"type": "string"
+					}
+				},
+				"required": ["status"],
+				"type": "object"
+			},
+			"ListMembersOutputBody": {
+				"additionalProperties": false,
+				"properties": {
+					"$schema": {
+						"description": "A URL to the JSON Schema for this object.",
+						"examples": ["/api/v1/schemas/ListMembersOutputBody.json"],
+						"format": "uri",
+						"readOnly": true,
+						"type": "string"
+					},
+					"members": {
+						"items": {
+							"$ref": "#/components/schemas/TeamMemberResponse"
+						},
+						"type": ["array", "null"]
+					}
+				},
+				"required": ["members"],
+				"type": "object"
+			},
+			"ListTeamsOutputBody": {
+				"additionalProperties": false,
+				"properties": {
+					"$schema": {
+						"description": "A URL to the JSON Schema for this object.",
+						"examples": ["/api/v1/schemas/ListTeamsOutputBody.json"],
+						"format": "uri",
+						"readOnly": true,
+						"type": "string"
+					},
+					"teams": {
+						"items": {
+							"$ref": "#/components/schemas/TeamResponse"
+						},
+						"type": ["array", "null"]
+					}
+				},
+				"required": ["teams"],
+				"type": "object"
+			},
+			"LoginInputBody": {
+				"additionalProperties": false,
+				"properties": {
+					"$schema": {
+						"description": "A URL to the JSON Schema for this object.",
+						"examples": ["/api/v1/schemas/LoginInputBody.json"],
+						"format": "uri",
+						"readOnly": true,
+						"type": "string"
+					},
+					"email": {
+						"format": "email",
+						"type": "string"
+					},
+					"password": {
+						"type": "string"
+					}
+				},
+				"required": ["email", "password"],
+				"type": "object"
+			},
+			"LoginOutputBody": {
+				"additionalProperties": false,
+				"properties": {
+					"$schema": {
+						"description": "A URL to the JSON Schema for this object.",
+						"examples": ["/api/v1/schemas/LoginOutputBody.json"],
+						"format": "uri",
+						"readOnly": true,
+						"type": "string"
+					},
+					"accessToken": {
+						"type": "string"
+					},
+					"expiresIn": {
+						"description": "Access token lifetime in seconds.",
+						"examples": [43200],
+						"format": "int64",
+						"type": "integer"
+					},
+					"tokenType": {
+						"examples": ["Bearer"],
+						"type": "string"
+					},
+					"user": {
+						"$ref": "#/components/schemas/UserResponse"
+					}
+				},
+				"required": ["user", "tokenType", "accessToken", "expiresIn"],
+				"type": "object"
+			},
+			"MeOutputBody": {
+				"additionalProperties": false,
+				"properties": {
+					"$schema": {
+						"description": "A URL to the JSON Schema for this object.",
+						"examples": ["/api/v1/schemas/MeOutputBody.json"],
+						"format": "uri",
+						"readOnly": true,
+						"type": "string"
+					},
+					"authenticated": {
+						"examples": [true],
+						"type": "boolean"
+					},
+					"user": {
+						"$ref": "#/components/schemas/UserResponse"
+					}
+				},
+				"required": ["authenticated", "user"],
+				"type": "object"
+			},
+			"MemberOutputBody": {
+				"additionalProperties": false,
+				"properties": {
+					"$schema": {
+						"description": "A URL to the JSON Schema for this object.",
+						"examples": ["/api/v1/schemas/MemberOutputBody.json"],
+						"format": "uri",
+						"readOnly": true,
+						"type": "string"
+					},
+					"member": {
+						"$ref": "#/components/schemas/TeamMemberResponse"
+					}
+				},
+				"required": ["member"],
+				"type": "object"
+			},
+			"RegisterInputBody": {
+				"additionalProperties": false,
+				"properties": {
+					"$schema": {
+						"description": "A URL to the JSON Schema for this object.",
+						"examples": ["/api/v1/schemas/RegisterInputBody.json"],
+						"format": "uri",
+						"readOnly": true,
+						"type": "string"
+					},
+					"displayName": {
+						"description": "Name shown in the app.",
+						"examples": ["Jane Doe"],
+						"maxLength": 100,
+						"minLength": 1,
+						"type": "string"
+					},
+					"email": {
+						"description": "Email address used to sign in.",
+						"examples": ["user@example.com"],
+						"format": "email",
+						"maxLength": 254,
+						"type": "string"
+					},
+					"password": {
+						"description": "Plain-text password. It is stored only as an Argon2id hash.",
+						"examples": ["correct-horse-battery-staple"],
+						"maxLength": 128,
+						"minLength": 8,
+						"type": "string",
+						"writeOnly": true
+					}
+				},
+				"required": ["email", "displayName", "password"],
+				"type": "object"
+			},
+			"RegisterOutputBody": {
+				"additionalProperties": false,
+				"properties": {
+					"$schema": {
+						"description": "A URL to the JSON Schema for this object.",
+						"examples": ["/api/v1/schemas/RegisterOutputBody.json"],
+						"format": "uri",
+						"readOnly": true,
+						"type": "string"
+					},
+					"accessToken": {
+						"type": "string"
+					},
+					"expiresIn": {
+						"description": "Access token lifetime in seconds.",
+						"examples": [43200],
+						"format": "int64",
+						"type": "integer"
+					},
+					"tokenType": {
+						"examples": ["Bearer"],
+						"type": "string"
+					},
+					"user": {
+						"$ref": "#/components/schemas/UserResponse"
+					}
+				},
+				"required": ["user", "tokenType", "accessToken", "expiresIn"],
+				"type": "object"
+			},
+			"RootBody": {
+				"additionalProperties": false,
+				"properties": {
+					"$schema": {
+						"description": "A URL to the JSON Schema for this object.",
+						"examples": ["/api/v1/schemas/RootBody.json"],
+						"format": "uri",
+						"readOnly": true,
+						"type": "string"
+					},
+					"message": {
+						"description": "Human-readable API status message.",
+						"examples": ["Netstamp API is running"],
+						"type": "string"
+					}
+				},
+				"required": ["message"],
+				"type": "object"
+			},
+			"TeamMemberResponse": {
+				"additionalProperties": false,
+				"properties": {
+					"createdAt": {
+						"format": "date-time",
+						"type": "string"
+					},
+					"email": {
+						"format": "email",
+						"type": "string"
+					},
+					"id": {
+						"format": "uuid",
+						"type": "string"
+					},
+					"role": {
+						"enum": ["owner", "admin", "editor", "viewer"],
+						"type": "string"
+					},
+					"teamId": {
+						"format": "uuid",
+						"type": "string"
+					},
+					"updatedAt": {
+						"format": "date-time",
+						"type": "string"
+					},
+					"userId": {
+						"format": "uuid",
+						"type": "string"
+					}
+				},
+				"required": ["id", "teamId", "userId", "email", "role", "createdAt", "updatedAt"],
+				"type": "object"
+			},
+			"TeamOutputBody": {
+				"additionalProperties": false,
+				"properties": {
+					"$schema": {
+						"description": "A URL to the JSON Schema for this object.",
+						"examples": ["/api/v1/schemas/TeamOutputBody.json"],
+						"format": "uri",
+						"readOnly": true,
+						"type": "string"
+					},
+					"team": {
+						"$ref": "#/components/schemas/TeamResponse"
+					}
+				},
+				"required": ["team"],
+				"type": "object"
+			},
+			"TeamResponse": {
+				"additionalProperties": false,
+				"properties": {
+					"createdAt": {
+						"format": "date-time",
+						"type": "string"
+					},
+					"createdByUserId": {
+						"format": "uuid",
+						"type": "string"
+					},
+					"id": {
+						"format": "uuid",
+						"type": "string"
+					},
+					"name": {
+						"type": "string"
+					},
+					"slug": {
+						"type": "string"
+					},
+					"updatedAt": {
+						"format": "date-time",
+						"type": "string"
+					}
+				},
+				"required": ["id", "name", "slug", "createdByUserId", "createdAt", "updatedAt"],
+				"type": "object"
+			},
+			"UpdateMemberRoleInputBody": {
+				"additionalProperties": false,
+				"properties": {
+					"$schema": {
+						"description": "A URL to the JSON Schema for this object.",
+						"examples": ["/api/v1/schemas/UpdateMemberRoleInputBody.json"],
+						"format": "uri",
+						"readOnly": true,
+						"type": "string"
+					},
+					"role": {
+						"description": "Team member role.",
+						"enum": ["owner", "admin", "editor", "viewer"],
+						"examples": ["viewer"],
+						"type": "string"
+					}
+				},
+				"required": ["role"],
+				"type": "object"
+			},
+			"UpdateTeamInputBody": {
+				"additionalProperties": false,
+				"properties": {
+					"$schema": {
+						"description": "A URL to the JSON Schema for this object.",
+						"examples": ["/api/v1/schemas/UpdateTeamInputBody.json"],
+						"format": "uri",
+						"readOnly": true,
+						"type": "string"
+					},
+					"name": {
+						"description": "Team display name.",
+						"examples": ["Engineering"],
+						"maxLength": 100,
+						"minLength": 1,
+						"type": "string"
+					},
+					"slug": {
+						"description": "Stable team slug.",
+						"examples": ["engineering"],
+						"maxLength": 100,
+						"minLength": 1,
+						"pattern": "^[a-z0-9-]+$",
+						"patternDescription": "lowercase letters, numbers, and dashes",
+						"type": "string"
+					}
+				},
+				"type": "object"
+			},
+			"UserResponse": {
+				"additionalProperties": false,
+				"properties": {
+					"displayName": {
+						"maxLength": 100,
+						"type": "string"
+					},
+					"email": {
+						"format": "email",
+						"type": "string"
+					},
+					"id": {
+						"format": "uuid",
+						"type": "string"
+					}
+				},
+				"required": ["id", "email"],
+				"type": "object"
+			}
+		},
+		"securitySchemes": {
+			"bearerAuth": {
+				"bearerFormat": "JWT",
+				"scheme": "bearer",
+				"type": "http"
+			}
+		}
+	},
+	"info": {
+		"description": "Controller HTTP API for Netstamp.",
+		"title": "Netstamp API",
+		"version": "v1"
+	},
+	"openapi": "3.1.0",
+	"paths": {
+		"/": {
+			"get": {
+				"operationId": "getAPIStatus",
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/RootBody"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"default": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Error"
+					}
+				},
+				"summary": "Get API status",
+				"tags": ["System"]
+			}
+		},
+		"/auth/login": {
+			"post": {
+				"operationId": "loginUser",
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/LoginInputBody"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LoginOutputBody"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"401": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Unauthorized"
+					},
+					"422": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Unprocessable Entity"
+					},
+					"500": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Internal Server Error"
+					}
+				},
+				"summary": "Login user",
+				"tags": ["Auth"]
+			}
+		},
+		"/auth/me": {
+			"get": {
+				"operationId": "getCurrentUser",
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/MeOutputBody"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"401": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Unauthorized"
+					},
+					"500": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Internal Server Error"
+					}
+				},
+				"security": [
+					{
+						"bearerAuth": []
+					}
+				],
+				"summary": "Get current user",
+				"tags": ["Auth"]
+			}
+		},
+		"/auth/register": {
+			"post": {
+				"operationId": "registerUser",
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/RegisterInputBody"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"201": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/RegisterOutputBody"
+								}
+							}
+						},
+						"description": "Created"
+					},
+					"409": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Conflict"
+					},
+					"422": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Unprocessable Entity"
+					},
+					"500": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Internal Server Error"
+					}
+				},
+				"summary": "Register user",
+				"tags": ["Auth"]
+			}
+		},
+		"/livez": {
+			"get": {
+				"operationId": "getLiveness",
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/HealthBody"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"default": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Error"
+					}
+				},
+				"summary": "Get liveness status",
+				"tags": ["System"]
+			}
+		},
+		"/readyz": {
+			"get": {
+				"operationId": "getReadiness",
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/HealthBody"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"500": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Internal Server Error"
+					},
+					"503": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Service Unavailable"
+					}
+				},
+				"summary": "Get readiness status",
+				"tags": ["System"]
+			}
+		},
+		"/teams": {
+			"get": {
+				"operationId": "listTeams",
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ListTeamsOutputBody"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"401": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Unauthorized"
+					},
+					"500": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Internal Server Error"
+					}
+				},
+				"security": [
+					{
+						"bearerAuth": []
+					}
+				],
+				"summary": "List teams",
+				"tags": ["Teams"]
+			},
+			"post": {
+				"operationId": "createTeam",
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/CreateTeamInputBody"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"201": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/TeamOutputBody"
+								}
+							}
+						},
+						"description": "Created"
+					},
+					"401": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Unauthorized"
+					},
+					"409": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Conflict"
+					},
+					"422": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Unprocessable Entity"
+					},
+					"500": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Internal Server Error"
+					}
+				},
+				"security": [
+					{
+						"bearerAuth": []
+					}
+				],
+				"summary": "Create team",
+				"tags": ["Teams"]
+			}
+		},
+		"/teams/{ref}": {
+			"delete": {
+				"operationId": "deleteTeam",
+				"parameters": [
+					{
+						"description": "Team UUID or slug.",
+						"in": "path",
+						"name": "ref",
+						"required": true,
+						"schema": {
+							"description": "Team UUID or slug.",
+							"examples": ["engineering"],
+							"maxLength": 100,
+							"minLength": 1,
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"204": {
+						"description": "No Content"
+					},
+					"401": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Unauthorized"
+					},
+					"403": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Forbidden"
+					},
+					"404": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"422": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Unprocessable Entity"
+					},
+					"500": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Internal Server Error"
+					}
+				},
+				"security": [
+					{
+						"bearerAuth": []
+					}
+				],
+				"summary": "Delete team",
+				"tags": ["Teams"]
+			},
+			"get": {
+				"operationId": "getTeam",
+				"parameters": [
+					{
+						"description": "Team UUID or slug.",
+						"in": "path",
+						"name": "ref",
+						"required": true,
+						"schema": {
+							"description": "Team UUID or slug.",
+							"examples": ["engineering"],
+							"maxLength": 100,
+							"minLength": 1,
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/TeamOutputBody"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"401": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Unauthorized"
+					},
+					"404": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"422": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Unprocessable Entity"
+					},
+					"500": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Internal Server Error"
+					}
+				},
+				"security": [
+					{
+						"bearerAuth": []
+					}
+				],
+				"summary": "Get team",
+				"tags": ["Teams"]
+			},
+			"patch": {
+				"operationId": "updateTeam",
+				"parameters": [
+					{
+						"description": "Team UUID or slug.",
+						"in": "path",
+						"name": "ref",
+						"required": true,
+						"schema": {
+							"description": "Team UUID or slug.",
+							"examples": ["engineering"],
+							"maxLength": 100,
+							"minLength": 1,
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/UpdateTeamInputBody"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/TeamOutputBody"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"401": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Unauthorized"
+					},
+					"403": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Forbidden"
+					},
+					"404": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"409": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Conflict"
+					},
+					"422": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Unprocessable Entity"
+					},
+					"500": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Internal Server Error"
+					}
+				},
+				"security": [
+					{
+						"bearerAuth": []
+					}
+				],
+				"summary": "Update team",
+				"tags": ["Teams"]
+			}
+		},
+		"/teams/{ref}/members": {
+			"get": {
+				"operationId": "listTeamMembers",
+				"parameters": [
+					{
+						"description": "Team UUID or slug.",
+						"in": "path",
+						"name": "ref",
+						"required": true,
+						"schema": {
+							"description": "Team UUID or slug.",
+							"examples": ["engineering"],
+							"maxLength": 100,
+							"minLength": 1,
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ListMembersOutputBody"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"401": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Unauthorized"
+					},
+					"404": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"422": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Unprocessable Entity"
+					},
+					"500": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Internal Server Error"
+					}
+				},
+				"security": [
+					{
+						"bearerAuth": []
+					}
+				],
+				"summary": "List team members",
+				"tags": ["Team Members"]
+			},
+			"post": {
+				"operationId": "addTeamMember",
+				"parameters": [
+					{
+						"description": "Team UUID or slug.",
+						"in": "path",
+						"name": "ref",
+						"required": true,
+						"schema": {
+							"description": "Team UUID or slug.",
+							"examples": ["engineering"],
+							"maxLength": 100,
+							"minLength": 1,
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/AddMemberInputBody"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"201": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/MemberOutputBody"
+								}
+							}
+						},
+						"description": "Created"
+					},
+					"401": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Unauthorized"
+					},
+					"403": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Forbidden"
+					},
+					"404": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"409": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Conflict"
+					},
+					"422": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Unprocessable Entity"
+					},
+					"500": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Internal Server Error"
+					}
+				},
+				"security": [
+					{
+						"bearerAuth": []
+					}
+				],
+				"summary": "Add team member",
+				"tags": ["Team Members"]
+			}
+		},
+		"/teams/{ref}/members/{user_id}": {
+			"patch": {
+				"operationId": "updateTeamMemberRole",
+				"parameters": [
+					{
+						"description": "Team UUID or slug.",
+						"in": "path",
+						"name": "ref",
+						"required": true,
+						"schema": {
+							"description": "Team UUID or slug.",
+							"examples": ["engineering"],
+							"maxLength": 100,
+							"minLength": 1,
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "user_id",
+						"required": true,
+						"schema": {
+							"format": "uuid",
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/UpdateMemberRoleInputBody"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/MemberOutputBody"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"401": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Unauthorized"
+					},
+					"403": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Forbidden"
+					},
+					"404": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"409": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Conflict"
+					},
+					"422": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Unprocessable Entity"
+					},
+					"500": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Internal Server Error"
+					}
+				},
+				"security": [
+					{
+						"bearerAuth": []
+					}
+				],
+				"summary": "Update team member role",
+				"tags": ["Team Members"]
+			}
+		}
+	},
+	"servers": [
+		{
+			"url": "/api/v1"
+		}
+	]
+}

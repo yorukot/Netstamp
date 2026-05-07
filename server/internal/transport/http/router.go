@@ -49,16 +49,7 @@ func NewRouter(dep Dependencies) http.Handler {
 
 	r.Route(dep.basePath(), func(apiRouter chi.Router) {
 		api := humachi.New(apiRouter, newHumaConfig(dep))
-		registerSystemRoutes(api, dep.ReadinessCheck)
-
-		// Auth handler
-		if dep.AuthService != nil {
-			authhttp.NewHandler(dep.AuthService, dep.AuthVerifier).RegisterRoutes(api)
-		}
-		// Team handler
-		if dep.TeamService != nil {
-			teamhttp.NewHandler(dep.TeamService, dep.AuthVerifier).RegisterRoutes(api)
-		}
+		registerAPIRoutes(api, dep)
 	})
 
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
@@ -70,6 +61,23 @@ func NewRouter(dep Dependencies) http.Handler {
 	})
 
 	return r
+}
+
+func NewOpenAPI(dep Dependencies) *huma.OpenAPI {
+	api := humachi.New(chi.NewRouter(), newHumaConfig(dep))
+	registerAPIRoutes(api, dep)
+	return api.OpenAPI()
+}
+
+func registerAPIRoutes(api huma.API, dep Dependencies) {
+	registerSystemRoutes(api, dep.ReadinessCheck)
+
+	if dep.AuthService != nil {
+		authhttp.NewHandler(dep.AuthService, dep.AuthVerifier).RegisterRoutes(api)
+	}
+	if dep.TeamService != nil {
+		teamhttp.NewHandler(dep.TeamService, dep.AuthVerifier).RegisterRoutes(api)
+	}
 }
 
 func newHumaConfig(dep Dependencies) huma.Config {
