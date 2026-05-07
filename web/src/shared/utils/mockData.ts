@@ -1,6 +1,6 @@
 import type { BadgeTone } from "@netstamp/ui";
 
-export type AppRoute = "dashboard" | "probes" | "insight" | "checks" | "alerts" | "team" | "settings" | "components";
+export type AppRoute = "dashboard" | "probes" | "insight" | "checks" | "alerts" | "team" | "settings";
 export type PublicRoute = "landing" | "login" | "register" | "onboarding";
 export type Route = AppRoute | PublicRoute;
 export type Navigate = (route: Route, hash?: string) => void;
@@ -17,14 +17,6 @@ export interface CurrentUser {
 	role: string;
 	gravatarUrl: string;
 }
-
-export interface Capability {
-	title: string;
-	copy: string;
-	meta: string;
-}
-
-export type ArchitectureStep = [number: string, title: string, copy: string];
 
 export type ProbeStatus = "Online" | "Offline" | "Draining";
 
@@ -81,15 +73,11 @@ export interface AlertRecord {
 export type MemberTuple = [name: string, email: string, role: string, lastActive: string];
 export type SystemStateTuple = [title: string, copy: string];
 
-export const installCommand = `curl -fsSL https://get.netstamp.dev/install.sh | sudo bash
-sudo netstamp register --controller https://controller.netstamp.io --token NSTP_xxxxx
-sudo systemctl enable --now netstamp-probe`;
-
 export const sidebarItems: SidebarItem[] = [
 	{ label: "Dashboard", route: "dashboard" },
 	{ label: "Probes", route: "probes" },
 	{ label: "Insight", route: "insight" },
-	{ label: "Checkes", route: "checks" },
+	{ label: "Checks", route: "checks" },
 	{ label: "Alerts", route: "alerts" },
 	{ label: "team", route: "team" }
 ];
@@ -101,49 +89,6 @@ export const currentUser: CurrentUser = {
 	role: "Admin",
 	gravatarUrl: "https://gravatar.com/avatar/f5a410169cdb93933383e6e54ac33b82e417fe84ffc4ed742adafd800cc07ab2?s=160&d=identicon"
 };
-
-export const capabilities: Capability[] = [
-	{
-		title: "Multi-region Probes",
-		copy: "Run lightweight agents from VPS, bare metal, labs, classrooms, edge hosts, and internal networks.",
-		meta: "128 active endpoints"
-	},
-	{
-		title: "Ping / DNS / Traceroute",
-		copy: "Simple active checks become structured, queryable result streams with raw metadata retained.",
-		meta: "3 measurement families"
-	},
-	{
-		title: "Assignment Scheduling",
-		copy: "Bind checks to probes with interval, jitter, enabled state, and duplicate assignment prevention.",
-		meta: "324 scheduled checks"
-	},
-	{
-		title: "Historical Results",
-		copy: "Compare latency, packet loss, DNS response, RCODEs, and path hashes across long windows.",
-		meta: "31.4M retained points"
-	},
-	{
-		title: "Path Change Detection",
-		copy: "Traceroute fingerprints reveal route churn and transit shifts before users report impact.",
-		meta: "hash diff engine"
-	},
-	{
-		title: "Probe Health Monitoring",
-		copy: "Heartbeat expiry, queue length, raw socket state, fallback mode, and agent version visibility.",
-		meta: "controller stream live"
-	}
-];
-
-export const architectureSteps: ArchitectureStep[] = [
-	["01", "Probe Agent", "Active checks from hosts you control."],
-	["02", "gRPC Stream", "Continuous signed result channel."],
-	["03", "Controller", "Schedules work and normalizes payloads."],
-	["04", "Results Store", "Queryable measurement history."],
-	["05", "Dashboard", "Operational console and audit surface."]
-];
-
-export const useCases: string[] = ["SRE monitoring", "Web3 infrastructure", "DNS reliability", "Global latency benchmarking", "Private host visibility", "Community network evidence"];
 
 export const probes: Probe[] = [
 	{

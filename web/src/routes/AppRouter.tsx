@@ -2,7 +2,6 @@ import { AlertsPage } from "@/features/alerts/components/AlertsPage";
 import { AuthPage } from "@/features/auth/components/AuthPage";
 import { OnboardingPage } from "@/features/auth/components/OnboardingPage";
 import { ChecksPage } from "@/features/checks/components/ChecksPage";
-import { ComponentDemoPage } from "@/features/dashboard/components/ComponentDemoPage";
 import { DashboardPage } from "@/features/dashboard/components/DashboardPage";
 import { InsightPage } from "@/features/insight/components/InsightPage";
 import { LandingPage } from "@/features/landing/components/LandingPage";
@@ -66,8 +65,7 @@ const router = createBrowserRouter([
 			{ path: appRoutePath("checks"), element: <ChecksPage /> },
 			{ path: appRoutePath("alerts"), element: <AlertsPage /> },
 			{ path: appRoutePath("team"), element: <TeamPage /> },
-			{ path: appRoutePath("settings"), element: <SettingsPage /> },
-			{ path: appRoutePath("components"), element: <ComponentDemoPage /> }
+			{ path: appRoutePath("settings"), element: <SettingsPage /> }
 		]
 	},
 	{ path: "*", element: <RouterNavigate to={pathForRoute("landing")} replace /> }

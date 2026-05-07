@@ -91,31 +91,3 @@ export function barChartOption(values: number[], name = "events"): ChartOption {
 		]
 	};
 }
-
-export function hopChartOption(): ChartOption {
-	const hops = ["probe", "ix", "isp", "transit", "core", "edge", "target"];
-
-	return {
-		backgroundColor: "transparent",
-		tooltip: {
-			backgroundColor: "rgba(10,13,18,0.92)",
-			borderColor: "rgba(255,255,255,0.14)",
-			textStyle: { color: "#F6F2EA" }
-		},
-		grid: { top: 16, right: 12, bottom: 30, left: 34 },
-		xAxis: { type: "category", data: hops, axisLabel, axisLine: { lineStyle: { color: "rgba(148,163,184,0.16)" } }, axisTick: { show: false } },
-		yAxis: { type: "value", axisLabel, splitLine, axisLine: { show: false }, axisTick: { show: false } },
-		series: [
-			{
-				name: "hop latency",
-				type: "line",
-				data: [4, 9, 18, 28, 43, 54, 62],
-				smooth: false,
-				symbol: "circle",
-				symbolSize: 8,
-				lineStyle: { width: 2, color: "#FF7A1A" },
-				itemStyle: { color: "#FF8F3D", borderColor: "#05070B", borderWidth: 2 }
-			}
-		]
-	};
-}

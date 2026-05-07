@@ -549,7 +549,7 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(function Che
 	return <input ref={ref} type="checkbox" className={classes} aria-invalid={booleanAria(ariaInvalid)} {...props} />;
 });
 
-export interface FieldShellProps {
+interface FieldShellProps {
 	id: string;
 	label: ReactNode;
 	helper?: ReactNode;

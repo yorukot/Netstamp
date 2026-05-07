@@ -11,8 +11,7 @@ export const routePaths = {
 	checks: "/checks",
 	alerts: "/alerts",
 	team: "/team",
-	settings: "/settings",
-	components: "/components"
+	settings: "/settings"
 } satisfies Record<Route, string>;
 
 export function pathForRoute(route: Route) {
