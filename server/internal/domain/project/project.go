@@ -1,4 +1,4 @@
-package team
+package project
 
 import "time"
 
@@ -11,7 +11,7 @@ const (
 	RoleViewer Role = "viewer"
 )
 
-type Team struct {
+type Project struct {
 	ID              string
 	Name            string
 	Slug            string
@@ -23,7 +23,7 @@ type Team struct {
 
 type Member struct {
 	ID        string
-	TeamID    string
+	ProjectID string
 	UserID    string
 	Email     string
 	Role      Role

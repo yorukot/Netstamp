@@ -11,10 +11,10 @@ import (
 	"google.golang.org/grpc"
 
 	appauth "github.com/yorukot/netstamp/internal/application/auth"
-	appteam "github.com/yorukot/netstamp/internal/application/team"
+	appproject "github.com/yorukot/netstamp/internal/application/project"
 	"github.com/yorukot/netstamp/internal/config"
 	"github.com/yorukot/netstamp/internal/infrastructure/postgres"
-	pgteam "github.com/yorukot/netstamp/internal/infrastructure/postgres/team"
+	pgproject "github.com/yorukot/netstamp/internal/infrastructure/postgres/project"
 	pguser "github.com/yorukot/netstamp/internal/infrastructure/postgres/user"
 	"github.com/yorukot/netstamp/internal/infrastructure/security"
 	"github.com/yorukot/netstamp/internal/logger"
@@ -88,8 +88,8 @@ func New(ctx context.Context) (*Application, error) {
 	authEvents := logger.NewAuthEventRecorder(log, cfg.LogPseudonymKey)
 
 	authSvc := appauth.NewService(userRepo, passwordHasher, tokenIssuer, authEvents)
-	teamRepo := pgteam.NewTeamRepository(dbPool)
-	teamSvc := appteam.NewService(teamRepo)
+	projectRepo := pgproject.NewProjectRepository(dbPool)
+	projectSvc := appproject.NewService(projectRepo)
 	readiness := postgres.NewReadinessCheck(dbPool)
 
 	httpHandler := httpserver.NewRouter(httpserver.Dependencies{
@@ -98,7 +98,7 @@ func New(ctx context.Context) (*Application, error) {
 		BackendBaseURL: cfg.HTTP.BackendBaseURL,
 		AuthService:    authSvc,
 		AuthVerifier:   tokenIssuer,
-		TeamService:    teamSvc,
+		ProjectService: projectSvc,
 		ReadinessCheck: readiness,
 		RequestTimeout: cfg.HTTP.RequestTimeout,
 	})

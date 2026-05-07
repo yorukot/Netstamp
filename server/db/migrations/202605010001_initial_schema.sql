@@ -4,7 +4,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 CREATE EXTENSION IF NOT EXISTS citext;
 CREATE EXTENSION IF NOT EXISTS timescaledb;
 
-CREATE TYPE team_member_role AS ENUM ('owner', 'admin', 'editor', 'viewer');
+CREATE TYPE project_member_role AS ENUM ('owner', 'admin', 'editor', 'viewer');
 CREATE TYPE check_type AS ENUM ('ping', 'traceroute');
 CREATE TYPE target_type AS ENUM ('host', 'ip');
 CREATE TYPE ip_family AS ENUM ('ipv4', 'ipv6');
@@ -40,7 +40,7 @@ CREATE TRIGGER set_users_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION set_updated_at();
 
-CREATE TABLE teams (
+CREATE TABLE projects (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     name text NOT NULL,
     slug citext NOT NULL,
@@ -48,43 +48,43 @@ CREATE TABLE teams (
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
     deleted_at timestamptz,
-    CONSTRAINT teams_name_not_empty CHECK (length(btrim(name)) > 0),
-    CONSTRAINT teams_slug_not_empty CHECK (length(btrim(slug::text)) > 0),
-    CONSTRAINT teams_deleted_at_after_created_at CHECK (deleted_at IS NULL OR deleted_at >= created_at)
+    CONSTRAINT projects_name_not_empty CHECK (length(btrim(name)) > 0),
+    CONSTRAINT projects_slug_not_empty CHECK (length(btrim(slug::text)) > 0),
+    CONSTRAINT projects_deleted_at_after_created_at CHECK (deleted_at IS NULL OR deleted_at >= created_at)
 );
 
-CREATE UNIQUE INDEX uq_teams_slug ON teams (slug);
+CREATE UNIQUE INDEX uq_projects_slug ON projects (slug);
 
-CREATE TRIGGER set_teams_updated_at
-    BEFORE UPDATE ON teams
+CREATE TRIGGER set_projects_updated_at
+    BEFORE UPDATE ON projects
     FOR EACH ROW
     EXECUTE FUNCTION set_updated_at();
 
-CREATE TABLE team_members (
+CREATE TABLE project_members (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    team_id uuid NOT NULL REFERENCES teams(id),
+    project_id uuid NOT NULL REFERENCES projects(id),
     user_id uuid NOT NULL REFERENCES users(id),
-    role team_member_role NOT NULL,
+    role project_member_role NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
     deleted_at timestamptz,
-    CONSTRAINT team_members_deleted_at_after_created_at CHECK (deleted_at IS NULL OR deleted_at >= created_at)
+    CONSTRAINT project_members_deleted_at_after_created_at CHECK (deleted_at IS NULL OR deleted_at >= created_at)
 );
 
-CREATE UNIQUE INDEX uq_team_members_active_team_user
-    ON team_members (team_id, user_id)
+CREATE UNIQUE INDEX uq_project_members_active_project_user
+    ON project_members (project_id, user_id)
     WHERE deleted_at IS NULL;
-CREATE INDEX idx_team_members_team_id ON team_members (team_id);
-CREATE INDEX idx_team_members_user_id ON team_members (user_id);
+CREATE INDEX idx_project_members_project_id ON project_members (project_id);
+CREATE INDEX idx_project_members_user_id ON project_members (user_id);
 
-CREATE TRIGGER set_team_members_updated_at
-    BEFORE UPDATE ON team_members
+CREATE TRIGGER set_project_members_updated_at
+    BEFORE UPDATE ON project_members
     FOR EACH ROW
     EXECUTE FUNCTION set_updated_at();
 
 CREATE TABLE probes (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    team_id uuid NOT NULL REFERENCES teams(id),
+    project_id uuid NOT NULL REFERENCES projects(id),
     name text NOT NULL,
     hostname text,
     latitude double precision,
@@ -93,7 +93,7 @@ CREATE TABLE probes (
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
     deleted_at timestamptz,
-    CONSTRAINT uq_probes_team_id_id UNIQUE (team_id, id),
+    CONSTRAINT uq_probes_project_id_id UNIQUE (project_id, id),
     CONSTRAINT probes_name_not_empty CHECK (length(btrim(name)) > 0),
     CONSTRAINT probes_hostname_not_empty CHECK (hostname IS NULL OR length(btrim(hostname)) > 0),
     CONSTRAINT probes_latitude_range CHECK (latitude IS NULL OR (latitude >= -90 AND latitude <= 90)),
@@ -102,7 +102,7 @@ CREATE TABLE probes (
     CONSTRAINT probes_deleted_at_after_created_at CHECK (deleted_at IS NULL OR deleted_at >= created_at)
 );
 
-CREATE INDEX idx_probes_team_id ON probes (team_id);
+CREATE INDEX idx_probes_project_id ON probes (project_id);
 
 CREATE TRIGGER set_probes_updated_at
     BEFORE UPDATE ON probes
@@ -134,7 +134,7 @@ CREATE TABLE probe_statuses (
 
 CREATE TABLE checks (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    team_id uuid NOT NULL REFERENCES teams(id),
+    project_id uuid NOT NULL REFERENCES projects(id),
     name text NOT NULL,
     check_type check_type NOT NULL,
     target text NOT NULL,
@@ -144,7 +144,7 @@ CREATE TABLE checks (
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
     deleted_at timestamptz,
-    CONSTRAINT uq_checks_team_id_id UNIQUE (team_id, id),
+    CONSTRAINT uq_checks_project_id_id UNIQUE (project_id, id),
     CONSTRAINT uq_checks_id_check_type UNIQUE (id, check_type),
     CONSTRAINT checks_name_not_empty CHECK (length(btrim(name)) > 0),
     CONSTRAINT checks_target_not_empty CHECK (length(btrim(target)) > 0),
@@ -152,8 +152,8 @@ CREATE TABLE checks (
     CONSTRAINT checks_deleted_at_after_created_at CHECK (deleted_at IS NULL OR deleted_at >= created_at)
 );
 
-CREATE INDEX idx_checks_team_id ON checks (team_id);
-CREATE INDEX idx_checks_team_id_check_type ON checks (team_id, check_type);
+CREATE INDEX idx_checks_project_id ON checks (project_id);
+CREATE INDEX idx_checks_project_id_check_type ON checks (project_id, check_type);
 
 CREATE TRIGGER set_checks_updated_at
     BEFORE UPDATE ON checks
@@ -198,7 +198,7 @@ CREATE TABLE traceroute_check_configs (
 
 CREATE TABLE probe_checks (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    team_id uuid NOT NULL REFERENCES teams(id),
+    project_id uuid NOT NULL REFERENCES projects(id),
     probe_id uuid NOT NULL,
     check_id uuid NOT NULL,
     name text,
@@ -208,21 +208,21 @@ CREATE TABLE probe_checks (
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
     deleted_at timestamptz,
-    CONSTRAINT uq_probe_checks_team_id_id UNIQUE (team_id, id),
+    CONSTRAINT uq_probe_checks_project_id_id UNIQUE (project_id, id),
     CONSTRAINT probe_checks_name_not_empty CHECK (name IS NULL OR length(btrim(name)) > 0),
     CONSTRAINT probe_checks_interval_seconds_positive CHECK (interval_seconds > 0),
     CONSTRAINT probe_checks_jitter_seconds_range CHECK (jitter_seconds >= 0 AND jitter_seconds < interval_seconds),
     CONSTRAINT probe_checks_deleted_at_after_created_at CHECK (deleted_at IS NULL OR deleted_at >= created_at),
-    CONSTRAINT fk_probe_checks_team_probe
-        FOREIGN KEY (team_id, probe_id) REFERENCES probes(team_id, id),
-    CONSTRAINT fk_probe_checks_team_check
-        FOREIGN KEY (team_id, check_id) REFERENCES checks(team_id, id)
+    CONSTRAINT fk_probe_checks_project_probe
+        FOREIGN KEY (project_id, probe_id) REFERENCES probes(project_id, id),
+    CONSTRAINT fk_probe_checks_project_check
+        FOREIGN KEY (project_id, check_id) REFERENCES checks(project_id, id)
 );
 
-CREATE UNIQUE INDEX uq_probe_checks_active_team_probe_check
-    ON probe_checks (team_id, probe_id, check_id)
+CREATE UNIQUE INDEX uq_probe_checks_active_project_probe_check
+    ON probe_checks (project_id, probe_id, check_id)
     WHERE deleted_at IS NULL;
-CREATE INDEX idx_probe_checks_team_id ON probe_checks (team_id);
+CREATE INDEX idx_probe_checks_project_id ON probe_checks (project_id);
 CREATE INDEX idx_probe_checks_probe_id ON probe_checks (probe_id);
 CREATE INDEX idx_probe_checks_check_id ON probe_checks (check_id);
 
@@ -233,20 +233,20 @@ CREATE TRIGGER set_probe_checks_updated_at
 
 CREATE TABLE labels (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    team_id uuid NOT NULL REFERENCES teams(id),
+    project_id uuid NOT NULL REFERENCES projects(id),
     name citext NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
     deleted_at timestamptz,
-    CONSTRAINT uq_labels_team_id_id UNIQUE (team_id, id),
+    CONSTRAINT uq_labels_project_id_id UNIQUE (project_id, id),
     CONSTRAINT labels_name_not_empty CHECK (length(btrim(name::text)) > 0),
     CONSTRAINT labels_deleted_at_after_created_at CHECK (deleted_at IS NULL OR deleted_at >= created_at)
 );
 
-CREATE UNIQUE INDEX uq_labels_active_team_name
-    ON labels (team_id, name)
+CREATE UNIQUE INDEX uq_labels_active_project_name
+    ON labels (project_id, name)
     WHERE deleted_at IS NULL;
-CREATE INDEX idx_labels_team_id ON labels (team_id);
+CREATE INDEX idx_labels_project_id ON labels (project_id);
 
 CREATE TRIGGER set_labels_updated_at
     BEFORE UPDATE ON labels
@@ -254,34 +254,34 @@ CREATE TRIGGER set_labels_updated_at
     EXECUTE FUNCTION set_updated_at();
 
 CREATE TABLE check_labels (
-    team_id uuid NOT NULL,
+    project_id uuid NOT NULL,
     check_id uuid NOT NULL,
     label_id uuid NOT NULL,
-    PRIMARY KEY (team_id, check_id, label_id),
-    CONSTRAINT fk_check_labels_team_check
-        FOREIGN KEY (team_id, check_id) REFERENCES checks(team_id, id) ON DELETE CASCADE,
-    CONSTRAINT fk_check_labels_team_label
-        FOREIGN KEY (team_id, label_id) REFERENCES labels(team_id, id) ON DELETE CASCADE
+    PRIMARY KEY (project_id, check_id, label_id),
+    CONSTRAINT fk_check_labels_project_check
+        FOREIGN KEY (project_id, check_id) REFERENCES checks(project_id, id) ON DELETE CASCADE,
+    CONSTRAINT fk_check_labels_project_label
+        FOREIGN KEY (project_id, label_id) REFERENCES labels(project_id, id) ON DELETE CASCADE
 );
 
 CREATE INDEX idx_check_labels_label_id ON check_labels (label_id);
 
 CREATE TABLE probe_labels (
-    team_id uuid NOT NULL,
+    project_id uuid NOT NULL,
     probe_id uuid NOT NULL,
     label_id uuid NOT NULL,
-    PRIMARY KEY (team_id, probe_id, label_id),
-    CONSTRAINT fk_probe_labels_team_probe
-        FOREIGN KEY (team_id, probe_id) REFERENCES probes(team_id, id) ON DELETE CASCADE,
-    CONSTRAINT fk_probe_labels_team_label
-        FOREIGN KEY (team_id, label_id) REFERENCES labels(team_id, id) ON DELETE CASCADE
+    PRIMARY KEY (project_id, probe_id, label_id),
+    CONSTRAINT fk_probe_labels_project_probe
+        FOREIGN KEY (project_id, probe_id) REFERENCES probes(project_id, id) ON DELETE CASCADE,
+    CONSTRAINT fk_probe_labels_project_label
+        FOREIGN KEY (project_id, label_id) REFERENCES labels(project_id, id) ON DELETE CASCADE
 );
 
 CREATE INDEX idx_probe_labels_label_id ON probe_labels (label_id);
 
 CREATE TABLE ping_results (
     id uuid NOT NULL DEFAULT gen_random_uuid(),
-    team_id uuid NOT NULL,
+    project_id uuid NOT NULL,
     probe_check_id uuid NOT NULL,
     started_at timestamptz NOT NULL,
     finished_at timestamptz NOT NULL,
@@ -320,19 +320,19 @@ CREATE TABLE ping_results (
     ),
     CONSTRAINT ping_results_error_code_not_empty CHECK (error_code IS NULL OR length(btrim(error_code)) > 0),
     CONSTRAINT ping_results_error_message_not_empty CHECK (error_message IS NULL OR length(btrim(error_message)) > 0),
-    CONSTRAINT fk_ping_results_team_probe_check
-        FOREIGN KEY (team_id, probe_check_id) REFERENCES probe_checks(team_id, id)
+    CONSTRAINT fk_ping_results_project_probe_check
+        FOREIGN KEY (project_id, probe_check_id) REFERENCES probe_checks(project_id, id)
 );
 
 SELECT create_hypertable('ping_results', 'started_at', if_not_exists => TRUE);
 
-CREATE INDEX idx_ping_results_team_id_started_at ON ping_results (team_id, started_at DESC);
+CREATE INDEX idx_ping_results_project_id_started_at ON ping_results (project_id, started_at DESC);
 CREATE INDEX idx_ping_results_probe_check_id_started_at ON ping_results (probe_check_id, started_at DESC);
 CREATE INDEX idx_ping_results_status_started_at ON ping_results (status, started_at DESC);
 
 CREATE TABLE traceroute_results (
     id uuid NOT NULL DEFAULT gen_random_uuid(),
-    team_id uuid NOT NULL,
+    project_id uuid NOT NULL,
     probe_check_id uuid NOT NULL,
     started_at timestamptz NOT NULL,
     finished_at timestamptz NOT NULL,
@@ -356,21 +356,21 @@ CREATE TABLE traceroute_results (
     CONSTRAINT traceroute_results_error_message_not_empty CHECK (
         error_message IS NULL OR length(btrim(error_message)) > 0
     ),
-    CONSTRAINT fk_traceroute_results_team_probe_check
-        FOREIGN KEY (team_id, probe_check_id) REFERENCES probe_checks(team_id, id)
+    CONSTRAINT fk_traceroute_results_project_probe_check
+        FOREIGN KEY (project_id, probe_check_id) REFERENCES probe_checks(project_id, id)
 );
 
 SELECT create_hypertable('traceroute_results', 'started_at', if_not_exists => TRUE);
 
-CREATE INDEX idx_traceroute_results_team_id_started_at ON traceroute_results (team_id, started_at DESC);
+CREATE INDEX idx_traceroute_results_project_id_started_at ON traceroute_results (project_id, started_at DESC);
 CREATE INDEX idx_traceroute_results_probe_check_id_started_at ON traceroute_results (probe_check_id, started_at DESC);
 CREATE INDEX idx_traceroute_results_status_started_at ON traceroute_results (status, started_at DESC);
-CREATE INDEX idx_traceroute_results_team_path_hash_started_at
-    ON traceroute_results (team_id, path_hash, started_at DESC);
+CREATE INDEX idx_traceroute_results_project_path_hash_started_at
+    ON traceroute_results (project_id, path_hash, started_at DESC);
 
 CREATE TABLE traceroute_hops (
     traceroute_result_id uuid NOT NULL,
-    team_id uuid NOT NULL,
+    project_id uuid NOT NULL,
     probe_check_id uuid NOT NULL,
     started_at timestamptz NOT NULL,
     hop_number integer NOT NULL,
@@ -391,17 +391,17 @@ CREATE TABLE traceroute_hops (
     ),
     CONSTRAINT fk_traceroute_hops_result
         FOREIGN KEY (traceroute_result_id, started_at) REFERENCES traceroute_results(id, started_at) ON DELETE CASCADE,
-    CONSTRAINT fk_traceroute_hops_team_probe_check
-        FOREIGN KEY (team_id, probe_check_id) REFERENCES probe_checks(team_id, id)
+    CONSTRAINT fk_traceroute_hops_project_probe_check
+        FOREIGN KEY (project_id, probe_check_id) REFERENCES probe_checks(project_id, id)
 );
 
-CREATE INDEX idx_traceroute_hops_team_id_started_at ON traceroute_hops (team_id, started_at DESC);
+CREATE INDEX idx_traceroute_hops_project_id_started_at ON traceroute_hops (project_id, started_at DESC);
 CREATE INDEX idx_traceroute_hops_probe_check_id_started_at ON traceroute_hops (probe_check_id, started_at DESC);
 CREATE INDEX idx_traceroute_hops_result_id_started_at
     ON traceroute_hops (traceroute_result_id, started_at DESC);
-CREATE INDEX idx_traceroute_hops_team_hop_ip_started_at ON traceroute_hops (team_id, hop_ip, started_at DESC);
-CREATE INDEX idx_traceroute_hops_team_probe_check_hop_started_at
-    ON traceroute_hops (team_id, probe_check_id, hop_number, started_at DESC);
+CREATE INDEX idx_traceroute_hops_project_hop_ip_started_at ON traceroute_hops (project_id, hop_ip, started_at DESC);
+CREATE INDEX idx_traceroute_hops_project_probe_check_hop_started_at
+    ON traceroute_hops (project_id, probe_check_id, hop_number, started_at DESC);
 
 -- +goose Down
 DROP TABLE IF EXISTS traceroute_hops;
@@ -417,8 +417,8 @@ DROP TABLE IF EXISTS checks;
 DROP TABLE IF EXISTS probe_statuses;
 DROP TABLE IF EXISTS probe_credentials;
 DROP TABLE IF EXISTS probes;
-DROP TABLE IF EXISTS team_members;
-DROP TABLE IF EXISTS teams;
+DROP TABLE IF EXISTS project_members;
+DROP TABLE IF EXISTS projects;
 DROP TABLE IF EXISTS users;
 
 DROP FUNCTION IF EXISTS set_updated_at();
@@ -429,4 +429,4 @@ DROP TYPE IF EXISTS probe_state;
 DROP TYPE IF EXISTS ip_family;
 DROP TYPE IF EXISTS target_type;
 DROP TYPE IF EXISTS check_type;
-DROP TYPE IF EXISTS team_member_role;
+DROP TYPE IF EXISTS project_member_role;

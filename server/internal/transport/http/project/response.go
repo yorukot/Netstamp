@@ -1,17 +1,17 @@
-package team
+package project
 
 import (
 	"time"
 
-	domainteam "github.com/yorukot/netstamp/internal/domain/team"
+	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 )
 
-type teamOutput struct {
-	Body teamOutputBody
+type projectOutput struct {
+	Body projectOutputBody
 }
 
-type teamOutputBody struct {
-	Team teamResponse `json:"team"`
+type projectOutputBody struct {
+	Project projectResponse `json:"project"`
 }
 
 type memberOutput struct {
@@ -19,10 +19,10 @@ type memberOutput struct {
 }
 
 type memberOutputBody struct {
-	Member teamMemberResponse `json:"member"`
+	Member projectMemberResponse `json:"member"`
 }
 
-type teamResponse struct {
+type projectResponse struct {
 	ID              string    `json:"id" format:"uuid"`
 	Name            string    `json:"name"`
 	Slug            string    `json:"slug"`
@@ -31,9 +31,9 @@ type teamResponse struct {
 	UpdatedAt       time.Time `json:"updatedAt"`
 }
 
-type teamMemberResponse struct {
+type projectMemberResponse struct {
 	ID        string    `json:"id" format:"uuid"`
-	TeamID    string    `json:"teamId" format:"uuid"`
+	ProjectID string    `json:"projectId" format:"uuid"`
 	UserID    string    `json:"userId" format:"uuid"`
 	Email     string    `json:"email" format:"email"`
 	Role      string    `json:"role" enum:"owner,admin,editor,viewer"`
@@ -41,21 +41,21 @@ type teamMemberResponse struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 }
 
-func newTeamResponse(team domainteam.Team) teamResponse {
-	return teamResponse{
-		ID:              team.ID,
-		Name:            team.Name,
-		Slug:            team.Slug,
-		CreatedByUserID: team.CreatedByUserID,
-		CreatedAt:       team.CreatedAt,
-		UpdatedAt:       team.UpdatedAt,
+func newProjectResponse(project domainproject.Project) projectResponse {
+	return projectResponse{
+		ID:              project.ID,
+		Name:            project.Name,
+		Slug:            project.Slug,
+		CreatedByUserID: project.CreatedByUserID,
+		CreatedAt:       project.CreatedAt,
+		UpdatedAt:       project.UpdatedAt,
 	}
 }
 
-func newTeamMemberResponse(member domainteam.Member) teamMemberResponse {
-	return teamMemberResponse{
+func newProjectMemberResponse(member domainproject.Member) projectMemberResponse {
+	return projectMemberResponse{
 		ID:        member.ID,
-		TeamID:    member.TeamID,
+		ProjectID: member.ProjectID,
 		UserID:    member.UserID,
 		Email:     member.Email,
 		Role:      string(member.Role),

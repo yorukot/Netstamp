@@ -1,4 +1,4 @@
-package team
+package project
 
 import (
 	"net/http"
@@ -6,16 +6,16 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 
 	appauth "github.com/yorukot/netstamp/internal/application/auth"
-	appteam "github.com/yorukot/netstamp/internal/application/team"
+	appproject "github.com/yorukot/netstamp/internal/application/project"
 	httpmiddleware "github.com/yorukot/netstamp/internal/transport/http/middleware"
 )
 
 type Handler struct {
-	service  *appteam.Service
+	service  *appproject.Service
 	verifier appauth.TokenVerifier
 }
 
-func NewHandler(service *appteam.Service, verifier appauth.TokenVerifier) *Handler {
+func NewHandler(service *appproject.Service, verifier appauth.TokenVerifier) *Handler {
 	return &Handler{
 		service:  service,
 		verifier: verifier,
@@ -32,91 +32,91 @@ func (h *Handler) RegisterRoutes(api huma.API) {
 	middlewares := huma.Middlewares{authMiddleware}
 
 	huma.Register(api, huma.Operation{
-		OperationID:   "createTeam",
+		OperationID:   "createProject",
 		Method:        http.MethodPost,
-		Path:          "/teams",
+		Path:          "/projects",
 		DefaultStatus: http.StatusCreated,
-		Summary:       "Create team",
-		Tags:          []string{"Teams"},
+		Summary:       "Create project",
+		Tags:          []string{"Projects"},
 		Security:      security,
 		Middlewares:   middlewares,
 		Errors:        []int{http.StatusUnauthorized, http.StatusConflict, http.StatusUnprocessableEntity, http.StatusInternalServerError},
-	}, h.createTeam)
+	}, h.createProject)
 
 	huma.Register(api, huma.Operation{
-		OperationID: "listTeams",
+		OperationID: "listProjects",
 		Method:      http.MethodGet,
-		Path:        "/teams",
-		Summary:     "List teams",
-		Tags:        []string{"Teams"},
+		Path:        "/projects",
+		Summary:     "List projects",
+		Tags:        []string{"Projects"},
 		Security:    security,
 		Middlewares: middlewares,
 		Errors:      []int{http.StatusUnauthorized, http.StatusInternalServerError},
-	}, h.listTeams)
+	}, h.listProjects)
 
 	huma.Register(api, huma.Operation{
-		OperationID: "getTeam",
+		OperationID: "getProject",
 		Method:      http.MethodGet,
-		Path:        "/teams/{ref}",
-		Summary:     "Get team",
-		Tags:        []string{"Teams"},
+		Path:        "/projects/{ref}",
+		Summary:     "Get project",
+		Tags:        []string{"Projects"},
 		Security:    security,
 		Middlewares: middlewares,
 		Errors:      []int{http.StatusUnauthorized, http.StatusNotFound, http.StatusInternalServerError},
-	}, h.getTeam)
+	}, h.getProject)
 
 	huma.Register(api, huma.Operation{
-		OperationID: "updateTeam",
+		OperationID: "updateProject",
 		Method:      http.MethodPatch,
-		Path:        "/teams/{ref}",
-		Summary:     "Update team",
-		Tags:        []string{"Teams"},
+		Path:        "/projects/{ref}",
+		Summary:     "Update project",
+		Tags:        []string{"Projects"},
 		Security:    security,
 		Middlewares: middlewares,
 		Errors:      []int{http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound, http.StatusConflict, http.StatusUnprocessableEntity, http.StatusInternalServerError},
-	}, h.updateTeam)
+	}, h.updateProject)
 
 	huma.Register(api, huma.Operation{
-		OperationID:   "deleteTeam",
+		OperationID:   "deleteProject",
 		Method:        http.MethodDelete,
-		Path:          "/teams/{ref}",
+		Path:          "/projects/{ref}",
 		DefaultStatus: http.StatusNoContent,
-		Summary:       "Delete team",
-		Tags:          []string{"Teams"},
+		Summary:       "Delete project",
+		Tags:          []string{"Projects"},
 		Security:      security,
 		Middlewares:   middlewares,
 		Errors:        []int{http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound, http.StatusInternalServerError},
-	}, h.deleteTeam)
+	}, h.deleteProject)
 
 	huma.Register(api, huma.Operation{
-		OperationID: "listTeamMembers",
+		OperationID: "listProjectMembers",
 		Method:      http.MethodGet,
-		Path:        "/teams/{ref}/members",
-		Summary:     "List team members",
-		Tags:        []string{"Team Members"},
+		Path:        "/projects/{ref}/members",
+		Summary:     "List project members",
+		Tags:        []string{"Project Members"},
 		Security:    security,
 		Middlewares: middlewares,
 		Errors:      []int{http.StatusUnauthorized, http.StatusNotFound, http.StatusInternalServerError},
 	}, h.listMembers)
 
 	huma.Register(api, huma.Operation{
-		OperationID:   "addTeamMember",
+		OperationID:   "addProjectMember",
 		Method:        http.MethodPost,
-		Path:          "/teams/{ref}/members",
+		Path:          "/projects/{ref}/members",
 		DefaultStatus: http.StatusCreated,
-		Summary:       "Add team member",
-		Tags:          []string{"Team Members"},
+		Summary:       "Add project member",
+		Tags:          []string{"Project Members"},
 		Security:      security,
 		Middlewares:   middlewares,
 		Errors:        []int{http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound, http.StatusConflict, http.StatusUnprocessableEntity, http.StatusInternalServerError},
 	}, h.addMember)
 
 	huma.Register(api, huma.Operation{
-		OperationID: "updateTeamMemberRole",
+		OperationID: "updateProjectMemberRole",
 		Method:      http.MethodPatch,
-		Path:        "/teams/{ref}/members/{user_id}",
-		Summary:     "Update team member role",
-		Tags:        []string{"Team Members"},
+		Path:        "/projects/{ref}/members/{user_id}",
+		Summary:     "Update project member role",
+		Tags:        []string{"Project Members"},
 		Security:    security,
 		Middlewares: middlewares,
 		Errors:      []int{http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound, http.StatusConflict, http.StatusUnprocessableEntity, http.StatusInternalServerError},

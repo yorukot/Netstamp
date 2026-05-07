@@ -1,16 +1,16 @@
-package pgteam
+package pgproject
 
 import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
 
-	domainteam "github.com/yorukot/netstamp/internal/domain/team"
+	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 	"github.com/yorukot/netstamp/internal/infrastructure/postgres/sqlc"
 )
 
-func mapTeam(row sqlc.Team) domainteam.Team {
-	return domainteam.Team{
+func mapProject(row sqlc.Project) domainproject.Project {
+	return domainproject.Project{
 		ID:              row.ID.String(),
 		Name:            row.Name,
 		Slug:            row.Slug,
@@ -21,13 +21,13 @@ func mapTeam(row sqlc.Team) domainteam.Team {
 	}
 }
 
-func mapCreateMember(row sqlc.CreateTeamMemberRow) domainteam.Member {
-	return domainteam.Member{
+func mapCreateMember(row sqlc.CreateProjectMemberRow) domainproject.Member {
+	return domainproject.Member{
 		ID:        row.ID.String(),
-		TeamID:    row.TeamID.String(),
+		ProjectID: row.ProjectID.String(),
 		UserID:    row.UserID.String(),
 		Email:     row.Email,
-		Role:      domainteam.Role(row.Role),
+		Role:      domainproject.Role(row.Role),
 		CreatedAt: row.CreatedAt.Time,
 		UpdatedAt: row.UpdatedAt.Time,
 	}
@@ -41,37 +41,37 @@ func timePtr(value pgtype.Timestamptz) *time.Time {
 	return &value.Time
 }
 
-func mapListMember(row sqlc.ListActiveTeamMembersRow) domainteam.Member {
-	return domainteam.Member{
+func mapListMember(row sqlc.ListActiveProjectMembersRow) domainproject.Member {
+	return domainproject.Member{
 		ID:        row.ID.String(),
-		TeamID:    row.TeamID.String(),
+		ProjectID: row.ProjectID.String(),
 		UserID:    row.UserID.String(),
 		Email:     row.Email,
-		Role:      domainteam.Role(row.Role),
+		Role:      domainproject.Role(row.Role),
 		CreatedAt: row.CreatedAt.Time,
 		UpdatedAt: row.UpdatedAt.Time,
 	}
 }
 
-func mapGetMember(row sqlc.GetActiveTeamMemberRow) domainteam.Member {
-	return domainteam.Member{
+func mapGetMember(row sqlc.GetActiveProjectMemberRow) domainproject.Member {
+	return domainproject.Member{
 		ID:        row.ID.String(),
-		TeamID:    row.TeamID.String(),
+		ProjectID: row.ProjectID.String(),
 		UserID:    row.UserID.String(),
 		Email:     row.Email,
-		Role:      domainteam.Role(row.Role),
+		Role:      domainproject.Role(row.Role),
 		CreatedAt: row.CreatedAt.Time,
 		UpdatedAt: row.UpdatedAt.Time,
 	}
 }
 
-func mapUpdateMember(row sqlc.UpdateTeamMemberRoleRow) domainteam.Member {
-	return domainteam.Member{
+func mapUpdateMember(row sqlc.UpdateProjectMemberRoleRow) domainproject.Member {
+	return domainproject.Member{
 		ID:        row.ID.String(),
-		TeamID:    row.TeamID.String(),
+		ProjectID: row.ProjectID.String(),
 		UserID:    row.UserID.String(),
 		Email:     row.Email,
-		Role:      domainteam.Role(row.Role),
+		Role:      domainproject.Role(row.Role),
 		CreatedAt: row.CreatedAt.Time,
 		UpdatedAt: row.UpdatedAt.Time,
 	}

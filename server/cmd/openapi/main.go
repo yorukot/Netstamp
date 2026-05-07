@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 
 	appauth "github.com/yorukot/netstamp/internal/application/auth"
-	appteam "github.com/yorukot/netstamp/internal/application/team"
+	appproject "github.com/yorukot/netstamp/internal/application/project"
 	httpserver "github.com/yorukot/netstamp/internal/transport/http"
 )
 
@@ -30,7 +30,7 @@ func main() {
 		BackendBaseURL: *serverURL,
 		AuthService:    &appauth.Service{},
 		AuthVerifier:   schemaVerifier{},
-		TeamService:    &appteam.Service{},
+		ProjectService: &appproject.Service{},
 	})
 
 	data, err := json.MarshalIndent(spec, "", "\t")

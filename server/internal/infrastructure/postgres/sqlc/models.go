@@ -184,6 +184,50 @@ func (ns NullProbeState) Value() (driver.Value, error) {
 	return string(ns.ProbeState), nil
 }
 
+type ProjectMemberRole string
+
+const (
+	ProjectMemberRoleOwner  ProjectMemberRole = "owner"
+	ProjectMemberRoleAdmin  ProjectMemberRole = "admin"
+	ProjectMemberRoleEditor ProjectMemberRole = "editor"
+	ProjectMemberRoleViewer ProjectMemberRole = "viewer"
+)
+
+func (e *ProjectMemberRole) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ProjectMemberRole(s)
+	case string:
+		*e = ProjectMemberRole(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ProjectMemberRole: %T", src)
+	}
+	return nil
+}
+
+type NullProjectMemberRole struct {
+	ProjectMemberRole ProjectMemberRole `json:"project_member_role"`
+	Valid             bool              `json:"valid"` // Valid is true if ProjectMemberRole is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullProjectMemberRole) Scan(value interface{}) error {
+	if value == nil {
+		ns.ProjectMemberRole, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ProjectMemberRole.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullProjectMemberRole) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ProjectMemberRole), nil
+}
+
 type TargetType string
 
 const (
@@ -224,50 +268,6 @@ func (ns NullTargetType) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.TargetType), nil
-}
-
-type TeamMemberRole string
-
-const (
-	TeamMemberRoleOwner  TeamMemberRole = "owner"
-	TeamMemberRoleAdmin  TeamMemberRole = "admin"
-	TeamMemberRoleEditor TeamMemberRole = "editor"
-	TeamMemberRoleViewer TeamMemberRole = "viewer"
-)
-
-func (e *TeamMemberRole) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = TeamMemberRole(s)
-	case string:
-		*e = TeamMemberRole(s)
-	default:
-		return fmt.Errorf("unsupported scan type for TeamMemberRole: %T", src)
-	}
-	return nil
-}
-
-type NullTeamMemberRole struct {
-	TeamMemberRole TeamMemberRole `json:"team_member_role"`
-	Valid          bool           `json:"valid"` // Valid is true if TeamMemberRole is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullTeamMemberRole) Scan(value interface{}) error {
-	if value == nil {
-		ns.TeamMemberRole, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.TeamMemberRole.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullTeamMemberRole) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.TeamMemberRole), nil
 }
 
 type TracerouteProtocol string
@@ -315,7 +315,7 @@ func (ns NullTracerouteProtocol) Value() (driver.Value, error) {
 
 type Check struct {
 	ID          uuid.UUID          `json:"id"`
-	TeamID      uuid.UUID          `json:"team_id"`
+	ProjectID   uuid.UUID          `json:"project_id"`
 	Name        string             `json:"name"`
 	CheckType   CheckType          `json:"check_type"`
 	Target      string             `json:"target"`
@@ -328,14 +328,14 @@ type Check struct {
 }
 
 type CheckLabel struct {
-	TeamID  uuid.UUID `json:"team_id"`
-	CheckID uuid.UUID `json:"check_id"`
-	LabelID uuid.UUID `json:"label_id"`
+	ProjectID uuid.UUID `json:"project_id"`
+	CheckID   uuid.UUID `json:"check_id"`
+	LabelID   uuid.UUID `json:"label_id"`
 }
 
 type Label struct {
 	ID        uuid.UUID          `json:"id"`
-	TeamID    uuid.UUID          `json:"team_id"`
+	ProjectID uuid.UUID          `json:"project_id"`
 	Name      string             `json:"name"`
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
@@ -353,7 +353,7 @@ type PingCheckConfig struct {
 
 type PingResult struct {
 	ID            uuid.UUID          `json:"id"`
-	TeamID        uuid.UUID          `json:"team_id"`
+	ProjectID     uuid.UUID          `json:"project_id"`
 	ProbeCheckID  uuid.UUID          `json:"probe_check_id"`
 	StartedAt     pgtype.Timestamptz `json:"started_at"`
 	FinishedAt    pgtype.Timestamptz `json:"finished_at"`
@@ -378,7 +378,7 @@ type PingResult struct {
 
 type Probe struct {
 	ID        uuid.UUID          `json:"id"`
-	TeamID    uuid.UUID          `json:"team_id"`
+	ProjectID uuid.UUID          `json:"project_id"`
 	Name      string             `json:"name"`
 	Hostname  *string            `json:"hostname"`
 	Latitude  *float64           `json:"latitude"`
@@ -391,7 +391,7 @@ type Probe struct {
 
 type ProbeCheck struct {
 	ID              uuid.UUID          `json:"id"`
-	TeamID          uuid.UUID          `json:"team_id"`
+	ProjectID       uuid.UUID          `json:"project_id"`
 	ProbeID         uuid.UUID          `json:"probe_id"`
 	CheckID         uuid.UUID          `json:"check_id"`
 	Name            *string            `json:"name"`
@@ -411,9 +411,9 @@ type ProbeCredential struct {
 }
 
 type ProbeLabel struct {
-	TeamID  uuid.UUID `json:"team_id"`
-	ProbeID uuid.UUID `json:"probe_id"`
-	LabelID uuid.UUID `json:"label_id"`
+	ProjectID uuid.UUID `json:"project_id"`
+	ProbeID   uuid.UUID `json:"probe_id"`
+	LabelID   uuid.UUID `json:"label_id"`
 }
 
 type ProbeStatus struct {
@@ -427,7 +427,7 @@ type ProbeStatus struct {
 	Asn          *int64             `json:"asn"`
 }
 
-type Team struct {
+type Project struct {
 	ID              uuid.UUID          `json:"id"`
 	Name            string             `json:"name"`
 	Slug            string             `json:"slug"`
@@ -437,11 +437,11 @@ type Team struct {
 	DeletedAt       pgtype.Timestamptz `json:"deleted_at"`
 }
 
-type TeamMember struct {
+type ProjectMember struct {
 	ID        uuid.UUID          `json:"id"`
-	TeamID    uuid.UUID          `json:"team_id"`
+	ProjectID uuid.UUID          `json:"project_id"`
 	UserID    uuid.UUID          `json:"user_id"`
-	Role      TeamMemberRole     `json:"role"`
+	Role      ProjectMemberRole  `json:"role"`
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
 	DeletedAt pgtype.Timestamptz `json:"deleted_at"`
@@ -459,7 +459,7 @@ type TracerouteCheckConfig struct {
 
 type TracerouteHop struct {
 	TracerouteResultID uuid.UUID          `json:"traceroute_result_id"`
-	TeamID             uuid.UUID          `json:"team_id"`
+	ProjectID          uuid.UUID          `json:"project_id"`
 	ProbeCheckID       uuid.UUID          `json:"probe_check_id"`
 	StartedAt          pgtype.Timestamptz `json:"started_at"`
 	HopNumber          int32              `json:"hop_number"`
@@ -474,7 +474,7 @@ type TracerouteHop struct {
 
 type TracerouteResult struct {
 	ID           uuid.UUID          `json:"id"`
-	TeamID       uuid.UUID          `json:"team_id"`
+	ProjectID    uuid.UUID          `json:"project_id"`
 	ProbeCheckID uuid.UUID          `json:"probe_check_id"`
 	StartedAt    pgtype.Timestamptz `json:"started_at"`
 	FinishedAt   pgtype.Timestamptz `json:"finished_at"`
