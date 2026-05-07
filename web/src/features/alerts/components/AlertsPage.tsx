@@ -2,10 +2,10 @@ import { alerts, type AlertRecord } from "@/features/alerts/data/alerts";
 import { ActionRow } from "@/shared/components/ActionRow";
 import { KeyValueGrid } from "@/shared/components/KeyValueGrid";
 import { PageStack } from "@/shared/components/PageStack";
+import { ResponsiveGrid } from "@/shared/components/ResponsiveGrid";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { toneForStatus } from "@/shared/utils/statusTone";
 import { Badge, Button, DataTable, Panel, type DataColumn } from "@netstamp/ui";
-import styles from "./AlertsPage.module.css";
 
 const alertColumns: DataColumn<AlertRecord>[] = [
 	{ key: "type", label: "Alert type" },
@@ -21,7 +21,7 @@ export function AlertsPage() {
 		<PageStack>
 			<ScreenHeader eyebrow="Alerting" title="Alerts (TBD)" copy="Packet loss, latency, traceroute path change, DNS query errors, abnormal response codes, probe offline, and heartbeat expiry." />
 
-			<div className={styles.alertGrid}>
+			<ResponsiveGrid>
 				<Panel tone="glass" eyebrow="Alert list" title="Active and historical events">
 					<DataTable columns={alertColumns} rows={alerts} getRowKey={row => `${row.type}-${row.probe}`} />
 				</Panel>
@@ -39,7 +39,7 @@ export function AlertsPage() {
 						<Button variant="danger">Silence 30m</Button>
 					</ActionRow>
 				</Panel>
-			</div>
+			</ResponsiveGrid>
 		</PageStack>
 	);
 }

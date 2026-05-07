@@ -5,7 +5,7 @@ import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { classNames } from "@/shared/utils/classNames";
 import { toneForStatus } from "@/shared/utils/statusTone";
-import { Badge, Button, Checkbox, DataTable, Panel, SelectField, TextField, type DataColumn } from "@netstamp/ui";
+import { Badge, Button, Checkbox, DataTable, FieldLabel, Panel, SelectField, TextField, type DataColumn } from "@netstamp/ui";
 import { useState } from "react";
 import styles from "./ChecksPage.module.css";
 
@@ -186,7 +186,7 @@ export function ChecksPage() {
 						</div>
 
 						<div className={styles.probeMultiSelect}>
-							<span className={styles.fieldLabel}>Assign probes</span>
+							<FieldLabel>Assign probes</FieldLabel>
 							<details>
 								<summary className={classNames("ns-cut-frame", styles.probeSummary)}>{displayProbeSelection(selectedProbes)}</summary>
 								<div className={classNames("ns-scrollbar", styles.probeOptionList)}>

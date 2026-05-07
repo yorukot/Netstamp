@@ -1,17 +1,3 @@
-.metricsGrid {
-	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
-	align-items: start;
-	gap: 1rem;
-}
-
-.dashboardGrid {
-	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
-	align-items: start;
-	gap: 1rem;
-}
-
 .feed {
 	display: grid;
 	gap: 1rem;
@@ -20,18 +6,4 @@
 .event {
 	display: grid;
 	gap: 0.75rem;
-}
-
-.event p {
-	margin: 0;
-	color: var(--ns-text-subtle);
-	font-size: 0.875rem;
-	line-height: 1.6;
-}
-
-@media (max-width: 58rem) {
-	.metricsGrid,
-	.dashboardGrid {
-		grid-template-columns: 1fr;
-	}
 }

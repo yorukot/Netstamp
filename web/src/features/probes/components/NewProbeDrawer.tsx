@@ -1,6 +1,6 @@
 import { pathForRoute } from "@/routes/routePaths";
 import { classNames } from "@/shared/utils/classNames";
-import { Badge, Button, Terminal, TextField } from "@netstamp/ui";
+import { Badge, Button, FieldLabel, Terminal, TextField } from "@netstamp/ui";
 import { type FormEvent, type MouseEvent, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styles from "./NewProbeDrawer.module.css";
@@ -222,7 +222,7 @@ export function NewProbeDrawer() {
 							</div>
 
 							<div className={styles.tagPicker}>
-								<span className={styles.fieldLabel}>Tags</span>
+								<FieldLabel>Tags</FieldLabel>
 								<div className={styles.tagCloud}>
 									{tagOptions.map(tag => (
 										<Button

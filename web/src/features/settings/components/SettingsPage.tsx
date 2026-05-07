@@ -1,5 +1,6 @@
 import { useSession } from "@/features/auth/session/SessionContext";
 import { ActionRow } from "@/shared/components/ActionRow";
+import { BodyCopy } from "@/shared/components/BodyCopy";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { Button, Panel, SignalAvatar, TextField } from "@netstamp/ui";
@@ -42,7 +43,7 @@ export function SettingsPage() {
 							<p>{user.email}</p>
 						</div>
 					</div>
-					<p className={styles.bodyCopy}>The avatar is pulled using your email from Gravatar.</p>
+					<BodyCopy>The avatar is pulled using your email from Gravatar.</BodyCopy>
 				</Panel>
 			</div>
 

@@ -50,16 +50,6 @@
 	min-width: 0;
 }
 
-.fieldLabel {
-	color: var(--ns-text-muted);
-	font-family: var(--ns-font-mono);
-	font-size: 0.6875rem;
-	font-weight: 700;
-	letter-spacing: 0.11em;
-	line-height: 1.2;
-	text-transform: uppercase;
-}
-
 .probeMultiSelect details {
 	position: relative;
 }

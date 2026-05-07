@@ -2,8 +2,10 @@ import { checks, assignments, results, type CheckDefinition } from "@/features/c
 import { dnsData, latencyData, routeDiffData } from "@/features/insight/data/series";
 import { probes, type Probe } from "@/features/probes/data/probes";
 import { ChartPanel } from "@/shared/components/ChartPanel";
+import { BodyCopy } from "@/shared/components/BodyCopy";
 import { KeyValueGrid } from "@/shared/components/KeyValueGrid";
 import { PageStack } from "@/shared/components/PageStack";
+import { ResponsiveGrid } from "@/shared/components/ResponsiveGrid";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { lineChartOption } from "@/shared/utils/chartOptions";
 import { toneForStatus } from "@/shared/utils/statusTone";
@@ -167,7 +169,7 @@ export function InsightPage() {
 				/>
 			</div>
 
-			<div className={styles.insightColumns}>
+			<ResponsiveGrid>
 				<Panel tone="glass" eyebrow={view === "probe" ? "Probe" : "Target"} title={selectedTitle}>
 					<KeyValueGrid items={selectedDetails} />
 				</Panel>
@@ -181,16 +183,16 @@ export function InsightPage() {
 						))}
 					</div>
 				</Panel>
-			</div>
+			</ResponsiveGrid>
 
-			<div className={styles.graphList}>
+			<ResponsiveGrid>
 				{graphCards.map(graph => (
 					<Panel key={graph.key} tone="deep" eyebrow={graph.eyebrow} title={graph.title}>
-						<p className={styles.bodyCopy}>{graph.copy}</p>
+						<BodyCopy>{graph.copy}</BodyCopy>
 						<ChartPanel option={lineChartOption(graph.metric, graph.values, graph.baseline)} height="11rem" />
 					</Panel>
 				))}
-			</div>
+			</ResponsiveGrid>
 
 			<Panel tone="glass" eyebrow="Measurement table" title="Recent measurements">
 				<DataTable columns={resultColumns} rows={resultRows} />

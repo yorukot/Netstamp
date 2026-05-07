@@ -4,13 +4,6 @@
 	gap: 1rem;
 }
 
-.insightColumns,
-.graphList {
-	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: 1rem;
-}
-
 .entityList {
 	display: grid;
 	gap: 0.625rem;
@@ -36,17 +29,8 @@
 	text-transform: uppercase;
 }
 
-.bodyCopy {
-	margin: 0;
-	color: var(--ns-text-subtle);
-	font-size: 0.875rem;
-	line-height: 1.6;
-}
-
 @media (max-width: 58rem) {
-	.filters,
-	.insightColumns,
-	.graphList {
+	.filters {
 		grid-template-columns: 1fr;
 	}
 }

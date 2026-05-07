@@ -1,6 +1,8 @@
 import { type Navigate } from "@/routes/routeTypes";
+import { BodyCopy } from "@/shared/components/BodyCopy";
 import { FleetMatrix } from "@/shared/components/FleetMatrix";
 import { PageStack } from "@/shared/components/PageStack";
+import { ResponsiveGrid } from "@/shared/components/ResponsiveGrid";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { Badge, Button, MetricCard, Panel, Surface, type BadgeTone } from "@netstamp/ui";
 import styles from "./DashboardPage.module.css";
@@ -26,12 +28,12 @@ export function DashboardPage({ navigate }: DashboardPageProps) {
 				}
 			/>
 
-			<div className={styles.metricsGrid}>
+			<ResponsiveGrid>
 				<MetricCard label="Probes Online" value="100/128" detail="fleet" tone="success" />
 				<MetricCard label="Active Checks" value="324" detail="scheduled" tone="accent" />
-			</div>
+			</ResponsiveGrid>
 
-			<div className={styles.dashboardGrid}>
+			<ResponsiveGrid>
 				<Panel tone="glass" eyebrow="Fleet bitmap" title="128 probes, 100 lit">
 					<FleetMatrix total={128} online={100} />
 				</Panel>
@@ -42,7 +44,7 @@ export function DashboardPage({ navigate }: DashboardPageProps) {
 						<Event title="Controller stream connected" copy="100 probes streaming normalized result payloads." tone="success" />
 					</div>
 				</Panel>
-			</div>
+			</ResponsiveGrid>
 		</PageStack>
 	);
 }
@@ -57,7 +59,7 @@ function Event({ title, copy, tone }: EventProps) {
 	return (
 		<Surface as="article" className={styles.event} tone="flat" cut="md" padding="sm">
 			<Badge tone={tone}>{title}</Badge>
-			<p>{copy}</p>
+			<BodyCopy>{copy}</BodyCopy>
 		</Surface>
 	);
 }
