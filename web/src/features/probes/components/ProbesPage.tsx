@@ -1,6 +1,7 @@
+import { assignments } from "@/features/checks/data/checks";
+import { probes, type ProbeStatus } from "@/features/probes/data/probes";
 import { NetworkMap } from "@/shared/components/NetworkMap";
 import { classNames } from "@/shared/utils/classNames";
-import { assignments, probes, type ProbeStatus } from "@/shared/utils/mockData";
 import { useState } from "react";
 import { Outlet } from "react-router-dom";
 import { ProbeDetail } from "./ProbeDetail";

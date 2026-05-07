@@ -1,5 +1,5 @@
+import type { Probe } from "@/features/probes/data/probes";
 import { classNames } from "@/shared/utils/classNames";
-import type { Probe } from "@/shared/utils/mockData";
 import { Badge, Checkbox, DataTable, Surface, TextField, type DataColumn } from "@netstamp/ui";
 import { useState } from "react";
 import styles from "./ProbeDetail.module.css";

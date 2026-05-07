@@ -1,5 +1,5 @@
+import type { Probe, ProbeStatus } from "@/features/probes/data/probes";
 import { classNames } from "@/shared/utils/classNames";
-import type { Probe, ProbeStatus } from "@/shared/utils/mockData";
 import { Badge, DataTable, Input, Panel, Select, type BadgeTone, type DataColumn } from "@netstamp/ui";
 import styles from "./ProbeList.module.css";
 import type { ProbeSort } from "./types";

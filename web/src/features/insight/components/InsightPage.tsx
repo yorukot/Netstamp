@@ -1,9 +1,12 @@
+import { checks, assignments, results, type CheckDefinition } from "@/features/checks/data/checks";
+import { dnsData, latencyData, routeDiffData } from "@/features/insight/data/series";
+import { probes, type Probe } from "@/features/probes/data/probes";
 import { ChartPanel } from "@/shared/components/ChartPanel";
 import { KeyValueGrid } from "@/shared/components/KeyValueGrid";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { lineChartOption } from "@/shared/utils/chartOptions";
-import { assignments, checks, dnsData, latencyData, probes, results, routeDiffData, toneForStatus, type CheckDefinition, type Probe } from "@/shared/utils/mockData";
+import { toneForStatus } from "@/shared/utils/statusTone";
 import { Badge, DataTable, Panel, SelectField, Surface, type DataColumn } from "@netstamp/ui";
 import { useState } from "react";
 import styles from "./InsightPage.module.css";

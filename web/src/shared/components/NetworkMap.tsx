@@ -1,4 +1,4 @@
-import { type Probe } from "@/shared/utils/mockData";
+import { type Probe } from "@/features/probes/data/probes";
 import type { Map as MapLibreMap, Marker as MapLibreMarker, StyleSpecification } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useEffect, useRef, useState } from "react";

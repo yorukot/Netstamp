@@ -1,6 +1,6 @@
+import { members } from "@/features/team/data/members";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
-import { members } from "@/shared/utils/mockData";
 import { Button, DataTable, Panel, SelectField, Surface, TextField, type DataColumn } from "@netstamp/ui";
 import { RoleSelect } from "./RoleSelect";
 import styles from "./TeamPage.module.css";

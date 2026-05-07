@@ -1,7 +1,7 @@
+import { currentUser } from "@/features/auth/data/mockUser";
 import { ActionRow } from "@/shared/components/ActionRow";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
-import { currentUser } from "@/shared/utils/mockData";
 import { Button, Panel, SignalAvatar, TextField } from "@netstamp/ui";
 import type { FormEvent } from "react";
 import styles from "./SettingsPage.module.css";
