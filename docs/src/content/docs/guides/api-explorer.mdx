@@ -1,0 +1,32 @@
+---
+title: API Explorer
+description: Use the generated OpenAPI explorer to inspect routes and keep documentation aligned with backend behavior.
+icon: api
+head:
+  - tag: title
+    content: API Explorer | Netstamp Docs
+---
+
+## Contract Source
+
+The API explorer reads `docs/public/openapi.json`. That file is generated from backend Huma routes, so route shape should come from code rather than hand-written docs.
+
+```bash
+pnpm generate:openapi
+```
+
+## Use The Explorer
+
+Open [`/openapi/`](/openapi/) from the docs nav. The page loads the generated contract and groups operations by the backend tags emitted by Huma.
+
+Use it to verify request bodies, response schemas, and route paths before writing additional guides.
+
+## Authenticated Routes
+
+Authenticated routes still need a valid session or token when the backend enforces one. The explorer can describe the shape of the request, but it does not bypass application auth.
+
+:::warning Do not manually edit `docs/public/openapi.json` for route changes. Regenerate it from the backend so docs and runtime behavior stay together. :::
+
+## Documentation Updates
+
+When a route changes, update the guide or reference page that explains the user-facing behavior. Keep implementation details in backend code and use docs for intent, workflow, and examples.

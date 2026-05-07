@@ -1,0 +1,10 @@
+---
+import OpenAPIExplorer from "../components/openapi/OpenAPIExplorer";
+import BaseLayout from "../layouts/BaseLayout.astro";
+---
+
+<BaseLayout title="OpenAPI - Netstamp" description="Browse the generated backend OpenAPI contract and send test requests from the browser.">
+	<main class="openapiPage">
+		<OpenAPIExplorer client:load specUrl="/openapi.json" />
+	</main>
+</BaseLayout>
