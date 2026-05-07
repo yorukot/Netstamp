@@ -7,7 +7,6 @@
 	font-weight: 800;
 	letter-spacing: 0.06em;
 	line-height: 1;
-	white-space: nowrap;
 	cursor: pointer;
 	--ns-frame-cut: var(--ns-cut-sm);
 	--ns-frame-color: transparent;

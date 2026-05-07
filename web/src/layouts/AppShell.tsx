@@ -53,7 +53,7 @@ export function AppShell() {
 
 			<main className={styles.content}>
 				<Outlet />
-				<GlobalFooter variant="compact" />
+				<GlobalFooter />
 			</main>
 		</PageShell>
 	);

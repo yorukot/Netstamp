@@ -311,7 +311,7 @@ export function LandingPage({ navigate }: LandingPageProps) {
 				</section>
 			</main>
 
-			<GlobalFooter variant="compact" />
+			<GlobalFooter />
 		</div>
 	);
 }
