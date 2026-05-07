@@ -18,6 +18,7 @@ type SetOptionValue = Parameters<ReturnType<typeof echarts.init>["setOption"]>[0
 
 export function ChartPanel({ option, height = "16rem", className }: ChartPanelProps) {
 	const chartRef = useRef<HTMLDivElement | null>(null);
+	const instanceRef = useRef<ReturnType<typeof echarts.init> | null>(null);
 
 	useEffect(() => {
 		if (!chartRef.current) {
@@ -25,7 +26,7 @@ export function ChartPanel({ option, height = "16rem", className }: ChartPanelPr
 		}
 
 		const chart = echarts.init(chartRef.current, null, { renderer: "canvas" });
-		chart.setOption(option as SetOptionValue);
+		instanceRef.current = chart;
 
 		const observer = new ResizeObserver(() => chart.resize());
 		observer.observe(chartRef.current);
@@ -33,7 +34,12 @@ export function ChartPanel({ option, height = "16rem", className }: ChartPanelPr
 		return () => {
 			observer.disconnect();
 			chart.dispose();
+			instanceRef.current = null;
 		};
+	}, []);
+
+	useEffect(() => {
+		instanceRef.current?.setOption(option as SetOptionValue);
 	}, [option]);
 
 	return <div ref={chartRef} className={[styles.chart, className].filter(Boolean).join(" ")} style={{ height }} />;

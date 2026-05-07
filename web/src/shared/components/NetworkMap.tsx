@@ -14,6 +14,11 @@ interface NetworkMapProps {
 
 const defaultCenter: [number, number] = [74, 29];
 type MapLibreModule = typeof import("maplibre-gl");
+interface MarkerRecord {
+	marker: MapLibreMarker;
+	element: HTMLButtonElement;
+	probeId: string;
+}
 
 function createCartoDarkStyle(): StyleSpecification {
 	return {
@@ -48,23 +53,17 @@ function createCartoDarkStyle(): StyleSpecification {
 	};
 }
 
-function createMarkerElement(probe: Probe, active: boolean, mode: "fleet" | "detail", onSelect?: (probeId: string) => void) {
+function setMarkerActive(element: HTMLElement, active: boolean) {
+	element.dataset.active = String(active);
+}
+
+function createMarkerElement(probe: Probe, mode: "fleet" | "detail", onSelect?: (probeId: string) => void) {
 	const markerEl = document.createElement("button");
 	markerEl.type = "button";
+	markerEl.className = styles.marker;
+	markerEl.dataset.mode = mode;
+	markerEl.dataset.clickable = String(Boolean(onSelect));
 	markerEl.setAttribute("aria-label", `Select probe ${probe.name}`);
-
-	Object.assign(markerEl.style, {
-		display: "flex",
-		flexDirection: "column",
-		alignItems: "center",
-		border: "0",
-		padding: "0",
-		color: "#fff",
-		background: "transparent",
-		cursor: onSelect ? "pointer" : "default",
-		pointerEvents: "auto",
-		transform: "translateY(-8px)"
-	});
 
 	markerEl.addEventListener("click", event => {
 		event.stopPropagation();
@@ -72,38 +71,11 @@ function createMarkerElement(probe: Probe, active: boolean, mode: "fleet" | "det
 	});
 
 	const labelEl = document.createElement("div");
+	labelEl.className = styles.markerLabel;
 	labelEl.textContent = probe.name;
 
-	Object.assign(labelEl.style, {
-		display: active ? "block" : "none",
-		marginBottom: mode === "detail" ? "8px" : "6px",
-		padding: mode === "detail" ? "5px 8px" : "4px 7px",
-		color: "#ffffff",
-		background: "rgba(0, 0, 0, 0.94)",
-		border: "2px solid rgba(255, 255, 255, 0.96)",
-		borderRadius: "4px",
-		fontFamily: "JetBrains Mono, monospace",
-		fontSize: mode === "detail" ? "12px" : "10px",
-		fontWeight: "900",
-		lineHeight: "1",
-		letterSpacing: "0.06em",
-		textShadow: "0 0 4px #000, 0 0 10px #000",
-		textTransform: "uppercase",
-		boxShadow: "0 0 18px rgba(255, 106, 0, 0.55)",
-		whiteSpace: "nowrap"
-	});
-
-	const squareSize = active ? (mode === "detail" ? 18 : 14) : mode === "detail" ? 14 : 11;
 	const squareEl = document.createElement("div");
-
-	Object.assign(squareEl.style, {
-		width: `${squareSize}px`,
-		height: `${squareSize}px`,
-		background: "#ff6a00",
-		border: active ? "3px solid #ffffff" : "1px solid rgba(255, 255, 255, 0.62)",
-		outline: active ? "2px solid #000000" : "1px solid rgba(0, 0, 0, 0.82)",
-		boxShadow: active ? "0 0 0 2px rgba(255, 106, 0, 1), 0 0 24px 8px rgba(255, 106, 0, 0.72)" : "0 0 14px 4px rgba(255, 106, 0, 0.5)"
-	});
+	squareEl.className = styles.markerSquare;
 
 	markerEl.appendChild(labelEl);
 	markerEl.appendChild(squareEl);
@@ -111,8 +83,8 @@ function createMarkerElement(probe: Probe, active: boolean, mode: "fleet" | "det
 	return markerEl;
 }
 
-function clearMarkers(markers: MapLibreMarker[]) {
-	for (const marker of markers) {
+function clearMarkers(markers: MarkerRecord[]) {
+	for (const { marker } of markers) {
 		marker.remove();
 	}
 }
@@ -121,7 +93,8 @@ export function NetworkMap({ probes, selectedId, onSelect, mode = "fleet", class
 	const mapContainerRef = useRef<HTMLDivElement | null>(null);
 	const maplibreglRef = useRef<MapLibreModule | null>(null);
 	const mapRef = useRef<MapLibreMap | null>(null);
-	const markersRef = useRef<MapLibreMarker[]>([]);
+	const markersRef = useRef<MarkerRecord[]>([]);
+	const selectedIdRef = useRef(selectedId);
 	const [mapReady, setMapReady] = useState(false);
 	const classes = ["ns-cut-frame", styles.map, className].filter(Boolean).join(" ");
 
@@ -176,6 +149,14 @@ export function NetworkMap({ probes, selectedId, onSelect, mode = "fleet", class
 	}, []);
 
 	useEffect(() => {
+		selectedIdRef.current = selectedId;
+
+		for (const record of markersRef.current) {
+			setMarkerActive(record.element, record.probeId === selectedId);
+		}
+	}, [selectedId]);
+
+	useEffect(() => {
 		const map = mapRef.current;
 		const maplibregl = maplibreglRef.current;
 
@@ -189,14 +170,17 @@ export function NetworkMap({ probes, selectedId, onSelect, mode = "fleet", class
 		function renderMarkers() {
 			clearMarkers(markersRef.current);
 			markersRef.current = probes.map(probe => {
+				const element = createMarkerElement(probe, mode, onSelect);
+				setMarkerActive(element, probe.id === selectedIdRef.current);
+
 				const marker = new activeMaplibregl.Marker({
-					element: createMarkerElement(probe, probe.id === selectedId, mode, onSelect),
+					element,
 					anchor: "bottom"
 				})
 					.setLngLat(probe.coordinates)
 					.addTo(activeMap);
 
-				return marker;
+				return { marker, element, probeId: probe.id };
 			});
 		}
 
@@ -211,7 +195,7 @@ export function NetworkMap({ probes, selectedId, onSelect, mode = "fleet", class
 			clearMarkers(markersRef.current);
 			markersRef.current = [];
 		};
-	}, [mapReady, mode, onSelect, probes, selectedId]);
+	}, [mapReady, mode, onSelect, probes]);
 
 	useEffect(() => {
 		const map = mapRef.current;

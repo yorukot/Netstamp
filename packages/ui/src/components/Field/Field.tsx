@@ -2,7 +2,7 @@
 
 import * as Label from "@radix-ui/react-label";
 import type { CSSProperties, ChangeEvent, ComponentPropsWithoutRef, KeyboardEvent as ReactKeyboardEvent, ReactNode } from "react";
-import { Children, Fragment, forwardRef, isValidElement, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { Children, Fragment, forwardRef, isValidElement, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import styles from "./Field.module.css";
 
@@ -174,7 +174,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
 	const triggerId = id || generatedId;
 	const listboxId = `${triggerId}-listbox`;
 	const ariaInvalid = invalid || ariaInvalidProp === true || ariaInvalidProp === "true";
-	const options = collectSelectOptions(children);
+	const options = useMemo(() => collectSelectOptions(children), [children]);
 	const isControlled = value !== undefined;
 	const initialValue = valueToString(value) ?? valueToString(defaultValue) ?? options[0]?.value ?? "";
 	const [internalValue, setInternalValue] = useState(initialValue);
