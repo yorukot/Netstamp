@@ -1,4 +1,4 @@
-import { currentUser } from "@/features/auth/data/mockUser";
+import { useSession } from "@/features/auth/session/SessionContext";
 import { ActionRow } from "@/shared/components/ActionRow";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
@@ -11,6 +11,14 @@ function handleSettingsSubmit(event: FormEvent<HTMLFormElement>) {
 }
 
 export function SettingsPage() {
+	const { session } = useSession();
+
+	if (!session) {
+		return null;
+	}
+
+	const { user } = session;
+
 	return (
 		<PageStack>
 			<ScreenHeader eyebrow="User settings" title="Account" copy="Set your username, rotate the login email, and change the password used for controller access." />
@@ -18,8 +26,8 @@ export function SettingsPage() {
 			<div className={styles.settingsGrid}>
 				<Panel tone="glass" eyebrow="Identity" title="Set username">
 					<form id="username-settings" className={styles.settingsForm} onSubmit={handleSettingsSubmit}>
-						<TextField label="Display name" name="name" defaultValue={currentUser.name} />
-						<TextField label="Username" name="username" defaultValue={currentUser.username} helper="Used in audit events and probe ownership trails." />
+						<TextField label="Display name" name="name" defaultValue={user.name} />
+						<TextField label="Username" name="username" defaultValue={user.username} helper="Used in audit events and probe ownership trails." />
 						<ActionRow>
 							<Button type="submit">Save username</Button>
 						</ActionRow>
@@ -28,10 +36,10 @@ export function SettingsPage() {
 
 				<Panel tone="deep" eyebrow="Profile image" title="Gravatar signal preview">
 					<div className={styles.profilePreview}>
-						<SignalAvatar size="lg" src={currentUser.gravatarUrl} referrerPolicy="no-referrer" aria-hidden="true" />
+						<SignalAvatar size="lg" src={user.gravatarUrl} referrerPolicy="no-referrer" aria-hidden="true" />
 						<div>
-							<h3>{currentUser.name}</h3>
-							<p>{currentUser.email}</p>
+							<h3>{user.name}</h3>
+							<p>{user.email}</p>
 						</div>
 					</div>
 					<p className={styles.bodyCopy}>The avatar is pulled using your email from Gravatar.</p>
@@ -41,7 +49,7 @@ export function SettingsPage() {
 			<div className={styles.settingsGrid}>
 				<Panel tone="glass" eyebrow="Email" title="Change email">
 					<form className={styles.settingsForm} onSubmit={handleSettingsSubmit}>
-						<TextField label="Current email" name="current-email" type="email" defaultValue={currentUser.email} />
+						<TextField label="Current email" name="current-email" type="email" defaultValue={user.email} />
 						<TextField label="New email" name="new-email" type="email" placeholder="operator@example.com" />
 						<TextField label="Confirm password" name="email-password" type="password" autoComplete="current-password" />
 						<ActionRow>

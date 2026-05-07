@@ -1,3 +1,5 @@
+import { currentUser, type CurrentUser } from "../data/mockUser";
+
 export interface AuthCredentials {
 	displayName?: string;
 	email: string;
@@ -9,9 +11,7 @@ export interface TeamDraft {
 	slug: string;
 }
 
-export interface MockUser {
-	name: string;
-	email: string;
+export interface MockUser extends CurrentUser {
 	role: string;
 	team: string;
 	onboardingRequired?: boolean;
@@ -24,9 +24,7 @@ export interface SessionSnapshot {
 }
 
 const mockUser: MockUser = {
-	name: "Elvis Mao",
-	email: "elvis@netstamp.dev",
-	role: "Admin",
+	...currentUser,
 	team: "Vector IX"
 };
 

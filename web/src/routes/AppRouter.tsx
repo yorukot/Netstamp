@@ -1,6 +1,8 @@
 import { AlertsPage } from "@/features/alerts/components/AlertsPage";
 import { AuthPage } from "@/features/auth/components/AuthPage";
 import { OnboardingPage } from "@/features/auth/components/OnboardingPage";
+import { useSession } from "@/features/auth/session/SessionContext";
+import { SessionProvider } from "@/features/auth/session/SessionProvider";
 import { ChecksPage } from "@/features/checks/components/ChecksPage";
 import { DashboardPage } from "@/features/dashboard/components/DashboardPage";
 import { InsightPage } from "@/features/insight/components/InsightPage";
@@ -10,7 +12,7 @@ import { ProbesPage } from "@/features/probes/components/ProbesPage";
 import { SettingsPage } from "@/features/settings/components/SettingsPage";
 import { TeamPage } from "@/features/team/components/TeamPage";
 import { AppShell } from "@/layouts/AppShell";
-import { createBrowserRouter, Navigate as RouterNavigate, RouterProvider, useNavigate } from "react-router-dom";
+import { createBrowserRouter, Navigate as RouterNavigate, RouterProvider, useLocation, useNavigate } from "react-router-dom";
 import { pathForRoute } from "./routePaths";
 import type { AppRoute, Navigate } from "./routeTypes";
 
@@ -52,13 +54,24 @@ function DashboardRoute() {
 	return <DashboardPage navigate={navigate} />;
 }
 
+function ProtectedAppShell() {
+	const { session } = useSession();
+	const location = useLocation();
+
+	if (!session) {
+		return <RouterNavigate to={pathForRoute("login")} replace state={{ from: location }} />;
+	}
+
+	return <AppShell />;
+}
+
 const router = createBrowserRouter([
 	{ path: pathForRoute("landing"), element: <LandingRoute /> },
 	{ path: pathForRoute("login"), element: <AuthRoute mode="login" /> },
 	{ path: pathForRoute("register"), element: <AuthRoute mode="register" /> },
 	{ path: pathForRoute("onboarding"), element: <OnboardingRoute /> },
 	{
-		element: <AppShell />,
+		element: <ProtectedAppShell />,
 		children: [
 			{ path: appRoutePath("dashboard"), element: <DashboardRoute /> },
 			{
@@ -77,5 +90,9 @@ const router = createBrowserRouter([
 ]);
 
 export function AppRouter() {
-	return <RouterProvider router={router} />;
+	return (
+		<SessionProvider>
+			<RouterProvider router={router} />
+		</SessionProvider>
+	);
 }
