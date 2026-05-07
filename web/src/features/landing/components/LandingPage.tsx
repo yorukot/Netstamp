@@ -18,12 +18,12 @@ import { useEffect, useRef } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
 import { BufferGeometry, Clock, Line, LineBasicMaterial, Mesh, MeshBasicMaterial, OctahedronGeometry, PerspectiveCamera, Scene, SphereGeometry, Vector3, WebGLRenderer } from "three";
-import taiwanSubmarineCablesMap from "../../../../assets/taiwan_submarine_cables.svg";
 import styles from "./LandingPage.module.css";
 
 gsap.registerPlugin(ScrollTrigger);
 
 const githubUrl = "https://github.com/yorukot/netstamp";
+const taiwanSubmarineCablesMap = "/taiwan_submarine_cables.svg";
 
 const checkCards = [
 	{ name: "Ping", metric: "p95 42ms", detail: "ICMP / TCP probes" },
@@ -98,7 +98,6 @@ export function LandingPage({ navigate }: LandingPageProps) {
 					start: "top 80%"
 				}
 			});
-
 		}, landingRef);
 
 		return () => ctx.revert();
