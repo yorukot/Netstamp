@@ -17,6 +17,7 @@ export interface DataTableProps<Row extends object = Record<string, unknown>> {
 	style?: CSSProperties;
 	ariaLabel?: string;
 	getRowKey?: (row: Row, index: number) => string;
+	getRowAriaLabel?: (row: Row, index: number) => string;
 	onRowClick?: (row: Row) => void;
 	selectedKey?: string;
 	emptyLabel?: ReactNode;
@@ -37,6 +38,7 @@ export function DataTable<Row extends object>({
 	style,
 	ariaLabel,
 	getRowKey,
+	getRowAriaLabel,
 	onRowClick,
 	selectedKey,
 	emptyLabel = "No results"
@@ -76,13 +78,16 @@ export function DataTable<Row extends object>({
 							rows.map((row, index) => {
 								const rowKey = getRowKey ? getRowKey(row, index) : String(index);
 								const selected = selectedKey === rowKey;
+								const interactive = Boolean(onRowClick);
 
 								return (
 									<tr
 										key={rowKey}
-										className={[selected && styles.selected, onRowClick && styles.interactive].filter(Boolean).join(" ") || undefined}
+										className={[selected && styles.selected, interactive && styles.interactive].filter(Boolean).join(" ") || undefined}
+										role={interactive ? "button" : undefined}
+										aria-label={interactive ? (getRowAriaLabel?.(row, index) ?? `Select row ${rowKey}`) : undefined}
 										aria-selected={selected || undefined}
-										tabIndex={onRowClick ? 0 : undefined}
+										tabIndex={interactive ? 0 : undefined}
 										onClick={onRowClick ? () => onRowClick(row) : undefined}
 										onKeyDown={event => handleRowKeyDown(event, row)}
 									>
