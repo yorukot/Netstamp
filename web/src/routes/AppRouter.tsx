@@ -6,7 +6,6 @@ import { SessionProvider } from "@/features/auth/session/SessionProvider";
 import { ChecksPage } from "@/features/checks/components/ChecksPage";
 import { DashboardPage } from "@/features/dashboard/components/DashboardPage";
 import { InsightPage } from "@/features/insight/components/InsightPage";
-import { LandingPage } from "@/features/landing/components/LandingPage";
 import { NewProbeDrawer } from "@/features/probes/components/NewProbeDrawer";
 import { ProbesPage } from "@/features/probes/components/ProbesPage";
 import { SettingsPage } from "@/features/settings/components/SettingsPage";
@@ -24,12 +23,6 @@ function useRouteNavigate(): Navigate {
 	const navigate = useNavigate();
 
 	return route => navigate(pathForRoute(route));
-}
-
-function LandingRoute() {
-	const navigate = useRouteNavigate();
-
-	return <LandingPage navigate={navigate} />;
 }
 
 interface AuthRouteProps {
@@ -66,7 +59,7 @@ function ProtectedAppShell() {
 }
 
 const router = createBrowserRouter([
-	{ path: pathForRoute("landing"), element: <LandingRoute /> },
+	{ path: pathForRoute("landing"), element: <RouterNavigate to={pathForRoute("login")} replace /> },
 	{ path: pathForRoute("login"), element: <AuthRoute mode="login" /> },
 	{ path: pathForRoute("register"), element: <AuthRoute mode="register" /> },
 	{ path: pathForRoute("onboarding"), element: <OnboardingRoute /> },
@@ -86,7 +79,7 @@ const router = createBrowserRouter([
 			{ path: appRoutePath("settings"), element: <SettingsPage /> }
 		]
 	},
-	{ path: "*", element: <RouterNavigate to={pathForRoute("landing")} replace /> }
+	{ path: "*", element: <RouterNavigate to={pathForRoute("login")} replace /> }
 ]);
 
 export function AppRouter() {

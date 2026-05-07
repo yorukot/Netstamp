@@ -1,0 +1,30 @@
+---
+title: Architecture
+description: The public site, service app, API, and shared UI package are separated by deploy target and responsibility.
+icon: route
+head:
+  - tag: title
+    content: Architecture | Netstamp Docs
+---
+
+## Surfaces
+
+`docs/` is the public website and documentation surface. It uses Astro and ships static assets for GitHub Pages. The landing page is rendered as a React island only because it reuses interactive visual components.
+
+`web/` is the service itself. It uses React Router and now redirects `/` to `/login`, keeping product authentication separate from the public site.
+
+`packages/ui/` contains reusable React primitives and shared design tokens. Cross-surface UI like `GlobalFooter` belongs there.
+
+## Request Flow
+
+The backend exposes HTTP routes under `/api/{version}` with Huma and chi. Auth and team operations are registered into the Huma OpenAPI model, which is also used to generate the docs API explorer contract.
+
+```text
+Browser -> web/ React app -> /api/v1/* -> Huma + chi -> application service -> PostgreSQL
+```
+
+:::warning Do not import `web/src` from `docs/`. Shared React code should move into `packages/ui`, while docs-only Astro components should stay in `docs/src`. :::
+
+## Routing
+
+The docs site owns `/`, `/docs/*`, `/openapi/`, and `/storybook/`. The service app owns `/login`, `/register`, and authenticated routes like `/dashboard`, `/probes`, and `/settings`.

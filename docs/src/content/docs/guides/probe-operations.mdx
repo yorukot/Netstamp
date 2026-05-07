@@ -1,0 +1,34 @@
+---
+title: Probe Operations
+description: Plan probe placement, schedule checks, and read results without mixing docs and product responsibilities.
+icon: activity
+head:
+  - tag: title
+    content: Probe Operations | Netstamp Docs
+---
+
+## Probe Lifecycle
+
+Treat a probe as a viewpoint on the network. Place probes where the measurement perspective matters, such as an edge region, lab network, community node, private server, or provider boundary.
+
+Keep probe identity stable. Historical latency, DNS, and route data is most useful when a probe represents the same location over time.
+
+## Checks
+
+Start with a small set of checks that answer operational questions.
+
+- Use latency checks to spot packet loss and jitter from one viewpoint.
+- Use DNS checks to compare resolver behavior and authoritative responses.
+- Use route checks to catch path changes that normal uptime checks miss.
+
+## Result Flow
+
+The product app should present probe results as server state from the Go API. The docs site should explain that behavior and link to generated API examples instead of duplicating product code.
+
+:::tip When adding new check types, update the backend contract first, regenerate `docs/public/openapi.json`, then document the operational meaning here. :::
+
+## Operational Habits
+
+Record why each probe exists. A short note like `home fiber edge`, `university lab`, or `regional VPS` makes future comparisons easier to interpret.
+
+Review probes after infrastructure changes. Replaced hosts, moved regions, and changed upstream providers can all make old measurements misleading.

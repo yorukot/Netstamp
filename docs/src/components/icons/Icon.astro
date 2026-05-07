@@ -1,0 +1,52 @@
+---
+import type { DocIcon } from "../../data/docs";
+
+type IconName = DocIcon | "arrowLeft" | "arrowRight" | "caret" | "edit" | "folder" | "github" | "home" | "note" | "search" | "sidebar" | "tip" | "toc" | "warning";
+type IconWeight = "thin" | "light" | "regular" | "bold" | "fill" | "duotone";
+
+interface Props {
+	name: IconName;
+	size?: number | string;
+	weight?: IconWeight;
+	label?: string;
+}
+
+const { name, size = 18, weight = "regular", label } = Astro.props;
+
+const iconTags: Record<IconName, string> = {
+	activity: "ph-pulse",
+	arrowLeft: "ph-arrow-left",
+	arrowRight: "ph-arrow-right",
+	api: "ph-plugs",
+	bolt: "ph-lightning",
+	book: "ph-book-open",
+	caret: "ph-caret-down",
+	code: "ph-code",
+	compass: "ph-compass",
+	cube: "ph-cube",
+	database: "ph-database",
+	deployment: "ph-rocket-launch",
+	edit: "ph-pencil-simple",
+	folder: "ph-folder-open",
+	github: "ph-github-logo",
+	home: "ph-house",
+	key: "ph-key",
+	map: "ph-map-trifold",
+	note: "ph-note",
+	route: "ph-git-branch",
+	search: "ph-magnifying-glass",
+	server: "ph-hard-drives",
+	shield: "ph-shield-check",
+	sidebar: "ph-sidebar-simple",
+	terminal: "ph-terminal-window",
+	tip: "ph-lightbulb",
+	toc: "ph-list-bullets",
+	users: "ph-users",
+	warning: "ph-warning",
+	wrench: "ph-wrench"
+};
+
+const IconElement = iconTags[name];
+---
+
+<IconElement aria-hidden={label ? undefined : "true"} aria-label={label} class="icon" size={size} weight={weight} />

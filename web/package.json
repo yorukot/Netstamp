@@ -15,19 +15,16 @@
 		"@netstamp/ui": "workspace:*",
 		"@phosphor-icons/react": "^2.1.10",
 		"echarts": "^6.0.0",
-		"gsap": "^3.15.0",
 		"maplibre-gl": "^5.24.0",
 		"react": "^19.2.5",
 		"react-dom": "^19.2.5",
 		"react-helmet-async": "^3.0.0",
-		"react-router-dom": "^7.15.0",
-		"three": "^0.184.0"
+		"react-router-dom": "^7.15.0"
 	},
 	"devDependencies": {
 		"@eslint/js": "^10.0.1",
 		"@types/react": "^19.2.14",
 		"@types/react-dom": "^19.2.3",
-		"@types/three": "^0.184.0",
 		"@vitejs/plugin-react": "^6.0.1",
 		"eslint": "^10.2.1",
 		"eslint-plugin-react-hooks": "^7.1.1",

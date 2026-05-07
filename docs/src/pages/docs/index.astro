@@ -1,0 +1,19 @@
+---
+import { getCollection, render } from "astro:content";
+import { Terminal } from "@netstamp/ui";
+import DocLayout from "../../layouts/DocLayout.astro";
+
+const entries = await getCollection("docs", entry => !entry.data.draft);
+const entry = entries.find(entry => entry.id.replace(/\.mdx$/, "") === "index");
+
+if (!entry) {
+	throw new Error("Missing docs index content entry.");
+}
+
+const { Content, headings } = await render(entry);
+const editPath = `docs/src/content/docs/${entry.id.endsWith(".mdx") ? entry.id : `${entry.id}.mdx`}`;
+---
+
+<DocLayout title={entry.data.title} description={entry.data.description} headings={headings} editPath={editPath} head={entry.data.head}>
+	<Content components={{ Terminal }} />
+</DocLayout>

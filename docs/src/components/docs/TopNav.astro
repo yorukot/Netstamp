@@ -1,0 +1,37 @@
+---
+import netstampLogo from "@netstamp/brand/assets/netstamp-logo-light.svg?url";
+import Icon from "../icons/Icon.astro";
+
+const pathname = Astro.url.pathname;
+const isDocs = pathname.startsWith("/docs");
+const isOpenAPI = pathname.startsWith("/openapi");
+const isComponents = pathname.startsWith("/storybook") || pathname.startsWith("/components");
+---
+
+<nav class="siteNav" aria-label="Primary navigation">
+	<div class="siteNavPrimary">
+		<a class="siteBrand" href="/" aria-label="Netstamp home">
+			<img src={netstampLogo} alt="Netstamp" />
+		</a>
+		<div class="siteNavLinks" aria-label="Docs sections">
+			<a href="/docs/" class:list={["siteNavLink", isDocs && "active"]}>
+				<Icon name="book" size={16} />
+				<span>Docs</span>
+			</a>
+			<a href="/openapi/" class:list={["siteNavLink", isOpenAPI && "active"]}>
+				<Icon name="server" size={16} />
+				<span>OpenAPI</span>
+			</a>
+			<a href="/storybook/" class:list={["siteNavLink", isComponents && "active"]}>
+				<Icon name="cube" size={16} />
+				<span>Storybook</span>
+			</a>
+		</div>
+	</div>
+	<div class="siteNavActions">
+		<a href="https://github.com/yorukot/netstamp" class="siteNavLink" target="_blank" rel="noreferrer">
+			<Icon name="github" size={16} />
+			<span>GitHub</span>
+		</a>
+	</div>
+</nav>

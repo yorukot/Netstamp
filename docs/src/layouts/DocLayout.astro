@@ -1,0 +1,295 @@
+---
+import Icon from "../components/icons/Icon.astro";
+import SearchBox from "../components/docs/SearchBox.astro";
+import { docsNav, docsPages, githubBaseUrl } from "../data/docs";
+import BaseLayout from "./BaseLayout.astro";
+
+interface Heading {
+	depth: 2 | 3;
+	slug: string;
+	text: string;
+}
+
+interface Props {
+	title?: string;
+	description?: string;
+	headings?: Heading[];
+	editPath?: string;
+	head?: HeadEntry[];
+	frontmatter?: {
+		title?: string;
+		description?: string;
+		editPath?: string;
+		head?: HeadEntry[];
+	};
+}
+
+interface HeadEntry {
+	tag: string;
+	content?: string;
+	attrs?: Record<string, string>;
+}
+
+const frontmatter = Astro.props.frontmatter ?? {};
+const title = Astro.props.title ?? frontmatter.title ?? "Docs";
+const description = Astro.props.description ?? frontmatter.description ?? "Netstamp documentation.";
+const head = Astro.props.head ?? frontmatter.head ?? [];
+const browserTitle = head.find(entry => entry.tag === "title")?.content ?? `${title} - Netstamp Docs`;
+const extraHead = head.filter(entry => entry.tag !== "title");
+const markdownHeadings = Astro.props.headings?.filter((heading): heading is Heading => heading.depth === 2 || heading.depth === 3) ?? [];
+const headings = markdownHeadings;
+const pathname = Astro.url.pathname.endsWith("/") ? Astro.url.pathname : `${Astro.url.pathname}/`;
+const currentPageIndex = docsPages.findIndex(page => page.href === pathname);
+const currentPage = currentPageIndex >= 0 ? docsPages[currentPageIndex] : undefined;
+const previousPage = currentPageIndex > 0 ? docsPages[currentPageIndex - 1] : undefined;
+const nextPage = currentPageIndex >= 0 && currentPageIndex < docsPages.length - 1 ? docsPages[currentPageIndex + 1] : undefined;
+const editPath = Astro.props.editPath ?? frontmatter.editPath ?? currentPage?.editPath ?? Astro.url.pathname;
+const editUrl = `${githubBaseUrl}/${editPath}`;
+
+function isActiveNavItem(href: string) {
+	return pathname === href || (href !== "/docs/" && pathname.startsWith(href));
+}
+
+const navGroups = docsNav.map(group => ({
+	...group,
+	id: group.title.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+	active: group.items.some(item => isActiveNavItem(item.href)),
+	items: group.items.map(item => ({ ...item, active: isActiveNavItem(item.href) }))
+}));
+---
+
+<BaseLayout title={browserTitle} description={description} head={extraHead}>
+	<div class="docsShell" data-docs-shell>
+		<aside class="docsSidebar" aria-label="Documentation navigation">
+			<div class="docsSidebarHeader">
+				<SearchBox />
+				<button class="docsSidebarFold" type="button" data-docs-sidebar-toggle aria-label="Fold documentation sidebar" aria-pressed="false" title="Fold sidebar">
+					<Icon name="sidebar" size={18} />
+					<span data-sidebar-toggle-label>Fold</span>
+				</button>
+			</div>
+			<nav class="docsNavTree">
+				{
+					navGroups.map(group => (
+						<section class:list={["docsNavGroup", group.active && "active", !group.active && "collapsed"]} data-docs-nav-group>
+							<h2 class="docsNavGroupHeading">
+								<button
+									class="docsNavGroupToggle"
+									type="button"
+									aria-expanded={group.active ? "true" : "false"}
+									aria-controls={`docs-nav-group-${group.id}`}
+									data-docs-nav-group-toggle
+									title={group.title}
+								>
+									<span class="docsNavGroupTitle">
+										<Icon name="folder" size={14} />
+										<span>{group.title}</span>
+									</span>
+									<Icon name="caret" size={12} />
+								</button>
+							</h2>
+							<div class="docsNavGroupItems" id={`docs-nav-group-${group.id}`} aria-hidden={group.active ? "false" : "true"}>
+								<div class="docsNavGroupItemsInner">
+									{group.items.map(item => (
+										<a href={item.href} class:list={["docsNavItem", item.active && "active"]} aria-current={item.active ? "page" : undefined} title={item.title}>
+											<Icon name={item.icon} size={18} />
+											<span>{item.title}</span>
+										</a>
+									))}
+								</div>
+							</div>
+						</section>
+					))
+				}
+			</nav>
+		</aside>
+
+		<main id="content" class="docContent">
+			<header class="docHero">
+				<h1>{title}</h1>
+				<p>{description}</p>
+			</header>
+			<article class="docProse">
+				<slot />
+			</article>
+			<footer class="docFooter">
+				<nav class="docPager" aria-label="Documentation pagination">
+					{
+						previousPage ? (
+							<a class="docPagerLink previous" href={previousPage.href}>
+								<Icon name="arrowLeft" size={18} />
+								<span>
+									<small>Previous</small>
+									<strong>{previousPage.title}</strong>
+								</span>
+							</a>
+						) : (
+							<span class="docPagerLink previous disabled" aria-disabled="true">
+								<Icon name="arrowLeft" size={18} />
+								<span>
+									<small>Previous</small>
+									<strong>No previous page</strong>
+								</span>
+							</span>
+						)
+					}
+					{
+						nextPage ? (
+							<a class="docPagerLink next" href={nextPage.href}>
+								<span>
+									<small>Next</small>
+									<strong>{nextPage.title}</strong>
+								</span>
+								<Icon name="arrowRight" size={18} />
+							</a>
+						) : (
+							<span class="docPagerLink next disabled" aria-disabled="true">
+								<span>
+									<small>Next</small>
+									<strong>No next page</strong>
+								</span>
+								<Icon name="arrowRight" size={18} />
+							</span>
+						)
+					}
+				</nav>
+				<a class="editLink" href={editUrl} target="_blank" rel="noreferrer">
+					<Icon name="edit" size={16} />
+					Edit on GitHub
+				</a>
+			</footer>
+		</main>
+
+		<aside class="docsToc" aria-label="On this page">
+			<div class="docsTocInner">
+				<div class="docsTocTitle">
+					<Icon name="toc" size={16} />
+					<span>On This Page</span>
+				</div>
+				{
+					headings.length ? (
+						<nav data-docs-toc>
+							{headings.map((heading, index) => (
+								<a href={`#${heading.slug}`} data-toc-link class:list={[heading.depth === 3 && "sub", index === 0 && "active"]} aria-current={index === 0 ? "location" : undefined}>
+									{heading.text}
+								</a>
+							))}
+						</nav>
+					) : (
+						<p>No headings</p>
+					)
+				}
+			</div>
+		</aside>
+	</div>
+
+	<script>
+		const sidebarShell = document.querySelector("[data-docs-shell]");
+		const sidebarToggle = document.querySelector("[data-docs-sidebar-toggle]");
+		const sidebarToggleLabel = sidebarToggle?.querySelector("[data-sidebar-toggle-label]");
+		const sidebarStorageKey = "netstamp:docs-sidebar-folded";
+
+		function readSidebarState() {
+			try {
+				return localStorage.getItem(sidebarStorageKey) === "true";
+			} catch {
+				return false;
+			}
+		}
+
+		function writeSidebarState(folded) {
+			try {
+				localStorage.setItem(sidebarStorageKey, String(folded));
+			} catch {
+				// Storage can be unavailable in private contexts; the in-page state still works.
+			}
+		}
+
+		function setSidebarFolded(folded) {
+			sidebarShell?.classList.toggle("sidebarFolded", folded);
+			sidebarToggle?.setAttribute("aria-pressed", String(folded));
+			sidebarToggle?.setAttribute("aria-label", folded ? "Expand documentation sidebar" : "Fold documentation sidebar");
+			sidebarToggle?.setAttribute("title", folded ? "Expand sidebar" : "Fold sidebar");
+			if (sidebarToggleLabel) sidebarToggleLabel.textContent = folded ? "Expand" : "Fold";
+			writeSidebarState(folded);
+		}
+
+		if (sidebarShell && sidebarToggle) {
+			setSidebarFolded(readSidebarState());
+			sidebarToggle.addEventListener("click", () => {
+				setSidebarFolded(!sidebarShell.classList.contains("sidebarFolded"));
+			});
+		}
+
+		for (const group of document.querySelectorAll("[data-docs-nav-group]")) {
+			const toggle = group.querySelector("[data-docs-nav-group-toggle]");
+			const itemsId = toggle?.getAttribute("aria-controls");
+			const items = itemsId ? document.getElementById(itemsId) : null;
+
+			toggle?.addEventListener("click", () => {
+				const expanded = toggle.getAttribute("aria-expanded") === "true";
+				const nextExpanded = !expanded;
+
+				toggle.setAttribute("aria-expanded", String(nextExpanded));
+				group.classList.toggle("collapsed", !nextExpanded);
+				items?.setAttribute("aria-hidden", String(!nextExpanded));
+			});
+		}
+
+		const toc = document.querySelector("[data-docs-toc]");
+		const tocLinks = Array.from(toc?.querySelectorAll("[data-toc-link]") ?? []);
+		const tocSections = tocLinks
+			.map(link => {
+				const id = link.getAttribute("href")?.slice(1);
+				const heading = id ? document.getElementById(decodeURIComponent(id)) : null;
+
+				return heading ? { heading, link } : null;
+			})
+			.filter(Boolean);
+
+		function setActiveTocLink(activeLink) {
+			for (const { link } of tocSections) {
+				const isActive = link === activeLink;
+				link.classList.toggle("active", isActive);
+				if (isActive) {
+					link.setAttribute("aria-current", "location");
+				} else {
+					link.removeAttribute("aria-current");
+				}
+			}
+		}
+
+		function updateActiveTocLink() {
+			if (!tocSections.length) return;
+
+			const activationOffset = 128;
+			let activeSection = tocSections[0];
+
+			for (const section of tocSections) {
+				if (section.heading.getBoundingClientRect().top <= activationOffset) {
+					activeSection = section;
+				} else {
+					break;
+				}
+			}
+
+			setActiveTocLink(activeSection.link);
+		}
+
+		let tocUpdateQueued = false;
+		function scheduleTocUpdate() {
+			if (tocUpdateQueued) return;
+
+			tocUpdateQueued = true;
+			requestAnimationFrame(() => {
+				tocUpdateQueued = false;
+				updateActiveTocLink();
+			});
+		}
+
+		updateActiveTocLink();
+		window.addEventListener("scroll", scheduleTocUpdate, { passive: true });
+		window.addEventListener("resize", scheduleTocUpdate);
+		window.addEventListener("hashchange", scheduleTocUpdate);
+	</script>
+</BaseLayout>

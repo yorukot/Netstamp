@@ -80,6 +80,7 @@ export function ProbeScene() {
 
 		const clock = new Clock();
 		let raf = 0;
+		let visible = false;
 
 		function renderFrame(elapsed: number) {
 			scene.rotation.y = elapsed * 0.12;
@@ -112,14 +113,47 @@ export function ProbeScene() {
 		}
 
 		function animate() {
-			raf = requestAnimationFrame(animate);
+			if (!visible) {
+				raf = 0;
+				return;
+			}
+
 			renderFrame(clock.getElapsedTime());
+			raf = requestAnimationFrame(animate);
 		}
 
+		function startAnimation() {
+			if (raf || reduced) return;
+
+			visible = true;
+			animate();
+		}
+
+		function stopAnimation() {
+			visible = false;
+			if (raf) {
+				cancelAnimationFrame(raf);
+				raf = 0;
+			}
+		}
+
+		let observer: IntersectionObserver | undefined;
 		if (reduced) {
 			renderer.render(scene, camera);
+		} else if ("IntersectionObserver" in window) {
+			observer = new IntersectionObserver(
+				entries => {
+					if (entries[0]?.isIntersecting) {
+						startAnimation();
+					} else {
+						stopAnimation();
+					}
+				},
+				{ rootMargin: "160px 0px" }
+			);
+			observer.observe(container);
 		} else {
-			animate();
+			startAnimation();
 		}
 
 		const ro = new ResizeObserver(entries => {
@@ -128,13 +162,14 @@ export function ProbeScene() {
 				camera.aspect = width / height;
 				camera.updateProjectionMatrix();
 				renderer.setSize(width, height);
-				renderer.render(scene, camera);
+				if (visible || reduced) renderer.render(scene, camera);
 			}
 		});
 		ro.observe(container);
 
 		return () => {
-			cancelAnimationFrame(raf);
+			observer?.disconnect();
+			stopAnimation();
 			ro.disconnect();
 			disposeSceneObjects(scene);
 			renderer.dispose();

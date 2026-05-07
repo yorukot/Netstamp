@@ -1,0 +1,32 @@
+---
+title: Deployment
+description: How the static docs build, generated API contract, and Storybook output are assembled for publication.
+icon: deployment
+head:
+  - tag: title
+    content: Deployment | Netstamp Docs
+---
+
+## Static Output
+
+The docs site is an Astro app that builds to `docs/dist`. It owns the public homepage, documentation routes, generated OpenAPI explorer, and static Storybook output.
+
+```bash
+pnpm build:docs
+```
+
+## Build Steps
+
+The docs build regenerates the OpenAPI contract, runs `astro build`, and publishes the shared UI Storybook output into the docs distribution directory.
+
+This keeps API reference, documentation pages, and component examples in the same deployable artifact.
+
+## Route Ownership
+
+The docs surface owns `/`, `/docs/*`, `/openapi/`, and `/storybook/`. The service app owns product routes such as `/login`, `/register`, and authenticated dashboard paths.
+
+:::note Keep deployment docs focused on route ownership and generated artifacts. Runtime service deployment details should stay near backend and infrastructure configuration. :::
+
+## Verification
+
+Run a docs build before publishing changes that touch MDX, navigation, OpenAPI generation, shared UI Storybook output, or Astro layout code.

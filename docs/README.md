@@ -1,43 +1,21 @@
-# Astro Starter Kit: Minimal
+# Netstamp Docs
 
-```sh
-pnpm create astro@latest -- --template minimal
-```
+This package owns the public Netstamp site and documentation. It uses Astro for static pages, MDX files under `src/content/docs/` for documentation content, and React islands only where interaction is required.
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+## Commands
 
-## 🚀 Project Structure
+Run from the repository root:
 
-Inside of your Astro project, you'll see the following folders and files:
+- `pnpm --filter @netstamp/docs dev`: start the Astro docs dev server.
+- `pnpm --filter @netstamp/docs build`: regenerate OpenAPI, build Astro, and build static Storybook into `docs/dist/storybook`.
+- `pnpm --filter @netstamp/docs preview`: preview the built docs output.
+- `pnpm --filter @netstamp/ui storybook`: run Storybook locally for shared UI components.
 
-```text
-/
-├── public/
-├── src/
-│   └── pages/
-│       └── index.astro
-└── package.json
-```
+## Structure
 
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
-
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
-
-Any static assets, like images, can be placed in the `public/` directory.
-
-## 🧞 Commands
-
-All commands are run from the root of the project, from a terminal:
-
-| Command                | Action                                           |
-| :--------------------- | :----------------------------------------------- |
-| `pnpm install`         | Installs dependencies                            |
-| `pnpm dev`             | Starts local dev server at `localhost:4321`      |
-| `pnpm build`           | Build your production site to `./dist/`          |
-| `pnpm preview`         | Preview your build locally, before deploying     |
-| `pnpm astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `pnpm astro -- --help` | Get help using the Astro CLI                     |
-
-## 👀 Want to learn more?
-
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+- `src/pages/index.astro`: public landing page shell.
+- `src/pages/docs/[...slug].astro`: renders docs content through `DocLayout.astro`.
+- `src/content/docs/**/*.mdx`: MDX documentation content with `title`, `description`, `icon`, and optional `head` frontmatter.
+- `src/components/landing/`: React landing page island and visual scenes.
+- `src/components/openapi/`: React OpenAPI explorer used by the Markdown OpenAPI page.
+- `public/openapi.json`: generated backend OpenAPI contract.

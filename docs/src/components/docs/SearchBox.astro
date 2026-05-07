@@ -1,0 +1,161 @@
+---
+import { docsSearchIndex } from "../../data/docs";
+import Icon from "../icons/Icon.astro";
+
+const dataJson = JSON.stringify(docsSearchIndex);
+---
+
+<div class="docsSearch" data-docs-search data-search-index={dataJson}>
+	<button class="docsSearchTrigger" type="button" data-search-open aria-haspopup="dialog" aria-controls="docs-search-dialog">
+		<span class="docsSearchTriggerLabel">
+			<Icon name="search" size={16} />
+		</span>
+		<span class="docsSearchShortcut">Cmd K</span>
+	</button>
+
+	<div class="docsSearchOverlay" id="docs-search-dialog" data-search-dialog hidden>
+		<button class="docsSearchScrim" type="button" aria-label="Close search" data-search-close></button>
+		<div class="docsSearchPanel" role="dialog" aria-modal="true" aria-labelledby="docs-search-title">
+			<header class="docsSearchHeader">
+				<div class="docsSearchTitle" id="docs-search-title">
+					<Icon name="search" size={16} />
+					<span>Search docs</span>
+				</div>
+				<button class="docsSearchClose" type="button" data-search-close>Close</button>
+			</header>
+			<input id="docs-search-input" type="search" autocomplete="off" placeholder="Search documentation" data-search-input />
+			<div class="docsSearchResults" data-search-results hidden></div>
+		</div>
+	</div>
+</div>
+
+<script>
+	import Fuse from "fuse.js";
+
+	const root = document.querySelector("[data-docs-search]");
+	const trigger = root?.querySelector("[data-search-open]");
+	const dialog = root?.querySelector("[data-search-dialog]");
+	const input = root?.querySelector("[data-search-input]");
+	const results = root?.querySelector("[data-search-results]");
+	const closeButtons = root?.querySelectorAll("[data-search-close]") ?? [];
+
+	const entries = JSON.parse((root as HTMLElement | null)?.dataset.searchIndex ?? "[]");
+	const fuse = new Fuse(entries, {
+		keys: ["title", "description", "keywords"],
+		threshold: 0.35,
+		minMatchCharLength: 2
+	});
+
+	let restoreFocusTo: Element | null = null;
+	let closeTimer: number | undefined;
+
+	function clearResults() {
+		if (!results) return;
+
+		results.replaceChildren();
+		(results as HTMLElement).hidden = true;
+	}
+
+	function openSearch() {
+		if (!dialog || !input) return;
+		const dialogEl = dialog as HTMLElement;
+
+		if (!dialogEl.hidden && dialogEl.dataset.state === "open") return;
+
+		if (closeTimer) {
+			window.clearTimeout(closeTimer);
+			closeTimer = undefined;
+		}
+
+		restoreFocusTo = document.activeElement;
+		dialogEl.hidden = false;
+		dialogEl.dataset.state = "open";
+		document.documentElement.classList.add("docsSearchOpen");
+		(input as HTMLInputElement).value = "";
+		clearResults();
+		requestAnimationFrame(() => (input as HTMLElement).focus());
+	}
+
+	function closeSearch() {
+		if (!dialog || !input) return;
+		const dialogEl = dialog as HTMLElement;
+
+		if (dialogEl.hidden || dialogEl.dataset.state === "closing") return;
+
+		dialogEl.dataset.state = "closing";
+		(input as HTMLInputElement).value = "";
+		clearResults();
+
+		closeTimer = window.setTimeout(() => {
+			dialogEl.hidden = true;
+			dialogEl.dataset.state = "closed";
+			document.documentElement.classList.remove("docsSearchOpen");
+			closeTimer = undefined;
+
+			if (restoreFocusTo instanceof HTMLElement) {
+				restoreFocusTo.focus();
+			}
+		}, 260);
+	}
+
+	function renderResults(matches: typeof entries) {
+		if (!results) return;
+
+		results.replaceChildren();
+
+		if (!matches.length) {
+			const empty = document.createElement("div");
+			empty.className = "docsSearchEmpty";
+			empty.textContent = "No matches";
+			results.append(empty);
+			(results as HTMLElement).hidden = false;
+			return;
+		}
+
+		const fragment = document.createDocumentFragment();
+		for (const entry of matches) {
+			const link = document.createElement("a");
+			const title = document.createElement("strong");
+			const description = document.createElement("span");
+
+			link.className = "docsSearchResult";
+			link.href = entry.href;
+			title.textContent = entry.title;
+			description.textContent = entry.description;
+			link.append(title, description);
+			fragment.append(link);
+		}
+
+		results.append(fragment);
+		(results as HTMLElement).hidden = false;
+	}
+
+	trigger?.addEventListener("click", openSearch);
+	closeButtons.forEach(button => button.addEventListener("click", closeSearch));
+
+	input?.addEventListener("input", event => {
+		const query = (event.currentTarget as HTMLInputElement).value.trim();
+		if (!query) {
+			clearResults();
+			return;
+		}
+
+		const matches = fuse
+			.search(query)
+			.map(r => r.item)
+			.slice(0, 6);
+		renderResults(matches);
+	});
+
+	document.addEventListener("keydown", event => {
+		if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+			event.preventDefault();
+			openSearch();
+			return;
+		}
+
+		if (event.key === "Escape" && dialog && !(dialog as HTMLElement).hidden) {
+			closeSearch();
+		}
+	});
+</script>

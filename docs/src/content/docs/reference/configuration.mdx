@@ -1,0 +1,37 @@
+---
+title: Configuration
+description: Workspace configuration locations for docs, web, backend, shared UI, formatting, and generated API assets.
+icon: wrench
+head:
+  - tag: title
+    content: Configuration | Netstamp Docs
+---
+
+## Workspace Files
+
+The root `package.json`, `pnpm-workspace.yaml`, and `Justfile` define the common entry points. Prefer those commands when a change crosses package boundaries.
+
+```bash
+pnpm install
+just lint
+just test
+just build
+```
+
+## Docs Settings
+
+The docs app lives in `docs/`. Astro configuration is in `docs/astro.config.mjs`, while shared docs styles live in `docs/src/styles/docs.css`.
+
+Documentation pages are MDX files under `docs/src/content/docs/`. The left sidebar and search index scan those files automatically from their frontmatter.
+
+## Backend And API Assets
+
+Backend source lives in `server/`. The docs API explorer reads `docs/public/openapi.json`, which should be regenerated from backend route definitions when API behavior changes.
+
+## Shared UI
+
+Reusable React primitives live in `packages/ui/` and are consumed by both the service app and docs. Static documentation for those components is published through the Storybook build at `/storybook/`.
+
+## Update Rules
+
+When configuration changes affect local commands, project structure, or documentation behavior, update the closest `AGENTS.md` guide in the same change.

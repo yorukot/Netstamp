@@ -28,7 +28,6 @@
 	mask-image: linear-gradient(180deg, #000, transparent 82%);
 }
 
-.nav,
 .hero,
 .storySection,
 .featureStack,
@@ -37,45 +36,7 @@
 	z-index: 1;
 }
 
-/* ── Nav ──────────────────────────────────────────────────── */
-
-.nav {
-	position: sticky;
-	top: 0;
-	z-index: 20;
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 1rem;
-	min-height: 4.5rem;
-	padding: 0 1.5rem;
-	border-bottom: 1px solid var(--ns-border);
-	background: rgba(5, 7, 11, 0.92);
-	backdrop-filter: blur(1rem);
-}
-
-.brand {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.75rem;
-	color: var(--ns-text);
-	background: transparent;
-	border: 0;
-	cursor: pointer;
-	text-decoration: none;
-}
-
-.brandLogo {
-	display: block;
-	width: clamp(9rem, 15vw, 11.25rem);
-	height: auto;
-}
-
-.brand:focus-visible,
-.navLink:focus-visible {
-	outline: 2px solid var(--ns-accent);
-	outline-offset: 0.25rem;
-}
+/* ── Card Icon ─────────────────────────────────────────────── */
 
 .cardIcon {
 	--ns-frame-cut: var(--ns-cut-sm);
@@ -105,31 +66,7 @@
 	z-index: 3;
 }
 
-.navActions {
-	display: flex;
-	align-items: center;
-	gap: 0.75rem;
-}
-
-.navLink {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.4rem;
-	color: var(--ns-text-subtle);
-	font-family: var(--ns-font-mono);
-	font-size: 0.75rem;
-	font-weight: 700;
-	letter-spacing: 0.09em;
-	text-decoration: none;
-	text-transform: uppercase;
-	transition: color var(--ns-transition);
-}
-
-.navLink:hover {
-	color: var(--ns-text);
-}
-
-/* ── Hero (unchanged) ─────────────────────────────────────── */
+/* ── Hero ─────────────────────────────────────────────────── */
 
 .hero {
 	display: grid;
@@ -1206,18 +1143,6 @@
 }
 
 @media (max-width: 48rem) {
-	.nav {
-		padding: 0 1rem;
-	}
-
-	.navActions {
-		gap: 0.5rem;
-	}
-
-	.navLink span {
-		display: none;
-	}
-
 	.hero,
 	.featureStack,
 	.trustSection {
@@ -1272,11 +1197,6 @@
 }
 
 @media (max-width: 28rem) {
-	.brand > span:last-child,
-	.navCtaText {
-		display: none;
-	}
-
 	.heroActions,
 	.ctaActions {
 		display: grid;

@@ -1,16 +1,8 @@
 ---
-import faviconUrl from "@netstamp/brand/assets/netstamp-favicon.svg";
+import { LandingPage } from "../components/landing/LandingPage";
+import BaseLayout from "../layouts/BaseLayout.astro";
 ---
 
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href={faviconUrl} />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
-</html>
+<BaseLayout title="Netstamp - See the network before it fails you" description="Open-source network observability from probes you control. Measure latency, packet loss, DNS, and routes.">
+	<LandingPage client:load />
+</BaseLayout>

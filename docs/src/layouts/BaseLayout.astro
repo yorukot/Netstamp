@@ -1,0 +1,80 @@
+---
+import faviconUrl from "@netstamp/brand/assets/netstamp-favicon.svg?url";
+import "@netstamp/ui/styles";
+import TopNav from "../components/docs/TopNav.astro";
+import "../styles/docs.css";
+
+interface Props {
+	title: string;
+	description?: string;
+	nav?: boolean;
+	bodyClass?: string;
+	head?: HeadEntry[];
+}
+
+interface HeadEntry {
+	tag: string;
+	content?: string;
+	attrs?: Record<string, string>;
+}
+
+const { title, description = "Open-source network observability from probes you control.", nav = true, bodyClass, head = [] } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" type="image/svg+xml" href={faviconUrl} />
+		<meta name="viewport" content="width=device-width" />
+		<meta name="generator" content={Astro.generator} />
+		<meta name="description" content={description} />
+		<title>{title}</title>
+		{
+			head.map(entry => {
+				const HeadTag = entry.tag;
+				return entry.content ? <HeadTag {...entry.attrs}>{entry.content}</HeadTag> : <HeadTag {...entry.attrs} />;
+			})
+		}
+	</head>
+	<body class={bodyClass}>
+		<script>
+			import "@phosphor-icons/webcomponents/PhArrowLeft";
+			import "@phosphor-icons/webcomponents/PhArrowRight";
+			import "@phosphor-icons/webcomponents/PhArrowUpRight";
+			import "@phosphor-icons/webcomponents/PhBookOpen";
+			import "@phosphor-icons/webcomponents/PhCaretDown";
+			import "@phosphor-icons/webcomponents/PhCheckCircle";
+			import "@phosphor-icons/webcomponents/PhCode";
+			import "@phosphor-icons/webcomponents/PhCompass";
+			import "@phosphor-icons/webcomponents/PhCube";
+			import "@phosphor-icons/webcomponents/PhDatabase";
+			import "@phosphor-icons/webcomponents/PhFolderOpen";
+			import "@phosphor-icons/webcomponents/PhGitBranch";
+			import "@phosphor-icons/webcomponents/PhGithubLogo";
+			import "@phosphor-icons/webcomponents/PhGlobeHemisphereWest";
+			import "@phosphor-icons/webcomponents/PhHardDrives";
+			import "@phosphor-icons/webcomponents/PhHouse";
+			import "@phosphor-icons/webcomponents/PhKey";
+			import "@phosphor-icons/webcomponents/PhLightbulb";
+			import "@phosphor-icons/webcomponents/PhLightning";
+			import "@phosphor-icons/webcomponents/PhListBullets";
+			import "@phosphor-icons/webcomponents/PhMagnifyingGlass";
+			import "@phosphor-icons/webcomponents/PhMapTrifold";
+			import "@phosphor-icons/webcomponents/PhNetwork";
+			import "@phosphor-icons/webcomponents/PhNote";
+			import "@phosphor-icons/webcomponents/PhPencilSimple";
+			import "@phosphor-icons/webcomponents/PhPlugs";
+			import "@phosphor-icons/webcomponents/PhPulse";
+			import "@phosphor-icons/webcomponents/PhRocketLaunch";
+			import "@phosphor-icons/webcomponents/PhShieldCheck";
+			import "@phosphor-icons/webcomponents/PhSidebarSimple";
+			import "@phosphor-icons/webcomponents/PhTerminalWindow";
+			import "@phosphor-icons/webcomponents/PhUsers";
+			import "@phosphor-icons/webcomponents/PhWarning";
+			import "@phosphor-icons/webcomponents/PhWrench";
+		</script>
+		{nav ? <TopNav /> : null}
+		<slot />
+	</body>
+</html>

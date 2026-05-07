@@ -1,0 +1,27 @@
+---
+title: UI System
+description: Shared UI primitives use the same dark technical console language across docs and product surfaces.
+icon: cube
+head:
+  - tag: title
+    content: UI System | Netstamp Docs
+---
+
+## Tokens
+
+`@netstamp/ui/styles` defines fonts, colors, cut-frame borders, shadows, scrollbars, and page shell utility classes. Import it once at each app root or Astro layout.
+
+```ts
+import "@netstamp/ui/styles";
+import { Button, Panel, MetricCard } from "@netstamp/ui";
+```
+
+## Components
+
+The package exports primitives such as `Button`, `Badge`, `Surface`, `Panel`, `MetricCard`, `Field`, `DataTable`, `Terminal`, `SignalAvatar`, `PageShell`, and `GlobalFooter`.
+
+:::note Astro pages stay static by default. React is only hydrated for pages that need actual React components or landing-page browser effects. :::
+
+## Storybook
+
+The component catalog is built with Storybook and published with the docs site at [`/storybook/`](/storybook/). Run it locally with `pnpm --filter @netstamp/ui storybook`.

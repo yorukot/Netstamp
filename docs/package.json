@@ -4,12 +4,26 @@
 	"type": "module",
 	"scripts": {
 		"astro": "astro",
-		"build": "astro build",
+		"build": "pnpm -C .. generate:openapi && pnpm -C .. --filter @netstamp/ui build:storybook -o ../../docs/public/storybook && astro build",
 		"dev": "astro dev",
 		"preview": "astro preview"
 	},
 	"dependencies": {
+		"@astrojs/mdx": "^4.2.3",
+		"@astrojs/react": "^5.0.4",
 		"@netstamp/brand": "workspace:*",
-		"astro": "^6.2.2"
+		"@netstamp/ui": "workspace:*",
+		"@phosphor-icons/webcomponents": "^2.1.5",
+		"astro": "^6.2.2",
+		"fuse.js": "^7.1.0",
+		"gsap": "^3.15.0",
+		"react": "^19.2.5",
+		"react-dom": "^19.2.5",
+		"remark-directive": "^4.0.0",
+		"three": "^0.184.0"
+	},
+	"devDependencies": {
+		"@types/react": "^19.2.14",
+		"@types/react-dom": "^19.2.3"
 	}
 }

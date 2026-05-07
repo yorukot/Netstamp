@@ -1,21 +1,8 @@
-import { pathForRoute } from "@/routes/routePaths";
-import type { Navigate } from "@/routes/routeTypes";
-import { GlobalFooter } from "@/shared/components/GlobalFooter";
-import { classNames } from "@/shared/utils/classNames";
-import netstampLogo from "@netstamp/brand/assets/netstamp-logo-light.svg";
-import { Badge, Button } from "@netstamp/ui";
-import { ArrowUpRightIcon } from "@phosphor-icons/react/dist/csr/ArrowUpRight";
-import { CheckCircleIcon } from "@phosphor-icons/react/dist/csr/CheckCircle";
-import { GithubLogoIcon } from "@phosphor-icons/react/dist/csr/GithubLogo";
-import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/dist/csr/GlobeHemisphereWest";
-import { NetworkIcon } from "@phosphor-icons/react/dist/csr/Network";
-import { PulseIcon } from "@phosphor-icons/react/dist/csr/Pulse";
-import { RocketLaunchIcon } from "@phosphor-icons/react/dist/csr/RocketLaunch";
+import { Badge, Button, GlobalFooter } from "@netstamp/ui";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useEffect, useRef } from "react";
-import { Helmet } from "react-helmet-async";
-import { Link } from "react-router-dom";
+import taiwanSubmarineCablesMap from "../../assets/taiwan_submarine_cables.svg?url";
 import { GlobalNetworkAnimation } from "./GlobalNetworkAnimation";
 import styles from "./LandingPage.module.css";
 import { NetworkScene } from "./NetworkScene";
@@ -24,7 +11,6 @@ import { ProbeScene } from "./ProbeScene";
 gsap.registerPlugin(ScrollTrigger);
 
 const githubUrl = "https://github.com/yorukot/netstamp";
-const taiwanSubmarineCablesMap = "/taiwan_submarine_cables.svg";
 
 const checkCards = [
 	{ name: "Ping", metric: "p95 42ms", detail: "ICMP / TCP probes" },
@@ -37,11 +23,22 @@ const routeHops = ["AMS", "FRA", "IXP", "NYC", "SFO"];
 const routeSignals = ["See latency.", "See packet loss.", "See DNS failures.", "See path changes.", "See where traffic takes the long way around."];
 
 interface LandingPageProps {
-	navigate: Navigate;
+	appHref?: string;
 }
 
-export function LandingPage({ navigate }: LandingPageProps) {
+function classNames(...classes: Array<string | false | null | undefined>) {
+	return classes.filter(Boolean).join(" ");
+}
+
+export function LandingPage({ appHref = "/register" }: LandingPageProps) {
 	const landingRef = useRef<HTMLDivElement>(null);
+
+	useEffect(() => {
+		const image = new Image();
+		image.decoding = "async";
+		image.src = taiwanSubmarineCablesMap;
+		if (image.decode) void image.decode().catch(() => undefined);
+	}, []);
 
 	useEffect(() => {
 		const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -106,28 +103,6 @@ export function LandingPage({ navigate }: LandingPageProps) {
 
 	return (
 		<div ref={landingRef} className={styles.landing}>
-			<Helmet>
-				<title>Netstamp - See the network before it fails you</title>
-				<meta name="description" content="Open-source network observability from probes you control. Measure latency, packet loss, DNS, and routes." />
-			</Helmet>
-
-			<nav className={styles.nav}>
-				<Link className={styles.brand} to={pathForRoute("landing")}>
-					<img className={styles.brandLogo} src={netstampLogo} alt="Netstamp" />
-				</Link>
-
-				<div className={styles.navActions}>
-					<a className={styles.navLink} href={githubUrl} target="_blank" rel="noreferrer">
-						<GithubLogoIcon size={16} weight="bold" aria-hidden="true" />
-						<span>GitHub</span>
-					</a>
-					<Button size="md" onClick={() => navigate("register")}>
-						<RocketLaunchIcon size={16} weight="bold" aria-hidden="true" />
-						<span className={styles.navCtaText}>Deploy</span>
-					</Button>
-				</div>
-			</nav>
-
 			<main>
 				{/* Hero — unchanged */}
 				<section className={styles.hero}>
@@ -142,13 +117,15 @@ export function LandingPage({ navigate }: LandingPageProps) {
 						<p>Measure latency, packet loss, DNS, and routes.</p>
 
 						<div className={styles.heroActions}>
-							<Button size="xl" onClick={() => navigate("register")}>
-								<RocketLaunchIcon size={20} weight="bold" aria-hidden="true" />
-								Deploy Your Probe
+							<Button size="xl" asChild>
+								<a href={appHref}>
+									<ph-rocket-launch size={20} weight="bold" aria-hidden="true" />
+									Deploy Your Probe
+								</a>
 							</Button>
 							<Button size="xl" variant="secondary" asChild>
 								<a href={githubUrl} target="_blank" rel="noreferrer">
-									<GithubLogoIcon size={20} weight="bold" aria-hidden="true" />
+									<ph-github-logo size={20} weight="bold" aria-hidden="true" />
 									View on GitHub
 								</a>
 							</Button>
@@ -190,7 +167,7 @@ export function LandingPage({ navigate }: LandingPageProps) {
 					<article data-gs="feature-card" className={classNames("ns-cut-frame", styles.featureCard, styles.probeFeatureCard)}>
 						<div className={styles.featureCardMain}>
 							<div className={classNames("ns-cut-frame", styles.cardIcon)} aria-hidden="true">
-								<GlobeHemisphereWestIcon size={24} weight="duotone" />
+								<ph-globe-hemisphere-west size={24} weight="duotone" />
 							</div>
 							<h2>Probes everywhere.</h2>
 							<p>Install Netstamp probes on VPS nodes, servers, internal hosts, edge locations, classrooms, labs, or community networks.</p>
@@ -207,7 +184,7 @@ export function LandingPage({ navigate }: LandingPageProps) {
 					<article data-gs="feature-card" className={classNames("ns-cut-frame", styles.featureCard)}>
 						<div className={styles.featureCardTopline}>
 							<div className={classNames("ns-cut-frame", styles.cardIcon)} aria-hidden="true">
-								<PulseIcon size={24} weight="duotone" />
+								<ph-pulse size={24} weight="duotone" />
 							</div>
 							<span>scheduler / result stream</span>
 						</div>
@@ -243,7 +220,7 @@ export function LandingPage({ navigate }: LandingPageProps) {
 					<article data-gs="feature-card" className={classNames("ns-cut-frame", styles.featureCard)}>
 						<div className={styles.featureCardTopline}>
 							<div className={classNames("ns-cut-frame", styles.cardIcon)} aria-hidden="true">
-								<NetworkIcon size={24} weight="duotone" />
+								<ph-network size={24} weight="duotone" />
 							</div>
 							<span>path hash / hop timeline</span>
 						</div>
@@ -265,7 +242,7 @@ export function LandingPage({ navigate }: LandingPageProps) {
 						<ul className={styles.signalList}>
 							{routeSignals.map(signal => (
 								<li key={signal}>
-									<CheckCircleIcon size={16} weight="fill" aria-hidden="true" />
+									<ph-check-circle size={16} weight="fill" aria-hidden="true" />
 									<span>{signal}</span>
 								</li>
 							))}
@@ -289,13 +266,15 @@ export function LandingPage({ navigate }: LandingPageProps) {
 							<p>Netstamp is built in the open — for operators, researchers, students, communities, and anyone who wants to understand how the Internet actually behaves.</p>
 							<p>Gives communities a way to measure, prove, and discuss what is happening.</p>
 							<div className={styles.ctaActions}>
-								<Button size="xl" onClick={() => navigate("register")}>
-									<RocketLaunchIcon size={20} weight="bold" aria-hidden="true" />
-									Deploy Your Probe
+								<Button size="xl" asChild>
+									<a href={appHref}>
+										<ph-rocket-launch size={20} weight="bold" aria-hidden="true" />
+										Deploy Your Probe
+									</a>
 								</Button>
 								<Button size="xl" variant="outline" asChild>
 									<a href={githubUrl} target="_blank" rel="noreferrer">
-										<ArrowUpRightIcon size={20} weight="bold" aria-hidden="true" />
+										<ph-arrow-up-right size={20} weight="bold" aria-hidden="true" />
 										View the source
 									</a>
 								</Button>
@@ -304,7 +283,7 @@ export function LandingPage({ navigate }: LandingPageProps) {
 
 						<div className={styles.trustRight}>
 							<div className={styles.trustMapBackdrop}>
-								<img className={styles.trustMapImage} src={taiwanSubmarineCablesMap} alt="Map of Taiwan submarine cable routes" loading="lazy" decoding="async" />
+								<img className={styles.trustMapImage} src={taiwanSubmarineCablesMap} alt="Map of Taiwan submarine cable routes" loading="eager" fetchPriority="low" decoding="async" />
 							</div>
 						</div>
 					</div>
