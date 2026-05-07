@@ -1,7 +1,7 @@
 import { pathForRoute } from "@/routes/routePaths";
+import type { Navigate } from "@/routes/routeTypes";
 import { GlobalFooter } from "@/shared/components/GlobalFooter";
 import { classNames } from "@/shared/utils/classNames";
-import type { Navigate } from "@/shared/utils/mockData";
 import netstampLogo from "@netstamp/brand/assets/netstamp-logo-light.svg";
 import { Badge, Button } from "@netstamp/ui";
 import { ArrowUpRightIcon } from "@phosphor-icons/react/dist/csr/ArrowUpRight";

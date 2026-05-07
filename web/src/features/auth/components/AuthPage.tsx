@@ -1,5 +1,5 @@
 import { pathForRoute } from "@/routes/routePaths";
-import type { Navigate } from "@/shared/utils/mockData";
+import type { Navigate } from "@/routes/routeTypes";
 import { Badge, Button, PageShell, Panel, TextField } from "@netstamp/ui";
 import type { FormEvent } from "react";
 import { Helmet } from "react-helmet-async";

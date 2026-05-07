@@ -1,9 +1,5 @@
+import type { AppRoute } from "@/routes/routeTypes";
 import type { BadgeTone } from "@netstamp/ui";
-
-export type AppRoute = "dashboard" | "probes" | "insight" | "checks" | "alerts" | "team" | "settings";
-export type PublicRoute = "landing" | "login" | "register" | "onboarding";
-export type Route = AppRoute | PublicRoute;
-export type Navigate = (route: Route, hash?: string) => void;
 
 export interface SidebarItem {
 	label: string;

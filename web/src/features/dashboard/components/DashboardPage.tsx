@@ -1,7 +1,7 @@
+import { type Navigate } from "@/routes/routeTypes";
 import { FleetMatrix } from "@/shared/components/FleetMatrix";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
-import { type Navigate } from "@/shared/utils/mockData";
 import { Badge, Button, MetricCard, Panel, Surface, type BadgeTone } from "@netstamp/ui";
 import styles from "./DashboardPage.module.css";
 
@@ -18,7 +18,7 @@ export function DashboardPage({ navigate }: DashboardPageProps) {
 				copy="A premium active-measurement cockpit for probe health, scheduled checks, stream semantics, and recent path anomalies."
 				actions={
 					<>
-						<Button variant="secondary" onClick={() => navigate("probes", "#new-probe")}>
+						<Button variant="secondary" onClick={() => navigate("newProbe")}>
 							New probe wizard
 						</Button>
 						<Button onClick={() => navigate("checks")}>Create check</Button>

@@ -1,4 +1,4 @@
-import type { Route } from "@/shared/utils/mockData";
+import type { Route } from "./routeTypes";
 
 export const routePaths = {
 	landing: "/",
@@ -7,6 +7,7 @@ export const routePaths = {
 	onboarding: "/onboarding",
 	dashboard: "/dashboard",
 	probes: "/probes",
+	newProbe: "/probes/new",
 	insight: "/insight",
 	checks: "/checks",
 	alerts: "/alerts",

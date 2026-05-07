@@ -2,8 +2,7 @@ import { NetworkMap } from "@/shared/components/NetworkMap";
 import { classNames } from "@/shared/utils/classNames";
 import { assignments, probes, type ProbeStatus } from "@/shared/utils/mockData";
 import { useState } from "react";
-import { useLocation } from "react-router-dom";
-import { NewProbeDrawer } from "./NewProbeDrawer";
+import { Outlet } from "react-router-dom";
 import { ProbeDetail } from "./ProbeDetail";
 import { ProbeList } from "./ProbeList";
 import { ProbePageHeader } from "./ProbePageHeader";
@@ -14,14 +13,12 @@ import type { AssignedRow, ProbeSort, ProbeView } from "./types";
 const providerOptions = Array.from(new Set(probes.map(probe => probe.provider)));
 
 export function ProbesPage() {
-	const location = useLocation();
 	const [view, setView] = useState<ProbeView>("grid");
 	const [selectedId, setSelectedId] = useState("ams-edge-01");
 	const [search, setSearch] = useState("");
 	const [statusFilter, setStatusFilter] = useState<"all" | ProbeStatus>("all");
 	const [providerFilter, setProviderFilter] = useState("all");
 	const [sortKey, setSortKey] = useState<ProbeSort>("heartbeat");
-	const wizardOpen = location.hash === "#new-probe";
 	const selectedProbe = probes.find(probe => probe.id === selectedId) || probes[0];
 	const visibleProbes = filterProbes(probes, search, statusFilter, providerFilter, sortKey);
 	const assignedRows: AssignedRow[] = assignments.map(([probe, check, type, interval, jitter, latest]) => ({
@@ -67,7 +64,7 @@ export function ProbesPage() {
 				</div>
 			)}
 
-			{wizardOpen ? <NewProbeDrawer /> : null}
+			<Outlet />
 		</section>
 	);
 }

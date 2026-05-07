@@ -1,5 +1,5 @@
+import { type Navigate } from "@/routes/routeTypes";
 import { classNames } from "@/shared/utils/classNames";
-import { type Navigate } from "@/shared/utils/mockData";
 import { Button, Input, PageShell } from "@netstamp/ui";
 import type { FormEvent, KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useEffect, useRef, useState } from "react";
@@ -181,7 +181,7 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 						<div className={styles.successView} aria-live="polite">
 							<ScriptLine prompt="success" text={`Team ${createdTeam} created.`} />
 							<p>Nice, let's bring {createdTeam} online. Next we will open the probe fleet and start the new probe wizard.</p>
-							<Button variant="plain" className={styles.tuiButton} type="button" onClick={() => navigate("probes", "#new-probe")}>
+							<Button variant="plain" className={styles.tuiButton} type="button" onClick={() => navigate("newProbe")}>
 								[ open probe fleet / create probe ]
 							</Button>
 						</div>
