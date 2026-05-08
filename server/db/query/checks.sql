@@ -118,6 +118,29 @@ ORDER BY probes.created_at ASC,
 INSERT INTO effective_probe_checks (project_id, probe_id, check_id, check_version, selector_version)
 VALUES ($1, $2, $3, $4, $5);
 
+-- name: UpsertEffectiveProbeCheck :exec
+INSERT INTO effective_probe_checks (project_id, probe_id, check_id, check_version, selector_version)
+VALUES ($1, $2, $3, $4, $5)
+ON CONFLICT (project_id, probe_id, check_id) WHERE deleted_at IS NULL
+DO UPDATE SET check_version = EXCLUDED.check_version,
+              selector_version = EXCLUDED.selector_version;
+
+-- name: DeleteStaleEffectiveProbeChecks :exec
+DELETE FROM effective_probe_checks
+WHERE project_id = sqlc.arg(project_id)
+  AND check_id = sqlc.arg(check_id)
+  AND deleted_at IS NULL
+  AND (
+      check_version <> sqlc.arg(check_version)
+      OR selector_version <> sqlc.arg(selector_version)
+      OR probe_id <> ALL(sqlc.arg(probe_ids)::uuid[])
+  );
+
+-- name: DeleteEffectiveProbeChecksForCheck :exec
+DELETE FROM effective_probe_checks
+WHERE project_id = $1
+  AND check_id = $2;
+
 -- name: DeleteCheckLabels :exec
 DELETE FROM check_labels
 WHERE project_id = $1

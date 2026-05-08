@@ -144,6 +144,8 @@ func (r *CheckRepository) CreateCheck(ctx context.Context, input domaincheck.Cre
 			}
 		}
 
+		// effective_probe_checks is a cache of the current probe/check links, so
+		// refresh it after the check row, config, and labels have been persisted.
 		probes, listProbeErr := r.listActiveEnabledProbeLabels(ctx, q, projectID)
 		if listProbeErr != nil {
 			return listProbeErr
@@ -172,7 +174,7 @@ func (r *CheckRepository) CreateCheck(ctx context.Context, input domaincheck.Cre
 }
 
 func (r *CheckRepository) UpdateCheck(ctx context.Context, input domaincheck.UpdateCheckStorageInput) (domaincheck.Check, error) {
-	ctx, span := postgres.StartDBSpan(ctx, pgcheckTracer, "checks", "postgres.checks.update", "UPDATE", "UPDATE check, ping config, and labels")
+	ctx, span := postgres.StartDBSpan(ctx, pgcheckTracer, "checks", "postgres.checks.update", "UPDATE", "UPDATE check, ping config, labels, and effective links")
 	defer span.End()
 
 	projectID, checkID, err := parseProjectAndCheckIDs(input.ProjectID, input.CheckID)
@@ -182,6 +184,10 @@ func (r *CheckRepository) UpdateCheck(ctx context.Context, input domaincheck.Upd
 	labelIDs, err := pglabel.ParseLabelIDs(input.LabelIDs)
 	if err != nil {
 		return domaincheck.Check{}, err
+	}
+	parsedSelector, err := domainselector.Parse(input.Selector)
+	if err != nil {
+		return domaincheck.Check{}, domaincheck.ErrInvalidInput
 	}
 
 	var updated domaincheck.Check
@@ -237,6 +243,32 @@ func (r *CheckRepository) UpdateCheck(ctx context.Context, input domaincheck.Upd
 			}
 		}
 
+		probes, listProbeErr := r.listActiveEnabledProbeLabels(ctx, q, projectID)
+		if listProbeErr != nil {
+			return listProbeErr
+		}
+		matchedProbeIDs := matchingProbeIDs(parsedSelector, probes)
+		for _, probeID := range matchedProbeIDs {
+			if linkErr := q.UpsertEffectiveProbeCheck(ctx, sqlc.UpsertEffectiveProbeCheckParams{
+				ProjectID:       projectID,
+				ProbeID:         probeID,
+				CheckID:         checkID,
+				CheckVersion:    input.CheckVersion,
+				SelectorVersion: input.SelectorVersion,
+			}); linkErr != nil {
+				return mapCheckWriteError(linkErr)
+			}
+		}
+		if staleErr := q.DeleteStaleEffectiveProbeChecks(ctx, sqlc.DeleteStaleEffectiveProbeChecksParams{
+			ProjectID:       projectID,
+			CheckID:         checkID,
+			CheckVersion:    input.CheckVersion,
+			SelectorVersion: input.SelectorVersion,
+			ProbeIds:        matchedProbeIDs,
+		}); staleErr != nil {
+			return staleErr
+		}
+
 		updated = mapStoredCheck(row, config)
 		updated.Labels, err = r.listLabelsForCheck(ctx, q, projectID, checkID)
 		return err
@@ -250,7 +282,7 @@ func (r *CheckRepository) UpdateCheck(ctx context.Context, input domaincheck.Upd
 }
 
 func (r *CheckRepository) SoftDeleteCheck(ctx context.Context, projectIDValue, checkIDValue string) error {
-	ctx, span := postgres.StartDBSpan(ctx, pgcheckTracer, "checks", "postgres.checks.soft_delete", "UPDATE", "SOFT DELETE check")
+	ctx, span := postgres.StartDBSpan(ctx, pgcheckTracer, "checks", "postgres.checks.soft_delete", "UPDATE", "SOFT DELETE check and effective links")
 	defer span.End()
 
 	projectID, checkID, err := parseProjectAndCheckIDs(projectIDValue, checkIDValue)
@@ -258,13 +290,30 @@ func (r *CheckRepository) SoftDeleteCheck(ctx context.Context, projectIDValue, c
 		return err
 	}
 
-	if _, err := r.queries.SoftDeleteCheck(ctx, sqlc.SoftDeleteCheckParams{
-		ProjectID: projectID,
-		ID:        checkID,
-	}); err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return domaincheck.ErrCheckNotFound
+	err = r.tx.InTx(ctx, func(ctx context.Context, tx pgx.Tx) error {
+		q := r.queries.WithTx(tx)
+
+		if _, deleteErr := q.SoftDeleteCheck(ctx, sqlc.SoftDeleteCheckParams{
+			ProjectID: projectID,
+			ID:        checkID,
+		}); deleteErr != nil {
+			if errors.Is(deleteErr, pgx.ErrNoRows) {
+				return domaincheck.ErrCheckNotFound
+			}
+			return deleteErr
 		}
+
+		// Once the check is deleted, no probe should keep a cached link to it.
+		if linkErr := q.DeleteEffectiveProbeChecksForCheck(ctx, sqlc.DeleteEffectiveProbeChecksForCheckParams{
+			ProjectID: projectID,
+			CheckID:   checkID,
+		}); linkErr != nil {
+			return linkErr
+		}
+
+		return nil
+	})
+	if err != nil {
 		postgres.RecordDBSpanError(span, err)
 		return err
 	}

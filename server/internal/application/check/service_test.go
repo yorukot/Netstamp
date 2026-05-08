@@ -220,6 +220,23 @@ func TestUpdateCheckPreservesExistingFieldsAndReplacesLabels(t *testing.T) {
 	if repo.gotUpdate.IntervalSeconds != 60 || repo.gotUpdate.PingConfig.TimeoutMs != 1500 {
 		t.Fatalf("expected updated schedule/config, got %#v", repo.gotUpdate)
 	}
+	expectedVersion := domaincheck.CheckVersion(domaincheck.ExecutionSpec{
+		Type:            domaincheck.TypePing,
+		Target:          "api.netstamp.io",
+		IntervalSeconds: 60,
+		PingConfig: domaincheck.PingConfig{
+			PacketCount:     4,
+			PacketSizeBytes: 56,
+			TimeoutMs:       1500,
+		},
+	})
+	if repo.gotUpdate.CheckVersion != expectedVersion {
+		t.Fatalf("expected check version %q, got %q", expectedVersion, repo.gotUpdate.CheckVersion)
+	}
+	expectedSelectorVersion := domaincheck.SelectorVersion(json.RawMessage(`{}`))
+	if repo.gotUpdate.SelectorVersion != expectedSelectorVersion {
+		t.Fatalf("expected selector version %q, got %q", expectedSelectorVersion, repo.gotUpdate.SelectorVersion)
+	}
 	if !repo.gotUpdate.ReplaceLabels || len(repo.gotUpdate.LabelIDs) != 0 {
 		t.Fatalf("expected labels to be cleared, got replace=%t ids=%#v", repo.gotUpdate.ReplaceLabels, repo.gotUpdate.LabelIDs)
 	}
@@ -230,6 +247,118 @@ func TestUpdateCheckPreservesExistingFieldsAndReplacesLabels(t *testing.T) {
 		Name:        CheckEventUpdateSuccess,
 		Action:      CheckActionUpdate,
 		Outcome:     CheckOutcomeSuccess,
+		ActorUserID: "user-1",
+		ProjectID:   testProjectID,
+		ProjectRef:  "engineering",
+		ProjectSlug: "engineering",
+		CheckID:     testCheckID,
+	})
+}
+
+func TestUpdateCheckCanonicalizesSelectorAndVersions(t *testing.T) {
+	repo := &fakeCheckRepository{
+		check: newFakeCheck(testProjectID, testCheckID),
+	}
+	target := " edge.netstamp.io "
+	recorder := &recordingCheckEventRecorder{}
+	service := NewService(repo, &fakeProjectAccess{role: domainproject.RoleAdmin}, &fakeLabelAccess{}, recorder)
+
+	_, err := service.UpdateCheck(context.Background(), UpdateCheckInput{
+		CurrentUserID: "user-1",
+		ProjectRef:    "engineering",
+		CheckID:       testCheckID,
+		Target:        &target,
+		Selector: map[string]any{
+			"label": map[string]any{
+				"key":   " region ",
+				"op":    " eq ",
+				"value": " tokyo ",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("update check: %v", err)
+	}
+
+	expectedSelector := json.RawMessage(`{"label":{"key":"region","op":"eq","value":"tokyo"}}`)
+	if string(repo.gotUpdate.Selector) != string(expectedSelector) {
+		t.Fatalf("expected canonical selector, got %s", repo.gotUpdate.Selector)
+	}
+	expectedVersion := domaincheck.CheckVersion(domaincheck.ExecutionSpec{
+		Type:            domaincheck.TypePing,
+		Target:          "edge.netstamp.io",
+		IntervalSeconds: 30,
+		PingConfig: domaincheck.PingConfig{
+			PacketCount:     4,
+			PacketSizeBytes: 56,
+			TimeoutMs:       3000,
+		},
+	})
+	if repo.gotUpdate.CheckVersion != expectedVersion {
+		t.Fatalf("expected check version %q, got %q", expectedVersion, repo.gotUpdate.CheckVersion)
+	}
+	expectedSelectorVersion := domaincheck.SelectorVersion(expectedSelector)
+	if repo.gotUpdate.SelectorVersion != expectedSelectorVersion {
+		t.Fatalf("expected selector version %q, got %q", expectedSelectorVersion, repo.gotUpdate.SelectorVersion)
+	}
+}
+
+func TestUpdateCheckKeepsVersionsForLabelOnlyPatch(t *testing.T) {
+	current := newFakeCheck(testProjectID, testCheckID)
+	current.Selector = json.RawMessage(`{"label":{"key":"region","op":"eq","value":"tokyo"}}`)
+	repo := &fakeCheckRepository{check: current}
+	labelIDs := []string{testLabelID}
+	service := NewService(repo, &fakeProjectAccess{role: domainproject.RoleAdmin}, &fakeLabelAccess{
+		labels: []domainlabel.Label{newFakeLabel(testProjectID, testLabelID)},
+	}, &recordingCheckEventRecorder{})
+
+	_, err := service.UpdateCheck(context.Background(), UpdateCheckInput{
+		CurrentUserID: "user-1",
+		ProjectRef:    "engineering",
+		CheckID:       testCheckID,
+		LabelIDs:      &labelIDs,
+	})
+	if err != nil {
+		t.Fatalf("update check: %v", err)
+	}
+
+	expectedVersion := domaincheck.CheckVersion(domaincheck.ExecutionSpec{
+		Type:            current.Type,
+		Target:          current.Target,
+		IntervalSeconds: current.IntervalSeconds,
+		PingConfig:      current.PingConfig,
+	})
+	if repo.gotUpdate.CheckVersion != expectedVersion {
+		t.Fatalf("expected check version %q, got %q", expectedVersion, repo.gotUpdate.CheckVersion)
+	}
+	expectedSelectorVersion := domaincheck.SelectorVersion(current.Selector)
+	if repo.gotUpdate.SelectorVersion != expectedSelectorVersion {
+		t.Fatalf("expected selector version %q, got %q", expectedSelectorVersion, repo.gotUpdate.SelectorVersion)
+	}
+}
+
+func TestUpdateCheckRejectsInvalidSelector(t *testing.T) {
+	repo := &fakeCheckRepository{}
+	recorder := &recordingCheckEventRecorder{}
+	service := NewService(repo, &fakeProjectAccess{role: domainproject.RoleAdmin}, &fakeLabelAccess{}, recorder)
+
+	_, err := service.UpdateCheck(context.Background(), UpdateCheckInput{
+		CurrentUserID: "user-1",
+		ProjectRef:    "engineering",
+		CheckID:       testCheckID,
+		Selector:      map[string]any{"label": "edge"},
+	})
+	if !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("expected invalid input, got %v", err)
+	}
+	if repo.gotGetCheckID != "" || repo.gotUpdate.CheckID != "" {
+		t.Fatalf("expected repository not to be called, got get=%q update=%#v", repo.gotGetCheckID, repo.gotUpdate)
+	}
+	assertRecordedCheckEvent(t, recorder, CheckEvent{
+		Name:        CheckEventUpdateFailure,
+		Action:      CheckActionUpdate,
+		Outcome:     CheckOutcomeFailure,
+		Reason:      CheckReasonInvalidInput,
 		ActorUserID: "user-1",
 		ProjectID:   testProjectID,
 		ProjectRef:  "engineering",

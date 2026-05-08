@@ -152,6 +152,53 @@ func (q *Queries) DeleteCheckLabels(ctx context.Context, arg DeleteCheckLabelsPa
 	return err
 }
 
+const deleteEffectiveProbeChecksForCheck = `-- name: DeleteEffectiveProbeChecksForCheck :exec
+DELETE FROM effective_probe_checks
+WHERE project_id = $1
+  AND check_id = $2
+`
+
+type DeleteEffectiveProbeChecksForCheckParams struct {
+	ProjectID uuid.UUID `json:"project_id"`
+	CheckID   uuid.UUID `json:"check_id"`
+}
+
+func (q *Queries) DeleteEffectiveProbeChecksForCheck(ctx context.Context, arg DeleteEffectiveProbeChecksForCheckParams) error {
+	_, err := q.db.Exec(ctx, deleteEffectiveProbeChecksForCheck, arg.ProjectID, arg.CheckID)
+	return err
+}
+
+const deleteStaleEffectiveProbeChecks = `-- name: DeleteStaleEffectiveProbeChecks :exec
+DELETE FROM effective_probe_checks
+WHERE project_id = $1
+  AND check_id = $2
+  AND deleted_at IS NULL
+  AND (
+      check_version <> $3
+      OR selector_version <> $4
+      OR probe_id <> ALL($5::uuid[])
+  )
+`
+
+type DeleteStaleEffectiveProbeChecksParams struct {
+	ProjectID       uuid.UUID   `json:"project_id"`
+	CheckID         uuid.UUID   `json:"check_id"`
+	CheckVersion    string      `json:"check_version"`
+	SelectorVersion string      `json:"selector_version"`
+	ProbeIds        []uuid.UUID `json:"probe_ids"`
+}
+
+func (q *Queries) DeleteStaleEffectiveProbeChecks(ctx context.Context, arg DeleteStaleEffectiveProbeChecksParams) error {
+	_, err := q.db.Exec(ctx, deleteStaleEffectiveProbeChecks,
+		arg.ProjectID,
+		arg.CheckID,
+		arg.CheckVersion,
+		arg.SelectorVersion,
+		arg.ProbeIds,
+	)
+	return err
+}
+
 const getActiveCheckForProject = `-- name: GetActiveCheckForProject :one
 SELECT checks.id,
        checks.project_id,
@@ -531,4 +578,31 @@ func (q *Queries) UpdatePingCheckConfig(ctx context.Context, arg UpdatePingCheck
 		&i.IpFamily,
 	)
 	return i, err
+}
+
+const upsertEffectiveProbeCheck = `-- name: UpsertEffectiveProbeCheck :exec
+INSERT INTO effective_probe_checks (project_id, probe_id, check_id, check_version, selector_version)
+VALUES ($1, $2, $3, $4, $5)
+ON CONFLICT (project_id, probe_id, check_id) WHERE deleted_at IS NULL
+DO UPDATE SET check_version = EXCLUDED.check_version,
+              selector_version = EXCLUDED.selector_version
+`
+
+type UpsertEffectiveProbeCheckParams struct {
+	ProjectID       uuid.UUID `json:"project_id"`
+	ProbeID         uuid.UUID `json:"probe_id"`
+	CheckID         uuid.UUID `json:"check_id"`
+	CheckVersion    string    `json:"check_version"`
+	SelectorVersion string    `json:"selector_version"`
+}
+
+func (q *Queries) UpsertEffectiveProbeCheck(ctx context.Context, arg UpsertEffectiveProbeCheckParams) error {
+	_, err := q.db.Exec(ctx, upsertEffectiveProbeCheck,
+		arg.ProjectID,
+		arg.ProbeID,
+		arg.CheckID,
+		arg.CheckVersion,
+		arg.SelectorVersion,
+	)
+	return err
 }

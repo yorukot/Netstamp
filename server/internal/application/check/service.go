@@ -154,24 +154,37 @@ func (s *Service) UpdateCheck(ctx context.Context, input UpdateCheckInput) (doma
 		}
 	}
 
+	updatedPingConfig := domaincheck.PingConfig{
+		PacketCount:     chooseInt32(current.PingConfig.PacketCount, normalized.packetCount),
+		PacketSizeBytes: chooseInt32(current.PingConfig.PacketSizeBytes, normalized.packetSizeBytes),
+		TimeoutMs:       chooseInt32(current.PingConfig.TimeoutMs, normalized.timeoutMs),
+		IPFamily:        chooseIPFamily(current.PingConfig.IPFamily, normalized.ipFamily),
+	}
+	updatedSelector, err := canonicalizeSelector(chooseRawMessage(current.Selector, normalized.selector))
+	if err != nil {
+		return domaincheck.Check{}, flow.businessFailure(CheckEventUpdateFailure, CheckReasonInvalidInput, err)
+	}
+
 	updated := domaincheck.UpdateCheckStorageInput{
 		ProjectID:       project.ID,
 		CheckID:         input.CheckID,
 		Name:            chooseString(current.Name, normalized.name),
 		Type:            chooseCheckType(current.Type, normalized.checkType),
 		Target:          chooseString(current.Target, normalized.target),
-		Selector:        chooseRawMessage(current.Selector, normalized.selector),
+		Selector:        updatedSelector,
 		Description:     chooseOptionalString(current.Description, normalized.description),
 		IntervalSeconds: chooseInt32(current.IntervalSeconds, normalized.intervalSeconds),
-		PingConfig: domaincheck.PingConfig{
-			PacketCount:     chooseInt32(current.PingConfig.PacketCount, normalized.packetCount),
-			PacketSizeBytes: chooseInt32(current.PingConfig.PacketSizeBytes, normalized.packetSizeBytes),
-			TimeoutMs:       chooseInt32(current.PingConfig.TimeoutMs, normalized.timeoutMs),
-			IPFamily:        chooseIPFamily(current.PingConfig.IPFamily, normalized.ipFamily),
-		},
-		ReplaceLabels: normalized.replaceLabels,
-		LabelIDs:      labelIDs,
+		PingConfig:      updatedPingConfig,
+		ReplaceLabels:   normalized.replaceLabels,
+		LabelIDs:        labelIDs,
 	}
+	updated.CheckVersion = domaincheck.CheckVersion(domaincheck.ExecutionSpec{
+		Type:            updated.Type,
+		Target:          updated.Target,
+		IntervalSeconds: updated.IntervalSeconds,
+		PingConfig:      updated.PingConfig,
+	})
+	updated.SelectorVersion = domaincheck.SelectorVersion(updated.Selector)
 
 	check, err := s.repo.UpdateCheck(ctx, updated)
 	if err != nil {
@@ -394,23 +407,28 @@ func normalizeOptionalSelector(selector map[string]any) (json.RawMessage, error)
 		return nil, nil
 	}
 
-	return normalizeSelector(selector)
+	raw, err := normalizeSelector(selector)
+	if err != nil {
+		return nil, err
+	}
+
+	return canonicalizeSelector(raw)
 }
 
 func normalizeCreateSelector(selector map[string]any) (json.RawMessage, error) {
 	if selector == nil {
-		parsed, err := domainselector.Parse(nil)
-		if err != nil {
-			return nil, ErrInvalidInput
-		}
-
-		return parsed.CanonicalJSON(), nil
+		return canonicalizeSelector(nil)
 	}
 
 	raw, err := normalizeSelector(selector)
 	if err != nil {
 		return nil, err
 	}
+
+	return canonicalizeSelector(raw)
+}
+
+func canonicalizeSelector(raw json.RawMessage) (json.RawMessage, error) {
 	parsed, err := domainselector.Parse(raw)
 	if err != nil {
 		return nil, ErrInvalidInput
