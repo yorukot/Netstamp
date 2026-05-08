@@ -48,6 +48,48 @@ Repository packages should stay aligned with the data/capability they own. If tw
 
 Project-scoped permission decisions should use the project domain policy rather than package-local role predicates. Application services remain responsible for use-case-specific invariants, event reasons, and error mapping.
 
+## Authentication & Project Permissions
+
+The backend currently uses authenticated users plus project-scoped membership roles. There is no global admin role, organization/team hierarchy, or route-level scope system. HTTP auth middleware proves identity only; application services own authorization.
+
+Protected Huma routes use `internal/transport/http/middleware.RequireAuth`. It reads the `Authorization: Bearer <token>` header, verifies the access token through the auth `TokenVerifier`, and stores `identity.AccessTokenClaims` in the request context. Transport handlers read `claims.Subject` as `CurrentUserID` and pass it into application service inputs. Keep role checks out of HTTP handlers except for translating application errors into HTTP responses.
+
+Project membership is stored in `project_members` with role enum values defined by `internal/domain/project`: `owner`, `admin`, `editor`, and `viewer`. Project repository access methods such as `ListProjectsForUser`, `GetProjectForUser`, and `GetMemberRole` join active project membership with non-deleted projects, so soft-deleted projects or memberships are not accessible. Creating a project creates the creator's `owner` membership in the same repository operation.
+
+All project-scoped permission rules belong in `internal/domain/project/permission.go`:
+
+- `Can(role, action)` is the canonical action policy.
+- `CanAssignRole(actorRole, targetRole)` controls member role assignment.
+- `IsValidRole(role)` validates known role values.
+
+Current action policy:
+
+- `read:project`: any valid project role.
+- `write:project`: `owner` and `admin`.
+- `delete:project`: `owner` only.
+- `write:project_members`: `owner` and `admin`.
+- `write:project_labels`, `write:project_checks`, and `create:probe`: `owner`, `admin`, and `editor`.
+
+Current member-management policy:
+
+- Owners may assign `admin`, `editor`, or `viewer`, but not `owner`.
+- Admins may assign `editor` or `viewer`, but not `owner` or `admin`.
+- Admins cannot change an existing owner.
+- Role changes must not remove the last active owner from a project.
+
+Feature services should enforce permissions after loading the project for the current user and before mutating project-scoped data:
+
+- Project service: list/get use active membership; update requires `write:project`; delete requires `delete:project`; member add/update requires `write:project_members` plus assignability and last-owner checks.
+- Label service: list requires active project membership; create/update/delete require `write:project_labels`.
+- Probe service: create requires active project membership and `create:probe`; label IDs are resolved inside the same project after the project permission check.
+- Check service: list/get require active project membership; create/update/delete require `write:project_checks`.
+
+Cross-feature authorization should use narrow application ports such as `ProjectAccess.GetProjectForUser` and `ProjectAccess.GetMemberRole`, usually implemented by the project repository and wired in `internal/app/bootstrap.go`. Do not duplicate membership SQL or call another feature's application service just to check access.
+
+Error mapping is intentionally conservative. Missing/invalid bearer tokens return `401`. Inaccessible or missing projects, users, members, labels, checks, and probes generally map to `404` so project existence is not leaked through membership checks. Valid users without the required project role map to application `ErrForbidden` and HTTP `403`. Invalid role/input maps to `422`, and last-owner protection maps to `409`.
+
+When adding a new project-scoped action, add it to the project domain policy first, update `internal/domain/project/permission_test.go`, then wire the relevant application service to call `domainproject.Can`. Add focused service tests for allowed roles, denied roles, role lookup failures, and any feature-specific invariants.
+
 ## Libraries & Dependencies
 
 Direct backend dependencies are declared in `server/go.mod`.
