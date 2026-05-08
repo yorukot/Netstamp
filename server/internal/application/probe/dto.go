@@ -13,17 +13,6 @@ type CreateProbeInput struct {
 	LabelIDs      []string
 }
 
-type CreateProbeStorageInput struct {
-	ProjectID  string
-	Name       string
-	Enabled    bool
-	City       *string
-	Latitude   *float64
-	Longitude  *float64
-	LabelIDs   []string
-	SecretHash string
-}
-
 type CreateProbeOutput struct {
 	Probe  domainprobe.Probe
 	Secret string

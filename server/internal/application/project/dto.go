@@ -8,12 +8,6 @@ type CreateProjectInput struct {
 	Slug          string
 }
 
-type CreateProjectStorageInput struct {
-	Name            string
-	Slug            string
-	CreatedByUserID string
-}
-
 type ListProjectsInput struct {
 	CurrentUserID string
 }
@@ -28,12 +22,6 @@ type UpdateProjectInput struct {
 	ProjectRef    string
 	Name          *string
 	Slug          *string
-}
-
-type UpdateProjectStorageInput struct {
-	ProjectID string
-	Name      string
-	Slug      string
 }
 
 type DeleteProjectInput struct {
@@ -53,21 +41,9 @@ type AddMemberInput struct {
 	Role          domainproject.Role
 }
 
-type AddMemberStorageInput struct {
-	ProjectID string
-	UserID    string
-	Role      domainproject.Role
-}
-
 type UpdateMemberRoleInput struct {
 	CurrentUserID string
 	ProjectRef    string
 	UserID        string
 	Role          domainproject.Role
-}
-
-type UpdateMemberRoleStorageInput struct {
-	ProjectID string
-	UserID    string
-	Role      domainproject.Role
 }

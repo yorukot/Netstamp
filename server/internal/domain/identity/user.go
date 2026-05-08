@@ -6,8 +6,16 @@ import (
 )
 
 var (
-	ErrUserNotFound = errors.New("user not found")
+	ErrUserNotFound        = errors.New("user not found")
+	ErrEmailAlreadyExists  = errors.New("email already exists")
+	ErrAccessTokenInvalid  = errors.New("access token invalid")
 )
+
+type CreateUserInput struct {
+	Email        string
+	DisplayName  string
+	PasswordHash string
+}
 
 type User struct {
 	ID           string

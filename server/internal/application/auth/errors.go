@@ -1,12 +1,16 @@
 package auth
 
-import "errors"
+import (
+	"errors"
+
+	"github.com/yorukot/netstamp/internal/domain/identity"
+)
 
 var (
-	ErrEmailAlreadyExists  = errors.New("email already exists")
+	ErrEmailAlreadyExists  = identity.ErrEmailAlreadyExists
 	ErrDisplayNameRequired = errors.New("display name required")
 	ErrDisplayNameTooLong  = errors.New("display name too long")
 	ErrCredentialsInvalid  = errors.New("credentials invalid")
 	ErrUserInactive        = errors.New("user inactive")
-	ErrAccessTokenInvalid  = errors.New("access token invalid")
+	ErrAccessTokenInvalid  = identity.ErrAccessTokenInvalid
 )

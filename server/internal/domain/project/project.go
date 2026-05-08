@@ -1,6 +1,16 @@
 package project
 
-import "time"
+import (
+	"errors"
+	"time"
+)
+
+var (
+	ErrProjectNotFound          = errors.New("project not found")
+	ErrProjectSlugAlreadyExists = errors.New("project slug already exists")
+	ErrMemberAlreadyExists      = errors.New("project member already exists")
+	ErrMemberNotFound           = errors.New("project member not found")
+)
 
 type Role string
 
@@ -29,4 +39,28 @@ type Member struct {
 	Role      Role
 	CreatedAt time.Time
 	UpdatedAt time.Time
+}
+
+type CreateProjectStorageInput struct {
+	Name            string
+	Slug            string
+	CreatedByUserID string
+}
+
+type UpdateProjectStorageInput struct {
+	ProjectID string
+	Name      string
+	Slug      string
+}
+
+type AddMemberStorageInput struct {
+	ProjectID string
+	UserID    string
+	Role      Role
+}
+
+type UpdateMemberRoleStorageInput struct {
+	ProjectID string
+	UserID    string
+	Role      Role
 }

@@ -1,9 +1,14 @@
 package probe
 
-import "errors"
+import (
+	"errors"
+
+	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
+	domainproject "github.com/yorukot/netstamp/internal/domain/project"
+)
 
 var (
-	ErrProjectNotFound = errors.New("project not found")
-	ErrLabelNotFound   = errors.New("probe label not found")
+	ErrProjectNotFound = domainproject.ErrProjectNotFound
+	ErrLabelNotFound   = domainprobe.ErrLabelNotFound
 	ErrInvalidInput    = errors.New("probe input invalid")
 )

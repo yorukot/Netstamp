@@ -1,6 +1,13 @@
 package probe
 
-import "time"
+import (
+	"errors"
+	"time"
+)
+
+var (
+	ErrLabelNotFound = errors.New("probe label not found")
+)
 
 type State string
 
@@ -31,4 +38,15 @@ type Label struct {
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	DeletedAt *time.Time
+}
+
+type CreateProbeStorageInput struct {
+	ProjectID  string
+	Name       string
+	Enabled    bool
+	City       *string
+	Latitude   *float64
+	Longitude  *float64
+	LabelIDs   []string
+	SecretHash string
 }
