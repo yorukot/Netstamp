@@ -22,7 +22,6 @@ const (
 	keyShutdownTimeout       = "SHUTDOWN_TIMEOUT"
 	keyBackendBaseURL        = "BACKEND_BASE_URL"
 	keyHTTPAddr              = "HTTP_ADDR"
-	keyGRPCAddr              = "GRPC_ADDR"
 	keyRequestTimeout        = "REQUEST_TIMEOUT"
 	keyHTTPReadHeaderTimeout = "HTTP_READ_HEADER_TIMEOUT"
 	keyHTTPReadTimeout       = "HTTP_READ_TIMEOUT"
@@ -58,7 +57,6 @@ var defaultSettings = map[string]any{
 	keyShutdownTimeout:       10 * time.Second,
 	keyBackendBaseURL:        "",
 	keyHTTPAddr:              ":8080",
-	keyGRPCAddr:              ":9090",
 	keyRequestTimeout:        10 * time.Second,
 	keyHTTPReadHeaderTimeout: 5 * time.Second,
 	keyHTTPReadTimeout:       15 * time.Second,
@@ -93,7 +91,6 @@ type Config struct {
 	LogPseudonymKey string         `mapstructure:"LOG_PSEUDONYM_KEY"`
 	ShutdownTimeout time.Duration  `mapstructure:"SHUTDOWN_TIMEOUT"`
 	HTTP            HTTPConfig     `mapstructure:",squash"`
-	GRPC            GRPCConfig     `mapstructure:",squash"`
 	Database        DatabaseConfig `mapstructure:",squash"`
 	Auth            AuthConfig     `mapstructure:",squash"`
 	Tracing         TracingConfig  `mapstructure:",squash"`
@@ -107,10 +104,6 @@ type HTTPConfig struct {
 	ReadTimeout       time.Duration `mapstructure:"HTTP_READ_TIMEOUT"`
 	WriteTimeout      time.Duration `mapstructure:"HTTP_WRITE_TIMEOUT"`
 	IdleTimeout       time.Duration `mapstructure:"HTTP_IDLE_TIMEOUT"`
-}
-
-type GRPCConfig struct {
-	Addr string `mapstructure:"GRPC_ADDR"`
 }
 
 type DatabaseConfig struct {
@@ -194,9 +187,6 @@ func validate(cfg Config) []error {
 	errs = append(errs, validatePositiveDuration(keyHTTPReadTimeout, cfg.HTTP.ReadTimeout)...)
 	errs = append(errs, validatePositiveDuration(keyHTTPWriteTimeout, cfg.HTTP.WriteTimeout)...)
 	errs = append(errs, validatePositiveDuration(keyHTTPIdleTimeout, cfg.HTTP.IdleTimeout)...)
-
-	// gRPC settings
-	errs = append(errs, validateListenAddr(keyGRPCAddr, cfg.GRPC.Addr)...)
 
 	// Database settings
 	errs = append(errs, validateRequiredString(keyDatabaseHost, cfg.Database.Host)...)

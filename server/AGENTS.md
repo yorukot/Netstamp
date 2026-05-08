@@ -6,22 +6,20 @@ This guide applies to `server/`, the Go backend for the Netstamp workspace. The 
 
 - `cmd/api/main.go`: API process entry point. It creates the shutdown context, calls `app.New`, runs the app, and syncs the logger.
 - `cmd/migrate/main.go`: Goose migration CLI for `status`, `up`, and `down`.
-- `internal/app/`: composition root and lifecycle. `bootstrap.go` wires config, logging, tracing, PostgreSQL, auth, HTTP, and gRPC. `lifecycle.go` starts and gracefully stops listeners.
+- `internal/app/`: composition root and lifecycle. `bootstrap.go` wires config, logging, tracing, PostgreSQL, auth, and HTTP. `lifecycle.go` starts and gracefully stops the HTTP listener.
 - `internal/transport/http/`: chi/Huma HTTP routing, auth, project, probe, system health routes, and middleware.
-- `internal/transport/grpc/`: gRPC server setup, health service, logging, and recovery interceptors.
 - `internal/application/auth/`, `internal/application/project/`, and `internal/application/probe/`: use cases, ports, DTOs, errors, and feature orchestration.
 - `internal/domain/identity/`, `internal/domain/project/`, and `internal/domain/probe/`: stable domain structs and domain-level sentinel errors.
 - `internal/infrastructure/`: PostgreSQL repositories and pool helpers, JWT issuing, Argon2id password hashing, and probe secret generation.
 - `internal/logger/` and `internal/observability/`: zap logging helpers, auth event recording, OpenTelemetry setup, and HTTP span naming.
 - `db/migrations/`: Goose SQL migrations. `db/query/`: sqlc query files. Generated sqlc Go files live in `internal/infrastructure/postgres/sqlc/`.
-- `proto/`: current `.proto` source. Buf config exists in `buf.yaml` and `buf.gen.yaml`, but it currently references `api/proto` and `api/gen/go`; verify paths before generating.
 - `tmp/` and `bin/`: local build artifacts; do not edit them as source.
 
 No backend public asset directory is currently defined.
 
 ## System Architecture Overview
 
-The backend is a single Go service with two listeners: HTTP on `HTTP_ADDR` and gRPC on `GRPC_ADDR`. `internal/app.New` loads validated configuration, creates a zap logger, initializes OpenTelemetry, opens a pgx pool, builds the auth service, and creates HTTP and gRPC servers. `internal/app.Run` starts both servers concurrently with `errgroup`.
+The backend is a single Go service with one listener: HTTP on `HTTP_ADDR`. `internal/app.New` loads validated configuration, creates a zap logger, initializes OpenTelemetry, opens a pgx pool, builds application services, and creates the HTTP server. `internal/app.Run` starts the server and coordinates graceful shutdown with `errgroup`.
 
 HTTP uses chi middleware plus Huma route registration under `/api/{version}`. `internal/app/bootstrap.go` passes `cfg.APIVersion` (`API_VERSION`) into the router, and `BACKEND_BASE_URL` can publish an absolute OpenAPI server URL for deployed environments. System routes are `/`, `/livez`, and `/readyz`. Auth routes are `/auth/register`, `/auth/login`, and `/auth/me`; `/auth/me`, project routes, and project probe creation are protected by the Huma auth middleware in `internal/transport/http/middleware`.
 
@@ -29,11 +27,11 @@ The current auth request flow is:
 
 `HTTP request -> chi/Huma route -> internal/transport/http/auth handler -> internal/application/auth.Service -> internal/infrastructure/postgres/user repository -> sqlc.Queries -> PostgreSQL`
 
-gRPC currently registers the standard health service only. No GraphQL, message queues, background workers, scheduled jobs, email, payment, or object-storage integrations are currently defined.
+No GraphQL, message queues, background workers, scheduled jobs, email, payment, or object-storage integrations are currently defined.
 
 ## Layer Responsibilities
 
-- Transport (`internal/transport/http`, `internal/transport/grpc`): route registration, request/response DTOs, Huma validation tags, protocol status mapping, and middleware/interceptors. Do not put database calls or business rules here.
+- Transport (`internal/transport/http`): route registration, request/response DTOs, Huma validation tags, protocol status mapping, and middleware. Do not put database calls or business rules here.
 - Application (`internal/application/auth`): business orchestration, service methods, ports, app errors, auth event semantics, and use-case spans. Depend on interfaces, not concrete pgx, Huma, or JWT types.
 - Domain (`internal/domain/identity`): stable domain structs and domain-level sentinel errors such as `identity.ErrUserNotFound`.
 - Infrastructure (`internal/infrastructure/postgres`, `internal/infrastructure/security`): pgx/sqlc persistence, database error translation, JWT HS256 tokens, and Argon2id password hashing.
@@ -45,19 +43,18 @@ gRPC currently registers the standard health service only. No GraphQL, message q
 Direct backend dependencies are declared in `server/go.mod`.
 
 - HTTP: `github.com/go-chi/chi/v5`, `github.com/danielgtaylor/huma/v2`, and `otelhttp`.
-- gRPC: `google.golang.org/grpc`.
 - Database: `github.com/jackc/pgx/v5`, `github.com/pressly/goose/v3`, `github.com/sqlc-dev/sqlc`, and `github.com/google/uuid`.
 - Config: `github.com/spf13/viper`.
 - Auth/security: `github.com/golang-jwt/jwt/v4` and `golang.org/x/crypto/argon2`.
 - Logging: `go.uber.org/zap`.
 - Tracing: OpenTelemetry SDK, trace API, and OTLP HTTP trace exporter.
-- Tool tracking: `tools/tools.go` pins buf, goose, and sqlc. `air` and `golangci-lint` are used by commands/config but are not pinned in `server/go.mod`.
+- Tool tracking: `tools/tools.go` pins goose and sqlc. `air` and `golangci-lint` are used by commands/config but are not pinned in `server/go.mod`.
 
 ## Logging Guidelines
 
 Zap is configured in `internal/logger/zap.go`. Every root logger includes `service`, `env`, and `version`; local env uses zap development config, other envs use production config. Valid `LOG_LEVEL` values are enforced in `internal/config/config_validate.go`: `debug`, `info`, `warn`, `error`, `dpanic`, `panic`, and `fatal`.
 
-Use request-scoped loggers from `logger.FromContext(ctx, fallback)` when handling requests. HTTP logging in `internal/transport/http/middleware/logging.go` adds `request_id`, method, path, client address, user agent, status, bytes, duration, and trace fields. gRPC logging adds `request_id`, full method, code, duration, and errors.
+Use request-scoped loggers from `logger.FromContext(ctx, fallback)` when handling requests. HTTP logging in `internal/transport/http/middleware/logging.go` adds `request_id`, method, path, client address, user agent, status, bytes, duration, and trace fields.
 
 Auth security events must go through `logger.AuthEventRecorder`. It pseudonymizes email into `user.email_hash` using `LOG_PSEUDONYM_KEY`. Do not log raw passwords, password hashes, access tokens, JWT secrets, cookies, database passwords, or raw personal data. Expected auth failures log at `warn`; technical failures log at `error`.
 
@@ -83,7 +80,6 @@ Commands below come from the root `Justfile`, root `package.json`, `server/.air.
 - `just golangci-fmt`: run configured golangci formatters.
 - `just backend-sqlc`: regenerate sqlc code from `sqlc.yaml`.
 - `just backend-migrate-status`, `just backend-migrate-up`, `just backend-migrate-down`: run `cmd/migrate`.
-- `just backend-buf-lint`, `just backend-buf-generate`: run Buf commands; verify Buf paths first.
 - `docker compose -f deployments/docker/compose.backend.dev.yaml up -d`: start local PostgreSQL/TimescaleDB, VictoriaTraces, and Grafana dependencies for a host-run backend.
 - `docker compose -f deployments/docker/compose.observability.yaml up --build`: build and run the Docker stack with PostgreSQL, VictoriaTraces, VictoriaLogs, Vector, Grafana, nginx, backend, and migrations.
 
@@ -91,7 +87,7 @@ Use `server/.env.example` as the env template. `server/.gitignore` intentionally
 
 ## Coding Style & Naming Conventions
 
-Go files use tabs and `gofmt` per root `.editorconfig`. `golangci.yaml` enables gofumpt, goimports, and gci formatting with local imports grouped under `github.com/yorukot/netstamp`. Keep package names short and lowercase, matching existing packages such as `auth`, `postgres`, `httpserver`, and `grpcserver`.
+Go files use tabs and `gofmt` per root `.editorconfig`. `golangci.yaml` enables gofumpt, goimports, and gci formatting with local imports grouped under `github.com/yorukot/netstamp`. Keep package names short and lowercase, matching existing packages such as `auth`, `postgres`, and `httpserver`.
 
 Follow existing feature file names: `service.go`, `ports.go`, `errors.go`, `trace.go`, `handler.go`, `register.go`, `login.go`, and `*_test.go`. Export only types needed across packages. Use sentinel errors named `Err...` and compare with `errors.Is`.
 
@@ -107,7 +103,7 @@ Run backend tests with `just backend-test` or `cd server && go test ./...`. Inte
 
 HTTP input validation is primarily expressed with Huma struct tags in transport DTOs, such as `format:"email"`, `required:"true"`, and password length constraints in `internal/transport/http/auth/register.go`. Handlers translate application errors to Huma HTTP errors, for example duplicate email to `409` and invalid credentials to `401`.
 
-Application and domain packages define sentinel errors. Repositories translate pgx-specific errors into domain/application errors, such as unique violation `uq_users_email` to `auth.ErrEmailAlreadyExists`. HTTP and gRPC panic recovery are handled in `internal/transport/http/middleware/recovery.go` and `internal/transport/grpc/interceptors/recovery.go`. `WriteProblem` exists for RFC 7807-style responses, but Huma errors are the current route pattern.
+Application and domain packages define sentinel errors. Repositories translate pgx-specific errors into domain/application errors, such as unique violation `uq_users_email` to `auth.ErrEmailAlreadyExists`. HTTP panic recovery is handled in `internal/transport/http/middleware/recovery.go`. `WriteProblem` exists for RFC 7807-style responses, but Huma errors are the current route pattern.
 
 ## Security & Configuration Tips
 
@@ -137,4 +133,4 @@ Before changing backend code, inspect the nearest existing package patterns and 
 
 If a backend code, command, architecture, configuration, dependency, migration, logging, tracing, or testing change makes this guide inaccurate, update `server/AGENTS.md` in the same change.
 
-Do not introduce new dependencies unless the repository evidence shows the existing stack cannot handle the task. Avoid public API, database schema, protobuf, or deployment changes without explicitly documenting impact and required commands. Preserve `context.Context` propagation, request-scoped logging, OpenTelemetry spans, Huma validation, and sentinel-error mapping. Do not overwrite generated sqlc code by hand or commit local artifacts from `tmp/`, `bin/`, or `.env`.
+Do not introduce new dependencies unless the repository evidence shows the existing stack cannot handle the task. Avoid public API, database schema, or deployment changes without explicitly documenting impact and required commands. Preserve `context.Context` propagation, request-scoped logging, OpenTelemetry spans, Huma validation, and sentinel-error mapping. Do not overwrite generated sqlc code by hand or commit local artifacts from `tmp/`, `bin/`, or `.env`.

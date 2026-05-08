@@ -15,7 +15,6 @@ x-backend-environment: &backend-environment
   LOG_PSEUDONYM_KEY: ${LOG_PSEUDONYM_KEY:?set LOG_PSEUDONYM_KEY}
   BACKEND_BASE_URL: ${BACKEND_BASE_URL:-}
   HTTP_ADDR: :8080
-  GRPC_ADDR: :9090
   DATABASE_HOST: postgres
   DATABASE_PORT: 5432
   DATABASE_USER: netstamp
@@ -79,7 +78,6 @@ services:
       OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://victoria-traces:10428/insert/opentelemetry/v1/traces
     expose:
       - "8080"
-      - "9090"
     labels:
       - netstamp.logs=enabled
 
@@ -92,7 +90,6 @@ services:
         condition: service_started
     expose:
       - "80"
-      - "9090"
     labels:
       - netstamp.logs=enabled
     networks:

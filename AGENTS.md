@@ -4,14 +4,14 @@
 
 Netstamp is a pnpm workspace with a Go backend and React/Vite frontend. Use this root guide for repository-wide orientation only. Before making task-specific changes, read the closest area guide:
 
-- Backend, database, migrations, protobuf, logging, or API work: read `server/AGENTS.md`.
+- Backend, database, migrations, logging, or API work: read `server/AGENTS.md`.
 - Web app, shared UI package, client styling, or browser behavior work: read `web/AGENTS.md`.
 
 Only proceed from root guidance when the task is clearly limited to workspace metadata, documentation, deployment files, or cross-project maintenance.
 
 ## Project Structure
 
-- `server/`: Go API service, commands in `cmd/`, app code in `internal/`, SQL and migrations in `db/`, protobuf config in `proto/`.
+- `server/`: Go API service, commands in `cmd/`, app code in `internal/`, SQL and migrations in `db/`.
 - `web/`: React 19 + Vite app source in `web/src/`.
 - `packages/ui/`: shared React UI components and design tokens exported as `@netstamp/ui`.
 - `docs/`: Astro public site and Markdown documentation. The docs build also publishes static Storybook output for shared UI components.

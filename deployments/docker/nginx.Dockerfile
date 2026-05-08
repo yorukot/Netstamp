@@ -38,4 +38,4 @@ COPY deployments/docker/nginx.conf /etc/nginx/nginx.conf
 COPY --from=app-build /app/web/dist /usr/share/nginx/web
 COPY --from=app-build /app/docs/dist /usr/share/nginx/docs
 
-EXPOSE 80 9090
+EXPOSE 80

@@ -107,14 +107,6 @@ backend-tidy:
 backend-sqlc:
     cd {{ server_dir }} && go run github.com/sqlc-dev/sqlc/cmd/sqlc generate
 
-# Lint backend protobuf files.
-backend-buf-lint:
-    cd {{ server_dir }} && go run github.com/bufbuild/buf/cmd/buf lint
-
-# Generate backend protobuf code.
-backend-buf-generate:
-    cd {{ server_dir }} && go run github.com/bufbuild/buf/cmd/buf generate
-
 # Show database migration status.
 backend-migrate-status:
     cd {{ server_dir }} && go run ./cmd/migrate -command status

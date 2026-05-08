@@ -17,12 +17,6 @@ func (a *Application) Run(ctx context.Context) error {
 		return fmt.Errorf("listen http: %w", err)
 	}
 
-	grpcListener, err := net.Listen("tcp", a.Config.GRPC.Addr)
-	if err != nil {
-		_ = httpListener.Close()
-		return fmt.Errorf("listen grpc: %w", err)
-	}
-
 	group, groupCtx := errgroup.WithContext(ctx)
 
 	group.Go(func() error {
@@ -30,14 +24,6 @@ func (a *Application) Run(ctx context.Context) error {
 		err := a.HTTPServer.Serve(httpListener)
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			return fmt.Errorf("http server: %w", err)
-		}
-		return nil
-	})
-
-	group.Go(func() error {
-		a.Log.Info("grpc_server_started", zap.String("addr", grpcListener.Addr().String()))
-		if err := a.GRPCServer.Serve(grpcListener); err != nil {
-			return fmt.Errorf("grpc server: %w", err)
 		}
 		return nil
 	})
@@ -59,19 +45,6 @@ func (a *Application) shutdown() error {
 	var errs []error
 	if err := a.HTTPServer.Shutdown(ctx); err != nil {
 		errs = append(errs, fmt.Errorf("shutdown http: %w", err))
-	}
-
-	stopped := make(chan struct{})
-	go func() {
-		a.GRPCServer.GracefulStop()
-		close(stopped)
-	}()
-
-	select {
-	case <-stopped:
-	case <-ctx.Done():
-		a.GRPCServer.Stop()
-		errs = append(errs, fmt.Errorf("shutdown grpc: %w", ctx.Err()))
 	}
 
 	if a.DBPool != nil {

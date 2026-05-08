@@ -40,9 +40,6 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.HTTP.Addr != ":8080" {
 		t.Fatalf("expected default HTTP addr, got %q", cfg.HTTP.Addr)
 	}
-	if cfg.GRPC.Addr != ":9090" {
-		t.Fatalf("expected default gRPC addr, got %q", cfg.GRPC.Addr)
-	}
 	if cfg.HTTP.RequestTimeout != 10*time.Second {
 		t.Fatalf("expected default request timeout, got %s", cfg.HTTP.RequestTimeout)
 	}
@@ -66,7 +63,6 @@ func TestLoadFromEnvironment(t *testing.T) {
 	t.Setenv(keyLogPseudonymKey, "production-log-pseudonym-key")
 	t.Setenv(keyBackendBaseURL, "https://api.netstamp.dev")
 	t.Setenv(keyHTTPAddr, ":8181")
-	t.Setenv(keyGRPCAddr, ":9191")
 	t.Setenv(keyRequestTimeout, "250ms")
 	t.Setenv(keyDatabaseHost, "db.internal")
 	t.Setenv(keyDatabasePort, "15432")
@@ -102,9 +98,6 @@ func TestLoadFromEnvironment(t *testing.T) {
 	}
 	if cfg.HTTP.Addr != ":8181" {
 		t.Fatalf("expected HTTP addr override, got %q", cfg.HTTP.Addr)
-	}
-	if cfg.GRPC.Addr != ":9191" {
-		t.Fatalf("expected gRPC addr override, got %q", cfg.GRPC.Addr)
 	}
 	if cfg.HTTP.RequestTimeout != 250*time.Millisecond {
 		t.Fatalf("expected request timeout override, got %s", cfg.HTTP.RequestTimeout)
@@ -211,7 +204,6 @@ func TestValidateReturnsErrorsForInvalidValues(t *testing.T) {
 	cfg.ShutdownTimeout = 0
 	cfg.HTTP.BackendBaseURL = "https://api.netstamp.dev/api"
 	cfg.HTTP.Addr = "localhost"
-	cfg.GRPC.Addr = ":99999"
 	cfg.HTTP.RequestTimeout = -time.Second
 	cfg.HTTP.ReadHeaderTimeout = 0
 	cfg.HTTP.ReadTimeout = 0
@@ -243,7 +235,6 @@ func TestValidateReturnsErrorsForInvalidValues(t *testing.T) {
 		"SHUTDOWN_TIMEOUT must be greater than 0",
 		"BACKEND_BASE_URL must be an origin without path, query, fragment, or credentials",
 		"HTTP_ADDR must be a host:port address",
-		"GRPC_ADDR port must be between 1 and 65535",
 		"REQUEST_TIMEOUT must be greater than 0",
 		"HTTP_READ_HEADER_TIMEOUT must be greater than 0",
 		"HTTP_READ_TIMEOUT must be greater than 0",
@@ -340,9 +331,6 @@ func validConfig() Config {
 			ReadTimeout:       15 * time.Second,
 			WriteTimeout:      15 * time.Second,
 			IdleTimeout:       60 * time.Second,
-		},
-		GRPC: GRPCConfig{
-			Addr: ":9090",
 		},
 		Database: DatabaseConfig{
 			Host:            "localhost",

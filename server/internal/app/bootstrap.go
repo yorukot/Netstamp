@@ -8,7 +8,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
-	"google.golang.org/grpc"
 
 	appauth "github.com/yorukot/netstamp/internal/application/auth"
 	appprobe "github.com/yorukot/netstamp/internal/application/probe"
@@ -21,7 +20,6 @@ import (
 	"github.com/yorukot/netstamp/internal/infrastructure/security"
 	"github.com/yorukot/netstamp/internal/logger"
 	"github.com/yorukot/netstamp/internal/observability/tracing"
-	grpcserver "github.com/yorukot/netstamp/internal/transport/grpc"
 	httpserver "github.com/yorukot/netstamp/internal/transport/http"
 )
 
@@ -29,7 +27,6 @@ type Application struct {
 	Config     config.Config
 	Log        *zap.Logger
 	HTTPServer *http.Server
-	GRPCServer *grpc.Server
 	DBPool     *pgxpool.Pool
 	Tracing    *tracing.Provider
 }
@@ -108,16 +105,11 @@ func New(ctx context.Context) (*Application, error) {
 		RequestTimeout: cfg.HTTP.RequestTimeout,
 	})
 
-	// GRPC server setup will be done in the Run method, as it requires the application context and dependencies to be fully initialized.
 	return &Application{
 		Config:     cfg,
 		Log:        log,
 		HTTPServer: httpserver.NewServer(cfg.HTTP, httpHandler),
-		GRPCServer: grpcserver.New(grpcserver.Dependencies{
-			Log:         log,
-			ServiceName: cfg.ServiceName,
-		}),
-		DBPool:  dbPool,
-		Tracing: tracingProvider,
+		DBPool:     dbPool,
+		Tracing:    tracingProvider,
 	}, nil
 }

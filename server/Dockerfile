@@ -23,6 +23,6 @@ COPY --from=build /src/server/db/migrations /app/db/migrations
 
 USER netstamp:netstamp
 
-EXPOSE 8080 9090
+EXPOSE 8080
 
 ENTRYPOINT ["/app/netstamp-api"]
