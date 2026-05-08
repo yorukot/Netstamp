@@ -27,7 +27,7 @@ func TestCreateProbeReturnsCreatedProbeAndSecret(t *testing.T) {
 	NewHandler(appprobe.NewService(repo, handlerSecretGenerator{
 		plaintext: "plain-secret",
 		hash:      "secret-hash",
-	}), &handlerTokenVerifier{
+	}, handlerProbeEventRecorder{}), &handlerTokenVerifier{
 		claims: identity.AccessTokenClaims{Subject: testUserID, Email: "user@example.com"},
 	}).RegisterRoutes(api)
 
@@ -70,7 +70,7 @@ func TestCreateProbeRequiresBearerToken(t *testing.T) {
 	NewHandler(appprobe.NewService(&handlerProbeRepository{}, handlerSecretGenerator{
 		plaintext: "plain-secret",
 		hash:      "secret-hash",
-	}), &handlerTokenVerifier{}).RegisterRoutes(api)
+	}, handlerProbeEventRecorder{}), &handlerTokenVerifier{}).RegisterRoutes(api)
 
 	res := api.Post("/projects/engineering/probes", map[string]any{
 		"name": "tokyo-vps-1",
@@ -86,7 +86,7 @@ func TestCreateProbeMapsInvalidInputToUnprocessableEntity(t *testing.T) {
 	NewHandler(appprobe.NewService(&handlerProbeRepository{}, handlerSecretGenerator{
 		plaintext: "plain-secret",
 		hash:      "secret-hash",
-	}), &handlerTokenVerifier{
+	}, handlerProbeEventRecorder{}), &handlerTokenVerifier{
 		claims: identity.AccessTokenClaims{Subject: testUserID, Email: "user@example.com"},
 	}).RegisterRoutes(api)
 
@@ -106,7 +106,7 @@ func TestCreateProbeMapsInaccessibleProjectToNotFound(t *testing.T) {
 	}, handlerSecretGenerator{
 		plaintext: "plain-secret",
 		hash:      "secret-hash",
-	}), &handlerTokenVerifier{
+	}, handlerProbeEventRecorder{}), &handlerTokenVerifier{
 		claims: identity.AccessTokenClaims{Subject: testUserID, Email: "user@example.com"},
 	}).RegisterRoutes(api)
 
@@ -126,7 +126,7 @@ func TestCreateProbeMapsMissingLabelToNotFound(t *testing.T) {
 	}, handlerSecretGenerator{
 		plaintext: "plain-secret",
 		hash:      "secret-hash",
-	}), &handlerTokenVerifier{
+	}, handlerProbeEventRecorder{}), &handlerTokenVerifier{
 		claims: identity.AccessTokenClaims{Subject: testUserID, Email: "user@example.com"},
 	}).RegisterRoutes(api)
 
@@ -144,6 +144,10 @@ type handlerTokenVerifier struct {
 	claims identity.AccessTokenClaims
 	err    error
 }
+
+type handlerProbeEventRecorder struct{}
+
+func (handlerProbeEventRecorder) RecordProbeEvent(context.Context, appprobe.ProbeEvent) {}
 
 func (v *handlerTokenVerifier) VerifyAccessToken(context.Context, string) (identity.AccessTokenClaims, error) {
 	if v.err != nil {

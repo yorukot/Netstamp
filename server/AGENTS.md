@@ -56,9 +56,22 @@ Zap is configured in `internal/logger/zap.go`. Every root logger includes `servi
 
 Use request-scoped loggers from `logger.FromContext(ctx, fallback)` when handling requests. HTTP logging in `internal/transport/http/middleware/logging.go` adds `request_id`, method, path, client address, user agent, status, bytes, duration, and trace fields.
 
-Auth security events must go through `logger.AuthEventRecorder`. It pseudonymizes email into `user.email_hash` using `LOG_PSEUDONYM_KEY`. Do not log raw passwords, password hashes, access tokens, JWT secrets, cookies, database passwords, or raw personal data. Expected auth failures log at `warn`; technical failures log at `error`.
+Application-level events must follow the auth/project/probe pattern:
 
-Project application events must go through `logger.ProjectEventRecorder`. Use these only for focused audit/security flows and failures where application semantics add value beyond HTTP request logs. Do not log project member email addresses, raw request bodies, or secrets. Expected project business failures log at `warn`; technical failures log at `error`.
+- Define typed event names, actions, outcomes, reasons, and recorder ports in the application package `ports.go`.
+- Keep zap out of application packages. Services call the package recorder interface; `internal/logger` owns zap fields, privacy handling, and log levels.
+- Pass concrete recorders from `internal/app/bootstrap.go`. Do not silently install package-local no-op recorders; missing wiring should be visible in tests or startup composition.
+- Use small flow helpers to keep `context.Context`, request-scoped loggers, OpenTelemetry spans, event metadata, and success/failure recording together.
+- Log successful application events only for key audit/security flows, not every expected endpoint. Normal successful reads/lists are covered by the HTTP request logger.
+- Expected business/security failures use `BusinessFailure`, log at `warn`, and should not attach raw error details. Unexpected technical failures use `TechnicalFailure`, log at `error`, record the span error, and include the error field.
+- Keep sentinel error imports centralized in each application package `errors.go` when an application layer needs to expose errors from another domain. Other files in that package and its HTTP handlers should use the application package error names.
+- Never log raw passwords, password hashes, access tokens, JWT secrets, cookies, database passwords, probe plaintext secrets, probe secret hashes, raw request bodies, or raw personal data.
+
+Auth security events must go through `logger.AuthEventRecorder`. It pseudonymizes email into `user.email_hash` using `LOG_PSEUDONYM_KEY`.
+
+Project application events must go through `logger.ProjectEventRecorder`. Use these only for focused audit/security flows and failures where application semantics add value beyond HTTP request logs. Do not log project member email addresses.
+
+Probe application events must go through `logger.ProbeEventRecorder`. Probe creation success is audit-relevant because a one-time plaintext secret is issued, but the event must never include that secret or its hash.
 
 ## Tracing & Observability
 

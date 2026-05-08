@@ -23,7 +23,7 @@ func TestCreateProbeCreatesProbeWithSecretAndNormalizedInput(t *testing.T) {
 	service := NewService(repo, fakeSecretGenerator{
 		plaintext: "plain-secret",
 		hash:      "secret-hash",
-	})
+	}, &recordingProbeEventRecorder{})
 
 	output, err := service.CreateProbe(context.Background(), CreateProbeInput{
 		CurrentUserID: "user-1",
@@ -73,7 +73,7 @@ func TestCreateProbeCreatesProbeWithSecretAndNormalizedInput(t *testing.T) {
 
 func TestCreateProbeDefaultsEnabledToTrue(t *testing.T) {
 	repo := &fakeProbeRepository{}
-	service := NewService(repo, fakeSecretGenerator{plaintext: "plain-secret", hash: "secret-hash"})
+	service := NewService(repo, fakeSecretGenerator{plaintext: "plain-secret", hash: "secret-hash"}, &recordingProbeEventRecorder{})
 
 	_, err := service.CreateProbe(context.Background(), CreateProbeInput{
 		CurrentUserID: "user-1",
@@ -117,7 +117,7 @@ func TestCreateProbeRejectsInvalidInput(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			repo := &fakeProbeRepository{}
-			service := NewService(repo, fakeSecretGenerator{plaintext: "plain-secret", hash: "secret-hash"})
+			service := NewService(repo, fakeSecretGenerator{plaintext: "plain-secret", hash: "secret-hash"}, &recordingProbeEventRecorder{})
 
 			_, err := service.CreateProbe(context.Background(), tt.input)
 			if !errors.Is(err, ErrInvalidInput) {
@@ -133,7 +133,7 @@ func TestCreateProbeRejectsInvalidInput(t *testing.T) {
 func TestCreateProbeRejectsLongitudeWithoutLatitude(t *testing.T) {
 	longitude := 139.6503
 	repo := &fakeProbeRepository{}
-	service := NewService(repo, fakeSecretGenerator{plaintext: "plain-secret", hash: "secret-hash"})
+	service := NewService(repo, fakeSecretGenerator{plaintext: "plain-secret", hash: "secret-hash"}, &recordingProbeEventRecorder{})
 
 	_, err := service.CreateProbe(context.Background(), CreateProbeInput{
 		Name:      "tokyo-vps-1",
@@ -149,7 +149,7 @@ func TestCreateProbeRejectsLongitudeWithoutLatitude(t *testing.T) {
 
 func TestCreateProbeRejectsInaccessibleProject(t *testing.T) {
 	repo := &fakeProbeRepository{projectErr: ErrProjectNotFound}
-	service := NewService(repo, fakeSecretGenerator{plaintext: "plain-secret", hash: "secret-hash"})
+	service := NewService(repo, fakeSecretGenerator{plaintext: "plain-secret", hash: "secret-hash"}, &recordingProbeEventRecorder{})
 
 	_, err := service.CreateProbe(context.Background(), CreateProbeInput{
 		CurrentUserID: "user-1",
@@ -162,6 +162,174 @@ func TestCreateProbeRejectsInaccessibleProject(t *testing.T) {
 	if repo.gotCreateInput.Name != "" {
 		t.Fatalf("expected create not to be called, got %#v", repo.gotCreateInput)
 	}
+}
+
+func TestCreateProbeRecordsSuccess(t *testing.T) {
+	recorder := &recordingProbeEventRecorder{}
+	service := NewService(&fakeProbeRepository{}, fakeSecretGenerator{
+		plaintext: "plain-secret",
+		hash:      "secret-hash",
+	}, recorder)
+
+	_, err := service.CreateProbe(context.Background(), CreateProbeInput{
+		CurrentUserID: "user-1",
+		ProjectRef:    "engineering",
+		Name:          "tokyo-vps-1",
+	})
+	if err != nil {
+		t.Fatalf("create probe: %v", err)
+	}
+
+	assertRecordedProbeEvent(t, recorder, ProbeEvent{
+		Name:        ProbeEventCreateSuccess,
+		Action:      ProbeActionCreate,
+		Outcome:     ProbeOutcomeSuccess,
+		ActorUserID: "user-1",
+		ProjectID:   testProjectID,
+		ProjectRef:  "engineering",
+		ProbeID:     "probe-1",
+	})
+}
+
+func TestCreateProbeRecordsInvalidInputFailure(t *testing.T) {
+	recorder := &recordingProbeEventRecorder{}
+	service := NewService(&fakeProbeRepository{}, fakeSecretGenerator{
+		plaintext: "plain-secret",
+		hash:      "secret-hash",
+	}, recorder)
+
+	_, err := service.CreateProbe(context.Background(), CreateProbeInput{
+		CurrentUserID: "user-1",
+		ProjectRef:    "engineering",
+		Name:          "   ",
+	})
+	if !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("expected invalid input, got %v", err)
+	}
+
+	assertRecordedProbeEvent(t, recorder, ProbeEvent{
+		Name:        ProbeEventCreateFailure,
+		Action:      ProbeActionCreate,
+		Outcome:     ProbeOutcomeFailure,
+		Reason:      ProbeReasonInvalidInput,
+		ActorUserID: "user-1",
+		ProjectRef:  "engineering",
+	})
+}
+
+func TestCreateProbeRecordsProjectNotFoundFailure(t *testing.T) {
+	recorder := &recordingProbeEventRecorder{}
+	service := NewService(
+		&fakeProbeRepository{projectErr: ErrProjectNotFound},
+		fakeSecretGenerator{plaintext: "plain-secret", hash: "secret-hash"},
+		recorder,
+	)
+
+	_, err := service.CreateProbe(context.Background(), CreateProbeInput{
+		CurrentUserID: "user-1",
+		ProjectRef:    "missing",
+		Name:          "tokyo-vps-1",
+	})
+	if !errors.Is(err, ErrProjectNotFound) {
+		t.Fatalf("expected project not found, got %v", err)
+	}
+
+	assertRecordedProbeEvent(t, recorder, ProbeEvent{
+		Name:        ProbeEventCreateFailure,
+		Action:      ProbeActionCreate,
+		Outcome:     ProbeOutcomeFailure,
+		Reason:      ProbeReasonProjectNotFound,
+		ActorUserID: "user-1",
+		ProjectRef:  "missing",
+	})
+}
+
+func TestCreateProbeRecordsSecretGenerationFailure(t *testing.T) {
+	recorder := &recordingProbeEventRecorder{}
+	secretErr := errors.New("generate secret")
+	service := NewService(
+		&fakeProbeRepository{},
+		fakeSecretGenerator{err: secretErr},
+		recorder,
+	)
+
+	_, err := service.CreateProbe(context.Background(), CreateProbeInput{
+		CurrentUserID: "user-1",
+		ProjectRef:    "engineering",
+		Name:          "tokyo-vps-1",
+	})
+	if !errors.Is(err, secretErr) {
+		t.Fatalf("expected secret error, got %v", err)
+	}
+
+	assertRecordedProbeEvent(t, recorder, ProbeEvent{
+		Name:        ProbeEventCreateFailure,
+		Action:      ProbeActionCreate,
+		Outcome:     ProbeOutcomeFailure,
+		Reason:      ProbeReasonSecretGenerateFailed,
+		ActorUserID: "user-1",
+		ProjectID:   testProjectID,
+		ProjectRef:  "engineering",
+		Err:         secretErr,
+	})
+}
+
+func TestCreateProbeRecordsMissingLabelFailureWithoutSecrets(t *testing.T) {
+	recorder := &recordingProbeEventRecorder{}
+	service := NewService(
+		&fakeProbeRepository{createErr: ErrLabelNotFound},
+		fakeSecretGenerator{plaintext: "plain-secret", hash: "secret-hash"},
+		recorder,
+	)
+
+	_, err := service.CreateProbe(context.Background(), CreateProbeInput{
+		CurrentUserID: "user-1",
+		ProjectRef:    "engineering",
+		Name:          "tokyo-vps-1",
+		LabelIDs:      []string{testLabelID},
+	})
+	if !errors.Is(err, ErrLabelNotFound) {
+		t.Fatalf("expected label not found, got %v", err)
+	}
+
+	assertRecordedProbeEvent(t, recorder, ProbeEvent{
+		Name:        ProbeEventCreateFailure,
+		Action:      ProbeActionCreate,
+		Outcome:     ProbeOutcomeFailure,
+		Reason:      ProbeReasonLabelNotFound,
+		ActorUserID: "user-1",
+		ProjectID:   testProjectID,
+		ProjectRef:  "engineering",
+	})
+}
+
+func assertRecordedProbeEvent(t *testing.T, recorder *recordingProbeEventRecorder, want ProbeEvent) {
+	t.Helper()
+
+	if len(recorder.events) != 1 {
+		t.Fatalf("expected one event, got %d: %#v", len(recorder.events), recorder.events)
+	}
+
+	got := recorder.events[0]
+	if got.Name != want.Name ||
+		got.Action != want.Action ||
+		got.Outcome != want.Outcome ||
+		got.Reason != want.Reason ||
+		got.ActorUserID != want.ActorUserID ||
+		got.ProjectID != want.ProjectID ||
+		got.ProjectRef != want.ProjectRef ||
+		got.ProbeID != want.ProbeID ||
+		!errors.Is(got.Err, want.Err) {
+		t.Fatalf("unexpected event:\n got: %#v\nwant: %#v", got, want)
+	}
+}
+
+type recordingProbeEventRecorder struct {
+	events []ProbeEvent
+}
+
+func (r *recordingProbeEventRecorder) RecordProbeEvent(_ context.Context, event ProbeEvent) {
+	r.events = append(r.events, event)
 }
 
 type fakeProbeRepository struct {

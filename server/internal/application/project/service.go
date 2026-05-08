@@ -48,6 +48,8 @@ func (s *Service) CreateProject(ctx context.Context, input CreateProjectInput) (
 	if err != nil {
 		return domainproject.Project{}, flow.TechnicalFailure(ProjectEventCreateFailure, ProjectReasonProjectCreateFailed, err)
 	}
+	flow.SetProject(project)
+	flow.Success(ProjectEventCreateSuccess)
 
 	return project, nil
 }

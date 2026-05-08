@@ -86,12 +86,13 @@ func New(ctx context.Context) (*Application, error) {
 	tokenIssuer := security.NewJWTIssuer(cfg.Auth.JWTSecret, cfg.Auth.AccessTokenTTL)
 	authEvents := logger.NewAuthEventRecorder(log, cfg.LogPseudonymKey)
 	projectEvents := logger.NewProjectEventRecorder(log)
+	probeEvents := logger.NewProbeEventRecorder(log)
 
 	authSvc := appauth.NewService(userRepo, passwordHasher, tokenIssuer, authEvents)
 	projectRepo := pgproject.NewProjectRepository(dbPool)
 	projectSvc := appproject.NewService(projectRepo, projectEvents)
 	probeRepo := pgprobe.NewProbeRepository(dbPool)
-	probeSvc := appprobe.NewService(probeRepo, security.NewProbeSecretGenerator())
+	probeSvc := appprobe.NewService(probeRepo, security.NewProbeSecretGenerator(), probeEvents)
 	readiness := postgres.NewReadinessCheck(dbPool)
 
 	httpHandler := httpserver.NewRouter(httpserver.Dependencies{
