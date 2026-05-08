@@ -22,7 +22,7 @@ const isComponents = pathname.startsWith("/storybook") || pathname.startsWith("/
 				<Icon name="server" size={16} />
 				<span>OpenAPI</span>
 			</a>
-			<a href="/storybook/" class:list={["siteNavLink", isComponents && "active"]}>
+			<a href="/storybook/" class:list={["siteNavLink", isComponents && "active"]} data-astro-reload>
 				<Icon name="cube" size={16} />
 				<span>Storybook</span>
 			</a>

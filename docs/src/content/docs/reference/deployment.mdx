@@ -9,7 +9,7 @@ head:
 
 ## Static Output
 
-The docs site is an Astro app that builds to `docs/dist`. It owns the public homepage, documentation routes, generated OpenAPI explorer, and static Storybook output.
+The docs site is an Astro app that builds to `docs/dist`. It owns the public homepage, documentation routes, generated OpenAPI explorer, and static Storybook output. Pages are still prerendered as static files, while Astro's `ClientRouter` turns internal navigation into a SPA-style experience.
 
 ```bash
 pnpm build:docs
