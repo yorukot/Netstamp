@@ -168,7 +168,7 @@ type fakeProbeRepository struct {
 	gotProjectRef  string
 	gotUserID      string
 	projectErr     error
-	gotCreateInput CreateProbeStorageInput
+	gotCreateInput domainprobe.CreateProbeStorageInput
 	createErr      error
 }
 
@@ -181,7 +181,7 @@ func (r *fakeProbeRepository) GetProjectIDForUser(_ context.Context, projectRef 
 	return testProjectID, nil
 }
 
-func (r *fakeProbeRepository) CreateProbe(_ context.Context, input CreateProbeStorageInput) (domainprobe.Probe, error) {
+func (r *fakeProbeRepository) CreateProbe(_ context.Context, input domainprobe.CreateProbeStorageInput) (domainprobe.Probe, error) {
 	r.gotCreateInput = input
 	if r.createErr != nil {
 		return domainprobe.Probe{}, r.createErr

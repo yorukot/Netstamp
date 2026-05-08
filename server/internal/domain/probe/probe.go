@@ -7,6 +7,7 @@ import (
 
 var (
 	ErrLabelNotFound = errors.New("probe label not found")
+	ErrInvalidInput  = errors.New("probe input invalid")
 )
 
 type State string

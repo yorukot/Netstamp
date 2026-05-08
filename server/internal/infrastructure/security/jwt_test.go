@@ -5,14 +5,14 @@ import (
 	"testing"
 	"time"
 
-	appauth "github.com/yorukot/netstamp/internal/application/auth"
+	"github.com/yorukot/netstamp/internal/domain/identity"
 )
 
 func TestJWTIssuerRoundTripsDisplayName(t *testing.T) {
 	issuer := NewJWTIssuer("secret", time.Hour)
 
 	displayName := "Example User"
-	token, err := issuer.IssueAccessToken(context.Background(), appauth.AccessTokenInput{
+	token, err := issuer.IssueAccessToken(context.Background(), identity.AccessTokenInput{
 		Subject:     "user-1",
 		Email:       "user@example.com",
 		DisplayName: &displayName,

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
 	"github.com/yorukot/netstamp/internal/normalize"
 )
 
@@ -38,7 +39,7 @@ func (s *Service) CreateProbe(ctx context.Context, input CreateProbeInput) (Crea
 		return CreateProbeOutput{}, err
 	}
 
-	probe, err := s.repo.CreateProbe(ctx, CreateProbeStorageInput{
+	probe, err := s.repo.CreateProbe(ctx, domainprobe.CreateProbeStorageInput{
 		ProjectID:  projectID,
 		Name:       normalized.name,
 		Enabled:    normalized.enabled,

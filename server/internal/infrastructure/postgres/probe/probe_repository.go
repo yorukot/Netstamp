@@ -9,8 +9,8 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	appprobe "github.com/yorukot/netstamp/internal/application/probe"
 	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
+	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 	"github.com/yorukot/netstamp/internal/infrastructure/postgres"
 	"github.com/yorukot/netstamp/internal/infrastructure/postgres/sqlc"
 	"github.com/yorukot/netstamp/internal/normalize"
@@ -32,7 +32,7 @@ func (r *ProbeRepository) GetProjectIDForUser(ctx context.Context, projectRef st
 	ctx, span := postgres.StartDBSpan(ctx, pgprobeTracer, "projects", "postgres.projects.select_id_for_probe_user", "SELECT", "SELECT project for probe creator")
 	defer span.End()
 
-	userID, err := postgres.ParseUUID(userIDValue, appprobe.ErrProjectNotFound)
+	userID, err := postgres.ParseUUID(userIDValue, domainproject.ErrProjectNotFound)
 	if err != nil {
 		return "", err
 	}
@@ -46,7 +46,7 @@ func (r *ProbeRepository) GetProjectIDForUser(ctx context.Context, projectRef st
 		})
 	} else {
 		if !normalize.IsProjectSlug(projectRef) {
-			return "", appprobe.ErrProjectNotFound
+			return "", domainproject.ErrProjectNotFound
 		}
 		row, err = r.queries.GetProjectBySlugForUser(ctx, sqlc.GetProjectBySlugForUserParams{
 			Slug:   projectRef,
@@ -55,7 +55,7 @@ func (r *ProbeRepository) GetProjectIDForUser(ctx context.Context, projectRef st
 	}
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return "", appprobe.ErrProjectNotFound
+			return "", domainproject.ErrProjectNotFound
 		}
 		postgres.RecordDBSpanError(span, err)
 		return "", err
@@ -64,11 +64,11 @@ func (r *ProbeRepository) GetProjectIDForUser(ctx context.Context, projectRef st
 	return row.ID.String(), nil
 }
 
-func (r *ProbeRepository) CreateProbe(ctx context.Context, input appprobe.CreateProbeStorageInput) (domainprobe.Probe, error) {
+func (r *ProbeRepository) CreateProbe(ctx context.Context, input domainprobe.CreateProbeStorageInput) (domainprobe.Probe, error) {
 	ctx, span := postgres.StartDBSpan(ctx, pgprobeTracer, "probes", "postgres.probes.create_with_credentials", "INSERT", "INSERT probe, credential, status, and labels")
 	defer span.End()
 
-	projectID, err := postgres.ParseUUID(input.ProjectID, appprobe.ErrProjectNotFound)
+	projectID, err := postgres.ParseUUID(input.ProjectID, domainproject.ErrProjectNotFound)
 	if err != nil {
 		return domainprobe.Probe{}, err
 	}
@@ -145,7 +145,7 @@ func (r *ProbeRepository) getActiveLabels(ctx context.Context, q *sqlc.Queries, 
 		return nil, err
 	}
 	if len(rows) != len(labelIDs) {
-		return nil, appprobe.ErrLabelNotFound
+		return nil, domainprobe.ErrLabelNotFound
 	}
 
 	return mapLabels(rows), nil
@@ -158,7 +158,7 @@ func parseLabelIDs(values []string) ([]uuid.UUID, error) {
 
 	labelIDs := make([]uuid.UUID, 0, len(values))
 	for _, value := range values {
-		labelID, err := postgres.ParseUUID(value, appprobe.ErrInvalidInput)
+		labelID, err := postgres.ParseUUID(value, domainprobe.ErrInvalidInput)
 		if err != nil {
 			return nil, err
 		}

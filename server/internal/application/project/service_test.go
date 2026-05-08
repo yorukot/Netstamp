@@ -218,24 +218,24 @@ func TestUpdateMemberRoleRestrictions(t *testing.T) {
 
 type fakeProjectRepository struct {
 	createdProject         domainproject.Project
-	gotCreateInput         CreateProjectStorageInput
+	gotCreateInput         domainproject.CreateProjectStorageInput
 	projects               []domainproject.Project
 	project                domainproject.Project
 	actorRole              domainproject.Role
 	roleErr                error
 	updatedProject         domainproject.Project
-	gotUpdateProject       UpdateProjectStorageInput
+	gotUpdateProject       domainproject.UpdateProjectStorageInput
 	gotSoftDeleteProjectID string
 	members                []domainproject.Member
 	member                 domainproject.Member
 	addedMember            domainproject.Member
-	gotAddMember           AddMemberStorageInput
+	gotAddMember           domainproject.AddMemberStorageInput
 	updatedMember          domainproject.Member
-	gotUpdateMemberRole    UpdateMemberRoleStorageInput
+	gotUpdateMemberRole    domainproject.UpdateMemberRoleStorageInput
 	owners                 int
 }
 
-func (r *fakeProjectRepository) CreateProjectWithOwner(_ context.Context, input CreateProjectStorageInput) (domainproject.Project, error) {
+func (r *fakeProjectRepository) CreateProjectWithOwner(_ context.Context, input domainproject.CreateProjectStorageInput) (domainproject.Project, error) {
 	r.gotCreateInput = input
 	if r.createdProject.ID != "" {
 		return r.createdProject, nil
@@ -271,7 +271,7 @@ func (r *fakeProjectRepository) GetMemberRole(context.Context, string, string) (
 	return domainproject.RoleOwner, nil
 }
 
-func (r *fakeProjectRepository) UpdateProject(_ context.Context, input UpdateProjectStorageInput) (domainproject.Project, error) {
+func (r *fakeProjectRepository) UpdateProject(_ context.Context, input domainproject.UpdateProjectStorageInput) (domainproject.Project, error) {
 	r.gotUpdateProject = input
 	if r.updatedProject.ID != "" {
 		return r.updatedProject, nil
@@ -295,7 +295,7 @@ func (r *fakeProjectRepository) GetMember(context.Context, string, string) (doma
 	return domainproject.Member{ID: "member-1", UserID: "target-user", Role: domainproject.RoleViewer}, nil
 }
 
-func (r *fakeProjectRepository) AddMember(_ context.Context, input AddMemberStorageInput) (domainproject.Member, error) {
+func (r *fakeProjectRepository) AddMember(_ context.Context, input domainproject.AddMemberStorageInput) (domainproject.Member, error) {
 	r.gotAddMember = input
 	if r.addedMember.ID != "" {
 		return r.addedMember, nil
@@ -303,7 +303,7 @@ func (r *fakeProjectRepository) AddMember(_ context.Context, input AddMemberStor
 	return domainproject.Member{ID: "member-1", ProjectID: input.ProjectID, UserID: input.UserID, Role: input.Role}, nil
 }
 
-func (r *fakeProjectRepository) UpdateMemberRole(_ context.Context, input UpdateMemberRoleStorageInput) (domainproject.Member, error) {
+func (r *fakeProjectRepository) UpdateMemberRole(_ context.Context, input domainproject.UpdateMemberRoleStorageInput) (domainproject.Member, error) {
 	r.gotUpdateMemberRole = input
 	if r.updatedMember.ID != "" {
 		return r.updatedMember, nil

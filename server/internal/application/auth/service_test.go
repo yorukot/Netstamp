@@ -10,7 +10,7 @@ import (
 
 func TestLoginRecordsSuccess(t *testing.T) {
 	recorder := &recordingSecurityEventRecorder{}
-	tokenIssuer := &fakeTokenIssuer{token: IssuedToken{Value: "access-token", TokenType: "Bearer", ExpiresIn: 3600}}
+	tokenIssuer := &fakeTokenIssuer{token: identity.IssuedToken{Value: "access-token", TokenType: "Bearer", ExpiresIn: 3600}}
 	repo := &fakeUserRepository{
 		user: identity.User{
 			ID:           "user-1",
@@ -173,7 +173,7 @@ func TestRegisterRecordsInvalidDisplayNameFailure(t *testing.T) {
 func TestRegisterNormalizesDisplayName(t *testing.T) {
 	recorder := &recordingSecurityEventRecorder{}
 	repo := &fakeUserRepository{}
-	tokenIssuer := &fakeTokenIssuer{token: IssuedToken{Value: "access-token", TokenType: "Bearer", ExpiresIn: 3600}}
+	tokenIssuer := &fakeTokenIssuer{token: identity.IssuedToken{Value: "access-token", TokenType: "Bearer", ExpiresIn: 3600}}
 	service := NewService(
 		repo,
 		&fakePasswordHasher{},
@@ -271,10 +271,10 @@ type fakeUserRepository struct {
 	getErr         error
 	createErr      error
 	gotEmail       string
-	gotCreateInput CreateUserInput
+	gotCreateInput identity.CreateUserInput
 }
 
-func (r *fakeUserRepository) CreateUser(_ context.Context, input CreateUserInput) (identity.User, error) {
+func (r *fakeUserRepository) CreateUser(_ context.Context, input identity.CreateUserInput) (identity.User, error) {
 	r.gotCreateInput = input
 	if r.createErr != nil {
 		return identity.User{}, r.createErr
@@ -316,15 +316,15 @@ func (h *fakePasswordHasher) Compare(_ string, _ string) error {
 }
 
 type fakeTokenIssuer struct {
-	token    IssuedToken
+	token    identity.IssuedToken
 	err      error
-	gotInput AccessTokenInput
+	gotInput identity.AccessTokenInput
 }
 
-func (i *fakeTokenIssuer) IssueAccessToken(_ context.Context, input AccessTokenInput) (IssuedToken, error) {
+func (i *fakeTokenIssuer) IssueAccessToken(_ context.Context, input identity.AccessTokenInput) (identity.IssuedToken, error) {
 	i.gotInput = input
 	if i.err != nil {
-		return IssuedToken{}, i.err
+		return identity.IssuedToken{}, i.err
 	}
 	return i.token, nil
 }

@@ -7,7 +7,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v4"
 
-	appauth "github.com/yorukot/netstamp/internal/application/auth"
+	"github.com/yorukot/netstamp/internal/domain/identity"
 )
 
 type JWTIssuer struct {
@@ -30,9 +30,9 @@ func NewJWTIssuer(secret string, ttl time.Duration) *JWTIssuer {
 	}
 }
 
-func (i *JWTIssuer) IssueAccessToken(ctx context.Context, input appauth.AccessTokenInput) (appauth.IssuedToken, error) {
+func (i *JWTIssuer) IssueAccessToken(ctx context.Context, input identity.AccessTokenInput) (identity.IssuedToken, error) {
 	if err := ctx.Err(); err != nil {
-		return appauth.IssuedToken{}, err
+		return identity.IssuedToken{}, err
 	}
 
 	now := i.now().UTC()
@@ -49,36 +49,36 @@ func (i *JWTIssuer) IssueAccessToken(ctx context.Context, input appauth.AccessTo
 
 	value, err := token.SignedString(i.secret)
 	if err != nil {
-		return appauth.IssuedToken{}, err
+		return identity.IssuedToken{}, err
 	}
 
-	return appauth.IssuedToken{
+	return identity.IssuedToken{
 		Value:     value,
 		TokenType: "Bearer",
 		ExpiresIn: int(i.ttl.Seconds()),
 	}, nil
 }
 
-func (i *JWTIssuer) VerifyAccessToken(ctx context.Context, value string) (appauth.AccessTokenClaims, error) {
+func (i *JWTIssuer) VerifyAccessToken(ctx context.Context, value string) (identity.AccessTokenClaims, error) {
 	if err := ctx.Err(); err != nil {
-		return appauth.AccessTokenClaims{}, err
+		return identity.AccessTokenClaims{}, err
 	}
 
 	var claims accessTokenClaims
 	token, err := jwt.ParseWithClaims(value, &claims, func(token *jwt.Token) (any, error) {
 		if token.Method != jwt.SigningMethodHS256 {
-			return nil, appauth.ErrAccessTokenInvalid
+			return nil, identity.ErrAccessTokenInvalid
 		}
 		return i.secret, nil
 	})
 	if err != nil {
-		return appauth.AccessTokenClaims{}, errors.Join(appauth.ErrAccessTokenInvalid, err)
+		return identity.AccessTokenClaims{}, errors.Join(identity.ErrAccessTokenInvalid, err)
 	}
 	if token == nil || !token.Valid || claims.Subject == "" || claims.Email == "" {
-		return appauth.AccessTokenClaims{}, appauth.ErrAccessTokenInvalid
+		return identity.AccessTokenClaims{}, identity.ErrAccessTokenInvalid
 	}
 
-	return appauth.AccessTokenClaims{
+	return identity.AccessTokenClaims{
 		Subject:     claims.Subject,
 		Email:       claims.Email,
 		DisplayName: claims.DisplayName,

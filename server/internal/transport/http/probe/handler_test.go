@@ -9,8 +9,8 @@ import (
 
 	"github.com/danielgtaylor/huma/v2/humatest"
 
-	appauth "github.com/yorukot/netstamp/internal/application/auth"
 	appprobe "github.com/yorukot/netstamp/internal/application/probe"
+	"github.com/yorukot/netstamp/internal/domain/identity"
 	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
 )
 
@@ -28,7 +28,7 @@ func TestCreateProbeReturnsCreatedProbeAndSecret(t *testing.T) {
 		plaintext: "plain-secret",
 		hash:      "secret-hash",
 	}), &handlerTokenVerifier{
-		claims: appauth.AccessTokenClaims{Subject: testUserID, Email: "user@example.com"},
+		claims: identity.AccessTokenClaims{Subject: testUserID, Email: "user@example.com"},
 	}).RegisterRoutes(api)
 
 	res := api.Post("/projects/engineering/probes", map[string]any{
@@ -87,7 +87,7 @@ func TestCreateProbeMapsInvalidInputToUnprocessableEntity(t *testing.T) {
 		plaintext: "plain-secret",
 		hash:      "secret-hash",
 	}), &handlerTokenVerifier{
-		claims: appauth.AccessTokenClaims{Subject: testUserID, Email: "user@example.com"},
+		claims: identity.AccessTokenClaims{Subject: testUserID, Email: "user@example.com"},
 	}).RegisterRoutes(api)
 
 	res := api.Post("/projects/engineering/probes", map[string]any{
@@ -107,7 +107,7 @@ func TestCreateProbeMapsInaccessibleProjectToNotFound(t *testing.T) {
 		plaintext: "plain-secret",
 		hash:      "secret-hash",
 	}), &handlerTokenVerifier{
-		claims: appauth.AccessTokenClaims{Subject: testUserID, Email: "user@example.com"},
+		claims: identity.AccessTokenClaims{Subject: testUserID, Email: "user@example.com"},
 	}).RegisterRoutes(api)
 
 	res := api.Post("/projects/missing/probes", map[string]any{
@@ -127,7 +127,7 @@ func TestCreateProbeMapsMissingLabelToNotFound(t *testing.T) {
 		plaintext: "plain-secret",
 		hash:      "secret-hash",
 	}), &handlerTokenVerifier{
-		claims: appauth.AccessTokenClaims{Subject: testUserID, Email: "user@example.com"},
+		claims: identity.AccessTokenClaims{Subject: testUserID, Email: "user@example.com"},
 	}).RegisterRoutes(api)
 
 	res := api.Post("/projects/engineering/probes", map[string]any{
@@ -141,13 +141,13 @@ func TestCreateProbeMapsMissingLabelToNotFound(t *testing.T) {
 }
 
 type handlerTokenVerifier struct {
-	claims appauth.AccessTokenClaims
+	claims identity.AccessTokenClaims
 	err    error
 }
 
-func (v *handlerTokenVerifier) VerifyAccessToken(context.Context, string) (appauth.AccessTokenClaims, error) {
+func (v *handlerTokenVerifier) VerifyAccessToken(context.Context, string) (identity.AccessTokenClaims, error) {
 	if v.err != nil {
-		return appauth.AccessTokenClaims{}, v.err
+		return identity.AccessTokenClaims{}, v.err
 	}
 	return v.claims, nil
 }
@@ -155,7 +155,7 @@ func (v *handlerTokenVerifier) VerifyAccessToken(context.Context, string) (appau
 type handlerProbeRepository struct {
 	gotProjectRef  string
 	projectErr     error
-	gotCreateInput appprobe.CreateProbeStorageInput
+	gotCreateInput domainprobe.CreateProbeStorageInput
 	createErr      error
 }
 
@@ -167,7 +167,7 @@ func (r *handlerProbeRepository) GetProjectIDForUser(_ context.Context, projectR
 	return testProjectID, nil
 }
 
-func (r *handlerProbeRepository) CreateProbe(_ context.Context, input appprobe.CreateProbeStorageInput) (domainprobe.Probe, error) {
+func (r *handlerProbeRepository) CreateProbe(_ context.Context, input domainprobe.CreateProbeStorageInput) (domainprobe.Probe, error) {
 	r.gotCreateInput = input
 	if r.createErr != nil {
 		return domainprobe.Probe{}, r.createErr

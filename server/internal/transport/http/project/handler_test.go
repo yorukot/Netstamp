@@ -9,8 +9,8 @@ import (
 
 	"github.com/danielgtaylor/huma/v2/humatest"
 
-	appauth "github.com/yorukot/netstamp/internal/application/auth"
 	appproject "github.com/yorukot/netstamp/internal/application/project"
+	"github.com/yorukot/netstamp/internal/domain/identity"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 )
 
@@ -24,7 +24,7 @@ func TestCreateProjectReturnsCreatedProject(t *testing.T) {
 	_, api := humatest.New(t)
 	repo := &handlerProjectRepository{}
 	NewHandler(appproject.NewService(repo), &handlerTokenVerifier{
-		claims: appauth.AccessTokenClaims{Subject: testUserID, Email: "user@example.com"},
+		claims: identity.AccessTokenClaims{Subject: testUserID, Email: "user@example.com"},
 	}).RegisterRoutes(api)
 
 	res := api.Post("/projects", map[string]any{
@@ -54,7 +54,7 @@ func TestCreateProjectReturnsCreatedProject(t *testing.T) {
 func TestCreateProjectRejectsInvalidSlugPattern(t *testing.T) {
 	_, api := humatest.New(t)
 	NewHandler(appproject.NewService(&handlerProjectRepository{}), &handlerTokenVerifier{
-		claims: appauth.AccessTokenClaims{Subject: testUserID, Email: "user@example.com"},
+		claims: identity.AccessTokenClaims{Subject: testUserID, Email: "user@example.com"},
 	}).RegisterRoutes(api)
 
 	res := api.Post("/projects", map[string]any{
@@ -85,7 +85,7 @@ func TestGetProjectAcceptsSlugRef(t *testing.T) {
 	_, api := humatest.New(t)
 	repo := &handlerProjectRepository{}
 	NewHandler(appproject.NewService(repo), &handlerTokenVerifier{
-		claims: appauth.AccessTokenClaims{Subject: testUserID, Email: "user@example.com"},
+		claims: identity.AccessTokenClaims{Subject: testUserID, Email: "user@example.com"},
 	}).RegisterRoutes(api)
 
 	res := api.Get("/projects/engineering", "Authorization: Bearer valid-token")
@@ -103,7 +103,7 @@ func TestDeleteProjectMapsNonOwnerToForbidden(t *testing.T) {
 	NewHandler(appproject.NewService(&handlerProjectRepository{
 		actorRole: domainproject.RoleAdmin,
 	}), &handlerTokenVerifier{
-		claims: appauth.AccessTokenClaims{Subject: testUserID, Email: "user@example.com"},
+		claims: identity.AccessTokenClaims{Subject: testUserID, Email: "user@example.com"},
 	}).RegisterRoutes(api)
 
 	res := api.Delete("/projects/engineering", "Authorization: Bearer valid-token")
@@ -118,7 +118,7 @@ func TestAddMemberRejectsOwnerRoleAsForbidden(t *testing.T) {
 	NewHandler(appproject.NewService(&handlerProjectRepository{
 		actorRole: domainproject.RoleOwner,
 	}), &handlerTokenVerifier{
-		claims: appauth.AccessTokenClaims{Subject: testUserID, Email: "user@example.com"},
+		claims: identity.AccessTokenClaims{Subject: testUserID, Email: "user@example.com"},
 	}).RegisterRoutes(api)
 
 	res := api.Post("/projects/engineering/members", map[string]any{
@@ -132,25 +132,25 @@ func TestAddMemberRejectsOwnerRoleAsForbidden(t *testing.T) {
 }
 
 type handlerTokenVerifier struct {
-	claims appauth.AccessTokenClaims
+	claims identity.AccessTokenClaims
 	err    error
 }
 
-func (v *handlerTokenVerifier) VerifyAccessToken(context.Context, string) (appauth.AccessTokenClaims, error) {
+func (v *handlerTokenVerifier) VerifyAccessToken(context.Context, string) (identity.AccessTokenClaims, error) {
 	if v.err != nil {
-		return appauth.AccessTokenClaims{}, v.err
+		return identity.AccessTokenClaims{}, v.err
 	}
 	return v.claims, nil
 }
 
 type handlerProjectRepository struct {
-	gotCreateInput         appproject.CreateProjectStorageInput
+	gotCreateInput         domainproject.CreateProjectStorageInput
 	gotProjectRef          string
 	actorRole              domainproject.Role
 	gotSoftDeleteProjectID string
 }
 
-func (r *handlerProjectRepository) CreateProjectWithOwner(_ context.Context, input appproject.CreateProjectStorageInput) (domainproject.Project, error) {
+func (r *handlerProjectRepository) CreateProjectWithOwner(_ context.Context, input domainproject.CreateProjectStorageInput) (domainproject.Project, error) {
 	r.gotCreateInput = input
 	return domainproject.Project{
 		ID:              testProjectID,
@@ -192,7 +192,7 @@ func (r *handlerProjectRepository) GetMemberRole(context.Context, string, string
 	return domainproject.RoleOwner, nil
 }
 
-func (r *handlerProjectRepository) UpdateProject(_ context.Context, input appproject.UpdateProjectStorageInput) (domainproject.Project, error) {
+func (r *handlerProjectRepository) UpdateProject(_ context.Context, input domainproject.UpdateProjectStorageInput) (domainproject.Project, error) {
 	return domainproject.Project{
 		ID:              input.ProjectID,
 		Name:            input.Name,
@@ -216,11 +216,11 @@ func (r *handlerProjectRepository) GetMember(context.Context, string, string) (d
 	return domainproject.Member{ID: testMemberID, ProjectID: testProjectID, UserID: testMemberID, Email: "member@example.com", Role: domainproject.RoleViewer}, nil
 }
 
-func (r *handlerProjectRepository) AddMember(_ context.Context, input appproject.AddMemberStorageInput) (domainproject.Member, error) {
+func (r *handlerProjectRepository) AddMember(_ context.Context, input domainproject.AddMemberStorageInput) (domainproject.Member, error) {
 	return domainproject.Member{ID: testMemberID, ProjectID: input.ProjectID, UserID: input.UserID, Email: "member@example.com", Role: input.Role}, nil
 }
 
-func (r *handlerProjectRepository) UpdateMemberRole(_ context.Context, input appproject.UpdateMemberRoleStorageInput) (domainproject.Member, error) {
+func (r *handlerProjectRepository) UpdateMemberRole(_ context.Context, input domainproject.UpdateMemberRoleStorageInput) (domainproject.Member, error) {
 	return domainproject.Member{ID: testMemberID, ProjectID: input.ProjectID, UserID: input.UserID, Email: "member@example.com", Role: input.Role}, nil
 }
 

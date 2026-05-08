@@ -8,7 +8,7 @@ import (
 
 type Repository interface {
 	GetProjectIDForUser(ctx context.Context, projectRef string, userID string) (string, error)
-	CreateProbe(ctx context.Context, input CreateProbeStorageInput) (domainprobe.Probe, error)
+	CreateProbe(ctx context.Context, input domainprobe.CreateProbeStorageInput) (domainprobe.Probe, error)
 }
 
 type SecretGenerator interface {

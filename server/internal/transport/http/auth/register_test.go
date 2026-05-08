@@ -16,7 +16,7 @@ func TestRegisterReturnsCreatedUserWithDisplayName(t *testing.T) {
 	_, api := humatest.New(t)
 	repo := &handlerUserRepository{}
 	tokenIssuer := &handlerTokenIssuer{
-		token: appauth.IssuedToken{
+		token: identity.IssuedToken{
 			Value:     "access-token",
 			TokenType: "Bearer",
 			ExpiresIn: 3600,
@@ -107,10 +107,10 @@ type handlerUserRepository struct {
 	getErr         error
 	createErr      error
 	gotEmail       string
-	gotCreateInput appauth.CreateUserInput
+	gotCreateInput identity.CreateUserInput
 }
 
-func (r *handlerUserRepository) CreateUser(_ context.Context, input appauth.CreateUserInput) (identity.User, error) {
+func (r *handlerUserRepository) CreateUser(_ context.Context, input identity.CreateUserInput) (identity.User, error) {
 	r.gotCreateInput = input
 	if r.createErr != nil {
 		return identity.User{}, r.createErr
@@ -152,15 +152,15 @@ func (h *handlerPasswordHasher) Compare(_ string, _ string) error {
 }
 
 type handlerTokenIssuer struct {
-	token    appauth.IssuedToken
+	token    identity.IssuedToken
 	err      error
-	gotInput appauth.AccessTokenInput
+	gotInput identity.AccessTokenInput
 }
 
-func (i *handlerTokenIssuer) IssueAccessToken(_ context.Context, input appauth.AccessTokenInput) (appauth.IssuedToken, error) {
+func (i *handlerTokenIssuer) IssueAccessToken(_ context.Context, input identity.AccessTokenInput) (identity.IssuedToken, error) {
 	i.gotInput = input
 	if i.err != nil {
-		return appauth.IssuedToken{}, i.err
+		return identity.IssuedToken{}, i.err
 	}
 	return i.token, nil
 }

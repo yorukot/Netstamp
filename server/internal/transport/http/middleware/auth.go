@@ -10,6 +10,7 @@ import (
 	chimw "github.com/go-chi/chi/v5/middleware"
 
 	appauth "github.com/yorukot/netstamp/internal/application/auth"
+	"github.com/yorukot/netstamp/internal/domain/identity"
 )
 
 type accessTokenClaimsContextKey struct{}
@@ -37,12 +38,12 @@ func RequireAuth(verifier appauth.TokenVerifier) func(huma.Context, func(huma.Co
 	}
 }
 
-func WithAccessTokenClaims(ctx context.Context, claims appauth.AccessTokenClaims) context.Context {
+func WithAccessTokenClaims(ctx context.Context, claims identity.AccessTokenClaims) context.Context {
 	return context.WithValue(ctx, accessTokenClaimsContextKey{}, claims)
 }
 
-func AccessTokenClaimsFromContext(ctx context.Context) (appauth.AccessTokenClaims, bool) {
-	claims, ok := ctx.Value(accessTokenClaimsContextKey{}).(appauth.AccessTokenClaims)
+func AccessTokenClaimsFromContext(ctx context.Context) (identity.AccessTokenClaims, bool) {
+	claims, ok := ctx.Value(accessTokenClaimsContextKey{}).(identity.AccessTokenClaims)
 	return claims, ok
 }
 

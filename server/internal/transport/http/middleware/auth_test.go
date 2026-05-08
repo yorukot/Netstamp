@@ -10,6 +10,7 @@ import (
 	"github.com/danielgtaylor/huma/v2/humatest"
 
 	appauth "github.com/yorukot/netstamp/internal/application/auth"
+	"github.com/yorukot/netstamp/internal/domain/identity"
 )
 
 func TestRequireAuthRejectsMissingBearerToken(t *testing.T) {
@@ -32,7 +33,7 @@ func TestRequireAuthRejectsMissingBearerToken(t *testing.T) {
 
 func TestRequireAuthRejectsInvalidAccessToken(t *testing.T) {
 	_, api := humatest.New(t)
-	verifier := &recordingTokenVerifier{err: appauth.ErrAccessTokenInvalid}
+	verifier := &recordingTokenVerifier{err: identity.ErrAccessTokenInvalid}
 	registerClaimsRoute(t, api, verifier)
 
 	res := api.Get("/me", "Authorization: Bearer bad-token")
@@ -48,7 +49,7 @@ func TestRequireAuthRejectsInvalidAccessToken(t *testing.T) {
 func TestRequireAuthStoresClaimsInContext(t *testing.T) {
 	_, api := humatest.New(t)
 	verifier := &recordingTokenVerifier{
-		claims: appauth.AccessTokenClaims{
+		claims: identity.AccessTokenClaims{
 			Subject: "user-1",
 			Email:   "user@example.com",
 		},
@@ -101,15 +102,15 @@ type claimsRouteBody struct {
 }
 
 type recordingTokenVerifier struct {
-	claims   appauth.AccessTokenClaims
+	claims   identity.AccessTokenClaims
 	err      error
 	gotToken string
 }
 
-func (v *recordingTokenVerifier) VerifyAccessToken(_ context.Context, value string) (appauth.AccessTokenClaims, error) {
+func (v *recordingTokenVerifier) VerifyAccessToken(_ context.Context, value string) (identity.AccessTokenClaims, error) {
 	v.gotToken = value
 	if v.err != nil {
-		return appauth.AccessTokenClaims{}, v.err
+		return identity.AccessTokenClaims{}, v.err
 	}
 	return v.claims, nil
 }

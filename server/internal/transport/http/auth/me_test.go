@@ -8,13 +8,13 @@ import (
 
 	"github.com/danielgtaylor/huma/v2/humatest"
 
-	appauth "github.com/yorukot/netstamp/internal/application/auth"
+	"github.com/yorukot/netstamp/internal/domain/identity"
 )
 
 func TestMeReturnsAuthenticatedUser(t *testing.T) {
 	_, api := humatest.New(t)
 	NewHandler(nil, &staticTokenVerifier{
-		claims: appauth.AccessTokenClaims{
+		claims: identity.AccessTokenClaims{
 			Subject:     "11111111-1111-1111-1111-111111111111",
 			Email:       "user@example.com",
 			DisplayName: stringPtr("Example User"),
@@ -46,10 +46,10 @@ func TestMeReturnsAuthenticatedUser(t *testing.T) {
 }
 
 type staticTokenVerifier struct {
-	claims appauth.AccessTokenClaims
+	claims identity.AccessTokenClaims
 }
 
-func (v *staticTokenVerifier) VerifyAccessToken(context.Context, string) (appauth.AccessTokenClaims, error) {
+func (v *staticTokenVerifier) VerifyAccessToken(context.Context, string) (identity.AccessTokenClaims, error) {
 	return v.claims, nil
 }
 

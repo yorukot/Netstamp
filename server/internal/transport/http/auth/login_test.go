@@ -8,14 +8,13 @@ import (
 
 	"github.com/danielgtaylor/huma/v2/humatest"
 
-	appauth "github.com/yorukot/netstamp/internal/application/auth"
 	"github.com/yorukot/netstamp/internal/domain/identity"
 )
 
 func TestLoginReturnsUserWithDisplayName(t *testing.T) {
 	_, api := humatest.New(t)
 	tokenIssuer := &handlerTokenIssuer{
-		token: appauth.IssuedToken{
+		token: identity.IssuedToken{
 			Value:     "access-token",
 			TokenType: "Bearer",
 			ExpiresIn: 3600,

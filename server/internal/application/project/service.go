@@ -25,7 +25,7 @@ func (s *Service) CreateProject(ctx context.Context, input CreateProjectInput) (
 		return domainproject.Project{}, err
 	}
 
-	return s.repo.CreateProjectWithOwner(ctx, CreateProjectStorageInput{
+	return s.repo.CreateProjectWithOwner(ctx, domainproject.CreateProjectStorageInput{
 		Name:            name,
 		Slug:            slug,
 		CreatedByUserID: input.CurrentUserID,
@@ -72,7 +72,7 @@ func (s *Service) UpdateProject(ctx context.Context, input UpdateProjectInput) (
 		return domainproject.Project{}, ErrInvalidInput
 	}
 
-	return s.repo.UpdateProject(ctx, UpdateProjectStorageInput{
+	return s.repo.UpdateProject(ctx, domainproject.UpdateProjectStorageInput{
 		ProjectID: project.ID,
 		Name:      name,
 		Slug:      slug,
@@ -129,7 +129,7 @@ func (s *Service) AddMember(ctx context.Context, input AddMemberInput) (domainpr
 		return domainproject.Member{}, ErrForbidden
 	}
 
-	return s.repo.AddMember(ctx, AddMemberStorageInput{
+	return s.repo.AddMember(ctx, domainproject.AddMemberStorageInput{
 		ProjectID: project.ID,
 		UserID:    input.UserID,
 		Role:      input.Role,
@@ -173,7 +173,7 @@ func (s *Service) UpdateMemberRole(ctx context.Context, input UpdateMemberRoleIn
 		}
 	}
 
-	return s.repo.UpdateMemberRole(ctx, UpdateMemberRoleStorageInput{
+	return s.repo.UpdateMemberRole(ctx, domainproject.UpdateMemberRoleStorageInput{
 		ProjectID: project.ID,
 		UserID:    input.UserID,
 		Role:      input.Role,

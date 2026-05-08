@@ -8,7 +8,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	appproject "github.com/yorukot/netstamp/internal/application/project"
+	"github.com/yorukot/netstamp/internal/domain/identity"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 	"github.com/yorukot/netstamp/internal/infrastructure/postgres"
 	"github.com/yorukot/netstamp/internal/infrastructure/postgres/sqlc"
@@ -27,11 +27,11 @@ func NewProjectRepository(pool *pgxpool.Pool) *ProjectRepository {
 	}
 }
 
-func (r *ProjectRepository) CreateProjectWithOwner(ctx context.Context, input appproject.CreateProjectStorageInput) (domainproject.Project, error) {
+func (r *ProjectRepository) CreateProjectWithOwner(ctx context.Context, input domainproject.CreateProjectStorageInput) (domainproject.Project, error) {
 	ctx, span := postgres.StartDBSpan(ctx, pgprojectTracer, "projects", "postgres.projects.create_with_owner", "INSERT", "INSERT projects and owner membership")
 	defer span.End()
 
-	userID, err := postgres.ParseUUID(input.CreatedByUserID, appproject.ErrUserNotFound)
+	userID, err := postgres.ParseUUID(input.CreatedByUserID, identity.ErrUserNotFound)
 	if err != nil {
 		return domainproject.Project{}, err
 	}
@@ -72,7 +72,7 @@ func (r *ProjectRepository) ListProjectsForUser(ctx context.Context, userIDValue
 	ctx, span := postgres.StartDBSpan(ctx, pgprojectTracer, "projects", "postgres.projects.list_for_user", "SELECT", "SELECT projects for member")
 	defer span.End()
 
-	userID, err := postgres.ParseUUID(userIDValue, appproject.ErrProjectNotFound)
+	userID, err := postgres.ParseUUID(userIDValue, domainproject.ErrProjectNotFound)
 	if err != nil {
 		return nil, err
 	}
@@ -95,7 +95,7 @@ func (r *ProjectRepository) GetProjectForUser(ctx context.Context, projectRef st
 	ctx, span := postgres.StartDBSpan(ctx, pgprojectTracer, "projects", "postgres.projects.select_for_user", "SELECT", "SELECT project for member")
 	defer span.End()
 
-	userID, err := postgres.ParseUUID(userIDValue, appproject.ErrUserNotFound)
+	userID, err := postgres.ParseUUID(userIDValue, identity.ErrUserNotFound)
 	if err != nil {
 		return domainproject.Project{}, err
 	}
@@ -109,7 +109,7 @@ func (r *ProjectRepository) GetProjectForUser(ctx context.Context, projectRef st
 		})
 	} else {
 		if !normalize.IsProjectSlug(projectRef) {
-			return domainproject.Project{}, appproject.ErrProjectNotFound
+			return domainproject.Project{}, domainproject.ErrProjectNotFound
 		}
 		row, err = r.queries.GetProjectBySlugForUser(ctx, sqlc.GetProjectBySlugForUserParams{
 			Slug:   projectRef,
@@ -118,7 +118,7 @@ func (r *ProjectRepository) GetProjectForUser(ctx context.Context, projectRef st
 	}
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return domainproject.Project{}, appproject.ErrProjectNotFound
+			return domainproject.Project{}, domainproject.ErrProjectNotFound
 		}
 		postgres.RecordDBSpanError(span, err)
 		return domainproject.Project{}, err
@@ -142,7 +142,7 @@ func (r *ProjectRepository) GetMemberRole(ctx context.Context, projectIDValue st
 	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return "", appproject.ErrProjectNotFound
+			return "", domainproject.ErrProjectNotFound
 		}
 		postgres.RecordDBSpanError(span, err)
 		return "", err
@@ -151,11 +151,11 @@ func (r *ProjectRepository) GetMemberRole(ctx context.Context, projectIDValue st
 	return domainproject.Role(role), nil
 }
 
-func (r *ProjectRepository) UpdateProject(ctx context.Context, input appproject.UpdateProjectStorageInput) (domainproject.Project, error) {
+func (r *ProjectRepository) UpdateProject(ctx context.Context, input domainproject.UpdateProjectStorageInput) (domainproject.Project, error) {
 	ctx, span := postgres.StartDBSpan(ctx, pgprojectTracer, "projects", "postgres.projects.update", "UPDATE", "UPDATE project")
 	defer span.End()
 
-	projectID, err := postgres.ParseUUID(input.ProjectID, appproject.ErrProjectNotFound)
+	projectID, err := postgres.ParseUUID(input.ProjectID, domainproject.ErrProjectNotFound)
 	if err != nil {
 		return domainproject.Project{}, err
 	}
@@ -167,7 +167,7 @@ func (r *ProjectRepository) UpdateProject(ctx context.Context, input appproject.
 	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return domainproject.Project{}, appproject.ErrProjectNotFound
+			return domainproject.Project{}, domainproject.ErrProjectNotFound
 		}
 		if mapped := mapCreateProjectError(err); mapped != err {
 			return domainproject.Project{}, mapped
@@ -183,14 +183,14 @@ func (r *ProjectRepository) SoftDeleteProject(ctx context.Context, projectIDValu
 	ctx, span := postgres.StartDBSpan(ctx, pgprojectTracer, "projects", "postgres.projects.soft_delete", "UPDATE", "SOFT DELETE project")
 	defer span.End()
 
-	projectID, err := postgres.ParseUUID(projectIDValue, appproject.ErrProjectNotFound)
+	projectID, err := postgres.ParseUUID(projectIDValue, domainproject.ErrProjectNotFound)
 	if err != nil {
 		return err
 	}
 
 	if _, err := r.queries.SoftDeleteProject(ctx, projectID); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return appproject.ErrProjectNotFound
+			return domainproject.ErrProjectNotFound
 		}
 		postgres.RecordDBSpanError(span, err)
 		return err
@@ -203,7 +203,7 @@ func (r *ProjectRepository) ListMembers(ctx context.Context, projectIDValue stri
 	ctx, span := postgres.StartDBSpan(ctx, pgprojectTracer, "project_members", "postgres.project_members.list", "SELECT", "SELECT active project members")
 	defer span.End()
 
-	projectID, err := postgres.ParseUUID(projectIDValue, appproject.ErrProjectNotFound)
+	projectID, err := postgres.ParseUUID(projectIDValue, domainproject.ErrProjectNotFound)
 	if err != nil {
 		return nil, err
 	}
@@ -228,7 +228,7 @@ func (r *ProjectRepository) GetMember(ctx context.Context, projectIDValue string
 
 	projectID, userID, err := parseProjectAndUserIDs(projectIDValue, userIDValue)
 	if err != nil {
-		return domainproject.Member{}, appproject.ErrMemberNotFound
+		return domainproject.Member{}, domainproject.ErrMemberNotFound
 	}
 
 	row, err := r.queries.GetActiveProjectMember(ctx, sqlc.GetActiveProjectMemberParams{
@@ -237,7 +237,7 @@ func (r *ProjectRepository) GetMember(ctx context.Context, projectIDValue string
 	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return domainproject.Member{}, appproject.ErrMemberNotFound
+			return domainproject.Member{}, domainproject.ErrMemberNotFound
 		}
 		postgres.RecordDBSpanError(span, err)
 		return domainproject.Member{}, err
@@ -246,7 +246,7 @@ func (r *ProjectRepository) GetMember(ctx context.Context, projectIDValue string
 	return mapGetMember(row), nil
 }
 
-func (r *ProjectRepository) AddMember(ctx context.Context, input appproject.AddMemberStorageInput) (domainproject.Member, error) {
+func (r *ProjectRepository) AddMember(ctx context.Context, input domainproject.AddMemberStorageInput) (domainproject.Member, error) {
 	ctx, span := postgres.StartDBSpan(ctx, pgprojectTracer, "project_members", "postgres.project_members.insert", "INSERT", "INSERT project member")
 	defer span.End()
 
@@ -271,13 +271,13 @@ func (r *ProjectRepository) AddMember(ctx context.Context, input appproject.AddM
 	return mapCreateMember(row), nil
 }
 
-func (r *ProjectRepository) UpdateMemberRole(ctx context.Context, input appproject.UpdateMemberRoleStorageInput) (domainproject.Member, error) {
+func (r *ProjectRepository) UpdateMemberRole(ctx context.Context, input domainproject.UpdateMemberRoleStorageInput) (domainproject.Member, error) {
 	ctx, span := postgres.StartDBSpan(ctx, pgprojectTracer, "project_members", "postgres.project_members.update_role", "UPDATE", "UPDATE project member role")
 	defer span.End()
 
 	projectID, userID, err := parseProjectAndUserIDs(input.ProjectID, input.UserID)
 	if err != nil {
-		return domainproject.Member{}, appproject.ErrMemberNotFound
+		return domainproject.Member{}, domainproject.ErrMemberNotFound
 	}
 
 	row, err := r.queries.UpdateProjectMemberRole(ctx, sqlc.UpdateProjectMemberRoleParams{
@@ -287,7 +287,7 @@ func (r *ProjectRepository) UpdateMemberRole(ctx context.Context, input appproje
 	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return domainproject.Member{}, appproject.ErrMemberNotFound
+			return domainproject.Member{}, domainproject.ErrMemberNotFound
 		}
 		postgres.RecordDBSpanError(span, err)
 		return domainproject.Member{}, err
@@ -300,7 +300,7 @@ func (r *ProjectRepository) CountOwners(ctx context.Context, projectIDValue stri
 	ctx, span := postgres.StartDBSpan(ctx, pgprojectTracer, "project_members", "postgres.project_members.count_owners", "SELECT", "COUNT active project owners")
 	defer span.End()
 
-	projectID, err := postgres.ParseUUID(projectIDValue, appproject.ErrProjectNotFound)
+	projectID, err := postgres.ParseUUID(projectIDValue, domainproject.ErrProjectNotFound)
 	if err != nil {
 		return 0, err
 	}
@@ -315,11 +315,11 @@ func (r *ProjectRepository) CountOwners(ctx context.Context, projectIDValue stri
 }
 
 func parseProjectAndUserIDs(projectIDValue string, userIDValue string) (uuid.UUID, uuid.UUID, error) {
-	projectID, err := postgres.ParseUUID(projectIDValue, appproject.ErrProjectNotFound)
+	projectID, err := postgres.ParseUUID(projectIDValue, domainproject.ErrProjectNotFound)
 	if err != nil {
 		return uuid.Nil, uuid.Nil, err
 	}
-	userID, err := postgres.ParseUUID(userIDValue, appproject.ErrUserNotFound)
+	userID, err := postgres.ParseUUID(userIDValue, identity.ErrUserNotFound)
 	if err != nil {
 		return uuid.Nil, uuid.Nil, err
 	}

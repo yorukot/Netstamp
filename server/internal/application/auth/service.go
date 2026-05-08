@@ -46,7 +46,7 @@ func (s *Service) Register(ctx context.Context, input RegisterInput) (AuthAccess
 		return AuthAccessResult{}, flow.TechnicalFailure(AuthEventRegisterFailure, AuthReasonPasswordHashFailed, err)
 	}
 
-	user, err := s.createUser(ctx, CreateUserInput{
+	user, err := s.createUser(ctx, identity.CreateUserInput{
 		Email:        email,
 		DisplayName:  displayName,
 		PasswordHash: passwordHash,
@@ -106,7 +106,7 @@ func (s *Service) issueAccessResult(ctx context.Context, user identity.User) (Au
 	ctx, span := authTracer.Start(ctx, "auth.issue_access_token")
 	defer span.End()
 
-	token, err := s.tokens.IssueAccessToken(ctx, AccessTokenInput{
+	token, err := s.tokens.IssueAccessToken(ctx, identity.AccessTokenInput{
 		Subject:     user.ID,
 		Email:       user.Email,
 		DisplayName: user.DisplayName,
@@ -146,7 +146,7 @@ func (s *Service) comparePassword(ctx context.Context, password string, password
 	return s.hasher.Compare(password, passwordHash)
 }
 
-func (s *Service) createUser(ctx context.Context, input CreateUserInput) (identity.User, error) {
+func (s *Service) createUser(ctx context.Context, input identity.CreateUserInput) (identity.User, error) {
 	ctx, span := authTracer.Start(ctx, "auth.create_user")
 	defer span.End()
 
