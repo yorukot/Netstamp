@@ -75,11 +75,11 @@
 						"type": "string"
 					},
 					"intervalSeconds": {
-						"format": "int64",
+						"format": "int32",
 						"type": "integer"
 					},
 					"ipFamily": {
-						"enum": ["ipv4", "ipv6"],
+						"enum": ["inet", "inet6"],
 						"type": "string"
 					},
 					"labels": {
@@ -92,11 +92,11 @@
 						"type": "string"
 					},
 					"packetCount": {
-						"format": "int64",
+						"format": "int32",
 						"type": "integer"
 					},
 					"packetSizeBytes": {
-						"format": "int64",
+						"format": "int32",
 						"type": "integer"
 					},
 					"projectId": {
@@ -111,7 +111,7 @@
 						"type": "string"
 					},
 					"timeoutMs": {
-						"format": "int64",
+						"format": "int32",
 						"type": "integer"
 					},
 					"type": {
@@ -146,14 +146,14 @@
 					"intervalSeconds": {
 						"description": "Check interval in seconds.",
 						"examples": [30],
-						"format": "int64",
+						"format": "int32",
 						"minimum": 1,
 						"type": "integer"
 					},
 					"ipFamily": {
 						"description": "Optional IP family preference.",
-						"enum": ["ipv4", "ipv6"],
-						"examples": ["ipv4"],
+						"enum": ["inet", "inet6"],
+						"examples": ["inet"],
 						"type": "string"
 					},
 					"labelIds": {
@@ -173,14 +173,14 @@
 					"packetCount": {
 						"description": "ICMP packet count. Defaults to 4.",
 						"examples": [4],
-						"format": "int64",
+						"format": "int32",
 						"minimum": 1,
 						"type": "integer"
 					},
 					"packetSizeBytes": {
 						"description": "ICMP payload size in bytes. Defaults to 56.",
 						"examples": [56],
-						"format": "int64",
+						"format": "int32",
 						"maximum": 65507,
 						"minimum": 0,
 						"type": "integer"
@@ -200,7 +200,7 @@
 					"timeoutMs": {
 						"description": "Ping timeout in milliseconds. Defaults to 3000.",
 						"examples": [3000],
-						"format": "int64",
+						"format": "int32",
 						"minimum": 1,
 						"type": "integer"
 					},
@@ -910,14 +910,14 @@
 					"intervalSeconds": {
 						"description": "Check interval in seconds.",
 						"examples": [30],
-						"format": "int64",
+						"format": "int32",
 						"minimum": 1,
 						"type": "integer"
 					},
 					"ipFamily": {
 						"description": "Optional IP family preference.",
-						"enum": ["ipv4", "ipv6"],
-						"examples": ["ipv4"],
+						"enum": ["inet", "inet6"],
+						"examples": ["inet"],
 						"type": "string"
 					},
 					"labelIds": {
@@ -937,14 +937,14 @@
 					"packetCount": {
 						"description": "ICMP packet count.",
 						"examples": [4],
-						"format": "int64",
+						"format": "int32",
 						"minimum": 1,
 						"type": "integer"
 					},
 					"packetSizeBytes": {
 						"description": "ICMP payload size in bytes.",
 						"examples": [56],
-						"format": "int64",
+						"format": "int32",
 						"maximum": 65507,
 						"minimum": 0,
 						"type": "integer"
@@ -964,7 +964,7 @@
 					"timeoutMs": {
 						"description": "Ping timeout in milliseconds.",
 						"examples": [3000],
-						"format": "int64",
+						"format": "int32",
 						"minimum": 1,
 						"type": "integer"
 					},
