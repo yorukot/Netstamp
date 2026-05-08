@@ -1,2 +1,81 @@
-pnpm prettier $(git diff --cached --name-only --diff-filter=ACMR | sed 's| |\\ |g') --write --ignore-unknown
-git update-index --again
+#!/bin/sh
+
+set -eu
+
+zero_sha="0000000000000000000000000000000000000000"
+has_backend_changes=0
+
+has_backend_paths() {
+	if [ -n "$(printf '%s\n' "$1" | sed -n '/^server\//p; /^golangci\.yaml$/p' | head -n 1)" ]; then
+		return 0
+	fi
+
+	return 1
+}
+
+ref_has_backend_changes() {
+	local_sha=$1
+	remote_sha=$2
+
+	if [ "$local_sha" = "$zero_sha" ]; then
+		return 1
+	fi
+
+	if [ "$remote_sha" != "$zero_sha" ]; then
+		if changed_files=$(git diff --name-only "$remote_sha" "$local_sha" -- server golangci.yaml 2>/dev/null); then
+			has_backend_paths "$changed_files"
+			return $?
+		fi
+
+		echo "Could not compare pushed commits; running backend checks to be safe." >&2
+		return 0
+	fi
+
+	if commits=$(git rev-list "$local_sha" --not --remotes 2>/dev/null); then
+		if [ -z "$commits" ]; then
+			return 1
+		fi
+
+		for commit in $commits; do
+			changed_files=$(git diff-tree --no-commit-id --name-only -r -m --root "$commit" -- server golangci.yaml)
+			if has_backend_paths "$changed_files"; then
+				return 0
+			fi
+		done
+
+		return 1
+	fi
+
+	echo "Could not inspect pushed commits; running backend checks to be safe." >&2
+	return 0
+}
+
+while read -r _local_ref local_sha _remote_ref remote_sha; do
+	if ref_has_backend_changes "$local_sha" "$remote_sha"; then
+		has_backend_changes=1
+		break
+	fi
+done
+
+if [ "$has_backend_changes" -eq 0 ]; then
+	echo "No backend changes detected in pushed commits; skipping Go checks."
+	exit 0
+fi
+
+if ! command -v golangci-lint >/dev/null 2>&1; then
+	echo "golangci-lint is required for backend pre-push checks." >&2
+	echo "Install golangci-lint v2.x, then retry the push." >&2
+	exit 1
+fi
+
+echo "Backend changes detected; checking Go formatting..."
+if ! (cd server && golangci-lint fmt --config ../golangci.yaml --diff); then
+	echo "Backend formatting check failed. Run: just backend-fmt" >&2
+	exit 1
+fi
+
+echo "Checking backend Go lint..."
+if ! (cd server && golangci-lint run --config ../golangci.yaml ./...); then
+	echo "Backend lint failed. Run: just backend-lint" >&2
+	exit 1
+fi
