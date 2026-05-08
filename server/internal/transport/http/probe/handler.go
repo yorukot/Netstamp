@@ -23,10 +23,6 @@ func NewHandler(service *appprobe.Service, verifier appauth.TokenVerifier) *Hand
 }
 
 func (h *Handler) RegisterRoutes(api huma.API) {
-	if h.service == nil || h.verifier == nil {
-		return
-	}
-
 	huma.Register(api, huma.Operation{
 		OperationID:   "createProjectProbe",
 		Method:        http.MethodPost,

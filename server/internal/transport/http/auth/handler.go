@@ -41,18 +41,16 @@ func (h *Handler) RegisterRoutes(api huma.API) {
 		Errors:      []int{http.StatusUnauthorized, http.StatusInternalServerError},
 	}, h.login)
 
-	if h.verifier != nil {
-		huma.Register(api, huma.Operation{
-			OperationID: "getCurrentUser",
-			Method:      http.MethodGet,
-			Path:        "/auth/me",
-			Summary:     "Get current user",
-			Tags:        []string{"Auth"},
-			Security:    []map[string][]string{{"bearerAuth": {}}},
-			Middlewares: huma.Middlewares{
-				httpmiddleware.RequireAuth(h.verifier),
-			},
-			Errors: []int{http.StatusUnauthorized, http.StatusInternalServerError},
-		}, h.me)
-	}
+	huma.Register(api, huma.Operation{
+		OperationID: "getCurrentUser",
+		Method:      http.MethodGet,
+		Path:        "/auth/me",
+		Summary:     "Get current user",
+		Tags:        []string{"Auth"},
+		Security:    []map[string][]string{{"bearerAuth": {}}},
+		Middlewares: huma.Middlewares{
+			httpmiddleware.RequireAuth(h.verifier),
+		},
+		Errors: []int{http.StatusUnauthorized, http.StatusInternalServerError},
+	}, h.me)
 }

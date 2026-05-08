@@ -23,10 +23,6 @@ func NewHandler(service *appproject.Service, verifier appauth.TokenVerifier) *Ha
 }
 
 func (h *Handler) RegisterRoutes(api huma.API) {
-	if h.service == nil || h.verifier == nil {
-		return
-	}
-
 	authMiddleware := httpmiddleware.RequireAuth(h.verifier)
 	security := []map[string][]string{{"bearerAuth": {}}}
 	middlewares := huma.Middlewares{authMiddleware}

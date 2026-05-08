@@ -1,24 +1,18 @@
 package main
 
 import (
-	"context"
+	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"time"
 
-	appauth "github.com/yorukot/netstamp/internal/application/auth"
-	appprobe "github.com/yorukot/netstamp/internal/application/probe"
-	appproject "github.com/yorukot/netstamp/internal/application/project"
 	httpserver "github.com/yorukot/netstamp/internal/transport/http"
 )
-
-type schemaVerifier struct{}
-
-func (schemaVerifier) VerifyAccessToken(context.Context, string) (appauth.AccessTokenClaims, error) {
-	return appauth.AccessTokenClaims{}, nil
-}
 
 func main() {
 	output := flag.String("output", "../docs/public/openapi.json", "output file path, or - for stdout")
@@ -26,21 +20,11 @@ func main() {
 	serverURL := flag.String("server-url", "", "absolute backend origin to publish in servers[0].url")
 	flag.Parse()
 
-	spec := httpserver.NewOpenAPI(httpserver.Dependencies{
-		APIVersion:     *apiVersion,
-		BackendBaseURL: *serverURL,
-		AuthService:    &appauth.Service{},
-		AuthVerifier:   schemaVerifier{},
-		ProbeService:   &appprobe.Service{},
-		ProjectService: &appproject.Service{},
-	})
-
-	data, err := json.MarshalIndent(spec, "", "\t")
+	data, err := generateOpenAPI(*apiVersion, *serverURL)
 	if err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "marshal openapi: %v\n", err)
+		_, _ = fmt.Fprintf(os.Stderr, "generate openapi: %v\n", err)
 		os.Exit(1)
 	}
-	data = append(data, '\n')
 
 	if *output == "-" {
 		_, err = os.Stdout.Write(data)
@@ -55,4 +39,31 @@ func main() {
 		_, _ = fmt.Fprintf(os.Stderr, "write openapi: %v\n", err)
 		os.Exit(1)
 	}
+}
+
+func generateOpenAPI(apiVersion, serverURL string) ([]byte, error) {
+	router := httpserver.NewRouter(httpserver.Dependencies{
+		APIVersion:     apiVersion,
+		BackendBaseURL: serverURL,
+		RequestTimeout: 10 * time.Second,
+	})
+
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodGet, openAPIRequestPath(apiVersion), nil)
+	router.ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusOK {
+		return nil, fmt.Errorf("request %s: status %d", request.URL.Path, recorder.Code)
+	}
+
+	var formatted bytes.Buffer
+	if err := json.Indent(&formatted, recorder.Body.Bytes(), "", "\t"); err != nil {
+		return nil, fmt.Errorf("format openapi json: %w", err)
+	}
+	formatted.WriteByte('\n')
+	return formatted.Bytes(), nil
+}
+
+func openAPIRequestPath(apiVersion string) string {
+	return "/api/" + apiVersion + "/openapi.json"
 }

@@ -66,24 +66,12 @@ func NewRouter(dep Dependencies) http.Handler {
 	return r
 }
 
-func NewOpenAPI(dep Dependencies) *huma.OpenAPI {
-	api := humachi.New(chi.NewRouter(), newHumaConfig(dep))
-	registerAPIRoutes(api, dep)
-	return api.OpenAPI()
-}
-
 func registerAPIRoutes(api huma.API, dep Dependencies) {
 	registerSystemRoutes(api, dep.ReadinessCheck)
 
-	if dep.AuthService != nil {
-		authhttp.NewHandler(dep.AuthService, dep.AuthVerifier).RegisterRoutes(api)
-	}
-	if dep.ProjectService != nil {
-		projecthttp.NewHandler(dep.ProjectService, dep.AuthVerifier).RegisterRoutes(api)
-	}
-	if dep.ProbeService != nil {
-		probehttp.NewHandler(dep.ProbeService, dep.AuthVerifier).RegisterRoutes(api)
-	}
+	authhttp.NewHandler(dep.AuthService, dep.AuthVerifier).RegisterRoutes(api)
+	projecthttp.NewHandler(dep.ProjectService, dep.AuthVerifier).RegisterRoutes(api)
+	probehttp.NewHandler(dep.ProbeService, dep.AuthVerifier).RegisterRoutes(api)
 }
 
 func newHumaConfig(dep Dependencies) huma.Config {

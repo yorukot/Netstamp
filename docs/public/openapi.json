@@ -12,13 +12,13 @@
 						"type": "string"
 					},
 					"role": {
-						"description": "Team member role.",
+						"description": "Project member role.",
 						"enum": ["owner", "admin", "editor", "viewer"],
 						"examples": ["viewer"],
 						"type": "string"
 					},
 					"userId": {
-						"description": "User ID to add to the team.",
+						"description": "User ID to add to the project.",
 						"format": "uuid",
 						"type": "string"
 					}
@@ -26,25 +26,96 @@
 				"required": ["userId", "role"],
 				"type": "object"
 			},
-			"CreateTeamInputBody": {
+			"CreateProbeInputBody": {
 				"additionalProperties": false,
 				"properties": {
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
-						"examples": ["/api/v1/schemas/CreateTeamInputBody.json"],
+						"examples": ["/api/v1/schemas/CreateProbeInputBody.json"],
+						"format": "uri",
+						"readOnly": true,
+						"type": "string"
+					},
+					"city": {
+						"description": "Location code stored in the city field.",
+						"examples": ["JP-13"],
+						"maxLength": 100,
+						"type": "string"
+					},
+					"enabled": {
+						"description": "Whether the probe is enabled. Defaults to true when omitted.",
+						"examples": [true],
+						"type": "boolean"
+					},
+					"labelIds": {
+						"description": "Existing project label IDs to attach to the probe.",
+						"items": {
+							"type": "string"
+						},
+						"type": ["array", "null"]
+					},
+					"latitude": {
+						"description": "Probe latitude. Must be provided with longitude.",
+						"examples": [35.6762],
+						"format": "double",
+						"type": "number"
+					},
+					"longitude": {
+						"description": "Probe longitude. Must be provided with latitude.",
+						"examples": [139.6503],
+						"format": "double",
+						"type": "number"
+					},
+					"name": {
+						"description": "Probe display name.",
+						"examples": ["tokyo-vps-1"],
+						"maxLength": 100,
+						"minLength": 1,
+						"type": "string"
+					}
+				},
+				"required": ["name"],
+				"type": "object"
+			},
+			"CreateProbeOutputBody": {
+				"additionalProperties": false,
+				"properties": {
+					"$schema": {
+						"description": "A URL to the JSON Schema for this object.",
+						"examples": ["/api/v1/schemas/CreateProbeOutputBody.json"],
+						"format": "uri",
+						"readOnly": true,
+						"type": "string"
+					},
+					"probe": {
+						"$ref": "#/components/schemas/ProbeResponse"
+					},
+					"secret": {
+						"type": "string"
+					}
+				},
+				"required": ["probe", "secret"],
+				"type": "object"
+			},
+			"CreateProjectInputBody": {
+				"additionalProperties": false,
+				"properties": {
+					"$schema": {
+						"description": "A URL to the JSON Schema for this object.",
+						"examples": ["/api/v1/schemas/CreateProjectInputBody.json"],
 						"format": "uri",
 						"readOnly": true,
 						"type": "string"
 					},
 					"name": {
-						"description": "Team display name.",
+						"description": "Project display name.",
 						"examples": ["Engineering"],
 						"maxLength": 100,
 						"minLength": 1,
 						"type": "string"
 					},
 					"slug": {
-						"description": "Stable team slug.",
+						"description": "Stable project slug.",
 						"examples": ["engineering"],
 						"maxLength": 100,
 						"minLength": 1,
@@ -141,6 +212,23 @@
 				"required": ["status"],
 				"type": "object"
 			},
+			"LabelResponse": {
+				"additionalProperties": false,
+				"properties": {
+					"id": {
+						"format": "uuid",
+						"type": "string"
+					},
+					"key": {
+						"type": "string"
+					},
+					"value": {
+						"type": "string"
+					}
+				},
+				"required": ["id", "key", "value"],
+				"type": "object"
+			},
 			"ListMembersOutputBody": {
 				"additionalProperties": false,
 				"properties": {
@@ -153,7 +241,7 @@
 					},
 					"members": {
 						"items": {
-							"$ref": "#/components/schemas/TeamMemberResponse"
+							"$ref": "#/components/schemas/ProjectMemberResponse"
 						},
 						"type": ["array", "null"]
 					}
@@ -161,24 +249,24 @@
 				"required": ["members"],
 				"type": "object"
 			},
-			"ListTeamsOutputBody": {
+			"ListProjectsOutputBody": {
 				"additionalProperties": false,
 				"properties": {
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
-						"examples": ["/api/v1/schemas/ListTeamsOutputBody.json"],
+						"examples": ["/api/v1/schemas/ListProjectsOutputBody.json"],
 						"format": "uri",
 						"readOnly": true,
 						"type": "string"
 					},
-					"teams": {
+					"projects": {
 						"items": {
-							"$ref": "#/components/schemas/TeamResponse"
+							"$ref": "#/components/schemas/ProjectResponse"
 						},
 						"type": ["array", "null"]
 					}
 				},
-				"required": ["teams"],
+				"required": ["projects"],
 				"type": "object"
 			},
 			"LoginInputBody": {
@@ -264,10 +352,137 @@
 						"type": "string"
 					},
 					"member": {
-						"$ref": "#/components/schemas/TeamMemberResponse"
+						"$ref": "#/components/schemas/ProjectMemberResponse"
 					}
 				},
 				"required": ["member"],
+				"type": "object"
+			},
+			"ProbeResponse": {
+				"additionalProperties": false,
+				"properties": {
+					"city": {
+						"type": ["string", "null"]
+					},
+					"createdAt": {
+						"format": "date-time",
+						"type": "string"
+					},
+					"enabled": {
+						"type": "boolean"
+					},
+					"id": {
+						"format": "uuid",
+						"type": "string"
+					},
+					"labels": {
+						"items": {
+							"$ref": "#/components/schemas/LabelResponse"
+						},
+						"type": ["array", "null"]
+					},
+					"latitude": {
+						"format": "double",
+						"type": ["number", "null"]
+					},
+					"longitude": {
+						"format": "double",
+						"type": ["number", "null"]
+					},
+					"name": {
+						"type": "string"
+					},
+					"projectId": {
+						"format": "uuid",
+						"type": "string"
+					},
+					"updatedAt": {
+						"format": "date-time",
+						"type": "string"
+					}
+				},
+				"required": ["id", "projectId", "name", "enabled", "city", "latitude", "longitude", "labels", "createdAt", "updatedAt"],
+				"type": "object"
+			},
+			"ProjectMemberResponse": {
+				"additionalProperties": false,
+				"properties": {
+					"createdAt": {
+						"format": "date-time",
+						"type": "string"
+					},
+					"email": {
+						"format": "email",
+						"type": "string"
+					},
+					"id": {
+						"format": "uuid",
+						"type": "string"
+					},
+					"projectId": {
+						"format": "uuid",
+						"type": "string"
+					},
+					"role": {
+						"enum": ["owner", "admin", "editor", "viewer"],
+						"type": "string"
+					},
+					"updatedAt": {
+						"format": "date-time",
+						"type": "string"
+					},
+					"userId": {
+						"format": "uuid",
+						"type": "string"
+					}
+				},
+				"required": ["id", "projectId", "userId", "email", "role", "createdAt", "updatedAt"],
+				"type": "object"
+			},
+			"ProjectOutputBody": {
+				"additionalProperties": false,
+				"properties": {
+					"$schema": {
+						"description": "A URL to the JSON Schema for this object.",
+						"examples": ["/api/v1/schemas/ProjectOutputBody.json"],
+						"format": "uri",
+						"readOnly": true,
+						"type": "string"
+					},
+					"project": {
+						"$ref": "#/components/schemas/ProjectResponse"
+					}
+				},
+				"required": ["project"],
+				"type": "object"
+			},
+			"ProjectResponse": {
+				"additionalProperties": false,
+				"properties": {
+					"createdAt": {
+						"format": "date-time",
+						"type": "string"
+					},
+					"createdByUserId": {
+						"format": "uuid",
+						"type": "string"
+					},
+					"id": {
+						"format": "uuid",
+						"type": "string"
+					},
+					"name": {
+						"type": "string"
+					},
+					"slug": {
+						"type": "string"
+					},
+					"updatedAt": {
+						"format": "date-time",
+						"type": "string"
+					}
+				},
+				"required": ["id", "name", "slug", "createdByUserId", "createdAt", "updatedAt"],
 				"type": "object"
 			},
 			"RegisterInputBody": {
@@ -355,87 +570,6 @@
 				"required": ["message"],
 				"type": "object"
 			},
-			"TeamMemberResponse": {
-				"additionalProperties": false,
-				"properties": {
-					"createdAt": {
-						"format": "date-time",
-						"type": "string"
-					},
-					"email": {
-						"format": "email",
-						"type": "string"
-					},
-					"id": {
-						"format": "uuid",
-						"type": "string"
-					},
-					"role": {
-						"enum": ["owner", "admin", "editor", "viewer"],
-						"type": "string"
-					},
-					"teamId": {
-						"format": "uuid",
-						"type": "string"
-					},
-					"updatedAt": {
-						"format": "date-time",
-						"type": "string"
-					},
-					"userId": {
-						"format": "uuid",
-						"type": "string"
-					}
-				},
-				"required": ["id", "teamId", "userId", "email", "role", "createdAt", "updatedAt"],
-				"type": "object"
-			},
-			"TeamOutputBody": {
-				"additionalProperties": false,
-				"properties": {
-					"$schema": {
-						"description": "A URL to the JSON Schema for this object.",
-						"examples": ["/api/v1/schemas/TeamOutputBody.json"],
-						"format": "uri",
-						"readOnly": true,
-						"type": "string"
-					},
-					"team": {
-						"$ref": "#/components/schemas/TeamResponse"
-					}
-				},
-				"required": ["team"],
-				"type": "object"
-			},
-			"TeamResponse": {
-				"additionalProperties": false,
-				"properties": {
-					"createdAt": {
-						"format": "date-time",
-						"type": "string"
-					},
-					"createdByUserId": {
-						"format": "uuid",
-						"type": "string"
-					},
-					"id": {
-						"format": "uuid",
-						"type": "string"
-					},
-					"name": {
-						"type": "string"
-					},
-					"slug": {
-						"type": "string"
-					},
-					"updatedAt": {
-						"format": "date-time",
-						"type": "string"
-					}
-				},
-				"required": ["id", "name", "slug", "createdByUserId", "createdAt", "updatedAt"],
-				"type": "object"
-			},
 			"UpdateMemberRoleInputBody": {
 				"additionalProperties": false,
 				"properties": {
@@ -447,7 +581,7 @@
 						"type": "string"
 					},
 					"role": {
-						"description": "Team member role.",
+						"description": "Project member role.",
 						"enum": ["owner", "admin", "editor", "viewer"],
 						"examples": ["viewer"],
 						"type": "string"
@@ -456,25 +590,25 @@
 				"required": ["role"],
 				"type": "object"
 			},
-			"UpdateTeamInputBody": {
+			"UpdateProjectInputBody": {
 				"additionalProperties": false,
 				"properties": {
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
-						"examples": ["/api/v1/schemas/UpdateTeamInputBody.json"],
+						"examples": ["/api/v1/schemas/UpdateProjectInputBody.json"],
 						"format": "uri",
 						"readOnly": true,
 						"type": "string"
 					},
 					"name": {
-						"description": "Team display name.",
+						"description": "Project display name.",
 						"examples": ["Engineering"],
 						"maxLength": 100,
 						"minLength": 1,
 						"type": "string"
 					},
 					"slug": {
-						"description": "Stable team slug.",
+						"description": "Stable project slug.",
 						"examples": ["engineering"],
 						"maxLength": 100,
 						"minLength": 1,
@@ -740,54 +874,15 @@
 				"tags": ["System"]
 			}
 		},
-		"/readyz": {
+		"/projects": {
 			"get": {
-				"operationId": "getReadiness",
+				"operationId": "listProjects",
 				"responses": {
 					"200": {
 						"content": {
 							"application/json": {
 								"schema": {
-									"$ref": "#/components/schemas/HealthBody"
-								}
-							}
-						},
-						"description": "OK"
-					},
-					"500": {
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorModel"
-								}
-							}
-						},
-						"description": "Internal Server Error"
-					},
-					"503": {
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorModel"
-								}
-							}
-						},
-						"description": "Service Unavailable"
-					}
-				},
-				"summary": "Get readiness status",
-				"tags": ["System"]
-			}
-		},
-		"/teams": {
-			"get": {
-				"operationId": "listTeams",
-				"responses": {
-					"200": {
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ListTeamsOutputBody"
+									"$ref": "#/components/schemas/ListProjectsOutputBody"
 								}
 							}
 						},
@@ -819,16 +914,16 @@
 						"bearerAuth": []
 					}
 				],
-				"summary": "List teams",
-				"tags": ["Teams"]
+				"summary": "List projects",
+				"tags": ["Projects"]
 			},
 			"post": {
-				"operationId": "createTeam",
+				"operationId": "createProject",
 				"requestBody": {
 					"content": {
 						"application/json": {
 							"schema": {
-								"$ref": "#/components/schemas/CreateTeamInputBody"
+								"$ref": "#/components/schemas/CreateProjectInputBody"
 							}
 						}
 					},
@@ -839,7 +934,7 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"$ref": "#/components/schemas/TeamOutputBody"
+									"$ref": "#/components/schemas/ProjectOutputBody"
 								}
 							}
 						},
@@ -891,21 +986,21 @@
 						"bearerAuth": []
 					}
 				],
-				"summary": "Create team",
-				"tags": ["Teams"]
+				"summary": "Create project",
+				"tags": ["Projects"]
 			}
 		},
-		"/teams/{ref}": {
+		"/projects/{ref}": {
 			"delete": {
-				"operationId": "deleteTeam",
+				"operationId": "deleteProject",
 				"parameters": [
 					{
-						"description": "Team UUID or slug.",
+						"description": "Project UUID or slug.",
 						"in": "path",
 						"name": "ref",
 						"required": true,
 						"schema": {
-							"description": "Team UUID or slug.",
+							"description": "Project UUID or slug.",
 							"examples": ["engineering"],
 							"maxLength": 100,
 							"minLength": 1,
@@ -973,19 +1068,19 @@
 						"bearerAuth": []
 					}
 				],
-				"summary": "Delete team",
-				"tags": ["Teams"]
+				"summary": "Delete project",
+				"tags": ["Projects"]
 			},
 			"get": {
-				"operationId": "getTeam",
+				"operationId": "getProject",
 				"parameters": [
 					{
-						"description": "Team UUID or slug.",
+						"description": "Project UUID or slug.",
 						"in": "path",
 						"name": "ref",
 						"required": true,
 						"schema": {
-							"description": "Team UUID or slug.",
+							"description": "Project UUID or slug.",
 							"examples": ["engineering"],
 							"maxLength": 100,
 							"minLength": 1,
@@ -998,7 +1093,7 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"$ref": "#/components/schemas/TeamOutputBody"
+									"$ref": "#/components/schemas/ProjectOutputBody"
 								}
 							}
 						},
@@ -1050,19 +1145,19 @@
 						"bearerAuth": []
 					}
 				],
-				"summary": "Get team",
-				"tags": ["Teams"]
+				"summary": "Get project",
+				"tags": ["Projects"]
 			},
 			"patch": {
-				"operationId": "updateTeam",
+				"operationId": "updateProject",
 				"parameters": [
 					{
-						"description": "Team UUID or slug.",
+						"description": "Project UUID or slug.",
 						"in": "path",
 						"name": "ref",
 						"required": true,
 						"schema": {
-							"description": "Team UUID or slug.",
+							"description": "Project UUID or slug.",
 							"examples": ["engineering"],
 							"maxLength": 100,
 							"minLength": 1,
@@ -1074,7 +1169,7 @@
 					"content": {
 						"application/json": {
 							"schema": {
-								"$ref": "#/components/schemas/UpdateTeamInputBody"
+								"$ref": "#/components/schemas/UpdateProjectInputBody"
 							}
 						}
 					},
@@ -1085,7 +1180,7 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"$ref": "#/components/schemas/TeamOutputBody"
+									"$ref": "#/components/schemas/ProjectOutputBody"
 								}
 							}
 						},
@@ -1157,21 +1252,21 @@
 						"bearerAuth": []
 					}
 				],
-				"summary": "Update team",
-				"tags": ["Teams"]
+				"summary": "Update project",
+				"tags": ["Projects"]
 			}
 		},
-		"/teams/{ref}/members": {
+		"/projects/{ref}/members": {
 			"get": {
-				"operationId": "listTeamMembers",
+				"operationId": "listProjectMembers",
 				"parameters": [
 					{
-						"description": "Team UUID or slug.",
+						"description": "Project UUID or slug.",
 						"in": "path",
 						"name": "ref",
 						"required": true,
 						"schema": {
-							"description": "Team UUID or slug.",
+							"description": "Project UUID or slug.",
 							"examples": ["engineering"],
 							"maxLength": 100,
 							"minLength": 1,
@@ -1236,19 +1331,19 @@
 						"bearerAuth": []
 					}
 				],
-				"summary": "List team members",
-				"tags": ["Team Members"]
+				"summary": "List project members",
+				"tags": ["Project Members"]
 			},
 			"post": {
-				"operationId": "addTeamMember",
+				"operationId": "addProjectMember",
 				"parameters": [
 					{
-						"description": "Team UUID or slug.",
+						"description": "Project UUID or slug.",
 						"in": "path",
 						"name": "ref",
 						"required": true,
 						"schema": {
-							"description": "Team UUID or slug.",
+							"description": "Project UUID or slug.",
 							"examples": ["engineering"],
 							"maxLength": 100,
 							"minLength": 1,
@@ -1343,21 +1438,21 @@
 						"bearerAuth": []
 					}
 				],
-				"summary": "Add team member",
-				"tags": ["Team Members"]
+				"summary": "Add project member",
+				"tags": ["Project Members"]
 			}
 		},
-		"/teams/{ref}/members/{user_id}": {
+		"/projects/{ref}/members/{user_id}": {
 			"patch": {
-				"operationId": "updateTeamMemberRole",
+				"operationId": "updateProjectMemberRole",
 				"parameters": [
 					{
-						"description": "Team UUID or slug.",
+						"description": "Project UUID or slug.",
 						"in": "path",
 						"name": "ref",
 						"required": true,
 						"schema": {
-							"description": "Team UUID or slug.",
+							"description": "Project UUID or slug.",
 							"examples": ["engineering"],
 							"maxLength": 100,
 							"minLength": 1,
@@ -1461,8 +1556,136 @@
 						"bearerAuth": []
 					}
 				],
-				"summary": "Update team member role",
-				"tags": ["Team Members"]
+				"summary": "Update project member role",
+				"tags": ["Project Members"]
+			}
+		},
+		"/projects/{ref}/probes": {
+			"post": {
+				"operationId": "createProjectProbe",
+				"parameters": [
+					{
+						"description": "Project UUID or slug.",
+						"in": "path",
+						"name": "ref",
+						"required": true,
+						"schema": {
+							"description": "Project UUID or slug.",
+							"examples": ["engineering"],
+							"maxLength": 100,
+							"minLength": 1,
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/CreateProbeInputBody"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"201": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/CreateProbeOutputBody"
+								}
+							}
+						},
+						"description": "Created"
+					},
+					"401": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Unauthorized"
+					},
+					"404": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"422": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Unprocessable Entity"
+					},
+					"500": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Internal Server Error"
+					}
+				},
+				"security": [
+					{
+						"bearerAuth": []
+					}
+				],
+				"summary": "Create project probe",
+				"tags": ["Probes"]
+			}
+		},
+		"/readyz": {
+			"get": {
+				"operationId": "getReadiness",
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/HealthBody"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"500": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Internal Server Error"
+					},
+					"503": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Service Unavailable"
+					}
+				},
+				"summary": "Get readiness status",
+				"tags": ["System"]
 			}
 		}
 	},
