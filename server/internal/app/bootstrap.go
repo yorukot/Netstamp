@@ -11,9 +11,11 @@ import (
 	"google.golang.org/grpc"
 
 	appauth "github.com/yorukot/netstamp/internal/application/auth"
+	appprobe "github.com/yorukot/netstamp/internal/application/probe"
 	appproject "github.com/yorukot/netstamp/internal/application/project"
 	"github.com/yorukot/netstamp/internal/config"
 	"github.com/yorukot/netstamp/internal/infrastructure/postgres"
+	pgprobe "github.com/yorukot/netstamp/internal/infrastructure/postgres/probe"
 	pgproject "github.com/yorukot/netstamp/internal/infrastructure/postgres/project"
 	pguser "github.com/yorukot/netstamp/internal/infrastructure/postgres/user"
 	"github.com/yorukot/netstamp/internal/infrastructure/security"
@@ -90,6 +92,8 @@ func New(ctx context.Context) (*Application, error) {
 	authSvc := appauth.NewService(userRepo, passwordHasher, tokenIssuer, authEvents)
 	projectRepo := pgproject.NewProjectRepository(dbPool)
 	projectSvc := appproject.NewService(projectRepo)
+	probeRepo := pgprobe.NewProbeRepository(dbPool)
+	probeSvc := appprobe.NewService(probeRepo, security.NewProbeSecretGenerator())
 	readiness := postgres.NewReadinessCheck(dbPool)
 
 	httpHandler := httpserver.NewRouter(httpserver.Dependencies{
@@ -98,6 +102,7 @@ func New(ctx context.Context) (*Application, error) {
 		BackendBaseURL: cfg.HTTP.BackendBaseURL,
 		AuthService:    authSvc,
 		AuthVerifier:   tokenIssuer,
+		ProbeService:   probeSvc,
 		ProjectService: projectSvc,
 		ReadinessCheck: readiness,
 		RequestTimeout: cfg.HTTP.RequestTimeout,

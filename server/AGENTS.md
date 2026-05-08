@@ -7,11 +7,11 @@ This guide applies to `server/`, the Go backend for the Netstamp workspace. The 
 - `cmd/api/main.go`: API process entry point. It creates the shutdown context, calls `app.New`, runs the app, and syncs the logger.
 - `cmd/migrate/main.go`: Goose migration CLI for `status`, `up`, and `down`.
 - `internal/app/`: composition root and lifecycle. `bootstrap.go` wires config, logging, tracing, PostgreSQL, auth, HTTP, and gRPC. `lifecycle.go` starts and gracefully stops listeners.
-- `internal/transport/http/`: chi/Huma HTTP routing, auth handlers, system health routes, and middleware.
+- `internal/transport/http/`: chi/Huma HTTP routing, auth, project, probe, system health routes, and middleware.
 - `internal/transport/grpc/`: gRPC server setup, health service, logging, and recovery interceptors.
-- `internal/application/auth/`: auth use cases, ports, DTOs, errors, auth events, and auth spans.
-- `internal/domain/identity/`: domain user type and domain errors.
-- `internal/infrastructure/`: PostgreSQL repositories and pool helpers, JWT issuing, and Argon2id password hashing.
+- `internal/application/auth/`, `internal/application/project/`, and `internal/application/probe/`: use cases, ports, DTOs, errors, and feature orchestration.
+- `internal/domain/identity/`, `internal/domain/project/`, and `internal/domain/probe/`: stable domain structs and domain-level sentinel errors.
+- `internal/infrastructure/`: PostgreSQL repositories and pool helpers, JWT issuing, Argon2id password hashing, and probe secret generation.
 - `internal/logger/` and `internal/observability/`: zap logging helpers, auth event recording, OpenTelemetry setup, and HTTP span naming.
 - `db/migrations/`: Goose SQL migrations. `db/query/`: sqlc query files. Generated sqlc Go files live in `internal/infrastructure/postgres/sqlc/`.
 - `proto/`: current `.proto` source. Buf config exists in `buf.yaml` and `buf.gen.yaml`, but it currently references `api/proto` and `api/gen/go`; verify paths before generating.
@@ -23,7 +23,7 @@ No backend public asset directory is currently defined.
 
 The backend is a single Go service with two listeners: HTTP on `HTTP_ADDR` and gRPC on `GRPC_ADDR`. `internal/app.New` loads validated configuration, creates a zap logger, initializes OpenTelemetry, opens a pgx pool, builds the auth service, and creates HTTP and gRPC servers. `internal/app.Run` starts both servers concurrently with `errgroup`.
 
-HTTP uses chi middleware plus Huma route registration under `/api/{version}`. `internal/app/bootstrap.go` passes `cfg.APIVersion` (`API_VERSION`) into the router, and `BACKEND_BASE_URL` can publish an absolute OpenAPI server URL for deployed environments. System routes are `/`, `/livez`, and `/readyz`. Auth routes are `/auth/register`, `/auth/login`, and `/auth/me`; `/auth/me` is protected by the Huma auth middleware in `internal/transport/http/middleware`.
+HTTP uses chi middleware plus Huma route registration under `/api/{version}`. `internal/app/bootstrap.go` passes `cfg.APIVersion` (`API_VERSION`) into the router, and `BACKEND_BASE_URL` can publish an absolute OpenAPI server URL for deployed environments. System routes are `/`, `/livez`, and `/readyz`. Auth routes are `/auth/register`, `/auth/login`, and `/auth/me`; `/auth/me`, project routes, and project probe creation are protected by the Huma auth middleware in `internal/transport/http/middleware`.
 
 The current auth request flow is:
 

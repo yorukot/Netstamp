@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 
 	appauth "github.com/yorukot/netstamp/internal/application/auth"
+	appprobe "github.com/yorukot/netstamp/internal/application/probe"
 	appproject "github.com/yorukot/netstamp/internal/application/project"
 	httpserver "github.com/yorukot/netstamp/internal/transport/http"
 )
@@ -30,6 +31,7 @@ func main() {
 		BackendBaseURL: *serverURL,
 		AuthService:    &appauth.Service{},
 		AuthVerifier:   schemaVerifier{},
+		ProbeService:   &appprobe.Service{},
 		ProjectService: &appproject.Service{},
 	})
 
