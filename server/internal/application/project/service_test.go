@@ -13,7 +13,7 @@ func TestCreateProjectNormalizesInputAndCreatesOwnerMembership(t *testing.T) {
 	repo := &fakeProjectRepository{
 		createdProject: domainproject.Project{ID: "project-1"},
 	}
-	service := NewService(repo, nil)
+	service := NewService(repo, &recordingProjectEventRecorder{})
 
 	_, err := service.CreateProject(context.Background(), CreateProjectInput{
 		CurrentUserID: "user-1",
@@ -200,7 +200,7 @@ func TestAddMemberRoleRestrictions(t *testing.T) {
 				actorRole:   tt.actorRole,
 				addedMember: domainproject.Member{ID: "member-1", Role: tt.newRole},
 			}
-			service := NewService(repo, nil)
+			service := NewService(repo, &recordingProjectEventRecorder{})
 
 			_, err := service.AddMember(context.Background(), AddMemberInput{
 				CurrentUserID: "actor-user",
@@ -290,7 +290,7 @@ func TestUpdateMemberRoleRestrictions(t *testing.T) {
 				owners:        tt.owners,
 				updatedMember: domainproject.Member{ID: "member-1", Role: tt.newRole},
 			}
-			service := NewService(repo, nil)
+			service := NewService(repo, &recordingProjectEventRecorder{})
 
 			_, err := service.UpdateMemberRole(context.Background(), UpdateMemberRoleInput{
 				CurrentUserID: "actor-user",

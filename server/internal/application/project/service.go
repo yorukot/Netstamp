@@ -14,10 +14,6 @@ type Service struct {
 }
 
 func NewService(repo Repository, events EventRecorder) *Service {
-	if events == nil {
-		events = noopProjectEventRecorder{}
-	}
-
 	return &Service{
 		repo:   repo,
 		events: events,
@@ -43,11 +39,15 @@ func (s *Service) CreateProject(ctx context.Context, input CreateProjectInput) (
 		Slug:            slug,
 		CreatedByUserID: input.CurrentUserID,
 	})
-	if err != nil {
-		return domainproject.Project{}, flowFailure(flow, ProjectEventCreateFailure, ProjectReasonProjectCreateFailed, err)
+	if errors.Is(err, ErrProjectSlugAlreadyExists) {
+		return domainproject.Project{}, flow.BusinessFailure(ProjectEventCreateFailure, ProjectReasonSlugAlreadyExists, err)
 	}
-	flow.SetProject(project)
-	flow.Success(ProjectEventCreateSuccess)
+	if errors.Is(err, ErrUserNotFound) {
+		return domainproject.Project{}, flow.BusinessFailure(ProjectEventCreateFailure, ProjectReasonUserNotFound, err)
+	}
+	if err != nil {
+		return domainproject.Project{}, flow.TechnicalFailure(ProjectEventCreateFailure, ProjectReasonProjectCreateFailed, err)
+	}
 
 	return project, nil
 }
@@ -57,8 +57,11 @@ func (s *Service) ListProjects(ctx context.Context, input ListProjectsInput) ([]
 	defer flow.End()
 
 	projects, err := s.repo.ListProjectsForUser(ctx, input.CurrentUserID)
+	if errors.Is(err, ErrProjectNotFound) || errors.Is(err, ErrUserNotFound) {
+		return nil, err
+	}
 	if err != nil {
-		return nil, readFailure(flow, ProjectEventListFailure, ProjectReasonProjectListFailed, err)
+		return nil, flow.TechnicalFailure(ProjectEventListFailure, ProjectReasonProjectListFailed, err)
 	}
 
 	return projects, nil
@@ -67,33 +70,20 @@ func (s *Service) ListProjects(ctx context.Context, input ListProjectsInput) ([]
 func (s *Service) GetProject(ctx context.Context, input GetProjectInput) (domainproject.Project, error) {
 	ctx, flow := s.startProjectFlow(ctx, "project.get", ProjectActionGet, input.CurrentUserID)
 	defer flow.End()
-	flow.SetProjectRef(input.ProjectRef)
 
-	project, err := s.repo.GetProjectForUser(ctx, input.ProjectRef, input.CurrentUserID)
-	if err != nil {
-		return domainproject.Project{}, readFailure(flow, ProjectEventGetFailure, ProjectReasonProjectLookupFailed, err)
-	}
-
-	return project, nil
+	return s.loadProjectForRead(ctx, flow, input.ProjectRef, input.CurrentUserID, ProjectEventGetFailure)
 }
 
 func (s *Service) UpdateProject(ctx context.Context, input UpdateProjectInput) (domainproject.Project, error) {
 	ctx, flow := s.startProjectFlow(ctx, "project.update", ProjectActionUpdate, input.CurrentUserID)
 	defer flow.End()
-	flow.SetProjectRef(input.ProjectRef)
 
-	project, err := s.repo.GetProjectForUser(ctx, input.ProjectRef, input.CurrentUserID)
+	project, err := s.loadProjectForUser(ctx, flow, input.ProjectRef, input.CurrentUserID, ProjectEventUpdateFailure)
 	if err != nil {
-		return domainproject.Project{}, flowFailure(flow, ProjectEventUpdateFailure, ProjectReasonProjectLookupFailed, err)
+		return domainproject.Project{}, err
 	}
-	flow.SetProject(project)
-
-	role, err := s.repo.GetMemberRole(ctx, project.ID, input.CurrentUserID)
-	if err != nil {
-		return domainproject.Project{}, flowFailure(flow, ProjectEventUpdateFailure, ProjectReasonRoleLookupFailed, err)
-	}
-	if !isManager(role) {
-		return domainproject.Project{}, flow.BusinessFailure(ProjectEventUpdateFailure, ProjectReasonForbidden, ErrForbidden)
+	if _, err := s.requireRole(ctx, flow, project.ID, input.CurrentUserID, ProjectEventUpdateFailure, isManager); err != nil {
+		return domainproject.Project{}, err
 	}
 
 	name := project.Name
@@ -120,8 +110,14 @@ func (s *Service) UpdateProject(ctx context.Context, input UpdateProjectInput) (
 		Name:      name,
 		Slug:      slug,
 	})
+	if errors.Is(err, ErrProjectNotFound) {
+		return domainproject.Project{}, flow.BusinessFailure(ProjectEventUpdateFailure, ProjectReasonProjectNotFound, err)
+	}
+	if errors.Is(err, ErrProjectSlugAlreadyExists) {
+		return domainproject.Project{}, flow.BusinessFailure(ProjectEventUpdateFailure, ProjectReasonSlugAlreadyExists, err)
+	}
 	if err != nil {
-		return domainproject.Project{}, flowFailure(flow, ProjectEventUpdateFailure, ProjectReasonProjectUpdateFailed, err)
+		return domainproject.Project{}, flow.TechnicalFailure(ProjectEventUpdateFailure, ProjectReasonProjectUpdateFailed, err)
 	}
 
 	return project, nil
@@ -130,24 +126,20 @@ func (s *Service) UpdateProject(ctx context.Context, input UpdateProjectInput) (
 func (s *Service) DeleteProject(ctx context.Context, input DeleteProjectInput) error {
 	ctx, flow := s.startProjectFlow(ctx, "project.delete", ProjectActionDelete, input.CurrentUserID)
 	defer flow.End()
-	flow.SetProjectRef(input.ProjectRef)
 
-	project, err := s.repo.GetProjectForUser(ctx, input.ProjectRef, input.CurrentUserID)
+	project, err := s.loadProjectForUser(ctx, flow, input.ProjectRef, input.CurrentUserID, ProjectEventDeleteFailure)
 	if err != nil {
-		return flowFailure(flow, ProjectEventDeleteFailure, ProjectReasonProjectLookupFailed, err)
+		return err
 	}
-	flow.SetProject(project)
-
-	role, err := s.repo.GetMemberRole(ctx, project.ID, input.CurrentUserID)
-	if err != nil {
-		return flowFailure(flow, ProjectEventDeleteFailure, ProjectReasonRoleLookupFailed, err)
-	}
-	if role != domainproject.RoleOwner {
-		return flow.BusinessFailure(ProjectEventDeleteFailure, ProjectReasonForbidden, ErrForbidden)
+	if _, err := s.requireRole(ctx, flow, project.ID, input.CurrentUserID, ProjectEventDeleteFailure, isOwner); err != nil {
+		return err
 	}
 
 	if err := s.repo.SoftDeleteProject(ctx, project.ID); err != nil {
-		return flowFailure(flow, ProjectEventDeleteFailure, ProjectReasonProjectDeleteFailed, err)
+		if errors.Is(err, ErrProjectNotFound) {
+			return flow.BusinessFailure(ProjectEventDeleteFailure, ProjectReasonProjectNotFound, err)
+		}
+		return flow.TechnicalFailure(ProjectEventDeleteFailure, ProjectReasonProjectDeleteFailed, err)
 	}
 	flow.Success(ProjectEventDeleteSuccess)
 
@@ -157,21 +149,21 @@ func (s *Service) DeleteProject(ctx context.Context, input DeleteProjectInput) e
 func (s *Service) ListMembers(ctx context.Context, input ListMembersInput) ([]domainproject.Member, error) {
 	ctx, flow := s.startProjectFlow(ctx, "project.members.list", ProjectActionListMembers, input.CurrentUserID)
 	defer flow.End()
-	flow.SetProjectRef(input.ProjectRef)
 
-	project, err := s.repo.GetProjectForUser(ctx, input.ProjectRef, input.CurrentUserID)
+	project, err := s.loadProjectForRead(ctx, flow, input.ProjectRef, input.CurrentUserID, ProjectEventListMembersFailure)
 	if err != nil {
-		return nil, readFailure(flow, ProjectEventListMembersFailure, ProjectReasonProjectLookupFailed, err)
+		return nil, err
 	}
-	flow.SetProject(project)
-
-	if _, err := s.repo.GetMemberRole(ctx, project.ID, input.CurrentUserID); err != nil {
-		return nil, readFailure(flow, ProjectEventListMembersFailure, ProjectReasonRoleLookupFailed, err)
+	if err := s.requireRoleForRead(ctx, flow, project.ID, input.CurrentUserID, ProjectEventListMembersFailure); err != nil {
+		return nil, err
 	}
 
 	members, err := s.repo.ListMembers(ctx, project.ID)
+	if errors.Is(err, ErrProjectNotFound) {
+		return nil, err
+	}
 	if err != nil {
-		return nil, readFailure(flow, ProjectEventListMembersFailure, ProjectReasonMembersListFailed, err)
+		return nil, flow.TechnicalFailure(ProjectEventListMembersFailure, ProjectReasonMembersListFailed, err)
 	}
 
 	return members, nil
@@ -180,28 +172,19 @@ func (s *Service) ListMembers(ctx context.Context, input ListMembersInput) ([]do
 func (s *Service) AddMember(ctx context.Context, input AddMemberInput) (domainproject.Member, error) {
 	ctx, flow := s.startProjectFlow(ctx, "project.member.add", ProjectActionAddMember, input.CurrentUserID)
 	defer flow.End()
-	flow.SetProjectRef(input.ProjectRef)
 	flow.SetTargetUser(input.UserID)
 	flow.SetRole(input.Role)
 
-	project, err := s.repo.GetProjectForUser(ctx, input.ProjectRef, input.CurrentUserID)
+	project, err := s.loadProjectForUser(ctx, flow, input.ProjectRef, input.CurrentUserID, ProjectEventAddMemberFailure)
 	if err != nil {
-		return domainproject.Member{}, flowFailure(flow, ProjectEventAddMemberFailure, ProjectReasonProjectLookupFailed, err)
+		return domainproject.Member{}, err
 	}
-	flow.SetProject(project)
-
-	actorRole, err := s.repo.GetMemberRole(ctx, project.ID, input.CurrentUserID)
+	actorRole, err := s.requireRole(ctx, flow, project.ID, input.CurrentUserID, ProjectEventAddMemberFailure, isManager)
 	if err != nil {
-		return domainproject.Member{}, flowFailure(flow, ProjectEventAddMemberFailure, ProjectReasonRoleLookupFailed, err)
+		return domainproject.Member{}, err
 	}
-	if !isManager(actorRole) {
-		return domainproject.Member{}, flow.BusinessFailure(ProjectEventAddMemberFailure, ProjectReasonForbidden, ErrForbidden)
-	}
-	if err := validateRole(input.Role); err != nil {
-		return domainproject.Member{}, flow.BusinessFailure(ProjectEventAddMemberFailure, ProjectReasonInvalidRole, err)
-	}
-	if !canAssignRole(actorRole, input.Role) {
-		return domainproject.Member{}, flow.BusinessFailure(ProjectEventAddMemberFailure, ProjectReasonForbidden, ErrForbidden)
+	if err := validateAssignableRole(actorRole, input.Role); err != nil {
+		return domainproject.Member{}, assignableRoleFailure(flow, ProjectEventAddMemberFailure, err)
 	}
 
 	member, err := s.repo.AddMember(ctx, domainproject.AddMemberStorageInput{
@@ -209,8 +192,17 @@ func (s *Service) AddMember(ctx context.Context, input AddMemberInput) (domainpr
 		UserID:    input.UserID,
 		Role:      input.Role,
 	})
+	if errors.Is(err, ErrMemberAlreadyExists) {
+		return domainproject.Member{}, flow.BusinessFailure(ProjectEventAddMemberFailure, ProjectReasonMemberAlreadyExists, err)
+	}
+	if errors.Is(err, ErrProjectNotFound) {
+		return domainproject.Member{}, flow.BusinessFailure(ProjectEventAddMemberFailure, ProjectReasonProjectNotFound, err)
+	}
+	if errors.Is(err, ErrUserNotFound) {
+		return domainproject.Member{}, flow.BusinessFailure(ProjectEventAddMemberFailure, ProjectReasonUserNotFound, err)
+	}
 	if err != nil {
-		return domainproject.Member{}, flowFailure(flow, ProjectEventAddMemberFailure, ProjectReasonMemberAddFailed, err)
+		return domainproject.Member{}, flow.TechnicalFailure(ProjectEventAddMemberFailure, ProjectReasonMemberAddFailed, err)
 	}
 	flow.Success(ProjectEventAddMemberSuccess)
 
@@ -220,41 +212,38 @@ func (s *Service) AddMember(ctx context.Context, input AddMemberInput) (domainpr
 func (s *Service) UpdateMemberRole(ctx context.Context, input UpdateMemberRoleInput) (domainproject.Member, error) {
 	ctx, flow := s.startProjectFlow(ctx, "project.member.role_update", ProjectActionUpdateMemberRole, input.CurrentUserID)
 	defer flow.End()
-	flow.SetProjectRef(input.ProjectRef)
 	flow.SetTargetUser(input.UserID)
 	flow.SetRole(input.Role)
 
-	project, err := s.repo.GetProjectForUser(ctx, input.ProjectRef, input.CurrentUserID)
+	project, err := s.loadProjectForUser(ctx, flow, input.ProjectRef, input.CurrentUserID, ProjectEventUpdateMemberRoleFailure)
 	if err != nil {
-		return domainproject.Member{}, flowFailure(flow, ProjectEventUpdateMemberRoleFailure, ProjectReasonProjectLookupFailed, err)
+		return domainproject.Member{}, err
 	}
-	flow.SetProject(project)
-
-	actorRole, err := s.repo.GetMemberRole(ctx, project.ID, input.CurrentUserID)
+	actorRole, err := s.requireRole(ctx, flow, project.ID, input.CurrentUserID, ProjectEventUpdateMemberRoleFailure, isManager)
 	if err != nil {
-		return domainproject.Member{}, flowFailure(flow, ProjectEventUpdateMemberRoleFailure, ProjectReasonRoleLookupFailed, err)
+		return domainproject.Member{}, err
 	}
-	if !isManager(actorRole) {
-		return domainproject.Member{}, flow.BusinessFailure(ProjectEventUpdateMemberRoleFailure, ProjectReasonForbidden, ErrForbidden)
-	}
-	if err := validateRole(input.Role); err != nil {
-		return domainproject.Member{}, flow.BusinessFailure(ProjectEventUpdateMemberRoleFailure, ProjectReasonInvalidRole, err)
-	}
-	if !canAssignRole(actorRole, input.Role) {
-		return domainproject.Member{}, flow.BusinessFailure(ProjectEventUpdateMemberRoleFailure, ProjectReasonForbidden, ErrForbidden)
+	if err := validateAssignableRole(actorRole, input.Role); err != nil {
+		return domainproject.Member{}, assignableRoleFailure(flow, ProjectEventUpdateMemberRoleFailure, err)
 	}
 
 	member, err := s.repo.GetMember(ctx, project.ID, input.UserID)
+	if errors.Is(err, ErrMemberNotFound) {
+		return domainproject.Member{}, flow.BusinessFailure(ProjectEventUpdateMemberRoleFailure, ProjectReasonMemberNotFound, err)
+	}
 	if err != nil {
-		return domainproject.Member{}, flowFailure(flow, ProjectEventUpdateMemberRoleFailure, ProjectReasonMemberLookupFailed, err)
+		return domainproject.Member{}, flow.TechnicalFailure(ProjectEventUpdateMemberRoleFailure, ProjectReasonMemberLookupFailed, err)
 	}
 	if actorRole == domainproject.RoleAdmin && member.Role == domainproject.RoleOwner {
 		return domainproject.Member{}, flow.BusinessFailure(ProjectEventUpdateMemberRoleFailure, ProjectReasonForbidden, ErrForbidden)
 	}
 	if member.Role == domainproject.RoleOwner && input.Role != domainproject.RoleOwner {
 		owners, err := s.repo.CountOwners(ctx, project.ID)
+		if errors.Is(err, ErrProjectNotFound) {
+			return domainproject.Member{}, flow.BusinessFailure(ProjectEventUpdateMemberRoleFailure, ProjectReasonProjectNotFound, err)
+		}
 		if err != nil {
-			return domainproject.Member{}, flowFailure(flow, ProjectEventUpdateMemberRoleFailure, ProjectReasonOwnerCountFailed, err)
+			return domainproject.Member{}, flow.TechnicalFailure(ProjectEventUpdateMemberRoleFailure, ProjectReasonOwnerCountFailed, err)
 		}
 		if owners <= 1 {
 			return domainproject.Member{}, flow.BusinessFailure(ProjectEventUpdateMemberRoleFailure, ProjectReasonLastOwner, ErrLastOwner)
@@ -266,12 +255,78 @@ func (s *Service) UpdateMemberRole(ctx context.Context, input UpdateMemberRoleIn
 		UserID:    input.UserID,
 		Role:      input.Role,
 	})
+	if errors.Is(err, ErrMemberNotFound) {
+		return domainproject.Member{}, flow.BusinessFailure(ProjectEventUpdateMemberRoleFailure, ProjectReasonMemberNotFound, err)
+	}
 	if err != nil {
-		return domainproject.Member{}, flowFailure(flow, ProjectEventUpdateMemberRoleFailure, ProjectReasonMemberRoleUpdateFailed, err)
+		return domainproject.Member{}, flow.TechnicalFailure(ProjectEventUpdateMemberRoleFailure, ProjectReasonMemberRoleUpdateFailed, err)
 	}
 	flow.Success(ProjectEventUpdateMemberRoleSuccess)
 
 	return member, nil
+}
+
+func (s *Service) loadProjectForUser(ctx context.Context, flow *projectFlow, projectRef string, userID string, failureEvent ProjectEventName) (domainproject.Project, error) {
+	flow.SetProjectRef(projectRef)
+
+	project, err := s.repo.GetProjectForUser(ctx, projectRef, userID)
+	if errors.Is(err, ErrProjectNotFound) {
+		return domainproject.Project{}, flow.BusinessFailure(failureEvent, ProjectReasonProjectNotFound, err)
+	}
+	if errors.Is(err, ErrUserNotFound) {
+		return domainproject.Project{}, flow.BusinessFailure(failureEvent, ProjectReasonUserNotFound, err)
+	}
+	if err != nil {
+		return domainproject.Project{}, flow.TechnicalFailure(failureEvent, ProjectReasonProjectLookupFailed, err)
+	}
+
+	flow.SetProject(project)
+	return project, nil
+}
+
+func (s *Service) loadProjectForRead(ctx context.Context, flow *projectFlow, projectRef string, userID string, failureEvent ProjectEventName) (domainproject.Project, error) {
+	flow.SetProjectRef(projectRef)
+
+	project, err := s.repo.GetProjectForUser(ctx, projectRef, userID)
+	if errors.Is(err, ErrProjectNotFound) || errors.Is(err, ErrUserNotFound) {
+		return domainproject.Project{}, err
+	}
+	if err != nil {
+		return domainproject.Project{}, flow.TechnicalFailure(failureEvent, ProjectReasonProjectLookupFailed, err)
+	}
+
+	flow.SetProject(project)
+	return project, nil
+}
+
+func (s *Service) requireRole(ctx context.Context, flow *projectFlow, projectID string, userID string, failureEvent ProjectEventName, allow func(domainproject.Role) bool) (domainproject.Role, error) {
+	role, err := s.repo.GetMemberRole(ctx, projectID, userID)
+	if errors.Is(err, ErrProjectNotFound) {
+		return "", flow.BusinessFailure(failureEvent, ProjectReasonProjectNotFound, err)
+	}
+	if errors.Is(err, ErrUserNotFound) {
+		return "", flow.BusinessFailure(failureEvent, ProjectReasonUserNotFound, err)
+	}
+	if err != nil {
+		return "", flow.TechnicalFailure(failureEvent, ProjectReasonRoleLookupFailed, err)
+	}
+	if !allow(role) {
+		return "", flow.BusinessFailure(failureEvent, ProjectReasonForbidden, ErrForbidden)
+	}
+
+	return role, nil
+}
+
+func (s *Service) requireRoleForRead(ctx context.Context, flow *projectFlow, projectID string, userID string, failureEvent ProjectEventName) error {
+	_, err := s.repo.GetMemberRole(ctx, projectID, userID)
+	if errors.Is(err, ErrProjectNotFound) || errors.Is(err, ErrUserNotFound) {
+		return err
+	}
+	if err != nil {
+		return flow.TechnicalFailure(failureEvent, ProjectReasonRoleLookupFailed, err)
+	}
+
+	return nil
 }
 
 func validateRole(role domainproject.Role) error {
@@ -287,6 +342,29 @@ func isManager(role domainproject.Role) bool {
 	return role == domainproject.RoleOwner || role == domainproject.RoleAdmin
 }
 
+func isOwner(role domainproject.Role) bool {
+	return role == domainproject.RoleOwner
+}
+
+func validateAssignableRole(actorRole domainproject.Role, targetRole domainproject.Role) error {
+	if err := validateRole(targetRole); err != nil {
+		return err
+	}
+	if !canAssignRole(actorRole, targetRole) {
+		return ErrForbidden
+	}
+
+	return nil
+}
+
+func assignableRoleFailure(flow *projectFlow, event ProjectEventName, err error) error {
+	if errors.Is(err, ErrInvalidRole) {
+		return flow.BusinessFailure(event, ProjectReasonInvalidRole, err)
+	}
+
+	return flow.BusinessFailure(event, ProjectReasonForbidden, err)
+}
+
 func canAssignRole(actorRole domainproject.Role, targetRole domainproject.Role) bool {
 	switch actorRole {
 	case domainproject.RoleOwner:
@@ -297,48 +375,3 @@ func canAssignRole(actorRole domainproject.Role, targetRole domainproject.Role) 
 		return false
 	}
 }
-
-func flowFailure(flow *projectFlow, name ProjectEventName, technicalReason ProjectEventReason, err error) error {
-	if reason, ok := projectBusinessReason(err); ok {
-		return flow.BusinessFailure(name, reason, err)
-	}
-
-	return flow.TechnicalFailure(name, technicalReason, err)
-}
-
-func readFailure(flow *projectFlow, name ProjectEventName, technicalReason ProjectEventReason, err error) error {
-	if _, ok := projectBusinessReason(err); ok {
-		return err
-	}
-
-	return flow.TechnicalFailure(name, technicalReason, err)
-}
-
-func projectBusinessReason(err error) (ProjectEventReason, bool) {
-	switch {
-	case errors.Is(err, ErrInvalidInput):
-		return ProjectReasonInvalidInput, true
-	case errors.Is(err, ErrInvalidRole):
-		return ProjectReasonInvalidRole, true
-	case errors.Is(err, ErrForbidden):
-		return ProjectReasonForbidden, true
-	case errors.Is(err, ErrProjectNotFound):
-		return ProjectReasonProjectNotFound, true
-	case errors.Is(err, ErrProjectSlugAlreadyExists):
-		return ProjectReasonSlugAlreadyExists, true
-	case errors.Is(err, ErrMemberAlreadyExists):
-		return ProjectReasonMemberAlreadyExists, true
-	case errors.Is(err, ErrMemberNotFound):
-		return ProjectReasonMemberNotFound, true
-	case errors.Is(err, ErrUserNotFound):
-		return ProjectReasonUserNotFound, true
-	case errors.Is(err, ErrLastOwner):
-		return ProjectReasonLastOwner, true
-	default:
-		return "", false
-	}
-}
-
-type noopProjectEventRecorder struct{}
-
-func (noopProjectEventRecorder) RecordProjectEvent(context.Context, ProjectEvent) {}
