@@ -28,7 +28,7 @@ Only proceed from root guidance when the task is clearly limited to workspace me
 - `pnpm generate:openapi`: regenerate `docs/public/openapi.json` from backend Huma routes.
 - `just build`: build backend, web, and docs.
 - `just test`: run available tests, currently backend tests.
-- `just lint`: run web ESLint and backend golangci-lint.
+- `just lint`: run web ESLint and backend linting.
 - `pnpm format` or `just format`: format repository files with Prettier.
 
 ## Repository Conventions

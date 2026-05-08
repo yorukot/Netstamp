@@ -146,9 +146,9 @@ Commands below come from the root `Justfile`, root `package.json`, `server/.air.
 - `just backend-build` or `pnpm build:server`: build `server/bin/api` from `./cmd/api`.
 - `just backend-openapi` or `pnpm generate:openapi`: write the Huma OpenAPI schema to `docs/public/openapi.json`.
 - `just backend-test` or `pnpm test:server`: run `go test ./...` inside `server/`.
-- `just backend-fmt`: run `go fmt ./...`.
-- `just golangci-lint`: run `golangci-lint` with `../golangci.yaml`.
-- `just golangci-fmt`: run configured golangci formatters.
+- `just backend-fmt`: run configured golangci formatters with `../golangci.yaml`.
+- `just backend-lint`: run `golangci-lint` with `../golangci.yaml`.
+- `just backend-lint-fix`: apply safe `golangci-lint` fixes.
 - `just backend-sqlc`: regenerate sqlc code from `sqlc.yaml`.
 - `just backend-migrate-status`, `just backend-migrate-up`, `just backend-migrate-down`: run `cmd/migrate`.
 - `docker compose -f deployments/docker/compose.backend.dev.yaml up -d`: start local PostgreSQL/TimescaleDB, VictoriaTraces, and Grafana dependencies for a host-run backend.

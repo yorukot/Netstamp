@@ -27,7 +27,7 @@ format:
 build: docs-build web-build backend-build
 
 # Lint all available targets.
-lint: web-lint golangci-lint
+lint: web-lint backend-lint
 
 # Run all available tests.
 test: backend-test
@@ -95,9 +95,17 @@ backend-openapi:
 backend-test:
     cd {{ server_dir }} && go test ./...
 
-# Format backend Go code with gofmt.
+# Format backend code with golangci formatters.
 backend-fmt:
-    cd {{ server_dir }} && go fmt ./...
+    cd {{ server_dir }} && golangci-lint fmt --config ../golangci.yaml
+
+# Run golangci-lint on backend code.
+backend-lint:
+    cd {{ server_dir }} && golangci-lint run --config ../golangci.yaml ./...
+
+# Apply safe golangci-lint fixes.
+backend-lint-fix:
+    cd {{ server_dir }} && golangci-lint run --fix --config ../golangci.yaml ./...
 
 # Tidy backend Go modules.
 backend-tidy:
@@ -119,17 +127,3 @@ backend-migrate-up:
 # Roll back the latest database migration.
 backend-migrate-down:
     cd {{ server_dir }} && go run ./cmd/migrate -command down
-
-# GolangCI
-
-# Run golangci-lint on backend code.
-golangci-lint:
-    cd {{ server_dir }} && golangci-lint run --config ../golangci.yaml ./...
-
-# Format backend code with golangci formatters.
-golangci-fmt:
-    cd {{ server_dir }} && golangci-lint fmt --config ../golangci.yaml
-
-# Apply safe golangci-lint fixes.
-golangci-fix:
-    cd {{ server_dir }} && golangci-lint run --fix --config ../golangci.yaml ./...
