@@ -2,6 +2,7 @@ package probe
 
 import (
 	"context"
+	"errors"
 
 	"go.opentelemetry.io/otel/trace"
 )
@@ -66,6 +67,38 @@ func (f *probeFlow) technicalFailure(name ProbeEventName, reason ProbeEventReaso
 	recordSpanError(f.span, err, reason)
 	f.service.events.RecordProbeEvent(f.ctx, f.probeEvent(name, ProbeOutcomeFailure, reason, err))
 	return err
+}
+
+func (f *probeFlow) projectLookupFailure(err error) error {
+	if errors.Is(err, ErrProjectNotFound) {
+		return f.businessFailure(ProbeEventCreateFailure, ProbeReasonProjectNotFound, err)
+	}
+
+	return f.technicalFailure(ProbeEventCreateFailure, ProbeReasonProjectLookupFailed, err)
+}
+
+func (f *probeFlow) labelLookupFailure(err error) error {
+	switch {
+	case errors.Is(err, ErrInvalidInput):
+		return f.businessFailure(ProbeEventCreateFailure, ProbeReasonInvalidInput, err)
+	case errors.Is(err, ErrLabelNotFound):
+		return f.businessFailure(ProbeEventCreateFailure, ProbeReasonLabelNotFound, err)
+	default:
+		return f.technicalFailure(ProbeEventCreateFailure, ProbeReasonLabelLookupFailed, err)
+	}
+}
+
+func (f *probeFlow) createFailure(err error) error {
+	switch {
+	case errors.Is(err, ErrInvalidInput):
+		return f.businessFailure(ProbeEventCreateFailure, ProbeReasonInvalidInput, err)
+	case errors.Is(err, ErrProjectNotFound):
+		return f.businessFailure(ProbeEventCreateFailure, ProbeReasonProjectNotFound, err)
+	case errors.Is(err, ErrLabelNotFound):
+		return f.businessFailure(ProbeEventCreateFailure, ProbeReasonLabelNotFound, err)
+	default:
+		return f.technicalFailure(ProbeEventCreateFailure, ProbeReasonProbeCreateFailed, err)
+	}
 }
 
 func (f *probeFlow) probeEvent(name ProbeEventName, outcome ProbeEventOutcome, reason ProbeEventReason, err error) ProbeEvent {

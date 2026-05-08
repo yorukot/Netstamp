@@ -2,6 +2,7 @@ package project
 
 import (
 	"context"
+	"errors"
 
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 	"go.opentelemetry.io/otel/trace"
@@ -96,6 +97,135 @@ func (f *projectFlow) technicalFailure(name ProjectEventName, reason ProjectEven
 	recordSpanError(f.span, err, reason)
 	f.service.events.RecordProjectEvent(f.ctx, f.projectEvent(name, ProjectOutcomeFailure, reason, err))
 	return err
+}
+
+func (f *projectFlow) projectCreateFailure(err error) error {
+	switch {
+	case errors.Is(err, ErrProjectSlugAlreadyExists):
+		return f.businessFailure(ProjectEventCreateFailure, ProjectReasonSlugAlreadyExists, err)
+	case errors.Is(err, ErrUserNotFound):
+		return f.businessFailure(ProjectEventCreateFailure, ProjectReasonUserNotFound, err)
+	default:
+		return f.technicalFailure(ProjectEventCreateFailure, ProjectReasonProjectCreateFailed, err)
+	}
+}
+
+func (f *projectFlow) projectListFailure(err error) error {
+	if errors.Is(err, ErrProjectNotFound) || errors.Is(err, ErrUserNotFound) {
+		return err
+	}
+
+	return f.technicalFailure(ProjectEventListFailure, ProjectReasonProjectListFailed, err)
+}
+
+func (f *projectFlow) projectLookupFailure(event ProjectEventName, err error) error {
+	switch {
+	case errors.Is(err, ErrProjectNotFound):
+		return f.businessFailure(event, ProjectReasonProjectNotFound, err)
+	case errors.Is(err, ErrUserNotFound):
+		return f.businessFailure(event, ProjectReasonUserNotFound, err)
+	default:
+		return f.technicalFailure(event, ProjectReasonProjectLookupFailed, err)
+	}
+}
+
+func (f *projectFlow) projectReadLookupFailure(event ProjectEventName, err error) error {
+	if errors.Is(err, ErrProjectNotFound) || errors.Is(err, ErrUserNotFound) {
+		return err
+	}
+
+	return f.technicalFailure(event, ProjectReasonProjectLookupFailed, err)
+}
+
+func (f *projectFlow) roleLookupFailure(event ProjectEventName, err error) error {
+	switch {
+	case errors.Is(err, ErrProjectNotFound):
+		return f.businessFailure(event, ProjectReasonProjectNotFound, err)
+	case errors.Is(err, ErrUserNotFound):
+		return f.businessFailure(event, ProjectReasonUserNotFound, err)
+	default:
+		return f.technicalFailure(event, ProjectReasonRoleLookupFailed, err)
+	}
+}
+
+func (f *projectFlow) roleReadLookupFailure(event ProjectEventName, err error) error {
+	if errors.Is(err, ErrProjectNotFound) || errors.Is(err, ErrUserNotFound) {
+		return err
+	}
+
+	return f.technicalFailure(event, ProjectReasonRoleLookupFailed, err)
+}
+
+func (f *projectFlow) projectUpdateFailure(err error) error {
+	switch {
+	case errors.Is(err, ErrProjectNotFound):
+		return f.businessFailure(ProjectEventUpdateFailure, ProjectReasonProjectNotFound, err)
+	case errors.Is(err, ErrProjectSlugAlreadyExists):
+		return f.businessFailure(ProjectEventUpdateFailure, ProjectReasonSlugAlreadyExists, err)
+	default:
+		return f.technicalFailure(ProjectEventUpdateFailure, ProjectReasonProjectUpdateFailed, err)
+	}
+}
+
+func (f *projectFlow) projectDeleteFailure(err error) error {
+	if errors.Is(err, ErrProjectNotFound) {
+		return f.businessFailure(ProjectEventDeleteFailure, ProjectReasonProjectNotFound, err)
+	}
+
+	return f.technicalFailure(ProjectEventDeleteFailure, ProjectReasonProjectDeleteFailed, err)
+}
+
+func (f *projectFlow) membersListFailure(err error) error {
+	if errors.Is(err, ErrProjectNotFound) {
+		return err
+	}
+
+	return f.technicalFailure(ProjectEventListMembersFailure, ProjectReasonMembersListFailed, err)
+}
+
+func (f *projectFlow) memberAddFailure(err error) error {
+	switch {
+	case errors.Is(err, ErrMemberAlreadyExists):
+		return f.businessFailure(ProjectEventAddMemberFailure, ProjectReasonMemberAlreadyExists, err)
+	case errors.Is(err, ErrProjectNotFound):
+		return f.businessFailure(ProjectEventAddMemberFailure, ProjectReasonProjectNotFound, err)
+	case errors.Is(err, ErrUserNotFound):
+		return f.businessFailure(ProjectEventAddMemberFailure, ProjectReasonUserNotFound, err)
+	default:
+		return f.technicalFailure(ProjectEventAddMemberFailure, ProjectReasonMemberAddFailed, err)
+	}
+}
+
+func (f *projectFlow) memberLookupFailure(event ProjectEventName, err error) error {
+	if errors.Is(err, ErrMemberNotFound) {
+		return f.businessFailure(event, ProjectReasonMemberNotFound, err)
+	}
+
+	return f.technicalFailure(event, ProjectReasonMemberLookupFailed, err)
+}
+
+func (f *projectFlow) ownerCountFailure(event ProjectEventName, err error) error {
+	if errors.Is(err, ErrProjectNotFound) {
+		return f.businessFailure(event, ProjectReasonProjectNotFound, err)
+	}
+
+	return f.technicalFailure(event, ProjectReasonOwnerCountFailed, err)
+}
+
+func (f *projectFlow) memberRoleUpdateFailure(err error) error {
+	if errors.Is(err, ErrMemberNotFound) {
+		return f.businessFailure(ProjectEventUpdateMemberRoleFailure, ProjectReasonMemberNotFound, err)
+	}
+
+	return f.technicalFailure(ProjectEventUpdateMemberRoleFailure, ProjectReasonMemberRoleUpdateFailed, err)
+}
+
+func (f *projectFlow) assignableRoleFailure(event ProjectEventName, err error) error {
+	if errors.Is(err, ErrInvalidRole) {
+		return f.businessFailure(event, ProjectReasonInvalidRole, err)
+	}
+
+	return f.businessFailure(event, ProjectReasonForbidden, err)
 }
 
 func (f *projectFlow) projectEvent(name ProjectEventName, outcome ProjectEventOutcome, reason ProjectEventReason, err error) ProjectEvent {

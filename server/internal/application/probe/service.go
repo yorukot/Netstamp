@@ -37,23 +37,14 @@ func (s *Service) CreateProbe(ctx context.Context, input CreateProbeInput) (Crea
 	}
 
 	project, err := s.projectAccess.GetProjectForUser(ctx, input.ProjectRef, input.CurrentUserID)
-	if errors.Is(err, ErrProjectNotFound) {
-		return CreateProbeOutput{}, flow.businessFailure(ProbeEventCreateFailure, ProbeReasonProjectNotFound, err)
-	}
 	if err != nil {
-		return CreateProbeOutput{}, flow.technicalFailure(ProbeEventCreateFailure, ProbeReasonProjectLookupFailed, err)
+		return CreateProbeOutput{}, flow.projectLookupFailure(err)
 	}
 	flow.setProjectID(project.ID)
 
 	labels, err := s.labelAccess.GetActiveLabelsByIDsForProject(ctx, project.ID, normalized.labelIDs)
-	if errors.Is(err, ErrInvalidInput) {
-		return CreateProbeOutput{}, flow.businessFailure(ProbeEventCreateFailure, ProbeReasonInvalidInput, err)
-	}
-	if errors.Is(err, ErrLabelNotFound) {
-		return CreateProbeOutput{}, flow.businessFailure(ProbeEventCreateFailure, ProbeReasonLabelNotFound, err)
-	}
 	if err != nil {
-		return CreateProbeOutput{}, flow.technicalFailure(ProbeEventCreateFailure, ProbeReasonLabelLookupFailed, err)
+		return CreateProbeOutput{}, flow.labelLookupFailure(err)
 	}
 
 	if s.secretGenerator == nil {
@@ -78,17 +69,8 @@ func (s *Service) CreateProbe(ctx context.Context, input CreateProbeInput) (Crea
 		LabelIDs:   normalized.labelIDs,
 		SecretHash: secretHash,
 	})
-	if errors.Is(err, ErrInvalidInput) {
-		return CreateProbeOutput{}, flow.businessFailure(ProbeEventCreateFailure, ProbeReasonInvalidInput, err)
-	}
-	if errors.Is(err, ErrProjectNotFound) {
-		return CreateProbeOutput{}, flow.businessFailure(ProbeEventCreateFailure, ProbeReasonProjectNotFound, err)
-	}
-	if errors.Is(err, ErrLabelNotFound) {
-		return CreateProbeOutput{}, flow.businessFailure(ProbeEventCreateFailure, ProbeReasonLabelNotFound, err)
-	}
 	if err != nil {
-		return CreateProbeOutput{}, flow.technicalFailure(ProbeEventCreateFailure, ProbeReasonProbeCreateFailed, err)
+		return CreateProbeOutput{}, flow.createFailure(err)
 	}
 	probe.Labels = labels
 
