@@ -11,7 +11,7 @@ This guide applies to `server/`, the Go backend for the Netstamp workspace. The 
 - `internal/application/auth/`, `internal/application/project/`, and `internal/application/probe/`: use cases, ports, DTOs, errors, and feature orchestration.
 - `internal/domain/identity/`, `internal/domain/project/`, and `internal/domain/probe/`: stable domain structs and domain-level sentinel errors.
 - `internal/infrastructure/`: PostgreSQL repositories and pool helpers, JWT issuing, Argon2id password hashing, and probe secret generation.
-- `internal/logger/` and `internal/observability/`: zap logging helpers, auth event recording, OpenTelemetry setup, and HTTP span naming.
+- `internal/logger/` and `internal/observability/`: zap logging helpers, application event recording, OpenTelemetry setup, and HTTP span naming.
 - `db/migrations/`: Goose SQL migrations. `db/query/`: sqlc query files. Generated sqlc Go files live in `internal/infrastructure/postgres/sqlc/`.
 - `tmp/` and `bin/`: local build artifacts; do not edit them as source.
 
@@ -57,6 +57,8 @@ Zap is configured in `internal/logger/zap.go`. Every root logger includes `servi
 Use request-scoped loggers from `logger.FromContext(ctx, fallback)` when handling requests. HTTP logging in `internal/transport/http/middleware/logging.go` adds `request_id`, method, path, client address, user agent, status, bytes, duration, and trace fields.
 
 Auth security events must go through `logger.AuthEventRecorder`. It pseudonymizes email into `user.email_hash` using `LOG_PSEUDONYM_KEY`. Do not log raw passwords, password hashes, access tokens, JWT secrets, cookies, database passwords, or raw personal data. Expected auth failures log at `warn`; technical failures log at `error`.
+
+Project application events must go through `logger.ProjectEventRecorder`. Use these only for focused audit/security flows and failures where application semantics add value beyond HTTP request logs. Do not log project member email addresses, raw request bodies, or secrets. Expected project business failures log at `warn`; technical failures log at `error`.
 
 ## Tracing & Observability
 

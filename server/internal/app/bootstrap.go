@@ -85,10 +85,11 @@ func New(ctx context.Context) (*Application, error) {
 	})
 	tokenIssuer := security.NewJWTIssuer(cfg.Auth.JWTSecret, cfg.Auth.AccessTokenTTL)
 	authEvents := logger.NewAuthEventRecorder(log, cfg.LogPseudonymKey)
+	projectEvents := logger.NewProjectEventRecorder(log)
 
 	authSvc := appauth.NewService(userRepo, passwordHasher, tokenIssuer, authEvents)
 	projectRepo := pgproject.NewProjectRepository(dbPool)
-	projectSvc := appproject.NewService(projectRepo)
+	projectSvc := appproject.NewService(projectRepo, projectEvents)
 	probeRepo := pgprobe.NewProbeRepository(dbPool)
 	probeSvc := appprobe.NewService(probeRepo, security.NewProbeSecretGenerator())
 	readiness := postgres.NewReadinessCheck(dbPool)

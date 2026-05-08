@@ -23,7 +23,7 @@ const (
 func TestCreateProjectReturnsCreatedProject(t *testing.T) {
 	_, api := humatest.New(t)
 	repo := &handlerProjectRepository{}
-	NewHandler(appproject.NewService(repo), &handlerTokenVerifier{
+	NewHandler(appproject.NewService(repo, nil), &handlerTokenVerifier{
 		claims: identity.AccessTokenClaims{Subject: testUserID, Email: "user@example.com"},
 	}).RegisterRoutes(api)
 
@@ -53,7 +53,7 @@ func TestCreateProjectReturnsCreatedProject(t *testing.T) {
 
 func TestCreateProjectRejectsInvalidSlugPattern(t *testing.T) {
 	_, api := humatest.New(t)
-	NewHandler(appproject.NewService(&handlerProjectRepository{}), &handlerTokenVerifier{
+	NewHandler(appproject.NewService(&handlerProjectRepository{}, nil), &handlerTokenVerifier{
 		claims: identity.AccessTokenClaims{Subject: testUserID, Email: "user@example.com"},
 	}).RegisterRoutes(api)
 
@@ -69,7 +69,7 @@ func TestCreateProjectRejectsInvalidSlugPattern(t *testing.T) {
 
 func TestCreateProjectRequiresBearerToken(t *testing.T) {
 	_, api := humatest.New(t)
-	NewHandler(appproject.NewService(&handlerProjectRepository{}), &handlerTokenVerifier{}).RegisterRoutes(api)
+	NewHandler(appproject.NewService(&handlerProjectRepository{}, nil), &handlerTokenVerifier{}).RegisterRoutes(api)
 
 	res := api.Post("/projects", map[string]any{
 		"name": "Engineering",
@@ -84,7 +84,7 @@ func TestCreateProjectRequiresBearerToken(t *testing.T) {
 func TestGetProjectAcceptsSlugRef(t *testing.T) {
 	_, api := humatest.New(t)
 	repo := &handlerProjectRepository{}
-	NewHandler(appproject.NewService(repo), &handlerTokenVerifier{
+	NewHandler(appproject.NewService(repo, nil), &handlerTokenVerifier{
 		claims: identity.AccessTokenClaims{Subject: testUserID, Email: "user@example.com"},
 	}).RegisterRoutes(api)
 
@@ -102,7 +102,7 @@ func TestDeleteProjectMapsNonOwnerToForbidden(t *testing.T) {
 	_, api := humatest.New(t)
 	NewHandler(appproject.NewService(&handlerProjectRepository{
 		actorRole: domainproject.RoleAdmin,
-	}), &handlerTokenVerifier{
+	}, nil), &handlerTokenVerifier{
 		claims: identity.AccessTokenClaims{Subject: testUserID, Email: "user@example.com"},
 	}).RegisterRoutes(api)
 
@@ -117,7 +117,7 @@ func TestAddMemberRejectsOwnerRoleAsForbidden(t *testing.T) {
 	_, api := humatest.New(t)
 	NewHandler(appproject.NewService(&handlerProjectRepository{
 		actorRole: domainproject.RoleOwner,
-	}), &handlerTokenVerifier{
+	}, nil), &handlerTokenVerifier{
 		claims: identity.AccessTokenClaims{Subject: testUserID, Email: "user@example.com"},
 	}).RegisterRoutes(api)
 
