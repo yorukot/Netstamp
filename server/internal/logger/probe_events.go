@@ -48,14 +48,12 @@ func (r *ProbeEventRecorder) RecordProbeEvent(ctx context.Context, event appprob
 		fields = append(fields, zap.Error(event.Err))
 	}
 
-	switch {
-	case event.Outcome == appprobe.ProbeOutcomeSuccess:
-		log.Info(string(event.Name), fields...)
-	case isExpectedProbeFailure(event):
+	if isExpectedProbeFailure(event) {
 		log.Warn(string(event.Name), fields...)
-	default:
-		log.Error(string(event.Name), fields...)
+		return
 	}
+
+	log.Error(string(event.Name), fields...)
 }
 
 func isExpectedProbeFailure(event appprobe.ProbeEvent) bool {

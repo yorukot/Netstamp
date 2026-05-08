@@ -24,25 +24,25 @@ func NewService(repo Repository, secretGenerator SecretGenerator, events EventRe
 
 func (s *Service) CreateProbe(ctx context.Context, input CreateProbeInput) (CreateProbeOutput, error) {
 	ctx, flow := s.startProbeFlow(ctx, "probe.create", ProbeActionCreate, input.CurrentUserID)
-	defer flow.End()
-	flow.SetProjectRef(input.ProjectRef)
+	defer flow.end()
+	flow.setProjectRef(input.ProjectRef)
 
 	normalized, err := normalizeCreateProbeInput(input)
 	if err != nil {
-		return CreateProbeOutput{}, flow.BusinessFailure(ProbeEventCreateFailure, ProbeReasonInvalidInput, err)
+		return CreateProbeOutput{}, flow.businessFailure(ProbeEventCreateFailure, ProbeReasonInvalidInput, err)
 	}
 
 	projectID, err := s.repo.GetProjectIDForUser(ctx, input.ProjectRef, input.CurrentUserID)
 	if errors.Is(err, ErrProjectNotFound) {
-		return CreateProbeOutput{}, flow.BusinessFailure(ProbeEventCreateFailure, ProbeReasonProjectNotFound, err)
+		return CreateProbeOutput{}, flow.businessFailure(ProbeEventCreateFailure, ProbeReasonProjectNotFound, err)
 	}
 	if err != nil {
-		return CreateProbeOutput{}, flow.TechnicalFailure(ProbeEventCreateFailure, ProbeReasonProjectLookupFailed, err)
+		return CreateProbeOutput{}, flow.technicalFailure(ProbeEventCreateFailure, ProbeReasonProjectLookupFailed, err)
 	}
-	flow.SetProjectID(projectID)
+	flow.setProjectID(projectID)
 
 	if s.secretGenerator == nil {
-		return CreateProbeOutput{}, flow.TechnicalFailure(
+		return CreateProbeOutput{}, flow.technicalFailure(
 			ProbeEventCreateFailure,
 			ProbeReasonSecretGeneratorMissing,
 			errors.New("probe secret generator is not configured"),
@@ -50,7 +50,7 @@ func (s *Service) CreateProbe(ctx context.Context, input CreateProbeInput) (Crea
 	}
 	plaintextSecret, secretHash, err := s.secretGenerator.GenerateProbeSecret()
 	if err != nil {
-		return CreateProbeOutput{}, flow.TechnicalFailure(ProbeEventCreateFailure, ProbeReasonSecretGenerateFailed, err)
+		return CreateProbeOutput{}, flow.technicalFailure(ProbeEventCreateFailure, ProbeReasonSecretGenerateFailed, err)
 	}
 
 	probe, err := s.repo.CreateProbe(ctx, domainprobe.CreateProbeStorageInput{
@@ -64,19 +64,17 @@ func (s *Service) CreateProbe(ctx context.Context, input CreateProbeInput) (Crea
 		SecretHash: secretHash,
 	})
 	if errors.Is(err, ErrInvalidInput) {
-		return CreateProbeOutput{}, flow.BusinessFailure(ProbeEventCreateFailure, ProbeReasonInvalidInput, err)
+		return CreateProbeOutput{}, flow.businessFailure(ProbeEventCreateFailure, ProbeReasonInvalidInput, err)
 	}
 	if errors.Is(err, ErrProjectNotFound) {
-		return CreateProbeOutput{}, flow.BusinessFailure(ProbeEventCreateFailure, ProbeReasonProjectNotFound, err)
+		return CreateProbeOutput{}, flow.businessFailure(ProbeEventCreateFailure, ProbeReasonProjectNotFound, err)
 	}
 	if errors.Is(err, ErrLabelNotFound) {
-		return CreateProbeOutput{}, flow.BusinessFailure(ProbeEventCreateFailure, ProbeReasonLabelNotFound, err)
+		return CreateProbeOutput{}, flow.businessFailure(ProbeEventCreateFailure, ProbeReasonLabelNotFound, err)
 	}
 	if err != nil {
-		return CreateProbeOutput{}, flow.TechnicalFailure(ProbeEventCreateFailure, ProbeReasonProbeCreateFailed, err)
+		return CreateProbeOutput{}, flow.technicalFailure(ProbeEventCreateFailure, ProbeReasonProbeCreateFailed, err)
 	}
-	flow.SetProbe(probe)
-	flow.Success(ProbeEventCreateSuccess)
 
 	return CreateProbeOutput{
 		Probe:  probe,

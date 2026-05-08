@@ -32,18 +32,18 @@ func (s *Service) Register(ctx context.Context, input RegisterInput) (AuthAccess
 	email := normalize.Email(input.Email)
 	displayName, displayNameErr := normalize.RequiredString(input.DisplayName, ErrDisplayNameRequired)
 	ctx, flow := s.startAuthFlow(ctx, "auth.register", AuthActionRegister, email)
-	defer flow.End()
+	defer flow.end()
 
 	if displayNameErr != nil {
-		return AuthAccessResult{}, flow.BusinessFailure(AuthEventRegisterFailure, AuthReasonDisplayNameInvalid, displayNameErr)
+		return AuthAccessResult{}, flow.businessFailure(AuthEventRegisterFailure, AuthReasonDisplayNameInvalid, displayNameErr)
 	}
 	if utf8.RuneCountInString(displayName) > maxDisplayNameLength {
-		return AuthAccessResult{}, flow.BusinessFailure(AuthEventRegisterFailure, AuthReasonDisplayNameInvalid, ErrDisplayNameTooLong)
+		return AuthAccessResult{}, flow.businessFailure(AuthEventRegisterFailure, AuthReasonDisplayNameInvalid, ErrDisplayNameTooLong)
 	}
 
 	passwordHash, err := s.hashPassword(ctx, input.Password)
 	if err != nil {
-		return AuthAccessResult{}, flow.TechnicalFailure(AuthEventRegisterFailure, AuthReasonPasswordHashFailed, err)
+		return AuthAccessResult{}, flow.technicalFailure(AuthEventRegisterFailure, AuthReasonPasswordHashFailed, err)
 	}
 
 	user, err := s.createUser(ctx, identity.CreateUserInput{
@@ -52,19 +52,19 @@ func (s *Service) Register(ctx context.Context, input RegisterInput) (AuthAccess
 		PasswordHash: passwordHash,
 	})
 	if errors.Is(err, ErrEmailAlreadyExists) {
-		return AuthAccessResult{}, flow.BusinessFailure(AuthEventRegisterFailure, AuthReasonEmailAlreadyExists, err)
+		return AuthAccessResult{}, flow.businessFailure(AuthEventRegisterFailure, AuthReasonEmailAlreadyExists, err)
 	}
 	if err != nil {
-		return AuthAccessResult{}, flow.TechnicalFailure(AuthEventRegisterFailure, AuthReasonUserCreateFailed, err)
+		return AuthAccessResult{}, flow.technicalFailure(AuthEventRegisterFailure, AuthReasonUserCreateFailed, err)
 	}
-	flow.SetUser(user)
+	flow.setUser(user)
 
 	result, err := s.issueAccessResult(ctx, user)
 	if err != nil {
-		return AuthAccessResult{}, flow.TechnicalFailure(AuthEventTokenIssueFailure, AuthReasonAccessTokenIssueFail, err)
+		return AuthAccessResult{}, flow.technicalFailure(AuthEventTokenIssueFailure, AuthReasonAccessTokenIssueFail, err)
 	}
 
-	flow.Success(AuthEventRegisterSuccess)
+	flow.success(AuthEventRegisterSuccess)
 
 	return result, nil
 }
@@ -73,31 +73,31 @@ func (s *Service) Register(ctx context.Context, input RegisterInput) (AuthAccess
 func (s *Service) Login(ctx context.Context, input LoginInput) (AuthAccessResult, error) {
 	email := normalize.Email(input.Email)
 	ctx, flow := s.startAuthFlow(ctx, "auth.login", AuthActionLogin, email)
-	defer flow.End()
+	defer flow.end()
 
 	user, err := s.getUserByEmail(ctx, email)
 	if errors.Is(err, identity.ErrUserNotFound) {
-		return AuthAccessResult{}, flow.BusinessFailure(AuthEventLoginFailure, AuthReasonCredentialsInvalid, ErrCredentialsInvalid)
+		return AuthAccessResult{}, flow.businessFailure(AuthEventLoginFailure, AuthReasonCredentialsInvalid, ErrCredentialsInvalid)
 	}
 	if err != nil {
-		return AuthAccessResult{}, flow.TechnicalFailure(AuthEventLoginFailure, AuthReasonUserLookupFailed, err)
+		return AuthAccessResult{}, flow.technicalFailure(AuthEventLoginFailure, AuthReasonUserLookupFailed, err)
 	}
-	flow.SetUser(user)
+	flow.setUser(user)
 
 	if err := s.comparePassword(ctx, input.Password, user.PasswordHash); err != nil {
-		return AuthAccessResult{}, flow.BusinessFailure(AuthEventLoginFailure, AuthReasonCredentialsInvalid, ErrCredentialsInvalid)
+		return AuthAccessResult{}, flow.businessFailure(AuthEventLoginFailure, AuthReasonCredentialsInvalid, ErrCredentialsInvalid)
 	}
 
 	if !user.IsActive {
-		return AuthAccessResult{}, flow.BusinessFailure(AuthEventLoginFailure, AuthReasonUserInactive, ErrUserInactive)
+		return AuthAccessResult{}, flow.businessFailure(AuthEventLoginFailure, AuthReasonUserInactive, ErrUserInactive)
 	}
 
 	result, err := s.issueAccessResult(ctx, user)
 	if err != nil {
-		return AuthAccessResult{}, flow.TechnicalFailure(AuthEventTokenIssueFailure, AuthReasonAccessTokenIssueFail, err)
+		return AuthAccessResult{}, flow.technicalFailure(AuthEventTokenIssueFailure, AuthReasonAccessTokenIssueFail, err)
 	}
 
-	flow.Success(AuthEventLoginSuccess)
+	flow.success(AuthEventLoginSuccess)
 
 	return result, nil
 }

@@ -37,52 +37,52 @@ func (s *Service) startProjectFlow(ctx context.Context, spanName string, action 
 	}
 }
 
-func (f *projectFlow) End() {
+func (f *projectFlow) end() {
 	f.span.End()
 }
 
-func (f *projectFlow) SetProjectRef(projectRef string) {
+func (f *projectFlow) setProjectRef(projectRef string) {
 	f.projectRef = projectRef
 	if projectRef != "" {
 		f.span.SetAttributes(attrProjectRef.String(projectRef))
 	}
 }
 
-func (f *projectFlow) SetProject(project domainproject.Project) {
+func (f *projectFlow) setProject(project domainproject.Project) {
 	f.projectID = project.ID
 	if project.ID != "" {
 		f.span.SetAttributes(attrProjectID.String(project.ID))
 	}
-	f.SetProjectSlug(project.Slug)
+	f.setProjectSlug(project.Slug)
 }
 
-func (f *projectFlow) SetProjectSlug(slug string) {
+func (f *projectFlow) setProjectSlug(slug string) {
 	f.projectSlug = slug
 	if slug != "" {
 		f.span.SetAttributes(attrProjectSlug.String(slug))
 	}
 }
 
-func (f *projectFlow) SetTargetUser(userID string) {
+func (f *projectFlow) setTargetUser(userID string) {
 	f.targetUserID = userID
 	if userID != "" {
 		f.span.SetAttributes(attrProjectMemberUserID.String(userID))
 	}
 }
 
-func (f *projectFlow) SetRole(role domainproject.Role) {
+func (f *projectFlow) setRole(role domainproject.Role) {
 	f.role = role
 	if role != "" {
 		f.span.SetAttributes(attrProjectMemberRole.String(string(role)))
 	}
 }
 
-func (f *projectFlow) Success(name ProjectEventName) {
+func (f *projectFlow) success(name ProjectEventName) {
 	f.span.SetAttributes(attrProjectOutcome.String(string(ProjectOutcomeSuccess)))
 	f.service.events.RecordProjectEvent(f.ctx, f.projectEvent(name, ProjectOutcomeSuccess, "", nil))
 }
 
-func (f *projectFlow) BusinessFailure(name ProjectEventName, reason ProjectEventReason, returnErr error) error {
+func (f *projectFlow) businessFailure(name ProjectEventName, reason ProjectEventReason, returnErr error) error {
 	f.span.SetAttributes(
 		attrProjectOutcome.String(string(ProjectOutcomeFailure)),
 		attrProjectFailureReason.String(string(reason)),
@@ -91,7 +91,7 @@ func (f *projectFlow) BusinessFailure(name ProjectEventName, reason ProjectEvent
 	return returnErr
 }
 
-func (f *projectFlow) TechnicalFailure(name ProjectEventName, reason ProjectEventReason, err error) error {
+func (f *projectFlow) technicalFailure(name ProjectEventName, reason ProjectEventReason, err error) error {
 	f.span.SetAttributes(attrProjectOutcome.String(string(ProjectOutcomeFailure)))
 	recordSpanError(f.span, err, reason)
 	f.service.events.RecordProjectEvent(f.ctx, f.projectEvent(name, ProjectOutcomeFailure, reason, err))

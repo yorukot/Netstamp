@@ -19,11 +19,12 @@ func TestCreateProbeCreatesProbeWithSecretAndNormalizedInput(t *testing.T) {
 	city := " JP-13 "
 	latitude := 35.6762
 	longitude := 139.6503
+	recorder := &recordingProbeEventRecorder{}
 	repo := &fakeProbeRepository{}
 	service := NewService(repo, fakeSecretGenerator{
 		plaintext: "plain-secret",
 		hash:      "secret-hash",
-	}, &recordingProbeEventRecorder{})
+	}, recorder)
 
 	output, err := service.CreateProbe(context.Background(), CreateProbeInput{
 		CurrentUserID: "user-1",
@@ -69,6 +70,7 @@ func TestCreateProbeCreatesProbeWithSecretAndNormalizedInput(t *testing.T) {
 	if repo.gotCreateInput.SecretHash != "secret-hash" {
 		t.Fatalf("expected secret hash, got %q", repo.gotCreateInput.SecretHash)
 	}
+	assertNoProbeEvents(t, recorder)
 }
 
 func TestCreateProbeDefaultsEnabledToTrue(t *testing.T) {
@@ -162,33 +164,6 @@ func TestCreateProbeRejectsInaccessibleProject(t *testing.T) {
 	if repo.gotCreateInput.Name != "" {
 		t.Fatalf("expected create not to be called, got %#v", repo.gotCreateInput)
 	}
-}
-
-func TestCreateProbeRecordsSuccess(t *testing.T) {
-	recorder := &recordingProbeEventRecorder{}
-	service := NewService(&fakeProbeRepository{}, fakeSecretGenerator{
-		plaintext: "plain-secret",
-		hash:      "secret-hash",
-	}, recorder)
-
-	_, err := service.CreateProbe(context.Background(), CreateProbeInput{
-		CurrentUserID: "user-1",
-		ProjectRef:    "engineering",
-		Name:          "tokyo-vps-1",
-	})
-	if err != nil {
-		t.Fatalf("create probe: %v", err)
-	}
-
-	assertRecordedProbeEvent(t, recorder, ProbeEvent{
-		Name:        ProbeEventCreateSuccess,
-		Action:      ProbeActionCreate,
-		Outcome:     ProbeOutcomeSuccess,
-		ActorUserID: "user-1",
-		ProjectID:   testProjectID,
-		ProjectRef:  "engineering",
-		ProbeID:     "probe-1",
-	})
 }
 
 func TestCreateProbeRecordsInvalidInputFailure(t *testing.T) {
@@ -321,6 +296,14 @@ func assertRecordedProbeEvent(t *testing.T, recorder *recordingProbeEventRecorde
 		got.ProbeID != want.ProbeID ||
 		!errors.Is(got.Err, want.Err) {
 		t.Fatalf("unexpected event:\n got: %#v\nwant: %#v", got, want)
+	}
+}
+
+func assertNoProbeEvents(t *testing.T, recorder *recordingProbeEventRecorder) {
+	t.Helper()
+
+	if len(recorder.events) != 0 {
+		t.Fatalf("expected no events, got %d: %#v", len(recorder.events), recorder.events)
 	}
 }
 

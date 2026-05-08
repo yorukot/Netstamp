@@ -22,7 +22,6 @@ type EventRecorder interface {
 type ProbeEventName string
 
 const (
-	ProbeEventCreateSuccess ProbeEventName = "probe.create.success"
 	ProbeEventCreateFailure ProbeEventName = "probe.create.failure"
 )
 
@@ -35,7 +34,6 @@ const (
 type ProbeEventOutcome string
 
 const (
-	ProbeOutcomeSuccess ProbeEventOutcome = "success"
 	ProbeOutcomeFailure ProbeEventOutcome = "failure"
 )
 

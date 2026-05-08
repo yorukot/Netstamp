@@ -21,13 +21,13 @@ func TestProbeEventRecorderLogsStructuredEvent(t *testing.T) {
 	recorder := NewProbeEventRecorder(root)
 
 	recorder.RecordProbeEvent(context.Background(), appprobe.ProbeEvent{
-		Name:        appprobe.ProbeEventCreateSuccess,
+		Name:        appprobe.ProbeEventCreateFailure,
 		Action:      appprobe.ProbeActionCreate,
-		Outcome:     appprobe.ProbeOutcomeSuccess,
+		Outcome:     appprobe.ProbeOutcomeFailure,
+		Reason:      appprobe.ProbeReasonLabelNotFound,
 		ActorUserID: "user-1",
 		ProjectID:   "project-1",
 		ProjectRef:  "engineering",
-		ProbeID:     "probe-1",
 	})
 
 	logs := observed.All()
@@ -36,22 +36,22 @@ func TestProbeEventRecorderLogsStructuredEvent(t *testing.T) {
 	}
 
 	entry := logs[0]
-	if entry.Level != zapcore.InfoLevel {
-		t.Fatalf("expected info level, got %s", entry.Level)
+	if entry.Level != zapcore.WarnLevel {
+		t.Fatalf("expected warn level, got %s", entry.Level)
 	}
-	if entry.Message != string(appprobe.ProbeEventCreateSuccess) {
+	if entry.Message != string(appprobe.ProbeEventCreateFailure) {
 		t.Fatalf("expected probe event message, got %q", entry.Message)
 	}
 
 	fields := entry.ContextMap()
-	assertField(t, fields, "event_name", string(appprobe.ProbeEventCreateSuccess))
+	assertField(t, fields, "event_name", string(appprobe.ProbeEventCreateFailure))
 	assertField(t, fields, "event.category", "probe")
 	assertField(t, fields, "event.action", string(appprobe.ProbeActionCreate))
-	assertField(t, fields, "event.outcome", string(appprobe.ProbeOutcomeSuccess))
+	assertField(t, fields, "event.outcome", string(appprobe.ProbeOutcomeFailure))
+	assertField(t, fields, "event.reason", string(appprobe.ProbeReasonLabelNotFound))
 	assertField(t, fields, "user.id", "user-1")
 	assertField(t, fields, "project.id", "project-1")
 	assertField(t, fields, "project.ref", "engineering")
-	assertField(t, fields, "probe.id", "probe-1")
 	assertField(t, fields, "request_id", "req-1")
 	assertField(t, fields, "client.address", "203.0.113.10")
 

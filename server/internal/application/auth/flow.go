@@ -30,22 +30,22 @@ func (s *Service) startAuthFlow(ctx context.Context, spanName string, action Aut
 	}
 }
 
-func (f *authFlow) End() {
+func (f *authFlow) end() {
 	f.span.End()
 }
 
-func (f *authFlow) SetUser(user identity.User) {
+func (f *authFlow) setUser(user identity.User) {
 	f.userID = user.ID
 	f.email = user.Email
 	f.span.SetAttributes(attrUserID.String(user.ID))
 }
 
-func (f *authFlow) Success(name AuthEventName) {
+func (f *authFlow) success(name AuthEventName) {
 	f.span.SetAttributes(attrAuthOutcome.String(string(AuthOutcomeSuccess)))
 	f.service.events.RecordAuthEvent(f.ctx, f.authEvent(name, AuthOutcomeSuccess, "", nil))
 }
 
-func (f *authFlow) BusinessFailure(name AuthEventName, reason AuthEventReason, returnErr error) error {
+func (f *authFlow) businessFailure(name AuthEventName, reason AuthEventReason, returnErr error) error {
 	f.span.SetAttributes(
 		attrAuthOutcome.String(string(AuthOutcomeFailure)),
 		attrAuthFailureReason.String(string(reason)),
@@ -54,7 +54,7 @@ func (f *authFlow) BusinessFailure(name AuthEventName, reason AuthEventReason, r
 	return returnErr
 }
 
-func (f *authFlow) TechnicalFailure(name AuthEventName, reason AuthEventReason, err error) error {
+func (f *authFlow) technicalFailure(name AuthEventName, reason AuthEventReason, err error) error {
 	f.span.SetAttributes(attrAuthOutcome.String(string(AuthOutcomeFailure)))
 	markSpanTechnicalFailure(f.span, reason)
 	f.service.events.RecordAuthEvent(f.ctx, f.authEvent(name, AuthOutcomeFailure, reason, err))

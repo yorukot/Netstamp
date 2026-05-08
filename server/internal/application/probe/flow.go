@@ -3,7 +3,6 @@ package probe
 import (
 	"context"
 
-	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -35,40 +34,25 @@ func (s *Service) startProbeFlow(ctx context.Context, spanName string, action Pr
 	}
 }
 
-func (f *probeFlow) End() {
+func (f *probeFlow) end() {
 	f.span.End()
 }
 
-func (f *probeFlow) SetProjectRef(projectRef string) {
+func (f *probeFlow) setProjectRef(projectRef string) {
 	f.projectRef = projectRef
 	if projectRef != "" {
 		f.span.SetAttributes(attrProjectRef.String(projectRef))
 	}
 }
 
-func (f *probeFlow) SetProjectID(projectID string) {
+func (f *probeFlow) setProjectID(projectID string) {
 	f.projectID = projectID
 	if projectID != "" {
 		f.span.SetAttributes(attrProjectID.String(projectID))
 	}
 }
 
-func (f *probeFlow) SetProbe(probe domainprobe.Probe) {
-	f.probeID = probe.ID
-	if probe.ID != "" {
-		f.span.SetAttributes(attrProbeID.String(probe.ID))
-	}
-	if probe.ProjectID != "" {
-		f.SetProjectID(probe.ProjectID)
-	}
-}
-
-func (f *probeFlow) Success(name ProbeEventName) {
-	f.span.SetAttributes(attrProbeOutcome.String(string(ProbeOutcomeSuccess)))
-	f.service.events.RecordProbeEvent(f.ctx, f.probeEvent(name, ProbeOutcomeSuccess, "", nil))
-}
-
-func (f *probeFlow) BusinessFailure(name ProbeEventName, reason ProbeEventReason, returnErr error) error {
+func (f *probeFlow) businessFailure(name ProbeEventName, reason ProbeEventReason, returnErr error) error {
 	f.span.SetAttributes(
 		attrProbeOutcome.String(string(ProbeOutcomeFailure)),
 		attrProbeFailureReason.String(string(reason)),
@@ -77,7 +61,7 @@ func (f *probeFlow) BusinessFailure(name ProbeEventName, reason ProbeEventReason
 	return returnErr
 }
 
-func (f *probeFlow) TechnicalFailure(name ProbeEventName, reason ProbeEventReason, err error) error {
+func (f *probeFlow) technicalFailure(name ProbeEventName, reason ProbeEventReason, err error) error {
 	f.span.SetAttributes(attrProbeOutcome.String(string(ProbeOutcomeFailure)))
 	recordSpanError(f.span, err, reason)
 	f.service.events.RecordProbeEvent(f.ctx, f.probeEvent(name, ProbeOutcomeFailure, reason, err))
