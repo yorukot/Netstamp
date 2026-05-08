@@ -64,7 +64,7 @@ Zap is configured in `internal/logger/zap.go`. Every root logger includes `servi
 
 Use request-scoped loggers from `logger.FromContext(ctx, fallback)` when handling requests. HTTP logging in `internal/transport/http/middleware/logging.go` adds `request_id`, method, path, client address, user agent, status, bytes, duration, and trace fields.
 
-Application-level events must follow the auth/project/probe pattern:
+Application-level events must follow the auth/project/label/probe pattern:
 
 - Define typed event names, actions, outcomes, reasons, and recorder ports in the application package `ports.go`.
 - Keep zap out of application packages. Services call the package recorder interface; `internal/logger` owns zap fields, privacy handling, and log levels.
@@ -78,6 +78,8 @@ Application-level events must follow the auth/project/probe pattern:
 Auth security events must go through `logger.AuthEventRecorder`. It pseudonymizes email into `user.email_hash` using `LOG_PSEUDONYM_KEY`.
 
 Project application events must go through `logger.ProjectEventRecorder`. Use these only for focused audit/security flows and failures where application semantics add value beyond HTTP request logs. Do not log project member email addresses.
+
+Label application events must go through `logger.LabelEventRecorder`. Label create, update, and delete successes are audit-worthy; successful list and resolve operations are covered by the HTTP request logger. Label failure events should preserve project and label identifiers when available, but must never include label key or value text.
 
 Probe application events must go through `logger.ProbeEventRecorder`. Probe create currently records failure events only; successful creates are covered by the HTTP request logger. Probe events must never include the plaintext secret or its hash.
 

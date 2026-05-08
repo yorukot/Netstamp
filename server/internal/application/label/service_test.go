@@ -20,7 +20,8 @@ func TestListLabelsAllowsProjectMember(t *testing.T) {
 		labels: []domainlabel.Label{{ID: testLabelID, ProjectID: testProjectID, Key: "region", Value: "tokyo"}},
 	}
 	projectAccess := &fakeProjectAccess{role: domainproject.RoleViewer}
-	service := NewService(repo, projectAccess)
+	recorder := &recordingLabelEventRecorder{}
+	service := NewService(repo, projectAccess, recorder)
 
 	labels, err := service.ListLabels(context.Background(), ListLabelsInput{
 		CurrentUserID: "user-1",
@@ -38,12 +39,14 @@ func TestListLabelsAllowsProjectMember(t *testing.T) {
 	if projectAccess.gotRoleProjectID != "" {
 		t.Fatalf("expected list not to require role lookup, got %q", projectAccess.gotRoleProjectID)
 	}
+	assertNoLabelEvents(t, recorder)
 }
 
 func TestCreateLabelRequiresManagerAndNormalizesInput(t *testing.T) {
 	repo := &fakeLabelRepository{}
 	projectAccess := &fakeProjectAccess{role: domainproject.RoleEditor}
-	service := NewService(repo, projectAccess)
+	recorder := &recordingLabelEventRecorder{}
+	service := NewService(repo, projectAccess, recorder)
 
 	label, err := service.CreateLabel(context.Background(), CreateLabelInput{
 		CurrentUserID: "user-1",
@@ -60,11 +63,22 @@ func TestCreateLabelRequiresManagerAndNormalizesInput(t *testing.T) {
 	if repo.gotCreate.Key != "region" || repo.gotCreate.Value != "tokyo" {
 		t.Fatalf("expected normalized create input, got %#v", repo.gotCreate)
 	}
+	assertRecordedLabelEvent(t, recorder, LabelEvent{
+		Name:        LabelEventCreateSuccess,
+		Action:      LabelActionCreate,
+		Outcome:     LabelOutcomeSuccess,
+		ActorUserID: "user-1",
+		ProjectID:   testProjectID,
+		ProjectRef:  "engineering",
+		ProjectSlug: "engineering",
+		LabelID:     testLabelID,
+	})
 }
 
 func TestCreateLabelRejectsViewer(t *testing.T) {
 	repo := &fakeLabelRepository{}
-	service := NewService(repo, &fakeProjectAccess{role: domainproject.RoleViewer})
+	recorder := &recordingLabelEventRecorder{}
+	service := NewService(repo, &fakeProjectAccess{role: domainproject.RoleViewer}, recorder)
 
 	_, err := service.CreateLabel(context.Background(), CreateLabelInput{
 		CurrentUserID: "user-1",
@@ -78,10 +92,21 @@ func TestCreateLabelRejectsViewer(t *testing.T) {
 	if repo.gotCreate.Key != "" {
 		t.Fatalf("expected create not to be called, got %#v", repo.gotCreate)
 	}
+	assertRecordedLabelEvent(t, recorder, LabelEvent{
+		Name:        LabelEventCreateFailure,
+		Action:      LabelActionCreate,
+		Outcome:     LabelOutcomeFailure,
+		Reason:      LabelReasonForbidden,
+		ActorUserID: "user-1",
+		ProjectID:   testProjectID,
+		ProjectRef:  "engineering",
+		ProjectSlug: "engineering",
+	})
 }
 
 func TestCreateLabelPropagatesDuplicate(t *testing.T) {
-	service := NewService(&fakeLabelRepository{createErr: ErrLabelAlreadyExists}, &fakeProjectAccess{role: domainproject.RoleOwner})
+	recorder := &recordingLabelEventRecorder{}
+	service := NewService(&fakeLabelRepository{createErr: ErrLabelAlreadyExists}, &fakeProjectAccess{role: domainproject.RoleOwner}, recorder)
 
 	_, err := service.CreateLabel(context.Background(), CreateLabelInput{
 		CurrentUserID: "user-1",
@@ -92,6 +117,16 @@ func TestCreateLabelPropagatesDuplicate(t *testing.T) {
 	if !errors.Is(err, ErrLabelAlreadyExists) {
 		t.Fatalf("expected duplicate label, got %v", err)
 	}
+	assertRecordedLabelEvent(t, recorder, LabelEvent{
+		Name:        LabelEventCreateFailure,
+		Action:      LabelActionCreate,
+		Outcome:     LabelOutcomeFailure,
+		Reason:      LabelReasonLabelAlreadyExists,
+		ActorUserID: "user-1",
+		ProjectID:   testProjectID,
+		ProjectRef:  "engineering",
+		ProjectSlug: "engineering",
+	})
 }
 
 func TestUpdateLabelUsesExistingFieldsForPartialPatch(t *testing.T) {
@@ -99,7 +134,8 @@ func TestUpdateLabelUsesExistingFieldsForPartialPatch(t *testing.T) {
 	repo := &fakeLabelRepository{
 		label: domainlabel.Label{ID: testLabelID, ProjectID: testProjectID, Key: "region", Value: "tokyo"},
 	}
-	service := NewService(repo, &fakeProjectAccess{role: domainproject.RoleAdmin})
+	recorder := &recordingLabelEventRecorder{}
+	service := NewService(repo, &fakeProjectAccess{role: domainproject.RoleAdmin}, recorder)
 
 	label, err := service.UpdateLabel(context.Background(), UpdateLabelInput{
 		CurrentUserID: "user-1",
@@ -116,11 +152,22 @@ func TestUpdateLabelUsesExistingFieldsForPartialPatch(t *testing.T) {
 	if repo.gotUpdate.Key != "region" || repo.gotUpdate.Value != "osaka" {
 		t.Fatalf("expected update input to preserve key and trim value, got %#v", repo.gotUpdate)
 	}
+	assertRecordedLabelEvent(t, recorder, LabelEvent{
+		Name:        LabelEventUpdateSuccess,
+		Action:      LabelActionUpdate,
+		Outcome:     LabelOutcomeSuccess,
+		ActorUserID: "user-1",
+		ProjectID:   testProjectID,
+		ProjectRef:  "engineering",
+		ProjectSlug: "engineering",
+		LabelID:     testLabelID,
+	})
 }
 
 func TestUpdateLabelRejectsEmptyPatch(t *testing.T) {
 	repo := &fakeLabelRepository{}
-	service := NewService(repo, &fakeProjectAccess{role: domainproject.RoleOwner})
+	recorder := &recordingLabelEventRecorder{}
+	service := NewService(repo, &fakeProjectAccess{role: domainproject.RoleOwner}, recorder)
 
 	_, err := service.UpdateLabel(context.Background(), UpdateLabelInput{
 		CurrentUserID: "user-1",
@@ -133,11 +180,23 @@ func TestUpdateLabelRejectsEmptyPatch(t *testing.T) {
 	if repo.gotLabelID != "" {
 		t.Fatalf("expected label lookup not to be called, got %q", repo.gotLabelID)
 	}
+	assertRecordedLabelEvent(t, recorder, LabelEvent{
+		Name:        LabelEventUpdateFailure,
+		Action:      LabelActionUpdate,
+		Outcome:     LabelOutcomeFailure,
+		Reason:      LabelReasonInvalidInput,
+		ActorUserID: "user-1",
+		ProjectID:   testProjectID,
+		ProjectRef:  "engineering",
+		ProjectSlug: "engineering",
+		LabelID:     testLabelID,
+	})
 }
 
 func TestDeleteLabelRequiresManager(t *testing.T) {
 	repo := &fakeLabelRepository{}
-	service := NewService(repo, &fakeProjectAccess{role: domainproject.RoleAdmin})
+	recorder := &recordingLabelEventRecorder{}
+	service := NewService(repo, &fakeProjectAccess{role: domainproject.RoleAdmin}, recorder)
 
 	err := service.DeleteLabel(context.Background(), DeleteLabelInput{
 		CurrentUserID: "user-1",
@@ -150,13 +209,24 @@ func TestDeleteLabelRequiresManager(t *testing.T) {
 	if repo.gotDeleteProjectID != testProjectID || repo.gotDeleteLabelID != testLabelID {
 		t.Fatalf("expected delete ids, got project=%q label=%q", repo.gotDeleteProjectID, repo.gotDeleteLabelID)
 	}
+	assertRecordedLabelEvent(t, recorder, LabelEvent{
+		Name:        LabelEventDeleteSuccess,
+		Action:      LabelActionDelete,
+		Outcome:     LabelOutcomeSuccess,
+		ActorUserID: "user-1",
+		ProjectID:   testProjectID,
+		ProjectRef:  "engineering",
+		ProjectSlug: "engineering",
+		LabelID:     testLabelID,
+	})
 }
 
 func TestResolveLabelsDelegatesToRepository(t *testing.T) {
 	repo := &fakeLabelRepository{
 		labels: []domainlabel.Label{{ID: testLabelID, ProjectID: testProjectID, Key: "region", Value: "tokyo"}},
 	}
-	service := NewService(repo, &fakeProjectAccess{})
+	recorder := &recordingLabelEventRecorder{}
+	service := NewService(repo, &fakeProjectAccess{}, recorder)
 
 	labels, err := service.GetActiveLabelsByIDsForProject(context.Background(), testProjectID, []string{testLabelID})
 	if err != nil {
@@ -168,12 +238,121 @@ func TestResolveLabelsDelegatesToRepository(t *testing.T) {
 	if repo.gotResolveProjectID != testProjectID || len(repo.gotResolveLabelIDs) != 1 || repo.gotResolveLabelIDs[0] != testLabelID {
 		t.Fatalf("expected resolve inputs, got project=%q labels=%#v", repo.gotResolveProjectID, repo.gotResolveLabelIDs)
 	}
+	assertNoLabelEvents(t, recorder)
+}
+
+func TestListLabelsRecordsTechnicalFailure(t *testing.T) {
+	recorder := &recordingLabelEventRecorder{}
+	listErr := errors.New("list labels")
+	service := NewService(&fakeLabelRepository{listErr: listErr}, &fakeProjectAccess{}, recorder)
+
+	_, err := service.ListLabels(context.Background(), ListLabelsInput{
+		CurrentUserID: "user-1",
+		ProjectRef:    "engineering",
+	})
+	if !errors.Is(err, listErr) {
+		t.Fatalf("expected list error, got %v", err)
+	}
+	assertRecordedLabelEvent(t, recorder, LabelEvent{
+		Name:        LabelEventListFailure,
+		Action:      LabelActionList,
+		Outcome:     LabelOutcomeFailure,
+		Reason:      LabelReasonLabelListFailed,
+		ActorUserID: "user-1",
+		ProjectID:   testProjectID,
+		ProjectRef:  "engineering",
+		ProjectSlug: "engineering",
+		Err:         listErr,
+	})
+}
+
+func TestCreateLabelRecordsRoleLookupFailure(t *testing.T) {
+	recorder := &recordingLabelEventRecorder{}
+	roleErr := errors.New("lookup role")
+	service := NewService(&fakeLabelRepository{}, &fakeProjectAccess{roleErr: roleErr}, recorder)
+
+	_, err := service.CreateLabel(context.Background(), CreateLabelInput{
+		CurrentUserID: "user-1",
+		ProjectRef:    "engineering",
+		Key:           "region",
+		Value:         "tokyo",
+	})
+	if !errors.Is(err, roleErr) {
+		t.Fatalf("expected role lookup error, got %v", err)
+	}
+	assertRecordedLabelEvent(t, recorder, LabelEvent{
+		Name:        LabelEventCreateFailure,
+		Action:      LabelActionCreate,
+		Outcome:     LabelOutcomeFailure,
+		Reason:      LabelReasonRoleLookupFailed,
+		ActorUserID: "user-1",
+		ProjectID:   testProjectID,
+		ProjectRef:  "engineering",
+		ProjectSlug: "engineering",
+		Err:         roleErr,
+	})
+}
+
+func TestResolveLabelsRecordsFailure(t *testing.T) {
+	recorder := &recordingLabelEventRecorder{}
+	service := NewService(&fakeLabelRepository{resolveErr: ErrLabelNotFound}, &fakeProjectAccess{}, recorder)
+
+	_, err := service.GetActiveLabelsByIDsForProject(context.Background(), testProjectID, []string{testLabelID})
+	if !errors.Is(err, ErrLabelNotFound) {
+		t.Fatalf("expected label not found, got %v", err)
+	}
+	assertRecordedLabelEvent(t, recorder, LabelEvent{
+		Name:      LabelEventResolveFailure,
+		Action:    LabelActionResolve,
+		Outcome:   LabelOutcomeFailure,
+		Reason:    LabelReasonLabelNotFound,
+		ProjectID: testProjectID,
+	})
+}
+
+func assertRecordedLabelEvent(t *testing.T, recorder *recordingLabelEventRecorder, want LabelEvent) {
+	t.Helper()
+
+	if len(recorder.events) != 1 {
+		t.Fatalf("expected one event, got %d: %#v", len(recorder.events), recorder.events)
+	}
+
+	got := recorder.events[0]
+	if got.Name != want.Name ||
+		got.Action != want.Action ||
+		got.Outcome != want.Outcome ||
+		got.Reason != want.Reason ||
+		got.ActorUserID != want.ActorUserID ||
+		got.ProjectID != want.ProjectID ||
+		got.ProjectRef != want.ProjectRef ||
+		got.ProjectSlug != want.ProjectSlug ||
+		got.LabelID != want.LabelID ||
+		!errors.Is(got.Err, want.Err) {
+		t.Fatalf("unexpected event:\n got: %#v\nwant: %#v", got, want)
+	}
+}
+
+func assertNoLabelEvents(t *testing.T, recorder *recordingLabelEventRecorder) {
+	t.Helper()
+
+	if len(recorder.events) != 0 {
+		t.Fatalf("expected no events, got %d: %#v", len(recorder.events), recorder.events)
+	}
+}
+
+type recordingLabelEventRecorder struct {
+	events []LabelEvent
+}
+
+func (r *recordingLabelEventRecorder) RecordLabelEvent(_ context.Context, event LabelEvent) {
+	r.events = append(r.events, event)
 }
 
 type fakeLabelRepository struct {
 	labels              []domainlabel.Label
 	label               domainlabel.Label
 	gotListProjectID    string
+	listErr             error
 	gotLabelID          string
 	gotCreate           domainlabel.CreateLabelStorageInput
 	createErr           error
@@ -189,6 +368,9 @@ type fakeLabelRepository struct {
 
 func (r *fakeLabelRepository) ListLabels(_ context.Context, projectID string) ([]domainlabel.Label, error) {
 	r.gotListProjectID = projectID
+	if r.listErr != nil {
+		return nil, r.listErr
+	}
 	return r.labels, nil
 }
 

@@ -26,7 +26,7 @@ func TestListLabelsReturnsProjectLabels(t *testing.T) {
 	repo := &handlerLabelRepository{
 		labels: []domainlabel.Label{newHandlerLabel("region", "tokyo")},
 	}
-	NewHandler(applabel.NewService(repo, &handlerProjectAccess{role: domainproject.RoleViewer}), &handlerTokenVerifier{
+	NewHandler(applabel.NewService(repo, &handlerProjectAccess{role: domainproject.RoleViewer}, handlerLabelEventRecorder{}), &handlerTokenVerifier{
 		claims: identity.AccessTokenClaims{Subject: testUserID, Email: "user@example.com"},
 	}).RegisterRoutes(api)
 
@@ -47,7 +47,7 @@ func TestListLabelsReturnsProjectLabels(t *testing.T) {
 func TestCreateLabelReturnsCreatedLabel(t *testing.T) {
 	_, api := humatest.New(t)
 	repo := &handlerLabelRepository{}
-	NewHandler(applabel.NewService(repo, &handlerProjectAccess{role: domainproject.RoleEditor}), &handlerTokenVerifier{
+	NewHandler(applabel.NewService(repo, &handlerProjectAccess{role: domainproject.RoleEditor}, handlerLabelEventRecorder{}), &handlerTokenVerifier{
 		claims: identity.AccessTokenClaims{Subject: testUserID, Email: "user@example.com"},
 	}).RegisterRoutes(api)
 
@@ -70,7 +70,7 @@ func TestCreateLabelReturnsCreatedLabel(t *testing.T) {
 
 func TestLabelRoutesRequireBearerToken(t *testing.T) {
 	_, api := humatest.New(t)
-	NewHandler(applabel.NewService(&handlerLabelRepository{}, &handlerProjectAccess{}), &handlerTokenVerifier{}).RegisterRoutes(api)
+	NewHandler(applabel.NewService(&handlerLabelRepository{}, &handlerProjectAccess{}, handlerLabelEventRecorder{}), &handlerTokenVerifier{}).RegisterRoutes(api)
 
 	res := api.Get("/projects/engineering/labels")
 	if res.Code != http.StatusUnauthorized {
@@ -80,7 +80,7 @@ func TestLabelRoutesRequireBearerToken(t *testing.T) {
 
 func TestCreateLabelMapsForbiddenToForbidden(t *testing.T) {
 	_, api := humatest.New(t)
-	NewHandler(applabel.NewService(&handlerLabelRepository{}, &handlerProjectAccess{role: domainproject.RoleViewer}), &handlerTokenVerifier{
+	NewHandler(applabel.NewService(&handlerLabelRepository{}, &handlerProjectAccess{role: domainproject.RoleViewer}, handlerLabelEventRecorder{}), &handlerTokenVerifier{
 		claims: identity.AccessTokenClaims{Subject: testUserID, Email: "user@example.com"},
 	}).RegisterRoutes(api)
 
@@ -95,7 +95,7 @@ func TestCreateLabelMapsForbiddenToForbidden(t *testing.T) {
 
 func TestCreateLabelMapsDuplicateToConflict(t *testing.T) {
 	_, api := humatest.New(t)
-	NewHandler(applabel.NewService(&handlerLabelRepository{createErr: applabel.ErrLabelAlreadyExists}, &handlerProjectAccess{role: domainproject.RoleOwner}), &handlerTokenVerifier{
+	NewHandler(applabel.NewService(&handlerLabelRepository{createErr: applabel.ErrLabelAlreadyExists}, &handlerProjectAccess{role: domainproject.RoleOwner}, handlerLabelEventRecorder{}), &handlerTokenVerifier{
 		claims: identity.AccessTokenClaims{Subject: testUserID, Email: "user@example.com"},
 	}).RegisterRoutes(api)
 
@@ -110,7 +110,7 @@ func TestCreateLabelMapsDuplicateToConflict(t *testing.T) {
 
 func TestUpdateLabelMapsEmptyPatchToUnprocessableEntity(t *testing.T) {
 	_, api := humatest.New(t)
-	NewHandler(applabel.NewService(&handlerLabelRepository{}, &handlerProjectAccess{role: domainproject.RoleAdmin}), &handlerTokenVerifier{
+	NewHandler(applabel.NewService(&handlerLabelRepository{}, &handlerProjectAccess{role: domainproject.RoleAdmin}, handlerLabelEventRecorder{}), &handlerTokenVerifier{
 		claims: identity.AccessTokenClaims{Subject: testUserID, Email: "user@example.com"},
 	}).RegisterRoutes(api)
 
@@ -125,7 +125,7 @@ func TestUpdateLabelReturnsUpdatedLabel(t *testing.T) {
 	repo := &handlerLabelRepository{
 		label: newHandlerLabel("region", "tokyo"),
 	}
-	NewHandler(applabel.NewService(repo, &handlerProjectAccess{role: domainproject.RoleAdmin}), &handlerTokenVerifier{
+	NewHandler(applabel.NewService(repo, &handlerProjectAccess{role: domainproject.RoleAdmin}, handlerLabelEventRecorder{}), &handlerTokenVerifier{
 		claims: identity.AccessTokenClaims{Subject: testUserID, Email: "user@example.com"},
 	}).RegisterRoutes(api)
 
@@ -148,7 +148,7 @@ func TestUpdateLabelReturnsUpdatedLabel(t *testing.T) {
 func TestDeleteLabelReturnsNoContent(t *testing.T) {
 	_, api := humatest.New(t)
 	repo := &handlerLabelRepository{}
-	NewHandler(applabel.NewService(repo, &handlerProjectAccess{role: domainproject.RoleAdmin}), &handlerTokenVerifier{
+	NewHandler(applabel.NewService(repo, &handlerProjectAccess{role: domainproject.RoleAdmin}, handlerLabelEventRecorder{}), &handlerTokenVerifier{
 		claims: identity.AccessTokenClaims{Subject: testUserID, Email: "user@example.com"},
 	}).RegisterRoutes(api)
 
@@ -163,7 +163,7 @@ func TestDeleteLabelReturnsNoContent(t *testing.T) {
 
 func TestDeleteLabelMapsMissingLabelToNotFound(t *testing.T) {
 	_, api := humatest.New(t)
-	NewHandler(applabel.NewService(&handlerLabelRepository{deleteErr: applabel.ErrLabelNotFound}, &handlerProjectAccess{role: domainproject.RoleOwner}), &handlerTokenVerifier{
+	NewHandler(applabel.NewService(&handlerLabelRepository{deleteErr: applabel.ErrLabelNotFound}, &handlerProjectAccess{role: domainproject.RoleOwner}, handlerLabelEventRecorder{}), &handlerTokenVerifier{
 		claims: identity.AccessTokenClaims{Subject: testUserID, Email: "user@example.com"},
 	}).RegisterRoutes(api)
 
@@ -184,6 +184,10 @@ func (v *handlerTokenVerifier) VerifyAccessToken(context.Context, string) (ident
 	}
 	return v.claims, nil
 }
+
+type handlerLabelEventRecorder struct{}
+
+func (handlerLabelEventRecorder) RecordLabelEvent(context.Context, applabel.LabelEvent) {}
 
 type handlerLabelRepository struct {
 	labels           []domainlabel.Label
