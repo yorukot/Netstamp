@@ -20,6 +20,7 @@ export interface DocNavGroup {
 
 export interface SearchEntry extends DocNavItem {
 	keywords: string;
+	content: string;
 }
 
 export const githubBaseUrl = "https://github.com/yorukot/netstamp/blob/main";
@@ -88,6 +89,18 @@ function parseFrontmatter(source: string): DocFrontmatter {
 		frontmatter[entry[1] as keyof DocFrontmatter] = cleanFrontmatterValue(entry[2]);
 		return frontmatter;
 	}, {});
+}
+
+function searchContentFromSource(source: string) {
+	return source
+		.replace(/^---\s*\n[\s\S]*?\n---/, " ")
+		.replace(/```[A-Za-z0-9_-]*\s*/g, " ")
+		.replace(/import\s+[^;]+;?/g, " ")
+		.replace(/<[^>]+>/g, " ")
+		.replace(/[{}#[\]()`*_~>|-]/g, " ")
+		.replace(/\s+/g, " ")
+		.trim()
+		.toLowerCase();
 }
 
 function toTitleCase(value: string) {
@@ -182,9 +195,12 @@ export const docsNav: DocNavGroup[] = Array.from(
 	}, new Map<string, DocNavItem[]>())
 ).map(([title, items]) => ({ title, items }));
 
+const docSourcesByHref = new Map(Object.entries(docFiles).map(([filePath, source]) => [routeFromFilePath(filePath), source]));
+
 export const docsSearchIndex: SearchEntry[] = docsNav.flatMap(group =>
 	group.items.map(item => ({
 		...item,
-		keywords: `${group.title} ${item.title} ${item.description} ${item.href}`.toLowerCase()
+		keywords: `${group.title} ${item.title} ${item.description} ${item.href}`.toLowerCase(),
+		content: searchContentFromSource(docSourcesByHref.get(item.href) ?? "")
 	}))
 );

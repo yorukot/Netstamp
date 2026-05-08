@@ -41,7 +41,7 @@ const dataJson = JSON.stringify(docsSearchIndex);
 
 	const entries = JSON.parse((root as HTMLElement | null)?.dataset.searchIndex ?? "[]");
 	const fuse = new Fuse(entries, {
-		keys: ["title", "description", "keywords"],
+		keys: ["title", "description", "keywords", "content"],
 		threshold: 0.35,
 		minMatchCharLength: 2
 	});
