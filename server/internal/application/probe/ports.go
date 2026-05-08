@@ -4,11 +4,15 @@ import (
 	"context"
 
 	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
+	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 )
 
 type Repository interface {
-	GetProjectIDForUser(ctx context.Context, projectRef string, userID string) (string, error)
 	CreateProbe(ctx context.Context, input domainprobe.CreateProbeStorageInput) (domainprobe.Probe, error)
+}
+
+type ProjectAccess interface {
+	GetProjectForUser(ctx context.Context, projectRef string, userID string) (domainproject.Project, error)
 }
 
 type SecretGenerator interface {

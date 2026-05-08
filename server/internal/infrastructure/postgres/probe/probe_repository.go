@@ -2,7 +2,6 @@ package pgprobe
 
 import (
 	"context"
-	"errors"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -13,7 +12,6 @@ import (
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 	"github.com/yorukot/netstamp/internal/infrastructure/postgres"
 	"github.com/yorukot/netstamp/internal/infrastructure/postgres/sqlc"
-	"github.com/yorukot/netstamp/internal/normalize"
 )
 
 type ProbeRepository struct {
@@ -26,42 +24,6 @@ func NewProbeRepository(pool *pgxpool.Pool) *ProbeRepository {
 		queries: sqlc.New(pool),
 		tx:      postgres.NewTransactor(pool),
 	}
-}
-
-func (r *ProbeRepository) GetProjectIDForUser(ctx context.Context, projectRef string, userIDValue string) (string, error) {
-	ctx, span := postgres.StartDBSpan(ctx, pgprobeTracer, "projects", "postgres.projects.select_id_for_probe_user", "SELECT", "SELECT project for probe creator")
-	defer span.End()
-
-	userID, err := postgres.ParseUUID(userIDValue, domainproject.ErrProjectNotFound)
-	if err != nil {
-		return "", err
-	}
-
-	var row sqlc.Project
-	projectID, parseErr := uuid.Parse(projectRef)
-	if parseErr == nil {
-		row, err = r.queries.GetProjectForUser(ctx, sqlc.GetProjectForUserParams{
-			ID:     projectID,
-			UserID: userID,
-		})
-	} else {
-		if !normalize.IsProjectSlug(projectRef) {
-			return "", domainproject.ErrProjectNotFound
-		}
-		row, err = r.queries.GetProjectBySlugForUser(ctx, sqlc.GetProjectBySlugForUserParams{
-			Slug:   projectRef,
-			UserID: userID,
-		})
-	}
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return "", domainproject.ErrProjectNotFound
-		}
-		postgres.RecordDBSpanError(span, err)
-		return "", err
-	}
-
-	return row.ID.String(), nil
 }
 
 func (r *ProbeRepository) CreateProbe(ctx context.Context, input domainprobe.CreateProbeStorageInput) (domainprobe.Probe, error) {

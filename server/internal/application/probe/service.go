@@ -10,13 +10,15 @@ import (
 
 type Service struct {
 	repo            Repository
+	projectAccess   ProjectAccess
 	secretGenerator SecretGenerator
 	events          EventRecorder
 }
 
-func NewService(repo Repository, secretGenerator SecretGenerator, events EventRecorder) *Service {
+func NewService(repo Repository, projectAccess ProjectAccess, secretGenerator SecretGenerator, events EventRecorder) *Service {
 	return &Service{
 		repo:            repo,
+		projectAccess:   projectAccess,
 		secretGenerator: secretGenerator,
 		events:          events,
 	}
@@ -32,14 +34,14 @@ func (s *Service) CreateProbe(ctx context.Context, input CreateProbeInput) (Crea
 		return CreateProbeOutput{}, flow.businessFailure(ProbeEventCreateFailure, ProbeReasonInvalidInput, err)
 	}
 
-	projectID, err := s.repo.GetProjectIDForUser(ctx, input.ProjectRef, input.CurrentUserID)
+	project, err := s.projectAccess.GetProjectForUser(ctx, input.ProjectRef, input.CurrentUserID)
 	if errors.Is(err, ErrProjectNotFound) {
 		return CreateProbeOutput{}, flow.businessFailure(ProbeEventCreateFailure, ProbeReasonProjectNotFound, err)
 	}
 	if err != nil {
 		return CreateProbeOutput{}, flow.technicalFailure(ProbeEventCreateFailure, ProbeReasonProjectLookupFailed, err)
 	}
-	flow.setProjectID(projectID)
+	flow.setProjectID(project.ID)
 
 	if s.secretGenerator == nil {
 		return CreateProbeOutput{}, flow.technicalFailure(
@@ -54,7 +56,7 @@ func (s *Service) CreateProbe(ctx context.Context, input CreateProbeInput) (Crea
 	}
 
 	probe, err := s.repo.CreateProbe(ctx, domainprobe.CreateProbeStorageInput{
-		ProjectID:  projectID,
+		ProjectID:  project.ID,
 		Name:       normalized.name,
 		Enabled:    normalized.enabled,
 		City:       normalized.city,

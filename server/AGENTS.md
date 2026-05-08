@@ -38,6 +38,14 @@ No GraphQL, message queues, background workers, scheduled jobs, email, payment, 
 - Config (`internal/config`): Viper-based environment loading, defaults, and validation. Add new env keys here and mirror them in `.env.example` when operators need to set them.
 - Cross-cutting (`internal/logger`, `internal/observability`): request-scoped loggers, auth event recording, trace fields, tracer provider setup, and span helpers.
 
+## Cross-Feature Repository Reuse
+
+When one application feature needs data or access checks that are already owned by another feature, define a narrow capability port in the consuming application package and wire an existing repository or dedicated adapter into it from `internal/app/bootstrap.go`. Do not duplicate SQL, UUID/slug parsing, membership checks, or repository methods just because the consuming feature has its own repository.
+
+Keep feature services independent: an application service should not call another feature's application service just to reuse repository behavior, because that imports the other feature's event semantics, tracing spans, and use-case policy. The consuming service should own its own events, spans, sentinel-error mapping, and business policy while depending on a small interface such as project access, user lookup, or membership lookup.
+
+Repository packages should stay aligned with the data/capability they own. If two features need the same persistence capability, prefer reusing the existing repository through an application port or extracting a small infrastructure helper over copying sqlc calls into a second repository package. For example, a probe use case that needs to resolve a project for the current user should depend on a project-access port implemented by the project repository, while the probe repository remains focused on probe persistence.
+
 ## Libraries & Dependencies
 
 Direct backend dependencies are declared in `server/go.mod`.

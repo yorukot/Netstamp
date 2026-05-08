@@ -12,6 +12,7 @@ import (
 	appprobe "github.com/yorukot/netstamp/internal/application/probe"
 	"github.com/yorukot/netstamp/internal/domain/identity"
 	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
+	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 )
 
 const (
@@ -24,7 +25,8 @@ const (
 func TestCreateProbeReturnsCreatedProbeAndSecret(t *testing.T) {
 	_, api := humatest.New(t)
 	repo := &handlerProbeRepository{}
-	NewHandler(appprobe.NewService(repo, handlerSecretGenerator{
+	projectAccess := &handlerProjectAccess{}
+	NewHandler(appprobe.NewService(repo, projectAccess, handlerSecretGenerator{
 		plaintext: "plain-secret",
 		hash:      "secret-hash",
 	}, handlerProbeEventRecorder{}), &handlerTokenVerifier{
@@ -60,14 +62,14 @@ func TestCreateProbeReturnsCreatedProbeAndSecret(t *testing.T) {
 	if len(body.Probe.Labels) != 1 || body.Probe.Labels[0].ID != testLabelID {
 		t.Fatalf("expected full labels, got %#v", body.Probe.Labels)
 	}
-	if repo.gotProjectRef != "engineering" {
-		t.Fatalf("expected project ref, got %q", repo.gotProjectRef)
+	if projectAccess.gotProjectRef != "engineering" {
+		t.Fatalf("expected project ref, got %q", projectAccess.gotProjectRef)
 	}
 }
 
 func TestCreateProbeRequiresBearerToken(t *testing.T) {
 	_, api := humatest.New(t)
-	NewHandler(appprobe.NewService(&handlerProbeRepository{}, handlerSecretGenerator{
+	NewHandler(appprobe.NewService(&handlerProbeRepository{}, &handlerProjectAccess{}, handlerSecretGenerator{
 		plaintext: "plain-secret",
 		hash:      "secret-hash",
 	}, handlerProbeEventRecorder{}), &handlerTokenVerifier{}).RegisterRoutes(api)
@@ -83,7 +85,7 @@ func TestCreateProbeRequiresBearerToken(t *testing.T) {
 
 func TestCreateProbeMapsInvalidInputToUnprocessableEntity(t *testing.T) {
 	_, api := humatest.New(t)
-	NewHandler(appprobe.NewService(&handlerProbeRepository{}, handlerSecretGenerator{
+	NewHandler(appprobe.NewService(&handlerProbeRepository{}, &handlerProjectAccess{}, handlerSecretGenerator{
 		plaintext: "plain-secret",
 		hash:      "secret-hash",
 	}, handlerProbeEventRecorder{}), &handlerTokenVerifier{
@@ -101,8 +103,8 @@ func TestCreateProbeMapsInvalidInputToUnprocessableEntity(t *testing.T) {
 
 func TestCreateProbeMapsInaccessibleProjectToNotFound(t *testing.T) {
 	_, api := humatest.New(t)
-	NewHandler(appprobe.NewService(&handlerProbeRepository{
-		projectErr: appprobe.ErrProjectNotFound,
+	NewHandler(appprobe.NewService(&handlerProbeRepository{}, &handlerProjectAccess{
+		err: appprobe.ErrProjectNotFound,
 	}, handlerSecretGenerator{
 		plaintext: "plain-secret",
 		hash:      "secret-hash",
@@ -123,7 +125,7 @@ func TestCreateProbeMapsMissingLabelToNotFound(t *testing.T) {
 	_, api := humatest.New(t)
 	NewHandler(appprobe.NewService(&handlerProbeRepository{
 		createErr: appprobe.ErrLabelNotFound,
-	}, handlerSecretGenerator{
+	}, &handlerProjectAccess{}, handlerSecretGenerator{
 		plaintext: "plain-secret",
 		hash:      "secret-hash",
 	}, handlerProbeEventRecorder{}), &handlerTokenVerifier{
@@ -157,18 +159,8 @@ func (v *handlerTokenVerifier) VerifyAccessToken(context.Context, string) (ident
 }
 
 type handlerProbeRepository struct {
-	gotProjectRef  string
-	projectErr     error
 	gotCreateInput domainprobe.CreateProbeStorageInput
 	createErr      error
-}
-
-func (r *handlerProbeRepository) GetProjectIDForUser(_ context.Context, projectRef string, _ string) (string, error) {
-	r.gotProjectRef = projectRef
-	if r.projectErr != nil {
-		return "", r.projectErr
-	}
-	return testProjectID, nil
 }
 
 func (r *handlerProbeRepository) CreateProbe(_ context.Context, input domainprobe.CreateProbeStorageInput) (domainprobe.Probe, error) {
@@ -193,6 +185,19 @@ func (r *handlerProbeRepository) CreateProbe(_ context.Context, input domainprob
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}, nil
+}
+
+type handlerProjectAccess struct {
+	gotProjectRef string
+	err           error
+}
+
+func (r *handlerProjectAccess) GetProjectForUser(_ context.Context, projectRef string, _ string) (domainproject.Project, error) {
+	r.gotProjectRef = projectRef
+	if r.err != nil {
+		return domainproject.Project{}, r.err
+	}
+	return domainproject.Project{ID: testProjectID, Slug: "engineering"}, nil
 }
 
 type handlerSecretGenerator struct {

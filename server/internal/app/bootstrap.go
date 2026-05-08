@@ -92,7 +92,7 @@ func New(ctx context.Context) (*Application, error) {
 	projectRepo := pgproject.NewProjectRepository(dbPool)
 	projectSvc := appproject.NewService(projectRepo, projectEvents)
 	probeRepo := pgprobe.NewProbeRepository(dbPool)
-	probeSvc := appprobe.NewService(probeRepo, security.NewProbeSecretGenerator(), probeEvents)
+	probeSvc := appprobe.NewService(probeRepo, projectRepo, security.NewProbeSecretGenerator(), probeEvents)
 	readiness := postgres.NewReadinessCheck(dbPool)
 
 	httpHandler := httpserver.NewRouter(httpserver.Dependencies{
