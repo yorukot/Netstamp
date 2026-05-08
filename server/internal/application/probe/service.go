@@ -3,9 +3,8 @@ package probe
 import (
 	"context"
 	"fmt"
-	"strings"
 
-	"github.com/google/uuid"
+	"github.com/yorukot/netstamp/internal/normalize"
 )
 
 type Service struct {
@@ -69,11 +68,11 @@ type normalizedCreateProbeInput struct {
 }
 
 func normalizeCreateProbeInput(input CreateProbeInput) (normalizedCreateProbeInput, error) {
-	name, err := normalizeRequired(input.Name)
+	name, err := normalize.RequiredString(input.Name, ErrInvalidInput)
 	if err != nil {
 		return normalizedCreateProbeInput{}, err
 	}
-	city, err := normalizeOptional(input.City)
+	city, err := normalize.OptionalString(input.City, ErrInvalidInput)
 	if err != nil {
 		return normalizedCreateProbeInput{}, err
 	}
@@ -81,7 +80,7 @@ func normalizeCreateProbeInput(input CreateProbeInput) (normalizedCreateProbeInp
 	if err != nil {
 		return normalizedCreateProbeInput{}, err
 	}
-	labelIDs, err := normalizeLabelIDs(input.LabelIDs)
+	labelIDs, err := normalize.CanonicalUUIDSet(input.LabelIDs, ErrInvalidInput)
 	if err != nil {
 		return normalizedCreateProbeInput{}, err
 	}
@@ -101,28 +100,6 @@ func normalizeCreateProbeInput(input CreateProbeInput) (normalizedCreateProbeInp
 	}, nil
 }
 
-func normalizeRequired(value string) (string, error) {
-	value = strings.TrimSpace(value)
-	if value == "" {
-		return "", ErrInvalidInput
-	}
-
-	return value, nil
-}
-
-func normalizeOptional(value *string) (*string, error) {
-	if value == nil {
-		return nil, nil
-	}
-
-	normalized := strings.TrimSpace(*value)
-	if normalized == "" {
-		return nil, ErrInvalidInput
-	}
-
-	return &normalized, nil
-}
-
 func normalizeCoordinates(latitude *float64, longitude *float64) (*float64, *float64, error) {
 	if (latitude == nil) != (longitude == nil) {
 		return nil, nil, ErrInvalidInput
@@ -134,28 +111,4 @@ func normalizeCoordinates(latitude *float64, longitude *float64) (*float64, *flo
 	lat := *latitude
 	lon := *longitude
 	return &lat, &lon, nil
-}
-
-func normalizeLabelIDs(labelIDs []string) ([]string, error) {
-	if len(labelIDs) == 0 {
-		return nil, nil
-	}
-
-	seen := make(map[string]struct{}, len(labelIDs))
-	normalized := make([]string, 0, len(labelIDs))
-	for _, labelIDValue := range labelIDs {
-		labelID, err := uuid.Parse(strings.TrimSpace(labelIDValue))
-		if err != nil {
-			return nil, ErrInvalidInput
-		}
-
-		canonical := labelID.String()
-		if _, ok := seen[canonical]; ok {
-			continue
-		}
-		seen[canonical] = struct{}{}
-		normalized = append(normalized, canonical)
-	}
-
-	return normalized, nil
 }

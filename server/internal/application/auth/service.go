@@ -3,10 +3,10 @@ package auth
 import (
 	"context"
 	"errors"
-	"strings"
 	"unicode/utf8"
 
 	"github.com/yorukot/netstamp/internal/domain/identity"
+	"github.com/yorukot/netstamp/internal/normalize"
 )
 
 const maxDisplayNameLength = 100
@@ -29,13 +29,13 @@ func NewService(users UserRepository, hasher PasswordHasher, tokens TokenIssuer,
 
 // Register is the service entry for the register action
 func (s *Service) Register(ctx context.Context, input RegisterInput) (AuthAccessResult, error) {
-	email := normalizeEmail(input.Email)
-	displayName := normalizeDisplayName(input.DisplayName)
+	email := normalize.Email(input.Email)
+	displayName, displayNameErr := normalize.RequiredString(input.DisplayName, ErrDisplayNameRequired)
 	ctx, flow := s.startAuthFlow(ctx, "auth.register", AuthActionRegister, email)
 	defer flow.End()
 
-	if displayName == "" {
-		return AuthAccessResult{}, flow.BusinessFailure(AuthEventRegisterFailure, AuthReasonDisplayNameInvalid, ErrDisplayNameRequired)
+	if displayNameErr != nil {
+		return AuthAccessResult{}, flow.BusinessFailure(AuthEventRegisterFailure, AuthReasonDisplayNameInvalid, displayNameErr)
 	}
 	if utf8.RuneCountInString(displayName) > maxDisplayNameLength {
 		return AuthAccessResult{}, flow.BusinessFailure(AuthEventRegisterFailure, AuthReasonDisplayNameInvalid, ErrDisplayNameTooLong)
@@ -71,7 +71,7 @@ func (s *Service) Register(ctx context.Context, input RegisterInput) (AuthAccess
 
 // Login is the enrty for the login action
 func (s *Service) Login(ctx context.Context, input LoginInput) (AuthAccessResult, error) {
-	email := normalizeEmail(input.Email)
+	email := normalize.Email(input.Email)
 	ctx, flow := s.startAuthFlow(ctx, "auth.login", AuthActionLogin, email)
 	defer flow.End()
 
@@ -174,12 +174,4 @@ func (s *Service) getUserByEmail(ctx context.Context, email string) (identity.Us
 	}
 
 	return user, nil
-}
-
-func normalizeEmail(value string) string {
-	return strings.ToLower(strings.TrimSpace(value))
-}
-
-func normalizeDisplayName(value string) string {
-	return strings.TrimSpace(value)
 }

@@ -12,6 +12,7 @@ import (
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 	"github.com/yorukot/netstamp/internal/infrastructure/postgres"
 	"github.com/yorukot/netstamp/internal/infrastructure/postgres/sqlc"
+	"github.com/yorukot/netstamp/internal/normalize"
 )
 
 type ProjectRepository struct {
@@ -107,7 +108,7 @@ func (r *ProjectRepository) GetProjectForUser(ctx context.Context, projectRef st
 			UserID: userID,
 		})
 	} else {
-		if !appproject.IsValidSlug(projectRef) {
+		if !normalize.IsProjectSlug(projectRef) {
 			return domainproject.Project{}, appproject.ErrProjectNotFound
 		}
 		row, err = r.queries.GetProjectBySlugForUser(ctx, sqlc.GetProjectBySlugForUserParams{

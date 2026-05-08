@@ -2,17 +2,10 @@ package project
 
 import (
 	"context"
-	"regexp"
-	"strings"
 
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
+	"github.com/yorukot/netstamp/internal/normalize"
 )
-
-var slugPattern = regexp.MustCompile(`^[a-z0-9-]+$`)
-
-func IsValidSlug(value string) bool {
-	return slugPattern.MatchString(value)
-}
 
 type Service struct {
 	repo Repository
@@ -23,11 +16,11 @@ func NewService(repo Repository) *Service {
 }
 
 func (s *Service) CreateProject(ctx context.Context, input CreateProjectInput) (domainproject.Project, error) {
-	name, err := normalizeRequired(input.Name)
+	name, err := normalize.RequiredString(input.Name, ErrInvalidInput)
 	if err != nil {
 		return domainproject.Project{}, err
 	}
-	slug, err := normalizeSlug(input.Slug)
+	slug, err := normalize.ProjectSlug(input.Slug, ErrInvalidInput)
 	if err != nil {
 		return domainproject.Project{}, err
 	}
@@ -64,13 +57,13 @@ func (s *Service) UpdateProject(ctx context.Context, input UpdateProjectInput) (
 	name := project.Name
 	slug := project.Slug
 	if input.Name != nil {
-		name, err = normalizeRequired(*input.Name)
+		name, err = normalize.RequiredString(*input.Name, ErrInvalidInput)
 		if err != nil {
 			return domainproject.Project{}, err
 		}
 	}
 	if input.Slug != nil {
-		slug, err = normalizeSlug(*input.Slug)
+		slug, err = normalize.ProjectSlug(*input.Slug, ErrInvalidInput)
 		if err != nil {
 			return domainproject.Project{}, err
 		}
@@ -185,24 +178,6 @@ func (s *Service) UpdateMemberRole(ctx context.Context, input UpdateMemberRoleIn
 		UserID:    input.UserID,
 		Role:      input.Role,
 	})
-}
-
-func normalizeRequired(value string) (string, error) {
-	value = strings.TrimSpace(value)
-	if value == "" {
-		return "", ErrInvalidInput
-	}
-
-	return value, nil
-}
-
-func normalizeSlug(value string) (string, error) {
-	value = strings.TrimSpace(value)
-	if value == "" || !IsValidSlug(value) {
-		return "", ErrInvalidInput
-	}
-
-	return value, nil
 }
 
 func validateRole(role domainproject.Role) error {

@@ -10,10 +10,10 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	appprobe "github.com/yorukot/netstamp/internal/application/probe"
-	appproject "github.com/yorukot/netstamp/internal/application/project"
 	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
 	"github.com/yorukot/netstamp/internal/infrastructure/postgres"
 	"github.com/yorukot/netstamp/internal/infrastructure/postgres/sqlc"
+	"github.com/yorukot/netstamp/internal/normalize"
 )
 
 type ProbeRepository struct {
@@ -45,7 +45,7 @@ func (r *ProbeRepository) GetProjectIDForUser(ctx context.Context, projectRef st
 			UserID: userID,
 		})
 	} else {
-		if !appproject.IsValidSlug(projectRef) {
+		if !normalize.IsProjectSlug(projectRef) {
 			return "", appprobe.ErrProjectNotFound
 		}
 		row, err = r.queries.GetProjectBySlugForUser(ctx, sqlc.GetProjectBySlugForUserParams{
