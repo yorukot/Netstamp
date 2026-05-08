@@ -177,7 +177,7 @@ func (r *handlerProjectRepository) ListProjectsForUser(context.Context, string) 
 	}}, nil
 }
 
-func (r *handlerProjectRepository) GetProjectForUser(_ context.Context, projectRef string, _ string) (domainproject.Project, error) {
+func (r *handlerProjectRepository) GetProjectForUser(_ context.Context, projectRef, _ string) (domainproject.Project, error) {
 	r.gotProjectRef = projectRef
 	return domainproject.Project{
 		ID:              testProjectID,

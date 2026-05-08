@@ -12,7 +12,7 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-func validateRequiredString(key string, value string) []error {
+func validateRequiredString(key, value string) []error {
 	if strings.TrimSpace(value) == "" {
 		return []error{fmt.Errorf("%s must not be empty", key)}
 	}
@@ -44,7 +44,7 @@ func validateAPIVersion(value string) []error {
 	return nil
 }
 
-func validateListenAddr(key string, value string) []error {
+func validateListenAddr(key, value string) []error {
 	if strings.TrimSpace(value) == "" {
 		return []error{fmt.Errorf("%s must not be empty", key)}
 	}
@@ -99,7 +99,7 @@ func validateDatabaseSSLMode(value string) []error {
 	}
 }
 
-func validateOptionalHTTPURL(key string, value string) []error {
+func validateOptionalHTTPURL(key, value string) []error {
 	trimmed := strings.TrimSpace(value)
 	if trimmed == "" {
 		return nil
@@ -116,7 +116,7 @@ func validateOptionalHTTPURL(key string, value string) []error {
 	return nil
 }
 
-func validateOptionalHTTPOrigin(key string, value string) []error {
+func validateOptionalHTTPOrigin(key, value string) []error {
 	trimmed := strings.TrimSpace(value)
 	if trimmed == "" {
 		return nil

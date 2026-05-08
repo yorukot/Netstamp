@@ -89,7 +89,7 @@ func (r *ProbeRepository) CreateProbe(ctx context.Context, input domainprobe.Cre
 	return created, nil
 }
 
-func pointFromCoordinates(longitude *float64, latitude *float64) pgtype.Point {
+func pointFromCoordinates(longitude, latitude *float64) pgtype.Point {
 	if longitude == nil || latitude == nil {
 		return pgtype.Point{}
 	}

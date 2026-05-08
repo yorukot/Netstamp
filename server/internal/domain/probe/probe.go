@@ -7,9 +7,7 @@ import (
 	domainlabel "github.com/yorukot/netstamp/internal/domain/label"
 )
 
-var (
-	ErrInvalidInput = errors.New("probe input invalid")
-)
+var ErrInvalidInput = errors.New("probe input invalid")
 
 type State string
 

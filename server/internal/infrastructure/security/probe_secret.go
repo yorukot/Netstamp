@@ -40,7 +40,7 @@ func HashProbeSecret(secret string) string {
 	return hex.EncodeToString(digest[:])
 }
 
-func VerifyProbeSecret(secret string, expectedHash string) bool {
+func VerifyProbeSecret(secret, expectedHash string) bool {
 	actualHash := HashProbeSecret(secret)
 	return subtle.ConstantTimeCompare([]byte(actualHash), []byte(expectedHash)) == 1
 }

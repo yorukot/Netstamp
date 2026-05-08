@@ -308,7 +308,7 @@ func (r *fakeCheckRepository) ListChecks(_ context.Context, projectID string) ([
 	return r.checks, nil
 }
 
-func (r *fakeCheckRepository) GetCheck(_ context.Context, projectID string, checkID string) (domaincheck.Check, error) {
+func (r *fakeCheckRepository) GetCheck(_ context.Context, projectID, checkID string) (domaincheck.Check, error) {
 	r.gotGetProjectID = projectID
 	r.gotGetCheckID = checkID
 	if r.getErr != nil {
@@ -355,7 +355,7 @@ func (r *fakeCheckRepository) UpdateCheck(_ context.Context, input domaincheck.U
 	return check, nil
 }
 
-func (r *fakeCheckRepository) SoftDeleteCheck(_ context.Context, projectID string, checkID string) error {
+func (r *fakeCheckRepository) SoftDeleteCheck(_ context.Context, projectID, checkID string) error {
 	r.gotDeleteProjectID = projectID
 	r.gotDeleteCheckID = checkID
 	return r.deleteErr
@@ -370,7 +370,7 @@ type fakeProjectAccess struct {
 	gotRoleProjectID string
 }
 
-func (r *fakeProjectAccess) GetProjectForUser(_ context.Context, projectRef string, userID string) (domainproject.Project, error) {
+func (r *fakeProjectAccess) GetProjectForUser(_ context.Context, projectRef, userID string) (domainproject.Project, error) {
 	r.gotProjectRef = projectRef
 	r.gotUserID = userID
 	if r.projectErr != nil {
@@ -379,7 +379,7 @@ func (r *fakeProjectAccess) GetProjectForUser(_ context.Context, projectRef stri
 	return domainproject.Project{ID: testProjectID, Slug: "engineering"}, nil
 }
 
-func (r *fakeProjectAccess) GetMemberRole(_ context.Context, projectID string, userID string) (domainproject.Role, error) {
+func (r *fakeProjectAccess) GetMemberRole(_ context.Context, projectID, userID string) (domainproject.Role, error) {
 	r.gotRoleProjectID = projectID
 	r.gotUserID = userID
 	if r.roleErr != nil {
@@ -407,7 +407,7 @@ func (r *fakeLabelAccess) GetActiveLabelsByIDsForProject(_ context.Context, proj
 	return r.labels, nil
 }
 
-func newFakeCheck(projectID string, checkID string) domaincheck.Check {
+func newFakeCheck(projectID, checkID string) domaincheck.Check {
 	return domaincheck.Check{
 		ID:              checkID,
 		ProjectID:       projectID,
@@ -427,7 +427,7 @@ func newFakeCheck(projectID string, checkID string) domaincheck.Check {
 	}
 }
 
-func newFakeLabel(projectID string, labelID string) domainlabel.Label {
+func newFakeLabel(projectID, labelID string) domainlabel.Label {
 	return domainlabel.Label{
 		ID:        labelID,
 		ProjectID: projectID,

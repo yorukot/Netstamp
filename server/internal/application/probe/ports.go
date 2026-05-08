@@ -13,8 +13,8 @@ type Repository interface {
 }
 
 type ProjectAccess interface {
-	GetProjectForUser(ctx context.Context, projectRef string, userID string) (domainproject.Project, error)
-	GetMemberRole(ctx context.Context, projectID string, userID string) (domainproject.Role, error)
+	GetProjectForUser(ctx context.Context, projectRef, userID string) (domainproject.Project, error)
+	GetMemberRole(ctx context.Context, projectID, userID string) (domainproject.Role, error)
 }
 
 type LabelAccess interface {
@@ -22,7 +22,7 @@ type LabelAccess interface {
 }
 
 type SecretGenerator interface {
-	GenerateProbeSecret() (plaintext string, hash string, err error)
+	GenerateProbeSecret() (plaintext, hash string, err error)
 }
 
 type EventRecorder interface {

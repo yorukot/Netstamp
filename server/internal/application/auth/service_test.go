@@ -311,7 +311,7 @@ func (h *fakePasswordHasher) Hash(password string) (string, error) {
 	return "hashed:" + password, nil
 }
 
-func (h *fakePasswordHasher) Compare(_ string, _ string) error {
+func (h *fakePasswordHasher) Compare(_, _ string) error {
 	return h.compareErr
 }
 

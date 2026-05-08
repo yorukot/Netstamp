@@ -147,7 +147,7 @@ func (h *handlerPasswordHasher) Hash(password string) (string, error) {
 	return "hashed:" + password, nil
 }
 
-func (h *handlerPasswordHasher) Compare(_ string, _ string) error {
+func (h *handlerPasswordHasher) Compare(_, _ string) error {
 	return h.compareErr
 }
 

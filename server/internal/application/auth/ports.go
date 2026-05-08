@@ -13,7 +13,7 @@ type UserRepository interface {
 
 type PasswordHasher interface {
 	Hash(password string) (string, error)
-	Compare(password string, passwordHash string) error
+	Compare(password, passwordHash string) error
 }
 
 type TokenIssuer interface {

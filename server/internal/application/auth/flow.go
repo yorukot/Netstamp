@@ -3,8 +3,9 @@ package auth
 import (
 	"context"
 
-	"github.com/yorukot/netstamp/internal/domain/identity"
 	"go.opentelemetry.io/otel/trace"
+
+	"github.com/yorukot/netstamp/internal/domain/identity"
 )
 
 type authFlow struct {

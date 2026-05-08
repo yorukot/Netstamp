@@ -91,7 +91,7 @@ func (r *ProjectRepository) ListProjectsForUser(ctx context.Context, userIDValue
 	return projects, nil
 }
 
-func (r *ProjectRepository) GetProjectForUser(ctx context.Context, projectRef string, userIDValue string) (domainproject.Project, error) {
+func (r *ProjectRepository) GetProjectForUser(ctx context.Context, projectRef, userIDValue string) (domainproject.Project, error) {
 	ctx, span := postgres.StartDBSpan(ctx, pgprojectTracer, "projects", "postgres.projects.select_for_user", "SELECT", "SELECT project for member")
 	defer span.End()
 
@@ -127,7 +127,7 @@ func (r *ProjectRepository) GetProjectForUser(ctx context.Context, projectRef st
 	return mapProject(row), nil
 }
 
-func (r *ProjectRepository) GetMemberRole(ctx context.Context, projectIDValue string, userIDValue string) (domainproject.Role, error) {
+func (r *ProjectRepository) GetMemberRole(ctx context.Context, projectIDValue, userIDValue string) (domainproject.Role, error) {
 	ctx, span := postgres.StartDBSpan(ctx, pgprojectTracer, "project_members", "postgres.project_members.select_role", "SELECT", "SELECT active project member role")
 	defer span.End()
 
@@ -222,7 +222,7 @@ func (r *ProjectRepository) ListMembers(ctx context.Context, projectIDValue stri
 	return members, nil
 }
 
-func (r *ProjectRepository) GetMember(ctx context.Context, projectIDValue string, userIDValue string) (domainproject.Member, error) {
+func (r *ProjectRepository) GetMember(ctx context.Context, projectIDValue, userIDValue string) (domainproject.Member, error) {
 	ctx, span := postgres.StartDBSpan(ctx, pgprojectTracer, "project_members", "postgres.project_members.select", "SELECT", "SELECT active project member")
 	defer span.End()
 
@@ -314,7 +314,7 @@ func (r *ProjectRepository) CountOwners(ctx context.Context, projectIDValue stri
 	return int(count), nil
 }
 
-func parseProjectAndUserIDs(projectIDValue string, userIDValue string) (uuid.UUID, uuid.UUID, error) {
+func parseProjectAndUserIDs(projectIDValue, userIDValue string) (uuid.UUID, uuid.UUID, error) {
 	projectID, err := postgres.ParseUUID(projectIDValue, domainproject.ErrProjectNotFound)
 	if err != nil {
 		return uuid.Nil, uuid.Nil, err

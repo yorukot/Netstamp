@@ -10,7 +10,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-func StartDBSpan(ctx context.Context, tracer trace.Tracer, collection string, name string, operation string, summary string) (context.Context, trace.Span) {
+func StartDBSpan(ctx context.Context, tracer trace.Tracer, collection, name, operation, summary string) (context.Context, trace.Span) {
 	return tracer.Start(ctx, name, trace.WithAttributes(
 		attribute.String("db.system.name", "postgresql"),
 		attribute.String("db.operation.name", operation),
@@ -19,7 +19,7 @@ func StartDBSpan(ctx context.Context, tracer trace.Tracer, collection string, na
 	))
 }
 
-func StartUserDBSpan(ctx context.Context, tracer trace.Tracer, name string, operation string, summary string) (context.Context, trace.Span) {
+func StartUserDBSpan(ctx context.Context, tracer trace.Tracer, name, operation, summary string) (context.Context, trace.Span) {
 	return StartDBSpan(ctx, tracer, "users", name, operation, summary)
 }
 

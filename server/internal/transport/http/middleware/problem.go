@@ -4,9 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	chimw "github.com/go-chi/chi/v5/middleware"
-
 	"github.com/danielgtaylor/huma/v2"
+	chimw "github.com/go-chi/chi/v5/middleware"
 )
 
 func WriteProblem(w http.ResponseWriter, r *http.Request, status int, detail string) {

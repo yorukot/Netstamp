@@ -15,7 +15,6 @@ func (h *Handler) register(ctx context.Context, input *registerInput) (*register
 		DisplayName: input.Body.DisplayName,
 		Password:    input.Body.Password,
 	})
-
 	if err != nil {
 		switch {
 		case errors.Is(err, appauth.ErrDisplayNameRequired):

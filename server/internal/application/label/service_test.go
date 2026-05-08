@@ -374,7 +374,7 @@ func (r *fakeLabelRepository) ListLabels(_ context.Context, projectID string) ([
 	return r.labels, nil
 }
 
-func (r *fakeLabelRepository) GetLabel(_ context.Context, projectID string, labelID string) (domainlabel.Label, error) {
+func (r *fakeLabelRepository) GetLabel(_ context.Context, projectID, labelID string) (domainlabel.Label, error) {
 	r.gotListProjectID = projectID
 	r.gotLabelID = labelID
 	if r.label.ID != "" {
@@ -399,7 +399,7 @@ func (r *fakeLabelRepository) UpdateLabel(_ context.Context, input domainlabel.U
 	return domainlabel.Label{ID: input.LabelID, ProjectID: input.ProjectID, Key: input.Key, Value: input.Value, CreatedAt: time.Now(), UpdatedAt: time.Now()}, nil
 }
 
-func (r *fakeLabelRepository) SoftDeleteLabel(_ context.Context, projectID string, labelID string) error {
+func (r *fakeLabelRepository) SoftDeleteLabel(_ context.Context, projectID, labelID string) error {
 	r.gotDeleteProjectID = projectID
 	r.gotDeleteLabelID = labelID
 	return r.deleteErr
@@ -423,7 +423,7 @@ type fakeProjectAccess struct {
 	gotRoleProjectID string
 }
 
-func (r *fakeProjectAccess) GetProjectForUser(_ context.Context, projectRef string, userID string) (domainproject.Project, error) {
+func (r *fakeProjectAccess) GetProjectForUser(_ context.Context, projectRef, userID string) (domainproject.Project, error) {
 	r.gotProjectRef = projectRef
 	r.gotUserID = userID
 	if r.projectErr != nil {
@@ -432,7 +432,7 @@ func (r *fakeProjectAccess) GetProjectForUser(_ context.Context, projectRef stri
 	return domainproject.Project{ID: testProjectID, Slug: "engineering"}, nil
 }
 
-func (r *fakeProjectAccess) GetMemberRole(_ context.Context, projectID string, userID string) (domainproject.Role, error) {
+func (r *fakeProjectAccess) GetMemberRole(_ context.Context, projectID, userID string) (domainproject.Role, error) {
 	r.gotRoleProjectID = projectID
 	r.gotUserID = userID
 	if r.roleErr != nil {
@@ -444,7 +444,7 @@ func (r *fakeProjectAccess) GetMemberRole(_ context.Context, projectID string, u
 	return domainproject.RoleOwner, nil
 }
 
-func newFakeLabel(projectID string, key string, value string) domainlabel.Label {
+func newFakeLabel(projectID, key, value string) domainlabel.Label {
 	return domainlabel.Label{
 		ID:        testLabelID,
 		ProjectID: projectID,

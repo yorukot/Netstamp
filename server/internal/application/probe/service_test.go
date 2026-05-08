@@ -530,7 +530,7 @@ type fakeProjectAccess struct {
 	roleErr          error
 }
 
-func (r *fakeProjectAccess) GetProjectForUser(_ context.Context, projectRef string, userID string) (domainproject.Project, error) {
+func (r *fakeProjectAccess) GetProjectForUser(_ context.Context, projectRef, userID string) (domainproject.Project, error) {
 	r.gotProjectRef = projectRef
 	r.gotUserID = userID
 	if r.err != nil {
@@ -539,7 +539,7 @@ func (r *fakeProjectAccess) GetProjectForUser(_ context.Context, projectRef stri
 	return domainproject.Project{ID: testProjectID, Slug: "engineering"}, nil
 }
 
-func (r *fakeProjectAccess) GetMemberRole(_ context.Context, projectID string, userID string) (domainproject.Role, error) {
+func (r *fakeProjectAccess) GetMemberRole(_ context.Context, projectID, userID string) (domainproject.Role, error) {
 	r.gotRoleProjectID = projectID
 	r.gotRoleUserID = userID
 	if r.roleErr != nil {

@@ -209,7 +209,7 @@ type handlerProjectAccess struct {
 	roleErr       error
 }
 
-func (r *handlerProjectAccess) GetProjectForUser(_ context.Context, projectRef string, _ string) (domainproject.Project, error) {
+func (r *handlerProjectAccess) GetProjectForUser(_ context.Context, projectRef, _ string) (domainproject.Project, error) {
 	r.gotProjectRef = projectRef
 	if r.err != nil {
 		return domainproject.Project{}, r.err

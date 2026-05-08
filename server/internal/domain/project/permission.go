@@ -27,7 +27,7 @@ func Can(role Role, action Action) bool {
 	}
 }
 
-func CanAssignRole(actorRole Role, targetRole Role) bool {
+func CanAssignRole(actorRole, targetRole Role) bool {
 	switch actorRole {
 	case RoleOwner:
 		return targetRole == RoleAdmin || targetRole == RoleEditor || targetRole == RoleViewer

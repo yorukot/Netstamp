@@ -219,7 +219,7 @@ func (r *handlerLabelRepository) UpdateLabel(_ context.Context, input domainlabe
 	return newHandlerLabel(input.Key, input.Value), nil
 }
 
-func (r *handlerLabelRepository) SoftDeleteLabel(_ context.Context, _ string, labelID string) error {
+func (r *handlerLabelRepository) SoftDeleteLabel(_ context.Context, _, labelID string) error {
 	r.gotDeleteLabelID = labelID
 	return r.deleteErr
 }
@@ -250,7 +250,7 @@ func (r *handlerProjectAccess) GetMemberRole(context.Context, string, string) (d
 	return domainproject.RoleOwner, nil
 }
 
-func newHandlerLabel(key string, value string) domainlabel.Label {
+func newHandlerLabel(key, value string) domainlabel.Label {
 	return domainlabel.Label{
 		ID:        testLabelID,
 		ProjectID: testProjectID,

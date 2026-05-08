@@ -131,7 +131,7 @@ func normalizeCreateProbeInput(input CreateProbeInput) (normalizedCreateProbeInp
 	}, nil
 }
 
-func normalizeCoordinates(latitude *float64, longitude *float64) (*float64, *float64, error) {
+func normalizeCoordinates(latitude, longitude *float64) (*float64, *float64, error) {
 	if (latitude == nil) != (longitude == nil) {
 		return nil, nil, ErrInvalidInput
 	}

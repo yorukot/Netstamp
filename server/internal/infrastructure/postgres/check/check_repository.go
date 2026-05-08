@@ -57,7 +57,7 @@ func (r *CheckRepository) ListChecks(ctx context.Context, projectIDValue string)
 	return checks, nil
 }
 
-func (r *CheckRepository) GetCheck(ctx context.Context, projectIDValue string, checkIDValue string) (domaincheck.Check, error) {
+func (r *CheckRepository) GetCheck(ctx context.Context, projectIDValue, checkIDValue string) (domaincheck.Check, error) {
 	ctx, span := postgres.StartDBSpan(ctx, pgcheckTracer, "checks", "postgres.checks.select", "SELECT", "SELECT active check for project")
 	defer span.End()
 
@@ -228,7 +228,7 @@ func (r *CheckRepository) UpdateCheck(ctx context.Context, input domaincheck.Upd
 	return updated, nil
 }
 
-func (r *CheckRepository) SoftDeleteCheck(ctx context.Context, projectIDValue string, checkIDValue string) error {
+func (r *CheckRepository) SoftDeleteCheck(ctx context.Context, projectIDValue, checkIDValue string) error {
 	ctx, span := postgres.StartDBSpan(ctx, pgcheckTracer, "checks", "postgres.checks.soft_delete", "UPDATE", "SOFT DELETE check")
 	defer span.End()
 
@@ -251,7 +251,7 @@ func (r *CheckRepository) SoftDeleteCheck(ctx context.Context, projectIDValue st
 	return nil
 }
 
-func (r *CheckRepository) listLabelsForCheck(ctx context.Context, queries *sqlc.Queries, projectID uuid.UUID, checkID uuid.UUID) ([]domainlabel.Label, error) {
+func (r *CheckRepository) listLabelsForCheck(ctx context.Context, queries *sqlc.Queries, projectID, checkID uuid.UUID) ([]domainlabel.Label, error) {
 	rows, err := queries.ListActiveLabelsForCheck(ctx, sqlc.ListActiveLabelsForCheckParams{
 		ProjectID: projectID,
 		CheckID:   checkID,
@@ -263,7 +263,7 @@ func (r *CheckRepository) listLabelsForCheck(ctx context.Context, queries *sqlc.
 	return mapLabels(rows), nil
 }
 
-func parseProjectAndCheckIDs(projectIDValue string, checkIDValue string) (uuid.UUID, uuid.UUID, error) {
+func parseProjectAndCheckIDs(projectIDValue, checkIDValue string) (uuid.UUID, uuid.UUID, error) {
 	projectID, err := postgres.ParseUUID(projectIDValue, domainproject.ErrProjectNotFound)
 	if err != nil {
 		return uuid.Nil, uuid.Nil, err

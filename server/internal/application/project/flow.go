@@ -4,8 +4,9 @@ import (
 	"context"
 	"errors"
 
-	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 	"go.opentelemetry.io/otel/trace"
+
+	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 )
 
 type projectFlow struct {

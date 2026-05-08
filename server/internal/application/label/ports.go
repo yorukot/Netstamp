@@ -9,16 +9,16 @@ import (
 
 type Repository interface {
 	ListLabels(ctx context.Context, projectID string) ([]domainlabel.Label, error)
-	GetLabel(ctx context.Context, projectID string, labelID string) (domainlabel.Label, error)
+	GetLabel(ctx context.Context, projectID, labelID string) (domainlabel.Label, error)
 	CreateLabel(ctx context.Context, input domainlabel.CreateLabelStorageInput) (domainlabel.Label, error)
 	UpdateLabel(ctx context.Context, input domainlabel.UpdateLabelStorageInput) (domainlabel.Label, error)
-	SoftDeleteLabel(ctx context.Context, projectID string, labelID string) error
+	SoftDeleteLabel(ctx context.Context, projectID, labelID string) error
 	GetActiveLabelsByIDsForProject(ctx context.Context, projectID string, labelIDs []string) ([]domainlabel.Label, error)
 }
 
 type ProjectAccess interface {
-	GetProjectForUser(ctx context.Context, projectRef string, userID string) (domainproject.Project, error)
-	GetMemberRole(ctx context.Context, projectID string, userID string) (domainproject.Role, error)
+	GetProjectForUser(ctx context.Context, projectRef, userID string) (domainproject.Project, error)
+	GetMemberRole(ctx context.Context, projectID, userID string) (domainproject.Role, error)
 }
 
 type EventRecorder interface {

@@ -228,7 +228,7 @@ func (s *Service) UpdateMemberRole(ctx context.Context, input UpdateMemberRoleIn
 	return member, nil
 }
 
-func (s *Service) loadProjectForUser(ctx context.Context, flow *projectFlow, projectRef string, userID string, failureEvent ProjectEventName) (domainproject.Project, error) {
+func (s *Service) loadProjectForUser(ctx context.Context, flow *projectFlow, projectRef, userID string, failureEvent ProjectEventName) (domainproject.Project, error) {
 	flow.setProjectRef(projectRef)
 
 	project, err := s.repo.GetProjectForUser(ctx, projectRef, userID)
@@ -240,7 +240,7 @@ func (s *Service) loadProjectForUser(ctx context.Context, flow *projectFlow, pro
 	return project, nil
 }
 
-func (s *Service) loadProjectForRead(ctx context.Context, flow *projectFlow, projectRef string, userID string, failureEvent ProjectEventName) (domainproject.Project, error) {
+func (s *Service) loadProjectForRead(ctx context.Context, flow *projectFlow, projectRef, userID string, failureEvent ProjectEventName) (domainproject.Project, error) {
 	flow.setProjectRef(projectRef)
 
 	project, err := s.repo.GetProjectForUser(ctx, projectRef, userID)
@@ -252,7 +252,7 @@ func (s *Service) loadProjectForRead(ctx context.Context, flow *projectFlow, pro
 	return project, nil
 }
 
-func (s *Service) requireRole(ctx context.Context, flow *projectFlow, projectID string, userID string, failureEvent ProjectEventName, action domainproject.Action) (domainproject.Role, error) {
+func (s *Service) requireRole(ctx context.Context, flow *projectFlow, projectID, userID string, failureEvent ProjectEventName, action domainproject.Action) (domainproject.Role, error) {
 	role, err := s.repo.GetMemberRole(ctx, projectID, userID)
 	if err != nil {
 		return "", flow.roleLookupFailure(failureEvent, err)
@@ -272,7 +272,7 @@ func validateRole(role domainproject.Role) error {
 	return ErrInvalidRole
 }
 
-func validateAssignableRole(actorRole domainproject.Role, targetRole domainproject.Role) error {
+func validateAssignableRole(actorRole, targetRole domainproject.Role) error {
 	if err := validateRole(targetRole); err != nil {
 		return err
 	}

@@ -160,7 +160,7 @@ func (s *Service) GetActiveLabelsByIDsForProject(ctx context.Context, projectID 
 	return labels, nil
 }
 
-func (s *Service) loadProject(ctx context.Context, flow *labelFlow, projectRef string, userID string, failureEvent LabelEventName) (domainproject.Project, error) {
+func (s *Service) loadProject(ctx context.Context, flow *labelFlow, projectRef, userID string, failureEvent LabelEventName) (domainproject.Project, error) {
 	project, err := s.projectAccess.GetProjectForUser(ctx, projectRef, userID)
 	if errors.Is(err, ErrProjectNotFound) {
 		return domainproject.Project{}, flow.businessFailure(failureEvent, LabelReasonProjectNotFound, err)
@@ -176,7 +176,7 @@ func (s *Service) loadProject(ctx context.Context, flow *labelFlow, projectRef s
 	return project, nil
 }
 
-func (s *Service) requireAction(ctx context.Context, flow *labelFlow, projectID string, userID string, failureEvent LabelEventName, action domainproject.Action) error {
+func (s *Service) requireAction(ctx context.Context, flow *labelFlow, projectID, userID string, failureEvent LabelEventName, action domainproject.Action) error {
 	role, err := s.projectAccess.GetMemberRole(ctx, projectID, userID)
 	if errors.Is(err, ErrProjectNotFound) {
 		return flow.businessFailure(failureEvent, LabelReasonProjectNotFound, err)
@@ -194,7 +194,7 @@ func (s *Service) requireAction(ctx context.Context, flow *labelFlow, projectID 
 	return nil
 }
 
-func normalizeLabelKeyValue(keyValue string, labelValue string) (string, string, error) {
+func normalizeLabelKeyValue(keyValue, labelValue string) (string, string, error) {
 	key, err := normalize.RequiredString(keyValue, ErrInvalidInput)
 	if err != nil {
 		return "", "", err

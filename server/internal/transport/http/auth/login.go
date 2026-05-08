@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/danielgtaylor/huma/v2"
+
 	appauth "github.com/yorukot/netstamp/internal/application/auth"
 )
 
@@ -13,7 +14,6 @@ func (h *Handler) login(ctx context.Context, input *loginInput) (*loginOutput, e
 		Email:    input.Body.Email,
 		Password: input.Body.Password,
 	})
-
 	if err != nil {
 		switch {
 		case errors.Is(err, appauth.ErrCredentialsInvalid):

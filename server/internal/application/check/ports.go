@@ -10,15 +10,15 @@ import (
 
 type Repository interface {
 	ListChecks(ctx context.Context, projectID string) ([]domaincheck.Check, error)
-	GetCheck(ctx context.Context, projectID string, checkID string) (domaincheck.Check, error)
+	GetCheck(ctx context.Context, projectID, checkID string) (domaincheck.Check, error)
 	CreateCheck(ctx context.Context, input domaincheck.CreateCheckStorageInput) (domaincheck.Check, error)
 	UpdateCheck(ctx context.Context, input domaincheck.UpdateCheckStorageInput) (domaincheck.Check, error)
-	SoftDeleteCheck(ctx context.Context, projectID string, checkID string) error
+	SoftDeleteCheck(ctx context.Context, projectID, checkID string) error
 }
 
 type ProjectAccess interface {
-	GetProjectForUser(ctx context.Context, projectRef string, userID string) (domainproject.Project, error)
-	GetMemberRole(ctx context.Context, projectID string, userID string) (domainproject.Role, error)
+	GetProjectForUser(ctx context.Context, projectRef, userID string) (domainproject.Project, error)
+	GetMemberRole(ctx context.Context, projectID, userID string) (domainproject.Role, error)
 }
 
 type LabelAccess interface {

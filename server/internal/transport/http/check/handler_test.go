@@ -187,7 +187,7 @@ func (r *handlerCheckRepository) UpdateCheck(_ context.Context, input domainchec
 	return check, nil
 }
 
-func (r *handlerCheckRepository) SoftDeleteCheck(_ context.Context, _ string, checkID string) error {
+func (r *handlerCheckRepository) SoftDeleteCheck(_ context.Context, _, checkID string) error {
 	r.gotDeleteCheckID = checkID
 	return r.deleteErr
 }

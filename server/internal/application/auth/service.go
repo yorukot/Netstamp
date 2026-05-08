@@ -139,7 +139,7 @@ func (s *Service) hashPassword(ctx context.Context, password string) (string, er
 	return passwordHash, nil
 }
 
-func (s *Service) comparePassword(ctx context.Context, password string, passwordHash string) error {
+func (s *Service) comparePassword(ctx context.Context, password, passwordHash string) error {
 	_, span := authTracer.Start(ctx, "auth.password_compare")
 	defer span.End()
 

@@ -40,7 +40,7 @@ func (r *LabelRepository) ListLabels(ctx context.Context, projectIDValue string)
 	return mapLabels(rows), nil
 }
 
-func (r *LabelRepository) GetLabel(ctx context.Context, projectIDValue string, labelIDValue string) (domainlabel.Label, error) {
+func (r *LabelRepository) GetLabel(ctx context.Context, projectIDValue, labelIDValue string) (domainlabel.Label, error) {
 	ctx, span := postgres.StartDBSpan(ctx, pglabelTracer, "labels", "postgres.labels.select", "SELECT", "SELECT active label for project")
 	defer span.End()
 
@@ -118,7 +118,7 @@ func (r *LabelRepository) UpdateLabel(ctx context.Context, input domainlabel.Upd
 	return mapLabel(row), nil
 }
 
-func (r *LabelRepository) SoftDeleteLabel(ctx context.Context, projectIDValue string, labelIDValue string) error {
+func (r *LabelRepository) SoftDeleteLabel(ctx context.Context, projectIDValue, labelIDValue string) error {
 	ctx, span := postgres.StartDBSpan(ctx, pglabelTracer, "labels", "postgres.labels.soft_delete", "UPDATE", "SOFT DELETE label")
 	defer span.End()
 
@@ -189,7 +189,7 @@ func ParseLabelIDs(values []string) ([]uuid.UUID, error) {
 	return labelIDs, nil
 }
 
-func parseProjectAndLabelIDs(projectIDValue string, labelIDValue string) (uuid.UUID, uuid.UUID, error) {
+func parseProjectAndLabelIDs(projectIDValue, labelIDValue string) (uuid.UUID, uuid.UUID, error) {
 	projectID, err := postgres.ParseUUID(projectIDValue, domainproject.ErrProjectNotFound)
 	if err != nil {
 		return uuid.Nil, uuid.Nil, err

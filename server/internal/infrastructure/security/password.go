@@ -18,8 +18,10 @@ const (
 	keyLength       = 32
 )
 
-var ErrPasswordMismatch = errors.New("password mismatch")
-var ErrInvalidHash = errors.New("invalid password hash")
+var (
+	ErrPasswordMismatch = errors.New("password mismatch")
+	ErrInvalidHash      = errors.New("invalid password hash")
+)
 
 type Argon2idConfig struct {
 	MemoryKiB   int
@@ -64,7 +66,7 @@ func (h *Argon2idPasswordHasher) Hash(password string) (string, error) {
 	), nil
 }
 
-func (h *Argon2idPasswordHasher) Compare(password string, encoded string) error {
+func (h *Argon2idPasswordHasher) Compare(password, encoded string) error {
 	params, salt, expectedHash, err := decodeArgon2idHash(encoded)
 	if err != nil {
 		return err

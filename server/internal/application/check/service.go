@@ -202,7 +202,7 @@ func (s *Service) DeleteCheck(ctx context.Context, input GetCheckInput) error {
 	return nil
 }
 
-func (s *Service) loadProject(ctx context.Context, flow *checkFlow, projectRef string, userID string, failureEvent CheckEventName) (domainproject.Project, error) {
+func (s *Service) loadProject(ctx context.Context, flow *checkFlow, projectRef, userID string, failureEvent CheckEventName) (domainproject.Project, error) {
 	project, err := s.projectAccess.GetProjectForUser(ctx, projectRef, userID)
 	if err != nil {
 		return domainproject.Project{}, flow.projectLookupFailure(failureEvent, err)
@@ -212,7 +212,7 @@ func (s *Service) loadProject(ctx context.Context, flow *checkFlow, projectRef s
 	return project, nil
 }
 
-func (s *Service) requireAction(ctx context.Context, flow *checkFlow, projectID string, userID string, failureEvent CheckEventName) error {
+func (s *Service) requireAction(ctx context.Context, flow *checkFlow, projectID, userID string, failureEvent CheckEventName) error {
 	role, err := s.projectAccess.GetMemberRole(ctx, projectID, userID)
 	if err != nil {
 		return flow.roleLookupFailure(failureEvent, err)
@@ -390,7 +390,7 @@ func normalizeSelector(selector map[string]any) (json.RawMessage, error) {
 	return raw, nil
 }
 
-func normalizePingConfig(packetCount *int, packetSizeBytes *int, timeoutMs *int, ipFamilyValue *string) (domaincheck.PingConfig, error) {
+func normalizePingConfig(packetCount, packetSizeBytes, timeoutMs *int, ipFamilyValue *string) (domaincheck.PingConfig, error) {
 	config := domaincheck.PingConfig{
 		PacketCount:     defaultPacketCount,
 		PacketSizeBytes: defaultPacketSizeBytes,
@@ -455,7 +455,7 @@ func chooseCheckType(current domaincheck.Type, next *domaincheck.Type) domainche
 	return *next
 }
 
-func chooseRawMessage(current json.RawMessage, next json.RawMessage) json.RawMessage {
+func chooseRawMessage(current, next json.RawMessage) json.RawMessage {
 	if next == nil {
 		return current
 	}
@@ -463,7 +463,7 @@ func chooseRawMessage(current json.RawMessage, next json.RawMessage) json.RawMes
 	return next
 }
 
-func chooseOptionalString(current *string, next *string) *string {
+func chooseOptionalString(current, next *string) *string {
 	if next == nil {
 		return current
 	}
@@ -479,7 +479,7 @@ func chooseInt(current int, next *int) int {
 	return *next
 }
 
-func chooseIPFamily(current *domaincheck.IPFamily, next *domaincheck.IPFamily) *domaincheck.IPFamily {
+func chooseIPFamily(current, next *domaincheck.IPFamily) *domaincheck.IPFamily {
 	if next == nil {
 		return current
 	}
