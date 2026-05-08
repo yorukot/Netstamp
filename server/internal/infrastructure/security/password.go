@@ -24,6 +24,8 @@ var (
 	ErrInvalidArgon2idConfig = errors.New("invalid argon2id config")
 )
 
+var readRandom = rand.Read
+
 type Argon2idConfig struct {
 	MemoryKiB   uint32
 	Iterations  uint32
@@ -40,7 +42,7 @@ func NewArgon2idPasswordHasher(cfg Argon2idConfig) *Argon2idPasswordHasher {
 
 func (h *Argon2idPasswordHasher) Hash(password string) (string, error) {
 	salt := make([]byte, saltLength)
-	if _, err := rand.Read(salt); err != nil {
+	if _, err := readRandom(salt); err != nil {
 		return "", err
 	}
 	if h.cfg.MemoryKiB == 0 || h.cfg.Iterations == 0 || h.cfg.Parallelism == 0 {

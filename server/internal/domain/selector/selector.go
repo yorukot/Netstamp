@@ -105,9 +105,6 @@ func parseNodeObject(raw json.RawMessage) (nodeObject, error) {
 	if err := json.Unmarshal(raw, &object); err != nil {
 		return nil, ErrInvalidInput
 	}
-	if object == nil {
-		return nil, ErrInvalidInput
-	}
 
 	return object, nil
 }
@@ -122,20 +119,22 @@ func parseObject(object nodeObject) (node, error) {
 		return nil, ErrInvalidInput
 	}
 
-	for op, raw := range object {
-		switch op {
-		case "all", "any":
-			return parseLogical(op, raw)
-		case "not":
-			return parseNot(raw)
-		case "label":
-			return parseLabel(raw)
-		default:
-			return nil, ErrInvalidInput
-		}
+	var op string
+	var raw json.RawMessage
+	for op, raw = range object {
+		break
 	}
 
-	return nil, ErrInvalidInput
+	switch op {
+	case "all", "any":
+		return parseLogical(op, raw)
+	case "not":
+		return parseNot(raw)
+	case "label":
+		return parseLabel(raw)
+	default:
+		return nil, ErrInvalidInput
+	}
 }
 
 func parseLogical(op string, raw json.RawMessage) (node, error) {
@@ -286,10 +285,6 @@ func parseRequiredStringSet(raw json.RawMessage) ([]string, error) {
 		}
 		normalized = append(normalized, value)
 	}
-	if len(normalized) == 0 {
-		return nil, ErrInvalidInput
-	}
-
 	return normalized, nil
 }
 

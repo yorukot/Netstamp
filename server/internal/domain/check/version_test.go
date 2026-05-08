@@ -76,3 +76,13 @@ func TestSelectorVersionHashesCanonicalSelector(t *testing.T) {
 		t.Fatal("expected different selectors to have different versions")
 	}
 }
+
+func TestHashJSONPanicsWhenValueCannotBeMarshaled(t *testing.T) {
+	defer func() {
+		if recovered := recover(); recovered == nil {
+			t.Fatal("expected panic")
+		}
+	}()
+
+	_ = hashJSON(func() {})
+}

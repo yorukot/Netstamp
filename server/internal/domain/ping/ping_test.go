@@ -37,15 +37,43 @@ func TestNewConfigAppliesOverrides(t *testing.T) {
 	}
 }
 
+func TestNewConfigUsesDefaultsWhenOverridesAreOmitted(t *testing.T) {
+	config, err := NewConfig(nil, nil, nil, nil)
+	if err != nil {
+		t.Fatalf("new default config: %v", err)
+	}
+	if config.PacketCount != DefaultPacketCount ||
+		config.PacketSizeBytes != DefaultPacketSizeBytes ||
+		config.TimeoutMs != DefaultTimeoutMs ||
+		config.IPFamily != nil {
+		t.Fatalf("unexpected default config: %#v", config)
+	}
+}
+
 func TestConfigValidationRejectsInvalidValues(t *testing.T) {
 	tests := []struct {
 		name string
 		run  func() error
 	}{
 		{name: "packet count", run: func() error { return ValidatePacketCount(0) }},
+		{name: "new config packet count", run: func() error {
+			var value int32
+			_, err := NewConfig(&value, nil, nil, nil)
+			return err
+		}},
 		{name: "packet size negative", run: func() error { return ValidatePacketSizeBytes(-1) }},
 		{name: "packet size too large", run: func() error { return ValidatePacketSizeBytes(MaxPacketSizeBytes + 1) }},
+		{name: "new config packet size", run: func() error {
+			value := MaxPacketSizeBytes + 1
+			_, err := NewConfig(nil, &value, nil, nil)
+			return err
+		}},
 		{name: "timeout", run: func() error { return ValidateTimeoutMs(0) }},
+		{name: "new config timeout", run: func() error {
+			var value int32
+			_, err := NewConfig(nil, nil, &value, nil)
+			return err
+		}},
 		{name: "ip family", run: func() error {
 			raw := "ipv10"
 			_, err := NewConfig(nil, nil, nil, &raw)

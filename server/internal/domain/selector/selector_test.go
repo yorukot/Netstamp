@@ -124,6 +124,14 @@ func TestLogicalSelectorsMatch(t *testing.T) {
 			wantMatch: true,
 		},
 		{
+			name: "any rejects when no children match",
+			raw: json.RawMessage(`{"any":[
+				{"label":{"key":"region","op":"eq","value":"osaka"}},
+				{"label":{"key":"env","op":"eq","value":"staging"}}
+			]}`),
+			wantMatch: false,
+		},
+		{
 			name:      "not negates child",
 			raw:       json.RawMessage(`{"not":{"label":{"key":"env","op":"eq","value":"staging"}}}`),
 			wantMatch: true,
@@ -152,6 +160,23 @@ func TestLogicalSelectorsMatch(t *testing.T) {
 	}
 }
 
+func TestZeroValueSelectorMatchesAll(t *testing.T) {
+	var selector Selector
+
+	if !selector.Matches(labels(label("region", "tokyo"))) {
+		t.Fatal("expected zero-value selector to match")
+	}
+	assertCanonicalJSON(t, selector, `{}`)
+}
+
+func TestLabelSelectorRejectsUnknownOperation(t *testing.T) {
+	selector := labelSelector{key: "region", op: "bad", value: "tokyo"}
+
+	if selector.Matches(labels(label("region", "tokyo"))) {
+		t.Fatal("expected unknown label operation not to match")
+	}
+}
+
 func TestCanonicalJSON(t *testing.T) {
 	tests := []struct {
 		name string
@@ -176,6 +201,24 @@ func TestCanonicalJSON(t *testing.T) {
 			]}`),
 			want: `{"all":[{"label":{"key":"region","op":"eq","value":"tokyo"}},{"label":{"key":"env","op":"in","values":["prod","staging"]}}]}`,
 		},
+		{
+			name: "emits any shape",
+			raw: json.RawMessage(`{"any":[
+				{"label":{"key":"region","op":"eq","value":"tokyo"}},
+				{"label":{"key":"region","op":"eq","value":"osaka"}}
+			]}`),
+			want: `{"any":[{"label":{"key":"region","op":"eq","value":"tokyo"}},{"label":{"key":"region","op":"eq","value":"osaka"}}]}`,
+		},
+		{
+			name: "emits not shape",
+			raw:  json.RawMessage(`{"not":{"label":{"key":"disabled","op":"exists"}}}`),
+			want: `{"not":{"label":{"key":"disabled","op":"exists"}}}`,
+		},
+		{
+			name: "emits exists without value fields",
+			raw:  json.RawMessage(`{"label":{"key":"env","op":"exists"}}`),
+			want: `{"label":{"key":"env","op":"exists"}}`,
+		},
 	}
 
 	for _, tt := range tests {
@@ -191,17 +234,35 @@ func TestParseRejectsInvalidSelectors(t *testing.T) {
 		name string
 		raw  json.RawMessage
 	}{
+		{name: "invalid json", raw: json.RawMessage(`{`)},
+		{name: "array root", raw: json.RawMessage(`[]`)},
 		{name: "arbitrary non ast object", raw: json.RawMessage(`{"label":"edge"}`)},
 		{name: "multiple operators", raw: json.RawMessage(`{"all":[{}],"any":[{}]}`)},
 		{name: "unknown top level operator", raw: json.RawMessage(`{"none":[{}]}`)},
+		{name: "invalid all child", raw: json.RawMessage(`{"all":[[]]}`)},
 		{name: "empty all", raw: json.RawMessage(`{"all":[]}`)},
 		{name: "empty any", raw: json.RawMessage(`{"any":[]}`)},
+		{name: "any is not array", raw: json.RawMessage(`{"any":{}}`)},
 		{name: "invalid not", raw: json.RawMessage(`{"not":[]}`)},
 		{name: "null not", raw: json.RawMessage(`{"not":null}`)},
 		{name: "missing label key", raw: json.RawMessage(`{"label":{"op":"eq","value":"tokyo"}}`)},
+		{name: "missing label op", raw: json.RawMessage(`{"label":{"key":"region","value":"tokyo"}}`)},
+		{name: "non string label key", raw: json.RawMessage(`{"label":{"key":123,"op":"eq","value":"tokyo"}}`)},
+		{name: "non string label op", raw: json.RawMessage(`{"label":{"key":"region","op":123,"value":"tokyo"}}`)},
 		{name: "empty label key", raw: json.RawMessage(`{"label":{"key":" ","op":"eq","value":"tokyo"}}`)},
+		{name: "empty label op", raw: json.RawMessage(`{"label":{"key":"region","op":" ","value":"tokyo"}}`)},
 		{name: "missing eq value", raw: json.RawMessage(`{"label":{"key":"region","op":"eq"}}`)},
+		{name: "missing eq value with extra field", raw: json.RawMessage(`{"label":{"key":"region","op":"eq","extra":"no"}}`)},
+		{name: "eq extra field", raw: json.RawMessage(`{"label":{"key":"region","op":"eq","value":"tokyo","extra":"no"}}`)},
+		{name: "eq non string value", raw: json.RawMessage(`{"label":{"key":"region","op":"eq","value":123}}`)},
+		{name: "eq empty value", raw: json.RawMessage(`{"label":{"key":"region","op":"eq","value":" "}}`)},
+		{name: "missing in values", raw: json.RawMessage(`{"label":{"key":"region","op":"in"}}`)},
+		{name: "missing in values with extra field", raw: json.RawMessage(`{"label":{"key":"region","op":"in","extra":"no"}}`)},
+		{name: "in extra field", raw: json.RawMessage(`{"label":{"key":"region","op":"in","values":["tokyo"],"extra":"no"}}`)},
+		{name: "in values not array", raw: json.RawMessage(`{"label":{"key":"region","op":"in","values":"tokyo"}}`)},
 		{name: "empty in values", raw: json.RawMessage(`{"label":{"key":"region","op":"in","values":[]}}`)},
+		{name: "blank in value", raw: json.RawMessage(`{"label":{"key":"region","op":"in","values":[" "]}}`)},
+		{name: "exists extra field", raw: json.RawMessage(`{"label":{"key":"region","op":"exists","value":"tokyo"}}`)},
 		{name: "gt is not supported", raw: json.RawMessage(`{"label":{"key":"latency_ms","op":"gt","value":100}}`)},
 		{name: "gte is not supported", raw: json.RawMessage(`{"label":{"key":"latency_ms","op":"gte","value":100}}`)},
 		{name: "lt is not supported", raw: json.RawMessage(`{"label":{"key":"latency_ms","op":"lt","value":100}}`)},
@@ -217,6 +278,16 @@ func TestParseRejectsInvalidSelectors(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestMustMarshalCanonicalPanicsWhenValueCannotBeMarshaled(t *testing.T) {
+	defer func() {
+		if recovered := recover(); recovered == nil {
+			t.Fatal("expected panic")
+		}
+	}()
+
+	_ = mustMarshalCanonical(func() {})
 }
 
 func mustParse(t *testing.T, raw json.RawMessage) Selector {

@@ -54,3 +54,15 @@ func TestParseOptionalIPFamily(t *testing.T) {
 		t.Fatalf("expected inet6, got %#v", got)
 	}
 }
+
+func TestParseOptionalIPFamilyRejectsUnknownValue(t *testing.T) {
+	raw := "ipv10"
+
+	got, err := ParseOptionalIPFamily(&raw)
+	if !errors.Is(err, ErrInvalidIPFamily) {
+		t.Fatalf("expected invalid ip family, got %v", err)
+	}
+	if got != nil {
+		t.Fatalf("expected nil ip family, got %#v", got)
+	}
+}
