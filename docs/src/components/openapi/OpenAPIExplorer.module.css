@@ -490,6 +490,49 @@
 	padding: 1rem;
 }
 
+.syntaxCode {
+	display: block;
+	min-width: max-content;
+}
+
+.syntaxCommand,
+.syntaxJsonKey,
+.syntaxHttpMethod,
+.syntaxMeta {
+	font-weight: 800;
+}
+
+.syntaxCommand,
+.syntaxJsonKey {
+	color: var(--ns-accent-hover);
+}
+
+.syntaxHttpMethod {
+	color: var(--ns-accent);
+}
+
+.syntaxOption,
+.syntaxNumber {
+	color: var(--ns-warning);
+}
+
+.syntaxString {
+	color: var(--ns-success);
+}
+
+.syntaxBoolean,
+.syntaxNull {
+	color: #8fd3ff;
+}
+
+.syntaxPunctuation {
+	color: var(--ns-text-low);
+}
+
+.syntaxMeta {
+	color: var(--ns-text);
+}
+
 .snippetPanel button {
 	width: 100%;
 	padding: 0.75rem 1rem;

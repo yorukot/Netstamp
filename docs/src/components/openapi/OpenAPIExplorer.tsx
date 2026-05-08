@@ -72,9 +72,16 @@ interface SchemaField {
 	required: boolean;
 }
 
+interface HighlightToken {
+	value: string;
+	className?: string;
+}
+
 interface OpenAPIExplorerProps {
 	specUrl: string;
 }
+
+type CodeLanguage = "shell" | "json" | "response";
 
 const httpMethods = ["get", "post", "put", "patch", "delete"] as const satisfies readonly HTTPMethod[];
 
@@ -93,6 +100,11 @@ const methodTones: Record<HTTPMethod, "success" | "accent" | "warning" | "critic
 	patch: "warning",
 	delete: "critical"
 };
+
+const jsonTokenPattern = /("(?:\\.|[^"\\])*"\s*:)|("(?:\\.|[^"\\])*")|\b(?:true|false)\b|\bnull\b|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|[{}\[\]:,]/g;
+const shellTokenPattern = /\bcurl\b|--?[A-Za-z0-9-]+|'(?:[^']|'"'"')*'|"(?:\\.|[^"\\])*"|\\\n|\b(?:GET|POST|PUT|PATCH|DELETE)\b/g;
+const numericTokenPattern = /^-?\d/;
+const shellMethodNames = new Set(["GET", "POST", "PUT", "PATCH", "DELETE"]);
 
 function classNames(...classes: Array<string | false | undefined>) {
 	return classes.filter(Boolean).join(" ");
@@ -241,6 +253,86 @@ function operationSearchText(operation: OperationItem) {
 
 function shellEscape(value: string) {
 	return value.replaceAll("'", "'\"'\"'");
+}
+
+function tokenizeWithPattern(source: string, pattern: RegExp, classForMatch: (value: string, match: RegExpExecArray) => string | undefined) {
+	const tokens: HighlightToken[] = [];
+	let cursor = 0;
+	let match: RegExpExecArray | null;
+
+	pattern.lastIndex = 0;
+	while ((match = pattern.exec(source))) {
+		if (match.index > cursor) {
+			tokens.push({ value: source.slice(cursor, match.index) });
+		}
+
+		tokens.push({ value: match[0], className: classForMatch(match[0], match) });
+		cursor = match.index + match[0].length;
+		if (!match[0].length) pattern.lastIndex += 1;
+	}
+
+	if (cursor < source.length) {
+		tokens.push({ value: source.slice(cursor) });
+	}
+
+	return tokens;
+}
+
+function tokenizeJson(source: string) {
+	return tokenizeWithPattern(source, jsonTokenPattern, (value, match) => {
+		if (match[1]) return styles.syntaxJsonKey;
+		if (match[2]) return styles.syntaxString;
+		if (value === "true" || value === "false") return styles.syntaxBoolean;
+		if (value === "null") return styles.syntaxNull;
+		if (numericTokenPattern.test(value)) return styles.syntaxNumber;
+		return styles.syntaxPunctuation;
+	});
+}
+
+function tokenizeShell(source: string) {
+	return tokenizeWithPattern(source, shellTokenPattern, value => {
+		if (value === "curl") return styles.syntaxCommand;
+		if (value.startsWith("-")) return styles.syntaxOption;
+		if (value.startsWith("'") || value.startsWith('"')) return styles.syntaxString;
+		if (shellMethodNames.has(value)) return styles.syntaxHttpMethod;
+		return styles.syntaxPunctuation;
+	});
+}
+
+function tokenizeResponse(source: string) {
+	const statusLine = source.match(/^(\d{3}[^\n]*)(\n)?/);
+	if (statusLine) {
+		return [{ value: statusLine[1], className: styles.syntaxMeta }, ...(statusLine[2] ? [{ value: statusLine[2] }] : []), ...tokenizeMaybeJson(source.slice(statusLine[0].length))];
+	}
+
+	return tokenizeMaybeJson(source);
+}
+
+function tokenizeMaybeJson(source: string) {
+	const trimmed = source.trimStart();
+	return trimmed.startsWith("{") || trimmed.startsWith("[") ? tokenizeJson(source) : [{ value: source }];
+}
+
+function highlightedTokens(source: string, language: CodeLanguage) {
+	if (language === "shell") return tokenizeShell(source);
+	if (language === "json") return tokenizeJson(source);
+	return tokenizeResponse(source);
+}
+
+function SyntaxCode({ code, language }: { code: string; language: CodeLanguage }) {
+	return (
+		<code className={styles.syntaxCode}>
+			{highlightedTokens(code, language).map((token, index) =>
+				token.className ? (
+					<span className={token.className} key={index}>
+						{token.value}
+					</span>
+				) : (
+					token.value
+				)
+			)}
+		</code>
+	);
 }
 
 function requestUrl(baseUrl: string, path: string) {
@@ -626,7 +718,7 @@ export default function OpenAPIExplorer({ specUrl }: OpenAPIExplorerProps) {
 													<code>{operation.path}</code>
 												</div>
 												<pre>
-													<code>{curlCommand(operation, baseUrl, operation.path, requestBodyExample(operation, spec), token)}</code>
+													<SyntaxCode code={curlCommand(operation, baseUrl, operation.path, requestBodyExample(operation, spec), token)} language="shell" />
 												</pre>
 												<button type="button" onClick={() => selectOperation(operation)}>
 													Load in console
@@ -678,7 +770,7 @@ export default function OpenAPIExplorer({ specUrl }: OpenAPIExplorerProps) {
 					) : null}
 
 					<pre className={styles.curlPreview}>
-						<code>{selectedCurl}</code>
+						<SyntaxCode code={selectedCurl} language="shell" />
 					</pre>
 
 					<div className={styles.actions}>
@@ -696,7 +788,7 @@ export default function OpenAPIExplorer({ specUrl }: OpenAPIExplorerProps) {
 					</div>
 
 					<pre className={styles.response} aria-live="polite">
-						<code>{response || "Response will appear here."}</code>
+						<SyntaxCode code={response || "Response will appear here."} language="response" />
 					</pre>
 				</Panel>
 			</aside>
