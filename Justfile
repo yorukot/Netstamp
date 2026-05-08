@@ -102,10 +102,11 @@ backend-fmt:
 # Tidy backend Go modules.
 backend-tidy:
     cd {{ server_dir }} && go mod tidy
+    cd {{ server_dir }}/tools && go mod tidy
 
 # Generate SQLC code.
 backend-sqlc:
-    cd {{ server_dir }} && go run github.com/sqlc-dev/sqlc/cmd/sqlc generate
+    cd {{ server_dir }}/tools && go run github.com/sqlc-dev/sqlc/cmd/sqlc generate -f ../sqlc.yaml
 
 # Show database migration status.
 backend-migrate-status:

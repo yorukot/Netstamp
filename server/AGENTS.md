@@ -43,12 +43,12 @@ No GraphQL, message queues, background workers, scheduled jobs, email, payment, 
 Direct backend dependencies are declared in `server/go.mod`.
 
 - HTTP: `github.com/go-chi/chi/v5`, `github.com/danielgtaylor/huma/v2`, and `otelhttp`.
-- Database: `github.com/jackc/pgx/v5`, `github.com/pressly/goose/v3`, `github.com/sqlc-dev/sqlc`, and `github.com/google/uuid`.
+- Database: `github.com/jackc/pgx/v5`, `github.com/pressly/goose/v3`, and `github.com/google/uuid`.
 - Config: `github.com/spf13/viper`.
 - Auth/security: `github.com/golang-jwt/jwt/v4` and `golang.org/x/crypto/argon2`.
 - Logging: `go.uber.org/zap`.
 - Tracing: OpenTelemetry SDK, trace API, and OTLP HTTP trace exporter.
-- Tool tracking: `tools/tools.go` pins goose and sqlc. `air` and `golangci-lint` are used by commands/config but are not pinned in `server/go.mod`.
+- Tool tracking: `tools/` is a nested Go module that pins the sqlc CLI for code generation. `air` and `golangci-lint` are used by commands/config but are not pinned in `server/go.mod`.
 
 ## Logging Guidelines
 
