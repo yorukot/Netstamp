@@ -6,6 +6,7 @@ import (
 
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
+	domainselector "github.com/yorukot/netstamp/internal/domain/selector"
 	"github.com/yorukot/netstamp/internal/normalize"
 )
 
@@ -101,6 +102,8 @@ func (s *Service) CreateCheck(ctx context.Context, input CreateCheckInput) (doma
 		Type:            normalized.checkType,
 		Target:          normalized.target,
 		Selector:        normalized.selector,
+		CheckVersion:    domaincheck.CheckVersion(normalized.executionSpec()),
+		SelectorVersion: domaincheck.SelectorVersion(normalized.selector),
 		Description:     normalized.description,
 		IntervalSeconds: normalized.intervalSeconds,
 		PingConfig:      normalized.pingConfig,
@@ -239,7 +242,7 @@ func normalizeCreateCheckInput(input CreateCheckInput) (normalizedCreateCheckInp
 	if err != nil {
 		return normalizedCreateCheckInput{}, err
 	}
-	selector, err := normalizeSelector(input.Selector)
+	selector, err := normalizeCreateSelector(input.Selector)
 	if err != nil {
 		return normalizedCreateCheckInput{}, err
 	}
@@ -269,6 +272,15 @@ func normalizeCreateCheckInput(input CreateCheckInput) (normalizedCreateCheckInp
 		pingConfig:      pingConfig,
 		labelIDs:        labelIDs,
 	}, nil
+}
+
+func (input normalizedCreateCheckInput) executionSpec() domaincheck.ExecutionSpec {
+	return domaincheck.ExecutionSpec{
+		Type:            input.checkType,
+		Target:          input.target,
+		IntervalSeconds: input.intervalSeconds,
+		PingConfig:      input.pingConfig,
+	}
 }
 
 func normalizeUpdateCheckInput(input UpdateCheckInput) (normalizedUpdateCheckInput, error) {
@@ -383,6 +395,28 @@ func normalizeOptionalSelector(selector map[string]any) (json.RawMessage, error)
 	}
 
 	return normalizeSelector(selector)
+}
+
+func normalizeCreateSelector(selector map[string]any) (json.RawMessage, error) {
+	if selector == nil {
+		parsed, err := domainselector.Parse(nil)
+		if err != nil {
+			return nil, ErrInvalidInput
+		}
+
+		return parsed.CanonicalJSON(), nil
+	}
+
+	raw, err := normalizeSelector(selector)
+	if err != nil {
+		return nil, err
+	}
+	parsed, err := domainselector.Parse(raw)
+	if err != nil {
+		return nil, ErrInvalidInput
+	}
+
+	return parsed.CanonicalJSON(), nil
 }
 
 func normalizeOptionalPositiveInt(value *int32) (*int32, error) {

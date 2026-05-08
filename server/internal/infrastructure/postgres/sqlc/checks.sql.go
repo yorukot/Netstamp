@@ -79,6 +79,30 @@ func (q *Queries) CreateCheckLabel(ctx context.Context, arg CreateCheckLabelPara
 	return err
 }
 
+const createEffectiveProbeCheck = `-- name: CreateEffectiveProbeCheck :exec
+INSERT INTO effective_probe_checks (project_id, probe_id, check_id, check_version, selector_version)
+VALUES ($1, $2, $3, $4, $5)
+`
+
+type CreateEffectiveProbeCheckParams struct {
+	ProjectID       uuid.UUID `json:"project_id"`
+	ProbeID         uuid.UUID `json:"probe_id"`
+	CheckID         uuid.UUID `json:"check_id"`
+	CheckVersion    string    `json:"check_version"`
+	SelectorVersion string    `json:"selector_version"`
+}
+
+func (q *Queries) CreateEffectiveProbeCheck(ctx context.Context, arg CreateEffectiveProbeCheckParams) error {
+	_, err := q.db.Exec(ctx, createEffectiveProbeCheck,
+		arg.ProjectID,
+		arg.ProbeID,
+		arg.CheckID,
+		arg.CheckVersion,
+		arg.SelectorVersion,
+	)
+	return err
+}
+
 const createPingCheckConfig = `-- name: CreatePingCheckConfig :one
 INSERT INTO ping_check_configs (check_id, packet_count, packet_size_bytes, timeout_ms, ip_family)
 VALUES ($1, $2, $3, $4, $5)
@@ -269,6 +293,73 @@ func (q *Queries) ListActiveChecksForProject(ctx context.Context, projectID uuid
 			&i.PacketSizeBytes,
 			&i.TimeoutMs,
 			&i.IpFamily,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listActiveEnabledProbeLabelsForProject = `-- name: ListActiveEnabledProbeLabelsForProject :many
+SELECT probes.id AS probe_id,
+       labels.id AS label_id,
+       labels.project_id AS label_project_id,
+       labels.key AS label_key,
+       labels.value AS label_value,
+       labels.created_at AS label_created_at,
+       labels.updated_at AS label_updated_at,
+       labels.deleted_at AS label_deleted_at
+FROM probes
+LEFT JOIN probe_labels
+    ON probe_labels.project_id = probes.project_id
+    AND probe_labels.probe_id = probes.id
+LEFT JOIN labels
+    ON labels.project_id = probe_labels.project_id
+    AND labels.id = probe_labels.label_id
+    AND labels.deleted_at IS NULL
+WHERE probes.project_id = $1
+  AND probes.enabled = true
+  AND probes.deleted_at IS NULL
+ORDER BY probes.created_at ASC,
+         probes.id ASC,
+         labels.key ASC NULLS LAST,
+         labels.value ASC NULLS LAST,
+         labels.id ASC NULLS LAST
+`
+
+type ListActiveEnabledProbeLabelsForProjectRow struct {
+	ProbeID        uuid.UUID          `json:"probe_id"`
+	LabelID        *uuid.UUID         `json:"label_id"`
+	LabelProjectID *uuid.UUID         `json:"label_project_id"`
+	LabelKey       *string            `json:"label_key"`
+	LabelValue     *string            `json:"label_value"`
+	LabelCreatedAt pgtype.Timestamptz `json:"label_created_at"`
+	LabelUpdatedAt pgtype.Timestamptz `json:"label_updated_at"`
+	LabelDeletedAt pgtype.Timestamptz `json:"label_deleted_at"`
+}
+
+func (q *Queries) ListActiveEnabledProbeLabelsForProject(ctx context.Context, projectID uuid.UUID) ([]ListActiveEnabledProbeLabelsForProjectRow, error) {
+	rows, err := q.db.Query(ctx, listActiveEnabledProbeLabelsForProject, projectID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListActiveEnabledProbeLabelsForProjectRow
+	for rows.Next() {
+		var i ListActiveEnabledProbeLabelsForProjectRow
+		if err := rows.Scan(
+			&i.ProbeID,
+			&i.LabelID,
+			&i.LabelProjectID,
+			&i.LabelKey,
+			&i.LabelValue,
+			&i.LabelCreatedAt,
+			&i.LabelUpdatedAt,
+			&i.LabelDeletedAt,
 		); err != nil {
 			return nil, err
 		}

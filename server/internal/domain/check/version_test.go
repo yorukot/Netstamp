@@ -1,0 +1,75 @@
+package check
+
+import (
+	"encoding/json"
+	"testing"
+)
+
+func TestCheckVersionUsesExecutionSpec(t *testing.T) {
+	base := ExecutionSpec{
+		Type:            TypePing,
+		Target:          "api.netstamp.io",
+		IntervalSeconds: 30,
+		PingConfig: PingConfig{
+			PacketCount:     4,
+			PacketSizeBytes: 56,
+			TimeoutMs:       3000,
+		},
+	}
+
+	baseVersion := CheckVersion(base)
+	if baseVersion == "" {
+		t.Fatal("expected check version")
+	}
+
+	changedTarget := base
+	changedTarget.Target = "status.netstamp.io"
+	if got := CheckVersion(changedTarget); got == baseVersion {
+		t.Fatal("expected target change to change check version")
+	}
+
+	changedInterval := base
+	changedInterval.IntervalSeconds = 60
+	if got := CheckVersion(changedInterval); got == baseVersion {
+		t.Fatal("expected interval change to change check version")
+	}
+
+	changedConfig := base
+	changedConfig.PingConfig.TimeoutMs = 1500
+	if got := CheckVersion(changedConfig); got == baseVersion {
+		t.Fatal("expected ping config change to change check version")
+	}
+}
+
+func TestCheckVersionIncludesIPFamily(t *testing.T) {
+	base := ExecutionSpec{
+		Type:            TypePing,
+		Target:          "api.netstamp.io",
+		IntervalSeconds: 30,
+		PingConfig: PingConfig{
+			PacketCount:     4,
+			PacketSizeBytes: 56,
+			TimeoutMs:       3000,
+		},
+	}
+
+	ipv4 := IPFamilyIPv4
+	withIPFamily := base
+	withIPFamily.PingConfig.IPFamily = &ipv4
+
+	if CheckVersion(base) == CheckVersion(withIPFamily) {
+		t.Fatal("expected ip family change to change check version")
+	}
+}
+
+func TestSelectorVersionHashesCanonicalSelector(t *testing.T) {
+	matchAll := json.RawMessage(`{}`)
+	regionTokyo := json.RawMessage(`{"label":{"key":"region","op":"eq","value":"tokyo"}}`)
+
+	if SelectorVersion(matchAll) == "" {
+		t.Fatal("expected selector version")
+	}
+	if SelectorVersion(matchAll) == SelectorVersion(regionTokyo) {
+		t.Fatal("expected different selectors to have different versions")
+	}
+}

@@ -11,6 +11,7 @@ import (
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
 	domainlabel "github.com/yorukot/netstamp/internal/domain/label"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
+	domainselector "github.com/yorukot/netstamp/internal/domain/selector"
 	"github.com/yorukot/netstamp/internal/infrastructure/postgres"
 	pglabel "github.com/yorukot/netstamp/internal/infrastructure/postgres/label"
 	"github.com/yorukot/netstamp/internal/infrastructure/postgres/sqlc"
@@ -89,7 +90,7 @@ func (r *CheckRepository) GetCheck(ctx context.Context, projectIDValue, checkIDV
 }
 
 func (r *CheckRepository) CreateCheck(ctx context.Context, input domaincheck.CreateCheckStorageInput) (domaincheck.Check, error) {
-	ctx, span := postgres.StartDBSpan(ctx, pgcheckTracer, "checks", "postgres.checks.create", "INSERT", "INSERT check, ping config, and labels")
+	ctx, span := postgres.StartDBSpan(ctx, pgcheckTracer, "checks", "postgres.checks.create", "INSERT", "INSERT check, ping config, labels, and effective links")
 	defer span.End()
 
 	projectID, err := postgres.ParseUUID(input.ProjectID, domainproject.ErrProjectNotFound)
@@ -99,6 +100,10 @@ func (r *CheckRepository) CreateCheck(ctx context.Context, input domaincheck.Cre
 	labelIDs, err := pglabel.ParseLabelIDs(input.LabelIDs)
 	if err != nil {
 		return domaincheck.Check{}, err
+	}
+	parsedSelector, err := domainselector.Parse(input.Selector)
+	if err != nil {
+		return domaincheck.Check{}, domaincheck.ErrInvalidInput
 	}
 
 	var created domaincheck.Check
@@ -136,6 +141,22 @@ func (r *CheckRepository) CreateCheck(ctx context.Context, input domaincheck.Cre
 				LabelID:   labelID,
 			}); labelErr != nil {
 				return mapCheckWriteError(labelErr)
+			}
+		}
+
+		probes, listProbeErr := r.listActiveEnabledProbeLabels(ctx, q, projectID)
+		if listProbeErr != nil {
+			return listProbeErr
+		}
+		for _, probeID := range matchingProbeIDs(parsedSelector, probes) {
+			if linkErr := q.CreateEffectiveProbeCheck(ctx, sqlc.CreateEffectiveProbeCheckParams{
+				ProjectID:       projectID,
+				ProbeID:         probeID,
+				CheckID:         row.ID,
+				CheckVersion:    input.CheckVersion,
+				SelectorVersion: input.SelectorVersion,
+			}); linkErr != nil {
+				return mapCheckWriteError(linkErr)
 			}
 		}
 
@@ -261,6 +282,61 @@ func (r *CheckRepository) listLabelsForCheck(ctx context.Context, queries *sqlc.
 	}
 
 	return mapLabels(rows), nil
+}
+
+type activeProbeLabels struct {
+	probeID uuid.UUID
+	labels  []domainlabel.Label
+}
+
+func (r *CheckRepository) listActiveEnabledProbeLabels(ctx context.Context, queries *sqlc.Queries, projectID uuid.UUID) ([]activeProbeLabels, error) {
+	rows, err := queries.ListActiveEnabledProbeLabelsForProject(ctx, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	probeIndex := make(map[uuid.UUID]int)
+	probes := make([]activeProbeLabels, 0)
+	for _, row := range rows {
+		index, ok := probeIndex[row.ProbeID]
+		if !ok {
+			index = len(probes)
+			probeIndex[row.ProbeID] = index
+			probes = append(probes, activeProbeLabels{probeID: row.ProbeID})
+		}
+		if label, ok := mapProbeLabel(row); ok {
+			probes[index].labels = append(probes[index].labels, label)
+		}
+	}
+
+	return probes, nil
+}
+
+func matchingProbeIDs(selector domainselector.Selector, probes []activeProbeLabels) []uuid.UUID {
+	probeIDs := make([]uuid.UUID, 0, len(probes))
+	for _, probe := range probes {
+		if selector.Matches(probe.labels) {
+			probeIDs = append(probeIDs, probe.probeID)
+		}
+	}
+
+	return probeIDs
+}
+
+func mapProbeLabel(row sqlc.ListActiveEnabledProbeLabelsForProjectRow) (domainlabel.Label, bool) {
+	if row.LabelID == nil || row.LabelProjectID == nil || row.LabelKey == nil || row.LabelValue == nil {
+		return domainlabel.Label{}, false
+	}
+
+	return domainlabel.Label{
+		ID:        row.LabelID.String(),
+		ProjectID: row.LabelProjectID.String(),
+		Key:       *row.LabelKey,
+		Value:     *row.LabelValue,
+		CreatedAt: row.LabelCreatedAt.Time,
+		UpdatedAt: row.LabelUpdatedAt.Time,
+		DeletedAt: timePtr(row.LabelDeletedAt),
+	}, true
 }
 
 func parseProjectAndCheckIDs(projectIDValue, checkIDValue string) (uuid.UUID, uuid.UUID, error) {

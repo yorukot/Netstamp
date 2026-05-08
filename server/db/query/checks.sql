@@ -88,6 +88,36 @@ RETURNING check_id, packet_count, packet_size_bytes, timeout_ms, ip_family;
 INSERT INTO check_labels (project_id, check_id, label_id)
 VALUES ($1, $2, $3);
 
+-- name: ListActiveEnabledProbeLabelsForProject :many
+SELECT probes.id AS probe_id,
+       labels.id AS label_id,
+       labels.project_id AS label_project_id,
+       labels.key AS label_key,
+       labels.value AS label_value,
+       labels.created_at AS label_created_at,
+       labels.updated_at AS label_updated_at,
+       labels.deleted_at AS label_deleted_at
+FROM probes
+LEFT JOIN probe_labels
+    ON probe_labels.project_id = probes.project_id
+    AND probe_labels.probe_id = probes.id
+LEFT JOIN labels
+    ON labels.project_id = probe_labels.project_id
+    AND labels.id = probe_labels.label_id
+    AND labels.deleted_at IS NULL
+WHERE probes.project_id = $1
+  AND probes.enabled = true
+  AND probes.deleted_at IS NULL
+ORDER BY probes.created_at ASC,
+         probes.id ASC,
+         labels.key ASC NULLS LAST,
+         labels.value ASC NULLS LAST,
+         labels.id ASC NULLS LAST;
+
+-- name: CreateEffectiveProbeCheck :exec
+INSERT INTO effective_probe_checks (project_id, probe_id, check_id, check_version, selector_version)
+VALUES ($1, $2, $3, $4, $5);
+
 -- name: DeleteCheckLabels :exec
 DELETE FROM check_labels
 WHERE project_id = $1

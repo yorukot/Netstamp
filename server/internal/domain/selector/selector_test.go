@@ -15,6 +15,7 @@ func TestParseMatchAllSelector(t *testing.T) {
 	}{
 		{name: "nil", raw: nil},
 		{name: "empty", raw: json.RawMessage(``)},
+		{name: "null", raw: json.RawMessage(`null`)},
 		{name: "empty object", raw: json.RawMessage(`{}`)},
 	}
 
@@ -191,7 +192,6 @@ func TestParseRejectsInvalidSelectors(t *testing.T) {
 		raw  json.RawMessage
 	}{
 		{name: "arbitrary non ast object", raw: json.RawMessage(`{"label":"edge"}`)},
-		{name: "null", raw: json.RawMessage(`null`)},
 		{name: "multiple operators", raw: json.RawMessage(`{"all":[{}],"any":[{}]}`)},
 		{name: "unknown top level operator", raw: json.RawMessage(`{"none":[{}]}`)},
 		{name: "empty all", raw: json.RawMessage(`{"all":[]}`)},

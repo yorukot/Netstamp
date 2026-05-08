@@ -55,12 +55,18 @@ func TestCreateCheckNormalizesInputAndDefaultsPingConfig(t *testing.T) {
 
 	description := " public API "
 	check, err := service.CreateCheck(context.Background(), CreateCheckInput{
-		CurrentUserID:   "user-1",
-		ProjectRef:      "engineering",
-		Name:            " api-latency ",
-		Type:            "ping",
-		Target:          " api.netstamp.io ",
-		Selector:        map[string]any{"label": "edge"},
+		CurrentUserID: "user-1",
+		ProjectRef:    "engineering",
+		Name:          " api-latency ",
+		Type:          "ping",
+		Target:        " api.netstamp.io ",
+		Selector: map[string]any{
+			"label": map[string]any{
+				"key":   " region ",
+				"op":    " eq ",
+				"value": " tokyo ",
+			},
+		},
 		Description:     &description,
 		IntervalSeconds: 30,
 		LabelIDs:        []string{testLabelID, testLabelID},
@@ -88,12 +94,26 @@ func TestCreateCheckNormalizesInputAndDefaultsPingConfig(t *testing.T) {
 	if repo.gotCreate.Name != "api-latency" || repo.gotCreate.Target != "api.netstamp.io" {
 		t.Fatalf("expected normalized create input, got %#v", repo.gotCreate)
 	}
-	var selector map[string]any
-	if err := json.Unmarshal(repo.gotCreate.Selector, &selector); err != nil {
-		t.Fatalf("decode selector: %v", err)
+	expectedSelector := json.RawMessage(`{"label":{"key":"region","op":"eq","value":"tokyo"}}`)
+	if string(repo.gotCreate.Selector) != string(expectedSelector) {
+		t.Fatalf("expected canonical selector, got %s", repo.gotCreate.Selector)
 	}
-	if selector["label"] != "edge" {
-		t.Fatalf("expected selector to be persisted, got %#v", selector)
+	expectedVersion := domaincheck.CheckVersion(domaincheck.ExecutionSpec{
+		Type:            domaincheck.TypePing,
+		Target:          "api.netstamp.io",
+		IntervalSeconds: 30,
+		PingConfig: domaincheck.PingConfig{
+			PacketCount:     defaultPacketCount,
+			PacketSizeBytes: defaultPacketSizeBytes,
+			TimeoutMs:       defaultTimeoutMs,
+		},
+	})
+	if repo.gotCreate.CheckVersion != expectedVersion {
+		t.Fatalf("expected check version %q, got %q", expectedVersion, repo.gotCreate.CheckVersion)
+	}
+	expectedSelectorVersion := domaincheck.SelectorVersion(expectedSelector)
+	if repo.gotCreate.SelectorVersion != expectedSelectorVersion {
+		t.Fatalf("expected selector version %q, got %q", expectedSelectorVersion, repo.gotCreate.SelectorVersion)
 	}
 	assertRecordedCheckEvent(t, recorder, CheckEvent{
 		Name:        CheckEventCreateSuccess,
@@ -104,6 +124,36 @@ func TestCreateCheckNormalizesInputAndDefaultsPingConfig(t *testing.T) {
 		ProjectRef:  "engineering",
 		ProjectSlug: "engineering",
 		CheckID:     testCheckID,
+	})
+}
+
+func TestCreateCheckRejectsInvalidSelector(t *testing.T) {
+	repo := &fakeCheckRepository{}
+	recorder := &recordingCheckEventRecorder{}
+	service := NewService(repo, &fakeProjectAccess{role: domainproject.RoleEditor}, &fakeLabelAccess{}, recorder)
+
+	_, err := service.CreateCheck(context.Background(), CreateCheckInput{
+		CurrentUserID:   "user-1",
+		ProjectRef:      "engineering",
+		Name:            "api-latency",
+		Type:            "ping",
+		Target:          "api.netstamp.io",
+		Selector:        map[string]any{"label": "edge"},
+		IntervalSeconds: 30,
+	})
+	if !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("expected invalid input, got %v", err)
+	}
+	if repo.gotCreate.Name != "" {
+		t.Fatalf("expected create not to be called, got %#v", repo.gotCreate)
+	}
+	assertRecordedCheckEvent(t, recorder, CheckEvent{
+		Name:        CheckEventCreateFailure,
+		Action:      CheckActionCreate,
+		Outcome:     CheckOutcomeFailure,
+		Reason:      CheckReasonInvalidInput,
+		ActorUserID: "user-1",
+		ProjectRef:  "engineering",
 	})
 }
 

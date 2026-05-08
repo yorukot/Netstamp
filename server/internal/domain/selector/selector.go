@@ -47,10 +47,10 @@ type labelSelector struct {
 type nodeObject map[string]json.RawMessage
 
 // Parse validates selector JSON and builds the internal AST used for matching.
-// Empty raw JSON is treated as {}, while JSON null and malformed nodes fail.
+// Empty raw JSON and JSON null are treated as {}.
 func Parse(raw json.RawMessage) (Selector, error) {
 	raw = bytes.TrimSpace(raw)
-	if len(raw) == 0 {
+	if len(raw) == 0 || bytes.Equal(raw, []byte("null")) {
 		return Selector{root: matchAllSelector{}}, nil
 	}
 

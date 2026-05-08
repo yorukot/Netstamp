@@ -55,6 +55,8 @@ type CreateCheckStorageInput struct {
 	Type            Type
 	Target          string
 	Selector        json.RawMessage
+	CheckVersion    string
+	SelectorVersion string
 	Description     *string
 	IntervalSeconds int32
 	PingConfig      PingConfig
