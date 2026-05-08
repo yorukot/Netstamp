@@ -10,10 +10,12 @@ import (
 	"go.uber.org/zap"
 
 	appauth "github.com/yorukot/netstamp/internal/application/auth"
+	applabel "github.com/yorukot/netstamp/internal/application/label"
 	appprobe "github.com/yorukot/netstamp/internal/application/probe"
 	appproject "github.com/yorukot/netstamp/internal/application/project"
 	"github.com/yorukot/netstamp/internal/config"
 	"github.com/yorukot/netstamp/internal/infrastructure/postgres"
+	pglabel "github.com/yorukot/netstamp/internal/infrastructure/postgres/label"
 	pgprobe "github.com/yorukot/netstamp/internal/infrastructure/postgres/probe"
 	pgproject "github.com/yorukot/netstamp/internal/infrastructure/postgres/project"
 	pguser "github.com/yorukot/netstamp/internal/infrastructure/postgres/user"
@@ -91,8 +93,10 @@ func New(ctx context.Context) (*Application, error) {
 	authSvc := appauth.NewService(userRepo, passwordHasher, tokenIssuer, authEvents)
 	projectRepo := pgproject.NewProjectRepository(dbPool)
 	projectSvc := appproject.NewService(projectRepo, projectEvents)
+	labelRepo := pglabel.NewLabelRepository(dbPool)
+	labelSvc := applabel.NewService(labelRepo, projectRepo)
 	probeRepo := pgprobe.NewProbeRepository(dbPool)
-	probeSvc := appprobe.NewService(probeRepo, projectRepo, security.NewProbeSecretGenerator(), probeEvents)
+	probeSvc := appprobe.NewService(probeRepo, projectRepo, labelSvc, security.NewProbeSecretGenerator(), probeEvents)
 	readiness := postgres.NewReadinessCheck(dbPool)
 
 	httpHandler := httpserver.NewRouter(httpserver.Dependencies{
@@ -101,6 +105,7 @@ func New(ctx context.Context) (*Application, error) {
 		BackendBaseURL: cfg.HTTP.BackendBaseURL,
 		AuthService:    authSvc,
 		AuthVerifier:   tokenIssuer,
+		LabelService:   labelSvc,
 		ProbeService:   probeSvc,
 		ProjectService: projectSvc,
 		ReadinessCheck: readiness,

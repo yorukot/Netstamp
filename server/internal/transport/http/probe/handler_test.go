@@ -11,6 +11,7 @@ import (
 
 	appprobe "github.com/yorukot/netstamp/internal/application/probe"
 	"github.com/yorukot/netstamp/internal/domain/identity"
+	domainlabel "github.com/yorukot/netstamp/internal/domain/label"
 	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 )
@@ -26,7 +27,7 @@ func TestCreateProbeReturnsCreatedProbeAndSecret(t *testing.T) {
 	_, api := humatest.New(t)
 	repo := &handlerProbeRepository{}
 	projectAccess := &handlerProjectAccess{}
-	NewHandler(appprobe.NewService(repo, projectAccess, handlerSecretGenerator{
+	NewHandler(appprobe.NewService(repo, projectAccess, &handlerLabelAccess{}, handlerSecretGenerator{
 		plaintext: "plain-secret",
 		hash:      "secret-hash",
 	}, handlerProbeEventRecorder{}), &handlerTokenVerifier{
@@ -69,7 +70,7 @@ func TestCreateProbeReturnsCreatedProbeAndSecret(t *testing.T) {
 
 func TestCreateProbeRequiresBearerToken(t *testing.T) {
 	_, api := humatest.New(t)
-	NewHandler(appprobe.NewService(&handlerProbeRepository{}, &handlerProjectAccess{}, handlerSecretGenerator{
+	NewHandler(appprobe.NewService(&handlerProbeRepository{}, &handlerProjectAccess{}, &handlerLabelAccess{}, handlerSecretGenerator{
 		plaintext: "plain-secret",
 		hash:      "secret-hash",
 	}, handlerProbeEventRecorder{}), &handlerTokenVerifier{}).RegisterRoutes(api)
@@ -85,7 +86,7 @@ func TestCreateProbeRequiresBearerToken(t *testing.T) {
 
 func TestCreateProbeMapsInvalidInputToUnprocessableEntity(t *testing.T) {
 	_, api := humatest.New(t)
-	NewHandler(appprobe.NewService(&handlerProbeRepository{}, &handlerProjectAccess{}, handlerSecretGenerator{
+	NewHandler(appprobe.NewService(&handlerProbeRepository{}, &handlerProjectAccess{}, &handlerLabelAccess{}, handlerSecretGenerator{
 		plaintext: "plain-secret",
 		hash:      "secret-hash",
 	}, handlerProbeEventRecorder{}), &handlerTokenVerifier{
@@ -105,7 +106,7 @@ func TestCreateProbeMapsInaccessibleProjectToNotFound(t *testing.T) {
 	_, api := humatest.New(t)
 	NewHandler(appprobe.NewService(&handlerProbeRepository{}, &handlerProjectAccess{
 		err: appprobe.ErrProjectNotFound,
-	}, handlerSecretGenerator{
+	}, &handlerLabelAccess{}, handlerSecretGenerator{
 		plaintext: "plain-secret",
 		hash:      "secret-hash",
 	}, handlerProbeEventRecorder{}), &handlerTokenVerifier{
@@ -123,9 +124,9 @@ func TestCreateProbeMapsInaccessibleProjectToNotFound(t *testing.T) {
 
 func TestCreateProbeMapsMissingLabelToNotFound(t *testing.T) {
 	_, api := humatest.New(t)
-	NewHandler(appprobe.NewService(&handlerProbeRepository{
-		createErr: appprobe.ErrLabelNotFound,
-	}, &handlerProjectAccess{}, handlerSecretGenerator{
+	NewHandler(appprobe.NewService(&handlerProbeRepository{}, &handlerProjectAccess{}, &handlerLabelAccess{
+		err: appprobe.ErrLabelNotFound,
+	}, handlerSecretGenerator{
 		plaintext: "plain-secret",
 		hash:      "secret-hash",
 	}, handlerProbeEventRecorder{}), &handlerTokenVerifier{
@@ -176,12 +177,6 @@ func (r *handlerProbeRepository) CreateProbe(_ context.Context, input domainprob
 		City:      input.City,
 		Latitude:  input.Latitude,
 		Longitude: input.Longitude,
-		Labels: []domainprobe.Label{{
-			ID:        testLabelID,
-			ProjectID: input.ProjectID,
-			Key:       "region",
-			Value:     "tokyo",
-		}},
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}, nil
@@ -198,6 +193,25 @@ func (r *handlerProjectAccess) GetProjectForUser(_ context.Context, projectRef s
 		return domainproject.Project{}, r.err
 	}
 	return domainproject.Project{ID: testProjectID, Slug: "engineering"}, nil
+}
+
+type handlerLabelAccess struct {
+	err error
+}
+
+func (r *handlerLabelAccess) GetActiveLabelsByIDsForProject(_ context.Context, projectID string, labelIDs []string) ([]domainlabel.Label, error) {
+	if r.err != nil {
+		return nil, r.err
+	}
+	if len(labelIDs) == 0 {
+		return []domainlabel.Label{}, nil
+	}
+	return []domainlabel.Label{{
+		ID:        testLabelID,
+		ProjectID: projectID,
+		Key:       "region",
+		Value:     "tokyo",
+	}}, nil
 }
 
 type handlerSecretGenerator struct {

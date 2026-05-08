@@ -3,6 +3,7 @@ package probe
 import (
 	"context"
 
+	domainlabel "github.com/yorukot/netstamp/internal/domain/label"
 	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 )
@@ -13,6 +14,10 @@ type Repository interface {
 
 type ProjectAccess interface {
 	GetProjectForUser(ctx context.Context, projectRef string, userID string) (domainproject.Project, error)
+}
+
+type LabelAccess interface {
+	GetActiveLabelsByIDsForProject(ctx context.Context, projectID string, labelIDs []string) ([]domainlabel.Label, error)
 }
 
 type SecretGenerator interface {
@@ -48,6 +53,7 @@ const (
 	ProbeReasonProjectNotFound        ProbeEventReason = "project_not_found"
 	ProbeReasonLabelNotFound          ProbeEventReason = "label_not_found"
 	ProbeReasonProjectLookupFailed    ProbeEventReason = "project_lookup_failed"
+	ProbeReasonLabelLookupFailed      ProbeEventReason = "label_lookup_failed"
 	ProbeReasonSecretGeneratorMissing ProbeEventReason = "secret_generator_missing"
 	ProbeReasonSecretGenerateFailed   ProbeEventReason = "secret_generate_failed"
 	ProbeReasonProbeCreateFailed      ProbeEventReason = "probe_create_failed"

@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	domainlabel "github.com/yorukot/netstamp/internal/domain/label"
 	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 )
@@ -23,7 +24,8 @@ func TestCreateProbeCreatesProbeWithSecretAndNormalizedInput(t *testing.T) {
 	recorder := &recordingProbeEventRecorder{}
 	repo := &fakeProbeRepository{}
 	projectAccess := &fakeProjectAccess{}
-	service := NewService(repo, projectAccess, fakeSecretGenerator{
+	labelAccess := &fakeLabelAccess{}
+	service := NewService(repo, projectAccess, labelAccess, fakeSecretGenerator{
 		plaintext: "plain-secret",
 		hash:      "secret-hash",
 	}, recorder)
@@ -51,6 +53,12 @@ func TestCreateProbeCreatesProbeWithSecretAndNormalizedInput(t *testing.T) {
 	if projectAccess.gotUserID != "user-1" {
 		t.Fatalf("expected current user id, got %q", projectAccess.gotUserID)
 	}
+	if labelAccess.gotProjectID != testProjectID {
+		t.Fatalf("expected label project id, got %q", labelAccess.gotProjectID)
+	}
+	if len(labelAccess.gotLabelIDs) != 1 || labelAccess.gotLabelIDs[0] != testLabelID {
+		t.Fatalf("expected label access ids, got %#v", labelAccess.gotLabelIDs)
+	}
 	if repo.gotCreateInput.Name != "tokyo-vps-1" {
 		t.Fatalf("expected trimmed name, got %q", repo.gotCreateInput.Name)
 	}
@@ -72,12 +80,15 @@ func TestCreateProbeCreatesProbeWithSecretAndNormalizedInput(t *testing.T) {
 	if repo.gotCreateInput.SecretHash != "secret-hash" {
 		t.Fatalf("expected secret hash, got %q", repo.gotCreateInput.SecretHash)
 	}
+	if len(output.Probe.Labels) != 1 || output.Probe.Labels[0].ID != testLabelID {
+		t.Fatalf("expected resolved labels on output, got %#v", output.Probe.Labels)
+	}
 	assertNoProbeEvents(t, recorder)
 }
 
 func TestCreateProbeDefaultsEnabledToTrue(t *testing.T) {
 	repo := &fakeProbeRepository{}
-	service := NewService(repo, &fakeProjectAccess{}, fakeSecretGenerator{plaintext: "plain-secret", hash: "secret-hash"}, &recordingProbeEventRecorder{})
+	service := NewService(repo, &fakeProjectAccess{}, &fakeLabelAccess{}, fakeSecretGenerator{plaintext: "plain-secret", hash: "secret-hash"}, &recordingProbeEventRecorder{})
 
 	_, err := service.CreateProbe(context.Background(), CreateProbeInput{
 		CurrentUserID: "user-1",
@@ -122,7 +133,8 @@ func TestCreateProbeRejectsInvalidInput(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repo := &fakeProbeRepository{}
 			projectAccess := &fakeProjectAccess{}
-			service := NewService(repo, projectAccess, fakeSecretGenerator{plaintext: "plain-secret", hash: "secret-hash"}, &recordingProbeEventRecorder{})
+			labelAccess := &fakeLabelAccess{}
+			service := NewService(repo, projectAccess, labelAccess, fakeSecretGenerator{plaintext: "plain-secret", hash: "secret-hash"}, &recordingProbeEventRecorder{})
 
 			_, err := service.CreateProbe(context.Background(), tt.input)
 			if !errors.Is(err, ErrInvalidInput) {
@@ -130,6 +142,9 @@ func TestCreateProbeRejectsInvalidInput(t *testing.T) {
 			}
 			if projectAccess.gotProjectRef != "" {
 				t.Fatalf("expected project access not to be called, got project ref %q", projectAccess.gotProjectRef)
+			}
+			if labelAccess.gotProjectID != "" {
+				t.Fatalf("expected label access not to be called, got project id %q", labelAccess.gotProjectID)
 			}
 		})
 	}
@@ -139,7 +154,8 @@ func TestCreateProbeRejectsLongitudeWithoutLatitude(t *testing.T) {
 	longitude := 139.6503
 	repo := &fakeProbeRepository{}
 	projectAccess := &fakeProjectAccess{}
-	service := NewService(repo, projectAccess, fakeSecretGenerator{plaintext: "plain-secret", hash: "secret-hash"}, &recordingProbeEventRecorder{})
+	labelAccess := &fakeLabelAccess{}
+	service := NewService(repo, projectAccess, labelAccess, fakeSecretGenerator{plaintext: "plain-secret", hash: "secret-hash"}, &recordingProbeEventRecorder{})
 
 	_, err := service.CreateProbe(context.Background(), CreateProbeInput{
 		Name:      "tokyo-vps-1",
@@ -151,11 +167,14 @@ func TestCreateProbeRejectsLongitudeWithoutLatitude(t *testing.T) {
 	if projectAccess.gotProjectRef != "" {
 		t.Fatalf("expected project access not to be called, got project ref %q", projectAccess.gotProjectRef)
 	}
+	if labelAccess.gotProjectID != "" {
+		t.Fatalf("expected label access not to be called, got project id %q", labelAccess.gotProjectID)
+	}
 }
 
 func TestCreateProbeRejectsInaccessibleProject(t *testing.T) {
 	repo := &fakeProbeRepository{}
-	service := NewService(repo, &fakeProjectAccess{err: ErrProjectNotFound}, fakeSecretGenerator{plaintext: "plain-secret", hash: "secret-hash"}, &recordingProbeEventRecorder{})
+	service := NewService(repo, &fakeProjectAccess{err: ErrProjectNotFound}, &fakeLabelAccess{}, fakeSecretGenerator{plaintext: "plain-secret", hash: "secret-hash"}, &recordingProbeEventRecorder{})
 
 	_, err := service.CreateProbe(context.Background(), CreateProbeInput{
 		CurrentUserID: "user-1",
@@ -172,7 +191,7 @@ func TestCreateProbeRejectsInaccessibleProject(t *testing.T) {
 
 func TestCreateProbeRecordsInvalidInputFailure(t *testing.T) {
 	recorder := &recordingProbeEventRecorder{}
-	service := NewService(&fakeProbeRepository{}, &fakeProjectAccess{}, fakeSecretGenerator{
+	service := NewService(&fakeProbeRepository{}, &fakeProjectAccess{}, &fakeLabelAccess{}, fakeSecretGenerator{
 		plaintext: "plain-secret",
 		hash:      "secret-hash",
 	}, recorder)
@@ -201,6 +220,7 @@ func TestCreateProbeRecordsProjectNotFoundFailure(t *testing.T) {
 	service := NewService(
 		&fakeProbeRepository{},
 		&fakeProjectAccess{err: ErrProjectNotFound},
+		&fakeLabelAccess{},
 		fakeSecretGenerator{plaintext: "plain-secret", hash: "secret-hash"},
 		recorder,
 	)
@@ -230,6 +250,7 @@ func TestCreateProbeRecordsProjectLookupFailure(t *testing.T) {
 	service := NewService(
 		&fakeProbeRepository{},
 		&fakeProjectAccess{err: lookupErr},
+		&fakeLabelAccess{},
 		fakeSecretGenerator{plaintext: "plain-secret", hash: "secret-hash"},
 		recorder,
 	)
@@ -254,12 +275,46 @@ func TestCreateProbeRecordsProjectLookupFailure(t *testing.T) {
 	})
 }
 
+func TestCreateProbeRecordsLabelLookupFailure(t *testing.T) {
+	recorder := &recordingProbeEventRecorder{}
+	lookupErr := errors.New("lookup labels")
+	service := NewService(
+		&fakeProbeRepository{},
+		&fakeProjectAccess{},
+		&fakeLabelAccess{err: lookupErr},
+		fakeSecretGenerator{plaintext: "plain-secret", hash: "secret-hash"},
+		recorder,
+	)
+
+	_, err := service.CreateProbe(context.Background(), CreateProbeInput{
+		CurrentUserID: "user-1",
+		ProjectRef:    "engineering",
+		Name:          "tokyo-vps-1",
+		LabelIDs:      []string{testLabelID},
+	})
+	if !errors.Is(err, lookupErr) {
+		t.Fatalf("expected label lookup error, got %v", err)
+	}
+
+	assertRecordedProbeEvent(t, recorder, ProbeEvent{
+		Name:        ProbeEventCreateFailure,
+		Action:      ProbeActionCreate,
+		Outcome:     ProbeOutcomeFailure,
+		Reason:      ProbeReasonLabelLookupFailed,
+		ActorUserID: "user-1",
+		ProjectID:   testProjectID,
+		ProjectRef:  "engineering",
+		Err:         lookupErr,
+	})
+}
+
 func TestCreateProbeRecordsSecretGenerationFailure(t *testing.T) {
 	recorder := &recordingProbeEventRecorder{}
 	secretErr := errors.New("generate secret")
 	service := NewService(
 		&fakeProbeRepository{},
 		&fakeProjectAccess{},
+		&fakeLabelAccess{},
 		fakeSecretGenerator{err: secretErr},
 		recorder,
 	)
@@ -288,8 +343,9 @@ func TestCreateProbeRecordsSecretGenerationFailure(t *testing.T) {
 func TestCreateProbeRecordsMissingLabelFailureWithoutSecrets(t *testing.T) {
 	recorder := &recordingProbeEventRecorder{}
 	service := NewService(
-		&fakeProbeRepository{createErr: ErrLabelNotFound},
+		&fakeProbeRepository{},
 		&fakeProjectAccess{},
+		&fakeLabelAccess{err: ErrLabelNotFound},
 		fakeSecretGenerator{plaintext: "plain-secret", hash: "secret-hash"},
 		recorder,
 	)
@@ -370,12 +426,6 @@ func (r *fakeProbeRepository) CreateProbe(_ context.Context, input domainprobe.C
 		City:      input.City,
 		Latitude:  input.Latitude,
 		Longitude: input.Longitude,
-		Labels: []domainprobe.Label{{
-			ID:        testLabelID,
-			ProjectID: input.ProjectID,
-			Key:       "region",
-			Value:     "tokyo",
-		}},
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}, nil
@@ -394,6 +444,29 @@ func (r *fakeProjectAccess) GetProjectForUser(_ context.Context, projectRef stri
 		return domainproject.Project{}, r.err
 	}
 	return domainproject.Project{ID: testProjectID, Slug: "engineering"}, nil
+}
+
+type fakeLabelAccess struct {
+	gotProjectID string
+	gotLabelIDs  []string
+	err          error
+}
+
+func (r *fakeLabelAccess) GetActiveLabelsByIDsForProject(_ context.Context, projectID string, labelIDs []string) ([]domainlabel.Label, error) {
+	r.gotProjectID = projectID
+	r.gotLabelIDs = append([]string(nil), labelIDs...)
+	if r.err != nil {
+		return nil, r.err
+	}
+	if len(labelIDs) == 0 {
+		return []domainlabel.Label{}, nil
+	}
+	return []domainlabel.Label{{
+		ID:        testLabelID,
+		ProjectID: projectID,
+		Key:       "region",
+		Value:     "tokyo",
+	}}, nil
 }
 
 type fakeSecretGenerator struct {

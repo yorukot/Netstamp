@@ -11,14 +11,16 @@ import (
 type Service struct {
 	repo            Repository
 	projectAccess   ProjectAccess
+	labelAccess     LabelAccess
 	secretGenerator SecretGenerator
 	events          EventRecorder
 }
 
-func NewService(repo Repository, projectAccess ProjectAccess, secretGenerator SecretGenerator, events EventRecorder) *Service {
+func NewService(repo Repository, projectAccess ProjectAccess, labelAccess LabelAccess, secretGenerator SecretGenerator, events EventRecorder) *Service {
 	return &Service{
 		repo:            repo,
 		projectAccess:   projectAccess,
+		labelAccess:     labelAccess,
 		secretGenerator: secretGenerator,
 		events:          events,
 	}
@@ -42,6 +44,17 @@ func (s *Service) CreateProbe(ctx context.Context, input CreateProbeInput) (Crea
 		return CreateProbeOutput{}, flow.technicalFailure(ProbeEventCreateFailure, ProbeReasonProjectLookupFailed, err)
 	}
 	flow.setProjectID(project.ID)
+
+	labels, err := s.labelAccess.GetActiveLabelsByIDsForProject(ctx, project.ID, normalized.labelIDs)
+	if errors.Is(err, ErrInvalidInput) {
+		return CreateProbeOutput{}, flow.businessFailure(ProbeEventCreateFailure, ProbeReasonInvalidInput, err)
+	}
+	if errors.Is(err, ErrLabelNotFound) {
+		return CreateProbeOutput{}, flow.businessFailure(ProbeEventCreateFailure, ProbeReasonLabelNotFound, err)
+	}
+	if err != nil {
+		return CreateProbeOutput{}, flow.technicalFailure(ProbeEventCreateFailure, ProbeReasonLabelLookupFailed, err)
+	}
 
 	if s.secretGenerator == nil {
 		return CreateProbeOutput{}, flow.technicalFailure(
@@ -77,6 +90,7 @@ func (s *Service) CreateProbe(ctx context.Context, input CreateProbeInput) (Crea
 	if err != nil {
 		return CreateProbeOutput{}, flow.technicalFailure(ProbeEventCreateFailure, ProbeReasonProbeCreateFailed, err)
 	}
+	probe.Labels = labels
 
 	return CreateProbeOutput{
 		Probe:  probe,

@@ -7,9 +7,9 @@ This guide applies to `server/`, the Go backend for the Netstamp workspace. The 
 - `cmd/api/main.go`: API process entry point. It creates the shutdown context, calls `app.New`, runs the app, and syncs the logger.
 - `cmd/migrate/main.go`: Goose migration CLI for `status`, `up`, and `down`.
 - `internal/app/`: composition root and lifecycle. `bootstrap.go` wires config, logging, tracing, PostgreSQL, auth, and HTTP. `lifecycle.go` starts and gracefully stops the HTTP listener.
-- `internal/transport/http/`: chi/Huma HTTP routing, auth, project, probe, system health routes, and middleware.
-- `internal/application/auth/`, `internal/application/project/`, and `internal/application/probe/`: use cases, ports, DTOs, errors, and feature orchestration.
-- `internal/domain/identity/`, `internal/domain/project/`, and `internal/domain/probe/`: stable domain structs and domain-level sentinel errors.
+- `internal/transport/http/`: chi/Huma HTTP routing, auth, project, label, probe, system health routes, and middleware.
+- `internal/application/auth/`, `internal/application/project/`, `internal/application/label/`, and `internal/application/probe/`: use cases, ports, DTOs, errors, and feature orchestration.
+- `internal/domain/identity/`, `internal/domain/project/`, `internal/domain/label/`, and `internal/domain/probe/`: stable domain structs and domain-level sentinel errors.
 - `internal/infrastructure/`: PostgreSQL repositories and pool helpers, JWT issuing, Argon2id password hashing, and probe secret generation.
 - `internal/logger/` and `internal/observability/`: zap logging helpers, application event recording, OpenTelemetry setup, and HTTP span naming.
 - `db/migrations/`: Goose SQL migrations. `db/query/`: sqlc query files. Generated sqlc Go files live in `internal/infrastructure/postgres/sqlc/`.
@@ -21,7 +21,7 @@ No backend public asset directory is currently defined.
 
 The backend is a single Go service with one listener: HTTP on `HTTP_ADDR`. `internal/app.New` loads validated configuration, creates a zap logger, initializes OpenTelemetry, opens a pgx pool, builds application services, and creates the HTTP server. `internal/app.Run` starts the server and coordinates graceful shutdown with `errgroup`.
 
-HTTP uses chi middleware plus Huma route registration under `/api/{version}`. `internal/app/bootstrap.go` passes `cfg.APIVersion` (`API_VERSION`) into the router, and `BACKEND_BASE_URL` can publish an absolute OpenAPI server URL for deployed environments. System routes are `/`, `/livez`, and `/readyz`. Auth routes are `/auth/register`, `/auth/login`, and `/auth/me`; `/auth/me`, project routes, and project probe creation are protected by the Huma auth middleware in `internal/transport/http/middleware`.
+HTTP uses chi middleware plus Huma route registration under `/api/{version}`. `internal/app/bootstrap.go` passes `cfg.APIVersion` (`API_VERSION`) into the router, and `BACKEND_BASE_URL` can publish an absolute OpenAPI server URL for deployed environments. System routes are `/`, `/livez`, and `/readyz`. Auth routes are `/auth/register`, `/auth/login`, and `/auth/me`; `/auth/me`, project routes, project label routes, and project probe creation are protected by the Huma auth middleware in `internal/transport/http/middleware`.
 
 The current auth request flow is:
 

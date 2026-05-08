@@ -14,10 +14,12 @@ import (
 	"go.uber.org/zap"
 
 	appauth "github.com/yorukot/netstamp/internal/application/auth"
+	applabel "github.com/yorukot/netstamp/internal/application/label"
 	appprobe "github.com/yorukot/netstamp/internal/application/probe"
 	appproject "github.com/yorukot/netstamp/internal/application/project"
 	"github.com/yorukot/netstamp/internal/observability/httptrace"
 	authhttp "github.com/yorukot/netstamp/internal/transport/http/auth"
+	labelhttp "github.com/yorukot/netstamp/internal/transport/http/label"
 	httpmiddleware "github.com/yorukot/netstamp/internal/transport/http/middleware"
 	probehttp "github.com/yorukot/netstamp/internal/transport/http/probe"
 	projecthttp "github.com/yorukot/netstamp/internal/transport/http/project"
@@ -29,6 +31,7 @@ type Dependencies struct {
 	BackendBaseURL string
 	AuthService    *appauth.Service
 	AuthVerifier   appauth.TokenVerifier
+	LabelService   *applabel.Service
 	ProbeService   *appprobe.Service
 	ProjectService *appproject.Service
 	ReadinessCheck func(context.Context) error
@@ -71,6 +74,7 @@ func registerAPIRoutes(api huma.API, dep Dependencies) {
 
 	authhttp.NewHandler(dep.AuthService, dep.AuthVerifier).RegisterRoutes(api)
 	projecthttp.NewHandler(dep.ProjectService, dep.AuthVerifier).RegisterRoutes(api)
+	labelhttp.NewHandler(dep.LabelService, dep.AuthVerifier).RegisterRoutes(api)
 	probehttp.NewHandler(dep.ProbeService, dep.AuthVerifier).RegisterRoutes(api)
 }
 

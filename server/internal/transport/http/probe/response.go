@@ -16,28 +16,28 @@ type createProbeOutputBody struct {
 }
 
 type probeResponse struct {
-	ID        string          `json:"id" format:"uuid"`
-	ProjectID string          `json:"projectId" format:"uuid"`
-	Name      string          `json:"name"`
-	Enabled   bool            `json:"enabled"`
-	City      *string         `json:"city"`
-	Latitude  *float64        `json:"latitude"`
-	Longitude *float64        `json:"longitude"`
-	Labels    []labelResponse `json:"labels"`
-	CreatedAt time.Time       `json:"createdAt"`
-	UpdatedAt time.Time       `json:"updatedAt"`
+	ID        string               `json:"id" format:"uuid"`
+	ProjectID string               `json:"projectId" format:"uuid"`
+	Name      string               `json:"name"`
+	Enabled   bool                 `json:"enabled"`
+	City      *string              `json:"city"`
+	Latitude  *float64             `json:"latitude"`
+	Longitude *float64             `json:"longitude"`
+	Labels    []probeLabelResponse `json:"labels"`
+	CreatedAt time.Time            `json:"createdAt"`
+	UpdatedAt time.Time            `json:"updatedAt"`
 }
 
-type labelResponse struct {
+type probeLabelResponse struct {
 	ID    string `json:"id" format:"uuid"`
 	Key   string `json:"key"`
 	Value string `json:"value"`
 }
 
 func newProbeResponse(probe domainprobe.Probe) probeResponse {
-	labels := make([]labelResponse, 0, len(probe.Labels))
+	labels := make([]probeLabelResponse, 0, len(probe.Labels))
 	for _, label := range probe.Labels {
-		labels = append(labels, labelResponse{
+		labels = append(labels, probeLabelResponse{
 			ID:    label.ID,
 			Key:   label.Key,
 			Value: label.Value,

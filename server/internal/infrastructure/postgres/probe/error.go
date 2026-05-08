@@ -3,7 +3,7 @@ package pgprobe
 import (
 	"fmt"
 
-	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
+	domainlabel "github.com/yorukot/netstamp/internal/domain/label"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 	"github.com/yorukot/netstamp/internal/infrastructure/postgres"
 )
@@ -37,7 +37,7 @@ func mapCreateProbeLabelError(err error) error {
 		return fmt.Errorf("project not found: %w", domainproject.ErrProjectNotFound)
 	}
 	if postgres.IsForeignKeyViolation(err, "fk_probe_labels_project_label") {
-		return fmt.Errorf("probe label not found: %w", domainprobe.ErrLabelNotFound)
+		return fmt.Errorf("probe label not found: %w", domainlabel.ErrLabelNotFound)
 	}
 
 	return err

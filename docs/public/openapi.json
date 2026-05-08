@@ -6,15 +6,24 @@
 				"properties": {
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
-						"examples": ["/api/v1/schemas/AddMemberInputBody.json"],
+						"examples": [
+							"/api/v1/schemas/AddMemberInputBody.json"
+						],
 						"format": "uri",
 						"readOnly": true,
 						"type": "string"
 					},
 					"role": {
 						"description": "Project member role.",
-						"enum": ["owner", "admin", "editor", "viewer"],
-						"examples": ["viewer"],
+						"enum": [
+							"owner",
+							"admin",
+							"editor",
+							"viewer"
+						],
+						"examples": [
+							"viewer"
+						],
 						"type": "string"
 					},
 					"userId": {
@@ -23,7 +32,47 @@
 						"type": "string"
 					}
 				},
-				"required": ["userId", "role"],
+				"required": [
+					"userId",
+					"role"
+				],
+				"type": "object"
+			},
+			"CreateLabelInputBody": {
+				"additionalProperties": false,
+				"properties": {
+					"$schema": {
+						"description": "A URL to the JSON Schema for this object.",
+						"examples": [
+							"/api/v1/schemas/CreateLabelInputBody.json"
+						],
+						"format": "uri",
+						"readOnly": true,
+						"type": "string"
+					},
+					"key": {
+						"description": "Label key.",
+						"examples": [
+							"region"
+						],
+						"maxLength": 100,
+						"minLength": 1,
+						"type": "string"
+					},
+					"value": {
+						"description": "Label value.",
+						"examples": [
+							"tokyo"
+						],
+						"maxLength": 100,
+						"minLength": 1,
+						"type": "string"
+					}
+				},
+				"required": [
+					"key",
+					"value"
+				],
 				"type": "object"
 			},
 			"CreateProbeInputBody": {
@@ -31,20 +80,26 @@
 				"properties": {
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
-						"examples": ["/api/v1/schemas/CreateProbeInputBody.json"],
+						"examples": [
+							"/api/v1/schemas/CreateProbeInputBody.json"
+						],
 						"format": "uri",
 						"readOnly": true,
 						"type": "string"
 					},
 					"city": {
 						"description": "Location code stored in the city field.",
-						"examples": ["JP-13"],
+						"examples": [
+							"JP-13"
+						],
 						"maxLength": 100,
 						"type": "string"
 					},
 					"enabled": {
 						"description": "Whether the probe is enabled. Defaults to true when omitted.",
-						"examples": [true],
+						"examples": [
+							true
+						],
 						"type": "boolean"
 					},
 					"labelIds": {
@@ -52,29 +107,40 @@
 						"items": {
 							"type": "string"
 						},
-						"type": ["array", "null"]
+						"type": [
+							"array",
+							"null"
+						]
 					},
 					"latitude": {
 						"description": "Probe latitude. Must be provided with longitude.",
-						"examples": [35.6762],
+						"examples": [
+							35.6762
+						],
 						"format": "double",
 						"type": "number"
 					},
 					"longitude": {
 						"description": "Probe longitude. Must be provided with latitude.",
-						"examples": [139.6503],
+						"examples": [
+							139.6503
+						],
 						"format": "double",
 						"type": "number"
 					},
 					"name": {
 						"description": "Probe display name.",
-						"examples": ["tokyo-vps-1"],
+						"examples": [
+							"tokyo-vps-1"
+						],
 						"maxLength": 100,
 						"minLength": 1,
 						"type": "string"
 					}
 				},
-				"required": ["name"],
+				"required": [
+					"name"
+				],
 				"type": "object"
 			},
 			"CreateProbeOutputBody": {
@@ -82,7 +148,9 @@
 				"properties": {
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
-						"examples": ["/api/v1/schemas/CreateProbeOutputBody.json"],
+						"examples": [
+							"/api/v1/schemas/CreateProbeOutputBody.json"
+						],
 						"format": "uri",
 						"readOnly": true,
 						"type": "string"
@@ -94,7 +162,10 @@
 						"type": "string"
 					}
 				},
-				"required": ["probe", "secret"],
+				"required": [
+					"probe",
+					"secret"
+				],
 				"type": "object"
 			},
 			"CreateProjectInputBody": {
@@ -102,21 +173,27 @@
 				"properties": {
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
-						"examples": ["/api/v1/schemas/CreateProjectInputBody.json"],
+						"examples": [
+							"/api/v1/schemas/CreateProjectInputBody.json"
+						],
 						"format": "uri",
 						"readOnly": true,
 						"type": "string"
 					},
 					"name": {
 						"description": "Project display name.",
-						"examples": ["Engineering"],
+						"examples": [
+							"Engineering"
+						],
 						"maxLength": 100,
 						"minLength": 1,
 						"type": "string"
 					},
 					"slug": {
 						"description": "Stable project slug.",
-						"examples": ["engineering"],
+						"examples": [
+							"engineering"
+						],
 						"maxLength": 100,
 						"minLength": 1,
 						"pattern": "^[a-z0-9-]+$",
@@ -124,7 +201,10 @@
 						"type": "string"
 					}
 				},
-				"required": ["name", "slug"],
+				"required": [
+					"name",
+					"slug"
+				],
 				"type": "object"
 			},
 			"ErrorDetail": {
@@ -149,14 +229,18 @@
 				"properties": {
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
-						"examples": ["/api/v1/schemas/ErrorModel.json"],
+						"examples": [
+							"/api/v1/schemas/ErrorModel.json"
+						],
 						"format": "uri",
 						"readOnly": true,
 						"type": "string"
 					},
 					"detail": {
 						"description": "A human-readable explanation specific to this occurrence of the problem.",
-						"examples": ["Property foo is required but is missing."],
+						"examples": [
+							"Property foo is required but is missing."
+						],
 						"type": "string"
 					},
 					"errors": {
@@ -164,29 +248,40 @@
 						"items": {
 							"$ref": "#/components/schemas/ErrorDetail"
 						},
-						"type": ["array", "null"]
+						"type": [
+							"array",
+							"null"
+						]
 					},
 					"instance": {
 						"description": "A URI reference that identifies the specific occurrence of the problem.",
-						"examples": ["https://example.com/error-log/abc123"],
+						"examples": [
+							"https://example.com/error-log/abc123"
+						],
 						"format": "uri",
 						"type": "string"
 					},
 					"status": {
 						"description": "HTTP status code",
-						"examples": [400],
+						"examples": [
+							400
+						],
 						"format": "int64",
 						"type": "integer"
 					},
 					"title": {
 						"description": "A short, human-readable summary of the problem type. This value should not change between occurrences of the error.",
-						"examples": ["Bad Request"],
+						"examples": [
+							"Bad Request"
+						],
 						"type": "string"
 					},
 					"type": {
 						"default": "about:blank",
 						"description": "A URI reference to human-readable documentation for the error.",
-						"examples": ["https://example.com/errors/example"],
+						"examples": [
+							"https://example.com/errors/example"
+						],
 						"format": "uri",
 						"type": "string"
 					}
@@ -198,21 +293,281 @@
 				"properties": {
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
-						"examples": ["/api/v1/schemas/HealthBody.json"],
+						"examples": [
+							"/api/v1/schemas/HealthBody.json"
+						],
 						"format": "uri",
 						"readOnly": true,
 						"type": "string"
 					},
 					"status": {
 						"description": "Current health status.",
-						"examples": ["ready"],
+						"examples": [
+							"ready"
+						],
 						"type": "string"
 					}
 				},
-				"required": ["status"],
+				"required": [
+					"status"
+				],
+				"type": "object"
+			},
+			"LabelOutputBody": {
+				"additionalProperties": false,
+				"properties": {
+					"$schema": {
+						"description": "A URL to the JSON Schema for this object.",
+						"examples": [
+							"/api/v1/schemas/LabelOutputBody.json"
+						],
+						"format": "uri",
+						"readOnly": true,
+						"type": "string"
+					},
+					"label": {
+						"$ref": "#/components/schemas/LabelResponse"
+					}
+				},
+				"required": [
+					"label"
+				],
 				"type": "object"
 			},
 			"LabelResponse": {
+				"additionalProperties": false,
+				"properties": {
+					"createdAt": {
+						"format": "date-time",
+						"type": "string"
+					},
+					"id": {
+						"format": "uuid",
+						"type": "string"
+					},
+					"key": {
+						"type": "string"
+					},
+					"projectId": {
+						"format": "uuid",
+						"type": "string"
+					},
+					"updatedAt": {
+						"format": "date-time",
+						"type": "string"
+					},
+					"value": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"id",
+					"projectId",
+					"key",
+					"value",
+					"createdAt",
+					"updatedAt"
+				],
+				"type": "object"
+			},
+			"ListLabelsOutputBody": {
+				"additionalProperties": false,
+				"properties": {
+					"$schema": {
+						"description": "A URL to the JSON Schema for this object.",
+						"examples": [
+							"/api/v1/schemas/ListLabelsOutputBody.json"
+						],
+						"format": "uri",
+						"readOnly": true,
+						"type": "string"
+					},
+					"labels": {
+						"items": {
+							"$ref": "#/components/schemas/LabelResponse"
+						},
+						"type": [
+							"array",
+							"null"
+						]
+					}
+				},
+				"required": [
+					"labels"
+				],
+				"type": "object"
+			},
+			"ListMembersOutputBody": {
+				"additionalProperties": false,
+				"properties": {
+					"$schema": {
+						"description": "A URL to the JSON Schema for this object.",
+						"examples": [
+							"/api/v1/schemas/ListMembersOutputBody.json"
+						],
+						"format": "uri",
+						"readOnly": true,
+						"type": "string"
+					},
+					"members": {
+						"items": {
+							"$ref": "#/components/schemas/ProjectMemberResponse"
+						},
+						"type": [
+							"array",
+							"null"
+						]
+					}
+				},
+				"required": [
+					"members"
+				],
+				"type": "object"
+			},
+			"ListProjectsOutputBody": {
+				"additionalProperties": false,
+				"properties": {
+					"$schema": {
+						"description": "A URL to the JSON Schema for this object.",
+						"examples": [
+							"/api/v1/schemas/ListProjectsOutputBody.json"
+						],
+						"format": "uri",
+						"readOnly": true,
+						"type": "string"
+					},
+					"projects": {
+						"items": {
+							"$ref": "#/components/schemas/ProjectResponse"
+						},
+						"type": [
+							"array",
+							"null"
+						]
+					}
+				},
+				"required": [
+					"projects"
+				],
+				"type": "object"
+			},
+			"LoginInputBody": {
+				"additionalProperties": false,
+				"properties": {
+					"$schema": {
+						"description": "A URL to the JSON Schema for this object.",
+						"examples": [
+							"/api/v1/schemas/LoginInputBody.json"
+						],
+						"format": "uri",
+						"readOnly": true,
+						"type": "string"
+					},
+					"email": {
+						"format": "email",
+						"type": "string"
+					},
+					"password": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"email",
+					"password"
+				],
+				"type": "object"
+			},
+			"LoginOutputBody": {
+				"additionalProperties": false,
+				"properties": {
+					"$schema": {
+						"description": "A URL to the JSON Schema for this object.",
+						"examples": [
+							"/api/v1/schemas/LoginOutputBody.json"
+						],
+						"format": "uri",
+						"readOnly": true,
+						"type": "string"
+					},
+					"accessToken": {
+						"type": "string"
+					},
+					"expiresIn": {
+						"description": "Access token lifetime in seconds.",
+						"examples": [
+							43200
+						],
+						"format": "int64",
+						"type": "integer"
+					},
+					"tokenType": {
+						"examples": [
+							"Bearer"
+						],
+						"type": "string"
+					},
+					"user": {
+						"$ref": "#/components/schemas/UserResponse"
+					}
+				},
+				"required": [
+					"user",
+					"tokenType",
+					"accessToken",
+					"expiresIn"
+				],
+				"type": "object"
+			},
+			"MeOutputBody": {
+				"additionalProperties": false,
+				"properties": {
+					"$schema": {
+						"description": "A URL to the JSON Schema for this object.",
+						"examples": [
+							"/api/v1/schemas/MeOutputBody.json"
+						],
+						"format": "uri",
+						"readOnly": true,
+						"type": "string"
+					},
+					"authenticated": {
+						"examples": [
+							true
+						],
+						"type": "boolean"
+					},
+					"user": {
+						"$ref": "#/components/schemas/UserResponse"
+					}
+				},
+				"required": [
+					"authenticated",
+					"user"
+				],
+				"type": "object"
+			},
+			"MemberOutputBody": {
+				"additionalProperties": false,
+				"properties": {
+					"$schema": {
+						"description": "A URL to the JSON Schema for this object.",
+						"examples": [
+							"/api/v1/schemas/MemberOutputBody.json"
+						],
+						"format": "uri",
+						"readOnly": true,
+						"type": "string"
+					},
+					"member": {
+						"$ref": "#/components/schemas/ProjectMemberResponse"
+					}
+				},
+				"required": [
+					"member"
+				],
+				"type": "object"
+			},
+			"ProbeLabelResponse": {
 				"additionalProperties": false,
 				"properties": {
 					"id": {
@@ -226,143 +581,21 @@
 						"type": "string"
 					}
 				},
-				"required": ["id", "key", "value"],
-				"type": "object"
-			},
-			"ListMembersOutputBody": {
-				"additionalProperties": false,
-				"properties": {
-					"$schema": {
-						"description": "A URL to the JSON Schema for this object.",
-						"examples": ["/api/v1/schemas/ListMembersOutputBody.json"],
-						"format": "uri",
-						"readOnly": true,
-						"type": "string"
-					},
-					"members": {
-						"items": {
-							"$ref": "#/components/schemas/ProjectMemberResponse"
-						},
-						"type": ["array", "null"]
-					}
-				},
-				"required": ["members"],
-				"type": "object"
-			},
-			"ListProjectsOutputBody": {
-				"additionalProperties": false,
-				"properties": {
-					"$schema": {
-						"description": "A URL to the JSON Schema for this object.",
-						"examples": ["/api/v1/schemas/ListProjectsOutputBody.json"],
-						"format": "uri",
-						"readOnly": true,
-						"type": "string"
-					},
-					"projects": {
-						"items": {
-							"$ref": "#/components/schemas/ProjectResponse"
-						},
-						"type": ["array", "null"]
-					}
-				},
-				"required": ["projects"],
-				"type": "object"
-			},
-			"LoginInputBody": {
-				"additionalProperties": false,
-				"properties": {
-					"$schema": {
-						"description": "A URL to the JSON Schema for this object.",
-						"examples": ["/api/v1/schemas/LoginInputBody.json"],
-						"format": "uri",
-						"readOnly": true,
-						"type": "string"
-					},
-					"email": {
-						"format": "email",
-						"type": "string"
-					},
-					"password": {
-						"type": "string"
-					}
-				},
-				"required": ["email", "password"],
-				"type": "object"
-			},
-			"LoginOutputBody": {
-				"additionalProperties": false,
-				"properties": {
-					"$schema": {
-						"description": "A URL to the JSON Schema for this object.",
-						"examples": ["/api/v1/schemas/LoginOutputBody.json"],
-						"format": "uri",
-						"readOnly": true,
-						"type": "string"
-					},
-					"accessToken": {
-						"type": "string"
-					},
-					"expiresIn": {
-						"description": "Access token lifetime in seconds.",
-						"examples": [43200],
-						"format": "int64",
-						"type": "integer"
-					},
-					"tokenType": {
-						"examples": ["Bearer"],
-						"type": "string"
-					},
-					"user": {
-						"$ref": "#/components/schemas/UserResponse"
-					}
-				},
-				"required": ["user", "tokenType", "accessToken", "expiresIn"],
-				"type": "object"
-			},
-			"MeOutputBody": {
-				"additionalProperties": false,
-				"properties": {
-					"$schema": {
-						"description": "A URL to the JSON Schema for this object.",
-						"examples": ["/api/v1/schemas/MeOutputBody.json"],
-						"format": "uri",
-						"readOnly": true,
-						"type": "string"
-					},
-					"authenticated": {
-						"examples": [true],
-						"type": "boolean"
-					},
-					"user": {
-						"$ref": "#/components/schemas/UserResponse"
-					}
-				},
-				"required": ["authenticated", "user"],
-				"type": "object"
-			},
-			"MemberOutputBody": {
-				"additionalProperties": false,
-				"properties": {
-					"$schema": {
-						"description": "A URL to the JSON Schema for this object.",
-						"examples": ["/api/v1/schemas/MemberOutputBody.json"],
-						"format": "uri",
-						"readOnly": true,
-						"type": "string"
-					},
-					"member": {
-						"$ref": "#/components/schemas/ProjectMemberResponse"
-					}
-				},
-				"required": ["member"],
+				"required": [
+					"id",
+					"key",
+					"value"
+				],
 				"type": "object"
 			},
 			"ProbeResponse": {
 				"additionalProperties": false,
 				"properties": {
 					"city": {
-						"type": ["string", "null"]
+						"type": [
+							"string",
+							"null"
+						]
 					},
 					"createdAt": {
 						"format": "date-time",
@@ -377,17 +610,26 @@
 					},
 					"labels": {
 						"items": {
-							"$ref": "#/components/schemas/LabelResponse"
+							"$ref": "#/components/schemas/ProbeLabelResponse"
 						},
-						"type": ["array", "null"]
+						"type": [
+							"array",
+							"null"
+						]
 					},
 					"latitude": {
 						"format": "double",
-						"type": ["number", "null"]
+						"type": [
+							"number",
+							"null"
+						]
 					},
 					"longitude": {
 						"format": "double",
-						"type": ["number", "null"]
+						"type": [
+							"number",
+							"null"
+						]
 					},
 					"name": {
 						"type": "string"
@@ -401,7 +643,18 @@
 						"type": "string"
 					}
 				},
-				"required": ["id", "projectId", "name", "enabled", "city", "latitude", "longitude", "labels", "createdAt", "updatedAt"],
+				"required": [
+					"id",
+					"projectId",
+					"name",
+					"enabled",
+					"city",
+					"latitude",
+					"longitude",
+					"labels",
+					"createdAt",
+					"updatedAt"
+				],
 				"type": "object"
 			},
 			"ProjectMemberResponse": {
@@ -424,7 +677,12 @@
 						"type": "string"
 					},
 					"role": {
-						"enum": ["owner", "admin", "editor", "viewer"],
+						"enum": [
+							"owner",
+							"admin",
+							"editor",
+							"viewer"
+						],
 						"type": "string"
 					},
 					"updatedAt": {
@@ -436,7 +694,15 @@
 						"type": "string"
 					}
 				},
-				"required": ["id", "projectId", "userId", "email", "role", "createdAt", "updatedAt"],
+				"required": [
+					"id",
+					"projectId",
+					"userId",
+					"email",
+					"role",
+					"createdAt",
+					"updatedAt"
+				],
 				"type": "object"
 			},
 			"ProjectOutputBody": {
@@ -444,7 +710,9 @@
 				"properties": {
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
-						"examples": ["/api/v1/schemas/ProjectOutputBody.json"],
+						"examples": [
+							"/api/v1/schemas/ProjectOutputBody.json"
+						],
 						"format": "uri",
 						"readOnly": true,
 						"type": "string"
@@ -453,7 +721,9 @@
 						"$ref": "#/components/schemas/ProjectResponse"
 					}
 				},
-				"required": ["project"],
+				"required": [
+					"project"
+				],
 				"type": "object"
 			},
 			"ProjectResponse": {
@@ -482,7 +752,14 @@
 						"type": "string"
 					}
 				},
-				"required": ["id", "name", "slug", "createdByUserId", "createdAt", "updatedAt"],
+				"required": [
+					"id",
+					"name",
+					"slug",
+					"createdByUserId",
+					"createdAt",
+					"updatedAt"
+				],
 				"type": "object"
 			},
 			"RegisterInputBody": {
@@ -490,35 +767,47 @@
 				"properties": {
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
-						"examples": ["/api/v1/schemas/RegisterInputBody.json"],
+						"examples": [
+							"/api/v1/schemas/RegisterInputBody.json"
+						],
 						"format": "uri",
 						"readOnly": true,
 						"type": "string"
 					},
 					"displayName": {
 						"description": "Name shown in the app.",
-						"examples": ["Jane Doe"],
+						"examples": [
+							"Jane Doe"
+						],
 						"maxLength": 100,
 						"minLength": 1,
 						"type": "string"
 					},
 					"email": {
 						"description": "Email address used to sign in.",
-						"examples": ["user@example.com"],
+						"examples": [
+							"user@example.com"
+						],
 						"format": "email",
 						"maxLength": 254,
 						"type": "string"
 					},
 					"password": {
 						"description": "Plain-text password. It is stored only as an Argon2id hash.",
-						"examples": ["correct-horse-battery-staple"],
+						"examples": [
+							"correct-horse-battery-staple"
+						],
 						"maxLength": 128,
 						"minLength": 8,
 						"type": "string",
 						"writeOnly": true
 					}
 				},
-				"required": ["email", "displayName", "password"],
+				"required": [
+					"email",
+					"displayName",
+					"password"
+				],
 				"type": "object"
 			},
 			"RegisterOutputBody": {
@@ -526,7 +815,9 @@
 				"properties": {
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
-						"examples": ["/api/v1/schemas/RegisterOutputBody.json"],
+						"examples": [
+							"/api/v1/schemas/RegisterOutputBody.json"
+						],
 						"format": "uri",
 						"readOnly": true,
 						"type": "string"
@@ -536,19 +827,28 @@
 					},
 					"expiresIn": {
 						"description": "Access token lifetime in seconds.",
-						"examples": [43200],
+						"examples": [
+							43200
+						],
 						"format": "int64",
 						"type": "integer"
 					},
 					"tokenType": {
-						"examples": ["Bearer"],
+						"examples": [
+							"Bearer"
+						],
 						"type": "string"
 					},
 					"user": {
 						"$ref": "#/components/schemas/UserResponse"
 					}
 				},
-				"required": ["user", "tokenType", "accessToken", "expiresIn"],
+				"required": [
+					"user",
+					"tokenType",
+					"accessToken",
+					"expiresIn"
+				],
 				"type": "object"
 			},
 			"RootBody": {
@@ -556,18 +856,57 @@
 				"properties": {
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
-						"examples": ["/api/v1/schemas/RootBody.json"],
+						"examples": [
+							"/api/v1/schemas/RootBody.json"
+						],
 						"format": "uri",
 						"readOnly": true,
 						"type": "string"
 					},
 					"message": {
 						"description": "Human-readable API status message.",
-						"examples": ["Netstamp API is running"],
+						"examples": [
+							"Netstamp API is running"
+						],
 						"type": "string"
 					}
 				},
-				"required": ["message"],
+				"required": [
+					"message"
+				],
+				"type": "object"
+			},
+			"UpdateLabelInputBody": {
+				"additionalProperties": false,
+				"properties": {
+					"$schema": {
+						"description": "A URL to the JSON Schema for this object.",
+						"examples": [
+							"/api/v1/schemas/UpdateLabelInputBody.json"
+						],
+						"format": "uri",
+						"readOnly": true,
+						"type": "string"
+					},
+					"key": {
+						"description": "Label key.",
+						"examples": [
+							"region"
+						],
+						"maxLength": 100,
+						"minLength": 1,
+						"type": "string"
+					},
+					"value": {
+						"description": "Label value.",
+						"examples": [
+							"tokyo"
+						],
+						"maxLength": 100,
+						"minLength": 1,
+						"type": "string"
+					}
+				},
 				"type": "object"
 			},
 			"UpdateMemberRoleInputBody": {
@@ -575,19 +914,30 @@
 				"properties": {
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
-						"examples": ["/api/v1/schemas/UpdateMemberRoleInputBody.json"],
+						"examples": [
+							"/api/v1/schemas/UpdateMemberRoleInputBody.json"
+						],
 						"format": "uri",
 						"readOnly": true,
 						"type": "string"
 					},
 					"role": {
 						"description": "Project member role.",
-						"enum": ["owner", "admin", "editor", "viewer"],
-						"examples": ["viewer"],
+						"enum": [
+							"owner",
+							"admin",
+							"editor",
+							"viewer"
+						],
+						"examples": [
+							"viewer"
+						],
 						"type": "string"
 					}
 				},
-				"required": ["role"],
+				"required": [
+					"role"
+				],
 				"type": "object"
 			},
 			"UpdateProjectInputBody": {
@@ -595,21 +945,27 @@
 				"properties": {
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
-						"examples": ["/api/v1/schemas/UpdateProjectInputBody.json"],
+						"examples": [
+							"/api/v1/schemas/UpdateProjectInputBody.json"
+						],
 						"format": "uri",
 						"readOnly": true,
 						"type": "string"
 					},
 					"name": {
 						"description": "Project display name.",
-						"examples": ["Engineering"],
+						"examples": [
+							"Engineering"
+						],
 						"maxLength": 100,
 						"minLength": 1,
 						"type": "string"
 					},
 					"slug": {
 						"description": "Stable project slug.",
-						"examples": ["engineering"],
+						"examples": [
+							"engineering"
+						],
 						"maxLength": 100,
 						"minLength": 1,
 						"pattern": "^[a-z0-9-]+$",
@@ -635,7 +991,10 @@
 						"type": "string"
 					}
 				},
-				"required": ["id", "email"],
+				"required": [
+					"id",
+					"email"
+				],
 				"type": "object"
 			}
 		},
@@ -680,7 +1039,9 @@
 					}
 				},
 				"summary": "Get API status",
-				"tags": ["System"]
+				"tags": [
+					"System"
+				]
 			}
 		},
 		"/auth/login": {
@@ -739,7 +1100,9 @@
 					}
 				},
 				"summary": "Login user",
-				"tags": ["Auth"]
+				"tags": [
+					"Auth"
+				]
 			}
 		},
 		"/auth/me": {
@@ -783,7 +1146,9 @@
 					}
 				],
 				"summary": "Get current user",
-				"tags": ["Auth"]
+				"tags": [
+					"Auth"
+				]
 			}
 		},
 		"/auth/register": {
@@ -842,7 +1207,9 @@
 					}
 				},
 				"summary": "Register user",
-				"tags": ["Auth"]
+				"tags": [
+					"Auth"
+				]
 			}
 		},
 		"/livez": {
@@ -871,7 +1238,9 @@
 					}
 				},
 				"summary": "Get liveness status",
-				"tags": ["System"]
+				"tags": [
+					"System"
+				]
 			}
 		},
 		"/projects": {
@@ -915,7 +1284,9 @@
 					}
 				],
 				"summary": "List projects",
-				"tags": ["Projects"]
+				"tags": [
+					"Projects"
+				]
 			},
 			"post": {
 				"operationId": "createProject",
@@ -987,7 +1358,9 @@
 					}
 				],
 				"summary": "Create project",
-				"tags": ["Projects"]
+				"tags": [
+					"Projects"
+				]
 			}
 		},
 		"/projects/{ref}": {
@@ -1001,7 +1374,9 @@
 						"required": true,
 						"schema": {
 							"description": "Project UUID or slug.",
-							"examples": ["engineering"],
+							"examples": [
+								"engineering"
+							],
 							"maxLength": 100,
 							"minLength": 1,
 							"type": "string"
@@ -1069,7 +1444,9 @@
 					}
 				],
 				"summary": "Delete project",
-				"tags": ["Projects"]
+				"tags": [
+					"Projects"
+				]
 			},
 			"get": {
 				"operationId": "getProject",
@@ -1081,7 +1458,9 @@
 						"required": true,
 						"schema": {
 							"description": "Project UUID or slug.",
-							"examples": ["engineering"],
+							"examples": [
+								"engineering"
+							],
 							"maxLength": 100,
 							"minLength": 1,
 							"type": "string"
@@ -1146,7 +1525,9 @@
 					}
 				],
 				"summary": "Get project",
-				"tags": ["Projects"]
+				"tags": [
+					"Projects"
+				]
 			},
 			"patch": {
 				"operationId": "updateProject",
@@ -1158,7 +1539,9 @@
 						"required": true,
 						"schema": {
 							"description": "Project UUID or slug.",
-							"examples": ["engineering"],
+							"examples": [
+								"engineering"
+							],
 							"maxLength": 100,
 							"minLength": 1,
 							"type": "string"
@@ -1253,7 +1636,422 @@
 					}
 				],
 				"summary": "Update project",
-				"tags": ["Projects"]
+				"tags": [
+					"Projects"
+				]
+			}
+		},
+		"/projects/{ref}/labels": {
+			"get": {
+				"operationId": "listProjectLabels",
+				"parameters": [
+					{
+						"description": "Project UUID or slug.",
+						"in": "path",
+						"name": "ref",
+						"required": true,
+						"schema": {
+							"description": "Project UUID or slug.",
+							"examples": [
+								"engineering"
+							],
+							"maxLength": 100,
+							"minLength": 1,
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ListLabelsOutputBody"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"401": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Unauthorized"
+					},
+					"404": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"422": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Unprocessable Entity"
+					},
+					"500": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Internal Server Error"
+					}
+				},
+				"security": [
+					{
+						"bearerAuth": []
+					}
+				],
+				"summary": "List project labels",
+				"tags": [
+					"Labels"
+				]
+			},
+			"post": {
+				"operationId": "createProjectLabel",
+				"parameters": [
+					{
+						"description": "Project UUID or slug.",
+						"in": "path",
+						"name": "ref",
+						"required": true,
+						"schema": {
+							"description": "Project UUID or slug.",
+							"examples": [
+								"engineering"
+							],
+							"maxLength": 100,
+							"minLength": 1,
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/CreateLabelInputBody"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"201": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LabelOutputBody"
+								}
+							}
+						},
+						"description": "Created"
+					},
+					"401": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Unauthorized"
+					},
+					"403": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Forbidden"
+					},
+					"404": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"409": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Conflict"
+					},
+					"422": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Unprocessable Entity"
+					},
+					"500": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Internal Server Error"
+					}
+				},
+				"security": [
+					{
+						"bearerAuth": []
+					}
+				],
+				"summary": "Create project label",
+				"tags": [
+					"Labels"
+				]
+			}
+		},
+		"/projects/{ref}/labels/{label_id}": {
+			"delete": {
+				"operationId": "deleteProjectLabel",
+				"parameters": [
+					{
+						"description": "Project UUID or slug.",
+						"in": "path",
+						"name": "ref",
+						"required": true,
+						"schema": {
+							"description": "Project UUID or slug.",
+							"examples": [
+								"engineering"
+							],
+							"maxLength": 100,
+							"minLength": 1,
+							"type": "string"
+						}
+					},
+					{
+						"description": "Label ID.",
+						"in": "path",
+						"name": "label_id",
+						"required": true,
+						"schema": {
+							"description": "Label ID.",
+							"format": "uuid",
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"204": {
+						"description": "No Content"
+					},
+					"401": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Unauthorized"
+					},
+					"403": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Forbidden"
+					},
+					"404": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"422": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Unprocessable Entity"
+					},
+					"500": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Internal Server Error"
+					}
+				},
+				"security": [
+					{
+						"bearerAuth": []
+					}
+				],
+				"summary": "Delete project label",
+				"tags": [
+					"Labels"
+				]
+			},
+			"patch": {
+				"operationId": "updateProjectLabel",
+				"parameters": [
+					{
+						"description": "Project UUID or slug.",
+						"in": "path",
+						"name": "ref",
+						"required": true,
+						"schema": {
+							"description": "Project UUID or slug.",
+							"examples": [
+								"engineering"
+							],
+							"maxLength": 100,
+							"minLength": 1,
+							"type": "string"
+						}
+					},
+					{
+						"description": "Label ID.",
+						"in": "path",
+						"name": "label_id",
+						"required": true,
+						"schema": {
+							"description": "Label ID.",
+							"format": "uuid",
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/UpdateLabelInputBody"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LabelOutputBody"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"401": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Unauthorized"
+					},
+					"403": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Forbidden"
+					},
+					"404": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"409": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Conflict"
+					},
+					"422": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Unprocessable Entity"
+					},
+					"500": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Internal Server Error"
+					}
+				},
+				"security": [
+					{
+						"bearerAuth": []
+					}
+				],
+				"summary": "Update project label",
+				"tags": [
+					"Labels"
+				]
 			}
 		},
 		"/projects/{ref}/members": {
@@ -1267,7 +2065,9 @@
 						"required": true,
 						"schema": {
 							"description": "Project UUID or slug.",
-							"examples": ["engineering"],
+							"examples": [
+								"engineering"
+							],
 							"maxLength": 100,
 							"minLength": 1,
 							"type": "string"
@@ -1332,7 +2132,9 @@
 					}
 				],
 				"summary": "List project members",
-				"tags": ["Project Members"]
+				"tags": [
+					"Project Members"
+				]
 			},
 			"post": {
 				"operationId": "addProjectMember",
@@ -1344,7 +2146,9 @@
 						"required": true,
 						"schema": {
 							"description": "Project UUID or slug.",
-							"examples": ["engineering"],
+							"examples": [
+								"engineering"
+							],
 							"maxLength": 100,
 							"minLength": 1,
 							"type": "string"
@@ -1439,7 +2243,9 @@
 					}
 				],
 				"summary": "Add project member",
-				"tags": ["Project Members"]
+				"tags": [
+					"Project Members"
+				]
 			}
 		},
 		"/projects/{ref}/members/{user_id}": {
@@ -1453,7 +2259,9 @@
 						"required": true,
 						"schema": {
 							"description": "Project UUID or slug.",
-							"examples": ["engineering"],
+							"examples": [
+								"engineering"
+							],
 							"maxLength": 100,
 							"minLength": 1,
 							"type": "string"
@@ -1557,7 +2365,9 @@
 					}
 				],
 				"summary": "Update project member role",
-				"tags": ["Project Members"]
+				"tags": [
+					"Project Members"
+				]
 			}
 		},
 		"/projects/{ref}/probes": {
@@ -1571,7 +2381,9 @@
 						"required": true,
 						"schema": {
 							"description": "Project UUID or slug.",
-							"examples": ["engineering"],
+							"examples": [
+								"engineering"
+							],
 							"maxLength": 100,
 							"minLength": 1,
 							"type": "string"
@@ -1646,7 +2458,9 @@
 					}
 				],
 				"summary": "Create project probe",
-				"tags": ["Probes"]
+				"tags": [
+					"Probes"
+				]
 			}
 		},
 		"/readyz": {
@@ -1685,7 +2499,9 @@
 					}
 				},
 				"summary": "Get readiness status",
-				"tags": ["System"]
+				"tags": [
+					"System"
+				]
 			}
 		}
 	},

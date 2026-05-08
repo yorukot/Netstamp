@@ -3,11 +3,12 @@ package probe
 import (
 	"errors"
 	"time"
+
+	domainlabel "github.com/yorukot/netstamp/internal/domain/label"
 )
 
 var (
-	ErrLabelNotFound = errors.New("probe label not found")
-	ErrInvalidInput  = errors.New("probe input invalid")
+	ErrInvalidInput = errors.New("probe input invalid")
 )
 
 type State string
@@ -25,17 +26,7 @@ type Probe struct {
 	City      *string
 	Latitude  *float64
 	Longitude *float64
-	Labels    []Label
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	DeletedAt *time.Time
-}
-
-type Label struct {
-	ID        string
-	ProjectID string
-	Key       string
-	Value     string
+	Labels    []domainlabel.Label
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	DeletedAt *time.Time

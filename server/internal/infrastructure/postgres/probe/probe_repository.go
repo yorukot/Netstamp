@@ -3,7 +3,6 @@ package pgprobe
 import (
 	"context"
 
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -11,6 +10,7 @@ import (
 	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 	"github.com/yorukot/netstamp/internal/infrastructure/postgres"
+	pglabel "github.com/yorukot/netstamp/internal/infrastructure/postgres/label"
 	"github.com/yorukot/netstamp/internal/infrastructure/postgres/sqlc"
 )
 
@@ -34,7 +34,7 @@ func (r *ProbeRepository) CreateProbe(ctx context.Context, input domainprobe.Cre
 	if err != nil {
 		return domainprobe.Probe{}, err
 	}
-	labelIDs, err := parseLabelIDs(input.LabelIDs)
+	labelIDs, err := pglabel.ParseLabelIDs(input.LabelIDs)
 	if err != nil {
 		return domainprobe.Probe{}, err
 	}
@@ -42,11 +42,6 @@ func (r *ProbeRepository) CreateProbe(ctx context.Context, input domainprobe.Cre
 	var created domainprobe.Probe
 	err = r.tx.InTx(ctx, func(ctx context.Context, tx pgx.Tx) error {
 		q := r.queries.WithTx(tx)
-
-		labels, err := r.getActiveLabels(ctx, q, projectID, labelIDs)
-		if err != nil {
-			return err
-		}
 
 		row, err := q.CreateProbe(ctx, sqlc.CreateProbeParams{
 			ProjectID: projectID,
@@ -83,7 +78,7 @@ func (r *ProbeRepository) CreateProbe(ctx context.Context, input domainprobe.Cre
 			}
 		}
 
-		created = mapProbe(row, labels)
+		created = mapProbe(row)
 		return nil
 	})
 	if err != nil {
@@ -92,42 +87,6 @@ func (r *ProbeRepository) CreateProbe(ctx context.Context, input domainprobe.Cre
 	}
 
 	return created, nil
-}
-
-func (r *ProbeRepository) getActiveLabels(ctx context.Context, q *sqlc.Queries, projectID uuid.UUID, labelIDs []uuid.UUID) ([]domainprobe.Label, error) {
-	if len(labelIDs) == 0 {
-		return []domainprobe.Label{}, nil
-	}
-
-	rows, err := q.GetActiveLabelsByIDsForProject(ctx, sqlc.GetActiveLabelsByIDsForProjectParams{
-		ProjectID: projectID,
-		LabelIds:  labelIDs,
-	})
-	if err != nil {
-		return nil, err
-	}
-	if len(rows) != len(labelIDs) {
-		return nil, domainprobe.ErrLabelNotFound
-	}
-
-	return mapLabels(rows), nil
-}
-
-func parseLabelIDs(values []string) ([]uuid.UUID, error) {
-	if len(values) == 0 {
-		return nil, nil
-	}
-
-	labelIDs := make([]uuid.UUID, 0, len(values))
-	for _, value := range values {
-		labelID, err := postgres.ParseUUID(value, domainprobe.ErrInvalidInput)
-		if err != nil {
-			return nil, err
-		}
-		labelIDs = append(labelIDs, labelID)
-	}
-
-	return labelIDs, nil
 }
 
 func pointFromCoordinates(longitude *float64, latitude *float64) pgtype.Point {
