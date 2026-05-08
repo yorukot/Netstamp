@@ -357,11 +357,19 @@
 						"type": "string"
 					},
 					"email": {
+						"description": "Email address used to sign in. It is normalized before lookup.",
+						"examples": ["user@example.com"],
 						"format": "email",
+						"maxLength": 254,
 						"type": "string"
 					},
 					"password": {
-						"type": "string"
+						"description": "Plain-text password to verify. It is never returned by the API.",
+						"examples": ["correct-horse-battery-staple"],
+						"maxLength": 128,
+						"minLength": 1,
+						"type": "string",
+						"writeOnly": true
 					}
 				},
 				"required": ["email", "password"],
@@ -378,6 +386,8 @@
 						"type": "string"
 					},
 					"accessToken": {
+						"description": "JWT access token issued for the authenticated user.",
+						"examples": ["eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example.signature"],
 						"type": "string"
 					},
 					"expiresIn": {
@@ -387,11 +397,13 @@
 						"type": "integer"
 					},
 					"tokenType": {
+						"description": "Token scheme to use in the Authorization header.",
 						"examples": ["Bearer"],
 						"type": "string"
 					},
 					"user": {
-						"$ref": "#/components/schemas/UserResponse"
+						"$ref": "#/components/schemas/UserResponse",
+						"description": "Authenticated user."
 					}
 				},
 				"required": ["user", "tokenType", "accessToken", "expiresIn"],
@@ -408,11 +420,13 @@
 						"type": "string"
 					},
 					"authenticated": {
+						"description": "Always true when the bearer token is valid.",
 						"examples": [true],
 						"type": "boolean"
 					},
 					"user": {
-						"$ref": "#/components/schemas/UserResponse"
+						"$ref": "#/components/schemas/UserResponse",
+						"description": "User identity from the verified access token claims."
 					}
 				},
 				"required": ["authenticated", "user"],
@@ -626,6 +640,8 @@
 						"type": "string"
 					},
 					"accessToken": {
+						"description": "JWT access token issued for the created user.",
+						"examples": ["eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example.signature"],
 						"type": "string"
 					},
 					"expiresIn": {
@@ -635,11 +651,13 @@
 						"type": "integer"
 					},
 					"tokenType": {
+						"description": "Token scheme to use in the Authorization header.",
 						"examples": ["Bearer"],
 						"type": "string"
 					},
 					"user": {
-						"$ref": "#/components/schemas/UserResponse"
+						"$ref": "#/components/schemas/UserResponse",
+						"description": "Created user."
 					}
 				},
 				"required": ["user", "tokenType", "accessToken", "expiresIn"],
@@ -744,14 +762,20 @@
 				"additionalProperties": false,
 				"properties": {
 					"displayName": {
+						"description": "Name shown in the app.",
+						"examples": ["Jane Doe"],
 						"maxLength": 100,
 						"type": "string"
 					},
 					"email": {
+						"description": "Normalized email address used to sign in.",
+						"examples": ["user@example.com"],
 						"format": "email",
 						"type": "string"
 					},
 					"id": {
+						"description": "User UUID.",
+						"examples": ["11111111-1111-1111-1111-111111111111"],
 						"format": "uuid",
 						"type": "string"
 					}
@@ -806,6 +830,7 @@
 		},
 		"/auth/login": {
 			"post": {
+				"description": "Verify an email and password pair, then return the authenticated user and a bearer access token. Invalid credentials always return the same unauthorized response so callers cannot distinguish an unknown email from a password mismatch.",
 				"operationId": "loginUser",
 				"requestBody": {
 					"content": {
@@ -865,6 +890,7 @@
 		},
 		"/auth/me": {
 			"get": {
+				"description": "Return the user identity embedded in a valid bearer access token. The request must include an Authorization header using the Bearer scheme.",
 				"operationId": "getCurrentUser",
 				"responses": {
 					"200": {
@@ -909,6 +935,7 @@
 		},
 		"/auth/register": {
 			"post": {
+				"description": "Create a user account with a normalized email address, display name, and password. On success, returns the created user and a bearer access token for immediate API access.",
 				"operationId": "registerUser",
 				"requestBody": {
 					"content": {
@@ -2126,6 +2153,16 @@
 							}
 						},
 						"description": "Unauthorized"
+					},
+					"403": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Forbidden"
 					},
 					"404": {
 						"content": {
