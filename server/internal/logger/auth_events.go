@@ -30,16 +30,8 @@ func NewAuthEventRecorder(root *zap.Logger, pseudonymKey string) *AuthEventRecor
 
 func (r *AuthEventRecorder) RecordAuthEvent(ctx context.Context, event appauth.AuthEvent) {
 	log := FromContext(ctx, r.root)
-	fields := []zap.Field{
-		zap.String("event_name", string(event.Name)),
-		zap.String("event.category", "auth"),
-		zap.String("event.action", string(event.Action)),
-		zap.String("event.outcome", string(event.Outcome)),
-	}
+	fields := eventFields(string(event.Name), "auth", string(event.Action), string(event.Outcome), string(event.Reason))
 
-	if event.Reason != "" {
-		fields = append(fields, zap.String("event.reason", string(event.Reason)))
-	}
 	if event.UserID != "" {
 		fields = append(fields, zap.String("user.id", event.UserID))
 	}

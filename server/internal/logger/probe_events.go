@@ -22,16 +22,8 @@ func NewProbeEventRecorder(root *zap.Logger) *ProbeEventRecorder {
 
 func (r *ProbeEventRecorder) RecordProbeEvent(ctx context.Context, event appprobe.ProbeEvent) {
 	log := FromContext(ctx, r.root)
-	fields := []zap.Field{
-		zap.String("event_name", string(event.Name)),
-		zap.String("event.category", "probe"),
-		zap.String("event.action", string(event.Action)),
-		zap.String("event.outcome", string(event.Outcome)),
-	}
+	fields := eventFields(string(event.Name), "probe", string(event.Action), string(event.Outcome), string(event.Reason))
 
-	if event.Reason != "" {
-		fields = append(fields, zap.String("event.reason", string(event.Reason)))
-	}
 	if event.ActorUserID != "" {
 		fields = append(fields, zap.String("user.id", event.ActorUserID))
 	}
