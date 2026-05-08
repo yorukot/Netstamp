@@ -123,7 +123,7 @@
 	justify-content: center;
 	gap: 0.45rem;
 	min-width: 2.9rem;
-	padding: 0.8rem 0.75rem;
+	padding: 0.4rem 0.625rem;
 	color: var(--ns-text-subtle);
 	background: rgba(255, 255, 255, 0.04);
 	border: 1px solid var(--ns-border-faint);
@@ -185,7 +185,7 @@
 	flex-wrap: nowrap;
 	overflow: hidden;
 	gap: 0.75rem;
-	padding: 0.8rem 0.875rem;
+	padding: 0.4rem 0.625rem;
 	color: var(--ns-text-subtle);
 	background: rgba(255, 255, 255, 0.04);
 	border: 1px solid var(--ns-border-faint);

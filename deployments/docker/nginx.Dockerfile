@@ -30,8 +30,7 @@ COPY packages/brand packages/brand
 COPY packages/ui packages/ui
 
 RUN pnpm --filter @netstamp/web build
-RUN pnpm --filter @netstamp/docs astro build \
-    && pnpm --filter @netstamp/ui build:storybook -o ../../docs/dist/storybook
+RUN pnpm --filter @netstamp/docs build
 
 FROM nginx:1.27-alpine
 
