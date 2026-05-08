@@ -12,4 +12,3 @@
 server/bin
 server/tmp
 server/coverage.out
-docs
