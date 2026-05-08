@@ -58,8 +58,8 @@ type registerInputBody struct {
 }
 
 type registerOutputBody struct {
-	User        userResponse `json:"user"`
-	TokenType   string       `json:"tokenType" example:"Bearer"`
-	AccessToken string       `json:"accessToken"`
+	User        userResponse `json:"user" doc:"Created user."`
+	TokenType   string       `json:"tokenType" example:"Bearer" doc:"Token scheme to use in the Authorization header."`
+	AccessToken string       `json:"accessToken" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example.signature" doc:"JWT access token issued for the created user."`
 	ExpiresIn   int          `json:"expiresIn" example:"43200" doc:"Access token lifetime in seconds."`
 }

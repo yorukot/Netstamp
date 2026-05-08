@@ -46,13 +46,13 @@ type loginOutput struct {
 }
 
 type loginInputBody struct {
-	Email    string `json:"email" format:"email" required:"true"`
-	Password string `json:"password" required:"true"`
+	Email    string `json:"email" format:"email" maxLength:"254" required:"true" doc:"Email address used to sign in. It is normalized before lookup." example:"user@example.com"`
+	Password string `json:"password" minLength:"1" maxLength:"128" required:"true" writeOnly:"true" doc:"Plain-text password to verify. It is never returned by the API." example:"correct-horse-battery-staple"`
 }
 
 type loginOutputBody struct {
-	User        userResponse `json:"user"`
-	TokenType   string       `json:"tokenType" example:"Bearer"`
-	AccessToken string       `json:"accessToken"`
+	User        userResponse `json:"user" doc:"Authenticated user."`
+	TokenType   string       `json:"tokenType" example:"Bearer" doc:"Token scheme to use in the Authorization header."`
+	AccessToken string       `json:"accessToken" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example.signature" doc:"JWT access token issued for the authenticated user."`
 	ExpiresIn   int          `json:"expiresIn" example:"43200" doc:"Access token lifetime in seconds."`
 }

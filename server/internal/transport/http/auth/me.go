@@ -33,6 +33,6 @@ type meOutput struct {
 }
 
 type meOutputBody struct {
-	Authenticated bool         `json:"authenticated" example:"true"`
-	User          userResponse `json:"user"`
+	Authenticated bool         `json:"authenticated" example:"true" doc:"Always true when the bearer token is valid."`
+	User          userResponse `json:"user" doc:"User identity from the verified access token claims."`
 }
