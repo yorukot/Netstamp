@@ -9,6 +9,7 @@ import (
 
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
 	domainlabel "github.com/yorukot/netstamp/internal/domain/label"
+	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 )
 
@@ -80,9 +81,9 @@ func TestCreateCheckNormalizesInputAndDefaultsPingConfig(t *testing.T) {
 	if check.Description == nil || *check.Description != "public API" {
 		t.Fatalf("expected trimmed description, got %#v", check.Description)
 	}
-	if check.PingConfig.PacketCount != defaultPacketCount ||
-		check.PingConfig.PacketSizeBytes != defaultPacketSizeBytes ||
-		check.PingConfig.TimeoutMs != defaultTimeoutMs {
+	if check.PingConfig.PacketCount != domainping.DefaultPacketCount ||
+		check.PingConfig.PacketSizeBytes != domainping.DefaultPacketSizeBytes ||
+		check.PingConfig.TimeoutMs != domainping.DefaultTimeoutMs {
 		t.Fatalf("expected default ping config, got %#v", check.PingConfig)
 	}
 	if len(check.Labels) != 1 || check.Labels[0].ID != testLabelID {
@@ -102,10 +103,10 @@ func TestCreateCheckNormalizesInputAndDefaultsPingConfig(t *testing.T) {
 		Type:            domaincheck.TypePing,
 		Target:          "api.netstamp.io",
 		IntervalSeconds: 30,
-		PingConfig: domaincheck.PingConfig{
-			PacketCount:     defaultPacketCount,
-			PacketSizeBytes: defaultPacketSizeBytes,
-			TimeoutMs:       defaultTimeoutMs,
+		PingConfig: domainping.Config{
+			PacketCount:     domainping.DefaultPacketCount,
+			PacketSizeBytes: domainping.DefaultPacketSizeBytes,
+			TimeoutMs:       domainping.DefaultTimeoutMs,
 		},
 	})
 	if repo.gotCreate.CheckVersion != expectedVersion {
@@ -224,7 +225,7 @@ func TestUpdateCheckPreservesExistingFieldsAndReplacesLabels(t *testing.T) {
 		Type:            domaincheck.TypePing,
 		Target:          "api.netstamp.io",
 		IntervalSeconds: 60,
-		PingConfig: domaincheck.PingConfig{
+		PingConfig: domainping.Config{
 			PacketCount:     4,
 			PacketSizeBytes: 56,
 			TimeoutMs:       1500,
@@ -288,7 +289,7 @@ func TestUpdateCheckCanonicalizesSelectorAndVersions(t *testing.T) {
 		Type:            domaincheck.TypePing,
 		Target:          "edge.netstamp.io",
 		IntervalSeconds: 30,
-		PingConfig: domaincheck.PingConfig{
+		PingConfig: domainping.Config{
 			PacketCount:     4,
 			PacketSizeBytes: 56,
 			TimeoutMs:       3000,
@@ -595,7 +596,7 @@ func newFakeCheck(projectID, checkID string) domaincheck.Check {
 		Target:          "api.netstamp.io",
 		Selector:        json.RawMessage(`{}`),
 		IntervalSeconds: 30,
-		PingConfig: domaincheck.PingConfig{
+		PingConfig: domainping.Config{
 			PacketCount:     4,
 			PacketSizeBytes: 56,
 			TimeoutMs:       3000,

@@ -4,31 +4,28 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+
+	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 )
 
 type ExecutionSpec struct {
 	Type            Type
 	Target          string
 	IntervalSeconds int32
-	PingConfig      PingConfig
+	PingConfig      domainping.Config
 }
 
 func CheckVersion(spec ExecutionSpec) string {
 	payload := struct {
-		Type            Type     `json:"type"`
-		Target          string   `json:"target"`
-		IntervalSeconds int32    `json:"intervalSeconds"`
-		PingConfig      pingSpec `json:"pingConfig"`
+		Type            Type                      `json:"type"`
+		Target          string                    `json:"target"`
+		IntervalSeconds int32                     `json:"intervalSeconds"`
+		PingConfig      domainping.VersionPayload `json:"pingConfig"`
 	}{
 		Type:            spec.Type,
 		Target:          spec.Target,
 		IntervalSeconds: spec.IntervalSeconds,
-		PingConfig: pingSpec{
-			PacketCount:     spec.PingConfig.PacketCount,
-			PacketSizeBytes: spec.PingConfig.PacketSizeBytes,
-			TimeoutMs:       spec.PingConfig.TimeoutMs,
-			IPFamily:        spec.PingConfig.IPFamily,
-		},
+		PingConfig:      domainping.ConfigVersionPayload(spec.PingConfig),
 	}
 
 	return hashJSON(payload)
@@ -36,13 +33,6 @@ func CheckVersion(spec ExecutionSpec) string {
 
 func SelectorVersion(selector json.RawMessage) string {
 	return hashBytes(selector)
-}
-
-type pingSpec struct {
-	PacketCount     int32     `json:"packetCount"`
-	PacketSizeBytes int32     `json:"packetSizeBytes"`
-	TimeoutMs       int32     `json:"timeoutMs"`
-	IPFamily        *IPFamily `json:"ipFamily,omitempty"`
 }
 
 func hashJSON(value any) string {

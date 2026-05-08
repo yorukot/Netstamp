@@ -3,6 +3,9 @@ package check
 import (
 	"encoding/json"
 	"testing"
+
+	domainnetwork "github.com/yorukot/netstamp/internal/domain/network"
+	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 )
 
 func TestCheckVersionUsesExecutionSpec(t *testing.T) {
@@ -10,7 +13,7 @@ func TestCheckVersionUsesExecutionSpec(t *testing.T) {
 		Type:            TypePing,
 		Target:          "api.netstamp.io",
 		IntervalSeconds: 30,
-		PingConfig: PingConfig{
+		PingConfig: domainping.Config{
 			PacketCount:     4,
 			PacketSizeBytes: 56,
 			TimeoutMs:       3000,
@@ -46,16 +49,16 @@ func TestCheckVersionIncludesIPFamily(t *testing.T) {
 		Type:            TypePing,
 		Target:          "api.netstamp.io",
 		IntervalSeconds: 30,
-		PingConfig: PingConfig{
+		PingConfig: domainping.Config{
 			PacketCount:     4,
 			PacketSizeBytes: 56,
 			TimeoutMs:       3000,
 		},
 	}
 
-	ipv4 := IPFamilyIPv4
+	inet := domainnetwork.IPFamilyInet
 	withIPFamily := base
-	withIPFamily.PingConfig.IPFamily = &ipv4
+	withIPFamily.PingConfig.IPFamily = &inet
 
 	if CheckVersion(base) == CheckVersion(withIPFamily) {
 		t.Fatal("expected ip family change to change check version")

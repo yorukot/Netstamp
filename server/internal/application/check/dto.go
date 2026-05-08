@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
+	domainnetwork "github.com/yorukot/netstamp/internal/domain/network"
+	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 )
 
 type ListChecksInput struct {
@@ -57,7 +59,7 @@ type normalizedCreateCheckInput struct {
 	selector        json.RawMessage
 	description     *string
 	intervalSeconds int32
-	pingConfig      domaincheck.PingConfig
+	pingConfig      domainping.Config
 	labelIDs        []string
 }
 
@@ -71,7 +73,7 @@ type normalizedUpdateCheckInput struct {
 	packetCount     *int32
 	packetSizeBytes *int32
 	timeoutMs       *int32
-	ipFamily        *domaincheck.IPFamily
+	ipFamily        *domainnetwork.IPFamily
 	replaceLabels   bool
 	labelIDs        []string
 }

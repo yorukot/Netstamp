@@ -13,6 +13,7 @@ import (
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
 	"github.com/yorukot/netstamp/internal/domain/identity"
 	domainlabel "github.com/yorukot/netstamp/internal/domain/label"
+	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 )
 
@@ -235,7 +236,7 @@ func newHandlerCheck(name string) domaincheck.Check {
 		Target:          "api.netstamp.io",
 		Selector:        json.RawMessage(`{}`),
 		IntervalSeconds: 30,
-		PingConfig: domaincheck.PingConfig{
+		PingConfig: domainping.Config{
 			PacketCount:     4,
 			PacketSizeBytes: 56,
 			TimeoutMs:       3000,

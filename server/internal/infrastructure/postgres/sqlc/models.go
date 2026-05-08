@@ -57,8 +57,8 @@ func (ns NullCheckType) Value() (driver.Value, error) {
 type IpFamily string
 
 const (
-	IpFamilyIpv4 IpFamily = "ipv4"
-	IpFamilyIpv6 IpFamily = "ipv6"
+	IpFamilyInet  IpFamily = "inet"
+	IpFamilyInet6 IpFamily = "inet6"
 )
 
 func (e *IpFamily) Scan(src interface{}) error {

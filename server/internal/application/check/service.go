@@ -5,16 +5,11 @@ import (
 	"encoding/json"
 
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
+	domainnetwork "github.com/yorukot/netstamp/internal/domain/network"
+	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 	domainselector "github.com/yorukot/netstamp/internal/domain/selector"
 	"github.com/yorukot/netstamp/internal/normalize"
-)
-
-const (
-	defaultPacketCount     = 4
-	defaultPacketSizeBytes = 56
-	defaultTimeoutMs       = 3000
-	maxPacketSizeBytes     = 65507
 )
 
 var defaultSelector = json.RawMessage(`{}`)
@@ -154,7 +149,7 @@ func (s *Service) UpdateCheck(ctx context.Context, input UpdateCheckInput) (doma
 		}
 	}
 
-	updatedPingConfig := domaincheck.PingConfig{
+	updatedPingConfig := domainping.Config{
 		PacketCount:     chooseInt32(current.PingConfig.PacketCount, normalized.packetCount),
 		PacketSizeBytes: chooseInt32(current.PingConfig.PacketSizeBytes, normalized.packetSizeBytes),
 		TimeoutMs:       chooseInt32(current.PingConfig.TimeoutMs, normalized.timeoutMs),
@@ -325,7 +320,7 @@ func normalizeUpdateCheckInput(input UpdateCheckInput) (normalizedUpdateCheckInp
 	if err != nil {
 		return normalizedUpdateCheckInput{}, err
 	}
-	packetCount, err := normalizeOptionalPositiveInt(input.PacketCount)
+	packetCount, err := normalizeOptionalPacketCount(input.PacketCount)
 	if err != nil {
 		return normalizedUpdateCheckInput{}, err
 	}
@@ -333,7 +328,7 @@ func normalizeUpdateCheckInput(input UpdateCheckInput) (normalizedUpdateCheckInp
 	if err != nil {
 		return normalizedUpdateCheckInput{}, err
 	}
-	timeoutMs, err := normalizeOptionalPositiveInt(input.TimeoutMs)
+	timeoutMs, err := normalizeOptionalTimeoutMs(input.TimeoutMs)
 	if err != nil {
 		return normalizedUpdateCheckInput{}, err
 	}
@@ -449,11 +444,11 @@ func normalizeOptionalPositiveInt(value *int32) (*int32, error) {
 	return &normalized, nil
 }
 
-func normalizeOptionalPacketSizeBytes(value *int32) (*int32, error) {
+func normalizeOptionalPacketCount(value *int32) (*int32, error) {
 	if value == nil {
 		return nil, nil //nolint:nilnil // A nil pointer is the explicit representation of an omitted optional field.
 	}
-	if *value < 0 || *value > maxPacketSizeBytes {
+	if err := domainping.ValidatePacketCount(*value); err != nil {
 		return nil, ErrInvalidInput
 	}
 
@@ -461,17 +456,37 @@ func normalizeOptionalPacketSizeBytes(value *int32) (*int32, error) {
 	return &normalized, nil
 }
 
-func normalizeOptionalIPFamily(value *string) (*domaincheck.IPFamily, error) {
+func normalizeOptionalPacketSizeBytes(value *int32) (*int32, error) {
 	if value == nil {
 		return nil, nil //nolint:nilnil // A nil pointer is the explicit representation of an omitted optional field.
 	}
-
-	ipFamily, err := normalizeIPFamily(*value)
-	if err != nil {
-		return nil, err
+	if err := domainping.ValidatePacketSizeBytes(*value); err != nil {
+		return nil, ErrInvalidInput
 	}
 
-	return &ipFamily, nil
+	normalized := *value
+	return &normalized, nil
+}
+
+func normalizeOptionalTimeoutMs(value *int32) (*int32, error) {
+	if value == nil {
+		return nil, nil //nolint:nilnil // A nil pointer is the explicit representation of an omitted optional field.
+	}
+	if err := domainping.ValidateTimeoutMs(*value); err != nil {
+		return nil, ErrInvalidInput
+	}
+
+	normalized := *value
+	return &normalized, nil
+}
+
+func normalizeOptionalIPFamily(value *string) (*domainnetwork.IPFamily, error) {
+	ipFamily, err := domainnetwork.ParseOptionalIPFamily(value)
+	if err != nil {
+		return nil, ErrInvalidInput
+	}
+
+	return ipFamily, nil
 }
 
 func normalizeOptionalLabelIDs(value *[]string) (bool, []string, error) {
@@ -512,53 +527,13 @@ func normalizeSelector(selector map[string]any) (json.RawMessage, error) {
 	return raw, nil
 }
 
-func normalizePingConfig(packetCount, packetSizeBytes, timeoutMs *int32, ipFamilyValue *string) (domaincheck.PingConfig, error) {
-	config := domaincheck.PingConfig{
-		PacketCount:     defaultPacketCount,
-		PacketSizeBytes: defaultPacketSizeBytes,
-		TimeoutMs:       defaultTimeoutMs,
-	}
-
-	if packetCount != nil {
-		if *packetCount <= 0 {
-			return domaincheck.PingConfig{}, ErrInvalidInput
-		}
-		config.PacketCount = *packetCount
-	}
-	if packetSizeBytes != nil {
-		if *packetSizeBytes < 0 || *packetSizeBytes > maxPacketSizeBytes {
-			return domaincheck.PingConfig{}, ErrInvalidInput
-		}
-		config.PacketSizeBytes = *packetSizeBytes
-	}
-	if timeoutMs != nil {
-		if *timeoutMs <= 0 {
-			return domaincheck.PingConfig{}, ErrInvalidInput
-		}
-		config.TimeoutMs = *timeoutMs
-	}
-	if ipFamilyValue != nil {
-		ipFamily, err := normalizeIPFamily(*ipFamilyValue)
-		if err != nil {
-			return domaincheck.PingConfig{}, err
-		}
-		config.IPFamily = &ipFamily
+func normalizePingConfig(packetCount, packetSizeBytes, timeoutMs *int32, ipFamilyValue *string) (domainping.Config, error) {
+	config, err := domainping.NewConfig(packetCount, packetSizeBytes, timeoutMs, ipFamilyValue)
+	if err != nil {
+		return domainping.Config{}, ErrInvalidInput
 	}
 
 	return config, nil
-}
-
-func normalizeIPFamily(value string) (domaincheck.IPFamily, error) {
-	value, err := normalize.RequiredString(value, ErrInvalidInput)
-	if err != nil {
-		return "", err
-	}
-	switch domaincheck.IPFamily(value) {
-	case domaincheck.IPFamilyIPv4, domaincheck.IPFamilyIPv6:
-		return domaincheck.IPFamily(value), nil
-	default:
-		return "", ErrInvalidInput
-	}
 }
 
 func chooseString(current string, next *string) string {
@@ -601,7 +576,7 @@ func chooseInt32(current int32, next *int32) int32 {
 	return *next
 }
 
-func chooseIPFamily(current, next *domaincheck.IPFamily) *domaincheck.IPFamily {
+func chooseIPFamily(current, next *domainnetwork.IPFamily) *domainnetwork.IPFamily {
 	if next == nil {
 		return current
 	}

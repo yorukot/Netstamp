@@ -6,6 +6,7 @@ import (
 	"time"
 
 	domainlabel "github.com/yorukot/netstamp/internal/domain/label"
+	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 )
 
 var (
@@ -19,20 +20,6 @@ const (
 	TypePing Type = "ping"
 )
 
-type IPFamily string
-
-const (
-	IPFamilyIPv4 IPFamily = "ipv4"
-	IPFamilyIPv6 IPFamily = "ipv6"
-)
-
-type PingConfig struct {
-	PacketCount     int32
-	PacketSizeBytes int32
-	TimeoutMs       int32
-	IPFamily        *IPFamily
-}
-
 type Check struct {
 	ID              string
 	ProjectID       string
@@ -42,7 +29,7 @@ type Check struct {
 	Selector        json.RawMessage
 	Description     *string
 	IntervalSeconds int32
-	PingConfig      PingConfig
+	PingConfig      domainping.Config
 	Labels          []domainlabel.Label
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
@@ -59,7 +46,7 @@ type CreateCheckStorageInput struct {
 	SelectorVersion string
 	Description     *string
 	IntervalSeconds int32
-	PingConfig      PingConfig
+	PingConfig      domainping.Config
 	LabelIDs        []string
 }
 
@@ -74,7 +61,7 @@ type UpdateCheckStorageInput struct {
 	SelectorVersion string
 	Description     *string
 	IntervalSeconds int32
-	PingConfig      PingConfig
+	PingConfig      domainping.Config
 	ReplaceLabels   bool
 	LabelIDs        []string
 }

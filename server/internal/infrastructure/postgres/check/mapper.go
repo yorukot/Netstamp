@@ -9,6 +9,8 @@ import (
 
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
 	domainlabel "github.com/yorukot/netstamp/internal/domain/label"
+	domainnetwork "github.com/yorukot/netstamp/internal/domain/network"
+	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	"github.com/yorukot/netstamp/internal/infrastructure/postgres/sqlc"
 )
 
@@ -95,7 +97,7 @@ func mapSelectedCheck(
 		Selector:        cloneRawMessage(selector),
 		Description:     description,
 		IntervalSeconds: intervalSeconds,
-		PingConfig: domaincheck.PingConfig{
+		PingConfig: domainping.Config{
 			PacketCount:     packetCount,
 			PacketSizeBytes: packetSizeBytes,
 			TimeoutMs:       timeoutMs,
@@ -107,8 +109,8 @@ func mapSelectedCheck(
 	}
 }
 
-func mapPingConfig(row sqlc.PingCheckConfig) domaincheck.PingConfig {
-	return domaincheck.PingConfig{
+func mapPingConfig(row sqlc.PingCheckConfig) domainping.Config {
+	return domainping.Config{
 		PacketCount:     row.PacketCount,
 		PacketSizeBytes: row.PacketSizeBytes,
 		TimeoutMs:       row.TimeoutMs,
@@ -120,7 +122,7 @@ func sqlcCheckType(value domaincheck.Type) sqlc.CheckType {
 	return sqlc.CheckType(value)
 }
 
-func sqlcIPFamily(value *domaincheck.IPFamily) sqlc.NullIpFamily {
+func sqlcIPFamily(value *domainnetwork.IPFamily) sqlc.NullIpFamily {
 	if value == nil {
 		return sqlc.NullIpFamily{}
 	}
@@ -131,12 +133,12 @@ func sqlcIPFamily(value *domaincheck.IPFamily) sqlc.NullIpFamily {
 	}
 }
 
-func mapIPFamily(value sqlc.NullIpFamily) *domaincheck.IPFamily {
+func mapIPFamily(value sqlc.NullIpFamily) *domainnetwork.IPFamily {
 	if !value.Valid {
 		return nil
 	}
 
-	ipFamily := domaincheck.IPFamily(value.IpFamily)
+	ipFamily := domainnetwork.IPFamily(value.IpFamily)
 	return &ipFamily
 }
 

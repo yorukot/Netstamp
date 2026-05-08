@@ -6,7 +6,7 @@ CREATE EXTENSION IF NOT EXISTS timescaledb;
 
 CREATE TYPE project_member_role AS ENUM ('owner', 'admin', 'editor', 'viewer');
 CREATE TYPE check_type AS ENUM ('ping');
-CREATE TYPE ip_family AS ENUM ('ipv4', 'ipv6');
+CREATE TYPE ip_family AS ENUM ('inet', 'inet6');
 CREATE TYPE ping_status AS ENUM ('successful', 'timeout', 'error');
 CREATE TYPE probe_state AS ENUM ('online', 'offline');
 

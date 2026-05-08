@@ -5,6 +5,7 @@ import (
 	"time"
 
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
+	domainnetwork "github.com/yorukot/netstamp/internal/domain/network"
 )
 
 type checkOutput struct {
@@ -27,7 +28,7 @@ type checkResponse struct {
 	PacketCount     int32                `json:"packetCount"`
 	PacketSizeBytes int32                `json:"packetSizeBytes"`
 	TimeoutMs       int32                `json:"timeoutMs"`
-	IPFamily        *string              `json:"ipFamily,omitempty" enum:"ipv4,ipv6"`
+	IPFamily        *string              `json:"ipFamily,omitempty" enum:"inet,inet6"`
 	Labels          []checkLabelResponse `json:"labels"`
 	CreatedAt       time.Time            `json:"createdAt"`
 	UpdatedAt       time.Time            `json:"updatedAt"`
@@ -81,7 +82,7 @@ func selectorObject(raw json.RawMessage) map[string]any {
 	return selector
 }
 
-func ipFamilyString(ipFamily *domaincheck.IPFamily) *string {
+func ipFamilyString(ipFamily *domainnetwork.IPFamily) *string {
 	if ipFamily == nil {
 		return nil
 	}

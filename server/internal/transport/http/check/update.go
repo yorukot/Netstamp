@@ -51,6 +51,6 @@ type updateCheckInputBody struct {
 	PacketCount     *int32         `json:"packetCount,omitempty" minimum:"1" doc:"ICMP packet count." example:"4"`
 	PacketSizeBytes *int32         `json:"packetSizeBytes,omitempty" minimum:"0" maximum:"65507" doc:"ICMP payload size in bytes." example:"56"`
 	TimeoutMs       *int32         `json:"timeoutMs,omitempty" minimum:"1" doc:"Ping timeout in milliseconds." example:"3000"`
-	IPFamily        *string        `json:"ipFamily,omitempty" enum:"ipv4,ipv6" doc:"Optional IP family preference." example:"ipv4"`
+	IPFamily        *string        `json:"ipFamily,omitempty" enum:"inet,inet6" doc:"Optional IP family preference." example:"inet"`
 	LabelIDs        *[]string      `json:"labelIds,omitempty" doc:"Replacement project label IDs for the check."`
 }
