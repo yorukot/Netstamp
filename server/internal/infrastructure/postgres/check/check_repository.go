@@ -243,30 +243,8 @@ func (r *CheckRepository) UpdateCheck(ctx context.Context, input domaincheck.Upd
 			}
 		}
 
-		probes, listProbeErr := r.listActiveEnabledProbeLabels(ctx, q, projectID)
-		if listProbeErr != nil {
-			return listProbeErr
-		}
-		matchedProbeIDs := matchingProbeIDs(parsedSelector, probes)
-		for _, probeID := range matchedProbeIDs {
-			if linkErr := q.UpsertEffectiveProbeCheck(ctx, sqlc.UpsertEffectiveProbeCheckParams{
-				ProjectID:       projectID,
-				ProbeID:         probeID,
-				CheckID:         checkID,
-				CheckVersion:    input.CheckVersion,
-				SelectorVersion: input.SelectorVersion,
-			}); linkErr != nil {
-				return mapCheckWriteError(linkErr)
-			}
-		}
-		if staleErr := q.DeleteStaleEffectiveProbeChecks(ctx, sqlc.DeleteStaleEffectiveProbeChecksParams{
-			ProjectID:       projectID,
-			CheckID:         checkID,
-			CheckVersion:    input.CheckVersion,
-			SelectorVersion: input.SelectorVersion,
-			ProbeIds:        matchedProbeIDs,
-		}); staleErr != nil {
-			return staleErr
+		if linkErr := r.refreshEffectiveProbeChecks(ctx, q, projectID, checkID, parsedSelector, input); linkErr != nil {
+			return linkErr
 		}
 
 		updated = mapStoredCheck(row, config)
@@ -279,6 +257,41 @@ func (r *CheckRepository) UpdateCheck(ctx context.Context, input domaincheck.Upd
 	}
 
 	return updated, nil
+}
+
+func (r *CheckRepository) refreshEffectiveProbeChecks(
+	ctx context.Context,
+	queries *sqlc.Queries,
+	projectID uuid.UUID,
+	checkID uuid.UUID,
+	selector domainselector.Selector,
+	input domaincheck.UpdateCheckStorageInput,
+) error {
+	probes, err := r.listActiveEnabledProbeLabels(ctx, queries, projectID)
+	if err != nil {
+		return err
+	}
+
+	matchedProbeIDs := matchingProbeIDs(selector, probes)
+	for _, probeID := range matchedProbeIDs {
+		if linkErr := queries.UpsertEffectiveProbeCheck(ctx, sqlc.UpsertEffectiveProbeCheckParams{
+			ProjectID:       projectID,
+			ProbeID:         probeID,
+			CheckID:         checkID,
+			CheckVersion:    input.CheckVersion,
+			SelectorVersion: input.SelectorVersion,
+		}); linkErr != nil {
+			return mapCheckWriteError(linkErr)
+		}
+	}
+
+	return queries.DeleteStaleEffectiveProbeChecks(ctx, sqlc.DeleteStaleEffectiveProbeChecksParams{
+		ProjectID:       projectID,
+		CheckID:         checkID,
+		CheckVersion:    input.CheckVersion,
+		SelectorVersion: input.SelectorVersion,
+		ProbeIds:        matchedProbeIDs,
+	})
 }
 
 func (r *CheckRepository) SoftDeleteCheck(ctx context.Context, projectIDValue, checkIDValue string) error {
@@ -304,14 +317,10 @@ func (r *CheckRepository) SoftDeleteCheck(ctx context.Context, projectIDValue, c
 		}
 
 		// Once the check is deleted, no probe should keep a cached link to it.
-		if linkErr := q.DeleteEffectiveProbeChecksForCheck(ctx, sqlc.DeleteEffectiveProbeChecksForCheckParams{
+		return q.DeleteEffectiveProbeChecksForCheck(ctx, sqlc.DeleteEffectiveProbeChecksForCheckParams{
 			ProjectID: projectID,
 			CheckID:   checkID,
-		}); linkErr != nil {
-			return linkErr
-		}
-
-		return nil
+		})
 	})
 	if err != nil {
 		postgres.RecordDBSpanError(span, err)

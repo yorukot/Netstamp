@@ -92,10 +92,5 @@ func ValidateTimeoutMs(value int32) error {
 }
 
 func ConfigVersionPayload(config Config) VersionPayload {
-	return VersionPayload{
-		PacketCount:     config.PacketCount,
-		PacketSizeBytes: config.PacketSizeBytes,
-		TimeoutMs:       config.TimeoutMs,
-		IPFamily:        config.IPFamily,
-	}
+	return VersionPayload(config)
 }
