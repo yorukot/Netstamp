@@ -47,10 +47,10 @@ type updateCheckInputBody struct {
 	Target          *string        `json:"target,omitempty" minLength:"1" maxLength:"255" doc:"Hostname or address to check." example:"api.netstamp.io"`
 	Selector        map[string]any `json:"selector,omitempty" doc:"Selector object for later probe matching."`
 	Description     *string        `json:"description,omitempty" minLength:"1" maxLength:"500" doc:"Optional check description." example:"Latency and loss to controller API."`
-	IntervalSeconds *int           `json:"intervalSeconds,omitempty" minimum:"1" doc:"Check interval in seconds." example:"30"`
-	PacketCount     *int           `json:"packetCount,omitempty" minimum:"1" doc:"ICMP packet count." example:"4"`
-	PacketSizeBytes *int           `json:"packetSizeBytes,omitempty" minimum:"0" maximum:"65507" doc:"ICMP payload size in bytes." example:"56"`
-	TimeoutMs       *int           `json:"timeoutMs,omitempty" minimum:"1" doc:"Ping timeout in milliseconds." example:"3000"`
+	IntervalSeconds *int32         `json:"intervalSeconds,omitempty" minimum:"1" doc:"Check interval in seconds." example:"30"`
+	PacketCount     *int32         `json:"packetCount,omitempty" minimum:"1" doc:"ICMP packet count." example:"4"`
+	PacketSizeBytes *int32         `json:"packetSizeBytes,omitempty" minimum:"0" maximum:"65507" doc:"ICMP payload size in bytes." example:"56"`
+	TimeoutMs       *int32         `json:"timeoutMs,omitempty" minimum:"1" doc:"Ping timeout in milliseconds." example:"3000"`
 	IPFamily        *string        `json:"ipFamily,omitempty" enum:"ipv4,ipv6" doc:"Optional IP family preference." example:"ipv4"`
 	LabelIDs        *[]string      `json:"labelIds,omitempty" doc:"Replacement project label IDs for the check."`
 }

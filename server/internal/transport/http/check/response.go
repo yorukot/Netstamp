@@ -23,10 +23,10 @@ type checkResponse struct {
 	Target          string               `json:"target"`
 	Selector        map[string]any       `json:"selector"`
 	Description     *string              `json:"description"`
-	IntervalSeconds int                  `json:"intervalSeconds"`
-	PacketCount     int                  `json:"packetCount"`
-	PacketSizeBytes int                  `json:"packetSizeBytes"`
-	TimeoutMs       int                  `json:"timeoutMs"`
+	IntervalSeconds int32                `json:"intervalSeconds"`
+	PacketCount     int32                `json:"packetCount"`
+	PacketSizeBytes int32                `json:"packetSizeBytes"`
+	TimeoutMs       int32                `json:"timeoutMs"`
 	IPFamily        *string              `json:"ipFamily,omitempty" enum:"ipv4,ipv6"`
 	Labels          []checkLabelResponse `json:"labels"`
 	CreatedAt       time.Time            `json:"createdAt"`

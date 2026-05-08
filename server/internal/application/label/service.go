@@ -50,7 +50,8 @@ func (s *Service) CreateLabel(ctx context.Context, input CreateLabelInput) (doma
 	if err != nil {
 		return domainlabel.Label{}, err
 	}
-	if err := s.requireAction(ctx, flow, project.ID, input.CurrentUserID, LabelEventCreateFailure, domainproject.ActionManageLabels); err != nil {
+	err = s.requireAction(ctx, flow, project.ID, input.CurrentUserID, LabelEventCreateFailure, domainproject.ActionManageLabels)
+	if err != nil {
 		return domainlabel.Label{}, err
 	}
 
@@ -83,7 +84,8 @@ func (s *Service) UpdateLabel(ctx context.Context, input UpdateLabelInput) (doma
 	if err != nil {
 		return domainlabel.Label{}, err
 	}
-	if err := s.requireAction(ctx, flow, project.ID, input.CurrentUserID, LabelEventUpdateFailure, domainproject.ActionManageLabels); err != nil {
+	err = s.requireAction(ctx, flow, project.ID, input.CurrentUserID, LabelEventUpdateFailure, domainproject.ActionManageLabels)
+	if err != nil {
 		return domainlabel.Label{}, err
 	}
 	if input.Key == nil && input.Value == nil {

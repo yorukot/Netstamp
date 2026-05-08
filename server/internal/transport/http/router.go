@@ -18,7 +18,7 @@ import (
 	applabel "github.com/yorukot/netstamp/internal/application/label"
 	appprobe "github.com/yorukot/netstamp/internal/application/probe"
 	appproject "github.com/yorukot/netstamp/internal/application/project"
-	"github.com/yorukot/netstamp/internal/observability/httptrace"
+	httptracing "github.com/yorukot/netstamp/internal/observability/httptrace"
 	authhttp "github.com/yorukot/netstamp/internal/transport/http/auth"
 	checkhttp "github.com/yorukot/netstamp/internal/transport/http/check"
 	labelhttp "github.com/yorukot/netstamp/internal/transport/http/label"
@@ -50,7 +50,7 @@ func NewRouter(dep Dependencies) http.Handler {
 	r.Use(chimw.RequestID)
 	r.Use(chimw.RealIP)
 	r.Use(otelhttp.NewMiddleware("http.server",
-		otelhttp.WithSpanNameFormatter(httptrace.RequestSpanName),
+		otelhttp.WithSpanNameFormatter(httptracing.RequestSpanName),
 	))
 	r.Use(httpmiddleware.ZapRecoverer(dep.Log))
 	r.Use(chimw.Timeout(dep.RequestTimeout))

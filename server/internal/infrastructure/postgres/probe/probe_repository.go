@@ -43,38 +43,38 @@ func (r *ProbeRepository) CreateProbe(ctx context.Context, input domainprobe.Cre
 	err = r.tx.InTx(ctx, func(ctx context.Context, tx pgx.Tx) error {
 		q := r.queries.WithTx(tx)
 
-		row, err := q.CreateProbe(ctx, sqlc.CreateProbeParams{
+		row, createErr := q.CreateProbe(ctx, sqlc.CreateProbeParams{
 			ProjectID: projectID,
 			Name:      input.Name,
 			Enabled:   input.Enabled,
 			Location:  pointFromCoordinates(input.Longitude, input.Latitude),
 			City:      input.City,
 		})
-		if err != nil {
-			return mapCreateProbeError(err)
+		if createErr != nil {
+			return mapCreateProbeError(createErr)
 		}
 
-		if _, err := q.CreateProbeCredential(ctx, sqlc.CreateProbeCredentialParams{
+		if _, credentialErr := q.CreateProbeCredential(ctx, sqlc.CreateProbeCredentialParams{
 			ProbeID:    row.ID,
 			SecretHash: input.SecretHash,
-		}); err != nil {
-			return mapCreateProbeCredentialError(err)
+		}); credentialErr != nil {
+			return mapCreateProbeCredentialError(credentialErr)
 		}
 
-		if _, err := q.CreateProbeStatus(ctx, sqlc.CreateProbeStatusParams{
+		if _, statusErr := q.CreateProbeStatus(ctx, sqlc.CreateProbeStatusParams{
 			ProbeID: row.ID,
 			Status:  sqlc.ProbeStateOffline,
-		}); err != nil {
-			return mapCreateProbeStatusError(err)
+		}); statusErr != nil {
+			return mapCreateProbeStatusError(statusErr)
 		}
 
 		for _, labelID := range labelIDs {
-			if err := q.CreateProbeLabel(ctx, sqlc.CreateProbeLabelParams{
+			if labelErr := q.CreateProbeLabel(ctx, sqlc.CreateProbeLabelParams{
 				ProjectID: projectID,
 				ProbeID:   row.ID,
 				LabelID:   labelID,
-			}); err != nil {
-				return mapCreateProbeLabelError(err)
+			}); labelErr != nil {
+				return mapCreateProbeLabelError(labelErr)
 			}
 		}
 

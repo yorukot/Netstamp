@@ -76,9 +76,16 @@ func validatePositiveInt(key string, value int) []error {
 	return nil
 }
 
-func validateUint8(key string, value int) []error {
-	if value < 1 || value > 255 {
-		return []error{fmt.Errorf("%s must be between 1 and 255", key)}
+func validatePositiveUint32(key string, value uint32) []error {
+	if value == 0 {
+		return []error{fmt.Errorf("%s must be greater than 0", key)}
+	}
+	return nil
+}
+
+func validatePositiveUint8(key string, value uint8) []error {
+	if value == 0 {
+		return []error{fmt.Errorf("%s must be greater than 0", key)}
 	}
 	return nil
 }

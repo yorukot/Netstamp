@@ -16,9 +16,11 @@ func WriteProblem(w http.ResponseWriter, r *http.Request, status int, detail str
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(status)
 
-	_ = json.NewEncoder(w).Encode(&huma.ErrorModel{
+	if err := json.NewEncoder(w).Encode(&huma.ErrorModel{
 		Status: status,
 		Title:  http.StatusText(status),
 		Detail: detail,
-	})
+	}); err != nil {
+		return
+	}
 }

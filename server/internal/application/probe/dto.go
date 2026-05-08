@@ -15,5 +15,5 @@ type CreateProbeInput struct {
 
 type CreateProbeOutput struct {
 	Probe  domainprobe.Probe
-	Secret string
+	Secret string //nolint:gosec // The plaintext probe secret is returned once to the creator.
 }

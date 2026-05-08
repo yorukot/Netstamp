@@ -84,7 +84,7 @@ func getOpenAPI(t *testing.T, dep Dependencies) openAPISnapshot {
 	}
 	router := NewRouter(dep)
 	recorder := httptest.NewRecorder()
-	request := httptest.NewRequest(http.MethodGet, "/api/"+dep.APIVersion+"/openapi.json", nil)
+	request := httptest.NewRequest(http.MethodGet, "/api/"+dep.APIVersion+"/openapi.json", http.NoBody)
 	router.ServeHTTP(recorder, request)
 
 	if recorder.Code != http.StatusOK {

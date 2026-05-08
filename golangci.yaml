@@ -32,7 +32,6 @@ linters:
     - nilerr
     - nilnil
     - nilnesserr
-    - noinlineerr
 
     # HTTP / context / DB resource safety
     - bodyclose
@@ -54,8 +53,6 @@ linters:
     - dupl
     - maintidx
     - nestif
-    - interfacebloat
-    - prealloc
     - perfsprint
 
     # Style / hygiene
@@ -96,6 +93,7 @@ linters:
         - whyNoLint
         - hugeParam
         - rangeValCopy
+        - unnamedResult
 
     cyclop:
       max-complexity: 15
@@ -173,6 +171,17 @@ linters:
           - gosec
           - errcheck
           - maintidx
+
+      # Audit event recorders intentionally stay explicit per feature.
+      - path: "internal/logger/(check|label)_events\\.go"
+        linters:
+          - dupl
+
+      # contextcheck does not understand Huma's context wrapper in auth middleware.
+      - path: "internal/app/bootstrap\\.go"
+        text: "Function `NewRouter->.*RequireAuth"
+        linters:
+          - contextcheck
 
 formatters:
   enable:

@@ -53,12 +53,12 @@ type registerOutput struct {
 type registerInputBody struct {
 	Email       string `json:"email" format:"email" maxLength:"254" required:"true" doc:"Email address used to sign in." example:"user@example.com"`
 	DisplayName string `json:"displayName" minLength:"1" maxLength:"100" required:"true" doc:"Name shown in the app." example:"Jane Doe"`
-	Password    string `json:"password" minLength:"8" maxLength:"128" required:"true" writeOnly:"true" doc:"Plain-text password. It is stored only as an Argon2id hash." example:"correct-horse-battery-staple"`
+	Password    string `json:"password" minLength:"8" maxLength:"128" required:"true" writeOnly:"true" doc:"Plain-text password. It is stored only as an Argon2id hash." example:"correct-horse-battery-staple"` //nolint:gosec // Register requests intentionally accept plaintext passwords over TLS.
 }
 
 type registerOutputBody struct {
 	User        userResponse `json:"user" doc:"Created user."`
 	TokenType   string       `json:"tokenType" example:"Bearer" doc:"Token scheme to use in the Authorization header."`
-	AccessToken string       `json:"accessToken" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example.signature" doc:"JWT access token issued for the created user."`
+	AccessToken string       `json:"accessToken" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example.signature" doc:"JWT access token issued for the created user."` //nolint:gosec // Register responses intentionally return the issued access token.
 	ExpiresIn   int          `json:"expiresIn" example:"43200" doc:"Access token lifetime in seconds."`
 }

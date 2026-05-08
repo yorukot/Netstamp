@@ -79,8 +79,8 @@ func (r *LabelRepository) CreateLabel(ctx context.Context, input domainlabel.Cre
 		Value:     input.Value,
 	})
 	if err != nil {
-		mapped := mapLabelWriteError(err)
-		if mapped == err {
+		ok, mapped := mapLabelWriteError(err)
+		if !ok {
 			postgres.RecordDBSpanError(span, err)
 		}
 		return domainlabel.Label{}, mapped
@@ -108,8 +108,8 @@ func (r *LabelRepository) UpdateLabel(ctx context.Context, input domainlabel.Upd
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domainlabel.Label{}, domainlabel.ErrLabelNotFound
 		}
-		mapped := mapLabelWriteError(err)
-		if mapped == err {
+		ok, mapped := mapLabelWriteError(err)
+		if !ok {
 			postgres.RecordDBSpanError(span, err)
 		}
 		return domainlabel.Label{}, mapped

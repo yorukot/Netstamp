@@ -40,22 +40,24 @@ func (r *ProjectRepository) CreateProjectWithOwner(ctx context.Context, input do
 	err = r.tx.InTx(ctx, func(ctx context.Context, tx pgx.Tx) error {
 		q := r.queries.WithTx(tx)
 
-		row, err := q.CreateProject(ctx, sqlc.CreateProjectParams{
+		row, createErr := q.CreateProject(ctx, sqlc.CreateProjectParams{
 			Name:            input.Name,
 			Slug:            input.Slug,
 			CreatedByUserID: userID,
 		})
-		if err != nil {
-			return mapCreateProjectError(err)
+		if createErr != nil {
+			_, mapped := mapCreateProjectError(createErr)
+			return mapped
 		}
 		project = mapProject(row)
 
-		if _, err := q.CreateProjectMember(ctx, sqlc.CreateProjectMemberParams{
+		if _, memberErr := q.CreateProjectMember(ctx, sqlc.CreateProjectMemberParams{
 			ProjectID: row.ID,
 			UserID:    userID,
 			Role:      sqlc.ProjectMemberRoleOwner,
-		}); err != nil {
-			return mapCreateProjectMemberError(err)
+		}); memberErr != nil {
+			_, mapped := mapCreateProjectMemberError(memberErr)
+			return mapped
 		}
 
 		return nil
@@ -169,7 +171,7 @@ func (r *ProjectRepository) UpdateProject(ctx context.Context, input domainproje
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domainproject.Project{}, domainproject.ErrProjectNotFound
 		}
-		if mapped := mapCreateProjectError(err); mapped != err {
+		if ok, mapped := mapCreateProjectError(err); ok {
 			return domainproject.Project{}, mapped
 		}
 		postgres.RecordDBSpanError(span, err)
@@ -261,8 +263,8 @@ func (r *ProjectRepository) AddMember(ctx context.Context, input domainproject.A
 		Role:      sqlc.ProjectMemberRole(input.Role),
 	})
 	if err != nil {
-		mapped := mapCreateProjectMemberError(err)
-		if mapped == err {
+		ok, mapped := mapCreateProjectMemberError(err)
+		if !ok {
 			postgres.RecordDBSpanError(span, err)
 		}
 		return domainproject.Member{}, mapped

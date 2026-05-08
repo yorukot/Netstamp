@@ -149,14 +149,6 @@ func (f *projectFlow) roleLookupFailure(event ProjectEventName, err error) error
 	}
 }
 
-func (f *projectFlow) roleReadLookupFailure(event ProjectEventName, err error) error {
-	if errors.Is(err, ErrProjectNotFound) || errors.Is(err, ErrUserNotFound) {
-		return err
-	}
-
-	return f.technicalFailure(event, ProjectReasonRoleLookupFailed, err)
-}
-
 func (f *projectFlow) projectUpdateFailure(err error) error {
 	switch {
 	case errors.Is(err, ErrProjectNotFound):

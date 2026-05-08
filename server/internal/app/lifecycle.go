@@ -12,7 +12,8 @@ import (
 )
 
 func (a *Application) Run(ctx context.Context) error {
-	httpListener, err := net.Listen("tcp", a.Config.HTTP.Addr)
+	listenConfig := net.ListenConfig{}
+	httpListener, err := listenConfig.Listen(ctx, "tcp", a.Config.HTTP.Addr)
 	if err != nil {
 		return fmt.Errorf("listen http: %w", err)
 	}
@@ -30,16 +31,16 @@ func (a *Application) Run(ctx context.Context) error {
 
 	group.Go(func() error {
 		<-groupCtx.Done()
-		return a.shutdown()
+		return a.shutdown(groupCtx)
 	})
 
 	return group.Wait()
 }
 
-func (a *Application) shutdown() error {
+func (a *Application) shutdown(ctx context.Context) error {
 	a.Log.Info("application_stopping")
 
-	ctx, cancel := context.WithTimeout(context.Background(), a.Config.ShutdownTimeout)
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), a.Config.ShutdownTimeout)
 	defer cancel()
 
 	var errs []error

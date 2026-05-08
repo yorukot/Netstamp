@@ -27,9 +27,9 @@ const (
 )
 
 type PingConfig struct {
-	PacketCount     int
-	PacketSizeBytes int
-	TimeoutMs       int
+	PacketCount     int32
+	PacketSizeBytes int32
+	TimeoutMs       int32
 	IPFamily        *IPFamily
 }
 
@@ -41,7 +41,7 @@ type Check struct {
 	Target          string
 	Selector        json.RawMessage
 	Description     *string
-	IntervalSeconds int
+	IntervalSeconds int32
 	PingConfig      PingConfig
 	Labels          []domainlabel.Label
 	CreatedAt       time.Time
@@ -56,7 +56,7 @@ type CreateCheckStorageInput struct {
 	Target          string
 	Selector        json.RawMessage
 	Description     *string
-	IntervalSeconds int
+	IntervalSeconds int32
 	PingConfig      PingConfig
 	LabelIDs        []string
 }
@@ -69,7 +69,7 @@ type UpdateCheckStorageInput struct {
 	Target          string
 	Selector        json.RawMessage
 	Description     *string
-	IntervalSeconds int
+	IntervalSeconds int32
 	PingConfig      PingConfig
 	ReplaceLabels   bool
 	LabelIDs        []string

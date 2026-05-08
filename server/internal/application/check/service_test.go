@@ -148,8 +148,8 @@ func TestUpdateCheckPreservesExistingFieldsAndReplacesLabels(t *testing.T) {
 		check: newFakeCheck(testProjectID, testCheckID),
 	}
 	labelIDs := []string{}
-	intervalSeconds := 60
-	timeoutMs := 1500
+	var intervalSeconds int32 = 60
+	var timeoutMs int32 = 1500
 	recorder := &recordingCheckEventRecorder{}
 	service := NewService(repo, &fakeProjectAccess{role: domainproject.RoleAdmin}, &fakeLabelAccess{}, recorder)
 

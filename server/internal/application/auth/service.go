@@ -84,7 +84,8 @@ func (s *Service) Login(ctx context.Context, input LoginInput) (AuthAccessResult
 	}
 	flow.setUser(user)
 
-	if err := s.comparePassword(ctx, input.Password, user.PasswordHash); err != nil {
+	err = s.comparePassword(ctx, input.Password, user.PasswordHash)
+	if err != nil {
 		return AuthAccessResult{}, flow.businessFailure(AuthEventLoginFailure, AuthReasonCredentialsInvalid, ErrCredentialsInvalid)
 	}
 

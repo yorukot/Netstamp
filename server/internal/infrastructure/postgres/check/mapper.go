@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
@@ -20,7 +21,7 @@ func mapStoredCheck(row sqlc.Check, config sqlc.PingCheckConfig) domaincheck.Che
 		Target:          row.Target,
 		Selector:        cloneRawMessage(row.Selector),
 		Description:     row.Description,
-		IntervalSeconds: int(row.IntervalSeconds),
+		IntervalSeconds: row.IntervalSeconds,
 		PingConfig:      mapPingConfig(config),
 		CreatedAt:       row.CreatedAt.Time,
 		UpdatedAt:       row.UpdatedAt.Time,
@@ -29,54 +30,88 @@ func mapStoredCheck(row sqlc.Check, config sqlc.PingCheckConfig) domaincheck.Che
 }
 
 func mapListCheck(row sqlc.ListActiveChecksForProjectRow) domaincheck.Check {
-	return domaincheck.Check{
-		ID:              row.ID.String(),
-		ProjectID:       row.ProjectID.String(),
-		Name:            row.Name,
-		Type:            domaincheck.Type(row.CheckType),
-		Target:          row.Target,
-		Selector:        cloneRawMessage(row.Selector),
-		Description:     row.Description,
-		IntervalSeconds: int(row.IntervalSeconds),
-		PingConfig: domaincheck.PingConfig{
-			PacketCount:     int(row.PacketCount),
-			PacketSizeBytes: int(row.PacketSizeBytes),
-			TimeoutMs:       int(row.TimeoutMs),
-			IPFamily:        mapIPFamily(row.IpFamily),
-		},
-		CreatedAt: row.CreatedAt.Time,
-		UpdatedAt: row.UpdatedAt.Time,
-		DeletedAt: timePtr(row.DeletedAt),
-	}
+	return mapSelectedCheck(
+		row.ID,
+		row.ProjectID,
+		row.Name,
+		row.CheckType,
+		row.Target,
+		row.Selector,
+		row.Description,
+		row.IntervalSeconds,
+		row.PacketCount,
+		row.PacketSizeBytes,
+		row.TimeoutMs,
+		row.IpFamily,
+		row.CreatedAt,
+		row.UpdatedAt,
+		row.DeletedAt,
+	)
 }
 
 func mapGetCheck(row sqlc.GetActiveCheckForProjectRow) domaincheck.Check {
+	return mapSelectedCheck(
+		row.ID,
+		row.ProjectID,
+		row.Name,
+		row.CheckType,
+		row.Target,
+		row.Selector,
+		row.Description,
+		row.IntervalSeconds,
+		row.PacketCount,
+		row.PacketSizeBytes,
+		row.TimeoutMs,
+		row.IpFamily,
+		row.CreatedAt,
+		row.UpdatedAt,
+		row.DeletedAt,
+	)
+}
+
+func mapSelectedCheck(
+	id uuid.UUID,
+	projectID uuid.UUID,
+	name string,
+	checkType sqlc.CheckType,
+	target string,
+	selector []byte,
+	description *string,
+	intervalSeconds int32,
+	packetCount int32,
+	packetSizeBytes int32,
+	timeoutMs int32,
+	ipFamily sqlc.NullIpFamily,
+	createdAt pgtype.Timestamptz,
+	updatedAt pgtype.Timestamptz,
+	deletedAt pgtype.Timestamptz,
+) domaincheck.Check {
 	return domaincheck.Check{
-		ID:              row.ID.String(),
-		ProjectID:       row.ProjectID.String(),
-		Name:            row.Name,
-		Type:            domaincheck.Type(row.CheckType),
-		Target:          row.Target,
-		Selector:        cloneRawMessage(row.Selector),
-		Description:     row.Description,
-		IntervalSeconds: int(row.IntervalSeconds),
+		ID:              id.String(),
+		ProjectID:       projectID.String(),
+		Name:            name,
+		Type:            domaincheck.Type(checkType),
+		Target:          target,
+		Selector:        cloneRawMessage(selector),
+		Description:     description,
+		IntervalSeconds: intervalSeconds,
 		PingConfig: domaincheck.PingConfig{
-			PacketCount:     int(row.PacketCount),
-			PacketSizeBytes: int(row.PacketSizeBytes),
-			TimeoutMs:       int(row.TimeoutMs),
-			IPFamily:        mapIPFamily(row.IpFamily),
+			PacketCount:     packetCount,
+			PacketSizeBytes: packetSizeBytes,
+			TimeoutMs:       timeoutMs,
+			IPFamily:        mapIPFamily(ipFamily),
 		},
-		CreatedAt: row.CreatedAt.Time,
-		UpdatedAt: row.UpdatedAt.Time,
-		DeletedAt: timePtr(row.DeletedAt),
+		CreatedAt: createdAt.Time,
+		UpdatedAt: updatedAt.Time,
+		DeletedAt: timePtr(deletedAt),
 	}
 }
 
 func mapPingConfig(row sqlc.PingCheckConfig) domaincheck.PingConfig {
 	return domaincheck.PingConfig{
-		PacketCount:     int(row.PacketCount),
-		PacketSizeBytes: int(row.PacketSizeBytes),
-		TimeoutMs:       int(row.TimeoutMs),
+		PacketCount:     row.PacketCount,
+		PacketSizeBytes: row.PacketSizeBytes,
+		TimeoutMs:       row.TimeoutMs,
 		IPFamily:        mapIPFamily(row.IpFamily),
 	}
 }

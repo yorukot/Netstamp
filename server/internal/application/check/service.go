@@ -85,7 +85,8 @@ func (s *Service) CreateCheck(ctx context.Context, input CreateCheckInput) (doma
 	if err != nil {
 		return domaincheck.Check{}, err
 	}
-	if err := s.requireAction(ctx, flow, project.ID, input.CurrentUserID, CheckEventCreateFailure); err != nil {
+	err = s.requireAction(ctx, flow, project.ID, input.CurrentUserID, CheckEventCreateFailure)
+	if err != nil {
 		return domaincheck.Check{}, err
 	}
 
@@ -125,7 +126,8 @@ func (s *Service) UpdateCheck(ctx context.Context, input UpdateCheckInput) (doma
 	if err != nil {
 		return domaincheck.Check{}, err
 	}
-	if err := s.requireAction(ctx, flow, project.ID, input.CurrentUserID, CheckEventUpdateFailure); err != nil {
+	err = s.requireAction(ctx, flow, project.ID, input.CurrentUserID, CheckEventUpdateFailure)
+	if err != nil {
 		return domaincheck.Check{}, err
 	}
 
@@ -157,11 +159,11 @@ func (s *Service) UpdateCheck(ctx context.Context, input UpdateCheckInput) (doma
 		Target:          chooseString(current.Target, normalized.target),
 		Selector:        chooseRawMessage(current.Selector, normalized.selector),
 		Description:     chooseOptionalString(current.Description, normalized.description),
-		IntervalSeconds: chooseInt(current.IntervalSeconds, normalized.intervalSeconds),
+		IntervalSeconds: chooseInt32(current.IntervalSeconds, normalized.intervalSeconds),
 		PingConfig: domaincheck.PingConfig{
-			PacketCount:     chooseInt(current.PingConfig.PacketCount, normalized.packetCount),
-			PacketSizeBytes: chooseInt(current.PingConfig.PacketSizeBytes, normalized.packetSizeBytes),
-			TimeoutMs:       chooseInt(current.PingConfig.TimeoutMs, normalized.timeoutMs),
+			PacketCount:     chooseInt32(current.PingConfig.PacketCount, normalized.packetCount),
+			PacketSizeBytes: chooseInt32(current.PingConfig.PacketSizeBytes, normalized.packetSizeBytes),
+			TimeoutMs:       chooseInt32(current.PingConfig.TimeoutMs, normalized.timeoutMs),
 			IPFamily:        chooseIPFamily(current.PingConfig.IPFamily, normalized.ipFamily),
 		},
 		ReplaceLabels: normalized.replaceLabels,
@@ -270,99 +272,167 @@ func normalizeCreateCheckInput(input CreateCheckInput) (normalizedCreateCheckInp
 }
 
 func normalizeUpdateCheckInput(input UpdateCheckInput) (normalizedUpdateCheckInput, error) {
-	if input.Name == nil &&
-		input.Type == nil &&
-		input.Target == nil &&
-		input.Selector == nil &&
-		input.Description == nil &&
-		input.IntervalSeconds == nil &&
-		input.PacketCount == nil &&
-		input.PacketSizeBytes == nil &&
-		input.TimeoutMs == nil &&
-		input.IPFamily == nil &&
-		input.LabelIDs == nil {
+	if !hasUpdateCheckChanges(input) {
 		return normalizedUpdateCheckInput{}, ErrInvalidInput
 	}
 
-	var normalized normalizedUpdateCheckInput
-	var err error
-	if input.Name != nil {
-		normalized.name = new(string)
-		*normalized.name, err = normalize.RequiredString(*input.Name, ErrInvalidInput)
-		if err != nil {
-			return normalizedUpdateCheckInput{}, err
-		}
+	name, err := normalizeOptionalRequiredString(input.Name)
+	if err != nil {
+		return normalizedUpdateCheckInput{}, err
 	}
-	if input.Type != nil {
-		checkType, err := normalizeCheckType(*input.Type)
-		if err != nil {
-			return normalizedUpdateCheckInput{}, err
-		}
-		normalized.checkType = &checkType
+	checkType, err := normalizeOptionalCheckType(input.Type)
+	if err != nil {
+		return normalizedUpdateCheckInput{}, err
 	}
-	if input.Target != nil {
-		normalized.target = new(string)
-		*normalized.target, err = normalize.RequiredString(*input.Target, ErrInvalidInput)
-		if err != nil {
-			return normalizedUpdateCheckInput{}, err
-		}
+	target, err := normalizeOptionalRequiredString(input.Target)
+	if err != nil {
+		return normalizedUpdateCheckInput{}, err
 	}
-	if input.Selector != nil {
-		normalized.selector, err = normalizeSelector(input.Selector)
-		if err != nil {
-			return normalizedUpdateCheckInput{}, err
-		}
+	selector, err := normalizeOptionalSelector(input.Selector)
+	if err != nil {
+		return normalizedUpdateCheckInput{}, err
 	}
-	if input.Description != nil {
-		normalized.description, err = normalize.OptionalString(input.Description, ErrInvalidInput)
-		if err != nil {
-			return normalizedUpdateCheckInput{}, err
-		}
+	description, err := normalize.OptionalString(input.Description, ErrInvalidInput)
+	if err != nil {
+		return normalizedUpdateCheckInput{}, err
 	}
-	if input.IntervalSeconds != nil {
-		if *input.IntervalSeconds <= 0 {
-			return normalizedUpdateCheckInput{}, ErrInvalidInput
-		}
-		intervalSeconds := *input.IntervalSeconds
-		normalized.intervalSeconds = &intervalSeconds
+	intervalSeconds, err := normalizeOptionalPositiveInt(input.IntervalSeconds)
+	if err != nil {
+		return normalizedUpdateCheckInput{}, err
 	}
-	if input.PacketCount != nil {
-		if *input.PacketCount <= 0 {
-			return normalizedUpdateCheckInput{}, ErrInvalidInput
-		}
-		packetCount := *input.PacketCount
-		normalized.packetCount = &packetCount
+	packetCount, err := normalizeOptionalPositiveInt(input.PacketCount)
+	if err != nil {
+		return normalizedUpdateCheckInput{}, err
 	}
-	if input.PacketSizeBytes != nil {
-		if *input.PacketSizeBytes < 0 || *input.PacketSizeBytes > maxPacketSizeBytes {
-			return normalizedUpdateCheckInput{}, ErrInvalidInput
-		}
-		packetSizeBytes := *input.PacketSizeBytes
-		normalized.packetSizeBytes = &packetSizeBytes
+	packetSizeBytes, err := normalizeOptionalPacketSizeBytes(input.PacketSizeBytes)
+	if err != nil {
+		return normalizedUpdateCheckInput{}, err
 	}
-	if input.TimeoutMs != nil {
-		if *input.TimeoutMs <= 0 {
-			return normalizedUpdateCheckInput{}, ErrInvalidInput
-		}
-		timeoutMs := *input.TimeoutMs
-		normalized.timeoutMs = &timeoutMs
+	timeoutMs, err := normalizeOptionalPositiveInt(input.TimeoutMs)
+	if err != nil {
+		return normalizedUpdateCheckInput{}, err
 	}
-	if input.IPFamily != nil {
-		ipFamily, err := normalizeIPFamily(*input.IPFamily)
-		if err != nil {
-			return normalizedUpdateCheckInput{}, err
-		}
-		normalized.ipFamily = &ipFamily
+	ipFamily, err := normalizeOptionalIPFamily(input.IPFamily)
+	if err != nil {
+		return normalizedUpdateCheckInput{}, err
 	}
-	if input.LabelIDs != nil {
-		normalized.replaceLabels = true
-		normalized.labelIDs, err = normalize.CanonicalUUIDSet(*input.LabelIDs, ErrInvalidInput)
-		if err != nil {
-			return normalizedUpdateCheckInput{}, err
-		}
+	replaceLabels, labelIDs, err := normalizeOptionalLabelIDs(input.LabelIDs)
+	if err != nil {
+		return normalizedUpdateCheckInput{}, err
 	}
 
-	return normalized, nil
+	return normalizedUpdateCheckInput{
+		name:            name,
+		checkType:       checkType,
+		target:          target,
+		selector:        selector,
+		description:     description,
+		intervalSeconds: intervalSeconds,
+		packetCount:     packetCount,
+		packetSizeBytes: packetSizeBytes,
+		timeoutMs:       timeoutMs,
+		ipFamily:        ipFamily,
+		replaceLabels:   replaceLabels,
+		labelIDs:        labelIDs,
+	}, nil
+}
+
+func hasUpdateCheckChanges(input UpdateCheckInput) bool {
+	return input.Name != nil ||
+		input.Type != nil ||
+		input.Target != nil ||
+		input.Selector != nil ||
+		input.Description != nil ||
+		input.IntervalSeconds != nil ||
+		input.PacketCount != nil ||
+		input.PacketSizeBytes != nil ||
+		input.TimeoutMs != nil ||
+		input.IPFamily != nil ||
+		input.LabelIDs != nil
+}
+
+func normalizeOptionalRequiredString(value *string) (*string, error) {
+	if value == nil {
+		return nil, nil //nolint:nilnil // A nil pointer is the explicit representation of an omitted optional field.
+	}
+
+	normalized, err := normalize.RequiredString(*value, ErrInvalidInput)
+	if err != nil {
+		return nil, err
+	}
+
+	return &normalized, nil
+}
+
+func normalizeOptionalCheckType(value *string) (*domaincheck.Type, error) {
+	if value == nil {
+		return nil, nil //nolint:nilnil // A nil pointer is the explicit representation of an omitted optional field.
+	}
+
+	checkType, err := normalizeCheckType(*value)
+	if err != nil {
+		return nil, err
+	}
+
+	return &checkType, nil
+}
+
+func normalizeOptionalSelector(selector map[string]any) (json.RawMessage, error) {
+	if selector == nil {
+		return nil, nil
+	}
+
+	return normalizeSelector(selector)
+}
+
+func normalizeOptionalPositiveInt(value *int32) (*int32, error) {
+	if value == nil {
+		return nil, nil //nolint:nilnil // A nil pointer is the explicit representation of an omitted optional field.
+	}
+	if *value <= 0 {
+		return nil, ErrInvalidInput
+	}
+
+	normalized := *value
+	return &normalized, nil
+}
+
+func normalizeOptionalPacketSizeBytes(value *int32) (*int32, error) {
+	if value == nil {
+		return nil, nil //nolint:nilnil // A nil pointer is the explicit representation of an omitted optional field.
+	}
+	if *value < 0 || *value > maxPacketSizeBytes {
+		return nil, ErrInvalidInput
+	}
+
+	normalized := *value
+	return &normalized, nil
+}
+
+func normalizeOptionalIPFamily(value *string) (*domaincheck.IPFamily, error) {
+	if value == nil {
+		return nil, nil //nolint:nilnil // A nil pointer is the explicit representation of an omitted optional field.
+	}
+
+	ipFamily, err := normalizeIPFamily(*value)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ipFamily, nil
+}
+
+func normalizeOptionalLabelIDs(value *[]string) (bool, []string, error) {
+	if value == nil {
+		return false, nil, nil
+	}
+
+	labelIDs, err := normalize.CanonicalUUIDSet(*value, ErrInvalidInput)
+	if err != nil {
+		return false, nil, err
+	}
+
+	return true, labelIDs, nil
 }
 
 func normalizeCheckType(value string) (domaincheck.Type, error) {
@@ -390,7 +460,7 @@ func normalizeSelector(selector map[string]any) (json.RawMessage, error) {
 	return raw, nil
 }
 
-func normalizePingConfig(packetCount, packetSizeBytes, timeoutMs *int, ipFamilyValue *string) (domaincheck.PingConfig, error) {
+func normalizePingConfig(packetCount, packetSizeBytes, timeoutMs *int32, ipFamilyValue *string) (domaincheck.PingConfig, error) {
 	config := domaincheck.PingConfig{
 		PacketCount:     defaultPacketCount,
 		PacketSizeBytes: defaultPacketSizeBytes,
@@ -471,7 +541,7 @@ func chooseOptionalString(current, next *string) *string {
 	return next
 }
 
-func chooseInt(current int, next *int) int {
+func chooseInt32(current int32, next *int32) int32 {
 	if next == nil {
 		return current
 	}

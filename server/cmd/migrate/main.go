@@ -15,6 +15,10 @@ import (
 )
 
 func main() {
+	os.Exit(run())
+}
+
+func run() int {
 	databaseConnectionString := flag.String("database-connection-string", "", "PostgreSQL connection string")
 	dir := flag.String("dir", "db/migrations", "migration directory")
 	command := flag.String("command", "status", "migration command: status, up, or down")
@@ -23,7 +27,7 @@ func main() {
 	cfg, err := config.Load()
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "load config: %v\n", err)
-		os.Exit(1)
+		return 1
 	}
 
 	resolvedDatabaseConnectionString := *databaseConnectionString
@@ -33,27 +37,29 @@ func main() {
 
 	if resolvedDatabaseConnectionString == "" {
 		_, _ = fmt.Fprintln(os.Stderr, "database connection settings are required")
-		os.Exit(2)
+		return 2
 	}
 
-	if err := goose.SetDialect("postgres"); err != nil {
+	err = goose.SetDialect("postgres")
+	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "set migration dialect: %v\n", err)
-		os.Exit(1)
+		return 1
 	}
 
 	db, err := sql.Open("pgx", resolvedDatabaseConnectionString)
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "open database: %v\n", err)
-		os.Exit(1)
+		return 1
 	}
 	defer db.Close()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	if err := db.PingContext(ctx); err != nil {
+	err = db.PingContext(ctx)
+	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "ping database: %v\n", err)
-		os.Exit(1)
+		return 1
 	}
 
 	switch *command {
@@ -68,6 +74,8 @@ func main() {
 	}
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "migration failed: %v\n", err)
-		os.Exit(1)
+		return 1
 	}
+
+	return 0
 }

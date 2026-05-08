@@ -19,14 +19,15 @@ const (
 )
 
 var (
-	ErrPasswordMismatch = errors.New("password mismatch")
-	ErrInvalidHash      = errors.New("invalid password hash")
+	ErrPasswordMismatch      = errors.New("password mismatch")
+	ErrInvalidHash           = errors.New("invalid password hash")
+	ErrInvalidArgon2idConfig = errors.New("invalid argon2id config")
 )
 
 type Argon2idConfig struct {
-	MemoryKiB   int
-	Iterations  int
-	Parallelism int
+	MemoryKiB   uint32
+	Iterations  uint32
+	Parallelism uint8
 }
 
 type Argon2idPasswordHasher struct {
@@ -42,13 +43,16 @@ func (h *Argon2idPasswordHasher) Hash(password string) (string, error) {
 	if _, err := rand.Read(salt); err != nil {
 		return "", err
 	}
+	if h.cfg.MemoryKiB == 0 || h.cfg.Iterations == 0 || h.cfg.Parallelism == 0 {
+		return "", ErrInvalidArgon2idConfig
+	}
 
 	hash := argon2.IDKey(
 		[]byte(password),
 		salt,
-		uint32(h.cfg.Iterations),
-		uint32(h.cfg.MemoryKiB),
-		uint8(h.cfg.Parallelism),
+		h.cfg.Iterations,
+		h.cfg.MemoryKiB,
+		h.cfg.Parallelism,
 		keyLength,
 	)
 
@@ -71,14 +75,17 @@ func (h *Argon2idPasswordHasher) Compare(password, encoded string) error {
 	if err != nil {
 		return err
 	}
+	if len(expectedHash) != keyLength {
+		return ErrInvalidHash
+	}
 
 	actualHash := argon2.IDKey(
 		[]byte(password),
 		salt,
-		uint32(params.Iterations),
-		uint32(params.MemoryKiB),
-		uint8(params.Parallelism),
-		uint32(len(expectedHash)),
+		params.Iterations,
+		params.MemoryKiB,
+		params.Parallelism,
+		keyLength,
 	)
 
 	if subtle.ConstantTimeCompare(actualHash, expectedHash) != 1 {
@@ -148,26 +155,51 @@ func decodeArgon2idParams(encoded string) (Argon2idConfig, error) {
 		key := keyValue[0]
 		rawValue := keyValue[1]
 
-		parsedValue, err := strconv.Atoi(rawValue)
-		if err != nil {
-			return Argon2idConfig{}, ErrInvalidHash
-		}
-
 		switch key {
 		case "m":
-			cfg.MemoryKiB = parsedValue
+			memoryKiB, err := parseArgon2idUint32Param(rawValue)
+			if err != nil {
+				return Argon2idConfig{}, err
+			}
+			cfg.MemoryKiB = memoryKiB
 		case "t":
-			cfg.Iterations = parsedValue
+			iterations, err := parseArgon2idUint32Param(rawValue)
+			if err != nil {
+				return Argon2idConfig{}, err
+			}
+			cfg.Iterations = iterations
 		case "p":
-			cfg.Parallelism = parsedValue
+			parallelism, err := parseArgon2idUint8Param(rawValue)
+			if err != nil {
+				return Argon2idConfig{}, err
+			}
+			cfg.Parallelism = parallelism
 		default:
 			return Argon2idConfig{}, ErrInvalidHash
 		}
 	}
 
-	if cfg.MemoryKiB <= 0 || cfg.Iterations <= 0 || cfg.Parallelism <= 0 {
+	if cfg.MemoryKiB == 0 || cfg.Iterations == 0 || cfg.Parallelism == 0 {
 		return Argon2idConfig{}, ErrInvalidHash
 	}
 
 	return cfg, nil
+}
+
+func parseArgon2idUint32Param(value string) (uint32, error) {
+	parsed, err := strconv.ParseUint(value, 10, 32)
+	if err != nil || parsed == 0 {
+		return 0, ErrInvalidHash
+	}
+
+	return uint32(parsed), nil
+}
+
+func parseArgon2idUint8Param(value string) (uint8, error) {
+	parsed, err := strconv.ParseUint(value, 10, 8)
+	if err != nil || parsed == 0 {
+		return 0, ErrInvalidHash
+	}
+
+	return uint8(parsed), nil
 }

@@ -17,24 +17,26 @@ type accessTokenClaimsContextKey struct{}
 
 func RequireAuth(verifier appauth.TokenVerifier) func(huma.Context, func(huma.Context)) {
 	return func(ctx huma.Context, next func(huma.Context)) {
+		requestCtx := ctx.Context()
+
 		if verifier == nil {
-			writeHumaProblem(ctx, http.StatusInternalServerError, "auth verifier unavailable")
+			writeHumaProblem(requestCtx, ctx, http.StatusInternalServerError, "auth verifier unavailable")
 			return
 		}
 
 		token, ok := bearerToken(ctx.Header("Authorization"))
 		if !ok {
-			writeHumaProblem(ctx, http.StatusUnauthorized, "missing bearer token")
+			writeHumaProblem(requestCtx, ctx, http.StatusUnauthorized, "missing bearer token")
 			return
 		}
 
-		claims, err := verifier.VerifyAccessToken(ctx.Context(), token)
+		claims, err := verifier.VerifyAccessToken(requestCtx, token)
 		if err != nil {
-			writeHumaProblem(ctx, http.StatusUnauthorized, "invalid access token")
+			writeHumaProblem(requestCtx, ctx, http.StatusUnauthorized, "invalid access token")
 			return
 		}
 
-		next(huma.WithContext(ctx, WithAccessTokenClaims(ctx.Context(), claims)))
+		next(huma.WithContext(ctx, WithAccessTokenClaims(requestCtx, claims)))
 	}
 }
 
@@ -56,8 +58,8 @@ func bearerToken(value string) (string, bool) {
 	return parts[1], true
 }
 
-func writeHumaProblem(ctx huma.Context, status int, detail string) {
-	if requestID := chimw.GetReqID(ctx.Context()); requestID != "" {
+func writeHumaProblem(requestCtx context.Context, ctx huma.Context, status int, detail string) {
+	if requestID := chimw.GetReqID(requestCtx); requestID != "" {
 		ctx.SetHeader("X-Request-ID", requestID)
 	}
 	if status == http.StatusUnauthorized {
@@ -66,9 +68,11 @@ func writeHumaProblem(ctx huma.Context, status int, detail string) {
 	ctx.SetHeader("Content-Type", "application/problem+json")
 	ctx.SetStatus(status)
 
-	_ = json.NewEncoder(ctx.BodyWriter()).Encode(&huma.ErrorModel{
+	if err := json.NewEncoder(ctx.BodyWriter()).Encode(&huma.ErrorModel{
 		Status: status,
 		Title:  http.StatusText(status),
 		Detail: detail,
-	})
+	}); err != nil {
+		return
+	}
 }

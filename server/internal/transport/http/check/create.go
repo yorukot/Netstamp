@@ -45,10 +45,10 @@ type createCheckInputBody struct {
 	Target          string         `json:"target" minLength:"1" maxLength:"255" required:"true" doc:"Hostname or address to check." example:"api.netstamp.io"`
 	Selector        map[string]any `json:"selector,omitempty" doc:"Selector object for later probe matching."`
 	Description     *string        `json:"description,omitempty" minLength:"1" maxLength:"500" doc:"Optional check description." example:"Latency and loss to controller API."`
-	IntervalSeconds int            `json:"intervalSeconds" minimum:"1" required:"true" doc:"Check interval in seconds." example:"30"`
-	PacketCount     *int           `json:"packetCount,omitempty" minimum:"1" doc:"ICMP packet count. Defaults to 4." example:"4"`
-	PacketSizeBytes *int           `json:"packetSizeBytes,omitempty" minimum:"0" maximum:"65507" doc:"ICMP payload size in bytes. Defaults to 56." example:"56"`
-	TimeoutMs       *int           `json:"timeoutMs,omitempty" minimum:"1" doc:"Ping timeout in milliseconds. Defaults to 3000." example:"3000"`
+	IntervalSeconds int32          `json:"intervalSeconds" minimum:"1" required:"true" doc:"Check interval in seconds." example:"30"`
+	PacketCount     *int32         `json:"packetCount,omitempty" minimum:"1" doc:"ICMP packet count. Defaults to 4." example:"4"`
+	PacketSizeBytes *int32         `json:"packetSizeBytes,omitempty" minimum:"0" maximum:"65507" doc:"ICMP payload size in bytes. Defaults to 56." example:"56"`
+	TimeoutMs       *int32         `json:"timeoutMs,omitempty" minimum:"1" doc:"Ping timeout in milliseconds. Defaults to 3000." example:"3000"`
 	IPFamily        *string        `json:"ipFamily,omitempty" enum:"ipv4,ipv6" doc:"Optional IP family preference." example:"ipv4"`
 	LabelIDs        []string       `json:"labelIds,omitempty" doc:"Existing project label IDs to attach to the check."`
 }

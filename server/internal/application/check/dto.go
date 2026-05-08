@@ -25,10 +25,10 @@ type CreateCheckInput struct {
 	Target          string
 	Selector        map[string]any
 	Description     *string
-	IntervalSeconds int
-	PacketCount     *int
-	PacketSizeBytes *int
-	TimeoutMs       *int
+	IntervalSeconds int32
+	PacketCount     *int32
+	PacketSizeBytes *int32
+	TimeoutMs       *int32
 	IPFamily        *string
 	LabelIDs        []string
 }
@@ -42,10 +42,10 @@ type UpdateCheckInput struct {
 	Target          *string
 	Selector        map[string]any
 	Description     *string
-	IntervalSeconds *int
-	PacketCount     *int
-	PacketSizeBytes *int
-	TimeoutMs       *int
+	IntervalSeconds *int32
+	PacketCount     *int32
+	PacketSizeBytes *int32
+	TimeoutMs       *int32
 	IPFamily        *string
 	LabelIDs        *[]string
 }
@@ -56,7 +56,7 @@ type normalizedCreateCheckInput struct {
 	target          string
 	selector        json.RawMessage
 	description     *string
-	intervalSeconds int
+	intervalSeconds int32
 	pingConfig      domaincheck.PingConfig
 	labelIDs        []string
 }
@@ -67,10 +67,10 @@ type normalizedUpdateCheckInput struct {
 	target          *string
 	selector        json.RawMessage
 	description     *string
-	intervalSeconds *int
-	packetCount     *int
-	packetSizeBytes *int
-	timeoutMs       *int
+	intervalSeconds *int32
+	packetCount     *int32
+	packetSizeBytes *int32
+	timeoutMs       *int32
 	ipFamily        *domaincheck.IPFamily
 	replaceLabels   bool
 	labelIDs        []string

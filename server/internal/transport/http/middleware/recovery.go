@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"net/http"
 
 	chimw "github.com/go-chi/chi/v5/middleware"
@@ -16,9 +17,10 @@ func ZapRecoverer(root *zap.Logger) func(http.Handler) http.Handler {
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			defer func() {
+			requestCtx := r.Context()
+			defer func(ctx context.Context) {
 				if recovered := recover(); recovered != nil {
-					requestID := chimw.GetReqID(r.Context())
+					requestID := chimw.GetReqID(ctx)
 					if requestID == "" {
 						requestID = r.Header.Get("X-Request-ID")
 					}
@@ -32,13 +34,13 @@ func ZapRecoverer(root *zap.Logger) func(http.Handler) http.Handler {
 						zap.Any("panic", recovered),
 						zap.Stack("stacktrace"),
 					}
-					fields = append(fields, logger.TraceFields(r.Context())...)
+					fields = append(fields, logger.TraceFields(ctx)...)
 
 					root.Error("http_panic_recovered", fields...)
 
 					http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 				}
-			}()
+			}(requestCtx)
 
 			next.ServeHTTP(w, r)
 		})

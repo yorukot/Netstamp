@@ -36,7 +36,7 @@ const (
 	AuthEventRegisterFailure   AuthEventName = "auth.register.failure"
 	AuthEventLoginSuccess      AuthEventName = "auth.login.success"
 	AuthEventLoginFailure      AuthEventName = "auth.login.failure"
-	AuthEventTokenIssueFailure AuthEventName = "auth.token.issue.failure"
+	AuthEventTokenIssueFailure AuthEventName = "auth.token.issue.failure" //nolint:gosec // Event names are not credentials.
 )
 
 type AuthEventAction string

@@ -8,13 +8,13 @@ import (
 	"github.com/yorukot/netstamp/internal/infrastructure/postgres"
 )
 
-func mapLabelWriteError(err error) error {
+func mapLabelWriteError(err error) (bool, error) {
 	if postgres.IsUniqueViolation(err, "uq_labels_active_project_key_value") {
-		return fmt.Errorf("label already exists: %w", domainlabel.ErrLabelAlreadyExists)
+		return true, fmt.Errorf("label already exists: %w", domainlabel.ErrLabelAlreadyExists)
 	}
 	if postgres.IsForeignKeyViolation(err, "labels_project_id_fkey") {
-		return fmt.Errorf("project not found: %w", domainproject.ErrProjectNotFound)
+		return true, fmt.Errorf("project not found: %w", domainproject.ErrProjectNotFound)
 	}
 
-	return err
+	return false, err
 }

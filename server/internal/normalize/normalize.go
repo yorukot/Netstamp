@@ -24,7 +24,7 @@ func RequiredString(value string, invalidErr error) (string, error) {
 
 func OptionalString(value *string, invalidErr error) (*string, error) {
 	if value == nil {
-		return nil, nil
+		return nil, nil //nolint:nilnil // A nil pointer is the explicit representation of an omitted optional string.
 	}
 
 	normalized := strings.TrimSpace(*value)

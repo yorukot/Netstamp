@@ -105,37 +105,37 @@ func (r *CheckRepository) CreateCheck(ctx context.Context, input domaincheck.Cre
 	err = r.tx.InTx(ctx, func(ctx context.Context, tx pgx.Tx) error {
 		q := r.queries.WithTx(tx)
 
-		row, err := q.CreateCheck(ctx, sqlc.CreateCheckParams{
+		row, createErr := q.CreateCheck(ctx, sqlc.CreateCheckParams{
 			ProjectID:       projectID,
 			Name:            input.Name,
 			CheckType:       sqlcCheckType(input.Type),
 			Target:          input.Target,
 			Selector:        input.Selector,
 			Description:     input.Description,
-			IntervalSeconds: int32(input.IntervalSeconds),
+			IntervalSeconds: input.IntervalSeconds,
 		})
-		if err != nil {
-			return mapCheckWriteError(err)
+		if createErr != nil {
+			return mapCheckWriteError(createErr)
 		}
 
-		config, err := q.CreatePingCheckConfig(ctx, sqlc.CreatePingCheckConfigParams{
+		config, configErr := q.CreatePingCheckConfig(ctx, sqlc.CreatePingCheckConfigParams{
 			CheckID:         row.ID,
-			PacketCount:     int32(input.PingConfig.PacketCount),
-			PacketSizeBytes: int32(input.PingConfig.PacketSizeBytes),
-			TimeoutMs:       int32(input.PingConfig.TimeoutMs),
+			PacketCount:     input.PingConfig.PacketCount,
+			PacketSizeBytes: input.PingConfig.PacketSizeBytes,
+			TimeoutMs:       input.PingConfig.TimeoutMs,
 			IpFamily:        sqlcIPFamily(input.PingConfig.IPFamily),
 		})
-		if err != nil {
-			return mapCheckWriteError(err)
+		if configErr != nil {
+			return mapCheckWriteError(configErr)
 		}
 
 		for _, labelID := range labelIDs {
-			if err := q.CreateCheckLabel(ctx, sqlc.CreateCheckLabelParams{
+			if labelErr := q.CreateCheckLabel(ctx, sqlc.CreateCheckLabelParams{
 				ProjectID: projectID,
 				CheckID:   row.ID,
 				LabelID:   labelID,
-			}); err != nil {
-				return mapCheckWriteError(err)
+			}); labelErr != nil {
+				return mapCheckWriteError(labelErr)
 			}
 		}
 
@@ -167,7 +167,7 @@ func (r *CheckRepository) UpdateCheck(ctx context.Context, input domaincheck.Upd
 	err = r.tx.InTx(ctx, func(ctx context.Context, tx pgx.Tx) error {
 		q := r.queries.WithTx(tx)
 
-		row, err := q.UpdateCheck(ctx, sqlc.UpdateCheckParams{
+		row, updateErr := q.UpdateCheck(ctx, sqlc.UpdateCheckParams{
 			ProjectID:       projectID,
 			ID:              checkID,
 			Name:            input.Name,
@@ -175,43 +175,43 @@ func (r *CheckRepository) UpdateCheck(ctx context.Context, input domaincheck.Upd
 			Target:          input.Target,
 			Selector:        input.Selector,
 			Description:     input.Description,
-			IntervalSeconds: int32(input.IntervalSeconds),
+			IntervalSeconds: input.IntervalSeconds,
 		})
-		if err != nil {
-			if errors.Is(err, pgx.ErrNoRows) {
+		if updateErr != nil {
+			if errors.Is(updateErr, pgx.ErrNoRows) {
 				return domaincheck.ErrCheckNotFound
 			}
-			return mapCheckWriteError(err)
+			return mapCheckWriteError(updateErr)
 		}
 
-		config, err := q.UpdatePingCheckConfig(ctx, sqlc.UpdatePingCheckConfigParams{
+		config, configErr := q.UpdatePingCheckConfig(ctx, sqlc.UpdatePingCheckConfigParams{
 			CheckID:         checkID,
-			PacketCount:     int32(input.PingConfig.PacketCount),
-			PacketSizeBytes: int32(input.PingConfig.PacketSizeBytes),
-			TimeoutMs:       int32(input.PingConfig.TimeoutMs),
+			PacketCount:     input.PingConfig.PacketCount,
+			PacketSizeBytes: input.PingConfig.PacketSizeBytes,
+			TimeoutMs:       input.PingConfig.TimeoutMs,
 			IpFamily:        sqlcIPFamily(input.PingConfig.IPFamily),
 		})
-		if err != nil {
-			if errors.Is(err, pgx.ErrNoRows) {
+		if configErr != nil {
+			if errors.Is(configErr, pgx.ErrNoRows) {
 				return domaincheck.ErrCheckNotFound
 			}
-			return mapCheckWriteError(err)
+			return mapCheckWriteError(configErr)
 		}
 
 		if input.ReplaceLabels {
-			if err := q.DeleteCheckLabels(ctx, sqlc.DeleteCheckLabelsParams{
+			if deleteErr := q.DeleteCheckLabels(ctx, sqlc.DeleteCheckLabelsParams{
 				ProjectID: projectID,
 				CheckID:   checkID,
-			}); err != nil {
-				return err
+			}); deleteErr != nil {
+				return deleteErr
 			}
 			for _, labelID := range labelIDs {
-				if err := q.CreateCheckLabel(ctx, sqlc.CreateCheckLabelParams{
+				if labelErr := q.CreateCheckLabel(ctx, sqlc.CreateCheckLabelParams{
 					ProjectID: projectID,
 					CheckID:   checkID,
 					LabelID:   labelID,
-				}); err != nil {
-					return mapCheckWriteError(err)
+				}); labelErr != nil {
+					return mapCheckWriteError(labelErr)
 				}
 			}
 		}

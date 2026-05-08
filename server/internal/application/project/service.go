@@ -74,7 +74,8 @@ func (s *Service) UpdateProject(ctx context.Context, input UpdateProjectInput) (
 	if err != nil {
 		return domainproject.Project{}, err
 	}
-	if _, err := s.requireRole(ctx, flow, project.ID, input.CurrentUserID, ProjectEventUpdateFailure, domainproject.ActionUpdateProject); err != nil {
+	_, err = s.requireRole(ctx, flow, project.ID, input.CurrentUserID, ProjectEventUpdateFailure, domainproject.ActionUpdateProject)
+	if err != nil {
 		return domainproject.Project{}, err
 	}
 
@@ -117,7 +118,8 @@ func (s *Service) DeleteProject(ctx context.Context, input DeleteProjectInput) e
 	if err != nil {
 		return err
 	}
-	if _, err := s.requireRole(ctx, flow, project.ID, input.CurrentUserID, ProjectEventDeleteFailure, domainproject.ActionDeleteProject); err != nil {
+	_, err = s.requireRole(ctx, flow, project.ID, input.CurrentUserID, ProjectEventDeleteFailure, domainproject.ActionDeleteProject)
+	if err != nil {
 		return err
 	}
 
@@ -137,7 +139,8 @@ func (s *Service) ListMembers(ctx context.Context, input ListMembersInput) ([]do
 	if err != nil {
 		return nil, err
 	}
-	if _, err := s.requireRole(ctx, flow, project.ID, input.CurrentUserID, ProjectEventListMembersFailure, domainproject.ActionReadProject); err != nil {
+	_, err = s.requireRole(ctx, flow, project.ID, input.CurrentUserID, ProjectEventListMembersFailure, domainproject.ActionReadProject)
+	if err != nil {
 		return nil, err
 	}
 
@@ -163,7 +166,8 @@ func (s *Service) AddMember(ctx context.Context, input AddMemberInput) (domainpr
 	if err != nil {
 		return domainproject.Member{}, err
 	}
-	if err := validateAssignableRole(actorRole, input.Role); err != nil {
+	err = validateAssignableRole(actorRole, input.Role)
+	if err != nil {
 		return domainproject.Member{}, flow.assignableRoleFailure(ProjectEventAddMemberFailure, err)
 	}
 
@@ -194,7 +198,8 @@ func (s *Service) UpdateMemberRole(ctx context.Context, input UpdateMemberRoleIn
 	if err != nil {
 		return domainproject.Member{}, err
 	}
-	if err := validateAssignableRole(actorRole, input.Role); err != nil {
+	err = validateAssignableRole(actorRole, input.Role)
+	if err != nil {
 		return domainproject.Member{}, flow.assignableRoleFailure(ProjectEventUpdateMemberRoleFailure, err)
 	}
 
@@ -206,7 +211,8 @@ func (s *Service) UpdateMemberRole(ctx context.Context, input UpdateMemberRoleIn
 		return domainproject.Member{}, flow.businessFailure(ProjectEventUpdateMemberRoleFailure, ProjectReasonForbidden, ErrForbidden)
 	}
 	if member.Role == domainproject.RoleOwner && input.Role != domainproject.RoleOwner {
-		owners, err := s.repo.CountOwners(ctx, project.ID)
+		var owners int
+		owners, err = s.repo.CountOwners(ctx, project.ID)
 		if err != nil {
 			return domainproject.Member{}, flow.ownerCountFailure(ProjectEventUpdateMemberRoleFailure, err)
 		}

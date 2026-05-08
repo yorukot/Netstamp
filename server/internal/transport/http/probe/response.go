@@ -12,7 +12,7 @@ type createProbeOutput struct {
 
 type createProbeOutputBody struct {
 	Probe  probeResponse `json:"probe"`
-	Secret string        `json:"secret"`
+	Secret string        `json:"secret"` //nolint:gosec // The plaintext probe secret is returned once to the creator.
 }
 
 type probeResponse struct {

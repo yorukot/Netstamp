@@ -29,11 +29,11 @@ func main() {
 	if *output == "-" {
 		_, err = os.Stdout.Write(data)
 	} else {
-		if err := os.MkdirAll(filepath.Dir(*output), 0o755); err != nil {
-			_, _ = fmt.Fprintf(os.Stderr, "create output directory: %v\n", err)
+		if mkdirErr := os.MkdirAll(filepath.Dir(*output), 0o755); mkdirErr != nil { //nolint:gosec // Generated OpenAPI output is a public documentation artifact.
+			_, _ = fmt.Fprintf(os.Stderr, "create output directory: %v\n", mkdirErr)
 			os.Exit(1)
 		}
-		err = os.WriteFile(*output, data, 0o644)
+		err = os.WriteFile(*output, data, 0o644) //nolint:gosec // Generated OpenAPI output is a public documentation artifact.
 	}
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "write openapi: %v\n", err)
@@ -49,7 +49,7 @@ func generateOpenAPI(apiVersion, serverURL string) ([]byte, error) {
 	})
 
 	recorder := httptest.NewRecorder()
-	request := httptest.NewRequest(http.MethodGet, openAPIRequestPath(apiVersion), nil)
+	request := httptest.NewRequest(http.MethodGet, openAPIRequestPath(apiVersion), http.NoBody)
 	router.ServeHTTP(recorder, request)
 
 	if recorder.Code != http.StatusOK {

@@ -25,7 +25,7 @@ const (
 	keyRequestTimeout        = "REQUEST_TIMEOUT"
 	keyHTTPReadHeaderTimeout = "HTTP_READ_HEADER_TIMEOUT"
 	keyHTTPReadTimeout       = "HTTP_READ_TIMEOUT"
-	keyHTTPWriteTimeout      = "HTTP_WRITE_TIMEOUT"
+	keyHTTPWriteTimeout      = "HTTP_WRITE_TIMEOUT" //nolint:gosec // This is a timeout env key, not a credential.
 	keyHTTPIdleTimeout       = "HTTP_IDLE_TIMEOUT"
 	keyDatabaseHost          = "DATABASE_HOST"
 	keyDatabasePort          = "DATABASE_PORT"
@@ -37,8 +37,8 @@ const (
 	keyDBMinConns            = "DB_MIN_CONNS"
 	keyDBMaxConnLifetime     = "DB_MAX_CONN_LIFETIME"
 	keyDBMaxConnIdleTime     = "DB_MAX_CONN_IDLE_TIME"
-	keyAuthJWTSecret         = "AUTH_JWT_SECRET"
-	keyAuthAccessTokenTTL    = "AUTH_ACCESS_TOKEN_TTL"
+	keyAuthJWTSecret         = "AUTH_JWT_SECRET"       //nolint:gosec // This is the env key name, not the secret value.
+	keyAuthAccessTokenTTL    = "AUTH_ACCESS_TOKEN_TTL" //nolint:gosec // This is a token TTL env key, not a credential.
 	keyAuthLoginRateLimit    = "AUTH_LOGIN_RATE_LIMIT"
 	keyAuthLoginRateWindow   = "AUTH_LOGIN_RATE_WINDOW"
 	keyAuthArgon2idMemoryKiB = "AUTH_ARGON2ID_MEMORY_KIB"
@@ -76,9 +76,9 @@ var defaultSettings = map[string]any{
 	keyAuthAccessTokenTTL:    12 * time.Hour,
 	keyAuthLoginRateLimit:    10,
 	keyAuthLoginRateWindow:   time.Minute,
-	keyAuthArgon2idMemoryKiB: 64 * 1024,
-	keyAuthArgon2idIter:      3,
-	keyAuthArgon2idParallel:  4,
+	keyAuthArgon2idMemoryKiB: uint32(64 * 1024),
+	keyAuthArgon2idIter:      uint32(3),
+	keyAuthArgon2idParallel:  uint8(4),
 	keyOTLPTracesEndpoint:    "",
 }
 
@@ -110,7 +110,7 @@ type DatabaseConfig struct {
 	Host            string        `mapstructure:"DATABASE_HOST"`
 	Port            int32         `mapstructure:"DATABASE_PORT"`
 	User            string        `mapstructure:"DATABASE_USER"`
-	Password        string        `mapstructure:"DATABASE_PASSWORD"`
+	Password        string        `mapstructure:"DATABASE_PASSWORD"` //nolint:gosec // Runtime config must store the database password value.
 	Name            string        `mapstructure:"DATABASE_NAME"`
 	SSLMode         string        `mapstructure:"DATABASE_SSLMODE"`
 	MaxConns        int32         `mapstructure:"DB_MAX_CONNS"`
@@ -120,13 +120,13 @@ type DatabaseConfig struct {
 }
 
 type AuthConfig struct {
-	JWTSecret           string        `mapstructure:"AUTH_JWT_SECRET"`
+	JWTSecret           string        `mapstructure:"AUTH_JWT_SECRET"` //nolint:gosec // Runtime config must store the JWT signing secret value.
 	AccessTokenTTL      time.Duration `mapstructure:"AUTH_ACCESS_TOKEN_TTL"`
 	LoginRateLimit      int           `mapstructure:"AUTH_LOGIN_RATE_LIMIT"`
 	LoginRateWindow     time.Duration `mapstructure:"AUTH_LOGIN_RATE_WINDOW"`
-	Argon2idMemoryKiB   int           `mapstructure:"AUTH_ARGON2ID_MEMORY_KIB"`
-	Argon2idIterations  int           `mapstructure:"AUTH_ARGON2ID_ITERATIONS"`
-	Argon2idParallelism int           `mapstructure:"AUTH_ARGON2ID_PARALLELISM"`
+	Argon2idMemoryKiB   uint32        `mapstructure:"AUTH_ARGON2ID_MEMORY_KIB"`
+	Argon2idIterations  uint32        `mapstructure:"AUTH_ARGON2ID_ITERATIONS"`
+	Argon2idParallelism uint8         `mapstructure:"AUTH_ARGON2ID_PARALLELISM"`
 }
 
 type TracingConfig struct {
@@ -215,9 +215,9 @@ func validate(cfg Config) []error {
 	errs = append(errs, validatePositiveDuration(keyAuthAccessTokenTTL, cfg.Auth.AccessTokenTTL)...)
 	errs = append(errs, validatePositiveInt(keyAuthLoginRateLimit, cfg.Auth.LoginRateLimit)...)
 	errs = append(errs, validatePositiveDuration(keyAuthLoginRateWindow, cfg.Auth.LoginRateWindow)...)
-	errs = append(errs, validatePositiveInt(keyAuthArgon2idMemoryKiB, cfg.Auth.Argon2idMemoryKiB)...)
-	errs = append(errs, validatePositiveInt(keyAuthArgon2idIter, cfg.Auth.Argon2idIterations)...)
-	errs = append(errs, validateUint8(keyAuthArgon2idParallel, cfg.Auth.Argon2idParallelism)...)
+	errs = append(errs, validatePositiveUint32(keyAuthArgon2idMemoryKiB, cfg.Auth.Argon2idMemoryKiB)...)
+	errs = append(errs, validatePositiveUint32(keyAuthArgon2idIter, cfg.Auth.Argon2idIterations)...)
+	errs = append(errs, validatePositiveUint8(keyAuthArgon2idParallel, cfg.Auth.Argon2idParallelism)...)
 
 	// Tracing settings
 	errs = append(errs, validateOptionalHTTPURL(keyOTLPTracesEndpoint, cfg.Tracing.OTLPTracesEndpoint)...)
