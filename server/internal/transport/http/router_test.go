@@ -58,6 +58,7 @@ func TestNewRouterServesOpenAPIWithoutRuntimeServices(t *testing.T) {
 	assertOpenAPIOperation(t, spec, http.MethodPost, "/auth/login", "loginUser")
 	assertOpenAPIOperation(t, spec, http.MethodGet, "/auth/me", "getCurrentUser")
 	assertOpenAPIOperation(t, spec, http.MethodPost, "/projects", "createProject")
+	assertOpenAPIOperation(t, spec, http.MethodPost, "/projects/{ref}/checks", "createProjectCheck")
 	assertOpenAPIOperation(t, spec, http.MethodPost, "/projects/{ref}/probes", "createProjectProbe")
 }
 

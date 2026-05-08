@@ -27,6 +27,10 @@ func TestCan(t *testing.T) {
 		{name: "admin can manage labels", role: RoleAdmin, action: ActionManageLabels, want: true},
 		{name: "editor can manage labels", role: RoleEditor, action: ActionManageLabels, want: true},
 		{name: "viewer cannot manage labels", role: RoleViewer, action: ActionManageLabels, want: false},
+		{name: "owner can manage checks", role: RoleOwner, action: ActionManageChecks, want: true},
+		{name: "admin can manage checks", role: RoleAdmin, action: ActionManageChecks, want: true},
+		{name: "editor can manage checks", role: RoleEditor, action: ActionManageChecks, want: true},
+		{name: "viewer cannot manage checks", role: RoleViewer, action: ActionManageChecks, want: false},
 		{name: "owner can create probe", role: RoleOwner, action: ActionCreateProbe, want: true},
 		{name: "admin can create probe", role: RoleAdmin, action: ActionCreateProbe, want: true},
 		{name: "editor can create probe", role: RoleEditor, action: ActionCreateProbe, want: true},
@@ -50,6 +54,7 @@ func TestActionValuesUseVerbResourceFormat(t *testing.T) {
 		ActionDeleteProject: "delete:project",
 		ActionManageMembers: "write:project_members",
 		ActionManageLabels:  "write:project_labels",
+		ActionManageChecks:  "write:project_checks",
 		ActionCreateProbe:   "create:probe",
 	}
 

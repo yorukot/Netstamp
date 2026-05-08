@@ -8,6 +8,7 @@ const (
 	ActionDeleteProject Action = "delete:project"
 	ActionManageMembers Action = "write:project_members"
 	ActionManageLabels  Action = "write:project_labels"
+	ActionManageChecks  Action = "write:project_checks"
 	ActionCreateProbe   Action = "create:probe"
 )
 
@@ -17,7 +18,7 @@ func Can(role Role, action Action) bool {
 		return IsValidRole(role)
 	case ActionUpdateProject, ActionManageMembers:
 		return role == RoleOwner || role == RoleAdmin
-	case ActionManageLabels, ActionCreateProbe:
+	case ActionManageLabels, ActionManageChecks, ActionCreateProbe:
 		return role == RoleOwner || role == RoleAdmin || role == RoleEditor
 	case ActionDeleteProject:
 		return role == RoleOwner

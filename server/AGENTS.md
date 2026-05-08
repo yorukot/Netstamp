@@ -8,7 +8,7 @@ This guide applies to `server/`, the Go backend for the Netstamp workspace. The 
 - `cmd/migrate/main.go`: Goose migration CLI for `status`, `up`, and `down`.
 - `internal/app/`: composition root and lifecycle. `bootstrap.go` wires config, logging, tracing, PostgreSQL, auth, and HTTP. `lifecycle.go` starts and gracefully stops the HTTP listener.
 - `internal/transport/http/`: chi/Huma HTTP routing, auth, project, label, probe, system health routes, and middleware.
-- `internal/application/auth/`, `internal/application/project/`, `internal/application/label/`, and `internal/application/probe/`: use cases, ports, DTOs, errors, and feature orchestration.
+- `internal/application/auth/`, `internal/application/project/`, `internal/application/label/`, `internal/application/check/`, and `internal/application/probe/`: use cases, ports, DTOs, errors, and feature orchestration.
 - `internal/domain/identity/`, `internal/domain/project/`, `internal/domain/label/`, and `internal/domain/probe/`: stable domain structs and domain-level sentinel errors.
 - `internal/infrastructure/`: PostgreSQL repositories and pool helpers, JWT issuing, Argon2id password hashing, and probe secret generation.
 - `internal/logger/` and `internal/observability/`: zap logging helpers, application event recording, OpenTelemetry setup, and HTTP span naming.
@@ -21,7 +21,7 @@ No backend public asset directory is currently defined.
 
 The backend is a single Go service with one listener: HTTP on `HTTP_ADDR`. `internal/app.New` loads validated configuration, creates a zap logger, initializes OpenTelemetry, opens a pgx pool, builds application services, and creates the HTTP server. `internal/app.Run` starts the server and coordinates graceful shutdown with `errgroup`.
 
-HTTP uses chi middleware plus Huma route registration under `/api/{version}`. `internal/app/bootstrap.go` passes `cfg.APIVersion` (`API_VERSION`) into the router, and `BACKEND_BASE_URL` can publish an absolute OpenAPI server URL for deployed environments. System routes are `/`, `/livez`, and `/readyz`. Auth routes are `/auth/register`, `/auth/login`, and `/auth/me`; `/auth/me`, project routes, project label routes, and project probe creation are protected by the Huma auth middleware in `internal/transport/http/middleware`.
+HTTP uses chi middleware plus Huma route registration under `/api/{version}`. `internal/app/bootstrap.go` passes `cfg.APIVersion` (`API_VERSION`) into the router, and `BACKEND_BASE_URL` can publish an absolute OpenAPI server URL for deployed environments. System routes are `/`, `/livez`, and `/readyz`. Auth routes are `/auth/register`, `/auth/login`, and `/auth/me`; `/auth/me`, project routes, project label routes, project check routes, and project probe creation are protected by the Huma auth middleware in `internal/transport/http/middleware`.
 
 The current auth request flow is:
 
@@ -32,7 +32,7 @@ No GraphQL, message queues, background workers, scheduled jobs, email, payment, 
 ## Layer Responsibilities
 
 - Transport (`internal/transport/http`): route registration, request/response DTOs, Huma validation tags, protocol status mapping, and middleware. Do not put database calls or business rules here.
-- Application (`internal/application/auth`): business orchestration, service methods, ports, app errors, auth event semantics, and use-case spans. Depend on interfaces, not concrete pgx, Huma, or JWT types.
+- Application (`internal/application/*`): business orchestration, service methods, ports, app errors, feature event semantics, and use-case spans. Depend on interfaces, not concrete pgx, Huma, or JWT types.
 - Domain (`internal/domain`): stable domain structs, domain-level sentinel errors such as `identity.ErrUserNotFound`, and shared domain policy such as project role/action permission checks.
 - Infrastructure (`internal/infrastructure/postgres`, `internal/infrastructure/security`): pgx/sqlc persistence, database error translation, JWT HS256 tokens, and Argon2id password hashing.
 - Config (`internal/config`): Viper-based environment loading, defaults, and validation. Add new env keys here and mirror them in `.env.example` when operators need to set them.
@@ -114,7 +114,7 @@ Application-level events must follow the auth/project/label/probe pattern:
 - Keep zap out of application packages. Services call the package recorder interface; `internal/logger` owns zap fields, privacy handling, and log levels.
 - Pass concrete recorders from `internal/app/bootstrap.go`. Do not silently install package-local no-op recorders; missing wiring should be visible in tests or startup composition.
 - Use small package-internal flow helpers to keep `context.Context`, request-scoped loggers, OpenTelemetry spans, event metadata, and success/failure recording together.
-- Log successful application events only for audit/security flows, not every expected endpoint. Auth register/login and project create/delete/member access changes are audit-worthy; normal successful reads/lists and probe create success are covered by the HTTP request logger.
+- Log successful application events only for audit/security flows, not every expected endpoint. Auth register/login, project create/delete/member access changes, and check/label definition changes are audit-worthy; normal successful reads/lists and probe create success are covered by the HTTP request logger.
 - Expected business/security failures use package-internal helpers such as `businessFailure`, log at `warn`, and should not attach raw error details. Unexpected technical failures use helpers such as `technicalFailure`, log at `error`, record the span error, and include the error field.
 - Keep sentinel error imports centralized in each application package `errors.go` when an application layer needs to expose errors from another domain. Other files in that package and its HTTP handlers should use the application package error names.
 - Never log raw passwords, password hashes, access tokens, JWT secrets, cookies, database passwords, probe plaintext secrets, probe secret hashes, raw request bodies, or raw personal data.
@@ -124,6 +124,8 @@ Auth security events must go through `logger.AuthEventRecorder`. It pseudonymize
 Project application events must go through `logger.ProjectEventRecorder`. Use these only for focused audit/security flows and failures where application semantics add value beyond HTTP request logs. Do not log project member email addresses.
 
 Label application events must go through `logger.LabelEventRecorder`. Label create, update, and delete successes are audit-worthy; successful list and resolve operations are covered by the HTTP request logger. Label failure events should preserve project and label identifiers when available, but must never include label key or value text.
+
+Check application events must go through `logger.CheckEventRecorder`. Check create, update, and delete successes are audit-worthy; successful list and get operations are covered by the HTTP request logger. Check events should preserve project and check identifiers when available, but must never include check name, target, selector, or label text.
 
 Probe application events must go through `logger.ProbeEventRecorder`. Probe create currently records failure events only; successful creates are covered by the HTTP request logger. Probe events must never include the plaintext secret or its hash.
 

@@ -1,0 +1,119 @@
+-- name: ListActiveChecksForProject :many
+SELECT checks.id,
+       checks.project_id,
+       checks.name,
+       checks.check_type,
+       checks.target,
+       checks.selector,
+       checks.description,
+       checks.interval_seconds,
+       checks.created_at,
+       checks.updated_at,
+       checks.deleted_at,
+       ping_check_configs.check_id,
+       ping_check_configs.packet_count,
+       ping_check_configs.packet_size_bytes,
+       ping_check_configs.timeout_ms,
+       ping_check_configs.ip_family
+FROM checks
+JOIN ping_check_configs ON ping_check_configs.check_id = checks.id
+WHERE checks.project_id = $1
+  AND checks.deleted_at IS NULL
+ORDER BY checks.created_at DESC, checks.id DESC;
+
+-- name: GetActiveCheckForProject :one
+SELECT checks.id,
+       checks.project_id,
+       checks.name,
+       checks.check_type,
+       checks.target,
+       checks.selector,
+       checks.description,
+       checks.interval_seconds,
+       checks.created_at,
+       checks.updated_at,
+       checks.deleted_at,
+       ping_check_configs.check_id,
+       ping_check_configs.packet_count,
+       ping_check_configs.packet_size_bytes,
+       ping_check_configs.timeout_ms,
+       ping_check_configs.ip_family
+FROM checks
+JOIN ping_check_configs ON ping_check_configs.check_id = checks.id
+WHERE checks.project_id = $1
+  AND checks.id = $2
+  AND checks.deleted_at IS NULL;
+
+-- name: CreateCheck :one
+INSERT INTO checks (project_id, name, check_type, target, selector, description, interval_seconds)
+VALUES (
+    sqlc.arg(project_id),
+    sqlc.arg(name),
+    sqlc.arg(check_type),
+    sqlc.arg(target),
+    sqlc.arg(selector)::jsonb,
+    sqlc.narg(description),
+    sqlc.arg(interval_seconds)
+)
+RETURNING id, project_id, name, check_type, target, selector, description, interval_seconds, created_at, updated_at, deleted_at;
+
+-- name: UpdateCheck :one
+UPDATE checks
+SET name = sqlc.arg(name),
+    check_type = sqlc.arg(check_type),
+    target = sqlc.arg(target),
+    selector = sqlc.arg(selector)::jsonb,
+    description = sqlc.narg(description),
+    interval_seconds = sqlc.arg(interval_seconds)
+WHERE project_id = sqlc.arg(project_id)
+  AND id = sqlc.arg(id)
+  AND deleted_at IS NULL
+RETURNING id, project_id, name, check_type, target, selector, description, interval_seconds, created_at, updated_at, deleted_at;
+
+-- name: CreatePingCheckConfig :one
+INSERT INTO ping_check_configs (check_id, packet_count, packet_size_bytes, timeout_ms, ip_family)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING check_id, packet_count, packet_size_bytes, timeout_ms, ip_family;
+
+-- name: UpdatePingCheckConfig :one
+UPDATE ping_check_configs
+SET packet_count = $2,
+    packet_size_bytes = $3,
+    timeout_ms = $4,
+    ip_family = $5
+WHERE check_id = $1
+RETURNING check_id, packet_count, packet_size_bytes, timeout_ms, ip_family;
+
+-- name: CreateCheckLabel :exec
+INSERT INTO check_labels (project_id, check_id, label_id)
+VALUES ($1, $2, $3);
+
+-- name: DeleteCheckLabels :exec
+DELETE FROM check_labels
+WHERE project_id = $1
+  AND check_id = $2;
+
+-- name: ListActiveLabelsForCheck :many
+SELECT labels.id,
+       labels.project_id,
+       labels.key,
+       labels.value,
+       labels.created_at,
+       labels.updated_at,
+       labels.deleted_at
+FROM check_labels
+JOIN labels
+    ON labels.project_id = check_labels.project_id
+    AND labels.id = check_labels.label_id
+WHERE check_labels.project_id = $1
+  AND check_labels.check_id = $2
+  AND labels.deleted_at IS NULL
+ORDER BY labels.key ASC, labels.value ASC, labels.id ASC;
+
+-- name: SoftDeleteCheck :one
+UPDATE checks
+SET deleted_at = now()
+WHERE project_id = $1
+  AND id = $2
+  AND deleted_at IS NULL
+RETURNING id;

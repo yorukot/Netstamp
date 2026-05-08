@@ -14,11 +14,13 @@ import (
 	"go.uber.org/zap"
 
 	appauth "github.com/yorukot/netstamp/internal/application/auth"
+	appcheck "github.com/yorukot/netstamp/internal/application/check"
 	applabel "github.com/yorukot/netstamp/internal/application/label"
 	appprobe "github.com/yorukot/netstamp/internal/application/probe"
 	appproject "github.com/yorukot/netstamp/internal/application/project"
 	"github.com/yorukot/netstamp/internal/observability/httptrace"
 	authhttp "github.com/yorukot/netstamp/internal/transport/http/auth"
+	checkhttp "github.com/yorukot/netstamp/internal/transport/http/check"
 	labelhttp "github.com/yorukot/netstamp/internal/transport/http/label"
 	httpmiddleware "github.com/yorukot/netstamp/internal/transport/http/middleware"
 	probehttp "github.com/yorukot/netstamp/internal/transport/http/probe"
@@ -31,6 +33,7 @@ type Dependencies struct {
 	BackendBaseURL string
 	AuthService    *appauth.Service
 	AuthVerifier   appauth.TokenVerifier
+	CheckService   *appcheck.Service
 	LabelService   *applabel.Service
 	ProbeService   *appprobe.Service
 	ProjectService *appproject.Service
@@ -75,6 +78,7 @@ func registerAPIRoutes(api huma.API, dep Dependencies) {
 	authhttp.NewHandler(dep.AuthService, dep.AuthVerifier).RegisterRoutes(api)
 	projecthttp.NewHandler(dep.ProjectService, dep.AuthVerifier).RegisterRoutes(api)
 	labelhttp.NewHandler(dep.LabelService, dep.AuthVerifier).RegisterRoutes(api)
+	checkhttp.NewHandler(dep.CheckService, dep.AuthVerifier).RegisterRoutes(api)
 	probehttp.NewHandler(dep.ProbeService, dep.AuthVerifier).RegisterRoutes(api)
 }
 

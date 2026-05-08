@@ -10,11 +10,13 @@ import (
 	"go.uber.org/zap"
 
 	appauth "github.com/yorukot/netstamp/internal/application/auth"
+	appcheck "github.com/yorukot/netstamp/internal/application/check"
 	applabel "github.com/yorukot/netstamp/internal/application/label"
 	appprobe "github.com/yorukot/netstamp/internal/application/probe"
 	appproject "github.com/yorukot/netstamp/internal/application/project"
 	"github.com/yorukot/netstamp/internal/config"
 	"github.com/yorukot/netstamp/internal/infrastructure/postgres"
+	pgcheck "github.com/yorukot/netstamp/internal/infrastructure/postgres/check"
 	pglabel "github.com/yorukot/netstamp/internal/infrastructure/postgres/label"
 	pgprobe "github.com/yorukot/netstamp/internal/infrastructure/postgres/probe"
 	pgproject "github.com/yorukot/netstamp/internal/infrastructure/postgres/project"
@@ -89,6 +91,7 @@ func New(ctx context.Context) (*Application, error) {
 	authEvents := logger.NewAuthEventRecorder(log, cfg.LogPseudonymKey)
 	projectEvents := logger.NewProjectEventRecorder(log)
 	labelEvents := logger.NewLabelEventRecorder(log)
+	checkEvents := logger.NewCheckEventRecorder(log)
 	probeEvents := logger.NewProbeEventRecorder(log)
 
 	authSvc := appauth.NewService(userRepo, passwordHasher, tokenIssuer, authEvents)
@@ -96,6 +99,8 @@ func New(ctx context.Context) (*Application, error) {
 	projectSvc := appproject.NewService(projectRepo, projectEvents)
 	labelRepo := pglabel.NewLabelRepository(dbPool)
 	labelSvc := applabel.NewService(labelRepo, projectRepo, labelEvents)
+	checkRepo := pgcheck.NewCheckRepository(dbPool)
+	checkSvc := appcheck.NewService(checkRepo, projectRepo, labelRepo, checkEvents)
 	probeRepo := pgprobe.NewProbeRepository(dbPool)
 	probeSvc := appprobe.NewService(probeRepo, projectRepo, labelRepo, security.NewProbeSecretGenerator(), probeEvents)
 	readiness := postgres.NewReadinessCheck(dbPool)
@@ -106,6 +111,7 @@ func New(ctx context.Context) (*Application, error) {
 		BackendBaseURL: cfg.HTTP.BackendBaseURL,
 		AuthService:    authSvc,
 		AuthVerifier:   tokenIssuer,
+		CheckService:   checkSvc,
 		LabelService:   labelSvc,
 		ProbeService:   probeSvc,
 		ProjectService: projectSvc,
