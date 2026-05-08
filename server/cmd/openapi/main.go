@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -15,30 +16,41 @@ import (
 )
 
 func main() {
-	output := flag.String("output", "../docs/public/openapi.json", "output file path, or - for stdout")
-	apiVersion := flag.String("version", "v1", "API version path segment")
-	serverURL := flag.String("server-url", "", "absolute backend origin to publish in servers[0].url")
-	flag.Parse()
+	os.Exit(run(os.Args[1:], os.Stdout, os.Stderr))
+}
+
+func run(args []string, stdout, stderr io.Writer) int {
+	flagSet := flag.NewFlagSet("openapi", flag.ContinueOnError)
+	flagSet.SetOutput(stderr)
+
+	output := flagSet.String("output", "../docs/public/openapi.json", "output file path, or - for stdout")
+	apiVersion := flagSet.String("version", "v1", "API version path segment")
+	serverURL := flagSet.String("server-url", "", "absolute backend origin to publish in servers[0].url")
+	if err := flagSet.Parse(args); err != nil {
+		return 2
+	}
 
 	data, err := generateOpenAPI(*apiVersion, *serverURL)
 	if err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "generate openapi: %v\n", err)
-		os.Exit(1)
+		_, _ = fmt.Fprintf(stderr, "generate openapi: %v\n", err)
+		return 1
 	}
 
 	if *output == "-" {
-		_, err = os.Stdout.Write(data)
+		_, err = stdout.Write(data)
 	} else {
 		if mkdirErr := os.MkdirAll(filepath.Dir(*output), 0o755); mkdirErr != nil { //nolint:gosec // Generated OpenAPI output is a public documentation artifact.
-			_, _ = fmt.Fprintf(os.Stderr, "create output directory: %v\n", mkdirErr)
-			os.Exit(1)
+			_, _ = fmt.Fprintf(stderr, "create output directory: %v\n", mkdirErr)
+			return 1
 		}
 		err = os.WriteFile(*output, data, 0o644) //nolint:gosec // Generated OpenAPI output is a public documentation artifact.
 	}
 	if err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "write openapi: %v\n", err)
-		os.Exit(1)
+		_, _ = fmt.Fprintf(stderr, "write openapi: %v\n", err)
+		return 1
 	}
+
+	return 0
 }
 
 func generateOpenAPI(apiVersion, serverURL string) ([]byte, error) {
