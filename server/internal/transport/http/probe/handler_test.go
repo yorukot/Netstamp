@@ -122,6 +122,26 @@ func TestCreateProbeMapsInaccessibleProjectToNotFound(t *testing.T) {
 	}
 }
 
+func TestCreateProbeMapsForbiddenToForbidden(t *testing.T) {
+	_, api := humatest.New(t)
+	NewHandler(appprobe.NewService(&handlerProbeRepository{}, &handlerProjectAccess{
+		role: domainproject.RoleViewer,
+	}, &handlerLabelAccess{}, handlerSecretGenerator{
+		plaintext: "plain-secret",
+		hash:      "secret-hash",
+	}, handlerProbeEventRecorder{}), &handlerTokenVerifier{
+		claims: identity.AccessTokenClaims{Subject: testUserID, Email: "user@example.com"},
+	}).RegisterRoutes(api)
+
+	res := api.Post("/projects/engineering/probes", map[string]any{
+		"name": "tokyo-vps-1",
+	}, "Authorization: Bearer valid-token")
+
+	if res.Code != http.StatusForbidden {
+		t.Fatalf("expected status 403, got %d", res.Code)
+	}
+}
+
 func TestCreateProbeMapsMissingLabelToNotFound(t *testing.T) {
 	_, api := humatest.New(t)
 	NewHandler(appprobe.NewService(&handlerProbeRepository{}, &handlerProjectAccess{}, &handlerLabelAccess{
@@ -184,7 +204,9 @@ func (r *handlerProbeRepository) CreateProbe(_ context.Context, input domainprob
 
 type handlerProjectAccess struct {
 	gotProjectRef string
+	role          domainproject.Role
 	err           error
+	roleErr       error
 }
 
 func (r *handlerProjectAccess) GetProjectForUser(_ context.Context, projectRef string, _ string) (domainproject.Project, error) {
@@ -193,6 +215,16 @@ func (r *handlerProjectAccess) GetProjectForUser(_ context.Context, projectRef s
 		return domainproject.Project{}, r.err
 	}
 	return domainproject.Project{ID: testProjectID, Slug: "engineering"}, nil
+}
+
+func (r *handlerProjectAccess) GetMemberRole(context.Context, string, string) (domainproject.Role, error) {
+	if r.roleErr != nil {
+		return "", r.roleErr
+	}
+	if r.role != "" {
+		return r.role, nil
+	}
+	return domainproject.RoleOwner, nil
 }
 
 type handlerLabelAccess struct {

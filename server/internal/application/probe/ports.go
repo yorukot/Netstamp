@@ -14,6 +14,7 @@ type Repository interface {
 
 type ProjectAccess interface {
 	GetProjectForUser(ctx context.Context, projectRef string, userID string) (domainproject.Project, error)
+	GetMemberRole(ctx context.Context, projectID string, userID string) (domainproject.Role, error)
 }
 
 type LabelAccess interface {
@@ -51,8 +52,10 @@ type ProbeEventReason string
 const (
 	ProbeReasonInvalidInput           ProbeEventReason = "invalid_input"
 	ProbeReasonProjectNotFound        ProbeEventReason = "project_not_found"
+	ProbeReasonForbidden              ProbeEventReason = "forbidden"
 	ProbeReasonLabelNotFound          ProbeEventReason = "label_not_found"
 	ProbeReasonProjectLookupFailed    ProbeEventReason = "project_lookup_failed"
+	ProbeReasonRoleLookupFailed       ProbeEventReason = "role_lookup_failed"
 	ProbeReasonLabelLookupFailed      ProbeEventReason = "label_lookup_failed"
 	ProbeReasonSecretGeneratorMissing ProbeEventReason = "secret_generator_missing"
 	ProbeReasonSecretGenerateFailed   ProbeEventReason = "secret_generate_failed"

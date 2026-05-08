@@ -189,6 +189,63 @@ func TestCreateProbeRejectsInaccessibleProject(t *testing.T) {
 	}
 }
 
+func TestCreateProbeAllowsOwnerAdminAndEditor(t *testing.T) {
+	for _, role := range []domainproject.Role{domainproject.RoleOwner, domainproject.RoleAdmin, domainproject.RoleEditor} {
+		t.Run(string(role), func(t *testing.T) {
+			repo := &fakeProbeRepository{}
+			service := NewService(repo, &fakeProjectAccess{role: role}, &fakeLabelAccess{}, fakeSecretGenerator{plaintext: "plain-secret", hash: "secret-hash"}, &recordingProbeEventRecorder{})
+
+			_, err := service.CreateProbe(context.Background(), CreateProbeInput{
+				CurrentUserID: "user-1",
+				ProjectRef:    "engineering",
+				Name:          "tokyo-vps-1",
+			})
+			if err != nil {
+				t.Fatalf("create probe: %v", err)
+			}
+			if repo.gotCreateInput.Name != "tokyo-vps-1" {
+				t.Fatalf("expected create input, got %#v", repo.gotCreateInput)
+			}
+		})
+	}
+}
+
+func TestCreateProbeRejectsViewerBeforeLabelLookupOrSecretGeneration(t *testing.T) {
+	recorder := &recordingProbeEventRecorder{}
+	repo := &fakeProbeRepository{}
+	labelAccess := &fakeLabelAccess{}
+	secretGenerator := &recordingSecretGenerator{}
+	service := NewService(repo, &fakeProjectAccess{role: domainproject.RoleViewer}, labelAccess, secretGenerator, recorder)
+
+	_, err := service.CreateProbe(context.Background(), CreateProbeInput{
+		CurrentUserID: "user-1",
+		ProjectRef:    "engineering",
+		Name:          "tokyo-vps-1",
+		LabelIDs:      []string{testLabelID},
+	})
+	if !errors.Is(err, ErrForbidden) {
+		t.Fatalf("expected forbidden, got %v", err)
+	}
+	if labelAccess.gotProjectID != "" {
+		t.Fatalf("expected label access not to be called, got project id %q", labelAccess.gotProjectID)
+	}
+	if secretGenerator.called {
+		t.Fatalf("expected secret generator not to be called")
+	}
+	if repo.gotCreateInput.Name != "" {
+		t.Fatalf("expected create not to be called, got %#v", repo.gotCreateInput)
+	}
+	assertRecordedProbeEvent(t, recorder, ProbeEvent{
+		Name:        ProbeEventCreateFailure,
+		Action:      ProbeActionCreate,
+		Outcome:     ProbeOutcomeFailure,
+		Reason:      ProbeReasonForbidden,
+		ActorUserID: "user-1",
+		ProjectID:   testProjectID,
+		ProjectRef:  "engineering",
+	})
+}
+
 func TestCreateProbeRecordsInvalidInputFailure(t *testing.T) {
 	recorder := &recordingProbeEventRecorder{}
 	service := NewService(&fakeProbeRepository{}, &fakeProjectAccess{}, &fakeLabelAccess{}, fakeSecretGenerator{
@@ -270,6 +327,38 @@ func TestCreateProbeRecordsProjectLookupFailure(t *testing.T) {
 		Outcome:     ProbeOutcomeFailure,
 		Reason:      ProbeReasonProjectLookupFailed,
 		ActorUserID: "user-1",
+		ProjectRef:  "engineering",
+		Err:         lookupErr,
+	})
+}
+
+func TestCreateProbeRecordsRoleLookupFailure(t *testing.T) {
+	recorder := &recordingProbeEventRecorder{}
+	lookupErr := errors.New("lookup role")
+	service := NewService(
+		&fakeProbeRepository{},
+		&fakeProjectAccess{roleErr: lookupErr},
+		&fakeLabelAccess{},
+		fakeSecretGenerator{plaintext: "plain-secret", hash: "secret-hash"},
+		recorder,
+	)
+
+	_, err := service.CreateProbe(context.Background(), CreateProbeInput{
+		CurrentUserID: "user-1",
+		ProjectRef:    "engineering",
+		Name:          "tokyo-vps-1",
+	})
+	if !errors.Is(err, lookupErr) {
+		t.Fatalf("expected role lookup error, got %v", err)
+	}
+
+	assertRecordedProbeEvent(t, recorder, ProbeEvent{
+		Name:        ProbeEventCreateFailure,
+		Action:      ProbeActionCreate,
+		Outcome:     ProbeOutcomeFailure,
+		Reason:      ProbeReasonRoleLookupFailed,
+		ActorUserID: "user-1",
+		ProjectID:   testProjectID,
 		ProjectRef:  "engineering",
 		Err:         lookupErr,
 	})
@@ -432,9 +521,13 @@ func (r *fakeProbeRepository) CreateProbe(_ context.Context, input domainprobe.C
 }
 
 type fakeProjectAccess struct {
-	gotProjectRef string
-	gotUserID     string
-	err           error
+	gotProjectRef    string
+	gotUserID        string
+	gotRoleProjectID string
+	gotRoleUserID    string
+	role             domainproject.Role
+	err              error
+	roleErr          error
 }
 
 func (r *fakeProjectAccess) GetProjectForUser(_ context.Context, projectRef string, userID string) (domainproject.Project, error) {
@@ -444,6 +537,18 @@ func (r *fakeProjectAccess) GetProjectForUser(_ context.Context, projectRef stri
 		return domainproject.Project{}, r.err
 	}
 	return domainproject.Project{ID: testProjectID, Slug: "engineering"}, nil
+}
+
+func (r *fakeProjectAccess) GetMemberRole(_ context.Context, projectID string, userID string) (domainproject.Role, error) {
+	r.gotRoleProjectID = projectID
+	r.gotRoleUserID = userID
+	if r.roleErr != nil {
+		return "", r.roleErr
+	}
+	if r.role != "" {
+		return r.role, nil
+	}
+	return domainproject.RoleOwner, nil
 }
 
 type fakeLabelAccess struct {
@@ -480,4 +585,13 @@ func (g fakeSecretGenerator) GenerateProbeSecret() (string, string, error) {
 		return "", "", g.err
 	}
 	return g.plaintext, g.hash, nil
+}
+
+type recordingSecretGenerator struct {
+	called bool
+}
+
+func (g *recordingSecretGenerator) GenerateProbeSecret() (string, string, error) {
+	g.called = true
+	return "plain-secret", "secret-hash", nil
 }

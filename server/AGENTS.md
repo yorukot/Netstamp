@@ -33,7 +33,7 @@ No GraphQL, message queues, background workers, scheduled jobs, email, payment, 
 
 - Transport (`internal/transport/http`): route registration, request/response DTOs, Huma validation tags, protocol status mapping, and middleware. Do not put database calls or business rules here.
 - Application (`internal/application/auth`): business orchestration, service methods, ports, app errors, auth event semantics, and use-case spans. Depend on interfaces, not concrete pgx, Huma, or JWT types.
-- Domain (`internal/domain/identity`): stable domain structs and domain-level sentinel errors such as `identity.ErrUserNotFound`.
+- Domain (`internal/domain`): stable domain structs, domain-level sentinel errors such as `identity.ErrUserNotFound`, and shared domain policy such as project role/action permission checks.
 - Infrastructure (`internal/infrastructure/postgres`, `internal/infrastructure/security`): pgx/sqlc persistence, database error translation, JWT HS256 tokens, and Argon2id password hashing.
 - Config (`internal/config`): Viper-based environment loading, defaults, and validation. Add new env keys here and mirror them in `.env.example` when operators need to set them.
 - Cross-cutting (`internal/logger`, `internal/observability`): request-scoped loggers, auth event recording, trace fields, tracer provider setup, and span helpers.
@@ -45,6 +45,8 @@ When one application feature needs data or access checks that are already owned 
 Keep feature services independent: an application service should not call another feature's application service just to reuse repository behavior, because that imports the other feature's event semantics, tracing spans, and use-case policy. The consuming service should own its own events, spans, sentinel-error mapping, and business policy while depending on a small interface such as project access, user lookup, or membership lookup.
 
 Repository packages should stay aligned with the data/capability they own. If two features need the same persistence capability, prefer reusing the existing repository through an application port or extracting a small infrastructure helper over copying sqlc calls into a second repository package. For example, a probe use case that needs to resolve a project for the current user should depend on a project-access port implemented by the project repository, while the probe repository remains focused on probe persistence.
+
+Project-scoped permission decisions should use the project domain policy rather than package-local role predicates. Application services remain responsible for use-case-specific invariants, event reasons, and error mapping.
 
 ## Libraries & Dependencies
 

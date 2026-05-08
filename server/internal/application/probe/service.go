@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
+	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 	"github.com/yorukot/netstamp/internal/normalize"
 )
 
@@ -41,6 +42,14 @@ func (s *Service) CreateProbe(ctx context.Context, input CreateProbeInput) (Crea
 		return CreateProbeOutput{}, flow.projectLookupFailure(err)
 	}
 	flow.setProjectID(project.ID)
+
+	role, err := s.projectAccess.GetMemberRole(ctx, project.ID, input.CurrentUserID)
+	if err != nil {
+		return CreateProbeOutput{}, flow.roleLookupFailure(err)
+	}
+	if !domainproject.Can(role, domainproject.ActionCreateProbe) {
+		return CreateProbeOutput{}, flow.businessFailure(ProbeEventCreateFailure, ProbeReasonForbidden, ErrForbidden)
+	}
 
 	labels, err := s.labelAccess.GetActiveLabelsByIDsForProject(ctx, project.ID, normalized.labelIDs)
 	if err != nil {

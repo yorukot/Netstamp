@@ -74,7 +74,7 @@ func (s *Service) UpdateProject(ctx context.Context, input UpdateProjectInput) (
 	if err != nil {
 		return domainproject.Project{}, err
 	}
-	if _, err := s.requireRole(ctx, flow, project.ID, input.CurrentUserID, ProjectEventUpdateFailure, isManager); err != nil {
+	if _, err := s.requireRole(ctx, flow, project.ID, input.CurrentUserID, ProjectEventUpdateFailure, domainproject.ActionUpdateProject); err != nil {
 		return domainproject.Project{}, err
 	}
 
@@ -117,7 +117,7 @@ func (s *Service) DeleteProject(ctx context.Context, input DeleteProjectInput) e
 	if err != nil {
 		return err
 	}
-	if _, err := s.requireRole(ctx, flow, project.ID, input.CurrentUserID, ProjectEventDeleteFailure, isOwner); err != nil {
+	if _, err := s.requireRole(ctx, flow, project.ID, input.CurrentUserID, ProjectEventDeleteFailure, domainproject.ActionDeleteProject); err != nil {
 		return err
 	}
 
@@ -137,7 +137,7 @@ func (s *Service) ListMembers(ctx context.Context, input ListMembersInput) ([]do
 	if err != nil {
 		return nil, err
 	}
-	if err := s.requireRoleForRead(ctx, flow, project.ID, input.CurrentUserID, ProjectEventListMembersFailure); err != nil {
+	if _, err := s.requireRole(ctx, flow, project.ID, input.CurrentUserID, ProjectEventListMembersFailure, domainproject.ActionReadProject); err != nil {
 		return nil, err
 	}
 
@@ -159,7 +159,7 @@ func (s *Service) AddMember(ctx context.Context, input AddMemberInput) (domainpr
 	if err != nil {
 		return domainproject.Member{}, err
 	}
-	actorRole, err := s.requireRole(ctx, flow, project.ID, input.CurrentUserID, ProjectEventAddMemberFailure, isManager)
+	actorRole, err := s.requireRole(ctx, flow, project.ID, input.CurrentUserID, ProjectEventAddMemberFailure, domainproject.ActionManageMembers)
 	if err != nil {
 		return domainproject.Member{}, err
 	}
@@ -190,7 +190,7 @@ func (s *Service) UpdateMemberRole(ctx context.Context, input UpdateMemberRoleIn
 	if err != nil {
 		return domainproject.Member{}, err
 	}
-	actorRole, err := s.requireRole(ctx, flow, project.ID, input.CurrentUserID, ProjectEventUpdateMemberRoleFailure, isManager)
+	actorRole, err := s.requireRole(ctx, flow, project.ID, input.CurrentUserID, ProjectEventUpdateMemberRoleFailure, domainproject.ActionManageMembers)
 	if err != nil {
 		return domainproject.Member{}, err
 	}
@@ -252,62 +252,33 @@ func (s *Service) loadProjectForRead(ctx context.Context, flow *projectFlow, pro
 	return project, nil
 }
 
-func (s *Service) requireRole(ctx context.Context, flow *projectFlow, projectID string, userID string, failureEvent ProjectEventName, allow func(domainproject.Role) bool) (domainproject.Role, error) {
+func (s *Service) requireRole(ctx context.Context, flow *projectFlow, projectID string, userID string, failureEvent ProjectEventName, action domainproject.Action) (domainproject.Role, error) {
 	role, err := s.repo.GetMemberRole(ctx, projectID, userID)
 	if err != nil {
 		return "", flow.roleLookupFailure(failureEvent, err)
 	}
-	if !allow(role) {
+	if !domainproject.Can(role, action) {
 		return "", flow.businessFailure(failureEvent, ProjectReasonForbidden, ErrForbidden)
 	}
 
 	return role, nil
 }
 
-func (s *Service) requireRoleForRead(ctx context.Context, flow *projectFlow, projectID string, userID string, failureEvent ProjectEventName) error {
-	_, err := s.repo.GetMemberRole(ctx, projectID, userID)
-	if err != nil {
-		return flow.roleReadLookupFailure(failureEvent, err)
-	}
-
-	return nil
-}
-
 func validateRole(role domainproject.Role) error {
-	switch role {
-	case domainproject.RoleOwner, domainproject.RoleAdmin, domainproject.RoleEditor, domainproject.RoleViewer:
+	if domainproject.IsValidRole(role) {
 		return nil
-	default:
-		return ErrInvalidRole
 	}
-}
 
-func isManager(role domainproject.Role) bool {
-	return role == domainproject.RoleOwner || role == domainproject.RoleAdmin
-}
-
-func isOwner(role domainproject.Role) bool {
-	return role == domainproject.RoleOwner
+	return ErrInvalidRole
 }
 
 func validateAssignableRole(actorRole domainproject.Role, targetRole domainproject.Role) error {
 	if err := validateRole(targetRole); err != nil {
 		return err
 	}
-	if !canAssignRole(actorRole, targetRole) {
+	if !domainproject.CanAssignRole(actorRole, targetRole) {
 		return ErrForbidden
 	}
 
 	return nil
-}
-
-func canAssignRole(actorRole domainproject.Role, targetRole domainproject.Role) bool {
-	switch actorRole {
-	case domainproject.RoleOwner:
-		return targetRole == domainproject.RoleAdmin || targetRole == domainproject.RoleEditor || targetRole == domainproject.RoleViewer
-	case domainproject.RoleAdmin:
-		return targetRole == domainproject.RoleEditor || targetRole == domainproject.RoleViewer
-	default:
-		return false
-	}
 }

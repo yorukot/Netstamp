@@ -59,6 +59,7 @@ func (r *ProbeEventRecorder) RecordProbeEvent(ctx context.Context, event appprob
 func isExpectedProbeFailure(event appprobe.ProbeEvent) bool {
 	switch event.Reason {
 	case appprobe.ProbeReasonInvalidInput,
+		appprobe.ProbeReasonForbidden,
 		appprobe.ProbeReasonProjectNotFound,
 		appprobe.ProbeReasonLabelNotFound:
 		return true

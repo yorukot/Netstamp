@@ -71,7 +71,7 @@ func TestProbeEventRecorderLevels(t *testing.T) {
 		Name:    appprobe.ProbeEventCreateFailure,
 		Action:  appprobe.ProbeActionCreate,
 		Outcome: appprobe.ProbeOutcomeFailure,
-		Reason:  appprobe.ProbeReasonLabelNotFound,
+		Reason:  appprobe.ProbeReasonForbidden,
 	})
 	recorder.RecordProbeEvent(context.Background(), appprobe.ProbeEvent{
 		Name:    appprobe.ProbeEventCreateFailure,

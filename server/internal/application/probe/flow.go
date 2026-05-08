@@ -77,6 +77,14 @@ func (f *probeFlow) projectLookupFailure(err error) error {
 	return f.technicalFailure(ProbeEventCreateFailure, ProbeReasonProjectLookupFailed, err)
 }
 
+func (f *probeFlow) roleLookupFailure(err error) error {
+	if errors.Is(err, ErrProjectNotFound) {
+		return f.businessFailure(ProbeEventCreateFailure, ProbeReasonProjectNotFound, err)
+	}
+
+	return f.technicalFailure(ProbeEventCreateFailure, ProbeReasonRoleLookupFailed, err)
+}
+
 func (f *probeFlow) labelLookupFailure(err error) error {
 	switch {
 	case errors.Is(err, ErrInvalidInput):

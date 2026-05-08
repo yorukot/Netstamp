@@ -32,6 +32,6 @@ func (h *Handler) RegisterRoutes(api huma.API) {
 		Tags:          []string{"Probes"},
 		Security:      []map[string][]string{{"bearerAuth": {}}},
 		Middlewares:   huma.Middlewares{httpmiddleware.RequireAuth(h.verifier)},
-		Errors:        []int{http.StatusUnauthorized, http.StatusNotFound, http.StatusUnprocessableEntity, http.StatusInternalServerError},
+		Errors:        []int{http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound, http.StatusUnprocessableEntity, http.StatusInternalServerError},
 	}, h.createProbe)
 }

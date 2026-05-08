@@ -23,6 +23,8 @@ func mapProbeError(err error, fallback string) error {
 	switch {
 	case errors.Is(err, appprobe.ErrProjectNotFound), errors.Is(err, appprobe.ErrLabelNotFound):
 		return huma.Error404NotFound("not found")
+	case errors.Is(err, appprobe.ErrForbidden):
+		return huma.Error403Forbidden("forbidden")
 	case errors.Is(err, appprobe.ErrInvalidInput):
 		return huma.Error422UnprocessableEntity("invalid probe input")
 	default:

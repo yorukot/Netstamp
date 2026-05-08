@@ -50,7 +50,7 @@ func (s *Service) CreateLabel(ctx context.Context, input CreateLabelInput) (doma
 	if err != nil {
 		return domainlabel.Label{}, err
 	}
-	if err := s.requireManager(ctx, flow, project.ID, input.CurrentUserID, LabelEventCreateFailure); err != nil {
+	if err := s.requireAction(ctx, flow, project.ID, input.CurrentUserID, LabelEventCreateFailure, domainproject.ActionManageLabels); err != nil {
 		return domainlabel.Label{}, err
 	}
 
@@ -83,7 +83,7 @@ func (s *Service) UpdateLabel(ctx context.Context, input UpdateLabelInput) (doma
 	if err != nil {
 		return domainlabel.Label{}, err
 	}
-	if err := s.requireManager(ctx, flow, project.ID, input.CurrentUserID, LabelEventUpdateFailure); err != nil {
+	if err := s.requireAction(ctx, flow, project.ID, input.CurrentUserID, LabelEventUpdateFailure, domainproject.ActionManageLabels); err != nil {
 		return domainlabel.Label{}, err
 	}
 	if input.Key == nil && input.Value == nil {
@@ -135,7 +135,7 @@ func (s *Service) DeleteLabel(ctx context.Context, input DeleteLabelInput) error
 	if err != nil {
 		return err
 	}
-	if err := s.requireManager(ctx, flow, project.ID, input.CurrentUserID, LabelEventDeleteFailure); err != nil {
+	if err := s.requireAction(ctx, flow, project.ID, input.CurrentUserID, LabelEventDeleteFailure, domainproject.ActionManageLabels); err != nil {
 		return err
 	}
 
@@ -176,7 +176,7 @@ func (s *Service) loadProject(ctx context.Context, flow *labelFlow, projectRef s
 	return project, nil
 }
 
-func (s *Service) requireManager(ctx context.Context, flow *labelFlow, projectID string, userID string, failureEvent LabelEventName) error {
+func (s *Service) requireAction(ctx context.Context, flow *labelFlow, projectID string, userID string, failureEvent LabelEventName, action domainproject.Action) error {
 	role, err := s.projectAccess.GetMemberRole(ctx, projectID, userID)
 	if errors.Is(err, ErrProjectNotFound) {
 		return flow.businessFailure(failureEvent, LabelReasonProjectNotFound, err)
@@ -187,7 +187,7 @@ func (s *Service) requireManager(ctx context.Context, flow *labelFlow, projectID
 	if err != nil {
 		return flow.technicalFailure(failureEvent, LabelReasonRoleLookupFailed, err)
 	}
-	if !canManageLabels(role) {
+	if !domainproject.Can(role, action) {
 		return flow.businessFailure(failureEvent, LabelReasonForbidden, ErrForbidden)
 	}
 
@@ -205,8 +205,4 @@ func normalizeLabelKeyValue(keyValue string, labelValue string) (string, string,
 	}
 
 	return key, value, nil
-}
-
-func canManageLabels(role domainproject.Role) bool {
-	return role == domainproject.RoleOwner || role == domainproject.RoleAdmin || role == domainproject.RoleEditor
 }
