@@ -8,8 +8,10 @@ import (
 	domainlabel "github.com/yorukot/netstamp/internal/domain/label"
 )
 
-var benchmarkMatchCount int
-var benchmarkCanonicalSelector json.RawMessage
+var (
+	benchmarkMatchCount        int
+	benchmarkCanonicalSelector json.RawMessage
+)
 
 type benchmarkProbe struct {
 	labels []domainlabel.Label
@@ -86,7 +88,7 @@ func BenchmarkMatchesAcrossProbes(b *testing.B) {
 			b.ResetTimer()
 
 			totalMatches := 0
-			for i := 0; i < b.N; i++ {
+			for range b.N {
 				matches := 0
 				for _, probe := range probes {
 					if selector.Matches(probe.labels) {
@@ -136,7 +138,7 @@ func BenchmarkParseAndCanonicalJSON(b *testing.B) {
 			b.ReportAllocs()
 
 			var canonical json.RawMessage
-			for i := 0; i < b.N; i++ {
+			for range b.N {
 				selector, err := Parse(tt.raw)
 				if err != nil {
 					b.Fatalf("parse selector: %v", err)
