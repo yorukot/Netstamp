@@ -26,6 +26,194 @@
 				"required": ["userId", "role"],
 				"type": "object"
 			},
+			"CheckLabelResponse": {
+				"additionalProperties": false,
+				"properties": {
+					"id": {
+						"format": "uuid",
+						"type": "string"
+					},
+					"key": {
+						"type": "string"
+					},
+					"value": {
+						"type": "string"
+					}
+				},
+				"required": ["id", "key", "value"],
+				"type": "object"
+			},
+			"CheckOutputBody": {
+				"additionalProperties": false,
+				"properties": {
+					"$schema": {
+						"description": "A URL to the JSON Schema for this object.",
+						"examples": ["/api/v1/schemas/CheckOutputBody.json"],
+						"format": "uri",
+						"readOnly": true,
+						"type": "string"
+					},
+					"check": {
+						"$ref": "#/components/schemas/CheckResponse"
+					}
+				},
+				"required": ["check"],
+				"type": "object"
+			},
+			"CheckResponse": {
+				"additionalProperties": false,
+				"properties": {
+					"createdAt": {
+						"format": "date-time",
+						"type": "string"
+					},
+					"description": {
+						"type": ["string", "null"]
+					},
+					"id": {
+						"format": "uuid",
+						"type": "string"
+					},
+					"intervalSeconds": {
+						"format": "int64",
+						"type": "integer"
+					},
+					"ipFamily": {
+						"enum": ["ipv4", "ipv6"],
+						"type": "string"
+					},
+					"labels": {
+						"items": {
+							"$ref": "#/components/schemas/CheckLabelResponse"
+						},
+						"type": ["array", "null"]
+					},
+					"name": {
+						"type": "string"
+					},
+					"packetCount": {
+						"format": "int64",
+						"type": "integer"
+					},
+					"packetSizeBytes": {
+						"format": "int64",
+						"type": "integer"
+					},
+					"projectId": {
+						"format": "uuid",
+						"type": "string"
+					},
+					"selector": {
+						"additionalProperties": {},
+						"type": "object"
+					},
+					"target": {
+						"type": "string"
+					},
+					"timeoutMs": {
+						"format": "int64",
+						"type": "integer"
+					},
+					"type": {
+						"enum": ["ping"],
+						"type": "string"
+					},
+					"updatedAt": {
+						"format": "date-time",
+						"type": "string"
+					}
+				},
+				"required": ["id", "projectId", "name", "type", "target", "selector", "description", "intervalSeconds", "packetCount", "packetSizeBytes", "timeoutMs", "labels", "createdAt", "updatedAt"],
+				"type": "object"
+			},
+			"CreateCheckInputBody": {
+				"additionalProperties": false,
+				"properties": {
+					"$schema": {
+						"description": "A URL to the JSON Schema for this object.",
+						"examples": ["/api/v1/schemas/CreateCheckInputBody.json"],
+						"format": "uri",
+						"readOnly": true,
+						"type": "string"
+					},
+					"description": {
+						"description": "Optional check description.",
+						"examples": ["Latency and loss to controller API."],
+						"maxLength": 500,
+						"minLength": 1,
+						"type": "string"
+					},
+					"intervalSeconds": {
+						"description": "Check interval in seconds.",
+						"examples": [30],
+						"format": "int64",
+						"minimum": 1,
+						"type": "integer"
+					},
+					"ipFamily": {
+						"description": "Optional IP family preference.",
+						"enum": ["ipv4", "ipv6"],
+						"examples": ["ipv4"],
+						"type": "string"
+					},
+					"labelIds": {
+						"description": "Existing project label IDs to attach to the check.",
+						"items": {
+							"type": "string"
+						},
+						"type": ["array", "null"]
+					},
+					"name": {
+						"description": "Check display name.",
+						"examples": ["api-latency"],
+						"maxLength": 100,
+						"minLength": 1,
+						"type": "string"
+					},
+					"packetCount": {
+						"description": "ICMP packet count. Defaults to 4.",
+						"examples": [4],
+						"format": "int64",
+						"minimum": 1,
+						"type": "integer"
+					},
+					"packetSizeBytes": {
+						"description": "ICMP payload size in bytes. Defaults to 56.",
+						"examples": [56],
+						"format": "int64",
+						"maximum": 65507,
+						"minimum": 0,
+						"type": "integer"
+					},
+					"selector": {
+						"additionalProperties": {},
+						"description": "Selector object for later probe matching.",
+						"type": "object"
+					},
+					"target": {
+						"description": "Hostname or address to check.",
+						"examples": ["api.netstamp.io"],
+						"maxLength": 255,
+						"minLength": 1,
+						"type": "string"
+					},
+					"timeoutMs": {
+						"description": "Ping timeout in milliseconds. Defaults to 3000.",
+						"examples": [3000],
+						"format": "int64",
+						"minimum": 1,
+						"type": "integer"
+					},
+					"type": {
+						"description": "Check type. Only ping is supported in v1.",
+						"enum": ["ping"],
+						"examples": ["ping"],
+						"type": "string"
+					}
+				},
+				"required": ["name", "type", "target", "intervalSeconds"],
+				"type": "object"
+			},
 			"CreateLabelInputBody": {
 				"additionalProperties": false,
 				"properties": {
@@ -284,6 +472,26 @@
 					}
 				},
 				"required": ["id", "projectId", "key", "value", "createdAt", "updatedAt"],
+				"type": "object"
+			},
+			"ListChecksOutputBody": {
+				"additionalProperties": false,
+				"properties": {
+					"$schema": {
+						"description": "A URL to the JSON Schema for this object.",
+						"examples": ["/api/v1/schemas/ListChecksOutputBody.json"],
+						"format": "uri",
+						"readOnly": true,
+						"type": "string"
+					},
+					"checks": {
+						"items": {
+							"$ref": "#/components/schemas/CheckResponse"
+						},
+						"type": ["array", "null"]
+					}
+				},
+				"required": ["checks"],
 				"type": "object"
 			},
 			"ListLabelsOutputBody": {
@@ -680,6 +888,93 @@
 					}
 				},
 				"required": ["message"],
+				"type": "object"
+			},
+			"UpdateCheckInputBody": {
+				"additionalProperties": false,
+				"properties": {
+					"$schema": {
+						"description": "A URL to the JSON Schema for this object.",
+						"examples": ["/api/v1/schemas/UpdateCheckInputBody.json"],
+						"format": "uri",
+						"readOnly": true,
+						"type": "string"
+					},
+					"description": {
+						"description": "Optional check description.",
+						"examples": ["Latency and loss to controller API."],
+						"maxLength": 500,
+						"minLength": 1,
+						"type": "string"
+					},
+					"intervalSeconds": {
+						"description": "Check interval in seconds.",
+						"examples": [30],
+						"format": "int64",
+						"minimum": 1,
+						"type": "integer"
+					},
+					"ipFamily": {
+						"description": "Optional IP family preference.",
+						"enum": ["ipv4", "ipv6"],
+						"examples": ["ipv4"],
+						"type": "string"
+					},
+					"labelIds": {
+						"description": "Replacement project label IDs for the check.",
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"name": {
+						"description": "Check display name.",
+						"examples": ["api-latency"],
+						"maxLength": 100,
+						"minLength": 1,
+						"type": "string"
+					},
+					"packetCount": {
+						"description": "ICMP packet count.",
+						"examples": [4],
+						"format": "int64",
+						"minimum": 1,
+						"type": "integer"
+					},
+					"packetSizeBytes": {
+						"description": "ICMP payload size in bytes.",
+						"examples": [56],
+						"format": "int64",
+						"maximum": 65507,
+						"minimum": 0,
+						"type": "integer"
+					},
+					"selector": {
+						"additionalProperties": {},
+						"description": "Selector object for later probe matching.",
+						"type": "object"
+					},
+					"target": {
+						"description": "Hostname or address to check.",
+						"examples": ["api.netstamp.io"],
+						"maxLength": 255,
+						"minLength": 1,
+						"type": "string"
+					},
+					"timeoutMs": {
+						"description": "Ping timeout in milliseconds.",
+						"examples": [3000],
+						"format": "int64",
+						"minimum": 1,
+						"type": "integer"
+					},
+					"type": {
+						"description": "Check type. Only ping is supported in v1.",
+						"enum": ["ping"],
+						"examples": ["ping"],
+						"type": "string"
+					}
+				},
 				"type": "object"
 			},
 			"UpdateLabelInputBody": {
@@ -1402,6 +1697,474 @@
 				],
 				"summary": "Update project",
 				"tags": ["Projects"]
+			}
+		},
+		"/projects/{ref}/checks": {
+			"get": {
+				"operationId": "listProjectChecks",
+				"parameters": [
+					{
+						"description": "Project UUID or slug.",
+						"in": "path",
+						"name": "ref",
+						"required": true,
+						"schema": {
+							"description": "Project UUID or slug.",
+							"examples": ["engineering"],
+							"maxLength": 100,
+							"minLength": 1,
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ListChecksOutputBody"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"401": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Unauthorized"
+					},
+					"404": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"422": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Unprocessable Entity"
+					},
+					"500": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Internal Server Error"
+					}
+				},
+				"security": [
+					{
+						"bearerAuth": []
+					}
+				],
+				"summary": "List project checks",
+				"tags": ["Checks"]
+			},
+			"post": {
+				"operationId": "createProjectCheck",
+				"parameters": [
+					{
+						"description": "Project UUID or slug.",
+						"in": "path",
+						"name": "ref",
+						"required": true,
+						"schema": {
+							"description": "Project UUID or slug.",
+							"examples": ["engineering"],
+							"maxLength": 100,
+							"minLength": 1,
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/CreateCheckInputBody"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"201": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/CheckOutputBody"
+								}
+							}
+						},
+						"description": "Created"
+					},
+					"401": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Unauthorized"
+					},
+					"403": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Forbidden"
+					},
+					"404": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"422": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Unprocessable Entity"
+					},
+					"500": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Internal Server Error"
+					}
+				},
+				"security": [
+					{
+						"bearerAuth": []
+					}
+				],
+				"summary": "Create project check",
+				"tags": ["Checks"]
+			}
+		},
+		"/projects/{ref}/checks/{check_id}": {
+			"delete": {
+				"operationId": "deleteProjectCheck",
+				"parameters": [
+					{
+						"description": "Project UUID or slug.",
+						"in": "path",
+						"name": "ref",
+						"required": true,
+						"schema": {
+							"description": "Project UUID or slug.",
+							"examples": ["engineering"],
+							"maxLength": 100,
+							"minLength": 1,
+							"type": "string"
+						}
+					},
+					{
+						"description": "Check ID.",
+						"in": "path",
+						"name": "check_id",
+						"required": true,
+						"schema": {
+							"description": "Check ID.",
+							"examples": ["33333333-3333-3333-3333-333333333333"],
+							"format": "uuid",
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"204": {
+						"description": "No Content"
+					},
+					"401": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Unauthorized"
+					},
+					"403": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Forbidden"
+					},
+					"404": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"422": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Unprocessable Entity"
+					},
+					"500": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Internal Server Error"
+					}
+				},
+				"security": [
+					{
+						"bearerAuth": []
+					}
+				],
+				"summary": "Delete project check",
+				"tags": ["Checks"]
+			},
+			"get": {
+				"operationId": "getProjectCheck",
+				"parameters": [
+					{
+						"description": "Project UUID or slug.",
+						"in": "path",
+						"name": "ref",
+						"required": true,
+						"schema": {
+							"description": "Project UUID or slug.",
+							"examples": ["engineering"],
+							"maxLength": 100,
+							"minLength": 1,
+							"type": "string"
+						}
+					},
+					{
+						"description": "Check ID.",
+						"in": "path",
+						"name": "check_id",
+						"required": true,
+						"schema": {
+							"description": "Check ID.",
+							"examples": ["33333333-3333-3333-3333-333333333333"],
+							"format": "uuid",
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/CheckOutputBody"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"401": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Unauthorized"
+					},
+					"404": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"422": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Unprocessable Entity"
+					},
+					"500": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Internal Server Error"
+					}
+				},
+				"security": [
+					{
+						"bearerAuth": []
+					}
+				],
+				"summary": "Get project check",
+				"tags": ["Checks"]
+			},
+			"patch": {
+				"operationId": "updateProjectCheck",
+				"parameters": [
+					{
+						"description": "Project UUID or slug.",
+						"in": "path",
+						"name": "ref",
+						"required": true,
+						"schema": {
+							"description": "Project UUID or slug.",
+							"examples": ["engineering"],
+							"maxLength": 100,
+							"minLength": 1,
+							"type": "string"
+						}
+					},
+					{
+						"description": "Check ID.",
+						"in": "path",
+						"name": "check_id",
+						"required": true,
+						"schema": {
+							"description": "Check ID.",
+							"examples": ["33333333-3333-3333-3333-333333333333"],
+							"format": "uuid",
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/UpdateCheckInputBody"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/CheckOutputBody"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"401": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Unauthorized"
+					},
+					"403": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Forbidden"
+					},
+					"404": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"422": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Unprocessable Entity"
+					},
+					"500": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Internal Server Error"
+					}
+				},
+				"security": [
+					{
+						"bearerAuth": []
+					}
+				],
+				"summary": "Update project check",
+				"tags": ["Checks"]
 			}
 		},
 		"/projects/{ref}/labels": {
