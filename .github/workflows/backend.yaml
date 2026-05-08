@@ -1,0 +1,106 @@
+name: Backend CI
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/backend.yaml"
+      - "docs/public/openapi.json"
+      - "golangci.yaml"
+      - "server/**"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/backend.yaml"
+      - "docs/public/openapi.json"
+      - "golangci.yaml"
+      - "server/**"
+  workflow_dispatch:
+
+env:
+  GOLANGCI_LINT_VERSION: v2.11.4
+
+jobs:
+  Format:
+    name: Check formatting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: server/go.mod
+          cache-dependency-path: server/go.sum
+
+      - name: Install golangci-lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: ${{ env.GOLANGCI_LINT_VERSION }}
+          install-only: true
+          working-directory: server
+
+      - name: Run backend formatters
+        run: cd server && golangci-lint fmt --config ../golangci.yaml
+
+      - name: Check backend formatting diff
+        run: git diff --exit-code -- server
+
+  Test:
+    name: Run tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: server/go.mod
+          cache-dependency-path: server/go.sum
+
+      - name: Run backend tests
+        run: cd server && go test ./...
+
+  OpenAPI:
+    name: Check generated OpenAPI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24.15.0"
+          cache: "pnpm"
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: server/go.mod
+          cache-dependency-path: server/go.sum
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate OpenAPI from backend
+        run: |
+          openapi_check_dir="$(mktemp -d docs/public/openapi-check.XXXXXX)"
+          echo "OPENAPI_CHECK_FILE=$openapi_check_dir/openapi.json" >> "$GITHUB_ENV"
+          cd server
+          go run ./cmd/openapi -output "../$openapi_check_dir/openapi.json"
+
+      - name: Format generated OpenAPI
+        run: pnpm exec prettier --write "$OPENAPI_CHECK_FILE"
+
+      - name: Compare generated OpenAPI
+        run: |
+          diff -u docs/public/openapi.json "$OPENAPI_CHECK_FILE" || {
+            echo "Generated OpenAPI is out of date. Run 'pnpm generate:openapi' and commit docs/public/openapi.json."
+            exit 1
+          }
