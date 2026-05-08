@@ -164,14 +164,6 @@ linters:
           - noctx
           - contextcheck
 
-      # Common generated/mock folders.
-      - path: "(^|/)(mocks?|mock|testdata|fixtures)(/|$)"
-        linters:
-          - dupl
-          - gosec
-          - errcheck
-          - maintidx
-
       # Audit event recorders intentionally stay explicit per feature.
       - path: "internal/logger/(check|label)_events\\.go"
         linters:
