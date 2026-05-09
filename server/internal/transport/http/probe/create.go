@@ -35,14 +35,14 @@ func (h *Handler) createProbe(ctx context.Context, input *createProbeInput) (*cr
 }
 
 type createProbeInput struct {
-	Ref  string `path:"ref" minLength:"1" maxLength:"100" doc:"Project UUID or slug." example:"engineering"`
+	Ref  string `path:"ref" doc:"Project UUID or slug." example:"engineering"`
 	Body createProbeInputBody
 }
 
 type createProbeInputBody struct {
-	Name      string   `json:"name" minLength:"1" maxLength:"100" required:"true" doc:"Probe display name." example:"tokyo-vps-1"`
+	Name      string   `json:"name,omitempty" doc:"Probe display name." example:"tokyo-vps-1"`
 	Enabled   *bool    `json:"enabled,omitempty" doc:"Whether the probe is enabled. Defaults to true when omitted." example:"true"`
-	City      *string  `json:"city,omitempty" maxLength:"100" doc:"Location code stored in the city field." example:"JP-13"`
+	City      *string  `json:"city,omitempty" doc:"Location code stored in the city field." example:"JP-13"`
 	Latitude  *float64 `json:"latitude,omitempty" doc:"Probe latitude. Must be provided with longitude." example:"35.6762"`
 	Longitude *float64 `json:"longitude,omitempty" doc:"Probe longitude. Must be provided with latitude." example:"139.6503"`
 	LabelIDs  []string `json:"labelIds,omitempty" doc:"Existing project label IDs to attach to the probe."`

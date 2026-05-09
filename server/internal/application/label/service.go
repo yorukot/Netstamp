@@ -6,7 +6,6 @@ import (
 
 	domainlabel "github.com/yorukot/netstamp/internal/domain/label"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
-	"github.com/yorukot/netstamp/internal/normalize"
 )
 
 type Service struct {
@@ -26,9 +25,13 @@ func NewService(repo Repository, projectAccess ProjectAccess, events EventRecord
 func (s *Service) ListLabels(ctx context.Context, input ListLabelsInput) ([]domainlabel.Label, error) {
 	ctx, flow := s.startLabelFlow(ctx, "label.list", LabelActionList, input.CurrentUserID)
 	defer flow.end()
-	flow.setProjectRef(input.ProjectRef)
+	projectRef, err := normalizeLabelProjectRef(input.ProjectRef)
+	if err != nil {
+		return nil, flow.businessFailure(LabelEventListFailure, LabelReasonInvalidInput, err)
+	}
+	flow.setProjectRef(projectRef)
 
-	project, err := s.loadProject(ctx, flow, input.ProjectRef, input.CurrentUserID, LabelEventListFailure)
+	project, err := s.loadProject(ctx, flow, projectRef, input.CurrentUserID, LabelEventListFailure)
 	if err != nil {
 		return nil, err
 	}
@@ -44,9 +47,13 @@ func (s *Service) ListLabels(ctx context.Context, input ListLabelsInput) ([]doma
 func (s *Service) CreateLabel(ctx context.Context, input CreateLabelInput) (domainlabel.Label, error) {
 	ctx, flow := s.startLabelFlow(ctx, "label.create", LabelActionCreate, input.CurrentUserID)
 	defer flow.end()
-	flow.setProjectRef(input.ProjectRef)
+	normalized, err := normalizeCreateLabelInput(input)
+	if err != nil {
+		return domainlabel.Label{}, flow.businessFailure(LabelEventCreateFailure, LabelReasonInvalidInput, err)
+	}
+	flow.setProjectRef(normalized.projectRef)
 
-	project, err := s.loadProject(ctx, flow, input.ProjectRef, input.CurrentUserID, LabelEventCreateFailure)
+	project, err := s.loadProject(ctx, flow, normalized.projectRef, input.CurrentUserID, LabelEventCreateFailure)
 	if err != nil {
 		return domainlabel.Label{}, err
 	}
@@ -55,15 +62,10 @@ func (s *Service) CreateLabel(ctx context.Context, input CreateLabelInput) (doma
 		return domainlabel.Label{}, err
 	}
 
-	key, value, err := normalizeLabelKeyValue(input.Key, input.Value)
-	if err != nil {
-		return domainlabel.Label{}, flow.businessFailure(LabelEventCreateFailure, LabelReasonInvalidInput, err)
-	}
-
 	label, err := s.repo.CreateLabel(ctx, domainlabel.CreateLabelStorageInput{
 		ProjectID: project.ID,
-		Key:       key,
-		Value:     value,
+		Key:       normalized.key,
+		Value:     normalized.value,
 	})
 	if err != nil {
 		return domainlabel.Label{}, flow.writeFailure(LabelEventCreateFailure, LabelReasonLabelCreateFailed, err)
@@ -77,10 +79,16 @@ func (s *Service) CreateLabel(ctx context.Context, input CreateLabelInput) (doma
 func (s *Service) UpdateLabel(ctx context.Context, input UpdateLabelInput) (domainlabel.Label, error) {
 	ctx, flow := s.startLabelFlow(ctx, "label.update", LabelActionUpdate, input.CurrentUserID)
 	defer flow.end()
-	flow.setProjectRef(input.ProjectRef)
-	flow.setLabelID(input.LabelID)
+	normalized, err := normalizeUpdateLabelInput(input)
+	if err != nil {
+		flow.setProjectRef(input.ProjectRef)
+		flow.setLabelID(input.LabelID)
+		return domainlabel.Label{}, flow.businessFailure(LabelEventUpdateFailure, LabelReasonInvalidInput, err)
+	}
+	flow.setProjectRef(normalized.projectRef)
+	flow.setLabelID(normalized.labelID)
 
-	project, err := s.loadProject(ctx, flow, input.ProjectRef, input.CurrentUserID, LabelEventUpdateFailure)
+	project, err := s.loadProject(ctx, flow, normalized.projectRef, input.CurrentUserID, LabelEventUpdateFailure)
 	if err != nil {
 		return domainlabel.Label{}, err
 	}
@@ -88,33 +96,30 @@ func (s *Service) UpdateLabel(ctx context.Context, input UpdateLabelInput) (doma
 	if err != nil {
 		return domainlabel.Label{}, err
 	}
-	if input.Key == nil && input.Value == nil {
-		return domainlabel.Label{}, flow.businessFailure(LabelEventUpdateFailure, LabelReasonInvalidInput, ErrInvalidInput)
+	if normalized.key == nil && normalized.value == nil {
+		return domainlabel.Label{}, flow.businessFailure(
+			LabelEventUpdateFailure,
+			LabelReasonInvalidInput,
+			invalidLabelField("", "at least one field must be provided", nil),
+		)
 	}
-
-	current, err := s.repo.GetLabel(ctx, project.ID, input.LabelID)
+	current, err := s.repo.GetLabel(ctx, project.ID, normalized.labelID)
 	if err != nil {
 		return domainlabel.Label{}, flow.lookupFailure(LabelEventUpdateFailure, err)
 	}
 
 	key := current.Key
-	if input.Key != nil {
-		key, err = normalize.RequiredString(*input.Key, ErrInvalidInput)
-		if err != nil {
-			return domainlabel.Label{}, flow.businessFailure(LabelEventUpdateFailure, LabelReasonInvalidInput, err)
-		}
+	if normalized.key != nil {
+		key = *normalized.key
 	}
 	value := current.Value
-	if input.Value != nil {
-		value, err = normalize.RequiredString(*input.Value, ErrInvalidInput)
-		if err != nil {
-			return domainlabel.Label{}, flow.businessFailure(LabelEventUpdateFailure, LabelReasonInvalidInput, err)
-		}
+	if normalized.value != nil {
+		value = *normalized.value
 	}
 
 	label, err := s.repo.UpdateLabel(ctx, domainlabel.UpdateLabelStorageInput{
 		ProjectID: project.ID,
-		LabelID:   input.LabelID,
+		LabelID:   normalized.labelID,
 		Key:       key,
 		Value:     value,
 	})
@@ -130,10 +135,18 @@ func (s *Service) UpdateLabel(ctx context.Context, input UpdateLabelInput) (doma
 func (s *Service) DeleteLabel(ctx context.Context, input DeleteLabelInput) error {
 	ctx, flow := s.startLabelFlow(ctx, "label.delete", LabelActionDelete, input.CurrentUserID)
 	defer flow.end()
-	flow.setProjectRef(input.ProjectRef)
-	flow.setLabelID(input.LabelID)
+	projectRef, err := normalizeLabelProjectRef(input.ProjectRef)
+	if err != nil {
+		return flow.businessFailure(LabelEventDeleteFailure, LabelReasonInvalidInput, err)
+	}
+	labelID, err := normalizeLabelID(input.LabelID)
+	if err != nil {
+		return flow.businessFailure(LabelEventDeleteFailure, LabelReasonInvalidInput, err)
+	}
+	flow.setProjectRef(projectRef)
+	flow.setLabelID(labelID)
 
-	project, err := s.loadProject(ctx, flow, input.ProjectRef, input.CurrentUserID, LabelEventDeleteFailure)
+	project, err := s.loadProject(ctx, flow, projectRef, input.CurrentUserID, LabelEventDeleteFailure)
 	if err != nil {
 		return err
 	}
@@ -141,7 +154,7 @@ func (s *Service) DeleteLabel(ctx context.Context, input DeleteLabelInput) error
 		return err
 	}
 
-	if err := s.repo.SoftDeleteLabel(ctx, project.ID, input.LabelID); err != nil {
+	if err := s.repo.SoftDeleteLabel(ctx, project.ID, labelID); err != nil {
 		return flow.writeFailure(LabelEventDeleteFailure, LabelReasonLabelDeleteFailed, err)
 	}
 	flow.success(LabelEventDeleteSuccess)
@@ -154,7 +167,12 @@ func (s *Service) GetActiveLabelsByIDsForProject(ctx context.Context, projectID 
 	defer flow.end()
 	flow.setProjectID(projectID)
 
-	labels, err := s.repo.GetActiveLabelsByIDsForProject(ctx, projectID, labelIDs)
+	normalizedLabelIDs, err := normalizeResolveLabelIDs(labelIDs)
+	if err != nil {
+		return nil, flow.resolveFailure(err)
+	}
+
+	labels, err := s.repo.GetActiveLabelsByIDsForProject(ctx, projectID, normalizedLabelIDs)
 	if err != nil {
 		return nil, flow.resolveFailure(err)
 	}
@@ -194,17 +212,4 @@ func (s *Service) requireAction(ctx context.Context, flow *labelFlow, projectID,
 	}
 
 	return nil
-}
-
-func normalizeLabelKeyValue(keyValue, labelValue string) (string, string, error) {
-	key, err := normalize.RequiredString(keyValue, ErrInvalidInput)
-	if err != nil {
-		return "", "", err
-	}
-	value, err := normalize.RequiredString(labelValue, ErrInvalidInput)
-	if err != nil {
-		return "", "", err
-	}
-
-	return key, value, nil
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 
 	applabel "github.com/yorukot/netstamp/internal/application/label"
+	appvalidation "github.com/yorukot/netstamp/internal/application/validation"
 	httpmiddleware "github.com/yorukot/netstamp/internal/transport/http/middleware"
 )
 
@@ -28,8 +29,39 @@ func mapLabelError(err error, fallback string) error {
 	case errors.Is(err, applabel.ErrLabelAlreadyExists):
 		return huma.Error409Conflict("label already exists")
 	case errors.Is(err, applabel.ErrInvalidInput):
-		return huma.Error422UnprocessableEntity("invalid label input")
+		return invalidLabelInputError(err)
 	default:
 		return huma.Error500InternalServerError(fallback)
+	}
+}
+
+func invalidLabelInputError(err error) error {
+	fieldErrors, ok := appvalidation.FieldErrors(err)
+	if !ok {
+		return huma.Error422UnprocessableEntity("invalid label input")
+	}
+
+	details := make([]error, 0, len(fieldErrors))
+	for _, fieldErr := range fieldErrors {
+		details = append(details, &huma.ErrorDetail{
+			Message:  fieldErr.Message,
+			Location: labelErrorLocation(fieldErr.Field),
+			Value:    fieldErr.Value,
+		})
+	}
+
+	return huma.Error422UnprocessableEntity("invalid label input", details...)
+}
+
+func labelErrorLocation(field string) string {
+	switch field {
+	case "":
+		return "body"
+	case "projectRef":
+		return "path.ref"
+	case "labelId":
+		return "path.label_id"
+	default:
+		return "body." + field
 	}
 }

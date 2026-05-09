@@ -5,6 +5,8 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/google/uuid"
+
 	"github.com/yorukot/netstamp/internal/normalize"
 )
 
@@ -80,6 +82,15 @@ func CanonicalUUIDSet(base error, field string, values []string) ([]string, erro
 	}
 
 	return normalized, nil
+}
+
+func CanonicalUUID(base error, field, value string) (string, error) {
+	parsed, err := uuid.Parse(strings.TrimSpace(value))
+	if err != nil {
+		return "", New(base, field, "must be a valid UUID", value)
+	}
+
+	return parsed.String(), nil
 }
 
 func maxRunesMessage(maxRunes int) string {

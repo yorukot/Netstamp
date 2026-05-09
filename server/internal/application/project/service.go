@@ -2,9 +2,9 @@ package project
 
 import (
 	"context"
+	"errors"
 
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
-	"github.com/yorukot/netstamp/internal/normalize"
 )
 
 type Service struct {
@@ -23,19 +23,15 @@ func (s *Service) CreateProject(ctx context.Context, input CreateProjectInput) (
 	ctx, flow := s.startProjectFlow(ctx, "project.create", ProjectActionCreate, input.CurrentUserID)
 	defer flow.end()
 
-	name, err := normalize.RequiredString(input.Name, ErrInvalidInput)
+	normalized, err := normalizeCreateProjectInput(input)
 	if err != nil {
 		return domainproject.Project{}, flow.businessFailure(ProjectEventCreateFailure, ProjectReasonInvalidInput, err)
 	}
-	slug, err := normalize.ProjectSlug(input.Slug, ErrInvalidInput)
-	if err != nil {
-		return domainproject.Project{}, flow.businessFailure(ProjectEventCreateFailure, ProjectReasonInvalidInput, err)
-	}
-	flow.setProjectSlug(slug)
+	flow.setProjectSlug(normalized.slug)
 
 	project, err := s.repo.CreateProjectWithOwner(ctx, domainproject.CreateProjectStorageInput{
-		Name:            name,
-		Slug:            slug,
+		Name:            normalized.name,
+		Slug:            normalized.slug,
 		CreatedByUserID: input.CurrentUserID,
 	})
 	if err != nil {
@@ -63,14 +59,28 @@ func (s *Service) GetProject(ctx context.Context, input GetProjectInput) (domain
 	ctx, flow := s.startProjectFlow(ctx, "project.get", ProjectActionGet, input.CurrentUserID)
 	defer flow.end()
 
-	return s.loadProjectForRead(ctx, flow, input.ProjectRef, input.CurrentUserID, ProjectEventGetFailure)
+	projectRef, err := normalizeProjectRef(input.ProjectRef)
+	if err != nil {
+		return domainproject.Project{}, flow.businessFailure(ProjectEventGetFailure, ProjectReasonInvalidInput, err)
+	}
+
+	return s.loadProjectForRead(ctx, flow, projectRef, input.CurrentUserID, ProjectEventGetFailure)
 }
 
 func (s *Service) UpdateProject(ctx context.Context, input UpdateProjectInput) (domainproject.Project, error) {
 	ctx, flow := s.startProjectFlow(ctx, "project.update", ProjectActionUpdate, input.CurrentUserID)
 	defer flow.end()
 
-	project, err := s.loadProjectForUser(ctx, flow, input.ProjectRef, input.CurrentUserID, ProjectEventUpdateFailure)
+	projectRef, err := normalizeProjectRef(input.ProjectRef)
+	if err != nil {
+		return domainproject.Project{}, flow.businessFailure(ProjectEventUpdateFailure, ProjectReasonInvalidInput, err)
+	}
+	normalized, err := normalizeUpdateProjectInput(input)
+	if err != nil {
+		return domainproject.Project{}, flow.businessFailure(ProjectEventUpdateFailure, ProjectReasonInvalidInput, err)
+	}
+
+	project, err := s.loadProjectForUser(ctx, flow, projectRef, input.CurrentUserID, ProjectEventUpdateFailure)
 	if err != nil {
 		return domainproject.Project{}, err
 	}
@@ -81,21 +91,12 @@ func (s *Service) UpdateProject(ctx context.Context, input UpdateProjectInput) (
 
 	name := project.Name
 	slug := project.Slug
-	if input.Name != nil {
-		name, err = normalize.RequiredString(*input.Name, ErrInvalidInput)
-		if err != nil {
-			return domainproject.Project{}, flow.businessFailure(ProjectEventUpdateFailure, ProjectReasonInvalidInput, err)
-		}
+	if normalized.name != nil {
+		name = *normalized.name
 	}
-	if input.Slug != nil {
-		slug, err = normalize.ProjectSlug(*input.Slug, ErrInvalidInput)
-		if err != nil {
-			return domainproject.Project{}, flow.businessFailure(ProjectEventUpdateFailure, ProjectReasonInvalidInput, err)
-		}
+	if normalized.slug != nil {
+		slug = *normalized.slug
 		flow.setProjectSlug(slug)
-	}
-	if input.Name == nil && input.Slug == nil {
-		return domainproject.Project{}, flow.businessFailure(ProjectEventUpdateFailure, ProjectReasonInvalidInput, ErrInvalidInput)
 	}
 
 	project, err = s.repo.UpdateProject(ctx, domainproject.UpdateProjectStorageInput{
@@ -114,7 +115,12 @@ func (s *Service) DeleteProject(ctx context.Context, input DeleteProjectInput) e
 	ctx, flow := s.startProjectFlow(ctx, "project.delete", ProjectActionDelete, input.CurrentUserID)
 	defer flow.end()
 
-	project, err := s.loadProjectForUser(ctx, flow, input.ProjectRef, input.CurrentUserID, ProjectEventDeleteFailure)
+	projectRef, err := normalizeProjectRef(input.ProjectRef)
+	if err != nil {
+		return flow.businessFailure(ProjectEventDeleteFailure, ProjectReasonInvalidInput, err)
+	}
+
+	project, err := s.loadProjectForUser(ctx, flow, projectRef, input.CurrentUserID, ProjectEventDeleteFailure)
 	if err != nil {
 		return err
 	}
@@ -135,7 +141,12 @@ func (s *Service) ListMembers(ctx context.Context, input ListMembersInput) ([]do
 	ctx, flow := s.startProjectFlow(ctx, "project.members.list", ProjectActionListMembers, input.CurrentUserID)
 	defer flow.end()
 
-	project, err := s.loadProjectForRead(ctx, flow, input.ProjectRef, input.CurrentUserID, ProjectEventListMembersFailure)
+	projectRef, err := normalizeProjectRef(input.ProjectRef)
+	if err != nil {
+		return nil, flow.businessFailure(ProjectEventListMembersFailure, ProjectReasonInvalidInput, err)
+	}
+
+	project, err := s.loadProjectForRead(ctx, flow, projectRef, input.CurrentUserID, ProjectEventListMembersFailure)
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +169,17 @@ func (s *Service) AddMember(ctx context.Context, input AddMemberInput) (domainpr
 	flow.setTargetUser(input.UserID)
 	flow.setRole(input.Role)
 
-	project, err := s.loadProjectForUser(ctx, flow, input.ProjectRef, input.CurrentUserID, ProjectEventAddMemberFailure)
+	normalized, err := normalizeAddMemberInput(input)
+	if err != nil {
+		if errors.Is(err, ErrInvalidRole) {
+			return domainproject.Member{}, flow.assignableRoleFailure(ProjectEventAddMemberFailure, err)
+		}
+		return domainproject.Member{}, flow.businessFailure(ProjectEventAddMemberFailure, ProjectReasonInvalidInput, err)
+	}
+	flow.setTargetUser(normalized.userID)
+	flow.setRole(normalized.role)
+
+	project, err := s.loadProjectForUser(ctx, flow, normalized.projectRef, input.CurrentUserID, ProjectEventAddMemberFailure)
 	if err != nil {
 		return domainproject.Member{}, err
 	}
@@ -166,15 +187,15 @@ func (s *Service) AddMember(ctx context.Context, input AddMemberInput) (domainpr
 	if err != nil {
 		return domainproject.Member{}, err
 	}
-	err = validateAssignableRole(actorRole, input.Role)
+	err = validateAssignableRole(actorRole, normalized.role)
 	if err != nil {
 		return domainproject.Member{}, flow.assignableRoleFailure(ProjectEventAddMemberFailure, err)
 	}
 
 	member, err := s.repo.AddMember(ctx, domainproject.AddMemberStorageInput{
 		ProjectID: project.ID,
-		UserID:    input.UserID,
-		Role:      input.Role,
+		UserID:    normalized.userID,
+		Role:      normalized.role,
 	})
 	if err != nil {
 		return domainproject.Member{}, flow.memberAddFailure(err)
@@ -190,7 +211,17 @@ func (s *Service) UpdateMemberRole(ctx context.Context, input UpdateMemberRoleIn
 	flow.setTargetUser(input.UserID)
 	flow.setRole(input.Role)
 
-	project, err := s.loadProjectForUser(ctx, flow, input.ProjectRef, input.CurrentUserID, ProjectEventUpdateMemberRoleFailure)
+	normalized, err := normalizeUpdateMemberRoleInput(input)
+	if err != nil {
+		if errors.Is(err, ErrInvalidRole) {
+			return domainproject.Member{}, flow.assignableRoleFailure(ProjectEventUpdateMemberRoleFailure, err)
+		}
+		return domainproject.Member{}, flow.businessFailure(ProjectEventUpdateMemberRoleFailure, ProjectReasonInvalidInput, err)
+	}
+	flow.setTargetUser(normalized.userID)
+	flow.setRole(normalized.role)
+
+	project, err := s.loadProjectForUser(ctx, flow, normalized.projectRef, input.CurrentUserID, ProjectEventUpdateMemberRoleFailure)
 	if err != nil {
 		return domainproject.Member{}, err
 	}
@@ -198,19 +229,19 @@ func (s *Service) UpdateMemberRole(ctx context.Context, input UpdateMemberRoleIn
 	if err != nil {
 		return domainproject.Member{}, err
 	}
-	err = validateAssignableRole(actorRole, input.Role)
+	err = validateAssignableRole(actorRole, normalized.role)
 	if err != nil {
 		return domainproject.Member{}, flow.assignableRoleFailure(ProjectEventUpdateMemberRoleFailure, err)
 	}
 
-	member, err := s.repo.GetMember(ctx, project.ID, input.UserID)
+	member, err := s.repo.GetMember(ctx, project.ID, normalized.userID)
 	if err != nil {
 		return domainproject.Member{}, flow.memberLookupFailure(ProjectEventUpdateMemberRoleFailure, err)
 	}
 	if actorRole == domainproject.RoleAdmin && member.Role == domainproject.RoleOwner {
 		return domainproject.Member{}, flow.businessFailure(ProjectEventUpdateMemberRoleFailure, ProjectReasonForbidden, ErrForbidden)
 	}
-	if member.Role == domainproject.RoleOwner && input.Role != domainproject.RoleOwner {
+	if member.Role == domainproject.RoleOwner && normalized.role != domainproject.RoleOwner {
 		var owners int
 		owners, err = s.repo.CountOwners(ctx, project.ID)
 		if err != nil {
@@ -223,8 +254,8 @@ func (s *Service) UpdateMemberRole(ctx context.Context, input UpdateMemberRoleIn
 
 	member, err = s.repo.UpdateMemberRole(ctx, domainproject.UpdateMemberRoleStorageInput{
 		ProjectID: project.ID,
-		UserID:    input.UserID,
-		Role:      input.Role,
+		UserID:    normalized.userID,
+		Role:      normalized.role,
 	})
 	if err != nil {
 		return domainproject.Member{}, flow.memberRoleUpdateFailure(err)

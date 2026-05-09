@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
+	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/humatest"
 
 	appproject "github.com/yorukot/netstamp/internal/application/project"
@@ -65,6 +67,7 @@ func TestCreateProjectRejectsInvalidSlugPattern(t *testing.T) {
 	if res.Code != http.StatusUnprocessableEntity {
 		t.Fatalf("expected status 422, got %d", res.Code)
 	}
+	assertProjectHumaErrorDetail(t, res, "body.slug", "must contain only lowercase letters, numbers, and dashes")
 }
 
 func TestCreateProjectRequiresBearerToken(t *testing.T) {
@@ -129,6 +132,39 @@ func TestAddMemberRejectsOwnerRoleAsForbidden(t *testing.T) {
 	if res.Code != http.StatusForbidden {
 		t.Fatalf("expected status 403, got %d", res.Code)
 	}
+}
+
+func TestAddMemberReturnsFieldErrorForInvalidUserID(t *testing.T) {
+	_, api := humatest.New(t)
+	NewHandler(appproject.NewService(&handlerProjectRepository{}, handlerProjectEventRecorder{}), &handlerTokenVerifier{
+		claims: identity.AccessTokenClaims{Subject: testUserID, Email: "user@example.com"},
+	}).RegisterRoutes(api)
+
+	res := api.Post("/projects/engineering/members", map[string]any{
+		"userId": "not-a-uuid",
+		"role":   "viewer",
+	}, "Authorization: Bearer valid-token")
+
+	if res.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("expected status 422, got %d", res.Code)
+	}
+	assertProjectHumaErrorDetail(t, res, "body.userId", "must be a valid UUID")
+}
+
+func assertProjectHumaErrorDetail(t *testing.T, res *httptest.ResponseRecorder, wantLocation, wantMessage string) {
+	t.Helper()
+
+	var body huma.ErrorModel
+	if err := json.NewDecoder(res.Body).Decode(&body); err != nil {
+		t.Fatalf("decode error response: %v", err)
+	}
+	for _, detail := range body.Errors {
+		if detail.Location == wantLocation && detail.Message == wantMessage {
+			return
+		}
+	}
+
+	t.Fatalf("expected error detail %q/%q, got %#v", wantLocation, wantMessage, body.Errors)
 }
 
 type handlerTokenVerifier struct {

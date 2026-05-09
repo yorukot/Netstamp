@@ -27,11 +27,11 @@ func (h *Handler) updateMemberRole(ctx context.Context, input *updateMemberRoleI
 }
 
 type updateMemberRoleInput struct {
-	Ref    string `path:"ref" minLength:"1" maxLength:"100" doc:"Project UUID or slug." example:"engineering"`
-	UserID string `path:"user_id" format:"uuid"`
+	Ref    string `path:"ref" doc:"Project UUID or slug." example:"engineering"`
+	UserID string `path:"user_id"`
 	Body   updateMemberRoleInputBody
 }
 
 type updateMemberRoleInputBody struct {
-	Role string `json:"role" enum:"owner,admin,editor,viewer" required:"true" doc:"Project member role." example:"viewer"`
+	Role string `json:"role,omitempty" doc:"Project member role." example:"viewer"`
 }

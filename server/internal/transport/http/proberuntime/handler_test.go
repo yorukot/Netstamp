@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
+	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/humatest"
 
 	appproberuntime "github.com/yorukot/netstamp/internal/application/proberuntime"
@@ -184,6 +186,31 @@ func TestSubmitResultsRejectsUnsupportedDNSBucket(t *testing.T) {
 	if res.Code != http.StatusUnprocessableEntity {
 		t.Fatalf("expected status 422, got %d", res.Code)
 	}
+	assertRuntimeHumaErrorDetail(t, res, "body.dns", "unsupported result type")
+}
+
+func TestSubmitResultsRejectsInvalidCheckIDWithFieldError(t *testing.T) {
+	_, api := humatest.New(t)
+	NewHandler(newRuntimeService(&handlerProbeRepository{}, &handlerPingResultRepository{}, true)).RegisterRoutes(api)
+	now := time.Date(2026, 5, 9, 10, 0, 0, 0, time.UTC)
+
+	res := api.Post("/probes/"+handlerProbeID+"/runtime/results", map[string]any{
+		"ping": []map[string]any{{
+			"checkId":       "not-a-uuid",
+			"startedAt":     now.Format(time.RFC3339Nano),
+			"finishedAt":    now.Add(time.Second).Format(time.RFC3339Nano),
+			"durationMs":    1000,
+			"status":        "successful",
+			"sentCount":     4,
+			"receivedCount": 4,
+			"lossPercent":   0,
+		}},
+	}, "Authorization: Probe plain-secret")
+
+	if res.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("expected status 422, got %d", res.Code)
+	}
+	assertRuntimeHumaErrorDetail(t, res, "body.ping.checkId", "must be a valid UUID")
 }
 
 func TestOldPingResultEndpointIsNotRegistered(t *testing.T) {
@@ -195,6 +222,22 @@ func TestOldPingResultEndpointIsNotRegistered(t *testing.T) {
 	if res.Code != http.StatusNotFound {
 		t.Fatalf("expected status 404, got %d", res.Code)
 	}
+}
+
+func assertRuntimeHumaErrorDetail(t *testing.T, res *httptest.ResponseRecorder, wantLocation, wantMessage string) {
+	t.Helper()
+
+	var body huma.ErrorModel
+	if err := json.NewDecoder(res.Body).Decode(&body); err != nil {
+		t.Fatalf("decode error response: %v", err)
+	}
+	for _, detail := range body.Errors {
+		if detail.Location == wantLocation && detail.Message == wantMessage {
+			return
+		}
+	}
+
+	t.Fatalf("expected error detail %q/%q, got %#v", wantLocation, wantMessage, body.Errors)
 }
 
 func newRuntimeService(probes *handlerProbeRepository, results *handlerPingResultRepository, validSecret bool) *appproberuntime.Service {

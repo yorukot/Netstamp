@@ -128,6 +128,22 @@ func TestCanonicalUUIDSet(t *testing.T) {
 	assertFieldError(t, err, "labelIds", "must contain valid UUIDs")
 }
 
+func TestCanonicalUUID(t *testing.T) {
+	got, err := CanonicalUUID(errInvalid, "userId", " 33333333-3333-3333-3333-333333333333 ")
+	if err != nil {
+		t.Fatalf("canonical uuid: %v", err)
+	}
+	if got != "33333333-3333-3333-3333-333333333333" {
+		t.Fatalf("expected canonical uuid, got %q", got)
+	}
+
+	_, err = CanonicalUUID(errInvalid, "userId", "not-a-uuid")
+	if !errors.Is(err, errInvalid) {
+		t.Fatalf("expected sentinel error, got %v", err)
+	}
+	assertFieldError(t, err, "userId", "must be a valid UUID")
+}
+
 func assertFieldError(t *testing.T, err error, wantField, wantMessage string) {
 	t.Helper()
 

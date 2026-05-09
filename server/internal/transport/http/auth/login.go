@@ -16,7 +16,7 @@ func (h *Handler) login(ctx context.Context, input *loginInput) (*loginOutput, e
 	})
 	if err != nil {
 		switch {
-		case errors.Is(err, appauth.ErrCredentialsInvalid):
+		case errors.Is(err, appauth.ErrCredentialsInvalid), errors.Is(err, appauth.ErrInvalidInput):
 			return nil, huma.Error401Unauthorized("invalid email or password")
 		default:
 			return nil, huma.Error500InternalServerError("login failed")
@@ -46,8 +46,8 @@ type loginOutput struct {
 }
 
 type loginInputBody struct {
-	Email    string `json:"email" format:"email" maxLength:"254" required:"true" doc:"Email address used to sign in. It is normalized before lookup." example:"user@example.com"`
-	Password string `json:"password" minLength:"1" maxLength:"128" required:"true" writeOnly:"true" doc:"Plain-text password to verify. It is never returned by the API." example:"correct-horse-battery-staple"` //nolint:gosec // Login requests intentionally accept plaintext passwords over TLS.
+	Email    string `json:"email,omitempty" doc:"Email address used to sign in. It is normalized before lookup." example:"user@example.com"`
+	Password string `json:"password,omitempty" writeOnly:"true" doc:"Plain-text password to verify. It is never returned by the API." example:"correct-horse-battery-staple"` //nolint:gosec // Login requests intentionally accept plaintext passwords over TLS.
 }
 
 type loginOutputBody struct {

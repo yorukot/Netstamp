@@ -7,6 +7,7 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 
 	appproberuntime "github.com/yorukot/netstamp/internal/application/proberuntime"
+	appvalidation "github.com/yorukot/netstamp/internal/application/validation"
 )
 
 func runtimeAuthInput(probeID, header string) (appproberuntime.RuntimeAuthInput, error) {
@@ -41,10 +42,45 @@ func mapRuntimeError(err error, fallback string) error {
 	case errors.Is(err, appproberuntime.ErrResultConflict):
 		return huma.Error409Conflict("probe result conflicts with assignment")
 	case errors.Is(err, appproberuntime.ErrUnsupportedResult):
-		return huma.Error422UnprocessableEntity("unsupported result type")
+		return invalidRuntimeInputError(err)
 	case errors.Is(err, appproberuntime.ErrInvalidInput), errors.Is(err, appproberuntime.ErrInvalidResult):
-		return huma.Error422UnprocessableEntity("invalid probe runtime input")
+		return invalidRuntimeInputError(err)
 	default:
 		return huma.Error500InternalServerError(fallback)
+	}
+}
+
+func invalidRuntimeInputError(err error) error {
+	fieldErrors, ok := appvalidation.FieldErrors(err)
+	if !ok {
+		if errors.Is(err, appproberuntime.ErrUnsupportedResult) {
+			return huma.Error422UnprocessableEntity("unsupported result type")
+		}
+		return huma.Error422UnprocessableEntity("invalid probe runtime input")
+	}
+
+	details := make([]error, 0, len(fieldErrors))
+	for _, fieldErr := range fieldErrors {
+		details = append(details, &huma.ErrorDetail{
+			Message:  fieldErr.Message,
+			Location: runtimeErrorLocation(fieldErr.Field),
+			Value:    fieldErr.Value,
+		})
+	}
+
+	if errors.Is(err, appproberuntime.ErrUnsupportedResult) {
+		return huma.Error422UnprocessableEntity("unsupported result type", details...)
+	}
+	return huma.Error422UnprocessableEntity("invalid probe runtime input", details...)
+}
+
+func runtimeErrorLocation(field string) string {
+	switch field {
+	case "":
+		return "body"
+	case "probeId":
+		return "path.probe_id"
+	default:
+		return "body." + field
 	}
 }

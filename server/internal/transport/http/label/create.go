@@ -26,11 +26,11 @@ func (h *Handler) createLabel(ctx context.Context, input *createLabelInput) (*la
 }
 
 type createLabelInput struct {
-	Ref  string `path:"ref" minLength:"1" maxLength:"100" doc:"Project UUID or slug." example:"engineering"`
+	Ref  string `path:"ref" doc:"Project UUID or slug." example:"engineering"`
 	Body createLabelInputBody
 }
 
 type createLabelInputBody struct {
-	Key   string `json:"key" minLength:"1" maxLength:"100" required:"true" doc:"Label key." example:"region"`
-	Value string `json:"value" minLength:"1" maxLength:"100" required:"true" doc:"Label value." example:"tokyo"`
+	Key   string `json:"key,omitempty" doc:"Label key." example:"region"`
+	Value string `json:"value,omitempty" doc:"Label value." example:"tokyo"`
 }

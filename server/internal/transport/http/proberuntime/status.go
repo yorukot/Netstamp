@@ -42,13 +42,13 @@ func (h *Handler) heartbeat(ctx context.Context, input *runtimeStatusInput) (*he
 }
 
 type runtimeStatusInput struct {
-	ProbeID       string `path:"probe_id" format:"uuid" doc:"Probe ID."`
+	ProbeID       string `path:"probe_id" doc:"Probe ID."`
 	Authorization string `header:"Authorization" doc:"Probe authorization header. Use 'Probe <secret>'."`
 	Body          runtimeStatusInputBody
 }
 
 type runtimeStatusInputBody struct {
-	AgentVersion *string  `json:"agentVersion,omitempty" maxLength:"100" doc:"Probe agent version." example:"netstamp-probe/0.1.0"`
+	AgentVersion *string  `json:"agentVersion,omitempty" doc:"Probe agent version." example:"netstamp-probe/0.1.0"`
 	PublicV4     *string  `json:"publicV4,omitempty" doc:"Observed public IPv4 address." example:"203.0.113.10"`
 	PublicV6     *string  `json:"publicV6,omitempty" doc:"Observed public IPv6 address." example:"2001:db8::10"`
 	Addrs        []string `json:"addrs,omitempty" doc:"Probe local or observed interface addresses."`

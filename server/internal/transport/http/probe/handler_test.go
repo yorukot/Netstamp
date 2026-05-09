@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
+	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/humatest"
 
 	appprobe "github.com/yorukot/netstamp/internal/application/probe"
@@ -100,6 +102,7 @@ func TestCreateProbeMapsInvalidInputToUnprocessableEntity(t *testing.T) {
 	if res.Code != http.StatusUnprocessableEntity {
 		t.Fatalf("expected status 422, got %d", res.Code)
 	}
+	assertProbeHumaErrorDetail(t, res, "body.name", "must not be blank")
 }
 
 func TestCreateProbeMapsInaccessibleProjectToNotFound(t *testing.T) {
@@ -161,6 +164,42 @@ func TestCreateProbeMapsMissingLabelToNotFound(t *testing.T) {
 	if res.Code != http.StatusNotFound {
 		t.Fatalf("expected status 404, got %d", res.Code)
 	}
+}
+
+func TestCreateProbeReturnsFieldErrorForMissingCoordinatePair(t *testing.T) {
+	_, api := humatest.New(t)
+	NewHandler(appprobe.NewService(&handlerProbeRepository{}, &handlerProjectAccess{}, &handlerLabelAccess{}, handlerSecretGenerator{
+		plaintext: "plain-secret",
+		hash:      "secret-hash",
+	}, handlerProbeEventRecorder{}), &handlerTokenVerifier{
+		claims: identity.AccessTokenClaims{Subject: testUserID, Email: "user@example.com"},
+	}).RegisterRoutes(api)
+
+	res := api.Post("/projects/engineering/probes", map[string]any{
+		"name":     "tokyo-vps-1",
+		"latitude": 35.6762,
+	}, "Authorization: Bearer valid-token")
+
+	if res.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("expected status 422, got %d", res.Code)
+	}
+	assertProbeHumaErrorDetail(t, res, "body.longitude", "must be provided with latitude")
+}
+
+func assertProbeHumaErrorDetail(t *testing.T, res *httptest.ResponseRecorder, wantLocation, wantMessage string) {
+	t.Helper()
+
+	var body huma.ErrorModel
+	if err := json.NewDecoder(res.Body).Decode(&body); err != nil {
+		t.Fatalf("decode error response: %v", err)
+	}
+	for _, detail := range body.Errors {
+		if detail.Location == wantLocation && detail.Message == wantMessage {
+			return
+		}
+	}
+
+	t.Fatalf("expected error detail %q/%q, got %#v", wantLocation, wantMessage, body.Errors)
 }
 
 type handlerTokenVerifier struct {

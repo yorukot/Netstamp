@@ -27,12 +27,12 @@ func (h *Handler) updateLabel(ctx context.Context, input *updateLabelInput) (*la
 }
 
 type updateLabelInput struct {
-	Ref     string `path:"ref" minLength:"1" maxLength:"100" doc:"Project UUID or slug." example:"engineering"`
-	LabelID string `path:"label_id" format:"uuid" doc:"Label ID."`
+	Ref     string `path:"ref" doc:"Project UUID or slug." example:"engineering"`
+	LabelID string `path:"label_id" doc:"Label ID."`
 	Body    updateLabelInputBody
 }
 
 type updateLabelInputBody struct {
-	Key   *string `json:"key,omitempty" minLength:"1" maxLength:"100" doc:"Label key." example:"region"`
-	Value *string `json:"value,omitempty" minLength:"1" maxLength:"100" doc:"Label value." example:"tokyo"`
+	Key   *string `json:"key,omitempty" doc:"Label key." example:"region"`
+	Value *string `json:"value,omitempty" doc:"Label value." example:"tokyo"`
 }

@@ -24,5 +24,5 @@ func (h *Handler) getProject(ctx context.Context, input *projectRefInput) (*proj
 }
 
 type projectRefInput struct {
-	Ref string `path:"ref" minLength:"1" maxLength:"100" doc:"Project UUID or slug." example:"engineering"`
+	Ref string `path:"ref" doc:"Project UUID or slug." example:"engineering"`
 }

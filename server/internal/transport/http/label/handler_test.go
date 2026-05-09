@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
+	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/humatest"
 
 	applabel "github.com/yorukot/netstamp/internal/application/label"
@@ -93,6 +95,22 @@ func TestCreateLabelMapsForbiddenToForbidden(t *testing.T) {
 	}
 }
 
+func TestCreateLabelReturnsFieldErrorForBlankKey(t *testing.T) {
+	_, api := humatest.New(t)
+	NewHandler(applabel.NewService(&handlerLabelRepository{}, &handlerProjectAccess{role: domainproject.RoleEditor}, handlerLabelEventRecorder{}), &handlerTokenVerifier{
+		claims: identity.AccessTokenClaims{Subject: testUserID, Email: "user@example.com"},
+	}).RegisterRoutes(api)
+
+	res := api.Post("/projects/engineering/labels", map[string]any{
+		"key":   "   ",
+		"value": "tokyo",
+	}, "Authorization: Bearer valid-token")
+	if res.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("expected status 422, got %d", res.Code)
+	}
+	assertLabelHumaErrorDetail(t, res, "body.key", "must not be blank")
+}
+
 func TestCreateLabelMapsDuplicateToConflict(t *testing.T) {
 	_, api := humatest.New(t)
 	NewHandler(applabel.NewService(&handlerLabelRepository{createErr: applabel.ErrLabelAlreadyExists}, &handlerProjectAccess{role: domainproject.RoleOwner}, handlerLabelEventRecorder{}), &handlerTokenVerifier{
@@ -118,6 +136,7 @@ func TestUpdateLabelMapsEmptyPatchToUnprocessableEntity(t *testing.T) {
 	if res.Code != http.StatusUnprocessableEntity {
 		t.Fatalf("expected status 422, got %d", res.Code)
 	}
+	assertLabelHumaErrorDetail(t, res, "body", "at least one field must be provided")
 }
 
 func TestUpdateLabelReturnsUpdatedLabel(t *testing.T) {
@@ -171,6 +190,22 @@ func TestDeleteLabelMapsMissingLabelToNotFound(t *testing.T) {
 	if res.Code != http.StatusNotFound {
 		t.Fatalf("expected status 404, got %d", res.Code)
 	}
+}
+
+func assertLabelHumaErrorDetail(t *testing.T, res *httptest.ResponseRecorder, wantLocation, wantMessage string) {
+	t.Helper()
+
+	var body huma.ErrorModel
+	if err := json.NewDecoder(res.Body).Decode(&body); err != nil {
+		t.Fatalf("decode error response: %v", err)
+	}
+	for _, detail := range body.Errors {
+		if detail.Location == wantLocation && detail.Message == wantMessage {
+			return
+		}
+	}
+
+	t.Fatalf("expected error detail %q/%q, got %#v", wantLocation, wantMessage, body.Errors)
 }
 
 type handlerTokenVerifier struct {

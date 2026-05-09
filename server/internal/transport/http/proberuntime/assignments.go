@@ -26,7 +26,7 @@ func (h *Handler) listAssignments(ctx context.Context, input *listAssignmentsInp
 }
 
 type listAssignmentsInput struct {
-	ProbeID       string `path:"probe_id" format:"uuid" doc:"Probe ID."`
+	ProbeID       string `path:"probe_id" doc:"Probe ID."`
 	Authorization string `header:"Authorization" doc:"Probe authorization header. Use 'Probe <secret>'."`
 }
 

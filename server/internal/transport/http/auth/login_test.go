@@ -82,6 +82,28 @@ func TestLoginMapsInvalidCredentialsToUnauthorized(t *testing.T) {
 	}
 }
 
+func TestLoginMapsInvalidInputToUnauthorized(t *testing.T) {
+	_, api := humatest.New(t)
+	repo := &handlerUserRepository{}
+	NewHandler(newTestAuthService(
+		repo,
+		&handlerPasswordHasher{},
+		&handlerTokenIssuer{},
+	), nil).RegisterRoutes(api)
+
+	res := api.Post("/auth/login", map[string]any{
+		"email":    "   ",
+		"password": "correct-password",
+	})
+
+	if res.Code != http.StatusUnauthorized {
+		t.Fatalf("expected status 401, got %d", res.Code)
+	}
+	if repo.gotEmail != "" {
+		t.Fatalf("expected invalid login input not to hit repository, got %q", repo.gotEmail)
+	}
+}
+
 func TestLoginMapsPasswordMismatchToUnauthorized(t *testing.T) {
 	_, api := humatest.New(t)
 	NewHandler(newTestAuthService(

@@ -44,37 +44,37 @@ func (h *Handler) submitResults(ctx context.Context, input *submitResultsInput) 
 }
 
 type submitResultsInput struct {
-	ProbeID       string `path:"probe_id" format:"uuid" doc:"Probe ID."`
+	ProbeID       string `path:"probe_id" doc:"Probe ID."`
 	Authorization string `header:"Authorization" doc:"Probe authorization header. Use 'Probe <secret>'."`
 	Body          submitResultsInputBody
 }
 
 type submitResultsInputBody struct {
-	Ping       []pingResultInputBody `json:"ping,omitempty" maxItems:"500"`
-	DNS        []map[string]any      `json:"dns,omitempty" maxItems:"500"`
-	Traceroute []map[string]any      `json:"traceroute,omitempty" maxItems:"500"`
+	Ping       []pingResultInputBody `json:"ping,omitempty"`
+	DNS        []map[string]any      `json:"dns,omitempty"`
+	Traceroute []map[string]any      `json:"traceroute,omitempty"`
 }
 
 type pingResultInputBody struct {
-	CheckID       string         `json:"checkId" format:"uuid" required:"true"`
-	StartedAt     time.Time      `json:"startedAt" required:"true"`
-	FinishedAt    time.Time      `json:"finishedAt" required:"true"`
-	DurationMs    int32          `json:"durationMs" minimum:"0" required:"true"`
-	Status        string         `json:"status" enum:"successful,timeout,error" required:"true"`
-	SentCount     int32          `json:"sentCount" minimum:"0" required:"true"`
-	ReceivedCount int32          `json:"receivedCount" minimum:"0" required:"true"`
-	LossPercent   float64        `json:"lossPercent" minimum:"0" maximum:"100" required:"true"`
-	RttMinMs      *float64       `json:"rttMinMs,omitempty" minimum:"0"`
-	RttAvgMs      *float64       `json:"rttAvgMs,omitempty" minimum:"0"`
-	RttMedianMs   *float64       `json:"rttMedianMs,omitempty" minimum:"0"`
-	RttMaxMs      *float64       `json:"rttMaxMs,omitempty" minimum:"0"`
-	RttStddevMs   *float64       `json:"rttStddevMs,omitempty" minimum:"0"`
+	CheckID       string         `json:"checkId,omitempty"`
+	StartedAt     time.Time      `json:"startedAt,omitempty"`
+	FinishedAt    time.Time      `json:"finishedAt,omitempty"`
+	DurationMs    int32          `json:"durationMs,omitempty"`
+	Status        string         `json:"status,omitempty"`
+	SentCount     int32          `json:"sentCount,omitempty"`
+	ReceivedCount int32          `json:"receivedCount,omitempty"`
+	LossPercent   float64        `json:"lossPercent,omitempty"`
+	RttMinMs      *float64       `json:"rttMinMs,omitempty"`
+	RttAvgMs      *float64       `json:"rttAvgMs,omitempty"`
+	RttMedianMs   *float64       `json:"rttMedianMs,omitempty"`
+	RttMaxMs      *float64       `json:"rttMaxMs,omitempty"`
+	RttStddevMs   *float64       `json:"rttStddevMs,omitempty"`
 	RttSamplesMs  []float64      `json:"rttSamplesMs,omitempty"`
 	ResolvedIP    *string        `json:"resolvedIp,omitempty"`
-	IPFamily      *string        `json:"ipFamily,omitempty" enum:"inet,inet6"`
+	IPFamily      *string        `json:"ipFamily,omitempty"`
 	Raw           map[string]any `json:"raw,omitempty"`
-	ErrorCode     *string        `json:"errorCode,omitempty" maxLength:"100"`
-	ErrorMessage  *string        `json:"errorMessage,omitempty" maxLength:"500"`
+	ErrorCode     *string        `json:"errorCode,omitempty"`
+	ErrorMessage  *string        `json:"errorMessage,omitempty"`
 }
 
 type submitResultsOutput struct{}

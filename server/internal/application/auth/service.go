@@ -69,7 +69,12 @@ func (s *Service) Login(ctx context.Context, input LoginInput) (AuthAccessResult
 	ctx, flow := s.startAuthFlow(ctx, "auth.login", AuthActionLogin, email)
 	defer flow.end()
 
-	user, err := s.getUserByEmail(ctx, email)
+	normalized, err := normalizeLoginInput(input)
+	if err != nil {
+		return AuthAccessResult{}, flow.businessFailure(AuthEventLoginFailure, AuthReasonCredentialsInvalid, err)
+	}
+
+	user, err := s.getUserByEmail(ctx, normalized.email)
 	if errors.Is(err, identity.ErrUserNotFound) {
 		return AuthAccessResult{}, flow.businessFailure(AuthEventLoginFailure, AuthReasonCredentialsInvalid, ErrCredentialsInvalid)
 	}
@@ -78,7 +83,7 @@ func (s *Service) Login(ctx context.Context, input LoginInput) (AuthAccessResult
 	}
 	flow.setUser(user)
 
-	err = s.comparePassword(ctx, input.Password, user.PasswordHash)
+	err = s.comparePassword(ctx, normalized.password, user.PasswordHash)
 	if err != nil {
 		return AuthAccessResult{}, flow.businessFailure(AuthEventLoginFailure, AuthReasonCredentialsInvalid, ErrCredentialsInvalid)
 	}

@@ -6,7 +6,6 @@ import (
 
 	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
-	"github.com/yorukot/netstamp/internal/normalize"
 )
 
 type Service struct {
@@ -30,14 +29,15 @@ func NewService(repo Repository, projectAccess ProjectAccess, labelAccess LabelA
 func (s *Service) CreateProbe(ctx context.Context, input CreateProbeInput) (CreateProbeOutput, error) {
 	ctx, flow := s.startProbeFlow(ctx, "probe.create", ProbeActionCreate, input.CurrentUserID)
 	defer flow.end()
-	flow.setProjectRef(input.ProjectRef)
 
 	normalized, err := normalizeCreateProbeInput(input)
 	if err != nil {
+		flow.setProjectRef(input.ProjectRef)
 		return CreateProbeOutput{}, flow.businessFailure(ProbeEventCreateFailure, ProbeReasonInvalidInput, err)
 	}
+	flow.setProjectRef(normalized.projectRef)
 
-	project, err := s.projectAccess.GetProjectForUser(ctx, input.ProjectRef, input.CurrentUserID)
+	project, err := s.projectAccess.GetProjectForUser(ctx, normalized.projectRef, input.CurrentUserID)
 	if err != nil {
 		return CreateProbeOutput{}, flow.projectLookupFailure(err)
 	}
@@ -87,59 +87,4 @@ func (s *Service) CreateProbe(ctx context.Context, input CreateProbeInput) (Crea
 		Probe:  probe,
 		Secret: plaintextSecret,
 	}, nil
-}
-
-type normalizedCreateProbeInput struct {
-	name      string
-	enabled   bool
-	city      *string
-	latitude  *float64
-	longitude *float64
-	labelIDs  []string
-}
-
-func normalizeCreateProbeInput(input CreateProbeInput) (normalizedCreateProbeInput, error) {
-	name, err := normalize.RequiredString(input.Name, ErrInvalidInput)
-	if err != nil {
-		return normalizedCreateProbeInput{}, err
-	}
-	city, err := normalize.OptionalString(input.City, ErrInvalidInput)
-	if err != nil {
-		return normalizedCreateProbeInput{}, err
-	}
-	latitude, longitude, err := normalizeCoordinates(input.Latitude, input.Longitude)
-	if err != nil {
-		return normalizedCreateProbeInput{}, err
-	}
-	labelIDs, err := normalize.CanonicalUUIDSet(input.LabelIDs, ErrInvalidInput)
-	if err != nil {
-		return normalizedCreateProbeInput{}, err
-	}
-
-	enabled := true
-	if input.Enabled != nil {
-		enabled = *input.Enabled
-	}
-
-	return normalizedCreateProbeInput{
-		name:      name,
-		enabled:   enabled,
-		city:      city,
-		latitude:  latitude,
-		longitude: longitude,
-		labelIDs:  labelIDs,
-	}, nil
-}
-
-func normalizeCoordinates(latitude, longitude *float64) (*float64, *float64, error) {
-	if (latitude == nil) != (longitude == nil) {
-		return nil, nil, ErrInvalidInput
-	}
-	if latitude == nil {
-		return nil, nil, nil
-	}
-
-	lat := *latitude
-	lon := *longitude
-	return &lat, &lon, nil
 }

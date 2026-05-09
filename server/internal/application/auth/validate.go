@@ -22,6 +22,11 @@ type normalizedRegisterInput struct {
 	password    string
 }
 
+type normalizedLoginInput struct {
+	email    string
+	password string
+}
+
 func normalizeRegisterInput(input RegisterInput) (normalizedRegisterInput, error) {
 	email, err := normalizeRegisterEmail(input.Email)
 	if err != nil {
@@ -82,6 +87,42 @@ func validateRegisterPassword(value string) (string, error) {
 	}
 	if utf8.RuneCountInString(value) > maxRegisterPasswordRunes {
 		return "", invalidAuthField("password", "must be at most 128 characters", value)
+	}
+
+	return value, nil
+}
+
+func normalizeLoginInput(input LoginInput) (normalizedLoginInput, error) {
+	email, err := normalizeLoginEmail(input.Email)
+	if err != nil {
+		return normalizedLoginInput{}, err
+	}
+	password, err := validateLoginPassword(input.Password)
+	if err != nil {
+		return normalizedLoginInput{}, err
+	}
+
+	return normalizedLoginInput{
+		email:    email,
+		password: password,
+	}, nil
+}
+
+func normalizeLoginEmail(value string) (string, error) {
+	normalized := normalize.Email(value)
+	if normalized == "" {
+		return "", invalidAuthField("email", "must not be blank", value)
+	}
+	if utf8.RuneCountInString(normalized) > maxEmailRunes {
+		return "", invalidAuthField("email", "must be at most 254 characters", value)
+	}
+
+	return normalized, nil
+}
+
+func validateLoginPassword(value string) (string, error) {
+	if _, err := appvalidation.RequiredString(ErrInvalidInput, "password", value, maxRegisterPasswordRunes); err != nil {
+		return "", err
 	}
 
 	return value, nil

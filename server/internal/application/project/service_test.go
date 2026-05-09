@@ -9,6 +9,8 @@ import (
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 )
 
+const testTargetUserID = "44444444-4444-4444-4444-444444444444"
+
 func TestCreateProjectNormalizesInputAndCreatesOwnerMembership(t *testing.T) {
 	repo := &fakeProjectRepository{
 		createdProject: domainproject.Project{ID: "project-1"},
@@ -205,7 +207,7 @@ func TestAddMemberRoleRestrictions(t *testing.T) {
 			_, err := service.AddMember(context.Background(), AddMemberInput{
 				CurrentUserID: "actor-user",
 				ProjectRef:    "project-1",
-				UserID:        "target-user",
+				UserID:        testTargetUserID,
 				Role:          tt.newRole,
 			})
 			if !errors.Is(err, tt.wantErr) {
@@ -284,7 +286,7 @@ func TestUpdateMemberRoleRestrictions(t *testing.T) {
 				actorRole: tt.actorRole,
 				member: domainproject.Member{
 					ID:     "member-1",
-					UserID: "target-user",
+					UserID: testTargetUserID,
 					Role:   tt.memberRole,
 				},
 				owners:        tt.owners,
@@ -295,7 +297,7 @@ func TestUpdateMemberRoleRestrictions(t *testing.T) {
 			_, err := service.UpdateMemberRole(context.Background(), UpdateMemberRoleInput{
 				CurrentUserID: "actor-user",
 				ProjectRef:    "project-1",
-				UserID:        "target-user",
+				UserID:        testTargetUserID,
 				Role:          tt.newRole,
 			})
 			if !errors.Is(err, tt.wantErr) {
@@ -315,14 +317,14 @@ func TestAddMemberRecordsSuccess(t *testing.T) {
 	recorder := &recordingProjectEventRecorder{}
 	repo := &fakeProjectRepository{
 		actorRole:   domainproject.RoleOwner,
-		addedMember: domainproject.Member{ID: "member-1", UserID: "target-user", Role: domainproject.RoleAdmin},
+		addedMember: domainproject.Member{ID: "member-1", UserID: testTargetUserID, Role: domainproject.RoleAdmin},
 	}
 	service := NewService(repo, recorder)
 
 	_, err := service.AddMember(context.Background(), AddMemberInput{
 		CurrentUserID: "actor-user",
 		ProjectRef:    "engineering",
-		UserID:        "target-user",
+		UserID:        testTargetUserID,
 		Role:          domainproject.RoleAdmin,
 	})
 	if err != nil {
@@ -337,7 +339,7 @@ func TestAddMemberRecordsSuccess(t *testing.T) {
 		ProjectID:    "project-1",
 		ProjectRef:   "engineering",
 		ProjectSlug:  "engineering",
-		TargetUserID: "target-user",
+		TargetUserID: testTargetUserID,
 		Role:         domainproject.RoleAdmin,
 	})
 }
@@ -422,15 +424,15 @@ func TestUpdateMemberRoleRecordsSuccess(t *testing.T) {
 	recorder := &recordingProjectEventRecorder{}
 	repo := &fakeProjectRepository{
 		actorRole:     domainproject.RoleOwner,
-		member:        domainproject.Member{ID: "member-1", UserID: "target-user", Role: domainproject.RoleViewer},
-		updatedMember: domainproject.Member{ID: "member-1", UserID: "target-user", Role: domainproject.RoleAdmin},
+		member:        domainproject.Member{ID: "member-1", UserID: testTargetUserID, Role: domainproject.RoleViewer},
+		updatedMember: domainproject.Member{ID: "member-1", UserID: testTargetUserID, Role: domainproject.RoleAdmin},
 	}
 	service := NewService(repo, recorder)
 
 	_, err := service.UpdateMemberRole(context.Background(), UpdateMemberRoleInput{
 		CurrentUserID: "actor-user",
 		ProjectRef:    "engineering",
-		UserID:        "target-user",
+		UserID:        testTargetUserID,
 		Role:          domainproject.RoleAdmin,
 	})
 	if err != nil {
@@ -445,7 +447,7 @@ func TestUpdateMemberRoleRecordsSuccess(t *testing.T) {
 		ProjectID:    "project-1",
 		ProjectRef:   "engineering",
 		ProjectSlug:  "engineering",
-		TargetUserID: "target-user",
+		TargetUserID: testTargetUserID,
 		Role:         domainproject.RoleAdmin,
 	})
 }
@@ -454,7 +456,7 @@ func TestUpdateMemberRoleLastOwnerRecordsBusinessFailure(t *testing.T) {
 	recorder := &recordingProjectEventRecorder{}
 	repo := &fakeProjectRepository{
 		actorRole: domainproject.RoleOwner,
-		member:    domainproject.Member{ID: "member-1", UserID: "target-user", Role: domainproject.RoleOwner},
+		member:    domainproject.Member{ID: "member-1", UserID: testTargetUserID, Role: domainproject.RoleOwner},
 		owners:    1,
 	}
 	service := NewService(repo, recorder)
@@ -462,7 +464,7 @@ func TestUpdateMemberRoleLastOwnerRecordsBusinessFailure(t *testing.T) {
 	_, err := service.UpdateMemberRole(context.Background(), UpdateMemberRoleInput{
 		CurrentUserID: "actor-user",
 		ProjectRef:    "engineering",
-		UserID:        "target-user",
+		UserID:        testTargetUserID,
 		Role:          domainproject.RoleAdmin,
 	})
 	if !errors.Is(err, ErrLastOwner) {
@@ -478,7 +480,7 @@ func TestUpdateMemberRoleLastOwnerRecordsBusinessFailure(t *testing.T) {
 		ProjectID:    "project-1",
 		ProjectRef:   "engineering",
 		ProjectSlug:  "engineering",
-		TargetUserID: "target-user",
+		TargetUserID: testTargetUserID,
 		Role:         domainproject.RoleAdmin,
 	})
 }
@@ -626,7 +628,7 @@ func (r *fakeProjectRepository) GetMember(context.Context, string, string) (doma
 	if r.member.ID != "" {
 		return r.member, nil
 	}
-	return domainproject.Member{ID: "member-1", UserID: "target-user", Role: domainproject.RoleViewer}, nil
+	return domainproject.Member{ID: "member-1", UserID: testTargetUserID, Role: domainproject.RoleViewer}, nil
 }
 
 func (r *fakeProjectRepository) AddMember(_ context.Context, input domainproject.AddMemberStorageInput) (domainproject.Member, error) {
