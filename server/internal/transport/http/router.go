@@ -17,6 +17,7 @@ import (
 	appcheck "github.com/yorukot/netstamp/internal/application/check"
 	applabel "github.com/yorukot/netstamp/internal/application/label"
 	appprobe "github.com/yorukot/netstamp/internal/application/probe"
+	appproberuntime "github.com/yorukot/netstamp/internal/application/proberuntime"
 	appproject "github.com/yorukot/netstamp/internal/application/project"
 	httptracing "github.com/yorukot/netstamp/internal/observability/httptrace"
 	authhttp "github.com/yorukot/netstamp/internal/transport/http/auth"
@@ -24,6 +25,7 @@ import (
 	labelhttp "github.com/yorukot/netstamp/internal/transport/http/label"
 	httpmiddleware "github.com/yorukot/netstamp/internal/transport/http/middleware"
 	probehttp "github.com/yorukot/netstamp/internal/transport/http/probe"
+	proberuntimehttp "github.com/yorukot/netstamp/internal/transport/http/proberuntime"
 	projecthttp "github.com/yorukot/netstamp/internal/transport/http/project"
 )
 
@@ -36,6 +38,7 @@ type Dependencies struct {
 	CheckService   *appcheck.Service
 	LabelService   *applabel.Service
 	ProbeService   *appprobe.Service
+	ProbeRuntime   *appproberuntime.Service
 	ProjectService *appproject.Service
 	ReadinessCheck func(context.Context) error
 	RequestTimeout time.Duration
@@ -80,6 +83,7 @@ func registerAPIRoutes(api huma.API, dep Dependencies) {
 	labelhttp.NewHandler(dep.LabelService, dep.AuthVerifier).RegisterRoutes(api)
 	checkhttp.NewHandler(dep.CheckService, dep.AuthVerifier).RegisterRoutes(api)
 	probehttp.NewHandler(dep.ProbeService, dep.AuthVerifier).RegisterRoutes(api)
+	proberuntimehttp.NewHandler(dep.ProbeRuntime).RegisterRoutes(api)
 }
 
 func newHumaConfig(dep Dependencies) huma.Config {
@@ -93,6 +97,12 @@ func newHumaConfig(dep Dependencies) huma.Config {
 		Type:         "http",
 		Scheme:       "bearer",
 		BearerFormat: "JWT",
+	}
+	config.Components.SecuritySchemes["probeAuth"] = &huma.SecurityScheme{
+		Type:        "apiKey",
+		In:          "header",
+		Name:        "Authorization",
+		Description: "Probe runtime credential header using the format `Probe <secret>`.",
 	}
 	return config
 }

@@ -1,7 +1,10 @@
 package ping
 
 import (
+	"encoding/json"
 	"errors"
+	"net/netip"
+	"time"
 
 	domainnetwork "github.com/yorukot/netstamp/internal/domain/network"
 )
@@ -13,13 +16,61 @@ const (
 	MaxPacketSizeBytes     int32 = 65507
 )
 
-var ErrInvalidConfig = errors.New("ping config invalid")
+var (
+	ErrInvalidConfig = errors.New("ping config invalid")
+	ErrInvalidResult = errors.New("ping result invalid")
+)
+
+type Status string
+
+const (
+	StatusSuccessful Status = "successful"
+	StatusTimeout    Status = "timeout"
+	StatusError      Status = "error"
+)
 
 type Config struct {
 	PacketCount     int32
 	PacketSizeBytes int32
 	TimeoutMs       int32
 	IPFamily        *domainnetwork.IPFamily
+}
+
+type ResultStorageInput struct {
+	ExternalID    string
+	ProjectID     string
+	ProbeID       string
+	CheckID       string
+	StartedAt     time.Time
+	FinishedAt    time.Time
+	DurationMs    int32
+	Status        Status
+	SentCount     int32
+	ReceivedCount int32
+	LossPercent   float64
+	RttMinMs      *float64
+	RttAvgMs      *float64
+	RttMedianMs   *float64
+	RttMaxMs      *float64
+	RttStddevMs   *float64
+	RttSamplesMs  []float64
+	ResolvedIP    *netip.Addr
+	IPFamily      *domainnetwork.IPFamily
+	Raw           json.RawMessage
+	ErrorCode     *string
+	ErrorMessage  *string
+}
+
+type ResultWriteStatus string
+
+const (
+	ResultWriteAccepted  ResultWriteStatus = "accepted"
+	ResultWriteDuplicate ResultWriteStatus = "duplicate"
+)
+
+type ResultWriteOutcome struct {
+	ExternalID string
+	Status     ResultWriteStatus
 }
 
 type VersionPayload struct {

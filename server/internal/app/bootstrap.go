@@ -13,11 +13,13 @@ import (
 	appcheck "github.com/yorukot/netstamp/internal/application/check"
 	applabel "github.com/yorukot/netstamp/internal/application/label"
 	appprobe "github.com/yorukot/netstamp/internal/application/probe"
+	appproberuntime "github.com/yorukot/netstamp/internal/application/proberuntime"
 	appproject "github.com/yorukot/netstamp/internal/application/project"
 	"github.com/yorukot/netstamp/internal/config"
 	"github.com/yorukot/netstamp/internal/infrastructure/postgres"
 	pgcheck "github.com/yorukot/netstamp/internal/infrastructure/postgres/check"
 	pglabel "github.com/yorukot/netstamp/internal/infrastructure/postgres/label"
+	pgping "github.com/yorukot/netstamp/internal/infrastructure/postgres/ping"
 	pgprobe "github.com/yorukot/netstamp/internal/infrastructure/postgres/probe"
 	pgproject "github.com/yorukot/netstamp/internal/infrastructure/postgres/project"
 	pguser "github.com/yorukot/netstamp/internal/infrastructure/postgres/user"
@@ -102,7 +104,9 @@ func New(ctx context.Context) (*Application, error) {
 	checkRepo := pgcheck.NewCheckRepository(dbPool)
 	checkSvc := appcheck.NewService(checkRepo, projectRepo, labelRepo, checkEvents)
 	probeRepo := pgprobe.NewProbeRepository(dbPool)
+	pingRepo := pgping.NewPingRepository(dbPool)
 	probeSvc := appprobe.NewService(probeRepo, projectRepo, labelRepo, security.NewProbeSecretGenerator(), probeEvents)
+	probeRuntimeSvc := appproberuntime.NewService(probeRepo, pingRepo, security.NewProbeSecretVerifier())
 	readiness := postgres.NewReadinessCheck(dbPool)
 
 	httpHandler := httpserver.NewRouter(httpserver.Dependencies{
@@ -114,6 +118,7 @@ func New(ctx context.Context) (*Application, error) {
 		CheckService:   checkSvc,
 		LabelService:   labelSvc,
 		ProbeService:   probeSvc,
+		ProbeRuntime:   probeRuntimeSvc,
 		ProjectService: projectSvc,
 		ReadinessCheck: readiness,
 		RequestTimeout: cfg.HTTP.RequestTimeout,

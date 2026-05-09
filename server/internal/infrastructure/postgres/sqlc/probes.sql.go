@@ -7,6 +7,7 @@ package sqlc
 
 import (
 	"context"
+	"net/netip"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -101,6 +102,199 @@ type CreateProbeStatusParams struct {
 
 func (q *Queries) CreateProbeStatus(ctx context.Context, arg CreateProbeStatusParams) (ProbeStatus, error) {
 	row := q.db.QueryRow(ctx, createProbeStatus, arg.ProbeID, arg.Status)
+	var i ProbeStatus
+	err := row.Scan(
+		&i.ProbeID,
+		&i.Status,
+		&i.LastSeenAt,
+		&i.AgentVersion,
+		&i.PublicV4,
+		&i.PublicV6,
+		&i.Addrs,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getActiveProbeCredential = `-- name: GetActiveProbeCredential :one
+SELECT probes.id,
+       probes.project_id,
+       probes.enabled,
+       probe_credentials.secret_hash
+FROM probes
+JOIN probe_credentials ON probe_credentials.probe_id = probes.id
+WHERE probes.id = $1
+  AND probes.deleted_at IS NULL
+`
+
+type GetActiveProbeCredentialRow struct {
+	ID         uuid.UUID `json:"id"`
+	ProjectID  uuid.UUID `json:"project_id"`
+	Enabled    bool      `json:"enabled"`
+	SecretHash string    `json:"secret_hash"`
+}
+
+func (q *Queries) GetActiveProbeCredential(ctx context.Context, id uuid.UUID) (GetActiveProbeCredentialRow, error) {
+	row := q.db.QueryRow(ctx, getActiveProbeCredential, id)
+	var i GetActiveProbeCredentialRow
+	err := row.Scan(
+		&i.ID,
+		&i.ProjectID,
+		&i.Enabled,
+		&i.SecretHash,
+	)
+	return i, err
+}
+
+const listActiveAssignedCheckIDsForProbe = `-- name: ListActiveAssignedCheckIDsForProbe :many
+SELECT effective_probe_checks.check_id
+FROM effective_probe_checks
+JOIN probes
+    ON probes.project_id = effective_probe_checks.project_id
+    AND probes.id = effective_probe_checks.probe_id
+JOIN checks
+    ON checks.project_id = effective_probe_checks.project_id
+    AND checks.id = effective_probe_checks.check_id
+WHERE effective_probe_checks.probe_id = $1
+  AND effective_probe_checks.deleted_at IS NULL
+  AND probes.enabled = true
+  AND probes.deleted_at IS NULL
+  AND checks.deleted_at IS NULL
+ORDER BY checks.id ASC
+`
+
+func (q *Queries) ListActiveAssignedCheckIDsForProbe(ctx context.Context, probeID uuid.UUID) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, listActiveAssignedCheckIDsForProbe, probeID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []uuid.UUID
+	for rows.Next() {
+		var check_id uuid.UUID
+		if err := rows.Scan(&check_id); err != nil {
+			return nil, err
+		}
+		items = append(items, check_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listActiveAssignmentsForProbe = `-- name: ListActiveAssignmentsForProbe :many
+SELECT effective_probe_checks.id AS assignment_id,
+       effective_probe_checks.project_id,
+       effective_probe_checks.probe_id,
+       effective_probe_checks.check_id,
+       effective_probe_checks.check_version,
+       effective_probe_checks.selector_version,
+       checks.check_type,
+       checks.target,
+       checks.interval_seconds,
+       ping_check_configs.packet_count,
+       ping_check_configs.packet_size_bytes,
+       ping_check_configs.timeout_ms,
+       ping_check_configs.ip_family
+FROM effective_probe_checks
+JOIN probes
+    ON probes.project_id = effective_probe_checks.project_id
+    AND probes.id = effective_probe_checks.probe_id
+JOIN checks
+    ON checks.project_id = effective_probe_checks.project_id
+    AND checks.id = effective_probe_checks.check_id
+JOIN ping_check_configs ON ping_check_configs.check_id = checks.id
+WHERE effective_probe_checks.probe_id = $1
+  AND effective_probe_checks.deleted_at IS NULL
+  AND probes.enabled = true
+  AND probes.deleted_at IS NULL
+  AND checks.deleted_at IS NULL
+ORDER BY checks.created_at ASC,
+         checks.id ASC
+`
+
+type ListActiveAssignmentsForProbeRow struct {
+	AssignmentID    uuid.UUID    `json:"assignment_id"`
+	ProjectID       uuid.UUID    `json:"project_id"`
+	ProbeID         uuid.UUID    `json:"probe_id"`
+	CheckID         uuid.UUID    `json:"check_id"`
+	CheckVersion    string       `json:"check_version"`
+	SelectorVersion string       `json:"selector_version"`
+	CheckType       CheckType    `json:"check_type"`
+	Target          string       `json:"target"`
+	IntervalSeconds int32        `json:"interval_seconds"`
+	PacketCount     int32        `json:"packet_count"`
+	PacketSizeBytes int32        `json:"packet_size_bytes"`
+	TimeoutMs       int32        `json:"timeout_ms"`
+	IpFamily        NullIpFamily `json:"ip_family"`
+}
+
+func (q *Queries) ListActiveAssignmentsForProbe(ctx context.Context, probeID uuid.UUID) ([]ListActiveAssignmentsForProbeRow, error) {
+	rows, err := q.db.Query(ctx, listActiveAssignmentsForProbe, probeID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListActiveAssignmentsForProbeRow
+	for rows.Next() {
+		var i ListActiveAssignmentsForProbeRow
+		if err := rows.Scan(
+			&i.AssignmentID,
+			&i.ProjectID,
+			&i.ProbeID,
+			&i.CheckID,
+			&i.CheckVersion,
+			&i.SelectorVersion,
+			&i.CheckType,
+			&i.Target,
+			&i.IntervalSeconds,
+			&i.PacketCount,
+			&i.PacketSizeBytes,
+			&i.TimeoutMs,
+			&i.IpFamily,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const updateProbeStatus = `-- name: UpdateProbeStatus :one
+UPDATE probe_statuses
+SET status = $2,
+    last_seen_at = now(),
+    agent_version = $3,
+    public_v4 = $4,
+    public_v6 = $5,
+    addrs = $6,
+    updated_at = now()
+WHERE probe_id = $1
+RETURNING probe_id, status, last_seen_at, agent_version, public_v4, public_v6, addrs, updated_at
+`
+
+type UpdateProbeStatusParams struct {
+	ProbeID      uuid.UUID    `json:"probe_id"`
+	Status       ProbeState   `json:"status"`
+	AgentVersion *string      `json:"agent_version"`
+	PublicV4     *netip.Addr  `json:"public_v4"`
+	PublicV6     *netip.Addr  `json:"public_v6"`
+	Addrs        []netip.Addr `json:"addrs"`
+}
+
+func (q *Queries) UpdateProbeStatus(ctx context.Context, arg UpdateProbeStatusParams) (ProbeStatus, error) {
+	row := q.db.QueryRow(ctx, updateProbeStatus,
+		arg.ProbeID,
+		arg.Status,
+		arg.AgentVersion,
+		arg.PublicV4,
+		arg.PublicV6,
+		arg.Addrs,
+	)
 	var i ProbeStatus
 	err := row.Scan(
 		&i.ProbeID,

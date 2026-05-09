@@ -299,6 +299,16 @@ type PingResult struct {
 	ErrorCode     *string            `json:"error_code"`
 	ErrorMessage  *string            `json:"error_message"`
 	CreatedAt     pgtype.Timestamptz `json:"created_at"`
+	ExternalID    *string            `json:"external_id"`
+}
+
+type PingResultExternalID struct {
+	ProjectID  uuid.UUID          `json:"project_id"`
+	ProbeID    uuid.UUID          `json:"probe_id"`
+	ExternalID string             `json:"external_id"`
+	ResultID   uuid.UUID          `json:"result_id"`
+	StartedAt  pgtype.Timestamptz `json:"started_at"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
 }
 
 type Probe struct {

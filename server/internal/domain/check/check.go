@@ -36,6 +36,19 @@ type Check struct {
 	DeletedAt       *time.Time
 }
 
+type Assignment struct {
+	ID              string
+	ProjectID       string
+	ProbeID         string
+	CheckID         string
+	CheckVersion    string
+	SelectorVersion string
+	Type            Type
+	Target          string
+	IntervalSeconds int32
+	PingConfig      domainping.Config
+}
+
 type CreateCheckStorageInput struct {
 	ProjectID       string
 	Name            string

@@ -7,6 +7,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
 	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 	"github.com/yorukot/netstamp/internal/infrastructure/postgres"
@@ -24,6 +25,97 @@ func NewProbeRepository(pool *pgxpool.Pool) *ProbeRepository {
 		queries: sqlc.New(pool),
 		tx:      postgres.NewTransactor(pool),
 	}
+}
+
+func (r *ProbeRepository) GetActiveProbeCredential(ctx context.Context, probeID string) (domainprobe.Credential, error) {
+	ctx, span := postgres.StartDBSpan(ctx, pgprobeTracer, "probes", "postgres.probes.get_active_credential", "SELECT", "SELECT active probe credential")
+	defer span.End()
+
+	id, err := postgres.ParseUUID(probeID, domainprobe.ErrProbeNotFound)
+	if err != nil {
+		return domainprobe.Credential{}, err
+	}
+
+	row, err := r.queries.GetActiveProbeCredential(ctx, id)
+	if err != nil {
+		err = mapProbeLookupError(err)
+		postgres.RecordDBSpanError(span, err)
+		return domainprobe.Credential{}, err
+	}
+
+	return mapProbeCredential(row), nil
+}
+
+func (r *ProbeRepository) UpdateProbeStatus(ctx context.Context, input domainprobe.UpdateStatusInput) (domainprobe.Status, error) {
+	ctx, span := postgres.StartDBSpan(ctx, pgprobeTracer, "probe_statuses", "postgres.probes.update_status", "UPDATE", "UPDATE probe status")
+	defer span.End()
+
+	probeID, err := postgres.ParseUUID(input.ProbeID, domainprobe.ErrProbeNotFound)
+	if err != nil {
+		return domainprobe.Status{}, err
+	}
+
+	row, err := r.queries.UpdateProbeStatus(ctx, sqlc.UpdateProbeStatusParams{
+		ProbeID:      probeID,
+		Status:       sqlcProbeState(input.State),
+		AgentVersion: input.AgentVersion,
+		PublicV4:     input.PublicV4,
+		PublicV6:     input.PublicV6,
+		Addrs:        input.Addrs,
+	})
+	if err != nil {
+		err = mapProbeLookupError(err)
+		postgres.RecordDBSpanError(span, err)
+		return domainprobe.Status{}, err
+	}
+
+	return mapProbeStatus(row), nil
+}
+
+func (r *ProbeRepository) ListAssignments(ctx context.Context, probeID string) ([]domaincheck.Assignment, error) {
+	ctx, span := postgres.StartDBSpan(ctx, pgprobeTracer, "effective_probe_checks", "postgres.probes.list_assignments", "SELECT", "SELECT active probe assignments")
+	defer span.End()
+
+	id, err := postgres.ParseUUID(probeID, domainprobe.ErrProbeNotFound)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := r.queries.ListActiveAssignmentsForProbe(ctx, id)
+	if err != nil {
+		postgres.RecordDBSpanError(span, err)
+		return nil, err
+	}
+
+	assignments := make([]domaincheck.Assignment, 0, len(rows))
+	for _, row := range rows {
+		assignments = append(assignments, mapAssignment(row))
+	}
+
+	return assignments, nil
+}
+
+func (r *ProbeRepository) ListActiveAssignedCheckIDs(ctx context.Context, probeID string) ([]string, error) {
+	ctx, span := postgres.StartDBSpan(ctx, pgprobeTracer, "effective_probe_checks", "postgres.probes.list_assigned_check_ids", "SELECT", "SELECT active assigned check ids")
+	defer span.End()
+
+	id, err := postgres.ParseUUID(probeID, domainprobe.ErrProbeNotFound)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := r.queries.ListActiveAssignedCheckIDsForProbe(ctx, id)
+	if err != nil {
+		postgres.RecordDBSpanError(span, err)
+		return nil, err
+	}
+
+	checkIDs := make([]string, 0, len(rows))
+	for _, row := range rows {
+		checkIDs = append(checkIDs, row.String())
+	}
+
+	return checkIDs, nil
 }
 
 func (r *ProbeRepository) CreateProbe(ctx context.Context, input domainprobe.CreateProbeStorageInput) (domainprobe.Probe, error) {

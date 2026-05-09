@@ -7,10 +7,10 @@ This guide applies to `server/`, the Go backend for the Netstamp workspace. The 
 - `cmd/api/main.go`: API process entry point. It creates the shutdown context, calls `app.New`, runs the app, and syncs the logger.
 - `cmd/migrate/main.go`: Goose migration CLI for `status`, `up`, and `down`.
 - `internal/app/`: composition root and lifecycle. `bootstrap.go` wires config, logging, tracing, PostgreSQL, auth, and HTTP. `lifecycle.go` starts and gracefully stops the HTTP listener.
-- `internal/transport/http/`: chi/Huma HTTP routing, auth, project, label, probe, system health routes, and middleware.
-- `internal/application/auth/`, `internal/application/project/`, `internal/application/label/`, `internal/application/check/`, and `internal/application/probe/`: use cases, ports, DTOs, errors, and feature orchestration.
-- `internal/domain/identity/`, `internal/domain/project/`, `internal/domain/label/`, and `internal/domain/probe/`: stable domain structs and domain-level sentinel errors.
-- `internal/infrastructure/`: PostgreSQL repositories and pool helpers, JWT issuing, Argon2id password hashing, and probe secret generation.
+- `internal/transport/http/`: chi/Huma HTTP routing, auth, project, label, probe management, probe runtime, system health routes, and middleware.
+- `internal/application/auth/`, `internal/application/project/`, `internal/application/label/`, `internal/application/check/`, `internal/application/probe/`, and `internal/application/proberuntime/`: use cases, ports, DTOs, errors, and feature orchestration.
+- `internal/domain/identity/`, `internal/domain/project/`, `internal/domain/label/`, `internal/domain/check/`, `internal/domain/ping/`, and `internal/domain/probe/`: stable domain structs and domain-level sentinel errors.
+- `internal/infrastructure/`: PostgreSQL repositories and pool helpers, JWT issuing, Argon2id password hashing, and probe secret generation/verification.
 - `internal/logger/` and `internal/observability/`: zap logging helpers, application event recording, OpenTelemetry setup, and HTTP span naming.
 - `db/migrations/`: Goose SQL migrations. `db/query/`: sqlc query files. Generated sqlc Go files live in `internal/infrastructure/postgres/sqlc/`.
 - `tmp/` and `bin/`: local build artifacts; do not edit them as source.
@@ -21,11 +21,15 @@ No backend public asset directory is currently defined.
 
 The backend is a single Go service with one listener: HTTP on `HTTP_ADDR`. `internal/app.New` loads validated configuration, creates a zap logger, initializes OpenTelemetry, opens a pgx pool, builds application services, and creates the HTTP server. `internal/app.Run` starts the server and coordinates graceful shutdown with `errgroup`.
 
-HTTP uses chi middleware plus Huma route registration under `/api/{version}`. `internal/app/bootstrap.go` passes `cfg.APIVersion` (`API_VERSION`) into the router, and `BACKEND_BASE_URL` can publish an absolute OpenAPI server URL for deployed environments. System routes are `/`, `/livez`, and `/readyz`. Auth routes are `/auth/register`, `/auth/login`, and `/auth/me`; `/auth/me`, project routes, project label routes, project check routes, and project probe creation are protected by the Huma auth middleware in `internal/transport/http/middleware`.
+HTTP uses chi middleware plus Huma route registration under `/api/{version}`. `internal/app/bootstrap.go` passes `cfg.APIVersion` (`API_VERSION`) into the router, and `BACKEND_BASE_URL` can publish an absolute OpenAPI server URL for deployed environments. System routes are `/`, `/livez`, and `/readyz`. Auth routes are `/auth/register`, `/auth/login`, and `/auth/me`; `/auth/me`, project routes, project label routes, project check routes, and project probe creation are protected by the Huma auth middleware in `internal/transport/http/middleware`. Probe runtime routes live under `/probes/{probe_id}/runtime/*` and use `Authorization: Probe <secret>` with the probe's one-time plaintext secret, not user JWT auth.
 
 The current auth request flow is:
 
 `HTTP request -> chi/Huma route -> internal/transport/http/auth handler -> internal/application/auth.Service -> internal/infrastructure/postgres/user repository -> sqlc.Queries -> PostgreSQL`
+
+Probe runtime requests follow the same layer boundaries:
+
+`HTTP request -> chi/Huma route -> internal/transport/http/proberuntime handler -> internal/application/proberuntime.Service -> internal/infrastructure/postgres/{probe,ping} repositories -> sqlc.Queries -> PostgreSQL`
 
 No GraphQL, message queues, background workers, scheduled jobs, email, payment, or object-storage integrations are currently defined.
 
@@ -97,7 +101,7 @@ Direct backend dependencies are declared in `server/go.mod`.
 - HTTP: `github.com/go-chi/chi/v5`, `github.com/danielgtaylor/huma/v2`, and `otelhttp`.
 - Database: `github.com/jackc/pgx/v5`, `github.com/pressly/goose/v3`, and `github.com/google/uuid`.
 - Config: `github.com/spf13/viper`.
-- Auth/security: `github.com/golang-jwt/jwt/v4` and `golang.org/x/crypto/argon2`.
+- Auth/security: `github.com/golang-jwt/jwt/v4` and `golang.org/x/crypto/argon2`. Probe runtime authentication uses the hashed probe secret in `probe_credentials`; never pass or log plaintext probe secrets outside the HTTP auth boundary and verifier call.
 - Logging: `go.uber.org/zap`.
 - Tracing: OpenTelemetry SDK, trace API, and OTLP HTTP trace exporter.
 - Tool tracking: `tools/` is a nested Go module that pins the sqlc CLI for code generation. `air` and `golangci-lint` are used by commands/config but are not pinned in `server/go.mod`.
@@ -184,7 +188,7 @@ The observability compose setup requires `LOG_PSEUDONYM_KEY`, `DATABASE_PASSWORD
 
 ## Database & Persistence
 
-The database is PostgreSQL with TimescaleDB in Docker (`timescale/timescaledb:latest-pg16`). The initial Goose migration enables `pgcrypto`, `citext`, and `timescaledb`, then creates users, projects, project members, probes, selector-based ping checks, key/value labels, effective probe-check rows, ping results, and the ping results hypertable. Traceroute schema is intentionally not present yet.
+The database is PostgreSQL with TimescaleDB in Docker (`timescale/timescaledb:latest-pg16`). The initial Goose migration enables `pgcrypto`, `citext`, and `timescaledb`, then creates users, projects, project members, probes, selector-based ping checks, key/value labels, effective probe-check rows, ping results, and the ping results hypertable. A later migration adds probe-supplied ping result idempotency via `ping_result_external_ids`; this separate table is intentional because Timescale hypertable unique indexes must include the time partition column. Traceroute schema is intentionally not present yet.
 
 Add schema changes as timestamped Goose migrations under `db/migrations/`, following the pattern in `db/migrations/README.md`, such as `202604300001_create_example_table.sql`. Add typed SQL queries under `db/query/*.sql`, then run `just backend-sqlc`. Do not edit `internal/infrastructure/postgres/sqlc/*.go` manually. Keep repositories responsible for mapping sqlc rows and pgx errors into domain/application types.
 
