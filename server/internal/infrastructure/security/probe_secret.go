@@ -16,8 +16,14 @@ type ProbeSecretGenerator struct {
 	reader io.Reader
 }
 
+type ProbeSecretVerifier struct{}
+
 func NewProbeSecretGenerator() *ProbeSecretGenerator {
 	return &ProbeSecretGenerator{reader: rand.Reader}
+}
+
+func NewProbeSecretVerifier() ProbeSecretVerifier {
+	return ProbeSecretVerifier{}
 }
 
 func (g *ProbeSecretGenerator) GenerateProbeSecret() (string, string, error) {
@@ -43,4 +49,8 @@ func HashProbeSecret(secret string) string {
 func VerifyProbeSecret(secret, expectedHash string) bool {
 	actualHash := HashProbeSecret(secret)
 	return subtle.ConstantTimeCompare([]byte(actualHash), []byte(expectedHash)) == 1
+}
+
+func (ProbeSecretVerifier) VerifyProbeSecret(secret, expectedHash string) bool {
+	return VerifyProbeSecret(secret, expectedHash)
 }
