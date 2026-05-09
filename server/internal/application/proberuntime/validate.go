@@ -74,13 +74,16 @@ func normalizePingResult(input PingResultInput, projectID, probeID string) (doma
 	if err != nil {
 		return domainping.ResultStorageInput{}, err
 	}
-	if err := validatePingResultTiming(input); err != nil {
+	err = validatePingResultTiming(input)
+	if err != nil {
 		return domainping.ResultStorageInput{}, err
 	}
-	if err := validatePingResultCounts(input); err != nil {
+	err = validatePingResultCounts(input)
+	if err != nil {
 		return domainping.ResultStorageInput{}, err
 	}
-	if err := validatePingRTTs(input); err != nil {
+	err = validatePingRTTs(input)
+	if err != nil {
 		return domainping.ResultStorageInput{}, err
 	}
 	errorCode, err := appvalidation.OptionalString(ErrInvalidResult, "ping.errorCode", input.ErrorCode, maxResultErrorCodeRunes)

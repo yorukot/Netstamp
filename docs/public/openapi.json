@@ -13,17 +13,14 @@
 					},
 					"role": {
 						"description": "Project member role.",
-						"enum": ["owner", "admin", "editor", "viewer"],
 						"examples": ["viewer"],
 						"type": "string"
 					},
 					"userId": {
 						"description": "User ID to add to the project.",
-						"format": "uuid",
 						"type": "string"
 					}
 				},
-				"required": ["userId", "role"],
 				"type": "object"
 			},
 			"AssignmentResponse": {
@@ -277,19 +274,14 @@
 					"key": {
 						"description": "Label key.",
 						"examples": ["region"],
-						"maxLength": 100,
-						"minLength": 1,
 						"type": "string"
 					},
 					"value": {
 						"description": "Label value.",
 						"examples": ["tokyo"],
-						"maxLength": 100,
-						"minLength": 1,
 						"type": "string"
 					}
 				},
-				"required": ["key", "value"],
 				"type": "object"
 			},
 			"CreateProbeInputBody": {
@@ -305,7 +297,6 @@
 					"city": {
 						"description": "Location code stored in the city field.",
 						"examples": ["JP-13"],
-						"maxLength": 100,
 						"type": "string"
 					},
 					"enabled": {
@@ -335,12 +326,9 @@
 					"name": {
 						"description": "Probe display name.",
 						"examples": ["tokyo-vps-1"],
-						"maxLength": 100,
-						"minLength": 1,
 						"type": "string"
 					}
 				},
-				"required": ["name"],
 				"type": "object"
 			},
 			"CreateProbeOutputBody": {
@@ -376,21 +364,15 @@
 					"name": {
 						"description": "Project display name.",
 						"examples": ["Engineering"],
-						"maxLength": 100,
-						"minLength": 1,
 						"type": "string"
 					},
 					"slug": {
 						"description": "Stable project slug.",
 						"examples": ["engineering"],
-						"maxLength": 100,
-						"minLength": 1,
-						"pattern": "^[a-z0-9-]+$",
 						"patternDescription": "lowercase letters, numbers, and dashes",
 						"type": "string"
 					}
 				},
-				"required": ["name", "slug"],
 				"type": "object"
 			},
 			"ErrorDetail": {
@@ -661,20 +643,15 @@
 					"email": {
 						"description": "Email address used to sign in. It is normalized before lookup.",
 						"examples": ["user@example.com"],
-						"format": "email",
-						"maxLength": 254,
 						"type": "string"
 					},
 					"password": {
 						"description": "Plain-text password to verify. It is never returned by the API.",
 						"examples": ["correct-horse-battery-staple"],
-						"maxLength": 128,
-						"minLength": 1,
 						"type": "string",
 						"writeOnly": true
 					}
 				},
-				"required": ["email", "password"],
 				"type": "object"
 			},
 			"LoginOutputBody": {
@@ -778,20 +755,16 @@
 				"additionalProperties": false,
 				"properties": {
 					"checkId": {
-						"format": "uuid",
 						"type": "string"
 					},
 					"durationMs": {
 						"format": "int32",
-						"minimum": 0,
 						"type": "integer"
 					},
 					"errorCode": {
-						"maxLength": 100,
 						"type": "string"
 					},
 					"errorMessage": {
-						"maxLength": 500,
 						"type": "string"
 					},
 					"finishedAt": {
@@ -799,13 +772,10 @@
 						"type": "string"
 					},
 					"ipFamily": {
-						"enum": ["inet", "inet6"],
 						"type": "string"
 					},
 					"lossPercent": {
 						"format": "double",
-						"maximum": 100,
-						"minimum": 0,
 						"type": "number"
 					},
 					"raw": {
@@ -814,7 +784,6 @@
 					},
 					"receivedCount": {
 						"format": "int32",
-						"minimum": 0,
 						"type": "integer"
 					},
 					"resolvedIp": {
@@ -822,22 +791,18 @@
 					},
 					"rttAvgMs": {
 						"format": "double",
-						"minimum": 0,
 						"type": "number"
 					},
 					"rttMaxMs": {
 						"format": "double",
-						"minimum": 0,
 						"type": "number"
 					},
 					"rttMedianMs": {
 						"format": "double",
-						"minimum": 0,
 						"type": "number"
 					},
 					"rttMinMs": {
 						"format": "double",
-						"minimum": 0,
 						"type": "number"
 					},
 					"rttSamplesMs": {
@@ -849,12 +814,10 @@
 					},
 					"rttStddevMs": {
 						"format": "double",
-						"minimum": 0,
 						"type": "number"
 					},
 					"sentCount": {
 						"format": "int32",
-						"minimum": 0,
 						"type": "integer"
 					},
 					"startedAt": {
@@ -862,11 +825,9 @@
 						"type": "string"
 					},
 					"status": {
-						"enum": ["successful", "timeout", "error"],
 						"type": "string"
 					}
 				},
-				"required": ["checkId", "startedAt", "finishedAt", "durationMs", "status", "sentCount", "receivedCount", "lossPercent"],
 				"type": "object"
 			},
 			"ProbeLabelResponse": {
@@ -1115,7 +1076,6 @@
 					"agentVersion": {
 						"description": "Probe agent version.",
 						"examples": ["netstamp-probe/0.1.0"],
-						"maxLength": 100,
 						"type": "string"
 					},
 					"publicV4": {
@@ -1146,14 +1106,12 @@
 							"additionalProperties": {},
 							"type": "object"
 						},
-						"maxItems": 500,
 						"type": ["array", "null"]
 					},
 					"ping": {
 						"items": {
 							"$ref": "#/components/schemas/PingResultInputBody"
 						},
-						"maxItems": 500,
 						"type": ["array", "null"]
 					},
 					"traceroute": {
@@ -1161,7 +1119,6 @@
 							"additionalProperties": {},
 							"type": "object"
 						},
-						"maxItems": 500,
 						"type": ["array", "null"]
 					}
 				},
@@ -1254,15 +1211,11 @@
 					"key": {
 						"description": "Label key.",
 						"examples": ["region"],
-						"maxLength": 100,
-						"minLength": 1,
 						"type": "string"
 					},
 					"value": {
 						"description": "Label value.",
 						"examples": ["tokyo"],
-						"maxLength": 100,
-						"minLength": 1,
 						"type": "string"
 					}
 				},
@@ -1280,12 +1233,10 @@
 					},
 					"role": {
 						"description": "Project member role.",
-						"enum": ["owner", "admin", "editor", "viewer"],
 						"examples": ["viewer"],
 						"type": "string"
 					}
 				},
-				"required": ["role"],
 				"type": "object"
 			},
 			"UpdateProjectInputBody": {
@@ -1301,16 +1252,11 @@
 					"name": {
 						"description": "Project display name.",
 						"examples": ["Engineering"],
-						"maxLength": 100,
-						"minLength": 1,
 						"type": "string"
 					},
 					"slug": {
 						"description": "Stable project slug.",
 						"examples": ["engineering"],
-						"maxLength": 100,
-						"minLength": 1,
-						"pattern": "^[a-z0-9-]+$",
 						"patternDescription": "lowercase letters, numbers, and dashes",
 						"type": "string"
 					}
@@ -1598,7 +1544,6 @@
 						"required": true,
 						"schema": {
 							"description": "Probe ID.",
-							"format": "uuid",
 							"type": "string"
 						}
 					},
@@ -1694,7 +1639,6 @@
 						"required": true,
 						"schema": {
 							"description": "Probe ID.",
-							"format": "uuid",
 							"type": "string"
 						}
 					},
@@ -1800,7 +1744,6 @@
 						"required": true,
 						"schema": {
 							"description": "Probe ID.",
-							"format": "uuid",
 							"type": "string"
 						}
 					},
@@ -1906,7 +1849,6 @@
 						"required": true,
 						"schema": {
 							"description": "Probe ID.",
-							"format": "uuid",
 							"type": "string"
 						}
 					},
@@ -2132,8 +2074,6 @@
 						"schema": {
 							"description": "Project UUID or slug.",
 							"examples": ["engineering"],
-							"maxLength": 100,
-							"minLength": 1,
 							"type": "string"
 						}
 					}
@@ -2212,8 +2152,6 @@
 						"schema": {
 							"description": "Project UUID or slug.",
 							"examples": ["engineering"],
-							"maxLength": 100,
-							"minLength": 1,
 							"type": "string"
 						}
 					}
@@ -2289,8 +2227,6 @@
 						"schema": {
 							"description": "Project UUID or slug.",
 							"examples": ["engineering"],
-							"maxLength": 100,
-							"minLength": 1,
 							"type": "string"
 						}
 					}
@@ -2853,8 +2789,6 @@
 						"schema": {
 							"description": "Project UUID or slug.",
 							"examples": ["engineering"],
-							"maxLength": 100,
-							"minLength": 1,
 							"type": "string"
 						}
 					}
@@ -2930,8 +2864,6 @@
 						"schema": {
 							"description": "Project UUID or slug.",
 							"examples": ["engineering"],
-							"maxLength": 100,
-							"minLength": 1,
 							"type": "string"
 						}
 					}
@@ -3039,8 +2971,6 @@
 						"schema": {
 							"description": "Project UUID or slug.",
 							"examples": ["engineering"],
-							"maxLength": 100,
-							"minLength": 1,
 							"type": "string"
 						}
 					},
@@ -3051,7 +2981,6 @@
 						"required": true,
 						"schema": {
 							"description": "Label ID.",
-							"format": "uuid",
 							"type": "string"
 						}
 					}
@@ -3130,8 +3059,6 @@
 						"schema": {
 							"description": "Project UUID or slug.",
 							"examples": ["engineering"],
-							"maxLength": 100,
-							"minLength": 1,
 							"type": "string"
 						}
 					},
@@ -3142,7 +3069,6 @@
 						"required": true,
 						"schema": {
 							"description": "Label ID.",
-							"format": "uuid",
 							"type": "string"
 						}
 					}
@@ -3250,8 +3176,6 @@
 						"schema": {
 							"description": "Project UUID or slug.",
 							"examples": ["engineering"],
-							"maxLength": 100,
-							"minLength": 1,
 							"type": "string"
 						}
 					}
@@ -3327,8 +3251,6 @@
 						"schema": {
 							"description": "Project UUID or slug.",
 							"examples": ["engineering"],
-							"maxLength": 100,
-							"minLength": 1,
 							"type": "string"
 						}
 					}
@@ -3436,8 +3358,6 @@
 						"schema": {
 							"description": "Project UUID or slug.",
 							"examples": ["engineering"],
-							"maxLength": 100,
-							"minLength": 1,
 							"type": "string"
 						}
 					},
@@ -3446,7 +3366,6 @@
 						"name": "user_id",
 						"required": true,
 						"schema": {
-							"format": "uuid",
 							"type": "string"
 						}
 					}
@@ -3554,8 +3473,6 @@
 						"schema": {
 							"description": "Project UUID or slug.",
 							"examples": ["engineering"],
-							"maxLength": 100,
-							"minLength": 1,
 							"type": "string"
 						}
 					}
