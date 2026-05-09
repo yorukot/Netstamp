@@ -150,6 +150,7 @@ Commands below come from the root `Justfile`, root `package.json`, `server/.air.
 - `just backend-build` or `pnpm build:server`: build `server/bin/api` from `./cmd/api`.
 - `just backend-openapi` or `pnpm generate:openapi`: write the Huma OpenAPI schema to `docs/public/openapi.json`.
 - `just backend-test` or `pnpm test:server`: run `go test ./...` inside `server/`.
+- `NETSTAMP_TEST_DATABASE_URL=postgres://netstamp:netstamp@localhost:5432/netstamp?sslmode=disable just backend-test-integration`: run opt-in API E2E tests against a local PostgreSQL/TimescaleDB instance.
 - `just backend-fmt`: run configured golangci formatters with `../golangci.yaml`.
 - `just backend-lint`: run `golangci-lint` with `../golangci.yaml`.
 - `just backend-lint-fix`: apply safe `golangci-lint` fixes.
@@ -170,9 +171,9 @@ For HTTP feature packages, keep `handler.go` focused on the `Handler` type, cons
 
 ## Testing Guidelines
 
-Tests use Go's standard `testing` package and live beside the code as `*_test.go`, for example `internal/application/auth/service_test.go` and `internal/logger/auth_events_test.go`. Existing tests use package-local fakes and zap observer cores rather than external test frameworks.
+Tests use Go's standard `testing` package and live beside the code as `*_test.go`, for example `internal/application/auth/service_test.go` and `internal/logger/auth_events_test.go`. Existing unit and handler tests use package-local fakes and zap observer cores rather than external test frameworks.
 
-Run backend tests with `just backend-test` or `cd server && go test ./...`. Integration tests, end-to-end tests, fixtures, a test database setup, and coverage thresholds are not currently defined. Add unit tests beside changed packages, and document any new integration-test setup before relying on it in CI.
+Run backend tests with `just backend-test` or `cd server && go test ./...`. API E2E tests live in `internal/e2e`, are gated by the `integration` build tag, and require `NETSTAMP_TEST_DATABASE_URL` to point at a local PostgreSQL/TimescaleDB database that can create/drop temporary databases. Start local dependencies with `docker compose -f deployments/docker/compose.backend.dev.yaml up -d`, then run `NETSTAMP_TEST_DATABASE_URL=postgres://netstamp:netstamp@localhost:5432/netstamp?sslmode=disable just backend-test-integration`. Coverage thresholds are not currently defined. Add unit tests beside changed packages, and use E2E tests only for complete API workflows that need real HTTP, services, repositories, migrations, and database behavior.
 
 ## Error Handling & Validation
 
