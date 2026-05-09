@@ -202,20 +202,16 @@
 					"description": {
 						"description": "Optional check description.",
 						"examples": ["Latency and loss to controller API."],
-						"maxLength": 500,
-						"minLength": 1,
 						"type": "string"
 					},
 					"intervalSeconds": {
 						"description": "Check interval in seconds.",
 						"examples": [30],
 						"format": "int32",
-						"minimum": 1,
 						"type": "integer"
 					},
 					"ipFamily": {
 						"description": "Optional IP family preference.",
-						"enum": ["inet", "inet6"],
 						"examples": ["inet"],
 						"type": "string"
 					},
@@ -229,23 +225,18 @@
 					"name": {
 						"description": "Check display name.",
 						"examples": ["api-latency"],
-						"maxLength": 100,
-						"minLength": 1,
 						"type": "string"
 					},
 					"packetCount": {
 						"description": "ICMP packet count. Defaults to 4.",
 						"examples": [4],
 						"format": "int32",
-						"minimum": 1,
 						"type": "integer"
 					},
 					"packetSizeBytes": {
 						"description": "ICMP payload size in bytes. Defaults to 56.",
 						"examples": [56],
 						"format": "int32",
-						"maximum": 65507,
-						"minimum": 0,
 						"type": "integer"
 					},
 					"selector": {
@@ -256,20 +247,16 @@
 					"target": {
 						"description": "Hostname or address to check.",
 						"examples": ["api.netstamp.io"],
-						"maxLength": 255,
-						"minLength": 1,
 						"type": "string"
 					},
 					"timeoutMs": {
 						"description": "Ping timeout in milliseconds. Defaults to 3000.",
 						"examples": [3000],
 						"format": "int32",
-						"minimum": 1,
 						"type": "integer"
 					},
 					"type": {
 						"description": "Check type. Only ping is supported in v1.",
-						"enum": ["ping"],
 						"examples": ["ping"],
 						"type": "string"
 					}
@@ -1039,27 +1026,20 @@
 					"displayName": {
 						"description": "Name shown in the app.",
 						"examples": ["Jane Doe"],
-						"maxLength": 100,
-						"minLength": 1,
 						"type": "string"
 					},
 					"email": {
 						"description": "Email address used to sign in.",
 						"examples": ["user@example.com"],
-						"format": "email",
-						"maxLength": 254,
 						"type": "string"
 					},
 					"password": {
 						"description": "Plain-text password. It is stored only as an Argon2id hash.",
 						"examples": ["correct-horse-battery-staple"],
-						"maxLength": 128,
-						"minLength": 8,
 						"type": "string",
 						"writeOnly": true
 					}
 				},
-				"required": ["email", "displayName", "password"],
 				"type": "object"
 			},
 			"RegisterOutputBody": {
@@ -1200,20 +1180,16 @@
 					"description": {
 						"description": "Optional check description.",
 						"examples": ["Latency and loss to controller API."],
-						"maxLength": 500,
-						"minLength": 1,
 						"type": "string"
 					},
 					"intervalSeconds": {
 						"description": "Check interval in seconds.",
 						"examples": [30],
 						"format": "int32",
-						"minimum": 1,
 						"type": "integer"
 					},
 					"ipFamily": {
 						"description": "Optional IP family preference.",
-						"enum": ["inet", "inet6"],
 						"examples": ["inet"],
 						"type": "string"
 					},
@@ -1227,23 +1203,18 @@
 					"name": {
 						"description": "Check display name.",
 						"examples": ["api-latency"],
-						"maxLength": 100,
-						"minLength": 1,
 						"type": "string"
 					},
 					"packetCount": {
 						"description": "ICMP packet count.",
 						"examples": [4],
 						"format": "int32",
-						"minimum": 1,
 						"type": "integer"
 					},
 					"packetSizeBytes": {
 						"description": "ICMP payload size in bytes.",
 						"examples": [56],
 						"format": "int32",
-						"maximum": 65507,
-						"minimum": 0,
 						"type": "integer"
 					},
 					"selector": {
@@ -1254,20 +1225,16 @@
 					"target": {
 						"description": "Hostname or address to check.",
 						"examples": ["api.netstamp.io"],
-						"maxLength": 255,
-						"minLength": 1,
 						"type": "string"
 					},
 					"timeoutMs": {
 						"description": "Ping timeout in milliseconds.",
 						"examples": [3000],
 						"format": "int32",
-						"minimum": 1,
 						"type": "integer"
 					},
 					"type": {
 						"description": "Check type. Only ping is supported in v1.",
-						"enum": ["ping"],
 						"examples": ["ping"],
 						"type": "string"
 					}
@@ -2431,8 +2398,6 @@
 						"schema": {
 							"description": "Project UUID or slug.",
 							"examples": ["engineering"],
-							"maxLength": 100,
-							"minLength": 1,
 							"type": "string"
 						}
 					}
@@ -2508,8 +2473,6 @@
 						"schema": {
 							"description": "Project UUID or slug.",
 							"examples": ["engineering"],
-							"maxLength": 100,
-							"minLength": 1,
 							"type": "string"
 						}
 					}
@@ -2607,8 +2570,6 @@
 						"schema": {
 							"description": "Project UUID or slug.",
 							"examples": ["engineering"],
-							"maxLength": 100,
-							"minLength": 1,
 							"type": "string"
 						}
 					},
@@ -2620,7 +2581,6 @@
 						"schema": {
 							"description": "Check ID.",
 							"examples": ["33333333-3333-3333-3333-333333333333"],
-							"format": "uuid",
 							"type": "string"
 						}
 					}
@@ -2699,8 +2659,6 @@
 						"schema": {
 							"description": "Project UUID or slug.",
 							"examples": ["engineering"],
-							"maxLength": 100,
-							"minLength": 1,
 							"type": "string"
 						}
 					},
@@ -2712,7 +2670,6 @@
 						"schema": {
 							"description": "Check ID.",
 							"examples": ["33333333-3333-3333-3333-333333333333"],
-							"format": "uuid",
 							"type": "string"
 						}
 					}
@@ -2788,8 +2745,6 @@
 						"schema": {
 							"description": "Project UUID or slug.",
 							"examples": ["engineering"],
-							"maxLength": 100,
-							"minLength": 1,
 							"type": "string"
 						}
 					},
@@ -2801,7 +2756,6 @@
 						"schema": {
 							"description": "Check ID.",
 							"examples": ["33333333-3333-3333-3333-333333333333"],
-							"format": "uuid",
 							"type": "string"
 						}
 					}

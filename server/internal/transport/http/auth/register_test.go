@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
+	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/humatest"
 
 	appauth "github.com/yorukot/netstamp/internal/application/auth"
@@ -76,6 +78,60 @@ func TestRegisterRejectsMissingDisplayName(t *testing.T) {
 	if res.Code != http.StatusUnprocessableEntity {
 		t.Fatalf("expected status 422, got %d", res.Code)
 	}
+	assertRegisterHumaErrorDetail(t, res, "body.displayName", "must not be blank")
+}
+
+func TestRegisterReturnsServiceFieldErrorsForSemanticValidation(t *testing.T) {
+	tests := []struct {
+		name        string
+		body        map[string]any
+		wantField   string
+		wantMessage string
+	}{
+		{
+			name: "invalid email",
+			body: map[string]any{
+				"email":       "not-an-email",
+				"displayName": "Example User",
+				"password":    "correct-password",
+			},
+			wantField:   "body.email",
+			wantMessage: "must be a valid email address",
+		},
+		{
+			name: "blank display name",
+			body: map[string]any{
+				"email":       "user@example.com",
+				"displayName": "   ",
+				"password":    "correct-password",
+			},
+			wantField:   "body.displayName",
+			wantMessage: "must not be blank",
+		},
+		{
+			name: "short password",
+			body: map[string]any{
+				"email":       "user@example.com",
+				"displayName": "Example User",
+				"password":    "short",
+			},
+			wantField:   "body.password",
+			wantMessage: "must be at least 8 characters",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, api := humatest.New(t)
+			NewHandler(newTestAuthService(&handlerUserRepository{}, &handlerPasswordHasher{}, &handlerTokenIssuer{}), nil).RegisterRoutes(api)
+
+			res := api.Post("/auth/register", tt.body)
+			if res.Code != http.StatusUnprocessableEntity {
+				t.Fatalf("expected status 422, got %d", res.Code)
+			}
+			assertRegisterHumaErrorDetail(t, res, tt.wantField, tt.wantMessage)
+		})
+	}
 }
 
 func TestRegisterMapsDuplicateEmailToConflict(t *testing.T) {
@@ -95,6 +151,22 @@ func TestRegisterMapsDuplicateEmailToConflict(t *testing.T) {
 	if res.Code != http.StatusConflict {
 		t.Fatalf("expected status 409, got %d", res.Code)
 	}
+}
+
+func assertRegisterHumaErrorDetail(t *testing.T, res *httptest.ResponseRecorder, wantLocation, wantMessage string) {
+	t.Helper()
+
+	var body huma.ErrorModel
+	if err := json.NewDecoder(res.Body).Decode(&body); err != nil {
+		t.Fatalf("decode error response: %v", err)
+	}
+	for _, detail := range body.Errors {
+		if detail.Location == wantLocation && detail.Message == wantMessage {
+			return
+		}
+	}
+
+	t.Fatalf("expected error detail %q/%q, got %#v", wantLocation, wantMessage, body.Errors)
 }
 
 func newTestAuthService(repo appauth.UserRepository, hasher appauth.PasswordHasher, tokens appauth.TokenIssuer) *appauth.Service {

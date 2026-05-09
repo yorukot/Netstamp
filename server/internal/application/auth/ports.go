@@ -59,6 +59,7 @@ const (
 	AuthReasonCredentialsInvalid   AuthEventReason = "credentials_invalid"
 	AuthReasonDisplayNameInvalid   AuthEventReason = "display_name_invalid"
 	AuthReasonEmailAlreadyExists   AuthEventReason = "email_already_exists"
+	AuthReasonInvalidInput         AuthEventReason = "invalid_input"
 	AuthReasonUserInactive         AuthEventReason = "user_inactive"
 	AuthReasonPasswordHashFailed   AuthEventReason = "password_hash_failed"
 	AuthReasonUserCreateFailed     AuthEventReason = "user_create_failed"

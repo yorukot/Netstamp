@@ -8,6 +8,7 @@ import (
 
 var (
 	ErrEmailAlreadyExists  = identity.ErrEmailAlreadyExists
+	ErrInvalidInput        = errors.New("auth input invalid")
 	ErrDisplayNameRequired = errors.New("display name required")
 	ErrDisplayNameTooLong  = errors.New("display name too long")
 	ErrCredentialsInvalid  = errors.New("credentials invalid")

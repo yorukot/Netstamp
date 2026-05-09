@@ -17,10 +17,10 @@ func (h *Handler) register(ctx context.Context, input *registerInput) (*register
 	})
 	if err != nil {
 		switch {
-		case errors.Is(err, appauth.ErrDisplayNameRequired):
-			return nil, huma.Error422UnprocessableEntity("display name is required")
-		case errors.Is(err, appauth.ErrDisplayNameTooLong):
-			return nil, huma.Error422UnprocessableEntity("display name is too long")
+		case errors.Is(err, appauth.ErrInvalidInput),
+			errors.Is(err, appauth.ErrDisplayNameRequired),
+			errors.Is(err, appauth.ErrDisplayNameTooLong):
+			return nil, invalidAuthInputError(err)
 		case errors.Is(err, appauth.ErrEmailAlreadyExists):
 			return nil, huma.Error409Conflict("email already exists")
 		default:
@@ -51,9 +51,9 @@ type registerOutput struct {
 }
 
 type registerInputBody struct {
-	Email       string `json:"email" format:"email" maxLength:"254" required:"true" doc:"Email address used to sign in." example:"user@example.com"`
-	DisplayName string `json:"displayName" minLength:"1" maxLength:"100" required:"true" doc:"Name shown in the app." example:"Jane Doe"`
-	Password    string `json:"password" minLength:"8" maxLength:"128" required:"true" writeOnly:"true" doc:"Plain-text password. It is stored only as an Argon2id hash." example:"correct-horse-battery-staple"` //nolint:gosec // Register requests intentionally accept plaintext passwords over TLS.
+	Email       string `json:"email,omitempty" doc:"Email address used to sign in." example:"user@example.com"`
+	DisplayName string `json:"displayName,omitempty" doc:"Name shown in the app." example:"Jane Doe"`
+	Password    string `json:"password,omitempty" writeOnly:"true" doc:"Plain-text password. It is stored only as an Argon2id hash." example:"correct-horse-battery-staple"` //nolint:gosec // Register requests intentionally accept plaintext passwords over TLS.
 }
 
 type registerOutputBody struct {

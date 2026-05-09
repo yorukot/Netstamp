@@ -3,13 +3,10 @@ package auth
 import (
 	"context"
 	"errors"
-	"unicode/utf8"
 
 	"github.com/yorukot/netstamp/internal/domain/identity"
 	"github.com/yorukot/netstamp/internal/normalize"
 )
-
-const maxDisplayNameLength = 100
 
 type Service struct {
 	users  UserRepository
@@ -30,25 +27,22 @@ func NewService(users UserRepository, hasher PasswordHasher, tokens TokenIssuer,
 // Register is the service entry for the register action
 func (s *Service) Register(ctx context.Context, input RegisterInput) (AuthAccessResult, error) {
 	email := normalize.Email(input.Email)
-	displayName, displayNameErr := normalize.RequiredString(input.DisplayName, ErrDisplayNameRequired)
 	ctx, flow := s.startAuthFlow(ctx, "auth.register", AuthActionRegister, email)
 	defer flow.end()
 
-	if displayNameErr != nil {
-		return AuthAccessResult{}, flow.businessFailure(AuthEventRegisterFailure, AuthReasonDisplayNameInvalid, displayNameErr)
-	}
-	if utf8.RuneCountInString(displayName) > maxDisplayNameLength {
-		return AuthAccessResult{}, flow.businessFailure(AuthEventRegisterFailure, AuthReasonDisplayNameInvalid, ErrDisplayNameTooLong)
+	normalized, err := normalizeRegisterInput(input)
+	if err != nil {
+		return AuthAccessResult{}, flow.businessFailure(AuthEventRegisterFailure, registerValidationReason(err), err)
 	}
 
-	passwordHash, err := s.hashPassword(ctx, input.Password)
+	passwordHash, err := s.hashPassword(ctx, normalized.password)
 	if err != nil {
 		return AuthAccessResult{}, flow.technicalFailure(AuthEventRegisterFailure, AuthReasonPasswordHashFailed, err)
 	}
 
 	user, err := s.createUser(ctx, identity.CreateUserInput{
-		Email:        email,
-		DisplayName:  displayName,
+		Email:        normalized.email,
+		DisplayName:  normalized.displayName,
 		PasswordHash: passwordHash,
 	})
 	if errors.Is(err, ErrEmailAlreadyExists) {
