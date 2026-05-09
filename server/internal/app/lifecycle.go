@@ -51,6 +51,11 @@ func (a *Application) shutdown(ctx context.Context) error {
 	if a.DBPool != nil {
 		a.DBPool.Close()
 	}
+	if a.Metrics != nil {
+		if err := a.Metrics.Shutdown(ctx); err != nil {
+			errs = append(errs, fmt.Errorf("shutdown metrics: %w", err))
+		}
+	}
 	if a.Tracing != nil {
 		if err := a.Tracing.Shutdown(ctx); err != nil {
 			errs = append(errs, fmt.Errorf("shutdown tracing: %w", err))

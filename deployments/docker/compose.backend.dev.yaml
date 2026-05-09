@@ -27,11 +27,28 @@ services:
     volumes:
       - netstamp-backend-dev-victoria-traces:/victoria-traces-data
 
+  victoria-metrics:
+    image: ${VICTORIA_METRICS_IMAGE:-victoriametrics/victoria-metrics:v1.140.0}
+    restart: unless-stopped
+    command:
+      - -storageDataPath=/victoria-metrics-data
+      - -retentionPeriod=${VICTORIA_METRICS_RETENTION_PERIOD:-14d}
+      - -promscrape.config=/etc/victoria-metrics/promscrape.yaml
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    ports:
+      - "${VICTORIA_METRICS_HTTP_ADDR:-127.0.0.1:8428}:8428"
+    volumes:
+      - netstamp-backend-dev-victoria-metrics:/victoria-metrics-data
+      - ./victoria-metrics/backend-dev-promscrape.yaml:/etc/victoria-metrics/promscrape.yaml:ro
+
   grafana:
     image: ${GRAFANA_IMAGE:-grafana/grafana:13.0}
     restart: unless-stopped
     depends_on:
       victoria-traces:
+        condition: service_started
+      victoria-metrics:
         condition: service_started
     environment:
       GF_SECURITY_ADMIN_USER: ${GF_SECURITY_ADMIN_USER:-admin}
@@ -46,4 +63,5 @@ services:
 volumes:
   netstamp-backend-dev-postgres:
   netstamp-backend-dev-victoria-traces:
+  netstamp-backend-dev-victoria-metrics:
   netstamp-backend-dev-grafana:

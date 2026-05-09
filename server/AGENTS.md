@@ -112,7 +112,7 @@ Zap is configured in `internal/logger/zap.go`. Every root logger includes `servi
 
 Use request-scoped loggers from `logger.FromContext(ctx, fallback)` when handling requests. HTTP logging in `internal/transport/http/middleware/logging.go` adds `request_id`, method, path, client address, user agent, status, bytes, duration, and trace fields.
 
-Application-level events must follow the auth/project/label/probe pattern:
+Application-level events must follow the auth/project/label/probe/proberuntime pattern:
 
 - Define typed event names, actions, outcomes, reasons, and recorder ports in the application package `ports.go`.
 - Keep zap out of application packages. Services call the package recorder interface; `internal/logger` owns zap fields, privacy handling, and log levels.
@@ -133,13 +133,17 @@ Check application events must go through `logger.CheckEventRecorder`. Check crea
 
 Probe application events must go through `logger.ProbeEventRecorder`. Probe create currently records failure events only; successful creates are covered by the HTTP request logger. Probe events must never include the plaintext secret or its hash.
 
+Probe runtime application events must go through `logger.ProbeRuntimeEventRecorder`. Probe runtime currently records failure events only; successful hello, heartbeat, assignment polling, and result submission are covered by the HTTP request logger. Probe runtime events must never include plaintext secrets, secret hashes, agent version, IP addresses, raw result bodies, result error messages, check targets, or selector text.
+
 ## Tracing & Observability
 
-OpenTelemetry is configured in `internal/observability/tracing/tracing.go`. The provider always samples locally and exports only when `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` is set. TraceContext and Baggage propagators are installed globally.
+OpenTelemetry tracing is configured in `internal/observability/tracing/tracing.go`. The provider always samples locally and exports only when `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` is set. TraceContext and Baggage propagators are installed globally.
 
 HTTP tracing is wired through `otelhttp.NewMiddleware` in `internal/transport/http/router.go`, with span names from `internal/observability/httptrace/span.go`. Auth service methods create child spans in `internal/application/auth/trace.go` and `flow.go`. PostgreSQL repository methods use span helpers in `internal/infrastructure/postgres/trace.go`.
 
-Keep `context.Context` as the first parameter for request, service, repository, and token operations so trace context and request loggers propagate across layers. New database calls should either use existing DB span helpers or add equivalent attributes without recording raw SQL parameters. Metrics are not currently configured.
+Prometheus metrics are configured in `internal/observability/metrics/metrics.go` and exposed at `/metrics` on the backend HTTP listener. VictoriaMetrics scrapes that endpoint from Docker compose and Grafana provisions a `VictoriaMetrics` Prometheus datasource.
+
+Keep `context.Context` as the first parameter for request, service, repository, and token operations so trace context and request loggers propagate across layers. New database calls should either use existing DB span helpers or add equivalent attributes without recording raw SQL parameters.
 
 ## Build, Test, and Development Commands
 
@@ -156,8 +160,8 @@ Commands below come from the root `Justfile`, root `package.json`, `server/.air.
 - `just backend-lint-fix`: apply safe `golangci-lint` fixes.
 - `just backend-sqlc`: regenerate sqlc code from `sqlc.yaml`.
 - `just backend-migrate-status`, `just backend-migrate-up`, `just backend-migrate-down`: run `cmd/migrate`.
-- `docker compose -f deployments/docker/compose.backend.dev.yaml up -d`: start local PostgreSQL/TimescaleDB, VictoriaTraces, and Grafana dependencies for a host-run backend.
-- `docker compose -f deployments/docker/compose.observability.yaml up --build`: build and run the Docker stack with PostgreSQL, VictoriaTraces, VictoriaLogs, Vector, Grafana, nginx, backend, and migrations.
+- `docker compose -f deployments/docker/compose.backend.dev.yaml up -d`: start local PostgreSQL/TimescaleDB, VictoriaTraces, VictoriaMetrics, and Grafana dependencies for a host-run backend.
+- `docker compose -f deployments/docker/compose.observability.yaml up --build`: build and run the Docker stack with PostgreSQL, VictoriaTraces, VictoriaMetrics, VictoriaLogs, Vector, Grafana, nginx, backend, and migrations.
 
 Use `server/.env.example` as the env template. `server/.gitignore` intentionally ignores `.env`, `.env.*`, `bin/`, `tmp/`, and `coverage.out`.
 
@@ -173,7 +177,7 @@ For HTTP feature packages, keep `handler.go` focused on the `Handler` type, cons
 
 Tests use Go's standard `testing` package and live beside the code as `*_test.go`, for example `internal/application/auth/service_test.go` and `internal/logger/auth_events_test.go`. Existing unit and handler tests use package-local fakes and zap observer cores rather than external test frameworks.
 
-Run backend tests with `just backend-test` or `cd server && go test ./...`. API E2E tests live in `internal/e2e`, are gated by the `integration` build tag, and require `NETSTAMP_TEST_DATABASE_URL` to point at a local PostgreSQL/TimescaleDB database that can create/drop temporary databases. Start local dependencies with `docker compose -f deployments/docker/compose.backend.dev.yaml up -d`, then run `NETSTAMP_TEST_DATABASE_URL=postgres://netstamp:netstamp@localhost:5432/netstamp?sslmode=disable just backend-test-integration`. Coverage thresholds are not currently defined. Add unit tests beside changed packages, and use E2E tests only for complete API workflows that need real HTTP, services, repositories, migrations, and database behavior.
+Run backend tests with `just backend-test` or `cd server && go test ./...`. API E2E tests live in `internal/e2e`, are gated by the `integration` build tag, and require `NETSTAMP_TEST_DATABASE_URL` to point at a local PostgreSQL/TimescaleDB database that can create/drop temporary databases. Start local dependencies with `docker compose -f deployments/docker/compose.backend.dev.yaml up -d`, then run `NETSTAMP_TEST_DATABASE_URL=postgres://netstamp:netstamp@localhost:5432/netstamp?sslmode=disable just backend-test-integration`. The integration recipe uses verbose test output so harness and API-flow checkpoints are visible. Coverage thresholds are not currently defined. Add unit tests beside changed packages, and use E2E tests only for complete API workflows that need real HTTP, services, repositories, migrations, and database behavior.
 
 ## Error Handling & Validation
 
@@ -195,7 +199,7 @@ Add schema changes as timestamped Goose migrations under `db/migrations/`, follo
 
 ## External Integrations
 
-Current backend integrations are PostgreSQL/TimescaleDB and optional OTLP trace export to VictoriaTraces, as shown in `deployments/docker/compose.yaml` and `compose.observability.yaml`. Docker observability also includes VictoriaLogs with Vector container log collection. No third-party API SDKs, queues, email services, payment providers, or object storage clients are currently implemented.
+Current backend integrations are PostgreSQL/TimescaleDB, optional OTLP trace export to VictoriaTraces, and Prometheus-compatible metrics scraped by VictoriaMetrics, as shown in `deployments/docker/compose.backend.dev.yaml` and `compose.observability.yaml`. Docker observability also includes VictoriaLogs with Vector container log collection. No third-party API SDKs, queues, email services, payment providers, or object storage clients are currently implemented.
 
 ## Commit & Pull Request Guidelines
 

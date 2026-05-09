@@ -8,3 +8,11 @@ datasources:
     url: http://victoria-traces:10428/select/jaeger
     isDefault: true
     editable: true
+
+  - name: VictoriaMetrics
+    uid: victoria-metrics
+    type: prometheus
+    access: proxy
+    url: http://victoria-metrics:8428
+    isDefault: false
+    editable: true

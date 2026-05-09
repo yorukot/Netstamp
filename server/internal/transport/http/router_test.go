@@ -6,6 +6,9 @@ import (
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	chimw "github.com/go-chi/chi/v5/middleware"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type openAPISnapshot struct {
@@ -77,6 +80,34 @@ func TestNewRouterOpenAPIUsesBackendBaseURLServerURL(t *testing.T) {
 	}
 	if spec.Servers[0].URL != "https://api.netstamp.dev/api/v1" {
 		t.Fatalf("expected absolute server URL, got %q", spec.Servers[0].URL)
+	}
+}
+
+func TestNewRouterServesMetricsOutsideVersionedAPI(t *testing.T) {
+	router := NewRouter(Dependencies{
+		APIVersion:     "v1",
+		RequestTimeout: time.Second,
+		MetricsHandler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if requestID := chimw.GetReqID(r.Context()); requestID != "" {
+				t.Errorf("expected metrics to bypass request ID middleware, got %q", requestID)
+			}
+			if spanContext := trace.SpanContextFromContext(r.Context()); spanContext.IsValid() {
+				t.Errorf("expected metrics to bypass otelhttp tracing, got trace ID %q", spanContext.TraceID())
+			}
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("metrics"))
+		}),
+	})
+
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodGet, "/metrics", http.NoBody)
+	router.ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected metrics status 200, got %d", recorder.Code)
+	}
+	if recorder.Body.String() != "metrics" {
+		t.Fatalf("expected metrics response body, got %q", recorder.Body.String())
 	}
 }
 

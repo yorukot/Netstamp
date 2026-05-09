@@ -42,6 +42,7 @@ type Dependencies struct {
 	ProjectService *appproject.Service
 	ReadinessCheck func(context.Context) error
 	RequestTimeout time.Duration
+	MetricsHandler http.Handler
 }
 
 func NewRouter(dep Dependencies) http.Handler {
@@ -49,6 +50,15 @@ func NewRouter(dep Dependencies) http.Handler {
 		dep.Log = zap.NewNop()
 	}
 
+	apiRouter := newAPIRouter(dep)
+	if dep.MetricsHandler == nil {
+		return apiRouter
+	}
+
+	return routeMetrics(apiRouter, dep.MetricsHandler)
+}
+
+func newAPIRouter(dep Dependencies) http.Handler {
 	r := chi.NewRouter()
 	r.Use(chimw.RequestID)
 	r.Use(chimw.RealIP)
@@ -73,6 +83,17 @@ func NewRouter(dep Dependencies) http.Handler {
 	})
 
 	return r
+}
+
+func routeMetrics(apiRouter http.Handler, metricsHandler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/metrics" {
+			metricsHandler.ServeHTTP(w, r)
+			return
+		}
+
+		apiRouter.ServeHTTP(w, r)
+	})
 }
 
 func registerAPIRoutes(api huma.API, dep Dependencies) {

@@ -107,6 +107,21 @@ services:
     labels:
       - netstamp.logs=enabled
 
+  victoria-metrics:
+    image: ${VICTORIA_METRICS_IMAGE:-victoriametrics/victoria-metrics:v1.140.0}
+    restart: unless-stopped
+    command:
+      - -storageDataPath=/victoria-metrics-data
+      - -retentionPeriod=${VICTORIA_METRICS_RETENTION_PERIOD:-14d}
+      - -promscrape.config=/etc/victoria-metrics/promscrape.yaml
+    expose:
+      - "8428"
+    volumes:
+      - netstamp-victoria-metrics:/victoria-metrics-data
+      - ./victoria-metrics/observability-promscrape.yaml:/etc/victoria-metrics/promscrape.yaml:ro
+    labels:
+      - netstamp.logs=enabled
+
   victoria-logs:
     image: ${VICTORIA_LOGS_IMAGE:-victoriametrics/victoria-logs:v1.50.0}
     restart: unless-stopped
@@ -136,6 +151,8 @@ services:
     depends_on:
       victoria-traces:
         condition: service_started
+      victoria-metrics:
+        condition: service_started
       victoria-logs:
         condition: service_started
     environment:
@@ -157,6 +174,7 @@ services:
 volumes:
   netstamp-postgres:
   netstamp-victoria-traces:
+  netstamp-victoria-metrics:
   netstamp-victoria-logs:
   netstamp-grafana:
 

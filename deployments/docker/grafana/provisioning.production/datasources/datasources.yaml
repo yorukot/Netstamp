@@ -9,6 +9,14 @@ datasources:
     isDefault: true
     editable: true
 
+  - name: VictoriaMetrics
+    uid: victoria-metrics
+    type: prometheus
+    access: proxy
+    url: http://victoria-metrics:8428
+    isDefault: false
+    editable: true
+
   - name: VictoriaLogs
     uid: victoria-logs
     type: victoriametrics-logs-datasource

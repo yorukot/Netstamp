@@ -25,6 +25,7 @@ import (
 	pguser "github.com/yorukot/netstamp/internal/infrastructure/postgres/user"
 	"github.com/yorukot/netstamp/internal/infrastructure/security"
 	"github.com/yorukot/netstamp/internal/logger"
+	"github.com/yorukot/netstamp/internal/observability/metrics"
 	"github.com/yorukot/netstamp/internal/observability/tracing"
 	httpserver "github.com/yorukot/netstamp/internal/transport/http"
 )
@@ -34,6 +35,7 @@ type Application struct {
 	Log        *zap.Logger
 	HTTPServer *http.Server
 	DBPool     *pgxpool.Pool
+	Metrics    *metrics.Provider
 	Tracing    *tracing.Provider
 }
 
@@ -59,6 +61,15 @@ func New(ctx context.Context) (*Application, error) {
 	otel.SetErrorHandler(otel.ErrorHandlerFunc(func(err error) {
 		log.Warn("otel_error", zap.Error(err))
 	}))
+
+	metricsProvider, err := metrics.NewProvider(metrics.Config{
+		Env:            cfg.Env,
+		ServiceName:    cfg.ServiceName,
+		ServiceVersion: cfg.Version,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("create metrics provider: %w", err)
+	}
 
 	tracingProvider, err := tracing.NewProvider(ctx, tracing.Config{
 		Env:                cfg.Env,
@@ -95,6 +106,7 @@ func New(ctx context.Context) (*Application, error) {
 	labelEvents := logger.NewLabelEventRecorder(log)
 	checkEvents := logger.NewCheckEventRecorder(log)
 	probeEvents := logger.NewProbeEventRecorder(log)
+	probeRuntimeEvents := logger.NewProbeRuntimeEventRecorder(log)
 
 	authSvc := appauth.NewService(userRepo, passwordHasher, tokenIssuer, authEvents)
 	projectRepo := pgproject.NewProjectRepository(dbPool)
@@ -106,7 +118,7 @@ func New(ctx context.Context) (*Application, error) {
 	probeRepo := pgprobe.NewProbeRepository(dbPool)
 	pingRepo := pgping.NewPingRepository(dbPool)
 	probeSvc := appprobe.NewService(probeRepo, projectRepo, labelRepo, security.NewProbeSecretGenerator(), probeEvents)
-	probeRuntimeSvc := appproberuntime.NewService(probeRepo, pingRepo, security.NewProbeSecretVerifier())
+	probeRuntimeSvc := appproberuntime.NewService(probeRepo, pingRepo, security.NewProbeSecretVerifier(), probeRuntimeEvents)
 	readiness := postgres.NewReadinessCheck(dbPool)
 
 	httpHandler := httpserver.NewRouter(httpserver.Dependencies{
@@ -122,6 +134,7 @@ func New(ctx context.Context) (*Application, error) {
 		ProjectService: projectSvc,
 		ReadinessCheck: readiness,
 		RequestTimeout: cfg.HTTP.RequestTimeout,
+		MetricsHandler: metricsProvider.Handler(),
 	})
 
 	return &Application{
@@ -129,6 +142,7 @@ func New(ctx context.Context) (*Application, error) {
 		Log:        log,
 		HTTPServer: httpserver.NewServer(cfg.HTTP, httpHandler),
 		DBPool:     dbPool,
+		Metrics:    metricsProvider,
 		Tracing:    tracingProvider,
 	}, nil
 }
