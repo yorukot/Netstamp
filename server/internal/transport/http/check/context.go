@@ -7,6 +7,7 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 
 	appcheck "github.com/yorukot/netstamp/internal/application/check"
+	appvalidation "github.com/yorukot/netstamp/internal/application/validation"
 	httpmiddleware "github.com/yorukot/netstamp/internal/transport/http/middleware"
 )
 
@@ -26,8 +27,34 @@ func mapCheckError(err error, fallback string) error {
 	case errors.Is(err, appcheck.ErrForbidden):
 		return huma.Error403Forbidden("forbidden")
 	case errors.Is(err, appcheck.ErrInvalidInput):
-		return huma.Error422UnprocessableEntity("invalid check input")
+		return invalidCheckInputError(err)
 	default:
 		return huma.Error500InternalServerError(fallback)
 	}
+}
+
+func invalidCheckInputError(err error) error {
+	fieldErrors, ok := appvalidation.FieldErrors(err)
+	if !ok {
+		return huma.Error422UnprocessableEntity("invalid check input")
+	}
+
+	details := make([]error, 0, len(fieldErrors))
+	for _, fieldErr := range fieldErrors {
+		details = append(details, &huma.ErrorDetail{
+			Message:  fieldErr.Message,
+			Location: checkErrorLocation(fieldErr.Field),
+			Value:    fieldErr.Value,
+		})
+	}
+
+	return huma.Error422UnprocessableEntity("invalid check input", details...)
+}
+
+func checkErrorLocation(field string) string {
+	if field == "" {
+		return "body"
+	}
+
+	return "body." + field
 }

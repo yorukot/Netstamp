@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	appvalidation "github.com/yorukot/netstamp/internal/application/validation"
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
 	domainlabel "github.com/yorukot/netstamp/internal/domain/label"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
@@ -145,6 +146,7 @@ func TestCreateCheckRejectsInvalidSelector(t *testing.T) {
 	if !errors.Is(err, ErrInvalidInput) {
 		t.Fatalf("expected invalid input, got %v", err)
 	}
+	assertValidationFieldError(t, err, "selector", "must be a valid selector")
 	if repo.gotCreate.Name != "" {
 		t.Fatalf("expected create not to be called, got %#v", repo.gotCreate)
 	}
@@ -156,6 +158,27 @@ func TestCreateCheckRejectsInvalidSelector(t *testing.T) {
 		ActorUserID: "user-1",
 		ProjectRef:  "engineering",
 	})
+}
+
+func TestCreateCheckRejectsBlankNameWithFieldError(t *testing.T) {
+	repo := &fakeCheckRepository{}
+	service := NewService(repo, &fakeProjectAccess{role: domainproject.RoleEditor}, &fakeLabelAccess{}, &recordingCheckEventRecorder{})
+
+	_, err := service.CreateCheck(context.Background(), CreateCheckInput{
+		CurrentUserID:   "user-1",
+		ProjectRef:      "engineering",
+		Name:            "   ",
+		Type:            "ping",
+		Target:          "api.netstamp.io",
+		IntervalSeconds: 30,
+	})
+	if !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("expected invalid input, got %v", err)
+	}
+	assertValidationFieldError(t, err, "name", "must not be blank")
+	if repo.gotCreate.Name != "" {
+		t.Fatalf("expected create not to be called, got %#v", repo.gotCreate)
+	}
 }
 
 func TestCreateCheckRejectsViewerBeforeLabelLookup(t *testing.T) {
@@ -352,6 +375,7 @@ func TestUpdateCheckRejectsInvalidSelector(t *testing.T) {
 	if !errors.Is(err, ErrInvalidInput) {
 		t.Fatalf("expected invalid input, got %v", err)
 	}
+	assertValidationFieldError(t, err, "selector", "must be a valid selector")
 	if repo.gotGetCheckID != "" || repo.gotUpdate.CheckID != "" {
 		t.Fatalf("expected repository not to be called, got get=%q update=%#v", repo.gotGetCheckID, repo.gotUpdate)
 	}
@@ -381,6 +405,7 @@ func TestUpdateCheckRejectsEmptyPatch(t *testing.T) {
 	if !errors.Is(err, ErrInvalidInput) {
 		t.Fatalf("expected invalid input, got %v", err)
 	}
+	assertValidationFieldError(t, err, "", "at least one field must be provided")
 	if repo.gotGetCheckID != "" || repo.gotUpdate.CheckID != "" {
 		t.Fatalf("expected repository not to be called, got get=%q update=%#v", repo.gotGetCheckID, repo.gotUpdate)
 	}
@@ -453,6 +478,22 @@ func assertNoCheckEvents(t *testing.T, recorder *recordingCheckEventRecorder) {
 	if len(recorder.events) != 0 {
 		t.Fatalf("expected no events, got %d: %#v", len(recorder.events), recorder.events)
 	}
+}
+
+func assertValidationFieldError(t *testing.T, err error, wantField, wantMessage string) {
+	t.Helper()
+
+	fields, ok := appvalidation.FieldErrors(err)
+	if !ok {
+		t.Fatalf("expected validation field errors, got %v", err)
+	}
+	for _, field := range fields {
+		if field.Field == wantField && field.Message == wantMessage {
+			return
+		}
+	}
+
+	t.Fatalf("expected field error %q/%q, got %#v", wantField, wantMessage, fields)
 }
 
 type recordingCheckEventRecorder struct {

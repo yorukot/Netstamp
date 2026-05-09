@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
+	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/humatest"
 
 	appcheck "github.com/yorukot/netstamp/internal/application/check"
@@ -106,6 +108,62 @@ func TestCreateCheckMapsForbiddenToForbidden(t *testing.T) {
 	}
 }
 
+func TestCreateCheckReturnsFieldErrorForBlankName(t *testing.T) {
+	_, api := humatest.New(t)
+	NewHandler(appcheck.NewService(&handlerCheckRepository{}, &handlerProjectAccess{role: domainproject.RoleEditor}, &handlerLabelAccess{}, handlerCheckEventRecorder{}), &handlerTokenVerifier{
+		claims: identity.AccessTokenClaims{Subject: testUserID, Email: "user@example.com"},
+	}).RegisterRoutes(api)
+
+	res := api.Post("/projects/engineering/checks", map[string]any{
+		"name":            "   ",
+		"type":            "ping",
+		"target":          "api.netstamp.io",
+		"intervalSeconds": 30,
+	}, "Authorization: Bearer valid-token")
+	if res.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("expected status 422, got %d", res.Code)
+	}
+	assertHumaErrorDetail(t, res, "body.name", "must not be blank")
+}
+
+func TestCreateCheckReturnsFieldErrorForInvalidSelector(t *testing.T) {
+	_, api := humatest.New(t)
+	NewHandler(appcheck.NewService(&handlerCheckRepository{}, &handlerProjectAccess{role: domainproject.RoleEditor}, &handlerLabelAccess{}, handlerCheckEventRecorder{}), &handlerTokenVerifier{
+		claims: identity.AccessTokenClaims{Subject: testUserID, Email: "user@example.com"},
+	}).RegisterRoutes(api)
+
+	res := api.Post("/projects/engineering/checks", map[string]any{
+		"name":            "api-latency",
+		"type":            "ping",
+		"target":          "api.netstamp.io",
+		"selector":        map[string]any{"label": "edge"},
+		"intervalSeconds": 30,
+	}, "Authorization: Bearer valid-token")
+	if res.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("expected status 422, got %d", res.Code)
+	}
+	assertHumaErrorDetail(t, res, "body.selector", "must be a valid selector")
+}
+
+func TestCreateCheckReturnsFieldErrorForInvalidLabelIDs(t *testing.T) {
+	_, api := humatest.New(t)
+	NewHandler(appcheck.NewService(&handlerCheckRepository{}, &handlerProjectAccess{role: domainproject.RoleEditor}, &handlerLabelAccess{}, handlerCheckEventRecorder{}), &handlerTokenVerifier{
+		claims: identity.AccessTokenClaims{Subject: testUserID, Email: "user@example.com"},
+	}).RegisterRoutes(api)
+
+	res := api.Post("/projects/engineering/checks", map[string]any{
+		"name":            "api-latency",
+		"type":            "ping",
+		"target":          "api.netstamp.io",
+		"intervalSeconds": 30,
+		"labelIds":        []string{"not-a-uuid"},
+	}, "Authorization: Bearer valid-token")
+	if res.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("expected status 422, got %d", res.Code)
+	}
+	assertHumaErrorDetail(t, res, "body.labelIds", "must contain valid UUIDs")
+}
+
 func TestUpdateCheckMapsEmptyPatchToUnprocessableEntity(t *testing.T) {
 	_, api := humatest.New(t)
 	NewHandler(appcheck.NewService(&handlerCheckRepository{}, &handlerProjectAccess{role: domainproject.RoleAdmin}, &handlerLabelAccess{}, handlerCheckEventRecorder{}), &handlerTokenVerifier{
@@ -116,6 +174,7 @@ func TestUpdateCheckMapsEmptyPatchToUnprocessableEntity(t *testing.T) {
 	if res.Code != http.StatusUnprocessableEntity {
 		t.Fatalf("expected status 422, got %d", res.Code)
 	}
+	assertHumaErrorDetail(t, res, "body", "at least one field must be provided")
 }
 
 func TestDeleteCheckReturnsNoContent(t *testing.T) {
@@ -132,6 +191,22 @@ func TestDeleteCheckReturnsNoContent(t *testing.T) {
 	if repo.gotDeleteCheckID != testCheckID {
 		t.Fatalf("expected deleted check id, got %q", repo.gotDeleteCheckID)
 	}
+}
+
+func assertHumaErrorDetail(t *testing.T, res *httptest.ResponseRecorder, wantLocation, wantMessage string) {
+	t.Helper()
+
+	var body huma.ErrorModel
+	if err := json.NewDecoder(res.Body).Decode(&body); err != nil {
+		t.Fatalf("decode error response: %v", err)
+	}
+	for _, detail := range body.Errors {
+		if detail.Location == wantLocation && detail.Message == wantMessage {
+			return
+		}
+	}
+
+	t.Fatalf("expected error detail %q/%q, got %#v", wantLocation, wantMessage, body.Errors)
 }
 
 type handlerTokenVerifier struct {

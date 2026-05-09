@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
+	appvalidation "github.com/yorukot/netstamp/internal/application/validation"
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
 	domainnetwork "github.com/yorukot/netstamp/internal/domain/network"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
@@ -238,7 +239,7 @@ func (s *Service) requireAction(ctx context.Context, flow *checkFlow, projectID,
 }
 
 func normalizeCreateCheckInput(input CreateCheckInput) (normalizedCreateCheckInput, error) {
-	name, err := normalize.RequiredString(input.Name, ErrInvalidInput)
+	name, err := normalizeRequiredStringField(input.Name, "name")
 	if err != nil {
 		return normalizedCreateCheckInput{}, err
 	}
@@ -246,7 +247,7 @@ func normalizeCreateCheckInput(input CreateCheckInput) (normalizedCreateCheckInp
 	if err != nil {
 		return normalizedCreateCheckInput{}, err
 	}
-	target, err := normalize.RequiredString(input.Target, ErrInvalidInput)
+	target, err := normalizeRequiredStringField(input.Target, "target")
 	if err != nil {
 		return normalizedCreateCheckInput{}, err
 	}
@@ -254,18 +255,18 @@ func normalizeCreateCheckInput(input CreateCheckInput) (normalizedCreateCheckInp
 	if err != nil {
 		return normalizedCreateCheckInput{}, err
 	}
-	description, err := normalize.OptionalString(input.Description, ErrInvalidInput)
+	description, err := normalizeOptionalStringField(input.Description, "description")
 	if err != nil {
 		return normalizedCreateCheckInput{}, err
 	}
 	if input.IntervalSeconds <= 0 {
-		return normalizedCreateCheckInput{}, ErrInvalidInput
+		return normalizedCreateCheckInput{}, invalidCheckField("intervalSeconds", "must be greater than 0", input.IntervalSeconds)
 	}
 	pingConfig, err := normalizePingConfig(input.PacketCount, input.PacketSizeBytes, input.TimeoutMs, input.IPFamily)
 	if err != nil {
 		return normalizedCreateCheckInput{}, err
 	}
-	labelIDs, err := normalize.CanonicalUUIDSet(input.LabelIDs, ErrInvalidInput)
+	labelIDs, err := normalizeLabelIDs(input.LabelIDs)
 	if err != nil {
 		return normalizedCreateCheckInput{}, err
 	}
@@ -293,10 +294,10 @@ func (input normalizedCreateCheckInput) executionSpec() domaincheck.ExecutionSpe
 
 func normalizeUpdateCheckInput(input UpdateCheckInput) (normalizedUpdateCheckInput, error) {
 	if !hasUpdateCheckChanges(input) {
-		return normalizedUpdateCheckInput{}, ErrInvalidInput
+		return normalizedUpdateCheckInput{}, invalidCheckField("", "at least one field must be provided", nil)
 	}
 
-	name, err := normalizeOptionalRequiredString(input.Name)
+	name, err := normalizeOptionalRequiredString(input.Name, "name")
 	if err != nil {
 		return normalizedUpdateCheckInput{}, err
 	}
@@ -304,7 +305,7 @@ func normalizeUpdateCheckInput(input UpdateCheckInput) (normalizedUpdateCheckInp
 	if err != nil {
 		return normalizedUpdateCheckInput{}, err
 	}
-	target, err := normalizeOptionalRequiredString(input.Target)
+	target, err := normalizeOptionalRequiredString(input.Target, "target")
 	if err != nil {
 		return normalizedUpdateCheckInput{}, err
 	}
@@ -312,11 +313,11 @@ func normalizeUpdateCheckInput(input UpdateCheckInput) (normalizedUpdateCheckInp
 	if err != nil {
 		return normalizedUpdateCheckInput{}, err
 	}
-	description, err := normalize.OptionalString(input.Description, ErrInvalidInput)
+	description, err := normalizeOptionalStringField(input.Description, "description")
 	if err != nil {
 		return normalizedUpdateCheckInput{}, err
 	}
-	intervalSeconds, err := normalizeOptionalPositiveInt(input.IntervalSeconds)
+	intervalSeconds, err := normalizeOptionalPositiveInt(input.IntervalSeconds, "intervalSeconds")
 	if err != nil {
 		return normalizedUpdateCheckInput{}, err
 	}
@@ -371,17 +372,43 @@ func hasUpdateCheckChanges(input UpdateCheckInput) bool {
 		input.LabelIDs != nil
 }
 
-func normalizeOptionalRequiredString(value *string) (*string, error) {
+func invalidCheckField(field, message string, value any) error {
+	return appvalidation.New(ErrInvalidInput, field, message, value)
+}
+
+func normalizeRequiredStringField(value, field string) (string, error) {
+	normalized, err := normalize.RequiredString(value, ErrInvalidInput)
+	if err != nil {
+		return "", invalidCheckField(field, "must not be blank", value)
+	}
+
+	return normalized, nil
+}
+
+func normalizeOptionalRequiredString(value *string, field string) (*string, error) {
 	if value == nil {
 		return nil, nil //nolint:nilnil // A nil pointer is the explicit representation of an omitted optional field.
 	}
 
-	normalized, err := normalize.RequiredString(*value, ErrInvalidInput)
+	normalized, err := normalizeRequiredStringField(*value, field)
 	if err != nil {
 		return nil, err
 	}
 
 	return &normalized, nil
+}
+
+func normalizeOptionalStringField(value *string, field string) (*string, error) {
+	if value == nil {
+		return nil, nil //nolint:nilnil // A nil pointer is the explicit representation of an omitted optional field.
+	}
+
+	normalized, err := normalize.OptionalString(value, ErrInvalidInput)
+	if err != nil {
+		return nil, invalidCheckField(field, "must not be blank", *value)
+	}
+
+	return normalized, nil
 }
 
 func normalizeOptionalCheckType(value *string) (*domaincheck.Type, error) {
@@ -407,7 +434,12 @@ func normalizeOptionalSelector(selector map[string]any) (json.RawMessage, error)
 		return nil, err
 	}
 
-	return canonicalizeSelector(raw)
+	canonical, err := canonicalizeSelector(raw)
+	if err != nil {
+		return nil, invalidCheckField("selector", "must be a valid selector", selector)
+	}
+
+	return canonical, nil
 }
 
 func normalizeCreateSelector(selector map[string]any) (json.RawMessage, error) {
@@ -420,7 +452,12 @@ func normalizeCreateSelector(selector map[string]any) (json.RawMessage, error) {
 		return nil, err
 	}
 
-	return canonicalizeSelector(raw)
+	canonical, err := canonicalizeSelector(raw)
+	if err != nil {
+		return nil, invalidCheckField("selector", "must be a valid selector", selector)
+	}
+
+	return canonical, nil
 }
 
 func canonicalizeSelector(raw json.RawMessage) (json.RawMessage, error) {
@@ -432,12 +469,12 @@ func canonicalizeSelector(raw json.RawMessage) (json.RawMessage, error) {
 	return parsed.CanonicalJSON(), nil
 }
 
-func normalizeOptionalPositiveInt(value *int32) (*int32, error) {
+func normalizeOptionalPositiveInt(value *int32, field string) (*int32, error) {
 	if value == nil {
 		return nil, nil //nolint:nilnil // A nil pointer is the explicit representation of an omitted optional field.
 	}
 	if *value <= 0 {
-		return nil, ErrInvalidInput
+		return nil, invalidCheckField(field, "must be greater than 0", *value)
 	}
 
 	normalized := *value
@@ -449,7 +486,7 @@ func normalizeOptionalPacketCount(value *int32) (*int32, error) {
 		return nil, nil //nolint:nilnil // A nil pointer is the explicit representation of an omitted optional field.
 	}
 	if err := domainping.ValidatePacketCount(*value); err != nil {
-		return nil, ErrInvalidInput
+		return nil, invalidCheckField("packetCount", "must be greater than 0", *value)
 	}
 
 	normalized := *value
@@ -461,7 +498,7 @@ func normalizeOptionalPacketSizeBytes(value *int32) (*int32, error) {
 		return nil, nil //nolint:nilnil // A nil pointer is the explicit representation of an omitted optional field.
 	}
 	if err := domainping.ValidatePacketSizeBytes(*value); err != nil {
-		return nil, ErrInvalidInput
+		return nil, invalidCheckField("packetSizeBytes", "must be between 0 and 65507", *value)
 	}
 
 	normalized := *value
@@ -473,7 +510,7 @@ func normalizeOptionalTimeoutMs(value *int32) (*int32, error) {
 		return nil, nil //nolint:nilnil // A nil pointer is the explicit representation of an omitted optional field.
 	}
 	if err := domainping.ValidateTimeoutMs(*value); err != nil {
-		return nil, ErrInvalidInput
+		return nil, invalidCheckField("timeoutMs", "must be greater than 0", *value)
 	}
 
 	normalized := *value
@@ -483,7 +520,7 @@ func normalizeOptionalTimeoutMs(value *int32) (*int32, error) {
 func normalizeOptionalIPFamily(value *string) (*domainnetwork.IPFamily, error) {
 	ipFamily, err := domainnetwork.ParseOptionalIPFamily(value)
 	if err != nil {
-		return nil, ErrInvalidInput
+		return nil, invalidCheckField("ipFamily", `must be "inet" or "inet6"`, *value)
 	}
 
 	return ipFamily, nil
@@ -494,7 +531,7 @@ func normalizeOptionalLabelIDs(value *[]string) (bool, []string, error) {
 		return false, nil, nil
 	}
 
-	labelIDs, err := normalize.CanonicalUUIDSet(*value, ErrInvalidInput)
+	labelIDs, err := normalizeLabelIDs(*value)
 	if err != nil {
 		return false, nil, err
 	}
@@ -503,12 +540,13 @@ func normalizeOptionalLabelIDs(value *[]string) (bool, []string, error) {
 }
 
 func normalizeCheckType(value string) (domaincheck.Type, error) {
-	value, err := normalize.RequiredString(value, ErrInvalidInput)
+	raw := value
+	value, err := normalizeRequiredStringField(value, "type")
 	if err != nil {
 		return "", err
 	}
 	if domaincheck.Type(value) != domaincheck.TypePing {
-		return "", ErrInvalidInput
+		return "", invalidCheckField("type", `must be "ping"`, raw)
 	}
 
 	return domaincheck.TypePing, nil
@@ -521,19 +559,55 @@ func normalizeSelector(selector map[string]any) (json.RawMessage, error) {
 
 	raw, err := json.Marshal(selector)
 	if err != nil {
-		return nil, ErrInvalidInput
+		return nil, invalidCheckField("selector", "must be a valid selector", selector)
 	}
 
 	return raw, nil
 }
 
 func normalizePingConfig(packetCount, packetSizeBytes, timeoutMs *int32, ipFamilyValue *string) (domainping.Config, error) {
-	config, err := domainping.NewConfig(packetCount, packetSizeBytes, timeoutMs, ipFamilyValue)
+	config := domainping.DefaultConfig()
+
+	normalizedPacketCount, err := normalizeOptionalPacketCount(packetCount)
 	if err != nil {
-		return domainping.Config{}, ErrInvalidInput
+		return domainping.Config{}, err
+	}
+	if normalizedPacketCount != nil {
+		config.PacketCount = *normalizedPacketCount
 	}
 
+	normalizedPacketSizeBytes, err := normalizeOptionalPacketSizeBytes(packetSizeBytes)
+	if err != nil {
+		return domainping.Config{}, err
+	}
+	if normalizedPacketSizeBytes != nil {
+		config.PacketSizeBytes = *normalizedPacketSizeBytes
+	}
+
+	normalizedTimeoutMs, err := normalizeOptionalTimeoutMs(timeoutMs)
+	if err != nil {
+		return domainping.Config{}, err
+	}
+	if normalizedTimeoutMs != nil {
+		config.TimeoutMs = *normalizedTimeoutMs
+	}
+
+	ipFamily, err := normalizeOptionalIPFamily(ipFamilyValue)
+	if err != nil {
+		return domainping.Config{}, err
+	}
+	config.IPFamily = ipFamily
+
 	return config, nil
+}
+
+func normalizeLabelIDs(values []string) ([]string, error) {
+	labelIDs, err := normalize.CanonicalUUIDSet(values, ErrInvalidInput)
+	if err != nil {
+		return nil, invalidCheckField("labelIds", "must contain valid UUIDs", values)
+	}
+
+	return labelIDs, nil
 }
 
 func chooseString(current string, next *string) string {
