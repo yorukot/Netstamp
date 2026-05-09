@@ -185,6 +185,12 @@ HTTP input validation is primarily expressed with Huma struct tags in transport 
 
 Application and domain packages define sentinel errors. Repositories translate pgx-specific errors into domain/application errors, such as unique violation `uq_users_email` to `auth.ErrEmailAlreadyExists`. HTTP panic recovery is handled in `internal/transport/http/middleware/recovery.go`. `WriteProblem` exists for RFC 7807-style responses, but Huma errors are the current route pattern.
 
+For feature-specific application validation such as `internal/application/check`, keep the transport/application split intact. Application services should return sentinel-compatible errors such as `ErrInvalidInput`, `ErrCheckNotFound`, `ErrProjectNotFound`, `ErrLabelNotFound`, or `ErrForbidden`, usually through package flow helpers that also record event outcome and failure reason. The application layer should not construct Huma errors or HTTP status codes.
+
+When an application error needs to tell the client exactly which request field is invalid, wrap the sentinel error with `internal/application/validation.New` or `NewFields`. The wrapped error must still satisfy `errors.Is(err, ErrInvalidInput)` through `Unwrap`, while carrying `FieldError` metadata: `Field`, `Message`, and `Value`. Transport handlers should extract this metadata with `appvalidation.FieldErrors(err)` and convert it to Huma error details. Check handlers follow this pattern in `internal/transport/http/check/context.go`, mapping fields to locations such as `body.name`, `body.selector`, `body.labelIds`, or `body` for whole-body validation failures like an empty patch.
+
+Keep public error detail conservative. Not-found conditions for inaccessible projects, users, labels, and checks should remain collapsed to generic `404 not found`; forbidden role checks map to `403`; validation maps to `422` with field details only when `FieldError` metadata exists; unknown technical errors map to `500` with a route-level fallback message. Technical error details belong in logs and spans, not response bodies.
+
 ## Security & Configuration Tips
 
 Secrets and runtime settings come from environment variables or `.env`; defaults and validation live in `internal/config/config.go`. Never commit real `.env` files, JWT secrets, database passwords, trace endpoints with credentials, or production pseudonym keys.
