@@ -198,7 +198,12 @@ func TestOldPingResultEndpointIsNotRegistered(t *testing.T) {
 }
 
 func newRuntimeService(probes *handlerProbeRepository, results *handlerPingResultRepository, validSecret bool) *appproberuntime.Service {
-	return appproberuntime.NewService(probes, results, handlerSecretVerifier{valid: validSecret})
+	return appproberuntime.NewService(probes, results, handlerSecretVerifier{valid: validSecret}, handlerProbeRuntimeEvents{})
+}
+
+type handlerProbeRuntimeEvents struct{}
+
+func (handlerProbeRuntimeEvents) RecordProbeRuntimeEvent(context.Context, appproberuntime.ProbeRuntimeEvent) {
 }
 
 type handlerProbeRepository struct {

@@ -22,7 +22,8 @@ const (
 
 func TestHelloRejectsInvalidSecret(t *testing.T) {
 	probes := &fakeProbeRepository{}
-	service := NewService(probes, &fakePingResultRepository{}, fakeSecretVerifier{valid: false})
+	recorder := &recordingProbeRuntimeEventRecorder{}
+	service := NewService(probes, &fakePingResultRepository{}, fakeSecretVerifier{valid: false}, recorder)
 
 	_, err := service.Hello(context.Background(), RuntimeStatusInput{
 		RuntimeAuthInput: RuntimeAuthInput{
@@ -37,11 +38,53 @@ func TestHelloRejectsInvalidSecret(t *testing.T) {
 	if probes.gotStatus.ProbeID != "" {
 		t.Fatalf("expected status not to update, got %#v", probes.gotStatus)
 	}
+	assertRecordedProbeRuntimeEvent(t, recorder, ProbeRuntimeEvent{
+		Name:      ProbeRuntimeEventHelloFailure,
+		Action:    ProbeRuntimeActionHello,
+		Outcome:   ProbeRuntimeOutcomeFailure,
+		Reason:    ProbeRuntimeReasonInvalidCredential,
+		ProbeID:   testProbeID,
+		ProjectID: testProjectID,
+	})
+}
+
+func TestHelloRecordsDisabledProbe(t *testing.T) {
+	recorder := &recordingProbeRuntimeEventRecorder{}
+	service := NewService(
+		&fakeProbeRepository{credential: domainprobe.Credential{
+			ProbeID:    testProbeID,
+			ProjectID:  testProjectID,
+			Enabled:    false,
+			SecretHash: "secret-hash",
+		}},
+		&fakePingResultRepository{},
+		fakeSecretVerifier{valid: true},
+		recorder,
+	)
+
+	_, err := service.Hello(context.Background(), RuntimeStatusInput{
+		RuntimeAuthInput: RuntimeAuthInput{
+			ProbeID:    testProbeID,
+			Credential: "plain-secret",
+		},
+	})
+	if !errors.Is(err, ErrProbeDisabled) {
+		t.Fatalf("expected probe disabled, got %v", err)
+	}
+	assertRecordedProbeRuntimeEvent(t, recorder, ProbeRuntimeEvent{
+		Name:      ProbeRuntimeEventHelloFailure,
+		Action:    ProbeRuntimeActionHello,
+		Outcome:   ProbeRuntimeOutcomeFailure,
+		Reason:    ProbeRuntimeReasonProbeDisabled,
+		ProbeID:   testProbeID,
+		ProjectID: testProjectID,
+	})
 }
 
 func TestHeartbeatUpdatesOnlineStatus(t *testing.T) {
 	probes := &fakeProbeRepository{}
-	service := NewService(probes, &fakePingResultRepository{}, fakeSecretVerifier{valid: true})
+	recorder := &recordingProbeRuntimeEventRecorder{}
+	service := NewService(probes, &fakePingResultRepository{}, fakeSecretVerifier{valid: true}, recorder)
 	agentVersion := "netstamp-probe/0.1.0"
 
 	output, err := service.Heartbeat(context.Background(), RuntimeStatusInput{
@@ -66,6 +109,7 @@ func TestHeartbeatUpdatesOnlineStatus(t *testing.T) {
 	if probes.gotStatus.AgentVersion == nil || *probes.gotStatus.AgentVersion != agentVersion {
 		t.Fatalf("expected agent version, got %#v", probes.gotStatus.AgentVersion)
 	}
+	assertNoProbeRuntimeEvents(t, recorder)
 }
 
 func TestListAssignmentsAuthenticatesProbe(t *testing.T) {
@@ -83,7 +127,8 @@ func TestListAssignmentsAuthenticatesProbe(t *testing.T) {
 			PingConfig:      domainping.DefaultConfig(),
 		}},
 	}
-	service := NewService(probes, &fakePingResultRepository{}, fakeSecretVerifier{valid: true})
+	recorder := &recordingProbeRuntimeEventRecorder{}
+	service := NewService(probes, &fakePingResultRepository{}, fakeSecretVerifier{valid: true}, recorder)
 
 	output, err := service.ListAssignments(context.Background(), RuntimeAuthInput{
 		ProbeID:    testProbeID,
@@ -95,6 +140,7 @@ func TestListAssignmentsAuthenticatesProbe(t *testing.T) {
 	if len(output.Assignments) != 1 || output.Assignments[0].CheckID != testCheckID {
 		t.Fatalf("expected assignment for check %q, got %#v", testCheckID, output.Assignments)
 	}
+	assertNoProbeRuntimeEvents(t, recorder)
 }
 
 func TestSubmitResultsAcceptsPingBatch(t *testing.T) {
@@ -103,7 +149,8 @@ func TestSubmitResultsAcceptsPingBatch(t *testing.T) {
 		Type:    domaincheck.TypePing,
 	}}}
 	results := &fakePingResultRepository{}
-	service := NewService(probes, results, fakeSecretVerifier{valid: true})
+	recorder := &recordingProbeRuntimeEventRecorder{}
+	service := NewService(probes, results, fakeSecretVerifier{valid: true}, recorder)
 	startedAt := time.Date(2026, 5, 9, 10, 0, 0, 0, time.UTC)
 	finishedAt := startedAt.Add(time.Second)
 	ipFamily := domainnetwork.IPFamilyInet
@@ -127,10 +174,12 @@ func TestSubmitResultsAcceptsPingBatch(t *testing.T) {
 	if results.created[0].ProjectID != testProjectID || results.created[0].ProbeID != testProbeID {
 		t.Fatalf("expected project/probe ids to be set from credential, got %#v", results.created[0])
 	}
+	assertNoProbeRuntimeEvents(t, recorder)
 }
 
 func TestSubmitResultsRejectsUnsupportedBucket(t *testing.T) {
-	service := NewService(&fakeProbeRepository{}, &fakePingResultRepository{}, fakeSecretVerifier{valid: true})
+	recorder := &recordingProbeRuntimeEventRecorder{}
+	service := NewService(&fakeProbeRepository{}, &fakePingResultRepository{}, fakeSecretVerifier{valid: true}, recorder)
 
 	err := service.SubmitResults(context.Background(), SubmitResultsInput{
 		RuntimeAuthInput: RuntimeAuthInput{
@@ -143,13 +192,23 @@ func TestSubmitResultsRejectsUnsupportedBucket(t *testing.T) {
 	if !errors.Is(err, ErrUnsupportedResult) {
 		t.Fatalf("expected unsupported result, got %v", err)
 	}
+	assertRecordedProbeRuntimeEvent(t, recorder, ProbeRuntimeEvent{
+		Name:        ProbeRuntimeEventSubmitResultsFailure,
+		Action:      ProbeRuntimeActionSubmitResults,
+		Outcome:     ProbeRuntimeOutcomeFailure,
+		Reason:      ProbeRuntimeReasonUnsupportedResult,
+		ProbeID:     testProbeID,
+		ProjectID:   testProjectID,
+		ResultCount: intPtr(1),
+	})
 }
 
 func TestSubmitResultsRejectsUnassignedCheck(t *testing.T) {
+	recorder := &recordingProbeRuntimeEventRecorder{}
 	service := NewService(&fakeProbeRepository{assignments: []domaincheck.Assignment{{
 		CheckID: testCheckID,
 		Type:    domaincheck.TypePing,
-	}}}, &fakePingResultRepository{}, fakeSecretVerifier{valid: true})
+	}}}, &fakePingResultRepository{}, fakeSecretVerifier{valid: true}, recorder)
 	startedAt := time.Date(2026, 5, 9, 10, 0, 0, 0, time.UTC)
 
 	err := service.SubmitResults(context.Background(), SubmitResultsInput{
@@ -163,13 +222,23 @@ func TestSubmitResultsRejectsUnassignedCheck(t *testing.T) {
 	if !errors.Is(err, ErrResultConflict) {
 		t.Fatalf("expected result conflict, got %v", err)
 	}
+	assertRecordedProbeRuntimeEvent(t, recorder, ProbeRuntimeEvent{
+		Name:        ProbeRuntimeEventSubmitResultsFailure,
+		Action:      ProbeRuntimeActionSubmitResults,
+		Outcome:     ProbeRuntimeOutcomeFailure,
+		Reason:      ProbeRuntimeReasonResultConflict,
+		ProbeID:     testProbeID,
+		ProjectID:   testProjectID,
+		ResultCount: intPtr(1),
+	})
 }
 
 func TestSubmitResultsRejectsCheckTypeMismatch(t *testing.T) {
+	recorder := &recordingProbeRuntimeEventRecorder{}
 	service := NewService(&fakeProbeRepository{assignments: []domaincheck.Assignment{{
 		CheckID: testCheckID,
 		Type:    domaincheck.Type("dns"),
-	}}}, &fakePingResultRepository{}, fakeSecretVerifier{valid: true})
+	}}}, &fakePingResultRepository{}, fakeSecretVerifier{valid: true}, recorder)
 	startedAt := time.Date(2026, 5, 9, 10, 0, 0, 0, time.UTC)
 
 	err := service.SubmitResults(context.Background(), SubmitResultsInput{
@@ -183,14 +252,24 @@ func TestSubmitResultsRejectsCheckTypeMismatch(t *testing.T) {
 	if !errors.Is(err, ErrResultConflict) {
 		t.Fatalf("expected result conflict, got %v", err)
 	}
+	assertRecordedProbeRuntimeEvent(t, recorder, ProbeRuntimeEvent{
+		Name:        ProbeRuntimeEventSubmitResultsFailure,
+		Action:      ProbeRuntimeActionSubmitResults,
+		Outcome:     ProbeRuntimeOutcomeFailure,
+		Reason:      ProbeRuntimeReasonResultConflict,
+		ProbeID:     testProbeID,
+		ProjectID:   testProjectID,
+		ResultCount: intPtr(1),
+	})
 }
 
 func TestSubmitResultsRejectsInvalidPing(t *testing.T) {
 	results := &fakePingResultRepository{}
+	recorder := &recordingProbeRuntimeEventRecorder{}
 	service := NewService(&fakeProbeRepository{assignments: []domaincheck.Assignment{{
 		CheckID: testCheckID,
 		Type:    domaincheck.TypePing,
-	}}}, results, fakeSecretVerifier{valid: true})
+	}}}, results, fakeSecretVerifier{valid: true}, recorder)
 	startedAt := time.Date(2026, 5, 9, 10, 0, 0, 0, time.UTC)
 
 	err := service.SubmitResults(context.Background(), SubmitResultsInput{
@@ -207,10 +286,20 @@ func TestSubmitResultsRejectsInvalidPing(t *testing.T) {
 	if len(results.created) != 0 {
 		t.Fatalf("expected whole batch to be rejected before writes, got %#v", results.created)
 	}
+	assertRecordedProbeRuntimeEvent(t, recorder, ProbeRuntimeEvent{
+		Name:        ProbeRuntimeEventSubmitResultsFailure,
+		Action:      ProbeRuntimeActionSubmitResults,
+		Outcome:     ProbeRuntimeOutcomeFailure,
+		Reason:      ProbeRuntimeReasonInvalidResult,
+		ProbeID:     testProbeID,
+		ProjectID:   testProjectID,
+		ResultCount: intPtr(1),
+	})
 }
 
 func TestSubmitResultsRejectsEmptyBatch(t *testing.T) {
-	service := NewService(&fakeProbeRepository{}, &fakePingResultRepository{}, fakeSecretVerifier{valid: true})
+	recorder := &recordingProbeRuntimeEventRecorder{}
+	service := NewService(&fakeProbeRepository{}, &fakePingResultRepository{}, fakeSecretVerifier{valid: true}, recorder)
 
 	err := service.SubmitResults(context.Background(), SubmitResultsInput{
 		RuntimeAuthInput: RuntimeAuthInput{
@@ -222,6 +311,158 @@ func TestSubmitResultsRejectsEmptyBatch(t *testing.T) {
 	if !errors.Is(err, ErrInvalidInput) {
 		t.Fatalf("expected invalid input, got %v", err)
 	}
+	assertRecordedProbeRuntimeEvent(t, recorder, ProbeRuntimeEvent{
+		Name:        ProbeRuntimeEventSubmitResultsFailure,
+		Action:      ProbeRuntimeActionSubmitResults,
+		Outcome:     ProbeRuntimeOutcomeFailure,
+		Reason:      ProbeRuntimeReasonInvalidInput,
+		ProbeID:     testProbeID,
+		ProjectID:   testProjectID,
+		ResultCount: intPtr(0),
+	})
+}
+
+func TestHeartbeatRecordsStatusUpdateFailure(t *testing.T) {
+	recorder := &recordingProbeRuntimeEventRecorder{}
+	updateErr := errors.New("update status")
+	service := NewService(
+		&fakeProbeRepository{updateErr: updateErr},
+		&fakePingResultRepository{},
+		fakeSecretVerifier{valid: true},
+		recorder,
+	)
+
+	_, err := service.Heartbeat(context.Background(), RuntimeStatusInput{
+		RuntimeAuthInput: RuntimeAuthInput{
+			ProbeID:    testProbeID,
+			Credential: "plain-secret",
+		},
+	})
+	if !errors.Is(err, updateErr) {
+		t.Fatalf("expected status update error, got %v", err)
+	}
+	assertRecordedProbeRuntimeEvent(t, recorder, ProbeRuntimeEvent{
+		Name:      ProbeRuntimeEventHeartbeatFailure,
+		Action:    ProbeRuntimeActionHeartbeat,
+		Outcome:   ProbeRuntimeOutcomeFailure,
+		Reason:    ProbeRuntimeReasonStatusUpdateFailed,
+		ProbeID:   testProbeID,
+		ProjectID: testProjectID,
+		Err:       updateErr,
+	})
+}
+
+func TestListAssignmentsRecordsAssignmentListFailure(t *testing.T) {
+	recorder := &recordingProbeRuntimeEventRecorder{}
+	listErr := errors.New("list assignments")
+	service := NewService(
+		&fakeProbeRepository{assignmentErr: listErr},
+		&fakePingResultRepository{},
+		fakeSecretVerifier{valid: true},
+		recorder,
+	)
+
+	_, err := service.ListAssignments(context.Background(), RuntimeAuthInput{
+		ProbeID:    testProbeID,
+		Credential: "plain-secret",
+	})
+	if !errors.Is(err, listErr) {
+		t.Fatalf("expected assignment list error, got %v", err)
+	}
+	assertRecordedProbeRuntimeEvent(t, recorder, ProbeRuntimeEvent{
+		Name:      ProbeRuntimeEventListAssignmentsFailure,
+		Action:    ProbeRuntimeActionListAssignments,
+		Outcome:   ProbeRuntimeOutcomeFailure,
+		Reason:    ProbeRuntimeReasonAssignmentListFailed,
+		ProbeID:   testProbeID,
+		ProjectID: testProjectID,
+		Err:       listErr,
+	})
+}
+
+func TestSubmitResultsRecordsResultWriteFailure(t *testing.T) {
+	recorder := &recordingProbeRuntimeEventRecorder{}
+	writeErr := errors.New("write results")
+	service := NewService(
+		&fakeProbeRepository{assignments: []domaincheck.Assignment{{
+			CheckID: testCheckID,
+			Type:    domaincheck.TypePing,
+		}}},
+		&fakePingResultRepository{err: writeErr},
+		fakeSecretVerifier{valid: true},
+		recorder,
+	)
+	startedAt := time.Date(2026, 5, 9, 10, 0, 0, 0, time.UTC)
+
+	err := service.SubmitResults(context.Background(), SubmitResultsInput{
+		RuntimeAuthInput: RuntimeAuthInput{
+			ProbeID:    testProbeID,
+			Credential: "plain-secret",
+		},
+		Ping: []PingResultInput{newPingResultInput(testCheckID, startedAt, startedAt.Add(time.Second), nil)},
+	})
+	if !errors.Is(err, writeErr) {
+		t.Fatalf("expected write error, got %v", err)
+	}
+	assertRecordedProbeRuntimeEvent(t, recorder, ProbeRuntimeEvent{
+		Name:        ProbeRuntimeEventSubmitResultsFailure,
+		Action:      ProbeRuntimeActionSubmitResults,
+		Outcome:     ProbeRuntimeOutcomeFailure,
+		Reason:      ProbeRuntimeReasonResultWriteFailed,
+		ProbeID:     testProbeID,
+		ProjectID:   testProjectID,
+		ResultCount: intPtr(1),
+		Err:         writeErr,
+	})
+}
+
+func TestRuntimeRecordsProbeNotFoundFailure(t *testing.T) {
+	recorder := &recordingProbeRuntimeEventRecorder{}
+	service := NewService(
+		&fakeProbeRepository{credentialErr: ErrProbeNotFound},
+		&fakePingResultRepository{},
+		fakeSecretVerifier{valid: true},
+		recorder,
+	)
+
+	_, err := service.ListAssignments(context.Background(), RuntimeAuthInput{
+		ProbeID:    testProbeID,
+		Credential: "plain-secret",
+	})
+	if !errors.Is(err, ErrProbeNotFound) {
+		t.Fatalf("expected probe not found, got %v", err)
+	}
+	assertRecordedProbeRuntimeEvent(t, recorder, ProbeRuntimeEvent{
+		Name:    ProbeRuntimeEventListAssignmentsFailure,
+		Action:  ProbeRuntimeActionListAssignments,
+		Outcome: ProbeRuntimeOutcomeFailure,
+		Reason:  ProbeRuntimeReasonProbeNotFound,
+		ProbeID: testProbeID,
+	})
+}
+
+func TestRuntimeRecordsSecretVerifierMissing(t *testing.T) {
+	recorder := &recordingProbeRuntimeEventRecorder{}
+	service := NewService(&fakeProbeRepository{}, &fakePingResultRepository{}, nil, recorder)
+
+	_, err := service.Hello(context.Background(), RuntimeStatusInput{
+		RuntimeAuthInput: RuntimeAuthInput{
+			ProbeID:    testProbeID,
+			Credential: "plain-secret",
+		},
+	})
+	if !errors.Is(err, errSecretVerifierMissing) {
+		t.Fatalf("expected missing verifier error, got %v", err)
+	}
+	assertRecordedProbeRuntimeEvent(t, recorder, ProbeRuntimeEvent{
+		Name:      ProbeRuntimeEventHelloFailure,
+		Action:    ProbeRuntimeActionHello,
+		Outcome:   ProbeRuntimeOutcomeFailure,
+		Reason:    ProbeRuntimeReasonSecretVerifierMissing,
+		ProbeID:   testProbeID,
+		ProjectID: testProjectID,
+		Err:       errSecretVerifierMissing,
+	})
 }
 
 func newPingResultInput(checkID string, startedAt, finishedAt time.Time, ipFamily *domainnetwork.IPFamily) PingResultInput {
@@ -249,12 +490,64 @@ func float64Ptr(value float64) *float64 {
 	return &value
 }
 
+func intPtr(value int) *int {
+	return &value
+}
+
+func assertRecordedProbeRuntimeEvent(t *testing.T, recorder *recordingProbeRuntimeEventRecorder, want ProbeRuntimeEvent) {
+	t.Helper()
+
+	if len(recorder.events) != 1 {
+		t.Fatalf("expected one event, got %d: %#v", len(recorder.events), recorder.events)
+	}
+
+	got := recorder.events[0]
+	if got.Name != want.Name ||
+		got.Action != want.Action ||
+		got.Outcome != want.Outcome ||
+		got.Reason != want.Reason ||
+		got.ProbeID != want.ProbeID ||
+		got.ProjectID != want.ProjectID ||
+		!sameIntPtr(got.ResultCount, want.ResultCount) ||
+		!errors.Is(got.Err, want.Err) {
+		t.Fatalf("unexpected event:\n got: %#v\nwant: %#v", got, want)
+	}
+}
+
+func assertNoProbeRuntimeEvents(t *testing.T, recorder *recordingProbeRuntimeEventRecorder) {
+	t.Helper()
+
+	if len(recorder.events) != 0 {
+		t.Fatalf("expected no events, got %d: %#v", len(recorder.events), recorder.events)
+	}
+}
+
+func sameIntPtr(left, right *int) bool {
+	switch {
+	case left == nil && right == nil:
+		return true
+	case left == nil || right == nil:
+		return false
+	default:
+		return *left == *right
+	}
+}
+
+type recordingProbeRuntimeEventRecorder struct {
+	events []ProbeRuntimeEvent
+}
+
+func (r *recordingProbeRuntimeEventRecorder) RecordProbeRuntimeEvent(_ context.Context, event ProbeRuntimeEvent) {
+	r.events = append(r.events, event)
+}
+
 type fakeProbeRepository struct {
 	credential    domainprobe.Credential
 	credentialErr error
 	gotStatus     domainprobe.UpdateStatusInput
 	updateErr     error
 	assignments   []domaincheck.Assignment
+	assignmentErr error
 }
 
 func (r *fakeProbeRepository) GetActiveProbeCredential(context.Context, string) (domainprobe.Credential, error) {
@@ -281,14 +574,21 @@ func (r *fakeProbeRepository) UpdateProbeStatus(_ context.Context, input domainp
 }
 
 func (r *fakeProbeRepository) ListAssignments(context.Context, string) ([]domaincheck.Assignment, error) {
+	if r.assignmentErr != nil {
+		return nil, r.assignmentErr
+	}
 	return r.assignments, nil
 }
 
 type fakePingResultRepository struct {
 	created []domainping.ResultStorageInput
+	err     error
 }
 
 func (r *fakePingResultRepository) CreatePingResults(_ context.Context, inputs []domainping.ResultStorageInput) error {
+	if r.err != nil {
+		return r.err
+	}
 	r.created = append(r.created, inputs...)
 	return nil
 }
