@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -178,6 +179,114 @@ func TestCreateCheckRejectsBlankNameWithFieldError(t *testing.T) {
 	assertValidationFieldError(t, err, "name", "must not be blank")
 	if repo.gotCreate.Name != "" {
 		t.Fatalf("expected create not to be called, got %#v", repo.gotCreate)
+	}
+}
+
+func TestCreateCheckRejectsInvalidFieldsWithFieldErrors(t *testing.T) {
+	tests := []struct {
+		name        string
+		mutate      func(*CreateCheckInput)
+		wantField   string
+		wantMessage string
+	}{
+		{
+			name: "name too long",
+			mutate: func(input *CreateCheckInput) {
+				input.Name = strings.Repeat("a", maxCheckNameRunes+1)
+			},
+			wantField:   "name",
+			wantMessage: "must be at most 100 characters",
+		},
+		{
+			name: "invalid type",
+			mutate: func(input *CreateCheckInput) {
+				input.Type = "http"
+			},
+			wantField:   "type",
+			wantMessage: `must be "ping"`,
+		},
+		{
+			name: "target too long",
+			mutate: func(input *CreateCheckInput) {
+				input.Target = strings.Repeat("a", maxCheckTargetRunes+1)
+			},
+			wantField:   "target",
+			wantMessage: "must be at most 255 characters",
+		},
+		{
+			name: "description too long",
+			mutate: func(input *CreateCheckInput) {
+				input.Description = stringPtr(strings.Repeat("a", maxCheckDescriptionRunes+1))
+			},
+			wantField:   "description",
+			wantMessage: "must be at most 500 characters",
+		},
+		{
+			name: "interval not positive",
+			mutate: func(input *CreateCheckInput) {
+				input.IntervalSeconds = 0
+			},
+			wantField:   "intervalSeconds",
+			wantMessage: "must be greater than 0",
+		},
+		{
+			name: "packet count not positive",
+			mutate: func(input *CreateCheckInput) {
+				input.PacketCount = int32Ptr(0)
+			},
+			wantField:   "packetCount",
+			wantMessage: "must be greater than 0",
+		},
+		{
+			name: "packet size out of range",
+			mutate: func(input *CreateCheckInput) {
+				input.PacketSizeBytes = int32Ptr(domainping.MaxPacketSizeBytes + 1)
+			},
+			wantField:   "packetSizeBytes",
+			wantMessage: "must be between 0 and 65507",
+		},
+		{
+			name: "timeout not positive",
+			mutate: func(input *CreateCheckInput) {
+				input.TimeoutMs = int32Ptr(0)
+			},
+			wantField:   "timeoutMs",
+			wantMessage: "must be greater than 0",
+		},
+		{
+			name: "invalid ip family",
+			mutate: func(input *CreateCheckInput) {
+				input.IPFamily = stringPtr("inet4")
+			},
+			wantField:   "ipFamily",
+			wantMessage: `must be "inet" or "inet6"`,
+		},
+		{
+			name: "invalid label ids",
+			mutate: func(input *CreateCheckInput) {
+				input.LabelIDs = []string{"not-a-uuid"}
+			},
+			wantField:   "labelIds",
+			wantMessage: "must contain valid UUIDs",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			repo := &fakeCheckRepository{}
+			service := NewService(repo, &fakeProjectAccess{role: domainproject.RoleEditor}, &fakeLabelAccess{}, &recordingCheckEventRecorder{})
+			input := validCreateCheckInput()
+			tt.mutate(&input)
+
+			_, err := service.CreateCheck(context.Background(), input)
+			if !errors.Is(err, ErrInvalidInput) {
+				t.Fatalf("expected invalid input, got %v", err)
+			}
+			assertValidationFieldError(t, err, tt.wantField, tt.wantMessage)
+			if repo.gotCreate.Name != "" {
+				t.Fatalf("expected create not to be called, got %#v", repo.gotCreate)
+			}
+		})
 	}
 }
 
@@ -422,6 +531,114 @@ func TestUpdateCheckRejectsEmptyPatch(t *testing.T) {
 	})
 }
 
+func TestUpdateCheckRejectsInvalidFieldsWithFieldErrors(t *testing.T) {
+	tests := []struct {
+		name        string
+		mutate      func(*UpdateCheckInput)
+		wantField   string
+		wantMessage string
+	}{
+		{
+			name: "name too long",
+			mutate: func(input *UpdateCheckInput) {
+				input.Name = stringPtr(strings.Repeat("a", maxCheckNameRunes+1))
+			},
+			wantField:   "name",
+			wantMessage: "must be at most 100 characters",
+		},
+		{
+			name: "invalid type",
+			mutate: func(input *UpdateCheckInput) {
+				input.Type = stringPtr("http")
+			},
+			wantField:   "type",
+			wantMessage: `must be "ping"`,
+		},
+		{
+			name: "target too long",
+			mutate: func(input *UpdateCheckInput) {
+				input.Target = stringPtr(strings.Repeat("a", maxCheckTargetRunes+1))
+			},
+			wantField:   "target",
+			wantMessage: "must be at most 255 characters",
+		},
+		{
+			name: "description too long",
+			mutate: func(input *UpdateCheckInput) {
+				input.Description = stringPtr(strings.Repeat("a", maxCheckDescriptionRunes+1))
+			},
+			wantField:   "description",
+			wantMessage: "must be at most 500 characters",
+		},
+		{
+			name: "interval not positive",
+			mutate: func(input *UpdateCheckInput) {
+				input.IntervalSeconds = int32Ptr(0)
+			},
+			wantField:   "intervalSeconds",
+			wantMessage: "must be greater than 0",
+		},
+		{
+			name: "packet count not positive",
+			mutate: func(input *UpdateCheckInput) {
+				input.PacketCount = int32Ptr(0)
+			},
+			wantField:   "packetCount",
+			wantMessage: "must be greater than 0",
+		},
+		{
+			name: "packet size out of range",
+			mutate: func(input *UpdateCheckInput) {
+				input.PacketSizeBytes = int32Ptr(-1)
+			},
+			wantField:   "packetSizeBytes",
+			wantMessage: "must be between 0 and 65507",
+		},
+		{
+			name: "timeout not positive",
+			mutate: func(input *UpdateCheckInput) {
+				input.TimeoutMs = int32Ptr(0)
+			},
+			wantField:   "timeoutMs",
+			wantMessage: "must be greater than 0",
+		},
+		{
+			name: "invalid ip family",
+			mutate: func(input *UpdateCheckInput) {
+				input.IPFamily = stringPtr("inet4")
+			},
+			wantField:   "ipFamily",
+			wantMessage: `must be "inet" or "inet6"`,
+		},
+		{
+			name: "invalid label ids",
+			mutate: func(input *UpdateCheckInput) {
+				input.LabelIDs = &[]string{"not-a-uuid"}
+			},
+			wantField:   "labelIds",
+			wantMessage: "must contain valid UUIDs",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			repo := &fakeCheckRepository{}
+			service := NewService(repo, &fakeProjectAccess{role: domainproject.RoleOwner}, &fakeLabelAccess{}, &recordingCheckEventRecorder{})
+			input := validUpdateCheckInput()
+			tt.mutate(&input)
+
+			_, err := service.UpdateCheck(context.Background(), input)
+			if !errors.Is(err, ErrInvalidInput) {
+				t.Fatalf("expected invalid input, got %v", err)
+			}
+			assertValidationFieldError(t, err, tt.wantField, tt.wantMessage)
+			if repo.gotGetCheckID != "" || repo.gotUpdate.CheckID != "" {
+				t.Fatalf("expected repository not to be called, got get=%q update=%#v", repo.gotGetCheckID, repo.gotUpdate)
+			}
+		})
+	}
+}
+
 func TestDeleteCheckRequiresManager(t *testing.T) {
 	repo := &fakeCheckRepository{}
 	recorder := &recordingCheckEventRecorder{}
@@ -502,6 +719,36 @@ type recordingCheckEventRecorder struct {
 
 func (r *recordingCheckEventRecorder) RecordCheckEvent(_ context.Context, event CheckEvent) {
 	r.events = append(r.events, event)
+}
+
+func validCreateCheckInput() CreateCheckInput {
+	return CreateCheckInput{
+		CurrentUserID:   "user-1",
+		ProjectRef:      "engineering",
+		Name:            "api-latency",
+		Type:            "ping",
+		Target:          "api.netstamp.io",
+		IntervalSeconds: 30,
+	}
+}
+
+func validUpdateCheckInput() UpdateCheckInput {
+	name := "api-latency"
+
+	return UpdateCheckInput{
+		CurrentUserID: "user-1",
+		ProjectRef:    "engineering",
+		CheckID:       testCheckID,
+		Name:          &name,
+	}
+}
+
+func stringPtr(value string) *string {
+	return &value
+}
+
+func int32Ptr(value int32) *int32 {
+	return &value
 }
 
 type fakeCheckRepository struct {

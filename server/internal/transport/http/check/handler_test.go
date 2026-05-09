@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -162,6 +163,79 @@ func TestCreateCheckReturnsFieldErrorForInvalidLabelIDs(t *testing.T) {
 		t.Fatalf("expected status 422, got %d", res.Code)
 	}
 	assertHumaErrorDetail(t, res, "body.labelIds", "must contain valid UUIDs")
+}
+
+func TestCreateCheckReturnsServiceFieldErrorsForSemanticValidation(t *testing.T) {
+	tests := []struct {
+		name        string
+		mutate      func(map[string]any)
+		wantField   string
+		wantMessage string
+	}{
+		{
+			name: "name too long",
+			mutate: func(body map[string]any) {
+				body["name"] = strings.Repeat("a", 101)
+			},
+			wantField:   "body.name",
+			wantMessage: "must be at most 100 characters",
+		},
+		{
+			name: "invalid type",
+			mutate: func(body map[string]any) {
+				body["type"] = "http"
+			},
+			wantField:   "body.type",
+			wantMessage: `must be "ping"`,
+		},
+		{
+			name: "interval not positive",
+			mutate: func(body map[string]any) {
+				body["intervalSeconds"] = 0
+			},
+			wantField:   "body.intervalSeconds",
+			wantMessage: "must be greater than 0",
+		},
+		{
+			name: "packet size out of range",
+			mutate: func(body map[string]any) {
+				body["packetSizeBytes"] = 65508
+			},
+			wantField:   "body.packetSizeBytes",
+			wantMessage: "must be between 0 and 65507",
+		},
+		{
+			name: "invalid ip family",
+			mutate: func(body map[string]any) {
+				body["ipFamily"] = "inet4"
+			},
+			wantField:   "body.ipFamily",
+			wantMessage: `must be "inet" or "inet6"`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, api := humatest.New(t)
+			NewHandler(appcheck.NewService(&handlerCheckRepository{}, &handlerProjectAccess{role: domainproject.RoleEditor}, &handlerLabelAccess{}, handlerCheckEventRecorder{}), &handlerTokenVerifier{
+				claims: identity.AccessTokenClaims{Subject: testUserID, Email: "user@example.com"},
+			}).RegisterRoutes(api)
+
+			body := map[string]any{
+				"name":            "api-latency",
+				"type":            "ping",
+				"target":          "api.netstamp.io",
+				"intervalSeconds": 30,
+			}
+			tt.mutate(body)
+
+			res := api.Post("/projects/engineering/checks", body, "Authorization: Bearer valid-token")
+			if res.Code != http.StatusUnprocessableEntity {
+				t.Fatalf("expected status 422, got %d", res.Code)
+			}
+			assertHumaErrorDetail(t, res, tt.wantField, tt.wantMessage)
+		})
+	}
 }
 
 func TestUpdateCheckMapsEmptyPatchToUnprocessableEntity(t *testing.T) {

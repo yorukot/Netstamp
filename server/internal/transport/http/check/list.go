@@ -25,7 +25,7 @@ func (h *Handler) listChecks(ctx context.Context, input *listChecksInput) (*list
 }
 
 type listChecksInput struct {
-	Ref string `path:"ref" minLength:"1" maxLength:"100" doc:"Project UUID or slug." example:"engineering"`
+	Ref string `path:"ref" doc:"Project UUID or slug." example:"engineering"`
 }
 
 type listChecksOutput struct {

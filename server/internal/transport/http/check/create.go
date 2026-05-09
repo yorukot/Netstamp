@@ -35,20 +35,20 @@ func (h *Handler) createCheck(ctx context.Context, input *createCheckInput) (*ch
 }
 
 type createCheckInput struct {
-	Ref  string `path:"ref" minLength:"1" maxLength:"100" doc:"Project UUID or slug." example:"engineering"`
+	Ref  string `path:"ref" doc:"Project UUID or slug." example:"engineering"`
 	Body createCheckInputBody
 }
 
 type createCheckInputBody struct {
-	Name            string         `json:"name" minLength:"1" maxLength:"100" required:"true" doc:"Check display name." example:"api-latency"`
-	Type            string         `json:"type" enum:"ping" required:"true" doc:"Check type. Only ping is supported in v1." example:"ping"`
-	Target          string         `json:"target" minLength:"1" maxLength:"255" required:"true" doc:"Hostname or address to check." example:"api.netstamp.io"`
+	Name            string         `json:"name" doc:"Check display name." example:"api-latency"`
+	Type            string         `json:"type" doc:"Check type. Only ping is supported in v1." example:"ping"`
+	Target          string         `json:"target" doc:"Hostname or address to check." example:"api.netstamp.io"`
 	Selector        map[string]any `json:"selector,omitempty" doc:"Selector object for later probe matching."`
-	Description     *string        `json:"description,omitempty" minLength:"1" maxLength:"500" doc:"Optional check description." example:"Latency and loss to controller API."`
-	IntervalSeconds int32          `json:"intervalSeconds" minimum:"1" required:"true" doc:"Check interval in seconds." example:"30"`
-	PacketCount     *int32         `json:"packetCount,omitempty" minimum:"1" doc:"ICMP packet count. Defaults to 4." example:"4"`
-	PacketSizeBytes *int32         `json:"packetSizeBytes,omitempty" minimum:"0" maximum:"65507" doc:"ICMP payload size in bytes. Defaults to 56." example:"56"`
-	TimeoutMs       *int32         `json:"timeoutMs,omitempty" minimum:"1" doc:"Ping timeout in milliseconds. Defaults to 3000." example:"3000"`
-	IPFamily        *string        `json:"ipFamily,omitempty" enum:"inet,inet6" doc:"Optional IP family preference." example:"inet"`
+	Description     *string        `json:"description,omitempty" doc:"Optional check description." example:"Latency and loss to controller API."`
+	IntervalSeconds int32          `json:"intervalSeconds" doc:"Check interval in seconds." example:"30"`
+	PacketCount     *int32         `json:"packetCount,omitempty" doc:"ICMP packet count. Defaults to 4." example:"4"`
+	PacketSizeBytes *int32         `json:"packetSizeBytes,omitempty" doc:"ICMP payload size in bytes. Defaults to 56." example:"56"`
+	TimeoutMs       *int32         `json:"timeoutMs,omitempty" doc:"Ping timeout in milliseconds. Defaults to 3000." example:"3000"`
+	IPFamily        *string        `json:"ipFamily,omitempty" doc:"Optional IP family preference." example:"inet"`
 	LabelIDs        []string       `json:"labelIds,omitempty" doc:"Existing project label IDs to attach to the check."`
 }

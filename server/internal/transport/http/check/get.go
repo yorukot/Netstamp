@@ -25,6 +25,6 @@ func (h *Handler) getCheck(ctx context.Context, input *getCheckInput) (*checkOut
 }
 
 type getCheckInput struct {
-	Ref     string `path:"ref" minLength:"1" maxLength:"100" doc:"Project UUID or slug." example:"engineering"`
-	CheckID string `path:"check_id" format:"uuid" doc:"Check ID." example:"33333333-3333-3333-3333-333333333333"`
+	Ref     string `path:"ref" doc:"Project UUID or slug." example:"engineering"`
+	CheckID string `path:"check_id" doc:"Check ID." example:"33333333-3333-3333-3333-333333333333"`
 }
