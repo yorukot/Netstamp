@@ -85,7 +85,7 @@ func newAPIRouter(dep Dependencies) http.Handler {
 	return r
 }
 
-func routeMetrics(apiRouter http.Handler, metricsHandler http.Handler) http.Handler {
+func routeMetrics(apiRouter, metricsHandler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/metrics" {
 			metricsHandler.ServeHTTP(w, r)
