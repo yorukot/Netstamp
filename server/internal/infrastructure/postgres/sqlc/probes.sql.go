@@ -146,43 +146,6 @@ func (q *Queries) GetActiveProbeCredential(ctx context.Context, id uuid.UUID) (G
 	return i, err
 }
 
-const listActiveAssignedCheckIDsForProbe = `-- name: ListActiveAssignedCheckIDsForProbe :many
-SELECT effective_probe_checks.check_id
-FROM effective_probe_checks
-JOIN probes
-    ON probes.project_id = effective_probe_checks.project_id
-    AND probes.id = effective_probe_checks.probe_id
-JOIN checks
-    ON checks.project_id = effective_probe_checks.project_id
-    AND checks.id = effective_probe_checks.check_id
-WHERE effective_probe_checks.probe_id = $1
-  AND effective_probe_checks.deleted_at IS NULL
-  AND probes.enabled = true
-  AND probes.deleted_at IS NULL
-  AND checks.deleted_at IS NULL
-ORDER BY checks.id ASC
-`
-
-func (q *Queries) ListActiveAssignedCheckIDsForProbe(ctx context.Context, probeID uuid.UUID) ([]uuid.UUID, error) {
-	rows, err := q.db.Query(ctx, listActiveAssignedCheckIDsForProbe, probeID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []uuid.UUID
-	for rows.Next() {
-		var check_id uuid.UUID
-		if err := rows.Scan(&check_id); err != nil {
-			return nil, err
-		}
-		items = append(items, check_id)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const listActiveAssignmentsForProbe = `-- name: ListActiveAssignmentsForProbe :many
 SELECT effective_probe_checks.id AS assignment_id,
        effective_probe_checks.project_id,

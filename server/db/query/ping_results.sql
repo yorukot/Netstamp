@@ -1,13 +1,5 @@
--- name: CreatePingResultExternalID :one
-INSERT INTO ping_result_external_ids (project_id, probe_id, external_id, started_at)
-VALUES ($1, $2, $3, $4)
-ON CONFLICT (project_id, probe_id, external_id) DO NOTHING
-RETURNING result_id;
-
--- name: CreatePingResult :one
+-- name: CreatePingResult :exec
 INSERT INTO ping_results (
-    id,
-    external_id,
     project_id,
     check_id,
     probe_id,
@@ -31,8 +23,6 @@ INSERT INTO ping_results (
     error_message
 )
 VALUES (
-    sqlc.arg(id),
-    sqlc.arg(external_id),
     sqlc.arg(project_id),
     sqlc.arg(check_id),
     sqlc.arg(probe_id),
@@ -55,27 +45,4 @@ VALUES (
     sqlc.narg(error_code),
     sqlc.narg(error_message)
 )
-RETURNING id,
-          external_id,
-          project_id,
-          check_id,
-          probe_id,
-          started_at,
-          finished_at,
-          duration_ms,
-          status,
-          sent_count,
-          received_count,
-          loss_percent,
-          rtt_min_ms,
-          rtt_avg_ms,
-          rtt_median_ms,
-          rtt_max_ms,
-          rtt_stddev_ms,
-          rtt_samples_ms,
-          resolved_ip,
-          ip_family,
-          raw,
-          error_code,
-          error_message,
-          created_at;
+ON CONFLICT (project_id, probe_id, check_id, started_at) DO NOTHING;

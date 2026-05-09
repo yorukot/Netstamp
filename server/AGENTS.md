@@ -188,7 +188,7 @@ The observability compose setup requires `LOG_PSEUDONYM_KEY`, `DATABASE_PASSWORD
 
 ## Database & Persistence
 
-The database is PostgreSQL with TimescaleDB in Docker (`timescale/timescaledb:latest-pg16`). The initial Goose migration enables `pgcrypto`, `citext`, and `timescaledb`, then creates users, projects, project members, probes, selector-based ping checks, key/value labels, effective probe-check rows, ping results, and the ping results hypertable. A later migration adds probe-supplied ping result idempotency via `ping_result_external_ids`; this separate table is intentional because Timescale hypertable unique indexes must include the time partition column. Traceroute schema is intentionally not present yet.
+The database is PostgreSQL with TimescaleDB in Docker (`timescale/timescaledb:latest-pg16`). The initial Goose migration enables `pgcrypto`, `citext`, and `timescaledb`, then creates users, projects, project members, probes, selector-based ping checks, key/value labels, effective probe-check rows, ping results, and the ping results hypertable. A later migration adds a natural duplicate key for ping results on `(project_id, probe_id, check_id, started_at)`; the server/DB still generates result IDs. Traceroute schema is intentionally not present yet.
 
 Add schema changes as timestamped Goose migrations under `db/migrations/`, following the pattern in `db/migrations/README.md`, such as `202604300001_create_example_table.sql`. Add typed SQL queries under `db/query/*.sql`, then run `just backend-sqlc`. Do not edit `internal/infrastructure/postgres/sqlc/*.go` manually. Keep repositories responsible for mapping sqlc rows and pgx errors into domain/application types.
 

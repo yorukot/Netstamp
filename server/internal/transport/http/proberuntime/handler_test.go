@@ -96,18 +96,20 @@ func TestListAssignmentsReturnsProbeAssignments(t *testing.T) {
 	}
 }
 
-func TestSubmitPingResultsReturnsPerResultOutcomes(t *testing.T) {
+func TestSubmitResultsReturnsNoContentForPingBatch(t *testing.T) {
 	_, api := humatest.New(t)
-	repo := &handlerProbeRepository{assignedCheckIDs: []string{handlerCheckID}}
-	results := &handlerPingResultRepository{duplicateIDs: map[string]bool{"result-2": true}}
+	repo := &handlerProbeRepository{assignments: []domaincheck.Assignment{{
+		CheckID: handlerCheckID,
+		Type:    domaincheck.TypePing,
+	}}}
+	results := &handlerPingResultRepository{}
 	NewHandler(newRuntimeService(repo, results, true)).RegisterRoutes(api)
 	startedAt := time.Date(2026, 5, 9, 10, 0, 0, 0, time.UTC)
 	finishedAt := startedAt.Add(time.Second)
 
-	res := api.Post("/probes/"+handlerProbeID+"/runtime/results/ping", map[string]any{
-		"results": []map[string]any{
+	res := api.Post("/probes/"+handlerProbeID+"/runtime/results", map[string]any{
+		"ping": []map[string]any{
 			{
-				"resultId":      "result-1",
 				"checkId":       handlerCheckID,
 				"startedAt":     startedAt.Format(time.RFC3339Nano),
 				"finishedAt":    finishedAt.Format(time.RFC3339Nano),
@@ -127,7 +129,6 @@ func TestSubmitPingResultsReturnsPerResultOutcomes(t *testing.T) {
 				"raw":           map[string]any{"runner": "test"},
 			},
 			{
-				"resultId":      "result-2",
 				"checkId":       handlerCheckID,
 				"startedAt":     startedAt.Format(time.RFC3339Nano),
 				"finishedAt":    finishedAt.Format(time.RFC3339Nano),
@@ -140,35 +141,21 @@ func TestSubmitPingResultsReturnsPerResultOutcomes(t *testing.T) {
 		},
 	}, "Authorization: Probe plain-secret")
 
-	if res.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", res.Code)
-	}
-	var body submitPingResultsOutputBody
-	if err := json.NewDecoder(res.Body).Decode(&body); err != nil {
-		t.Fatalf("decode response: %v", err)
-	}
-	if len(body.Results) != 2 {
-		t.Fatalf("expected two outcomes, got %#v", body.Results)
-	}
-	if body.Results[0].Status != string(appproberuntime.PingResultOutcomeAccepted) {
-		t.Fatalf("expected accepted, got %#v", body.Results[0])
-	}
-	if body.Results[1].Status != string(appproberuntime.PingResultOutcomeDuplicate) {
-		t.Fatalf("expected duplicate, got %#v", body.Results[1])
+	if res.Code != http.StatusNoContent {
+		t.Fatalf("expected status 204, got %d", res.Code)
 	}
 	if len(results.created) != 2 {
 		t.Fatalf("expected two repository writes, got %#v", results.created)
 	}
 }
 
-func TestSubmitPingResultsRejectsInvalidResolvedIP(t *testing.T) {
+func TestSubmitResultsRejectsInvalidResolvedIP(t *testing.T) {
 	_, api := humatest.New(t)
 	NewHandler(newRuntimeService(&handlerProbeRepository{}, &handlerPingResultRepository{}, true)).RegisterRoutes(api)
 	now := time.Date(2026, 5, 9, 10, 0, 0, 0, time.UTC)
 
-	res := api.Post("/probes/"+handlerProbeID+"/runtime/results/ping", map[string]any{
-		"results": []map[string]any{{
-			"resultId":      "result-1",
+	res := api.Post("/probes/"+handlerProbeID+"/runtime/results", map[string]any{
+		"ping": []map[string]any{{
 			"checkId":       handlerCheckID,
 			"startedAt":     now.Format(time.RFC3339Nano),
 			"finishedAt":    now.Add(time.Second).Format(time.RFC3339Nano),
@@ -186,14 +173,37 @@ func TestSubmitPingResultsRejectsInvalidResolvedIP(t *testing.T) {
 	}
 }
 
+func TestSubmitResultsRejectsUnsupportedDNSBucket(t *testing.T) {
+	_, api := humatest.New(t)
+	NewHandler(newRuntimeService(&handlerProbeRepository{}, &handlerPingResultRepository{}, true)).RegisterRoutes(api)
+
+	res := api.Post("/probes/"+handlerProbeID+"/runtime/results", map[string]any{
+		"dns": []map[string]any{{"checkId": handlerCheckID}},
+	}, "Authorization: Probe plain-secret")
+
+	if res.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("expected status 422, got %d", res.Code)
+	}
+}
+
+func TestOldPingResultEndpointIsNotRegistered(t *testing.T) {
+	_, api := humatest.New(t)
+	NewHandler(newRuntimeService(&handlerProbeRepository{}, &handlerPingResultRepository{}, true)).RegisterRoutes(api)
+
+	res := api.Post("/probes/"+handlerProbeID+"/runtime/results/ping", map[string]any{}, "Authorization: Probe plain-secret")
+
+	if res.Code != http.StatusNotFound {
+		t.Fatalf("expected status 404, got %d", res.Code)
+	}
+}
+
 func newRuntimeService(probes *handlerProbeRepository, results *handlerPingResultRepository, validSecret bool) *appproberuntime.Service {
 	return appproberuntime.NewService(probes, results, handlerSecretVerifier{valid: validSecret})
 }
 
 type handlerProbeRepository struct {
-	gotStatus        domainprobe.UpdateStatusInput
-	assignments      []domaincheck.Assignment
-	assignedCheckIDs []string
+	gotStatus   domainprobe.UpdateStatusInput
+	assignments []domaincheck.Assignment
 }
 
 func (r *handlerProbeRepository) GetActiveProbeCredential(context.Context, string) (domainprobe.Credential, error) {
@@ -214,21 +224,13 @@ func (r *handlerProbeRepository) ListAssignments(context.Context, string) ([]dom
 	return r.assignments, nil
 }
 
-func (r *handlerProbeRepository) ListActiveAssignedCheckIDs(context.Context, string) ([]string, error) {
-	return r.assignedCheckIDs, nil
-}
-
 type handlerPingResultRepository struct {
-	duplicateIDs map[string]bool
-	created      []domainping.ResultStorageInput
+	created []domainping.ResultStorageInput
 }
 
-func (r *handlerPingResultRepository) CreatePingResult(_ context.Context, input domainping.ResultStorageInput) (domainping.ResultWriteOutcome, error) {
-	r.created = append(r.created, input)
-	if r.duplicateIDs[input.ExternalID] {
-		return domainping.ResultWriteOutcome{ExternalID: input.ExternalID, Status: domainping.ResultWriteDuplicate}, nil
-	}
-	return domainping.ResultWriteOutcome{ExternalID: input.ExternalID, Status: domainping.ResultWriteAccepted}, nil
+func (r *handlerPingResultRepository) CreatePingResults(_ context.Context, inputs []domainping.ResultStorageInput) error {
+	r.created = append(r.created, inputs...)
+	return nil
 }
 
 type handlerSecretVerifier struct {

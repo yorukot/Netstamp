@@ -95,29 +95,6 @@ func (r *ProbeRepository) ListAssignments(ctx context.Context, probeID string) (
 	return assignments, nil
 }
 
-func (r *ProbeRepository) ListActiveAssignedCheckIDs(ctx context.Context, probeID string) ([]string, error) {
-	ctx, span := postgres.StartDBSpan(ctx, pgprobeTracer, "effective_probe_checks", "postgres.probes.list_assigned_check_ids", "SELECT", "SELECT active assigned check ids")
-	defer span.End()
-
-	id, err := postgres.ParseUUID(probeID, domainprobe.ErrProbeNotFound)
-	if err != nil {
-		return nil, err
-	}
-
-	rows, err := r.queries.ListActiveAssignedCheckIDsForProbe(ctx, id)
-	if err != nil {
-		postgres.RecordDBSpanError(span, err)
-		return nil, err
-	}
-
-	checkIDs := make([]string, 0, len(rows))
-	for _, row := range rows {
-		checkIDs = append(checkIDs, row.String())
-	}
-
-	return checkIDs, nil
-}
-
 func (r *ProbeRepository) CreateProbe(ctx context.Context, input domainprobe.CreateProbeStorageInput) (domainprobe.Probe, error) {
 	ctx, span := postgres.StartDBSpan(ctx, pgprobeTracer, "probes", "postgres.probes.create_with_credentials", "INSERT", "INSERT probe, credential, status, and labels")
 	defer span.End()

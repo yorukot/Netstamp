@@ -68,19 +68,3 @@ WHERE effective_probe_checks.probe_id = $1
   AND checks.deleted_at IS NULL
 ORDER BY checks.created_at ASC,
          checks.id ASC;
-
--- name: ListActiveAssignedCheckIDsForProbe :many
-SELECT effective_probe_checks.check_id
-FROM effective_probe_checks
-JOIN probes
-    ON probes.project_id = effective_probe_checks.project_id
-    AND probes.id = effective_probe_checks.probe_id
-JOIN checks
-    ON checks.project_id = effective_probe_checks.project_id
-    AND checks.id = effective_probe_checks.check_id
-WHERE effective_probe_checks.probe_id = $1
-  AND effective_probe_checks.deleted_at IS NULL
-  AND probes.enabled = true
-  AND probes.deleted_at IS NULL
-  AND checks.deleted_at IS NULL
-ORDER BY checks.id ASC;

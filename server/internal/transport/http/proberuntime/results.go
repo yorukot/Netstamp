@@ -13,38 +13,49 @@ import (
 	domainnetwork "github.com/yorukot/netstamp/internal/domain/network"
 )
 
-func (h *Handler) submitPingResults(ctx context.Context, input *submitPingResultsInput) (*submitPingResultsOutput, error) {
+func (h *Handler) submitResults(ctx context.Context, input *submitResultsInput) (*submitResultsOutput, error) {
 	auth, err := runtimeAuthInput(input.ProbeID, input.Authorization)
 	if err != nil {
 		return nil, err
 	}
-	results, err := newPingResultInputs(input.Body.Results)
+	pingResults, err := newPingResultInputs(input.Body.Ping)
 	if err != nil {
 		return nil, err
 	}
-	output, err := h.service.SubmitPingResults(ctx, appproberuntime.SubmitPingResultsInput{
+	dnsResults, err := newUnsupportedResultInputs(input.Body.DNS)
+	if err != nil {
+		return nil, err
+	}
+	tracerouteResults, err := newUnsupportedResultInputs(input.Body.Traceroute)
+	if err != nil {
+		return nil, err
+	}
+	err = h.service.SubmitResults(ctx, appproberuntime.SubmitResultsInput{
 		RuntimeAuthInput: auth,
-		Results:          results,
+		Ping:             pingResults,
+		DNS:              dnsResults,
+		Traceroute:       tracerouteResults,
 	})
 	if err != nil {
-		return nil, mapRuntimeError(err, "submit probe ping results failed")
+		return nil, mapRuntimeError(err, "submit probe results failed")
 	}
 
-	return &submitPingResultsOutput{Body: newSubmitPingResultsOutputBody(output)}, nil
+	return &submitResultsOutput{}, nil
 }
 
-type submitPingResultsInput struct {
+type submitResultsInput struct {
 	ProbeID       string `path:"probe_id" format:"uuid" doc:"Probe ID."`
 	Authorization string `header:"Authorization" doc:"Probe authorization header. Use 'Probe <secret>'."`
-	Body          submitPingResultsInputBody
+	Body          submitResultsInputBody
 }
 
-type submitPingResultsInputBody struct {
-	Results []pingResultInputBody `json:"results" minItems:"1" maxItems:"500" required:"true"`
+type submitResultsInputBody struct {
+	Ping       []pingResultInputBody `json:"ping,omitempty" maxItems:"500"`
+	DNS        []map[string]any      `json:"dns,omitempty" maxItems:"500"`
+	Traceroute []map[string]any      `json:"traceroute,omitempty" maxItems:"500"`
 }
 
 type pingResultInputBody struct {
-	ResultID      string         `json:"resultId" minLength:"1" maxLength:"200" required:"true"`
 	CheckID       string         `json:"checkId" format:"uuid" required:"true"`
 	StartedAt     time.Time      `json:"startedAt" required:"true"`
 	FinishedAt    time.Time      `json:"finishedAt" required:"true"`
@@ -66,19 +77,7 @@ type pingResultInputBody struct {
 	ErrorMessage  *string        `json:"errorMessage,omitempty" maxLength:"500"`
 }
 
-type submitPingResultsOutput struct {
-	Body submitPingResultsOutputBody
-}
-
-type submitPingResultsOutputBody struct {
-	Results []pingResultOutcomeResponse `json:"results"`
-}
-
-type pingResultOutcomeResponse struct {
-	ResultID string  `json:"resultId"`
-	Status   string  `json:"status" enum:"accepted,duplicate,rejected"`
-	Error    *string `json:"error,omitempty"`
-}
+type submitResultsOutput struct{}
 
 func newPingResultInputs(results []pingResultInputBody) ([]appproberuntime.PingResultInput, error) {
 	mapped := make([]appproberuntime.PingResultInput, 0, len(results))
@@ -96,7 +95,6 @@ func newPingResultInputs(results []pingResultInputBody) ([]appproberuntime.PingR
 			return nil, huma.Error422UnprocessableEntity("invalid raw result")
 		}
 		mapped = append(mapped, appproberuntime.PingResultInput{
-			ResultID:      result.ResultID,
 			CheckID:       result.CheckID,
 			StartedAt:     result.StartedAt,
 			FinishedAt:    result.FinishedAt,
@@ -117,6 +115,23 @@ func newPingResultInputs(results []pingResultInputBody) ([]appproberuntime.PingR
 			ErrorCode:     result.ErrorCode,
 			ErrorMessage:  result.ErrorMessage,
 		})
+	}
+
+	return mapped, nil
+}
+
+func newUnsupportedResultInputs(results []map[string]any) ([]appproberuntime.UnsupportedResultInput, error) {
+	if len(results) == 0 {
+		return nil, nil
+	}
+
+	mapped := make([]appproberuntime.UnsupportedResultInput, 0, len(results))
+	for _, result := range results {
+		raw, err := json.Marshal(result)
+		if err != nil {
+			return nil, huma.Error422UnprocessableEntity("invalid unsupported result")
+		}
+		mapped = append(mapped, appproberuntime.UnsupportedResultInput{Raw: raw})
 	}
 
 	return mapped, nil
@@ -144,17 +159,4 @@ func rawMessage(raw map[string]any) (json.RawMessage, error) {
 	}
 
 	return json.Marshal(raw)
-}
-
-func newSubmitPingResultsOutputBody(output appproberuntime.SubmitPingResultsOutput) submitPingResultsOutputBody {
-	results := make([]pingResultOutcomeResponse, 0, len(output.Results))
-	for _, result := range output.Results {
-		results = append(results, pingResultOutcomeResponse{
-			ResultID: result.ResultID,
-			Status:   string(result.Status),
-			Error:    result.Error,
-		})
-	}
-
-	return submitPingResultsOutputBody{Results: results}
 }

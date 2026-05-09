@@ -13,6 +13,7 @@ import (
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 
+	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
 	"github.com/yorukot/netstamp/internal/normalize"
@@ -104,57 +105,60 @@ func (s *Service) ListAssignments(ctx context.Context, input RuntimeAuthInput) (
 	return ListAssignmentsOutput{Assignments: assignments}, nil
 }
 
-func (s *Service) SubmitPingResults(ctx context.Context, input SubmitPingResultsInput) (SubmitPingResultsOutput, error) {
-	ctx, span := runtimeTracer.Start(ctx, "probe_runtime.ping_results.submit")
+func (s *Service) SubmitResults(ctx context.Context, input SubmitResultsInput) error {
+	ctx, span := runtimeTracer.Start(ctx, "probe_runtime.results.submit")
 	defer span.End()
 
 	credential, err := s.authenticate(ctx, input.RuntimeAuthInput)
 	if err != nil {
 		recordRuntimeSpanError(span, err)
-		return SubmitPingResultsOutput{}, err
+		return err
 	}
+	resultCount := len(input.Ping) + len(input.DNS) + len(input.Traceroute)
 	span.SetAttributes(
 		attribute.String("probe.id", credential.ProbeID),
 		attribute.String("project.id", credential.ProjectID),
-		attribute.Int("result.count", len(input.Results)),
+		attribute.Int("result.count", resultCount),
 	)
 
-	if len(input.Results) == 0 || len(input.Results) > MaxPingResultBatchSize {
+	if resultCount == 0 || resultCount > MaxResultBatchSize {
 		recordRuntimeSpanError(span, ErrInvalidInput)
-		return SubmitPingResultsOutput{}, ErrInvalidInput
+		return ErrInvalidInput
+	}
+	if len(input.DNS) > 0 || len(input.Traceroute) > 0 {
+		recordRuntimeSpanError(span, ErrUnsupportedResult)
+		return ErrUnsupportedResult
 	}
 
-	assignedCheckIDs, err := s.probes.ListActiveAssignedCheckIDs(ctx, credential.ProbeID)
+	assignments, err := s.probes.ListAssignments(ctx, credential.ProbeID)
 	if err != nil {
 		recordRuntimeSpanError(span, err)
-		return SubmitPingResultsOutput{}, err
+		return err
 	}
-	assigned := make(map[string]struct{}, len(assignedCheckIDs))
-	for _, checkID := range assignedCheckIDs {
-		assigned[checkID] = struct{}{}
-	}
+	assignedTypes := assignedCheckTypes(assignments)
 
-	outcomes := make([]PingResultOutcome, 0, len(input.Results))
-	for _, result := range input.Results {
+	pingResults := make([]domainping.ResultStorageInput, 0, len(input.Ping))
+	for _, result := range input.Ping {
 		storageInput, err := normalizePingResult(result, credential.ProjectID, credential.ProbeID)
 		if err != nil {
-			outcomes = append(outcomes, rejectedPingResultOutcome(result.ResultID, "invalid_result"))
-			continue
-		}
-		if _, ok := assigned[storageInput.CheckID]; !ok {
-			outcomes = append(outcomes, rejectedPingResultOutcome(storageInput.ExternalID, "unassigned_check"))
-			continue
-		}
-
-		outcome, err := s.results.CreatePingResult(ctx, storageInput)
-		if err != nil {
 			recordRuntimeSpanError(span, err)
-			return SubmitPingResultsOutput{}, err
+			return err
 		}
-		outcomes = append(outcomes, mapWriteOutcome(outcome))
+		if assignedType, ok := assignedTypes[storageInput.CheckID]; !ok || assignedType != domaincheck.TypePing {
+			recordRuntimeSpanError(span, ErrResultConflict)
+			return ErrResultConflict
+		}
+		pingResults = append(pingResults, storageInput)
 	}
 
-	return SubmitPingResultsOutput{Results: outcomes}, nil
+	if len(pingResults) > 0 {
+		if err := s.results.CreatePingResults(ctx, pingResults); err != nil {
+			recordRuntimeSpanError(span, err)
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (s *Service) authenticate(ctx context.Context, input RuntimeAuthInput) (domainprobe.Credential, error) {
@@ -201,13 +205,6 @@ func normalizeRuntimeStatus(input RuntimeStatusInput, probeID string) (domainpro
 }
 
 func normalizePingResult(input PingResultInput, projectID, probeID string) (domainping.ResultStorageInput, error) {
-	externalID, err := normalize.RequiredString(input.ResultID, ErrInvalidResult)
-	if err != nil {
-		return domainping.ResultStorageInput{}, err
-	}
-	if len(externalID) > 200 {
-		return domainping.ResultStorageInput{}, ErrInvalidResult
-	}
 	checkID, err := normalizeUUID(input.CheckID, ErrInvalidResult)
 	if err != nil {
 		return domainping.ResultStorageInput{}, err
@@ -233,7 +230,6 @@ func normalizePingResult(input PingResultInput, projectID, probeID string) (doma
 	}
 
 	return domainping.ResultStorageInput{
-		ExternalID:    externalID,
 		ProjectID:     projectID,
 		ProbeID:       probeID,
 		CheckID:       checkID,
@@ -350,27 +346,13 @@ func normalizeUUID(value string, invalidErr error) (string, error) {
 	return parsed.String(), nil
 }
 
-func mapWriteOutcome(outcome domainping.ResultWriteOutcome) PingResultOutcome {
-	switch outcome.Status {
-	case domainping.ResultWriteDuplicate:
-		return PingResultOutcome{
-			ResultID: outcome.ExternalID,
-			Status:   PingResultOutcomeDuplicate,
-		}
-	default:
-		return PingResultOutcome{
-			ResultID: outcome.ExternalID,
-			Status:   PingResultOutcomeAccepted,
-		}
+func assignedCheckTypes(assignments []domaincheck.Assignment) map[string]domaincheck.Type {
+	assigned := make(map[string]domaincheck.Type, len(assignments))
+	for _, assignment := range assignments {
+		assigned[assignment.CheckID] = assignment.Type
 	}
-}
 
-func rejectedPingResultOutcome(resultID, reason string) PingResultOutcome {
-	return PingResultOutcome{
-		ResultID: strings.TrimSpace(resultID),
-		Status:   PingResultOutcomeRejected,
-		Error:    &reason,
-	}
+	return assigned
 }
 
 func recordRuntimeSpanError(span trace.Span, err error) {

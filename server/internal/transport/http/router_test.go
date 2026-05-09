@@ -63,7 +63,7 @@ func TestNewRouterServesOpenAPIWithoutRuntimeServices(t *testing.T) {
 	assertOpenAPIOperation(t, spec, http.MethodPost, "/probes/{probe_id}/runtime/hello", "probeRuntimeHello")
 	assertOpenAPIOperation(t, spec, http.MethodPost, "/probes/{probe_id}/runtime/heartbeat", "probeRuntimeHeartbeat")
 	assertOpenAPIOperation(t, spec, http.MethodGet, "/probes/{probe_id}/runtime/assignments", "listProbeRuntimeAssignments")
-	assertOpenAPIOperation(t, spec, http.MethodPost, "/probes/{probe_id}/runtime/results/ping", "submitProbeRuntimePingResults")
+	assertOpenAPIOperation(t, spec, http.MethodPost, "/probes/{probe_id}/runtime/results", "submitProbeRuntimeResults")
 }
 
 func TestNewRouterOpenAPIUsesBackendBaseURLServerURL(t *testing.T) {

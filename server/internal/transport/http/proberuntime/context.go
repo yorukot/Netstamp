@@ -38,6 +38,10 @@ func mapRuntimeError(err error, fallback string) error {
 		return huma.Error403Forbidden("probe disabled")
 	case errors.Is(err, appproberuntime.ErrProbeNotFound):
 		return huma.Error404NotFound("probe not found")
+	case errors.Is(err, appproberuntime.ErrResultConflict):
+		return huma.Error409Conflict("probe result conflicts with assignment")
+	case errors.Is(err, appproberuntime.ErrUnsupportedResult):
+		return huma.Error422UnprocessableEntity("unsupported result type")
 	case errors.Is(err, appproberuntime.ErrInvalidInput), errors.Is(err, appproberuntime.ErrInvalidResult):
 		return huma.Error422UnprocessableEntity("invalid probe runtime input")
 	default:

@@ -26,6 +26,69 @@
 				"required": ["userId", "role"],
 				"type": "object"
 			},
+			"AssignmentResponse": {
+				"additionalProperties": false,
+				"properties": {
+					"assignmentId": {
+						"format": "uuid",
+						"type": "string"
+					},
+					"checkId": {
+						"format": "uuid",
+						"type": "string"
+					},
+					"checkVersion": {
+						"type": "string"
+					},
+					"intervalSeconds": {
+						"format": "int32",
+						"type": "integer"
+					},
+					"pingConfig": {
+						"$ref": "#/components/schemas/PingConfigResponse"
+					},
+					"probeId": {
+						"format": "uuid",
+						"type": "string"
+					},
+					"projectId": {
+						"format": "uuid",
+						"type": "string"
+					},
+					"selectorVersion": {
+						"type": "string"
+					},
+					"target": {
+						"type": "string"
+					},
+					"type": {
+						"enum": ["ping"],
+						"type": "string"
+					}
+				},
+				"required": ["assignmentId", "projectId", "probeId", "checkId", "checkVersion", "selectorVersion", "type", "target", "intervalSeconds", "pingConfig"],
+				"type": "object"
+			},
+			"AssignmentsOutputBody": {
+				"additionalProperties": false,
+				"properties": {
+					"$schema": {
+						"description": "A URL to the JSON Schema for this object.",
+						"examples": ["/api/v1/schemas/AssignmentsOutputBody.json"],
+						"format": "uri",
+						"readOnly": true,
+						"type": "string"
+					},
+					"assignments": {
+						"items": {
+							"$ref": "#/components/schemas/AssignmentResponse"
+						},
+						"type": ["array", "null"]
+					}
+				},
+				"required": ["assignments"],
+				"type": "object"
+			},
 			"CheckLabelResponse": {
 				"additionalProperties": false,
 				"properties": {
@@ -428,6 +491,50 @@
 				"required": ["status"],
 				"type": "object"
 			},
+			"HeartbeatOutputBody": {
+				"additionalProperties": false,
+				"properties": {
+					"$schema": {
+						"description": "A URL to the JSON Schema for this object.",
+						"examples": ["/api/v1/schemas/HeartbeatOutputBody.json"],
+						"format": "uri",
+						"readOnly": true,
+						"type": "string"
+					},
+					"serverTime": {
+						"format": "date-time",
+						"type": "string"
+					}
+				},
+				"required": ["serverTime"],
+				"type": "object"
+			},
+			"HelloOutputBody": {
+				"additionalProperties": false,
+				"properties": {
+					"$schema": {
+						"description": "A URL to the JSON Schema for this object.",
+						"examples": ["/api/v1/schemas/HelloOutputBody.json"],
+						"format": "uri",
+						"readOnly": true,
+						"type": "string"
+					},
+					"assignmentPollIntervalSeconds": {
+						"format": "int32",
+						"type": "integer"
+					},
+					"heartbeatIntervalSeconds": {
+						"format": "int32",
+						"type": "integer"
+					},
+					"serverTime": {
+						"format": "date-time",
+						"type": "string"
+					}
+				},
+				"required": ["serverTime", "heartbeatIntervalSeconds", "assignmentPollIntervalSeconds"],
+				"type": "object"
+			},
 			"LabelOutputBody": {
 				"additionalProperties": false,
 				"properties": {
@@ -655,6 +762,124 @@
 					}
 				},
 				"required": ["member"],
+				"type": "object"
+			},
+			"PingConfigResponse": {
+				"additionalProperties": false,
+				"properties": {
+					"ipFamily": {
+						"enum": ["inet", "inet6"],
+						"type": "string"
+					},
+					"packetCount": {
+						"format": "int32",
+						"type": "integer"
+					},
+					"packetSizeBytes": {
+						"format": "int32",
+						"type": "integer"
+					},
+					"timeoutMs": {
+						"format": "int32",
+						"type": "integer"
+					}
+				},
+				"required": ["packetCount", "packetSizeBytes", "timeoutMs"],
+				"type": "object"
+			},
+			"PingResultInputBody": {
+				"additionalProperties": false,
+				"properties": {
+					"checkId": {
+						"format": "uuid",
+						"type": "string"
+					},
+					"durationMs": {
+						"format": "int32",
+						"minimum": 0,
+						"type": "integer"
+					},
+					"errorCode": {
+						"maxLength": 100,
+						"type": "string"
+					},
+					"errorMessage": {
+						"maxLength": 500,
+						"type": "string"
+					},
+					"finishedAt": {
+						"format": "date-time",
+						"type": "string"
+					},
+					"ipFamily": {
+						"enum": ["inet", "inet6"],
+						"type": "string"
+					},
+					"lossPercent": {
+						"format": "double",
+						"maximum": 100,
+						"minimum": 0,
+						"type": "number"
+					},
+					"raw": {
+						"additionalProperties": {},
+						"type": "object"
+					},
+					"receivedCount": {
+						"format": "int32",
+						"minimum": 0,
+						"type": "integer"
+					},
+					"resolvedIp": {
+						"type": "string"
+					},
+					"rttAvgMs": {
+						"format": "double",
+						"minimum": 0,
+						"type": "number"
+					},
+					"rttMaxMs": {
+						"format": "double",
+						"minimum": 0,
+						"type": "number"
+					},
+					"rttMedianMs": {
+						"format": "double",
+						"minimum": 0,
+						"type": "number"
+					},
+					"rttMinMs": {
+						"format": "double",
+						"minimum": 0,
+						"type": "number"
+					},
+					"rttSamplesMs": {
+						"items": {
+							"format": "double",
+							"type": "number"
+						},
+						"type": ["array", "null"]
+					},
+					"rttStddevMs": {
+						"format": "double",
+						"minimum": 0,
+						"type": "number"
+					},
+					"sentCount": {
+						"format": "int32",
+						"minimum": 0,
+						"type": "integer"
+					},
+					"startedAt": {
+						"format": "date-time",
+						"type": "string"
+					},
+					"status": {
+						"enum": ["successful", "timeout", "error"],
+						"type": "string"
+					}
+				},
+				"required": ["checkId", "startedAt", "finishedAt", "durationMs", "status", "sentCount", "receivedCount", "lossPercent"],
 				"type": "object"
 			},
 			"ProbeLabelResponse": {
@@ -890,6 +1115,78 @@
 				"required": ["message"],
 				"type": "object"
 			},
+			"RuntimeStatusInputBody": {
+				"additionalProperties": false,
+				"properties": {
+					"$schema": {
+						"description": "A URL to the JSON Schema for this object.",
+						"examples": ["/api/v1/schemas/RuntimeStatusInputBody.json"],
+						"format": "uri",
+						"readOnly": true,
+						"type": "string"
+					},
+					"addrs": {
+						"description": "Probe local or observed interface addresses.",
+						"items": {
+							"type": "string"
+						},
+						"type": ["array", "null"]
+					},
+					"agentVersion": {
+						"description": "Probe agent version.",
+						"examples": ["netstamp-probe/0.1.0"],
+						"maxLength": 100,
+						"type": "string"
+					},
+					"publicV4": {
+						"description": "Observed public IPv4 address.",
+						"examples": ["203.0.113.10"],
+						"type": "string"
+					},
+					"publicV6": {
+						"description": "Observed public IPv6 address.",
+						"examples": ["2001:db8::10"],
+						"type": "string"
+					}
+				},
+				"type": "object"
+			},
+			"SubmitResultsInputBody": {
+				"additionalProperties": false,
+				"properties": {
+					"$schema": {
+						"description": "A URL to the JSON Schema for this object.",
+						"examples": ["/api/v1/schemas/SubmitResultsInputBody.json"],
+						"format": "uri",
+						"readOnly": true,
+						"type": "string"
+					},
+					"dns": {
+						"items": {
+							"additionalProperties": {},
+							"type": "object"
+						},
+						"maxItems": 500,
+						"type": ["array", "null"]
+					},
+					"ping": {
+						"items": {
+							"$ref": "#/components/schemas/PingResultInputBody"
+						},
+						"maxItems": 500,
+						"type": ["array", "null"]
+					},
+					"traceroute": {
+						"items": {
+							"additionalProperties": {},
+							"type": "object"
+						},
+						"maxItems": 500,
+						"type": ["array", "null"]
+					}
+				},
+				"type": "object"
+			},
 			"UpdateCheckInputBody": {
 				"additionalProperties": false,
 				"properties": {
@@ -1084,6 +1381,12 @@
 				"bearerFormat": "JWT",
 				"scheme": "bearer",
 				"type": "http"
+			},
+			"probeAuth": {
+				"description": "Probe runtime credential header using the format `Probe \u003csecret\u003e`.",
+				"in": "header",
+				"name": "Authorization",
+				"type": "apiKey"
 			}
 		}
 	},
@@ -1315,6 +1618,423 @@
 				},
 				"summary": "Get liveness status",
 				"tags": ["System"]
+			}
+		},
+		"/probes/{probe_id}/runtime/assignments": {
+			"get": {
+				"operationId": "listProbeRuntimeAssignments",
+				"parameters": [
+					{
+						"description": "Probe ID.",
+						"in": "path",
+						"name": "probe_id",
+						"required": true,
+						"schema": {
+							"description": "Probe ID.",
+							"format": "uuid",
+							"type": "string"
+						}
+					},
+					{
+						"description": "Probe authorization header. Use 'Probe \u003csecret\u003e'.",
+						"in": "header",
+						"name": "Authorization",
+						"schema": {
+							"description": "Probe authorization header. Use 'Probe \u003csecret\u003e'.",
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/AssignmentsOutputBody"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"401": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Unauthorized"
+					},
+					"403": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Forbidden"
+					},
+					"404": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"422": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Unprocessable Entity"
+					},
+					"500": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Internal Server Error"
+					}
+				},
+				"security": [
+					{
+						"probeAuth": []
+					}
+				],
+				"summary": "List probe runtime assignments",
+				"tags": ["Probe Runtime"]
+			}
+		},
+		"/probes/{probe_id}/runtime/heartbeat": {
+			"post": {
+				"operationId": "probeRuntimeHeartbeat",
+				"parameters": [
+					{
+						"description": "Probe ID.",
+						"in": "path",
+						"name": "probe_id",
+						"required": true,
+						"schema": {
+							"description": "Probe ID.",
+							"format": "uuid",
+							"type": "string"
+						}
+					},
+					{
+						"description": "Probe authorization header. Use 'Probe \u003csecret\u003e'.",
+						"in": "header",
+						"name": "Authorization",
+						"schema": {
+							"description": "Probe authorization header. Use 'Probe \u003csecret\u003e'.",
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/RuntimeStatusInputBody"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/HeartbeatOutputBody"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"401": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Unauthorized"
+					},
+					"403": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Forbidden"
+					},
+					"404": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"422": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Unprocessable Entity"
+					},
+					"500": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Internal Server Error"
+					}
+				},
+				"security": [
+					{
+						"probeAuth": []
+					}
+				],
+				"summary": "Update probe runtime status",
+				"tags": ["Probe Runtime"]
+			}
+		},
+		"/probes/{probe_id}/runtime/hello": {
+			"post": {
+				"operationId": "probeRuntimeHello",
+				"parameters": [
+					{
+						"description": "Probe ID.",
+						"in": "path",
+						"name": "probe_id",
+						"required": true,
+						"schema": {
+							"description": "Probe ID.",
+							"format": "uuid",
+							"type": "string"
+						}
+					},
+					{
+						"description": "Probe authorization header. Use 'Probe \u003csecret\u003e'.",
+						"in": "header",
+						"name": "Authorization",
+						"schema": {
+							"description": "Probe authorization header. Use 'Probe \u003csecret\u003e'.",
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/RuntimeStatusInputBody"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/HelloOutputBody"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"401": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Unauthorized"
+					},
+					"403": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Forbidden"
+					},
+					"404": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"422": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Unprocessable Entity"
+					},
+					"500": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Internal Server Error"
+					}
+				},
+				"security": [
+					{
+						"probeAuth": []
+					}
+				],
+				"summary": "Start probe runtime session",
+				"tags": ["Probe Runtime"]
+			}
+		},
+		"/probes/{probe_id}/runtime/results": {
+			"post": {
+				"operationId": "submitProbeRuntimeResults",
+				"parameters": [
+					{
+						"description": "Probe ID.",
+						"in": "path",
+						"name": "probe_id",
+						"required": true,
+						"schema": {
+							"description": "Probe ID.",
+							"format": "uuid",
+							"type": "string"
+						}
+					},
+					{
+						"description": "Probe authorization header. Use 'Probe \u003csecret\u003e'.",
+						"in": "header",
+						"name": "Authorization",
+						"schema": {
+							"description": "Probe authorization header. Use 'Probe \u003csecret\u003e'.",
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/SubmitResultsInputBody"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"204": {
+						"description": "No Content"
+					},
+					"401": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Unauthorized"
+					},
+					"403": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Forbidden"
+					},
+					"404": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"409": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Conflict"
+					},
+					"422": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Unprocessable Entity"
+					},
+					"500": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Internal Server Error"
+					}
+				},
+				"security": [
+					{
+						"probeAuth": []
+					}
+				],
+				"summary": "Submit probe result batch",
+				"tags": ["Probe Runtime"]
 			}
 		},
 		"/projects": {

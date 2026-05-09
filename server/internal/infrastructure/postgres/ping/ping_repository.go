@@ -2,7 +2,6 @@ package pgping
 
 import (
 	"context"
-	"errors"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -25,80 +24,60 @@ func NewPingRepository(pool *pgxpool.Pool) *PingRepository {
 	}
 }
 
-func (r *PingRepository) CreatePingResult(ctx context.Context, input domainping.ResultStorageInput) (domainping.ResultWriteOutcome, error) {
-	ctx, span := postgres.StartDBSpan(ctx, pgpingTracer, "ping_results", "postgres.ping_results.create", "INSERT", "INSERT ping result with idempotency key")
+func (r *PingRepository) CreatePingResults(ctx context.Context, inputs []domainping.ResultStorageInput) error {
+	ctx, span := postgres.StartDBSpan(ctx, pgpingTracer, "ping_results", "postgres.ping_results.create_batch", "INSERT", "INSERT ping result batch")
 	defer span.End()
 
-	projectID, err := postgres.ParseUUID(input.ProjectID, domainping.ErrInvalidResult)
-	if err != nil {
-		return domainping.ResultWriteOutcome{}, err
-	}
-	probeID, err := postgres.ParseUUID(input.ProbeID, domainping.ErrInvalidResult)
-	if err != nil {
-		return domainping.ResultWriteOutcome{}, err
-	}
-	checkID, err := postgres.ParseUUID(input.CheckID, domainping.ErrInvalidResult)
-	if err != nil {
-		return domainping.ResultWriteOutcome{}, err
-	}
-
-	outcome := domainping.ResultWriteOutcome{
-		ExternalID: input.ExternalID,
-		Status:     domainping.ResultWriteAccepted,
-	}
-	err = r.tx.InTx(ctx, func(ctx context.Context, tx pgx.Tx) error {
+	err := r.tx.InTx(ctx, func(ctx context.Context, tx pgx.Tx) error {
 		q := r.queries.WithTx(tx)
+		for _, input := range inputs {
+			projectID, err := postgres.ParseUUID(input.ProjectID, domainping.ErrInvalidResult)
+			if err != nil {
+				return err
+			}
+			probeID, err := postgres.ParseUUID(input.ProbeID, domainping.ErrInvalidResult)
+			if err != nil {
+				return err
+			}
+			checkID, err := postgres.ParseUUID(input.CheckID, domainping.ErrInvalidResult)
+			if err != nil {
+				return err
+			}
 
-		resultID, createIDErr := q.CreatePingResultExternalID(ctx, sqlc.CreatePingResultExternalIDParams{
-			ProjectID:  projectID,
-			ProbeID:    probeID,
-			ExternalID: input.ExternalID,
-			StartedAt:  pgtype.Timestamptz{Time: input.StartedAt.UTC(), Valid: true},
-		})
-		if errors.Is(createIDErr, pgx.ErrNoRows) {
-			outcome.Status = domainping.ResultWriteDuplicate
-			return nil
-		}
-		if createIDErr != nil {
-			return mapPingResultWriteError(createIDErr)
-		}
-
-		externalID := input.ExternalID
-		_, createErr := q.CreatePingResult(ctx, sqlc.CreatePingResultParams{
-			ID:            resultID,
-			ExternalID:    &externalID,
-			ProjectID:     projectID,
-			CheckID:       checkID,
-			ProbeID:       probeID,
-			StartedAt:     pgtype.Timestamptz{Time: input.StartedAt.UTC(), Valid: true},
-			FinishedAt:    pgtype.Timestamptz{Time: input.FinishedAt.UTC(), Valid: true},
-			DurationMs:    input.DurationMs,
-			Status:        sqlcPingStatus(input.Status),
-			SentCount:     input.SentCount,
-			ReceivedCount: input.ReceivedCount,
-			LossPercent:   input.LossPercent,
-			RttMinMs:      input.RttMinMs,
-			RttAvgMs:      input.RttAvgMs,
-			RttMedianMs:   input.RttMedianMs,
-			RttMaxMs:      input.RttMaxMs,
-			RttStddevMs:   input.RttStddevMs,
-			RttSamplesMs:  input.RttSamplesMs,
-			ResolvedIp:    input.ResolvedIP,
-			IpFamily:      sqlcIPFamily(input.IPFamily),
-			Raw:           input.Raw,
-			ErrorCode:     input.ErrorCode,
-			ErrorMessage:  input.ErrorMessage,
-		})
-		if createErr != nil {
-			return mapPingResultWriteError(createErr)
+			createErr := q.CreatePingResult(ctx, sqlc.CreatePingResultParams{
+				ProjectID:     projectID,
+				CheckID:       checkID,
+				ProbeID:       probeID,
+				StartedAt:     pgtype.Timestamptz{Time: input.StartedAt.UTC(), Valid: true},
+				FinishedAt:    pgtype.Timestamptz{Time: input.FinishedAt.UTC(), Valid: true},
+				DurationMs:    input.DurationMs,
+				Status:        sqlcPingStatus(input.Status),
+				SentCount:     input.SentCount,
+				ReceivedCount: input.ReceivedCount,
+				LossPercent:   input.LossPercent,
+				RttMinMs:      input.RttMinMs,
+				RttAvgMs:      input.RttAvgMs,
+				RttMedianMs:   input.RttMedianMs,
+				RttMaxMs:      input.RttMaxMs,
+				RttStddevMs:   input.RttStddevMs,
+				RttSamplesMs:  input.RttSamplesMs,
+				ResolvedIp:    input.ResolvedIP,
+				IpFamily:      sqlcIPFamily(input.IPFamily),
+				Raw:           input.Raw,
+				ErrorCode:     input.ErrorCode,
+				ErrorMessage:  input.ErrorMessage,
+			})
+			if createErr != nil {
+				return mapPingResultWriteError(createErr)
+			}
 		}
 
 		return nil
 	})
 	if err != nil {
 		postgres.RecordDBSpanError(span, err)
-		return domainping.ResultWriteOutcome{}, err
+		return err
 	}
 
-	return outcome, nil
+	return nil
 }

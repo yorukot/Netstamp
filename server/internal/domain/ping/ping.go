@@ -37,7 +37,6 @@ type Config struct {
 }
 
 type ResultStorageInput struct {
-	ExternalID    string
 	ProjectID     string
 	ProbeID       string
 	CheckID       string
@@ -59,18 +58,6 @@ type ResultStorageInput struct {
 	Raw           json.RawMessage
 	ErrorCode     *string
 	ErrorMessage  *string
-}
-
-type ResultWriteStatus string
-
-const (
-	ResultWriteAccepted  ResultWriteStatus = "accepted"
-	ResultWriteDuplicate ResultWriteStatus = "duplicate"
-)
-
-type ResultWriteOutcome struct {
-	ExternalID string
-	Status     ResultWriteStatus
 }
 
 type VersionPayload struct {

@@ -12,7 +12,7 @@ import (
 const (
 	DefaultHeartbeatIntervalSeconds      int32 = 30
 	DefaultAssignmentPollIntervalSeconds int32 = 30
-	MaxPingResultBatchSize               int   = 500
+	MaxResultBatchSize                   int   = 500
 )
 
 type RuntimeAuthInput struct {
@@ -42,13 +42,14 @@ type ListAssignmentsOutput struct {
 	Assignments []domaincheck.Assignment
 }
 
-type SubmitPingResultsInput struct {
+type SubmitResultsInput struct {
 	RuntimeAuthInput
-	Results []PingResultInput
+	Ping       []PingResultInput
+	DNS        []UnsupportedResultInput
+	Traceroute []UnsupportedResultInput
 }
 
 type PingResultInput struct {
-	ResultID      string
 	CheckID       string
 	StartedAt     time.Time
 	FinishedAt    time.Time
@@ -70,20 +71,6 @@ type PingResultInput struct {
 	ErrorMessage  *string
 }
 
-type PingResultOutcomeStatus string
-
-const (
-	PingResultOutcomeAccepted  PingResultOutcomeStatus = "accepted"
-	PingResultOutcomeDuplicate PingResultOutcomeStatus = "duplicate"
-	PingResultOutcomeRejected  PingResultOutcomeStatus = "rejected"
-)
-
-type PingResultOutcome struct {
-	ResultID string
-	Status   PingResultOutcomeStatus
-	Error    *string
-}
-
-type SubmitPingResultsOutput struct {
-	Results []PingResultOutcome
+type UnsupportedResultInput struct {
+	Raw json.RawMessage
 }

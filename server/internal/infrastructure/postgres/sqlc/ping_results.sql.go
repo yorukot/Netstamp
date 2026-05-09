@@ -13,10 +13,8 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const createPingResult = `-- name: CreatePingResult :one
+const createPingResult = `-- name: CreatePingResult :exec
 INSERT INTO ping_results (
-    id,
-    external_id,
     project_id,
     check_id,
     probe_id,
@@ -55,44 +53,17 @@ VALUES (
     $13,
     $14,
     $15,
-    $16,
+    $16::double precision[],
     $17,
-    $18::double precision[],
-    $19,
+    $18,
+    $19::jsonb,
     $20,
-    $21::jsonb,
-    $22,
-    $23
+    $21
 )
-RETURNING id,
-          external_id,
-          project_id,
-          check_id,
-          probe_id,
-          started_at,
-          finished_at,
-          duration_ms,
-          status,
-          sent_count,
-          received_count,
-          loss_percent,
-          rtt_min_ms,
-          rtt_avg_ms,
-          rtt_median_ms,
-          rtt_max_ms,
-          rtt_stddev_ms,
-          rtt_samples_ms,
-          resolved_ip,
-          ip_family,
-          raw,
-          error_code,
-          error_message,
-          created_at
+ON CONFLICT (project_id, probe_id, check_id, started_at) DO NOTHING
 `
 
 type CreatePingResultParams struct {
-	ID            uuid.UUID          `json:"id"`
-	ExternalID    *string            `json:"external_id"`
 	ProjectID     uuid.UUID          `json:"project_id"`
 	CheckID       uuid.UUID          `json:"check_id"`
 	ProbeID       uuid.UUID          `json:"probe_id"`
@@ -116,37 +87,8 @@ type CreatePingResultParams struct {
 	ErrorMessage  *string            `json:"error_message"`
 }
 
-type CreatePingResultRow struct {
-	ID            uuid.UUID          `json:"id"`
-	ExternalID    *string            `json:"external_id"`
-	ProjectID     uuid.UUID          `json:"project_id"`
-	CheckID       uuid.UUID          `json:"check_id"`
-	ProbeID       uuid.UUID          `json:"probe_id"`
-	StartedAt     pgtype.Timestamptz `json:"started_at"`
-	FinishedAt    pgtype.Timestamptz `json:"finished_at"`
-	DurationMs    int32              `json:"duration_ms"`
-	Status        PingStatus         `json:"status"`
-	SentCount     int32              `json:"sent_count"`
-	ReceivedCount int32              `json:"received_count"`
-	LossPercent   float64            `json:"loss_percent"`
-	RttMinMs      *float64           `json:"rtt_min_ms"`
-	RttAvgMs      *float64           `json:"rtt_avg_ms"`
-	RttMedianMs   *float64           `json:"rtt_median_ms"`
-	RttMaxMs      *float64           `json:"rtt_max_ms"`
-	RttStddevMs   *float64           `json:"rtt_stddev_ms"`
-	RttSamplesMs  []float64          `json:"rtt_samples_ms"`
-	ResolvedIp    *netip.Addr        `json:"resolved_ip"`
-	IpFamily      NullIpFamily       `json:"ip_family"`
-	Raw           []byte             `json:"raw"`
-	ErrorCode     *string            `json:"error_code"`
-	ErrorMessage  *string            `json:"error_message"`
-	CreatedAt     pgtype.Timestamptz `json:"created_at"`
-}
-
-func (q *Queries) CreatePingResult(ctx context.Context, arg CreatePingResultParams) (CreatePingResultRow, error) {
-	row := q.db.QueryRow(ctx, createPingResult,
-		arg.ID,
-		arg.ExternalID,
+func (q *Queries) CreatePingResult(ctx context.Context, arg CreatePingResultParams) error {
+	_, err := q.db.Exec(ctx, createPingResult,
 		arg.ProjectID,
 		arg.CheckID,
 		arg.ProbeID,
@@ -169,58 +111,5 @@ func (q *Queries) CreatePingResult(ctx context.Context, arg CreatePingResultPara
 		arg.ErrorCode,
 		arg.ErrorMessage,
 	)
-	var i CreatePingResultRow
-	err := row.Scan(
-		&i.ID,
-		&i.ExternalID,
-		&i.ProjectID,
-		&i.CheckID,
-		&i.ProbeID,
-		&i.StartedAt,
-		&i.FinishedAt,
-		&i.DurationMs,
-		&i.Status,
-		&i.SentCount,
-		&i.ReceivedCount,
-		&i.LossPercent,
-		&i.RttMinMs,
-		&i.RttAvgMs,
-		&i.RttMedianMs,
-		&i.RttMaxMs,
-		&i.RttStddevMs,
-		&i.RttSamplesMs,
-		&i.ResolvedIp,
-		&i.IpFamily,
-		&i.Raw,
-		&i.ErrorCode,
-		&i.ErrorMessage,
-		&i.CreatedAt,
-	)
-	return i, err
-}
-
-const createPingResultExternalID = `-- name: CreatePingResultExternalID :one
-INSERT INTO ping_result_external_ids (project_id, probe_id, external_id, started_at)
-VALUES ($1, $2, $3, $4)
-ON CONFLICT (project_id, probe_id, external_id) DO NOTHING
-RETURNING result_id
-`
-
-type CreatePingResultExternalIDParams struct {
-	ProjectID  uuid.UUID          `json:"project_id"`
-	ProbeID    uuid.UUID          `json:"probe_id"`
-	ExternalID string             `json:"external_id"`
-	StartedAt  pgtype.Timestamptz `json:"started_at"`
-}
-
-func (q *Queries) CreatePingResultExternalID(ctx context.Context, arg CreatePingResultExternalIDParams) (uuid.UUID, error) {
-	row := q.db.QueryRow(ctx, createPingResultExternalID,
-		arg.ProjectID,
-		arg.ProbeID,
-		arg.ExternalID,
-		arg.StartedAt,
-	)
-	var result_id uuid.UUID
-	err := row.Scan(&result_id)
-	return result_id, err
+	return err
 }
