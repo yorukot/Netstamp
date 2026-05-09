@@ -57,6 +57,7 @@ func newAPISuite(t *testing.T) *apiSuite {
 		t.Skipf("set %s to run backend API E2E tests", testDatabaseURLEnv)
 	}
 
+	t.Logf("e2e: connecting to admin database from %s", testDatabaseURLEnv)
 	adminDB := openAdminDatabase(t, adminDatabaseURL)
 	t.Cleanup(func() {
 		if err := adminDB.Close(); err != nil {
@@ -65,14 +66,18 @@ func newAPISuite(t *testing.T) *apiSuite {
 	})
 
 	databaseName := "netstamp_e2e_" + randomHex(t, 6)
+	t.Logf("e2e: creating temporary database %q", databaseName)
 	createDatabase(t, adminDB, databaseName)
 	t.Cleanup(func() {
+		t.Logf("e2e: dropping temporary database %q", databaseName)
 		dropDatabase(t, adminDB, databaseName)
 	})
 
 	testDatabaseURL := databaseURLWithName(t, adminDatabaseURL, databaseName)
+	t.Logf("e2e: running migrations on %q", databaseName)
 	migrateDatabase(t, testDatabaseURL)
 
+	t.Logf("e2e: opening application database pool for %q", databaseName)
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 	pool, err := postgres.NewPool(ctx, postgres.PoolConfig{
@@ -87,8 +92,13 @@ func newAPISuite(t *testing.T) *apiSuite {
 	}
 	t.Cleanup(pool.Close)
 
+	t.Log("e2e: starting in-process HTTP server")
 	server := httptest.NewServer(newTestRouter(pool))
-	t.Cleanup(server.Close)
+	t.Cleanup(func() {
+		t.Log("e2e: stopping in-process HTTP server")
+		server.Close()
+	})
+	t.Logf("e2e: HTTP server listening at %s", server.URL)
 
 	return &apiSuite{
 		baseURL: server.URL,
@@ -221,6 +231,7 @@ func newTestRouter(pool *pgxpool.Pool) http.Handler {
 			probeRepo,
 			pingRepo,
 			security.NewProbeSecretVerifier(),
+			events,
 		),
 		ProjectService: appproject.NewService(projectRepo, events),
 		ReadinessCheck: postgres.NewReadinessCheck(pool),
@@ -235,6 +246,8 @@ func (noopEvents) RecordProjectEvent(context.Context, appproject.ProjectEvent) {
 func (noopEvents) RecordLabelEvent(context.Context, applabel.LabelEvent)       {}
 func (noopEvents) RecordCheckEvent(context.Context, appcheck.CheckEvent)       {}
 func (noopEvents) RecordProbeEvent(context.Context, appprobe.ProbeEvent)       {}
+func (noopEvents) RecordProbeRuntimeEvent(context.Context, appproberuntime.ProbeRuntimeEvent) {
+}
 
 func (s *apiSuite) doJSON(t *testing.T, method, path string, body any, headers map[string]string, wantStatus int, out any) {
 	t.Helper()
