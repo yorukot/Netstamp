@@ -97,7 +97,7 @@ backend-test:
 
 # Run backend API E2E tests against an explicit PostgreSQL URL.
 backend-test-integration:
-    cd {{ server_dir }} && go test -tags=integration ./internal/e2e/...
+    cd {{ server_dir }} && go test -v -tags=integration ./internal/e2e/...
 
 # Format backend code with golangci formatters.
 backend-fmt:
