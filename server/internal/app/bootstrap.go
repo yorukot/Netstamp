@@ -25,7 +25,7 @@ import (
 	pguser "github.com/yorukot/netstamp/internal/infrastructure/postgres/user"
 	"github.com/yorukot/netstamp/internal/infrastructure/security"
 	"github.com/yorukot/netstamp/internal/logger"
-	"github.com/yorukot/netstamp/internal/observability/metrics"
+	obmetrics "github.com/yorukot/netstamp/internal/observability/metrics"
 	"github.com/yorukot/netstamp/internal/observability/tracing"
 	httpserver "github.com/yorukot/netstamp/internal/transport/http"
 )
@@ -35,7 +35,7 @@ type Application struct {
 	Log        *zap.Logger
 	HTTPServer *http.Server
 	DBPool     *pgxpool.Pool
-	Metrics    *metrics.Provider
+	Metrics    *obmetrics.Provider
 	Tracing    *tracing.Provider
 }
 
@@ -62,7 +62,7 @@ func New(ctx context.Context) (*Application, error) {
 		log.Warn("otel_error", zap.Error(err))
 	}))
 
-	metricsProvider, err := metrics.NewProvider(metrics.Config{
+	metricsProvider, err := obmetrics.NewProvider(obmetrics.Config{
 		Env:            cfg.Env,
 		ServiceName:    cfg.ServiceName,
 		ServiceVersion: cfg.Version,

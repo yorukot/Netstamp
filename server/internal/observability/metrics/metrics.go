@@ -1,4 +1,4 @@
-package metrics
+package obmetrics
 
 import (
 	"context"

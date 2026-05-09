@@ -1,14 +1,16 @@
-package metrics
+package obmetrics_test
 
 import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	obmetrics "github.com/yorukot/netstamp/internal/observability/metrics"
 )
 
 func TestProviderHandlerExposesRuntimeAndTargetMetrics(t *testing.T) {
-	provider, err := NewProvider(Config{
+	provider, err := obmetrics.NewProvider(obmetrics.Config{
 		Env:            "test",
 		ServiceName:    "netstamp-api",
 		ServiceVersion: "0.1.0",
