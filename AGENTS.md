@@ -11,7 +11,7 @@ Only proceed from root guidance when the task is clearly limited to workspace me
 
 ## Project Structure
 
-- `server/`: Go API service, commands in `cmd/`, app code in `internal/`, SQL and migrations in `db/`.
+- `server/`: Go backend module with controller/probe commands in `cmd/`, private code in `internal/`, SQL and migrations in `db/`.
 - `web/`: React 19 + Vite app source in `web/src/`.
 - `packages/ui/`: shared React UI components and design tokens exported as `@netstamp/ui`.
 - `docs/`: Astro public site and Markdown documentation. The docs build also publishes static Storybook output for shared UI components.

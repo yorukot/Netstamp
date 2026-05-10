@@ -8,8 +8,9 @@ COPY server/go.mod server/go.sum ./
 RUN go mod download
 
 COPY server/ ./
-RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/netstamp-api ./cmd/api \
-    && CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/netstamp-migrate ./cmd/migrate
+RUN mkdir -p /out \
+    && CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/controller ./cmd/controller \
+    && CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/migrate ./cmd/migrate
 
 FROM alpine:3.22
 
@@ -17,12 +18,12 @@ RUN addgroup -S netstamp && adduser -S -G netstamp netstamp
 
 WORKDIR /app
 
-COPY --from=build /out/netstamp-api /app/netstamp-api
-COPY --from=build /out/netstamp-migrate /app/netstamp-migrate
+COPY --from=build /out/controller /app/controller
+COPY --from=build /out/migrate /app/migrate
 COPY --from=build /src/server/db/migrations /app/db/migrations
 
 USER netstamp:netstamp
 
 EXPOSE 8080
 
-ENTRYPOINT ["/app/netstamp-api"]
+ENTRYPOINT ["/app/controller"]

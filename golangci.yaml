@@ -165,12 +165,12 @@ linters:
           - contextcheck
 
       # Audit event recorders intentionally stay explicit per feature.
-      - path: "internal/logger/(check|label)_events\\.go"
+      - path: "internal/controller/logger/(check|label)_events\\.go"
         linters:
           - dupl
 
       # contextcheck does not understand Huma's context wrapper in auth middleware.
-      - path: "internal/app/bootstrap\\.go"
+      - path: "internal/controller/app/bootstrap\\.go"
         text: "Function `NewRouter->.*RequireAuth"
         linters:
           - contextcheck

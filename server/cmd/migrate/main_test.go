@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/yorukot/netstamp/internal/config"
+	"github.com/yorukot/netstamp/internal/controller/config"
 )
 
 func TestRunStatusUsesConfigConnectionString(t *testing.T) {

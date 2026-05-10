@@ -8,7 +8,7 @@ x-nginx-build: &nginx-build
 
 x-backend-environment: &backend-environment
   APP_ENV: production
-  SERVICE_NAME: netstamp-api
+  SERVICE_NAME: controller
   APP_VERSION: ${APP_VERSION:-v1}
   API_VERSION: ${API_VERSION:-v1}
   LOG_LEVEL: ${LOG_LEVEL:-info}
@@ -48,18 +48,18 @@ services:
       retries: 10
 
   migrate:
-    image: netstamp-api:${NETSTAMP_IMAGE_TAG:-local}
+    image: netstamp-controller:${NETSTAMP_IMAGE_TAG:-local}
     build: *backend-build
     restart: "no"
     depends_on:
       postgres:
         condition: service_healthy
     environment: *backend-environment
-    entrypoint: ["/app/netstamp-migrate"]
+    entrypoint: ["/app/migrate"]
     command: ["-command", "up", "-dir", "/app/db/migrations"]
 
-  backend:
-    image: netstamp-api:${NETSTAMP_IMAGE_TAG:-local}
+  controller:
+    image: netstamp-controller:${NETSTAMP_IMAGE_TAG:-local}
     build: *backend-build
     restart: unless-stopped
     depends_on:
@@ -76,7 +76,7 @@ services:
     build: *nginx-build
     restart: unless-stopped
     depends_on:
-      backend:
+      controller:
         condition: service_started
     ports:
       - "80"

@@ -82,9 +82,11 @@ web-preview:
 backend-dev:
     cd {{ server_dir }} && air -c .air.toml
 
-# Build the backend API binary.
+# Build the backend controller and probe binaries.
 backend-build:
-    cd {{ server_dir }} && go build -o bin/api ./cmd/api
+    mkdir -p {{ server_dir }}/bin
+    cd {{ server_dir }} && go build -o bin/controller ./cmd/controller
+    cd {{ server_dir }} && go build -o bin/probe ./cmd/probe
 
 # Generate OpenAPI JSON for the docs explorer.
 backend-openapi:

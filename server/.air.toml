@@ -2,8 +2,8 @@ root = "."
 tmp_dir = "tmp"
 
 [build]
-cmd = "go build -o ./tmp/api ./cmd/api"
-bin = "./tmp/api"
+cmd = "go build -o ./tmp/controller ./cmd/controller"
+bin = "./tmp/controller"
 delay = 1000
 exclude_dir = ["bin", "tmp", "vendor", "testdata"]
 exclude_file = []

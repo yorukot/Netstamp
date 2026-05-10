@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 	"time"
 
-	httpserver "github.com/yorukot/netstamp/internal/transport/http"
+	httpserver "github.com/yorukot/netstamp/internal/controller/transport/http"
 )
 
 func main() {

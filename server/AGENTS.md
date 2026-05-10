@@ -4,47 +4,50 @@
 
 This guide applies to `server/`, the Go backend for the Netstamp workspace. The root workspace also contains `web/`, `docs/`, and `packages/ui/`; use this file only for backend API, database, logging, tracing, and server runtime work.
 
-- `cmd/api/main.go`: API process entry point. It creates the shutdown context, calls `app.New`, runs the app, and syncs the logger.
+- `cmd/controller/main.go`: controller process entry point. It creates the shutdown context, calls `app.New`, runs the app, and syncs the logger.
+- `cmd/probe/main.go`: thin probe agent skeleton. It wires the future probe runtime shape and exits cleanly; it does not execute checks or call the controller yet.
 - `cmd/migrate/main.go`: Goose migration CLI for `status`, `up`, and `down`.
-- `internal/app/`: composition root and lifecycle. `bootstrap.go` wires config, logging, tracing, PostgreSQL, auth, and HTTP. `lifecycle.go` starts and gracefully stops the HTTP listener.
-- `internal/transport/http/`: chi/Huma HTTP routing, auth, project, label, probe management, probe runtime, system health routes, and middleware.
-- `internal/application/auth/`, `internal/application/project/`, `internal/application/label/`, `internal/application/check/`, `internal/application/probe/`, and `internal/application/proberuntime/`: use cases, ports, DTOs, errors, and feature orchestration.
+- `internal/controller/app/`: composition root and lifecycle. `bootstrap.go` wires config, logging, tracing, PostgreSQL, auth, and HTTP. `lifecycle.go` starts and gracefully stops the HTTP listener.
+- `internal/controller/transport/http/`: chi/Huma HTTP routing, auth, project, label, probe management, probe runtime, system health routes, and middleware.
+- `internal/controller/application/auth/`, `internal/controller/application/project/`, `internal/controller/application/label/`, `internal/controller/application/check/`, `internal/controller/application/proberegistry/`, and `internal/controller/application/proberuntime/`: controller use cases, ports, DTOs, errors, and feature orchestration.
+- `internal/probe/`: thin probe skeleton packages for future controller polling, scheduling, running, executing, and reporting.
+- `internal/contracts/probecontrol/`: shared controller/probe protocol types. Keep this independent from controller and probe implementations.
 - `internal/domain/identity/`, `internal/domain/project/`, `internal/domain/label/`, `internal/domain/check/`, `internal/domain/ping/`, and `internal/domain/probe/`: stable domain structs and domain-level sentinel errors.
-- `internal/infrastructure/`: PostgreSQL repositories and pool helpers, JWT issuing, Argon2id password hashing, and probe secret generation/verification.
-- `internal/logger/` and `internal/observability/`: zap logging helpers, application event recording, OpenTelemetry setup, and HTTP span naming.
-- `db/migrations/`: Goose SQL migrations. `db/query/`: sqlc query files. Generated sqlc Go files live in `internal/infrastructure/postgres/sqlc/`.
+- `internal/controller/infrastructure/`: PostgreSQL repositories and pool helpers, JWT issuing, Argon2id password hashing, and probe secret generation/verification.
+- `internal/controller/logger/`: controller zap logging helpers and application event recording. `internal/platform/normalize/` and `internal/platform/observability/` are shared helpers that do not depend on controller features.
+- `db/migrations/`: Goose SQL migrations. `db/query/`: sqlc query files. Generated sqlc Go files live in `internal/controller/infrastructure/postgres/sqlc/`.
 - `tmp/` and `bin/`: local build artifacts; do not edit them as source.
 
 No backend public asset directory is currently defined.
 
 ## System Architecture Overview
 
-The backend is a single Go service with one listener: HTTP on `HTTP_ADDR`. `internal/app.New` loads validated configuration, creates a zap logger, initializes OpenTelemetry, opens a pgx pool, builds application services, and creates the HTTP server. `internal/app.Run` starts the server and coordinates graceful shutdown with `errgroup`.
+The backend is a single Go service with one listener: HTTP on `HTTP_ADDR`. `internal/controller/app.New` loads validated configuration, creates a zap logger, initializes OpenTelemetry, opens a pgx pool, builds application services, and creates the HTTP server. `internal/controller/app.Run` starts the server and coordinates graceful shutdown with `errgroup`.
 
-HTTP uses chi middleware plus Huma route registration under `/api/{version}`. `internal/app/bootstrap.go` passes `cfg.APIVersion` (`API_VERSION`) into the router, and `BACKEND_BASE_URL` can publish an absolute OpenAPI server URL for deployed environments. System routes are `/`, `/livez`, and `/readyz`. Auth routes are `/auth/register`, `/auth/login`, and `/auth/me`; `/auth/me`, project routes, project label routes, project check routes, and project probe creation are protected by the Huma auth middleware in `internal/transport/http/middleware`. Probe runtime routes live under `/probes/{probe_id}/runtime/*` and use `Authorization: Probe <secret>` with the probe's one-time plaintext secret, not user JWT auth.
+HTTP uses chi middleware plus Huma route registration under `/api/{version}`. `internal/controller/app/bootstrap.go` passes `cfg.APIVersion` (`API_VERSION`) into the router, and `BACKEND_BASE_URL` can publish an absolute OpenAPI server URL for deployed environments. System routes are `/`, `/livez`, and `/readyz`. Auth routes are `/auth/register`, `/auth/login`, and `/auth/me`; `/auth/me`, project routes, project label routes, project check routes, and project probe creation are protected by the Huma auth middleware in `internal/controller/transport/http/middleware`. Probe runtime routes live under `/probes/{probe_id}/runtime/*` and use `Authorization: Probe <secret>` with the probe's one-time plaintext secret, not user JWT auth.
 
 The current auth request flow is:
 
-`HTTP request -> chi/Huma route -> internal/transport/http/auth handler -> internal/application/auth.Service -> internal/infrastructure/postgres/user repository -> sqlc.Queries -> PostgreSQL`
+`HTTP request -> chi/Huma route -> internal/controller/transport/http/auth handler -> internal/controller/application/auth.Service -> internal/controller/infrastructure/postgres/user repository -> sqlc.Queries -> PostgreSQL`
 
 Probe runtime requests follow the same layer boundaries:
 
-`HTTP request -> chi/Huma route -> internal/transport/http/proberuntime handler -> internal/application/proberuntime.Service -> internal/infrastructure/postgres/{probe,ping} repositories -> sqlc.Queries -> PostgreSQL`
+`HTTP request -> chi/Huma route -> internal/controller/transport/http/proberuntime handler -> internal/controller/application/proberuntime.Service -> internal/controller/infrastructure/postgres/{probe,ping} repositories -> sqlc.Queries -> PostgreSQL`
 
-No GraphQL, message queues, background workers, scheduled jobs, email, payment, or object-storage integrations are currently defined.
+No GraphQL, message queues, background workers, scheduled jobs, email, payment, object-storage integrations, or functional probe agent loop are currently defined.
 
 ## Layer Responsibilities
 
-- Transport (`internal/transport/http`): route registration, request/response DTOs, Huma validation tags, protocol status mapping, and middleware. Do not put database calls or business rules here.
-- Application (`internal/application/*`): business orchestration, service methods, ports, app errors, feature event semantics, and use-case spans. Depend on interfaces, not concrete pgx, Huma, or JWT types.
+- Transport (`internal/controller/transport/http`): route registration, request/response DTOs, Huma validation tags, protocol status mapping, and middleware. Do not put database calls or business rules here.
+- Application (`internal/controller/application/*`): business orchestration, service methods, ports, app errors, feature event semantics, and use-case spans. Depend on interfaces, not concrete pgx, Huma, or JWT types.
 - Domain (`internal/domain`): stable domain structs, domain-level sentinel errors such as `identity.ErrUserNotFound`, and shared domain policy such as project role/action permission checks.
-- Infrastructure (`internal/infrastructure/postgres`, `internal/infrastructure/security`): pgx/sqlc persistence, database error translation, JWT HS256 tokens, and Argon2id password hashing.
-- Config (`internal/config`): Viper-based environment loading, defaults, and validation. Add new env keys here and mirror them in `.env.example` when operators need to set them.
-- Cross-cutting (`internal/logger`, `internal/observability`): request-scoped loggers, auth event recording, trace fields, tracer provider setup, and span helpers.
+- Infrastructure (`internal/controller/infrastructure/postgres`, `internal/controller/infrastructure/security`): pgx/sqlc persistence, database error translation, JWT HS256 tokens, and Argon2id password hashing.
+- Config (`internal/controller/config`): Viper-based environment loading, defaults, and validation. Add new env keys here and mirror them in `.env.example` when operators need to set them.
+- Cross-cutting (`internal/controller/logger`, `internal/platform/observability`): request-scoped loggers, auth event recording, trace fields, tracer provider setup, and span helpers.
 
 ## Cross-Feature Repository Reuse
 
-When one application feature needs data or access checks that are already owned by another feature, define a narrow capability port in the consuming application package and wire an existing repository or dedicated adapter into it from `internal/app/bootstrap.go`. Do not duplicate SQL, UUID/slug parsing, membership checks, or repository methods just because the consuming feature has its own repository.
+When one application feature needs data or access checks that are already owned by another feature, define a narrow capability port in the consuming application package and wire an existing repository or dedicated adapter into it from `internal/controller/app/bootstrap.go`. Do not duplicate SQL, UUID/slug parsing, membership checks, or repository methods just because the consuming feature has its own repository.
 
 Keep feature services independent: an application service should not call another feature's application service just to reuse repository behavior, because that imports the other feature's event semantics, tracing spans, and use-case policy. The consuming service should own its own events, spans, sentinel-error mapping, and business policy while depending on a small interface such as project access, user lookup, or membership lookup.
 
@@ -56,7 +59,7 @@ Project-scoped permission decisions should use the project domain policy rather 
 
 The backend currently uses authenticated users plus project-scoped membership roles. There is no global admin role, organization/team hierarchy, or route-level scope system. HTTP auth middleware proves identity only; application services own authorization.
 
-Protected Huma routes use `internal/transport/http/middleware.RequireAuth`. It reads the `Authorization: Bearer <token>` header, verifies the access token through the auth `TokenVerifier`, and stores `identity.AccessTokenClaims` in the request context. Transport handlers read `claims.Subject` as `CurrentUserID` and pass it into application service inputs. Keep role checks out of HTTP handlers except for translating application errors into HTTP responses.
+Protected Huma routes use `internal/controller/transport/http/middleware.RequireAuth`. It reads the `Authorization: Bearer <token>` header, verifies the access token through the auth `TokenVerifier`, and stores `identity.AccessTokenClaims` in the request context. Transport handlers read `claims.Subject` as `CurrentUserID` and pass it into application service inputs. Keep role checks out of HTTP handlers except for translating application errors into HTTP responses.
 
 Project membership is stored in `project_members` with role enum values defined by `internal/domain/project`: `owner`, `admin`, `editor`, and `viewer`. Project repository access methods such as `ListProjectsForUser`, `GetProjectForUser`, and `GetMemberRole` join existing project membership with non-deleted projects, so soft-deleted projects are not accessible. Removing a member hard-deletes the membership row. Creating a project creates the creator's `owner` membership in the same repository operation.
 
@@ -85,10 +88,10 @@ Feature services should enforce permissions after loading the project for the cu
 
 - Project service: list/get require existing membership; update requires `write:project`; delete requires `delete:project`; member add/update requires `write:project_members` plus assignability and last-owner checks. Member removal allows owner/admin-managed removal by policy and self-leave except when it would remove the last owner.
 - Label service: list requires active project membership; create/update/delete require `write:project_labels`.
-- Probe service: list/get require active project membership; create/update/delete and secret rotation require `write:project_probes`; label IDs are resolved inside the same project after the project permission check.
+- Probe registry service: list/get require active project membership; create/update/delete and secret rotation require `write:project_probes`; label IDs are resolved inside the same project after the project permission check.
 - Check service: list/get require active project membership; create/update/delete require `write:project_checks`.
 
-Cross-feature authorization should use narrow application ports such as `ProjectAccess.GetProjectForUser` and `ProjectAccess.GetMemberRole`, usually implemented by the project repository and wired in `internal/app/bootstrap.go`. Do not duplicate membership SQL or call another feature's application service just to check access.
+Cross-feature authorization should use narrow application ports such as `ProjectAccess.GetProjectForUser` and `ProjectAccess.GetMemberRole`, usually implemented by the project repository and wired in `internal/controller/app/bootstrap.go`. Do not duplicate membership SQL or call another feature's application service just to check access.
 
 Error mapping is intentionally conservative. Missing/invalid bearer tokens return `401`. Inaccessible or missing projects, users, members, labels, checks, and probes generally map to `404` so project existence is not leaked through membership checks. Valid users without the required project role map to application `ErrForbidden` and HTTP `403`. Invalid role/input maps to `422`, and last-owner protection maps to `409`.
 
@@ -108,15 +111,15 @@ Direct backend dependencies are declared in `server/go.mod`.
 
 ## Logging Guidelines
 
-Zap is configured in `internal/logger/zap.go`. Every root logger includes `service`, `env`, and `version`; local env uses zap development config, other envs use production config. Valid `LOG_LEVEL` values are enforced in `internal/config/config_validate.go`: `debug`, `info`, `warn`, `error`, `dpanic`, `panic`, and `fatal`.
+Zap is configured in `internal/controller/logger/zap.go`. Every root logger includes `service`, `env`, and `version`; local env uses zap development config, other envs use production config. Valid `LOG_LEVEL` values are enforced in `internal/controller/config/config_validate.go`: `debug`, `info`, `warn`, `error`, `dpanic`, `panic`, and `fatal`.
 
-Use request-scoped loggers from `logger.FromContext(ctx, fallback)` when handling requests. HTTP logging in `internal/transport/http/middleware/logging.go` adds `request_id`, method, path, client address, user agent, status, bytes, duration, and trace fields.
+Use request-scoped loggers from `logger.FromContext(ctx, fallback)` when handling requests. HTTP logging in `internal/controller/transport/http/middleware/logging.go` adds `request_id`, method, path, client address, user agent, status, bytes, duration, and trace fields.
 
 Application-level events must follow the auth/project/label/probe/proberuntime pattern:
 
 - Define typed event names, actions, outcomes, reasons, and recorder ports in the application package `ports.go`.
-- Keep zap out of application packages. Services call the package recorder interface; `internal/logger` owns zap fields, privacy handling, and log levels.
-- Pass concrete recorders from `internal/app/bootstrap.go`. Do not silently install package-local no-op recorders; missing wiring should be visible in tests or startup composition.
+- Keep zap out of application packages. Services call the package recorder interface; `internal/controller/logger` owns zap fields, privacy handling, and log levels.
+- Pass concrete recorders from `internal/controller/app/bootstrap.go`. Do not silently install package-local no-op recorders; missing wiring should be visible in tests or startup composition.
 - Use small package-internal flow helpers to keep `context.Context`, request-scoped loggers, OpenTelemetry spans, event metadata, and success/failure recording together.
 - Log successful application events only for audit/security flows, not every expected endpoint. Auth register/login, project create/delete/member access changes, and check/label definition changes are audit-worthy; normal successful reads/lists and probe create success are covered by the HTTP request logger.
 - Expected business/security failures use package-internal helpers such as `businessFailure`, log at `warn`, and should not attach raw error details. Unexpected technical failures use helpers such as `technicalFailure`, log at `error`, record the span error, and include the error field.
@@ -137,11 +140,11 @@ Probe runtime application events must go through `logger.ProbeRuntimeEventRecord
 
 ## Tracing & Observability
 
-OpenTelemetry tracing is configured in `internal/observability/tracing/tracing.go`. The provider always samples locally and exports only when `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` is set. TraceContext and Baggage propagators are installed globally.
+OpenTelemetry tracing is configured in `internal/platform/observability/tracing/tracing.go`. The provider always samples locally and exports only when `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` is set. TraceContext and Baggage propagators are installed globally.
 
-HTTP tracing is wired through `otelhttp.NewMiddleware` in `internal/transport/http/router.go`, with span names from `internal/observability/httptrace/span.go`. Auth service methods create child spans in `internal/application/auth/trace.go` and `flow.go`. PostgreSQL repository methods use span helpers in `internal/infrastructure/postgres/trace.go`.
+HTTP tracing is wired through `otelhttp.NewMiddleware` in `internal/controller/transport/http/router.go`, with span names from `internal/platform/observability/httptrace/span.go`. Auth service methods create child spans in `internal/controller/application/auth/trace.go` and `flow.go`. PostgreSQL repository methods use span helpers in `internal/controller/infrastructure/postgres/trace.go`.
 
-Prometheus metrics are configured in `internal/observability/metrics/metrics.go` and exposed at `/metrics` on the backend HTTP listener. VictoriaMetrics scrapes that endpoint from Docker compose and Grafana provisions a `VictoriaMetrics` Prometheus datasource.
+Prometheus metrics are configured in `internal/platform/observability/metrics/metrics.go` and exposed at `/metrics` on the backend HTTP listener. VictoriaMetrics scrapes that endpoint from Docker compose and Grafana provisions a `VictoriaMetrics` Prometheus datasource.
 
 Keep `context.Context` as the first parameter for request, service, repository, and token operations so trace context and request loggers propagate across layers. New database calls should either use existing DB span helpers or add equivalent attributes without recording raw SQL parameters.
 
@@ -151,7 +154,7 @@ Commands below come from the root `Justfile`, root `package.json`, `server/.air.
 
 - `pnpm install`: install workspace dependencies; root `package.json` enforces pnpm.
 - `just backend-dev` or `pnpm dev:server`: run Air hot reload using `server/.air.toml`.
-- `just backend-build` or `pnpm build:server`: build `server/bin/api` from `./cmd/api`.
+- `just backend-build` or `pnpm build:server`: build `server/bin/controller` from `./cmd/controller` and `server/bin/probe` from `./cmd/probe`.
 - `just backend-openapi` or `pnpm generate:openapi`: write the Huma OpenAPI schema to `docs/public/openapi.json`.
 - `just backend-test` or `pnpm test:server`: run `go test ./...` inside `server/`.
 - `NETSTAMP_TEST_DATABASE_URL=postgres://netstamp:netstamp@localhost:5432/netstamp?sslmode=disable just backend-test-integration`: run opt-in API E2E tests against a local PostgreSQL/TimescaleDB instance.
@@ -161,7 +164,7 @@ Commands below come from the root `Justfile`, root `package.json`, `server/.air.
 - `just backend-sqlc`: regenerate sqlc code from `sqlc.yaml`.
 - `just backend-migrate-status`, `just backend-migrate-up`, `just backend-migrate-down`: run `cmd/migrate`.
 - `docker compose -f deployments/docker/compose.backend.dev.yaml up -d`: start local PostgreSQL/TimescaleDB, VictoriaTraces, VictoriaMetrics, and Grafana dependencies for a host-run backend.
-- `docker compose -f deployments/docker/compose.observability.yaml up --build`: build and run the Docker stack with PostgreSQL, VictoriaTraces, VictoriaMetrics, VictoriaLogs, Vector, Grafana, nginx, backend, and migrations.
+- `docker compose -f deployments/docker/compose.observability.yaml up --build`: build and run the Docker stack with PostgreSQL, VictoriaTraces, VictoriaMetrics, VictoriaLogs, Vector, Grafana, nginx, controller, and migrations.
 
 Use `server/.env.example` as the env template. `server/.gitignore` intentionally ignores `.env`, `.env.*`, `bin/`, `tmp/`, and `coverage.out`.
 
@@ -171,29 +174,29 @@ Go files use tabs and `gofmt` per root `.editorconfig`. `golangci.yaml` enables 
 
 Follow existing feature file names: `service.go`, `validate.go`, `ports.go`, `errors.go`, `trace.go`, `handler.go`, `register.go`, `login.go`, and `*_test.go`. Keep application service input validation, normalization, constants, and field-level validation errors in `validate.go` when a feature has enough validation logic to make `service.go` hard to scan. Export only types needed across packages. Use sentinel errors named `Err...` and compare with `errors.Is`.
 
-For HTTP feature packages, keep `handler.go` focused on the `Handler` type, constructor, and Huma route registration. Put each operation handler and its request/response DTOs in a separate operation file, matching `internal/transport/http/auth` patterns such as `register.go`, `login.go`, and `me.go`. Put response DTOs and mappers in `response.go` only when they are shared by multiple operation files. Do not concentrate all endpoint handler logic and DTOs in one large `handler.go`.
+For HTTP feature packages, keep `handler.go` focused on the `Handler` type, constructor, and Huma route registration. Put each operation handler and its request/response DTOs in a separate operation file, matching `internal/controller/transport/http/auth` patterns such as `register.go`, `login.go`, and `me.go`. Put response DTOs and mappers in `response.go` only when they are shared by multiple operation files. Do not concentrate all endpoint handler logic and DTOs in one large `handler.go`.
 
 ## Testing Guidelines
 
-Tests use Go's standard `testing` package and live beside the code as `*_test.go`, for example `internal/application/auth/service_test.go` and `internal/logger/auth_events_test.go`. Existing unit and handler tests use package-local fakes and zap observer cores rather than external test frameworks.
+Tests use Go's standard `testing` package and live beside the code as `*_test.go`, for example `internal/controller/application/auth/service_test.go` and `internal/controller/logger/auth_events_test.go`. Existing unit and handler tests use package-local fakes and zap observer cores rather than external test frameworks.
 
 Run backend tests with `just backend-test` or `cd server && go test ./...`. API E2E tests live in `internal/e2e`, are gated by the `integration` build tag, and require `NETSTAMP_TEST_DATABASE_URL` to point at a local PostgreSQL/TimescaleDB database that can create/drop temporary databases. Start local dependencies with `docker compose -f deployments/docker/compose.backend.dev.yaml up -d`, then run `NETSTAMP_TEST_DATABASE_URL=postgres://netstamp:netstamp@localhost:5432/netstamp?sslmode=disable just backend-test-integration`. The integration recipe uses verbose test output so harness and API-flow checkpoints are visible. Coverage thresholds are not currently defined. Add unit tests beside changed packages, and use E2E tests only for complete API workflows that need real HTTP, services, repositories, migrations, and database behavior.
 
 ## Error Handling & Validation
 
-HTTP input validation uses a mix of Huma transport checks and application-owned validation. Huma should handle routing, auth middleware, JSON decoding, basic Go type binding, and transport-only parsing such as IP address strings. Request semantic validation such as required strings, length limits, enum values, numeric bounds, selector validity, UUID canonicalization, empty patch checks, and result consistency is owned by the relevant `internal/application/*` package, not Huma tags. Handlers translate application errors to Huma HTTP errors, for example duplicate email to `409` and invalid credentials to `401`.
+HTTP input validation uses a mix of Huma transport checks and application-owned validation. Huma should handle routing, auth middleware, JSON decoding, basic Go type binding, and transport-only parsing such as IP address strings. Request semantic validation such as required strings, length limits, enum values, numeric bounds, selector validity, UUID canonicalization, empty patch checks, and result consistency is owned by the relevant `internal/controller/application/*` package, not Huma tags. Handlers translate application errors to Huma HTTP errors, for example duplicate email to `409` and invalid credentials to `401`.
 
-Application and domain packages define sentinel errors. Repositories translate pgx-specific errors into domain/application errors, such as unique violation `uq_users_email` to `auth.ErrEmailAlreadyExists`. HTTP panic recovery is handled in `internal/transport/http/middleware/recovery.go`. `WriteProblem` exists for RFC 7807-style responses, but Huma errors are the current route pattern.
+Application and domain packages define sentinel errors. Repositories translate pgx-specific errors into domain/application errors, such as unique violation `uq_users_email` to `auth.ErrEmailAlreadyExists`. HTTP panic recovery is handled in `internal/controller/transport/http/middleware/recovery.go`. `WriteProblem` exists for RFC 7807-style responses, but Huma errors are the current route pattern.
 
-For feature-specific application validation, keep input normalization, constants, and field-level validation errors in `internal/application/<feature>/validate.go` once the logic is more than a couple of lines. Application services should return sentinel-compatible errors such as `ErrInvalidInput`, `ErrCheckNotFound`, `ErrProjectNotFound`, `ErrLabelNotFound`, or `ErrForbidden`, usually through package flow helpers that also record event outcome and failure reason. The application layer should not construct Huma errors or HTTP status codes.
+For feature-specific application validation, keep input normalization, constants, and field-level validation errors in `internal/controller/application/<feature>/validate.go` once the logic is more than a couple of lines. Application services should return sentinel-compatible errors such as `ErrInvalidInput`, `ErrCheckNotFound`, `ErrProjectNotFound`, `ErrLabelNotFound`, or `ErrForbidden`, usually through package flow helpers that also record event outcome and failure reason. The application layer should not construct Huma errors or HTTP status codes.
 
-When an application error needs to tell the client exactly which request field is invalid, wrap the sentinel error with `internal/application/validation.New`, `NewFields`, or the shared helper validators in that package. The wrapped error must still satisfy `errors.Is(err, ErrInvalidInput)` through `Unwrap`, while carrying `FieldError` metadata: `Field`, `Message`, and `Value`. Transport handlers should extract this metadata with `appvalidation.FieldErrors(err)` and convert it to Huma error details. Feature handlers follow this pattern in their `context.go`, mapping fields to locations such as `body.name`, `body.selector`, `body.labelIds`, `path.ref`, or `body` for whole-body validation failures like an empty patch.
+When an application error needs to tell the client exactly which request field is invalid, wrap the sentinel error with `internal/controller/application/validation.New`, `NewFields`, or the shared helper validators in that package. The wrapped error must still satisfy `errors.Is(err, ErrInvalidInput)` through `Unwrap`, while carrying `FieldError` metadata: `Field`, `Message`, and `Value`. Transport handlers should extract this metadata with `appvalidation.FieldErrors(err)` and convert it to Huma error details. Feature handlers follow this pattern in their `context.go`, mapping fields to locations such as `body.name`, `body.selector`, `body.labelIds`, `path.ref`, or `body` for whole-body validation failures like an empty patch.
 
 Keep public error detail conservative. Not-found conditions for inaccessible projects, users, labels, and checks should remain collapsed to generic `404 not found`; forbidden role checks map to `403`; validation maps to `422` with field details only when `FieldError` metadata exists; unknown technical errors map to `500` with a route-level fallback message. Technical error details belong in logs and spans, not response bodies.
 
 ## Security & Configuration Tips
 
-Secrets and runtime settings come from environment variables or `.env`; defaults and validation live in `internal/config/config.go`. Never commit real `.env` files, JWT secrets, database passwords, trace endpoints with credentials, or production pseudonym keys.
+Secrets and runtime settings come from environment variables or `.env`; defaults and validation live in `internal/controller/config/config.go`. Never commit real `.env` files, JWT secrets, database passwords, trace endpoints with credentials, or production pseudonym keys.
 
 The observability compose setup requires `LOG_PSEUDONYM_KEY`, `DATABASE_PASSWORD`, `AUTH_JWT_SECRET`, and `GF_SECURITY_ADMIN_PASSWORD`. Passwords are hashed with Argon2id using `AUTH_ARGON2ID_*` settings. JWT access tokens use HS256 with `AUTH_JWT_SECRET` and `AUTH_ACCESS_TOKEN_TTL`. Configuration fields for login rate limits exist, but no rate-limiting middleware is currently wired.
 
@@ -201,7 +204,7 @@ The observability compose setup requires `LOG_PSEUDONYM_KEY`, `DATABASE_PASSWORD
 
 The database is PostgreSQL with TimescaleDB in Docker (`timescale/timescaledb:latest-pg16`). The initial Goose migration enables `pgcrypto`, `citext`, and `timescaledb`, then creates users, projects, project members, probes, selector-based ping checks, key/value labels, effective probe-check rows, ping results, and the ping results hypertable. A later migration adds a natural duplicate key for ping results on `(project_id, probe_id, check_id, started_at)`; the server/DB still generates result IDs. Traceroute schema is intentionally not present yet.
 
-Add schema changes as timestamped Goose migrations under `db/migrations/`, following the pattern in `db/migrations/README.md`, such as `202604300001_create_example_table.sql`. Add typed SQL queries under `db/query/*.sql`, then run `just backend-sqlc`. Do not edit `internal/infrastructure/postgres/sqlc/*.go` manually. Keep repositories responsible for mapping sqlc rows and pgx errors into domain/application types.
+Add schema changes as timestamped Goose migrations under `db/migrations/`, following the pattern in `db/migrations/README.md`, such as `202604300001_create_example_table.sql`. Add typed SQL queries under `db/query/*.sql`, then run `just backend-sqlc`. Do not edit `internal/controller/infrastructure/postgres/sqlc/*.go` manually. Keep repositories responsible for mapping sqlc rows and pgx errors into domain/application types.
 
 ## External Integrations
 

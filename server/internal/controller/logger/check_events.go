@@ -1,0 +1,68 @@
+package logger
+
+import (
+	"context"
+
+	"go.uber.org/zap"
+
+	appcheck "github.com/yorukot/netstamp/internal/controller/application/check"
+)
+
+type CheckEventRecorder struct {
+	root *zap.Logger
+}
+
+func NewCheckEventRecorder(root *zap.Logger) *CheckEventRecorder {
+	if root == nil {
+		root = zap.NewNop()
+	}
+
+	return &CheckEventRecorder{root: root}
+}
+
+func (r *CheckEventRecorder) RecordCheckEvent(ctx context.Context, event appcheck.CheckEvent) {
+	log := FromContext(ctx, r.root)
+	fields := eventFields(string(event.Name), "check", string(event.Action), string(event.Outcome), string(event.Reason))
+
+	if event.ActorUserID != "" {
+		fields = append(fields, zap.String("user.id", event.ActorUserID))
+	}
+	if event.ProjectID != "" {
+		fields = append(fields, zap.String("project.id", event.ProjectID))
+	}
+	if event.ProjectRef != "" {
+		fields = append(fields, zap.String("project.ref", event.ProjectRef))
+	}
+	if event.ProjectSlug != "" {
+		fields = append(fields, zap.String("project.slug", event.ProjectSlug))
+	}
+	if event.CheckID != "" {
+		fields = append(fields, zap.String("check.id", event.CheckID))
+	}
+	if event.Err != nil {
+		fields = append(fields, zap.Error(event.Err))
+	}
+
+	switch {
+	case event.Outcome == appcheck.CheckOutcomeSuccess:
+		log.Info(string(event.Name), fields...)
+	case isExpectedCheckFailure(event):
+		log.Warn(string(event.Name), fields...)
+	default:
+		log.Error(string(event.Name), fields...)
+	}
+}
+
+func isExpectedCheckFailure(event appcheck.CheckEvent) bool {
+	switch event.Reason {
+	case appcheck.CheckReasonInvalidInput,
+		appcheck.CheckReasonForbidden,
+		appcheck.CheckReasonProjectNotFound,
+		appcheck.CheckReasonUserNotFound,
+		appcheck.CheckReasonCheckNotFound,
+		appcheck.CheckReasonLabelNotFound:
+		return true
+	default:
+		return false
+	}
+}
