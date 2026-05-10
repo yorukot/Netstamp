@@ -42,15 +42,28 @@ type ListAssignmentsOutput struct {
 	Assignments []domaincheck.Assignment
 }
 
+type SubmitResultsOutput struct {
+	Accepted     bool
+	ResyncNeeded bool
+	StaleChecks  []string
+	Assignments  []domaincheck.Assignment
+}
+
 type SubmitResultsInput struct {
 	RuntimeAuthInput
-	Ping       []PingResultInput
-	DNS        []UnsupportedResultInput
-	Traceroute []UnsupportedResultInput
+	Groups []ResultGroupInput
+}
+
+type ResultGroupInput struct {
+	CheckID         string
+	Type            domaincheck.Type
+	AssignmentID    string
+	CheckVersion    string
+	SelectorVersion string
+	PingResults     []PingResultInput
 }
 
 type PingResultInput struct {
-	CheckID       string
 	StartedAt     time.Time
 	FinishedAt    time.Time
 	DurationMs    int32
@@ -69,8 +82,4 @@ type PingResultInput struct {
 	Raw           json.RawMessage
 	ErrorCode     *string
 	ErrorMessage  *string
-}
-
-type UnsupportedResultInput struct {
-	Raw json.RawMessage
 }

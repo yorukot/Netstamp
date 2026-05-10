@@ -774,9 +774,6 @@
 			"PingResultInputBody": {
 				"additionalProperties": false,
 				"properties": {
-					"checkId": {
-						"type": "string"
-					},
 					"durationMs": {
 						"format": "int32",
 						"type": "integer"
@@ -1098,6 +1095,40 @@
 				"required": ["user", "tokenType", "accessToken", "expiresIn"],
 				"type": "object"
 			},
+			"ResultGroupDetailInputBody": {
+				"additionalProperties": false,
+				"properties": {
+					"assignmentId": {
+						"format": "uuid",
+						"type": "string"
+					},
+					"checkVersion": {
+						"type": "string"
+					},
+					"selectorVersion": {
+						"type": "string"
+					}
+				},
+				"type": "object"
+			},
+			"ResultGroupInputBody": {
+				"additionalProperties": false,
+				"properties": {
+					"detail": {
+						"$ref": "#/components/schemas/ResultGroupDetailInputBody"
+					},
+					"results": {
+						"items": {
+							"$ref": "#/components/schemas/PingResultInputBody"
+						},
+						"type": ["array", "null"]
+					},
+					"type": {
+						"type": "string"
+					}
+				},
+				"type": "object"
+			},
 			"RootBody": {
 				"additionalProperties": false,
 				"properties": {
@@ -1172,37 +1203,36 @@
 				},
 				"type": "object"
 			},
-			"SubmitResultsInputBody": {
+			"SubmitResultsOutputBody": {
 				"additionalProperties": false,
 				"properties": {
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
-						"examples": ["/api/v1/schemas/SubmitResultsInputBody.json"],
+						"examples": ["/api/v1/schemas/SubmitResultsOutputBody.json"],
 						"format": "uri",
 						"readOnly": true,
 						"type": "string"
 					},
-					"dns": {
+					"accepted": {
+						"type": "boolean"
+					},
+					"assignments": {
 						"items": {
-							"additionalProperties": {},
-							"type": "object"
+							"$ref": "#/components/schemas/AssignmentResponse"
 						},
 						"type": ["array", "null"]
 					},
-					"ping": {
-						"items": {
-							"$ref": "#/components/schemas/PingResultInputBody"
-						},
-						"type": ["array", "null"]
+					"resyncNeeded": {
+						"type": "boolean"
 					},
-					"traceroute": {
+					"staleChecks": {
 						"items": {
-							"additionalProperties": {},
-							"type": "object"
+							"type": "string"
 						},
 						"type": ["array", "null"]
 					}
 				},
+				"required": ["accepted", "resyncNeeded", "staleChecks", "assignments"],
 				"type": "object"
 			},
 			"UpdateCheckInputBody": {
@@ -1994,15 +2024,25 @@
 					"content": {
 						"application/json": {
 							"schema": {
-								"$ref": "#/components/schemas/SubmitResultsInputBody"
+								"additionalProperties": {
+									"$ref": "#/components/schemas/ResultGroupInputBody"
+								},
+								"type": "object"
 							}
 						}
 					},
 					"required": true
 				},
 				"responses": {
-					"204": {
-						"description": "No Content"
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/SubmitResultsOutputBody"
+								}
+							}
+						},
+						"description": "OK"
 					},
 					"401": {
 						"content": {

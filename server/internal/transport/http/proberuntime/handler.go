@@ -50,13 +50,12 @@ func (h *Handler) RegisterRoutes(api huma.API) {
 	}, h.listAssignments)
 
 	huma.Register(api, huma.Operation{
-		OperationID:   "submitProbeRuntimeResults",
-		Method:        http.MethodPost,
-		Path:          "/probes/{probe_id}/runtime/results",
-		DefaultStatus: http.StatusNoContent,
-		Summary:       "Submit probe result batch",
-		Tags:          []string{"Probe Runtime"},
-		Security:      security,
-		Errors:        []int{http.StatusUnauthorized, http.StatusForbidden, http.StatusConflict, http.StatusNotFound, http.StatusUnprocessableEntity, http.StatusInternalServerError},
+		OperationID: "submitProbeRuntimeResults",
+		Method:      http.MethodPost,
+		Path:        "/probes/{probe_id}/runtime/results",
+		Summary:     "Submit probe result batch",
+		Tags:        []string{"Probe Runtime"},
+		Security:    security,
+		Errors:      []int{http.StatusUnauthorized, http.StatusForbidden, http.StatusConflict, http.StatusNotFound, http.StatusUnprocessableEntity, http.StatusInternalServerError},
 	}, h.submitResults)
 }

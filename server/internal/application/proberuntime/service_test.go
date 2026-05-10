@@ -14,10 +14,11 @@ import (
 )
 
 const (
-	testProbeID   = "33333333-3333-3333-3333-333333333333"
-	testProjectID = "22222222-2222-2222-2222-222222222222"
-	testCheckID   = "44444444-4444-4444-4444-444444444444"
-	otherCheckID  = "55555555-5555-5555-5555-555555555555"
+	testProbeID      = "33333333-3333-3333-3333-333333333333"
+	testProjectID    = "22222222-2222-2222-2222-222222222222"
+	testCheckID      = "44444444-4444-4444-4444-444444444444"
+	otherCheckID     = "55555555-5555-5555-5555-555555555555"
+	testAssignmentID = "66666666-6666-6666-6666-666666666666"
 )
 
 func TestHelloRejectsInvalidSecret(t *testing.T) {
@@ -144,10 +145,7 @@ func TestListAssignmentsAuthenticatesProbe(t *testing.T) {
 }
 
 func TestSubmitResultsAcceptsPingBatch(t *testing.T) {
-	probes := &fakeProbeRepository{assignments: []domaincheck.Assignment{{
-		CheckID: testCheckID,
-		Type:    domaincheck.TypePing,
-	}}}
+	probes := &fakeProbeRepository{assignments: []domaincheck.Assignment{newAssignment(testCheckID, domaincheck.TypePing)}}
 	results := &fakePingResultRepository{}
 	recorder := &recordingProbeRuntimeEventRecorder{}
 	service := NewService(probes, results, fakeSecretVerifier{valid: true}, recorder)
@@ -155,18 +153,21 @@ func TestSubmitResultsAcceptsPingBatch(t *testing.T) {
 	finishedAt := startedAt.Add(time.Second)
 	ipFamily := domainnetwork.IPFamilyInet
 
-	err := service.SubmitResults(context.Background(), SubmitResultsInput{
+	output, err := service.SubmitResults(context.Background(), SubmitResultsInput{
 		RuntimeAuthInput: RuntimeAuthInput{
 			ProbeID:    testProbeID,
 			Credential: "plain-secret",
 		},
-		Ping: []PingResultInput{
-			newPingResultInput(testCheckID, startedAt, finishedAt, &ipFamily),
-			newPingResultInput(testCheckID, startedAt.Add(30*time.Second), finishedAt.Add(30*time.Second), nil),
-		},
+		Groups: []ResultGroupInput{newResultGroupInput(testCheckID,
+			newPingResultInput(startedAt, finishedAt, &ipFamily),
+			newPingResultInput(startedAt.Add(30*time.Second), finishedAt.Add(30*time.Second), nil),
+		)},
 	})
 	if err != nil {
 		t.Fatalf("expected submit to succeed: %v", err)
+	}
+	if !output.Accepted || output.ResyncNeeded || len(output.StaleChecks) != 0 {
+		t.Fatalf("expected accepted fresh output, got %#v", output)
 	}
 	if len(results.created) != 2 {
 		t.Fatalf("expected two ping results to reach repository, got %#v", results.created)
@@ -177,16 +178,60 @@ func TestSubmitResultsAcceptsPingBatch(t *testing.T) {
 	assertNoProbeRuntimeEvents(t, recorder)
 }
 
-func TestSubmitResultsRejectsUnsupportedBucket(t *testing.T) {
+func TestSubmitResultsAcceptsStaleVersionAndRequestsResync(t *testing.T) {
+	assignment := newAssignment(testCheckID, domaincheck.TypePing)
+	probes := &fakeProbeRepository{assignments: []domaincheck.Assignment{assignment}}
+	results := &fakePingResultRepository{}
 	recorder := &recordingProbeRuntimeEventRecorder{}
-	service := NewService(&fakeProbeRepository{}, &fakePingResultRepository{}, fakeSecretVerifier{valid: true}, recorder)
+	service := NewService(probes, results, fakeSecretVerifier{valid: true}, recorder)
+	startedAt := time.Date(2026, 5, 9, 10, 0, 0, 0, time.UTC)
 
-	err := service.SubmitResults(context.Background(), SubmitResultsInput{
+	group := newResultGroupInput(testCheckID, newPingResultInput(startedAt, startedAt.Add(time.Second), nil))
+	group.CheckVersion = "old-check-version"
+
+	output, err := service.SubmitResults(context.Background(), SubmitResultsInput{
 		RuntimeAuthInput: RuntimeAuthInput{
 			ProbeID:    testProbeID,
 			Credential: "plain-secret",
 		},
-		DNS: []UnsupportedResultInput{{Raw: json.RawMessage(`{}`)}},
+		Groups: []ResultGroupInput{group},
+	})
+	if err != nil {
+		t.Fatalf("expected stale submit to succeed: %v", err)
+	}
+	if !output.Accepted || !output.ResyncNeeded {
+		t.Fatalf("expected accepted resync output, got %#v", output)
+	}
+	if len(output.StaleChecks) != 1 || output.StaleChecks[0] != testCheckID {
+		t.Fatalf("expected stale check id, got %#v", output.StaleChecks)
+	}
+	if len(output.Assignments) != 1 || output.Assignments[0].CheckVersion != assignment.CheckVersion {
+		t.Fatalf("expected latest assignment, got %#v", output.Assignments)
+	}
+	if len(results.created) != 1 {
+		t.Fatalf("expected stale result to be stored, got %#v", results.created)
+	}
+	assertNoProbeRuntimeEvents(t, recorder)
+}
+
+func TestSubmitResultsRejectsUnsupportedType(t *testing.T) {
+	recorder := &recordingProbeRuntimeEventRecorder{}
+	service := NewService(&fakeProbeRepository{}, &fakePingResultRepository{}, fakeSecretVerifier{valid: true}, recorder)
+	startedAt := time.Date(2026, 5, 9, 10, 0, 0, 0, time.UTC)
+
+	_, err := service.SubmitResults(context.Background(), SubmitResultsInput{
+		RuntimeAuthInput: RuntimeAuthInput{
+			ProbeID:    testProbeID,
+			Credential: "plain-secret",
+		},
+		Groups: []ResultGroupInput{{
+			CheckID:         testCheckID,
+			Type:            domaincheck.Type("dns"),
+			AssignmentID:    testAssignmentID,
+			CheckVersion:    "check-v1",
+			SelectorVersion: "selector-v1",
+			PingResults:     []PingResultInput{newPingResultInput(startedAt, startedAt.Add(time.Second), nil)},
+		}},
 	})
 
 	if !errors.Is(err, ErrUnsupportedResult) {
@@ -205,18 +250,17 @@ func TestSubmitResultsRejectsUnsupportedBucket(t *testing.T) {
 
 func TestSubmitResultsRejectsUnassignedCheck(t *testing.T) {
 	recorder := &recordingProbeRuntimeEventRecorder{}
-	service := NewService(&fakeProbeRepository{assignments: []domaincheck.Assignment{{
-		CheckID: testCheckID,
-		Type:    domaincheck.TypePing,
-	}}}, &fakePingResultRepository{}, fakeSecretVerifier{valid: true}, recorder)
+	service := NewService(&fakeProbeRepository{
+		assignments: []domaincheck.Assignment{newAssignment(testCheckID, domaincheck.TypePing)},
+	}, &fakePingResultRepository{}, fakeSecretVerifier{valid: true}, recorder)
 	startedAt := time.Date(2026, 5, 9, 10, 0, 0, 0, time.UTC)
 
-	err := service.SubmitResults(context.Background(), SubmitResultsInput{
+	_, err := service.SubmitResults(context.Background(), SubmitResultsInput{
 		RuntimeAuthInput: RuntimeAuthInput{
 			ProbeID:    testProbeID,
 			Credential: "plain-secret",
 		},
-		Ping: []PingResultInput{newPingResultInput(otherCheckID, startedAt, startedAt.Add(time.Second), nil)},
+		Groups: []ResultGroupInput{newResultGroupInput(otherCheckID, newPingResultInput(startedAt, startedAt.Add(time.Second), nil))},
 	})
 
 	if !errors.Is(err, ErrResultConflict) {
@@ -235,18 +279,17 @@ func TestSubmitResultsRejectsUnassignedCheck(t *testing.T) {
 
 func TestSubmitResultsRejectsCheckTypeMismatch(t *testing.T) {
 	recorder := &recordingProbeRuntimeEventRecorder{}
-	service := NewService(&fakeProbeRepository{assignments: []domaincheck.Assignment{{
-		CheckID: testCheckID,
-		Type:    domaincheck.Type("dns"),
-	}}}, &fakePingResultRepository{}, fakeSecretVerifier{valid: true}, recorder)
+	service := NewService(&fakeProbeRepository{
+		assignments: []domaincheck.Assignment{newAssignment(testCheckID, domaincheck.Type("dns"))},
+	}, &fakePingResultRepository{}, fakeSecretVerifier{valid: true}, recorder)
 	startedAt := time.Date(2026, 5, 9, 10, 0, 0, 0, time.UTC)
 
-	err := service.SubmitResults(context.Background(), SubmitResultsInput{
+	_, err := service.SubmitResults(context.Background(), SubmitResultsInput{
 		RuntimeAuthInput: RuntimeAuthInput{
 			ProbeID:    testProbeID,
 			Credential: "plain-secret",
 		},
-		Ping: []PingResultInput{newPingResultInput(testCheckID, startedAt, startedAt.Add(time.Second), nil)},
+		Groups: []ResultGroupInput{newResultGroupInput(testCheckID, newPingResultInput(startedAt, startedAt.Add(time.Second), nil))},
 	})
 
 	if !errors.Is(err, ErrResultConflict) {
@@ -266,18 +309,17 @@ func TestSubmitResultsRejectsCheckTypeMismatch(t *testing.T) {
 func TestSubmitResultsRejectsInvalidPing(t *testing.T) {
 	results := &fakePingResultRepository{}
 	recorder := &recordingProbeRuntimeEventRecorder{}
-	service := NewService(&fakeProbeRepository{assignments: []domaincheck.Assignment{{
-		CheckID: testCheckID,
-		Type:    domaincheck.TypePing,
-	}}}, results, fakeSecretVerifier{valid: true}, recorder)
+	service := NewService(&fakeProbeRepository{
+		assignments: []domaincheck.Assignment{newAssignment(testCheckID, domaincheck.TypePing)},
+	}, results, fakeSecretVerifier{valid: true}, recorder)
 	startedAt := time.Date(2026, 5, 9, 10, 0, 0, 0, time.UTC)
 
-	err := service.SubmitResults(context.Background(), SubmitResultsInput{
+	_, err := service.SubmitResults(context.Background(), SubmitResultsInput{
 		RuntimeAuthInput: RuntimeAuthInput{
 			ProbeID:    testProbeID,
 			Credential: "plain-secret",
 		},
-		Ping: []PingResultInput{newPingResultInput(testCheckID, startedAt, startedAt.Add(-time.Second), nil)},
+		Groups: []ResultGroupInput{newResultGroupInput(testCheckID, newPingResultInput(startedAt, startedAt.Add(-time.Second), nil))},
 	})
 
 	if !errors.Is(err, ErrInvalidResult) {
@@ -301,7 +343,7 @@ func TestSubmitResultsRejectsEmptyBatch(t *testing.T) {
 	recorder := &recordingProbeRuntimeEventRecorder{}
 	service := NewService(&fakeProbeRepository{}, &fakePingResultRepository{}, fakeSecretVerifier{valid: true}, recorder)
 
-	err := service.SubmitResults(context.Background(), SubmitResultsInput{
+	_, err := service.SubmitResults(context.Background(), SubmitResultsInput{
 		RuntimeAuthInput: RuntimeAuthInput{
 			ProbeID:    testProbeID,
 			Credential: "plain-secret",
@@ -384,22 +426,19 @@ func TestSubmitResultsRecordsResultWriteFailure(t *testing.T) {
 	recorder := &recordingProbeRuntimeEventRecorder{}
 	writeErr := errors.New("write results")
 	service := NewService(
-		&fakeProbeRepository{assignments: []domaincheck.Assignment{{
-			CheckID: testCheckID,
-			Type:    domaincheck.TypePing,
-		}}},
+		&fakeProbeRepository{assignments: []domaincheck.Assignment{newAssignment(testCheckID, domaincheck.TypePing)}},
 		&fakePingResultRepository{err: writeErr},
 		fakeSecretVerifier{valid: true},
 		recorder,
 	)
 	startedAt := time.Date(2026, 5, 9, 10, 0, 0, 0, time.UTC)
 
-	err := service.SubmitResults(context.Background(), SubmitResultsInput{
+	_, err := service.SubmitResults(context.Background(), SubmitResultsInput{
 		RuntimeAuthInput: RuntimeAuthInput{
 			ProbeID:    testProbeID,
 			Credential: "plain-secret",
 		},
-		Ping: []PingResultInput{newPingResultInput(testCheckID, startedAt, startedAt.Add(time.Second), nil)},
+		Groups: []ResultGroupInput{newResultGroupInput(testCheckID, newPingResultInput(startedAt, startedAt.Add(time.Second), nil))},
 	})
 	if !errors.Is(err, writeErr) {
 		t.Fatalf("expected write error, got %v", err)
@@ -465,9 +504,34 @@ func TestRuntimeRecordsSecretVerifierMissing(t *testing.T) {
 	})
 }
 
-func newPingResultInput(checkID string, startedAt, finishedAt time.Time, ipFamily *domainnetwork.IPFamily) PingResultInput {
+func newAssignment(checkID string, checkType domaincheck.Type) domaincheck.Assignment {
+	return domaincheck.Assignment{
+		ID:              testAssignmentID,
+		ProjectID:       testProjectID,
+		ProbeID:         testProbeID,
+		CheckID:         checkID,
+		CheckVersion:    "check-v1",
+		SelectorVersion: "selector-v1",
+		Type:            checkType,
+		Target:          "1.1.1.1",
+		IntervalSeconds: 30,
+		PingConfig:      domainping.DefaultConfig(),
+	}
+}
+
+func newResultGroupInput(checkID string, results ...PingResultInput) ResultGroupInput {
+	return ResultGroupInput{
+		CheckID:         checkID,
+		Type:            domaincheck.TypePing,
+		AssignmentID:    testAssignmentID,
+		CheckVersion:    "check-v1",
+		SelectorVersion: "selector-v1",
+		PingResults:     results,
+	}
+}
+
+func newPingResultInput(startedAt, finishedAt time.Time, ipFamily *domainnetwork.IPFamily) PingResultInput {
 	return PingResultInput{
-		CheckID:       checkID,
 		StartedAt:     startedAt,
 		FinishedAt:    finishedAt,
 		DurationMs:    int32(finishedAt.Sub(startedAt).Milliseconds()),

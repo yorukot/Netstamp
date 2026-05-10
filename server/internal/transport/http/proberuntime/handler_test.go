@@ -98,56 +98,85 @@ func TestListAssignmentsReturnsProbeAssignments(t *testing.T) {
 	}
 }
 
-func TestSubmitResultsReturnsNoContentForPingBatch(t *testing.T) {
+func TestSubmitResultsReturnsStatusForPingBatch(t *testing.T) {
 	_, api := humatest.New(t)
-	repo := &handlerProbeRepository{assignments: []domaincheck.Assignment{{
-		CheckID: handlerCheckID,
-		Type:    domaincheck.TypePing,
-	}}}
+	repo := &handlerProbeRepository{assignments: []domaincheck.Assignment{handlerAssignment(handlerCheckID, domaincheck.TypePing)}}
 	results := &handlerPingResultRepository{}
 	NewHandler(newRuntimeService(repo, results, true)).RegisterRoutes(api)
 	startedAt := time.Date(2026, 5, 9, 10, 0, 0, 0, time.UTC)
 	finishedAt := startedAt.Add(time.Second)
 
-	res := api.Post("/probes/"+handlerProbeID+"/runtime/results", map[string]any{
-		"ping": []map[string]any{
-			{
-				"checkId":       handlerCheckID,
-				"startedAt":     startedAt.Format(time.RFC3339Nano),
-				"finishedAt":    finishedAt.Format(time.RFC3339Nano),
-				"durationMs":    1000,
-				"status":        "successful",
-				"sentCount":     4,
-				"receivedCount": 4,
-				"lossPercent":   0,
-				"rttMinMs":      10,
-				"rttAvgMs":      11,
-				"rttMedianMs":   11,
-				"rttMaxMs":      12,
-				"rttStddevMs":   1,
-				"rttSamplesMs":  []float64{10, 11, 12},
-				"resolvedIp":    "1.1.1.1",
-				"ipFamily":      "inet",
-				"raw":           map[string]any{"runner": "test"},
-			},
-			{
-				"checkId":       handlerCheckID,
-				"startedAt":     startedAt.Format(time.RFC3339Nano),
-				"finishedAt":    finishedAt.Format(time.RFC3339Nano),
-				"durationMs":    1000,
-				"status":        "successful",
-				"sentCount":     4,
-				"receivedCount": 4,
-				"lossPercent":   0,
-			},
+	res := api.Post("/probes/"+handlerProbeID+"/runtime/results", handlerResultBody(handlerCheckID, []map[string]any{
+		{
+			"startedAt":     startedAt.Format(time.RFC3339Nano),
+			"finishedAt":    finishedAt.Format(time.RFC3339Nano),
+			"durationMs":    1000,
+			"status":        "successful",
+			"sentCount":     4,
+			"receivedCount": 4,
+			"lossPercent":   0,
+			"rttMinMs":      10,
+			"rttAvgMs":      11,
+			"rttMedianMs":   11,
+			"rttMaxMs":      12,
+			"rttStddevMs":   1,
+			"rttSamplesMs":  []float64{10, 11, 12},
+			"resolvedIp":    "1.1.1.1",
+			"ipFamily":      "inet",
+			"raw":           map[string]any{"runner": "test"},
 		},
-	}, "Authorization: Probe plain-secret")
+		{
+			"startedAt":     startedAt.Format(time.RFC3339Nano),
+			"finishedAt":    finishedAt.Format(time.RFC3339Nano),
+			"durationMs":    1000,
+			"status":        "successful",
+			"sentCount":     4,
+			"receivedCount": 4,
+			"lossPercent":   0,
+		},
+	}), "Authorization: Probe plain-secret")
 
-	if res.Code != http.StatusNoContent {
-		t.Fatalf("expected status 204, got %d", res.Code)
+	if res.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", res.Code)
+	}
+	var body submitResultsOutputBody
+	if err := json.NewDecoder(res.Body).Decode(&body); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if !body.Accepted || body.ResyncNeeded || len(body.StaleChecks) != 0 {
+		t.Fatalf("expected accepted fresh response, got %#v", body)
 	}
 	if len(results.created) != 2 {
 		t.Fatalf("expected two repository writes, got %#v", results.created)
+	}
+}
+
+func TestSubmitResultsReturnsStaleAssignments(t *testing.T) {
+	_, api := humatest.New(t)
+	repo := &handlerProbeRepository{assignments: []domaincheck.Assignment{handlerAssignment(handlerCheckID, domaincheck.TypePing)}}
+	results := &handlerPingResultRepository{}
+	NewHandler(newRuntimeService(repo, results, true)).RegisterRoutes(api)
+	now := time.Date(2026, 5, 9, 10, 0, 0, 0, time.UTC)
+	body := handlerResultBody(handlerCheckID, []map[string]any{validPingResultBody(now)})
+	body[handlerCheckID].(map[string]any)["detail"].(map[string]any)["checkVersion"] = "old-check-version"
+
+	res := api.Post("/probes/"+handlerProbeID+"/runtime/results", body, "Authorization: Probe plain-secret")
+
+	if res.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", res.Code)
+	}
+	var output submitResultsOutputBody
+	if err := json.NewDecoder(res.Body).Decode(&output); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if !output.ResyncNeeded || len(output.StaleChecks) != 1 || output.StaleChecks[0] != handlerCheckID {
+		t.Fatalf("expected stale check response, got %#v", output)
+	}
+	if len(output.Assignments) != 1 || output.Assignments[0].CheckVersion != "check-v1" {
+		t.Fatalf("expected latest assignment, got %#v", output.Assignments)
+	}
+	if len(results.created) != 1 {
+		t.Fatalf("expected stale result to be stored, got %#v", results.created)
 	}
 }
 
@@ -156,37 +185,35 @@ func TestSubmitResultsRejectsInvalidResolvedIP(t *testing.T) {
 	NewHandler(newRuntimeService(&handlerProbeRepository{}, &handlerPingResultRepository{}, true)).RegisterRoutes(api)
 	now := time.Date(2026, 5, 9, 10, 0, 0, 0, time.UTC)
 
-	res := api.Post("/probes/"+handlerProbeID+"/runtime/results", map[string]any{
-		"ping": []map[string]any{{
-			"checkId":       handlerCheckID,
-			"startedAt":     now.Format(time.RFC3339Nano),
-			"finishedAt":    now.Add(time.Second).Format(time.RFC3339Nano),
-			"durationMs":    1000,
-			"status":        "successful",
-			"sentCount":     4,
-			"receivedCount": 4,
-			"lossPercent":   0,
-			"resolvedIp":    "not-an-ip",
-		}},
-	}, "Authorization: Probe plain-secret")
+	res := api.Post("/probes/"+handlerProbeID+"/runtime/results", handlerResultBody(handlerCheckID, []map[string]any{{
+		"startedAt":     now.Format(time.RFC3339Nano),
+		"finishedAt":    now.Add(time.Second).Format(time.RFC3339Nano),
+		"durationMs":    1000,
+		"status":        "successful",
+		"sentCount":     4,
+		"receivedCount": 4,
+		"lossPercent":   0,
+		"resolvedIp":    "not-an-ip",
+	}}), "Authorization: Probe plain-secret")
 
 	if res.Code != http.StatusUnprocessableEntity {
 		t.Fatalf("expected status 422, got %d", res.Code)
 	}
 }
 
-func TestSubmitResultsRejectsUnsupportedDNSBucket(t *testing.T) {
+func TestSubmitResultsRejectsUnsupportedType(t *testing.T) {
 	_, api := humatest.New(t)
 	NewHandler(newRuntimeService(&handlerProbeRepository{}, &handlerPingResultRepository{}, true)).RegisterRoutes(api)
+	now := time.Date(2026, 5, 9, 10, 0, 0, 0, time.UTC)
+	body := handlerResultBody(handlerCheckID, []map[string]any{validPingResultBody(now)})
+	body[handlerCheckID].(map[string]any)["type"] = "dns"
 
-	res := api.Post("/probes/"+handlerProbeID+"/runtime/results", map[string]any{
-		"dns": []map[string]any{{"checkId": handlerCheckID}},
-	}, "Authorization: Probe plain-secret")
+	res := api.Post("/probes/"+handlerProbeID+"/runtime/results", body, "Authorization: Probe plain-secret")
 
 	if res.Code != http.StatusUnprocessableEntity {
 		t.Fatalf("expected status 422, got %d", res.Code)
 	}
-	assertRuntimeHumaErrorDetail(t, res, "body.dns", "unsupported result type")
+	assertRuntimeHumaErrorDetail(t, res, "body.checks."+handlerCheckID+".type", "unsupported result type")
 }
 
 func TestSubmitResultsRejectsInvalidCheckIDWithFieldError(t *testing.T) {
@@ -194,23 +221,12 @@ func TestSubmitResultsRejectsInvalidCheckIDWithFieldError(t *testing.T) {
 	NewHandler(newRuntimeService(&handlerProbeRepository{}, &handlerPingResultRepository{}, true)).RegisterRoutes(api)
 	now := time.Date(2026, 5, 9, 10, 0, 0, 0, time.UTC)
 
-	res := api.Post("/probes/"+handlerProbeID+"/runtime/results", map[string]any{
-		"ping": []map[string]any{{
-			"checkId":       "not-a-uuid",
-			"startedAt":     now.Format(time.RFC3339Nano),
-			"finishedAt":    now.Add(time.Second).Format(time.RFC3339Nano),
-			"durationMs":    1000,
-			"status":        "successful",
-			"sentCount":     4,
-			"receivedCount": 4,
-			"lossPercent":   0,
-		}},
-	}, "Authorization: Probe plain-secret")
+	res := api.Post("/probes/"+handlerProbeID+"/runtime/results", handlerResultBody("not-a-uuid", []map[string]any{validPingResultBody(now)}), "Authorization: Probe plain-secret")
 
 	if res.Code != http.StatusUnprocessableEntity {
 		t.Fatalf("expected status 422, got %d", res.Code)
 	}
-	assertRuntimeHumaErrorDetail(t, res, "body.ping.checkId", "must be a valid UUID")
+	assertRuntimeHumaErrorDetail(t, res, "body.checks.checkId", "must be a valid UUID")
 }
 
 func TestOldPingResultEndpointIsNotRegistered(t *testing.T) {
@@ -221,6 +237,47 @@ func TestOldPingResultEndpointIsNotRegistered(t *testing.T) {
 
 	if res.Code != http.StatusNotFound {
 		t.Fatalf("expected status 404, got %d", res.Code)
+	}
+}
+
+func handlerAssignment(checkID string, checkType domaincheck.Type) domaincheck.Assignment {
+	return domaincheck.Assignment{
+		ID:              handlerAssignmentID,
+		ProjectID:       handlerProjectID,
+		ProbeID:         handlerProbeID,
+		CheckID:         checkID,
+		CheckVersion:    "check-v1",
+		SelectorVersion: "selector-v1",
+		Type:            checkType,
+		Target:          "1.1.1.1",
+		IntervalSeconds: 30,
+		PingConfig:      domainping.DefaultConfig(),
+	}
+}
+
+func handlerResultBody(checkID string, results []map[string]any) map[string]any {
+	return map[string]any{
+		checkID: map[string]any{
+			"type": "ping",
+			"detail": map[string]any{
+				"assignmentId":    handlerAssignmentID,
+				"checkVersion":    "check-v1",
+				"selectorVersion": "selector-v1",
+			},
+			"results": results,
+		},
+	}
+}
+
+func validPingResultBody(startedAt time.Time) map[string]any {
+	return map[string]any{
+		"startedAt":     startedAt.Format(time.RFC3339Nano),
+		"finishedAt":    startedAt.Add(time.Second).Format(time.RFC3339Nano),
+		"durationMs":    1000,
+		"status":        "successful",
+		"sentCount":     4,
+		"receivedCount": 4,
+		"lossPercent":   0,
 	}
 }
 

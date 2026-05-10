@@ -90,49 +90,65 @@ func (s *Service) ListAssignments(ctx context.Context, input RuntimeAuthInput) (
 	return ListAssignmentsOutput{Assignments: assignments}, nil
 }
 
-func (s *Service) SubmitResults(ctx context.Context, input SubmitResultsInput) error {
+func (s *Service) SubmitResults(ctx context.Context, input SubmitResultsInput) (SubmitResultsOutput, error) {
 	ctx, flow := s.startRuntimeFlow(ctx, "probe_runtime.results.submit", ProbeRuntimeActionSubmitResults)
 	defer flow.end()
 
 	credential, err := s.authenticate(ctx, flow, input.RuntimeAuthInput)
 	if err != nil {
-		return flow.authenticationFailure(ProbeRuntimeEventSubmitResultsFailure, err)
+		return SubmitResultsOutput{}, flow.authenticationFailure(ProbeRuntimeEventSubmitResultsFailure, err)
 	}
-	resultCount, err := validateResultBatch(input)
+	resultCount, groups, err := validateResultBatch(input)
 	flow.setResultCount(resultCount)
 	if err != nil {
 		if errors.Is(err, ErrUnsupportedResult) {
-			return flow.businessFailure(ProbeRuntimeEventSubmitResultsFailure, ProbeRuntimeReasonUnsupportedResult, err)
+			return SubmitResultsOutput{}, flow.businessFailure(ProbeRuntimeEventSubmitResultsFailure, ProbeRuntimeReasonUnsupportedResult, err)
 		}
-		return flow.businessFailure(ProbeRuntimeEventSubmitResultsFailure, ProbeRuntimeReasonInvalidInput, err)
+		return SubmitResultsOutput{}, flow.businessFailure(ProbeRuntimeEventSubmitResultsFailure, ProbeRuntimeReasonInvalidInput, err)
 	}
 
 	assignments, err := s.probes.ListAssignments(ctx, credential.ProbeID)
 	if err != nil {
-		return flow.assignmentListFailure(ProbeRuntimeEventSubmitResultsFailure, err)
+		return SubmitResultsOutput{}, flow.assignmentListFailure(ProbeRuntimeEventSubmitResultsFailure, err)
 	}
-	assignedTypes := assignedCheckTypes(assignments)
+	assigned := assignmentsByCheckID(assignments)
 
-	pingResults := make([]domainping.ResultStorageInput, 0, len(input.Ping))
-	for _, result := range input.Ping {
-		storageInput, err := normalizePingResult(result, credential.ProjectID, credential.ProbeID)
-		if err != nil {
-			return flow.businessFailure(ProbeRuntimeEventSubmitResultsFailure, ProbeRuntimeReasonInvalidResult, err)
+	pingResults := make([]domainping.ResultStorageInput, 0, resultCount)
+	staleChecks := make([]string, 0)
+	latestAssignments := make([]domaincheck.Assignment, 0)
+	for _, group := range groups {
+		assignment, ok := assigned[group.checkID]
+		if !ok || assignment.Type != group.checkType || assignment.Type != domaincheck.TypePing {
+			return SubmitResultsOutput{}, flow.businessFailure(ProbeRuntimeEventSubmitResultsFailure, ProbeRuntimeReasonResultConflict, ErrResultConflict)
 		}
-		if assignedType, ok := assignedTypes[storageInput.CheckID]; !ok || assignedType != domaincheck.TypePing {
-			return flow.businessFailure(ProbeRuntimeEventSubmitResultsFailure, ProbeRuntimeReasonResultConflict, ErrResultConflict)
+
+		if isStaleAssignment(group, assignment) {
+			staleChecks = append(staleChecks, group.checkID)
+			latestAssignments = append(latestAssignments, assignment)
 		}
-		pingResults = append(pingResults, storageInput)
+
+		for _, result := range group.pingResults {
+			storageInput, err := normalizePingResult(result, credential.ProjectID, credential.ProbeID, group.checkID)
+			if err != nil {
+				return SubmitResultsOutput{}, flow.businessFailure(ProbeRuntimeEventSubmitResultsFailure, ProbeRuntimeReasonInvalidResult, err)
+			}
+			pingResults = append(pingResults, storageInput)
+		}
 	}
 
 	if len(pingResults) > 0 {
 		if err := s.results.CreatePingResults(ctx, pingResults); err != nil {
-			return flow.resultWriteFailure(err)
+			return SubmitResultsOutput{}, flow.resultWriteFailure(err)
 		}
 	}
 	flow.success()
 
-	return nil
+	return SubmitResultsOutput{
+		Accepted:     true,
+		ResyncNeeded: len(staleChecks) > 0,
+		StaleChecks:  staleChecks,
+		Assignments:  latestAssignments,
+	}, nil
 }
 
 func (s *Service) authenticate(ctx context.Context, flow *runtimeFlow, input RuntimeAuthInput) (domainprobe.Credential, error) {
@@ -160,11 +176,17 @@ func (s *Service) authenticate(ctx context.Context, flow *runtimeFlow, input Run
 	return credential, nil
 }
 
-func assignedCheckTypes(assignments []domaincheck.Assignment) map[string]domaincheck.Type {
-	assigned := make(map[string]domaincheck.Type, len(assignments))
+func assignmentsByCheckID(assignments []domaincheck.Assignment) map[string]domaincheck.Assignment {
+	assigned := make(map[string]domaincheck.Assignment, len(assignments))
 	for _, assignment := range assignments {
-		assigned[assignment.CheckID] = assignment.Type
+		assigned[assignment.CheckID] = assignment
 	}
 
 	return assigned
+}
+
+func isStaleAssignment(group normalizedResultGroup, assignment domaincheck.Assignment) bool {
+	return group.assignmentID != assignment.ID ||
+		group.checkVersion != assignment.CheckVersion ||
+		group.selectorVersion != assignment.SelectorVersion
 }

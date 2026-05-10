@@ -3,9 +3,12 @@ package proberuntime
 import (
 	"encoding/json"
 	"net/netip"
+	"sort"
+	"strconv"
 	"strings"
 
 	appvalidation "github.com/yorukot/netstamp/internal/application/validation"
+	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
 )
@@ -19,6 +22,15 @@ const (
 type normalizedRuntimeAuthInput struct {
 	probeID    string
 	credential string
+}
+
+type normalizedResultGroup struct {
+	checkID         string
+	checkType       domaincheck.Type
+	assignmentID    string
+	checkVersion    string
+	selectorVersion string
+	pingResults     []PingResultInput
 }
 
 func normalizeRuntimeAuthInput(input RuntimeAuthInput) (normalizedRuntimeAuthInput, error) {
@@ -50,23 +62,103 @@ func normalizeRuntimeStatus(input RuntimeStatusInput, probeID string) (domainpro
 	}, nil
 }
 
-func validateResultBatch(input SubmitResultsInput) (int, error) {
-	resultCount := len(input.Ping) + len(input.DNS) + len(input.Traceroute)
+func validateResultBatch(input SubmitResultsInput) (int, []normalizedResultGroup, error) {
+	resultCount := countResults(input.Groups)
 	if resultCount == 0 || resultCount > MaxResultBatchSize {
-		return resultCount, invalidRuntimeField("", "must include between 1 and 500 results", nil)
-	}
-	if len(input.DNS) > 0 {
-		return resultCount, appvalidation.New(ErrUnsupportedResult, "dns", "unsupported result type", input.DNS)
-	}
-	if len(input.Traceroute) > 0 {
-		return resultCount, appvalidation.New(ErrUnsupportedResult, "traceroute", "unsupported result type", input.Traceroute)
+		return resultCount, nil, invalidRuntimeField("", "must include between 1 and 500 results", nil)
 	}
 
-	return resultCount, nil
+	groups := make([]normalizedResultGroup, 0, len(input.Groups))
+	seenCheckIDs := make(map[string]struct{}, len(input.Groups))
+	for index, group := range input.Groups {
+		normalized, err := normalizeResultGroup(group)
+		if err != nil {
+			return resultCount, nil, err
+		}
+		if _, ok := seenCheckIDs[normalized.checkID]; ok {
+			return resultCount, nil, invalidRuntimeField(resultGroupField(index, "checkId"), "must be unique", group.CheckID)
+		}
+		seenCheckIDs[normalized.checkID] = struct{}{}
+		groups = append(groups, normalized)
+	}
+	sort.Slice(groups, func(i, j int) bool {
+		return groups[i].checkID < groups[j].checkID
+	})
+
+	return resultCount, groups, nil
 }
 
-func normalizePingResult(input PingResultInput, projectID, probeID string) (domainping.ResultStorageInput, error) {
-	checkID, err := appvalidation.CanonicalUUID(ErrInvalidResult, "ping.checkId", input.CheckID)
+func countResults(groups []ResultGroupInput) int {
+	count := 0
+	for _, group := range groups {
+		count += len(group.PingResults)
+	}
+
+	return count
+}
+
+func normalizeResultGroup(input ResultGroupInput) (normalizedResultGroup, error) {
+	checkID, err := appvalidation.CanonicalUUID(ErrInvalidInput, "checks.checkId", input.CheckID)
+	if err != nil {
+		return normalizedResultGroup{}, err
+	}
+	checkType, err := normalizeResultType(input.Type, input.CheckID)
+	if err != nil {
+		return normalizedResultGroup{}, err
+	}
+	assignmentID, err := appvalidation.CanonicalUUID(ErrInvalidInput, resultGroupField(input.CheckID, "detail.assignmentId"), input.AssignmentID)
+	if err != nil {
+		return normalizedResultGroup{}, err
+	}
+	checkVersion, err := appvalidation.RequiredString(ErrInvalidInput, resultGroupField(input.CheckID, "detail.checkVersion"), input.CheckVersion, 0)
+	if err != nil {
+		return normalizedResultGroup{}, err
+	}
+	selectorVersion, err := appvalidation.RequiredString(ErrInvalidInput, resultGroupField(input.CheckID, "detail.selectorVersion"), input.SelectorVersion, 0)
+	if err != nil {
+		return normalizedResultGroup{}, err
+	}
+	if len(input.PingResults) == 0 {
+		return normalizedResultGroup{}, invalidRuntimeField(resultGroupField(input.CheckID, "results"), "must include at least one result", input.PingResults)
+	}
+
+	return normalizedResultGroup{
+		checkID:         checkID,
+		checkType:       checkType,
+		assignmentID:    assignmentID,
+		checkVersion:    checkVersion,
+		selectorVersion: selectorVersion,
+		pingResults:     append([]PingResultInput(nil), input.PingResults...),
+	}, nil
+}
+
+func normalizeResultType(value domaincheck.Type, checkID string) (domaincheck.Type, error) {
+	field := resultGroupField(checkID, "type")
+	switch value {
+	case domaincheck.TypePing:
+		return domaincheck.TypePing, nil
+	case "":
+		return "", invalidRuntimeField(field, `must be "ping"`, value)
+	default:
+		return "", appvalidation.New(ErrUnsupportedResult, field, "unsupported result type", value)
+	}
+}
+
+func resultGroupField(checkID any, field string) string {
+	switch value := checkID.(type) {
+	case int:
+		return "checks." + strconv.Itoa(value) + "." + field
+	case string:
+		if value != "" {
+			return "checks." + value + "." + field
+		}
+	}
+
+	return "checks." + field
+}
+
+func normalizePingResult(input PingResultInput, projectID, probeID, checkID string) (domainping.ResultStorageInput, error) {
+	checkID, err := appvalidation.CanonicalUUID(ErrInvalidResult, "checks.checkId", checkID)
 	if err != nil {
 		return domainping.ResultStorageInput{}, err
 	}

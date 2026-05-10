@@ -4,12 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"net/netip"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 
 	appproberuntime "github.com/yorukot/netstamp/internal/application/proberuntime"
+	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
 	domainnetwork "github.com/yorukot/netstamp/internal/domain/network"
 )
 
@@ -18,29 +20,19 @@ func (h *Handler) submitResults(ctx context.Context, input *submitResultsInput) 
 	if err != nil {
 		return nil, err
 	}
-	pingResults, err := newPingResultInputs(input.Body.Ping)
+	groups, err := newResultGroupInputs(input.Body)
 	if err != nil {
 		return nil, err
 	}
-	dnsResults, err := newUnsupportedResultInputs(input.Body.DNS)
-	if err != nil {
-		return nil, err
-	}
-	tracerouteResults, err := newUnsupportedResultInputs(input.Body.Traceroute)
-	if err != nil {
-		return nil, err
-	}
-	err = h.service.SubmitResults(ctx, appproberuntime.SubmitResultsInput{
+	output, err := h.service.SubmitResults(ctx, appproberuntime.SubmitResultsInput{
 		RuntimeAuthInput: auth,
-		Ping:             pingResults,
-		DNS:              dnsResults,
-		Traceroute:       tracerouteResults,
+		Groups:           groups,
 	})
 	if err != nil {
 		return nil, mapRuntimeError(err, "submit probe results failed")
 	}
 
-	return &submitResultsOutput{}, nil
+	return &submitResultsOutput{Body: newSubmitResultsOutputBody(output)}, nil
 }
 
 type submitResultsInput struct {
@@ -49,14 +41,21 @@ type submitResultsInput struct {
 	Body          submitResultsInputBody
 }
 
-type submitResultsInputBody struct {
-	Ping       []pingResultInputBody `json:"ping,omitempty"`
-	DNS        []map[string]any      `json:"dns,omitempty"`
-	Traceroute []map[string]any      `json:"traceroute,omitempty"`
+type submitResultsInputBody map[string]resultGroupInputBody
+
+type resultGroupInputBody struct {
+	Type    string                     `json:"type,omitempty"`
+	Detail  resultGroupDetailInputBody `json:"detail,omitempty"`
+	Results []pingResultInputBody      `json:"results,omitempty"`
+}
+
+type resultGroupDetailInputBody struct {
+	AssignmentID    string `json:"assignmentId,omitempty" format:"uuid"`
+	CheckVersion    string `json:"checkVersion,omitempty"`
+	SelectorVersion string `json:"selectorVersion,omitempty"`
 }
 
 type pingResultInputBody struct {
-	CheckID       string         `json:"checkId,omitempty"`
 	StartedAt     time.Time      `json:"startedAt,omitempty"`
 	FinishedAt    time.Time      `json:"finishedAt,omitempty"`
 	DurationMs    int32          `json:"durationMs,omitempty"`
@@ -77,7 +76,43 @@ type pingResultInputBody struct {
 	ErrorMessage  *string        `json:"errorMessage,omitempty"`
 }
 
-type submitResultsOutput struct{}
+type submitResultsOutput struct {
+	Body submitResultsOutputBody
+}
+
+type submitResultsOutputBody struct {
+	Accepted     bool                 `json:"accepted"`
+	ResyncNeeded bool                 `json:"resyncNeeded"`
+	StaleChecks  []string             `json:"staleChecks"`
+	Assignments  []assignmentResponse `json:"assignments"`
+}
+
+func newResultGroupInputs(groups submitResultsInputBody) ([]appproberuntime.ResultGroupInput, error) {
+	checkIDs := make([]string, 0, len(groups))
+	for checkID := range groups {
+		checkIDs = append(checkIDs, checkID)
+	}
+	slices.Sort(checkIDs)
+
+	mapped := make([]appproberuntime.ResultGroupInput, 0, len(groups))
+	for _, checkID := range checkIDs {
+		group := groups[checkID]
+		pingResults, err := newPingResultInputs(group.Results)
+		if err != nil {
+			return nil, err
+		}
+		mapped = append(mapped, appproberuntime.ResultGroupInput{
+			CheckID:         checkID,
+			Type:            domaincheck.Type(strings.TrimSpace(group.Type)),
+			AssignmentID:    group.Detail.AssignmentID,
+			CheckVersion:    group.Detail.CheckVersion,
+			SelectorVersion: group.Detail.SelectorVersion,
+			PingResults:     pingResults,
+		})
+	}
+
+	return mapped, nil
+}
 
 func newPingResultInputs(results []pingResultInputBody) ([]appproberuntime.PingResultInput, error) {
 	mapped := make([]appproberuntime.PingResultInput, 0, len(results))
@@ -95,7 +130,6 @@ func newPingResultInputs(results []pingResultInputBody) ([]appproberuntime.PingR
 			return nil, huma.Error422UnprocessableEntity("invalid raw result")
 		}
 		mapped = append(mapped, appproberuntime.PingResultInput{
-			CheckID:       result.CheckID,
 			StartedAt:     result.StartedAt,
 			FinishedAt:    result.FinishedAt,
 			DurationMs:    result.DurationMs,
@@ -115,23 +149,6 @@ func newPingResultInputs(results []pingResultInputBody) ([]appproberuntime.PingR
 			ErrorCode:     result.ErrorCode,
 			ErrorMessage:  result.ErrorMessage,
 		})
-	}
-
-	return mapped, nil
-}
-
-func newUnsupportedResultInputs(results []map[string]any) ([]appproberuntime.UnsupportedResultInput, error) {
-	if len(results) == 0 {
-		return nil, nil
-	}
-
-	mapped := make([]appproberuntime.UnsupportedResultInput, 0, len(results))
-	for _, result := range results {
-		raw, err := json.Marshal(result)
-		if err != nil {
-			return nil, huma.Error422UnprocessableEntity("invalid unsupported result")
-		}
-		mapped = append(mapped, appproberuntime.UnsupportedResultInput{Raw: raw})
 	}
 
 	return mapped, nil
@@ -159,4 +176,18 @@ func rawMessage(raw map[string]any) (json.RawMessage, error) {
 	}
 
 	return json.Marshal(raw)
+}
+
+func newSubmitResultsOutputBody(output appproberuntime.SubmitResultsOutput) submitResultsOutputBody {
+	assignments := make([]assignmentResponse, 0, len(output.Assignments))
+	for _, assignment := range output.Assignments {
+		assignments = append(assignments, newAssignmentResponse(assignment))
+	}
+
+	return submitResultsOutputBody{
+		Accepted:     output.Accepted,
+		ResyncNeeded: output.ResyncNeeded,
+		StaleChecks:  output.StaleChecks,
+		Assignments:  assignments,
+	}
 }
