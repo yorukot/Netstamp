@@ -25,7 +25,6 @@ FROM projects
 JOIN project_members
     ON project_members.project_id = projects.id
     AND project_members.user_id = $1
-    AND project_members.deleted_at IS NULL
 WHERE projects.deleted_at IS NULL
 ORDER BY projects.created_at DESC, projects.id DESC;
 
@@ -35,7 +34,6 @@ FROM projects
 JOIN project_members
     ON project_members.project_id = projects.id
     AND project_members.user_id = $2
-    AND project_members.deleted_at IS NULL
 WHERE projects.id = $1
   AND projects.deleted_at IS NULL;
 
@@ -45,7 +43,6 @@ FROM projects
 JOIN project_members
     ON project_members.project_id = projects.id
     AND project_members.user_id = $2
-    AND project_members.deleted_at IS NULL
 WHERE projects.slug = $1
   AND projects.deleted_at IS NULL;
 
@@ -55,7 +52,6 @@ FROM project_members
 JOIN projects ON projects.id = project_members.project_id
 WHERE project_members.project_id = $1
   AND project_members.user_id = $2
-  AND project_members.deleted_at IS NULL
   AND projects.deleted_at IS NULL;
 
 -- name: UpdateProject :one
@@ -85,7 +81,6 @@ FROM project_members
 JOIN users ON users.id = project_members.user_id
 JOIN projects ON projects.id = project_members.project_id
 WHERE project_members.project_id = $1
-  AND project_members.deleted_at IS NULL
   AND projects.deleted_at IS NULL
 ORDER BY project_members.created_at ASC, project_members.id ASC;
 
@@ -102,7 +97,6 @@ JOIN users ON users.id = project_members.user_id
 JOIN projects ON projects.id = project_members.project_id
 WHERE project_members.project_id = $1
   AND project_members.user_id = $2
-  AND project_members.deleted_at IS NULL
   AND projects.deleted_at IS NULL;
 
 -- name: UpdateProjectMemberRole :one
@@ -111,7 +105,6 @@ WITH updated AS (
     SET role = $3
     WHERE project_id = $1
       AND user_id = $2
-      AND deleted_at IS NULL
     RETURNING id, project_id, user_id, role, created_at, updated_at
 )
 SELECT updated.id,
@@ -124,9 +117,14 @@ SELECT updated.id,
 FROM updated
 JOIN users ON users.id = updated.user_id;
 
+-- name: DeleteProjectMember :one
+DELETE FROM project_members
+WHERE project_id = $1
+  AND user_id = $2
+RETURNING id;
+
 -- name: CountActiveProjectOwners :one
 SELECT count(*)::int4
 FROM project_members
 WHERE project_id = $1
-  AND role = 'owner'
-  AND deleted_at IS NULL;
+  AND role = 'owner';

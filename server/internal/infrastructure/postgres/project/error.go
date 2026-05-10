@@ -20,7 +20,7 @@ func mapCreateProjectError(err error) (bool, error) {
 }
 
 func mapCreateProjectMemberError(err error) (bool, error) {
-	if postgres.IsUniqueViolation(err, "uq_project_members_active_project_user") {
+	if postgres.IsUniqueViolation(err, "uq_project_members_project_user") {
 		return true, fmt.Errorf("project member already exists: %w", domainproject.ErrMemberAlreadyExists)
 	}
 	if postgres.IsForeignKeyViolation(err, "project_members_project_id_fkey") {

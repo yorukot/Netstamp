@@ -17,6 +17,7 @@ type Repository interface {
 	GetMember(ctx context.Context, projectID, userID string) (domainproject.Member, error)
 	AddMember(ctx context.Context, input domainproject.AddMemberStorageInput) (domainproject.Member, error)
 	UpdateMemberRole(ctx context.Context, input domainproject.UpdateMemberRoleStorageInput) (domainproject.Member, error)
+	DeleteMember(ctx context.Context, projectID, userID string) error
 	CountOwners(ctx context.Context, projectID string) (int, error)
 }
 
@@ -39,6 +40,8 @@ const (
 	ProjectEventAddMemberFailure        ProjectEventName = "project.member.add.failure"
 	ProjectEventUpdateMemberRoleSuccess ProjectEventName = "project.member.role_update.success"
 	ProjectEventUpdateMemberRoleFailure ProjectEventName = "project.member.role_update.failure"
+	ProjectEventRemoveMemberSuccess     ProjectEventName = "project.member.remove.success"
+	ProjectEventRemoveMemberFailure     ProjectEventName = "project.member.remove.failure"
 )
 
 type ProjectEventAction string
@@ -52,6 +55,7 @@ const (
 	ProjectActionListMembers      ProjectEventAction = "list_members"
 	ProjectActionAddMember        ProjectEventAction = "add_member"
 	ProjectActionUpdateMemberRole ProjectEventAction = "update_member_role"
+	ProjectActionRemoveMember     ProjectEventAction = "remove_member"
 )
 
 type ProjectEventOutcome string
@@ -83,6 +87,7 @@ const (
 	ProjectReasonMemberLookupFailed     ProjectEventReason = "member_lookup_failed"
 	ProjectReasonMemberAddFailed        ProjectEventReason = "member_add_failed"
 	ProjectReasonMemberRoleUpdateFailed ProjectEventReason = "member_role_update_failed"
+	ProjectReasonMemberRemoveFailed     ProjectEventReason = "member_remove_failed"
 	ProjectReasonOwnerCountFailed       ProjectEventReason = "owner_count_failed"
 )
 

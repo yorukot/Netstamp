@@ -47,3 +47,9 @@ type UpdateMemberRoleInput struct {
 	UserID        string
 	Role          domainproject.Role
 }
+
+type RemoveMemberInput struct {
+	CurrentUserID string
+	ProjectRef    string
+	UserID        string
+}

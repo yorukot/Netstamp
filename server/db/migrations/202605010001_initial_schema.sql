@@ -64,14 +64,10 @@ CREATE TABLE project_members (
     user_id uuid NOT NULL REFERENCES users(id),
     role project_member_role NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
-    updated_at timestamptz NOT NULL DEFAULT now(),
-    deleted_at timestamptz,
-    CONSTRAINT project_members_deleted_at_after_created_at CHECK (deleted_at IS NULL OR deleted_at >= created_at)
+    updated_at timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE UNIQUE INDEX uq_project_members_active_project_user
-    ON project_members (project_id, user_id)
-    WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX uq_project_members_project_user ON project_members (project_id, user_id);
 CREATE INDEX idx_project_members_project_id ON project_members (project_id);
 CREATE INDEX idx_project_members_user_id ON project_members (user_id);
 

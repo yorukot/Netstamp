@@ -53,6 +53,18 @@ func (f *probeFlow) setProjectID(projectID string) {
 	}
 }
 
+func (f *probeFlow) setProbeID(probeID string) {
+	f.probeID = probeID
+	if probeID != "" {
+		f.span.SetAttributes(attrProbeID.String(probeID))
+	}
+}
+
+func (f *probeFlow) success(name ProbeEventName) {
+	f.span.SetAttributes(attrProbeOutcome.String(string(ProbeOutcomeSuccess)))
+	f.service.events.RecordProbeEvent(f.ctx, f.probeEvent(name, ProbeOutcomeSuccess, "", nil))
+}
+
 func (f *probeFlow) businessFailure(name ProbeEventName, reason ProbeEventReason, returnErr error) error {
 	f.span.SetAttributes(
 		attrProbeOutcome.String(string(ProbeOutcomeFailure)),
@@ -69,30 +81,30 @@ func (f *probeFlow) technicalFailure(name ProbeEventName, reason ProbeEventReaso
 	return err
 }
 
-func (f *probeFlow) projectLookupFailure(err error) error {
+func (f *probeFlow) projectLookupFailure(event ProbeEventName, err error) error {
 	if errors.Is(err, ErrProjectNotFound) {
-		return f.businessFailure(ProbeEventCreateFailure, ProbeReasonProjectNotFound, err)
+		return f.businessFailure(event, ProbeReasonProjectNotFound, err)
 	}
 
-	return f.technicalFailure(ProbeEventCreateFailure, ProbeReasonProjectLookupFailed, err)
+	return f.technicalFailure(event, ProbeReasonProjectLookupFailed, err)
 }
 
-func (f *probeFlow) roleLookupFailure(err error) error {
+func (f *probeFlow) roleLookupFailure(event ProbeEventName, err error) error {
 	if errors.Is(err, ErrProjectNotFound) {
-		return f.businessFailure(ProbeEventCreateFailure, ProbeReasonProjectNotFound, err)
+		return f.businessFailure(event, ProbeReasonProjectNotFound, err)
 	}
 
-	return f.technicalFailure(ProbeEventCreateFailure, ProbeReasonRoleLookupFailed, err)
+	return f.technicalFailure(event, ProbeReasonRoleLookupFailed, err)
 }
 
-func (f *probeFlow) labelLookupFailure(err error) error {
+func (f *probeFlow) labelLookupFailure(event ProbeEventName, err error) error {
 	switch {
 	case errors.Is(err, ErrInvalidInput):
-		return f.businessFailure(ProbeEventCreateFailure, ProbeReasonInvalidInput, err)
+		return f.businessFailure(event, ProbeReasonInvalidInput, err)
 	case errors.Is(err, ErrLabelNotFound):
-		return f.businessFailure(ProbeEventCreateFailure, ProbeReasonLabelNotFound, err)
+		return f.businessFailure(event, ProbeReasonLabelNotFound, err)
 	default:
-		return f.technicalFailure(ProbeEventCreateFailure, ProbeReasonLabelLookupFailed, err)
+		return f.technicalFailure(event, ProbeReasonLabelLookupFailed, err)
 	}
 }
 
@@ -106,6 +118,59 @@ func (f *probeFlow) createFailure(err error) error {
 		return f.businessFailure(ProbeEventCreateFailure, ProbeReasonLabelNotFound, err)
 	default:
 		return f.technicalFailure(ProbeEventCreateFailure, ProbeReasonProbeCreateFailed, err)
+	}
+}
+
+func (f *probeFlow) probeLookupFailure(event ProbeEventName, err error) error {
+	if errors.Is(err, ErrProbeNotFound) {
+		return f.businessFailure(event, ProbeReasonProbeNotFound, err)
+	}
+
+	return f.technicalFailure(event, ProbeReasonProbeLookupFailed, err)
+}
+
+func (f *probeFlow) probeListFailure(err error) error {
+	if errors.Is(err, ErrProjectNotFound) {
+		return f.businessFailure(ProbeEventListFailure, ProbeReasonProjectNotFound, err)
+	}
+
+	return f.technicalFailure(ProbeEventListFailure, ProbeReasonProbeListFailed, err)
+}
+
+func (f *probeFlow) updateFailure(err error) error {
+	switch {
+	case errors.Is(err, ErrInvalidInput):
+		return f.businessFailure(ProbeEventUpdateFailure, ProbeReasonInvalidInput, err)
+	case errors.Is(err, ErrProbeNotFound):
+		return f.businessFailure(ProbeEventUpdateFailure, ProbeReasonProbeNotFound, err)
+	case errors.Is(err, ErrProjectNotFound):
+		return f.businessFailure(ProbeEventUpdateFailure, ProbeReasonProjectNotFound, err)
+	case errors.Is(err, ErrLabelNotFound):
+		return f.businessFailure(ProbeEventUpdateFailure, ProbeReasonLabelNotFound, err)
+	default:
+		return f.technicalFailure(ProbeEventUpdateFailure, ProbeReasonProbeUpdateFailed, err)
+	}
+}
+
+func (f *probeFlow) deleteFailure(err error) error {
+	switch {
+	case errors.Is(err, ErrProbeNotFound):
+		return f.businessFailure(ProbeEventDeleteFailure, ProbeReasonProbeNotFound, err)
+	case errors.Is(err, ErrProjectNotFound):
+		return f.businessFailure(ProbeEventDeleteFailure, ProbeReasonProjectNotFound, err)
+	default:
+		return f.technicalFailure(ProbeEventDeleteFailure, ProbeReasonProbeDeleteFailed, err)
+	}
+}
+
+func (f *probeFlow) rotateFailure(err error) error {
+	switch {
+	case errors.Is(err, ErrProbeNotFound):
+		return f.businessFailure(ProbeEventSecretRotateFailure, ProbeReasonProbeNotFound, err)
+	case errors.Is(err, ErrProjectNotFound):
+		return f.businessFailure(ProbeEventSecretRotateFailure, ProbeReasonProjectNotFound, err)
+	default:
+		return f.technicalFailure(ProbeEventSecretRotateFailure, ProbeReasonSecretRotateFailed, err)
 	}
 }
 

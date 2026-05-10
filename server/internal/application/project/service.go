@@ -265,6 +265,54 @@ func (s *Service) UpdateMemberRole(ctx context.Context, input UpdateMemberRoleIn
 	return member, nil
 }
 
+func (s *Service) RemoveMember(ctx context.Context, input RemoveMemberInput) error {
+	ctx, flow := s.startProjectFlow(ctx, "project.member.remove", ProjectActionRemoveMember, input.CurrentUserID)
+	defer flow.end()
+	flow.setTargetUser(input.UserID)
+
+	normalized, err := normalizeRemoveMemberInput(input)
+	if err != nil {
+		return flow.businessFailure(ProjectEventRemoveMemberFailure, ProjectReasonInvalidInput, err)
+	}
+	flow.setTargetUser(normalized.userID)
+
+	project, err := s.loadProjectForUser(ctx, flow, normalized.projectRef, input.CurrentUserID, ProjectEventRemoveMemberFailure)
+	if err != nil {
+		return err
+	}
+	actorRole, err := s.requireRole(ctx, flow, project.ID, input.CurrentUserID, ProjectEventRemoveMemberFailure, domainproject.ActionReadProject)
+	if err != nil {
+		return err
+	}
+
+	member, err := s.repo.GetMember(ctx, project.ID, normalized.userID)
+	if err != nil {
+		return flow.memberLookupFailure(ProjectEventRemoveMemberFailure, err)
+	}
+	flow.setRole(member.Role)
+
+	isSelf := input.CurrentUserID == normalized.userID
+	if !canRemoveMember(actorRole, member.Role, isSelf) {
+		return flow.businessFailure(ProjectEventRemoveMemberFailure, ProjectReasonForbidden, ErrForbidden)
+	}
+	if member.Role == domainproject.RoleOwner {
+		owners, countErr := s.repo.CountOwners(ctx, project.ID)
+		if countErr != nil {
+			return flow.ownerCountFailure(ProjectEventRemoveMemberFailure, countErr)
+		}
+		if owners <= 1 {
+			return flow.businessFailure(ProjectEventRemoveMemberFailure, ProjectReasonLastOwner, ErrLastOwner)
+		}
+	}
+
+	if err := s.repo.DeleteMember(ctx, project.ID, normalized.userID); err != nil {
+		return flow.memberRemoveFailure(err)
+	}
+	flow.success(ProjectEventRemoveMemberSuccess)
+
+	return nil
+}
+
 func (s *Service) loadProjectForUser(ctx context.Context, flow *projectFlow, projectRef, userID string, failureEvent ProjectEventName) (domainproject.Project, error) {
 	flow.setProjectRef(projectRef)
 
@@ -318,4 +366,19 @@ func validateAssignableRole(actorRole, targetRole domainproject.Role) error {
 	}
 
 	return nil
+}
+
+func canRemoveMember(actorRole, targetRole domainproject.Role, isSelf bool) bool {
+	if isSelf {
+		return true
+	}
+
+	switch actorRole {
+	case domainproject.RoleOwner:
+		return domainproject.IsValidRole(targetRole)
+	case domainproject.RoleAdmin:
+		return targetRole == domainproject.RoleEditor || targetRole == domainproject.RoleViewer
+	default:
+		return false
+	}
 }

@@ -86,6 +86,113 @@ func TestCreateProbeRequiresBearerToken(t *testing.T) {
 	}
 }
 
+func TestListProbeReturnsProjectProbes(t *testing.T) {
+	_, api := humatest.New(t)
+	NewHandler(appprobe.NewService(&handlerProbeRepository{}, &handlerProjectAccess{}, &handlerLabelAccess{}, handlerSecretGenerator{}, handlerProbeEventRecorder{}), &handlerTokenVerifier{
+		claims: identity.AccessTokenClaims{Subject: testUserID, Email: "user@example.com"},
+	}).RegisterRoutes(api)
+
+	res := api.Get("/projects/engineering/probes", "Authorization: Bearer valid-token")
+
+	if res.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", res.Code)
+	}
+	var body listProbesOutputBody
+	if err := json.NewDecoder(res.Body).Decode(&body); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if len(body.Probes) != 1 || body.Probes[0].ID != testProbeID {
+		t.Fatalf("expected probe list, got %#v", body.Probes)
+	}
+}
+
+func TestGetProbeReturnsProjectProbe(t *testing.T) {
+	_, api := humatest.New(t)
+	NewHandler(appprobe.NewService(&handlerProbeRepository{}, &handlerProjectAccess{}, &handlerLabelAccess{}, handlerSecretGenerator{}, handlerProbeEventRecorder{}), &handlerTokenVerifier{
+		claims: identity.AccessTokenClaims{Subject: testUserID, Email: "user@example.com"},
+	}).RegisterRoutes(api)
+
+	res := api.Get("/projects/engineering/probes/"+testProbeID, "Authorization: Bearer valid-token")
+
+	if res.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", res.Code)
+	}
+	var body probeOutputBody
+	if err := json.NewDecoder(res.Body).Decode(&body); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if body.Probe.ID != testProbeID {
+		t.Fatalf("expected probe id, got %q", body.Probe.ID)
+	}
+}
+
+func TestUpdateProbeReturnsUpdatedProbe(t *testing.T) {
+	_, api := humatest.New(t)
+	repo := &handlerProbeRepository{}
+	NewHandler(appprobe.NewService(repo, &handlerProjectAccess{}, &handlerLabelAccess{}, handlerSecretGenerator{}, handlerProbeEventRecorder{}), &handlerTokenVerifier{
+		claims: identity.AccessTokenClaims{Subject: testUserID, Email: "user@example.com"},
+	}).RegisterRoutes(api)
+
+	res := api.Patch("/projects/engineering/probes/"+testProbeID, map[string]any{
+		"name":    " osaka-vps-1 ",
+		"enabled": false,
+	}, "Authorization: Bearer valid-token")
+
+	if res.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", res.Code)
+	}
+	if repo.gotUpdateInput.Name != "osaka-vps-1" {
+		t.Fatalf("expected update name, got %q", repo.gotUpdateInput.Name)
+	}
+	if repo.gotUpdateInput.Enabled {
+		t.Fatalf("expected enabled false")
+	}
+}
+
+func TestDeleteProbeReturnsNoContent(t *testing.T) {
+	_, api := humatest.New(t)
+	repo := &handlerProbeRepository{}
+	NewHandler(appprobe.NewService(repo, &handlerProjectAccess{}, &handlerLabelAccess{}, handlerSecretGenerator{}, handlerProbeEventRecorder{}), &handlerTokenVerifier{
+		claims: identity.AccessTokenClaims{Subject: testUserID, Email: "user@example.com"},
+	}).RegisterRoutes(api)
+
+	res := api.Delete("/projects/engineering/probes/"+testProbeID, "Authorization: Bearer valid-token")
+
+	if res.Code != http.StatusNoContent {
+		t.Fatalf("expected status 204, got %d", res.Code)
+	}
+	if repo.gotDelete.probeID != testProbeID {
+		t.Fatalf("expected deleted probe id, got %#v", repo.gotDelete)
+	}
+}
+
+func TestRotateProbeSecretReturnsSecretOnce(t *testing.T) {
+	_, api := humatest.New(t)
+	repo := &handlerProbeRepository{}
+	NewHandler(appprobe.NewService(repo, &handlerProjectAccess{}, &handlerLabelAccess{}, handlerSecretGenerator{
+		plaintext: "new-plain-secret",
+		hash:      "new-secret-hash",
+	}, handlerProbeEventRecorder{}), &handlerTokenVerifier{
+		claims: identity.AccessTokenClaims{Subject: testUserID, Email: "user@example.com"},
+	}).RegisterRoutes(api)
+
+	res := api.Post("/projects/engineering/probes/"+testProbeID+"/secret-rotations", map[string]any{}, "Authorization: Bearer valid-token")
+
+	if res.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", res.Code)
+	}
+	var body rotateSecretOutputBody
+	if err := json.NewDecoder(res.Body).Decode(&body); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if body.Secret != "new-plain-secret" {
+		t.Fatalf("expected secret, got %q", body.Secret)
+	}
+	if repo.gotRotate.SecretHash != "new-secret-hash" {
+		t.Fatalf("expected hash, got %q", repo.gotRotate.SecretHash)
+	}
+}
+
 func TestCreateProbeMapsInvalidInputToUnprocessableEntity(t *testing.T) {
 	_, api := humatest.New(t)
 	NewHandler(appprobe.NewService(&handlerProbeRepository{}, &handlerProjectAccess{}, &handlerLabelAccess{}, handlerSecretGenerator{
@@ -221,6 +328,12 @@ func (v *handlerTokenVerifier) VerifyAccessToken(context.Context, string) (ident
 type handlerProbeRepository struct {
 	gotCreateInput domainprobe.CreateProbeStorageInput
 	createErr      error
+	gotUpdateInput domainprobe.UpdateProbeStorageInput
+	gotDelete      struct {
+		projectID string
+		probeID   string
+	}
+	gotRotate domainprobe.RotateProbeSecretStorageInput
 }
 
 func (r *handlerProbeRepository) CreateProbe(_ context.Context, input domainprobe.CreateProbeStorageInput) (domainprobe.Probe, error) {
@@ -239,6 +352,54 @@ func (r *handlerProbeRepository) CreateProbe(_ context.Context, input domainprob
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}, nil
+}
+
+func (r *handlerProbeRepository) ListProbesForProject(context.Context, string) ([]domainprobe.Probe, error) {
+	return []domainprobe.Probe{handlerProbe()}, nil
+}
+
+func (r *handlerProbeRepository) GetProbeForProject(context.Context, string, string) (domainprobe.Probe, error) {
+	return handlerProbe(), nil
+}
+
+func (r *handlerProbeRepository) UpdateProbe(_ context.Context, input domainprobe.UpdateProbeStorageInput) (domainprobe.Probe, error) {
+	r.gotUpdateInput = input
+	probe := handlerProbe()
+	probe.Name = input.Name
+	probe.Enabled = input.Enabled
+	probe.City = input.City
+	probe.Latitude = input.Latitude
+	probe.Longitude = input.Longitude
+	return probe, nil
+}
+
+func (r *handlerProbeRepository) SoftDeleteProbe(_ context.Context, projectID, probeID string) error {
+	r.gotDelete.projectID = projectID
+	r.gotDelete.probeID = probeID
+	return nil
+}
+
+func (r *handlerProbeRepository) RotateProbeSecret(_ context.Context, input domainprobe.RotateProbeSecretStorageInput) error {
+	r.gotRotate = input
+	return nil
+}
+
+func handlerProbe() domainprobe.Probe {
+	now := time.Now()
+	return domainprobe.Probe{
+		ID:        testProbeID,
+		ProjectID: testProjectID,
+		Name:      "tokyo-vps-1",
+		Enabled:   true,
+		Labels: []domainlabel.Label{{
+			ID:        testLabelID,
+			ProjectID: testProjectID,
+			Key:       "region",
+			Value:     "tokyo",
+		}},
+		CreatedAt: now,
+		UpdatedAt: now,
+	}
 }
 
 type handlerProjectAccess struct {

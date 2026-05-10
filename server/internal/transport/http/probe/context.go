@@ -22,7 +22,7 @@ func currentUserID(ctx context.Context) (string, error) {
 
 func mapProbeError(err error, fallback string) error {
 	switch {
-	case errors.Is(err, appprobe.ErrProjectNotFound), errors.Is(err, appprobe.ErrLabelNotFound):
+	case errors.Is(err, appprobe.ErrProjectNotFound), errors.Is(err, appprobe.ErrLabelNotFound), errors.Is(err, appprobe.ErrProbeNotFound):
 		return huma.Error404NotFound("not found")
 	case errors.Is(err, appprobe.ErrForbidden):
 		return huma.Error403Forbidden("forbidden")
@@ -57,6 +57,8 @@ func probeErrorLocation(field string) string {
 		return "body"
 	case "projectRef":
 		return "path.ref"
+	case "probeId":
+		return "path.probe_id"
 	default:
 		return "body." + field
 	}

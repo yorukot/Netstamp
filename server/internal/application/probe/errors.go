@@ -11,6 +11,7 @@ import (
 var (
 	ErrProjectNotFound = domainproject.ErrProjectNotFound
 	ErrLabelNotFound   = domainlabel.ErrLabelNotFound
+	ErrProbeNotFound   = domainprobe.ErrProbeNotFound
 	ErrInvalidInput    = domainprobe.ErrInvalidInput
 	ErrForbidden       = errors.New("probe action forbidden")
 )

@@ -23,6 +23,21 @@ func NewHandler(service *appprobe.Service, verifier appauth.TokenVerifier) *Hand
 }
 
 func (h *Handler) RegisterRoutes(api huma.API) {
+	authMiddleware := httpmiddleware.RequireAuth(h.verifier)
+	security := []map[string][]string{{"bearerAuth": {}}}
+	middlewares := huma.Middlewares{authMiddleware}
+
+	huma.Register(api, huma.Operation{
+		OperationID: "listProjectProbes",
+		Method:      http.MethodGet,
+		Path:        "/projects/{ref}/probes",
+		Summary:     "List project probes",
+		Tags:        []string{"Probes"},
+		Security:    security,
+		Middlewares: middlewares,
+		Errors:      []int{http.StatusUnauthorized, http.StatusNotFound, http.StatusUnprocessableEntity, http.StatusInternalServerError},
+	}, h.listProbes)
+
 	huma.Register(api, huma.Operation{
 		OperationID:   "createProjectProbe",
 		Method:        http.MethodPost,
@@ -30,8 +45,53 @@ func (h *Handler) RegisterRoutes(api huma.API) {
 		DefaultStatus: http.StatusCreated,
 		Summary:       "Create project probe",
 		Tags:          []string{"Probes"},
-		Security:      []map[string][]string{{"bearerAuth": {}}},
-		Middlewares:   huma.Middlewares{httpmiddleware.RequireAuth(h.verifier)},
+		Security:      security,
+		Middlewares:   middlewares,
 		Errors:        []int{http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound, http.StatusUnprocessableEntity, http.StatusInternalServerError},
 	}, h.createProbe)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "getProjectProbe",
+		Method:      http.MethodGet,
+		Path:        "/projects/{ref}/probes/{probe_id}",
+		Summary:     "Get project probe",
+		Tags:        []string{"Probes"},
+		Security:    security,
+		Middlewares: middlewares,
+		Errors:      []int{http.StatusUnauthorized, http.StatusNotFound, http.StatusUnprocessableEntity, http.StatusInternalServerError},
+	}, h.getProbe)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "updateProjectProbe",
+		Method:      http.MethodPatch,
+		Path:        "/projects/{ref}/probes/{probe_id}",
+		Summary:     "Update project probe",
+		Tags:        []string{"Probes"},
+		Security:    security,
+		Middlewares: middlewares,
+		Errors:      []int{http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound, http.StatusUnprocessableEntity, http.StatusInternalServerError},
+	}, h.updateProbe)
+
+	huma.Register(api, huma.Operation{
+		OperationID:   "deleteProjectProbe",
+		Method:        http.MethodDelete,
+		Path:          "/projects/{ref}/probes/{probe_id}",
+		DefaultStatus: http.StatusNoContent,
+		Summary:       "Delete project probe",
+		Tags:          []string{"Probes"},
+		Security:      security,
+		Middlewares:   middlewares,
+		Errors:        []int{http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound, http.StatusUnprocessableEntity, http.StatusInternalServerError},
+	}, h.deleteProbe)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "rotateProjectProbeSecret",
+		Method:      http.MethodPost,
+		Path:        "/projects/{ref}/probes/{probe_id}/secret-rotations",
+		Summary:     "Rotate project probe secret",
+		Tags:        []string{"Probes"},
+		Security:    security,
+		Middlewares: middlewares,
+		Errors:      []int{http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound, http.StatusUnprocessableEntity, http.StatusInternalServerError},
+	}, h.rotateSecret)
 }

@@ -460,6 +460,141 @@ func TestCreateProbeRecordsMissingLabelFailureWithoutSecrets(t *testing.T) {
 	})
 }
 
+func TestListAndGetProbesRequireReadMembership(t *testing.T) {
+	repo := &fakeProbeRepository{}
+	service := NewService(repo, &fakeProjectAccess{role: domainproject.RoleViewer}, &fakeLabelAccess{}, fakeSecretGenerator{}, &recordingProbeEventRecorder{})
+
+	probes, err := service.ListProbes(context.Background(), ListProbesInput{
+		CurrentUserID: "viewer-user",
+		ProjectRef:    "engineering",
+	})
+	if err != nil {
+		t.Fatalf("list probes: %v", err)
+	}
+	if len(probes) != 1 {
+		t.Fatalf("expected one probe, got %d", len(probes))
+	}
+
+	probe, err := service.GetProbe(context.Background(), GetProbeInput{
+		CurrentUserID: "viewer-user",
+		ProjectRef:    "engineering",
+		ProbeID:       "33333333-3333-3333-3333-333333333333",
+	})
+	if err != nil {
+		t.Fatalf("get probe: %v", err)
+	}
+	if probe.ID == "" {
+		t.Fatalf("expected probe")
+	}
+}
+
+func TestUpdateProbeRequiresManagerAndAcceptsEnabledFalse(t *testing.T) {
+	enabled := false
+	name := " osaka-vps-1 "
+	labelIDs := []string{testLabelID}
+	repo := &fakeProbeRepository{}
+	service := NewService(repo, &fakeProjectAccess{role: domainproject.RoleEditor}, &fakeLabelAccess{}, fakeSecretGenerator{}, &recordingProbeEventRecorder{})
+
+	_, err := service.UpdateProbe(context.Background(), UpdateProbeInput{
+		CurrentUserID: "editor-user",
+		ProjectRef:    "engineering",
+		ProbeID:       "33333333-3333-3333-3333-333333333333",
+		Name:          &name,
+		Enabled:       &enabled,
+		LabelIDs:      &labelIDs,
+	})
+	if err != nil {
+		t.Fatalf("update probe: %v", err)
+	}
+	if repo.gotUpdateInput.Name != "osaka-vps-1" {
+		t.Fatalf("expected trimmed name, got %q", repo.gotUpdateInput.Name)
+	}
+	if repo.gotUpdateInput.Enabled {
+		t.Fatalf("expected enabled false")
+	}
+	if !repo.gotUpdateInput.ReplaceLabels {
+		t.Fatalf("expected labels to be replaced")
+	}
+	if len(repo.gotUpdateInput.LabelIDs) != 1 || repo.gotUpdateInput.LabelIDs[0] != testLabelID {
+		t.Fatalf("expected label ids, got %#v", repo.gotUpdateInput.LabelIDs)
+	}
+}
+
+func TestUpdateProbeRejectsEmptyPatch(t *testing.T) {
+	service := NewService(&fakeProbeRepository{}, &fakeProjectAccess{}, &fakeLabelAccess{}, fakeSecretGenerator{}, &recordingProbeEventRecorder{})
+
+	_, err := service.UpdateProbe(context.Background(), UpdateProbeInput{
+		CurrentUserID: "editor-user",
+		ProjectRef:    "engineering",
+		ProbeID:       "33333333-3333-3333-3333-333333333333",
+	})
+	if !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("expected invalid input, got %v", err)
+	}
+}
+
+func TestUpdateProbeRejectsViewerBeforeLookup(t *testing.T) {
+	name := "osaka-vps-1"
+	repo := &fakeProbeRepository{}
+	service := NewService(repo, &fakeProjectAccess{role: domainproject.RoleViewer}, &fakeLabelAccess{}, fakeSecretGenerator{}, &recordingProbeEventRecorder{})
+
+	_, err := service.UpdateProbe(context.Background(), UpdateProbeInput{
+		CurrentUserID: "viewer-user",
+		ProjectRef:    "engineering",
+		ProbeID:       "33333333-3333-3333-3333-333333333333",
+		Name:          &name,
+	})
+	if !errors.Is(err, ErrForbidden) {
+		t.Fatalf("expected forbidden, got %v", err)
+	}
+	if repo.gotUpdateInput.Name != "" {
+		t.Fatalf("expected update not to be called, got %#v", repo.gotUpdateInput)
+	}
+}
+
+func TestDeleteProbeRequiresManager(t *testing.T) {
+	repo := &fakeProbeRepository{}
+	service := NewService(repo, &fakeProjectAccess{role: domainproject.RoleAdmin}, &fakeLabelAccess{}, fakeSecretGenerator{}, &recordingProbeEventRecorder{})
+
+	err := service.DeleteProbe(context.Background(), DeleteProbeInput{
+		CurrentUserID: "admin-user",
+		ProjectRef:    "engineering",
+		ProbeID:       "33333333-3333-3333-3333-333333333333",
+	})
+	if err != nil {
+		t.Fatalf("delete probe: %v", err)
+	}
+	if repo.gotDelete.projectID != testProjectID || repo.gotDelete.probeID != "33333333-3333-3333-3333-333333333333" {
+		t.Fatalf("expected delete ids, got %#v", repo.gotDelete)
+	}
+}
+
+func TestRotateProbeSecretReturnsPlaintextOnceAndStoresHash(t *testing.T) {
+	repo := &fakeProbeRepository{}
+	service := NewService(repo, &fakeProjectAccess{role: domainproject.RoleOwner}, &fakeLabelAccess{}, fakeSecretGenerator{
+		plaintext: "new-plain-secret",
+		hash:      "new-secret-hash",
+	}, &recordingProbeEventRecorder{})
+
+	output, err := service.RotateProbeSecret(context.Background(), RotateProbeSecretInput{
+		CurrentUserID: "owner-user",
+		ProjectRef:    "engineering",
+		ProbeID:       "33333333-3333-3333-3333-333333333333",
+	})
+	if err != nil {
+		t.Fatalf("rotate secret: %v", err)
+	}
+	if output.Secret != "new-plain-secret" {
+		t.Fatalf("expected plaintext secret, got %q", output.Secret)
+	}
+	if repo.gotRotate.SecretHash != "new-secret-hash" {
+		t.Fatalf("expected stored hash, got %q", repo.gotRotate.SecretHash)
+	}
+	if output.Probe.ID == "" {
+		t.Fatalf("expected probe in output")
+	}
+}
+
 func assertRecordedProbeEvent(t *testing.T, recorder *recordingProbeEventRecorder, want ProbeEvent) {
 	t.Helper()
 
@@ -500,6 +635,18 @@ func (r *recordingProbeEventRecorder) RecordProbeEvent(_ context.Context, event 
 type fakeProbeRepository struct {
 	gotCreateInput domainprobe.CreateProbeStorageInput
 	createErr      error
+	probes         []domainprobe.Probe
+	probe          domainprobe.Probe
+	getErr         error
+	gotUpdateInput domainprobe.UpdateProbeStorageInput
+	updateErr      error
+	gotDelete      struct {
+		projectID string
+		probeID   string
+	}
+	deleteErr error
+	gotRotate domainprobe.RotateProbeSecretStorageInput
+	rotateErr error
 }
 
 func (r *fakeProbeRepository) CreateProbe(_ context.Context, input domainprobe.CreateProbeStorageInput) (domainprobe.Probe, error) {
@@ -518,6 +665,69 @@ func (r *fakeProbeRepository) CreateProbe(_ context.Context, input domainprobe.C
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}, nil
+}
+
+func (r *fakeProbeRepository) ListProbesForProject(context.Context, string) ([]domainprobe.Probe, error) {
+	if r.probes != nil {
+		return r.probes, nil
+	}
+	return []domainprobe.Probe{r.defaultProbe()}, nil
+}
+
+func (r *fakeProbeRepository) GetProbeForProject(_ context.Context, _, _ string) (domainprobe.Probe, error) {
+	if r.getErr != nil {
+		return domainprobe.Probe{}, r.getErr
+	}
+	if r.probe.ID != "" {
+		return r.probe, nil
+	}
+	return r.defaultProbe(), nil
+}
+
+func (r *fakeProbeRepository) UpdateProbe(_ context.Context, input domainprobe.UpdateProbeStorageInput) (domainprobe.Probe, error) {
+	r.gotUpdateInput = input
+	if r.updateErr != nil {
+		return domainprobe.Probe{}, r.updateErr
+	}
+	return domainprobe.Probe{
+		ID:        input.ProbeID,
+		ProjectID: input.ProjectID,
+		Name:      input.Name,
+		Enabled:   input.Enabled,
+		City:      input.City,
+		Latitude:  input.Latitude,
+		Longitude: input.Longitude,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}, nil
+}
+
+func (r *fakeProbeRepository) SoftDeleteProbe(_ context.Context, projectID, probeID string) error {
+	r.gotDelete.projectID = projectID
+	r.gotDelete.probeID = probeID
+	return r.deleteErr
+}
+
+func (r *fakeProbeRepository) RotateProbeSecret(_ context.Context, input domainprobe.RotateProbeSecretStorageInput) error {
+	r.gotRotate = input
+	return r.rotateErr
+}
+
+func (r *fakeProbeRepository) defaultProbe() domainprobe.Probe {
+	return domainprobe.Probe{
+		ID:        "33333333-3333-3333-3333-333333333333",
+		ProjectID: testProjectID,
+		Name:      "tokyo-vps-1",
+		Enabled:   true,
+		Labels: []domainlabel.Label{{
+			ID:        testLabelID,
+			ProjectID: testProjectID,
+			Key:       "region",
+			Value:     "tokyo",
+		}},
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
 }
 
 type fakeProjectAccess struct {

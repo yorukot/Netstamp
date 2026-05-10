@@ -485,6 +485,133 @@ func TestUpdateMemberRoleLastOwnerRecordsBusinessFailure(t *testing.T) {
 	})
 }
 
+func TestRemoveMemberPolicy(t *testing.T) {
+	tests := []struct {
+		name       string
+		actorUser  string
+		targetUser string
+		actorRole  domainproject.Role
+		memberRole domainproject.Role
+		owners     int
+		wantErr    error
+	}{
+		{
+			name:       "owner removes admin",
+			actorUser:  "owner-user",
+			targetUser: testTargetUserID,
+			actorRole:  domainproject.RoleOwner,
+			memberRole: domainproject.RoleAdmin,
+			owners:     1,
+		},
+		{
+			name:       "admin removes editor",
+			actorUser:  "admin-user",
+			targetUser: testTargetUserID,
+			actorRole:  domainproject.RoleAdmin,
+			memberRole: domainproject.RoleEditor,
+			owners:     1,
+		},
+		{
+			name:       "admin cannot remove owner",
+			actorUser:  "admin-user",
+			targetUser: testTargetUserID,
+			actorRole:  domainproject.RoleAdmin,
+			memberRole: domainproject.RoleOwner,
+			owners:     2,
+			wantErr:    ErrForbidden,
+		},
+		{
+			name:       "member can remove self",
+			actorUser:  testTargetUserID,
+			targetUser: testTargetUserID,
+			actorRole:  domainproject.RoleViewer,
+			memberRole: domainproject.RoleViewer,
+			owners:     1,
+		},
+		{
+			name:       "last owner cannot remove self",
+			actorUser:  testTargetUserID,
+			targetUser: testTargetUserID,
+			actorRole:  domainproject.RoleOwner,
+			memberRole: domainproject.RoleOwner,
+			owners:     1,
+			wantErr:    ErrLastOwner,
+		},
+		{
+			name:       "owner removes owner when another owner remains",
+			actorUser:  "owner-user",
+			targetUser: testTargetUserID,
+			actorRole:  domainproject.RoleOwner,
+			memberRole: domainproject.RoleOwner,
+			owners:     2,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			repo := &fakeProjectRepository{
+				actorRole: tt.actorRole,
+				member: domainproject.Member{
+					ID:     "member-1",
+					UserID: tt.targetUser,
+					Role:   tt.memberRole,
+				},
+				owners: tt.owners,
+			}
+			service := NewService(repo, &recordingProjectEventRecorder{})
+
+			err := service.RemoveMember(context.Background(), RemoveMemberInput{
+				CurrentUserID: tt.actorUser,
+				ProjectRef:    "engineering",
+				UserID:        tt.targetUser,
+			})
+			if !errors.Is(err, tt.wantErr) {
+				t.Fatalf("expected %v, got %v", tt.wantErr, err)
+			}
+			if tt.wantErr != nil && repo.gotDeleteMember.userID != "" {
+				t.Fatalf("expected member not to be removed, got %#v", repo.gotDeleteMember)
+			}
+			if tt.wantErr == nil && repo.gotDeleteMember.userID != tt.targetUser {
+				t.Fatalf("expected removed user %q, got %#v", tt.targetUser, repo.gotDeleteMember)
+			}
+		})
+	}
+}
+
+func TestRemoveMemberRecordsSuccess(t *testing.T) {
+	recorder := &recordingProjectEventRecorder{}
+	repo := &fakeProjectRepository{
+		actorRole: domainproject.RoleOwner,
+		member: domainproject.Member{
+			ID:     "member-1",
+			UserID: testTargetUserID,
+			Role:   domainproject.RoleViewer,
+		},
+	}
+	service := NewService(repo, recorder)
+
+	err := service.RemoveMember(context.Background(), RemoveMemberInput{
+		CurrentUserID: "owner-user",
+		ProjectRef:    "engineering",
+		UserID:        testTargetUserID,
+	})
+	if err != nil {
+		t.Fatalf("remove member: %v", err)
+	}
+
+	assertRecordedProjectEvent(t, recorder, ProjectEvent{
+		Name:         ProjectEventRemoveMemberSuccess,
+		Action:       ProjectActionRemoveMember,
+		Outcome:      ProjectOutcomeSuccess,
+		ActorUserID:  "owner-user",
+		ProjectID:    "project-1",
+		ProjectRef:   "engineering",
+		ProjectSlug:  "engineering",
+		TargetUserID: testTargetUserID,
+		Role:         domainproject.RoleViewer,
+	})
+}
+
 func assertRecordedProjectEvent(t *testing.T, recorder *recordingProjectEventRecorder, want ProjectEvent) {
 	t.Helper()
 
@@ -549,8 +676,13 @@ type fakeProjectRepository struct {
 	updatedMember          domainproject.Member
 	updateMemberErr        error
 	gotUpdateMemberRole    domainproject.UpdateMemberRoleStorageInput
-	owners                 int
-	countOwnersErr         error
+	gotDeleteMember        struct {
+		projectID string
+		userID    string
+	}
+	deleteMemberErr error
+	owners          int
+	countOwnersErr  error
 }
 
 func (r *fakeProjectRepository) CreateProjectWithOwner(_ context.Context, input domainproject.CreateProjectStorageInput) (domainproject.Project, error) {
@@ -651,6 +783,12 @@ func (r *fakeProjectRepository) UpdateMemberRole(_ context.Context, input domain
 		return r.updatedMember, nil
 	}
 	return domainproject.Member{ID: "member-1", ProjectID: input.ProjectID, UserID: input.UserID, Role: input.Role}, nil
+}
+
+func (r *fakeProjectRepository) DeleteMember(_ context.Context, projectID, userID string) error {
+	r.gotDeleteMember.projectID = projectID
+	r.gotDeleteMember.userID = userID
+	return r.deleteMemberErr
 }
 
 func (r *fakeProjectRepository) CountOwners(context.Context, string) (int, error) {

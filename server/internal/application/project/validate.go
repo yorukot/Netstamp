@@ -80,7 +80,7 @@ func normalizeUpdateMemberRoleInput(input UpdateMemberRoleInput) (normalizedMemb
 	if err != nil {
 		return normalizedMemberInput{}, err
 	}
-	userID, err := appvalidation.CanonicalUUID(ErrInvalidInput, "userId", input.UserID)
+	userID, err := appvalidation.CanonicalUUID(ErrInvalidInput, "memberUserId", input.UserID)
 	if err != nil {
 		return normalizedMemberInput{}, err
 	}
@@ -90,6 +90,19 @@ func normalizeUpdateMemberRoleInput(input UpdateMemberRoleInput) (normalizedMemb
 	}
 
 	return normalizedMemberInput{projectRef: projectRef, userID: userID, role: role}, nil
+}
+
+func normalizeRemoveMemberInput(input RemoveMemberInput) (normalizedMemberInput, error) {
+	projectRef, err := normalizeProjectRef(input.ProjectRef)
+	if err != nil {
+		return normalizedMemberInput{}, err
+	}
+	userID, err := appvalidation.CanonicalUUID(ErrInvalidInput, "memberUserId", input.UserID)
+	if err != nil {
+		return normalizedMemberInput{}, err
+	}
+
+	return normalizedMemberInput{projectRef: projectRef, userID: userID}, nil
 }
 
 func normalizeProjectRef(value string) (string, error) {

@@ -116,6 +116,57 @@ func (q *Queries) CreateProbeStatus(ctx context.Context, arg CreateProbeStatusPa
 	return i, err
 }
 
+const deleteEffectiveProbeChecksForProbe = `-- name: DeleteEffectiveProbeChecksForProbe :exec
+DELETE FROM effective_probe_checks
+WHERE project_id = $1
+  AND probe_id = $2
+`
+
+type DeleteEffectiveProbeChecksForProbeParams struct {
+	ProjectID uuid.UUID `json:"project_id"`
+	ProbeID   uuid.UUID `json:"probe_id"`
+}
+
+func (q *Queries) DeleteEffectiveProbeChecksForProbe(ctx context.Context, arg DeleteEffectiveProbeChecksForProbeParams) error {
+	_, err := q.db.Exec(ctx, deleteEffectiveProbeChecksForProbe, arg.ProjectID, arg.ProbeID)
+	return err
+}
+
+const deleteProbeLabels = `-- name: DeleteProbeLabels :exec
+DELETE FROM probe_labels
+WHERE project_id = $1
+  AND probe_id = $2
+`
+
+type DeleteProbeLabelsParams struct {
+	ProjectID uuid.UUID `json:"project_id"`
+	ProbeID   uuid.UUID `json:"probe_id"`
+}
+
+func (q *Queries) DeleteProbeLabels(ctx context.Context, arg DeleteProbeLabelsParams) error {
+	_, err := q.db.Exec(ctx, deleteProbeLabels, arg.ProjectID, arg.ProbeID)
+	return err
+}
+
+const deleteStaleEffectiveProbeChecksForProbe = `-- name: DeleteStaleEffectiveProbeChecksForProbe :exec
+DELETE FROM effective_probe_checks
+WHERE project_id = $1
+  AND probe_id = $2
+  AND deleted_at IS NULL
+  AND check_id <> ALL($3::uuid[])
+`
+
+type DeleteStaleEffectiveProbeChecksForProbeParams struct {
+	ProjectID uuid.UUID   `json:"project_id"`
+	ProbeID   uuid.UUID   `json:"probe_id"`
+	CheckIds  []uuid.UUID `json:"check_ids"`
+}
+
+func (q *Queries) DeleteStaleEffectiveProbeChecksForProbe(ctx context.Context, arg DeleteStaleEffectiveProbeChecksForProbeParams) error {
+	_, err := q.db.Exec(ctx, deleteStaleEffectiveProbeChecksForProbe, arg.ProjectID, arg.ProbeID, arg.CheckIds)
+	return err
+}
+
 const getActiveProbeCredential = `-- name: GetActiveProbeCredential :one
 SELECT probes.id,
        probes.project_id,
@@ -144,6 +195,122 @@ func (q *Queries) GetActiveProbeCredential(ctx context.Context, id uuid.UUID) (G
 		&i.SecretHash,
 	)
 	return i, err
+}
+
+const getActiveProbeRowsForProject = `-- name: GetActiveProbeRowsForProject :many
+SELECT probes.id,
+       probes.project_id,
+       probes.name,
+       probes.enabled,
+       probes.location,
+       probes.city,
+       probes.created_at,
+       probes.updated_at,
+       probes.deleted_at,
+       probe_statuses.status AS status,
+       probe_statuses.last_seen_at AS status_last_seen_at,
+       probe_statuses.agent_version AS status_agent_version,
+       probe_statuses.public_v4 AS status_public_v4,
+       probe_statuses.public_v6 AS status_public_v6,
+       probe_statuses.addrs AS status_addrs,
+       probe_statuses.updated_at AS status_updated_at,
+       labels.id AS label_id,
+       labels.project_id AS label_project_id,
+       labels.key AS label_key,
+       labels.value AS label_value,
+       labels.created_at AS label_created_at,
+       labels.updated_at AS label_updated_at,
+       labels.deleted_at AS label_deleted_at
+FROM probes
+LEFT JOIN probe_statuses ON probe_statuses.probe_id = probes.id
+LEFT JOIN probe_labels
+    ON probe_labels.project_id = probes.project_id
+    AND probe_labels.probe_id = probes.id
+LEFT JOIN labels
+    ON labels.project_id = probe_labels.project_id
+    AND labels.id = probe_labels.label_id
+    AND labels.deleted_at IS NULL
+WHERE probes.project_id = $1
+  AND probes.id = $2
+  AND probes.deleted_at IS NULL
+ORDER BY labels.key ASC NULLS LAST,
+         labels.value ASC NULLS LAST,
+         labels.id ASC NULLS LAST
+`
+
+type GetActiveProbeRowsForProjectParams struct {
+	ProjectID uuid.UUID `json:"project_id"`
+	ID        uuid.UUID `json:"id"`
+}
+
+type GetActiveProbeRowsForProjectRow struct {
+	ID                 uuid.UUID          `json:"id"`
+	ProjectID          uuid.UUID          `json:"project_id"`
+	Name               string             `json:"name"`
+	Enabled            bool               `json:"enabled"`
+	Location           pgtype.Point       `json:"location"`
+	City               *string            `json:"city"`
+	CreatedAt          pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt          pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt          pgtype.Timestamptz `json:"deleted_at"`
+	Status             NullProbeState     `json:"status"`
+	StatusLastSeenAt   pgtype.Timestamptz `json:"status_last_seen_at"`
+	StatusAgentVersion *string            `json:"status_agent_version"`
+	StatusPublicV4     *netip.Addr        `json:"status_public_v4"`
+	StatusPublicV6     *netip.Addr        `json:"status_public_v6"`
+	StatusAddrs        []netip.Addr       `json:"status_addrs"`
+	StatusUpdatedAt    pgtype.Timestamptz `json:"status_updated_at"`
+	LabelID            *uuid.UUID         `json:"label_id"`
+	LabelProjectID     *uuid.UUID         `json:"label_project_id"`
+	LabelKey           *string            `json:"label_key"`
+	LabelValue         *string            `json:"label_value"`
+	LabelCreatedAt     pgtype.Timestamptz `json:"label_created_at"`
+	LabelUpdatedAt     pgtype.Timestamptz `json:"label_updated_at"`
+	LabelDeletedAt     pgtype.Timestamptz `json:"label_deleted_at"`
+}
+
+func (q *Queries) GetActiveProbeRowsForProject(ctx context.Context, arg GetActiveProbeRowsForProjectParams) ([]GetActiveProbeRowsForProjectRow, error) {
+	rows, err := q.db.Query(ctx, getActiveProbeRowsForProject, arg.ProjectID, arg.ID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetActiveProbeRowsForProjectRow
+	for rows.Next() {
+		var i GetActiveProbeRowsForProjectRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ProjectID,
+			&i.Name,
+			&i.Enabled,
+			&i.Location,
+			&i.City,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.DeletedAt,
+			&i.Status,
+			&i.StatusLastSeenAt,
+			&i.StatusAgentVersion,
+			&i.StatusPublicV4,
+			&i.StatusPublicV6,
+			&i.StatusAddrs,
+			&i.StatusUpdatedAt,
+			&i.LabelID,
+			&i.LabelProjectID,
+			&i.LabelKey,
+			&i.LabelValue,
+			&i.LabelCreatedAt,
+			&i.LabelUpdatedAt,
+			&i.LabelDeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listActiveAssignmentsForProbe = `-- name: ListActiveAssignmentsForProbe :many
@@ -225,6 +392,260 @@ func (q *Queries) ListActiveAssignmentsForProbe(ctx context.Context, probeID uui
 		return nil, err
 	}
 	return items, nil
+}
+
+const listActiveLabelsForProbe = `-- name: ListActiveLabelsForProbe :many
+SELECT labels.id,
+       labels.project_id,
+       labels.key,
+       labels.value,
+       labels.created_at,
+       labels.updated_at,
+       labels.deleted_at
+FROM probe_labels
+JOIN labels
+    ON labels.project_id = probe_labels.project_id
+    AND labels.id = probe_labels.label_id
+WHERE probe_labels.project_id = $1
+  AND probe_labels.probe_id = $2
+  AND labels.deleted_at IS NULL
+ORDER BY labels.key ASC, labels.value ASC, labels.id ASC
+`
+
+type ListActiveLabelsForProbeParams struct {
+	ProjectID uuid.UUID `json:"project_id"`
+	ProbeID   uuid.UUID `json:"probe_id"`
+}
+
+func (q *Queries) ListActiveLabelsForProbe(ctx context.Context, arg ListActiveLabelsForProbeParams) ([]Label, error) {
+	rows, err := q.db.Query(ctx, listActiveLabelsForProbe, arg.ProjectID, arg.ProbeID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Label
+	for rows.Next() {
+		var i Label
+		if err := rows.Scan(
+			&i.ID,
+			&i.ProjectID,
+			&i.Key,
+			&i.Value,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.DeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listActiveProbesForProject = `-- name: ListActiveProbesForProject :many
+SELECT probes.id,
+       probes.project_id,
+       probes.name,
+       probes.enabled,
+       probes.location,
+       probes.city,
+       probes.created_at,
+       probes.updated_at,
+       probes.deleted_at,
+       probe_statuses.status AS status,
+       probe_statuses.last_seen_at AS status_last_seen_at,
+       probe_statuses.agent_version AS status_agent_version,
+       probe_statuses.public_v4 AS status_public_v4,
+       probe_statuses.public_v6 AS status_public_v6,
+       probe_statuses.addrs AS status_addrs,
+       probe_statuses.updated_at AS status_updated_at,
+       labels.id AS label_id,
+       labels.project_id AS label_project_id,
+       labels.key AS label_key,
+       labels.value AS label_value,
+       labels.created_at AS label_created_at,
+       labels.updated_at AS label_updated_at,
+       labels.deleted_at AS label_deleted_at
+FROM probes
+LEFT JOIN probe_statuses ON probe_statuses.probe_id = probes.id
+LEFT JOIN probe_labels
+    ON probe_labels.project_id = probes.project_id
+    AND probe_labels.probe_id = probes.id
+LEFT JOIN labels
+    ON labels.project_id = probe_labels.project_id
+    AND labels.id = probe_labels.label_id
+    AND labels.deleted_at IS NULL
+WHERE probes.project_id = $1
+  AND probes.deleted_at IS NULL
+ORDER BY probes.created_at DESC,
+         probes.id DESC,
+         labels.key ASC NULLS LAST,
+         labels.value ASC NULLS LAST,
+         labels.id ASC NULLS LAST
+`
+
+type ListActiveProbesForProjectRow struct {
+	ID                 uuid.UUID          `json:"id"`
+	ProjectID          uuid.UUID          `json:"project_id"`
+	Name               string             `json:"name"`
+	Enabled            bool               `json:"enabled"`
+	Location           pgtype.Point       `json:"location"`
+	City               *string            `json:"city"`
+	CreatedAt          pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt          pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt          pgtype.Timestamptz `json:"deleted_at"`
+	Status             NullProbeState     `json:"status"`
+	StatusLastSeenAt   pgtype.Timestamptz `json:"status_last_seen_at"`
+	StatusAgentVersion *string            `json:"status_agent_version"`
+	StatusPublicV4     *netip.Addr        `json:"status_public_v4"`
+	StatusPublicV6     *netip.Addr        `json:"status_public_v6"`
+	StatusAddrs        []netip.Addr       `json:"status_addrs"`
+	StatusUpdatedAt    pgtype.Timestamptz `json:"status_updated_at"`
+	LabelID            *uuid.UUID         `json:"label_id"`
+	LabelProjectID     *uuid.UUID         `json:"label_project_id"`
+	LabelKey           *string            `json:"label_key"`
+	LabelValue         *string            `json:"label_value"`
+	LabelCreatedAt     pgtype.Timestamptz `json:"label_created_at"`
+	LabelUpdatedAt     pgtype.Timestamptz `json:"label_updated_at"`
+	LabelDeletedAt     pgtype.Timestamptz `json:"label_deleted_at"`
+}
+
+func (q *Queries) ListActiveProbesForProject(ctx context.Context, projectID uuid.UUID) ([]ListActiveProbesForProjectRow, error) {
+	rows, err := q.db.Query(ctx, listActiveProbesForProject, projectID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListActiveProbesForProjectRow
+	for rows.Next() {
+		var i ListActiveProbesForProjectRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ProjectID,
+			&i.Name,
+			&i.Enabled,
+			&i.Location,
+			&i.City,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.DeletedAt,
+			&i.Status,
+			&i.StatusLastSeenAt,
+			&i.StatusAgentVersion,
+			&i.StatusPublicV4,
+			&i.StatusPublicV6,
+			&i.StatusAddrs,
+			&i.StatusUpdatedAt,
+			&i.LabelID,
+			&i.LabelProjectID,
+			&i.LabelKey,
+			&i.LabelValue,
+			&i.LabelCreatedAt,
+			&i.LabelUpdatedAt,
+			&i.LabelDeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const rotateProbeCredential = `-- name: RotateProbeCredential :one
+UPDATE probe_credentials
+SET secret_hash = $3,
+    last_rotated_at = now()
+FROM probes
+WHERE probe_credentials.probe_id = probes.id
+  AND probes.project_id = $1
+  AND probes.id = $2
+  AND probes.deleted_at IS NULL
+RETURNING probe_credentials.probe_id
+`
+
+type RotateProbeCredentialParams struct {
+	ProjectID  uuid.UUID `json:"project_id"`
+	ID         uuid.UUID `json:"id"`
+	SecretHash string    `json:"secret_hash"`
+}
+
+func (q *Queries) RotateProbeCredential(ctx context.Context, arg RotateProbeCredentialParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, rotateProbeCredential, arg.ProjectID, arg.ID, arg.SecretHash)
+	var probe_id uuid.UUID
+	err := row.Scan(&probe_id)
+	return probe_id, err
+}
+
+const softDeleteProbe = `-- name: SoftDeleteProbe :one
+UPDATE probes
+SET deleted_at = now()
+WHERE project_id = $1
+  AND id = $2
+  AND deleted_at IS NULL
+RETURNING id
+`
+
+type SoftDeleteProbeParams struct {
+	ProjectID uuid.UUID `json:"project_id"`
+	ID        uuid.UUID `json:"id"`
+}
+
+func (q *Queries) SoftDeleteProbe(ctx context.Context, arg SoftDeleteProbeParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, softDeleteProbe, arg.ProjectID, arg.ID)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
+const updateProbe = `-- name: UpdateProbe :one
+UPDATE probes
+SET name = $3,
+    enabled = $4,
+    location = $5,
+    city = $6
+WHERE project_id = $1
+  AND id = $2
+  AND deleted_at IS NULL
+RETURNING id, project_id, name, enabled, location, city, created_at, updated_at, deleted_at
+`
+
+type UpdateProbeParams struct {
+	ProjectID uuid.UUID    `json:"project_id"`
+	ID        uuid.UUID    `json:"id"`
+	Name      string       `json:"name"`
+	Enabled   bool         `json:"enabled"`
+	Location  pgtype.Point `json:"location"`
+	City      *string      `json:"city"`
+}
+
+func (q *Queries) UpdateProbe(ctx context.Context, arg UpdateProbeParams) (Probe, error) {
+	row := q.db.QueryRow(ctx, updateProbe,
+		arg.ProjectID,
+		arg.ID,
+		arg.Name,
+		arg.Enabled,
+		arg.Location,
+		arg.City,
+	)
+	var i Probe
+	err := row.Scan(
+		&i.ID,
+		&i.ProjectID,
+		&i.Name,
+		&i.Enabled,
+		&i.Location,
+		&i.City,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
 }
 
 const updateProbeStatus = `-- name: UpdateProbeStatus :one

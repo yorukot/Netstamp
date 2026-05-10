@@ -58,7 +58,7 @@ The backend currently uses authenticated users plus project-scoped membership ro
 
 Protected Huma routes use `internal/transport/http/middleware.RequireAuth`. It reads the `Authorization: Bearer <token>` header, verifies the access token through the auth `TokenVerifier`, and stores `identity.AccessTokenClaims` in the request context. Transport handlers read `claims.Subject` as `CurrentUserID` and pass it into application service inputs. Keep role checks out of HTTP handlers except for translating application errors into HTTP responses.
 
-Project membership is stored in `project_members` with role enum values defined by `internal/domain/project`: `owner`, `admin`, `editor`, and `viewer`. Project repository access methods such as `ListProjectsForUser`, `GetProjectForUser`, and `GetMemberRole` join active project membership with non-deleted projects, so soft-deleted projects or memberships are not accessible. Creating a project creates the creator's `owner` membership in the same repository operation.
+Project membership is stored in `project_members` with role enum values defined by `internal/domain/project`: `owner`, `admin`, `editor`, and `viewer`. Project repository access methods such as `ListProjectsForUser`, `GetProjectForUser`, and `GetMemberRole` join existing project membership with non-deleted projects, so soft-deleted projects are not accessible. Removing a member hard-deletes the membership row. Creating a project creates the creator's `owner` membership in the same repository operation.
 
 All project-scoped permission rules belong in `internal/domain/project/permission.go`:
 
@@ -72,7 +72,7 @@ Current action policy:
 - `write:project`: `owner` and `admin`.
 - `delete:project`: `owner` only.
 - `write:project_members`: `owner` and `admin`.
-- `write:project_labels`, `write:project_checks`, and `create:probe`: `owner`, `admin`, and `editor`.
+- `write:project_labels`, `write:project_checks`, `write:project_probes`, and `create:probe`: `owner`, `admin`, and `editor`.
 
 Current member-management policy:
 
@@ -83,9 +83,9 @@ Current member-management policy:
 
 Feature services should enforce permissions after loading the project for the current user and before mutating project-scoped data:
 
-- Project service: list/get use active membership; update requires `write:project`; delete requires `delete:project`; member add/update requires `write:project_members` plus assignability and last-owner checks.
+- Project service: list/get require existing membership; update requires `write:project`; delete requires `delete:project`; member add/update requires `write:project_members` plus assignability and last-owner checks. Member removal allows owner/admin-managed removal by policy and self-leave except when it would remove the last owner.
 - Label service: list requires active project membership; create/update/delete require `write:project_labels`.
-- Probe service: create requires active project membership and `create:probe`; label IDs are resolved inside the same project after the project permission check.
+- Probe service: list/get require active project membership; create/update/delete and secret rotation require `write:project_probes`; label IDs are resolved inside the same project after the project permission check.
 - Check service: list/get require active project membership; create/update/delete require `write:project_checks`.
 
 Cross-feature authorization should use narrow application ports such as `ProjectAccess.GetProjectForUser` and `ProjectAccess.GetMemberRole`, usually implemented by the project repository and wired in `internal/app/bootstrap.go`. Do not duplicate membership SQL or call another feature's application service just to check access.
@@ -131,7 +131,7 @@ Label application events must go through `logger.LabelEventRecorder`. Label crea
 
 Check application events must go through `logger.CheckEventRecorder`. Check create, update, and delete successes are audit-worthy; successful list and get operations are covered by the HTTP request logger. Check events should preserve project and check identifiers when available, but must never include check name, target, selector, or label text.
 
-Probe application events must go through `logger.ProbeEventRecorder`. Probe create currently records failure events only; successful creates are covered by the HTTP request logger. Probe events must never include the plaintext secret or its hash.
+Probe application events must go through `logger.ProbeEventRecorder`. Probe create currently records failure events only; probe update, delete, and secret rotation successes are audit-worthy. Successful probe list/get and create are covered by the HTTP request logger. Probe events must never include the plaintext secret or its hash.
 
 Probe runtime application events must go through `logger.ProbeRuntimeEventRecorder`. Probe runtime currently records failure events only; successful hello, heartbeat, assignment polling, and result submission are covered by the HTTP request logger. Probe runtime events must never include plaintext secrets, secret hashes, agent version, IP addresses, raw result bodies, result error messages, check targets, or selector text.
 

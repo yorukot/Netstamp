@@ -117,4 +117,16 @@ func (h *Handler) RegisterRoutes(api huma.API) {
 		Middlewares: middlewares,
 		Errors:      []int{http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound, http.StatusConflict, http.StatusUnprocessableEntity, http.StatusInternalServerError},
 	}, h.updateMemberRole)
+
+	huma.Register(api, huma.Operation{
+		OperationID:   "removeProjectMember",
+		Method:        http.MethodDelete,
+		Path:          "/projects/{ref}/members/{user_id}",
+		DefaultStatus: http.StatusNoContent,
+		Summary:       "Remove project member",
+		Tags:          []string{"Project Members"},
+		Security:      security,
+		Middlewares:   middlewares,
+		Errors:        []int{http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound, http.StatusConflict, http.StatusUnprocessableEntity, http.StatusInternalServerError},
+	}, h.removeMember)
 }

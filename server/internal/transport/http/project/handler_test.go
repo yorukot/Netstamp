@@ -151,6 +151,23 @@ func TestAddMemberReturnsFieldErrorForInvalidUserID(t *testing.T) {
 	assertProjectHumaErrorDetail(t, res, "body.userId", "must be a valid UUID")
 }
 
+func TestRemoveMemberReturnsNoContent(t *testing.T) {
+	_, api := humatest.New(t)
+	repo := &handlerProjectRepository{}
+	NewHandler(appproject.NewService(repo, handlerProjectEventRecorder{}), &handlerTokenVerifier{
+		claims: identity.AccessTokenClaims{Subject: testUserID, Email: "user@example.com"},
+	}).RegisterRoutes(api)
+
+	res := api.Delete("/projects/engineering/members/"+testMemberID, "Authorization: Bearer valid-token")
+
+	if res.Code != http.StatusNoContent {
+		t.Fatalf("expected status 204, got %d", res.Code)
+	}
+	if repo.gotDeleteMember.userID != testMemberID {
+		t.Fatalf("expected removed member id, got %#v", repo.gotDeleteMember)
+	}
+}
+
 func assertProjectHumaErrorDetail(t *testing.T, res *httptest.ResponseRecorder, wantLocation, wantMessage string) {
 	t.Helper()
 
@@ -188,6 +205,10 @@ type handlerProjectRepository struct {
 	gotProjectRef          string
 	actorRole              domainproject.Role
 	gotSoftDeleteProjectID string
+	gotDeleteMember        struct {
+		projectID string
+		userID    string
+	}
 }
 
 func (r *handlerProjectRepository) CreateProjectWithOwner(_ context.Context, input domainproject.CreateProjectStorageInput) (domainproject.Project, error) {
@@ -262,6 +283,12 @@ func (r *handlerProjectRepository) AddMember(_ context.Context, input domainproj
 
 func (r *handlerProjectRepository) UpdateMemberRole(_ context.Context, input domainproject.UpdateMemberRoleStorageInput) (domainproject.Member, error) {
 	return domainproject.Member{ID: testMemberID, ProjectID: input.ProjectID, UserID: input.UserID, Email: "member@example.com", Role: input.Role}, nil
+}
+
+func (r *handlerProjectRepository) DeleteMember(_ context.Context, projectID, userID string) error {
+	r.gotDeleteMember.projectID = projectID
+	r.gotDeleteMember.userID = userID
+	return nil
 }
 
 func (r *handlerProjectRepository) CountOwners(context.Context, string) (int, error) {

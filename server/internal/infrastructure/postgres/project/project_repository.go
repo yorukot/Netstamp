@@ -298,6 +298,29 @@ func (r *ProjectRepository) UpdateMemberRole(ctx context.Context, input domainpr
 	return mapUpdateMember(row), nil
 }
 
+func (r *ProjectRepository) DeleteMember(ctx context.Context, projectIDValue, userIDValue string) error {
+	ctx, span := postgres.StartDBSpan(ctx, pgprojectTracer, "project_members", "postgres.project_members.delete", "DELETE", "DELETE project member")
+	defer span.End()
+
+	projectID, userID, err := parseProjectAndUserIDs(projectIDValue, userIDValue)
+	if err != nil {
+		return domainproject.ErrMemberNotFound
+	}
+
+	if _, err := r.queries.DeleteProjectMember(ctx, sqlc.DeleteProjectMemberParams{
+		ProjectID: projectID,
+		UserID:    userID,
+	}); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domainproject.ErrMemberNotFound
+		}
+		postgres.RecordDBSpanError(span, err)
+		return err
+	}
+
+	return nil
+}
+
 func (r *ProjectRepository) CountOwners(ctx context.Context, projectIDValue string) (int, error) {
 	ctx, span := postgres.StartDBSpan(ctx, pgprojectTracer, "project_members", "postgres.project_members.count_owners", "SELECT", "COUNT active project owners")
 	defer span.End()

@@ -31,6 +31,7 @@ type Probe struct {
 	Latitude  *float64
 	Longitude *float64
 	Labels    []domainlabel.Label
+	Status    *Status
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	DeletedAt *time.Time
@@ -62,6 +63,24 @@ type CreateProbeStorageInput struct {
 	Latitude   *float64
 	Longitude  *float64
 	LabelIDs   []string
+	SecretHash string
+}
+
+type UpdateProbeStorageInput struct {
+	ProjectID     string
+	ProbeID       string
+	Name          string
+	Enabled       bool
+	City          *string
+	Latitude      *float64
+	Longitude     *float64
+	ReplaceLabels bool
+	LabelIDs      []string
+}
+
+type RotateProbeSecretStorageInput struct {
+	ProjectID  string
+	ProbeID    string
 	SecretHash string
 }
 

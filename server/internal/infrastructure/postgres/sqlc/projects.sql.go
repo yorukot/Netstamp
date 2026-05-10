@@ -17,7 +17,6 @@ SELECT count(*)::int4
 FROM project_members
 WHERE project_id = $1
   AND role = 'owner'
-  AND deleted_at IS NULL
 `
 
 func (q *Queries) CountActiveProjectOwners(ctx context.Context, projectID uuid.UUID) (int32, error) {
@@ -102,6 +101,25 @@ func (q *Queries) CreateProjectMember(ctx context.Context, arg CreateProjectMemb
 	return i, err
 }
 
+const deleteProjectMember = `-- name: DeleteProjectMember :one
+DELETE FROM project_members
+WHERE project_id = $1
+  AND user_id = $2
+RETURNING id
+`
+
+type DeleteProjectMemberParams struct {
+	ProjectID uuid.UUID `json:"project_id"`
+	UserID    uuid.UUID `json:"user_id"`
+}
+
+func (q *Queries) DeleteProjectMember(ctx context.Context, arg DeleteProjectMemberParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, deleteProjectMember, arg.ProjectID, arg.UserID)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
 const getActiveProjectMember = `-- name: GetActiveProjectMember :one
 SELECT project_members.id,
        project_members.project_id,
@@ -115,7 +133,6 @@ JOIN users ON users.id = project_members.user_id
 JOIN projects ON projects.id = project_members.project_id
 WHERE project_members.project_id = $1
   AND project_members.user_id = $2
-  AND project_members.deleted_at IS NULL
   AND projects.deleted_at IS NULL
 `
 
@@ -155,7 +172,6 @@ FROM project_members
 JOIN projects ON projects.id = project_members.project_id
 WHERE project_members.project_id = $1
   AND project_members.user_id = $2
-  AND project_members.deleted_at IS NULL
   AND projects.deleted_at IS NULL
 `
 
@@ -177,7 +193,6 @@ FROM projects
 JOIN project_members
     ON project_members.project_id = projects.id
     AND project_members.user_id = $2
-    AND project_members.deleted_at IS NULL
 WHERE projects.slug = $1
   AND projects.deleted_at IS NULL
 `
@@ -208,7 +223,6 @@ FROM projects
 JOIN project_members
     ON project_members.project_id = projects.id
     AND project_members.user_id = $2
-    AND project_members.deleted_at IS NULL
 WHERE projects.id = $1
   AND projects.deleted_at IS NULL
 `
@@ -245,7 +259,6 @@ FROM project_members
 JOIN users ON users.id = project_members.user_id
 JOIN projects ON projects.id = project_members.project_id
 WHERE project_members.project_id = $1
-  AND project_members.deleted_at IS NULL
   AND projects.deleted_at IS NULL
 ORDER BY project_members.created_at ASC, project_members.id ASC
 `
@@ -294,7 +307,6 @@ FROM projects
 JOIN project_members
     ON project_members.project_id = projects.id
     AND project_members.user_id = $1
-    AND project_members.deleted_at IS NULL
 WHERE projects.deleted_at IS NULL
 ORDER BY projects.created_at DESC, projects.id DESC
 `
@@ -377,7 +389,6 @@ WITH updated AS (
     SET role = $3
     WHERE project_id = $1
       AND user_id = $2
-      AND deleted_at IS NULL
     RETURNING id, project_id, user_id, role, created_at, updated_at
 )
 SELECT updated.id,

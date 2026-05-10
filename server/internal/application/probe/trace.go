@@ -17,6 +17,7 @@ var (
 	attrUserID             = attribute.Key("user.id")
 	attrProjectID          = attribute.Key("project.id")
 	attrProjectRef         = attribute.Key("project.ref")
+	attrProbeID            = attribute.Key("probe.id")
 )
 
 func recordSpanError(span trace.Span, err error, reason ProbeEventReason) {
