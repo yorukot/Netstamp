@@ -39,6 +39,20 @@ func CanAssignRole(actorRole, targetRole Role) bool {
 	}
 }
 
+func CanRemoveMember(actorRole, memberRole Role, isSelf bool) bool {
+	if isSelf {
+		return true
+	}
+	switch actorRole {
+	case RoleOwner:
+		return true
+	case RoleAdmin:
+		return memberRole != RoleOwner && memberRole != RoleAdmin
+	default:
+		return false
+	}
+}
+
 func IsValidRole(role Role) bool {
 	switch role {
 	case RoleOwner, RoleAdmin, RoleEditor, RoleViewer:

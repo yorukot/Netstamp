@@ -2,19 +2,15 @@ package project
 
 import (
 	"errors"
-
-	"github.com/yorukot/netstamp/internal/domain/identity"
-	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 )
 
 var (
-	ErrProjectNotFound          = domainproject.ErrProjectNotFound
-	ErrProjectSlugAlreadyExists = domainproject.ErrProjectSlugAlreadyExists
+	ErrProjectNotFound          = errors.New("project not found")
+	ErrProjectSlugAlreadyExists = errors.New("project slug already exists")
 	ErrForbidden                = errors.New("project action forbidden")
 	ErrInvalidInput             = errors.New("project input invalid")
-	ErrInvalidRole              = errors.New("project member role invalid")
-	ErrMemberAlreadyExists      = domainproject.ErrMemberAlreadyExists
-	ErrMemberNotFound           = domainproject.ErrMemberNotFound
-	ErrUserNotFound             = identity.ErrUserNotFound
+	ErrMemberAlreadyExists      = errors.New("project member already exists")
+	ErrMemberNotFound           = errors.New("project member not found")
+	ErrUserNotFound             = errors.New("user not found")
 	ErrLastOwner                = errors.New("project must keep an owner")
 )

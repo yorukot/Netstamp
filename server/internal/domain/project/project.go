@@ -2,14 +2,11 @@ package project
 
 import (
 	"errors"
+	"regexp"
+	"strings"
 	"time"
-)
 
-var (
-	ErrProjectNotFound          = errors.New("project not found")
-	ErrProjectSlugAlreadyExists = errors.New("project slug already exists")
-	ErrMemberAlreadyExists      = errors.New("project member already exists")
-	ErrMemberNotFound           = errors.New("project member not found")
+	"github.com/yorukot/spvalidator"
 )
 
 type Role string
@@ -21,46 +18,94 @@ const (
 	RoleViewer Role = "viewer"
 )
 
+func (r Role) IsValid() bool {
+	switch r {
+	case RoleOwner, RoleAdmin, RoleEditor, RoleViewer:
+		return true
+	default:
+		return false
+	}
+}
+
 type Project struct {
-	ID              string
-	Name            string
-	Slug            string
-	CreatedByUserID string
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
-	DeletedAt       *time.Time
+	ID              string `json:"id"`
+	Name            string `json:"name"`
+	Slug            string `json:"slug"`
+	CreatedByUserID string `json:"createdByUserId"`
+	CreatedAt       time.Time `json:"createdAt"`
+	UpdatedAt       time.Time `json:"updatedAt"`
+	DeletedAt       *time.Time `json:"deletedAt"`
+}
+
+func VNProjectCreatedByUserID(userID string) (string, error) {
+	err := spvalidator.UUID(userID)
+	if err != nil {
+		return "", err
+	}
+
+	return userID, nil
+}
+
+func VNProjectName(name string) (string, error) {
+	name = strings.TrimSpace(name)
+
+	err := spvalidator.Min(name, 1)
+	if err != nil {
+		return "", err
+	}
+
+	err = spvalidator.Max(name, 64)
+	if err != nil {
+		return "", err
+	}
+
+	return name, nil
+}
+
+func VNProjectSlug(slug string) (string, error) {
+	slug = strings.TrimSpace(slug)
+
+	err := spvalidator.Min(slug, 1)
+	if err != nil {
+		return "", err
+	}
+
+	err = spvalidator.Max(slug, 64)
+	if err != nil {
+		return "", err
+	}
+
+	var slugRe = regexp.MustCompile(`^[a-z0-9-]+$`)
+
+	if !slugRe.MatchString(slug) {
+		return "", errors.New("invalid slug")
+	}
+
+	return slug, nil
 }
 
 type Member struct {
-	ID        string
-	ProjectID string
-	UserID    string
-	Email     string
-	Role      Role
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID        string `json:"id"`
+	ProjectID string `json:"projectId"`
+	UserID    string `json:"userId"`
+	Role      Role   `json:"role"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
-type CreateProjectStorageInput struct {
-	Name            string
-	Slug            string
-	CreatedByUserID string
+func VNProjectMemberUserID(userID string) (string, error) {
+	err := spvalidator.UUID(userID)
+	if err != nil {
+		return "", err
+	}
+
+	return userID, nil
 }
 
-type UpdateProjectStorageInput struct {
-	ProjectID string
-	Name      string
-	Slug      string
-}
+func VNProjectMemberRole(role Role) (Role, error) {
+	if !role.IsValid() {
+		return "", errors.New("invalid role")
+	}
 
-type AddMemberStorageInput struct {
-	ProjectID string
-	UserID    string
-	Role      Role
-}
-
-type UpdateMemberRoleStorageInput struct {
-	ProjectID string
-	UserID    string
-	Role      Role
+	return role, nil
 }

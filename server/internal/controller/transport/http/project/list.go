@@ -18,7 +18,7 @@ func (h *Handler) listProjects(ctx context.Context, _ *listProjectsInput) (*list
 		return nil, mapProjectError(err, "list projects failed")
 	}
 
-	return &listProjectsOutput{Body: listProjectsOutputBody{Projects: newProjectResponses(projects)}}, nil
+	return &listProjectsOutput{Body: listProjectsOutputBody{Projects: projects}}, nil
 }
 
 type listProjectsInput struct{}
@@ -28,14 +28,5 @@ type listProjectsOutput struct {
 }
 
 type listProjectsOutputBody struct {
-	Projects []projectResponse `json:"projects"`
-}
-
-func newProjectResponses(projects []domainproject.Project) []projectResponse {
-	responses := make([]projectResponse, 0, len(projects))
-	for _, project := range projects {
-		responses = append(responses, newProjectResponse(project))
-	}
-
-	return responses
+	Projects []domainproject.Project `json:"projects"`
 }

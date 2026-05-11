@@ -21,7 +21,7 @@ func (h *Handler) createProject(ctx context.Context, input *createProjectInput) 
 		return nil, mapProjectError(err, "create project failed")
 	}
 
-	return &projectOutput{Body: projectOutputBody{Project: newProjectResponse(project)}}, nil
+	return &projectOutput{Body: projectOutputBody{Project: project}}, nil
 }
 
 type createProjectInput struct {
@@ -29,6 +29,6 @@ type createProjectInput struct {
 }
 
 type createProjectInputBody struct {
-	Name string `json:"name,omitempty" doc:"Project display name." example:"Engineering"`
-	Slug string `json:"slug,omitempty" patternDescription:"lowercase letters, numbers, and dashes" doc:"Stable project slug." example:"engineering"`
+	Name string `json:"name,omitempty" minLength:"1" maxLength:"64" doc:"Project display name." example:"Engineering"`
+	Slug string `json:"slug,omitempty" minLength:"1" maxLength:"64" pattern:"^[a-z0-9-]+$" patternDescription:"lowercase letters, numbers, and dashes" doc:"Stable project slug." example:"engineering"`
 }

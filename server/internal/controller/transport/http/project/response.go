@@ -11,7 +11,7 @@ type projectOutput struct {
 }
 
 type projectOutputBody struct {
-	Project projectResponse `json:"project"`
+	Project domainproject.Project `json:"project"`
 }
 
 type memberOutput struct {
@@ -41,23 +41,11 @@ type projectMemberResponse struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 }
 
-func newProjectResponse(project domainproject.Project) projectResponse {
-	return projectResponse{
-		ID:              project.ID,
-		Name:            project.Name,
-		Slug:            project.Slug,
-		CreatedByUserID: project.CreatedByUserID,
-		CreatedAt:       project.CreatedAt,
-		UpdatedAt:       project.UpdatedAt,
-	}
-}
-
 func newProjectMemberResponse(member domainproject.Member) projectMemberResponse {
 	return projectMemberResponse{
 		ID:        member.ID,
 		ProjectID: member.ProjectID,
 		UserID:    member.UserID,
-		Email:     member.Email,
 		Role:      string(member.Role),
 		CreatedAt: member.CreatedAt,
 		UpdatedAt: member.UpdatedAt,

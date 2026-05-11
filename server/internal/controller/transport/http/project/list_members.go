@@ -21,7 +21,7 @@ func (h *Handler) listMembers(ctx context.Context, input *projectRefInput) (*lis
 		return nil, mapProjectError(err, "list project members failed")
 	}
 
-	return &listMembersOutput{Body: listMembersOutputBody{Members: newProjectMemberResponses(members)}}, nil
+	return &listMembersOutput{Body: listMembersOutputBody{Members: members}}, nil
 }
 
 type listMembersOutput struct {
@@ -29,14 +29,5 @@ type listMembersOutput struct {
 }
 
 type listMembersOutputBody struct {
-	Members []projectMemberResponse `json:"members"`
-}
-
-func newProjectMemberResponses(members []domainproject.Member) []projectMemberResponse {
-	responses := make([]projectMemberResponse, 0, len(members))
-	for _, member := range members {
-		responses = append(responses, newProjectMemberResponse(member))
-	}
-
-	return responses
+	Members []domainproject.Member `json:"members"`
 }

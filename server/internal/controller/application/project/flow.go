@@ -221,14 +221,6 @@ func (f *projectFlow) memberRemoveFailure(err error) error {
 	return f.technicalFailure(ProjectEventRemoveMemberFailure, ProjectReasonMemberRemoveFailed, err)
 }
 
-func (f *projectFlow) assignableRoleFailure(event ProjectEventName, err error) error {
-	if errors.Is(err, ErrInvalidRole) {
-		return f.businessFailure(event, ProjectReasonInvalidRole, err)
-	}
-
-	return f.businessFailure(event, ProjectReasonForbidden, err)
-}
-
 func (f *projectFlow) projectEvent(name ProjectEventName, outcome ProjectEventOutcome, reason ProjectEventReason, err error) ProjectEvent {
 	return ProjectEvent{
 		Name:         name,

@@ -3,143 +3,83 @@ package project
 import (
 	appvalidation "github.com/yorukot/netstamp/internal/controller/application/validation"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
-	"github.com/yorukot/netstamp/internal/platform/normalize"
 )
 
-const (
-	maxProjectNameRunes = 100
-	maxProjectSlugRunes = 100
-	maxProjectRefRunes  = 100
-)
-
-type normalizedCreateProjectInput struct {
-	name string
-	slug string
-}
-
-type normalizedUpdateProjectInput struct {
-	name *string
-	slug *string
-}
-
-type normalizedMemberInput struct {
-	projectRef string
-	userID     string
-	role       domainproject.Role
-}
-
-func normalizeCreateProjectInput(input CreateProjectInput) (normalizedCreateProjectInput, error) {
-	name, err := appvalidation.RequiredString(ErrInvalidInput, "name", input.Name, maxProjectNameRunes)
+func normalizeCreateProjectInput(input CreateProjectInput) (CreateProjectInput, error) {
+	name, err := domainproject.VNProjectName(input.Name)
 	if err != nil {
-		return normalizedCreateProjectInput{}, err
+		return CreateProjectInput{}, invalidProjectField("name", err.Error(), input.Name)
 	}
-	slug, err := normalizeProjectSlug(input.Slug)
+	slug, err := domainproject.VNProjectSlug(input.Slug)
 	if err != nil {
-		return normalizedCreateProjectInput{}, err
+		return CreateProjectInput{}, invalidProjectField("slug", err.Error(), input.Slug)
 	}
 
-	return normalizedCreateProjectInput{name: name, slug: slug}, nil
+	return CreateProjectInput{Name: name, Slug: slug}, nil
 }
 
-func normalizeUpdateProjectInput(input UpdateProjectInput) (normalizedUpdateProjectInput, error) {
+func normalizeUpdateProjectInput(input UpdateProjectInput) (UpdateProjectInput, error) {
 	if input.Name == nil && input.Slug == nil {
-		return normalizedUpdateProjectInput{}, invalidProjectField("", "at least one field must be provided", nil)
+		return UpdateProjectInput{}, invalidProjectField("", "at least one field must be provided", nil)
 	}
 
-	name, err := appvalidation.OptionalString(ErrInvalidInput, "name", input.Name, maxProjectNameRunes)
-	if err != nil {
-		return normalizedUpdateProjectInput{}, err
+	name, err := domainproject.VNProjectName(*input.Name)
+	if err != nil && input.Name != nil {
+		return UpdateProjectInput{}, invalidProjectField("name", err.Error(), input.Name)
 	}
-	slug, err := normalizeOptionalProjectSlug(input.Slug)
-	if err != nil {
-		return normalizedUpdateProjectInput{}, err
+	slug, err := domainproject.VNProjectSlug(*input.Slug)
+	if err != nil && input.Slug != nil {
+		return UpdateProjectInput{}, invalidProjectField("slug", err.Error(), input.Slug)
 	}
 
-	return normalizedUpdateProjectInput{name: name, slug: slug}, nil
+	return UpdateProjectInput{Name: &name, Slug: &slug}, nil
 }
 
-func normalizeAddMemberInput(input AddMemberInput) (normalizedMemberInput, error) {
-	projectRef, err := normalizeProjectRef(input.ProjectRef)
+func normalizeAddMemberInput(input AddMemberInput) (AddMemberInput, error) {
+	projectRef, err := domainproject.VNProjectSlug(input.ProjectRef)
 	if err != nil {
-		return normalizedMemberInput{}, err
+		return AddMemberInput{}, invalidProjectField("projectRef", err.Error(), input.ProjectRef)
 	}
-	userID, err := appvalidation.CanonicalUUID(ErrInvalidInput, "userId", input.UserID)
+	userID, err := domainproject.VNProjectMemberUserID(input.UserID)
 	if err != nil {
-		return normalizedMemberInput{}, err
+		return AddMemberInput{}, invalidProjectField("userId", err.Error(), input.UserID)
 	}
-	role, err := normalizeProjectRole(input.Role)
+	role, err := domainproject.VNProjectMemberRole(input.Role)
 	if err != nil {
-		return normalizedMemberInput{}, err
-	}
+		return AddMemberInput{}, invalidProjectField("role", err.Error(), input.Role)
 
-	return normalizedMemberInput{projectRef: projectRef, userID: userID, role: role}, nil
+	}
+	return AddMemberInput{ProjectRef: projectRef, UserID: userID, Role: role}, nil
 }
 
-func normalizeUpdateMemberRoleInput(input UpdateMemberRoleInput) (normalizedMemberInput, error) {
-	projectRef, err := normalizeProjectRef(input.ProjectRef)
+func normalizeUpdateMemberRoleInput(input UpdateMemberRoleInput) (UpdateMemberRoleInput, error) {
+	projectRef, err := domainproject.VNProjectSlug(input.ProjectRef)
 	if err != nil {
-		return normalizedMemberInput{}, err
+		return UpdateMemberRoleInput{}, invalidProjectField("projectRef", err.Error(), input.ProjectRef)
 	}
-	userID, err := appvalidation.CanonicalUUID(ErrInvalidInput, "memberUserId", input.UserID)
+	userID, err := domainproject.VNProjectMemberUserID(input.UserID)
 	if err != nil {
-		return normalizedMemberInput{}, err
+		return UpdateMemberRoleInput{}, invalidProjectField("userId", err.Error(), input.UserID)
 	}
-	role, err := normalizeProjectRole(input.Role)
+	role, err := domainproject.VNProjectMemberRole(input.Role)
 	if err != nil {
-		return normalizedMemberInput{}, err
+		return UpdateMemberRoleInput{}, invalidProjectField("role", err.Error(), input.Role)
 	}
 
-	return normalizedMemberInput{projectRef: projectRef, userID: userID, role: role}, nil
+	return UpdateMemberRoleInput{ProjectRef: projectRef, UserID: userID, Role: role}, nil
 }
 
-func normalizeRemoveMemberInput(input RemoveMemberInput) (normalizedMemberInput, error) {
-	projectRef, err := normalizeProjectRef(input.ProjectRef)
+func normalizeRemoveMemberInput(input RemoveMemberInput) (RemoveMemberInput, error) {
+	projectRef, err := domainproject.VNProjectSlug(input.ProjectRef)
 	if err != nil {
-		return normalizedMemberInput{}, err
+		return RemoveMemberInput{}, invalidProjectField("projectRef", err.Error(), input.ProjectRef)
 	}
-	userID, err := appvalidation.CanonicalUUID(ErrInvalidInput, "memberUserId", input.UserID)
+	userID, err := domainproject.VNProjectMemberUserID(input.UserID)
 	if err != nil {
-		return normalizedMemberInput{}, err
+		return RemoveMemberInput{}, invalidProjectField("userId", err.Error(), input.UserID)
 	}
 
-	return normalizedMemberInput{projectRef: projectRef, userID: userID}, nil
-}
-
-func normalizeProjectRef(value string) (string, error) {
-	return appvalidation.RequiredString(ErrInvalidInput, "projectRef", value, maxProjectRefRunes)
-}
-
-func normalizeProjectSlug(value string) (string, error) {
-	normalized, err := appvalidation.RequiredString(ErrInvalidInput, "slug", value, maxProjectSlugRunes)
-	if err != nil {
-		return "", err
-	}
-	if slug, err := normalize.ProjectSlug(normalized, ErrInvalidInput); err == nil {
-		return slug, nil
-	}
-
-	return "", invalidProjectField("slug", "must contain only lowercase letters, numbers, and dashes", value)
-}
-
-func normalizeOptionalProjectSlug(value *string) (*string, error) {
-	if value == nil {
-		return nil, nil //nolint:nilnil // A nil pointer is the explicit representation of an omitted optional field.
-	}
-
-	slug, err := normalizeProjectSlug(*value)
-	if err != nil {
-		return nil, err
-	}
-
-	return &slug, nil
-}
-
-func normalizeProjectRole(role domainproject.Role) (domainproject.Role, error) {
-	if domainproject.IsValidRole(role) {
-		return role, nil
-	}
-
-	return "", appvalidation.New(ErrInvalidRole, "role", `must be "owner", "admin", "editor", or "viewer"`, role)
+	return RemoveMemberInput{ProjectRef: projectRef, UserID: userID}, nil
 }
 
 func invalidProjectField(field, message string, value any) error {

@@ -20,9 +20,9 @@ func (h *Handler) getProject(ctx context.Context, input *projectRefInput) (*proj
 		return nil, mapProjectError(err, "get project failed")
 	}
 
-	return &projectOutput{Body: projectOutputBody{Project: newProjectResponse(project)}}, nil
+	return &projectOutput{Body: projectOutputBody{Project: project}}, nil
 }
 
 type projectRefInput struct {
-	Ref string `path:"ref" doc:"Project UUID or slug." example:"engineering"`
+	Ref string `path:"ref" minLength:"1" maxLength:"64"  minLength:"1" maxLength:"64" pattern:"^[a-z0-9-]+$" patternDescription:"lowercase letters, numbers, and dashes" doc:"Project UUID or slug." example:"engineering"`
 }
