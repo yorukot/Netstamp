@@ -24,11 +24,14 @@ CREATE TABLE users (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     email citext NOT NULL,
     password_hash text NOT NULL,
-    is_active boolean NOT NULL DEFAULT true,
+    display_name text NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT users_email_not_empty CHECK (length(btrim(email::text)) > 0),
-    CONSTRAINT users_password_hash_not_empty CHECK (length(btrim(password_hash)) > 0)
+    CONSTRAINT users_password_hash_not_empty CHECK (length(btrim(password_hash)) > 0),
+    CONSTRAINT users_display_name_not_empty CHECK (
+        length(btrim(display_name)) > 0 AND length(btrim(display_name)) <= 100
+    )
 );
 
 CREATE UNIQUE INDEX uq_users_email ON users (email);

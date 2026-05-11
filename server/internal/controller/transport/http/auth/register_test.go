@@ -27,7 +27,7 @@ func TestRegisterReturnsCreatedUserWithDisplayName(t *testing.T) {
 	NewHandler(newTestAuthService(repo, &handlerPasswordHasher{}, tokenIssuer), nil).RegisterRoutes(api)
 
 	res := api.Post("/auth/register", map[string]any{
-		"email":       " User@Example.COM ",
+		"email":       "user@example.com",
 		"displayName": "  Example User  ",
 		"password":    "correct-password",
 	})
@@ -44,10 +44,10 @@ func TestRegisterReturnsCreatedUserWithDisplayName(t *testing.T) {
 		t.Fatalf("expected user id, got %q", body.User.ID)
 	}
 	if body.User.Email != "user@example.com" {
-		t.Fatalf("expected normalized email, got %q", body.User.Email)
+		t.Fatalf("expected email, got %q", body.User.Email)
 	}
-	if body.User.DisplayName == nil || *body.User.DisplayName != "Example User" {
-		t.Fatalf("expected display name, got %#v", body.User.DisplayName)
+	if body.User.DisplayName != "Example User" {
+		t.Fatalf("expected display name, got %q", body.User.DisplayName)
 	}
 	if body.AccessToken != "access-token" {
 		t.Fatalf("expected access token, got %q", body.AccessToken)
@@ -60,9 +60,6 @@ func TestRegisterReturnsCreatedUserWithDisplayName(t *testing.T) {
 	}
 	if repo.gotCreateInput.DisplayName != "Example User" {
 		t.Fatalf("expected display name in create input, got %q", repo.gotCreateInput.DisplayName)
-	}
-	if tokenIssuer.gotInput.DisplayName == nil || *tokenIssuer.gotInput.DisplayName != "Example User" {
-		t.Fatalf("expected display name in token input, got %#v", tokenIssuer.gotInput.DisplayName)
 	}
 }
 
@@ -78,7 +75,7 @@ func TestRegisterRejectsMissingDisplayName(t *testing.T) {
 	if res.Code != http.StatusUnprocessableEntity {
 		t.Fatalf("expected status 422, got %d", res.Code)
 	}
-	assertRegisterHumaErrorDetail(t, res, "body.displayName", "must not be blank")
+	assertRegisterHumaErrorDetail(t, res, "body.displayName", "value length must be greater than or equal to minimum")
 }
 
 func TestRegisterReturnsServiceFieldErrorsForSemanticValidation(t *testing.T) {
@@ -96,17 +93,17 @@ func TestRegisterReturnsServiceFieldErrorsForSemanticValidation(t *testing.T) {
 				"password":    "correct-password",
 			},
 			wantField:   "body.email",
-			wantMessage: "must be a valid email address",
+			wantMessage: "value must be an email address",
 		},
 		{
 			name: "blank display name",
 			body: map[string]any{
 				"email":       "user@example.com",
-				"displayName": "   ",
+				"displayName": "",
 				"password":    "correct-password",
 			},
 			wantField:   "body.displayName",
-			wantMessage: "must not be blank",
+			wantMessage: "value length must be greater than or equal to minimum",
 		},
 		{
 			name: "short password",
@@ -116,7 +113,7 @@ func TestRegisterReturnsServiceFieldErrorsForSemanticValidation(t *testing.T) {
 				"password":    "short",
 			},
 			wantField:   "body.password",
-			wantMessage: "must be at least 8 characters",
+			wantMessage: "value length must be greater than or equal to minimum",
 		},
 	}
 
@@ -179,10 +176,10 @@ type handlerUserRepository struct {
 	getErr         error
 	createErr      error
 	gotEmail       string
-	gotCreateInput identity.CreateUserInput
+	gotCreateInput identity.User
 }
 
-func (r *handlerUserRepository) CreateUser(_ context.Context, input identity.CreateUserInput) (identity.User, error) {
+func (r *handlerUserRepository) CreateUser(_ context.Context, input identity.User) (identity.User, error) {
 	r.gotCreateInput = input
 	if r.createErr != nil {
 		return identity.User{}, r.createErr
@@ -193,7 +190,7 @@ func (r *handlerUserRepository) CreateUser(_ context.Context, input identity.Cre
 	return identity.User{
 		ID:           "created-user",
 		Email:        input.Email,
-		DisplayName:  &input.DisplayName,
+		DisplayName:  input.DisplayName,
 		PasswordHash: input.PasswordHash,
 		IsActive:     true,
 	}, nil
@@ -226,10 +223,10 @@ func (h *handlerPasswordHasher) Compare(_, _ string) error {
 type handlerTokenIssuer struct {
 	token    identity.IssuedToken
 	err      error
-	gotInput identity.AccessTokenInput
+	gotInput identity.AccessTokenClaims
 }
 
-func (i *handlerTokenIssuer) IssueAccessToken(_ context.Context, input identity.AccessTokenInput) (identity.IssuedToken, error) {
+func (i *handlerTokenIssuer) IssueAccessToken(_ context.Context, input identity.AccessTokenClaims) (identity.IssuedToken, error) {
 	i.gotInput = input
 	if i.err != nil {
 		return identity.IssuedToken{}, i.err

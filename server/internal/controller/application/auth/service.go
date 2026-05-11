@@ -5,7 +5,6 @@ import (
 	"errors"
 
 	"github.com/yorukot/netstamp/internal/domain/identity"
-	"github.com/yorukot/netstamp/internal/platform/normalize"
 )
 
 type Service struct {
@@ -26,23 +25,22 @@ func NewService(users UserRepository, hasher PasswordHasher, tokens TokenIssuer,
 
 // Register is the service entry for the register action
 func (s *Service) Register(ctx context.Context, input RegisterInput) (AuthAccessResult, error) {
-	email := normalize.Email(input.Email)
-	ctx, flow := s.startAuthFlow(ctx, "auth.register", AuthActionRegister, email)
+	ctx, flow := s.startAuthFlow(ctx, "auth.register", AuthActionRegister, input.Email)
 	defer flow.end()
 
-	normalized, err := normalizeRegisterInput(input)
+	input, err := normalizeRegisterInput(input)
 	if err != nil {
-		return AuthAccessResult{}, flow.businessFailure(AuthEventRegisterFailure, registerValidationReason(err), err)
+		return AuthAccessResult{}, flow.businessFailure(AuthEventRegisterFailure, AuthReasonInvalidInput, err)
 	}
 
-	passwordHash, err := s.hashPassword(ctx, normalized.password)
+	passwordHash, err := s.hashPassword(ctx, input.Password)
 	if err != nil {
 		return AuthAccessResult{}, flow.technicalFailure(AuthEventRegisterFailure, AuthReasonPasswordHashFailed, err)
 	}
 
-	user, err := s.createUser(ctx, identity.CreateUserInput{
-		Email:        normalized.email,
-		DisplayName:  normalized.displayName,
+	user, err := s.createUser(ctx, identity.User{
+		Email:        input.Email,
+		DisplayName:  input.DisplayName,
 		PasswordHash: passwordHash,
 	})
 	if errors.Is(err, ErrEmailAlreadyExists) {
@@ -65,17 +63,16 @@ func (s *Service) Register(ctx context.Context, input RegisterInput) (AuthAccess
 
 // Login is the enrty for the login action
 func (s *Service) Login(ctx context.Context, input LoginInput) (AuthAccessResult, error) {
-	email := normalize.Email(input.Email)
-	ctx, flow := s.startAuthFlow(ctx, "auth.login", AuthActionLogin, email)
+	ctx, flow := s.startAuthFlow(ctx, "auth.login", AuthActionLogin, input.Email)
 	defer flow.end()
 
-	normalized, err := normalizeLoginInput(input)
+	input, err := normalizeLoginInput(input)
 	if err != nil {
-		return AuthAccessResult{}, flow.businessFailure(AuthEventLoginFailure, AuthReasonCredentialsInvalid, err)
+		return AuthAccessResult{}, flow.businessFailure(AuthEventLoginFailure, AuthReasonInvalidInput, err)
 	}
 
-	user, err := s.getUserByEmail(ctx, normalized.email)
-	if errors.Is(err, identity.ErrUserNotFound) {
+	user, err := s.getUserByEmail(ctx, input.Email)
+	if errors.Is(err, ErrUserNotFound) {
 		return AuthAccessResult{}, flow.businessFailure(AuthEventLoginFailure, AuthReasonCredentialsInvalid, ErrCredentialsInvalid)
 	}
 	if err != nil {
@@ -83,13 +80,9 @@ func (s *Service) Login(ctx context.Context, input LoginInput) (AuthAccessResult
 	}
 	flow.setUser(user)
 
-	err = s.comparePassword(ctx, normalized.password, user.PasswordHash)
+	err = s.comparePassword(ctx, input.Password, user.PasswordHash)
 	if err != nil {
 		return AuthAccessResult{}, flow.businessFailure(AuthEventLoginFailure, AuthReasonCredentialsInvalid, ErrCredentialsInvalid)
-	}
-
-	if !user.IsActive {
-		return AuthAccessResult{}, flow.businessFailure(AuthEventLoginFailure, AuthReasonUserInactive, ErrUserInactive)
 	}
 
 	result, err := s.issueAccessResult(ctx, user)
@@ -106,10 +99,9 @@ func (s *Service) issueAccessResult(ctx context.Context, user identity.User) (Au
 	ctx, span := authTracer.Start(ctx, "auth.issue_access_token")
 	defer span.End()
 
-	token, err := s.tokens.IssueAccessToken(ctx, identity.AccessTokenInput{
+	token, err := s.tokens.IssueAccessToken(ctx, identity.AccessTokenClaims{
 		Subject:     user.ID,
 		Email:       user.Email,
-		DisplayName: user.DisplayName,
 	})
 	if err != nil {
 		recordSpanError(span, err, AuthReasonAccessTokenIssueFail)
@@ -146,7 +138,7 @@ func (s *Service) comparePassword(ctx context.Context, password, passwordHash st
 	return s.hasher.Compare(password, passwordHash)
 }
 
-func (s *Service) createUser(ctx context.Context, input identity.CreateUserInput) (identity.User, error) {
+func (s *Service) createUser(ctx context.Context, input identity.User) (identity.User, error) {
 	ctx, span := authTracer.Start(ctx, "auth.create_user")
 	defer span.End()
 
@@ -167,7 +159,7 @@ func (s *Service) getUserByEmail(ctx context.Context, email string) (identity.Us
 
 	user, err := s.users.GetUserByEmail(ctx, email)
 	if err != nil {
-		if !errors.Is(err, identity.ErrUserNotFound) {
+		if !errors.Is(err, ErrUserNotFound) {
 			recordSpanError(span, err, AuthReasonUserLookupFailed)
 		}
 		return identity.User{}, err

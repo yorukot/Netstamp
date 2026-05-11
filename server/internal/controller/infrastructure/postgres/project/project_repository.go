@@ -8,11 +8,10 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	authapp "github.com/yorukot/netstamp/internal/controller/application/auth"
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/postgres"
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/sqlc"
-	"github.com/yorukot/netstamp/internal/domain/identity"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
-	"github.com/yorukot/netstamp/internal/platform/normalize"
 )
 
 type ProjectRepository struct {
@@ -31,7 +30,7 @@ func (r *ProjectRepository) CreateProjectWithOwner(ctx context.Context, input do
 	ctx, span := postgres.StartDBSpan(ctx, pgprojectTracer, "projects", "postgres.projects.create_with_owner", "INSERT", "INSERT projects and owner membership")
 	defer span.End()
 
-	userID, err := postgres.ParseUUID(input.CreatedByUserID, identity.ErrUserNotFound)
+	userID, err := postgres.ParseUUID(input.CreatedByUserID, authapp.ErrUserNotFound)
 	if err != nil {
 		return domainproject.Project{}, err
 	}
@@ -97,7 +96,7 @@ func (r *ProjectRepository) GetProjectForUser(ctx context.Context, projectRef, u
 	ctx, span := postgres.StartDBSpan(ctx, pgprojectTracer, "projects", "postgres.projects.select_for_user", "SELECT", "SELECT project for member")
 	defer span.End()
 
-	userID, err := postgres.ParseUUID(userIDValue, identity.ErrUserNotFound)
+	userID, err := postgres.ParseUUID(userIDValue, authapp.ErrUserNotFound)
 	if err != nil {
 		return domainproject.Project{}, err
 	}
@@ -110,9 +109,6 @@ func (r *ProjectRepository) GetProjectForUser(ctx context.Context, projectRef, u
 			UserID: userID,
 		})
 	} else {
-		if !normalize.IsProjectSlug(projectRef) {
-			return domainproject.Project{}, domainproject.ErrProjectNotFound
-		}
 		row, err = r.queries.GetProjectBySlugForUser(ctx, sqlc.GetProjectBySlugForUserParams{
 			Slug:   projectRef,
 			UserID: userID,
@@ -344,7 +340,7 @@ func parseProjectAndUserIDs(projectIDValue, userIDValue string) (uuid.UUID, uuid
 	if err != nil {
 		return uuid.Nil, uuid.Nil, err
 	}
-	userID, err := postgres.ParseUUID(userIDValue, identity.ErrUserNotFound)
+	userID, err := postgres.ParseUUID(userIDValue, authapp.ErrUserNotFound)
 	if err != nil {
 		return uuid.Nil, uuid.Nil, err
 	}

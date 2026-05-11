@@ -7,6 +7,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v4"
 
+	authapp "github.com/yorukot/netstamp/internal/controller/application/auth"
 	"github.com/yorukot/netstamp/internal/domain/identity"
 )
 
@@ -30,7 +31,7 @@ func NewJWTIssuer(secret string, ttl time.Duration) *JWTIssuer {
 	}
 }
 
-func (i *JWTIssuer) IssueAccessToken(ctx context.Context, input identity.AccessTokenInput) (identity.IssuedToken, error) {
+func (i *JWTIssuer) IssueAccessToken(ctx context.Context, input identity.AccessTokenClaims) (identity.IssuedToken, error) {
 	if err := ctx.Err(); err != nil {
 		return identity.IssuedToken{}, err
 	}
@@ -38,8 +39,7 @@ func (i *JWTIssuer) IssueAccessToken(ctx context.Context, input identity.AccessT
 	now := i.now().UTC()
 	expiresAt := now.Add(i.ttl)
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, accessTokenClaims{
-		Email:       input.Email,
-		DisplayName: input.DisplayName,
+		Email: input.Email,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   input.Subject,
 			IssuedAt:  jwt.NewNumericDate(now),
@@ -67,20 +67,19 @@ func (i *JWTIssuer) VerifyAccessToken(ctx context.Context, value string) (identi
 	var claims accessTokenClaims
 	token, err := jwt.ParseWithClaims(value, &claims, func(token *jwt.Token) (any, error) {
 		if token.Method != jwt.SigningMethodHS256 {
-			return nil, identity.ErrAccessTokenInvalid
+			return nil, authapp.ErrAccessTokenInvalid
 		}
 		return i.secret, nil
 	})
 	if err != nil {
-		return identity.AccessTokenClaims{}, errors.Join(identity.ErrAccessTokenInvalid, err)
+		return identity.AccessTokenClaims{}, errors.Join(authapp.ErrAccessTokenInvalid, err)
 	}
 	if token == nil || !token.Valid || claims.Subject == "" || claims.Email == "" {
-		return identity.AccessTokenClaims{}, identity.ErrAccessTokenInvalid
+		return identity.AccessTokenClaims{}, authapp.ErrAccessTokenInvalid
 	}
 
 	return identity.AccessTokenClaims{
-		Subject:     claims.Subject,
-		Email:       claims.Email,
-		DisplayName: claims.DisplayName,
+		Subject: claims.Subject,
+		Email:   claims.Email,
 	}, nil
 }

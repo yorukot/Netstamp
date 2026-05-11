@@ -360,8 +360,7 @@ type User struct {
 	ID           uuid.UUID          `json:"id"`
 	Email        string             `json:"email"`
 	PasswordHash string             `json:"password_hash"`
-	IsActive     bool               `json:"is_active"`
+	DisplayName  string             `json:"display_name"`
 	CreatedAt    pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
-	DisplayName  *string            `json:"display_name"`
 }

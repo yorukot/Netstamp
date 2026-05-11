@@ -17,7 +17,7 @@ func TestLoginRecordsSuccess(t *testing.T) {
 		user: identity.User{
 			ID:           "user-1",
 			Email:        "user@example.com",
-			DisplayName:  stringPtr("Example User"),
+			DisplayName:  "Example User",
 			PasswordHash: "password-hash",
 			IsActive:     true,
 		},
@@ -30,7 +30,7 @@ func TestLoginRecordsSuccess(t *testing.T) {
 	)
 
 	result, err := service.Login(context.Background(), LoginInput{
-		Email:    " User@Example.COM ",
+		Email:    "user@example.com",
 		Password: "correct-password",
 	})
 	if err != nil {
@@ -38,16 +38,13 @@ func TestLoginRecordsSuccess(t *testing.T) {
 	}
 
 	if repo.gotEmail != "user@example.com" {
-		t.Fatalf("expected normalized lookup email, got %q", repo.gotEmail)
+		t.Fatalf("expected lookup email, got %q", repo.gotEmail)
 	}
 	if result.UserID != "user-1" {
 		t.Fatalf("expected user id, got %q", result.UserID)
 	}
-	if result.DisplayName == nil || *result.DisplayName != "Example User" {
-		t.Fatalf("expected display name, got %#v", result.DisplayName)
-	}
-	if tokenIssuer.gotInput.DisplayName == nil || *tokenIssuer.gotInput.DisplayName != "Example User" {
-		t.Fatalf("expected display name in token input, got %#v", tokenIssuer.gotInput.DisplayName)
+	if result.DisplayName != "Example User" {
+		t.Fatalf("expected display name, got %q", result.DisplayName)
 	}
 	assertRecordedEvent(t, recorder, AuthEvent{
 		Name:    AuthEventLoginSuccess,
@@ -61,14 +58,14 @@ func TestLoginRecordsSuccess(t *testing.T) {
 func TestLoginRecordsInvalidCredentialFailure(t *testing.T) {
 	recorder := &recordingSecurityEventRecorder{}
 	service := NewService(
-		&fakeUserRepository{getErr: identity.ErrUserNotFound},
+		&fakeUserRepository{getErr: ErrUserNotFound},
 		&fakePasswordHasher{},
 		&fakeTokenIssuer{},
 		recorder,
 	)
 
 	_, err := service.Login(context.Background(), LoginInput{
-		Email:    " Missing@Example.COM ",
+		Email:    "missing@example.com",
 		Password: "wrong-password",
 	})
 	if !errors.Is(err, ErrCredentialsInvalid) {
@@ -81,40 +78,6 @@ func TestLoginRecordsInvalidCredentialFailure(t *testing.T) {
 		Outcome: AuthOutcomeFailure,
 		Reason:  AuthReasonCredentialsInvalid,
 		Email:   "missing@example.com",
-	})
-}
-
-func TestLoginRecordsInactiveUserFailure(t *testing.T) {
-	recorder := &recordingSecurityEventRecorder{}
-	service := NewService(
-		&fakeUserRepository{
-			user: identity.User{
-				ID:           "user-1",
-				Email:        "user@example.com",
-				PasswordHash: "password-hash",
-				IsActive:     false,
-			},
-		},
-		&fakePasswordHasher{},
-		&fakeTokenIssuer{},
-		recorder,
-	)
-
-	_, err := service.Login(context.Background(), LoginInput{
-		Email:    "User@Example.COM",
-		Password: "correct-password",
-	})
-	if !errors.Is(err, ErrUserInactive) {
-		t.Fatalf("expected inactive user, got %v", err)
-	}
-
-	assertRecordedEvent(t, recorder, AuthEvent{
-		Name:    AuthEventLoginFailure,
-		Action:  AuthActionLogin,
-		Outcome: AuthOutcomeFailure,
-		Reason:  AuthReasonUserInactive,
-		UserID:  "user-1",
-		Email:   "user@example.com",
 	})
 }
 
@@ -141,47 +104,8 @@ func TestRegisterRecordsDuplicateEmailFailure(t *testing.T) {
 		Action:  AuthActionRegister,
 		Outcome: AuthOutcomeFailure,
 		Reason:  AuthReasonEmailAlreadyExists,
-		Email:   "existing@example.com",
+		Email:   "Existing@Example.COM",
 	})
-}
-
-func TestRegisterRecordsInvalidDisplayNameFailure(t *testing.T) {
-	recorder := &recordingSecurityEventRecorder{}
-	repo := &fakeUserRepository{}
-	hasher := &fakePasswordHasher{}
-	service := NewService(
-		repo,
-		hasher,
-		&fakeTokenIssuer{},
-		recorder,
-	)
-
-	_, err := service.Register(context.Background(), RegisterInput{
-		Email:       "User@Example.COM",
-		DisplayName: "   ",
-		Password:    "correct-password",
-	})
-	if !errors.Is(err, ErrDisplayNameRequired) {
-		t.Fatalf("expected display name required, got %v", err)
-	}
-	if !errors.Is(err, ErrInvalidInput) {
-		t.Fatalf("expected invalid input, got %v", err)
-	}
-	assertValidationFieldError(t, err, "displayName", "must not be blank")
-
-	assertRecordedEvent(t, recorder, AuthEvent{
-		Name:    AuthEventRegisterFailure,
-		Action:  AuthActionRegister,
-		Outcome: AuthOutcomeFailure,
-		Reason:  AuthReasonDisplayNameInvalid,
-		Email:   "user@example.com",
-	})
-	if hasher.hashCalls != 0 {
-		t.Fatalf("expected password not to be hashed for invalid input")
-	}
-	if repo.gotCreateInput.Email != "" {
-		t.Fatalf("expected user not to be created for invalid input")
-	}
 }
 
 func TestRegisterRecordsInvalidInputFailure(t *testing.T) {
@@ -199,7 +123,7 @@ func TestRegisterRecordsInvalidInputFailure(t *testing.T) {
 				Password:    "correct-password",
 			},
 			wantField:   "email",
-			wantMessage: "must not be blank",
+			wantMessage: "value must be an email address",
 		},
 		{
 			name: "invalid email",
@@ -209,17 +133,7 @@ func TestRegisterRecordsInvalidInputFailure(t *testing.T) {
 				Password:    "correct-password",
 			},
 			wantField:   "email",
-			wantMessage: "must be a valid email address",
-		},
-		{
-			name: "email too long",
-			input: RegisterInput{
-				Email:       strings.Repeat("a", 245) + "@example.com",
-				DisplayName: "Example User",
-				Password:    "correct-password",
-			},
-			wantField:   "email",
-			wantMessage: "must be at most 254 characters",
+			wantMessage: "value must be an email address",
 		},
 		{
 			name: "blank password",
@@ -229,7 +143,7 @@ func TestRegisterRecordsInvalidInputFailure(t *testing.T) {
 				Password:    "   ",
 			},
 			wantField:   "password",
-			wantMessage: "must not be blank",
+			wantMessage: "value length must be greater than or equal to minimum",
 		},
 		{
 			name: "password too short",
@@ -239,7 +153,7 @@ func TestRegisterRecordsInvalidInputFailure(t *testing.T) {
 				Password:    "short",
 			},
 			wantField:   "password",
-			wantMessage: "must be at least 8 characters",
+			wantMessage: "value length must be greater than or equal to minimum",
 		},
 		{
 			name: "password too long",
@@ -249,7 +163,7 @@ func TestRegisterRecordsInvalidInputFailure(t *testing.T) {
 				Password:    strings.Repeat("a", 129),
 			},
 			wantField:   "password",
-			wantMessage: "must be at most 128 characters",
+			wantMessage: "value length must be less than or equal to maximum",
 		},
 	}
 
@@ -270,7 +184,7 @@ func TestRegisterRecordsInvalidInputFailure(t *testing.T) {
 				Action:  AuthActionRegister,
 				Outcome: AuthOutcomeFailure,
 				Reason:  AuthReasonInvalidInput,
-				Email:   strings.ToLower(strings.TrimSpace(tt.input.Email)),
+				Email:   tt.input.Email,
 			})
 			if hasher.hashCalls != 0 {
 				t.Fatalf("expected password not to be hashed for invalid input")
@@ -296,20 +210,17 @@ func TestRegisterRecordsTooLongDisplayNameFailure(t *testing.T) {
 		DisplayName: strings.Repeat("a", 101),
 		Password:    "correct-password",
 	})
-	if !errors.Is(err, ErrDisplayNameTooLong) {
-		t.Fatalf("expected display name too long, got %v", err)
-	}
 	if !errors.Is(err, ErrInvalidInput) {
 		t.Fatalf("expected invalid input, got %v", err)
 	}
-	assertValidationFieldError(t, err, "displayName", "must be at most 100 characters")
+	assertValidationFieldError(t, err, "displayName", "value length must be less than or equal to maximum")
 
 	assertRecordedEvent(t, recorder, AuthEvent{
 		Name:    AuthEventRegisterFailure,
 		Action:  AuthActionRegister,
 		Outcome: AuthOutcomeFailure,
-		Reason:  AuthReasonDisplayNameInvalid,
-		Email:   "user@example.com",
+		Reason:  AuthReasonInvalidInput,
+		Email:   "User@Example.COM",
 	})
 }
 
@@ -335,23 +246,20 @@ func TestRegisterNormalizesDisplayNameAndEmail(t *testing.T) {
 	}
 
 	if repo.gotCreateInput.DisplayName != "Example User" {
-		t.Fatalf("expected normalized display name in create input, got %q", repo.gotCreateInput.DisplayName)
+		t.Fatalf("expected trimmed display name in create input, got %q", repo.gotCreateInput.DisplayName)
 	}
-	if repo.gotCreateInput.Email != "user@example.com" {
-		t.Fatalf("expected normalized email in create input, got %q", repo.gotCreateInput.Email)
+	if repo.gotCreateInput.Email != "User@Example.COM" {
+		t.Fatalf("expected email to be preserved, got %q", repo.gotCreateInput.Email)
 	}
 	if hasher.gotPassword != "correct-password" {
 		t.Fatalf("expected password to be hashed unchanged, got %q", hasher.gotPassword)
 	}
-	if result.DisplayName == nil || *result.DisplayName != "Example User" {
-		t.Fatalf("expected display name result, got %#v", result.DisplayName)
-	}
-	if tokenIssuer.gotInput.DisplayName == nil || *tokenIssuer.gotInput.DisplayName != "Example User" {
-		t.Fatalf("expected display name in token input, got %#v", tokenIssuer.gotInput.DisplayName)
+	if result.DisplayName != "Example User" {
+		t.Fatalf("expected display name result, got %q", result.DisplayName)
 	}
 }
 
-func TestRegisterDoesNotTrimPasswordBeforeHashing(t *testing.T) {
+func TestRegisterTrimsPasswordBeforeHashing(t *testing.T) {
 	recorder := &recordingSecurityEventRecorder{}
 	repo := &fakeUserRepository{}
 	hasher := &fakePasswordHasher{}
@@ -367,11 +275,11 @@ func TestRegisterDoesNotTrimPasswordBeforeHashing(t *testing.T) {
 		t.Fatalf("register: %v", err)
 	}
 
-	if hasher.gotPassword != "  correct-password  " {
-		t.Fatalf("expected original password value to be hashed, got %q", hasher.gotPassword)
+	if hasher.gotPassword != "correct-password" {
+		t.Fatalf("expected trimmed password value to be hashed, got %q", hasher.gotPassword)
 	}
-	if repo.gotCreateInput.PasswordHash != "hashed:  correct-password  " {
-		t.Fatalf("expected hash of original password, got %q", repo.gotCreateInput.PasswordHash)
+	if repo.gotCreateInput.PasswordHash != "hashed:correct-password" {
+		t.Fatalf("expected hash of trimmed password, got %q", repo.gotCreateInput.PasswordHash)
 	}
 }
 
@@ -383,7 +291,7 @@ func TestRegisterRecordsTokenIssueFailure(t *testing.T) {
 			createdUser: identity.User{
 				ID:          "user-1",
 				Email:       "user@example.com",
-				DisplayName: stringPtr("Example User"),
+				DisplayName: "Example User",
 				IsActive:    true,
 			},
 		},
@@ -393,7 +301,7 @@ func TestRegisterRecordsTokenIssueFailure(t *testing.T) {
 	)
 
 	_, err := service.Register(context.Background(), RegisterInput{
-		Email:       "User@Example.COM",
+		Email:       "user@example.com",
 		DisplayName: "Example User",
 		Password:    "correct-password",
 	})
@@ -461,10 +369,10 @@ type fakeUserRepository struct {
 	getErr         error
 	createErr      error
 	gotEmail       string
-	gotCreateInput identity.CreateUserInput
+	gotCreateInput identity.User
 }
 
-func (r *fakeUserRepository) CreateUser(_ context.Context, input identity.CreateUserInput) (identity.User, error) {
+func (r *fakeUserRepository) CreateUser(_ context.Context, input identity.User) (identity.User, error) {
 	r.gotCreateInput = input
 	if r.createErr != nil {
 		return identity.User{}, r.createErr
@@ -475,7 +383,7 @@ func (r *fakeUserRepository) CreateUser(_ context.Context, input identity.Create
 	return identity.User{
 		ID:           "created-user",
 		Email:        input.Email,
-		DisplayName:  &input.DisplayName,
+		DisplayName:  input.DisplayName,
 		PasswordHash: input.PasswordHash,
 		IsActive:     true,
 	}, nil
@@ -512,17 +420,13 @@ func (h *fakePasswordHasher) Compare(_, _ string) error {
 type fakeTokenIssuer struct {
 	token    identity.IssuedToken
 	err      error
-	gotInput identity.AccessTokenInput
+	gotInput identity.AccessTokenClaims
 }
 
-func (i *fakeTokenIssuer) IssueAccessToken(_ context.Context, input identity.AccessTokenInput) (identity.IssuedToken, error) {
+func (i *fakeTokenIssuer) IssueAccessToken(_ context.Context, input identity.AccessTokenClaims) (identity.IssuedToken, error) {
 	i.gotInput = input
 	if i.err != nil {
 		return identity.IssuedToken{}, i.err
 	}
 	return i.token, nil
-}
-
-func stringPtr(value string) *string {
-	return &value
 }

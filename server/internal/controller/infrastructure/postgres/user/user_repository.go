@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	authapp "github.com/yorukot/netstamp/internal/controller/application/auth"
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/postgres"
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/sqlc"
 	"github.com/yorukot/netstamp/internal/domain/identity"
@@ -21,13 +22,13 @@ func NewUserRepository(pool *pgxpool.Pool) *UserRepository {
 	return &UserRepository{queries: sqlc.New(pool)}
 }
 
-func (r *UserRepository) CreateUser(ctx context.Context, input identity.CreateUserInput) (identity.User, error) {
+func (r *UserRepository) CreateUser(ctx context.Context, input identity.User) (identity.User, error) {
 	ctx, span := postgres.StartUserDBSpan(ctx, pguserTracer, "postgres.users.insert", "INSERT", "INSERT users")
 	defer span.End()
 
 	row, err := r.queries.CreateUser(ctx, sqlc.CreateUserParams{
 		Email:        input.Email,
-		DisplayName:  &input.DisplayName,
+		DisplayName:  input.DisplayName,
 		PasswordHash: input.PasswordHash,
 	})
 	if err != nil {
@@ -42,7 +43,6 @@ func (r *UserRepository) CreateUser(ctx context.Context, input identity.CreateUs
 		ID:          row.ID.String(),
 		Email:       row.Email,
 		DisplayName: row.DisplayName,
-		IsActive:    row.IsActive,
 		CreatedAt:   row.CreatedAt.Time,
 		UpdatedAt:   row.UpdatedAt.Time,
 	}, nil
@@ -55,7 +55,7 @@ func (r *UserRepository) GetUserByEmail(ctx context.Context, email string) (iden
 	row, err := r.queries.GetUserByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return identity.User{}, identity.ErrUserNotFound
+			return identity.User{}, authapp.ErrUserNotFound
 		}
 
 		postgres.RecordDBSpanError(span, err)
@@ -67,7 +67,6 @@ func (r *UserRepository) GetUserByEmail(ctx context.Context, email string) (iden
 		Email:        row.Email,
 		DisplayName:  row.DisplayName,
 		PasswordHash: row.PasswordHash,
-		IsActive:     row.IsActive,
 		CreatedAt:    row.CreatedAt.Time,
 		UpdatedAt:    row.UpdatedAt.Time,
 	}, nil

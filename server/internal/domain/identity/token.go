@@ -1,11 +1,5 @@
 package identity
 
-type AccessTokenInput struct {
-	Subject     string
-	Email       string
-	DisplayName *string
-}
-
 type IssuedToken struct {
 	Value     string
 	TokenType string
@@ -15,5 +9,4 @@ type IssuedToken struct {
 type AccessTokenClaims struct {
 	Subject     string
 	Email       string
-	DisplayName *string
 }

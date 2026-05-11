@@ -1,6 +1,6 @@
 module github.com/yorukot/netstamp
 
-go 1.25.7
+go 1.26
 
 require (
 	github.com/danielgtaylor/huma/v2 v2.37.3
@@ -51,6 +51,7 @@ require (
 	github.com/spf13/cast v1.10.0 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
+	github.com/yorukot/spvalidator v0.1.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.43.0 // indirect
 	go.opentelemetry.io/otel/metric v1.43.0 // indirect

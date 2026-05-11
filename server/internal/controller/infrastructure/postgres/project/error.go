@@ -3,8 +3,8 @@ package pgproject
 import (
 	"fmt"
 
+	authapp "github.com/yorukot/netstamp/internal/controller/application/auth"
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/postgres"
-	"github.com/yorukot/netstamp/internal/domain/identity"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 )
 
@@ -13,7 +13,7 @@ func mapCreateProjectError(err error) (bool, error) {
 		return true, fmt.Errorf("project slug already exists: %w", domainproject.ErrProjectSlugAlreadyExists)
 	}
 	if postgres.IsForeignKeyViolation(err, "projects_created_by_user_id_fkey") {
-		return true, fmt.Errorf("user not found: %w", identity.ErrUserNotFound)
+		return true, fmt.Errorf("user not found: %w", authapp.ErrUserNotFound)
 	}
 
 	return false, err
@@ -27,7 +27,7 @@ func mapCreateProjectMemberError(err error) (bool, error) {
 		return true, fmt.Errorf("project not found: %w", domainproject.ErrProjectNotFound)
 	}
 	if postgres.IsForeignKeyViolation(err, "project_members_user_id_fkey") {
-		return true, fmt.Errorf("user not found: %w", identity.ErrUserNotFound)
+		return true, fmt.Errorf("user not found: %w", authapp.ErrUserNotFound)
 	}
 
 	return false, err

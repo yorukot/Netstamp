@@ -2,16 +2,17 @@ package auth
 
 import (
 	"errors"
-
-	"github.com/yorukot/netstamp/internal/domain/identity"
 )
 
 var (
-	ErrEmailAlreadyExists  = identity.ErrEmailAlreadyExists
+	// InvalidInput is for the case where the auth input is invalid.
+	// And we use this big group so the transport layer can understand 
+	// the error and return an appropriate response.
 	ErrInvalidInput        = errors.New("auth input invalid")
-	ErrDisplayNameRequired = errors.New("display name required")
-	ErrDisplayNameTooLong  = errors.New("display name too long")
+
+	ErrEmailAlreadyExists  = errors.New("email already exists")
 	ErrCredentialsInvalid  = errors.New("credentials invalid")
 	ErrUserInactive        = errors.New("user inactive")
-	ErrAccessTokenInvalid  = identity.ErrAccessTokenInvalid
+	ErrAccessTokenInvalid  = errors.New("access token invalid")
+	ErrUserNotFound        = errors.New("user not found")
 )

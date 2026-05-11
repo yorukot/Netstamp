@@ -17,9 +17,7 @@ func (h *Handler) register(ctx context.Context, input *registerInput) (*register
 	})
 	if err != nil {
 		switch {
-		case errors.Is(err, appauth.ErrInvalidInput),
-			errors.Is(err, appauth.ErrDisplayNameRequired),
-			errors.Is(err, appauth.ErrDisplayNameTooLong):
+		case errors.Is(err, appauth.ErrInvalidInput):
 			return nil, invalidAuthInputError(err)
 		case errors.Is(err, appauth.ErrEmailAlreadyExists):
 			return nil, huma.Error409Conflict("email already exists")

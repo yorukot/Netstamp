@@ -8,14 +8,12 @@ import (
 	"github.com/yorukot/netstamp/internal/domain/identity"
 )
 
-func TestJWTIssuerRoundTripsDisplayName(t *testing.T) {
+func TestJWTIssuerRoundTripsClaims(t *testing.T) {
 	issuer := NewJWTIssuer("secret", time.Hour)
 
-	displayName := "Example User"
-	token, err := issuer.IssueAccessToken(context.Background(), identity.AccessTokenInput{
-		Subject:     "user-1",
-		Email:       "user@example.com",
-		DisplayName: &displayName,
+	token, err := issuer.IssueAccessToken(context.Background(), identity.AccessTokenClaims{
+		Subject: "user-1",
+		Email:   "user@example.com",
 	})
 	if err != nil {
 		t.Fatalf("issue token: %v", err)
@@ -30,8 +28,5 @@ func TestJWTIssuerRoundTripsDisplayName(t *testing.T) {
 	}
 	if claims.Email != "user@example.com" {
 		t.Fatalf("expected email, got %q", claims.Email)
-	}
-	if claims.DisplayName == nil || *claims.DisplayName != "Example User" {
-		t.Fatalf("expected display name, got %#v", claims.DisplayName)
 	}
 }

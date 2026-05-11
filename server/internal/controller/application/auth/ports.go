@@ -7,7 +7,7 @@ import (
 )
 
 type UserRepository interface {
-	CreateUser(ctx context.Context, input identity.CreateUserInput) (identity.User, error)
+	CreateUser(ctx context.Context, input identity.User) (identity.User, error)
 	GetUserByEmail(ctx context.Context, email string) (identity.User, error)
 }
 
@@ -17,7 +17,7 @@ type PasswordHasher interface {
 }
 
 type TokenIssuer interface {
-	IssueAccessToken(ctx context.Context, input identity.AccessTokenInput) (identity.IssuedToken, error)
+	IssueAccessToken(ctx context.Context, input identity.AccessTokenClaims) (identity.IssuedToken, error)
 }
 
 type TokenVerifier interface {

@@ -14,13 +14,14 @@ func (h *Handler) me(ctx context.Context, _ *meInput) (*meOutput, error) {
 		return nil, huma.Error401Unauthorized("missing bearer token")
 	}
 
+	// TODO: We should lookup for the user detail and return it back
+	
 	return &meOutput{
 		Body: meOutputBody{
 			Authenticated: true,
 			User: userResponse{
 				ID:          claims.Subject,
 				Email:       claims.Email,
-				DisplayName: claims.DisplayName,
 			},
 		},
 	}, nil
