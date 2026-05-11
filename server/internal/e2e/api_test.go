@@ -154,10 +154,12 @@ func TestAPIAuthProjectAndProbeRuntimeFlow(t *testing.T) {
 		},
 		"description":     " Tokyo edge probes ",
 		"intervalSeconds": 60,
-		"packetCount":     5,
-		"timeoutMs":       2000,
-		"ipFamily":        "inet",
-		"labelIds":        []string{createdLabel.Label.ID},
+		"pingConfig": map[string]any{
+			"packetCount": 5,
+			"timeoutMs":   2000,
+			"ipFamily":    "inet",
+		},
+		"labelIds": []string{createdLabel.Label.ID},
 	}, authHeaders(login.AccessToken), http.StatusCreated, &labeledCheck)
 	if labeledCheck.Check.ID == "" {
 		t.Fatal("expected labeled check id")
@@ -166,7 +168,7 @@ func TestAPIAuthProjectAndProbeRuntimeFlow(t *testing.T) {
 		t.Fatalf("expected label attached to labeled check, got %#v", labeledCheck.Check.Labels)
 	}
 	assertLabelSelector(t, labeledCheck.Check.Selector, "region", "eq", "tokyo")
-	if labeledCheck.Check.PacketCount != 5 || labeledCheck.Check.TimeoutMs != 2000 || labeledCheck.Check.IPFamily == nil || *labeledCheck.Check.IPFamily != "inet" {
+	if labeledCheck.Check.PingConfig.PacketCount != 5 || labeledCheck.Check.PingConfig.TimeoutMs != 2000 || labeledCheck.Check.PingConfig.IPFamily == nil || *labeledCheck.Check.PingConfig.IPFamily != "inet" {
 		t.Fatalf("expected custom ping config on labeled check, got %#v", labeledCheck.Check)
 	}
 	t.Logf("e2e: created label-selector check id %s", labeledCheck.Check.ID)
@@ -290,11 +292,15 @@ type checkBody struct {
 	Selector        map[string]any       `json:"selector"`
 	Description     *string              `json:"description"`
 	IntervalSeconds int32                `json:"intervalSeconds"`
-	PacketCount     int32                `json:"packetCount"`
-	PacketSizeBytes int32                `json:"packetSizeBytes"`
-	TimeoutMs       int32                `json:"timeoutMs"`
-	IPFamily        *string              `json:"ipFamily"`
+	PingConfig      pingConfigBody       `json:"pingConfig"`
 	Labels          []checkLabelResponse `json:"labels"`
+}
+
+type pingConfigBody struct {
+	PacketCount     int32   `json:"packetCount"`
+	PacketSizeBytes int32   `json:"packetSizeBytes"`
+	TimeoutMs       int32   `json:"timeoutMs"`
+	IPFamily        *string `json:"ipFamily"`
 }
 
 type checkLabelResponse struct {

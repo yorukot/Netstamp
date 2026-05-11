@@ -17,21 +17,25 @@ type checkOutputBody struct {
 }
 
 type checkResponse struct {
-	ID              string               `json:"id" format:"uuid"`
-	ProjectID       string               `json:"projectId" format:"uuid"`
-	Name            string               `json:"name"`
-	Type            string               `json:"type" enum:"ping"`
-	Target          string               `json:"target"`
-	Selector        map[string]any       `json:"selector"`
-	Description     *string              `json:"description"`
-	IntervalSeconds int32                `json:"intervalSeconds"`
-	PacketCount     int32                `json:"packetCount"`
-	PacketSizeBytes int32                `json:"packetSizeBytes"`
-	TimeoutMs       int32                `json:"timeoutMs"`
-	IPFamily        *string              `json:"ipFamily,omitempty" enum:"inet,inet6"`
-	Labels          []checkLabelResponse `json:"labels"`
-	CreatedAt       time.Time            `json:"createdAt"`
-	UpdatedAt       time.Time            `json:"updatedAt"`
+	ID              string                  `json:"id" format:"uuid"`
+	ProjectID       string                  `json:"projectId" format:"uuid"`
+	Name            string                  `json:"name"`
+	Type            string                  `json:"type" enum:"ping"`
+	Target          string                  `json:"target"`
+	Selector        map[string]any          `json:"selector"`
+	Description     *string                 `json:"description"`
+	IntervalSeconds int32                   `json:"intervalSeconds"`
+	PingConfig      checkPingConfigResponse `json:"pingConfig"`
+	Labels          []checkLabelResponse    `json:"labels"`
+	CreatedAt       time.Time               `json:"createdAt"`
+	UpdatedAt       time.Time               `json:"updatedAt"`
+}
+
+type checkPingConfigResponse struct {
+	PacketCount     int32   `json:"packetCount"`
+	PacketSizeBytes int32   `json:"packetSizeBytes"`
+	TimeoutMs       int32   `json:"timeoutMs"`
+	IPFamily        *string `json:"ipFamily,omitempty" enum:"inet,inet6"`
 }
 
 type checkLabelResponse struct {
@@ -59,13 +63,15 @@ func newCheckResponse(check domaincheck.Check) checkResponse {
 		Selector:        selectorObject(check.Selector),
 		Description:     check.Description,
 		IntervalSeconds: check.IntervalSeconds,
-		PacketCount:     check.PingConfig.PacketCount,
-		PacketSizeBytes: check.PingConfig.PacketSizeBytes,
-		TimeoutMs:       check.PingConfig.TimeoutMs,
-		IPFamily:        ipFamilyString(check.PingConfig.IPFamily),
-		Labels:          labels,
-		CreatedAt:       check.CreatedAt,
-		UpdatedAt:       check.UpdatedAt,
+		PingConfig: checkPingConfigResponse{
+			PacketCount:     check.PingConfig.PacketCount,
+			PacketSizeBytes: check.PingConfig.PacketSizeBytes,
+			TimeoutMs:       check.PingConfig.TimeoutMs,
+			IPFamily:        ipFamilyString(check.PingConfig.IPFamily),
+		},
+		Labels:    labels,
+		CreatedAt: check.CreatedAt,
+		UpdatedAt: check.UpdatedAt,
 	}
 }
 

@@ -120,6 +120,58 @@
 				"required": ["check"],
 				"type": "object"
 			},
+			"CheckPingConfigInput": {
+				"additionalProperties": false,
+				"properties": {
+					"ipFamily": {
+						"description": "Optional IP family preference.",
+						"examples": ["inet"],
+						"type": "string"
+					},
+					"packetCount": {
+						"description": "ICMP packet count.",
+						"examples": [4],
+						"format": "int32",
+						"type": "integer"
+					},
+					"packetSizeBytes": {
+						"description": "ICMP payload size in bytes.",
+						"examples": [56],
+						"format": "int32",
+						"type": "integer"
+					},
+					"timeoutMs": {
+						"description": "Ping timeout in milliseconds.",
+						"examples": [3000],
+						"format": "int32",
+						"type": "integer"
+					}
+				},
+				"type": "object"
+			},
+			"CheckPingConfigResponse": {
+				"additionalProperties": false,
+				"properties": {
+					"ipFamily": {
+						"enum": ["inet", "inet6"],
+						"type": "string"
+					},
+					"packetCount": {
+						"format": "int32",
+						"type": "integer"
+					},
+					"packetSizeBytes": {
+						"format": "int32",
+						"type": "integer"
+					},
+					"timeoutMs": {
+						"format": "int32",
+						"type": "integer"
+					}
+				},
+				"required": ["packetCount", "packetSizeBytes", "timeoutMs"],
+				"type": "object"
+			},
 			"CheckResponse": {
 				"additionalProperties": false,
 				"properties": {
@@ -138,10 +190,6 @@
 						"format": "int32",
 						"type": "integer"
 					},
-					"ipFamily": {
-						"enum": ["inet", "inet6"],
-						"type": "string"
-					},
 					"labels": {
 						"items": {
 							"$ref": "#/components/schemas/CheckLabelResponse"
@@ -151,13 +199,8 @@
 					"name": {
 						"type": "string"
 					},
-					"packetCount": {
-						"format": "int32",
-						"type": "integer"
-					},
-					"packetSizeBytes": {
-						"format": "int32",
-						"type": "integer"
+					"pingConfig": {
+						"$ref": "#/components/schemas/CheckPingConfigResponse"
 					},
 					"projectId": {
 						"format": "uuid",
@@ -170,10 +213,6 @@
 					"target": {
 						"type": "string"
 					},
-					"timeoutMs": {
-						"format": "int32",
-						"type": "integer"
-					},
 					"type": {
 						"enum": ["ping"],
 						"type": "string"
@@ -183,7 +222,7 @@
 						"type": "string"
 					}
 				},
-				"required": ["id", "projectId", "name", "type", "target", "selector", "description", "intervalSeconds", "packetCount", "packetSizeBytes", "timeoutMs", "labels", "createdAt", "updatedAt"],
+				"required": ["id", "projectId", "name", "type", "target", "selector", "description", "intervalSeconds", "pingConfig", "labels", "createdAt", "updatedAt"],
 				"type": "object"
 			},
 			"CreateCheckInputBody": {
@@ -207,11 +246,6 @@
 						"format": "int32",
 						"type": "integer"
 					},
-					"ipFamily": {
-						"description": "Optional IP family preference.",
-						"examples": ["inet"],
-						"type": "string"
-					},
 					"labelIds": {
 						"description": "Existing project label IDs to attach to the check.",
 						"items": {
@@ -224,17 +258,9 @@
 						"examples": ["api-latency"],
 						"type": "string"
 					},
-					"packetCount": {
-						"description": "ICMP packet count. Defaults to 4.",
-						"examples": [4],
-						"format": "int32",
-						"type": "integer"
-					},
-					"packetSizeBytes": {
-						"description": "ICMP payload size in bytes. Defaults to 56.",
-						"examples": [56],
-						"format": "int32",
-						"type": "integer"
+					"pingConfig": {
+						"$ref": "#/components/schemas/CheckPingConfigInput",
+						"description": "Ping-specific check configuration. Omitted fields use defaults."
 					},
 					"selector": {
 						"additionalProperties": {},
@@ -245,12 +271,6 @@
 						"description": "Hostname or address to check.",
 						"examples": ["api.netstamp.io"],
 						"type": "string"
-					},
-					"timeoutMs": {
-						"description": "Ping timeout in milliseconds. Defaults to 3000.",
-						"examples": [3000],
-						"format": "int32",
-						"type": "integer"
 					},
 					"type": {
 						"description": "Check type. Only ping is supported in v1.",
@@ -1256,11 +1276,6 @@
 						"format": "int32",
 						"type": "integer"
 					},
-					"ipFamily": {
-						"description": "Optional IP family preference.",
-						"examples": ["inet"],
-						"type": "string"
-					},
 					"labelIds": {
 						"description": "Replacement project label IDs for the check.",
 						"items": {
@@ -1273,17 +1288,9 @@
 						"examples": ["api-latency"],
 						"type": "string"
 					},
-					"packetCount": {
-						"description": "ICMP packet count.",
-						"examples": [4],
-						"format": "int32",
-						"type": "integer"
-					},
-					"packetSizeBytes": {
-						"description": "ICMP payload size in bytes.",
-						"examples": [56],
-						"format": "int32",
-						"type": "integer"
+					"pingConfig": {
+						"$ref": "#/components/schemas/CheckPingConfigInput",
+						"description": "Ping-specific check configuration fields to update."
 					},
 					"selector": {
 						"additionalProperties": {},
@@ -1294,12 +1301,6 @@
 						"description": "Hostname or address to check.",
 						"examples": ["api.netstamp.io"],
 						"type": "string"
-					},
-					"timeoutMs": {
-						"description": "Ping timeout in milliseconds.",
-						"examples": [3000],
-						"format": "int32",
-						"type": "integer"
 					},
 					"type": {
 						"description": "Check type. Only ping is supported in v1.",

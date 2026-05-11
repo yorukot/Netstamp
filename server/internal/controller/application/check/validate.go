@@ -43,7 +43,7 @@ func normalizeCreateCheckInput(input CreateCheckInput) (normalizedCreateCheckInp
 	if err != nil {
 		return normalizedCreateCheckInput{}, err
 	}
-	pingConfig, err := normalizePingConfig(input.PacketCount, input.PacketSizeBytes, input.TimeoutMs, input.IPFamily)
+	pingConfig, err := normalizePingConfig(input.PingConfig)
 	if err != nil {
 		return normalizedCreateCheckInput{}, err
 	}
@@ -102,19 +102,19 @@ func normalizeUpdateCheckInput(input UpdateCheckInput) (normalizedUpdateCheckInp
 	if err != nil {
 		return normalizedUpdateCheckInput{}, err
 	}
-	packetCount, err := normalizeOptionalPacketCount(input.PacketCount)
+	packetCount, err := normalizeOptionalPacketCount(input.PingConfig.packetCount())
 	if err != nil {
 		return normalizedUpdateCheckInput{}, err
 	}
-	packetSizeBytes, err := normalizeOptionalPacketSizeBytes(input.PacketSizeBytes)
+	packetSizeBytes, err := normalizeOptionalPacketSizeBytes(input.PingConfig.packetSizeBytes())
 	if err != nil {
 		return normalizedUpdateCheckInput{}, err
 	}
-	timeoutMs, err := normalizeOptionalTimeoutMs(input.TimeoutMs)
+	timeoutMs, err := normalizeOptionalTimeoutMs(input.PingConfig.timeoutMs())
 	if err != nil {
 		return normalizedUpdateCheckInput{}, err
 	}
-	ipFamily, err := normalizeOptionalIPFamily(input.IPFamily)
+	ipFamily, err := normalizeOptionalIPFamily(input.PingConfig.ipFamily())
 	if err != nil {
 		return normalizedUpdateCheckInput{}, err
 	}
@@ -146,11 +146,47 @@ func hasUpdateCheckChanges(input UpdateCheckInput) bool {
 		input.Selector != nil ||
 		input.Description != nil ||
 		input.IntervalSeconds != nil ||
-		input.PacketCount != nil ||
-		input.PacketSizeBytes != nil ||
-		input.TimeoutMs != nil ||
-		input.IPFamily != nil ||
+		input.PingConfig.hasChanges() ||
 		input.LabelIDs != nil
+}
+
+func (input *PingConfigInput) hasChanges() bool {
+	return input.packetCount() != nil ||
+		input.packetSizeBytes() != nil ||
+		input.timeoutMs() != nil ||
+		input.ipFamily() != nil
+}
+
+func (input *PingConfigInput) packetCount() *int32 {
+	if input == nil {
+		return nil
+	}
+
+	return input.PacketCount
+}
+
+func (input *PingConfigInput) packetSizeBytes() *int32 {
+	if input == nil {
+		return nil
+	}
+
+	return input.PacketSizeBytes
+}
+
+func (input *PingConfigInput) timeoutMs() *int32 {
+	if input == nil {
+		return nil
+	}
+
+	return input.TimeoutMs
+}
+
+func (input *PingConfigInput) ipFamily() *string {
+	if input == nil {
+		return nil
+	}
+
+	return input.IPFamily
 }
 
 func invalidCheckField(field, message string, value any) error {
@@ -275,10 +311,10 @@ func normalizeSelector(selector map[string]any) (json.RawMessage, error) {
 	return raw, nil
 }
 
-func normalizePingConfig(packetCount, packetSizeBytes, timeoutMs *int32, ipFamilyValue *string) (domainping.Config, error) {
+func normalizePingConfig(input *PingConfigInput) (domainping.Config, error) {
 	config := domainping.DefaultConfig()
 
-	normalizedPacketCount, err := normalizeOptionalPacketCount(packetCount)
+	normalizedPacketCount, err := normalizeOptionalPacketCount(input.packetCount())
 	if err != nil {
 		return domainping.Config{}, err
 	}
@@ -286,7 +322,7 @@ func normalizePingConfig(packetCount, packetSizeBytes, timeoutMs *int32, ipFamil
 		config.PacketCount = *normalizedPacketCount
 	}
 
-	normalizedPacketSizeBytes, err := normalizeOptionalPacketSizeBytes(packetSizeBytes)
+	normalizedPacketSizeBytes, err := normalizeOptionalPacketSizeBytes(input.packetSizeBytes())
 	if err != nil {
 		return domainping.Config{}, err
 	}
@@ -294,7 +330,7 @@ func normalizePingConfig(packetCount, packetSizeBytes, timeoutMs *int32, ipFamil
 		config.PacketSizeBytes = *normalizedPacketSizeBytes
 	}
 
-	normalizedTimeoutMs, err := normalizeOptionalTimeoutMs(timeoutMs)
+	normalizedTimeoutMs, err := normalizeOptionalTimeoutMs(input.timeoutMs())
 	if err != nil {
 		return domainping.Config{}, err
 	}
@@ -302,7 +338,7 @@ func normalizePingConfig(packetCount, packetSizeBytes, timeoutMs *int32, ipFamil
 		config.TimeoutMs = *normalizedTimeoutMs
 	}
 
-	ipFamily, err := normalizeOptionalIPFamily(ipFamilyValue)
+	ipFamily, err := normalizeOptionalIPFamily(input.ipFamily())
 	if err != nil {
 		return domainping.Config{}, err
 	}

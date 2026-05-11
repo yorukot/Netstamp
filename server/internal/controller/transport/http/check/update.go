@@ -22,10 +22,7 @@ func (h *Handler) updateCheck(ctx context.Context, input *updateCheckInput) (*ch
 		Selector:        input.Body.Selector,
 		Description:     input.Body.Description,
 		IntervalSeconds: input.Body.IntervalSeconds,
-		PacketCount:     input.Body.PacketCount,
-		PacketSizeBytes: input.Body.PacketSizeBytes,
-		TimeoutMs:       input.Body.TimeoutMs,
-		IPFamily:        input.Body.IPFamily,
+		PingConfig:      input.Body.PingConfig.appInput(),
 		LabelIDs:        input.Body.LabelIDs,
 	})
 	if err != nil {
@@ -42,15 +39,12 @@ type updateCheckInput struct {
 }
 
 type updateCheckInputBody struct {
-	Name            *string        `json:"name,omitempty" doc:"Check display name." example:"api-latency"`
-	Type            *string        `json:"type,omitempty" doc:"Check type. Only ping is supported in v1." example:"ping"`
-	Target          *string        `json:"target,omitempty" doc:"Hostname or address to check." example:"api.netstamp.io"`
-	Selector        map[string]any `json:"selector,omitempty" doc:"Selector object for later probe matching."`
-	Description     *string        `json:"description,omitempty" doc:"Optional check description." example:"Latency and loss to controller API."`
-	IntervalSeconds *int32         `json:"intervalSeconds,omitempty" doc:"Check interval in seconds." example:"30"`
-	PacketCount     *int32         `json:"packetCount,omitempty" doc:"ICMP packet count." example:"4"`
-	PacketSizeBytes *int32         `json:"packetSizeBytes,omitempty" doc:"ICMP payload size in bytes." example:"56"`
-	TimeoutMs       *int32         `json:"timeoutMs,omitempty" doc:"Ping timeout in milliseconds." example:"3000"`
-	IPFamily        *string        `json:"ipFamily,omitempty" doc:"Optional IP family preference." example:"inet"`
-	LabelIDs        *[]string      `json:"labelIds,omitempty" doc:"Replacement project label IDs for the check."`
+	Name            *string               `json:"name,omitempty" doc:"Check display name." example:"api-latency"`
+	Type            *string               `json:"type,omitempty" doc:"Check type. Only ping is supported in v1." example:"ping"`
+	Target          *string               `json:"target,omitempty" doc:"Hostname or address to check." example:"api.netstamp.io"`
+	Selector        map[string]any        `json:"selector,omitempty" doc:"Selector object for later probe matching."`
+	Description     *string               `json:"description,omitempty" doc:"Optional check description." example:"Latency and loss to controller API."`
+	IntervalSeconds *int32                `json:"intervalSeconds,omitempty" doc:"Check interval in seconds." example:"30"`
+	PingConfig      *checkPingConfigInput `json:"pingConfig,omitempty" doc:"Ping-specific check configuration fields to update."`
+	LabelIDs        *[]string             `json:"labelIds,omitempty" doc:"Replacement project label IDs for the check."`
 }

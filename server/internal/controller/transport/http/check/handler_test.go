@@ -64,7 +64,10 @@ func TestCreateCheckReturnsCreatedCheck(t *testing.T) {
 		"type":            "ping",
 		"target":          " api.netstamp.io ",
 		"intervalSeconds": 30,
-		"labelIds":        []string{testLabelID},
+		"pingConfig": map[string]any{
+			"timeoutMs": 2000,
+		},
+		"labelIds": []string{testLabelID},
 	}, "Authorization: Bearer valid-token")
 	if res.Code != http.StatusCreated {
 		t.Fatalf("expected status 201, got %d", res.Code)
@@ -76,6 +79,9 @@ func TestCreateCheckReturnsCreatedCheck(t *testing.T) {
 	}
 	if body.Check.Name != "api-latency" || body.Check.Target != "api.netstamp.io" {
 		t.Fatalf("expected normalized check response, got %#v", body.Check)
+	}
+	if body.Check.PingConfig.TimeoutMs != 2000 {
+		t.Fatalf("expected nested ping config response, got %#v", body.Check.PingConfig)
 	}
 	if len(body.Check.Labels) != 1 || body.Check.Labels[0].ID != testLabelID {
 		t.Fatalf("expected labels response, got %#v", body.Check.Labels)
@@ -199,17 +205,17 @@ func TestCreateCheckReturnsServiceFieldErrorsForSemanticValidation(t *testing.T)
 		{
 			name: "packet size out of range",
 			mutate: func(body map[string]any) {
-				body["packetSizeBytes"] = 65508
+				body["pingConfig"] = map[string]any{"packetSizeBytes": 65508}
 			},
-			wantField:   "body.packetSizeBytes",
+			wantField:   "body.pingConfig.packetSizeBytes",
 			wantMessage: "must be between 0 and 65507",
 		},
 		{
 			name: "invalid ip family",
 			mutate: func(body map[string]any) {
-				body["ipFamily"] = "inet4"
+				body["pingConfig"] = map[string]any{"ipFamily": "inet4"}
 			},
-			wantField:   "body.ipFamily",
+			wantField:   "body.pingConfig.ipFamily",
 			wantMessage: `must be "inet" or "inet6"`,
 		},
 	}
@@ -235,6 +241,30 @@ func TestCreateCheckReturnsServiceFieldErrorsForSemanticValidation(t *testing.T)
 			}
 			assertHumaErrorDetail(t, res, tt.wantField, tt.wantMessage)
 		})
+	}
+}
+
+func TestUpdateCheckAcceptsNestedPingConfig(t *testing.T) {
+	_, api := humatest.New(t)
+	NewHandler(appcheck.NewService(&handlerCheckRepository{}, &handlerProjectAccess{role: domainproject.RoleAdmin}, &handlerLabelAccess{}, handlerCheckEventRecorder{}), &handlerTokenVerifier{
+		claims: identity.AccessTokenClaims{Subject: testUserID, Email: "user@example.com"},
+	}).RegisterRoutes(api)
+
+	res := api.Patch("/projects/engineering/checks/"+testCheckID, map[string]any{
+		"pingConfig": map[string]any{
+			"timeoutMs": 1500,
+		},
+	}, "Authorization: Bearer valid-token")
+	if res.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", res.Code)
+	}
+
+	var body checkOutputBody
+	if err := json.NewDecoder(res.Body).Decode(&body); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if body.Check.PingConfig.TimeoutMs != 1500 {
+		t.Fatalf("expected nested ping config update, got %#v", body.Check.PingConfig)
 	}
 }
 

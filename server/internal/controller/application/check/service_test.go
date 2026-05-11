@@ -232,7 +232,7 @@ func TestCreateCheckRejectsInvalidFieldsWithFieldErrors(t *testing.T) {
 		{
 			name: "packet count not positive",
 			mutate: func(input *CreateCheckInput) {
-				input.PacketCount = int32Ptr(0)
+				input.PingConfig = &PingConfigInput{PacketCount: int32Ptr(0)}
 			},
 			wantField:   "packetCount",
 			wantMessage: "must be greater than 0",
@@ -240,7 +240,7 @@ func TestCreateCheckRejectsInvalidFieldsWithFieldErrors(t *testing.T) {
 		{
 			name: "packet size out of range",
 			mutate: func(input *CreateCheckInput) {
-				input.PacketSizeBytes = int32Ptr(domainping.MaxPacketSizeBytes + 1)
+				input.PingConfig = &PingConfigInput{PacketSizeBytes: int32Ptr(domainping.MaxPacketSizeBytes + 1)}
 			},
 			wantField:   "packetSizeBytes",
 			wantMessage: "must be between 0 and 65507",
@@ -248,7 +248,7 @@ func TestCreateCheckRejectsInvalidFieldsWithFieldErrors(t *testing.T) {
 		{
 			name: "timeout not positive",
 			mutate: func(input *CreateCheckInput) {
-				input.TimeoutMs = int32Ptr(0)
+				input.PingConfig = &PingConfigInput{TimeoutMs: int32Ptr(0)}
 			},
 			wantField:   "timeoutMs",
 			wantMessage: "must be greater than 0",
@@ -256,7 +256,7 @@ func TestCreateCheckRejectsInvalidFieldsWithFieldErrors(t *testing.T) {
 		{
 			name: "invalid ip family",
 			mutate: func(input *CreateCheckInput) {
-				input.IPFamily = stringPtr("inet4")
+				input.PingConfig = &PingConfigInput{IPFamily: stringPtr("inet4")}
 			},
 			wantField:   "ipFamily",
 			wantMessage: `must be "inet" or "inet6"`,
@@ -341,7 +341,7 @@ func TestUpdateCheckPreservesExistingFieldsAndReplacesLabels(t *testing.T) {
 		ProjectRef:      "engineering",
 		CheckID:         testCheckID,
 		IntervalSeconds: &intervalSeconds,
-		TimeoutMs:       &timeoutMs,
+		PingConfig:      &PingConfigInput{TimeoutMs: &timeoutMs},
 		LabelIDs:        &labelIDs,
 	})
 	if err != nil {
@@ -581,7 +581,7 @@ func TestUpdateCheckRejectsInvalidFieldsWithFieldErrors(t *testing.T) {
 		{
 			name: "packet count not positive",
 			mutate: func(input *UpdateCheckInput) {
-				input.PacketCount = int32Ptr(0)
+				input.PingConfig = &PingConfigInput{PacketCount: int32Ptr(0)}
 			},
 			wantField:   "packetCount",
 			wantMessage: "must be greater than 0",
@@ -589,7 +589,7 @@ func TestUpdateCheckRejectsInvalidFieldsWithFieldErrors(t *testing.T) {
 		{
 			name: "packet size out of range",
 			mutate: func(input *UpdateCheckInput) {
-				input.PacketSizeBytes = int32Ptr(-1)
+				input.PingConfig = &PingConfigInput{PacketSizeBytes: int32Ptr(-1)}
 			},
 			wantField:   "packetSizeBytes",
 			wantMessage: "must be between 0 and 65507",
@@ -597,7 +597,7 @@ func TestUpdateCheckRejectsInvalidFieldsWithFieldErrors(t *testing.T) {
 		{
 			name: "timeout not positive",
 			mutate: func(input *UpdateCheckInput) {
-				input.TimeoutMs = int32Ptr(0)
+				input.PingConfig = &PingConfigInput{TimeoutMs: int32Ptr(0)}
 			},
 			wantField:   "timeoutMs",
 			wantMessage: "must be greater than 0",
@@ -605,7 +605,7 @@ func TestUpdateCheckRejectsInvalidFieldsWithFieldErrors(t *testing.T) {
 		{
 			name: "invalid ip family",
 			mutate: func(input *UpdateCheckInput) {
-				input.IPFamily = stringPtr("inet4")
+				input.PingConfig = &PingConfigInput{IPFamily: stringPtr("inet4")}
 			},
 			wantField:   "ipFamily",
 			wantMessage: `must be "inet" or "inet6"`,

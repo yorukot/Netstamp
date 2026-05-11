@@ -55,6 +55,18 @@ func checkErrorLocation(field string) string {
 	if field == "" {
 		return "body"
 	}
+	if isPingConfigField(field) {
+		return "body.pingConfig." + field
+	}
 
 	return "body." + field
+}
+
+func isPingConfigField(field string) bool {
+	switch field {
+	case "packetCount", "packetSizeBytes", "timeoutMs", "ipFamily":
+		return true
+	default:
+		return false
+	}
 }

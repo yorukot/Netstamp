@@ -28,10 +28,7 @@ type CreateCheckInput struct {
 	Selector        map[string]any
 	Description     *string
 	IntervalSeconds int32
-	PacketCount     *int32
-	PacketSizeBytes *int32
-	TimeoutMs       *int32
-	IPFamily        *string
+	PingConfig      *PingConfigInput
 	LabelIDs        []string
 }
 
@@ -45,11 +42,15 @@ type UpdateCheckInput struct {
 	Selector        map[string]any
 	Description     *string
 	IntervalSeconds *int32
+	PingConfig      *PingConfigInput
+	LabelIDs        *[]string
+}
+
+type PingConfigInput struct {
 	PacketCount     *int32
 	PacketSizeBytes *int32
 	TimeoutMs       *int32
 	IPFamily        *string
-	LabelIDs        *[]string
 }
 
 type normalizedCreateCheckInput struct {
