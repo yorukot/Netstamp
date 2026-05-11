@@ -210,7 +210,7 @@ func normalizePingResult(input PingResultInput, projectID, probeID, checkID stri
 		RttMedianMs:   input.RttMedianMs,
 		RttMaxMs:      input.RttMaxMs,
 		RttStddevMs:   input.RttStddevMs,
-		RttSamplesMs:  append([]float64(nil), input.RttSamplesMs...),
+		RttSamplesMs:  append([]float64{}, input.RttSamplesMs...),
 		ResolvedIP:    input.ResolvedIP,
 		IPFamily:      input.IPFamily,
 		Raw:           append(json.RawMessage(nil), raw...),

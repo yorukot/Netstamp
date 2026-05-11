@@ -60,7 +60,7 @@ func (r *PingRepository) CreatePingResults(ctx context.Context, inputs []domainp
 				RttMedianMs:   input.RttMedianMs,
 				RttMaxMs:      input.RttMaxMs,
 				RttStddevMs:   input.RttStddevMs,
-				RttSamplesMs:  input.RttSamplesMs,
+				RttSamplesMs:  storageRTTSamples(input.RttSamplesMs),
 				ResolvedIp:    input.ResolvedIP,
 				IpFamily:      sqlcIPFamily(input.IPFamily),
 				Raw:           input.Raw,
@@ -80,4 +80,8 @@ func (r *PingRepository) CreatePingResults(ctx context.Context, inputs []domainp
 	}
 
 	return nil
+}
+
+func storageRTTSamples(samples []float64) []float64 {
+	return append([]float64{}, samples...)
 }

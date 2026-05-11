@@ -178,6 +178,47 @@ func TestSubmitResultsAcceptsPingBatch(t *testing.T) {
 	assertNoProbeRuntimeEvents(t, recorder)
 }
 
+func TestSubmitResultsStoresEmptyRTTSamplesWhenOmitted(t *testing.T) {
+	probes := &fakeProbeRepository{assignments: []domaincheck.Assignment{newAssignment(testCheckID, domaincheck.TypePing)}}
+	results := &fakePingResultRepository{}
+	recorder := &recordingProbeRuntimeEventRecorder{}
+	service := NewService(probes, results, fakeSecretVerifier{valid: true}, recorder)
+	startedAt := time.Date(2026, 5, 9, 10, 0, 0, 0, time.UTC)
+	finishedAt := startedAt.Add(3 * time.Second)
+
+	output, err := service.SubmitResults(context.Background(), SubmitResultsInput{
+		RuntimeAuthInput: RuntimeAuthInput{
+			ProbeID:    testProbeID,
+			Credential: "plain-secret",
+		},
+		Groups: []ResultGroupInput{newResultGroupInput(testCheckID, PingResultInput{
+			StartedAt:     startedAt,
+			FinishedAt:    finishedAt,
+			DurationMs:    int32(finishedAt.Sub(startedAt).Milliseconds()),
+			Status:        string(domainping.StatusTimeout),
+			SentCount:     4,
+			ReceivedCount: 0,
+			LossPercent:   100,
+		})},
+	})
+	if err != nil {
+		t.Fatalf("expected submit to succeed: %v", err)
+	}
+	if !output.Accepted {
+		t.Fatalf("expected accepted output, got %#v", output)
+	}
+	if len(results.created) != 1 {
+		t.Fatalf("expected one ping result to reach repository, got %#v", results.created)
+	}
+	if results.created[0].RttSamplesMs == nil {
+		t.Fatal("expected omitted RTT samples to normalize to an empty slice, got nil")
+	}
+	if len(results.created[0].RttSamplesMs) != 0 {
+		t.Fatalf("expected no RTT samples, got %#v", results.created[0].RttSamplesMs)
+	}
+	assertNoProbeRuntimeEvents(t, recorder)
+}
+
 func TestSubmitResultsAcceptsStaleVersionAndRequestsResync(t *testing.T) {
 	assignment := newAssignment(testCheckID, domaincheck.TypePing)
 	probes := &fakeProbeRepository{assignments: []domaincheck.Assignment{assignment}}
