@@ -5,7 +5,9 @@ import (
 	"net/netip"
 	"time"
 
+	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
 	domainlabel "github.com/yorukot/netstamp/internal/domain/label"
+	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 )
 
 var (
@@ -53,6 +55,27 @@ type Status struct {
 	PublicV6     *netip.Addr
 	Addrs        []netip.Addr
 	UpdatedAt    time.Time
+}
+
+type AssignmentSet struct {
+	ProbeID     string
+	GeneratedAt time.Time
+	Assignments []domaincheck.Assignment
+}
+
+type ResultBatch struct {
+	ProbeID     string
+	CollectedAt time.Time
+	Results     []Result
+}
+
+type Result struct {
+	AssignmentID    string
+	CheckID         string
+	CheckVersion    string
+	SelectorVersion string
+	Type            domaincheck.Type
+	Ping            domainping.Result
 }
 
 type CreateProbeStorageInput struct {

@@ -8,6 +8,7 @@ alias dev := backend-dev
 alias fmt := backend-fmt
 alias tidy := backend-tidy
 alias migrate-status := backend-migrate-status
+alias probe := backend-probe
 
 # Misc
 
@@ -81,6 +82,13 @@ web-preview:
 # Start the backend API server with hot reload.
 backend-dev:
     cd {{ server_dir }} && air -c .air.toml
+
+# Run the backend probe agent. Optionally pass server/.env to load probe env values.
+backend-probe env_file="":
+    @if [ -n "{{ env_file }}" ]; then just --dotenv-path "{{ env_file }}" _backend-probe-run; else just _backend-probe-run; fi
+
+_backend-probe-run:
+    cd {{ server_dir }} && go run ./cmd/probe
 
 # Build the backend controller and probe binaries.
 backend-build:

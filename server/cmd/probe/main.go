@@ -19,7 +19,11 @@ func run() int {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	application := probeapp.New()
+	application, err := probeapp.New()
+	if err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "probe failed: %v\n", err)
+		return 1
+	}
 	if err := application.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
 		_, _ = fmt.Fprintf(os.Stderr, "probe failed: %v\n", err)
 		return 1

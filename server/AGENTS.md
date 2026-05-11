@@ -5,13 +5,12 @@
 This guide applies to `server/`, the Go backend for the Netstamp workspace. The root workspace also contains `web/`, `docs/`, and `packages/ui/`; use this file only for backend API, database, logging, tracing, and server runtime work.
 
 - `cmd/controller/main.go`: controller process entry point. It creates the shutdown context, calls `app.New`, runs the app, and syncs the logger.
-- `cmd/probe/main.go`: thin probe agent skeleton. It wires the future probe runtime shape and exits cleanly; it does not execute checks or call the controller yet.
+- `cmd/probe/main.go`: Go probe agent entry point. It loads `NETSTAMP_PROBE_*` environment configuration, handles shutdown signals, and runs the probe runtime.
 - `cmd/migrate/main.go`: Goose migration CLI for `status`, `up`, and `down`.
 - `internal/controller/app/`: composition root and lifecycle. `bootstrap.go` wires config, logging, tracing, PostgreSQL, auth, and HTTP. `lifecycle.go` starts and gracefully stops the HTTP listener.
 - `internal/controller/transport/http/`: chi/Huma HTTP routing, auth, project, label, probe management, probe runtime, system health routes, and middleware.
 - `internal/controller/application/auth/`, `internal/controller/application/project/`, `internal/controller/application/label/`, `internal/controller/application/check/`, `internal/controller/application/proberegistry/`, and `internal/controller/application/proberuntime/`: controller use cases, ports, DTOs, errors, and feature orchestration.
-- `internal/probe/`: thin probe skeleton packages for future controller polling, scheduling, running, executing, and reporting.
-- `internal/contracts/probecontrol/`: shared controller/probe protocol types. Keep this independent from controller and probe implementations.
+- `internal/probe/`: Go probe runtime packages for environment config, controller polling, assignment scheduling, bounded execution, raw ICMP ping checks, and result reporting.
 - `internal/domain/identity/`, `internal/domain/project/`, `internal/domain/label/`, `internal/domain/check/`, `internal/domain/ping/`, and `internal/domain/probe/`: stable domain structs and domain-level sentinel errors.
 - `internal/controller/infrastructure/`: PostgreSQL repositories and pool helpers, JWT issuing, Argon2id password hashing, and probe secret generation/verification.
 - `internal/controller/logger/`: controller zap logging helpers and application event recording. `internal/platform/normalize/` and `internal/platform/observability/` are shared helpers that do not depend on controller features.
@@ -34,7 +33,7 @@ Probe runtime requests follow the same layer boundaries:
 
 `HTTP request -> chi/Huma route -> internal/controller/transport/http/proberuntime handler -> internal/controller/application/proberuntime.Service -> internal/controller/infrastructure/postgres/{probe,ping} repositories -> sqlc.Queries -> PostgreSQL`
 
-No GraphQL, message queues, background workers, scheduled jobs, email, payment, object-storage integrations, or functional probe agent loop are currently defined.
+No GraphQL, message queues, background workers, scheduled jobs, email, payment, object-storage integrations, or functional DNS/traceroute/HTTP/TCP probe executors are currently defined. The Go probe agent currently implements the controller runtime loop for raw ICMP ping checks.
 
 ## Layer Responsibilities
 
@@ -154,6 +153,7 @@ Commands below come from the root `Justfile`, root `package.json`, `server/.air.
 
 - `pnpm install`: install workspace dependencies; root `package.json` enforces pnpm.
 - `just backend-dev` or `pnpm dev:server`: run Air hot reload using `server/.air.toml`.
+- `just backend-probe` or `just backend-probe server/probe.env`: run the probe agent with inherited `NETSTAMP_PROBE_*` environment variables, optionally loading them from a dotenv file.
 - `just backend-build` or `pnpm build:server`: build `server/bin/controller` from `./cmd/controller` and `server/bin/probe` from `./cmd/probe`.
 - `just backend-openapi` or `pnpm generate:openapi`: write the Huma OpenAPI schema to `docs/public/openapi.json`.
 - `just backend-test` or `pnpm test:server`: run `go test ./...` inside `server/`.
@@ -166,7 +166,7 @@ Commands below come from the root `Justfile`, root `package.json`, `server/.air.
 - `docker compose -f deployments/docker/compose.backend.dev.yaml up -d`: start local PostgreSQL/TimescaleDB, VictoriaTraces, VictoriaMetrics, and Grafana dependencies for a host-run backend.
 - `docker compose -f deployments/docker/compose.observability.yaml up --build`: build and run the Docker stack with PostgreSQL, VictoriaTraces, VictoriaMetrics, VictoriaLogs, Vector, Grafana, nginx, controller, and migrations.
 
-Use `server/.env.example` as the env template. `server/.gitignore` intentionally ignores `.env`, `.env.*`, `bin/`, `tmp/`, and `coverage.out`.
+Use `server/.env.example` as the controller env template and `server/probe.env.example` as the probe env template. `server/.gitignore` intentionally ignores `.env`, `.env.*`, `*.env`, `bin/`, `tmp/`, and `coverage.out`.
 
 ## Coding Style & Naming Conventions
 

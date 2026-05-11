@@ -10,7 +10,8 @@ RUN go mod download
 COPY server/ ./
 RUN mkdir -p /out \
     && CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/controller ./cmd/controller \
-    && CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/migrate ./cmd/migrate
+    && CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/migrate ./cmd/migrate \
+    && CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/probe ./cmd/probe
 
 FROM alpine:3.22
 
@@ -20,6 +21,7 @@ WORKDIR /app
 
 COPY --from=build /out/controller /app/controller
 COPY --from=build /out/migrate /app/migrate
+COPY --from=build /out/probe /app/probe
 COPY --from=build /src/server/db/migrations /app/db/migrations
 
 USER netstamp:netstamp

@@ -36,6 +36,27 @@ type Config struct {
 	IPFamily        *domainnetwork.IPFamily
 }
 
+type Result struct {
+	StartedAt     time.Time
+	FinishedAt    time.Time
+	DurationMs    int32
+	Status        Status
+	SentCount     int32
+	ReceivedCount int32
+	LossPercent   float64
+	RttMinMs      *float64
+	RttAvgMs      *float64
+	RttMedianMs   *float64
+	RttMaxMs      *float64
+	RttStddevMs   *float64
+	RttSamplesMs  []float64
+	ResolvedIP    *netip.Addr
+	IPFamily      *domainnetwork.IPFamily
+	Raw           map[string]any
+	ErrorCode     *string
+	ErrorMessage  *string
+}
+
 type ResultStorageInput struct {
 	ProjectID     string
 	ProbeID       string
