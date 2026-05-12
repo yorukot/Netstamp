@@ -152,6 +152,14 @@ func (f *checkFlow) writeFailure(event CheckEventName, technicalReason CheckEven
 	}
 }
 
+func (f *checkFlow) assignmentRefreshFailure(event CheckEventName, err error) error {
+	return f.technicalFailure(event, CheckReasonAssignmentRefreshFailed, err)
+}
+
+func (f *checkFlow) assignmentDeleteFailure(event CheckEventName, err error) error {
+	return f.technicalFailure(event, CheckReasonAssignmentDeleteFailed, err)
+}
+
 func (f *checkFlow) checkEvent(name CheckEventName, outcome CheckEventOutcome, reason CheckEventReason, err error) CheckEvent {
 	return CheckEvent{
 		Name:        name,

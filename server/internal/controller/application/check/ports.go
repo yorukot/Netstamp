@@ -25,6 +25,11 @@ type LabelAccess interface {
 	GetActiveLabelsByIDsForProject(ctx context.Context, projectID string, labelIDs []string) ([]domainlabel.Label, error)
 }
 
+type AssignmentRefresher interface {
+	RefreshProbeCheckAssignmentsForCheck(ctx context.Context, projectID, checkID string) error
+	DeleteProbeCheckAssignmentsForCheck(ctx context.Context, projectID, checkID string) error
+}
+
 type EventRecorder interface {
 	RecordCheckEvent(ctx context.Context, event CheckEvent)
 }
@@ -62,20 +67,22 @@ const (
 type CheckEventReason string
 
 const (
-	CheckReasonInvalidInput        CheckEventReason = "invalid_input"
-	CheckReasonForbidden           CheckEventReason = "forbidden"
-	CheckReasonProjectNotFound     CheckEventReason = "project_not_found"
-	CheckReasonUserNotFound        CheckEventReason = "user_not_found"
-	CheckReasonCheckNotFound       CheckEventReason = "check_not_found"
-	CheckReasonLabelNotFound       CheckEventReason = "label_not_found"
-	CheckReasonProjectLookupFailed CheckEventReason = "project_lookup_failed"
-	CheckReasonRoleLookupFailed    CheckEventReason = "role_lookup_failed"
-	CheckReasonCheckListFailed     CheckEventReason = "check_list_failed"
-	CheckReasonCheckLookupFailed   CheckEventReason = "check_lookup_failed"
-	CheckReasonLabelLookupFailed   CheckEventReason = "label_lookup_failed"
-	CheckReasonCheckCreateFailed   CheckEventReason = "check_create_failed"
-	CheckReasonCheckUpdateFailed   CheckEventReason = "check_update_failed"
-	CheckReasonCheckDeleteFailed   CheckEventReason = "check_delete_failed"
+	CheckReasonInvalidInput            CheckEventReason = "invalid_input"
+	CheckReasonForbidden               CheckEventReason = "forbidden"
+	CheckReasonProjectNotFound         CheckEventReason = "project_not_found"
+	CheckReasonUserNotFound            CheckEventReason = "user_not_found"
+	CheckReasonCheckNotFound           CheckEventReason = "check_not_found"
+	CheckReasonLabelNotFound           CheckEventReason = "label_not_found"
+	CheckReasonProjectLookupFailed     CheckEventReason = "project_lookup_failed"
+	CheckReasonRoleLookupFailed        CheckEventReason = "role_lookup_failed"
+	CheckReasonCheckListFailed         CheckEventReason = "check_list_failed"
+	CheckReasonCheckLookupFailed       CheckEventReason = "check_lookup_failed"
+	CheckReasonLabelLookupFailed       CheckEventReason = "label_lookup_failed"
+	CheckReasonCheckCreateFailed       CheckEventReason = "check_create_failed"
+	CheckReasonCheckUpdateFailed       CheckEventReason = "check_update_failed"
+	CheckReasonCheckDeleteFailed       CheckEventReason = "check_delete_failed"
+	CheckReasonAssignmentRefreshFailed CheckEventReason = "assignment_refresh_failed"
+	CheckReasonAssignmentDeleteFailed  CheckEventReason = "assignment_delete_failed"
 )
 
 type CheckEvent struct {

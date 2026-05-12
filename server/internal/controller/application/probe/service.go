@@ -9,20 +9,22 @@ import (
 )
 
 type Service struct {
-	repo            Repository
-	projectAccess   ProjectAccess
-	labelAccess     LabelAccess
-	secretGenerator SecretGenerator
-	events          EventRecorder
+	repo                Repository
+	projectAccess       ProjectAccess
+	labelAccess         LabelAccess
+	assignmentRefresher AssignmentRefresher
+	secretGenerator     SecretGenerator
+	events              EventRecorder
 }
 
-func NewService(repo Repository, projectAccess ProjectAccess, labelAccess LabelAccess, secretGenerator SecretGenerator, events EventRecorder) *Service {
+func NewService(repo Repository, projectAccess ProjectAccess, labelAccess LabelAccess, assignmentRefresher AssignmentRefresher, secretGenerator SecretGenerator, events EventRecorder) *Service {
 	return &Service{
-		repo:            repo,
-		projectAccess:   projectAccess,
-		labelAccess:     labelAccess,
-		secretGenerator: secretGenerator,
-		events:          events,
+		repo:                repo,
+		projectAccess:       projectAccess,
+		labelAccess:         labelAccess,
+		assignmentRefresher: assignmentRefresher,
+		secretGenerator:     secretGenerator,
+		events:              events,
 	}
 }
 
@@ -82,7 +84,9 @@ func (s *Service) CreateProbe(ctx context.Context, input CreateProbeInput) (Crea
 	flow.setProbeID(probe.ID)
 	probe.Labels = labels
 
-	// TODO: after create the probe we should rematch the probe and check assigment
+	if err := s.assignmentRefresher.RefreshProbeCheckAssignmentsForProbe(ctx, project.ID, probe.ID); err != nil {
+		return CreateProbeOutput{}, flow.assignmentRefreshFailure(ProbeEventCreateFailure, err)
+	}
 
 	return CreateProbeOutput{
 		Probe:  probe,
@@ -176,6 +180,7 @@ func (s *Service) UpdateProbe(ctx context.Context, input UpdateProbeInput) (doma
 		return domainprobe.Probe{}, flow.probeLookupFailure(ProbeEventUpdateFailure, err)
 	}
 
+	refreshAssignments := input.Enabled != nil || input.LabelIDs != nil
 	syncProbe, err := s.syncUpdateProbeInput(ctx, input, current)
 	if err != nil {
 		return domainprobe.Probe{}, flow.updateFailure(err)
@@ -186,7 +191,11 @@ func (s *Service) UpdateProbe(ctx context.Context, input UpdateProbeInput) (doma
 		return domainprobe.Probe{}, flow.updateFailure(err)
 	}
 
-	// TODO: After updating, sync the probe and check assignments note that only when update the label and enable need to sync
+	if refreshAssignments {
+		if err := s.assignmentRefresher.RefreshProbeCheckAssignmentsForProbe(ctx, project.ID, updated.ID); err != nil {
+			return domainprobe.Probe{}, flow.assignmentRefreshFailure(ProbeEventUpdateFailure, err)
+		}
+	}
 
 	flow.success(ProbeEventUpdateSuccess)
 
@@ -245,9 +254,10 @@ func (s *Service) DeleteProbe(ctx context.Context, input TargetProbeInput) error
 	if err := s.repo.SoftDeleteProbe(ctx, project.ID, input.ProbeID); err != nil {
 		return flow.deleteFailure(err)
 	}
+	if err := s.assignmentRefresher.DeleteProbeCheckAssignmentsForProbe(ctx, project.ID, input.ProbeID); err != nil {
+		return flow.assignmentDeleteFailure(ProbeEventDeleteFailure, err)
+	}
 	flow.success(ProbeEventDeleteSuccess)
-
-	// TODO: We need to sync the probe and check assigment
 
 	return nil
 }

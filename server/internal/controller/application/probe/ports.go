@@ -26,6 +26,11 @@ type LabelAccess interface {
 	GetActiveLabelsByIDsForProject(ctx context.Context, projectID string, labelIDs []string) ([]domainlabel.Label, error)
 }
 
+type AssignmentRefresher interface {
+	RefreshProbeCheckAssignmentsForProbe(ctx context.Context, projectID, probeID string) error
+	DeleteProbeCheckAssignmentsForProbe(ctx context.Context, projectID, probeID string) error
+}
+
 type SecretGenerator interface {
 	GenerateProbeSecret() (plaintext, hash string, err error)
 }
@@ -69,22 +74,24 @@ const (
 type ProbeEventReason string
 
 const (
-	ProbeReasonInvalidInput           ProbeEventReason = "invalid_input"
-	ProbeReasonProjectNotFound        ProbeEventReason = "project_not_found"
-	ProbeReasonProbeNotFound          ProbeEventReason = "probe_not_found"
-	ProbeReasonForbidden              ProbeEventReason = "forbidden"
-	ProbeReasonLabelNotFound          ProbeEventReason = "label_not_found"
-	ProbeReasonProjectLookupFailed    ProbeEventReason = "project_lookup_failed"
-	ProbeReasonRoleLookupFailed       ProbeEventReason = "role_lookup_failed"
-	ProbeReasonLabelLookupFailed      ProbeEventReason = "label_lookup_failed"
-	ProbeReasonProbeLookupFailed      ProbeEventReason = "probe_lookup_failed"
-	ProbeReasonSecretGeneratorMissing ProbeEventReason = "secret_generator_missing"
-	ProbeReasonSecretGenerateFailed   ProbeEventReason = "secret_generate_failed"
-	ProbeReasonProbeCreateFailed      ProbeEventReason = "probe_create_failed"
-	ProbeReasonProbeListFailed        ProbeEventReason = "probe_list_failed"
-	ProbeReasonProbeUpdateFailed      ProbeEventReason = "probe_update_failed"
-	ProbeReasonProbeDeleteFailed      ProbeEventReason = "probe_delete_failed"
-	ProbeReasonSecretRotateFailed     ProbeEventReason = "secret_rotate_failed"
+	ProbeReasonInvalidInput            ProbeEventReason = "invalid_input"
+	ProbeReasonProjectNotFound         ProbeEventReason = "project_not_found"
+	ProbeReasonProbeNotFound           ProbeEventReason = "probe_not_found"
+	ProbeReasonForbidden               ProbeEventReason = "forbidden"
+	ProbeReasonLabelNotFound           ProbeEventReason = "label_not_found"
+	ProbeReasonProjectLookupFailed     ProbeEventReason = "project_lookup_failed"
+	ProbeReasonRoleLookupFailed        ProbeEventReason = "role_lookup_failed"
+	ProbeReasonLabelLookupFailed       ProbeEventReason = "label_lookup_failed"
+	ProbeReasonProbeLookupFailed       ProbeEventReason = "probe_lookup_failed"
+	ProbeReasonSecretGeneratorMissing  ProbeEventReason = "secret_generator_missing"
+	ProbeReasonSecretGenerateFailed    ProbeEventReason = "secret_generate_failed"
+	ProbeReasonProbeCreateFailed       ProbeEventReason = "probe_create_failed"
+	ProbeReasonProbeListFailed         ProbeEventReason = "probe_list_failed"
+	ProbeReasonProbeUpdateFailed       ProbeEventReason = "probe_update_failed"
+	ProbeReasonProbeDeleteFailed       ProbeEventReason = "probe_delete_failed"
+	ProbeReasonSecretRotateFailed      ProbeEventReason = "secret_rotate_failed"
+	ProbeReasonAssignmentRefreshFailed ProbeEventReason = "assignment_refresh_failed"
+	ProbeReasonAssignmentDeleteFailed  ProbeEventReason = "assignment_delete_failed"
 )
 
 type ProbeEvent struct {

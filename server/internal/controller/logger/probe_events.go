@@ -21,33 +21,27 @@ func NewProbeEventRecorder(root *zap.Logger) *ProbeEventRecorder {
 }
 
 func (r *ProbeEventRecorder) RecordProbeEvent(ctx context.Context, event appprobe.ProbeEvent) {
-	log := FromContext(ctx, r.root)
-	fields := eventFields(string(event.Name), "probe", string(event.Action), string(event.Outcome), string(event.Reason))
+	recordApplicationEvent(ctx, r.root, applicationEventLog{
+		name:            string(event.Name),
+		category:        "probe",
+		action:          string(event.Action),
+		outcome:         string(event.Outcome),
+		reason:          string(event.Reason),
+		successOutcome:  string(appprobe.ProbeOutcomeSuccess),
+		expectedFailure: isExpectedProbeFailure(event),
+		fields:          probeEventFields(event),
+		err:             event.Err,
+	})
+}
 
-	if event.ActorUserID != "" {
-		fields = append(fields, zap.String("user.id", event.ActorUserID))
-	}
-	if event.ProjectID != "" {
-		fields = append(fields, zap.String("project.id", event.ProjectID))
-	}
-	if event.ProjectRef != "" {
-		fields = append(fields, zap.String("project.ref", event.ProjectRef))
-	}
-	if event.ProbeID != "" {
-		fields = append(fields, zap.String("probe.id", event.ProbeID))
-	}
-	if event.Err != nil {
-		fields = append(fields, zap.Error(event.Err))
-	}
+func probeEventFields(event appprobe.ProbeEvent) []zap.Field {
+	fields := make([]zap.Field, 0, 4)
+	fields = appendStringField(fields, "user.id", event.ActorUserID)
+	fields = appendStringField(fields, "project.id", event.ProjectID)
+	fields = appendStringField(fields, "project.ref", event.ProjectRef)
+	fields = appendStringField(fields, "probe.id", event.ProbeID)
 
-	switch {
-	case event.Outcome == appprobe.ProbeOutcomeSuccess:
-		log.Info(string(event.Name), fields...)
-	case isExpectedProbeFailure(event):
-		log.Warn(string(event.Name), fields...)
-	default:
-		log.Error(string(event.Name), fields...)
-	}
+	return fields
 }
 
 func isExpectedProbeFailure(event appprobe.ProbeEvent) bool {

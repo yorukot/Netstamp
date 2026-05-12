@@ -8,15 +8,21 @@ import (
 
 	"github.com/danielgtaylor/huma/v2/humatest"
 
+	appauth "github.com/yorukot/netstamp/internal/controller/application/auth"
 	"github.com/yorukot/netstamp/internal/domain/identity"
 )
 
 func TestMeReturnsAuthenticatedUser(t *testing.T) {
 	_, api := humatest.New(t)
-	NewHandler(nil, &staticTokenVerifier{
+	user := identity.User{
+		ID:          "11111111-1111-1111-1111-111111111111",
+		Email:       "user@example.com",
+		DisplayName: "User",
+	}
+	NewHandler(appauth.NewService(&staticUserRepository{user: user}, nil, nil, nil), &staticTokenVerifier{
 		claims: identity.AccessTokenClaims{
-			Subject: "11111111-1111-1111-1111-111111111111",
-			Email:   "user@example.com",
+			Subject: user.ID,
+			Email:   user.Email,
 		},
 	}).RegisterRoutes(api)
 
@@ -47,4 +53,16 @@ type staticTokenVerifier struct {
 
 func (v *staticTokenVerifier) VerifyAccessToken(context.Context, string) (identity.AccessTokenClaims, error) {
 	return v.claims, nil
+}
+
+type staticUserRepository struct {
+	user identity.User
+}
+
+func (r *staticUserRepository) CreateUser(context.Context, identity.User) (identity.User, error) {
+	return identity.User{}, nil
+}
+
+func (r *staticUserRepository) GetUserByEmail(context.Context, string) (identity.User, error) {
+	return r.user, nil
 }

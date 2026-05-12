@@ -178,6 +178,14 @@ func (f *probeFlow) rotateFailure(err error) error {
 	}
 }
 
+func (f *probeFlow) assignmentRefreshFailure(event ProbeEventName, err error) error {
+	return f.technicalFailure(event, ProbeReasonAssignmentRefreshFailed, err)
+}
+
+func (f *probeFlow) assignmentDeleteFailure(event ProbeEventName, err error) error {
+	return f.technicalFailure(event, ProbeReasonAssignmentDeleteFailed, err)
+}
+
 func (f *probeFlow) probeEvent(name ProbeEventName, outcome ProbeEventOutcome, reason ProbeEventReason, err error) ProbeEvent {
 	return ProbeEvent{
 		Name:        name,

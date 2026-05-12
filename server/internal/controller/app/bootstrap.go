@@ -9,6 +9,7 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
 
+	appassignment "github.com/yorukot/netstamp/internal/controller/application/assignment"
 	appauth "github.com/yorukot/netstamp/internal/controller/application/auth"
 	appcheck "github.com/yorukot/netstamp/internal/controller/application/check"
 	applabel "github.com/yorukot/netstamp/internal/controller/application/label"
@@ -107,17 +108,19 @@ func New(ctx context.Context) (*Application, error) {
 	checkEvents := logger.NewCheckEventRecorder(log)
 	probeEvents := logger.NewProbeEventRecorder(log)
 	probeRuntimeEvents := logger.NewProbeRuntimeEventRecorder(log)
+	assignmentEvents := logger.NewAssignmentEventRecorder(log)
 
 	authSvc := appauth.NewService(userRepo, passwordHasher, tokenIssuer, authEvents)
 	projectRepo := pgproject.NewProjectRepository(dbPool)
 	projectSvc := appproject.NewService(projectRepo, projectEvents)
 	labelRepo := pglabel.NewLabelRepository(dbPool)
 	assignmentRepo := pgassignment.NewAssignmentRepository(dbPool)
+	assignmentSvc := appassignment.NewService(assignmentRepo, assignmentEvents)
 	probeRepo := pgprobe.NewProbeRepository(dbPool)
-	labelSvc := applabel.NewService(labelRepo, projectRepo, labelEvents, assignmentRepo)
+	labelSvc := applabel.NewService(labelRepo, projectRepo, labelEvents, assignmentSvc)
 	checkRepo := pgcheck.NewCheckRepository(dbPool)
-	checkSvc := appcheck.NewService(checkRepo, projectRepo, labelRepo, checkEvents)
-	probeSvc := appprobe.NewService(probeRepo, projectRepo, labelRepo, security.NewProbeSecretGenerator(), probeEvents)
+	checkSvc := appcheck.NewService(checkRepo, projectRepo, labelRepo, assignmentSvc, checkEvents)
+	probeSvc := appprobe.NewService(probeRepo, projectRepo, labelRepo, assignmentSvc, security.NewProbeSecretGenerator(), probeEvents)
 	probeRuntimeSvc := appproberuntime.NewService(probeRepo, security.NewProbeSecretVerifier(), probeRuntimeEvents)
 	readiness := postgres.NewReadinessCheck(dbPool)
 

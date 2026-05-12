@@ -10,18 +10,20 @@ import (
 )
 
 type Service struct {
-	repo          Repository
-	projectAccess ProjectAccess
-	labelAccess   LabelAccess
-	events        EventRecorder
+	repo                Repository
+	projectAccess       ProjectAccess
+	labelAccess         LabelAccess
+	assignmentRefresher AssignmentRefresher
+	events              EventRecorder
 }
 
-func NewService(repo Repository, projectAccess ProjectAccess, labelAccess LabelAccess, events EventRecorder) *Service {
+func NewService(repo Repository, projectAccess ProjectAccess, labelAccess LabelAccess, assignmentRefresher AssignmentRefresher, events EventRecorder) *Service {
 	return &Service{
-		repo:          repo,
-		projectAccess: projectAccess,
-		labelAccess:   labelAccess,
-		events:        events,
+		repo:                repo,
+		projectAccess:       projectAccess,
+		labelAccess:         labelAccess,
+		assignmentRefresher: assignmentRefresher,
+		events:              events,
 	}
 }
 
@@ -111,8 +113,10 @@ func (s *Service) CreateCheck(ctx context.Context, input CreateCheckInput) (doma
 		return domaincheck.Check{}, flow.writeFailure(CheckEventCreateFailure, CheckReasonCheckCreateFailed, err)
 	}
 	check.Labels = labels
-	// TODO: Sync probe/check assignments for this check through the assignment service.
 	flow.setCheckID(check.ID)
+	if err := s.assignmentRefresher.RefreshProbeCheckAssignmentsForCheck(ctx, project.ID, check.ID); err != nil {
+		return domaincheck.Check{}, flow.assignmentRefreshFailure(CheckEventCreateFailure, err)
+	}
 	flow.success(CheckEventCreateSuccess)
 
 	return check, nil
@@ -160,7 +164,9 @@ func (s *Service) UpdateCheck(ctx context.Context, input UpdateCheckInput) (doma
 	if normalized.replaceLabels {
 		check.Labels = resolvedLabels
 	}
-	// TODO: Sync probe/check assignments for this check through the assignment service.
+	if err := s.assignmentRefresher.RefreshProbeCheckAssignmentsForCheck(ctx, project.ID, check.ID); err != nil {
+		return domaincheck.Check{}, flow.assignmentRefreshFailure(CheckEventUpdateFailure, err)
+	}
 	flow.success(CheckEventUpdateSuccess)
 
 	return check, nil
@@ -272,7 +278,9 @@ func (s *Service) DeleteCheck(ctx context.Context, input GetCheckInput) error {
 	if err := s.repo.SoftDeleteCheck(ctx, project.ID, input.CheckID); err != nil {
 		return flow.writeFailure(CheckEventDeleteFailure, CheckReasonCheckDeleteFailed, err)
 	}
-	// TODO: Delete probe/check assignments for this check through the assignment service.
+	if err := s.assignmentRefresher.DeleteProbeCheckAssignmentsForCheck(ctx, project.ID, input.CheckID); err != nil {
+		return flow.assignmentDeleteFailure(CheckEventDeleteFailure, err)
+	}
 	flow.success(CheckEventDeleteSuccess)
 
 	return nil
