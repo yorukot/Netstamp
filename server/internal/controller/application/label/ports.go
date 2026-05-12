@@ -10,8 +10,8 @@ import (
 type Repository interface {
 	ListLabels(ctx context.Context, projectID string) ([]domainlabel.Label, error)
 	GetLabel(ctx context.Context, projectID, labelID string) (domainlabel.Label, error)
-	CreateLabel(ctx context.Context, input domainlabel.CreateLabelStorageInput) (domainlabel.Label, error)
-	UpdateLabel(ctx context.Context, input domainlabel.UpdateLabelStorageInput) (domainlabel.Label, error)
+	CreateLabel(ctx context.Context, input domainlabel.Label) (domainlabel.Label, error)
+	UpdateLabel(ctx context.Context, input domainlabel.Label) (domainlabel.Label, error)
 	SoftDeleteLabel(ctx context.Context, projectID, labelID string) error
 	GetActiveLabelsByIDsForProject(ctx context.Context, projectID string, labelIDs []string) ([]domainlabel.Label, error)
 }

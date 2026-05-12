@@ -22,15 +22,15 @@ func (h *Handler) createLabel(ctx context.Context, input *createLabelInput) (*la
 		return nil, mapLabelError(err, "create label failed")
 	}
 
-	return &labelOutput{Body: labelOutputBody{Label: newLabelResponse(label)}}, nil
+	return &labelOutput{Body: labelOutputBody{Label: label}}, nil
 }
 
 type createLabelInput struct {
-	Ref  string `path:"ref" doc:"Project UUID or slug." example:"engineering"`
+	Ref  string `path:"ref" minLength:"1" maxLength:"64" pattern:"^[a-z0-9-]+$" patternDescription:"lowercase letters, numbers, and dashes" doc:"Project UUID or slug." example:"engineering"`
 	Body createLabelInputBody
 }
 
 type createLabelInputBody struct {
-	Key   string `json:"key,omitempty" doc:"Label key." example:"region"`
-	Value string `json:"value,omitempty" doc:"Label value." example:"tokyo"`
+	Key   string `json:"key,omitempty" maxLength:"64" doc:"Label key." example:"region"`
+	Value string `json:"value,omitempty" maxLength:"64" doc:"Label value." example:"tokyo"`
 }

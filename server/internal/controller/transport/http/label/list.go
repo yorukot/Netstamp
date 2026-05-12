@@ -21,11 +21,11 @@ func (h *Handler) listLabels(ctx context.Context, input *listLabelsInput) (*list
 		return nil, mapLabelError(err, "list labels failed")
 	}
 
-	return &listLabelsOutput{Body: listLabelsOutputBody{Labels: newLabelResponses(labels)}}, nil
+	return &listLabelsOutput{Body: listLabelsOutputBody{Labels: labels}}, nil
 }
 
 type listLabelsInput struct {
-	Ref string `path:"ref" doc:"Project UUID or slug." example:"engineering"`
+	Ref string `path:"ref" minLength:"1" maxLength:"64" pattern:"^[a-z0-9-]+$" patternDescription:"lowercase letters, numbers, and dashes" doc:"Project UUID or slug." example:"engineering"`
 }
 
 type listLabelsOutput struct {
@@ -33,14 +33,5 @@ type listLabelsOutput struct {
 }
 
 type listLabelsOutputBody struct {
-	Labels []labelResponse `json:"labels"`
-}
-
-func newLabelResponses(labels []domainlabel.Label) []labelResponse {
-	responses := make([]labelResponse, 0, len(labels))
-	for _, label := range labels {
-		responses = append(responses, newLabelResponse(label))
-	}
-
-	return responses
+	Labels []domainlabel.Label `json:"labels"`
 }

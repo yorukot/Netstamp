@@ -1,14 +1,10 @@
 package label
 
 import (
-	"errors"
+	"strings"
 	"time"
-)
 
-var (
-	ErrLabelNotFound      = errors.New("label not found")
-	ErrLabelAlreadyExists = errors.New("label already exists")
-	ErrInvalidInput       = errors.New("label input invalid")
+	"github.com/yorukot/spvalidator"
 )
 
 type Label struct {
@@ -21,15 +17,48 @@ type Label struct {
 	DeletedAt *time.Time
 }
 
-type CreateLabelStorageInput struct {
-	ProjectID string
-	Key       string
-	Value     string
+func VNLabelID(labelID string) (string, error) {
+	labelID = strings.TrimSpace(labelID)
+
+	err := spvalidator.Required(labelID)
+	if err != nil {
+		return "", err
+	}
+	err = spvalidator.UUID(labelID)
+	if err != nil {
+		return "", err
+	}
+	return labelID, nil
 }
 
-type UpdateLabelStorageInput struct {
-	ProjectID string
-	LabelID   string
-	Key       string
-	Value     string
+func VNLabelKey(key string) (string, error) {
+	key = strings.TrimSpace(key)
+
+	err := spvalidator.Min(key, 1)
+	if err != nil {
+		return "", err
+	}
+
+	err = spvalidator.Max(key, 64)
+	if err != nil {
+		return "", err
+	}
+
+	return key, nil
+}
+
+func VNLabelValue(value string) (string, error) {
+	value = strings.TrimSpace(value)
+
+	err := spvalidator.Min(value, 1)
+	if err != nil {
+		return "", err
+	}
+
+	err = spvalidator.Max(value, 64)
+	if err != nil {
+		return "", err
+	}
+
+	return value, nil
 }

@@ -1,74 +1,51 @@
 package label
 
-import appvalidation "github.com/yorukot/netstamp/internal/controller/application/validation"
-
-const (
-	maxLabelKeyRunes     = 100
-	maxLabelValueRunes   = 100
-	maxLabelProjectRunes = 100
+import (
+	appvalidation "github.com/yorukot/netstamp/internal/controller/application/validation"
+	domainlabel "github.com/yorukot/netstamp/internal/domain/label"
+	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 )
 
-type normalizedCreateLabelInput struct {
-	projectRef string
-	key        string
-	value      string
+func normalizeCreateLabelInput(input CreateLabelInput) (CreateLabelInput, error) {
+	projectRef, err := domainproject.VNProjectSlug(input.ProjectRef)
+	if err != nil {
+		return CreateLabelInput{}, invalidLabelField("projectRef", err.Error(), input.ProjectRef)
+	}
+	key, err := domainlabel.VNLabelKey(input.Key)
+	if err != nil {
+		return CreateLabelInput{}, invalidLabelField("key", err.Error(), input.Key)
+	}
+	value, err := domainlabel.VNLabelValue(input.Value)
+	if err != nil {
+		return CreateLabelInput{}, invalidLabelField("value", err.Error(), input.Value)
+	}
+
+	return CreateLabelInput{ProjectRef: projectRef, Key: key, Value: value}, nil
 }
 
-type normalizedUpdateLabelInput struct {
-	projectRef string
-	labelID    string
-	key        *string
-	value      *string
-}
-
-func normalizeCreateLabelInput(input CreateLabelInput) (normalizedCreateLabelInput, error) {
-	projectRef, err := normalizeLabelProjectRef(input.ProjectRef)
-	if err != nil {
-		return normalizedCreateLabelInput{}, err
-	}
-	key, err := appvalidation.RequiredString(ErrInvalidInput, "key", input.Key, maxLabelKeyRunes)
-	if err != nil {
-		return normalizedCreateLabelInput{}, err
-	}
-	value, err := appvalidation.RequiredString(ErrInvalidInput, "value", input.Value, maxLabelValueRunes)
-	if err != nil {
-		return normalizedCreateLabelInput{}, err
+func normalizeUpdateLabelInput(input UpdateLabelInput) (UpdateLabelInput, error) {
+	if input.Key == nil && input.Value == nil {
+		return UpdateLabelInput{}, invalidLabelField("", "at least one field must be provided", nil)
 	}
 
-	return normalizedCreateLabelInput{projectRef: projectRef, key: key, value: value}, nil
-}
-
-func normalizeUpdateLabelInput(input UpdateLabelInput) (normalizedUpdateLabelInput, error) {
-	projectRef, err := normalizeLabelProjectRef(input.ProjectRef)
+	projectRef, err := domainproject.VNProjectRef(input.ProjectRef)
 	if err != nil {
-		return normalizedUpdateLabelInput{}, err
+		return UpdateLabelInput{}, invalidLabelField("projectRef", err.Error(), input.ProjectRef)
 	}
-	labelID, err := normalizeLabelID(input.LabelID)
+	labelID, err := domainlabel.VNLabelID(input.LabelID)
 	if err != nil {
-		return normalizedUpdateLabelInput{}, err
+		return UpdateLabelInput{}, invalidLabelField("labelId", err.Error(), input.LabelID)
 	}
-	key, err := appvalidation.OptionalString(ErrInvalidInput, "key", input.Key, maxLabelKeyRunes)
+	key, err := domainlabel.VNLabelKey(*input.Key)
 	if err != nil {
-		return normalizedUpdateLabelInput{}, err
+		return UpdateLabelInput{}, invalidLabelField("key", err.Error(), input.Key)
 	}
-	value, err := appvalidation.OptionalString(ErrInvalidInput, "value", input.Value, maxLabelValueRunes)
+	value, err := domainlabel.VNLabelValue(*input.Value)
 	if err != nil {
-		return normalizedUpdateLabelInput{}, err
+		return UpdateLabelInput{}, invalidLabelField("value", err.Error(), input.Value)
 	}
 
-	return normalizedUpdateLabelInput{projectRef: projectRef, labelID: labelID, key: key, value: value}, nil
-}
-
-func normalizeLabelProjectRef(value string) (string, error) {
-	return appvalidation.RequiredString(ErrInvalidInput, "projectRef", value, maxLabelProjectRunes)
-}
-
-func normalizeLabelID(value string) (string, error) {
-	return appvalidation.CanonicalUUID(ErrInvalidInput, "labelId", value)
-}
-
-func normalizeResolveLabelIDs(values []string) ([]string, error) {
-	return appvalidation.CanonicalUUIDSet(ErrInvalidInput, "labelIds", values)
+	return UpdateLabelInput{ProjectRef: projectRef, LabelID: labelID, Key: &key, Value: &value}, nil
 }
 
 func invalidLabelField(field, message string, value any) error {

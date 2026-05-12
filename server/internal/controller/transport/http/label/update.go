@@ -23,16 +23,16 @@ func (h *Handler) updateLabel(ctx context.Context, input *updateLabelInput) (*la
 		return nil, mapLabelError(err, "update label failed")
 	}
 
-	return &labelOutput{Body: labelOutputBody{Label: newLabelResponse(label)}}, nil
+	return &labelOutput{Body: labelOutputBody{Label: label}}, nil
 }
 
 type updateLabelInput struct {
-	Ref     string `path:"ref" doc:"Project UUID or slug." example:"engineering"`
-	LabelID string `path:"label_id" doc:"Label ID."`
+	Ref string `path:"ref" minLength:"1" maxLength:"64" pattern:"^[a-z0-9-]+$" patternDescription:"lowercase letters, numbers, and dashes" doc:"Project UUID or slug." example:"engineering"`
+	LabelID string `path:"label_id" minLength:"1" format:"uuid" doc:"Label ID."`
 	Body    updateLabelInputBody
 }
 
 type updateLabelInputBody struct {
-	Key   *string `json:"key,omitempty" doc:"Label key." example:"region"`
-	Value *string `json:"value,omitempty" doc:"Label value." example:"tokyo"`
+	Key   *string `json:"key,omitempty" maxLength:"64" doc:"Label key." example:"region"`
+	Value *string `json:"value,omitempty" maxLength:"64" doc:"Label value." example:"tokyo"`
 }
