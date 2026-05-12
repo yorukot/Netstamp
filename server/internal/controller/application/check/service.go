@@ -27,6 +27,11 @@ func NewService(repo Repository, projectAccess ProjectAccess, labelAccess LabelA
 func (s *Service) ListChecks(ctx context.Context, input ListChecksInput) ([]domaincheck.Check, error) {
 	ctx, flow := s.startCheckFlow(ctx, "check.list", CheckActionList, input.CurrentUserID)
 	defer flow.end()
+
+	input, err := normalizeListChecksInput(input)
+	if err != nil {
+		return nil, flow.businessFailure(CheckEventListFailure, CheckReasonInvalidInput, err)
+	}
 	flow.setProjectRef(input.ProjectRef)
 
 	project, err := s.loadProject(ctx, flow, input.ProjectRef, input.CurrentUserID, CheckEventListFailure)
@@ -45,6 +50,11 @@ func (s *Service) ListChecks(ctx context.Context, input ListChecksInput) ([]doma
 func (s *Service) GetCheck(ctx context.Context, input GetCheckInput) (domaincheck.Check, error) {
 	ctx, flow := s.startCheckFlow(ctx, "check.get", CheckActionGet, input.CurrentUserID)
 	defer flow.end()
+
+	input, err := normalizeTargetCheckInput(input)
+	if err != nil {
+		return domaincheck.Check{}, flow.businessFailure(CheckEventGetFailure, CheckReasonInvalidInput, err)
+	}
 	flow.setProjectRef(input.ProjectRef)
 	flow.setCheckID(input.CheckID)
 
@@ -64,14 +74,14 @@ func (s *Service) GetCheck(ctx context.Context, input GetCheckInput) (domainchec
 func (s *Service) CreateCheck(ctx context.Context, input CreateCheckInput) (domaincheck.Check, error) {
 	ctx, flow := s.startCheckFlow(ctx, "check.create", CheckActionCreate, input.CurrentUserID)
 	defer flow.end()
-	flow.setProjectRef(input.ProjectRef)
 
 	normalized, err := normalizeCreateCheckInput(input)
 	if err != nil {
 		return domaincheck.Check{}, flow.businessFailure(CheckEventCreateFailure, CheckReasonInvalidInput, err)
 	}
+	flow.setProjectRef(normalized.projectRef)
 
-	project, err := s.loadProject(ctx, flow, input.ProjectRef, input.CurrentUserID, CheckEventCreateFailure)
+	project, err := s.loadProject(ctx, flow, normalized.projectRef, input.CurrentUserID, CheckEventCreateFailure)
 	if err != nil {
 		return domaincheck.Check{}, err
 	}
@@ -85,23 +95,22 @@ func (s *Service) CreateCheck(ctx context.Context, input CreateCheckInput) (doma
 		return domaincheck.Check{}, flow.labelLookupFailure(CheckEventCreateFailure, err)
 	}
 
-	check, err := s.repo.CreateCheck(ctx, domaincheck.CreateCheckStorageInput{
+	checkInput := domaincheck.Check{
 		ProjectID:       project.ID,
 		Name:            normalized.name,
 		Type:            normalized.checkType,
 		Target:          normalized.target,
 		Selector:        normalized.selector,
-		CheckVersion:    domaincheck.CheckVersion(normalized.executionSpec()),
-		SelectorVersion: domaincheck.SelectorVersion(normalized.selector),
 		Description:     normalized.description,
 		IntervalSeconds: normalized.intervalSeconds,
-		PingConfig:      normalized.pingConfig,
-		LabelIDs:        normalized.labelIDs,
-	})
+		PingConfig:      &normalized.pingConfig,
+	}
+	check, err := s.repo.CreateCheck(ctx, checkInput, normalized.labelIDs)
 	if err != nil {
 		return domaincheck.Check{}, flow.writeFailure(CheckEventCreateFailure, CheckReasonCheckCreateFailed, err)
 	}
 	check.Labels = labels
+	// TODO: Sync probe/check assignments for this check through the assignment service.
 	flow.setCheckID(check.ID)
 	flow.success(CheckEventCreateSuccess)
 
@@ -111,10 +120,15 @@ func (s *Service) CreateCheck(ctx context.Context, input CreateCheckInput) (doma
 func (s *Service) UpdateCheck(ctx context.Context, input UpdateCheckInput) (domaincheck.Check, error) {
 	ctx, flow := s.startCheckFlow(ctx, "check.update", CheckActionUpdate, input.CurrentUserID)
 	defer flow.end()
-	flow.setProjectRef(input.ProjectRef)
-	flow.setCheckID(input.CheckID)
 
-	project, err := s.loadProject(ctx, flow, input.ProjectRef, input.CurrentUserID, CheckEventUpdateFailure)
+	normalized, err := normalizeUpdateCheckInput(input)
+	if err != nil {
+		return domaincheck.Check{}, flow.businessFailure(CheckEventUpdateFailure, CheckReasonInvalidInput, err)
+	}
+	flow.setProjectRef(normalized.projectRef)
+	flow.setCheckID(normalized.checkID)
+
+	project, err := s.loadProject(ctx, flow, normalized.projectRef, input.CurrentUserID, CheckEventUpdateFailure)
 	if err != nil {
 		return domaincheck.Check{}, err
 	}
@@ -123,12 +137,7 @@ func (s *Service) UpdateCheck(ctx context.Context, input UpdateCheckInput) (doma
 		return domaincheck.Check{}, err
 	}
 
-	normalized, err := normalizeUpdateCheckInput(input)
-	if err != nil {
-		return domaincheck.Check{}, flow.businessFailure(CheckEventUpdateFailure, CheckReasonInvalidInput, err)
-	}
-
-	current, err := s.repo.GetCheck(ctx, project.ID, input.CheckID)
+	current, err := s.repo.GetCheck(ctx, project.ID, normalized.checkID)
 	if err != nil {
 		return domaincheck.Check{}, flow.checkLookupFailure(CheckEventUpdateFailure, err)
 	}
@@ -143,45 +152,74 @@ func (s *Service) UpdateCheck(ctx context.Context, input UpdateCheckInput) (doma
 		}
 	}
 
-	updatedPingConfig := domainping.Config{
-		PacketCount:     chooseInt32(current.PingConfig.PacketCount, normalized.packetCount),
-		PacketSizeBytes: chooseInt32(current.PingConfig.PacketSizeBytes, normalized.packetSizeBytes),
-		TimeoutMs:       chooseInt32(current.PingConfig.TimeoutMs, normalized.timeoutMs),
-		IPFamily:        chooseIPFamily(current.PingConfig.IPFamily, normalized.ipFamily),
+	currentPingConfig := domainping.DefaultConfig()
+	if current.PingConfig != nil {
+		currentPingConfig = *current.PingConfig
 	}
-	updatedSelector, err := canonicalizeSelector(chooseRawMessage(current.Selector, normalized.selector))
+	updatedPingConfig := currentPingConfig
+	if normalized.packetCount != nil {
+		updatedPingConfig.PacketCount = *normalized.packetCount
+	}
+	if normalized.packetSizeBytes != nil {
+		updatedPingConfig.PacketSizeBytes = *normalized.packetSizeBytes
+	}
+	if normalized.timeoutMs != nil {
+		updatedPingConfig.TimeoutMs = *normalized.timeoutMs
+	}
+	if normalized.ipFamily != nil {
+		updatedPingConfig.IPFamily = normalized.ipFamily
+	}
+
+	selector := current.Selector
+	if normalized.selector != nil {
+		selector = normalized.selector
+	}
+	updatedSelector, err := canonicalizeSelector(selector)
 	if err != nil {
 		return domaincheck.Check{}, flow.businessFailure(CheckEventUpdateFailure, CheckReasonInvalidInput, err)
 	}
 
-	updated := domaincheck.UpdateCheckStorageInput{
-		ProjectID:       project.ID,
-		CheckID:         input.CheckID,
-		Name:            chooseString(current.Name, normalized.name),
-		Type:            chooseCheckType(current.Type, normalized.checkType),
-		Target:          chooseString(current.Target, normalized.target),
-		Selector:        updatedSelector,
-		Description:     chooseOptionalString(current.Description, normalized.description),
-		IntervalSeconds: chooseInt32(current.IntervalSeconds, normalized.intervalSeconds),
-		PingConfig:      updatedPingConfig,
-		ReplaceLabels:   normalized.replaceLabels,
-		LabelIDs:        labelIDs,
+	name := current.Name
+	if normalized.name != nil {
+		name = *normalized.name
 	}
-	updated.CheckVersion = domaincheck.CheckVersion(domaincheck.ExecutionSpec{
-		Type:            updated.Type,
-		Target:          updated.Target,
-		IntervalSeconds: updated.IntervalSeconds,
-		PingConfig:      updated.PingConfig,
-	})
-	updated.SelectorVersion = domaincheck.SelectorVersion(updated.Selector)
+	checkType := current.Type
+	if normalized.checkType != nil {
+		checkType = *normalized.checkType
+	}
+	target := current.Target
+	if normalized.target != nil {
+		target = *normalized.target
+	}
+	description := current.Description
+	if normalized.description != nil {
+		description = normalized.description
+	}
+	intervalSeconds := current.IntervalSeconds
+	if normalized.intervalSeconds != nil {
+		intervalSeconds = *normalized.intervalSeconds
+	}
 
-	check, err := s.repo.UpdateCheck(ctx, updated)
+	updated := domaincheck.Check{
+		ProjectID:       project.ID,
+		ID:              normalized.checkID,
+		Name:            name,
+		Type:            checkType,
+		Target:          target,
+		Selector:        updatedSelector,
+		Description:     description,
+		IntervalSeconds: intervalSeconds,
+		PingConfig:      &updatedPingConfig,
+	}
+
+	check, err := s.repo.UpdateCheck(ctx, updated, normalized.replaceLabels, labelIDs)
 	if err != nil {
 		return domaincheck.Check{}, flow.writeFailure(CheckEventUpdateFailure, CheckReasonCheckUpdateFailed, err)
 	}
 	if normalized.replaceLabels {
 		check.Labels = resolvedLabels
 	}
+	// TODO: Sync probe/check assignments for this check through the assignment service.
 	flow.success(CheckEventUpdateSuccess)
 
 	return check, nil
@@ -190,6 +228,11 @@ func (s *Service) UpdateCheck(ctx context.Context, input UpdateCheckInput) (doma
 func (s *Service) DeleteCheck(ctx context.Context, input GetCheckInput) error {
 	ctx, flow := s.startCheckFlow(ctx, "check.delete", CheckActionDelete, input.CurrentUserID)
 	defer flow.end()
+
+	input, err := normalizeTargetCheckInput(input)
+	if err != nil {
+		return flow.businessFailure(CheckEventDeleteFailure, CheckReasonInvalidInput, err)
+	}
 	flow.setProjectRef(input.ProjectRef)
 	flow.setCheckID(input.CheckID)
 
@@ -204,6 +247,7 @@ func (s *Service) DeleteCheck(ctx context.Context, input GetCheckInput) error {
 	if err := s.repo.SoftDeleteCheck(ctx, project.ID, input.CheckID); err != nil {
 		return flow.writeFailure(CheckEventDeleteFailure, CheckReasonCheckDeleteFailed, err)
 	}
+	// TODO: Delete probe/check assignments for this check through the assignment service.
 	flow.success(CheckEventDeleteSuccess)
 
 	return nil

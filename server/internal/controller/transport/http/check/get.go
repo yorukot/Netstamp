@@ -21,10 +21,10 @@ func (h *Handler) getCheck(ctx context.Context, input *getCheckInput) (*checkOut
 		return nil, mapCheckError(err, "get check failed")
 	}
 
-	return &checkOutput{Body: checkOutputBody{Check: newCheckResponse(check)}}, nil
+	return &checkOutput{Body: checkOutputBody{Check: check}}, nil
 }
 
 type getCheckInput struct {
-	Ref     string `path:"ref" doc:"Project UUID or slug." example:"engineering"`
-	CheckID string `path:"check_id" doc:"Check ID." example:"33333333-3333-3333-3333-333333333333"`
+	Ref     string `path:"ref" minLength:"1" maxLength:"64" pattern:"^[a-z0-9-]+$" patternDescription:"lowercase letters, numbers, and dashes" doc:"Project slug or lowercase UUID." example:"engineering"`
+	CheckID string `path:"check_id" minLength:"1" format:"uuid" doc:"Check ID." example:"33333333-3333-3333-3333-333333333333"`
 }

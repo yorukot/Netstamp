@@ -1,12 +1,13 @@
 package ping
 
 import (
-	"encoding/json"
 	"errors"
+	"fmt"
 	"net/netip"
 	"time"
 
 	domainnetwork "github.com/yorukot/netstamp/internal/domain/network"
+	"github.com/yorukot/spvalidator"
 )
 
 const (
@@ -30,10 +31,62 @@ const (
 )
 
 type Config struct {
-	PacketCount     int32
-	PacketSizeBytes int32
-	TimeoutMs       int32
-	IPFamily        *domainnetwork.IPFamily
+	PacketCount     int32                   `json:"packetCount"`
+	PacketSizeBytes int32                   `json:"packetSizeBytes"`
+	TimeoutMs       int32                   `json:"timeoutMs"`
+	IPFamily        *domainnetwork.IPFamily `json:"ipFamily,omitempty"`
+}
+
+func DefaultConfig() Config {
+	return Config{
+		PacketCount:     DefaultPacketCount,
+		PacketSizeBytes: DefaultPacketSizeBytes,
+		TimeoutMs:       DefaultTimeoutMs,
+	}
+}
+
+func VNConfigPacketCount(packetCount int32) (int32, error) {
+	err := spvalidator.Min(packetCount, 1)
+	if err != nil {
+		return 0, err
+	}
+
+	return packetCount, nil
+}
+
+func VNConfigPacketSizeBytes(packetSizeBytes int32) (int32, error) {
+	err := spvalidator.Min(packetSizeBytes, 1)
+	if err != nil {
+		return 0, err
+	}
+
+	err = spvalidator.Max(packetSizeBytes, MaxPacketSizeBytes)
+	if err != nil {
+		return 0, err
+	}
+
+	return packetSizeBytes, nil
+}
+
+func VNConfigTimeoutMs(timeoutMs int32) (int32, error) {
+	err := spvalidator.Min(timeoutMs, 1)
+	if err != nil {
+		return 0, err
+	}
+
+	return timeoutMs, nil
+}
+
+func VNConfigIPFamily(ipFamily *domainnetwork.IPFamily) (*domainnetwork.IPFamily, error) {
+	if ipFamily == nil {
+		return nil, nil
+	}
+
+	if *ipFamily != domainnetwork.IPFamilyInet && *ipFamily != domainnetwork.IPFamilyInet6 {
+		return nil, fmt.Errorf("invalid ip family: %s", *ipFamily)
+	}
+
+	return ipFamily, nil
 }
 
 type Result struct {
@@ -55,101 +108,4 @@ type Result struct {
 	Raw           map[string]any
 	ErrorCode     *string
 	ErrorMessage  *string
-}
-
-type ResultStorageInput struct {
-	ProjectID     string
-	ProbeID       string
-	CheckID       string
-	StartedAt     time.Time
-	FinishedAt    time.Time
-	DurationMs    int32
-	Status        Status
-	SentCount     int32
-	ReceivedCount int32
-	LossPercent   float64
-	RttMinMs      *float64
-	RttAvgMs      *float64
-	RttMedianMs   *float64
-	RttMaxMs      *float64
-	RttStddevMs   *float64
-	RttSamplesMs  []float64
-	ResolvedIP    *netip.Addr
-	IPFamily      *domainnetwork.IPFamily
-	Raw           json.RawMessage
-	ErrorCode     *string
-	ErrorMessage  *string
-}
-
-type VersionPayload struct {
-	PacketCount     int32                   `json:"packetCount"`
-	PacketSizeBytes int32                   `json:"packetSizeBytes"`
-	TimeoutMs       int32                   `json:"timeoutMs"`
-	IPFamily        *domainnetwork.IPFamily `json:"ipFamily,omitempty"`
-}
-
-func DefaultConfig() Config {
-	return Config{
-		PacketCount:     DefaultPacketCount,
-		PacketSizeBytes: DefaultPacketSizeBytes,
-		TimeoutMs:       DefaultTimeoutMs,
-	}
-}
-
-func NewConfig(packetCount, packetSizeBytes, timeoutMs *int32, ipFamilyValue *string) (Config, error) {
-	config := DefaultConfig()
-
-	if packetCount != nil {
-		if err := ValidatePacketCount(*packetCount); err != nil {
-			return Config{}, err
-		}
-		config.PacketCount = *packetCount
-	}
-	if packetSizeBytes != nil {
-		if err := ValidatePacketSizeBytes(*packetSizeBytes); err != nil {
-			return Config{}, err
-		}
-		config.PacketSizeBytes = *packetSizeBytes
-	}
-	if timeoutMs != nil {
-		if err := ValidateTimeoutMs(*timeoutMs); err != nil {
-			return Config{}, err
-		}
-		config.TimeoutMs = *timeoutMs
-	}
-	ipFamily, err := domainnetwork.ParseOptionalIPFamily(ipFamilyValue)
-	if err != nil {
-		return Config{}, ErrInvalidConfig
-	}
-	config.IPFamily = ipFamily
-
-	return config, nil
-}
-
-func ValidatePacketCount(value int32) error {
-	if value <= 0 {
-		return ErrInvalidConfig
-	}
-
-	return nil
-}
-
-func ValidatePacketSizeBytes(value int32) error {
-	if value < 0 || value > MaxPacketSizeBytes {
-		return ErrInvalidConfig
-	}
-
-	return nil
-}
-
-func ValidateTimeoutMs(value int32) error {
-	if value <= 0 {
-		return ErrInvalidConfig
-	}
-
-	return nil
-}
-
-func ConfigVersionPayload(config Config) VersionPayload {
-	return VersionPayload(config)
 }

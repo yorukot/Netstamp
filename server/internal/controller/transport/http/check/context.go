@@ -26,7 +26,7 @@ func currentUserID(ctx context.Context) (string, error) {
 
 func mapCheckError(err error, fallback string) error {
 	switch {
-	case errors.Is(err, domainproject.ErrProjectNotFound), errors.Is(err, identity.ErrUserNotFound), errors.Is(err, domaincheck.ErrCheckNotFound), errors.Is(err, label.ErrLabelNotFound):
+	case errors.Is(err, domainproject.ErrProjectNotFound), errors.Is(err, domainproject.ErrMemberNotFound), errors.Is(err, identity.ErrUserNotFound), errors.Is(err, domaincheck.ErrCheckNotFound), errors.Is(err, label.ErrLabelNotFound):
 		return huma.Error404NotFound("not found")
 	case errors.Is(err, appcheck.ErrForbidden):
 		return huma.Error403Forbidden("forbidden")
@@ -56,8 +56,13 @@ func invalidCheckInputError(err error) error {
 }
 
 func checkErrorLocation(field string) string {
-	if field == "" {
+	switch field {
+	case "":
 		return "body"
+	case "projectRef":
+		return "path.ref"
+	case "checkId":
+		return "path.check_id"
 	}
 	if isPingConfigField(field) {
 		return "body.pingConfig." + field

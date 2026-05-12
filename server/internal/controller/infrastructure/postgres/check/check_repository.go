@@ -13,6 +13,7 @@ import (
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/sqlc"
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
 	domainlabel "github.com/yorukot/netstamp/internal/domain/label"
+	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 	domainselector "github.com/yorukot/netstamp/internal/domain/selector"
 )
@@ -89,21 +90,25 @@ func (r *CheckRepository) GetCheck(ctx context.Context, projectIDValue, checkIDV
 	return check, nil
 }
 
-func (r *CheckRepository) CreateCheck(ctx context.Context, input domaincheck.CreateCheckStorageInput) (domaincheck.Check, error) {
-	ctx, span := postgres.StartDBSpan(ctx, pgcheckTracer, "checks", "postgres.checks.create", "INSERT", "INSERT check, ping config, labels, and assignment links")
+func (r *CheckRepository) CreateCheck(ctx context.Context, input domaincheck.Check, labelIDValues []string) (domaincheck.Check, error) {
+	ctx, span := postgres.StartDBSpan(ctx, pgcheckTracer, "checks", "postgres.checks.create", "INSERT", "INSERT check, ping config, and labels")
 	defer span.End()
 
 	projectID, err := postgres.ParseUUID(input.ProjectID, domainproject.ErrProjectNotFound)
 	if err != nil {
 		return domaincheck.Check{}, err
 	}
-	labelIDs, err := pglabel.ParseLabelIDs(input.LabelIDs)
+	labelIDs, err := pglabel.ParseLabelIDs(labelIDValues)
 	if err != nil {
 		return domaincheck.Check{}, err
 	}
-	parsedSelector, err := domainselector.Parse(input.Selector)
-	if err != nil {
+	if _, err := domainselector.Parse(input.Selector); err != nil {
 		return domaincheck.Check{}, domaincheck.ErrInvalidInput
+	}
+	pingConfig := input.PingConfig
+	if pingConfig == nil {
+		defaultConfig := domainping.DefaultConfig()
+		pingConfig = &defaultConfig
 	}
 
 	var created domaincheck.Check
@@ -125,10 +130,10 @@ func (r *CheckRepository) CreateCheck(ctx context.Context, input domaincheck.Cre
 
 		config, configErr := q.CreatePingCheckConfig(ctx, sqlc.CreatePingCheckConfigParams{
 			CheckID:         row.ID,
-			PacketCount:     input.PingConfig.PacketCount,
-			PacketSizeBytes: input.PingConfig.PacketSizeBytes,
-			TimeoutMs:       input.PingConfig.TimeoutMs,
-			IpFamily:        sqlcIPFamily(input.PingConfig.IPFamily),
+			PacketCount:     pingConfig.PacketCount,
+			PacketSizeBytes: pingConfig.PacketSizeBytes,
+			TimeoutMs:       pingConfig.TimeoutMs,
+			IpFamily:        sqlcIPFamily(pingConfig.IPFamily),
 		})
 		if configErr != nil {
 			return mapCheckWriteError(configErr)
@@ -144,24 +149,6 @@ func (r *CheckRepository) CreateCheck(ctx context.Context, input domaincheck.Cre
 			}
 		}
 
-		// probe_check_assignments is a cache of the current probe/check links, so
-		// refresh it after the check row, config, and labels have been persisted.
-		probes, listProbeErr := r.listActiveEnabledProbeLabels(ctx, q, projectID)
-		if listProbeErr != nil {
-			return listProbeErr
-		}
-		for _, probeID := range matchingProbeIDs(parsedSelector, probes) {
-			if linkErr := q.CreateProbeCheckAssignment(ctx, sqlc.CreateProbeCheckAssignmentParams{
-				ProjectID:       projectID,
-				ProbeID:         probeID,
-				CheckID:         row.ID,
-				CheckVersion:    input.CheckVersion,
-				SelectorVersion: input.SelectorVersion,
-			}); linkErr != nil {
-				return mapCheckWriteError(linkErr)
-			}
-		}
-
 		created = mapStoredCheck(row, config)
 		return nil
 	})
@@ -173,21 +160,25 @@ func (r *CheckRepository) CreateCheck(ctx context.Context, input domaincheck.Cre
 	return created, nil
 }
 
-func (r *CheckRepository) UpdateCheck(ctx context.Context, input domaincheck.UpdateCheckStorageInput) (domaincheck.Check, error) {
-	ctx, span := postgres.StartDBSpan(ctx, pgcheckTracer, "checks", "postgres.checks.update", "UPDATE", "UPDATE check, ping config, labels, and assignment links")
+func (r *CheckRepository) UpdateCheck(ctx context.Context, input domaincheck.Check, replaceLabels bool, labelIDValues []string) (domaincheck.Check, error) {
+	ctx, span := postgres.StartDBSpan(ctx, pgcheckTracer, "checks", "postgres.checks.update", "UPDATE", "UPDATE check, ping config, and labels")
 	defer span.End()
 
-	projectID, checkID, err := parseProjectAndCheckIDs(input.ProjectID, input.CheckID)
+	projectID, checkID, err := parseProjectAndCheckIDs(input.ProjectID, input.ID)
 	if err != nil {
 		return domaincheck.Check{}, err
 	}
-	labelIDs, err := pglabel.ParseLabelIDs(input.LabelIDs)
+	labelIDs, err := pglabel.ParseLabelIDs(labelIDValues)
 	if err != nil {
 		return domaincheck.Check{}, err
 	}
-	parsedSelector, err := domainselector.Parse(input.Selector)
-	if err != nil {
+	if _, err := domainselector.Parse(input.Selector); err != nil {
 		return domaincheck.Check{}, domaincheck.ErrInvalidInput
+	}
+	pingConfig := input.PingConfig
+	if pingConfig == nil {
+		defaultConfig := domainping.DefaultConfig()
+		pingConfig = &defaultConfig
 	}
 
 	var updated domaincheck.Check
@@ -213,10 +204,10 @@ func (r *CheckRepository) UpdateCheck(ctx context.Context, input domaincheck.Upd
 
 		config, configErr := q.UpdatePingCheckConfig(ctx, sqlc.UpdatePingCheckConfigParams{
 			CheckID:         checkID,
-			PacketCount:     input.PingConfig.PacketCount,
-			PacketSizeBytes: input.PingConfig.PacketSizeBytes,
-			TimeoutMs:       input.PingConfig.TimeoutMs,
-			IpFamily:        sqlcIPFamily(input.PingConfig.IPFamily),
+			PacketCount:     pingConfig.PacketCount,
+			PacketSizeBytes: pingConfig.PacketSizeBytes,
+			TimeoutMs:       pingConfig.TimeoutMs,
+			IpFamily:        sqlcIPFamily(pingConfig.IPFamily),
 		})
 		if configErr != nil {
 			if errors.Is(configErr, pgx.ErrNoRows) {
@@ -225,7 +216,7 @@ func (r *CheckRepository) UpdateCheck(ctx context.Context, input domaincheck.Upd
 			return mapCheckWriteError(configErr)
 		}
 
-		if input.ReplaceLabels {
+		if replaceLabels {
 			if deleteErr := q.DeleteCheckLabels(ctx, sqlc.DeleteCheckLabelsParams{
 				ProjectID: projectID,
 				CheckID:   checkID,
@@ -243,10 +234,6 @@ func (r *CheckRepository) UpdateCheck(ctx context.Context, input domaincheck.Upd
 			}
 		}
 
-		if linkErr := r.refreshProbeCheckAssignments(ctx, q, projectID, checkID, parsedSelector, input); linkErr != nil {
-			return linkErr
-		}
-
 		updated = mapStoredCheck(row, config)
 		updated.Labels, err = r.listLabelsForCheck(ctx, q, projectID, checkID)
 		return err
@@ -259,43 +246,8 @@ func (r *CheckRepository) UpdateCheck(ctx context.Context, input domaincheck.Upd
 	return updated, nil
 }
 
-func (r *CheckRepository) refreshProbeCheckAssignments(
-	ctx context.Context,
-	queries *sqlc.Queries,
-	projectID uuid.UUID,
-	checkID uuid.UUID,
-	selector domainselector.Selector,
-	input domaincheck.UpdateCheckStorageInput,
-) error {
-	probes, err := r.listActiveEnabledProbeLabels(ctx, queries, projectID)
-	if err != nil {
-		return err
-	}
-
-	matchedProbeIDs := matchingProbeIDs(selector, probes)
-	for _, probeID := range matchedProbeIDs {
-		if linkErr := queries.UpsertProbeCheckAssignment(ctx, sqlc.UpsertProbeCheckAssignmentParams{
-			ProjectID:       projectID,
-			ProbeID:         probeID,
-			CheckID:         checkID,
-			CheckVersion:    input.CheckVersion,
-			SelectorVersion: input.SelectorVersion,
-		}); linkErr != nil {
-			return mapCheckWriteError(linkErr)
-		}
-	}
-
-	return queries.DeleteStaleProbeCheckAssignments(ctx, sqlc.DeleteStaleProbeCheckAssignmentsParams{
-		ProjectID:       projectID,
-		CheckID:         checkID,
-		CheckVersion:    input.CheckVersion,
-		SelectorVersion: input.SelectorVersion,
-		ProbeIds:        matchedProbeIDs,
-	})
-}
-
 func (r *CheckRepository) SoftDeleteCheck(ctx context.Context, projectIDValue, checkIDValue string) error {
-	ctx, span := postgres.StartDBSpan(ctx, pgcheckTracer, "checks", "postgres.checks.soft_delete", "UPDATE", "SOFT DELETE check and assignment links")
+	ctx, span := postgres.StartDBSpan(ctx, pgcheckTracer, "checks", "postgres.checks.soft_delete", "UPDATE", "SOFT DELETE check")
 	defer span.End()
 
 	projectID, checkID, err := parseProjectAndCheckIDs(projectIDValue, checkIDValue)
@@ -303,26 +255,14 @@ func (r *CheckRepository) SoftDeleteCheck(ctx context.Context, projectIDValue, c
 		return err
 	}
 
-	err = r.tx.InTx(ctx, func(ctx context.Context, tx pgx.Tx) error {
-		q := r.queries.WithTx(tx)
-
-		if _, deleteErr := q.SoftDeleteCheck(ctx, sqlc.SoftDeleteCheckParams{
-			ProjectID: projectID,
-			ID:        checkID,
-		}); deleteErr != nil {
-			if errors.Is(deleteErr, pgx.ErrNoRows) {
-				return domaincheck.ErrCheckNotFound
-			}
-			return deleteErr
-		}
-
-		// Once the check is deleted, no probe should keep a cached link to it.
-		return q.DeleteProbeCheckAssignmentsForCheck(ctx, sqlc.DeleteProbeCheckAssignmentsForCheckParams{
-			ProjectID: projectID,
-			CheckID:   checkID,
-		})
+	_, err = r.queries.SoftDeleteCheck(ctx, sqlc.SoftDeleteCheckParams{
+		ProjectID: projectID,
+		ID:        checkID,
 	})
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domaincheck.ErrCheckNotFound
+		}
 		postgres.RecordDBSpanError(span, err)
 		return err
 	}
@@ -340,61 +280,6 @@ func (r *CheckRepository) listLabelsForCheck(ctx context.Context, queries *sqlc.
 	}
 
 	return mapLabels(rows), nil
-}
-
-type activeProbeLabels struct {
-	probeID uuid.UUID
-	labels  []domainlabel.Label
-}
-
-func (r *CheckRepository) listActiveEnabledProbeLabels(ctx context.Context, queries *sqlc.Queries, projectID uuid.UUID) ([]activeProbeLabels, error) {
-	rows, err := queries.ListActiveEnabledProbeLabelsForProject(ctx, projectID)
-	if err != nil {
-		return nil, err
-	}
-
-	probeIndex := make(map[uuid.UUID]int)
-	probes := make([]activeProbeLabels, 0)
-	for _, row := range rows {
-		index, ok := probeIndex[row.ProbeID]
-		if !ok {
-			index = len(probes)
-			probeIndex[row.ProbeID] = index
-			probes = append(probes, activeProbeLabels{probeID: row.ProbeID})
-		}
-		if label, ok := mapProbeLabel(row); ok {
-			probes[index].labels = append(probes[index].labels, label)
-		}
-	}
-
-	return probes, nil
-}
-
-func matchingProbeIDs(selector domainselector.Selector, probes []activeProbeLabels) []uuid.UUID {
-	probeIDs := make([]uuid.UUID, 0, len(probes))
-	for _, probe := range probes {
-		if selector.Matches(probe.labels) {
-			probeIDs = append(probeIDs, probe.probeID)
-		}
-	}
-
-	return probeIDs
-}
-
-func mapProbeLabel(row sqlc.ListActiveEnabledProbeLabelsForProjectRow) (domainlabel.Label, bool) {
-	if row.LabelID == nil || row.LabelProjectID == nil || row.LabelKey == nil || row.LabelValue == nil {
-		return domainlabel.Label{}, false
-	}
-
-	return domainlabel.Label{
-		ID:        row.LabelID.String(),
-		ProjectID: row.LabelProjectID.String(),
-		Key:       *row.LabelKey,
-		Value:     *row.LabelValue,
-		CreatedAt: row.LabelCreatedAt.Time,
-		UpdatedAt: row.LabelUpdatedAt.Time,
-		DeletedAt: timePtr(row.LabelDeletedAt),
-	}, true
 }
 
 func parseProjectAndCheckIDs(projectIDValue, checkIDValue string) (uuid.UUID, uuid.UUID, error) {

@@ -35,7 +35,7 @@ func (h *Handler) RegisterRoutes(api huma.API) {
 		Tags:        []string{"Checks"},
 		Security:    security,
 		Middlewares: middlewares,
-		Errors:      []int{http.StatusUnauthorized, http.StatusNotFound, http.StatusInternalServerError},
+		Errors:      []int{http.StatusUnauthorized, http.StatusNotFound, http.StatusUnprocessableEntity, http.StatusInternalServerError},
 	}, h.listChecks)
 
 	huma.Register(api, huma.Operation{
@@ -58,7 +58,7 @@ func (h *Handler) RegisterRoutes(api huma.API) {
 		Tags:        []string{"Checks"},
 		Security:    security,
 		Middlewares: middlewares,
-		Errors:      []int{http.StatusUnauthorized, http.StatusNotFound, http.StatusInternalServerError},
+		Errors:      []int{http.StatusUnauthorized, http.StatusNotFound, http.StatusUnprocessableEntity, http.StatusInternalServerError},
 	}, h.getCheck)
 
 	huma.Register(api, huma.Operation{
@@ -81,6 +81,6 @@ func (h *Handler) RegisterRoutes(api huma.API) {
 		Tags:          []string{"Checks"},
 		Security:      security,
 		Middlewares:   middlewares,
-		Errors:        []int{http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound, http.StatusInternalServerError},
+		Errors:        []int{http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound, http.StatusUnprocessableEntity, http.StatusInternalServerError},
 	}, h.deleteCheck)
 }

@@ -11,8 +11,8 @@ import (
 type Repository interface {
 	ListChecks(ctx context.Context, projectID string) ([]domaincheck.Check, error)
 	GetCheck(ctx context.Context, projectID, checkID string) (domaincheck.Check, error)
-	CreateCheck(ctx context.Context, input domaincheck.CreateCheckStorageInput) (domaincheck.Check, error)
-	UpdateCheck(ctx context.Context, input domaincheck.UpdateCheckStorageInput) (domaincheck.Check, error)
+	CreateCheck(ctx context.Context, input domaincheck.Check, labelIDs []string) (domaincheck.Check, error)
+	UpdateCheck(ctx context.Context, input domaincheck.Check, replaceLabels bool, labelIDs []string) (domaincheck.Check, error)
 	SoftDeleteCheck(ctx context.Context, projectID, checkID string) error
 }
 

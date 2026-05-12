@@ -24,7 +24,7 @@ func mapStoredCheck(row sqlc.Check, config sqlc.PingCheckConfig) domaincheck.Che
 		Selector:        cloneRawMessage(row.Selector),
 		Description:     row.Description,
 		IntervalSeconds: row.IntervalSeconds,
-		PingConfig:      mapPingConfig(config),
+		PingConfig:      pingConfigPtr(mapPingConfig(config)),
 		CreatedAt:       row.CreatedAt.Time,
 		UpdatedAt:       row.UpdatedAt.Time,
 		DeletedAt:       timePtr(row.DeletedAt),
@@ -97,7 +97,7 @@ func mapSelectedCheck(
 		Selector:        cloneRawMessage(selector),
 		Description:     description,
 		IntervalSeconds: intervalSeconds,
-		PingConfig: domainping.Config{
+		PingConfig: &domainping.Config{
 			PacketCount:     packetCount,
 			PacketSizeBytes: packetSizeBytes,
 			TimeoutMs:       timeoutMs,
@@ -116,6 +116,10 @@ func mapPingConfig(row sqlc.PingCheckConfig) domainping.Config {
 		TimeoutMs:       row.TimeoutMs,
 		IPFamily:        mapIPFamily(row.IpFamily),
 	}
+}
+
+func pingConfigPtr(config domainping.Config) *domainping.Config {
+	return &config
 }
 
 func sqlcCheckType(value domaincheck.Type) sqlc.CheckType {

@@ -5,125 +5,196 @@ import (
 
 	appvalidation "github.com/yorukot/netstamp/internal/controller/application/validation"
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
+	domainlabel "github.com/yorukot/netstamp/internal/domain/label"
 	domainnetwork "github.com/yorukot/netstamp/internal/domain/network"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
+	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 	domainselector "github.com/yorukot/netstamp/internal/domain/selector"
-)
-
-const (
-	maxCheckNameRunes        = 100
-	maxCheckTargetRunes      = 255
-	maxCheckDescriptionRunes = 500
 )
 
 var defaultSelector = json.RawMessage(`{}`)
 
+func normalizeListChecksInput(input ListChecksInput) (ListChecksInput, error) {
+	projectRef, err := domainproject.VNProjectRef(input.ProjectRef)
+	if err != nil {
+		return ListChecksInput{}, invalidCheckField("projectRef", err.Error(), input.ProjectRef)
+	}
+
+	return ListChecksInput{CurrentUserID: input.CurrentUserID, ProjectRef: projectRef}, nil
+}
+
+func normalizeTargetCheckInput(input GetCheckInput) (GetCheckInput, error) {
+	projectRef, err := domainproject.VNProjectRef(input.ProjectRef)
+	if err != nil {
+		return GetCheckInput{}, invalidCheckField("projectRef", err.Error(), input.ProjectRef)
+	}
+	checkID, err := domaincheck.VNCheckID(input.CheckID)
+	if err != nil {
+		return GetCheckInput{}, invalidCheckField("checkId", err.Error(), input.CheckID)
+	}
+
+	return GetCheckInput{CurrentUserID: input.CurrentUserID, ProjectRef: projectRef, CheckID: checkID}, nil
+}
+
 func normalizeCreateCheckInput(input CreateCheckInput) (normalizedCreateCheckInput, error) {
-	name, err := appvalidation.RequiredString(ErrInvalidInput, "name", input.Name, maxCheckNameRunes)
+	projectRef, err := domainproject.VNProjectRef(input.ProjectRef)
 	if err != nil {
-		return normalizedCreateCheckInput{}, err
+		return normalizedCreateCheckInput{}, invalidCheckField("projectRef", err.Error(), input.ProjectRef)
 	}
-	checkType, err := normalizeCheckType(input.Type)
+	name, err := domaincheck.VNCheckName(input.Name)
 	if err != nil {
-		return normalizedCreateCheckInput{}, err
+		return normalizedCreateCheckInput{}, invalidCheckField("name", err.Error(), input.Name)
 	}
-	target, err := appvalidation.RequiredString(ErrInvalidInput, "target", input.Target, maxCheckTargetRunes)
+	checkType, err := domaincheck.VNCheckType(domaincheck.Type(input.Type))
 	if err != nil {
-		return normalizedCreateCheckInput{}, err
+		return normalizedCreateCheckInput{}, invalidCheckField("type", err.Error(), input.Type)
+	}
+	target, err := domaincheck.VNCheckTarget(input.Target)
+	if err != nil {
+		return normalizedCreateCheckInput{}, invalidCheckField("target", err.Error(), input.Target)
 	}
 	selector, err := normalizeCreateSelector(input.Selector)
 	if err != nil {
 		return normalizedCreateCheckInput{}, err
 	}
-	description, err := appvalidation.OptionalString(ErrInvalidInput, "description", input.Description, maxCheckDescriptionRunes)
+	description, err := domaincheck.VNCheckDescription(input.Description)
 	if err != nil {
-		return normalizedCreateCheckInput{}, err
+		return normalizedCreateCheckInput{}, invalidCheckField("description", err.Error(), input.Description)
 	}
-	intervalSeconds, err := appvalidation.PositiveInt32(ErrInvalidInput, "intervalSeconds", input.IntervalSeconds)
+	interval, err := domaincheck.VNCheckInterval(int(input.IntervalSeconds))
 	if err != nil {
-		return normalizedCreateCheckInput{}, err
+		return normalizedCreateCheckInput{}, invalidCheckField("intervalSeconds", err.Error(), input.IntervalSeconds)
 	}
 	pingConfig, err := normalizePingConfig(input.PingConfig)
 	if err != nil {
 		return normalizedCreateCheckInput{}, err
 	}
-	labelIDs, err := normalizeLabelIDs(input.LabelIDs)
+	labelIDs, err := domainlabel.VNLabelIDs(input.LabelIDs)
 	if err != nil {
-		return normalizedCreateCheckInput{}, err
+		return normalizedCreateCheckInput{}, invalidCheckField("labelIds", err.Error(), input.LabelIDs)
 	}
 
 	return normalizedCreateCheckInput{
+		projectRef:      projectRef,
 		name:            name,
 		checkType:       checkType,
 		target:          target,
 		selector:        selector,
 		description:     description,
-		intervalSeconds: intervalSeconds,
+		intervalSeconds: int32(interval),
 		pingConfig:      pingConfig,
 		labelIDs:        labelIDs,
 	}, nil
 }
 
-func (input normalizedCreateCheckInput) executionSpec() domaincheck.ExecutionSpec {
-	return domaincheck.ExecutionSpec{
-		Type:            input.checkType,
-		Target:          input.target,
-		IntervalSeconds: input.intervalSeconds,
-		PingConfig:      input.pingConfig,
-	}
-}
-
 func normalizeUpdateCheckInput(input UpdateCheckInput) (normalizedUpdateCheckInput, error) {
+	projectRef, err := domainproject.VNProjectRef(input.ProjectRef)
+	if err != nil {
+		return normalizedUpdateCheckInput{}, invalidCheckField("projectRef", err.Error(), input.ProjectRef)
+	}
+	checkID, err := domaincheck.VNCheckID(input.CheckID)
+	if err != nil {
+		return normalizedUpdateCheckInput{}, invalidCheckField("checkId", err.Error(), input.CheckID)
+	}
+
 	if !hasUpdateCheckChanges(input) {
 		return normalizedUpdateCheckInput{}, invalidCheckField("", "at least one field must be provided", nil)
 	}
 
-	name, err := appvalidation.OptionalString(ErrInvalidInput, "name", input.Name, maxCheckNameRunes)
-	if err != nil {
-		return normalizedUpdateCheckInput{}, err
+	var name *string
+	if input.Name != nil {
+		normalizedName, err := domaincheck.VNCheckName(*input.Name)
+		if err != nil {
+			return normalizedUpdateCheckInput{}, invalidCheckField("name", err.Error(), input.Name)
+		}
+		name = &normalizedName
 	}
-	checkType, err := normalizeOptionalCheckType(input.Type)
-	if err != nil {
-		return normalizedUpdateCheckInput{}, err
+
+	var checkType *domaincheck.Type
+	if input.Type != nil {
+		normalizedType, err := domaincheck.VNCheckType(domaincheck.Type(*input.Type))
+		if err != nil {
+			return normalizedUpdateCheckInput{}, invalidCheckField("type", err.Error(), input.Type)
+		}
+		checkType = &normalizedType
 	}
-	target, err := appvalidation.OptionalString(ErrInvalidInput, "target", input.Target, maxCheckTargetRunes)
-	if err != nil {
-		return normalizedUpdateCheckInput{}, err
+
+	var target *string
+	if input.Target != nil {
+		normalizedTarget, err := domaincheck.VNCheckTarget(*input.Target)
+		if err != nil {
+			return normalizedUpdateCheckInput{}, invalidCheckField("target", err.Error(), input.Target)
+		}
+		target = &normalizedTarget
 	}
+
 	selector, err := normalizeOptionalSelector(input.Selector)
 	if err != nil {
 		return normalizedUpdateCheckInput{}, err
 	}
-	description, err := appvalidation.OptionalString(ErrInvalidInput, "description", input.Description, maxCheckDescriptionRunes)
+	description, err := domaincheck.VNCheckDescription(input.Description)
 	if err != nil {
-		return normalizedUpdateCheckInput{}, err
+		return normalizedUpdateCheckInput{}, invalidCheckField("description", err.Error(), input.Description)
 	}
-	intervalSeconds, err := appvalidation.OptionalPositiveInt32(ErrInvalidInput, "intervalSeconds", input.IntervalSeconds)
-	if err != nil {
-		return normalizedUpdateCheckInput{}, err
+
+	var intervalSeconds *int32
+	if input.IntervalSeconds != nil {
+		interval, err := domaincheck.VNCheckInterval(int(*input.IntervalSeconds))
+		if err != nil {
+			return normalizedUpdateCheckInput{}, invalidCheckField("intervalSeconds", err.Error(), input.IntervalSeconds)
+		}
+		normalizedInterval := int32(interval)
+		intervalSeconds = &normalizedInterval
 	}
-	packetCount, err := normalizeOptionalPacketCount(input.PingConfig.packetCount())
-	if err != nil {
-		return normalizedUpdateCheckInput{}, err
+
+	var packetCount *int32
+	var packetSizeBytes *int32
+	var timeoutMs *int32
+	var ipFamily *domainnetwork.IPFamily
+	if input.PingConfig != nil {
+		if input.PingConfig.PacketCount != nil {
+			normalizedPacketCount, err := domainping.VNConfigPacketCount(*input.PingConfig.PacketCount)
+			if err != nil {
+				return normalizedUpdateCheckInput{}, invalidCheckField("packetCount", err.Error(), input.PingConfig.PacketCount)
+			}
+			packetCount = &normalizedPacketCount
+		}
+		if input.PingConfig.PacketSizeBytes != nil {
+			normalizedPacketSizeBytes, err := domainping.VNConfigPacketSizeBytes(*input.PingConfig.PacketSizeBytes)
+			if err != nil {
+				return normalizedUpdateCheckInput{}, invalidCheckField("packetSizeBytes", err.Error(), input.PingConfig.PacketSizeBytes)
+			}
+			packetSizeBytes = &normalizedPacketSizeBytes
+		}
+		if input.PingConfig.TimeoutMs != nil {
+			normalizedTimeoutMs, err := domainping.VNConfigTimeoutMs(*input.PingConfig.TimeoutMs)
+			if err != nil {
+				return normalizedUpdateCheckInput{}, invalidCheckField("timeoutMs", err.Error(), input.PingConfig.TimeoutMs)
+			}
+			timeoutMs = &normalizedTimeoutMs
+		}
+		ipFamily, err = domainnetwork.ParseOptionalIPFamily(input.PingConfig.IPFamily)
+		if err != nil {
+			return normalizedUpdateCheckInput{}, invalidCheckField("ipFamily", `must be "inet" or "inet6"`, input.PingConfig.IPFamily)
+		}
+		ipFamily, err = domainping.VNConfigIPFamily(ipFamily)
+		if err != nil {
+			return normalizedUpdateCheckInput{}, invalidCheckField("ipFamily", err.Error(), input.PingConfig.IPFamily)
+		}
 	}
-	packetSizeBytes, err := normalizeOptionalPacketSizeBytes(input.PingConfig.packetSizeBytes())
-	if err != nil {
-		return normalizedUpdateCheckInput{}, err
-	}
-	timeoutMs, err := normalizeOptionalTimeoutMs(input.PingConfig.timeoutMs())
-	if err != nil {
-		return normalizedUpdateCheckInput{}, err
-	}
-	ipFamily, err := normalizeOptionalIPFamily(input.PingConfig.ipFamily())
-	if err != nil {
-		return normalizedUpdateCheckInput{}, err
-	}
-	replaceLabels, labelIDs, err := normalizeOptionalLabelIDs(input.LabelIDs)
-	if err != nil {
-		return normalizedUpdateCheckInput{}, err
+
+	replaceLabels := input.LabelIDs != nil
+	var labelIDs []string
+	if input.LabelIDs != nil {
+		labelIDs, err = domainlabel.VNLabelIDs(*input.LabelIDs)
+		if err != nil {
+			return normalizedUpdateCheckInput{}, invalidCheckField("labelIds", err.Error(), input.LabelIDs)
+		}
 	}
 
 	return normalizedUpdateCheckInput{
+		projectRef:      projectRef,
+		checkID:         checkID,
 		name:            name,
 		checkType:       checkType,
 		target:          target,
@@ -151,59 +222,17 @@ func hasUpdateCheckChanges(input UpdateCheckInput) bool {
 }
 
 func (input *PingConfigInput) hasChanges() bool {
-	return input.packetCount() != nil ||
-		input.packetSizeBytes() != nil ||
-		input.timeoutMs() != nil ||
-		input.ipFamily() != nil
-}
-
-func (input *PingConfigInput) packetCount() *int32 {
 	if input == nil {
-		return nil
+		return false
 	}
-
-	return input.PacketCount
-}
-
-func (input *PingConfigInput) packetSizeBytes() *int32 {
-	if input == nil {
-		return nil
-	}
-
-	return input.PacketSizeBytes
-}
-
-func (input *PingConfigInput) timeoutMs() *int32 {
-	if input == nil {
-		return nil
-	}
-
-	return input.TimeoutMs
-}
-
-func (input *PingConfigInput) ipFamily() *string {
-	if input == nil {
-		return nil
-	}
-
-	return input.IPFamily
+	return input.PacketCount != nil ||
+		input.PacketSizeBytes != nil ||
+		input.TimeoutMs != nil ||
+		input.IPFamily != nil
 }
 
 func invalidCheckField(field, message string, value any) error {
 	return appvalidation.New(ErrInvalidInput, field, message, value)
-}
-
-func normalizeOptionalCheckType(value *string) (*domaincheck.Type, error) {
-	if value == nil {
-		return nil, nil //nolint:nilnil // A nil pointer is the explicit representation of an omitted optional field.
-	}
-
-	checkType, err := normalizeCheckType(*value)
-	if err != nil {
-		return nil, err
-	}
-
-	return &checkType, nil
 }
 
 func normalizeOptionalSelector(selector map[string]any) (json.RawMessage, error) {
@@ -220,13 +249,26 @@ func normalizeOptionalSelector(selector map[string]any) (json.RawMessage, error)
 	if err != nil {
 		return nil, invalidCheckField("selector", "must be a valid selector", selector)
 	}
+	canonical, err = domaincheck.VNCheckSelector(canonical)
+	if err != nil {
+		return nil, invalidCheckField("selector", err.Error(), selector)
+	}
 
 	return canonical, nil
 }
 
 func normalizeCreateSelector(selector map[string]any) (json.RawMessage, error) {
 	if selector == nil {
-		return canonicalizeSelector(nil)
+		canonical, err := canonicalizeSelector(nil)
+		if err != nil {
+			return nil, err
+		}
+		canonical, err = domaincheck.VNCheckSelector(canonical)
+		if err != nil {
+			return nil, invalidCheckField("selector", err.Error(), selector)
+		}
+
+		return canonical, nil
 	}
 
 	raw, err := normalizeSelector(selector)
@@ -237,6 +279,10 @@ func normalizeCreateSelector(selector map[string]any) (json.RawMessage, error) {
 	canonical, err := canonicalizeSelector(raw)
 	if err != nil {
 		return nil, invalidCheckField("selector", "must be a valid selector", selector)
+	}
+	canonical, err = domaincheck.VNCheckSelector(canonical)
+	if err != nil {
+		return nil, invalidCheckField("selector", err.Error(), selector)
 	}
 
 	return canonical, nil
@@ -249,53 +295,6 @@ func canonicalizeSelector(raw json.RawMessage) (json.RawMessage, error) {
 	}
 
 	return parsed.CanonicalJSON(), nil
-}
-
-func normalizeOptionalPacketCount(value *int32) (*int32, error) {
-	return appvalidation.OptionalPositiveInt32(ErrInvalidInput, "packetCount", value)
-}
-
-func normalizeOptionalPacketSizeBytes(value *int32) (*int32, error) {
-	return appvalidation.OptionalInt32Range(ErrInvalidInput, "packetSizeBytes", value, 0, domainping.MaxPacketSizeBytes)
-}
-
-func normalizeOptionalTimeoutMs(value *int32) (*int32, error) {
-	return appvalidation.OptionalPositiveInt32(ErrInvalidInput, "timeoutMs", value)
-}
-
-func normalizeOptionalIPFamily(value *string) (*domainnetwork.IPFamily, error) {
-	ipFamily, err := domainnetwork.ParseOptionalIPFamily(value)
-	if err != nil {
-		return nil, invalidCheckField("ipFamily", `must be "inet" or "inet6"`, *value)
-	}
-
-	return ipFamily, nil
-}
-
-func normalizeOptionalLabelIDs(value *[]string) (bool, []string, error) {
-	if value == nil {
-		return false, nil, nil
-	}
-
-	labelIDs, err := normalizeLabelIDs(*value)
-	if err != nil {
-		return false, nil, err
-	}
-
-	return true, labelIDs, nil
-}
-
-func normalizeCheckType(value string) (domaincheck.Type, error) {
-	raw := value
-	value, err := appvalidation.RequiredString(ErrInvalidInput, "type", value, 0)
-	if err != nil {
-		return "", err
-	}
-	if domaincheck.Type(value) != domaincheck.TypePing {
-		return "", invalidCheckField("type", `must be "ping"`, raw)
-	}
-
-	return domaincheck.TypePing, nil
 }
 
 func normalizeSelector(selector map[string]any) (json.RawMessage, error) {
@@ -314,87 +313,41 @@ func normalizeSelector(selector map[string]any) (json.RawMessage, error) {
 func normalizePingConfig(input *PingConfigInput) (domainping.Config, error) {
 	config := domainping.DefaultConfig()
 
-	normalizedPacketCount, err := normalizeOptionalPacketCount(input.packetCount())
-	if err != nil {
-		return domainping.Config{}, err
-	}
-	if normalizedPacketCount != nil {
-		config.PacketCount = *normalizedPacketCount
+	if input == nil {
+		return config, nil
 	}
 
-	normalizedPacketSizeBytes, err := normalizeOptionalPacketSizeBytes(input.packetSizeBytes())
-	if err != nil {
-		return domainping.Config{}, err
+	if input.PacketCount != nil {
+		packetCount, err := domainping.VNConfigPacketCount(*input.PacketCount)
+		if err != nil {
+			return domainping.Config{}, invalidCheckField("packetCount", err.Error(), input.PacketCount)
+		}
+		config.PacketCount = packetCount
 	}
-	if normalizedPacketSizeBytes != nil {
-		config.PacketSizeBytes = *normalizedPacketSizeBytes
+	if input.PacketSizeBytes != nil {
+		packetSizeBytes, err := domainping.VNConfigPacketSizeBytes(*input.PacketSizeBytes)
+		if err != nil {
+			return domainping.Config{}, invalidCheckField("packetSizeBytes", err.Error(), input.PacketSizeBytes)
+		}
+		config.PacketSizeBytes = packetSizeBytes
+	}
+	if input.TimeoutMs != nil {
+		timeoutMs, err := domainping.VNConfigTimeoutMs(*input.TimeoutMs)
+		if err != nil {
+			return domainping.Config{}, invalidCheckField("timeoutMs", err.Error(), input.TimeoutMs)
+		}
+		config.TimeoutMs = timeoutMs
 	}
 
-	normalizedTimeoutMs, err := normalizeOptionalTimeoutMs(input.timeoutMs())
+	ipFamily, err := domainnetwork.ParseOptionalIPFamily(input.IPFamily)
 	if err != nil {
-		return domainping.Config{}, err
+		return domainping.Config{}, invalidCheckField("ipFamily", `must be "inet" or "inet6"`, input.IPFamily)
 	}
-	if normalizedTimeoutMs != nil {
-		config.TimeoutMs = *normalizedTimeoutMs
-	}
-
-	ipFamily, err := normalizeOptionalIPFamily(input.ipFamily())
+	ipFamily, err = domainping.VNConfigIPFamily(ipFamily)
 	if err != nil {
-		return domainping.Config{}, err
+		return domainping.Config{}, invalidCheckField("ipFamily", err.Error(), input.IPFamily)
 	}
 	config.IPFamily = ipFamily
 
 	return config, nil
-}
-
-func normalizeLabelIDs(values []string) ([]string, error) {
-	return appvalidation.CanonicalUUIDSet(ErrInvalidInput, "labelIds", values)
-}
-
-func chooseString(current string, next *string) string {
-	if next == nil {
-		return current
-	}
-
-	return *next
-}
-
-func chooseCheckType(current domaincheck.Type, next *domaincheck.Type) domaincheck.Type {
-	if next == nil {
-		return current
-	}
-
-	return *next
-}
-
-func chooseRawMessage(current, next json.RawMessage) json.RawMessage {
-	if next == nil {
-		return current
-	}
-
-	return next
-}
-
-func chooseOptionalString(current, next *string) *string {
-	if next == nil {
-		return current
-	}
-
-	return next
-}
-
-func chooseInt32(current int32, next *int32) int32 {
-	if next == nil {
-		return current
-	}
-
-	return *next
-}
-
-func chooseIPFamily(current, next *domainnetwork.IPFamily) *domainnetwork.IPFamily {
-	if next == nil {
-		return current
-	}
-
-	return next
 }

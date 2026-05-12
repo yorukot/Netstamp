@@ -21,11 +21,11 @@ func (h *Handler) listChecks(ctx context.Context, input *listChecksInput) (*list
 		return nil, mapCheckError(err, "list checks failed")
 	}
 
-	return &listChecksOutput{Body: listChecksOutputBody{Checks: newCheckResponses(checks)}}, nil
+	return &listChecksOutput{Body: listChecksOutputBody{Checks: checks}}, nil
 }
 
 type listChecksInput struct {
-	Ref string `path:"ref" doc:"Project UUID or slug." example:"engineering"`
+	Ref string `path:"ref" minLength:"1" maxLength:"64" pattern:"^[a-z0-9-]+$" patternDescription:"lowercase letters, numbers, and dashes" doc:"Project slug or lowercase UUID." example:"engineering"`
 }
 
 type listChecksOutput struct {
@@ -33,14 +33,5 @@ type listChecksOutput struct {
 }
 
 type listChecksOutputBody struct {
-	Checks []checkResponse `json:"checks"`
-}
-
-func newCheckResponses(checks []domaincheck.Check) []checkResponse {
-	responses := make([]checkResponse, 0, len(checks))
-	for _, check := range checks {
-		responses = append(responses, newCheckResponse(check))
-	}
-
-	return responses
+	Checks []domaincheck.Check `json:"checks"`
 }

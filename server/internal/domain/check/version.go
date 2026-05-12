@@ -8,24 +8,21 @@ import (
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 )
 
-type ExecutionSpec struct {
-	Type            Type
-	Target          string
-	IntervalSeconds int32
-	PingConfig      domainping.Config
-}
-
-func CheckVersion(spec ExecutionSpec) string {
+func (c Check) CheckHash() string {
 	payload := struct {
-		Type            Type                      `json:"type"`
-		Target          string                    `json:"target"`
-		IntervalSeconds int32                     `json:"intervalSeconds"`
-		PingConfig      domainping.VersionPayload `json:"pingConfig"`
+		Type            Type               `json:"type"`
+		Target          string             `json:"target"`
+		IntervalSeconds int32              `json:"intervalSeconds"`
+		PingConfig      *domainping.Config `json:"pingConfig"`
 	}{
-		Type:            spec.Type,
-		Target:          spec.Target,
-		IntervalSeconds: spec.IntervalSeconds,
-		PingConfig:      domainping.ConfigVersionPayload(spec.PingConfig),
+		Type:            c.Type,
+		Target:          c.Target,
+		IntervalSeconds: c.IntervalSeconds,
+		PingConfig:      nil,
+	}
+
+	if c.PingConfig != nil {
+		payload.PingConfig = c.PingConfig
 	}
 
 	return hashJSON(payload)

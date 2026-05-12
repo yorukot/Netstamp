@@ -93,7 +93,7 @@ func (f *checkFlow) technicalFailure(name CheckEventName, reason CheckEventReaso
 
 func (f *checkFlow) projectLookupFailure(event CheckEventName, err error) error {
 	switch {
-	case errors.Is(err, domainproject.ErrProjectNotFound):
+	case errors.Is(err, domainproject.ErrProjectNotFound), errors.Is(err, domainproject.ErrMemberNotFound):
 		return f.businessFailure(event, CheckReasonProjectNotFound, err)
 	case errors.Is(err, identity.ErrUserNotFound):
 		return f.businessFailure(event, CheckReasonUserNotFound, err)
@@ -104,7 +104,7 @@ func (f *checkFlow) projectLookupFailure(event CheckEventName, err error) error 
 
 func (f *checkFlow) roleLookupFailure(event CheckEventName, err error) error {
 	switch {
-	case errors.Is(err, domainproject.ErrProjectNotFound):
+	case errors.Is(err, domainproject.ErrProjectNotFound), errors.Is(err, domainproject.ErrMemberNotFound):
 		return f.businessFailure(event, CheckReasonProjectNotFound, err)
 	case errors.Is(err, identity.ErrUserNotFound):
 		return f.businessFailure(event, CheckReasonUserNotFound, err)
