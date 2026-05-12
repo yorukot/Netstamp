@@ -1,8 +1,6 @@
 package label
 
-import (
-	domainlabel "github.com/yorukot/netstamp/internal/domain/label"
-)
+import domainlabel "github.com/yorukot/netstamp/internal/domain/label"
 
 type labelOutput struct {
 	Body labelOutputBody

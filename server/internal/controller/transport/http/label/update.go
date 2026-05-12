@@ -27,7 +27,7 @@ func (h *Handler) updateLabel(ctx context.Context, input *updateLabelInput) (*la
 }
 
 type updateLabelInput struct {
-	Ref string `path:"ref" minLength:"1" maxLength:"64" pattern:"^[a-z0-9-]+$" patternDescription:"lowercase letters, numbers, and dashes" doc:"Project UUID or slug." example:"engineering"`
+	Ref     string `path:"ref" minLength:"1" maxLength:"64" pattern:"^[a-z0-9-]+$" patternDescription:"lowercase letters, numbers, and dashes" doc:"Project UUID or slug." example:"engineering"`
 	LabelID string `path:"label_id" minLength:"1" format:"uuid" doc:"Label ID."`
 	Body    updateLabelInputBody
 }

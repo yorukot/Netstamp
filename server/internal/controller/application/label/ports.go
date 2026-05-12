@@ -16,6 +16,10 @@ type Repository interface {
 	GetActiveLabelsByIDsForProject(ctx context.Context, projectID string, labelIDs []string) ([]domainlabel.Label, error)
 }
 
+type AssignmentRefresher interface {
+	RefreshEffectiveProbeChecksForLabel(ctx context.Context, projectID, labelID string) error
+}
+
 type ProjectAccess interface {
 	GetProjectForUser(ctx context.Context, projectRef, userID string) (domainproject.Project, error)
 	GetMemberRole(ctx context.Context, projectID, userID string) (domainproject.Role, error)
@@ -58,20 +62,21 @@ const (
 type LabelEventReason string
 
 const (
-	LabelReasonInvalidInput        LabelEventReason = "invalid_input"
-	LabelReasonForbidden           LabelEventReason = "forbidden"
-	LabelReasonProjectNotFound     LabelEventReason = "project_not_found"
-	LabelReasonUserNotFound        LabelEventReason = "user_not_found"
-	LabelReasonLabelNotFound       LabelEventReason = "label_not_found"
-	LabelReasonLabelAlreadyExists  LabelEventReason = "label_already_exists"
-	LabelReasonProjectLookupFailed LabelEventReason = "project_lookup_failed"
-	LabelReasonRoleLookupFailed    LabelEventReason = "role_lookup_failed"
-	LabelReasonLabelListFailed     LabelEventReason = "label_list_failed"
-	LabelReasonLabelLookupFailed   LabelEventReason = "label_lookup_failed"
-	LabelReasonLabelCreateFailed   LabelEventReason = "label_create_failed"
-	LabelReasonLabelUpdateFailed   LabelEventReason = "label_update_failed"
-	LabelReasonLabelDeleteFailed   LabelEventReason = "label_delete_failed"
-	LabelReasonLabelResolveFailed  LabelEventReason = "label_resolve_failed"
+	LabelReasonInvalidInput            LabelEventReason = "invalid_input"
+	LabelReasonForbidden               LabelEventReason = "forbidden"
+	LabelReasonProjectNotFound         LabelEventReason = "project_not_found"
+	LabelReasonUserNotFound            LabelEventReason = "user_not_found"
+	LabelReasonLabelNotFound           LabelEventReason = "label_not_found"
+	LabelReasonLabelAlreadyExists      LabelEventReason = "label_already_exists"
+	LabelReasonProjectLookupFailed     LabelEventReason = "project_lookup_failed"
+	LabelReasonRoleLookupFailed        LabelEventReason = "role_lookup_failed"
+	LabelReasonLabelListFailed         LabelEventReason = "label_list_failed"
+	LabelReasonLabelLookupFailed       LabelEventReason = "label_lookup_failed"
+	LabelReasonLabelCreateFailed       LabelEventReason = "label_create_failed"
+	LabelReasonLabelUpdateFailed       LabelEventReason = "label_update_failed"
+	LabelReasonLabelDeleteFailed       LabelEventReason = "label_delete_failed"
+	LabelReasonLabelResolveFailed      LabelEventReason = "label_resolve_failed"
+	LabelReasonAssignmentRefreshFailed LabelEventReason = "assignment_refresh_failed"
 )
 
 type LabelEvent struct {

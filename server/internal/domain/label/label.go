@@ -8,13 +8,13 @@ import (
 )
 
 type Label struct {
-	ID        string
-	ProjectID string
-	Key       string
-	Value     string
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	DeletedAt *time.Time
+	ID        string     `json:"id"`
+	ProjectID string     `json:"projectId"`
+	Key       string     `json:"key"`
+	Value     string     `json:"value"`
+	CreatedAt time.Time  `json:"createdAt"`
+	UpdatedAt time.Time  `json:"updatedAt"`
+	DeletedAt *time.Time `json:"-"`
 }
 
 func VNLabelID(labelID string) (string, error) {

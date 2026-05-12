@@ -9,16 +9,19 @@ import (
 )
 
 type Service struct {
-	repo          Repository
-	projectAccess ProjectAccess
-	events        EventRecorder
+	repo                Repository
+	projectAccess       ProjectAccess
+	events              EventRecorder
+	assignmentRefresher AssignmentRefresher
 }
 
-func NewService(repo Repository, projectAccess ProjectAccess, events EventRecorder) *Service {
+func NewService(repo Repository, projectAccess ProjectAccess, events EventRecorder, assignmentRefresher AssignmentRefresher) *Service {
+
 	return &Service{
-		repo:          repo,
-		projectAccess: projectAccess,
-		events:        events,
+		repo:                repo,
+		projectAccess:       projectAccess,
+		events:              events,
+		assignmentRefresher: assignmentRefresher,
 	}
 }
 
@@ -133,7 +136,7 @@ func (s *Service) DeleteLabel(ctx context.Context, input DeleteLabelInput) error
 	}
 	labelID, err := domainlabel.VNLabelID(input.LabelID)
 	if err != nil {
-		err = invalidLabelField("labelID", err.Error(), input.LabelID)
+		err = invalidLabelField("labelId", err.Error(), input.LabelID)
 		return flow.businessFailure(LabelEventDeleteFailure, LabelReasonInvalidInput, err)
 	}
 	flow.setProjectRef(projectRef)
@@ -149,6 +152,9 @@ func (s *Service) DeleteLabel(ctx context.Context, input DeleteLabelInput) error
 
 	if err := s.repo.SoftDeleteLabel(ctx, project.ID, labelID); err != nil {
 		return flow.writeFailure(LabelEventDeleteFailure, LabelReasonLabelDeleteFailed, err)
+	}
+	if err := s.assignmentRefresher.RefreshEffectiveProbeChecksForLabel(ctx, project.ID, labelID); err != nil {
+		return flow.technicalFailure(LabelEventDeleteFailure, LabelReasonAssignmentRefreshFailed, err)
 	}
 	flow.success(LabelEventDeleteSuccess)
 

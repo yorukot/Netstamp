@@ -65,7 +65,7 @@ func (r *AuthEventRecorder) emailHash(email string) string {
 
 func isExpectedAuthFailure(event appauth.AuthEvent) bool {
 	switch event.Reason {
-	case appauth.AuthReasonCredentialsInvalid, appauth.AuthReasonEmailAlreadyExists, appauth.AuthReasonUserInactive:
+	case appauth.AuthReasonCredentialsInvalid, appauth.AuthReasonEmailAlreadyExists:
 		return true
 	default:
 		return false
