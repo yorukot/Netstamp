@@ -252,6 +252,7 @@ func (noopEvents) RecordCheckEvent(context.Context, appcheck.CheckEvent)       {
 func (noopEvents) RecordProbeEvent(context.Context, appprobe.ProbeEvent)       {}
 func (noopEvents) RecordAssignmentEvent(context.Context, appassignment.AssignmentEvent) {
 }
+
 func (noopEvents) RecordProbeRuntimeEvent(context.Context, appproberuntime.ProbeRuntimeEvent) {
 }
 
