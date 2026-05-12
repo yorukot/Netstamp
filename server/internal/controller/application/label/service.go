@@ -120,6 +120,9 @@ func (s *Service) UpdateLabel(ctx context.Context, input UpdateLabelInput) (doma
 	if err != nil {
 		return domainlabel.Label{}, flow.writeFailure(LabelEventUpdateFailure, LabelReasonLabelUpdateFailed, err)
 	}
+
+	// TODO: Once we update the label we need to update all the assigment at the probe and check.
+
 	flow.setLabelID(label.ID)
 	flow.success(LabelEventUpdateSuccess)
 
@@ -156,6 +159,9 @@ func (s *Service) DeleteLabel(ctx context.Context, input DeleteLabelInput) error
 	if err := s.assignmentRefresher.RefreshEffectiveProbeChecksForLabel(ctx, project.ID, labelID); err != nil {
 		return flow.technicalFailure(LabelEventDeleteFailure, LabelReasonAssignmentRefreshFailed, err)
 	}
+
+	// TODO: Once we update the label we need to update all the assigment at the probe and check.
+
 	flow.success(LabelEventDeleteSuccess)
 
 	return nil
