@@ -1,4 +1,4 @@
-package proberegistry
+package probe
 
 import (
 	"context"

@@ -3,7 +3,7 @@ package probe
 import (
 	"context"
 
-	appprobe "github.com/yorukot/netstamp/internal/controller/application/proberegistry"
+	appprobe "github.com/yorukot/netstamp/internal/controller/application/probe"
 )
 
 func (h *Handler) getProbe(ctx context.Context, input *probeRefInput) (*probeOutput, error) {

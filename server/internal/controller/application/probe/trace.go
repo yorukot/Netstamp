@@ -1,4 +1,4 @@
-package proberegistry
+package probe
 
 import (
 	"go.opentelemetry.io/otel"
@@ -7,7 +7,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-var probeTracer = otel.Tracer("github.com/yorukot/netstamp/internal/controller/application/proberegistry")
+var probeTracer = otel.Tracer("github.com/yorukot/netstamp/internal/controller/application/probe")
 
 var (
 	attrProbeAction        = attribute.Key("probe.action")

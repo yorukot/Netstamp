@@ -6,7 +6,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
-	appprobe "github.com/yorukot/netstamp/internal/controller/application/proberegistry"
+	appprobe "github.com/yorukot/netstamp/internal/controller/application/probe"
 	appvalidation "github.com/yorukot/netstamp/internal/controller/application/validation"
 	httpmiddleware "github.com/yorukot/netstamp/internal/controller/transport/http/middleware"
 	"github.com/yorukot/netstamp/internal/domain/label"

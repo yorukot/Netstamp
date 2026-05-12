@@ -6,7 +6,7 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 
 	appauth "github.com/yorukot/netstamp/internal/controller/application/auth"
-	appprobe "github.com/yorukot/netstamp/internal/controller/application/proberegistry"
+	appprobe "github.com/yorukot/netstamp/internal/controller/application/probe"
 	httpmiddleware "github.com/yorukot/netstamp/internal/controller/transport/http/middleware"
 )
 

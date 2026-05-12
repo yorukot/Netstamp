@@ -1,4 +1,4 @@
-package proberegistry
+package probe
 
 import domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
 

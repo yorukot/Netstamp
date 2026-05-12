@@ -16,7 +16,7 @@ import (
 	appauth "github.com/yorukot/netstamp/internal/controller/application/auth"
 	appcheck "github.com/yorukot/netstamp/internal/controller/application/check"
 	applabel "github.com/yorukot/netstamp/internal/controller/application/label"
-	appprobe "github.com/yorukot/netstamp/internal/controller/application/proberegistry"
+	appprobe "github.com/yorukot/netstamp/internal/controller/application/probe"
 	appproberuntime "github.com/yorukot/netstamp/internal/controller/application/proberuntime"
 	appproject "github.com/yorukot/netstamp/internal/controller/application/project"
 	authhttp "github.com/yorukot/netstamp/internal/controller/transport/http/auth"

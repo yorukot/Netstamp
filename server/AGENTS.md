@@ -9,7 +9,7 @@ This guide applies to `server/`, the Go backend for the Netstamp workspace. The 
 - `cmd/migrate/main.go`: Goose migration CLI for `status`, `up`, and `down`.
 - `internal/controller/app/`: composition root and lifecycle. `bootstrap.go` wires config, logging, tracing, PostgreSQL, auth, and HTTP. `lifecycle.go` starts and gracefully stops the HTTP listener.
 - `internal/controller/transport/http/`: chi/Huma HTTP routing, auth, project, label, probe management, probe runtime, system health routes, and middleware.
-- `internal/controller/application/auth/`, `internal/controller/application/project/`, `internal/controller/application/label/`, `internal/controller/application/check/`, `internal/controller/application/proberegistry/`, and `internal/controller/application/proberuntime/`: controller use cases, ports, DTOs, errors, and feature orchestration.
+- `internal/controller/application/auth/`, `internal/controller/application/project/`, `internal/controller/application/label/`, `internal/controller/application/check/`, `internal/controller/application/probe/`, and `internal/controller/application/proberuntime/`: controller use cases, ports, DTOs, errors, and feature orchestration.
 - `internal/probe/`: Go probe runtime packages for environment config, controller polling, assignment scheduling, bounded execution, raw ICMP ping checks, and result reporting.
 - `internal/domain/identity/`, `internal/domain/project/`, `internal/domain/label/`, `internal/domain/check/`, `internal/domain/ping/`, and `internal/domain/probe/`: stable domain structs and domain-level sentinel errors.
 - `internal/controller/infrastructure/`: PostgreSQL repositories and pool helpers, JWT issuing, Argon2id password hashing, and probe secret generation/verification.

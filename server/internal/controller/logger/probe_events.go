@@ -5,7 +5,7 @@ import (
 
 	"go.uber.org/zap"
 
-	appprobe "github.com/yorukot/netstamp/internal/controller/application/proberegistry"
+	appprobe "github.com/yorukot/netstamp/internal/controller/application/probe"
 )
 
 type ProbeEventRecorder struct {
