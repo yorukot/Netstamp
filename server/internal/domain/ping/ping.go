@@ -81,7 +81,7 @@ func VNConfigTimeoutMs(timeoutMs int32) (int32, error) {
 
 func VNConfigIPFamily(ipFamily *domainnetwork.IPFamily) (*domainnetwork.IPFamily, error) {
 	if ipFamily == nil {
-		return nil, nil
+		return nil, nil //nolint:nilnil // Nil means the caller did not provide an IP family override.
 	}
 
 	if *ipFamily != domainnetwork.IPFamilyInet && *ipFamily != domainnetwork.IPFamilyInet6 {

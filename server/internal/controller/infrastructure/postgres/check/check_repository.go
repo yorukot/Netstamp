@@ -102,7 +102,7 @@ func (r *CheckRepository) CreateCheck(ctx context.Context, input domaincheck.Che
 	if err != nil {
 		return domaincheck.Check{}, err
 	}
-	if _, err := domainselector.Parse(input.Selector); err != nil {
+	if _, parseErr := domainselector.Parse(input.Selector); parseErr != nil {
 		return domaincheck.Check{}, domaincheck.ErrInvalidInput
 	}
 	pingConfig := input.PingConfig
@@ -172,7 +172,7 @@ func (r *CheckRepository) UpdateCheck(ctx context.Context, input domaincheck.Che
 	if err != nil {
 		return domaincheck.Check{}, err
 	}
-	if _, err := domainselector.Parse(input.Selector); err != nil {
+	if _, parseErr := domainselector.Parse(input.Selector); parseErr != nil {
 		return domaincheck.Check{}, domaincheck.ErrInvalidInput
 	}
 	pingConfig := input.PingConfig

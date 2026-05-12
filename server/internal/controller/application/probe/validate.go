@@ -85,8 +85,6 @@ func normalizeUpdateProbeInput(input UpdateProbeInput) (UpdateProbeInput, error)
 	}
 
 	var output UpdateProbeInput
-	output.ProjectRef = projectRef
-	output.ProbeID = probeID
 
 	if input.Name != nil {
 		name, err := domainprobe.VNProbeName(*input.Name)

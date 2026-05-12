@@ -36,15 +36,15 @@ func VNLabelIDs(labelIDs []string) ([]string, error) {
 	normalized := make([]string, 0, len(labelIDs))
 	seen := make(map[string]struct{}, len(labelIDs))
 	for _, labelID := range labelIDs {
-		labelID, err := VNLabelID(labelID)
+		normalizedLabelID, err := VNLabelID(labelID)
 		if err != nil {
 			return nil, err
 		}
-		if _, ok := seen[labelID]; ok {
+		if _, ok := seen[normalizedLabelID]; ok {
 			return nil, errors.New("label IDs must be unique")
 		}
-		seen[labelID] = struct{}{}
-		normalized = append(normalized, labelID)
+		seen[normalizedLabelID] = struct{}{}
+		normalized = append(normalized, normalizedLabelID)
 	}
 
 	return normalized, nil

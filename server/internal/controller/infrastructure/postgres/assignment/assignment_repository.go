@@ -40,12 +40,12 @@ func (r *AssignmentRepository) RefreshProbeCheckAssignmentsForProbe(ctx context.
 	err = r.tx.InTx(ctx, func(ctx context.Context, tx pgx.Tx) error {
 		q := r.queries.WithTx(tx)
 
-		rows, err := q.GetActiveProbeRowsForProject(ctx, sqlc.GetActiveProbeRowsForProjectParams{
+		rows, queryErr := q.GetActiveProbeRowsForProject(ctx, sqlc.GetActiveProbeRowsForProjectParams{
 			ProjectID: projectID,
 			ID:        probeID,
 		})
-		if err != nil {
-			return err
+		if queryErr != nil {
+			return queryErr
 		}
 		probe, ok := activeProbeFromRows(rows)
 		if !ok {
@@ -74,15 +74,15 @@ func (r *AssignmentRepository) RefreshProbeCheckAssignmentsForCheck(ctx context.
 	err = r.tx.InTx(ctx, func(ctx context.Context, tx pgx.Tx) error {
 		q := r.queries.WithTx(tx)
 
-		row, err := q.GetActiveCheckForProject(ctx, sqlc.GetActiveCheckForProjectParams{
+		row, queryErr := q.GetActiveCheckForProject(ctx, sqlc.GetActiveCheckForProjectParams{
 			ProjectID: projectID,
 			ID:        checkID,
 		})
-		if errors.Is(err, pgx.ErrNoRows) {
+		if errors.Is(queryErr, pgx.ErrNoRows) {
 			return domaincheck.ErrCheckNotFound
 		}
-		if err != nil {
-			return err
+		if queryErr != nil {
+			return queryErr
 		}
 
 		return r.refreshProbeCheckAssignmentsForCheck(ctx, q, row)
@@ -107,12 +107,12 @@ func (r *AssignmentRepository) RefreshProbeCheckAssignmentsForLabel(ctx context.
 	err = r.tx.InTx(ctx, func(ctx context.Context, tx pgx.Tx) error {
 		q := r.queries.WithTx(tx)
 
-		targets, err := q.ListProbeRefreshTargetsForLabel(ctx, sqlc.ListProbeRefreshTargetsForLabelParams{
+		targets, queryErr := q.ListProbeRefreshTargetsForLabel(ctx, sqlc.ListProbeRefreshTargetsForLabelParams{
 			ProjectID: projectID,
 			LabelID:   labelID,
 		})
-		if err != nil {
-			return err
+		if queryErr != nil {
+			return queryErr
 		}
 
 		for _, target := range targets {
@@ -120,8 +120,8 @@ func (r *AssignmentRepository) RefreshProbeCheckAssignmentsForLabel(ctx context.
 				probeID: target.ID,
 				enabled: target.Enabled,
 			}
-			if err := r.refreshProbeCheckAssignmentsForProbe(ctx, q, projectID, probe); err != nil {
-				return err
+			if refreshErr := r.refreshProbeCheckAssignmentsForProbe(ctx, q, projectID, probe); refreshErr != nil {
+				return refreshErr
 			}
 		}
 

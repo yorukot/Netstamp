@@ -61,7 +61,7 @@ func normalizeCreateCheckInput(input CreateCheckInput) (normalizedCreateCheckInp
 	if err != nil {
 		return normalizedCreateCheckInput{}, invalidCheckField("description", err.Error(), input.Description)
 	}
-	interval, err := domaincheck.VNCheckInterval(int(input.IntervalSeconds))
+	interval, err := domaincheck.VNCheckInterval(input.IntervalSeconds)
 	if err != nil {
 		return normalizedCreateCheckInput{}, invalidCheckField("intervalSeconds", err.Error(), input.IntervalSeconds)
 	}
@@ -81,7 +81,7 @@ func normalizeCreateCheckInput(input CreateCheckInput) (normalizedCreateCheckInp
 		target:          target,
 		selector:        selector,
 		description:     description,
-		intervalSeconds: int32(interval),
+		intervalSeconds: interval,
 		pingConfig:      pingConfig,
 		labelIDs:        labelIDs,
 	}, nil
@@ -101,33 +101,18 @@ func normalizeUpdateCheckInput(input UpdateCheckInput) (normalizedUpdateCheckInp
 		return normalizedUpdateCheckInput{}, invalidCheckField("", "at least one field must be provided", nil)
 	}
 
-	var name *string
-	if input.Name != nil {
-		normalizedName, err := domaincheck.VNCheckName(*input.Name)
-		if err != nil {
-			return normalizedUpdateCheckInput{}, invalidCheckField("name", err.Error(), input.Name)
-		}
-		name = &normalizedName
+	name, err := normalizeOptionalCheckName(input.Name)
+	if err != nil {
+		return normalizedUpdateCheckInput{}, err
 	}
-
-	var checkType *domaincheck.Type
-	if input.Type != nil {
-		normalizedType, err := domaincheck.VNCheckType(domaincheck.Type(*input.Type))
-		if err != nil {
-			return normalizedUpdateCheckInput{}, invalidCheckField("type", err.Error(), input.Type)
-		}
-		checkType = &normalizedType
+	checkType, err := normalizeOptionalCheckType(input.Type)
+	if err != nil {
+		return normalizedUpdateCheckInput{}, err
 	}
-
-	var target *string
-	if input.Target != nil {
-		normalizedTarget, err := domaincheck.VNCheckTarget(*input.Target)
-		if err != nil {
-			return normalizedUpdateCheckInput{}, invalidCheckField("target", err.Error(), input.Target)
-		}
-		target = &normalizedTarget
+	target, err := normalizeOptionalCheckTarget(input.Target)
+	if err != nil {
+		return normalizedUpdateCheckInput{}, err
 	}
-
 	selector, err := normalizeOptionalSelector(input.Selector)
 	if err != nil {
 		return normalizedUpdateCheckInput{}, err
@@ -137,59 +122,18 @@ func normalizeUpdateCheckInput(input UpdateCheckInput) (normalizedUpdateCheckInp
 		return normalizedUpdateCheckInput{}, invalidCheckField("description", err.Error(), input.Description)
 	}
 
-	var intervalSeconds *int32
-	if input.IntervalSeconds != nil {
-		interval, err := domaincheck.VNCheckInterval(int(*input.IntervalSeconds))
-		if err != nil {
-			return normalizedUpdateCheckInput{}, invalidCheckField("intervalSeconds", err.Error(), input.IntervalSeconds)
-		}
-		normalizedInterval := int32(interval)
-		intervalSeconds = &normalizedInterval
+	intervalSeconds, err := normalizeOptionalCheckInterval(input.IntervalSeconds)
+	if err != nil {
+		return normalizedUpdateCheckInput{}, err
+	}
+	pingConfig, err := normalizeUpdatePingConfig(input.PingConfig)
+	if err != nil {
+		return normalizedUpdateCheckInput{}, err
 	}
 
-	var packetCount *int32
-	var packetSizeBytes *int32
-	var timeoutMs *int32
-	var ipFamily *domainnetwork.IPFamily
-	if input.PingConfig != nil {
-		if input.PingConfig.PacketCount != nil {
-			normalizedPacketCount, err := domainping.VNConfigPacketCount(*input.PingConfig.PacketCount)
-			if err != nil {
-				return normalizedUpdateCheckInput{}, invalidCheckField("packetCount", err.Error(), input.PingConfig.PacketCount)
-			}
-			packetCount = &normalizedPacketCount
-		}
-		if input.PingConfig.PacketSizeBytes != nil {
-			normalizedPacketSizeBytes, err := domainping.VNConfigPacketSizeBytes(*input.PingConfig.PacketSizeBytes)
-			if err != nil {
-				return normalizedUpdateCheckInput{}, invalidCheckField("packetSizeBytes", err.Error(), input.PingConfig.PacketSizeBytes)
-			}
-			packetSizeBytes = &normalizedPacketSizeBytes
-		}
-		if input.PingConfig.TimeoutMs != nil {
-			normalizedTimeoutMs, err := domainping.VNConfigTimeoutMs(*input.PingConfig.TimeoutMs)
-			if err != nil {
-				return normalizedUpdateCheckInput{}, invalidCheckField("timeoutMs", err.Error(), input.PingConfig.TimeoutMs)
-			}
-			timeoutMs = &normalizedTimeoutMs
-		}
-		ipFamily, err = domainnetwork.ParseOptionalIPFamily(input.PingConfig.IPFamily)
-		if err != nil {
-			return normalizedUpdateCheckInput{}, invalidCheckField("ipFamily", `must be "inet" or "inet6"`, input.PingConfig.IPFamily)
-		}
-		ipFamily, err = domainping.VNConfigIPFamily(ipFamily)
-		if err != nil {
-			return normalizedUpdateCheckInput{}, invalidCheckField("ipFamily", err.Error(), input.PingConfig.IPFamily)
-		}
-	}
-
-	replaceLabels := input.LabelIDs != nil
-	var labelIDs []string
-	if input.LabelIDs != nil {
-		labelIDs, err = domainlabel.VNLabelIDs(*input.LabelIDs)
-		if err != nil {
-			return normalizedUpdateCheckInput{}, invalidCheckField("labelIds", err.Error(), input.LabelIDs)
-		}
+	labelIDs, replaceLabels, err := normalizeUpdateLabelIDs(input.LabelIDs)
+	if err != nil {
+		return normalizedUpdateCheckInput{}, err
 	}
 
 	return normalizedUpdateCheckInput{
@@ -201,13 +145,150 @@ func normalizeUpdateCheckInput(input UpdateCheckInput) (normalizedUpdateCheckInp
 		selector:        selector,
 		description:     description,
 		intervalSeconds: intervalSeconds,
+		packetCount:     pingConfig.packetCount,
+		packetSizeBytes: pingConfig.packetSizeBytes,
+		timeoutMs:       pingConfig.timeoutMs,
+		ipFamily:        pingConfig.ipFamily,
+		replaceLabels:   replaceLabels,
+		labelIDs:        labelIDs,
+	}, nil
+}
+
+type updatePingConfigPatch struct {
+	packetCount     *int32
+	packetSizeBytes *int32
+	timeoutMs       *int32
+	ipFamily        *domainnetwork.IPFamily
+}
+
+func normalizeOptionalCheckName(input *string) (*string, error) {
+	if input == nil {
+		return nil, nil //nolint:nilnil // Nil means the update did not include a name.
+	}
+	name, err := domaincheck.VNCheckName(*input)
+	if err != nil {
+		return nil, invalidCheckField("name", err.Error(), input)
+	}
+	return &name, nil
+}
+
+func normalizeOptionalCheckType(input *string) (*domaincheck.Type, error) {
+	if input == nil {
+		return nil, nil //nolint:nilnil // Nil means the update did not include a check type.
+	}
+	checkType, err := domaincheck.VNCheckType(domaincheck.Type(*input))
+	if err != nil {
+		return nil, invalidCheckField("type", err.Error(), input)
+	}
+	return &checkType, nil
+}
+
+func normalizeOptionalCheckTarget(input *string) (*string, error) {
+	if input == nil {
+		return nil, nil //nolint:nilnil // Nil means the update did not include a target.
+	}
+	target, err := domaincheck.VNCheckTarget(*input)
+	if err != nil {
+		return nil, invalidCheckField("target", err.Error(), input)
+	}
+	return &target, nil
+}
+
+func normalizeOptionalCheckInterval(input *int32) (*int32, error) {
+	if input == nil {
+		return nil, nil //nolint:nilnil // Nil means the update did not include an interval.
+	}
+	interval, err := domaincheck.VNCheckInterval(*input)
+	if err != nil {
+		return nil, invalidCheckField("intervalSeconds", err.Error(), input)
+	}
+	return &interval, nil
+}
+
+func normalizeUpdatePingConfig(input *PingConfigInput) (updatePingConfigPatch, error) {
+	if input == nil {
+		return updatePingConfigPatch{}, nil
+	}
+
+	packetCount, err := normalizeOptionalPacketCount(input.PacketCount)
+	if err != nil {
+		return updatePingConfigPatch{}, err
+	}
+	packetSizeBytes, err := normalizeOptionalPacketSizeBytes(input.PacketSizeBytes)
+	if err != nil {
+		return updatePingConfigPatch{}, err
+	}
+	timeoutMs, err := normalizeOptionalTimeoutMs(input.TimeoutMs)
+	if err != nil {
+		return updatePingConfigPatch{}, err
+	}
+	ipFamily, err := normalizeOptionalIPFamily(input.IPFamily)
+	if err != nil {
+		return updatePingConfigPatch{}, err
+	}
+
+	return updatePingConfigPatch{
 		packetCount:     packetCount,
 		packetSizeBytes: packetSizeBytes,
 		timeoutMs:       timeoutMs,
 		ipFamily:        ipFamily,
-		replaceLabels:   replaceLabels,
-		labelIDs:        labelIDs,
 	}, nil
+}
+
+func normalizeOptionalPacketCount(input *int32) (*int32, error) {
+	if input == nil {
+		return nil, nil //nolint:nilnil // Nil means the update did not include a packet count.
+	}
+	packetCount, err := domainping.VNConfigPacketCount(*input)
+	if err != nil {
+		return nil, invalidCheckField("packetCount", err.Error(), input)
+	}
+	return &packetCount, nil
+}
+
+func normalizeOptionalPacketSizeBytes(input *int32) (*int32, error) {
+	if input == nil {
+		return nil, nil //nolint:nilnil // Nil means the update did not include a packet size.
+	}
+	packetSizeBytes, err := domainping.VNConfigPacketSizeBytes(*input)
+	if err != nil {
+		return nil, invalidCheckField("packetSizeBytes", err.Error(), input)
+	}
+	return &packetSizeBytes, nil
+}
+
+func normalizeOptionalTimeoutMs(input *int32) (*int32, error) {
+	if input == nil {
+		return nil, nil //nolint:nilnil // Nil means the update did not include a timeout.
+	}
+	timeoutMs, err := domainping.VNConfigTimeoutMs(*input)
+	if err != nil {
+		return nil, invalidCheckField("timeoutMs", err.Error(), input)
+	}
+	return &timeoutMs, nil
+}
+
+func normalizeOptionalIPFamily(input *string) (*domainnetwork.IPFamily, error) {
+	ipFamily, err := domainnetwork.ParseOptionalIPFamily(input)
+	if err != nil {
+		return nil, invalidCheckField("ipFamily", `must be "inet" or "inet6"`, input)
+	}
+	ipFamily, err = domainping.VNConfigIPFamily(ipFamily)
+	if err != nil {
+		return nil, invalidCheckField("ipFamily", err.Error(), input)
+	}
+	return ipFamily, nil
+}
+
+func normalizeUpdateLabelIDs(input *[]string) ([]string, bool, error) {
+	if input == nil {
+		return nil, false, nil
+	}
+	labelIDs, err := domainlabel.VNLabelIDs(*input)
+	if err != nil {
+		return nil, false, invalidCheckField("labelIds", err.Error(), input)
+	}
+	return labelIDs, true, nil
 }
 
 func hasUpdateCheckChanges(input UpdateCheckInput) bool {

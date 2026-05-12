@@ -69,13 +69,6 @@ func validatePositiveDuration(key string, value time.Duration) []error {
 	return nil
 }
 
-func validatePositiveInt(key string, value int) []error {
-	if value <= 0 {
-		return []error{fmt.Errorf("%s must be greater than 0", key)}
-	}
-	return nil
-}
-
 func validatePositiveUint32(key string, value uint32) []error {
 	if value == 0 {
 		return []error{fmt.Errorf("%s must be greater than 0", key)}

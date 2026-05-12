@@ -37,7 +37,7 @@ type Check struct {
 	UpdatedAt       time.Time           `json:"updatedAt"`
 	DeletedAt       *time.Time          `json:"-"`
 
-	// We keep this nullable beacuse we might have other config later and the user can only send a single config in as well as singel config out
+	// We keep this nullable because we might have other config later and the user can only send a single config in as well as single config out.
 	PingConfig *domainping.Config `json:"pingConfig"`
 }
 
@@ -119,7 +119,7 @@ func VNCheckSelector(selector json.RawMessage) (json.RawMessage, error) {
 
 func VNCheckDescription(description *string) (*string, error) {
 	if description == nil {
-		return nil, nil
+		return nil, nil //nolint:nilnil // Nil means the caller did not provide a description.
 	}
 
 	trimmed := strings.TrimSpace(*description)
@@ -138,7 +138,7 @@ func VNCheckDescription(description *string) (*string, error) {
 	return description, nil
 }
 
-func VNCheckInterval(interval int) (int, error) {
+func VNCheckInterval(interval int32) (int32, error) {
 	err := spvalidator.Min(interval, 1)
 	if err != nil {
 		return 0, err

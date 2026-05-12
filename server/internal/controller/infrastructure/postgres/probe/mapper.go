@@ -218,23 +218,6 @@ func mapGetProbeLabel(row sqlc.GetActiveProbeRowsForProjectRow) (domainlabel.Lab
 	}, true
 }
 
-func mapLabels(rows []sqlc.Label) []domainlabel.Label {
-	labels := make([]domainlabel.Label, 0, len(rows))
-	for _, row := range rows {
-		labels = append(labels, domainlabel.Label{
-			ID:        row.ID.String(),
-			ProjectID: row.ProjectID.String(),
-			Key:       row.Key,
-			Value:     row.Value,
-			CreatedAt: row.CreatedAt.Time,
-			UpdatedAt: row.UpdatedAt.Time,
-			DeletedAt: timePtr(row.DeletedAt),
-		})
-	}
-
-	return labels
-}
-
 func mapAssignment(row sqlc.ListActiveAssignmentsForProbeRow) domainassignment.Assignment {
 	pingConfig := domainping.Config{
 		PacketCount:     row.PacketCount,

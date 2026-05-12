@@ -4,6 +4,7 @@ import (
 	"context"
 
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
+	domainlabel "github.com/yorukot/netstamp/internal/domain/label"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 )
@@ -142,74 +143,14 @@ func (s *Service) UpdateCheck(ctx context.Context, input UpdateCheckInput) (doma
 		return domaincheck.Check{}, flow.checkLookupFailure(CheckEventUpdateFailure, err)
 	}
 
-	labelIDs := []string(nil)
-	resolvedLabels := current.Labels
-	if normalized.replaceLabels {
-		labelIDs = normalized.labelIDs
-		resolvedLabels, err = s.labelAccess.GetActiveLabelsByIDsForProject(ctx, project.ID, labelIDs)
-		if err != nil {
-			return domaincheck.Check{}, flow.labelLookupFailure(CheckEventUpdateFailure, err)
-		}
+	labelIDs, resolvedLabels, err := s.resolveUpdateLabels(ctx, project.ID, current.Labels, normalized)
+	if err != nil {
+		return domaincheck.Check{}, flow.labelLookupFailure(CheckEventUpdateFailure, err)
 	}
 
-	currentPingConfig := domainping.DefaultConfig()
-	if current.PingConfig != nil {
-		currentPingConfig = *current.PingConfig
-	}
-	updatedPingConfig := currentPingConfig
-	if normalized.packetCount != nil {
-		updatedPingConfig.PacketCount = *normalized.packetCount
-	}
-	if normalized.packetSizeBytes != nil {
-		updatedPingConfig.PacketSizeBytes = *normalized.packetSizeBytes
-	}
-	if normalized.timeoutMs != nil {
-		updatedPingConfig.TimeoutMs = *normalized.timeoutMs
-	}
-	if normalized.ipFamily != nil {
-		updatedPingConfig.IPFamily = normalized.ipFamily
-	}
-
-	selector := current.Selector
-	if normalized.selector != nil {
-		selector = normalized.selector
-	}
-	updatedSelector, err := canonicalizeSelector(selector)
+	updated, err := buildUpdatedCheck(project.ID, current, normalized)
 	if err != nil {
 		return domaincheck.Check{}, flow.businessFailure(CheckEventUpdateFailure, CheckReasonInvalidInput, err)
-	}
-
-	name := current.Name
-	if normalized.name != nil {
-		name = *normalized.name
-	}
-	checkType := current.Type
-	if normalized.checkType != nil {
-		checkType = *normalized.checkType
-	}
-	target := current.Target
-	if normalized.target != nil {
-		target = *normalized.target
-	}
-	description := current.Description
-	if normalized.description != nil {
-		description = normalized.description
-	}
-	intervalSeconds := current.IntervalSeconds
-	if normalized.intervalSeconds != nil {
-		intervalSeconds = *normalized.intervalSeconds
-	}
-
-	updated := domaincheck.Check{
-		ProjectID:       project.ID,
-		ID:              normalized.checkID,
-		Name:            name,
-		Type:            checkType,
-		Target:          target,
-		Selector:        updatedSelector,
-		Description:     description,
-		IntervalSeconds: intervalSeconds,
-		PingConfig:      &updatedPingConfig,
 	}
 
 	check, err := s.repo.UpdateCheck(ctx, updated, normalized.replaceLabels, labelIDs)
@@ -223,6 +164,90 @@ func (s *Service) UpdateCheck(ctx context.Context, input UpdateCheckInput) (doma
 	flow.success(CheckEventUpdateSuccess)
 
 	return check, nil
+}
+
+func (s *Service) resolveUpdateLabels(ctx context.Context, projectID string, currentLabels []domainlabel.Label, normalized normalizedUpdateCheckInput) ([]string, []domainlabel.Label, error) {
+	if !normalized.replaceLabels {
+		return nil, currentLabels, nil
+	}
+
+	labels, err := s.labelAccess.GetActiveLabelsByIDsForProject(ctx, projectID, normalized.labelIDs)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return normalized.labelIDs, labels, nil
+}
+
+func buildUpdatedCheck(projectID string, current domaincheck.Check, normalized normalizedUpdateCheckInput) (domaincheck.Check, error) {
+	selector := current.Selector
+	if normalized.selector != nil {
+		selector = normalized.selector
+	}
+	updatedSelector, err := canonicalizeSelector(selector)
+	if err != nil {
+		return domaincheck.Check{}, err
+	}
+
+	return domaincheck.Check{
+		ProjectID:       projectID,
+		ID:              normalized.checkID,
+		Name:            mergedString(current.Name, normalized.name),
+		Type:            mergedCheckType(current.Type, normalized.checkType),
+		Target:          mergedString(current.Target, normalized.target),
+		Selector:        updatedSelector,
+		Description:     mergedDescription(current.Description, normalized.description),
+		IntervalSeconds: mergedInt32(current.IntervalSeconds, normalized.intervalSeconds),
+		PingConfig:      mergedPingConfig(current.PingConfig, normalized),
+	}, nil
+}
+
+func mergedPingConfig(current *domainping.Config, normalized normalizedUpdateCheckInput) *domainping.Config {
+	config := domainping.DefaultConfig()
+	if current != nil {
+		config = *current
+	}
+	if normalized.packetCount != nil {
+		config.PacketCount = *normalized.packetCount
+	}
+	if normalized.packetSizeBytes != nil {
+		config.PacketSizeBytes = *normalized.packetSizeBytes
+	}
+	if normalized.timeoutMs != nil {
+		config.TimeoutMs = *normalized.timeoutMs
+	}
+	if normalized.ipFamily != nil {
+		config.IPFamily = normalized.ipFamily
+	}
+	return &config
+}
+
+func mergedString(current string, next *string) string {
+	if next == nil {
+		return current
+	}
+	return *next
+}
+
+func mergedCheckType(current domaincheck.Type, next *domaincheck.Type) domaincheck.Type {
+	if next == nil {
+		return current
+	}
+	return *next
+}
+
+func mergedDescription(current, next *string) *string {
+	if next == nil {
+		return current
+	}
+	return next
+}
+
+func mergedInt32(current int32, next *int32) int32 {
+	if next == nil {
+		return current
+	}
+	return *next
 }
 
 func (s *Service) DeleteCheck(ctx context.Context, input GetCheckInput) error {

@@ -96,8 +96,8 @@ func (s *Service) ListProbes(ctx context.Context, input ListProbesInput) ([]doma
 
 	projectRef, err := domainproject.VNProjectRef(input.ProjectRef)
 	if err != nil {
-		err := invalidProbeField("projectRef", err.Error(), input.ProjectRef)
-		return nil, flow.businessFailure(ProbeEventListFailure, ProbeReasonInvalidInput, err)
+		inputErr := invalidProbeField("projectRef", err.Error(), input.ProjectRef)
+		return nil, flow.businessFailure(ProbeEventListFailure, ProbeReasonInvalidInput, inputErr)
 	}
 	flow.setProjectRef(projectRef)
 

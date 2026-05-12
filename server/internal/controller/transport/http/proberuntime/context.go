@@ -64,11 +64,13 @@ func writeRuntimeProblem(ctx huma.Context, status int, detail string) {
 	ctx.SetHeader("Content-Type", "application/problem+json")
 	ctx.SetStatus(status)
 
-	_ = json.NewEncoder(ctx.BodyWriter()).Encode(&huma.ErrorModel{
+	if err := json.NewEncoder(ctx.BodyWriter()).Encode(&huma.ErrorModel{
 		Status: status,
 		Title:  http.StatusText(status),
 		Detail: detail,
-	})
+	}); err != nil {
+		return
+	}
 }
 
 func mapRuntimeError(err error, fallback string) error {
