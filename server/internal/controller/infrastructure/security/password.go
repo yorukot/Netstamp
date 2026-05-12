@@ -1,6 +1,7 @@
 package security
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/subtle"
 	"encoding/base64"
@@ -40,7 +41,10 @@ func NewArgon2idPasswordHasher(cfg Argon2idConfig) *Argon2idPasswordHasher {
 	return &Argon2idPasswordHasher{cfg: cfg}
 }
 
-func (h *Argon2idPasswordHasher) Hash(password string) (string, error) {
+func (h *Argon2idPasswordHasher) Hash(ctx context.Context, password string) (string, error) {
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
 	salt := make([]byte, saltLength)
 	if _, err := readRandom(salt); err != nil {
 		return "", err
@@ -72,7 +76,10 @@ func (h *Argon2idPasswordHasher) Hash(password string) (string, error) {
 	), nil
 }
 
-func (h *Argon2idPasswordHasher) Compare(password, encoded string) error {
+func (h *Argon2idPasswordHasher) Compare(ctx context.Context, password, encoded string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	params, salt, expectedHash, err := decodeArgon2idHash(encoded)
 	if err != nil {
 		return err

@@ -11,6 +11,11 @@ import (
 	"github.com/yorukot/netstamp/internal/domain/identity"
 )
 
+const (
+	jwtIssuer   = "netstamp"
+	jwtAudience = "netstamp"
+)
+
 type JWTIssuer struct {
 	secret []byte
 	ttl    time.Duration
@@ -41,8 +46,11 @@ func (i *JWTIssuer) IssueAccessToken(ctx context.Context, input identity.AccessT
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, accessTokenClaims{
 		Email: input.Email,
 		RegisteredClaims: jwt.RegisteredClaims{
+			Issuer:    jwtIssuer,
+			Audience:  jwt.ClaimStrings{jwtAudience},
 			Subject:   input.Subject,
 			IssuedAt:  jwt.NewNumericDate(now),
+			NotBefore: jwt.NewNumericDate(now),
 			ExpiresAt: jwt.NewNumericDate(expiresAt),
 		},
 	})
@@ -75,6 +83,12 @@ func (i *JWTIssuer) VerifyAccessToken(ctx context.Context, value string) (identi
 		return identity.AccessTokenClaims{}, errors.Join(authapp.ErrAccessTokenInvalid, err)
 	}
 	if token == nil || !token.Valid || claims.Subject == "" || claims.Email == "" {
+		return identity.AccessTokenClaims{}, authapp.ErrAccessTokenInvalid
+	}
+	if claims.Issuer != jwtIssuer {
+		return identity.AccessTokenClaims{}, authapp.ErrAccessTokenInvalid
+	}
+	if !claims.VerifyAudience(jwtAudience, true) {
 		return identity.AccessTokenClaims{}, authapp.ErrAccessTokenInvalid
 	}
 

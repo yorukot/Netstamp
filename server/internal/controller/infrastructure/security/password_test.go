@@ -1,6 +1,7 @@
 package security
 
 import (
+	"context"
 	"encoding/base64"
 	"errors"
 	"io"
@@ -9,9 +10,10 @@ import (
 )
 
 func TestArgon2idPasswordHasherHashesAndComparesPassword(t *testing.T) {
+	ctx := context.Background()
 	hasher := NewArgon2idPasswordHasher(testArgon2idConfig())
 
-	encoded, err := hasher.Hash("correct horse battery staple")
+	encoded, err := hasher.Hash(ctx, "correct horse battery staple")
 	if err != nil {
 		t.Fatalf("hash password: %v", err)
 	}
@@ -30,25 +32,27 @@ func TestArgon2idPasswordHasherHashesAndComparesPassword(t *testing.T) {
 		t.Fatalf("expected raw base64 hash, got %q: %v", parts[5], err)
 	}
 
-	if err := hasher.Compare("correct horse battery staple", encoded); err != nil {
+	if err := hasher.Compare(ctx, "correct horse battery staple", encoded); err != nil {
 		t.Fatalf("compare password: %v", err)
 	}
 }
 
 func TestArgon2idPasswordHasherRejectsMismatch(t *testing.T) {
+	ctx := context.Background()
 	hasher := NewArgon2idPasswordHasher(testArgon2idConfig())
-	encoded, err := hasher.Hash("correct-password")
+	encoded, err := hasher.Hash(ctx, "correct-password")
 	if err != nil {
 		t.Fatalf("hash password: %v", err)
 	}
 
-	err = hasher.Compare("wrong-password", encoded)
+	err = hasher.Compare(ctx, "wrong-password", encoded)
 	if !errors.Is(err, ErrPasswordMismatch) {
 		t.Fatalf("expected password mismatch, got %v", err)
 	}
 }
 
 func TestArgon2idPasswordHasherRejectsInvalidConfig(t *testing.T) {
+	ctx := context.Background()
 	tests := []struct {
 		name string
 		cfg  Argon2idConfig
@@ -60,7 +64,7 @@ func TestArgon2idPasswordHasherRejectsInvalidConfig(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := NewArgon2idPasswordHasher(tt.cfg).Hash("password")
+			_, err := NewArgon2idPasswordHasher(tt.cfg).Hash(ctx, "password")
 			if !errors.Is(err, ErrInvalidArgon2idConfig) {
 				t.Fatalf("expected invalid config, got %v", err)
 			}
@@ -69,6 +73,7 @@ func TestArgon2idPasswordHasherRejectsInvalidConfig(t *testing.T) {
 }
 
 func TestArgon2idPasswordHasherReturnsRandomReaderError(t *testing.T) {
+	ctx := context.Background()
 	originalReadRandom := readRandom
 	t.Cleanup(func() {
 		readRandom = originalReadRandom
@@ -77,15 +82,16 @@ func TestArgon2idPasswordHasherReturnsRandomReaderError(t *testing.T) {
 		return 0, io.ErrUnexpectedEOF
 	}
 
-	_, err := NewArgon2idPasswordHasher(testArgon2idConfig()).Hash("password")
+	_, err := NewArgon2idPasswordHasher(testArgon2idConfig()).Hash(ctx, "password")
 	if !errors.Is(err, io.ErrUnexpectedEOF) {
 		t.Fatalf("expected random reader error, got %v", err)
 	}
 }
 
 func TestArgon2idPasswordHasherRejectsInvalidHashes(t *testing.T) {
+	ctx := context.Background()
 	hasher := NewArgon2idPasswordHasher(testArgon2idConfig())
-	validEncoded, err := hasher.Hash("password")
+	validEncoded, err := hasher.Hash(ctx, "password")
 	if err != nil {
 		t.Fatalf("hash password: %v", err)
 	}
@@ -108,7 +114,7 @@ func TestArgon2idPasswordHasherRejectsInvalidHashes(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := hasher.Compare("password", tt.encoded)
+			err := hasher.Compare(ctx, "password", tt.encoded)
 			if !errors.Is(err, ErrInvalidHash) {
 				t.Fatalf("expected invalid hash, got %v", err)
 			}
