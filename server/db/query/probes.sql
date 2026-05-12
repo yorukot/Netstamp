@@ -227,3 +227,34 @@ WHERE probe_check_assignments.probe_id = $1
   AND checks.deleted_at IS NULL
 ORDER BY checks.created_at ASC,
          checks.id ASC;
+
+-- name: ListActiveAssignmentsForProbeChecks :many
+SELECT probe_check_assignments.id AS assignment_id,
+       probe_check_assignments.project_id,
+       probe_check_assignments.probe_id,
+       probe_check_assignments.check_id,
+       probe_check_assignments.check_version,
+       probe_check_assignments.selector_version,
+       checks.check_type,
+       checks.target,
+       checks.interval_seconds,
+       ping_check_configs.packet_count,
+       ping_check_configs.packet_size_bytes,
+       ping_check_configs.timeout_ms,
+       ping_check_configs.ip_family
+FROM probe_check_assignments
+JOIN probes
+    ON probes.project_id = probe_check_assignments.project_id
+    AND probes.id = probe_check_assignments.probe_id
+JOIN checks
+    ON checks.project_id = probe_check_assignments.project_id
+    AND checks.id = probe_check_assignments.check_id
+LEFT JOIN ping_check_configs ON ping_check_configs.check_id = checks.id
+WHERE probe_check_assignments.probe_id = sqlc.arg(probe_id)
+  AND probe_check_assignments.check_id = ANY(sqlc.arg(check_ids)::uuid[])
+  AND probe_check_assignments.deleted_at IS NULL
+  AND probes.enabled = true
+  AND probes.deleted_at IS NULL
+  AND checks.deleted_at IS NULL
+ORDER BY checks.created_at ASC,
+         checks.id ASC;

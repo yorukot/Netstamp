@@ -25,6 +25,7 @@ import (
 	"github.com/pressly/goose/v3"
 	"go.uber.org/zap"
 
+	appassignment "github.com/yorukot/netstamp/internal/controller/application/assignment"
 	appauth "github.com/yorukot/netstamp/internal/controller/application/auth"
 	appcheck "github.com/yorukot/netstamp/internal/controller/application/check"
 	applabel "github.com/yorukot/netstamp/internal/controller/application/label"
@@ -32,6 +33,7 @@ import (
 	appproberuntime "github.com/yorukot/netstamp/internal/controller/application/proberuntime"
 	appproject "github.com/yorukot/netstamp/internal/controller/application/project"
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/postgres"
+	pgassignment "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/assignment"
 	pgcheck "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/check"
 	pglabel "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/label"
 	pgping "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/ping"
@@ -210,8 +212,10 @@ func newTestRouter(pool *pgxpool.Pool) http.Handler {
 	checkRepo := pgcheck.NewCheckRepository(pool)
 	probeRepo := pgprobe.NewProbeRepository(pool)
 	pingRepo := pgping.NewPingRepository(pool)
+	assignmentRepo := pgassignment.NewAssignmentRepository(pool)
 	tokenIssuer := security.NewJWTIssuer("e2e-jwt-secret", time.Hour)
 	events := noopEvents{}
+	assignmentSvc := appassignment.NewService(assignmentRepo, events)
 
 	authSvc := appauth.NewService(userRepo, security.NewArgon2idPasswordHasher(security.Argon2idConfig{
 		MemoryKiB:   1024,
@@ -224,9 +228,9 @@ func newTestRouter(pool *pgxpool.Pool) http.Handler {
 		APIVersion:   "v1",
 		AuthService:  authSvc,
 		AuthVerifier: tokenIssuer,
-		CheckService: appcheck.NewService(checkRepo, projectRepo, labelRepo, events),
-		LabelService: applabel.NewService(labelRepo, projectRepo, events),
-		ProbeService: appprobe.NewService(probeRepo, projectRepo, labelRepo, security.NewProbeSecretGenerator(), events),
+		CheckService: appcheck.NewService(checkRepo, projectRepo, labelRepo, assignmentSvc, events),
+		LabelService: applabel.NewService(labelRepo, projectRepo, events, assignmentSvc),
+		ProbeService: appprobe.NewService(probeRepo, projectRepo, labelRepo, assignmentSvc, security.NewProbeSecretGenerator(), events),
 		ProbeRuntime: appproberuntime.NewService(
 			probeRepo,
 			pingRepo,
@@ -246,6 +250,8 @@ func (noopEvents) RecordProjectEvent(context.Context, appproject.ProjectEvent) {
 func (noopEvents) RecordLabelEvent(context.Context, applabel.LabelEvent)       {}
 func (noopEvents) RecordCheckEvent(context.Context, appcheck.CheckEvent)       {}
 func (noopEvents) RecordProbeEvent(context.Context, appprobe.ProbeEvent)       {}
+func (noopEvents) RecordAssignmentEvent(context.Context, appassignment.AssignmentEvent) {
+}
 func (noopEvents) RecordProbeRuntimeEvent(context.Context, appproberuntime.ProbeRuntimeEvent) {
 }
 

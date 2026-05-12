@@ -244,6 +244,38 @@ func mapAssignment(row sqlc.ListActiveAssignmentsForProbeRow) domainassignment.A
 	}
 }
 
+func mapAssignmentForProbeChecks(row sqlc.ListActiveAssignmentsForProbeChecksRow) domainassignment.Assignment {
+	return domainassignment.Assignment{
+		ID:              row.AssignmentID.String(),
+		ProjectID:       row.ProjectID.String(),
+		ProbeID:         row.ProbeID.String(),
+		CheckID:         row.CheckID.String(),
+		CheckVersion:    row.CheckVersion,
+		SelectorVersion: row.SelectorVersion,
+		Check: &domaincheck.Check{
+			ID:              row.CheckID.String(),
+			ProjectID:       row.ProjectID.String(),
+			Type:            domaincheck.Type(row.CheckType),
+			Target:          row.Target,
+			IntervalSeconds: row.IntervalSeconds,
+			PingConfig:      mapOptionalPingConfig(row.PacketCount, row.PacketSizeBytes, row.TimeoutMs, row.IpFamily),
+		},
+	}
+}
+
+func mapOptionalPingConfig(packetCount, packetSizeBytes, timeoutMs *int32, ipFamily sqlc.NullIpFamily) *domainping.Config {
+	if packetCount == nil || packetSizeBytes == nil || timeoutMs == nil {
+		return nil
+	}
+
+	return &domainping.Config{
+		PacketCount:     *packetCount,
+		PacketSizeBytes: *packetSizeBytes,
+		TimeoutMs:       *timeoutMs,
+		IPFamily:        mapIPFamily(ipFamily),
+	}
+}
+
 func sqlcProbeState(value domainprobe.State) sqlc.ProbeState {
 	return sqlc.ProbeState(value)
 }

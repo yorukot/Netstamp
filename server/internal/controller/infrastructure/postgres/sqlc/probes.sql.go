@@ -398,6 +398,93 @@ func (q *Queries) ListActiveAssignmentsForProbe(ctx context.Context, probeID uui
 	return items, nil
 }
 
+const listActiveAssignmentsForProbeChecks = `-- name: ListActiveAssignmentsForProbeChecks :many
+SELECT probe_check_assignments.id AS assignment_id,
+       probe_check_assignments.project_id,
+       probe_check_assignments.probe_id,
+       probe_check_assignments.check_id,
+       probe_check_assignments.check_version,
+       probe_check_assignments.selector_version,
+       checks.check_type,
+       checks.target,
+       checks.interval_seconds,
+       ping_check_configs.packet_count,
+       ping_check_configs.packet_size_bytes,
+       ping_check_configs.timeout_ms,
+       ping_check_configs.ip_family
+FROM probe_check_assignments
+JOIN probes
+    ON probes.project_id = probe_check_assignments.project_id
+    AND probes.id = probe_check_assignments.probe_id
+JOIN checks
+    ON checks.project_id = probe_check_assignments.project_id
+    AND checks.id = probe_check_assignments.check_id
+LEFT JOIN ping_check_configs ON ping_check_configs.check_id = checks.id
+WHERE probe_check_assignments.probe_id = $1
+  AND probe_check_assignments.check_id = ANY($2::uuid[])
+  AND probe_check_assignments.deleted_at IS NULL
+  AND probes.enabled = true
+  AND probes.deleted_at IS NULL
+  AND checks.deleted_at IS NULL
+ORDER BY checks.created_at ASC,
+         checks.id ASC
+`
+
+type ListActiveAssignmentsForProbeChecksParams struct {
+	ProbeID  uuid.UUID   `json:"probe_id"`
+	CheckIds []uuid.UUID `json:"check_ids"`
+}
+
+type ListActiveAssignmentsForProbeChecksRow struct {
+	AssignmentID    uuid.UUID    `json:"assignment_id"`
+	ProjectID       uuid.UUID    `json:"project_id"`
+	ProbeID         uuid.UUID    `json:"probe_id"`
+	CheckID         uuid.UUID    `json:"check_id"`
+	CheckVersion    string       `json:"check_version"`
+	SelectorVersion string       `json:"selector_version"`
+	CheckType       CheckType    `json:"check_type"`
+	Target          string       `json:"target"`
+	IntervalSeconds int32        `json:"interval_seconds"`
+	PacketCount     *int32       `json:"packet_count"`
+	PacketSizeBytes *int32       `json:"packet_size_bytes"`
+	TimeoutMs       *int32       `json:"timeout_ms"`
+	IpFamily        NullIpFamily `json:"ip_family"`
+}
+
+func (q *Queries) ListActiveAssignmentsForProbeChecks(ctx context.Context, arg ListActiveAssignmentsForProbeChecksParams) ([]ListActiveAssignmentsForProbeChecksRow, error) {
+	rows, err := q.db.Query(ctx, listActiveAssignmentsForProbeChecks, arg.ProbeID, arg.CheckIds)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListActiveAssignmentsForProbeChecksRow
+	for rows.Next() {
+		var i ListActiveAssignmentsForProbeChecksRow
+		if err := rows.Scan(
+			&i.AssignmentID,
+			&i.ProjectID,
+			&i.ProbeID,
+			&i.CheckID,
+			&i.CheckVersion,
+			&i.SelectorVersion,
+			&i.CheckType,
+			&i.Target,
+			&i.IntervalSeconds,
+			&i.PacketCount,
+			&i.PacketSizeBytes,
+			&i.TimeoutMs,
+			&i.IpFamily,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listActiveLabelsForProbe = `-- name: ListActiveLabelsForProbe :many
 SELECT labels.id,
        labels.project_id,

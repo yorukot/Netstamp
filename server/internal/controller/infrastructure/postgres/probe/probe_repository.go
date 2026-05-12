@@ -13,6 +13,7 @@ import (
 	pglabel "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/label"
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/sqlc"
 	domainassignment "github.com/yorukot/netstamp/internal/domain/assignment"
+	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
 	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 )
@@ -93,6 +94,39 @@ func (r *ProbeRepository) ListAssignments(ctx context.Context, probeID string) (
 	assignments := make([]domainassignment.Assignment, 0, len(rows))
 	for _, row := range rows {
 		assignments = append(assignments, mapAssignment(row))
+	}
+
+	return assignments, nil
+}
+
+func (r *ProbeRepository) ListActiveAssignmentsForProbeChecks(ctx context.Context, probeID string, checkIDValues []string) ([]domainassignment.Assignment, error) {
+	ctx, span := postgres.StartDBSpan(ctx, pgprobeTracer, "probe_check_assignments", "postgres.probes.list_assignments_for_checks", "SELECT", "SELECT active probe assignments for checks")
+	defer span.End()
+
+	id, err := postgres.ParseUUID(probeID, domainprobe.ErrProbeNotFound)
+	if err != nil {
+		return nil, err
+	}
+	checkIDs, err := parseCheckIDs(checkIDValues)
+	if err != nil {
+		return nil, err
+	}
+	if len(checkIDs) == 0 {
+		return nil, nil
+	}
+
+	rows, err := r.queries.ListActiveAssignmentsForProbeChecks(ctx, sqlc.ListActiveAssignmentsForProbeChecksParams{
+		ProbeID:  id,
+		CheckIds: checkIDs,
+	})
+	if err != nil {
+		postgres.RecordDBSpanError(span, err)
+		return nil, err
+	}
+
+	assignments := make([]domainassignment.Assignment, 0, len(rows))
+	for _, row := range rows {
+		assignments = append(assignments, mapAssignmentForProbeChecks(row))
 	}
 
 	return assignments, nil
@@ -355,4 +389,21 @@ func parseProjectAndProbeIDs(projectIDValue, probeIDValue string) (uuid.UUID, uu
 	}
 
 	return projectID, probeID, nil
+}
+
+func parseCheckIDs(values []string) ([]uuid.UUID, error) {
+	if len(values) == 0 {
+		return nil, nil
+	}
+
+	checkIDs := make([]uuid.UUID, 0, len(values))
+	for _, value := range values {
+		checkID, err := postgres.ParseUUID(value, domaincheck.ErrCheckNotFound)
+		if err != nil {
+			return nil, err
+		}
+		checkIDs = append(checkIDs, checkID)
+	}
+
+	return checkIDs, nil
 }

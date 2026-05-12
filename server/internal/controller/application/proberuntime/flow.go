@@ -6,6 +6,7 @@ import (
 
 	"go.opentelemetry.io/otel/trace"
 
+	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
 )
 
@@ -104,6 +105,25 @@ func (f *runtimeFlow) assignmentListFailure(name ProbeRuntimeEventName, err erro
 		return f.businessFailure(name, ProbeRuntimeReasonProbeNotFound, err)
 	default:
 		return f.technicalFailure(name, ProbeRuntimeReasonAssignmentListFailed, err)
+	}
+}
+
+func (f *runtimeFlow) assignmentLookupFailure(name ProbeRuntimeEventName, err error) error {
+	switch {
+	case errors.Is(err, domainprobe.ErrProbeNotFound):
+		return f.businessFailure(name, ProbeRuntimeReasonProbeNotFound, err)
+	default:
+		return f.technicalFailure(name, ProbeRuntimeReasonAssignmentLookupFail, err)
+	}
+}
+
+func (f *runtimeFlow) resultWriteFailure(name ProbeRuntimeEventName, err error) error {
+	switch {
+	case errors.Is(err, ErrInvalidInput),
+		errors.Is(err, domainping.ErrInvalidResult):
+		return f.businessFailure(name, ProbeRuntimeReasonInvalidInput, err)
+	default:
+		return f.technicalFailure(name, ProbeRuntimeReasonResultWriteFailed, err)
 	}
 }
 

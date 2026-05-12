@@ -209,6 +209,42 @@ func TestAPIAuthProjectAndProbeRuntimeFlow(t *testing.T) {
 		hello.HeartbeatIntervalSeconds,
 		hello.AssignmentPollIntervalSeconds,
 	)
+
+	var submitted submitResultsResponse
+	submitPayload := map[string]any{
+		"results": []map[string]any{{
+			"checkId": plainCheck.Check.ID,
+			"type":    "ping",
+			"ping": []map[string]any{{
+				"startedAt":     "2026-05-13T10:00:00Z",
+				"finishedAt":    "2026-05-13T10:00:01Z",
+				"durationMs":    1000,
+				"status":        "successful",
+				"sentCount":     4,
+				"receivedCount": 4,
+				"lossPercent":   0,
+				"rttMinMs":      10.1,
+				"rttAvgMs":      12.3,
+				"rttMedianMs":   12.0,
+				"rttMaxMs":      15.6,
+				"rttStddevMs":   1.7,
+				"rttSamplesMs":  []float64{10.1, 11.5, 12.0, 15.6},
+				"resolvedIp":    "1.1.1.1",
+				"ipFamily":      "inet",
+				"raw":           map[string]any{},
+			}},
+		}},
+	}
+	t.Log("e2e: submitting probe runtime ping results")
+	suite.doJSON(t, http.MethodPost, "/api/v1/runtime/probes/"+createdProbe.Probe.ID+"/results", submitPayload, probeHeaders(createdProbe.Secret), http.StatusOK, &submitted)
+	if submitted.Accepted != 1 {
+		t.Fatalf("expected one accepted result, got %#v", submitted)
+	}
+	t.Log("e2e: submitting duplicate probe runtime ping results")
+	suite.doJSON(t, http.MethodPost, "/api/v1/runtime/probes/"+createdProbe.Probe.ID+"/results", submitPayload, probeHeaders(createdProbe.Secret), http.StatusOK, &submitted)
+	if submitted.Accepted != 1 {
+		t.Fatalf("expected duplicate submit to remain accepted, got %#v", submitted)
+	}
 }
 
 type authResponse struct {
@@ -259,6 +295,10 @@ type probeBody struct {
 type helloResponse struct {
 	HeartbeatIntervalSeconds      int32 `json:"heartbeatIntervalSeconds"`
 	AssignmentPollIntervalSeconds int32 `json:"assignmentPollIntervalSeconds"`
+}
+
+type submitResultsResponse struct {
+	Accepted int `json:"accepted"`
 }
 
 type labelResponse struct {

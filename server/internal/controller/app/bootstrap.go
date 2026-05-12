@@ -21,6 +21,7 @@ import (
 	pgassignment "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/assignment"
 	pgcheck "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/check"
 	pglabel "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/label"
+	pgping "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/ping"
 	pgprobe "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/probe"
 	pgproject "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/project"
 	pguser "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/user"
@@ -121,7 +122,8 @@ func New(ctx context.Context) (*Application, error) {
 	checkRepo := pgcheck.NewCheckRepository(dbPool)
 	checkSvc := appcheck.NewService(checkRepo, projectRepo, labelRepo, assignmentSvc, checkEvents)
 	probeSvc := appprobe.NewService(probeRepo, projectRepo, labelRepo, assignmentSvc, security.NewProbeSecretGenerator(), probeEvents)
-	probeRuntimeSvc := appproberuntime.NewService(probeRepo, security.NewProbeSecretVerifier(), probeRuntimeEvents)
+	pingRepo := pgping.NewPingRepository(dbPool)
+	probeRuntimeSvc := appproberuntime.NewService(probeRepo, pingRepo, security.NewProbeSecretVerifier(), probeRuntimeEvents)
 	readiness := postgres.NewReadinessCheck(dbPool)
 
 	httpHandler := httpserver.NewRouter(httpserver.Dependencies{

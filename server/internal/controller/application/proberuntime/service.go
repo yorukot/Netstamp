@@ -4,18 +4,23 @@ import (
 	"context"
 	"time"
 
+	domainassignment "github.com/yorukot/netstamp/internal/domain/assignment"
+	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
+	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
 )
 
 type Service struct {
 	probes         ProbeRepository
+	pings          PingResultRepository
 	secretVerifier SecretVerifier
 	events         EventRecorder
 }
 
-func NewService(probes ProbeRepository, secretVerifier SecretVerifier, events EventRecorder) *Service {
+func NewService(probes ProbeRepository, pings PingResultRepository, secretVerifier SecretVerifier, events EventRecorder) *Service {
 	return &Service{
 		probes:         probes,
+		pings:          pings,
 		secretVerifier: secretVerifier,
 		events:         events,
 	}
@@ -83,6 +88,71 @@ func (s *Service) ListAssignments(ctx context.Context, input RuntimeAuthInput) (
 	flow.success()
 
 	return ListAssignmentsOutput{Assignments: assignments}, nil
+}
+
+func (s *Service) SubmitResults(ctx context.Context, input SubmitResultsInput) (SubmitResultsOutput, error) {
+	ctx, flow := s.startRuntimeFlow(ctx, "probe_runtime.results.submit", ProbeRuntimeActionSubmitResults)
+	defer flow.end()
+
+	credential, err := s.authenticate(ctx, flow, input.RuntimeAuthInput)
+	if err != nil {
+		return SubmitResultsOutput{}, flow.authenticationFailure(ProbeRuntimeEventSubmitResultsFailure, err)
+	}
+
+	normalized, err := normalizeSubmitResults(input)
+	if err != nil {
+		return SubmitResultsOutput{}, flow.businessFailure(ProbeRuntimeEventSubmitResultsFailure, ProbeRuntimeReasonInvalidInput, err)
+	}
+
+	assignments, err := s.probes.ListActiveAssignmentsForProbeChecks(ctx, credential.ProbeID, normalized.checkIDs)
+	if err != nil {
+		return SubmitResultsOutput{}, flow.assignmentLookupFailure(ProbeRuntimeEventSubmitResultsFailure, err)
+	}
+	assignmentByCheckID := assignmentsByCheckID(assignments)
+
+	pingResults := make([]domainping.ResultStorageInput, 0, normalized.accepted)
+	for _, group := range normalized.groups {
+		assignment, ok := assignmentByCheckID[group.checkID]
+		if !ok {
+			return SubmitResultsOutput{}, flow.businessFailure(ProbeRuntimeEventSubmitResultsFailure, ProbeRuntimeReasonInvalidInput, invalidRuntimeField(resultGroupField(group.index, "checkId"), "check is not an active assignment for this probe", group.checkID))
+		}
+		if assignment.Check == nil || assignment.Check.Type != group.type_ {
+			return SubmitResultsOutput{}, flow.businessFailure(ProbeRuntimeEventSubmitResultsFailure, ProbeRuntimeReasonInvalidInput, invalidRuntimeField(resultGroupField(group.index, "type"), "does not match assigned check type", string(group.type_)))
+		}
+
+		switch group.type_ {
+		case domaincheck.TypePing:
+			for _, result := range group.ping {
+				result.ProjectID = assignment.ProjectID
+				result.ProbeID = credential.ProbeID
+				result.CheckID = assignment.CheckID
+				pingResults = append(pingResults, result)
+			}
+		default:
+			return SubmitResultsOutput{}, flow.businessFailure(ProbeRuntimeEventSubmitResultsFailure, ProbeRuntimeReasonInvalidInput, invalidRuntimeField(resultGroupField(group.index, "type"), "unsupported result type", string(group.type_)))
+		}
+	}
+
+	if len(pingResults) > 0 {
+		if s.pings == nil {
+			return SubmitResultsOutput{}, flow.resultWriteFailure(ProbeRuntimeEventSubmitResultsFailure, errPingRepositoryMissing)
+		}
+		if err := s.pings.CreatePingResults(ctx, pingResults); err != nil {
+			return SubmitResultsOutput{}, flow.resultWriteFailure(ProbeRuntimeEventSubmitResultsFailure, err)
+		}
+	}
+	flow.success()
+
+	return SubmitResultsOutput{Accepted: normalized.accepted, ServerTime: time.Now().UTC()}, nil
+}
+
+func assignmentsByCheckID(assignments []domainassignment.Assignment) map[string]domainassignment.Assignment {
+	byCheckID := make(map[string]domainassignment.Assignment, len(assignments))
+	for _, assignment := range assignments {
+		byCheckID[assignment.CheckID] = assignment
+	}
+
+	return byCheckID
 }
 
 func (s *Service) authenticate(ctx context.Context, flow *runtimeFlow, input RuntimeAuthInput) (domainprobe.Credential, error) {

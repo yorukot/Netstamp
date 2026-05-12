@@ -52,4 +52,15 @@ func (h *Handler) RegisterRoutes(api huma.API) {
 		Middlewares: middlewares,
 		Errors:      []int{http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound, http.StatusUnprocessableEntity, http.StatusInternalServerError},
 	}, h.listAssignments)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "submitProbeRuntimeResults",
+		Method:      http.MethodPost,
+		Path:        "/runtime/probes/{probe_id}/results",
+		Summary:     "Submit probe runtime results",
+		Tags:        []string{"Probe Runtime"},
+		Security:    security,
+		Middlewares: middlewares,
+		Errors:      []int{http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound, http.StatusUnprocessableEntity, http.StatusInternalServerError},
+	}, h.submitResults)
 }

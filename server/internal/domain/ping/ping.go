@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/netip"
+	"strings"
 	"time"
 
 	"github.com/yorukot/spvalidator"
@@ -89,6 +90,115 @@ func VNConfigIPFamily(ipFamily *domainnetwork.IPFamily) (*domainnetwork.IPFamily
 	}
 
 	return ipFamily, nil
+}
+
+func VNResultTime(value time.Time) (time.Time, error) {
+	if value.IsZero() {
+		return time.Time{}, errors.New("must be provided")
+	}
+
+	return value.UTC(), nil
+}
+
+func VNResultDurationMs(durationMs int32) (int32, error) {
+	if err := spvalidator.Min(durationMs, 0); err != nil {
+		return 0, err
+	}
+
+	return durationMs, nil
+}
+
+func VNResultStatus(status Status) (Status, error) {
+	switch Status(strings.TrimSpace(string(status))) {
+	case StatusSuccessful:
+		return StatusSuccessful, nil
+	case StatusTimeout:
+		return StatusTimeout, nil
+	case StatusError:
+		return StatusError, nil
+	default:
+		return "", errors.New("invalid ping status")
+	}
+}
+
+func VNResultSentCount(sentCount int32) (int32, error) {
+	if err := spvalidator.Min(sentCount, 0); err != nil {
+		return 0, err
+	}
+
+	return sentCount, nil
+}
+
+func VNResultReceivedCount(receivedCount, sentCount int32) (int32, error) {
+	if err := spvalidator.Min(receivedCount, 0); err != nil {
+		return 0, err
+	}
+	if receivedCount > sentCount {
+		return 0, errors.New("must be less than or equal to sent count")
+	}
+
+	return receivedCount, nil
+}
+
+func VNResultLossPercent(lossPercent float64) (float64, error) {
+	if err := spvalidator.Min(lossPercent, 0.0); err != nil {
+		return 0, err
+	}
+	if err := spvalidator.Max(lossPercent, 100.0); err != nil {
+		return 0, err
+	}
+
+	return lossPercent, nil
+}
+
+func VNResultOptionalRTT(value *float64) (*float64, error) {
+	if value == nil {
+		return nil, nil //nolint:nilnil // Nil means the result did not include this RTT aggregate.
+	}
+	if err := spvalidator.Min(*value, 0.0); err != nil {
+		return nil, err
+	}
+
+	copied := *value
+	return &copied, nil
+}
+
+func VNResultRTTSamples(values []float64) ([]float64, error) {
+	copied := make([]float64, 0, len(values))
+	for _, value := range values {
+		if err := spvalidator.Min(value, 0.0); err != nil {
+			return nil, err
+		}
+		copied = append(copied, value)
+	}
+
+	return copied, nil
+}
+
+func VNResultOptionalText(value *string) (*string, error) {
+	if value == nil {
+		return nil, nil //nolint:nilnil // Nil means the result did not include optional text.
+	}
+
+	trimmed := strings.TrimSpace(*value)
+	if err := spvalidator.Required(trimmed); err != nil {
+		return nil, err
+	}
+
+	return &trimmed, nil
+}
+
+func VNResultRaw(raw json.RawMessage) (json.RawMessage, error) {
+	if raw == nil {
+		return json.RawMessage(`{}`), nil
+	}
+	if !json.Valid(raw) {
+		return nil, errors.New("must be valid JSON")
+	}
+
+	copied := make(json.RawMessage, len(raw))
+	copy(copied, raw)
+	return copied, nil
 }
 
 type Result struct {

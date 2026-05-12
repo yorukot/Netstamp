@@ -1,6 +1,7 @@
 package proberuntime
 
 import (
+	"encoding/json"
 	"net/netip"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 const (
 	DefaultHeartbeatIntervalSeconds      int32 = 30
 	DefaultAssignmentPollIntervalSeconds int32 = 30
+	MaxResultGroupBatchSize              int   = 100
 )
 
 type RuntimeAuthInput struct {
@@ -38,4 +40,41 @@ type HeartbeatOutput struct {
 
 type ListAssignmentsOutput struct {
 	Assignments []domainassignment.Assignment
+}
+
+type SubmitResultsInput struct {
+	RuntimeAuthInput
+	Results []RuntimeResultGroupInput
+}
+
+type RuntimeResultGroupInput struct {
+	CheckID string
+	Type    string
+	Ping    []PingResultInput
+}
+
+type PingResultInput struct {
+	StartedAt     time.Time
+	FinishedAt    time.Time
+	DurationMs    int32
+	Status        string
+	SentCount     int32
+	ReceivedCount int32
+	LossPercent   float64
+	RttMinMs      *float64
+	RttAvgMs      *float64
+	RttMedianMs   *float64
+	RttMaxMs      *float64
+	RttStddevMs   *float64
+	RttSamplesMs  []float64
+	ResolvedIP    *netip.Addr
+	IPFamily      *string
+	Raw           json.RawMessage
+	ErrorCode     *string
+	ErrorMessage  *string
+}
+
+type SubmitResultsOutput struct {
+	Accepted   int
+	ServerTime time.Time
 }
