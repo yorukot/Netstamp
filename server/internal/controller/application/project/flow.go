@@ -6,6 +6,7 @@ import (
 
 	"go.opentelemetry.io/otel/trace"
 
+	"github.com/yorukot/netstamp/internal/domain/identity"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 )
 
@@ -102,9 +103,9 @@ func (f *projectFlow) technicalFailure(name ProjectEventName, reason ProjectEven
 
 func (f *projectFlow) projectCreateFailure(err error) error {
 	switch {
-	case errors.Is(err, ErrProjectSlugAlreadyExists):
+	case errors.Is(err, domainproject.ErrProjectSlugAlreadyExists):
 		return f.businessFailure(ProjectEventCreateFailure, ProjectReasonSlugAlreadyExists, err)
-	case errors.Is(err, ErrUserNotFound):
+	case errors.Is(err, identity.ErrUserNotFound):
 		return f.businessFailure(ProjectEventCreateFailure, ProjectReasonUserNotFound, err)
 	default:
 		return f.technicalFailure(ProjectEventCreateFailure, ProjectReasonProjectCreateFailed, err)
@@ -112,7 +113,7 @@ func (f *projectFlow) projectCreateFailure(err error) error {
 }
 
 func (f *projectFlow) projectListFailure(err error) error {
-	if errors.Is(err, ErrProjectNotFound) || errors.Is(err, ErrUserNotFound) {
+	if errors.Is(err, domainproject.ErrProjectNotFound) || errors.Is(err, identity.ErrUserNotFound) {
 		return err
 	}
 
@@ -121,9 +122,9 @@ func (f *projectFlow) projectListFailure(err error) error {
 
 func (f *projectFlow) projectLookupFailure(event ProjectEventName, err error) error {
 	switch {
-	case errors.Is(err, ErrProjectNotFound):
+	case errors.Is(err, domainproject.ErrProjectNotFound):
 		return f.businessFailure(event, ProjectReasonProjectNotFound, err)
-	case errors.Is(err, ErrUserNotFound):
+	case errors.Is(err, identity.ErrUserNotFound):
 		return f.businessFailure(event, ProjectReasonUserNotFound, err)
 	default:
 		return f.technicalFailure(event, ProjectReasonProjectLookupFailed, err)
@@ -131,7 +132,7 @@ func (f *projectFlow) projectLookupFailure(event ProjectEventName, err error) er
 }
 
 func (f *projectFlow) projectReadLookupFailure(event ProjectEventName, err error) error {
-	if errors.Is(err, ErrProjectNotFound) || errors.Is(err, ErrUserNotFound) {
+	if errors.Is(err, domainproject.ErrProjectNotFound) || errors.Is(err, identity.ErrUserNotFound) {
 		return err
 	}
 
@@ -140,11 +141,11 @@ func (f *projectFlow) projectReadLookupFailure(event ProjectEventName, err error
 
 func (f *projectFlow) roleLookupFailure(event ProjectEventName, err error) error {
 	switch {
-	case errors.Is(err, ErrProjectNotFound):
+	case errors.Is(err, domainproject.ErrProjectNotFound):
 		return f.businessFailure(event, ProjectReasonProjectNotFound, err)
-	case errors.Is(err, ErrUserNotFound):
+	case errors.Is(err, identity.ErrUserNotFound):
 		return f.businessFailure(event, ProjectReasonUserNotFound, err)
-	case errors.Is(err, ErrMemberNotFound):
+	case errors.Is(err, domainproject.ErrMemberNotFound):
 		// User is not a member of the project; treat as forbidden to avoid leaking project existence.
 		return f.businessFailure(event, ProjectReasonForbidden, ErrForbidden)
 	default:
@@ -154,9 +155,9 @@ func (f *projectFlow) roleLookupFailure(event ProjectEventName, err error) error
 
 func (f *projectFlow) projectUpdateFailure(err error) error {
 	switch {
-	case errors.Is(err, ErrProjectNotFound):
+	case errors.Is(err, domainproject.ErrProjectNotFound):
 		return f.businessFailure(ProjectEventUpdateFailure, ProjectReasonProjectNotFound, err)
-	case errors.Is(err, ErrProjectSlugAlreadyExists):
+	case errors.Is(err, domainproject.ErrProjectSlugAlreadyExists):
 		return f.businessFailure(ProjectEventUpdateFailure, ProjectReasonSlugAlreadyExists, err)
 	default:
 		return f.technicalFailure(ProjectEventUpdateFailure, ProjectReasonProjectUpdateFailed, err)
@@ -164,7 +165,7 @@ func (f *projectFlow) projectUpdateFailure(err error) error {
 }
 
 func (f *projectFlow) projectDeleteFailure(err error) error {
-	if errors.Is(err, ErrProjectNotFound) {
+	if errors.Is(err, domainproject.ErrProjectNotFound) {
 		return f.businessFailure(ProjectEventDeleteFailure, ProjectReasonProjectNotFound, err)
 	}
 
@@ -172,7 +173,7 @@ func (f *projectFlow) projectDeleteFailure(err error) error {
 }
 
 func (f *projectFlow) membersListFailure(err error) error {
-	if errors.Is(err, ErrProjectNotFound) {
+	if errors.Is(err, domainproject.ErrProjectNotFound) {
 		return err
 	}
 
@@ -181,11 +182,11 @@ func (f *projectFlow) membersListFailure(err error) error {
 
 func (f *projectFlow) memberAddFailure(err error) error {
 	switch {
-	case errors.Is(err, ErrMemberAlreadyExists):
+	case errors.Is(err, domainproject.ErrMemberAlreadyExists):
 		return f.businessFailure(ProjectEventAddMemberFailure, ProjectReasonMemberAlreadyExists, err)
-	case errors.Is(err, ErrProjectNotFound):
+	case errors.Is(err, domainproject.ErrProjectNotFound):
 		return f.businessFailure(ProjectEventAddMemberFailure, ProjectReasonProjectNotFound, err)
-	case errors.Is(err, ErrUserNotFound):
+	case errors.Is(err, identity.ErrUserNotFound):
 		return f.businessFailure(ProjectEventAddMemberFailure, ProjectReasonUserNotFound, err)
 	default:
 		return f.technicalFailure(ProjectEventAddMemberFailure, ProjectReasonMemberAddFailed, err)
@@ -193,7 +194,7 @@ func (f *projectFlow) memberAddFailure(err error) error {
 }
 
 func (f *projectFlow) memberLookupFailure(event ProjectEventName, err error) error {
-	if errors.Is(err, ErrMemberNotFound) {
+	if errors.Is(err, domainproject.ErrMemberNotFound) {
 		return f.businessFailure(event, ProjectReasonMemberNotFound, err)
 	}
 
@@ -201,7 +202,7 @@ func (f *projectFlow) memberLookupFailure(event ProjectEventName, err error) err
 }
 
 func (f *projectFlow) ownerCountFailure(event ProjectEventName, err error) error {
-	if errors.Is(err, ErrProjectNotFound) {
+	if errors.Is(err, domainproject.ErrProjectNotFound) {
 		return f.businessFailure(event, ProjectReasonProjectNotFound, err)
 	}
 
@@ -209,7 +210,7 @@ func (f *projectFlow) ownerCountFailure(event ProjectEventName, err error) error
 }
 
 func (f *projectFlow) memberRoleUpdateFailure(err error) error {
-	if errors.Is(err, ErrMemberNotFound) {
+	if errors.Is(err, domainproject.ErrMemberNotFound) {
 		return f.businessFailure(ProjectEventUpdateMemberRoleFailure, ProjectReasonMemberNotFound, err)
 	}
 
@@ -217,7 +218,7 @@ func (f *projectFlow) memberRoleUpdateFailure(err error) error {
 }
 
 func (f *projectFlow) memberRemoveFailure(err error) error {
-	if errors.Is(err, ErrMemberNotFound) {
+	if errors.Is(err, domainproject.ErrMemberNotFound) {
 		return f.businessFailure(ProjectEventRemoveMemberFailure, ProjectReasonMemberNotFound, err)
 	}
 

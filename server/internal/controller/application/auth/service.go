@@ -43,7 +43,7 @@ func (s *Service) Register(ctx context.Context, input RegisterInput) (AuthAccess
 		DisplayName:  input.DisplayName,
 		PasswordHash: passwordHash,
 	})
-	if errors.Is(err, ErrEmailAlreadyExists) {
+	if errors.Is(err, identity.ErrEmailAlreadyExists) {
 		return AuthAccessResult{}, flow.businessFailure(AuthEventRegisterFailure, AuthReasonEmailAlreadyExists, err)
 	}
 	if err != nil {
@@ -72,7 +72,7 @@ func (s *Service) Login(ctx context.Context, input LoginInput) (AuthAccessResult
 	}
 
 	user, err := s.getUserByEmail(ctx, input.Email)
-	if errors.Is(err, ErrUserNotFound) {
+	if errors.Is(err, identity.ErrUserNotFound) {
 		return AuthAccessResult{}, flow.businessFailure(AuthEventLoginFailure, AuthReasonCredentialsInvalid, ErrCredentialsInvalid)
 	}
 	if err != nil {
@@ -144,7 +144,7 @@ func (s *Service) createUser(ctx context.Context, input identity.User) (identity
 
 	user, err := s.users.CreateUser(ctx, input)
 	if err != nil {
-		if !errors.Is(err, ErrEmailAlreadyExists) {
+		if !errors.Is(err, identity.ErrEmailAlreadyExists) {
 			recordSpanError(span, err, AuthReasonUserCreateFailed)
 		}
 		return identity.User{}, err
@@ -159,7 +159,7 @@ func (s *Service) getUserByEmail(ctx context.Context, email string) (identity.Us
 
 	user, err := s.users.GetUserByEmail(ctx, email)
 	if err != nil {
-		if !errors.Is(err, ErrUserNotFound) {
+		if !errors.Is(err, identity.ErrUserNotFound) {
 			recordSpanError(span, err, AuthReasonUserLookupFailed)
 		}
 		return identity.User{}, err

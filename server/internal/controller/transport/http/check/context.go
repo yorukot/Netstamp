@@ -9,6 +9,10 @@ import (
 	appcheck "github.com/yorukot/netstamp/internal/controller/application/check"
 	appvalidation "github.com/yorukot/netstamp/internal/controller/application/validation"
 	httpmiddleware "github.com/yorukot/netstamp/internal/controller/transport/http/middleware"
+	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
+	"github.com/yorukot/netstamp/internal/domain/identity"
+	"github.com/yorukot/netstamp/internal/domain/label"
+	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 )
 
 func currentUserID(ctx context.Context) (string, error) {
@@ -22,11 +26,11 @@ func currentUserID(ctx context.Context) (string, error) {
 
 func mapCheckError(err error, fallback string) error {
 	switch {
-	case errors.Is(err, appcheck.ErrProjectNotFound), errors.Is(err, appcheck.ErrUserNotFound), errors.Is(err, appcheck.ErrCheckNotFound), errors.Is(err, appcheck.ErrLabelNotFound):
+	case errors.Is(err, domainproject.ErrProjectNotFound), errors.Is(err, identity.ErrUserNotFound), errors.Is(err, domaincheck.ErrCheckNotFound), errors.Is(err, label.ErrLabelNotFound):
 		return huma.Error404NotFound("not found")
 	case errors.Is(err, appcheck.ErrForbidden):
 		return huma.Error403Forbidden("forbidden")
-	case errors.Is(err, appcheck.ErrInvalidInput):
+	case errors.Is(err, appcheck.ErrInvalidInput), errors.Is(err, domaincheck.ErrInvalidInput), errors.Is(err, label.ErrInvalidInput):
 		return invalidCheckInputError(err)
 	default:
 		return huma.Error500InternalServerError(fallback)

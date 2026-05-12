@@ -7,6 +7,7 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 
 	appauth "github.com/yorukot/netstamp/internal/controller/application/auth"
+	"github.com/yorukot/netstamp/internal/domain/identity"
 )
 
 func (h *Handler) register(ctx context.Context, input *registerInput) (*registerOutput, error) {
@@ -19,7 +20,7 @@ func (h *Handler) register(ctx context.Context, input *registerInput) (*register
 		switch {
 		case errors.Is(err, appauth.ErrInvalidInput):
 			return nil, invalidAuthInputError(err)
-		case errors.Is(err, appauth.ErrEmailAlreadyExists):
+		case errors.Is(err, identity.ErrEmailAlreadyExists):
 			return nil, huma.Error409Conflict("email already exists")
 		default:
 			return nil, huma.Error500InternalServerError("register user failed")

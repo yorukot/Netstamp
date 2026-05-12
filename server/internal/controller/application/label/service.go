@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/yorukot/netstamp/internal/domain/identity"
 	domainlabel "github.com/yorukot/netstamp/internal/domain/label"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 )
@@ -191,10 +192,10 @@ func (s *Service) GetActiveLabelsByIDsForProject(ctx context.Context, projectID 
 
 func (s *Service) loadProject(ctx context.Context, flow *labelFlow, projectRef, userID string, failureEvent LabelEventName) (domainproject.Project, error) {
 	project, err := s.projectAccess.GetProjectForUser(ctx, projectRef, userID)
-	if errors.Is(err, ErrProjectNotFound) {
+	if errors.Is(err, domainproject.ErrProjectNotFound) {
 		return domainproject.Project{}, flow.businessFailure(failureEvent, LabelReasonProjectNotFound, err)
 	}
-	if errors.Is(err, ErrUserNotFound) {
+	if errors.Is(err, identity.ErrUserNotFound) {
 		return domainproject.Project{}, flow.businessFailure(failureEvent, LabelReasonUserNotFound, err)
 	}
 	if err != nil {
@@ -207,10 +208,10 @@ func (s *Service) loadProject(ctx context.Context, flow *labelFlow, projectRef, 
 
 func (s *Service) requireAction(ctx context.Context, flow *labelFlow, projectID, userID string, failureEvent LabelEventName, action domainproject.Action) error {
 	role, err := s.projectAccess.GetMemberRole(ctx, projectID, userID)
-	if errors.Is(err, ErrProjectNotFound) {
+	if errors.Is(err, domainproject.ErrProjectNotFound) {
 		return flow.businessFailure(failureEvent, LabelReasonProjectNotFound, err)
 	}
-	if errors.Is(err, ErrUserNotFound) {
+	if errors.Is(err, identity.ErrUserNotFound) {
 		return flow.businessFailure(failureEvent, LabelReasonUserNotFound, err)
 	}
 	if err != nil {

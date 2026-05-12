@@ -8,6 +8,8 @@ import (
 
 	appproberuntime "github.com/yorukot/netstamp/internal/controller/application/proberuntime"
 	appvalidation "github.com/yorukot/netstamp/internal/controller/application/validation"
+	domainping "github.com/yorukot/netstamp/internal/domain/ping"
+	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
 )
 
 func runtimeAuthInput(probeID, header string) (appproberuntime.RuntimeAuthInput, error) {
@@ -33,17 +35,17 @@ func probeSecret(header string) (string, error) {
 
 func mapRuntimeError(err error, fallback string) error {
 	switch {
-	case errors.Is(err, appproberuntime.ErrInvalidCredential):
+	case errors.Is(err, domainprobe.ErrInvalidCredential):
 		return huma.Error401Unauthorized("invalid probe credential")
-	case errors.Is(err, appproberuntime.ErrProbeDisabled):
+	case errors.Is(err, domainprobe.ErrProbeDisabled):
 		return huma.Error403Forbidden("probe disabled")
-	case errors.Is(err, appproberuntime.ErrProbeNotFound):
+	case errors.Is(err, domainprobe.ErrProbeNotFound):
 		return huma.Error404NotFound("probe not found")
 	case errors.Is(err, appproberuntime.ErrResultConflict):
 		return huma.Error409Conflict("probe result conflicts with assignment")
 	case errors.Is(err, appproberuntime.ErrUnsupportedResult):
 		return invalidRuntimeInputError(err)
-	case errors.Is(err, appproberuntime.ErrInvalidInput), errors.Is(err, appproberuntime.ErrInvalidResult):
+	case errors.Is(err, appproberuntime.ErrInvalidInput), errors.Is(err, domainping.ErrInvalidResult):
 		return invalidRuntimeInputError(err)
 	default:
 		return huma.Error500InternalServerError(fallback)

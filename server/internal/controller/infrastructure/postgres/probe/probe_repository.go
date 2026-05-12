@@ -63,7 +63,7 @@ func (r *ProbeRepository) GetActiveProbeCredential(ctx context.Context, probeID 
 	return mapProbeCredential(row), nil
 }
 
-func (r *ProbeRepository) UpdateProbeStatus(ctx context.Context, input domainprobe.UpdateStatusInput) (domainprobe.Status, error) {
+func (r *ProbeRepository) UpdateProbeStatus(ctx context.Context, input domainprobe.Status) (domainprobe.Status, error) {
 	ctx, span := postgres.StartDBSpan(ctx, pgprobeTracer, "probe_statuses", "postgres.probes.update_status", "UPDATE", "UPDATE probe status")
 	defer span.End()
 
@@ -169,7 +169,7 @@ func (r *ProbeRepository) RefreshProbeCheckAssignmentsForLabel(ctx context.Conte
 	return nil
 }
 
-func (r *ProbeRepository) CreateProbe(ctx context.Context, input domainprobe.CreateProbeStorageInput) (domainprobe.Probe, error) {
+func (r *ProbeRepository) CreateProbe(ctx context.Context, input domainprobe.Probe, secretHash string) (domainprobe.Probe, error) {
 	ctx, span := postgres.StartDBSpan(ctx, pgprobeTracer, "probes", "postgres.probes.create_with_credentials", "INSERT", "INSERT probe, credential, status, and labels")
 	defer span.End()
 
@@ -177,7 +177,11 @@ func (r *ProbeRepository) CreateProbe(ctx context.Context, input domainprobe.Cre
 	if err != nil {
 		return domainprobe.Probe{}, err
 	}
-	labelIDs, err := pglabel.ParseLabelIDs(input.LabelIDs)
+	labelIDValues := make([]string, 0, len(input.Labels))
+	for _, label := range input.Labels {
+		labelIDValues = append(labelIDValues, label.ID)
+	}
+	labelIDs, err := pglabel.ParseLabelIDs(labelIDValues)
 	if err != nil {
 		return domainprobe.Probe{}, err
 	}
@@ -191,7 +195,7 @@ func (r *ProbeRepository) CreateProbe(ctx context.Context, input domainprobe.Cre
 			Name:      input.Name,
 			Enabled:   input.Enabled,
 			Location:  pointFromCoordinates(input.Longitude, input.Latitude),
-			SubdivisionCode:      input.SubdivisionCode,
+			City:      input.SubdivisionCode,
 		})
 		if createErr != nil {
 			return mapCreateProbeError(createErr)
@@ -199,7 +203,7 @@ func (r *ProbeRepository) CreateProbe(ctx context.Context, input domainprobe.Cre
 
 		if _, credentialErr := q.CreateProbeCredential(ctx, sqlc.CreateProbeCredentialParams{
 			ProbeID:    row.ID,
-			SecretHash: input.SecretHash,
+			SecretHash: secretHash,
 		}); credentialErr != nil {
 			return mapCreateProbeCredentialError(credentialErr)
 		}
@@ -279,15 +283,19 @@ func (r *ProbeRepository) GetProbeForProject(ctx context.Context, projectIDValue
 	return probe, nil
 }
 
-func (r *ProbeRepository) UpdateProbe(ctx context.Context, input domainprobe.UpdateProbeStorageInput) (domainprobe.Probe, error) {
+func (r *ProbeRepository) UpdateProbe(ctx context.Context, input domainprobe.Probe) (domainprobe.Probe, error) {
 	ctx, span := postgres.StartDBSpan(ctx, pgprobeTracer, "probes", "postgres.probes.update", "UPDATE", "UPDATE probe, labels, and assignment links")
 	defer span.End()
 
-	projectID, probeID, err := parseProjectAndProbeIDs(input.ProjectID, input.ProbeID)
+	projectID, probeID, err := parseProjectAndProbeIDs(input.ProjectID, input.ID)
 	if err != nil {
 		return domainprobe.Probe{}, err
 	}
-	labelIDs, err := pglabel.ParseLabelIDs(input.LabelIDs)
+	labelIDValues := make([]string, 0, len(input.Labels))
+	for _, label := range input.Labels {
+		labelIDValues = append(labelIDValues, label.ID)
+	}
+	labelIDs, err := pglabel.ParseLabelIDs(labelIDValues)
 	if err != nil {
 		return domainprobe.Probe{}, err
 	}
@@ -302,7 +310,7 @@ func (r *ProbeRepository) UpdateProbe(ctx context.Context, input domainprobe.Upd
 			Name:      input.Name,
 			Enabled:   input.Enabled,
 			Location:  pointFromCoordinates(input.Longitude, input.Latitude),
-			SubdivisionCode:      input.SubdivisionCode,
+			City:      input.SubdivisionCode,
 		}); updateErr != nil {
 			if errors.Is(updateErr, pgx.ErrNoRows) {
 				return domainprobe.ErrProbeNotFound
@@ -310,21 +318,19 @@ func (r *ProbeRepository) UpdateProbe(ctx context.Context, input domainprobe.Upd
 			return mapUpdateProbeError(updateErr)
 		}
 
-		if input.ReplaceLabels {
-			if deleteErr := q.DeleteProbeLabels(ctx, sqlc.DeleteProbeLabelsParams{
+		if deleteErr := q.DeleteProbeLabels(ctx, sqlc.DeleteProbeLabelsParams{
+			ProjectID: projectID,
+			ProbeID:   probeID,
+		}); deleteErr != nil {
+			return deleteErr
+		}
+		for _, labelID := range labelIDs {
+			if labelErr := q.CreateProbeLabel(ctx, sqlc.CreateProbeLabelParams{
 				ProjectID: projectID,
 				ProbeID:   probeID,
-			}); deleteErr != nil {
-				return deleteErr
-			}
-			for _, labelID := range labelIDs {
-				if labelErr := q.CreateProbeLabel(ctx, sqlc.CreateProbeLabelParams{
-					ProjectID: projectID,
-					ProbeID:   probeID,
-					LabelID:   labelID,
-				}); labelErr != nil {
-					return mapCreateProbeLabelError(labelErr)
-				}
+				LabelID:   labelID,
+			}); labelErr != nil {
+				return mapCreateProbeLabelError(labelErr)
 			}
 		}
 
@@ -390,11 +396,11 @@ func (r *ProbeRepository) SoftDeleteProbe(ctx context.Context, projectIDValue, p
 	return nil
 }
 
-func (r *ProbeRepository) RotateProbeSecret(ctx context.Context, input domainprobe.RotateProbeSecretStorageInput) error {
+func (r *ProbeRepository) RotateProbeSecret(ctx context.Context, input domainprobe.Probe, secretHash string) error {
 	ctx, span := postgres.StartDBSpan(ctx, pgprobeTracer, "probe_credentials", "postgres.probes.rotate_secret", "UPDATE", "ROTATE probe credential")
 	defer span.End()
 
-	projectID, probeID, err := parseProjectAndProbeIDs(input.ProjectID, input.ProbeID)
+	projectID, probeID, err := parseProjectAndProbeIDs(input.ProjectID, input.ID)
 	if err != nil {
 		return err
 	}
@@ -402,7 +408,7 @@ func (r *ProbeRepository) RotateProbeSecret(ctx context.Context, input domainpro
 	if _, err := r.queries.RotateProbeCredential(ctx, sqlc.RotateProbeCredentialParams{
 		ProjectID:  projectID,
 		ID:         probeID,
-		SecretHash: input.SecretHash,
+		SecretHash: secretHash,
 	}); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domainprobe.ErrProbeNotFound

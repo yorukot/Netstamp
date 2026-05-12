@@ -9,6 +9,8 @@ import (
 	appproject "github.com/yorukot/netstamp/internal/controller/application/project"
 	appvalidation "github.com/yorukot/netstamp/internal/controller/application/validation"
 	httpmiddleware "github.com/yorukot/netstamp/internal/controller/transport/http/middleware"
+	"github.com/yorukot/netstamp/internal/domain/identity"
+	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 )
 
 func currentUserID(ctx context.Context) (string, error) {
@@ -22,13 +24,13 @@ func currentUserID(ctx context.Context) (string, error) {
 
 func mapProjectError(err error, fallback string) error {
 	switch {
-	case errors.Is(err, appproject.ErrProjectNotFound), errors.Is(err, appproject.ErrMemberNotFound), errors.Is(err, appproject.ErrUserNotFound):
+	case errors.Is(err, domainproject.ErrProjectNotFound), errors.Is(err, domainproject.ErrMemberNotFound), errors.Is(err, identity.ErrUserNotFound):
 		return huma.Error404NotFound("not found")
 	case errors.Is(err, appproject.ErrForbidden):
 		return huma.Error403Forbidden("forbidden")
-	case errors.Is(err, appproject.ErrProjectSlugAlreadyExists):
+	case errors.Is(err, domainproject.ErrProjectSlugAlreadyExists):
 		return huma.Error409Conflict("project slug already exists")
-	case errors.Is(err, appproject.ErrMemberAlreadyExists):
+	case errors.Is(err, domainproject.ErrMemberAlreadyExists):
 		return huma.Error409Conflict("project member already exists")
 	case errors.Is(err, appproject.ErrLastOwner):
 		return huma.Error409Conflict("project must keep an owner")

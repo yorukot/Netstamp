@@ -6,6 +6,7 @@ import (
 
 	"go.opentelemetry.io/otel/trace"
 
+	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
 )
 
@@ -80,11 +81,11 @@ func (f *runtimeFlow) authenticationFailure(name ProbeRuntimeEventName, err erro
 	switch {
 	case errors.Is(err, ErrInvalidInput):
 		return f.businessFailure(name, ProbeRuntimeReasonInvalidInput, err)
-	case errors.Is(err, ErrInvalidCredential):
+	case errors.Is(err, domainprobe.ErrInvalidCredential):
 		return f.businessFailure(name, ProbeRuntimeReasonInvalidCredential, err)
-	case errors.Is(err, ErrProbeNotFound):
+	case errors.Is(err, domainprobe.ErrProbeNotFound):
 		return f.businessFailure(name, ProbeRuntimeReasonProbeNotFound, err)
-	case errors.Is(err, ErrProbeDisabled):
+	case errors.Is(err, domainprobe.ErrProbeDisabled):
 		return f.businessFailure(name, ProbeRuntimeReasonProbeDisabled, err)
 	case errors.Is(err, errSecretVerifierMissing):
 		return f.technicalFailure(name, ProbeRuntimeReasonSecretVerifierMissing, err)
@@ -97,7 +98,7 @@ func (f *runtimeFlow) statusUpdateFailure(name ProbeRuntimeEventName, err error)
 	switch {
 	case errors.Is(err, ErrInvalidInput):
 		return f.businessFailure(name, ProbeRuntimeReasonInvalidInput, err)
-	case errors.Is(err, ErrProbeNotFound):
+	case errors.Is(err, domainprobe.ErrProbeNotFound):
 		return f.businessFailure(name, ProbeRuntimeReasonProbeNotFound, err)
 	default:
 		return f.technicalFailure(name, ProbeRuntimeReasonStatusUpdateFailed, err)
@@ -106,7 +107,7 @@ func (f *runtimeFlow) statusUpdateFailure(name ProbeRuntimeEventName, err error)
 
 func (f *runtimeFlow) assignmentListFailure(name ProbeRuntimeEventName, err error) error {
 	switch {
-	case errors.Is(err, ErrProbeNotFound):
+	case errors.Is(err, domainprobe.ErrProbeNotFound):
 		return f.businessFailure(name, ProbeRuntimeReasonProbeNotFound, err)
 	default:
 		return f.technicalFailure(name, ProbeRuntimeReasonAssignmentListFailed, err)
@@ -114,7 +115,7 @@ func (f *runtimeFlow) assignmentListFailure(name ProbeRuntimeEventName, err erro
 }
 
 func (f *runtimeFlow) resultWriteFailure(err error) error {
-	if errors.Is(err, ErrInvalidResult) {
+	if errors.Is(err, domainping.ErrInvalidResult) {
 		return f.businessFailure(ProbeRuntimeEventSubmitResultsFailure, ProbeRuntimeReasonInvalidResult, err)
 	}
 

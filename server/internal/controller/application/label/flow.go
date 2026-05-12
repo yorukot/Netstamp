@@ -6,6 +6,7 @@ import (
 
 	"go.opentelemetry.io/otel/trace"
 
+	"github.com/yorukot/netstamp/internal/domain/label"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 )
 
@@ -96,10 +97,10 @@ func (f *labelFlow) technicalFailure(name LabelEventName, reason LabelEventReaso
 }
 
 func (f *labelFlow) lookupFailure(event LabelEventName, err error) error {
-	if errors.Is(err, ErrLabelNotFound) {
+	if errors.Is(err, label.ErrLabelNotFound) {
 		return f.businessFailure(event, LabelReasonLabelNotFound, err)
 	}
-	if errors.Is(err, ErrProjectNotFound) {
+	if errors.Is(err, domainproject.ErrProjectNotFound) {
 		return f.businessFailure(event, LabelReasonProjectNotFound, err)
 	}
 
@@ -108,13 +109,13 @@ func (f *labelFlow) lookupFailure(event LabelEventName, err error) error {
 
 func (f *labelFlow) writeFailure(event LabelEventName, technicalReason LabelEventReason, err error) error {
 	switch {
-	case errors.Is(err, ErrLabelNotFound):
+	case errors.Is(err, label.ErrLabelNotFound):
 		return f.businessFailure(event, LabelReasonLabelNotFound, err)
-	case errors.Is(err, ErrLabelAlreadyExists):
+	case errors.Is(err, label.ErrLabelAlreadyExists):
 		return f.businessFailure(event, LabelReasonLabelAlreadyExists, err)
-	case errors.Is(err, ErrInvalidInput):
+	case errors.Is(err, ErrInvalidInput), errors.Is(err, label.ErrInvalidInput):
 		return f.businessFailure(event, LabelReasonInvalidInput, err)
-	case errors.Is(err, ErrProjectNotFound):
+	case errors.Is(err, domainproject.ErrProjectNotFound):
 		return f.businessFailure(event, LabelReasonProjectNotFound, err)
 	default:
 		return f.technicalFailure(event, technicalReason, err)
@@ -123,11 +124,11 @@ func (f *labelFlow) writeFailure(event LabelEventName, technicalReason LabelEven
 
 func (f *labelFlow) resolveFailure(err error) error {
 	switch {
-	case errors.Is(err, ErrLabelNotFound):
+	case errors.Is(err, label.ErrLabelNotFound):
 		return f.businessFailure(LabelEventResolveFailure, LabelReasonLabelNotFound, err)
-	case errors.Is(err, ErrInvalidInput):
+	case errors.Is(err, ErrInvalidInput), errors.Is(err, label.ErrInvalidInput):
 		return f.businessFailure(LabelEventResolveFailure, LabelReasonInvalidInput, err)
-	case errors.Is(err, ErrProjectNotFound):
+	case errors.Is(err, domainproject.ErrProjectNotFound):
 		return f.businessFailure(LabelEventResolveFailure, LabelReasonProjectNotFound, err)
 	default:
 		return f.technicalFailure(LabelEventResolveFailure, LabelReasonLabelResolveFailed, err)

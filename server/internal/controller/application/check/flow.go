@@ -6,6 +6,9 @@ import (
 
 	"go.opentelemetry.io/otel/trace"
 
+	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
+	"github.com/yorukot/netstamp/internal/domain/identity"
+	"github.com/yorukot/netstamp/internal/domain/label"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 )
 
@@ -90,9 +93,9 @@ func (f *checkFlow) technicalFailure(name CheckEventName, reason CheckEventReaso
 
 func (f *checkFlow) projectLookupFailure(event CheckEventName, err error) error {
 	switch {
-	case errors.Is(err, ErrProjectNotFound):
+	case errors.Is(err, domainproject.ErrProjectNotFound):
 		return f.businessFailure(event, CheckReasonProjectNotFound, err)
-	case errors.Is(err, ErrUserNotFound):
+	case errors.Is(err, identity.ErrUserNotFound):
 		return f.businessFailure(event, CheckReasonUserNotFound, err)
 	default:
 		return f.technicalFailure(event, CheckReasonProjectLookupFailed, err)
@@ -101,9 +104,9 @@ func (f *checkFlow) projectLookupFailure(event CheckEventName, err error) error 
 
 func (f *checkFlow) roleLookupFailure(event CheckEventName, err error) error {
 	switch {
-	case errors.Is(err, ErrProjectNotFound):
+	case errors.Is(err, domainproject.ErrProjectNotFound):
 		return f.businessFailure(event, CheckReasonProjectNotFound, err)
-	case errors.Is(err, ErrUserNotFound):
+	case errors.Is(err, identity.ErrUserNotFound):
 		return f.businessFailure(event, CheckReasonUserNotFound, err)
 	default:
 		return f.technicalFailure(event, CheckReasonRoleLookupFailed, err)
@@ -112,11 +115,11 @@ func (f *checkFlow) roleLookupFailure(event CheckEventName, err error) error {
 
 func (f *checkFlow) checkLookupFailure(event CheckEventName, err error) error {
 	switch {
-	case errors.Is(err, ErrCheckNotFound):
+	case errors.Is(err, domaincheck.ErrCheckNotFound):
 		return f.businessFailure(event, CheckReasonCheckNotFound, err)
-	case errors.Is(err, ErrProjectNotFound):
+	case errors.Is(err, domainproject.ErrProjectNotFound):
 		return f.businessFailure(event, CheckReasonProjectNotFound, err)
-	case errors.Is(err, ErrInvalidInput):
+	case errors.Is(err, ErrInvalidInput), errors.Is(err, domaincheck.ErrInvalidInput), errors.Is(err, label.ErrInvalidInput):
 		return f.businessFailure(event, CheckReasonInvalidInput, err)
 	default:
 		return f.technicalFailure(event, CheckReasonCheckLookupFailed, err)
@@ -125,9 +128,9 @@ func (f *checkFlow) checkLookupFailure(event CheckEventName, err error) error {
 
 func (f *checkFlow) labelLookupFailure(event CheckEventName, err error) error {
 	switch {
-	case errors.Is(err, ErrInvalidInput):
+	case errors.Is(err, ErrInvalidInput), errors.Is(err, domaincheck.ErrInvalidInput):
 		return f.businessFailure(event, CheckReasonInvalidInput, err)
-	case errors.Is(err, ErrLabelNotFound):
+	case errors.Is(err, label.ErrLabelNotFound):
 		return f.businessFailure(event, CheckReasonLabelNotFound, err)
 	default:
 		return f.technicalFailure(event, CheckReasonLabelLookupFailed, err)
@@ -136,13 +139,13 @@ func (f *checkFlow) labelLookupFailure(event CheckEventName, err error) error {
 
 func (f *checkFlow) writeFailure(event CheckEventName, technicalReason CheckEventReason, err error) error {
 	switch {
-	case errors.Is(err, ErrCheckNotFound):
+	case errors.Is(err, domaincheck.ErrCheckNotFound):
 		return f.businessFailure(event, CheckReasonCheckNotFound, err)
-	case errors.Is(err, ErrProjectNotFound):
+	case errors.Is(err, domainproject.ErrProjectNotFound):
 		return f.businessFailure(event, CheckReasonProjectNotFound, err)
-	case errors.Is(err, ErrLabelNotFound):
+	case errors.Is(err, label.ErrLabelNotFound):
 		return f.businessFailure(event, CheckReasonLabelNotFound, err)
-	case errors.Is(err, ErrInvalidInput):
+	case errors.Is(err, ErrInvalidInput), errors.Is(err, domaincheck.ErrInvalidInput):
 		return f.businessFailure(event, CheckReasonInvalidInput, err)
 	default:
 		return f.technicalFailure(event, technicalReason, err)

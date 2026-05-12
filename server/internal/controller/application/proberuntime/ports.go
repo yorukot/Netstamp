@@ -10,7 +10,7 @@ import (
 
 type ProbeRepository interface {
 	GetActiveProbeCredential(ctx context.Context, probeID string) (domainprobe.Credential, error)
-	UpdateProbeStatus(ctx context.Context, input domainprobe.UpdateStatusInput) (domainprobe.Status, error)
+	UpdateProbeStatus(ctx context.Context, input domainprobe.Status) (domainprobe.Status, error)
 	ListAssignments(ctx context.Context, probeID string) ([]domaincheck.Assignment, error)
 }
 

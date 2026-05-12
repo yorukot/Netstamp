@@ -9,6 +9,9 @@ import (
 	applabel "github.com/yorukot/netstamp/internal/controller/application/label"
 	appvalidation "github.com/yorukot/netstamp/internal/controller/application/validation"
 	httpmiddleware "github.com/yorukot/netstamp/internal/controller/transport/http/middleware"
+	"github.com/yorukot/netstamp/internal/domain/identity"
+	"github.com/yorukot/netstamp/internal/domain/label"
+	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 )
 
 func currentUserID(ctx context.Context) (string, error) {
@@ -22,13 +25,13 @@ func currentUserID(ctx context.Context) (string, error) {
 
 func mapLabelError(err error, fallback string) error {
 	switch {
-	case errors.Is(err, applabel.ErrProjectNotFound), errors.Is(err, applabel.ErrUserNotFound), errors.Is(err, applabel.ErrLabelNotFound):
+	case errors.Is(err, domainproject.ErrProjectNotFound), errors.Is(err, identity.ErrUserNotFound), errors.Is(err, label.ErrLabelNotFound):
 		return huma.Error404NotFound("not found")
 	case errors.Is(err, applabel.ErrForbidden):
 		return huma.Error403Forbidden("forbidden")
-	case errors.Is(err, applabel.ErrLabelAlreadyExists):
+	case errors.Is(err, label.ErrLabelAlreadyExists):
 		return huma.Error409Conflict("label already exists")
-	case errors.Is(err, applabel.ErrInvalidInput):
+	case errors.Is(err, applabel.ErrInvalidInput), errors.Is(err, label.ErrInvalidInput):
 		return invalidLabelInputError(err)
 	default:
 		return huma.Error500InternalServerError(fallback)

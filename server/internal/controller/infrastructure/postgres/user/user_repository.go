@@ -8,7 +8,6 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	authapp "github.com/yorukot/netstamp/internal/controller/application/auth"
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/postgres"
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/sqlc"
 	"github.com/yorukot/netstamp/internal/domain/identity"
@@ -33,7 +32,7 @@ func (r *UserRepository) CreateUser(ctx context.Context, input identity.User) (i
 	})
 	if err != nil {
 		if postgres.IsUniqueViolation(err, "uq_users_email") {
-			return identity.User{}, fmt.Errorf("email already exists: %w", authapp.ErrEmailAlreadyExists)
+			return identity.User{}, fmt.Errorf("email already exists: %w", identity.ErrEmailAlreadyExists)
 		}
 		postgres.RecordDBSpanError(span, err)
 		return identity.User{}, err
@@ -55,7 +54,7 @@ func (r *UserRepository) GetUserByEmail(ctx context.Context, email string) (iden
 	row, err := r.queries.GetUserByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return identity.User{}, authapp.ErrUserNotFound
+			return identity.User{}, identity.ErrUserNotFound
 		}
 
 		postgres.RecordDBSpanError(span, err)

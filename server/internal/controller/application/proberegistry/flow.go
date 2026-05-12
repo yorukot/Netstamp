@@ -5,6 +5,10 @@ import (
 	"errors"
 
 	"go.opentelemetry.io/otel/trace"
+
+	"github.com/yorukot/netstamp/internal/domain/label"
+	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
+	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 )
 
 type probeFlow struct {
@@ -82,7 +86,7 @@ func (f *probeFlow) technicalFailure(name ProbeEventName, reason ProbeEventReaso
 }
 
 func (f *probeFlow) projectLookupFailure(event ProbeEventName, err error) error {
-	if errors.Is(err, ErrProjectNotFound) {
+	if errors.Is(err, domainproject.ErrProjectNotFound) {
 		return f.businessFailure(event, ProbeReasonProjectNotFound, err)
 	}
 
@@ -90,7 +94,7 @@ func (f *probeFlow) projectLookupFailure(event ProbeEventName, err error) error 
 }
 
 func (f *probeFlow) roleLookupFailure(event ProbeEventName, err error) error {
-	if errors.Is(err, ErrProjectNotFound) {
+	if errors.Is(err, domainproject.ErrProjectNotFound) {
 		return f.businessFailure(event, ProbeReasonProjectNotFound, err)
 	}
 
@@ -99,9 +103,9 @@ func (f *probeFlow) roleLookupFailure(event ProbeEventName, err error) error {
 
 func (f *probeFlow) labelLookupFailure(event ProbeEventName, err error) error {
 	switch {
-	case errors.Is(err, ErrInvalidInput):
+	case errors.Is(err, ErrInvalidInput), errors.Is(err, label.ErrInvalidInput), errors.Is(err, domainprobe.ErrInvalidInput):
 		return f.businessFailure(event, ProbeReasonInvalidInput, err)
-	case errors.Is(err, ErrLabelNotFound):
+	case errors.Is(err, label.ErrLabelNotFound):
 		return f.businessFailure(event, ProbeReasonLabelNotFound, err)
 	default:
 		return f.technicalFailure(event, ProbeReasonLabelLookupFailed, err)
@@ -110,11 +114,11 @@ func (f *probeFlow) labelLookupFailure(event ProbeEventName, err error) error {
 
 func (f *probeFlow) createFailure(err error) error {
 	switch {
-	case errors.Is(err, ErrInvalidInput):
+	case errors.Is(err, ErrInvalidInput), errors.Is(err, label.ErrInvalidInput), errors.Is(err, domainprobe.ErrInvalidInput):
 		return f.businessFailure(ProbeEventCreateFailure, ProbeReasonInvalidInput, err)
-	case errors.Is(err, ErrProjectNotFound):
+	case errors.Is(err, domainproject.ErrProjectNotFound):
 		return f.businessFailure(ProbeEventCreateFailure, ProbeReasonProjectNotFound, err)
-	case errors.Is(err, ErrLabelNotFound):
+	case errors.Is(err, label.ErrLabelNotFound):
 		return f.businessFailure(ProbeEventCreateFailure, ProbeReasonLabelNotFound, err)
 	default:
 		return f.technicalFailure(ProbeEventCreateFailure, ProbeReasonProbeCreateFailed, err)
@@ -122,7 +126,7 @@ func (f *probeFlow) createFailure(err error) error {
 }
 
 func (f *probeFlow) probeLookupFailure(event ProbeEventName, err error) error {
-	if errors.Is(err, ErrProbeNotFound) {
+	if errors.Is(err, domainprobe.ErrProbeNotFound) {
 		return f.businessFailure(event, ProbeReasonProbeNotFound, err)
 	}
 
@@ -130,7 +134,7 @@ func (f *probeFlow) probeLookupFailure(event ProbeEventName, err error) error {
 }
 
 func (f *probeFlow) probeListFailure(err error) error {
-	if errors.Is(err, ErrProjectNotFound) {
+	if errors.Is(err, domainproject.ErrProjectNotFound) {
 		return f.businessFailure(ProbeEventListFailure, ProbeReasonProjectNotFound, err)
 	}
 
@@ -139,13 +143,13 @@ func (f *probeFlow) probeListFailure(err error) error {
 
 func (f *probeFlow) updateFailure(err error) error {
 	switch {
-	case errors.Is(err, ErrInvalidInput):
+	case errors.Is(err, ErrInvalidInput), errors.Is(err, label.ErrInvalidInput), errors.Is(err, domainprobe.ErrInvalidInput):
 		return f.businessFailure(ProbeEventUpdateFailure, ProbeReasonInvalidInput, err)
-	case errors.Is(err, ErrProbeNotFound):
+	case errors.Is(err, domainprobe.ErrProbeNotFound):
 		return f.businessFailure(ProbeEventUpdateFailure, ProbeReasonProbeNotFound, err)
-	case errors.Is(err, ErrProjectNotFound):
+	case errors.Is(err, domainproject.ErrProjectNotFound):
 		return f.businessFailure(ProbeEventUpdateFailure, ProbeReasonProjectNotFound, err)
-	case errors.Is(err, ErrLabelNotFound):
+	case errors.Is(err, label.ErrLabelNotFound):
 		return f.businessFailure(ProbeEventUpdateFailure, ProbeReasonLabelNotFound, err)
 	default:
 		return f.technicalFailure(ProbeEventUpdateFailure, ProbeReasonProbeUpdateFailed, err)
@@ -154,9 +158,9 @@ func (f *probeFlow) updateFailure(err error) error {
 
 func (f *probeFlow) deleteFailure(err error) error {
 	switch {
-	case errors.Is(err, ErrProbeNotFound):
+	case errors.Is(err, domainprobe.ErrProbeNotFound):
 		return f.businessFailure(ProbeEventDeleteFailure, ProbeReasonProbeNotFound, err)
-	case errors.Is(err, ErrProjectNotFound):
+	case errors.Is(err, domainproject.ErrProjectNotFound):
 		return f.businessFailure(ProbeEventDeleteFailure, ProbeReasonProjectNotFound, err)
 	default:
 		return f.technicalFailure(ProbeEventDeleteFailure, ProbeReasonProbeDeleteFailed, err)
@@ -165,9 +169,9 @@ func (f *probeFlow) deleteFailure(err error) error {
 
 func (f *probeFlow) rotateFailure(err error) error {
 	switch {
-	case errors.Is(err, ErrProbeNotFound):
+	case errors.Is(err, domainprobe.ErrProbeNotFound):
 		return f.businessFailure(ProbeEventSecretRotateFailure, ProbeReasonProbeNotFound, err)
-	case errors.Is(err, ErrProjectNotFound):
+	case errors.Is(err, domainproject.ErrProjectNotFound):
 		return f.businessFailure(ProbeEventSecretRotateFailure, ProbeReasonProjectNotFound, err)
 	default:
 		return f.technicalFailure(ProbeEventSecretRotateFailure, ProbeReasonSecretRotateFailed, err)

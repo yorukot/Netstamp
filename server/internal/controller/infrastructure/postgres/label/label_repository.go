@@ -8,10 +8,10 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	labelapp "github.com/yorukot/netstamp/internal/controller/application/label"
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/postgres"
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/sqlc"
 	domainlabel "github.com/yorukot/netstamp/internal/domain/label"
+	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 )
 
 type LabelRepository struct {
@@ -26,7 +26,7 @@ func (r *LabelRepository) ListLabels(ctx context.Context, projectIDValue string)
 	ctx, span := postgres.StartDBSpan(ctx, pglabelTracer, "labels", "postgres.labels.list", "SELECT", "SELECT active labels for project")
 	defer span.End()
 
-	projectID, err := postgres.ParseUUID(projectIDValue, labelapp.ErrProjectNotFound)
+	projectID, err := postgres.ParseUUID(projectIDValue, domainproject.ErrProjectNotFound)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +55,7 @@ func (r *LabelRepository) GetLabel(ctx context.Context, projectIDValue, labelIDV
 	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return domainlabel.Label{}, labelapp.ErrLabelNotFound
+			return domainlabel.Label{}, domainlabel.ErrLabelNotFound
 		}
 		postgres.RecordDBSpanError(span, err)
 		return domainlabel.Label{}, err
@@ -68,7 +68,7 @@ func (r *LabelRepository) CreateLabel(ctx context.Context, input domainlabel.Lab
 	ctx, span := postgres.StartDBSpan(ctx, pglabelTracer, "labels", "postgres.labels.insert", "INSERT", "INSERT label")
 	defer span.End()
 
-	projectID, err := postgres.ParseUUID(input.ProjectID, labelapp.ErrProjectNotFound)
+	projectID, err := postgres.ParseUUID(input.ProjectID, domainproject.ErrProjectNotFound)
 	if err != nil {
 		return domainlabel.Label{}, err
 	}
@@ -106,7 +106,7 @@ func (r *LabelRepository) UpdateLabel(ctx context.Context, input domainlabel.Lab
 	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return domainlabel.Label{}, labelapp.ErrLabelNotFound
+			return domainlabel.Label{}, domainlabel.ErrLabelNotFound
 		}
 		ok, mapped := mapLabelWriteError(err)
 		if !ok {
@@ -132,7 +132,7 @@ func (r *LabelRepository) SoftDeleteLabel(ctx context.Context, projectIDValue, l
 		ID:        labelID,
 	}); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return labelapp.ErrLabelNotFound
+			return domainlabel.ErrLabelNotFound
 		}
 		postgres.RecordDBSpanError(span, err)
 		return err
@@ -145,7 +145,7 @@ func (r *LabelRepository) GetActiveLabelsByIDsForProject(ctx context.Context, pr
 	ctx, span := postgres.StartDBSpan(ctx, pglabelTracer, "labels", "postgres.labels.select_by_ids", "SELECT", "SELECT active labels by ids for project")
 	defer span.End()
 
-	projectID, err := postgres.ParseUUID(projectIDValue, labelapp.ErrProjectNotFound)
+	projectID, err := postgres.ParseUUID(projectIDValue, domainproject.ErrProjectNotFound)
 	if err != nil {
 		return nil, err
 	}
@@ -166,7 +166,7 @@ func (r *LabelRepository) GetActiveLabelsByIDsForProject(ctx context.Context, pr
 		return nil, err
 	}
 	if len(rows) != len(labelIDs) {
-		return nil, labelapp.ErrLabelNotFound
+		return nil, domainlabel.ErrLabelNotFound
 	}
 
 	return mapLabels(rows), nil
@@ -179,7 +179,7 @@ func ParseLabelIDs(values []string) ([]uuid.UUID, error) {
 
 	labelIDs := make([]uuid.UUID, 0, len(values))
 	for _, value := range values {
-		labelID, err := postgres.ParseUUID(value, labelapp.ErrInvalidInput)
+		labelID, err := postgres.ParseUUID(value, domainlabel.ErrInvalidInput)
 		if err != nil {
 			return nil, err
 		}
@@ -190,11 +190,11 @@ func ParseLabelIDs(values []string) ([]uuid.UUID, error) {
 }
 
 func parseProjectAndLabelIDs(projectIDValue, labelIDValue string) (uuid.UUID, uuid.UUID, error) {
-	projectID, err := postgres.ParseUUID(projectIDValue, labelapp.ErrProjectNotFound)
+	projectID, err := postgres.ParseUUID(projectIDValue, domainproject.ErrProjectNotFound)
 	if err != nil {
 		return uuid.Nil, uuid.Nil, err
 	}
-	labelID, err := postgres.ParseUUID(labelIDValue, labelapp.ErrLabelNotFound)
+	labelID, err := postgres.ParseUUID(labelIDValue, domainlabel.ErrLabelNotFound)
 	if err != nil {
 		return uuid.Nil, uuid.Nil, err
 	}

@@ -7,6 +7,9 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/postgres"
+	domainlabel "github.com/yorukot/netstamp/internal/domain/label"
+	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
+	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 )
 
 func mapCreateProbeError(err error) error {

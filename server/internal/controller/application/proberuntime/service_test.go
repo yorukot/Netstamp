@@ -33,7 +33,7 @@ func TestHelloRejectsInvalidSecret(t *testing.T) {
 		},
 	})
 
-	if !errors.Is(err, ErrInvalidCredential) {
+	if !errors.Is(err, domainprobe.ErrInvalidCredential) {
 		t.Fatalf("expected invalid credential, got %v", err)
 	}
 	if probes.gotStatus.ProbeID != "" {
@@ -69,7 +69,7 @@ func TestHelloRecordsDisabledProbe(t *testing.T) {
 			Credential: "plain-secret",
 		},
 	})
-	if !errors.Is(err, ErrProbeDisabled) {
+	if !errors.Is(err, domainprobe.ErrProbeDisabled) {
 		t.Fatalf("expected probe disabled, got %v", err)
 	}
 	assertRecordedProbeRuntimeEvent(t, recorder, ProbeRuntimeEvent{
@@ -368,7 +368,7 @@ func TestSubmitResultsRejectsInvalidPing(t *testing.T) {
 		Groups: []ResultGroupInput{newResultGroupInput(testCheckID, newPingResultInput(startedAt, startedAt.Add(-time.Second), nil))},
 	})
 
-	if !errors.Is(err, ErrInvalidResult) {
+	if !errors.Is(err, domainping.ErrInvalidResult) {
 		t.Fatalf("expected invalid result, got %v", err)
 	}
 	if len(results.created) != 0 {
@@ -504,7 +504,7 @@ func TestSubmitResultsRecordsResultWriteFailure(t *testing.T) {
 func TestRuntimeRecordsProbeNotFoundFailure(t *testing.T) {
 	recorder := &recordingProbeRuntimeEventRecorder{}
 	service := NewService(
-		&fakeProbeRepository{credentialErr: ErrProbeNotFound},
+		&fakeProbeRepository{credentialErr: domainprobe.ErrProbeNotFound},
 		&fakePingResultRepository{},
 		fakeSecretVerifier{valid: true},
 		recorder,
@@ -514,7 +514,7 @@ func TestRuntimeRecordsProbeNotFoundFailure(t *testing.T) {
 		ProbeID:    testProbeID,
 		Credential: "plain-secret",
 	})
-	if !errors.Is(err, ErrProbeNotFound) {
+	if !errors.Is(err, domainprobe.ErrProbeNotFound) {
 		t.Fatalf("expected probe not found, got %v", err)
 	}
 	assertRecordedProbeRuntimeEvent(t, recorder, ProbeRuntimeEvent{
@@ -654,7 +654,7 @@ func (r *recordingProbeRuntimeEventRecorder) RecordProbeRuntimeEvent(_ context.C
 type fakeProbeRepository struct {
 	credential    domainprobe.Credential
 	credentialErr error
-	gotStatus     domainprobe.UpdateStatusInput
+	gotStatus     domainprobe.Status
 	updateErr     error
 	assignments   []domaincheck.Assignment
 	assignmentErr error
@@ -675,7 +675,7 @@ func (r *fakeProbeRepository) GetActiveProbeCredential(context.Context, string) 
 	}, nil
 }
 
-func (r *fakeProbeRepository) UpdateProbeStatus(_ context.Context, input domainprobe.UpdateStatusInput) (domainprobe.Status, error) {
+func (r *fakeProbeRepository) UpdateProbeStatus(_ context.Context, input domainprobe.Status) (domainprobe.Status, error) {
 	r.gotStatus = input
 	if r.updateErr != nil {
 		return domainprobe.Status{}, r.updateErr

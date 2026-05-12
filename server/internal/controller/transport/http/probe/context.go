@@ -9,6 +9,9 @@ import (
 	appprobe "github.com/yorukot/netstamp/internal/controller/application/proberegistry"
 	appvalidation "github.com/yorukot/netstamp/internal/controller/application/validation"
 	httpmiddleware "github.com/yorukot/netstamp/internal/controller/transport/http/middleware"
+	"github.com/yorukot/netstamp/internal/domain/label"
+	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
+	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 )
 
 func currentUserID(ctx context.Context) (string, error) {
@@ -22,11 +25,11 @@ func currentUserID(ctx context.Context) (string, error) {
 
 func mapProbeError(err error, fallback string) error {
 	switch {
-	case errors.Is(err, appprobe.ErrProjectNotFound), errors.Is(err, appprobe.ErrLabelNotFound), errors.Is(err, appprobe.ErrProbeNotFound):
+	case errors.Is(err, domainproject.ErrProjectNotFound), errors.Is(err, label.ErrLabelNotFound), errors.Is(err, domainprobe.ErrProbeNotFound):
 		return huma.Error404NotFound("not found")
 	case errors.Is(err, appprobe.ErrForbidden):
 		return huma.Error403Forbidden("forbidden")
-	case errors.Is(err, appprobe.ErrInvalidInput):
+	case errors.Is(err, appprobe.ErrInvalidInput), errors.Is(err, label.ErrInvalidInput), errors.Is(err, domainprobe.ErrInvalidInput):
 		return invalidProbeInputError(err)
 	default:
 		return huma.Error500InternalServerError(fallback)

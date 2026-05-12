@@ -39,7 +39,7 @@ func normalizeRuntimeAuthInput(input RuntimeAuthInput) (normalizedRuntimeAuthInp
 	if err != nil {
 		return normalizedRuntimeAuthInput{}, err
 	}
-	credential, err := appvalidation.RequiredString(ErrInvalidCredential, "credential", input.Credential, 0)
+	credential, err := appvalidation.RequiredString(domainprobe.ErrInvalidCredential, "credential", input.Credential, 0)
 	if err != nil {
 		return normalizedRuntimeAuthInput{}, err
 	}
@@ -47,17 +47,17 @@ func normalizeRuntimeAuthInput(input RuntimeAuthInput) (normalizedRuntimeAuthInp
 	return normalizedRuntimeAuthInput{probeID: probeID, credential: credential}, nil
 }
 
-func normalizeRuntimeStatus(input RuntimeStatusInput, probeID string) (domainprobe.UpdateStatusInput, error) {
+func normalizeRuntimeStatus(input RuntimeStatusInput, probeID string) (domainprobe.Status, error) {
 	agentVersion, err := appvalidation.OptionalString(ErrInvalidInput, "agentVersion", input.AgentVersion, maxAgentVersionRunes)
 	if err != nil {
-		return domainprobe.UpdateStatusInput{}, err
+		return domainprobe.Status{}, err
 	}
 	as, err := appvalidation.OptionalString(ErrInvalidInput, "as", input.AS, maxASRunes)
 	if err != nil {
-		return domainprobe.UpdateStatusInput{}, err
+		return domainprobe.Status{}, err
 	}
 
-	return domainprobe.UpdateStatusInput{
+	return domainprobe.Status{
 		ProbeID:      probeID,
 		State:        domainprobe.StateOnline,
 		AgentVersion: agentVersion,
@@ -164,7 +164,7 @@ func resultGroupField(checkID any, field string) string {
 }
 
 func normalizePingResult(input PingResultInput, projectID, probeID, checkID string) (domainping.ResultStorageInput, error) {
-	checkID, err := appvalidation.CanonicalUUID(ErrInvalidResult, "checks.checkId", checkID)
+	checkID, err := appvalidation.CanonicalUUID(domainping.ErrInvalidResult, "checks.checkId", checkID)
 	if err != nil {
 		return domainping.ResultStorageInput{}, err
 	}
@@ -184,11 +184,11 @@ func normalizePingResult(input PingResultInput, projectID, probeID, checkID stri
 	if err != nil {
 		return domainping.ResultStorageInput{}, err
 	}
-	errorCode, err := appvalidation.OptionalString(ErrInvalidResult, "ping.errorCode", input.ErrorCode, maxResultErrorCodeRunes)
+	errorCode, err := appvalidation.OptionalString(domainping.ErrInvalidResult, "ping.errorCode", input.ErrorCode, maxResultErrorCodeRunes)
 	if err != nil {
 		return domainping.ResultStorageInput{}, err
 	}
-	errorMessage, err := appvalidation.OptionalString(ErrInvalidResult, "ping.errorMessage", input.ErrorMessage, maxResultErrorMessageRunes)
+	errorMessage, err := appvalidation.OptionalString(domainping.ErrInvalidResult, "ping.errorMessage", input.ErrorMessage, maxResultErrorMessageRunes)
 	if err != nil {
 		return domainping.ResultStorageInput{}, err
 	}
@@ -325,5 +325,5 @@ func invalidRuntimeField(field, message string, value any) error {
 }
 
 func invalidResultField(field, message string, value any) error {
-	return appvalidation.New(ErrInvalidResult, field, message, value)
+	return appvalidation.New(domainping.ErrInvalidResult, field, message, value)
 }

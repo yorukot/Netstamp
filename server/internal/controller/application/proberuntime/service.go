@@ -164,13 +164,13 @@ func (s *Service) authenticate(ctx context.Context, flow *runtimeFlow, input Run
 	}
 	flow.setCredential(credential)
 	if !credential.Enabled {
-		return domainprobe.Credential{}, ErrProbeDisabled
+		return domainprobe.Credential{}, domainprobe.ErrProbeDisabled
 	}
 	if s.secretVerifier == nil {
 		return domainprobe.Credential{}, errSecretVerifierMissing
 	}
 	if !s.secretVerifier.VerifyProbeSecret(normalized.credential, credential.SecretHash) {
-		return domainprobe.Credential{}, ErrInvalidCredential
+		return domainprobe.Credential{}, domainprobe.ErrInvalidCredential
 	}
 
 	return credential, nil
