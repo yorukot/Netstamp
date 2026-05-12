@@ -1,8 +1,6 @@
 package probe
 
 import (
-	"fmt"
-
 	appvalidation "github.com/yorukot/netstamp/internal/controller/application/validation"
 	domainlabel "github.com/yorukot/netstamp/internal/domain/label"
 	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
@@ -35,7 +33,7 @@ func normalizeCreateProbeInput(input CreateProbeInput) (CreateProbeInput, error)
 
 	labelIDs, err := domainlabel.VNLabelIDs(input.LabelIDs)
 	if err != nil {
-		return CreateProbeInput{}, invalidProbeField("labels", err.Error(), input.LabelIDs)
+		return CreateProbeInput{}, invalidProbeField("labelIds", err.Error(), input.LabelIDs)
 	}
 
 	enabled := true
@@ -79,11 +77,11 @@ func normalizeUpdateProbeInput(input UpdateProbeInput) (UpdateProbeInput, error)
 	}
 	probeID, err := domainprobe.VNProbeID(input.ProbeID)
 	if err != nil {
-		return UpdateProbeInput{}, invalidProbeField("probeID", err.Error(), input.ProbeID)
+		return UpdateProbeInput{}, invalidProbeField("probeId", err.Error(), input.ProbeID)
 	}
 
 	if !hasUpdateProbeChanges(input) {
-		return UpdateProbeInput{}, fmt.Errorf("%w: at least one field must be provided", ErrInvalidInput)
+		return UpdateProbeInput{}, invalidProbeField("", "at least one field must be provided", nil)
 	}
 
 	var output UpdateProbeInput
@@ -100,7 +98,7 @@ func normalizeUpdateProbeInput(input UpdateProbeInput) (UpdateProbeInput, error)
 	if input.SubdivisionCode != nil {
 		subdivisionCode, err := domainprobe.VNProbeOptionalSubdivisionCode(input.SubdivisionCode)
 		if err != nil {
-			return UpdateProbeInput{}, err
+			return UpdateProbeInput{}, invalidProbeField("subdivisionCode", err.Error(), input.SubdivisionCode)
 		}
 		output.SubdivisionCode = subdivisionCode
 	}
@@ -118,7 +116,7 @@ func normalizeUpdateProbeInput(input UpdateProbeInput) (UpdateProbeInput, error)
 	if input.LabelIDs != nil {
 		labelIDs, err := domainlabel.VNLabelIDs(*input.LabelIDs)
 		if err != nil {
-			return UpdateProbeInput{}, err
+			return UpdateProbeInput{}, invalidProbeField("labelIds", err.Error(), input.LabelIDs)
 		}
 		output.LabelIDs = &labelIDs
 	}

@@ -29,7 +29,7 @@ var subdivisionCodeRe = regexp.MustCompile(`^[A-Z]{2}-[A-Z0-9]{1,3}$`)
 
 type Probe struct {
 	ID              string              `json:"id"`
-	ProjectID       string              `json:"project_id"`
+	ProjectID       string              `json:"projectId"`
 	Name            string              `json:"name"`
 	Enabled         bool                `json:"enabled"`
 	SubdivisionCode *string             `json:"subdivisionCode"`
@@ -37,9 +37,9 @@ type Probe struct {
 	Longitude       *float64            `json:"longitude"`
 	Labels          []domainlabel.Label `json:"labels"`
 	Status          *Status             `json:"status"`
-	CreatedAt       time.Time           `json:"created_at"`
-	UpdatedAt       time.Time           `json:"updated_at"`
-	DeletedAt       *time.Time          `json:"deleted_at"`
+	CreatedAt       time.Time           `json:"createdAt"`
+	UpdatedAt       time.Time           `json:"updatedAt"`
+	DeletedAt       *time.Time          `json:"-"`
 }
 
 func VNProbeID(probeID string) (string, error) {
@@ -149,22 +149,22 @@ func VNProbeCoordinates(latitude, longitude *float64) (latitudeOutput, longitude
 }
 
 type Credential struct {
-	ProbeID    string `json:"probe_id"`
-	ProjectID  string `json:"project_id"`
+	ProbeID    string `json:"probeId"`
+	ProjectID  string `json:"projectId"`
 	Enabled    bool   `json:"enabled"`
-	SecretHash string `json:"secret_hash"`
+	SecretHash string `json:"secretHash"`
 }
 
 type Status struct {
-	ProbeID      string       `json:"probe_id"`
+	ProbeID      string       `json:"probeId"`
 	State        State        `json:"state"`
-	LastSeenAt   *time.Time   `json:"last_seen_at"`
-	AgentVersion *string      `json:"agent_version"`
-	PublicV4     *netip.Addr  `json:"public_v4"`
-	PublicV6     *netip.Addr  `json:"public_v6"`
+	LastSeenAt   *time.Time   `json:"lastSeenAt"`
+	AgentVersion *string      `json:"agentVersion"`
+	PublicV4     *netip.Addr  `json:"publicV4"`
+	PublicV6     *netip.Addr  `json:"publicV6"`
 	AS           *string      `json:"as"`
 	Addrs        []netip.Addr `json:"addrs"`
-	UpdatedAt    time.Time    `json:"updated_at"`
+	UpdatedAt    time.Time    `json:"updatedAt"`
 }
 
 func VNProbeStatus(status Status) (Status, error) {
