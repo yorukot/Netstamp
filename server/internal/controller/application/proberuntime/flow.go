@@ -6,18 +6,16 @@ import (
 
 	"go.opentelemetry.io/otel/trace"
 
-	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
 )
 
 type runtimeFlow struct {
-	service     *Service
-	ctx         context.Context
-	span        trace.Span
-	action      ProbeRuntimeEventAction
-	probeID     string
-	projectID   string
-	resultCount *int
+	service   *Service
+	ctx       context.Context
+	span      trace.Span
+	action    ProbeRuntimeEventAction
+	probeID   string
+	projectID string
 }
 
 func (s *Service) startRuntimeFlow(ctx context.Context, spanName string, action ProbeRuntimeEventAction) (context.Context, *runtimeFlow) {
@@ -50,11 +48,6 @@ func (f *runtimeFlow) setCredential(credential domainprobe.Credential) {
 	if credential.ProjectID != "" {
 		f.span.SetAttributes(attrProjectID.String(credential.ProjectID))
 	}
-}
-
-func (f *runtimeFlow) setResultCount(resultCount int) {
-	f.resultCount = &resultCount
-	f.span.SetAttributes(attrResultCount.Int(resultCount))
 }
 
 func (f *runtimeFlow) success() {
@@ -114,23 +107,14 @@ func (f *runtimeFlow) assignmentListFailure(name ProbeRuntimeEventName, err erro
 	}
 }
 
-func (f *runtimeFlow) resultWriteFailure(err error) error {
-	if errors.Is(err, domainping.ErrInvalidResult) {
-		return f.businessFailure(ProbeRuntimeEventSubmitResultsFailure, ProbeRuntimeReasonInvalidResult, err)
-	}
-
-	return f.technicalFailure(ProbeRuntimeEventSubmitResultsFailure, ProbeRuntimeReasonResultWriteFailed, err)
-}
-
 func (f *runtimeFlow) runtimeEvent(name ProbeRuntimeEventName, outcome ProbeRuntimeEventOutcome, reason ProbeRuntimeEventReason, err error) ProbeRuntimeEvent {
 	return ProbeRuntimeEvent{
-		Name:        name,
-		Action:      f.action,
-		Outcome:     outcome,
-		Reason:      reason,
-		ProbeID:     f.probeID,
-		ProjectID:   f.projectID,
-		ResultCount: f.resultCount,
-		Err:         err,
+		Name:      name,
+		Action:    f.action,
+		Outcome:   outcome,
+		Reason:    reason,
+		ProbeID:   f.probeID,
+		ProjectID: f.projectID,
+		Err:       err,
 	}
 }

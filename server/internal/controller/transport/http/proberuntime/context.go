@@ -1,36 +1,74 @@
 package proberuntime
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
+	"net/http"
 	"strings"
 
 	"github.com/danielgtaylor/huma/v2"
 
 	appproberuntime "github.com/yorukot/netstamp/internal/controller/application/proberuntime"
 	appvalidation "github.com/yorukot/netstamp/internal/controller/application/validation"
-	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
 )
 
-func runtimeAuthInput(probeID, header string) (appproberuntime.RuntimeAuthInput, error) {
-	secret, err := probeSecret(header)
-	if err != nil {
-		return appproberuntime.RuntimeAuthInput{}, err
+type runtimeAuthContextKey struct{}
+
+func requireRuntimeAuth(ctx huma.Context, next func(huma.Context)) {
+	secret, ok := probeSecret(ctx.Header("Authorization"))
+	if !ok {
+		writeRuntimeProblem(ctx, http.StatusUnauthorized, "missing probe credential")
+		return
 	}
 
-	return appproberuntime.RuntimeAuthInput{
-		ProbeID:    probeID,
+	auth := appproberuntime.RuntimeAuthInput{
+		ProbeID:    ctx.Param("probe_id"),
 		Credential: secret,
-	}, nil
+	}
+	next(huma.WithContext(ctx, withRuntimeAuth(ctx.Context(), auth)))
 }
 
-func probeSecret(header string) (string, error) {
-	scheme, secret, ok := strings.Cut(strings.TrimSpace(header), " ")
-	if !ok || !strings.EqualFold(scheme, "Probe") || strings.TrimSpace(secret) == "" {
-		return "", huma.Error401Unauthorized("missing probe credential")
+func withRuntimeAuth(ctx context.Context, auth appproberuntime.RuntimeAuthInput) context.Context {
+	return context.WithValue(ctx, runtimeAuthContextKey{}, auth)
+}
+
+func runtimeAuthFromContext(ctx context.Context) (appproberuntime.RuntimeAuthInput, bool) {
+	auth, ok := ctx.Value(runtimeAuthContextKey{}).(appproberuntime.RuntimeAuthInput)
+	return auth, ok
+}
+
+func requireRuntimeAuthInput(ctx context.Context) (appproberuntime.RuntimeAuthInput, error) {
+	auth, ok := runtimeAuthFromContext(ctx)
+	if !ok {
+		return appproberuntime.RuntimeAuthInput{}, huma.Error500InternalServerError("probe runtime auth unavailable")
 	}
 
-	return strings.TrimSpace(secret), nil
+	return auth, nil
+}
+
+func probeSecret(header string) (string, bool) {
+	scheme, secret, ok := strings.Cut(strings.TrimSpace(header), " ")
+	if !ok || !strings.EqualFold(scheme, "Probe") || strings.TrimSpace(secret) == "" {
+		return "", false
+	}
+
+	return strings.TrimSpace(secret), true
+}
+
+func writeRuntimeProblem(ctx huma.Context, status int, detail string) {
+	if status == http.StatusUnauthorized {
+		ctx.SetHeader("WWW-Authenticate", "Probe")
+	}
+	ctx.SetHeader("Content-Type", "application/problem+json")
+	ctx.SetStatus(status)
+
+	_ = json.NewEncoder(ctx.BodyWriter()).Encode(&huma.ErrorModel{
+		Status: status,
+		Title:  http.StatusText(status),
+		Detail: detail,
+	})
 }
 
 func mapRuntimeError(err error, fallback string) error {
@@ -41,11 +79,7 @@ func mapRuntimeError(err error, fallback string) error {
 		return huma.Error403Forbidden("probe disabled")
 	case errors.Is(err, domainprobe.ErrProbeNotFound):
 		return huma.Error404NotFound("probe not found")
-	case errors.Is(err, appproberuntime.ErrResultConflict):
-		return huma.Error409Conflict("probe result conflicts with assignment")
-	case errors.Is(err, appproberuntime.ErrUnsupportedResult):
-		return invalidRuntimeInputError(err)
-	case errors.Is(err, appproberuntime.ErrInvalidInput), errors.Is(err, domainping.ErrInvalidResult):
+	case errors.Is(err, appproberuntime.ErrInvalidInput):
 		return invalidRuntimeInputError(err)
 	default:
 		return huma.Error500InternalServerError(fallback)
@@ -55,9 +89,6 @@ func mapRuntimeError(err error, fallback string) error {
 func invalidRuntimeInputError(err error) error {
 	fieldErrors, ok := appvalidation.FieldErrors(err)
 	if !ok {
-		if errors.Is(err, appproberuntime.ErrUnsupportedResult) {
-			return huma.Error422UnprocessableEntity("unsupported result type")
-		}
 		return huma.Error422UnprocessableEntity("invalid probe runtime input")
 	}
 
@@ -70,9 +101,6 @@ func invalidRuntimeInputError(err error) error {
 		})
 	}
 
-	if errors.Is(err, appproberuntime.ErrUnsupportedResult) {
-		return huma.Error422UnprocessableEntity("unsupported result type", details...)
-	}
 	return huma.Error422UnprocessableEntity("invalid probe runtime input", details...)
 }
 

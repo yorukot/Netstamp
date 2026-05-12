@@ -57,6 +57,10 @@ func TestNewHumaConfigUsesBackendBaseURLServerURL(t *testing.T) {
 func TestNewRouterServesOpenAPIWithoutRuntimeServices(t *testing.T) {
 	spec := getOpenAPI(t, Dependencies{APIVersion: "v1"})
 
+	assertOpenAPIOperation(t, spec, http.MethodGet, "/", "getAPIStatus")
+	assertOpenAPIOperation(t, spec, http.MethodGet, "/healthz", "getHealth")
+	assertOpenAPIPathAbsent(t, spec, "/livez")
+	assertOpenAPIPathAbsent(t, spec, "/readyz")
 	assertOpenAPIOperation(t, spec, http.MethodPost, "/auth/register", "registerUser")
 	assertOpenAPIOperation(t, spec, http.MethodPost, "/auth/login", "loginUser")
 	assertOpenAPIOperation(t, spec, http.MethodGet, "/auth/me", "getCurrentUser")
@@ -69,10 +73,14 @@ func TestNewRouterServesOpenAPIWithoutRuntimeServices(t *testing.T) {
 	assertOpenAPIOperation(t, spec, http.MethodPatch, "/projects/{ref}/probes/{probe_id}", "updateProjectProbe")
 	assertOpenAPIOperation(t, spec, http.MethodDelete, "/projects/{ref}/probes/{probe_id}", "deleteProjectProbe")
 	assertOpenAPIOperation(t, spec, http.MethodPost, "/projects/{ref}/probes/{probe_id}/secret-rotations", "rotateProjectProbeSecret")
-	assertOpenAPIOperation(t, spec, http.MethodPost, "/probes/{probe_id}/runtime/hello", "probeRuntimeHello")
-	assertOpenAPIOperation(t, spec, http.MethodPost, "/probes/{probe_id}/runtime/heartbeat", "probeRuntimeHeartbeat")
-	assertOpenAPIOperation(t, spec, http.MethodGet, "/probes/{probe_id}/runtime/assignments", "listProbeRuntimeAssignments")
-	assertOpenAPIOperation(t, spec, http.MethodPost, "/probes/{probe_id}/runtime/results", "submitProbeRuntimeResults")
+	assertOpenAPIOperation(t, spec, http.MethodPost, "/runtime/probes/{probe_id}/hello", "probeRuntimeHello")
+	assertOpenAPIOperation(t, spec, http.MethodPost, "/runtime/probes/{probe_id}/heartbeat", "probeRuntimeHeartbeat")
+	assertOpenAPIOperation(t, spec, http.MethodGet, "/runtime/probes/{probe_id}/assignments", "listProbeRuntimeAssignments")
+	assertOpenAPIPathAbsent(t, spec, "/probes/{probe_id}/runtime/hello")
+	assertOpenAPIPathAbsent(t, spec, "/probes/{probe_id}/runtime/heartbeat")
+	assertOpenAPIPathAbsent(t, spec, "/probes/{probe_id}/runtime/assignments")
+	assertOpenAPIPathAbsent(t, spec, "/probes/{probe_id}/runtime/results")
+	assertOpenAPIPathAbsent(t, spec, "/runtime/probes/{probe_id}/results")
 }
 
 func TestNewRouterOpenAPIUsesBackendBaseURLServerURL(t *testing.T) {
@@ -166,5 +174,13 @@ func assertOpenAPIOperation(t *testing.T, spec openAPISnapshot, method, path, op
 	}
 	if operation.OperationID != operationID {
 		t.Fatalf("expected %s %s operation ID %q, got %q", method, path, operationID, operation.OperationID)
+	}
+}
+
+func assertOpenAPIPathAbsent(t *testing.T, spec openAPISnapshot, path string) {
+	t.Helper()
+
+	if _, ok := spec.Paths[path]; ok {
+		t.Fatalf("expected OpenAPI path %q not to be registered", path)
 	}
 }

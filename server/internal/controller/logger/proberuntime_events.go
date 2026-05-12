@@ -30,9 +30,6 @@ func (r *ProbeRuntimeEventRecorder) RecordProbeRuntimeEvent(ctx context.Context,
 	if event.ProjectID != "" {
 		fields = append(fields, zap.String("project.id", event.ProjectID))
 	}
-	if event.ResultCount != nil {
-		fields = append(fields, zap.Int("result.count", *event.ResultCount))
-	}
 	if event.Err != nil {
 		fields = append(fields, zap.Error(event.Err))
 	}
@@ -52,10 +49,7 @@ func isExpectedProbeRuntimeFailure(event appproberuntime.ProbeRuntimeEvent) bool
 	case appproberuntime.ProbeRuntimeReasonInvalidInput,
 		appproberuntime.ProbeRuntimeReasonInvalidCredential,
 		appproberuntime.ProbeRuntimeReasonProbeNotFound,
-		appproberuntime.ProbeRuntimeReasonProbeDisabled,
-		appproberuntime.ProbeRuntimeReasonInvalidResult,
-		appproberuntime.ProbeRuntimeReasonResultConflict,
-		appproberuntime.ProbeRuntimeReasonUnsupportedResult:
+		appproberuntime.ProbeRuntimeReasonProbeDisabled:
 		return true
 	default:
 		return false

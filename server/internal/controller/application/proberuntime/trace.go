@@ -15,7 +15,6 @@ const (
 	attrProbeRuntimeFailureReason = attribute.Key("probe_runtime.failure.reason")
 	attrProbeID                   = attribute.Key("probe.id")
 	attrProjectID                 = attribute.Key("project.id")
-	attrResultCount               = attribute.Key("result.count")
 )
 
 func recordSpanError(span trace.Span, err error, reason ProbeRuntimeEventReason) {

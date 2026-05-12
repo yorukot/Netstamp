@@ -17,7 +17,7 @@ type rootOutput struct {
 }
 
 type healthBody struct {
-	Status string `json:"status" doc:"Current health status." example:"ready"`
+	Status string `json:"status" doc:"Current health status." example:"ok"`
 }
 
 type healthOutput struct {
@@ -38,28 +38,16 @@ func registerSystemRoutes(api huma.API, readinessCheck func(context.Context) err
 	})
 
 	huma.Register(api, huma.Operation{
-		OperationID: "getLiveness",
+		OperationID: "getHealth",
 		Method:      http.MethodGet,
-		Path:        "/livez",
-		Summary:     "Get liveness status",
-		Tags:        []string{"System"},
-	}, func(context.Context, *struct{}) (*healthOutput, error) {
-		return &healthOutput{Body: healthBody{
-			Status: "ok",
-		}}, nil
-	})
-
-	huma.Register(api, huma.Operation{
-		OperationID: "getReadiness",
-		Method:      http.MethodGet,
-		Path:        "/readyz",
-		Summary:     "Get readiness status",
+		Path:        "/healthz",
+		Summary:     "Get health status",
 		Tags:        []string{"System"},
 		Errors:      []int{http.StatusServiceUnavailable},
 	}, func(ctx context.Context, _ *struct{}) (*healthOutput, error) {
 		if readinessCheck == nil {
 			return &healthOutput{Body: healthBody{
-				Status: "ready",
+				Status: "ok",
 			}}, nil
 		}
 
@@ -71,7 +59,7 @@ func registerSystemRoutes(api huma.API, readinessCheck func(context.Context) err
 		}
 
 		return &healthOutput{Body: healthBody{
-			Status: "ready",
+			Status: "ok",
 		}}, nil
 	})
 }

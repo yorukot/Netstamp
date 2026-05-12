@@ -5,9 +5,7 @@ import (
 )
 
 var (
-	ErrInvalidInput      = errors.New("probe runtime input invalid")
-	ErrResultConflict    = errors.New("probe result conflicts with assignment")
-	ErrUnsupportedResult = errors.New("probe result type unsupported")
+	ErrInvalidInput = errors.New("probe runtime input invalid")
 
 	errSecretVerifierMissing = errors.New("probe secret verifier is not configured")
 )

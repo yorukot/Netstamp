@@ -2,26 +2,20 @@ package proberuntime
 
 import (
 	"context"
-	"errors"
 	"time"
 
-	domainassignment "github.com/yorukot/netstamp/internal/domain/assignment"
-	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
-	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
 )
 
 type Service struct {
 	probes         ProbeRepository
-	results        PingResultRepository
 	secretVerifier SecretVerifier
 	events         EventRecorder
 }
 
-func NewService(probes ProbeRepository, results PingResultRepository, secretVerifier SecretVerifier, events EventRecorder) *Service {
+func NewService(probes ProbeRepository, secretVerifier SecretVerifier, events EventRecorder) *Service {
 	return &Service{
 		probes:         probes,
-		results:        results,
 		secretVerifier: secretVerifier,
 		events:         events,
 	}
@@ -91,67 +85,6 @@ func (s *Service) ListAssignments(ctx context.Context, input RuntimeAuthInput) (
 	return ListAssignmentsOutput{Assignments: assignments}, nil
 }
 
-func (s *Service) SubmitResults(ctx context.Context, input SubmitResultsInput) (SubmitResultsOutput, error) {
-	ctx, flow := s.startRuntimeFlow(ctx, "probe_runtime.results.submit", ProbeRuntimeActionSubmitResults)
-	defer flow.end()
-
-	credential, err := s.authenticate(ctx, flow, input.RuntimeAuthInput)
-	if err != nil {
-		return SubmitResultsOutput{}, flow.authenticationFailure(ProbeRuntimeEventSubmitResultsFailure, err)
-	}
-	resultCount, groups, err := validateResultBatch(input)
-	flow.setResultCount(resultCount)
-	if err != nil {
-		if errors.Is(err, ErrUnsupportedResult) {
-			return SubmitResultsOutput{}, flow.businessFailure(ProbeRuntimeEventSubmitResultsFailure, ProbeRuntimeReasonUnsupportedResult, err)
-		}
-		return SubmitResultsOutput{}, flow.businessFailure(ProbeRuntimeEventSubmitResultsFailure, ProbeRuntimeReasonInvalidInput, err)
-	}
-
-	assignments, err := s.probes.ListAssignments(ctx, credential.ProbeID)
-	if err != nil {
-		return SubmitResultsOutput{}, flow.assignmentListFailure(ProbeRuntimeEventSubmitResultsFailure, err)
-	}
-	assigned := assignmentsByCheckID(assignments)
-
-	pingResults := make([]domainping.ResultStorageInput, 0, resultCount)
-	staleChecks := make([]string, 0)
-	latestAssignments := make([]domainassignment.Assignment, 0)
-	for _, group := range groups {
-		assignment, ok := assigned[group.checkID]
-		if !ok || assignment.Check == nil || assignment.Check.Type != group.checkType || assignment.Check.Type != domaincheck.TypePing {
-			return SubmitResultsOutput{}, flow.businessFailure(ProbeRuntimeEventSubmitResultsFailure, ProbeRuntimeReasonResultConflict, ErrResultConflict)
-		}
-
-		if isStaleAssignment(group, assignment) {
-			staleChecks = append(staleChecks, group.checkID)
-			latestAssignments = append(latestAssignments, assignment)
-		}
-
-		for _, result := range group.pingResults {
-			storageInput, err := normalizePingResult(result, credential.ProjectID, credential.ProbeID, group.checkID)
-			if err != nil {
-				return SubmitResultsOutput{}, flow.businessFailure(ProbeRuntimeEventSubmitResultsFailure, ProbeRuntimeReasonInvalidResult, err)
-			}
-			pingResults = append(pingResults, storageInput)
-		}
-	}
-
-	if len(pingResults) > 0 {
-		if err := s.results.CreatePingResults(ctx, pingResults); err != nil {
-			return SubmitResultsOutput{}, flow.resultWriteFailure(err)
-		}
-	}
-	flow.success()
-
-	return SubmitResultsOutput{
-		Accepted:     true,
-		ResyncNeeded: len(staleChecks) > 0,
-		StaleChecks:  staleChecks,
-		Assignments:  latestAssignments,
-	}, nil
-}
-
 func (s *Service) authenticate(ctx context.Context, flow *runtimeFlow, input RuntimeAuthInput) (domainprobe.Credential, error) {
 	normalized, err := normalizeRuntimeAuthInput(input)
 	if err != nil {
@@ -175,19 +108,4 @@ func (s *Service) authenticate(ctx context.Context, flow *runtimeFlow, input Run
 	}
 
 	return credential, nil
-}
-
-func assignmentsByCheckID(assignments []domainassignment.Assignment) map[string]domainassignment.Assignment {
-	assigned := make(map[string]domainassignment.Assignment, len(assignments))
-	for _, assignment := range assignments {
-		assigned[assignment.CheckID] = assignment
-	}
-
-	return assigned
-}
-
-func isStaleAssignment(group normalizedResultGroup, assignment domainassignment.Assignment) bool {
-	return group.assignmentID != assignment.ID ||
-		group.checkVersion != assignment.CheckVersion ||
-		group.selectorVersion != assignment.SelectorVersion
 }

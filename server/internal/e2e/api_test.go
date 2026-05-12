@@ -107,10 +107,10 @@ func TestAPIAuthProjectAndProbeRuntimeFlow(t *testing.T) {
 	var createdProbe createProbeResponse
 	t.Logf("e2e: creating labeled probe under project %q", createdProject.Project.Slug)
 	suite.doJSON(t, http.MethodPost, "/api/v1/projects/"+createdProject.Project.Slug+"/probes", map[string]any{
-		"name":     "e2e-probe",
-		"enabled":  true,
-		"subdivisionCode":     "JP-13",
-		"labelIds": []string{createdLabel.Label.ID},
+		"name":            "e2e-probe",
+		"enabled":         true,
+		"subdivisionCode": "JP-13",
+		"labelIds":        []string{createdLabel.Label.ID},
 	}, authHeaders(login.AccessToken), http.StatusCreated, &createdProbe)
 	if createdProbe.Probe.ID == "" {
 		t.Fatal("expected created probe id")
@@ -182,20 +182,20 @@ func TestAPIAuthProjectAndProbeRuntimeFlow(t *testing.T) {
 
 	var assignments assignmentsResponse
 	t.Log("e2e: listing probe runtime assignments after check creation")
-	suite.doJSON(t, http.MethodGet, "/api/v1/probes/"+createdProbe.Probe.ID+"/runtime/assignments", nil, probeHeaders(createdProbe.Secret), http.StatusOK, &assignments)
+	suite.doJSON(t, http.MethodGet, "/api/v1/runtime/probes/"+createdProbe.Probe.ID+"/assignments", nil, probeHeaders(createdProbe.Secret), http.StatusOK, &assignments)
 	if !containsAssignment(assignments.Assignments, plainCheck.Check.ID) || !containsAssignment(assignments.Assignments, labeledCheck.Check.ID) {
 		t.Fatalf("expected assignments for both checks, got %#v", assignments.Assignments)
 	}
 	t.Logf("e2e: probe runtime returned %d assignments", len(assignments.Assignments))
 
 	t.Log("e2e: verifying probe runtime rejects an invalid secret")
-	suite.doJSON(t, http.MethodPost, "/api/v1/probes/"+createdProbe.Probe.ID+"/runtime/hello", map[string]any{
+	suite.doJSON(t, http.MethodPost, "/api/v1/runtime/probes/"+createdProbe.Probe.ID+"/hello", map[string]any{
 		"agentVersion": "netstamp-e2e/0.1.0",
 	}, probeHeaders("wrong-secret"), http.StatusUnauthorized, nil)
 
 	var hello helloResponse
 	t.Log("e2e: starting probe runtime session with valid secret")
-	suite.doJSON(t, http.MethodPost, "/api/v1/probes/"+createdProbe.Probe.ID+"/runtime/hello", map[string]any{
+	suite.doJSON(t, http.MethodPost, "/api/v1/runtime/probes/"+createdProbe.Probe.ID+"/hello", map[string]any{
 		"agentVersion": "netstamp-e2e/0.1.0",
 		"publicV4":     "203.0.113.10",
 		"as":           "AS15169 Google LLC",
@@ -315,15 +315,18 @@ type assignmentsResponse struct {
 }
 
 type assignmentBody struct {
-	ID              string `json:"assignmentId"`
+	ID              string `json:"id"`
 	ProjectID       string `json:"projectId"`
 	ProbeID         string `json:"probeId"`
 	CheckID         string `json:"checkId"`
 	CheckVersion    string `json:"checkVersion"`
 	SelectorVersion string `json:"selectorVersion"`
-	Type            string `json:"type"`
-	Target          string `json:"target"`
-	IntervalSeconds int32  `json:"intervalSeconds"`
+	Check           struct {
+		ID              string `json:"id"`
+		Type            string `json:"type"`
+		Target          string `json:"target"`
+		IntervalSeconds int32  `json:"intervalSeconds"`
+	} `json:"check"`
 }
 
 func containsCheck(checks []checkBody, checkID string) bool {

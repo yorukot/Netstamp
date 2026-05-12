@@ -12,14 +12,14 @@ import (
 var ErrInvalidInput = errors.New("assignment input invalid")
 
 type Assignment struct {
-	ID              string
-	ProjectID       string
-	ProbeID         string
-	CheckID         string
-	CheckVersion    string
-	SelectorVersion string
-	Check           *check.Check
-	Probe           *probe.Probe
+	ID              string       `json:"id"`
+	ProjectID       string       `json:"projectId"`
+	ProbeID         string       `json:"probeId"`
+	CheckID         string       `json:"checkId"`
+	CheckVersion    string       `json:"checkVersion"`
+	SelectorVersion string       `json:"selectorVersion"`
+	Check           *check.Check `json:"check,omitempty"`
+	Probe           *probe.Probe `json:"probe,omitempty"`
 }
 
 func VNProjectID(projectID string) (string, error) {
