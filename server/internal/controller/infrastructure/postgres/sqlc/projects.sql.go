@@ -62,12 +62,10 @@ WITH inserted AS (
 SELECT inserted.id,
        inserted.project_id,
        inserted.user_id,
-       users.email,
        inserted.role,
        inserted.created_at,
        inserted.updated_at
 FROM inserted
-JOIN users ON users.id = inserted.user_id
 `
 
 type CreateProjectMemberParams struct {
@@ -80,7 +78,6 @@ type CreateProjectMemberRow struct {
 	ID        uuid.UUID          `json:"id"`
 	ProjectID uuid.UUID          `json:"project_id"`
 	UserID    uuid.UUID          `json:"user_id"`
-	Email     string             `json:"email"`
 	Role      ProjectMemberRole  `json:"role"`
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
@@ -93,7 +90,6 @@ func (q *Queries) CreateProjectMember(ctx context.Context, arg CreateProjectMemb
 		&i.ID,
 		&i.ProjectID,
 		&i.UserID,
-		&i.Email,
 		&i.Role,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -124,12 +120,10 @@ const getActiveProjectMember = `-- name: GetActiveProjectMember :one
 SELECT project_members.id,
        project_members.project_id,
        project_members.user_id,
-       users.email,
        project_members.role,
        project_members.created_at,
        project_members.updated_at
 FROM project_members
-JOIN users ON users.id = project_members.user_id
 JOIN projects ON projects.id = project_members.project_id
 WHERE project_members.project_id = $1
   AND project_members.user_id = $2
@@ -145,7 +139,6 @@ type GetActiveProjectMemberRow struct {
 	ID        uuid.UUID          `json:"id"`
 	ProjectID uuid.UUID          `json:"project_id"`
 	UserID    uuid.UUID          `json:"user_id"`
-	Email     string             `json:"email"`
 	Role      ProjectMemberRole  `json:"role"`
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
@@ -158,7 +151,6 @@ func (q *Queries) GetActiveProjectMember(ctx context.Context, arg GetActiveProje
 		&i.ID,
 		&i.ProjectID,
 		&i.UserID,
-		&i.Email,
 		&i.Role,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -251,12 +243,10 @@ const listActiveProjectMembers = `-- name: ListActiveProjectMembers :many
 SELECT project_members.id,
        project_members.project_id,
        project_members.user_id,
-       users.email,
        project_members.role,
        project_members.created_at,
        project_members.updated_at
 FROM project_members
-JOIN users ON users.id = project_members.user_id
 JOIN projects ON projects.id = project_members.project_id
 WHERE project_members.project_id = $1
   AND projects.deleted_at IS NULL
@@ -267,7 +257,6 @@ type ListActiveProjectMembersRow struct {
 	ID        uuid.UUID          `json:"id"`
 	ProjectID uuid.UUID          `json:"project_id"`
 	UserID    uuid.UUID          `json:"user_id"`
-	Email     string             `json:"email"`
 	Role      ProjectMemberRole  `json:"role"`
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
@@ -286,7 +275,6 @@ func (q *Queries) ListActiveProjectMembers(ctx context.Context, projectID uuid.U
 			&i.ID,
 			&i.ProjectID,
 			&i.UserID,
-			&i.Email,
 			&i.Role,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -394,12 +382,10 @@ WITH updated AS (
 SELECT updated.id,
        updated.project_id,
        updated.user_id,
-       users.email,
        updated.role,
        updated.created_at,
        updated.updated_at
 FROM updated
-JOIN users ON users.id = updated.user_id
 `
 
 type UpdateProjectMemberRoleParams struct {
@@ -412,7 +398,6 @@ type UpdateProjectMemberRoleRow struct {
 	ID        uuid.UUID          `json:"id"`
 	ProjectID uuid.UUID          `json:"project_id"`
 	UserID    uuid.UUID          `json:"user_id"`
-	Email     string             `json:"email"`
 	Role      ProjectMemberRole  `json:"role"`
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
@@ -425,7 +410,6 @@ func (q *Queries) UpdateProjectMemberRole(ctx context.Context, arg UpdateProject
 		&i.ID,
 		&i.ProjectID,
 		&i.UserID,
-		&i.Email,
 		&i.Role,
 		&i.CreatedAt,
 		&i.UpdatedAt,

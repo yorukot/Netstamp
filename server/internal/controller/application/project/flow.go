@@ -144,6 +144,9 @@ func (f *projectFlow) roleLookupFailure(event ProjectEventName, err error) error
 		return f.businessFailure(event, ProjectReasonProjectNotFound, err)
 	case errors.Is(err, ErrUserNotFound):
 		return f.businessFailure(event, ProjectReasonUserNotFound, err)
+	case errors.Is(err, ErrMemberNotFound):
+		// User is not a member of the project; treat as forbidden to avoid leaking project existence.
+		return f.businessFailure(event, ProjectReasonForbidden, ErrForbidden)
 	default:
 		return f.technicalFailure(event, ProjectReasonRoleLookupFailed, err)
 	}

@@ -23,7 +23,7 @@ func (h *Handler) addMember(ctx context.Context, input *addMemberInput) (*member
 		return nil, mapProjectError(err, "add project member failed")
 	}
 
-	return &memberOutput{Body: memberOutputBody{Member: newProjectMemberResponse(member)}}, nil
+	return &memberOutput{Body: memberOutputBody{Member: member}}, nil
 }
 
 type addMemberInput struct {

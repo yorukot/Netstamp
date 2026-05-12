@@ -22,21 +22,28 @@ func normalizeUpdateProjectInput(input UpdateProjectInput) (UpdateProjectInput, 
 	if input.Name == nil && input.Slug == nil {
 		return UpdateProjectInput{}, invalidProjectField("", "at least one field must be provided", nil)
 	}
+	var output UpdateProjectInput
 
-	name, err := domainproject.VNProjectName(*input.Name)
-	if err != nil && input.Name != nil {
-		return UpdateProjectInput{}, invalidProjectField("name", err.Error(), input.Name)
+	if input.Name != nil {
+		name, err := domainproject.VNProjectName(*input.Name)
+		if err != nil {
+			return UpdateProjectInput{}, invalidProjectField("name", err.Error(), input.Name)
+		}
+		output.Name = &name
 	}
-	slug, err := domainproject.VNProjectSlug(*input.Slug)
-	if err != nil && input.Slug != nil {
-		return UpdateProjectInput{}, invalidProjectField("slug", err.Error(), input.Slug)
+	if input.Slug != nil {
+		slug, err := domainproject.VNProjectSlug(*input.Slug)
+		if err != nil && input.Slug != nil {
+			return UpdateProjectInput{}, invalidProjectField("slug", err.Error(), input.Slug)
+		}
+		output.Slug = &slug
 	}
 
-	return UpdateProjectInput{Name: &name, Slug: &slug}, nil
+	return output, nil
 }
 
 func normalizeAddMemberInput(input AddMemberInput) (AddMemberInput, error) {
-	projectRef, err := domainproject.VNProjectSlug(input.ProjectRef)
+	projectRef, err := domainproject.VNProjectRef(input.ProjectRef)
 	if err != nil {
 		return AddMemberInput{}, invalidProjectField("projectRef", err.Error(), input.ProjectRef)
 	}
@@ -53,7 +60,7 @@ func normalizeAddMemberInput(input AddMemberInput) (AddMemberInput, error) {
 }
 
 func normalizeUpdateMemberRoleInput(input UpdateMemberRoleInput) (UpdateMemberRoleInput, error) {
-	projectRef, err := domainproject.VNProjectSlug(input.ProjectRef)
+	projectRef, err := domainproject.VNProjectRef(input.ProjectRef)
 	if err != nil {
 		return UpdateMemberRoleInput{}, invalidProjectField("projectRef", err.Error(), input.ProjectRef)
 	}
@@ -70,7 +77,7 @@ func normalizeUpdateMemberRoleInput(input UpdateMemberRoleInput) (UpdateMemberRo
 }
 
 func normalizeRemoveMemberInput(input RemoveMemberInput) (RemoveMemberInput, error) {
-	projectRef, err := domainproject.VNProjectSlug(input.ProjectRef)
+	projectRef, err := domainproject.VNProjectRef(input.ProjectRef)
 	if err != nil {
 		return RemoveMemberInput{}, invalidProjectField("projectRef", err.Error(), input.ProjectRef)
 	}

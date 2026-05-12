@@ -74,7 +74,7 @@ func (r *ProjectRepository) ListProjectsForUser(ctx context.Context, userIDValue
 	ctx, span := postgres.StartDBSpan(ctx, pgprojectTracer, "projects", "postgres.projects.list_for_user", "SELECT", "SELECT projects for member")
 	defer span.End()
 
-	userID, err := postgres.ParseUUID(userIDValue, projectapp.ErrProjectNotFound)
+	userID, err := postgres.ParseUUID(userIDValue, authapp.ErrUserNotFound)
 	if err != nil {
 		return nil, err
 	}
@@ -141,7 +141,7 @@ func (r *ProjectRepository) GetMemberRole(ctx context.Context, projectIDValue, u
 	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return "", projectapp.ErrProjectNotFound
+			return "", projectapp.ErrMemberNotFound
 		}
 		postgres.RecordDBSpanError(span, err)
 		return "", err
@@ -227,7 +227,7 @@ func (r *ProjectRepository) GetMember(ctx context.Context, projectIDValue, userI
 
 	projectID, userID, err := parseProjectAndUserIDs(projectIDValue, userIDValue)
 	if err != nil {
-		return domainproject.Member{}, projectapp.ErrMemberNotFound
+		return domainproject.Member{}, err
 	}
 
 	row, err := r.queries.GetActiveProjectMember(ctx, sqlc.GetActiveProjectMemberParams{
@@ -276,7 +276,7 @@ func (r *ProjectRepository) UpdateMemberRole(ctx context.Context, input domainpr
 
 	projectID, userID, err := parseProjectAndUserIDs(input.ProjectID, input.UserID)
 	if err != nil {
-		return domainproject.Member{}, projectapp.ErrMemberNotFound
+		return domainproject.Member{}, err
 	}
 
 	row, err := r.queries.UpdateProjectMemberRole(ctx, sqlc.UpdateProjectMemberRoleParams{
@@ -301,7 +301,7 @@ func (r *ProjectRepository) DeleteMember(ctx context.Context, projectIDValue, us
 
 	projectID, userID, err := parseProjectAndUserIDs(projectIDValue, userIDValue)
 	if err != nil {
-		return projectapp.ErrMemberNotFound
+		return err
 	}
 
 	if _, err := r.queries.DeleteProjectMember(ctx, sqlc.DeleteProjectMemberParams{

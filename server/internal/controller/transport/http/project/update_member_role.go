@@ -23,7 +23,7 @@ func (h *Handler) updateMemberRole(ctx context.Context, input *updateMemberRoleI
 		return nil, mapProjectError(err, "update project member failed")
 	}
 
-	return &memberOutput{Body: memberOutputBody{Member: newProjectMemberResponse(member)}}, nil
+	return &memberOutput{Body: memberOutputBody{Member: member}}, nil
 }
 
 type updateMemberRoleInput struct {
@@ -33,5 +33,5 @@ type updateMemberRoleInput struct {
 }
 
 type updateMemberRoleInputBody struct {
-	Role string `json:"role,omitempty" minLength:"1" enum:"viewer,editor,admin,owner" doc:"Project member role." example:"viewer"`
+	Role string `json:"role,omitempty" minLength:"1" enum:"viewer,editor,admin" doc:"Project member role." example:"viewer"`
 }

@@ -34,8 +34,6 @@ func mapProjectError(err error, fallback string) error {
 		return huma.Error409Conflict("project must keep an owner")
 	case errors.Is(err, appproject.ErrInvalidInput):
 		return invalidProjectInputError(err)
-	case errors.Is(err, appproject.ErrInvalidRole):
-		return invalidProjectInputError(err)
 	default:
 		return huma.Error500InternalServerError(fallback)
 	}

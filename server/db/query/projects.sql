@@ -12,12 +12,10 @@ WITH inserted AS (
 SELECT inserted.id,
        inserted.project_id,
        inserted.user_id,
-       users.email,
        inserted.role,
        inserted.created_at,
        inserted.updated_at
-FROM inserted
-JOIN users ON users.id = inserted.user_id;
+FROM inserted;
 
 -- name: ListProjectsForUser :many
 SELECT projects.id, projects.name, projects.slug, projects.created_by_user_id, projects.created_at, projects.updated_at, projects.deleted_at
@@ -73,12 +71,10 @@ RETURNING id;
 SELECT project_members.id,
        project_members.project_id,
        project_members.user_id,
-       users.email,
        project_members.role,
        project_members.created_at,
        project_members.updated_at
 FROM project_members
-JOIN users ON users.id = project_members.user_id
 JOIN projects ON projects.id = project_members.project_id
 WHERE project_members.project_id = $1
   AND projects.deleted_at IS NULL
@@ -88,12 +84,10 @@ ORDER BY project_members.created_at ASC, project_members.id ASC;
 SELECT project_members.id,
        project_members.project_id,
        project_members.user_id,
-       users.email,
        project_members.role,
        project_members.created_at,
        project_members.updated_at
 FROM project_members
-JOIN users ON users.id = project_members.user_id
 JOIN projects ON projects.id = project_members.project_id
 WHERE project_members.project_id = $1
   AND project_members.user_id = $2
@@ -110,12 +104,10 @@ WITH updated AS (
 SELECT updated.id,
        updated.project_id,
        updated.user_id,
-       users.email,
        updated.role,
        updated.created_at,
        updated.updated_at
-FROM updated
-JOIN users ON users.id = updated.user_id;
+FROM updated;
 
 -- name: DeleteProjectMember :one
 DELETE FROM project_members

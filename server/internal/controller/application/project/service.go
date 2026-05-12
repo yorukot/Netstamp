@@ -58,8 +58,7 @@ func (s *Service) GetProject(ctx context.Context, input GetProjectInput) (domain
 	ctx, flow := s.startProjectFlow(ctx, "project.get", ProjectActionGet, input.CurrentUserID)
 	defer flow.end()
 
-	// Note alought this is not actually ref but since the uuid is part of the slug so we can validate in this way
-	projectRef, err := domainproject.VNProjectSlug(input.ProjectRef)
+	projectRef, err := domainproject.VNProjectRef(input.ProjectRef)
 	if err != nil {
 		err = invalidProjectField("projectRef", err.Error(), input.ProjectRef)
 		return domainproject.Project{}, flow.businessFailure(ProjectEventGetFailure, ProjectReasonInvalidInput, err)
@@ -72,13 +71,12 @@ func (s *Service) UpdateProject(ctx context.Context, input UpdateProjectInput) (
 	ctx, flow := s.startProjectFlow(ctx, "project.update", ProjectActionUpdate, input.CurrentUserID)
 	defer flow.end()
 
-	// Note alought this is not actually ref but since the uuid is part of the slug so we can validate in this way
-	projectRef, err := domainproject.VNProjectSlug(input.ProjectRef)
+	projectRef, err := domainproject.VNProjectRef(input.ProjectRef)
 	if err != nil {
 		err = invalidProjectField("projectRef", err.Error(), input.ProjectRef)
 		return domainproject.Project{}, flow.businessFailure(ProjectEventUpdateFailure, ProjectReasonInvalidInput, err)
 	}
-	
+
 	input, err = normalizeUpdateProjectInput(input)
 	if err != nil {
 		return domainproject.Project{}, flow.businessFailure(ProjectEventUpdateFailure, ProjectReasonInvalidInput, err)
@@ -107,9 +105,9 @@ func (s *Service) UpdateProject(ctx context.Context, input UpdateProjectInput) (
 	}
 
 	project, err = s.repo.UpdateProject(ctx, domainproject.Project{
-		ID:        project.ID,
-		Name:      name,
-		Slug:      slug,
+		ID:   project.ID,
+		Name: name,
+		Slug: slug,
 	})
 	if err != nil {
 		return domainproject.Project{}, flow.projectUpdateFailure(err)
@@ -122,7 +120,7 @@ func (s *Service) DeleteProject(ctx context.Context, input DeleteProjectInput) e
 	ctx, flow := s.startProjectFlow(ctx, "project.delete", ProjectActionDelete, input.CurrentUserID)
 	defer flow.end()
 
-	projectRef, err := domainproject.VNProjectSlug(input.ProjectRef)
+	projectRef, err := domainproject.VNProjectRef(input.ProjectRef)
 	if err != nil {
 		err = invalidProjectField("projectRef", err.Error(), input.ProjectRef)
 		return flow.businessFailure(ProjectEventDeleteFailure, ProjectReasonInvalidInput, err)
@@ -149,7 +147,7 @@ func (s *Service) ListMembers(ctx context.Context, input ListMembersInput) ([]do
 	ctx, flow := s.startProjectFlow(ctx, "project.members.list", ProjectActionListMembers, input.CurrentUserID)
 	defer flow.end()
 
-	projectRef, err := domainproject.VNProjectSlug(input.ProjectRef)
+	projectRef, err := domainproject.VNProjectRef(input.ProjectRef)
 	if err != nil {
 		err = invalidProjectField("projectRef", err.Error(), input.ProjectRef)
 		return nil, flow.businessFailure(ProjectEventListMembersFailure, ProjectReasonInvalidInput, err)
@@ -281,7 +279,7 @@ func (s *Service) RemoveMember(ctx context.Context, input RemoveMemberInput) err
 	if err != nil {
 		return err
 	}
-	actorRole, err := s.requireRole(ctx, flow, project.ID, input.CurrentUserID, ProjectEventRemoveMemberFailure, domainproject.ActionReadProject)
+	actorRole, err := s.requireRole(ctx, flow, project.ID, input.CurrentUserID, ProjectEventRemoveMemberFailure, domainproject.ActionManageMembers)
 	if err != nil {
 		return err
 	}
