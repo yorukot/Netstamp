@@ -87,6 +87,7 @@ func TestHeartbeatUpdatesOnlineStatus(t *testing.T) {
 	recorder := &recordingProbeRuntimeEventRecorder{}
 	service := NewService(probes, &fakePingResultRepository{}, fakeSecretVerifier{valid: true}, recorder)
 	agentVersion := "netstamp-probe/0.1.0"
+	as := "AS15169 Google LLC"
 
 	output, err := service.Heartbeat(context.Background(), RuntimeStatusInput{
 		RuntimeAuthInput: RuntimeAuthInput{
@@ -94,6 +95,7 @@ func TestHeartbeatUpdatesOnlineStatus(t *testing.T) {
 			Credential: "plain-secret",
 		},
 		AgentVersion: &agentVersion,
+		AS:           &as,
 	})
 	if err != nil {
 		t.Fatalf("expected heartbeat to succeed: %v", err)
@@ -109,6 +111,9 @@ func TestHeartbeatUpdatesOnlineStatus(t *testing.T) {
 	}
 	if probes.gotStatus.AgentVersion == nil || *probes.gotStatus.AgentVersion != agentVersion {
 		t.Fatalf("expected agent version, got %#v", probes.gotStatus.AgentVersion)
+	}
+	if probes.gotStatus.AS == nil || *probes.gotStatus.AS != as {
+		t.Fatalf("expected AS, got %#v", probes.gotStatus.AS)
 	}
 	assertNoProbeRuntimeEvents(t, recorder)
 }

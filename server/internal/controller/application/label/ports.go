@@ -17,7 +17,7 @@ type Repository interface {
 }
 
 type AssignmentRefresher interface {
-	RefreshEffectiveProbeChecksForLabel(ctx context.Context, projectID, labelID string) error
+	RefreshProbeCheckAssignmentsForLabel(ctx context.Context, projectID, labelID string) error
 }
 
 type ProjectAccess interface {

@@ -1,60 +1,41 @@
 package proberegistry
 
-import appvalidation "github.com/yorukot/netstamp/internal/controller/application/validation"
+import (
+	"fmt"
 
-const (
-	maxProbeNameRunes       = 100
-	maxProbeCityRunes       = 100
-	maxProbeProjectRefRunes = 100
+	appvalidation "github.com/yorukot/netstamp/internal/controller/application/validation"
+	domainlabel "github.com/yorukot/netstamp/internal/domain/label"
+	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
+	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 )
 
-type normalizedCreateProbeInput struct {
-	projectRef string
-	name       string
-	enabled    bool
-	city       *string
-	latitude   *float64
-	longitude  *float64
-	labelIDs   []string
-}
+func normalizeCreateProbeInput(input CreateProbeInput) (CreateProbeInput, error) {
+	projectRef, err := domainproject.VNProjectRef(input.ProjectRef)
+	if err != nil {
+		return CreateProbeInput{}, invalidProbeField("projectRef", err.Error(), input.ProjectRef)
+	}
 
-type normalizedProjectProbeInput struct {
-	projectRef string
-	probeID    string
-}
+	name, err := domainprobe.VNProbeName(input.Name)
+	if err != nil {
+		return CreateProbeInput{}, invalidProbeField("name", err.Error(), input.Name)
+	}
 
-type normalizedUpdateProbeInput struct {
-	projectRef    string
-	probeID       string
-	name          *string
-	enabled       *bool
-	city          *string
-	latitude      *float64
-	longitude     *float64
-	replaceLabels bool
-	labelIDs      []string
-}
+	subdivisionCode, err := domainprobe.VNProbeOptionalSubdivisionCode(input.SubdivisionCode)
+	if err != nil {
+		return CreateProbeInput{}, invalidProbeField("subdivisionCode", err.Error(), input.SubdivisionCode)
+	}
 
-func normalizeCreateProbeInput(input CreateProbeInput) (normalizedCreateProbeInput, error) {
-	projectRef, err := normalizeProbeProjectRef(input.ProjectRef)
-	if err != nil {
-		return normalizedCreateProbeInput{}, err
+	latitude, longitude, latitudeErr, longitudeErr := domainprobe.VNProbeCoordinates(input.Latitude, input.Longitude)
+	if latitudeErr != nil {
+		return CreateProbeInput{}, invalidProbeField("latitude", latitudeErr.Error(), input.Latitude)
 	}
-	name, err := appvalidation.RequiredString(ErrInvalidInput, "name", input.Name, maxProbeNameRunes)
-	if err != nil {
-		return normalizedCreateProbeInput{}, err
+	if longitudeErr != nil {
+		return CreateProbeInput{}, invalidProbeField("longitude", longitudeErr.Error(), input.Longitude)
 	}
-	city, err := appvalidation.OptionalString(ErrInvalidInput, "city", input.City, maxProbeCityRunes)
+
+	labelIDs, err := domainlabel.VNLabelIDs(input.LabelIDs)
 	if err != nil {
-		return normalizedCreateProbeInput{}, err
-	}
-	latitude, longitude, err := normalizeCoordinates(input.Latitude, input.Longitude)
-	if err != nil {
-		return normalizedCreateProbeInput{}, err
-	}
-	labelIDs, err := appvalidation.CanonicalUUIDSet(ErrInvalidInput, "labelIds", input.LabelIDs)
-	if err != nil {
-		return normalizedCreateProbeInput{}, err
+		return CreateProbeInput{}, invalidProbeField("labels", err.Error(), input.LabelIDs)
 	}
 
 	enabled := true
@@ -62,166 +43,106 @@ func normalizeCreateProbeInput(input CreateProbeInput) (normalizedCreateProbeInp
 		enabled = *input.Enabled
 	}
 
-	return normalizedCreateProbeInput{
-		projectRef: projectRef,
-		name:       name,
-		enabled:    enabled,
-		city:       city,
-		latitude:   latitude,
-		longitude:  longitude,
-		labelIDs:   labelIDs,
+	return CreateProbeInput{
+		CurrentUserID:   input.CurrentUserID,
+		ProjectRef:      projectRef,
+		Name:            name,
+		Enabled:         &enabled,
+		SubdivisionCode: subdivisionCode,
+		Latitude:        latitude,
+		Longitude:       longitude,
+		LabelIDs:        labelIDs,
 	}, nil
 }
 
-func normalizeListProbesInput(input ListProbesInput) (string, error) {
-	return normalizeProbeProjectRef(input.ProjectRef)
-}
-
-func normalizeGetProbeInput(input GetProbeInput) (normalizedProjectProbeInput, error) {
-	return normalizeProjectProbeInput(input.ProjectRef, input.ProbeID)
-}
-
-func normalizeDeleteProbeInput(input DeleteProbeInput) (normalizedProjectProbeInput, error) {
-	return normalizeProjectProbeInput(input.ProjectRef, input.ProbeID)
-}
-
-func normalizeRotateProbeSecretInput(input RotateProbeSecretInput) (normalizedProjectProbeInput, error) {
-	return normalizeProjectProbeInput(input.ProjectRef, input.ProbeID)
-}
-
-func normalizeUpdateProbeInput(input UpdateProbeInput) (normalizedUpdateProbeInput, error) {
-	ids, err := normalizeProjectProbeInput(input.ProjectRef, input.ProbeID)
+func normalizeTargetProbeInput(input TargetProbeInput) (TargetProbeInput, error) {
+	projectRef, err := domainproject.VNProjectRef(input.ProjectRef)
 	if err != nil {
-		return normalizedUpdateProbeInput{}, err
+		return TargetProbeInput{}, invalidProbeField("projectRef", err.Error(), input.ProjectRef)
 	}
+	probeID, err := domainprobe.VNProbeID(input.ProbeID)
+	if err != nil {
+		return TargetProbeInput{}, invalidProbeField("probeId", err.Error(), input.ProbeID)
+	}
+
+	return TargetProbeInput{
+		CurrentUserID: input.CurrentUserID,
+		ProjectRef:    projectRef,
+		ProbeID:       probeID,
+	}, nil
+}
+
+func normalizeUpdateProbeInput(input UpdateProbeInput) (UpdateProbeInput, error) {
+	projectRef, err := domainproject.VNProjectRef(input.ProjectRef)
+	if err != nil {
+		return UpdateProbeInput{}, invalidProbeField("projectRef", err.Error(), input.ProjectRef)
+	}
+	probeID, err := domainprobe.VNProbeID(input.ProbeID)
+	if err != nil {
+		return UpdateProbeInput{}, invalidProbeField("probeID", err.Error(), input.ProbeID)
+	}
+
 	if !hasUpdateProbeChanges(input) {
-		return normalizedUpdateProbeInput{}, invalidProbeField("", "at least one field must be provided", nil)
+		return UpdateProbeInput{}, fmt.Errorf("%w: at least one field must be provided", ErrInvalidInput)
 	}
 
-	name, err := appvalidation.OptionalString(ErrInvalidInput, "name", input.Name, maxProbeNameRunes)
-	if err != nil {
-		return normalizedUpdateProbeInput{}, err
+	var output UpdateProbeInput
+	output.ProjectRef = projectRef
+	output.ProbeID = probeID
+
+	if input.Name != nil {
+		name, err := domainprobe.VNProbeName(*input.Name)
+		if err != nil {
+			return UpdateProbeInput{}, invalidProbeField("name", err.Error(), input.Name)
+		}
+		output.Name = &name
 	}
-	city, err := appvalidation.OptionalString(ErrInvalidInput, "city", input.City, maxProbeCityRunes)
-	if err != nil {
-		return normalizedUpdateProbeInput{}, err
+	if input.SubdivisionCode != nil {
+		subdivisionCode, err := domainprobe.VNProbeOptionalSubdivisionCode(input.SubdivisionCode)
+		if err != nil {
+			return UpdateProbeInput{}, err
+		}
+		output.SubdivisionCode = subdivisionCode
 	}
-	latitude, longitude, err := normalizeCoordinates(input.Latitude, input.Longitude)
-	if err != nil {
-		return normalizedUpdateProbeInput{}, err
+	if input.Latitude != nil || input.Longitude != nil {
+		latitude, longitude, latitudeErr, longitudeErr := domainprobe.VNProbeCoordinates(input.Latitude, input.Longitude)
+		if latitudeErr != nil {
+			return UpdateProbeInput{}, invalidProbeField("latitude", latitudeErr.Error(), input.Latitude)
+		}
+		if longitudeErr != nil {
+			return UpdateProbeInput{}, invalidProbeField("longitude", longitudeErr.Error(), input.Longitude)
+		}
+		output.Latitude = latitude
+		output.Longitude = longitude
 	}
-	replaceLabels, labelIDs, err := normalizeOptionalLabelIDs(input.LabelIDs)
-	if err != nil {
-		return normalizedUpdateProbeInput{}, err
+	if input.LabelIDs != nil {
+		labelIDs, err := domainlabel.VNLabelIDs(*input.LabelIDs)
+		if err != nil {
+			return UpdateProbeInput{}, err
+		}
+		output.LabelIDs = &labelIDs
 	}
 
-	return normalizedUpdateProbeInput{
-		projectRef:    ids.projectRef,
-		probeID:       ids.probeID,
-		name:          name,
-		enabled:       normalizeOptionalBool(input.Enabled),
-		city:          city,
-		latitude:      latitude,
-		longitude:     longitude,
-		replaceLabels: replaceLabels,
-		labelIDs:      labelIDs,
+	return UpdateProbeInput{
+		CurrentUserID:   input.CurrentUserID,
+		ProjectRef:      projectRef,
+		ProbeID:         probeID,
+		Name:            output.Name,
+		Enabled:         input.Enabled,
+		SubdivisionCode: output.SubdivisionCode,
+		Latitude:        output.Latitude,
+		Longitude:       output.Longitude,
+		LabelIDs:        output.LabelIDs,
 	}, nil
 }
 
 func hasUpdateProbeChanges(input UpdateProbeInput) bool {
 	return input.Name != nil ||
 		input.Enabled != nil ||
-		input.City != nil ||
+		input.SubdivisionCode != nil ||
 		input.Latitude != nil ||
 		input.Longitude != nil ||
 		input.LabelIDs != nil
-}
-
-func normalizeProjectProbeInput(projectRefValue, probeIDValue string) (normalizedProjectProbeInput, error) {
-	projectRef, err := normalizeProbeProjectRef(projectRefValue)
-	if err != nil {
-		return normalizedProjectProbeInput{}, err
-	}
-	probeID, err := appvalidation.CanonicalUUID(ErrInvalidInput, "probeId", probeIDValue)
-	if err != nil {
-		return normalizedProjectProbeInput{}, err
-	}
-
-	return normalizedProjectProbeInput{projectRef: projectRef, probeID: probeID}, nil
-}
-
-func normalizeProbeProjectRef(value string) (string, error) {
-	return appvalidation.RequiredString(ErrInvalidInput, "projectRef", value, maxProbeProjectRefRunes)
-}
-
-func normalizeOptionalBool(value *bool) *bool {
-	if value == nil {
-		return nil
-	}
-
-	normalized := *value
-	return &normalized
-}
-
-func normalizeOptionalLabelIDs(value *[]string) (bool, []string, error) {
-	if value == nil {
-		return false, nil, nil
-	}
-
-	labelIDs, err := appvalidation.CanonicalUUIDSet(ErrInvalidInput, "labelIds", *value)
-	if err != nil {
-		return false, nil, err
-	}
-
-	return true, labelIDs, nil
-}
-
-func normalizeCoordinates(latitude, longitude *float64) (*float64, *float64, error) {
-	if latitude != nil && longitude == nil {
-		return nil, nil, invalidProbeField("longitude", "must be provided with latitude", nil)
-	}
-	if latitude == nil && longitude != nil {
-		return nil, nil, invalidProbeField("latitude", "must be provided with longitude", nil)
-	}
-	if latitude == nil {
-		return nil, nil, nil
-	}
-
-	lat := *latitude
-	lon := *longitude
-	return &lat, &lon, nil
-}
-
-func chooseString(current string, next *string) string {
-	if next == nil {
-		return current
-	}
-
-	return *next
-}
-
-func chooseBool(current bool, next *bool) bool {
-	if next == nil {
-		return current
-	}
-
-	return *next
-}
-
-func chooseOptionalString(current, next *string) *string {
-	if next == nil {
-		return current
-	}
-
-	return next
-}
-
-func chooseOptionalFloat64(current, next *float64) *float64 {
-	if next == nil {
-		return current
-	}
-
-	return next
 }
 
 func invalidProbeField(field, message string, value any) error {

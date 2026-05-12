@@ -90,7 +90,7 @@ func (r *CheckRepository) GetCheck(ctx context.Context, projectIDValue, checkIDV
 }
 
 func (r *CheckRepository) CreateCheck(ctx context.Context, input domaincheck.CreateCheckStorageInput) (domaincheck.Check, error) {
-	ctx, span := postgres.StartDBSpan(ctx, pgcheckTracer, "checks", "postgres.checks.create", "INSERT", "INSERT check, ping config, labels, and effective links")
+	ctx, span := postgres.StartDBSpan(ctx, pgcheckTracer, "checks", "postgres.checks.create", "INSERT", "INSERT check, ping config, labels, and assignment links")
 	defer span.End()
 
 	projectID, err := postgres.ParseUUID(input.ProjectID, domainproject.ErrProjectNotFound)
@@ -144,14 +144,14 @@ func (r *CheckRepository) CreateCheck(ctx context.Context, input domaincheck.Cre
 			}
 		}
 
-		// effective_probe_checks is a cache of the current probe/check links, so
+		// probe_check_assignments is a cache of the current probe/check links, so
 		// refresh it after the check row, config, and labels have been persisted.
 		probes, listProbeErr := r.listActiveEnabledProbeLabels(ctx, q, projectID)
 		if listProbeErr != nil {
 			return listProbeErr
 		}
 		for _, probeID := range matchingProbeIDs(parsedSelector, probes) {
-			if linkErr := q.CreateEffectiveProbeCheck(ctx, sqlc.CreateEffectiveProbeCheckParams{
+			if linkErr := q.CreateProbeCheckAssignment(ctx, sqlc.CreateProbeCheckAssignmentParams{
 				ProjectID:       projectID,
 				ProbeID:         probeID,
 				CheckID:         row.ID,
@@ -174,7 +174,7 @@ func (r *CheckRepository) CreateCheck(ctx context.Context, input domaincheck.Cre
 }
 
 func (r *CheckRepository) UpdateCheck(ctx context.Context, input domaincheck.UpdateCheckStorageInput) (domaincheck.Check, error) {
-	ctx, span := postgres.StartDBSpan(ctx, pgcheckTracer, "checks", "postgres.checks.update", "UPDATE", "UPDATE check, ping config, labels, and effective links")
+	ctx, span := postgres.StartDBSpan(ctx, pgcheckTracer, "checks", "postgres.checks.update", "UPDATE", "UPDATE check, ping config, labels, and assignment links")
 	defer span.End()
 
 	projectID, checkID, err := parseProjectAndCheckIDs(input.ProjectID, input.CheckID)
@@ -243,7 +243,7 @@ func (r *CheckRepository) UpdateCheck(ctx context.Context, input domaincheck.Upd
 			}
 		}
 
-		if linkErr := r.refreshEffectiveProbeChecks(ctx, q, projectID, checkID, parsedSelector, input); linkErr != nil {
+		if linkErr := r.refreshProbeCheckAssignments(ctx, q, projectID, checkID, parsedSelector, input); linkErr != nil {
 			return linkErr
 		}
 
@@ -259,7 +259,7 @@ func (r *CheckRepository) UpdateCheck(ctx context.Context, input domaincheck.Upd
 	return updated, nil
 }
 
-func (r *CheckRepository) refreshEffectiveProbeChecks(
+func (r *CheckRepository) refreshProbeCheckAssignments(
 	ctx context.Context,
 	queries *sqlc.Queries,
 	projectID uuid.UUID,
@@ -274,7 +274,7 @@ func (r *CheckRepository) refreshEffectiveProbeChecks(
 
 	matchedProbeIDs := matchingProbeIDs(selector, probes)
 	for _, probeID := range matchedProbeIDs {
-		if linkErr := queries.UpsertEffectiveProbeCheck(ctx, sqlc.UpsertEffectiveProbeCheckParams{
+		if linkErr := queries.UpsertProbeCheckAssignment(ctx, sqlc.UpsertProbeCheckAssignmentParams{
 			ProjectID:       projectID,
 			ProbeID:         probeID,
 			CheckID:         checkID,
@@ -285,7 +285,7 @@ func (r *CheckRepository) refreshEffectiveProbeChecks(
 		}
 	}
 
-	return queries.DeleteStaleEffectiveProbeChecks(ctx, sqlc.DeleteStaleEffectiveProbeChecksParams{
+	return queries.DeleteStaleProbeCheckAssignments(ctx, sqlc.DeleteStaleProbeCheckAssignmentsParams{
 		ProjectID:       projectID,
 		CheckID:         checkID,
 		CheckVersion:    input.CheckVersion,
@@ -295,7 +295,7 @@ func (r *CheckRepository) refreshEffectiveProbeChecks(
 }
 
 func (r *CheckRepository) SoftDeleteCheck(ctx context.Context, projectIDValue, checkIDValue string) error {
-	ctx, span := postgres.StartDBSpan(ctx, pgcheckTracer, "checks", "postgres.checks.soft_delete", "UPDATE", "SOFT DELETE check and effective links")
+	ctx, span := postgres.StartDBSpan(ctx, pgcheckTracer, "checks", "postgres.checks.soft_delete", "UPDATE", "SOFT DELETE check and assignment links")
 	defer span.End()
 
 	projectID, checkID, err := parseProjectAndCheckIDs(projectIDValue, checkIDValue)
@@ -317,7 +317,7 @@ func (r *CheckRepository) SoftDeleteCheck(ctx context.Context, projectIDValue, c
 		}
 
 		// Once the check is deleted, no probe should keep a cached link to it.
-		return q.DeleteEffectiveProbeChecksForCheck(ctx, sqlc.DeleteEffectiveProbeChecksForCheckParams{
+		return q.DeleteProbeCheckAssignmentsForCheck(ctx, sqlc.DeleteProbeCheckAssignmentsForCheckParams{
 			ProjectID: projectID,
 			CheckID:   checkID,
 		})

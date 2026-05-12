@@ -3,14 +3,14 @@ package proberegistry
 import domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
 
 type CreateProbeInput struct {
-	CurrentUserID string
-	ProjectRef    string
-	Name          string
-	Enabled       *bool
-	City          *string
-	Latitude      *float64
-	Longitude     *float64
-	LabelIDs      []string
+	CurrentUserID   string
+	ProjectRef      string
+	Name            string
+	Enabled         *bool
+	SubdivisionCode *string
+	Latitude        *float64
+	Longitude       *float64
+	LabelIDs        []string
 }
 
 type CreateProbeOutput struct {
@@ -23,34 +23,22 @@ type ListProbesInput struct {
 	ProjectRef    string
 }
 
-type GetProbeInput struct {
+type TargetProbeInput struct {
 	CurrentUserID string
 	ProjectRef    string
 	ProbeID       string
 }
 
 type UpdateProbeInput struct {
-	CurrentUserID string
-	ProjectRef    string
-	ProbeID       string
-	Name          *string
-	Enabled       *bool
-	City          *string
-	Latitude      *float64
-	Longitude     *float64
-	LabelIDs      *[]string
-}
-
-type DeleteProbeInput struct {
-	CurrentUserID string
-	ProjectRef    string
-	ProbeID       string
-}
-
-type RotateProbeSecretInput struct {
-	CurrentUserID string
-	ProjectRef    string
-	ProbeID       string
+	CurrentUserID   string
+	ProjectRef      string
+	ProbeID         string
+	Name            *string
+	Enabled         *bool
+	SubdivisionCode *string
+	Latitude        *float64
+	Longitude       *float64
+	LabelIDs        *[]string
 }
 
 type RotateProbeSecretOutput struct {

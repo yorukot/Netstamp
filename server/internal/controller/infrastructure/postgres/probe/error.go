@@ -7,9 +7,6 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/postgres"
-	domainlabel "github.com/yorukot/netstamp/internal/domain/label"
-	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
-	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 )
 
 func mapCreateProbeError(err error) error {
@@ -51,10 +48,10 @@ func mapUpdateProbeError(err error) error {
 	if postgres.IsForeignKeyViolation(err, "fk_probe_labels_project_label") {
 		return fmt.Errorf("probe label not found: %w", domainlabel.ErrLabelNotFound)
 	}
-	if postgres.IsForeignKeyViolation(err, "fk_effective_probe_checks_project_probe") {
+	if postgres.IsForeignKeyViolation(err, "fk_probe_check_assignments_project_probe") {
 		return fmt.Errorf("probe not found: %w", domainprobe.ErrProbeNotFound)
 	}
-	if postgres.IsForeignKeyViolation(err, "fk_effective_probe_checks_project_check") {
+	if postgres.IsForeignKeyViolation(err, "fk_probe_check_assignments_project_check") {
 		return err
 	}
 

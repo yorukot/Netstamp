@@ -30,14 +30,13 @@ func (s *Service) CreateProbe(ctx context.Context, input CreateProbeInput) (Crea
 	ctx, flow := s.startProbeFlow(ctx, "probe.create", ProbeActionCreate, input.CurrentUserID)
 	defer flow.end()
 
-	normalized, err := normalizeCreateProbeInput(input)
+	input, err := normalizeCreateProbeInput(input)
 	if err != nil {
-		flow.setProjectRef(input.ProjectRef)
 		return CreateProbeOutput{}, flow.businessFailure(ProbeEventCreateFailure, ProbeReasonInvalidInput, err)
 	}
-	flow.setProjectRef(normalized.projectRef)
+	flow.setProjectRef(input.ProjectRef)
 
-	project, err := s.projectAccess.GetProjectForUser(ctx, normalized.projectRef, input.CurrentUserID)
+	project, err := s.projectAccess.GetProjectForUser(ctx, input.ProjectRef, input.CurrentUserID)
 	if err != nil {
 		return CreateProbeOutput{}, flow.projectLookupFailure(ProbeEventCreateFailure, err)
 	}
@@ -51,7 +50,7 @@ func (s *Service) CreateProbe(ctx context.Context, input CreateProbeInput) (Crea
 		return CreateProbeOutput{}, flow.businessFailure(ProbeEventCreateFailure, ProbeReasonForbidden, ErrForbidden)
 	}
 
-	labels, err := s.labelAccess.GetActiveLabelsByIDsForProject(ctx, project.ID, normalized.labelIDs)
+	labels, err := s.labelAccess.GetActiveLabelsByIDsForProject(ctx, project.ID, input.LabelIDs)
 	if err != nil {
 		return CreateProbeOutput{}, flow.labelLookupFailure(ProbeEventCreateFailure, err)
 	}
@@ -68,21 +67,23 @@ func (s *Service) CreateProbe(ctx context.Context, input CreateProbeInput) (Crea
 		return CreateProbeOutput{}, flow.technicalFailure(ProbeEventCreateFailure, ProbeReasonSecretGenerateFailed, err)
 	}
 
-	probe, err := s.repo.CreateProbe(ctx, domainprobe.CreateProbeStorageInput{
-		ProjectID:  project.ID,
-		Name:       normalized.name,
-		Enabled:    normalized.enabled,
-		City:       normalized.city,
-		Latitude:   normalized.latitude,
-		Longitude:  normalized.longitude,
-		LabelIDs:   normalized.labelIDs,
-		SecretHash: secretHash,
-	})
+	probe, err := s.repo.CreateProbe(ctx, domainprobe.Probe{
+		ProjectID:       project.ID,
+		Name:            input.Name,
+		Enabled:         *input.Enabled,
+		SubdivisionCode: input.SubdivisionCode,
+		Latitude:        input.Latitude,
+		Longitude:       input.Longitude,
+		Labels:          labels,
+	}, secretHash)
+
 	if err != nil {
 		return CreateProbeOutput{}, flow.createFailure(err)
 	}
 	flow.setProbeID(probe.ID)
 	probe.Labels = labels
+
+	// TODO: after create the probe we should rematch the probe and check assigment
 
 	return CreateProbeOutput{
 		Probe:  probe,
@@ -94,9 +95,9 @@ func (s *Service) ListProbes(ctx context.Context, input ListProbesInput) ([]doma
 	ctx, flow := s.startProbeFlow(ctx, "probe.list", ProbeActionList, input.CurrentUserID)
 	defer flow.end()
 
-	projectRef, err := normalizeListProbesInput(input)
+	projectRef, err := domainproject.VNProjectRef(input.ProjectRef)
 	if err != nil {
-		flow.setProjectRef(input.ProjectRef)
+		err := invalidProbeField("projectRef", err.Error(), input.ProjectRef)
 		return nil, flow.businessFailure(ProbeEventListFailure, ProbeReasonInvalidInput, err)
 	}
 	flow.setProjectRef(projectRef)
@@ -119,20 +120,20 @@ func (s *Service) ListProbes(ctx context.Context, input ListProbesInput) ([]doma
 	return probes, nil
 }
 
-func (s *Service) GetProbe(ctx context.Context, input GetProbeInput) (domainprobe.Probe, error) {
+func (s *Service) GetProbe(ctx context.Context, input TargetProbeInput) (domainprobe.Probe, error) {
 	ctx, flow := s.startProbeFlow(ctx, "probe.get", ProbeActionGet, input.CurrentUserID)
 	defer flow.end()
 
-	normalized, err := normalizeGetProbeInput(input)
+	input, err := normalizeTargetProbeInput(input)
 	if err != nil {
 		flow.setProjectRef(input.ProjectRef)
 		flow.setProbeID(input.ProbeID)
 		return domainprobe.Probe{}, flow.businessFailure(ProbeEventGetFailure, ProbeReasonInvalidInput, err)
 	}
-	flow.setProjectRef(normalized.projectRef)
-	flow.setProbeID(normalized.probeID)
+	flow.setProjectRef(input.ProjectRef)
+	flow.setProbeID(input.ProbeID)
 
-	project, err := s.projectAccess.GetProjectForUser(ctx, normalized.projectRef, input.CurrentUserID)
+	project, err := s.projectAccess.GetProjectForUser(ctx, input.ProjectRef, input.CurrentUserID)
 	if err != nil {
 		return domainprobe.Probe{}, flow.projectLookupFailure(ProbeEventGetFailure, err)
 	}
@@ -142,7 +143,7 @@ func (s *Service) GetProbe(ctx context.Context, input GetProbeInput) (domainprob
 		return domainprobe.Probe{}, actionErr
 	}
 
-	probe, err := s.repo.GetProbeForProject(ctx, project.ID, normalized.probeID)
+	probe, err := s.repo.GetProbeForProject(ctx, project.ID, input.ProbeID)
 	if err != nil {
 		return domainprobe.Probe{}, flow.probeLookupFailure(ProbeEventGetFailure, err)
 	}
@@ -154,16 +155,14 @@ func (s *Service) UpdateProbe(ctx context.Context, input UpdateProbeInput) (doma
 	ctx, flow := s.startProbeFlow(ctx, "probe.update", ProbeActionUpdate, input.CurrentUserID)
 	defer flow.end()
 
-	normalized, err := normalizeUpdateProbeInput(input)
+	input, err := normalizeUpdateProbeInput(input)
 	if err != nil {
-		flow.setProjectRef(input.ProjectRef)
-		flow.setProbeID(input.ProbeID)
 		return domainprobe.Probe{}, flow.businessFailure(ProbeEventUpdateFailure, ProbeReasonInvalidInput, err)
 	}
-	flow.setProjectRef(normalized.projectRef)
-	flow.setProbeID(normalized.probeID)
+	flow.setProjectRef(input.ProjectRef)
+	flow.setProbeID(input.ProbeID)
 
-	project, err := s.projectAccess.GetProjectForUser(ctx, normalized.projectRef, input.CurrentUserID)
+	project, err := s.projectAccess.GetProjectForUser(ctx, input.ProjectRef, input.CurrentUserID)
 	if err != nil {
 		return domainprobe.Probe{}, flow.projectLookupFailure(ProbeEventUpdateFailure, err)
 	}
@@ -173,50 +172,68 @@ func (s *Service) UpdateProbe(ctx context.Context, input UpdateProbeInput) (doma
 		return domainprobe.Probe{}, actionErr
 	}
 
-	current, err := s.repo.GetProbeForProject(ctx, project.ID, normalized.probeID)
+	current, err := s.repo.GetProbeForProject(ctx, project.ID, input.ProbeID)
 	if err != nil {
 		return domainprobe.Probe{}, flow.probeLookupFailure(ProbeEventUpdateFailure, err)
 	}
 
-	if normalized.replaceLabels {
-		if _, labelErr := s.labelAccess.GetActiveLabelsByIDsForProject(ctx, project.ID, normalized.labelIDs); labelErr != nil {
-			return domainprobe.Probe{}, flow.labelLookupFailure(ProbeEventUpdateFailure, labelErr)
-		}
-	}
-
-	updated, err := s.repo.UpdateProbe(ctx, domainprobe.UpdateProbeStorageInput{
-		ProjectID:     project.ID,
-		ProbeID:       normalized.probeID,
-		Name:          chooseString(current.Name, normalized.name),
-		Enabled:       chooseBool(current.Enabled, normalized.enabled),
-		City:          chooseOptionalString(current.City, normalized.city),
-		Latitude:      chooseOptionalFloat64(current.Latitude, normalized.latitude),
-		Longitude:     chooseOptionalFloat64(current.Longitude, normalized.longitude),
-		ReplaceLabels: normalized.replaceLabels,
-		LabelIDs:      normalized.labelIDs,
-	})
+	syncProbe, err := s.syncUpdateProbeInput(ctx, input, current)
 	if err != nil {
 		return domainprobe.Probe{}, flow.updateFailure(err)
 	}
+
+	updated, err := s.repo.UpdateProbe(ctx, syncProbe)
+	if err != nil {
+		return domainprobe.Probe{}, flow.updateFailure(err)
+	}
+
+	// TODO: After updating, sync the probe and check assignments note that only when update the label and enable need to sync
+
 	flow.success(ProbeEventUpdateSuccess)
 
 	return updated, nil
 }
 
-func (s *Service) DeleteProbe(ctx context.Context, input DeleteProbeInput) error {
+func (s *Service) syncUpdateProbeInput(ctx context.Context, input UpdateProbeInput, current domainprobe.Probe) (output domainprobe.Probe, err error) {
+	probe := current
+	if input.Name != nil {
+		probe.Name = *input.Name
+	}
+	if input.Enabled != nil {
+		probe.Enabled = *input.Enabled
+	}
+	if input.SubdivisionCode != nil {
+		probe.SubdivisionCode = input.SubdivisionCode
+	}
+	if input.Latitude != nil {
+		probe.Latitude = input.Latitude
+	}
+	if input.Longitude != nil {
+		probe.Longitude = input.Longitude
+	}
+	if input.LabelIDs != nil {
+		outlabels, err := s.labelAccess.GetActiveLabelsByIDsForProject(ctx, current.ProjectID, *input.LabelIDs)
+		if err != nil {
+			return domainprobe.Probe{}, err
+		}
+		probe.Labels = outlabels
+	}
+
+	return probe, nil
+}
+
+func (s *Service) DeleteProbe(ctx context.Context, input TargetProbeInput) error {
 	ctx, flow := s.startProbeFlow(ctx, "probe.delete", ProbeActionDelete, input.CurrentUserID)
 	defer flow.end()
 
-	normalized, err := normalizeDeleteProbeInput(input)
+	input, err := normalizeTargetProbeInput(input)
 	if err != nil {
-		flow.setProjectRef(input.ProjectRef)
-		flow.setProbeID(input.ProbeID)
 		return flow.businessFailure(ProbeEventDeleteFailure, ProbeReasonInvalidInput, err)
 	}
-	flow.setProjectRef(normalized.projectRef)
-	flow.setProbeID(normalized.probeID)
+	flow.setProjectRef(input.ProjectRef)
+	flow.setProbeID(input.ProbeID)
 
-	project, err := s.projectAccess.GetProjectForUser(ctx, normalized.projectRef, input.CurrentUserID)
+	project, err := s.projectAccess.GetProjectForUser(ctx, input.ProjectRef, input.CurrentUserID)
 	if err != nil {
 		return flow.projectLookupFailure(ProbeEventDeleteFailure, err)
 	}
@@ -226,28 +243,28 @@ func (s *Service) DeleteProbe(ctx context.Context, input DeleteProbeInput) error
 		return actionErr
 	}
 
-	if err := s.repo.SoftDeleteProbe(ctx, project.ID, normalized.probeID); err != nil {
+	if err := s.repo.SoftDeleteProbe(ctx, project.ID, input.ProbeID); err != nil {
 		return flow.deleteFailure(err)
 	}
 	flow.success(ProbeEventDeleteSuccess)
 
+	// TODO: We need to sync the probe and check assigment
+
 	return nil
 }
 
-func (s *Service) RotateProbeSecret(ctx context.Context, input RotateProbeSecretInput) (RotateProbeSecretOutput, error) {
+func (s *Service) RotateProbeSecret(ctx context.Context, input TargetProbeInput) (RotateProbeSecretOutput, error) {
 	ctx, flow := s.startProbeFlow(ctx, "probe.secret.rotate", ProbeActionSecretRotate, input.CurrentUserID)
 	defer flow.end()
 
-	normalized, err := normalizeRotateProbeSecretInput(input)
+	input, err := normalizeTargetProbeInput(input)
 	if err != nil {
-		flow.setProjectRef(input.ProjectRef)
-		flow.setProbeID(input.ProbeID)
 		return RotateProbeSecretOutput{}, flow.businessFailure(ProbeEventSecretRotateFailure, ProbeReasonInvalidInput, err)
 	}
-	flow.setProjectRef(normalized.projectRef)
-	flow.setProbeID(normalized.probeID)
+	flow.setProjectRef(input.ProjectRef)
+	flow.setProbeID(input.ProbeID)
 
-	project, err := s.projectAccess.GetProjectForUser(ctx, normalized.projectRef, input.CurrentUserID)
+	project, err := s.projectAccess.GetProjectForUser(ctx, input.ProjectRef, input.CurrentUserID)
 	if err != nil {
 		return RotateProbeSecretOutput{}, flow.projectLookupFailure(ProbeEventSecretRotateFailure, err)
 	}
@@ -257,7 +274,7 @@ func (s *Service) RotateProbeSecret(ctx context.Context, input RotateProbeSecret
 		return RotateProbeSecretOutput{}, actionErr
 	}
 
-	probe, err := s.repo.GetProbeForProject(ctx, project.ID, normalized.probeID)
+	probe, err := s.repo.GetProbeForProject(ctx, project.ID, input.ProbeID)
 	if err != nil {
 		return RotateProbeSecretOutput{}, flow.probeLookupFailure(ProbeEventSecretRotateFailure, err)
 	}
@@ -274,11 +291,10 @@ func (s *Service) RotateProbeSecret(ctx context.Context, input RotateProbeSecret
 		return RotateProbeSecretOutput{}, flow.technicalFailure(ProbeEventSecretRotateFailure, ProbeReasonSecretGenerateFailed, err)
 	}
 
-	if err := s.repo.RotateProbeSecret(ctx, domainprobe.RotateProbeSecretStorageInput{
-		ProjectID:  project.ID,
-		ProbeID:    normalized.probeID,
-		SecretHash: secretHash,
-	}); err != nil {
+	if err := s.repo.RotateProbeSecret(ctx, domainprobe.Probe{
+		ID:        input.ProbeID,
+		ProjectID: project.ID,
+	}, secretHash); err != nil {
 		return RotateProbeSecretOutput{}, flow.rotateFailure(err)
 	}
 	flow.success(ProbeEventSecretRotateSuccess)

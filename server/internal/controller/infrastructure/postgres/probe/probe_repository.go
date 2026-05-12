@@ -25,6 +25,18 @@ type ProbeRepository struct {
 	tx      *postgres.Transactor
 }
 
+const listProbeRefreshTargetsForLabel = `
+SELECT probes.id, probes.enabled
+FROM probe_labels
+JOIN probes
+    ON probes.project_id = probe_labels.project_id
+    AND probes.id = probe_labels.probe_id
+WHERE probe_labels.project_id = $1
+  AND probe_labels.label_id = $2
+  AND probes.deleted_at IS NULL
+ORDER BY probes.id
+`
+
 func NewProbeRepository(pool *pgxpool.Pool) *ProbeRepository {
 	return &ProbeRepository{
 		queries: sqlc.New(pool),
@@ -66,6 +78,7 @@ func (r *ProbeRepository) UpdateProbeStatus(ctx context.Context, input domainpro
 		AgentVersion: input.AgentVersion,
 		PublicV4:     input.PublicV4,
 		PublicV6:     input.PublicV6,
+		As:           input.AS,
 		Addrs:        input.Addrs,
 	})
 	if err != nil {
@@ -78,7 +91,7 @@ func (r *ProbeRepository) UpdateProbeStatus(ctx context.Context, input domainpro
 }
 
 func (r *ProbeRepository) ListAssignments(ctx context.Context, probeID string) ([]domaincheck.Assignment, error) {
-	ctx, span := postgres.StartDBSpan(ctx, pgprobeTracer, "effective_probe_checks", "postgres.probes.list_assignments", "SELECT", "SELECT active probe assignments")
+	ctx, span := postgres.StartDBSpan(ctx, pgprobeTracer, "probe_check_assignments", "postgres.probes.list_assignments", "SELECT", "SELECT active probe assignments")
 	defer span.End()
 
 	id, err := postgres.ParseUUID(probeID, domainprobe.ErrProbeNotFound)
@@ -98,6 +111,62 @@ func (r *ProbeRepository) ListAssignments(ctx context.Context, probeID string) (
 	}
 
 	return assignments, nil
+}
+
+func (r *ProbeRepository) RefreshProbeCheckAssignmentsForLabel(ctx context.Context, projectIDValue, labelIDValue string) error {
+	ctx, span := postgres.StartDBSpan(ctx, pgprobeTracer, "probe_check_assignments", "postgres.probes.refresh_for_label", "UPDATE", "REFRESH probe check assignments for label")
+	defer span.End()
+
+	projectID, err := postgres.ParseUUID(projectIDValue, domainproject.ErrProjectNotFound)
+	if err != nil {
+		return err
+	}
+	labelIDs, err := pglabel.ParseLabelIDs([]string{labelIDValue})
+	if err != nil {
+		return err
+	}
+	labelID := labelIDs[0]
+
+	err = r.tx.InTx(ctx, func(ctx context.Context, tx pgx.Tx) error {
+		q := r.queries.WithTx(tx)
+		rows, err := tx.Query(ctx, listProbeRefreshTargetsForLabel, projectID, labelID)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+
+		type refreshTarget struct {
+			probeID uuid.UUID
+			enabled bool
+		}
+
+		targets := []refreshTarget{}
+		for rows.Next() {
+			var target refreshTarget
+			if err := rows.Scan(&target.probeID, &target.enabled); err != nil {
+				return err
+			}
+			targets = append(targets, target)
+		}
+		if err := rows.Err(); err != nil {
+			return err
+		}
+		rows.Close()
+
+		for _, target := range targets {
+			if err := r.refreshProbeCheckAssignmentsForProbe(ctx, q, projectID, target.probeID, target.enabled); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		postgres.RecordDBSpanError(span, err)
+		return err
+	}
+
+	return nil
 }
 
 func (r *ProbeRepository) CreateProbe(ctx context.Context, input domainprobe.CreateProbeStorageInput) (domainprobe.Probe, error) {
@@ -122,7 +191,7 @@ func (r *ProbeRepository) CreateProbe(ctx context.Context, input domainprobe.Cre
 			Name:      input.Name,
 			Enabled:   input.Enabled,
 			Location:  pointFromCoordinates(input.Longitude, input.Latitude),
-			City:      input.City,
+			SubdivisionCode:      input.SubdivisionCode,
 		})
 		if createErr != nil {
 			return mapCreateProbeError(createErr)
@@ -152,7 +221,7 @@ func (r *ProbeRepository) CreateProbe(ctx context.Context, input domainprobe.Cre
 			}
 		}
 
-		if refreshErr := r.refreshEffectiveProbeChecksForProbe(ctx, q, projectID, row.ID, input.Enabled); refreshErr != nil {
+		if refreshErr := r.refreshProbeCheckAssignmentsForProbe(ctx, q, projectID, row.ID, input.Enabled); refreshErr != nil {
 			return refreshErr
 		}
 
@@ -211,7 +280,7 @@ func (r *ProbeRepository) GetProbeForProject(ctx context.Context, projectIDValue
 }
 
 func (r *ProbeRepository) UpdateProbe(ctx context.Context, input domainprobe.UpdateProbeStorageInput) (domainprobe.Probe, error) {
-	ctx, span := postgres.StartDBSpan(ctx, pgprobeTracer, "probes", "postgres.probes.update", "UPDATE", "UPDATE probe, labels, and effective links")
+	ctx, span := postgres.StartDBSpan(ctx, pgprobeTracer, "probes", "postgres.probes.update", "UPDATE", "UPDATE probe, labels, and assignment links")
 	defer span.End()
 
 	projectID, probeID, err := parseProjectAndProbeIDs(input.ProjectID, input.ProbeID)
@@ -233,7 +302,7 @@ func (r *ProbeRepository) UpdateProbe(ctx context.Context, input domainprobe.Upd
 			Name:      input.Name,
 			Enabled:   input.Enabled,
 			Location:  pointFromCoordinates(input.Longitude, input.Latitude),
-			City:      input.City,
+			SubdivisionCode:      input.SubdivisionCode,
 		}); updateErr != nil {
 			if errors.Is(updateErr, pgx.ErrNoRows) {
 				return domainprobe.ErrProbeNotFound
@@ -259,7 +328,7 @@ func (r *ProbeRepository) UpdateProbe(ctx context.Context, input domainprobe.Upd
 			}
 		}
 
-		if refreshErr := r.refreshEffectiveProbeChecksForProbe(ctx, q, projectID, probeID, input.Enabled); refreshErr != nil {
+		if refreshErr := r.refreshProbeCheckAssignmentsForProbe(ctx, q, projectID, probeID, input.Enabled); refreshErr != nil {
 			return refreshErr
 		}
 
@@ -287,7 +356,7 @@ func (r *ProbeRepository) UpdateProbe(ctx context.Context, input domainprobe.Upd
 }
 
 func (r *ProbeRepository) SoftDeleteProbe(ctx context.Context, projectIDValue, probeIDValue string) error {
-	ctx, span := postgres.StartDBSpan(ctx, pgprobeTracer, "probes", "postgres.probes.soft_delete", "UPDATE", "SOFT DELETE probe and effective links")
+	ctx, span := postgres.StartDBSpan(ctx, pgprobeTracer, "probes", "postgres.probes.soft_delete", "UPDATE", "SOFT DELETE probe and assignment links")
 	defer span.End()
 
 	projectID, probeID, err := parseProjectAndProbeIDs(projectIDValue, probeIDValue)
@@ -308,7 +377,7 @@ func (r *ProbeRepository) SoftDeleteProbe(ctx context.Context, projectIDValue, p
 			return deleteErr
 		}
 
-		return q.DeleteEffectiveProbeChecksForProbe(ctx, sqlc.DeleteEffectiveProbeChecksForProbeParams{
+		return q.DeleteProbeCheckAssignmentsForProbe(ctx, sqlc.DeleteProbeCheckAssignmentsForProbeParams{
 			ProjectID: projectID,
 			ProbeID:   probeID,
 		})
@@ -345,9 +414,9 @@ func (r *ProbeRepository) RotateProbeSecret(ctx context.Context, input domainpro
 	return nil
 }
 
-func (r *ProbeRepository) refreshEffectiveProbeChecksForProbe(ctx context.Context, queries *sqlc.Queries, projectID, probeID uuid.UUID, enabled bool) error {
+func (r *ProbeRepository) refreshProbeCheckAssignmentsForProbe(ctx context.Context, queries *sqlc.Queries, projectID, probeID uuid.UUID, enabled bool) error {
 	if !enabled {
-		return queries.DeleteEffectiveProbeChecksForProbe(ctx, sqlc.DeleteEffectiveProbeChecksForProbeParams{
+		return queries.DeleteProbeCheckAssignmentsForProbe(ctx, sqlc.DeleteProbeCheckAssignmentsForProbeParams{
 			ProjectID: projectID,
 			ProbeID:   probeID,
 		})
@@ -378,7 +447,7 @@ func (r *ProbeRepository) refreshEffectiveProbeChecksForProbe(ctx context.Contex
 			continue
 		}
 		matchedCheckIDs = append(matchedCheckIDs, row.ID)
-		if linkErr := queries.UpsertEffectiveProbeCheck(ctx, sqlc.UpsertEffectiveProbeCheckParams{
+		if linkErr := queries.UpsertProbeCheckAssignment(ctx, sqlc.UpsertProbeCheckAssignmentParams{
 			ProjectID:       projectID,
 			ProbeID:         probeID,
 			CheckID:         row.ID,
@@ -389,7 +458,7 @@ func (r *ProbeRepository) refreshEffectiveProbeChecksForProbe(ctx context.Contex
 		}
 	}
 
-	return queries.DeleteStaleEffectiveProbeChecksForProbe(ctx, sqlc.DeleteStaleEffectiveProbeChecksForProbeParams{
+	return queries.DeleteStaleProbeCheckAssignmentsForProbe(ctx, sqlc.DeleteStaleProbeCheckAssignmentsForProbeParams{
 		ProjectID: projectID,
 		ProbeID:   probeID,
 		CheckIds:  matchedCheckIDs,

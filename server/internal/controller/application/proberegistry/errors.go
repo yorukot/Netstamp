@@ -2,16 +2,12 @@ package proberegistry
 
 import (
 	"errors"
-
-	domainlabel "github.com/yorukot/netstamp/internal/domain/label"
-	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
-	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 )
 
 var (
-	ErrProjectNotFound = domainproject.ErrProjectNotFound
-	ErrLabelNotFound   = domainlabel.ErrLabelNotFound
-	ErrProbeNotFound   = domainprobe.ErrProbeNotFound
-	ErrInvalidInput    = domainprobe.ErrInvalidInput
+	ErrProjectNotFound = errors.New("project not found")
+	ErrLabelNotFound   = errors.New("label not found")
+	ErrProbeNotFound   = errors.New("probe not found")
+	ErrInvalidInput    = errors.New("invalid input")
 	ErrForbidden       = errors.New("probe action forbidden")
 )

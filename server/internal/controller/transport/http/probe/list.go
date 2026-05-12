@@ -20,7 +20,7 @@ func (h *Handler) listProbes(ctx context.Context, input *listProbesInput) (*list
 		return nil, mapProbeError(err, "list probes failed")
 	}
 
-	return &listProbesOutput{Body: listProbesOutputBody{Probes: newProbeResponses(probes)}}, nil
+	return &listProbesOutput{Body: listProbesOutputBody{Probes: probes}}, nil
 }
 
 type listProbesInput struct {

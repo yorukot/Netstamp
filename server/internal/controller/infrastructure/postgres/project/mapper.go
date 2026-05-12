@@ -40,7 +40,7 @@ func timePtr(value pgtype.Timestamptz) *time.Time {
 	return &value.Time
 }
 
-func mapListMember(row sqlc.ListActiveProjectMembersRow) domainproject.Member {
+func mapListMember(row sqlc.ProjectMember) domainproject.Member {
 	return domainproject.Member{
 		ID:        row.ID.String(),
 		ProjectID: row.ProjectID.String(),
@@ -51,7 +51,7 @@ func mapListMember(row sqlc.ListActiveProjectMembersRow) domainproject.Member {
 	}
 }
 
-func mapGetMember(row sqlc.GetActiveProjectMemberRow) domainproject.Member {
+func mapGetMember(row sqlc.ProjectMember) domainproject.Member {
 	return domainproject.Member{
 		ID:        row.ID.String(),
 		ProjectID: row.ProjectID.String(),

@@ -12,7 +12,7 @@ func (h *Handler) rotateSecret(ctx context.Context, input *probeRefInput) (*rota
 		return nil, err
 	}
 
-	output, err := h.service.RotateProbeSecret(ctx, appprobe.RotateProbeSecretInput{
+	output, err := h.service.RotateProbeSecret(ctx, appprobe.TargetProbeInput{
 		CurrentUserID: currentUserID,
 		ProjectRef:    input.Ref,
 		ProbeID:       input.ProbeID,
@@ -23,7 +23,7 @@ func (h *Handler) rotateSecret(ctx context.Context, input *probeRefInput) (*rota
 
 	return &rotateSecretOutput{
 		Body: rotateSecretOutputBody{
-			Probe:  newProbeResponse(output.Probe),
+			Probe:  output.Probe,
 			Secret: output.Secret,
 		},
 	}, nil

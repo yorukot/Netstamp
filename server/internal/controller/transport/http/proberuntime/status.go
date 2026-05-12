@@ -51,6 +51,7 @@ type runtimeStatusInputBody struct {
 	AgentVersion *string  `json:"agentVersion,omitempty" doc:"Probe agent version." example:"netstamp-probe/0.1.0"`
 	PublicV4     *string  `json:"publicV4,omitempty" doc:"Observed public IPv4 address." example:"203.0.113.10"`
 	PublicV6     *string  `json:"publicV6,omitempty" doc:"Observed public IPv6 address." example:"2001:db8::10"`
+	AS           *string  `json:"as,omitempty" doc:"Observed autonomous system." example:"AS15169 Google LLC"`
 	Addrs        []string `json:"addrs,omitempty" doc:"Probe local or observed interface addresses."`
 }
 
@@ -95,6 +96,7 @@ func newRuntimeStatusInput(probeID, header string, body runtimeStatusInputBody) 
 		AgentVersion:     body.AgentVersion,
 		PublicV4:         publicV4,
 		PublicV6:         publicV6,
+		AS:               body.AS,
 		Addrs:            addrs,
 	}, nil
 }

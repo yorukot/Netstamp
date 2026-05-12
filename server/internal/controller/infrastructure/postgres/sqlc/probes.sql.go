@@ -92,7 +92,7 @@ func (q *Queries) CreateProbeLabel(ctx context.Context, arg CreateProbeLabelPara
 const createProbeStatus = `-- name: CreateProbeStatus :one
 INSERT INTO probe_statuses (probe_id, status)
 VALUES ($1, $2)
-RETURNING probe_id, status, last_seen_at, agent_version, public_v4, public_v6, addrs, updated_at
+RETURNING probe_id, status, last_seen_at, agent_version, public_v4, public_v6, "as", addrs, updated_at
 `
 
 type CreateProbeStatusParams struct {
@@ -110,25 +110,26 @@ func (q *Queries) CreateProbeStatus(ctx context.Context, arg CreateProbeStatusPa
 		&i.AgentVersion,
 		&i.PublicV4,
 		&i.PublicV6,
+		&i.As,
 		&i.Addrs,
 		&i.UpdatedAt,
 	)
 	return i, err
 }
 
-const deleteEffectiveProbeChecksForProbe = `-- name: DeleteEffectiveProbeChecksForProbe :exec
-DELETE FROM effective_probe_checks
+const deleteProbeCheckAssignmentsForProbe = `-- name: DeleteProbeCheckAssignmentsForProbe :exec
+DELETE FROM probe_check_assignments
 WHERE project_id = $1
   AND probe_id = $2
 `
 
-type DeleteEffectiveProbeChecksForProbeParams struct {
+type DeleteProbeCheckAssignmentsForProbeParams struct {
 	ProjectID uuid.UUID `json:"project_id"`
 	ProbeID   uuid.UUID `json:"probe_id"`
 }
 
-func (q *Queries) DeleteEffectiveProbeChecksForProbe(ctx context.Context, arg DeleteEffectiveProbeChecksForProbeParams) error {
-	_, err := q.db.Exec(ctx, deleteEffectiveProbeChecksForProbe, arg.ProjectID, arg.ProbeID)
+func (q *Queries) DeleteProbeCheckAssignmentsForProbe(ctx context.Context, arg DeleteProbeCheckAssignmentsForProbeParams) error {
+	_, err := q.db.Exec(ctx, deleteProbeCheckAssignmentsForProbe, arg.ProjectID, arg.ProbeID)
 	return err
 }
 
@@ -148,22 +149,22 @@ func (q *Queries) DeleteProbeLabels(ctx context.Context, arg DeleteProbeLabelsPa
 	return err
 }
 
-const deleteStaleEffectiveProbeChecksForProbe = `-- name: DeleteStaleEffectiveProbeChecksForProbe :exec
-DELETE FROM effective_probe_checks
+const deleteStaleProbeCheckAssignmentsForProbe = `-- name: DeleteStaleProbeCheckAssignmentsForProbe :exec
+DELETE FROM probe_check_assignments
 WHERE project_id = $1
   AND probe_id = $2
   AND deleted_at IS NULL
   AND check_id <> ALL($3::uuid[])
 `
 
-type DeleteStaleEffectiveProbeChecksForProbeParams struct {
+type DeleteStaleProbeCheckAssignmentsForProbeParams struct {
 	ProjectID uuid.UUID   `json:"project_id"`
 	ProbeID   uuid.UUID   `json:"probe_id"`
 	CheckIds  []uuid.UUID `json:"check_ids"`
 }
 
-func (q *Queries) DeleteStaleEffectiveProbeChecksForProbe(ctx context.Context, arg DeleteStaleEffectiveProbeChecksForProbeParams) error {
-	_, err := q.db.Exec(ctx, deleteStaleEffectiveProbeChecksForProbe, arg.ProjectID, arg.ProbeID, arg.CheckIds)
+func (q *Queries) DeleteStaleProbeCheckAssignmentsForProbe(ctx context.Context, arg DeleteStaleProbeCheckAssignmentsForProbeParams) error {
+	_, err := q.db.Exec(ctx, deleteStaleProbeCheckAssignmentsForProbe, arg.ProjectID, arg.ProbeID, arg.CheckIds)
 	return err
 }
 
@@ -212,6 +213,7 @@ SELECT probes.id,
        probe_statuses.agent_version AS status_agent_version,
        probe_statuses.public_v4 AS status_public_v4,
        probe_statuses.public_v6 AS status_public_v6,
+       probe_statuses."as" AS status_as,
        probe_statuses.addrs AS status_addrs,
        probe_statuses.updated_at AS status_updated_at,
        labels.id AS label_id,
@@ -258,6 +260,7 @@ type GetActiveProbeRowsForProjectRow struct {
 	StatusAgentVersion *string            `json:"status_agent_version"`
 	StatusPublicV4     *netip.Addr        `json:"status_public_v4"`
 	StatusPublicV6     *netip.Addr        `json:"status_public_v6"`
+	StatusAs           *string            `json:"status_as"`
 	StatusAddrs        []netip.Addr       `json:"status_addrs"`
 	StatusUpdatedAt    pgtype.Timestamptz `json:"status_updated_at"`
 	LabelID            *uuid.UUID         `json:"label_id"`
@@ -293,6 +296,7 @@ func (q *Queries) GetActiveProbeRowsForProject(ctx context.Context, arg GetActiv
 			&i.StatusAgentVersion,
 			&i.StatusPublicV4,
 			&i.StatusPublicV6,
+			&i.StatusAs,
 			&i.StatusAddrs,
 			&i.StatusUpdatedAt,
 			&i.LabelID,
@@ -314,12 +318,12 @@ func (q *Queries) GetActiveProbeRowsForProject(ctx context.Context, arg GetActiv
 }
 
 const listActiveAssignmentsForProbe = `-- name: ListActiveAssignmentsForProbe :many
-SELECT effective_probe_checks.id AS assignment_id,
-       effective_probe_checks.project_id,
-       effective_probe_checks.probe_id,
-       effective_probe_checks.check_id,
-       effective_probe_checks.check_version,
-       effective_probe_checks.selector_version,
+SELECT probe_check_assignments.id AS assignment_id,
+       probe_check_assignments.project_id,
+       probe_check_assignments.probe_id,
+       probe_check_assignments.check_id,
+       probe_check_assignments.check_version,
+       probe_check_assignments.selector_version,
        checks.check_type,
        checks.target,
        checks.interval_seconds,
@@ -327,16 +331,16 @@ SELECT effective_probe_checks.id AS assignment_id,
        ping_check_configs.packet_size_bytes,
        ping_check_configs.timeout_ms,
        ping_check_configs.ip_family
-FROM effective_probe_checks
+FROM probe_check_assignments
 JOIN probes
-    ON probes.project_id = effective_probe_checks.project_id
-    AND probes.id = effective_probe_checks.probe_id
+    ON probes.project_id = probe_check_assignments.project_id
+    AND probes.id = probe_check_assignments.probe_id
 JOIN checks
-    ON checks.project_id = effective_probe_checks.project_id
-    AND checks.id = effective_probe_checks.check_id
+    ON checks.project_id = probe_check_assignments.project_id
+    AND checks.id = probe_check_assignments.check_id
 JOIN ping_check_configs ON ping_check_configs.check_id = checks.id
-WHERE effective_probe_checks.probe_id = $1
-  AND effective_probe_checks.deleted_at IS NULL
+WHERE probe_check_assignments.probe_id = $1
+  AND probe_check_assignments.deleted_at IS NULL
   AND probes.enabled = true
   AND probes.deleted_at IS NULL
   AND checks.deleted_at IS NULL
@@ -460,6 +464,7 @@ SELECT probes.id,
        probe_statuses.agent_version AS status_agent_version,
        probe_statuses.public_v4 AS status_public_v4,
        probe_statuses.public_v6 AS status_public_v6,
+       probe_statuses."as" AS status_as,
        probe_statuses.addrs AS status_addrs,
        probe_statuses.updated_at AS status_updated_at,
        labels.id AS label_id,
@@ -502,6 +507,7 @@ type ListActiveProbesForProjectRow struct {
 	StatusAgentVersion *string            `json:"status_agent_version"`
 	StatusPublicV4     *netip.Addr        `json:"status_public_v4"`
 	StatusPublicV6     *netip.Addr        `json:"status_public_v6"`
+	StatusAs           *string            `json:"status_as"`
 	StatusAddrs        []netip.Addr       `json:"status_addrs"`
 	StatusUpdatedAt    pgtype.Timestamptz `json:"status_updated_at"`
 	LabelID            *uuid.UUID         `json:"label_id"`
@@ -537,6 +543,7 @@ func (q *Queries) ListActiveProbesForProject(ctx context.Context, projectID uuid
 			&i.StatusAgentVersion,
 			&i.StatusPublicV4,
 			&i.StatusPublicV6,
+			&i.StatusAs,
 			&i.StatusAddrs,
 			&i.StatusUpdatedAt,
 			&i.LabelID,
@@ -655,10 +662,11 @@ SET status = $2,
     agent_version = $3,
     public_v4 = $4,
     public_v6 = $5,
-    addrs = $6,
+    "as" = $6,
+    addrs = $7,
     updated_at = now()
 WHERE probe_id = $1
-RETURNING probe_id, status, last_seen_at, agent_version, public_v4, public_v6, addrs, updated_at
+RETURNING probe_id, status, last_seen_at, agent_version, public_v4, public_v6, "as", addrs, updated_at
 `
 
 type UpdateProbeStatusParams struct {
@@ -667,6 +675,7 @@ type UpdateProbeStatusParams struct {
 	AgentVersion *string      `json:"agent_version"`
 	PublicV4     *netip.Addr  `json:"public_v4"`
 	PublicV6     *netip.Addr  `json:"public_v6"`
+	As           *string      `json:"as"`
 	Addrs        []netip.Addr `json:"addrs"`
 }
 
@@ -677,6 +686,7 @@ func (q *Queries) UpdateProbeStatus(ctx context.Context, arg UpdateProbeStatusPa
 		arg.AgentVersion,
 		arg.PublicV4,
 		arg.PublicV6,
+		arg.As,
 		arg.Addrs,
 	)
 	var i ProbeStatus
@@ -687,6 +697,7 @@ func (q *Queries) UpdateProbeStatus(ctx context.Context, arg UpdateProbeStatusPa
 		&i.AgentVersion,
 		&i.PublicV4,
 		&i.PublicV6,
+		&i.As,
 		&i.Addrs,
 		&i.UpdatedAt,
 	)

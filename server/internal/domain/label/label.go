@@ -31,6 +31,32 @@ func VNLabelID(labelID string) (string, error) {
 	return labelID, nil
 }
 
+func VNLabelIDs(labelIDs []string) ([]string, error) {
+	normalized := make([]string, 0, len(labelIDs))
+	for _, labelID := range labelIDs {
+		labelID, err := VNLabelID(labelID)
+		if err != nil {
+			return nil, err
+		}
+		normalized = append(normalized, labelID)
+	}
+
+	return normalized, nil
+}
+
+func VNOptionalLabelIDs(labelIDs *[]string) (*[]string, error) {
+	if labelIDs == nil {
+		return nil, nil //nolint:nilnil // Nil means the caller did not provide label IDs.
+	}
+
+	normalized, err := VNLabelIDs(*labelIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	return &normalized, nil
+}
+
 func VNLabelKey(key string) (string, error) {
 	key = strings.TrimSpace(key)
 

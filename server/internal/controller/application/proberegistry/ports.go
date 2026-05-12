@@ -9,12 +9,12 @@ import (
 )
 
 type Repository interface {
-	CreateProbe(ctx context.Context, input domainprobe.CreateProbeStorageInput) (domainprobe.Probe, error)
+	CreateProbe(ctx context.Context, input domainprobe.Probe, secretHash string) (domainprobe.Probe, error)
 	ListProbesForProject(ctx context.Context, projectID string) ([]domainprobe.Probe, error)
 	GetProbeForProject(ctx context.Context, projectID, probeID string) (domainprobe.Probe, error)
-	UpdateProbe(ctx context.Context, input domainprobe.UpdateProbeStorageInput) (domainprobe.Probe, error)
+	UpdateProbe(ctx context.Context, input domainprobe.Probe) (domainprobe.Probe, error)
 	SoftDeleteProbe(ctx context.Context, projectID, probeID string) error
-	RotateProbeSecret(ctx context.Context, input domainprobe.RotateProbeSecretStorageInput) error
+	RotateProbeSecret(ctx context.Context, input domainprobe.Probe, secretHash string) error
 }
 
 type ProjectAccess interface {

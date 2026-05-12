@@ -114,19 +114,19 @@ ORDER BY probes.created_at ASC,
          labels.value ASC NULLS LAST,
          labels.id ASC NULLS LAST;
 
--- name: CreateEffectiveProbeCheck :exec
-INSERT INTO effective_probe_checks (project_id, probe_id, check_id, check_version, selector_version)
+-- name: CreateProbeCheckAssignment :exec
+INSERT INTO probe_check_assignments (project_id, probe_id, check_id, check_version, selector_version)
 VALUES ($1, $2, $3, $4, $5);
 
--- name: UpsertEffectiveProbeCheck :exec
-INSERT INTO effective_probe_checks (project_id, probe_id, check_id, check_version, selector_version)
+-- name: UpsertProbeCheckAssignment :exec
+INSERT INTO probe_check_assignments (project_id, probe_id, check_id, check_version, selector_version)
 VALUES ($1, $2, $3, $4, $5)
 ON CONFLICT (project_id, probe_id, check_id) WHERE deleted_at IS NULL
 DO UPDATE SET check_version = EXCLUDED.check_version,
               selector_version = EXCLUDED.selector_version;
 
--- name: DeleteStaleEffectiveProbeChecks :exec
-DELETE FROM effective_probe_checks
+-- name: DeleteStaleProbeCheckAssignments :exec
+DELETE FROM probe_check_assignments
 WHERE project_id = sqlc.arg(project_id)
   AND check_id = sqlc.arg(check_id)
   AND deleted_at IS NULL
@@ -136,8 +136,8 @@ WHERE project_id = sqlc.arg(project_id)
       OR probe_id <> ALL(sqlc.arg(probe_ids)::uuid[])
   );
 
--- name: DeleteEffectiveProbeChecksForCheck :exec
-DELETE FROM effective_probe_checks
+-- name: DeleteProbeCheckAssignmentsForCheck :exec
+DELETE FROM probe_check_assignments
 WHERE project_id = $1
   AND check_id = $2;
 

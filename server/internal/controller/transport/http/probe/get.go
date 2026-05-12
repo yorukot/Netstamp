@@ -12,7 +12,7 @@ func (h *Handler) getProbe(ctx context.Context, input *probeRefInput) (*probeOut
 		return nil, err
 	}
 
-	probe, err := h.service.GetProbe(ctx, appprobe.GetProbeInput{
+	probe, err := h.service.GetProbe(ctx, appprobe.TargetProbeInput{
 		CurrentUserID: currentUserID,
 		ProjectRef:    input.Ref,
 		ProbeID:       input.ProbeID,
@@ -21,10 +21,10 @@ func (h *Handler) getProbe(ctx context.Context, input *probeRefInput) (*probeOut
 		return nil, mapProbeError(err, "get probe failed")
 	}
 
-	return &probeOutput{Body: probeOutputBody{Probe: newProbeResponse(probe)}}, nil
+	return &probeOutput{Body: probeOutputBody{Probe: probe}}, nil
 }
 
 type probeRefInput struct {
 	Ref     string `path:"ref" doc:"Project UUID or slug." example:"engineering"`
-	ProbeID string `path:"probe_id" doc:"Probe ID." example:"33333333-3333-3333-3333-333333333333"`
+	ProbeID string `path:"probe_id" minLength:"1" format:"uuid" doc:"Probe ID." example:"33333333-3333-3333-3333-333333333333"`
 }

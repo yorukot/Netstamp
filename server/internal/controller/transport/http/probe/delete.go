@@ -12,7 +12,7 @@ func (h *Handler) deleteProbe(ctx context.Context, input *probeRefInput) (*delet
 		return nil, err
 	}
 
-	if err := h.service.DeleteProbe(ctx, appprobe.DeleteProbeInput{
+	if err := h.service.DeleteProbe(ctx, appprobe.TargetProbeInput{
 		CurrentUserID: currentUserID,
 		ProjectRef:    input.Ref,
 		ProbeID:       input.ProbeID,

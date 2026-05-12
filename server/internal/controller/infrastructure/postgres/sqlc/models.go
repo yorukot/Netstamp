@@ -245,18 +245,6 @@ type CheckLabel struct {
 	LabelID   uuid.UUID `json:"label_id"`
 }
 
-type EffectiveProbeCheck struct {
-	ID              uuid.UUID          `json:"id"`
-	ProjectID       uuid.UUID          `json:"project_id"`
-	ProbeID         uuid.UUID          `json:"probe_id"`
-	CheckID         uuid.UUID          `json:"check_id"`
-	CheckVersion    string             `json:"check_version"`
-	SelectorVersion string             `json:"selector_version"`
-	CreatedAt       pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
-	DeletedAt       pgtype.Timestamptz `json:"deleted_at"`
-}
-
 type Label struct {
 	ID        uuid.UUID          `json:"id"`
 	ProjectID uuid.UUID          `json:"project_id"`
@@ -313,6 +301,18 @@ type Probe struct {
 	DeletedAt pgtype.Timestamptz `json:"deleted_at"`
 }
 
+type ProbeCheckAssignment struct {
+	ID              uuid.UUID          `json:"id"`
+	ProjectID       uuid.UUID          `json:"project_id"`
+	ProbeID         uuid.UUID          `json:"probe_id"`
+	CheckID         uuid.UUID          `json:"check_id"`
+	CheckVersion    string             `json:"check_version"`
+	SelectorVersion string             `json:"selector_version"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt       pgtype.Timestamptz `json:"deleted_at"`
+}
+
 type ProbeCredential struct {
 	ProbeID       uuid.UUID          `json:"probe_id"`
 	SecretHash    string             `json:"secret_hash"`
@@ -333,6 +333,7 @@ type ProbeStatus struct {
 	AgentVersion *string            `json:"agent_version"`
 	PublicV4     *netip.Addr        `json:"public_v4"`
 	PublicV6     *netip.Addr        `json:"public_v6"`
+	As           *string            `json:"as"`
 	Addrs        []netip.Addr       `json:"addrs"`
 	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
 }

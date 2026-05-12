@@ -135,18 +135,9 @@ type GetActiveProjectMemberParams struct {
 	UserID    uuid.UUID `json:"user_id"`
 }
 
-type GetActiveProjectMemberRow struct {
-	ID        uuid.UUID          `json:"id"`
-	ProjectID uuid.UUID          `json:"project_id"`
-	UserID    uuid.UUID          `json:"user_id"`
-	Role      ProjectMemberRole  `json:"role"`
-	CreatedAt pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
-}
-
-func (q *Queries) GetActiveProjectMember(ctx context.Context, arg GetActiveProjectMemberParams) (GetActiveProjectMemberRow, error) {
+func (q *Queries) GetActiveProjectMember(ctx context.Context, arg GetActiveProjectMemberParams) (ProjectMember, error) {
 	row := q.db.QueryRow(ctx, getActiveProjectMember, arg.ProjectID, arg.UserID)
-	var i GetActiveProjectMemberRow
+	var i ProjectMember
 	err := row.Scan(
 		&i.ID,
 		&i.ProjectID,
@@ -253,24 +244,15 @@ WHERE project_members.project_id = $1
 ORDER BY project_members.created_at ASC, project_members.id ASC
 `
 
-type ListActiveProjectMembersRow struct {
-	ID        uuid.UUID          `json:"id"`
-	ProjectID uuid.UUID          `json:"project_id"`
-	UserID    uuid.UUID          `json:"user_id"`
-	Role      ProjectMemberRole  `json:"role"`
-	CreatedAt pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
-}
-
-func (q *Queries) ListActiveProjectMembers(ctx context.Context, projectID uuid.UUID) ([]ListActiveProjectMembersRow, error) {
+func (q *Queries) ListActiveProjectMembers(ctx context.Context, projectID uuid.UUID) ([]ProjectMember, error) {
 	rows, err := q.db.Query(ctx, listActiveProjectMembers, projectID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ListActiveProjectMembersRow
+	var items []ProjectMember
 	for rows.Next() {
-		var i ListActiveProjectMembersRow
+		var i ProjectMember
 		if err := rows.Scan(
 			&i.ID,
 			&i.ProjectID,

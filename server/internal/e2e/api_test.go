@@ -109,7 +109,7 @@ func TestAPIAuthProjectAndProbeRuntimeFlow(t *testing.T) {
 	suite.doJSON(t, http.MethodPost, "/api/v1/projects/"+createdProject.Project.Slug+"/probes", map[string]any{
 		"name":     "e2e-probe",
 		"enabled":  true,
-		"city":     "JP-13",
+		"subdivisionCode":     "JP-13",
 		"labelIds": []string{createdLabel.Label.ID},
 	}, authHeaders(login.AccessToken), http.StatusCreated, &createdProbe)
 	if createdProbe.Probe.ID == "" {
@@ -198,6 +198,7 @@ func TestAPIAuthProjectAndProbeRuntimeFlow(t *testing.T) {
 	suite.doJSON(t, http.MethodPost, "/api/v1/probes/"+createdProbe.Probe.ID+"/runtime/hello", map[string]any{
 		"agentVersion": "netstamp-e2e/0.1.0",
 		"publicV4":     "203.0.113.10",
+		"as":           "AS15169 Google LLC",
 		"addrs":        []string{"10.0.0.10"},
 	}, probeHeaders(createdProbe.Secret), http.StatusOK, &hello)
 	if hello.HeartbeatIntervalSeconds <= 0 || hello.AssignmentPollIntervalSeconds <= 0 {

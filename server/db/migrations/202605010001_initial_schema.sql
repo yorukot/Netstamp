@@ -85,13 +85,13 @@ CREATE TABLE probes (
     name text NOT NULL,
     enabled boolean NOT NULL DEFAULT true,
     location point,
-    city text,
+    subdivision_code text,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
     deleted_at timestamptz,
     CONSTRAINT uq_probes_project_id_id UNIQUE (project_id, id),
     CONSTRAINT probes_name_not_empty CHECK (length(btrim(name)) > 0),
-    CONSTRAINT probes_city_not_empty CHECK (city IS NULL OR length(btrim(city)) > 0),
+    CONSTRAINT probes_subdivision_code_valid CHECK (subdivision_code IS NULL OR length(btrim(subdivision_code)) > 0),
     CONSTRAINT probes_deleted_at_after_created_at CHECK (deleted_at IS NULL OR deleted_at >= created_at)
 );
 
@@ -120,10 +120,14 @@ CREATE TABLE probe_statuses (
     agent_version text,
     public_v4 inet,
     public_v6 inet,
+    "as" text,
     addrs inet[] NOT NULL DEFAULT '{}'::inet[],
     updated_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT probe_statuses_agent_version_not_empty CHECK (
         agent_version IS NULL OR length(btrim(agent_version)) > 0
+    ),
+    CONSTRAINT probe_statuses_as_not_empty CHECK (
+        "as" IS NULL OR length(btrim("as")) > 0
     )
 );
 
@@ -217,7 +221,7 @@ CREATE TABLE probe_labels (
 
 CREATE INDEX idx_probe_labels_label_id ON probe_labels (label_id);
 
-CREATE TABLE effective_probe_checks (
+CREATE TABLE probe_check_assignments (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     project_id uuid NOT NULL REFERENCES projects(id),
     probe_id uuid NOT NULL,
@@ -227,26 +231,26 @@ CREATE TABLE effective_probe_checks (
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
     deleted_at timestamptz,
-    CONSTRAINT effective_probe_checks_check_version_not_empty CHECK (length(btrim(check_version)) > 0),
-    CONSTRAINT effective_probe_checks_selector_version_not_empty CHECK (length(btrim(selector_version)) > 0),
-    CONSTRAINT effective_probe_checks_deleted_at_after_created_at CHECK (
+    CONSTRAINT probe_check_assignments_check_version_not_empty CHECK (length(btrim(check_version)) > 0),
+    CONSTRAINT probe_check_assignments_selector_version_not_empty CHECK (length(btrim(selector_version)) > 0),
+    CONSTRAINT probe_check_assignments_deleted_at_after_created_at CHECK (
         deleted_at IS NULL OR deleted_at >= created_at
     ),
-    CONSTRAINT fk_effective_probe_checks_project_probe
+    CONSTRAINT fk_probe_check_assignments_project_probe
         FOREIGN KEY (project_id, probe_id) REFERENCES probes(project_id, id),
-    CONSTRAINT fk_effective_probe_checks_project_check
+    CONSTRAINT fk_probe_check_assignments_project_check
         FOREIGN KEY (project_id, check_id) REFERENCES checks(project_id, id)
 );
 
-CREATE UNIQUE INDEX uq_effective_probe_checks_active_project_probe_check
-    ON effective_probe_checks (project_id, probe_id, check_id)
+CREATE UNIQUE INDEX uq_probe_check_assignments_active_project_probe_check
+    ON probe_check_assignments (project_id, probe_id, check_id)
     WHERE deleted_at IS NULL;
-CREATE INDEX idx_effective_probe_checks_project_id ON effective_probe_checks (project_id);
-CREATE INDEX idx_effective_probe_checks_probe_id ON effective_probe_checks (probe_id);
-CREATE INDEX idx_effective_probe_checks_check_id ON effective_probe_checks (check_id);
+CREATE INDEX idx_probe_check_assignments_project_id ON probe_check_assignments (project_id);
+CREATE INDEX idx_probe_check_assignments_probe_id ON probe_check_assignments (probe_id);
+CREATE INDEX idx_probe_check_assignments_check_id ON probe_check_assignments (check_id);
 
-CREATE TRIGGER set_effective_probe_checks_updated_at
-    BEFORE UPDATE ON effective_probe_checks
+CREATE TRIGGER set_probe_check_assignments_updated_at
+    BEFORE UPDATE ON probe_check_assignments
     FOR EACH ROW
     EXECUTE FUNCTION set_updated_at();
 
@@ -309,7 +313,7 @@ CREATE INDEX idx_ping_results_status_started_at ON ping_results (status, started
 
 -- +goose Down
 DROP TABLE IF EXISTS ping_results;
-DROP TABLE IF EXISTS effective_probe_checks;
+DROP TABLE IF EXISTS probe_check_assignments;
 DROP TABLE IF EXISTS probe_labels;
 DROP TABLE IF EXISTS check_labels;
 DROP TABLE IF EXISTS labels;

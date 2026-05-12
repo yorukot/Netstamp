@@ -79,30 +79,6 @@ func (q *Queries) CreateCheckLabel(ctx context.Context, arg CreateCheckLabelPara
 	return err
 }
 
-const createEffectiveProbeCheck = `-- name: CreateEffectiveProbeCheck :exec
-INSERT INTO effective_probe_checks (project_id, probe_id, check_id, check_version, selector_version)
-VALUES ($1, $2, $3, $4, $5)
-`
-
-type CreateEffectiveProbeCheckParams struct {
-	ProjectID       uuid.UUID `json:"project_id"`
-	ProbeID         uuid.UUID `json:"probe_id"`
-	CheckID         uuid.UUID `json:"check_id"`
-	CheckVersion    string    `json:"check_version"`
-	SelectorVersion string    `json:"selector_version"`
-}
-
-func (q *Queries) CreateEffectiveProbeCheck(ctx context.Context, arg CreateEffectiveProbeCheckParams) error {
-	_, err := q.db.Exec(ctx, createEffectiveProbeCheck,
-		arg.ProjectID,
-		arg.ProbeID,
-		arg.CheckID,
-		arg.CheckVersion,
-		arg.SelectorVersion,
-	)
-	return err
-}
-
 const createPingCheckConfig = `-- name: CreatePingCheckConfig :one
 INSERT INTO ping_check_configs (check_id, packet_count, packet_size_bytes, timeout_ms, ip_family)
 VALUES ($1, $2, $3, $4, $5)
@@ -136,6 +112,30 @@ func (q *Queries) CreatePingCheckConfig(ctx context.Context, arg CreatePingCheck
 	return i, err
 }
 
+const createProbeCheckAssignment = `-- name: CreateProbeCheckAssignment :exec
+INSERT INTO probe_check_assignments (project_id, probe_id, check_id, check_version, selector_version)
+VALUES ($1, $2, $3, $4, $5)
+`
+
+type CreateProbeCheckAssignmentParams struct {
+	ProjectID       uuid.UUID `json:"project_id"`
+	ProbeID         uuid.UUID `json:"probe_id"`
+	CheckID         uuid.UUID `json:"check_id"`
+	CheckVersion    string    `json:"check_version"`
+	SelectorVersion string    `json:"selector_version"`
+}
+
+func (q *Queries) CreateProbeCheckAssignment(ctx context.Context, arg CreateProbeCheckAssignmentParams) error {
+	_, err := q.db.Exec(ctx, createProbeCheckAssignment,
+		arg.ProjectID,
+		arg.ProbeID,
+		arg.CheckID,
+		arg.CheckVersion,
+		arg.SelectorVersion,
+	)
+	return err
+}
+
 const deleteCheckLabels = `-- name: DeleteCheckLabels :exec
 DELETE FROM check_labels
 WHERE project_id = $1
@@ -152,24 +152,24 @@ func (q *Queries) DeleteCheckLabels(ctx context.Context, arg DeleteCheckLabelsPa
 	return err
 }
 
-const deleteEffectiveProbeChecksForCheck = `-- name: DeleteEffectiveProbeChecksForCheck :exec
-DELETE FROM effective_probe_checks
+const deleteProbeCheckAssignmentsForCheck = `-- name: DeleteProbeCheckAssignmentsForCheck :exec
+DELETE FROM probe_check_assignments
 WHERE project_id = $1
   AND check_id = $2
 `
 
-type DeleteEffectiveProbeChecksForCheckParams struct {
+type DeleteProbeCheckAssignmentsForCheckParams struct {
 	ProjectID uuid.UUID `json:"project_id"`
 	CheckID   uuid.UUID `json:"check_id"`
 }
 
-func (q *Queries) DeleteEffectiveProbeChecksForCheck(ctx context.Context, arg DeleteEffectiveProbeChecksForCheckParams) error {
-	_, err := q.db.Exec(ctx, deleteEffectiveProbeChecksForCheck, arg.ProjectID, arg.CheckID)
+func (q *Queries) DeleteProbeCheckAssignmentsForCheck(ctx context.Context, arg DeleteProbeCheckAssignmentsForCheckParams) error {
+	_, err := q.db.Exec(ctx, deleteProbeCheckAssignmentsForCheck, arg.ProjectID, arg.CheckID)
 	return err
 }
 
-const deleteStaleEffectiveProbeChecks = `-- name: DeleteStaleEffectiveProbeChecks :exec
-DELETE FROM effective_probe_checks
+const deleteStaleProbeCheckAssignments = `-- name: DeleteStaleProbeCheckAssignments :exec
+DELETE FROM probe_check_assignments
 WHERE project_id = $1
   AND check_id = $2
   AND deleted_at IS NULL
@@ -180,7 +180,7 @@ WHERE project_id = $1
   )
 `
 
-type DeleteStaleEffectiveProbeChecksParams struct {
+type DeleteStaleProbeCheckAssignmentsParams struct {
 	ProjectID       uuid.UUID   `json:"project_id"`
 	CheckID         uuid.UUID   `json:"check_id"`
 	CheckVersion    string      `json:"check_version"`
@@ -188,8 +188,8 @@ type DeleteStaleEffectiveProbeChecksParams struct {
 	ProbeIds        []uuid.UUID `json:"probe_ids"`
 }
 
-func (q *Queries) DeleteStaleEffectiveProbeChecks(ctx context.Context, arg DeleteStaleEffectiveProbeChecksParams) error {
-	_, err := q.db.Exec(ctx, deleteStaleEffectiveProbeChecks,
+func (q *Queries) DeleteStaleProbeCheckAssignments(ctx context.Context, arg DeleteStaleProbeCheckAssignmentsParams) error {
+	_, err := q.db.Exec(ctx, deleteStaleProbeCheckAssignments,
 		arg.ProjectID,
 		arg.CheckID,
 		arg.CheckVersion,
@@ -580,15 +580,15 @@ func (q *Queries) UpdatePingCheckConfig(ctx context.Context, arg UpdatePingCheck
 	return i, err
 }
 
-const upsertEffectiveProbeCheck = `-- name: UpsertEffectiveProbeCheck :exec
-INSERT INTO effective_probe_checks (project_id, probe_id, check_id, check_version, selector_version)
+const upsertProbeCheckAssignment = `-- name: UpsertProbeCheckAssignment :exec
+INSERT INTO probe_check_assignments (project_id, probe_id, check_id, check_version, selector_version)
 VALUES ($1, $2, $3, $4, $5)
 ON CONFLICT (project_id, probe_id, check_id) WHERE deleted_at IS NULL
 DO UPDATE SET check_version = EXCLUDED.check_version,
               selector_version = EXCLUDED.selector_version
 `
 
-type UpsertEffectiveProbeCheckParams struct {
+type UpsertProbeCheckAssignmentParams struct {
 	ProjectID       uuid.UUID `json:"project_id"`
 	ProbeID         uuid.UUID `json:"probe_id"`
 	CheckID         uuid.UUID `json:"check_id"`
@@ -596,8 +596,8 @@ type UpsertEffectiveProbeCheckParams struct {
 	SelectorVersion string    `json:"selector_version"`
 }
 
-func (q *Queries) UpsertEffectiveProbeCheck(ctx context.Context, arg UpsertEffectiveProbeCheckParams) error {
-	_, err := q.db.Exec(ctx, upsertEffectiveProbeCheck,
+func (q *Queries) UpsertProbeCheckAssignment(ctx context.Context, arg UpsertProbeCheckAssignmentParams) error {
+	_, err := q.db.Exec(ctx, upsertProbeCheckAssignment,
 		arg.ProjectID,
 		arg.ProbeID,
 		arg.CheckID,

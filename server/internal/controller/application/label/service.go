@@ -156,7 +156,7 @@ func (s *Service) DeleteLabel(ctx context.Context, input DeleteLabelInput) error
 	if err := s.repo.SoftDeleteLabel(ctx, project.ID, labelID); err != nil {
 		return flow.writeFailure(LabelEventDeleteFailure, LabelReasonLabelDeleteFailed, err)
 	}
-	if err := s.assignmentRefresher.RefreshEffectiveProbeChecksForLabel(ctx, project.ID, labelID); err != nil {
+	if err := s.assignmentRefresher.RefreshProbeCheckAssignmentsForLabel(ctx, project.ID, labelID); err != nil {
 		return flow.technicalFailure(LabelEventDeleteFailure, LabelReasonAssignmentRefreshFailed, err)
 	}
 

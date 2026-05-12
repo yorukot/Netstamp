@@ -25,6 +25,7 @@ type RuntimeStatusInput struct {
 	AgentVersion *string
 	PublicV4     *netip.Addr
 	PublicV6     *netip.Addr
+	AS           *string
 	Addrs        []netip.Addr
 }
 

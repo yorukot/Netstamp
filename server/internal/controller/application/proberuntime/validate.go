@@ -15,6 +15,7 @@ import (
 
 const (
 	maxAgentVersionRunes       = 100
+	maxASRunes                 = 100
 	maxResultErrorCodeRunes    = 100
 	maxResultErrorMessageRunes = 500
 )
@@ -51,6 +52,10 @@ func normalizeRuntimeStatus(input RuntimeStatusInput, probeID string) (domainpro
 	if err != nil {
 		return domainprobe.UpdateStatusInput{}, err
 	}
+	as, err := appvalidation.OptionalString(ErrInvalidInput, "as", input.AS, maxASRunes)
+	if err != nil {
+		return domainprobe.UpdateStatusInput{}, err
+	}
 
 	return domainprobe.UpdateStatusInput{
 		ProbeID:      probeID,
@@ -58,6 +63,7 @@ func normalizeRuntimeStatus(input RuntimeStatusInput, probeID string) (domainpro
 		AgentVersion: agentVersion,
 		PublicV4:     input.PublicV4,
 		PublicV6:     input.PublicV6,
+		AS:           as,
 		Addrs:        append([]netip.Addr(nil), input.Addrs...),
 	}, nil
 }

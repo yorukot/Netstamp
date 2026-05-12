@@ -1,7 +1,7 @@
 -- name: CreateProbe :one
-INSERT INTO probes (project_id, name, enabled, location, city)
+INSERT INTO probes (project_id, name, enabled, location, subdivision_code)
 VALUES ($1, $2, $3, $4, $5)
-RETURNING id, project_id, name, enabled, location, city, created_at, updated_at, deleted_at;
+RETURNING id, project_id, name, enabled, location, subdivision_code, created_at, updated_at, deleted_at;
 
 -- name: CreateProbeCredential :one
 INSERT INTO probe_credentials (probe_id, secret_hash)
@@ -11,7 +11,7 @@ RETURNING probe_id, secret_hash, created_at, last_rotated_at;
 -- name: CreateProbeStatus :one
 INSERT INTO probe_statuses (probe_id, status)
 VALUES ($1, $2)
-RETURNING probe_id, status, last_seen_at, agent_version, public_v4, public_v6, addrs, updated_at;
+RETURNING probe_id, status, last_seen_at, agent_version, public_v4, public_v6, "as", addrs, updated_at;
 
 -- name: CreateProbeLabel :exec
 INSERT INTO probe_labels (project_id, probe_id, label_id)
@@ -23,7 +23,7 @@ SELECT probes.id,
        probes.name,
        probes.enabled,
        probes.location,
-       probes.city,
+       probes.subdivision_code,
        probes.created_at,
        probes.updated_at,
        probes.deleted_at,
@@ -32,6 +32,7 @@ SELECT probes.id,
        probe_statuses.agent_version AS status_agent_version,
        probe_statuses.public_v4 AS status_public_v4,
        probe_statuses.public_v6 AS status_public_v6,
+       probe_statuses."as" AS status_as,
        probe_statuses.addrs AS status_addrs,
        probe_statuses.updated_at AS status_updated_at,
        labels.id AS label_id,
@@ -64,7 +65,7 @@ SELECT probes.id,
        probes.name,
        probes.enabled,
        probes.location,
-       probes.city,
+       probes.subdivision_code,
        probes.created_at,
        probes.updated_at,
        probes.deleted_at,
@@ -73,6 +74,7 @@ SELECT probes.id,
        probe_statuses.agent_version AS status_agent_version,
        probe_statuses.public_v4 AS status_public_v4,
        probe_statuses.public_v6 AS status_public_v6,
+       probe_statuses."as" AS status_as,
        probe_statuses.addrs AS status_addrs,
        probe_statuses.updated_at AS status_updated_at,
        labels.id AS label_id,
@@ -103,11 +105,11 @@ UPDATE probes
 SET name = $3,
     enabled = $4,
     location = $5,
-    city = $6
+    subdivision_code = $6
 WHERE project_id = $1
   AND id = $2
   AND deleted_at IS NULL
-RETURNING id, project_id, name, enabled, location, city, created_at, updated_at, deleted_at;
+RETURNING id, project_id, name, enabled, location, subdivision_code, created_at, updated_at, deleted_at;
 
 -- name: SoftDeleteProbe :one
 UPDATE probes
@@ -150,13 +152,13 @@ WHERE probe_credentials.probe_id = probes.id
   AND probes.deleted_at IS NULL
 RETURNING probe_credentials.probe_id;
 
--- name: DeleteEffectiveProbeChecksForProbe :exec
-DELETE FROM effective_probe_checks
+-- name: DeleteProbeCheckAssignmentsForProbe :exec
+DELETE FROM probe_check_assignments
 WHERE project_id = $1
   AND probe_id = $2;
 
--- name: DeleteStaleEffectiveProbeChecksForProbe :exec
-DELETE FROM effective_probe_checks
+-- name: DeleteStaleProbeCheckAssignmentsForProbe :exec
+DELETE FROM probe_check_assignments
 WHERE project_id = sqlc.arg(project_id)
   AND probe_id = sqlc.arg(probe_id)
   AND deleted_at IS NULL
@@ -179,18 +181,19 @@ SET status = $2,
     agent_version = $3,
     public_v4 = $4,
     public_v6 = $5,
-    addrs = $6,
+    "as" = $6,
+    addrs = $7,
     updated_at = now()
 WHERE probe_id = $1
-RETURNING probe_id, status, last_seen_at, agent_version, public_v4, public_v6, addrs, updated_at;
+RETURNING probe_id, status, last_seen_at, agent_version, public_v4, public_v6, "as", addrs, updated_at;
 
 -- name: ListActiveAssignmentsForProbe :many
-SELECT effective_probe_checks.id AS assignment_id,
-       effective_probe_checks.project_id,
-       effective_probe_checks.probe_id,
-       effective_probe_checks.check_id,
-       effective_probe_checks.check_version,
-       effective_probe_checks.selector_version,
+SELECT probe_check_assignments.id AS assignment_id,
+       probe_check_assignments.project_id,
+       probe_check_assignments.probe_id,
+       probe_check_assignments.check_id,
+       probe_check_assignments.check_version,
+       probe_check_assignments.selector_version,
        checks.check_type,
        checks.target,
        checks.interval_seconds,
@@ -198,16 +201,16 @@ SELECT effective_probe_checks.id AS assignment_id,
        ping_check_configs.packet_size_bytes,
        ping_check_configs.timeout_ms,
        ping_check_configs.ip_family
-FROM effective_probe_checks
+FROM probe_check_assignments
 JOIN probes
-    ON probes.project_id = effective_probe_checks.project_id
-    AND probes.id = effective_probe_checks.probe_id
+    ON probes.project_id = probe_check_assignments.project_id
+    AND probes.id = probe_check_assignments.probe_id
 JOIN checks
-    ON checks.project_id = effective_probe_checks.project_id
-    AND checks.id = effective_probe_checks.check_id
+    ON checks.project_id = probe_check_assignments.project_id
+    AND checks.id = probe_check_assignments.check_id
 JOIN ping_check_configs ON ping_check_configs.check_id = checks.id
-WHERE effective_probe_checks.probe_id = $1
-  AND effective_probe_checks.deleted_at IS NULL
+WHERE probe_check_assignments.probe_id = $1
+  AND probe_check_assignments.deleted_at IS NULL
   AND probes.enabled = true
   AND probes.deleted_at IS NULL
   AND checks.deleted_at IS NULL
