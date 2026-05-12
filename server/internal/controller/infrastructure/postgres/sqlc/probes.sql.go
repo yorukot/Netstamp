@@ -14,17 +14,17 @@ import (
 )
 
 const createProbe = `-- name: CreateProbe :one
-INSERT INTO probes (project_id, name, enabled, location, city)
+INSERT INTO probes (project_id, name, enabled, location, subdivision_code)
 VALUES ($1, $2, $3, $4, $5)
-RETURNING id, project_id, name, enabled, location, city, created_at, updated_at, deleted_at
+RETURNING id, project_id, name, enabled, location, subdivision_code, created_at, updated_at, deleted_at
 `
 
 type CreateProbeParams struct {
-	ProjectID uuid.UUID    `json:"project_id"`
-	Name      string       `json:"name"`
-	Enabled   bool         `json:"enabled"`
-	Location  pgtype.Point `json:"location"`
-	City      *string      `json:"city"`
+	ProjectID       uuid.UUID    `json:"project_id"`
+	Name            string       `json:"name"`
+	Enabled         bool         `json:"enabled"`
+	Location        pgtype.Point `json:"location"`
+	SubdivisionCode *string      `json:"subdivision_code"`
 }
 
 func (q *Queries) CreateProbe(ctx context.Context, arg CreateProbeParams) (Probe, error) {
@@ -33,7 +33,7 @@ func (q *Queries) CreateProbe(ctx context.Context, arg CreateProbeParams) (Probe
 		arg.Name,
 		arg.Enabled,
 		arg.Location,
-		arg.City,
+		arg.SubdivisionCode,
 	)
 	var i Probe
 	err := row.Scan(
@@ -42,7 +42,7 @@ func (q *Queries) CreateProbe(ctx context.Context, arg CreateProbeParams) (Probe
 		&i.Name,
 		&i.Enabled,
 		&i.Location,
-		&i.City,
+		&i.SubdivisionCode,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
@@ -204,7 +204,7 @@ SELECT probes.id,
        probes.name,
        probes.enabled,
        probes.location,
-       probes.city,
+       probes.subdivision_code,
        probes.created_at,
        probes.updated_at,
        probes.deleted_at,
@@ -251,7 +251,7 @@ type GetActiveProbeRowsForProjectRow struct {
 	Name               string             `json:"name"`
 	Enabled            bool               `json:"enabled"`
 	Location           pgtype.Point       `json:"location"`
-	City               *string            `json:"city"`
+	SubdivisionCode    *string            `json:"subdivision_code"`
 	CreatedAt          pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt          pgtype.Timestamptz `json:"updated_at"`
 	DeletedAt          pgtype.Timestamptz `json:"deleted_at"`
@@ -287,7 +287,7 @@ func (q *Queries) GetActiveProbeRowsForProject(ctx context.Context, arg GetActiv
 			&i.Name,
 			&i.Enabled,
 			&i.Location,
-			&i.City,
+			&i.SubdivisionCode,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.DeletedAt,
@@ -455,7 +455,7 @@ SELECT probes.id,
        probes.name,
        probes.enabled,
        probes.location,
-       probes.city,
+       probes.subdivision_code,
        probes.created_at,
        probes.updated_at,
        probes.deleted_at,
@@ -498,7 +498,7 @@ type ListActiveProbesForProjectRow struct {
 	Name               string             `json:"name"`
 	Enabled            bool               `json:"enabled"`
 	Location           pgtype.Point       `json:"location"`
-	City               *string            `json:"city"`
+	SubdivisionCode    *string            `json:"subdivision_code"`
 	CreatedAt          pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt          pgtype.Timestamptz `json:"updated_at"`
 	DeletedAt          pgtype.Timestamptz `json:"deleted_at"`
@@ -534,7 +534,7 @@ func (q *Queries) ListActiveProbesForProject(ctx context.Context, projectID uuid
 			&i.Name,
 			&i.Enabled,
 			&i.Location,
-			&i.City,
+			&i.SubdivisionCode,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.DeletedAt,
@@ -554,6 +554,48 @@ func (q *Queries) ListActiveProbesForProject(ctx context.Context, projectID uuid
 			&i.LabelUpdatedAt,
 			&i.LabelDeletedAt,
 		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listProbeRefreshTargetsForLabel = `-- name: ListProbeRefreshTargetsForLabel :many
+SELECT probes.id, probes.enabled
+FROM probe_labels
+JOIN probes
+    ON probes.project_id = probe_labels.project_id
+    AND probes.id = probe_labels.probe_id
+WHERE probe_labels.project_id = $1
+  AND probe_labels.label_id = $2
+  AND probes.deleted_at IS NULL
+ORDER BY probes.id
+`
+
+type ListProbeRefreshTargetsForLabelParams struct {
+	ProjectID uuid.UUID `json:"project_id"`
+	LabelID   uuid.UUID `json:"label_id"`
+}
+
+type ListProbeRefreshTargetsForLabelRow struct {
+	ID      uuid.UUID `json:"id"`
+	Enabled bool      `json:"enabled"`
+}
+
+func (q *Queries) ListProbeRefreshTargetsForLabel(ctx context.Context, arg ListProbeRefreshTargetsForLabelParams) ([]ListProbeRefreshTargetsForLabelRow, error) {
+	rows, err := q.db.Query(ctx, listProbeRefreshTargetsForLabel, arg.ProjectID, arg.LabelID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListProbeRefreshTargetsForLabelRow
+	for rows.Next() {
+		var i ListProbeRefreshTargetsForLabelRow
+		if err := rows.Scan(&i.ID, &i.Enabled); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -615,20 +657,20 @@ UPDATE probes
 SET name = $3,
     enabled = $4,
     location = $5,
-    city = $6
+    subdivision_code = $6
 WHERE project_id = $1
   AND id = $2
   AND deleted_at IS NULL
-RETURNING id, project_id, name, enabled, location, city, created_at, updated_at, deleted_at
+RETURNING id, project_id, name, enabled, location, subdivision_code, created_at, updated_at, deleted_at
 `
 
 type UpdateProbeParams struct {
-	ProjectID uuid.UUID    `json:"project_id"`
-	ID        uuid.UUID    `json:"id"`
-	Name      string       `json:"name"`
-	Enabled   bool         `json:"enabled"`
-	Location  pgtype.Point `json:"location"`
-	City      *string      `json:"city"`
+	ProjectID       uuid.UUID    `json:"project_id"`
+	ID              uuid.UUID    `json:"id"`
+	Name            string       `json:"name"`
+	Enabled         bool         `json:"enabled"`
+	Location        pgtype.Point `json:"location"`
+	SubdivisionCode *string      `json:"subdivision_code"`
 }
 
 func (q *Queries) UpdateProbe(ctx context.Context, arg UpdateProbeParams) (Probe, error) {
@@ -638,7 +680,7 @@ func (q *Queries) UpdateProbe(ctx context.Context, arg UpdateProbeParams) (Probe
 		arg.Name,
 		arg.Enabled,
 		arg.Location,
-		arg.City,
+		arg.SubdivisionCode,
 	)
 	var i Probe
 	err := row.Scan(
@@ -647,7 +689,7 @@ func (q *Queries) UpdateProbe(ctx context.Context, arg UpdateProbeParams) (Probe
 		&i.Name,
 		&i.Enabled,
 		&i.Location,
-		&i.City,
+		&i.SubdivisionCode,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
