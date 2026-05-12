@@ -54,7 +54,6 @@ func normalizeAddMemberInput(input AddMemberInput) (AddMemberInput, error) {
 	role, err := domainproject.VNProjectMemberRole(input.Role)
 	if err != nil {
 		return AddMemberInput{}, invalidProjectField("role", err.Error(), input.Role)
-
 	}
 	return AddMemberInput{ProjectRef: projectRef, UserID: userID, Role: role}, nil
 }

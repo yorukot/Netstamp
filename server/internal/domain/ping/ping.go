@@ -7,8 +7,9 @@ import (
 	"net/netip"
 	"time"
 
-	domainnetwork "github.com/yorukot/netstamp/internal/domain/network"
 	"github.com/yorukot/spvalidator"
+
+	domainnetwork "github.com/yorukot/netstamp/internal/domain/network"
 )
 
 const (

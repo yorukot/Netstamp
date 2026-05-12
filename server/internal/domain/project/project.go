@@ -82,7 +82,7 @@ func VNProjectSlug(slug string) (string, error) {
 		return "", err
 	}
 
-	var slugRe = regexp.MustCompile(`^[a-z0-9-]+$`)
+	slugRe := regexp.MustCompile(`^[a-z0-9-]+$`)
 
 	if !slugRe.MatchString(slug) {
 		return "", errors.New("invalid slug")

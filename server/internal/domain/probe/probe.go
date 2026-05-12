@@ -7,8 +7,9 @@ import (
 	"strings"
 	"time"
 
-	domainlabel "github.com/yorukot/netstamp/internal/domain/label"
 	"github.com/yorukot/spvalidator"
+
+	domainlabel "github.com/yorukot/netstamp/internal/domain/label"
 )
 
 var (

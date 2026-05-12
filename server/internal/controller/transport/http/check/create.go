@@ -25,7 +25,6 @@ func (h *Handler) createCheck(ctx context.Context, input *createCheckInput) (*ch
 
 		PingConfig: input.Body.PingConfig.appInput(),
 	})
-
 	if err != nil {
 		return nil, mapCheckError(err, "create check failed")
 	}

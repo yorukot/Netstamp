@@ -17,7 +17,6 @@ type Service struct {
 }
 
 func NewService(repo Repository, projectAccess ProjectAccess, events EventRecorder, assignmentRefresher AssignmentRefresher) *Service {
-
 	return &Service{
 		repo:                repo,
 		projectAccess:       projectAccess,

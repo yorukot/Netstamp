@@ -6,9 +6,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/yorukot/spvalidator"
+
 	domainlabel "github.com/yorukot/netstamp/internal/domain/label"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
-	"github.com/yorukot/spvalidator"
 )
 
 var (

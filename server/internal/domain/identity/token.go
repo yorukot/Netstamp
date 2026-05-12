@@ -7,6 +7,6 @@ type IssuedToken struct {
 }
 
 type AccessTokenClaims struct {
-	Subject     string
-	Email       string
+	Subject string
+	Email   string
 }

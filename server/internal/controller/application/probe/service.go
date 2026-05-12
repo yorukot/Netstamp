@@ -76,7 +76,6 @@ func (s *Service) CreateProbe(ctx context.Context, input CreateProbeInput) (Crea
 		Longitude:       input.Longitude,
 		Labels:          labels,
 	}, secretHash)
-
 	if err != nil {
 		return CreateProbeOutput{}, flow.createFailure(err)
 	}

@@ -4,9 +4,10 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/yorukot/spvalidator"
+
 	"github.com/yorukot/netstamp/internal/domain/check"
 	"github.com/yorukot/netstamp/internal/domain/probe"
-	"github.com/yorukot/spvalidator"
 )
 
 var ErrInvalidInput = errors.New("assignment input invalid")
