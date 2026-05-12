@@ -33,7 +33,7 @@ func (r *UserRepository) CreateUser(ctx context.Context, input identity.User) (i
 	})
 	if err != nil {
 		if postgres.IsUniqueViolation(err, "uq_users_email") {
-			return identity.User{}, fmt.Errorf("email already exists: %w", identity.ErrEmailAlreadyExists)
+			return identity.User{}, fmt.Errorf("email already exists: %w", authapp.ErrEmailAlreadyExists)
 		}
 		postgres.RecordDBSpanError(span, err)
 		return identity.User{}, err

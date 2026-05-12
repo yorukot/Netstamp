@@ -100,8 +100,8 @@ func (s *Service) issueAccessResult(ctx context.Context, user identity.User) (Au
 	defer span.End()
 
 	token, err := s.tokens.IssueAccessToken(ctx, identity.AccessTokenClaims{
-		Subject:     user.ID,
-		Email:       user.Email,
+		Subject: user.ID,
+		Email:   user.Email,
 	})
 	if err != nil {
 		recordSpanError(span, err, AuthReasonAccessTokenIssueFail)
@@ -122,7 +122,7 @@ func (s *Service) hashPassword(ctx context.Context, password string) (string, er
 	_, span := authTracer.Start(ctx, "auth.password_hash")
 	defer span.End()
 
-	passwordHash, err := s.hasher.Hash(password)
+	passwordHash, err := s.hasher.Hash(ctx, password)
 	if err != nil {
 		recordSpanError(span, err, AuthReasonPasswordHashFailed)
 		return "", err
@@ -135,7 +135,7 @@ func (s *Service) comparePassword(ctx context.Context, password, passwordHash st
 	_, span := authTracer.Start(ctx, "auth.password_compare")
 	defer span.End()
 
-	return s.hasher.Compare(password, passwordHash)
+	return s.hasher.Compare(ctx, password, passwordHash)
 }
 
 func (s *Service) createUser(ctx context.Context, input identity.User) (identity.User, error) {
@@ -162,6 +162,21 @@ func (s *Service) getUserByEmail(ctx context.Context, email string) (identity.Us
 		if !errors.Is(err, ErrUserNotFound) {
 			recordSpanError(span, err, AuthReasonUserLookupFailed)
 		}
+		return identity.User{}, err
+	}
+
+	return user, nil
+}
+
+// GetCurrentUser fetches the live user record from the database using the
+// email embedded in the verified access token claims.
+func (s *Service) GetCurrentUser(ctx context.Context, email string) (identity.User, error) {
+	ctx, span := authTracer.Start(ctx, "auth.get_current_user")
+	defer span.End()
+
+	user, err := s.users.GetUserByEmail(ctx, email)
+	if err != nil {
+		recordSpanError(span, err, AuthReasonUserLookupFailed)
 		return identity.User{}, err
 	}
 

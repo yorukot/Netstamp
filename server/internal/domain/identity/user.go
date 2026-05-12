@@ -1,27 +1,19 @@
 package identity
 
 import (
-	"errors"
 	"strings"
 	"time"
 
 	"github.com/yorukot/spvalidator"
 )
 
-var (
-	ErrUserNotFound        = errors.New("user not found")
-	ErrEmailAlreadyExists  = errors.New("email already exists")
-	ErrAccessTokenInvalid  = errors.New("access token invalid")
-)
-
 type User struct {
-	ID           string
-	Email        string
-	DisplayName  string
-	PasswordHash string
-	IsActive     bool
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	ID           string    `json:"id"`
+	Email        string    `json:"email"`
+	DisplayName  string    `json:"displayName"`
+	PasswordHash string    `json:"-"`
+	CreatedAt    time.Time `json:"createdAt"`
+	UpdatedAt    time.Time `json:"updatedAt"`
 }
 
 func VNUserID(id string) (string, error) {
@@ -56,8 +48,6 @@ func VNUserDisplayName(displayName string) (string, error) {
 }
 
 func VNUserPassword(password string) (string, error) {
-	password = strings.TrimSpace(password)
-	
 	err := spvalidator.Min(password, 8)
 	if err != nil {
 		return "", err

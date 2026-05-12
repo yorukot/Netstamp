@@ -8,8 +8,10 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 	chimw "github.com/go-chi/chi/v5/middleware"
+	"go.uber.org/zap"
 
 	appauth "github.com/yorukot/netstamp/internal/controller/application/auth"
+	controllerlogger "github.com/yorukot/netstamp/internal/controller/logger"
 	"github.com/yorukot/netstamp/internal/domain/identity"
 )
 
@@ -73,6 +75,7 @@ func writeHumaProblem(requestCtx context.Context, ctx huma.Context, status int, 
 		Title:  http.StatusText(status),
 		Detail: detail,
 	}); err != nil {
-		return
+		log := controllerlogger.FromContext(requestCtx, zap.L())
+		log.Warn("failed to write auth problem response", zap.Error(err))
 	}
 }

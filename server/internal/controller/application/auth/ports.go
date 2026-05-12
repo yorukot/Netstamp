@@ -12,8 +12,8 @@ type UserRepository interface {
 }
 
 type PasswordHasher interface {
-	Hash(password string) (string, error)
-	Compare(password, passwordHash string) error
+	Hash(ctx context.Context, password string) (string, error)
+	Compare(ctx context.Context, password, passwordHash string) error
 }
 
 type TokenIssuer interface {
@@ -57,10 +57,8 @@ type AuthEventReason string
 
 const (
 	AuthReasonCredentialsInvalid   AuthEventReason = "credentials_invalid"
-	AuthReasonDisplayNameInvalid   AuthEventReason = "display_name_invalid"
 	AuthReasonEmailAlreadyExists   AuthEventReason = "email_already_exists"
 	AuthReasonInvalidInput         AuthEventReason = "invalid_input"
-	AuthReasonUserInactive         AuthEventReason = "user_inactive"
 	AuthReasonPasswordHashFailed   AuthEventReason = "password_hash_failed"
 	AuthReasonUserCreateFailed     AuthEventReason = "user_create_failed"
 	AuthReasonUserLookupFailed     AuthEventReason = "user_lookup_failed"

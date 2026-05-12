@@ -16,7 +16,7 @@ func normalizeRegisterInput(input RegisterInput) (RegisterInput, error) {
 	}
 	password, err := identity.VNUserPassword(input.Password)
 	if err != nil {
-		return RegisterInput{}, invalidAuthField("password", err.Error(), input.Password)
+		return RegisterInput{}, invalidAuthField("password", err.Error(), "")
 	}
 
 	return RegisterInput{
@@ -33,7 +33,7 @@ func normalizeLoginInput(input LoginInput) (LoginInput, error) {
 	}
 	password, err := identity.VNUserPassword(input.Password)
 	if err != nil {
-		return LoginInput{}, invalidAuthField("password", err.Error(), input.Password)
+		return LoginInput{}, invalidAuthField("password", err.Error(), "")
 	}
 
 	return LoginInput{

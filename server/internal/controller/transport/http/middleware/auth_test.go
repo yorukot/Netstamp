@@ -33,7 +33,7 @@ func TestRequireAuthRejectsMissingBearerToken(t *testing.T) {
 
 func TestRequireAuthRejectsInvalidAccessToken(t *testing.T) {
 	_, api := humatest.New(t)
-	verifier := &recordingTokenVerifier{err: identity.ErrAccessTokenInvalid}
+	verifier := &recordingTokenVerifier{err: appauth.ErrAccessTokenInvalid}
 	registerClaimsRoute(t, api, verifier)
 
 	res := api.Get("/me", "Authorization: Bearer bad-token")

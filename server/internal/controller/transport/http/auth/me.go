@@ -9,19 +9,20 @@ import (
 )
 
 func (h *Handler) me(ctx context.Context, _ *meInput) (*meOutput, error) {
-	claims, ok := httpmiddleware.AccessTokenClaimsFromContext(ctx)
-	if !ok {
-		return nil, huma.Error401Unauthorized("missing bearer token")
+	claims, _ := httpmiddleware.AccessTokenClaimsFromContext(ctx)
+
+	user, err := h.service.GetCurrentUser(ctx, claims.Email)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to fetch user")
 	}
 
-	// TODO: We should lookup for the user detail and return it back
-	
 	return &meOutput{
 		Body: meOutputBody{
 			Authenticated: true,
 			User: userResponse{
-				ID:          claims.Subject,
-				Email:       claims.Email,
+				ID:          user.ID,
+				Email:       user.Email,
+				DisplayName: user.DisplayName,
 			},
 		},
 	}, nil
@@ -35,5 +36,5 @@ type meOutput struct {
 
 type meOutputBody struct {
 	Authenticated bool         `json:"authenticated" example:"true" doc:"Always true when the bearer token is valid."`
-	User          userResponse `json:"user" doc:"User identity from the verified access token claims."`
+	User          userResponse `json:"user" doc:"Current user fetched live from the database."`
 }

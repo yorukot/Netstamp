@@ -39,8 +39,6 @@ const (
 	keyDBMaxConnIdleTime     = "DB_MAX_CONN_IDLE_TIME"
 	keyAuthJWTSecret         = "AUTH_JWT_SECRET"       //nolint:gosec // This is the env key name, not the secret value.
 	keyAuthAccessTokenTTL    = "AUTH_ACCESS_TOKEN_TTL" //nolint:gosec // This is a token TTL env key, not a credential.
-	keyAuthLoginRateLimit    = "AUTH_LOGIN_RATE_LIMIT"
-	keyAuthLoginRateWindow   = "AUTH_LOGIN_RATE_WINDOW"
 	keyAuthArgon2idMemoryKiB = "AUTH_ARGON2ID_MEMORY_KIB"
 	keyAuthArgon2idIter      = "AUTH_ARGON2ID_ITERATIONS"
 	keyAuthArgon2idParallel  = "AUTH_ARGON2ID_PARALLELISM"
@@ -74,8 +72,6 @@ var defaultSettings = map[string]any{
 	keyDBMaxConnIdleTime:     30 * time.Minute,
 	keyAuthJWTSecret:         "local-development-jwt-secret-change-before-production",
 	keyAuthAccessTokenTTL:    12 * time.Hour,
-	keyAuthLoginRateLimit:    10,
-	keyAuthLoginRateWindow:   time.Minute,
 	keyAuthArgon2idMemoryKiB: uint32(64 * 1024),
 	keyAuthArgon2idIter:      uint32(3),
 	keyAuthArgon2idParallel:  uint8(4),
@@ -122,8 +118,6 @@ type DatabaseConfig struct {
 type AuthConfig struct {
 	JWTSecret           string        `mapstructure:"AUTH_JWT_SECRET"` //nolint:gosec // Runtime config must store the JWT signing secret value.
 	AccessTokenTTL      time.Duration `mapstructure:"AUTH_ACCESS_TOKEN_TTL"`
-	LoginRateLimit      int           `mapstructure:"AUTH_LOGIN_RATE_LIMIT"`
-	LoginRateWindow     time.Duration `mapstructure:"AUTH_LOGIN_RATE_WINDOW"`
 	Argon2idMemoryKiB   uint32        `mapstructure:"AUTH_ARGON2ID_MEMORY_KIB"`
 	Argon2idIterations  uint32        `mapstructure:"AUTH_ARGON2ID_ITERATIONS"`
 	Argon2idParallelism uint8         `mapstructure:"AUTH_ARGON2ID_PARALLELISM"`
@@ -213,8 +207,6 @@ func validate(cfg Config) []error {
 	// Auth settings
 	errs = append(errs, validateRequiredString(keyAuthJWTSecret, cfg.Auth.JWTSecret)...)
 	errs = append(errs, validatePositiveDuration(keyAuthAccessTokenTTL, cfg.Auth.AccessTokenTTL)...)
-	errs = append(errs, validatePositiveInt(keyAuthLoginRateLimit, cfg.Auth.LoginRateLimit)...)
-	errs = append(errs, validatePositiveDuration(keyAuthLoginRateWindow, cfg.Auth.LoginRateWindow)...)
 	errs = append(errs, validatePositiveUint32(keyAuthArgon2idMemoryKiB, cfg.Auth.Argon2idMemoryKiB)...)
 	errs = append(errs, validatePositiveUint32(keyAuthArgon2idIter, cfg.Auth.Argon2idIterations)...)
 	errs = append(errs, validatePositiveUint8(keyAuthArgon2idParallel, cfg.Auth.Argon2idParallelism)...)
