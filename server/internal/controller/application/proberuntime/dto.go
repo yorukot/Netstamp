@@ -5,6 +5,7 @@ import (
 	"net/netip"
 	"time"
 
+	domainassignment "github.com/yorukot/netstamp/internal/domain/assignment"
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
 	domainnetwork "github.com/yorukot/netstamp/internal/domain/network"
 )
@@ -40,14 +41,14 @@ type HeartbeatOutput struct {
 }
 
 type ListAssignmentsOutput struct {
-	Assignments []domaincheck.Assignment
+	Assignments []domainassignment.Assignment
 }
 
 type SubmitResultsOutput struct {
 	Accepted     bool
 	ResyncNeeded bool
 	StaleChecks  []string
-	Assignments  []domaincheck.Assignment
+	Assignments  []domainassignment.Assignment
 }
 
 type SubmitResultsInput struct {

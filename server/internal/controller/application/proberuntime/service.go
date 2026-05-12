@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	domainassignment "github.com/yorukot/netstamp/internal/domain/assignment"
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
@@ -115,10 +116,10 @@ func (s *Service) SubmitResults(ctx context.Context, input SubmitResultsInput) (
 
 	pingResults := make([]domainping.ResultStorageInput, 0, resultCount)
 	staleChecks := make([]string, 0)
-	latestAssignments := make([]domaincheck.Assignment, 0)
+	latestAssignments := make([]domainassignment.Assignment, 0)
 	for _, group := range groups {
 		assignment, ok := assigned[group.checkID]
-		if !ok || assignment.Type != group.checkType || assignment.Type != domaincheck.TypePing {
+		if !ok || assignment.Check == nil || assignment.Check.Type != group.checkType || assignment.Check.Type != domaincheck.TypePing {
 			return SubmitResultsOutput{}, flow.businessFailure(ProbeRuntimeEventSubmitResultsFailure, ProbeRuntimeReasonResultConflict, ErrResultConflict)
 		}
 
@@ -176,8 +177,8 @@ func (s *Service) authenticate(ctx context.Context, flow *runtimeFlow, input Run
 	return credential, nil
 }
 
-func assignmentsByCheckID(assignments []domaincheck.Assignment) map[string]domaincheck.Assignment {
-	assigned := make(map[string]domaincheck.Assignment, len(assignments))
+func assignmentsByCheckID(assignments []domainassignment.Assignment) map[string]domainassignment.Assignment {
+	assigned := make(map[string]domainassignment.Assignment, len(assignments))
 	for _, assignment := range assignments {
 		assigned[assignment.CheckID] = assignment
 	}
@@ -185,7 +186,7 @@ func assignmentsByCheckID(assignments []domaincheck.Assignment) map[string]domai
 	return assigned
 }
 
-func isStaleAssignment(group normalizedResultGroup, assignment domaincheck.Assignment) bool {
+func isStaleAssignment(group normalizedResultGroup, assignment domainassignment.Assignment) bool {
 	return group.assignmentID != assignment.ID ||
 		group.checkVersion != assignment.CheckVersion ||
 		group.selectorVersion != assignment.SelectorVersion

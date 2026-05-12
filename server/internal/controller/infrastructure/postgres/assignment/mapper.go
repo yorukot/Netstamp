@@ -152,7 +152,7 @@ func checkVersion(row sqlc.GetActiveCheckForProjectRow) string {
 		Target:          row.Target,
 		IntervalSeconds: row.IntervalSeconds,
 		PingConfig:      &config,
-	}.CheckHash()
+	}.Hash()
 }
 
 func listCheckVersion(row sqlc.ListActiveChecksForProjectRow) string {
@@ -167,7 +167,7 @@ func listCheckVersion(row sqlc.ListActiveChecksForProjectRow) string {
 		Target:          row.Target,
 		IntervalSeconds: row.IntervalSeconds,
 		PingConfig:      &config,
-	}.CheckHash()
+	}.Hash()
 }
 
 func mapIPFamily(value sqlc.NullIpFamily) *domainnetwork.IPFamily {

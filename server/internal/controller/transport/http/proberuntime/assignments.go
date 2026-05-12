@@ -3,8 +3,9 @@ package proberuntime
 import (
 	"context"
 
-	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
+	domainassignment "github.com/yorukot/netstamp/internal/domain/assignment"
 	domainnetwork "github.com/yorukot/netstamp/internal/domain/network"
+	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 )
 
 func (h *Handler) listAssignments(ctx context.Context, input *listAssignmentsInput) (*assignmentsOutput, error) {
@@ -58,7 +59,22 @@ type pingConfigResponse struct {
 	IPFamily        *string `json:"ipFamily,omitempty" enum:"inet,inet6"`
 }
 
-func newAssignmentResponse(assignment domaincheck.Assignment) assignmentResponse {
+func newAssignmentResponse(assignment domainassignment.Assignment) assignmentResponse {
+	check := assignment.Check
+	pingConfig := domainping.DefaultConfig()
+	if check != nil && check.PingConfig != nil {
+		pingConfig = *check.PingConfig
+	}
+
+	var checkType string
+	var target string
+	var intervalSeconds int32
+	if check != nil {
+		checkType = string(check.Type)
+		target = check.Target
+		intervalSeconds = check.IntervalSeconds
+	}
+
 	return assignmentResponse{
 		ID:              assignment.ID,
 		ProjectID:       assignment.ProjectID,
@@ -66,14 +82,14 @@ func newAssignmentResponse(assignment domaincheck.Assignment) assignmentResponse
 		CheckID:         assignment.CheckID,
 		CheckVersion:    assignment.CheckVersion,
 		SelectorVersion: assignment.SelectorVersion,
-		Type:            string(assignment.Type),
-		Target:          assignment.Target,
-		IntervalSeconds: assignment.IntervalSeconds,
+		Type:            checkType,
+		Target:          target,
+		IntervalSeconds: intervalSeconds,
 		PingConfig: pingConfigResponse{
-			PacketCount:     assignment.PingConfig.PacketCount,
-			PacketSizeBytes: assignment.PingConfig.PacketSizeBytes,
-			TimeoutMs:       assignment.PingConfig.TimeoutMs,
-			IPFamily:        ipFamilyString(assignment.PingConfig.IPFamily),
+			PacketCount:     pingConfig.PacketCount,
+			PacketSizeBytes: pingConfig.PacketSizeBytes,
+			TimeoutMs:       pingConfig.TimeoutMs,
+			IPFamily:        ipFamilyString(pingConfig.IPFamily),
 		},
 	}
 }

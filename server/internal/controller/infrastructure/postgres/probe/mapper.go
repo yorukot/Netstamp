@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/sqlc"
+	domainassignment "github.com/yorukot/netstamp/internal/domain/assignment"
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
 	domainlabel "github.com/yorukot/netstamp/internal/domain/label"
 	domainnetwork "github.com/yorukot/netstamp/internal/domain/network"
@@ -234,22 +235,28 @@ func mapLabels(rows []sqlc.Label) []domainlabel.Label {
 	return labels
 }
 
-func mapAssignment(row sqlc.ListActiveAssignmentsForProbeRow) domaincheck.Assignment {
-	return domaincheck.Assignment{
+func mapAssignment(row sqlc.ListActiveAssignmentsForProbeRow) domainassignment.Assignment {
+	pingConfig := domainping.Config{
+		PacketCount:     row.PacketCount,
+		PacketSizeBytes: row.PacketSizeBytes,
+		TimeoutMs:       row.TimeoutMs,
+		IPFamily:        mapIPFamily(row.IpFamily),
+	}
+
+	return domainassignment.Assignment{
 		ID:              row.AssignmentID.String(),
 		ProjectID:       row.ProjectID.String(),
 		ProbeID:         row.ProbeID.String(),
 		CheckID:         row.CheckID.String(),
 		CheckVersion:    row.CheckVersion,
 		SelectorVersion: row.SelectorVersion,
-		Type:            domaincheck.Type(row.CheckType),
-		Target:          row.Target,
-		IntervalSeconds: row.IntervalSeconds,
-		PingConfig: domainping.Config{
-			PacketCount:     row.PacketCount,
-			PacketSizeBytes: row.PacketSizeBytes,
-			TimeoutMs:       row.TimeoutMs,
-			IPFamily:        mapIPFamily(row.IpFamily),
+		Check: &domaincheck.Check{
+			ID:              row.CheckID.String(),
+			ProjectID:       row.ProjectID.String(),
+			Type:            domaincheck.Type(row.CheckType),
+			Target:          row.Target,
+			IntervalSeconds: row.IntervalSeconds,
+			PingConfig:      &pingConfig,
 		},
 	}
 }

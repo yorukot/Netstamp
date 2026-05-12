@@ -8,7 +8,7 @@ import (
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 )
 
-func (c Check) CheckHash() string {
+func (c Check) Hash() string {
 	payload := struct {
 		Type            Type               `json:"type"`
 		Target          string             `json:"target"`

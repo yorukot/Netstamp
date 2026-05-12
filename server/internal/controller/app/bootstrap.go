@@ -17,6 +17,7 @@ import (
 	appproject "github.com/yorukot/netstamp/internal/controller/application/project"
 	"github.com/yorukot/netstamp/internal/controller/config"
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/postgres"
+	pgassignment "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/assignment"
 	pgcheck "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/check"
 	pglabel "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/label"
 	pgping "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/ping"
@@ -112,8 +113,9 @@ func New(ctx context.Context) (*Application, error) {
 	projectRepo := pgproject.NewProjectRepository(dbPool)
 	projectSvc := appproject.NewService(projectRepo, projectEvents)
 	labelRepo := pglabel.NewLabelRepository(dbPool)
+	assignmentRepo := pgassignment.NewAssignmentRepository(dbPool)
 	probeRepo := pgprobe.NewProbeRepository(dbPool)
-	labelSvc := applabel.NewService(labelRepo, projectRepo, labelEvents, probeRepo)
+	labelSvc := applabel.NewService(labelRepo, projectRepo, labelEvents, assignmentRepo)
 	checkRepo := pgcheck.NewCheckRepository(dbPool)
 	checkSvc := appcheck.NewService(checkRepo, projectRepo, labelRepo, checkEvents)
 	pingRepo := pgping.NewPingRepository(dbPool)

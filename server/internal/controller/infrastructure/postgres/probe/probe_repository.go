@@ -2,7 +2,6 @@ package pgprobe
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 
 	"github.com/google/uuid"
@@ -13,11 +12,9 @@ import (
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/postgres"
 	pglabel "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/label"
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/sqlc"
-	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
-	domainping "github.com/yorukot/netstamp/internal/domain/ping"
+	domainassignment "github.com/yorukot/netstamp/internal/domain/assignment"
 	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
-	domainselector "github.com/yorukot/netstamp/internal/domain/selector"
 )
 
 type ProbeRepository struct {
@@ -78,7 +75,7 @@ func (r *ProbeRepository) UpdateProbeStatus(ctx context.Context, input domainpro
 	return mapProbeStatus(row), nil
 }
 
-func (r *ProbeRepository) ListAssignments(ctx context.Context, probeID string) ([]domaincheck.Assignment, error) {
+func (r *ProbeRepository) ListAssignments(ctx context.Context, probeID string) ([]domainassignment.Assignment, error) {
 	ctx, span := postgres.StartDBSpan(ctx, pgprobeTracer, "probe_check_assignments", "postgres.probes.list_assignments", "SELECT", "SELECT active probe assignments")
 	defer span.End()
 
@@ -93,52 +90,12 @@ func (r *ProbeRepository) ListAssignments(ctx context.Context, probeID string) (
 		return nil, err
 	}
 
-	assignments := make([]domaincheck.Assignment, 0, len(rows))
+	assignments := make([]domainassignment.Assignment, 0, len(rows))
 	for _, row := range rows {
 		assignments = append(assignments, mapAssignment(row))
 	}
 
 	return assignments, nil
-}
-
-func (r *ProbeRepository) RefreshProbeCheckAssignmentsForLabel(ctx context.Context, projectIDValue, labelIDValue string) error {
-	ctx, span := postgres.StartDBSpan(ctx, pgprobeTracer, "probe_check_assignments", "postgres.probes.refresh_for_label", "UPDATE", "REFRESH probe check assignments for label")
-	defer span.End()
-
-	projectID, err := postgres.ParseUUID(projectIDValue, domainproject.ErrProjectNotFound)
-	if err != nil {
-		return err
-	}
-	labelIDs, err := pglabel.ParseLabelIDs([]string{labelIDValue})
-	if err != nil {
-		return err
-	}
-	labelID := labelIDs[0]
-
-	err = r.tx.InTx(ctx, func(ctx context.Context, tx pgx.Tx) error {
-		q := r.queries.WithTx(tx)
-		targets, err := q.ListProbeRefreshTargetsForLabel(ctx, sqlc.ListProbeRefreshTargetsForLabelParams{
-			ProjectID: projectID,
-			LabelID:   labelID,
-		})
-		if err != nil {
-			return err
-		}
-
-		for _, target := range targets {
-			if err := r.refreshProbeCheckAssignmentsForProbe(ctx, q, projectID, target.ID, target.Enabled); err != nil {
-				return err
-			}
-		}
-
-		return nil
-	})
-	if err != nil {
-		postgres.RecordDBSpanError(span, err)
-		return err
-	}
-
-	return nil
 }
 
 func (r *ProbeRepository) CreateProbe(ctx context.Context, input domainprobe.Probe, secretHash string) (domainprobe.Probe, error) {
@@ -198,10 +155,6 @@ func (r *ProbeRepository) CreateProbe(ctx context.Context, input domainprobe.Pro
 			}
 		}
 
-		if refreshErr := r.refreshProbeCheckAssignmentsForProbe(ctx, q, projectID, row.ID, input.Enabled); refreshErr != nil {
-			return refreshErr
-		}
-
 		status := mapProbeStatus(statusRow)
 		created = mapProbe(row)
 		created.Status = &status
@@ -259,7 +212,7 @@ func (r *ProbeRepository) GetProbeForProject(ctx context.Context, projectIDValue
 }
 
 func (r *ProbeRepository) UpdateProbe(ctx context.Context, input domainprobe.Probe) (domainprobe.Probe, error) {
-	ctx, span := postgres.StartDBSpan(ctx, pgprobeTracer, "probes", "postgres.probes.update", "UPDATE", "UPDATE probe, labels, and assignment links")
+	ctx, span := postgres.StartDBSpan(ctx, pgprobeTracer, "probes", "postgres.probes.update", "UPDATE", "UPDATE probe and labels")
 	defer span.End()
 
 	projectID, probeID, err := parseProjectAndProbeIDs(input.ProjectID, input.ID)
@@ -309,10 +262,6 @@ func (r *ProbeRepository) UpdateProbe(ctx context.Context, input domainprobe.Pro
 			}
 		}
 
-		if refreshErr := r.refreshProbeCheckAssignmentsForProbe(ctx, q, projectID, probeID, input.Enabled); refreshErr != nil {
-			return refreshErr
-		}
-
 		rows, getErr := q.GetActiveProbeRowsForProject(ctx, sqlc.GetActiveProbeRowsForProjectParams{
 			ProjectID: projectID,
 			ID:        probeID,
@@ -337,7 +286,7 @@ func (r *ProbeRepository) UpdateProbe(ctx context.Context, input domainprobe.Pro
 }
 
 func (r *ProbeRepository) SoftDeleteProbe(ctx context.Context, projectIDValue, probeIDValue string) error {
-	ctx, span := postgres.StartDBSpan(ctx, pgprobeTracer, "probes", "postgres.probes.soft_delete", "UPDATE", "SOFT DELETE probe and assignment links")
+	ctx, span := postgres.StartDBSpan(ctx, pgprobeTracer, "probes", "postgres.probes.soft_delete", "UPDATE", "SOFT DELETE probe")
 	defer span.End()
 
 	projectID, probeID, err := parseProjectAndProbeIDs(projectIDValue, probeIDValue)
@@ -345,25 +294,14 @@ func (r *ProbeRepository) SoftDeleteProbe(ctx context.Context, projectIDValue, p
 		return err
 	}
 
-	err = r.tx.InTx(ctx, func(ctx context.Context, tx pgx.Tx) error {
-		q := r.queries.WithTx(tx)
-
-		if _, deleteErr := q.SoftDeleteProbe(ctx, sqlc.SoftDeleteProbeParams{
-			ProjectID: projectID,
-			ID:        probeID,
-		}); deleteErr != nil {
-			if errors.Is(deleteErr, pgx.ErrNoRows) {
-				return domainprobe.ErrProbeNotFound
-			}
-			return deleteErr
-		}
-
-		return q.DeleteProbeCheckAssignmentsForProbe(ctx, sqlc.DeleteProbeCheckAssignmentsForProbeParams{
-			ProjectID: projectID,
-			ProbeID:   probeID,
-		})
+	_, err = r.queries.SoftDeleteProbe(ctx, sqlc.SoftDeleteProbeParams{
+		ProjectID: projectID,
+		ID:        probeID,
 	})
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domainprobe.ErrProbeNotFound
+		}
 		postgres.RecordDBSpanError(span, err)
 		return err
 	}
@@ -393,71 +331,6 @@ func (r *ProbeRepository) RotateProbeSecret(ctx context.Context, input domainpro
 	}
 
 	return nil
-}
-
-func (r *ProbeRepository) refreshProbeCheckAssignmentsForProbe(ctx context.Context, queries *sqlc.Queries, projectID, probeID uuid.UUID, enabled bool) error {
-	if !enabled {
-		return queries.DeleteProbeCheckAssignmentsForProbe(ctx, sqlc.DeleteProbeCheckAssignmentsForProbeParams{
-			ProjectID: projectID,
-			ProbeID:   probeID,
-		})
-	}
-
-	labelRows, err := queries.ListActiveLabelsForProbe(ctx, sqlc.ListActiveLabelsForProbeParams{
-		ProjectID: projectID,
-		ProbeID:   probeID,
-	})
-	if err != nil {
-		return err
-	}
-	labels := mapLabels(labelRows)
-
-	checkRows, err := queries.ListActiveChecksForProject(ctx, projectID)
-	if err != nil {
-		return err
-	}
-
-	matchedCheckIDs := make([]uuid.UUID, 0, len(checkRows))
-	for _, row := range checkRows {
-		selectorRaw := json.RawMessage(row.Selector)
-		selector, parseErr := domainselector.Parse(selectorRaw)
-		if parseErr != nil {
-			return parseErr
-		}
-		if !selector.Matches(labels) {
-			continue
-		}
-		matchedCheckIDs = append(matchedCheckIDs, row.ID)
-		if linkErr := queries.UpsertProbeCheckAssignment(ctx, sqlc.UpsertProbeCheckAssignmentParams{
-			ProjectID:       projectID,
-			ProbeID:         probeID,
-			CheckID:         row.ID,
-			CheckVersion:    domaincheck.CheckVersion(checkExecutionSpec(row)),
-			SelectorVersion: domaincheck.SelectorVersion(selectorRaw),
-		}); linkErr != nil {
-			return mapUpdateProbeError(linkErr)
-		}
-	}
-
-	return queries.DeleteStaleProbeCheckAssignmentsForProbe(ctx, sqlc.DeleteStaleProbeCheckAssignmentsForProbeParams{
-		ProjectID: projectID,
-		ProbeID:   probeID,
-		CheckIds:  matchedCheckIDs,
-	})
-}
-
-func checkExecutionSpec(row sqlc.ListActiveChecksForProjectRow) domaincheck.ExecutionSpec {
-	return domaincheck.ExecutionSpec{
-		Type:            domaincheck.Type(row.CheckType),
-		Target:          row.Target,
-		IntervalSeconds: row.IntervalSeconds,
-		PingConfig: domainping.Config{
-			PacketCount:     row.PacketCount,
-			PacketSizeBytes: row.PacketSizeBytes,
-			TimeoutMs:       row.TimeoutMs,
-			IPFamily:        mapIPFamily(row.IpFamily),
-		},
-	}
 }
 
 func pointFromCoordinates(longitude, latitude *float64) pgtype.Point {

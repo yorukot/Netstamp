@@ -3,6 +3,7 @@ package proberuntime
 import (
 	"context"
 
+	domainassignment "github.com/yorukot/netstamp/internal/domain/assignment"
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
@@ -11,7 +12,7 @@ import (
 type ProbeRepository interface {
 	GetActiveProbeCredential(ctx context.Context, probeID string) (domainprobe.Credential, error)
 	UpdateProbeStatus(ctx context.Context, input domainprobe.Status) (domainprobe.Status, error)
-	ListAssignments(ctx context.Context, probeID string) ([]domaincheck.Assignment, error)
+	ListAssignments(ctx context.Context, probeID string) ([]domainassignment.Assignment, error)
 }
 
 type PingResultRepository interface {
