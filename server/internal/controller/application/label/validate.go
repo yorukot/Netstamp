@@ -20,7 +20,12 @@ func normalizeCreateLabelInput(input CreateLabelInput) (CreateLabelInput, error)
 		return CreateLabelInput{}, invalidLabelField("value", err.Error(), input.Value)
 	}
 
-	return CreateLabelInput{ProjectRef: projectRef, Key: key, Value: value}, nil
+	return CreateLabelInput{
+		CurrentUserID: input.CurrentUserID,
+		ProjectRef:    projectRef,
+		Key:           key,
+		Value:         value,
+	}, nil
 }
 
 func normalizeUpdateLabelInput(input UpdateLabelInput) (UpdateLabelInput, error) {
@@ -55,7 +60,13 @@ func normalizeUpdateLabelInput(input UpdateLabelInput) (UpdateLabelInput, error)
 		valuePtr = &value
 	}
 
-	return UpdateLabelInput{ProjectRef: projectRef, LabelID: labelID, Key: keyPtr, Value: valuePtr}, nil
+	return UpdateLabelInput{
+		CurrentUserID: input.CurrentUserID,
+		ProjectRef:    projectRef,
+		LabelID:       labelID,
+		Key:           keyPtr,
+		Value:         valuePtr,
+	}, nil
 }
 
 func invalidLabelField(field, message string, value any) error {

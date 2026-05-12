@@ -25,6 +25,8 @@ func VNUserID(id string) (string, error) {
 }
 
 func VNUserEmail(email string) (string, error) {
+	email = strings.ToLower(strings.TrimSpace(email))
+
 	err := spvalidator.Email(email)
 	if err != nil {
 		return "", err
@@ -33,6 +35,8 @@ func VNUserEmail(email string) (string, error) {
 }
 
 func VNUserDisplayName(displayName string) (string, error) {
+	displayName = strings.TrimSpace(displayName)
+
 	err := spvalidator.Max(displayName, 64)
 	if err != nil {
 		return "", err
@@ -41,8 +45,6 @@ func VNUserDisplayName(displayName string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
-	displayName = strings.TrimSpace(displayName)
 
 	return displayName, nil
 }

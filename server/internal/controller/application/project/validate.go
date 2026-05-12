@@ -15,14 +15,21 @@ func normalizeCreateProjectInput(input CreateProjectInput) (CreateProjectInput, 
 		return CreateProjectInput{}, invalidProjectField("slug", err.Error(), input.Slug)
 	}
 
-	return CreateProjectInput{Name: name, Slug: slug}, nil
+	return CreateProjectInput{
+		CurrentUserID: input.CurrentUserID,
+		Name:          name,
+		Slug:          slug,
+	}, nil
 }
 
 func normalizeUpdateProjectInput(input UpdateProjectInput) (UpdateProjectInput, error) {
 	if input.Name == nil && input.Slug == nil {
 		return UpdateProjectInput{}, invalidProjectField("", "at least one field must be provided", nil)
 	}
-	var output UpdateProjectInput
+	output := UpdateProjectInput{
+		CurrentUserID: input.CurrentUserID,
+		ProjectRef:    input.ProjectRef,
+	}
 
 	if input.Name != nil {
 		name, err := domainproject.VNProjectName(*input.Name)
@@ -55,7 +62,12 @@ func normalizeAddMemberInput(input AddMemberInput) (AddMemberInput, error) {
 	if err != nil {
 		return AddMemberInput{}, invalidProjectField("role", err.Error(), input.Role)
 	}
-	return AddMemberInput{ProjectRef: projectRef, UserID: userID, Role: role}, nil
+	return AddMemberInput{
+		CurrentUserID: input.CurrentUserID,
+		ProjectRef:    projectRef,
+		UserID:        userID,
+		Role:          role,
+	}, nil
 }
 
 func normalizeUpdateMemberRoleInput(input UpdateMemberRoleInput) (UpdateMemberRoleInput, error) {
@@ -72,7 +84,12 @@ func normalizeUpdateMemberRoleInput(input UpdateMemberRoleInput) (UpdateMemberRo
 		return UpdateMemberRoleInput{}, invalidProjectField("role", err.Error(), input.Role)
 	}
 
-	return UpdateMemberRoleInput{ProjectRef: projectRef, UserID: userID, Role: role}, nil
+	return UpdateMemberRoleInput{
+		CurrentUserID: input.CurrentUserID,
+		ProjectRef:    projectRef,
+		UserID:        userID,
+		Role:          role,
+	}, nil
 }
 
 func normalizeRemoveMemberInput(input RemoveMemberInput) (RemoveMemberInput, error) {
@@ -85,7 +102,11 @@ func normalizeRemoveMemberInput(input RemoveMemberInput) (RemoveMemberInput, err
 		return RemoveMemberInput{}, invalidProjectField("userId", err.Error(), input.UserID)
 	}
 
-	return RemoveMemberInput{ProjectRef: projectRef, UserID: userID}, nil
+	return RemoveMemberInput{
+		CurrentUserID: input.CurrentUserID,
+		ProjectRef:    projectRef,
+		UserID:        userID,
+	}, nil
 }
 
 func invalidProjectField(field, message string, value any) error {
