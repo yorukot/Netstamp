@@ -24,11 +24,9 @@ func TestHelloRejectsInvalidSecret(t *testing.T) {
 	recorder := &recordingProbeRuntimeEventRecorder{}
 	service := NewService(probes, &fakePingResultRepository{}, fakeSecretVerifier{valid: false}, recorder)
 
-	_, err := service.Hello(context.Background(), RuntimeStatusInput{
-		RuntimeAuthInput: RuntimeAuthInput{
-			ProbeID:    testProbeID,
-			Credential: "wrong",
-		},
+	_, err := service.Hello(context.Background(), RuntimeAuthInput{
+		ProbeID:    testProbeID,
+		Credential: "wrong",
 	})
 
 	if !errors.Is(err, domainprobe.ErrInvalidCredential) {
@@ -61,11 +59,9 @@ func TestHelloRecordsDisabledProbe(t *testing.T) {
 		recorder,
 	)
 
-	_, err := service.Hello(context.Background(), RuntimeStatusInput{
-		RuntimeAuthInput: RuntimeAuthInput{
-			ProbeID:    testProbeID,
-			Credential: "plain-secret",
-		},
+	_, err := service.Hello(context.Background(), RuntimeAuthInput{
+		ProbeID:    testProbeID,
+		Credential: "plain-secret",
 	})
 	if !errors.Is(err, domainprobe.ErrProbeDisabled) {
 		t.Fatalf("expected probe disabled, got %v", err)
@@ -78,6 +74,33 @@ func TestHelloRecordsDisabledProbe(t *testing.T) {
 		ProbeID:   testProbeID,
 		ProjectID: testProjectID,
 	})
+}
+
+func TestHelloReturnsRuntimeConfigWithoutUpdatingStatus(t *testing.T) {
+	probes := &fakeProbeRepository{}
+	recorder := &recordingProbeRuntimeEventRecorder{}
+	service := NewService(probes, &fakePingResultRepository{}, fakeSecretVerifier{valid: true}, recorder)
+
+	output, err := service.Hello(context.Background(), RuntimeAuthInput{
+		ProbeID:    testProbeID,
+		Credential: "plain-secret",
+	})
+	if err != nil {
+		t.Fatalf("expected hello to succeed: %v", err)
+	}
+	if output.ServerTime.IsZero() {
+		t.Fatal("expected server time")
+	}
+	if output.MinimumSupportedAgentVersion != DefaultMinimumSupportedAgentVersion {
+		t.Fatalf("expected minimum supported version %q, got %q", DefaultMinimumSupportedAgentVersion, output.MinimumSupportedAgentVersion)
+	}
+	if output.Config != defaultRuntimeConfig() {
+		t.Fatalf("unexpected runtime config: %#v", output.Config)
+	}
+	if probes.gotStatus.ProbeID != "" {
+		t.Fatalf("expected hello not to update status, got %#v", probes.gotStatus)
+	}
+	assertNoProbeRuntimeEvents(t, recorder)
 }
 
 func TestHeartbeatUpdatesOnlineStatus(t *testing.T) {
@@ -132,6 +155,12 @@ func TestListAssignmentsAuthenticatesProbe(t *testing.T) {
 	}
 	if len(output.Assignments) != 1 || output.Assignments[0].CheckID != testCheckID {
 		t.Fatalf("expected assignment for check %q, got %#v", testCheckID, output.Assignments)
+	}
+	if output.ServerTime.IsZero() {
+		t.Fatal("expected server time")
+	}
+	if output.Config != defaultRuntimeConfig() {
+		t.Fatalf("unexpected runtime config: %#v", output.Config)
 	}
 	if output.Assignments[0].Check == nil || output.Assignments[0].Check.Type != domaincheck.TypePing {
 		t.Fatalf("expected domain check data on assignment, got %#v", output.Assignments[0])
@@ -345,11 +374,9 @@ func TestRuntimeRecordsSecretVerifierMissing(t *testing.T) {
 	recorder := &recordingProbeRuntimeEventRecorder{}
 	service := NewService(&fakeProbeRepository{}, &fakePingResultRepository{}, nil, recorder)
 
-	_, err := service.Hello(context.Background(), RuntimeStatusInput{
-		RuntimeAuthInput: RuntimeAuthInput{
-			ProbeID:    testProbeID,
-			Credential: "plain-secret",
-		},
+	_, err := service.Hello(context.Background(), RuntimeAuthInput{
+		ProbeID:    testProbeID,
+		Credential: "plain-secret",
 	})
 	if !errors.Is(err, errSecretVerifierMissing) {
 		t.Fatalf("expected missing verifier error, got %v", err)

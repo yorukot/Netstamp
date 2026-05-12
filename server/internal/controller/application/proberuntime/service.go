@@ -26,28 +26,19 @@ func NewService(probes ProbeRepository, pings PingResultRepository, secretVerifi
 	}
 }
 
-func (s *Service) Hello(ctx context.Context, input RuntimeStatusInput) (HelloOutput, error) {
+func (s *Service) Hello(ctx context.Context, input RuntimeAuthInput) (HelloOutput, error) {
 	ctx, flow := s.startRuntimeFlow(ctx, "probe_runtime.hello", ProbeRuntimeActionHello)
 	defer flow.end()
 
-	credential, err := s.authenticate(ctx, flow, input.RuntimeAuthInput)
-	if err != nil {
+	if _, err := s.authenticate(ctx, flow, input); err != nil {
 		return HelloOutput{}, flow.authenticationFailure(ProbeRuntimeEventHelloFailure, err)
-	}
-
-	statusInput, err := normalizeRuntimeStatus(input, credential.ProbeID)
-	if err != nil {
-		return HelloOutput{}, flow.businessFailure(ProbeRuntimeEventHelloFailure, ProbeRuntimeReasonInvalidInput, err)
-	}
-	if _, err := s.probes.UpdateProbeStatus(ctx, statusInput); err != nil {
-		return HelloOutput{}, flow.statusUpdateFailure(ProbeRuntimeEventHelloFailure, err)
 	}
 	flow.success()
 
 	return HelloOutput{
-		ServerTime:                    time.Now().UTC(),
-		HeartbeatIntervalSeconds:      DefaultHeartbeatIntervalSeconds,
-		AssignmentPollIntervalSeconds: DefaultAssignmentPollIntervalSeconds,
+		ServerTime:                   time.Now().UTC(),
+		MinimumSupportedAgentVersion: DefaultMinimumSupportedAgentVersion,
+		Config:                       defaultRuntimeConfig(),
 	}, nil
 }
 
@@ -87,7 +78,22 @@ func (s *Service) ListAssignments(ctx context.Context, input RuntimeAuthInput) (
 	}
 	flow.success()
 
-	return ListAssignmentsOutput{Assignments: assignments}, nil
+	return ListAssignmentsOutput{
+		ServerTime:  time.Now().UTC(),
+		Config:      defaultRuntimeConfig(),
+		Assignments: assignments,
+	}, nil
+}
+
+func defaultRuntimeConfig() domainprobe.RuntimeConfig {
+	return domainprobe.RuntimeConfig{
+		HeartbeatIntervalSeconds:      DefaultHeartbeatIntervalSeconds,
+		AssignmentPollIntervalSeconds: DefaultAssignmentPollIntervalSeconds,
+		MaxConcurrentChecks:           DefaultMaxConcurrentChecks,
+		InitialBackoffSeconds:         DefaultInitialBackoffSeconds,
+		MaxBackoffSeconds:             DefaultMaxBackoffSeconds,
+		MaxAttempts:                   DefaultMaxAttempts,
+	}
 }
 
 func (s *Service) SubmitResults(ctx context.Context, input SubmitResultsInput) (SubmitResultsOutput, error) {
@@ -116,11 +122,11 @@ func (s *Service) SubmitResults(ctx context.Context, input SubmitResultsInput) (
 		if !ok {
 			return SubmitResultsOutput{}, flow.businessFailure(ProbeRuntimeEventSubmitResultsFailure, ProbeRuntimeReasonInvalidInput, invalidRuntimeField(resultGroupField(group.index, "checkId"), "check is not an active assignment for this probe", group.checkID))
 		}
-		if assignment.Check == nil || assignment.Check.Type != group.type_ {
-			return SubmitResultsOutput{}, flow.businessFailure(ProbeRuntimeEventSubmitResultsFailure, ProbeRuntimeReasonInvalidInput, invalidRuntimeField(resultGroupField(group.index, "type"), "does not match assigned check type", string(group.type_)))
+		if assignment.Check == nil || assignment.Check.Type != group.checkType {
+			return SubmitResultsOutput{}, flow.businessFailure(ProbeRuntimeEventSubmitResultsFailure, ProbeRuntimeReasonInvalidInput, invalidRuntimeField(resultGroupField(group.index, "type"), "does not match assigned check type", string(group.checkType)))
 		}
 
-		switch group.type_ {
+		switch group.checkType {
 		case domaincheck.TypePing:
 			for _, result := range group.ping {
 				result.ProjectID = assignment.ProjectID
@@ -129,7 +135,7 @@ func (s *Service) SubmitResults(ctx context.Context, input SubmitResultsInput) (
 				pingResults = append(pingResults, result)
 			}
 		default:
-			return SubmitResultsOutput{}, flow.businessFailure(ProbeRuntimeEventSubmitResultsFailure, ProbeRuntimeReasonInvalidInput, invalidRuntimeField(resultGroupField(group.index, "type"), "unsupported result type", string(group.type_)))
+			return SubmitResultsOutput{}, flow.businessFailure(ProbeRuntimeEventSubmitResultsFailure, ProbeRuntimeReasonInvalidInput, invalidRuntimeField(resultGroupField(group.index, "type"), "unsupported result type", string(group.checkType)))
 		}
 	}
 

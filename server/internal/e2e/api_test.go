@@ -5,6 +5,7 @@ package e2e
 import (
 	"net/http"
 	"testing"
+	"time"
 )
 
 func TestAPIAuthProjectAndProbeRuntimeFlow(t *testing.T) {
@@ -186,28 +187,25 @@ func TestAPIAuthProjectAndProbeRuntimeFlow(t *testing.T) {
 	if !containsAssignment(assignments.Assignments, plainCheck.Check.ID) || !containsAssignment(assignments.Assignments, labeledCheck.Check.ID) {
 		t.Fatalf("expected assignments for both checks, got %#v", assignments.Assignments)
 	}
+	if assignments.ServerTime.IsZero() || assignments.Config.HeartbeatIntervalSeconds <= 0 || assignments.Config.AssignmentPollIntervalSeconds <= 0 {
+		t.Fatalf("expected runtime metadata in assignments response, got %#v", assignments)
+	}
 	t.Logf("e2e: probe runtime returned %d assignments", len(assignments.Assignments))
 
 	t.Log("e2e: verifying probe runtime rejects an invalid secret")
-	suite.doJSON(t, http.MethodPost, "/api/v1/runtime/probes/"+createdProbe.Probe.ID+"/hello", map[string]any{
-		"agentVersion": "netstamp-e2e/0.1.0",
-	}, probeHeaders("wrong-secret"), http.StatusUnauthorized, nil)
+	suite.doJSON(t, http.MethodPost, "/api/v1/runtime/probes/"+createdProbe.Probe.ID+"/hello", nil, probeHeaders("wrong-secret"), http.StatusUnauthorized, nil)
 
 	var hello helloResponse
 	t.Log("e2e: starting probe runtime session with valid secret")
-	suite.doJSON(t, http.MethodPost, "/api/v1/runtime/probes/"+createdProbe.Probe.ID+"/hello", map[string]any{
-		"agentVersion": "netstamp-e2e/0.1.0",
-		"publicV4":     "203.0.113.10",
-		"as":           "AS15169 Google LLC",
-		"addrs":        []string{"10.0.0.10"},
-	}, probeHeaders(createdProbe.Secret), http.StatusOK, &hello)
-	if hello.HeartbeatIntervalSeconds <= 0 || hello.AssignmentPollIntervalSeconds <= 0 {
-		t.Fatalf("expected runtime intervals in hello response, got %#v", hello)
+	suite.doJSON(t, http.MethodPost, "/api/v1/runtime/probes/"+createdProbe.Probe.ID+"/hello", nil, probeHeaders(createdProbe.Secret), http.StatusOK, &hello)
+	if hello.ServerTime.IsZero() || hello.MinimumSupportedAgentVersion == "" || hello.Config.HeartbeatIntervalSeconds <= 0 || hello.Config.AssignmentPollIntervalSeconds <= 0 {
+		t.Fatalf("expected runtime metadata in hello response, got %#v", hello)
 	}
 	t.Logf(
-		"e2e: probe runtime hello returned heartbeat=%ds assignmentPoll=%ds",
-		hello.HeartbeatIntervalSeconds,
-		hello.AssignmentPollIntervalSeconds,
+		"e2e: probe runtime hello returned minimumSupportedAgentVersion=%s heartbeat=%ds assignmentPoll=%ds",
+		hello.MinimumSupportedAgentVersion,
+		hello.Config.HeartbeatIntervalSeconds,
+		hello.Config.AssignmentPollIntervalSeconds,
 	)
 
 	var submitted submitResultsResponse
@@ -293,8 +291,9 @@ type probeBody struct {
 }
 
 type helloResponse struct {
-	HeartbeatIntervalSeconds      int32 `json:"heartbeatIntervalSeconds"`
-	AssignmentPollIntervalSeconds int32 `json:"assignmentPollIntervalSeconds"`
+	ServerTime                   time.Time         `json:"serverTime"`
+	MinimumSupportedAgentVersion string            `json:"minimumSupportedAgentVersion"`
+	Config                       runtimeConfigBody `json:"config"`
 }
 
 type submitResultsResponse struct {
@@ -351,7 +350,18 @@ type checkLabelResponse struct {
 }
 
 type assignmentsResponse struct {
-	Assignments []assignmentBody `json:"assignments"`
+	ServerTime  time.Time         `json:"serverTime"`
+	Config      runtimeConfigBody `json:"config"`
+	Assignments []assignmentBody  `json:"assignments"`
+}
+
+type runtimeConfigBody struct {
+	HeartbeatIntervalSeconds      int32 `json:"heartbeatIntervalSeconds"`
+	AssignmentPollIntervalSeconds int32 `json:"assignmentPollIntervalSeconds"`
+	MaxConcurrentChecks           int32 `json:"maxConcurrentChecks"`
+	InitialBackoffSeconds         int32 `json:"initialBackoffSeconds"`
+	MaxBackoffSeconds             int32 `json:"maxBackoffSeconds"`
+	MaxAttempts                   int32 `json:"maxAttempts"`
 }
 
 type assignmentBody struct {

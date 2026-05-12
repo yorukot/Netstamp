@@ -6,11 +6,17 @@ import (
 	"time"
 
 	domainassignment "github.com/yorukot/netstamp/internal/domain/assignment"
+	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
 )
 
 const (
 	DefaultHeartbeatIntervalSeconds      int32 = 30
 	DefaultAssignmentPollIntervalSeconds int32 = 30
+	DefaultMaxConcurrentChecks           int32 = 16
+	DefaultInitialBackoffSeconds         int32 = 1
+	DefaultMaxBackoffSeconds             int32 = 30
+	DefaultMaxAttempts                   int32 = 5
+	DefaultMinimumSupportedAgentVersion        = "0.1.0"
 	MaxResultGroupBatchSize              int   = 100
 )
 
@@ -29,9 +35,9 @@ type RuntimeStatusInput struct {
 }
 
 type HelloOutput struct {
-	ServerTime                    time.Time
-	HeartbeatIntervalSeconds      int32
-	AssignmentPollIntervalSeconds int32
+	ServerTime                   time.Time
+	MinimumSupportedAgentVersion string
+	Config                       domainprobe.RuntimeConfig
 }
 
 type HeartbeatOutput struct {
@@ -39,6 +45,8 @@ type HeartbeatOutput struct {
 }
 
 type ListAssignmentsOutput struct {
+	ServerTime  time.Time
+	Config      domainprobe.RuntimeConfig
 	Assignments []domainassignment.Assignment
 }
 
