@@ -141,6 +141,17 @@ WHERE probe_labels.project_id = $1
   AND labels.deleted_at IS NULL
 ORDER BY labels.key ASC, labels.value ASC, labels.id ASC;
 
+-- name: ListProbeRefreshTargetsForLabel :many
+SELECT probes.id, probes.enabled
+FROM probe_labels
+JOIN probes
+    ON probes.project_id = probe_labels.project_id
+    AND probes.id = probe_labels.probe_id
+WHERE probe_labels.project_id = $1
+  AND probe_labels.label_id = $2
+  AND probes.deleted_at IS NULL
+ORDER BY probes.id;
+
 -- name: RotateProbeCredential :one
 UPDATE probe_credentials
 SET secret_hash = $3,

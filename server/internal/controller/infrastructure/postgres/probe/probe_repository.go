@@ -25,18 +25,6 @@ type ProbeRepository struct {
 	tx      *postgres.Transactor
 }
 
-const listProbeRefreshTargetsForLabel = `
-SELECT probes.id, probes.enabled
-FROM probe_labels
-JOIN probes
-    ON probes.project_id = probe_labels.project_id
-    AND probes.id = probe_labels.probe_id
-WHERE probe_labels.project_id = $1
-  AND probe_labels.label_id = $2
-  AND probes.deleted_at IS NULL
-ORDER BY probes.id
-`
-
 func NewProbeRepository(pool *pgxpool.Pool) *ProbeRepository {
 	return &ProbeRepository{
 		queries: sqlc.New(pool),
@@ -129,32 +117,16 @@ func (r *ProbeRepository) RefreshProbeCheckAssignmentsForLabel(ctx context.Conte
 
 	err = r.tx.InTx(ctx, func(ctx context.Context, tx pgx.Tx) error {
 		q := r.queries.WithTx(tx)
-		rows, err := tx.Query(ctx, listProbeRefreshTargetsForLabel, projectID, labelID)
+		targets, err := q.ListProbeRefreshTargetsForLabel(ctx, sqlc.ListProbeRefreshTargetsForLabelParams{
+			ProjectID: projectID,
+			LabelID:   labelID,
+		})
 		if err != nil {
 			return err
 		}
-		defer rows.Close()
-
-		type refreshTarget struct {
-			probeID uuid.UUID
-			enabled bool
-		}
-
-		targets := []refreshTarget{}
-		for rows.Next() {
-			var target refreshTarget
-			if err := rows.Scan(&target.probeID, &target.enabled); err != nil {
-				return err
-			}
-			targets = append(targets, target)
-		}
-		if err := rows.Err(); err != nil {
-			return err
-		}
-		rows.Close()
 
 		for _, target := range targets {
-			if err := r.refreshProbeCheckAssignmentsForProbe(ctx, q, projectID, target.probeID, target.enabled); err != nil {
+			if err := r.refreshProbeCheckAssignmentsForProbe(ctx, q, projectID, target.ID, target.Enabled); err != nil {
 				return err
 			}
 		}
