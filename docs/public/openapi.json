@@ -6,18 +6,14 @@
 				"properties": {
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
-						"examples": [
-							"/api/v1/schemas/AddMemberInputBody.json"
-						],
+						"examples": ["/api/v1/schemas/AddMemberInputBody.json"],
 						"format": "uri",
 						"readOnly": true,
 						"type": "string"
 					},
 					"role": {
 						"description": "Project member role.",
-						"examples": [
-							"viewer"
-						],
+						"examples": ["viewer"],
 						"type": "string"
 					},
 					"userId": {
@@ -55,14 +51,7 @@
 						"type": "string"
 					}
 				},
-				"required": [
-					"id",
-					"projectId",
-					"probeId",
-					"checkId",
-					"checkVersion",
-					"selectorVersion"
-				],
+				"required": ["id", "projectId", "probeId", "checkId", "checkVersion", "selectorVersion"],
 				"type": "object"
 			},
 			"AssignmentsOutputBody": {
@@ -70,9 +59,7 @@
 				"properties": {
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
-						"examples": [
-							"/api/v1/schemas/AssignmentsOutputBody.json"
-						],
+						"examples": ["/api/v1/schemas/AssignmentsOutputBody.json"],
 						"format": "uri",
 						"readOnly": true,
 						"type": "string"
@@ -81,15 +68,10 @@
 						"items": {
 							"$ref": "#/components/schemas/Assignment"
 						},
-						"type": [
-							"array",
-							"null"
-						]
+						"type": ["array", "null"]
 					}
 				},
-				"required": [
-					"assignments"
-				],
+				"required": ["assignments"],
 				"type": "object"
 			},
 			"Check": {
@@ -100,10 +82,7 @@
 						"type": "string"
 					},
 					"description": {
-						"type": [
-							"string",
-							"null"
-						]
+						"type": ["string", "null"]
 					},
 					"id": {
 						"type": "string"
@@ -116,10 +95,7 @@
 						"items": {
 							"$ref": "#/components/schemas/Label"
 						},
-						"type": [
-							"array",
-							"null"
-						]
+						"type": ["array", "null"]
 					},
 					"name": {
 						"type": "string"
@@ -142,20 +118,7 @@
 						"type": "string"
 					}
 				},
-				"required": [
-					"id",
-					"projectId",
-					"name",
-					"type",
-					"target",
-					"selector",
-					"description",
-					"intervalSeconds",
-					"labels",
-					"createdAt",
-					"updatedAt",
-					"pingConfig"
-				],
+				"required": ["id", "projectId", "name", "type", "target", "selector", "description", "intervalSeconds", "labels", "createdAt", "updatedAt", "pingConfig"],
 				"type": "object"
 			},
 			"CheckOutputBody": {
@@ -163,9 +126,7 @@
 				"properties": {
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
-						"examples": [
-							"/api/v1/schemas/CheckOutputBody.json"
-						],
+						"examples": ["/api/v1/schemas/CheckOutputBody.json"],
 						"format": "uri",
 						"readOnly": true,
 						"type": "string"
@@ -174,9 +135,7 @@
 						"$ref": "#/components/schemas/Check"
 					}
 				},
-				"required": [
-					"check"
-				],
+				"required": ["check"],
 				"type": "object"
 			},
 			"CheckPingConfigInput": {
@@ -184,29 +143,20 @@
 				"properties": {
 					"ipFamily": {
 						"description": "Optional IP family preference.",
-						"enum": [
-							"inet",
-							"inet6"
-						],
-						"examples": [
-							"inet"
-						],
+						"enum": ["inet", "inet6"],
+						"examples": ["inet"],
 						"type": "string"
 					},
 					"packetCount": {
 						"description": "ICMP packet count.",
-						"examples": [
-							4
-						],
+						"examples": [4],
 						"format": "int32",
 						"minimum": 1,
 						"type": "integer"
 					},
 					"packetSizeBytes": {
 						"description": "ICMP payload size in bytes.",
-						"examples": [
-							56
-						],
+						"examples": [56],
 						"format": "int32",
 						"maximum": 65507,
 						"minimum": 1,
@@ -214,9 +164,7 @@
 					},
 					"timeoutMs": {
 						"description": "Ping timeout in milliseconds.",
-						"examples": [
-							3000
-						],
+						"examples": [3000],
 						"format": "int32",
 						"minimum": 1,
 						"type": "integer"
@@ -243,11 +191,7 @@
 						"type": "integer"
 					}
 				},
-				"required": [
-					"packetCount",
-					"packetSizeBytes",
-					"timeoutMs"
-				],
+				"required": ["packetCount", "packetSizeBytes", "timeoutMs"],
 				"type": "object"
 			},
 			"CreateCheckInputBody": {
@@ -255,27 +199,21 @@
 				"properties": {
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
-						"examples": [
-							"/api/v1/schemas/CreateCheckInputBody.json"
-						],
+						"examples": ["/api/v1/schemas/CreateCheckInputBody.json"],
 						"format": "uri",
 						"readOnly": true,
 						"type": "string"
 					},
 					"description": {
 						"description": "Optional check description.",
-						"examples": [
-							"Latency and loss to controller API."
-						],
+						"examples": ["Latency and loss to controller API."],
 						"maxLength": 1024,
 						"minLength": 1,
 						"type": "string"
 					},
 					"intervalSeconds": {
 						"description": "Check interval in seconds.",
-						"examples": [
-							30
-						],
+						"examples": [30],
 						"format": "int32",
 						"minimum": 1,
 						"type": "integer"
@@ -286,16 +224,11 @@
 							"format": "uuid",
 							"type": "string"
 						},
-						"type": [
-							"array",
-							"null"
-						]
+						"type": ["array", "null"]
 					},
 					"name": {
 						"description": "Check display name.",
-						"examples": [
-							"api-latency"
-						],
+						"examples": ["api-latency"],
 						"maxLength": 128,
 						"minLength": 1,
 						"type": "string"
@@ -311,30 +244,19 @@
 					},
 					"target": {
 						"description": "Hostname or address to check.",
-						"examples": [
-							"api.netstamp.io"
-						],
+						"examples": ["api.netstamp.io"],
 						"maxLength": 128,
 						"minLength": 1,
 						"type": "string"
 					},
 					"type": {
 						"description": "Check type. Only ping is supported in v1.",
-						"enum": [
-							"ping"
-						],
-						"examples": [
-							"ping"
-						],
+						"enum": ["ping"],
+						"examples": ["ping"],
 						"type": "string"
 					}
 				},
-				"required": [
-					"name",
-					"type",
-					"target",
-					"intervalSeconds"
-				],
+				"required": ["name", "type", "target", "intervalSeconds"],
 				"type": "object"
 			},
 			"CreateLabelInputBody": {
@@ -342,26 +264,20 @@
 				"properties": {
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
-						"examples": [
-							"/api/v1/schemas/CreateLabelInputBody.json"
-						],
+						"examples": ["/api/v1/schemas/CreateLabelInputBody.json"],
 						"format": "uri",
 						"readOnly": true,
 						"type": "string"
 					},
 					"key": {
 						"description": "Label key.",
-						"examples": [
-							"region"
-						],
+						"examples": ["region"],
 						"maxLength": 64,
 						"type": "string"
 					},
 					"value": {
 						"description": "Label value.",
-						"examples": [
-							"tokyo"
-						],
+						"examples": ["tokyo"],
 						"maxLength": 64,
 						"type": "string"
 					}
@@ -373,9 +289,7 @@
 				"properties": {
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
-						"examples": [
-							"/api/v1/schemas/CreateProbeInputBody.json"
-						],
+						"examples": ["/api/v1/schemas/CreateProbeInputBody.json"],
 						"format": "uri",
 						"readOnly": true,
 						"type": "string"
@@ -383,9 +297,7 @@
 					"enabled": {
 						"default": true,
 						"description": "Whether the probe is enabled. Defaults to true when omitted.",
-						"examples": [
-							true
-						],
+						"examples": [true],
 						"type": "boolean"
 					},
 					"labelIds": {
@@ -393,16 +305,11 @@
 						"items": {
 							"type": "string"
 						},
-						"type": [
-							"array",
-							"null"
-						]
+						"type": ["array", "null"]
 					},
 					"latitude": {
 						"description": "Probe latitude. Must be provided with longitude.",
-						"examples": [
-							35.6762
-						],
+						"examples": [35.6762],
 						"format": "double",
 						"maximum": 90,
 						"minimum": -90,
@@ -410,9 +317,7 @@
 					},
 					"longitude": {
 						"description": "Probe longitude. Must be provided with latitude.",
-						"examples": [
-							139.6503
-						],
+						"examples": [139.6503],
 						"format": "double",
 						"maximum": 180,
 						"minimum": -180,
@@ -420,9 +325,7 @@
 					},
 					"name": {
 						"description": "Probe display name.",
-						"examples": [
-							"tokyo-vps-1"
-						],
+						"examples": ["tokyo-vps-1"],
 						"maxLength": 128,
 						"minLength": 1,
 						"type": "string"
@@ -441,9 +344,7 @@
 				"properties": {
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
-						"examples": [
-							"/api/v1/schemas/CreateProbeOutputBody.json"
-						],
+						"examples": ["/api/v1/schemas/CreateProbeOutputBody.json"],
 						"format": "uri",
 						"readOnly": true,
 						"type": "string"
@@ -455,10 +356,7 @@
 						"type": "string"
 					}
 				},
-				"required": [
-					"probe",
-					"secret"
-				],
+				"required": ["probe", "secret"],
 				"type": "object"
 			},
 			"CreateProjectInputBody": {
@@ -466,27 +364,21 @@
 				"properties": {
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
-						"examples": [
-							"/api/v1/schemas/CreateProjectInputBody.json"
-						],
+						"examples": ["/api/v1/schemas/CreateProjectInputBody.json"],
 						"format": "uri",
 						"readOnly": true,
 						"type": "string"
 					},
 					"name": {
 						"description": "Project display name.",
-						"examples": [
-							"Engineering"
-						],
+						"examples": ["Engineering"],
 						"maxLength": 64,
 						"minLength": 1,
 						"type": "string"
 					},
 					"slug": {
 						"description": "Stable project slug.",
-						"examples": [
-							"engineering"
-						],
+						"examples": ["engineering"],
 						"maxLength": 64,
 						"minLength": 1,
 						"pattern": "^[a-z0-9-]+$",
@@ -518,18 +410,14 @@
 				"properties": {
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
-						"examples": [
-							"/api/v1/schemas/ErrorModel.json"
-						],
+						"examples": ["/api/v1/schemas/ErrorModel.json"],
 						"format": "uri",
 						"readOnly": true,
 						"type": "string"
 					},
 					"detail": {
 						"description": "A human-readable explanation specific to this occurrence of the problem.",
-						"examples": [
-							"Property foo is required but is missing."
-						],
+						"examples": ["Property foo is required but is missing."],
 						"type": "string"
 					},
 					"errors": {
@@ -537,40 +425,29 @@
 						"items": {
 							"$ref": "#/components/schemas/ErrorDetail"
 						},
-						"type": [
-							"array",
-							"null"
-						]
+						"type": ["array", "null"]
 					},
 					"instance": {
 						"description": "A URI reference that identifies the specific occurrence of the problem.",
-						"examples": [
-							"https://example.com/error-log/abc123"
-						],
+						"examples": ["https://example.com/error-log/abc123"],
 						"format": "uri",
 						"type": "string"
 					},
 					"status": {
 						"description": "HTTP status code",
-						"examples": [
-							400
-						],
+						"examples": [400],
 						"format": "int64",
 						"type": "integer"
 					},
 					"title": {
 						"description": "A short, human-readable summary of the problem type. This value should not change between occurrences of the error.",
-						"examples": [
-							"Bad Request"
-						],
+						"examples": ["Bad Request"],
 						"type": "string"
 					},
 					"type": {
 						"default": "about:blank",
 						"description": "A URI reference to human-readable documentation for the error.",
-						"examples": [
-							"https://example.com/errors/example"
-						],
+						"examples": ["https://example.com/errors/example"],
 						"format": "uri",
 						"type": "string"
 					}
@@ -582,24 +459,18 @@
 				"properties": {
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
-						"examples": [
-							"/api/v1/schemas/HealthBody.json"
-						],
+						"examples": ["/api/v1/schemas/HealthBody.json"],
 						"format": "uri",
 						"readOnly": true,
 						"type": "string"
 					},
 					"status": {
 						"description": "Current health status.",
-						"examples": [
-							"ok"
-						],
+						"examples": ["ok"],
 						"type": "string"
 					}
 				},
-				"required": [
-					"status"
-				],
+				"required": ["status"],
 				"type": "object"
 			},
 			"HeartbeatOutputBody": {
@@ -607,9 +478,7 @@
 				"properties": {
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
-						"examples": [
-							"/api/v1/schemas/HeartbeatOutputBody.json"
-						],
+						"examples": ["/api/v1/schemas/HeartbeatOutputBody.json"],
 						"format": "uri",
 						"readOnly": true,
 						"type": "string"
@@ -619,9 +488,7 @@
 						"type": "string"
 					}
 				},
-				"required": [
-					"serverTime"
-				],
+				"required": ["serverTime"],
 				"type": "object"
 			},
 			"HelloOutputBody": {
@@ -629,9 +496,7 @@
 				"properties": {
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
-						"examples": [
-							"/api/v1/schemas/HelloOutputBody.json"
-						],
+						"examples": ["/api/v1/schemas/HelloOutputBody.json"],
 						"format": "uri",
 						"readOnly": true,
 						"type": "string"
@@ -649,11 +514,7 @@
 						"type": "string"
 					}
 				},
-				"required": [
-					"serverTime",
-					"heartbeatIntervalSeconds",
-					"assignmentPollIntervalSeconds"
-				],
+				"required": ["serverTime", "heartbeatIntervalSeconds", "assignmentPollIntervalSeconds"],
 				"type": "object"
 			},
 			"Label": {
@@ -680,14 +541,7 @@
 						"type": "string"
 					}
 				},
-				"required": [
-					"id",
-					"projectId",
-					"key",
-					"value",
-					"createdAt",
-					"updatedAt"
-				],
+				"required": ["id", "projectId", "key", "value", "createdAt", "updatedAt"],
 				"type": "object"
 			},
 			"LabelOutputBody": {
@@ -695,9 +549,7 @@
 				"properties": {
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
-						"examples": [
-							"/api/v1/schemas/LabelOutputBody.json"
-						],
+						"examples": ["/api/v1/schemas/LabelOutputBody.json"],
 						"format": "uri",
 						"readOnly": true,
 						"type": "string"
@@ -706,9 +558,7 @@
 						"$ref": "#/components/schemas/Label"
 					}
 				},
-				"required": [
-					"label"
-				],
+				"required": ["label"],
 				"type": "object"
 			},
 			"ListChecksOutputBody": {
@@ -716,9 +566,7 @@
 				"properties": {
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
-						"examples": [
-							"/api/v1/schemas/ListChecksOutputBody.json"
-						],
+						"examples": ["/api/v1/schemas/ListChecksOutputBody.json"],
 						"format": "uri",
 						"readOnly": true,
 						"type": "string"
@@ -727,15 +575,10 @@
 						"items": {
 							"$ref": "#/components/schemas/Check"
 						},
-						"type": [
-							"array",
-							"null"
-						]
+						"type": ["array", "null"]
 					}
 				},
-				"required": [
-					"checks"
-				],
+				"required": ["checks"],
 				"type": "object"
 			},
 			"ListLabelsOutputBody": {
@@ -743,9 +586,7 @@
 				"properties": {
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
-						"examples": [
-							"/api/v1/schemas/ListLabelsOutputBody.json"
-						],
+						"examples": ["/api/v1/schemas/ListLabelsOutputBody.json"],
 						"format": "uri",
 						"readOnly": true,
 						"type": "string"
@@ -754,15 +595,10 @@
 						"items": {
 							"$ref": "#/components/schemas/Label"
 						},
-						"type": [
-							"array",
-							"null"
-						]
+						"type": ["array", "null"]
 					}
 				},
-				"required": [
-					"labels"
-				],
+				"required": ["labels"],
 				"type": "object"
 			},
 			"ListMembersOutputBody": {
@@ -770,9 +606,7 @@
 				"properties": {
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
-						"examples": [
-							"/api/v1/schemas/ListMembersOutputBody.json"
-						],
+						"examples": ["/api/v1/schemas/ListMembersOutputBody.json"],
 						"format": "uri",
 						"readOnly": true,
 						"type": "string"
@@ -781,15 +615,10 @@
 						"items": {
 							"$ref": "#/components/schemas/Member"
 						},
-						"type": [
-							"array",
-							"null"
-						]
+						"type": ["array", "null"]
 					}
 				},
-				"required": [
-					"members"
-				],
+				"required": ["members"],
 				"type": "object"
 			},
 			"ListProbesOutputBody": {
@@ -797,9 +626,7 @@
 				"properties": {
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
-						"examples": [
-							"/api/v1/schemas/ListProbesOutputBody.json"
-						],
+						"examples": ["/api/v1/schemas/ListProbesOutputBody.json"],
 						"format": "uri",
 						"readOnly": true,
 						"type": "string"
@@ -808,15 +635,10 @@
 						"items": {
 							"$ref": "#/components/schemas/Probe"
 						},
-						"type": [
-							"array",
-							"null"
-						]
+						"type": ["array", "null"]
 					}
 				},
-				"required": [
-					"probes"
-				],
+				"required": ["probes"],
 				"type": "object"
 			},
 			"ListProjectsOutputBody": {
@@ -824,9 +646,7 @@
 				"properties": {
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
-						"examples": [
-							"/api/v1/schemas/ListProjectsOutputBody.json"
-						],
+						"examples": ["/api/v1/schemas/ListProjectsOutputBody.json"],
 						"format": "uri",
 						"readOnly": true,
 						"type": "string"
@@ -835,15 +655,10 @@
 						"items": {
 							"$ref": "#/components/schemas/Project"
 						},
-						"type": [
-							"array",
-							"null"
-						]
+						"type": ["array", "null"]
 					}
 				},
-				"required": [
-					"projects"
-				],
+				"required": ["projects"],
 				"type": "object"
 			},
 			"LoginInputBody": {
@@ -851,25 +666,19 @@
 				"properties": {
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
-						"examples": [
-							"/api/v1/schemas/LoginInputBody.json"
-						],
+						"examples": ["/api/v1/schemas/LoginInputBody.json"],
 						"format": "uri",
 						"readOnly": true,
 						"type": "string"
 					},
 					"email": {
 						"description": "Email address used to sign in. It is normalized before lookup.",
-						"examples": [
-							"user@example.com"
-						],
+						"examples": ["user@example.com"],
 						"type": "string"
 					},
 					"password": {
 						"description": "Plain-text password to verify. It is never returned by the API.",
-						"examples": [
-							"correct-horse-battery-staple"
-						],
+						"examples": ["correct-horse-battery-staple"],
 						"type": "string",
 						"writeOnly": true
 					}
@@ -881,33 +690,25 @@
 				"properties": {
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
-						"examples": [
-							"/api/v1/schemas/LoginOutputBody.json"
-						],
+						"examples": ["/api/v1/schemas/LoginOutputBody.json"],
 						"format": "uri",
 						"readOnly": true,
 						"type": "string"
 					},
 					"accessToken": {
 						"description": "JWT access token issued for the authenticated user.",
-						"examples": [
-							"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example.signature"
-						],
+						"examples": ["eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example.signature"],
 						"type": "string"
 					},
 					"expiresIn": {
 						"description": "Access token lifetime in seconds.",
-						"examples": [
-							43200
-						],
+						"examples": [43200],
 						"format": "int64",
 						"type": "integer"
 					},
 					"tokenType": {
 						"description": "Token scheme to use in the Authorization header.",
-						"examples": [
-							"Bearer"
-						],
+						"examples": ["Bearer"],
 						"type": "string"
 					},
 					"user": {
@@ -915,12 +716,7 @@
 						"description": "Authenticated user."
 					}
 				},
-				"required": [
-					"user",
-					"tokenType",
-					"accessToken",
-					"expiresIn"
-				],
+				"required": ["user", "tokenType", "accessToken", "expiresIn"],
 				"type": "object"
 			},
 			"MeOutputBody": {
@@ -928,18 +724,14 @@
 				"properties": {
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
-						"examples": [
-							"/api/v1/schemas/MeOutputBody.json"
-						],
+						"examples": ["/api/v1/schemas/MeOutputBody.json"],
 						"format": "uri",
 						"readOnly": true,
 						"type": "string"
 					},
 					"authenticated": {
 						"description": "Always true when the bearer token is valid.",
-						"examples": [
-							true
-						],
+						"examples": [true],
 						"type": "boolean"
 					},
 					"user": {
@@ -947,10 +739,7 @@
 						"description": "Current user fetched live from the database."
 					}
 				},
-				"required": [
-					"authenticated",
-					"user"
-				],
+				"required": ["authenticated", "user"],
 				"type": "object"
 			},
 			"Member": {
@@ -977,14 +766,7 @@
 						"type": "string"
 					}
 				},
-				"required": [
-					"id",
-					"projectId",
-					"userId",
-					"role",
-					"createdAt",
-					"updatedAt"
-				],
+				"required": ["id", "projectId", "userId", "role", "createdAt", "updatedAt"],
 				"type": "object"
 			},
 			"MemberOutputBody": {
@@ -992,9 +774,7 @@
 				"properties": {
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
-						"examples": [
-							"/api/v1/schemas/MemberOutputBody.json"
-						],
+						"examples": ["/api/v1/schemas/MemberOutputBody.json"],
 						"format": "uri",
 						"readOnly": true,
 						"type": "string"
@@ -1003,9 +783,129 @@
 						"$ref": "#/components/schemas/Member"
 					}
 				},
-				"required": [
-					"member"
-				],
+				"required": ["member"],
+				"type": "object"
+			},
+			"PingResultBody": {
+				"additionalProperties": false,
+				"properties": {
+					"durationMs": {
+						"description": "Total check duration in milliseconds.",
+						"examples": [1000],
+						"format": "int32",
+						"minimum": 0,
+						"type": "integer"
+					},
+					"errorCode": {
+						"description": "Optional machine-readable error code.",
+						"examples": ["icmp_timeout"],
+						"type": "string"
+					},
+					"errorMessage": {
+						"description": "Optional executor error message.",
+						"examples": ["request timed out"],
+						"type": "string"
+					},
+					"finishedAt": {
+						"description": "UTC time when the ping check finished.",
+						"examples": ["2026-05-13T10:00:01Z"],
+						"format": "date-time",
+						"type": "string"
+					},
+					"ipFamily": {
+						"description": "IP family used for the check.",
+						"enum": ["inet", "inet6"],
+						"examples": ["inet"],
+						"type": "string"
+					},
+					"lossPercent": {
+						"description": "Packet loss percentage.",
+						"examples": [0],
+						"format": "double",
+						"maximum": 100,
+						"minimum": 0,
+						"type": "number"
+					},
+					"raw": {
+						"description": "Optional raw executor details."
+					},
+					"receivedCount": {
+						"description": "Packets received.",
+						"examples": [4],
+						"format": "int32",
+						"minimum": 0,
+						"type": "integer"
+					},
+					"resolvedIp": {
+						"description": "Resolved IP address used for the ping.",
+						"examples": ["1.1.1.1"],
+						"format": "ip",
+						"type": "string"
+					},
+					"rttAvgMs": {
+						"description": "Average RTT in milliseconds.",
+						"examples": [12.3],
+						"format": "double",
+						"minimum": 0,
+						"type": "number"
+					},
+					"rttMaxMs": {
+						"description": "Maximum RTT in milliseconds.",
+						"examples": [15.6],
+						"format": "double",
+						"minimum": 0,
+						"type": "number"
+					},
+					"rttMedianMs": {
+						"description": "Median RTT in milliseconds.",
+						"examples": [12],
+						"format": "double",
+						"minimum": 0,
+						"type": "number"
+					},
+					"rttMinMs": {
+						"description": "Minimum RTT in milliseconds.",
+						"examples": [10.1],
+						"format": "double",
+						"minimum": 0,
+						"type": "number"
+					},
+					"rttSamplesMs": {
+						"description": "RTT sample values in milliseconds.",
+						"items": {
+							"format": "double",
+							"type": "number"
+						},
+						"type": ["array", "null"]
+					},
+					"rttStddevMs": {
+						"description": "RTT standard deviation in milliseconds.",
+						"examples": [1.7],
+						"format": "double",
+						"minimum": 0,
+						"type": "number"
+					},
+					"sentCount": {
+						"description": "Packets sent.",
+						"examples": [4],
+						"format": "int32",
+						"minimum": 0,
+						"type": "integer"
+					},
+					"startedAt": {
+						"description": "UTC time when the ping check started.",
+						"examples": ["2026-05-13T10:00:00Z"],
+						"format": "date-time",
+						"type": "string"
+					},
+					"status": {
+						"description": "Ping result status.",
+						"enum": ["successful", "timeout", "error"],
+						"examples": ["successful"],
+						"type": "string"
+					}
+				},
+				"required": ["startedAt", "finishedAt", "durationMs", "status", "sentCount", "receivedCount", "lossPercent"],
 				"type": "object"
 			},
 			"Probe": {
@@ -1025,24 +925,15 @@
 						"items": {
 							"$ref": "#/components/schemas/Label"
 						},
-						"type": [
-							"array",
-							"null"
-						]
+						"type": ["array", "null"]
 					},
 					"latitude": {
 						"format": "double",
-						"type": [
-							"number",
-							"null"
-						]
+						"type": ["number", "null"]
 					},
 					"longitude": {
 						"format": "double",
-						"type": [
-							"number",
-							"null"
-						]
+						"type": ["number", "null"]
 					},
 					"name": {
 						"type": "string"
@@ -1054,29 +945,14 @@
 						"$ref": "#/components/schemas/Status"
 					},
 					"subdivisionCode": {
-						"type": [
-							"string",
-							"null"
-						]
+						"type": ["string", "null"]
 					},
 					"updatedAt": {
 						"format": "date-time",
 						"type": "string"
 					}
 				},
-				"required": [
-					"id",
-					"projectId",
-					"name",
-					"enabled",
-					"subdivisionCode",
-					"latitude",
-					"longitude",
-					"labels",
-					"status",
-					"createdAt",
-					"updatedAt"
-				],
+				"required": ["id", "projectId", "name", "enabled", "subdivisionCode", "latitude", "longitude", "labels", "status", "createdAt", "updatedAt"],
 				"type": "object"
 			},
 			"ProbeOutputBody": {
@@ -1084,9 +960,7 @@
 				"properties": {
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
-						"examples": [
-							"/api/v1/schemas/ProbeOutputBody.json"
-						],
+						"examples": ["/api/v1/schemas/ProbeOutputBody.json"],
 						"format": "uri",
 						"readOnly": true,
 						"type": "string"
@@ -1095,9 +969,7 @@
 						"$ref": "#/components/schemas/Probe"
 					}
 				},
-				"required": [
-					"probe"
-				],
+				"required": ["probe"],
 				"type": "object"
 			},
 			"Project": {
@@ -1124,14 +996,7 @@
 						"type": "string"
 					}
 				},
-				"required": [
-					"id",
-					"name",
-					"slug",
-					"createdByUserId",
-					"createdAt",
-					"updatedAt"
-				],
+				"required": ["id", "name", "slug", "createdByUserId", "createdAt", "updatedAt"],
 				"type": "object"
 			},
 			"ProjectOutputBody": {
@@ -1139,9 +1004,7 @@
 				"properties": {
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
-						"examples": [
-							"/api/v1/schemas/ProjectOutputBody.json"
-						],
+						"examples": ["/api/v1/schemas/ProjectOutputBody.json"],
 						"format": "uri",
 						"readOnly": true,
 						"type": "string"
@@ -1150,9 +1013,7 @@
 						"$ref": "#/components/schemas/Project"
 					}
 				},
-				"required": [
-					"project"
-				],
+				"required": ["project"],
 				"type": "object"
 			},
 			"RegisterInputBody": {
@@ -1160,32 +1021,24 @@
 				"properties": {
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
-						"examples": [
-							"/api/v1/schemas/RegisterInputBody.json"
-						],
+						"examples": ["/api/v1/schemas/RegisterInputBody.json"],
 						"format": "uri",
 						"readOnly": true,
 						"type": "string"
 					},
 					"displayName": {
 						"description": "Name shown in the app.",
-						"examples": [
-							"Jane Doe"
-						],
+						"examples": ["Jane Doe"],
 						"type": "string"
 					},
 					"email": {
 						"description": "Email address used to sign in.",
-						"examples": [
-							"user@example.com"
-						],
+						"examples": ["user@example.com"],
 						"type": "string"
 					},
 					"password": {
 						"description": "Plain-text password. It is stored only as an Argon2id hash.",
-						"examples": [
-							"correct-horse-battery-staple"
-						],
+						"examples": ["correct-horse-battery-staple"],
 						"type": "string",
 						"writeOnly": true
 					}
@@ -1197,33 +1050,25 @@
 				"properties": {
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
-						"examples": [
-							"/api/v1/schemas/RegisterOutputBody.json"
-						],
+						"examples": ["/api/v1/schemas/RegisterOutputBody.json"],
 						"format": "uri",
 						"readOnly": true,
 						"type": "string"
 					},
 					"accessToken": {
 						"description": "JWT access token issued for the created user.",
-						"examples": [
-							"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example.signature"
-						],
+						"examples": ["eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example.signature"],
 						"type": "string"
 					},
 					"expiresIn": {
 						"description": "Access token lifetime in seconds.",
-						"examples": [
-							43200
-						],
+						"examples": [43200],
 						"format": "int64",
 						"type": "integer"
 					},
 					"tokenType": {
 						"description": "Token scheme to use in the Authorization header.",
-						"examples": [
-							"Bearer"
-						],
+						"examples": ["Bearer"],
 						"type": "string"
 					},
 					"user": {
@@ -1231,12 +1076,7 @@
 						"description": "Created user."
 					}
 				},
-				"required": [
-					"user",
-					"tokenType",
-					"accessToken",
-					"expiresIn"
-				],
+				"required": ["user", "tokenType", "accessToken", "expiresIn"],
 				"type": "object"
 			},
 			"RootBody": {
@@ -1244,24 +1084,18 @@
 				"properties": {
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
-						"examples": [
-							"/api/v1/schemas/RootBody.json"
-						],
+						"examples": ["/api/v1/schemas/RootBody.json"],
 						"format": "uri",
 						"readOnly": true,
 						"type": "string"
 					},
 					"message": {
 						"description": "Human-readable API status message.",
-						"examples": [
-							"Netstamp API is running"
-						],
+						"examples": ["Netstamp API is running"],
 						"type": "string"
 					}
 				},
-				"required": [
-					"message"
-				],
+				"required": ["message"],
 				"type": "object"
 			},
 			"RotateSecretOutputBody": {
@@ -1269,9 +1103,7 @@
 				"properties": {
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
-						"examples": [
-							"/api/v1/schemas/RotateSecretOutputBody.json"
-						],
+						"examples": ["/api/v1/schemas/RotateSecretOutputBody.json"],
 						"format": "uri",
 						"readOnly": true,
 						"type": "string"
@@ -1283,10 +1115,33 @@
 						"type": "string"
 					}
 				},
-				"required": [
-					"probe",
-					"secret"
-				],
+				"required": ["probe", "secret"],
+				"type": "object"
+			},
+			"RuntimeResultGroupBody": {
+				"additionalProperties": false,
+				"properties": {
+					"checkId": {
+						"description": "Assigned check ID.",
+						"examples": ["44444444-4444-4444-4444-444444444444"],
+						"format": "uuid",
+						"type": "string"
+					},
+					"ping": {
+						"description": "Ping result payloads for this check.",
+						"items": {
+							"$ref": "#/components/schemas/PingResultBody"
+						},
+						"type": ["array", "null"]
+					},
+					"type": {
+						"description": "Check result type. Must match the assigned check type.",
+						"enum": ["ping"],
+						"examples": ["ping"],
+						"type": "string"
+					}
+				},
+				"required": ["checkId", "type"],
 				"type": "object"
 			},
 			"RuntimeStatusBody": {
@@ -1294,9 +1149,7 @@
 				"properties": {
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
-						"examples": [
-							"/api/v1/schemas/RuntimeStatusBody.json"
-						],
+						"examples": ["/api/v1/schemas/RuntimeStatusBody.json"],
 						"format": "uri",
 						"readOnly": true,
 						"type": "string"
@@ -1307,38 +1160,27 @@
 							"format": "ip",
 							"type": "string"
 						},
-						"type": [
-							"array",
-							"null"
-						]
+						"type": ["array", "null"]
 					},
 					"agentVersion": {
 						"description": "Probe agent version.",
-						"examples": [
-							"netstamp-probe/0.1.0"
-						],
+						"examples": ["netstamp-probe/0.1.0"],
 						"type": "string"
 					},
 					"as": {
 						"description": "Observed autonomous system.",
-						"examples": [
-							"AS15169 Google LLC"
-						],
+						"examples": ["AS15169 Google LLC"],
 						"type": "string"
 					},
 					"publicV4": {
 						"description": "Observed public IPv4 address.",
-						"examples": [
-							"203.0.113.10"
-						],
+						"examples": ["203.0.113.10"],
 						"format": "ip",
 						"type": "string"
 					},
 					"publicV6": {
 						"description": "Observed public IPv6 address.",
-						"examples": [
-							"2001:db8::10"
-						],
+						"examples": ["2001:db8::10"],
 						"format": "ip",
 						"type": "string"
 					}
@@ -1353,46 +1195,28 @@
 							"format": "ip",
 							"type": "string"
 						},
-						"type": [
-							"array",
-							"null"
-						]
+						"type": ["array", "null"]
 					},
 					"agentVersion": {
-						"type": [
-							"string",
-							"null"
-						]
+						"type": ["string", "null"]
 					},
 					"as": {
-						"type": [
-							"string",
-							"null"
-						]
+						"type": ["string", "null"]
 					},
 					"lastSeenAt": {
 						"format": "date-time",
-						"type": [
-							"string",
-							"null"
-						]
+						"type": ["string", "null"]
 					},
 					"probeId": {
 						"type": "string"
 					},
 					"publicV4": {
 						"format": "ip",
-						"type": [
-							"string",
-							"null"
-						]
+						"type": ["string", "null"]
 					},
 					"publicV6": {
 						"format": "ip",
-						"type": [
-							"string",
-							"null"
-						]
+						"type": ["string", "null"]
 					},
 					"state": {
 						"type": "string"
@@ -1402,17 +1226,52 @@
 						"type": "string"
 					}
 				},
-				"required": [
-					"probeId",
-					"state",
-					"lastSeenAt",
-					"agentVersion",
-					"publicV4",
-					"publicV6",
-					"as",
-					"addrs",
-					"updatedAt"
-				],
+				"required": ["probeId", "state", "lastSeenAt", "agentVersion", "publicV4", "publicV6", "as", "addrs", "updatedAt"],
+				"type": "object"
+			},
+			"SubmitResultsBody": {
+				"additionalProperties": false,
+				"properties": {
+					"$schema": {
+						"description": "A URL to the JSON Schema for this object.",
+						"examples": ["/api/v1/schemas/SubmitResultsBody.json"],
+						"format": "uri",
+						"readOnly": true,
+						"type": "string"
+					},
+					"results": {
+						"description": "Result groups keyed by check and check type.",
+						"items": {
+							"$ref": "#/components/schemas/RuntimeResultGroupBody"
+						},
+						"maxItems": 100,
+						"minItems": 1,
+						"type": ["array", "null"]
+					}
+				},
+				"required": ["results"],
+				"type": "object"
+			},
+			"SubmitResultsOutputBody": {
+				"additionalProperties": false,
+				"properties": {
+					"$schema": {
+						"description": "A URL to the JSON Schema for this object.",
+						"examples": ["/api/v1/schemas/SubmitResultsOutputBody.json"],
+						"format": "uri",
+						"readOnly": true,
+						"type": "string"
+					},
+					"accepted": {
+						"format": "int64",
+						"type": "integer"
+					},
+					"serverTime": {
+						"format": "date-time",
+						"type": "string"
+					}
+				},
+				"required": ["accepted", "serverTime"],
 				"type": "object"
 			},
 			"UpdateCheckInputBody": {
@@ -1420,27 +1279,21 @@
 				"properties": {
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
-						"examples": [
-							"/api/v1/schemas/UpdateCheckInputBody.json"
-						],
+						"examples": ["/api/v1/schemas/UpdateCheckInputBody.json"],
 						"format": "uri",
 						"readOnly": true,
 						"type": "string"
 					},
 					"description": {
 						"description": "Optional check description.",
-						"examples": [
-							"Latency and loss to controller API."
-						],
+						"examples": ["Latency and loss to controller API."],
 						"maxLength": 1024,
 						"minLength": 1,
 						"type": "string"
 					},
 					"intervalSeconds": {
 						"description": "Check interval in seconds.",
-						"examples": [
-							30
-						],
+						"examples": [30],
 						"format": "int32",
 						"minimum": 1,
 						"type": "integer"
@@ -1455,9 +1308,7 @@
 					},
 					"name": {
 						"description": "Check display name.",
-						"examples": [
-							"api-latency"
-						],
+						"examples": ["api-latency"],
 						"maxLength": 128,
 						"minLength": 1,
 						"type": "string"
@@ -1473,21 +1324,15 @@
 					},
 					"target": {
 						"description": "Hostname or address to check.",
-						"examples": [
-							"api.netstamp.io"
-						],
+						"examples": ["api.netstamp.io"],
 						"maxLength": 128,
 						"minLength": 1,
 						"type": "string"
 					},
 					"type": {
 						"description": "Check type. Only ping is supported in v1.",
-						"enum": [
-							"ping"
-						],
-						"examples": [
-							"ping"
-						],
+						"enum": ["ping"],
+						"examples": ["ping"],
 						"type": "string"
 					}
 				},
@@ -1498,26 +1343,20 @@
 				"properties": {
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
-						"examples": [
-							"/api/v1/schemas/UpdateLabelInputBody.json"
-						],
+						"examples": ["/api/v1/schemas/UpdateLabelInputBody.json"],
 						"format": "uri",
 						"readOnly": true,
 						"type": "string"
 					},
 					"key": {
 						"description": "Label key.",
-						"examples": [
-							"region"
-						],
+						"examples": ["region"],
 						"maxLength": 64,
 						"type": "string"
 					},
 					"value": {
 						"description": "Label value.",
-						"examples": [
-							"tokyo"
-						],
+						"examples": ["tokyo"],
 						"maxLength": 64,
 						"type": "string"
 					}
@@ -1529,23 +1368,15 @@
 				"properties": {
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
-						"examples": [
-							"/api/v1/schemas/UpdateMemberRoleInputBody.json"
-						],
+						"examples": ["/api/v1/schemas/UpdateMemberRoleInputBody.json"],
 						"format": "uri",
 						"readOnly": true,
 						"type": "string"
 					},
 					"role": {
 						"description": "Project member role.",
-						"enum": [
-							"viewer",
-							"editor",
-							"admin"
-						],
-						"examples": [
-							"viewer"
-						],
+						"enum": ["viewer", "editor", "admin"],
+						"examples": ["viewer"],
 						"minLength": 1,
 						"type": "string"
 					}
@@ -1557,18 +1388,14 @@
 				"properties": {
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
-						"examples": [
-							"/api/v1/schemas/UpdateProbeInputBody.json"
-						],
+						"examples": ["/api/v1/schemas/UpdateProbeInputBody.json"],
 						"format": "uri",
 						"readOnly": true,
 						"type": "string"
 					},
 					"enabled": {
 						"description": "Whether the probe is enabled. Omitted values leave the current setting unchanged.",
-						"examples": [
-							true
-						],
+						"examples": [true],
 						"type": "boolean"
 					},
 					"labelIds": {
@@ -1580,9 +1407,7 @@
 					},
 					"latitude": {
 						"description": "Probe latitude. Must be provided with longitude.",
-						"examples": [
-							35.6762
-						],
+						"examples": [35.6762],
 						"format": "double",
 						"maximum": 90,
 						"minimum": -90,
@@ -1590,9 +1415,7 @@
 					},
 					"longitude": {
 						"description": "Probe longitude. Must be provided with latitude.",
-						"examples": [
-							139.6503
-						],
+						"examples": [139.6503],
 						"format": "double",
 						"maximum": 180,
 						"minimum": -180,
@@ -1600,9 +1423,7 @@
 					},
 					"name": {
 						"description": "Probe display name.",
-						"examples": [
-							"tokyo-vps-1"
-						],
+						"examples": ["tokyo-vps-1"],
 						"maxLength": 128,
 						"minLength": 1,
 						"type": "string"
@@ -1621,26 +1442,20 @@
 				"properties": {
 					"$schema": {
 						"description": "A URL to the JSON Schema for this object.",
-						"examples": [
-							"/api/v1/schemas/UpdateProjectInputBody.json"
-						],
+						"examples": ["/api/v1/schemas/UpdateProjectInputBody.json"],
 						"format": "uri",
 						"readOnly": true,
 						"type": "string"
 					},
 					"name": {
 						"description": "Project display name.",
-						"examples": [
-							"Engineering"
-						],
+						"examples": ["Engineering"],
 						"maxLength": 64,
 						"type": "string"
 					},
 					"slug": {
 						"description": "Stable project slug.",
-						"examples": [
-							"engineering"
-						],
+						"examples": ["engineering"],
 						"maxLength": 64,
 						"pattern": "^[a-z0-9-]+$",
 						"patternDescription": "lowercase letters, numbers, and dashes",
@@ -1654,33 +1469,24 @@
 				"properties": {
 					"displayName": {
 						"description": "Name shown in the app.",
-						"examples": [
-							"Jane Doe"
-						],
+						"examples": ["Jane Doe"],
 						"maxLength": 100,
 						"type": "string"
 					},
 					"email": {
 						"description": "Normalized email address used to sign in.",
-						"examples": [
-							"user@example.com"
-						],
+						"examples": ["user@example.com"],
 						"format": "email",
 						"type": "string"
 					},
 					"id": {
 						"description": "User UUID.",
-						"examples": [
-							"11111111-1111-1111-1111-111111111111"
-						],
+						"examples": ["11111111-1111-1111-1111-111111111111"],
 						"format": "uuid",
 						"type": "string"
 					}
 				},
-				"required": [
-					"id",
-					"email"
-				],
+				"required": ["id", "email"],
 				"type": "object"
 			}
 		},
@@ -1731,9 +1537,7 @@
 					}
 				},
 				"summary": "Get API status",
-				"tags": [
-					"System"
-				]
+				"tags": ["System"]
 			}
 		},
 		"/auth/login": {
@@ -1793,9 +1597,7 @@
 					}
 				},
 				"summary": "Login user",
-				"tags": [
-					"Auth"
-				]
+				"tags": ["Auth"]
 			}
 		},
 		"/auth/me": {
@@ -1840,9 +1642,7 @@
 					}
 				],
 				"summary": "Get current user",
-				"tags": [
-					"Auth"
-				]
+				"tags": ["Auth"]
 			}
 		},
 		"/auth/register": {
@@ -1902,9 +1702,7 @@
 					}
 				},
 				"summary": "Register user",
-				"tags": [
-					"Auth"
-				]
+				"tags": ["Auth"]
 			}
 		},
 		"/healthz": {
@@ -1943,9 +1741,7 @@
 					}
 				},
 				"summary": "Get health status",
-				"tags": [
-					"System"
-				]
+				"tags": ["System"]
 			}
 		},
 		"/projects": {
@@ -1989,9 +1785,7 @@
 					}
 				],
 				"summary": "List projects",
-				"tags": [
-					"Projects"
-				]
+				"tags": ["Projects"]
 			},
 			"post": {
 				"operationId": "createProject",
@@ -2063,9 +1857,7 @@
 					}
 				],
 				"summary": "Create project",
-				"tags": [
-					"Projects"
-				]
+				"tags": ["Projects"]
 			}
 		},
 		"/projects/{ref}": {
@@ -2079,9 +1871,7 @@
 						"required": true,
 						"schema": {
 							"description": "Project UUID or slug.",
-							"examples": [
-								"engineering"
-							],
+							"examples": ["engineering"],
 							"maxLength": 64,
 							"minLength": 1,
 							"pattern": "^[a-z0-9-]+$",
@@ -2151,9 +1941,7 @@
 					}
 				],
 				"summary": "Delete project",
-				"tags": [
-					"Projects"
-				]
+				"tags": ["Projects"]
 			},
 			"get": {
 				"operationId": "getProject",
@@ -2165,9 +1953,7 @@
 						"required": true,
 						"schema": {
 							"description": "Project UUID or slug.",
-							"examples": [
-								"engineering"
-							],
+							"examples": ["engineering"],
 							"maxLength": 64,
 							"minLength": 1,
 							"pattern": "^[a-z0-9-]+$",
@@ -2234,9 +2020,7 @@
 					}
 				],
 				"summary": "Get project",
-				"tags": [
-					"Projects"
-				]
+				"tags": ["Projects"]
 			},
 			"patch": {
 				"operationId": "updateProject",
@@ -2248,9 +2032,7 @@
 						"required": true,
 						"schema": {
 							"description": "Project UUID or slug.",
-							"examples": [
-								"engineering"
-							],
+							"examples": ["engineering"],
 							"maxLength": 64,
 							"minLength": 1,
 							"pattern": "^[a-z0-9-]+$",
@@ -2347,9 +2129,7 @@
 					}
 				],
 				"summary": "Update project",
-				"tags": [
-					"Projects"
-				]
+				"tags": ["Projects"]
 			}
 		},
 		"/projects/{ref}/checks": {
@@ -2363,9 +2143,7 @@
 						"required": true,
 						"schema": {
 							"description": "Project slug or lowercase UUID.",
-							"examples": [
-								"engineering"
-							],
+							"examples": ["engineering"],
 							"maxLength": 64,
 							"minLength": 1,
 							"pattern": "^[a-z0-9-]+$",
@@ -2432,9 +2210,7 @@
 					}
 				],
 				"summary": "List project checks",
-				"tags": [
-					"Checks"
-				]
+				"tags": ["Checks"]
 			},
 			"post": {
 				"operationId": "createProjectCheck",
@@ -2446,9 +2222,7 @@
 						"required": true,
 						"schema": {
 							"description": "Project slug or lowercase UUID.",
-							"examples": [
-								"engineering"
-							],
+							"examples": ["engineering"],
 							"maxLength": 64,
 							"minLength": 1,
 							"pattern": "^[a-z0-9-]+$",
@@ -2535,9 +2309,7 @@
 					}
 				],
 				"summary": "Create project check",
-				"tags": [
-					"Checks"
-				]
+				"tags": ["Checks"]
 			}
 		},
 		"/projects/{ref}/checks/{check_id}": {
@@ -2551,9 +2323,7 @@
 						"required": true,
 						"schema": {
 							"description": "Project slug or lowercase UUID.",
-							"examples": [
-								"engineering"
-							],
+							"examples": ["engineering"],
 							"maxLength": 64,
 							"minLength": 1,
 							"pattern": "^[a-z0-9-]+$",
@@ -2568,9 +2338,7 @@
 						"required": true,
 						"schema": {
 							"description": "Check ID.",
-							"examples": [
-								"33333333-3333-3333-3333-333333333333"
-							],
+							"examples": ["33333333-3333-3333-3333-333333333333"],
 							"format": "uuid",
 							"minLength": 1,
 							"type": "string"
@@ -2638,9 +2406,7 @@
 					}
 				],
 				"summary": "Delete project check",
-				"tags": [
-					"Checks"
-				]
+				"tags": ["Checks"]
 			},
 			"get": {
 				"operationId": "getProjectCheck",
@@ -2652,9 +2418,7 @@
 						"required": true,
 						"schema": {
 							"description": "Project slug or lowercase UUID.",
-							"examples": [
-								"engineering"
-							],
+							"examples": ["engineering"],
 							"maxLength": 64,
 							"minLength": 1,
 							"pattern": "^[a-z0-9-]+$",
@@ -2669,9 +2433,7 @@
 						"required": true,
 						"schema": {
 							"description": "Check ID.",
-							"examples": [
-								"33333333-3333-3333-3333-333333333333"
-							],
+							"examples": ["33333333-3333-3333-3333-333333333333"],
 							"format": "uuid",
 							"minLength": 1,
 							"type": "string"
@@ -2736,9 +2498,7 @@
 					}
 				],
 				"summary": "Get project check",
-				"tags": [
-					"Checks"
-				]
+				"tags": ["Checks"]
 			},
 			"patch": {
 				"operationId": "updateProjectCheck",
@@ -2750,9 +2510,7 @@
 						"required": true,
 						"schema": {
 							"description": "Project slug or lowercase UUID.",
-							"examples": [
-								"engineering"
-							],
+							"examples": ["engineering"],
 							"maxLength": 64,
 							"minLength": 1,
 							"pattern": "^[a-z0-9-]+$",
@@ -2767,9 +2525,7 @@
 						"required": true,
 						"schema": {
 							"description": "Check ID.",
-							"examples": [
-								"33333333-3333-3333-3333-333333333333"
-							],
+							"examples": ["33333333-3333-3333-3333-333333333333"],
 							"format": "uuid",
 							"minLength": 1,
 							"type": "string"
@@ -2854,9 +2610,7 @@
 					}
 				],
 				"summary": "Update project check",
-				"tags": [
-					"Checks"
-				]
+				"tags": ["Checks"]
 			}
 		},
 		"/projects/{ref}/labels": {
@@ -2870,9 +2624,7 @@
 						"required": true,
 						"schema": {
 							"description": "Project UUID or slug.",
-							"examples": [
-								"engineering"
-							],
+							"examples": ["engineering"],
 							"maxLength": 64,
 							"minLength": 1,
 							"pattern": "^[a-z0-9-]+$",
@@ -2939,9 +2691,7 @@
 					}
 				],
 				"summary": "List project labels",
-				"tags": [
-					"Labels"
-				]
+				"tags": ["Labels"]
 			},
 			"post": {
 				"operationId": "createProjectLabel",
@@ -2953,9 +2703,7 @@
 						"required": true,
 						"schema": {
 							"description": "Project UUID or slug.",
-							"examples": [
-								"engineering"
-							],
+							"examples": ["engineering"],
 							"maxLength": 64,
 							"minLength": 1,
 							"pattern": "^[a-z0-9-]+$",
@@ -3052,9 +2800,7 @@
 					}
 				],
 				"summary": "Create project label",
-				"tags": [
-					"Labels"
-				]
+				"tags": ["Labels"]
 			}
 		},
 		"/projects/{ref}/labels/{label_id}": {
@@ -3068,9 +2814,7 @@
 						"required": true,
 						"schema": {
 							"description": "Project UUID or slug.",
-							"examples": [
-								"engineering"
-							],
+							"examples": ["engineering"],
 							"maxLength": 64,
 							"minLength": 1,
 							"pattern": "^[a-z0-9-]+$",
@@ -3152,9 +2896,7 @@
 					}
 				],
 				"summary": "Delete project label",
-				"tags": [
-					"Labels"
-				]
+				"tags": ["Labels"]
 			},
 			"patch": {
 				"operationId": "updateProjectLabel",
@@ -3166,9 +2908,7 @@
 						"required": true,
 						"schema": {
 							"description": "Project UUID or slug.",
-							"examples": [
-								"engineering"
-							],
+							"examples": ["engineering"],
 							"maxLength": 64,
 							"minLength": 1,
 							"pattern": "^[a-z0-9-]+$",
@@ -3277,9 +3017,7 @@
 					}
 				],
 				"summary": "Update project label",
-				"tags": [
-					"Labels"
-				]
+				"tags": ["Labels"]
 			}
 		},
 		"/projects/{ref}/members": {
@@ -3293,9 +3031,7 @@
 						"required": true,
 						"schema": {
 							"description": "Project UUID or slug.",
-							"examples": [
-								"engineering"
-							],
+							"examples": ["engineering"],
 							"maxLength": 64,
 							"minLength": 1,
 							"pattern": "^[a-z0-9-]+$",
@@ -3362,9 +3098,7 @@
 					}
 				],
 				"summary": "List project members",
-				"tags": [
-					"Project Members"
-				]
+				"tags": ["Project Members"]
 			},
 			"post": {
 				"operationId": "addProjectMember",
@@ -3376,9 +3110,7 @@
 						"required": true,
 						"schema": {
 							"description": "Project UUID or slug.",
-							"examples": [
-								"engineering"
-							],
+							"examples": ["engineering"],
 							"maxLength": 64,
 							"minLength": 1,
 							"pattern": "^[a-z0-9-]+$",
@@ -3475,9 +3207,7 @@
 					}
 				],
 				"summary": "Add project member",
-				"tags": [
-					"Project Members"
-				]
+				"tags": ["Project Members"]
 			}
 		},
 		"/projects/{ref}/members/{user_id}": {
@@ -3491,9 +3221,7 @@
 						"required": true,
 						"schema": {
 							"description": "Project UUID or slug.",
-							"examples": [
-								"engineering"
-							],
+							"examples": ["engineering"],
 							"maxLength": 64,
 							"minLength": 1,
 							"pattern": "^[a-z0-9-]+$",
@@ -3508,9 +3236,7 @@
 						"required": true,
 						"schema": {
 							"description": "User ID.",
-							"examples": [
-								"00000000-0000-0000-0000-000000000000"
-							],
+							"examples": ["00000000-0000-0000-0000-000000000000"],
 							"format": "uuid",
 							"type": "string"
 						}
@@ -3587,9 +3313,7 @@
 					}
 				],
 				"summary": "Remove project member",
-				"tags": [
-					"Project Members"
-				]
+				"tags": ["Project Members"]
 			},
 			"patch": {
 				"operationId": "updateProjectMemberRole",
@@ -3601,9 +3325,7 @@
 						"required": true,
 						"schema": {
 							"description": "Project UUID or slug.",
-							"examples": [
-								"engineering"
-							],
+							"examples": ["engineering"],
 							"maxLength": 64,
 							"minLength": 1,
 							"pattern": "^[a-z0-9-]+$",
@@ -3618,9 +3340,7 @@
 						"required": true,
 						"schema": {
 							"description": "User ID.",
-							"examples": [
-								"00000000-0000-0000-0000-000000000000"
-							],
+							"examples": ["00000000-0000-0000-0000-000000000000"],
 							"type": "string"
 						}
 					}
@@ -3713,9 +3433,7 @@
 					}
 				],
 				"summary": "Update project member role",
-				"tags": [
-					"Project Members"
-				]
+				"tags": ["Project Members"]
 			}
 		},
 		"/projects/{ref}/probes": {
@@ -3729,9 +3447,7 @@
 						"required": true,
 						"schema": {
 							"description": "Project UUID or slug.",
-							"examples": [
-								"engineering"
-							],
+							"examples": ["engineering"],
 							"type": "string"
 						}
 					}
@@ -3794,9 +3510,7 @@
 					}
 				],
 				"summary": "List project probes",
-				"tags": [
-					"Probes"
-				]
+				"tags": ["Probes"]
 			},
 			"post": {
 				"operationId": "createProjectProbe",
@@ -3808,9 +3522,7 @@
 						"required": true,
 						"schema": {
 							"description": "Project UUID or slug.",
-							"examples": [
-								"engineering"
-							],
+							"examples": ["engineering"],
 							"type": "string"
 						}
 					}
@@ -3893,9 +3605,7 @@
 					}
 				],
 				"summary": "Create project probe",
-				"tags": [
-					"Probes"
-				]
+				"tags": ["Probes"]
 			}
 		},
 		"/projects/{ref}/probes/{probe_id}": {
@@ -3909,9 +3619,7 @@
 						"required": true,
 						"schema": {
 							"description": "Project UUID or slug.",
-							"examples": [
-								"engineering"
-							],
+							"examples": ["engineering"],
 							"type": "string"
 						}
 					},
@@ -3922,9 +3630,7 @@
 						"required": true,
 						"schema": {
 							"description": "Probe ID.",
-							"examples": [
-								"33333333-3333-3333-3333-333333333333"
-							],
+							"examples": ["33333333-3333-3333-3333-333333333333"],
 							"format": "uuid",
 							"minLength": 1,
 							"type": "string"
@@ -3992,9 +3698,7 @@
 					}
 				],
 				"summary": "Delete project probe",
-				"tags": [
-					"Probes"
-				]
+				"tags": ["Probes"]
 			},
 			"get": {
 				"operationId": "getProjectProbe",
@@ -4006,9 +3710,7 @@
 						"required": true,
 						"schema": {
 							"description": "Project UUID or slug.",
-							"examples": [
-								"engineering"
-							],
+							"examples": ["engineering"],
 							"type": "string"
 						}
 					},
@@ -4019,9 +3721,7 @@
 						"required": true,
 						"schema": {
 							"description": "Probe ID.",
-							"examples": [
-								"33333333-3333-3333-3333-333333333333"
-							],
+							"examples": ["33333333-3333-3333-3333-333333333333"],
 							"format": "uuid",
 							"minLength": 1,
 							"type": "string"
@@ -4086,9 +3786,7 @@
 					}
 				],
 				"summary": "Get project probe",
-				"tags": [
-					"Probes"
-				]
+				"tags": ["Probes"]
 			},
 			"patch": {
 				"operationId": "updateProjectProbe",
@@ -4100,9 +3798,7 @@
 						"required": true,
 						"schema": {
 							"description": "Project UUID or slug.",
-							"examples": [
-								"engineering"
-							],
+							"examples": ["engineering"],
 							"type": "string"
 						}
 					},
@@ -4113,9 +3809,7 @@
 						"required": true,
 						"schema": {
 							"description": "Probe ID.",
-							"examples": [
-								"33333333-3333-3333-3333-333333333333"
-							],
+							"examples": ["33333333-3333-3333-3333-333333333333"],
 							"format": "uuid",
 							"minLength": 1,
 							"type": "string"
@@ -4200,9 +3894,7 @@
 					}
 				],
 				"summary": "Update project probe",
-				"tags": [
-					"Probes"
-				]
+				"tags": ["Probes"]
 			}
 		},
 		"/projects/{ref}/probes/{probe_id}/secret-rotations": {
@@ -4216,9 +3908,7 @@
 						"required": true,
 						"schema": {
 							"description": "Project UUID or slug.",
-							"examples": [
-								"engineering"
-							],
+							"examples": ["engineering"],
 							"type": "string"
 						}
 					},
@@ -4229,9 +3919,7 @@
 						"required": true,
 						"schema": {
 							"description": "Probe ID.",
-							"examples": [
-								"33333333-3333-3333-3333-333333333333"
-							],
+							"examples": ["33333333-3333-3333-3333-333333333333"],
 							"format": "uuid",
 							"minLength": 1,
 							"type": "string"
@@ -4306,9 +3994,7 @@
 					}
 				],
 				"summary": "Rotate project probe secret",
-				"tags": [
-					"Probes"
-				]
+				"tags": ["Probes"]
 			}
 		},
 		"/runtime/probes/{probe_id}/assignments": {
@@ -4394,9 +4080,7 @@
 					}
 				],
 				"summary": "List probe runtime assignments",
-				"tags": [
-					"Probe Runtime"
-				]
+				"tags": ["Probe Runtime"]
 			}
 		},
 		"/runtime/probes/{probe_id}/heartbeat": {
@@ -4492,9 +4176,7 @@
 					}
 				],
 				"summary": "Update probe runtime status",
-				"tags": [
-					"Probe Runtime"
-				]
+				"tags": ["Probe Runtime"]
 			}
 		},
 		"/runtime/probes/{probe_id}/hello": {
@@ -4590,9 +4272,103 @@
 					}
 				],
 				"summary": "Start probe runtime session",
-				"tags": [
-					"Probe Runtime"
-				]
+				"tags": ["Probe Runtime"]
+			}
+		},
+		"/runtime/probes/{probe_id}/results": {
+			"post": {
+				"operationId": "submitProbeRuntimeResults",
+				"parameters": [
+					{
+						"description": "Probe ID.",
+						"in": "path",
+						"name": "probe_id",
+						"required": true,
+						"schema": {
+							"description": "Probe ID.",
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/SubmitResultsBody"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/SubmitResultsOutputBody"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"401": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Unauthorized"
+					},
+					"403": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Forbidden"
+					},
+					"404": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"422": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Unprocessable Entity"
+					},
+					"500": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Internal Server Error"
+					}
+				},
+				"security": [
+					{
+						"probeAuth": []
+					}
+				],
+				"summary": "Submit probe runtime results",
+				"tags": ["Probe Runtime"]
 			}
 		}
 	},
