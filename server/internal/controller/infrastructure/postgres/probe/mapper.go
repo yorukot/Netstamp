@@ -108,6 +108,7 @@ func mapProbeFields(
 		SubdivisionCode: subdivisionCode,
 		Latitude:        latitude,
 		Longitude:       longitude,
+		Labels:          []domainlabel.Label{},
 		Status:          status,
 		CreatedAt:       createdAt.Time,
 		UpdatedAt:       updatedAt.Time,

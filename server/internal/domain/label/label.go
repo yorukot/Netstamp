@@ -1,6 +1,7 @@
 package label
 
 import (
+	"errors"
 	"strings"
 	"time"
 
@@ -33,11 +34,16 @@ func VNLabelID(labelID string) (string, error) {
 
 func VNLabelIDs(labelIDs []string) ([]string, error) {
 	normalized := make([]string, 0, len(labelIDs))
+	seen := make(map[string]struct{}, len(labelIDs))
 	for _, labelID := range labelIDs {
 		labelID, err := VNLabelID(labelID)
 		if err != nil {
 			return nil, err
 		}
+		if _, ok := seen[labelID]; ok {
+			return nil, errors.New("label IDs must be unique")
+		}
+		seen[labelID] = struct{}{}
 		normalized = append(normalized, labelID)
 	}
 

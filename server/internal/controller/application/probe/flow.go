@@ -94,7 +94,7 @@ func (f *probeFlow) projectLookupFailure(event ProbeEventName, err error) error 
 }
 
 func (f *probeFlow) roleLookupFailure(event ProbeEventName, err error) error {
-	if errors.Is(err, domainproject.ErrProjectNotFound) {
+	if errors.Is(err, domainproject.ErrProjectNotFound) || errors.Is(err, domainproject.ErrMemberNotFound) {
 		return f.businessFailure(event, ProbeReasonProjectNotFound, err)
 	}
 

@@ -25,7 +25,7 @@ func currentUserID(ctx context.Context) (string, error) {
 
 func mapProbeError(err error, fallback string) error {
 	switch {
-	case errors.Is(err, domainproject.ErrProjectNotFound), errors.Is(err, label.ErrLabelNotFound), errors.Is(err, domainprobe.ErrProbeNotFound):
+	case errors.Is(err, domainproject.ErrProjectNotFound), errors.Is(err, domainproject.ErrMemberNotFound), errors.Is(err, label.ErrLabelNotFound), errors.Is(err, domainprobe.ErrProbeNotFound):
 		return huma.Error404NotFound("not found")
 	case errors.Is(err, appprobe.ErrForbidden):
 		return huma.Error403Forbidden("forbidden")

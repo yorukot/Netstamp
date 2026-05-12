@@ -180,10 +180,11 @@ func (r *ProbeRepository) CreateProbe(ctx context.Context, input domainprobe.Pro
 			return mapCreateProbeCredentialError(credentialErr)
 		}
 
-		if _, statusErr := q.CreateProbeStatus(ctx, sqlc.CreateProbeStatusParams{
+		statusRow, statusErr := q.CreateProbeStatus(ctx, sqlc.CreateProbeStatusParams{
 			ProbeID: row.ID,
 			Status:  sqlc.ProbeStateOffline,
-		}); statusErr != nil {
+		})
+		if statusErr != nil {
 			return mapCreateProbeStatusError(statusErr)
 		}
 
@@ -201,7 +202,9 @@ func (r *ProbeRepository) CreateProbe(ctx context.Context, input domainprobe.Pro
 			return refreshErr
 		}
 
+		status := mapProbeStatus(statusRow)
 		created = mapProbe(row)
+		created.Status = &status
 		return nil
 	})
 	if err != nil {
