@@ -1,14 +1,3 @@
-FROM golang:1.25.7-alpine AS openapi-build
-
-WORKDIR /src/server
-
-COPY server/go.mod server/go.sum ./
-RUN go mod download
-
-COPY server ./
-RUN mkdir -p /out \
-    && go run ./cmd/openapi -output /out/openapi.json
-
 FROM node:24-alpine AS app-build
 
 WORKDIR /app
@@ -24,7 +13,6 @@ COPY packages/ui/package.json packages/ui/package.json
 RUN pnpm install --frozen-lockfile --filter @netstamp/docs... --filter @netstamp/web... --filter @netstamp/ui
 
 COPY docs docs
-COPY --from=openapi-build /out/openapi.json docs/public/openapi.json
 COPY web web
 COPY packages/brand packages/brand
 COPY packages/ui packages/ui
