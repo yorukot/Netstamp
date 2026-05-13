@@ -260,7 +260,6 @@ type SeriesResolution string
 
 const (
 	SeriesResolutionRaw    SeriesResolution = "raw"
-	SeriesResolutionLTTB   SeriesResolution = "lttb"
 	SeriesResolutionBucket SeriesResolution = "bucket"
 )
 

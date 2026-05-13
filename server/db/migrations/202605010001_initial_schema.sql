@@ -3,7 +3,6 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 CREATE EXTENSION IF NOT EXISTS citext;
 CREATE EXTENSION IF NOT EXISTS timescaledb;
-CREATE EXTENSION IF NOT EXISTS timescaledb_toolkit;
 
 CREATE TYPE project_member_role AS ENUM ('owner', 'admin', 'editor', 'viewer');
 CREATE TYPE check_type AS ENUM ('ping');

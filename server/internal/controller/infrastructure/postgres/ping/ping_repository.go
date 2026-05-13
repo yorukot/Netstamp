@@ -133,21 +133,12 @@ func (r *PingRepository) ListPingSeries(ctx context.Context, input domainping.Se
 		return domainping.SeriesResult{Points: points, Resolution: domainping.SeriesResolutionRaw, TotalPoints: totalPoints}, nil
 	}
 
-	if input.Metric == "successRate" {
-		points, bucketErr := r.listBucketPingSeries(ctx, projectID, probeID, checkID, startedAtFrom, startedAtTo, input)
-		if bucketErr != nil {
-			postgres.RecordDBSpanError(span, bucketErr)
-			return domainping.SeriesResult{}, bucketErr
-		}
-		return domainping.SeriesResult{Points: points, Resolution: domainping.SeriesResolutionBucket, TotalPoints: totalPoints}, nil
+	points, bucketErr := r.listBucketPingSeries(ctx, projectID, probeID, checkID, startedAtFrom, startedAtTo, input)
+	if bucketErr != nil {
+		postgres.RecordDBSpanError(span, bucketErr)
+		return domainping.SeriesResult{}, bucketErr
 	}
-
-	points, lttbErr := r.listLTTBPingSeries(ctx, projectID, probeID, checkID, startedAtFrom, startedAtTo, input)
-	if lttbErr != nil {
-		postgres.RecordDBSpanError(span, lttbErr)
-		return domainping.SeriesResult{}, lttbErr
-	}
-	return domainping.SeriesResult{Points: points, Resolution: domainping.SeriesResolutionLTTB, TotalPoints: totalPoints}, nil
+	return domainping.SeriesResult{Points: points, Resolution: domainping.SeriesResolutionBucket, TotalPoints: totalPoints}, nil
 }
 
 func (r *PingRepository) listRawPingSeries(ctx context.Context, projectID, probeID, checkID uuid.UUID, startedAtFrom, startedAtTo pgtype.Timestamptz, metric string) ([]domainping.SeriesPoint, error) {
@@ -163,22 +154,6 @@ func (r *PingRepository) listRawPingSeries(ctx context.Context, projectID, probe
 		return nil, err
 	}
 	return rawSeriesRows(rows), nil
-}
-
-func (r *PingRepository) listLTTBPingSeries(ctx context.Context, projectID, probeID, checkID uuid.UUID, startedAtFrom, startedAtTo pgtype.Timestamptz, input domainping.SeriesQuery) ([]domainping.SeriesPoint, error) {
-	rows, err := r.queries.ListPingResultLTTBSeries(ctx, sqlc.ListPingResultLTTBSeriesParams{
-		Metric:        input.Metric,
-		ProjectID:     projectID,
-		ProbeID:       probeID,
-		CheckID:       checkID,
-		StartedAtFrom: startedAtFrom,
-		StartedAtTo:   startedAtTo,
-		MaxDataPoints: input.MaxDataPoints,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return lttbSeriesRows(rows), nil
 }
 
 func (r *PingRepository) listBucketPingSeries(ctx context.Context, projectID, probeID, checkID uuid.UUID, startedAtFrom, startedAtTo pgtype.Timestamptz, input domainping.SeriesQuery) ([]domainping.SeriesPoint, error) {
@@ -198,14 +173,6 @@ func (r *PingRepository) listBucketPingSeries(ctx context.Context, projectID, pr
 }
 
 func rawSeriesRows(rows []sqlc.ListPingResultRawSeriesRow) []domainping.SeriesPoint {
-	points := make([]domainping.SeriesPoint, 0, len(rows))
-	for _, row := range rows {
-		points = append(points, seriesPoint(row.BucketMs, row.Value))
-	}
-	return points
-}
-
-func lttbSeriesRows(rows []sqlc.ListPingResultLTTBSeriesRow) []domainping.SeriesPoint {
 	points := make([]domainping.SeriesPoint, 0, len(rows))
 	for _, row := range rows {
 		points = append(points, seriesPoint(row.BucketMs, row.Value))

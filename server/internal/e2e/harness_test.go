@@ -32,6 +32,7 @@ import (
 	appprobe "github.com/yorukot/netstamp/internal/controller/application/probe"
 	appproberuntime "github.com/yorukot/netstamp/internal/controller/application/proberuntime"
 	appproject "github.com/yorukot/netstamp/internal/controller/application/project"
+	appresult "github.com/yorukot/netstamp/internal/controller/application/result"
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/postgres"
 	pgassignment "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/assignment"
 	pgcheck "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/check"
@@ -49,6 +50,7 @@ const testDatabaseURLEnv = "NETSTAMP_TEST_DATABASE_URL"
 type apiSuite struct {
 	baseURL string
 	client  *http.Client
+	pool    *pgxpool.Pool
 }
 
 func newAPISuite(t *testing.T) *apiSuite {
@@ -105,6 +107,7 @@ func newAPISuite(t *testing.T) *apiSuite {
 	return &apiSuite{
 		baseURL: server.URL,
 		client:  server.Client(),
+		pool:    pool,
 	}
 }
 
@@ -238,6 +241,7 @@ func newTestRouter(pool *pgxpool.Pool) http.Handler {
 			events,
 		),
 		ProjectService: appproject.NewService(projectRepo, events),
+		ResultService:  appresult.NewService(pingRepo, projectRepo),
 		ReadinessCheck: postgres.NewReadinessCheck(pool),
 		RequestTimeout: 15 * time.Second,
 	})

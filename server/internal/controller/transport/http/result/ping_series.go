@@ -61,7 +61,7 @@ type queryMetadataBody struct {
 	FromMs        int64  `json:"from" example:"1778662800000"`
 	ToMs          int64  `json:"to" example:"1778749200000"`
 	MaxDataPoints int32  `json:"maxDataPoints" example:"600"`
-	Resolution    string `json:"resolution" example:"lttb"`
+	Resolution    string `json:"resolution" example:"bucket"`
 	TotalPoints   int64  `json:"totalPoints" example:"487"`
 }
 

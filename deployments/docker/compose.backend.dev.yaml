@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: ${TIMESCALEDB_IMAGE:-timescale/timescaledb-ha:pg16}
+    image: ${TIMESCALEDB_IMAGE:-timescale/timescaledb:latest-pg16}
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${DATABASE_NAME:-netstamp}
@@ -9,7 +9,7 @@ services:
     ports:
       - "${DATABASE_PORT:-5432}:5432"
     volumes:
-      - netstamp-backend-dev-postgres:/home/postgres/pgdata/data
+      - netstamp-backend-dev-postgres:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
       interval: 5s

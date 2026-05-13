@@ -30,9 +30,9 @@ Backend source lives in `server/`. The docs API explorer reads `docs/public/open
 
 ## Database Image
 
-Docker Compose uses `TIMESCALEDB_IMAGE` for the PostgreSQL/TimescaleDB service and defaults it to `timescale/timescaledb-ha:pg16`. The default is intentionally heavier because current migrations enable `timescaledb_toolkit` as well as the core `timescaledb` extension.
+Docker Compose uses `TIMESCALEDB_IMAGE` for the PostgreSQL/TimescaleDB service and defaults it to the lightweight `timescale/timescaledb:latest-pg16` image.
 
-Goose migrations can enable installed PostgreSQL extensions, but they do not install extension packages into the container image. A smaller non-HA TimescaleDB image is acceptable only if the required schema no longer enables Toolkit, or if the image is customized to include Toolkit. When switching between HA and non-HA TimescaleDB images, update the compose data volume path to match the selected image layout.
+Current migrations enable core TimescaleDB only. Result series downsampling uses `time_bucket`, so TimescaleDB Toolkit and DB-side `lttb` are not required. If a future schema adds extra extensions, the selected image must include those extension packages before Goose can enable them.
 
 ## Shared UI
 

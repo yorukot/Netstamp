@@ -3,6 +3,8 @@
 package e2e
 
 import (
+	"context"
+	"fmt"
 	"net/http"
 	"testing"
 	"time"
@@ -243,6 +245,85 @@ func TestAPIAuthProjectAndProbeRuntimeFlow(t *testing.T) {
 	if submitted.Accepted != 1 {
 		t.Fatalf("expected duplicate submit to remain accepted, got %#v", submitted)
 	}
+
+	assertExtensionNotEnabled(t, suite, "timescaledb_toolkit")
+
+	seriesStart := time.Date(2026, 5, 13, 10, 5, 0, 0, time.UTC)
+	seriesPayload := map[string]any{
+		"results": []map[string]any{{
+			"checkId": plainCheck.Check.ID,
+			"type":    "ping",
+			"ping": []map[string]any{
+				pingResultPayload(seriesStart, 11.0),
+				pingResultPayload(seriesStart.Add(time.Minute), 21.0),
+				pingResultPayload(seriesStart.Add(2*time.Minute), 31.0),
+			},
+		}},
+	}
+	t.Log("e2e: submitting multiple ping results for bucketed series query")
+	suite.doJSON(t, http.MethodPost, "/api/v1/runtime/probes/"+createdProbe.Probe.ID+"/results", seriesPayload, probeHeaders(createdProbe.Secret), http.StatusOK, &submitted)
+	if submitted.Accepted != 3 {
+		t.Fatalf("expected three accepted series results, got %#v", submitted)
+	}
+
+	var series pingSeriesResponse
+	seriesPath := fmt.Sprintf(
+		"/api/v1/projects/%s/results/ping/series?probeId=%s&checkId=%s&from=%d&to=%d&metric=rttAvgMs&maxDataPoints=2",
+		createdProject.Project.Slug,
+		createdProbe.Probe.ID,
+		plainCheck.Check.ID,
+		seriesStart.Add(-time.Minute).UnixMilli(),
+		seriesStart.Add(3*time.Minute).UnixMilli(),
+	)
+	t.Log("e2e: querying ping result series with maxDataPoints forcing bucket resolution")
+	suite.doJSON(t, http.MethodGet, seriesPath, nil, authHeaders(login.AccessToken), http.StatusOK, &series)
+	if series.Query.Resolution != "bucket" {
+		t.Fatalf("expected bucket resolution without TimescaleDB Toolkit LTTB, got %#v", series.Query)
+	}
+	if series.Query.TotalPoints != 3 {
+		t.Fatalf("expected three source points in series metadata, got %#v", series.Query)
+	}
+	if len(series.Series) != 1 || series.Series[0].Name != "rttAvgMs" || len(series.Series[0].Points) == 0 {
+		t.Fatalf("expected rttAvgMs series with bucketed points, got %#v", series.Series)
+	}
+	if len(series.Series[0].Points) > 2 {
+		t.Fatalf("expected bucketed series to honor maxDataPoints target, got %d points: %#v", len(series.Series[0].Points), series.Series[0].Points)
+	}
+}
+
+func assertExtensionNotEnabled(t *testing.T, suite *apiSuite, extension string) {
+	t.Helper()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	var enabled bool
+	if err := suite.pool.QueryRow(ctx, "SELECT EXISTS (SELECT 1 FROM pg_extension WHERE extname = $1)", extension).Scan(&enabled); err != nil {
+		t.Fatalf("query extension %q state: %v", extension, err)
+	}
+	if enabled {
+		t.Fatalf("expected extension %q to be absent from migrated database", extension)
+	}
+}
+
+func pingResultPayload(startedAt time.Time, rttAvgMs float64) map[string]any {
+	return map[string]any{
+		"startedAt":     startedAt.Format(time.RFC3339),
+		"finishedAt":    startedAt.Add(time.Second).Format(time.RFC3339),
+		"durationMs":    1000,
+		"status":        "successful",
+		"sentCount":     4,
+		"receivedCount": 4,
+		"lossPercent":   0,
+		"rttMinMs":      rttAvgMs - 1,
+		"rttAvgMs":      rttAvgMs,
+		"rttMedianMs":   rttAvgMs,
+		"rttMaxMs":      rttAvgMs + 1,
+		"rttStddevMs":   1,
+		"rttSamplesMs":  []float64{rttAvgMs - 1, rttAvgMs, rttAvgMs, rttAvgMs + 1},
+		"resolvedIp":    "1.1.1.1",
+		"ipFamily":      "inet",
+		"raw":           map[string]any{},
+	}
 }
 
 type authResponse struct {
@@ -298,6 +379,28 @@ type helloResponse struct {
 
 type submitResultsResponse struct {
 	Accepted int `json:"accepted"`
+}
+
+type pingSeriesResponse struct {
+	Series []seriesBody        `json:"series"`
+	Query  seriesQueryMetadata `json:"query"`
+}
+
+type seriesBody struct {
+	Name   string             `json:"name"`
+	Labels map[string]string  `json:"labels"`
+	Unit   string             `json:"unit"`
+	Points []seriesPointTuple `json:"points"`
+}
+
+type seriesPointTuple [2]float64
+
+type seriesQueryMetadata struct {
+	FromMs        int64  `json:"from"`
+	ToMs          int64  `json:"to"`
+	MaxDataPoints int32  `json:"maxDataPoints"`
+	Resolution    string `json:"resolution"`
+	TotalPoints   int64  `json:"totalPoints"`
 }
 
 type labelResponse struct {

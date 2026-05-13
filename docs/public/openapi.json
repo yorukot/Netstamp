@@ -1035,7 +1035,7 @@
 						"type": "integer"
 					},
 					"resolution": {
-						"examples": ["lttb"],
+						"examples": ["bucket"],
 						"type": "string"
 					},
 					"to": {
