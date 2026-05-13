@@ -192,6 +192,8 @@ Core tables include:
 
 `ping_results` is a TimescaleDB hypertable partitioned by `started_at`. It stores duration, sent and received packet counts, loss percentage, RTT metrics, RTT samples, resolved IP, IP family, raw result data, and optional error details.
 
+The Docker Compose stacks default to `timescale/timescaledb-ha:pg16` through `TIMESCALEDB_IMAGE` because migrations enable both `timescaledb` and `timescaledb_toolkit`. Goose `CREATE EXTENSION` statements only activate extensions already installed in the PostgreSQL image; they do not install Toolkit into a smaller image. If Toolkit is no longer required, remove the Toolkit extension from migrations before switching to a lightweight TimescaleDB image, and update the Postgres data volume path at the same time.
+
 Database migrations live in `server/db/migrations/`. SQL queries for sqlc live in `server/db/query/`, and generated Go code lives under `server/internal/controller/infrastructure/postgres/sqlc/`.
 
 ## Tech Stack
@@ -302,27 +304,28 @@ The backend reads environment variables and an optional `.env` file from the rep
 
 Common controller settings:
 
-| Variable                             | Purpose                                         | Default                 |
-| ------------------------------------ | ----------------------------------------------- | ----------------------- |
-| `APP_ENV`                            | Runtime environment name                        | `local`                 |
-| `SERVICE_NAME`                       | Service name used in logs and telemetry         | `controller`            |
-| `APP_VERSION`                        | Service version used in logs and telemetry      | `0.1.0`                 |
-| `API_VERSION`                        | API path version mounted at `/api/{version}`    | `v1`                    |
-| `LOG_LEVEL`                          | Zap log level                                   | `info`                  |
-| `LOG_PSEUDONYM_KEY`                  | Key for privacy-preserving log pseudonyms       | local development value |
-| `BACKEND_BASE_URL`                   | Absolute backend origin for OpenAPI server URLs | empty                   |
-| `HTTP_ADDR`                          | Controller listen address                       | `:8080`                 |
-| `REQUEST_TIMEOUT`                    | Request timeout middleware duration             | `10s`                   |
-| `SHUTDOWN_TIMEOUT`                   | Graceful shutdown timeout                       | `10s`                   |
-| `DATABASE_HOST`                      | PostgreSQL host                                 | `localhost`             |
-| `DATABASE_PORT`                      | PostgreSQL port                                 | `5432`                  |
-| `DATABASE_USER`                      | PostgreSQL username                             | `netstamp`              |
-| `DATABASE_PASSWORD`                  | PostgreSQL password                             | `netstamp`              |
-| `DATABASE_NAME`                      | PostgreSQL database                             | `netstamp`              |
-| `DATABASE_SSLMODE`                   | PostgreSQL SSL mode                             | `disable`               |
-| `AUTH_JWT_SECRET`                    | JWT signing secret                              | local development value |
-| `AUTH_ACCESS_TOKEN_TTL`              | JWT access token lifetime                       | `12h`                   |
-| `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` | Optional OTLP traces endpoint                   | empty                   |
+| Variable                             | Purpose                                         | Default                         |
+| ------------------------------------ | ----------------------------------------------- | ------------------------------- |
+| `APP_ENV`                            | Runtime environment name                        | `local`                         |
+| `SERVICE_NAME`                       | Service name used in logs and telemetry         | `controller`                    |
+| `APP_VERSION`                        | Service version used in logs and telemetry      | `0.1.0`                         |
+| `API_VERSION`                        | API path version mounted at `/api/{version}`    | `v1`                            |
+| `LOG_LEVEL`                          | Zap log level                                   | `info`                          |
+| `LOG_PSEUDONYM_KEY`                  | Key for privacy-preserving log pseudonyms       | local development value         |
+| `BACKEND_BASE_URL`                   | Absolute backend origin for OpenAPI server URLs | empty                           |
+| `HTTP_ADDR`                          | Controller listen address                       | `:8080`                         |
+| `REQUEST_TIMEOUT`                    | Request timeout middleware duration             | `10s`                           |
+| `SHUTDOWN_TIMEOUT`                   | Graceful shutdown timeout                       | `10s`                           |
+| `DATABASE_HOST`                      | PostgreSQL host                                 | `localhost`                     |
+| `DATABASE_PORT`                      | PostgreSQL port                                 | `5432`                          |
+| `DATABASE_USER`                      | PostgreSQL username                             | `netstamp`                      |
+| `DATABASE_PASSWORD`                  | PostgreSQL password                             | `netstamp`                      |
+| `DATABASE_NAME`                      | PostgreSQL database                             | `netstamp`                      |
+| `DATABASE_SSLMODE`                   | PostgreSQL SSL mode                             | `disable`                       |
+| `TIMESCALEDB_IMAGE`                  | Compose image for PostgreSQL/TimescaleDB        | `timescale/timescaledb-ha:pg16` |
+| `AUTH_JWT_SECRET`                    | JWT signing secret                              | local development value         |
+| `AUTH_ACCESS_TOKEN_TTL`              | JWT access token lifetime                       | `12h`                           |
+| `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` | Optional OTLP traces endpoint                   | empty                           |
 
 Probe settings:
 
@@ -439,6 +442,8 @@ Required production environment values include:
 - `GF_SECURITY_ADMIN_PASSWORD` when running the observability stack
 
 Run migrations before serving the controller. The compose stack includes a `migrate` service that applies Goose migrations before the controller starts.
+
+`TIMESCALEDB_IMAGE` may be overridden for local or deployment testing, but the selected image must include every extension enabled by migrations. The default HA image includes TimescaleDB Toolkit; a non-HA image should only be used after removing `timescaledb_toolkit` from the required schema or building a custom image that includes it.
 
 ## Development Guidelines
 

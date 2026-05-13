@@ -46,3 +46,82 @@ VALUES (
     sqlc.narg(error_message)
 )
 ON CONFLICT (project_id, probe_id, check_id, started_at) DO NOTHING;
+
+-- name: CountPingResultSeriesPoints :one
+SELECT count(*)::bigint
+FROM ping_results
+WHERE project_id = sqlc.arg(project_id)
+    AND probe_id = sqlc.arg(probe_id)
+    AND check_id = sqlc.arg(check_id)
+    AND started_at >= sqlc.arg(started_at_from)
+    AND started_at < sqlc.arg(started_at_to)
+    AND (sqlc.arg(metric)::text != 'rttAvgMs' OR rtt_avg_ms IS NOT NULL);
+
+-- name: ListPingResultRawSeries :many
+SELECT
+    (extract(epoch FROM started_at) * 1000)::bigint AS bucket_ms,
+    CASE sqlc.arg(metric)::text
+        WHEN 'rttAvgMs' THEN rtt_avg_ms
+        WHEN 'lossPercent' THEN loss_percent
+        WHEN 'successRate' THEN CASE WHEN status = 'successful' THEN 100.0 ELSE 0.0 END
+    END::double precision AS value
+FROM ping_results
+WHERE project_id = sqlc.arg(project_id)
+    AND probe_id = sqlc.arg(probe_id)
+    AND check_id = sqlc.arg(check_id)
+    AND started_at >= sqlc.arg(started_at_from)
+    AND started_at < sqlc.arg(started_at_to)
+    AND (sqlc.arg(metric)::text != 'rttAvgMs' OR rtt_avg_ms IS NOT NULL)
+ORDER BY started_at ASC;
+
+-- name: ListPingResultLTTBSeries :many
+WITH filtered AS (
+    SELECT
+        started_at,
+        CASE sqlc.arg(metric)::text
+            WHEN 'rttAvgMs' THEN rtt_avg_ms
+            WHEN 'lossPercent' THEN loss_percent
+        END::double precision AS value
+    FROM ping_results
+    WHERE project_id = sqlc.arg(project_id)
+        AND probe_id = sqlc.arg(probe_id)
+        AND check_id = sqlc.arg(check_id)
+        AND started_at >= sqlc.arg(started_at_from)
+        AND started_at < sqlc.arg(started_at_to)
+        AND (
+            (sqlc.arg(metric)::text = 'rttAvgMs' AND rtt_avg_ms IS NOT NULL)
+            OR sqlc.arg(metric)::text = 'lossPercent'
+        )
+    ORDER BY started_at ASC
+),
+sampled AS (
+    SELECT lttb(started_at, value, sqlc.arg(max_data_points)::integer) AS points
+    FROM filtered
+)
+SELECT
+    (extract(epoch FROM sample.time) * 1000)::bigint AS bucket_ms,
+    sample.value::double precision AS value
+FROM sampled, unnest(sampled.points) AS sample(time, value)
+ORDER BY sample.time ASC;
+
+-- name: ListPingResultBucketSeries :many
+SELECT
+    (extract(epoch FROM time_bucket(
+        (ceil(extract(epoch FROM (sqlc.arg(started_at_to)::timestamptz - sqlc.arg(started_at_from)::timestamptz)) / sqlc.arg(max_data_points)::double precision)::bigint * interval '1 second'),
+        started_at,
+        sqlc.arg(started_at_from)::timestamptz
+    )) * 1000)::bigint AS bucket_ms,
+    CASE sqlc.arg(metric)::text
+        WHEN 'rttAvgMs' THEN avg(rtt_avg_ms)
+        WHEN 'lossPercent' THEN avg(loss_percent)
+        WHEN 'successRate' THEN 100.0 * count(*) FILTER (WHERE status = 'successful') / NULLIF(count(*), 0)
+    END::double precision AS value
+FROM ping_results
+WHERE project_id = sqlc.arg(project_id)
+    AND probe_id = sqlc.arg(probe_id)
+    AND check_id = sqlc.arg(check_id)
+    AND started_at >= sqlc.arg(started_at_from)
+    AND started_at < sqlc.arg(started_at_to)
+    AND (sqlc.arg(metric)::text != 'rttAvgMs' OR rtt_avg_ms IS NOT NULL)
+GROUP BY bucket_ms
+ORDER BY bucket_ms ASC;

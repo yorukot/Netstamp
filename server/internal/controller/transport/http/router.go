@@ -19,6 +19,7 @@ import (
 	appprobe "github.com/yorukot/netstamp/internal/controller/application/probe"
 	appproberuntime "github.com/yorukot/netstamp/internal/controller/application/proberuntime"
 	appproject "github.com/yorukot/netstamp/internal/controller/application/project"
+	appresult "github.com/yorukot/netstamp/internal/controller/application/result"
 	authhttp "github.com/yorukot/netstamp/internal/controller/transport/http/auth"
 	checkhttp "github.com/yorukot/netstamp/internal/controller/transport/http/check"
 	labelhttp "github.com/yorukot/netstamp/internal/controller/transport/http/label"
@@ -26,6 +27,7 @@ import (
 	probehttp "github.com/yorukot/netstamp/internal/controller/transport/http/probe"
 	proberuntimehttp "github.com/yorukot/netstamp/internal/controller/transport/http/proberuntime"
 	projecthttp "github.com/yorukot/netstamp/internal/controller/transport/http/project"
+	resulthttp "github.com/yorukot/netstamp/internal/controller/transport/http/result"
 	httptracing "github.com/yorukot/netstamp/internal/platform/observability/httptrace"
 )
 
@@ -40,6 +42,7 @@ type Dependencies struct {
 	ProbeService   *appprobe.Service
 	ProbeRuntime   *appproberuntime.Service
 	ProjectService *appproject.Service
+	ResultService  *appresult.Service
 	ReadinessCheck func(context.Context) error
 	RequestTimeout time.Duration
 	MetricsHandler http.Handler
@@ -104,6 +107,7 @@ func registerAPIRoutes(api huma.API, dep Dependencies) {
 	labelhttp.NewHandler(dep.LabelService, dep.AuthVerifier).RegisterRoutes(api)
 	checkhttp.NewHandler(dep.CheckService, dep.AuthVerifier).RegisterRoutes(api)
 	probehttp.NewHandler(dep.ProbeService, dep.AuthVerifier).RegisterRoutes(api)
+	resulthttp.NewHandler(dep.ResultService, dep.AuthVerifier).RegisterRoutes(api)
 	proberuntimehttp.NewHandler(dep.ProbeRuntime).RegisterRoutes(api)
 }
 

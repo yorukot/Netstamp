@@ -16,6 +16,7 @@ import (
 	appprobe "github.com/yorukot/netstamp/internal/controller/application/probe"
 	appproberuntime "github.com/yorukot/netstamp/internal/controller/application/proberuntime"
 	appproject "github.com/yorukot/netstamp/internal/controller/application/project"
+	appresult "github.com/yorukot/netstamp/internal/controller/application/result"
 	"github.com/yorukot/netstamp/internal/controller/config"
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/postgres"
 	pgassignment "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/assignment"
@@ -124,6 +125,7 @@ func New(ctx context.Context) (*Application, error) {
 	probeSvc := appprobe.NewService(probeRepo, projectRepo, labelRepo, assignmentSvc, security.NewProbeSecretGenerator(), probeEvents)
 	pingRepo := pgping.NewPingRepository(dbPool)
 	probeRuntimeSvc := appproberuntime.NewService(probeRepo, pingRepo, security.NewProbeSecretVerifier(), probeRuntimeEvents)
+	resultSvc := appresult.NewService(pingRepo, projectRepo)
 	readiness := postgres.NewReadinessCheck(dbPool)
 
 	httpHandler := httpserver.NewRouter(httpserver.Dependencies{
@@ -137,6 +139,7 @@ func New(ctx context.Context) (*Application, error) {
 		ProbeService:   probeSvc,
 		ProbeRuntime:   probeRuntimeSvc,
 		ProjectService: projectSvc,
+		ResultService:  resultSvc,
 		ReadinessCheck: readiness,
 		RequestTimeout: cfg.HTTP.RequestTimeout,
 		MetricsHandler: metricsProvider.Handler(),

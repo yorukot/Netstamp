@@ -14,7 +14,7 @@ import (
 
 const (
 	DefaultHTTPTimeout         = 10 * time.Second
-	DefaultMaxWorkers          = 16
+	DefaultMaxWorkers          = 256
 	DefaultResultQueueSize     = 10000
 	DefaultResultBatchSize     = 100
 	DefaultResultFlushInterval = 5 * time.Second

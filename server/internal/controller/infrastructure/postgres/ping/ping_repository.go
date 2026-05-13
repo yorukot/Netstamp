@@ -2,14 +2,19 @@ package pgping
 
 import (
 	"context"
+	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/postgres"
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/sqlc"
+	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
+	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
+	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 )
 
 type PingRepository struct {
@@ -84,4 +89,141 @@ func (r *PingRepository) CreatePingResults(ctx context.Context, inputs []domainp
 
 func storageRTTSamples(samples []float64) []float64 {
 	return append([]float64{}, samples...)
+}
+
+func (r *PingRepository) ListPingSeries(ctx context.Context, input domainping.SeriesQuery) (domainping.SeriesResult, error) {
+	ctx, span := postgres.StartDBSpan(ctx, pgpingTracer, "ping_results", "postgres.ping_results.series", "SELECT", "SELECT ping result time series")
+	defer span.End()
+
+	projectID, err := postgres.ParseUUID(input.ProjectID, domainproject.ErrProjectNotFound)
+	if err != nil {
+		return domainping.SeriesResult{}, err
+	}
+	probeID, err := postgres.ParseUUID(input.ProbeID, domainprobe.ErrInvalidInput)
+	if err != nil {
+		return domainping.SeriesResult{}, err
+	}
+	checkID, err := postgres.ParseUUID(input.CheckID, domaincheck.ErrInvalidInput)
+	if err != nil {
+		return domainping.SeriesResult{}, err
+	}
+
+	startedAtFrom := pgtype.Timestamptz{Time: input.From.UTC(), Valid: true}
+	startedAtTo := pgtype.Timestamptz{Time: input.To.UTC(), Valid: true}
+	countParams := sqlc.CountPingResultSeriesPointsParams{
+		ProjectID:     projectID,
+		ProbeID:       probeID,
+		CheckID:       checkID,
+		StartedAtFrom: startedAtFrom,
+		StartedAtTo:   startedAtTo,
+		Metric:        input.Metric,
+	}
+	totalPoints, err := r.queries.CountPingResultSeriesPoints(ctx, countParams)
+	if err != nil {
+		postgres.RecordDBSpanError(span, err)
+		return domainping.SeriesResult{}, err
+	}
+
+	if totalPoints <= int64(input.MaxDataPoints) {
+		points, rawErr := r.listRawPingSeries(ctx, projectID, probeID, checkID, startedAtFrom, startedAtTo, input.Metric)
+		if rawErr != nil {
+			postgres.RecordDBSpanError(span, rawErr)
+			return domainping.SeriesResult{}, rawErr
+		}
+		return domainping.SeriesResult{Points: points, Resolution: domainping.SeriesResolutionRaw, TotalPoints: totalPoints}, nil
+	}
+
+	if input.Metric == "successRate" {
+		points, bucketErr := r.listBucketPingSeries(ctx, projectID, probeID, checkID, startedAtFrom, startedAtTo, input)
+		if bucketErr != nil {
+			postgres.RecordDBSpanError(span, bucketErr)
+			return domainping.SeriesResult{}, bucketErr
+		}
+		return domainping.SeriesResult{Points: points, Resolution: domainping.SeriesResolutionBucket, TotalPoints: totalPoints}, nil
+	}
+
+	points, lttbErr := r.listLTTBPingSeries(ctx, projectID, probeID, checkID, startedAtFrom, startedAtTo, input)
+	if lttbErr != nil {
+		postgres.RecordDBSpanError(span, lttbErr)
+		return domainping.SeriesResult{}, lttbErr
+	}
+	return domainping.SeriesResult{Points: points, Resolution: domainping.SeriesResolutionLTTB, TotalPoints: totalPoints}, nil
+}
+
+func (r *PingRepository) listRawPingSeries(ctx context.Context, projectID, probeID, checkID uuid.UUID, startedAtFrom, startedAtTo pgtype.Timestamptz, metric string) ([]domainping.SeriesPoint, error) {
+	rows, err := r.queries.ListPingResultRawSeries(ctx, sqlc.ListPingResultRawSeriesParams{
+		Metric:        metric,
+		ProjectID:     projectID,
+		ProbeID:       probeID,
+		CheckID:       checkID,
+		StartedAtFrom: startedAtFrom,
+		StartedAtTo:   startedAtTo,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return rawSeriesRows(rows), nil
+}
+
+func (r *PingRepository) listLTTBPingSeries(ctx context.Context, projectID, probeID, checkID uuid.UUID, startedAtFrom, startedAtTo pgtype.Timestamptz, input domainping.SeriesQuery) ([]domainping.SeriesPoint, error) {
+	rows, err := r.queries.ListPingResultLTTBSeries(ctx, sqlc.ListPingResultLTTBSeriesParams{
+		Metric:        input.Metric,
+		ProjectID:     projectID,
+		ProbeID:       probeID,
+		CheckID:       checkID,
+		StartedAtFrom: startedAtFrom,
+		StartedAtTo:   startedAtTo,
+		MaxDataPoints: input.MaxDataPoints,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return lttbSeriesRows(rows), nil
+}
+
+func (r *PingRepository) listBucketPingSeries(ctx context.Context, projectID, probeID, checkID uuid.UUID, startedAtFrom, startedAtTo pgtype.Timestamptz, input domainping.SeriesQuery) ([]domainping.SeriesPoint, error) {
+	rows, err := r.queries.ListPingResultBucketSeries(ctx, sqlc.ListPingResultBucketSeriesParams{
+		StartedAtTo:   startedAtTo,
+		StartedAtFrom: startedAtFrom,
+		MaxDataPoints: float64(input.MaxDataPoints),
+		Metric:        input.Metric,
+		ProjectID:     projectID,
+		ProbeID:       probeID,
+		CheckID:       checkID,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return bucketSeriesRows(rows), nil
+}
+
+func rawSeriesRows(rows []sqlc.ListPingResultRawSeriesRow) []domainping.SeriesPoint {
+	points := make([]domainping.SeriesPoint, 0, len(rows))
+	for _, row := range rows {
+		points = append(points, seriesPoint(row.BucketMs, row.Value))
+	}
+	return points
+}
+
+func lttbSeriesRows(rows []sqlc.ListPingResultLTTBSeriesRow) []domainping.SeriesPoint {
+	points := make([]domainping.SeriesPoint, 0, len(rows))
+	for _, row := range rows {
+		points = append(points, seriesPoint(row.BucketMs, row.Value))
+	}
+	return points
+}
+
+func bucketSeriesRows(rows []sqlc.ListPingResultBucketSeriesRow) []domainping.SeriesPoint {
+	points := make([]domainping.SeriesPoint, 0, len(rows))
+	for _, row := range rows {
+		points = append(points, seriesPoint(row.BucketMs, row.Value))
+	}
+	return points
+}
+
+func seriesPoint(timestampMs int64, value float64) domainping.SeriesPoint {
+	return domainping.SeriesPoint{
+		Timestamp: time.UnixMilli(timestampMs).UTC(),
+		Value:     value,
+	}
 }

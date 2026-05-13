@@ -33,14 +33,14 @@ x-backend-environment: &backend-environment
 
 services:
   postgres:
-    image: ${TIMESCALEDB_IMAGE:-timescale/timescaledb:2.26.4-pg16}
+    image: ${TIMESCALEDB_IMAGE:-timescale/timescaledb-ha:pg16}
     restart: unless-stopped
     environment:
       POSTGRES_DB: netstamp
       POSTGRES_USER: netstamp
       POSTGRES_PASSWORD: ${DATABASE_PASSWORD:?set DATABASE_PASSWORD}
     volumes:
-      - netstamp-postgres:/var/lib/postgresql/data
+      - netstamp-postgres:/home/postgres/pgdata/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U netstamp -d netstamp"]
       interval: 5s

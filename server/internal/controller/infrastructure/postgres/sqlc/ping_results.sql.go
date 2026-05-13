@@ -13,6 +13,40 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countPingResultSeriesPoints = `-- name: CountPingResultSeriesPoints :one
+SELECT count(*)::bigint
+FROM ping_results
+WHERE project_id = $1
+    AND probe_id = $2
+    AND check_id = $3
+    AND started_at >= $4
+    AND started_at < $5
+    AND ($6::text != 'rttAvgMs' OR rtt_avg_ms IS NOT NULL)
+`
+
+type CountPingResultSeriesPointsParams struct {
+	ProjectID     uuid.UUID          `json:"project_id"`
+	ProbeID       uuid.UUID          `json:"probe_id"`
+	CheckID       uuid.UUID          `json:"check_id"`
+	StartedAtFrom pgtype.Timestamptz `json:"started_at_from"`
+	StartedAtTo   pgtype.Timestamptz `json:"started_at_to"`
+	Metric        string             `json:"metric"`
+}
+
+func (q *Queries) CountPingResultSeriesPoints(ctx context.Context, arg CountPingResultSeriesPointsParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countPingResultSeriesPoints,
+		arg.ProjectID,
+		arg.ProbeID,
+		arg.CheckID,
+		arg.StartedAtFrom,
+		arg.StartedAtTo,
+		arg.Metric,
+	)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const createPingResult = `-- name: CreatePingResult :exec
 INSERT INTO ping_results (
     project_id,
@@ -112,4 +146,203 @@ func (q *Queries) CreatePingResult(ctx context.Context, arg CreatePingResultPara
 		arg.ErrorMessage,
 	)
 	return err
+}
+
+const listPingResultBucketSeries = `-- name: ListPingResultBucketSeries :many
+SELECT
+    (extract(epoch FROM time_bucket(
+        (ceil(extract(epoch FROM ($1::timestamptz - $2::timestamptz)) / $3::double precision)::bigint * interval '1 second'),
+        started_at,
+        $2::timestamptz
+    )) * 1000)::bigint AS bucket_ms,
+    CASE $4::text
+        WHEN 'rttAvgMs' THEN avg(rtt_avg_ms)
+        WHEN 'lossPercent' THEN avg(loss_percent)
+        WHEN 'successRate' THEN 100.0 * count(*) FILTER (WHERE status = 'successful') / NULLIF(count(*), 0)
+    END::double precision AS value
+FROM ping_results
+WHERE project_id = $5
+    AND probe_id = $6
+    AND check_id = $7
+    AND started_at >= $2
+    AND started_at < $1
+    AND ($4::text != 'rttAvgMs' OR rtt_avg_ms IS NOT NULL)
+GROUP BY bucket_ms
+ORDER BY bucket_ms ASC
+`
+
+type ListPingResultBucketSeriesParams struct {
+	StartedAtTo   pgtype.Timestamptz `json:"started_at_to"`
+	StartedAtFrom pgtype.Timestamptz `json:"started_at_from"`
+	MaxDataPoints float64            `json:"max_data_points"`
+	Metric        string             `json:"metric"`
+	ProjectID     uuid.UUID          `json:"project_id"`
+	ProbeID       uuid.UUID          `json:"probe_id"`
+	CheckID       uuid.UUID          `json:"check_id"`
+}
+
+type ListPingResultBucketSeriesRow struct {
+	BucketMs int64   `json:"bucket_ms"`
+	Value    float64 `json:"value"`
+}
+
+func (q *Queries) ListPingResultBucketSeries(ctx context.Context, arg ListPingResultBucketSeriesParams) ([]ListPingResultBucketSeriesRow, error) {
+	rows, err := q.db.Query(ctx, listPingResultBucketSeries,
+		arg.StartedAtTo,
+		arg.StartedAtFrom,
+		arg.MaxDataPoints,
+		arg.Metric,
+		arg.ProjectID,
+		arg.ProbeID,
+		arg.CheckID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListPingResultBucketSeriesRow
+	for rows.Next() {
+		var i ListPingResultBucketSeriesRow
+		if err := rows.Scan(&i.BucketMs, &i.Value); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listPingResultLTTBSeries = `-- name: ListPingResultLTTBSeries :many
+WITH filtered AS (
+    SELECT
+        started_at,
+        CASE $1::text
+            WHEN 'rttAvgMs' THEN rtt_avg_ms
+            WHEN 'lossPercent' THEN loss_percent
+        END::double precision AS value
+    FROM ping_results
+    WHERE project_id = $2
+        AND probe_id = $3
+        AND check_id = $4
+        AND started_at >= $5
+        AND started_at < $6
+        AND (
+            ($1::text = 'rttAvgMs' AND rtt_avg_ms IS NOT NULL)
+            OR $1::text = 'lossPercent'
+        )
+    ORDER BY started_at ASC
+),
+sampled AS (
+    SELECT lttb(started_at, value, $7::integer) AS points
+    FROM filtered
+)
+SELECT
+    (extract(epoch FROM sample.time) * 1000)::bigint AS bucket_ms,
+    sample.value::double precision AS value
+FROM sampled, unnest(sampled.points) AS sample(time, value)
+ORDER BY sample.time ASC
+`
+
+type ListPingResultLTTBSeriesParams struct {
+	Metric        string             `json:"metric"`
+	ProjectID     uuid.UUID          `json:"project_id"`
+	ProbeID       uuid.UUID          `json:"probe_id"`
+	CheckID       uuid.UUID          `json:"check_id"`
+	StartedAtFrom pgtype.Timestamptz `json:"started_at_from"`
+	StartedAtTo   pgtype.Timestamptz `json:"started_at_to"`
+	MaxDataPoints int32              `json:"max_data_points"`
+}
+
+type ListPingResultLTTBSeriesRow struct {
+	BucketMs int64   `json:"bucket_ms"`
+	Value    float64 `json:"value"`
+}
+
+func (q *Queries) ListPingResultLTTBSeries(ctx context.Context, arg ListPingResultLTTBSeriesParams) ([]ListPingResultLTTBSeriesRow, error) {
+	rows, err := q.db.Query(ctx, listPingResultLTTBSeries,
+		arg.Metric,
+		arg.ProjectID,
+		arg.ProbeID,
+		arg.CheckID,
+		arg.StartedAtFrom,
+		arg.StartedAtTo,
+		arg.MaxDataPoints,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListPingResultLTTBSeriesRow
+	for rows.Next() {
+		var i ListPingResultLTTBSeriesRow
+		if err := rows.Scan(&i.BucketMs, &i.Value); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listPingResultRawSeries = `-- name: ListPingResultRawSeries :many
+SELECT
+    (extract(epoch FROM started_at) * 1000)::bigint AS bucket_ms,
+    CASE $1::text
+        WHEN 'rttAvgMs' THEN rtt_avg_ms
+        WHEN 'lossPercent' THEN loss_percent
+        WHEN 'successRate' THEN CASE WHEN status = 'successful' THEN 100.0 ELSE 0.0 END
+    END::double precision AS value
+FROM ping_results
+WHERE project_id = $2
+    AND probe_id = $3
+    AND check_id = $4
+    AND started_at >= $5
+    AND started_at < $6
+    AND ($1::text != 'rttAvgMs' OR rtt_avg_ms IS NOT NULL)
+ORDER BY started_at ASC
+`
+
+type ListPingResultRawSeriesParams struct {
+	Metric        string             `json:"metric"`
+	ProjectID     uuid.UUID          `json:"project_id"`
+	ProbeID       uuid.UUID          `json:"probe_id"`
+	CheckID       uuid.UUID          `json:"check_id"`
+	StartedAtFrom pgtype.Timestamptz `json:"started_at_from"`
+	StartedAtTo   pgtype.Timestamptz `json:"started_at_to"`
+}
+
+type ListPingResultRawSeriesRow struct {
+	BucketMs int64   `json:"bucket_ms"`
+	Value    float64 `json:"value"`
+}
+
+func (q *Queries) ListPingResultRawSeries(ctx context.Context, arg ListPingResultRawSeriesParams) ([]ListPingResultRawSeriesRow, error) {
+	rows, err := q.db.Query(ctx, listPingResultRawSeries,
+		arg.Metric,
+		arg.ProjectID,
+		arg.ProbeID,
+		arg.CheckID,
+		arg.StartedAtFrom,
+		arg.StartedAtTo,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListPingResultRawSeriesRow
+	for rows.Next() {
+		var i ListPingResultRawSeriesRow
+		if err := rows.Scan(&i.BucketMs, &i.Value); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

@@ -245,3 +245,32 @@ type ResultStorageInput struct {
 	ErrorCode     *string
 	ErrorMessage  *string
 }
+
+type SeriesQuery struct {
+	ProjectID     string
+	ProbeID       string
+	CheckID       string
+	From          time.Time
+	To            time.Time
+	Metric        string
+	MaxDataPoints int32
+}
+
+type SeriesResolution string
+
+const (
+	SeriesResolutionRaw    SeriesResolution = "raw"
+	SeriesResolutionLTTB   SeriesResolution = "lttb"
+	SeriesResolutionBucket SeriesResolution = "bucket"
+)
+
+type SeriesResult struct {
+	Points      []SeriesPoint
+	Resolution  SeriesResolution
+	TotalPoints int64
+}
+
+type SeriesPoint struct {
+	Timestamp time.Time
+	Value     float64
+}
