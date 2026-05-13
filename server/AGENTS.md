@@ -5,12 +5,10 @@
 This guide applies to `server/`, the Go backend for the Netstamp workspace. The root workspace also contains `web/`, `docs/`, and `packages/ui/`; use this file only for backend API, database, logging, tracing, and server runtime work.
 
 - `cmd/controller/main.go`: controller process entry point. It creates the shutdown context, calls `app.New`, runs the app, and syncs the logger.
-- `cmd/probe/main.go`: Go probe agent entry point. It loads `NETSTAMP_PROBE_*` environment configuration, handles shutdown signals, and runs the probe runtime.
 - `cmd/migrate/main.go`: Goose migration CLI for `status`, `up`, and `down`.
 - `internal/controller/app/`: composition root and lifecycle. `bootstrap.go` wires config, logging, tracing, PostgreSQL, auth, and HTTP. `lifecycle.go` starts and gracefully stops the HTTP listener.
 - `internal/controller/transport/http/`: chi/Huma HTTP routing, auth, project, label, probe management, probe runtime, system health routes, and middleware.
 - `internal/controller/application/auth/`, `internal/controller/application/project/`, `internal/controller/application/label/`, `internal/controller/application/check/`, `internal/controller/application/probe/`, and `internal/controller/application/proberuntime/`: controller use cases, ports, DTOs, errors, and feature orchestration.
-- `internal/probe/`: Go probe runtime packages for environment config, controller polling, assignment scheduling, bounded execution, raw ICMP ping checks, and result reporting.
 - `internal/domain/identity/`, `internal/domain/project/`, `internal/domain/label/`, `internal/domain/check/`, `internal/domain/ping/`, and `internal/domain/probe/`: stable domain structs and domain-level sentinel errors.
 - `internal/controller/infrastructure/`: PostgreSQL repositories and pool helpers, JWT issuing, Argon2id password hashing, and probe secret generation/verification.
 - `internal/controller/logger/`: controller zap logging helpers and application event recording. `internal/platform/normalize/` and `internal/platform/observability/` are shared helpers that do not depend on controller features.
@@ -33,7 +31,7 @@ Probe runtime requests follow the same layer boundaries:
 
 `HTTP request -> chi/Huma route -> internal/controller/transport/http/proberuntime handler -> internal/controller/application/proberuntime.Service -> internal/controller/infrastructure/postgres/{probe,ping} repositories -> sqlc.Queries -> PostgreSQL`
 
-No GraphQL, message queues, background workers, scheduled jobs, email, payment, object-storage integrations, or functional DNS/traceroute/HTTP/TCP probe executors are currently defined. The Go probe agent currently implements the controller runtime loop for raw ICMP ping checks.
+No GraphQL, message queues, background workers, scheduled jobs, email, payment, object-storage integrations, standalone probe agent, or functional DNS/traceroute/HTTP/TCP probe executors are currently defined.
 
 ## Layer Responsibilities
 
@@ -155,8 +153,7 @@ Commands below come from the root `Justfile`, root `package.json`, `server/.air.
 
 - `pnpm install`: install workspace dependencies; root `package.json` enforces pnpm.
 - `just backend-dev` or `pnpm dev:server`: run Air hot reload using `server/.air.toml`.
-- `just backend-probe` or `just backend-probe server/probe.env`: run the probe agent with inherited `NETSTAMP_PROBE_*` environment variables, optionally loading them from a dotenv file.
-- `just backend-build` or `pnpm build:server`: build `server/bin/controller` from `./cmd/controller` and `server/bin/probe` from `./cmd/probe`.
+- `just backend-build` or `pnpm build:server`: build `server/bin/controller` from `./cmd/controller`.
 - `just backend-openapi` or `pnpm generate:openapi`: write the Huma OpenAPI schema to `docs/public/openapi.json`.
 - `just backend-test` or `pnpm test:server`: run `go test ./...` inside `server/`.
 - `NETSTAMP_TEST_DATABASE_URL=postgres://netstamp:netstamp@localhost:5432/netstamp?sslmode=disable just backend-test-integration`: run opt-in API E2E tests against a local PostgreSQL/TimescaleDB instance.
