@@ -58,7 +58,7 @@ Response body:
 	"config": {
 		"heartbeatIntervalSeconds": 30,
 		"assignmentPollIntervalSeconds": 30,
-		"maxConcurrentChecks": 16,
+		"maxConcurrentWorkers": 16,
 		"initialBackoffSeconds": 1,
 		"maxBackoffSeconds": 30,
 		"maxAttempts": 5
@@ -119,7 +119,7 @@ Response body:
 	"config": {
 		"heartbeatIntervalSeconds": 30,
 		"assignmentPollIntervalSeconds": 30,
-		"maxConcurrentChecks": 16,
+		"maxConcurrentWorkers": 16,
 		"initialBackoffSeconds": 1,
 		"maxBackoffSeconds": 30,
 		"maxAttempts": 5
@@ -264,13 +264,13 @@ Required environment variables:
 NETSTAMP_PROBE_CONTROLLER_URL
 NETSTAMP_PROBE_ID
 NETSTAMP_PROBE_SECRET
-NETSTAMP_PROBE_MAX_WORKERS
 ```
 
 Optional environment variables:
 
 ```text
 NETSTAMP_PROBE_HTTP_TIMEOUT
+NETSTAMP_PROBE_MAX_WORKERS
 NETSTAMP_PROBE_RESULT_QUEUE_SIZE
 NETSTAMP_PROBE_RESULT_BATCH_SIZE
 NETSTAMP_PROBE_RESULT_FLUSH_INTERVAL
@@ -299,8 +299,8 @@ worker_queue_capacity = max(1, NETSTAMP_PROBE_MAX_WORKERS * 2)
 Precedence:
 
 - `NETSTAMP_PROBE_MAX_WORKERS` wins for measurement concurrency.
-- Controller `config.maxConcurrentChecks` is not a hard worker limit in this version.
-- The probe may record `config.maxConcurrentChecks` for diagnostics, but it should not resize the worker pool from it.
+- Controller `config.maxConcurrentWorkers` is not a hard worker limit in this version.
+- The probe may record `config.maxConcurrentWorkers` for diagnostics, but it should not resize the worker pool from it.
 - The worker pool size is fixed after startup for this version.
 
 Suggested local config type:
@@ -355,7 +355,8 @@ Startup work:
 - Validate controller URL.
 - Validate probe ID.
 - Validate probe secret is non-empty.
-- Validate `NETSTAMP_PROBE_MAX_WORKERS > 0`.
+- If `NETSTAMP_PROBE_MAX_WORKERS` is set, validate it is greater than `0`.
+- If `NETSTAMP_PROBE_MAX_WORKERS` is unset, use the default max workers value.
 - Create runtime HTTP client.
 - Create assignment store.
 - Create scheduler.
@@ -524,7 +525,10 @@ type TaskState struct {
 	Phase    time.Duration
 	NextDue  time.Time
 
-	PingConfig PingConfig
+	PingConfig *PingConfig
+	HTTPConfig *HTTPConfig
+	DNSConfig  *DNSConfig
+	TCPConfig  *TCPConfig
 
 	Enabled      bool
 	Removed      bool
@@ -540,6 +544,14 @@ TaskState does not contain Running bool.
 ```
 
 The same assignment may have multiple overlapping occurrences. Running status is not assignment state.
+
+Typed config rule:
+
+- All check-type-specific config fields are nullable.
+- `PingConfig` is set only for ping assignments.
+- Future check types should add their own nullable typed config fields, such as `HTTPConfig`, `DNSConfig`, or `TCPConfig`.
+- A task must have the typed config required by its `CheckType`; otherwise the assignment is invalid for local execution and should be skipped.
+- Probe-side typed config models should be reused from the domain layer whenever possible. Do not create parallel probe-only models when an existing domain model already represents the same data cleanly.
 
 ### 6.3 RunRequest
 
@@ -560,7 +572,10 @@ type RunRequest struct {
 	ScheduledAt time.Time
 	CreatedAt   time.Time
 
-	PingConfig PingConfig
+	PingConfig *PingConfig
+	HTTPConfig *HTTPConfig
+	DNSConfig  *DNSConfig
+	TCPConfig  *TCPConfig
 }
 ```
 
@@ -569,6 +584,7 @@ Snapshot rule:
 - A queued or running `RunRequest` uses the assignment config from the time it was created.
 - If the assignment changes later, future occurrences use new config.
 - Already queued or running occurrences are not canceled just because assignment config changed.
+- `RunRequest` carries nullable typed config snapshots for all supported check types, and exactly one typed config should be non-nil for a valid measurement occurrence.
 
 ### 6.4 Result Envelope
 
@@ -1131,6 +1147,14 @@ This version keeps worker health and scheduler counters local. They are not sent
 
 ### 14.1 Logs
 
+Probe agent logging should use Go standard structured logging:
+
+```go
+log/slog
+```
+
+Use structured attributes for stable runtime dimensions such as probe ID, assignment ID, check ID, check type, state, duration, queue depth, and counter values. Do not use ad-hoc formatted strings for fields that operators may need to filter.
+
 Log:
 
 - startup config summary without secret
@@ -1146,12 +1170,26 @@ Log:
 - auth failure
 - shutdown drain summary
 
+Debug log:
+
+- runtime config applied from `hello`
+- runtime config refreshed from assignments
+- assignment reconcile add/update/remove details
+- scheduler due-time decisions
+- computed assignment phase
+- skipped occurrence details
+- worker queue depth transitions
+- result batch grouping and flush decisions
+- retry/backoff decisions
+
 Do not log:
 
 - plaintext probe secret
 - secret hash
 - raw result payloads by default
 - high-cardinality check targets in high-volume logs
+
+Default log level should be info. Debug logs should be opt-in through local configuration, for example `NETSTAMP_PROBE_LOG_LEVEL=debug`.
 
 ### 14.2 Counters
 
@@ -1326,7 +1364,8 @@ Acceptance:
 - Missing `NETSTAMP_PROBE_SECRET` fails.
 - Invalid controller URL fails.
 - Invalid probe ID fails.
-- `NETSTAMP_PROBE_MAX_WORKERS <= 0` fails.
+- If set, `NETSTAMP_PROBE_MAX_WORKERS <= 0` fails.
+- If unset, the default max workers value is used.
 - Defaults are applied.
 - No `NETSTAMP_PROBE_MAX_PING_CONCURRENCY` exists.
 
@@ -1417,7 +1456,7 @@ Future work that is intentionally not part of the current probe runtime contract
 - Sending `scheduledAt` and `actualStartedAt` to the controller.
 - HTTP, DNS, TCP, and traceroute typed executors.
 - Persisted controller-managed runtime config.
-- Controller-enforced `maxConcurrentChecks` rollout policy.
+- Controller-enforced `maxConcurrentWorkers` rollout policy.
 - Server-side assignment leases.
 - Server-side dispatch scheduler.
 - Offline detector based on heartbeat age.

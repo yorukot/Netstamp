@@ -358,7 +358,7 @@ type assignmentsResponse struct {
 type runtimeConfigBody struct {
 	HeartbeatIntervalSeconds      int32 `json:"heartbeatIntervalSeconds"`
 	AssignmentPollIntervalSeconds int32 `json:"assignmentPollIntervalSeconds"`
-	MaxConcurrentChecks           int32 `json:"maxConcurrentChecks"`
+	MaxConcurrentWorkers          int32 `json:"maxConcurrentWorkers"`
 	InitialBackoffSeconds         int32 `json:"initialBackoffSeconds"`
 	MaxBackoffSeconds             int32 `json:"maxBackoffSeconds"`
 	MaxAttempts                   int32 `json:"maxAttempts"`

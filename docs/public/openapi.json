@@ -1146,12 +1146,12 @@
 						"format": "int32",
 						"type": "integer"
 					},
-					"maxConcurrentChecks": {
+					"maxConcurrentWorkers": {
 						"format": "int32",
 						"type": "integer"
 					}
 				},
-				"required": ["heartbeatIntervalSeconds", "assignmentPollIntervalSeconds", "maxConcurrentChecks", "initialBackoffSeconds", "maxBackoffSeconds", "maxAttempts"],
+				"required": ["heartbeatIntervalSeconds", "assignmentPollIntervalSeconds", "maxConcurrentWorkers", "initialBackoffSeconds", "maxBackoffSeconds", "maxAttempts"],
 				"type": "object"
 			},
 			"RuntimeResultGroupBody": {
