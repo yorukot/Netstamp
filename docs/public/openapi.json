@@ -69,9 +69,16 @@
 							"$ref": "#/components/schemas/Assignment"
 						},
 						"type": ["array", "null"]
+					},
+					"config": {
+						"$ref": "#/components/schemas/RuntimeConfig"
+					},
+					"serverTime": {
+						"format": "date-time",
+						"type": "string"
 					}
 				},
-				"required": ["assignments"],
+				"required": ["serverTime", "config", "assignments"],
 				"type": "object"
 			},
 			"Check": {
@@ -501,20 +508,18 @@
 						"readOnly": true,
 						"type": "string"
 					},
-					"assignmentPollIntervalSeconds": {
-						"format": "int32",
-						"type": "integer"
+					"config": {
+						"$ref": "#/components/schemas/RuntimeConfig"
 					},
-					"heartbeatIntervalSeconds": {
-						"format": "int32",
-						"type": "integer"
+					"minimumSupportedAgentVersion": {
+						"type": "string"
 					},
 					"serverTime": {
 						"format": "date-time",
 						"type": "string"
 					}
 				},
-				"required": ["serverTime", "heartbeatIntervalSeconds", "assignmentPollIntervalSeconds"],
+				"required": ["serverTime", "minimumSupportedAgentVersion", "config"],
 				"type": "object"
 			},
 			"Label": {
@@ -1116,6 +1121,37 @@
 					}
 				},
 				"required": ["probe", "secret"],
+				"type": "object"
+			},
+			"RuntimeConfig": {
+				"additionalProperties": false,
+				"properties": {
+					"assignmentPollIntervalSeconds": {
+						"format": "int32",
+						"type": "integer"
+					},
+					"heartbeatIntervalSeconds": {
+						"format": "int32",
+						"type": "integer"
+					},
+					"initialBackoffSeconds": {
+						"format": "int32",
+						"type": "integer"
+					},
+					"maxAttempts": {
+						"format": "int32",
+						"type": "integer"
+					},
+					"maxBackoffSeconds": {
+						"format": "int32",
+						"type": "integer"
+					},
+					"maxConcurrentChecks": {
+						"format": "int32",
+						"type": "integer"
+					}
+				},
+				"required": ["heartbeatIntervalSeconds", "assignmentPollIntervalSeconds", "maxConcurrentChecks", "initialBackoffSeconds", "maxBackoffSeconds", "maxAttempts"],
 				"type": "object"
 			},
 			"RuntimeResultGroupBody": {
@@ -4194,16 +4230,6 @@
 						}
 					}
 				],
-				"requestBody": {
-					"content": {
-						"application/json": {
-							"schema": {
-								"$ref": "#/components/schemas/RuntimeStatusBody"
-							}
-						}
-					},
-					"required": true
-				},
 				"responses": {
 					"200": {
 						"content": {

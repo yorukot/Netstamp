@@ -3,6 +3,8 @@ package proberuntime
 import (
 	"context"
 	"time"
+
+	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
 )
 
 func (h *Handler) hello(ctx context.Context, input *helloInput) (*helloOutput, error) {
@@ -10,22 +12,20 @@ func (h *Handler) hello(ctx context.Context, input *helloInput) (*helloOutput, e
 	if err != nil {
 		return nil, err
 	}
-	runtimeInput := newRuntimeStatusInput(auth, input.Body)
-	output, err := h.service.Hello(ctx, runtimeInput)
+	output, err := h.service.Hello(ctx, auth)
 	if err != nil {
 		return nil, mapRuntimeError(err, "start probe runtime session failed")
 	}
 
 	return &helloOutput{Body: helloOutputBody{
-		ServerTime:                    output.ServerTime,
-		HeartbeatIntervalSeconds:      output.HeartbeatIntervalSeconds,
-		AssignmentPollIntervalSeconds: output.AssignmentPollIntervalSeconds,
+		ServerTime:                   output.ServerTime,
+		MinimumSupportedAgentVersion: output.MinimumSupportedAgentVersion,
+		Config:                       output.Config,
 	}}, nil
 }
 
 type helloInput struct {
 	ProbeID string `path:"probe_id" doc:"Probe ID."`
-	Body    runtimeStatusBody
 }
 
 type helloOutput struct {
@@ -33,7 +33,7 @@ type helloOutput struct {
 }
 
 type helloOutputBody struct {
-	ServerTime                    time.Time `json:"serverTime"`
-	HeartbeatIntervalSeconds      int32     `json:"heartbeatIntervalSeconds"`
-	AssignmentPollIntervalSeconds int32     `json:"assignmentPollIntervalSeconds"`
+	ServerTime                   time.Time                 `json:"serverTime"`
+	MinimumSupportedAgentVersion string                    `json:"minimumSupportedAgentVersion"`
+	Config                       domainprobe.RuntimeConfig `json:"config"`
 }

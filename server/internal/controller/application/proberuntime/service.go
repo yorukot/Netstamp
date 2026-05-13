@@ -37,8 +37,8 @@ func (s *Service) Hello(ctx context.Context, input RuntimeAuthInput) (HelloOutpu
 
 	return HelloOutput{
 		ServerTime:                   time.Now().UTC(),
-		MinimumSupportedAgentVersion: DefaultMinimumSupportedAgentVersion,
-		Config:                       defaultRuntimeConfig(),
+		MinimumSupportedAgentVersion: domainprobe.DefaultMinimumSupportedAgentVersion,
+		Config:                       domainprobe.DefaultRuntimeConfig(),
 	}, nil
 }
 
@@ -80,20 +80,9 @@ func (s *Service) ListAssignments(ctx context.Context, input RuntimeAuthInput) (
 
 	return ListAssignmentsOutput{
 		ServerTime:  time.Now().UTC(),
-		Config:      defaultRuntimeConfig(),
+		Config:      domainprobe.DefaultRuntimeConfig(),
 		Assignments: assignments,
 	}, nil
-}
-
-func defaultRuntimeConfig() domainprobe.RuntimeConfig {
-	return domainprobe.RuntimeConfig{
-		HeartbeatIntervalSeconds:      DefaultHeartbeatIntervalSeconds,
-		AssignmentPollIntervalSeconds: DefaultAssignmentPollIntervalSeconds,
-		MaxConcurrentChecks:           DefaultMaxConcurrentChecks,
-		InitialBackoffSeconds:         DefaultInitialBackoffSeconds,
-		MaxBackoffSeconds:             DefaultMaxBackoffSeconds,
-		MaxAttempts:                   DefaultMaxAttempts,
-	}
 }
 
 func (s *Service) SubmitResults(ctx context.Context, input SubmitResultsInput) (SubmitResultsOutput, error) {

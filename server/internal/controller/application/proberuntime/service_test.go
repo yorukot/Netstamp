@@ -91,10 +91,10 @@ func TestHelloReturnsRuntimeConfigWithoutUpdatingStatus(t *testing.T) {
 	if output.ServerTime.IsZero() {
 		t.Fatal("expected server time")
 	}
-	if output.MinimumSupportedAgentVersion != DefaultMinimumSupportedAgentVersion {
-		t.Fatalf("expected minimum supported version %q, got %q", DefaultMinimumSupportedAgentVersion, output.MinimumSupportedAgentVersion)
+	if output.MinimumSupportedAgentVersion != domainprobe.DefaultMinimumSupportedAgentVersion {
+		t.Fatalf("expected minimum supported version %q, got %q", domainprobe.DefaultMinimumSupportedAgentVersion, output.MinimumSupportedAgentVersion)
 	}
-	if output.Config != defaultRuntimeConfig() {
+	if output.Config != domainprobe.DefaultRuntimeConfig() {
 		t.Fatalf("unexpected runtime config: %#v", output.Config)
 	}
 	if probes.gotStatus.ProbeID != "" {
@@ -159,7 +159,7 @@ func TestListAssignmentsAuthenticatesProbe(t *testing.T) {
 	if output.ServerTime.IsZero() {
 		t.Fatal("expected server time")
 	}
-	if output.Config != defaultRuntimeConfig() {
+	if output.Config != domainprobe.DefaultRuntimeConfig() {
 		t.Fatalf("unexpected runtime config: %#v", output.Config)
 	}
 	if output.Assignments[0].Check == nil || output.Assignments[0].Check.Type != domaincheck.TypePing {

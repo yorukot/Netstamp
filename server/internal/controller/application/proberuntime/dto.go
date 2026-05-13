@@ -9,17 +9,6 @@ import (
 	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
 )
 
-const (
-	DefaultHeartbeatIntervalSeconds      int32 = 30
-	DefaultAssignmentPollIntervalSeconds int32 = 30
-	DefaultMaxConcurrentChecks           int32 = 16
-	DefaultInitialBackoffSeconds         int32 = 1
-	DefaultMaxBackoffSeconds             int32 = 30
-	DefaultMaxAttempts                   int32 = 5
-	DefaultMinimumSupportedAgentVersion        = "0.1.0"
-	MaxResultGroupBatchSize              int   = 100
-)
-
 type RuntimeAuthInput struct {
 	ProbeID    string
 	Credential string
