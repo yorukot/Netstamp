@@ -82,10 +82,15 @@ web-preview:
 backend-dev:
     cd {{ server_dir }} && air -c .air.toml
 
-# Build the backend controller binary.
+# Build the backend controller and probe agent binaries.
 backend-build:
     mkdir -p {{ server_dir }}/bin
     cd {{ server_dir }} && go build -o bin/controller ./cmd/controller
+    cd {{ server_dir }} && go build -o bin/agent ./cmd/agent
+
+# Run the probe agent with an env file inside server/.
+backend-probe env_file="probe.env": backend-build
+    cd {{ server_dir }} && sh -c 'set -a && . "./{{ env_file }}" && set +a && ./bin/agent'
 
 # Generate OpenAPI JSON for the docs explorer.
 backend-openapi:

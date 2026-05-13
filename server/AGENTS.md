@@ -5,11 +5,15 @@
 This guide applies to `server/`, the Go backend for the Netstamp workspace. The root workspace also contains `web/`, `docs/`, and `packages/ui/`; use this file only for backend API, database, logging, tracing, and server runtime work.
 
 - `cmd/controller/main.go`: controller process entry point. It creates the shutdown context, calls `app.New`, runs the app, and syncs the logger.
+- `cmd/agent/main.go`: standalone probe agent process entry point. It loads `NETSTAMP_PROBE_*` configuration, starts the runtime client, scheduler, worker pool, ping executor, and result submitter.
 - `cmd/migrate/main.go`: Goose migration CLI for `status`, `up`, and `down`.
 - `internal/controller/app/`: composition root and lifecycle. `bootstrap.go` wires config, logging, tracing, PostgreSQL, auth, and HTTP. `lifecycle.go` starts and gracefully stops the HTTP listener.
 - `internal/controller/transport/http/`: chi/Huma HTTP routing, auth, project, label, probe management, probe runtime, system health routes, and middleware.
 - `internal/controller/application/auth/`, `internal/controller/application/project/`, `internal/controller/application/label/`, `internal/controller/application/check/`, `internal/controller/application/probe/`, and `internal/controller/application/proberuntime/`: controller use cases, ports, DTOs, errors, and feature orchestration.
 - `internal/domain/identity/`, `internal/domain/project/`, `internal/domain/label/`, `internal/domain/check/`, `internal/domain/ping/`, and `internal/domain/probe/`: stable domain structs and domain-level sentinel errors.
+- `internal/agent/app/`: probe agent composition root. It wires config, slog logging, runtime client, scheduling, workers, executors, and runtime lifecycle.
+- `internal/agent/config/`, `internal/agent/runtime/`, `internal/agent/scheduling/`, and `internal/agent/worker/`: probe agent environment loading, lifecycle orchestration, assignment scheduling, worker pool, result queue, and result submission. These packages use existing domain models for assignments, checks, ping config/results, probe runtime config, and IP family values.
+- `internal/agent/infrastructure/`: probe agent outbound integrations, including the controller runtime HTTP client, pro-bing ping executor, and local network status discovery.
 - `internal/controller/infrastructure/`: PostgreSQL repositories and pool helpers, JWT issuing, Argon2id password hashing, and probe secret generation/verification.
 - `internal/controller/logger/`: controller zap logging helpers and application event recording. `internal/platform/normalize/` and `internal/platform/observability/` are shared helpers that do not depend on controller features.
 - `db/migrations/`: Goose SQL migrations. `db/query/`: sqlc query files. Generated sqlc Go files live in `internal/controller/infrastructure/postgres/sqlc/`.
@@ -31,7 +35,7 @@ Probe runtime requests follow the same layer boundaries:
 
 `HTTP request -> chi/Huma route -> internal/controller/transport/http/proberuntime handler -> internal/controller/application/proberuntime.Service -> internal/controller/infrastructure/postgres/{probe,ping} repositories -> sqlc.Queries -> PostgreSQL`
 
-No GraphQL, message queues, background workers, scheduled jobs, email, payment, object-storage integrations, standalone probe agent, or functional DNS/traceroute/HTTP/TCP probe executors are currently defined.
+No GraphQL, message queues, controller-side background workers, controller-side scheduled jobs, email, payment, object-storage integrations, or functional DNS/traceroute/HTTP/TCP probe executors are currently defined. The standalone probe agent currently supports ping assignments only and talks to the existing probe runtime HTTP API.
 
 ## Layer Responsibilities
 
@@ -41,6 +45,8 @@ No GraphQL, message queues, background workers, scheduled jobs, email, payment, 
 - Infrastructure (`internal/controller/infrastructure/postgres`, `internal/controller/infrastructure/security`): pgx/sqlc persistence, database error translation, JWT HS256 tokens, and Argon2id password hashing. Infrastructure packages should import domain packages for models and sentinel errors, but should not import application packages or depend on application DTOs.
 - Config (`internal/controller/config`): Viper-based environment loading, defaults, and validation. Add new env keys here and mirror them in `.env.example` when operators need to set them.
 - Cross-cutting (`internal/controller/logger`, `internal/platform/observability`): request-scoped loggers, auth event recording, trace fields, tracer provider setup, and span helpers.
+- Agent runtime (`internal/agent/runtime`, `internal/agent/scheduling`, `internal/agent/worker`): keep probe process orchestration, scheduling state, worker queues, and result submission independent of concrete HTTP or ping libraries. Agent infrastructure packages implement runtime/worker ports and may import external libraries such as `pro-bing`.
+- Agent runtime config: controller `hello` and assignment responses can refresh heartbeat, assignment polling, and retry timing. `NETSTAMP_PROBE_HEARTBEAT_INTERVAL`, `NETSTAMP_PROBE_ASSIGNMENT_POLL_INTERVAL`, `NETSTAMP_PROBE_INITIAL_BACKOFF`, `NETSTAMP_PROBE_MAX_BACKOFF`, and `NETSTAMP_PROBE_MAX_ATTEMPTS` are per-field env overrides; when set, those fields must not be overwritten by controller runtime config.
 
 ## Cross-Feature Repository Reuse
 
@@ -101,6 +107,7 @@ When adding a new project-scoped action, add it to the project domain policy fir
 Direct backend dependencies are declared in `server/go.mod`.
 
 - HTTP: `github.com/go-chi/chi/v5`, `github.com/danielgtaylor/huma/v2`, and `otelhttp`.
+- Probe agent ping execution: `github.com/prometheus-community/pro-bing`.
 - Database: `github.com/jackc/pgx/v5`, `github.com/pressly/goose/v3`, and `github.com/google/uuid`.
 - Config: `github.com/spf13/viper`.
 - Auth/security: `github.com/golang-jwt/jwt/v4` and `golang.org/x/crypto/argon2`. Probe runtime authentication uses the hashed probe secret in `probe_credentials`; never pass or log plaintext probe secrets outside the HTTP auth boundary and verifier call.
@@ -153,7 +160,7 @@ Commands below come from the root `Justfile`, root `package.json`, `server/.air.
 
 - `pnpm install`: install workspace dependencies; root `package.json` enforces pnpm.
 - `just backend-dev` or `pnpm dev:server`: run Air hot reload using `server/.air.toml`.
-- `just backend-build` or `pnpm build:server`: build `server/bin/controller` from `./cmd/controller`.
+- `just backend-build` or `pnpm build:server`: build `server/bin/controller` from `./cmd/controller` and `server/bin/agent` from `./cmd/agent`.
 - `just backend-openapi` or `pnpm generate:openapi`: write the Huma OpenAPI schema to `docs/public/openapi.json`.
 - `just backend-test` or `pnpm test:server`: run `go test ./...` inside `server/`.
 - `NETSTAMP_TEST_DATABASE_URL=postgres://netstamp:netstamp@localhost:5432/netstamp?sslmode=disable just backend-test-integration`: run opt-in API E2E tests against a local PostgreSQL/TimescaleDB instance.

@@ -276,6 +276,11 @@ NETSTAMP_PROBE_RESULT_BATCH_SIZE
 NETSTAMP_PROBE_RESULT_FLUSH_INTERVAL
 NETSTAMP_PROBE_ASSIGNMENT_TTL
 NETSTAMP_PROBE_SHUTDOWN_TIMEOUT
+NETSTAMP_PROBE_HEARTBEAT_INTERVAL
+NETSTAMP_PROBE_ASSIGNMENT_POLL_INTERVAL
+NETSTAMP_PROBE_INITIAL_BACKOFF
+NETSTAMP_PROBE_MAX_BACKOFF
+NETSTAMP_PROBE_MAX_ATTEMPTS
 ```
 
 Recommended defaults:
@@ -290,6 +295,16 @@ NETSTAMP_PROBE_ASSIGNMENT_TTL=10m
 NETSTAMP_PROBE_SHUTDOWN_TIMEOUT=10s
 ```
 
+Runtime config override defaults, when not set, come from the controller runtime config after `hello` succeeds:
+
+```text
+NETSTAMP_PROBE_HEARTBEAT_INTERVAL=30s
+NETSTAMP_PROBE_ASSIGNMENT_POLL_INTERVAL=30s
+NETSTAMP_PROBE_INITIAL_BACKOFF=1s
+NETSTAMP_PROBE_MAX_BACKOFF=30s
+NETSTAMP_PROBE_MAX_ATTEMPTS=5
+```
+
 Derived values:
 
 ```text
@@ -299,6 +314,8 @@ worker_queue_capacity = max(1, NETSTAMP_PROBE_MAX_WORKERS * 2)
 Precedence:
 
 - `NETSTAMP_PROBE_MAX_WORKERS` wins for measurement concurrency.
+- Runtime config env overrides win per field when explicitly set.
+- Controller runtime config wins for heartbeat, assignment poll, and retry fields that were not explicitly set through env.
 - Controller `config.maxConcurrentWorkers` is not a hard worker limit in this version.
 - The probe may record `config.maxConcurrentWorkers` for diagnostics, but it should not resize the worker pool from it.
 - The worker pool size is fixed after startup for this version.
@@ -317,6 +334,20 @@ type ProbeConfig struct {
 	ResultFlushInterval time.Duration
 	AssignmentTTL       time.Duration
 	ShutdownTimeout     time.Duration
+	RuntimeOverrides    RuntimeConfigOverrides
+}
+
+type RuntimeConfigOverrides struct {
+	HeartbeatInterval      ConfigValue[time.Duration]
+	AssignmentPollInterval ConfigValue[time.Duration]
+	InitialBackoff         ConfigValue[time.Duration]
+	MaxBackoff             ConfigValue[time.Duration]
+	MaxAttempts            ConfigValue[int]
+}
+
+type ConfigValue[T any] struct {
+	Value   T
+	Defined bool
 }
 ```
 
