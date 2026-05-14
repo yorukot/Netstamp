@@ -57,9 +57,6 @@ func normalizeSubmitResults(input SubmitResultsInput) (normalizedSubmitResultsIn
 	if len(input.Results) == 0 {
 		return normalizedSubmitResultsInput{}, invalidRuntimeField(fieldResults, "must include at least one result group", input.Results)
 	}
-	if len(input.Results) > domainprobe.MaxRuntimeResultGroupBatchSize {
-		return normalizedSubmitResultsInput{}, invalidRuntimeField(fieldResults, fmt.Sprintf("must include at most %d result groups", domainprobe.MaxRuntimeResultGroupBatchSize), len(input.Results))
-	}
 
 	groups := make([]normalizedResultGroup, 0, len(input.Results))
 	checkIDs := make([]string, 0, len(input.Results))

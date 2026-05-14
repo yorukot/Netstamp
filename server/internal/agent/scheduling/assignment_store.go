@@ -62,6 +62,8 @@ type AssignmentStore struct {
 	log      *slog.Logger
 }
 
+// NewAssignmentStore creates a new AssignmentStore for the given probe ID, TTL, and logger.
+// AssigmentStore is for storing and managing assignments for a probe. assignments are pull from the control plane from the pull endpoint.
 func NewAssignmentStore(probeID string, ttl time.Duration, log *slog.Logger) *AssignmentStore {
 	return &AssignmentStore{
 		probeID: probeID,

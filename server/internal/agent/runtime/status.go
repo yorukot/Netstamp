@@ -1,21 +1,14 @@
-package network
+package runtime
 
 import (
 	"net"
 	"net/netip"
 
 	"github.com/yorukot/netstamp/internal/agent/infrastructure/httpclient"
-	agentruntime "github.com/yorukot/netstamp/internal/agent/runtime"
 )
 
-type HeartbeatStatusProvider struct{}
-
-func NewHeartbeatStatusProvider() *HeartbeatStatusProvider {
-	return &HeartbeatStatusProvider{}
-}
-
-func (p *HeartbeatStatusProvider) Status() httpclient.HeartbeatInput {
-	agentVersion := agentruntime.AgentString
+func agentStatus() httpclient.HeartbeatInput {
+	agentVersion := AgentString
 	return httpclient.HeartbeatInput{
 		AgentVersion: &agentVersion,
 		Addrs:        localAddrs(),

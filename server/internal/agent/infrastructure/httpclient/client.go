@@ -1,4 +1,4 @@
-package runtimeclient
+package httpclient
 
 import (
 	"bytes"
@@ -13,7 +13,6 @@ import (
 	"strings"
 
 	agentconfig "github.com/yorukot/netstamp/internal/agent/config"
-	agentruntime "github.com/yorukot/netstamp/internal/agent/runtime"
 )
 
 type RuntimeClient struct {
@@ -31,47 +30,12 @@ func New(config agentconfig.Config) *RuntimeClient {
 		probeID:    config.ProbeID,
 		secret:     config.ProbeSecret,
 		client: &http.Client{
-			Timeout: config.HTTPTimeout,
+			Timeout: config.HTTPTimeout.Value,
 		},
 	}
 }
 
-func (c *RuntimeClient) Hello(ctx context.Context) (agentruntime.HelloResponse, error) {
-	var output agentruntime.HelloResponse
-	if err := c.do(ctx, http.MethodPost, "hello", nil, &output); err != nil {
-		return agentruntime.HelloResponse{}, err
-	}
-
-	return output, nil
-}
-
-func (c *RuntimeClient) Heartbeat(ctx context.Context, input agentruntime.HeartbeatInput) (agentruntime.HeartbeatResponse, error) {
-	var output agentruntime.HeartbeatResponse
-	if err := c.do(ctx, http.MethodPost, "heartbeat", input, &output); err != nil {
-		return agentruntime.HeartbeatResponse{}, err
-	}
-
-	return output, nil
-}
-
-func (c *RuntimeClient) ListAssignments(ctx context.Context) (agentruntime.AssignmentsResponse, error) {
-	var output agentruntime.AssignmentsResponse
-	if err := c.do(ctx, http.MethodGet, "assignments", nil, &output); err != nil {
-		return agentruntime.AssignmentsResponse{}, err
-	}
-
-	return output, nil
-}
-
-func (c *RuntimeClient) SubmitResults(ctx context.Context, input agentruntime.SubmitResultsInput) (agentruntime.SubmitResultsResponse, error) {
-	var output agentruntime.SubmitResultsResponse
-	if err := c.do(ctx, http.MethodPost, "results", input, &output); err != nil {
-		return agentruntime.SubmitResultsResponse{}, err
-	}
-
-	return output, nil
-}
-
+// do is a helper function that sends an HTTP request to the runtime API and decodes the response
 func (c *RuntimeClient) do(ctx context.Context, method, operation string, input, output any) error {
 	var body io.Reader = http.NoBody
 	if input != nil {
@@ -111,6 +75,47 @@ func (c *RuntimeClient) do(ctx context.Context, method, operation string, input,
 	return nil
 }
 
+// Hello sends a hello request to the runtime API and returns the response
+func (c *RuntimeClient) Hello(ctx context.Context) (HelloResponse, error) {
+	var output HelloResponse
+	if err := c.do(ctx, http.MethodPost, "hello", nil, &output); err != nil {
+		return HelloResponse{}, err
+	}
+
+	return output, nil
+}
+
+// Heartbeat sends a heartbeat request to the runtime API and returns the response
+func (c *RuntimeClient) Heartbeat(ctx context.Context, input HeartbeatInput) (HeartbeatResponse, error) {
+	var output HeartbeatResponse
+	if err := c.do(ctx, http.MethodPost, "heartbeat", input, &output); err != nil {
+		return HeartbeatResponse{}, err
+	}
+
+	return output, nil
+}
+
+// ListAssignments sends a request to the runtime API to list assignments and returns the response
+func (c *RuntimeClient) ListAssignments(ctx context.Context) (AssignmentsResponse, error) {
+	var output AssignmentsResponse
+	if err := c.do(ctx, http.MethodGet, "assignments", nil, &output); err != nil {
+		return AssignmentsResponse{}, err
+	}
+
+	return output, nil
+}
+
+// SubmitResults sends a request to the runtime API to submit results and returns the response
+func (c *RuntimeClient) SubmitResults(ctx context.Context, input SubmitResultsInput) (SubmitResultsResponse, error) {
+	var output SubmitResultsResponse
+	if err := c.do(ctx, http.MethodPost, "results", input, &output); err != nil {
+		return SubmitResultsResponse{}, err
+	}
+
+	return output, nil
+}
+
+// runtimeURL returns the full URL for a given operation on the runtime API
 func (c *RuntimeClient) runtimeURL(operation string) string {
 	path, err := url.JoinPath("api", c.apiVersion, "runtime", "probes", c.probeID, operation)
 	if err != nil {
@@ -120,11 +125,13 @@ func (c *RuntimeClient) runtimeURL(operation string) string {
 	return c.baseURL + "/" + path
 }
 
+// HTTPError is an error type that holds the status code and body of an HTTP response
 type HTTPError struct {
 	StatusCode int
 	Body       string
 }
 
+// Error returns the error message for an HTTPError
 func (e *HTTPError) Error() string {
 	if e.Body == "" {
 		return "runtime api returned status " + strconv.Itoa(e.StatusCode)
@@ -132,17 +139,19 @@ func (e *HTTPError) Error() string {
 	return "runtime api returned status " + strconv.Itoa(e.StatusCode) + ": " + e.Body
 }
 
+// Is returns true if the error is an HTTPError with the same status code as the target error
 func (e *HTTPError) Is(target error) bool {
 	switch target {
-	case agentruntime.ErrAuthFailed:
+	case ErrAuthFailed:
 		return e.StatusCode == http.StatusUnauthorized || e.StatusCode == http.StatusForbidden
-	case agentruntime.ErrPermanentRuntimeAPI:
+	case ErrPermanentRuntimeAPI:
 		return e.StatusCode >= http.StatusBadRequest && e.StatusCode < http.StatusInternalServerError
 	default:
 		return false
 	}
 }
 
+// runtimeStatusError returns an error based on the status code of an HTTP response
 func runtimeStatusError(response *http.Response) error {
 	body, _ := io.ReadAll(io.LimitReader(response.Body, 4096))
 	message := strings.TrimSpace(string(body))
@@ -150,11 +159,11 @@ func runtimeStatusError(response *http.Response) error {
 		StatusCode: response.StatusCode,
 		Body:       message,
 	}
-	if errors.Is(err, agentruntime.ErrAuthFailed) {
-		return fmt.Errorf("%w: %w", agentruntime.ErrAuthFailed, err)
+	if errors.Is(err, ErrAuthFailed) {
+		return fmt.Errorf("%w: %w", ErrAuthFailed, err)
 	}
-	if errors.Is(err, agentruntime.ErrPermanentRuntimeAPI) {
-		return fmt.Errorf("%w: %w", agentruntime.ErrPermanentRuntimeAPI, err)
+	if errors.Is(err, ErrPermanentRuntimeAPI) {
+		return fmt.Errorf("%w: %w", ErrPermanentRuntimeAPI, err)
 	}
 
 	return err

@@ -5,23 +5,19 @@ import (
 	"context"
 	"log/slog"
 	"time"
-
-	"github.com/yorukot/netstamp/internal/agent/observability"
 )
 
 type Scheduler struct {
 	store       *AssignmentStore
 	workerQueue chan<- RunRequest
-	counters    *observability.RuntimeCounters
 	log         *slog.Logger
 	wake        chan struct{}
 }
 
-func NewScheduler(store *AssignmentStore, workerQueue chan<- RunRequest, counters *observability.RuntimeCounters, log *slog.Logger) *Scheduler {
+func NewScheduler(store *AssignmentStore, workerQueue chan<- RunRequest, log *slog.Logger) *Scheduler {
 	return &Scheduler{
 		store:       store,
 		workerQueue: workerQueue,
-		counters:    counters,
 		log:         log,
 		wake:        make(chan struct{}, 1),
 	}
@@ -110,7 +106,6 @@ func (s *Scheduler) pushActiveTasks(items *scheduleHeap) {
 
 func (s *Scheduler) dispatchOrSkip(task TaskState, scheduledAt, now time.Time) {
 	if IsTooLate(scheduledAt, now, task.Interval) {
-		s.counters.SkippedLate.Add(1)
 		s.log.Debug("skipped late occurrence", "assignment_id", task.AssignmentID, "check_id", task.CheckID, "scheduled_at", scheduledAt, "interval", task.Interval)
 		return
 	}
@@ -118,9 +113,7 @@ func (s *Scheduler) dispatchOrSkip(task TaskState, scheduledAt, now time.Time) {
 	request := task.RunRequest(scheduledAt, now)
 	select {
 	case s.workerQueue <- request:
-		s.counters.ScheduledRuns.Add(1)
 	default:
-		s.counters.SkippedWorkerQueueFull.Add(1)
 		s.log.Warn("skipped occurrence because worker queue is full", "assignment_id", task.AssignmentID, "check_id", task.CheckID, "check_type", task.CheckType, "scheduled_at", scheduledAt)
 	}
 }

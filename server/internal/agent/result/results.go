@@ -1,4 +1,4 @@
-package runtime
+package result
 
 import (
 	"context"
@@ -7,37 +7,36 @@ import (
 	"time"
 
 	agentconfig "github.com/yorukot/netstamp/internal/agent/config"
-	"github.com/yorukot/netstamp/internal/agent/observability"
+	"github.com/yorukot/netstamp/internal/agent/infrastructure/httpclient"
+	"github.com/yorukot/netstamp/internal/agent/retry"
 	agentworker "github.com/yorukot/netstamp/internal/agent/worker"
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 )
 
-type ResultSubmitter struct {
-	client       RuntimeClient
+type Submitter struct {
+	client       httpclient.RuntimeClient
 	queue        *agentworker.ResultQueue
-	config       *RuntimeConfigStore
+	config       agentconfig.Config
 	flushEvery   time.Duration
 	batchSize    int
 	shutdownWait time.Duration
-	counters     *observability.RuntimeCounters
 	log          *slog.Logger
 }
 
-func NewResultSubmitter(client RuntimeClient, queue *agentworker.ResultQueue, config *RuntimeConfigStore, localConfig agentconfig.Config, counters *observability.RuntimeCounters, log *slog.Logger) *ResultSubmitter {
-	return &ResultSubmitter{
+func New(client httpclient.RuntimeClient, queue *agentworker.ResultQueue, localConfig agentconfig.Config, log *slog.Logger) *Submitter {
+	return &Submitter{
 		client:       client,
 		queue:        queue,
-		config:       config,
-		flushEvery:   localConfig.ResultFlushInterval,
-		batchSize:    localConfig.ResultBatchSize,
-		shutdownWait: localConfig.ShutdownTimeout,
-		counters:     counters,
+		config:       localConfig,
+		flushEvery:   localConfig.ResultFlushInterval.Value,
+		batchSize:    localConfig.ResultBatchSize.Value,
+		shutdownWait: localConfig.ShutdownTimeout.Value,
 		log:          log,
 	}
 }
 
-func (s *ResultSubmitter) Run(ctx context.Context) error {
+func (s *Submitter) Run(ctx context.Context) error {
 	ticker := time.NewTicker(s.flushEvery)
 	defer ticker.Stop()
 
@@ -52,10 +51,9 @@ func (s *ResultSubmitter) Run(ctx context.Context) error {
 			batch = append(batch, result)
 			if len(batch) >= s.batchSize {
 				if err := s.flush(ctx, batch); err != nil {
-					if errors.Is(err, ErrAuthFailed) {
+					if errors.Is(err, httpclient.ErrAuthFailed) {
 						return err
 					}
-					s.counters.ResultSubmitErrors.Add(1)
 					s.log.Warn("result batch submit failed", "error", err, "batch_size", len(batch))
 				}
 				batch = batch[:0]
@@ -65,10 +63,9 @@ func (s *ResultSubmitter) Run(ctx context.Context) error {
 				continue
 			}
 			if err := s.flush(ctx, batch); err != nil {
-				if errors.Is(err, ErrAuthFailed) {
+				if errors.Is(err, httpclient.ErrAuthFailed) {
 					return err
 				}
-				s.counters.ResultSubmitErrors.Add(1)
 				s.log.Warn("result batch submit failed", "error", err, "batch_size", len(batch))
 			}
 			batch = batch[:0]
@@ -76,7 +73,7 @@ func (s *ResultSubmitter) Run(ctx context.Context) error {
 	}
 }
 
-func (s *ResultSubmitter) flushBestEffort(batch []agentworker.ResultEnvelope) {
+func (s *Submitter) flushBestEffort(batch []agentworker.ResultEnvelope) {
 	if len(batch) == 0 {
 		return
 	}
@@ -88,45 +85,44 @@ func (s *ResultSubmitter) flushBestEffort(batch []agentworker.ResultEnvelope) {
 	}
 }
 
-func (s *ResultSubmitter) flush(ctx context.Context, batch []agentworker.ResultEnvelope) error {
+func (s *Submitter) flush(ctx context.Context, batch []agentworker.ResultEnvelope) error {
 	if len(batch) == 0 {
 		return nil
 	}
 
-	input := SubmitResultsInput{Results: groupResults(batch)}
-	runtimeConfig := s.config.Get()
+	input := httpclient.SubmitResultsInput{Results: groupResults(batch)}
 	var lastErr error
-	backoff := runtimeConfig.InitialBackoff
+	backoff := s.config.InitialBackoff.Value
 
-	for attempt := 1; attempt <= runtimeConfig.MaxAttempts; attempt++ {
+	for attempt := 1; attempt <= s.config.MaxAttempts.Value; attempt++ {
 		_, err := s.client.SubmitResults(ctx, input)
 		if err == nil {
 			return nil
 		}
-		if errors.Is(err, ErrAuthFailed) || errors.Is(err, ErrPermanentRuntimeAPI) {
+		if errors.Is(err, httpclient.ErrAuthFailed) || errors.Is(err, httpclient.ErrPermanentRuntimeAPI) {
 			return err
 		}
 		lastErr = err
-		if attempt == runtimeConfig.MaxAttempts {
+		if attempt == s.config.MaxAttempts.Value {
 			break
 		}
 
 		s.log.Debug("retrying result submission", "attempt", attempt, "backoff", backoff, "error", err)
-		if err := sleepContext(ctx, backoff); err != nil {
+		if err := retry.WaitForDuration(ctx, backoff); err != nil {
 			return err
 		}
 		backoff *= 2
-		if backoff > runtimeConfig.MaxBackoff {
-			backoff = runtimeConfig.MaxBackoff
+		if backoff > s.config.MaxBackoff.Value {
+			backoff = s.config.MaxBackoff.Value
 		}
 	}
 
 	return lastErr
 }
 
-func groupResults(batch []agentworker.ResultEnvelope) []RuntimeResultGroup {
+func groupResults(batch []agentworker.ResultEnvelope) []httpclient.RuntimeResultGroup {
 	orderedKeys := make([]resultGroupKey, 0)
-	groups := make(map[resultGroupKey][]PingResultBody)
+	groups := make(map[resultGroupKey][]httpclient.PingResultBody)
 
 	for _, result := range batch {
 		key := resultGroupKey{checkID: result.CheckID, checkType: result.Type}
@@ -136,9 +132,9 @@ func groupResults(batch []agentworker.ResultEnvelope) []RuntimeResultGroup {
 		groups[key] = append(groups[key], pingResultBody(result.Ping))
 	}
 
-	output := make([]RuntimeResultGroup, 0, len(orderedKeys))
+	output := make([]httpclient.RuntimeResultGroup, 0, len(orderedKeys))
 	for _, key := range orderedKeys {
-		output = append(output, RuntimeResultGroup{
+		output = append(output, httpclient.RuntimeResultGroup{
 			CheckID: key.checkID,
 			Type:    key.checkType,
 			Ping:    groups[key],
@@ -153,8 +149,8 @@ type resultGroupKey struct {
 	checkType domaincheck.Type
 }
 
-func pingResultBody(result domainping.Result) PingResultBody {
-	return PingResultBody{
+func pingResultBody(result domainping.Result) httpclient.PingResultBody {
+	return httpclient.PingResultBody{
 		StartedAt:     result.StartedAt,
 		FinishedAt:    result.FinishedAt,
 		DurationMs:    result.DurationMs,
@@ -173,17 +169,5 @@ func pingResultBody(result domainping.Result) PingResultBody {
 		Raw:           result.Raw,
 		ErrorCode:     result.ErrorCode,
 		ErrorMessage:  result.ErrorMessage,
-	}
-}
-
-func sleepContext(ctx context.Context, duration time.Duration) error {
-	timer := time.NewTimer(duration)
-	defer timer.Stop()
-
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case <-timer.C:
-		return nil
 	}
 }

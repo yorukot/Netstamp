@@ -8,7 +8,6 @@ const (
 	DefaultRuntimeMaxBackoffSeconds             int32 = 30
 	DefaultRuntimeMaxAttempts                   int32 = 5
 	DefaultMinimumSupportedAgentVersion               = "0.1.0"
-	MaxRuntimeResultGroupBatchSize              int   = 100
 )
 
 type RuntimeConfig struct {

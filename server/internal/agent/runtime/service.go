@@ -9,66 +9,45 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
-	"github.com/yorukot/netstamp/internal/agent/observability"
+	"github.com/yorukot/netstamp/internal/agent/config"
+	"github.com/yorukot/netstamp/internal/agent/infrastructure/httpclient"
+	"github.com/yorukot/netstamp/internal/agent/result"
+	"github.com/yorukot/netstamp/internal/agent/retry"
 	"github.com/yorukot/netstamp/internal/agent/scheduling"
 	agentworker "github.com/yorukot/netstamp/internal/agent/worker"
 )
 
 type Service struct {
-	client          RuntimeClient
-	statusProvider  HeartbeatStatusProvider
-	runtimeConfig   *RuntimeConfigStore
-	assignments     *scheduling.AssignmentStore
-	scheduler       *scheduling.Scheduler
-	workers         *agentworker.WorkerPool
-	results         *ResultSubmitter
-	counters        *observability.RuntimeCounters
-	shutdownTimeout time.Duration
-	log             *slog.Logger
-}
-
-type ServiceDependencies struct {
-	Client          RuntimeClient
-	StatusProvider  HeartbeatStatusProvider
-	RuntimeConfig   *RuntimeConfigStore
-	Assignments     *scheduling.AssignmentStore
-	Scheduler       *scheduling.Scheduler
-	Workers         *agentworker.WorkerPool
-	Results         *ResultSubmitter
-	Counters        *observability.RuntimeCounters
-	ShutdownTimeout time.Duration
-	Log             *slog.Logger
-}
-
-func NewService(deps ServiceDependencies) *Service {
-	return &Service{
-		client:          deps.Client,
-		statusProvider:  deps.StatusProvider,
-		runtimeConfig:   deps.RuntimeConfig,
-		assignments:     deps.Assignments,
-		scheduler:       deps.Scheduler,
-		workers:         deps.Workers,
-		results:         deps.Results,
-		counters:        deps.Counters,
-		shutdownTimeout: deps.ShutdownTimeout,
-		log:             deps.Log,
-	}
+	Client      httpclient.RuntimeClient
+	Config      *config.Config
+	Assignments *scheduling.AssignmentStore
+	Scheduler   *scheduling.Scheduler
+	Workers     *agentworker.WorkerPool
+	Results     *result.Submitter
+	Log         *slog.Logger
 }
 
 func (s *Service) Run(ctx context.Context) error {
+	// First, we need to authenticate with the runtime API
 	if err := s.startHello(ctx); err != nil {
 		return err
 	}
 
+	// Once authenticated, we can start the runtime loop and we initinal a glboal context taht accross all the service layer
 	runtimeCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	group, groupCtx := errgroup.WithContext(runtimeCtx)
-	group.Go(func() error { return ignoreCanceled(s.workers.Run(groupCtx)) })
-	group.Go(func() error { return ignoreCanceled(s.scheduler.Run(groupCtx)) })
+	// initialize the heartbeat loop first, send the heartbeat to the server
 	group.Go(func() error { return ignoreCanceled(s.heartbeatLoop(groupCtx)) })
+	// pull assignments from the server periodically
 	group.Go(func() error { return ignoreCanceled(s.assignmentLoop(groupCtx)) })
-	group.Go(func() error { return ignoreCanceled(s.results.Run(groupCtx)) })
+	// run the scheduler to assign work to workers
+	group.Go(func() error { return ignoreCanceled(s.Scheduler.Run(groupCtx)) })
+	// run the worker pool to execute the assigned work and put it to the result queue
+	group.Go(func() error { return ignoreCanceled(s.Workers.Run(groupCtx)) })
+	// submit results to the server periodically
+	group.Go(func() error { return ignoreCanceled(s.Results.Run(groupCtx)) })
 
 	errCh := make(chan error, 1)
 	go func() {
@@ -77,7 +56,7 @@ func (s *Service) Run(ctx context.Context) error {
 
 	select {
 	case <-ctx.Done():
-		s.log.Info("probe agent draining", "shutdown_timeout", s.shutdownTimeout)
+		s.Log.Info("probe agent draining", "shutdown_timeout", s.Config.ShutdownTimeout.Value)
 		cancel()
 		return s.waitForShutdown(errCh)
 	case err := <-errCh:
@@ -87,98 +66,43 @@ func (s *Service) Run(ctx context.Context) error {
 }
 
 func (s *Service) startHello(ctx context.Context) error {
-	runtimeConfig := s.runtimeConfig.Get()
-	backoff := runtimeConfig.InitialBackoff
+	backoff := s.Config.InitialBackoff.Value
 
 	for attempt := 1; ; attempt++ {
-		output, err := s.client.Hello(ctx)
+		output, err := s.Client.Hello(ctx)
 		if err == nil {
 			if err := EnsureMinimumVersion(Version, output.MinimumSupportedAgentVersion); err != nil {
-				s.log.Error("probe agent version is not supported", "minimum_supported_agent_version", output.MinimumSupportedAgentVersion, "agent_version", AgentString)
+				s.Log.Error("probe agent version is not supported", "minimum_supported_agent_version", output.MinimumSupportedAgentVersion, "agent_version", AgentString)
 				return err
 			}
-			applied := s.runtimeConfig.ApplyController(output.Config)
-			s.log.Info("probe runtime hello succeeded", "server_time", output.ServerTime, "minimum_supported_agent_version", output.MinimumSupportedAgentVersion)
-			s.log.Debug("runtime config applied", "heartbeat_interval", applied.HeartbeatInterval, "assignment_poll_interval", applied.AssignmentPollInterval, "initial_backoff", applied.InitialBackoff, "max_backoff", applied.MaxBackoff, "max_attempts", applied.MaxAttempts)
+			s.Log.Info("probe runtime hello succeeded", "server_time", output.ServerTime, "minimum_supported_agent_version", output.MinimumSupportedAgentVersion)
 			return nil
 		}
-		if errors.Is(err, ErrAuthFailed) {
-			s.counters.AuthFailures.Add(1)
-			s.log.Error("probe runtime authentication failed during hello", "error", err)
+		if errors.Is(err, httpclient.ErrAuthFailed) {
+			s.Log.Error("probe runtime authentication failed during hello", "error", err)
 			return err
 		}
-		if errors.Is(err, ErrPermanentRuntimeAPI) {
-			s.log.Error("probe runtime hello failed permanently", "error", err)
+		if errors.Is(err, httpclient.ErrPermanentRuntimeAPI) {
+			s.Log.Error("probe runtime hello failed permanently", "error", err)
 			return err
 		}
 
-		s.log.Warn("probe runtime hello failed", "attempt", attempt, "backoff", backoff, "error", err)
-		if sleepErr := sleepContext(ctx, backoff); sleepErr != nil {
+		s.Log.Warn("probe runtime hello failed", "attempt", attempt, "backoff", backoff, "error", err)
+		if sleepErr := retry.WaitForDuration(ctx, backoff); sleepErr != nil {
 			return sleepErr
 		}
+		// We multi for 2 so we can make the backoff keep growing
 		backoff *= 2
-		if backoff > runtimeConfig.MaxBackoff {
-			backoff = runtimeConfig.MaxBackoff
+		// Make sure backoff not go after the max backoff
+		if backoff > s.Config.MaxBackoff.Value {
+			backoff = s.Config.MaxBackoff.Value
 		}
 	}
 }
 
-func (s *Service) heartbeatLoop(ctx context.Context) error {
-	for {
-		if err := s.sendHeartbeat(ctx); err != nil {
-			if errors.Is(err, ErrAuthFailed) {
-				s.counters.AuthFailures.Add(1)
-				return err
-			}
-			s.counters.HeartbeatErrors.Add(1)
-			s.log.Warn("probe heartbeat failed", "error", err)
-		}
-
-		if err := sleepContext(ctx, s.runtimeConfig.Get().HeartbeatInterval); err != nil {
-			return err
-		}
-	}
-}
-
-func (s *Service) sendHeartbeat(ctx context.Context) error {
-	_, err := s.client.Heartbeat(ctx, s.statusProvider.Status())
-	return err
-}
-
-func (s *Service) assignmentLoop(ctx context.Context) error {
-	for {
-		if err := s.pullAssignments(ctx); err != nil {
-			if errors.Is(err, ErrAuthFailed) {
-				s.counters.AuthFailures.Add(1)
-				return err
-			}
-			s.counters.AssignmentPullErrors.Add(1)
-			s.log.Warn("probe assignment pull failed", "error", err)
-		}
-
-		if err := sleepContext(ctx, s.runtimeConfig.Get().AssignmentPollInterval); err != nil {
-			return err
-		}
-	}
-}
-
-func (s *Service) pullAssignments(ctx context.Context) error {
-	output, err := s.client.ListAssignments(ctx)
-	if err != nil {
-		return err
-	}
-
-	now := time.Now().UTC()
-	s.runtimeConfig.ApplyController(output.Config)
-	summary := s.assignments.Reconcile(output.Assignments, now)
-	s.scheduler.Wake()
-	s.log.Info("probe assignments reconciled", "active", summary.Active, "added", summary.Added, "updated", summary.Updated, "removed", summary.Removed, "unsupported", summary.Unsupported, "server_time", output.ServerTime)
-
-	return nil
-}
-
+// waitForShutdown waits for the shutdown timeout or an error from the error channel.
 func (s *Service) waitForShutdown(errCh <-chan error) error {
-	timer := time.NewTimer(s.shutdownTimeout)
+	timer := time.NewTimer(s.Config.ShutdownTimeout.Value)
 	defer timer.Stop()
 
 	select {
@@ -188,7 +112,7 @@ func (s *Service) waitForShutdown(errCh <-chan error) error {
 		}
 		return nil
 	case <-timer.C:
-		return fmt.Errorf("probe agent shutdown timed out after %s", s.shutdownTimeout)
+		return fmt.Errorf("probe agent shutdown timed out after %s", s.Config.ShutdownTimeout.Value)
 	}
 }
 

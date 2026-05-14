@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"sync"
 
-	"github.com/yorukot/netstamp/internal/agent/observability"
 	"github.com/yorukot/netstamp/internal/agent/scheduling"
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
@@ -26,17 +25,15 @@ type WorkerPool struct {
 	queue      <-chan scheduling.RunRequest
 	results    *ResultQueue
 	ping       PingExecutor
-	counters   *observability.RuntimeCounters
 	log        *slog.Logger
 }
 
-func NewWorkerPool(maxWorkers int, queue <-chan scheduling.RunRequest, results *ResultQueue, ping PingExecutor, counters *observability.RuntimeCounters, log *slog.Logger) *WorkerPool {
+func NewWorkerPool(maxWorkers int, queue <-chan scheduling.RunRequest, results *ResultQueue, ping PingExecutor, log *slog.Logger) *WorkerPool {
 	return &WorkerPool{
 		maxWorkers: maxWorkers,
 		queue:      queue,
 		results:    results,
 		ping:       ping,
-		counters:   counters,
 		log:        log,
 	}
 }
@@ -80,7 +77,6 @@ func (p *WorkerPool) runOne(ctx context.Context, workerID int, req scheduling.Ru
 		result := p.ping.Execute(ctx, req)
 		p.logPingResult(ctx, workerID, req, result.Ping)
 		p.results.Enqueue(result)
-		p.counters.CompletedRuns.Add(1)
 	default:
 		p.log.Warn("skipped unsupported check type", "worker_id", workerID, "assignment_id", req.AssignmentID, "check_id", req.CheckID, "check_type", req.CheckType)
 	}
