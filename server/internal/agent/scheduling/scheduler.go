@@ -23,6 +23,7 @@ func NewScheduler(store *AssignmentStore, workerQueue chan<- RunRequest, log *sl
 	}
 }
 
+// Wake wakes the scheduler to check for new tasks to schedule.
 func (s *Scheduler) Wake() {
 	select {
 	case s.wake <- struct{}{}:
@@ -30,15 +31,19 @@ func (s *Scheduler) Wake() {
 	}
 }
 
+// Run starts the scheduler, which schedules tasks from the assignment store.
 func (s *Scheduler) Run(ctx context.Context) error {
 	items := make(scheduleHeap, 0)
 	heap.Init(&items)
+	// Push active tasks into the heap.
 	s.pushActiveTasks(&items)
 
+	// Start the timer to check for new tasks.
 	timer := time.NewTimer(time.Hour)
 	defer timer.Stop()
 
 	for {
+		// if the heap is empty, wait for a wakeup or context cancellation.
 		if len(items) == 0 {
 			select {
 			case <-ctx.Done():
@@ -51,18 +56,20 @@ func (s *Scheduler) Run(ctx context.Context) error {
 
 		next := items[0]
 		now := time.Now().UTC()
+		// Pop the next task from the heap and dispatch it if it is due.
 		if next.due.After(now) {
 			resetTimer(timer, next.due.Sub(now))
 			select {
 			case <-ctx.Done():
 				return ctx.Err()
 			case <-s.wake:
-				s.pushActiveTasks(&items)
+				s.rebuildHeap(&items)
 				continue
 			case <-timer.C:
 			}
 		}
 
+		// Pop the next task from the heap and dispatch it if it is due.
 		item := heap.Pop(&items).(scheduleItem)
 		now = time.Now().UTC()
 		if !s.store.IsFresh(now) {
@@ -71,7 +78,7 @@ func (s *Scheduler) Run(ctx context.Context) error {
 			case <-ctx.Done():
 				return ctx.Err()
 			case <-s.wake:
-				s.pushActiveTasks(&items)
+				s.rebuildHeap(&items)
 			case <-timer.C:
 			}
 			continue
@@ -83,7 +90,7 @@ func (s *Scheduler) Run(ctx context.Context) error {
 		}
 		s.dispatchOrSkip(task, item.due, now)
 
-		nextDue := ComputeNextFutureDue(item.due, now, task.Interval)
+		nextDue := ComputeNextFutureDue(item.due, now, task.Check.IntervalTime())
 		if advanced, ok := s.store.AdvanceNextDue(task.AssignmentID, task.Generation, nextDue); ok {
 			heap.Push(&items, scheduleItem{
 				assignmentID: advanced.AssignmentID,
@@ -104,9 +111,14 @@ func (s *Scheduler) pushActiveTasks(items *scheduleHeap) {
 	}
 }
 
+func (s *Scheduler) rebuildHeap(items *scheduleHeap) {
+	*items = (*items)[:0]
+	s.pushActiveTasks(items)
+}
+
 func (s *Scheduler) dispatchOrSkip(task TaskState, scheduledAt, now time.Time) {
-	if IsTooLate(scheduledAt, now, task.Interval) {
-		s.log.Debug("skipped late occurrence", "assignment_id", task.AssignmentID, "check_id", task.CheckID, "scheduled_at", scheduledAt, "interval", task.Interval)
+	if IsTooLate(scheduledAt, now, task.Check.IntervalTime()) {
+		s.log.Debug("skipped late occurrence", "assignment_id", task.AssignmentID, "check_id", task.Check.ID, "scheduled_at", scheduledAt, "interval", task.Check.IntervalTime())
 		return
 	}
 
@@ -114,7 +126,7 @@ func (s *Scheduler) dispatchOrSkip(task TaskState, scheduledAt, now time.Time) {
 	select {
 	case s.workerQueue <- request:
 	default:
-		s.log.Warn("skipped occurrence because worker queue is full", "assignment_id", task.AssignmentID, "check_id", task.CheckID, "check_type", task.CheckType, "scheduled_at", scheduledAt)
+		s.log.Warn("skipped occurrence because worker queue is full", "assignment_id", task.AssignmentID, "check_id", task.Check.ID, "check_type", task.Check.Type, "scheduled_at", scheduledAt)
 	}
 }
 

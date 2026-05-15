@@ -41,6 +41,10 @@ type Check struct {
 	PingConfig *domainping.Config `json:"pingConfig"`
 }
 
+func (c Check) IntervalTime() time.Duration {
+	return time.Duration(c.IntervalSeconds) * time.Second
+}
+
 func VNCheckID(checkID string) (string, error) {
 	checkID = strings.TrimSpace(checkID)
 
