@@ -32,7 +32,7 @@ func New(config agentconfig.Config, log *slog.Logger) *App {
 	// WorkerQueue is the channel where run requests are submitted to workers
 	workerQueue := make(chan scheduling.RunRequest, config.MaxWorkers.Value*2)
 	// PingExecutor is responsible for executing ping checks
-	pingExecutor := executor.NewProBingExecutor()
+	pingExecutor := executor.NewICMPPingExecutor()
 	// WorkerPool is responsible for managing worker execution
 	workerPool := agentworker.NewWorkerPool(config.MaxWorkers.Value, workerQueue, resultQueue, pingExecutor, log)
 
@@ -41,16 +41,15 @@ func New(config agentconfig.Config, log *slog.Logger) *App {
 	// Scheduler is responsible for scheduling run requests to workers
 	scheduler := scheduling.NewScheduler(assignmentStore, workerQueue, log)
 
-
 	return &App{
 		runtime: &agentruntime.Service{
-			Client:         *client,
-			Config:         &config,
-			Assignments:    assignmentStore,
-			Scheduler:      scheduler,
-			Workers:        workerPool,
-			Results:        resultSubmitter,
-			Log:            log,
+			Client:      *client,
+			Config:      &config,
+			Assignments: assignmentStore,
+			Scheduler:   scheduler,
+			Workers:     workerPool,
+			Results:     resultSubmitter,
+			Log:         log,
 		},
 	}
 }

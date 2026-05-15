@@ -13,7 +13,7 @@ This guide applies to `server/`, the Go backend for the Netstamp workspace. The 
 - `internal/domain/identity/`, `internal/domain/project/`, `internal/domain/label/`, `internal/domain/check/`, `internal/domain/ping/`, and `internal/domain/probe/`: stable domain structs and domain-level sentinel errors.
 - `internal/agent/app/`: probe agent composition root. It wires config, slog logging, runtime client, scheduling, workers, executors, and runtime lifecycle.
 - `internal/agent/config/`, `internal/agent/runtime/`, `internal/agent/scheduling/`, and `internal/agent/worker/`: probe agent environment loading, lifecycle orchestration, assignment scheduling, worker pool, result queue, and result submission. These packages use existing domain models for assignments, checks, ping config/results, probe runtime config, and IP family values.
-- `internal/agent/infrastructure/`: probe agent outbound integrations, including the controller runtime HTTP client, pro-bing ping executor, and local network status discovery.
+- `internal/agent/infrastructure/`: probe agent outbound integrations, including the controller runtime HTTP client, raw ICMP ping executor, and local network status discovery.
 - `internal/controller/infrastructure/`: PostgreSQL repositories and pool helpers, JWT issuing, Argon2id password hashing, and probe secret generation/verification.
 - `internal/controller/logger/`: controller zap logging helpers and application event recording. `internal/platform/normalize/` and `internal/platform/observability/` are shared helpers that do not depend on controller features.
 - `db/migrations/`: Goose SQL migrations. `db/query/`: sqlc query files. Generated sqlc Go files live in `internal/controller/infrastructure/postgres/sqlc/`.
@@ -45,7 +45,7 @@ No GraphQL, message queues, controller-side background workers, controller-side 
 - Infrastructure (`internal/controller/infrastructure/postgres`, `internal/controller/infrastructure/security`): pgx/sqlc persistence, database error translation, JWT HS256 tokens, and Argon2id password hashing. Infrastructure packages should import domain packages for models and sentinel errors, but should not import application packages or depend on application DTOs.
 - Config (`internal/controller/config`): Viper-based environment loading, defaults, and validation. Add new env keys here and mirror them in `.env.example` when operators need to set them.
 - Cross-cutting (`internal/controller/logger`, `internal/platform/observability`): request-scoped loggers, auth event recording, trace fields, tracer provider setup, and span helpers.
-- Agent runtime (`internal/agent/runtime`, `internal/agent/scheduling`, `internal/agent/worker`): keep probe process orchestration, scheduling state, worker queues, and result submission independent of concrete HTTP or ping libraries. Agent infrastructure packages implement runtime/worker ports and may import external libraries such as `pro-bing`.
+- Agent runtime (`internal/agent/runtime`, `internal/agent/scheduling`, `internal/agent/worker`): keep probe process orchestration, scheduling state, worker queues, and result submission independent of concrete HTTP or ping libraries. Agent infrastructure packages implement runtime/worker ports and may import external libraries such as `x/net` ICMP helpers.
 - Agent runtime config: controller `hello` and assignment responses can refresh heartbeat, assignment polling, and retry timing. `NETSTAMP_PROBE_HEARTBEAT_INTERVAL`, `NETSTAMP_PROBE_ASSIGNMENT_POLL_INTERVAL`, `NETSTAMP_PROBE_INITIAL_BACKOFF`, `NETSTAMP_PROBE_MAX_BACKOFF`, and `NETSTAMP_PROBE_MAX_ATTEMPTS` are per-field env overrides; when set, those fields must not be overwritten by controller runtime config.
 
 ## Cross-Feature Repository Reuse
@@ -107,7 +107,7 @@ When adding a new project-scoped action, add it to the project domain policy fir
 Direct backend dependencies are declared in `server/go.mod`.
 
 - HTTP: `github.com/go-chi/chi/v5`, `github.com/danielgtaylor/huma/v2`, and `otelhttp`.
-- Probe agent ping execution: `github.com/prometheus-community/pro-bing`.
+- Probe agent ping execution: raw ICMP using `golang.org/x/net/icmp`, `ipv4`, and `ipv6`; agent runtimes need raw socket privileges such as `CAP_NET_RAW` or root.
 - Database: `github.com/jackc/pgx/v5`, `github.com/pressly/goose/v3`, and `github.com/google/uuid`.
 - Config: `github.com/spf13/viper`.
 - Auth/security: `github.com/golang-jwt/jwt/v4` and `golang.org/x/crypto/argon2`. Probe runtime authentication uses the hashed probe secret in `probe_credentials`; never pass or log plaintext probe secrets outside the HTTP auth boundary and verifier call.

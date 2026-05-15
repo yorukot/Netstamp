@@ -8,7 +8,6 @@ import (
 
 	domainassignment "github.com/yorukot/netstamp/internal/domain/assignment"
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
-	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
 )
 
 type TaskState struct {
@@ -18,7 +17,6 @@ type TaskState struct {
 	SelectorVersion string
 
 	Check domaincheck.Check
-	Probe domainprobe.Probe
 
 	Phase        time.Duration
 	Removed      bool
@@ -34,7 +32,6 @@ type RunRequest struct {
 	SelectorVersion string
 
 	Check domaincheck.Check
-	Probe domainprobe.Probe
 
 	ScheduledAt time.Time
 	CreatedAt   time.Time

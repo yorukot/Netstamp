@@ -32,32 +32,30 @@ func (s *AssignmentStore) taskFromAssignment(assignment domainassignment.Assignm
 	nextDue := ComputeNextDue(pulledAt.UTC(), interval, phase)
 
 	return TaskState{
-		AssignmentID:    assignment.ID,
+		AssignmentID: assignment.ID,
 
 		CheckVersion:    assignment.CheckVersion,
 		SelectorVersion: assignment.SelectorVersion,
 
-		Check:           *assignment.Check,
-		Probe:           *assignment.Probe,
+		Check: *assignment.Check,
 
-		Phase:           phase,
-		NextDue:         nextDue,
-		LastPulledAt:    pulledAt.UTC(),
+		Phase:        phase,
+		NextDue:      nextDue,
+		LastPulledAt: pulledAt.UTC(),
 	}, true
 }
 
 // RunRequest returns a RunRequest for the task.
 func (t TaskState) RunRequest(scheduledAt, createdAt time.Time) RunRequest {
 	return RunRequest{
-		AssignmentID:    t.AssignmentID,
+		AssignmentID: t.AssignmentID,
 
 		CheckVersion:    t.CheckVersion,
 		SelectorVersion: t.SelectorVersion,
 
-		Check:           t.Check,
-		Probe:           t.Probe,
-		
-		ScheduledAt:     scheduledAt.UTC(),
-		CreatedAt:       createdAt.UTC(),
+		Check: t.Check,
+
+		ScheduledAt: scheduledAt.UTC(),
+		CreatedAt:   createdAt.UTC(),
 	}
 }
