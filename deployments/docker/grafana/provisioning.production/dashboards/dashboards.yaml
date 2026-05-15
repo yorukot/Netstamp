@@ -1,0 +1,13 @@
+apiVersion: 1
+
+providers:
+  - name: Netstamp
+    orgId: 1
+    folder: Netstamp
+    folderUid: netstamp
+    type: file
+    disableDeletion: false
+    allowUiUpdates: true
+    updateIntervalSeconds: 30
+    options:
+      path: /var/lib/grafana/dashboards
