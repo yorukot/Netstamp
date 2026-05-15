@@ -1,8 +1,7 @@
 -- name: CreatePingResult :exec
 INSERT INTO ping_results (
-    project_id,
-    check_id,
     probe_id,
+    check_id,
     started_at,
     finished_at,
     duration_ms,
@@ -18,14 +17,12 @@ INSERT INTO ping_results (
     rtt_samples_ms,
     resolved_ip,
     ip_family,
-    raw,
     error_code,
     error_message
 )
 VALUES (
-    sqlc.arg(project_id),
-    sqlc.arg(check_id),
-    sqlc.arg(probe_id),
+    sqlc.arg(probe_storage_id),
+    sqlc.arg(check_storage_id),
     sqlc.arg(started_at),
     sqlc.arg(finished_at),
     sqlc.arg(duration_ms),
@@ -41,18 +38,28 @@ VALUES (
     sqlc.arg(rtt_samples_ms)::double precision[],
     sqlc.narg(resolved_ip),
     sqlc.arg(ip_family),
-    sqlc.arg(raw)::jsonb,
     sqlc.narg(error_code),
     sqlc.narg(error_message)
 )
-ON CONFLICT (project_id, probe_id, check_id, started_at) DO NOTHING;
+ON CONFLICT (probe_id, check_id, started_at) DO NOTHING;
+
+-- name: ResolvePingSeriesStorageIDs :one
+SELECT probes.internal_id AS probe_storage_id,
+       checks.internal_id AS check_storage_id
+FROM probes
+JOIN checks
+    ON checks.project_id = probes.project_id
+    AND checks.id = sqlc.arg(check_id)
+    AND checks.deleted_at IS NULL
+WHERE probes.project_id = sqlc.arg(project_id)
+  AND probes.id = sqlc.arg(probe_id)
+  AND probes.deleted_at IS NULL;
 
 -- name: CountPingResultSeriesPoints :one
 SELECT count(*)::bigint
 FROM ping_results
-WHERE project_id = sqlc.arg(project_id)
-    AND probe_id = sqlc.arg(probe_id)
-    AND check_id = sqlc.arg(check_id)
+WHERE probe_id = sqlc.arg(probe_storage_id)
+    AND check_id = sqlc.arg(check_storage_id)
     AND started_at >= sqlc.arg(started_at_from)
     AND started_at < sqlc.arg(started_at_to)
     AND (sqlc.arg(metric)::text != 'rttAvgMs' OR rtt_avg_ms IS NOT NULL);
@@ -66,9 +73,8 @@ SELECT
         WHEN 'successRate' THEN CASE WHEN status = 'successful' THEN 100.0 ELSE 0.0 END
     END::double precision AS value
 FROM ping_results
-WHERE project_id = sqlc.arg(project_id)
-    AND probe_id = sqlc.arg(probe_id)
-    AND check_id = sqlc.arg(check_id)
+WHERE probe_id = sqlc.arg(probe_storage_id)
+    AND check_id = sqlc.arg(check_storage_id)
     AND started_at >= sqlc.arg(started_at_from)
     AND started_at < sqlc.arg(started_at_to)
     AND (sqlc.arg(metric)::text != 'rttAvgMs' OR rtt_avg_ms IS NOT NULL)
@@ -87,9 +93,8 @@ SELECT
         WHEN 'successRate' THEN 100.0 * count(*) FILTER (WHERE status = 'successful') / NULLIF(count(*), 0)
     END::double precision AS value
 FROM ping_results
-WHERE project_id = sqlc.arg(project_id)
-    AND probe_id = sqlc.arg(probe_id)
-    AND check_id = sqlc.arg(check_id)
+WHERE probe_id = sqlc.arg(probe_storage_id)
+    AND check_id = sqlc.arg(check_storage_id)
     AND started_at >= sqlc.arg(started_at_from)
     AND started_at < sqlc.arg(started_at_to)
     AND (sqlc.arg(metric)::text != 'rttAvgMs' OR rtt_avg_ms IS NOT NULL)

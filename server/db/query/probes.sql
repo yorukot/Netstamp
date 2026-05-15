@@ -1,7 +1,7 @@
 -- name: CreateProbe :one
 INSERT INTO probes (project_id, name, enabled, location, subdivision_code)
 VALUES ($1, $2, $3, $4, $5)
-RETURNING id, project_id, name, enabled, location, subdivision_code, created_at, updated_at, deleted_at;
+RETURNING id, internal_id, project_id, name, enabled, location, subdivision_code, created_at, updated_at, deleted_at;
 
 -- name: CreateProbeCredential :one
 INSERT INTO probe_credentials (probe_id, secret_hash)
@@ -18,7 +18,8 @@ INSERT INTO probe_labels (project_id, probe_id, label_id)
 VALUES ($1, $2, $3);
 
 -- name: ListActiveProbesForProject :many
-SELECT probes.id,
+SELECT probes.internal_id,
+       probes.id,
        probes.project_id,
        probes.name,
        probes.enabled,
@@ -60,7 +61,8 @@ ORDER BY probes.created_at DESC,
          labels.id ASC NULLS LAST;
 
 -- name: GetActiveProbeRowsForProject :many
-SELECT probes.id,
+SELECT probes.internal_id,
+       probes.id,
        probes.project_id,
        probes.name,
        probes.enabled,
@@ -109,7 +111,7 @@ SET name = $3,
 WHERE project_id = $1
   AND id = $2
   AND deleted_at IS NULL
-RETURNING id, project_id, name, enabled, location, subdivision_code, created_at, updated_at, deleted_at;
+RETURNING id, internal_id, project_id, name, enabled, location, subdivision_code, created_at, updated_at, deleted_at;
 
 -- name: SoftDeleteProbe :one
 UPDATE probes
@@ -178,6 +180,7 @@ WHERE project_id = sqlc.arg(project_id)
 -- name: GetActiveProbeCredential :one
 SELECT probes.id,
        probes.project_id,
+       probes.internal_id AS probe_internal_id,
        probes.enabled,
        probe_credentials.secret_hash
 FROM probes
@@ -203,6 +206,8 @@ SELECT probe_check_assignments.id AS assignment_id,
        probe_check_assignments.project_id,
        probe_check_assignments.probe_id,
        probe_check_assignments.check_id,
+       probes.internal_id AS probe_internal_id,
+       checks.internal_id AS check_internal_id,
        probe_check_assignments.check_version,
        probe_check_assignments.selector_version,
        checks.check_type,
@@ -233,6 +238,8 @@ SELECT probe_check_assignments.id AS assignment_id,
        probe_check_assignments.project_id,
        probe_check_assignments.probe_id,
        probe_check_assignments.check_id,
+       probes.internal_id AS probe_internal_id,
+       checks.internal_id AS check_internal_id,
        probe_check_assignments.check_version,
        probe_check_assignments.selector_version,
        checks.check_type,

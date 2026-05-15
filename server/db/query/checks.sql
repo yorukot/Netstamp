@@ -1,5 +1,6 @@
 -- name: ListActiveChecksForProject :many
-SELECT checks.id,
+SELECT checks.internal_id,
+       checks.id,
        checks.project_id,
        checks.name,
        checks.check_type,
@@ -22,7 +23,8 @@ WHERE checks.project_id = $1
 ORDER BY checks.created_at DESC, checks.id DESC;
 
 -- name: GetActiveCheckForProject :one
-SELECT checks.id,
+SELECT checks.internal_id,
+       checks.id,
        checks.project_id,
        checks.name,
        checks.check_type,
@@ -55,7 +57,7 @@ VALUES (
     sqlc.narg(description),
     sqlc.arg(interval_seconds)
 )
-RETURNING id, project_id, name, check_type, target, selector, description, interval_seconds, created_at, updated_at, deleted_at;
+RETURNING id, internal_id, project_id, name, check_type, target, selector, description, interval_seconds, created_at, updated_at, deleted_at;
 
 -- name: UpdateCheck :one
 UPDATE checks
@@ -68,7 +70,7 @@ SET name = sqlc.arg(name),
 WHERE project_id = sqlc.arg(project_id)
   AND id = sqlc.arg(id)
   AND deleted_at IS NULL
-RETURNING id, project_id, name, check_type, target, selector, description, interval_seconds, created_at, updated_at, deleted_at;
+RETURNING id, internal_id, project_id, name, check_type, target, selector, description, interval_seconds, created_at, updated_at, deleted_at;
 
 -- name: CreatePingCheckConfig :one
 INSERT INTO ping_check_configs (check_id, packet_count, packet_size_bytes, timeout_ms, ip_family)
@@ -90,6 +92,7 @@ VALUES ($1, $2, $3);
 
 -- name: ListActiveEnabledProbeLabelsForProject :many
 SELECT probes.id AS probe_id,
+       probes.internal_id AS probe_internal_id,
        labels.id AS label_id,
        labels.project_id AS label_project_id,
        labels.key AS label_key,
