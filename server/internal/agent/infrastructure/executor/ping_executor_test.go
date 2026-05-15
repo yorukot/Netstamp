@@ -90,9 +90,6 @@ func TestPingResultFromStatsMapsSuccessfulStats(t *testing.T) {
 	if got.ErrorCode != nil || got.ErrorMessage != nil {
 		t.Fatalf("expected nil error fields, got code=%#v message=%#v", got.ErrorCode, got.ErrorMessage)
 	}
-	if got.Raw["executor"] != "raw-icmp" {
-		t.Fatalf("expected raw executor raw-icmp, got %#v", got.Raw)
-	}
 }
 
 func TestResolverNetworkHonorsIPFamily(t *testing.T) {

@@ -231,7 +231,6 @@ func TestAPIAuthProjectAndProbeRuntimeFlow(t *testing.T) {
 				"rttSamplesMs":  []float64{10.1, 11.5, 12.0, 15.6},
 				"resolvedIp":    "1.1.1.1",
 				"ipFamily":      "inet",
-				"raw":           map[string]any{},
 			}},
 		}},
 	}
@@ -322,7 +321,6 @@ func pingResultPayload(startedAt time.Time, rttAvgMs float64) map[string]any {
 		"rttSamplesMs":  []float64{rttAvgMs - 1, rttAvgMs, rttAvgMs, rttAvgMs + 1},
 		"resolvedIp":    "1.1.1.1",
 		"ipFamily":      "inet",
-		"raw":           map[string]any{},
 	}
 }
 
@@ -470,8 +468,6 @@ type runtimeConfigBody struct {
 type assignmentBody struct {
 	ID              string `json:"id"`
 	ProjectID       string `json:"projectId"`
-	ProbeID         string `json:"probeId"`
-	CheckID         string `json:"checkId"`
 	CheckVersion    string `json:"checkVersion"`
 	SelectorVersion string `json:"selectorVersion"`
 	Check           struct {
@@ -493,7 +489,7 @@ func containsCheck(checks []checkBody, checkID string) bool {
 
 func containsAssignment(assignments []assignmentBody, checkID string) bool {
 	for _, assignment := range assignments {
-		if assignment.CheckID == checkID {
+		if assignment.Check.ID == checkID {
 			return true
 		}
 	}

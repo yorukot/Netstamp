@@ -1,7 +1,6 @@
 package ping
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/netip"
@@ -188,19 +187,6 @@ func VNResultOptionalText(value *string) (*string, error) {
 	return &trimmed, nil
 }
 
-func VNResultRaw(raw json.RawMessage) (json.RawMessage, error) {
-	if raw == nil {
-		return json.RawMessage(`{}`), nil
-	}
-	if !json.Valid(raw) {
-		return nil, errors.New("must be valid JSON")
-	}
-
-	copied := make(json.RawMessage, len(raw))
-	copy(copied, raw)
-	return copied, nil
-}
-
 type Result struct {
 	StartedAt     time.Time
 	FinishedAt    time.Time
@@ -217,33 +203,30 @@ type Result struct {
 	RttSamplesMs  []float64
 	ResolvedIP    *netip.Addr
 	IPFamily      *domainnetwork.IPFamily
-	Raw           map[string]any
 	ErrorCode     *string
 	ErrorMessage  *string
 }
 
 type ResultStorageInput struct {
-	ProjectID     string
-	ProbeID       string
-	CheckID       string
-	StartedAt     time.Time
-	FinishedAt    time.Time
-	DurationMs    int32
-	Status        Status
-	SentCount     int32
-	ReceivedCount int32
-	LossPercent   float64
-	RttMinMs      *float64
-	RttAvgMs      *float64
-	RttMedianMs   *float64
-	RttMaxMs      *float64
-	RttStddevMs   *float64
-	RttSamplesMs  []float64
-	ResolvedIP    *netip.Addr
-	IPFamily      *domainnetwork.IPFamily
-	Raw           json.RawMessage
-	ErrorCode     *string
-	ErrorMessage  *string
+	ProbeStorageID int64
+	CheckStorageID int64
+	StartedAt      time.Time
+	FinishedAt     time.Time
+	DurationMs     int32
+	Status         Status
+	SentCount      int32
+	ReceivedCount  int32
+	LossPercent    float64
+	RttMinMs       *float64
+	RttAvgMs       *float64
+	RttMedianMs    *float64
+	RttMaxMs       *float64
+	RttStddevMs    *float64
+	RttSamplesMs   []float64
+	ResolvedIP     *netip.Addr
+	IPFamily       *domainnetwork.IPFamily
+	ErrorCode      *string
+	ErrorMessage   *string
 }
 
 type SeriesQuery struct {

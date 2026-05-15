@@ -16,28 +16,25 @@ import (
 const countPingResultSeriesPoints = `-- name: CountPingResultSeriesPoints :one
 SELECT count(*)::bigint
 FROM ping_results
-WHERE project_id = $1
-    AND probe_id = $2
-    AND check_id = $3
-    AND started_at >= $4
-    AND started_at < $5
-    AND ($6::text != 'rttAvgMs' OR rtt_avg_ms IS NOT NULL)
+WHERE probe_id = $1
+    AND check_id = $2
+    AND started_at >= $3
+    AND started_at < $4
+    AND ($5::text != 'rttAvgMs' OR rtt_avg_ms IS NOT NULL)
 `
 
 type CountPingResultSeriesPointsParams struct {
-	ProjectID     uuid.UUID          `json:"project_id"`
-	ProbeID       uuid.UUID          `json:"probe_id"`
-	CheckID       uuid.UUID          `json:"check_id"`
-	StartedAtFrom pgtype.Timestamptz `json:"started_at_from"`
-	StartedAtTo   pgtype.Timestamptz `json:"started_at_to"`
-	Metric        string             `json:"metric"`
+	ProbeStorageID int64              `json:"probe_storage_id"`
+	CheckStorageID int64              `json:"check_storage_id"`
+	StartedAtFrom  pgtype.Timestamptz `json:"started_at_from"`
+	StartedAtTo    pgtype.Timestamptz `json:"started_at_to"`
+	Metric         string             `json:"metric"`
 }
 
 func (q *Queries) CountPingResultSeriesPoints(ctx context.Context, arg CountPingResultSeriesPointsParams) (int64, error) {
 	row := q.db.QueryRow(ctx, countPingResultSeriesPoints,
-		arg.ProjectID,
-		arg.ProbeID,
-		arg.CheckID,
+		arg.ProbeStorageID,
+		arg.CheckStorageID,
 		arg.StartedAtFrom,
 		arg.StartedAtTo,
 		arg.Metric,
@@ -49,9 +46,8 @@ func (q *Queries) CountPingResultSeriesPoints(ctx context.Context, arg CountPing
 
 const createPingResult = `-- name: CreatePingResult :exec
 INSERT INTO ping_results (
-    project_id,
-    check_id,
     probe_id,
+    check_id,
     started_at,
     finished_at,
     duration_ms,
@@ -67,7 +63,6 @@ INSERT INTO ping_results (
     rtt_samples_ms,
     resolved_ip,
     ip_family,
-    raw,
     error_code,
     error_message
 )
@@ -86,46 +81,41 @@ VALUES (
     $12,
     $13,
     $14,
-    $15,
-    $16::double precision[],
+    $15::double precision[],
+    $16,
     $17,
     $18,
-    $19::jsonb,
-    $20,
-    $21
+    $19
 )
-ON CONFLICT (project_id, probe_id, check_id, started_at) DO NOTHING
+ON CONFLICT (probe_id, check_id, started_at) DO NOTHING
 `
 
 type CreatePingResultParams struct {
-	ProjectID     uuid.UUID          `json:"project_id"`
-	CheckID       uuid.UUID          `json:"check_id"`
-	ProbeID       uuid.UUID          `json:"probe_id"`
-	StartedAt     pgtype.Timestamptz `json:"started_at"`
-	FinishedAt    pgtype.Timestamptz `json:"finished_at"`
-	DurationMs    int32              `json:"duration_ms"`
-	Status        PingStatus         `json:"status"`
-	SentCount     int32              `json:"sent_count"`
-	ReceivedCount int32              `json:"received_count"`
-	LossPercent   float64            `json:"loss_percent"`
-	RttMinMs      *float64           `json:"rtt_min_ms"`
-	RttAvgMs      *float64           `json:"rtt_avg_ms"`
-	RttMedianMs   *float64           `json:"rtt_median_ms"`
-	RttMaxMs      *float64           `json:"rtt_max_ms"`
-	RttStddevMs   *float64           `json:"rtt_stddev_ms"`
-	RttSamplesMs  []float64          `json:"rtt_samples_ms"`
-	ResolvedIp    *netip.Addr        `json:"resolved_ip"`
-	IpFamily      NullIpFamily       `json:"ip_family"`
-	Raw           []byte             `json:"raw"`
-	ErrorCode     *string            `json:"error_code"`
-	ErrorMessage  *string            `json:"error_message"`
+	ProbeStorageID int64              `json:"probe_storage_id"`
+	CheckStorageID int64              `json:"check_storage_id"`
+	StartedAt      pgtype.Timestamptz `json:"started_at"`
+	FinishedAt     pgtype.Timestamptz `json:"finished_at"`
+	DurationMs     int32              `json:"duration_ms"`
+	Status         PingStatus         `json:"status"`
+	SentCount      int32              `json:"sent_count"`
+	ReceivedCount  int32              `json:"received_count"`
+	LossPercent    float64            `json:"loss_percent"`
+	RttMinMs       *float64           `json:"rtt_min_ms"`
+	RttAvgMs       *float64           `json:"rtt_avg_ms"`
+	RttMedianMs    *float64           `json:"rtt_median_ms"`
+	RttMaxMs       *float64           `json:"rtt_max_ms"`
+	RttStddevMs    *float64           `json:"rtt_stddev_ms"`
+	RttSamplesMs   []float64          `json:"rtt_samples_ms"`
+	ResolvedIp     *netip.Addr        `json:"resolved_ip"`
+	IpFamily       NullIpFamily       `json:"ip_family"`
+	ErrorCode      *string            `json:"error_code"`
+	ErrorMessage   *string            `json:"error_message"`
 }
 
 func (q *Queries) CreatePingResult(ctx context.Context, arg CreatePingResultParams) error {
 	_, err := q.db.Exec(ctx, createPingResult,
-		arg.ProjectID,
-		arg.CheckID,
-		arg.ProbeID,
+		arg.ProbeStorageID,
+		arg.CheckStorageID,
 		arg.StartedAt,
 		arg.FinishedAt,
 		arg.DurationMs,
@@ -141,7 +131,6 @@ func (q *Queries) CreatePingResult(ctx context.Context, arg CreatePingResultPara
 		arg.RttSamplesMs,
 		arg.ResolvedIp,
 		arg.IpFamily,
-		arg.Raw,
 		arg.ErrorCode,
 		arg.ErrorMessage,
 	)
@@ -161,9 +150,8 @@ SELECT
         WHEN 'successRate' THEN 100.0 * count(*) FILTER (WHERE status = 'successful') / NULLIF(count(*), 0)
     END::double precision AS value
 FROM ping_results
-WHERE project_id = $5
-    AND probe_id = $6
-    AND check_id = $7
+WHERE probe_id = $5
+    AND check_id = $6
     AND started_at >= $2
     AND started_at < $1
     AND ($4::text != 'rttAvgMs' OR rtt_avg_ms IS NOT NULL)
@@ -172,13 +160,12 @@ ORDER BY bucket_ms ASC
 `
 
 type ListPingResultBucketSeriesParams struct {
-	StartedAtTo   pgtype.Timestamptz `json:"started_at_to"`
-	StartedAtFrom pgtype.Timestamptz `json:"started_at_from"`
-	MaxDataPoints float64            `json:"max_data_points"`
-	Metric        string             `json:"metric"`
-	ProjectID     uuid.UUID          `json:"project_id"`
-	ProbeID       uuid.UUID          `json:"probe_id"`
-	CheckID       uuid.UUID          `json:"check_id"`
+	StartedAtTo    pgtype.Timestamptz `json:"started_at_to"`
+	StartedAtFrom  pgtype.Timestamptz `json:"started_at_from"`
+	MaxDataPoints  float64            `json:"max_data_points"`
+	Metric         string             `json:"metric"`
+	ProbeStorageID int64              `json:"probe_storage_id"`
+	CheckStorageID int64              `json:"check_storage_id"`
 }
 
 type ListPingResultBucketSeriesRow struct {
@@ -192,9 +179,8 @@ func (q *Queries) ListPingResultBucketSeries(ctx context.Context, arg ListPingRe
 		arg.StartedAtFrom,
 		arg.MaxDataPoints,
 		arg.Metric,
-		arg.ProjectID,
-		arg.ProbeID,
-		arg.CheckID,
+		arg.ProbeStorageID,
+		arg.CheckStorageID,
 	)
 	if err != nil {
 		return nil, err
@@ -223,22 +209,20 @@ SELECT
         WHEN 'successRate' THEN CASE WHEN status = 'successful' THEN 100.0 ELSE 0.0 END
     END::double precision AS value
 FROM ping_results
-WHERE project_id = $2
-    AND probe_id = $3
-    AND check_id = $4
-    AND started_at >= $5
-    AND started_at < $6
+WHERE probe_id = $2
+    AND check_id = $3
+    AND started_at >= $4
+    AND started_at < $5
     AND ($1::text != 'rttAvgMs' OR rtt_avg_ms IS NOT NULL)
 ORDER BY started_at ASC
 `
 
 type ListPingResultRawSeriesParams struct {
-	Metric        string             `json:"metric"`
-	ProjectID     uuid.UUID          `json:"project_id"`
-	ProbeID       uuid.UUID          `json:"probe_id"`
-	CheckID       uuid.UUID          `json:"check_id"`
-	StartedAtFrom pgtype.Timestamptz `json:"started_at_from"`
-	StartedAtTo   pgtype.Timestamptz `json:"started_at_to"`
+	Metric         string             `json:"metric"`
+	ProbeStorageID int64              `json:"probe_storage_id"`
+	CheckStorageID int64              `json:"check_storage_id"`
+	StartedAtFrom  pgtype.Timestamptz `json:"started_at_from"`
+	StartedAtTo    pgtype.Timestamptz `json:"started_at_to"`
 }
 
 type ListPingResultRawSeriesRow struct {
@@ -249,9 +233,8 @@ type ListPingResultRawSeriesRow struct {
 func (q *Queries) ListPingResultRawSeries(ctx context.Context, arg ListPingResultRawSeriesParams) ([]ListPingResultRawSeriesRow, error) {
 	rows, err := q.db.Query(ctx, listPingResultRawSeries,
 		arg.Metric,
-		arg.ProjectID,
-		arg.ProbeID,
-		arg.CheckID,
+		arg.ProbeStorageID,
+		arg.CheckStorageID,
 		arg.StartedAtFrom,
 		arg.StartedAtTo,
 	)
@@ -271,4 +254,35 @@ func (q *Queries) ListPingResultRawSeries(ctx context.Context, arg ListPingResul
 		return nil, err
 	}
 	return items, nil
+}
+
+const resolvePingSeriesStorageIDs = `-- name: ResolvePingSeriesStorageIDs :one
+SELECT probes.internal_id AS probe_storage_id,
+       checks.internal_id AS check_storage_id
+FROM probes
+JOIN checks
+    ON checks.project_id = probes.project_id
+    AND checks.id = $1
+    AND checks.deleted_at IS NULL
+WHERE probes.project_id = $2
+  AND probes.id = $3
+  AND probes.deleted_at IS NULL
+`
+
+type ResolvePingSeriesStorageIDsParams struct {
+	CheckID   uuid.UUID `json:"check_id"`
+	ProjectID uuid.UUID `json:"project_id"`
+	ProbeID   uuid.UUID `json:"probe_id"`
+}
+
+type ResolvePingSeriesStorageIDsRow struct {
+	ProbeStorageID int64 `json:"probe_storage_id"`
+	CheckStorageID int64 `json:"check_storage_id"`
+}
+
+func (q *Queries) ResolvePingSeriesStorageIDs(ctx context.Context, arg ResolvePingSeriesStorageIDsParams) (ResolvePingSeriesStorageIDsRow, error) {
+	row := q.db.QueryRow(ctx, resolvePingSeriesStorageIDs, arg.CheckID, arg.ProjectID, arg.ProbeID)
+	var i ResolvePingSeriesStorageIDsRow
+	err := row.Scan(&i.ProbeStorageID, &i.CheckStorageID)
+	return i, err
 }

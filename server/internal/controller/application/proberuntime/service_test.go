@@ -17,6 +17,8 @@ const (
 	testProjectID    = "22222222-2222-2222-2222-222222222222"
 	testCheckID      = "44444444-4444-4444-4444-444444444444"
 	testAssignmentID = "66666666-6666-6666-6666-666666666666"
+	testProbeStoreID = int64(101)
+	testCheckStoreID = int64(202)
 )
 
 func TestHelloRejectsInvalidSecret(t *testing.T) {
@@ -153,7 +155,7 @@ func TestListAssignmentsAuthenticatesProbe(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected assignments to succeed: %v", err)
 	}
-	if len(output.Assignments) != 1 || output.Assignments[0].CheckID != testCheckID {
+	if len(output.Assignments) != 1 || output.Assignments[0].Check == nil || output.Assignments[0].Check.ID != testCheckID {
 		t.Fatalf("expected assignment for check %q, got %#v", testCheckID, output.Assignments)
 	}
 	if output.ServerTime.IsZero() {
@@ -206,8 +208,8 @@ func TestSubmitResultsWritesAssignedPingResults(t *testing.T) {
 		t.Fatalf("expected one ping result, got %#v", pings.gotInputs)
 	}
 	got := pings.gotInputs[0]
-	if got.ProjectID != testProjectID || got.ProbeID != testProbeID || got.CheckID != testCheckID {
-		t.Fatalf("expected authenticated identity on result, got %#v", got)
+	if got.ProbeStorageID != testProbeStoreID || got.CheckStorageID != testCheckStoreID {
+		t.Fatalf("expected storage identity on result, got %#v", got)
 	}
 	if !got.StartedAt.Equal(startedAt) || got.Status != domainping.StatusSuccessful {
 		t.Fatalf("unexpected stored ping result: %#v", got)
@@ -398,8 +400,8 @@ func newAssignment(checkID string, checkType domaincheck.Type) domainassignment.
 	return domainassignment.Assignment{
 		ID:              testAssignmentID,
 		ProjectID:       testProjectID,
-		ProbeID:         testProbeID,
-		CheckID:         checkID,
+		ProbeStorageID:  testProbeStoreID,
+		CheckStorageID:  testCheckStoreID,
 		CheckVersion:    "check-v1",
 		SelectorVersion: "selector-v1",
 		Check: &domaincheck.Check{
@@ -523,8 +525,10 @@ func (r *fakeProbeRepository) ListActiveAssignmentsForProbeChecks(_ context.Cont
 
 	assignments := make([]domainassignment.Assignment, 0, len(r.assignments))
 	for _, assignment := range r.assignments {
-		if _, ok := allowed[assignment.CheckID]; ok {
-			assignments = append(assignments, assignment)
+		if assignment.Check != nil {
+			if _, ok := allowed[assignment.Check.ID]; ok {
+				assignments = append(assignments, assignment)
+			}
 		}
 	}
 

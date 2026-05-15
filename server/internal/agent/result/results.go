@@ -166,7 +166,6 @@ func pingResultBody(result domainping.Result) httpclient.PingResultBody {
 		RttSamplesMs:  append([]float64(nil), result.RttSamplesMs...),
 		ResolvedIP:    result.ResolvedIP,
 		IPFamily:      result.IPFamily,
-		Raw:           result.Raw,
 		ErrorCode:     result.ErrorCode,
 		ErrorMessage:  result.ErrorMessage,
 	}

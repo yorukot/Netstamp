@@ -417,6 +417,8 @@ Default local endpoints:
 - VictoriaTraces: `http://localhost:10428`
 - Grafana: `http://127.0.0.1:3000`
 
+Grafana provisions the `Netstamp Controller Status` dashboard on startup and uses it as the default home dashboard. For the local stack, sign in with `admin` / `admin` unless `GF_SECURITY_ADMIN_USER` or `GF_SECURITY_ADMIN_PASSWORD` is overridden.
+
 The backend writes structured Zap logs and records application events for auth, projects, labels, checks, probes, and probe runtime workflows.
 
 ## Deployment

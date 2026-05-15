@@ -17,7 +17,6 @@ func TestReconcileAcceptsAssignmentWithoutEmbeddedProbe(t *testing.T) {
 
 	summary := store.Reconcile([]domainassignment.Assignment{{
 		ID:              "assignment-1",
-		CheckID:         "check-1",
 		CheckVersion:    "check-version-1",
 		SelectorVersion: "selector-version-1",
 		Check: &domaincheck.Check{
@@ -51,8 +50,7 @@ func TestReconcileSkipsAssignmentWithoutCheck(t *testing.T) {
 	store := NewAssignmentStore("probe-1", time.Minute, discardLogger())
 
 	summary := store.Reconcile([]domainassignment.Assignment{{
-		ID:      "assignment-1",
-		CheckID: "check-1",
+		ID: "assignment-1",
 	}}, time.Date(2026, 5, 15, 12, 0, 0, 0, time.UTC))
 
 	if summary.Unsupported != 1 || summary.Active != 0 {

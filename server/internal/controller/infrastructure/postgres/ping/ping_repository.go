@@ -2,9 +2,9 @@ package pgping
 
 import (
 	"context"
+	"errors"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -36,41 +36,26 @@ func (r *PingRepository) CreatePingResults(ctx context.Context, inputs []domainp
 	err := r.tx.InTx(ctx, func(ctx context.Context, tx pgx.Tx) error {
 		q := r.queries.WithTx(tx)
 		for _, input := range inputs {
-			projectID, err := postgres.ParseUUID(input.ProjectID, domainping.ErrInvalidResult)
-			if err != nil {
-				return err
-			}
-			probeID, err := postgres.ParseUUID(input.ProbeID, domainping.ErrInvalidResult)
-			if err != nil {
-				return err
-			}
-			checkID, err := postgres.ParseUUID(input.CheckID, domainping.ErrInvalidResult)
-			if err != nil {
-				return err
-			}
-
 			createErr := q.CreatePingResult(ctx, sqlc.CreatePingResultParams{
-				ProjectID:     projectID,
-				CheckID:       checkID,
-				ProbeID:       probeID,
-				StartedAt:     pgtype.Timestamptz{Time: input.StartedAt.UTC(), Valid: true},
-				FinishedAt:    pgtype.Timestamptz{Time: input.FinishedAt.UTC(), Valid: true},
-				DurationMs:    input.DurationMs,
-				Status:        sqlcPingStatus(input.Status),
-				SentCount:     input.SentCount,
-				ReceivedCount: input.ReceivedCount,
-				LossPercent:   input.LossPercent,
-				RttMinMs:      input.RttMinMs,
-				RttAvgMs:      input.RttAvgMs,
-				RttMedianMs:   input.RttMedianMs,
-				RttMaxMs:      input.RttMaxMs,
-				RttStddevMs:   input.RttStddevMs,
-				RttSamplesMs:  storageRTTSamples(input.RttSamplesMs),
-				ResolvedIp:    input.ResolvedIP,
-				IpFamily:      sqlcIPFamily(input.IPFamily),
-				Raw:           input.Raw,
-				ErrorCode:     input.ErrorCode,
-				ErrorMessage:  input.ErrorMessage,
+				ProbeStorageID: input.ProbeStorageID,
+				CheckStorageID: input.CheckStorageID,
+				StartedAt:      pgtype.Timestamptz{Time: input.StartedAt.UTC(), Valid: true},
+				FinishedAt:     pgtype.Timestamptz{Time: input.FinishedAt.UTC(), Valid: true},
+				DurationMs:     input.DurationMs,
+				Status:         sqlcPingStatus(input.Status),
+				SentCount:      input.SentCount,
+				ReceivedCount:  input.ReceivedCount,
+				LossPercent:    input.LossPercent,
+				RttMinMs:       input.RttMinMs,
+				RttAvgMs:       input.RttAvgMs,
+				RttMedianMs:    input.RttMedianMs,
+				RttMaxMs:       input.RttMaxMs,
+				RttStddevMs:    input.RttStddevMs,
+				RttSamplesMs:   storageRTTSamples(input.RttSamplesMs),
+				ResolvedIp:     input.ResolvedIP,
+				IpFamily:       sqlcIPFamily(input.IPFamily),
+				ErrorCode:      input.ErrorCode,
+				ErrorMessage:   input.ErrorMessage,
 			})
 			if createErr != nil {
 				return mapPingResultWriteError(createErr)
@@ -107,16 +92,27 @@ func (r *PingRepository) ListPingSeries(ctx context.Context, input domainping.Se
 	if err != nil {
 		return domainping.SeriesResult{}, err
 	}
+	storageIDs, err := r.queries.ResolvePingSeriesStorageIDs(ctx, sqlc.ResolvePingSeriesStorageIDsParams{
+		CheckID:   checkID,
+		ProjectID: projectID,
+		ProbeID:   probeID,
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domainping.SeriesResult{}, domainprobe.ErrProbeNotFound
+		}
+		postgres.RecordDBSpanError(span, err)
+		return domainping.SeriesResult{}, err
+	}
 
 	startedAtFrom := pgtype.Timestamptz{Time: input.From.UTC(), Valid: true}
 	startedAtTo := pgtype.Timestamptz{Time: input.To.UTC(), Valid: true}
 	countParams := sqlc.CountPingResultSeriesPointsParams{
-		ProjectID:     projectID,
-		ProbeID:       probeID,
-		CheckID:       checkID,
-		StartedAtFrom: startedAtFrom,
-		StartedAtTo:   startedAtTo,
-		Metric:        input.Metric,
+		ProbeStorageID: storageIDs.ProbeStorageID,
+		CheckStorageID: storageIDs.CheckStorageID,
+		StartedAtFrom:  startedAtFrom,
+		StartedAtTo:    startedAtTo,
+		Metric:         input.Metric,
 	}
 	totalPoints, err := r.queries.CountPingResultSeriesPoints(ctx, countParams)
 	if err != nil {
@@ -125,7 +121,7 @@ func (r *PingRepository) ListPingSeries(ctx context.Context, input domainping.Se
 	}
 
 	if totalPoints <= int64(input.MaxDataPoints) {
-		points, rawErr := r.listRawPingSeries(ctx, projectID, probeID, checkID, startedAtFrom, startedAtTo, input.Metric)
+		points, rawErr := r.listRawPingSeries(ctx, storageIDs.ProbeStorageID, storageIDs.CheckStorageID, startedAtFrom, startedAtTo, input.Metric)
 		if rawErr != nil {
 			postgres.RecordDBSpanError(span, rawErr)
 			return domainping.SeriesResult{}, rawErr
@@ -133,7 +129,7 @@ func (r *PingRepository) ListPingSeries(ctx context.Context, input domainping.Se
 		return domainping.SeriesResult{Points: points, Resolution: domainping.SeriesResolutionRaw, TotalPoints: totalPoints}, nil
 	}
 
-	points, bucketErr := r.listBucketPingSeries(ctx, projectID, probeID, checkID, startedAtFrom, startedAtTo, input)
+	points, bucketErr := r.listBucketPingSeries(ctx, storageIDs.ProbeStorageID, storageIDs.CheckStorageID, startedAtFrom, startedAtTo, input)
 	if bucketErr != nil {
 		postgres.RecordDBSpanError(span, bucketErr)
 		return domainping.SeriesResult{}, bucketErr
@@ -141,14 +137,13 @@ func (r *PingRepository) ListPingSeries(ctx context.Context, input domainping.Se
 	return domainping.SeriesResult{Points: points, Resolution: domainping.SeriesResolutionBucket, TotalPoints: totalPoints}, nil
 }
 
-func (r *PingRepository) listRawPingSeries(ctx context.Context, projectID, probeID, checkID uuid.UUID, startedAtFrom, startedAtTo pgtype.Timestamptz, metric string) ([]domainping.SeriesPoint, error) {
+func (r *PingRepository) listRawPingSeries(ctx context.Context, probeStorageID, checkStorageID int64, startedAtFrom, startedAtTo pgtype.Timestamptz, metric string) ([]domainping.SeriesPoint, error) {
 	rows, err := r.queries.ListPingResultRawSeries(ctx, sqlc.ListPingResultRawSeriesParams{
-		Metric:        metric,
-		ProjectID:     projectID,
-		ProbeID:       probeID,
-		CheckID:       checkID,
-		StartedAtFrom: startedAtFrom,
-		StartedAtTo:   startedAtTo,
+		Metric:         metric,
+		ProbeStorageID: probeStorageID,
+		CheckStorageID: checkStorageID,
+		StartedAtFrom:  startedAtFrom,
+		StartedAtTo:    startedAtTo,
 	})
 	if err != nil {
 		return nil, err
@@ -156,15 +151,14 @@ func (r *PingRepository) listRawPingSeries(ctx context.Context, projectID, probe
 	return rawSeriesRows(rows), nil
 }
 
-func (r *PingRepository) listBucketPingSeries(ctx context.Context, projectID, probeID, checkID uuid.UUID, startedAtFrom, startedAtTo pgtype.Timestamptz, input domainping.SeriesQuery) ([]domainping.SeriesPoint, error) {
+func (r *PingRepository) listBucketPingSeries(ctx context.Context, probeStorageID, checkStorageID int64, startedAtFrom, startedAtTo pgtype.Timestamptz, input domainping.SeriesQuery) ([]domainping.SeriesPoint, error) {
 	rows, err := r.queries.ListPingResultBucketSeries(ctx, sqlc.ListPingResultBucketSeriesParams{
-		StartedAtTo:   startedAtTo,
-		StartedAtFrom: startedAtFrom,
-		MaxDataPoints: float64(input.MaxDataPoints),
-		Metric:        input.Metric,
-		ProjectID:     projectID,
-		ProbeID:       probeID,
-		CheckID:       checkID,
+		StartedAtTo:    startedAtTo,
+		StartedAtFrom:  startedAtFrom,
+		MaxDataPoints:  float64(input.MaxDataPoints),
+		Metric:         input.Metric,
+		ProbeStorageID: probeStorageID,
+		CheckStorageID: checkStorageID,
 	})
 	if err != nil {
 		return nil, err

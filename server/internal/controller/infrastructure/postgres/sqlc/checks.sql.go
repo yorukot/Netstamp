@@ -23,7 +23,7 @@ VALUES (
     $6,
     $7
 )
-RETURNING id, project_id, name, check_type, target, selector, description, interval_seconds, created_at, updated_at, deleted_at
+RETURNING id, internal_id, project_id, name, check_type, target, selector, description, interval_seconds, created_at, updated_at, deleted_at
 `
 
 type CreateCheckParams struct {
@@ -49,6 +49,7 @@ func (q *Queries) CreateCheck(ctx context.Context, arg CreateCheckParams) (Check
 	var i Check
 	err := row.Scan(
 		&i.ID,
+		&i.InternalID,
 		&i.ProjectID,
 		&i.Name,
 		&i.CheckType,
@@ -200,7 +201,8 @@ func (q *Queries) DeleteStaleProbeCheckAssignments(ctx context.Context, arg Dele
 }
 
 const getActiveCheckForProject = `-- name: GetActiveCheckForProject :one
-SELECT checks.id,
+SELECT checks.internal_id,
+       checks.id,
        checks.project_id,
        checks.name,
        checks.check_type,
@@ -229,6 +231,7 @@ type GetActiveCheckForProjectParams struct {
 }
 
 type GetActiveCheckForProjectRow struct {
+	InternalID      int64              `json:"internal_id"`
 	ID              uuid.UUID          `json:"id"`
 	ProjectID       uuid.UUID          `json:"project_id"`
 	Name            string             `json:"name"`
@@ -251,6 +254,7 @@ func (q *Queries) GetActiveCheckForProject(ctx context.Context, arg GetActiveChe
 	row := q.db.QueryRow(ctx, getActiveCheckForProject, arg.ProjectID, arg.ID)
 	var i GetActiveCheckForProjectRow
 	err := row.Scan(
+		&i.InternalID,
 		&i.ID,
 		&i.ProjectID,
 		&i.Name,
@@ -272,7 +276,8 @@ func (q *Queries) GetActiveCheckForProject(ctx context.Context, arg GetActiveChe
 }
 
 const listActiveChecksForProject = `-- name: ListActiveChecksForProject :many
-SELECT checks.id,
+SELECT checks.internal_id,
+       checks.id,
        checks.project_id,
        checks.name,
        checks.check_type,
@@ -296,6 +301,7 @@ ORDER BY checks.created_at DESC, checks.id DESC
 `
 
 type ListActiveChecksForProjectRow struct {
+	InternalID      int64              `json:"internal_id"`
 	ID              uuid.UUID          `json:"id"`
 	ProjectID       uuid.UUID          `json:"project_id"`
 	Name            string             `json:"name"`
@@ -324,6 +330,7 @@ func (q *Queries) ListActiveChecksForProject(ctx context.Context, projectID uuid
 	for rows.Next() {
 		var i ListActiveChecksForProjectRow
 		if err := rows.Scan(
+			&i.InternalID,
 			&i.ID,
 			&i.ProjectID,
 			&i.Name,
@@ -353,6 +360,7 @@ func (q *Queries) ListActiveChecksForProject(ctx context.Context, projectID uuid
 
 const listActiveEnabledProbeLabelsForProject = `-- name: ListActiveEnabledProbeLabelsForProject :many
 SELECT probes.id AS probe_id,
+       probes.internal_id AS probe_internal_id,
        labels.id AS label_id,
        labels.project_id AS label_project_id,
        labels.key AS label_key,
@@ -379,14 +387,15 @@ ORDER BY probes.created_at ASC,
 `
 
 type ListActiveEnabledProbeLabelsForProjectRow struct {
-	ProbeID        uuid.UUID          `json:"probe_id"`
-	LabelID        *uuid.UUID         `json:"label_id"`
-	LabelProjectID *uuid.UUID         `json:"label_project_id"`
-	LabelKey       *string            `json:"label_key"`
-	LabelValue     *string            `json:"label_value"`
-	LabelCreatedAt pgtype.Timestamptz `json:"label_created_at"`
-	LabelUpdatedAt pgtype.Timestamptz `json:"label_updated_at"`
-	LabelDeletedAt pgtype.Timestamptz `json:"label_deleted_at"`
+	ProbeID         uuid.UUID          `json:"probe_id"`
+	ProbeInternalID int64              `json:"probe_internal_id"`
+	LabelID         *uuid.UUID         `json:"label_id"`
+	LabelProjectID  *uuid.UUID         `json:"label_project_id"`
+	LabelKey        *string            `json:"label_key"`
+	LabelValue      *string            `json:"label_value"`
+	LabelCreatedAt  pgtype.Timestamptz `json:"label_created_at"`
+	LabelUpdatedAt  pgtype.Timestamptz `json:"label_updated_at"`
+	LabelDeletedAt  pgtype.Timestamptz `json:"label_deleted_at"`
 }
 
 func (q *Queries) ListActiveEnabledProbeLabelsForProject(ctx context.Context, projectID uuid.UUID) ([]ListActiveEnabledProbeLabelsForProjectRow, error) {
@@ -400,6 +409,7 @@ func (q *Queries) ListActiveEnabledProbeLabelsForProject(ctx context.Context, pr
 		var i ListActiveEnabledProbeLabelsForProjectRow
 		if err := rows.Scan(
 			&i.ProbeID,
+			&i.ProbeInternalID,
 			&i.LabelID,
 			&i.LabelProjectID,
 			&i.LabelKey,
@@ -501,7 +511,7 @@ SET name = $1,
 WHERE project_id = $7
   AND id = $8
   AND deleted_at IS NULL
-RETURNING id, project_id, name, check_type, target, selector, description, interval_seconds, created_at, updated_at, deleted_at
+RETURNING id, internal_id, project_id, name, check_type, target, selector, description, interval_seconds, created_at, updated_at, deleted_at
 `
 
 type UpdateCheckParams struct {
@@ -529,6 +539,7 @@ func (q *Queries) UpdateCheck(ctx context.Context, arg UpdateCheckParams) (Check
 	var i Check
 	err := row.Scan(
 		&i.ID,
+		&i.InternalID,
 		&i.ProjectID,
 		&i.Name,
 		&i.CheckType,

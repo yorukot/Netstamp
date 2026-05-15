@@ -29,9 +29,6 @@
 					"check": {
 						"$ref": "#/components/schemas/Check"
 					},
-					"checkId": {
-						"type": "string"
-					},
 					"checkVersion": {
 						"type": "string"
 					},
@@ -41,9 +38,6 @@
 					"probe": {
 						"$ref": "#/components/schemas/Probe"
 					},
-					"probeId": {
-						"type": "string"
-					},
 					"projectId": {
 						"type": "string"
 					},
@@ -51,7 +45,7 @@
 						"type": "string"
 					}
 				},
-				"required": ["id", "projectId", "probeId", "checkId", "checkVersion", "selectorVersion"],
+				"required": ["id", "projectId", "checkVersion", "selectorVersion"],
 				"type": "object"
 			},
 			"AssignmentsOutputBody": {
@@ -830,9 +824,6 @@
 						"maximum": 100,
 						"minimum": 0,
 						"type": "number"
-					},
-					"raw": {
-						"description": "Optional raw executor details."
 					},
 					"receivedCount": {
 						"description": "Packets received.",

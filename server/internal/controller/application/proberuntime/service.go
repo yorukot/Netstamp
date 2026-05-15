@@ -118,9 +118,8 @@ func (s *Service) SubmitResults(ctx context.Context, input SubmitResultsInput) (
 		switch group.checkType {
 		case domaincheck.TypePing:
 			for _, result := range group.ping {
-				result.ProjectID = assignment.ProjectID
-				result.ProbeID = credential.ProbeID
-				result.CheckID = assignment.CheckID
+				result.ProbeStorageID = assignment.ProbeStorageID
+				result.CheckStorageID = assignment.CheckStorageID
 				pingResults = append(pingResults, result)
 			}
 		default:
@@ -144,7 +143,10 @@ func (s *Service) SubmitResults(ctx context.Context, input SubmitResultsInput) (
 func assignmentsByCheckID(assignments []domainassignment.Assignment) map[string]domainassignment.Assignment {
 	byCheckID := make(map[string]domainassignment.Assignment, len(assignments))
 	for _, assignment := range assignments {
-		byCheckID[assignment.CheckID] = assignment
+		if assignment.Check == nil {
+			continue
+		}
+		byCheckID[assignment.Check.ID] = assignment
 	}
 
 	return byCheckID

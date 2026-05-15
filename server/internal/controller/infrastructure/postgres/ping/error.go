@@ -9,8 +9,8 @@ import (
 
 func mapPingResultWriteError(err error) error {
 	switch {
-	case postgres.IsForeignKeyViolation(err, "fk_ping_results_project_check"),
-		postgres.IsForeignKeyViolation(err, "fk_ping_results_project_probe"):
+	case postgres.IsForeignKeyViolation(err, "fk_ping_results_check"),
+		postgres.IsForeignKeyViolation(err, "fk_ping_results_probe"):
 		return fmt.Errorf("ping result invalid: %w", domainping.ErrInvalidResult)
 	default:
 		return err

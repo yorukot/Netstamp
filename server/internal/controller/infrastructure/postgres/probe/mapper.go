@@ -229,8 +229,8 @@ func mapAssignment(row sqlc.ListActiveAssignmentsForProbeRow) domainassignment.A
 	return domainassignment.Assignment{
 		ID:              row.AssignmentID.String(),
 		ProjectID:       row.ProjectID.String(),
-		ProbeID:         row.ProbeID.String(),
-		CheckID:         row.CheckID.String(),
+		ProbeStorageID:  row.ProbeInternalID,
+		CheckStorageID:  row.CheckInternalID,
 		CheckVersion:    row.CheckVersion,
 		SelectorVersion: row.SelectorVersion,
 		Check: &domaincheck.Check{
@@ -248,8 +248,8 @@ func mapAssignmentForProbeChecks(row sqlc.ListActiveAssignmentsForProbeChecksRow
 	return domainassignment.Assignment{
 		ID:              row.AssignmentID.String(),
 		ProjectID:       row.ProjectID.String(),
-		ProbeID:         row.ProbeID.String(),
-		CheckID:         row.CheckID.String(),
+		ProbeStorageID:  row.ProbeInternalID,
+		CheckStorageID:  row.CheckInternalID,
 		CheckVersion:    row.CheckVersion,
 		SelectorVersion: row.SelectorVersion,
 		Check: &domaincheck.Check{

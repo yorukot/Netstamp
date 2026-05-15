@@ -4,11 +4,11 @@ import (
 	"net/netip"
 	"time"
 
+	domainassignment "github.com/yorukot/netstamp/internal/domain/assignment"
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
 	domainnetwork "github.com/yorukot/netstamp/internal/domain/network"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
-	domainassignment "github.com/yorukot/netstamp/internal/domain/assignment"
 )
 
 type HelloResponse struct {
@@ -61,7 +61,6 @@ type PingResultBody struct {
 	RttSamplesMs  []float64               `json:"rttSamplesMs,omitempty"`
 	ResolvedIP    *netip.Addr             `json:"resolvedIp,omitempty"`
 	IPFamily      *domainnetwork.IPFamily `json:"ipFamily,omitempty"`
-	Raw           map[string]any          `json:"raw,omitempty"`
 	ErrorCode     *string                 `json:"errorCode,omitempty"`
 	ErrorMessage  *string                 `json:"errorMessage,omitempty"`
 }

@@ -227,6 +227,7 @@ func (ns NullProjectMemberRole) Value() (driver.Value, error) {
 
 type Check struct {
 	ID              uuid.UUID          `json:"id"`
+	InternalID      int64              `json:"internal_id"`
 	ProjectID       uuid.UUID          `json:"project_id"`
 	Name            string             `json:"name"`
 	CheckType       CheckType          `json:"check_type"`
@@ -264,10 +265,8 @@ type PingCheckConfig struct {
 }
 
 type PingResult struct {
-	ID            uuid.UUID          `json:"id"`
-	ProjectID     uuid.UUID          `json:"project_id"`
-	CheckID       uuid.UUID          `json:"check_id"`
-	ProbeID       uuid.UUID          `json:"probe_id"`
+	ProbeID       int64              `json:"probe_id"`
+	CheckID       int64              `json:"check_id"`
 	StartedAt     pgtype.Timestamptz `json:"started_at"`
 	FinishedAt    pgtype.Timestamptz `json:"finished_at"`
 	DurationMs    int32              `json:"duration_ms"`
@@ -283,14 +282,13 @@ type PingResult struct {
 	RttSamplesMs  []float64          `json:"rtt_samples_ms"`
 	ResolvedIp    *netip.Addr        `json:"resolved_ip"`
 	IpFamily      NullIpFamily       `json:"ip_family"`
-	Raw           []byte             `json:"raw"`
 	ErrorCode     *string            `json:"error_code"`
 	ErrorMessage  *string            `json:"error_message"`
-	CreatedAt     pgtype.Timestamptz `json:"created_at"`
 }
 
 type Probe struct {
 	ID              uuid.UUID          `json:"id"`
+	InternalID      int64              `json:"internal_id"`
 	ProjectID       uuid.UUID          `json:"project_id"`
 	Name            string             `json:"name"`
 	Enabled         bool               `json:"enabled"`

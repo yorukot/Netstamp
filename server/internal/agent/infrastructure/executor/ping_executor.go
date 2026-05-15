@@ -483,11 +483,8 @@ func pingResultFromStats(startedAt, finishedAt time.Time, stats rawPingStats, st
 		RttSamplesMs:  samples,
 		ResolvedIP:    cloneAddr(stats.resolvedIP),
 		IPFamily:      cloneIPFamily(stats.ipFamily),
-		Raw: map[string]any{
-			"executor": "raw-icmp",
-		},
-		ErrorCode:    optionalString(errorCode),
-		ErrorMessage: optionalString(errorMessage),
+		ErrorCode:     optionalString(errorCode),
+		ErrorMessage:  optionalString(errorMessage),
 	}
 }
 

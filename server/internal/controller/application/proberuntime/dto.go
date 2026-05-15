@@ -1,7 +1,6 @@
 package proberuntime
 
 import (
-	"encoding/json"
 	"net/netip"
 	"time"
 
@@ -66,7 +65,6 @@ type PingResultInput struct {
 	RttSamplesMs  []float64
 	ResolvedIP    *netip.Addr
 	IPFamily      *string
-	Raw           json.RawMessage
 	ErrorCode     *string
 	ErrorMessage  *string
 }

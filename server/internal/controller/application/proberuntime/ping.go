@@ -1,7 +1,6 @@
 package proberuntime
 
 import (
-	"encoding/json"
 	"net/netip"
 	"time"
 
@@ -33,7 +32,6 @@ type normalizedPingRTT struct {
 
 type normalizedPingMetadata struct {
 	ipFamily     *domainnetwork.IPFamily
-	raw          json.RawMessage
 	errorCode    *string
 	errorMessage *string
 }
@@ -72,7 +70,6 @@ func normalizePingResult(input PingResultInput, fieldPrefix string) (domainping.
 		RttSamplesMs:  rtt.samples,
 		ResolvedIP:    cloneAddr(input.ResolvedIP),
 		IPFamily:      metadata.ipFamily,
-		Raw:           metadata.raw,
 		ErrorCode:     metadata.errorCode,
 		ErrorMessage:  metadata.errorMessage,
 	}, nil
@@ -173,10 +170,6 @@ func normalizePingMetadata(input PingResultInput, fieldPrefix string) (normalize
 	if err != nil {
 		return normalizedPingMetadata{}, invalidRuntimeField(resultField(fieldPrefix, "ipFamily"), `must be "inet" or "inet6"`, input.IPFamily)
 	}
-	raw, err := domainping.VNResultRaw(input.Raw)
-	if err != nil {
-		return normalizedPingMetadata{}, invalidRuntimeField(resultField(fieldPrefix, "raw"), err.Error(), input.Raw)
-	}
 	errorCode, err := normalizeOptionalResultText(input.ErrorCode, resultField(fieldPrefix, "errorCode"))
 	if err != nil {
 		return normalizedPingMetadata{}, err
@@ -188,7 +181,6 @@ func normalizePingMetadata(input PingResultInput, fieldPrefix string) (normalize
 
 	return normalizedPingMetadata{
 		ipFamily:     ipFamily,
-		raw:          raw,
 		errorCode:    errorCode,
 		errorMessage: errorMessage,
 	}, nil

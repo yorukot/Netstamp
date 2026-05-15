@@ -9,22 +9,22 @@ import (
 
 func (s *AssignmentStore) taskFromAssignment(assignment domainassignment.Assignment, pulledAt time.Time) (TaskState, bool) {
 	if assignment.Check == nil {
-		s.log.Warn("assignment skipped without check", "assignment_id", assignment.ID, "check_id", assignment.CheckID)
+		s.log.Warn("assignment skipped without check", "assignment_id", assignment.ID)
 		return TaskState{}, false
 	}
 	if _, err := domaincheck.VNCheckType(assignment.Check.Type); err != nil {
-		s.log.Warn("assignment skipped with unsupported check type", "assignment_id", assignment.ID, "check_id", assignment.CheckID, "check_type", assignment.Check.Type)
+		s.log.Warn("assignment skipped with unsupported check type", "assignment_id", assignment.ID, "check_id", assignment.Check.ID, "check_type", assignment.Check.Type)
 		return TaskState{}, false
 	}
 	// TODO: we need to modify it since basically we need to check the config base on each type
 	if assignment.Check.PingConfig == nil {
-		s.log.Warn("assignment skipped without ping config", "assignment_id", assignment.ID, "check_id", assignment.CheckID)
+		s.log.Warn("assignment skipped without ping config", "assignment_id", assignment.ID, "check_id", assignment.Check.ID)
 		return TaskState{}, false
 	}
 
 	interval := time.Duration(assignment.Check.IntervalSeconds) * time.Second
 	if interval <= 0 {
-		s.log.Warn("assignment skipped with invalid interval", "assignment_id", assignment.ID, "check_id", assignment.CheckID, "interval_seconds", assignment.Check.IntervalSeconds)
+		s.log.Warn("assignment skipped with invalid interval", "assignment_id", assignment.ID, "check_id", assignment.Check.ID, "interval_seconds", assignment.Check.IntervalSeconds)
 		return TaskState{}, false
 	}
 

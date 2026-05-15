@@ -16,7 +16,7 @@ import (
 const createProbe = `-- name: CreateProbe :one
 INSERT INTO probes (project_id, name, enabled, location, subdivision_code)
 VALUES ($1, $2, $3, $4, $5)
-RETURNING id, project_id, name, enabled, location, subdivision_code, created_at, updated_at, deleted_at
+RETURNING id, internal_id, project_id, name, enabled, location, subdivision_code, created_at, updated_at, deleted_at
 `
 
 type CreateProbeParams struct {
@@ -38,6 +38,7 @@ func (q *Queries) CreateProbe(ctx context.Context, arg CreateProbeParams) (Probe
 	var i Probe
 	err := row.Scan(
 		&i.ID,
+		&i.InternalID,
 		&i.ProjectID,
 		&i.Name,
 		&i.Enabled,
@@ -171,6 +172,7 @@ func (q *Queries) DeleteStaleProbeCheckAssignmentsForProbe(ctx context.Context, 
 const getActiveProbeCredential = `-- name: GetActiveProbeCredential :one
 SELECT probes.id,
        probes.project_id,
+       probes.internal_id AS probe_internal_id,
        probes.enabled,
        probe_credentials.secret_hash
 FROM probes
@@ -180,10 +182,11 @@ WHERE probes.id = $1
 `
 
 type GetActiveProbeCredentialRow struct {
-	ID         uuid.UUID `json:"id"`
-	ProjectID  uuid.UUID `json:"project_id"`
-	Enabled    bool      `json:"enabled"`
-	SecretHash string    `json:"secret_hash"`
+	ID              uuid.UUID `json:"id"`
+	ProjectID       uuid.UUID `json:"project_id"`
+	ProbeInternalID int64     `json:"probe_internal_id"`
+	Enabled         bool      `json:"enabled"`
+	SecretHash      string    `json:"secret_hash"`
 }
 
 func (q *Queries) GetActiveProbeCredential(ctx context.Context, id uuid.UUID) (GetActiveProbeCredentialRow, error) {
@@ -192,6 +195,7 @@ func (q *Queries) GetActiveProbeCredential(ctx context.Context, id uuid.UUID) (G
 	err := row.Scan(
 		&i.ID,
 		&i.ProjectID,
+		&i.ProbeInternalID,
 		&i.Enabled,
 		&i.SecretHash,
 	)
@@ -199,7 +203,8 @@ func (q *Queries) GetActiveProbeCredential(ctx context.Context, id uuid.UUID) (G
 }
 
 const getActiveProbeRowsForProject = `-- name: GetActiveProbeRowsForProject :many
-SELECT probes.id,
+SELECT probes.internal_id,
+       probes.id,
        probes.project_id,
        probes.name,
        probes.enabled,
@@ -246,6 +251,7 @@ type GetActiveProbeRowsForProjectParams struct {
 }
 
 type GetActiveProbeRowsForProjectRow struct {
+	InternalID         int64              `json:"internal_id"`
 	ID                 uuid.UUID          `json:"id"`
 	ProjectID          uuid.UUID          `json:"project_id"`
 	Name               string             `json:"name"`
@@ -282,6 +288,7 @@ func (q *Queries) GetActiveProbeRowsForProject(ctx context.Context, arg GetActiv
 	for rows.Next() {
 		var i GetActiveProbeRowsForProjectRow
 		if err := rows.Scan(
+			&i.InternalID,
 			&i.ID,
 			&i.ProjectID,
 			&i.Name,
@@ -322,6 +329,8 @@ SELECT probe_check_assignments.id AS assignment_id,
        probe_check_assignments.project_id,
        probe_check_assignments.probe_id,
        probe_check_assignments.check_id,
+       probes.internal_id AS probe_internal_id,
+       checks.internal_id AS check_internal_id,
        probe_check_assignments.check_version,
        probe_check_assignments.selector_version,
        checks.check_type,
@@ -353,6 +362,8 @@ type ListActiveAssignmentsForProbeRow struct {
 	ProjectID       uuid.UUID    `json:"project_id"`
 	ProbeID         uuid.UUID    `json:"probe_id"`
 	CheckID         uuid.UUID    `json:"check_id"`
+	ProbeInternalID int64        `json:"probe_internal_id"`
+	CheckInternalID int64        `json:"check_internal_id"`
 	CheckVersion    string       `json:"check_version"`
 	SelectorVersion string       `json:"selector_version"`
 	CheckType       CheckType    `json:"check_type"`
@@ -378,6 +389,8 @@ func (q *Queries) ListActiveAssignmentsForProbe(ctx context.Context, probeID uui
 			&i.ProjectID,
 			&i.ProbeID,
 			&i.CheckID,
+			&i.ProbeInternalID,
+			&i.CheckInternalID,
 			&i.CheckVersion,
 			&i.SelectorVersion,
 			&i.CheckType,
@@ -403,6 +416,8 @@ SELECT probe_check_assignments.id AS assignment_id,
        probe_check_assignments.project_id,
        probe_check_assignments.probe_id,
        probe_check_assignments.check_id,
+       probes.internal_id AS probe_internal_id,
+       checks.internal_id AS check_internal_id,
        probe_check_assignments.check_version,
        probe_check_assignments.selector_version,
        checks.check_type,
@@ -440,6 +455,8 @@ type ListActiveAssignmentsForProbeChecksRow struct {
 	ProjectID       uuid.UUID    `json:"project_id"`
 	ProbeID         uuid.UUID    `json:"probe_id"`
 	CheckID         uuid.UUID    `json:"check_id"`
+	ProbeInternalID int64        `json:"probe_internal_id"`
+	CheckInternalID int64        `json:"check_internal_id"`
 	CheckVersion    string       `json:"check_version"`
 	SelectorVersion string       `json:"selector_version"`
 	CheckType       CheckType    `json:"check_type"`
@@ -465,6 +482,8 @@ func (q *Queries) ListActiveAssignmentsForProbeChecks(ctx context.Context, arg L
 			&i.ProjectID,
 			&i.ProbeID,
 			&i.CheckID,
+			&i.ProbeInternalID,
+			&i.CheckInternalID,
 			&i.CheckVersion,
 			&i.SelectorVersion,
 			&i.CheckType,
@@ -537,7 +556,8 @@ func (q *Queries) ListActiveLabelsForProbe(ctx context.Context, arg ListActiveLa
 }
 
 const listActiveProbesForProject = `-- name: ListActiveProbesForProject :many
-SELECT probes.id,
+SELECT probes.internal_id,
+       probes.id,
        probes.project_id,
        probes.name,
        probes.enabled,
@@ -580,6 +600,7 @@ ORDER BY probes.created_at DESC,
 `
 
 type ListActiveProbesForProjectRow struct {
+	InternalID         int64              `json:"internal_id"`
 	ID                 uuid.UUID          `json:"id"`
 	ProjectID          uuid.UUID          `json:"project_id"`
 	Name               string             `json:"name"`
@@ -616,6 +637,7 @@ func (q *Queries) ListActiveProbesForProject(ctx context.Context, projectID uuid
 	for rows.Next() {
 		var i ListActiveProbesForProjectRow
 		if err := rows.Scan(
+			&i.InternalID,
 			&i.ID,
 			&i.ProjectID,
 			&i.Name,
@@ -748,7 +770,7 @@ SET name = $3,
 WHERE project_id = $1
   AND id = $2
   AND deleted_at IS NULL
-RETURNING id, project_id, name, enabled, location, subdivision_code, created_at, updated_at, deleted_at
+RETURNING id, internal_id, project_id, name, enabled, location, subdivision_code, created_at, updated_at, deleted_at
 `
 
 type UpdateProbeParams struct {
@@ -772,6 +794,7 @@ func (q *Queries) UpdateProbe(ctx context.Context, arg UpdateProbeParams) (Probe
 	var i Probe
 	err := row.Scan(
 		&i.ID,
+		&i.InternalID,
 		&i.ProjectID,
 		&i.Name,
 		&i.Enabled,
