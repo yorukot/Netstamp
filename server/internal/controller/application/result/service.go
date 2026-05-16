@@ -2,7 +2,7 @@ package result
 
 import (
 	"context"
-	"fmt"
+	"errors"
 
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
@@ -51,10 +51,10 @@ func (s *Service) QueryPingSeries(ctx context.Context, input QueryPingSeriesInpu
 	span.SetAttributes(attrProjectID.String(project.ID))
 
 	if s.pings == nil {
-		err := fmt.Errorf("ping result repository is not configured")
+		configuredErr := errors.New("ping result repository is not configured")
 		span.SetStatus(codes.Error, "ping repository missing")
-		span.RecordError(err)
-		return PingSeriesOutput{}, err
+		span.RecordError(configuredErr)
+		return PingSeriesOutput{}, configuredErr
 	}
 
 	result, err := s.pings.ListPingSeries(ctx, domainping.SeriesQuery{

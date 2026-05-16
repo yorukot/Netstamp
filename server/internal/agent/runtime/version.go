@@ -1,4 +1,4 @@
-package runtime
+package agentruntime
 
 import (
 	"fmt"
@@ -12,45 +12,72 @@ const (
 )
 
 func EnsureMinimumVersion(current, minimum string) error {
-	currentParts, err := parseVersion(current)
+	currentVersion, err := parseVersion(current)
 	if err != nil {
 		return err
 	}
-	minimumParts, err := parseVersion(minimum)
+	minimumVersion, err := parseVersion(minimum)
 	if err != nil {
 		return err
 	}
 
-	for i := range currentParts {
-		if currentParts[i] > minimumParts[i] {
-			return nil
-		}
-		if currentParts[i] < minimumParts[i] {
-			return fmt.Errorf("%w: current=%s minimum=%s", ErrVersionUnsupported, current, minimum)
-		}
+	if currentVersion.compare(minimumVersion) < 0 {
+		return fmt.Errorf("%w: current=%s minimum=%s", ErrVersionUnsupported, current, minimum)
 	}
 
 	return nil
 }
 
-func parseVersion(value string) ([3]int, error) {
+type semanticVersion struct {
+	major int
+	minor int
+	patch int
+}
+
+func (v semanticVersion) compare(other semanticVersion) int {
+	switch {
+	case v.major != other.major:
+		return compareInt(v.major, other.major)
+	case v.minor != other.minor:
+		return compareInt(v.minor, other.minor)
+	default:
+		return compareInt(v.patch, other.patch)
+	}
+}
+
+func compareInt(left, right int) int {
+	switch {
+	case left > right:
+		return 1
+	case left < right:
+		return -1
+	default:
+		return 0
+	}
+}
+
+func parseVersion(value string) (semanticVersion, error) {
 	value = strings.TrimSpace(value)
 	value = strings.TrimPrefix(value, "netstamp-probe/")
 	value = strings.TrimPrefix(value, "v")
 
 	parts := strings.Split(value, ".")
 	if len(parts) != 3 {
-		return [3]int{}, fmt.Errorf("invalid semantic version %q", value)
+		return semanticVersion{}, fmt.Errorf("invalid semantic version %q", value)
 	}
 
-	var out [3]int
+	var parsed [3]int
 	for i, part := range parts {
-		parsed, err := strconv.Atoi(part)
-		if err != nil || parsed < 0 {
-			return [3]int{}, fmt.Errorf("invalid semantic version %q", value)
+		number, err := strconv.Atoi(part)
+		if err != nil || number < 0 {
+			return semanticVersion{}, fmt.Errorf("invalid semantic version %q", value)
 		}
-		out[i] = parsed
+		parsed[i] = number
 	}
 
-	return out, nil
+	return semanticVersion{
+		major: parsed[0],
+		minor: parsed[1],
+		patch: parsed[2],
+	}, nil
 }

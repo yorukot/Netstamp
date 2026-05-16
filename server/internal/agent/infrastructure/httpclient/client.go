@@ -56,6 +56,7 @@ func (c *RuntimeClient) do(ctx context.Context, method, operation string, input,
 		request.Header.Set("Content-Type", "application/json")
 	}
 
+	//nolint:gosec // The probe agent only contacts the operator-configured controller URL validated during startup.
 	response, err := c.client.Do(request)
 	if err != nil {
 		return fmt.Errorf("runtime request failed: %w", err)
@@ -153,18 +154,21 @@ func (e *HTTPError) Is(target error) bool {
 
 // runtimeStatusError returns an error based on the status code of an HTTP response
 func runtimeStatusError(response *http.Response) error {
-	body, _ := io.ReadAll(io.LimitReader(response.Body, 4096))
+	body, err := io.ReadAll(io.LimitReader(response.Body, 4096))
 	message := strings.TrimSpace(string(body))
-	err := &HTTPError{
+	if err != nil {
+		message = "failed to read response body: " + err.Error()
+	}
+	httpErr := &HTTPError{
 		StatusCode: response.StatusCode,
 		Body:       message,
 	}
-	if errors.Is(err, ErrAuthFailed) {
-		return fmt.Errorf("%w: %w", ErrAuthFailed, err)
+	if errors.Is(httpErr, ErrAuthFailed) {
+		return fmt.Errorf("%w: %w", ErrAuthFailed, httpErr)
 	}
-	if errors.Is(err, ErrPermanentRuntimeAPI) {
-		return fmt.Errorf("%w: %w", ErrPermanentRuntimeAPI, err)
+	if errors.Is(httpErr, ErrPermanentRuntimeAPI) {
+		return fmt.Errorf("%w: %w", ErrPermanentRuntimeAPI, httpErr)
 	}
 
-	return err
+	return httpErr
 }

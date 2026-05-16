@@ -77,14 +77,14 @@ func (s *AssignmentStore) Reconcile(assignments []domainassignment.Assignment, p
 	for _, assignment := range assignments {
 		seen[assignment.ID] = struct{}{}
 
-		// We convert the assignment to a task and check if it has changed
+		// Convert the assignment to a task and check if it has changed.
 		nextTask, ok := s.taskFromAssignment(assignment, pulledAt)
 		if !ok {
 			summary.Unsupported++
 			continue
 		}
 
-		// Get the assigments from the old tasks state
+		// Get the assignments from the old tasks state.
 		current, exists := s.tasks[nextTask.AssignmentID]
 		switch {
 		case !exists:
@@ -92,12 +92,12 @@ func (s *AssignmentStore) Reconcile(assignments []domainassignment.Assignment, p
 			s.tasks[nextTask.AssignmentID] = nextTask
 			summary.Added++
 		case current.Removed || taskChanged(current, nextTask):
-			// update the generation so we can track how many times it has changed and the worker and schedular can detect stale tasks
+			// Update the generation so workers and the scheduler can detect stale tasks.
 			nextTask.Generation = current.Generation + 1
 			s.tasks[nextTask.AssignmentID] = nextTask
 			summary.Updated++
 		default:
-			// if the task exists and has not changed, mark it as pulled so the worker and scheduler can detect assignment that is too old
+			// Mark unchanged tasks as pulled so workers and the scheduler can detect stale assignments.
 			current.LastPulledAt = pulledAt.UTC()
 			s.tasks[current.AssignmentID] = current
 		}
@@ -194,19 +194,16 @@ func ComputePhase(probeID, assignmentID string, interval time.Duration) time.Dur
 		return 0
 	}
 
-	seconds := uint64(interval / time.Second)
-	hash := fnv.New64a()
+	seconds := min(int64(60), int64(interval/time.Second))
+	hash := fnv.New32a()
 	_, _ = hash.Write([]byte(probeID))
 	_, _ = hash.Write([]byte(":"))
 	_, _ = hash.Write([]byte(assignmentID))
 
-	// Limit the number of seconds to 60 to long time wating
+	// Limit phase jitter to avoid waiting too long before the first run.
 	// TODO: make this as a configurable limit
-	// The phase the only is for make sure each probe not run the same check at the same time to make the server not overloaded
-	// So we limit the number of seconds to 60 to avoid over waiting
-	seconds = min(60, seconds)
-
-	return time.Duration(hash.Sum64()%seconds) * time.Second
+	// Phase jitter keeps probes from running the same check at the same time.
+	return time.Duration(int64(hash.Sum32())%seconds) * time.Second
 }
 
 func ComputeNextDue(now time.Time, interval, phase time.Duration) time.Time {

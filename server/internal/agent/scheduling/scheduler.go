@@ -3,6 +3,7 @@ package scheduling
 import (
 	"container/heap"
 	"context"
+	"fmt"
 	"log/slog"
 	"time"
 )
@@ -70,7 +71,7 @@ func (s *Scheduler) Run(ctx context.Context) error {
 		}
 
 		// Pop the next task from the heap and dispatch it if it is due.
-		item := heap.Pop(&items).(scheduleItem)
+		item := popScheduleItem(&items)
 		now = time.Now().UTC()
 		if !s.store.IsFresh(now) {
 			resetTimer(timer, time.Second)
@@ -151,7 +152,11 @@ func (h scheduleHeap) Swap(i, j int) {
 }
 
 func (h *scheduleHeap) Push(x any) {
-	*h = append(*h, x.(scheduleItem))
+	item, ok := x.(scheduleItem)
+	if !ok {
+		panic(fmt.Sprintf("schedule heap received %T", x))
+	}
+	*h = append(*h, item)
 }
 
 func (h *scheduleHeap) Pop() any {
@@ -159,6 +164,16 @@ func (h *scheduleHeap) Pop() any {
 	n := len(old)
 	item := old[n-1]
 	*h = old[:n-1]
+
+	return item
+}
+
+func popScheduleItem(items *scheduleHeap) scheduleItem {
+	popped := heap.Pop(items)
+	item, ok := popped.(scheduleItem)
+	if !ok {
+		panic(fmt.Sprintf("schedule heap contained %T", popped))
+	}
 
 	return item
 }

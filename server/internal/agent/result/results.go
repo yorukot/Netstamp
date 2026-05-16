@@ -45,7 +45,7 @@ func (s *Submitter) Run(ctx context.Context) error {
 		select {
 		case <-ctx.Done():
 			batch = append(batch, s.queue.Drain(s.batchSize-len(batch))...)
-			s.flushBestEffort(batch)
+			s.flushBestEffort(ctx, batch)
 			return ctx.Err()
 		case result := <-s.queue.Channel():
 			batch = append(batch, result)
@@ -73,12 +73,12 @@ func (s *Submitter) Run(ctx context.Context) error {
 	}
 }
 
-func (s *Submitter) flushBestEffort(batch []agentworker.ResultEnvelope) {
+func (s *Submitter) flushBestEffort(parent context.Context, batch []agentworker.ResultEnvelope) {
 	if len(batch) == 0 {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), s.shutdownWait)
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(parent), s.shutdownWait)
 	defer cancel()
 	if err := s.flush(ctx, batch); err != nil {
 		s.log.Warn("best-effort result flush failed", "error", err, "batch_size", len(batch))

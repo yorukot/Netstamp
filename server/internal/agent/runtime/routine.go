@@ -1,4 +1,4 @@
-package runtime
+package agentruntime
 
 import (
 	"context"
@@ -19,7 +19,7 @@ func (s *Service) heartbeatLoop(ctx context.Context) error {
 			s.Log.Warn("probe heartbeat failed", "error", err)
 		}
 
-		// Wait for next heartbeat interval or cancel if contextx is dead
+		// Wait for the next heartbeat interval or stop when the context is canceled.
 		if err := retry.WaitForDuration(ctx, s.Config.HeartbeatInterval.Value); err != nil {
 			return err
 		}

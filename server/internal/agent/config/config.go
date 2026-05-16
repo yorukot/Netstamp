@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/url"
@@ -10,7 +11,6 @@ import (
 	"time"
 
 	"github.com/yorukot/netstamp/internal/domain/probe"
-	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
 )
 
 const (
@@ -187,56 +187,71 @@ func LoadConfig() (Config, error) {
 }
 
 func (c Config) Validate() error {
-	if c.ControllerURL == "" {
-		return fmt.Errorf("NETSTAMP_PROBE_CONTROLLER_URL is required")
+	if err := validateControllerURL(c.ControllerURL); err != nil {
+		return err
 	}
 
-	controllerURL, err := url.Parse(c.ControllerURL)
-	if err != nil {
-		return fmt.Errorf("NETSTAMP_PROBE_CONTROLLER_URL is invalid: %w", err)
-	}
-	if controllerURL.Scheme != "http" && controllerURL.Scheme != "https" {
-		return fmt.Errorf("NETSTAMP_PROBE_CONTROLLER_URL must use http or https")
-	}
-	if controllerURL.Host == "" {
-		return fmt.Errorf("NETSTAMP_PROBE_CONTROLLER_URL must include a host")
-	}
-
-	if _, err := domainprobe.VNProbeID(c.ProbeID); err != nil {
+	if _, err := probe.VNProbeID(c.ProbeID); err != nil {
 		return fmt.Errorf("NETSTAMP_PROBE_ID is invalid: %w", err)
 	}
 
 	if c.ProbeSecret == "" {
-		return fmt.Errorf("NETSTAMP_PROBE_SECRET is required")
+		return errors.New("NETSTAMP_PROBE_SECRET is required")
 	}
 
-	if c.HTTPTimeout.Value <= 0 {
-		return fmt.Errorf("NETSTAMP_PROBE_HTTP_TIMEOUT must be greater than zero")
-	}
-	if c.MaxWorkers.Value <= 0 {
-		return fmt.Errorf("NETSTAMP_PROBE_MAX_WORKERS must be greater than zero")
-	}
-	if c.ResultQueueSize.Value <= 0 {
-		return fmt.Errorf("NETSTAMP_PROBE_RESULT_QUEUE_SIZE must be greater than zero")
-	}
-	if c.ResultBatchSize.Value <= 0 {
-		return fmt.Errorf("NETSTAMP_PROBE_RESULT_BATCH_SIZE must be greater than zero")
-	}
-	if c.ResultFlushInterval.Value <= 0 {
-		return fmt.Errorf("NETSTAMP_PROBE_RESULT_FLUSH_INTERVAL must be greater than zero")
-	}
-	if c.AssignmentTTL.Value <= 0 {
-		return fmt.Errorf("NETSTAMP_PROBE_ASSIGNMENT_TTL must be greater than zero")
-	}
-	if c.ShutdownTimeout.Value <= 0 {
-		return fmt.Errorf("NETSTAMP_PROBE_SHUTDOWN_TIMEOUT must be greater than zero")
+	if err := validatePositiveConfigValues(c); err != nil {
+		return err
 	}
 
 	if c.InitialBackoff.Defined && c.MaxBackoff.Defined && c.MaxBackoff.Value < c.InitialBackoff.Value {
-		return fmt.Errorf("NETSTAMP_PROBE_MAX_BACKOFF must be greater than or equal to NETSTAMP_PROBE_INITIAL_BACKOFF")
+		return errors.New("NETSTAMP_PROBE_MAX_BACKOFF must be greater than or equal to NETSTAMP_PROBE_INITIAL_BACKOFF")
 	}
 
 	return nil
+}
+
+func validateControllerURL(raw string) error {
+	if raw == "" {
+		return errors.New("NETSTAMP_PROBE_CONTROLLER_URL is required")
+	}
+
+	controllerURL, err := url.Parse(raw)
+	if err != nil {
+		return fmt.Errorf("NETSTAMP_PROBE_CONTROLLER_URL is invalid: %w", err)
+	}
+	if controllerURL.Scheme != "http" && controllerURL.Scheme != "https" {
+		return errors.New("NETSTAMP_PROBE_CONTROLLER_URL must use http or https")
+	}
+	if controllerURL.Host == "" {
+		return errors.New("NETSTAMP_PROBE_CONTROLLER_URL must include a host")
+	}
+
+	return nil
+}
+
+func validatePositiveConfigValues(c Config) error {
+	checks := []positiveConfigCheck{
+		{name: "NETSTAMP_PROBE_HTTP_TIMEOUT", valid: c.HTTPTimeout.Value > 0},
+		{name: "NETSTAMP_PROBE_MAX_WORKERS", valid: c.MaxWorkers.Value > 0},
+		{name: "NETSTAMP_PROBE_RESULT_QUEUE_SIZE", valid: c.ResultQueueSize.Value > 0},
+		{name: "NETSTAMP_PROBE_RESULT_BATCH_SIZE", valid: c.ResultBatchSize.Value > 0},
+		{name: "NETSTAMP_PROBE_RESULT_FLUSH_INTERVAL", valid: c.ResultFlushInterval.Value > 0},
+		{name: "NETSTAMP_PROBE_ASSIGNMENT_TTL", valid: c.AssignmentTTL.Value > 0},
+		{name: "NETSTAMP_PROBE_SHUTDOWN_TIMEOUT", valid: c.ShutdownTimeout.Value > 0},
+	}
+
+	for _, check := range checks {
+		if !check.valid {
+			return errors.New(check.name + " must be greater than zero")
+		}
+	}
+
+	return nil
+}
+
+type positiveConfigCheck struct {
+	name  string
+	valid bool
 }
 
 func envValue[T any](
@@ -280,14 +295,14 @@ func parseInt(raw string) (int, error) {
 
 func positiveDuration(value time.Duration) error {
 	if value <= 0 {
-		return fmt.Errorf("must be greater than zero")
+		return errors.New("must be greater than zero")
 	}
 	return nil
 }
 
 func positiveInt(value int) error {
 	if value <= 0 {
-		return fmt.Errorf("must be greater than zero")
+		return errors.New("must be greater than zero")
 	}
 	return nil
 }

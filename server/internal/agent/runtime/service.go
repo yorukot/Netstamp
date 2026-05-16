@@ -1,4 +1,4 @@
-package runtime
+package agentruntime
 
 import (
 	"context"
@@ -33,7 +33,7 @@ func (s *Service) Run(ctx context.Context) error {
 		return err
 	}
 
-	// Once authenticated, we can start the runtime loop and we initinal a glboal context taht accross all the service layer
+	// Once authenticated, start the runtime loops with one shared context across the service layer.
 	runtimeCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -71,9 +71,9 @@ func (s *Service) startHello(ctx context.Context) error {
 	for attempt := 1; ; attempt++ {
 		output, err := s.Client.Hello(ctx)
 		if err == nil {
-			if err := EnsureMinimumVersion(Version, output.MinimumSupportedAgentVersion); err != nil {
+			if versionErr := EnsureMinimumVersion(Version, output.MinimumSupportedAgentVersion); versionErr != nil {
 				s.Log.Error("probe agent version is not supported", "minimum_supported_agent_version", output.MinimumSupportedAgentVersion, "agent_version", AgentString)
-				return err
+				return versionErr
 			}
 			s.Log.Info("probe runtime hello succeeded", "server_time", output.ServerTime, "minimum_supported_agent_version", output.MinimumSupportedAgentVersion)
 			return nil
@@ -91,9 +91,8 @@ func (s *Service) startHello(ctx context.Context) error {
 		if sleepErr := retry.WaitForDuration(ctx, backoff); sleepErr != nil {
 			return sleepErr
 		}
-		// We multi for 2 so we can make the backoff keep growing
+		// Double the backoff until it reaches the configured maximum.
 		backoff *= 2
-		// Make sure backoff not go after the max backoff
 		if backoff > s.Config.MaxBackoff.Value {
 			backoff = s.Config.MaxBackoff.Value
 		}
