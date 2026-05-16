@@ -26,7 +26,6 @@ func (s *Service) heartbeatLoop(ctx context.Context) error {
 	}
 }
 
-
 func (s *Service) assignmentLoop(ctx context.Context) error {
 	for {
 		if err := s.pullAssignments(ctx); err != nil {

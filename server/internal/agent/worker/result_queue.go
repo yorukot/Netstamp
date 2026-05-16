@@ -5,14 +5,14 @@ import (
 )
 
 type ResultQueue struct {
-	ch       chan ResultEnvelope
-	log      *slog.Logger
+	ch  chan ResultEnvelope
+	log *slog.Logger
 }
 
 func NewResultQueue(capacity int, log *slog.Logger) *ResultQueue {
 	return &ResultQueue{
-		ch:       make(chan ResultEnvelope, capacity),
-		log:      log,
+		ch:  make(chan ResultEnvelope, capacity),
+		log: log,
 	}
 }
 
