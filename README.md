@@ -324,7 +324,7 @@ Common controller settings:
 | `DATABASE_SSLMODE`                   | PostgreSQL SSL mode                             | `disable`                           |
 | `TIMESCALEDB_IMAGE`                  | Compose image for PostgreSQL/TimescaleDB        | `timescale/timescaledb:latest-pg16` |
 | `AUTH_JWT_SECRET`                    | JWT signing secret                              | local development value             |
-| `AUTH_ACCESS_TOKEN_TTL`              | JWT access token lifetime                       | `12h`                               |
+| `AUTH_ACCESS_TOKEN_TTL`              | JWT session cookie lifetime                     | `12h`                               |
 | `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` | Optional OTLP traces endpoint                   | empty                               |
 
 Probe settings:
@@ -459,7 +459,7 @@ Run migrations before serving the controller. The compose stack includes a `migr
 
 ## Security Notes
 
-- User routes use JWT bearer authentication.
+- User routes use an HTTP-only `netstamp_session` cookie containing a signed JWT.
 - Probe runtime routes use probe-specific secrets, not user JWTs.
 - Passwords are stored as Argon2id hashes.
 - Probe secrets are shown only when created or rotated.

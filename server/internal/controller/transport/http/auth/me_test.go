@@ -24,9 +24,9 @@ func TestMeReturnsAuthenticatedUser(t *testing.T) {
 			Subject: user.ID,
 			Email:   user.Email,
 		},
-	}).RegisterRoutes(api)
+	}, false).RegisterRoutes(api)
 
-	res := api.Get("/auth/me", "Authorization: Bearer valid-token")
+	res := api.Get("/auth/me", "Cookie: netstamp_session=valid-token")
 
 	if res.Code != http.StatusOK {
 		t.Fatalf("expected status 200, got %d", res.Code)

@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"errors"
+	"net/http"
 
 	"github.com/danielgtaylor/huma/v2"
 
@@ -24,15 +25,13 @@ func (h *Handler) login(ctx context.Context, input *loginInput) (*loginOutput, e
 	}
 
 	return &loginOutput{
+		SetCookie: newSessionCookie(result.AccessToken, result.ExpiresIn, h.cookieSecure),
 		Body: loginOutputBody{
 			User: userResponse{
 				ID:          result.UserID,
 				Email:       result.Email,
 				DisplayName: result.DisplayName,
 			},
-			TokenType:   result.TokenType,
-			AccessToken: result.AccessToken,
-			ExpiresIn:   result.ExpiresIn,
 		},
 	}, nil
 }
@@ -42,7 +41,8 @@ type loginInput struct {
 }
 
 type loginOutput struct {
-	Body loginOutputBody
+	SetCookie http.Cookie `header:"Set-Cookie" hidden:"true"`
+	Body      loginOutputBody
 }
 
 type loginInputBody struct {
@@ -51,8 +51,5 @@ type loginInputBody struct {
 }
 
 type loginOutputBody struct {
-	User        userResponse `json:"user" doc:"Authenticated user."`
-	TokenType   string       `json:"tokenType" example:"Bearer" doc:"Token scheme to use in the Authorization header."`
-	AccessToken string       `json:"accessToken" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example.signature" doc:"JWT access token issued for the authenticated user."` //nolint:gosec // Login responses intentionally return the issued access token.
-	ExpiresIn   int          `json:"expiresIn" example:"43200" doc:"Access token lifetime in seconds."`
+	User userResponse `json:"user" doc:"Authenticated user."`
 }

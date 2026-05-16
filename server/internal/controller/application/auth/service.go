@@ -113,7 +113,6 @@ func (s *Service) issueAccessResult(ctx context.Context, user identity.User) (Au
 		Email:       user.Email,
 		DisplayName: user.DisplayName,
 		AccessToken: token.Value,
-		TokenType:   token.TokenType,
 		ExpiresIn:   token.ExpiresIn,
 	}, nil
 }

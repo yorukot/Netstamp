@@ -62,7 +62,6 @@ func (i *JWTIssuer) IssueAccessToken(ctx context.Context, input identity.AccessT
 
 	return identity.IssuedToken{
 		Value:     value,
-		TokenType: "Bearer",
 		ExpiresIn: int(i.ttl.Seconds()),
 	}, nil
 }

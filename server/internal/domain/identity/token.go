@@ -2,7 +2,6 @@ package identity
 
 type IssuedToken struct {
 	Value     string
-	TokenType string
 	ExpiresIn int
 }
 

@@ -129,20 +129,21 @@ func New(ctx context.Context) (*Application, error) {
 	readiness := postgres.NewReadinessCheck(dbPool)
 
 	httpHandler := httpserver.NewRouter(httpserver.Dependencies{
-		Log:            log,
-		APIVersion:     cfg.APIVersion,
-		BackendBaseURL: cfg.HTTP.BackendBaseURL,
-		AuthService:    authSvc,
-		AuthVerifier:   tokenIssuer,
-		CheckService:   checkSvc,
-		LabelService:   labelSvc,
-		ProbeService:   probeSvc,
-		ProbeRuntime:   probeRuntimeSvc,
-		ProjectService: projectSvc,
-		ResultService:  resultSvc,
-		ReadinessCheck: readiness,
-		RequestTimeout: cfg.HTTP.RequestTimeout,
-		MetricsHandler: metricsProvider.Handler(),
+		Log:              log,
+		APIVersion:       cfg.APIVersion,
+		BackendBaseURL:   cfg.HTTP.BackendBaseURL,
+		AuthService:      authSvc,
+		AuthVerifier:     tokenIssuer,
+		AuthCookieSecure: cfg.Env != "local",
+		CheckService:     checkSvc,
+		LabelService:     labelSvc,
+		ProbeService:     probeSvc,
+		ProbeRuntime:     probeRuntimeSvc,
+		ProjectService:   projectSvc,
+		ResultService:    resultSvc,
+		ReadinessCheck:   readiness,
+		RequestTimeout:   cfg.HTTP.RequestTimeout,
+		MetricsHandler:   metricsProvider.Handler(),
 	})
 
 	return &Application{

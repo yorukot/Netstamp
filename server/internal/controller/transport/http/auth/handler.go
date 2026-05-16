@@ -10,14 +10,16 @@ import (
 )
 
 type Handler struct {
-	service  *appauth.Service
-	verifier appauth.TokenVerifier
+	service      *appauth.Service
+	verifier     appauth.TokenVerifier
+	cookieSecure bool
 }
 
-func NewHandler(service *appauth.Service, verifier appauth.TokenVerifier) *Handler {
+func NewHandler(service *appauth.Service, verifier appauth.TokenVerifier, cookieSecure bool) *Handler {
 	return &Handler{
-		service:  service,
-		verifier: verifier,
+		service:      service,
+		verifier:     verifier,
+		cookieSecure: cookieSecure,
 	}
 }
 
@@ -28,7 +30,7 @@ func (h *Handler) RegisterRoutes(api huma.API) {
 		Path:          "/auth/register",
 		DefaultStatus: http.StatusCreated,
 		Summary:       "Register user",
-		Description:   "Create a user account with a normalized email address, display name, and password. On success, returns the created user and a bearer access token for immediate API access.",
+		Description:   "Create a user account with a normalized email address, display name, and password. On success, sets an HTTP-only session cookie for immediate API access.",
 		Tags:          []string{"Auth"},
 		Errors:        []int{http.StatusUnprocessableEntity, http.StatusConflict, http.StatusInternalServerError},
 	}, h.register)
@@ -38,19 +40,29 @@ func (h *Handler) RegisterRoutes(api huma.API) {
 		Method:      http.MethodPost,
 		Path:        "/auth/login",
 		Summary:     "Login user",
-		Description: "Verify an email and password pair, then return the authenticated user and a bearer access token. Invalid credentials always return the same unauthorized response so callers cannot distinguish an unknown email from a password mismatch.",
+		Description: "Verify an email and password pair, then set an HTTP-only session cookie for the authenticated user. Invalid credentials always return the same unauthorized response so callers cannot distinguish an unknown email from a password mismatch.",
 		Tags:        []string{"Auth"},
 		Errors:      []int{http.StatusUnauthorized, http.StatusInternalServerError},
 	}, h.login)
+
+	huma.Register(api, huma.Operation{
+		OperationID:   "logoutUser",
+		Method:        http.MethodPost,
+		Path:          "/auth/logout",
+		DefaultStatus: http.StatusNoContent,
+		Summary:       "Logout user",
+		Description:   "Clear the HTTP-only session cookie.",
+		Tags:          []string{"Auth"},
+	}, h.logout)
 
 	huma.Register(api, huma.Operation{
 		OperationID: "getCurrentUser",
 		Method:      http.MethodGet,
 		Path:        "/auth/me",
 		Summary:     "Get current user",
-		Description: "Return the user identity embedded in a valid bearer access token. The request must include an Authorization header using the Bearer scheme.",
+		Description: "Return the user identity embedded in a valid session cookie.",
 		Tags:        []string{"Auth"},
-		Security:    []map[string][]string{{"bearerAuth": {}}},
+		Security:    []map[string][]string{{httpmiddleware.SessionCookieSecurityScheme: {}}},
 		Middlewares: huma.Middlewares{
 			httpmiddleware.RequireAuth(h.verifier),
 		},

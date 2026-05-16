@@ -15,7 +15,17 @@ type openAPISnapshot struct {
 	Servers []struct {
 		URL string `json:"url"`
 	} `json:"servers"`
+	Components struct {
+		SecuritySchemes map[string]securitySchemeSnapshot `json:"securitySchemes"`
+	} `json:"components"`
 	Paths map[string]pathItemSnapshot `json:"paths"`
+}
+
+type securitySchemeSnapshot struct {
+	Type   string `json:"type"`
+	In     string `json:"in"`
+	Name   string `json:"name"`
+	Scheme string `json:"scheme"`
 }
 
 type pathItemSnapshot struct {
@@ -26,7 +36,8 @@ type pathItemSnapshot struct {
 }
 
 type operationSnapshot struct {
-	OperationID string `json:"operationId"`
+	OperationID string                `json:"operationId"`
+	Security    []map[string][]string `json:"security"`
 }
 
 func TestNewHumaConfigUsesRelativeServerURLWhenBackendBaseURLUnset(t *testing.T) {
@@ -63,7 +74,9 @@ func TestNewRouterServesOpenAPIWithoutRuntimeServices(t *testing.T) {
 	assertOpenAPIPathAbsent(t, spec, "/readyz")
 	assertOpenAPIOperation(t, spec, http.MethodPost, "/auth/register", "registerUser")
 	assertOpenAPIOperation(t, spec, http.MethodPost, "/auth/login", "loginUser")
+	assertOpenAPIOperation(t, spec, http.MethodPost, "/auth/logout", "logoutUser")
 	assertOpenAPIOperation(t, spec, http.MethodGet, "/auth/me", "getCurrentUser")
+	assertOpenAPISessionCookieAuth(t, spec)
 	assertOpenAPIOperation(t, spec, http.MethodPost, "/projects", "createProject")
 	assertOpenAPIOperation(t, spec, http.MethodPost, "/projects/{ref}/checks", "createProjectCheck")
 	assertOpenAPIOperation(t, spec, http.MethodDelete, "/projects/{ref}/members/{user_id}", "removeProjectMember")
@@ -82,6 +95,29 @@ func TestNewRouterServesOpenAPIWithoutRuntimeServices(t *testing.T) {
 	assertOpenAPIPathAbsent(t, spec, "/probes/{probe_id}/runtime/heartbeat")
 	assertOpenAPIPathAbsent(t, spec, "/probes/{probe_id}/runtime/assignments")
 	assertOpenAPIPathAbsent(t, spec, "/probes/{probe_id}/runtime/results")
+}
+
+func assertOpenAPISessionCookieAuth(t *testing.T, spec openAPISnapshot) {
+	t.Helper()
+
+	if _, ok := spec.Components.SecuritySchemes["bearerAuth"]; ok {
+		t.Fatal("expected bearerAuth security scheme to be absent")
+	}
+	scheme, ok := spec.Components.SecuritySchemes["sessionCookieAuth"]
+	if !ok {
+		t.Fatal("expected sessionCookieAuth security scheme")
+	}
+	if scheme.Type != "apiKey" || scheme.In != "cookie" || scheme.Name != "netstamp_session" {
+		t.Fatalf("unexpected session cookie security scheme: %#v", scheme)
+	}
+
+	meOperation := spec.Paths["/auth/me"].Get
+	if len(meOperation.Security) != 1 {
+		t.Fatalf("expected auth/me security requirement, got %#v", meOperation.Security)
+	}
+	if _, ok := meOperation.Security[0]["sessionCookieAuth"]; !ok {
+		t.Fatalf("expected auth/me to use sessionCookieAuth, got %#v", meOperation.Security)
+	}
 }
 
 func TestNewRouterOpenAPIUsesBackendBaseURLServerURL(t *testing.T) {

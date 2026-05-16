@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"strings"
 
 	"github.com/danielgtaylor/huma/v2"
 	chimw "github.com/go-chi/chi/v5/middleware"
@@ -13,6 +12,11 @@ import (
 	appauth "github.com/yorukot/netstamp/internal/controller/application/auth"
 	controllerlogger "github.com/yorukot/netstamp/internal/controller/logger"
 	"github.com/yorukot/netstamp/internal/domain/identity"
+)
+
+const (
+	SessionCookieName           = "netstamp_session"
+	SessionCookieSecurityScheme = "sessionCookieAuth"
 )
 
 type accessTokenClaimsContextKey struct{}
@@ -26,15 +30,15 @@ func RequireAuth(verifier appauth.TokenVerifier) func(huma.Context, func(huma.Co
 			return
 		}
 
-		token, ok := bearerToken(ctx.Header("Authorization"))
+		token, ok := sessionCookie(ctx)
 		if !ok {
-			writeHumaProblem(requestCtx, ctx, http.StatusUnauthorized, "missing bearer token")
+			writeHumaProblem(requestCtx, ctx, http.StatusUnauthorized, "missing auth cookie")
 			return
 		}
 
 		claims, err := verifier.VerifyAccessToken(requestCtx, token)
 		if err != nil {
-			writeHumaProblem(requestCtx, ctx, http.StatusUnauthorized, "invalid access token")
+			writeHumaProblem(requestCtx, ctx, http.StatusUnauthorized, "invalid auth cookie")
 			return
 		}
 
@@ -51,21 +55,21 @@ func AccessTokenClaimsFromContext(ctx context.Context) (identity.AccessTokenClai
 	return claims, ok
 }
 
-func bearerToken(value string) (string, bool) {
-	parts := strings.Fields(value)
-	if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") {
+func sessionCookie(ctx huma.Context) (string, bool) {
+	request := http.Request{
+		Header: http.Header{"Cookie": []string{ctx.Header("Cookie")}},
+	}
+	cookie, err := request.Cookie(SessionCookieName)
+	if err != nil || cookie.Value == "" {
 		return "", false
 	}
 
-	return parts[1], true
+	return cookie.Value, true
 }
 
 func writeHumaProblem(requestCtx context.Context, ctx huma.Context, status int, detail string) {
 	if requestID := chimw.GetReqID(requestCtx); requestID != "" {
 		ctx.SetHeader("X-Request-ID", requestID)
-	}
-	if status == http.StatusUnauthorized {
-		ctx.SetHeader("WWW-Authenticate", "Bearer")
 	}
 	ctx.SetHeader("Content-Type", "application/problem+json")
 	ctx.SetStatus(status)

@@ -43,6 +43,7 @@ import (
 	pguser "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/user"
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/security"
 	httpserver "github.com/yorukot/netstamp/internal/controller/transport/http"
+	httpmiddleware "github.com/yorukot/netstamp/internal/controller/transport/http/middleware"
 )
 
 const testDatabaseURLEnv = "NETSTAMP_TEST_DATABASE_URL"
@@ -260,7 +261,7 @@ func (noopEvents) RecordAssignmentEvent(context.Context, appassignment.Assignmen
 func (noopEvents) RecordProbeRuntimeEvent(context.Context, appproberuntime.ProbeRuntimeEvent) {
 }
 
-func (s *apiSuite) doJSON(t *testing.T, method, path string, body any, headers map[string]string, wantStatus int, out any) {
+func (s *apiSuite) doJSON(t *testing.T, method, path string, body any, headers map[string]string, wantStatus int, out any) *http.Response {
 	t.Helper()
 
 	res := s.do(t, method, path, body, headers, wantStatus)
@@ -270,11 +271,12 @@ func (s *apiSuite) doJSON(t *testing.T, method, path string, body any, headers m
 		}
 	}()
 	if out == nil {
-		return
+		return res
 	}
 	if err := json.NewDecoder(res.Body).Decode(out); err != nil {
 		t.Fatalf("decode %s %s response: %v", method, path, err)
 	}
+	return res
 }
 
 func (s *apiSuite) do(t *testing.T, method, path string, body any, headers map[string]string, wantStatus int) *http.Response {
@@ -313,8 +315,20 @@ func (s *apiSuite) do(t *testing.T, method, path string, body any, headers map[s
 	return res
 }
 
-func authHeaders(token string) map[string]string {
-	return map[string]string{"Authorization": "Bearer " + token}
+func authCookieHeaders(cookie *http.Cookie) map[string]string {
+	return map[string]string{"Cookie": cookie.Name + "=" + cookie.Value}
+}
+
+func sessionCookieFromResponse(t *testing.T, res *http.Response) *http.Cookie {
+	t.Helper()
+
+	for _, cookie := range res.Cookies() {
+		if cookie.Name == httpmiddleware.SessionCookieName {
+			return cookie
+		}
+	}
+	t.Fatalf("expected %s cookie in response", httpmiddleware.SessionCookieName)
+	return nil
 }
 
 func probeHeaders(secret string) map[string]string {

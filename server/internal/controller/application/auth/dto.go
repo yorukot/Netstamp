@@ -16,6 +16,5 @@ type AuthAccessResult struct {
 	Email       string
 	DisplayName string
 	AccessToken string //nolint:gosec // This DTO intentionally carries the issued access token to the caller.
-	TokenType   string
 	ExpiresIn   int
 }

@@ -17,11 +17,12 @@ func TestAPIAuthProjectAndProbeRuntimeFlow(t *testing.T) {
 
 	var registered authResponse
 	t.Logf("e2e: registering user %s", email)
-	suite.doJSON(t, http.MethodPost, "/api/v1/auth/register", map[string]any{
+	registerRes := suite.doJSON(t, http.MethodPost, "/api/v1/auth/register", map[string]any{
 		"email":       " " + email + " ",
 		"displayName": " E2E User ",
 		"password":    password,
 	}, nil, http.StatusCreated, &registered)
+	registeredCookie := sessionCookieFromResponse(t, registerRes)
 	if registered.User.ID == "" {
 		t.Fatal("expected registered user id")
 	}
@@ -31,33 +32,34 @@ func TestAPIAuthProjectAndProbeRuntimeFlow(t *testing.T) {
 	if registered.User.DisplayName == nil || *registered.User.DisplayName != "E2E User" {
 		t.Fatalf("expected trimmed registered display name, got %#v", registered.User.DisplayName)
 	}
-	if registered.AccessToken == "" || registered.TokenType != "Bearer" {
-		t.Fatalf("expected bearer token in register response, got %#v", registered)
+	if registeredCookie.Value == "" {
+		t.Fatal("expected session cookie in register response")
 	}
-	t.Logf("e2e: registered user id %s", registered.User.ID)
+	t.Logf("e2e: registered user id %s and received session cookie", registered.User.ID)
 
 	var login authResponse
 	t.Logf("e2e: logging in user %s", email)
-	suite.doJSON(t, http.MethodPost, "/api/v1/auth/login", map[string]any{
+	loginRes := suite.doJSON(t, http.MethodPost, "/api/v1/auth/login", map[string]any{
 		"email":    email,
 		"password": password,
 	}, nil, http.StatusOK, &login)
+	sessionCookie := sessionCookieFromResponse(t, loginRes)
 	if login.User.ID != registered.User.ID {
 		t.Fatalf("expected login user id %q, got %q", registered.User.ID, login.User.ID)
 	}
-	if login.AccessToken == "" {
-		t.Fatal("expected login access token")
+	if sessionCookie.Value == "" {
+		t.Fatal("expected login session cookie")
 	}
-	t.Log("e2e: received login access token")
+	t.Log("e2e: received login session cookie")
 
 	var currentUser meResponse
-	t.Log("e2e: verifying bearer token with /auth/me")
-	suite.doJSON(t, http.MethodGet, "/api/v1/auth/me", nil, authHeaders(login.AccessToken), http.StatusOK, &currentUser)
+	t.Log("e2e: verifying session cookie with /auth/me")
+	suite.doJSON(t, http.MethodGet, "/api/v1/auth/me", nil, authCookieHeaders(sessionCookie), http.StatusOK, &currentUser)
 	if !currentUser.Authenticated || currentUser.User.ID != registered.User.ID {
-		t.Fatalf("expected current user from token, got %#v", currentUser)
+		t.Fatalf("expected current user from session cookie, got %#v", currentUser)
 	}
 
-	t.Log("e2e: verifying protected project list rejects missing bearer token")
+	t.Log("e2e: verifying protected project list rejects missing session cookie")
 	suite.doJSON(t, http.MethodGet, "/api/v1/projects", nil, nil, http.StatusUnauthorized, nil)
 
 	var createdProject projectResponse
@@ -66,7 +68,7 @@ func TestAPIAuthProjectAndProbeRuntimeFlow(t *testing.T) {
 	suite.doJSON(t, http.MethodPost, "/api/v1/projects", map[string]any{
 		"name": "E2E Project",
 		"slug": projectSlug,
-	}, authHeaders(login.AccessToken), http.StatusCreated, &createdProject)
+	}, authCookieHeaders(sessionCookie), http.StatusCreated, &createdProject)
 	if createdProject.Project.ID == "" {
 		t.Fatal("expected created project id")
 	}
@@ -74,14 +76,14 @@ func TestAPIAuthProjectAndProbeRuntimeFlow(t *testing.T) {
 
 	var projects listProjectsResponse
 	t.Log("e2e: listing projects for authenticated user")
-	suite.doJSON(t, http.MethodGet, "/api/v1/projects", nil, authHeaders(login.AccessToken), http.StatusOK, &projects)
+	suite.doJSON(t, http.MethodGet, "/api/v1/projects", nil, authCookieHeaders(sessionCookie), http.StatusOK, &projects)
 	if len(projects.Projects) != 1 || projects.Projects[0].ID != createdProject.Project.ID {
 		t.Fatalf("expected created project in project list, got %#v", projects.Projects)
 	}
 
 	var fetchedProject projectResponse
 	t.Logf("e2e: fetching project by slug %q", createdProject.Project.Slug)
-	suite.doJSON(t, http.MethodGet, "/api/v1/projects/"+createdProject.Project.Slug, nil, authHeaders(login.AccessToken), http.StatusOK, &fetchedProject)
+	suite.doJSON(t, http.MethodGet, "/api/v1/projects/"+createdProject.Project.Slug, nil, authCookieHeaders(sessionCookie), http.StatusOK, &fetchedProject)
 	if fetchedProject.Project.ID != createdProject.Project.ID {
 		t.Fatalf("expected fetched project id %q, got %q", createdProject.Project.ID, fetchedProject.Project.ID)
 	}
@@ -91,7 +93,7 @@ func TestAPIAuthProjectAndProbeRuntimeFlow(t *testing.T) {
 	suite.doJSON(t, http.MethodPost, "/api/v1/projects/"+createdProject.Project.Slug+"/labels", map[string]any{
 		"key":   " region ",
 		"value": " tokyo ",
-	}, authHeaders(login.AccessToken), http.StatusCreated, &createdLabel)
+	}, authCookieHeaders(sessionCookie), http.StatusCreated, &createdLabel)
 	if createdLabel.Label.ID == "" {
 		t.Fatal("expected created label id")
 	}
@@ -102,7 +104,7 @@ func TestAPIAuthProjectAndProbeRuntimeFlow(t *testing.T) {
 
 	var labels listLabelsResponse
 	t.Log("e2e: listing labels for authenticated user")
-	suite.doJSON(t, http.MethodGet, "/api/v1/projects/"+createdProject.Project.Slug+"/labels", nil, authHeaders(login.AccessToken), http.StatusOK, &labels)
+	suite.doJSON(t, http.MethodGet, "/api/v1/projects/"+createdProject.Project.Slug+"/labels", nil, authCookieHeaders(sessionCookie), http.StatusOK, &labels)
 	if len(labels.Labels) != 1 || labels.Labels[0].ID != createdLabel.Label.ID {
 		t.Fatalf("expected created label in label list, got %#v", labels.Labels)
 	}
@@ -114,7 +116,7 @@ func TestAPIAuthProjectAndProbeRuntimeFlow(t *testing.T) {
 		"enabled":         true,
 		"subdivisionCode": "JP-13",
 		"labelIds":        []string{createdLabel.Label.ID},
-	}, authHeaders(login.AccessToken), http.StatusCreated, &createdProbe)
+	}, authCookieHeaders(sessionCookie), http.StatusCreated, &createdProbe)
 	if createdProbe.Probe.ID == "" {
 		t.Fatal("expected created probe id")
 	}
@@ -130,7 +132,7 @@ func TestAPIAuthProjectAndProbeRuntimeFlow(t *testing.T) {
 		"type":            "ping",
 		"target":          " 1.1.1.1 ",
 		"intervalSeconds": 30,
-	}, authHeaders(login.AccessToken), http.StatusCreated, &plainCheck)
+	}, authCookieHeaders(sessionCookie), http.StatusCreated, &plainCheck)
 	if plainCheck.Check.ID == "" {
 		t.Fatal("expected plain check id")
 	}
@@ -163,7 +165,7 @@ func TestAPIAuthProjectAndProbeRuntimeFlow(t *testing.T) {
 			"ipFamily":    "inet",
 		},
 		"labelIds": []string{createdLabel.Label.ID},
-	}, authHeaders(login.AccessToken), http.StatusCreated, &labeledCheck)
+	}, authCookieHeaders(sessionCookie), http.StatusCreated, &labeledCheck)
 	if labeledCheck.Check.ID == "" {
 		t.Fatal("expected labeled check id")
 	}
@@ -178,7 +180,7 @@ func TestAPIAuthProjectAndProbeRuntimeFlow(t *testing.T) {
 
 	var checks listChecksResponse
 	t.Log("e2e: listing checks for authenticated user")
-	suite.doJSON(t, http.MethodGet, "/api/v1/projects/"+createdProject.Project.Slug+"/checks", nil, authHeaders(login.AccessToken), http.StatusOK, &checks)
+	suite.doJSON(t, http.MethodGet, "/api/v1/projects/"+createdProject.Project.Slug+"/checks", nil, authCookieHeaders(sessionCookie), http.StatusOK, &checks)
 	if !containsCheck(checks.Checks, plainCheck.Check.ID) || !containsCheck(checks.Checks, labeledCheck.Check.ID) {
 		t.Fatalf("expected both created checks in check list, got %#v", checks.Checks)
 	}
@@ -275,7 +277,7 @@ func TestAPIAuthProjectAndProbeRuntimeFlow(t *testing.T) {
 		seriesStart.Add(3*time.Minute).UnixMilli(),
 	)
 	t.Log("e2e: querying ping result series with maxDataPoints forcing bucket resolution")
-	suite.doJSON(t, http.MethodGet, seriesPath, nil, authHeaders(login.AccessToken), http.StatusOK, &series)
+	suite.doJSON(t, http.MethodGet, seriesPath, nil, authCookieHeaders(sessionCookie), http.StatusOK, &series)
 	if series.Query.Resolution != "bucket" {
 		t.Fatalf("expected bucket resolution without TimescaleDB Toolkit LTTB, got %#v", series.Query)
 	}
@@ -325,10 +327,7 @@ func pingResultPayload(startedAt time.Time, rttAvgMs float64) map[string]any {
 }
 
 type authResponse struct {
-	User        userResponse `json:"user"`
-	TokenType   string       `json:"tokenType"`
-	AccessToken string       `json:"accessToken"`
-	ExpiresIn   int          `json:"expiresIn"`
+	User userResponse `json:"user"`
 }
 
 type meResponse struct {

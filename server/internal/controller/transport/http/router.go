@@ -32,20 +32,21 @@ import (
 )
 
 type Dependencies struct {
-	Log            *zap.Logger
-	APIVersion     string
-	BackendBaseURL string
-	AuthService    *appauth.Service
-	AuthVerifier   appauth.TokenVerifier
-	CheckService   *appcheck.Service
-	LabelService   *applabel.Service
-	ProbeService   *appprobe.Service
-	ProbeRuntime   *appproberuntime.Service
-	ProjectService *appproject.Service
-	ResultService  *appresult.Service
-	ReadinessCheck func(context.Context) error
-	RequestTimeout time.Duration
-	MetricsHandler http.Handler
+	Log              *zap.Logger
+	APIVersion       string
+	BackendBaseURL   string
+	AuthService      *appauth.Service
+	AuthVerifier     appauth.TokenVerifier
+	AuthCookieSecure bool
+	CheckService     *appcheck.Service
+	LabelService     *applabel.Service
+	ProbeService     *appprobe.Service
+	ProbeRuntime     *appproberuntime.Service
+	ProjectService   *appproject.Service
+	ResultService    *appresult.Service
+	ReadinessCheck   func(context.Context) error
+	RequestTimeout   time.Duration
+	MetricsHandler   http.Handler
 }
 
 func NewRouter(dep Dependencies) http.Handler {
@@ -102,7 +103,7 @@ func routeMetrics(apiRouter, metricsHandler http.Handler) http.Handler {
 func registerAPIRoutes(api huma.API, dep Dependencies) {
 	registerSystemRoutes(api, dep.ReadinessCheck)
 
-	authhttp.NewHandler(dep.AuthService, dep.AuthVerifier).RegisterRoutes(api)
+	authhttp.NewHandler(dep.AuthService, dep.AuthVerifier, dep.AuthCookieSecure).RegisterRoutes(api)
 	projecthttp.NewHandler(dep.ProjectService, dep.AuthVerifier).RegisterRoutes(api)
 	labelhttp.NewHandler(dep.LabelService, dep.AuthVerifier).RegisterRoutes(api)
 	checkhttp.NewHandler(dep.CheckService, dep.AuthVerifier).RegisterRoutes(api)
@@ -118,10 +119,11 @@ func newHumaConfig(dep Dependencies) huma.Config {
 	if config.Components.SecuritySchemes == nil {
 		config.Components.SecuritySchemes = map[string]*huma.SecurityScheme{}
 	}
-	config.Components.SecuritySchemes["bearerAuth"] = &huma.SecurityScheme{
-		Type:         "http",
-		Scheme:       "bearer",
-		BearerFormat: "JWT",
+	config.Components.SecuritySchemes[httpmiddleware.SessionCookieSecurityScheme] = &huma.SecurityScheme{
+		Type:        "apiKey",
+		In:          "cookie",
+		Name:        httpmiddleware.SessionCookieName,
+		Description: "HTTP-only session cookie set by `/auth/register` and `/auth/login`.",
 	}
 	config.Components.SecuritySchemes["probeAuth"] = &huma.SecurityScheme{
 		Type:        "apiKey",

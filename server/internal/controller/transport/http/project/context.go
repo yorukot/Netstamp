@@ -16,7 +16,7 @@ import (
 func currentUserID(ctx context.Context) (string, error) {
 	claims, ok := httpmiddleware.AccessTokenClaimsFromContext(ctx)
 	if !ok || claims.Subject == "" {
-		return "", huma.Error401Unauthorized("missing bearer token")
+		return "", huma.Error401Unauthorized("missing auth cookie")
 	}
 
 	return claims.Subject, nil

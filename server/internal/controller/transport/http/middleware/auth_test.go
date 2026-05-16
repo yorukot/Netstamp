@@ -13,7 +13,7 @@ import (
 	"github.com/yorukot/netstamp/internal/domain/identity"
 )
 
-func TestRequireAuthRejectsMissingBearerToken(t *testing.T) {
+func TestRequireAuthRejectsMissingAuthCookie(t *testing.T) {
 	_, api := humatest.New(t)
 	verifier := &recordingTokenVerifier{}
 	registerClaimsRoute(t, api, verifier)
@@ -26,8 +26,23 @@ func TestRequireAuthRejectsMissingBearerToken(t *testing.T) {
 	if verifier.gotToken != "" {
 		t.Fatalf("expected verifier not to be called, got token %q", verifier.gotToken)
 	}
-	if got := res.Header().Get("WWW-Authenticate"); got != "Bearer" {
-		t.Fatalf("expected WWW-Authenticate Bearer, got %q", got)
+	if got := res.Header().Get("WWW-Authenticate"); got != "" {
+		t.Fatalf("expected empty WWW-Authenticate, got %q", got)
+	}
+}
+
+func TestRequireAuthIgnoresBearerHeader(t *testing.T) {
+	_, api := humatest.New(t)
+	verifier := &recordingTokenVerifier{}
+	registerClaimsRoute(t, api, verifier)
+
+	res := api.Get("/me", "Authorization: Bearer ignored-token")
+
+	if res.Code != http.StatusUnauthorized {
+		t.Fatalf("expected status 401, got %d", res.Code)
+	}
+	if verifier.gotToken != "" {
+		t.Fatalf("expected verifier not to be called, got token %q", verifier.gotToken)
 	}
 }
 
@@ -36,7 +51,7 @@ func TestRequireAuthRejectsInvalidAccessToken(t *testing.T) {
 	verifier := &recordingTokenVerifier{err: appauth.ErrAccessTokenInvalid}
 	registerClaimsRoute(t, api, verifier)
 
-	res := api.Get("/me", "Authorization: Bearer bad-token")
+	res := api.Get("/me", "Cookie: "+SessionCookieName+"=bad-token")
 
 	if res.Code != http.StatusUnauthorized {
 		t.Fatalf("expected status 401, got %d", res.Code)
@@ -56,7 +71,7 @@ func TestRequireAuthStoresClaimsInContext(t *testing.T) {
 	}
 	registerClaimsRoute(t, api, verifier)
 
-	res := api.Get("/me", "Authorization: bearer good-token")
+	res := api.Get("/me", "Cookie: "+SessionCookieName+"=good-token")
 
 	if res.Code != http.StatusOK {
 		t.Fatalf("expected status 200, got %d", res.Code)

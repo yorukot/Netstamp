@@ -24,7 +24,7 @@ func NewHandler(service *appcheck.Service, verifier appauth.TokenVerifier) *Hand
 
 func (h *Handler) RegisterRoutes(api huma.API) {
 	authMiddleware := httpmiddleware.RequireAuth(h.verifier)
-	security := []map[string][]string{{"bearerAuth": {}}}
+	security := []map[string][]string{{httpmiddleware.SessionCookieSecurityScheme: {}}}
 	middlewares := huma.Middlewares{authMiddleware}
 
 	huma.Register(api, huma.Operation{

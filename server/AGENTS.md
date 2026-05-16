@@ -64,7 +64,7 @@ Project-scoped permission decisions should use the project domain policy rather 
 
 The backend currently uses authenticated users plus project-scoped membership roles. There is no global admin role, organization/team hierarchy, or route-level scope system. HTTP auth middleware proves identity only; application services own authorization.
 
-Protected Huma routes use `internal/controller/transport/http/middleware.RequireAuth`. It reads the `Authorization: Bearer <token>` header, verifies the access token through the auth `TokenVerifier`, and stores `identity.AccessTokenClaims` in the request context. Transport handlers read `claims.Subject` as `CurrentUserID` and pass it into application service inputs. Keep role checks out of HTTP handlers except for translating application errors into HTTP responses.
+Protected Huma routes use `internal/controller/transport/http/middleware.RequireAuth`. It reads the `netstamp_session` HTTP-only cookie, verifies the JWT value through the auth `TokenVerifier`, and stores `identity.AccessTokenClaims` in the request context. Login and registration set this cookie, and `/auth/logout` clears it. Transport handlers read `claims.Subject` as `CurrentUserID` and pass it into application service inputs. Keep role checks out of HTTP handlers except for translating application errors into HTTP responses.
 
 Project membership is stored in `project_members` with role enum values defined by `internal/domain/project`: `owner`, `admin`, `editor`, and `viewer`. Project repository access methods such as `ListProjectsForUser`, `GetProjectForUser`, and `GetMemberRole` join existing project membership with non-deleted projects, so soft-deleted projects are not accessible. Removing a member hard-deletes the membership row. Creating a project creates the creator's `owner` membership in the same repository operation.
 
@@ -98,7 +98,7 @@ Feature services should enforce permissions after loading the project for the cu
 
 Cross-feature authorization should use narrow application ports such as `ProjectAccess.GetProjectForUser` and `ProjectAccess.GetMemberRole`, usually implemented by the project repository and wired in `internal/controller/app/bootstrap.go`. Do not duplicate membership SQL or call another feature's application service just to check access.
 
-Error mapping is intentionally conservative. Missing/invalid bearer tokens return `401`. Inaccessible or missing projects, users, members, labels, checks, and probes generally map to `404` so project existence is not leaked through membership checks. Valid users without the required project role map to application `ErrForbidden` and HTTP `403`. Invalid role/input maps to `422`, and last-owner protection maps to `409`.
+Error mapping is intentionally conservative. Missing/invalid user auth cookies return `401`. Inaccessible or missing projects, users, members, labels, checks, and probes generally map to `404` so project existence is not leaked through membership checks. Valid users without the required project role map to application `ErrForbidden` and HTTP `403`. Invalid role/input maps to `422`, and last-owner protection maps to `409`.
 
 When adding a new project-scoped action, add it to the project domain policy first, update `internal/domain/project/permission_test.go`, then wire the relevant application service to call `domainproject.Can`. Add focused service tests for allowed roles, denied roles, role lookup failures, and any feature-specific invariants.
 
@@ -210,7 +210,7 @@ Keep public error detail conservative. Not-found conditions for inaccessible pro
 
 Secrets and runtime settings come from environment variables or `.env`; defaults and validation live in `internal/controller/config/config.go`. Never commit real `.env` files, JWT secrets, database passwords, trace endpoints with credentials, or production pseudonym keys.
 
-The observability compose setup requires `LOG_PSEUDONYM_KEY`, `DATABASE_PASSWORD`, `AUTH_JWT_SECRET`, and `GF_SECURITY_ADMIN_PASSWORD`. Passwords are hashed with Argon2id using `AUTH_ARGON2ID_*` settings. JWT access tokens use HS256 with `AUTH_JWT_SECRET` and `AUTH_ACCESS_TOKEN_TTL`. Configuration fields for login rate limits exist, but no rate-limiting middleware is currently wired.
+The observability compose setup requires `LOG_PSEUDONYM_KEY`, `DATABASE_PASSWORD`, `AUTH_JWT_SECRET`, and `GF_SECURITY_ADMIN_PASSWORD`. Passwords are hashed with Argon2id using `AUTH_ARGON2ID_*` settings. JWT session cookies use HS256 with `AUTH_JWT_SECRET` and `AUTH_ACCESS_TOKEN_TTL`. Configuration fields for login rate limits exist, but no rate-limiting middleware is currently wired.
 
 ## Database & Persistence
 

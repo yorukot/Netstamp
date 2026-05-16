@@ -17,6 +17,7 @@ interface OpenAPIOperation {
 	summary?: string;
 	description?: string;
 	tags?: string[];
+	security?: Array<Record<string, string[]>>;
 	parameters?: OpenAPIParameter[];
 	requestBody?: {
 		required?: boolean;
@@ -341,13 +342,24 @@ function requestUrl(baseUrl: string, path: string) {
 	return `${trimmedBase}${requestPath}`;
 }
 
-function curlCommand(operation: OperationItem | undefined, baseUrl: string, path: string, body: string, token: string) {
+function usesSessionCookie(operation: OperationItem | undefined) {
+	return operation?.security?.some(requirement => Object.prototype.hasOwnProperty.call(requirement, "sessionCookieAuth")) ?? false;
+}
+
+function writesSessionCookie(operation: OperationItem | undefined) {
+	return operation?.path === "/auth/login" || operation?.path === "/auth/register" || operation?.path === "/auth/logout";
+}
+
+function curlCommand(operation: OperationItem | undefined, baseUrl: string, path: string, body: string) {
 	if (!operation) return "Select an operation to generate a request.";
 
 	const lines = [`curl -X ${methodLabels[operation.method]} '${shellEscape(requestUrl(baseUrl, path))}'`, "  -H 'Accept: application/json'"];
 
-	if (token.trim()) {
-		lines.push(`  -H 'Authorization: Bearer ${shellEscape(token.trim())}'`);
+	if (usesSessionCookie(operation) || operation.path === "/auth/logout") {
+		lines.push("  --cookie netstamp.cookies");
+	}
+	if (usesSessionCookie(operation) || writesSessionCookie(operation)) {
+		lines.push("  --cookie-jar netstamp.cookies");
 	}
 
 	if (body.trim() && operation.method !== "get") {
@@ -364,7 +376,6 @@ export default function OpenAPIExplorer({ specUrl }: OpenAPIExplorerProps) {
 	const [activeKey, setActiveKey] = useState("");
 	const [baseUrl, setBaseUrl] = useState("/api/v1");
 	const [requestPath, setRequestPath] = useState("");
-	const [token, setToken] = useState("");
 	const [body, setBody] = useState("");
 	const [response, setResponse] = useState("");
 	const [sending, setSending] = useState(false);
@@ -406,7 +417,7 @@ export default function OpenAPIExplorer({ specUrl }: OpenAPIExplorerProps) {
 	const filteredGroups = groupOperations(filteredOperations);
 	const selectedFields = requestFields(selected, spec);
 	const selectedResponses = responseEntries(selected);
-	const selectedCurl = curlCommand(selected, baseUrl, requestPath, body, token);
+	const selectedCurl = curlCommand(selected, baseUrl, requestPath, body);
 
 	useEffect(() => {
 		setRequestPath(selected?.path ?? "");
@@ -498,11 +509,7 @@ export default function OpenAPIExplorer({ specUrl }: OpenAPIExplorerProps) {
 		try {
 			const headers: Record<string, string> = { Accept: "application/json" };
 
-			if (token.trim()) {
-				headers.Authorization = `Bearer ${token.trim()}`;
-			}
-
-			const init: RequestInit = { method: methodLabels[selected.method], headers };
+			const init: RequestInit = { method: methodLabels[selected.method], headers, credentials: "include" };
 			if (body.trim() && selected.method !== "get") {
 				headers["Content-Type"] = "application/json";
 				init.body = body;
@@ -718,7 +725,7 @@ export default function OpenAPIExplorer({ specUrl }: OpenAPIExplorerProps) {
 													<code>{operation.path}</code>
 												</div>
 												<pre>
-													<SyntaxCode code={curlCommand(operation, baseUrl, operation.path, requestBodyExample(operation, spec), token)} language="shell" />
+													<SyntaxCode code={curlCommand(operation, baseUrl, operation.path, requestBodyExample(operation, spec))} language="shell" />
 												</pre>
 												<button type="button" onClick={() => selectOperation(operation)}>
 													Load in console
@@ -743,10 +750,6 @@ export default function OpenAPIExplorer({ specUrl }: OpenAPIExplorerProps) {
 						<label>
 							<FieldLabel>Path</FieldLabel>
 							<Input value={requestPath} onChange={event => setRequestPath(event.currentTarget.value)} />
-						</label>
-						<label className={styles.fullWidth}>
-							<FieldLabel>Bearer token</FieldLabel>
-							<Input value={token} onChange={event => setToken(event.currentTarget.value)} placeholder="Optional access token" />
 						</label>
 					</div>
 

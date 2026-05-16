@@ -694,28 +694,12 @@
 						"readOnly": true,
 						"type": "string"
 					},
-					"accessToken": {
-						"description": "JWT access token issued for the authenticated user.",
-						"examples": ["eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example.signature"],
-						"type": "string"
-					},
-					"expiresIn": {
-						"description": "Access token lifetime in seconds.",
-						"examples": [43200],
-						"format": "int64",
-						"type": "integer"
-					},
-					"tokenType": {
-						"description": "Token scheme to use in the Authorization header.",
-						"examples": ["Bearer"],
-						"type": "string"
-					},
 					"user": {
 						"$ref": "#/components/schemas/UserResponse",
 						"description": "Authenticated user."
 					}
 				},
-				"required": ["user", "tokenType", "accessToken", "expiresIn"],
+				"required": ["user"],
 				"type": "object"
 			},
 			"MeOutputBody": {
@@ -729,7 +713,7 @@
 						"type": "string"
 					},
 					"authenticated": {
-						"description": "Always true when the bearer token is valid.",
+						"description": "Always true when the session cookie is valid.",
 						"examples": [true],
 						"type": "boolean"
 					},
@@ -1105,28 +1089,12 @@
 						"readOnly": true,
 						"type": "string"
 					},
-					"accessToken": {
-						"description": "JWT access token issued for the created user.",
-						"examples": ["eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example.signature"],
-						"type": "string"
-					},
-					"expiresIn": {
-						"description": "Access token lifetime in seconds.",
-						"examples": [43200],
-						"format": "int64",
-						"type": "integer"
-					},
-					"tokenType": {
-						"description": "Token scheme to use in the Authorization header.",
-						"examples": ["Bearer"],
-						"type": "string"
-					},
 					"user": {
 						"$ref": "#/components/schemas/UserResponse",
 						"description": "Created user."
 					}
 				},
-				"required": ["user", "tokenType", "accessToken", "expiresIn"],
+				"required": ["user"],
 				"type": "object"
 			},
 			"RootBody": {
@@ -1606,15 +1574,16 @@
 			}
 		},
 		"securitySchemes": {
-			"bearerAuth": {
-				"bearerFormat": "JWT",
-				"scheme": "bearer",
-				"type": "http"
-			},
 			"probeAuth": {
 				"description": "Probe runtime credential header using the format `Probe \u003csecret\u003e`.",
 				"in": "header",
 				"name": "Authorization",
+				"type": "apiKey"
+			},
+			"sessionCookieAuth": {
+				"description": "HTTP-only session cookie set by `/auth/register` and `/auth/login`.",
+				"in": "cookie",
+				"name": "netstamp_session",
 				"type": "apiKey"
 			}
 		}
@@ -1657,7 +1626,7 @@
 		},
 		"/auth/login": {
 			"post": {
-				"description": "Verify an email and password pair, then return the authenticated user and a bearer access token. Invalid credentials always return the same unauthorized response so callers cannot distinguish an unknown email from a password mismatch.",
+				"description": "Verify an email and password pair, then set an HTTP-only session cookie for the authenticated user. Invalid credentials always return the same unauthorized response so callers cannot distinguish an unknown email from a password mismatch.",
 				"operationId": "loginUser",
 				"requestBody": {
 					"content": {
@@ -1715,9 +1684,32 @@
 				"tags": ["Auth"]
 			}
 		},
+		"/auth/logout": {
+			"post": {
+				"description": "Clear the HTTP-only session cookie.",
+				"operationId": "logoutUser",
+				"responses": {
+					"204": {
+						"description": "No Content"
+					},
+					"default": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorModel"
+								}
+							}
+						},
+						"description": "Error"
+					}
+				},
+				"summary": "Logout user",
+				"tags": ["Auth"]
+			}
+		},
 		"/auth/me": {
 			"get": {
-				"description": "Return the user identity embedded in a valid bearer access token. The request must include an Authorization header using the Bearer scheme.",
+				"description": "Return the user identity embedded in a valid session cookie.",
 				"operationId": "getCurrentUser",
 				"responses": {
 					"200": {
@@ -1753,7 +1745,7 @@
 				},
 				"security": [
 					{
-						"bearerAuth": []
+						"sessionCookieAuth": []
 					}
 				],
 				"summary": "Get current user",
@@ -1762,7 +1754,7 @@
 		},
 		"/auth/register": {
 			"post": {
-				"description": "Create a user account with a normalized email address, display name, and password. On success, returns the created user and a bearer access token for immediate API access.",
+				"description": "Create a user account with a normalized email address, display name, and password. On success, sets an HTTP-only session cookie for immediate API access.",
 				"operationId": "registerUser",
 				"requestBody": {
 					"content": {
@@ -1896,7 +1888,7 @@
 				},
 				"security": [
 					{
-						"bearerAuth": []
+						"sessionCookieAuth": []
 					}
 				],
 				"summary": "List projects",
@@ -1968,7 +1960,7 @@
 				},
 				"security": [
 					{
-						"bearerAuth": []
+						"sessionCookieAuth": []
 					}
 				],
 				"summary": "Create project",
@@ -2052,7 +2044,7 @@
 				},
 				"security": [
 					{
-						"bearerAuth": []
+						"sessionCookieAuth": []
 					}
 				],
 				"summary": "Delete project",
@@ -2131,7 +2123,7 @@
 				},
 				"security": [
 					{
-						"bearerAuth": []
+						"sessionCookieAuth": []
 					}
 				],
 				"summary": "Get project",
@@ -2240,7 +2232,7 @@
 				},
 				"security": [
 					{
-						"bearerAuth": []
+						"sessionCookieAuth": []
 					}
 				],
 				"summary": "Update project",
@@ -2321,7 +2313,7 @@
 				},
 				"security": [
 					{
-						"bearerAuth": []
+						"sessionCookieAuth": []
 					}
 				],
 				"summary": "List project checks",
@@ -2420,7 +2412,7 @@
 				},
 				"security": [
 					{
-						"bearerAuth": []
+						"sessionCookieAuth": []
 					}
 				],
 				"summary": "Create project check",
@@ -2517,7 +2509,7 @@
 				},
 				"security": [
 					{
-						"bearerAuth": []
+						"sessionCookieAuth": []
 					}
 				],
 				"summary": "Delete project check",
@@ -2609,7 +2601,7 @@
 				},
 				"security": [
 					{
-						"bearerAuth": []
+						"sessionCookieAuth": []
 					}
 				],
 				"summary": "Get project check",
@@ -2721,7 +2713,7 @@
 				},
 				"security": [
 					{
-						"bearerAuth": []
+						"sessionCookieAuth": []
 					}
 				],
 				"summary": "Update project check",
@@ -2802,7 +2794,7 @@
 				},
 				"security": [
 					{
-						"bearerAuth": []
+						"sessionCookieAuth": []
 					}
 				],
 				"summary": "List project labels",
@@ -2911,7 +2903,7 @@
 				},
 				"security": [
 					{
-						"bearerAuth": []
+						"sessionCookieAuth": []
 					}
 				],
 				"summary": "Create project label",
@@ -3007,7 +2999,7 @@
 				},
 				"security": [
 					{
-						"bearerAuth": []
+						"sessionCookieAuth": []
 					}
 				],
 				"summary": "Delete project label",
@@ -3128,7 +3120,7 @@
 				},
 				"security": [
 					{
-						"bearerAuth": []
+						"sessionCookieAuth": []
 					}
 				],
 				"summary": "Update project label",
@@ -3209,7 +3201,7 @@
 				},
 				"security": [
 					{
-						"bearerAuth": []
+						"sessionCookieAuth": []
 					}
 				],
 				"summary": "List project members",
@@ -3318,7 +3310,7 @@
 				},
 				"security": [
 					{
-						"bearerAuth": []
+						"sessionCookieAuth": []
 					}
 				],
 				"summary": "Add project member",
@@ -3424,7 +3416,7 @@
 				},
 				"security": [
 					{
-						"bearerAuth": []
+						"sessionCookieAuth": []
 					}
 				],
 				"summary": "Remove project member",
@@ -3544,7 +3536,7 @@
 				},
 				"security": [
 					{
-						"bearerAuth": []
+						"sessionCookieAuth": []
 					}
 				],
 				"summary": "Update project member role",
@@ -3621,7 +3613,7 @@
 				},
 				"security": [
 					{
-						"bearerAuth": []
+						"sessionCookieAuth": []
 					}
 				],
 				"summary": "List project probes",
@@ -3716,7 +3708,7 @@
 				},
 				"security": [
 					{
-						"bearerAuth": []
+						"sessionCookieAuth": []
 					}
 				],
 				"summary": "Create project probe",
@@ -3809,7 +3801,7 @@
 				},
 				"security": [
 					{
-						"bearerAuth": []
+						"sessionCookieAuth": []
 					}
 				],
 				"summary": "Delete project probe",
@@ -3897,7 +3889,7 @@
 				},
 				"security": [
 					{
-						"bearerAuth": []
+						"sessionCookieAuth": []
 					}
 				],
 				"summary": "Get project probe",
@@ -4005,7 +3997,7 @@
 				},
 				"security": [
 					{
-						"bearerAuth": []
+						"sessionCookieAuth": []
 					}
 				],
 				"summary": "Update project probe",
@@ -4105,7 +4097,7 @@
 				},
 				"security": [
 					{
-						"bearerAuth": []
+						"sessionCookieAuth": []
 					}
 				],
 				"summary": "Rotate project probe secret",
@@ -4251,7 +4243,7 @@
 				},
 				"security": [
 					{
-						"bearerAuth": []
+						"sessionCookieAuth": []
 					}
 				],
 				"summary": "Query project ping result series",

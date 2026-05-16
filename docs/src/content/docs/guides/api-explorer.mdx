@@ -23,7 +23,7 @@ Use it to verify request bodies, response schemas, and route paths before writin
 
 ## Authenticated Routes
 
-Authenticated routes still need a valid session or token when the backend enforces one. The explorer can describe the shape of the request, but it does not bypass application auth.
+Authenticated routes still need a valid session cookie when the backend enforces one. The explorer can describe the shape of the request, but it does not bypass application auth.
 
 :::warning Do not manually edit `docs/public/openapi.json` for route changes. Regenerate it from the backend so docs and runtime behavior stay together. :::
 
