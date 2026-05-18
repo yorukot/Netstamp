@@ -8,15 +8,21 @@ import (
 	"github.com/yorukot/netstamp/internal/agent/scheduling"
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
+	domaintraceroute "github.com/yorukot/netstamp/internal/domain/traceroute"
 )
 
 type ResultEnvelope struct {
-	CheckID string
-	Type    domaincheck.Type
-	Ping    domainping.Result
+	CheckID    string
+	Type       domaincheck.Type
+	Ping       domainping.Result
+	Traceroute domaintraceroute.Result
 }
 
 type PingExecutor interface {
+	Execute(ctx context.Context, req scheduling.RunRequest) ResultEnvelope
+}
+
+type TracerouteExecutor interface {
 	Execute(ctx context.Context, req scheduling.RunRequest) ResultEnvelope
 }
 
@@ -25,15 +31,17 @@ type WorkerPool struct {
 	queue      <-chan scheduling.RunRequest
 	results    *ResultQueue
 	ping       PingExecutor
+	traceroute TracerouteExecutor
 	log        *slog.Logger
 }
 
-func NewWorkerPool(maxWorkers int, queue <-chan scheduling.RunRequest, results *ResultQueue, ping PingExecutor, log *slog.Logger) *WorkerPool {
+func NewWorkerPool(maxWorkers int, queue <-chan scheduling.RunRequest, results *ResultQueue, ping PingExecutor, traceroute TracerouteExecutor, log *slog.Logger) *WorkerPool {
 	return &WorkerPool{
 		maxWorkers: maxWorkers,
 		queue:      queue,
 		results:    results,
 		ping:       ping,
+		traceroute: traceroute,
 		log:        log,
 	}
 }
@@ -75,6 +83,17 @@ func (p *WorkerPool) runOne(ctx context.Context, workerID int, req scheduling.Ru
 			return
 		}
 		result := p.ping.Execute(ctx, req)
+		p.results.Enqueue(result)
+	case domaincheck.TypeTraceroute:
+		if req.Check.TracerouteConfig == nil {
+			p.log.Warn("skipped traceroute occurrence without config", "worker_id", workerID, "assignment_id", req.AssignmentID, "check_id", req.Check.ID)
+			return
+		}
+		if p.traceroute == nil {
+			p.log.Warn("skipped traceroute occurrence without executor", "worker_id", workerID, "assignment_id", req.AssignmentID, "check_id", req.Check.ID)
+			return
+		}
+		result := p.traceroute.Execute(ctx, req)
 		p.results.Enqueue(result)
 	default:
 		p.log.Warn("skipped unsupported check type", "worker_id", workerID, "assignment_id", req.AssignmentID, "check_id", req.Check.ID, "check_type", req.Check.Type)

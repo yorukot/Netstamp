@@ -3,7 +3,7 @@ namespace Netstamp;
 alias CheckType = "ping" | "traceroute";
 alias IPFamily = "inet" | "inet6";
 alias PingStatus = "successful" | "timeout" | "error";
-alias TracerouteProtocol = "icmp" | "udp" | "tcp";
+alias TracerouteProtocol = "icmp" | "udp";
 alias TracerouteStatus = "successful" | "timeout" | "error" | "partial";
 
 @example(#{ packetCount: 4, packetSizeBytes: 56, timeoutMs: 3000, ipFamily: "inet" })
@@ -52,7 +52,7 @@ model TracerouteConfig {
 	@maxValue(10)
 	queriesPerHop: int32;
 
-	@minValue(0)
+	@minValue(1)
 	@maxValue(65507)
 	packetSizeBytes: int32;
 
@@ -79,7 +79,7 @@ model TracerouteConfigPatch {
 	@maxValue(10)
 	queriesPerHop?: int32;
 
-	@minValue(0)
+	@minValue(1)
 	@maxValue(65507)
 	packetSizeBytes?: int32;
 

@@ -1,0 +1,57 @@
+package worker
+
+import (
+	"context"
+	"io"
+	"log/slog"
+	"testing"
+	"time"
+
+	"github.com/yorukot/netstamp/internal/agent/scheduling"
+	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
+	domaintraceroute "github.com/yorukot/netstamp/internal/domain/traceroute"
+)
+
+func TestWorkerRunsTracerouteExecutor(t *testing.T) {
+	queue := NewResultQueue(1, discardWorkerLogger())
+	config := domaintraceroute.DefaultConfig()
+	executor := &fakeTracerouteExecutor{result: ResultEnvelope{
+		CheckID: "check-1",
+		Type:    domaincheck.TypeTraceroute,
+		Traceroute: domaintraceroute.Result{
+			Status: domaintraceroute.StatusSuccessful,
+		},
+	}}
+	pool := NewWorkerPool(1, nil, queue, nil, executor, discardWorkerLogger())
+
+	pool.runOne(context.Background(), 1, scheduling.RunRequest{
+		Check: domaincheck.Check{
+			ID:               "check-1",
+			Type:             domaincheck.TypeTraceroute,
+			TracerouteConfig: &config,
+		},
+		ScheduledAt: time.Date(2026, 5, 15, 12, 0, 0, 0, time.UTC),
+	})
+
+	if executor.called != 1 {
+		t.Fatalf("expected traceroute executor to be called once, got %d", executor.called)
+	}
+	results := queue.Drain(1)
+	if len(results) != 1 || results[0].Type != domaincheck.TypeTraceroute || results[0].Traceroute.Status != domaintraceroute.StatusSuccessful {
+		t.Fatalf("unexpected queued result: %#v", results)
+	}
+}
+
+type fakeTracerouteExecutor struct {
+	called int
+	result ResultEnvelope
+}
+
+func (e *fakeTracerouteExecutor) Execute(context.Context, scheduling.RunRequest) ResultEnvelope {
+	e.called++
+	return e.result
+}
+
+func discardWorkerLogger() *slog.Logger {
+	return slog.New(slog.NewTextHandler(io.Discard, nil))
+}

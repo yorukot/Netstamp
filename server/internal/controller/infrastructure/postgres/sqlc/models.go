@@ -231,7 +231,6 @@ type TracerouteProtocol string
 const (
 	TracerouteProtocolIcmp TracerouteProtocol = "icmp"
 	TracerouteProtocolUdp  TracerouteProtocol = "udp"
-	TracerouteProtocolTcp  TracerouteProtocol = "tcp"
 )
 
 func (e *TracerouteProtocol) Scan(src interface{}) error {

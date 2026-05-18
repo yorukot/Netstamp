@@ -1395,7 +1395,7 @@ export interface components {
 		 */
 		TracerouteConfig: {
 			/** @enum {string} */
-			protocol: "icmp" | "udp" | "tcp";
+			protocol: "icmp" | "udp";
 			/** Format: int32 */
 			maxHops: number;
 			/** Format: int32 */
@@ -1422,7 +1422,7 @@ export interface components {
 		 */
 		TracerouteConfigPatch: {
 			/** @enum {string} */
-			protocol?: "icmp" | "udp" | "tcp";
+			protocol?: "icmp" | "udp";
 			/** Format: int32 */
 			maxHops?: number;
 			/** Format: int32 */

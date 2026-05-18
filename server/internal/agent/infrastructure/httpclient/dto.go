@@ -9,6 +9,7 @@ import (
 	domainnetwork "github.com/yorukot/netstamp/internal/domain/network"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
+	domaintraceroute "github.com/yorukot/netstamp/internal/domain/traceroute"
 )
 
 type HelloResponse struct {
@@ -75,7 +76,7 @@ type TracerouteResultBody struct {
 	StartedAt          time.Time               `json:"startedAt"`
 	FinishedAt         time.Time               `json:"finishedAt"`
 	DurationMs         int32                   `json:"durationMs"`
-	Status             string                  `json:"status"`
+	Status             domaintraceroute.Status `json:"status"`
 	ResolvedIP         *netip.Addr             `json:"resolvedIp,omitempty"`
 	IPFamily           *domainnetwork.IPFamily `json:"ipFamily,omitempty"`
 	DestinationReached bool                    `json:"destinationReached"`

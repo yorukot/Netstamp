@@ -33,8 +33,10 @@ func New(config agentconfig.Config, log *slog.Logger) *App {
 	workerQueue := make(chan scheduling.RunRequest, config.MaxWorkers.Value*2)
 	// PingExecutor is responsible for executing ping checks
 	pingExecutor := executor.NewICMPPingExecutor()
+	// TracerouteExecutor is responsible for executing traceroute checks
+	tracerouteExecutor := executor.NewTracerouteExecutor()
 	// WorkerPool is responsible for managing worker execution
-	workerPool := agentworker.NewWorkerPool(config.MaxWorkers.Value, workerQueue, resultQueue, pingExecutor, log)
+	workerPool := agentworker.NewWorkerPool(config.MaxWorkers.Value, workerQueue, resultQueue, pingExecutor, tracerouteExecutor, log)
 
 	// AssignmentStore is responsible for storing and managing assignments
 	assignmentStore := scheduling.NewAssignmentStore(config.ProbeID, config.AssignmentTTL.Value, log)

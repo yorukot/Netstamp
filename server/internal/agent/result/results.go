@@ -12,6 +12,7 @@ import (
 	agentworker "github.com/yorukot/netstamp/internal/agent/worker"
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
+	domaintraceroute "github.com/yorukot/netstamp/internal/domain/traceroute"
 )
 
 type Submitter struct {
@@ -122,26 +123,40 @@ func (s *Submitter) flush(ctx context.Context, batch []agentworker.ResultEnvelop
 
 func groupResults(batch []agentworker.ResultEnvelope) []httpclient.RuntimeResultGroup {
 	orderedKeys := make([]resultGroupKey, 0)
-	groups := make(map[resultGroupKey][]httpclient.PingResultBody)
+	groups := make(map[resultGroupKey]runtimeResultGroupValues)
 
 	for _, result := range batch {
 		key := resultGroupKey{checkID: result.CheckID, checkType: result.Type}
 		if _, ok := groups[key]; !ok {
 			orderedKeys = append(orderedKeys, key)
 		}
-		groups[key] = append(groups[key], pingResultBody(result.Ping))
+		values := groups[key]
+		switch result.Type {
+		case domaincheck.TypePing:
+			values.ping = append(values.ping, pingResultBody(result.Ping))
+		case domaincheck.TypeTraceroute:
+			values.traceroute = append(values.traceroute, tracerouteResultBody(result.Traceroute))
+		}
+		groups[key] = values
 	}
 
 	output := make([]httpclient.RuntimeResultGroup, 0, len(orderedKeys))
 	for _, key := range orderedKeys {
+		values := groups[key]
 		output = append(output, httpclient.RuntimeResultGroup{
-			CheckID: key.checkID,
-			Type:    key.checkType,
-			Ping:    groups[key],
+			CheckID:    key.checkID,
+			Type:       key.checkType,
+			Ping:       values.ping,
+			Traceroute: values.traceroute,
 		})
 	}
 
 	return output
+}
+
+type runtimeResultGroupValues struct {
+	ping       []httpclient.PingResultBody
+	traceroute []httpclient.TracerouteResultBody
 }
 
 type resultGroupKey struct {
@@ -169,4 +184,43 @@ func pingResultBody(result domainping.Result) httpclient.PingResultBody {
 		ErrorCode:     result.ErrorCode,
 		ErrorMessage:  result.ErrorMessage,
 	}
+}
+
+func tracerouteResultBody(result domaintraceroute.Result) httpclient.TracerouteResultBody {
+	return httpclient.TracerouteResultBody{
+		StartedAt:          result.StartedAt,
+		FinishedAt:         result.FinishedAt,
+		DurationMs:         result.DurationMs,
+		Status:             result.Status,
+		ResolvedIP:         result.ResolvedIP,
+		IPFamily:           result.IPFamily,
+		DestinationReached: result.DestinationReached,
+		HopCount:           result.HopCount,
+		Hops:               tracerouteHopBodies(result.Hops),
+		ErrorCode:          result.ErrorCode,
+		ErrorMessage:       result.ErrorMessage,
+	}
+}
+
+func tracerouteHopBodies(hops []domaintraceroute.HopResult) []httpclient.TracerouteHopBody {
+	values := make([]httpclient.TracerouteHopBody, 0, len(hops))
+	for _, hop := range hops {
+		values = append(values, httpclient.TracerouteHopBody{
+			HopIndex:      hop.HopIndex,
+			Address:       hop.Address,
+			Hostname:      hop.Hostname,
+			SentCount:     hop.SentCount,
+			ReceivedCount: hop.ReceivedCount,
+			LossPercent:   hop.LossPercent,
+			RttMinMs:      hop.RttMinMs,
+			RttAvgMs:      hop.RttAvgMs,
+			RttMedianMs:   hop.RttMedianMs,
+			RttMaxMs:      hop.RttMaxMs,
+			RttStddevMs:   hop.RttStddevMs,
+			RttSamplesMs:  append([]float64(nil), hop.RttSamplesMs...),
+			ErrorCode:     hop.ErrorCode,
+			ErrorMessage:  hop.ErrorMessage,
+		})
+	}
+	return values
 }

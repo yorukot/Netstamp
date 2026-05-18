@@ -45,7 +45,7 @@ func (s *AssignmentStore) taskFromAssignment(assignment domainassignment.Assignm
 }
 
 func isRunnableCheckType(checkType domaincheck.Type) bool {
-	return checkType == domaincheck.TypePing
+	return checkType == domaincheck.TypePing || checkType == domaincheck.TypeTraceroute
 }
 
 func hasConfigForCheckType(check domaincheck.Check) bool {

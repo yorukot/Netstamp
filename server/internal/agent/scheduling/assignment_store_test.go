@@ -62,7 +62,7 @@ func TestReconcileSkipsAssignmentWithoutCheck(t *testing.T) {
 	}
 }
 
-func TestReconcileSkipsTracerouteUntilExecutorExists(t *testing.T) {
+func TestReconcileAcceptsTracerouteAssignment(t *testing.T) {
 	store := NewAssignmentStore("probe-1", time.Minute, discardLogger())
 	config := domaintraceroute.DefaultConfig()
 
@@ -77,11 +77,15 @@ func TestReconcileSkipsTracerouteUntilExecutorExists(t *testing.T) {
 		},
 	}}, time.Date(2026, 5, 15, 12, 0, 0, 0, time.UTC))
 
-	if summary.Unsupported != 1 || summary.Active != 0 {
+	if summary.Added != 1 || summary.Active != 1 || summary.Unsupported != 0 {
 		t.Fatalf("unexpected summary: %#v", summary)
 	}
-	if tasks := store.ActiveTasks(); len(tasks) != 0 {
-		t.Fatalf("expected no active tasks, got %d", len(tasks))
+	tasks := store.ActiveTasks()
+	if len(tasks) != 1 {
+		t.Fatalf("expected one active task, got %d", len(tasks))
+	}
+	if tasks[0].Check.Type != domaincheck.TypeTraceroute {
+		t.Fatalf("expected traceroute check type, got %q", tasks[0].Check.Type)
 	}
 }
 

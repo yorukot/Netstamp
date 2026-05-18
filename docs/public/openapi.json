@@ -4410,7 +4410,7 @@
 				"properties": {
 					"protocol": {
 						"type": "string",
-						"enum": ["icmp", "udp", "tcp"]
+						"enum": ["icmp", "udp"]
 					},
 					"maxHops": {
 						"type": "integer",
@@ -4433,7 +4433,7 @@
 					"packetSizeBytes": {
 						"type": "integer",
 						"format": "int32",
-						"minimum": 0,
+						"minimum": 1,
 						"maximum": 65507
 					},
 					"port": {
@@ -4464,7 +4464,7 @@
 				"properties": {
 					"protocol": {
 						"type": "string",
-						"enum": ["icmp", "udp", "tcp"]
+						"enum": ["icmp", "udp"]
 					},
 					"maxHops": {
 						"type": "integer",
@@ -4487,7 +4487,7 @@
 					"packetSizeBytes": {
 						"type": "integer",
 						"format": "int32",
-						"minimum": 0,
+						"minimum": 1,
 						"maximum": 65507
 					},
 					"port": {

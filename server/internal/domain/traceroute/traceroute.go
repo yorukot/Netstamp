@@ -36,7 +36,6 @@ type Protocol string
 const (
 	ProtocolICMP Protocol = "icmp"
 	ProtocolUDP  Protocol = "udp"
-	ProtocolTCP  Protocol = "tcp"
 )
 
 type Status string
@@ -77,8 +76,6 @@ func VNConfigProtocol(protocol Protocol) (Protocol, error) {
 		return ProtocolICMP, nil
 	case ProtocolUDP:
 		return ProtocolUDP, nil
-	case ProtocolTCP:
-		return ProtocolTCP, nil
 	default:
 		return "", errors.New("invalid traceroute protocol")
 	}
@@ -115,7 +112,7 @@ func VNConfigQueriesPerHop(queriesPerHop int32) (int32, error) {
 }
 
 func VNConfigPacketSizeBytes(packetSizeBytes int32) (int32, error) {
-	if err := spvalidator.Min(packetSizeBytes, 0); err != nil {
+	if err := spvalidator.Min(packetSizeBytes, 1); err != nil {
 		return 0, err
 	}
 	if err := spvalidator.Max(packetSizeBytes, MaxPacketSizeBytes); err != nil {
@@ -271,7 +268,38 @@ type ResultStorageInput struct {
 	Hops               []HopStorageInput
 }
 
+type Result struct {
+	StartedAt          time.Time
+	FinishedAt         time.Time
+	DurationMs         int32
+	Status             Status
+	ResolvedIP         *netip.Addr
+	IPFamily           *domainnetwork.IPFamily
+	DestinationReached bool
+	HopCount           int32
+	ErrorCode          *string
+	ErrorMessage       *string
+	Hops               []HopResult
+}
+
 type HopStorageInput struct {
+	HopIndex      int32
+	Address       *netip.Addr
+	Hostname      *string
+	SentCount     int32
+	ReceivedCount int32
+	LossPercent   float64
+	RttMinMs      *float64
+	RttAvgMs      *float64
+	RttMedianMs   *float64
+	RttMaxMs      *float64
+	RttStddevMs   *float64
+	RttSamplesMs  []float64
+	ErrorCode     *string
+	ErrorMessage  *string
+}
+
+type HopResult struct {
 	HopIndex      int32
 	Address       *netip.Addr
 	Hostname      *string

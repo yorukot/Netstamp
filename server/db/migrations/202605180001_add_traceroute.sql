@@ -2,7 +2,7 @@
 -- +goose Up
 ALTER TYPE check_type ADD VALUE IF NOT EXISTS 'traceroute';
 
-CREATE TYPE traceroute_protocol AS ENUM ('icmp', 'udp', 'tcp');
+CREATE TYPE traceroute_protocol AS ENUM ('icmp', 'udp');
 CREATE TYPE traceroute_status AS ENUM ('successful', 'timeout', 'error', 'partial');
 
 CREATE TABLE traceroute_check_configs (
@@ -17,7 +17,7 @@ CREATE TABLE traceroute_check_configs (
     CONSTRAINT traceroute_check_configs_max_hops_range CHECK (max_hops >= 1 AND max_hops <= 64),
     CONSTRAINT traceroute_check_configs_timeout_ms_range CHECK (timeout_ms >= 1 AND timeout_ms <= 60000),
     CONSTRAINT traceroute_check_configs_queries_per_hop_range CHECK (queries_per_hop >= 1 AND queries_per_hop <= 10),
-    CONSTRAINT traceroute_check_configs_packet_size_range CHECK (packet_size_bytes >= 0 AND packet_size_bytes <= 65507),
+    CONSTRAINT traceroute_check_configs_packet_size_range CHECK (packet_size_bytes >= 1 AND packet_size_bytes <= 65507),
     CONSTRAINT traceroute_check_configs_port_range CHECK (port >= 1 AND port <= 65535)
 );
 
