@@ -1,0 +1,50 @@
+import type { CheckDefinition, CheckType } from "@/features/checks/data/checks";
+import type { ApiCheck } from "@/shared/api/types";
+
+function mapCheckType(type: string): CheckType {
+	if (type.toLowerCase() === "dns") {
+		return "DNS";
+	}
+
+	if (type.toLowerCase() === "traceroute") {
+		return "Traceroute";
+	}
+
+	return "Ping";
+}
+
+export function formatInterval(seconds: number) {
+	return `${seconds}s`;
+}
+
+export function parseIntervalSeconds(value: string) {
+	const parsed = Number.parseInt(value, 10);
+	return Number.isFinite(parsed) && parsed > 0 ? parsed : 30;
+}
+
+export function mapApiCheck(check: ApiCheck, assigned = 0): CheckDefinition {
+	const type = mapCheckType(check.type);
+
+	return {
+		id: check.id,
+		name: check.name,
+		type,
+		target: check.target,
+		status: "Configured",
+		interval: formatInterval(check.intervalSeconds),
+		jitter: "-",
+		latest: "-",
+		assigned,
+		description: check.description || "",
+		fields: [
+			["Target", check.target],
+			["Type", type],
+			["Interval", formatInterval(check.intervalSeconds)],
+			["Labels", String(check.labels?.length ?? 0)]
+		]
+	};
+}
+
+export function mapApiChecks(checks: ApiCheck[] | null | undefined, probes: Array<unknown> | null | undefined): CheckDefinition[] {
+	return (checks ?? []).map(check => mapApiCheck(check, probes?.length ?? 0));
+}

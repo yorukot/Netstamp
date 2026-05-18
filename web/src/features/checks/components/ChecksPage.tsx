@@ -1,14 +1,19 @@
+import { mapApiChecks, parseIntervalSeconds } from "@/features/checks/api/checkAdapters";
 import { type CheckDefinition, type CheckType } from "@/features/checks/data/checks";
-import { probes } from "@/features/probes/data/probes";
+import { mapApiProbes } from "@/features/probes/api/probeAdapters";
+import { apiQueryKeys } from "@/shared/api/queryKeys";
+import { createProjectCheck, deleteProjectCheck, projectQueries, updateProjectCheck } from "@/shared/api/queries";
+import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { ActionRow } from "@/shared/components/ActionRow";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { classNames } from "@/shared/utils/classNames";
 import { toneForStatus } from "@/shared/utils/statusTone";
 import { Badge, Button, Checkbox, DataTable, FieldLabel, Panel, SelectField, TextField, type DataColumn } from "@netstamp/ui";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import styles from "./ChecksPage.module.css";
-import { assignedProbeNames, checkRows, displayProbeSelection, logsForCheck, type LogRow } from "./checksPageData";
+import { displayProbeSelection, logsForCheck, type LogRow } from "./checksPageData";
 
 const checkColumns: DataColumn<CheckDefinition>[] = [
 	{ key: "name", label: "Check name" },
@@ -29,26 +34,111 @@ const logColumns: DataColumn<LogRow>[] = [
 ];
 
 export function ChecksPage() {
-	const [selectedId, setSelectedId] = useState("api-latency");
+	const queryClient = useQueryClient();
+	const { projectRef } = useCurrentProject();
+	const probesQuery = useQuery({
+		...projectQueries.probes(projectRef || ""),
+		enabled: Boolean(projectRef),
+		select: data => mapApiProbes(data.probes)
+	});
+	const checksQuery = useQuery({
+		...projectQueries.checks(projectRef || ""),
+		enabled: Boolean(projectRef),
+		select: data => mapApiChecks(data.checks, probesQuery.data)
+	});
+	const checkRows = checksQuery.data || [];
+	const probes = probesQuery.data || [];
+	const [selectedId, setSelectedId] = useState("");
+	const [checkName, setCheckName] = useState("");
+	const [target, setTarget] = useState("");
 	const [checkType, setCheckType] = useState<CheckType>("Ping");
 	const [interval, setInterval] = useState("30s");
 	const [jitter, setJitter] = useState("4s");
 	const [enabled, setEnabled] = useState("enabled");
-	const [selectedProbes, setSelectedProbes] = useState(() => assignedProbeNames("api-latency"));
-	const selectedCheck = checkRows.find(check => check.id === selectedId) || checkRows[0];
-	const selectedLogs = logsForCheck(selectedCheck, selectedProbes);
+	const [selectedProbes, setSelectedProbes] = useState<string[]>([]);
+	const isCreating = selectedId === "__new__";
+	const selectedListCheck = checkRows.find(check => check.id === selectedId) || checkRows[0] || null;
+	const checkDetailQuery = useQuery({
+		...projectQueries.checkDetail(projectRef || "", selectedListCheck?.id || ""),
+		enabled: Boolean(projectRef && selectedListCheck && !isCreating),
+		select: data => mapApiChecks([data.check], probesQuery.data)[0]
+	});
+	const selectedCheck = isCreating ? null : checkDetailQuery.data || selectedListCheck;
+	const activeSelectedProbes = selectedProbes.length ? selectedProbes : probes.map(probe => probe.name);
+	const activeCheckName = checkName || selectedCheck?.name || "";
+	const activeTarget = target || selectedCheck?.target || "";
+	const activeCheckType = isCreating || selectedId ? checkType : selectedCheck?.type || checkType;
+	const activeInterval = interval || selectedCheck?.interval || "30s";
+	const activeJitter = jitter || selectedCheck?.jitter || "4s";
+	const activeEnabled = selectedId ? enabled : selectedCheck?.status.toLowerCase().includes("disabled") ? "disabled" : enabled;
+	const saveCheckMutation = useMutation({
+		mutationFn: () => {
+			const body = {
+				intervalSeconds: parseIntervalSeconds(activeInterval),
+				name: activeCheckName,
+				target: activeTarget,
+				type: "ping"
+			} as const;
+
+			return isCreating ? createProjectCheck(projectRef || "", body) : updateProjectCheck(projectRef || "", selectedCheck?.id || "", body);
+		},
+		onSuccess: data => {
+			if (projectRef) {
+				queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.checks(projectRef) });
+			}
+
+			setSelectedId(data.check.id);
+			setCheckName(data.check.name);
+			setTarget(data.check.target);
+			setInterval(`${data.check.intervalSeconds}s`);
+		}
+	});
+	const deleteCheckMutation = useMutation({
+		mutationFn: (checkId: string) => deleteProjectCheck(projectRef || "", checkId),
+		onSuccess: () => {
+			if (projectRef) {
+				queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.checks(projectRef) });
+			}
+
+			setSelectedId("");
+			setCheckName("");
+			setTarget("");
+		}
+	});
+	const selectedLogs = selectedCheck ? logsForCheck(selectedCheck, activeSelectedProbes) : [];
+
+	function startNewCheck() {
+		setSelectedId("__new__");
+		setCheckName("");
+		setTarget("");
+		setCheckType("Ping");
+		setInterval("30s");
+		setJitter("4s");
+		setEnabled("enabled");
+		setSelectedProbes(probes.map(probe => probe.name));
+	}
 
 	function selectCheck(check: CheckDefinition) {
 		setSelectedId(check.id);
+		setCheckName(check.name);
+		setTarget(check.target);
 		setCheckType(check.type);
 		setInterval(check.interval);
 		setJitter(check.jitter);
 		setEnabled(check.status.toLowerCase().includes("disabled") ? "disabled" : "enabled");
-		setSelectedProbes(assignedProbeNames(check.id));
+		setSelectedProbes(probes.map(probe => probe.name));
 	}
 
 	function toggleProbe(probeName: string) {
 		setSelectedProbes(current => (current.includes(probeName) ? current.filter(value => value !== probeName) : [...current, probeName]));
+	}
+
+	function deleteSelectedCheck() {
+		if (!selectedCheck || !window.confirm(`Delete check ${selectedCheck.name}?`)) {
+			return;
+		}
+
+		deleteCheckMutation.mutate(selectedCheck.id);
 	}
 
 	return (
@@ -57,7 +147,7 @@ export function ChecksPage() {
 				eyebrow="Check management"
 				title="Checks"
 				copy="Select a check, edit its schedule and type, assign probes, and review the latest measurement logs."
-				actions={<Button>New check</Button>}
+				actions={<Button onClick={startNewCheck}>New check</Button>}
 			/>
 
 			<div className={styles.checkEditorGrid}>
@@ -85,30 +175,28 @@ export function ChecksPage() {
 								]}
 							/>
 						</div>
-						<DataTable columns={checkColumns} rows={checkRows} getRowKey={row => String(row.id)} selectedKey={selectedId} onRowClick={selectCheck} />
+						<DataTable columns={checkColumns} rows={checkRows} getRowKey={row => String(row.id)} selectedKey={isCreating ? "__new__" : selectedCheck?.id || ""} onRowClick={selectCheck} />
 					</div>
 				</Panel>
 
-				<Panel className={styles.stickyCheckPanel} tone="glass" eyebrow="Edit check" title={selectedCheck.name}>
+				<Panel className={styles.stickyCheckPanel} tone="glass" eyebrow={isCreating ? "Create check" : "Edit check"} title={isCreating ? "New check" : selectedCheck?.name || "No check selected"}>
 					<div className={classNames("ns-scrollbar", styles.checkEditorStack)}>
 						<div className={styles.checkEditForm}>
-							<TextField label="Check name" defaultValue={selectedCheck.name} />
-							<TextField label="Target" defaultValue={selectedCheck.target} />
+							<TextField label="Check name" value={activeCheckName} disabled={!selectedCheck} onChange={event => setCheckName(event.currentTarget.value)} />
+							<TextField label="Target" value={activeTarget} disabled={!selectedCheck} onChange={event => setTarget(event.currentTarget.value)} />
 							<SelectField
 								label="Check type"
-								value={checkType}
+								value={activeCheckType}
 								onChange={event => setCheckType(event.currentTarget.value as CheckType)}
 								options={[
-									{ value: "Ping", label: "Ping" },
-									{ value: "Traceroute", label: "Traceroute" },
-									{ value: "DNS", label: "DNS" }
+									{ value: "Ping", label: "Ping" }
 								]}
 							/>
-							<TextField label="Interval" value={interval} onChange={event => setInterval(event.currentTarget.value)} />
-							<TextField label="Jitter" value={jitter} onChange={event => setJitter(event.currentTarget.value)} />
+							<TextField label="Interval" value={activeInterval} onChange={event => setInterval(event.currentTarget.value)} />
+							<TextField label="Jitter" value={activeJitter} onChange={event => setJitter(event.currentTarget.value)} />
 							<SelectField
 								label="Enabled"
-								value={enabled}
+								value={activeEnabled}
 								onChange={event => setEnabled(event.currentTarget.value)}
 								options={[
 									{ value: "enabled", label: "Enabled" },
@@ -124,7 +212,7 @@ export function ChecksPage() {
 								<div className={classNames("ns-scrollbar", styles.probeOptionList)}>
 									{probes.map(probe => (
 										<label key={probe.id}>
-											<Checkbox checked={selectedProbes.includes(probe.name)} onChange={() => toggleProbe(probe.name)} />
+											<Checkbox checked={activeSelectedProbes.includes(probe.name)} onChange={() => toggleProbe(probe.name)} />
 											<span>{probe.name}</span>
 											<small>{probe.location}</small>
 										</label>
@@ -132,8 +220,8 @@ export function ChecksPage() {
 								</div>
 							</details>
 							<div className={styles.capabilityPills}>
-								{selectedProbes.map(probe => (
-									<Badge key={probe} tone="muted">
+								{activeSelectedProbes.map(probe => (
+										<Badge key={probe} tone="muted">
 										{probe}
 									</Badge>
 								))}
@@ -141,8 +229,12 @@ export function ChecksPage() {
 						</div>
 
 						<ActionRow>
-							<Button>Save check</Button>
-							<Button variant="outline">Run now</Button>
+							<Button disabled={(!selectedCheck && !isCreating) || !projectRef || !activeCheckName || !activeTarget || saveCheckMutation.isPending} onClick={() => saveCheckMutation.mutate()}>
+								{saveCheckMutation.isPending ? "Saving" : isCreating ? "Create check" : "Save check"}
+							</Button>
+							<Button variant="danger" disabled={!selectedCheck || deleteCheckMutation.isPending} onClick={deleteSelectedCheck}>
+								{deleteCheckMutation.isPending ? "Deleting" : "Delete check"}
+							</Button>
 						</ActionRow>
 
 						<DataTable columns={logColumns} rows={selectedLogs} />
