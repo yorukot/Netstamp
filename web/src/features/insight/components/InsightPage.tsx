@@ -1,6 +1,10 @@
-import { assignments, checks, results, type CheckDefinition } from "@/features/checks/data/checks";
+import { mapApiChecks } from "@/features/checks/api/checkAdapters";
+import { type CheckDefinition } from "@/features/checks/data/checks";
 import { dnsData, latencyData, routeDiffData } from "@/features/insight/data/series";
-import { probes, type Probe } from "@/features/probes/data/probes";
+import { mapApiProbes } from "@/features/probes/api/probeAdapters";
+import { type Probe } from "@/features/probes/data/probes";
+import { projectQueries } from "@/shared/api/queries";
+import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { BodyCopy } from "@/shared/components/BodyCopy";
 import { ChartPanel } from "@/shared/components/ChartPanel";
 import { KeyValueGrid } from "@/shared/components/KeyValueGrid";
@@ -10,6 +14,7 @@ import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { lineChartOption } from "@/shared/utils/chartOptions";
 import { toneForStatus } from "@/shared/utils/statusTone";
 import { Badge, DataTable, Panel, SelectField, Surface, type DataColumn } from "@netstamp/ui";
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import styles from "./InsightPage.module.css";
 
@@ -51,16 +56,6 @@ const viewOptions = [
 	{ value: "target", label: "Choose a target" }
 ];
 
-const resultRows: ResultRow[] = results.map(([time, probe, check, status, latency, loss, metadata]) => ({
-	time,
-	probe,
-	check,
-	status,
-	latency,
-	loss,
-	metadata
-}));
-
 const resultColumns: DataColumn<ResultRow>[] = [
 	{ key: "time", label: "Time" },
 	{ key: "probe", label: "Probe" },
@@ -92,7 +87,7 @@ function timeLabel(value: string) {
 }
 
 function assignedLabel(probeName: string, checkId: string) {
-	return assignments.some(([probe, check]) => probe === probeName && check === checkId) ? "assigned" : "available";
+	return probeName && checkId ? "available" : "unselected";
 }
 
 function detailsForProbe(probe: Probe): EntityDetail[] {
@@ -114,15 +109,52 @@ function detailsForTarget(check: CheckDefinition): EntityDetail[] {
 }
 
 export function InsightPage() {
+	const { projectRef } = useCurrentProject();
+	const probesQuery = useQuery({
+		...projectQueries.probes(projectRef || ""),
+		enabled: Boolean(projectRef),
+		select: data => mapApiProbes(data.probes)
+	});
+	const checksQuery = useQuery({
+		...projectQueries.checks(projectRef || ""),
+		enabled: Boolean(projectRef),
+		select: data => mapApiChecks(data.checks, probesQuery.data)
+	});
+	const probes = probesQuery.data || [];
+	const checks = checksQuery.data || [];
 	const [timeRange, setTimeRange] = useState("24h");
 	const [view, setView] = useState<InsightView>("probe");
-	const [selectedProbeId, setSelectedProbeId] = useState(probes[0]?.id || "");
-	const [selectedTargetId, setSelectedTargetId] = useState(checks[0]?.id || "");
+	const [selectedProbeId, setSelectedProbeId] = useState("");
+	const [selectedTargetId, setSelectedTargetId] = useState("");
 
-	const selectedProbe = probes.find(probe => probe.id === selectedProbeId) || probes[0];
-	const selectedTarget = checks.find(check => check.id === selectedTargetId) || checks[0];
-	const selectedTitle = view === "probe" ? selectedProbe.name : selectedTarget.target;
-	const selectedDetails = view === "probe" ? detailsForProbe(selectedProbe) : detailsForTarget(selectedTarget);
+	const selectedProbe = probes.find(probe => probe.id === selectedProbeId) || probes[0] || null;
+	const selectedTarget = checks.find(check => check.id === selectedTargetId) || checks[0] || null;
+	const pingSeriesQuery = useQuery({
+		...projectQueries.pingSeries(projectRef || "", selectedProbe?.id || "", selectedTarget?.id || ""),
+		enabled: Boolean(projectRef && selectedProbe && selectedTarget)
+	});
+	const resultRows: ResultRow[] =
+		pingSeriesQuery.data?.series?.flatMap(series =>
+			(series.points ?? []).flatMap(point => {
+				if (!point) {
+					return [];
+				}
+
+				const [time, value] = point;
+
+				return {
+					time: new Date(time).toLocaleString(),
+					probe: selectedProbe?.name || "-",
+					check: selectedTarget?.name || "-",
+					status: "success",
+					latency: `${Math.round(value)}${series.unit}`,
+					loss: "-",
+					metadata: series.name
+				};
+			})
+		) ?? [];
+	const selectedTitle = view === "probe" ? selectedProbe?.name || "No probe selected" : selectedTarget?.target || "No target selected";
+	const selectedDetails = view === "probe" ? (selectedProbe ? detailsForProbe(selectedProbe) : []) : selectedTarget ? detailsForTarget(selectedTarget) : [];
 	const pickerOptions =
 		view === "probe" ? probes.map(probe => ({ value: probe.id, label: `${probe.name} · ${probe.location}` })) : checks.map(check => ({ value: check.id, label: `${check.target} · ${check.type}` }));
 
@@ -131,8 +163,8 @@ export function InsightPage() {
 			? checks.map((check, index) => ({
 					key: check.id,
 					eyebrow: `${timeLabel(timeRange)} · Illustration`,
-					title: `${selectedProbe.name} → ${check.target}`,
-					copy: `${check.type} insight for ${assignedLabel(selectedProbe.name, check.id)} probe-target measurement.`,
+					title: `${selectedProbe?.name || "probe"} → ${check.target}`,
+					copy: `${check.type} insight for ${assignedLabel(selectedProbe?.name || "", check.id)} probe-target measurement.`,
 					metric: check.type.toLowerCase(),
 					values: shiftSeries(checkSeries(check), index),
 					baseline: checkSeries(check)
@@ -140,11 +172,11 @@ export function InsightPage() {
 			: probes.map((probe, index) => ({
 					key: probe.id,
 					eyebrow: `${timeLabel(timeRange)} · Illustration`,
-					title: `${probe.name} → ${selectedTarget.target}`,
-					copy: `${selectedTarget.type} insight from ${probe.location}; ${assignedLabel(probe.name, selectedTarget.id)} path.`,
-					metric: selectedTarget.type.toLowerCase(),
-					values: shiftSeries(checkSeries(selectedTarget), index),
-					baseline: checkSeries(selectedTarget)
+					title: `${probe.name} → ${selectedTarget?.target || "target"}`,
+					copy: `${selectedTarget?.type || "Ping"} insight from ${probe.location}; ${assignedLabel(probe.name, selectedTarget?.id || "")} path.`,
+					metric: (selectedTarget?.type || "Ping").toLowerCase(),
+					values: selectedTarget ? shiftSeries(checkSeries(selectedTarget), index) : [],
+					baseline: selectedTarget ? checkSeries(selectedTarget) : []
 				}));
 
 	return (
@@ -156,7 +188,7 @@ export function InsightPage() {
 				<SelectField label="View" value={view} onChange={event => setView(event.currentTarget.value as InsightView)} options={viewOptions} />
 				<SelectField
 					label={view === "probe" ? "Probe" : "Target"}
-					value={view === "probe" ? selectedProbeId : selectedTargetId}
+					value={view === "probe" ? selectedProbe?.id || "" : selectedTarget?.id || ""}
 					onChange={event => {
 						if (view === "probe") {
 							setSelectedProbeId(event.currentTarget.value);

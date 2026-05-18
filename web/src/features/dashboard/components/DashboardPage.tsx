@@ -1,10 +1,14 @@
 import { type Navigate } from "@/routes/routeTypes";
+import { mapApiProbes } from "@/features/probes/api/probeAdapters";
+import { projectQueries, systemQueries } from "@/shared/api/queries";
+import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { BodyCopy } from "@/shared/components/BodyCopy";
 import { FleetMatrix } from "@/shared/components/FleetMatrix";
 import { PageStack } from "@/shared/components/PageStack";
 import { ResponsiveGrid } from "@/shared/components/ResponsiveGrid";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { Badge, Button, MetricCard, Panel, Surface, type BadgeTone } from "@netstamp/ui";
+import { useQuery } from "@tanstack/react-query";
 import styles from "./DashboardPage.module.css";
 
 interface DashboardPageProps {
@@ -12,6 +16,22 @@ interface DashboardPageProps {
 }
 
 export function DashboardPage({ navigate }: DashboardPageProps) {
+	const { projectRef } = useCurrentProject();
+	const probesQuery = useQuery({
+		...projectQueries.probes(projectRef || ""),
+		enabled: Boolean(projectRef),
+		select: data => mapApiProbes(data.probes)
+	});
+	const checksQuery = useQuery({
+		...projectQueries.checks(projectRef || ""),
+		enabled: Boolean(projectRef)
+	});
+	const rootQuery = useQuery(systemQueries.root());
+	const healthQuery = useQuery(systemQueries.health());
+	const probes = probesQuery.data ?? [];
+	const onlineProbes = probes.filter(probe => probe.status === "Online").length;
+	const activeChecks = checksQuery.data?.checks?.length ?? 0;
+
 	return (
 		<PageStack>
 			<ScreenHeader
@@ -29,13 +49,14 @@ export function DashboardPage({ navigate }: DashboardPageProps) {
 			/>
 
 			<ResponsiveGrid>
-				<MetricCard label="Probes Online" value="100/128" detail="fleet" tone="success" />
-				<MetricCard label="Active Checks" value="324" detail="scheduled" tone="accent" />
+				<MetricCard label="Probes Online" value={`${onlineProbes}/${probes.length}`} detail="fleet" tone="success" />
+				<MetricCard label="Active Checks" value={String(activeChecks)} detail="scheduled" tone="accent" />
+				<MetricCard label="API Status" value={healthQuery.data?.status || "unknown"} detail={rootQuery.data?.message || "controller"} tone={healthQuery.data?.status === "ok" ? "success" : "warning"} />
 			</ResponsiveGrid>
 
 			<ResponsiveGrid>
-				<Panel tone="glass" eyebrow="Fleet bitmap" title="128 probes, 100 lit">
-					<FleetMatrix total={128} online={100} />
+				<Panel tone="glass" eyebrow="Fleet bitmap" title={`${probes.length} probes, ${onlineProbes} lit`}>
+					<FleetMatrix total={Math.max(probes.length, 1)} online={onlineProbes} />
 				</Panel>
 				<Panel tone="glass" eyebrow="Anomalies" title="Recent system events">
 					<div className={styles.feed}>
