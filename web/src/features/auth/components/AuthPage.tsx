@@ -1,5 +1,6 @@
 import { pathForRoute } from "@/routes/routePaths";
 import type { Navigate } from "@/routes/routeTypes";
+import { pushErrorToast } from "@/shared/toast/toastStore";
 import { Badge, Button, PageShell, Panel, TextField } from "@netstamp/ui";
 import type { FormEvent } from "react";
 import { Helmet } from "react-helmet-async";
@@ -21,22 +22,41 @@ export function AuthPage({ mode = "login", navigate }: AuthPageProps) {
 		const formData = new FormData(event.currentTarget);
 		const email = String(formData.get("email") || "");
 		const password = String(formData.get("password") || "");
+		const passwordAgain = String(formData.get("passwordAgain") || "");
 		const payload = {
 			email,
 			password
 		};
 
 		if (isRegister) {
-			await register({
-				...payload,
-				displayName: String(formData.get("displayName") || "")
-			});
-			navigate("onboarding");
+			if (password.length < 8) {
+				pushErrorToast("Password must be at least 8 characters.");
+				return;
+			}
+
+			if (password !== passwordAgain) {
+				pushErrorToast("Password confirmation does not match.");
+				return;
+			}
+
+			try {
+				await register({
+					...payload,
+					displayName: String(formData.get("displayName") || "")
+				});
+				navigate("onboarding");
+			} catch {
+				return;
+			}
 			return;
 		}
 
-		await login(payload);
-		navigate("dashboard");
+		try {
+			await login(payload);
+			navigate("dashboard");
+		} catch {
+			return;
+		}
 	}
 
 	return (
@@ -71,11 +91,12 @@ export function AuthPage({ mode = "login", navigate }: AuthPageProps) {
 						label="Password"
 						name="password"
 						type="password"
+						minLength={isRegister ? 8 : undefined}
 						placeholder="***"
 						autoComplete={isRegister ? "new-password" : "current-password"}
 						helper={isRegister ? "Choose a password for controller access." : "Enter your account password."}
 					/>
-					{isRegister ? <TextField label="Password, again" name="passwordAgain" type="password" placeholder="***" autoComplete="new-password" /> : null}
+					{isRegister ? <TextField label="Password, again" name="passwordAgain" type="password" minLength={8} placeholder="***" autoComplete="new-password" /> : null}
 					<Button type="submit" size="lg" disabled={submitting}>
 						{submitting ? "Submitting" : isRegister ? "Create workspace" : "Log in"}
 					</Button>

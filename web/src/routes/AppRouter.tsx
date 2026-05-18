@@ -3,6 +3,7 @@ import { SessionProvider } from "@/features/auth/session/SessionProvider";
 import { AppShell } from "@/layouts/AppShell";
 import { queryClient } from "@/shared/api/queryClient";
 import { CurrentProjectProvider } from "@/shared/api/useCurrentProject";
+import { ToastProvider } from "@/shared/components/ToastProvider";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { lazy, Suspense, type ReactNode } from "react";
 import { createBrowserRouter, Navigate as RouterNavigate, RouterProvider, useLocation, useNavigate } from "react-router-dom";
@@ -101,6 +102,7 @@ export function AppRouter() {
 			<SessionProvider>
 				<CurrentProjectProvider>
 					<RouterProvider router={router} />
+					<ToastProvider />
 				</CurrentProjectProvider>
 			</SessionProvider>
 		</QueryClientProvider>
