@@ -1,5 +1,5 @@
-import { type Navigate } from "@/routes/routeTypes";
 import { mapApiProbes } from "@/features/probes/api/probeAdapters";
+import { type Navigate } from "@/routes/routeTypes";
 import { projectQueries, systemQueries } from "@/shared/api/queries";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { BodyCopy } from "@/shared/components/BodyCopy";
@@ -51,7 +51,12 @@ export function DashboardPage({ navigate }: DashboardPageProps) {
 			<ResponsiveGrid>
 				<MetricCard label="Probes Online" value={`${onlineProbes}/${probes.length}`} detail="fleet" tone="success" />
 				<MetricCard label="Active Checks" value={String(activeChecks)} detail="scheduled" tone="accent" />
-				<MetricCard label="API Status" value={healthQuery.data?.status || "unknown"} detail={rootQuery.data?.message || "controller"} tone={healthQuery.data?.status === "ok" ? "success" : "warning"} />
+				<MetricCard
+					label="API Status"
+					value={healthQuery.data?.status || "unknown"}
+					detail={rootQuery.data?.message || "controller"}
+					tone={healthQuery.data?.status === "ok" ? "success" : "warning"}
+				/>
 			</ResponsiveGrid>
 
 			<ResponsiveGrid>

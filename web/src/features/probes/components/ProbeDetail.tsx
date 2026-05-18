@@ -1,7 +1,7 @@
-import type { Probe } from "@/features/probes/data/probes";
 import { mapApiProbe } from "@/features/probes/api/probeAdapters";
-import { apiQueryKeys } from "@/shared/api/queryKeys";
+import type { Probe } from "@/features/probes/data/probes";
 import { deleteProjectProbe, projectQueries, rotateProjectProbeSecret, updateProjectProbe } from "@/shared/api/queries";
+import { apiQueryKeys } from "@/shared/api/queryKeys";
 import { classNames } from "@/shared/utils/classNames";
 import { Badge, Button, Checkbox, DataTable, Surface, TextField, type DataColumn } from "@netstamp/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";

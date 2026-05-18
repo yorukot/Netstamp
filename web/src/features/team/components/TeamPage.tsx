@@ -1,4 +1,3 @@
-import { apiQueryKeys } from "@/shared/api/queryKeys";
 import {
 	addProjectMember,
 	createProjectLabel,
@@ -10,6 +9,7 @@ import {
 	updateProjectLabel,
 	updateProjectMemberRole
 } from "@/shared/api/queries";
+import { apiQueryKeys } from "@/shared/api/queryKeys";
 import type { ApiLabel, ProjectMemberRole } from "@/shared/api/types";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { PageStack } from "@/shared/components/PageStack";
@@ -238,7 +238,13 @@ export function TeamPage() {
 				<Button variant="outline" size="sm" onClick={startNewLabel}>
 					New label
 				</Button>
-				<DataTable columns={labelColumns} rows={labelRows} getRowKey={row => row.id} selectedKey={selectedLabelId} onRowClick={row => selectLabel({ id: row.id, key: row.key, value: row.value, projectId: project?.id || "", createdAt: "", updatedAt: row.updatedAt })} />
+				<DataTable
+					columns={labelColumns}
+					rows={labelRows}
+					getRowKey={row => row.id}
+					selectedKey={selectedLabelId}
+					onRowClick={row => selectLabel({ id: row.id, key: row.key, value: row.value, projectId: project?.id || "", createdAt: "", updatedAt: row.updatedAt })}
+				/>
 			</Panel>
 
 			<Panel tone="deep" eyebrow="Danger zone" title="Dangerous organization actions">

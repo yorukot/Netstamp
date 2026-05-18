@@ -1,6 +1,6 @@
 import { pathForRoute } from "@/routes/routePaths";
-import { apiQueryKeys } from "@/shared/api/queryKeys";
 import { createProjectProbe } from "@/shared/api/queries";
+import { apiQueryKeys } from "@/shared/api/queryKeys";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { classNames } from "@/shared/utils/classNames";
 import { Badge, Button, Terminal, TextField } from "@netstamp/ui";

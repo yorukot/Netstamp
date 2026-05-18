@@ -1,8 +1,8 @@
 import { mapApiChecks, parseIntervalSeconds } from "@/features/checks/api/checkAdapters";
 import { type CheckDefinition, type CheckType } from "@/features/checks/data/checks";
 import { mapApiProbes } from "@/features/probes/api/probeAdapters";
-import { apiQueryKeys } from "@/shared/api/queryKeys";
 import { createProjectCheck, deleteProjectCheck, projectQueries, updateProjectCheck } from "@/shared/api/queries";
+import { apiQueryKeys } from "@/shared/api/queryKeys";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { ActionRow } from "@/shared/components/ActionRow";
 import { PageStack } from "@/shared/components/PageStack";
@@ -184,14 +184,7 @@ export function ChecksPage() {
 						<div className={styles.checkEditForm}>
 							<TextField label="Check name" value={activeCheckName} disabled={!selectedCheck} onChange={event => setCheckName(event.currentTarget.value)} />
 							<TextField label="Target" value={activeTarget} disabled={!selectedCheck} onChange={event => setTarget(event.currentTarget.value)} />
-							<SelectField
-								label="Check type"
-								value={activeCheckType}
-								onChange={event => setCheckType(event.currentTarget.value as CheckType)}
-								options={[
-									{ value: "Ping", label: "Ping" }
-								]}
-							/>
+							<SelectField label="Check type" value={activeCheckType} onChange={event => setCheckType(event.currentTarget.value as CheckType)} options={[{ value: "Ping", label: "Ping" }]} />
 							<TextField label="Interval" value={activeInterval} onChange={event => setInterval(event.currentTarget.value)} />
 							<TextField label="Jitter" value={activeJitter} onChange={event => setJitter(event.currentTarget.value)} />
 							<SelectField
@@ -221,7 +214,7 @@ export function ChecksPage() {
 							</details>
 							<div className={styles.capabilityPills}>
 								{activeSelectedProbes.map(probe => (
-										<Badge key={probe} tone="muted">
+									<Badge key={probe} tone="muted">
 										{probe}
 									</Badge>
 								))}

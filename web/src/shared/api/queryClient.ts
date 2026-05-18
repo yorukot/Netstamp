@@ -1,6 +1,6 @@
+import { pushErrorToast } from "@/shared/toast/toastStore";
 import { MutationCache, QueryCache, QueryClient } from "@tanstack/react-query";
 import { ApiError } from "./client";
-import { pushErrorToast } from "@/shared/toast/toastStore";
 
 function messageForError(error: unknown) {
 	if (error instanceof ApiError) {

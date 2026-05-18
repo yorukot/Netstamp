@@ -50,9 +50,7 @@ function labelValue(probe: ApiProbe, key: string) {
 
 export function mapApiProbe(probe: ApiProbe, index: number): Probe {
 	const coordinates =
-		typeof probe.longitude === "number" && typeof probe.latitude === "number"
-			? ([probe.longitude, probe.latitude] as [number, number])
-			: fallbackCoordinates[index % fallbackCoordinates.length];
+		typeof probe.longitude === "number" && typeof probe.latitude === "number" ? ([probe.longitude, probe.latitude] as [number, number]) : fallbackCoordinates[index % fallbackCoordinates.length];
 	const publicIp = probe.status.publicV4 || probe.status.publicV6 || probe.status.addrs?.[0] || "-";
 	const tags = probe.labels?.map(label => `${label.key}:${label.value}`) ?? [];
 

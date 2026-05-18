@@ -1,5 +1,5 @@
-import { createContext, createElement, type ReactNode, useContext, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { createContext, createElement, type ReactNode, useContext, useMemo, useState } from "react";
 import { projectQueries } from "./queries";
 
 interface CurrentProjectContextValue {
@@ -20,10 +20,7 @@ export function useCurrentProject() {
 	const context = useContext(CurrentProjectContext);
 	const projectsQuery = useQuery(projectQueries.list());
 	const projects = projectsQuery.data?.projects ?? [];
-	const listProject =
-		projects.find(item => item.slug === context?.selectedProjectRef || item.id === context?.selectedProjectRef) ??
-		projects[0] ??
-		null;
+	const listProject = projects.find(item => item.slug === context?.selectedProjectRef || item.id === context?.selectedProjectRef) ?? projects[0] ?? null;
 	const listProjectRef = listProject?.slug || listProject?.id || null;
 	const projectDetailQuery = useQuery({
 		...projectQueries.detail(listProjectRef || ""),

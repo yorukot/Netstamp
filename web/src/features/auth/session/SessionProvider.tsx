@@ -1,7 +1,7 @@
+import { authQueries, createProject, loginUser, logoutUser, registerUser } from "@/shared/api/queries";
+import { apiQueryKeys } from "@/shared/api/queryKeys";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-import { apiQueryKeys } from "@/shared/api/queryKeys";
-import { authQueries, createProject, loginUser, logoutUser, registerUser } from "@/shared/api/queries";
 import { type AuthCredentials, type TeamDraft, createSessionSnapshot, mapApiUser, mapProjectTeam } from "../services/authService";
 import { SessionContext } from "./SessionContext";
 
