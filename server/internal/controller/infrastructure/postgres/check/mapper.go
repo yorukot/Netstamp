@@ -12,9 +12,10 @@ import (
 	domainlabel "github.com/yorukot/netstamp/internal/domain/label"
 	domainnetwork "github.com/yorukot/netstamp/internal/domain/network"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
+	domaintraceroute "github.com/yorukot/netstamp/internal/domain/traceroute"
 )
 
-func mapStoredCheck(row sqlc.Check, config sqlc.PingCheckConfig) domaincheck.Check {
+func mapStoredPingCheck(row sqlc.Check, config sqlc.PingCheckConfig) domaincheck.Check {
 	return domaincheck.Check{
 		ID:              row.ID.String(),
 		ProjectID:       row.ProjectID.String(),
@@ -31,6 +32,23 @@ func mapStoredCheck(row sqlc.Check, config sqlc.PingCheckConfig) domaincheck.Che
 	}
 }
 
+func mapStoredTracerouteCheck(row sqlc.Check, config sqlc.TracerouteCheckConfig) domaincheck.Check {
+	return domaincheck.Check{
+		ID:               row.ID.String(),
+		ProjectID:        row.ProjectID.String(),
+		Name:             row.Name,
+		Type:             domaincheck.Type(row.CheckType),
+		Target:           row.Target,
+		Selector:         cloneRawMessage(row.Selector),
+		Description:      row.Description,
+		IntervalSeconds:  row.IntervalSeconds,
+		TracerouteConfig: tracerouteConfigPtr(mapTracerouteConfig(config)),
+		CreatedAt:        row.CreatedAt.Time,
+		UpdatedAt:        row.UpdatedAt.Time,
+		DeletedAt:        timePtr(row.DeletedAt),
+	}
+}
+
 func mapListCheck(row sqlc.ListActiveChecksForProjectRow) domaincheck.Check {
 	return mapSelectedCheck(
 		row.ID,
@@ -41,10 +59,17 @@ func mapListCheck(row sqlc.ListActiveChecksForProjectRow) domaincheck.Check {
 		row.Selector,
 		row.Description,
 		row.IntervalSeconds,
-		row.PacketCount,
-		row.PacketSizeBytes,
-		row.TimeoutMs,
-		row.IpFamily,
+		row.PingPacketCount,
+		row.PingPacketSizeBytes,
+		row.PingTimeoutMs,
+		row.PingIpFamily,
+		row.TracerouteProtocol,
+		row.TracerouteMaxHops,
+		row.TracerouteTimeoutMs,
+		row.TracerouteQueriesPerHop,
+		row.TraceroutePacketSizeBytes,
+		row.TraceroutePort,
+		row.TracerouteIpFamily,
 		row.CreatedAt,
 		row.UpdatedAt,
 		row.DeletedAt,
@@ -61,10 +86,17 @@ func mapGetCheck(row sqlc.GetActiveCheckForProjectRow) domaincheck.Check {
 		row.Selector,
 		row.Description,
 		row.IntervalSeconds,
-		row.PacketCount,
-		row.PacketSizeBytes,
-		row.TimeoutMs,
-		row.IpFamily,
+		row.PingPacketCount,
+		row.PingPacketSizeBytes,
+		row.PingTimeoutMs,
+		row.PingIpFamily,
+		row.TracerouteProtocol,
+		row.TracerouteMaxHops,
+		row.TracerouteTimeoutMs,
+		row.TracerouteQueriesPerHop,
+		row.TraceroutePacketSizeBytes,
+		row.TraceroutePort,
+		row.TracerouteIpFamily,
 		row.CreatedAt,
 		row.UpdatedAt,
 		row.DeletedAt,
@@ -80,15 +112,22 @@ func mapSelectedCheck(
 	selector []byte,
 	description *string,
 	intervalSeconds int32,
-	packetCount int32,
-	packetSizeBytes int32,
-	timeoutMs int32,
-	ipFamily sqlc.NullIpFamily,
+	pingPacketCount *int32,
+	pingPacketSizeBytes *int32,
+	pingTimeoutMs *int32,
+	pingIPFamily sqlc.NullIpFamily,
+	tracerouteProtocol sqlc.NullTracerouteProtocol,
+	tracerouteMaxHops *int32,
+	tracerouteTimeoutMs *int32,
+	tracerouteQueriesPerHop *int32,
+	traceroutePacketSizeBytes *int32,
+	traceroutePort *int32,
+	tracerouteIPFamily sqlc.NullIpFamily,
 	createdAt pgtype.Timestamptz,
 	updatedAt pgtype.Timestamptz,
 	deletedAt pgtype.Timestamptz,
 ) domaincheck.Check {
-	return domaincheck.Check{
+	check := domaincheck.Check{
 		ID:              id.String(),
 		ProjectID:       projectID.String(),
 		Name:            name,
@@ -97,16 +136,22 @@ func mapSelectedCheck(
 		Selector:        cloneRawMessage(selector),
 		Description:     description,
 		IntervalSeconds: intervalSeconds,
-		PingConfig: &domainping.Config{
-			PacketCount:     packetCount,
-			PacketSizeBytes: packetSizeBytes,
-			TimeoutMs:       timeoutMs,
-			IPFamily:        mapIPFamily(ipFamily),
-		},
-		CreatedAt: createdAt.Time,
-		UpdatedAt: updatedAt.Time,
-		DeletedAt: timePtr(deletedAt),
+		CreatedAt:       createdAt.Time,
+		UpdatedAt:       updatedAt.Time,
+		DeletedAt:       timePtr(deletedAt),
 	}
+	check.PingConfig = mapOptionalPingConfig(pingPacketCount, pingPacketSizeBytes, pingTimeoutMs, pingIPFamily)
+	check.TracerouteConfig = mapOptionalTracerouteConfig(
+		tracerouteProtocol,
+		tracerouteMaxHops,
+		tracerouteTimeoutMs,
+		tracerouteQueriesPerHop,
+		traceroutePacketSizeBytes,
+		traceroutePort,
+		tracerouteIPFamily,
+	)
+
+	return check
 }
 
 func mapPingConfig(row sqlc.PingCheckConfig) domainping.Config {
@@ -122,8 +167,65 @@ func pingConfigPtr(config domainping.Config) *domainping.Config {
 	return &config
 }
 
+func mapTracerouteConfig(row sqlc.TracerouteCheckConfig) domaintraceroute.Config {
+	return domaintraceroute.Config{
+		Protocol:        domaintraceroute.Protocol(row.Protocol),
+		MaxHops:         row.MaxHops,
+		TimeoutMs:       row.TimeoutMs,
+		QueriesPerHop:   row.QueriesPerHop,
+		PacketSizeBytes: row.PacketSizeBytes,
+		Port:            row.Port,
+		IPFamily:        mapIPFamily(row.IpFamily),
+	}
+}
+
+func tracerouteConfigPtr(config domaintraceroute.Config) *domaintraceroute.Config {
+	return &config
+}
+
+func mapOptionalPingConfig(packetCount, packetSizeBytes, timeoutMs *int32, ipFamily sqlc.NullIpFamily) *domainping.Config {
+	if packetCount == nil || packetSizeBytes == nil || timeoutMs == nil {
+		return nil
+	}
+
+	return &domainping.Config{
+		PacketCount:     *packetCount,
+		PacketSizeBytes: *packetSizeBytes,
+		TimeoutMs:       *timeoutMs,
+		IPFamily:        mapIPFamily(ipFamily),
+	}
+}
+
+func mapOptionalTracerouteConfig(
+	protocol sqlc.NullTracerouteProtocol,
+	maxHops *int32,
+	timeoutMs *int32,
+	queriesPerHop *int32,
+	packetSizeBytes *int32,
+	port *int32,
+	ipFamily sqlc.NullIpFamily,
+) *domaintraceroute.Config {
+	if !protocol.Valid || maxHops == nil || timeoutMs == nil || queriesPerHop == nil || packetSizeBytes == nil || port == nil {
+		return nil
+	}
+
+	return &domaintraceroute.Config{
+		Protocol:        domaintraceroute.Protocol(protocol.TracerouteProtocol),
+		MaxHops:         *maxHops,
+		TimeoutMs:       *timeoutMs,
+		QueriesPerHop:   *queriesPerHop,
+		PacketSizeBytes: *packetSizeBytes,
+		Port:            *port,
+		IPFamily:        mapIPFamily(ipFamily),
+	}
+}
+
 func sqlcCheckType(value domaincheck.Type) sqlc.CheckType {
 	return sqlc.CheckType(value)
+}
+
+func sqlcTracerouteProtocol(value domaintraceroute.Protocol) sqlc.TracerouteProtocol {
+	return sqlc.TracerouteProtocol(value)
 }
 
 func sqlcIPFamily(value *domainnetwork.IPFamily) sqlc.NullIpFamily {

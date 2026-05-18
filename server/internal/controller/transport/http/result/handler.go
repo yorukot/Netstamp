@@ -37,4 +37,15 @@ func (h *Handler) RegisterRoutes(api huma.API) {
 		Middlewares: middlewares,
 		Errors:      []int{http.StatusUnauthorized, http.StatusNotFound, http.StatusUnprocessableEntity, http.StatusInternalServerError},
 	}, h.queryPingSeries)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "queryProjectTracerouteResultRuns",
+		Method:      http.MethodGet,
+		Path:        "/projects/{ref}/results/traceroute/runs",
+		Summary:     "Query project traceroute result runs",
+		Tags:        []string{"Results"},
+		Security:    security,
+		Middlewares: middlewares,
+		Errors:      []int{http.StatusUnauthorized, http.StatusNotFound, http.StatusUnprocessableEntity, http.StatusInternalServerError},
+	}, h.queryTracerouteRuns)
 }

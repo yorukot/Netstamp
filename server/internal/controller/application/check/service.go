@@ -7,6 +7,7 @@ import (
 	domainlabel "github.com/yorukot/netstamp/internal/domain/label"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
+	domaintraceroute "github.com/yorukot/netstamp/internal/domain/traceroute"
 )
 
 type Service struct {
@@ -99,14 +100,15 @@ func (s *Service) CreateCheck(ctx context.Context, input CreateCheckInput) (doma
 	}
 
 	checkInput := domaincheck.Check{
-		ProjectID:       project.ID,
-		Name:            normalized.name,
-		Type:            normalized.checkType,
-		Target:          normalized.target,
-		Selector:        normalized.selector,
-		Description:     normalized.description,
-		IntervalSeconds: normalized.intervalSeconds,
-		PingConfig:      &normalized.pingConfig,
+		ProjectID:        project.ID,
+		Name:             normalized.name,
+		Type:             normalized.checkType,
+		Target:           normalized.target,
+		Selector:         normalized.selector,
+		Description:      normalized.description,
+		IntervalSeconds:  normalized.intervalSeconds,
+		PingConfig:       normalized.pingConfig,
+		TracerouteConfig: normalized.tracerouteConfig,
 	}
 	check, err := s.repo.CreateCheck(ctx, checkInput, normalized.labelIDs)
 	if err != nil {
@@ -195,16 +197,27 @@ func buildUpdatedCheck(projectID string, current domaincheck.Check, normalized n
 		return domaincheck.Check{}, err
 	}
 
+	checkType, err := mergedCheckType(current.Type, normalized.checkType)
+	if err != nil {
+		return domaincheck.Check{}, err
+	}
+
+	pingConfig, tracerouteConfig, err := mergedTypeConfigs(current, normalized)
+	if err != nil {
+		return domaincheck.Check{}, err
+	}
+
 	return domaincheck.Check{
-		ProjectID:       projectID,
-		ID:              normalized.checkID,
-		Name:            mergedString(current.Name, normalized.name),
-		Type:            mergedCheckType(current.Type, normalized.checkType),
-		Target:          mergedString(current.Target, normalized.target),
-		Selector:        updatedSelector,
-		Description:     mergedDescription(current.Description, normalized.description),
-		IntervalSeconds: mergedInt32(current.IntervalSeconds, normalized.intervalSeconds),
-		PingConfig:      mergedPingConfig(current.PingConfig, normalized),
+		ProjectID:        projectID,
+		ID:               normalized.checkID,
+		Name:             mergedString(current.Name, normalized.name),
+		Type:             checkType,
+		Target:           mergedString(current.Target, normalized.target),
+		Selector:         updatedSelector,
+		Description:      mergedDescription(current.Description, normalized.description),
+		IntervalSeconds:  mergedInt32(current.IntervalSeconds, normalized.intervalSeconds),
+		PingConfig:       pingConfig,
+		TracerouteConfig: tracerouteConfig,
 	}, nil
 }
 
@@ -213,19 +226,66 @@ func mergedPingConfig(current *domainping.Config, normalized normalizedUpdateChe
 	if current != nil {
 		config = *current
 	}
-	if normalized.packetCount != nil {
-		config.PacketCount = *normalized.packetCount
+	if normalized.pingConfig.packetCount != nil {
+		config.PacketCount = *normalized.pingConfig.packetCount
 	}
-	if normalized.packetSizeBytes != nil {
-		config.PacketSizeBytes = *normalized.packetSizeBytes
+	if normalized.pingConfig.packetSizeBytes != nil {
+		config.PacketSizeBytes = *normalized.pingConfig.packetSizeBytes
 	}
-	if normalized.timeoutMs != nil {
-		config.TimeoutMs = *normalized.timeoutMs
+	if normalized.pingConfig.timeoutMs != nil {
+		config.TimeoutMs = *normalized.pingConfig.timeoutMs
 	}
-	if normalized.ipFamily != nil {
-		config.IPFamily = normalized.ipFamily
+	if normalized.pingConfig.ipFamily != nil {
+		config.IPFamily = normalized.pingConfig.ipFamily
 	}
 	return &config
+}
+
+func mergedTracerouteConfig(current *domaintraceroute.Config, normalized normalizedUpdateCheckInput) *domaintraceroute.Config {
+	config := domaintraceroute.DefaultConfig()
+	if current != nil {
+		config = *current
+	}
+	if normalized.tracerouteConfig.protocol != nil {
+		config.Protocol = *normalized.tracerouteConfig.protocol
+	}
+	if normalized.tracerouteConfig.maxHops != nil {
+		config.MaxHops = *normalized.tracerouteConfig.maxHops
+	}
+	if normalized.tracerouteConfig.timeoutMs != nil {
+		config.TimeoutMs = *normalized.tracerouteConfig.timeoutMs
+	}
+	if normalized.tracerouteConfig.queriesPerHop != nil {
+		config.QueriesPerHop = *normalized.tracerouteConfig.queriesPerHop
+	}
+	if normalized.tracerouteConfig.packetSizeBytes != nil {
+		config.PacketSizeBytes = *normalized.tracerouteConfig.packetSizeBytes
+	}
+	if normalized.tracerouteConfig.port != nil {
+		config.Port = *normalized.tracerouteConfig.port
+	}
+	if normalized.tracerouteConfig.ipFamily != nil {
+		config.IPFamily = normalized.tracerouteConfig.ipFamily
+	}
+	return &config
+}
+
+func mergedTypeConfigs(current domaincheck.Check, normalized normalizedUpdateCheckInput) (*domainping.Config, *domaintraceroute.Config, error) {
+	if normalized.pingConfig.hasChanges() && current.Type != domaincheck.TypePing {
+		return nil, nil, invalidCheckField("pingConfig", "must be omitted for non-ping checks", nil)
+	}
+	if normalized.tracerouteConfig.hasChanges() && current.Type != domaincheck.TypeTraceroute {
+		return nil, nil, invalidCheckField("tracerouteConfig", "must be omitted for non-traceroute checks", nil)
+	}
+
+	switch current.Type {
+	case domaincheck.TypePing:
+		return mergedPingConfig(current.PingConfig, normalized), nil, nil
+	case domaincheck.TypeTraceroute:
+		return nil, mergedTracerouteConfig(current.TracerouteConfig, normalized), nil
+	default:
+		return nil, nil, domaincheck.ErrInvalidInput
+	}
 }
 
 func mergedString(current string, next *string) string {
@@ -235,11 +295,14 @@ func mergedString(current string, next *string) string {
 	return *next
 }
 
-func mergedCheckType(current domaincheck.Type, next *domaincheck.Type) domaincheck.Type {
+func mergedCheckType(current domaincheck.Type, next *domaincheck.Type) (domaincheck.Type, error) {
 	if next == nil {
-		return current
+		return current, nil
 	}
-	return *next
+	if *next != current {
+		return "", invalidCheckField("type", "cannot be changed after check creation", string(*next))
+	}
+	return *next, nil
 }
 
 func mergedDescription(current, next *string) *string {

@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
-	domainnetwork "github.com/yorukot/netstamp/internal/domain/network"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
+	domaintraceroute "github.com/yorukot/netstamp/internal/domain/traceroute"
 )
 
 type ListChecksInput struct {
@@ -30,21 +30,23 @@ type CreateCheckInput struct {
 	IntervalSeconds int32
 	LabelIDs        []string
 
-	PingConfig *PingConfigInput
+	PingConfig       *PingConfigInput
+	TracerouteConfig *TracerouteConfigInput
 }
 
 type UpdateCheckInput struct {
-	CurrentUserID   string
-	ProjectRef      string
-	CheckID         string
-	Name            *string
-	Type            *string
-	Target          *string
-	Selector        map[string]any
-	Description     *string
-	IntervalSeconds *int32
-	PingConfig      *PingConfigInput
-	LabelIDs        *[]string
+	CurrentUserID    string
+	ProjectRef       string
+	CheckID          string
+	Name             *string
+	Type             *string
+	Target           *string
+	Selector         map[string]any
+	Description      *string
+	IntervalSeconds  *int32
+	PingConfig       *PingConfigInput
+	TracerouteConfig *TracerouteConfigInput
+	LabelIDs         *[]string
 }
 
 type PingConfigInput struct {
@@ -54,31 +56,40 @@ type PingConfigInput struct {
 	IPFamily        *string
 }
 
+type TracerouteConfigInput struct {
+	Protocol        *string
+	MaxHops         *int32
+	TimeoutMs       *int32
+	QueriesPerHop   *int32
+	PacketSizeBytes *int32
+	Port            *int32
+	IPFamily        *string
+}
+
 type normalizedCreateCheckInput struct {
-	projectRef      string
-	name            string
-	checkType       domaincheck.Type
-	target          string
-	selector        json.RawMessage
-	description     *string
-	intervalSeconds int32
-	pingConfig      domainping.Config
-	labelIDs        []string
+	projectRef       string
+	name             string
+	checkType        domaincheck.Type
+	target           string
+	selector         json.RawMessage
+	description      *string
+	intervalSeconds  int32
+	pingConfig       *domainping.Config
+	tracerouteConfig *domaintraceroute.Config
+	labelIDs         []string
 }
 
 type normalizedUpdateCheckInput struct {
-	projectRef      string
-	checkID         string
-	name            *string
-	checkType       *domaincheck.Type
-	target          *string
-	selector        json.RawMessage
-	description     *string
-	intervalSeconds *int32
-	packetCount     *int32
-	packetSizeBytes *int32
-	timeoutMs       *int32
-	ipFamily        *domainnetwork.IPFamily
-	replaceLabels   bool
-	labelIDs        []string
+	projectRef       string
+	checkID          string
+	name             *string
+	checkType        *domaincheck.Type
+	target           *string
+	selector         json.RawMessage
+	description      *string
+	intervalSeconds  *int32
+	pingConfig       updatePingConfigPatch
+	tracerouteConfig updateTracerouteConfigPatch
+	replaceLabels    bool
+	labelIDs         []string
 }

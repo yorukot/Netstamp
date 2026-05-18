@@ -25,6 +25,7 @@ import (
 	pgping "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/ping"
 	pgprobe "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/probe"
 	pgproject "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/project"
+	pgtraceroute "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/traceroute"
 	pguser "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/user"
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/security"
 	"github.com/yorukot/netstamp/internal/controller/logger"
@@ -124,8 +125,9 @@ func New(ctx context.Context) (*Application, error) {
 	checkSvc := appcheck.NewService(checkRepo, projectRepo, labelRepo, assignmentSvc, checkEvents)
 	probeSvc := appprobe.NewService(probeRepo, projectRepo, labelRepo, assignmentSvc, security.NewProbeSecretGenerator(), probeEvents)
 	pingRepo := pgping.NewPingRepository(dbPool)
-	probeRuntimeSvc := appproberuntime.NewService(probeRepo, pingRepo, security.NewProbeSecretVerifier(), probeRuntimeEvents)
-	resultSvc := appresult.NewService(pingRepo, projectRepo)
+	tracerouteRepo := pgtraceroute.NewTracerouteRepository(dbPool)
+	probeRuntimeSvc := appproberuntime.NewService(probeRepo, pingRepo, tracerouteRepo, security.NewProbeSecretVerifier(), probeRuntimeEvents)
+	resultSvc := appresult.NewService(pingRepo, tracerouteRepo, projectRepo)
 	readiness := postgres.NewReadinessCheck(dbPool)
 
 	httpHandler := httpserver.NewRouter(httpserver.Dependencies{

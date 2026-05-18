@@ -6,23 +6,29 @@ import (
 	"encoding/json"
 
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
+	domaintraceroute "github.com/yorukot/netstamp/internal/domain/traceroute"
 )
 
 func (c Check) Hash() string {
 	payload := struct {
-		Type            Type               `json:"type"`
-		Target          string             `json:"target"`
-		IntervalSeconds int32              `json:"intervalSeconds"`
-		PingConfig      *domainping.Config `json:"pingConfig"`
+		Type             Type                     `json:"type"`
+		Target           string                   `json:"target"`
+		IntervalSeconds  int32                    `json:"intervalSeconds"`
+		PingConfig       *domainping.Config       `json:"pingConfig"`
+		TracerouteConfig *domaintraceroute.Config `json:"tracerouteConfig"`
 	}{
-		Type:            c.Type,
-		Target:          c.Target,
-		IntervalSeconds: c.IntervalSeconds,
-		PingConfig:      nil,
+		Type:             c.Type,
+		Target:           c.Target,
+		IntervalSeconds:  c.IntervalSeconds,
+		PingConfig:       nil,
+		TracerouteConfig: nil,
 	}
 
 	if c.PingConfig != nil {
 		payload.PingConfig = c.PingConfig
+	}
+	if c.TracerouteConfig != nil {
+		payload.TracerouteConfig = c.TracerouteConfig
 	}
 
 	return hashJSON(payload)

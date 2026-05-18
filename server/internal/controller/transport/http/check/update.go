@@ -13,17 +13,18 @@ func (h *Handler) updateCheck(ctx context.Context, input *updateCheckInput) (*ch
 	}
 
 	check, err := h.service.UpdateCheck(ctx, appcheck.UpdateCheckInput{
-		CurrentUserID:   currentUserID,
-		ProjectRef:      input.Ref,
-		CheckID:         input.CheckID,
-		Name:            input.Body.Name,
-		Type:            input.Body.Type,
-		Target:          input.Body.Target,
-		Selector:        input.Body.Selector,
-		Description:     input.Body.Description,
-		IntervalSeconds: input.Body.IntervalSeconds,
-		PingConfig:      input.Body.PingConfig.appInput(),
-		LabelIDs:        input.Body.LabelIDs,
+		CurrentUserID:    currentUserID,
+		ProjectRef:       input.Ref,
+		CheckID:          input.CheckID,
+		Name:             input.Body.Name,
+		Type:             input.Body.Type,
+		Target:           input.Body.Target,
+		Selector:         input.Body.Selector,
+		Description:      input.Body.Description,
+		IntervalSeconds:  input.Body.IntervalSeconds,
+		PingConfig:       input.Body.PingConfig.appInput(),
+		TracerouteConfig: input.Body.TracerouteConfig.appInput(),
+		LabelIDs:         input.Body.LabelIDs,
 	})
 	if err != nil {
 		return nil, mapCheckError(err, "update check failed")
@@ -39,12 +40,13 @@ type updateCheckInput struct {
 }
 
 type updateCheckInputBody struct {
-	Name            *string               `json:"name,omitempty" minLength:"1" maxLength:"128" doc:"Check display name." example:"api-latency"`
-	Type            *string               `json:"type,omitempty" enum:"ping" doc:"Check type. Only ping is supported in v1." example:"ping"`
-	Target          *string               `json:"target,omitempty" minLength:"1" maxLength:"128" doc:"Hostname or address to check." example:"api.netstamp.io"`
-	Selector        map[string]any        `json:"selector,omitempty" doc:"Selector object for later probe matching."`
-	Description     *string               `json:"description,omitempty" minLength:"1" maxLength:"1024" doc:"Optional check description." example:"Latency and loss to controller API."`
-	IntervalSeconds *int32                `json:"intervalSeconds,omitempty" minimum:"1" doc:"Check interval in seconds." example:"30"`
-	PingConfig      *checkPingConfigInput `json:"pingConfig,omitempty" doc:"Ping-specific check configuration fields to update."`
-	LabelIDs        *[]string             `json:"labelIds,omitempty" format:"uuid" doc:"Replacement project label IDs for the check."`
+	Name             *string                     `json:"name,omitempty" minLength:"1" maxLength:"128" doc:"Check display name." example:"api-latency"`
+	Type             *string                     `json:"type,omitempty" enum:"ping,traceroute" doc:"Check type. Cannot be changed after creation in v1." example:"ping"`
+	Target           *string                     `json:"target,omitempty" minLength:"1" maxLength:"128" doc:"Hostname or address to check." example:"api.netstamp.io"`
+	Selector         map[string]any              `json:"selector,omitempty" doc:"Selector object for later probe matching."`
+	Description      *string                     `json:"description,omitempty" minLength:"1" maxLength:"1024" doc:"Optional check description." example:"Latency and loss to controller API."`
+	IntervalSeconds  *int32                      `json:"intervalSeconds,omitempty" minimum:"1" doc:"Check interval in seconds." example:"30"`
+	PingConfig       *checkPingConfigInput       `json:"pingConfig,omitempty" doc:"Ping-specific check configuration fields to update."`
+	TracerouteConfig *checkTracerouteConfigInput `json:"tracerouteConfig,omitempty" doc:"Traceroute-specific check configuration fields to update."`
+	LabelIDs         *[]string                   `json:"labelIds,omitempty" format:"uuid" doc:"Replacement project label IDs for the check."`
 }

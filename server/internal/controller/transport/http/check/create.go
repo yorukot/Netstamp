@@ -23,7 +23,8 @@ func (h *Handler) createCheck(ctx context.Context, input *createCheckInput) (*ch
 		IntervalSeconds: input.Body.IntervalSeconds,
 		LabelIDs:        input.Body.LabelIDs,
 
-		PingConfig: input.Body.PingConfig.appInput(),
+		PingConfig:       input.Body.PingConfig.appInput(),
+		TracerouteConfig: input.Body.TracerouteConfig.appInput(),
 	})
 	if err != nil {
 		return nil, mapCheckError(err, "create check failed")
@@ -39,12 +40,13 @@ type createCheckInput struct {
 
 type createCheckInputBody struct {
 	Name            string         `json:"name" minLength:"1" maxLength:"128" doc:"Check display name." example:"api-latency"`
-	Type            string         `json:"type" enum:"ping" doc:"Check type. Only ping is supported in v1." example:"ping"`
+	Type            string         `json:"type" enum:"ping,traceroute" doc:"Check type." example:"ping"`
 	Target          string         `json:"target" minLength:"1" maxLength:"128" doc:"Hostname or address to check." example:"api.netstamp.io"`
 	Selector        map[string]any `json:"selector,omitempty" doc:"Selector object for later probe matching."`
 	Description     *string        `json:"description,omitempty" minLength:"1" maxLength:"1024" doc:"Optional check description." example:"Latency and loss to controller API."`
 	IntervalSeconds int32          `json:"intervalSeconds" minimum:"1" doc:"Check interval in seconds." example:"30"`
 	LabelIDs        []string       `json:"labelIds,omitempty" format:"uuid" doc:"Existing project label IDs to attach to the check."`
 
-	PingConfig *checkPingConfigInput `json:"pingConfig,omitempty" doc:"Ping-specific check configuration. Omitted fields use defaults."`
+	PingConfig       *checkPingConfigInput       `json:"pingConfig,omitempty" doc:"Ping-specific check configuration. Omitted fields use defaults."`
+	TracerouteConfig *checkTracerouteConfigInput `json:"tracerouteConfig,omitempty" doc:"Traceroute-specific check configuration. Omitted fields use defaults."`
 }

@@ -10,6 +10,7 @@ import (
 
 	domainlabel "github.com/yorukot/netstamp/internal/domain/label"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
+	domaintraceroute "github.com/yorukot/netstamp/internal/domain/traceroute"
 )
 
 var (
@@ -20,7 +21,8 @@ var (
 type Type string
 
 const (
-	TypePing Type = "ping"
+	TypePing       Type = "ping"
+	TypeTraceroute Type = "traceroute"
 )
 
 type Check struct {
@@ -37,8 +39,9 @@ type Check struct {
 	UpdatedAt       time.Time           `json:"updatedAt"`
 	DeletedAt       *time.Time          `json:"-"`
 
-	// We keep this nullable because we might have other config later and the user can only send a single config in as well as single config out.
-	PingConfig *domainping.Config `json:"pingConfig"`
+	// Configs are nullable because each check type owns exactly one config payload.
+	PingConfig       *domainping.Config       `json:"pingConfig,omitempty"`
+	TracerouteConfig *domaintraceroute.Config `json:"tracerouteConfig,omitempty"`
 }
 
 func (c Check) IntervalTime() time.Duration {
@@ -81,6 +84,8 @@ func VNCheckType(t Type) (Type, error) {
 	switch t {
 	case TypePing:
 		return TypePing, nil
+	case TypeTraceroute:
+		return TypeTraceroute, nil
 	default:
 		return "", errors.New("invalid check type")
 	}

@@ -3,6 +3,7 @@ package check
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"github.com/danielgtaylor/huma/v2"
 
@@ -66,6 +67,9 @@ func checkErrorLocation(field string) string {
 	}
 	if isPingConfigField(field) {
 		return "body.pingConfig." + field
+	}
+	if strings.HasPrefix(field, "tracerouteConfig.") {
+		return "body." + field
 	}
 
 	return "body." + field

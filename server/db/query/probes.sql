@@ -213,10 +213,17 @@ SELECT probe_check_assignments.id AS assignment_id,
        checks.check_type,
        checks.target,
        checks.interval_seconds,
-       ping_check_configs.packet_count,
-       ping_check_configs.packet_size_bytes,
-       ping_check_configs.timeout_ms,
-       ping_check_configs.ip_family
+       ping_check_configs.packet_count AS ping_packet_count,
+       ping_check_configs.packet_size_bytes AS ping_packet_size_bytes,
+       ping_check_configs.timeout_ms AS ping_timeout_ms,
+       ping_check_configs.ip_family AS ping_ip_family,
+       traceroute_check_configs.protocol AS traceroute_protocol,
+       traceroute_check_configs.max_hops AS traceroute_max_hops,
+       traceroute_check_configs.timeout_ms AS traceroute_timeout_ms,
+       traceroute_check_configs.queries_per_hop AS traceroute_queries_per_hop,
+       traceroute_check_configs.packet_size_bytes AS traceroute_packet_size_bytes,
+       traceroute_check_configs.port AS traceroute_port,
+       traceroute_check_configs.ip_family AS traceroute_ip_family
 FROM probe_check_assignments
 JOIN probes
     ON probes.project_id = probe_check_assignments.project_id
@@ -224,7 +231,8 @@ JOIN probes
 JOIN checks
     ON checks.project_id = probe_check_assignments.project_id
     AND checks.id = probe_check_assignments.check_id
-JOIN ping_check_configs ON ping_check_configs.check_id = checks.id
+LEFT JOIN ping_check_configs ON ping_check_configs.check_id = checks.id
+LEFT JOIN traceroute_check_configs ON traceroute_check_configs.check_id = checks.id
 WHERE probe_check_assignments.probe_id = $1
   AND probe_check_assignments.deleted_at IS NULL
   AND probes.enabled = true
@@ -245,10 +253,17 @@ SELECT probe_check_assignments.id AS assignment_id,
        checks.check_type,
        checks.target,
        checks.interval_seconds,
-       ping_check_configs.packet_count,
-       ping_check_configs.packet_size_bytes,
-       ping_check_configs.timeout_ms,
-       ping_check_configs.ip_family
+       ping_check_configs.packet_count AS ping_packet_count,
+       ping_check_configs.packet_size_bytes AS ping_packet_size_bytes,
+       ping_check_configs.timeout_ms AS ping_timeout_ms,
+       ping_check_configs.ip_family AS ping_ip_family,
+       traceroute_check_configs.protocol AS traceroute_protocol,
+       traceroute_check_configs.max_hops AS traceroute_max_hops,
+       traceroute_check_configs.timeout_ms AS traceroute_timeout_ms,
+       traceroute_check_configs.queries_per_hop AS traceroute_queries_per_hop,
+       traceroute_check_configs.packet_size_bytes AS traceroute_packet_size_bytes,
+       traceroute_check_configs.port AS traceroute_port,
+       traceroute_check_configs.ip_family AS traceroute_ip_family
 FROM probe_check_assignments
 JOIN probes
     ON probes.project_id = probe_check_assignments.project_id
@@ -257,6 +272,7 @@ JOIN checks
     ON checks.project_id = probe_check_assignments.project_id
     AND checks.id = probe_check_assignments.check_id
 LEFT JOIN ping_check_configs ON ping_check_configs.check_id = checks.id
+LEFT JOIN traceroute_check_configs ON traceroute_check_configs.check_id = checks.id
 WHERE probe_check_assignments.probe_id = sqlc.arg(probe_id)
   AND probe_check_assignments.check_id = ANY(sqlc.arg(check_ids)::uuid[])
   AND probe_check_assignments.deleted_at IS NULL

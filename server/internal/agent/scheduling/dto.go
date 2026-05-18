@@ -12,13 +12,12 @@ func (s *AssignmentStore) taskFromAssignment(assignment domainassignment.Assignm
 		s.log.Warn("assignment skipped without check", "assignment_id", assignment.ID)
 		return TaskState{}, false
 	}
-	if _, err := domaincheck.VNCheckType(assignment.Check.Type); err != nil {
+	if !isRunnableCheckType(assignment.Check.Type) {
 		s.log.Warn("assignment skipped with unsupported check type", "assignment_id", assignment.ID, "check_id", assignment.Check.ID, "check_type", assignment.Check.Type)
 		return TaskState{}, false
 	}
-	// TODO: we need to modify it since basically we need to check the config base on each type
-	if assignment.Check.PingConfig == nil {
-		s.log.Warn("assignment skipped without ping config", "assignment_id", assignment.ID, "check_id", assignment.Check.ID)
+	if !hasConfigForCheckType(*assignment.Check) {
+		s.log.Warn("assignment skipped without check config", "assignment_id", assignment.ID, "check_id", assignment.Check.ID, "check_type", assignment.Check.Type)
 		return TaskState{}, false
 	}
 
@@ -43,6 +42,21 @@ func (s *AssignmentStore) taskFromAssignment(assignment domainassignment.Assignm
 		NextDue:      nextDue,
 		LastPulledAt: pulledAt.UTC(),
 	}, true
+}
+
+func isRunnableCheckType(checkType domaincheck.Type) bool {
+	return checkType == domaincheck.TypePing
+}
+
+func hasConfigForCheckType(check domaincheck.Check) bool {
+	switch check.Type {
+	case domaincheck.TypePing:
+		return check.PingConfig != nil
+	case domaincheck.TypeTraceroute:
+		return check.TracerouteConfig != nil
+	default:
+		return false
+	}
 }
 
 // RunRequest returns a RunRequest for the task.

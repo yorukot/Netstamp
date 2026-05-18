@@ -9,6 +9,7 @@ import (
 	domainassignment "github.com/yorukot/netstamp/internal/domain/assignment"
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
+	domaintraceroute "github.com/yorukot/netstamp/internal/domain/traceroute"
 )
 
 func TestReconcileAcceptsAssignmentWithoutEmbeddedProbe(t *testing.T) {
@@ -51,6 +52,29 @@ func TestReconcileSkipsAssignmentWithoutCheck(t *testing.T) {
 
 	summary := store.Reconcile([]domainassignment.Assignment{{
 		ID: "assignment-1",
+	}}, time.Date(2026, 5, 15, 12, 0, 0, 0, time.UTC))
+
+	if summary.Unsupported != 1 || summary.Active != 0 {
+		t.Fatalf("unexpected summary: %#v", summary)
+	}
+	if tasks := store.ActiveTasks(); len(tasks) != 0 {
+		t.Fatalf("expected no active tasks, got %d", len(tasks))
+	}
+}
+
+func TestReconcileSkipsTracerouteUntilExecutorExists(t *testing.T) {
+	store := NewAssignmentStore("probe-1", time.Minute, discardLogger())
+	config := domaintraceroute.DefaultConfig()
+
+	summary := store.Reconcile([]domainassignment.Assignment{{
+		ID: "assignment-1",
+		Check: &domaincheck.Check{
+			ID:               "check-1",
+			Type:             domaincheck.TypeTraceroute,
+			Target:           "example.com",
+			IntervalSeconds:  30,
+			TracerouteConfig: &config,
+		},
 	}}, time.Date(2026, 5, 15, 12, 0, 0, 0, time.UTC))
 
 	if summary.Unsupported != 1 || summary.Active != 0 {

@@ -10,6 +10,7 @@ import (
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 	domainselector "github.com/yorukot/netstamp/internal/domain/selector"
+	domaintraceroute "github.com/yorukot/netstamp/internal/domain/traceroute"
 )
 
 var defaultSelector = json.RawMessage(`{}`)
@@ -65,7 +66,7 @@ func normalizeCreateCheckInput(input CreateCheckInput) (normalizedCreateCheckInp
 	if err != nil {
 		return normalizedCreateCheckInput{}, invalidCheckField("intervalSeconds", err.Error(), input.IntervalSeconds)
 	}
-	pingConfig, err := normalizePingConfig(input.PingConfig)
+	pingConfig, tracerouteConfig, err := normalizeCreateTypeConfig(checkType, input.PingConfig, input.TracerouteConfig)
 	if err != nil {
 		return normalizedCreateCheckInput{}, err
 	}
@@ -75,15 +76,16 @@ func normalizeCreateCheckInput(input CreateCheckInput) (normalizedCreateCheckInp
 	}
 
 	return normalizedCreateCheckInput{
-		projectRef:      projectRef,
-		name:            name,
-		checkType:       checkType,
-		target:          target,
-		selector:        selector,
-		description:     description,
-		intervalSeconds: interval,
-		pingConfig:      pingConfig,
-		labelIDs:        labelIDs,
+		projectRef:       projectRef,
+		name:             name,
+		checkType:        checkType,
+		target:           target,
+		selector:         selector,
+		description:      description,
+		intervalSeconds:  interval,
+		pingConfig:       pingConfig,
+		tracerouteConfig: tracerouteConfig,
+		labelIDs:         labelIDs,
 	}, nil
 }
 
@@ -130,6 +132,10 @@ func normalizeUpdateCheckInput(input UpdateCheckInput) (normalizedUpdateCheckInp
 	if err != nil {
 		return normalizedUpdateCheckInput{}, err
 	}
+	tracerouteConfig, err := normalizeUpdateTracerouteConfig(input.TracerouteConfig)
+	if err != nil {
+		return normalizedUpdateCheckInput{}, err
+	}
 
 	labelIDs, replaceLabels, err := normalizeUpdateLabelIDs(input.LabelIDs)
 	if err != nil {
@@ -137,20 +143,18 @@ func normalizeUpdateCheckInput(input UpdateCheckInput) (normalizedUpdateCheckInp
 	}
 
 	return normalizedUpdateCheckInput{
-		projectRef:      projectRef,
-		checkID:         checkID,
-		name:            name,
-		checkType:       checkType,
-		target:          target,
-		selector:        selector,
-		description:     description,
-		intervalSeconds: intervalSeconds,
-		packetCount:     pingConfig.packetCount,
-		packetSizeBytes: pingConfig.packetSizeBytes,
-		timeoutMs:       pingConfig.timeoutMs,
-		ipFamily:        pingConfig.ipFamily,
-		replaceLabels:   replaceLabels,
-		labelIDs:        labelIDs,
+		projectRef:       projectRef,
+		checkID:          checkID,
+		name:             name,
+		checkType:        checkType,
+		target:           target,
+		selector:         selector,
+		description:      description,
+		intervalSeconds:  intervalSeconds,
+		pingConfig:       pingConfig,
+		tracerouteConfig: tracerouteConfig,
+		replaceLabels:    replaceLabels,
+		labelIDs:         labelIDs,
 	}, nil
 }
 
@@ -159,6 +163,33 @@ type updatePingConfigPatch struct {
 	packetSizeBytes *int32
 	timeoutMs       *int32
 	ipFamily        *domainnetwork.IPFamily
+}
+
+type updateTracerouteConfigPatch struct {
+	protocol        *domaintraceroute.Protocol
+	maxHops         *int32
+	timeoutMs       *int32
+	queriesPerHop   *int32
+	packetSizeBytes *int32
+	port            *int32
+	ipFamily        *domainnetwork.IPFamily
+}
+
+func (patch updatePingConfigPatch) hasChanges() bool {
+	return patch.packetCount != nil ||
+		patch.packetSizeBytes != nil ||
+		patch.timeoutMs != nil ||
+		patch.ipFamily != nil
+}
+
+func (patch updateTracerouteConfigPatch) hasChanges() bool {
+	return patch.protocol != nil ||
+		patch.maxHops != nil ||
+		patch.timeoutMs != nil ||
+		patch.queriesPerHop != nil ||
+		patch.packetSizeBytes != nil ||
+		patch.port != nil ||
+		patch.ipFamily != nil
 }
 
 func normalizeOptionalCheckName(input *string) (*string, error) {
@@ -235,6 +266,51 @@ func normalizeUpdatePingConfig(input *PingConfigInput) (updatePingConfigPatch, e
 	}, nil
 }
 
+func normalizeUpdateTracerouteConfig(input *TracerouteConfigInput) (updateTracerouteConfigPatch, error) {
+	if input == nil {
+		return updateTracerouteConfigPatch{}, nil
+	}
+
+	protocol, err := normalizeOptionalTracerouteProtocol(input.Protocol)
+	if err != nil {
+		return updateTracerouteConfigPatch{}, err
+	}
+	maxHops, err := normalizeOptionalTracerouteMaxHops(input.MaxHops)
+	if err != nil {
+		return updateTracerouteConfigPatch{}, err
+	}
+	timeoutMs, err := normalizeOptionalTracerouteTimeoutMs(input.TimeoutMs)
+	if err != nil {
+		return updateTracerouteConfigPatch{}, err
+	}
+	queriesPerHop, err := normalizeOptionalTracerouteQueriesPerHop(input.QueriesPerHop)
+	if err != nil {
+		return updateTracerouteConfigPatch{}, err
+	}
+	packetSizeBytes, err := normalizeOptionalTraceroutePacketSizeBytes(input.PacketSizeBytes)
+	if err != nil {
+		return updateTracerouteConfigPatch{}, err
+	}
+	port, err := normalizeOptionalTraceroutePort(input.Port)
+	if err != nil {
+		return updateTracerouteConfigPatch{}, err
+	}
+	ipFamily, err := normalizeOptionalTracerouteIPFamily(input.IPFamily)
+	if err != nil {
+		return updateTracerouteConfigPatch{}, err
+	}
+
+	return updateTracerouteConfigPatch{
+		protocol:        protocol,
+		maxHops:         maxHops,
+		timeoutMs:       timeoutMs,
+		queriesPerHop:   queriesPerHop,
+		packetSizeBytes: packetSizeBytes,
+		port:            port,
+		ipFamily:        ipFamily,
+	}, nil
+}
+
 func normalizeOptionalPacketCount(input *int32) (*int32, error) {
 	if input == nil {
 		return nil, nil //nolint:nilnil // Nil means the update did not include a packet count.
@@ -280,6 +356,84 @@ func normalizeOptionalIPFamily(input *string) (*domainnetwork.IPFamily, error) {
 	return ipFamily, nil
 }
 
+func normalizeOptionalTracerouteProtocol(input *string) (*domaintraceroute.Protocol, error) {
+	if input == nil {
+		return nil, nil //nolint:nilnil // Nil means the update did not include a protocol.
+	}
+	protocol, err := domaintraceroute.VNConfigProtocol(domaintraceroute.Protocol(*input))
+	if err != nil {
+		return nil, invalidCheckField("tracerouteConfig.protocol", err.Error(), input)
+	}
+	return &protocol, nil
+}
+
+func normalizeOptionalTracerouteMaxHops(input *int32) (*int32, error) {
+	if input == nil {
+		return nil, nil //nolint:nilnil // Nil means the update did not include max hops.
+	}
+	maxHops, err := domaintraceroute.VNConfigMaxHops(*input)
+	if err != nil {
+		return nil, invalidCheckField("tracerouteConfig.maxHops", err.Error(), input)
+	}
+	return &maxHops, nil
+}
+
+func normalizeOptionalTracerouteTimeoutMs(input *int32) (*int32, error) {
+	if input == nil {
+		return nil, nil //nolint:nilnil // Nil means the update did not include a timeout.
+	}
+	timeoutMs, err := domaintraceroute.VNConfigTimeoutMs(*input)
+	if err != nil {
+		return nil, invalidCheckField("tracerouteConfig.timeoutMs", err.Error(), input)
+	}
+	return &timeoutMs, nil
+}
+
+func normalizeOptionalTracerouteQueriesPerHop(input *int32) (*int32, error) {
+	if input == nil {
+		return nil, nil //nolint:nilnil // Nil means the update did not include queries per hop.
+	}
+	queriesPerHop, err := domaintraceroute.VNConfigQueriesPerHop(*input)
+	if err != nil {
+		return nil, invalidCheckField("tracerouteConfig.queriesPerHop", err.Error(), input)
+	}
+	return &queriesPerHop, nil
+}
+
+func normalizeOptionalTraceroutePacketSizeBytes(input *int32) (*int32, error) {
+	if input == nil {
+		return nil, nil //nolint:nilnil // Nil means the update did not include a packet size.
+	}
+	packetSizeBytes, err := domaintraceroute.VNConfigPacketSizeBytes(*input)
+	if err != nil {
+		return nil, invalidCheckField("tracerouteConfig.packetSizeBytes", err.Error(), input)
+	}
+	return &packetSizeBytes, nil
+}
+
+func normalizeOptionalTraceroutePort(input *int32) (*int32, error) {
+	if input == nil {
+		return nil, nil //nolint:nilnil // Nil means the update did not include a port.
+	}
+	port, err := domaintraceroute.VNConfigPort(*input)
+	if err != nil {
+		return nil, invalidCheckField("tracerouteConfig.port", err.Error(), input)
+	}
+	return &port, nil
+}
+
+func normalizeOptionalTracerouteIPFamily(input *string) (*domainnetwork.IPFamily, error) {
+	ipFamily, err := domainnetwork.ParseOptionalIPFamily(input)
+	if err != nil {
+		return nil, invalidCheckField("tracerouteConfig.ipFamily", `must be "inet" or "inet6"`, input)
+	}
+	ipFamily, err = domaintraceroute.VNConfigIPFamily(ipFamily)
+	if err != nil {
+		return nil, invalidCheckField("tracerouteConfig.ipFamily", err.Error(), input)
+	}
+	return ipFamily, nil
+}
+
 func normalizeUpdateLabelIDs(input *[]string) ([]string, bool, error) {
 	if input == nil {
 		return nil, false, nil
@@ -299,6 +453,7 @@ func hasUpdateCheckChanges(input UpdateCheckInput) bool {
 		input.Description != nil ||
 		input.IntervalSeconds != nil ||
 		input.PingConfig.hasChanges() ||
+		input.TracerouteConfig.hasChanges() ||
 		input.LabelIDs != nil
 }
 
@@ -309,6 +464,19 @@ func (input *PingConfigInput) hasChanges() bool {
 	return input.PacketCount != nil ||
 		input.PacketSizeBytes != nil ||
 		input.TimeoutMs != nil ||
+		input.IPFamily != nil
+}
+
+func (input *TracerouteConfigInput) hasChanges() bool {
+	if input == nil {
+		return false
+	}
+	return input.Protocol != nil ||
+		input.MaxHops != nil ||
+		input.TimeoutMs != nil ||
+		input.QueriesPerHop != nil ||
+		input.PacketSizeBytes != nil ||
+		input.Port != nil ||
 		input.IPFamily != nil
 }
 
@@ -391,6 +559,31 @@ func normalizeSelector(selector map[string]any) (json.RawMessage, error) {
 	return raw, nil
 }
 
+func normalizeCreateTypeConfig(checkType domaincheck.Type, pingInput *PingConfigInput, tracerouteInput *TracerouteConfigInput) (*domainping.Config, *domaintraceroute.Config, error) {
+	switch checkType {
+	case domaincheck.TypePing:
+		if tracerouteInput != nil {
+			return nil, nil, invalidCheckField("tracerouteConfig", "must be omitted for ping checks", tracerouteInput)
+		}
+		config, err := normalizePingConfig(pingInput)
+		if err != nil {
+			return nil, nil, err
+		}
+		return &config, nil, nil
+	case domaincheck.TypeTraceroute:
+		if pingInput != nil {
+			return nil, nil, invalidCheckField("pingConfig", "must be omitted for traceroute checks", pingInput)
+		}
+		config, err := normalizeTracerouteConfig(tracerouteInput)
+		if err != nil {
+			return nil, nil, err
+		}
+		return nil, &config, nil
+	default:
+		return nil, nil, invalidCheckField("type", "unsupported check type", string(checkType))
+	}
+}
+
 func normalizePingConfig(input *PingConfigInput) (domainping.Config, error) {
 	config := domainping.DefaultConfig()
 
@@ -431,4 +624,75 @@ func normalizePingConfig(input *PingConfigInput) (domainping.Config, error) {
 	config.IPFamily = ipFamily
 
 	return config, nil
+}
+
+func normalizeTracerouteConfig(input *TracerouteConfigInput) (domaintraceroute.Config, error) {
+	config := domaintraceroute.DefaultConfig()
+
+	if input == nil {
+		return config, nil
+	}
+
+	if input.Protocol != nil {
+		protocol, err := domaintraceroute.VNConfigProtocol(domaintraceroute.Protocol(*input.Protocol))
+		if err != nil {
+			return domaintraceroute.Config{}, invalidCheckField("tracerouteConfig.protocol", err.Error(), input.Protocol)
+		}
+		config.Protocol = protocol
+	}
+	if input.MaxHops != nil {
+		maxHops, err := domaintraceroute.VNConfigMaxHops(*input.MaxHops)
+		if err != nil {
+			return domaintraceroute.Config{}, invalidCheckField("tracerouteConfig.maxHops", err.Error(), input.MaxHops)
+		}
+		config.MaxHops = maxHops
+	}
+	if input.TimeoutMs != nil {
+		timeoutMs, err := domaintraceroute.VNConfigTimeoutMs(*input.TimeoutMs)
+		if err != nil {
+			return domaintraceroute.Config{}, invalidCheckField("tracerouteConfig.timeoutMs", err.Error(), input.TimeoutMs)
+		}
+		config.TimeoutMs = timeoutMs
+	}
+	if input.QueriesPerHop != nil {
+		queriesPerHop, err := domaintraceroute.VNConfigQueriesPerHop(*input.QueriesPerHop)
+		if err != nil {
+			return domaintraceroute.Config{}, invalidCheckField("tracerouteConfig.queriesPerHop", err.Error(), input.QueriesPerHop)
+		}
+		config.QueriesPerHop = queriesPerHop
+	}
+	if input.PacketSizeBytes != nil {
+		packetSizeBytes, err := domaintraceroute.VNConfigPacketSizeBytes(*input.PacketSizeBytes)
+		if err != nil {
+			return domaintraceroute.Config{}, invalidCheckField("tracerouteConfig.packetSizeBytes", err.Error(), input.PacketSizeBytes)
+		}
+		config.PacketSizeBytes = packetSizeBytes
+	}
+	if input.Port != nil {
+		port, err := domaintraceroute.VNConfigPort(*input.Port)
+		if err != nil {
+			return domaintraceroute.Config{}, invalidCheckField("tracerouteConfig.port", err.Error(), input.Port)
+		}
+		config.Port = port
+	}
+
+	ipFamily, err := normalizeTracerouteConfigIPFamily(input.IPFamily)
+	if err != nil {
+		return domaintraceroute.Config{}, err
+	}
+	config.IPFamily = ipFamily
+
+	return config, nil
+}
+
+func normalizeTracerouteConfigIPFamily(input *string) (*domainnetwork.IPFamily, error) {
+	ipFamily, err := domainnetwork.ParseOptionalIPFamily(input)
+	if err != nil {
+		return nil, invalidCheckField("tracerouteConfig.ipFamily", `must be "inet" or "inet6"`, input)
+	}
+	ipFamily, err = domaintraceroute.VNConfigIPFamily(ipFamily)
+	if err != nil {
+		return nil, invalidCheckField("tracerouteConfig.ipFamily", err.Error(), input)
+	}
+	return ipFamily, nil
 }

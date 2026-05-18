@@ -16,7 +16,8 @@ import (
 type CheckType string
 
 const (
-	CheckTypePing CheckType = "ping"
+	CheckTypePing       CheckType = "ping"
+	CheckTypeTraceroute CheckType = "traceroute"
 )
 
 func (e *CheckType) Scan(src interface{}) error {
@@ -225,6 +226,93 @@ func (ns NullProjectMemberRole) Value() (driver.Value, error) {
 	return string(ns.ProjectMemberRole), nil
 }
 
+type TracerouteProtocol string
+
+const (
+	TracerouteProtocolIcmp TracerouteProtocol = "icmp"
+	TracerouteProtocolUdp  TracerouteProtocol = "udp"
+	TracerouteProtocolTcp  TracerouteProtocol = "tcp"
+)
+
+func (e *TracerouteProtocol) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = TracerouteProtocol(s)
+	case string:
+		*e = TracerouteProtocol(s)
+	default:
+		return fmt.Errorf("unsupported scan type for TracerouteProtocol: %T", src)
+	}
+	return nil
+}
+
+type NullTracerouteProtocol struct {
+	TracerouteProtocol TracerouteProtocol `json:"traceroute_protocol"`
+	Valid              bool               `json:"valid"` // Valid is true if TracerouteProtocol is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullTracerouteProtocol) Scan(value interface{}) error {
+	if value == nil {
+		ns.TracerouteProtocol, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.TracerouteProtocol.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullTracerouteProtocol) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.TracerouteProtocol), nil
+}
+
+type TracerouteStatus string
+
+const (
+	TracerouteStatusSuccessful TracerouteStatus = "successful"
+	TracerouteStatusTimeout    TracerouteStatus = "timeout"
+	TracerouteStatusError      TracerouteStatus = "error"
+	TracerouteStatusPartial    TracerouteStatus = "partial"
+)
+
+func (e *TracerouteStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = TracerouteStatus(s)
+	case string:
+		*e = TracerouteStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for TracerouteStatus: %T", src)
+	}
+	return nil
+}
+
+type NullTracerouteStatus struct {
+	TracerouteStatus TracerouteStatus `json:"traceroute_status"`
+	Valid            bool             `json:"valid"` // Valid is true if TracerouteStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullTracerouteStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.TracerouteStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.TracerouteStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullTracerouteStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.TracerouteStatus), nil
+}
+
 type Check struct {
 	ID              uuid.UUID          `json:"id"`
 	InternalID      int64              `json:"internal_id"`
@@ -353,6 +441,52 @@ type ProjectMember struct {
 	Role      ProjectMemberRole  `json:"role"`
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+}
+
+type TracerouteCheckConfig struct {
+	CheckID         uuid.UUID          `json:"check_id"`
+	Protocol        TracerouteProtocol `json:"protocol"`
+	MaxHops         int32              `json:"max_hops"`
+	TimeoutMs       int32              `json:"timeout_ms"`
+	QueriesPerHop   int32              `json:"queries_per_hop"`
+	PacketSizeBytes int32              `json:"packet_size_bytes"`
+	Port            int32              `json:"port"`
+	IpFamily        NullIpFamily       `json:"ip_family"`
+}
+
+type TracerouteResult struct {
+	ProbeID            int64              `json:"probe_id"`
+	CheckID            int64              `json:"check_id"`
+	StartedAt          pgtype.Timestamptz `json:"started_at"`
+	FinishedAt         pgtype.Timestamptz `json:"finished_at"`
+	DurationMs         int32              `json:"duration_ms"`
+	Status             TracerouteStatus   `json:"status"`
+	ResolvedIp         *netip.Addr        `json:"resolved_ip"`
+	IpFamily           NullIpFamily       `json:"ip_family"`
+	DestinationReached bool               `json:"destination_reached"`
+	HopCount           int32              `json:"hop_count"`
+	ErrorCode          *string            `json:"error_code"`
+	ErrorMessage       *string            `json:"error_message"`
+}
+
+type TracerouteResultHop struct {
+	ProbeID       int64              `json:"probe_id"`
+	CheckID       int64              `json:"check_id"`
+	StartedAt     pgtype.Timestamptz `json:"started_at"`
+	HopIndex      int32              `json:"hop_index"`
+	Address       *netip.Addr        `json:"address"`
+	Hostname      *string            `json:"hostname"`
+	SentCount     int32              `json:"sent_count"`
+	ReceivedCount int32              `json:"received_count"`
+	LossPercent   float64            `json:"loss_percent"`
+	RttMinMs      *float64           `json:"rtt_min_ms"`
+	RttAvgMs      *float64           `json:"rtt_avg_ms"`
+	RttMedianMs   *float64           `json:"rtt_median_ms"`
+	RttMaxMs      *float64           `json:"rtt_max_ms"`
+	RttStddevMs   *float64           `json:"rtt_stddev_ms"`
+	RttSamplesMs  []float64          `json:"rtt_samples_ms"`
+	ErrorCode     *string            `json:"error_code"`
+	ErrorMessage  *string            `json:"error_message"`
 }
 
 type User struct {

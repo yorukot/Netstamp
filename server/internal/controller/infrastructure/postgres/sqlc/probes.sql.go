@@ -336,10 +336,17 @@ SELECT probe_check_assignments.id AS assignment_id,
        checks.check_type,
        checks.target,
        checks.interval_seconds,
-       ping_check_configs.packet_count,
-       ping_check_configs.packet_size_bytes,
-       ping_check_configs.timeout_ms,
-       ping_check_configs.ip_family
+       ping_check_configs.packet_count AS ping_packet_count,
+       ping_check_configs.packet_size_bytes AS ping_packet_size_bytes,
+       ping_check_configs.timeout_ms AS ping_timeout_ms,
+       ping_check_configs.ip_family AS ping_ip_family,
+       traceroute_check_configs.protocol AS traceroute_protocol,
+       traceroute_check_configs.max_hops AS traceroute_max_hops,
+       traceroute_check_configs.timeout_ms AS traceroute_timeout_ms,
+       traceroute_check_configs.queries_per_hop AS traceroute_queries_per_hop,
+       traceroute_check_configs.packet_size_bytes AS traceroute_packet_size_bytes,
+       traceroute_check_configs.port AS traceroute_port,
+       traceroute_check_configs.ip_family AS traceroute_ip_family
 FROM probe_check_assignments
 JOIN probes
     ON probes.project_id = probe_check_assignments.project_id
@@ -347,7 +354,8 @@ JOIN probes
 JOIN checks
     ON checks.project_id = probe_check_assignments.project_id
     AND checks.id = probe_check_assignments.check_id
-JOIN ping_check_configs ON ping_check_configs.check_id = checks.id
+LEFT JOIN ping_check_configs ON ping_check_configs.check_id = checks.id
+LEFT JOIN traceroute_check_configs ON traceroute_check_configs.check_id = checks.id
 WHERE probe_check_assignments.probe_id = $1
   AND probe_check_assignments.deleted_at IS NULL
   AND probes.enabled = true
@@ -358,21 +366,28 @@ ORDER BY checks.created_at ASC,
 `
 
 type ListActiveAssignmentsForProbeRow struct {
-	AssignmentID    uuid.UUID    `json:"assignment_id"`
-	ProjectID       uuid.UUID    `json:"project_id"`
-	ProbeID         uuid.UUID    `json:"probe_id"`
-	CheckID         uuid.UUID    `json:"check_id"`
-	ProbeInternalID int64        `json:"probe_internal_id"`
-	CheckInternalID int64        `json:"check_internal_id"`
-	CheckVersion    string       `json:"check_version"`
-	SelectorVersion string       `json:"selector_version"`
-	CheckType       CheckType    `json:"check_type"`
-	Target          string       `json:"target"`
-	IntervalSeconds int32        `json:"interval_seconds"`
-	PacketCount     int32        `json:"packet_count"`
-	PacketSizeBytes int32        `json:"packet_size_bytes"`
-	TimeoutMs       int32        `json:"timeout_ms"`
-	IpFamily        NullIpFamily `json:"ip_family"`
+	AssignmentID              uuid.UUID              `json:"assignment_id"`
+	ProjectID                 uuid.UUID              `json:"project_id"`
+	ProbeID                   uuid.UUID              `json:"probe_id"`
+	CheckID                   uuid.UUID              `json:"check_id"`
+	ProbeInternalID           int64                  `json:"probe_internal_id"`
+	CheckInternalID           int64                  `json:"check_internal_id"`
+	CheckVersion              string                 `json:"check_version"`
+	SelectorVersion           string                 `json:"selector_version"`
+	CheckType                 CheckType              `json:"check_type"`
+	Target                    string                 `json:"target"`
+	IntervalSeconds           int32                  `json:"interval_seconds"`
+	PingPacketCount           *int32                 `json:"ping_packet_count"`
+	PingPacketSizeBytes       *int32                 `json:"ping_packet_size_bytes"`
+	PingTimeoutMs             *int32                 `json:"ping_timeout_ms"`
+	PingIpFamily              NullIpFamily           `json:"ping_ip_family"`
+	TracerouteProtocol        NullTracerouteProtocol `json:"traceroute_protocol"`
+	TracerouteMaxHops         *int32                 `json:"traceroute_max_hops"`
+	TracerouteTimeoutMs       *int32                 `json:"traceroute_timeout_ms"`
+	TracerouteQueriesPerHop   *int32                 `json:"traceroute_queries_per_hop"`
+	TraceroutePacketSizeBytes *int32                 `json:"traceroute_packet_size_bytes"`
+	TraceroutePort            *int32                 `json:"traceroute_port"`
+	TracerouteIpFamily        NullIpFamily           `json:"traceroute_ip_family"`
 }
 
 func (q *Queries) ListActiveAssignmentsForProbe(ctx context.Context, probeID uuid.UUID) ([]ListActiveAssignmentsForProbeRow, error) {
@@ -396,10 +411,17 @@ func (q *Queries) ListActiveAssignmentsForProbe(ctx context.Context, probeID uui
 			&i.CheckType,
 			&i.Target,
 			&i.IntervalSeconds,
-			&i.PacketCount,
-			&i.PacketSizeBytes,
-			&i.TimeoutMs,
-			&i.IpFamily,
+			&i.PingPacketCount,
+			&i.PingPacketSizeBytes,
+			&i.PingTimeoutMs,
+			&i.PingIpFamily,
+			&i.TracerouteProtocol,
+			&i.TracerouteMaxHops,
+			&i.TracerouteTimeoutMs,
+			&i.TracerouteQueriesPerHop,
+			&i.TraceroutePacketSizeBytes,
+			&i.TraceroutePort,
+			&i.TracerouteIpFamily,
 		); err != nil {
 			return nil, err
 		}
@@ -423,10 +445,17 @@ SELECT probe_check_assignments.id AS assignment_id,
        checks.check_type,
        checks.target,
        checks.interval_seconds,
-       ping_check_configs.packet_count,
-       ping_check_configs.packet_size_bytes,
-       ping_check_configs.timeout_ms,
-       ping_check_configs.ip_family
+       ping_check_configs.packet_count AS ping_packet_count,
+       ping_check_configs.packet_size_bytes AS ping_packet_size_bytes,
+       ping_check_configs.timeout_ms AS ping_timeout_ms,
+       ping_check_configs.ip_family AS ping_ip_family,
+       traceroute_check_configs.protocol AS traceroute_protocol,
+       traceroute_check_configs.max_hops AS traceroute_max_hops,
+       traceroute_check_configs.timeout_ms AS traceroute_timeout_ms,
+       traceroute_check_configs.queries_per_hop AS traceroute_queries_per_hop,
+       traceroute_check_configs.packet_size_bytes AS traceroute_packet_size_bytes,
+       traceroute_check_configs.port AS traceroute_port,
+       traceroute_check_configs.ip_family AS traceroute_ip_family
 FROM probe_check_assignments
 JOIN probes
     ON probes.project_id = probe_check_assignments.project_id
@@ -435,6 +464,7 @@ JOIN checks
     ON checks.project_id = probe_check_assignments.project_id
     AND checks.id = probe_check_assignments.check_id
 LEFT JOIN ping_check_configs ON ping_check_configs.check_id = checks.id
+LEFT JOIN traceroute_check_configs ON traceroute_check_configs.check_id = checks.id
 WHERE probe_check_assignments.probe_id = $1
   AND probe_check_assignments.check_id = ANY($2::uuid[])
   AND probe_check_assignments.deleted_at IS NULL
@@ -451,21 +481,28 @@ type ListActiveAssignmentsForProbeChecksParams struct {
 }
 
 type ListActiveAssignmentsForProbeChecksRow struct {
-	AssignmentID    uuid.UUID    `json:"assignment_id"`
-	ProjectID       uuid.UUID    `json:"project_id"`
-	ProbeID         uuid.UUID    `json:"probe_id"`
-	CheckID         uuid.UUID    `json:"check_id"`
-	ProbeInternalID int64        `json:"probe_internal_id"`
-	CheckInternalID int64        `json:"check_internal_id"`
-	CheckVersion    string       `json:"check_version"`
-	SelectorVersion string       `json:"selector_version"`
-	CheckType       CheckType    `json:"check_type"`
-	Target          string       `json:"target"`
-	IntervalSeconds int32        `json:"interval_seconds"`
-	PacketCount     *int32       `json:"packet_count"`
-	PacketSizeBytes *int32       `json:"packet_size_bytes"`
-	TimeoutMs       *int32       `json:"timeout_ms"`
-	IpFamily        NullIpFamily `json:"ip_family"`
+	AssignmentID              uuid.UUID              `json:"assignment_id"`
+	ProjectID                 uuid.UUID              `json:"project_id"`
+	ProbeID                   uuid.UUID              `json:"probe_id"`
+	CheckID                   uuid.UUID              `json:"check_id"`
+	ProbeInternalID           int64                  `json:"probe_internal_id"`
+	CheckInternalID           int64                  `json:"check_internal_id"`
+	CheckVersion              string                 `json:"check_version"`
+	SelectorVersion           string                 `json:"selector_version"`
+	CheckType                 CheckType              `json:"check_type"`
+	Target                    string                 `json:"target"`
+	IntervalSeconds           int32                  `json:"interval_seconds"`
+	PingPacketCount           *int32                 `json:"ping_packet_count"`
+	PingPacketSizeBytes       *int32                 `json:"ping_packet_size_bytes"`
+	PingTimeoutMs             *int32                 `json:"ping_timeout_ms"`
+	PingIpFamily              NullIpFamily           `json:"ping_ip_family"`
+	TracerouteProtocol        NullTracerouteProtocol `json:"traceroute_protocol"`
+	TracerouteMaxHops         *int32                 `json:"traceroute_max_hops"`
+	TracerouteTimeoutMs       *int32                 `json:"traceroute_timeout_ms"`
+	TracerouteQueriesPerHop   *int32                 `json:"traceroute_queries_per_hop"`
+	TraceroutePacketSizeBytes *int32                 `json:"traceroute_packet_size_bytes"`
+	TraceroutePort            *int32                 `json:"traceroute_port"`
+	TracerouteIpFamily        NullIpFamily           `json:"traceroute_ip_family"`
 }
 
 func (q *Queries) ListActiveAssignmentsForProbeChecks(ctx context.Context, arg ListActiveAssignmentsForProbeChecksParams) ([]ListActiveAssignmentsForProbeChecksRow, error) {
@@ -489,10 +526,17 @@ func (q *Queries) ListActiveAssignmentsForProbeChecks(ctx context.Context, arg L
 			&i.CheckType,
 			&i.Target,
 			&i.IntervalSeconds,
-			&i.PacketCount,
-			&i.PacketSizeBytes,
-			&i.TimeoutMs,
-			&i.IpFamily,
+			&i.PingPacketCount,
+			&i.PingPacketSizeBytes,
+			&i.PingTimeoutMs,
+			&i.PingIpFamily,
+			&i.TracerouteProtocol,
+			&i.TracerouteMaxHops,
+			&i.TracerouteTimeoutMs,
+			&i.TracerouteQueriesPerHop,
+			&i.TraceroutePacketSizeBytes,
+			&i.TraceroutePort,
+			&i.TracerouteIpFamily,
 		); err != nil {
 			return nil, err
 		}

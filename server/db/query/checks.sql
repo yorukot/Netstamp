@@ -11,13 +11,20 @@ SELECT checks.internal_id,
        checks.created_at,
        checks.updated_at,
        checks.deleted_at,
-       ping_check_configs.check_id,
-       ping_check_configs.packet_count,
-       ping_check_configs.packet_size_bytes,
-       ping_check_configs.timeout_ms,
-       ping_check_configs.ip_family
+       ping_check_configs.packet_count AS ping_packet_count,
+       ping_check_configs.packet_size_bytes AS ping_packet_size_bytes,
+       ping_check_configs.timeout_ms AS ping_timeout_ms,
+       ping_check_configs.ip_family AS ping_ip_family,
+       traceroute_check_configs.protocol AS traceroute_protocol,
+       traceroute_check_configs.max_hops AS traceroute_max_hops,
+       traceroute_check_configs.timeout_ms AS traceroute_timeout_ms,
+       traceroute_check_configs.queries_per_hop AS traceroute_queries_per_hop,
+       traceroute_check_configs.packet_size_bytes AS traceroute_packet_size_bytes,
+       traceroute_check_configs.port AS traceroute_port,
+       traceroute_check_configs.ip_family AS traceroute_ip_family
 FROM checks
-JOIN ping_check_configs ON ping_check_configs.check_id = checks.id
+LEFT JOIN ping_check_configs ON ping_check_configs.check_id = checks.id
+LEFT JOIN traceroute_check_configs ON traceroute_check_configs.check_id = checks.id
 WHERE checks.project_id = $1
   AND checks.deleted_at IS NULL
 ORDER BY checks.created_at DESC, checks.id DESC;
@@ -35,13 +42,20 @@ SELECT checks.internal_id,
        checks.created_at,
        checks.updated_at,
        checks.deleted_at,
-       ping_check_configs.check_id,
-       ping_check_configs.packet_count,
-       ping_check_configs.packet_size_bytes,
-       ping_check_configs.timeout_ms,
-       ping_check_configs.ip_family
+       ping_check_configs.packet_count AS ping_packet_count,
+       ping_check_configs.packet_size_bytes AS ping_packet_size_bytes,
+       ping_check_configs.timeout_ms AS ping_timeout_ms,
+       ping_check_configs.ip_family AS ping_ip_family,
+       traceroute_check_configs.protocol AS traceroute_protocol,
+       traceroute_check_configs.max_hops AS traceroute_max_hops,
+       traceroute_check_configs.timeout_ms AS traceroute_timeout_ms,
+       traceroute_check_configs.queries_per_hop AS traceroute_queries_per_hop,
+       traceroute_check_configs.packet_size_bytes AS traceroute_packet_size_bytes,
+       traceroute_check_configs.port AS traceroute_port,
+       traceroute_check_configs.ip_family AS traceroute_ip_family
 FROM checks
-JOIN ping_check_configs ON ping_check_configs.check_id = checks.id
+LEFT JOIN ping_check_configs ON ping_check_configs.check_id = checks.id
+LEFT JOIN traceroute_check_configs ON traceroute_check_configs.check_id = checks.id
 WHERE checks.project_id = $1
   AND checks.id = $2
   AND checks.deleted_at IS NULL;
@@ -85,6 +99,23 @@ SET packet_count = $2,
     ip_family = $5
 WHERE check_id = $1
 RETURNING check_id, packet_count, packet_size_bytes, timeout_ms, ip_family;
+
+-- name: CreateTracerouteCheckConfig :one
+INSERT INTO traceroute_check_configs (check_id, protocol, max_hops, timeout_ms, queries_per_hop, packet_size_bytes, port, ip_family)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+RETURNING check_id, protocol, max_hops, timeout_ms, queries_per_hop, packet_size_bytes, port, ip_family;
+
+-- name: UpdateTracerouteCheckConfig :one
+UPDATE traceroute_check_configs
+SET protocol = $2,
+    max_hops = $3,
+    timeout_ms = $4,
+    queries_per_hop = $5,
+    packet_size_bytes = $6,
+    port = $7,
+    ip_family = $8
+WHERE check_id = $1
+RETURNING check_id, protocol, max_hops, timeout_ms, queries_per_hop, packet_size_bytes, port, ip_family;
 
 -- name: CreateCheckLabel :exec
 INSERT INTO check_labels (project_id, check_id, label_id)

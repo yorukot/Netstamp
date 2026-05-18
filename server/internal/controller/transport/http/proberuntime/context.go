@@ -13,6 +13,7 @@ import (
 	appvalidation "github.com/yorukot/netstamp/internal/controller/application/validation"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
+	domaintraceroute "github.com/yorukot/netstamp/internal/domain/traceroute"
 )
 
 type runtimeAuthContextKey struct{}
@@ -84,7 +85,7 @@ func mapRuntimeError(err error, fallback string) error {
 		return huma.Error404NotFound("probe not found")
 	case errors.Is(err, appproberuntime.ErrInvalidInput):
 		return invalidRuntimeInputError(err)
-	case errors.Is(err, domainping.ErrInvalidResult):
+	case errors.Is(err, domainping.ErrInvalidResult), errors.Is(err, domaintraceroute.ErrInvalidResult):
 		return invalidRuntimeInputError(err)
 	default:
 		return huma.Error500InternalServerError(fallback)

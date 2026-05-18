@@ -9,6 +9,7 @@ import (
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
+	domaintraceroute "github.com/yorukot/netstamp/internal/domain/traceroute"
 )
 
 const (
@@ -34,10 +35,11 @@ type normalizedSubmitResultsInput struct {
 }
 
 type normalizedResultGroup struct {
-	checkID   string
-	checkType domaincheck.Type
-	ping      []domainping.ResultStorageInput
-	index     int
+	checkID    string
+	checkType  domaincheck.Type
+	ping       []domainping.ResultStorageInput
+	traceroute []domaintraceroute.ResultStorageInput
+	index      int
 }
 
 func normalizeRuntimeAuthInput(input RuntimeAuthInput) (normalizedRuntimeAuthInput, error) {
@@ -83,12 +85,19 @@ func normalizeSubmitResults(input SubmitResultsInput) (normalizedSubmitResultsIn
 			}
 			seenResults[resultKey] = struct{}{}
 		}
+		for j, result := range normalized.traceroute {
+			resultKey := normalized.checkID + "\x00" + string(normalized.checkType) + "\x00" + result.StartedAt.Format(timeKeyLayout)
+			if _, ok := seenResults[resultKey]; ok {
+				return normalizedSubmitResultsInput{}, invalidRuntimeField(resultGroupField(i, fmt.Sprintf("traceroute[%d].startedAt", j)), "duplicate result startedAt for check", result.StartedAt)
+			}
+			seenResults[resultKey] = struct{}{}
+		}
 
 		if _, ok := seenChecks[normalized.checkID]; !ok {
 			checkIDs = append(checkIDs, normalized.checkID)
 			seenChecks[normalized.checkID] = struct{}{}
 		}
-		accepted += len(normalized.ping)
+		accepted += len(normalized.ping) + len(normalized.traceroute)
 		groups = append(groups, normalized)
 	}
 
@@ -104,28 +113,58 @@ func normalizeResultGroup(input RuntimeResultGroupInput, index int) (normalizedR
 	}
 
 	checkType := domaincheck.Type(strings.TrimSpace(input.Type))
-	if checkType != domaincheck.TypePing {
+	if checkType != domaincheck.TypePing && checkType != domaincheck.TypeTraceroute {
 		return normalizedResultGroup{}, invalidRuntimeField(resultGroupField(index, "type"), "unsupported result type", input.Type)
 	}
-	if len(input.Ping) == 0 {
-		return normalizedResultGroup{}, invalidRuntimeField(resultGroupField(index, "ping"), "must include at least one ping result", input.Ping)
-	}
 
-	pingResults := make([]domainping.ResultStorageInput, 0, len(input.Ping))
-	for i, result := range input.Ping {
-		normalized, err := normalizePingResult(result, resultGroupField(index, fmt.Sprintf("ping[%d]", i)))
-		if err != nil {
-			return normalizedResultGroup{}, err
+	switch checkType {
+	case domaincheck.TypePing:
+		if len(input.Ping) == 0 {
+			return normalizedResultGroup{}, invalidRuntimeField(resultGroupField(index, "ping"), "must include at least one ping result", input.Ping)
 		}
-		pingResults = append(pingResults, normalized)
-	}
+		if len(input.Traceroute) > 0 {
+			return normalizedResultGroup{}, invalidRuntimeField(resultGroupField(index, "traceroute"), "must be omitted for ping results", input.Traceroute)
+		}
+		pingResults := make([]domainping.ResultStorageInput, 0, len(input.Ping))
+		for i, result := range input.Ping {
+			normalized, err := normalizePingResult(result, resultGroupField(index, fmt.Sprintf("ping[%d]", i)))
+			if err != nil {
+				return normalizedResultGroup{}, err
+			}
+			pingResults = append(pingResults, normalized)
+		}
 
-	return normalizedResultGroup{
-		checkID:   checkID,
-		checkType: checkType,
-		ping:      pingResults,
-		index:     index,
-	}, nil
+		return normalizedResultGroup{
+			checkID:   checkID,
+			checkType: checkType,
+			ping:      pingResults,
+			index:     index,
+		}, nil
+	case domaincheck.TypeTraceroute:
+		if len(input.Traceroute) == 0 {
+			return normalizedResultGroup{}, invalidRuntimeField(resultGroupField(index, "traceroute"), "must include at least one traceroute result", input.Traceroute)
+		}
+		if len(input.Ping) > 0 {
+			return normalizedResultGroup{}, invalidRuntimeField(resultGroupField(index, "ping"), "must be omitted for traceroute results", input.Ping)
+		}
+		tracerouteResults := make([]domaintraceroute.ResultStorageInput, 0, len(input.Traceroute))
+		for i, result := range input.Traceroute {
+			normalized, err := normalizeTracerouteResult(result, resultGroupField(index, fmt.Sprintf("traceroute[%d]", i)))
+			if err != nil {
+				return normalizedResultGroup{}, err
+			}
+			tracerouteResults = append(tracerouteResults, normalized)
+		}
+
+		return normalizedResultGroup{
+			checkID:    checkID,
+			checkType:  checkType,
+			traceroute: tracerouteResults,
+			index:      index,
+		}, nil
+	default:
+		return normalizedResultGroup{}, invalidRuntimeField(resultGroupField(index, "type"), "unsupported result type", input.Type)
+	}
 }
 
 func resultGroupField(index int, field string) string {

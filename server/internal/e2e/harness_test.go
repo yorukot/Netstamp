@@ -40,6 +40,7 @@ import (
 	pgping "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/ping"
 	pgprobe "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/probe"
 	pgproject "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/project"
+	pgtraceroute "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/traceroute"
 	pguser "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/user"
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/security"
 	httpserver "github.com/yorukot/netstamp/internal/controller/transport/http"
@@ -216,6 +217,7 @@ func newTestRouter(pool *pgxpool.Pool) http.Handler {
 	checkRepo := pgcheck.NewCheckRepository(pool)
 	probeRepo := pgprobe.NewProbeRepository(pool)
 	pingRepo := pgping.NewPingRepository(pool)
+	tracerouteRepo := pgtraceroute.NewTracerouteRepository(pool)
 	assignmentRepo := pgassignment.NewAssignmentRepository(pool)
 	tokenIssuer := security.NewJWTIssuer("e2e-jwt-secret", time.Hour)
 	events := noopEvents{}
@@ -238,11 +240,12 @@ func newTestRouter(pool *pgxpool.Pool) http.Handler {
 		ProbeRuntime: appproberuntime.NewService(
 			probeRepo,
 			pingRepo,
+			tracerouteRepo,
 			security.NewProbeSecretVerifier(),
 			events,
 		),
 		ProjectService: appproject.NewService(projectRepo, events),
-		ResultService:  appresult.NewService(pingRepo, projectRepo),
+		ResultService:  appresult.NewService(pingRepo, tracerouteRepo, projectRepo),
 		ReadinessCheck: postgres.NewReadinessCheck(pool),
 		RequestTimeout: 15 * time.Second,
 	})

@@ -137,6 +137,48 @@ func (q *Queries) CreateProbeCheckAssignment(ctx context.Context, arg CreateProb
 	return err
 }
 
+const createTracerouteCheckConfig = `-- name: CreateTracerouteCheckConfig :one
+INSERT INTO traceroute_check_configs (check_id, protocol, max_hops, timeout_ms, queries_per_hop, packet_size_bytes, port, ip_family)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+RETURNING check_id, protocol, max_hops, timeout_ms, queries_per_hop, packet_size_bytes, port, ip_family
+`
+
+type CreateTracerouteCheckConfigParams struct {
+	CheckID         uuid.UUID          `json:"check_id"`
+	Protocol        TracerouteProtocol `json:"protocol"`
+	MaxHops         int32              `json:"max_hops"`
+	TimeoutMs       int32              `json:"timeout_ms"`
+	QueriesPerHop   int32              `json:"queries_per_hop"`
+	PacketSizeBytes int32              `json:"packet_size_bytes"`
+	Port            int32              `json:"port"`
+	IpFamily        NullIpFamily       `json:"ip_family"`
+}
+
+func (q *Queries) CreateTracerouteCheckConfig(ctx context.Context, arg CreateTracerouteCheckConfigParams) (TracerouteCheckConfig, error) {
+	row := q.db.QueryRow(ctx, createTracerouteCheckConfig,
+		arg.CheckID,
+		arg.Protocol,
+		arg.MaxHops,
+		arg.TimeoutMs,
+		arg.QueriesPerHop,
+		arg.PacketSizeBytes,
+		arg.Port,
+		arg.IpFamily,
+	)
+	var i TracerouteCheckConfig
+	err := row.Scan(
+		&i.CheckID,
+		&i.Protocol,
+		&i.MaxHops,
+		&i.TimeoutMs,
+		&i.QueriesPerHop,
+		&i.PacketSizeBytes,
+		&i.Port,
+		&i.IpFamily,
+	)
+	return i, err
+}
+
 const deleteCheckLabels = `-- name: DeleteCheckLabels :exec
 DELETE FROM check_labels
 WHERE project_id = $1
@@ -213,13 +255,20 @@ SELECT checks.internal_id,
        checks.created_at,
        checks.updated_at,
        checks.deleted_at,
-       ping_check_configs.check_id,
-       ping_check_configs.packet_count,
-       ping_check_configs.packet_size_bytes,
-       ping_check_configs.timeout_ms,
-       ping_check_configs.ip_family
+       ping_check_configs.packet_count AS ping_packet_count,
+       ping_check_configs.packet_size_bytes AS ping_packet_size_bytes,
+       ping_check_configs.timeout_ms AS ping_timeout_ms,
+       ping_check_configs.ip_family AS ping_ip_family,
+       traceroute_check_configs.protocol AS traceroute_protocol,
+       traceroute_check_configs.max_hops AS traceroute_max_hops,
+       traceroute_check_configs.timeout_ms AS traceroute_timeout_ms,
+       traceroute_check_configs.queries_per_hop AS traceroute_queries_per_hop,
+       traceroute_check_configs.packet_size_bytes AS traceroute_packet_size_bytes,
+       traceroute_check_configs.port AS traceroute_port,
+       traceroute_check_configs.ip_family AS traceroute_ip_family
 FROM checks
-JOIN ping_check_configs ON ping_check_configs.check_id = checks.id
+LEFT JOIN ping_check_configs ON ping_check_configs.check_id = checks.id
+LEFT JOIN traceroute_check_configs ON traceroute_check_configs.check_id = checks.id
 WHERE checks.project_id = $1
   AND checks.id = $2
   AND checks.deleted_at IS NULL
@@ -231,23 +280,29 @@ type GetActiveCheckForProjectParams struct {
 }
 
 type GetActiveCheckForProjectRow struct {
-	InternalID      int64              `json:"internal_id"`
-	ID              uuid.UUID          `json:"id"`
-	ProjectID       uuid.UUID          `json:"project_id"`
-	Name            string             `json:"name"`
-	CheckType       CheckType          `json:"check_type"`
-	Target          string             `json:"target"`
-	Selector        []byte             `json:"selector"`
-	Description     *string            `json:"description"`
-	IntervalSeconds int32              `json:"interval_seconds"`
-	CreatedAt       pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
-	DeletedAt       pgtype.Timestamptz `json:"deleted_at"`
-	CheckID         uuid.UUID          `json:"check_id"`
-	PacketCount     int32              `json:"packet_count"`
-	PacketSizeBytes int32              `json:"packet_size_bytes"`
-	TimeoutMs       int32              `json:"timeout_ms"`
-	IpFamily        NullIpFamily       `json:"ip_family"`
+	InternalID                int64                  `json:"internal_id"`
+	ID                        uuid.UUID              `json:"id"`
+	ProjectID                 uuid.UUID              `json:"project_id"`
+	Name                      string                 `json:"name"`
+	CheckType                 CheckType              `json:"check_type"`
+	Target                    string                 `json:"target"`
+	Selector                  []byte                 `json:"selector"`
+	Description               *string                `json:"description"`
+	IntervalSeconds           int32                  `json:"interval_seconds"`
+	CreatedAt                 pgtype.Timestamptz     `json:"created_at"`
+	UpdatedAt                 pgtype.Timestamptz     `json:"updated_at"`
+	DeletedAt                 pgtype.Timestamptz     `json:"deleted_at"`
+	PingPacketCount           *int32                 `json:"ping_packet_count"`
+	PingPacketSizeBytes       *int32                 `json:"ping_packet_size_bytes"`
+	PingTimeoutMs             *int32                 `json:"ping_timeout_ms"`
+	PingIpFamily              NullIpFamily           `json:"ping_ip_family"`
+	TracerouteProtocol        NullTracerouteProtocol `json:"traceroute_protocol"`
+	TracerouteMaxHops         *int32                 `json:"traceroute_max_hops"`
+	TracerouteTimeoutMs       *int32                 `json:"traceroute_timeout_ms"`
+	TracerouteQueriesPerHop   *int32                 `json:"traceroute_queries_per_hop"`
+	TraceroutePacketSizeBytes *int32                 `json:"traceroute_packet_size_bytes"`
+	TraceroutePort            *int32                 `json:"traceroute_port"`
+	TracerouteIpFamily        NullIpFamily           `json:"traceroute_ip_family"`
 }
 
 func (q *Queries) GetActiveCheckForProject(ctx context.Context, arg GetActiveCheckForProjectParams) (GetActiveCheckForProjectRow, error) {
@@ -266,11 +321,17 @@ func (q *Queries) GetActiveCheckForProject(ctx context.Context, arg GetActiveChe
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
-		&i.CheckID,
-		&i.PacketCount,
-		&i.PacketSizeBytes,
-		&i.TimeoutMs,
-		&i.IpFamily,
+		&i.PingPacketCount,
+		&i.PingPacketSizeBytes,
+		&i.PingTimeoutMs,
+		&i.PingIpFamily,
+		&i.TracerouteProtocol,
+		&i.TracerouteMaxHops,
+		&i.TracerouteTimeoutMs,
+		&i.TracerouteQueriesPerHop,
+		&i.TraceroutePacketSizeBytes,
+		&i.TraceroutePort,
+		&i.TracerouteIpFamily,
 	)
 	return i, err
 }
@@ -288,36 +349,49 @@ SELECT checks.internal_id,
        checks.created_at,
        checks.updated_at,
        checks.deleted_at,
-       ping_check_configs.check_id,
-       ping_check_configs.packet_count,
-       ping_check_configs.packet_size_bytes,
-       ping_check_configs.timeout_ms,
-       ping_check_configs.ip_family
+       ping_check_configs.packet_count AS ping_packet_count,
+       ping_check_configs.packet_size_bytes AS ping_packet_size_bytes,
+       ping_check_configs.timeout_ms AS ping_timeout_ms,
+       ping_check_configs.ip_family AS ping_ip_family,
+       traceroute_check_configs.protocol AS traceroute_protocol,
+       traceroute_check_configs.max_hops AS traceroute_max_hops,
+       traceroute_check_configs.timeout_ms AS traceroute_timeout_ms,
+       traceroute_check_configs.queries_per_hop AS traceroute_queries_per_hop,
+       traceroute_check_configs.packet_size_bytes AS traceroute_packet_size_bytes,
+       traceroute_check_configs.port AS traceroute_port,
+       traceroute_check_configs.ip_family AS traceroute_ip_family
 FROM checks
-JOIN ping_check_configs ON ping_check_configs.check_id = checks.id
+LEFT JOIN ping_check_configs ON ping_check_configs.check_id = checks.id
+LEFT JOIN traceroute_check_configs ON traceroute_check_configs.check_id = checks.id
 WHERE checks.project_id = $1
   AND checks.deleted_at IS NULL
 ORDER BY checks.created_at DESC, checks.id DESC
 `
 
 type ListActiveChecksForProjectRow struct {
-	InternalID      int64              `json:"internal_id"`
-	ID              uuid.UUID          `json:"id"`
-	ProjectID       uuid.UUID          `json:"project_id"`
-	Name            string             `json:"name"`
-	CheckType       CheckType          `json:"check_type"`
-	Target          string             `json:"target"`
-	Selector        []byte             `json:"selector"`
-	Description     *string            `json:"description"`
-	IntervalSeconds int32              `json:"interval_seconds"`
-	CreatedAt       pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
-	DeletedAt       pgtype.Timestamptz `json:"deleted_at"`
-	CheckID         uuid.UUID          `json:"check_id"`
-	PacketCount     int32              `json:"packet_count"`
-	PacketSizeBytes int32              `json:"packet_size_bytes"`
-	TimeoutMs       int32              `json:"timeout_ms"`
-	IpFamily        NullIpFamily       `json:"ip_family"`
+	InternalID                int64                  `json:"internal_id"`
+	ID                        uuid.UUID              `json:"id"`
+	ProjectID                 uuid.UUID              `json:"project_id"`
+	Name                      string                 `json:"name"`
+	CheckType                 CheckType              `json:"check_type"`
+	Target                    string                 `json:"target"`
+	Selector                  []byte                 `json:"selector"`
+	Description               *string                `json:"description"`
+	IntervalSeconds           int32                  `json:"interval_seconds"`
+	CreatedAt                 pgtype.Timestamptz     `json:"created_at"`
+	UpdatedAt                 pgtype.Timestamptz     `json:"updated_at"`
+	DeletedAt                 pgtype.Timestamptz     `json:"deleted_at"`
+	PingPacketCount           *int32                 `json:"ping_packet_count"`
+	PingPacketSizeBytes       *int32                 `json:"ping_packet_size_bytes"`
+	PingTimeoutMs             *int32                 `json:"ping_timeout_ms"`
+	PingIpFamily              NullIpFamily           `json:"ping_ip_family"`
+	TracerouteProtocol        NullTracerouteProtocol `json:"traceroute_protocol"`
+	TracerouteMaxHops         *int32                 `json:"traceroute_max_hops"`
+	TracerouteTimeoutMs       *int32                 `json:"traceroute_timeout_ms"`
+	TracerouteQueriesPerHop   *int32                 `json:"traceroute_queries_per_hop"`
+	TraceroutePacketSizeBytes *int32                 `json:"traceroute_packet_size_bytes"`
+	TraceroutePort            *int32                 `json:"traceroute_port"`
+	TracerouteIpFamily        NullIpFamily           `json:"traceroute_ip_family"`
 }
 
 func (q *Queries) ListActiveChecksForProject(ctx context.Context, projectID uuid.UUID) ([]ListActiveChecksForProjectRow, error) {
@@ -342,11 +416,17 @@ func (q *Queries) ListActiveChecksForProject(ctx context.Context, projectID uuid
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.DeletedAt,
-			&i.CheckID,
-			&i.PacketCount,
-			&i.PacketSizeBytes,
-			&i.TimeoutMs,
-			&i.IpFamily,
+			&i.PingPacketCount,
+			&i.PingPacketSizeBytes,
+			&i.PingTimeoutMs,
+			&i.PingIpFamily,
+			&i.TracerouteProtocol,
+			&i.TracerouteMaxHops,
+			&i.TracerouteTimeoutMs,
+			&i.TracerouteQueriesPerHop,
+			&i.TraceroutePacketSizeBytes,
+			&i.TraceroutePort,
+			&i.TracerouteIpFamily,
 		); err != nil {
 			return nil, err
 		}
@@ -586,6 +666,55 @@ func (q *Queries) UpdatePingCheckConfig(ctx context.Context, arg UpdatePingCheck
 		&i.PacketCount,
 		&i.PacketSizeBytes,
 		&i.TimeoutMs,
+		&i.IpFamily,
+	)
+	return i, err
+}
+
+const updateTracerouteCheckConfig = `-- name: UpdateTracerouteCheckConfig :one
+UPDATE traceroute_check_configs
+SET protocol = $2,
+    max_hops = $3,
+    timeout_ms = $4,
+    queries_per_hop = $5,
+    packet_size_bytes = $6,
+    port = $7,
+    ip_family = $8
+WHERE check_id = $1
+RETURNING check_id, protocol, max_hops, timeout_ms, queries_per_hop, packet_size_bytes, port, ip_family
+`
+
+type UpdateTracerouteCheckConfigParams struct {
+	CheckID         uuid.UUID          `json:"check_id"`
+	Protocol        TracerouteProtocol `json:"protocol"`
+	MaxHops         int32              `json:"max_hops"`
+	TimeoutMs       int32              `json:"timeout_ms"`
+	QueriesPerHop   int32              `json:"queries_per_hop"`
+	PacketSizeBytes int32              `json:"packet_size_bytes"`
+	Port            int32              `json:"port"`
+	IpFamily        NullIpFamily       `json:"ip_family"`
+}
+
+func (q *Queries) UpdateTracerouteCheckConfig(ctx context.Context, arg UpdateTracerouteCheckConfigParams) (TracerouteCheckConfig, error) {
+	row := q.db.QueryRow(ctx, updateTracerouteCheckConfig,
+		arg.CheckID,
+		arg.Protocol,
+		arg.MaxHops,
+		arg.TimeoutMs,
+		arg.QueriesPerHop,
+		arg.PacketSizeBytes,
+		arg.Port,
+		arg.IpFamily,
+	)
+	var i TracerouteCheckConfig
+	err := row.Scan(
+		&i.CheckID,
+		&i.Protocol,
+		&i.MaxHops,
+		&i.TimeoutMs,
+		&i.QueriesPerHop,
+		&i.PacketSizeBytes,
+		&i.Port,
 		&i.IpFamily,
 	)
 	return i, err

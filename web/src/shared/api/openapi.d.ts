@@ -335,6 +335,23 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	"/projects/{ref}/results/traceroute/runs": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** Query project traceroute result runs */
+		get: operations["queryProjectTracerouteResultRuns"];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	"/runtime/probes/{probe_id}/assignments": {
 		parameters: {
 			query?: never;
@@ -451,10 +468,11 @@ export interface components {
 			intervalSeconds: number;
 			labels: components["schemas"]["Label"][] | null;
 			name: string;
-			pingConfig: components["schemas"]["Config"];
+			pingConfig?: components["schemas"]["Config"];
 			projectId: string;
 			selector: unknown;
 			target: string;
+			tracerouteConfig?: components["schemas"]["TracerouteConfig"];
 			type: string;
 			/** Format: date-time */
 			updatedAt: string;
@@ -490,6 +508,50 @@ export interface components {
 			/**
 			 * Format: int32
 			 * @description Ping timeout in milliseconds.
+			 * @example 3000
+			 */
+			timeoutMs?: number;
+		};
+		CheckTracerouteConfigInput: {
+			/**
+			 * @description Optional IP family preference.
+			 * @example inet
+			 * @enum {string}
+			 */
+			ipFamily?: "inet" | "inet6";
+			/**
+			 * Format: int32
+			 * @description Maximum hop count.
+			 * @example 30
+			 */
+			maxHops?: number;
+			/**
+			 * Format: int32
+			 * @description Probe payload size in bytes.
+			 * @example 56
+			 */
+			packetSizeBytes?: number;
+			/**
+			 * Format: int32
+			 * @description Destination port for UDP/TCP traceroute.
+			 * @example 33434
+			 */
+			port?: number;
+			/**
+			 * @description Traceroute protocol.
+			 * @example icmp
+			 * @enum {string}
+			 */
+			protocol?: "icmp" | "udp" | "tcp";
+			/**
+			 * Format: int32
+			 * @description Probe attempts per hop.
+			 * @example 3
+			 */
+			queriesPerHop?: number;
+			/**
+			 * Format: int32
+			 * @description Traceroute timeout in milliseconds.
 			 * @example 3000
 			 */
 			timeoutMs?: number;
@@ -539,12 +601,14 @@ export interface components {
 			 * @example api.netstamp.io
 			 */
 			target: string;
+			/** @description Traceroute-specific check configuration. Omitted fields use defaults. */
+			tracerouteConfig?: components["schemas"]["CheckTracerouteConfigInput"];
 			/**
-			 * @description Check type. Only ping is supported in v1.
+			 * @description Check type.
 			 * @example ping
 			 * @enum {string}
 			 */
-			type: "ping";
+			type: "ping" | "traceroute";
 		};
 		CreateLabelInputBody: {
 			/**
@@ -781,15 +845,16 @@ export interface components {
 			 */
 			readonly $schema?: string;
 			/**
+			 * Format: email
 			 * @description Email address used to sign in. It is normalized before lookup.
 			 * @example user@example.com
 			 */
-			email?: string;
+			email: string;
 			/**
 			 * @description Plain-text password to verify. It is never returned by the API.
 			 * @example correct-horse-battery-staple
 			 */
-			password?: string;
+			password: string;
 		};
 		LoginOutputBody: {
 			/**
@@ -1012,6 +1077,16 @@ export interface components {
 			query: components["schemas"]["QueryMetadataBody"];
 			series: components["schemas"]["SeriesBody"][] | null;
 		};
+		QueryTracerouteRunsBody: {
+			/**
+			 * Format: uri
+			 * @description A URL to the JSON Schema for this object.
+			 * @example /api/v1/schemas/QueryTracerouteRunsBody.json
+			 */
+			readonly $schema?: string;
+			query: components["schemas"]["TracerouteRunQueryMetadataBody"];
+			runs: components["schemas"]["TracerouteResultRunBody"][] | null;
+		};
 		RegisterInputBody: {
 			/**
 			 * Format: uri
@@ -1023,17 +1098,18 @@ export interface components {
 			 * @description Name shown in the app.
 			 * @example Jane Doe
 			 */
-			displayName?: string;
+			displayName: string;
 			/**
+			 * Format: email
 			 * @description Email address used to sign in.
 			 * @example user@example.com
 			 */
-			email?: string;
+			email: string;
 			/**
 			 * @description Plain-text password. It is stored only as an Argon2id hash.
 			 * @example correct-horse-battery-staple
 			 */
-			password?: string;
+			password: string;
 		};
 		RegisterOutputBody: {
 			/**
@@ -1091,12 +1167,14 @@ export interface components {
 			checkId: string;
 			/** @description Ping result payloads for this check. */
 			ping?: components["schemas"]["PingResultBody"][] | null;
+			/** @description Traceroute result payloads for this check. */
+			traceroute?: components["schemas"]["RuntimeTracerouteResultBody"][] | null;
 			/**
 			 * @description Check result type. Must match the assigned check type.
 			 * @example ping
 			 * @enum {string}
 			 */
-			type: "ping";
+			type: "ping" | "traceroute";
 		};
 		RuntimeStatusBody: {
 			/**
@@ -1129,6 +1207,146 @@ export interface components {
 			 * @example 2001:db8::10
 			 */
 			publicV6?: string;
+		};
+		RuntimeTracerouteHopBody: {
+			/**
+			 * Format: ip
+			 * @description Hop IP address.
+			 * @example 192.0.2.1
+			 */
+			address?: string;
+			/**
+			 * @description Optional machine-readable hop error code.
+			 * @example hop_timeout
+			 */
+			errorCode?: string;
+			/**
+			 * @description Optional hop error message.
+			 * @example request timed out
+			 */
+			errorMessage?: string;
+			/**
+			 * Format: int32
+			 * @description One-based hop index.
+			 * @example 1
+			 */
+			hopIndex: number;
+			/**
+			 * @description Hop reverse DNS hostname.
+			 * @example gateway.local
+			 */
+			hostname?: string;
+			/**
+			 * Format: double
+			 * @description Probe loss percentage for this hop.
+			 * @example 0
+			 */
+			lossPercent: number;
+			/**
+			 * Format: int32
+			 * @description Probe attempts received for this hop.
+			 * @example 3
+			 */
+			receivedCount: number;
+			/**
+			 * Format: double
+			 * @description Average RTT in milliseconds.
+			 * @example 1.7
+			 */
+			rttAvgMs?: number;
+			/**
+			 * Format: double
+			 * @description Maximum RTT in milliseconds.
+			 * @example 1.9
+			 */
+			rttMaxMs?: number;
+			/**
+			 * Format: double
+			 * @description Median RTT in milliseconds.
+			 * @example 1.7
+			 */
+			rttMedianMs?: number;
+			/**
+			 * Format: double
+			 * @description Minimum RTT in milliseconds.
+			 * @example 1.5
+			 */
+			rttMinMs?: number;
+			/** @description RTT sample values in milliseconds. */
+			rttSamplesMs?: number[] | null;
+			/**
+			 * Format: double
+			 * @description RTT standard deviation in milliseconds.
+			 * @example 0.2
+			 */
+			rttStddevMs?: number;
+			/**
+			 * Format: int32
+			 * @description Probe attempts sent for this hop.
+			 * @example 3
+			 */
+			sentCount: number;
+		};
+		RuntimeTracerouteResultBody: {
+			/**
+			 * @description Whether the traceroute reached the destination.
+			 * @example false
+			 */
+			destinationReached: boolean;
+			/**
+			 * Format: int32
+			 * @description Total check duration in milliseconds.
+			 * @example 4000
+			 */
+			durationMs: number;
+			/**
+			 * @description Optional machine-readable error code.
+			 * @example destination_unreached
+			 */
+			errorCode?: string;
+			/**
+			 * @description Optional executor error message.
+			 * @example destination was not reached before max hops
+			 */
+			errorMessage?: string;
+			/**
+			 * Format: date-time
+			 * @description UTC time when the traceroute check finished.
+			 * @example 2026-05-13T10:00:04Z
+			 */
+			finishedAt: string;
+			/**
+			 * Format: int32
+			 * @description Observed hop count.
+			 * @example 12
+			 */
+			hopCount: number;
+			/** @description Per-hop traceroute samples. */
+			hops?: components["schemas"]["RuntimeTracerouteHopBody"][] | null;
+			/**
+			 * @description IP family used for the check.
+			 * @example inet
+			 * @enum {string}
+			 */
+			ipFamily?: "inet" | "inet6";
+			/**
+			 * Format: ip
+			 * @description Resolved destination IP address.
+			 * @example 93.184.216.34
+			 */
+			resolvedIp?: string;
+			/**
+			 * Format: date-time
+			 * @description UTC time when the traceroute check started.
+			 * @example 2026-05-13T10:00:00Z
+			 */
+			startedAt: string;
+			/**
+			 * @description Traceroute result status.
+			 * @example partial
+			 * @enum {string}
+			 */
+			status: "successful" | "timeout" | "error" | "partial";
 		};
 		SeriesBody: {
 			labels: {
@@ -1178,6 +1396,86 @@ export interface components {
 			/** Format: date-time */
 			serverTime: string;
 		};
+		TracerouteConfig: {
+			ipFamily?: string;
+			/** Format: int32 */
+			maxHops: number;
+			/** Format: int32 */
+			packetSizeBytes: number;
+			/** Format: int32 */
+			port: number;
+			protocol: string;
+			/** Format: int32 */
+			queriesPerHop: number;
+			/** Format: int32 */
+			timeoutMs: number;
+		};
+		TracerouteResultHopBody: {
+			/** Format: ip */
+			address?: string;
+			errorCode?: string;
+			errorMessage?: string;
+			/** Format: int32 */
+			hopIndex: number;
+			hostname?: string;
+			/** Format: double */
+			lossPercent: number;
+			/** Format: int32 */
+			receivedCount: number;
+			/** Format: double */
+			rttAvgMs?: number;
+			/** Format: double */
+			rttMaxMs?: number;
+			/** Format: double */
+			rttMedianMs?: number;
+			/** Format: double */
+			rttMinMs?: number;
+			rttSamplesMs?: number[] | null;
+			/** Format: double */
+			rttStddevMs?: number;
+			/** Format: int32 */
+			sentCount: number;
+		};
+		TracerouteResultRunBody: {
+			destinationReached: boolean;
+			/** Format: int32 */
+			durationMs: number;
+			errorCode?: string;
+			errorMessage?: string;
+			/** Format: date-time */
+			finishedAt: string;
+			/** Format: int32 */
+			hopCount: number;
+			hops: components["schemas"]["TracerouteResultHopBody"][] | null;
+			ipFamily?: string;
+			/** Format: ip */
+			resolvedIp?: string;
+			/** Format: date-time */
+			startedAt: string;
+			status: string;
+		};
+		TracerouteRunQueryMetadataBody: {
+			/**
+			 * Format: int64
+			 * @example 1778662800000
+			 */
+			from: number;
+			/**
+			 * Format: int32
+			 * @example 100
+			 */
+			limit: number;
+			/**
+			 * Format: int64
+			 * @example 1778662800000
+			 */
+			nextCursor?: number;
+			/**
+			 * Format: int64
+			 * @example 1778749200000
+			 */
+			to: number;
+		};
 		UpdateCheckInputBody: {
 			/**
 			 * Format: uri
@@ -1214,12 +1512,14 @@ export interface components {
 			 * @example api.netstamp.io
 			 */
 			target?: string;
+			/** @description Traceroute-specific check configuration fields to update. */
+			tracerouteConfig?: components["schemas"]["CheckTracerouteConfigInput"];
 			/**
-			 * @description Check type. Only ping is supported in v1.
+			 * @description Check type. Cannot be changed after creation in v1.
 			 * @example ping
 			 * @enum {string}
 			 */
-			type?: "ping";
+			type?: "ping" | "traceroute";
 		};
 		UpdateLabelInputBody: {
 			/**
@@ -1310,7 +1610,7 @@ export interface components {
 			 * @description Name shown in the app.
 			 * @example Jane Doe
 			 */
-			displayName?: string;
+			displayName: string;
 			/**
 			 * Format: email
 			 * @description Normalized email address used to sign in.
@@ -3232,6 +3532,78 @@ export interface operations {
 				};
 				content: {
 					"application/json": components["schemas"]["QueryPingSeriesBody"];
+				};
+			};
+			/** @description Unauthorized */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ErrorModel"];
+				};
+			};
+			/** @description Not Found */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ErrorModel"];
+				};
+			};
+			/** @description Unprocessable Entity */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ErrorModel"];
+				};
+			};
+			/** @description Internal Server Error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ErrorModel"];
+				};
+			};
+		};
+	};
+	queryProjectTracerouteResultRuns: {
+		parameters: {
+			query: {
+				/** @description Probe ID to query. */
+				probeId: string;
+				/** @description Check ID to query. */
+				checkId: string;
+				/** @description Inclusive range start as epoch milliseconds. */
+				from?: number;
+				/** @description Exclusive range end as epoch milliseconds. */
+				to?: number;
+				/** @description Maximum traceroute runs to return. */
+				limit?: number;
+				/** @description Pagination cursor as a run startedAt epoch millisecond timestamp. */
+				cursor?: number;
+			};
+			header?: never;
+			path: {
+				/** @description Project ID or slug. */
+				ref: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description OK */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["QueryTracerouteRunsBody"];
 				};
 			};
 			/** @description Unauthorized */

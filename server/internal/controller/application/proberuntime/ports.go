@@ -6,6 +6,7 @@ import (
 	domainassignment "github.com/yorukot/netstamp/internal/domain/assignment"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
+	domaintraceroute "github.com/yorukot/netstamp/internal/domain/traceroute"
 )
 
 type ProbeRepository interface {
@@ -17,6 +18,10 @@ type ProbeRepository interface {
 
 type PingResultRepository interface {
 	CreatePingResults(ctx context.Context, inputs []domainping.ResultStorageInput) error
+}
+
+type TracerouteResultRepository interface {
+	CreateTracerouteResults(ctx context.Context, inputs []domaintraceroute.ResultStorageInput) error
 }
 
 type SecretVerifier interface {

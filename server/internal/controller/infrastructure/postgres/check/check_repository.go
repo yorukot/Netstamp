@@ -16,6 +16,7 @@ import (
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 	domainselector "github.com/yorukot/netstamp/internal/domain/selector"
+	domaintraceroute "github.com/yorukot/netstamp/internal/domain/traceroute"
 )
 
 type CheckRepository struct {
@@ -105,12 +106,6 @@ func (r *CheckRepository) CreateCheck(ctx context.Context, input domaincheck.Che
 	if _, parseErr := domainselector.Parse(input.Selector); parseErr != nil {
 		return domaincheck.Check{}, domaincheck.ErrInvalidInput
 	}
-	pingConfig := input.PingConfig
-	if pingConfig == nil {
-		defaultConfig := domainping.DefaultConfig()
-		pingConfig = &defaultConfig
-	}
-
 	var created domaincheck.Check
 	err = r.tx.InTx(ctx, func(ctx context.Context, tx pgx.Tx) error {
 		q := r.queries.WithTx(tx)
@@ -128,13 +123,7 @@ func (r *CheckRepository) CreateCheck(ctx context.Context, input domaincheck.Che
 			return mapCheckWriteError(createErr)
 		}
 
-		config, configErr := q.CreatePingCheckConfig(ctx, sqlc.CreatePingCheckConfigParams{
-			CheckID:         row.ID,
-			PacketCount:     pingConfig.PacketCount,
-			PacketSizeBytes: pingConfig.PacketSizeBytes,
-			TimeoutMs:       pingConfig.TimeoutMs,
-			IpFamily:        sqlcIPFamily(pingConfig.IPFamily),
-		})
+		checkWithConfig, configErr := r.createCheckConfig(ctx, q, row, input)
 		if configErr != nil {
 			return mapCheckWriteError(configErr)
 		}
@@ -149,7 +138,7 @@ func (r *CheckRepository) CreateCheck(ctx context.Context, input domaincheck.Che
 			}
 		}
 
-		created = mapStoredCheck(row, config)
+		created = checkWithConfig
 		return nil
 	})
 	if err != nil {
@@ -175,12 +164,6 @@ func (r *CheckRepository) UpdateCheck(ctx context.Context, input domaincheck.Che
 	if _, parseErr := domainselector.Parse(input.Selector); parseErr != nil {
 		return domaincheck.Check{}, domaincheck.ErrInvalidInput
 	}
-	pingConfig := input.PingConfig
-	if pingConfig == nil {
-		defaultConfig := domainping.DefaultConfig()
-		pingConfig = &defaultConfig
-	}
-
 	var updated domaincheck.Check
 	err = r.tx.InTx(ctx, func(ctx context.Context, tx pgx.Tx) error {
 		q := r.queries.WithTx(tx)
@@ -202,13 +185,7 @@ func (r *CheckRepository) UpdateCheck(ctx context.Context, input domaincheck.Che
 			return mapCheckWriteError(updateErr)
 		}
 
-		config, configErr := q.UpdatePingCheckConfig(ctx, sqlc.UpdatePingCheckConfigParams{
-			CheckID:         checkID,
-			PacketCount:     pingConfig.PacketCount,
-			PacketSizeBytes: pingConfig.PacketSizeBytes,
-			TimeoutMs:       pingConfig.TimeoutMs,
-			IpFamily:        sqlcIPFamily(pingConfig.IPFamily),
-		})
+		checkWithConfig, configErr := r.updateCheckConfig(ctx, q, row, input)
 		if configErr != nil {
 			if errors.Is(configErr, pgx.ErrNoRows) {
 				return domaincheck.ErrCheckNotFound
@@ -234,7 +211,7 @@ func (r *CheckRepository) UpdateCheck(ctx context.Context, input domaincheck.Che
 			}
 		}
 
-		updated = mapStoredCheck(row, config)
+		updated = checkWithConfig
 		updated.Labels, err = r.listLabelsForCheck(ctx, q, projectID, checkID)
 		return err
 	})
@@ -268,6 +245,110 @@ func (r *CheckRepository) SoftDeleteCheck(ctx context.Context, projectIDValue, c
 	}
 
 	return nil
+}
+
+func (r *CheckRepository) createCheckConfig(ctx context.Context, q *sqlc.Queries, row sqlc.Check, input domaincheck.Check) (domaincheck.Check, error) {
+	return r.writeCheckConfig(ctx, q, row, input, checkConfigWriteCreate)
+}
+
+func (r *CheckRepository) updateCheckConfig(ctx context.Context, q *sqlc.Queries, row sqlc.Check, input domaincheck.Check) (domaincheck.Check, error) {
+	return r.writeCheckConfig(ctx, q, row, input, checkConfigWriteUpdate)
+}
+
+type checkConfigWriteMode string
+
+const (
+	checkConfigWriteCreate checkConfigWriteMode = "create"
+	checkConfigWriteUpdate checkConfigWriteMode = "update"
+)
+
+func (r *CheckRepository) writeCheckConfig(ctx context.Context, q *sqlc.Queries, row sqlc.Check, input domaincheck.Check, mode checkConfigWriteMode) (domaincheck.Check, error) {
+	switch input.Type {
+	case domaincheck.TypePing:
+		return r.writePingCheckConfig(ctx, q, row, input.PingConfig, mode)
+	case domaincheck.TypeTraceroute:
+		return r.writeTracerouteCheckConfig(ctx, q, row, input.TracerouteConfig, mode)
+	default:
+		return domaincheck.Check{}, domaincheck.ErrInvalidInput
+	}
+}
+
+func (r *CheckRepository) writePingCheckConfig(ctx context.Context, q *sqlc.Queries, row sqlc.Check, config *domainping.Config, mode checkConfigWriteMode) (domaincheck.Check, error) {
+	if config == nil {
+		defaultConfig := domainping.DefaultConfig()
+		config = &defaultConfig
+	}
+
+	switch mode {
+	case checkConfigWriteCreate:
+		stored, err := q.CreatePingCheckConfig(ctx, sqlc.CreatePingCheckConfigParams{
+			CheckID:         row.ID,
+			PacketCount:     config.PacketCount,
+			PacketSizeBytes: config.PacketSizeBytes,
+			TimeoutMs:       config.TimeoutMs,
+			IpFamily:        sqlcIPFamily(config.IPFamily),
+		})
+		if err != nil {
+			return domaincheck.Check{}, err
+		}
+		return mapStoredPingCheck(row, stored), nil
+	case checkConfigWriteUpdate:
+		stored, err := q.UpdatePingCheckConfig(ctx, sqlc.UpdatePingCheckConfigParams{
+			CheckID:         row.ID,
+			PacketCount:     config.PacketCount,
+			PacketSizeBytes: config.PacketSizeBytes,
+			TimeoutMs:       config.TimeoutMs,
+			IpFamily:        sqlcIPFamily(config.IPFamily),
+		})
+		if err != nil {
+			return domaincheck.Check{}, err
+		}
+		return mapStoredPingCheck(row, stored), nil
+	default:
+		return domaincheck.Check{}, domaincheck.ErrInvalidInput
+	}
+}
+
+func (r *CheckRepository) writeTracerouteCheckConfig(ctx context.Context, q *sqlc.Queries, row sqlc.Check, config *domaintraceroute.Config, mode checkConfigWriteMode) (domaincheck.Check, error) {
+	if config == nil {
+		defaultConfig := domaintraceroute.DefaultConfig()
+		config = &defaultConfig
+	}
+
+	switch mode {
+	case checkConfigWriteCreate:
+		stored, err := q.CreateTracerouteCheckConfig(ctx, sqlc.CreateTracerouteCheckConfigParams{
+			CheckID:         row.ID,
+			Protocol:        sqlcTracerouteProtocol(config.Protocol),
+			MaxHops:         config.MaxHops,
+			TimeoutMs:       config.TimeoutMs,
+			QueriesPerHop:   config.QueriesPerHop,
+			PacketSizeBytes: config.PacketSizeBytes,
+			Port:            config.Port,
+			IpFamily:        sqlcIPFamily(config.IPFamily),
+		})
+		if err != nil {
+			return domaincheck.Check{}, err
+		}
+		return mapStoredTracerouteCheck(row, stored), nil
+	case checkConfigWriteUpdate:
+		stored, err := q.UpdateTracerouteCheckConfig(ctx, sqlc.UpdateTracerouteCheckConfigParams{
+			CheckID:         row.ID,
+			Protocol:        sqlcTracerouteProtocol(config.Protocol),
+			MaxHops:         config.MaxHops,
+			TimeoutMs:       config.TimeoutMs,
+			QueriesPerHop:   config.QueriesPerHop,
+			PacketSizeBytes: config.PacketSizeBytes,
+			Port:            config.Port,
+			IpFamily:        sqlcIPFamily(config.IPFamily),
+		})
+		if err != nil {
+			return domaincheck.Check{}, err
+		}
+		return mapStoredTracerouteCheck(row, stored), nil
+	default:
+		return domaincheck.Check{}, domaincheck.ErrInvalidInput
+	}
 }
 
 func (r *CheckRepository) listLabelsForCheck(ctx context.Context, queries *sqlc.Queries, projectID, checkID uuid.UUID) ([]domainlabel.Label, error) {

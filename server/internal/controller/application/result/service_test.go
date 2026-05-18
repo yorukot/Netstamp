@@ -3,11 +3,15 @@ package result
 import (
 	"context"
 	"errors"
+	"net/netip"
+	"slices"
 	"testing"
 	"time"
 
+	domainnetwork "github.com/yorukot/netstamp/internal/domain/network"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
+	domaintraceroute "github.com/yorukot/netstamp/internal/domain/traceroute"
 )
 
 const (
@@ -30,7 +34,7 @@ func TestQueryPingSeriesUsesDefaultsAndMapsPoints(t *testing.T) {
 			TotalPoints: 1,
 		},
 	}
-	service := NewService(pings, staticProjectAccess{})
+	service := NewService(pings, &recordingTracerouteRunsRepository{}, staticProjectAccess{})
 
 	output, err := service.QueryPingSeries(context.Background(), QueryPingSeriesInput{
 		CurrentUserID: testUserID,
@@ -70,7 +74,7 @@ func TestQueryPingSeriesUsesDefaultsAndMapsPoints(t *testing.T) {
 }
 
 func TestQueryPingSeriesRejectsInvalidMetric(t *testing.T) {
-	service := NewService(&recordingPingSeriesRepository{}, staticProjectAccess{})
+	service := NewService(&recordingPingSeriesRepository{}, &recordingTracerouteRunsRepository{}, staticProjectAccess{})
 
 	_, err := service.QueryPingSeries(context.Background(), QueryPingSeriesInput{
 		CurrentUserID: testUserID,
@@ -82,6 +86,93 @@ func TestQueryPingSeriesRejectsInvalidMetric(t *testing.T) {
 	})
 	if !errors.Is(err, ErrInvalidInput) {
 		t.Fatalf("expected ErrInvalidInput, got %v", err)
+	}
+}
+
+func TestQueryTracerouteRunsUsesDefaultsAndMapsRuns(t *testing.T) {
+	now := time.Date(2026, 5, 13, 12, 0, 0, 0, time.UTC)
+	startedAt := now.Add(-time.Hour)
+	finishedAt := startedAt.Add(4 * time.Second)
+	nextCursor := startedAt
+	resolved := netip.MustParseAddr("93.184.216.34")
+	hopAddr := netip.MustParseAddr("192.0.2.1")
+	ipFamily := domainnetwork.IPFamilyInet
+	hostname := "gateway.local"
+	rttMin := 1.5
+	rttAvg := 1.7
+	rttMedian := 1.7
+	rttMax := 1.9
+	rttStddev := 0.2
+	traceroutes := &recordingTracerouteRunsRepository{
+		result: domaintraceroute.RunResult{
+			Runs: []domaintraceroute.Run{{
+				StartedAt:          startedAt,
+				FinishedAt:         finishedAt,
+				DurationMs:         4000,
+				Status:             domaintraceroute.StatusPartial,
+				ResolvedIP:         &resolved,
+				IPFamily:           &ipFamily,
+				DestinationReached: false,
+				HopCount:           1,
+				Hops: []domaintraceroute.Hop{{
+					HopIndex:      1,
+					Address:       &hopAddr,
+					Hostname:      &hostname,
+					SentCount:     3,
+					ReceivedCount: 3,
+					LossPercent:   0,
+					RttMinMs:      &rttMin,
+					RttAvgMs:      &rttAvg,
+					RttMedianMs:   &rttMedian,
+					RttMaxMs:      &rttMax,
+					RttStddevMs:   &rttStddev,
+					RttSamplesMs:  []float64{1.5, 1.7, 1.9},
+				}},
+			}},
+			NextCursor: &nextCursor,
+		},
+	}
+	service := NewService(&recordingPingSeriesRepository{}, traceroutes, staticProjectAccess{})
+
+	output, err := service.QueryTracerouteRuns(context.Background(), QueryTracerouteRunsInput{
+		CurrentUserID: testUserID,
+		ProjectRef:    "vector-ix",
+		ProbeID:       testProbeID,
+		CheckID:       testCheckID,
+		Now:           now,
+	})
+	if err != nil {
+		t.Fatalf("expected query to succeed: %v", err)
+	}
+
+	if traceroutes.got.ProjectID != testProjectID || traceroutes.got.ProbeID != testProbeID || traceroutes.got.CheckID != testCheckID {
+		t.Fatalf("unexpected repository identity input: %#v", traceroutes.got)
+	}
+	if !traceroutes.got.From.Equal(now.Add(-24*time.Hour)) || !traceroutes.got.To.Equal(now) {
+		t.Fatalf("unexpected default range: from=%s to=%s", traceroutes.got.From, traceroutes.got.To)
+	}
+	if traceroutes.got.Limit != defaultRunLimit || traceroutes.got.Cursor != nil {
+		t.Fatalf("unexpected pagination query: %#v", traceroutes.got)
+	}
+	if output.Query.FromMs != now.Add(-24*time.Hour).UnixMilli() || output.Query.ToMs != now.UnixMilli() {
+		t.Fatalf("unexpected output query metadata: %#v", output.Query)
+	}
+	if output.Query.Limit != defaultRunLimit || output.Query.NextCursor == nil || *output.Query.NextCursor != nextCursor.UnixMilli() {
+		t.Fatalf("unexpected pagination metadata: %#v", output.Query)
+	}
+	if len(output.Runs) != 1 || len(output.Runs[0].Hops) != 1 {
+		t.Fatalf("expected one run with one hop, got %#v", output.Runs)
+	}
+	run := output.Runs[0]
+	if !run.StartedAt.Equal(startedAt) || run.Status != string(domaintraceroute.StatusPartial) || run.IPFamily == nil || *run.IPFamily != string(domainnetwork.IPFamilyInet) {
+		t.Fatalf("unexpected mapped run: %#v", run)
+	}
+	if run.ResolvedIP == nil || *run.ResolvedIP != resolved {
+		t.Fatalf("unexpected resolved ip: %#v", run.ResolvedIP)
+	}
+	hop := run.Hops[0]
+	if hop.HopIndex != 1 || hop.Address == nil || *hop.Address != hopAddr || !slices.Equal(hop.RttSamplesMs, []float64{1.5, 1.7, 1.9}) {
+		t.Fatalf("unexpected mapped hop: %#v", hop)
 	}
 }
 
@@ -100,6 +191,16 @@ type recordingPingSeriesRepository struct {
 }
 
 func (r *recordingPingSeriesRepository) ListPingSeries(_ context.Context, input domainping.SeriesQuery) (domainping.SeriesResult, error) {
+	r.got = input
+	return r.result, nil
+}
+
+type recordingTracerouteRunsRepository struct {
+	got    domaintraceroute.RunQuery
+	result domaintraceroute.RunResult
+}
+
+func (r *recordingTracerouteRunsRepository) ListTracerouteRuns(_ context.Context, input domaintraceroute.RunQuery) (domaintraceroute.RunResult, error) {
 	r.got = input
 	return r.result, nil
 }

@@ -44,9 +44,10 @@ type SubmitResultsInput struct {
 }
 
 type RuntimeResultGroupInput struct {
-	CheckID string
-	Type    string
-	Ping    []PingResultInput
+	CheckID    string
+	Type       string
+	Ping       []PingResultInput
+	Traceroute []TracerouteResultInput
 }
 
 type PingResultInput struct {
@@ -72,4 +73,35 @@ type PingResultInput struct {
 type SubmitResultsOutput struct {
 	Accepted   int
 	ServerTime time.Time
+}
+
+type TracerouteResultInput struct {
+	StartedAt          time.Time
+	FinishedAt         time.Time
+	DurationMs         int32
+	Status             string
+	ResolvedIP         *netip.Addr
+	IPFamily           *string
+	DestinationReached bool
+	HopCount           int32
+	Hops               []TracerouteHopInput
+	ErrorCode          *string
+	ErrorMessage       *string
+}
+
+type TracerouteHopInput struct {
+	HopIndex      int32
+	Address       *netip.Addr
+	Hostname      *string
+	SentCount     int32
+	ReceivedCount int32
+	LossPercent   float64
+	RttMinMs      *float64
+	RttAvgMs      *float64
+	RttMedianMs   *float64
+	RttMaxMs      *float64
+	RttStddevMs   *float64
+	RttSamplesMs  []float64
+	ErrorCode     *string
+	ErrorMessage  *string
 }

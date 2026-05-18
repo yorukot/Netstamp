@@ -40,9 +40,10 @@ type SubmitResultsInput struct {
 }
 
 type RuntimeResultGroup struct {
-	CheckID string           `json:"checkId"`
-	Type    domaincheck.Type `json:"type"`
-	Ping    []PingResultBody `json:"ping,omitempty"`
+	CheckID    string                 `json:"checkId"`
+	Type       domaincheck.Type       `json:"type"`
+	Ping       []PingResultBody       `json:"ping,omitempty"`
+	Traceroute []TracerouteResultBody `json:"traceroute,omitempty"`
 }
 
 type PingResultBody struct {
@@ -68,4 +69,35 @@ type PingResultBody struct {
 type SubmitResultsResponse struct {
 	Accepted   int       `json:"accepted"`
 	ServerTime time.Time `json:"serverTime"`
+}
+
+type TracerouteResultBody struct {
+	StartedAt          time.Time               `json:"startedAt"`
+	FinishedAt         time.Time               `json:"finishedAt"`
+	DurationMs         int32                   `json:"durationMs"`
+	Status             string                  `json:"status"`
+	ResolvedIP         *netip.Addr             `json:"resolvedIp,omitempty"`
+	IPFamily           *domainnetwork.IPFamily `json:"ipFamily,omitempty"`
+	DestinationReached bool                    `json:"destinationReached"`
+	HopCount           int32                   `json:"hopCount"`
+	Hops               []TracerouteHopBody     `json:"hops,omitempty"`
+	ErrorCode          *string                 `json:"errorCode,omitempty"`
+	ErrorMessage       *string                 `json:"errorMessage,omitempty"`
+}
+
+type TracerouteHopBody struct {
+	HopIndex      int32       `json:"hopIndex"`
+	Address       *netip.Addr `json:"address,omitempty"`
+	Hostname      *string     `json:"hostname,omitempty"`
+	SentCount     int32       `json:"sentCount"`
+	ReceivedCount int32       `json:"receivedCount"`
+	LossPercent   float64     `json:"lossPercent"`
+	RttMinMs      *float64    `json:"rttMinMs,omitempty"`
+	RttAvgMs      *float64    `json:"rttAvgMs,omitempty"`
+	RttMedianMs   *float64    `json:"rttMedianMs,omitempty"`
+	RttMaxMs      *float64    `json:"rttMaxMs,omitempty"`
+	RttStddevMs   *float64    `json:"rttStddevMs,omitempty"`
+	RttSamplesMs  []float64   `json:"rttSamplesMs,omitempty"`
+	ErrorCode     *string     `json:"errorCode,omitempty"`
+	ErrorMessage  *string     `json:"errorMessage,omitempty"`
 }

@@ -3,6 +3,8 @@ package proberuntime
 import (
 	"context"
 	"errors"
+	"net/netip"
+	"slices"
 	"testing"
 	"time"
 
@@ -10,6 +12,7 @@ import (
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
+	domaintraceroute "github.com/yorukot/netstamp/internal/domain/traceroute"
 )
 
 const (
@@ -24,7 +27,7 @@ const (
 func TestHelloRejectsInvalidSecret(t *testing.T) {
 	probes := &fakeProbeRepository{}
 	recorder := &recordingProbeRuntimeEventRecorder{}
-	service := NewService(probes, &fakePingResultRepository{}, fakeSecretVerifier{valid: false}, recorder)
+	service := NewService(probes, &fakePingResultRepository{}, &fakeTracerouteResultRepository{}, fakeSecretVerifier{valid: false}, recorder)
 
 	_, err := service.Hello(context.Background(), RuntimeAuthInput{
 		ProbeID:    testProbeID,
@@ -57,6 +60,7 @@ func TestHelloRecordsDisabledProbe(t *testing.T) {
 			SecretHash: "secret-hash",
 		}},
 		&fakePingResultRepository{},
+		&fakeTracerouteResultRepository{},
 		fakeSecretVerifier{valid: true},
 		recorder,
 	)
@@ -81,7 +85,7 @@ func TestHelloRecordsDisabledProbe(t *testing.T) {
 func TestHelloReturnsRuntimeConfigWithoutUpdatingStatus(t *testing.T) {
 	probes := &fakeProbeRepository{}
 	recorder := &recordingProbeRuntimeEventRecorder{}
-	service := NewService(probes, &fakePingResultRepository{}, fakeSecretVerifier{valid: true}, recorder)
+	service := NewService(probes, &fakePingResultRepository{}, &fakeTracerouteResultRepository{}, fakeSecretVerifier{valid: true}, recorder)
 
 	output, err := service.Hello(context.Background(), RuntimeAuthInput{
 		ProbeID:    testProbeID,
@@ -108,7 +112,7 @@ func TestHelloReturnsRuntimeConfigWithoutUpdatingStatus(t *testing.T) {
 func TestHeartbeatUpdatesOnlineStatus(t *testing.T) {
 	probes := &fakeProbeRepository{}
 	recorder := &recordingProbeRuntimeEventRecorder{}
-	service := NewService(probes, &fakePingResultRepository{}, fakeSecretVerifier{valid: true}, recorder)
+	service := NewService(probes, &fakePingResultRepository{}, &fakeTracerouteResultRepository{}, fakeSecretVerifier{valid: true}, recorder)
 	agentVersion := "netstamp-probe/0.1.0"
 	as := "AS15169 Google LLC"
 
@@ -146,7 +150,7 @@ func TestListAssignmentsAuthenticatesProbe(t *testing.T) {
 		assignments: []domainassignment.Assignment{newAssignment(testCheckID, domaincheck.TypePing)},
 	}
 	recorder := &recordingProbeRuntimeEventRecorder{}
-	service := NewService(probes, &fakePingResultRepository{}, fakeSecretVerifier{valid: true}, recorder)
+	service := NewService(probes, &fakePingResultRepository{}, &fakeTracerouteResultRepository{}, fakeSecretVerifier{valid: true}, recorder)
 
 	output, err := service.ListAssignments(context.Background(), RuntimeAuthInput{
 		ProbeID:    testProbeID,
@@ -175,7 +179,7 @@ func TestSubmitResultsWritesAssignedPingResults(t *testing.T) {
 	probes := &fakeProbeRepository{assignments: []domainassignment.Assignment{assignment}}
 	pings := &fakePingResultRepository{}
 	recorder := &recordingProbeRuntimeEventRecorder{}
-	service := NewService(probes, pings, fakeSecretVerifier{valid: true}, recorder)
+	service := NewService(probes, pings, &fakeTracerouteResultRepository{}, fakeSecretVerifier{valid: true}, recorder)
 	startedAt := time.Date(2026, 5, 13, 10, 0, 0, 0, time.UTC)
 	finishedAt := startedAt.Add(time.Second)
 
@@ -217,10 +221,92 @@ func TestSubmitResultsWritesAssignedPingResults(t *testing.T) {
 	assertNoProbeRuntimeEvents(t, recorder)
 }
 
+func TestSubmitResultsWritesAssignedTracerouteResults(t *testing.T) {
+	assignment := newAssignment(testCheckID, domaincheck.TypeTraceroute)
+	probes := &fakeProbeRepository{assignments: []domainassignment.Assignment{assignment}}
+	pings := &fakePingResultRepository{}
+	traceroutes := &fakeTracerouteResultRepository{}
+	recorder := &recordingProbeRuntimeEventRecorder{}
+	service := NewService(probes, pings, traceroutes, fakeSecretVerifier{valid: true}, recorder)
+	startedAt := time.Date(2026, 5, 13, 10, 0, 0, 0, time.UTC)
+	finishedAt := startedAt.Add(4 * time.Second)
+	addr := netip.MustParseAddr("192.0.2.1")
+	resolved := netip.MustParseAddr("93.184.216.34")
+	ipFamily := "inet"
+	hostname := "gateway.local"
+	rttMin := 1.5
+	rttAvg := 1.7
+	rttMedian := 1.7
+	rttMax := 1.9
+	rttStddev := 0.2
+
+	output, err := service.SubmitResults(context.Background(), SubmitResultsInput{
+		RuntimeAuthInput: RuntimeAuthInput{
+			ProbeID:    testProbeID,
+			Credential: "plain-secret",
+		},
+		Results: []RuntimeResultGroupInput{{
+			CheckID: testCheckID,
+			Type:    string(domaincheck.TypeTraceroute),
+			Traceroute: []TracerouteResultInput{{
+				StartedAt:          startedAt,
+				FinishedAt:         finishedAt,
+				DurationMs:         4000,
+				Status:             string(domaintraceroute.StatusPartial),
+				ResolvedIP:         &resolved,
+				IPFamily:           &ipFamily,
+				DestinationReached: false,
+				HopCount:           1,
+				Hops: []TracerouteHopInput{{
+					HopIndex:      1,
+					Address:       &addr,
+					Hostname:      &hostname,
+					SentCount:     3,
+					ReceivedCount: 3,
+					LossPercent:   0,
+					RttMinMs:      &rttMin,
+					RttAvgMs:      &rttAvg,
+					RttMedianMs:   &rttMedian,
+					RttMaxMs:      &rttMax,
+					RttStddevMs:   &rttStddev,
+					RttSamplesMs:  []float64{1.5, 1.7, 1.9},
+				}},
+			}},
+		}},
+	})
+	if err != nil {
+		t.Fatalf("expected submit results to succeed: %v", err)
+	}
+	if output.Accepted != 1 || output.ServerTime.IsZero() {
+		t.Fatalf("unexpected output: %#v", output)
+	}
+	if len(pings.gotInputs) != 0 {
+		t.Fatalf("expected no ping writes, got %#v", pings.gotInputs)
+	}
+	if len(traceroutes.gotInputs) != 1 {
+		t.Fatalf("expected one traceroute result, got %#v", traceroutes.gotInputs)
+	}
+	got := traceroutes.gotInputs[0]
+	if got.ProbeStorageID != testProbeStoreID || got.CheckStorageID != testCheckStoreID {
+		t.Fatalf("expected storage identity on result, got %#v", got)
+	}
+	if !got.StartedAt.Equal(startedAt) || got.Status != domaintraceroute.StatusPartial {
+		t.Fatalf("unexpected stored traceroute result: %#v", got)
+	}
+	if len(got.Hops) != 1 {
+		t.Fatalf("expected one traceroute hop, got %#v", got.Hops)
+	}
+	hop := got.Hops[0]
+	if hop.HopIndex != 1 || hop.Address == nil || *hop.Address != addr || !slices.Equal(hop.RttSamplesMs, []float64{1.5, 1.7, 1.9}) {
+		t.Fatalf("unexpected stored traceroute hop: %#v", hop)
+	}
+	assertNoProbeRuntimeEvents(t, recorder)
+}
+
 func TestSubmitResultsRejectsUnassignedCheck(t *testing.T) {
 	pings := &fakePingResultRepository{}
 	recorder := &recordingProbeRuntimeEventRecorder{}
-	service := NewService(&fakeProbeRepository{}, pings, fakeSecretVerifier{valid: true}, recorder)
+	service := NewService(&fakeProbeRepository{}, pings, &fakeTracerouteResultRepository{}, fakeSecretVerifier{valid: true}, recorder)
 
 	_, err := service.SubmitResults(context.Background(), validSubmitResultsInput())
 	if !errors.Is(err, ErrInvalidInput) {
@@ -246,6 +332,7 @@ func TestSubmitResultsRejectsTypeMismatch(t *testing.T) {
 	service := NewService(
 		&fakeProbeRepository{assignments: []domainassignment.Assignment{assignment}},
 		&fakePingResultRepository{},
+		&fakeTracerouteResultRepository{},
 		fakeSecretVerifier{valid: true},
 		recorder,
 	)
@@ -270,6 +357,7 @@ func TestSubmitResultsRecordsWriteFailure(t *testing.T) {
 	service := NewService(
 		&fakeProbeRepository{assignments: []domainassignment.Assignment{newAssignment(testCheckID, domaincheck.TypePing)}},
 		&fakePingResultRepository{err: writeErr},
+		&fakeTracerouteResultRepository{},
 		fakeSecretVerifier{valid: true},
 		recorder,
 	)
@@ -295,6 +383,7 @@ func TestHeartbeatRecordsStatusUpdateFailure(t *testing.T) {
 	service := NewService(
 		&fakeProbeRepository{updateErr: updateErr},
 		&fakePingResultRepository{},
+		&fakeTracerouteResultRepository{},
 		fakeSecretVerifier{valid: true},
 		recorder,
 	)
@@ -325,6 +414,7 @@ func TestListAssignmentsRecordsAssignmentListFailure(t *testing.T) {
 	service := NewService(
 		&fakeProbeRepository{assignmentErr: listErr},
 		&fakePingResultRepository{},
+		&fakeTracerouteResultRepository{},
 		fakeSecretVerifier{valid: true},
 		recorder,
 	)
@@ -352,6 +442,7 @@ func TestRuntimeRecordsProbeNotFoundFailure(t *testing.T) {
 	service := NewService(
 		&fakeProbeRepository{credentialErr: domainprobe.ErrProbeNotFound},
 		&fakePingResultRepository{},
+		&fakeTracerouteResultRepository{},
 		fakeSecretVerifier{valid: true},
 		recorder,
 	)
@@ -374,7 +465,7 @@ func TestRuntimeRecordsProbeNotFoundFailure(t *testing.T) {
 
 func TestRuntimeRecordsSecretVerifierMissing(t *testing.T) {
 	recorder := &recordingProbeRuntimeEventRecorder{}
-	service := NewService(&fakeProbeRepository{}, &fakePingResultRepository{}, nil, recorder)
+	service := NewService(&fakeProbeRepository{}, &fakePingResultRepository{}, &fakeTracerouteResultRepository{}, nil, recorder)
 
 	_, err := service.Hello(context.Background(), RuntimeAuthInput{
 		ProbeID:    testProbeID,
@@ -396,6 +487,15 @@ func TestRuntimeRecordsSecretVerifierMissing(t *testing.T) {
 
 func newAssignment(checkID string, checkType domaincheck.Type) domainassignment.Assignment {
 	pingConfig := domainping.DefaultConfig()
+	tracerouteConfig := domaintraceroute.DefaultConfig()
+	var pingConfigPtr *domainping.Config
+	var tracerouteConfigPtr *domaintraceroute.Config
+	switch checkType {
+	case domaincheck.TypePing:
+		pingConfigPtr = &pingConfig
+	case domaincheck.TypeTraceroute:
+		tracerouteConfigPtr = &tracerouteConfig
+	}
 
 	return domainassignment.Assignment{
 		ID:              testAssignmentID,
@@ -405,12 +505,13 @@ func newAssignment(checkID string, checkType domaincheck.Type) domainassignment.
 		CheckVersion:    "check-v1",
 		SelectorVersion: "selector-v1",
 		Check: &domaincheck.Check{
-			ID:              checkID,
-			ProjectID:       testProjectID,
-			Type:            checkType,
-			Target:          "1.1.1.1",
-			IntervalSeconds: 30,
-			PingConfig:      &pingConfig,
+			ID:               checkID,
+			ProjectID:        testProjectID,
+			Type:             checkType,
+			Target:           "1.1.1.1",
+			IntervalSeconds:  30,
+			PingConfig:       pingConfigPtr,
+			TracerouteConfig: tracerouteConfigPtr,
 		},
 	}
 }
@@ -542,6 +643,16 @@ type fakePingResultRepository struct {
 
 func (r *fakePingResultRepository) CreatePingResults(_ context.Context, inputs []domainping.ResultStorageInput) error {
 	r.gotInputs = append([]domainping.ResultStorageInput(nil), inputs...)
+	return r.err
+}
+
+type fakeTracerouteResultRepository struct {
+	gotInputs []domaintraceroute.ResultStorageInput
+	err       error
+}
+
+func (r *fakeTracerouteResultRepository) CreateTracerouteResults(_ context.Context, inputs []domaintraceroute.ResultStorageInput) error {
+	r.gotInputs = append([]domaintraceroute.ResultStorageInput(nil), inputs...)
 	return r.err
 }
 
