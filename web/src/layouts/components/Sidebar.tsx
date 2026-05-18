@@ -1,4 +1,4 @@
-import type { MockUser } from "@/features/auth/services/authService";
+import type { SessionUser } from "@/features/auth/services/authService";
 import { pathForRoute } from "@/routes/routePaths";
 import { sidebarItems } from "@/routes/sidebarItems";
 import { classNames } from "@/shared/utils/classNames";
@@ -9,7 +9,7 @@ import { TeamSwitcher } from "./TeamSwitcher";
 import { UserMenu } from "./UserMenu";
 
 interface SidebarProps {
-	user: MockUser;
+	user: SessionUser;
 	onLogout: () => void;
 }
 

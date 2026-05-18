@@ -1,6 +1,9 @@
 import { useSession } from "@/features/auth/session/SessionContext";
 import { SessionProvider } from "@/features/auth/session/SessionProvider";
 import { AppShell } from "@/layouts/AppShell";
+import { queryClient } from "@/shared/api/queryClient";
+import { CurrentProjectProvider } from "@/shared/api/useCurrentProject";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { lazy, Suspense, type ReactNode } from "react";
 import { createBrowserRouter, Navigate as RouterNavigate, RouterProvider, useLocation, useNavigate } from "react-router-dom";
 import { pathForRoute } from "./routePaths";
@@ -54,8 +57,12 @@ function DashboardRoute() {
 }
 
 function ProtectedAppShell() {
-	const { session } = useSession();
+	const { loading, session } = useSession();
 	const location = useLocation();
+
+	if (loading) {
+		return null;
+	}
 
 	if (!session) {
 		return <RouterNavigate to={pathForRoute("login")} replace state={{ from: location }} />;
@@ -90,8 +97,12 @@ const router = createBrowserRouter([
 
 export function AppRouter() {
 	return (
-		<SessionProvider>
-			<RouterProvider router={router} />
-		</SessionProvider>
+		<QueryClientProvider client={queryClient}>
+			<SessionProvider>
+				<CurrentProjectProvider>
+					<RouterProvider router={router} />
+				</CurrentProjectProvider>
+			</SessionProvider>
+		</QueryClientProvider>
 	);
 }

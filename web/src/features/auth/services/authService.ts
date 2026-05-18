@@ -1,50 +1,51 @@
-import { currentUser, type CurrentUser } from "../data/mockUser";
+import type { CreateProjectInput, LoginInput, RegisterInput, UserResponse } from "@/shared/api/types";
 
-export interface AuthCredentials {
+export interface AuthCredentials extends LoginInput {
 	displayName?: string;
-	email: string;
-	password: string;
 }
 
-export interface TeamDraft {
+export type TeamDraft = CreateProjectInput;
+
+export interface SessionUser {
+	id: string;
 	name: string;
-	slug: string;
-}
-
-export interface MockUser extends CurrentUser {
+	username: string;
+	email: string;
 	role: string;
-	team: string;
+	gravatarUrl: string;
 	onboardingRequired?: boolean;
 }
 
 export interface SessionSnapshot {
-	user: MockUser;
-	controller: "waiting-for-api";
+	user: SessionUser;
+	controller: "connected";
 	team?: TeamDraft & { role: string };
 }
 
-const mockUser: MockUser = {
-	...currentUser,
-	team: "Vector IX"
-};
+export function mapApiUser(user: UserResponse, options: { onboardingRequired?: boolean } = {}): SessionUser {
+	const email = user.email || "";
+	const displayName = user.displayName || email.split("@")[0] || "Netstamp user";
 
-export async function mockLogin({ email }: AuthCredentials): Promise<MockUser> {
-	return { ...mockUser, email: email || mockUser.email };
-}
-
-export async function mockRegister({ displayName, email }: AuthCredentials): Promise<MockUser> {
 	return {
-		...mockUser,
-		name: displayName || mockUser.name,
-		email: email || mockUser.email,
-		onboardingRequired: true
+		id: user.id,
+		name: displayName,
+		username: email.split("@")[0] || displayName,
+		email,
+		role: "Admin",
+		gravatarUrl: `https://www.gravatar.com/avatar/?d=identicon&size=160`,
+		onboardingRequired: options.onboardingRequired
 	};
 }
 
-export async function mockCreateTeam({ name, slug }: TeamDraft): Promise<TeamDraft & { role: string }> {
+export function createSessionSnapshot(user: UserResponse, options: { onboardingRequired?: boolean } = {}): SessionSnapshot {
+	return {
+		user: mapApiUser(user, options),
+		controller: "connected"
+	};
+}
+
+export function mapProjectTeam({ name, slug }: TeamDraft): TeamDraft & { role: string } {
 	return { name: name || "Vector IX", slug: slug || "vector-ix", role: "Owner" };
 }
 
-export function getSessionSnapshot(): SessionSnapshot {
-	return { user: mockUser, controller: "waiting-for-api" };
-}
+export type RegisterPayload = RegisterInput;

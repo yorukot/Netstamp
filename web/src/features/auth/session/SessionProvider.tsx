@@ -1,6 +1,8 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-import { useState } from "react";
-import { type AuthCredentials, type SessionSnapshot, type TeamDraft, getSessionSnapshot, mockCreateTeam, mockLogin, mockRegister } from "../services/authService";
+import { apiQueryKeys } from "@/shared/api/queryKeys";
+import { authQueries, createProject, loginUser, logoutUser, registerUser } from "@/shared/api/queries";
+import { type AuthCredentials, type TeamDraft, createSessionSnapshot, mapApiUser, mapProjectTeam } from "../services/authService";
 import { SessionContext } from "./SessionContext";
 
 interface SessionProviderProps {
@@ -8,56 +10,71 @@ interface SessionProviderProps {
 }
 
 export function SessionProvider({ children }: SessionProviderProps) {
-	const [session, setSession] = useState<SessionSnapshot | null>(null);
-	const [submitting, setSubmitting] = useState(false);
+	const queryClient = useQueryClient();
+	const meQuery = useQuery(authQueries.me());
+	const session = meQuery.data ? createSessionSnapshot(meQuery.data.user) : null;
+	const loginMutation = useMutation({
+		mutationFn: loginUser,
+		onSuccess: data => {
+			queryClient.setQueryData(apiQueryKeys.auth.me(), { authenticated: true, user: data.user });
+			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.all });
+		}
+	});
+	const registerMutation = useMutation({
+		mutationFn: registerUser,
+		onSuccess: data => {
+			queryClient.setQueryData(apiQueryKeys.auth.me(), { authenticated: true, user: data.user });
+			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.all });
+		}
+	});
+	const createTeamMutation = useMutation({
+		mutationFn: createProject,
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.all });
+		}
+	});
+	const logoutMutation = useMutation({
+		mutationFn: logoutUser,
+		onSettled: () => {
+			queryClient.removeQueries({ queryKey: apiQueryKeys.auth.all });
+			queryClient.removeQueries({ queryKey: apiQueryKeys.projects.all });
+		}
+	});
+	const submitting = loginMutation.isPending || registerMutation.isPending || createTeamMutation.isPending || logoutMutation.isPending;
 
 	async function login(payload: AuthCredentials) {
-		setSubmitting(true);
-
-		try {
-			const user = await mockLogin(payload);
-			setSession({ user, controller: "waiting-for-api" });
-			return user;
-		} finally {
-			setSubmitting(false);
-		}
+		const result = await loginMutation.mutateAsync(payload);
+		return mapApiUser(result.user);
 	}
 
 	async function register(payload: AuthCredentials) {
-		setSubmitting(true);
-
-		try {
-			const user = await mockRegister(payload);
-			setSession({ user, controller: "waiting-for-api" });
-			return user;
-		} finally {
-			setSubmitting(false);
-		}
+		const result = await registerMutation.mutateAsync(payload);
+		return mapApiUser(result.user, { onboardingRequired: true });
 	}
 
 	async function createTeam(payload: TeamDraft) {
-		setSubmitting(true);
-
-		try {
-			const team = await mockCreateTeam(payload);
-			setSession(current => {
-				const baseSession = current ?? getSessionSnapshot();
-
-				return {
-					...baseSession,
-					team,
-					user: { ...baseSession.user, onboardingRequired: false }
-				};
-			});
-			return team;
-		} finally {
-			setSubmitting(false);
-		}
+		const result = await createTeamMutation.mutateAsync(payload);
+		return mapProjectTeam(result.project);
 	}
 
 	function logout() {
-		setSession(null);
+		logoutMutation.mutate();
 	}
 
-	return <SessionContext value={{ session, submitting, isAuthenticated: Boolean(session), login, register, createTeam, logout }}>{children}</SessionContext>;
+	return (
+		<SessionContext
+			value={{
+				session,
+				loading: meQuery.isPending,
+				submitting,
+				isAuthenticated: Boolean(session),
+				login,
+				register,
+				createTeam,
+				logout
+			}}
+		>
+			{children}
+		</SessionContext>
+	);
 }

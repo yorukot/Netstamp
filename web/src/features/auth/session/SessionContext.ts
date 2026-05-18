@@ -3,6 +3,7 @@ import type { AuthCredentials, SessionSnapshot, TeamDraft } from "../services/au
 
 export interface SessionContextValue {
 	session: SessionSnapshot | null;
+	loading: boolean;
 	submitting: boolean;
 	isAuthenticated: boolean;
 	login: (payload: AuthCredentials) => Promise<SessionSnapshot["user"]>;

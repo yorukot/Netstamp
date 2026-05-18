@@ -1,4 +1,4 @@
-import type { MockUser } from "@/features/auth/services/authService";
+import type { SessionUser } from "@/features/auth/services/authService";
 import { pathForRoute } from "@/routes/routePaths";
 import { classNames } from "@/shared/utils/classNames";
 import { Button, SignalAvatar } from "@netstamp/ui";
@@ -6,7 +6,7 @@ import { Link } from "react-router-dom";
 import styles from "../AppShell.module.css";
 
 interface UserMenuProps {
-	user: MockUser;
+	user: SessionUser;
 	onLogout: () => void;
 }
 
