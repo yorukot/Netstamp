@@ -1,14 +1,11 @@
 import { Badge, Button, GlobalFooter } from "@netstamp/ui";
-import { gsap } from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { useEffect, useRef } from "react";
+import { lazy, Suspense, useEffect, useRef } from "react";
 import taiwanSubmarineCablesMap from "../../assets/taiwan_submarine_cables.svg?url";
 import { GlobalNetworkAnimation } from "./GlobalNetworkAnimation";
 import styles from "./LandingPage.module.css";
-import { NetworkScene } from "./NetworkScene";
-import { ProbeScene } from "./ProbeScene";
 
-gsap.registerPlugin(ScrollTrigger);
+const NetworkScene = lazy(() => import("./NetworkScene").then(module => ({ default: module.NetworkScene })));
+const ProbeScene = lazy(() => import("./ProbeScene").then(module => ({ default: module.ProbeScene })));
 
 const githubUrl = "https://github.com/yorukot/netstamp";
 
@@ -44,61 +41,74 @@ export function LandingPage({ appHref = "/register" }: LandingPageProps) {
 		const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 		if (reduced) return;
 
-		const ctx = gsap.context(() => {
-			// Story section
-			gsap.from("[data-gs='story']", {
-				opacity: 0,
-				y: 48,
-				duration: 1.0,
-				ease: "power3.out",
-				scrollTrigger: {
-					trigger: "[data-gs='story']",
-					start: "top 80%"
-				}
-			});
+		let cancelled = false;
+		let cleanupAnimation = () => {};
 
-			// Feature label
-			gsap.from("[data-gs='feature-label']", {
-				opacity: 0,
-				y: -10,
-				duration: 0.65,
-				ease: "power2.out",
-				scrollTrigger: {
-					trigger: "[data-gs='feature-label']",
-					start: "top 82%"
-				}
-			});
+		async function setupScrollAnimations() {
+			const [{ gsap }, { ScrollTrigger }] = await Promise.all([import("gsap"), import("gsap/ScrollTrigger")]);
+			if (cancelled) return;
 
-			// Feature cards stagger
-			const cards = gsap.utils.toArray<Element>("[data-gs='feature-card']");
-			if (cards.length) {
-				gsap.from(cards, {
+			gsap.registerPlugin(ScrollTrigger);
+
+			const ctx = gsap.context(() => {
+				gsap.from("[data-gs='story']", {
 					opacity: 0,
-					y: 64,
-					duration: 0.8,
+					y: 48,
+					duration: 1.0,
 					ease: "power3.out",
-					stagger: 0.14,
 					scrollTrigger: {
-						trigger: cards[0],
+						trigger: "[data-gs='story']",
 						start: "top 80%"
 					}
 				});
-			}
 
-			// Trust section
-			gsap.from("[data-gs='trust']", {
-				opacity: 0,
-				y: 48,
-				duration: 1.0,
-				ease: "power3.out",
-				scrollTrigger: {
-					trigger: "[data-gs='trust']",
-					start: "top 80%"
+				gsap.from("[data-gs='feature-label']", {
+					opacity: 0,
+					y: -10,
+					duration: 0.65,
+					ease: "power2.out",
+					scrollTrigger: {
+						trigger: "[data-gs='feature-label']",
+						start: "top 82%"
+					}
+				});
+
+				const cards = gsap.utils.toArray<Element>("[data-gs='feature-card']");
+				if (cards.length) {
+					gsap.from(cards, {
+						opacity: 0,
+						y: 64,
+						duration: 0.8,
+						ease: "power3.out",
+						stagger: 0.14,
+						scrollTrigger: {
+							trigger: cards[0],
+							start: "top 80%"
+						}
+					});
 				}
-			});
-		}, landingRef);
 
-		return () => ctx.revert();
+				gsap.from("[data-gs='trust']", {
+					opacity: 0,
+					y: 48,
+					duration: 1.0,
+					ease: "power3.out",
+					scrollTrigger: {
+						trigger: "[data-gs='trust']",
+						start: "top 80%"
+					}
+				});
+			}, landingRef);
+
+			cleanupAnimation = () => ctx.revert();
+		}
+
+		void setupScrollAnimations();
+
+		return () => {
+			cancelled = true;
+			cleanupAnimation();
+		};
 	}, []);
 
 	return (
@@ -147,7 +157,9 @@ export function LandingPage({ appHref = "/register" }: LandingPageProps) {
 						<p>Netstamp helps communities, operators, and builders understand the real paths their traffic takes.</p>
 					</div>
 					<div className={styles.storyViz}>
-						<NetworkScene />
+						<Suspense fallback={null}>
+							<NetworkScene />
+						</Suspense>
 						<div className={styles.storyVizLabel} aria-hidden="true">
 							<span className={styles.storyVizDot} />
 							<span>live network topology</span>
@@ -174,7 +186,9 @@ export function LandingPage({ appHref = "/register" }: LandingPageProps) {
 							<p>Each probe measures the Internet from its own point of view.</p>
 						</div>
 						<div className={styles.probeSceneCol} aria-hidden="true">
-							<ProbeScene />
+							<Suspense fallback={null}>
+								<ProbeScene />
+							</Suspense>
 						</div>
 						<span className={styles.featureBadge} aria-hidden="true">
 							01
