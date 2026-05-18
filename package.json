@@ -5,6 +5,7 @@
 		"build:docs": "pnpm --filter @netstamp/docs build",
 		"build:server": "just backend-build",
 		"build:storybook": "pnpm --filter @netstamp/ui build:storybook",
+		"build:ui": "pnpm --filter @netstamp/ui build",
 		"build:web": "pnpm --filter @netstamp/web build",
 		"dev:docs": "pnpm --filter @netstamp/docs dev",
 		"dev:server": "just backend-dev",

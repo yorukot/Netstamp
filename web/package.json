@@ -4,10 +4,13 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
+		"prebuild": "pnpm --filter @netstamp/ui build",
 		"build": "vite build",
+		"predev": "pnpm --filter @netstamp/ui build",
 		"dev": "vite",
 		"lint": "eslint .",
 		"preview": "vite preview",
+		"pretypecheck": "pnpm --filter @netstamp/ui build",
 		"typecheck": "tsc -p tsconfig.json --noEmit"
 	},
 	"dependencies": {

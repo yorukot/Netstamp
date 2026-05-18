@@ -4,7 +4,8 @@
 	"type": "module",
 	"scripts": {
 		"astro": "astro",
-		"build": "pnpm -C .. --filter @netstamp/ui build:storybook -o ../../docs/public/storybook && astro build",
+		"build": "pnpm -C .. --filter @netstamp/ui build && pnpm -C .. --filter @netstamp/ui build:storybook -o ../../docs/public/storybook && astro build",
+		"predev": "pnpm -C .. --filter @netstamp/ui build",
 		"dev": "astro dev",
 		"preview": "astro preview"
 	},

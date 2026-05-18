@@ -3,14 +3,21 @@
 	"version": "0.0.1",
 	"type": "module",
 	"exports": {
-		".": "./src/index.ts",
-		"./components/*": "./src/components/*.tsx",
-		"./styles": "./src/styles/tokens.css"
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js"
+		},
+		"./components/*": {
+			"types": "./dist/components/*.d.ts",
+			"import": "./dist/components/*.js"
+		},
+		"./styles": "./dist/styles/tokens.css"
 	},
 	"files": [
-		"src"
+		"dist"
 	],
 	"scripts": {
+		"build": "rm -rf dist && tsc -p tsconfig.build.json && node scripts/copy-css.mjs",
 		"build:storybook": "storybook build",
 		"storybook": "storybook dev -p 6006",
 		"typecheck": "tsc -p tsconfig.json --noEmit"

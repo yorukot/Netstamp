@@ -3,6 +3,7 @@ set dotenv-load := true
 server_dir := "server"
 web_filter := "@netstamp/web"
 docs_filter := "@netstamp/docs"
+ui_filter := "@netstamp/ui"
 
 alias dev := backend-dev
 alias fmt := backend-fmt
@@ -37,6 +38,10 @@ clean:
     rm -rf docs/dist web/dist server/bin server/tmp server/coverage.out
 
 # Documentation
+
+# Build the shared UI package.
+ui-build:
+    pnpm --filter {{ ui_filter }} build
 
 # Start the documentation dev server.
 docs-dev:
