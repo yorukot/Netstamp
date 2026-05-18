@@ -1,378 +1,509 @@
-# Netstamp Design System
+# Netstamp Design Guidelines
 
-> Category: Network Observability / Developer Infrastructure Current frontend: dark engineering console, orange-accented probe fleet dashboard, cut-corner industrial panels, monospace operational UI.
+> Category: network observability and developer infrastructure. Current frontend: dark engineering console, orange-accented probe and route diagnostics, clipped industrial frames, monospace operational navigation, and dense technical documentation.
 
-This document describes the visual language already used by the Netstamp frontend. Keep new UI aligned with `packages/ui/src/styles/tokens.css`, `web/src/index.css`, `web/src/layouts/AppShell.module.css`, `web/src/features/dashboard/components/LandingPage.module.css`, and the reusable components in `packages/ui/src/components`.
+This document is the source of truth for Netstamp frontend design across the React web app, the Astro docs site, the public landing page, the OpenAPI explorer, Storybook, and shared `@netstamp/ui` primitives.
 
-## 1. Design Direction
+Keep new UI aligned with these files first:
 
-Netstamp should feel like a network operations console rather than a generic SaaS landing page. The interface is precise, dark, gridded, technical, and built around distributed measurement probes.
+- `packages/ui/src/styles/tokens.css`: shared fonts, colors, shell utilities, cut-frame utility, shadows, scrollbars, and base reset.
+- `packages/ui/src/components`: shared primitives used by both web and docs.
+- `web/src/index.css`: app root import of shared styles.
+- `web/src/layouts/AppShell.module.css`: authenticated product shell.
+- `web/src/shared/components`: product page layout helpers.
+- `docs/src/styles/docs.css`: documentation shell, doc prose, cards, search, and navigation.
+- `docs/src/components/landing/LandingPage.module.css`: public landing page and animated network storytelling.
+- `docs/src/components/openapi/OpenAPIExplorer.module.css`: API reference and request console.
 
-Core atmosphere:
+## 1. Product Feel
+
+Netstamp should feel like a network operations console, not a generic SaaS dashboard. The design language is precise, dark, gridded, technical, and built around distributed probes, routes, checks, and controller output.
+
+Core traits:
 
 - Near-black operational canvas.
 - Orange as the primary brand and interaction accent.
-- Thin engineering grid lines and diagnostic overlays.
-- Cut-corner panels, buttons, badges, fields, and data surfaces.
-- Display typography for large claims and screen titles.
-- Monospace labels for navigation, metadata, buttons, tables, and telemetry.
-- Sparse layouts with strong hierarchy and high-contrast data blocks.
-- Network/probe/route language instead of broad AI startup wording.
+- Thin engineering grid lines, diagnostic overlays, and route/packet motifs.
+- Cut-corner frames for primary surfaces and controls.
+- Display typography for hero claims and screen titles.
+- Monospace typography for navigation, labels, metadata, buttons, tables, telemetry, code, and API details.
+- Sparse but dense layouts: few decorative objects, high information clarity.
+- Infrastructure copy that names probes, checks, routes, DNS, latency, packet loss, topology, path hash, heartbeat, and controller actions.
 
-The product voice is infrastructure-grade: "See the network before it fails you", "Probe Fleet", "Network Operations Console", "Measurement origin", "Recent system events".
+The shared direction applies everywhere, but each surface has a different density:
 
-## 2. Design Tokens
+- Public landing page: cinematic network storytelling with large display type, technical visuals, and clear deploy/GitHub actions.
+- Web app: compact operational dashboard for repeated work.
+- Docs: readable technical reference that still uses the same dark console structure.
+- OpenAPI explorer: split reference and request console, optimized for scanning methods, paths, parameters, snippets, and responses.
 
-Use the existing `--ns-*` tokens. Do not introduce parallel token names unless a new primitive is genuinely required.
+## 2. Tokens
+
+Use existing `--ns-*` tokens. Do not introduce parallel token names unless a new primitive is genuinely required and belongs in `packages/ui/src/styles/tokens.css`.
 
 ### Fonts
 
-- `--ns-font-sans`: `TASAOrbiter`, `TASA Orbiter`, sans-serif.
-- `--ns-font-display`: `TASAExplorer`, `TASA Explorer`, sans-serif.
-- `--ns-font-mono`: `JetBrainsMono`, `JetBrains Mono`, monospace.
+- `--ns-font-sans`: `"TASAOrbiter", "TASA Orbiter", sans-serif`.
+- `--ns-font-display`: `"Arial Black", "TASAExplorer", "TASA Explorer", sans-serif`.
+- `--ns-font-mono`: `"JetBrainsMono", "JetBrains Mono", monospace`.
+
+Use the display face for big product statements and screen titles. Use the sans face for explanatory body copy. Use the mono face for operational UI, navigation, labels, data, code, buttons, and metadata.
 
 ### Backgrounds And Surfaces
 
-- `--ns-bg`: `#030406` main app canvas.
-- `--ns-bg-section`: `#07090d` section background.
-- `--ns-bg-subtle`: `#0b0e13` subtle elevated area.
-- `--ns-surface`: `#111318` base panel surface.
-- `--ns-surface-raised`: `#181b20` stronger raised surface.
-- `--ns-surface-deep`: `#07080b` deep panel surface.
-- `--ns-glass-dark`: `rgba(15, 18, 23, 0.94)` sticky/nav dark glass.
-- `--ns-glass-light`: `rgba(255, 255, 255, 0.025)` faint overlay.
+- `--ns-bg`: `#010203`, main page canvas.
+- `--ns-bg-section`: `#030507`, major section background.
+- `--ns-bg-subtle`: `#05080c`, subtle elevated area.
+- `--ns-surface`: `#07090d`, base panel surface.
+- `--ns-surface-raised`: `#0c1016`, stronger raised surface.
+- `--ns-surface-deep`: `#020304`, deep terminal/map/code surface.
+- `--ns-glass-dark`: `rgba(3, 5, 8, 0.94)`, sticky dark glass.
+- `--ns-glass-light`: `rgba(255, 255, 255, 0.012)`, faint overlay.
 
 ### Text
 
-- `--ns-text`: `#fff7ec` primary text.
-- `--ns-text-muted`: `#ddd4c8` body and secondary text.
-- `--ns-text-subtle`: `#b8b3aa` supporting copy.
-- `--ns-text-low`: `#77736b` metadata and low-priority labels.
-- `--ns-text-on-accent`: `#0b0704` text on orange controls.
+- `--ns-text`: `#fff7ec`, primary text.
+- `--ns-text-muted`: `#ddd4c8`, body and secondary text.
+- `--ns-text-subtle`: `#b8b3aa`, supporting copy and inactive controls.
+- `--ns-text-low`: `#77736b`, metadata and low-priority labels.
+- `--ns-text-on-accent`: `#0b0704`, text on orange controls.
 
 ### Accent And State
 
-- `--ns-accent`: `#ff7a1a` primary CTA and active brand color.
-- `--ns-accent-hover`: `#ff9a3d` hover/highlight orange.
-- `--ns-accent-active`: `#ff5f00` pressed/active orange.
-- `--ns-accent-muted`: `rgba(255, 122, 26, 0.16)` muted selected background.
-- `--ns-accent-subtle`: `rgba(255, 122, 26, 0.22)` stronger selected background.
-- `--ns-accent-border`: `rgba(255, 122, 26, 0.66)` active frame color.
-- `--ns-accent-glow`: `rgba(255, 122, 26, 0.3)` restrained glow.
-- `--ns-critical`: `#ff453a` destructive/error state.
-- `--ns-warning`: `#ff9f0a` warning state.
-- `--ns-success`: `#30d158` healthy/online state.
-- `--ns-metal`: `#a8b4c7` neutral technical accent.
+- `--ns-accent`: `#ff7a1a`, primary CTA and active brand color.
+- `--ns-accent-hover`: `#ff9a3d`, hover and highlighted orange.
+- `--ns-accent-active`: `#ff5f00`, pressed/focused orange.
+- `--ns-accent-muted`: `rgba(255, 122, 26, 0.16)`, selected/hover fill.
+- `--ns-accent-subtle`: `rgba(255, 122, 26, 0.22)`, stronger selected fill.
+- `--ns-accent-border`: `rgba(255, 122, 26, 0.66)`, active frame color.
+- `--ns-accent-glow`: `rgba(255, 122, 26, 0.3)`, restrained orange glow.
+- `--ns-glass-orange`: `rgba(255, 122, 26, 0.22)`, orange glass overlay.
+- `--ns-critical`: `#ff453a`, destructive/error/failed.
+- `--ns-warning`: `#ff9f0a`, warning/waiting/degraded/pending.
+- `--ns-success`: `#30d158`, healthy/online/success.
+- `--ns-metal`: `#c4ccd9`, neutral technical accent.
+- `--ns-slate-line`: `rgba(196, 204, 217, 0.22)`, neutral chart and divider line.
+
+Orange is the brand and interaction color. Green, yellow, and red are reserved for state meaning. Do not add blue, purple, rainbow, pastel, or glossy gradients for visual variety. The only current non-state blue appears inside OpenAPI syntax highlighting for booleans/null values; keep that usage tiny and code-specific.
 
 ### Borders, Cuts, Shadows
 
-- `--ns-border`: `rgba(255, 255, 255, 0.22)` default frame.
-- `--ns-border-strong`: `rgba(255, 255, 255, 0.38)` hover/active frame.
-- `--ns-border-faint`: `rgba(255, 255, 255, 0.13)` quiet dividers and nested frames.
-- `--ns-cut-xs`: `0.375rem` badges and small tags.
-- `--ns-cut-sm`: `0.5rem` buttons, nav items, small frames.
-- `--ns-cut-md`: `0.75rem` tables and medium cards.
-- `--ns-cut-lg`: `1rem` panels, footer, landing sections.
-- `--ns-shadow-sm`: dark technical elevation.
-- `--ns-shadow-md`: stronger dark elevation.
-- `--ns-shadow-glow`: orange-focused glow for active brand marks.
+- `--ns-border`: `rgba(255, 255, 255, 0.28)`, default frame.
+- `--ns-border-strong`: `rgba(255, 255, 255, 0.48)`, hover/active neutral frame.
+- `--ns-border-faint`: `rgba(255, 255, 255, 0.16)`, quiet dividers and nested frames.
+- `--ns-radius-*`: all `0`.
+- `--ns-cut-xs`: `0.375rem`, badges and tiny tags.
+- `--ns-cut-sm`: `0.5rem`, buttons, nav items, fields, small frames.
+- `--ns-cut-md`: `0.75rem`, tables and medium cards.
+- `--ns-cut-lg`: `1rem`, panels, landing feature cards, footer blocks.
+- `--ns-shadow-sm`: dark technical elevation for small surfaces.
+- `--ns-shadow-md`: stronger elevation for modals, hero panels, and large surfaces.
+- `--ns-shadow-glow`: restrained orange focus/brand glow.
 - `--ns-transition`: `180ms cubic-bezier(0.2, 0.8, 0.2, 1)`.
 
-All radii tokens are currently `0`; use cut corners instead of rounded corners.
+Use cut corners instead of rounded rectangles. Small circular details are allowed only for dots, status lights, orbit visuals, and similar diagnostic marks.
 
-## 3. Typography
+## 3. Page Families
 
-Use typography to separate marketing, console structure, and machine-readable data.
+### Shared App And Site Canvas
 
-- Display type uses `--ns-font-display` with large scale, tight line-height, and strong weight around `650-800`.
-- Body type uses `--ns-font-sans`, `1rem-1.25rem`, muted text, and short technical sentences.
-- Operational UI uses `--ns-font-mono`, uppercase labels, `0.6875rem-0.875rem`, and letter-spacing between `0.07em` and `0.14em`.
-- Navigation and buttons are uppercase monospace with heavy weight.
-- Tables use monospace for headers and cells to preserve console/data-table tone.
+Most full-page surfaces use layered dark grids:
 
-Recommended hierarchy:
+- Large orange grid around `6rem-8rem`, low opacity.
+- Fine white grid around `2rem`, very low opacity.
+- Optional radial orange glow near areas of attention.
+- Optional diagonal micro-pattern on panels, sidebars, maps, user cards, and landing sections.
+
+Use `.ns-grid-shell` or `.ns-grid-shell--constellation` when a full app surface can use the shared utility. Otherwise match the same layered background locally.
+
+### Public Landing Page
+
+Current implementation lives in `docs/src/components/landing`.
+
+Use the landing page for high-impact storytelling:
+
+- Full-height dark grid canvas.
+- Sticky docs top nav above the page.
+- Hero with large left-side claim and a full technical network animation.
+- Primary CTA is orange fill; secondary CTA is dark/neutral.
+- Story sections use animated network/topology scenes, probe scenes, route boards, check cards, and numbered clipped feature cards.
+- Feature cards can be large and visual, but they must remain technical and specific.
+- Final CTA/trust area should stay grounded in open source, deployability, probes, and measurable network behavior.
+
+Landing copy should be short, concrete, and infrastructure-oriented:
+
+- "See the network. Before it fails you."
+- "Open-source network observability from probes you control."
+- "Measure latency, packet loss, DNS, and routes."
+- "Your traffic has a story. Netstamp shows the path."
+
+Do not turn the landing page into a centered generic marketing template. Avoid stock photography, lifestyle imagery, decorative blobs, or abstract SaaS gradients.
+
+### Web App
+
+Current implementation lives under `web/src`.
+
+The authenticated app is optimized for repeated operational work:
+
+- Two-column shell at desktop: `17rem` sticky sidebar and fluid content.
+- Sidebar uses brand mark, team selector, nav links, and user card.
+- Content uses `3rem 1.5rem 0` desktop padding and compact page stacks.
+- Sidebar collapses to `6rem` below about `58rem`.
+- The shell becomes single-column with horizontal nav below about `38rem`.
+- Product pages use `ScreenHeader`, `PageStack`, `ResponsiveGrid`, `ActionRow`, panels, metric cards, data tables, network maps, and key-value grids.
+
+Keep product pages scan-friendly:
+
+- One large screen title per route.
+- Actions aligned to the header when possible.
+- Panels are the main grouping unit.
+- Dense data belongs in tables, key-value grids, timelines, or terminal/code blocks.
+- Wide data may scroll horizontally rather than becoming unreadably compressed.
+
+### Documentation Site
+
+Current implementation lives under `docs/src/styles/docs.css` and `docs/src/layouts/DocLayout.astro`.
+
+Docs must feel like Netstamp, but prioritize reading and navigation:
+
+- Sticky top nav with brand, docs/storybook/API links, GitHub, and app/deploy action.
+- Three-column desktop shell: left docs navigation, central content, right table of contents.
+- Left nav can fold to icon-only on wide layouts.
+- Below about `68rem`, collapse to one column with sidebar, content, and TOC stacked.
+- Doc hero is a framed orange-accent panel with compact display title and body summary.
+- Prose uses generous line-height and clear heading spacing.
+- Code blocks use terminal-style top bars, dark backgrounds, and orange borders.
+- Cards, callouts, pager links, search results, and index grids use low-contrast dark surfaces with orange hover/active states.
+
+Docs are allowed to be less clipped than the app in simple prose areas, but should still avoid rounded card/pill language.
+
+### OpenAPI Explorer
+
+Current implementation lives in `docs/src/components/openapi`.
+
+The API explorer is denser than standard docs:
+
+- Desktop shell has three columns: endpoint sidebar, reference content, sticky request console.
+- Below about `86rem`, console drops below content.
+- Below about `64rem`, sidebar/content/console collapse to one column.
+- Method labels use state colors: GET green, POST orange, PUT/PATCH yellow, DELETE red.
+- Endpoint rows use monospace method and path with active orange frame.
+- Operation articles pair explanatory content with snippets and structured field/response rows.
+- Console uses sticky dark glass, form controls, body textarea, cURL preview, and response panel.
+- Snippets and response previews use monospace, deep black backgrounds, and horizontal/vertical scrolling when needed.
+
+Do not make the API explorer airy or editorial. It should feel like a controller plus reference manual.
+
+## 4. Typography
+
+Use typography to separate marketing claims, app structure, and machine-readable data.
+
+### Display
+
+Use `--ns-font-display` for:
+
+- Landing hero and section headlines.
+- Web app screen titles.
+- Docs hero titles and major prose headings.
+- OpenAPI tag and operation headings.
+
+Typical scale:
 
 - Landing hero `h1`: `clamp(2.4rem, 5.2vw, 6rem)`, line-height `0.9`.
-- Large story headline: `clamp(3.25rem, 7vw, 8rem)`, line-height `0.9`.
-- App screen title: `clamp(3rem, 6vw, 5.75rem)`, line-height `0.9`.
-- Drawer title: `clamp(2rem, 8vw, 3.75rem)`, line-height `0.92`.
-- Panel title: `1rem`, display font, weight `650`.
-- Eyebrow/label: `0.6875rem`, mono, uppercase, orange or muted.
+- Landing story headline: `clamp(3.25rem, 7vw, 8rem)` when used, line-height `0.9`.
+- Web app screen title: `clamp(3rem, 6vw, 5.75rem)`, line-height `0.9`.
+- Auth hero title: up to `clamp(3rem, 5vw, 7rem)`.
+- Docs hero title: `clamp(1.4rem, 2.5vw, 2rem)`, line-height `1.05`.
+- Docs prose `h2`: `clamp(1.6rem, 3vw, 2.6rem)`, line-height `1`.
+- OpenAPI hero title: `clamp(2.5rem, 7vw, 4.5rem)`, line-height `0.9`.
 
-## 4. Color Usage Rules
+### Body
 
-Orange is the only strong brand accent. It should carry CTAs, selected states, probe highlights, network activity, scanlines, and important telemetry.
+Use `--ns-font-sans` for:
 
-Use limited state colors only for operational meaning:
+- Landing body copy.
+- Docs prose paragraphs and list text.
+- Product summaries and form input text.
 
-- Green only means healthy, online, connected, or success.
-- Yellow only means warning, waiting, degraded, or pending.
-- Red only means critical, destructive, invalid, or failed.
-- Slate/metal only supports neutral chart baselines and inactive technical lines.
+Typical body text:
 
-Avoid adding blue, purple, rainbow gradients, pastel colors, or glossy SaaS-style gradients. If a non-orange color is necessary, it must represent data state or a small technical signal.
+- Standard body: `1rem`, line-height `1.65-1.75`.
+- Landing/body emphasis: `clamp(1rem, 1.4vw, 1.25rem)`.
+- Auth and large intro copy: around `1.125rem`.
+
+### Operational Mono
+
+Use `--ns-font-mono` for:
+
+- Navigation.
+- Buttons.
+- Labels and eyebrows.
+- Badges.
+- Tables and cells.
+- Metric metadata.
+- Code, snippets, endpoint paths, method labels, and response previews.
+- TOC and pager metadata.
+
+Typical mono label style:
+
+- Size `0.68rem-0.875rem`.
+- Weight `700-900`.
+- Uppercase for labels, nav, buttons, and metadata.
+- Letter spacing around `0.06em-0.14em` where the current UI already uses it.
+
+Do not use display-size type inside compact panels, sidebars, tables, or controls. Long labels must truncate, wrap, or collapse before they overflow.
 
 ## 5. Layout System
 
-The layout is modular, grid-first, and asymmetric when useful.
+### Spacing
 
-### Global Grid Background
+Default layout rhythm:
 
-Most full-page surfaces use layered backgrounds:
+- Page stack gap: `1.25rem`.
+- Grid gap: `1rem`.
+- Panel padding: `0.875rem`, `1.25rem`, or `1.35rem`.
+- Docs shell gap: `2rem` desktop, `1rem` mobile.
+- Landing section padding can be larger, usually `clamp()` based, but must leave visual continuity with the grid.
 
-- Orange large grid: `8rem 8rem`, `rgba(255, 122, 26, 0.08-0.09)`.
-- White fine grid: `2rem 2rem`, `rgba(255, 255, 255, 0.045-0.06)`.
-- Optional diagonal micro-pattern: `0.75rem-0.875rem` for panels, sidebar, maps, and footer.
-- Optional radial orange glow for landing/CTA depth.
+Prefer CSS Grid for page structure and Flexbox for button rows, metadata rows, and compact horizontal controls.
 
-Use the grid as engineering structure, not decoration. Major panels should align to visible grid rhythm where possible.
+### Product Page Layouts
 
-### Landing Page
+Use:
 
-The current landing page uses:
+- `ScreenHeader` for page title, eyebrow, description, and actions.
+- `PageStack` for vertical route rhythm.
+- `ResponsiveGrid` with two or three columns for panels.
+- Single-column layout below `58rem-78rem`, based on content density.
 
-- Sticky top nav with brand mark, GitHub link, and orange Deploy CTA.
-- Split hero with copy on the left and CSS-generated global network animation on the right.
-- Floating telemetry chip in the hero.
-- Story section with a single oversized framed card.
-- Three staggered feature cards on desktop; stacked/2-column on smaller screens.
-- Final CTA panel with trust signals and orange glow.
-- Full footer using framed grid cells.
+### Docs Layouts
 
-Keep landing copy short, technical, and direct. Do not center everything into a generic marketing template.
+Use:
 
-### App Shell
+- `DocLayout.astro` for all markdown documentation.
+- `docHero` for title/description.
+- `docProse` for markdown content.
+- `cardGrid` and `docIndexGrid` for index navigation.
+- `callout-*` classes for notes, tips, warnings, and cautions.
+- `docPager` and `editLink` for end-of-page navigation.
 
-The dashboard app uses:
+### Density
 
-- Two-column shell: `17rem` fixed sidebar and fluid content.
-- Sticky full-height sidebar with brand, team selector, nav links, and user card.
-- Content area with `3rem 1.5rem 1.5rem` padding and compact footer.
-- Sidebar collapses to `6rem` around `58rem`, hiding secondary labels.
-- Main app backgrounds retain orange/white grid layers.
+Match density to context:
 
-### Product Pages
-
-Product screens share:
-
-- `ScreenHeader` for eyebrow, large title, copy, and actions.
-- 1rem grid gaps.
-- Two-column layouts for dashboards, results, insight, alerts, probe detail, settings, and team views.
-- Single-column layout below `58rem-78rem` depending on content density.
-- Panels as primary containers; nested cells for key-value data, event feeds, steps, timelines, and route diffs.
+- Landing: broad, visual, high contrast.
+- Web app: compact, operational, panel-based.
+- Docs prose: readable, less dense.
+- OpenAPI: very dense, with sticky navigation and console tools.
 
 ## 6. Component Language
 
+Use `@netstamp/ui` primitives before adding local controls. Shared components should stay in `packages/ui`; feature-only UI should stay colocated with the feature or docs area.
+
+### Surface And Panel
+
+`Surface` is the base clipped container. `Panel` adds structured header, eyebrow, title, actions, and separator.
+
+Use tones intentionally:
+
+- `glass`: default raised section with orange frame and subtle striped depth.
+- `matte`: lower-contrast nested section.
+- `deep`: maps, terminals, code, diagnostics, and high-depth blocks.
+- `flat`: quiet simple surface.
+- `accent`: CTA or important highlighted block.
+- `danger`: destructive or critical state block.
+
+Panel rules:
+
+- Keep one panel header structure: eyebrow, title, optional actions.
+- Avoid cards inside cards unless the inner item is a repeated row/cell.
+- Use nested cells for key-value data, event feeds, steps, timelines, route diffs, and compact summaries.
+
 ### Buttons
 
-Buttons live in `@netstamp/ui` and should remain rectangular with cut corners.
+Buttons live in `@netstamp/ui` and remain rectangular with cut corners.
 
-- Use mono uppercase text, heavy weight, and `0.06em` letter-spacing.
+- Text is mono, uppercase, heavy weight, with `0.06em` letter spacing.
 - Primary uses orange fill and dark text.
 - Secondary uses dark surface and light text.
 - Outline uses dark surface, muted text, and orange hover.
-- Ghost is for low-priority sidebar/user actions.
-- Danger is reserved for destructive actions and uses red technical patterning.
-- Hover may translate upward by `-0.0625rem`; avoid bounce.
+- Ghost is for low-priority actions.
+- Danger is only for destructive actions.
+- Hover may translate upward by `-0.0625rem`.
+- Disabled buttons use opacity and no pointer events.
 
-Sizes:
+Button sizes:
 
 - `sm`: `0.75rem`, min-height `2rem`.
 - `md`: `0.8125rem`, min-height `2.5rem`.
 - `lg`: `0.875rem`, min-height `3rem`.
 - `xl`: `0.9375rem`, min-height `3.5rem`.
 
-### Panels
-
-Panels are the default page container primitive.
-
-- Use `tone="glass"` for default raised sections.
-- Use `tone="matte"` for lower-contrast nested sections.
-- Use `tone="deep"` for maps, terminals, and high-depth diagnostic blocks.
-- Keep panel header structure: eyebrow, title, optional actions, separator.
-- Use `--ns-cut-lg` and frame color from `--ns-border` unless nested.
+Use icons from the existing icon system in docs or Phosphor web components where already used. Do not create decorative emoji-style icons.
 
 ### Badges
 
-Badges are small operational tags.
+Badges are operational tags.
 
-- Use mono uppercase text and optional dot.
-- Use `neutral`, `accent`, `success`, `warning`, `critical`, or `muted` only.
-- Do not use badge tones for decorative color variety.
+- Use mono uppercase text.
+- Optional dot is square and uses current color.
+- Approved tones: `neutral`, `accent`, `success`, `warning`, `critical`, `muted`.
+- Badge color must communicate category or state, not decoration.
 
-### Fields
+### Fields And Selects
 
-Fields use a clipped `controlFrame` around input/select/textarea.
+Fields use a clipped `controlFrame`.
 
 - Labels are mono uppercase.
 - Control background is near black.
-- Focus uses `--ns-accent-border` and subtle inset orange glow.
+- Focus uses `--ns-accent-active`, visible outline, and no hidden focus ring.
 - Invalid state uses red border and low red glow.
-- Select chevron is CSS-generated with orange triangles.
+- Select arrow is CSS-generated and turns with open state.
+- Compact controls use mono and smaller sizing for dashboards/API panels.
 
-### Tables
+### Data Tables
 
 Data tables should feel like controller output.
 
-- Use monospace throughout.
-- Minimum width may exceed mobile viewport and scroll horizontally.
-- Sticky table header uses dark raised surface.
+- Use monospace for headers and cells.
+- Sticky headers can use dark raised surfaces.
 - Hover and selected rows use faint orange backgrounds.
-- Keep row borders thin and low-contrast.
+- Thin row borders with low contrast.
+- Allow horizontal scrolling for wide content.
 
 ### Metric Cards
 
-Metric cards are compact status summaries.
+Metric cards summarize state quickly.
 
-- Use large display numeric value.
-- Use mono orange label.
-- Optional badge shows category or state.
-- Use bottom-right corner bracket as diagnostic ornament.
+- Large display numeric value.
+- Mono orange label.
+- Optional badge for category/state.
+- Diagnostic bracket or corner detail is acceptable when restrained.
 
-### Terminal
+### Terminal And Code Blocks
 
 Terminal blocks are command surfaces.
 
-- Use clipped shell, 1rem orange micro-grid, dark command background.
-- Top bar contains status dots, title, and right-aligned meta.
-- Body uses mono text, `#ffd9bd`, and generous line-height.
+- Deep black background.
+- Monospace text.
+- Orange or faint white frame.
+- Optional top bar with three status dots for prose code blocks.
+- Snippets and response previews should scroll rather than wrap into unreadable layouts, except API response previews may use `pre-wrap` when readability is better.
 
-### Network Map And Telemetry Widgets
+### Navigation
+
+Navigation is mono and uppercase.
+
+- App sidebar active item uses orange leading accent and orange clipped frame.
+- Docs top nav uses icon plus text, with text hidden on small screens when necessary.
+- Docs sidebar groups are collapsible and show active state in orange.
+- TOC active link uses orange and a subtle orange text glow.
+
+### Network Visuals
 
 Network visuals should be abstract, map-like, and diagnostic.
 
-- Use grid background and skewed frame overlays.
-- Nodes are square/dot-based, not playful pins.
-- Active nodes may use green only for online state.
-- Scanline animation is acceptable when slow and subtle.
-- FleetMatrix uses small square cells, orange for online, low-opacity for offline.
+- Nodes are square, clipped, or small dot/square based.
+- Routes, packets, rails, hops, matrices, and topology lines are preferred motifs.
+- Active packets and important paths use orange.
+- Green only means online/success.
+- Scanline and route animations are acceptable when slow and subtle.
+- Three.js scenes and animated CSS visuals must respect reduced motion.
 
 ## 7. Cut-Corner Frames
 
-Cut corners are a core identity element. Use one of the approved frame techniques whenever `clip-path` is used.
+Cut corners are a core identity element. Use the shared `.ns-cut-frame` utility whenever possible.
 
-### Rule
-
-Do not rely on `border: 1px` alone when a clipped rectangle has diagonal cut corners. The straight borders will not draw the diagonal edges and the frame will look broken. Either use the mask frame technique or add diagonal patch lines with `::before` and `::after`.
-
-### Standard Polygon
-
-Use this shape for the current top-left and bottom-right cuts:
+### Standard Utility
 
 ```css
 .frame {
-	--cut: var(--ns-cut-sm);
-	clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut));
+	--ns-frame-cut: var(--ns-cut-sm);
+	--ns-frame-color: var(--ns-border);
+	--ns-frame-border-width: 1px;
 }
 ```
 
-### Diagonal Border Patch
+Then apply `className="ns-cut-frame"` or the equivalent class composition.
 
-Use this when the element already has `border: 1px solid var(--frame-color)` and needs the missing diagonal strokes filled. The diagonal length must be `sqrt(2) * cut`, implemented as `1.41421356`.
+The shared utility uses this polygon:
 
 ```css
-.frame {
-	--cut: var(--ns-cut-sm);
-	--frame-color: var(--ns-border);
-	position: relative;
-	border: 1px solid var(--frame-color);
-	clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut));
-}
-
-.frame::before,
-.frame::after {
-	content: "";
-	position: absolute;
-	width: calc(var(--cut) * 1.41421356);
-	height: 1px;
-	background: var(--frame-color);
-	pointer-events: none;
-}
-
-.frame::before {
-	top: var(--cut);
-	left: 0;
-	transform: rotate(-45deg);
-	transform-origin: left center;
-}
-
-.frame::after {
-	right: 0;
-	bottom: var(--cut);
-	transform: rotate(-45deg);
-	transform-origin: right center;
-}
+clip-path: polygon(var(--ns-frame-cut) 0, 100% 0, 100% calc(100% - var(--ns-frame-cut)), calc(100% - var(--ns-frame-cut)) 100%, 0 100%, 0 var(--ns-frame-cut));
 ```
 
-This pattern is already used by controls such as `Button`, `Panel`, and `Field`. Reuse it for new clipped controls when a real CSS border is used.
+### Why Patches Exist
 
-### Mask Frame Alternative
-
-Use the mask frame technique when a full clipped outline is easier than patching individual diagonal strokes. This works well for nested cards, badges, nav items, app shell frames, map labels, and other elements whose actual border is transparent.
+A regular `border: 1px` does not draw the diagonal cut edges of a clipped rectangle. The shared `.ns-cut-frame` patches those diagonal strokes with `::before` and `::after`.
 
 ```css
-.frame {
-	--frame-color: var(--ns-border);
-	position: relative;
-	border: 1px solid transparent;
-	clip-path: polygon(var(--ns-cut-sm) 0, 100% 0, 100% calc(100% - var(--ns-cut-sm)), calc(100% - var(--ns-cut-sm)) 100%, 0 100%, 0 var(--ns-cut-sm));
-}
-
-.frame::before {
-	content: "";
-	position: absolute;
-	inset: 0;
-	z-index: 2;
-	padding: 1px;
-	background: var(--frame-color);
-	clip-path: inherit;
-	pointer-events: none;
-	mask:
-		linear-gradient(#000 0 0) content-box,
-		linear-gradient(#000 0 0);
-	mask-composite: exclude;
-	-webkit-mask:
-		linear-gradient(#000 0 0) content-box,
-		linear-gradient(#000 0 0);
-	-webkit-mask-composite: xor;
+.ns-cut-frame::before,
+.ns-cut-frame::after {
+	width: calc(var(--ns-frame-cut) * sqrt(2));
+	height: var(--ns-frame-border-width);
+	background: var(--ns-frame-color);
 }
 ```
 
-### Frame Checklist
+When building a custom clipped frame:
 
-- Use `position: relative` on clipped frames.
+- Prefer `.ns-cut-frame`.
+- If a custom implementation is necessary, patch diagonal strokes or use a mask outline.
+- Use `--ns-frame-color` and `--ns-frame-cut`; do not hardcode repeated frame values.
+- Use `position: relative`.
 - Use `isolation: isolate` when pseudo-elements, shadows, and children overlap.
-- Use `overflow: hidden` only when contents must be clipped; avoid clipping focus rings unless the ring is outside the frame.
-- Use `--ns-frame-color` or `--frame-color`; do not hardcode repeated border colors unless local state requires it.
-- Patch diagonal cuts with `::before` and `::after` or use the mask frame. Never leave clipped borders visually open.
+- Be careful with `overflow: hidden`; do not clip visible focus outlines.
+
+Never leave clipped borders visually open.
 
 ## 8. Motion
 
-Motion should be restrained and mechanical.
+Motion should be restrained, mechanical, and diagnostic.
 
-- Default transition: `--ns-transition` (`180ms`).
-- Hover translation may be subtle: `translateY(-0.0625rem)`.
-- Drawer entry uses `180ms ease-out`.
-- Scanline can move slowly over `8s`.
-- Hero network animation may use slow tilt, orbit, node blink, and packet route animations.
-- Respect `prefers-reduced-motion: reduce`; turn off decorative looping animation.
+Use:
 
-Avoid springy, playful, elastic, or large parallax motion.
+- `--ns-transition` for most UI state changes.
+- `translateY(-0.0625rem)` for small hover lift.
+- `180ms-280ms` for drawer/search/modal entry and exit.
+- Slow scanlines, orbit movement, node blinking, packet routing, and topology reveals on landing visuals.
+- GSAP/Three.js only where the page needs browser effects, currently the landing page.
+
+Always support reduced motion:
+
+```css
+@media (prefers-reduced-motion: reduce) {
+	* {
+		animation-duration: 0.01ms;
+		animation-iteration-count: 1;
+		scroll-behavior: auto;
+	}
+}
+```
+
+Or disable the specific decorative animation in component code, as the landing page does.
+
+Avoid springy, playful, elastic, large parallax, or attention-seeking motion.
 
 ## 9. Data Visualization
 
-Charts are transparent and embedded inside panels.
+Charts, maps, route boards, and telemetry widgets should look embedded in the console.
 
-- Primary series: orange `#FF7A1A` / `#FF8F3D`.
-- Secondary baseline: slate `#94A3B8` at reduced opacity.
-- Tooltip background: `rgba(10,13,18,0.92)` with faint white border.
+- Primary series: `--ns-accent`, `#ff7a1a`, or `#ff8f3d`.
+- Secondary/baseline series: `--ns-metal`, `--ns-slate-line`, or low-opacity white.
+- Success state: `--ns-success`.
+- Warning state: `--ns-warning`.
+- Critical state: `--ns-critical`.
+- Tooltip background: near black, around `rgba(10, 13, 18, 0.92)`.
+- Tooltip border: faint white or orange when active.
 - Axis labels: muted mono, around `10px`.
-- Grid/split lines must remain very low contrast.
-- Area fills should fade to transparent; avoid multicolor chart palettes unless the data state requires it.
+- Grid lines: very low contrast.
+- Area fills: fade to transparent.
+
+Do not use multicolor chart palettes unless every color maps to a meaningful operational state.
 
 ## 10. Copywriting
 
-Netstamp copy should be direct, technical, and grounded in network measurement.
+Netstamp copy should sound like network infrastructure and measurement tooling.
 
 Use phrases like:
 
@@ -382,6 +513,9 @@ Use phrases like:
 - "Grid and map views for distributed measurement agents."
 - "Path hash changed from previous run."
 - "Waiting for first heartbeat."
+- "Scheduler / result stream."
+- "Live network topology."
+- "Route hash diff."
 
 Avoid phrases like:
 
@@ -390,44 +524,79 @@ Avoid phrases like:
 - "Beautifully simple."
 - "AI-powered for everyone."
 - "Seamless experience."
+- "Delightful collaboration."
 
-The interface should sound like a controller, not a lifestyle brand.
+The interface should sound like a controller, reference manual, or operator console, not a lifestyle brand.
 
 ## 11. Accessibility And Responsiveness
 
-- Keep `:focus-visible` outlines visible, usually `2px solid var(--ns-accent)` with `0.25rem` offset.
-- Preserve semantic landmarks: nav, main, section, article, aside, table.
-- Use `aria-hidden="true"` for decorative geometry and icons.
-- Do not rely on color alone for important state; badges and labels should include text.
-- Use `100svh` for full-height shells to behave correctly on mobile browsers.
-- Collapse dense multi-column grids to one column at mobile breakpoints.
-- Allow wide data tables to scroll horizontally instead of compressing columns until unreadable.
-- Keep touch targets at least around `2rem-2.75rem` high for controls.
+Accessibility is part of the visual system.
 
-## 12. Anti-Patterns
+- Keep `:focus-visible` outlines visible, usually `2px solid var(--ns-accent)` or `--ns-accent-active`.
+- Use semantic landmarks: `nav`, `main`, `section`, `article`, `aside`, `table`, `header`, `footer`.
+- Use `aria-hidden="true"` for decorative geometry and icons.
+- Do not rely on color alone for important state; include labels, badges, status text, method names, or icons.
+- Keep touch targets around `2rem-2.75rem` high or larger for controls.
+- Use `100svh` for full-height shells.
+- Collapse dense grids to one column at mobile breakpoints.
+- Let wide data tables and code blocks scroll horizontally.
+- Keep sticky sidebars from becoming trapped scroll regions on small screens.
+- Ensure icon-only collapsed nav items have accessible labels and useful `title` text where applicable.
+
+## 12. Implementation Rules
+
+### File Organization
+
+- Use `@netstamp/ui` for reusable primitives before creating local controls.
+- Put feature-only React UI under `web/src/features/<feature>/components`.
+- Put app-level shared React components under `web/src/shared/components`.
+- Put docs-specific Astro/React UI under `docs/src/components`.
+- Prefer one CSS module per component or route section.
+- Avoid broad new global stylesheets; shared global primitives belong in `packages/ui/src/styles/tokens.css`.
+
+### CSS
+
+- Use CSS modules for component styling.
+- Use `--ns-*` tokens for colors, fonts, cuts, shadows, and transitions.
+- Use `class:list` in Astro and local `classNames` helpers in React when composing `ns-cut-frame`.
+- Keep page sections full-width/unframed unless they are real tools, panels, repeated cards, or docs content blocks.
+- Avoid nested decorative cards.
+- Avoid new radius values for core UI.
+
+### Assets And Icons
+
+- Use `@netstamp/brand` assets for brand marks and favicon.
+- Docs currently use Phosphor web components and `docs/src/components/icons/Icon.astro`.
+- Use actual product/network visuals or generated technical scenes for landing visuals.
+- Do not add stock-like atmospheric imagery when a diagnostic visual would communicate better.
+
+## 13. Anti-Patterns
 
 Do not add:
 
-- Large rounded cards or pill-shaped core controls.
-- Pastel SaaS gradients, glassmorphism-heavy cards, or glossy blobs.
+- Large rounded cards, pill-shaped core controls, or soft consumer-app surfaces.
+- Pastel SaaS gradients, glossy blobs, heavy glassmorphism, or decorative orbs.
 - Blue/purple/rainbow brand accents.
-- Decorative emoji-style icons.
-- Soft lifestyle imagery or stock photos.
-- Centered generic landing sections that ignore the grid.
-- Heavy shadows that make the UI feel like a consumer app.
-- New global CSS systems outside CSS modules and existing `--ns-*` tokens.
+- Decorative emoji icons.
+- Soft lifestyle photography or stock photos.
+- Centered generic landing sections that ignore the engineering grid.
+- Heavy shadows that overpower the frame system.
+- Global CSS systems outside existing `--ns-*` tokens and CSS modules.
+- Copy that sounds like a generic productivity app.
 
-## 13. Implementation Checklist
+## 14. Review Checklist
 
-Before shipping new frontend UI:
+Before shipping frontend UI, check:
 
 - Does it use existing `--ns-*` tokens?
-- Does it use the correct font family for display, body, and operational labels?
-- Are cut-corner frames patched with diagonal pseudo-elements or a mask frame?
-- Is orange the primary interactive accent?
-- Are state colors used only for state meaning?
-- Does the layout align with the 1rem gap/grid rhythm?
-- Does it collapse cleanly on mobile?
-- Are focus states visible?
-- Are decorative animations disabled under reduced motion?
-- Does the copy sound like network infrastructure rather than generic SaaS?
+- Does it use the correct font family for display, body, and operational text?
+- Are clipped frames using `.ns-cut-frame` or patched diagonal borders?
+- Is orange the main interactive accent?
+- Are green, yellow, and red reserved for state?
+- Does the layout follow the `1rem` grid rhythm unless a larger landing/docs rhythm is intentional?
+- Does the UI match the density of its surface: landing, app, docs, or OpenAPI?
+- Does it collapse cleanly on the relevant breakpoints?
+- Are focus states visible and not clipped?
+- Are animations disabled or reduced for `prefers-reduced-motion`?
+- Does copy name concrete network behavior instead of generic product benefits?
+- If the change affects shared conventions, should this `design.md` or an area `AGENTS.md` be updated?
