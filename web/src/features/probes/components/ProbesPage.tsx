@@ -1,7 +1,12 @@
-import { assignments } from "@/features/checks/data/checks";
-import { probes, type ProbeStatus } from "@/features/probes/data/probes";
+import { mapApiChecks } from "@/features/checks/api/checkAdapters";
+import { mapApiProbes } from "@/features/probes/api/probeAdapters";
+import { type ProbeStatus } from "@/features/probes/data/probes";
+import { projectQueries } from "@/shared/api/queries";
+import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { NetworkMap } from "@/shared/components/NetworkMap";
 import { classNames } from "@/shared/utils/classNames";
+import { Panel } from "@netstamp/ui";
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Outlet } from "react-router-dom";
 import { ProbeDetail } from "./ProbeDetail";
@@ -11,25 +16,39 @@ import styles from "./ProbesPage.module.css";
 import { filterProbes } from "./probeUtils";
 import type { AssignedRow, ProbeSort, ProbeView } from "./types";
 
-const providerOptions = Array.from(new Set(probes.map(probe => probe.provider)));
-
 export function ProbesPage() {
+	const { projectRef } = useCurrentProject();
+	const probesQuery = useQuery({
+		...projectQueries.probes(projectRef || ""),
+		enabled: Boolean(projectRef),
+		select: data => mapApiProbes(data.probes)
+	});
+	const checksQuery = useQuery({
+		...projectQueries.checks(projectRef || ""),
+		enabled: Boolean(projectRef),
+		select: data => mapApiChecks(data.checks, probesQuery.data)
+	});
+	const probes = probesQuery.data || [];
+	const providerOptions = Array.from(new Set(probes.map(probe => probe.provider)));
 	const [view, setView] = useState<ProbeView>("grid");
-	const [selectedId, setSelectedId] = useState("ams-edge-01");
+	const [selectedId, setSelectedId] = useState("");
 	const [search, setSearch] = useState("");
 	const [statusFilter, setStatusFilter] = useState<"all" | ProbeStatus>("all");
 	const [providerFilter, setProviderFilter] = useState("all");
 	const [sortKey, setSortKey] = useState<ProbeSort>("heartbeat");
-	const selectedProbe = probes.find(probe => probe.id === selectedId) || probes[0];
+	const selectedProbe = probes.find(probe => probe.id === selectedId) || probes[0] || null;
+	const selectedProbeId = selectedProbe?.id || "";
 	const visibleProbes = filterProbes(probes, search, statusFilter, providerFilter, sortKey);
-	const assignedRows: AssignedRow[] = assignments.map(([probe, check, type, interval, jitter, latest]) => ({
-		probe,
-		check,
-		type,
-		interval,
-		jitter,
-		latest
-	}));
+	const assignedRows: AssignedRow[] = (checksQuery.data ?? []).flatMap(check =>
+		probes.map(probe => ({
+			probe: probe.name,
+			check: check.name,
+			type: check.type,
+			interval: check.interval,
+			jitter: check.jitter,
+			latest: check.latest
+		}))
+	);
 
 	return (
 		<section className={classNames(styles.screen, view === "map" && styles.mapScreen)}>
@@ -40,7 +59,7 @@ export function ProbesPage() {
 						<ProbeList
 							probes={visibleProbes}
 							providerOptions={providerOptions}
-							selectedId={selectedId}
+							selectedId={selectedProbeId}
 							search={search}
 							statusFilter={statusFilter}
 							providerFilter={providerFilter}
@@ -52,16 +71,20 @@ export function ProbesPage() {
 							onSelect={setSelectedId}
 						/>
 						<div className={styles.lowerGrid}>
-							<NetworkMap probes={probes} selectedId={selectedId} onSelect={setSelectedId} mode="detail" className={styles.miniMap} />
-							<ProbeDetail key={selectedProbe.id} probe={selectedProbe} assignedRows={assignedRows} />
+							<NetworkMap probes={probes} selectedId={selectedProbeId} onSelect={setSelectedId} mode="detail" className={styles.miniMap} />
+							{selectedProbe ? (
+								<ProbeDetail key={selectedProbe.id} probe={selectedProbe} assignedRows={assignedRows} projectRef={projectRef} onDeleted={() => setSelectedId("")} />
+							) : (
+								<Panel tone="matte" eyebrow="Probe detail" title={projectRef ? "No probes yet" : "No project selected"} />
+							)}
 						</div>
 					</div>
 				</>
 			) : (
 				<div className={styles.mapView}>
-					<NetworkMap probes={probes} selectedId={selectedId} onSelect={setSelectedId} mode="fleet" className={styles.fullMap} />
+					<NetworkMap probes={probes} selectedId={selectedProbeId} onSelect={setSelectedId} mode="fleet" className={styles.fullMap} />
 					<ProbePageHeader view={view} onViewChange={setView} overlay />
-					<ProbeDetail key={selectedProbe.id} probe={selectedProbe} assignedRows={assignedRows} floating />
+					{selectedProbe ? <ProbeDetail key={selectedProbe.id} probe={selectedProbe} assignedRows={assignedRows} projectRef={projectRef} onDeleted={() => setSelectedId("")} floating /> : null}
 				</div>
 			)}
 

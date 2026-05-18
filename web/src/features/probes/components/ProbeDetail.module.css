@@ -58,6 +58,38 @@
 	align-items: start;
 }
 
+.actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.75rem;
+}
+
+.secretPanel {
+	--ns-frame-cut: var(--ns-cut-sm);
+	--ns-frame-color: rgba(97, 255, 127, 0.36);
+	display: grid;
+	gap: 0.4rem;
+	padding: 0.75rem;
+	background: rgba(97, 255, 127, 0.08);
+}
+
+.secretPanel span {
+	color: var(--ns-text-low);
+	font-family: var(--ns-font-mono);
+	font-size: 0.7rem;
+	font-weight: 800;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+.secretPanel code {
+	color: var(--ns-accent);
+	font-family: var(--ns-font-mono);
+	font-size: 0.75rem;
+	font-weight: 800;
+	overflow-wrap: anywhere;
+}
+
 .inputWithMode {
 	display: grid;
 	gap: 0.45rem;

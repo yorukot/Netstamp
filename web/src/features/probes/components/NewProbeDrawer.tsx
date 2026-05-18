@@ -1,6 +1,10 @@
 import { pathForRoute } from "@/routes/routePaths";
+import { apiQueryKeys } from "@/shared/api/queryKeys";
+import { createProjectProbe } from "@/shared/api/queries";
+import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { classNames } from "@/shared/utils/classNames";
 import { Badge, Button, Terminal, TextField } from "@netstamp/ui";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, type MouseEvent, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styles from "./NewProbeDrawer.module.css";
@@ -18,6 +22,8 @@ const createProbeSteps = [
 
 export function NewProbeDrawer() {
 	const navigate = useNavigate();
+	const queryClient = useQueryClient();
+	const { projectRef } = useCurrentProject();
 	const closeTimeoutRef = useRef<number | null>(null);
 	const detectTimeoutRef = useRef<number | null>(null);
 	const [closing, setClosing] = useState(false);
@@ -29,10 +35,21 @@ export function NewProbeDrawer() {
 	const [tagOptions, setTagOptions] = useState(defaultProbeTags);
 	const [selectedTags, setSelectedTags] = useState(["Edge"]);
 	const [newTag, setNewTag] = useState("");
-	const canCreate = probeName.trim().length > 0;
-	const token = "NSTP_yoru-first-probe";
+	const [registrationSecret, setRegistrationSecret] = useState("");
+	const createProbeMutation = useMutation({
+		mutationFn: () => createProjectProbe(projectRef || "", { enabled: true, name: probeName.trim() }),
+		onSuccess: data => {
+			setRegistrationSecret(data.secret);
+
+			if (projectRef) {
+				queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.probes(projectRef) });
+			}
+		}
+	});
+	const canCreate = probeName.trim().length > 0 && Boolean(projectRef);
+	const token = registrationSecret || "waiting-for-controller";
 	const installCommand = [
-		`sudo netstamp register --controller https://controller.netstamp.io --token ${token} --name "${probeName.trim() || "your-probe"}"`,
+		`sudo netstamp register --controller ${window.location.origin} --token ${token} --name "${probeName.trim() || "your-probe"}"`,
 		"sudo systemctl enable --now netstamp-probe"
 	].join("\n");
 
@@ -99,12 +116,15 @@ export function NewProbeDrawer() {
 		setCurrentStep(1);
 	}
 
-	function handleNameSubmit(event: FormEvent<HTMLFormElement>) {
+	async function handleNameSubmit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 
-		if (canCreate) {
-			startInstallDetection();
+		if (!canCreate) {
+			return;
 		}
+
+		await createProbeMutation.mutateAsync();
+		startInstallDetection();
 	}
 
 	function toggleTag(tag: string) {
@@ -157,8 +177,8 @@ export function NewProbeDrawer() {
 							<TextField label="Probe name" value={probeName} placeholder="taipei-home-01" required disabled={currentStep !== 0} onChange={event => updateProbeName(event.currentTarget.value)} />
 
 							<div className={styles.actions}>
-								<Button type="submit" disabled={!canCreate || currentStep !== 0}>
-									Continue to install
+								<Button type="submit" disabled={!canCreate || currentStep !== 0 || createProbeMutation.isPending}>
+									{createProbeMutation.isPending ? "Creating probe" : "Continue to install"}
 								</Button>
 								<p className={styles.hint}>Use a stable hostname-style label so results are easy to scan later.</p>
 							</div>
@@ -184,7 +204,7 @@ export function NewProbeDrawer() {
 							<div className={classNames("ns-cut-frame", styles.detectCard)}>
 								<Badge tone={installStatus === "detected" ? "success" : "warning"}>{installStatus === "detected" ? "Heartbeat received" : "Listening for heartbeat"}</Badge>
 								<strong>{installStatus === "detected" ? `${probeName.trim()} is online` : "Waiting for install to finish"}</strong>
-								<p>{installStatus === "detected" ? "The controller accepted the first signed result stream." : "This frontend mock auto-detects shortly after the install step starts."}</p>
+								<p>{installStatus === "detected" ? "The controller accepted the first signed result stream." : "Waiting for the first signed probe heartbeat."}</p>
 							</div>
 
 							<div className={styles.actions}>

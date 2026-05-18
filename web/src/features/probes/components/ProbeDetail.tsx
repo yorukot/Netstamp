@@ -1,6 +1,10 @@
 import type { Probe } from "@/features/probes/data/probes";
+import { mapApiProbe } from "@/features/probes/api/probeAdapters";
+import { apiQueryKeys } from "@/shared/api/queryKeys";
+import { deleteProjectProbe, projectQueries, rotateProjectProbeSecret, updateProjectProbe } from "@/shared/api/queries";
 import { classNames } from "@/shared/utils/classNames";
-import { Badge, Checkbox, DataTable, Surface, TextField, type DataColumn } from "@netstamp/ui";
+import { Badge, Button, Checkbox, DataTable, Surface, TextField, type DataColumn } from "@netstamp/ui";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import styles from "./ProbeDetail.module.css";
 import { expandAssignedRows } from "./probeUtils";
@@ -18,15 +22,48 @@ interface ProbeDetailProps {
 	probe: Probe;
 	assignedRows: AssignedRow[];
 	floating?: boolean;
+	projectRef?: string | null;
+	onDeleted?: () => void;
 }
 
-export function ProbeDetail({ probe, assignedRows, floating = false }: ProbeDetailProps) {
-	const [probeName, setProbeName] = useState(probe.name);
-	const [probeLocation, setProbeLocation] = useState(probe.location);
-	const [probeAsn, setProbeAsn] = useState(probe.asn);
+export function ProbeDetail({ probe, assignedRows, floating = false, projectRef, onDeleted }: ProbeDetailProps) {
+	const queryClient = useQueryClient();
+	const detailQuery = useQuery({
+		...projectQueries.probeDetail(projectRef || "", probe.id),
+		enabled: Boolean(projectRef && probe.id),
+		select: data => mapApiProbe(data.probe, 0)
+	});
+	const activeProbe = detailQuery.data || probe;
+	const [probeName, setProbeName] = useState(activeProbe.name);
+	const [probeLocation, setProbeLocation] = useState(activeProbe.location);
+	const [probeAsn, setProbeAsn] = useState(activeProbe.asn);
 	const [locationMode, setLocationMode] = useState<DetectionMode>("manual");
 	const [asMode, setAsMode] = useState<DetectionMode>("auto");
-	const probeAssignments = assignedRows.filter(row => row.probe === probe.name);
+	const [rotatedSecret, setRotatedSecret] = useState("");
+	const updateProbeMutation = useMutation({
+		mutationFn: () => updateProjectProbe(projectRef || "", activeProbe.id, { name: probeName }),
+		onSuccess: () => {
+			if (projectRef) {
+				queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.probes(projectRef) });
+				queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.probeDetail(projectRef, activeProbe.id) });
+			}
+		}
+	});
+	const deleteProbeMutation = useMutation({
+		mutationFn: () => deleteProjectProbe(projectRef || "", activeProbe.id),
+		onSuccess: () => {
+			if (projectRef) {
+				queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.probes(projectRef) });
+			}
+
+			onDeleted?.();
+		}
+	});
+	const rotateSecretMutation = useMutation({
+		mutationFn: () => rotateProjectProbeSecret(projectRef || "", activeProbe.id),
+		onSuccess: data => setRotatedSecret(data.secret)
+	});
+	const probeAssignments = assignedRows.filter(row => row.probe === activeProbe.name);
 	const baseRows = probeAssignments.length ? probeAssignments : assignedRows.filter(row => row.check === "api-latency");
 	const detailRows = expandAssignedRows(baseRows);
 
@@ -36,7 +73,7 @@ export function ProbeDetail({ probe, assignedRows, floating = false }: ProbeDeta
 		setLocationMode(nextMode);
 
 		if (nextMode === "auto") {
-			setProbeLocation(probe.location);
+			setProbeLocation(activeProbe.location);
 		}
 	}
 
@@ -46,8 +83,16 @@ export function ProbeDetail({ probe, assignedRows, floating = false }: ProbeDeta
 		setAsMode(nextMode);
 
 		if (nextMode === "auto") {
-			setProbeAsn(probe.asn);
+			setProbeAsn(activeProbe.asn);
 		}
+	}
+
+	function deleteProbe() {
+		if (!window.confirm(`Delete probe ${activeProbe.name}?`)) {
+			return;
+		}
+
+		deleteProbeMutation.mutate();
 	}
 
 	return (
@@ -55,8 +100,8 @@ export function ProbeDetail({ probe, assignedRows, floating = false }: ProbeDeta
 			<div className={styles.header}>
 				<span>Probe detail</span>
 				<strong>
-					{probe.name}
-					<small> · uptime {probe.uptime}</small>
+					{activeProbe.name}
+					<small> · uptime {activeProbe.uptime}</small>
 				</strong>
 			</div>
 
@@ -77,6 +122,25 @@ export function ProbeDetail({ probe, assignedRows, floating = false }: ProbeDeta
 					<ModeToggle mode={asMode} label="AS detect mode" onToggle={toggleAsMode} />
 				</div>
 			</div>
+
+			<div className={styles.actions}>
+				<Button disabled={!projectRef || updateProbeMutation.isPending || !probeName} onClick={() => updateProbeMutation.mutate()}>
+					{updateProbeMutation.isPending ? "Saving" : "Save probe"}
+				</Button>
+				<Button variant="outline" disabled={!projectRef || rotateSecretMutation.isPending} onClick={() => rotateSecretMutation.mutate()}>
+					{rotateSecretMutation.isPending ? "Rotating" : "Rotate secret"}
+				</Button>
+				<Button variant="danger" disabled={!projectRef || deleteProbeMutation.isPending} onClick={deleteProbe}>
+					{deleteProbeMutation.isPending ? "Deleting" : "Delete probe"}
+				</Button>
+			</div>
+
+			{rotatedSecret ? (
+				<div className={classNames("ns-cut-frame", styles.secretPanel)}>
+					<span>New probe secret</span>
+					<code>{rotatedSecret}</code>
+				</div>
+			) : null}
 
 			<DataTable
 				ariaLabel="Assigned checks"
