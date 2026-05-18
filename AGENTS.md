@@ -28,7 +28,7 @@ Only proceed from root guidance when the task is clearly limited to workspace me
 - `just web-dev` or `pnpm dev:web`: start the Vite web app.
 - `just docs-dev` or `pnpm dev:docs`: start the documentation site.
 - `pnpm dev:storybook`: start Storybook for `@netstamp/ui` components.
-- `pnpm generate:openapi`: regenerate `docs/public/openapi.json` from TypeSpec and `web/src/shared/api/openapi.d.ts` from that contract.
+- `pnpm generate:openapi`: regenerate `docs/public/openapi.json` from TypeSpec, copy the backend embedded OpenAPI artifact, and refresh `web/src/shared/api/openapi.d.ts` from that contract.
 - `just build`: build backend, web, and docs.
 - `just test`: run available tests, currently backend tests.
 - `just lint`: run web ESLint and backend linting.

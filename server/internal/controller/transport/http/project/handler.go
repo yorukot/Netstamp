@@ -3,10 +3,11 @@ package project
 import (
 	"net/http"
 
-	"github.com/danielgtaylor/huma/v2"
+	"github.com/go-chi/chi/v5"
 
 	appauth "github.com/yorukot/netstamp/internal/controller/application/auth"
 	appproject "github.com/yorukot/netstamp/internal/controller/application/project"
+	"github.com/yorukot/netstamp/internal/controller/transport/http/httpx"
 	httpmiddleware "github.com/yorukot/netstamp/internal/controller/transport/http/middleware"
 )
 
@@ -22,111 +23,111 @@ func NewHandler(service *appproject.Service, verifier appauth.TokenVerifier) *Ha
 	}
 }
 
-func (h *Handler) RegisterRoutes(api huma.API) {
-	authMiddleware := httpmiddleware.RequireAuth(h.verifier)
-	security := []map[string][]string{{httpmiddleware.SessionCookieSecurityScheme: {}}}
-	middlewares := huma.Middlewares{authMiddleware}
+func (h *Handler) RegisterRoutes(api chi.Router) {
+	api.With(httpmiddleware.RequireAuth(h.verifier)).Post("/projects", h.handleCreateProject)
+	api.With(httpmiddleware.RequireAuth(h.verifier)).Get("/projects", h.handleListProjects)
+	api.With(httpmiddleware.RequireAuth(h.verifier)).Get("/projects/{ref}", h.handleGetProject)
+	api.With(httpmiddleware.RequireAuth(h.verifier)).Patch("/projects/{ref}", h.handleUpdateProject)
+	api.With(httpmiddleware.RequireAuth(h.verifier)).Delete("/projects/{ref}", h.handleDeleteProject)
+	api.With(httpmiddleware.RequireAuth(h.verifier)).Get("/projects/{ref}/members", h.handleListMembers)
+	api.With(httpmiddleware.RequireAuth(h.verifier)).Post("/projects/{ref}/members", h.handleAddMember)
+	api.With(httpmiddleware.RequireAuth(h.verifier)).Patch("/projects/{ref}/members/{user_id}", h.handleUpdateMemberRole)
+	api.With(httpmiddleware.RequireAuth(h.verifier)).Delete("/projects/{ref}/members/{user_id}", h.handleRemoveMember)
+}
 
-	huma.Register(api, huma.Operation{
-		OperationID:   "createProject",
-		Method:        http.MethodPost,
-		Path:          "/projects",
-		DefaultStatus: http.StatusCreated,
-		Summary:       "Create project",
-		Tags:          []string{"Projects"},
-		Security:      security,
-		Middlewares:   middlewares,
-		Errors:        []int{http.StatusUnauthorized, http.StatusConflict, http.StatusUnprocessableEntity, http.StatusInternalServerError},
-	}, h.createProject)
+func (h *Handler) handleCreateProject(w http.ResponseWriter, r *http.Request) {
+	var body createProjectInputBody
+	if err := httpx.DecodeJSON(r, &body); err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	output, err := h.createProject(r.Context(), &createProjectInput{Body: body})
+	writeProjectOutput(w, r, http.StatusCreated, output, err)
+}
 
-	huma.Register(api, huma.Operation{
-		OperationID: "listProjects",
-		Method:      http.MethodGet,
-		Path:        "/projects",
-		Summary:     "List projects",
-		Tags:        []string{"Projects"},
-		Security:    security,
-		Middlewares: middlewares,
-		Errors:      []int{http.StatusUnauthorized, http.StatusInternalServerError},
-	}, h.listProjects)
+func (h *Handler) handleListProjects(w http.ResponseWriter, r *http.Request) {
+	output, err := h.listProjects(r.Context(), &listProjectsInput{})
+	if err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, output.Body)
+}
 
-	huma.Register(api, huma.Operation{
-		OperationID: "getProject",
-		Method:      http.MethodGet,
-		Path:        "/projects/{ref}",
-		Summary:     "Get project",
-		Tags:        []string{"Projects"},
-		Security:    security,
-		Middlewares: middlewares,
-		Errors:      []int{http.StatusUnauthorized, http.StatusNotFound, http.StatusInternalServerError},
-	}, h.getProject)
+func (h *Handler) handleGetProject(w http.ResponseWriter, r *http.Request) {
+	output, err := h.getProject(r.Context(), &projectRefInput{Ref: httpx.Path(r, "ref")})
+	writeProjectOutput(w, r, http.StatusOK, output, err)
+}
 
-	huma.Register(api, huma.Operation{
-		OperationID: "updateProject",
-		Method:      http.MethodPatch,
-		Path:        "/projects/{ref}",
-		Summary:     "Update project",
-		Tags:        []string{"Projects"},
-		Security:    security,
-		Middlewares: middlewares,
-		Errors:      []int{http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound, http.StatusConflict, http.StatusUnprocessableEntity, http.StatusInternalServerError},
-	}, h.updateProject)
+func (h *Handler) handleUpdateProject(w http.ResponseWriter, r *http.Request) {
+	var body updateProjectInputBody
+	if err := httpx.DecodeJSON(r, &body); err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	output, err := h.updateProject(r.Context(), &updateProjectInput{Ref: httpx.Path(r, "ref"), Body: body})
+	writeProjectOutput(w, r, http.StatusOK, output, err)
+}
 
-	huma.Register(api, huma.Operation{
-		OperationID:   "deleteProject",
-		Method:        http.MethodDelete,
-		Path:          "/projects/{ref}",
-		DefaultStatus: http.StatusNoContent,
-		Summary:       "Delete project",
-		Tags:          []string{"Projects"},
-		Security:      security,
-		Middlewares:   middlewares,
-		Errors:        []int{http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound, http.StatusInternalServerError},
-	}, h.deleteProject)
+func (h *Handler) handleDeleteProject(w http.ResponseWriter, r *http.Request) {
+	_, err := h.deleteProject(r.Context(), &projectRefInput{Ref: httpx.Path(r, "ref")})
+	writeNoContent(w, r, err)
+}
 
-	huma.Register(api, huma.Operation{
-		OperationID: "listProjectMembers",
-		Method:      http.MethodGet,
-		Path:        "/projects/{ref}/members",
-		Summary:     "List project members",
-		Tags:        []string{"Project Members"},
-		Security:    security,
-		Middlewares: middlewares,
-		Errors:      []int{http.StatusUnauthorized, http.StatusNotFound, http.StatusInternalServerError},
-	}, h.listMembers)
+func (h *Handler) handleListMembers(w http.ResponseWriter, r *http.Request) {
+	output, err := h.listMembers(r.Context(), &projectRefInput{Ref: httpx.Path(r, "ref")})
+	if err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, output.Body)
+}
 
-	huma.Register(api, huma.Operation{
-		OperationID:   "addProjectMember",
-		Method:        http.MethodPost,
-		Path:          "/projects/{ref}/members",
-		DefaultStatus: http.StatusCreated,
-		Summary:       "Add project member",
-		Tags:          []string{"Project Members"},
-		Security:      security,
-		Middlewares:   middlewares,
-		Errors:        []int{http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound, http.StatusConflict, http.StatusUnprocessableEntity, http.StatusInternalServerError},
-	}, h.addMember)
+func (h *Handler) handleAddMember(w http.ResponseWriter, r *http.Request) {
+	var body addMemberInputBody
+	if err := httpx.DecodeJSON(r, &body); err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	output, err := h.addMember(r.Context(), &addMemberInput{Ref: httpx.Path(r, "ref"), Body: body})
+	writeMemberOutput(w, r, http.StatusCreated, output, err)
+}
 
-	huma.Register(api, huma.Operation{
-		OperationID: "updateProjectMemberRole",
-		Method:      http.MethodPatch,
-		Path:        "/projects/{ref}/members/{user_id}",
-		Summary:     "Update project member role",
-		Tags:        []string{"Project Members"},
-		Security:    security,
-		Middlewares: middlewares,
-		Errors:      []int{http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound, http.StatusConflict, http.StatusUnprocessableEntity, http.StatusInternalServerError},
-	}, h.updateMemberRole)
+func (h *Handler) handleUpdateMemberRole(w http.ResponseWriter, r *http.Request) {
+	var body updateMemberRoleInputBody
+	if err := httpx.DecodeJSON(r, &body); err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	output, err := h.updateMemberRole(r.Context(), &updateMemberRoleInput{Ref: httpx.Path(r, "ref"), UserID: httpx.Path(r, "user_id"), Body: body})
+	writeMemberOutput(w, r, http.StatusOK, output, err)
+}
 
-	huma.Register(api, huma.Operation{
-		OperationID:   "removeProjectMember",
-		Method:        http.MethodDelete,
-		Path:          "/projects/{ref}/members/{user_id}",
-		DefaultStatus: http.StatusNoContent,
-		Summary:       "Remove project member",
-		Tags:          []string{"Project Members"},
-		Security:      security,
-		Middlewares:   middlewares,
-		Errors:        []int{http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound, http.StatusConflict, http.StatusUnprocessableEntity, http.StatusInternalServerError},
-	}, h.removeMember)
+func (h *Handler) handleRemoveMember(w http.ResponseWriter, r *http.Request) {
+	_, err := h.removeMember(r.Context(), &removeMemberInput{Ref: httpx.Path(r, "ref"), UserID: httpx.Path(r, "user_id")})
+	writeNoContent(w, r, err)
+}
+
+func writeProjectOutput(w http.ResponseWriter, r *http.Request, status int, output *projectOutput, err error) {
+	if err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	httpx.WriteJSON(w, status, output.Body)
+}
+
+func writeMemberOutput(w http.ResponseWriter, r *http.Request, status int, output *memberOutput, err error) {
+	if err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	httpx.WriteJSON(w, status, output.Body)
+}
+
+func writeNoContent(w http.ResponseWriter, r *http.Request, err error) {
+	if err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	httpx.WriteNoContent(w)
 }

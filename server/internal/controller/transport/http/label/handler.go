@@ -3,10 +3,11 @@ package label
 import (
 	"net/http"
 
-	"github.com/danielgtaylor/huma/v2"
+	"github.com/go-chi/chi/v5"
 
 	appauth "github.com/yorukot/netstamp/internal/controller/application/auth"
 	applabel "github.com/yorukot/netstamp/internal/controller/application/label"
+	"github.com/yorukot/netstamp/internal/controller/transport/http/httpx"
 	httpmiddleware "github.com/yorukot/netstamp/internal/controller/transport/http/middleware"
 )
 
@@ -22,54 +23,55 @@ func NewHandler(service *applabel.Service, verifier appauth.TokenVerifier) *Hand
 	}
 }
 
-func (h *Handler) RegisterRoutes(api huma.API) {
-	authMiddleware := httpmiddleware.RequireAuth(h.verifier)
-	security := []map[string][]string{{httpmiddleware.SessionCookieSecurityScheme: {}}}
-	middlewares := huma.Middlewares{authMiddleware}
+func (h *Handler) RegisterRoutes(api chi.Router) {
+	api.With(httpmiddleware.RequireAuth(h.verifier)).Get("/projects/{ref}/labels", h.handleListLabels)
+	api.With(httpmiddleware.RequireAuth(h.verifier)).Post("/projects/{ref}/labels", h.handleCreateLabel)
+	api.With(httpmiddleware.RequireAuth(h.verifier)).Patch("/projects/{ref}/labels/{label_id}", h.handleUpdateLabel)
+	api.With(httpmiddleware.RequireAuth(h.verifier)).Delete("/projects/{ref}/labels/{label_id}", h.handleDeleteLabel)
+}
 
-	huma.Register(api, huma.Operation{
-		OperationID: "listProjectLabels",
-		Method:      http.MethodGet,
-		Path:        "/projects/{ref}/labels",
-		Summary:     "List project labels",
-		Tags:        []string{"Labels"},
-		Security:    security,
-		Middlewares: middlewares,
-		Errors:      []int{http.StatusUnauthorized, http.StatusNotFound, http.StatusInternalServerError},
-	}, h.listLabels)
+func (h *Handler) handleListLabels(w http.ResponseWriter, r *http.Request) {
+	output, err := h.listLabels(r.Context(), &listLabelsInput{Ref: httpx.Path(r, "ref")})
+	if err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, output.Body)
+}
 
-	huma.Register(api, huma.Operation{
-		OperationID:   "createProjectLabel",
-		Method:        http.MethodPost,
-		Path:          "/projects/{ref}/labels",
-		DefaultStatus: http.StatusCreated,
-		Summary:       "Create project label",
-		Tags:          []string{"Labels"},
-		Security:      security,
-		Middlewares:   middlewares,
-		Errors:        []int{http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound, http.StatusConflict, http.StatusUnprocessableEntity, http.StatusInternalServerError},
-	}, h.createLabel)
+func (h *Handler) handleCreateLabel(w http.ResponseWriter, r *http.Request) {
+	var body createLabelInputBody
+	if err := httpx.DecodeJSON(r, &body); err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	output, err := h.createLabel(r.Context(), &createLabelInput{Ref: httpx.Path(r, "ref"), Body: body})
+	writeLabelOutput(w, r, http.StatusCreated, output, err)
+}
 
-	huma.Register(api, huma.Operation{
-		OperationID: "updateProjectLabel",
-		Method:      http.MethodPatch,
-		Path:        "/projects/{ref}/labels/{label_id}",
-		Summary:     "Update project label",
-		Tags:        []string{"Labels"},
-		Security:    security,
-		Middlewares: middlewares,
-		Errors:      []int{http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound, http.StatusConflict, http.StatusUnprocessableEntity, http.StatusInternalServerError},
-	}, h.updateLabel)
+func (h *Handler) handleUpdateLabel(w http.ResponseWriter, r *http.Request) {
+	var body updateLabelInputBody
+	if err := httpx.DecodeJSON(r, &body); err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	output, err := h.updateLabel(r.Context(), &updateLabelInput{Ref: httpx.Path(r, "ref"), LabelID: httpx.Path(r, "label_id"), Body: body})
+	writeLabelOutput(w, r, http.StatusOK, output, err)
+}
 
-	huma.Register(api, huma.Operation{
-		OperationID:   "deleteProjectLabel",
-		Method:        http.MethodDelete,
-		Path:          "/projects/{ref}/labels/{label_id}",
-		DefaultStatus: http.StatusNoContent,
-		Summary:       "Delete project label",
-		Tags:          []string{"Labels"},
-		Security:      security,
-		Middlewares:   middlewares,
-		Errors:        []int{http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound, http.StatusInternalServerError},
-	}, h.deleteLabel)
+func (h *Handler) handleDeleteLabel(w http.ResponseWriter, r *http.Request) {
+	_, err := h.deleteLabel(r.Context(), &labelRefInput{Ref: httpx.Path(r, "ref"), LabelID: httpx.Path(r, "label_id")})
+	if err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	httpx.WriteNoContent(w)
+}
+
+func writeLabelOutput(w http.ResponseWriter, r *http.Request, status int, output *labelOutput, err error) {
+	if err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	httpx.WriteJSON(w, status, output.Body)
 }

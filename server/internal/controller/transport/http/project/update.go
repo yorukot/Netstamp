@@ -26,11 +26,11 @@ func (h *Handler) updateProject(ctx context.Context, input *updateProjectInput) 
 }
 
 type updateProjectInput struct {
-	Ref  string `path:"ref"  minLength:"1" maxLength:"64" pattern:"^[a-z0-9-]+$" patternDescription:"lowercase letters, numbers, and dashes" doc:"Project UUID or slug." example:"engineering"`
+	Ref  string
 	Body updateProjectInputBody
 }
 
 type updateProjectInputBody struct {
-	Name *string `json:"name,omitempty" maxLength:"64" doc:"Project display name." example:"Engineering"`
-	Slug *string `json:"slug,omitempty" maxLength:"64" pattern:"^[a-z0-9-]+$" patternDescription:"lowercase letters, numbers, and dashes" doc:"Stable project slug." example:"engineering"`
+	Name *string `json:"name,omitempty"`
+	Slug *string `json:"slug,omitempty"`
 }

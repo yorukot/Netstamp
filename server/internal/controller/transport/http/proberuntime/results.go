@@ -26,70 +26,70 @@ func (h *Handler) submitResults(ctx context.Context, input *submitResultsInput) 
 }
 
 type submitResultsInput struct {
-	ProbeID string `path:"probe_id" doc:"Probe ID."`
+	ProbeID string
 	Body    submitResultsBody
 }
 
 type submitResultsBody struct {
-	Results []runtimeResultGroupBody `json:"results" minItems:"1" maxItems:"100" doc:"Result groups keyed by check and check type."`
+	Results []runtimeResultGroupBody `json:"results"`
 }
 
 type runtimeResultGroupBody struct {
-	CheckID    string                        `json:"checkId" format:"uuid" doc:"Assigned check ID." example:"44444444-4444-4444-4444-444444444444"`
-	Type       string                        `json:"type" enum:"ping,traceroute" doc:"Check result type. Must match the assigned check type." example:"ping"`
-	Ping       []pingResultBody              `json:"ping,omitempty" doc:"Ping result payloads for this check."`
-	Traceroute []runtimeTracerouteResultBody `json:"traceroute,omitempty" doc:"Traceroute result payloads for this check."`
+	CheckID    string                        `json:"checkId"`
+	Type       string                        `json:"type"`
+	Ping       []pingResultBody              `json:"ping,omitempty"`
+	Traceroute []runtimeTracerouteResultBody `json:"traceroute,omitempty"`
 }
 
 type pingResultBody struct {
-	StartedAt     time.Time   `json:"startedAt" doc:"UTC time when the ping check started." example:"2026-05-13T10:00:00Z"`
-	FinishedAt    time.Time   `json:"finishedAt" doc:"UTC time when the ping check finished." example:"2026-05-13T10:00:01Z"`
-	DurationMs    int32       `json:"durationMs" minimum:"0" doc:"Total check duration in milliseconds." example:"1000"`
-	Status        string      `json:"status" enum:"successful,timeout,error" doc:"Ping result status." example:"successful"`
-	SentCount     int32       `json:"sentCount" minimum:"0" doc:"Packets sent." example:"4"`
-	ReceivedCount int32       `json:"receivedCount" minimum:"0" doc:"Packets received." example:"4"`
-	LossPercent   float64     `json:"lossPercent" minimum:"0" maximum:"100" doc:"Packet loss percentage." example:"0"`
-	RttMinMs      *float64    `json:"rttMinMs,omitempty" minimum:"0" doc:"Minimum RTT in milliseconds." example:"10.1"`
-	RttAvgMs      *float64    `json:"rttAvgMs,omitempty" minimum:"0" doc:"Average RTT in milliseconds." example:"12.3"`
-	RttMedianMs   *float64    `json:"rttMedianMs,omitempty" minimum:"0" doc:"Median RTT in milliseconds." example:"12"`
-	RttMaxMs      *float64    `json:"rttMaxMs,omitempty" minimum:"0" doc:"Maximum RTT in milliseconds." example:"15.6"`
-	RttStddevMs   *float64    `json:"rttStddevMs,omitempty" minimum:"0" doc:"RTT standard deviation in milliseconds." example:"1.7"`
-	RttSamplesMs  []float64   `json:"rttSamplesMs,omitempty" doc:"RTT sample values in milliseconds."`
-	ResolvedIP    *netip.Addr `json:"resolvedIp,omitempty" doc:"Resolved IP address used for the ping." example:"1.1.1.1"`
-	IPFamily      *string     `json:"ipFamily,omitempty" enum:"inet,inet6" doc:"IP family used for the check." example:"inet"`
-	ErrorCode     *string     `json:"errorCode,omitempty" doc:"Optional machine-readable error code." example:"icmp_timeout"`
-	ErrorMessage  *string     `json:"errorMessage,omitempty" doc:"Optional executor error message." example:"request timed out"`
+	StartedAt     time.Time   `json:"startedAt"`
+	FinishedAt    time.Time   `json:"finishedAt"`
+	DurationMs    int32       `json:"durationMs"`
+	Status        string      `json:"status"`
+	SentCount     int32       `json:"sentCount"`
+	ReceivedCount int32       `json:"receivedCount"`
+	LossPercent   float64     `json:"lossPercent"`
+	RttMinMs      *float64    `json:"rttMinMs,omitempty"`
+	RttAvgMs      *float64    `json:"rttAvgMs,omitempty"`
+	RttMedianMs   *float64    `json:"rttMedianMs,omitempty"`
+	RttMaxMs      *float64    `json:"rttMaxMs,omitempty"`
+	RttStddevMs   *float64    `json:"rttStddevMs,omitempty"`
+	RttSamplesMs  []float64   `json:"rttSamplesMs,omitempty"`
+	ResolvedIP    *netip.Addr `json:"resolvedIp,omitempty"`
+	IPFamily      *string     `json:"ipFamily,omitempty"`
+	ErrorCode     *string     `json:"errorCode,omitempty"`
+	ErrorMessage  *string     `json:"errorMessage,omitempty"`
 }
 
 type runtimeTracerouteResultBody struct {
-	StartedAt          time.Time                  `json:"startedAt" doc:"UTC time when the traceroute check started." example:"2026-05-13T10:00:00Z"`
-	FinishedAt         time.Time                  `json:"finishedAt" doc:"UTC time when the traceroute check finished." example:"2026-05-13T10:00:04Z"`
-	DurationMs         int32                      `json:"durationMs" minimum:"0" doc:"Total check duration in milliseconds." example:"4000"`
-	Status             string                     `json:"status" enum:"successful,timeout,error,partial" doc:"Traceroute result status." example:"partial"`
-	ResolvedIP         *netip.Addr                `json:"resolvedIp,omitempty" doc:"Resolved destination IP address." example:"93.184.216.34"`
-	IPFamily           *string                    `json:"ipFamily,omitempty" enum:"inet,inet6" doc:"IP family used for the check." example:"inet"`
-	DestinationReached bool                       `json:"destinationReached" doc:"Whether the traceroute reached the destination." example:"false"`
-	HopCount           int32                      `json:"hopCount" minimum:"0" doc:"Observed hop count." example:"12"`
-	Hops               []runtimeTracerouteHopBody `json:"hops,omitempty" doc:"Per-hop traceroute samples."`
-	ErrorCode          *string                    `json:"errorCode,omitempty" doc:"Optional machine-readable error code." example:"destination_unreached"`
-	ErrorMessage       *string                    `json:"errorMessage,omitempty" doc:"Optional executor error message." example:"destination was not reached before max hops"`
+	StartedAt          time.Time                  `json:"startedAt"`
+	FinishedAt         time.Time                  `json:"finishedAt"`
+	DurationMs         int32                      `json:"durationMs"`
+	Status             string                     `json:"status"`
+	ResolvedIP         *netip.Addr                `json:"resolvedIp,omitempty"`
+	IPFamily           *string                    `json:"ipFamily,omitempty"`
+	DestinationReached bool                       `json:"destinationReached"`
+	HopCount           int32                      `json:"hopCount"`
+	Hops               []runtimeTracerouteHopBody `json:"hops,omitempty"`
+	ErrorCode          *string                    `json:"errorCode,omitempty"`
+	ErrorMessage       *string                    `json:"errorMessage,omitempty"`
 }
 
 type runtimeTracerouteHopBody struct {
-	HopIndex      int32       `json:"hopIndex" minimum:"1" maximum:"64" doc:"One-based hop index." example:"1"`
-	Address       *netip.Addr `json:"address,omitempty" doc:"Hop IP address." example:"192.0.2.1"`
-	Hostname      *string     `json:"hostname,omitempty" doc:"Hop reverse DNS hostname." example:"gateway.local"`
-	SentCount     int32       `json:"sentCount" minimum:"0" doc:"Probe attempts sent for this hop." example:"3"`
-	ReceivedCount int32       `json:"receivedCount" minimum:"0" doc:"Probe attempts received for this hop." example:"3"`
-	LossPercent   float64     `json:"lossPercent" minimum:"0" maximum:"100" doc:"Probe loss percentage for this hop." example:"0"`
-	RttMinMs      *float64    `json:"rttMinMs,omitempty" minimum:"0" doc:"Minimum RTT in milliseconds." example:"1.5"`
-	RttAvgMs      *float64    `json:"rttAvgMs,omitempty" minimum:"0" doc:"Average RTT in milliseconds." example:"1.7"`
-	RttMedianMs   *float64    `json:"rttMedianMs,omitempty" minimum:"0" doc:"Median RTT in milliseconds." example:"1.7"`
-	RttMaxMs      *float64    `json:"rttMaxMs,omitempty" minimum:"0" doc:"Maximum RTT in milliseconds." example:"1.9"`
-	RttStddevMs   *float64    `json:"rttStddevMs,omitempty" minimum:"0" doc:"RTT standard deviation in milliseconds." example:"0.2"`
-	RttSamplesMs  []float64   `json:"rttSamplesMs,omitempty" doc:"RTT sample values in milliseconds."`
-	ErrorCode     *string     `json:"errorCode,omitempty" doc:"Optional machine-readable hop error code." example:"hop_timeout"`
-	ErrorMessage  *string     `json:"errorMessage,omitempty" doc:"Optional hop error message." example:"request timed out"`
+	HopIndex      int32       `json:"hopIndex"`
+	Address       *netip.Addr `json:"address,omitempty"`
+	Hostname      *string     `json:"hostname,omitempty"`
+	SentCount     int32       `json:"sentCount"`
+	ReceivedCount int32       `json:"receivedCount"`
+	LossPercent   float64     `json:"lossPercent"`
+	RttMinMs      *float64    `json:"rttMinMs,omitempty"`
+	RttAvgMs      *float64    `json:"rttAvgMs,omitempty"`
+	RttMedianMs   *float64    `json:"rttMedianMs,omitempty"`
+	RttMaxMs      *float64    `json:"rttMaxMs,omitempty"`
+	RttStddevMs   *float64    `json:"rttStddevMs,omitempty"`
+	RttSamplesMs  []float64   `json:"rttSamplesMs,omitempty"`
+	ErrorCode     *string     `json:"errorCode,omitempty"`
+	ErrorMessage  *string     `json:"errorMessage,omitempty"`
 }
 
 type submitResultsOutput struct {

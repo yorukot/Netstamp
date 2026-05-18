@@ -2,23 +2,22 @@ package middleware
 
 import (
 	"context"
-	"errors"
+	"encoding/json"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
-	"github.com/danielgtaylor/huma/v2"
-	"github.com/danielgtaylor/huma/v2/humatest"
+	"github.com/go-chi/chi/v5"
 
 	appauth "github.com/yorukot/netstamp/internal/controller/application/auth"
 	"github.com/yorukot/netstamp/internal/domain/identity"
 )
 
 func TestRequireAuthRejectsMissingAuthCookie(t *testing.T) {
-	_, api := humatest.New(t)
 	verifier := &recordingTokenVerifier{}
-	registerClaimsRoute(t, api, verifier)
+	router := registerClaimsRoute(t, verifier)
 
-	res := api.Get("/me")
+	res := performAuthTestRequest(router, http.MethodGet, "/me")
 
 	if res.Code != http.StatusUnauthorized {
 		t.Fatalf("expected status 401, got %d", res.Code)
@@ -32,11 +31,10 @@ func TestRequireAuthRejectsMissingAuthCookie(t *testing.T) {
 }
 
 func TestRequireAuthIgnoresBearerHeader(t *testing.T) {
-	_, api := humatest.New(t)
 	verifier := &recordingTokenVerifier{}
-	registerClaimsRoute(t, api, verifier)
+	router := registerClaimsRoute(t, verifier)
 
-	res := api.Get("/me", "Authorization: Bearer ignored-token")
+	res := performAuthTestRequest(router, http.MethodGet, "/me", "Authorization", "Bearer ignored-token")
 
 	if res.Code != http.StatusUnauthorized {
 		t.Fatalf("expected status 401, got %d", res.Code)
@@ -47,11 +45,10 @@ func TestRequireAuthIgnoresBearerHeader(t *testing.T) {
 }
 
 func TestRequireAuthRejectsInvalidAccessToken(t *testing.T) {
-	_, api := humatest.New(t)
 	verifier := &recordingTokenVerifier{err: appauth.ErrAccessTokenInvalid}
-	registerClaimsRoute(t, api, verifier)
+	router := registerClaimsRoute(t, verifier)
 
-	res := api.Get("/me", "Cookie: "+SessionCookieName+"=bad-token")
+	res := performAuthTestRequest(router, http.MethodGet, "/me", "Cookie", SessionCookieName+"=bad-token")
 
 	if res.Code != http.StatusUnauthorized {
 		t.Fatalf("expected status 401, got %d", res.Code)
@@ -62,16 +59,15 @@ func TestRequireAuthRejectsInvalidAccessToken(t *testing.T) {
 }
 
 func TestRequireAuthStoresClaimsInContext(t *testing.T) {
-	_, api := humatest.New(t)
 	verifier := &recordingTokenVerifier{
 		claims: identity.AccessTokenClaims{
 			Subject: "user-1",
 			Email:   "user@example.com",
 		},
 	}
-	registerClaimsRoute(t, api, verifier)
+	router := registerClaimsRoute(t, verifier)
 
-	res := api.Get("/me", "Cookie: "+SessionCookieName+"=good-token")
+	res := performAuthTestRequest(router, http.MethodGet, "/me", "Cookie", SessionCookieName+"=good-token")
 
 	if res.Code != http.StatusOK {
 		t.Fatalf("expected status 200, got %d", res.Code)
@@ -81,34 +77,37 @@ func TestRequireAuthStoresClaimsInContext(t *testing.T) {
 	}
 }
 
-func registerClaimsRoute(t *testing.T, api huma.API, verifier appauth.TokenVerifier) {
+func registerClaimsRoute(t *testing.T, verifier appauth.TokenVerifier) http.Handler {
 	t.Helper()
 
-	huma.Register(api, huma.Operation{
-		Method: http.MethodGet,
-		Path:   "/me",
-		Middlewares: huma.Middlewares{
-			RequireAuth(verifier),
-		},
-	}, func(ctx context.Context, _ *struct{}) (*claimsRouteOutput, error) {
-		claims, ok := AccessTokenClaimsFromContext(ctx)
+	router := chi.NewRouter()
+	router.With(RequireAuth(verifier)).Get("/me", func(w http.ResponseWriter, r *http.Request) {
+		claims, ok := AccessTokenClaimsFromContext(r.Context())
 		if !ok {
-			return nil, errors.New("missing claims")
+			http.Error(w, "missing claims", http.StatusInternalServerError)
+			return
 		}
 		if claims.Subject == "" || claims.Email == "" {
-			return nil, errors.New("empty claims")
+			http.Error(w, "empty claims", http.StatusInternalServerError)
+			return
 		}
-		return &claimsRouteOutput{
-			Body: claimsRouteBody{
-				Subject: claims.Subject,
-				Email:   claims.Email,
-			},
-		}, nil
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(claimsRouteBody{
+			Subject: claims.Subject,
+			Email:   claims.Email,
+		})
 	})
+	return router
 }
 
-type claimsRouteOutput struct {
-	Body claimsRouteBody
+func performAuthTestRequest(router http.Handler, method, path string, headers ...string) *httptest.ResponseRecorder {
+	req := httptest.NewRequest(method, path, http.NoBody)
+	for i := 0; i+1 < len(headers); i += 2 {
+		req.Header.Set(headers[i], headers[i+1])
+	}
+	res := httptest.NewRecorder()
+	router.ServeHTTP(res, req)
+	return res
 }
 
 type claimsRouteBody struct {

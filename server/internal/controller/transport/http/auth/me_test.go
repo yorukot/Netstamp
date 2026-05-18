@@ -4,16 +4,17 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
-	"github.com/danielgtaylor/huma/v2/humatest"
+	"github.com/go-chi/chi/v5"
 
 	appauth "github.com/yorukot/netstamp/internal/controller/application/auth"
 	"github.com/yorukot/netstamp/internal/domain/identity"
 )
 
 func TestMeReturnsAuthenticatedUser(t *testing.T) {
-	_, api := humatest.New(t)
+	router := chi.NewRouter()
 	user := identity.User{
 		ID:          "11111111-1111-1111-1111-111111111111",
 		Email:       "user@example.com",
@@ -24,9 +25,12 @@ func TestMeReturnsAuthenticatedUser(t *testing.T) {
 			Subject: user.ID,
 			Email:   user.Email,
 		},
-	}, false).RegisterRoutes(api)
+	}, false).RegisterRoutes(router)
 
-	res := api.Get("/auth/me", "Cookie: netstamp_session=valid-token")
+	req := httptest.NewRequest(http.MethodGet, "/auth/me", http.NoBody)
+	req.Header.Set("Cookie", "netstamp_session=valid-token")
+	res := httptest.NewRecorder()
+	router.ServeHTTP(res, req)
 
 	if res.Code != http.StatusOK {
 		t.Fatalf("expected status 200, got %d", res.Code)

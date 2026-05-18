@@ -14,5 +14,5 @@ func (h *Handler) logout(context.Context, *logoutInput) (*logoutOutput, error) {
 type logoutInput struct{}
 
 type logoutOutput struct {
-	SetCookie http.Cookie `header:"Set-Cookie" hidden:"true"`
+	SetCookie http.Cookie
 }

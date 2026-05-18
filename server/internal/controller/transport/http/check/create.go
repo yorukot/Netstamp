@@ -34,19 +34,19 @@ func (h *Handler) createCheck(ctx context.Context, input *createCheckInput) (*ch
 }
 
 type createCheckInput struct {
-	Ref  string `path:"ref" minLength:"1" maxLength:"64" pattern:"^[a-z0-9-]+$" patternDescription:"lowercase letters, numbers, and dashes" doc:"Project slug or lowercase UUID." example:"engineering"`
+	Ref  string
 	Body createCheckInputBody
 }
 
 type createCheckInputBody struct {
-	Name            string         `json:"name" minLength:"1" maxLength:"128" doc:"Check display name." example:"api-latency"`
-	Type            string         `json:"type" enum:"ping,traceroute" doc:"Check type." example:"ping"`
-	Target          string         `json:"target" minLength:"1" maxLength:"128" doc:"Hostname or address to check." example:"api.netstamp.io"`
-	Selector        map[string]any `json:"selector,omitempty" doc:"Selector object for later probe matching."`
-	Description     *string        `json:"description,omitempty" minLength:"1" maxLength:"1024" doc:"Optional check description." example:"Latency and loss to controller API."`
-	IntervalSeconds int32          `json:"intervalSeconds" minimum:"1" doc:"Check interval in seconds." example:"30"`
-	LabelIDs        []string       `json:"labelIds,omitempty" format:"uuid" doc:"Existing project label IDs to attach to the check."`
+	Name            string         `json:"name"`
+	Type            string         `json:"type"`
+	Target          string         `json:"target"`
+	Selector        map[string]any `json:"selector,omitempty"`
+	Description     *string        `json:"description,omitempty"`
+	IntervalSeconds int32          `json:"intervalSeconds"`
+	LabelIDs        []string       `json:"labelIds,omitempty"`
 
-	PingConfig       *checkPingConfigInput       `json:"pingConfig,omitempty" doc:"Ping-specific check configuration. Omitted fields use defaults."`
-	TracerouteConfig *checkTracerouteConfigInput `json:"tracerouteConfig,omitempty" doc:"Traceroute-specific check configuration. Omitted fields use defaults."`
+	PingConfig       *checkPingConfigInput       `json:"pingConfig,omitempty"`
+	TracerouteConfig *checkTracerouteConfigInput `json:"tracerouteConfig,omitempty"`
 }

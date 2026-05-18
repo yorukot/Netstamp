@@ -34,19 +34,19 @@ func (h *Handler) updateCheck(ctx context.Context, input *updateCheckInput) (*ch
 }
 
 type updateCheckInput struct {
-	Ref     string `path:"ref" minLength:"1" maxLength:"64" pattern:"^[a-z0-9-]+$" patternDescription:"lowercase letters, numbers, and dashes" doc:"Project slug or lowercase UUID." example:"engineering"`
-	CheckID string `path:"check_id" minLength:"1" format:"uuid" doc:"Check ID." example:"33333333-3333-3333-3333-333333333333"`
+	Ref     string
+	CheckID string
 	Body    updateCheckInputBody
 }
 
 type updateCheckInputBody struct {
-	Name             *string                     `json:"name,omitempty" minLength:"1" maxLength:"128" doc:"Check display name." example:"api-latency"`
-	Type             *string                     `json:"type,omitempty" enum:"ping,traceroute" doc:"Check type. Cannot be changed after creation in v1." example:"ping"`
-	Target           *string                     `json:"target,omitempty" minLength:"1" maxLength:"128" doc:"Hostname or address to check." example:"api.netstamp.io"`
-	Selector         map[string]any              `json:"selector,omitempty" doc:"Selector object for later probe matching."`
-	Description      *string                     `json:"description,omitempty" minLength:"1" maxLength:"1024" doc:"Optional check description." example:"Latency and loss to controller API."`
-	IntervalSeconds  *int32                      `json:"intervalSeconds,omitempty" minimum:"1" doc:"Check interval in seconds." example:"30"`
-	PingConfig       *checkPingConfigInput       `json:"pingConfig,omitempty" doc:"Ping-specific check configuration fields to update."`
-	TracerouteConfig *checkTracerouteConfigInput `json:"tracerouteConfig,omitempty" doc:"Traceroute-specific check configuration fields to update."`
-	LabelIDs         *[]string                   `json:"labelIds,omitempty" format:"uuid" doc:"Replacement project label IDs for the check."`
+	Name             *string                     `json:"name,omitempty"`
+	Type             *string                     `json:"type,omitempty"`
+	Target           *string                     `json:"target,omitempty"`
+	Selector         map[string]any              `json:"selector,omitempty"`
+	Description      *string                     `json:"description,omitempty"`
+	IntervalSeconds  *int32                      `json:"intervalSeconds,omitempty"`
+	PingConfig       *checkPingConfigInput       `json:"pingConfig,omitempty"`
+	TracerouteConfig *checkTracerouteConfigInput `json:"tracerouteConfig,omitempty"`
+	LabelIDs         *[]string                   `json:"labelIds,omitempty"`
 }

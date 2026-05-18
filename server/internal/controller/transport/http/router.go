@@ -3,11 +3,8 @@ package httpserver
 import (
 	"context"
 	"net/http"
-	"strings"
 	"time"
 
-	"github.com/danielgtaylor/huma/v2"
-	"github.com/danielgtaylor/huma/v2/adapters/humachi"
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
@@ -24,6 +21,7 @@ import (
 	checkhttp "github.com/yorukot/netstamp/internal/controller/transport/http/check"
 	labelhttp "github.com/yorukot/netstamp/internal/controller/transport/http/label"
 	httpmiddleware "github.com/yorukot/netstamp/internal/controller/transport/http/middleware"
+	"github.com/yorukot/netstamp/internal/controller/transport/http/openapi"
 	probehttp "github.com/yorukot/netstamp/internal/controller/transport/http/probe"
 	proberuntimehttp "github.com/yorukot/netstamp/internal/controller/transport/http/proberuntime"
 	projecthttp "github.com/yorukot/netstamp/internal/controller/transport/http/project"
@@ -74,8 +72,7 @@ func newAPIRouter(dep Dependencies) http.Handler {
 	r.Use(httpmiddleware.ZapRequestLogger(dep.Log))
 
 	r.Route(dep.basePath(), func(apiRouter chi.Router) {
-		api := humachi.New(apiRouter, newHumaConfig(dep))
-		registerAPIRoutes(api, dep)
+		registerAPIRoutes(apiRouter, dep)
 	})
 
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
@@ -100,8 +97,9 @@ func routeMetrics(apiRouter, metricsHandler http.Handler) http.Handler {
 	})
 }
 
-func registerAPIRoutes(api huma.API, dep Dependencies) {
+func registerAPIRoutes(api chi.Router, dep Dependencies) {
 	registerSystemRoutes(api, dep.ReadinessCheck)
+	registerOpenAPIRoute(api, dep)
 
 	authhttp.NewHandler(dep.AuthService, dep.AuthVerifier, dep.AuthCookieSecure).RegisterRoutes(api)
 	projecthttp.NewHandler(dep.ProjectService, dep.AuthVerifier).RegisterRoutes(api)
@@ -112,36 +110,19 @@ func registerAPIRoutes(api huma.API, dep Dependencies) {
 	proberuntimehttp.NewHandler(dep.ProbeRuntime).RegisterRoutes(api)
 }
 
-func newHumaConfig(dep Dependencies) huma.Config {
-	config := huma.DefaultConfig("Netstamp API", dep.APIVersion)
-	config.Info.Description = "Controller HTTP API for Netstamp."
-	config.Servers = []*huma.Server{{URL: dep.serverURL()}}
-	if config.Components.SecuritySchemes == nil {
-		config.Components.SecuritySchemes = map[string]*huma.SecurityScheme{}
-	}
-	config.Components.SecuritySchemes[httpmiddleware.SessionCookieSecurityScheme] = &huma.SecurityScheme{
-		Type:        "apiKey",
-		In:          "cookie",
-		Name:        httpmiddleware.SessionCookieName,
-		Description: "HTTP-only session cookie set by `/auth/register` and `/auth/login`.",
-	}
-	config.Components.SecuritySchemes["probeAuth"] = &huma.SecurityScheme{
-		Type:        "apiKey",
-		In:          "header",
-		Name:        "Authorization",
-		Description: "Probe runtime credential header using the format `Probe <secret>`.",
-	}
-	return config
+func registerOpenAPIRoute(api chi.Router, dep Dependencies) {
+	api.Get("/openapi.json", func(w http.ResponseWriter, r *http.Request) {
+		data, err := openapi.Spec(dep.APIVersion, dep.BackendBaseURL)
+		if err != nil {
+			httpmiddleware.WriteProblem(w, r, http.StatusInternalServerError, "openapi unavailable")
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(data)
+	})
 }
 
 func (d *Dependencies) basePath() string {
 	return "/api/" + d.APIVersion
-}
-
-func (d *Dependencies) serverURL() string {
-	backendBaseURL := strings.TrimRight(strings.TrimSpace(d.BackendBaseURL), "/")
-	if backendBaseURL == "" {
-		return d.basePath()
-	}
-	return backendBaseURL + d.basePath()
 }

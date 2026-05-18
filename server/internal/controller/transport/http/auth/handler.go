@@ -3,9 +3,10 @@ package auth
 import (
 	"net/http"
 
-	"github.com/danielgtaylor/huma/v2"
+	"github.com/go-chi/chi/v5"
 
 	appauth "github.com/yorukot/netstamp/internal/controller/application/auth"
+	"github.com/yorukot/netstamp/internal/controller/transport/http/httpx"
 	httpmiddleware "github.com/yorukot/netstamp/internal/controller/transport/http/middleware"
 )
 
@@ -23,49 +24,58 @@ func NewHandler(service *appauth.Service, verifier appauth.TokenVerifier, cookie
 	}
 }
 
-func (h *Handler) RegisterRoutes(api huma.API) {
-	huma.Register(api, huma.Operation{
-		OperationID:   "registerUser",
-		Method:        http.MethodPost,
-		Path:          "/auth/register",
-		DefaultStatus: http.StatusCreated,
-		Summary:       "Register user",
-		Description:   "Create a user account with a normalized email address, display name, and password. On success, sets an HTTP-only session cookie for immediate API access.",
-		Tags:          []string{"Auth"},
-		Errors:        []int{http.StatusUnprocessableEntity, http.StatusConflict, http.StatusInternalServerError},
-	}, h.register)
+func (h *Handler) RegisterRoutes(api chi.Router) {
+	api.Post("/auth/register", h.handleRegister)
+	api.Post("/auth/login", h.handleLogin)
+	api.Post("/auth/logout", h.handleLogout)
+	api.With(httpmiddleware.RequireAuth(h.verifier)).Get("/auth/me", h.handleMe)
+}
 
-	huma.Register(api, huma.Operation{
-		OperationID: "loginUser",
-		Method:      http.MethodPost,
-		Path:        "/auth/login",
-		Summary:     "Login user",
-		Description: "Verify an email and password pair, then set an HTTP-only session cookie for the authenticated user. Invalid credentials always return the same unauthorized response so callers cannot distinguish an unknown email from a password mismatch.",
-		Tags:        []string{"Auth"},
-		Errors:      []int{http.StatusUnauthorized, http.StatusInternalServerError},
-	}, h.login)
+func (h *Handler) handleRegister(w http.ResponseWriter, r *http.Request) {
+	var body registerInputBody
+	if err := httpx.DecodeJSON(r, &body); err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	output, err := h.register(r.Context(), &registerInput{Body: body})
+	if err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	http.SetCookie(w, &output.SetCookie)
+	httpx.WriteJSON(w, http.StatusCreated, output.Body)
+}
 
-	huma.Register(api, huma.Operation{
-		OperationID:   "logoutUser",
-		Method:        http.MethodPost,
-		Path:          "/auth/logout",
-		DefaultStatus: http.StatusNoContent,
-		Summary:       "Logout user",
-		Description:   "Clear the HTTP-only session cookie.",
-		Tags:          []string{"Auth"},
-	}, h.logout)
+func (h *Handler) handleLogin(w http.ResponseWriter, r *http.Request) {
+	var body loginInputBody
+	if err := httpx.DecodeJSON(r, &body); err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	output, err := h.login(r.Context(), &loginInput{Body: body})
+	if err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	http.SetCookie(w, &output.SetCookie)
+	httpx.WriteJSON(w, http.StatusOK, output.Body)
+}
 
-	huma.Register(api, huma.Operation{
-		OperationID: "getCurrentUser",
-		Method:      http.MethodGet,
-		Path:        "/auth/me",
-		Summary:     "Get current user",
-		Description: "Return the user identity embedded in a valid session cookie.",
-		Tags:        []string{"Auth"},
-		Security:    []map[string][]string{{httpmiddleware.SessionCookieSecurityScheme: {}}},
-		Middlewares: huma.Middlewares{
-			httpmiddleware.RequireAuth(h.verifier),
-		},
-		Errors: []int{http.StatusUnauthorized, http.StatusInternalServerError},
-	}, h.me)
+func (h *Handler) handleLogout(w http.ResponseWriter, r *http.Request) {
+	output, err := h.logout(r.Context(), &logoutInput{})
+	if err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	http.SetCookie(w, &output.SetCookie)
+	httpx.WriteNoContent(w)
+}
+
+func (h *Handler) handleMe(w http.ResponseWriter, r *http.Request) {
+	output, err := h.me(r.Context(), &meInput{})
+	if err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, output.Body)
 }

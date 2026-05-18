@@ -47,8 +47,9 @@ api-build:
 # Generate OpenAPI JSON from the TypeSpec API contract and refresh web API types.
 api-openapi:
     pnpm --filter {{ api_filter }} generate:openapi
+    cp docs/public/openapi.json server/internal/controller/transport/http/openapi/openapi.json
     pnpm --filter {{ web_filter }} generate:api-types
-    pnpm exec prettier --write docs/public/openapi.json web/src/shared/api/openapi.d.ts
+    pnpm exec prettier --write docs/public/openapi.json server/internal/controller/transport/http/openapi/openapi.json web/src/shared/api/openapi.d.ts
 
 # Build the shared UI package.
 ui-build:
@@ -107,9 +108,6 @@ backend-build:
 # Run the probe agent with an env file inside server/.
 backend-probe env_file="probe.env": backend-build
     cd {{ server_dir }} && sh -c 'set -a && . "./{{ env_file }}" && set +a && ./bin/agent'
-
-# Generate OpenAPI JSON for the docs explorer and web API types.
-backend-openapi: api-openapi
 
 # Run backend tests.
 backend-test:

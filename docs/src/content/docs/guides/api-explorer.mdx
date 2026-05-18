@@ -9,7 +9,7 @@ head:
 
 ## Contract Source
 
-The API explorer reads `docs/public/openapi.json`. That file is generated from backend Huma routes, so route shape should come from code rather than hand-written docs.
+The API explorer reads `docs/public/openapi.json`. That file is generated from the TypeSpec contract in `api/`, then copied into the backend so runtime `/api/{version}/openapi.json` serves the same schema.
 
 ```bash
 pnpm generate:openapi
@@ -17,7 +17,7 @@ pnpm generate:openapi
 
 ## Use The Explorer
 
-Open [`/openapi/`](/openapi/) from the docs nav. The page loads the generated contract and groups operations by the backend tags emitted by Huma.
+Open [`/openapi/`](/openapi/) from the docs nav. The page loads the generated contract and groups operations by the tags defined in TypeSpec.
 
 Use it to verify request bodies, response schemas, and route paths before writing additional guides.
 
@@ -25,7 +25,7 @@ Use it to verify request bodies, response schemas, and route paths before writin
 
 Authenticated routes still need a valid session cookie when the backend enforces one. The explorer can describe the shape of the request, but it does not bypass application auth.
 
-:::warning Do not manually edit `docs/public/openapi.json` for route changes. Regenerate it from the backend so docs and runtime behavior stay together. :::
+:::warning Do not manually edit `docs/public/openapi.json` for route changes. Regenerate it from TypeSpec so docs, web API types, and runtime schema stay together. :::
 
 ## Documentation Updates
 

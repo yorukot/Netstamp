@@ -32,13 +32,13 @@ func (h *Handler) queryTracerouteRuns(ctx context.Context, input *queryTracerout
 }
 
 type queryTracerouteRunsInput struct {
-	Ref     string `path:"ref" doc:"Project ID or slug." example:"vector-ix"`
-	ProbeID string `query:"probeId" required:"true" format:"uuid" doc:"Probe ID to query."`
-	CheckID string `query:"checkId" required:"true" format:"uuid" doc:"Check ID to query."`
-	From    int64  `query:"from" doc:"Inclusive range start as epoch milliseconds."`
-	To      int64  `query:"to" doc:"Exclusive range end as epoch milliseconds."`
-	Limit   int32  `query:"limit" doc:"Maximum traceroute runs to return." example:"100"`
-	Cursor  int64  `query:"cursor" doc:"Pagination cursor as a run startedAt epoch millisecond timestamp."`
+	Ref     string
+	ProbeID string
+	CheckID string
+	From    int64
+	To      int64
+	Limit   int32
+	Cursor  int64
 }
 
 type queryTracerouteRunsOutput struct {
@@ -82,10 +82,10 @@ type tracerouteResultHopBody struct {
 }
 
 type tracerouteRunQueryMetadataBody struct {
-	FromMs     int64  `json:"from" example:"1778662800000"`
-	ToMs       int64  `json:"to" example:"1778749200000"`
-	Limit      int32  `json:"limit" example:"100"`
-	NextCursor *int64 `json:"nextCursor,omitempty" example:"1778662800000"`
+	FromMs     int64  `json:"from"`
+	ToMs       int64  `json:"to"`
+	Limit      int32  `json:"limit"`
+	NextCursor *int64 `json:"nextCursor,omitempty"`
 }
 
 func newQueryTracerouteRunsBody(output appresult.TracerouteRunsOutput) queryTracerouteRunsBody {

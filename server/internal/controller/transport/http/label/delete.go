@@ -24,8 +24,8 @@ func (h *Handler) deleteLabel(ctx context.Context, input *labelRefInput) (*delet
 }
 
 type labelRefInput struct {
-	Ref     string `path:"ref" minLength:"1" maxLength:"64" pattern:"^[a-z0-9-]+$" patternDescription:"lowercase letters, numbers, and dashes" doc:"Project UUID or slug." example:"engineering"`
-	LabelID string `path:"label_id" minLength:"1" format:"uuid" doc:"Label ID."`
+	Ref     string
+	LabelID string
 }
 
 type deleteLabelOutput struct{}

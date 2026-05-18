@@ -2,15 +2,13 @@ package proberuntime
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"net/http"
 	"strings"
 
-	"github.com/danielgtaylor/huma/v2"
-
 	appproberuntime "github.com/yorukot/netstamp/internal/controller/application/proberuntime"
 	appvalidation "github.com/yorukot/netstamp/internal/controller/application/validation"
+	"github.com/yorukot/netstamp/internal/controller/transport/http/httpx"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
 	domaintraceroute "github.com/yorukot/netstamp/internal/domain/traceroute"
@@ -18,18 +16,20 @@ import (
 
 type runtimeAuthContextKey struct{}
 
-func requireRuntimeAuth(ctx huma.Context, next func(huma.Context)) {
-	secret, ok := probeSecret(ctx.Header("Authorization"))
-	if !ok {
-		writeRuntimeProblem(ctx, http.StatusUnauthorized, "missing probe credential")
-		return
-	}
+func requireRuntimeAuth(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		secret, ok := probeSecret(r.Header.Get("Authorization"))
+		if !ok {
+			writeRuntimeProblem(w, r, http.StatusUnauthorized, "missing probe credential")
+			return
+		}
 
-	auth := appproberuntime.RuntimeAuthInput{
-		ProbeID:    ctx.Param("probe_id"),
-		Credential: secret,
-	}
-	next(huma.WithContext(ctx, withRuntimeAuth(ctx.Context(), auth)))
+		auth := appproberuntime.RuntimeAuthInput{
+			ProbeID:    httpx.Path(r, "probe_id"),
+			Credential: secret,
+		}
+		next.ServeHTTP(w, r.WithContext(withRuntimeAuth(r.Context(), auth)))
+	})
 }
 
 func withRuntimeAuth(ctx context.Context, auth appproberuntime.RuntimeAuthInput) context.Context {
@@ -44,7 +44,7 @@ func runtimeAuthFromContext(ctx context.Context) (appproberuntime.RuntimeAuthInp
 func requireRuntimeAuthInput(ctx context.Context) (appproberuntime.RuntimeAuthInput, error) {
 	auth, ok := runtimeAuthFromContext(ctx)
 	if !ok {
-		return appproberuntime.RuntimeAuthInput{}, huma.Error500InternalServerError("probe runtime auth unavailable")
+		return appproberuntime.RuntimeAuthInput{}, httpx.InternalServerError("probe runtime auth unavailable")
 	}
 
 	return auth, nil
@@ -59,55 +59,46 @@ func probeSecret(header string) (string, bool) {
 	return strings.TrimSpace(secret), true
 }
 
-func writeRuntimeProblem(ctx huma.Context, status int, detail string) {
+func writeRuntimeProblem(w http.ResponseWriter, r *http.Request, status int, detail string) {
 	if status == http.StatusUnauthorized {
-		ctx.SetHeader("WWW-Authenticate", "Probe")
+		w.Header().Set("WWW-Authenticate", "Probe")
 	}
-	ctx.SetHeader("Content-Type", "application/problem+json")
-	ctx.SetStatus(status)
-
-	if err := json.NewEncoder(ctx.BodyWriter()).Encode(&huma.ErrorModel{
-		Status: status,
-		Title:  http.StatusText(status),
-		Detail: detail,
-	}); err != nil {
-		return
-	}
+	httpx.WriteProblem(w, r, httpx.NewError(status, detail))
 }
 
 func mapRuntimeError(err error, fallback string) error {
 	switch {
 	case errors.Is(err, domainprobe.ErrInvalidCredential):
-		return huma.Error401Unauthorized("invalid probe credential")
+		return httpx.Unauthorized("invalid probe credential")
 	case errors.Is(err, domainprobe.ErrProbeDisabled):
-		return huma.Error403Forbidden("probe disabled")
+		return httpx.Forbidden("probe disabled")
 	case errors.Is(err, domainprobe.ErrProbeNotFound):
-		return huma.Error404NotFound("probe not found")
+		return httpx.NotFound("probe not found")
 	case errors.Is(err, appproberuntime.ErrInvalidInput):
 		return invalidRuntimeInputError(err)
 	case errors.Is(err, domainping.ErrInvalidResult), errors.Is(err, domaintraceroute.ErrInvalidResult):
 		return invalidRuntimeInputError(err)
 	default:
-		return huma.Error500InternalServerError(fallback)
+		return httpx.InternalServerError(fallback)
 	}
 }
 
 func invalidRuntimeInputError(err error) error {
 	fieldErrors, ok := appvalidation.FieldErrors(err)
 	if !ok {
-		return huma.Error422UnprocessableEntity("invalid probe runtime input")
+		return httpx.UnprocessableEntity("invalid probe runtime input")
 	}
 
-	details := make([]error, 0, len(fieldErrors))
+	details := make([]httpx.ErrorDetail, 0, len(fieldErrors))
 	for _, fieldErr := range fieldErrors {
-		details = append(details, &huma.ErrorDetail{
+		details = append(details, httpx.ErrorDetail{
 			Message:  fieldErr.Message,
 			Location: runtimeErrorLocation(fieldErr.Field),
 			Value:    fieldErr.Value,
 		})
 	}
 
-	return huma.Error422UnprocessableEntity("invalid probe runtime input", details...)
+	return httpx.UnprocessableEntity("invalid probe runtime input", details...)
 }
 
 func runtimeErrorLocation(field string) string {

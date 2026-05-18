@@ -27,11 +27,11 @@ func (h *Handler) addMember(ctx context.Context, input *addMemberInput) (*member
 }
 
 type addMemberInput struct {
-	Ref  string `path:"ref" minLength:"1" maxLength:"64" pattern:"^[a-z0-9-]+$" patternDescription:"lowercase letters, numbers, and dashes" doc:"Project UUID or slug." example:"engineering"`
+	Ref  string
 	Body addMemberInputBody
 }
 
 type addMemberInputBody struct {
-	UserID string `json:"userId,omitempty" doc:"User ID to add to the project."`
-	Role   string `json:"role,omitempty" doc:"Project member role." example:"viewer"`
+	UserID string `json:"userId,omitempty"`
+	Role   string `json:"role,omitempty"`
 }

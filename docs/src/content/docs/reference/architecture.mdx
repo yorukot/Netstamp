@@ -17,10 +17,10 @@ head:
 
 ## Request Flow
 
-The backend exposes HTTP routes under `/api/{version}` with Huma and chi. Auth and team operations are registered into the Huma OpenAPI model, which is also used to generate the docs API explorer contract.
+The backend exposes HTTP routes under `/api/{version}` with chi. The public API contract is authored in TypeSpec, emitted to OpenAPI, and served by the backend for the docs API explorer.
 
 ```text
-Browser -> web/ React app -> /api/v1/* -> Huma + chi -> application service -> PostgreSQL/TimescaleDB
+Browser -> web/ React app -> /api/v1/* -> chi -> application service -> PostgreSQL/TimescaleDB
 ```
 
 :::warning Do not import `web/src` from `docs/`. Shared React code should move into `packages/ui`, while docs-only Astro components should stay in `docs/src`. :::

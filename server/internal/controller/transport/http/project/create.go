@@ -29,6 +29,6 @@ type createProjectInput struct {
 }
 
 type createProjectInputBody struct {
-	Name string `json:"name,omitempty" minLength:"1" maxLength:"64" doc:"Project display name." example:"Engineering"`
-	Slug string `json:"slug,omitempty" minLength:"1" maxLength:"64" pattern:"^[a-z0-9-]+$" patternDescription:"lowercase letters, numbers, and dashes" doc:"Stable project slug." example:"engineering"`
+	Name string `json:"name,omitempty"`
+	Slug string `json:"slug,omitempty"`
 }

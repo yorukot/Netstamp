@@ -4,10 +4,9 @@ import (
 	"context"
 	"errors"
 
-	"github.com/danielgtaylor/huma/v2"
-
 	appproject "github.com/yorukot/netstamp/internal/controller/application/project"
 	appvalidation "github.com/yorukot/netstamp/internal/controller/application/validation"
+	"github.com/yorukot/netstamp/internal/controller/transport/http/httpx"
 	httpmiddleware "github.com/yorukot/netstamp/internal/controller/transport/http/middleware"
 	"github.com/yorukot/netstamp/internal/domain/identity"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
@@ -16,7 +15,7 @@ import (
 func currentUserID(ctx context.Context) (string, error) {
 	claims, ok := httpmiddleware.AccessTokenClaimsFromContext(ctx)
 	if !ok || claims.Subject == "" {
-		return "", huma.Error401Unauthorized("missing auth cookie")
+		return "", httpx.Unauthorized("missing auth cookie")
 	}
 
 	return claims.Subject, nil
@@ -25,38 +24,38 @@ func currentUserID(ctx context.Context) (string, error) {
 func mapProjectError(err error, fallback string) error {
 	switch {
 	case errors.Is(err, domainproject.ErrProjectNotFound), errors.Is(err, domainproject.ErrMemberNotFound), errors.Is(err, identity.ErrUserNotFound):
-		return huma.Error404NotFound("not found")
+		return httpx.NotFound("not found")
 	case errors.Is(err, appproject.ErrForbidden):
-		return huma.Error403Forbidden("forbidden")
+		return httpx.Forbidden("forbidden")
 	case errors.Is(err, domainproject.ErrProjectSlugAlreadyExists):
-		return huma.Error409Conflict("project slug already exists")
+		return httpx.Conflict("project slug already exists")
 	case errors.Is(err, domainproject.ErrMemberAlreadyExists):
-		return huma.Error409Conflict("project member already exists")
+		return httpx.Conflict("project member already exists")
 	case errors.Is(err, appproject.ErrLastOwner):
-		return huma.Error409Conflict("project must keep an owner")
+		return httpx.Conflict("project must keep an owner")
 	case errors.Is(err, appproject.ErrInvalidInput):
 		return invalidProjectInputError(err)
 	default:
-		return huma.Error500InternalServerError(fallback)
+		return httpx.InternalServerError(fallback)
 	}
 }
 
 func invalidProjectInputError(err error) error {
 	fieldErrors, ok := appvalidation.FieldErrors(err)
 	if !ok {
-		return huma.Error422UnprocessableEntity("invalid project input")
+		return httpx.UnprocessableEntity("invalid project input")
 	}
 
-	details := make([]error, 0, len(fieldErrors))
+	details := make([]httpx.ErrorDetail, 0, len(fieldErrors))
 	for _, fieldErr := range fieldErrors {
-		details = append(details, &huma.ErrorDetail{
+		details = append(details, httpx.ErrorDetail{
 			Message:  fieldErr.Message,
 			Location: projectErrorLocation(fieldErr.Field),
 			Value:    fieldErr.Value,
 		})
 	}
 
-	return huma.Error422UnprocessableEntity("invalid project input", details...)
+	return httpx.UnprocessableEntity("invalid project input", details...)
 }
 
 func projectErrorLocation(field string) string {

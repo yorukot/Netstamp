@@ -24,5 +24,5 @@ func (h *Handler) listProbes(ctx context.Context, input *listProbesInput) (*list
 }
 
 type listProbesInput struct {
-	Ref string `path:"ref" doc:"Project UUID or slug." example:"engineering"`
+	Ref string
 }

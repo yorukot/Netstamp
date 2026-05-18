@@ -25,7 +25,7 @@ func (h *Handler) hello(ctx context.Context, input *helloInput) (*helloOutput, e
 }
 
 type helloInput struct {
-	ProbeID string `path:"probe_id" doc:"Probe ID."`
+	ProbeID string
 }
 
 type helloOutput struct {

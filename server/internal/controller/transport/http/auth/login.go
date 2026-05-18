@@ -5,9 +5,8 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/danielgtaylor/huma/v2"
-
 	appauth "github.com/yorukot/netstamp/internal/controller/application/auth"
+	"github.com/yorukot/netstamp/internal/controller/transport/http/httpx"
 )
 
 func (h *Handler) login(ctx context.Context, input *loginInput) (*loginOutput, error) {
@@ -18,9 +17,9 @@ func (h *Handler) login(ctx context.Context, input *loginInput) (*loginOutput, e
 	if err != nil {
 		switch {
 		case errors.Is(err, appauth.ErrCredentialsInvalid), errors.Is(err, appauth.ErrInvalidInput):
-			return nil, huma.Error401Unauthorized("invalid email or password")
+			return nil, httpx.Unauthorized("invalid email or password")
 		default:
-			return nil, huma.Error500InternalServerError("login failed")
+			return nil, httpx.InternalServerError("login failed")
 		}
 	}
 
@@ -41,15 +40,15 @@ type loginInput struct {
 }
 
 type loginOutput struct {
-	SetCookie http.Cookie `header:"Set-Cookie" hidden:"true"`
+	SetCookie http.Cookie
 	Body      loginOutputBody
 }
 
 type loginInputBody struct {
-	Email    string `json:"email" format:"email" doc:"Email address used to sign in. It is normalized before lookup." example:"user@example.com"`
-	Password string `json:"password" minLength:"8" maxLength:"128" writeOnly:"true" doc:"Plain-text password to verify. It is never returned by the API." example:"correct-horse-battery-staple"` //nolint:gosec // Login requests intentionally accept plaintext passwords over TLS.
+	Email    string `json:"email"`
+	Password string `json:"password"` //nolint:gosec // Login requests intentionally accept plaintext passwords over TLS.
 }
 
 type loginOutputBody struct {
-	User userResponse `json:"user" doc:"Authenticated user."`
+	User userResponse `json:"user"`
 }

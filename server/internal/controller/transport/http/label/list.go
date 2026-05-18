@@ -25,7 +25,7 @@ func (h *Handler) listLabels(ctx context.Context, input *listLabelsInput) (*list
 }
 
 type listLabelsInput struct {
-	Ref string `path:"ref" minLength:"1" maxLength:"64" pattern:"^[a-z0-9-]+$" patternDescription:"lowercase letters, numbers, and dashes" doc:"Project UUID or slug." example:"engineering"`
+	Ref string
 }
 
 type listLabelsOutput struct {

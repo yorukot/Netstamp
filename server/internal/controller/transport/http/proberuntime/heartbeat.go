@@ -20,7 +20,7 @@ func (h *Handler) heartbeat(ctx context.Context, input *heartbeatInput) (*heartb
 }
 
 type heartbeatInput struct {
-	ProbeID string `path:"probe_id" doc:"Probe ID."`
+	ProbeID string
 	Body    runtimeStatusBody
 }
 

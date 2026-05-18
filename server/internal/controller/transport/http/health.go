@@ -5,61 +5,44 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/danielgtaylor/huma/v2"
+	"github.com/go-chi/chi/v5"
+
+	"github.com/yorukot/netstamp/internal/controller/transport/http/httpx"
 )
 
 type rootBody struct {
-	Message string `json:"message" doc:"Human-readable API status message." example:"Netstamp API is running"`
-}
-
-type rootOutput struct {
-	Body rootBody
+	Message string `json:"message"`
 }
 
 type healthBody struct {
-	Status string `json:"status" doc:"Current health status." example:"ok"`
+	Status string `json:"status"`
 }
 
-type healthOutput struct {
-	Body healthBody
-}
-
-func registerSystemRoutes(api huma.API, readinessCheck func(context.Context) error) {
-	huma.Register(api, huma.Operation{
-		OperationID: "getAPIStatus",
-		Method:      http.MethodGet,
-		Path:        "/",
-		Summary:     "Get API status",
-		Tags:        []string{"System"},
-	}, func(context.Context, *struct{}) (*rootOutput, error) {
-		return &rootOutput{Body: rootBody{
+func registerSystemRoutes(api chi.Router, readinessCheck func(context.Context) error) {
+	api.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		httpx.WriteJSON(w, http.StatusOK, rootBody{
 			Message: "Netstamp API is running",
-		}}, nil
+		})
 	})
 
-	huma.Register(api, huma.Operation{
-		OperationID: "getHealth",
-		Method:      http.MethodGet,
-		Path:        "/healthz",
-		Summary:     "Get health status",
-		Tags:        []string{"System"},
-		Errors:      []int{http.StatusServiceUnavailable},
-	}, func(ctx context.Context, _ *struct{}) (*healthOutput, error) {
+	api.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		if readinessCheck == nil {
-			return &healthOutput{Body: healthBody{
+			httpx.WriteJSON(w, http.StatusOK, healthBody{
 				Status: "ok",
-			}}, nil
+			})
+			return
 		}
 
-		ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
 		defer cancel()
 
 		if err := readinessCheck(ctx); err != nil {
-			return nil, huma.Error503ServiceUnavailable("readiness check failed")
+			httpx.WriteProblem(w, r, httpx.ServiceUnavailable("readiness check failed"))
+			return
 		}
 
-		return &healthOutput{Body: healthBody{
+		httpx.WriteJSON(w, http.StatusOK, healthBody{
 			Status: "ok",
-		}}, nil
+		})
 	})
 }

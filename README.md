@@ -353,7 +353,7 @@ just build            # Build backend, web, and docs
 just lint             # Run backend and web linting
 just test             # Run backend tests
 just backend-sqlc     # Regenerate sqlc Go code
-just backend-openapi  # Regenerate docs/public/openapi.json
+just api-openapi      # Regenerate OpenAPI and web API types from TypeSpec
 pnpm format           # Format JS, TS, CSS, JSON, Markdown, and Astro files
 ```
 

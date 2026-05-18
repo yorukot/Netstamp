@@ -3,9 +3,10 @@ package proberuntime
 import (
 	"net/http"
 
-	"github.com/danielgtaylor/huma/v2"
+	"github.com/go-chi/chi/v5"
 
 	appproberuntime "github.com/yorukot/netstamp/internal/controller/application/proberuntime"
+	"github.com/yorukot/netstamp/internal/controller/transport/http/httpx"
 )
 
 type Handler struct {
@@ -16,51 +17,55 @@ func NewHandler(service *appproberuntime.Service) *Handler {
 	return &Handler{service: service}
 }
 
-func (h *Handler) RegisterRoutes(api huma.API) {
-	security := []map[string][]string{{"probeAuth": {}}}
-	middlewares := huma.Middlewares{requireRuntimeAuth}
+func (h *Handler) RegisterRoutes(api chi.Router) {
+	api.With(requireRuntimeAuth).Post("/runtime/probes/{probe_id}/hello", h.handleHello)
+	api.With(requireRuntimeAuth).Post("/runtime/probes/{probe_id}/heartbeat", h.handleHeartbeat)
+	api.With(requireRuntimeAuth).Get("/runtime/probes/{probe_id}/assignments", h.handleListAssignments)
+	api.With(requireRuntimeAuth).Post("/runtime/probes/{probe_id}/results", h.handleSubmitResults)
+}
 
-	huma.Register(api, huma.Operation{
-		OperationID: "probeRuntimeHello",
-		Method:      http.MethodPost,
-		Path:        "/runtime/probes/{probe_id}/hello",
-		Summary:     "Start probe runtime session",
-		Tags:        []string{"Probe Runtime"},
-		Security:    security,
-		Middlewares: middlewares,
-		Errors:      []int{http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound, http.StatusUnprocessableEntity, http.StatusInternalServerError},
-	}, h.hello)
+func (h *Handler) handleHello(w http.ResponseWriter, r *http.Request) {
+	output, err := h.hello(r.Context(), &helloInput{ProbeID: httpx.Path(r, "probe_id")})
+	if err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, output.Body)
+}
 
-	huma.Register(api, huma.Operation{
-		OperationID: "probeRuntimeHeartbeat",
-		Method:      http.MethodPost,
-		Path:        "/runtime/probes/{probe_id}/heartbeat",
-		Summary:     "Update probe runtime status",
-		Tags:        []string{"Probe Runtime"},
-		Security:    security,
-		Middlewares: middlewares,
-		Errors:      []int{http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound, http.StatusUnprocessableEntity, http.StatusInternalServerError},
-	}, h.heartbeat)
+func (h *Handler) handleHeartbeat(w http.ResponseWriter, r *http.Request) {
+	var body runtimeStatusBody
+	if err := httpx.DecodeJSON(r, &body); err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	output, err := h.heartbeat(r.Context(), &heartbeatInput{ProbeID: httpx.Path(r, "probe_id"), Body: body})
+	if err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, output.Body)
+}
 
-	huma.Register(api, huma.Operation{
-		OperationID: "listProbeRuntimeAssignments",
-		Method:      http.MethodGet,
-		Path:        "/runtime/probes/{probe_id}/assignments",
-		Summary:     "List probe runtime assignments",
-		Tags:        []string{"Probe Runtime"},
-		Security:    security,
-		Middlewares: middlewares,
-		Errors:      []int{http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound, http.StatusUnprocessableEntity, http.StatusInternalServerError},
-	}, h.listAssignments)
+func (h *Handler) handleListAssignments(w http.ResponseWriter, r *http.Request) {
+	output, err := h.listAssignments(r.Context(), &listAssignmentsInput{ProbeID: httpx.Path(r, "probe_id")})
+	if err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, output.Body)
+}
 
-	huma.Register(api, huma.Operation{
-		OperationID: "submitProbeRuntimeResults",
-		Method:      http.MethodPost,
-		Path:        "/runtime/probes/{probe_id}/results",
-		Summary:     "Submit probe runtime results",
-		Tags:        []string{"Probe Runtime"},
-		Security:    security,
-		Middlewares: middlewares,
-		Errors:      []int{http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound, http.StatusUnprocessableEntity, http.StatusInternalServerError},
-	}, h.submitResults)
+func (h *Handler) handleSubmitResults(w http.ResponseWriter, r *http.Request) {
+	var body submitResultsBody
+	if err := httpx.DecodeJSON(r, &body); err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	output, err := h.submitResults(r.Context(), &submitResultsInput{ProbeID: httpx.Path(r, "probe_id"), Body: body})
+	if err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, output.Body)
 }

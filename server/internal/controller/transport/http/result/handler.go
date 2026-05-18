@@ -3,10 +3,11 @@ package result
 import (
 	"net/http"
 
-	"github.com/danielgtaylor/huma/v2"
+	"github.com/go-chi/chi/v5"
 
 	appauth "github.com/yorukot/netstamp/internal/controller/application/auth"
 	appresult "github.com/yorukot/netstamp/internal/controller/application/result"
+	"github.com/yorukot/netstamp/internal/controller/transport/http/httpx"
 	httpmiddleware "github.com/yorukot/netstamp/internal/controller/transport/http/middleware"
 )
 
@@ -22,30 +23,87 @@ func NewHandler(service *appresult.Service, verifier appauth.TokenVerifier) *Han
 	}
 }
 
-func (h *Handler) RegisterRoutes(api huma.API) {
-	authMiddleware := httpmiddleware.RequireAuth(h.verifier)
-	security := []map[string][]string{{httpmiddleware.SessionCookieSecurityScheme: {}}}
-	middlewares := huma.Middlewares{authMiddleware}
+func (h *Handler) RegisterRoutes(api chi.Router) {
+	api.With(httpmiddleware.RequireAuth(h.verifier)).Get("/projects/{ref}/results/ping/series", h.handleQueryPingSeries)
+	api.With(httpmiddleware.RequireAuth(h.verifier)).Get("/projects/{ref}/results/traceroute/runs", h.handleQueryTracerouteRuns)
+}
 
-	huma.Register(api, huma.Operation{
-		OperationID: "queryProjectPingResultSeries",
-		Method:      http.MethodGet,
-		Path:        "/projects/{ref}/results/ping/series",
-		Summary:     "Query project ping result series",
-		Tags:        []string{"Results"},
-		Security:    security,
-		Middlewares: middlewares,
-		Errors:      []int{http.StatusUnauthorized, http.StatusNotFound, http.StatusUnprocessableEntity, http.StatusInternalServerError},
-	}, h.queryPingSeries)
+func (h *Handler) handleQueryPingSeries(w http.ResponseWriter, r *http.Request) {
+	input, err := newQueryPingSeriesInput(r)
+	if err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	output, err := h.queryPingSeries(r.Context(), input)
+	if err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, output.Body)
+}
 
-	huma.Register(api, huma.Operation{
-		OperationID: "queryProjectTracerouteResultRuns",
-		Method:      http.MethodGet,
-		Path:        "/projects/{ref}/results/traceroute/runs",
-		Summary:     "Query project traceroute result runs",
-		Tags:        []string{"Results"},
-		Security:    security,
-		Middlewares: middlewares,
-		Errors:      []int{http.StatusUnauthorized, http.StatusNotFound, http.StatusUnprocessableEntity, http.StatusInternalServerError},
-	}, h.queryTracerouteRuns)
+func (h *Handler) handleQueryTracerouteRuns(w http.ResponseWriter, r *http.Request) {
+	input, err := newQueryTracerouteRunsInput(r)
+	if err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	output, err := h.queryTracerouteRuns(r.Context(), input)
+	if err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, output.Body)
+}
+
+func newQueryPingSeriesInput(r *http.Request) (*queryPingSeriesInput, error) {
+	from, err := httpx.QueryInt64(r, "from")
+	if err != nil {
+		return nil, err
+	}
+	to, err := httpx.QueryInt64(r, "to")
+	if err != nil {
+		return nil, err
+	}
+	maxDataPoints, err := httpx.QueryInt32(r, "maxDataPoints")
+	if err != nil {
+		return nil, err
+	}
+	return &queryPingSeriesInput{
+		Ref:           httpx.Path(r, "ref"),
+		ProbeID:       httpx.QueryString(r, "probeId"),
+		CheckID:       httpx.QueryString(r, "checkId"),
+		From:          from,
+		To:            to,
+		Metric:        httpx.QueryString(r, "metric"),
+		MaxDataPoints: maxDataPoints,
+	}, nil
+}
+
+func newQueryTracerouteRunsInput(r *http.Request) (*queryTracerouteRunsInput, error) {
+	from, err := httpx.QueryInt64(r, "from")
+	if err != nil {
+		return nil, err
+	}
+	to, err := httpx.QueryInt64(r, "to")
+	if err != nil {
+		return nil, err
+	}
+	limit, err := httpx.QueryInt32(r, "limit")
+	if err != nil {
+		return nil, err
+	}
+	cursor, err := httpx.QueryInt64(r, "cursor")
+	if err != nil {
+		return nil, err
+	}
+	return &queryTracerouteRunsInput{
+		Ref:     httpx.Path(r, "ref"),
+		ProbeID: httpx.QueryString(r, "probeId"),
+		CheckID: httpx.QueryString(r, "checkId"),
+		From:    from,
+		To:      to,
+		Limit:   limit,
+		Cursor:  cursor,
+	}, nil
 }

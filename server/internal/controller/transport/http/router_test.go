@@ -40,31 +40,6 @@ type operationSnapshot struct {
 	Security    []map[string][]string `json:"security"`
 }
 
-func TestNewHumaConfigUsesRelativeServerURLWhenBackendBaseURLUnset(t *testing.T) {
-	config := newHumaConfig(Dependencies{APIVersion: "v1"})
-
-	if len(config.Servers) != 1 {
-		t.Fatalf("expected one server, got %d", len(config.Servers))
-	}
-	if config.Servers[0].URL != "/api/v1" {
-		t.Fatalf("expected relative server URL, got %q", config.Servers[0].URL)
-	}
-}
-
-func TestNewHumaConfigUsesBackendBaseURLServerURL(t *testing.T) {
-	config := newHumaConfig(Dependencies{
-		APIVersion:     "v1",
-		BackendBaseURL: "https://api.netstamp.dev/",
-	})
-
-	if len(config.Servers) != 1 {
-		t.Fatalf("expected one server, got %d", len(config.Servers))
-	}
-	if config.Servers[0].URL != "https://api.netstamp.dev/api/v1" {
-		t.Fatalf("expected absolute server URL, got %q", config.Servers[0].URL)
-	}
-}
-
 func TestNewRouterServesOpenAPIWithoutRuntimeServices(t *testing.T) {
 	spec := getOpenAPI(t, Dependencies{APIVersion: "v1"})
 
@@ -87,6 +62,7 @@ func TestNewRouterServesOpenAPIWithoutRuntimeServices(t *testing.T) {
 	assertOpenAPIOperation(t, spec, http.MethodDelete, "/projects/{ref}/probes/{probe_id}", "deleteProjectProbe")
 	assertOpenAPIOperation(t, spec, http.MethodPost, "/projects/{ref}/probes/{probe_id}/secret-rotations", "rotateProjectProbeSecret")
 	assertOpenAPIOperation(t, spec, http.MethodGet, "/projects/{ref}/results/ping/series", "queryProjectPingResultSeries")
+	assertOpenAPIOperation(t, spec, http.MethodGet, "/projects/{ref}/results/traceroute/runs", "queryProjectTracerouteResultRuns")
 	assertOpenAPIOperation(t, spec, http.MethodPost, "/runtime/probes/{probe_id}/hello", "probeRuntimeHello")
 	assertOpenAPIOperation(t, spec, http.MethodPost, "/runtime/probes/{probe_id}/heartbeat", "probeRuntimeHeartbeat")
 	assertOpenAPIOperation(t, spec, http.MethodGet, "/runtime/probes/{probe_id}/assignments", "listProbeRuntimeAssignments")
@@ -103,9 +79,9 @@ func assertOpenAPISessionCookieAuth(t *testing.T, spec openAPISnapshot) {
 	if _, ok := spec.Components.SecuritySchemes["bearerAuth"]; ok {
 		t.Fatal("expected bearerAuth security scheme to be absent")
 	}
-	scheme, ok := spec.Components.SecuritySchemes["sessionCookieAuth"]
+	scheme, ok := spec.Components.SecuritySchemes["SessionCookieAuth"]
 	if !ok {
-		t.Fatal("expected sessionCookieAuth security scheme")
+		t.Fatal("expected SessionCookieAuth security scheme")
 	}
 	if scheme.Type != "apiKey" || scheme.In != "cookie" || scheme.Name != "netstamp_session" {
 		t.Fatalf("unexpected session cookie security scheme: %#v", scheme)
@@ -115,8 +91,19 @@ func assertOpenAPISessionCookieAuth(t *testing.T, spec openAPISnapshot) {
 	if len(meOperation.Security) != 1 {
 		t.Fatalf("expected auth/me security requirement, got %#v", meOperation.Security)
 	}
-	if _, ok := meOperation.Security[0]["sessionCookieAuth"]; !ok {
-		t.Fatalf("expected auth/me to use sessionCookieAuth, got %#v", meOperation.Security)
+	if _, ok := meOperation.Security[0]["SessionCookieAuth"]; !ok {
+		t.Fatalf("expected auth/me to use SessionCookieAuth, got %#v", meOperation.Security)
+	}
+}
+
+func TestNewRouterOpenAPIUsesRelativeServerURLWhenBackendBaseURLUnset(t *testing.T) {
+	spec := getOpenAPI(t, Dependencies{APIVersion: "v1"})
+
+	if len(spec.Servers) != 1 {
+		t.Fatalf("expected one server, got %d", len(spec.Servers))
+	}
+	if spec.Servers[0].URL != "/api/v1" {
+		t.Fatalf("expected relative server URL, got %q", spec.Servers[0].URL)
 	}
 }
 

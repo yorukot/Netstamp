@@ -4,7 +4,7 @@
 
 The `api/` package owns the public Netstamp API contract in TypeSpec. It emits `docs/public/openapi.json`, which the docs site uses for API reference and the web app uses to generate TypeScript API types.
 
-Use the backend application and domain packages as the source of truth for resources, request bodies, response bodies, and error states. Do not copy Huma documentation tags as the contract source; Huma remains the transport runtime, while TypeSpec owns the published contract.
+Use the backend application and domain packages as the source of truth for resources, request bodies, response bodies, and error states. Do not copy transport DTO tags as the contract source; TypeSpec owns the published contract and the backend serves the generated artifact at runtime.
 
 ## Structure
 
@@ -18,7 +18,7 @@ Use the backend application and domain packages as the source of truth for resou
 - `pnpm --filter @netstamp/api generate:openapi`: compile TypeSpec and write `docs/public/openapi.json`.
 - `pnpm --filter @netstamp/api check`: compile without emitting output.
 - `pnpm --filter @netstamp/api format`: format TypeSpec files.
-- `pnpm generate:openapi`: compile TypeSpec, regenerate web API types, and format generated artifacts.
+- `pnpm generate:openapi`: compile TypeSpec, copy the generated artifact into the backend embedded OpenAPI location, regenerate web API types, and format generated artifacts.
 
 ## Contract Conventions
 

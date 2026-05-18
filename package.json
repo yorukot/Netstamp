@@ -13,7 +13,7 @@
 		"dev:storybook": "pnpm --filter @netstamp/ui storybook",
 		"dev:web": "pnpm --filter @netstamp/web dev",
 		"format": "prettier --write .",
-		"generate:openapi": "pnpm --filter @netstamp/api generate:openapi && pnpm --filter @netstamp/web generate:api-types && pnpm exec prettier --write docs/public/openapi.json web/src/shared/api/openapi.d.ts",
+		"generate:openapi": "pnpm --filter @netstamp/api generate:openapi && cp docs/public/openapi.json server/internal/controller/transport/http/openapi/openapi.json && pnpm --filter @netstamp/web generate:api-types && pnpm exec prettier --write docs/public/openapi.json server/internal/controller/transport/http/openapi/openapi.json web/src/shared/api/openapi.d.ts",
 		"preinstall": "npx only-allow pnpm",
 		"prepare": "sh -c 'command -v git >/dev/null 2>&1 && [ -d .git ] && git config core.hooksPath .githooks || exit 0'",
 		"test:server": "just backend-test"

@@ -8,10 +8,11 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/danielgtaylor/huma/v2"
 	chimw "github.com/go-chi/chi/v5/middleware"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest/observer"
+
+	"github.com/yorukot/netstamp/internal/controller/transport/http/httpx"
 )
 
 func TestWriteProblemWritesProblemJSON(t *testing.T) {
@@ -31,7 +32,7 @@ func TestWriteProblemWritesProblemJSON(t *testing.T) {
 		t.Fatalf("expected request id header, got %q", got)
 	}
 
-	var body huma.ErrorModel
+	var body httpx.ProblemDetails
 	if err := json.NewDecoder(res.Body).Decode(&body); err != nil {
 		t.Fatalf("decode problem body: %v", err)
 	}

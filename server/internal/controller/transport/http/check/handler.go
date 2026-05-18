@@ -3,10 +3,11 @@ package check
 import (
 	"net/http"
 
-	"github.com/danielgtaylor/huma/v2"
+	"github.com/go-chi/chi/v5"
 
 	appauth "github.com/yorukot/netstamp/internal/controller/application/auth"
 	appcheck "github.com/yorukot/netstamp/internal/controller/application/check"
+	"github.com/yorukot/netstamp/internal/controller/transport/http/httpx"
 	httpmiddleware "github.com/yorukot/netstamp/internal/controller/transport/http/middleware"
 )
 
@@ -22,65 +23,61 @@ func NewHandler(service *appcheck.Service, verifier appauth.TokenVerifier) *Hand
 	}
 }
 
-func (h *Handler) RegisterRoutes(api huma.API) {
-	authMiddleware := httpmiddleware.RequireAuth(h.verifier)
-	security := []map[string][]string{{httpmiddleware.SessionCookieSecurityScheme: {}}}
-	middlewares := huma.Middlewares{authMiddleware}
+func (h *Handler) RegisterRoutes(api chi.Router) {
+	api.With(httpmiddleware.RequireAuth(h.verifier)).Get("/projects/{ref}/checks", h.handleListChecks)
+	api.With(httpmiddleware.RequireAuth(h.verifier)).Post("/projects/{ref}/checks", h.handleCreateCheck)
+	api.With(httpmiddleware.RequireAuth(h.verifier)).Get("/projects/{ref}/checks/{check_id}", h.handleGetCheck)
+	api.With(httpmiddleware.RequireAuth(h.verifier)).Patch("/projects/{ref}/checks/{check_id}", h.handleUpdateCheck)
+	api.With(httpmiddleware.RequireAuth(h.verifier)).Delete("/projects/{ref}/checks/{check_id}", h.handleDeleteCheck)
+}
 
-	huma.Register(api, huma.Operation{
-		OperationID: "listProjectChecks",
-		Method:      http.MethodGet,
-		Path:        "/projects/{ref}/checks",
-		Summary:     "List project checks",
-		Tags:        []string{"Checks"},
-		Security:    security,
-		Middlewares: middlewares,
-		Errors:      []int{http.StatusUnauthorized, http.StatusNotFound, http.StatusUnprocessableEntity, http.StatusInternalServerError},
-	}, h.listChecks)
+func (h *Handler) handleListChecks(w http.ResponseWriter, r *http.Request) {
+	output, err := h.listChecks(r.Context(), &listChecksInput{Ref: httpx.Path(r, "ref")})
+	if err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, output.Body)
+}
 
-	huma.Register(api, huma.Operation{
-		OperationID:   "createProjectCheck",
-		Method:        http.MethodPost,
-		Path:          "/projects/{ref}/checks",
-		DefaultStatus: http.StatusCreated,
-		Summary:       "Create project check",
-		Tags:          []string{"Checks"},
-		Security:      security,
-		Middlewares:   middlewares,
-		Errors:        []int{http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound, http.StatusUnprocessableEntity, http.StatusInternalServerError},
-	}, h.createCheck)
+func (h *Handler) handleCreateCheck(w http.ResponseWriter, r *http.Request) {
+	var body createCheckInputBody
+	if err := httpx.DecodeJSON(r, &body); err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	output, err := h.createCheck(r.Context(), &createCheckInput{Ref: httpx.Path(r, "ref"), Body: body})
+	writeCheckOutput(w, r, http.StatusCreated, output, err)
+}
 
-	huma.Register(api, huma.Operation{
-		OperationID: "getProjectCheck",
-		Method:      http.MethodGet,
-		Path:        "/projects/{ref}/checks/{check_id}",
-		Summary:     "Get project check",
-		Tags:        []string{"Checks"},
-		Security:    security,
-		Middlewares: middlewares,
-		Errors:      []int{http.StatusUnauthorized, http.StatusNotFound, http.StatusUnprocessableEntity, http.StatusInternalServerError},
-	}, h.getCheck)
+func (h *Handler) handleGetCheck(w http.ResponseWriter, r *http.Request) {
+	output, err := h.getCheck(r.Context(), &getCheckInput{Ref: httpx.Path(r, "ref"), CheckID: httpx.Path(r, "check_id")})
+	writeCheckOutput(w, r, http.StatusOK, output, err)
+}
 
-	huma.Register(api, huma.Operation{
-		OperationID: "updateProjectCheck",
-		Method:      http.MethodPatch,
-		Path:        "/projects/{ref}/checks/{check_id}",
-		Summary:     "Update project check",
-		Tags:        []string{"Checks"},
-		Security:    security,
-		Middlewares: middlewares,
-		Errors:      []int{http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound, http.StatusUnprocessableEntity, http.StatusInternalServerError},
-	}, h.updateCheck)
+func (h *Handler) handleUpdateCheck(w http.ResponseWriter, r *http.Request) {
+	var body updateCheckInputBody
+	if err := httpx.DecodeJSON(r, &body); err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	output, err := h.updateCheck(r.Context(), &updateCheckInput{Ref: httpx.Path(r, "ref"), CheckID: httpx.Path(r, "check_id"), Body: body})
+	writeCheckOutput(w, r, http.StatusOK, output, err)
+}
 
-	huma.Register(api, huma.Operation{
-		OperationID:   "deleteProjectCheck",
-		Method:        http.MethodDelete,
-		Path:          "/projects/{ref}/checks/{check_id}",
-		DefaultStatus: http.StatusNoContent,
-		Summary:       "Delete project check",
-		Tags:          []string{"Checks"},
-		Security:      security,
-		Middlewares:   middlewares,
-		Errors:        []int{http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound, http.StatusUnprocessableEntity, http.StatusInternalServerError},
-	}, h.deleteCheck)
+func (h *Handler) handleDeleteCheck(w http.ResponseWriter, r *http.Request) {
+	_, err := h.deleteCheck(r.Context(), &deleteCheckInput{Ref: httpx.Path(r, "ref"), CheckID: httpx.Path(r, "check_id")})
+	if err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	httpx.WriteNoContent(w)
+}
+
+func writeCheckOutput(w http.ResponseWriter, r *http.Request, status int, output *checkOutput, err error) {
+	if err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	httpx.WriteJSON(w, status, output.Body)
 }

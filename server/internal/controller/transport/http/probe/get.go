@@ -25,6 +25,6 @@ func (h *Handler) getProbe(ctx context.Context, input *probeRefInput) (*probeOut
 }
 
 type probeRefInput struct {
-	Ref     string `path:"ref" doc:"Project UUID or slug." example:"engineering"`
-	ProbeID string `path:"probe_id" minLength:"1" format:"uuid" doc:"Probe ID." example:"33333333-3333-3333-3333-333333333333"`
+	Ref     string
+	ProbeID string
 }

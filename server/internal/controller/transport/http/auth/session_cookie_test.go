@@ -8,20 +8,17 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/danielgtaylor/huma/v2/humatest"
+	"github.com/go-chi/chi/v5"
 
 	appauth "github.com/yorukot/netstamp/internal/controller/application/auth"
 	"github.com/yorukot/netstamp/internal/domain/identity"
 )
 
 func TestLoginSetsSessionCookieAndReturnsUserOnly(t *testing.T) {
-	_, api := humatest.New(t)
-	NewHandler(newAuthTestService(), nil, true).RegisterRoutes(api)
+	router := chi.NewRouter()
+	NewHandler(newAuthTestService(), nil, true).RegisterRoutes(router)
 
-	res := api.Post("/auth/login", map[string]any{
-		"email":    "user@example.com",
-		"password": "correct-horse-battery-staple",
-	})
+	res := performJSONRequest(router, http.MethodPost, "/auth/login", `{"email":"user@example.com","password":"correct-horse-battery-staple"}`)
 
 	if res.Code != http.StatusOK {
 		t.Fatalf("expected status 200, got %d", res.Code)
@@ -31,14 +28,10 @@ func TestLoginSetsSessionCookieAndReturnsUserOnly(t *testing.T) {
 }
 
 func TestRegisterSetsSessionCookieAndReturnsUserOnly(t *testing.T) {
-	_, api := humatest.New(t)
-	NewHandler(newAuthTestService(), nil, false).RegisterRoutes(api)
+	router := chi.NewRouter()
+	NewHandler(newAuthTestService(), nil, false).RegisterRoutes(router)
 
-	res := api.Post("/auth/register", map[string]any{
-		"email":       "new@example.com",
-		"displayName": "New User",
-		"password":    "correct-horse-battery-staple",
-	})
+	res := performJSONRequest(router, http.MethodPost, "/auth/register", `{"email":"new@example.com","displayName":"New User","password":"correct-horse-battery-staple"}`)
 
 	if res.Code != http.StatusCreated {
 		t.Fatalf("expected status 201, got %d", res.Code)
@@ -48,10 +41,10 @@ func TestRegisterSetsSessionCookieAndReturnsUserOnly(t *testing.T) {
 }
 
 func TestLogoutExpiresSessionCookie(t *testing.T) {
-	_, api := humatest.New(t)
-	NewHandler(nil, nil, true).RegisterRoutes(api)
+	router := chi.NewRouter()
+	NewHandler(nil, nil, true).RegisterRoutes(router)
 
-	res := api.Post("/auth/logout")
+	res := performJSONRequest(router, http.MethodPost, "/auth/logout", "")
 
 	if res.Code != http.StatusNoContent {
 		t.Fatalf("expected status 204, got %d", res.Code)
@@ -72,6 +65,14 @@ func TestLogoutExpiresSessionCookie(t *testing.T) {
 	if cookie.SameSite != http.SameSiteLaxMode {
 		t.Fatalf("expected SameSite=Lax, got %v", cookie.SameSite)
 	}
+}
+
+func performJSONRequest(router http.Handler, method, path, body string) *httptest.ResponseRecorder {
+	req := httptest.NewRequest(method, path, strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	res := httptest.NewRecorder()
+	router.ServeHTTP(res, req)
+	return res
 }
 
 func assertSessionCookie(t *testing.T, res *http.Response, value string, secure bool) {

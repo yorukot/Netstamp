@@ -3,10 +3,11 @@ package probe
 import (
 	"net/http"
 
-	"github.com/danielgtaylor/huma/v2"
+	"github.com/go-chi/chi/v5"
 
 	appauth "github.com/yorukot/netstamp/internal/controller/application/auth"
 	appprobe "github.com/yorukot/netstamp/internal/controller/application/probe"
+	"github.com/yorukot/netstamp/internal/controller/transport/http/httpx"
 	httpmiddleware "github.com/yorukot/netstamp/internal/controller/transport/http/middleware"
 )
 
@@ -22,76 +23,94 @@ func NewHandler(service *appprobe.Service, verifier appauth.TokenVerifier) *Hand
 	}
 }
 
-func (h *Handler) RegisterRoutes(api huma.API) {
-	authMiddleware := httpmiddleware.RequireAuth(h.verifier)
-	security := []map[string][]string{{httpmiddleware.SessionCookieSecurityScheme: {}}}
-	middlewares := huma.Middlewares{authMiddleware}
+func (h *Handler) RegisterRoutes(api chi.Router) {
+	api.With(httpmiddleware.RequireAuth(h.verifier)).Get("/projects/{ref}/probes", h.handleListProbes)
+	api.With(httpmiddleware.RequireAuth(h.verifier)).Post("/projects/{ref}/probes", h.handleCreateProbe)
+	api.With(httpmiddleware.RequireAuth(h.verifier)).Get("/projects/{ref}/probes/{probe_id}", h.handleGetProbe)
+	api.With(httpmiddleware.RequireAuth(h.verifier)).Patch("/projects/{ref}/probes/{probe_id}", h.handleUpdateProbe)
+	api.With(httpmiddleware.RequireAuth(h.verifier)).Delete("/projects/{ref}/probes/{probe_id}", h.handleDeleteProbe)
+	api.With(httpmiddleware.RequireAuth(h.verifier)).Post("/projects/{ref}/probes/{probe_id}/secret-rotations", h.handleRotateSecret)
+}
 
-	huma.Register(api, huma.Operation{
-		OperationID: "listProjectProbes",
-		Method:      http.MethodGet,
-		Path:        "/projects/{ref}/probes",
-		Summary:     "List project probes",
-		Tags:        []string{"Probes"},
-		Security:    security,
-		Middlewares: middlewares,
-		Errors:      []int{http.StatusUnauthorized, http.StatusNotFound, http.StatusUnprocessableEntity, http.StatusInternalServerError},
-	}, h.listProbes)
+func (h *Handler) handleListProbes(w http.ResponseWriter, r *http.Request) {
+	output, err := h.listProbes(r.Context(), &listProbesInput{Ref: httpx.Path(r, "ref")})
+	if err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, output.Body)
+}
 
-	huma.Register(api, huma.Operation{
-		OperationID:   "createProjectProbe",
-		Method:        http.MethodPost,
-		Path:          "/projects/{ref}/probes",
-		DefaultStatus: http.StatusCreated,
-		Summary:       "Create project probe",
-		Tags:          []string{"Probes"},
-		Security:      security,
-		Middlewares:   middlewares,
-		Errors:        []int{http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound, http.StatusUnprocessableEntity, http.StatusInternalServerError},
-	}, h.createProbe)
+func (h *Handler) handleCreateProbe(w http.ResponseWriter, r *http.Request) {
+	var body createProbeInputBody
+	if err := httpx.DecodeJSON(r, &body); err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	output, err := h.createProbe(r.Context(), &createProbeInput{Ref: httpx.Path(r, "ref"), Body: body})
+	writeCreateProbeOutput(w, r, output, err)
+}
 
-	huma.Register(api, huma.Operation{
-		OperationID: "getProjectProbe",
-		Method:      http.MethodGet,
-		Path:        "/projects/{ref}/probes/{probe_id}",
-		Summary:     "Get project probe",
-		Tags:        []string{"Probes"},
-		Security:    security,
-		Middlewares: middlewares,
-		Errors:      []int{http.StatusUnauthorized, http.StatusNotFound, http.StatusUnprocessableEntity, http.StatusInternalServerError},
-	}, h.getProbe)
+func (h *Handler) handleGetProbe(w http.ResponseWriter, r *http.Request) {
+	output, err := h.getProbe(r.Context(), newProbeRefInput(r))
+	writeProbeOutput(w, r, output, err)
+}
 
-	huma.Register(api, huma.Operation{
-		OperationID: "updateProjectProbe",
-		Method:      http.MethodPatch,
-		Path:        "/projects/{ref}/probes/{probe_id}",
-		Summary:     "Update project probe",
-		Tags:        []string{"Probes"},
-		Security:    security,
-		Middlewares: middlewares,
-		Errors:      []int{http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound, http.StatusUnprocessableEntity, http.StatusInternalServerError},
-	}, h.updateProbe)
+func (h *Handler) handleUpdateProbe(w http.ResponseWriter, r *http.Request) {
+	var body updateProbeInputBody
+	if err := httpx.DecodeJSON(r, &body); err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	output, err := h.updateProbe(r.Context(), &updateProbeInput{
+		Ref:     httpx.Path(r, "ref"),
+		ProbeID: httpx.Path(r, "probe_id"),
+		Body:    body,
+	})
+	writeProbeOutput(w, r, output, err)
+}
 
-	huma.Register(api, huma.Operation{
-		OperationID:   "deleteProjectProbe",
-		Method:        http.MethodDelete,
-		Path:          "/projects/{ref}/probes/{probe_id}",
-		DefaultStatus: http.StatusNoContent,
-		Summary:       "Delete project probe",
-		Tags:          []string{"Probes"},
-		Security:      security,
-		Middlewares:   middlewares,
-		Errors:        []int{http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound, http.StatusUnprocessableEntity, http.StatusInternalServerError},
-	}, h.deleteProbe)
+func (h *Handler) handleDeleteProbe(w http.ResponseWriter, r *http.Request) {
+	_, err := h.deleteProbe(r.Context(), newProbeRefInput(r))
+	if err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	httpx.WriteNoContent(w)
+}
 
-	huma.Register(api, huma.Operation{
-		OperationID: "rotateProjectProbeSecret",
-		Method:      http.MethodPost,
-		Path:        "/projects/{ref}/probes/{probe_id}/secret-rotations",
-		Summary:     "Rotate project probe secret",
-		Tags:        []string{"Probes"},
-		Security:    security,
-		Middlewares: middlewares,
-		Errors:      []int{http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound, http.StatusUnprocessableEntity, http.StatusInternalServerError},
-	}, h.rotateSecret)
+func (h *Handler) handleRotateSecret(w http.ResponseWriter, r *http.Request) {
+	output, err := h.rotateSecret(r.Context(), newProbeRefInput(r))
+	writeRotateSecretOutput(w, r, output, err)
+}
+
+func newProbeRefInput(r *http.Request) *probeRefInput {
+	return &probeRefInput{
+		Ref:     httpx.Path(r, "ref"),
+		ProbeID: httpx.Path(r, "probe_id"),
+	}
+}
+
+func writeCreateProbeOutput(w http.ResponseWriter, r *http.Request, output *createProbeOutput, err error) {
+	if err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusCreated, output.Body)
+}
+
+func writeProbeOutput(w http.ResponseWriter, r *http.Request, output *probeOutput, err error) {
+	if err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, output.Body)
+}
+
+func writeRotateSecretOutput(w http.ResponseWriter, r *http.Request, output *rotateSecretOutput, err error) {
+	if err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, output.Body)
 }

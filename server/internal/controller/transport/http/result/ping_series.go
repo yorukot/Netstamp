@@ -30,13 +30,13 @@ func (h *Handler) queryPingSeries(ctx context.Context, input *queryPingSeriesInp
 }
 
 type queryPingSeriesInput struct {
-	Ref           string `path:"ref" doc:"Project ID or slug." example:"vector-ix"`
-	ProbeID       string `query:"probeId" required:"true" format:"uuid" doc:"Probe ID to query."`
-	CheckID       string `query:"checkId" required:"true" format:"uuid" doc:"Check ID to query."`
-	From          int64  `query:"from" doc:"Inclusive range start as epoch milliseconds."`
-	To            int64  `query:"to" doc:"Exclusive range end as epoch milliseconds."`
-	Metric        string `query:"metric" doc:"Ping metric to aggregate: rttAvgMs, lossPercent, or successRate." example:"rttAvgMs"`
-	MaxDataPoints int32  `query:"maxDataPoints" doc:"Maximum target points per series." example:"600"`
+	Ref           string
+	ProbeID       string
+	CheckID       string
+	From          int64
+	To            int64
+	Metric        string
+	MaxDataPoints int32
 }
 
 type queryPingSeriesOutput struct {
@@ -49,20 +49,20 @@ type queryPingSeriesBody struct {
 }
 
 type seriesBody struct {
-	Name   string            `json:"name" example:"rttAvgMs"`
+	Name   string            `json:"name"`
 	Labels map[string]string `json:"labels"`
-	Unit   string            `json:"unit" example:"ms"`
-	Points []pointTuple      `json:"points" doc:"Tuple points in the shape [epochMilliseconds, value]."`
+	Unit   string            `json:"unit"`
+	Points []pointTuple      `json:"points"`
 }
 
 type pointTuple [2]float64
 
 type queryMetadataBody struct {
-	FromMs        int64  `json:"from" example:"1778662800000"`
-	ToMs          int64  `json:"to" example:"1778749200000"`
-	MaxDataPoints int32  `json:"maxDataPoints" example:"600"`
-	Resolution    string `json:"resolution" example:"bucket"`
-	TotalPoints   int64  `json:"totalPoints" example:"487"`
+	FromMs        int64  `json:"from"`
+	ToMs          int64  `json:"to"`
+	MaxDataPoints int32  `json:"maxDataPoints"`
+	Resolution    string `json:"resolution"`
+	TotalPoints   int64  `json:"totalPoints"`
 }
 
 func newQueryPingSeriesBody(output appresult.PingSeriesOutput) queryPingSeriesBody {

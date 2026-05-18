@@ -3,8 +3,7 @@ package auth
 import (
 	"context"
 
-	"github.com/danielgtaylor/huma/v2"
-
+	"github.com/yorukot/netstamp/internal/controller/transport/http/httpx"
 	httpmiddleware "github.com/yorukot/netstamp/internal/controller/transport/http/middleware"
 )
 
@@ -13,7 +12,7 @@ func (h *Handler) me(ctx context.Context, _ *meInput) (*meOutput, error) {
 
 	user, err := h.service.GetCurrentUser(ctx, claims.Email)
 	if err != nil {
-		return nil, huma.Error500InternalServerError("failed to fetch user")
+		return nil, httpx.InternalServerError("failed to fetch user")
 	}
 
 	return &meOutput{
@@ -35,6 +34,6 @@ type meOutput struct {
 }
 
 type meOutputBody struct {
-	Authenticated bool         `json:"authenticated" example:"true" doc:"Always true when the session cookie is valid."`
-	User          userResponse `json:"user" doc:"Current user fetched live from the database."`
+	Authenticated bool         `json:"authenticated"`
+	User          userResponse `json:"user"`
 }

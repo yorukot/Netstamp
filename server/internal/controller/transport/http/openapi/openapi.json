@@ -1,0 +1,4971 @@
+{
+	"openapi": "3.1.0",
+	"info": {
+		"title": "Netstamp API",
+		"version": "0.1.0",
+		"description": "HTTP API contract for the Netstamp controller and probe runtime."
+	},
+	"tags": [
+		{
+			"name": "Probe Runtime",
+			"description": "Probe-agent runtime handshake, polling, and result ingestion."
+		},
+		{
+			"name": "Results",
+			"description": "Authenticated result query endpoints."
+		},
+		{
+			"name": "Probes",
+			"description": "Project-scoped probe registration and secret management."
+		},
+		{
+			"name": "Checks",
+			"description": "Ping and traceroute check definitions."
+		},
+		{
+			"name": "Labels",
+			"description": "Project-scoped key/value labels used by selectors."
+		},
+		{
+			"name": "Project Members",
+			"description": "Project membership and role management."
+		},
+		{
+			"name": "Projects",
+			"description": "Authenticated project lifecycle operations."
+		},
+		{
+			"name": "Auth",
+			"description": "User registration, login, logout, and current-session access."
+		},
+		{
+			"name": "System",
+			"description": "Controller status and readiness endpoints."
+		}
+	],
+	"paths": {
+		"/": {
+			"get": {
+				"operationId": "getAPIStatus",
+				"summary": "Get API status",
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/APIStatusResponse"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["System"]
+			}
+		},
+		"/auth/login": {
+			"post": {
+				"operationId": "loginUser",
+				"summary": "Login user",
+				"description": "Verify an email and password pair, then set an HTTP-only session cookie for the authenticated user. Invalid credentials always return the same unauthorized response.",
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"headers": {
+							"Set-Cookie": {
+								"required": true,
+								"schema": {
+									"type": "string"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/AuthUserResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Auth"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/LoginUserRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/auth/logout": {
+			"post": {
+				"operationId": "logoutUser",
+				"summary": "Logout user",
+				"description": "Clear the HTTP-only session cookie.",
+				"parameters": [],
+				"responses": {
+					"204": {
+						"description": "There is no content to send for this request, but the headers may be useful. ",
+						"headers": {
+							"Set-Cookie": {
+								"required": true,
+								"schema": {
+									"type": "string"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Auth"]
+			}
+		},
+		"/auth/me": {
+			"get": {
+				"operationId": "getCurrentUser",
+				"summary": "Get current user",
+				"description": "Return the user identity embedded in a valid session cookie.",
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/CurrentUserResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Auth"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/auth/register": {
+			"post": {
+				"operationId": "registerUser",
+				"summary": "Register user",
+				"description": "Create a user account with a normalized email address, display name, and password. On success, sets an HTTP-only session cookie for immediate API access.",
+				"parameters": [],
+				"responses": {
+					"201": {
+						"description": "The request has succeeded and a new resource has been created as a result.",
+						"headers": {
+							"Set-Cookie": {
+								"required": true,
+								"schema": {
+									"type": "string"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/AuthUserResponse"
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "The request conflicts with the current state of the server.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Auth"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/RegisterUserRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/healthz": {
+			"get": {
+				"operationId": "getHealth",
+				"summary": "Get health status",
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/HealthResponse"
+								}
+							}
+						}
+					},
+					"503": {
+						"description": "Service unavailable.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["System"]
+			}
+		},
+		"/projects": {
+			"post": {
+				"operationId": "createProject",
+				"summary": "Create project",
+				"parameters": [],
+				"responses": {
+					"201": {
+						"description": "The request has succeeded and a new resource has been created as a result.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProjectResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "The request conflicts with the current state of the server.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Projects"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/CreateProjectRequest"
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			},
+			"get": {
+				"operationId": "listProjects",
+				"summary": "List projects",
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProjectListResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Projects"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/projects/{ref}": {
+			"get": {
+				"operationId": "getProject",
+				"summary": "Get project",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProjectResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Projects"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			},
+			"patch": {
+				"operationId": "updateProject",
+				"summary": "Update project",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProjectResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "The request conflicts with the current state of the server.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Projects"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/UpdateProjectRequest"
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			},
+			"delete": {
+				"operationId": "deleteProject",
+				"summary": "Delete project",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					}
+				],
+				"responses": {
+					"204": {
+						"description": "There is no content to send for this request, but the headers may be useful. "
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Projects"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/projects/{ref}/checks": {
+			"get": {
+				"operationId": "listProjectChecks",
+				"summary": "List project checks",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/CheckListResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Checks"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			},
+			"post": {
+				"operationId": "createProjectCheck",
+				"summary": "Create project check",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					}
+				],
+				"responses": {
+					"201": {
+						"description": "The request has succeeded and a new resource has been created as a result.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/CheckResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Checks"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/CreateCheckRequest"
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/projects/{ref}/checks/{check_id}": {
+			"get": {
+				"operationId": "getProjectCheck",
+				"summary": "Get project check",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					},
+					{
+						"$ref": "#/components/parameters/CheckIdPathParam"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/CheckResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Checks"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			},
+			"patch": {
+				"operationId": "updateProjectCheck",
+				"summary": "Update project check",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					},
+					{
+						"$ref": "#/components/parameters/CheckIdPathParam"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/CheckResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Checks"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/UpdateCheckRequest"
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			},
+			"delete": {
+				"operationId": "deleteProjectCheck",
+				"summary": "Delete project check",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					},
+					{
+						"$ref": "#/components/parameters/CheckIdPathParam"
+					}
+				],
+				"responses": {
+					"204": {
+						"description": "There is no content to send for this request, but the headers may be useful. "
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Checks"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/projects/{ref}/labels": {
+			"get": {
+				"operationId": "listProjectLabels",
+				"summary": "List project labels",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LabelListResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Labels"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			},
+			"post": {
+				"operationId": "createProjectLabel",
+				"summary": "Create project label",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					}
+				],
+				"responses": {
+					"201": {
+						"description": "The request has succeeded and a new resource has been created as a result.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LabelResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "The request conflicts with the current state of the server.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Labels"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/CreateLabelRequest"
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/projects/{ref}/labels/{label_id}": {
+			"patch": {
+				"operationId": "updateProjectLabel",
+				"summary": "Update project label",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					},
+					{
+						"$ref": "#/components/parameters/LabelIdPathParam"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LabelResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "The request conflicts with the current state of the server.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Labels"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/UpdateLabelRequest"
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			},
+			"delete": {
+				"operationId": "deleteProjectLabel",
+				"summary": "Delete project label",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					},
+					{
+						"$ref": "#/components/parameters/LabelIdPathParam"
+					}
+				],
+				"responses": {
+					"204": {
+						"description": "There is no content to send for this request, but the headers may be useful. "
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Labels"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/projects/{ref}/members": {
+			"get": {
+				"operationId": "listProjectMembers",
+				"summary": "List project members",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProjectMemberListResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Project Members"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			},
+			"post": {
+				"operationId": "addProjectMember",
+				"summary": "Add project member",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					}
+				],
+				"responses": {
+					"201": {
+						"description": "The request has succeeded and a new resource has been created as a result.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProjectMemberResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "The request conflicts with the current state of the server.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Project Members"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/AddProjectMemberRequest"
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/projects/{ref}/members/{user_id}": {
+			"patch": {
+				"operationId": "updateProjectMemberRole",
+				"summary": "Update project member role",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					},
+					{
+						"$ref": "#/components/parameters/UserIdPathParam"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProjectMemberResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "The request conflicts with the current state of the server.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Project Members"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/UpdateProjectMemberRoleRequest"
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			},
+			"delete": {
+				"operationId": "removeProjectMember",
+				"summary": "Remove project member",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					},
+					{
+						"$ref": "#/components/parameters/UserIdPathParam"
+					}
+				],
+				"responses": {
+					"204": {
+						"description": "There is no content to send for this request, but the headers may be useful. "
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "The request conflicts with the current state of the server.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Project Members"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/projects/{ref}/probes": {
+			"get": {
+				"operationId": "listProjectProbes",
+				"summary": "List project probes",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProbeListResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Probes"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			},
+			"post": {
+				"operationId": "createProjectProbe",
+				"summary": "Create project probe",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					}
+				],
+				"responses": {
+					"201": {
+						"description": "The request has succeeded and a new resource has been created as a result.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProbeSecretResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Probes"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/CreateProbeRequest"
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/projects/{ref}/probes/{probe_id}": {
+			"get": {
+				"operationId": "getProjectProbe",
+				"summary": "Get project probe",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					},
+					{
+						"$ref": "#/components/parameters/ProbeIdPathParam"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProbeResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Probes"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			},
+			"patch": {
+				"operationId": "updateProjectProbe",
+				"summary": "Update project probe",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					},
+					{
+						"$ref": "#/components/parameters/ProbeIdPathParam"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProbeResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Probes"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/UpdateProbeRequest"
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			},
+			"delete": {
+				"operationId": "deleteProjectProbe",
+				"summary": "Delete project probe",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					},
+					{
+						"$ref": "#/components/parameters/ProbeIdPathParam"
+					}
+				],
+				"responses": {
+					"204": {
+						"description": "There is no content to send for this request, but the headers may be useful. "
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Probes"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/projects/{ref}/probes/{probe_id}/secret-rotations": {
+			"post": {
+				"operationId": "rotateProjectProbeSecret",
+				"summary": "Rotate project probe secret",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					},
+					{
+						"$ref": "#/components/parameters/ProbeIdPathParam"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProbeSecretResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Probes"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/projects/{ref}/results/ping/series": {
+			"get": {
+				"operationId": "queryProjectPingResultSeries",
+				"summary": "Query project ping result series",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					},
+					{
+						"$ref": "#/components/parameters/PingSeriesQuery.probeId"
+					},
+					{
+						"$ref": "#/components/parameters/PingSeriesQuery.checkId"
+					},
+					{
+						"$ref": "#/components/parameters/PingSeriesQuery.from"
+					},
+					{
+						"$ref": "#/components/parameters/PingSeriesQuery.to"
+					},
+					{
+						"$ref": "#/components/parameters/PingSeriesQuery.metric"
+					},
+					{
+						"$ref": "#/components/parameters/PingSeriesQuery.maxDataPoints"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/PingSeriesResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Results"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/projects/{ref}/results/traceroute/runs": {
+			"get": {
+				"operationId": "queryProjectTracerouteResultRuns",
+				"summary": "Query project traceroute result runs",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					},
+					{
+						"$ref": "#/components/parameters/TracerouteRunsQuery.probeId"
+					},
+					{
+						"$ref": "#/components/parameters/TracerouteRunsQuery.checkId"
+					},
+					{
+						"$ref": "#/components/parameters/TracerouteRunsQuery.from"
+					},
+					{
+						"$ref": "#/components/parameters/TracerouteRunsQuery.to"
+					},
+					{
+						"$ref": "#/components/parameters/TracerouteRunsQuery.limit"
+					},
+					{
+						"$ref": "#/components/parameters/TracerouteRunsQuery.cursor"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/TracerouteRunsResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Results"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/runtime/probes/{probe_id}/assignments": {
+			"get": {
+				"operationId": "listProbeRuntimeAssignments",
+				"summary": "List probe runtime assignments",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProbeIdPathParam"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/RuntimeAssignmentsResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Probe Runtime"],
+				"security": [
+					{
+						"ProbeAuth": []
+					}
+				]
+			}
+		},
+		"/runtime/probes/{probe_id}/heartbeat": {
+			"post": {
+				"operationId": "probeRuntimeHeartbeat",
+				"summary": "Update probe runtime status",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProbeIdPathParam"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/RuntimeHeartbeatResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Probe Runtime"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/RuntimeStatusRequest"
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"ProbeAuth": []
+					}
+				]
+			}
+		},
+		"/runtime/probes/{probe_id}/hello": {
+			"post": {
+				"operationId": "probeRuntimeHello",
+				"summary": "Start probe runtime session",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProbeIdPathParam"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/RuntimeHelloResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Probe Runtime"],
+				"security": [
+					{
+						"ProbeAuth": []
+					}
+				]
+			}
+		},
+		"/runtime/probes/{probe_id}/results": {
+			"post": {
+				"operationId": "submitProbeRuntimeResults",
+				"summary": "Submit probe runtime results",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProbeIdPathParam"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/SubmitResultsResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Probe Runtime"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/SubmitResultsRequest"
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"ProbeAuth": []
+					}
+				]
+			}
+		}
+	},
+	"components": {
+		"parameters": {
+			"CheckIdPathParam": {
+				"name": "check_id",
+				"in": "path",
+				"required": true,
+				"schema": {
+					"$ref": "#/components/schemas/uuid"
+				}
+			},
+			"LabelIdPathParam": {
+				"name": "label_id",
+				"in": "path",
+				"required": true,
+				"schema": {
+					"$ref": "#/components/schemas/uuid"
+				}
+			},
+			"PingSeriesQuery.checkId": {
+				"name": "checkId",
+				"in": "query",
+				"required": true,
+				"schema": {
+					"$ref": "#/components/schemas/uuid"
+				},
+				"explode": false
+			},
+			"PingSeriesQuery.from": {
+				"name": "from",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "integer",
+					"format": "int64"
+				},
+				"explode": false
+			},
+			"PingSeriesQuery.maxDataPoints": {
+				"name": "maxDataPoints",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "integer",
+					"format": "int32"
+				},
+				"explode": false
+			},
+			"PingSeriesQuery.metric": {
+				"name": "metric",
+				"in": "query",
+				"required": true,
+				"schema": {
+					"type": "string",
+					"enum": ["rttAvgMs", "lossPercent", "successRate"]
+				},
+				"explode": false
+			},
+			"PingSeriesQuery.probeId": {
+				"name": "probeId",
+				"in": "query",
+				"required": true,
+				"schema": {
+					"$ref": "#/components/schemas/uuid"
+				},
+				"explode": false
+			},
+			"PingSeriesQuery.to": {
+				"name": "to",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "integer",
+					"format": "int64"
+				},
+				"explode": false
+			},
+			"ProbeIdPathParam": {
+				"name": "probe_id",
+				"in": "path",
+				"required": true,
+				"schema": {
+					"$ref": "#/components/schemas/uuid"
+				}
+			},
+			"ProjectRefParam": {
+				"name": "ref",
+				"in": "path",
+				"required": true,
+				"schema": {
+					"type": "string",
+					"pattern": "^[a-z0-9-]+$",
+					"minLength": 1,
+					"maxLength": 64
+				}
+			},
+			"TracerouteRunsQuery.checkId": {
+				"name": "checkId",
+				"in": "query",
+				"required": true,
+				"schema": {
+					"$ref": "#/components/schemas/uuid"
+				},
+				"explode": false
+			},
+			"TracerouteRunsQuery.cursor": {
+				"name": "cursor",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "integer",
+					"format": "int64"
+				},
+				"explode": false
+			},
+			"TracerouteRunsQuery.from": {
+				"name": "from",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "integer",
+					"format": "int64"
+				},
+				"explode": false
+			},
+			"TracerouteRunsQuery.limit": {
+				"name": "limit",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "integer",
+					"format": "int32"
+				},
+				"explode": false
+			},
+			"TracerouteRunsQuery.probeId": {
+				"name": "probeId",
+				"in": "query",
+				"required": true,
+				"schema": {
+					"$ref": "#/components/schemas/uuid"
+				},
+				"explode": false
+			},
+			"TracerouteRunsQuery.to": {
+				"name": "to",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "integer",
+					"format": "int64"
+				},
+				"explode": false
+			},
+			"UserIdPathParam": {
+				"name": "user_id",
+				"in": "path",
+				"required": true,
+				"schema": {
+					"$ref": "#/components/schemas/uuid"
+				}
+			}
+		},
+		"schemas": {
+			"APIStatusResponse": {
+				"type": "object",
+				"required": ["message"],
+				"properties": {
+					"message": {
+						"type": "string",
+						"enum": ["Netstamp API is running"]
+					}
+				},
+				"examples": [
+					{
+						"message": "Netstamp API is running"
+					}
+				]
+			},
+			"AddProjectMemberRequest": {
+				"type": "object",
+				"required": ["userId", "role"],
+				"properties": {
+					"userId": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"role": {
+						"type": "string",
+						"enum": ["admin", "editor", "viewer"]
+					}
+				},
+				"examples": [
+					{
+						"userId": "11111111-1111-1111-1111-111111111111",
+						"role": "viewer"
+					}
+				]
+			},
+			"Assignment": {
+				"type": "object",
+				"required": ["id", "projectId", "checkVersion", "selectorVersion"],
+				"properties": {
+					"id": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"projectId": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"checkVersion": {
+						"type": "string"
+					},
+					"selectorVersion": {
+						"type": "string"
+					},
+					"check": {
+						"$ref": "#/components/schemas/Check"
+					},
+					"probe": {
+						"$ref": "#/components/schemas/Probe"
+					}
+				},
+				"examples": [
+					{
+						"id": "77777777-7777-7777-7777-777777777777",
+						"projectId": "22222222-2222-2222-2222-222222222222",
+						"checkVersion": "01HXYZ7K6P4E4M3F0CB1W9DYJ5",
+						"selectorVersion": "01HXYZ7K6P4E4M3F0CB1W9DYJ6",
+						"check": {
+							"id": "44444444-4444-4444-4444-444444444444",
+							"projectId": "22222222-2222-2222-2222-222222222222",
+							"name": "api-latency",
+							"type": "ping",
+							"target": "api.netstamp.io",
+							"intervalSeconds": 30,
+							"labels": [],
+							"createdAt": "2026-05-13T10:00:00Z",
+							"updatedAt": "2026-05-13T10:00:00Z",
+							"pingConfig": {
+								"packetCount": 4,
+								"packetSizeBytes": 56,
+								"timeoutMs": 3000
+							}
+						}
+					}
+				]
+			},
+			"AuthUserResponse": {
+				"type": "object",
+				"required": ["user"],
+				"properties": {
+					"user": {
+						"$ref": "#/components/schemas/User"
+					}
+				},
+				"examples": [
+					{
+						"user": {
+							"id": "11111111-1111-1111-1111-111111111111",
+							"email": "user@example.com",
+							"displayName": "Jane Doe"
+						}
+					}
+				]
+			},
+			"Check": {
+				"type": "object",
+				"required": ["id", "projectId", "name", "type", "target", "intervalSeconds", "labels", "createdAt", "updatedAt"],
+				"properties": {
+					"id": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"projectId": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"name": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 128
+					},
+					"type": {
+						"type": "string",
+						"enum": ["ping", "traceroute"]
+					},
+					"target": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 128
+					},
+					"selector": {
+						"type": "object",
+						"unevaluatedProperties": {}
+					},
+					"description": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 1024
+					},
+					"intervalSeconds": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 1
+					},
+					"labels": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/Label"
+						}
+					},
+					"createdAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"updatedAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"pingConfig": {
+						"$ref": "#/components/schemas/PingConfig"
+					},
+					"tracerouteConfig": {
+						"$ref": "#/components/schemas/TracerouteConfig"
+					}
+				},
+				"examples": [
+					{
+						"id": "44444444-4444-4444-4444-444444444444",
+						"projectId": "22222222-2222-2222-2222-222222222222",
+						"name": "api-latency",
+						"type": "ping",
+						"target": "api.netstamp.io",
+						"selector": {
+							"region": "tokyo"
+						},
+						"description": "Latency and loss to controller API.",
+						"intervalSeconds": 30,
+						"labels": [
+							{
+								"id": "66666666-6666-6666-6666-666666666666",
+								"projectId": "22222222-2222-2222-2222-222222222222",
+								"key": "region",
+								"value": "tokyo",
+								"createdAt": "2026-05-13T10:00:00Z",
+								"updatedAt": "2026-05-13T10:00:00Z"
+							}
+						],
+						"createdAt": "2026-05-13T10:00:00Z",
+						"updatedAt": "2026-05-13T10:00:00Z",
+						"pingConfig": {
+							"packetCount": 4,
+							"packetSizeBytes": 56,
+							"timeoutMs": 3000,
+							"ipFamily": "inet"
+						}
+					}
+				]
+			},
+			"CheckListResponse": {
+				"type": "object",
+				"required": ["checks"],
+				"properties": {
+					"checks": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/Check"
+						}
+					}
+				},
+				"examples": [
+					{
+						"checks": [
+							{
+								"id": "44444444-4444-4444-4444-444444444444",
+								"projectId": "22222222-2222-2222-2222-222222222222",
+								"name": "api-latency",
+								"type": "ping",
+								"target": "api.netstamp.io",
+								"selector": {
+									"region": "tokyo"
+								},
+								"intervalSeconds": 30,
+								"labels": [],
+								"createdAt": "2026-05-13T10:00:00Z",
+								"updatedAt": "2026-05-13T10:00:00Z",
+								"pingConfig": {
+									"packetCount": 4,
+									"packetSizeBytes": 56,
+									"timeoutMs": 3000,
+									"ipFamily": "inet"
+								}
+							}
+						]
+					}
+				]
+			},
+			"CheckResponse": {
+				"type": "object",
+				"required": ["check"],
+				"properties": {
+					"check": {
+						"$ref": "#/components/schemas/Check"
+					}
+				},
+				"examples": [
+					{
+						"check": {
+							"id": "44444444-4444-4444-4444-444444444444",
+							"projectId": "22222222-2222-2222-2222-222222222222",
+							"name": "api-latency",
+							"type": "ping",
+							"target": "api.netstamp.io",
+							"selector": {
+								"region": "tokyo"
+							},
+							"description": "Latency and loss to controller API.",
+							"intervalSeconds": 30,
+							"labels": [],
+							"createdAt": "2026-05-13T10:00:00Z",
+							"updatedAt": "2026-05-13T10:00:00Z",
+							"pingConfig": {
+								"packetCount": 4,
+								"packetSizeBytes": 56,
+								"timeoutMs": 3000,
+								"ipFamily": "inet"
+							}
+						}
+					}
+				]
+			},
+			"CreateCheckRequest": {
+				"type": "object",
+				"required": ["name", "type", "target", "intervalSeconds"],
+				"properties": {
+					"name": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 128
+					},
+					"type": {
+						"type": "string",
+						"enum": ["ping", "traceroute"]
+					},
+					"target": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 128
+					},
+					"selector": {
+						"type": "object",
+						"unevaluatedProperties": {}
+					},
+					"description": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 1024
+					},
+					"intervalSeconds": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 1
+					},
+					"labelIds": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/uuid"
+						}
+					},
+					"pingConfig": {
+						"$ref": "#/components/schemas/PingConfigPatch"
+					},
+					"tracerouteConfig": {
+						"$ref": "#/components/schemas/TracerouteConfigPatch"
+					}
+				},
+				"examples": [
+					{
+						"name": "api-latency",
+						"type": "ping",
+						"target": "api.netstamp.io",
+						"selector": {
+							"region": "tokyo"
+						},
+						"description": "Latency and loss to controller API.",
+						"intervalSeconds": 30,
+						"labelIds": ["66666666-6666-6666-6666-666666666666"],
+						"pingConfig": {
+							"packetCount": 4,
+							"packetSizeBytes": 56,
+							"timeoutMs": 3000,
+							"ipFamily": "inet"
+						}
+					}
+				]
+			},
+			"CreateLabelRequest": {
+				"type": "object",
+				"required": ["key", "value"],
+				"properties": {
+					"key": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 64
+					},
+					"value": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 64
+					}
+				},
+				"examples": [
+					{
+						"key": "region",
+						"value": "tokyo"
+					}
+				]
+			},
+			"CreateProbeRequest": {
+				"type": "object",
+				"required": ["name"],
+				"properties": {
+					"name": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 128
+					},
+					"enabled": {
+						"type": "boolean",
+						"default": true
+					},
+					"subdivisionCode": {
+						"type": "string",
+						"pattern": "^[A-Z]{2}-[A-Z0-9]{1,3}$"
+					},
+					"latitude": {
+						"type": "number",
+						"format": "double",
+						"minimum": -90,
+						"maximum": 90
+					},
+					"longitude": {
+						"type": "number",
+						"format": "double",
+						"minimum": -180,
+						"maximum": 180
+					},
+					"labelIds": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/uuid"
+						}
+					}
+				},
+				"examples": [
+					{
+						"name": "tokyo-vps-1",
+						"enabled": true,
+						"subdivisionCode": "JP-13",
+						"latitude": 35.6762,
+						"longitude": 139.6503,
+						"labelIds": ["66666666-6666-6666-6666-666666666666"]
+					}
+				]
+			},
+			"CreateProjectRequest": {
+				"type": "object",
+				"required": ["name", "slug"],
+				"properties": {
+					"name": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 64
+					},
+					"slug": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 64,
+						"pattern": "^[a-z0-9-]+$"
+					}
+				},
+				"examples": [
+					{
+						"name": "Engineering",
+						"slug": "engineering"
+					}
+				]
+			},
+			"CurrentUserResponse": {
+				"type": "object",
+				"required": ["authenticated", "user"],
+				"properties": {
+					"authenticated": {
+						"type": "boolean",
+						"enum": [true]
+					},
+					"user": {
+						"$ref": "#/components/schemas/User"
+					}
+				},
+				"examples": [
+					{
+						"authenticated": true,
+						"user": {
+							"id": "11111111-1111-1111-1111-111111111111",
+							"email": "user@example.com",
+							"displayName": "Jane Doe"
+						}
+					}
+				]
+			},
+			"HealthResponse": {
+				"type": "object",
+				"required": ["status"],
+				"properties": {
+					"status": {
+						"type": "string",
+						"enum": ["ok"]
+					}
+				},
+				"examples": [
+					{
+						"status": "ok"
+					}
+				]
+			},
+			"Label": {
+				"type": "object",
+				"required": ["id", "projectId", "key", "value", "createdAt", "updatedAt"],
+				"properties": {
+					"id": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"projectId": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"key": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 64
+					},
+					"value": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 64
+					},
+					"createdAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"updatedAt": {
+						"type": "string",
+						"format": "date-time"
+					}
+				},
+				"examples": [
+					{
+						"id": "66666666-6666-6666-6666-666666666666",
+						"projectId": "22222222-2222-2222-2222-222222222222",
+						"key": "region",
+						"value": "tokyo",
+						"createdAt": "2026-05-13T10:00:00Z",
+						"updatedAt": "2026-05-13T10:00:00Z"
+					}
+				]
+			},
+			"LabelListResponse": {
+				"type": "object",
+				"required": ["labels"],
+				"properties": {
+					"labels": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/Label"
+						}
+					}
+				},
+				"examples": [
+					{
+						"labels": [
+							{
+								"id": "66666666-6666-6666-6666-666666666666",
+								"projectId": "22222222-2222-2222-2222-222222222222",
+								"key": "region",
+								"value": "tokyo",
+								"createdAt": "2026-05-13T10:00:00Z",
+								"updatedAt": "2026-05-13T10:00:00Z"
+							}
+						]
+					}
+				]
+			},
+			"LabelResponse": {
+				"type": "object",
+				"required": ["label"],
+				"properties": {
+					"label": {
+						"$ref": "#/components/schemas/Label"
+					}
+				},
+				"examples": [
+					{
+						"label": {
+							"id": "66666666-6666-6666-6666-666666666666",
+							"projectId": "22222222-2222-2222-2222-222222222222",
+							"key": "region",
+							"value": "tokyo",
+							"createdAt": "2026-05-13T10:00:00Z",
+							"updatedAt": "2026-05-13T10:00:00Z"
+						}
+					}
+				]
+			},
+			"LoginUserRequest": {
+				"type": "object",
+				"required": ["email", "password"],
+				"properties": {
+					"email": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/email"
+							}
+						],
+						"description": "Email address used to sign in. It is normalized before lookup."
+					},
+					"password": {
+						"type": "string",
+						"minLength": 8,
+						"maxLength": 128,
+						"format": "password",
+						"description": "Plain-text password to verify. It is never returned by the API."
+					}
+				},
+				"examples": [
+					{
+						"email": "user@example.com",
+						"password": "correct-horse-battery-staple"
+					}
+				]
+			},
+			"PingConfig": {
+				"type": "object",
+				"required": ["packetCount", "packetSizeBytes", "timeoutMs"],
+				"properties": {
+					"packetCount": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 1
+					},
+					"packetSizeBytes": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 1,
+						"maximum": 65507
+					},
+					"timeoutMs": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 1
+					},
+					"ipFamily": {
+						"type": "string",
+						"enum": ["inet", "inet6"]
+					}
+				},
+				"examples": [
+					{
+						"packetCount": 4,
+						"packetSizeBytes": 56,
+						"timeoutMs": 3000,
+						"ipFamily": "inet"
+					}
+				]
+			},
+			"PingConfigPatch": {
+				"type": "object",
+				"properties": {
+					"packetCount": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 1
+					},
+					"packetSizeBytes": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 1,
+						"maximum": 65507
+					},
+					"timeoutMs": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 1
+					},
+					"ipFamily": {
+						"type": "string",
+						"enum": ["inet", "inet6"]
+					}
+				},
+				"examples": [
+					{
+						"packetCount": 4,
+						"packetSizeBytes": 56,
+						"timeoutMs": 3000,
+						"ipFamily": "inet"
+					}
+				]
+			},
+			"PingResult": {
+				"type": "object",
+				"required": ["startedAt", "finishedAt", "durationMs", "status", "sentCount", "receivedCount", "lossPercent"],
+				"properties": {
+					"startedAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"finishedAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"durationMs": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 0
+					},
+					"status": {
+						"type": "string",
+						"enum": ["successful", "timeout", "error"]
+					},
+					"sentCount": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 0
+					},
+					"receivedCount": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 0
+					},
+					"lossPercent": {
+						"type": "number",
+						"format": "double",
+						"minimum": 0,
+						"maximum": 100
+					},
+					"rttMinMs": {
+						"type": "number",
+						"format": "double",
+						"minimum": 0
+					},
+					"rttAvgMs": {
+						"type": "number",
+						"format": "double",
+						"minimum": 0
+					},
+					"rttMedianMs": {
+						"type": "number",
+						"format": "double",
+						"minimum": 0
+					},
+					"rttMaxMs": {
+						"type": "number",
+						"format": "double",
+						"minimum": 0
+					},
+					"rttStddevMs": {
+						"type": "number",
+						"format": "double",
+						"minimum": 0
+					},
+					"rttSamplesMs": {
+						"type": "array",
+						"items": {
+							"type": "number",
+							"format": "double"
+						}
+					},
+					"resolvedIp": {
+						"$ref": "#/components/schemas/ipAddress"
+					},
+					"ipFamily": {
+						"type": "string",
+						"enum": ["inet", "inet6"]
+					},
+					"errorCode": {
+						"type": "string"
+					},
+					"errorMessage": {
+						"type": "string"
+					}
+				},
+				"examples": [
+					{
+						"startedAt": "2026-05-13T10:00:00Z",
+						"finishedAt": "2026-05-13T10:00:01Z",
+						"durationMs": 1000,
+						"status": "successful",
+						"sentCount": 4,
+						"receivedCount": 4,
+						"lossPercent": 0,
+						"rttMinMs": 10.1,
+						"rttAvgMs": 12.3,
+						"rttMedianMs": 12,
+						"rttMaxMs": 15.6,
+						"rttStddevMs": 1.7,
+						"rttSamplesMs": [10.1, 12, 11.5, 15.6],
+						"resolvedIp": "1.1.1.1",
+						"ipFamily": "inet"
+					}
+				]
+			},
+			"PingSeriesQueryMetadata": {
+				"type": "object",
+				"required": ["from", "to", "maxDataPoints", "resolution", "totalPoints"],
+				"properties": {
+					"from": {
+						"type": "integer",
+						"format": "int64"
+					},
+					"to": {
+						"type": "integer",
+						"format": "int64"
+					},
+					"maxDataPoints": {
+						"type": "integer",
+						"format": "int32"
+					},
+					"resolution": {
+						"type": "string"
+					},
+					"totalPoints": {
+						"type": "integer",
+						"format": "int64"
+					}
+				},
+				"examples": [
+					{
+						"from": 1778662800000,
+						"to": 1778749200000,
+						"maxDataPoints": 600,
+						"resolution": "bucket",
+						"totalPoints": 487
+					}
+				]
+			},
+			"PingSeriesResponse": {
+				"type": "object",
+				"required": ["series", "query"],
+				"properties": {
+					"series": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/Series"
+						}
+					},
+					"query": {
+						"$ref": "#/components/schemas/PingSeriesQueryMetadata"
+					}
+				},
+				"examples": [
+					{
+						"series": [
+							{
+								"name": "rttAvgMs",
+								"labels": {
+									"probeId": "33333333-3333-3333-3333-333333333333",
+									"checkId": "44444444-4444-4444-4444-444444444444",
+									"checkType": "ping"
+								},
+								"unit": "ms",
+								"points": [[1778666400000, 12.3]]
+							}
+						],
+						"query": {
+							"from": 1778662800000,
+							"to": 1778749200000,
+							"maxDataPoints": 600,
+							"resolution": "bucket",
+							"totalPoints": 487
+						}
+					}
+				]
+			},
+			"Probe": {
+				"type": "object",
+				"required": ["id", "projectId", "name", "enabled", "labels", "createdAt", "updatedAt"],
+				"properties": {
+					"id": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"projectId": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"name": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 128
+					},
+					"enabled": {
+						"type": "boolean"
+					},
+					"subdivisionCode": {
+						"type": "string",
+						"pattern": "^[A-Z]{2}-[A-Z0-9]{1,3}$"
+					},
+					"latitude": {
+						"type": "number",
+						"format": "double",
+						"minimum": -90,
+						"maximum": 90
+					},
+					"longitude": {
+						"type": "number",
+						"format": "double",
+						"minimum": -180,
+						"maximum": 180
+					},
+					"labels": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/Label"
+						}
+					},
+					"status": {
+						"$ref": "#/components/schemas/ProbeStatus"
+					},
+					"createdAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"updatedAt": {
+						"type": "string",
+						"format": "date-time"
+					}
+				},
+				"examples": [
+					{
+						"id": "33333333-3333-3333-3333-333333333333",
+						"projectId": "22222222-2222-2222-2222-222222222222",
+						"name": "tokyo-vps-1",
+						"enabled": true,
+						"subdivisionCode": "JP-13",
+						"latitude": 35.6762,
+						"longitude": 139.6503,
+						"labels": [],
+						"status": {
+							"probeId": "33333333-3333-3333-3333-333333333333",
+							"state": "online",
+							"lastSeenAt": "2026-05-13T10:00:00Z",
+							"updatedAt": "2026-05-13T10:00:00Z"
+						},
+						"createdAt": "2026-05-13T10:00:00Z",
+						"updatedAt": "2026-05-13T10:00:00Z"
+					}
+				]
+			},
+			"ProbeListResponse": {
+				"type": "object",
+				"required": ["probes"],
+				"properties": {
+					"probes": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/Probe"
+						}
+					}
+				},
+				"examples": [
+					{
+						"probes": [
+							{
+								"id": "33333333-3333-3333-3333-333333333333",
+								"projectId": "22222222-2222-2222-2222-222222222222",
+								"name": "tokyo-vps-1",
+								"enabled": true,
+								"labels": [],
+								"createdAt": "2026-05-13T10:00:00Z",
+								"updatedAt": "2026-05-13T10:00:00Z"
+							}
+						]
+					}
+				]
+			},
+			"ProbeResponse": {
+				"type": "object",
+				"required": ["probe"],
+				"properties": {
+					"probe": {
+						"$ref": "#/components/schemas/Probe"
+					}
+				},
+				"examples": [
+					{
+						"probe": {
+							"id": "33333333-3333-3333-3333-333333333333",
+							"projectId": "22222222-2222-2222-2222-222222222222",
+							"name": "tokyo-vps-1",
+							"enabled": true,
+							"subdivisionCode": "JP-13",
+							"latitude": 35.6762,
+							"longitude": 139.6503,
+							"labels": [],
+							"createdAt": "2026-05-13T10:00:00Z",
+							"updatedAt": "2026-05-13T10:00:00Z"
+						}
+					}
+				]
+			},
+			"ProbeSecretResponse": {
+				"type": "object",
+				"required": ["probe", "secret"],
+				"properties": {
+					"probe": {
+						"$ref": "#/components/schemas/Probe"
+					},
+					"secret": {
+						"type": "string",
+						"format": "password",
+						"description": "Plaintext probe secret. It is returned only at creation and rotation time."
+					}
+				},
+				"examples": [
+					{
+						"probe": {
+							"id": "33333333-3333-3333-3333-333333333333",
+							"projectId": "22222222-2222-2222-2222-222222222222",
+							"name": "tokyo-vps-1",
+							"enabled": true,
+							"labels": [],
+							"createdAt": "2026-05-13T10:00:00Z",
+							"updatedAt": "2026-05-13T10:00:00Z"
+						},
+						"secret": "nsp_6b5fbd35d3a1417f9c0c8c2e"
+					}
+				]
+			},
+			"ProbeStatus": {
+				"type": "object",
+				"required": ["probeId", "state", "updatedAt"],
+				"properties": {
+					"probeId": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"state": {
+						"type": "string",
+						"enum": ["online", "offline"]
+					},
+					"lastSeenAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"agentVersion": {
+						"type": "string"
+					},
+					"publicV4": {
+						"$ref": "#/components/schemas/ipAddress"
+					},
+					"publicV6": {
+						"$ref": "#/components/schemas/ipAddress"
+					},
+					"as": {
+						"type": "string"
+					},
+					"addrs": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/ipAddress"
+						}
+					},
+					"updatedAt": {
+						"type": "string",
+						"format": "date-time"
+					}
+				},
+				"examples": [
+					{
+						"probeId": "33333333-3333-3333-3333-333333333333",
+						"state": "online",
+						"lastSeenAt": "2026-05-13T10:00:00Z",
+						"agentVersion": "netstamp-probe/0.1.0",
+						"publicV4": "203.0.113.10",
+						"publicV6": "2001:db8::10",
+						"as": "AS15169 Google LLC",
+						"addrs": ["10.0.0.10"],
+						"updatedAt": "2026-05-13T10:00:00Z"
+					}
+				]
+			},
+			"ProblemDetails": {
+				"type": "object",
+				"properties": {
+					"type": {
+						"type": "string",
+						"format": "uri",
+						"default": "about:blank"
+					},
+					"title": {
+						"type": "string"
+					},
+					"status": {
+						"type": "integer",
+						"format": "int32"
+					},
+					"detail": {
+						"type": "string"
+					},
+					"instance": {
+						"type": "string",
+						"format": "uri"
+					},
+					"errors": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/ProblemErrorDetail"
+						}
+					}
+				},
+				"examples": [
+					{
+						"title": "Unprocessable Entity",
+						"status": 422,
+						"detail": "invalid project input",
+						"errors": [
+							{
+								"message": "must be at least 1 character",
+								"location": "body.name",
+								"value": ""
+							}
+						]
+					}
+				]
+			},
+			"ProblemErrorDetail": {
+				"type": "object",
+				"properties": {
+					"message": {
+						"type": "string",
+						"description": "Human-readable explanation for this field or sub-error."
+					},
+					"location": {
+						"type": "string",
+						"description": "Path-like location such as body.name, query.probeId, or path.ref."
+					},
+					"value": {
+						"description": "Echoed invalid value, when the server chooses to return it."
+					}
+				},
+				"examples": [
+					{
+						"message": "expected required property name to be present",
+						"location": "body.name",
+						"value": ""
+					}
+				]
+			},
+			"Project": {
+				"type": "object",
+				"required": ["id", "name", "slug", "createdByUserId", "createdAt", "updatedAt"],
+				"properties": {
+					"id": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"name": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 64
+					},
+					"slug": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 64,
+						"pattern": "^[a-z0-9-]+$"
+					},
+					"createdByUserId": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"createdAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"updatedAt": {
+						"type": "string",
+						"format": "date-time"
+					}
+				},
+				"examples": [
+					{
+						"id": "22222222-2222-2222-2222-222222222222",
+						"name": "Engineering",
+						"slug": "engineering",
+						"createdByUserId": "11111111-1111-1111-1111-111111111111",
+						"createdAt": "2026-05-13T10:00:00Z",
+						"updatedAt": "2026-05-13T10:00:00Z"
+					}
+				]
+			},
+			"ProjectListResponse": {
+				"type": "object",
+				"required": ["projects"],
+				"properties": {
+					"projects": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/Project"
+						}
+					}
+				},
+				"examples": [
+					{
+						"projects": [
+							{
+								"id": "22222222-2222-2222-2222-222222222222",
+								"name": "Engineering",
+								"slug": "engineering",
+								"createdByUserId": "11111111-1111-1111-1111-111111111111",
+								"createdAt": "2026-05-13T10:00:00Z",
+								"updatedAt": "2026-05-13T10:00:00Z"
+							}
+						]
+					}
+				]
+			},
+			"ProjectMember": {
+				"type": "object",
+				"required": ["id", "projectId", "userId", "role", "createdAt", "updatedAt"],
+				"properties": {
+					"id": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"projectId": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"userId": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"role": {
+						"type": "string",
+						"enum": ["owner", "admin", "editor", "viewer"]
+					},
+					"createdAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"updatedAt": {
+						"type": "string",
+						"format": "date-time"
+					}
+				},
+				"examples": [
+					{
+						"id": "55555555-5555-5555-5555-555555555555",
+						"projectId": "22222222-2222-2222-2222-222222222222",
+						"userId": "11111111-1111-1111-1111-111111111111",
+						"role": "owner",
+						"createdAt": "2026-05-13T10:00:00Z",
+						"updatedAt": "2026-05-13T10:00:00Z"
+					}
+				]
+			},
+			"ProjectMemberListResponse": {
+				"type": "object",
+				"required": ["members"],
+				"properties": {
+					"members": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/ProjectMember"
+						}
+					}
+				},
+				"examples": [
+					{
+						"members": [
+							{
+								"id": "55555555-5555-5555-5555-555555555555",
+								"projectId": "22222222-2222-2222-2222-222222222222",
+								"userId": "11111111-1111-1111-1111-111111111111",
+								"role": "owner",
+								"createdAt": "2026-05-13T10:00:00Z",
+								"updatedAt": "2026-05-13T10:00:00Z"
+							}
+						]
+					}
+				]
+			},
+			"ProjectMemberResponse": {
+				"type": "object",
+				"required": ["member"],
+				"properties": {
+					"member": {
+						"$ref": "#/components/schemas/ProjectMember"
+					}
+				},
+				"examples": [
+					{
+						"member": {
+							"id": "55555555-5555-5555-5555-555555555555",
+							"projectId": "22222222-2222-2222-2222-222222222222",
+							"userId": "11111111-1111-1111-1111-111111111111",
+							"role": "owner",
+							"createdAt": "2026-05-13T10:00:00Z",
+							"updatedAt": "2026-05-13T10:00:00Z"
+						}
+					}
+				]
+			},
+			"ProjectResponse": {
+				"type": "object",
+				"required": ["project"],
+				"properties": {
+					"project": {
+						"$ref": "#/components/schemas/Project"
+					}
+				},
+				"examples": [
+					{
+						"project": {
+							"id": "22222222-2222-2222-2222-222222222222",
+							"name": "Engineering",
+							"slug": "engineering",
+							"createdByUserId": "11111111-1111-1111-1111-111111111111",
+							"createdAt": "2026-05-13T10:00:00Z",
+							"updatedAt": "2026-05-13T10:00:00Z"
+						}
+					}
+				]
+			},
+			"RegisterUserRequest": {
+				"type": "object",
+				"required": ["email", "displayName", "password"],
+				"properties": {
+					"email": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/email"
+							}
+						],
+						"description": "Email address used to sign in."
+					},
+					"displayName": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 64,
+						"description": "Name shown in the app."
+					},
+					"password": {
+						"type": "string",
+						"minLength": 8,
+						"maxLength": 128,
+						"format": "password",
+						"description": "Plain-text password. It is stored only as an Argon2id hash."
+					}
+				},
+				"examples": [
+					{
+						"email": "user@example.com",
+						"displayName": "Jane Doe",
+						"password": "correct-horse-battery-staple"
+					}
+				]
+			},
+			"RuntimeAssignmentsResponse": {
+				"type": "object",
+				"required": ["serverTime", "config", "assignments"],
+				"properties": {
+					"serverTime": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"config": {
+						"$ref": "#/components/schemas/RuntimeConfig"
+					},
+					"assignments": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/Assignment"
+						}
+					}
+				},
+				"examples": [
+					{
+						"serverTime": "2026-05-13T10:00:00Z",
+						"config": {
+							"heartbeatIntervalSeconds": 30,
+							"assignmentPollIntervalSeconds": 30,
+							"maxConcurrentWorkers": 16,
+							"initialBackoffSeconds": 1,
+							"maxBackoffSeconds": 30,
+							"maxAttempts": 5
+						},
+						"assignments": []
+					}
+				]
+			},
+			"RuntimeConfig": {
+				"type": "object",
+				"required": ["heartbeatIntervalSeconds", "assignmentPollIntervalSeconds", "maxConcurrentWorkers", "initialBackoffSeconds", "maxBackoffSeconds", "maxAttempts"],
+				"properties": {
+					"heartbeatIntervalSeconds": {
+						"type": "integer",
+						"format": "int32"
+					},
+					"assignmentPollIntervalSeconds": {
+						"type": "integer",
+						"format": "int32"
+					},
+					"maxConcurrentWorkers": {
+						"type": "integer",
+						"format": "int32"
+					},
+					"initialBackoffSeconds": {
+						"type": "integer",
+						"format": "int32"
+					},
+					"maxBackoffSeconds": {
+						"type": "integer",
+						"format": "int32"
+					},
+					"maxAttempts": {
+						"type": "integer",
+						"format": "int32"
+					}
+				},
+				"examples": [
+					{
+						"heartbeatIntervalSeconds": 30,
+						"assignmentPollIntervalSeconds": 30,
+						"maxConcurrentWorkers": 16,
+						"initialBackoffSeconds": 1,
+						"maxBackoffSeconds": 30,
+						"maxAttempts": 5
+					}
+				]
+			},
+			"RuntimeHeartbeatResponse": {
+				"type": "object",
+				"required": ["serverTime"],
+				"properties": {
+					"serverTime": {
+						"type": "string",
+						"format": "date-time"
+					}
+				},
+				"examples": [
+					{
+						"serverTime": "2026-05-13T10:00:00Z"
+					}
+				]
+			},
+			"RuntimeHelloResponse": {
+				"type": "object",
+				"required": ["serverTime", "minimumSupportedAgentVersion", "config"],
+				"properties": {
+					"serverTime": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"minimumSupportedAgentVersion": {
+						"type": "string"
+					},
+					"config": {
+						"$ref": "#/components/schemas/RuntimeConfig"
+					}
+				},
+				"examples": [
+					{
+						"serverTime": "2026-05-13T10:00:00Z",
+						"minimumSupportedAgentVersion": "0.1.0",
+						"config": {
+							"heartbeatIntervalSeconds": 30,
+							"assignmentPollIntervalSeconds": 30,
+							"maxConcurrentWorkers": 16,
+							"initialBackoffSeconds": 1,
+							"maxBackoffSeconds": 30,
+							"maxAttempts": 5
+						}
+					}
+				]
+			},
+			"RuntimeResultGroup": {
+				"type": "object",
+				"required": ["checkId", "type"],
+				"properties": {
+					"checkId": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"type": {
+						"type": "string",
+						"enum": ["ping", "traceroute"]
+					},
+					"ping": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/PingResult"
+						}
+					},
+					"traceroute": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/TracerouteResult"
+						}
+					}
+				},
+				"examples": [
+					{
+						"checkId": "44444444-4444-4444-4444-444444444444",
+						"type": "ping",
+						"ping": [
+							{
+								"startedAt": "2026-05-13T10:00:00Z",
+								"finishedAt": "2026-05-13T10:00:01Z",
+								"durationMs": 1000,
+								"status": "successful",
+								"sentCount": 4,
+								"receivedCount": 4,
+								"lossPercent": 0,
+								"rttAvgMs": 12.3,
+								"rttSamplesMs": [10.1, 12, 11.5, 15.6],
+								"resolvedIp": "1.1.1.1",
+								"ipFamily": "inet"
+							}
+						]
+					}
+				]
+			},
+			"RuntimeStatusRequest": {
+				"type": "object",
+				"properties": {
+					"agentVersion": {
+						"type": "string"
+					},
+					"publicV4": {
+						"$ref": "#/components/schemas/ipAddress"
+					},
+					"publicV6": {
+						"$ref": "#/components/schemas/ipAddress"
+					},
+					"as": {
+						"type": "string"
+					},
+					"addrs": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/ipAddress"
+						}
+					}
+				},
+				"examples": [
+					{
+						"agentVersion": "netstamp-probe/0.1.0",
+						"publicV4": "203.0.113.10",
+						"publicV6": "2001:db8::10",
+						"as": "AS15169 Google LLC",
+						"addrs": ["10.0.0.10"]
+					}
+				]
+			},
+			"Series": {
+				"type": "object",
+				"required": ["name", "labels", "unit", "points"],
+				"properties": {
+					"name": {
+						"type": "string"
+					},
+					"labels": {
+						"type": "object",
+						"unevaluatedProperties": {
+							"type": "string"
+						}
+					},
+					"unit": {
+						"type": "string"
+					},
+					"points": {
+						"type": "array",
+						"items": {
+							"type": "array",
+							"prefixItems": [
+								{
+									"type": "integer",
+									"format": "int64"
+								},
+								{
+									"type": "number",
+									"format": "double"
+								}
+							]
+						}
+					}
+				},
+				"examples": [
+					{
+						"name": "rttAvgMs",
+						"labels": {
+							"probeId": "33333333-3333-3333-3333-333333333333",
+							"checkId": "44444444-4444-4444-4444-444444444444",
+							"checkType": "ping"
+						},
+						"unit": "ms",
+						"points": [[1778666400000, 12.3]]
+					}
+				]
+			},
+			"SubmitResultsRequest": {
+				"type": "object",
+				"required": ["results"],
+				"properties": {
+					"results": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/RuntimeResultGroup"
+						},
+						"minItems": 1,
+						"maxItems": 100
+					}
+				},
+				"examples": [
+					{
+						"results": [
+							{
+								"checkId": "44444444-4444-4444-4444-444444444444",
+								"type": "ping",
+								"ping": [
+									{
+										"startedAt": "2026-05-13T10:00:00Z",
+										"finishedAt": "2026-05-13T10:00:01Z",
+										"durationMs": 1000,
+										"status": "successful",
+										"sentCount": 4,
+										"receivedCount": 4,
+										"lossPercent": 0
+									}
+								]
+							}
+						]
+					}
+				]
+			},
+			"SubmitResultsResponse": {
+				"type": "object",
+				"required": ["accepted", "serverTime"],
+				"properties": {
+					"accepted": {
+						"type": "integer",
+						"format": "int32"
+					},
+					"serverTime": {
+						"type": "string",
+						"format": "date-time"
+					}
+				},
+				"examples": [
+					{
+						"accepted": 1,
+						"serverTime": "2026-05-13T10:00:02Z"
+					}
+				]
+			},
+			"TracerouteConfig": {
+				"type": "object",
+				"required": ["protocol", "maxHops", "timeoutMs", "queriesPerHop", "packetSizeBytes", "port"],
+				"properties": {
+					"protocol": {
+						"type": "string",
+						"enum": ["icmp", "udp"]
+					},
+					"maxHops": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 1,
+						"maximum": 64
+					},
+					"timeoutMs": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 1,
+						"maximum": 60000
+					},
+					"queriesPerHop": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 1,
+						"maximum": 10
+					},
+					"packetSizeBytes": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 1,
+						"maximum": 65507
+					},
+					"port": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 1,
+						"maximum": 65535
+					},
+					"ipFamily": {
+						"type": "string",
+						"enum": ["inet", "inet6"]
+					}
+				},
+				"examples": [
+					{
+						"protocol": "icmp",
+						"maxHops": 30,
+						"timeoutMs": 3000,
+						"queriesPerHop": 3,
+						"packetSizeBytes": 56,
+						"port": 33434,
+						"ipFamily": "inet"
+					}
+				]
+			},
+			"TracerouteConfigPatch": {
+				"type": "object",
+				"properties": {
+					"protocol": {
+						"type": "string",
+						"enum": ["icmp", "udp"]
+					},
+					"maxHops": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 1,
+						"maximum": 64
+					},
+					"timeoutMs": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 1,
+						"maximum": 60000
+					},
+					"queriesPerHop": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 1,
+						"maximum": 10
+					},
+					"packetSizeBytes": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 1,
+						"maximum": 65507
+					},
+					"port": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 1,
+						"maximum": 65535
+					},
+					"ipFamily": {
+						"type": "string",
+						"enum": ["inet", "inet6"]
+					}
+				},
+				"examples": [
+					{
+						"protocol": "icmp",
+						"maxHops": 30,
+						"timeoutMs": 3000,
+						"queriesPerHop": 3,
+						"packetSizeBytes": 56,
+						"port": 33434,
+						"ipFamily": "inet"
+					}
+				]
+			},
+			"TracerouteHop": {
+				"type": "object",
+				"required": ["hopIndex", "sentCount", "receivedCount", "lossPercent"],
+				"properties": {
+					"hopIndex": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 1,
+						"maximum": 64
+					},
+					"address": {
+						"$ref": "#/components/schemas/ipAddress"
+					},
+					"hostname": {
+						"type": "string"
+					},
+					"sentCount": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 0
+					},
+					"receivedCount": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 0
+					},
+					"lossPercent": {
+						"type": "number",
+						"format": "double",
+						"minimum": 0,
+						"maximum": 100
+					},
+					"rttMinMs": {
+						"type": "number",
+						"format": "double",
+						"minimum": 0
+					},
+					"rttAvgMs": {
+						"type": "number",
+						"format": "double",
+						"minimum": 0
+					},
+					"rttMedianMs": {
+						"type": "number",
+						"format": "double",
+						"minimum": 0
+					},
+					"rttMaxMs": {
+						"type": "number",
+						"format": "double",
+						"minimum": 0
+					},
+					"rttStddevMs": {
+						"type": "number",
+						"format": "double",
+						"minimum": 0
+					},
+					"rttSamplesMs": {
+						"type": "array",
+						"items": {
+							"type": "number",
+							"format": "double"
+						}
+					},
+					"errorCode": {
+						"type": "string"
+					},
+					"errorMessage": {
+						"type": "string"
+					}
+				},
+				"examples": [
+					{
+						"hopIndex": 1,
+						"address": "192.0.2.1",
+						"hostname": "gateway.local",
+						"sentCount": 3,
+						"receivedCount": 3,
+						"lossPercent": 0,
+						"rttMinMs": 1.5,
+						"rttAvgMs": 1.7,
+						"rttMedianMs": 1.7,
+						"rttMaxMs": 1.9,
+						"rttStddevMs": 0.2,
+						"rttSamplesMs": [1.5, 1.7, 1.9]
+					}
+				]
+			},
+			"TracerouteResult": {
+				"type": "object",
+				"required": ["startedAt", "finishedAt", "durationMs", "status", "destinationReached", "hopCount"],
+				"properties": {
+					"startedAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"finishedAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"durationMs": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 0
+					},
+					"status": {
+						"type": "string",
+						"enum": ["successful", "timeout", "error", "partial"]
+					},
+					"resolvedIp": {
+						"$ref": "#/components/schemas/ipAddress"
+					},
+					"ipFamily": {
+						"type": "string",
+						"enum": ["inet", "inet6"]
+					},
+					"destinationReached": {
+						"type": "boolean"
+					},
+					"hopCount": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 0
+					},
+					"hops": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/TracerouteHop"
+						}
+					},
+					"errorCode": {
+						"type": "string"
+					},
+					"errorMessage": {
+						"type": "string"
+					}
+				},
+				"examples": [
+					{
+						"startedAt": "2026-05-13T10:00:00Z",
+						"finishedAt": "2026-05-13T10:00:04Z",
+						"durationMs": 4000,
+						"status": "partial",
+						"resolvedIp": "93.184.216.34",
+						"ipFamily": "inet",
+						"destinationReached": false,
+						"hopCount": 12,
+						"hops": [
+							{
+								"hopIndex": 1,
+								"address": "192.0.2.1",
+								"sentCount": 3,
+								"receivedCount": 3,
+								"lossPercent": 0
+							}
+						],
+						"errorCode": "destination_unreached",
+						"errorMessage": "destination was not reached before max hops"
+					}
+				]
+			},
+			"TracerouteRunsQueryMetadata": {
+				"type": "object",
+				"required": ["from", "to", "limit"],
+				"properties": {
+					"from": {
+						"type": "integer",
+						"format": "int64"
+					},
+					"to": {
+						"type": "integer",
+						"format": "int64"
+					},
+					"limit": {
+						"type": "integer",
+						"format": "int32"
+					},
+					"nextCursor": {
+						"type": "integer",
+						"format": "int64"
+					}
+				},
+				"examples": [
+					{
+						"from": 1778662800000,
+						"to": 1778749200000,
+						"limit": 100,
+						"nextCursor": 1778666400000
+					}
+				]
+			},
+			"TracerouteRunsResponse": {
+				"type": "object",
+				"required": ["runs", "query"],
+				"properties": {
+					"runs": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/TracerouteResult"
+						}
+					},
+					"query": {
+						"$ref": "#/components/schemas/TracerouteRunsQueryMetadata"
+					}
+				},
+				"examples": [
+					{
+						"runs": [
+							{
+								"startedAt": "2026-05-13T10:00:00Z",
+								"finishedAt": "2026-05-13T10:00:04Z",
+								"durationMs": 4000,
+								"status": "partial",
+								"destinationReached": false,
+								"hopCount": 12,
+								"hops": [
+									{
+										"hopIndex": 1,
+										"sentCount": 3,
+										"receivedCount": 3,
+										"lossPercent": 0
+									}
+								]
+							}
+						],
+						"query": {
+							"from": 1778662800000,
+							"to": 1778749200000,
+							"limit": 100
+						}
+					}
+				]
+			},
+			"UpdateCheckRequest": {
+				"type": "object",
+				"properties": {
+					"name": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 128
+					},
+					"type": {
+						"type": "string",
+						"enum": ["ping", "traceroute"]
+					},
+					"target": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 128
+					},
+					"selector": {
+						"type": "object",
+						"unevaluatedProperties": {}
+					},
+					"description": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 1024
+					},
+					"intervalSeconds": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 1
+					},
+					"pingConfig": {
+						"$ref": "#/components/schemas/PingConfigPatch"
+					},
+					"tracerouteConfig": {
+						"$ref": "#/components/schemas/TracerouteConfigPatch"
+					},
+					"labelIds": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/uuid"
+						}
+					}
+				},
+				"examples": [
+					{
+						"name": "api-latency",
+						"target": "api.netstamp.io",
+						"intervalSeconds": 60,
+						"labelIds": ["66666666-6666-6666-6666-666666666666"],
+						"pingConfig": {
+							"timeoutMs": 5000
+						}
+					}
+				]
+			},
+			"UpdateLabelRequest": {
+				"type": "object",
+				"properties": {
+					"key": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 64
+					},
+					"value": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 64
+					}
+				},
+				"examples": [
+					{
+						"key": "metro",
+						"value": "tokyo"
+					}
+				]
+			},
+			"UpdateProbeRequest": {
+				"type": "object",
+				"properties": {
+					"name": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 128
+					},
+					"enabled": {
+						"type": "boolean"
+					},
+					"subdivisionCode": {
+						"type": "string",
+						"pattern": "^[A-Z]{2}-[A-Z0-9]{1,3}$"
+					},
+					"latitude": {
+						"type": "number",
+						"format": "double",
+						"minimum": -90,
+						"maximum": 90
+					},
+					"longitude": {
+						"type": "number",
+						"format": "double",
+						"minimum": -180,
+						"maximum": 180
+					},
+					"labelIds": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/uuid"
+						}
+					}
+				},
+				"examples": [
+					{
+						"name": "tokyo-vps-2",
+						"enabled": false,
+						"labelIds": ["66666666-6666-6666-6666-666666666666"]
+					}
+				]
+			},
+			"UpdateProjectMemberRoleRequest": {
+				"type": "object",
+				"required": ["role"],
+				"properties": {
+					"role": {
+						"type": "string",
+						"enum": ["admin", "editor", "viewer"]
+					}
+				},
+				"examples": [
+					{
+						"role": "editor"
+					}
+				]
+			},
+			"UpdateProjectRequest": {
+				"type": "object",
+				"properties": {
+					"name": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 64
+					},
+					"slug": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 64,
+						"pattern": "^[a-z0-9-]+$"
+					}
+				},
+				"examples": [
+					{
+						"name": "Platform Engineering",
+						"slug": "platform-engineering"
+					}
+				]
+			},
+			"User": {
+				"type": "object",
+				"required": ["id", "email", "displayName"],
+				"properties": {
+					"id": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/uuid"
+							}
+						],
+						"description": "User UUID."
+					},
+					"email": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/email"
+							}
+						],
+						"description": "Normalized email address used to sign in."
+					},
+					"displayName": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 64,
+						"description": "Name shown in the app."
+					}
+				},
+				"examples": [
+					{
+						"id": "11111111-1111-1111-1111-111111111111",
+						"email": "user@example.com",
+						"displayName": "Jane Doe"
+					}
+				]
+			},
+			"email": {
+				"type": "string",
+				"format": "email"
+			},
+			"ipAddress": {
+				"type": "string"
+			},
+			"uuid": {
+				"type": "string",
+				"format": "uuid"
+			}
+		},
+		"securitySchemes": {
+			"SessionCookieAuth": {
+				"type": "apiKey",
+				"in": "cookie",
+				"name": "netstamp_session"
+			},
+			"ProbeAuth": {
+				"type": "http",
+				"scheme": "Probe"
+			}
+		}
+	},
+	"servers": [
+		{
+			"url": "/api/v1",
+			"description": "Default v1 API base path",
+			"variables": {}
+		}
+	]
+}

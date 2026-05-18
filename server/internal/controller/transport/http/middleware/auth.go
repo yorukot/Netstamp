@@ -2,47 +2,38 @@ package middleware
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 
-	"github.com/danielgtaylor/huma/v2"
-	chimw "github.com/go-chi/chi/v5/middleware"
-	"go.uber.org/zap"
-
 	appauth "github.com/yorukot/netstamp/internal/controller/application/auth"
-	controllerlogger "github.com/yorukot/netstamp/internal/controller/logger"
 	"github.com/yorukot/netstamp/internal/domain/identity"
 )
 
-const (
-	SessionCookieName           = "netstamp_session"
-	SessionCookieSecurityScheme = "sessionCookieAuth"
-)
+const SessionCookieName = "netstamp_session"
 
 type accessTokenClaimsContextKey struct{}
 
-func RequireAuth(verifier appauth.TokenVerifier) func(huma.Context, func(huma.Context)) {
-	return func(ctx huma.Context, next func(huma.Context)) {
-		requestCtx := ctx.Context()
+func RequireAuth(verifier appauth.TokenVerifier) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if verifier == nil {
+				WriteProblem(w, r, http.StatusInternalServerError, "auth verifier unavailable")
+				return
+			}
 
-		if verifier == nil {
-			writeHumaProblem(requestCtx, ctx, http.StatusInternalServerError, "auth verifier unavailable")
-			return
-		}
+			token, ok := sessionCookie(r)
+			if !ok {
+				WriteProblem(w, r, http.StatusUnauthorized, "missing auth cookie")
+				return
+			}
 
-		token, ok := sessionCookie(ctx)
-		if !ok {
-			writeHumaProblem(requestCtx, ctx, http.StatusUnauthorized, "missing auth cookie")
-			return
-		}
+			claims, err := verifier.VerifyAccessToken(r.Context(), token)
+			if err != nil {
+				WriteProblem(w, r, http.StatusUnauthorized, "invalid auth cookie")
+				return
+			}
 
-		claims, err := verifier.VerifyAccessToken(requestCtx, token)
-		if err != nil {
-			writeHumaProblem(requestCtx, ctx, http.StatusUnauthorized, "invalid auth cookie")
-			return
-		}
-
-		next(huma.WithContext(ctx, WithAccessTokenClaims(requestCtx, claims)))
+			next.ServeHTTP(w, r.WithContext(WithAccessTokenClaims(r.Context(), claims)))
+		})
 	}
 }
 
@@ -55,31 +46,11 @@ func AccessTokenClaimsFromContext(ctx context.Context) (identity.AccessTokenClai
 	return claims, ok
 }
 
-func sessionCookie(ctx huma.Context) (string, bool) {
-	request := http.Request{
-		Header: http.Header{"Cookie": []string{ctx.Header("Cookie")}},
-	}
-	cookie, err := request.Cookie(SessionCookieName)
+func sessionCookie(r *http.Request) (string, bool) {
+	cookie, err := r.Cookie(SessionCookieName)
 	if err != nil || cookie.Value == "" {
 		return "", false
 	}
 
 	return cookie.Value, true
-}
-
-func writeHumaProblem(requestCtx context.Context, ctx huma.Context, status int, detail string) {
-	if requestID := chimw.GetReqID(requestCtx); requestID != "" {
-		ctx.SetHeader("X-Request-ID", requestID)
-	}
-	ctx.SetHeader("Content-Type", "application/problem+json")
-	ctx.SetStatus(status)
-
-	if err := json.NewEncoder(ctx.BodyWriter()).Encode(&huma.ErrorModel{
-		Status: status,
-		Title:  http.StatusText(status),
-		Detail: detail,
-	}); err != nil {
-		log := controllerlogger.FromContext(requestCtx, zap.L())
-		log.Warn("failed to write auth problem response", zap.Error(err))
-	}
 }
