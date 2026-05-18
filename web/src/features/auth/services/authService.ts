@@ -1,8 +1,7 @@
 import type { CreateProjectInput, LoginInput, RegisterInput, UserResponse } from "@/shared/api/types";
 
-export interface AuthCredentials extends LoginInput {
-	displayName?: string;
-}
+export type AuthCredentials = LoginInput;
+export type RegisterPayload = RegisterInput;
 
 export type TeamDraft = CreateProjectInput;
 
@@ -47,5 +46,3 @@ export function createSessionSnapshot(user: UserResponse, options: { onboardingR
 export function mapProjectTeam({ name, slug }: TeamDraft): TeamDraft & { role: string } {
 	return { name: name || "Vector IX", slug: slug || "vector-ix", role: "Owner" };
 }
-
-export type RegisterPayload = RegisterInput;

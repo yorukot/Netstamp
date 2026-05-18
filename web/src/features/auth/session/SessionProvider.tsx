@@ -2,7 +2,7 @@ import { authQueries, createProject, loginUser, logoutUser, registerUser } from 
 import { apiQueryKeys } from "@/shared/api/queryKeys";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-import { type AuthCredentials, type TeamDraft, createSessionSnapshot, mapApiUser, mapProjectTeam } from "../services/authService";
+import { type AuthCredentials, type RegisterPayload, type TeamDraft, createSessionSnapshot, mapApiUser, mapProjectTeam } from "../services/authService";
 import { SessionContext } from "./SessionContext";
 
 interface SessionProviderProps {
@@ -47,7 +47,7 @@ export function SessionProvider({ children }: SessionProviderProps) {
 		return mapApiUser(result.user);
 	}
 
-	async function register(payload: AuthCredentials) {
+	async function register(payload: RegisterPayload) {
 		const result = await registerMutation.mutateAsync(payload);
 		return mapApiUser(result.user, { onboardingRequired: true });
 	}
