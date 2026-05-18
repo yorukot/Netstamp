@@ -17,9 +17,15 @@ pnpm build:docs
 
 ## Build Steps
 
-The docs build regenerates the OpenAPI contract, runs `astro build`, and publishes the shared UI Storybook output into the docs distribution directory.
+The docs build publishes the shared UI Storybook output into `docs/public/storybook`, then runs `astro build`. Astro copies that Storybook artifact into `docs/dist/storybook` with the rest of the static site.
 
 This keeps API reference, documentation pages, and component examples in the same deployable artifact.
+
+Regenerate the OpenAPI contract separately when backend routes change:
+
+```bash
+pnpm generate:openapi
+```
 
 ## Route Ownership
 
@@ -29,4 +35,4 @@ The docs surface owns `/`, `/docs/*`, `/openapi/`, and `/storybook/`. The servic
 
 ## Verification
 
-Run a docs build before publishing changes that touch MDX, navigation, OpenAPI generation, shared UI Storybook output, or Astro layout code.
+Run a docs build before publishing changes that touch MDX, navigation, shared UI Storybook output, or Astro layout code. Run `pnpm generate:openapi` before that build when backend API routes or schemas change.

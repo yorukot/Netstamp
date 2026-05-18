@@ -7,7 +7,8 @@ This package owns the public Netstamp site and documentation. It uses Astro for 
 Run from the repository root:
 
 - `pnpm --filter @netstamp/docs dev`: start the Astro docs dev server.
-- `pnpm --filter @netstamp/docs build`: regenerate OpenAPI, build Astro, and build static Storybook into `docs/dist/storybook`.
+- `pnpm --filter @netstamp/docs build`: build static Storybook into `docs/public/storybook`, then build the Astro site into `docs/dist`.
+- `pnpm generate:openapi`: regenerate the backend OpenAPI contract used by the docs explorer.
 - `pnpm --filter @netstamp/docs preview`: preview the built docs output.
 - `pnpm --filter @netstamp/ui storybook`: run Storybook locally for shared UI components.
 
@@ -19,3 +20,4 @@ Run from the repository root:
 - `src/components/landing/`: React landing page island and visual scenes.
 - `src/components/openapi/`: React OpenAPI explorer used by the Markdown OpenAPI page.
 - `public/openapi.json`: generated backend OpenAPI contract.
+- `public/storybook/`: ignored static Storybook build that Astro copies into `docs/dist/storybook`.

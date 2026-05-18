@@ -50,9 +50,9 @@ docs-build:
 storybook-dev:
     pnpm --filter @netstamp/ui storybook
 
-# Build static Storybook into the docs output directory.
+# Build static Storybook into docs public assets for Astro to copy.
 storybook-build:
-    pnpm --filter @netstamp/ui build:storybook -o ../../docs/dist/storybook
+    pnpm --filter @netstamp/ui build:storybook -o ../../docs/public/storybook
 
 # Preview the built documentation.
 docs-preview:
