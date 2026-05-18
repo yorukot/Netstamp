@@ -41,7 +41,7 @@ interface OpenAPIResponse {
 
 interface JSONSchema {
 	$ref?: string;
-	type?: string;
+	type?: string | string[];
 	format?: string;
 	description?: string;
 	properties?: Record<string, JSONSchema>;
@@ -169,6 +169,11 @@ function resolveSchema(schema: JSONSchema | undefined, spec: OpenAPISpec | undef
 	return resolveSchema(spec?.components?.schemas?.[ref], spec, seen);
 }
 
+function schemaHasType(schema: JSONSchema | undefined, type: string) {
+	const schemaTypeValue = schema?.type;
+	return Array.isArray(schemaTypeValue) ? schemaTypeValue.includes(type) : schemaTypeValue === type;
+}
+
 function valueFromSchema(schema: JSONSchema | undefined, spec: OpenAPISpec | undefined, seen = new Set<string>()): unknown {
 	schema = resolveSchema(schema, spec, seen);
 	if (!schema) return undefined;
@@ -177,7 +182,7 @@ function valueFromSchema(schema: JSONSchema | undefined, spec: OpenAPISpec | und
 	if (schema.default !== undefined) return schema.default;
 	if (schema.enum?.[0] !== undefined) return schema.enum[0];
 
-	if (schema.type === "object" && schema.properties) {
+	if (schemaHasType(schema, "object") && schema.properties) {
 		const value: Record<string, unknown> = {};
 		Object.entries(schema.properties).forEach(([key, property]) => {
 			if (property.readOnly) return;
@@ -186,9 +191,9 @@ function valueFromSchema(schema: JSONSchema | undefined, spec: OpenAPISpec | und
 		return value;
 	}
 
-	if (schema.type === "array") return schema.items ? [valueFromSchema(schema.items, spec, new Set(seen))] : [];
-	if (schema.type === "number" || schema.type === "integer") return 0;
-	if (schema.type === "boolean") return false;
+	if (schemaHasType(schema, "array")) return schema.items ? [valueFromSchema(schema.items, spec, new Set(seen))] : [];
+	if (schemaHasType(schema, "number") || schemaHasType(schema, "integer")) return 0;
+	if (schemaHasType(schema, "boolean")) return false;
 	return "";
 }
 
@@ -218,23 +223,87 @@ function schemaType(schema: JSONSchema | undefined, spec: OpenAPISpec | undefine
 
 	const resolved = resolveSchema(schema, spec, new Set());
 	if (resolved?.enum?.length) return "enum";
-	if (resolved?.type === "array") return `${schemaType(resolved.items, spec)}[]`;
-	return [resolved?.type, resolved?.format].filter(Boolean).join("/") || "value";
+	const schemaTypeValue = resolved?.type;
+	const typeNames = (Array.isArray(schemaTypeValue) ? schemaTypeValue : schemaTypeValue ? [schemaTypeValue] : []).filter(Boolean);
+	if (typeNames.includes("array")) {
+		return `${schemaType(resolved?.items, spec)}[]${typeNames.includes("null") ? " | null" : ""}`;
+	}
+
+	const baseType = typeNames.filter(type => type !== "null").join(" | ") || "value";
+	const formattedType = resolved?.format && baseType !== "value" ? `${baseType}/${resolved.format}` : baseType;
+	return typeNames.includes("null") && baseType !== "null" ? `${formattedType} | null` : formattedType;
 }
 
-function requestFields(operation: OperationItem | undefined, spec: OpenAPISpec | undefined): SchemaField[] {
-	const schema = resolveSchema(requestContent(operation)?.schema, spec, new Set());
-	if (!schema?.properties) return [];
+function schemaFields(schema: JSONSchema | undefined, spec: OpenAPISpec | undefined, includeReadOnly: boolean): SchemaField[] {
+	const resolved = resolveSchema(schema, spec, new Set());
+	const objectSchema = schemaHasType(resolved, "array") ? resolveSchema(resolved?.items, spec, new Set()) : resolved;
+	if (!objectSchema?.properties) return [];
 
-	const requiredFields = new Set(schema.required ?? []);
-	return Object.entries(schema.properties)
-		.filter(([, property]) => !property.readOnly)
+	const requiredFields = new Set(objectSchema.required ?? []);
+	return Object.entries(objectSchema.properties)
+		.filter(([, property]) => includeReadOnly || !property.readOnly)
 		.map(([name, property]) => ({
 			name,
 			type: schemaType(property, spec),
 			description: property.description,
 			required: requiredFields.has(name)
 		}));
+}
+
+function requestFields(operation: OperationItem | undefined, spec: OpenAPISpec | undefined): SchemaField[] {
+	const schema = requestContent(operation)?.schema;
+	return schemaFields(schema, spec, false);
+}
+
+function responseFields(schema: JSONSchema | undefined, spec: OpenAPISpec | undefined): SchemaField[] {
+	return schemaFields(schema, spec, true);
+}
+
+function responseContentEntries(response: OpenAPIResponse | undefined) {
+	return Object.entries(response?.content ?? {});
+}
+
+function responseSchemaLabel(response: OpenAPIResponse, spec: OpenAPISpec | undefined) {
+	const content = responseContentEntries(response)[0]?.[1];
+	return content?.schema ? schemaType(content.schema, spec) : "no body";
+}
+
+function ResponseSchemaDetails({ response, spec }: { response: OpenAPIResponse; spec: OpenAPISpec | undefined }) {
+	const contentEntries = responseContentEntries(response);
+	if (!contentEntries.length) {
+		return <div className={styles.emptySchema}>No response body.</div>;
+	}
+
+	return (
+		<div className={styles.responseSchemaStack}>
+			{contentEntries.map(([contentType, mediaType]) => {
+				const fields = responseFields(mediaType.schema, spec);
+
+				return (
+					<div className={styles.responseSchema} key={contentType}>
+						<div className={styles.responseSchemaHeader}>
+							<code>{contentType}</code>
+							<span>{schemaType(mediaType.schema, spec)}</span>
+						</div>
+						{fields.length ? (
+							<div className={styles.responseFields}>
+								{fields.map(field => (
+									<div className={styles.responseField} key={field.name}>
+										<code>{field.name}</code>
+										<span>{field.type}</span>
+										<small>{field.required ? "required" : "optional"}</small>
+										<p>{field.description ?? "No description provided."}</p>
+									</div>
+								))}
+							</div>
+						) : (
+							<p className={styles.emptySchema}>No fields documented for this response body.</p>
+						)}
+					</div>
+				);
+			})}
+		</div>
+	);
 }
 
 function responseEntries(operation: OperationItem | undefined) {
@@ -709,10 +778,15 @@ export default function OpenAPIExplorer({ specUrl }: OpenAPIExplorerProps) {
 												<div className={styles.detailBlock}>
 													<h4>Responses</h4>
 													{responses.map(([status, responseValue]) => (
-														<div className={styles.responseRow} key={status}>
-															<code className={classNames(styles.statusCode, statusTone(status))}>{status}</code>
-															<span>{responseValue.description ?? "Response"}</span>
-														</div>
+														<details className={styles.responseDetails} key={status} open={status === "200"}>
+															<summary className={styles.responseSummary}>
+																<span className={styles.responseToggle} aria-hidden="true" />
+																<code className={classNames(styles.statusCode, statusTone(status))}>{status}</code>
+																<span className={styles.responseDescription}>{responseValue.description ?? "Response"}</span>
+																<small>{responseSchemaLabel(responseValue, spec)}</small>
+															</summary>
+															<ResponseSchemaDetails response={responseValue} spec={spec} />
+														</details>
 													))}
 												</div>
 											</div>
