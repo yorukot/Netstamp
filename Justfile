@@ -97,10 +97,11 @@ backend-build:
 backend-probe env_file="probe.env": backend-build
     cd {{ server_dir }} && sh -c 'set -a && . "./{{ env_file }}" && set +a && ./bin/agent'
 
-# Generate OpenAPI JSON for the docs explorer.
+# Generate OpenAPI JSON for the docs explorer and web API types.
 backend-openapi:
     cd {{ server_dir }} && go run ./cmd/openapi -output ../docs/public/openapi.json
-    pnpm exec prettier --write docs/public/openapi.json
+    pnpm --filter {{ web_filter }} generate:api-types
+    pnpm exec prettier --write docs/public/openapi.json web/src/shared/api/openapi.d.ts
 
 # Run backend tests.
 backend-test:

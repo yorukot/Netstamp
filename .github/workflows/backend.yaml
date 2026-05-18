@@ -8,6 +8,7 @@ on:
       - "docs/public/openapi.json"
       - "golangci.yaml"
       - "server/**"
+      - "web/src/shared/api/openapi.d.ts"
   push:
     branches: [main]
     paths:
@@ -15,6 +16,7 @@ on:
       - "docs/public/openapi.json"
       - "golangci.yaml"
       - "server/**"
+      - "web/src/shared/api/openapi.d.ts"
   workflow_dispatch:
 
 env:
@@ -64,7 +66,7 @@ jobs:
         run: cd server && go test ./...
 
   OpenAPI:
-    name: Check generated OpenAPI
+    name: Check generated OpenAPI artifacts
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
@@ -88,19 +90,34 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Prepare OpenAPI check outputs
+        run: |
+          openapi_check_dir="$(mktemp -d)"
+          api_types_check_dir="$(mktemp -d)"
+          echo "OPENAPI_CHECK_FILE=$openapi_check_dir/openapi.json" >> "$GITHUB_ENV"
+          echo "API_TYPES_CHECK_FILE=$api_types_check_dir/openapi.d.ts" >> "$GITHUB_ENV"
+
       - name: Generate OpenAPI from backend
         run: |
-          openapi_check_dir="$(mktemp -d docs/public/openapi-check.XXXXXX)"
-          echo "OPENAPI_CHECK_FILE=$openapi_check_dir/openapi.json" >> "$GITHUB_ENV"
           cd server
-          go run ./cmd/openapi -output "../$openapi_check_dir/openapi.json"
+          go run ./cmd/openapi -output "$OPENAPI_CHECK_FILE"
 
-      - name: Format generated OpenAPI
-        run: pnpm exec prettier --write "$OPENAPI_CHECK_FILE"
+      - name: Generate web API types
+        run: pnpm --filter @netstamp/web exec openapi-typescript "$OPENAPI_CHECK_FILE" -o "$API_TYPES_CHECK_FILE"
+
+      - name: Format generated OpenAPI artifacts
+        run: pnpm exec prettier --config .prettierrc --write "$OPENAPI_CHECK_FILE" "$API_TYPES_CHECK_FILE"
 
       - name: Compare generated OpenAPI
         run: |
           diff -u docs/public/openapi.json "$OPENAPI_CHECK_FILE" || {
             echo "Generated OpenAPI is out of date. Run 'pnpm generate:openapi' and commit docs/public/openapi.json."
+            exit 1
+          }
+
+      - name: Compare generated web API types
+        run: |
+          diff -u web/src/shared/api/openapi.d.ts "$API_TYPES_CHECK_FILE" || {
+            echo "Generated web API types are out of date. Run 'pnpm generate:openapi' and commit web/src/shared/api/openapi.d.ts."
             exit 1
           }

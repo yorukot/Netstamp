@@ -1,0 +1,20 @@
+import type { components } from "./openapi";
+
+export type AddMemberInput = components["schemas"]["AddMemberInputBody"];
+export type ApiCheck = components["schemas"]["Check"];
+export type ApiLabel = components["schemas"]["Label"];
+export type ApiMember = components["schemas"]["Member"];
+export type ApiProbe = components["schemas"]["Probe"];
+export type ApiProject = components["schemas"]["Project"];
+export type CreateCheckInput = components["schemas"]["CreateCheckInputBody"];
+export type CreateLabelInput = components["schemas"]["CreateLabelInputBody"];
+export type CreateProbeInput = components["schemas"]["CreateProbeInputBody"];
+export type CreateProjectInput = components["schemas"]["CreateProjectInputBody"];
+export type LoginInput = components["schemas"]["LoginInputBody"];
+export type ProjectMemberRole = NonNullable<components["schemas"]["UpdateMemberRoleInputBody"]["role"]>;
+export type RegisterInput = components["schemas"]["RegisterInputBody"];
+export type UpdateCheckInput = components["schemas"]["UpdateCheckInputBody"];
+export type UpdateLabelInput = components["schemas"]["UpdateLabelInputBody"];
+export type UpdateProbeInput = components["schemas"]["UpdateProbeInputBody"];
+export type UpdateProjectInput = components["schemas"]["UpdateProjectInputBody"];
+export type UserResponse = components["schemas"]["UserResponse"];

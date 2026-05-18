@@ -20,3 +20,4 @@
 - `pnpm --filter @netstamp/web typecheck`: run TypeScript checks.
 - `pnpm --filter @netstamp/web lint`: run frontend ESLint.
 - `pnpm --filter @netstamp/web build`: build the web app.
+- `pnpm --filter @netstamp/web generate:api-types`: regenerate `src/shared/api/openapi.d.ts` from `docs/public/openapi.json`.

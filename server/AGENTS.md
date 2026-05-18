@@ -161,7 +161,7 @@ Commands below come from the root `Justfile`, root `package.json`, `server/.air.
 - `pnpm install`: install workspace dependencies; root `package.json` enforces pnpm.
 - `just backend-dev` or `pnpm dev:server`: run Air hot reload using `server/.air.toml`.
 - `just backend-build` or `pnpm build:server`: build `server/bin/controller` from `./cmd/controller` and `server/bin/agent` from `./cmd/agent`.
-- `just backend-openapi` or `pnpm generate:openapi`: write the Huma OpenAPI schema to `docs/public/openapi.json`.
+- `just backend-openapi` or `pnpm generate:openapi`: write the Huma OpenAPI schema to `docs/public/openapi.json` and regenerate `web/src/shared/api/openapi.d.ts`.
 - `just backend-test` or `pnpm test:server`: run `go test ./...` inside `server/`.
 - `NETSTAMP_TEST_DATABASE_URL=postgres://netstamp:netstamp@localhost:5432/netstamp?sslmode=disable just backend-test-integration`: run opt-in API E2E tests against a local PostgreSQL/TimescaleDB instance.
 - `just backend-fmt`: run configured golangci formatters with `../golangci.yaml`.
