@@ -50,9 +50,9 @@ type registerOutput struct {
 }
 
 type registerInputBody struct {
-	Email       string `json:"email,omitempty" doc:"Email address used to sign in." example:"user@example.com"`
-	DisplayName string `json:"displayName,omitempty" doc:"Name shown in the app." example:"Jane Doe"`
-	Password    string `json:"password,omitempty" writeOnly:"true" doc:"Plain-text password. It is stored only as an Argon2id hash." example:"correct-horse-battery-staple"` //nolint:gosec // Register requests intentionally accept plaintext passwords over TLS.
+	Email       string `json:"email" format:"email" doc:"Email address used to sign in." example:"user@example.com"`
+	DisplayName string `json:"displayName" minLength:"1" maxLength:"64" doc:"Name shown in the app." example:"Jane Doe"`
+	Password    string `json:"password" minLength:"8" maxLength:"128" writeOnly:"true" doc:"Plain-text password. It is stored only as an Argon2id hash." example:"correct-horse-battery-staple"` //nolint:gosec // Register requests intentionally accept plaintext passwords over TLS.
 }
 
 type registerOutputBody struct {

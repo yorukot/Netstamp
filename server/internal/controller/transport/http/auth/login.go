@@ -46,8 +46,8 @@ type loginOutput struct {
 }
 
 type loginInputBody struct {
-	Email    string `json:"email,omitempty" doc:"Email address used to sign in. It is normalized before lookup." example:"user@example.com"`
-	Password string `json:"password,omitempty" writeOnly:"true" doc:"Plain-text password to verify. It is never returned by the API." example:"correct-horse-battery-staple"` //nolint:gosec // Login requests intentionally accept plaintext passwords over TLS.
+	Email    string `json:"email" format:"email" doc:"Email address used to sign in. It is normalized before lookup." example:"user@example.com"`
+	Password string `json:"password" minLength:"8" maxLength:"128" writeOnly:"true" doc:"Plain-text password to verify. It is never returned by the API." example:"correct-horse-battery-staple"` //nolint:gosec // Login requests intentionally accept plaintext passwords over TLS.
 }
 
 type loginOutputBody struct {
