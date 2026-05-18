@@ -1,0 +1,8 @@
+# MacOS
+.DS_Store
+
+# TypeSpec output
+tsp-output/
+
+# Dependency directories
+node_modules/

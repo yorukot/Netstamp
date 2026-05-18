@@ -32,7 +32,7 @@ export interface paths {
 		put?: never;
 		/**
 		 * Login user
-		 * @description Verify an email and password pair, then set an HTTP-only session cookie for the authenticated user. Invalid credentials always return the same unauthorized response so callers cannot distinguish an unknown email from a password mismatch.
+		 * @description Verify an email and password pair, then set an HTTP-only session cookie for the authenticated user. Invalid credentials always return the same unauthorized response.
 		 */
 		post: operations["loginUser"];
 		delete?: never;
@@ -424,1209 +424,1269 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
 	schemas: {
-		AddMemberInputBody: {
-			/**
-			 * Format: uri
-			 * @description A URL to the JSON Schema for this object.
-			 * @example /api/v1/schemas/AddMemberInputBody.json
-			 */
-			readonly $schema?: string;
-			/**
-			 * @description Project member role.
-			 * @example viewer
-			 */
-			role?: string;
-			/** @description User ID to add to the project. */
-			userId?: string;
+		/**
+		 * @example {
+		 *       "message": "Netstamp API is running"
+		 *     }
+		 */
+		APIStatusResponse: {
+			/** @enum {string} */
+			message: "Netstamp API is running";
 		};
+		/**
+		 * @example {
+		 *       "userId": "11111111-1111-1111-1111-111111111111",
+		 *       "role": "viewer"
+		 *     }
+		 */
+		AddProjectMemberRequest: {
+			userId: components["schemas"]["uuid"];
+			/** @enum {string} */
+			role: "admin" | "editor" | "viewer";
+		};
+		/**
+		 * @example {
+		 *       "id": "77777777-7777-7777-7777-777777777777",
+		 *       "projectId": "22222222-2222-2222-2222-222222222222",
+		 *       "checkVersion": "01HXYZ7K6P4E4M3F0CB1W9DYJ5",
+		 *       "selectorVersion": "01HXYZ7K6P4E4M3F0CB1W9DYJ6",
+		 *       "check": {
+		 *         "id": "44444444-4444-4444-4444-444444444444",
+		 *         "projectId": "22222222-2222-2222-2222-222222222222",
+		 *         "name": "api-latency",
+		 *         "type": "ping",
+		 *         "target": "api.netstamp.io",
+		 *         "intervalSeconds": 30,
+		 *         "labels": [],
+		 *         "createdAt": "2026-05-13T10:00:00Z",
+		 *         "updatedAt": "2026-05-13T10:00:00Z",
+		 *         "pingConfig": {
+		 *           "packetCount": 4,
+		 *           "packetSizeBytes": 56,
+		 *           "timeoutMs": 3000
+		 *         }
+		 *       }
+		 *     }
+		 */
 		Assignment: {
-			check?: components["schemas"]["Check"];
+			id: components["schemas"]["uuid"];
+			projectId: components["schemas"]["uuid"];
 			checkVersion: string;
-			id: string;
-			probe?: components["schemas"]["Probe"];
-			projectId: string;
 			selectorVersion: string;
+			check?: components["schemas"]["Check"];
+			probe?: components["schemas"]["Probe"];
 		};
-		AssignmentsOutputBody: {
-			/**
-			 * Format: uri
-			 * @description A URL to the JSON Schema for this object.
-			 * @example /api/v1/schemas/AssignmentsOutputBody.json
-			 */
-			readonly $schema?: string;
-			assignments: components["schemas"]["Assignment"][] | null;
-			config: components["schemas"]["RuntimeConfig"];
-			/** Format: date-time */
-			serverTime: string;
+		/**
+		 * @example {
+		 *       "user": {
+		 *         "id": "11111111-1111-1111-1111-111111111111",
+		 *         "email": "user@example.com",
+		 *         "displayName": "Jane Doe"
+		 *       }
+		 *     }
+		 */
+		AuthUserResponse: {
+			user: components["schemas"]["User"];
 		};
+		/**
+		 * @example {
+		 *       "id": "44444444-4444-4444-4444-444444444444",
+		 *       "projectId": "22222222-2222-2222-2222-222222222222",
+		 *       "name": "api-latency",
+		 *       "type": "ping",
+		 *       "target": "api.netstamp.io",
+		 *       "selector": {
+		 *         "region": "tokyo"
+		 *       },
+		 *       "description": "Latency and loss to controller API.",
+		 *       "intervalSeconds": 30,
+		 *       "labels": [
+		 *         {
+		 *           "id": "66666666-6666-6666-6666-666666666666",
+		 *           "projectId": "22222222-2222-2222-2222-222222222222",
+		 *           "key": "region",
+		 *           "value": "tokyo",
+		 *           "createdAt": "2026-05-13T10:00:00Z",
+		 *           "updatedAt": "2026-05-13T10:00:00Z"
+		 *         }
+		 *       ],
+		 *       "createdAt": "2026-05-13T10:00:00Z",
+		 *       "updatedAt": "2026-05-13T10:00:00Z",
+		 *       "pingConfig": {
+		 *         "packetCount": 4,
+		 *         "packetSizeBytes": 56,
+		 *         "timeoutMs": 3000,
+		 *         "ipFamily": "inet"
+		 *       }
+		 *     }
+		 */
 		Check: {
-			/** Format: date-time */
-			createdAt: string;
-			description: string | null;
-			id: string;
+			id: components["schemas"]["uuid"];
+			projectId: components["schemas"]["uuid"];
+			name: string;
+			/** @enum {string} */
+			type: "ping" | "traceroute";
+			target: string;
+			selector?: Record<string, never>;
+			description?: string;
 			/** Format: int32 */
 			intervalSeconds: number;
-			labels: components["schemas"]["Label"][] | null;
-			name: string;
-			pingConfig?: components["schemas"]["Config"];
-			projectId: string;
-			selector: unknown;
-			target: string;
+			labels: components["schemas"]["Label"][];
+			/** Format: date-time */
+			createdAt: string;
+			/** Format: date-time */
+			updatedAt: string;
+			pingConfig?: components["schemas"]["PingConfig"];
 			tracerouteConfig?: components["schemas"]["TracerouteConfig"];
-			type: string;
+		};
+		/**
+		 * @example {
+		 *       "checks": [
+		 *         {
+		 *           "id": "44444444-4444-4444-4444-444444444444",
+		 *           "projectId": "22222222-2222-2222-2222-222222222222",
+		 *           "name": "api-latency",
+		 *           "type": "ping",
+		 *           "target": "api.netstamp.io",
+		 *           "selector": {
+		 *             "region": "tokyo"
+		 *           },
+		 *           "intervalSeconds": 30,
+		 *           "labels": [],
+		 *           "createdAt": "2026-05-13T10:00:00Z",
+		 *           "updatedAt": "2026-05-13T10:00:00Z",
+		 *           "pingConfig": {
+		 *             "packetCount": 4,
+		 *             "packetSizeBytes": 56,
+		 *             "timeoutMs": 3000,
+		 *             "ipFamily": "inet"
+		 *           }
+		 *         }
+		 *       ]
+		 *     }
+		 */
+		CheckListResponse: {
+			checks: components["schemas"]["Check"][];
+		};
+		/**
+		 * @example {
+		 *       "check": {
+		 *         "id": "44444444-4444-4444-4444-444444444444",
+		 *         "projectId": "22222222-2222-2222-2222-222222222222",
+		 *         "name": "api-latency",
+		 *         "type": "ping",
+		 *         "target": "api.netstamp.io",
+		 *         "selector": {
+		 *           "region": "tokyo"
+		 *         },
+		 *         "description": "Latency and loss to controller API.",
+		 *         "intervalSeconds": 30,
+		 *         "labels": [],
+		 *         "createdAt": "2026-05-13T10:00:00Z",
+		 *         "updatedAt": "2026-05-13T10:00:00Z",
+		 *         "pingConfig": {
+		 *           "packetCount": 4,
+		 *           "packetSizeBytes": 56,
+		 *           "timeoutMs": 3000,
+		 *           "ipFamily": "inet"
+		 *         }
+		 *       }
+		 *     }
+		 */
+		CheckResponse: {
+			check: components["schemas"]["Check"];
+		};
+		/**
+		 * @example {
+		 *       "name": "api-latency",
+		 *       "type": "ping",
+		 *       "target": "api.netstamp.io",
+		 *       "selector": {
+		 *         "region": "tokyo"
+		 *       },
+		 *       "description": "Latency and loss to controller API.",
+		 *       "intervalSeconds": 30,
+		 *       "labelIds": [
+		 *         "66666666-6666-6666-6666-666666666666"
+		 *       ],
+		 *       "pingConfig": {
+		 *         "packetCount": 4,
+		 *         "packetSizeBytes": 56,
+		 *         "timeoutMs": 3000,
+		 *         "ipFamily": "inet"
+		 *       }
+		 *     }
+		 */
+		CreateCheckRequest: {
+			name: string;
+			/** @enum {string} */
+			type: "ping" | "traceroute";
+			target: string;
+			selector?: Record<string, never>;
+			description?: string;
+			/** Format: int32 */
+			intervalSeconds: number;
+			labelIds?: components["schemas"]["uuid"][];
+			pingConfig?: components["schemas"]["PingConfigPatch"];
+			tracerouteConfig?: components["schemas"]["TracerouteConfigPatch"];
+		};
+		/**
+		 * @example {
+		 *       "key": "region",
+		 *       "value": "tokyo"
+		 *     }
+		 */
+		CreateLabelRequest: {
+			key: string;
+			value: string;
+		};
+		/**
+		 * @example {
+		 *       "name": "tokyo-vps-1",
+		 *       "enabled": true,
+		 *       "subdivisionCode": "JP-13",
+		 *       "latitude": 35.6762,
+		 *       "longitude": 139.6503,
+		 *       "labelIds": [
+		 *         "66666666-6666-6666-6666-666666666666"
+		 *       ]
+		 *     }
+		 */
+		CreateProbeRequest: {
+			name: string;
+			/** @default true */
+			enabled: boolean;
+			subdivisionCode?: string;
+			/** Format: double */
+			latitude?: number;
+			/** Format: double */
+			longitude?: number;
+			labelIds?: components["schemas"]["uuid"][];
+		};
+		/**
+		 * @example {
+		 *       "name": "Engineering",
+		 *       "slug": "engineering"
+		 *     }
+		 */
+		CreateProjectRequest: {
+			name: string;
+			slug: string;
+		};
+		/**
+		 * @example {
+		 *       "authenticated": true,
+		 *       "user": {
+		 *         "id": "11111111-1111-1111-1111-111111111111",
+		 *         "email": "user@example.com",
+		 *         "displayName": "Jane Doe"
+		 *       }
+		 *     }
+		 */
+		CurrentUserResponse: {
+			/** @enum {boolean} */
+			authenticated: true;
+			user: components["schemas"]["User"];
+		};
+		/**
+		 * @example {
+		 *       "status": "ok"
+		 *     }
+		 */
+		HealthResponse: {
+			/** @enum {string} */
+			status: "ok";
+		};
+		/**
+		 * @example {
+		 *       "id": "66666666-6666-6666-6666-666666666666",
+		 *       "projectId": "22222222-2222-2222-2222-222222222222",
+		 *       "key": "region",
+		 *       "value": "tokyo",
+		 *       "createdAt": "2026-05-13T10:00:00Z",
+		 *       "updatedAt": "2026-05-13T10:00:00Z"
+		 *     }
+		 */
+		Label: {
+			id: components["schemas"]["uuid"];
+			projectId: components["schemas"]["uuid"];
+			key: string;
+			value: string;
+			/** Format: date-time */
+			createdAt: string;
 			/** Format: date-time */
 			updatedAt: string;
 		};
-		CheckOutputBody: {
-			/**
-			 * Format: uri
-			 * @description A URL to the JSON Schema for this object.
-			 * @example /api/v1/schemas/CheckOutputBody.json
-			 */
-			readonly $schema?: string;
-			check: components["schemas"]["Check"];
+		/**
+		 * @example {
+		 *       "labels": [
+		 *         {
+		 *           "id": "66666666-6666-6666-6666-666666666666",
+		 *           "projectId": "22222222-2222-2222-2222-222222222222",
+		 *           "key": "region",
+		 *           "value": "tokyo",
+		 *           "createdAt": "2026-05-13T10:00:00Z",
+		 *           "updatedAt": "2026-05-13T10:00:00Z"
+		 *         }
+		 *       ]
+		 *     }
+		 */
+		LabelListResponse: {
+			labels: components["schemas"]["Label"][];
 		};
-		CheckPingConfigInput: {
-			/**
-			 * @description Optional IP family preference.
-			 * @example inet
-			 * @enum {string}
-			 */
-			ipFamily?: "inet" | "inet6";
-			/**
-			 * Format: int32
-			 * @description ICMP packet count.
-			 * @example 4
-			 */
-			packetCount?: number;
-			/**
-			 * Format: int32
-			 * @description ICMP payload size in bytes.
-			 * @example 56
-			 */
-			packetSizeBytes?: number;
-			/**
-			 * Format: int32
-			 * @description Ping timeout in milliseconds.
-			 * @example 3000
-			 */
-			timeoutMs?: number;
+		/**
+		 * @example {
+		 *       "label": {
+		 *         "id": "66666666-6666-6666-6666-666666666666",
+		 *         "projectId": "22222222-2222-2222-2222-222222222222",
+		 *         "key": "region",
+		 *         "value": "tokyo",
+		 *         "createdAt": "2026-05-13T10:00:00Z",
+		 *         "updatedAt": "2026-05-13T10:00:00Z"
+		 *       }
+		 *     }
+		 */
+		LabelResponse: {
+			label: components["schemas"]["Label"];
 		};
-		CheckTracerouteConfigInput: {
+		/**
+		 * @example {
+		 *       "email": "user@example.com",
+		 *       "password": "correct-horse-battery-staple"
+		 *     }
+		 */
+		LoginUserRequest: {
+			/** @description Email address used to sign in. It is normalized before lookup. */
+			email: components["schemas"]["email"];
 			/**
-			 * @description Optional IP family preference.
-			 * @example inet
-			 * @enum {string}
+			 * Format: password
+			 * @description Plain-text password to verify. It is never returned by the API.
 			 */
-			ipFamily?: "inet" | "inet6";
-			/**
-			 * Format: int32
-			 * @description Maximum hop count.
-			 * @example 30
-			 */
-			maxHops?: number;
-			/**
-			 * Format: int32
-			 * @description Probe payload size in bytes.
-			 * @example 56
-			 */
-			packetSizeBytes?: number;
-			/**
-			 * Format: int32
-			 * @description Destination port for UDP/TCP traceroute.
-			 * @example 33434
-			 */
-			port?: number;
-			/**
-			 * @description Traceroute protocol.
-			 * @example icmp
-			 * @enum {string}
-			 */
-			protocol?: "icmp" | "udp" | "tcp";
-			/**
-			 * Format: int32
-			 * @description Probe attempts per hop.
-			 * @example 3
-			 */
-			queriesPerHop?: number;
-			/**
-			 * Format: int32
-			 * @description Traceroute timeout in milliseconds.
-			 * @example 3000
-			 */
-			timeoutMs?: number;
+			password: string;
 		};
-		Config: {
-			ipFamily?: string;
+		/**
+		 * @example {
+		 *       "packetCount": 4,
+		 *       "packetSizeBytes": 56,
+		 *       "timeoutMs": 3000,
+		 *       "ipFamily": "inet"
+		 *     }
+		 */
+		PingConfig: {
 			/** Format: int32 */
 			packetCount: number;
 			/** Format: int32 */
 			packetSizeBytes: number;
 			/** Format: int32 */
 			timeoutMs: number;
-		};
-		CreateCheckInputBody: {
-			/**
-			 * Format: uri
-			 * @description A URL to the JSON Schema for this object.
-			 * @example /api/v1/schemas/CreateCheckInputBody.json
-			 */
-			readonly $schema?: string;
-			/**
-			 * @description Optional check description.
-			 * @example Latency and loss to controller API.
-			 */
-			description?: string;
-			/**
-			 * Format: int32
-			 * @description Check interval in seconds.
-			 * @example 30
-			 */
-			intervalSeconds: number;
-			/** @description Existing project label IDs to attach to the check. */
-			labelIds?: string[] | null;
-			/**
-			 * @description Check display name.
-			 * @example api-latency
-			 */
-			name: string;
-			/** @description Ping-specific check configuration. Omitted fields use defaults. */
-			pingConfig?: components["schemas"]["CheckPingConfigInput"];
-			/** @description Selector object for later probe matching. */
-			selector?: {
-				[key: string]: unknown;
-			};
-			/**
-			 * @description Hostname or address to check.
-			 * @example api.netstamp.io
-			 */
-			target: string;
-			/** @description Traceroute-specific check configuration. Omitted fields use defaults. */
-			tracerouteConfig?: components["schemas"]["CheckTracerouteConfigInput"];
-			/**
-			 * @description Check type.
-			 * @example ping
-			 * @enum {string}
-			 */
-			type: "ping" | "traceroute";
-		};
-		CreateLabelInputBody: {
-			/**
-			 * Format: uri
-			 * @description A URL to the JSON Schema for this object.
-			 * @example /api/v1/schemas/CreateLabelInputBody.json
-			 */
-			readonly $schema?: string;
-			/**
-			 * @description Label key.
-			 * @example region
-			 */
-			key?: string;
-			/**
-			 * @description Label value.
-			 * @example tokyo
-			 */
-			value?: string;
-		};
-		CreateProbeInputBody: {
-			/**
-			 * Format: uri
-			 * @description A URL to the JSON Schema for this object.
-			 * @example /api/v1/schemas/CreateProbeInputBody.json
-			 */
-			readonly $schema?: string;
-			/**
-			 * @description Whether the probe is enabled. Defaults to true when omitted.
-			 * @default true
-			 * @example true
-			 */
-			enabled: boolean;
-			/** @description Existing project label IDs to attach to the probe. */
-			labelIds?: string[] | null;
-			/**
-			 * Format: double
-			 * @description Probe latitude. Must be provided with longitude.
-			 * @example 35.6762
-			 */
-			latitude?: number;
-			/**
-			 * Format: double
-			 * @description Probe longitude. Must be provided with latitude.
-			 * @example 139.6503
-			 */
-			longitude?: number;
-			/**
-			 * @description Probe display name.
-			 * @example tokyo-vps-1
-			 */
-			name?: string;
-			/** @description ISO 3166-2 subdivision code, e.g. JP-12 for Chiba Prefecture, Japan */
-			subdivisionCode?: string;
-		};
-		CreateProbeOutputBody: {
-			/**
-			 * Format: uri
-			 * @description A URL to the JSON Schema for this object.
-			 * @example /api/v1/schemas/CreateProbeOutputBody.json
-			 */
-			readonly $schema?: string;
-			probe: components["schemas"]["Probe"];
-			secret: string;
-		};
-		CreateProjectInputBody: {
-			/**
-			 * Format: uri
-			 * @description A URL to the JSON Schema for this object.
-			 * @example /api/v1/schemas/CreateProjectInputBody.json
-			 */
-			readonly $schema?: string;
-			/**
-			 * @description Project display name.
-			 * @example Engineering
-			 */
-			name?: string;
-			/**
-			 * @description Stable project slug.
-			 * @example engineering
-			 */
-			slug?: string;
-		};
-		ErrorDetail: {
-			/** @description Where the error occurred, e.g. 'body.items[3].tags' or 'path.thing-id' */
-			location?: string;
-			/** @description Error message text */
-			message?: string;
-			/** @description The value at the given location */
-			value?: unknown;
-		};
-		ErrorModel: {
-			/**
-			 * Format: uri
-			 * @description A URL to the JSON Schema for this object.
-			 * @example /api/v1/schemas/ErrorModel.json
-			 */
-			readonly $schema?: string;
-			/**
-			 * @description A human-readable explanation specific to this occurrence of the problem.
-			 * @example Property foo is required but is missing.
-			 */
-			detail?: string;
-			/** @description Optional list of individual error details */
-			errors?: components["schemas"]["ErrorDetail"][] | null;
-			/**
-			 * Format: uri
-			 * @description A URI reference that identifies the specific occurrence of the problem.
-			 * @example https://example.com/error-log/abc123
-			 */
-			instance?: string;
-			/**
-			 * Format: int64
-			 * @description HTTP status code
-			 * @example 400
-			 */
-			status?: number;
-			/**
-			 * @description A short, human-readable summary of the problem type. This value should not change between occurrences of the error.
-			 * @example Bad Request
-			 */
-			title?: string;
-			/**
-			 * Format: uri
-			 * @description A URI reference to human-readable documentation for the error.
-			 * @default about:blank
-			 * @example https://example.com/errors/example
-			 */
-			type: string;
-		};
-		HealthBody: {
-			/**
-			 * Format: uri
-			 * @description A URL to the JSON Schema for this object.
-			 * @example /api/v1/schemas/HealthBody.json
-			 */
-			readonly $schema?: string;
-			/**
-			 * @description Current health status.
-			 * @example ok
-			 */
-			status: string;
-		};
-		HeartbeatOutputBody: {
-			/**
-			 * Format: uri
-			 * @description A URL to the JSON Schema for this object.
-			 * @example /api/v1/schemas/HeartbeatOutputBody.json
-			 */
-			readonly $schema?: string;
-			/** Format: date-time */
-			serverTime: string;
-		};
-		HelloOutputBody: {
-			/**
-			 * Format: uri
-			 * @description A URL to the JSON Schema for this object.
-			 * @example /api/v1/schemas/HelloOutputBody.json
-			 */
-			readonly $schema?: string;
-			config: components["schemas"]["RuntimeConfig"];
-			minimumSupportedAgentVersion: string;
-			/** Format: date-time */
-			serverTime: string;
-		};
-		Label: {
-			/** Format: date-time */
-			createdAt: string;
-			id: string;
-			key: string;
-			projectId: string;
-			/** Format: date-time */
-			updatedAt: string;
-			value: string;
-		};
-		LabelOutputBody: {
-			/**
-			 * Format: uri
-			 * @description A URL to the JSON Schema for this object.
-			 * @example /api/v1/schemas/LabelOutputBody.json
-			 */
-			readonly $schema?: string;
-			label: components["schemas"]["Label"];
-		};
-		ListChecksOutputBody: {
-			/**
-			 * Format: uri
-			 * @description A URL to the JSON Schema for this object.
-			 * @example /api/v1/schemas/ListChecksOutputBody.json
-			 */
-			readonly $schema?: string;
-			checks: components["schemas"]["Check"][] | null;
-		};
-		ListLabelsOutputBody: {
-			/**
-			 * Format: uri
-			 * @description A URL to the JSON Schema for this object.
-			 * @example /api/v1/schemas/ListLabelsOutputBody.json
-			 */
-			readonly $schema?: string;
-			labels: components["schemas"]["Label"][] | null;
-		};
-		ListMembersOutputBody: {
-			/**
-			 * Format: uri
-			 * @description A URL to the JSON Schema for this object.
-			 * @example /api/v1/schemas/ListMembersOutputBody.json
-			 */
-			readonly $schema?: string;
-			members: components["schemas"]["Member"][] | null;
-		};
-		ListProbesOutputBody: {
-			/**
-			 * Format: uri
-			 * @description A URL to the JSON Schema for this object.
-			 * @example /api/v1/schemas/ListProbesOutputBody.json
-			 */
-			readonly $schema?: string;
-			probes: components["schemas"]["Probe"][] | null;
-		};
-		ListProjectsOutputBody: {
-			/**
-			 * Format: uri
-			 * @description A URL to the JSON Schema for this object.
-			 * @example /api/v1/schemas/ListProjectsOutputBody.json
-			 */
-			readonly $schema?: string;
-			projects: components["schemas"]["Project"][] | null;
-		};
-		LoginInputBody: {
-			/**
-			 * Format: uri
-			 * @description A URL to the JSON Schema for this object.
-			 * @example /api/v1/schemas/LoginInputBody.json
-			 */
-			readonly $schema?: string;
-			/**
-			 * Format: email
-			 * @description Email address used to sign in. It is normalized before lookup.
-			 * @example user@example.com
-			 */
-			email: string;
-			/**
-			 * @description Plain-text password to verify. It is never returned by the API.
-			 * @example correct-horse-battery-staple
-			 */
-			password: string;
-		};
-		LoginOutputBody: {
-			/**
-			 * Format: uri
-			 * @description A URL to the JSON Schema for this object.
-			 * @example /api/v1/schemas/LoginOutputBody.json
-			 */
-			readonly $schema?: string;
-			/** @description Authenticated user. */
-			user: components["schemas"]["UserResponse"];
-		};
-		MeOutputBody: {
-			/**
-			 * Format: uri
-			 * @description A URL to the JSON Schema for this object.
-			 * @example /api/v1/schemas/MeOutputBody.json
-			 */
-			readonly $schema?: string;
-			/**
-			 * @description Always true when the session cookie is valid.
-			 * @example true
-			 */
-			authenticated: boolean;
-			/** @description Current user fetched live from the database. */
-			user: components["schemas"]["UserResponse"];
-		};
-		Member: {
-			/** Format: date-time */
-			createdAt: string;
-			id: string;
-			projectId: string;
-			role: string;
-			/** Format: date-time */
-			updatedAt: string;
-			userId: string;
-		};
-		MemberOutputBody: {
-			/**
-			 * Format: uri
-			 * @description A URL to the JSON Schema for this object.
-			 * @example /api/v1/schemas/MemberOutputBody.json
-			 */
-			readonly $schema?: string;
-			member: components["schemas"]["Member"];
-		};
-		PingResultBody: {
-			/**
-			 * Format: int32
-			 * @description Total check duration in milliseconds.
-			 * @example 1000
-			 */
-			durationMs: number;
-			/**
-			 * @description Optional machine-readable error code.
-			 * @example icmp_timeout
-			 */
-			errorCode?: string;
-			/**
-			 * @description Optional executor error message.
-			 * @example request timed out
-			 */
-			errorMessage?: string;
-			/**
-			 * Format: date-time
-			 * @description UTC time when the ping check finished.
-			 * @example 2026-05-13T10:00:01Z
-			 */
-			finishedAt: string;
-			/**
-			 * @description IP family used for the check.
-			 * @example inet
-			 * @enum {string}
-			 */
+			/** @enum {string} */
 			ipFamily?: "inet" | "inet6";
-			/**
-			 * Format: double
-			 * @description Packet loss percentage.
-			 * @example 0
-			 */
-			lossPercent: number;
-			/**
-			 * Format: int32
-			 * @description Packets received.
-			 * @example 4
-			 */
-			receivedCount: number;
-			/**
-			 * Format: ip
-			 * @description Resolved IP address used for the ping.
-			 * @example 1.1.1.1
-			 */
-			resolvedIp?: string;
-			/**
-			 * Format: double
-			 * @description Average RTT in milliseconds.
-			 * @example 12.3
-			 */
-			rttAvgMs?: number;
-			/**
-			 * Format: double
-			 * @description Maximum RTT in milliseconds.
-			 * @example 15.6
-			 */
-			rttMaxMs?: number;
-			/**
-			 * Format: double
-			 * @description Median RTT in milliseconds.
-			 * @example 12
-			 */
-			rttMedianMs?: number;
-			/**
-			 * Format: double
-			 * @description Minimum RTT in milliseconds.
-			 * @example 10.1
-			 */
-			rttMinMs?: number;
-			/** @description RTT sample values in milliseconds. */
-			rttSamplesMs?: number[] | null;
-			/**
-			 * Format: double
-			 * @description RTT standard deviation in milliseconds.
-			 * @example 1.7
-			 */
-			rttStddevMs?: number;
-			/**
-			 * Format: int32
-			 * @description Packets sent.
-			 * @example 4
-			 */
-			sentCount: number;
-			/**
-			 * Format: date-time
-			 * @description UTC time when the ping check started.
-			 * @example 2026-05-13T10:00:00Z
-			 */
+		};
+		/**
+		 * @example {
+		 *       "packetCount": 4,
+		 *       "packetSizeBytes": 56,
+		 *       "timeoutMs": 3000,
+		 *       "ipFamily": "inet"
+		 *     }
+		 */
+		PingConfigPatch: {
+			/** Format: int32 */
+			packetCount?: number;
+			/** Format: int32 */
+			packetSizeBytes?: number;
+			/** Format: int32 */
+			timeoutMs?: number;
+			/** @enum {string} */
+			ipFamily?: "inet" | "inet6";
+		};
+		/**
+		 * @example {
+		 *       "startedAt": "2026-05-13T10:00:00Z",
+		 *       "finishedAt": "2026-05-13T10:00:01Z",
+		 *       "durationMs": 1000,
+		 *       "status": "successful",
+		 *       "sentCount": 4,
+		 *       "receivedCount": 4,
+		 *       "lossPercent": 0,
+		 *       "rttMinMs": 10.1,
+		 *       "rttAvgMs": 12.3,
+		 *       "rttMedianMs": 12,
+		 *       "rttMaxMs": 15.6,
+		 *       "rttStddevMs": 1.7,
+		 *       "rttSamplesMs": [
+		 *         10.1,
+		 *         12,
+		 *         11.5,
+		 *         15.6
+		 *       ],
+		 *       "resolvedIp": "1.1.1.1",
+		 *       "ipFamily": "inet"
+		 *     }
+		 */
+		PingResult: {
+			/** Format: date-time */
 			startedAt: string;
-			/**
-			 * @description Ping result status.
-			 * @example successful
-			 * @enum {string}
-			 */
+			/** Format: date-time */
+			finishedAt: string;
+			/** Format: int32 */
+			durationMs: number;
+			/** @enum {string} */
 			status: "successful" | "timeout" | "error";
-		};
-		Probe: {
-			/** Format: date-time */
-			createdAt: string;
-			enabled: boolean;
-			id: string;
-			labels: components["schemas"]["Label"][] | null;
+			/** Format: int32 */
+			sentCount: number;
+			/** Format: int32 */
+			receivedCount: number;
 			/** Format: double */
-			latitude: number | null;
+			lossPercent: number;
 			/** Format: double */
-			longitude: number | null;
-			name: string;
-			projectId: string;
-			status: components["schemas"]["Status"];
-			subdivisionCode: string | null;
-			/** Format: date-time */
-			updatedAt: string;
+			rttMinMs?: number;
+			/** Format: double */
+			rttAvgMs?: number;
+			/** Format: double */
+			rttMedianMs?: number;
+			/** Format: double */
+			rttMaxMs?: number;
+			/** Format: double */
+			rttStddevMs?: number;
+			rttSamplesMs?: number[];
+			resolvedIp?: components["schemas"]["ipAddress"];
+			/** @enum {string} */
+			ipFamily?: "inet" | "inet6";
+			errorCode?: string;
+			errorMessage?: string;
 		};
-		ProbeOutputBody: {
-			/**
-			 * Format: uri
-			 * @description A URL to the JSON Schema for this object.
-			 * @example /api/v1/schemas/ProbeOutputBody.json
-			 */
-			readonly $schema?: string;
-			probe: components["schemas"]["Probe"];
-		};
-		Project: {
-			/** Format: date-time */
-			createdAt: string;
-			createdByUserId: string;
-			id: string;
-			name: string;
-			slug: string;
-			/** Format: date-time */
-			updatedAt: string;
-		};
-		ProjectOutputBody: {
-			/**
-			 * Format: uri
-			 * @description A URL to the JSON Schema for this object.
-			 * @example /api/v1/schemas/ProjectOutputBody.json
-			 */
-			readonly $schema?: string;
-			project: components["schemas"]["Project"];
-		};
-		QueryMetadataBody: {
-			/**
-			 * Format: int64
-			 * @example 1778662800000
-			 */
+		/**
+		 * @example {
+		 *       "from": 1778662800000,
+		 *       "to": 1778749200000,
+		 *       "maxDataPoints": 600,
+		 *       "resolution": "bucket",
+		 *       "totalPoints": 487
+		 *     }
+		 */
+		PingSeriesQueryMetadata: {
+			/** Format: int64 */
 			from: number;
-			/**
-			 * Format: int32
-			 * @example 600
-			 */
-			maxDataPoints: number;
-			/** @example bucket */
-			resolution: string;
-			/**
-			 * Format: int64
-			 * @example 1778749200000
-			 */
+			/** Format: int64 */
 			to: number;
-			/**
-			 * Format: int64
-			 * @example 487
-			 */
+			/** Format: int32 */
+			maxDataPoints: number;
+			resolution: string;
+			/** Format: int64 */
 			totalPoints: number;
 		};
-		QueryPingSeriesBody: {
-			/**
-			 * Format: uri
-			 * @description A URL to the JSON Schema for this object.
-			 * @example /api/v1/schemas/QueryPingSeriesBody.json
-			 */
-			readonly $schema?: string;
-			query: components["schemas"]["QueryMetadataBody"];
-			series: components["schemas"]["SeriesBody"][] | null;
+		/**
+		 * @example {
+		 *       "series": [
+		 *         {
+		 *           "name": "rttAvgMs",
+		 *           "labels": {
+		 *             "probeId": "33333333-3333-3333-3333-333333333333",
+		 *             "checkId": "44444444-4444-4444-4444-444444444444",
+		 *             "checkType": "ping"
+		 *           },
+		 *           "unit": "ms",
+		 *           "points": [
+		 *             [
+		 *               1778666400000,
+		 *               12.3
+		 *             ]
+		 *           ]
+		 *         }
+		 *       ],
+		 *       "query": {
+		 *         "from": 1778662800000,
+		 *         "to": 1778749200000,
+		 *         "maxDataPoints": 600,
+		 *         "resolution": "bucket",
+		 *         "totalPoints": 487
+		 *       }
+		 *     }
+		 */
+		PingSeriesResponse: {
+			series: components["schemas"]["Series"][];
+			query: components["schemas"]["PingSeriesQueryMetadata"];
 		};
-		QueryTracerouteRunsBody: {
-			/**
-			 * Format: uri
-			 * @description A URL to the JSON Schema for this object.
-			 * @example /api/v1/schemas/QueryTracerouteRunsBody.json
-			 */
-			readonly $schema?: string;
-			query: components["schemas"]["TracerouteRunQueryMetadataBody"];
-			runs: components["schemas"]["TracerouteResultRunBody"][] | null;
+		/**
+		 * @example {
+		 *       "id": "33333333-3333-3333-3333-333333333333",
+		 *       "projectId": "22222222-2222-2222-2222-222222222222",
+		 *       "name": "tokyo-vps-1",
+		 *       "enabled": true,
+		 *       "subdivisionCode": "JP-13",
+		 *       "latitude": 35.6762,
+		 *       "longitude": 139.6503,
+		 *       "labels": [],
+		 *       "status": {
+		 *         "probeId": "33333333-3333-3333-3333-333333333333",
+		 *         "state": "online",
+		 *         "lastSeenAt": "2026-05-13T10:00:00Z",
+		 *         "updatedAt": "2026-05-13T10:00:00Z"
+		 *       },
+		 *       "createdAt": "2026-05-13T10:00:00Z",
+		 *       "updatedAt": "2026-05-13T10:00:00Z"
+		 *     }
+		 */
+		Probe: {
+			id: components["schemas"]["uuid"];
+			projectId: components["schemas"]["uuid"];
+			name: string;
+			enabled: boolean;
+			subdivisionCode?: string;
+			/** Format: double */
+			latitude?: number;
+			/** Format: double */
+			longitude?: number;
+			labels: components["schemas"]["Label"][];
+			status?: components["schemas"]["ProbeStatus"];
+			/** Format: date-time */
+			createdAt: string;
+			/** Format: date-time */
+			updatedAt: string;
 		};
-		RegisterInputBody: {
+		/**
+		 * @example {
+		 *       "probes": [
+		 *         {
+		 *           "id": "33333333-3333-3333-3333-333333333333",
+		 *           "projectId": "22222222-2222-2222-2222-222222222222",
+		 *           "name": "tokyo-vps-1",
+		 *           "enabled": true,
+		 *           "labels": [],
+		 *           "createdAt": "2026-05-13T10:00:00Z",
+		 *           "updatedAt": "2026-05-13T10:00:00Z"
+		 *         }
+		 *       ]
+		 *     }
+		 */
+		ProbeListResponse: {
+			probes: components["schemas"]["Probe"][];
+		};
+		/**
+		 * @example {
+		 *       "probe": {
+		 *         "id": "33333333-3333-3333-3333-333333333333",
+		 *         "projectId": "22222222-2222-2222-2222-222222222222",
+		 *         "name": "tokyo-vps-1",
+		 *         "enabled": true,
+		 *         "subdivisionCode": "JP-13",
+		 *         "latitude": 35.6762,
+		 *         "longitude": 139.6503,
+		 *         "labels": [],
+		 *         "createdAt": "2026-05-13T10:00:00Z",
+		 *         "updatedAt": "2026-05-13T10:00:00Z"
+		 *       }
+		 *     }
+		 */
+		ProbeResponse: {
+			probe: components["schemas"]["Probe"];
+		};
+		/**
+		 * @example {
+		 *       "probe": {
+		 *         "id": "33333333-3333-3333-3333-333333333333",
+		 *         "projectId": "22222222-2222-2222-2222-222222222222",
+		 *         "name": "tokyo-vps-1",
+		 *         "enabled": true,
+		 *         "labels": [],
+		 *         "createdAt": "2026-05-13T10:00:00Z",
+		 *         "updatedAt": "2026-05-13T10:00:00Z"
+		 *       },
+		 *       "secret": "nsp_6b5fbd35d3a1417f9c0c8c2e"
+		 *     }
+		 */
+		ProbeSecretResponse: {
+			probe: components["schemas"]["Probe"];
+			/**
+			 * Format: password
+			 * @description Plaintext probe secret. It is returned only at creation and rotation time.
+			 */
+			secret: string;
+		};
+		/**
+		 * @example {
+		 *       "probeId": "33333333-3333-3333-3333-333333333333",
+		 *       "state": "online",
+		 *       "lastSeenAt": "2026-05-13T10:00:00Z",
+		 *       "agentVersion": "netstamp-probe/0.1.0",
+		 *       "publicV4": "203.0.113.10",
+		 *       "publicV6": "2001:db8::10",
+		 *       "as": "AS15169 Google LLC",
+		 *       "addrs": [
+		 *         "10.0.0.10"
+		 *       ],
+		 *       "updatedAt": "2026-05-13T10:00:00Z"
+		 *     }
+		 */
+		ProbeStatus: {
+			probeId: components["schemas"]["uuid"];
+			/** @enum {string} */
+			state: "online" | "offline";
+			/** Format: date-time */
+			lastSeenAt?: string;
+			agentVersion?: string;
+			publicV4?: components["schemas"]["ipAddress"];
+			publicV6?: components["schemas"]["ipAddress"];
+			as?: string;
+			addrs?: components["schemas"]["ipAddress"][];
+			/** Format: date-time */
+			updatedAt: string;
+		};
+		/**
+		 * @example {
+		 *       "title": "Unprocessable Entity",
+		 *       "status": 422,
+		 *       "detail": "invalid project input",
+		 *       "errors": [
+		 *         {
+		 *           "message": "must be at least 1 character",
+		 *           "location": "body.name",
+		 *           "value": ""
+		 *         }
+		 *       ]
+		 *     }
+		 */
+		ProblemDetails: {
 			/**
 			 * Format: uri
-			 * @description A URL to the JSON Schema for this object.
-			 * @example /api/v1/schemas/RegisterInputBody.json
+			 * @default about:blank
 			 */
-			readonly $schema?: string;
-			/**
-			 * @description Name shown in the app.
-			 * @example Jane Doe
-			 */
+			type: string;
+			title?: string;
+			/** Format: int32 */
+			status?: number;
+			detail?: string;
+			/** Format: uri */
+			instance?: string;
+			errors?: components["schemas"]["ProblemErrorDetail"][];
+		};
+		/**
+		 * @example {
+		 *       "message": "expected required property name to be present",
+		 *       "location": "body.name",
+		 *       "value": ""
+		 *     }
+		 */
+		ProblemErrorDetail: {
+			/** @description Human-readable explanation for this field or sub-error. */
+			message?: string;
+			/** @description Path-like location such as body.name, query.probeId, or path.ref. */
+			location?: string;
+			/** @description Echoed invalid value, when the server chooses to return it. */
+			value?: unknown;
+		};
+		/**
+		 * @example {
+		 *       "id": "22222222-2222-2222-2222-222222222222",
+		 *       "name": "Engineering",
+		 *       "slug": "engineering",
+		 *       "createdByUserId": "11111111-1111-1111-1111-111111111111",
+		 *       "createdAt": "2026-05-13T10:00:00Z",
+		 *       "updatedAt": "2026-05-13T10:00:00Z"
+		 *     }
+		 */
+		Project: {
+			id: components["schemas"]["uuid"];
+			name: string;
+			slug: string;
+			createdByUserId: components["schemas"]["uuid"];
+			/** Format: date-time */
+			createdAt: string;
+			/** Format: date-time */
+			updatedAt: string;
+		};
+		/**
+		 * @example {
+		 *       "projects": [
+		 *         {
+		 *           "id": "22222222-2222-2222-2222-222222222222",
+		 *           "name": "Engineering",
+		 *           "slug": "engineering",
+		 *           "createdByUserId": "11111111-1111-1111-1111-111111111111",
+		 *           "createdAt": "2026-05-13T10:00:00Z",
+		 *           "updatedAt": "2026-05-13T10:00:00Z"
+		 *         }
+		 *       ]
+		 *     }
+		 */
+		ProjectListResponse: {
+			projects: components["schemas"]["Project"][];
+		};
+		/**
+		 * @example {
+		 *       "id": "55555555-5555-5555-5555-555555555555",
+		 *       "projectId": "22222222-2222-2222-2222-222222222222",
+		 *       "userId": "11111111-1111-1111-1111-111111111111",
+		 *       "role": "owner",
+		 *       "createdAt": "2026-05-13T10:00:00Z",
+		 *       "updatedAt": "2026-05-13T10:00:00Z"
+		 *     }
+		 */
+		ProjectMember: {
+			id: components["schemas"]["uuid"];
+			projectId: components["schemas"]["uuid"];
+			userId: components["schemas"]["uuid"];
+			/** @enum {string} */
+			role: "owner" | "admin" | "editor" | "viewer";
+			/** Format: date-time */
+			createdAt: string;
+			/** Format: date-time */
+			updatedAt: string;
+		};
+		/**
+		 * @example {
+		 *       "members": [
+		 *         {
+		 *           "id": "55555555-5555-5555-5555-555555555555",
+		 *           "projectId": "22222222-2222-2222-2222-222222222222",
+		 *           "userId": "11111111-1111-1111-1111-111111111111",
+		 *           "role": "owner",
+		 *           "createdAt": "2026-05-13T10:00:00Z",
+		 *           "updatedAt": "2026-05-13T10:00:00Z"
+		 *         }
+		 *       ]
+		 *     }
+		 */
+		ProjectMemberListResponse: {
+			members: components["schemas"]["ProjectMember"][];
+		};
+		/**
+		 * @example {
+		 *       "member": {
+		 *         "id": "55555555-5555-5555-5555-555555555555",
+		 *         "projectId": "22222222-2222-2222-2222-222222222222",
+		 *         "userId": "11111111-1111-1111-1111-111111111111",
+		 *         "role": "owner",
+		 *         "createdAt": "2026-05-13T10:00:00Z",
+		 *         "updatedAt": "2026-05-13T10:00:00Z"
+		 *       }
+		 *     }
+		 */
+		ProjectMemberResponse: {
+			member: components["schemas"]["ProjectMember"];
+		};
+		/**
+		 * @example {
+		 *       "project": {
+		 *         "id": "22222222-2222-2222-2222-222222222222",
+		 *         "name": "Engineering",
+		 *         "slug": "engineering",
+		 *         "createdByUserId": "11111111-1111-1111-1111-111111111111",
+		 *         "createdAt": "2026-05-13T10:00:00Z",
+		 *         "updatedAt": "2026-05-13T10:00:00Z"
+		 *       }
+		 *     }
+		 */
+		ProjectResponse: {
+			project: components["schemas"]["Project"];
+		};
+		/**
+		 * @example {
+		 *       "email": "user@example.com",
+		 *       "displayName": "Jane Doe",
+		 *       "password": "correct-horse-battery-staple"
+		 *     }
+		 */
+		RegisterUserRequest: {
+			/** @description Email address used to sign in. */
+			email: components["schemas"]["email"];
+			/** @description Name shown in the app. */
 			displayName: string;
 			/**
-			 * Format: email
-			 * @description Email address used to sign in.
-			 * @example user@example.com
-			 */
-			email: string;
-			/**
+			 * Format: password
 			 * @description Plain-text password. It is stored only as an Argon2id hash.
-			 * @example correct-horse-battery-staple
 			 */
 			password: string;
 		};
-		RegisterOutputBody: {
-			/**
-			 * Format: uri
-			 * @description A URL to the JSON Schema for this object.
-			 * @example /api/v1/schemas/RegisterOutputBody.json
-			 */
-			readonly $schema?: string;
-			/** @description Created user. */
-			user: components["schemas"]["UserResponse"];
+		/**
+		 * @example {
+		 *       "serverTime": "2026-05-13T10:00:00Z",
+		 *       "config": {
+		 *         "heartbeatIntervalSeconds": 30,
+		 *         "assignmentPollIntervalSeconds": 30,
+		 *         "maxConcurrentWorkers": 16,
+		 *         "initialBackoffSeconds": 1,
+		 *         "maxBackoffSeconds": 30,
+		 *         "maxAttempts": 5
+		 *       },
+		 *       "assignments": []
+		 *     }
+		 */
+		RuntimeAssignmentsResponse: {
+			/** Format: date-time */
+			serverTime: string;
+			config: components["schemas"]["RuntimeConfig"];
+			assignments: components["schemas"]["Assignment"][];
 		};
-		RootBody: {
-			/**
-			 * Format: uri
-			 * @description A URL to the JSON Schema for this object.
-			 * @example /api/v1/schemas/RootBody.json
-			 */
-			readonly $schema?: string;
-			/**
-			 * @description Human-readable API status message.
-			 * @example Netstamp API is running
-			 */
-			message: string;
-		};
-		RotateSecretOutputBody: {
-			/**
-			 * Format: uri
-			 * @description A URL to the JSON Schema for this object.
-			 * @example /api/v1/schemas/RotateSecretOutputBody.json
-			 */
-			readonly $schema?: string;
-			probe: components["schemas"]["Probe"];
-			secret: string;
-		};
+		/**
+		 * @example {
+		 *       "heartbeatIntervalSeconds": 30,
+		 *       "assignmentPollIntervalSeconds": 30,
+		 *       "maxConcurrentWorkers": 16,
+		 *       "initialBackoffSeconds": 1,
+		 *       "maxBackoffSeconds": 30,
+		 *       "maxAttempts": 5
+		 *     }
+		 */
 		RuntimeConfig: {
-			/** Format: int32 */
-			assignmentPollIntervalSeconds: number;
 			/** Format: int32 */
 			heartbeatIntervalSeconds: number;
 			/** Format: int32 */
-			initialBackoffSeconds: number;
+			assignmentPollIntervalSeconds: number;
 			/** Format: int32 */
-			maxAttempts: number;
+			maxConcurrentWorkers: number;
+			/** Format: int32 */
+			initialBackoffSeconds: number;
 			/** Format: int32 */
 			maxBackoffSeconds: number;
 			/** Format: int32 */
-			maxConcurrentWorkers: number;
+			maxAttempts: number;
 		};
-		RuntimeResultGroupBody: {
-			/**
-			 * Format: uuid
-			 * @description Assigned check ID.
-			 * @example 44444444-4444-4444-4444-444444444444
-			 */
-			checkId: string;
-			/** @description Ping result payloads for this check. */
-			ping?: components["schemas"]["PingResultBody"][] | null;
-			/** @description Traceroute result payloads for this check. */
-			traceroute?: components["schemas"]["RuntimeTracerouteResultBody"][] | null;
-			/**
-			 * @description Check result type. Must match the assigned check type.
-			 * @example ping
-			 * @enum {string}
-			 */
+		/**
+		 * @example {
+		 *       "serverTime": "2026-05-13T10:00:00Z"
+		 *     }
+		 */
+		RuntimeHeartbeatResponse: {
+			/** Format: date-time */
+			serverTime: string;
+		};
+		/**
+		 * @example {
+		 *       "serverTime": "2026-05-13T10:00:00Z",
+		 *       "minimumSupportedAgentVersion": "0.1.0",
+		 *       "config": {
+		 *         "heartbeatIntervalSeconds": 30,
+		 *         "assignmentPollIntervalSeconds": 30,
+		 *         "maxConcurrentWorkers": 16,
+		 *         "initialBackoffSeconds": 1,
+		 *         "maxBackoffSeconds": 30,
+		 *         "maxAttempts": 5
+		 *       }
+		 *     }
+		 */
+		RuntimeHelloResponse: {
+			/** Format: date-time */
+			serverTime: string;
+			minimumSupportedAgentVersion: string;
+			config: components["schemas"]["RuntimeConfig"];
+		};
+		/**
+		 * @example {
+		 *       "checkId": "44444444-4444-4444-4444-444444444444",
+		 *       "type": "ping",
+		 *       "ping": [
+		 *         {
+		 *           "startedAt": "2026-05-13T10:00:00Z",
+		 *           "finishedAt": "2026-05-13T10:00:01Z",
+		 *           "durationMs": 1000,
+		 *           "status": "successful",
+		 *           "sentCount": 4,
+		 *           "receivedCount": 4,
+		 *           "lossPercent": 0,
+		 *           "rttAvgMs": 12.3,
+		 *           "rttSamplesMs": [
+		 *             10.1,
+		 *             12,
+		 *             11.5,
+		 *             15.6
+		 *           ],
+		 *           "resolvedIp": "1.1.1.1",
+		 *           "ipFamily": "inet"
+		 *         }
+		 *       ]
+		 *     }
+		 */
+		RuntimeResultGroup: {
+			checkId: components["schemas"]["uuid"];
+			/** @enum {string} */
 			type: "ping" | "traceroute";
+			ping?: components["schemas"]["PingResult"][];
+			traceroute?: components["schemas"]["TracerouteResult"][];
 		};
-		RuntimeStatusBody: {
-			/**
-			 * Format: uri
-			 * @description A URL to the JSON Schema for this object.
-			 * @example /api/v1/schemas/RuntimeStatusBody.json
-			 */
-			readonly $schema?: string;
-			/** @description Probe local or observed interface addresses. */
-			addrs?: string[] | null;
-			/**
-			 * @description Probe agent version.
-			 * @example netstamp-probe/0.1.0
-			 */
+		/**
+		 * @example {
+		 *       "agentVersion": "netstamp-probe/0.1.0",
+		 *       "publicV4": "203.0.113.10",
+		 *       "publicV6": "2001:db8::10",
+		 *       "as": "AS15169 Google LLC",
+		 *       "addrs": [
+		 *         "10.0.0.10"
+		 *       ]
+		 *     }
+		 */
+		RuntimeStatusRequest: {
 			agentVersion?: string;
-			/**
-			 * @description Observed autonomous system.
-			 * @example AS15169 Google LLC
-			 */
+			publicV4?: components["schemas"]["ipAddress"];
+			publicV6?: components["schemas"]["ipAddress"];
 			as?: string;
-			/**
-			 * Format: ip
-			 * @description Observed public IPv4 address.
-			 * @example 203.0.113.10
-			 */
-			publicV4?: string;
-			/**
-			 * Format: ip
-			 * @description Observed public IPv6 address.
-			 * @example 2001:db8::10
-			 */
-			publicV6?: string;
+			addrs?: components["schemas"]["ipAddress"][];
 		};
-		RuntimeTracerouteHopBody: {
-			/**
-			 * Format: ip
-			 * @description Hop IP address.
-			 * @example 192.0.2.1
-			 */
-			address?: string;
-			/**
-			 * @description Optional machine-readable hop error code.
-			 * @example hop_timeout
-			 */
-			errorCode?: string;
-			/**
-			 * @description Optional hop error message.
-			 * @example request timed out
-			 */
-			errorMessage?: string;
-			/**
-			 * Format: int32
-			 * @description One-based hop index.
-			 * @example 1
-			 */
-			hopIndex: number;
-			/**
-			 * @description Hop reverse DNS hostname.
-			 * @example gateway.local
-			 */
-			hostname?: string;
-			/**
-			 * Format: double
-			 * @description Probe loss percentage for this hop.
-			 * @example 0
-			 */
-			lossPercent: number;
-			/**
-			 * Format: int32
-			 * @description Probe attempts received for this hop.
-			 * @example 3
-			 */
-			receivedCount: number;
-			/**
-			 * Format: double
-			 * @description Average RTT in milliseconds.
-			 * @example 1.7
-			 */
-			rttAvgMs?: number;
-			/**
-			 * Format: double
-			 * @description Maximum RTT in milliseconds.
-			 * @example 1.9
-			 */
-			rttMaxMs?: number;
-			/**
-			 * Format: double
-			 * @description Median RTT in milliseconds.
-			 * @example 1.7
-			 */
-			rttMedianMs?: number;
-			/**
-			 * Format: double
-			 * @description Minimum RTT in milliseconds.
-			 * @example 1.5
-			 */
-			rttMinMs?: number;
-			/** @description RTT sample values in milliseconds. */
-			rttSamplesMs?: number[] | null;
-			/**
-			 * Format: double
-			 * @description RTT standard deviation in milliseconds.
-			 * @example 0.2
-			 */
-			rttStddevMs?: number;
-			/**
-			 * Format: int32
-			 * @description Probe attempts sent for this hop.
-			 * @example 3
-			 */
-			sentCount: number;
-		};
-		RuntimeTracerouteResultBody: {
-			/**
-			 * @description Whether the traceroute reached the destination.
-			 * @example false
-			 */
-			destinationReached: boolean;
-			/**
-			 * Format: int32
-			 * @description Total check duration in milliseconds.
-			 * @example 4000
-			 */
-			durationMs: number;
-			/**
-			 * @description Optional machine-readable error code.
-			 * @example destination_unreached
-			 */
-			errorCode?: string;
-			/**
-			 * @description Optional executor error message.
-			 * @example destination was not reached before max hops
-			 */
-			errorMessage?: string;
-			/**
-			 * Format: date-time
-			 * @description UTC time when the traceroute check finished.
-			 * @example 2026-05-13T10:00:04Z
-			 */
-			finishedAt: string;
-			/**
-			 * Format: int32
-			 * @description Observed hop count.
-			 * @example 12
-			 */
-			hopCount: number;
-			/** @description Per-hop traceroute samples. */
-			hops?: components["schemas"]["RuntimeTracerouteHopBody"][] | null;
-			/**
-			 * @description IP family used for the check.
-			 * @example inet
-			 * @enum {string}
-			 */
-			ipFamily?: "inet" | "inet6";
-			/**
-			 * Format: ip
-			 * @description Resolved destination IP address.
-			 * @example 93.184.216.34
-			 */
-			resolvedIp?: string;
-			/**
-			 * Format: date-time
-			 * @description UTC time when the traceroute check started.
-			 * @example 2026-05-13T10:00:00Z
-			 */
-			startedAt: string;
-			/**
-			 * @description Traceroute result status.
-			 * @example partial
-			 * @enum {string}
-			 */
-			status: "successful" | "timeout" | "error" | "partial";
-		};
-		SeriesBody: {
-			labels: {
-				[key: string]: string;
-			};
-			/** @example rttAvgMs */
+		/**
+		 * @example {
+		 *       "name": "rttAvgMs",
+		 *       "labels": {
+		 *         "probeId": "33333333-3333-3333-3333-333333333333",
+		 *         "checkId": "44444444-4444-4444-4444-444444444444",
+		 *         "checkType": "ping"
+		 *       },
+		 *       "unit": "ms",
+		 *       "points": [
+		 *         [
+		 *           1778666400000,
+		 *           12.3
+		 *         ]
+		 *       ]
+		 *     }
+		 */
+		Series: {
 			name: string;
-			/** @description Tuple points in the shape [epochMilliseconds, value]. */
-			points: (number[] | null)[] | null;
-			/** @example ms */
+			labels: Record<string, never>;
 			unit: string;
+			points: [number, number][];
 		};
-		Status: {
-			addrs: string[] | null;
-			agentVersion: string | null;
-			as: string | null;
-			/** Format: date-time */
-			lastSeenAt: string | null;
-			probeId: string;
-			/** Format: ip */
-			publicV4: string | null;
-			/** Format: ip */
-			publicV6: string | null;
-			state: string;
-			/** Format: date-time */
-			updatedAt: string;
+		/**
+		 * @example {
+		 *       "results": [
+		 *         {
+		 *           "checkId": "44444444-4444-4444-4444-444444444444",
+		 *           "type": "ping",
+		 *           "ping": [
+		 *             {
+		 *               "startedAt": "2026-05-13T10:00:00Z",
+		 *               "finishedAt": "2026-05-13T10:00:01Z",
+		 *               "durationMs": 1000,
+		 *               "status": "successful",
+		 *               "sentCount": 4,
+		 *               "receivedCount": 4,
+		 *               "lossPercent": 0
+		 *             }
+		 *           ]
+		 *         }
+		 *       ]
+		 *     }
+		 */
+		SubmitResultsRequest: {
+			results: components["schemas"]["RuntimeResultGroup"][];
 		};
-		SubmitResultsBody: {
-			/**
-			 * Format: uri
-			 * @description A URL to the JSON Schema for this object.
-			 * @example /api/v1/schemas/SubmitResultsBody.json
-			 */
-			readonly $schema?: string;
-			/** @description Result groups keyed by check and check type. */
-			results: components["schemas"]["RuntimeResultGroupBody"][] | null;
-		};
-		SubmitResultsOutputBody: {
-			/**
-			 * Format: uri
-			 * @description A URL to the JSON Schema for this object.
-			 * @example /api/v1/schemas/SubmitResultsOutputBody.json
-			 */
-			readonly $schema?: string;
-			/** Format: int64 */
+		/**
+		 * @example {
+		 *       "accepted": 1,
+		 *       "serverTime": "2026-05-13T10:00:02Z"
+		 *     }
+		 */
+		SubmitResultsResponse: {
+			/** Format: int32 */
 			accepted: number;
 			/** Format: date-time */
 			serverTime: string;
 		};
+		/**
+		 * @example {
+		 *       "protocol": "icmp",
+		 *       "maxHops": 30,
+		 *       "timeoutMs": 3000,
+		 *       "queriesPerHop": 3,
+		 *       "packetSizeBytes": 56,
+		 *       "port": 33434,
+		 *       "ipFamily": "inet"
+		 *     }
+		 */
 		TracerouteConfig: {
-			ipFamily?: string;
+			/** @enum {string} */
+			protocol: "icmp" | "udp" | "tcp";
 			/** Format: int32 */
 			maxHops: number;
+			/** Format: int32 */
+			timeoutMs: number;
+			/** Format: int32 */
+			queriesPerHop: number;
 			/** Format: int32 */
 			packetSizeBytes: number;
 			/** Format: int32 */
 			port: number;
-			protocol: string;
-			/** Format: int32 */
-			queriesPerHop: number;
-			/** Format: int32 */
-			timeoutMs: number;
+			/** @enum {string} */
+			ipFamily?: "inet" | "inet6";
 		};
-		TracerouteResultHopBody: {
-			/** Format: ip */
-			address?: string;
-			errorCode?: string;
-			errorMessage?: string;
+		/**
+		 * @example {
+		 *       "protocol": "icmp",
+		 *       "maxHops": 30,
+		 *       "timeoutMs": 3000,
+		 *       "queriesPerHop": 3,
+		 *       "packetSizeBytes": 56,
+		 *       "port": 33434,
+		 *       "ipFamily": "inet"
+		 *     }
+		 */
+		TracerouteConfigPatch: {
+			/** @enum {string} */
+			protocol?: "icmp" | "udp" | "tcp";
+			/** Format: int32 */
+			maxHops?: number;
+			/** Format: int32 */
+			timeoutMs?: number;
+			/** Format: int32 */
+			queriesPerHop?: number;
+			/** Format: int32 */
+			packetSizeBytes?: number;
+			/** Format: int32 */
+			port?: number;
+			/** @enum {string} */
+			ipFamily?: "inet" | "inet6";
+		};
+		/**
+		 * @example {
+		 *       "hopIndex": 1,
+		 *       "address": "192.0.2.1",
+		 *       "hostname": "gateway.local",
+		 *       "sentCount": 3,
+		 *       "receivedCount": 3,
+		 *       "lossPercent": 0,
+		 *       "rttMinMs": 1.5,
+		 *       "rttAvgMs": 1.7,
+		 *       "rttMedianMs": 1.7,
+		 *       "rttMaxMs": 1.9,
+		 *       "rttStddevMs": 0.2,
+		 *       "rttSamplesMs": [
+		 *         1.5,
+		 *         1.7,
+		 *         1.9
+		 *       ]
+		 *     }
+		 */
+		TracerouteHop: {
 			/** Format: int32 */
 			hopIndex: number;
+			address?: components["schemas"]["ipAddress"];
 			hostname?: string;
-			/** Format: double */
-			lossPercent: number;
+			/** Format: int32 */
+			sentCount: number;
 			/** Format: int32 */
 			receivedCount: number;
 			/** Format: double */
-			rttAvgMs?: number;
+			lossPercent: number;
 			/** Format: double */
-			rttMaxMs?: number;
+			rttMinMs?: number;
+			/** Format: double */
+			rttAvgMs?: number;
 			/** Format: double */
 			rttMedianMs?: number;
 			/** Format: double */
-			rttMinMs?: number;
-			rttSamplesMs?: number[] | null;
+			rttMaxMs?: number;
 			/** Format: double */
 			rttStddevMs?: number;
-			/** Format: int32 */
-			sentCount: number;
-		};
-		TracerouteResultRunBody: {
-			destinationReached: boolean;
-			/** Format: int32 */
-			durationMs: number;
+			rttSamplesMs?: number[];
 			errorCode?: string;
 			errorMessage?: string;
+		};
+		/**
+		 * @example {
+		 *       "startedAt": "2026-05-13T10:00:00Z",
+		 *       "finishedAt": "2026-05-13T10:00:04Z",
+		 *       "durationMs": 4000,
+		 *       "status": "partial",
+		 *       "resolvedIp": "93.184.216.34",
+		 *       "ipFamily": "inet",
+		 *       "destinationReached": false,
+		 *       "hopCount": 12,
+		 *       "hops": [
+		 *         {
+		 *           "hopIndex": 1,
+		 *           "address": "192.0.2.1",
+		 *           "sentCount": 3,
+		 *           "receivedCount": 3,
+		 *           "lossPercent": 0
+		 *         }
+		 *       ],
+		 *       "errorCode": "destination_unreached",
+		 *       "errorMessage": "destination was not reached before max hops"
+		 *     }
+		 */
+		TracerouteResult: {
+			/** Format: date-time */
+			startedAt: string;
 			/** Format: date-time */
 			finishedAt: string;
 			/** Format: int32 */
+			durationMs: number;
+			/** @enum {string} */
+			status: "successful" | "timeout" | "error" | "partial";
+			resolvedIp?: components["schemas"]["ipAddress"];
+			/** @enum {string} */
+			ipFamily?: "inet" | "inet6";
+			destinationReached: boolean;
+			/** Format: int32 */
 			hopCount: number;
-			hops: components["schemas"]["TracerouteResultHopBody"][] | null;
-			ipFamily?: string;
-			/** Format: ip */
-			resolvedIp?: string;
-			/** Format: date-time */
-			startedAt: string;
-			status: string;
+			hops?: components["schemas"]["TracerouteHop"][];
+			errorCode?: string;
+			errorMessage?: string;
 		};
-		TracerouteRunQueryMetadataBody: {
-			/**
-			 * Format: int64
-			 * @example 1778662800000
-			 */
+		/**
+		 * @example {
+		 *       "from": 1778662800000,
+		 *       "to": 1778749200000,
+		 *       "limit": 100,
+		 *       "nextCursor": 1778666400000
+		 *     }
+		 */
+		TracerouteRunsQueryMetadata: {
+			/** Format: int64 */
 			from: number;
-			/**
-			 * Format: int32
-			 * @example 100
-			 */
-			limit: number;
-			/**
-			 * Format: int64
-			 * @example 1778662800000
-			 */
-			nextCursor?: number;
-			/**
-			 * Format: int64
-			 * @example 1778749200000
-			 */
+			/** Format: int64 */
 			to: number;
+			/** Format: int32 */
+			limit: number;
+			/** Format: int64 */
+			nextCursor?: number;
 		};
-		UpdateCheckInputBody: {
-			/**
-			 * Format: uri
-			 * @description A URL to the JSON Schema for this object.
-			 * @example /api/v1/schemas/UpdateCheckInputBody.json
-			 */
-			readonly $schema?: string;
-			/**
-			 * @description Optional check description.
-			 * @example Latency and loss to controller API.
-			 */
-			description?: string;
-			/**
-			 * Format: int32
-			 * @description Check interval in seconds.
-			 * @example 30
-			 */
-			intervalSeconds?: number;
-			/** @description Replacement project label IDs for the check. */
-			labelIds?: string[];
-			/**
-			 * @description Check display name.
-			 * @example api-latency
-			 */
+		/**
+		 * @example {
+		 *       "runs": [
+		 *         {
+		 *           "startedAt": "2026-05-13T10:00:00Z",
+		 *           "finishedAt": "2026-05-13T10:00:04Z",
+		 *           "durationMs": 4000,
+		 *           "status": "partial",
+		 *           "destinationReached": false,
+		 *           "hopCount": 12,
+		 *           "hops": [
+		 *             {
+		 *               "hopIndex": 1,
+		 *               "sentCount": 3,
+		 *               "receivedCount": 3,
+		 *               "lossPercent": 0
+		 *             }
+		 *           ]
+		 *         }
+		 *       ],
+		 *       "query": {
+		 *         "from": 1778662800000,
+		 *         "to": 1778749200000,
+		 *         "limit": 100
+		 *       }
+		 *     }
+		 */
+		TracerouteRunsResponse: {
+			runs: components["schemas"]["TracerouteResult"][];
+			query: components["schemas"]["TracerouteRunsQueryMetadata"];
+		};
+		/**
+		 * @example {
+		 *       "name": "api-latency",
+		 *       "target": "api.netstamp.io",
+		 *       "intervalSeconds": 60,
+		 *       "labelIds": [
+		 *         "66666666-6666-6666-6666-666666666666"
+		 *       ],
+		 *       "pingConfig": {
+		 *         "timeoutMs": 5000
+		 *       }
+		 *     }
+		 */
+		UpdateCheckRequest: {
 			name?: string;
-			/** @description Ping-specific check configuration fields to update. */
-			pingConfig?: components["schemas"]["CheckPingConfigInput"];
-			/** @description Selector object for later probe matching. */
-			selector?: {
-				[key: string]: unknown;
-			};
-			/**
-			 * @description Hostname or address to check.
-			 * @example api.netstamp.io
-			 */
-			target?: string;
-			/** @description Traceroute-specific check configuration fields to update. */
-			tracerouteConfig?: components["schemas"]["CheckTracerouteConfigInput"];
-			/**
-			 * @description Check type. Cannot be changed after creation in v1.
-			 * @example ping
-			 * @enum {string}
-			 */
+			/** @enum {string} */
 			type?: "ping" | "traceroute";
+			target?: string;
+			selector?: Record<string, never>;
+			description?: string;
+			/** Format: int32 */
+			intervalSeconds?: number;
+			pingConfig?: components["schemas"]["PingConfigPatch"];
+			tracerouteConfig?: components["schemas"]["TracerouteConfigPatch"];
+			labelIds?: components["schemas"]["uuid"][];
 		};
-		UpdateLabelInputBody: {
-			/**
-			 * Format: uri
-			 * @description A URL to the JSON Schema for this object.
-			 * @example /api/v1/schemas/UpdateLabelInputBody.json
-			 */
-			readonly $schema?: string;
-			/**
-			 * @description Label key.
-			 * @example region
-			 */
+		/**
+		 * @example {
+		 *       "key": "metro",
+		 *       "value": "tokyo"
+		 *     }
+		 */
+		UpdateLabelRequest: {
 			key?: string;
-			/**
-			 * @description Label value.
-			 * @example tokyo
-			 */
 			value?: string;
 		};
-		UpdateMemberRoleInputBody: {
-			/**
-			 * Format: uri
-			 * @description A URL to the JSON Schema for this object.
-			 * @example /api/v1/schemas/UpdateMemberRoleInputBody.json
-			 */
-			readonly $schema?: string;
-			/**
-			 * @description Project member role.
-			 * @example viewer
-			 * @enum {string}
-			 */
-			role?: "viewer" | "editor" | "admin";
-		};
-		UpdateProbeInputBody: {
-			/**
-			 * Format: uri
-			 * @description A URL to the JSON Schema for this object.
-			 * @example /api/v1/schemas/UpdateProbeInputBody.json
-			 */
-			readonly $schema?: string;
-			/**
-			 * @description Whether the probe is enabled. Omitted values leave the current setting unchanged.
-			 * @example true
-			 */
+		/**
+		 * @example {
+		 *       "name": "tokyo-vps-2",
+		 *       "enabled": false,
+		 *       "labelIds": [
+		 *         "66666666-6666-6666-6666-666666666666"
+		 *       ]
+		 *     }
+		 */
+		UpdateProbeRequest: {
+			name?: string;
 			enabled?: boolean;
-			/** @description Existing project label IDs to attach to the probe. */
-			labelIds?: string[];
-			/**
-			 * Format: double
-			 * @description Probe latitude. Must be provided with longitude.
-			 * @example 35.6762
-			 */
-			latitude?: number;
-			/**
-			 * Format: double
-			 * @description Probe longitude. Must be provided with latitude.
-			 * @example 139.6503
-			 */
-			longitude?: number;
-			/**
-			 * @description Probe display name.
-			 * @example tokyo-vps-1
-			 */
-			name?: string;
-			/** @description ISO 3166-2 subdivision code, e.g. JP-12 for Chiba Prefecture, Japan */
 			subdivisionCode?: string;
+			/** Format: double */
+			latitude?: number;
+			/** Format: double */
+			longitude?: number;
+			labelIds?: components["schemas"]["uuid"][];
 		};
-		UpdateProjectInputBody: {
-			/**
-			 * Format: uri
-			 * @description A URL to the JSON Schema for this object.
-			 * @example /api/v1/schemas/UpdateProjectInputBody.json
-			 */
-			readonly $schema?: string;
-			/**
-			 * @description Project display name.
-			 * @example Engineering
-			 */
+		/**
+		 * @example {
+		 *       "role": "editor"
+		 *     }
+		 */
+		UpdateProjectMemberRoleRequest: {
+			/** @enum {string} */
+			role: "admin" | "editor" | "viewer";
+		};
+		/**
+		 * @example {
+		 *       "name": "Platform Engineering",
+		 *       "slug": "platform-engineering"
+		 *     }
+		 */
+		UpdateProjectRequest: {
 			name?: string;
-			/**
-			 * @description Stable project slug.
-			 * @example engineering
-			 */
 			slug?: string;
 		};
-		UserResponse: {
-			/**
-			 * @description Name shown in the app.
-			 * @example Jane Doe
-			 */
+		/**
+		 * @example {
+		 *       "id": "11111111-1111-1111-1111-111111111111",
+		 *       "email": "user@example.com",
+		 *       "displayName": "Jane Doe"
+		 *     }
+		 */
+		User: {
+			/** @description User UUID. */
+			id: components["schemas"]["uuid"];
+			/** @description Normalized email address used to sign in. */
+			email: components["schemas"]["email"];
+			/** @description Name shown in the app. */
 			displayName: string;
-			/**
-			 * Format: email
-			 * @description Normalized email address used to sign in.
-			 * @example user@example.com
-			 */
-			email: string;
-			/**
-			 * Format: uuid
-			 * @description User UUID.
-			 * @example 11111111-1111-1111-1111-111111111111
-			 */
-			id: string;
 		};
+		/** Format: email */
+		email: string;
+		ipAddress: string;
+		/** Format: uuid */
+		uuid: string;
 	};
 	responses: never;
-	parameters: never;
+	parameters: {
+		CheckIdPathParam: components["schemas"]["uuid"];
+		LabelIdPathParam: components["schemas"]["uuid"];
+		"PingSeriesQuery.checkId": components["schemas"]["uuid"];
+		"PingSeriesQuery.from": number;
+		"PingSeriesQuery.maxDataPoints": number;
+		"PingSeriesQuery.metric": "rttAvgMs" | "lossPercent" | "successRate";
+		"PingSeriesQuery.probeId": components["schemas"]["uuid"];
+		"PingSeriesQuery.to": number;
+		ProbeIdPathParam: components["schemas"]["uuid"];
+		ProjectRefParam: string;
+		"TracerouteRunsQuery.checkId": components["schemas"]["uuid"];
+		"TracerouteRunsQuery.cursor": number;
+		"TracerouteRunsQuery.from": number;
+		"TracerouteRunsQuery.limit": number;
+		"TracerouteRunsQuery.probeId": components["schemas"]["uuid"];
+		"TracerouteRunsQuery.to": number;
+		UserIdPathParam: components["schemas"]["uuid"];
+	};
 	requestBodies: never;
 	headers: never;
 	pathItems: never;
@@ -1642,22 +1702,13 @@ export interface operations {
 		};
 		requestBody?: never;
 		responses: {
-			/** @description OK */
+			/** @description The request has succeeded. */
 			200: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["RootBody"];
-				};
-			};
-			/** @description Error */
-			default: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["APIStatusResponse"];
 				};
 			};
 		};
@@ -1671,44 +1722,36 @@ export interface operations {
 		};
 		requestBody: {
 			content: {
-				"application/json": components["schemas"]["LoginInputBody"];
+				"application/json": components["schemas"]["LoginUserRequest"];
 			};
 		};
 		responses: {
-			/** @description OK */
+			/** @description The request has succeeded. */
 			200: {
 				headers: {
+					"Set-Cookie": string;
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["LoginOutputBody"];
+					"application/json": components["schemas"]["AuthUserResponse"];
 				};
 			};
-			/** @description Unauthorized */
+			/** @description Access is unauthorized. */
 			401: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Unprocessable Entity */
-			422: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
-				};
-			};
-			/** @description Internal Server Error */
+			/** @description Server error */
 			500: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -1722,21 +1765,13 @@ export interface operations {
 		};
 		requestBody?: never;
 		responses: {
-			/** @description No Content */
+			/** @description There is no content to send for this request, but the headers may be useful. */
 			204: {
 				headers: {
+					"Set-Cookie": string;
 					[name: string]: unknown;
 				};
 				content?: never;
-			};
-			/** @description Error */
-			default: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
-				};
 			};
 		};
 	};
@@ -1749,31 +1784,31 @@ export interface operations {
 		};
 		requestBody?: never;
 		responses: {
-			/** @description OK */
+			/** @description The request has succeeded. */
 			200: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["MeOutputBody"];
+					"application/json": components["schemas"]["CurrentUserResponse"];
 				};
 			};
-			/** @description Unauthorized */
+			/** @description Access is unauthorized. */
 			401: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Internal Server Error */
+			/** @description Server error */
 			500: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -1787,44 +1822,45 @@ export interface operations {
 		};
 		requestBody: {
 			content: {
-				"application/json": components["schemas"]["RegisterInputBody"];
+				"application/json": components["schemas"]["RegisterUserRequest"];
 			};
 		};
 		responses: {
-			/** @description Created */
+			/** @description The request has succeeded and a new resource has been created as a result. */
 			201: {
 				headers: {
+					"Set-Cookie": string;
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["RegisterOutputBody"];
+					"application/json": components["schemas"]["AuthUserResponse"];
 				};
 			};
-			/** @description Conflict */
+			/** @description The request conflicts with the current state of the server. */
 			409: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Unprocessable Entity */
+			/** @description Client error */
 			422: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Internal Server Error */
+			/** @description Server error */
 			500: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -1838,31 +1874,22 @@ export interface operations {
 		};
 		requestBody?: never;
 		responses: {
-			/** @description OK */
+			/** @description The request has succeeded. */
 			200: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["HealthBody"];
+					"application/json": components["schemas"]["HealthResponse"];
 				};
 			};
-			/** @description Internal Server Error */
-			500: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
-				};
-			};
-			/** @description Service Unavailable */
+			/** @description Service unavailable. */
 			503: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -1876,31 +1903,31 @@ export interface operations {
 		};
 		requestBody?: never;
 		responses: {
-			/** @description OK */
+			/** @description The request has succeeded. */
 			200: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ListProjectsOutputBody"];
+					"application/json": components["schemas"]["ProjectListResponse"];
 				};
 			};
-			/** @description Unauthorized */
+			/** @description Access is unauthorized. */
 			401: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Internal Server Error */
+			/** @description Server error */
 			500: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -1914,53 +1941,53 @@ export interface operations {
 		};
 		requestBody: {
 			content: {
-				"application/json": components["schemas"]["CreateProjectInputBody"];
+				"application/json": components["schemas"]["CreateProjectRequest"];
 			};
 		};
 		responses: {
-			/** @description Created */
+			/** @description The request has succeeded and a new resource has been created as a result. */
 			201: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProjectOutputBody"];
+					"application/json": components["schemas"]["ProjectResponse"];
 				};
 			};
-			/** @description Unauthorized */
+			/** @description Access is unauthorized. */
 			401: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Conflict */
+			/** @description The request conflicts with the current state of the server. */
 			409: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Unprocessable Entity */
+			/** @description Client error */
 			422: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Internal Server Error */
+			/** @description Server error */
 			500: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -1970,56 +1997,46 @@ export interface operations {
 			query?: never;
 			header?: never;
 			path: {
-				/** @description Project UUID or slug. */
-				ref: string;
+				ref: components["parameters"]["ProjectRefParam"];
 			};
 			cookie?: never;
 		};
 		requestBody?: never;
 		responses: {
-			/** @description OK */
+			/** @description The request has succeeded. */
 			200: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProjectOutputBody"];
+					"application/json": components["schemas"]["ProjectResponse"];
 				};
 			};
-			/** @description Unauthorized */
+			/** @description Access is unauthorized. */
 			401: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Not Found */
+			/** @description The server cannot find the requested resource. */
 			404: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Unprocessable Entity */
-			422: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
-				};
-			};
-			/** @description Internal Server Error */
+			/** @description Server error */
 			500: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -2029,63 +2046,53 @@ export interface operations {
 			query?: never;
 			header?: never;
 			path: {
-				/** @description Project UUID or slug. */
-				ref: string;
+				ref: components["parameters"]["ProjectRefParam"];
 			};
 			cookie?: never;
 		};
 		requestBody?: never;
 		responses: {
-			/** @description No Content */
+			/** @description There is no content to send for this request, but the headers may be useful. */
 			204: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content?: never;
 			};
-			/** @description Unauthorized */
+			/** @description Access is unauthorized. */
 			401: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Forbidden */
+			/** @description Access is forbidden. */
 			403: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Not Found */
+			/** @description The server cannot find the requested resource. */
 			404: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Unprocessable Entity */
-			422: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
-				};
-			};
-			/** @description Internal Server Error */
+			/** @description Server error */
 			500: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -2095,78 +2102,77 @@ export interface operations {
 			query?: never;
 			header?: never;
 			path: {
-				/** @description Project UUID or slug. */
-				ref: string;
+				ref: components["parameters"]["ProjectRefParam"];
 			};
 			cookie?: never;
 		};
 		requestBody: {
 			content: {
-				"application/json": components["schemas"]["UpdateProjectInputBody"];
+				"application/json": components["schemas"]["UpdateProjectRequest"];
 			};
 		};
 		responses: {
-			/** @description OK */
+			/** @description The request has succeeded. */
 			200: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProjectOutputBody"];
+					"application/json": components["schemas"]["ProjectResponse"];
 				};
 			};
-			/** @description Unauthorized */
+			/** @description Access is unauthorized. */
 			401: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Forbidden */
+			/** @description Access is forbidden. */
 			403: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Not Found */
+			/** @description The server cannot find the requested resource. */
 			404: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Conflict */
+			/** @description The request conflicts with the current state of the server. */
 			409: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Unprocessable Entity */
+			/** @description Client error */
 			422: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Internal Server Error */
+			/** @description Server error */
 			500: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -2176,56 +2182,55 @@ export interface operations {
 			query?: never;
 			header?: never;
 			path: {
-				/** @description Project slug or lowercase UUID. */
-				ref: string;
+				ref: components["parameters"]["ProjectRefParam"];
 			};
 			cookie?: never;
 		};
 		requestBody?: never;
 		responses: {
-			/** @description OK */
+			/** @description The request has succeeded. */
 			200: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ListChecksOutputBody"];
+					"application/json": components["schemas"]["CheckListResponse"];
 				};
 			};
-			/** @description Unauthorized */
+			/** @description Access is unauthorized. */
 			401: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Not Found */
+			/** @description The server cannot find the requested resource. */
 			404: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Unprocessable Entity */
+			/** @description Client error */
 			422: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Internal Server Error */
+			/** @description Server error */
 			500: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -2235,69 +2240,68 @@ export interface operations {
 			query?: never;
 			header?: never;
 			path: {
-				/** @description Project slug or lowercase UUID. */
-				ref: string;
+				ref: components["parameters"]["ProjectRefParam"];
 			};
 			cookie?: never;
 		};
 		requestBody: {
 			content: {
-				"application/json": components["schemas"]["CreateCheckInputBody"];
+				"application/json": components["schemas"]["CreateCheckRequest"];
 			};
 		};
 		responses: {
-			/** @description Created */
+			/** @description The request has succeeded and a new resource has been created as a result. */
 			201: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["CheckOutputBody"];
+					"application/json": components["schemas"]["CheckResponse"];
 				};
 			};
-			/** @description Unauthorized */
+			/** @description Access is unauthorized. */
 			401: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Forbidden */
+			/** @description Access is forbidden. */
 			403: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Not Found */
+			/** @description The server cannot find the requested resource. */
 			404: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Unprocessable Entity */
+			/** @description Client error */
 			422: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Internal Server Error */
+			/** @description Server error */
 			500: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -2307,58 +2311,56 @@ export interface operations {
 			query?: never;
 			header?: never;
 			path: {
-				/** @description Project slug or lowercase UUID. */
-				ref: string;
-				/** @description Check ID. */
-				check_id: string;
+				ref: components["parameters"]["ProjectRefParam"];
+				check_id: components["parameters"]["CheckIdPathParam"];
 			};
 			cookie?: never;
 		};
 		requestBody?: never;
 		responses: {
-			/** @description OK */
+			/** @description The request has succeeded. */
 			200: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["CheckOutputBody"];
+					"application/json": components["schemas"]["CheckResponse"];
 				};
 			};
-			/** @description Unauthorized */
+			/** @description Access is unauthorized. */
 			401: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Not Found */
+			/** @description The server cannot find the requested resource. */
 			404: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Unprocessable Entity */
+			/** @description Client error */
 			422: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Internal Server Error */
+			/** @description Server error */
 			500: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -2368,65 +2370,63 @@ export interface operations {
 			query?: never;
 			header?: never;
 			path: {
-				/** @description Project slug or lowercase UUID. */
-				ref: string;
-				/** @description Check ID. */
-				check_id: string;
+				ref: components["parameters"]["ProjectRefParam"];
+				check_id: components["parameters"]["CheckIdPathParam"];
 			};
 			cookie?: never;
 		};
 		requestBody?: never;
 		responses: {
-			/** @description No Content */
+			/** @description There is no content to send for this request, but the headers may be useful. */
 			204: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content?: never;
 			};
-			/** @description Unauthorized */
+			/** @description Access is unauthorized. */
 			401: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Forbidden */
+			/** @description Access is forbidden. */
 			403: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Not Found */
+			/** @description The server cannot find the requested resource. */
 			404: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Unprocessable Entity */
+			/** @description Client error */
 			422: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Internal Server Error */
+			/** @description Server error */
 			500: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -2436,71 +2436,69 @@ export interface operations {
 			query?: never;
 			header?: never;
 			path: {
-				/** @description Project slug or lowercase UUID. */
-				ref: string;
-				/** @description Check ID. */
-				check_id: string;
+				ref: components["parameters"]["ProjectRefParam"];
+				check_id: components["parameters"]["CheckIdPathParam"];
 			};
 			cookie?: never;
 		};
 		requestBody: {
 			content: {
-				"application/json": components["schemas"]["UpdateCheckInputBody"];
+				"application/json": components["schemas"]["UpdateCheckRequest"];
 			};
 		};
 		responses: {
-			/** @description OK */
+			/** @description The request has succeeded. */
 			200: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["CheckOutputBody"];
+					"application/json": components["schemas"]["CheckResponse"];
 				};
 			};
-			/** @description Unauthorized */
+			/** @description Access is unauthorized. */
 			401: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Forbidden */
+			/** @description Access is forbidden. */
 			403: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Not Found */
+			/** @description The server cannot find the requested resource. */
 			404: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Unprocessable Entity */
+			/** @description Client error */
 			422: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Internal Server Error */
+			/** @description Server error */
 			500: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -2510,56 +2508,46 @@ export interface operations {
 			query?: never;
 			header?: never;
 			path: {
-				/** @description Project UUID or slug. */
-				ref: string;
+				ref: components["parameters"]["ProjectRefParam"];
 			};
 			cookie?: never;
 		};
 		requestBody?: never;
 		responses: {
-			/** @description OK */
+			/** @description The request has succeeded. */
 			200: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ListLabelsOutputBody"];
+					"application/json": components["schemas"]["LabelListResponse"];
 				};
 			};
-			/** @description Unauthorized */
+			/** @description Access is unauthorized. */
 			401: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Not Found */
+			/** @description The server cannot find the requested resource. */
 			404: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Unprocessable Entity */
-			422: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
-				};
-			};
-			/** @description Internal Server Error */
+			/** @description Server error */
 			500: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -2569,78 +2557,77 @@ export interface operations {
 			query?: never;
 			header?: never;
 			path: {
-				/** @description Project UUID or slug. */
-				ref: string;
+				ref: components["parameters"]["ProjectRefParam"];
 			};
 			cookie?: never;
 		};
 		requestBody: {
 			content: {
-				"application/json": components["schemas"]["CreateLabelInputBody"];
+				"application/json": components["schemas"]["CreateLabelRequest"];
 			};
 		};
 		responses: {
-			/** @description Created */
+			/** @description The request has succeeded and a new resource has been created as a result. */
 			201: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["LabelOutputBody"];
+					"application/json": components["schemas"]["LabelResponse"];
 				};
 			};
-			/** @description Unauthorized */
+			/** @description Access is unauthorized. */
 			401: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Forbidden */
+			/** @description Access is forbidden. */
 			403: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Not Found */
+			/** @description The server cannot find the requested resource. */
 			404: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Conflict */
+			/** @description The request conflicts with the current state of the server. */
 			409: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Unprocessable Entity */
+			/** @description Client error */
 			422: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Internal Server Error */
+			/** @description Server error */
 			500: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -2650,65 +2637,54 @@ export interface operations {
 			query?: never;
 			header?: never;
 			path: {
-				/** @description Project UUID or slug. */
-				ref: string;
-				/** @description Label ID. */
-				label_id: string;
+				ref: components["parameters"]["ProjectRefParam"];
+				label_id: components["parameters"]["LabelIdPathParam"];
 			};
 			cookie?: never;
 		};
 		requestBody?: never;
 		responses: {
-			/** @description No Content */
+			/** @description There is no content to send for this request, but the headers may be useful. */
 			204: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content?: never;
 			};
-			/** @description Unauthorized */
+			/** @description Access is unauthorized. */
 			401: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Forbidden */
+			/** @description Access is forbidden. */
 			403: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Not Found */
+			/** @description The server cannot find the requested resource. */
 			404: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Unprocessable Entity */
-			422: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
-				};
-			};
-			/** @description Internal Server Error */
+			/** @description Server error */
 			500: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -2718,80 +2694,78 @@ export interface operations {
 			query?: never;
 			header?: never;
 			path: {
-				/** @description Project UUID or slug. */
-				ref: string;
-				/** @description Label ID. */
-				label_id: string;
+				ref: components["parameters"]["ProjectRefParam"];
+				label_id: components["parameters"]["LabelIdPathParam"];
 			};
 			cookie?: never;
 		};
 		requestBody: {
 			content: {
-				"application/json": components["schemas"]["UpdateLabelInputBody"];
+				"application/json": components["schemas"]["UpdateLabelRequest"];
 			};
 		};
 		responses: {
-			/** @description OK */
+			/** @description The request has succeeded. */
 			200: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["LabelOutputBody"];
+					"application/json": components["schemas"]["LabelResponse"];
 				};
 			};
-			/** @description Unauthorized */
+			/** @description Access is unauthorized. */
 			401: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Forbidden */
+			/** @description Access is forbidden. */
 			403: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Not Found */
+			/** @description The server cannot find the requested resource. */
 			404: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Conflict */
+			/** @description The request conflicts with the current state of the server. */
 			409: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Unprocessable Entity */
+			/** @description Client error */
 			422: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Internal Server Error */
+			/** @description Server error */
 			500: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -2801,56 +2775,46 @@ export interface operations {
 			query?: never;
 			header?: never;
 			path: {
-				/** @description Project UUID or slug. */
-				ref: string;
+				ref: components["parameters"]["ProjectRefParam"];
 			};
 			cookie?: never;
 		};
 		requestBody?: never;
 		responses: {
-			/** @description OK */
+			/** @description The request has succeeded. */
 			200: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ListMembersOutputBody"];
+					"application/json": components["schemas"]["ProjectMemberListResponse"];
 				};
 			};
-			/** @description Unauthorized */
+			/** @description Access is unauthorized. */
 			401: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Not Found */
+			/** @description The server cannot find the requested resource. */
 			404: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Unprocessable Entity */
-			422: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
-				};
-			};
-			/** @description Internal Server Error */
+			/** @description Server error */
 			500: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -2860,78 +2824,77 @@ export interface operations {
 			query?: never;
 			header?: never;
 			path: {
-				/** @description Project UUID or slug. */
-				ref: string;
+				ref: components["parameters"]["ProjectRefParam"];
 			};
 			cookie?: never;
 		};
 		requestBody: {
 			content: {
-				"application/json": components["schemas"]["AddMemberInputBody"];
+				"application/json": components["schemas"]["AddProjectMemberRequest"];
 			};
 		};
 		responses: {
-			/** @description Created */
+			/** @description The request has succeeded and a new resource has been created as a result. */
 			201: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["MemberOutputBody"];
+					"application/json": components["schemas"]["ProjectMemberResponse"];
 				};
 			};
-			/** @description Unauthorized */
+			/** @description Access is unauthorized. */
 			401: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Forbidden */
+			/** @description Access is forbidden. */
 			403: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Not Found */
+			/** @description The server cannot find the requested resource. */
 			404: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Conflict */
+			/** @description The request conflicts with the current state of the server. */
 			409: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Unprocessable Entity */
+			/** @description Client error */
 			422: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Internal Server Error */
+			/** @description Server error */
 			500: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -2941,74 +2904,63 @@ export interface operations {
 			query?: never;
 			header?: never;
 			path: {
-				/** @description Project UUID or slug. */
-				ref: string;
-				/** @description User ID. */
-				user_id: string;
+				ref: components["parameters"]["ProjectRefParam"];
+				user_id: components["parameters"]["UserIdPathParam"];
 			};
 			cookie?: never;
 		};
 		requestBody?: never;
 		responses: {
-			/** @description No Content */
+			/** @description There is no content to send for this request, but the headers may be useful. */
 			204: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content?: never;
 			};
-			/** @description Unauthorized */
+			/** @description Access is unauthorized. */
 			401: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Forbidden */
+			/** @description Access is forbidden. */
 			403: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Not Found */
+			/** @description The server cannot find the requested resource. */
 			404: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Conflict */
+			/** @description The request conflicts with the current state of the server. */
 			409: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Unprocessable Entity */
-			422: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
-				};
-			};
-			/** @description Internal Server Error */
+			/** @description Server error */
 			500: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -3018,80 +2970,78 @@ export interface operations {
 			query?: never;
 			header?: never;
 			path: {
-				/** @description Project UUID or slug. */
-				ref: string;
-				/** @description User ID. */
-				user_id: string;
+				ref: components["parameters"]["ProjectRefParam"];
+				user_id: components["parameters"]["UserIdPathParam"];
 			};
 			cookie?: never;
 		};
 		requestBody: {
 			content: {
-				"application/json": components["schemas"]["UpdateMemberRoleInputBody"];
+				"application/json": components["schemas"]["UpdateProjectMemberRoleRequest"];
 			};
 		};
 		responses: {
-			/** @description OK */
+			/** @description The request has succeeded. */
 			200: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["MemberOutputBody"];
+					"application/json": components["schemas"]["ProjectMemberResponse"];
 				};
 			};
-			/** @description Unauthorized */
+			/** @description Access is unauthorized. */
 			401: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Forbidden */
+			/** @description Access is forbidden. */
 			403: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Not Found */
+			/** @description The server cannot find the requested resource. */
 			404: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Conflict */
+			/** @description The request conflicts with the current state of the server. */
 			409: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Unprocessable Entity */
+			/** @description Client error */
 			422: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Internal Server Error */
+			/** @description Server error */
 			500: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -3101,56 +3051,55 @@ export interface operations {
 			query?: never;
 			header?: never;
 			path: {
-				/** @description Project UUID or slug. */
-				ref: string;
+				ref: components["parameters"]["ProjectRefParam"];
 			};
 			cookie?: never;
 		};
 		requestBody?: never;
 		responses: {
-			/** @description OK */
+			/** @description The request has succeeded. */
 			200: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ListProbesOutputBody"];
+					"application/json": components["schemas"]["ProbeListResponse"];
 				};
 			};
-			/** @description Unauthorized */
+			/** @description Access is unauthorized. */
 			401: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Not Found */
+			/** @description The server cannot find the requested resource. */
 			404: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Unprocessable Entity */
+			/** @description Client error */
 			422: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Internal Server Error */
+			/** @description Server error */
 			500: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -3160,69 +3109,68 @@ export interface operations {
 			query?: never;
 			header?: never;
 			path: {
-				/** @description Project UUID or slug. */
-				ref: string;
+				ref: components["parameters"]["ProjectRefParam"];
 			};
 			cookie?: never;
 		};
 		requestBody: {
 			content: {
-				"application/json": components["schemas"]["CreateProbeInputBody"];
+				"application/json": components["schemas"]["CreateProbeRequest"];
 			};
 		};
 		responses: {
-			/** @description Created */
+			/** @description The request has succeeded and a new resource has been created as a result. */
 			201: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["CreateProbeOutputBody"];
+					"application/json": components["schemas"]["ProbeSecretResponse"];
 				};
 			};
-			/** @description Unauthorized */
+			/** @description Access is unauthorized. */
 			401: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Forbidden */
+			/** @description Access is forbidden. */
 			403: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Not Found */
+			/** @description The server cannot find the requested resource. */
 			404: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Unprocessable Entity */
+			/** @description Client error */
 			422: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Internal Server Error */
+			/** @description Server error */
 			500: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -3232,58 +3180,56 @@ export interface operations {
 			query?: never;
 			header?: never;
 			path: {
-				/** @description Project UUID or slug. */
-				ref: string;
-				/** @description Probe ID. */
-				probe_id: string;
+				ref: components["parameters"]["ProjectRefParam"];
+				probe_id: components["parameters"]["ProbeIdPathParam"];
 			};
 			cookie?: never;
 		};
 		requestBody?: never;
 		responses: {
-			/** @description OK */
+			/** @description The request has succeeded. */
 			200: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProbeOutputBody"];
+					"application/json": components["schemas"]["ProbeResponse"];
 				};
 			};
-			/** @description Unauthorized */
+			/** @description Access is unauthorized. */
 			401: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Not Found */
+			/** @description The server cannot find the requested resource. */
 			404: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Unprocessable Entity */
+			/** @description Client error */
 			422: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Internal Server Error */
+			/** @description Server error */
 			500: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -3293,65 +3239,63 @@ export interface operations {
 			query?: never;
 			header?: never;
 			path: {
-				/** @description Project UUID or slug. */
-				ref: string;
-				/** @description Probe ID. */
-				probe_id: string;
+				ref: components["parameters"]["ProjectRefParam"];
+				probe_id: components["parameters"]["ProbeIdPathParam"];
 			};
 			cookie?: never;
 		};
 		requestBody?: never;
 		responses: {
-			/** @description No Content */
+			/** @description There is no content to send for this request, but the headers may be useful. */
 			204: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content?: never;
 			};
-			/** @description Unauthorized */
+			/** @description Access is unauthorized. */
 			401: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Forbidden */
+			/** @description Access is forbidden. */
 			403: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Not Found */
+			/** @description The server cannot find the requested resource. */
 			404: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Unprocessable Entity */
+			/** @description Client error */
 			422: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Internal Server Error */
+			/** @description Server error */
 			500: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -3361,71 +3305,69 @@ export interface operations {
 			query?: never;
 			header?: never;
 			path: {
-				/** @description Project UUID or slug. */
-				ref: string;
-				/** @description Probe ID. */
-				probe_id: string;
+				ref: components["parameters"]["ProjectRefParam"];
+				probe_id: components["parameters"]["ProbeIdPathParam"];
 			};
 			cookie?: never;
 		};
 		requestBody: {
 			content: {
-				"application/json": components["schemas"]["UpdateProbeInputBody"];
+				"application/json": components["schemas"]["UpdateProbeRequest"];
 			};
 		};
 		responses: {
-			/** @description OK */
+			/** @description The request has succeeded. */
 			200: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProbeOutputBody"];
+					"application/json": components["schemas"]["ProbeResponse"];
 				};
 			};
-			/** @description Unauthorized */
+			/** @description Access is unauthorized. */
 			401: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Forbidden */
+			/** @description Access is forbidden. */
 			403: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Not Found */
+			/** @description The server cannot find the requested resource. */
 			404: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Unprocessable Entity */
+			/** @description Client error */
 			422: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Internal Server Error */
+			/** @description Server error */
 			500: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -3435,67 +3377,65 @@ export interface operations {
 			query?: never;
 			header?: never;
 			path: {
-				/** @description Project UUID or slug. */
-				ref: string;
-				/** @description Probe ID. */
-				probe_id: string;
+				ref: components["parameters"]["ProjectRefParam"];
+				probe_id: components["parameters"]["ProbeIdPathParam"];
 			};
 			cookie?: never;
 		};
 		requestBody?: never;
 		responses: {
-			/** @description OK */
+			/** @description The request has succeeded. */
 			200: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["RotateSecretOutputBody"];
+					"application/json": components["schemas"]["ProbeSecretResponse"];
 				};
 			};
-			/** @description Unauthorized */
+			/** @description Access is unauthorized. */
 			401: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Forbidden */
+			/** @description Access is forbidden. */
 			403: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Not Found */
+			/** @description The server cannot find the requested resource. */
 			404: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Unprocessable Entity */
+			/** @description Client error */
 			422: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Internal Server Error */
+			/** @description Server error */
 			500: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -3503,71 +3443,64 @@ export interface operations {
 	queryProjectPingResultSeries: {
 		parameters: {
 			query: {
-				/** @description Probe ID to query. */
-				probeId: string;
-				/** @description Check ID to query. */
-				checkId: string;
-				/** @description Inclusive range start as epoch milliseconds. */
-				from?: number;
-				/** @description Exclusive range end as epoch milliseconds. */
-				to?: number;
-				/** @description Ping metric to aggregate: rttAvgMs, lossPercent, or successRate. */
-				metric?: string;
-				/** @description Maximum target points per series. */
-				maxDataPoints?: number;
+				probeId: components["parameters"]["PingSeriesQuery.probeId"];
+				checkId: components["parameters"]["PingSeriesQuery.checkId"];
+				from?: components["parameters"]["PingSeriesQuery.from"];
+				to?: components["parameters"]["PingSeriesQuery.to"];
+				metric: components["parameters"]["PingSeriesQuery.metric"];
+				maxDataPoints?: components["parameters"]["PingSeriesQuery.maxDataPoints"];
 			};
 			header?: never;
 			path: {
-				/** @description Project ID or slug. */
-				ref: string;
+				ref: components["parameters"]["ProjectRefParam"];
 			};
 			cookie?: never;
 		};
 		requestBody?: never;
 		responses: {
-			/** @description OK */
+			/** @description The request has succeeded. */
 			200: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["QueryPingSeriesBody"];
+					"application/json": components["schemas"]["PingSeriesResponse"];
 				};
 			};
-			/** @description Unauthorized */
+			/** @description Access is unauthorized. */
 			401: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Not Found */
+			/** @description The server cannot find the requested resource. */
 			404: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Unprocessable Entity */
+			/** @description Client error */
 			422: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Internal Server Error */
+			/** @description Server error */
 			500: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -3575,71 +3508,64 @@ export interface operations {
 	queryProjectTracerouteResultRuns: {
 		parameters: {
 			query: {
-				/** @description Probe ID to query. */
-				probeId: string;
-				/** @description Check ID to query. */
-				checkId: string;
-				/** @description Inclusive range start as epoch milliseconds. */
-				from?: number;
-				/** @description Exclusive range end as epoch milliseconds. */
-				to?: number;
-				/** @description Maximum traceroute runs to return. */
-				limit?: number;
-				/** @description Pagination cursor as a run startedAt epoch millisecond timestamp. */
-				cursor?: number;
+				probeId: components["parameters"]["TracerouteRunsQuery.probeId"];
+				checkId: components["parameters"]["TracerouteRunsQuery.checkId"];
+				from?: components["parameters"]["TracerouteRunsQuery.from"];
+				to?: components["parameters"]["TracerouteRunsQuery.to"];
+				limit?: components["parameters"]["TracerouteRunsQuery.limit"];
+				cursor?: components["parameters"]["TracerouteRunsQuery.cursor"];
 			};
 			header?: never;
 			path: {
-				/** @description Project ID or slug. */
-				ref: string;
+				ref: components["parameters"]["ProjectRefParam"];
 			};
 			cookie?: never;
 		};
 		requestBody?: never;
 		responses: {
-			/** @description OK */
+			/** @description The request has succeeded. */
 			200: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["QueryTracerouteRunsBody"];
+					"application/json": components["schemas"]["TracerouteRunsResponse"];
 				};
 			};
-			/** @description Unauthorized */
+			/** @description Access is unauthorized. */
 			401: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Not Found */
+			/** @description The server cannot find the requested resource. */
 			404: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Unprocessable Entity */
+			/** @description Client error */
 			422: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Internal Server Error */
+			/** @description Server error */
 			500: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -3649,65 +3575,64 @@ export interface operations {
 			query?: never;
 			header?: never;
 			path: {
-				/** @description Probe ID. */
-				probe_id: string;
+				probe_id: components["parameters"]["ProbeIdPathParam"];
 			};
 			cookie?: never;
 		};
 		requestBody?: never;
 		responses: {
-			/** @description OK */
+			/** @description The request has succeeded. */
 			200: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["AssignmentsOutputBody"];
+					"application/json": components["schemas"]["RuntimeAssignmentsResponse"];
 				};
 			};
-			/** @description Unauthorized */
+			/** @description Access is unauthorized. */
 			401: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Forbidden */
+			/** @description Access is forbidden. */
 			403: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Not Found */
+			/** @description The server cannot find the requested resource. */
 			404: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Unprocessable Entity */
+			/** @description Client error */
 			422: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Internal Server Error */
+			/** @description Server error */
 			500: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -3717,69 +3642,68 @@ export interface operations {
 			query?: never;
 			header?: never;
 			path: {
-				/** @description Probe ID. */
-				probe_id: string;
+				probe_id: components["parameters"]["ProbeIdPathParam"];
 			};
 			cookie?: never;
 		};
 		requestBody: {
 			content: {
-				"application/json": components["schemas"]["RuntimeStatusBody"];
+				"application/json": components["schemas"]["RuntimeStatusRequest"];
 			};
 		};
 		responses: {
-			/** @description OK */
+			/** @description The request has succeeded. */
 			200: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["HeartbeatOutputBody"];
+					"application/json": components["schemas"]["RuntimeHeartbeatResponse"];
 				};
 			};
-			/** @description Unauthorized */
+			/** @description Access is unauthorized. */
 			401: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Forbidden */
+			/** @description Access is forbidden. */
 			403: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Not Found */
+			/** @description The server cannot find the requested resource. */
 			404: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Unprocessable Entity */
+			/** @description Client error */
 			422: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Internal Server Error */
+			/** @description Server error */
 			500: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -3789,65 +3713,64 @@ export interface operations {
 			query?: never;
 			header?: never;
 			path: {
-				/** @description Probe ID. */
-				probe_id: string;
+				probe_id: components["parameters"]["ProbeIdPathParam"];
 			};
 			cookie?: never;
 		};
 		requestBody?: never;
 		responses: {
-			/** @description OK */
+			/** @description The request has succeeded. */
 			200: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["HelloOutputBody"];
+					"application/json": components["schemas"]["RuntimeHelloResponse"];
 				};
 			};
-			/** @description Unauthorized */
+			/** @description Access is unauthorized. */
 			401: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Forbidden */
+			/** @description Access is forbidden. */
 			403: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Not Found */
+			/** @description The server cannot find the requested resource. */
 			404: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Unprocessable Entity */
+			/** @description Client error */
 			422: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Internal Server Error */
+			/** @description Server error */
 			500: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -3857,69 +3780,68 @@ export interface operations {
 			query?: never;
 			header?: never;
 			path: {
-				/** @description Probe ID. */
-				probe_id: string;
+				probe_id: components["parameters"]["ProbeIdPathParam"];
 			};
 			cookie?: never;
 		};
 		requestBody: {
 			content: {
-				"application/json": components["schemas"]["SubmitResultsBody"];
+				"application/json": components["schemas"]["SubmitResultsRequest"];
 			};
 		};
 		responses: {
-			/** @description OK */
+			/** @description The request has succeeded. */
 			200: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["SubmitResultsOutputBody"];
+					"application/json": components["schemas"]["SubmitResultsResponse"];
 				};
 			};
-			/** @description Unauthorized */
+			/** @description Access is unauthorized. */
 			401: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Forbidden */
+			/** @description Access is forbidden. */
 			403: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Not Found */
+			/** @description The server cannot find the requested resource. */
 			404: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Unprocessable Entity */
+			/** @description Client error */
 			422: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description Internal Server Error */
+			/** @description Server error */
 			500: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/problem+json": components["schemas"]["ErrorModel"];
+					"application/json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};

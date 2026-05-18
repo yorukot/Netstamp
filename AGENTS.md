@@ -5,6 +5,7 @@
 Netstamp is a pnpm workspace with a Go backend and React/Vite frontend. Use this root guide for repository-wide orientation only. Before making task-specific changes, read the closest area guide:
 
 - Backend, database, migrations, logging, or API work: read `server/AGENTS.md`.
+- API contract or OpenAPI generation work: read `api/AGENTS.md`.
 - Web app, shared UI package, client styling, or browser behavior work: read `web/AGENTS.md`.
 - Visual design, layout, product UI, or styling direction work: read `design.md`.
 
@@ -13,6 +14,7 @@ Only proceed from root guidance when the task is clearly limited to workspace me
 ## Project Structure
 
 - `server/`: Go backend module with controller/probe commands in `cmd/`, private code in `internal/`, SQL and migrations in `db/`.
+- `api/`: TypeSpec API contract that emits `docs/public/openapi.json`.
 - `web/`: React 19 + Vite app source in `web/src/`.
 - `packages/ui/`: shared React UI components and design tokens exported as `@netstamp/ui`.
 - `docs/`: Astro public site and Markdown documentation. The docs build also publishes static Storybook output for shared UI components.
@@ -26,7 +28,7 @@ Only proceed from root guidance when the task is clearly limited to workspace me
 - `just web-dev` or `pnpm dev:web`: start the Vite web app.
 - `just docs-dev` or `pnpm dev:docs`: start the documentation site.
 - `pnpm dev:storybook`: start Storybook for `@netstamp/ui` components.
-- `pnpm generate:openapi`: regenerate `docs/public/openapi.json` from backend Huma routes and `web/src/shared/api/openapi.d.ts` from that contract.
+- `pnpm generate:openapi`: regenerate `docs/public/openapi.json` from TypeSpec and `web/src/shared/api/openapi.d.ts` from that contract.
 - `just build`: build backend, web, and docs.
 - `just test`: run available tests, currently backend tests.
 - `just lint`: run web ESLint and backend linting.

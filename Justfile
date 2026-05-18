@@ -1,6 +1,7 @@
 set dotenv-load := true
 
 server_dir := "server"
+api_filter := "@netstamp/api"
 web_filter := "@netstamp/web"
 docs_filter := "@netstamp/docs"
 ui_filter := "@netstamp/ui"
@@ -24,8 +25,8 @@ install:
 format:
     pnpm format
 
-# Build all runnable surfaces.
-build: docs-build web-build backend-build
+# Build all runnable surfaces and check the API contract.
+build: api-build docs-build web-build backend-build
 
 # Lint all available targets.
 lint: web-lint backend-lint
@@ -38,6 +39,16 @@ clean:
     rm -rf docs/dist web/dist server/bin server/tmp server/coverage.out
 
 # Documentation
+
+# Build the TypeSpec API contract.
+api-build:
+    pnpm --filter {{ api_filter }} build
+
+# Generate OpenAPI JSON from the TypeSpec API contract and refresh web API types.
+api-openapi:
+    pnpm --filter {{ api_filter }} generate:openapi
+    pnpm --filter {{ web_filter }} generate:api-types
+    pnpm exec prettier --write docs/public/openapi.json web/src/shared/api/openapi.d.ts
 
 # Build the shared UI package.
 ui-build:
@@ -98,10 +109,7 @@ backend-probe env_file="probe.env": backend-build
     cd {{ server_dir }} && sh -c 'set -a && . "./{{ env_file }}" && set +a && ./bin/agent'
 
 # Generate OpenAPI JSON for the docs explorer and web API types.
-backend-openapi:
-    cd {{ server_dir }} && go run ./cmd/openapi -output ../docs/public/openapi.json
-    pnpm --filter {{ web_filter }} generate:api-types
-    pnpm exec prettier --write docs/public/openapi.json web/src/shared/api/openapi.d.ts
+backend-openapi: api-openapi
 
 # Run backend tests.
 backend-test:
