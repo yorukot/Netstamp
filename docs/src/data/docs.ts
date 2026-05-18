@@ -1,3 +1,5 @@
+import { getCollection, type CollectionEntry } from "astro:content";
+
 export type DocIcon = "activity" | "api" | "bolt" | "book" | "code" | "compass" | "cube" | "database" | "deployment" | "key" | "map" | "route" | "server" | "shield" | "terminal" | "users" | "wrench";
 
 export interface DocNavItem {
@@ -25,17 +27,7 @@ export interface SearchEntry extends DocNavItem {
 
 export const githubBaseUrl = "https://github.com/yorukot/netstamp/blob/main";
 
-interface DocFrontmatter {
-	title?: string;
-	description?: string;
-	editPath?: string;
-	navTitle?: string;
-	navSection?: string;
-	navOrder?: string;
-	order?: string;
-	icon?: string;
-	draft?: string;
-}
+type DocsEntry = CollectionEntry<"docs">;
 
 const docIconNames = new Set<DocIcon>([
 	"activity",
@@ -63,33 +55,7 @@ const sectionOrder = new Map([
 	["Reference", 20]
 ]);
 
-const docFiles = import.meta.glob<string>("../content/docs/**/*.mdx", {
-	eager: true,
-	import: "default",
-	query: "?raw"
-});
-
-function cleanFrontmatterValue(value: string) {
-	const trimmed = value.trim();
-	if ((trimmed.startsWith('"') && trimmed.endsWith('"')) || (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
-		return trimmed.slice(1, -1);
-	}
-
-	return trimmed;
-}
-
-function parseFrontmatter(source: string): DocFrontmatter {
-	const match = source.match(/^---\s*\n([\s\S]*?)\n---/);
-	if (!match) return {};
-
-	return match[1].split(/\r?\n/).reduce<DocFrontmatter>((frontmatter, line) => {
-		const entry = line.match(/^([A-Za-z][\w-]*):\s*(.*)$/);
-		if (!entry) return frontmatter;
-
-		frontmatter[entry[1] as keyof DocFrontmatter] = cleanFrontmatterValue(entry[2]);
-		return frontmatter;
-	}, {});
-}
+const docEntries = await getCollection("docs", entry => !entry.data.draft);
 
 function searchContentFromSource(source: string) {
 	return source
@@ -111,16 +77,20 @@ function toTitleCase(value: string) {
 		.join(" ");
 }
 
-function routeFromFilePath(filePath: string) {
-	const route = filePath
-		.replace("../content/docs", "/docs")
-		.replace(/\.mdx$/, "")
-		.replace(/\/index$/, "/");
+function normalizedEntryId(entryId: string) {
+	return entryId.replace(/\.mdx$/, "").replace(/\/index$/, "");
+}
+
+function routeFromEntryId(entryId: string) {
+	const route = `/docs/${normalizedEntryId(entryId)}`.replace(/\.mdx$/, "").replace(/\/index$/, "/");
 	return route.endsWith("/") ? route : `${route}/`;
 }
 
-function editPathFromFilePath(filePath: string) {
-	return filePath.replace("../content/", "docs/src/content/");
+function editPathFromEntry(entry: DocsEntry) {
+	if (entry.data.editPath) return entry.data.editPath;
+	if (entry.filePath?.startsWith("docs/")) return entry.filePath;
+	if (entry.filePath) return `docs/${entry.filePath}`;
+	return `docs/src/content/docs/${entry.id.endsWith(".mdx") ? entry.id : `${entry.id}.mdx`}`;
 }
 
 function fallbackTitleFromHref(href: string) {
@@ -136,7 +106,8 @@ function sectionFromHref(href: string) {
 	return toTitleCase(parts[1] ?? "Docs");
 }
 
-function iconFromFrontmatter(value: string | undefined, href: string): DocIcon {
+function iconFromEntry(entry: DocsEntry, href: string): DocIcon {
+	const value = entry.data.icon;
 	if (value && docIconNames.has(value as DocIcon)) return value as DocIcon;
 	if (href === "/docs/") return "compass";
 	if (href.includes("/guides/")) return "bolt";
@@ -149,30 +120,27 @@ function iconFromFrontmatter(value: string | undefined, href: string): DocIcon {
 	return "book";
 }
 
-function navOrderFromFrontmatter(frontmatter: DocFrontmatter, href: string) {
-	const order = Number(frontmatter.navOrder ?? frontmatter.order);
-	if (Number.isFinite(order)) return order;
+function navOrderFromEntry(entry: DocsEntry, href: string) {
+	const order = entry.data.navOrder ?? entry.data.order;
+	if (typeof order === "number" && Number.isFinite(order)) return order;
 	return href === "/docs/" ? 0 : 100;
 }
 
-export const docsPages: DocPage[] = Object.entries(docFiles)
-	.map(([filePath, source]) => {
-		const frontmatter = parseFrontmatter(source);
-		const href = routeFromFilePath(filePath);
-		const section = frontmatter.navSection ?? sectionFromHref(href);
+export const docsPages: DocPage[] = docEntries
+	.map(entry => {
+		const href = routeFromEntryId(entry.id);
+		const section = entry.data.navSection ?? sectionFromHref(href);
 
 		return {
-			title: frontmatter.navTitle ?? frontmatter.title ?? fallbackTitleFromHref(href),
+			title: entry.data.navTitle ?? entry.data.title ?? fallbackTitleFromHref(href),
 			href,
-			icon: iconFromFrontmatter(frontmatter.icon, href),
-			description: frontmatter.description ?? "Netstamp documentation page.",
+			icon: iconFromEntry(entry, href),
+			description: entry.data.description ?? "Netstamp documentation page.",
 			section,
-			order: navOrderFromFrontmatter(frontmatter, href),
-			editPath: frontmatter.editPath ?? editPathFromFilePath(filePath),
-			draft: frontmatter.draft === "true"
+			order: navOrderFromEntry(entry, href),
+			editPath: editPathFromEntry(entry)
 		};
 	})
-	.filter(page => !page.draft)
 	.sort((a, b) => {
 		const sectionDelta = (sectionOrder.get(a.section) ?? 100) - (sectionOrder.get(b.section) ?? 100) || a.section.localeCompare(b.section);
 		if (sectionDelta) return sectionDelta;
@@ -195,12 +163,12 @@ export const docsNav: DocNavGroup[] = Array.from(
 	}, new Map<string, DocNavItem[]>())
 ).map(([title, items]) => ({ title, items }));
 
-const docSourcesByHref = new Map(Object.entries(docFiles).map(([filePath, source]) => [routeFromFilePath(filePath), source]));
+const docContentByHref = new Map(docEntries.map(entry => [routeFromEntryId(entry.id), entry.body ?? ""]));
 
 export const docsSearchIndex: SearchEntry[] = docsNav.flatMap(group =>
 	group.items.map(item => ({
 		...item,
 		keywords: `${group.title} ${item.title} ${item.description} ${item.href}`.toLowerCase(),
-		content: searchContentFromSource(docSourcesByHref.get(item.href) ?? "")
+		content: searchContentFromSource(docContentByHref.get(item.href) ?? "")
 	}))
 );

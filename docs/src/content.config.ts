@@ -9,6 +9,11 @@ const docs = defineCollection({
 		title: z.string(),
 		description: z.string(),
 		icon: icon.default("book"),
+		editPath: z.string().optional(),
+		navTitle: z.string().optional(),
+		navSection: z.string().optional(),
+		navOrder: z.number().optional(),
+		order: z.number().optional(),
 		draft: z.boolean().optional(),
 		head: z
 			.array(
