@@ -2,7 +2,7 @@ import { type Navigate } from "@/routes/routeTypes";
 import { classNames } from "@/shared/utils/classNames";
 import { Button, Input, PageShell } from "@netstamp/ui";
 import type { FormEvent, KeyboardEvent as ReactKeyboardEvent } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useAuthMock } from "../hooks/useAuthMock";
 import styles from "./OnboardingPage.module.css";
@@ -17,17 +17,10 @@ interface ScriptStep {
 	autoAdvanceAfter?: number;
 }
 
-const scriptSteps: ScriptStep[] = [
-	{ prompt: "netstamp", text: "Nice to meet you, Yoru", autoAdvanceAfter: 180 },
-	{ prompt: "netstamp", text: "Let's create our first team!", autoAdvanceAfter: 760 },
-	{ prompt: "team", text: "How should we call your team?" },
-	{ prompt: "friends", text: "Any friends?" }
-];
-
 const typeDelayMs = 34;
 
 export function OnboardingPage({ navigate }: OnboardingPageProps) {
-	const { submitting, createTeam } = useAuthMock();
+	const { session, loading, submitting, createTeam } = useAuthMock();
 	const [activeStep, setActiveStep] = useState(0);
 	const [typedText, setTypedText] = useState("");
 	const [teamName, setTeamName] = useState("");
@@ -35,13 +28,23 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 	const [createdTeam, setCreatedTeam] = useState("");
 	const teamInputRef = useRef<HTMLInputElement | null>(null);
 	const inviteRefs = useRef<Array<HTMLInputElement | null>>([]);
+	const displayName = session?.user.name.trim() || "there";
+	const scriptSteps = useMemo<ScriptStep[]>(
+		() => [
+			{ prompt: "netstamp", text: `Nice to meet you, ${displayName}`, autoAdvanceAfter: 180 },
+			{ prompt: "netstamp", text: "Let's create our first team!", autoAdvanceAfter: 760 },
+			{ prompt: "team", text: "How should we call your team?" },
+			{ prompt: "friends", text: "Any friends?" }
+		],
+		[displayName]
+	);
 
 	const activeScript = scriptSteps[activeStep];
 	const teamPromptReady = activeStep > 2 || (activeStep === 2 && typedText.length === scriptSteps[2].text.length);
 	const friendsPromptReady = activeStep > 3 || (activeStep === 3 && typedText.length === scriptSteps[3].text.length);
 
 	useEffect(() => {
-		if (!activeScript) {
+		if (!activeScript || loading) {
 			return undefined;
 		}
 
@@ -63,7 +66,7 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 		}
 
 		return undefined;
-	}, [activeScript, typedText]);
+	}, [activeScript, loading, scriptSteps.length, typedText]);
 
 	useEffect(() => {
 		if (!teamPromptReady || activeStep !== 2) {
@@ -159,6 +162,10 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 					.replace(/^-|-$/g, "") || "yoru-team"
 		});
 		setCreatedTeam(normalizedTeamName);
+	}
+
+	if (loading) {
+		return null;
 	}
 
 	return (
