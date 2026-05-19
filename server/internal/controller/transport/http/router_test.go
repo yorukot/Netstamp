@@ -23,10 +23,11 @@ type openAPISnapshot struct {
 }
 
 type securitySchemeSnapshot struct {
-	Type   string `json:"type"`
-	In     string `json:"in"`
-	Name   string `json:"name"`
-	Scheme string `json:"scheme"`
+	Type        string `json:"type"`
+	In          string `json:"in"`
+	Name        string `json:"name"`
+	Scheme      string `json:"scheme"`
+	Description string `json:"description"`
 }
 
 type pathItemSnapshot struct {
@@ -56,6 +57,7 @@ func TestNewRouterServesOpenAPIWithoutRuntimeServices(t *testing.T) {
 	assertOpenAPIOperation(t, spec, http.MethodPost, "/users/me/email-change", "changeCurrentUserEmail")
 	assertOpenAPIOperation(t, spec, http.MethodPost, "/users/me/password-change", "changeCurrentUserPassword")
 	assertOpenAPISessionCookieAuth(t, spec)
+	assertOpenAPIProbeAuth(t, spec)
 	assertOpenAPIOperation(t, spec, http.MethodPost, "/projects", "createProject")
 	assertOpenAPIOperation(t, spec, http.MethodGet, "/projects/{ref}/assignments", "listProjectAssignments")
 	assertOpenAPIOperation(t, spec, http.MethodPost, "/projects/{ref}/checks", "createProjectCheck")
@@ -100,6 +102,39 @@ func assertOpenAPISessionCookieAuth(t *testing.T, spec openAPISnapshot) {
 	}
 	if _, ok := meOperation.Security[0]["SessionCookieAuth"]; !ok {
 		t.Fatalf("expected auth/me to use SessionCookieAuth, got %#v", meOperation.Security)
+	}
+}
+
+func assertOpenAPIProbeAuth(t *testing.T, spec openAPISnapshot) {
+	t.Helper()
+
+	scheme, ok := spec.Components.SecuritySchemes["ProbeAuth"]
+	if !ok {
+		t.Fatal("expected ProbeAuth security scheme")
+	}
+	if scheme.Type != "apiKey" || scheme.In != "header" || scheme.Name != "Authorization" {
+		t.Fatalf("unexpected probe auth security scheme: %#v", scheme)
+	}
+	if !strings.Contains(scheme.Description, "Authorization: Probe <secret>") {
+		t.Fatalf("expected probe auth description to document header value, got %q", scheme.Description)
+	}
+
+	for _, route := range []struct {
+		method string
+		path   string
+	}{
+		{method: http.MethodPost, path: "/runtime/probes/{probe_id}/hello"},
+		{method: http.MethodPost, path: "/runtime/probes/{probe_id}/heartbeat"},
+		{method: http.MethodGet, path: "/runtime/probes/{probe_id}/assignments"},
+		{method: http.MethodPost, path: "/runtime/probes/{probe_id}/results"},
+	} {
+		operation := openAPIOperationForMethod(t, spec, route.method, route.path)
+		if len(operation.Security) != 1 {
+			t.Fatalf("expected %s %s security requirement, got %#v", route.method, route.path, operation.Security)
+		}
+		if _, ok := operation.Security[0]["ProbeAuth"]; !ok {
+			t.Fatalf("expected %s %s to use ProbeAuth, got %#v", route.method, route.path, operation.Security)
+		}
 	}
 }
 
@@ -274,6 +309,15 @@ func performRouterRequestWithHeaders(dep Dependencies, method, path string, head
 func assertOpenAPIOperation(t *testing.T, spec openAPISnapshot, method, path, operationID string) {
 	t.Helper()
 
+	operation := openAPIOperationForMethod(t, spec, method, path)
+	if operation.OperationID != operationID {
+		t.Fatalf("expected %s %s operation ID %q, got %q", method, path, operationID, operation.OperationID)
+	}
+}
+
+func openAPIOperationForMethod(t *testing.T, spec openAPISnapshot, method, path string) *operationSnapshot {
+	t.Helper()
+
 	pathItem, ok := spec.Paths[path]
 	if !ok {
 		t.Fatalf("expected OpenAPI path %q to be registered", path)
@@ -296,9 +340,7 @@ func assertOpenAPIOperation(t *testing.T, spec openAPISnapshot, method, path, op
 	if operation == nil {
 		t.Fatalf("expected %s %s to be registered", method, path)
 	}
-	if operation.OperationID != operationID {
-		t.Fatalf("expected %s %s operation ID %q, got %q", method, path, operationID, operation.OperationID)
-	}
+	return operation
 }
 
 func assertOpenAPIPathAbsent(t *testing.T, spec openAPISnapshot, path string) {

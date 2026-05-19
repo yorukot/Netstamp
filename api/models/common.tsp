@@ -20,9 +20,11 @@ model SessionCookieAuth {
 	name: "netstamp_session";
 }
 
+@doc("Probe runtime credential header. Send the full value as Authorization: Probe <secret>.")
 model ProbeAuth {
-	type: AuthType.http;
-	scheme: "Probe";
+	type: AuthType.apiKey;
+	in: ApiKeyLocation.header;
+	name: "Authorization";
 }
 
 @example(#{ message: "expected required property name to be present", location: "body.name", value: "" })

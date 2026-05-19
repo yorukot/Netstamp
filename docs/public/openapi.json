@@ -5920,8 +5920,10 @@
 				"name": "netstamp_session"
 			},
 			"ProbeAuth": {
-				"type": "http",
-				"scheme": "Probe"
+				"type": "apiKey",
+				"in": "header",
+				"name": "Authorization",
+				"description": "Probe runtime credential header. Send the full value as Authorization: Probe <secret>."
 			}
 		}
 	},
