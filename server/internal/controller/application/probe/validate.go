@@ -8,32 +8,37 @@ import (
 )
 
 func normalizeCreateProbeInput(input CreateProbeInput) (CreateProbeInput, error) {
+	var validation appvalidation.Collector
+
 	projectRef, err := domainproject.VNProjectRef(input.ProjectRef)
 	if err != nil {
-		return CreateProbeInput{}, invalidProbeField("projectRef", err.Error(), input.ProjectRef)
+		validation.AddError("projectRef", err, input.ProjectRef)
 	}
 
 	name, err := domainprobe.VNProbeName(input.Name)
 	if err != nil {
-		return CreateProbeInput{}, invalidProbeField("name", err.Error(), input.Name)
+		validation.AddError("name", err, input.Name)
 	}
 
 	subdivisionCode, err := domainprobe.VNProbeOptionalSubdivisionCode(input.SubdivisionCode)
 	if err != nil {
-		return CreateProbeInput{}, invalidProbeField("subdivisionCode", err.Error(), input.SubdivisionCode)
+		validation.AddError("subdivisionCode", err, input.SubdivisionCode)
 	}
 
 	latitude, longitude, latitudeErr, longitudeErr := domainprobe.VNProbeCoordinates(input.Latitude, input.Longitude)
 	if latitudeErr != nil {
-		return CreateProbeInput{}, invalidProbeField("latitude", latitudeErr.Error(), input.Latitude)
+		validation.AddError("latitude", latitudeErr, input.Latitude)
 	}
 	if longitudeErr != nil {
-		return CreateProbeInput{}, invalidProbeField("longitude", longitudeErr.Error(), input.Longitude)
+		validation.AddError("longitude", longitudeErr, input.Longitude)
 	}
 
 	labelIDs, err := domainlabel.VNLabelIDs(input.LabelIDs)
 	if err != nil {
-		return CreateProbeInput{}, invalidProbeField("labelIds", err.Error(), input.LabelIDs)
+		validation.AddError("labelIds", err, input.LabelIDs)
+	}
+	if err := validation.Err(ErrInvalidInput); err != nil {
+		return CreateProbeInput{}, err
 	}
 
 	enabled := true
@@ -54,13 +59,18 @@ func normalizeCreateProbeInput(input CreateProbeInput) (CreateProbeInput, error)
 }
 
 func normalizeTargetProbeInput(input TargetProbeInput) (TargetProbeInput, error) {
+	var validation appvalidation.Collector
+
 	projectRef, err := domainproject.VNProjectRef(input.ProjectRef)
 	if err != nil {
-		return TargetProbeInput{}, invalidProbeField("projectRef", err.Error(), input.ProjectRef)
+		validation.AddError("projectRef", err, input.ProjectRef)
 	}
 	probeID, err := domainprobe.VNProbeID(input.ProbeID)
 	if err != nil {
-		return TargetProbeInput{}, invalidProbeField("probeId", err.Error(), input.ProbeID)
+		validation.AddError("probeId", err, input.ProbeID)
+	}
+	if err := validation.Err(ErrInvalidInput); err != nil {
+		return TargetProbeInput{}, err
 	}
 
 	return TargetProbeInput{
@@ -71,52 +81,28 @@ func normalizeTargetProbeInput(input TargetProbeInput) (TargetProbeInput, error)
 }
 
 func normalizeUpdateProbeInput(input UpdateProbeInput) (UpdateProbeInput, error) {
+	var validation appvalidation.Collector
+
 	projectRef, err := domainproject.VNProjectRef(input.ProjectRef)
 	if err != nil {
-		return UpdateProbeInput{}, invalidProbeField("projectRef", err.Error(), input.ProjectRef)
+		validation.AddError("projectRef", err, input.ProjectRef)
 	}
 	probeID, err := domainprobe.VNProbeID(input.ProbeID)
 	if err != nil {
-		return UpdateProbeInput{}, invalidProbeField("probeId", err.Error(), input.ProbeID)
+		validation.AddError("probeId", err, input.ProbeID)
 	}
 
-	if !hasUpdateProbeChanges(input) {
-		return UpdateProbeInput{}, invalidProbeField("", "at least one field must be provided", nil)
+	hasChanges := hasUpdateProbeChanges(input)
+	if !hasChanges {
+		validation.Add("", "at least one field must be provided", nil)
+	}
+	if validation.HasErrors() && !hasChanges {
+		return UpdateProbeInput{}, validation.Err(ErrInvalidInput)
 	}
 
-	var output UpdateProbeInput
-
-	if input.Name != nil {
-		name, err := domainprobe.VNProbeName(*input.Name)
-		if err != nil {
-			return UpdateProbeInput{}, invalidProbeField("name", err.Error(), input.Name)
-		}
-		output.Name = &name
-	}
-	if input.SubdivisionCode != nil {
-		subdivisionCode, err := domainprobe.VNProbeOptionalSubdivisionCode(input.SubdivisionCode)
-		if err != nil {
-			return UpdateProbeInput{}, invalidProbeField("subdivisionCode", err.Error(), input.SubdivisionCode)
-		}
-		output.SubdivisionCode = subdivisionCode
-	}
-	if input.Latitude != nil || input.Longitude != nil {
-		latitude, longitude, latitudeErr, longitudeErr := domainprobe.VNProbeCoordinates(input.Latitude, input.Longitude)
-		if latitudeErr != nil {
-			return UpdateProbeInput{}, invalidProbeField("latitude", latitudeErr.Error(), input.Latitude)
-		}
-		if longitudeErr != nil {
-			return UpdateProbeInput{}, invalidProbeField("longitude", longitudeErr.Error(), input.Longitude)
-		}
-		output.Latitude = latitude
-		output.Longitude = longitude
-	}
-	if input.LabelIDs != nil {
-		labelIDs, err := domainlabel.VNLabelIDs(*input.LabelIDs)
-		if err != nil {
-			return UpdateProbeInput{}, invalidProbeField("labelIds", err.Error(), input.LabelIDs)
-		}
-		output.LabelIDs = &labelIDs
+	output := normalizeUpdateProbeFields(input, &validation)
+	if err := validation.Err(ErrInvalidInput); err != nil {
+		return UpdateProbeInput{}, err
 	}
 
 	return UpdateProbeInput{
@@ -130,6 +116,65 @@ func normalizeUpdateProbeInput(input UpdateProbeInput) (UpdateProbeInput, error)
 		Longitude:       output.Longitude,
 		LabelIDs:        output.LabelIDs,
 	}, nil
+}
+
+func normalizeUpdateProbeFields(input UpdateProbeInput, validation *appvalidation.Collector) UpdateProbeInput {
+	var output UpdateProbeInput
+
+	normalizeUpdateProbeName(input.Name, &output, validation)
+	normalizeUpdateProbeLocation(input, &output, validation)
+	normalizeUpdateProbeLabels(input.LabelIDs, &output, validation)
+
+	return output
+}
+
+func normalizeUpdateProbeName(nameInput *string, output *UpdateProbeInput, validation *appvalidation.Collector) {
+	if nameInput == nil {
+		return
+	}
+	name, err := domainprobe.VNProbeName(*nameInput)
+	if err != nil {
+		validation.AddError("name", err, nameInput)
+		return
+	}
+	output.Name = &name
+}
+
+func normalizeUpdateProbeLocation(input UpdateProbeInput, output *UpdateProbeInput, validation *appvalidation.Collector) {
+	if input.SubdivisionCode != nil {
+		subdivisionCode, err := domainprobe.VNProbeOptionalSubdivisionCode(input.SubdivisionCode)
+		if err != nil {
+			validation.AddError("subdivisionCode", err, input.SubdivisionCode)
+		} else {
+			output.SubdivisionCode = subdivisionCode
+		}
+	}
+	if input.Latitude == nil && input.Longitude == nil {
+		return
+	}
+	latitude, longitude, latitudeErr, longitudeErr := domainprobe.VNProbeCoordinates(input.Latitude, input.Longitude)
+	if latitudeErr != nil {
+		validation.AddError("latitude", latitudeErr, input.Latitude)
+	}
+	if longitudeErr != nil {
+		validation.AddError("longitude", longitudeErr, input.Longitude)
+	}
+	if latitudeErr == nil && longitudeErr == nil {
+		output.Latitude = latitude
+		output.Longitude = longitude
+	}
+}
+
+func normalizeUpdateProbeLabels(labelIDsInput *[]string, output *UpdateProbeInput, validation *appvalidation.Collector) {
+	if labelIDsInput == nil {
+		return
+	}
+	labelIDs, err := domainlabel.VNLabelIDs(*labelIDsInput)
+	if err != nil {
+		validation.AddError("labelIds", err, labelIDsInput)
+		return
+	}
+	output.LabelIDs = &labelIDs
 }
 
 func hasUpdateProbeChanges(input UpdateProbeInput) bool {

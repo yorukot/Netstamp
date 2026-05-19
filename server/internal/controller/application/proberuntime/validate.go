@@ -60,6 +60,7 @@ func normalizeSubmitResults(input SubmitResultsInput) (normalizedSubmitResultsIn
 		return normalizedSubmitResultsInput{}, invalidRuntimeField(fieldResults, "must include at least one result group", input.Results)
 	}
 
+	var validation appvalidation.Collector
 	groups := make([]normalizedResultGroup, 0, len(input.Results))
 	checkIDs := make([]string, 0, len(input.Results))
 	seenGroups := map[string]struct{}{}
@@ -69,26 +70,32 @@ func normalizeSubmitResults(input SubmitResultsInput) (normalizedSubmitResultsIn
 	for i, group := range input.Results {
 		normalized, err := normalizeResultGroup(group, i)
 		if err != nil {
-			return normalizedSubmitResultsInput{}, err
+			if !validation.AddValidation(err) {
+				return normalizedSubmitResultsInput{}, err
+			}
+			continue
 		}
 
 		groupKey := normalized.checkID + "\x00" + string(normalized.checkType)
 		if _, ok := seenGroups[groupKey]; ok {
-			return normalizedSubmitResultsInput{}, invalidRuntimeField(resultGroupField(i, "checkId"), "duplicate result group", group.CheckID)
+			validation.Add(resultGroupField(i, "checkId"), "duplicate result group", group.CheckID)
+			continue
 		}
 		seenGroups[groupKey] = struct{}{}
 
 		for j, result := range normalized.ping {
 			resultKey := normalized.checkID + "\x00" + string(normalized.checkType) + "\x00" + result.StartedAt.Format(timeKeyLayout)
 			if _, ok := seenResults[resultKey]; ok {
-				return normalizedSubmitResultsInput{}, invalidRuntimeField(resultGroupField(i, fmt.Sprintf("ping[%d].startedAt", j)), "duplicate result startedAt for check", result.StartedAt)
+				validation.Add(resultGroupField(i, fmt.Sprintf("ping[%d].startedAt", j)), "duplicate result startedAt for check", result.StartedAt)
+				continue
 			}
 			seenResults[resultKey] = struct{}{}
 		}
 		for j, result := range normalized.traceroute {
 			resultKey := normalized.checkID + "\x00" + string(normalized.checkType) + "\x00" + result.StartedAt.Format(timeKeyLayout)
 			if _, ok := seenResults[resultKey]; ok {
-				return normalizedSubmitResultsInput{}, invalidRuntimeField(resultGroupField(i, fmt.Sprintf("traceroute[%d].startedAt", j)), "duplicate result startedAt for check", result.StartedAt)
+				validation.Add(resultGroupField(i, fmt.Sprintf("traceroute[%d].startedAt", j)), "duplicate result startedAt for check", result.StartedAt)
+				continue
 			}
 			seenResults[resultKey] = struct{}{}
 		}
@@ -100,6 +107,9 @@ func normalizeSubmitResults(input SubmitResultsInput) (normalizedSubmitResultsIn
 		accepted += len(normalized.ping) + len(normalized.traceroute)
 		groups = append(groups, normalized)
 	}
+	if err := validation.Err(ErrInvalidInput); err != nil {
+		return normalizedSubmitResultsInput{}, err
+	}
 
 	return normalizedSubmitResultsInput{groups: groups, checkIDs: checkIDs, accepted: accepted}, nil
 }
@@ -107,31 +117,27 @@ func normalizeSubmitResults(input SubmitResultsInput) (normalizedSubmitResultsIn
 const timeKeyLayout = "2006-01-02T15:04:05.999999999Z07:00"
 
 func normalizeResultGroup(input RuntimeResultGroupInput, index int) (normalizedResultGroup, error) {
+	var validation appvalidation.Collector
+
 	checkID, err := domaincheck.VNCheckID(input.CheckID)
 	if err != nil {
-		return normalizedResultGroup{}, invalidRuntimeField(resultGroupField(index, "checkId"), err.Error(), input.CheckID)
+		validation.AddError(resultGroupField(index, "checkId"), err, input.CheckID)
 	}
 
 	checkType := domaincheck.Type(strings.TrimSpace(input.Type))
 	if checkType != domaincheck.TypePing && checkType != domaincheck.TypeTraceroute {
-		return normalizedResultGroup{}, invalidRuntimeField(resultGroupField(index, "type"), "unsupported result type", input.Type)
+		validation.Add(resultGroupField(index, "type"), "unsupported result type", input.Type)
+	}
+	if validation.HasErrors() && checkType != domaincheck.TypePing && checkType != domaincheck.TypeTraceroute {
+		return normalizedResultGroup{}, validation.Err(ErrInvalidInput)
 	}
 
 	switch checkType {
 	case domaincheck.TypePing:
-		if len(input.Ping) == 0 {
-			return normalizedResultGroup{}, invalidRuntimeField(resultGroupField(index, "ping"), "must include at least one ping result", input.Ping)
-		}
-		if len(input.Traceroute) > 0 {
-			return normalizedResultGroup{}, invalidRuntimeField(resultGroupField(index, "traceroute"), "must be omitted for ping results", input.Traceroute)
-		}
-		pingResults := make([]domainping.ResultStorageInput, 0, len(input.Ping))
-		for i, result := range input.Ping {
-			normalized, err := normalizePingResult(result, resultGroupField(index, fmt.Sprintf("ping[%d]", i)))
-			if err != nil {
-				return normalizedResultGroup{}, err
-			}
-			pingResults = append(pingResults, normalized)
+		validateResultGroupShape(&validation, index, "ping", input.Ping, "traceroute", input.Traceroute)
+		pingResults := normalizeRuntimeResults(input.Ping, index, "ping", normalizePingResult, &validation)
+		if err := validation.Err(ErrInvalidInput); err != nil {
+			return normalizedResultGroup{}, err
 		}
 
 		return normalizedResultGroup{
@@ -141,19 +147,10 @@ func normalizeResultGroup(input RuntimeResultGroupInput, index int) (normalizedR
 			index:     index,
 		}, nil
 	case domaincheck.TypeTraceroute:
-		if len(input.Traceroute) == 0 {
-			return normalizedResultGroup{}, invalidRuntimeField(resultGroupField(index, "traceroute"), "must include at least one traceroute result", input.Traceroute)
-		}
-		if len(input.Ping) > 0 {
-			return normalizedResultGroup{}, invalidRuntimeField(resultGroupField(index, "ping"), "must be omitted for traceroute results", input.Ping)
-		}
-		tracerouteResults := make([]domaintraceroute.ResultStorageInput, 0, len(input.Traceroute))
-		for i, result := range input.Traceroute {
-			normalized, err := normalizeTracerouteResult(result, resultGroupField(index, fmt.Sprintf("traceroute[%d]", i)))
-			if err != nil {
-				return normalizedResultGroup{}, err
-			}
-			tracerouteResults = append(tracerouteResults, normalized)
+		validateResultGroupShape(&validation, index, "traceroute", input.Traceroute, "ping", input.Ping)
+		tracerouteResults := normalizeRuntimeResults(input.Traceroute, index, "traceroute", normalizeTracerouteResult, &validation)
+		if err := validation.Err(ErrInvalidInput); err != nil {
+			return normalizedResultGroup{}, err
 		}
 
 		return normalizedResultGroup{
@@ -167,6 +164,30 @@ func normalizeResultGroup(input RuntimeResultGroupInput, index int) (normalizedR
 	}
 }
 
+func validateResultGroupShape[T, O any](validation *appvalidation.Collector, index int, requiredField string, required []T, omittedField string, omitted []O) {
+	if len(required) == 0 {
+		validation.Add(resultGroupField(index, requiredField), "must include at least one "+requiredField+" result", required)
+	}
+	if len(omitted) > 0 {
+		validation.Add(resultGroupField(index, omittedField), "must be omitted for "+requiredField+" results", omitted)
+	}
+}
+
+func normalizeRuntimeResults[T, R any](inputs []T, groupIndex int, field string, normalize func(T, string) (R, error), validation *appvalidation.Collector) []R {
+	outputs := make([]R, 0, len(inputs))
+	for i, input := range inputs {
+		normalized, err := normalize(input, resultGroupField(groupIndex, fmt.Sprintf("%s[%d]", field, i)))
+		if err != nil {
+			if !validation.AddValidation(err) {
+				validation.Add(resultGroupField(groupIndex, fmt.Sprintf("%s[%d]", field, i)), err.Error(), input)
+			}
+			continue
+		}
+		outputs = append(outputs, normalized)
+	}
+	return outputs
+}
+
 func resultGroupField(index int, field string) string {
 	if field == "" {
 		return fmt.Sprintf("results[%d]", index)
@@ -176,25 +197,30 @@ func resultGroupField(index int, field string) string {
 }
 
 func normalizeRuntimeStatus(input RuntimeStatusInput, probeID string) (domainprobe.Status, error) {
+	var validation appvalidation.Collector
+
 	agentVersion, err := domainprobe.VNProbeOptionalAgentVersion(input.AgentVersion)
 	if err != nil {
-		return domainprobe.Status{}, invalidRuntimeField(fieldAgentVersion, err.Error(), input.AgentVersion)
+		validation.AddError(fieldAgentVersion, err, input.AgentVersion)
 	}
 	publicV4, err := domainprobe.VNProbePublicV4(input.PublicV4)
 	if err != nil {
-		return domainprobe.Status{}, invalidRuntimeField(fieldPublicV4, err.Error(), input.PublicV4)
+		validation.AddError(fieldPublicV4, err, input.PublicV4)
 	}
 	publicV6, err := domainprobe.VNProbePublicV6(input.PublicV6)
 	if err != nil {
-		return domainprobe.Status{}, invalidRuntimeField(fieldPublicV6, err.Error(), input.PublicV6)
+		validation.AddError(fieldPublicV6, err, input.PublicV6)
 	}
 	as, err := domainprobe.VNProbeOptionalAS(input.AS)
 	if err != nil {
-		return domainprobe.Status{}, invalidRuntimeField(fieldAS, err.Error(), input.AS)
+		validation.AddError(fieldAS, err, input.AS)
 	}
 	addrs, err := domainprobe.VNProbeAddrs(input.Addrs)
 	if err != nil {
-		return domainprobe.Status{}, invalidRuntimeField(fieldAddrs, err.Error(), input.Addrs)
+		validation.AddError(fieldAddrs, err, input.Addrs)
+	}
+	if err := validation.Err(ErrInvalidInput); err != nil {
+		return domainprobe.Status{}, err
 	}
 
 	return domainprobe.Status{

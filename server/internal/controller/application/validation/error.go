@@ -8,6 +8,10 @@ type FieldError struct {
 	Value   any
 }
 
+type Collector struct {
+	fields []FieldError
+}
+
 type Error struct {
 	base   error
 	fields []FieldError
@@ -29,6 +33,48 @@ func NewFields(base error, fields ...FieldError) error {
 		base:   base,
 		fields: copied,
 	}
+}
+
+func (c *Collector) Add(field, message string, value any) {
+	c.fields = append(c.fields, FieldError{
+		Field:   field,
+		Message: message,
+		Value:   value,
+	})
+}
+
+func (c *Collector) AddFields(fields ...FieldError) {
+	c.fields = append(c.fields, fields...)
+}
+
+func (c *Collector) AddError(field string, err error, value any) {
+	if err == nil {
+		return
+	}
+
+	c.Add(field, err.Error(), value)
+}
+
+func (c *Collector) AddValidation(err error) bool {
+	fields, ok := FieldErrors(err)
+	if !ok {
+		return false
+	}
+
+	c.AddFields(fields...)
+	return true
+}
+
+func (c *Collector) HasErrors() bool {
+	return len(c.fields) > 0
+}
+
+func (c *Collector) Err(base error) error {
+	if !c.HasErrors() {
+		return nil
+	}
+
+	return NewFields(base, c.fields...)
 }
 
 func FieldErrors(err error) ([]FieldError, bool) {

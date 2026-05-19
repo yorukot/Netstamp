@@ -4,6 +4,7 @@ import (
 	"net/netip"
 	"time"
 
+	appvalidation "github.com/yorukot/netstamp/internal/controller/application/validation"
 	domainnetwork "github.com/yorukot/netstamp/internal/domain/network"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 )
@@ -36,7 +37,15 @@ type normalizedPingMetadata struct {
 	errorMessage *string
 }
 
+type normalizedResultMetadata struct {
+	ipFamily     *domainnetwork.IPFamily
+	errorCode    *string
+	errorMessage *string
+}
+
 func normalizePingResult(input PingResultInput, fieldPrefix string) (domainping.ResultStorageInput, error) {
+	var validation appvalidation.Collector
+
 	timing, err := normalizeResultTiming(
 		input.StartedAt,
 		input.FinishedAt,
@@ -45,11 +54,15 @@ func normalizePingResult(input PingResultInput, fieldPrefix string) (domainping.
 		domainping.VNResultDurationMs,
 	)
 	if err != nil {
-		return domainping.ResultStorageInput{}, err
+		if !validation.AddValidation(err) {
+			return domainping.ResultStorageInput{}, err
+		}
 	}
 	counts, err := normalizePingCounts(input, fieldPrefix)
 	if err != nil {
-		return domainping.ResultStorageInput{}, err
+		if !validation.AddValidation(err) {
+			return domainping.ResultStorageInput{}, err
+		}
 	}
 	rtt, err := normalizeResultRTT(
 		input.RttMinMs,
@@ -63,10 +76,17 @@ func normalizePingResult(input PingResultInput, fieldPrefix string) (domainping.
 		domainping.VNResultRTTSamples,
 	)
 	if err != nil {
-		return domainping.ResultStorageInput{}, err
+		if !validation.AddValidation(err) {
+			return domainping.ResultStorageInput{}, err
+		}
 	}
 	metadata, err := normalizePingMetadata(input, fieldPrefix)
 	if err != nil {
+		if !validation.AddValidation(err) {
+			return domainping.ResultStorageInput{}, err
+		}
+	}
+	if err := validation.Err(ErrInvalidInput); err != nil {
 		return domainping.ResultStorageInput{}, err
 	}
 
@@ -92,21 +112,29 @@ func normalizePingResult(input PingResultInput, fieldPrefix string) (domainping.
 }
 
 func normalizePingCounts(input PingResultInput, fieldPrefix string) (normalizedPingCounts, error) {
+	var validation appvalidation.Collector
+
 	status, err := domainping.VNResultStatus(domainping.Status(input.Status))
 	if err != nil {
-		return normalizedPingCounts{}, invalidRuntimeField(resultField(fieldPrefix, "status"), err.Error(), input.Status)
+		validation.AddError(resultField(fieldPrefix, "status"), err, input.Status)
 	}
 	sentCount, err := domainping.VNResultSentCount(input.SentCount)
 	if err != nil {
-		return normalizedPingCounts{}, invalidRuntimeField(resultField(fieldPrefix, "sentCount"), err.Error(), input.SentCount)
+		validation.AddError(resultField(fieldPrefix, "sentCount"), err, input.SentCount)
 	}
-	receivedCount, err := domainping.VNResultReceivedCount(input.ReceivedCount, sentCount)
-	if err != nil {
-		return normalizedPingCounts{}, invalidRuntimeField(resultField(fieldPrefix, "receivedCount"), err.Error(), input.ReceivedCount)
+	var receivedCount int32
+	if err == nil {
+		receivedCount, err = domainping.VNResultReceivedCount(input.ReceivedCount, sentCount)
+		if err != nil {
+			validation.AddError(resultField(fieldPrefix, "receivedCount"), err, input.ReceivedCount)
+		}
 	}
 	lossPercent, err := domainping.VNResultLossPercent(input.LossPercent)
 	if err != nil {
-		return normalizedPingCounts{}, invalidRuntimeField(resultField(fieldPrefix, "lossPercent"), err.Error(), input.LossPercent)
+		validation.AddError(resultField(fieldPrefix, "lossPercent"), err, input.LossPercent)
+	}
+	if err := validation.Err(ErrInvalidInput); err != nil {
+		return normalizedPingCounts{}, err
 	}
 
 	return normalizedPingCounts{
@@ -118,20 +146,31 @@ func normalizePingCounts(input PingResultInput, fieldPrefix string) (normalizedP
 }
 
 func normalizeResultTiming(startedAtInput, finishedAtInput time.Time, durationMsInput int32, fieldPrefix string, validateDuration func(int32) (int32, error)) (normalizedResultTiming, error) {
+	var validation appvalidation.Collector
+
 	startedAt, err := normalizeResultTimestamp(startedAtInput, resultField(fieldPrefix, "startedAt"))
 	if err != nil {
-		return normalizedResultTiming{}, err
+		if !validation.AddValidation(err) {
+			return normalizedResultTiming{}, err
+		}
 	}
+	startedAtValid := err == nil
 	finishedAt, err := normalizeResultTimestamp(finishedAtInput, resultField(fieldPrefix, "finishedAt"))
 	if err != nil {
-		return normalizedResultTiming{}, err
+		if !validation.AddValidation(err) {
+			return normalizedResultTiming{}, err
+		}
 	}
-	if finishedAt.Before(startedAt) {
-		return normalizedResultTiming{}, invalidRuntimeField(resultField(fieldPrefix, "finishedAt"), "must be greater than or equal to startedAt", finishedAtInput)
+	finishedAtValid := err == nil
+	if startedAtValid && finishedAtValid && finishedAt.Before(startedAt) {
+		validation.Add(resultField(fieldPrefix, "finishedAt"), "must be greater than or equal to startedAt", finishedAtInput)
 	}
 	durationMs, err := validateDuration(durationMsInput)
 	if err != nil {
-		return normalizedResultTiming{}, invalidRuntimeField(resultField(fieldPrefix, "durationMs"), err.Error(), durationMsInput)
+		validation.AddError(resultField(fieldPrefix, "durationMs"), err, durationMsInput)
+	}
+	if err := validation.Err(ErrInvalidInput); err != nil {
+		return normalizedResultTiming{}, err
 	}
 
 	return normalizedResultTiming{
@@ -149,33 +188,50 @@ func normalizeResultTimestamp(input time.Time, field string) (time.Time, error) 
 }
 
 func normalizeResultRTT(rttMinInput, rttAvgInput, rttMedianInput, rttMaxInput, rttStddevInput *float64, samplesInput []float64, fieldPrefix string, normalizeOptional func(*float64, string) (*float64, error), validateSamples func([]float64) ([]float64, error)) (normalizedResultRTT, error) {
+	var validation appvalidation.Collector
+
 	rttMin, err := normalizeOptional(rttMinInput, resultField(fieldPrefix, "rttMinMs"))
 	if err != nil {
-		return normalizedResultRTT{}, err
+		if !validation.AddValidation(err) {
+			return normalizedResultRTT{}, err
+		}
 	}
 	rttAvg, err := normalizeOptional(rttAvgInput, resultField(fieldPrefix, "rttAvgMs"))
 	if err != nil {
-		return normalizedResultRTT{}, err
+		if !validation.AddValidation(err) {
+			return normalizedResultRTT{}, err
+		}
 	}
 	rttMedian, err := normalizeOptional(rttMedianInput, resultField(fieldPrefix, "rttMedianMs"))
 	if err != nil {
-		return normalizedResultRTT{}, err
+		if !validation.AddValidation(err) {
+			return normalizedResultRTT{}, err
+		}
 	}
 	rttMax, err := normalizeOptional(rttMaxInput, resultField(fieldPrefix, "rttMaxMs"))
 	if err != nil {
-		return normalizedResultRTT{}, err
+		if !validation.AddValidation(err) {
+			return normalizedResultRTT{}, err
+		}
 	}
 	rttStddev, err := normalizeOptional(rttStddevInput, resultField(fieldPrefix, "rttStddevMs"))
 	if err != nil {
-		return normalizedResultRTT{}, err
+		if !validation.AddValidation(err) {
+			return normalizedResultRTT{}, err
+		}
 	}
 	err = validateRTTOrder(rttMin, rttAvg, rttMax, fieldPrefix)
 	if err != nil {
-		return normalizedResultRTT{}, err
+		if !validation.AddValidation(err) {
+			return normalizedResultRTT{}, err
+		}
 	}
 	rttSamples, err := validateSamples(samplesInput)
 	if err != nil {
-		return normalizedResultRTT{}, invalidRuntimeField(resultField(fieldPrefix, "rttSamplesMs"), err.Error(), samplesInput)
+		validation.AddError(resultField(fieldPrefix, "rttSamplesMs"), err, samplesInput)
+	}
+	if err := validation.Err(ErrInvalidInput); err != nil {
+		return normalizedResultRTT{}, err
 	}
 
 	return normalizedResultRTT{
@@ -189,20 +245,38 @@ func normalizeResultRTT(rttMinInput, rttAvgInput, rttMedianInput, rttMaxInput, r
 }
 
 func normalizePingMetadata(input PingResultInput, fieldPrefix string) (normalizedPingMetadata, error) {
-	ipFamily, err := domainnetwork.ParseOptionalIPFamily(input.IPFamily)
-	if err != nil {
-		return normalizedPingMetadata{}, invalidRuntimeField(resultField(fieldPrefix, "ipFamily"), `must be "inet" or "inet6"`, input.IPFamily)
-	}
-	errorCode, err := normalizeOptionalResultText(input.ErrorCode, resultField(fieldPrefix, "errorCode"))
-	if err != nil {
-		return normalizedPingMetadata{}, err
-	}
-	errorMessage, err := normalizeOptionalResultText(input.ErrorMessage, resultField(fieldPrefix, "errorMessage"))
+	metadata, err := normalizeResultMetadata(input.IPFamily, input.ErrorCode, input.ErrorMessage, fieldPrefix, normalizeOptionalResultText)
 	if err != nil {
 		return normalizedPingMetadata{}, err
 	}
 
-	return normalizedPingMetadata{
+	return normalizedPingMetadata(metadata), nil
+}
+
+func normalizeResultMetadata(ipFamilyInput, errorCodeInput, errorMessageInput *string, fieldPrefix string, normalizeText func(*string, string) (*string, error)) (normalizedResultMetadata, error) {
+	var validation appvalidation.Collector
+
+	ipFamily, err := domainnetwork.ParseOptionalIPFamily(ipFamilyInput)
+	if err != nil {
+		validation.Add(resultField(fieldPrefix, "ipFamily"), `must be "inet" or "inet6"`, ipFamilyInput)
+	}
+	errorCode, err := normalizeText(errorCodeInput, resultField(fieldPrefix, "errorCode"))
+	if err != nil {
+		if !validation.AddValidation(err) {
+			return normalizedResultMetadata{}, err
+		}
+	}
+	errorMessage, err := normalizeText(errorMessageInput, resultField(fieldPrefix, "errorMessage"))
+	if err != nil {
+		if !validation.AddValidation(err) {
+			return normalizedResultMetadata{}, err
+		}
+	}
+	if err := validation.Err(ErrInvalidInput); err != nil {
+		return normalizedResultMetadata{}, err
+	}
+
+	return normalizedResultMetadata{
 		ipFamily:     ipFamily,
 		errorCode:    errorCode,
 		errorMessage: errorMessage,
@@ -226,17 +300,19 @@ func normalizeOptionalResultText(input *string, field string) (*string, error) {
 }
 
 func validateRTTOrder(minValue, avgValue, maxValue *float64, fieldPrefix string) error {
+	var validation appvalidation.Collector
+
 	if minValue != nil && maxValue != nil && *minValue > *maxValue {
-		return invalidRuntimeField(resultField(fieldPrefix, "rttMinMs"), "must be less than or equal to rttMaxMs", minValue)
+		validation.Add(resultField(fieldPrefix, "rttMinMs"), "must be less than or equal to rttMaxMs", minValue)
 	}
 	if minValue != nil && avgValue != nil && *minValue > *avgValue {
-		return invalidRuntimeField(resultField(fieldPrefix, "rttMinMs"), "must be less than or equal to rttAvgMs", minValue)
+		validation.Add(resultField(fieldPrefix, "rttMinMs"), "must be less than or equal to rttAvgMs", minValue)
 	}
 	if avgValue != nil && maxValue != nil && *avgValue > *maxValue {
-		return invalidRuntimeField(resultField(fieldPrefix, "rttAvgMs"), "must be less than or equal to rttMaxMs", avgValue)
+		validation.Add(resultField(fieldPrefix, "rttAvgMs"), "must be less than or equal to rttMaxMs", avgValue)
 	}
 
-	return nil
+	return validation.Err(ErrInvalidInput)
 }
 
 func resultField(prefix, field string) string {

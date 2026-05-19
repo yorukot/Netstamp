@@ -133,20 +133,15 @@ func (s *Service) UpdateLabel(ctx context.Context, input UpdateLabelInput) (doma
 func (s *Service) DeleteLabel(ctx context.Context, input DeleteLabelInput) error {
 	ctx, flow := s.startLabelFlow(ctx, "label.delete", LabelActionDelete, input.CurrentUserID)
 	defer flow.end()
-	projectRef, err := domainproject.VNProjectRef(input.ProjectRef)
-	if err != nil {
-		err = invalidLabelField("projectRef", err.Error(), input.ProjectRef)
-		return flow.businessFailure(LabelEventDeleteFailure, LabelReasonInvalidInput, err)
-	}
-	labelID, err := domainlabel.VNLabelID(input.LabelID)
-	if err != nil {
-		err = invalidLabelField("labelId", err.Error(), input.LabelID)
-		return flow.businessFailure(LabelEventDeleteFailure, LabelReasonInvalidInput, err)
-	}
-	flow.setProjectRef(projectRef)
-	flow.setLabelID(labelID)
 
-	project, err := s.loadProject(ctx, flow, projectRef, input.CurrentUserID, LabelEventDeleteFailure)
+	input, err := normalizeDeleteLabelInput(input)
+	if err != nil {
+		return flow.businessFailure(LabelEventDeleteFailure, LabelReasonInvalidInput, err)
+	}
+	flow.setProjectRef(input.ProjectRef)
+	flow.setLabelID(input.LabelID)
+
+	project, err := s.loadProject(ctx, flow, input.ProjectRef, input.CurrentUserID, LabelEventDeleteFailure)
 	if err != nil {
 		return err
 	}
@@ -154,10 +149,10 @@ func (s *Service) DeleteLabel(ctx context.Context, input DeleteLabelInput) error
 		return err
 	}
 
-	if err := s.repo.SoftDeleteLabel(ctx, project.ID, labelID); err != nil {
+	if err := s.repo.SoftDeleteLabel(ctx, project.ID, input.LabelID); err != nil {
 		return flow.writeFailure(LabelEventDeleteFailure, LabelReasonLabelDeleteFailed, err)
 	}
-	if err := s.assignmentRefresher.RefreshProbeCheckAssignmentsForLabel(ctx, project.ID, labelID); err != nil {
+	if err := s.assignmentRefresher.RefreshProbeCheckAssignmentsForLabel(ctx, project.ID, input.LabelID); err != nil {
 		return flow.technicalFailure(LabelEventDeleteFailure, LabelReasonAssignmentRefreshFailed, err)
 	}
 

@@ -3,6 +3,7 @@ package proberuntime
 import (
 	"fmt"
 
+	appvalidation "github.com/yorukot/netstamp/internal/controller/application/validation"
 	domainnetwork "github.com/yorukot/netstamp/internal/domain/network"
 	domaintraceroute "github.com/yorukot/netstamp/internal/domain/traceroute"
 )
@@ -20,6 +21,8 @@ type normalizedTracerouteHopCounts struct {
 }
 
 func normalizeTracerouteResult(input TracerouteResultInput, fieldPrefix string) (domaintraceroute.ResultStorageInput, error) {
+	var validation appvalidation.Collector
+
 	timing, err := normalizeResultTiming(
 		input.StartedAt,
 		input.FinishedAt,
@@ -28,22 +31,33 @@ func normalizeTracerouteResult(input TracerouteResultInput, fieldPrefix string) 
 		domaintraceroute.VNResultDurationMs,
 	)
 	if err != nil {
-		return domaintraceroute.ResultStorageInput{}, err
+		if !validation.AddValidation(err) {
+			return domaintraceroute.ResultStorageInput{}, err
+		}
 	}
 	status, err := normalizeTracerouteStatus(input.Status, fieldPrefix)
 	if err != nil {
-		return domaintraceroute.ResultStorageInput{}, err
+		if !validation.AddValidation(err) {
+			return domaintraceroute.ResultStorageInput{}, err
+		}
 	}
 	hopCount, err := domaintraceroute.VNResultHopCount(input.HopCount)
 	if err != nil {
-		return domaintraceroute.ResultStorageInput{}, invalidRuntimeField(resultField(fieldPrefix, "hopCount"), err.Error(), input.HopCount)
+		validation.AddError(resultField(fieldPrefix, "hopCount"), err, input.HopCount)
 	}
 	metadata, err := normalizeTracerouteMetadata(input, fieldPrefix)
 	if err != nil {
-		return domaintraceroute.ResultStorageInput{}, err
+		if !validation.AddValidation(err) {
+			return domaintraceroute.ResultStorageInput{}, err
+		}
 	}
 	hops, err := normalizeTracerouteHops(input.Hops, fieldPrefix)
 	if err != nil {
+		if !validation.AddValidation(err) {
+			return domaintraceroute.ResultStorageInput{}, err
+		}
+	}
+	if err := validation.Err(ErrInvalidInput); err != nil {
 		return domaintraceroute.ResultStorageInput{}, err
 	}
 
@@ -71,68 +85,80 @@ func normalizeTracerouteStatus(input, fieldPrefix string) (domaintraceroute.Stat
 }
 
 func normalizeTracerouteMetadata(input TracerouteResultInput, fieldPrefix string) (normalizedTracerouteMetadata, error) {
-	ipFamily, err := domainnetwork.ParseOptionalIPFamily(input.IPFamily)
-	if err != nil {
-		return normalizedTracerouteMetadata{}, invalidRuntimeField(resultField(fieldPrefix, "ipFamily"), `must be "inet" or "inet6"`, input.IPFamily)
-	}
-	errorCode, err := normalizeOptionalTracerouteText(input.ErrorCode, resultField(fieldPrefix, "errorCode"))
-	if err != nil {
-		return normalizedTracerouteMetadata{}, err
-	}
-	errorMessage, err := normalizeOptionalTracerouteText(input.ErrorMessage, resultField(fieldPrefix, "errorMessage"))
+	metadata, err := normalizeResultMetadata(input.IPFamily, input.ErrorCode, input.ErrorMessage, fieldPrefix, normalizeOptionalTracerouteText)
 	if err != nil {
 		return normalizedTracerouteMetadata{}, err
 	}
 
-	return normalizedTracerouteMetadata{
-		ipFamily:     ipFamily,
-		errorCode:    errorCode,
-		errorMessage: errorMessage,
-	}, nil
+	return normalizedTracerouteMetadata(metadata), nil
 }
 
 func normalizeTracerouteHops(inputs []TracerouteHopInput, fieldPrefix string) ([]domaintraceroute.HopStorageInput, error) {
+	var validation appvalidation.Collector
+
 	hops := make([]domaintraceroute.HopStorageInput, 0, len(inputs))
 	seen := map[int32]struct{}{}
 	for i, input := range inputs {
 		prefix := resultField(fieldPrefix, fmt.Sprintf("hops[%d]", i))
 		hop, err := normalizeTracerouteHop(input, prefix)
 		if err != nil {
-			return nil, err
+			if !validation.AddValidation(err) {
+				return nil, err
+			}
+			continue
 		}
 		if _, ok := seen[hop.HopIndex]; ok {
-			return nil, invalidRuntimeField(resultField(prefix, "hopIndex"), "duplicate hop index", hop.HopIndex)
+			validation.Add(resultField(prefix, "hopIndex"), "duplicate hop index", hop.HopIndex)
+			continue
 		}
 		seen[hop.HopIndex] = struct{}{}
 		hops = append(hops, hop)
+	}
+	if err := validation.Err(ErrInvalidInput); err != nil {
+		return nil, err
 	}
 
 	return hops, nil
 }
 
 func normalizeTracerouteHop(input TracerouteHopInput, fieldPrefix string) (domaintraceroute.HopStorageInput, error) {
+	var validation appvalidation.Collector
+
 	hopIndex, err := domaintraceroute.VNResultHopIndex(input.HopIndex)
 	if err != nil {
-		return domaintraceroute.HopStorageInput{}, invalidRuntimeField(resultField(fieldPrefix, "hopIndex"), err.Error(), input.HopIndex)
+		validation.AddError(resultField(fieldPrefix, "hopIndex"), err, input.HopIndex)
 	}
 	counts, err := normalizeTracerouteHopCounts(input, fieldPrefix)
 	if err != nil {
-		return domaintraceroute.HopStorageInput{}, err
+		if !validation.AddValidation(err) {
+			return domaintraceroute.HopStorageInput{}, err
+		}
 	}
 	rtt, err := normalizeTracerouteHopRTT(input, fieldPrefix)
 	if err != nil {
-		return domaintraceroute.HopStorageInput{}, err
+		if !validation.AddValidation(err) {
+			return domaintraceroute.HopStorageInput{}, err
+		}
 	}
 	hostname, err := normalizeOptionalTracerouteText(input.Hostname, resultField(fieldPrefix, "hostname"))
 	if err != nil {
-		return domaintraceroute.HopStorageInput{}, err
+		if !validation.AddValidation(err) {
+			return domaintraceroute.HopStorageInput{}, err
+		}
 	}
 	errorCode, err := normalizeOptionalTracerouteText(input.ErrorCode, resultField(fieldPrefix, "errorCode"))
 	if err != nil {
-		return domaintraceroute.HopStorageInput{}, err
+		if !validation.AddValidation(err) {
+			return domaintraceroute.HopStorageInput{}, err
+		}
 	}
 	errorMessage, err := normalizeOptionalTracerouteText(input.ErrorMessage, resultField(fieldPrefix, "errorMessage"))
 	if err != nil {
+		if !validation.AddValidation(err) {
+			return domaintraceroute.HopStorageInput{}, err
+		}
+	}
+	if err := validation.Err(ErrInvalidInput); err != nil {
 		return domaintraceroute.HopStorageInput{}, err
 	}
 
@@ -155,17 +181,25 @@ func normalizeTracerouteHop(input TracerouteHopInput, fieldPrefix string) (domai
 }
 
 func normalizeTracerouteHopCounts(input TracerouteHopInput, fieldPrefix string) (normalizedTracerouteHopCounts, error) {
+	var validation appvalidation.Collector
+
 	sentCount, err := domaintraceroute.VNResultSentCount(input.SentCount)
 	if err != nil {
-		return normalizedTracerouteHopCounts{}, invalidRuntimeField(resultField(fieldPrefix, "sentCount"), err.Error(), input.SentCount)
+		validation.AddError(resultField(fieldPrefix, "sentCount"), err, input.SentCount)
 	}
-	receivedCount, err := domaintraceroute.VNResultReceivedCount(input.ReceivedCount, sentCount)
-	if err != nil {
-		return normalizedTracerouteHopCounts{}, invalidRuntimeField(resultField(fieldPrefix, "receivedCount"), err.Error(), input.ReceivedCount)
+	var receivedCount int32
+	if err == nil {
+		receivedCount, err = domaintraceroute.VNResultReceivedCount(input.ReceivedCount, sentCount)
+		if err != nil {
+			validation.AddError(resultField(fieldPrefix, "receivedCount"), err, input.ReceivedCount)
+		}
 	}
 	lossPercent, err := domaintraceroute.VNResultLossPercent(input.LossPercent)
 	if err != nil {
-		return normalizedTracerouteHopCounts{}, invalidRuntimeField(resultField(fieldPrefix, "lossPercent"), err.Error(), input.LossPercent)
+		validation.AddError(resultField(fieldPrefix, "lossPercent"), err, input.LossPercent)
+	}
+	if err := validation.Err(ErrInvalidInput); err != nil {
+		return normalizedTracerouteHopCounts{}, err
 	}
 
 	return normalizedTracerouteHopCounts{

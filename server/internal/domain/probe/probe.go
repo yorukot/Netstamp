@@ -138,10 +138,13 @@ func VNProbeCoordinates(latitude, longitude *float64) (latitudeOutput, longitude
 		return nil, nil, nil, nil
 	}
 	if *longitude > 180 || *longitude < -180 {
-		return nil, nil, nil, errors.New("longitude must be between -180 and 180")
+		longitudeErr = errors.New("longitude must be between -180 and 180")
 	}
 	if latitude != nil && (*latitude > 90 || *latitude < -90) {
-		return nil, nil, errors.New("latitude must be between -90 and 90"), nil
+		latitudeErr = errors.New("latitude must be between -90 and 90")
+	}
+	if latitudeErr != nil || longitudeErr != nil {
+		return nil, nil, latitudeErr, longitudeErr
 	}
 
 	lat := *latitude

@@ -18,6 +18,8 @@ const (
 )
 
 func normalizeQueryPingSeriesInput(input QueryPingSeriesInput) (normalizedQueryPingSeriesInput, error) {
+	var validation appvalidation.Collector
+
 	base, err := normalizeQueryBase(
 		input.CurrentUserID,
 		input.ProjectRef,
@@ -28,14 +30,17 @@ func normalizeQueryPingSeriesInput(input QueryPingSeriesInput) (normalizedQueryP
 		input.Now,
 	)
 	if err != nil {
-		return normalizedQueryPingSeriesInput{}, err
+		if !validation.AddValidation(err) {
+			return normalizedQueryPingSeriesInput{}, err
+		}
 	}
-	metric, err := normalizeMetric(input.Metric)
+	metric, maxDataPoints, err := normalizePingSeriesOptions(input)
 	if err != nil {
-		return normalizedQueryPingSeriesInput{}, err
+		if !validation.AddValidation(err) {
+			return normalizedQueryPingSeriesInput{}, err
+		}
 	}
-	maxDataPoints, err := normalizeMaxDataPoints(input.MaxDataPoints)
-	if err != nil {
+	if err := validation.Err(ErrInvalidInput); err != nil {
 		return normalizedQueryPingSeriesInput{}, err
 	}
 
@@ -47,6 +52,8 @@ func normalizeQueryPingSeriesInput(input QueryPingSeriesInput) (normalizedQueryP
 }
 
 func normalizeQueryTracerouteRunsInput(input QueryTracerouteRunsInput) (normalizedQueryTracerouteRunsInput, error) {
+	var validation appvalidation.Collector
+
 	base, err := normalizeQueryBase(
 		input.CurrentUserID,
 		input.ProjectRef,
@@ -57,14 +64,17 @@ func normalizeQueryTracerouteRunsInput(input QueryTracerouteRunsInput) (normaliz
 		input.Now,
 	)
 	if err != nil {
-		return normalizedQueryTracerouteRunsInput{}, err
+		if !validation.AddValidation(err) {
+			return normalizedQueryTracerouteRunsInput{}, err
+		}
 	}
-	limit, err := normalizeRunLimit(input.Limit)
+	limit, cursor, err := normalizeTracerouteRunOptions(input)
 	if err != nil {
-		return normalizedQueryTracerouteRunsInput{}, err
+		if !validation.AddValidation(err) {
+			return normalizedQueryTracerouteRunsInput{}, err
+		}
 	}
-	cursor, err := normalizeCursor(input.CursorMs)
-	if err != nil {
+	if err := validation.Err(ErrInvalidInput); err != nil {
 		return normalizedQueryTracerouteRunsInput{}, err
 	}
 
@@ -75,18 +85,64 @@ func normalizeQueryTracerouteRunsInput(input QueryTracerouteRunsInput) (normaliz
 	}, nil
 }
 
+func normalizePingSeriesOptions(input QueryPingSeriesInput) (PingMetric, int32, error) {
+	var validation appvalidation.Collector
+
+	metric, err := normalizeMetric(input.Metric)
+	if err != nil {
+		if !validation.AddValidation(err) {
+			return "", 0, err
+		}
+	}
+	maxDataPoints, err := normalizeMaxDataPoints(input.MaxDataPoints)
+	if err != nil {
+		if !validation.AddValidation(err) {
+			return "", 0, err
+		}
+	}
+	if err := validation.Err(ErrInvalidInput); err != nil {
+		return "", 0, err
+	}
+
+	return metric, maxDataPoints, nil
+}
+
+func normalizeTracerouteRunOptions(input QueryTracerouteRunsInput) (int32, *time.Time, error) {
+	var validation appvalidation.Collector
+
+	limit, err := normalizeRunLimit(input.Limit)
+	if err != nil {
+		if !validation.AddValidation(err) {
+			return 0, nil, err
+		}
+	}
+	cursor, err := normalizeCursor(input.CursorMs)
+	if err != nil {
+		if !validation.AddValidation(err) {
+			return 0, nil, err
+		}
+	}
+	if err := validation.Err(ErrInvalidInput); err != nil {
+		return 0, nil, err
+	}
+
+	return limit, cursor, nil
+}
+
 func normalizeQueryBase(currentUserID, projectRefValue, probeIDValue, checkIDValue string, fromMs, toMs *int64, now time.Time) (normalizedQueryBase, error) {
+	var validation appvalidation.Collector
+
 	projectRef, err := domainproject.VNProjectRef(projectRefValue)
 	if err != nil {
-		return normalizedQueryBase{}, invalidResultField("projectRef", err.Error(), projectRefValue)
+		validation.AddError("projectRef", err, projectRefValue)
 	}
 	probeID, err := domainprobe.VNProbeID(probeIDValue)
 	if err != nil {
-		return normalizedQueryBase{}, invalidResultField("probeId", err.Error(), probeIDValue)
+		validation.AddError("probeId", err, probeIDValue)
 	}
 	checkID, err := domaincheck.VNCheckID(checkIDValue)
 	if err != nil {
-		return normalizedQueryBase{}, invalidResultField("checkId", err.Error(), checkIDValue)
+		validation.AddError("checkId", err, checkIDValue)
 	}
 
 	now = now.UTC()
@@ -95,6 +151,11 @@ func normalizeQueryBase(currentUserID, projectRefValue, probeIDValue, checkIDVal
 	}
 	from, to, err := normalizeRange(fromMs, toMs, now)
 	if err != nil {
+		if !validation.AddValidation(err) {
+			return normalizedQueryBase{}, err
+		}
+	}
+	if err := validation.Err(ErrInvalidInput); err != nil {
 		return normalizedQueryBase{}, err
 	}
 
@@ -109,20 +170,27 @@ func normalizeQueryBase(currentUserID, projectRefValue, probeIDValue, checkIDVal
 }
 
 func normalizeRange(fromMs, toMs *int64, now time.Time) (time.Time, time.Time, error) {
+	var validation appvalidation.Collector
+
 	to := now
 	if toMs != nil {
 		if *toMs <= 0 {
-			return time.Time{}, time.Time{}, invalidResultField("to", "must be a positive epoch millisecond timestamp", *toMs)
+			validation.Add("to", "must be a positive epoch millisecond timestamp", *toMs)
+		} else {
+			to = time.UnixMilli(*toMs).UTC()
 		}
-		to = time.UnixMilli(*toMs).UTC()
 	}
 
 	from := to.Add(-defaultRange)
 	if fromMs != nil {
 		if *fromMs <= 0 {
-			return time.Time{}, time.Time{}, invalidResultField("from", "must be a positive epoch millisecond timestamp", *fromMs)
+			validation.Add("from", "must be a positive epoch millisecond timestamp", *fromMs)
+		} else {
+			from = time.UnixMilli(*fromMs).UTC()
 		}
-		from = time.UnixMilli(*fromMs).UTC()
+	}
+	if err := validation.Err(ErrInvalidInput); err != nil {
+		return time.Time{}, time.Time{}, err
 	}
 	if !from.Before(to) {
 		return time.Time{}, time.Time{}, invalidResultField("from", "must be before to", from.UnixMilli())

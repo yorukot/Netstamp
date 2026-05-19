@@ -6,17 +6,22 @@ import (
 )
 
 func normalizeRegisterInput(input RegisterInput) (RegisterInput, error) {
+	var validation appvalidation.Collector
+
 	email, err := identity.VNUserEmail(input.Email)
 	if err != nil {
-		return RegisterInput{}, invalidAuthField("email", err.Error(), input.Email)
+		validation.AddError("email", err, input.Email)
 	}
 	displayName, err := identity.VNUserDisplayName(input.DisplayName)
 	if err != nil {
-		return RegisterInput{}, invalidAuthField("displayName", err.Error(), input.DisplayName)
+		validation.AddError("displayName", err, input.DisplayName)
 	}
 	password, err := identity.VNUserPassword(input.Password)
 	if err != nil {
-		return RegisterInput{}, invalidAuthField("password", err.Error(), "")
+		validation.AddError("password", err, "")
+	}
+	if err := validation.Err(ErrInvalidInput); err != nil {
+		return RegisterInput{}, err
 	}
 
 	return RegisterInput{
@@ -27,21 +32,22 @@ func normalizeRegisterInput(input RegisterInput) (RegisterInput, error) {
 }
 
 func normalizeLoginInput(input LoginInput) (LoginInput, error) {
+	var validation appvalidation.Collector
+
 	email, err := identity.VNUserEmail(input.Email)
 	if err != nil {
-		return LoginInput{}, invalidAuthField("email", err.Error(), input.Email)
+		validation.AddError("email", err, input.Email)
 	}
 	password, err := identity.VNUserPassword(input.Password)
 	if err != nil {
-		return LoginInput{}, invalidAuthField("password", err.Error(), "")
+		validation.AddError("password", err, "")
+	}
+	if err := validation.Err(ErrInvalidInput); err != nil {
+		return LoginInput{}, err
 	}
 
 	return LoginInput{
 		Email:    email,
 		Password: password,
 	}, nil
-}
-
-func invalidAuthField(field, message string, value any) error {
-	return appvalidation.New(ErrInvalidInput, field, message, value)
 }

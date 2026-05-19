@@ -71,19 +71,14 @@ func (s *Service) UpdateProject(ctx context.Context, input UpdateProjectInput) (
 	ctx, flow := s.startProjectFlow(ctx, "project.update", ProjectActionUpdate, input.CurrentUserID)
 	defer flow.end()
 
-	projectRef, err := domainproject.VNProjectRef(input.ProjectRef)
-	if err != nil {
-		err = invalidProjectField("projectRef", err.Error(), input.ProjectRef)
-		return domainproject.Project{}, flow.businessFailure(ProjectEventUpdateFailure, ProjectReasonInvalidInput, err)
-	}
-
-	input, err = normalizeUpdateProjectInput(input)
+	input, err := normalizeUpdateProjectInput(input)
 	if err != nil {
 		return domainproject.Project{}, flow.businessFailure(ProjectEventUpdateFailure, ProjectReasonInvalidInput, err)
 	}
+	flow.setProjectSlug(input.ProjectRef)
 
 	// load user's project
-	project, err := s.loadProjectForUser(ctx, flow, projectRef, input.CurrentUserID, ProjectEventUpdateFailure)
+	project, err := s.loadProjectForUser(ctx, flow, input.ProjectRef, input.CurrentUserID, ProjectEventUpdateFailure)
 	if err != nil {
 		return domainproject.Project{}, err
 	}
