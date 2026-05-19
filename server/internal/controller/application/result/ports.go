@@ -5,6 +5,7 @@ import (
 
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
+	domainresult "github.com/yorukot/netstamp/internal/domain/result"
 	domaintraceroute "github.com/yorukot/netstamp/internal/domain/traceroute"
 )
 
@@ -14,6 +15,10 @@ type PingSeriesRepository interface {
 
 type TracerouteRunsRepository interface {
 	ListTracerouteRuns(ctx context.Context, input domaintraceroute.RunQuery) (domaintraceroute.RunResult, error)
+}
+
+type MeasurementRepository interface {
+	ListMeasurements(ctx context.Context, input domainresult.MeasurementQuery) (domainresult.MeasurementResult, error)
 }
 
 type ProjectAccess interface {

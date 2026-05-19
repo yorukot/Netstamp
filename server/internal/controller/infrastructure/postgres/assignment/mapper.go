@@ -8,18 +8,22 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/sqlc"
+	domainassignment "github.com/yorukot/netstamp/internal/domain/assignment"
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
 	domainlabel "github.com/yorukot/netstamp/internal/domain/label"
 	domainnetwork "github.com/yorukot/netstamp/internal/domain/network"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
+	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
 	domainselector "github.com/yorukot/netstamp/internal/domain/selector"
 	domaintraceroute "github.com/yorukot/netstamp/internal/domain/traceroute"
 )
 
 type activeProbeLabels struct {
-	probeID uuid.UUID
-	enabled bool
-	labels  []domainlabel.Label
+	probeID   uuid.UUID
+	projectID uuid.UUID
+	name      string
+	enabled   bool
+	labels    []domainlabel.Label
 }
 
 func activeProbeFromRows(rows []sqlc.GetActiveProbeRowsForProjectRow) (activeProbeLabels, bool) {
@@ -28,8 +32,10 @@ func activeProbeFromRows(rows []sqlc.GetActiveProbeRowsForProjectRow) (activePro
 	}
 
 	probe := activeProbeLabels{
-		probeID: rows[0].ID,
-		enabled: rows[0].Enabled,
+		probeID:   rows[0].ID,
+		projectID: rows[0].ProjectID,
+		name:      rows[0].Name,
+		enabled:   rows[0].Enabled,
 	}
 	for _, row := range rows {
 		if label, ok := mapGetProbeLabel(row); ok {
@@ -49,8 +55,10 @@ func activeProbeLabelsFromRows(rows []sqlc.ListActiveEnabledProbeLabelsForProjec
 			index = len(probes)
 			probeIndex[row.ProbeID] = index
 			probes = append(probes, activeProbeLabels{
-				probeID: row.ProbeID,
-				enabled: true,
+				probeID:   row.ProbeID,
+				projectID: row.ProbeProjectID,
+				name:      row.ProbeName,
+				enabled:   row.ProbeEnabled,
 			})
 		}
 		if label, ok := mapEnabledProbeLabel(row); ok {
@@ -70,6 +78,70 @@ func matchingProbeIDs(selector domainselector.Selector, probes []activeProbeLabe
 	}
 
 	return probeIDs
+}
+
+func matchingPreviewProbes(selector domainselector.Selector, probes []activeProbeLabels) []domainprobe.Probe {
+	matches := make([]domainprobe.Probe, 0, len(probes))
+	for _, probe := range probes {
+		if !probe.enabled || !selector.Matches(probe.labels) {
+			continue
+		}
+		matches = append(matches, domainprobe.Probe{
+			ID:        probe.probeID.String(),
+			ProjectID: probe.projectID.String(),
+			Name:      probe.name,
+			Enabled:   probe.enabled,
+			Labels:    append([]domainlabel.Label(nil), probe.labels...),
+		})
+	}
+	return matches
+}
+
+func mapProjectAssignments(rows []sqlc.ListProjectAssignmentsRow) []domainassignment.Assignment {
+	assignments := make([]domainassignment.Assignment, 0, len(rows))
+	for _, row := range rows {
+		latitude, longitude := coordinatesFromPoint(row.ProbeLocation)
+		assignments = append(assignments, domainassignment.Assignment{
+			ID:              row.AssignmentID.String(),
+			ProjectID:       row.ProjectID.String(),
+			ProbeID:         row.ProbeID.String(),
+			CheckID:         row.CheckID.String(),
+			ProbeStorageID:  row.ProbeInternalID,
+			CheckStorageID:  row.CheckInternalID,
+			CheckVersion:    row.CheckVersion,
+			SelectorVersion: row.SelectorVersion,
+			Probe: &domainprobe.Probe{
+				ID:              row.ProbeID.String(),
+				ProjectID:       row.ProjectID.String(),
+				Name:            row.ProbeName,
+				Enabled:         row.ProbeEnabled,
+				SubdivisionCode: row.ProbeSubdivisionCode,
+				Latitude:        latitude,
+				Longitude:       longitude,
+				Labels:          []domainlabel.Label{},
+				CreatedAt:       row.ProbeCreatedAt.Time,
+				UpdatedAt:       row.ProbeUpdatedAt.Time,
+				DeletedAt:       timePtr(row.ProbeDeletedAt),
+			},
+			Check: &domaincheck.Check{
+				ID:               row.CheckID.String(),
+				ProjectID:        row.ProjectID.String(),
+				Name:             row.CheckName,
+				Type:             domaincheck.Type(row.CheckType),
+				Target:           row.Target,
+				Selector:         cloneRawMessage(row.Selector),
+				Description:      row.Description,
+				IntervalSeconds:  row.IntervalSeconds,
+				Labels:           []domainlabel.Label{},
+				CreatedAt:        row.CheckCreatedAt.Time,
+				UpdatedAt:        row.CheckUpdatedAt.Time,
+				DeletedAt:        timePtr(row.CheckDeletedAt),
+				PingConfig:       mapOptionalPingConfig(row.PingPacketCount, row.PingPacketSizeBytes, row.PingTimeoutMs, row.PingIpFamily),
+				TracerouteConfig: mapOptionalTracerouteConfig(row.TracerouteProtocol, row.TracerouteMaxHops, row.TracerouteTimeoutMs, row.TracerouteQueriesPerHop, row.TraceroutePacketSizeBytes, row.TraceroutePort, row.TracerouteIpFamily),
+			},
+		})
+	}
+	return assignments
 }
 
 func mapLabels(rows []sqlc.Label) []domainlabel.Label {
@@ -149,6 +221,23 @@ func checkVersion(row sqlc.GetActiveCheckForProjectRow) string {
 		PingConfig:       mapOptionalPingConfig(row.PingPacketCount, row.PingPacketSizeBytes, row.PingTimeoutMs, row.PingIpFamily),
 		TracerouteConfig: mapOptionalTracerouteConfig(row.TracerouteProtocol, row.TracerouteMaxHops, row.TracerouteTimeoutMs, row.TracerouteQueriesPerHop, row.TraceroutePacketSizeBytes, row.TraceroutePort, row.TracerouteIpFamily),
 	}.Hash()
+}
+
+func cloneRawMessage(value []byte) json.RawMessage {
+	if value == nil {
+		return nil
+	}
+	return append(json.RawMessage(nil), value...)
+}
+
+func coordinatesFromPoint(point pgtype.Point) (*float64, *float64) {
+	if !point.Valid {
+		return nil, nil
+	}
+
+	lon := point.P.X
+	lat := point.P.Y
+	return &lat, &lon
 }
 
 func listCheckVersion(row sqlc.ListActiveChecksForProjectRow) string {

@@ -168,12 +168,12 @@ func (s *Service) getUserByEmail(ctx context.Context, email string) (identity.Us
 }
 
 // GetCurrentUser fetches the live user record from the database using the
-// email embedded in the verified access token claims.
-func (s *Service) GetCurrentUser(ctx context.Context, email string) (identity.User, error) {
+// stable user id embedded as the access token subject.
+func (s *Service) GetCurrentUser(ctx context.Context, userID string) (identity.User, error) {
 	ctx, span := authTracer.Start(ctx, "auth.get_current_user")
 	defer span.End()
 
-	user, err := s.users.GetUserByEmail(ctx, email)
+	user, err := s.users.GetUserByID(ctx, userID)
 	if err != nil {
 		recordSpanError(span, err, AuthReasonUserLookupFailed)
 		return identity.User{}, err

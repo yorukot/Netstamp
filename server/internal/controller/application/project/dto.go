@@ -37,7 +37,7 @@ type ListMembersInput struct {
 type AddMemberInput struct {
 	CurrentUserID string
 	ProjectRef    string
-	UserID        string
+	Email         string
 	Role          domainproject.Role
 }
 

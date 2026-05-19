@@ -11,6 +11,7 @@ import (
 	domainnetwork "github.com/yorukot/netstamp/internal/domain/network"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
+	domainresult "github.com/yorukot/netstamp/internal/domain/result"
 	domaintraceroute "github.com/yorukot/netstamp/internal/domain/traceroute"
 )
 
@@ -34,7 +35,7 @@ func TestQueryPingSeriesUsesDefaultsAndMapsPoints(t *testing.T) {
 			TotalPoints: 1,
 		},
 	}
-	service := NewService(pings, &recordingTracerouteRunsRepository{}, staticProjectAccess{})
+	service := NewService(pings, &recordingTracerouteRunsRepository{}, &recordingMeasurementRepository{}, staticProjectAccess{})
 
 	output, err := service.QueryPingSeries(context.Background(), QueryPingSeriesInput{
 		CurrentUserID: testUserID,
@@ -74,7 +75,7 @@ func TestQueryPingSeriesUsesDefaultsAndMapsPoints(t *testing.T) {
 }
 
 func TestQueryPingSeriesRejectsInvalidMetric(t *testing.T) {
-	service := NewService(&recordingPingSeriesRepository{}, &recordingTracerouteRunsRepository{}, staticProjectAccess{})
+	service := NewService(&recordingPingSeriesRepository{}, &recordingTracerouteRunsRepository{}, &recordingMeasurementRepository{}, staticProjectAccess{})
 
 	_, err := service.QueryPingSeries(context.Background(), QueryPingSeriesInput{
 		CurrentUserID: testUserID,
@@ -132,7 +133,7 @@ func TestQueryTracerouteRunsUsesDefaultsAndMapsRuns(t *testing.T) {
 			NextCursor: &nextCursor,
 		},
 	}
-	service := NewService(&recordingPingSeriesRepository{}, traceroutes, staticProjectAccess{})
+	service := NewService(&recordingPingSeriesRepository{}, traceroutes, &recordingMeasurementRepository{}, staticProjectAccess{})
 
 	output, err := service.QueryTracerouteRuns(context.Background(), QueryTracerouteRunsInput{
 		CurrentUserID: testUserID,
@@ -201,6 +202,16 @@ type recordingTracerouteRunsRepository struct {
 }
 
 func (r *recordingTracerouteRunsRepository) ListTracerouteRuns(_ context.Context, input domaintraceroute.RunQuery) (domaintraceroute.RunResult, error) {
+	r.got = input
+	return r.result, nil
+}
+
+type recordingMeasurementRepository struct {
+	got    domainresult.MeasurementQuery
+	result domainresult.MeasurementResult
+}
+
+func (r *recordingMeasurementRepository) ListMeasurements(_ context.Context, input domainresult.MeasurementQuery) (domainresult.MeasurementResult, error) {
 	r.got = input
 	return r.result, nil
 }

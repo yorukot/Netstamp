@@ -441,6 +441,9 @@ func (q *Queries) ListActiveChecksForProject(ctx context.Context, projectID uuid
 const listActiveEnabledProbeLabelsForProject = `-- name: ListActiveEnabledProbeLabelsForProject :many
 SELECT probes.id AS probe_id,
        probes.internal_id AS probe_internal_id,
+       probes.project_id AS probe_project_id,
+       probes.name AS probe_name,
+       probes.enabled AS probe_enabled,
        labels.id AS label_id,
        labels.project_id AS label_project_id,
        labels.key AS label_key,
@@ -469,6 +472,9 @@ ORDER BY probes.created_at ASC,
 type ListActiveEnabledProbeLabelsForProjectRow struct {
 	ProbeID         uuid.UUID          `json:"probe_id"`
 	ProbeInternalID int64              `json:"probe_internal_id"`
+	ProbeProjectID  uuid.UUID          `json:"probe_project_id"`
+	ProbeName       string             `json:"probe_name"`
+	ProbeEnabled    bool               `json:"probe_enabled"`
 	LabelID         *uuid.UUID         `json:"label_id"`
 	LabelProjectID  *uuid.UUID         `json:"label_project_id"`
 	LabelKey        *string            `json:"label_key"`
@@ -490,6 +496,9 @@ func (q *Queries) ListActiveEnabledProbeLabelsForProject(ctx context.Context, pr
 		if err := rows.Scan(
 			&i.ProbeID,
 			&i.ProbeInternalID,
+			&i.ProbeProjectID,
+			&i.ProbeName,
+			&i.ProbeEnabled,
 			&i.LabelID,
 			&i.LabelProjectID,
 			&i.LabelKey,

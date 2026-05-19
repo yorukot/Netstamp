@@ -3,18 +3,21 @@ package project
 import (
 	"context"
 
+	"github.com/yorukot/netstamp/internal/domain/identity"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 )
 
 type Service struct {
-	repo   Repository
-	events EventRecorder
+	repo       Repository
+	userLookup UserLookup
+	events     EventRecorder
 }
 
-func NewService(repo Repository, events EventRecorder) *Service {
+func NewService(repo Repository, userLookup UserLookup, events EventRecorder) *Service {
 	return &Service{
-		repo:   repo,
-		events: events,
+		repo:       repo,
+		userLookup: userLookup,
+		events:     events,
 	}
 }
 
@@ -168,14 +171,12 @@ func (s *Service) ListMembers(ctx context.Context, input ListMembersInput) ([]do
 func (s *Service) AddMember(ctx context.Context, input AddMemberInput) (domainproject.Member, error) {
 	ctx, flow := s.startProjectFlow(ctx, "project.member.add", ProjectActionAddMember, input.CurrentUserID)
 	defer flow.end()
-	flow.setTargetUser(input.UserID)
 	flow.setRole(input.Role)
 
 	input, err := normalizeAddMemberInput(input)
 	if err != nil {
 		return domainproject.Member{}, flow.businessFailure(ProjectEventAddMemberFailure, ProjectReasonInvalidInput, err)
 	}
-	flow.setTargetUser(input.UserID)
 	flow.setRole(input.Role)
 
 	project, err := s.loadProjectForUser(ctx, flow, input.ProjectRef, input.CurrentUserID, ProjectEventAddMemberFailure)
@@ -190,9 +191,15 @@ func (s *Service) AddMember(ctx context.Context, input AddMemberInput) (domainpr
 		return domainproject.Member{}, flow.businessFailure(ProjectEventAddMemberFailure, ProjectReasonForbidden, ErrForbidden)
 	}
 
+	user, err := s.getUserByEmail(ctx, input.Email)
+	if err != nil {
+		return domainproject.Member{}, flow.memberAddFailure(err)
+	}
+	flow.setTargetUser(user.ID)
+
 	member, err := s.repo.AddMember(ctx, domainproject.Member{
 		ProjectID: project.ID,
-		UserID:    input.UserID,
+		UserID:    user.ID,
 		Role:      input.Role,
 	})
 	if err != nil {
@@ -305,6 +312,14 @@ func (s *Service) RemoveMember(ctx context.Context, input RemoveMemberInput) err
 	flow.success(ProjectEventRemoveMemberSuccess)
 
 	return nil
+}
+
+func (s *Service) getUserByEmail(ctx context.Context, email string) (identity.User, error) {
+	if s.userLookup == nil {
+		return identity.User{}, identity.ErrUserNotFound
+	}
+
+	return s.userLookup.GetUserByEmail(ctx, email)
 }
 
 func (s *Service) loadProjectForUser(ctx context.Context, flow *projectFlow, projectRef, userID string, failureEvent ProjectEventName) (domainproject.Project, error) {

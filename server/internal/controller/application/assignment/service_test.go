@@ -4,6 +4,10 @@ import (
 	"context"
 	"errors"
 	"testing"
+
+	domainassignment "github.com/yorukot/netstamp/internal/domain/assignment"
+	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
+	domainselector "github.com/yorukot/netstamp/internal/domain/selector"
 )
 
 const (
@@ -16,7 +20,7 @@ const (
 func TestRefreshProbeCheckAssignmentsForProbeCallsRepository(t *testing.T) {
 	repo := &recordingRepository{}
 	events := &recordingEventRecorder{}
-	service := NewService(repo, events)
+	service := NewService(repo, nil, events)
 
 	if err := service.RefreshProbeCheckAssignmentsForProbe(context.Background(), testProjectID, testProbeID); err != nil {
 		t.Fatalf("expected refresh to succeed: %v", err)
@@ -31,7 +35,7 @@ func TestRefreshProbeCheckAssignmentsForProbeCallsRepository(t *testing.T) {
 func TestRefreshProbeCheckAssignmentsForCheckCallsRepository(t *testing.T) {
 	repo := &recordingRepository{}
 	events := &recordingEventRecorder{}
-	service := NewService(repo, events)
+	service := NewService(repo, nil, events)
 
 	if err := service.RefreshProbeCheckAssignmentsForCheck(context.Background(), testProjectID, testCheckID); err != nil {
 		t.Fatalf("expected refresh to succeed: %v", err)
@@ -46,7 +50,7 @@ func TestRefreshProbeCheckAssignmentsForCheckCallsRepository(t *testing.T) {
 func TestRefreshProbeCheckAssignmentsForLabelCallsRepository(t *testing.T) {
 	repo := &recordingRepository{}
 	events := &recordingEventRecorder{}
-	service := NewService(repo, events)
+	service := NewService(repo, nil, events)
 
 	if err := service.RefreshProbeCheckAssignmentsForLabel(context.Background(), testProjectID, testLabelID); err != nil {
 		t.Fatalf("expected refresh to succeed: %v", err)
@@ -61,7 +65,7 @@ func TestRefreshProbeCheckAssignmentsForLabelCallsRepository(t *testing.T) {
 func TestDeleteProbeCheckAssignmentsForProbeCallsRepository(t *testing.T) {
 	repo := &recordingRepository{}
 	events := &recordingEventRecorder{}
-	service := NewService(repo, events)
+	service := NewService(repo, nil, events)
 
 	if err := service.DeleteProbeCheckAssignmentsForProbe(context.Background(), testProjectID, testProbeID); err != nil {
 		t.Fatalf("expected delete to succeed: %v", err)
@@ -76,7 +80,7 @@ func TestDeleteProbeCheckAssignmentsForProbeCallsRepository(t *testing.T) {
 func TestDeleteProbeCheckAssignmentsForCheckCallsRepository(t *testing.T) {
 	repo := &recordingRepository{}
 	events := &recordingEventRecorder{}
-	service := NewService(repo, events)
+	service := NewService(repo, nil, events)
 
 	if err := service.DeleteProbeCheckAssignmentsForCheck(context.Background(), testProjectID, testCheckID); err != nil {
 		t.Fatalf("expected delete to succeed: %v", err)
@@ -91,7 +95,7 @@ func TestDeleteProbeCheckAssignmentsForCheckCallsRepository(t *testing.T) {
 func TestRefreshRejectsInvalidInputBeforeRepository(t *testing.T) {
 	repo := &recordingRepository{}
 	events := &recordingEventRecorder{}
-	service := NewService(repo, events)
+	service := NewService(repo, nil, events)
 
 	err := service.RefreshProbeCheckAssignmentsForProbe(context.Background(), "not-a-uuid", testProbeID)
 	if !errors.Is(err, ErrInvalidInput) {
@@ -107,7 +111,7 @@ func TestRefreshRecordsRepositoryFailure(t *testing.T) {
 	wantErr := errors.New("refresh failed")
 	repo := &recordingRepository{err: wantErr}
 	events := &recordingEventRecorder{}
-	service := NewService(repo, events)
+	service := NewService(repo, nil, events)
 
 	err := service.RefreshProbeCheckAssignmentsForLabel(context.Background(), testProjectID, testLabelID)
 	if !errors.Is(err, wantErr) {
@@ -170,6 +174,20 @@ func (r *recordingRepository) DeleteProbeCheckAssignmentsForCheck(_ context.Cont
 	r.projectID = projectID
 	r.checkID = checkID
 	return r.err
+}
+
+func (r *recordingRepository) ListSelectorPreviewProbes(_ context.Context, projectID string, _ domainselector.Selector) ([]domainprobe.Probe, error) {
+	r.method = "preview"
+	r.projectID = projectID
+	return nil, r.err
+}
+
+func (r *recordingRepository) ListProjectAssignments(_ context.Context, input domainassignment.Query) ([]domainassignment.Assignment, error) {
+	r.method = "list"
+	r.projectID = input.ProjectID
+	r.probeID = input.ProbeID
+	r.checkID = input.CheckID
+	return nil, r.err
 }
 
 type recordingEventRecorder struct {

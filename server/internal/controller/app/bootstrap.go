@@ -17,6 +17,7 @@ import (
 	appproberuntime "github.com/yorukot/netstamp/internal/controller/application/proberuntime"
 	appproject "github.com/yorukot/netstamp/internal/controller/application/project"
 	appresult "github.com/yorukot/netstamp/internal/controller/application/result"
+	appuser "github.com/yorukot/netstamp/internal/controller/application/user"
 	"github.com/yorukot/netstamp/internal/controller/config"
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/postgres"
 	pgassignment "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/assignment"
@@ -25,6 +26,7 @@ import (
 	pgping "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/ping"
 	pgprobe "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/probe"
 	pgproject "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/project"
+	pgresult "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/result"
 	pgtraceroute "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/traceroute"
 	pguser "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/user"
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/security"
@@ -106,6 +108,7 @@ func New(ctx context.Context) (*Application, error) {
 	})
 	tokenIssuer := security.NewJWTIssuer(cfg.Auth.JWTSecret, cfg.Auth.AccessTokenTTL)
 	authEvents := logger.NewAuthEventRecorder(log, cfg.LogPseudonymKey)
+	userEvents := logger.NewUserEventRecorder(log, cfg.LogPseudonymKey)
 	projectEvents := logger.NewProjectEventRecorder(log)
 	labelEvents := logger.NewLabelEventRecorder(log)
 	checkEvents := logger.NewCheckEventRecorder(log)
@@ -114,11 +117,12 @@ func New(ctx context.Context) (*Application, error) {
 	assignmentEvents := logger.NewAssignmentEventRecorder(log)
 
 	authSvc := appauth.NewService(userRepo, passwordHasher, tokenIssuer, authEvents)
+	userSvc := appuser.NewService(userRepo, passwordHasher, userEvents)
 	projectRepo := pgproject.NewProjectRepository(dbPool)
-	projectSvc := appproject.NewService(projectRepo, projectEvents)
+	projectSvc := appproject.NewService(projectRepo, userRepo, projectEvents)
 	labelRepo := pglabel.NewLabelRepository(dbPool)
 	assignmentRepo := pgassignment.NewAssignmentRepository(dbPool)
-	assignmentSvc := appassignment.NewService(assignmentRepo, assignmentEvents)
+	assignmentSvc := appassignment.NewService(assignmentRepo, projectRepo, assignmentEvents)
 	probeRepo := pgprobe.NewProbeRepository(dbPool)
 	labelSvc := applabel.NewService(labelRepo, projectRepo, labelEvents, assignmentSvc)
 	checkRepo := pgcheck.NewCheckRepository(dbPool)
@@ -126,27 +130,30 @@ func New(ctx context.Context) (*Application, error) {
 	probeSvc := appprobe.NewService(probeRepo, projectRepo, labelRepo, assignmentSvc, security.NewProbeSecretGenerator(), probeEvents)
 	pingRepo := pgping.NewPingRepository(dbPool)
 	tracerouteRepo := pgtraceroute.NewTracerouteRepository(dbPool)
+	resultRepo := pgresult.NewResultRepository(dbPool)
 	probeRuntimeSvc := appproberuntime.NewService(probeRepo, pingRepo, tracerouteRepo, security.NewProbeSecretVerifier(), probeRuntimeEvents)
-	resultSvc := appresult.NewService(pingRepo, tracerouteRepo, projectRepo)
+	resultSvc := appresult.NewService(pingRepo, tracerouteRepo, resultRepo, projectRepo)
 	readiness := postgres.NewReadinessCheck(dbPool)
 
 	httpHandler := httpserver.NewRouter(httpserver.Dependencies{
-		Log:              log,
-		APIVersion:       cfg.APIVersion,
-		BackendBaseURL:   cfg.HTTP.BackendBaseURL,
-		ExposeAPIDocs:    cfg.Env != "production",
-		AuthService:      authSvc,
-		AuthVerifier:     tokenIssuer,
-		AuthCookieSecure: cfg.Env != "local",
-		CheckService:     checkSvc,
-		LabelService:     labelSvc,
-		ProbeService:     probeSvc,
-		ProbeRuntime:     probeRuntimeSvc,
-		ProjectService:   projectSvc,
-		ResultService:    resultSvc,
-		ReadinessCheck:   readiness,
-		RequestTimeout:   cfg.HTTP.RequestTimeout,
-		MetricsHandler:   metricsProvider.Handler(),
+		Log:               log,
+		APIVersion:        cfg.APIVersion,
+		BackendBaseURL:    cfg.HTTP.BackendBaseURL,
+		ExposeAPIDocs:     cfg.Env != "production",
+		AuthService:       authSvc,
+		AuthVerifier:      tokenIssuer,
+		AuthCookieSecure:  cfg.Env != "local",
+		UserService:       userSvc,
+		AssignmentService: assignmentSvc,
+		CheckService:      checkSvc,
+		LabelService:      labelSvc,
+		ProbeService:      probeSvc,
+		ProbeRuntime:      probeRuntimeSvc,
+		ProjectService:    projectSvc,
+		ResultService:     resultSvc,
+		ReadinessCheck:    readiness,
+		RequestTimeout:    cfg.HTTP.RequestTimeout,
+		MetricsHandler:    metricsProvider.Handler(),
 	})
 
 	return &Application{

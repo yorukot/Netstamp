@@ -2,6 +2,7 @@ package project
 
 import (
 	appvalidation "github.com/yorukot/netstamp/internal/controller/application/validation"
+	"github.com/yorukot/netstamp/internal/domain/identity"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 )
 
@@ -69,15 +70,28 @@ func normalizeUpdateProjectInput(input UpdateProjectInput) (UpdateProjectInput, 
 }
 
 func normalizeAddMemberInput(input AddMemberInput) (AddMemberInput, error) {
-	projectRef, userID, role, err := normalizeMemberRoleFields(input.ProjectRef, input.UserID, input.Role, "userId")
+	var validation appvalidation.Collector
+
+	projectRef, err := domainproject.VNProjectRef(input.ProjectRef)
 	if err != nil {
+		validation.AddError("projectRef", err, input.ProjectRef)
+	}
+	email, err := identity.VNUserEmail(input.Email)
+	if err != nil {
+		validation.AddError("email", err, input.Email)
+	}
+	role, err := domainproject.VNProjectMemberRole(input.Role)
+	if err != nil {
+		validation.AddError("role", err, input.Role)
+	}
+	if err := validation.Err(ErrInvalidInput); err != nil {
 		return AddMemberInput{}, err
 	}
 
 	return AddMemberInput{
 		CurrentUserID: input.CurrentUserID,
 		ProjectRef:    projectRef,
-		UserID:        userID,
+		Email:         email,
 		Role:          role,
 	}, nil
 }

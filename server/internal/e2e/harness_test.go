@@ -33,6 +33,7 @@ import (
 	appproberuntime "github.com/yorukot/netstamp/internal/controller/application/proberuntime"
 	appproject "github.com/yorukot/netstamp/internal/controller/application/project"
 	appresult "github.com/yorukot/netstamp/internal/controller/application/result"
+	appuser "github.com/yorukot/netstamp/internal/controller/application/user"
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/postgres"
 	pgassignment "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/assignment"
 	pgcheck "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/check"
@@ -40,6 +41,7 @@ import (
 	pgping "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/ping"
 	pgprobe "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/probe"
 	pgproject "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/project"
+	pgresult "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/result"
 	pgtraceroute "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/traceroute"
 	pguser "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/user"
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/security"
@@ -218,25 +220,29 @@ func newTestRouter(pool *pgxpool.Pool) http.Handler {
 	probeRepo := pgprobe.NewProbeRepository(pool)
 	pingRepo := pgping.NewPingRepository(pool)
 	tracerouteRepo := pgtraceroute.NewTracerouteRepository(pool)
+	resultRepo := pgresult.NewResultRepository(pool)
 	assignmentRepo := pgassignment.NewAssignmentRepository(pool)
 	tokenIssuer := security.NewJWTIssuer("e2e-jwt-secret", time.Hour)
 	events := noopEvents{}
-	assignmentSvc := appassignment.NewService(assignmentRepo, events)
-
-	authSvc := appauth.NewService(userRepo, security.NewArgon2idPasswordHasher(security.Argon2idConfig{
+	assignmentSvc := appassignment.NewService(assignmentRepo, projectRepo, events)
+	passwordHasher := security.NewArgon2idPasswordHasher(security.Argon2idConfig{
 		MemoryKiB:   1024,
 		Iterations:  1,
 		Parallelism: 1,
-	}), tokenIssuer, events)
+	})
+
+	authSvc := appauth.NewService(userRepo, passwordHasher, tokenIssuer, events)
 
 	return httpserver.NewRouter(httpserver.Dependencies{
-		Log:          zap.NewNop(),
-		APIVersion:   "v1",
-		AuthService:  authSvc,
-		AuthVerifier: tokenIssuer,
-		CheckService: appcheck.NewService(checkRepo, projectRepo, labelRepo, assignmentSvc, events),
-		LabelService: applabel.NewService(labelRepo, projectRepo, events, assignmentSvc),
-		ProbeService: appprobe.NewService(probeRepo, projectRepo, labelRepo, assignmentSvc, security.NewProbeSecretGenerator(), events),
+		Log:               zap.NewNop(),
+		APIVersion:        "v1",
+		AuthService:       authSvc,
+		AuthVerifier:      tokenIssuer,
+		UserService:       appuser.NewService(userRepo, passwordHasher, events),
+		AssignmentService: assignmentSvc,
+		CheckService:      appcheck.NewService(checkRepo, projectRepo, labelRepo, assignmentSvc, events),
+		LabelService:      applabel.NewService(labelRepo, projectRepo, events, assignmentSvc),
+		ProbeService:      appprobe.NewService(probeRepo, projectRepo, labelRepo, assignmentSvc, security.NewProbeSecretGenerator(), events),
 		ProbeRuntime: appproberuntime.NewService(
 			probeRepo,
 			pingRepo,
@@ -244,8 +250,8 @@ func newTestRouter(pool *pgxpool.Pool) http.Handler {
 			security.NewProbeSecretVerifier(),
 			events,
 		),
-		ProjectService: appproject.NewService(projectRepo, events),
-		ResultService:  appresult.NewService(pingRepo, tracerouteRepo, projectRepo),
+		ProjectService: appproject.NewService(projectRepo, userRepo, events),
+		ResultService:  appresult.NewService(pingRepo, tracerouteRepo, resultRepo, projectRepo),
 		ReadinessCheck: postgres.NewReadinessCheck(pool),
 		RequestTimeout: 15 * time.Second,
 	})
@@ -254,6 +260,7 @@ func newTestRouter(pool *pgxpool.Pool) http.Handler {
 type noopEvents struct{}
 
 func (noopEvents) RecordAuthEvent(context.Context, appauth.AuthEvent)          {}
+func (noopEvents) RecordUserEvent(context.Context, appuser.UserEvent)          {}
 func (noopEvents) RecordProjectEvent(context.Context, appproject.ProjectEvent) {}
 func (noopEvents) RecordLabelEvent(context.Context, applabel.LabelEvent)       {}
 func (noopEvents) RecordCheckEvent(context.Context, appcheck.CheckEvent)       {}

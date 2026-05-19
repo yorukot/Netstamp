@@ -3,6 +3,10 @@ package assignment
 import (
 	appvalidation "github.com/yorukot/netstamp/internal/controller/application/validation"
 	domainassignment "github.com/yorukot/netstamp/internal/domain/assignment"
+	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
+	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
+	domainproject "github.com/yorukot/netstamp/internal/domain/project"
+	domainselector "github.com/yorukot/netstamp/internal/domain/selector"
 )
 
 func normalizeProbeTarget(projectID, probeID string) (string, string, error) {
@@ -57,4 +61,59 @@ func normalizeLabelTarget(projectID, labelID string) (string, string, error) {
 	}
 
 	return projectID, labelID, nil
+}
+
+func normalizePreviewSelectorInput(input PreviewSelectorInput) (normalizedPreviewSelectorInput, error) {
+	var validation appvalidation.Collector
+
+	projectRef, err := domainproject.VNProjectRef(input.ProjectRef)
+	if err != nil {
+		validation.AddError("projectRef", err, input.ProjectRef)
+	}
+	selector, err := domainselector.Parse(input.Selector)
+	if err != nil {
+		validation.AddError("selector", err, nil)
+	}
+	if err := validation.Err(ErrInvalidInput); err != nil {
+		return normalizedPreviewSelectorInput{}, err
+	}
+
+	return normalizedPreviewSelectorInput{
+		currentUserID: input.CurrentUserID,
+		projectRef:    projectRef,
+		selector:      selector,
+	}, nil
+}
+
+func normalizeListProjectAssignmentsInput(input ListProjectAssignmentsInput) (normalizedListProjectAssignmentsInput, error) {
+	var validation appvalidation.Collector
+
+	projectRef, err := domainproject.VNProjectRef(input.ProjectRef)
+	if err != nil {
+		validation.AddError("projectRef", err, input.ProjectRef)
+	}
+	var probeID string
+	if input.ProbeID != "" {
+		probeID, err = domainprobe.VNProbeID(input.ProbeID)
+		if err != nil {
+			validation.AddError("probeId", err, input.ProbeID)
+		}
+	}
+	var checkID string
+	if input.CheckID != "" {
+		checkID, err = domaincheck.VNCheckID(input.CheckID)
+		if err != nil {
+			validation.AddError("checkId", err, input.CheckID)
+		}
+	}
+	if err := validation.Err(ErrInvalidInput); err != nil {
+		return normalizedListProjectAssignmentsInput{}, err
+	}
+
+	return normalizedListProjectAssignmentsInput{
+		currentUserID: input.CurrentUserID,
+		projectRef:    projectRef,
+		probeID:       probeID,
+		checkID:       checkID,
+	}, nil
 }

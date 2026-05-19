@@ -66,8 +66,8 @@ func projectErrorLocation(field string) string {
 		return "path.ref"
 	case "memberUserId":
 		return "path.user_id"
-	case "userId":
-		return "body.userId"
+	case "email":
+		return "body.email"
 	default:
 		return "body." + field
 	}

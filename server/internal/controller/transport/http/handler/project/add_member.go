@@ -16,7 +16,7 @@ func (h *Handler) addMember(ctx context.Context, input *addMemberInput) (*member
 	member, err := h.service.AddMember(ctx, appproject.AddMemberInput{
 		CurrentUserID: currentUserID,
 		ProjectRef:    input.Ref,
-		UserID:        input.Body.UserID,
+		Email:         input.Body.Email,
 		Role:          domainproject.Role(input.Body.Role),
 	})
 	if err != nil {
@@ -32,6 +32,6 @@ type addMemberInput struct {
 }
 
 type addMemberInputBody struct {
-	UserID string `json:"userId,omitempty"`
-	Role   string `json:"role,omitempty"`
+	Email string `json:"email,omitempty"`
+	Role  string `json:"role,omitempty"`
 }

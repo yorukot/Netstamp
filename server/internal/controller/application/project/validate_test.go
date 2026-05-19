@@ -75,7 +75,7 @@ func TestNormalizeMemberInputsPreserveCurrentUserID(t *testing.T) {
 		input, err := normalizeAddMemberInput(AddMemberInput{
 			CurrentUserID: testCurrentUserID,
 			ProjectRef:    " project ",
-			UserID:        testMemberUserID,
+			Email:         "member@example.com",
 			Role:          domainproject.RoleEditor,
 		})
 		if err != nil {
@@ -120,11 +120,11 @@ func TestNormalizeAddMemberInputReturnsAllFieldErrors(t *testing.T) {
 	_, err := normalizeAddMemberInput(AddMemberInput{
 		CurrentUserID: testCurrentUserID,
 		ProjectRef:    "",
-		UserID:        "",
+		Email:         "",
 		Role:          "invalid",
 	})
 
-	assertProjectValidationFields(t, err, []string{"projectRef", "userId", "role"})
+	assertProjectValidationFields(t, err, []string{"projectRef", "email", "role"})
 }
 
 func TestNormalizeUpdateMemberRoleInputReturnsAllFieldErrors(t *testing.T) {

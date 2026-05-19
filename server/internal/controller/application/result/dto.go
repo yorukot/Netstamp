@@ -37,6 +37,20 @@ type QueryTracerouteRunsInput struct {
 	Now           time.Time
 }
 
+type QueryMeasurementsInput struct {
+	CurrentUserID string
+	ProjectRef    string
+	ProbeID       string
+	CheckID       string
+	Type          string
+	Status        string
+	FromMs        *int64
+	ToMs          *int64
+	Limit         *int32
+	CursorMs      *int64
+	Now           time.Time
+}
+
 type PingSeriesOutput struct {
 	Series []Series
 	Query  QueryMetadata
@@ -45,6 +59,26 @@ type PingSeriesOutput struct {
 type TracerouteRunsOutput struct {
 	Runs  []TracerouteRun
 	Query TracerouteRunsQueryMetadata
+}
+
+type MeasurementsOutput struct {
+	Measurements []Measurement
+	Query        MeasurementQueryMetadata
+}
+
+type Measurement struct {
+	Type         string
+	StartedAt    time.Time
+	FinishedAt   time.Time
+	ProbeID      string
+	CheckID      string
+	Status       string
+	DurationMs   int32
+	LatencyMs    *float64
+	LossPercent  *float64
+	Metadata     *string
+	ErrorCode    *string
+	ErrorMessage *string
 }
 
 type TracerouteRun struct {
@@ -111,6 +145,13 @@ type TracerouteRunsQueryMetadata struct {
 	NextCursor *int64
 }
 
+type MeasurementQueryMetadata struct {
+	FromMs     int64
+	ToMs       int64
+	Limit      int32
+	NextCursor *int64
+}
+
 type normalizedQueryPingSeriesInput struct {
 	normalizedQueryBase
 
@@ -132,4 +173,17 @@ type normalizedQueryTracerouteRunsInput struct {
 
 	limit  int32
 	cursor *time.Time
+}
+
+type normalizedQueryMeasurementsInput struct {
+	currentUserID string
+	projectRef    string
+	probeID       string
+	checkID       string
+	resultType    *string
+	status        *string
+	from          time.Time
+	to            time.Time
+	limit         int32
+	cursor        *time.Time
 }

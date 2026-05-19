@@ -7,6 +7,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
+	"github.com/yorukot/netstamp/internal/domain/identity"
 	domainlabel "github.com/yorukot/netstamp/internal/domain/label"
 	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
@@ -114,6 +115,19 @@ func (f *assignmentFlow) deleteFailure(event AssignmentEventName, err error) err
 		return f.businessFailure(event, AssignmentReasonCheckNotFound, err)
 	default:
 		return f.technicalFailure(event, AssignmentReasonDeleteFailed, err)
+	}
+}
+
+func (f *assignmentFlow) projectLookupFailure(event AssignmentEventName, err error) error {
+	switch {
+	case errors.Is(err, domainproject.ErrProjectNotFound):
+		return f.businessFailure(event, AssignmentReasonProjectNotFound, err)
+	case errors.Is(err, identity.ErrUserNotFound):
+		return f.businessFailure(event, AssignmentReasonProjectNotFound, err)
+	case errors.Is(err, domainproject.ErrMemberNotFound):
+		return f.businessFailure(event, AssignmentReasonForbidden, err)
+	default:
+		return f.technicalFailure(event, AssignmentReasonProjectLookupFailed, err)
 	}
 }
 

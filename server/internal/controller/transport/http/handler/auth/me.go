@@ -2,16 +2,21 @@ package auth
 
 import (
 	"context"
+	"errors"
 
 	"github.com/yorukot/netstamp/internal/controller/transport/http/httpx"
 	httpmiddleware "github.com/yorukot/netstamp/internal/controller/transport/http/middleware"
+	"github.com/yorukot/netstamp/internal/domain/identity"
 )
 
 func (h *Handler) me(ctx context.Context, _ *meInput) (*meOutput, error) {
 	claims, _ := httpmiddleware.AccessTokenClaimsFromContext(ctx)
 
-	user, err := h.service.GetCurrentUser(ctx, claims.Email)
+	user, err := h.service.GetCurrentUser(ctx, claims.Subject)
 	if err != nil {
+		if errors.Is(err, identity.ErrUserNotFound) {
+			return nil, httpx.Unauthorized("invalid session")
+		}
 		return nil, httpx.InternalServerError("failed to fetch user")
 	}
 

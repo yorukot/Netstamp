@@ -1,6 +1,7 @@
 package result
 
 import (
+	"strings"
 	"time"
 
 	appvalidation "github.com/yorukot/netstamp/internal/controller/application/validation"
@@ -82,6 +83,70 @@ func normalizeQueryTracerouteRunsInput(input QueryTracerouteRunsInput) (normaliz
 		normalizedQueryBase: base,
 		limit:               limit,
 		cursor:              cursor,
+	}, nil
+}
+
+func normalizeQueryMeasurementsInput(input QueryMeasurementsInput) (normalizedQueryMeasurementsInput, error) {
+	var validation appvalidation.Collector
+
+	projectRef, err := domainproject.VNProjectRef(input.ProjectRef)
+	if err != nil {
+		validation.AddError("projectRef", err, input.ProjectRef)
+	}
+	probeID, err := normalizeOptionalProbeID(input.ProbeID)
+	if err != nil {
+		validation.AddError("probeId", err, input.ProbeID)
+	}
+	checkID, err := normalizeOptionalCheckID(input.CheckID)
+	if err != nil {
+		validation.AddError("checkId", err, input.CheckID)
+	}
+	resultType, err := normalizeMeasurementType(input.Type)
+	if err != nil {
+		validation.AddError("type", err, input.Type)
+	}
+	status, err := normalizeMeasurementStatus(input.Status)
+	if err != nil {
+		validation.AddError("status", err, input.Status)
+	}
+
+	now := input.Now.UTC()
+	if now.IsZero() {
+		now = time.Now().UTC()
+	}
+	from, to, err := normalizeRange(input.FromMs, input.ToMs, now)
+	if err != nil {
+		if !validation.AddValidation(err) {
+			return normalizedQueryMeasurementsInput{}, err
+		}
+	}
+	limit, err := normalizeRunLimit(input.Limit)
+	if err != nil {
+		if !validation.AddValidation(err) {
+			return normalizedQueryMeasurementsInput{}, err
+		}
+	}
+	cursor, err := normalizeCursor(input.CursorMs)
+	if err != nil {
+		if !validation.AddValidation(err) {
+			return normalizedQueryMeasurementsInput{}, err
+		}
+	}
+	if err := validation.Err(ErrInvalidInput); err != nil {
+		return normalizedQueryMeasurementsInput{}, err
+	}
+
+	return normalizedQueryMeasurementsInput{
+		currentUserID: input.CurrentUserID,
+		projectRef:    projectRef,
+		probeID:       probeID,
+		checkID:       checkID,
+		resultType:    resultType,
+		status:        status,
+		from:          from,
+		to:            to,
+		limit:         limit,
+		cursor:        cursor,
 	}, nil
 }
 
@@ -169,6 +234,20 @@ func normalizeQueryBase(currentUserID, projectRefValue, probeIDValue, checkIDVal
 	}, nil
 }
 
+func normalizeOptionalProbeID(probeIDValue string) (string, error) {
+	if probeIDValue == "" {
+		return "", nil
+	}
+	return domainprobe.VNProbeID(probeIDValue)
+}
+
+func normalizeOptionalCheckID(checkIDValue string) (string, error) {
+	if checkIDValue == "" {
+		return "", nil
+	}
+	return domaincheck.VNCheckID(checkIDValue)
+}
+
 func normalizeRange(fromMs, toMs *int64, now time.Time) (time.Time, time.Time, error) {
 	var validation appvalidation.Collector
 
@@ -251,6 +330,30 @@ func normalizeCursor(input *int64) (*time.Time, error) {
 	}
 	cursor := time.UnixMilli(*input).UTC()
 	return &cursor, nil
+}
+
+func normalizeMeasurementType(input string) (*string, error) {
+	value := strings.TrimSpace(input)
+	switch value {
+	case "":
+		return nil, nil //nolint:nilnil // Nil means no type filter was provided.
+	case "ping", "traceroute":
+		return &value, nil
+	default:
+		return nil, invalidResultField("type", "unsupported measurement type", input)
+	}
+}
+
+func normalizeMeasurementStatus(input string) (*string, error) {
+	value := strings.TrimSpace(input)
+	switch value {
+	case "":
+		return nil, nil //nolint:nilnil // Nil means no status filter was provided.
+	case "successful", "timeout", "error", "partial":
+		return &value, nil
+	default:
+		return nil, invalidResultField("status", "unsupported measurement status", input)
+	}
 }
 
 func invalidResultField(field, message string, value any) error {

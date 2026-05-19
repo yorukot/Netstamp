@@ -50,7 +50,8 @@ func isExpectedAssignmentFailure(event appassignment.AssignmentEvent) bool {
 		appassignment.AssignmentReasonProjectNotFound,
 		appassignment.AssignmentReasonProbeNotFound,
 		appassignment.AssignmentReasonCheckNotFound,
-		appassignment.AssignmentReasonLabelNotFound:
+		appassignment.AssignmentReasonLabelNotFound,
+		appassignment.AssignmentReasonForbidden:
 		return true
 	default:
 		return false

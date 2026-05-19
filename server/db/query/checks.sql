@@ -124,6 +124,9 @@ VALUES ($1, $2, $3);
 -- name: ListActiveEnabledProbeLabelsForProject :many
 SELECT probes.id AS probe_id,
        probes.internal_id AS probe_internal_id,
+       probes.project_id AS probe_project_id,
+       probes.name AS probe_name,
+       probes.enabled AS probe_enabled,
        labels.id AS label_id,
        labels.project_id AS label_project_id,
        labels.key AS label_key,

@@ -1,6 +1,13 @@
 package assignment
 
-import "context"
+import (
+	"context"
+
+	domainassignment "github.com/yorukot/netstamp/internal/domain/assignment"
+	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
+	domainproject "github.com/yorukot/netstamp/internal/domain/project"
+	domainselector "github.com/yorukot/netstamp/internal/domain/selector"
+)
 
 type Repository interface {
 	RefreshProbeCheckAssignmentsForProbe(ctx context.Context, projectID, probeID string) error
@@ -8,6 +15,12 @@ type Repository interface {
 	RefreshProbeCheckAssignmentsForLabel(ctx context.Context, projectID, labelID string) error
 	DeleteProbeCheckAssignmentsForProbe(ctx context.Context, projectID, probeID string) error
 	DeleteProbeCheckAssignmentsForCheck(ctx context.Context, projectID, checkID string) error
+	ListSelectorPreviewProbes(ctx context.Context, projectID string, selector domainselector.Selector) ([]domainprobe.Probe, error)
+	ListProjectAssignments(ctx context.Context, input domainassignment.Query) ([]domainassignment.Assignment, error)
+}
+
+type ProjectAccess interface {
+	GetProjectForUser(ctx context.Context, projectRef, userID string) (domainproject.Project, error)
 }
 
 type EventRecorder interface {
@@ -27,6 +40,8 @@ const (
 	AssignmentEventDeleteProbeFailure  AssignmentEventName = "assignment.probe.delete.failure"
 	AssignmentEventDeleteCheckSuccess  AssignmentEventName = "assignment.check.delete.success"
 	AssignmentEventDeleteCheckFailure  AssignmentEventName = "assignment.check.delete.failure"
+	AssignmentEventPreviewFailure      AssignmentEventName = "assignment.selector_preview.failure"
+	AssignmentEventListFailure         AssignmentEventName = "assignment.list.failure"
 )
 
 type AssignmentEventAction string
@@ -37,6 +52,8 @@ const (
 	AssignmentActionRefreshLabel AssignmentEventAction = "label.refresh"
 	AssignmentActionDeleteProbe  AssignmentEventAction = "probe.delete"
 	AssignmentActionDeleteCheck  AssignmentEventAction = "check.delete"
+	AssignmentActionPreview      AssignmentEventAction = "selector_preview"
+	AssignmentActionList         AssignmentEventAction = "list"
 )
 
 type AssignmentEventOutcome string
@@ -49,13 +66,17 @@ const (
 type AssignmentEventReason string
 
 const (
-	AssignmentReasonInvalidInput    AssignmentEventReason = "invalid_input"
-	AssignmentReasonProjectNotFound AssignmentEventReason = "project_not_found"
-	AssignmentReasonProbeNotFound   AssignmentEventReason = "probe_not_found"
-	AssignmentReasonCheckNotFound   AssignmentEventReason = "check_not_found"
-	AssignmentReasonLabelNotFound   AssignmentEventReason = "label_not_found"
-	AssignmentReasonRefreshFailed   AssignmentEventReason = "refresh_failed"
-	AssignmentReasonDeleteFailed    AssignmentEventReason = "delete_failed"
+	AssignmentReasonInvalidInput        AssignmentEventReason = "invalid_input"
+	AssignmentReasonProjectNotFound     AssignmentEventReason = "project_not_found"
+	AssignmentReasonProbeNotFound       AssignmentEventReason = "probe_not_found"
+	AssignmentReasonCheckNotFound       AssignmentEventReason = "check_not_found"
+	AssignmentReasonLabelNotFound       AssignmentEventReason = "label_not_found"
+	AssignmentReasonForbidden           AssignmentEventReason = "forbidden"
+	AssignmentReasonProjectLookupFailed AssignmentEventReason = "project_lookup_failed"
+	AssignmentReasonRefreshFailed       AssignmentEventReason = "refresh_failed"
+	AssignmentReasonDeleteFailed        AssignmentEventReason = "delete_failed"
+	AssignmentReasonListFailed          AssignmentEventReason = "list_failed"
+	AssignmentReasonPreviewFailed       AssignmentEventReason = "preview_failed"
 )
 
 type AssignmentEvent struct {

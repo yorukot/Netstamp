@@ -98,12 +98,19 @@ func VNProjectRef(projectRef string) (string, error) {
 }
 
 type Member struct {
-	ID        string    `json:"id"`
-	ProjectID string    `json:"projectId"`
-	UserID    string    `json:"userId"`
-	Role      Role      `json:"role"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	ID        string     `json:"id"`
+	ProjectID string     `json:"projectId"`
+	UserID    string     `json:"userId"`
+	Role      Role       `json:"role"`
+	User      MemberUser `json:"user"`
+	CreatedAt time.Time  `json:"createdAt"`
+	UpdatedAt time.Time  `json:"updatedAt"`
+}
+
+type MemberUser struct {
+	ID          string `json:"id"`
+	Email       string `json:"email"`
+	DisplayName string `json:"displayName"`
 }
 
 func VNProjectMemberUserID(userID string) (string, error) {

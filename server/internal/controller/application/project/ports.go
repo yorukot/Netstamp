@@ -3,6 +3,7 @@ package project
 import (
 	"context"
 
+	"github.com/yorukot/netstamp/internal/domain/identity"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 )
 
@@ -19,6 +20,10 @@ type Repository interface {
 	UpdateMemberRole(ctx context.Context, input domainproject.Member) (domainproject.Member, error)
 	DeleteMember(ctx context.Context, projectID, userID string) error
 	CountOwners(ctx context.Context, projectID string) (int, error)
+}
+
+type UserLookup interface {
+	GetUserByEmail(ctx context.Context, email string) (identity.User, error)
 }
 
 type EventRecorder interface {
