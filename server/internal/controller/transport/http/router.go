@@ -20,12 +20,12 @@ import (
 	authhttp "github.com/yorukot/netstamp/internal/controller/transport/http/handler/auth"
 	checkhttp "github.com/yorukot/netstamp/internal/controller/transport/http/handler/check"
 	labelhttp "github.com/yorukot/netstamp/internal/controller/transport/http/handler/label"
-	httpmiddleware "github.com/yorukot/netstamp/internal/controller/transport/http/middleware"
-	"github.com/yorukot/netstamp/internal/controller/transport/http/openapi"
 	probehttp "github.com/yorukot/netstamp/internal/controller/transport/http/handler/probe"
 	proberuntimehttp "github.com/yorukot/netstamp/internal/controller/transport/http/handler/proberuntime"
 	projecthttp "github.com/yorukot/netstamp/internal/controller/transport/http/handler/project"
 	resulthttp "github.com/yorukot/netstamp/internal/controller/transport/http/handler/result"
+	httpmiddleware "github.com/yorukot/netstamp/internal/controller/transport/http/middleware"
+	"github.com/yorukot/netstamp/internal/controller/transport/http/openapi"
 	httptracing "github.com/yorukot/netstamp/internal/platform/observability/httptrace"
 )
 
@@ -118,13 +118,17 @@ func registerOpenAPIRoutes(api chi.Router, dep Dependencies) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write(data)
+		if _, err := w.Write(data); err != nil {
+			return
+		}
 	})
 
 	api.Get("/docs", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write(openapi.ScalarHTML(dep.basePath() + "/openapi.json"))
+		if _, err := w.Write(openapi.ScalarHTML(dep.basePath() + "/openapi.json")); err != nil {
+			return
+		}
 	})
 }
 

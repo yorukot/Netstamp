@@ -3,7 +3,6 @@ package httpx
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -96,7 +95,9 @@ func WriteJSON(w http.ResponseWriter, status int, body any) {
 	if body == nil {
 		return
 	}
-	_ = json.NewEncoder(w).Encode(body)
+	if err := json.NewEncoder(w).Encode(body); err != nil {
+		return
+	}
 }
 
 func WriteNoContent(w http.ResponseWriter) {
@@ -126,7 +127,9 @@ func WriteProblem(w http.ResponseWriter, r *http.Request, err error) {
 	if httpErr != nil && len(httpErr.Details) > 0 {
 		body.Errors = httpErr.Details
 	}
-	_ = json.NewEncoder(w).Encode(body)
+	if err := json.NewEncoder(w).Encode(body); err != nil {
+		return
+	}
 }
 
 func Path(r *http.Request, name string) string {
@@ -144,7 +147,7 @@ func QueryInt64(r *http.Request, name string) (int64, error) {
 	}
 	parsed, err := strconv.ParseInt(value, 10, 64)
 	if err != nil {
-		return 0, BadRequest(fmt.Sprintf("invalid query parameter %s", name))
+		return 0, BadRequest("invalid query parameter " + name)
 	}
 	return parsed, nil
 }
@@ -156,7 +159,7 @@ func QueryInt32(r *http.Request, name string) (int32, error) {
 	}
 	parsed, err := strconv.ParseInt(value, 10, 32)
 	if err != nil {
-		return 0, BadRequest(fmt.Sprintf("invalid query parameter %s", name))
+		return 0, BadRequest("invalid query parameter " + name)
 	}
 	return int32(parsed), nil
 }
