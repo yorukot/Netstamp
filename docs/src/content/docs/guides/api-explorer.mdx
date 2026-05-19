@@ -9,7 +9,7 @@ head:
 
 ## Contract Source
 
-The API explorer reads `docs/public/openapi.json`. That file is generated from the TypeSpec contract in `api/`, then copied into the backend so runtime `/api/{version}/openapi.json` serves the same schema.
+The API explorer reads `docs/public/openapi.json`. That file is generated from the TypeSpec contract in `api/`, then copied into the backend so non-production runtime docs can serve the same schema.
 
 ```bash
 pnpm generate:openapi
@@ -20,6 +20,8 @@ pnpm generate:openapi
 Open [`/openapi/`](/openapi/) from the docs nav. The page loads the generated contract and groups operations by the tags defined in TypeSpec.
 
 Use it to verify request bodies, response schemas, and route paths before writing additional guides.
+
+Backend non-production environments also expose Scalar API docs at `/api/v1/docs`. That page loads `/api/v1/openapi.json` from the same controller process. Production does not register either backend runtime docs route.
 
 ## Authenticated Routes
 

@@ -13,7 +13,7 @@ The product is designed for teams that need to understand how network services b
 - Ping checks with packet count, packet size, timeout, and IP family configuration.
 - Probe runtime API for hello, heartbeat, assignment polling, and result submission.
 - PostgreSQL plus TimescaleDB storage for relational state and time-series ping results.
-- OpenAPI generation from Huma route definitions.
+- OpenAPI generation from the TypeSpec contract.
 - React product app for dashboard, probes, checks, insights, alerts, team, and settings.
 - Astro documentation site with API explorer and Storybook output for shared UI components.
 - Structured logging, Prometheus-compatible metrics, and optional OpenTelemetry trace export.
@@ -44,7 +44,7 @@ Netstamp has four main runtime surfaces:
 The normal request path is:
 
 ```text
-Browser -> React app -> /api/v1/* -> chi + Huma -> application service -> PostgreSQL/TimescaleDB
+Browser -> React app -> /api/v1/* -> chi -> application service -> PostgreSQL/TimescaleDB
 ```
 
 The probe path is:
@@ -55,7 +55,7 @@ Probe -> /api/v1/probes/{probe_id}/runtime/* -> runtime service -> assignments +
 
 The backend uses a layered Go structure:
 
-- `transport/http`: route registration, Huma DTOs, middleware, and HTTP error mapping.
+- `transport/http`: route registration, request/response DTOs, middleware, and HTTP error mapping.
 - `application/*`: use cases, authorization, orchestration, event semantics, and feature validation.
 - `domain/*`: stable domain models, permissions, selector parsing, and validation-normalization helpers.
 - `infrastructure/*`: PostgreSQL repositories, sqlc integration, JWT, Argon2id password hashing, and probe secrets.
@@ -202,7 +202,6 @@ Database migrations live in `server/db/migrations/`. SQL queries for sqlc live i
 
 - Go
 - chi
-- Huma
 - pgx
 - sqlc
 - Goose
@@ -388,7 +387,7 @@ just build
 
 ## OpenAPI
 
-The API contract is generated from backend Huma route definitions. Regenerate it after changing HTTP routes, request bodies, response bodies, security schemes, or operation metadata:
+The API contract is generated from the TypeSpec contract. Regenerate it after changing HTTP routes, request bodies, response bodies, security schemes, or operation metadata:
 
 ```bash
 pnpm generate:openapi

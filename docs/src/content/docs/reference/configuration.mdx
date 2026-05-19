@@ -26,7 +26,7 @@ Documentation pages are MDX files under `docs/src/content/docs/`. The left sideb
 
 ## Backend And API Assets
 
-Backend source lives in `server/`. The docs API explorer reads `docs/public/openapi.json`, which should be regenerated from backend route definitions when API behavior changes.
+Backend source lives in `server/`. The docs API explorer reads `docs/public/openapi.json`, which should be regenerated from the TypeSpec contract when API behavior changes. Non-production backend environments also expose Scalar docs at `/api/v1/docs`; production does not register that runtime docs route or `/api/v1/openapi.json`.
 
 ## Database Image
 

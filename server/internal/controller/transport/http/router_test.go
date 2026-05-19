@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -121,6 +122,86 @@ func TestNewRouterOpenAPIUsesBackendBaseURLServerURL(t *testing.T) {
 	}
 }
 
+func TestNewRouterServesScalarDocsWhenAPIDocsExposed(t *testing.T) {
+	for _, path := range []string{"/api/v1/docs", "/api/v1/docs/"} {
+		recorder := performRouterRequest(Dependencies{
+			APIVersion:     "v1",
+			RequestTimeout: time.Second,
+			ExposeAPIDocs:  true,
+		}, http.MethodGet, path)
+
+		if recorder.Code != http.StatusOK {
+			t.Fatalf("expected %s status 200, got %d", path, recorder.Code)
+		}
+		if got := recorder.Header().Get("Content-Type"); got != "text/html; charset=utf-8" {
+			t.Fatalf("expected %s content type, got %q", path, got)
+		}
+		body := recorder.Body.String()
+		for _, want := range []string{
+			"@scalar/api-reference",
+			"Scalar.createApiReference",
+			`"url": "/api/v1/openapi.json"`,
+			`"theme": "elysiajs"`,
+			`"layout": "modern"`,
+			`"showDeveloperTools": "localhost"`,
+			`"title": "API #1"`,
+		} {
+			if !strings.Contains(body, want) {
+				t.Fatalf("expected %s Scalar docs body to contain %q, got %q", path, want, body)
+			}
+		}
+	}
+}
+
+func TestNewRouterHidesAPIDocsWhenDisabled(t *testing.T) {
+	for _, path := range []string{"/api/v1/docs", "/api/v1/docs/", "/api/v1/openapi.json"} {
+		recorder := performRouterRequest(Dependencies{
+			APIVersion:     "v1",
+			RequestTimeout: time.Second,
+			ExposeAPIDocs:  false,
+		}, http.MethodGet, path)
+		if recorder.Code != http.StatusNotFound {
+			t.Fatalf("expected %s status 404, got %d", path, recorder.Code)
+		}
+	}
+}
+
+func TestNewRouterWritesPlainTextNotFoundForBrowsers(t *testing.T) {
+	recorder := performRouterRequestWithHeaders(Dependencies{
+		APIVersion:     "v1",
+		RequestTimeout: time.Second,
+	}, http.MethodGet, "/api/v1/missing", map[string]string{
+		"Accept": "text/html",
+	})
+
+	if recorder.Code != http.StatusNotFound {
+		t.Fatalf("expected missing route status 404, got %d", recorder.Code)
+	}
+	if got := recorder.Header().Get("Content-Type"); got != "text/plain; charset=utf-8" {
+		t.Fatalf("expected plain text not found content type, got %q", got)
+	}
+	if body := recorder.Body.String(); body != "404 page not found\n" {
+		t.Fatalf("expected plain text not found body, got %q", body)
+	}
+}
+
+func TestNewRouterWritesProblemNotFoundForAPIClients(t *testing.T) {
+	recorder := performRouterRequest(Dependencies{
+		APIVersion:     "v1",
+		RequestTimeout: time.Second,
+	}, http.MethodGet, "/api/v1/missing")
+
+	if recorder.Code != http.StatusNotFound {
+		t.Fatalf("expected missing route status 404, got %d", recorder.Code)
+	}
+	if got := recorder.Header().Get("Content-Type"); got != "application/problem+json" {
+		t.Fatalf("expected problem content type, got %q", got)
+	}
+	if body := recorder.Body.String(); !strings.Contains(body, `"detail":"route not found"`) {
+		t.Fatalf("expected problem not found body, got %q", body)
+	}
+}
+
 func TestNewRouterServesMetricsOutsideVersionedAPI(t *testing.T) {
 	router := NewRouter(Dependencies{
 		APIVersion:     "v1",
@@ -155,6 +236,7 @@ func getOpenAPI(t *testing.T, dep Dependencies) openAPISnapshot {
 	if dep.RequestTimeout == 0 {
 		dep.RequestTimeout = time.Second
 	}
+	dep.ExposeAPIDocs = true
 	router := NewRouter(dep)
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest(http.MethodGet, "/api/"+dep.APIVersion+"/openapi.json", http.NoBody)
@@ -169,6 +251,21 @@ func getOpenAPI(t *testing.T, dep Dependencies) openAPISnapshot {
 		t.Fatalf("decode OpenAPI: %v", err)
 	}
 	return spec
+}
+
+func performRouterRequest(dep Dependencies, method, path string) *httptest.ResponseRecorder {
+	return performRouterRequestWithHeaders(dep, method, path, nil)
+}
+
+func performRouterRequestWithHeaders(dep Dependencies, method, path string, headers map[string]string) *httptest.ResponseRecorder {
+	router := NewRouter(dep)
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest(method, path, http.NoBody)
+	for key, value := range headers {
+		request.Header.Set(key, value)
+	}
+	router.ServeHTTP(recorder, request)
+	return recorder
 }
 
 func assertOpenAPIOperation(t *testing.T, spec openAPISnapshot, method, path, operationID string) {

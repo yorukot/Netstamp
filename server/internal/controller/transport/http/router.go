@@ -33,6 +33,7 @@ type Dependencies struct {
 	Log              *zap.Logger
 	APIVersion       string
 	BackendBaseURL   string
+	ExposeAPIDocs    bool
 	AuthService      *appauth.Service
 	AuthVerifier     appauth.TokenVerifier
 	AuthCookieSecure bool
@@ -64,6 +65,7 @@ func newAPIRouter(dep Dependencies) http.Handler {
 	r := chi.NewRouter()
 	r.Use(chimw.RequestID)
 	r.Use(chimw.RealIP)
+	r.Use(chimw.StripSlashes)
 	r.Use(otelhttp.NewMiddleware("http.server",
 		otelhttp.WithSpanNameFormatter(httptracing.RequestSpanName),
 	))
@@ -75,13 +77,8 @@ func newAPIRouter(dep Dependencies) http.Handler {
 		registerAPIRoutes(apiRouter, dep)
 	})
 
-	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusNotFound)
-	})
-
-	r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-	})
+	r.NotFound(writeNotFound)
+	r.MethodNotAllowed(writeMethodNotAllowed)
 
 	return r
 }
@@ -99,7 +96,9 @@ func routeMetrics(apiRouter, metricsHandler http.Handler) http.Handler {
 
 func registerAPIRoutes(api chi.Router, dep Dependencies) {
 	registerSystemRoutes(api, dep.ReadinessCheck)
-	registerOpenAPIRoute(api, dep)
+	if dep.ExposeAPIDocs {
+		registerOpenAPIRoutes(api, dep)
+	}
 
 	authhttp.NewHandler(dep.AuthService, dep.AuthVerifier, dep.AuthCookieSecure).RegisterRoutes(api)
 	projecthttp.NewHandler(dep.ProjectService, dep.AuthVerifier).RegisterRoutes(api)
@@ -110,7 +109,7 @@ func registerAPIRoutes(api chi.Router, dep Dependencies) {
 	proberuntimehttp.NewHandler(dep.ProbeRuntime).RegisterRoutes(api)
 }
 
-func registerOpenAPIRoute(api chi.Router, dep Dependencies) {
+func registerOpenAPIRoutes(api chi.Router, dep Dependencies) {
 	api.Get("/openapi.json", func(w http.ResponseWriter, r *http.Request) {
 		data, err := openapi.Spec(dep.APIVersion, dep.BackendBaseURL)
 		if err != nil {
@@ -120,6 +119,12 @@ func registerOpenAPIRoute(api chi.Router, dep Dependencies) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write(data)
+	})
+
+	api.Get("/docs", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(openapi.ScalarHTML(dep.basePath() + "/openapi.json"))
 	})
 }
 

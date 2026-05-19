@@ -169,7 +169,7 @@ linters:
         linters:
           - dupl
 
-      # contextcheck does not understand Huma's context wrapper in auth middleware.
+      # contextcheck reports a false positive through chi auth middleware wiring.
       - path: "internal/controller/app/bootstrap\\.go"
         text: "Function `NewRouter->.*RequireAuth"
         linters:
