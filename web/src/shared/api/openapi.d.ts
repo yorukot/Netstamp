@@ -155,6 +155,26 @@ export interface paths {
 		patch: operations["updateProject"];
 		trace?: never;
 	};
+	"/projects/{ref}/assignments": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * List project assignments
+		 * @description List effective probe-check assignments for authenticated console users. Probe runtime polling uses the separate runtime endpoint.
+		 */
+		get: operations["listProjectAssignments"];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	"/projects/{ref}/checks": {
 		parameters: {
 			query?: never;
@@ -226,6 +246,26 @@ export interface paths {
 		head?: never;
 		/** Update project label */
 		patch: operations["updateProjectLabel"];
+		trace?: never;
+	};
+	"/projects/{ref}/measurements": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * List project measurements
+		 * @description List recent raw-ish measurement rows for dashboard activity, check logs, and measurement tables. Aggregated chart series remain under the result series endpoints.
+		 */
+		get: operations["listProjectMeasurements"];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
 		trace?: never;
 	};
 	"/projects/{ref}/members": {
@@ -352,6 +392,26 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	"/projects/{ref}/selector-previews": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * Preview project selector
+		 * @description Validate a selector AST, return its canonical form, and list the project probes it currently matches.
+		 */
+		post: operations["previewProjectSelector"];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	"/runtime/probes/{probe_id}/assignments": {
 		parameters: {
 			query?: never;
@@ -420,6 +480,66 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	"/users/me": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		/**
+		 * Update current user
+		 * @description Update profile fields for the user authenticated by the session cookie.
+		 */
+		patch: operations["updateCurrentUser"];
+		trace?: never;
+	};
+	"/users/me/email-change": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * Change current user email
+		 * @description Change the sign-in email for the current user after confirming the current password.
+		 */
+		post: operations["changeCurrentUserEmail"];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	"/users/me/password-change": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * Change current user password
+		 * @description Change the current user's password after verifying the existing password.
+		 */
+		post: operations["changeCurrentUserPassword"];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -435,12 +555,12 @@ export interface components {
 		};
 		/**
 		 * @example {
-		 *       "userId": "11111111-1111-1111-1111-111111111111",
+		 *       "email": "user@example.com",
 		 *       "role": "viewer"
 		 *     }
 		 */
 		AddProjectMemberRequest: {
-			userId: components["schemas"]["uuid"];
+			email: components["schemas"]["email"];
 			/** @enum {string} */
 			role: "admin" | "editor" | "viewer";
 		};
@@ -487,6 +607,39 @@ export interface components {
 		 */
 		AuthUserResponse: {
 			user: components["schemas"]["User"];
+		};
+		/**
+		 * @example {
+		 *       "newEmail": "jane.operator@example.com",
+		 *       "password": "correct-horse-battery-staple"
+		 *     }
+		 */
+		ChangeCurrentUserEmailRequest: {
+			/** @description New normalized email address to use for sign-in. */
+			newEmail: components["schemas"]["email"];
+			/**
+			 * Format: password
+			 * @description Current password used to confirm this sensitive account change.
+			 */
+			password: string;
+		};
+		/**
+		 * @example {
+		 *       "currentPassword": "correct-horse-battery-staple",
+		 *       "newPassword": "new-correct-horse-battery-staple"
+		 *     }
+		 */
+		ChangeCurrentUserPasswordRequest: {
+			/**
+			 * Format: password
+			 * @description Current password to verify before changing credentials.
+			 */
+			currentPassword: string;
+			/**
+			 * Format: password
+			 * @description New password. It is stored only as an Argon2id hash.
+			 */
+			newPassword: string;
 		};
 		/**
 		 * @example {
@@ -763,6 +916,84 @@ export interface components {
 			 * @description Plain-text password to verify. It is never returned by the API.
 			 */
 			password: string;
+		};
+		/**
+		 * @example {
+		 *       "type": "ping",
+		 *       "startedAt": "2026-05-13T10:00:00Z",
+		 *       "finishedAt": "2026-05-13T10:00:01Z",
+		 *       "probeId": "33333333-3333-3333-3333-333333333333",
+		 *       "checkId": "44444444-4444-4444-4444-444444444444",
+		 *       "status": "successful",
+		 *       "durationMs": 1000,
+		 *       "latencyMs": 12.3,
+		 *       "lossPercent": 0,
+		 *       "metadata": "4 packets transmitted, 4 received"
+		 *     }
+		 */
+		Measurement: {
+			/** @enum {string} */
+			type: "ping" | "traceroute";
+			/** Format: date-time */
+			startedAt: string;
+			/** Format: date-time */
+			finishedAt: string;
+			probeId: components["schemas"]["uuid"];
+			checkId: components["schemas"]["uuid"];
+			status: string;
+			/** Format: int32 */
+			durationMs: number;
+			/** Format: double */
+			latencyMs?: number;
+			/** Format: double */
+			lossPercent?: number;
+			metadata?: string;
+			errorCode?: string;
+			errorMessage?: string;
+		};
+		/**
+		 * @example {
+		 *       "measurements": [
+		 *         {
+		 *           "type": "ping",
+		 *           "startedAt": "2026-05-13T10:00:00Z",
+		 *           "finishedAt": "2026-05-13T10:00:01Z",
+		 *           "probeId": "33333333-3333-3333-3333-333333333333",
+		 *           "checkId": "44444444-4444-4444-4444-444444444444",
+		 *           "status": "successful",
+		 *           "durationMs": 1000,
+		 *           "latencyMs": 12.3,
+		 *           "lossPercent": 0
+		 *         }
+		 *       ],
+		 *       "query": {
+		 *         "from": 1778662800000,
+		 *         "to": 1778749200000,
+		 *         "limit": 100
+		 *       }
+		 *     }
+		 */
+		MeasurementListResponse: {
+			measurements: components["schemas"]["Measurement"][];
+			query: components["schemas"]["MeasurementQueryMetadata"];
+		};
+		/**
+		 * @example {
+		 *       "from": 1778662800000,
+		 *       "to": 1778749200000,
+		 *       "limit": 100,
+		 *       "nextCursor": 1778666400000
+		 *     }
+		 */
+		MeasurementQueryMetadata: {
+			/** Format: int64 */
+			from: number;
+			/** Format: int64 */
+			to: number;
+			/** Format: int32 */
+			limit: number;
+			/** Format: int64 */
+			nextCursor?: number;
 		};
 		/**
 		 * @example {
@@ -1098,6 +1329,43 @@ export interface components {
 		};
 		/**
 		 * @example {
+		 *       "id": "77777777-7777-7777-7777-777777777777",
+		 *       "projectId": "22222222-2222-2222-2222-222222222222",
+		 *       "probeId": "33333333-3333-3333-3333-333333333333",
+		 *       "checkId": "44444444-4444-4444-4444-444444444444",
+		 *       "checkVersion": "01HXYZ7K6P4E4M3F0CB1W9DYJ5",
+		 *       "selectorVersion": "01HXYZ7K6P4E4M3F0CB1W9DYJ6"
+		 *     }
+		 */
+		ProjectAssignment: {
+			id: components["schemas"]["uuid"];
+			projectId: components["schemas"]["uuid"];
+			probeId: components["schemas"]["uuid"];
+			checkId: components["schemas"]["uuid"];
+			checkVersion: string;
+			selectorVersion: string;
+			probe?: components["schemas"]["Probe"];
+			check?: components["schemas"]["Check"];
+		};
+		/**
+		 * @example {
+		 *       "assignments": [
+		 *         {
+		 *           "id": "77777777-7777-7777-7777-777777777777",
+		 *           "projectId": "22222222-2222-2222-2222-222222222222",
+		 *           "probeId": "33333333-3333-3333-3333-333333333333",
+		 *           "checkId": "44444444-4444-4444-4444-444444444444",
+		 *           "checkVersion": "01HXYZ7K6P4E4M3F0CB1W9DYJ5",
+		 *           "selectorVersion": "01HXYZ7K6P4E4M3F0CB1W9DYJ6"
+		 *         }
+		 *       ]
+		 *     }
+		 */
+		ProjectAssignmentListResponse: {
+			assignments: components["schemas"]["ProjectAssignment"][];
+		};
+		/**
+		 * @example {
 		 *       "projects": [
 		 *         {
 		 *           "id": "22222222-2222-2222-2222-222222222222",
@@ -1119,6 +1387,11 @@ export interface components {
 		 *       "projectId": "22222222-2222-2222-2222-222222222222",
 		 *       "userId": "11111111-1111-1111-1111-111111111111",
 		 *       "role": "owner",
+		 *       "user": {
+		 *         "id": "11111111-1111-1111-1111-111111111111",
+		 *         "email": "user@example.com",
+		 *         "displayName": "Jane Doe"
+		 *       },
 		 *       "createdAt": "2026-05-13T10:00:00Z",
 		 *       "updatedAt": "2026-05-13T10:00:00Z"
 		 *     }
@@ -1129,6 +1402,7 @@ export interface components {
 			userId: components["schemas"]["uuid"];
 			/** @enum {string} */
 			role: "owner" | "admin" | "editor" | "viewer";
+			user: components["schemas"]["ProjectMemberUser"];
 			/** Format: date-time */
 			createdAt: string;
 			/** Format: date-time */
@@ -1142,6 +1416,11 @@ export interface components {
 		 *           "projectId": "22222222-2222-2222-2222-222222222222",
 		 *           "userId": "11111111-1111-1111-1111-111111111111",
 		 *           "role": "owner",
+		 *           "user": {
+		 *             "id": "11111111-1111-1111-1111-111111111111",
+		 *             "email": "user@example.com",
+		 *             "displayName": "Jane Doe"
+		 *           },
 		 *           "createdAt": "2026-05-13T10:00:00Z",
 		 *           "updatedAt": "2026-05-13T10:00:00Z"
 		 *         }
@@ -1158,6 +1437,11 @@ export interface components {
 		 *         "projectId": "22222222-2222-2222-2222-222222222222",
 		 *         "userId": "11111111-1111-1111-1111-111111111111",
 		 *         "role": "owner",
+		 *         "user": {
+		 *           "id": "11111111-1111-1111-1111-111111111111",
+		 *           "email": "user@example.com",
+		 *           "displayName": "Jane Doe"
+		 *         },
 		 *         "createdAt": "2026-05-13T10:00:00Z",
 		 *         "updatedAt": "2026-05-13T10:00:00Z"
 		 *       }
@@ -1165,6 +1449,18 @@ export interface components {
 		 */
 		ProjectMemberResponse: {
 			member: components["schemas"]["ProjectMember"];
+		};
+		/**
+		 * @example {
+		 *       "id": "11111111-1111-1111-1111-111111111111",
+		 *       "email": "user@example.com",
+		 *       "displayName": "Jane Doe"
+		 *     }
+		 */
+		ProjectMemberUser: {
+			id: components["schemas"]["uuid"];
+			email: components["schemas"]["email"];
+			displayName: string;
 		};
 		/**
 		 * @example {
@@ -1322,6 +1618,62 @@ export interface components {
 			publicV6?: components["schemas"]["ipAddress"];
 			as?: string;
 			addrs?: components["schemas"]["ipAddress"][];
+		};
+		/**
+		 * @example {
+		 *       "id": "33333333-3333-3333-3333-333333333333",
+		 *       "projectId": "22222222-2222-2222-2222-222222222222",
+		 *       "name": "tokyo-vps-1",
+		 *       "enabled": true,
+		 *       "labels": [
+		 *         {
+		 *           "id": "66666666-6666-6666-6666-666666666666",
+		 *           "projectId": "22222222-2222-2222-2222-222222222222",
+		 *           "key": "region",
+		 *           "value": "tokyo",
+		 *           "createdAt": "2026-05-13T10:00:00Z",
+		 *           "updatedAt": "2026-05-13T10:00:00Z"
+		 *         }
+		 *       ]
+		 *     }
+		 */
+		SelectorPreviewProbe: {
+			id: components["schemas"]["uuid"];
+			projectId: components["schemas"]["uuid"];
+			name: string;
+			enabled: boolean;
+			labels: components["schemas"]["Label"][];
+		};
+		/**
+		 * @example {
+		 *       "selector": {}
+		 *     }
+		 */
+		SelectorPreviewRequest: {
+			/** @description Selector AST to validate and preview against active project probes. Empty or omitted selectors match all probes. */
+			selector?: Record<string, never>;
+		};
+		/**
+		 * @example {
+		 *       "selector": {},
+		 *       "matchedCount": 1,
+		 *       "probes": [
+		 *         {
+		 *           "id": "33333333-3333-3333-3333-333333333333",
+		 *           "projectId": "22222222-2222-2222-2222-222222222222",
+		 *           "name": "tokyo-vps-1",
+		 *           "enabled": true,
+		 *           "labels": []
+		 *         }
+		 *       ]
+		 *     }
+		 */
+		SelectorPreviewResponse: {
+			/** @description Backend-canonical selector AST. */
+			selector: Record<string, never>;
+			/** Format: int32 */
+			matchedCount: number;
+			probes: components["schemas"]["SelectorPreviewProbe"][];
 		};
 		/**
 		 * @example {
@@ -1600,6 +1952,15 @@ export interface components {
 		};
 		/**
 		 * @example {
+		 *       "displayName": "Jane Operator"
+		 *     }
+		 */
+		UpdateCurrentUserRequest: {
+			/** @description Name shown in the app. */
+			displayName?: string;
+		};
+		/**
+		 * @example {
 		 *       "key": "metro",
 		 *       "value": "tokyo"
 		 *     }
@@ -1671,6 +2032,14 @@ export interface components {
 	parameters: {
 		CheckIdPathParam: components["schemas"]["uuid"];
 		LabelIdPathParam: components["schemas"]["uuid"];
+		"MeasurementQuery.checkId": components["schemas"]["uuid"];
+		"MeasurementQuery.cursor": number;
+		"MeasurementQuery.from": number;
+		"MeasurementQuery.limit": number;
+		"MeasurementQuery.probeId": components["schemas"]["uuid"];
+		"MeasurementQuery.status": string;
+		"MeasurementQuery.to": number;
+		"MeasurementQuery.type": "ping" | "traceroute";
 		"PingSeriesQuery.checkId": components["schemas"]["uuid"];
 		"PingSeriesQuery.from": number;
 		"PingSeriesQuery.maxDataPoints": number;
@@ -1678,6 +2047,8 @@ export interface components {
 		"PingSeriesQuery.probeId": components["schemas"]["uuid"];
 		"PingSeriesQuery.to": number;
 		ProbeIdPathParam: components["schemas"]["uuid"];
+		"ProjectAssignmentQuery.checkId": components["schemas"]["uuid"];
+		"ProjectAssignmentQuery.probeId": components["schemas"]["uuid"];
 		ProjectRefParam: string;
 		"TracerouteRunsQuery.checkId": components["schemas"]["uuid"];
 		"TracerouteRunsQuery.cursor": number;
@@ -2150,6 +2521,67 @@ export interface operations {
 			};
 			/** @description The request conflicts with the current state of the server. */
 			409: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	listProjectAssignments: {
+		parameters: {
+			query?: {
+				probeId?: components["parameters"]["ProjectAssignmentQuery.probeId"];
+				checkId?: components["parameters"]["ProjectAssignmentQuery.checkId"];
+			};
+			header?: never;
+			path: {
+				ref: components["parameters"]["ProjectRefParam"];
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["ProjectAssignmentListResponse"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
 				headers: {
 					[name: string]: unknown;
 				};
@@ -2743,6 +3175,73 @@ export interface operations {
 			};
 			/** @description The request conflicts with the current state of the server. */
 			409: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	listProjectMeasurements: {
+		parameters: {
+			query?: {
+				probeId?: components["parameters"]["MeasurementQuery.probeId"];
+				checkId?: components["parameters"]["MeasurementQuery.checkId"];
+				type?: components["parameters"]["MeasurementQuery.type"];
+				status?: components["parameters"]["MeasurementQuery.status"];
+				from?: components["parameters"]["MeasurementQuery.from"];
+				to?: components["parameters"]["MeasurementQuery.to"];
+				limit?: components["parameters"]["MeasurementQuery.limit"];
+				cursor?: components["parameters"]["MeasurementQuery.cursor"];
+			};
+			header?: never;
+			path: {
+				ref: components["parameters"]["ProjectRefParam"];
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["MeasurementListResponse"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
 				headers: {
 					[name: string]: unknown;
 				};
@@ -3570,6 +4069,68 @@ export interface operations {
 			};
 		};
 	};
+	previewProjectSelector: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				ref: components["parameters"]["ProjectRefParam"];
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				"application/json": components["schemas"]["SelectorPreviewRequest"];
+			};
+		};
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["SelectorPreviewResponse"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
 	listProbeRuntimeAssignments: {
 		parameters: {
 			query?: never;
@@ -3819,6 +4380,166 @@ export interface operations {
 			};
 			/** @description The server cannot find the requested resource. */
 			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	updateCurrentUser: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				"application/json": components["schemas"]["UpdateCurrentUserRequest"];
+			};
+		};
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["AuthUserResponse"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	changeCurrentUserEmail: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				"application/json": components["schemas"]["ChangeCurrentUserEmailRequest"];
+			};
+		};
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["AuthUserResponse"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The request conflicts with the current state of the server. */
+			409: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	changeCurrentUserPassword: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				"application/json": components["schemas"]["ChangeCurrentUserPasswordRequest"];
+			};
+		};
+		responses: {
+			/** @description There is no content to send for this request, but the headers may be useful. */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+			/** @description Access is unauthorized. */
+			401: {
 				headers: {
 					[name: string]: unknown;
 				};

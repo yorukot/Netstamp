@@ -59,11 +59,22 @@ model ProjectListResponse {
 	projects: Project[];
 }
 
+@example(#{ id: "11111111-1111-1111-1111-111111111111", email: "user@example.com", displayName: "Jane Doe" })
+model ProjectMemberUser {
+	id: uuid;
+	email: email;
+
+	@minLength(1)
+	@maxLength(64)
+	displayName: string;
+}
+
 @example(#{
 	id: "55555555-5555-5555-5555-555555555555",
 	projectId: "22222222-2222-2222-2222-222222222222",
 	userId: "11111111-1111-1111-1111-111111111111",
 	role: "owner",
+	user: #{ id: "11111111-1111-1111-1111-111111111111", email: "user@example.com", displayName: "Jane Doe" },
 	createdAt: utcDateTime.fromISO("2026-05-13T10:00:00Z"),
 	updatedAt: utcDateTime.fromISO("2026-05-13T10:00:00Z"),
 })
@@ -72,6 +83,7 @@ model ProjectMember {
 	projectId: uuid;
 	userId: uuid;
 	role: ProjectRole;
+	user: ProjectMemberUser;
 	createdAt: utcDateTime;
 	updatedAt: utcDateTime;
 }
@@ -82,6 +94,7 @@ model ProjectMember {
 		projectId: "22222222-2222-2222-2222-222222222222",
 		userId: "11111111-1111-1111-1111-111111111111",
 		role: "owner",
+		user: #{ id: "11111111-1111-1111-1111-111111111111", email: "user@example.com", displayName: "Jane Doe" },
 		createdAt: utcDateTime.fromISO("2026-05-13T10:00:00Z"),
 		updatedAt: utcDateTime.fromISO("2026-05-13T10:00:00Z"),
 	},
@@ -97,6 +110,7 @@ model ProjectMemberResponse {
 			projectId: "22222222-2222-2222-2222-222222222222",
 			userId: "11111111-1111-1111-1111-111111111111",
 			role: "owner",
+			user: #{ id: "11111111-1111-1111-1111-111111111111", email: "user@example.com", displayName: "Jane Doe" },
 			createdAt: utcDateTime.fromISO("2026-05-13T10:00:00Z"),
 			updatedAt: utcDateTime.fromISO("2026-05-13T10:00:00Z"),
 		}
@@ -130,9 +144,9 @@ model UpdateProjectRequest {
 	slug?: string;
 }
 
-@example(#{ userId: "11111111-1111-1111-1111-111111111111", role: "viewer" })
+@example(#{ email: "user@example.com", role: "viewer" })
 model AddProjectMemberRequest {
-	userId: uuid;
+	email: email;
 	role: AssignableProjectRole;
 }
 

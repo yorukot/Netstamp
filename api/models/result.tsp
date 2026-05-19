@@ -1,6 +1,11 @@
+import "@typespec/http";
+
+using Http;
+
 namespace Netstamp;
 
 alias PingMetric = "rttAvgMs" | "lossPercent" | "successRate";
+alias MeasurementType = "ping" | "traceroute";
 
 @example(#{
 	startedAt: utcDateTime.fromISO("2026-05-13T10:00:00Z"),
@@ -267,6 +272,96 @@ model TracerouteRunsQueryMetadata {
 model TracerouteRunsResponse {
 	runs: TracerouteResult[];
 	query: TracerouteRunsQueryMetadata;
+}
+
+@example(#{
+	type: "ping",
+	startedAt: utcDateTime.fromISO("2026-05-13T10:00:00Z"),
+	finishedAt: utcDateTime.fromISO("2026-05-13T10:00:01Z"),
+	probeId: "33333333-3333-3333-3333-333333333333",
+	checkId: "44444444-4444-4444-4444-444444444444",
+	status: "successful",
+	durationMs: 1000,
+	latencyMs: 12.3,
+	lossPercent: 0,
+	metadata: "4 packets transmitted, 4 received",
+})
+model Measurement {
+	type: MeasurementType;
+	startedAt: utcDateTime;
+	finishedAt: utcDateTime;
+	probeId: uuid;
+	checkId: uuid;
+	status: string;
+
+	@minValue(0)
+	durationMs: int32;
+
+	@minValue(0)
+	latencyMs?: float64;
+
+	@minValue(0)
+	@maxValue(100)
+	lossPercent?: float64;
+
+	metadata?: string;
+	errorCode?: string;
+	errorMessage?: string;
+}
+
+@example(#{ from: 1778662800000, to: 1778749200000, limit: 100, nextCursor: 1778666400000 })
+model MeasurementQueryMetadata {
+	from: int64;
+	to: int64;
+	limit: int32;
+	nextCursor?: int64;
+}
+
+@example(#{
+	measurements: #[
+		#{
+			type: "ping",
+			startedAt: utcDateTime.fromISO("2026-05-13T10:00:00Z"),
+			finishedAt: utcDateTime.fromISO("2026-05-13T10:00:01Z"),
+			probeId: "33333333-3333-3333-3333-333333333333",
+			checkId: "44444444-4444-4444-4444-444444444444",
+			status: "successful",
+			durationMs: 1000,
+			latencyMs: 12.3,
+			lossPercent: 0,
+		}
+	],
+	query: #{ from: 1778662800000, to: 1778749200000, limit: 100 },
+})
+model MeasurementListResponse {
+	measurements: Measurement[];
+	query: MeasurementQueryMetadata;
+}
+
+model MeasurementQuery {
+	@query
+	probeId?: uuid;
+
+	@query
+	checkId?: uuid;
+
+	@query
+	type?: MeasurementType;
+
+	@query
+	status?: string;
+
+	@query
+	from?: int64;
+
+	@query
+	to?: int64;
+
+	@query
+	limit?: int32;
+
+	@query
+	cursor?: int64;
 }
 
 @example(#{ agentVersion: "netstamp-probe/0.1.0", publicV4: "203.0.113.10", publicV6: "2001:db8::10", as: "AS15169 Google LLC", addrs: #["10.0.0.10"] })

@@ -67,3 +67,14 @@ interface ResultService {
 		| UnprocessableEntityProblem
 		| InternalServerProblem;
 }
+
+@tag("Measurements")
+@useAuth(SessionCookieAuth)
+@route("/projects/{ref}/measurements")
+interface MeasurementService {
+	@operationId("listProjectMeasurements")
+	@summary("List project measurements")
+	@doc("List recent raw-ish measurement rows for dashboard activity, check logs, and measurement tables. Aggregated chart series remain under the result series endpoints.")
+	@get
+	listProjectMeasurements(...ProjectRefParam, ...MeasurementQuery): OkJson<MeasurementListResponse> | UnauthorizedProblem | NotFoundProblem | UnprocessableEntityProblem | InternalServerProblem;
+}

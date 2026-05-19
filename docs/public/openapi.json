@@ -11,12 +11,20 @@
 			"description": "Probe-agent runtime handshake, polling, and result ingestion."
 		},
 		{
+			"name": "Measurements",
+			"description": "Raw-ish measurement rows for tables, logs, and recent activity views."
+		},
+		{
 			"name": "Results",
 			"description": "Authenticated result query endpoints."
 		},
 		{
 			"name": "Probes",
 			"description": "Project-scoped probe registration and secret management."
+		},
+		{
+			"name": "Assignments",
+			"description": "Selector previews and effective probe-check assignments for console users."
 		},
 		{
 			"name": "Checks",
@@ -33,6 +41,10 @@
 		{
 			"name": "Projects",
 			"description": "Authenticated project lifecycle operations."
+		},
+		{
+			"name": "Users",
+			"description": "Authenticated user profile, email, and password management."
 		},
 		{
 			"name": "Auth",
@@ -617,6 +629,82 @@
 					}
 				},
 				"tags": ["Projects"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/projects/{ref}/assignments": {
+			"get": {
+				"operationId": "listProjectAssignments",
+				"summary": "List project assignments",
+				"description": "List effective probe-check assignments for authenticated console users. Probe runtime polling uses the separate runtime endpoint.",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					},
+					{
+						"$ref": "#/components/parameters/ProjectAssignmentQuery.probeId"
+					},
+					{
+						"$ref": "#/components/parameters/ProjectAssignmentQuery.checkId"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProjectAssignmentListResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Assignments"],
 				"security": [
 					{
 						"SessionCookieAuth": []
@@ -1329,6 +1417,100 @@
 					}
 				},
 				"tags": ["Labels"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/projects/{ref}/measurements": {
+			"get": {
+				"operationId": "listProjectMeasurements",
+				"summary": "List project measurements",
+				"description": "List recent raw-ish measurement rows for dashboard activity, check logs, and measurement tables. Aggregated chart series remain under the result series endpoints.",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					},
+					{
+						"$ref": "#/components/parameters/MeasurementQuery.probeId"
+					},
+					{
+						"$ref": "#/components/parameters/MeasurementQuery.checkId"
+					},
+					{
+						"$ref": "#/components/parameters/MeasurementQuery.type"
+					},
+					{
+						"$ref": "#/components/parameters/MeasurementQuery.status"
+					},
+					{
+						"$ref": "#/components/parameters/MeasurementQuery.from"
+					},
+					{
+						"$ref": "#/components/parameters/MeasurementQuery.to"
+					},
+					{
+						"$ref": "#/components/parameters/MeasurementQuery.limit"
+					},
+					{
+						"$ref": "#/components/parameters/MeasurementQuery.cursor"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/MeasurementListResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Measurements"],
 				"security": [
 					{
 						"SessionCookieAuth": []
@@ -2314,6 +2496,86 @@
 				]
 			}
 		},
+		"/projects/{ref}/selector-previews": {
+			"post": {
+				"operationId": "previewProjectSelector",
+				"summary": "Preview project selector",
+				"description": "Validate a selector AST, return its canonical form, and list the project probes it currently matches.",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/SelectorPreviewResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Assignments"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/SelectorPreviewRequest"
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
 		"/runtime/probes/{probe_id}/assignments": {
 			"get": {
 				"operationId": "listProbeRuntimeAssignments",
@@ -2649,6 +2911,207 @@
 					}
 				]
 			}
+		},
+		"/users/me": {
+			"patch": {
+				"operationId": "updateCurrentUser",
+				"summary": "Update current user",
+				"description": "Update profile fields for the user authenticated by the session cookie.",
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/AuthUserResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Users"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/UpdateCurrentUserRequest"
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/users/me/email-change": {
+			"post": {
+				"operationId": "changeCurrentUserEmail",
+				"summary": "Change current user email",
+				"description": "Change the sign-in email for the current user after confirming the current password.",
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/AuthUserResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "The request conflicts with the current state of the server.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Users"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/ChangeCurrentUserEmailRequest"
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/users/me/password-change": {
+			"post": {
+				"operationId": "changeCurrentUserPassword",
+				"summary": "Change current user password",
+				"description": "Change the current user's password after verifying the existing password.",
+				"parameters": [],
+				"responses": {
+					"204": {
+						"description": "There is no content to send for this request, but the headers may be useful. "
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Users"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/ChangeCurrentUserPasswordRequest"
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
 		}
 	},
 	"components": {
@@ -2668,6 +3131,83 @@
 				"schema": {
 					"$ref": "#/components/schemas/uuid"
 				}
+			},
+			"MeasurementQuery.checkId": {
+				"name": "checkId",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"$ref": "#/components/schemas/uuid"
+				},
+				"explode": false
+			},
+			"MeasurementQuery.cursor": {
+				"name": "cursor",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "integer",
+					"format": "int64"
+				},
+				"explode": false
+			},
+			"MeasurementQuery.from": {
+				"name": "from",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "integer",
+					"format": "int64"
+				},
+				"explode": false
+			},
+			"MeasurementQuery.limit": {
+				"name": "limit",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "integer",
+					"format": "int32"
+				},
+				"explode": false
+			},
+			"MeasurementQuery.probeId": {
+				"name": "probeId",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"$ref": "#/components/schemas/uuid"
+				},
+				"explode": false
+			},
+			"MeasurementQuery.status": {
+				"name": "status",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string"
+				},
+				"explode": false
+			},
+			"MeasurementQuery.to": {
+				"name": "to",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "integer",
+					"format": "int64"
+				},
+				"explode": false
+			},
+			"MeasurementQuery.type": {
+				"name": "type",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"enum": ["ping", "traceroute"]
+				},
+				"explode": false
 			},
 			"PingSeriesQuery.checkId": {
 				"name": "checkId",
@@ -2734,6 +3274,24 @@
 				"schema": {
 					"$ref": "#/components/schemas/uuid"
 				}
+			},
+			"ProjectAssignmentQuery.checkId": {
+				"name": "checkId",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"$ref": "#/components/schemas/uuid"
+				},
+				"explode": false
+			},
+			"ProjectAssignmentQuery.probeId": {
+				"name": "probeId",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"$ref": "#/components/schemas/uuid"
+				},
+				"explode": false
 			},
 			"ProjectRefParam": {
 				"name": "ref",
@@ -2831,10 +3389,10 @@
 			},
 			"AddProjectMemberRequest": {
 				"type": "object",
-				"required": ["userId", "role"],
+				"required": ["email", "role"],
 				"properties": {
-					"userId": {
-						"$ref": "#/components/schemas/uuid"
+					"email": {
+						"$ref": "#/components/schemas/email"
 					},
 					"role": {
 						"type": "string",
@@ -2843,7 +3401,7 @@
 				},
 				"examples": [
 					{
-						"userId": "11111111-1111-1111-1111-111111111111",
+						"email": "user@example.com",
 						"role": "viewer"
 					}
 				]
@@ -2911,6 +3469,59 @@
 							"email": "user@example.com",
 							"displayName": "Jane Doe"
 						}
+					}
+				]
+			},
+			"ChangeCurrentUserEmailRequest": {
+				"type": "object",
+				"required": ["newEmail", "password"],
+				"properties": {
+					"newEmail": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/email"
+							}
+						],
+						"description": "New normalized email address to use for sign-in."
+					},
+					"password": {
+						"type": "string",
+						"minLength": 8,
+						"maxLength": 128,
+						"format": "password",
+						"description": "Current password used to confirm this sensitive account change."
+					}
+				},
+				"examples": [
+					{
+						"newEmail": "jane.operator@example.com",
+						"password": "correct-horse-battery-staple"
+					}
+				]
+			},
+			"ChangeCurrentUserPasswordRequest": {
+				"type": "object",
+				"required": ["currentPassword", "newPassword"],
+				"properties": {
+					"currentPassword": {
+						"type": "string",
+						"minLength": 8,
+						"maxLength": 128,
+						"format": "password",
+						"description": "Current password to verify before changing credentials."
+					},
+					"newPassword": {
+						"type": "string",
+						"minLength": 8,
+						"maxLength": 128,
+						"format": "password",
+						"description": "New password. It is stored only as an Argon2id hash."
+					}
+				},
+				"examples": [
+					{
+						"currentPassword": "correct-horse-battery-staple",
+						"newPassword": "new-correct-horse-battery-staple"
 					}
 				]
 			},
@@ -3384,6 +3995,139 @@
 					{
 						"email": "user@example.com",
 						"password": "correct-horse-battery-staple"
+					}
+				]
+			},
+			"Measurement": {
+				"type": "object",
+				"required": ["type", "startedAt", "finishedAt", "probeId", "checkId", "status", "durationMs"],
+				"properties": {
+					"type": {
+						"type": "string",
+						"enum": ["ping", "traceroute"]
+					},
+					"startedAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"finishedAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"probeId": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"checkId": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"status": {
+						"type": "string"
+					},
+					"durationMs": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 0
+					},
+					"latencyMs": {
+						"type": "number",
+						"format": "double",
+						"minimum": 0
+					},
+					"lossPercent": {
+						"type": "number",
+						"format": "double",
+						"minimum": 0,
+						"maximum": 100
+					},
+					"metadata": {
+						"type": "string"
+					},
+					"errorCode": {
+						"type": "string"
+					},
+					"errorMessage": {
+						"type": "string"
+					}
+				},
+				"examples": [
+					{
+						"type": "ping",
+						"startedAt": "2026-05-13T10:00:00Z",
+						"finishedAt": "2026-05-13T10:00:01Z",
+						"probeId": "33333333-3333-3333-3333-333333333333",
+						"checkId": "44444444-4444-4444-4444-444444444444",
+						"status": "successful",
+						"durationMs": 1000,
+						"latencyMs": 12.3,
+						"lossPercent": 0,
+						"metadata": "4 packets transmitted, 4 received"
+					}
+				]
+			},
+			"MeasurementListResponse": {
+				"type": "object",
+				"required": ["measurements", "query"],
+				"properties": {
+					"measurements": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/Measurement"
+						}
+					},
+					"query": {
+						"$ref": "#/components/schemas/MeasurementQueryMetadata"
+					}
+				},
+				"examples": [
+					{
+						"measurements": [
+							{
+								"type": "ping",
+								"startedAt": "2026-05-13T10:00:00Z",
+								"finishedAt": "2026-05-13T10:00:01Z",
+								"probeId": "33333333-3333-3333-3333-333333333333",
+								"checkId": "44444444-4444-4444-4444-444444444444",
+								"status": "successful",
+								"durationMs": 1000,
+								"latencyMs": 12.3,
+								"lossPercent": 0
+							}
+						],
+						"query": {
+							"from": 1778662800000,
+							"to": 1778749200000,
+							"limit": 100
+						}
+					}
+				]
+			},
+			"MeasurementQueryMetadata": {
+				"type": "object",
+				"required": ["from", "to", "limit"],
+				"properties": {
+					"from": {
+						"type": "integer",
+						"format": "int64"
+					},
+					"to": {
+						"type": "integer",
+						"format": "int64"
+					},
+					"limit": {
+						"type": "integer",
+						"format": "int32"
+					},
+					"nextCursor": {
+						"type": "integer",
+						"format": "int64"
+					}
+				},
+				"examples": [
+					{
+						"from": 1778662800000,
+						"to": 1778749200000,
+						"limit": 100,
+						"nextCursor": 1778666400000
 					}
 				]
 			},
@@ -3942,6 +4686,72 @@
 					}
 				]
 			},
+			"ProjectAssignment": {
+				"type": "object",
+				"required": ["id", "projectId", "probeId", "checkId", "checkVersion", "selectorVersion"],
+				"properties": {
+					"id": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"projectId": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"probeId": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"checkId": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"checkVersion": {
+						"type": "string"
+					},
+					"selectorVersion": {
+						"type": "string"
+					},
+					"probe": {
+						"$ref": "#/components/schemas/Probe"
+					},
+					"check": {
+						"$ref": "#/components/schemas/Check"
+					}
+				},
+				"examples": [
+					{
+						"id": "77777777-7777-7777-7777-777777777777",
+						"projectId": "22222222-2222-2222-2222-222222222222",
+						"probeId": "33333333-3333-3333-3333-333333333333",
+						"checkId": "44444444-4444-4444-4444-444444444444",
+						"checkVersion": "01HXYZ7K6P4E4M3F0CB1W9DYJ5",
+						"selectorVersion": "01HXYZ7K6P4E4M3F0CB1W9DYJ6"
+					}
+				]
+			},
+			"ProjectAssignmentListResponse": {
+				"type": "object",
+				"required": ["assignments"],
+				"properties": {
+					"assignments": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/ProjectAssignment"
+						}
+					}
+				},
+				"examples": [
+					{
+						"assignments": [
+							{
+								"id": "77777777-7777-7777-7777-777777777777",
+								"projectId": "22222222-2222-2222-2222-222222222222",
+								"probeId": "33333333-3333-3333-3333-333333333333",
+								"checkId": "44444444-4444-4444-4444-444444444444",
+								"checkVersion": "01HXYZ7K6P4E4M3F0CB1W9DYJ5",
+								"selectorVersion": "01HXYZ7K6P4E4M3F0CB1W9DYJ6"
+							}
+						]
+					}
+				]
+			},
 			"ProjectListResponse": {
 				"type": "object",
 				"required": ["projects"],
@@ -3970,7 +4780,7 @@
 			},
 			"ProjectMember": {
 				"type": "object",
-				"required": ["id", "projectId", "userId", "role", "createdAt", "updatedAt"],
+				"required": ["id", "projectId", "userId", "role", "user", "createdAt", "updatedAt"],
 				"properties": {
 					"id": {
 						"$ref": "#/components/schemas/uuid"
@@ -3984,6 +4794,9 @@
 					"role": {
 						"type": "string",
 						"enum": ["owner", "admin", "editor", "viewer"]
+					},
+					"user": {
+						"$ref": "#/components/schemas/ProjectMemberUser"
 					},
 					"createdAt": {
 						"type": "string",
@@ -4000,6 +4813,11 @@
 						"projectId": "22222222-2222-2222-2222-222222222222",
 						"userId": "11111111-1111-1111-1111-111111111111",
 						"role": "owner",
+						"user": {
+							"id": "11111111-1111-1111-1111-111111111111",
+							"email": "user@example.com",
+							"displayName": "Jane Doe"
+						},
 						"createdAt": "2026-05-13T10:00:00Z",
 						"updatedAt": "2026-05-13T10:00:00Z"
 					}
@@ -4024,6 +4842,11 @@
 								"projectId": "22222222-2222-2222-2222-222222222222",
 								"userId": "11111111-1111-1111-1111-111111111111",
 								"role": "owner",
+								"user": {
+									"id": "11111111-1111-1111-1111-111111111111",
+									"email": "user@example.com",
+									"displayName": "Jane Doe"
+								},
 								"createdAt": "2026-05-13T10:00:00Z",
 								"updatedAt": "2026-05-13T10:00:00Z"
 							}
@@ -4046,9 +4869,38 @@
 							"projectId": "22222222-2222-2222-2222-222222222222",
 							"userId": "11111111-1111-1111-1111-111111111111",
 							"role": "owner",
+							"user": {
+								"id": "11111111-1111-1111-1111-111111111111",
+								"email": "user@example.com",
+								"displayName": "Jane Doe"
+							},
 							"createdAt": "2026-05-13T10:00:00Z",
 							"updatedAt": "2026-05-13T10:00:00Z"
 						}
+					}
+				]
+			},
+			"ProjectMemberUser": {
+				"type": "object",
+				"required": ["id", "email", "displayName"],
+				"properties": {
+					"id": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"email": {
+						"$ref": "#/components/schemas/email"
+					},
+					"displayName": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 64
+					}
+				},
+				"examples": [
+					{
+						"id": "11111111-1111-1111-1111-111111111111",
+						"email": "user@example.com",
+						"displayName": "Jane Doe"
 					}
 				]
 			},
@@ -4300,6 +5152,102 @@
 						"publicV6": "2001:db8::10",
 						"as": "AS15169 Google LLC",
 						"addrs": ["10.0.0.10"]
+					}
+				]
+			},
+			"SelectorPreviewProbe": {
+				"type": "object",
+				"required": ["id", "projectId", "name", "enabled", "labels"],
+				"properties": {
+					"id": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"projectId": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"name": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 128
+					},
+					"enabled": {
+						"type": "boolean"
+					},
+					"labels": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/Label"
+						}
+					}
+				},
+				"examples": [
+					{
+						"id": "33333333-3333-3333-3333-333333333333",
+						"projectId": "22222222-2222-2222-2222-222222222222",
+						"name": "tokyo-vps-1",
+						"enabled": true,
+						"labels": [
+							{
+								"id": "66666666-6666-6666-6666-666666666666",
+								"projectId": "22222222-2222-2222-2222-222222222222",
+								"key": "region",
+								"value": "tokyo",
+								"createdAt": "2026-05-13T10:00:00Z",
+								"updatedAt": "2026-05-13T10:00:00Z"
+							}
+						]
+					}
+				]
+			},
+			"SelectorPreviewRequest": {
+				"type": "object",
+				"properties": {
+					"selector": {
+						"type": "object",
+						"unevaluatedProperties": {},
+						"description": "Selector AST to validate and preview against active project probes. Empty or omitted selectors match all probes."
+					}
+				},
+				"examples": [
+					{
+						"selector": {}
+					}
+				]
+			},
+			"SelectorPreviewResponse": {
+				"type": "object",
+				"required": ["selector", "matchedCount", "probes"],
+				"properties": {
+					"selector": {
+						"type": "object",
+						"unevaluatedProperties": {},
+						"description": "Backend-canonical selector AST."
+					},
+					"matchedCount": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 0
+					},
+					"probes": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/SelectorPreviewProbe"
+						}
+					}
+				},
+				"examples": [
+					{
+						"selector": {},
+						"matchedCount": 1,
+						"probes": [
+							{
+								"id": "33333333-3333-3333-3333-333333333333",
+								"projectId": "22222222-2222-2222-2222-222222222222",
+								"name": "tokyo-vps-1",
+								"enabled": true,
+								"labels": []
+							}
+						]
 					}
 				]
 			},
@@ -4799,6 +5747,22 @@
 						"pingConfig": {
 							"timeoutMs": 5000
 						}
+					}
+				]
+			},
+			"UpdateCurrentUserRequest": {
+				"type": "object",
+				"properties": {
+					"displayName": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 64,
+						"description": "Name shown in the app."
+					}
+				},
+				"examples": [
+					{
+						"displayName": "Jane Operator"
 					}
 				]
 			},
