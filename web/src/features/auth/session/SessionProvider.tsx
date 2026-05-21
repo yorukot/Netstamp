@@ -2,7 +2,7 @@ import { useCreateProjectMutation, useLoginMutation, useLogoutMutation, useRegis
 import { authQueries } from "@/shared/api/queries";
 import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-import { type AuthCredentials, type RegisterPayload, type TeamDraft, createSessionSnapshot, mapApiUser, mapProjectTeam } from "../services/authService";
+import { type AuthCredentials, type ProjectDraft, type RegisterPayload, createSessionSnapshot, mapApiUser, mapProject } from "../services/authService";
 import { SessionContext } from "./SessionContext";
 
 interface SessionProviderProps {
@@ -14,9 +14,9 @@ export function SessionProvider({ children }: SessionProviderProps) {
 	const session = meQuery.data ? createSessionSnapshot(meQuery.data.user) : null;
 	const loginMutation = useLoginMutation();
 	const registerMutation = useRegisterMutation();
-	const createTeamMutation = useCreateProjectMutation();
+	const createProjectMutation = useCreateProjectMutation();
 	const logoutMutation = useLogoutMutation();
-	const submitting = loginMutation.isPending || registerMutation.isPending || createTeamMutation.isPending || logoutMutation.isPending;
+	const submitting = loginMutation.isPending || registerMutation.isPending || createProjectMutation.isPending || logoutMutation.isPending;
 
 	async function login(payload: AuthCredentials) {
 		const result = await loginMutation.mutateAsync(payload);
@@ -28,9 +28,9 @@ export function SessionProvider({ children }: SessionProviderProps) {
 		return mapApiUser(result.user, { onboardingRequired: true });
 	}
 
-	async function createTeam(payload: TeamDraft) {
-		const result = await createTeamMutation.mutateAsync(payload);
-		return mapProjectTeam(result.project);
+	async function createProject(payload: ProjectDraft) {
+		const result = await createProjectMutation.mutateAsync(payload);
+		return mapProject(result.project);
 	}
 
 	function logout() {
@@ -46,7 +46,7 @@ export function SessionProvider({ children }: SessionProviderProps) {
 				isAuthenticated: Boolean(session),
 				login,
 				register,
-				createTeam,
+				createProject,
 				logout
 			}}
 		>

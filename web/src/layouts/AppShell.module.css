@@ -41,12 +41,12 @@
 	height: auto;
 }
 
-.teamSelect {
+.projectSelect {
 	display: grid;
 	gap: 0.5rem;
 }
 
-.teamSelect > span:first-child {
+.projectSelect > span:first-child {
 	color: var(--ns-text-low);
 	font-family: var(--ns-font-mono);
 	font-size: 0.6875rem;
@@ -54,18 +54,18 @@
 	text-transform: uppercase;
 }
 
-.teamFrame {
+.projectFrame {
 	--ns-frame-cut: var(--ns-cut-sm);
 	--ns-frame-color: var(--ns-border);
 	display: block;
 }
 
-.teamFrame:hover,
-.teamFrame:focus-within {
+.projectFrame:hover,
+.projectFrame:focus-within {
 	--ns-frame-color: var(--ns-accent-active);
 }
 
-.teamControl {
+.projectControl {
 	min-height: 2.75rem;
 	padding: 0.625rem 2.375rem 0.625rem 0.75rem;
 	color: var(--ns-text);
@@ -74,7 +74,7 @@
 	font-size: 0.75rem;
 }
 
-.teamControl option {
+.projectControl option {
 	color: var(--ns-text);
 	background: #080a0e;
 }
@@ -184,7 +184,7 @@
 	}
 
 	.brand span:last-child,
-	.teamSelect > span:first-child,
+	.projectSelect > span:first-child,
 	.userMeta,
 	.userActions {
 		display: none;
@@ -194,7 +194,7 @@
 		justify-items: center;
 	}
 
-	.teamFrame :is(select, button) {
+	.projectFrame :is(select, button) {
 		min-height: 2.5rem;
 		padding: 0.5rem;
 		font-size: 0.625rem;
@@ -226,7 +226,7 @@
 		border-bottom: 1px solid var(--ns-border);
 	}
 
-	.teamSelect,
+	.projectSelect,
 	.userCard {
 		display: none;
 	}

@@ -2,7 +2,7 @@
 
 Netstamp is a distributed network observability platform for measuring reachability, latency, packet loss, and probe health from multiple network viewpoints. It combines a Go controller API, a React service app, a static Astro documentation site, a shared React UI package, and a probe runtime that reports measurements back to the controller.
 
-The product is designed for teams that need to understand how network services behave from real locations, provider edges, labs, private infrastructure, or regional nodes. A project owns probes, labels, checks, team membership, and measurement results. Probes authenticate to the controller, receive assignments, execute checks, and submit time-series results for analysis.
+The product is designed for projects that need to understand how network services behave from real locations, provider edges, labs, private infrastructure, or regional nodes. A project owns probes, labels, checks, project membership, and measurement results. Probes authenticate to the controller, receive assignments, execute checks, and submit time-series results for analysis.
 
 ## Highlights
 
@@ -14,7 +14,7 @@ The product is designed for teams that need to understand how network services b
 - Probe runtime API for hello, heartbeat, assignment polling, and result submission.
 - PostgreSQL plus TimescaleDB storage for relational state and time-series ping results.
 - OpenAPI generation from the TypeSpec contract.
-- React product app for dashboard, probes, checks, insights, alerts, team, and settings.
+- React product app for dashboard, probes, checks, insights, alerts, project, and settings.
 - Astro documentation site with API explorer and Storybook output for shared UI components.
 - Structured logging, Prometheus-compatible metrics, and optional OpenTelemetry trace export.
 

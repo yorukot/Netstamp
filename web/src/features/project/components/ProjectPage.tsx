@@ -16,7 +16,7 @@ import { Button, DataTable, Panel, SelectField, Surface, TextField, type DataCol
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { RoleSelect } from "./RoleSelect";
-import styles from "./TeamPage.module.css";
+import styles from "./ProjectPage.module.css";
 
 interface MemberRow {
 	id: string;
@@ -34,7 +34,7 @@ interface LabelRow {
 	updatedAt: string;
 }
 
-export function TeamPage() {
+export function ProjectPage() {
 	const { project, projectRef, setSelectedProjectRef } = useCurrentProject();
 	const updateProjectMutation = useUpdateProjectMutation(projectRef);
 	const addMemberMutation = useAddProjectMemberMutation(projectRef);
@@ -98,7 +98,7 @@ export function TeamPage() {
 	}
 
 	function deleteCurrentProject() {
-		if (!project || !window.confirm(`Delete organization ${project.name}?`)) {
+		if (!project || !window.confirm(`Delete project ${project.name}?`)) {
 			return;
 		}
 
@@ -166,11 +166,11 @@ export function TeamPage() {
 
 	return (
 		<PageStack>
-			<ScreenHeader eyebrow="Team settings" title="Team" copy="Organization profile, member management, and destructive organization actions." />
+			<ScreenHeader eyebrow="Project settings" title="Project" copy="Project profile, member management, and destructive project actions." />
 
-			<Panel tone="glass" eyebrow="Organization" title="Org info">
-				<div className={styles.orgInfoGrid}>
-					<TextField label="Organization name" value={activeProjectName} disabled={!projectRef} onChange={event => setProjectName(event.currentTarget.value)} />
+			<Panel tone="glass" eyebrow="Project" title="Project info">
+				<div className={styles.projectInfoGrid}>
+					<TextField label="Project name" value={activeProjectName} disabled={!projectRef} onChange={event => setProjectName(event.currentTarget.value)} />
 					<TextField label="Slug" value={activeProjectSlug} disabled={!projectRef} onChange={event => setProjectSlug(event.currentTarget.value)} />
 				</div>
 				<Button disabled={!projectRef || updateProjectMutation.isPending} onClick={() => updateProjectMutation.mutate({ name: activeProjectName, slug: activeProjectSlug })}>
@@ -218,19 +218,19 @@ export function TeamPage() {
 				/>
 			</Panel>
 
-			<Panel tone="deep" eyebrow="Danger zone" title="Dangerous organization actions">
+			<Panel tone="deep" eyebrow="Danger zone" title="Dangerous project actions">
 				<div className={styles.dangerZoneGrid}>
 					<Surface as="article" tone="danger" cut="md" padding="md">
-						<h3>Delete organization</h3>
-						<p className={styles.warningCopy}>Delete this organization, disable future assignments, and revoke all probe registration tokens.</p>
+						<h3>Delete project</h3>
+						<p className={styles.warningCopy}>Delete this project, disable future assignments, and revoke all probe registration tokens.</p>
 						<Button variant="danger" disabled={!projectRef || deleteProjectMutation.isPending} onClick={deleteCurrentProject}>
-							{deleteProjectMutation.isPending ? "Deleting" : "Delete organization"}
+							{deleteProjectMutation.isPending ? "Deleting" : "Delete project"}
 						</Button>
 					</Surface>
 					<Surface as="article" tone="danger" cut="md" padding="md">
-						<h3>Exit organization</h3>
-						<p className={styles.warningCopy}>Leave this organization and remove your access to its probes, checks, alerts, and measurements.</p>
-						<Button variant="outline">Exit organization</Button>
+						<h3>Exit project</h3>
+						<p className={styles.warningCopy}>Leave this project and remove your access to its probes, checks, alerts, and measurements.</p>
+						<Button variant="outline">Exit project</Button>
 					</Surface>
 				</div>
 			</Panel>

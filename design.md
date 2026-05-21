@@ -146,7 +146,7 @@ Current implementation lives under `web/src`.
 The authenticated app is optimized for repeated operational work:
 
 - Two-column shell at desktop: `17rem` sticky sidebar and fluid content.
-- Sidebar uses brand mark, team selector, nav links, and user card.
+- Sidebar uses brand mark, project selector, nav links, and user card.
 - Content uses `3rem 1.5rem 0` desktop padding and compact page stacks.
 - Sidebar collapses to `6rem` below about `58rem`.
 - The shell becomes single-column with horizontal nav below about `38rem`.

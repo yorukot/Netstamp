@@ -64,7 +64,7 @@ Project-scoped permission decisions should use the project domain policy rather 
 
 ## Authentication & Project Permissions
 
-The backend currently uses authenticated users plus project-scoped membership roles. There is no global admin role, organization/team hierarchy, or route-level scope system. HTTP auth middleware proves identity only; application services own authorization.
+The backend currently uses authenticated users plus project-scoped membership roles. There is no global admin role, organization/project hierarchy, or route-level scope system. HTTP auth middleware proves identity only; application services own authorization.
 
 Protected chi routes use `internal/controller/transport/http/middleware.RequireAuth`. It reads the `netstamp_session` HTTP-only cookie, verifies the JWT value through the auth `TokenVerifier`, and stores `identity.AccessTokenClaims` in the request context. Login and registration set this cookie, and `/auth/logout` clears it. Transport handlers read `claims.Subject` as `CurrentUserID` and pass it into application service inputs. Keep role checks out of HTTP handlers except for translating application errors into HTTP responses.
 

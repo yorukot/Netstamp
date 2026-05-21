@@ -20,27 +20,27 @@ interface ScriptStep {
 const typeDelayMs = 34;
 
 export function OnboardingPage({ navigate }: OnboardingPageProps) {
-	const { session, loading, submitting, createTeam } = useAuthMock();
+	const { session, loading, submitting, createProject } = useAuthMock();
 	const [activeStep, setActiveStep] = useState(0);
 	const [typedText, setTypedText] = useState("");
-	const [teamName, setTeamName] = useState("");
+	const [projectName, setProjectName] = useState("");
 	const [invites, setInvites] = useState([""]);
-	const [createdTeam, setCreatedTeam] = useState("");
-	const teamInputRef = useRef<HTMLInputElement | null>(null);
+	const [createdProject, setCreatedProject] = useState("");
+	const projectInputRef = useRef<HTMLInputElement | null>(null);
 	const inviteRefs = useRef<Array<HTMLInputElement | null>>([]);
 	const displayName = session?.user.name.trim() || "there";
 	const scriptSteps = useMemo<ScriptStep[]>(
 		() => [
 			{ prompt: "netstamp", text: `Nice to meet you, ${displayName}`, autoAdvanceAfter: 180 },
-			{ prompt: "netstamp", text: "Let's create our first team!", autoAdvanceAfter: 760 },
-			{ prompt: "team", text: "How should we call your team?" },
+			{ prompt: "netstamp", text: "Let's create our first project!", autoAdvanceAfter: 760 },
+			{ prompt: "project", text: "How should we call your project?" },
 			{ prompt: "friends", text: "Any friends?" }
 		],
 		[displayName]
 	);
 
 	const activeScript = scriptSteps[activeStep];
-	const teamPromptReady = activeStep > 2 || (activeStep === 2 && typedText.length === scriptSteps[2].text.length);
+	const projectPromptReady = activeStep > 2 || (activeStep === 2 && typedText.length === scriptSteps[2].text.length);
 	const friendsPromptReady = activeStep > 3 || (activeStep === 3 && typedText.length === scriptSteps[3].text.length);
 
 	useEffect(() => {
@@ -69,13 +69,13 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 	}, [activeScript, loading, scriptSteps.length, typedText]);
 
 	useEffect(() => {
-		if (!teamPromptReady || activeStep !== 2) {
+		if (!projectPromptReady || activeStep !== 2) {
 			return undefined;
 		}
 
-		const frame = window.requestAnimationFrame(() => teamInputRef.current?.focus());
+		const frame = window.requestAnimationFrame(() => projectInputRef.current?.focus());
 		return () => window.cancelAnimationFrame(frame);
-	}, [activeStep, teamPromptReady]);
+	}, [activeStep, projectPromptReady]);
 
 	useEffect(() => {
 		if (!friendsPromptReady || activeStep !== 3) {
@@ -105,7 +105,7 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 	}
 
 	function advanceToFriends() {
-		if (!teamPromptReady || activeStep !== 2) {
+		if (!projectPromptReady || activeStep !== 2) {
 			return;
 		}
 
@@ -113,7 +113,7 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 		setTypedText("");
 	}
 
-	function handleTeamKeyDown(event: ReactKeyboardEvent<HTMLInputElement>) {
+	function handleProjectKeyDown(event: ReactKeyboardEvent<HTMLInputElement>) {
 		if (event.key !== "Enter") {
 			return;
 		}
@@ -151,17 +151,17 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 			return;
 		}
 
-		const normalizedTeamName = teamName.trim() || "Yoru Labs";
-		await createTeam({
-			name: normalizedTeamName,
+		const normalizedProjectName = projectName.trim() || "Yoru Labs";
+		await createProject({
+			name: normalizedProjectName,
 			slug:
-				normalizedTeamName
+				normalizedProjectName
 					.toLowerCase()
 					.trim()
 					.replace(/[^a-z0-9]+/g, "-")
-					.replace(/^-|-$/g, "") || "yoru-team"
+					.replace(/^-|-$/g, "") || "yoru-project"
 		});
-		setCreatedTeam(normalizedTeamName);
+		setCreatedProject(normalizedProjectName);
 	}
 
 	if (loading) {
@@ -171,7 +171,7 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 	return (
 		<PageShell variant="constellation" center className={styles.shell}>
 			<Helmet>
-				<title>Create Team - Netstamp</title>
+				<title>Create Project - Netstamp</title>
 			</Helmet>
 
 			<section className={classNames("ns-cut-frame", styles.console)} aria-label="First contact onboarding console">
@@ -184,10 +184,10 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 				<div className={styles.consoleBody}>
 					<div className={styles.scanline} aria-hidden="true" />
 
-					{createdTeam ? (
+					{createdProject ? (
 						<div className={styles.successView} aria-live="polite">
-							<ScriptLine prompt="success" text={`Team ${createdTeam} created.`} />
-							<p>Nice, let's bring {createdTeam} online. Next we will open the probe fleet and start the new probe wizard.</p>
+							<ScriptLine prompt="success" text={`Project ${createdProject} created.`} />
+							<p>Nice, let's bring {createdProject} online. Next we will open the probe fleet and start the new probe wizard.</p>
 							<Button variant="plain" className={styles.tuiButton} type="button" onClick={() => navigate("newProbe")}>
 								[ open probe fleet / create probe ]
 							</Button>
@@ -202,17 +202,17 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 							</div>
 
 							<form className={styles.tuiForm} onSubmit={handleSubmit}>
-								{teamPromptReady ? (
+								{projectPromptReady ? (
 									<label className={styles.answerRow}>
 										<span className={styles.answerPrompt}>answer</span>
 										<Input
 											variant="bare"
-											ref={teamInputRef}
-											name="team"
-											value={teamName}
+											ref={projectInputRef}
+											name="project"
+											value={projectName}
 											placeholder="Yoru Labs"
-											onChange={event => setTeamName(event.currentTarget.value)}
-											onKeyDown={handleTeamKeyDown}
+											onChange={event => setProjectName(event.currentTarget.value)}
+											onKeyDown={handleProjectKeyDown}
 											autoComplete="organization"
 										/>
 										{activeStep === 2 ? <small>Press Enter to continue.</small> : null}
@@ -258,7 +258,7 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 										</div>
 
 										<Button variant="plain" className={styles.tuiButton} type="submit" disabled={submitting}>
-											{submitting ? "[ creating team... ]" : "[ create team ]"}
+											{submitting ? "[ creating project... ]" : "[ create project ]"}
 										</Button>
 									</div>
 								) : null}

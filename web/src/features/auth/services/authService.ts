@@ -3,7 +3,7 @@ import type { CreateProjectInput, LoginInput, RegisterInput, UserResponse } from
 export type AuthCredentials = LoginInput;
 export type RegisterPayload = RegisterInput;
 
-export type TeamDraft = CreateProjectInput;
+export type ProjectDraft = CreateProjectInput;
 
 export interface SessionUser {
 	id: string;
@@ -18,7 +18,7 @@ export interface SessionUser {
 export interface SessionSnapshot {
 	user: SessionUser;
 	controller: "connected";
-	team?: TeamDraft & { role: string };
+	project?: ProjectDraft & { role: string };
 }
 
 export function mapApiUser(user: UserResponse, options: { onboardingRequired?: boolean } = {}): SessionUser {
@@ -43,6 +43,6 @@ export function createSessionSnapshot(user: UserResponse, options: { onboardingR
 	};
 }
 
-export function mapProjectTeam({ name, slug }: TeamDraft): TeamDraft & { role: string } {
+export function mapProject({ name, slug }: ProjectDraft): ProjectDraft & { role: string } {
 	return { name: name || "Vector IX", slug: slug || "vector-ix", role: "Owner" };
 }

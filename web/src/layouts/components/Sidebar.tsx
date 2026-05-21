@@ -5,7 +5,7 @@ import { classNames } from "@/shared/utils/classNames";
 import netstampLogo from "@netstamp/brand/assets/netstamp-logo-light.svg";
 import { Link, NavLink } from "react-router-dom";
 import styles from "../AppShell.module.css";
-import { TeamSwitcher } from "./TeamSwitcher";
+import { ProjectSwitcher } from "./ProjectSwitcher";
 import { UserMenu } from "./UserMenu";
 
 interface SidebarProps {
@@ -20,7 +20,7 @@ export function Sidebar({ user, onLogout }: SidebarProps) {
 				<img className={styles.brandLogo} src={netstampLogo} alt="Netstamp" />
 			</Link>
 
-			<TeamSwitcher />
+			<ProjectSwitcher />
 
 			<nav className={styles.nav} aria-label="Primary app navigation">
 				{sidebarItems.map(item => (

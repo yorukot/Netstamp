@@ -19,7 +19,7 @@ const InsightPage = lazy(() => import("@/features/insight/components/InsightPage
 const NewProbeDrawer = lazy(() => import("@/features/probes/components/NewProbeDrawer").then(module => ({ default: module.NewProbeDrawer })));
 const ProbesPage = lazy(() => import("@/features/probes/components/ProbesPage").then(module => ({ default: module.ProbesPage })));
 const SettingsPage = lazy(() => import("@/features/settings/components/SettingsPage").then(module => ({ default: module.SettingsPage })));
-const TeamPage = lazy(() => import("@/features/team/components/TeamPage").then(module => ({ default: module.TeamPage })));
+const ProjectPage = lazy(() => import("@/features/project/components/ProjectPage").then(module => ({ default: module.ProjectPage })));
 
 function appRoutePath(route: AppRoute) {
 	return pathForRoute(route).slice(1);
@@ -89,7 +89,7 @@ const router = createBrowserRouter([
 			{ path: appRoutePath("insight"), element: lazyRoute(<InsightPage />) },
 			{ path: appRoutePath("checks"), element: lazyRoute(<ChecksPage />) },
 			{ path: appRoutePath("alerts"), element: lazyRoute(<AlertsPage />) },
-			{ path: appRoutePath("team"), element: lazyRoute(<TeamPage />) },
+			{ path: appRoutePath("project"), element: lazyRoute(<ProjectPage />) },
 			{ path: appRoutePath("settings"), element: lazyRoute(<SettingsPage />) }
 		]
 	},

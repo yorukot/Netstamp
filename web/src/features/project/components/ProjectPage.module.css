@@ -1,4 +1,4 @@
-.orgInfoGrid {
+.projectInfoGrid {
 	display: grid;
 	grid-template-columns: repeat(2, minmax(12rem, 18rem));
 	gap: 1rem;
@@ -42,7 +42,7 @@
 }
 
 @media (max-width: 58rem) {
-	.orgInfoGrid,
+	.projectInfoGrid,
 	.formGridThree,
 	.dangerZoneGrid {
 		grid-template-columns: 1fr;

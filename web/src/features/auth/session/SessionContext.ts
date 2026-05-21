@@ -1,5 +1,5 @@
 import { createContext, useContext } from "react";
-import type { AuthCredentials, RegisterPayload, SessionSnapshot, TeamDraft } from "../services/authService";
+import type { AuthCredentials, ProjectDraft, RegisterPayload, SessionSnapshot } from "../services/authService";
 
 export interface SessionContextValue {
 	session: SessionSnapshot | null;
@@ -8,7 +8,7 @@ export interface SessionContextValue {
 	isAuthenticated: boolean;
 	login: (payload: AuthCredentials) => Promise<SessionSnapshot["user"]>;
 	register: (payload: RegisterPayload) => Promise<SessionSnapshot["user"]>;
-	createTeam: (payload: TeamDraft) => Promise<NonNullable<SessionSnapshot["team"]>>;
+	createProject: (payload: ProjectDraft) => Promise<NonNullable<SessionSnapshot["project"]>>;
 	logout: () => void;
 }
 
