@@ -47,6 +47,24 @@ func TestNormalizeQueryTracerouteRunsInputReturnsAllFieldErrors(t *testing.T) {
 	assertValidationFields(t, err, []string{"projectRef", "probeId", "checkId", "to", "from", "limit", "cursor"})
 }
 
+func TestNormalizeQueryTracerouteTopologyInputReturnsAllFieldErrors(t *testing.T) {
+	fromMs := int64(-1)
+	toMs := int64(0)
+	limit := int32(0)
+
+	_, err := normalizeQueryTracerouteTopologyInput(QueryTracerouteTopologyInput{
+		ProjectRef: "",
+		ProbeID:    "bad-probe",
+		CheckID:    "bad-check",
+		FromMs:     &fromMs,
+		ToMs:       &toMs,
+		Limit:      &limit,
+		Now:        time.Date(2026, 5, 19, 0, 0, 0, 0, time.UTC),
+	})
+
+	assertValidationFields(t, err, []string{"projectRef", "probeId", "checkId", "to", "from", "limit"})
+}
+
 func assertValidationFields(t *testing.T, err error, wantFields []string) {
 	t.Helper()
 

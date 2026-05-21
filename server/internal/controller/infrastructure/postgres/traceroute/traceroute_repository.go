@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
@@ -132,4 +133,48 @@ func (r *TracerouteRepository) ListTracerouteRuns(ctx context.Context, input dom
 	}
 
 	return mapRunRows(rows, input.Limit), nil
+}
+
+func (r *TracerouteRepository) ListTracerouteTopologyRuns(ctx context.Context, input domaintraceroute.TopologyQuery) (domaintraceroute.TopologyRunResult, error) {
+	ctx, span := postgres.StartDBSpan(ctx, pgtracerouteTracer, "traceroute_results", "postgres.traceroute_results.topology", "SELECT", "SELECT traceroute topology")
+	defer span.End()
+
+	projectID, err := postgres.ParseUUID(input.ProjectID, domainproject.ErrProjectNotFound)
+	if err != nil {
+		return domaintraceroute.TopologyRunResult{}, err
+	}
+	probeID, err := optionalUUID(input.ProbeID, domainprobe.ErrInvalidInput)
+	if err != nil {
+		return domaintraceroute.TopologyRunResult{}, err
+	}
+	checkID, err := optionalUUID(input.CheckID, domaincheck.ErrInvalidInput)
+	if err != nil {
+		return domaintraceroute.TopologyRunResult{}, err
+	}
+
+	rows, err := r.queries.ListTracerouteTopologyRows(ctx, sqlc.ListTracerouteTopologyRowsParams{
+		ProjectID:     projectID,
+		ProbeID:       probeID,
+		CheckID:       checkID,
+		StartedAtFrom: timestamptz(input.From),
+		StartedAtTo:   timestamptz(input.To),
+		LimitCount:    input.Limit,
+	})
+	if err != nil {
+		postgres.RecordDBSpanError(span, err)
+		return domaintraceroute.TopologyRunResult{}, err
+	}
+
+	return mapTopologyRows(rows), nil
+}
+
+func optionalUUID(value string, invalidErr error) (*uuid.UUID, error) {
+	if value == "" {
+		return nil, nil //nolint:nilnil // Nil means no optional UUID filter.
+	}
+	id, err := postgres.ParseUUID(value, invalidErr)
+	if err != nil {
+		return nil, err
+	}
+	return &id, nil
 }

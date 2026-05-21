@@ -86,6 +86,52 @@ func normalizeQueryTracerouteRunsInput(input QueryTracerouteRunsInput) (normaliz
 	}, nil
 }
 
+func normalizeQueryTracerouteTopologyInput(input QueryTracerouteTopologyInput) (normalizedQueryTracerouteTopologyInput, error) {
+	var validation appvalidation.Collector
+
+	projectRef, err := domainproject.VNProjectRef(input.ProjectRef)
+	if err != nil {
+		validation.AddError("projectRef", err, input.ProjectRef)
+	}
+	probeID, err := normalizeOptionalProbeID(input.ProbeID)
+	if err != nil {
+		validation.AddError("probeId", err, input.ProbeID)
+	}
+	checkID, err := normalizeOptionalCheckID(input.CheckID)
+	if err != nil {
+		validation.AddError("checkId", err, input.CheckID)
+	}
+	now := input.Now.UTC()
+	if now.IsZero() {
+		now = time.Now().UTC()
+	}
+	from, to, err := normalizeRange(input.FromMs, input.ToMs, now)
+	if err != nil {
+		if !validation.AddValidation(err) {
+			return normalizedQueryTracerouteTopologyInput{}, err
+		}
+	}
+	limit, err := normalizeRunLimit(input.Limit)
+	if err != nil {
+		if !validation.AddValidation(err) {
+			return normalizedQueryTracerouteTopologyInput{}, err
+		}
+	}
+	if err := validation.Err(ErrInvalidInput); err != nil {
+		return normalizedQueryTracerouteTopologyInput{}, err
+	}
+
+	return normalizedQueryTracerouteTopologyInput{
+		currentUserID: input.CurrentUserID,
+		projectRef:    projectRef,
+		probeID:       probeID,
+		checkID:       checkID,
+		from:          from,
+		to:            to,
+		limit:         limit,
+	}, nil
+}
+
 func normalizeQueryMeasurementsInput(input QueryMeasurementsInput) (normalizedQueryMeasurementsInput, error) {
 	var validation appvalidation.Collector
 

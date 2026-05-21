@@ -37,6 +37,17 @@ type QueryTracerouteRunsInput struct {
 	Now           time.Time
 }
 
+type QueryTracerouteTopologyInput struct {
+	CurrentUserID string
+	ProjectRef    string
+	ProbeID       string
+	CheckID       string
+	FromMs        *int64
+	ToMs          *int64
+	Limit         *int32
+	Now           time.Time
+}
+
 type QueryMeasurementsInput struct {
 	CurrentUserID string
 	ProjectRef    string
@@ -59,6 +70,12 @@ type PingSeriesOutput struct {
 type TracerouteRunsOutput struct {
 	Runs  []TracerouteRun
 	Query TracerouteRunsQueryMetadata
+}
+
+type TracerouteTopologyOutput struct {
+	Nodes []TracerouteTopologyNode
+	Edges []TracerouteTopologyEdge
+	Query TracerouteTopologyQueryMetadata
 }
 
 type MeasurementsOutput struct {
@@ -112,6 +129,30 @@ type TracerouteHop struct {
 	ErrorMessage  *string
 }
 
+type TracerouteTopologyNode struct {
+	ID          string
+	Kind        string
+	Label       string
+	Address     *netip.Addr
+	Hostname    *string
+	ProbeID     *string
+	CheckID     *string
+	Target      *string
+	HopIndex    *int32
+	SeenCount   int32
+	AvgRttMs    *float64
+	LossPercent *float64
+}
+
+type TracerouteTopologyEdge struct {
+	ID          string
+	Source      string
+	Target      string
+	SeenCount   int32
+	AvgRttMs    *float64
+	LossPercent *float64
+}
+
 type Series struct {
 	Name   string
 	Labels SeriesLabels
@@ -145,6 +186,12 @@ type TracerouteRunsQueryMetadata struct {
 	NextCursor *int64
 }
 
+type TracerouteTopologyQueryMetadata struct {
+	FromMs int64
+	ToMs   int64
+	Limit  int32
+}
+
 type MeasurementQueryMetadata struct {
 	FromMs     int64
 	ToMs       int64
@@ -173,6 +220,16 @@ type normalizedQueryTracerouteRunsInput struct {
 
 	limit  int32
 	cursor *time.Time
+}
+
+type normalizedQueryTracerouteTopologyInput struct {
+	currentUserID string
+	projectRef    string
+	probeID       string
+	checkID       string
+	from          time.Time
+	to            time.Time
+	limit         int32
 }
 
 type normalizedQueryMeasurementsInput struct {

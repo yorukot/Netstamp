@@ -129,3 +129,59 @@ LEFT JOIN traceroute_result_hops
     AND traceroute_result_hops.check_id = selected_runs.check_id
     AND traceroute_result_hops.started_at = selected_runs.started_at
 ORDER BY selected_runs.started_at DESC, traceroute_result_hops.hop_index ASC;
+
+-- name: ListTracerouteTopologyRows :many
+WITH selected_runs AS (
+    SELECT traceroute_results.probe_id,
+           traceroute_results.check_id,
+           traceroute_results.started_at,
+           traceroute_results.resolved_ip,
+           probes.id AS probe_public_id,
+           probes.name AS probe_name,
+           checks.id AS check_public_id,
+           checks.name AS check_name,
+           checks.target AS check_target
+    FROM traceroute_results
+    JOIN probes ON probes.internal_id = traceroute_results.probe_id
+    JOIN checks ON checks.internal_id = traceroute_results.check_id
+    WHERE probes.project_id = sqlc.arg(project_id)
+      AND checks.project_id = sqlc.arg(project_id)
+      AND checks.check_type = 'traceroute'
+      AND probes.deleted_at IS NULL
+      AND checks.deleted_at IS NULL
+      AND traceroute_results.started_at >= sqlc.arg(started_at_from)
+      AND traceroute_results.started_at < sqlc.arg(started_at_to)
+      AND (
+          sqlc.narg(probe_id)::uuid IS NULL
+          OR probes.id = sqlc.narg(probe_id)::uuid
+      )
+      AND (
+          sqlc.narg(check_id)::uuid IS NULL
+          OR checks.id = sqlc.narg(check_id)::uuid
+      )
+    ORDER BY traceroute_results.started_at DESC,
+             probes.id ASC,
+             checks.id ASC
+    LIMIT sqlc.arg(limit_count)
+)
+SELECT selected_runs.started_at,
+       selected_runs.probe_public_id,
+       selected_runs.probe_name,
+       selected_runs.check_public_id,
+       selected_runs.check_name,
+       selected_runs.check_target,
+       selected_runs.resolved_ip,
+       traceroute_result_hops.hop_index,
+       traceroute_result_hops.address,
+       traceroute_result_hops.hostname,
+       traceroute_result_hops.loss_percent,
+       traceroute_result_hops.rtt_avg_ms
+FROM selected_runs
+LEFT JOIN traceroute_result_hops
+    ON traceroute_result_hops.probe_id = selected_runs.probe_id
+    AND traceroute_result_hops.check_id = selected_runs.check_id
+    AND traceroute_result_hops.started_at = selected_runs.started_at
+ORDER BY selected_runs.started_at DESC,
+         selected_runs.probe_public_id ASC,
+         selected_runs.check_public_id ASC,
+         traceroute_result_hops.hop_index ASC;

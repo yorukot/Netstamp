@@ -95,6 +95,49 @@ func mapRunRows(rows []sqlc.ListTracerouteRunRowsRow, limit int32) domaintracero
 	}
 }
 
+func mapTopologyRows(rows []sqlc.ListTracerouteTopologyRowsRow) domaintraceroute.TopologyRunResult {
+	type runKey struct {
+		startedAt time.Time
+		probeID   string
+		checkID   string
+	}
+
+	runIndex := make(map[runKey]int)
+	runs := make([]domaintraceroute.TopologyRun, 0)
+	for _, row := range rows {
+		startedAt := row.StartedAt.Time.UTC()
+		probeID := row.ProbePublicID.String()
+		checkID := row.CheckPublicID.String()
+		key := runKey{startedAt: startedAt, probeID: probeID, checkID: checkID}
+		index, ok := runIndex[key]
+		if !ok {
+			index = len(runs)
+			runIndex[key] = index
+			runs = append(runs, domaintraceroute.TopologyRun{
+				StartedAt:  startedAt,
+				ProbeID:    probeID,
+				ProbeName:  row.ProbeName,
+				CheckID:    checkID,
+				CheckName:  row.CheckName,
+				Target:     row.CheckTarget,
+				ResolvedIP: row.ResolvedIp,
+				Hops:       []domaintraceroute.TopologyHop{},
+			})
+		}
+		if row.HopIndex != nil {
+			runs[index].Hops = append(runs[index].Hops, domaintraceroute.TopologyHop{
+				HopIndex:    derefInt32(row.HopIndex),
+				Address:     row.Address,
+				Hostname:    row.Hostname,
+				LossPercent: derefFloat64(row.LossPercent),
+				RttAvgMs:    row.RttAvgMs,
+			})
+		}
+	}
+
+	return domaintraceroute.TopologyRunResult{Runs: runs}
+}
+
 func mapHop(row sqlc.ListTracerouteRunRowsRow) domaintraceroute.Hop {
 	return domaintraceroute.Hop{
 		HopIndex:      derefInt32(row.HopIndex),

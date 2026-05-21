@@ -2810,6 +2810,100 @@
 				]
 			}
 		},
+		"/projects/{ref}/results/traceroute/topology": {
+			"get": {
+				"operationId": "queryProjectTracerouteTopology",
+				"summary": "Query project traceroute topology",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					},
+					{
+						"$ref": "#/components/parameters/TracerouteTopologyQuery.probeId"
+					},
+					{
+						"$ref": "#/components/parameters/TracerouteTopologyQuery.checkId"
+					},
+					{
+						"$ref": "#/components/parameters/TracerouteTopologyQuery.from"
+					},
+					{
+						"$ref": "#/components/parameters/TracerouteTopologyQuery.to"
+					},
+					{
+						"$ref": "#/components/parameters/TracerouteTopologyQuery.limit"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/TracerouteTopologyResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Results"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
 		"/projects/{ref}/selector-previews": {
 			"post": {
 				"operationId": "previewProjectSelector",
@@ -3745,6 +3839,59 @@
 				"explode": false
 			},
 			"TracerouteRunsQuery.to": {
+				"name": "to",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "integer",
+					"format": "int64",
+					"minimum": 1
+				},
+				"explode": false
+			},
+			"TracerouteTopologyQuery.checkId": {
+				"name": "checkId",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"$ref": "#/components/schemas/uuid"
+				},
+				"explode": false
+			},
+			"TracerouteTopologyQuery.from": {
+				"name": "from",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "integer",
+					"format": "int64",
+					"minimum": 1
+				},
+				"explode": false
+			},
+			"TracerouteTopologyQuery.limit": {
+				"name": "limit",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "integer",
+					"format": "int32",
+					"minimum": 1,
+					"maximum": 500,
+					"default": 100
+				},
+				"explode": false
+			},
+			"TracerouteTopologyQuery.probeId": {
+				"name": "probeId",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"$ref": "#/components/schemas/uuid"
+				},
+				"explode": false
+			},
+			"TracerouteTopologyQuery.to": {
 				"name": "to",
 				"in": "query",
 				"required": false,
@@ -6235,6 +6382,209 @@
 										"lossPercent": 0
 									}
 								]
+							}
+						],
+						"query": {
+							"from": 1778662800000,
+							"to": 1778749200000,
+							"limit": 100
+						}
+					}
+				]
+			},
+			"TracerouteTopologyEdge": {
+				"type": "object",
+				"required": ["id", "source", "target", "seenCount"],
+				"properties": {
+					"id": {
+						"type": "string"
+					},
+					"source": {
+						"type": "string"
+					},
+					"target": {
+						"type": "string"
+					},
+					"seenCount": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 0
+					},
+					"avgRttMs": {
+						"type": "number",
+						"format": "double",
+						"minimum": 0
+					},
+					"lossPercent": {
+						"type": "number",
+						"format": "double",
+						"minimum": 0,
+						"maximum": 100
+					}
+				},
+				"examples": [
+					{
+						"id": "probe:33333333-3333-3333-3333-333333333333->ip:192.0.2.1",
+						"source": "probe:33333333-3333-3333-3333-333333333333",
+						"target": "ip:192.0.2.1",
+						"seenCount": 12,
+						"avgRttMs": 1.8,
+						"lossPercent": 0
+					}
+				]
+			},
+			"TracerouteTopologyNode": {
+				"type": "object",
+				"required": ["id", "kind", "label", "seenCount"],
+				"properties": {
+					"id": {
+						"type": "string"
+					},
+					"kind": {
+						"type": "string",
+						"enum": ["probe", "hop", "destination", "unknown"]
+					},
+					"label": {
+						"type": "string"
+					},
+					"address": {
+						"anyOf": [
+							{
+								"$ref": "#/components/schemas/ipv4Address"
+							},
+							{
+								"$ref": "#/components/schemas/ipv6Address"
+							}
+						]
+					},
+					"hostname": {
+						"type": "string"
+					},
+					"probeId": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"checkId": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"target": {
+						"type": "string"
+					},
+					"hopIndex": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 1,
+						"maximum": 64
+					},
+					"seenCount": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 0
+					},
+					"avgRttMs": {
+						"type": "number",
+						"format": "double",
+						"minimum": 0
+					},
+					"lossPercent": {
+						"type": "number",
+						"format": "double",
+						"minimum": 0,
+						"maximum": 100
+					}
+				},
+				"examples": [
+					{
+						"id": "ip:192.0.2.1",
+						"kind": "hop",
+						"label": "gateway.local",
+						"address": "192.0.2.1",
+						"hostname": "gateway.local",
+						"hopIndex": 1,
+						"seenCount": 12,
+						"avgRttMs": 1.8,
+						"lossPercent": 0
+					}
+				]
+			},
+			"TracerouteTopologyQueryMetadata": {
+				"type": "object",
+				"required": ["from", "to", "limit"],
+				"properties": {
+					"from": {
+						"type": "integer",
+						"format": "int64",
+						"minimum": 1
+					},
+					"to": {
+						"type": "integer",
+						"format": "int64",
+						"minimum": 1
+					},
+					"limit": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 1,
+						"maximum": 500
+					}
+				},
+				"examples": [
+					{
+						"from": 1778662800000,
+						"to": 1778749200000,
+						"limit": 100
+					}
+				]
+			},
+			"TracerouteTopologyResponse": {
+				"type": "object",
+				"required": ["nodes", "edges", "query"],
+				"properties": {
+					"nodes": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/TracerouteTopologyNode"
+						}
+					},
+					"edges": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/TracerouteTopologyEdge"
+						}
+					},
+					"query": {
+						"$ref": "#/components/schemas/TracerouteTopologyQueryMetadata"
+					}
+				},
+				"examples": [
+					{
+						"nodes": [
+							{
+								"id": "probe:33333333-3333-3333-3333-333333333333",
+								"kind": "probe",
+								"label": "fra-bm-02",
+								"probeId": "33333333-3333-3333-3333-333333333333",
+								"seenCount": 12
+							},
+							{
+								"id": "ip:192.0.2.1",
+								"kind": "hop",
+								"label": "gateway.local",
+								"address": "192.0.2.1",
+								"hostname": "gateway.local",
+								"hopIndex": 1,
+								"seenCount": 12,
+								"avgRttMs": 1.8,
+								"lossPercent": 0
+							}
+						],
+						"edges": [
+							{
+								"id": "probe:33333333-3333-3333-3333-333333333333->ip:192.0.2.1",
+								"source": "probe:33333333-3333-3333-3333-333333333333",
+								"target": "ip:192.0.2.1",
+								"seenCount": 12,
+								"avgRttMs": 1.8,
+								"lossPercent": 0
 							}
 						],
 						"query": {

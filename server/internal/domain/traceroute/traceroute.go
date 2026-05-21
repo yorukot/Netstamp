@@ -326,9 +326,22 @@ type RunQuery struct {
 	Cursor    *time.Time
 }
 
+type TopologyQuery struct {
+	ProjectID string
+	ProbeID   string
+	CheckID   string
+	From      time.Time
+	To        time.Time
+	Limit     int32
+}
+
 type RunResult struct {
 	Runs       []Run
 	NextCursor *time.Time
+}
+
+type TopologyRunResult struct {
+	Runs []TopologyRun
 }
 
 type Run struct {
@@ -343,6 +356,17 @@ type Run struct {
 	ErrorCode          *string
 	ErrorMessage       *string
 	Hops               []Hop
+}
+
+type TopologyRun struct {
+	StartedAt  time.Time
+	ProbeID    string
+	ProbeName  string
+	CheckID    string
+	CheckName  string
+	Target     string
+	ResolvedIP *netip.Addr
+	Hops       []TopologyHop
 }
 
 type Hop struct {
@@ -360,4 +384,12 @@ type Hop struct {
 	RttSamplesMs  []float64
 	ErrorCode     *string
 	ErrorMessage  *string
+}
+
+type TopologyHop struct {
+	HopIndex    int32
+	Address     *netip.Addr
+	Hostname    *string
+	LossPercent float64
+	RttAvgMs    *float64
 }

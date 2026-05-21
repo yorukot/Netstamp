@@ -8,6 +8,7 @@ alias PingMetric = "rttAvgMs" | "lossPercent" | "successRate";
 alias MeasurementType = "ping" | "traceroute";
 alias MeasurementStatus = "successful" | "timeout" | "error" | "partial";
 alias SeriesResolution = "raw" | "bucket";
+alias TracerouteTopologyNodeKind = "probe" | "hop" | "destination" | "unknown";
 
 @example(#{
 	startedAt: utcDateTime.fromISO("2026-05-13T10:00:00Z"),
@@ -293,6 +294,95 @@ model TracerouteRunsQueryMetadata {
 model TracerouteRunsResponse {
 	runs: TracerouteResult[];
 	query: TracerouteRunsQueryMetadata;
+}
+
+@example(#{
+	id: "ip:192.0.2.1",
+	kind: "hop",
+	label: "gateway.local",
+	address: "192.0.2.1",
+	hostname: "gateway.local",
+	hopIndex: 1,
+	seenCount: 12,
+	avgRttMs: 1.8,
+	lossPercent: 0,
+})
+model TracerouteTopologyNode {
+	id: string;
+	kind: TracerouteTopologyNodeKind;
+	label: string;
+	address?: ipAddress;
+	hostname?: string;
+	probeId?: uuid;
+	checkId?: uuid;
+	target?: string;
+
+	@minValue(1)
+	@maxValue(64)
+	hopIndex?: int32;
+
+	@minValue(0)
+	seenCount: int32;
+
+	@minValue(0)
+	avgRttMs?: float64;
+
+	@minValue(0)
+	@maxValue(100)
+	lossPercent?: float64;
+}
+
+@example(#{
+	id: "probe:33333333-3333-3333-3333-333333333333->ip:192.0.2.1",
+	source: "probe:33333333-3333-3333-3333-333333333333",
+	target: "ip:192.0.2.1",
+	seenCount: 12,
+	avgRttMs: 1.8,
+	lossPercent: 0,
+})
+model TracerouteTopologyEdge {
+	id: string;
+	source: string;
+	target: string;
+
+	@minValue(0)
+	seenCount: int32;
+
+	@minValue(0)
+	avgRttMs?: float64;
+
+	@minValue(0)
+	@maxValue(100)
+	lossPercent?: float64;
+}
+
+@example(#{ from: 1778662800000, to: 1778749200000, limit: 100 })
+model TracerouteTopologyQueryMetadata {
+	@minValue(1)
+	from: int64;
+
+	@minValue(1)
+	to: int64;
+
+	@minValue(1)
+	@maxValue(500)
+	limit: int32;
+}
+
+@example(#{
+	nodes: #[
+		#{ id: "probe:33333333-3333-3333-3333-333333333333", kind: "probe", label: "fra-bm-02", probeId: "33333333-3333-3333-3333-333333333333", seenCount: 12 },
+		#{ id: "ip:192.0.2.1", kind: "hop", label: "gateway.local", address: "192.0.2.1", hostname: "gateway.local", hopIndex: 1, seenCount: 12, avgRttMs: 1.8, lossPercent: 0 },
+	],
+	edges: #[
+		#{ id: "probe:33333333-3333-3333-3333-333333333333->ip:192.0.2.1", source: "probe:33333333-3333-3333-3333-333333333333", target: "ip:192.0.2.1", seenCount: 12, avgRttMs: 1.8, lossPercent: 0 },
+	],
+	query: #{ from: 1778662800000, to: 1778749200000, limit: 100 },
+})
+model TracerouteTopologyResponse {
+	nodes: TracerouteTopologyNode[];
+	edges: TracerouteTopologyEdge[];
+	query: TracerouteTopologyQueryMetadata;
 }
 
 @example(#{

@@ -177,6 +177,96 @@ func TestQueryTracerouteRunsUsesDefaultsAndMapsRuns(t *testing.T) {
 	}
 }
 
+func TestQueryTracerouteTopologyAggregatesRuns(t *testing.T) {
+	now := time.Date(2026, 5, 13, 12, 0, 0, 0, time.UTC)
+	gateway := netip.MustParseAddr("192.0.2.1")
+	destination := netip.MustParseAddr("203.0.113.20")
+	gatewayName := "gateway.local"
+	rttOne := 1.0
+	rttThree := 3.0
+	rttTen := 10.0
+	traceroutes := &recordingTracerouteRunsRepository{
+		topologyResult: domaintraceroute.TopologyRunResult{
+			Runs: []domaintraceroute.TopologyRun{
+				{
+					StartedAt:  now.Add(-time.Minute),
+					ProbeID:    testProbeID,
+					ProbeName:  "fra-bm-02",
+					CheckID:    testCheckID,
+					CheckName:  "validator-route",
+					Target:     "validator.example",
+					ResolvedIP: &destination,
+					Hops: []domaintraceroute.TopologyHop{
+						{HopIndex: 1, Address: &gateway, Hostname: &gatewayName, LossPercent: 0, RttAvgMs: &rttOne},
+						{HopIndex: 2, Address: &destination, LossPercent: 0, RttAvgMs: &rttTen},
+					},
+				},
+				{
+					StartedAt:  now.Add(-2 * time.Minute),
+					ProbeID:    testProbeID,
+					ProbeName:  "fra-bm-02",
+					CheckID:    testCheckID,
+					CheckName:  "validator-route",
+					Target:     "validator.example",
+					ResolvedIP: &destination,
+					Hops: []domaintraceroute.TopologyHop{
+						{HopIndex: 1, Address: &gateway, Hostname: &gatewayName, LossPercent: 10, RttAvgMs: &rttThree},
+						{HopIndex: 2, LossPercent: 100},
+					},
+				},
+			},
+		},
+	}
+	service := NewService(&recordingPingSeriesRepository{}, traceroutes, &recordingMeasurementRepository{}, staticProjectAccess{})
+
+	output, err := service.QueryTracerouteTopology(context.Background(), QueryTracerouteTopologyInput{
+		CurrentUserID: testUserID,
+		ProjectRef:    "vector-ix",
+		Now:           now,
+	})
+	if err != nil {
+		t.Fatalf("expected query to succeed: %v", err)
+	}
+
+	if traceroutes.gotTopology.ProjectID != testProjectID || traceroutes.gotTopology.ProbeID != "" || traceroutes.gotTopology.CheckID != "" {
+		t.Fatalf("unexpected repository topology input: %#v", traceroutes.gotTopology)
+	}
+	if traceroutes.gotTopology.Limit != defaultRunLimit {
+		t.Fatalf("expected default topology limit %d, got %d", defaultRunLimit, traceroutes.gotTopology.Limit)
+	}
+	if output.Query.FromMs != now.Add(-24*time.Hour).UnixMilli() || output.Query.ToMs != now.UnixMilli() {
+		t.Fatalf("unexpected output query metadata: %#v", output.Query)
+	}
+
+	probeNode := topologyNodeByID(t, output.Nodes, "probe:"+testProbeID)
+	if probeNode.Kind != "probe" || probeNode.SeenCount != 2 || probeNode.ProbeID == nil || *probeNode.ProbeID != testProbeID {
+		t.Fatalf("unexpected probe node: %#v", probeNode)
+	}
+	gatewayNode := topologyNodeByID(t, output.Nodes, "ip:"+gateway.String())
+	if gatewayNode.SeenCount != 2 || gatewayNode.Hostname == nil || *gatewayNode.Hostname != gatewayName {
+		t.Fatalf("unexpected gateway node: %#v", gatewayNode)
+	}
+	if gatewayNode.AvgRttMs == nil || *gatewayNode.AvgRttMs != 2 || gatewayNode.LossPercent == nil || *gatewayNode.LossPercent != 5 {
+		t.Fatalf("unexpected gateway aggregate metrics: %#v", gatewayNode)
+	}
+	destinationNode := topologyNodeByID(t, output.Nodes, "ip:"+destination.String())
+	if destinationNode.Kind != "destination" || destinationNode.SeenCount != 1 {
+		t.Fatalf("unexpected destination node: %#v", destinationNode)
+	}
+	unknownNode := topologyNodeByID(t, output.Nodes, "unknown:2")
+	if unknownNode.Kind != "unknown" || unknownNode.SeenCount != 1 || unknownNode.LossPercent == nil || *unknownNode.LossPercent != 100 {
+		t.Fatalf("unexpected unknown node: %#v", unknownNode)
+	}
+
+	probeGatewayEdge := topologyEdgeByID(t, output.Edges, "probe:"+testProbeID+"->ip:"+gateway.String())
+	if probeGatewayEdge.SeenCount != 2 || probeGatewayEdge.AvgRttMs == nil || *probeGatewayEdge.AvgRttMs != 2 {
+		t.Fatalf("unexpected probe gateway edge: %#v", probeGatewayEdge)
+	}
+	if len(output.Edges) != 3 {
+		t.Fatalf("expected three topology edges, got %#v", output.Edges)
+	}
+}
+
 type staticProjectAccess struct{}
 
 func (staticProjectAccess) GetProjectForUser(_ context.Context, projectRef, userID string) (domainproject.Project, error) {
@@ -197,13 +287,20 @@ func (r *recordingPingSeriesRepository) ListPingSeries(_ context.Context, input 
 }
 
 type recordingTracerouteRunsRepository struct {
-	got    domaintraceroute.RunQuery
-	result domaintraceroute.RunResult
+	got            domaintraceroute.RunQuery
+	gotTopology    domaintraceroute.TopologyQuery
+	result         domaintraceroute.RunResult
+	topologyResult domaintraceroute.TopologyRunResult
 }
 
 func (r *recordingTracerouteRunsRepository) ListTracerouteRuns(_ context.Context, input domaintraceroute.RunQuery) (domaintraceroute.RunResult, error) {
 	r.got = input
 	return r.result, nil
+}
+
+func (r *recordingTracerouteRunsRepository) ListTracerouteTopologyRuns(_ context.Context, input domaintraceroute.TopologyQuery) (domaintraceroute.TopologyRunResult, error) {
+	r.gotTopology = input
+	return r.topologyResult, nil
 }
 
 type recordingMeasurementRepository struct {
@@ -214,4 +311,28 @@ type recordingMeasurementRepository struct {
 func (r *recordingMeasurementRepository) ListMeasurements(_ context.Context, input domainresult.MeasurementQuery) (domainresult.MeasurementResult, error) {
 	r.got = input
 	return r.result, nil
+}
+
+func topologyNodeByID(t *testing.T, nodes []TracerouteTopologyNode, id string) TracerouteTopologyNode {
+	t.Helper()
+
+	for _, node := range nodes {
+		if node.ID == id {
+			return node
+		}
+	}
+	t.Fatalf("expected topology node %q in %#v", id, nodes)
+	return TracerouteTopologyNode{}
+}
+
+func topologyEdgeByID(t *testing.T, edges []TracerouteTopologyEdge, id string) TracerouteTopologyEdge {
+	t.Helper()
+
+	for _, edge := range edges {
+		if edge.ID == id {
+			return edge
+		}
+	}
+	t.Fatalf("expected topology edge %q in %#v", id, edges)
+	return TracerouteTopologyEdge{}
 }

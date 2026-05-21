@@ -299,6 +299,127 @@ func (q *Queries) ListTracerouteRunRows(ctx context.Context, arg ListTracerouteR
 	return items, nil
 }
 
+const listTracerouteTopologyRows = `-- name: ListTracerouteTopologyRows :many
+WITH selected_runs AS (
+    SELECT traceroute_results.probe_id,
+           traceroute_results.check_id,
+           traceroute_results.started_at,
+           traceroute_results.resolved_ip,
+           probes.id AS probe_public_id,
+           probes.name AS probe_name,
+           checks.id AS check_public_id,
+           checks.name AS check_name,
+           checks.target AS check_target
+    FROM traceroute_results
+    JOIN probes ON probes.internal_id = traceroute_results.probe_id
+    JOIN checks ON checks.internal_id = traceroute_results.check_id
+    WHERE probes.project_id = $1
+      AND checks.project_id = $1
+      AND checks.check_type = 'traceroute'
+      AND probes.deleted_at IS NULL
+      AND checks.deleted_at IS NULL
+      AND traceroute_results.started_at >= $2
+      AND traceroute_results.started_at < $3
+      AND (
+          $4::uuid IS NULL
+          OR probes.id = $4::uuid
+      )
+      AND (
+          $5::uuid IS NULL
+          OR checks.id = $5::uuid
+      )
+    ORDER BY traceroute_results.started_at DESC,
+             probes.id ASC,
+             checks.id ASC
+    LIMIT $6
+)
+SELECT selected_runs.started_at,
+       selected_runs.probe_public_id,
+       selected_runs.probe_name,
+       selected_runs.check_public_id,
+       selected_runs.check_name,
+       selected_runs.check_target,
+       selected_runs.resolved_ip,
+       traceroute_result_hops.hop_index,
+       traceroute_result_hops.address,
+       traceroute_result_hops.hostname,
+       traceroute_result_hops.loss_percent,
+       traceroute_result_hops.rtt_avg_ms
+FROM selected_runs
+LEFT JOIN traceroute_result_hops
+    ON traceroute_result_hops.probe_id = selected_runs.probe_id
+    AND traceroute_result_hops.check_id = selected_runs.check_id
+    AND traceroute_result_hops.started_at = selected_runs.started_at
+ORDER BY selected_runs.started_at DESC,
+         selected_runs.probe_public_id ASC,
+         selected_runs.check_public_id ASC,
+         traceroute_result_hops.hop_index ASC
+`
+
+type ListTracerouteTopologyRowsParams struct {
+	ProjectID     uuid.UUID          `json:"project_id"`
+	StartedAtFrom pgtype.Timestamptz `json:"started_at_from"`
+	StartedAtTo   pgtype.Timestamptz `json:"started_at_to"`
+	ProbeID       *uuid.UUID         `json:"probe_id"`
+	CheckID       *uuid.UUID         `json:"check_id"`
+	LimitCount    int32              `json:"limit_count"`
+}
+
+type ListTracerouteTopologyRowsRow struct {
+	StartedAt     pgtype.Timestamptz `json:"started_at"`
+	ProbePublicID uuid.UUID          `json:"probe_public_id"`
+	ProbeName     string             `json:"probe_name"`
+	CheckPublicID uuid.UUID          `json:"check_public_id"`
+	CheckName     string             `json:"check_name"`
+	CheckTarget   string             `json:"check_target"`
+	ResolvedIp    *netip.Addr        `json:"resolved_ip"`
+	HopIndex      *int32             `json:"hop_index"`
+	Address       *netip.Addr        `json:"address"`
+	Hostname      *string            `json:"hostname"`
+	LossPercent   *float64           `json:"loss_percent"`
+	RttAvgMs      *float64           `json:"rtt_avg_ms"`
+}
+
+func (q *Queries) ListTracerouteTopologyRows(ctx context.Context, arg ListTracerouteTopologyRowsParams) ([]ListTracerouteTopologyRowsRow, error) {
+	rows, err := q.db.Query(ctx, listTracerouteTopologyRows,
+		arg.ProjectID,
+		arg.StartedAtFrom,
+		arg.StartedAtTo,
+		arg.ProbeID,
+		arg.CheckID,
+		arg.LimitCount,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListTracerouteTopologyRowsRow
+	for rows.Next() {
+		var i ListTracerouteTopologyRowsRow
+		if err := rows.Scan(
+			&i.StartedAt,
+			&i.ProbePublicID,
+			&i.ProbeName,
+			&i.CheckPublicID,
+			&i.CheckName,
+			&i.CheckTarget,
+			&i.ResolvedIp,
+			&i.HopIndex,
+			&i.Address,
+			&i.Hostname,
+			&i.LossPercent,
+			&i.RttAvgMs,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const resolveTracerouteRunStorageIDs = `-- name: ResolveTracerouteRunStorageIDs :one
 SELECT probes.internal_id AS probe_storage_id,
        checks.internal_id AS check_storage_id
