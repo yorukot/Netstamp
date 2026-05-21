@@ -161,7 +161,8 @@
 }
 
 .tagCloud,
-.actions {
+.actions,
+.assetLinks {
 	display: flex;
 	flex-wrap: wrap;
 	gap: 0.625rem;

@@ -1,4 +1,5 @@
 import { pathForRoute } from "@/routes/routePaths";
+import { installAssetPaths, installAssetUrl, probeInstallCommand } from "@/shared/api/installAssets";
 import { useCreateProjectProbeMutation } from "@/shared/api/mutations";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { classNames } from "@/shared/utils/classNames";
@@ -33,13 +34,17 @@ export function NewProbeDrawer() {
 	const [selectedTags, setSelectedTags] = useState(["Edge"]);
 	const [newTag, setNewTag] = useState("");
 	const [registrationSecret, setRegistrationSecret] = useState("");
+	const [registeredProbeId, setRegisteredProbeId] = useState("");
 	const createProbeMutation = useCreateProjectProbeMutation(projectRef);
 	const canCreate = probeName.trim().length > 0 && Boolean(projectRef);
 	const token = registrationSecret || "waiting-for-controller";
-	const installCommand = [
-		`sudo netstamp register --controller ${window.location.origin} --token ${token} --name "${probeName.trim() || "your-probe"}"`,
-		"sudo systemctl enable --now netstamp-probe"
-	].join("\n");
+	const installerUrl = installAssetUrl(installAssetPaths.agentInstaller);
+	const uninstallerUrl = installAssetUrl(installAssetPaths.agentUninstaller);
+	const binaryUrl = installAssetUrl(installAssetPaths.linuxAmd64Binary);
+	const installCommand =
+		registeredProbeId && registrationSecret
+			? probeInstallCommand({ probeId: registeredProbeId, probeSecret: registrationSecret })
+			: `curl -fsSL '${installerUrl}' | sudo sh -s -- --probe-id waiting-for-controller --probe-secret ${token}`;
 
 	useEffect(() => {
 		return () => {
@@ -97,6 +102,8 @@ export function NewProbeDrawer() {
 	function updateProbeName(value: string) {
 		setProbeName(value);
 		setInstallStatus("idle");
+		setRegisteredProbeId("");
+		setRegistrationSecret("");
 	}
 
 	function startInstallDetection() {
@@ -112,6 +119,7 @@ export function NewProbeDrawer() {
 		}
 
 		const data = await createProbeMutation.mutateAsync({ enabled: true, name: probeName.trim() });
+		setRegisteredProbeId(data.probe.id);
 		setRegistrationSecret(data.secret);
 		startInstallDetection();
 	}
@@ -177,13 +185,24 @@ export function NewProbeDrawer() {
 							<div className={styles.stepCopy}>
 								<Badge tone={installStatus === "detected" ? "success" : "warning"}>{installStatus === "detected" ? "Probe detected" : "Auto detecting"}</Badge>
 								<h3>Install the probe</h3>
-								<p>Run this command on the host. The wizard watches for the first heartbeat and unlocks metadata when the probe is detected.</p>
+								<p>Run the controller-served installer on the host. The wizard watches for the first heartbeat and unlocks metadata when the probe is detected.</p>
 							</div>
 
 							<div className={classNames("ns-cut-frame", styles.registrationBlock)}>
 								<div className={styles.tokenLine}>
 									<span>Registration token</span>
 									<strong>{token}</strong>
+								</div>
+								<div className={styles.assetLinks}>
+									<Button asChild variant="outline" size="sm">
+										<a href={installerUrl}>Installer</a>
+									</Button>
+									<Button asChild variant="outline" size="sm">
+										<a href={binaryUrl}>Linux binary</a>
+									</Button>
+									<Button asChild variant="ghost" size="sm">
+										<a href={uninstallerUrl}>Uninstaller</a>
+									</Button>
 								</div>
 								<Terminal title="install command" meta="copy to host">
 									{installCommand}

@@ -15,10 +15,20 @@ export class ApiError extends Error {
 	}
 }
 
+export const apiBaseUrl = import.meta.env.VITE_NETSTAMP_API_BASE_URL || "/api/v1";
+
 export const apiClient = createClient<paths>({
-	baseUrl: import.meta.env.VITE_NETSTAMP_API_BASE_URL || "/api/v1",
+	baseUrl: apiBaseUrl,
 	credentials: "include"
 });
+
+export function apiUrl<TPath extends keyof paths & string>(path: TPath) {
+	return `${apiBaseUrl.replace(/\/$/, "")}${path}`;
+}
+
+export function absoluteApiUrl<TPath extends keyof paths & string>(path: TPath) {
+	return new URL(apiUrl(path), window.location.origin).toString();
+}
 
 interface ApiResult<TData> {
 	data?: TData;
