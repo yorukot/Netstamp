@@ -17,14 +17,33 @@ const createProbeSteps = [
 	{ number: "02", title: "Install", copy: "Run command" }
 ];
 
+async function writeClipboardText(value: string) {
+	if (navigator.clipboard?.writeText) {
+		await navigator.clipboard.writeText(value);
+		return;
+	}
+
+	const textarea = document.createElement("textarea");
+	textarea.value = value;
+	textarea.setAttribute("readonly", "");
+	textarea.style.position = "fixed";
+	textarea.style.left = "-9999px";
+	document.body.appendChild(textarea);
+	textarea.select();
+	document.execCommand("copy");
+	textarea.remove();
+}
+
 export function NewProbeDrawer() {
 	const navigate = useNavigate();
 	const { projectRef } = useCurrentProject();
 	const queryClient = useQueryClient();
 	const closeTimeoutRef = useRef<number | null>(null);
+	const copyTimeoutRef = useRef<number | null>(null);
 	const [closing, setClosing] = useState(false);
 	const [currentStep, setCurrentStep] = useState(0);
 	const [installStatus, setInstallStatus] = useState<"idle" | "detecting">("idle");
+	const [installCommandCopied, setInstallCommandCopied] = useState(false);
 	const [probeName, setProbeName] = useState("");
 	const [registrationSecret, setRegistrationSecret] = useState("");
 	const [registeredProbeId, setRegisteredProbeId] = useState("");
@@ -50,6 +69,9 @@ export function NewProbeDrawer() {
 		return () => {
 			if (closeTimeoutRef.current) {
 				window.clearTimeout(closeTimeoutRef.current);
+			}
+			if (copyTimeoutRef.current) {
+				window.clearTimeout(copyTimeoutRef.current);
 			}
 		};
 	}, []);
@@ -93,6 +115,30 @@ export function NewProbeDrawer() {
 	function startInstallDetection() {
 		setInstallStatus("detecting");
 		setCurrentStep(1);
+	}
+
+	async function copyInstallCommand() {
+		if (!installCommand) {
+			return;
+		}
+
+		try {
+			await writeClipboardText(installCommand);
+		} catch {
+			setInstallCommandCopied(false);
+			return;
+		}
+
+		setInstallCommandCopied(true);
+
+		if (copyTimeoutRef.current) {
+			window.clearTimeout(copyTimeoutRef.current);
+		}
+
+		copyTimeoutRef.current = window.setTimeout(() => {
+			setInstallCommandCopied(false);
+			copyTimeoutRef.current = null;
+		}, 1800);
 	}
 
 	async function handleNameSubmit(event: FormEvent<HTMLFormElement>) {
@@ -172,7 +218,14 @@ export function NewProbeDrawer() {
 										<a href={uninstallerUrl}>Uninstaller</a>
 									</Button>
 								</div>
-								<Terminal title="install command" meta="copy to host">
+								<Terminal
+									title="install command"
+									meta={
+										<Button type="button" variant="ghost" size="sm" className={styles.copyCommandButton} disabled={!installCommand} onClick={() => void copyInstallCommand()}>
+											{installCommandCopied ? "Copied" : "Copy to clipboard"}
+										</Button>
+									}
+								>
 									{installCommand}
 								</Terminal>
 							</div>
