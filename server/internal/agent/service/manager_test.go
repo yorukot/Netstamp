@@ -54,15 +54,24 @@ func TestManagerInstallWritesEnvAndSystemdUnit(t *testing.T) {
 			t.Fatalf("expected env file to contain %q, got %q", want, env)
 		}
 	}
-	if info, err := os.Stat(paths.EnvFile); err != nil {
-		t.Fatalf("stat env file: %v", err)
-	} else if info.Mode().Perm() != 0o600 {
+	info, statErr := os.Stat(paths.EnvFile)
+	if statErr != nil {
+		t.Fatalf("stat env file: %v", statErr)
+	}
+	if info.Mode().Perm() != 0o600 {
 		t.Fatalf("expected env file mode 0600, got %o", info.Mode().Perm())
 	}
 
 	unitData, err := os.ReadFile(paths.ServiceFile)
 	if err != nil {
 		t.Fatalf("read service file: %v", err)
+	}
+	info, statErr = os.Stat(paths.ServiceFile)
+	if statErr != nil {
+		t.Fatalf("stat service file: %v", statErr)
+	}
+	if info.Mode().Perm() != 0o600 {
+		t.Fatalf("expected service file mode 0600, got %o", info.Mode().Perm())
 	}
 	unit := string(unitData)
 	for _, want := range []string{
@@ -174,12 +183,12 @@ func TestManagerUninstallPurgesConfigAndHome(t *testing.T) {
 
 func testPaths(dir string) Paths {
 	return Paths{
-		InstallPath:       filepath.Join(dir, "usr/local/bin/netstamp-agent"),
-		ConfigDir:         filepath.Join(dir, "etc/netstamp"),
-		EnvFile:           filepath.Join(dir, "etc/netstamp/probe.env"),
-		ServiceFile:       filepath.Join(dir, "etc/systemd/system/netstamp-agent.service"),
-		HomeDir:           filepath.Join(dir, "var/lib/netstamp"),
-		SystemdRuntimeDir: filepath.Join(dir, "run/systemd/system"),
+		InstallPath:       filepath.Join(dir, "usr", "local", "bin", "netstamp-agent"),
+		ConfigDir:         filepath.Join(dir, "etc", "netstamp"),
+		EnvFile:           filepath.Join(dir, "etc", "netstamp", "probe.env"),
+		ServiceFile:       filepath.Join(dir, "etc", "systemd", "system", "netstamp-agent.service"),
+		HomeDir:           filepath.Join(dir, "var", "lib", "netstamp"),
+		SystemdRuntimeDir: filepath.Join(dir, "run", "systemd", "system"),
 	}
 }
 

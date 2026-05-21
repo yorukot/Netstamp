@@ -28,15 +28,15 @@ type serviceManager interface {
 }
 
 func Execute(ctx context.Context, options Options) int {
-	cmd := NewRootCommand(options)
-	if err := cmd.ExecuteContext(ctx); err != nil {
+	cmd := NewRootCommand(ctx, options)
+	if err := cmd.Execute(); err != nil {
 		_, _ = fmt.Fprintln(options.stderr(), err)
 		return 1
 	}
 	return 0
 }
 
-func NewRootCommand(options Options) *cobra.Command {
+func NewRootCommand(ctx context.Context, options Options) *cobra.Command {
 	root := &cobra.Command{
 		Use:           "netstamp-agent",
 		Short:         "Run and manage the Netstamp probe agent",
@@ -44,20 +44,21 @@ func NewRootCommand(options Options) *cobra.Command {
 		SilenceErrors: true,
 		Args:          cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			return runAgent(cmd.Context(), options.stderr())
+			return runAgent(ctx, options.stderr())
 		},
 	}
+	root.SetContext(ctx)
 	root.SetOut(options.stdout())
 	root.SetErr(options.stderr())
 	root.SetArgs(options.Args)
 
-	root.AddCommand(newRunCommand(options))
-	root.AddCommand(newServiceCommand(options))
+	root.AddCommand(newRunCommand(ctx, options))
+	root.AddCommand(newServiceCommand(ctx, options))
 
 	return root
 }
 
-func newRunCommand(options Options) *cobra.Command {
+func newRunCommand(ctx context.Context, options Options) *cobra.Command {
 	return &cobra.Command{
 		Use:           "run",
 		Short:         "Run the probe agent runtime",
@@ -65,12 +66,12 @@ func newRunCommand(options Options) *cobra.Command {
 		SilenceErrors: true,
 		Args:          cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			return runAgent(cmd.Context(), options.stderr())
+			return runAgent(ctx, options.stderr())
 		},
 	}
 }
 
-func newServiceCommand(options Options) *cobra.Command {
+func newServiceCommand(ctx context.Context, options Options) *cobra.Command {
 	serviceCmd := &cobra.Command{
 		Use:           "service",
 		Short:         "Manage the probe agent system service",
@@ -79,14 +80,14 @@ func newServiceCommand(options Options) *cobra.Command {
 		Args:          cobra.NoArgs,
 	}
 
-	serviceCmd.AddCommand(newServiceInstallCommand(options))
-	serviceCmd.AddCommand(newServiceUninstallCommand(options))
-	serviceCmd.AddCommand(newServiceStatusCommand(options))
+	serviceCmd.AddCommand(newServiceInstallCommand(ctx, options))
+	serviceCmd.AddCommand(newServiceUninstallCommand(ctx, options))
+	serviceCmd.AddCommand(newServiceStatusCommand(ctx, options))
 
 	return serviceCmd
 }
 
-func newServiceInstallCommand(options Options) *cobra.Command {
+func newServiceInstallCommand(ctx context.Context, options Options) *cobra.Command {
 	var config agentservice.InstallConfig
 	cmd := &cobra.Command{
 		Use:           "install",
@@ -95,7 +96,7 @@ func newServiceInstallCommand(options Options) *cobra.Command {
 		SilenceErrors: true,
 		Args:          cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			if err := options.manager().Install(cmd.Context(), config); err != nil {
+			if err := options.manager().Install(ctx, config); err != nil {
 				return err
 			}
 			_, _ = fmt.Fprintf(options.stdout(), "%s installed and started\n", agentservice.ServiceName)
@@ -111,7 +112,7 @@ func newServiceInstallCommand(options Options) *cobra.Command {
 	return cmd
 }
 
-func newServiceUninstallCommand(options Options) *cobra.Command {
+func newServiceUninstallCommand(ctx context.Context, options Options) *cobra.Command {
 	var purge bool
 	cmd := &cobra.Command{
 		Use:           "uninstall",
@@ -120,7 +121,7 @@ func newServiceUninstallCommand(options Options) *cobra.Command {
 		SilenceErrors: true,
 		Args:          cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			if err := options.manager().Uninstall(cmd.Context(), purge); err != nil {
+			if err := options.manager().Uninstall(ctx, purge); err != nil {
 				return err
 			}
 			_, _ = fmt.Fprintf(options.stdout(), "%s uninstalled\n", agentservice.ServiceName)
@@ -131,7 +132,7 @@ func newServiceUninstallCommand(options Options) *cobra.Command {
 	return cmd
 }
 
-func newServiceStatusCommand(options Options) *cobra.Command {
+func newServiceStatusCommand(ctx context.Context, options Options) *cobra.Command {
 	return &cobra.Command{
 		Use:           "status",
 		Short:         "Show the probe agent systemd service status",
@@ -139,7 +140,7 @@ func newServiceStatusCommand(options Options) *cobra.Command {
 		SilenceErrors: true,
 		Args:          cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			return options.manager().Status(cmd.Context())
+			return options.manager().Status(ctx)
 		},
 	}
 }

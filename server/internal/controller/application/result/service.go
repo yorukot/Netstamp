@@ -492,7 +492,7 @@ func upsertTopologyEdge(edges *[]tracerouteTopologyEdgeAggregate, index map[stri
 	return next
 }
 
-func addTopologyNodeSample(node *tracerouteTopologyNodeAggregate, rttAvgMs *float64, lossPercent *float64) {
+func addTopologyNodeSample(node *tracerouteTopologyNodeAggregate, rttAvgMs, lossPercent *float64) {
 	node.node.SeenCount++
 	if rttAvgMs != nil {
 		node.rttSum += *rttAvgMs
@@ -504,7 +504,7 @@ func addTopologyNodeSample(node *tracerouteTopologyNodeAggregate, rttAvgMs *floa
 	}
 }
 
-func addTopologyEdgeSample(edge *tracerouteTopologyEdgeAggregate, rttAvgMs *float64, lossPercent *float64) {
+func addTopologyEdgeSample(edge *tracerouteTopologyEdgeAggregate, rttAvgMs, lossPercent *float64) {
 	edge.edge.SeenCount++
 	if rttAvgMs != nil {
 		edge.rttSum += *rttAvgMs

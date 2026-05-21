@@ -17,6 +17,11 @@ const (
 	ServiceName = "netstamp-agent"
 	SystemUser  = "netstamp"
 	SystemGroup = "netstamp"
+
+	configDirMode   os.FileMode = 0o750
+	envFileMode     os.FileMode = 0o600
+	serviceDirMode  os.FileMode = 0o750
+	serviceFileMode os.FileMode = 0o600
 )
 
 type InstallConfig struct {
@@ -115,22 +120,22 @@ func (m *Manager) Install(ctx context.Context, config InstallConfig) error {
 	if err := m.ensureUser(ctx); err != nil {
 		return err
 	}
-	if err := os.MkdirAll(m.paths.ConfigDir, 0o755); err != nil {
+	if err := os.MkdirAll(m.paths.ConfigDir, configDirMode); err != nil {
 		return fmt.Errorf("create config directory: %w", err)
 	}
-	if err := os.WriteFile(m.paths.EnvFile, []byte(renderEnvFile(config)), 0o600); err != nil {
+	if err := os.WriteFile(m.paths.EnvFile, []byte(renderEnvFile(config)), envFileMode); err != nil {
 		return fmt.Errorf("write env file: %w", err)
 	}
-	if err := os.Chmod(m.paths.EnvFile, 0o600); err != nil {
+	if err := os.Chmod(m.paths.EnvFile, envFileMode); err != nil {
 		return fmt.Errorf("chmod env file: %w", err)
 	}
-	if err := os.MkdirAll(filepath.Dir(m.paths.ServiceFile), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(m.paths.ServiceFile), serviceDirMode); err != nil {
 		return fmt.Errorf("create systemd directory: %w", err)
 	}
-	if err := os.WriteFile(m.paths.ServiceFile, []byte(m.renderServiceFile()), 0o644); err != nil {
+	if err := os.WriteFile(m.paths.ServiceFile, []byte(m.renderServiceFile()), serviceFileMode); err != nil {
 		return fmt.Errorf("write systemd service: %w", err)
 	}
-	if err := os.Chmod(m.paths.ServiceFile, 0o644); err != nil {
+	if err := os.Chmod(m.paths.ServiceFile, serviceFileMode); err != nil {
 		return fmt.Errorf("chmod systemd service: %w", err)
 	}
 	if err := m.runner.Run(ctx, "systemctl", "daemon-reload"); err != nil {
@@ -147,7 +152,7 @@ func (m *Manager) Uninstall(ctx context.Context, purge bool) error {
 		return err
 	}
 
-	_ = m.runner.Run(ctx, "systemctl", "disable", "--now", ServiceName)
+	m.runOptional(ctx, "systemctl", "disable", "--now", ServiceName)
 	if err := removeIfExists(m.paths.ServiceFile); err != nil {
 		return err
 	}
@@ -157,7 +162,7 @@ func (m *Manager) Uninstall(ctx context.Context, purge bool) error {
 	if err := m.runner.Run(ctx, "systemctl", "daemon-reload"); err != nil {
 		return fmt.Errorf("reload systemd: %w", err)
 	}
-	_ = m.runner.Run(ctx, "systemctl", "reset-failed", ServiceName)
+	m.runOptional(ctx, "systemctl", "reset-failed", ServiceName)
 
 	if purge {
 		if err := removeIfExists(m.paths.EnvFile); err != nil {
@@ -277,7 +282,7 @@ func (m *Manager) removeUser(ctx context.Context) {
 	if m.runner.Run(ctx, "userdel", SystemUser) == nil {
 		return
 	}
-	_ = m.runner.Run(ctx, "deluser", SystemUser)
+	m.runOptional(ctx, "deluser", SystemUser)
 }
 
 func (m *Manager) removeGroup(ctx context.Context) {
@@ -287,7 +292,11 @@ func (m *Manager) removeGroup(ctx context.Context) {
 	if m.runner.Run(ctx, "groupdel", SystemGroup) == nil {
 		return
 	}
-	_ = m.runner.Run(ctx, "delgroup", SystemGroup)
+	m.runOptional(ctx, "delgroup", SystemGroup)
+}
+
+func (m *Manager) runOptional(ctx context.Context, name string, args ...string) bool {
+	return m.runner.Run(ctx, name, args...) == nil
 }
 
 func (m *Manager) renderServiceFile() string {

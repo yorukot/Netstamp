@@ -10,12 +10,16 @@ import (
 )
 
 func main() {
+	os.Exit(run())
+}
+
+func run() int {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	os.Exit(agentcli.Execute(ctx, agentcli.Options{
+	return agentcli.Execute(ctx, agentcli.Options{
 		Args:   os.Args[1:],
 		Stdout: os.Stdout,
 		Stderr: os.Stderr,
-	}))
+	})
 }
