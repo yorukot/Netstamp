@@ -3,18 +3,18 @@ package auth
 type RegisterInput struct {
 	Email       string
 	DisplayName string
-	Password    string //nolint:gosec // This DTO intentionally carries a plaintext password before hashing.
+	Password    string
 }
 
 type LoginInput struct {
 	Email    string
-	Password string //nolint:gosec // This DTO intentionally carries a plaintext password for verification.
+	Password string
 }
 
 type AuthAccessResult struct {
 	UserID      string
 	Email       string
 	DisplayName string
-	AccessToken string //nolint:gosec // This DTO intentionally carries the issued access token to the caller.
+	AccessToken string
 	ExpiresIn   int
 }

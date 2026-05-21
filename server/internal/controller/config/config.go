@@ -106,7 +106,7 @@ type DatabaseConfig struct {
 	Host            string        `mapstructure:"DATABASE_HOST"`
 	Port            int32         `mapstructure:"DATABASE_PORT"`
 	User            string        `mapstructure:"DATABASE_USER"`
-	Password        string        `mapstructure:"DATABASE_PASSWORD"` //nolint:gosec // Runtime config must store the database password value.
+	Password        string        `mapstructure:"DATABASE_PASSWORD"`
 	Name            string        `mapstructure:"DATABASE_NAME"`
 	SSLMode         string        `mapstructure:"DATABASE_SSLMODE"`
 	MaxConns        int32         `mapstructure:"DB_MAX_CONNS"`
@@ -116,7 +116,7 @@ type DatabaseConfig struct {
 }
 
 type AuthConfig struct {
-	JWTSecret           string        `mapstructure:"AUTH_JWT_SECRET"` //nolint:gosec // Runtime config must store the JWT signing secret value.
+	JWTSecret           string        `mapstructure:"AUTH_JWT_SECRET"`
 	AccessTokenTTL      time.Duration `mapstructure:"AUTH_ACCESS_TOKEN_TTL"`
 	Argon2idMemoryKiB   uint32        `mapstructure:"AUTH_ARGON2ID_MEMORY_KIB"`
 	Argon2idIterations  uint32        `mapstructure:"AUTH_ARGON2ID_ITERATIONS"`

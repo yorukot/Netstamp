@@ -11,7 +11,7 @@ type createProbeOutput struct {
 
 type createProbeOutputBody struct {
 	Probe  domainprobe.Probe `json:"probe"`
-	Secret string            `json:"secret"` //nolint:gosec // The plaintext probe secret is returned once to the creator.
+	Secret string            `json:"secret"`
 }
 
 // ListProbesOutput is the response body for the list probes endpoint.
@@ -39,5 +39,5 @@ type rotateSecretOutput struct {
 
 type rotateSecretOutputBody struct {
 	Probe  domainprobe.Probe `json:"probe"`
-	Secret string            `json:"secret"` //nolint:gosec // The plaintext probe secret is returned once after rotation.
+	Secret string            `json:"secret"`
 }

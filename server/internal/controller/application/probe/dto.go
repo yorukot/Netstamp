@@ -15,7 +15,7 @@ type CreateProbeInput struct {
 
 type CreateProbeOutput struct {
 	Probe  domainprobe.Probe
-	Secret string //nolint:gosec // The plaintext probe secret is returned once to the creator.
+	Secret string
 }
 
 type ListProbesInput struct {
@@ -43,5 +43,5 @@ type UpdateProbeInput struct {
 
 type RotateProbeSecretOutput struct {
 	Probe  domainprobe.Probe
-	Secret string //nolint:gosec // The plaintext probe secret is returned once after rotation.
+	Secret string
 }

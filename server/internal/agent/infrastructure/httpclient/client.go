@@ -56,7 +56,6 @@ func (c *RuntimeClient) do(ctx context.Context, method, operation string, input,
 		request.Header.Set("Content-Type", "application/json")
 	}
 
-	//nolint:gosec // The probe agent only contacts the operator-configured controller URL validated during startup.
 	response, err := c.client.Do(request)
 	if err != nil {
 		return fmt.Errorf("runtime request failed: %w", err)

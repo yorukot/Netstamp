@@ -10,7 +10,7 @@ import (
 const sessionCookiePath = "/"
 
 func newSessionCookie(value string, expiresIn int, secure bool) http.Cookie {
-	return http.Cookie{
+	return http.Cookie{ //nolint:gosec // Secure is runtime-configured; app bootstrap enables it outside local development.
 		Name:     httpmiddleware.SessionCookieName,
 		Value:    value,
 		Path:     sessionCookiePath,
@@ -23,7 +23,7 @@ func newSessionCookie(value string, expiresIn int, secure bool) http.Cookie {
 }
 
 func expiredSessionCookie(secure bool) http.Cookie {
-	return http.Cookie{
+	return http.Cookie{ //nolint:gosec // Secure is runtime-configured; app bootstrap enables it outside local development.
 		Name:     httpmiddleware.SessionCookieName,
 		Value:    "",
 		Path:     sessionCookiePath,

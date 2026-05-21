@@ -30,5 +30,5 @@ type changeCurrentUserEmailInput struct {
 
 type changeCurrentUserEmailInputBody struct {
 	NewEmail string `json:"newEmail,omitempty"`
-	Password string `json:"password,omitempty"` //nolint:gosec // Request DTO intentionally carries a plaintext password for verification.
+	Password string `json:"password,omitempty"`
 }

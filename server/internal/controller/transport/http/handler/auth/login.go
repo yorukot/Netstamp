@@ -46,7 +46,7 @@ type loginOutput struct {
 
 type loginInputBody struct {
 	Email    string `json:"email"`
-	Password string `json:"password"` //nolint:gosec // Login requests intentionally accept plaintext passwords over TLS.
+	Password string `json:"password"`
 }
 
 type loginOutputBody struct {

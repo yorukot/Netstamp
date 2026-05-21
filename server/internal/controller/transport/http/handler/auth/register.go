@@ -51,7 +51,7 @@ type registerOutput struct {
 type registerInputBody struct {
 	Email       string `json:"email"`
 	DisplayName string `json:"displayName"`
-	Password    string `json:"password"` //nolint:gosec // Register requests intentionally accept plaintext passwords over TLS.
+	Password    string `json:"password"`
 }
 
 type registerOutputBody struct {

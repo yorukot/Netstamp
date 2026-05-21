@@ -10,7 +10,7 @@ type UpdateCurrentUserInput struct {
 type ChangeCurrentUserEmailInput struct {
 	CurrentUserID string
 	NewEmail      string
-	Password      string //nolint:gosec // Application DTO intentionally carries a plaintext password for verification.
+	Password      string
 }
 
 type ChangeCurrentUserPasswordInput struct {
