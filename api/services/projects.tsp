@@ -13,7 +13,7 @@ interface ProjectService {
 	@operationId("createProject")
 	@summary("Create project")
 	@post
-	createProject(@body body: CreateProjectRequest): CreatedJson<ProjectResponse> | UnauthorizedProblem | ConflictProblem | UnprocessableEntityProblem | InternalServerProblem;
+	createProject(@body body: CreateProjectRequest): CreatedJson<ProjectResponse> | BadRequestProblem | UnauthorizedProblem | ConflictProblem | UnprocessableEntityProblem | InternalServerProblem;
 
 	@operationId("listProjects")
 	@summary("List projects")
@@ -24,7 +24,7 @@ interface ProjectService {
 	@summary("Get project")
 	@get
 	@route("/{ref}")
-	getProject(...ProjectRefParam): OkJson<ProjectResponse> | UnauthorizedProblem | NotFoundProblem | InternalServerProblem;
+	getProject(...ProjectRefParam): OkJson<ProjectResponse> | UnauthorizedProblem | NotFoundProblem | UnprocessableEntityProblem | InternalServerProblem;
 
 	@operationId("updateProject")
 	@summary("Update project")
@@ -32,6 +32,7 @@ interface ProjectService {
 	@route("/{ref}")
 	updateProject(...ProjectRefParam, @body body: UpdateProjectRequest):
 		| OkJson<ProjectResponse>
+		| BadRequestProblem
 		| UnauthorizedProblem
 		| ForbiddenProblem
 		| NotFoundProblem
@@ -43,7 +44,7 @@ interface ProjectService {
 	@summary("Delete project")
 	@delete
 	@route("/{ref}")
-	deleteProject(...ProjectRefParam): NoContent | UnauthorizedProblem | ForbiddenProblem | NotFoundProblem | InternalServerProblem;
+	deleteProject(...ProjectRefParam): NoContent | UnauthorizedProblem | ForbiddenProblem | NotFoundProblem | UnprocessableEntityProblem | InternalServerProblem;
 }
 
 @tag("Project Members")
@@ -53,13 +54,14 @@ interface ProjectMemberService {
 	@operationId("listProjectMembers")
 	@summary("List project members")
 	@get
-	listProjectMembers(...ProjectRefParam): OkJson<ProjectMemberListResponse> | UnauthorizedProblem | NotFoundProblem | InternalServerProblem;
+	listProjectMembers(...ProjectRefParam): OkJson<ProjectMemberListResponse> | UnauthorizedProblem | NotFoundProblem | UnprocessableEntityProblem | InternalServerProblem;
 
 	@operationId("addProjectMember")
 	@summary("Add project member")
 	@post
 	addProjectMember(...ProjectRefParam, @body body: AddProjectMemberRequest):
 		| CreatedJson<ProjectMemberResponse>
+		| BadRequestProblem
 		| UnauthorizedProblem
 		| ForbiddenProblem
 		| NotFoundProblem
@@ -73,6 +75,7 @@ interface ProjectMemberService {
 	@route("/{user_id}")
 	updateProjectMemberRole(...ProjectRefParam, ...UserIdPathParam, @body body: UpdateProjectMemberRoleRequest):
 		| OkJson<ProjectMemberResponse>
+		| BadRequestProblem
 		| UnauthorizedProblem
 		| ForbiddenProblem
 		| NotFoundProblem
@@ -84,5 +87,12 @@ interface ProjectMemberService {
 	@summary("Remove project member")
 	@delete
 	@route("/{user_id}")
-	removeProjectMember(...ProjectRefParam, ...UserIdPathParam): NoContent | UnauthorizedProblem | ForbiddenProblem | NotFoundProblem | ConflictProblem | InternalServerProblem;
+	removeProjectMember(...ProjectRefParam, ...UserIdPathParam):
+		| NoContent
+		| UnauthorizedProblem
+		| ForbiddenProblem
+		| NotFoundProblem
+		| ConflictProblem
+		| UnprocessableEntityProblem
+		| InternalServerProblem;
 }

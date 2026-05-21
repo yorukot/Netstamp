@@ -133,6 +133,7 @@ model CreateProjectRequest {
 }
 
 @example(#{ name: "Platform Engineering", slug: "platform-engineering" })
+@doc("Patch payload. At least one field must be provided.")
 model UpdateProjectRequest {
 	@minLength(1)
 	@maxLength(64)

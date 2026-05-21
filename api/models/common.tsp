@@ -10,7 +10,13 @@ scalar uuid extends string;
 @format("email")
 scalar email extends string;
 
-scalar ipAddress extends string;
+@format("ipv4")
+scalar ipv4Address extends string;
+
+@format("ipv6")
+scalar ipv6Address extends string;
+
+alias ipAddress = ipv4Address | ipv6Address;
 
 alias ProjectRef = string;
 
@@ -94,38 +100,50 @@ model SessionNoContent {
 	setCookie: string;
 }
 
+model BadRequestProblem {
+	...BadRequestResponse;
+	...ProblemJson;
+}
+
 model UnauthorizedProblem {
 	...UnauthorizedResponse;
-	...Body<ProblemDetails>;
+	...ProblemJson;
 }
 
 model ForbiddenProblem {
 	...ForbiddenResponse;
-	...Body<ProblemDetails>;
+	...ProblemJson;
 }
 
 model NotFoundProblem {
 	...NotFoundResponse;
-	...Body<ProblemDetails>;
+	...ProblemJson;
 }
 
 model ConflictProblem {
 	...ConflictResponse;
-	...Body<ProblemDetails>;
+	...ProblemJson;
 }
 
 model UnprocessableEntityProblem {
 	...Response<422>;
-	...Body<ProblemDetails>;
+	...ProblemJson;
 }
 
 model InternalServerProblem {
 	...Response<500>;
-	...Body<ProblemDetails>;
+	...ProblemJson;
 }
 
 model ServiceUnavailableProblem {
 	...Response<503>;
+	...ProblemJson;
+}
+
+model ProblemJson {
+	@header
+	contentType: "application/problem+json";
+
 	...Body<ProblemDetails>;
 }
 

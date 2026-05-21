@@ -1,6 +1,7 @@
 namespace Netstamp;
 
 @example(#{ displayName: "Jane Operator" })
+@doc("Patch payload. At least one field must be provided.")
 model UpdateCurrentUserRequest {
 	@minLength(1)
 	@maxLength(64)

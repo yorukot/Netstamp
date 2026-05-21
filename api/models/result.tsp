@@ -6,6 +6,8 @@ namespace Netstamp;
 
 alias PingMetric = "rttAvgMs" | "lossPercent" | "successRate";
 alias MeasurementType = "ping" | "traceroute";
+alias MeasurementStatus = "successful" | "timeout" | "error" | "partial";
+alias SeriesResolution = "raw" | "bucket";
 
 @example(#{
 	startedAt: utcDateTime.fromISO("2026-05-13T10:00:00Z"),
@@ -203,7 +205,9 @@ model SubmitResultsRequest {
 
 @example(#{ accepted: 1, serverTime: utcDateTime.fromISO("2026-05-13T10:00:02Z") })
 model SubmitResultsResponse {
+	@minValue(0)
 	accepted: int32;
+
 	serverTime: utcDateTime;
 }
 
@@ -224,10 +228,19 @@ model Series {
 
 @example(#{ from: 1778662800000, to: 1778749200000, maxDataPoints: 600, resolution: "bucket", totalPoints: 487 })
 model PingSeriesQueryMetadata {
+	@minValue(1)
 	from: int64;
+
+	@minValue(1)
 	to: int64;
+
+	@minValue(1)
+	@maxValue(2000)
 	maxDataPoints: int32;
-	resolution: string;
+
+	resolution: SeriesResolution;
+
+	@minValue(0)
 	totalPoints: int64;
 }
 
@@ -249,9 +262,17 @@ model PingSeriesResponse {
 
 @example(#{ from: 1778662800000, to: 1778749200000, limit: 100, nextCursor: 1778666400000 })
 model TracerouteRunsQueryMetadata {
+	@minValue(1)
 	from: int64;
+
+	@minValue(1)
 	to: int64;
+
+	@minValue(1)
+	@maxValue(500)
 	limit: int32;
+
+	@minValue(1)
 	nextCursor?: int64;
 }
 
@@ -292,7 +313,7 @@ model Measurement {
 	finishedAt: utcDateTime;
 	probeId: uuid;
 	checkId: uuid;
-	status: string;
+	status: MeasurementStatus;
 
 	@minValue(0)
 	durationMs: int32;
@@ -311,9 +332,17 @@ model Measurement {
 
 @example(#{ from: 1778662800000, to: 1778749200000, limit: 100, nextCursor: 1778666400000 })
 model MeasurementQueryMetadata {
+	@minValue(1)
 	from: int64;
+
+	@minValue(1)
 	to: int64;
+
+	@minValue(1)
+	@maxValue(500)
 	limit: int32;
+
+	@minValue(1)
 	nextCursor?: int64;
 }
 
@@ -349,26 +378,31 @@ model MeasurementQuery {
 	type?: MeasurementType;
 
 	@query
-	status?: string;
+	status?: MeasurementStatus;
 
 	@query
+	@minValue(1)
 	from?: int64;
 
 	@query
+	@minValue(1)
 	to?: int64;
 
 	@query
-	limit?: int32;
+	@minValue(1)
+	@maxValue(500)
+	limit?: int32 = 100;
 
 	@query
+	@minValue(1)
 	cursor?: int64;
 }
 
 @example(#{ agentVersion: "netstamp-probe/0.1.0", publicV4: "203.0.113.10", publicV6: "2001:db8::10", as: "AS15169 Google LLC", addrs: #["10.0.0.10"] })
 model RuntimeStatusRequest {
 	agentVersion?: string;
-	publicV4?: ipAddress;
-	publicV6?: ipAddress;
+	publicV4?: ipv4Address;
+	publicV6?: ipv6Address;
 	as?: string;
 	addrs?: ipAddress[];
 }

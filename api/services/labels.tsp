@@ -13,13 +13,14 @@ interface LabelService {
 	@operationId("listProjectLabels")
 	@summary("List project labels")
 	@get
-	listProjectLabels(...ProjectRefParam): OkJson<LabelListResponse> | UnauthorizedProblem | NotFoundProblem | InternalServerProblem;
+	listProjectLabels(...ProjectRefParam): OkJson<LabelListResponse> | UnauthorizedProblem | NotFoundProblem | UnprocessableEntityProblem | InternalServerProblem;
 
 	@operationId("createProjectLabel")
 	@summary("Create project label")
 	@post
 	createProjectLabel(...ProjectRefParam, @body body: CreateLabelRequest):
 		| CreatedJson<LabelResponse>
+		| BadRequestProblem
 		| UnauthorizedProblem
 		| ForbiddenProblem
 		| NotFoundProblem
@@ -33,6 +34,7 @@ interface LabelService {
 	@route("/{label_id}")
 	updateProjectLabel(...ProjectRefParam, ...LabelIdPathParam, @body body: UpdateLabelRequest):
 		| OkJson<LabelResponse>
+		| BadRequestProblem
 		| UnauthorizedProblem
 		| ForbiddenProblem
 		| NotFoundProblem
@@ -44,5 +46,5 @@ interface LabelService {
 	@summary("Delete project label")
 	@delete
 	@route("/{label_id}")
-	deleteProjectLabel(...ProjectRefParam, ...LabelIdPathParam): NoContent | UnauthorizedProblem | ForbiddenProblem | NotFoundProblem | InternalServerProblem;
+	deleteProjectLabel(...ProjectRefParam, ...LabelIdPathParam): NoContent | UnauthorizedProblem | ForbiddenProblem | NotFoundProblem | UnprocessableEntityProblem | InternalServerProblem;
 }

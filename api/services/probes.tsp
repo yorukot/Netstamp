@@ -20,6 +20,7 @@ interface ProbeService {
 	@post
 	createProjectProbe(...ProjectRefParam, @body body: CreateProbeRequest):
 		| CreatedJson<ProbeSecretResponse>
+		| BadRequestProblem
 		| UnauthorizedProblem
 		| ForbiddenProblem
 		| NotFoundProblem
@@ -38,6 +39,7 @@ interface ProbeService {
 	@route("/{probe_id}")
 	updateProjectProbe(...ProjectRefParam, ...ProbeIdPathParam, @body body: UpdateProbeRequest):
 		| OkJson<ProbeResponse>
+		| BadRequestProblem
 		| UnauthorizedProblem
 		| ForbiddenProblem
 		| NotFoundProblem

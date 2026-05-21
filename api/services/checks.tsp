@@ -20,6 +20,7 @@ interface CheckService {
 	@post
 	createProjectCheck(...ProjectRefParam, @body body: CreateCheckRequest):
 		| CreatedJson<CheckResponse>
+		| BadRequestProblem
 		| UnauthorizedProblem
 		| ForbiddenProblem
 		| NotFoundProblem
@@ -38,6 +39,7 @@ interface CheckService {
 	@route("/{check_id}")
 	updateProjectCheck(...ProjectRefParam, ...CheckIdPathParam, @body body: UpdateCheckRequest):
 		| OkJson<CheckResponse>
+		| BadRequestProblem
 		| UnauthorizedProblem
 		| ForbiddenProblem
 		| NotFoundProblem

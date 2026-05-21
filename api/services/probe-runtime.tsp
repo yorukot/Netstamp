@@ -22,6 +22,7 @@ interface ProbeRuntimeService {
 	@route("/heartbeat")
 	probeRuntimeHeartbeat(...ProbeIdPathParam, @body body: RuntimeStatusRequest):
 		| OkJson<RuntimeHeartbeatResponse>
+		| BadRequestProblem
 		| UnauthorizedProblem
 		| ForbiddenProblem
 		| NotFoundProblem
@@ -40,6 +41,7 @@ interface ProbeRuntimeService {
 	@route("/results")
 	submitProbeRuntimeResults(...ProbeIdPathParam, @body body: SubmitResultsRequest):
 		| OkJson<SubmitResultsResponse>
+		| BadRequestProblem
 		| UnauthorizedProblem
 		| ForbiddenProblem
 		| NotFoundProblem

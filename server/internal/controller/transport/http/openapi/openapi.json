@@ -105,10 +105,20 @@
 							}
 						}
 					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
 					"401": {
 						"description": "Access is unauthorized.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -118,7 +128,7 @@
 					"500": {
 						"description": "Server error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -181,7 +191,7 @@
 					"401": {
 						"description": "Access is unauthorized.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -191,7 +201,7 @@
 					"500": {
 						"description": "Server error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -232,10 +242,20 @@
 							}
 						}
 					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
 					"409": {
 						"description": "The request conflicts with the current state of the server.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -245,7 +265,7 @@
 					"422": {
 						"description": "Client error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -255,7 +275,7 @@
 					"500": {
 						"description": "Server error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -295,7 +315,7 @@
 					"503": {
 						"description": "Service unavailable.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -422,10 +442,20 @@
 							}
 						}
 					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
 					"401": {
 						"description": "Access is unauthorized.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -435,7 +465,7 @@
 					"409": {
 						"description": "The request conflicts with the current state of the server.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -445,7 +475,7 @@
 					"422": {
 						"description": "Client error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -455,7 +485,7 @@
 					"500": {
 						"description": "Server error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -498,7 +528,7 @@
 					"401": {
 						"description": "Access is unauthorized.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -508,7 +538,7 @@
 					"500": {
 						"description": "Server error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -547,7 +577,7 @@
 					"401": {
 						"description": "Access is unauthorized.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -557,7 +587,17 @@
 					"404": {
 						"description": "The server cannot find the requested resource.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -567,7 +607,7 @@
 					"500": {
 						"description": "Server error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -601,10 +641,20 @@
 							}
 						}
 					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
 					"401": {
 						"description": "Access is unauthorized.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -614,7 +664,7 @@
 					"403": {
 						"description": "Access is forbidden.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -624,7 +674,7 @@
 					"404": {
 						"description": "The server cannot find the requested resource.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -634,7 +684,7 @@
 					"409": {
 						"description": "The request conflicts with the current state of the server.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -644,7 +694,7 @@
 					"422": {
 						"description": "Client error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -654,7 +704,7 @@
 					"500": {
 						"description": "Server error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -694,7 +744,7 @@
 					"401": {
 						"description": "Access is unauthorized.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -704,7 +754,7 @@
 					"403": {
 						"description": "Access is forbidden.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -714,7 +764,17 @@
 					"404": {
 						"description": "The server cannot find the requested resource.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -724,7 +784,7 @@
 					"500": {
 						"description": "Server error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -770,7 +830,7 @@
 					"401": {
 						"description": "Access is unauthorized.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -780,7 +840,7 @@
 					"404": {
 						"description": "The server cannot find the requested resource.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -790,7 +850,7 @@
 					"422": {
 						"description": "Client error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -800,7 +860,7 @@
 					"500": {
 						"description": "Server error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -839,7 +899,7 @@
 					"401": {
 						"description": "Access is unauthorized.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -849,7 +909,7 @@
 					"404": {
 						"description": "The server cannot find the requested resource.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -859,7 +919,7 @@
 					"422": {
 						"description": "Client error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -869,7 +929,7 @@
 					"500": {
 						"description": "Server error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -903,10 +963,20 @@
 							}
 						}
 					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
 					"401": {
 						"description": "Access is unauthorized.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -916,7 +986,7 @@
 					"403": {
 						"description": "Access is forbidden.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -926,7 +996,7 @@
 					"404": {
 						"description": "The server cannot find the requested resource.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -936,7 +1006,7 @@
 					"422": {
 						"description": "Client error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -946,7 +1016,7 @@
 					"500": {
 						"description": "Server error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -998,7 +1068,7 @@
 					"401": {
 						"description": "Access is unauthorized.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1008,7 +1078,7 @@
 					"404": {
 						"description": "The server cannot find the requested resource.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1018,7 +1088,7 @@
 					"422": {
 						"description": "Client error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1028,7 +1098,7 @@
 					"500": {
 						"description": "Server error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1065,10 +1135,20 @@
 							}
 						}
 					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
 					"401": {
 						"description": "Access is unauthorized.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1078,7 +1158,7 @@
 					"403": {
 						"description": "Access is forbidden.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1088,7 +1168,7 @@
 					"404": {
 						"description": "The server cannot find the requested resource.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1098,7 +1178,7 @@
 					"422": {
 						"description": "Client error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1108,7 +1188,7 @@
 					"500": {
 						"description": "Server error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1151,7 +1231,7 @@
 					"401": {
 						"description": "Access is unauthorized.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1161,7 +1241,7 @@
 					"403": {
 						"description": "Access is forbidden.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1171,7 +1251,7 @@
 					"404": {
 						"description": "The server cannot find the requested resource.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1181,7 +1261,7 @@
 					"422": {
 						"description": "Client error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1191,7 +1271,7 @@
 					"500": {
 						"description": "Server error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1230,7 +1310,7 @@
 					"401": {
 						"description": "Access is unauthorized.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1240,7 +1320,17 @@
 					"404": {
 						"description": "The server cannot find the requested resource.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1250,7 +1340,7 @@
 					"500": {
 						"description": "Server error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1284,10 +1374,20 @@
 							}
 						}
 					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
 					"401": {
 						"description": "Access is unauthorized.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1297,7 +1397,7 @@
 					"403": {
 						"description": "Access is forbidden.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1307,7 +1407,7 @@
 					"404": {
 						"description": "The server cannot find the requested resource.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1317,7 +1417,7 @@
 					"409": {
 						"description": "The request conflicts with the current state of the server.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1327,7 +1427,7 @@
 					"422": {
 						"description": "Client error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1337,7 +1437,7 @@
 					"500": {
 						"description": "Server error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1386,10 +1486,20 @@
 							}
 						}
 					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
 					"401": {
 						"description": "Access is unauthorized.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1399,7 +1509,7 @@
 					"403": {
 						"description": "Access is forbidden.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1409,7 +1519,7 @@
 					"404": {
 						"description": "The server cannot find the requested resource.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1419,7 +1529,7 @@
 					"409": {
 						"description": "The request conflicts with the current state of the server.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1429,7 +1539,7 @@
 					"422": {
 						"description": "Client error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1439,7 +1549,7 @@
 					"500": {
 						"description": "Server error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1482,7 +1592,7 @@
 					"401": {
 						"description": "Access is unauthorized.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1492,7 +1602,7 @@
 					"403": {
 						"description": "Access is forbidden.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1502,7 +1612,17 @@
 					"404": {
 						"description": "The server cannot find the requested resource.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1512,7 +1632,7 @@
 					"500": {
 						"description": "Server error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1573,10 +1693,20 @@
 							}
 						}
 					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
 					"401": {
 						"description": "Access is unauthorized.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1586,7 +1716,7 @@
 					"404": {
 						"description": "The server cannot find the requested resource.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1596,7 +1726,7 @@
 					"422": {
 						"description": "Client error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1606,7 +1736,7 @@
 					"500": {
 						"description": "Server error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1645,7 +1775,7 @@
 					"401": {
 						"description": "Access is unauthorized.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1655,7 +1785,17 @@
 					"404": {
 						"description": "The server cannot find the requested resource.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1665,7 +1805,7 @@
 					"500": {
 						"description": "Server error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1699,10 +1839,20 @@
 							}
 						}
 					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
 					"401": {
 						"description": "Access is unauthorized.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1712,7 +1862,7 @@
 					"403": {
 						"description": "Access is forbidden.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1722,7 +1872,7 @@
 					"404": {
 						"description": "The server cannot find the requested resource.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1732,7 +1882,7 @@
 					"409": {
 						"description": "The request conflicts with the current state of the server.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1742,7 +1892,7 @@
 					"422": {
 						"description": "Client error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1752,7 +1902,7 @@
 					"500": {
 						"description": "Server error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1801,10 +1951,20 @@
 							}
 						}
 					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
 					"401": {
 						"description": "Access is unauthorized.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1814,7 +1974,7 @@
 					"403": {
 						"description": "Access is forbidden.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1824,7 +1984,7 @@
 					"404": {
 						"description": "The server cannot find the requested resource.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1834,7 +1994,7 @@
 					"409": {
 						"description": "The request conflicts with the current state of the server.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1844,7 +2004,7 @@
 					"422": {
 						"description": "Client error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1854,7 +2014,7 @@
 					"500": {
 						"description": "Server error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1897,7 +2057,7 @@
 					"401": {
 						"description": "Access is unauthorized.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1907,7 +2067,7 @@
 					"403": {
 						"description": "Access is forbidden.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1917,7 +2077,7 @@
 					"404": {
 						"description": "The server cannot find the requested resource.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1927,7 +2087,17 @@
 					"409": {
 						"description": "The request conflicts with the current state of the server.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1937,7 +2107,7 @@
 					"500": {
 						"description": "Server error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1976,7 +2146,7 @@
 					"401": {
 						"description": "Access is unauthorized.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1986,7 +2156,7 @@
 					"404": {
 						"description": "The server cannot find the requested resource.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -1996,7 +2166,7 @@
 					"422": {
 						"description": "Client error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2006,7 +2176,7 @@
 					"500": {
 						"description": "Server error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2040,10 +2210,20 @@
 							}
 						}
 					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
 					"401": {
 						"description": "Access is unauthorized.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2053,7 +2233,7 @@
 					"403": {
 						"description": "Access is forbidden.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2063,7 +2243,7 @@
 					"404": {
 						"description": "The server cannot find the requested resource.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2073,7 +2253,7 @@
 					"422": {
 						"description": "Client error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2083,7 +2263,7 @@
 					"500": {
 						"description": "Server error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2135,7 +2315,7 @@
 					"401": {
 						"description": "Access is unauthorized.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2145,7 +2325,7 @@
 					"404": {
 						"description": "The server cannot find the requested resource.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2155,7 +2335,7 @@
 					"422": {
 						"description": "Client error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2165,7 +2345,7 @@
 					"500": {
 						"description": "Server error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2202,10 +2382,20 @@
 							}
 						}
 					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
 					"401": {
 						"description": "Access is unauthorized.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2215,7 +2405,7 @@
 					"403": {
 						"description": "Access is forbidden.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2225,7 +2415,7 @@
 					"404": {
 						"description": "The server cannot find the requested resource.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2235,7 +2425,7 @@
 					"422": {
 						"description": "Client error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2245,7 +2435,7 @@
 					"500": {
 						"description": "Server error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2288,7 +2478,7 @@
 					"401": {
 						"description": "Access is unauthorized.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2298,7 +2488,7 @@
 					"403": {
 						"description": "Access is forbidden.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2308,7 +2498,7 @@
 					"404": {
 						"description": "The server cannot find the requested resource.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2318,7 +2508,7 @@
 					"422": {
 						"description": "Client error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2328,7 +2518,7 @@
 					"500": {
 						"description": "Server error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2370,7 +2560,7 @@
 					"401": {
 						"description": "Access is unauthorized.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2380,7 +2570,7 @@
 					"403": {
 						"description": "Access is forbidden.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2390,7 +2580,7 @@
 					"404": {
 						"description": "The server cannot find the requested resource.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2400,7 +2590,7 @@
 					"422": {
 						"description": "Client error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2410,7 +2600,7 @@
 					"500": {
 						"description": "Server error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2464,10 +2654,20 @@
 							}
 						}
 					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
 					"401": {
 						"description": "Access is unauthorized.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2477,7 +2677,7 @@
 					"404": {
 						"description": "The server cannot find the requested resource.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2487,7 +2687,7 @@
 					"422": {
 						"description": "Client error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2497,7 +2697,7 @@
 					"500": {
 						"description": "Server error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2551,10 +2751,20 @@
 							}
 						}
 					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
 					"401": {
 						"description": "Access is unauthorized.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2564,7 +2774,7 @@
 					"404": {
 						"description": "The server cannot find the requested resource.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2574,7 +2784,7 @@
 					"422": {
 						"description": "Client error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2584,7 +2794,7 @@
 					"500": {
 						"description": "Server error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2621,10 +2831,20 @@
 							}
 						}
 					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
 					"401": {
 						"description": "Access is unauthorized.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2634,7 +2854,7 @@
 					"404": {
 						"description": "The server cannot find the requested resource.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2644,7 +2864,7 @@
 					"422": {
 						"description": "Client error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2654,7 +2874,7 @@
 					"500": {
 						"description": "Server error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2703,7 +2923,7 @@
 					"401": {
 						"description": "Access is unauthorized.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2713,7 +2933,7 @@
 					"403": {
 						"description": "Access is forbidden.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2723,7 +2943,7 @@
 					"404": {
 						"description": "The server cannot find the requested resource.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2733,7 +2953,7 @@
 					"422": {
 						"description": "Client error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2743,7 +2963,7 @@
 					"500": {
 						"description": "Server error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2779,10 +2999,20 @@
 							}
 						}
 					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
 					"401": {
 						"description": "Access is unauthorized.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2792,7 +3022,7 @@
 					"403": {
 						"description": "Access is forbidden.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2802,7 +3032,7 @@
 					"404": {
 						"description": "The server cannot find the requested resource.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2812,7 +3042,7 @@
 					"422": {
 						"description": "Client error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2822,7 +3052,7 @@
 					"500": {
 						"description": "Server error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2871,7 +3101,7 @@
 					"401": {
 						"description": "Access is unauthorized.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2881,7 +3111,7 @@
 					"403": {
 						"description": "Access is forbidden.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2891,7 +3121,7 @@
 					"404": {
 						"description": "The server cannot find the requested resource.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2901,7 +3131,7 @@
 					"422": {
 						"description": "Client error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2911,7 +3141,7 @@
 					"500": {
 						"description": "Server error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2947,10 +3177,20 @@
 							}
 						}
 					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
 					"401": {
 						"description": "Access is unauthorized.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2960,7 +3200,7 @@
 					"403": {
 						"description": "Access is forbidden.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2970,7 +3210,7 @@
 					"404": {
 						"description": "The server cannot find the requested resource.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2980,7 +3220,7 @@
 					"422": {
 						"description": "Client error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -2990,7 +3230,7 @@
 					"500": {
 						"description": "Server error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -3033,10 +3273,20 @@
 							}
 						}
 					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
 					"401": {
 						"description": "Access is unauthorized.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -3046,7 +3296,7 @@
 					"422": {
 						"description": "Client error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -3056,7 +3306,7 @@
 					"500": {
 						"description": "Server error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -3099,10 +3349,20 @@
 							}
 						}
 					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
 					"401": {
 						"description": "Access is unauthorized.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -3112,7 +3372,7 @@
 					"409": {
 						"description": "The request conflicts with the current state of the server.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -3122,7 +3382,7 @@
 					"422": {
 						"description": "Client error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -3132,7 +3392,7 @@
 					"500": {
 						"description": "Server error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -3168,10 +3428,20 @@
 					"204": {
 						"description": "There is no content to send for this request, but the headers may be useful. "
 					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
 					"401": {
 						"description": "Access is unauthorized.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -3181,7 +3451,7 @@
 					"422": {
 						"description": "Client error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -3191,7 +3461,7 @@
 					"500": {
 						"description": "Server error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -3251,7 +3521,8 @@
 				"required": false,
 				"schema": {
 					"type": "integer",
-					"format": "int64"
+					"format": "int64",
+					"minimum": 1
 				},
 				"explode": false
 			},
@@ -3261,7 +3532,8 @@
 				"required": false,
 				"schema": {
 					"type": "integer",
-					"format": "int64"
+					"format": "int64",
+					"minimum": 1
 				},
 				"explode": false
 			},
@@ -3271,7 +3543,10 @@
 				"required": false,
 				"schema": {
 					"type": "integer",
-					"format": "int32"
+					"format": "int32",
+					"minimum": 1,
+					"maximum": 500,
+					"default": 100
 				},
 				"explode": false
 			},
@@ -3289,7 +3564,8 @@
 				"in": "query",
 				"required": false,
 				"schema": {
-					"type": "string"
+					"type": "string",
+					"enum": ["successful", "timeout", "error", "partial"]
 				},
 				"explode": false
 			},
@@ -3299,7 +3575,8 @@
 				"required": false,
 				"schema": {
 					"type": "integer",
-					"format": "int64"
+					"format": "int64",
+					"minimum": 1
 				},
 				"explode": false
 			},
@@ -3328,7 +3605,8 @@
 				"required": false,
 				"schema": {
 					"type": "integer",
-					"format": "int64"
+					"format": "int64",
+					"minimum": 1
 				},
 				"explode": false
 			},
@@ -3338,17 +3616,21 @@
 				"required": false,
 				"schema": {
 					"type": "integer",
-					"format": "int32"
+					"format": "int32",
+					"minimum": 1,
+					"maximum": 2000,
+					"default": 600
 				},
 				"explode": false
 			},
 			"PingSeriesQuery.metric": {
 				"name": "metric",
 				"in": "query",
-				"required": true,
+				"required": false,
 				"schema": {
 					"type": "string",
-					"enum": ["rttAvgMs", "lossPercent", "successRate"]
+					"enum": ["rttAvgMs", "lossPercent", "successRate"],
+					"default": "rttAvgMs"
 				},
 				"explode": false
 			},
@@ -3367,7 +3649,8 @@
 				"required": false,
 				"schema": {
 					"type": "integer",
-					"format": "int64"
+					"format": "int64",
+					"minimum": 1
 				},
 				"explode": false
 			},
@@ -3423,7 +3706,8 @@
 				"required": false,
 				"schema": {
 					"type": "integer",
-					"format": "int64"
+					"format": "int64",
+					"minimum": 1
 				},
 				"explode": false
 			},
@@ -3433,7 +3717,8 @@
 				"required": false,
 				"schema": {
 					"type": "integer",
-					"format": "int64"
+					"format": "int64",
+					"minimum": 1
 				},
 				"explode": false
 			},
@@ -3443,7 +3728,10 @@
 				"required": false,
 				"schema": {
 					"type": "integer",
-					"format": "int32"
+					"format": "int32",
+					"minimum": 1,
+					"maximum": 500,
+					"default": 100
 				},
 				"explode": false
 			},
@@ -3462,7 +3750,8 @@
 				"required": false,
 				"schema": {
 					"type": "integer",
-					"format": "int64"
+					"format": "int64",
+					"minimum": 1
 				},
 				"explode": false
 			},
@@ -4125,7 +4414,8 @@
 						"$ref": "#/components/schemas/uuid"
 					},
 					"status": {
-						"type": "string"
+						"type": "string",
+						"enum": ["successful", "timeout", "error", "partial"]
 					},
 					"durationMs": {
 						"type": "integer",
@@ -4211,19 +4501,24 @@
 				"properties": {
 					"from": {
 						"type": "integer",
-						"format": "int64"
+						"format": "int64",
+						"minimum": 1
 					},
 					"to": {
 						"type": "integer",
-						"format": "int64"
+						"format": "int64",
+						"minimum": 1
 					},
 					"limit": {
 						"type": "integer",
-						"format": "int32"
+						"format": "int32",
+						"minimum": 1,
+						"maximum": 500
 					},
 					"nextCursor": {
 						"type": "integer",
-						"format": "int64"
+						"format": "int64",
+						"minimum": 1
 					}
 				},
 				"examples": [
@@ -4372,7 +4667,14 @@
 						}
 					},
 					"resolvedIp": {
-						"$ref": "#/components/schemas/ipAddress"
+						"anyOf": [
+							{
+								"$ref": "#/components/schemas/ipv4Address"
+							},
+							{
+								"$ref": "#/components/schemas/ipv6Address"
+							}
+						]
 					},
 					"ipFamily": {
 						"type": "string",
@@ -4411,22 +4713,28 @@
 				"properties": {
 					"from": {
 						"type": "integer",
-						"format": "int64"
+						"format": "int64",
+						"minimum": 1
 					},
 					"to": {
 						"type": "integer",
-						"format": "int64"
+						"format": "int64",
+						"minimum": 1
 					},
 					"maxDataPoints": {
 						"type": "integer",
-						"format": "int32"
+						"format": "int32",
+						"minimum": 1,
+						"maximum": 2000
 					},
 					"resolution": {
-						"type": "string"
+						"type": "string",
+						"enum": ["raw", "bucket"]
 					},
 					"totalPoints": {
 						"type": "integer",
-						"format": "int64"
+						"format": "int64",
+						"minimum": 0
 					}
 				},
 				"examples": [
@@ -4649,10 +4957,10 @@
 						"type": "string"
 					},
 					"publicV4": {
-						"$ref": "#/components/schemas/ipAddress"
+						"$ref": "#/components/schemas/ipv4Address"
 					},
 					"publicV6": {
-						"$ref": "#/components/schemas/ipAddress"
+						"$ref": "#/components/schemas/ipv6Address"
 					},
 					"as": {
 						"type": "string"
@@ -4660,7 +4968,14 @@
 					"addrs": {
 						"type": "array",
 						"items": {
-							"$ref": "#/components/schemas/ipAddress"
+							"anyOf": [
+								{
+									"$ref": "#/components/schemas/ipv4Address"
+								},
+								{
+									"$ref": "#/components/schemas/ipv6Address"
+								}
+							]
 						}
 					},
 					"updatedAt": {
@@ -5102,27 +5417,33 @@
 				"properties": {
 					"heartbeatIntervalSeconds": {
 						"type": "integer",
-						"format": "int32"
+						"format": "int32",
+						"minimum": 1
 					},
 					"assignmentPollIntervalSeconds": {
 						"type": "integer",
-						"format": "int32"
+						"format": "int32",
+						"minimum": 1
 					},
 					"maxConcurrentWorkers": {
 						"type": "integer",
-						"format": "int32"
+						"format": "int32",
+						"minimum": 1
 					},
 					"initialBackoffSeconds": {
 						"type": "integer",
-						"format": "int32"
+						"format": "int32",
+						"minimum": 1
 					},
 					"maxBackoffSeconds": {
 						"type": "integer",
-						"format": "int32"
+						"format": "int32",
+						"minimum": 1
 					},
 					"maxAttempts": {
 						"type": "integer",
-						"format": "int32"
+						"format": "int32",
+						"minimum": 1
 					}
 				},
 				"examples": [
@@ -5234,10 +5555,10 @@
 						"type": "string"
 					},
 					"publicV4": {
-						"$ref": "#/components/schemas/ipAddress"
+						"$ref": "#/components/schemas/ipv4Address"
 					},
 					"publicV6": {
-						"$ref": "#/components/schemas/ipAddress"
+						"$ref": "#/components/schemas/ipv6Address"
 					},
 					"as": {
 						"type": "string"
@@ -5245,7 +5566,14 @@
 					"addrs": {
 						"type": "array",
 						"items": {
-							"$ref": "#/components/schemas/ipAddress"
+							"anyOf": [
+								{
+									"$ref": "#/components/schemas/ipv4Address"
+								},
+								{
+									"$ref": "#/components/schemas/ipv6Address"
+								}
+							]
 						}
 					}
 				},
@@ -5442,7 +5770,8 @@
 				"properties": {
 					"accepted": {
 						"type": "integer",
-						"format": "int32"
+						"format": "int32",
+						"minimum": 0
 					},
 					"serverTime": {
 						"type": "string",
@@ -5576,7 +5905,14 @@
 						"maximum": 64
 					},
 					"address": {
-						"$ref": "#/components/schemas/ipAddress"
+						"anyOf": [
+							{
+								"$ref": "#/components/schemas/ipv4Address"
+							},
+							{
+								"$ref": "#/components/schemas/ipv6Address"
+							}
+						]
 					},
 					"hostname": {
 						"type": "string"
@@ -5675,7 +6011,14 @@
 						"enum": ["successful", "timeout", "error", "partial"]
 					},
 					"resolvedIp": {
-						"$ref": "#/components/schemas/ipAddress"
+						"anyOf": [
+							{
+								"$ref": "#/components/schemas/ipv4Address"
+							},
+							{
+								"$ref": "#/components/schemas/ipv6Address"
+							}
+						]
 					},
 					"ipFamily": {
 						"type": "string",
@@ -5732,19 +6075,24 @@
 				"properties": {
 					"from": {
 						"type": "integer",
-						"format": "int64"
+						"format": "int64",
+						"minimum": 1
 					},
 					"to": {
 						"type": "integer",
-						"format": "int64"
+						"format": "int64",
+						"minimum": 1
 					},
 					"limit": {
 						"type": "integer",
-						"format": "int32"
+						"format": "int32",
+						"minimum": 1,
+						"maximum": 500
 					},
 					"nextCursor": {
 						"type": "integer",
-						"format": "int64"
+						"format": "int64",
+						"minimum": 1
 					}
 				},
 				"examples": [
@@ -5842,6 +6190,7 @@
 						}
 					}
 				},
+				"description": "Patch payload. At least one field must be provided.",
 				"examples": [
 					{
 						"name": "api-latency",
@@ -5864,6 +6213,7 @@
 						"description": "Name shown in the app."
 					}
 				},
+				"description": "Patch payload. At least one field must be provided.",
 				"examples": [
 					{
 						"displayName": "Jane Operator"
@@ -5884,6 +6234,7 @@
 						"maxLength": 64
 					}
 				},
+				"description": "Patch payload. At least one field must be provided.",
 				"examples": [
 					{
 						"key": "metro",
@@ -5925,6 +6276,7 @@
 						}
 					}
 				},
+				"description": "Patch payload. At least one field must be provided.",
 				"examples": [
 					{
 						"name": "tokyo-vps-2",
@@ -5963,6 +6315,7 @@
 						"pattern": "^[a-z0-9-]+$"
 					}
 				},
+				"description": "Patch payload. At least one field must be provided.",
 				"examples": [
 					{
 						"name": "Platform Engineering",
@@ -6009,8 +6362,13 @@
 				"type": "string",
 				"format": "email"
 			},
-			"ipAddress": {
-				"type": "string"
+			"ipv4Address": {
+				"type": "string",
+				"format": "ipv4"
+			},
+			"ipv6Address": {
+				"type": "string",
+				"format": "ipv6"
 			},
 			"uuid": {
 				"type": "string",

@@ -220,6 +220,7 @@ model CreateCheckRequest {
 }
 
 @example(#{ name: "api-latency", target: "api.netstamp.io", intervalSeconds: 60, labelIds: #["66666666-6666-6666-6666-666666666666"], pingConfig: #{ timeoutMs: 5000 } })
+@doc("Patch payload. At least one field must be provided.")
 model UpdateCheckRequest {
 	@minLength(1)
 	@maxLength(128)

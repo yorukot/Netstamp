@@ -66,6 +66,7 @@ model CreateLabelRequest {
 }
 
 @example(#{ key: "metro", value: "tokyo" })
+@doc("Patch payload. At least one field must be provided.")
 model UpdateLabelRequest {
 	@minLength(1)
 	@maxLength(64)

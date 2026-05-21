@@ -14,16 +14,20 @@ model PingSeriesQuery {
 	checkId: uuid;
 
 	@query
+	@minValue(1)
 	from?: int64;
 
 	@query
+	@minValue(1)
 	to?: int64;
 
 	@query
-	metric: PingMetric;
+	metric?: PingMetric = "rttAvgMs";
 
 	@query
-	maxDataPoints?: int32;
+	@minValue(1)
+	@maxValue(2000)
+	maxDataPoints?: int32 = 600;
 }
 
 model TracerouteRunsQuery {
@@ -34,15 +38,20 @@ model TracerouteRunsQuery {
 	checkId: uuid;
 
 	@query
+	@minValue(1)
 	from?: int64;
 
 	@query
+	@minValue(1)
 	to?: int64;
 
 	@query
-	limit?: int32;
+	@minValue(1)
+	@maxValue(500)
+	limit?: int32 = 100;
 
 	@query
+	@minValue(1)
 	cursor?: int64;
 }
 
@@ -54,7 +63,13 @@ interface ResultService {
 	@summary("Query project ping result series")
 	@get
 	@route("/ping/series")
-	queryProjectPingResultSeries(...ProjectRefParam, ...PingSeriesQuery): OkJson<PingSeriesResponse> | UnauthorizedProblem | NotFoundProblem | UnprocessableEntityProblem | InternalServerProblem;
+	queryProjectPingResultSeries(...ProjectRefParam, ...PingSeriesQuery):
+		| OkJson<PingSeriesResponse>
+		| BadRequestProblem
+		| UnauthorizedProblem
+		| NotFoundProblem
+		| UnprocessableEntityProblem
+		| InternalServerProblem;
 
 	@operationId("queryProjectTracerouteResultRuns")
 	@summary("Query project traceroute result runs")
@@ -62,6 +77,7 @@ interface ResultService {
 	@route("/traceroute/runs")
 	queryProjectTracerouteResultRuns(...ProjectRefParam, ...TracerouteRunsQuery):
 		| OkJson<TracerouteRunsResponse>
+		| BadRequestProblem
 		| UnauthorizedProblem
 		| NotFoundProblem
 		| UnprocessableEntityProblem
@@ -76,5 +92,11 @@ interface MeasurementService {
 	@summary("List project measurements")
 	@doc("List recent raw-ish measurement rows for dashboard activity, check logs, and measurement tables. Aggregated chart series remain under the result series endpoints.")
 	@get
-	listProjectMeasurements(...ProjectRefParam, ...MeasurementQuery): OkJson<MeasurementListResponse> | UnauthorizedProblem | NotFoundProblem | UnprocessableEntityProblem | InternalServerProblem;
+	listProjectMeasurements(...ProjectRefParam, ...MeasurementQuery):
+		| OkJson<MeasurementListResponse>
+		| BadRequestProblem
+		| UnauthorizedProblem
+		| NotFoundProblem
+		| UnprocessableEntityProblem
+		| InternalServerProblem;
 }

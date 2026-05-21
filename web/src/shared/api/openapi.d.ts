@@ -991,7 +991,8 @@ export interface components {
 			finishedAt: string;
 			probeId: components["schemas"]["uuid"];
 			checkId: components["schemas"]["uuid"];
-			status: string;
+			/** @enum {string} */
+			status: "successful" | "timeout" | "error" | "partial";
 			/** Format: int32 */
 			durationMs: number;
 			/** Format: double */
@@ -1132,7 +1133,7 @@ export interface components {
 			/** Format: double */
 			rttStddevMs?: number;
 			rttSamplesMs?: number[];
-			resolvedIp?: components["schemas"]["ipAddress"];
+			resolvedIp?: components["schemas"]["ipv4Address"] | components["schemas"]["ipv6Address"];
 			/** @enum {string} */
 			ipFamily?: "inet" | "inet6";
 			errorCode?: string;
@@ -1154,7 +1155,8 @@ export interface components {
 			to: number;
 			/** Format: int32 */
 			maxDataPoints: number;
-			resolution: string;
+			/** @enum {string} */
+			resolution: "raw" | "bucket";
 			/** Format: int64 */
 			totalPoints: number;
 		};
@@ -1308,10 +1310,10 @@ export interface components {
 			/** Format: date-time */
 			lastSeenAt?: string;
 			agentVersion?: string;
-			publicV4?: components["schemas"]["ipAddress"];
-			publicV6?: components["schemas"]["ipAddress"];
+			publicV4?: components["schemas"]["ipv4Address"];
+			publicV6?: components["schemas"]["ipv6Address"];
 			as?: string;
-			addrs?: components["schemas"]["ipAddress"][];
+			addrs?: (components["schemas"]["ipv4Address"] | components["schemas"]["ipv6Address"])[];
 			/** Format: date-time */
 			updatedAt: string;
 		};
@@ -1665,10 +1667,10 @@ export interface components {
 		 */
 		RuntimeStatusRequest: {
 			agentVersion?: string;
-			publicV4?: components["schemas"]["ipAddress"];
-			publicV6?: components["schemas"]["ipAddress"];
+			publicV4?: components["schemas"]["ipv4Address"];
+			publicV6?: components["schemas"]["ipv6Address"];
 			as?: string;
-			addrs?: components["schemas"]["ipAddress"][];
+			addrs?: (components["schemas"]["ipv4Address"] | components["schemas"]["ipv6Address"])[];
 		};
 		/**
 		 * @example {
@@ -1862,7 +1864,7 @@ export interface components {
 		TracerouteHop: {
 			/** Format: int32 */
 			hopIndex: number;
-			address?: components["schemas"]["ipAddress"];
+			address?: components["schemas"]["ipv4Address"] | components["schemas"]["ipv6Address"];
 			hostname?: string;
 			/** Format: int32 */
 			sentCount: number;
@@ -1916,7 +1918,7 @@ export interface components {
 			durationMs: number;
 			/** @enum {string} */
 			status: "successful" | "timeout" | "error" | "partial";
-			resolvedIp?: components["schemas"]["ipAddress"];
+			resolvedIp?: components["schemas"]["ipv4Address"] | components["schemas"]["ipv6Address"];
 			/** @enum {string} */
 			ipFamily?: "inet" | "inet6";
 			destinationReached: boolean;
@@ -1976,6 +1978,7 @@ export interface components {
 			query: components["schemas"]["TracerouteRunsQueryMetadata"];
 		};
 		/**
+		 * @description Patch payload. At least one field must be provided.
 		 * @example {
 		 *       "name": "api-latency",
 		 *       "target": "api.netstamp.io",
@@ -2002,6 +2005,7 @@ export interface components {
 			labelIds?: components["schemas"]["uuid"][];
 		};
 		/**
+		 * @description Patch payload. At least one field must be provided.
 		 * @example {
 		 *       "displayName": "Jane Operator"
 		 *     }
@@ -2011,6 +2015,7 @@ export interface components {
 			displayName?: string;
 		};
 		/**
+		 * @description Patch payload. At least one field must be provided.
 		 * @example {
 		 *       "key": "metro",
 		 *       "value": "tokyo"
@@ -2021,6 +2026,7 @@ export interface components {
 			value?: string;
 		};
 		/**
+		 * @description Patch payload. At least one field must be provided.
 		 * @example {
 		 *       "name": "tokyo-vps-2",
 		 *       "enabled": false,
@@ -2049,6 +2055,7 @@ export interface components {
 			role: "admin" | "editor" | "viewer";
 		};
 		/**
+		 * @description Patch payload. At least one field must be provided.
 		 * @example {
 		 *       "name": "Platform Engineering",
 		 *       "slug": "platform-engineering"
@@ -2075,7 +2082,10 @@ export interface components {
 		};
 		/** Format: email */
 		email: string;
-		ipAddress: string;
+		/** Format: ipv4 */
+		ipv4Address: string;
+		/** Format: ipv6 */
+		ipv6Address: string;
 		/** Format: uuid */
 		uuid: string;
 	};
@@ -2088,7 +2098,7 @@ export interface components {
 		"MeasurementQuery.from": number;
 		"MeasurementQuery.limit": number;
 		"MeasurementQuery.probeId": components["schemas"]["uuid"];
-		"MeasurementQuery.status": string;
+		"MeasurementQuery.status": "successful" | "timeout" | "error" | "partial";
 		"MeasurementQuery.to": number;
 		"MeasurementQuery.type": "ping" | "traceroute";
 		"PingSeriesQuery.checkId": components["schemas"]["uuid"];
@@ -2158,13 +2168,22 @@ export interface operations {
 					"application/json": components["schemas"]["AuthUserResponse"];
 				};
 			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
 			/** @description Access is unauthorized. */
 			401: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Server error */
@@ -2173,7 +2192,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -2221,7 +2240,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Server error */
@@ -2230,7 +2249,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -2258,13 +2277,22 @@ export interface operations {
 					"application/json": components["schemas"]["AuthUserResponse"];
 				};
 			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
 			/** @description The request conflicts with the current state of the server. */
 			409: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Client error */
@@ -2273,7 +2301,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Server error */
@@ -2282,7 +2310,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -2311,7 +2339,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -2436,7 +2464,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Server error */
@@ -2445,7 +2473,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -2472,13 +2500,22 @@ export interface operations {
 					"application/json": components["schemas"]["ProjectResponse"];
 				};
 			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
 			/** @description Access is unauthorized. */
 			401: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description The request conflicts with the current state of the server. */
@@ -2487,7 +2524,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Client error */
@@ -2496,7 +2533,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Server error */
@@ -2505,7 +2542,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -2536,7 +2573,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description The server cannot find the requested resource. */
@@ -2545,7 +2582,16 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Server error */
@@ -2554,7 +2600,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -2583,7 +2629,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Access is forbidden. */
@@ -2592,7 +2638,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description The server cannot find the requested resource. */
@@ -2601,7 +2647,16 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Server error */
@@ -2610,7 +2665,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -2639,13 +2694,22 @@ export interface operations {
 					"application/json": components["schemas"]["ProjectResponse"];
 				};
 			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
 			/** @description Access is unauthorized. */
 			401: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Access is forbidden. */
@@ -2654,7 +2718,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description The server cannot find the requested resource. */
@@ -2663,7 +2727,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description The request conflicts with the current state of the server. */
@@ -2672,7 +2736,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Client error */
@@ -2681,7 +2745,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Server error */
@@ -2690,7 +2754,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -2724,7 +2788,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description The server cannot find the requested resource. */
@@ -2733,7 +2797,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Client error */
@@ -2742,7 +2806,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Server error */
@@ -2751,7 +2815,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -2782,7 +2846,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description The server cannot find the requested resource. */
@@ -2791,7 +2855,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Client error */
@@ -2800,7 +2864,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Server error */
@@ -2809,7 +2873,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -2838,13 +2902,22 @@ export interface operations {
 					"application/json": components["schemas"]["CheckResponse"];
 				};
 			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
 			/** @description Access is unauthorized. */
 			401: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Access is forbidden. */
@@ -2853,7 +2926,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description The server cannot find the requested resource. */
@@ -2862,7 +2935,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Client error */
@@ -2871,7 +2944,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Server error */
@@ -2880,7 +2953,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -2912,7 +2985,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description The server cannot find the requested resource. */
@@ -2921,7 +2994,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Client error */
@@ -2930,7 +3003,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Server error */
@@ -2939,7 +3012,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -2969,7 +3042,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Access is forbidden. */
@@ -2978,7 +3051,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description The server cannot find the requested resource. */
@@ -2987,7 +3060,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Client error */
@@ -2996,7 +3069,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Server error */
@@ -3005,7 +3078,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -3035,13 +3108,22 @@ export interface operations {
 					"application/json": components["schemas"]["CheckResponse"];
 				};
 			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
 			/** @description Access is unauthorized. */
 			401: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Access is forbidden. */
@@ -3050,7 +3132,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description The server cannot find the requested resource. */
@@ -3059,7 +3141,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Client error */
@@ -3068,7 +3150,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Server error */
@@ -3077,7 +3159,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -3108,7 +3190,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description The server cannot find the requested resource. */
@@ -3117,7 +3199,16 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Server error */
@@ -3126,7 +3217,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -3155,13 +3246,22 @@ export interface operations {
 					"application/json": components["schemas"]["LabelResponse"];
 				};
 			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
 			/** @description Access is unauthorized. */
 			401: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Access is forbidden. */
@@ -3170,7 +3270,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description The server cannot find the requested resource. */
@@ -3179,7 +3279,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description The request conflicts with the current state of the server. */
@@ -3188,7 +3288,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Client error */
@@ -3197,7 +3297,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Server error */
@@ -3206,7 +3306,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -3236,7 +3336,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Access is forbidden. */
@@ -3245,7 +3345,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description The server cannot find the requested resource. */
@@ -3254,7 +3354,16 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Server error */
@@ -3263,7 +3372,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -3293,13 +3402,22 @@ export interface operations {
 					"application/json": components["schemas"]["LabelResponse"];
 				};
 			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
 			/** @description Access is unauthorized. */
 			401: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Access is forbidden. */
@@ -3308,7 +3426,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description The server cannot find the requested resource. */
@@ -3317,7 +3435,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description The request conflicts with the current state of the server. */
@@ -3326,7 +3444,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Client error */
@@ -3335,7 +3453,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Server error */
@@ -3344,7 +3462,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -3378,13 +3496,22 @@ export interface operations {
 					"application/json": components["schemas"]["MeasurementListResponse"];
 				};
 			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
 			/** @description Access is unauthorized. */
 			401: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description The server cannot find the requested resource. */
@@ -3393,7 +3520,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Client error */
@@ -3402,7 +3529,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Server error */
@@ -3411,7 +3538,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -3442,7 +3569,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description The server cannot find the requested resource. */
@@ -3451,7 +3578,16 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Server error */
@@ -3460,7 +3596,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -3489,13 +3625,22 @@ export interface operations {
 					"application/json": components["schemas"]["ProjectMemberResponse"];
 				};
 			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
 			/** @description Access is unauthorized. */
 			401: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Access is forbidden. */
@@ -3504,7 +3649,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description The server cannot find the requested resource. */
@@ -3513,7 +3658,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description The request conflicts with the current state of the server. */
@@ -3522,7 +3667,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Client error */
@@ -3531,7 +3676,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Server error */
@@ -3540,7 +3685,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -3570,7 +3715,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Access is forbidden. */
@@ -3579,7 +3724,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description The server cannot find the requested resource. */
@@ -3588,7 +3733,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description The request conflicts with the current state of the server. */
@@ -3597,7 +3742,16 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Server error */
@@ -3606,7 +3760,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -3636,13 +3790,22 @@ export interface operations {
 					"application/json": components["schemas"]["ProjectMemberResponse"];
 				};
 			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
 			/** @description Access is unauthorized. */
 			401: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Access is forbidden. */
@@ -3651,7 +3814,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description The server cannot find the requested resource. */
@@ -3660,7 +3823,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description The request conflicts with the current state of the server. */
@@ -3669,7 +3832,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Client error */
@@ -3678,7 +3841,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Server error */
@@ -3687,7 +3850,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -3718,7 +3881,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description The server cannot find the requested resource. */
@@ -3727,7 +3890,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Client error */
@@ -3736,7 +3899,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Server error */
@@ -3745,7 +3908,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -3774,13 +3937,22 @@ export interface operations {
 					"application/json": components["schemas"]["ProbeSecretResponse"];
 				};
 			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
 			/** @description Access is unauthorized. */
 			401: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Access is forbidden. */
@@ -3789,7 +3961,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description The server cannot find the requested resource. */
@@ -3798,7 +3970,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Client error */
@@ -3807,7 +3979,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Server error */
@@ -3816,7 +3988,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -3848,7 +4020,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description The server cannot find the requested resource. */
@@ -3857,7 +4029,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Client error */
@@ -3866,7 +4038,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Server error */
@@ -3875,7 +4047,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -3905,7 +4077,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Access is forbidden. */
@@ -3914,7 +4086,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description The server cannot find the requested resource. */
@@ -3923,7 +4095,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Client error */
@@ -3932,7 +4104,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Server error */
@@ -3941,7 +4113,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -3971,13 +4143,22 @@ export interface operations {
 					"application/json": components["schemas"]["ProbeResponse"];
 				};
 			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
 			/** @description Access is unauthorized. */
 			401: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Access is forbidden. */
@@ -3986,7 +4167,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description The server cannot find the requested resource. */
@@ -3995,7 +4176,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Client error */
@@ -4004,7 +4185,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Server error */
@@ -4013,7 +4194,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -4045,7 +4226,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Access is forbidden. */
@@ -4054,7 +4235,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description The server cannot find the requested resource. */
@@ -4063,7 +4244,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Client error */
@@ -4072,7 +4253,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Server error */
@@ -4081,7 +4262,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -4093,7 +4274,7 @@ export interface operations {
 				checkId: components["parameters"]["PingSeriesQuery.checkId"];
 				from?: components["parameters"]["PingSeriesQuery.from"];
 				to?: components["parameters"]["PingSeriesQuery.to"];
-				metric: components["parameters"]["PingSeriesQuery.metric"];
+				metric?: components["parameters"]["PingSeriesQuery.metric"];
 				maxDataPoints?: components["parameters"]["PingSeriesQuery.maxDataPoints"];
 			};
 			header?: never;
@@ -4113,13 +4294,22 @@ export interface operations {
 					"application/json": components["schemas"]["PingSeriesResponse"];
 				};
 			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
 			/** @description Access is unauthorized. */
 			401: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description The server cannot find the requested resource. */
@@ -4128,7 +4318,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Client error */
@@ -4137,7 +4327,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Server error */
@@ -4146,7 +4336,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -4178,13 +4368,22 @@ export interface operations {
 					"application/json": components["schemas"]["TracerouteRunsResponse"];
 				};
 			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
 			/** @description Access is unauthorized. */
 			401: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description The server cannot find the requested resource. */
@@ -4193,7 +4392,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Client error */
@@ -4202,7 +4401,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Server error */
@@ -4211,7 +4410,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -4240,13 +4439,22 @@ export interface operations {
 					"application/json": components["schemas"]["SelectorPreviewResponse"];
 				};
 			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
 			/** @description Access is unauthorized. */
 			401: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description The server cannot find the requested resource. */
@@ -4255,7 +4463,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Client error */
@@ -4264,7 +4472,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Server error */
@@ -4273,7 +4481,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -4304,7 +4512,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Access is forbidden. */
@@ -4313,7 +4521,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description The server cannot find the requested resource. */
@@ -4322,7 +4530,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Client error */
@@ -4331,7 +4539,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Server error */
@@ -4340,7 +4548,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -4369,13 +4577,22 @@ export interface operations {
 					"application/json": components["schemas"]["RuntimeHeartbeatResponse"];
 				};
 			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
 			/** @description Access is unauthorized. */
 			401: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Access is forbidden. */
@@ -4384,7 +4601,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description The server cannot find the requested resource. */
@@ -4393,7 +4610,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Client error */
@@ -4402,7 +4619,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Server error */
@@ -4411,7 +4628,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -4442,7 +4659,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Access is forbidden. */
@@ -4451,7 +4668,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description The server cannot find the requested resource. */
@@ -4460,7 +4677,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Client error */
@@ -4469,7 +4686,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Server error */
@@ -4478,7 +4695,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -4507,13 +4724,22 @@ export interface operations {
 					"application/json": components["schemas"]["SubmitResultsResponse"];
 				};
 			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
 			/** @description Access is unauthorized. */
 			401: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Access is forbidden. */
@@ -4522,7 +4748,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description The server cannot find the requested resource. */
@@ -4531,7 +4757,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Client error */
@@ -4540,7 +4766,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Server error */
@@ -4549,7 +4775,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -4576,13 +4802,22 @@ export interface operations {
 					"application/json": components["schemas"]["AuthUserResponse"];
 				};
 			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
 			/** @description Access is unauthorized. */
 			401: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Client error */
@@ -4591,7 +4826,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Server error */
@@ -4600,7 +4835,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -4627,13 +4862,22 @@ export interface operations {
 					"application/json": components["schemas"]["AuthUserResponse"];
 				};
 			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
 			/** @description Access is unauthorized. */
 			401: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description The request conflicts with the current state of the server. */
@@ -4642,7 +4886,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Client error */
@@ -4651,7 +4895,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Server error */
@@ -4660,7 +4904,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -4685,13 +4929,22 @@ export interface operations {
 				};
 				content?: never;
 			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
 			/** @description Access is unauthorized. */
 			401: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Client error */
@@ -4700,7 +4953,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Server error */
@@ -4709,7 +4962,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["ProblemDetails"];
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};

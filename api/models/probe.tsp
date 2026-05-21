@@ -18,8 +18,8 @@ model ProbeStatus {
 	state: ProbeState;
 	lastSeenAt?: utcDateTime;
 	agentVersion?: string;
-	publicV4?: ipAddress;
-	publicV6?: ipAddress;
+	publicV4?: ipv4Address;
+	publicV6?: ipv6Address;
 	as?: string;
 	addrs?: ipAddress[];
 	updatedAt: utcDateTime;
@@ -143,6 +143,7 @@ model CreateProbeRequest {
 }
 
 @example(#{ name: "tokyo-vps-2", enabled: false, labelIds: #["66666666-6666-6666-6666-666666666666"] })
+@doc("Patch payload. At least one field must be provided.")
 model UpdateProbeRequest {
 	@minLength(1)
 	@maxLength(128)
@@ -166,11 +167,22 @@ model UpdateProbeRequest {
 
 @example(#{ heartbeatIntervalSeconds: 30, assignmentPollIntervalSeconds: 30, maxConcurrentWorkers: 16, initialBackoffSeconds: 1, maxBackoffSeconds: 30, maxAttempts: 5 })
 model RuntimeConfig {
+	@minValue(1)
 	heartbeatIntervalSeconds: int32;
+
+	@minValue(1)
 	assignmentPollIntervalSeconds: int32;
+
+	@minValue(1)
 	maxConcurrentWorkers: int32;
+
+	@minValue(1)
 	initialBackoffSeconds: int32;
+
+	@minValue(1)
 	maxBackoffSeconds: int32;
+
+	@minValue(1)
 	maxAttempts: int32;
 }
 

@@ -17,6 +17,7 @@ interface AssignmentService {
 	@route("/selector-previews")
 	previewProjectSelector(...ProjectRefParam, @body body: SelectorPreviewRequest):
 		| OkJson<SelectorPreviewResponse>
+		| BadRequestProblem
 		| UnauthorizedProblem
 		| NotFoundProblem
 		| UnprocessableEntityProblem
