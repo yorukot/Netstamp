@@ -345,7 +345,7 @@
 					"500": {
 						"description": "Server error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -375,7 +375,7 @@
 					"404": {
 						"description": "The server cannot find the requested resource.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -385,7 +385,7 @@
 					"503": {
 						"description": "Service unavailable.",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
@@ -415,7 +415,7 @@
 					"500": {
 						"description": "Server error",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemDetails"
 								}
