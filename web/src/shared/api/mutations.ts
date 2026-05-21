@@ -259,6 +259,7 @@ export function useCreateProjectCheckMutation(projectRef: string | null | undefi
 		onSuccess: data => {
 			const ref = requireProjectRef(projectRef);
 			queryClient.setQueryData(apiQueryKeys.projects.checkDetail(ref, data.check.id), data);
+			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.assignmentsRoot(ref) });
 			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.checks(ref) });
 		}
 	});
@@ -272,6 +273,7 @@ export function useUpdateProjectCheckMutation(projectRef: string | null | undefi
 		onSuccess: data => {
 			const ref = requireProjectRef(projectRef);
 			queryClient.setQueryData(apiQueryKeys.projects.checkDetail(ref, data.check.id), data);
+			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.assignmentsRoot(ref) });
 			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.checks(ref) });
 		}
 	});
@@ -285,6 +287,7 @@ export function useDeleteProjectCheckMutation(projectRef: string | null | undefi
 		onSuccess: (_data, checkId) => {
 			const ref = requireProjectRef(projectRef);
 			queryClient.removeQueries({ queryKey: apiQueryKeys.projects.checkDetail(ref, checkId) });
+			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.assignmentsRoot(ref) });
 			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.checks(ref) });
 		}
 	});

@@ -2,15 +2,16 @@ import { mapApiChecks, mapApiChecksWithAssignments, parseIntervalSeconds } from 
 import { mapApiMeasurements, type LogRow } from "@/features/checks/api/resultAdapters";
 import { type CheckDefinition, type CheckType } from "@/features/checks/data/checks";
 import { mapApiProbes } from "@/features/probes/api/probeAdapters";
-import { useCreateProjectCheckMutation, useDeleteProjectCheckMutation, useUpdateProjectCheckMutation } from "@/shared/api/mutations";
+import { useCreateProjectCheckMutation, useDeleteProjectCheckMutation, usePreviewProjectSelectorMutation, useUpdateProjectCheckMutation } from "@/shared/api/mutations";
 import { projectQueries } from "@/shared/api/queries";
+import type { ApiSelector, CreateCheckInput } from "@/shared/api/types";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { ActionRow } from "@/shared/components/ActionRow";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { classNames } from "@/shared/utils/classNames";
 import { toneForStatus } from "@/shared/utils/statusTone";
-import { Badge, Button, Checkbox, DataTable, FieldLabel, Panel, SelectField, TextField, type DataColumn } from "@netstamp/ui";
+import { Badge, Button, Checkbox, DataTable, FieldLabel, Panel, SelectField, TextAreaField, TextField, type DataColumn } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import styles from "./ChecksPage.module.css";
@@ -34,11 +35,20 @@ const logColumns: DataColumn<LogRow>[] = [
 	{ key: "event", label: "Event" }
 ];
 
+function formatSelector(selector: ApiSelector | null | undefined) {
+	return JSON.stringify(selector ?? {}, null, 2);
+}
+
+function isSelector(value: unknown): value is ApiSelector {
+	return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 export function ChecksPage() {
 	const { projectRef } = useCurrentProject();
 	const createCheckMutation = useCreateProjectCheckMutation(projectRef);
 	const updateCheckMutation = useUpdateProjectCheckMutation(projectRef);
 	const deleteCheckMutation = useDeleteProjectCheckMutation(projectRef);
+	const selectorPreviewMutation = usePreviewProjectSelectorMutation(projectRef);
 	const probesQuery = useQuery({
 		...projectQueries.probes(projectRef || ""),
 		enabled: Boolean(projectRef),
@@ -63,6 +73,8 @@ export function ChecksPage() {
 	const [jitter, setJitter] = useState("4s");
 	const [enabled, setEnabled] = useState("enabled");
 	const [selectedProbes, setSelectedProbes] = useState<string[]>([]);
+	const [selectorDraft, setSelectorDraft] = useState("{}");
+	const [selectorError, setSelectorError] = useState("");
 	const isCreating = selectedId === "__new__";
 	const selectedListCheck = checkRows.find(check => check.id === selectedId) || checkRows[0] || null;
 	const checkDetailQuery = useQuery({
@@ -76,13 +88,16 @@ export function ChecksPage() {
 		enabled: Boolean(projectRef && selectedListCheck && !isCreating),
 		select: data => mapApiMeasurements(data.measurements, probes, checkRows)
 	});
-	const activeSelectedProbes = selectedProbes.length ? selectedProbes : probes.map(probe => probe.name);
 	const activeCheckName = checkName || selectedCheck?.name || "";
 	const activeTarget = target || selectedCheck?.target || "";
 	const activeCheckType = isCreating || selectedId ? checkType : selectedCheck?.type || checkType;
 	const activeInterval = interval || selectedCheck?.interval || "30s";
 	const activeJitter = jitter || selectedCheck?.jitter || "4s";
 	const activeEnabled = selectedId ? enabled : selectedCheck?.status.toLowerCase().includes("disabled") ? "disabled" : enabled;
+	const assignedProbeNames = (assignmentsQuery.data ?? [])
+		.filter(assignment => assignment.checkId === selectedListCheck?.id)
+		.map(assignment => assignment.probe?.name || probes.find(probe => probe.id === assignment.probeId)?.name || assignment.probeId);
+	const activeSelectedProbes = selectedProbes.length ? selectedProbes : assignedProbeNames.length ? assignedProbeNames : probes.map(probe => probe.name);
 	const saveCheckMutation = isCreating ? createCheckMutation : updateCheckMutation;
 	const selectedLogs = selectedCheck ? (measurementsQuery.data ?? []) : [];
 
@@ -95,9 +110,13 @@ export function ChecksPage() {
 		setJitter("4s");
 		setEnabled("enabled");
 		setSelectedProbes(probes.map(probe => probe.name));
+		setSelectorDraft("{}");
+		setSelectorError("");
 	}
 
 	function selectCheck(check: CheckDefinition) {
+		const apiCheck = checksQuery.data?.checks.find(item => item.id === check.id);
+
 		setSelectedId(check.id);
 		setCheckName(check.name);
 		setTarget(check.target);
@@ -106,13 +125,43 @@ export function ChecksPage() {
 		setJitter(check.jitter);
 		setEnabled(check.status.toLowerCase().includes("disabled") ? "disabled" : "enabled");
 		setSelectedProbes(probes.map(probe => probe.name));
+		setSelectorDraft(formatSelector(apiCheck?.selector));
+		setSelectorError("");
 	}
 
-	function toggleProbe(probeName: string) {
-		setSelectedProbes(current => {
-			const currentSelection = current.length ? current : probes.map(probe => probe.name);
-			return currentSelection.includes(probeName) ? currentSelection.filter(value => value !== probeName) : [...currentSelection, probeName];
-		});
+	function parseSelectorDraft() {
+		try {
+			const parsed: unknown = JSON.parse(selectorDraft || "{}");
+
+			if (!isSelector(parsed)) {
+				setSelectorError("Selector must be a JSON object.");
+				return null;
+			}
+
+			setSelectorError("");
+			return parsed;
+		} catch {
+			setSelectorError("Selector must be valid JSON.");
+			return null;
+		}
+	}
+
+	function previewSelector() {
+		const selector = parseSelectorDraft();
+
+		if (!selector) {
+			return;
+		}
+
+		selectorPreviewMutation.mutate(
+			{ selector },
+			{
+				onSuccess: data => {
+					setSelectorDraft(formatSelector(data.selector));
+					setSelectedProbes(data.probes.map(probe => probe.name));
+				}
+			}
+		);
 	}
 
 	function deleteSelectedCheck() {
@@ -130,18 +179,26 @@ export function ChecksPage() {
 	}
 
 	function saveSelectedCheck() {
-		const body = {
+		const selector = parseSelectorDraft();
+
+		if (!selector) {
+			return;
+		}
+
+		const body: CreateCheckInput = {
 			intervalSeconds: parseIntervalSeconds(activeInterval),
 			name: activeCheckName,
+			selector,
 			target: activeTarget,
-			type: "ping"
-		} as const;
+			type: activeCheckType === "Traceroute" ? "traceroute" : "ping"
+		};
 		const options = {
 			onSuccess: (data: Awaited<ReturnType<typeof createCheckMutation.mutateAsync>>) => {
 				setSelectedId(data.check.id);
 				setCheckName(data.check.name);
 				setTarget(data.check.target);
 				setInterval(`${data.check.intervalSeconds}s`);
+				setSelectorDraft(formatSelector(data.check.selector));
 			}
 		};
 
@@ -211,13 +268,30 @@ export function ChecksPage() {
 						</div>
 
 						<div className={styles.probeMultiSelect}>
-							<FieldLabel>Assign probes</FieldLabel>
+							<FieldLabel>Selector preview</FieldLabel>
+							<TextAreaField
+								label="Selector JSON"
+								value={selectorDraft}
+								rows={6}
+								error={selectorError}
+								helper="Use {}, label, all, any, and not selector nodes."
+								onChange={event => {
+									setSelectorDraft(event.currentTarget.value);
+									setSelectorError("");
+								}}
+							/>
+							<ActionRow>
+								<Button type="button" variant="secondary" disabled={!projectRef || selectorPreviewMutation.isPending} onClick={previewSelector}>
+									{selectorPreviewMutation.isPending ? "Previewing" : "Preview selector"}
+								</Button>
+								{selectorPreviewMutation.data ? <Badge tone="accent">{selectorPreviewMutation.data.matchedCount} matched</Badge> : null}
+							</ActionRow>
 							<details>
 								<summary className={classNames("ns-cut-frame", styles.probeSummary)}>{displayProbeSelection(activeSelectedProbes)}</summary>
 								<div className={classNames("ns-scrollbar", styles.probeOptionList)}>
 									{probes.map(probe => (
 										<label key={probe.id}>
-											<Checkbox checked={activeSelectedProbes.includes(probe.name)} onChange={() => toggleProbe(probe.name)} />
+											<Checkbox checked={activeSelectedProbes.includes(probe.name)} disabled />
 											<span>{probe.name}</span>
 											<small>{probe.location}</small>
 										</label>
