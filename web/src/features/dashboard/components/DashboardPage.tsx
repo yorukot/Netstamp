@@ -1,3 +1,5 @@
+import { mapApiChecks } from "@/features/checks/api/checkAdapters";
+import { mapApiMeasurements } from "@/features/checks/api/resultAdapters";
 import { mapApiProbes } from "@/features/probes/api/probeAdapters";
 import { type Navigate } from "@/routes/routeTypes";
 import { projectQueries, systemQueries } from "@/shared/api/queries";
@@ -22,15 +24,23 @@ export function DashboardPage({ navigate }: DashboardPageProps) {
 		enabled: Boolean(projectRef),
 		select: data => mapApiProbes(data.probes)
 	});
+	const probes = probesQuery.data ?? [];
 	const checksQuery = useQuery({
 		...projectQueries.checks(projectRef || ""),
-		enabled: Boolean(projectRef)
+		enabled: Boolean(projectRef),
+		select: data => mapApiChecks(data.checks, probes)
+	});
+	const checks = checksQuery.data ?? [];
+	const measurementsQuery = useQuery({
+		...projectQueries.measurements(projectRef || "", { limit: 3 }),
+		enabled: Boolean(projectRef),
+		select: data => mapApiMeasurements(data.measurements, probes, checks)
 	});
 	const rootQuery = useQuery(systemQueries.root());
 	const healthQuery = useQuery(systemQueries.health());
-	const probes = probesQuery.data ?? [];
 	const onlineProbes = probes.filter(probe => probe.status === "Online").length;
-	const activeChecks = checksQuery.data?.checks?.length ?? 0;
+	const activeChecks = checks.length;
+	const events = measurementsQuery.data ?? [];
 
 	return (
 		<PageStack>
@@ -65,9 +75,9 @@ export function DashboardPage({ navigate }: DashboardPageProps) {
 				</Panel>
 				<Panel tone="glass" eyebrow="Anomalies" title="Recent system events">
 					<div className={styles.feed}>
-						<Event title="Packet loss threshold exceeded" copy="nyc-vps-03 → api.netstamp.io exceeded 18% loss for 5m." tone="critical" />
-						<Event title="Path hash changed from previous run" copy="fra-bm-02 observed transit shift at hop 9." tone="warning" />
-						<Event title="Controller stream connected" copy="100 probes streaming normalized result payloads." tone="success" />
+						{events.map(event => (
+							<Event key={`${event.time}-${event.probe}-${event.check}`} title={`${event.check}: ${event.status}`} copy={`${event.probe} recorded ${event.latency}; ${event.event}.`} tone={event.status === "success" ? "success" : "warning"} />
+						))}
 					</div>
 				</Panel>
 			</ResponsiveGrid>

@@ -3,6 +3,8 @@ import { ApiError, apiClient, readApiData, readEmptyApiResponse } from "./client
 import { apiQueryKeys } from "./queryKeys";
 import type {
 	AddMemberInput,
+	ChangeCurrentUserEmailInput,
+	ChangeCurrentUserPasswordInput,
 	CreateCheckInput,
 	CreateLabelInput,
 	CreateProbeInput,
@@ -10,7 +12,9 @@ import type {
 	LoginInput,
 	ProjectMemberRole,
 	RegisterInput,
+	SelectorPreviewInput,
 	UpdateCheckInput,
+	UpdateCurrentUserInput,
 	UpdateLabelInput,
 	UpdateProbeInput,
 	UpdateProjectInput
@@ -104,6 +108,22 @@ export function updateProjectMemberRole(ref: string, userId: string, role: Proje
 
 export function rotateProjectProbeSecret(ref: string, probeId: string) {
 	return readApiData(apiClient.POST("/projects/{ref}/probes/{probe_id}/secret-rotations", { params: { path: { ref, probe_id: probeId } } }));
+}
+
+export function previewProjectSelector(ref: string, body: SelectorPreviewInput) {
+	return readApiData(apiClient.POST("/projects/{ref}/selector-previews", { params: { path: { ref } }, body }));
+}
+
+export function updateCurrentUser(body: UpdateCurrentUserInput) {
+	return readApiData(apiClient.PATCH("/users/me", { body }));
+}
+
+export function changeCurrentUserEmail(body: ChangeCurrentUserEmailInput) {
+	return readApiData(apiClient.POST("/users/me/email-change", { body }));
+}
+
+export function changeCurrentUserPassword(body: ChangeCurrentUserPasswordInput) {
+	return readEmptyApiResponse(apiClient.POST("/users/me/password-change", { body }));
 }
 
 export function useLoginMutation() {
@@ -225,6 +245,12 @@ export function useRotateProjectProbeSecretMutation(projectRef: string | null | 
 	});
 }
 
+export function usePreviewProjectSelectorMutation(projectRef: string | null | undefined) {
+	return useMutation({
+		mutationFn: (body: SelectorPreviewInput) => previewProjectSelector(requireProjectRef(projectRef), body)
+	});
+}
+
 export function useCreateProjectCheckMutation(projectRef: string | null | undefined) {
 	const queryClient = useQueryClient();
 
@@ -326,5 +352,33 @@ export function useUpdateProjectMemberRoleMutation(projectRef: string | null | u
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.members(requireProjectRef(projectRef)) });
 		}
+	});
+}
+
+export function useUpdateCurrentUserMutation() {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: updateCurrentUser,
+		onSuccess: data => {
+			queryClient.setQueryData(apiQueryKeys.auth.me(), { authenticated: true, user: data.user });
+		}
+	});
+}
+
+export function useChangeCurrentUserEmailMutation() {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: changeCurrentUserEmail,
+		onSuccess: data => {
+			queryClient.setQueryData(apiQueryKeys.auth.me(), { authenticated: true, user: data.user });
+		}
+	});
+}
+
+export function useChangeCurrentUserPasswordMutation() {
+	return useMutation({
+		mutationFn: changeCurrentUserPassword
 	});
 }

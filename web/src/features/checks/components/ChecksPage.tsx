@@ -1,4 +1,5 @@
-import { mapApiChecks, parseIntervalSeconds } from "@/features/checks/api/checkAdapters";
+import { mapApiChecks, mapApiChecksWithAssignments, parseIntervalSeconds } from "@/features/checks/api/checkAdapters";
+import { mapApiMeasurements, type LogRow } from "@/features/checks/api/resultAdapters";
 import { type CheckDefinition, type CheckType } from "@/features/checks/data/checks";
 import { mapApiProbes } from "@/features/probes/api/probeAdapters";
 import { useCreateProjectCheckMutation, useDeleteProjectCheckMutation, useUpdateProjectCheckMutation } from "@/shared/api/mutations";
@@ -13,7 +14,7 @@ import { Badge, Button, Checkbox, DataTable, FieldLabel, Panel, SelectField, Tex
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import styles from "./ChecksPage.module.css";
-import { displayProbeSelection, logsForCheck, type LogRow } from "./checksPageData";
+import { displayProbeSelection } from "./checksPageData";
 
 const checkColumns: DataColumn<CheckDefinition>[] = [
 	{ key: "name", label: "Check name" },
@@ -43,12 +44,16 @@ export function ChecksPage() {
 		enabled: Boolean(projectRef),
 		select: data => mapApiProbes(data.probes)
 	});
+	const assignmentsQuery = useQuery({
+		...projectQueries.assignments(projectRef || ""),
+		enabled: Boolean(projectRef),
+		select: data => data.assignments
+	});
 	const checksQuery = useQuery({
 		...projectQueries.checks(projectRef || ""),
-		enabled: Boolean(projectRef),
-		select: data => mapApiChecks(data.checks, probesQuery.data)
+		enabled: Boolean(projectRef)
 	});
-	const checkRows = checksQuery.data || [];
+	const checkRows = mapApiChecksWithAssignments(checksQuery.data?.checks, assignmentsQuery.data);
 	const probes = probesQuery.data || [];
 	const [selectedId, setSelectedId] = useState("");
 	const [checkName, setCheckName] = useState("");
@@ -66,6 +71,11 @@ export function ChecksPage() {
 		select: data => mapApiChecks([data.check], probesQuery.data)[0]
 	});
 	const selectedCheck = isCreating ? null : checkDetailQuery.data || selectedListCheck;
+	const measurementsQuery = useQuery({
+		...projectQueries.measurements(projectRef || "", { checkId: selectedListCheck?.id || "", limit: 10 }),
+		enabled: Boolean(projectRef && selectedListCheck && !isCreating),
+		select: data => mapApiMeasurements(data.measurements, probes, checkRows)
+	});
 	const activeSelectedProbes = selectedProbes.length ? selectedProbes : probes.map(probe => probe.name);
 	const activeCheckName = checkName || selectedCheck?.name || "";
 	const activeTarget = target || selectedCheck?.target || "";
@@ -74,7 +84,7 @@ export function ChecksPage() {
 	const activeJitter = jitter || selectedCheck?.jitter || "4s";
 	const activeEnabled = selectedId ? enabled : selectedCheck?.status.toLowerCase().includes("disabled") ? "disabled" : enabled;
 	const saveCheckMutation = isCreating ? createCheckMutation : updateCheckMutation;
-	const selectedLogs = selectedCheck ? logsForCheck(selectedCheck, activeSelectedProbes) : [];
+	const selectedLogs = selectedCheck ? (measurementsQuery.data ?? []) : [];
 
 	function startNewCheck() {
 		setSelectedId("__new__");
@@ -99,7 +109,10 @@ export function ChecksPage() {
 	}
 
 	function toggleProbe(probeName: string) {
-		setSelectedProbes(current => (current.includes(probeName) ? current.filter(value => value !== probeName) : [...current, probeName]));
+		setSelectedProbes(current => {
+			const currentSelection = current.length ? current : probes.map(probe => probe.name);
+			return currentSelection.includes(probeName) ? currentSelection.filter(value => value !== probeName) : [...currentSelection, probeName];
+		});
 	}
 
 	function deleteSelectedCheck() {
@@ -181,8 +194,8 @@ export function ChecksPage() {
 				<Panel className={styles.stickyCheckPanel} tone="glass" eyebrow={isCreating ? "Create check" : "Edit check"} title={isCreating ? "New check" : selectedCheck?.name || "No check selected"}>
 					<div className={classNames("ns-scrollbar", styles.checkEditorStack)}>
 						<div className={styles.checkEditForm}>
-							<TextField label="Check name" value={activeCheckName} disabled={!selectedCheck} onChange={event => setCheckName(event.currentTarget.value)} />
-							<TextField label="Target" value={activeTarget} disabled={!selectedCheck} onChange={event => setTarget(event.currentTarget.value)} />
+							<TextField label="Check name" value={activeCheckName} disabled={!selectedCheck && !isCreating} onChange={event => setCheckName(event.currentTarget.value)} />
+							<TextField label="Target" value={activeTarget} disabled={!selectedCheck && !isCreating} onChange={event => setTarget(event.currentTarget.value)} />
 							<SelectField label="Check type" value={activeCheckType} onChange={event => setCheckType(event.currentTarget.value as CheckType)} options={[{ value: "Ping", label: "Ping" }]} />
 							<TextField label="Interval" value={activeInterval} onChange={event => setInterval(event.currentTarget.value)} />
 							<TextField label="Jitter" value={activeJitter} onChange={event => setJitter(event.currentTarget.value)} />
@@ -200,7 +213,7 @@ export function ChecksPage() {
 						<div className={styles.probeMultiSelect}>
 							<FieldLabel>Assign probes</FieldLabel>
 							<details>
-								<summary className={classNames("ns-cut-frame", styles.probeSummary)}>{displayProbeSelection(selectedProbes)}</summary>
+								<summary className={classNames("ns-cut-frame", styles.probeSummary)}>{displayProbeSelection(activeSelectedProbes)}</summary>
 								<div className={classNames("ns-scrollbar", styles.probeOptionList)}>
 									{probes.map(probe => (
 										<label key={probe.id}>

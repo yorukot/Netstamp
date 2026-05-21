@@ -1,5 +1,5 @@
 import type { CheckDefinition, CheckType } from "@/features/checks/data/checks";
-import type { ApiCheck } from "@/shared/api/types";
+import type { ApiCheck, ApiProjectAssignment } from "@/shared/api/types";
 
 function mapCheckType(type: string): CheckType {
 	if (type.toLowerCase() === "dns") {
@@ -47,4 +47,14 @@ export function mapApiCheck(check: ApiCheck, assigned = 0): CheckDefinition {
 
 export function mapApiChecks(checks: ApiCheck[] | null | undefined, probes: Array<unknown> | null | undefined): CheckDefinition[] {
 	return (checks ?? []).map(check => mapApiCheck(check, probes?.length ?? 0));
+}
+
+export function mapApiChecksWithAssignments(checks: ApiCheck[] | null | undefined, assignments: ApiProjectAssignment[] | null | undefined): CheckDefinition[] {
+	const assignmentCounts = new Map<string, number>();
+
+	for (const assignment of assignments ?? []) {
+		assignmentCounts.set(assignment.checkId, (assignmentCounts.get(assignment.checkId) ?? 0) + 1);
+	}
+
+	return (checks ?? []).map(check => mapApiCheck(check, assignmentCounts.get(check.id) ?? 0));
 }

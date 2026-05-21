@@ -1,4 +1,5 @@
 import { mapApiChecks } from "@/features/checks/api/checkAdapters";
+import { mapApiAssignments } from "@/features/checks/api/resultAdapters";
 import { mapApiProbes } from "@/features/probes/api/probeAdapters";
 import { type ProbeStatus } from "@/features/probes/data/probes";
 import { projectQueries } from "@/shared/api/queries";
@@ -28,7 +29,13 @@ export function ProbesPage() {
 		enabled: Boolean(projectRef),
 		select: data => mapApiChecks(data.checks, probesQuery.data)
 	});
+	const assignmentsQuery = useQuery({
+		...projectQueries.assignments(projectRef || ""),
+		enabled: Boolean(projectRef),
+		select: data => data.assignments
+	});
 	const probes = probesQuery.data || [];
+	const checks = checksQuery.data || [];
 	const providerOptions = Array.from(new Set(probes.map(probe => probe.provider)));
 	const [view, setView] = useState<ProbeView>("grid");
 	const [selectedId, setSelectedId] = useState("");
@@ -39,16 +46,7 @@ export function ProbesPage() {
 	const selectedProbe = probes.find(probe => probe.id === selectedId) || probes[0] || null;
 	const selectedProbeId = selectedProbe?.id || "";
 	const visibleProbes = filterProbes(probes, search, statusFilter, providerFilter, sortKey);
-	const assignedRows: AssignedRow[] = (checksQuery.data ?? []).flatMap(check =>
-		probes.map(probe => ({
-			probe: probe.name,
-			check: check.name,
-			type: check.type,
-			interval: check.interval,
-			jitter: check.jitter,
-			latest: check.latest
-		}))
-	);
+	const assignedRows: AssignedRow[] = mapApiAssignments(assignmentsQuery.data, probes, checks);
 
 	return (
 		<section className={classNames(styles.screen, view === "map" && styles.mapScreen)}>

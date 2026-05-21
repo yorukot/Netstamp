@@ -12,12 +12,15 @@ export const apiQueryKeys = {
 		all: ["projects"] as const,
 		list: () => [...apiQueryKeys.projects.all, "list"] as const,
 		detail: (ref: string) => [...apiQueryKeys.projects.all, "detail", ref] as const,
+		assignments: (ref: string, filters: object = {}) => [...apiQueryKeys.projects.detail(ref), "assignments", filters] as const,
 		checks: (ref: string) => [...apiQueryKeys.projects.detail(ref), "checks"] as const,
 		checkDetail: (ref: string, checkId: string) => [...apiQueryKeys.projects.checks(ref), checkId] as const,
 		labels: (ref: string) => [...apiQueryKeys.projects.detail(ref), "labels"] as const,
+		measurements: (ref: string, filters: object = {}) => [...apiQueryKeys.projects.detail(ref), "measurements", filters] as const,
 		members: (ref: string) => [...apiQueryKeys.projects.detail(ref), "members"] as const,
-		pingSeries: (ref: string, probeId: string, checkId: string, metric: string) => [...apiQueryKeys.projects.detail(ref), "results", "ping", "series", probeId, checkId, metric] as const,
+		pingSeries: (ref: string, probeId: string, checkId: string, filters: object = {}) => [...apiQueryKeys.projects.detail(ref), "results", "ping", "series", probeId, checkId, filters] as const,
 		probes: (ref: string) => [...apiQueryKeys.projects.detail(ref), "probes"] as const,
-		probeDetail: (ref: string, probeId: string) => [...apiQueryKeys.projects.probes(ref), probeId] as const
+		probeDetail: (ref: string, probeId: string) => [...apiQueryKeys.projects.probes(ref), probeId] as const,
+		tracerouteRuns: (ref: string, probeId: string, checkId: string, filters: object = {}) => [...apiQueryKeys.projects.detail(ref), "results", "traceroute", "runs", probeId, checkId, filters] as const
 	}
 };

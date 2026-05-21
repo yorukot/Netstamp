@@ -1,4 +1,5 @@
 import { mapApiChecks } from "@/features/checks/api/checkAdapters";
+import { mapApiMeasurements } from "@/features/checks/api/resultAdapters";
 import { type CheckDefinition } from "@/features/checks/data/checks";
 import { dnsData, latencyData, routeDiffData } from "@/features/insight/data/series";
 import { mapApiProbes } from "@/features/probes/api/probeAdapters";
@@ -129,30 +130,31 @@ export function InsightPage() {
 
 	const selectedProbe = probes.find(probe => probe.id === selectedProbeId) || probes[0] || null;
 	const selectedTarget = checks.find(check => check.id === selectedTargetId) || checks[0] || null;
+	const measurementFilters = view === "probe" && selectedProbe ? { probeId: selectedProbe.id, limit: 100 } : view === "target" && selectedTarget ? { checkId: selectedTarget.id, limit: 100 } : { limit: 100 };
 	const pingSeriesQuery = useQuery({
 		...projectQueries.pingSeries(projectRef || "", selectedProbe?.id || "", selectedTarget?.id || ""),
-		enabled: Boolean(projectRef && selectedProbe && selectedTarget)
+		enabled: Boolean(projectRef && selectedProbe && selectedTarget && selectedTarget.type === "Ping")
 	});
-	const resultRows: ResultRow[] =
-		pingSeriesQuery.data?.series?.flatMap(series =>
-			(series.points ?? []).flatMap(point => {
-				if (!point) {
-					return [];
-				}
-
-				const [time, value] = point;
-
-				return {
-					time: new Date(time).toLocaleString(),
-					probe: selectedProbe?.name || "-",
-					check: selectedTarget?.name || "-",
-					status: "success",
-					latency: `${Math.round(value)}${series.unit}`,
-					loss: "-",
-					metadata: series.name
-				};
-			})
-		) ?? [];
+	const tracerouteRunsQuery = useQuery({
+		...projectQueries.tracerouteRuns(projectRef || "", selectedProbe?.id || "", selectedTarget?.id || ""),
+		enabled: Boolean(projectRef && selectedProbe && selectedTarget && selectedTarget.type === "Traceroute")
+	});
+	const measurementsQuery = useQuery({
+		...projectQueries.measurements(projectRef || "", measurementFilters),
+		enabled: Boolean(projectRef && (selectedProbe || selectedTarget)),
+		select: data => mapApiMeasurements(data.measurements, probes, checks)
+	});
+	const resultRows: ResultRow[] = (measurementsQuery.data ?? []).map(row => ({
+		time: row.time,
+		probe: row.probe,
+		check: row.check,
+		status: row.status,
+		latency: row.latency,
+		loss: "-",
+		metadata: row.event
+	}));
+	const selectedPingValues = pingSeriesQuery.data?.series[0]?.points.map(([, value]) => Math.round(value)) ?? [];
+	const selectedTracerouteValues = tracerouteRunsQuery.data?.runs.map(run => run.hopCount) ?? [];
 	const selectedTitle = view === "probe" ? selectedProbe?.name || "No probe selected" : selectedTarget?.target || "No target selected";
 	const selectedDetails = view === "probe" ? (selectedProbe ? detailsForProbe(selectedProbe) : []) : selectedTarget ? detailsForTarget(selectedTarget) : [];
 	const pickerOptions =
@@ -162,20 +164,20 @@ export function InsightPage() {
 		view === "probe"
 			? checks.map((check, index) => ({
 					key: check.id,
-					eyebrow: `${timeLabel(timeRange)} · Illustration`,
+					eyebrow: timeLabel(timeRange),
 					title: `${selectedProbe?.name || "probe"} → ${check.target}`,
 					copy: `${check.type} insight for ${assignedLabel(selectedProbe?.name || "", check.id)} probe-target measurement.`,
 					metric: check.type.toLowerCase(),
-					values: shiftSeries(checkSeries(check), index),
+					values: check.id === selectedTarget?.id && selectedPingValues.length ? selectedPingValues : check.id === selectedTarget?.id && selectedTracerouteValues.length ? selectedTracerouteValues : shiftSeries(checkSeries(check), index),
 					baseline: checkSeries(check)
 				}))
 			: probes.map((probe, index) => ({
 					key: probe.id,
-					eyebrow: `${timeLabel(timeRange)} · Illustration`,
+					eyebrow: timeLabel(timeRange),
 					title: `${probe.name} → ${selectedTarget?.target || "target"}`,
 					copy: `${selectedTarget?.type || "Ping"} insight from ${probe.location}; ${assignedLabel(probe.name, selectedTarget?.id || "")} path.`,
 					metric: (selectedTarget?.type || "Ping").toLowerCase(),
-					values: selectedTarget ? shiftSeries(checkSeries(selectedTarget), index) : [],
+					values: probe.id === selectedProbe?.id && selectedPingValues.length ? selectedPingValues : probe.id === selectedProbe?.id && selectedTracerouteValues.length ? selectedTracerouteValues : selectedTarget ? shiftSeries(checkSeries(selectedTarget), index) : [],
 					baseline: selectedTarget ? checkSeries(selectedTarget) : []
 				}));
 

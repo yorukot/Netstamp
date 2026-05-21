@@ -1,8 +1,7 @@
 import { queryOptions } from "@tanstack/react-query";
 import { apiClient, readApiData } from "./client";
 import { apiQueryKeys } from "./queryKeys";
-
-type PingSeriesMetric = "rttAvgMs" | "lossPercent" | "successRate";
+import type { MeasurementFilters, PingSeriesFilters, ProjectAssignmentFilters, TracerouteRunsFilters } from "./types";
 
 export const systemQueries = {
 	root: () =>
@@ -54,6 +53,12 @@ export const projectQueries = {
 			queryFn: ({ signal }) => readApiData(apiClient.GET("/projects/{ref}/checks/{check_id}", { params: { path: { ref, check_id: checkId } }, signal })),
 			staleTime: 30 * 1000
 		}),
+	assignments: (ref: string, filters: ProjectAssignmentFilters = {}) =>
+		queryOptions({
+			queryKey: apiQueryKeys.projects.assignments(ref, filters),
+			queryFn: ({ signal }) => readApiData(apiClient.GET("/projects/{ref}/assignments", { params: { path: { ref }, query: filters }, signal })),
+			staleTime: 30 * 1000
+		}),
 	labels: (ref: string) =>
 		queryOptions({
 			queryKey: apiQueryKeys.projects.labels(ref),
@@ -66,13 +71,19 @@ export const projectQueries = {
 			queryFn: ({ signal }) => readApiData(apiClient.GET("/projects/{ref}/members", { params: { path: { ref } }, signal })),
 			staleTime: 60 * 1000
 		}),
-	pingSeries: (ref: string, probeId: string, checkId: string, metric: PingSeriesMetric = "rttAvgMs") =>
+	measurements: (ref: string, filters: MeasurementFilters = {}) =>
 		queryOptions({
-			queryKey: apiQueryKeys.projects.pingSeries(ref, probeId, checkId, metric),
+			queryKey: apiQueryKeys.projects.measurements(ref, filters),
+			queryFn: ({ signal }) => readApiData(apiClient.GET("/projects/{ref}/measurements", { params: { path: { ref }, query: filters }, signal })),
+			staleTime: 15 * 1000
+		}),
+	pingSeries: (ref: string, probeId: string, checkId: string, filters: PingSeriesFilters = {}) =>
+		queryOptions({
+			queryKey: apiQueryKeys.projects.pingSeries(ref, probeId, checkId, filters),
 			queryFn: ({ signal }) =>
 				readApiData(
 					apiClient.GET("/projects/{ref}/results/ping/series", {
-						params: { path: { ref }, query: { probeId, checkId, metric, maxDataPoints: 120 } },
+						params: { path: { ref }, query: { probeId, checkId, maxDataPoints: 120, ...filters } },
 						signal
 					})
 				),
@@ -88,6 +99,18 @@ export const projectQueries = {
 		queryOptions({
 			queryKey: apiQueryKeys.projects.probeDetail(ref, probeId),
 			queryFn: ({ signal }) => readApiData(apiClient.GET("/projects/{ref}/probes/{probe_id}", { params: { path: { ref, probe_id: probeId } }, signal })),
+			staleTime: 30 * 1000
+		}),
+	tracerouteRuns: (ref: string, probeId: string, checkId: string, filters: TracerouteRunsFilters = {}) =>
+		queryOptions({
+			queryKey: apiQueryKeys.projects.tracerouteRuns(ref, probeId, checkId, filters),
+			queryFn: ({ signal }) =>
+				readApiData(
+					apiClient.GET("/projects/{ref}/results/traceroute/runs", {
+						params: { path: { ref }, query: { probeId, checkId, limit: 100, ...filters } },
+						signal
+					})
+				),
 			staleTime: 30 * 1000
 		})
 };
