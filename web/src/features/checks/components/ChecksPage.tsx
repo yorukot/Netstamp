@@ -4,7 +4,7 @@ import { type CheckDefinition, type CheckType } from "@/features/checks/data/che
 import { mapApiProbes } from "@/features/probes/api/probeAdapters";
 import { useCreateProjectCheckMutation, useDeleteProjectCheckMutation, usePreviewProjectSelectorMutation, useUpdateProjectCheckMutation } from "@/shared/api/mutations";
 import { projectQueries } from "@/shared/api/queries";
-import type { ApiSelector, CreateCheckInput } from "@/shared/api/types";
+import type { ApiLabel, ApiSelector, CreateCheckInput } from "@/shared/api/types";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { ActionRow } from "@/shared/components/ActionRow";
 import { useConfirm } from "@/shared/components/confirmContext";
@@ -12,7 +12,7 @@ import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { classNames } from "@/shared/utils/classNames";
 import { toneForStatus } from "@/shared/utils/statusTone";
-import { Badge, Button, Checkbox, DataTable, FieldLabel, Panel, SelectField, TextAreaField, TextField, type DataColumn } from "@netstamp/ui";
+import { Badge, Button, Checkbox, DataTable, FieldLabel, Panel, SelectField, TextField, type DataColumn } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import styles from "./ChecksPage.module.css";
@@ -36,12 +36,126 @@ const logColumns: DataColumn<LogRow>[] = [
 	{ key: "event", label: "Event" }
 ];
 
-function formatSelector(selector: ApiSelector | null | undefined) {
-	return JSON.stringify(selector ?? {}, null, 2);
+type SelectorMode = "all-probes" | "all" | "any" | "advanced";
+
+interface SelectorState {
+	mode: SelectorMode;
+	labelIds: string[];
 }
 
-function isSelector(value: unknown): value is ApiSelector {
-	return typeof value === "object" && value !== null && !Array.isArray(value);
+interface SelectorLabelOption {
+	id: string;
+	key: string;
+	value: string;
+}
+
+const selectorModeOptions: Array<{ value: SelectorMode; label: string }> = [
+	{ value: "all-probes", label: "All probes" },
+	{ value: "all", label: "Match all labels" },
+	{ value: "any", label: "Match any label" }
+];
+
+function selectorLabelId(key: string, value: string) {
+	return `${key}\u0000${value}`;
+}
+
+function splitSelectorLabelId(id: string): SelectorLabelOption {
+	const [key = "", value = ""] = id.split("\u0000");
+
+	return { id, key, value };
+}
+
+function selectorLabelOptions(labels: ApiLabel[]): SelectorLabelOption[] {
+	const options = new Map<string, SelectorLabelOption>();
+
+	for (const label of labels) {
+		const id = selectorLabelId(label.key, label.value);
+		options.set(id, { id, key: label.key, value: label.value });
+	}
+
+	return Array.from(options.values()).sort((a, b) => a.key.localeCompare(b.key) || a.value.localeCompare(b.value));
+}
+
+function labelSelector(option: SelectorLabelOption): ApiSelector {
+	return { label: { key: option.key, op: "eq", value: option.value } };
+}
+
+function buildSelector(state: SelectorState, fallback?: ApiSelector): ApiSelector {
+	if (state.mode === "advanced") {
+		return fallback ?? {};
+	}
+
+	if (state.mode === "all-probes" || state.labelIds.length === 0) {
+		return {};
+	}
+
+	const children = state.labelIds.map(id => labelSelector(splitSelectorLabelId(id)));
+
+	if (children.length === 1) {
+		return children[0];
+	}
+
+	if (state.mode === "any") {
+		return { any: children };
+	}
+
+	return { all: children };
+}
+
+function isEmptySelector(selector: ApiSelector | null | undefined) {
+	return !selector || Object.keys(selector).length === 0;
+}
+
+function labelIdFromSelector(selector: ApiSelector | null | undefined) {
+	const label = selector?.label;
+
+	if (label?.op !== "eq" || !label.value) {
+		return "";
+	}
+
+	return selectorLabelId(label.key, label.value);
+}
+
+function selectorStateFromApi(selector: ApiSelector | null | undefined): SelectorState {
+	if (isEmptySelector(selector)) {
+		return { mode: "all-probes", labelIds: [] };
+	}
+
+	const labelId = labelIdFromSelector(selector);
+	if (labelId) {
+		return { mode: "all", labelIds: [labelId] };
+	}
+
+	for (const mode of ["all", "any"] as const) {
+		const children = selector?.[mode];
+		if (!children?.length) {
+			continue;
+		}
+
+		const labelIds = children.map(labelIdFromSelector);
+		if (labelIds.every(Boolean)) {
+			return { mode, labelIds };
+		}
+	}
+
+	return { mode: "advanced", labelIds: [] };
+}
+
+function probeMatchesSelector(probeTags: string[], state: SelectorState) {
+	if (state.mode === "all-probes" || state.labelIds.length === 0) {
+		return true;
+	}
+
+	if (state.mode === "advanced") {
+		return false;
+	}
+
+	const matches = state.labelIds.map(id => {
+		const option = splitSelectorLabelId(id);
+		return probeTags.includes(`${option.key}:${option.value}`);
+	});
+
+	return state.mode === "any" ? matches.some(Boolean) : matches.every(Boolean);
 }
 
 export function ChecksPage() {
@@ -61,6 +175,10 @@ export function ChecksPage() {
 		enabled: Boolean(projectRef),
 		select: data => data.assignments
 	});
+	const labelsQuery = useQuery({
+		...projectQueries.labels(projectRef || ""),
+		enabled: Boolean(projectRef)
+	});
 	const checksQuery = useQuery({
 		...projectQueries.checks(projectRef || ""),
 		enabled: Boolean(projectRef)
@@ -75,10 +193,10 @@ export function ChecksPage() {
 	const [jitter, setJitter] = useState("4s");
 	const [enabled, setEnabled] = useState("enabled");
 	const [selectedProbes, setSelectedProbes] = useState<string[]>([]);
-	const [selectorDraft, setSelectorDraft] = useState("{}");
-	const [selectorError, setSelectorError] = useState("");
+	const [selectorState, setSelectorState] = useState<SelectorState>({ mode: "all-probes", labelIds: [] });
 	const isCreating = selectedId === "__new__";
 	const selectedListCheck = checkRows.find(check => check.id === selectedId) || checkRows[0] || null;
+	const selectedApiCheck = checksQuery.data?.checks.find(item => item.id === selectedListCheck?.id) ?? null;
 	const checkDetailQuery = useQuery({
 		...projectQueries.checkDetail(projectRef || "", selectedListCheck?.id || ""),
 		enabled: Boolean(projectRef && selectedListCheck && !isCreating),
@@ -99,7 +217,10 @@ export function ChecksPage() {
 	const assignedProbeNames = (assignmentsQuery.data ?? [])
 		.filter(assignment => assignment.checkId === selectedListCheck?.id)
 		.map(assignment => assignment.probe?.name || probes.find(probe => probe.id === assignment.probeId)?.name || assignment.probeId);
-	const activeSelectedProbes = selectedProbes.length ? selectedProbes : assignedProbeNames.length ? assignedProbeNames : probes.map(probe => probe.name);
+	const locallyMatchedProbeNames = selectorState.mode === "advanced" ? assignedProbeNames : probes.filter(probe => probeMatchesSelector(probe.tags, selectorState)).map(probe => probe.name);
+	const activeSelectedProbes = selectedProbes.length ? selectedProbes : locallyMatchedProbeNames;
+	const selectorOptions = selectorLabelOptions(labelsQuery.data?.labels ?? []);
+	const selectedSelectorLabels = new Set(selectorState.labelIds);
 	const saveCheckMutation = isCreating ? createCheckMutation : updateCheckMutation;
 	const selectedLogs = selectedCheck ? (measurementsQuery.data ?? []) : [];
 
@@ -112,12 +233,12 @@ export function ChecksPage() {
 		setJitter("4s");
 		setEnabled("enabled");
 		setSelectedProbes(probes.map(probe => probe.name));
-		setSelectorDraft("{}");
-		setSelectorError("");
+		setSelectorState({ mode: "all-probes", labelIds: [] });
 	}
 
 	function selectCheck(check: CheckDefinition) {
 		const apiCheck = checksQuery.data?.checks.find(item => item.id === check.id);
+		const nextSelectorState = selectorStateFromApi(apiCheck?.selector);
 
 		setSelectedId(check.id);
 		setCheckName(check.name);
@@ -126,41 +247,44 @@ export function ChecksPage() {
 		setInterval(check.interval);
 		setJitter(check.jitter);
 		setEnabled(check.status.toLowerCase().includes("disabled") ? "disabled" : "enabled");
-		setSelectedProbes(probes.map(probe => probe.name));
-		setSelectorDraft(formatSelector(apiCheck?.selector));
-		setSelectorError("");
+		setSelectedProbes([]);
+		setSelectorState(nextSelectorState);
 	}
 
-	function parseSelectorDraft() {
-		try {
-			const parsed: unknown = JSON.parse(selectorDraft || "{}");
+	function setSelectorMode(mode: SelectorMode) {
+		setSelectedProbes([]);
+		setSelectorState(current => ({
+			mode,
+			labelIds: mode === "all-probes" ? [] : current.labelIds
+		}));
+	}
 
-			if (!isSelector(parsed)) {
-				setSelectorError("Selector must be a JSON object.");
-				return null;
+	function toggleSelectorLabel(labelId: string) {
+		setSelectedProbes([]);
+		setSelectorState(current => {
+			const currentLabels = new Set(current.labelIds);
+			if (currentLabels.has(labelId)) {
+				currentLabels.delete(labelId);
+			} else {
+				currentLabels.add(labelId);
 			}
 
-			setSelectorError("");
-			return parsed;
-		} catch {
-			setSelectorError("Selector must be valid JSON.");
-			return null;
-		}
+			return {
+				mode: current.mode === "all-probes" || current.mode === "advanced" ? "all" : current.mode,
+				labelIds: Array.from(currentLabels)
+			};
+		});
 	}
 
 	function previewSelector() {
-		const selector = parseSelectorDraft();
-
-		if (!selector) {
-			return;
-		}
+		const selector = buildSelector(selectorState, selectedApiCheck?.selector);
 
 		selectorPreviewMutation.mutate(
 			{ selector },
 			{
 				onSuccess: data => {
-					setSelectorDraft(formatSelector(data.selector));
 					setSelectedProbes(data.probes.map(probe => probe.name));
+					setSelectorState(selectorStateFromApi(data.selector));
 				}
 			}
 		);
@@ -192,12 +316,7 @@ export function ChecksPage() {
 	}
 
 	function saveSelectedCheck() {
-		const selector = parseSelectorDraft();
-
-		if (!selector) {
-			return;
-		}
-
+		const selector = buildSelector(selectorState, selectedApiCheck?.selector);
 		const body: CreateCheckInput = {
 			intervalSeconds: parseIntervalSeconds(activeInterval),
 			name: activeCheckName,
@@ -211,7 +330,8 @@ export function ChecksPage() {
 				setCheckName(data.check.name);
 				setTarget(data.check.target);
 				setInterval(`${data.check.intervalSeconds}s`);
-				setSelectorDraft(formatSelector(data.check.selector));
+				setSelectedProbes([]);
+				setSelectorState(selectorStateFromApi(data.check.selector));
 			}
 		};
 
@@ -243,8 +363,7 @@ export function ChecksPage() {
 								options={[
 									{ value: "all", label: "All types" },
 									{ value: "ping", label: "Ping" },
-									{ value: "traceroute", label: "Traceroute" },
-									{ value: "dns", label: "DNS" }
+									{ value: "traceroute", label: "Traceroute" }
 								]}
 							/>
 							<SelectField
@@ -266,7 +385,15 @@ export function ChecksPage() {
 						<div className={styles.checkEditForm}>
 							<TextField label="Check name" value={activeCheckName} disabled={!selectedCheck && !isCreating} onChange={event => setCheckName(event.currentTarget.value)} />
 							<TextField label="Target" value={activeTarget} disabled={!selectedCheck && !isCreating} onChange={event => setTarget(event.currentTarget.value)} />
-							<SelectField label="Check type" value={activeCheckType} onChange={event => setCheckType(event.currentTarget.value as CheckType)} options={[{ value: "Ping", label: "Ping" }]} />
+							<SelectField
+								label="Check type"
+								value={activeCheckType}
+								onChange={event => setCheckType(event.currentTarget.value as CheckType)}
+								options={[
+									{ value: "Ping", label: "Ping" },
+									{ value: "Traceroute", label: "Traceroute" }
+								]}
+							/>
 							<TextField label="Interval" value={activeInterval} onChange={event => setInterval(event.currentTarget.value)} />
 							<TextField label="Jitter" value={activeJitter} onChange={event => setJitter(event.currentTarget.value)} />
 							<SelectField
@@ -281,36 +408,36 @@ export function ChecksPage() {
 						</div>
 
 						<div className={styles.probeMultiSelect}>
-							<FieldLabel>Selector preview</FieldLabel>
-							<TextAreaField
-								label="Selector JSON"
-								value={selectorDraft}
-								rows={6}
-								error={selectorError}
-								helper="Use {}, label, all, any, and not selector nodes."
-								onChange={event => {
-									setSelectorDraft(event.currentTarget.value);
-									setSelectorError("");
-								}}
-							/>
+							<FieldLabel>Probe selector</FieldLabel>
+							<div className={styles.selectorBuilder}>
+								<SelectField
+									label="Match mode"
+									value={selectorState.mode === "advanced" ? "all-probes" : selectorState.mode}
+									onChange={event => setSelectorMode(event.currentTarget.value as SelectorMode)}
+									options={selectorModeOptions}
+								/>
+								{selectorState.mode === "advanced" ? <p className={styles.selectorNotice}>This check uses an advanced selector. Choose labels below to replace it with an editable rule.</p> : null}
+								<div className={styles.selectorOptionGrid} aria-label="Selector labels">
+									{selectorOptions.length ? (
+										selectorOptions.map(option => (
+											<label key={option.id} className={classNames("ns-cut-frame", styles.selectorOption)}>
+												<Checkbox checked={selectedSelectorLabels.has(option.id)} onChange={() => toggleSelectorLabel(option.id)} />
+												<span>{option.key}</span>
+												<strong>{option.value}</strong>
+											</label>
+										))
+									) : (
+										<p className={styles.selectorNotice}>No project labels yet. The selector will match every probe.</p>
+									)}
+								</div>
+							</div>
 							<ActionRow>
 								<Button type="button" variant="secondary" disabled={!projectRef || selectorPreviewMutation.isPending} onClick={previewSelector}>
 									{selectorPreviewMutation.isPending ? "Previewing" : "Preview selector"}
 								</Button>
-								{selectorPreviewMutation.data ? <Badge tone="accent">{selectorPreviewMutation.data.matchedCount} matched</Badge> : null}
+								<Badge tone="accent">{activeSelectedProbes.length} matched</Badge>
 							</ActionRow>
-							<details>
-								<summary className={classNames("ns-cut-frame", styles.probeSummary)}>{displayProbeSelection(activeSelectedProbes)}</summary>
-								<div className={classNames("ns-scrollbar", styles.probeOptionList)}>
-									{probes.map(probe => (
-										<label key={probe.id}>
-											<Checkbox checked={activeSelectedProbes.includes(probe.name)} disabled />
-											<span>{probe.name}</span>
-											<small>{probe.location}</small>
-										</label>
-									))}
-								</div>
-							</details>
+							<div className={classNames("ns-cut-frame", styles.probeSummary)}>{displayProbeSelection(activeSelectedProbes)}</div>
 							<div className={styles.capabilityPills}>
 								{activeSelectedProbes.map(probe => (
 									<Badge key={probe} tone="muted">

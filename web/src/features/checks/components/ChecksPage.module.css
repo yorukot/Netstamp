@@ -50,72 +50,71 @@
 	min-width: 0;
 }
 
-.probeMultiSelect details {
-	position: relative;
-}
-
 .probeSummary {
 	--ns-frame-cut: var(--ns-cut-sm);
 	--ns-frame-color: var(--ns-border-faint);
 	min-height: 2.75rem;
-	padding: 0.75rem 2.25rem 0.75rem 0.875rem;
+	padding: 0.75rem 0.875rem;
 	color: var(--ns-text);
-	background:
-		linear-gradient(45deg, transparent 50%, var(--ns-accent-hover) 50%) calc(100% - 1.18rem) 50% / 0.42rem 0.42rem no-repeat,
-		linear-gradient(135deg, var(--ns-accent-hover) 50%, transparent 50%) calc(100% - 0.9rem) 50% / 0.42rem 0.42rem no-repeat,
-		#05070a;
+	background: #05070a;
 	font-family: var(--ns-font-mono);
 	font-size: 0.875rem;
-	cursor: pointer;
-	list-style: none;
 }
 
-.probeSummary::-webkit-details-marker {
-	display: none;
-}
-
-.probeOptionList {
-	position: absolute;
-	z-index: 20;
-	top: calc(100% + 0.5rem);
-	left: 0;
-	right: 0;
+.selectorBuilder {
 	display: grid;
-	max-height: 18rem;
-	overflow: auto;
-	border: 1px solid var(--ns-border);
-	background: #070a0f;
-	box-shadow: var(--ns-shadow-md);
+	gap: 0.875rem;
 }
 
-.probeOptionList label {
+.selectorOptionGrid {
 	display: grid;
-	grid-template-columns: auto minmax(0, 1fr) minmax(0, 1.1fr);
-	gap: 0.75rem;
+	grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+	gap: 0.625rem;
+}
+
+.selectorOption {
+	--ns-frame-cut: var(--ns-cut-sm);
+	--ns-frame-color: var(--ns-border-faint);
+	display: grid;
+	grid-template-columns: auto minmax(0, 0.72fr) minmax(0, 1fr);
+	gap: 0.55rem;
 	align-items: center;
-	padding: 0.75rem;
-	border-bottom: 1px solid var(--ns-border-faint);
+	min-width: 0;
+	padding: 0.625rem;
+	background: rgba(255, 255, 255, 0.025);
 	cursor: pointer;
 }
 
-.probeOptionList label:hover {
+.selectorOption:hover {
+	--ns-frame-color: var(--ns-accent-border);
 	background: rgba(255, 122, 26, 0.08);
 }
 
-.probeOptionList input {
-	accent-color: var(--ns-accent);
+.selectorOption span,
+.selectorOption strong {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-family: var(--ns-font-mono);
+	font-size: 0.75rem;
 }
 
-.probeOptionList span {
-	color: var(--ns-text);
-	font-family: var(--ns-font-mono);
-	font-size: 0.8125rem;
+.selectorOption span {
+	color: var(--ns-text-low);
 	font-weight: 700;
 }
 
-.probeOptionList small {
+.selectorOption strong {
+	color: var(--ns-text);
+	font-weight: 800;
+}
+
+.selectorNotice {
+	margin: 0;
 	color: var(--ns-text-low);
-	font-size: 0.75rem;
+	font-size: 0.8125rem;
+	line-height: 1.5;
 }
 
 .capabilityPills {
