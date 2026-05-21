@@ -700,7 +700,11 @@ export interface components {
 		 *       "type": "ping",
 		 *       "target": "api.netstamp.io",
 		 *       "selector": {
-		 *         "region": "tokyo"
+		 *         "label": {
+		 *           "key": "region",
+		 *           "op": "eq",
+		 *           "value": "tokyo"
+		 *         }
 		 *       },
 		 *       "description": "Latency and loss to controller API.",
 		 *       "intervalSeconds": 30,
@@ -731,7 +735,7 @@ export interface components {
 			/** @enum {string} */
 			type: "ping" | "traceroute";
 			target: string;
-			selector?: Record<string, never>;
+			selector?: components["schemas"]["Selector"];
 			description?: string;
 			/** Format: int32 */
 			intervalSeconds: number;
@@ -753,7 +757,11 @@ export interface components {
 		 *           "type": "ping",
 		 *           "target": "api.netstamp.io",
 		 *           "selector": {
-		 *             "region": "tokyo"
+		 *             "label": {
+		 *               "key": "region",
+		 *               "op": "eq",
+		 *               "value": "tokyo"
+		 *             }
 		 *           },
 		 *           "intervalSeconds": 30,
 		 *           "labels": [],
@@ -781,7 +789,11 @@ export interface components {
 		 *         "type": "ping",
 		 *         "target": "api.netstamp.io",
 		 *         "selector": {
-		 *           "region": "tokyo"
+		 *           "label": {
+		 *             "key": "region",
+		 *             "op": "eq",
+		 *             "value": "tokyo"
+		 *           }
 		 *         },
 		 *         "description": "Latency and loss to controller API.",
 		 *         "intervalSeconds": 30,
@@ -806,7 +818,11 @@ export interface components {
 		 *       "type": "ping",
 		 *       "target": "api.netstamp.io",
 		 *       "selector": {
-		 *         "region": "tokyo"
+		 *         "label": {
+		 *           "key": "region",
+		 *           "op": "eq",
+		 *           "value": "tokyo"
+		 *         }
 		 *       },
 		 *       "description": "Latency and loss to controller API.",
 		 *       "intervalSeconds": 30,
@@ -826,7 +842,7 @@ export interface components {
 			/** @enum {string} */
 			type: "ping" | "traceroute";
 			target: string;
-			selector?: Record<string, never>;
+			selector?: components["schemas"]["Selector"];
 			description?: string;
 			/** Format: int32 */
 			intervalSeconds: number;
@@ -1673,6 +1689,36 @@ export interface components {
 			addrs?: (components["schemas"]["ipv4Address"] | components["schemas"]["ipv6Address"])[];
 		};
 		/**
+		 * @description Selector AST used to match probes by project labels. Empty object matches all probes.
+		 * @example {
+		 *       "label": {
+		 *         "key": "region",
+		 *         "op": "eq",
+		 *         "value": "tokyo"
+		 *       }
+		 *     }
+		 */
+		Selector: {
+			all?: components["schemas"]["Selector"][];
+			any?: components["schemas"]["Selector"][];
+			not?: components["schemas"]["Selector"];
+			label?: components["schemas"]["SelectorLabelExpression"];
+		};
+		/**
+		 * @example {
+		 *       "key": "region",
+		 *       "op": "eq",
+		 *       "value": "tokyo"
+		 *     }
+		 */
+		SelectorLabelExpression: {
+			key: string;
+			/** @enum {string} */
+			op: "eq" | "in" | "exists";
+			value?: string;
+			values?: string[];
+		};
+		/**
 		 * @example {
 		 *       "id": "33333333-3333-3333-3333-333333333333",
 		 *       "projectId": "22222222-2222-2222-2222-222222222222",
@@ -1699,16 +1745,28 @@ export interface components {
 		};
 		/**
 		 * @example {
-		 *       "selector": {}
+		 *       "selector": {
+		 *         "label": {
+		 *           "key": "region",
+		 *           "op": "eq",
+		 *           "value": "tokyo"
+		 *         }
+		 *       }
 		 *     }
 		 */
 		SelectorPreviewRequest: {
 			/** @description Selector AST to validate and preview against active project probes. Empty or omitted selectors match all probes. */
-			selector?: Record<string, never>;
+			selector?: components["schemas"]["Selector"];
 		};
 		/**
 		 * @example {
-		 *       "selector": {},
+		 *       "selector": {
+		 *         "label": {
+		 *           "key": "region",
+		 *           "op": "eq",
+		 *           "value": "tokyo"
+		 *         }
+		 *       },
 		 *       "matchedCount": 1,
 		 *       "probes": [
 		 *         {
@@ -1723,7 +1781,7 @@ export interface components {
 		 */
 		SelectorPreviewResponse: {
 			/** @description Backend-canonical selector AST. */
-			selector: Record<string, never>;
+			selector: components["schemas"]["Selector"];
 			/** Format: int32 */
 			matchedCount: number;
 			probes: components["schemas"]["SelectorPreviewProbe"][];
@@ -1996,7 +2054,7 @@ export interface components {
 			/** @enum {string} */
 			type?: "ping" | "traceroute";
 			target?: string;
-			selector?: Record<string, never>;
+			selector?: components["schemas"]["Selector"];
 			description?: string;
 			/** Format: int32 */
 			intervalSeconds?: number;

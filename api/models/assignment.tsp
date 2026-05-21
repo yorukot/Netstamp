@@ -4,10 +4,10 @@ using Http;
 
 namespace Netstamp;
 
-@example(#{ selector: #{} })
+@example(#{ selector: #{ label: #{ key: "region", `op`: "eq", value: "tokyo" } } })
 model SelectorPreviewRequest {
 	@doc("Selector AST to validate and preview against active project probes. Empty or omitted selectors match all probes.")
-	selector?: Record<unknown>;
+	selector?: Selector;
 }
 
 @example(#{
@@ -39,13 +39,13 @@ model SelectorPreviewProbe {
 }
 
 @example(#{
-	selector: #{},
+	selector: #{ label: #{ key: "region", `op`: "eq", value: "tokyo" } },
 	matchedCount: 1,
 	probes: #[#{ id: "33333333-3333-3333-3333-333333333333", projectId: "22222222-2222-2222-2222-222222222222", name: "tokyo-vps-1", enabled: true, labels: #[] }],
 })
 model SelectorPreviewResponse {
 	@doc("Backend-canonical selector AST.")
-	selector: Record<unknown>;
+	selector: Selector;
 
 	@minValue(0)
 	matchedCount: int32;

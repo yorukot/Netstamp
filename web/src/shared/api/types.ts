@@ -8,6 +8,7 @@ export type ApiMember = components["schemas"]["ProjectMember"];
 export type ApiProbe = components["schemas"]["Probe"];
 export type ApiProject = components["schemas"]["Project"];
 export type ApiProjectAssignment = components["schemas"]["ProjectAssignment"];
+export type ApiSelector = components["schemas"]["Selector"];
 export type ChangeCurrentUserEmailInput = components["schemas"]["ChangeCurrentUserEmailRequest"];
 export type ChangeCurrentUserPasswordInput = components["schemas"]["ChangeCurrentUserPasswordRequest"];
 export type CreateCheckInput = components["schemas"]["CreateCheckRequest"];

@@ -20,6 +20,33 @@ alias ipAddress = ipv4Address | ipv6Address;
 
 alias ProjectRef = string;
 
+alias SelectorLabelOperator = "eq" | "in" | "exists";
+
+@example(#{ key: "region", `op`: "eq", value: "tokyo" })
+model SelectorLabelExpression {
+	@minLength(1)
+	@maxLength(128)
+	key: string;
+
+	`op`: SelectorLabelOperator;
+
+	@minLength(1)
+	@maxLength(256)
+	value?: string;
+
+	@minItems(1)
+	values?: string[];
+}
+
+@example(#{ label: #{ key: "region", `op`: "eq", value: "tokyo" } })
+@doc("Selector AST used to match probes by project labels. Empty object matches all probes.")
+model Selector {
+	all?: Selector[];
+	any?: Selector[];
+	not?: Selector;
+	label?: SelectorLabelExpression;
+}
+
 model SessionCookieAuth {
 	type: AuthType.apiKey;
 	in: ApiKeyLocation.cookie;

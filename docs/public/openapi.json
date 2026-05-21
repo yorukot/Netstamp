@@ -3943,8 +3943,7 @@
 						"maxLength": 128
 					},
 					"selector": {
-						"type": "object",
-						"unevaluatedProperties": {}
+						"$ref": "#/components/schemas/Selector"
 					},
 					"description": {
 						"type": "string",
@@ -3985,7 +3984,11 @@
 						"type": "ping",
 						"target": "api.netstamp.io",
 						"selector": {
-							"region": "tokyo"
+							"label": {
+								"key": "region",
+								"op": "eq",
+								"value": "tokyo"
+							}
 						},
 						"description": "Latency and loss to controller API.",
 						"intervalSeconds": 30,
@@ -4031,7 +4034,11 @@
 								"type": "ping",
 								"target": "api.netstamp.io",
 								"selector": {
-									"region": "tokyo"
+									"label": {
+										"key": "region",
+										"op": "eq",
+										"value": "tokyo"
+									}
 								},
 								"intervalSeconds": 30,
 								"labels": [],
@@ -4065,7 +4072,11 @@
 							"type": "ping",
 							"target": "api.netstamp.io",
 							"selector": {
-								"region": "tokyo"
+								"label": {
+									"key": "region",
+									"op": "eq",
+									"value": "tokyo"
+								}
 							},
 							"description": "Latency and loss to controller API.",
 							"intervalSeconds": 30,
@@ -4101,8 +4112,7 @@
 						"maxLength": 128
 					},
 					"selector": {
-						"type": "object",
-						"unevaluatedProperties": {}
+						"$ref": "#/components/schemas/Selector"
 					},
 					"description": {
 						"type": "string",
@@ -4133,7 +4143,11 @@
 						"type": "ping",
 						"target": "api.netstamp.io",
 						"selector": {
-							"region": "tokyo"
+							"label": {
+								"key": "region",
+								"op": "eq",
+								"value": "tokyo"
+							}
 						},
 						"description": "Latency and loss to controller API.",
 						"intervalSeconds": 30,
@@ -5587,6 +5601,73 @@
 					}
 				]
 			},
+			"Selector": {
+				"type": "object",
+				"properties": {
+					"all": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/Selector"
+						}
+					},
+					"any": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/Selector"
+						}
+					},
+					"not": {
+						"$ref": "#/components/schemas/Selector"
+					},
+					"label": {
+						"$ref": "#/components/schemas/SelectorLabelExpression"
+					}
+				},
+				"description": "Selector AST used to match probes by project labels. Empty object matches all probes.",
+				"examples": [
+					{
+						"label": {
+							"key": "region",
+							"op": "eq",
+							"value": "tokyo"
+						}
+					}
+				]
+			},
+			"SelectorLabelExpression": {
+				"type": "object",
+				"required": ["key", "op"],
+				"properties": {
+					"key": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 128
+					},
+					"op": {
+						"type": "string",
+						"enum": ["eq", "in", "exists"]
+					},
+					"value": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 256
+					},
+					"values": {
+						"type": "array",
+						"items": {
+							"type": "string"
+						},
+						"minItems": 1
+					}
+				},
+				"examples": [
+					{
+						"key": "region",
+						"op": "eq",
+						"value": "tokyo"
+					}
+				]
+			},
 			"SelectorPreviewProbe": {
 				"type": "object",
 				"required": ["id", "projectId", "name", "enabled", "labels"],
@@ -5635,14 +5716,23 @@
 				"type": "object",
 				"properties": {
 					"selector": {
-						"type": "object",
-						"unevaluatedProperties": {},
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/Selector"
+							}
+						],
 						"description": "Selector AST to validate and preview against active project probes. Empty or omitted selectors match all probes."
 					}
 				},
 				"examples": [
 					{
-						"selector": {}
+						"selector": {
+							"label": {
+								"key": "region",
+								"op": "eq",
+								"value": "tokyo"
+							}
+						}
 					}
 				]
 			},
@@ -5651,8 +5741,11 @@
 				"required": ["selector", "matchedCount", "probes"],
 				"properties": {
 					"selector": {
-						"type": "object",
-						"unevaluatedProperties": {},
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/Selector"
+							}
+						],
 						"description": "Backend-canonical selector AST."
 					},
 					"matchedCount": {
@@ -5669,7 +5762,13 @@
 				},
 				"examples": [
 					{
-						"selector": {},
+						"selector": {
+							"label": {
+								"key": "region",
+								"op": "eq",
+								"value": "tokyo"
+							}
+						},
 						"matchedCount": 1,
 						"probes": [
 							{
@@ -6164,8 +6263,7 @@
 						"maxLength": 128
 					},
 					"selector": {
-						"type": "object",
-						"unevaluatedProperties": {}
+						"$ref": "#/components/schemas/Selector"
 					},
 					"description": {
 						"type": "string",

@@ -96,7 +96,7 @@ model TracerouteConfigPatch {
 	name: "api-latency",
 	type: "ping",
 	target: "api.netstamp.io",
-	selector: #{ region: "tokyo" },
+	selector: #{ label: #{ key: "region", `op`: "eq", value: "tokyo" } },
 	description: "Latency and loss to controller API.",
 	intervalSeconds: 30,
 	labels: #[
@@ -127,7 +127,7 @@ model Check {
 	@maxLength(128)
 	target: string;
 
-	selector?: Record<unknown>;
+	selector?: Selector;
 
 	@minLength(1)
 	@maxLength(1024)
@@ -150,7 +150,7 @@ model Check {
 		name: "api-latency",
 		type: "ping",
 		target: "api.netstamp.io",
-		selector: #{ region: "tokyo" },
+		selector: #{ label: #{ key: "region", `op`: "eq", value: "tokyo" } },
 		description: "Latency and loss to controller API.",
 		intervalSeconds: 30,
 		labels: #[],
@@ -171,7 +171,7 @@ model CheckResponse {
 			name: "api-latency",
 			type: "ping",
 			target: "api.netstamp.io",
-			selector: #{ region: "tokyo" },
+			selector: #{ label: #{ key: "region", `op`: "eq", value: "tokyo" } },
 			intervalSeconds: 30,
 			labels: #[],
 			createdAt: utcDateTime.fromISO("2026-05-13T10:00:00Z"),
@@ -188,7 +188,7 @@ model CheckListResponse {
 	name: "api-latency",
 	type: "ping",
 	target: "api.netstamp.io",
-	selector: #{ region: "tokyo" },
+	selector: #{ label: #{ key: "region", `op`: "eq", value: "tokyo" } },
 	description: "Latency and loss to controller API.",
 	intervalSeconds: 30,
 	labelIds: #["66666666-6666-6666-6666-666666666666"],
@@ -205,7 +205,7 @@ model CreateCheckRequest {
 	@maxLength(128)
 	target: string;
 
-	selector?: Record<unknown>;
+	selector?: Selector;
 
 	@minLength(1)
 	@maxLength(1024)
@@ -232,7 +232,7 @@ model UpdateCheckRequest {
 	@maxLength(128)
 	target?: string;
 
-	selector?: Record<unknown>;
+	selector?: Selector;
 
 	@minLength(1)
 	@maxLength(1024)
