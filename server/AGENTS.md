@@ -36,7 +36,7 @@ Probe runtime requests follow the same layer boundaries:
 
 `HTTP request -> chi route -> internal/controller/transport/http/proberuntime handler -> internal/controller/application/proberuntime.Service -> internal/controller/infrastructure/postgres/{probe,ping,traceroute} repositories -> sqlc.Queries -> PostgreSQL`
 
-No GraphQL, message queues, controller-side background workers, controller-side scheduled jobs, email, payment, object-storage integrations, or functional DNS/HTTP/TCP probe executors are currently defined. The controller supports ping and traceroute check definitions, assignment payloads, runtime result ingestion, and result queries. The standalone probe agent currently executes ping only; traceroute assignments can be represented by the control plane, but the current agent scheduler skips them until a traceroute executor is added.
+No GraphQL, message queues, controller-side background workers, controller-side scheduled jobs, email, payment, object-storage integrations, or functional DNS/HTTP/TCP probe executors are currently defined. The controller supports ping and traceroute check definitions, assignment payloads, runtime result ingestion, result queries, and typed result persistence. The standalone probe agent executes ping and traceroute checks through the shared scheduler, worker pool, result queue, and runtime result submitter.
 
 ## Layer Responsibilities
 
