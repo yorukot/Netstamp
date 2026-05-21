@@ -2,8 +2,7 @@
 set -eu
 
 install_path=/usr/local/bin/netstamp-agent
-binary_url="__NETSTAMP_AGENT_BINARY_URL__"
-controller_url="__NETSTAMP_CONTROLLER_URL__"
+controller_url="https://netstamp.dev"
 
 usage() {
 	cat <<'EOF'
@@ -55,14 +54,11 @@ done
 
 case "$(uname -m)" in
 x86_64 | amd64)
+	binary_url="https://netstamp.dev/api/v1/install/netstamp-agent-linux-amd64"
 	;;
 *)
 	die "this installer currently supports linux/amd64 only"
 	;;
-esac
-
-case "$binary_url" in
-*__NETSTAMP_AGENT_BINARY_URL__*) die "installer was served without a binary URL" ;;
 esac
 
 tmp_dir=$(mktemp -d)

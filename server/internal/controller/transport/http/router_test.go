@@ -275,17 +275,23 @@ func TestNewRouterServesAgentInstallerScript(t *testing.T) {
 		t.Fatalf("expected install script content type, got %q", got)
 	}
 	body := recorder.Body.String()
+	binaryURL := "https://netstamp.dev/api/v1/install/netstamp-agent-linux-amd64"
 	for _, want := range []string{
 		"#!/bin/sh",
-		`binary_url="http://example.com/api/v1/install/netstamp-agent-linux-amd64"`,
-		`controller_url="http://example.com"`,
+		`binary_url="` + binaryURL + `"`,
+		`controller_url="https://netstamp.dev"`,
 		"sudo netstamp-agent service install --url",
 	} {
 		if !strings.Contains(body, want) {
 			t.Fatalf("expected install script body to contain %q", want)
 		}
 	}
+	if got := strings.Count(body, binaryURL); got != 1 {
+		t.Fatalf("expected hardcoded binary URL to appear once, got %d occurrences", got)
+	}
 	for _, notWant := range []string{
+		"__NETSTAMP_AGENT_BINARY_URL__",
+		"__NETSTAMP_CONTROLLER_URL__",
 		"NETSTAMP_PROBE_SECRET",
 		"systemctl enable --now",
 		"AmbientCapabilities=CAP_NET_RAW",

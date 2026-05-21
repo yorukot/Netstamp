@@ -4,10 +4,7 @@ import (
 	"embed"
 	"errors"
 	"net/http"
-	"net/url"
 	"os"
-	pathpkg "path"
-	"strings"
 
 	"github.com/go-chi/chi/v5"
 
@@ -41,11 +38,11 @@ func (h *Handler) RegisterRoutes(api chi.Router) {
 }
 
 func (h *Handler) handleAgentScript(w http.ResponseWriter, r *http.Request) {
-	h.writeScript(w, r, "agent.sh", "agent installer unavailable", h.renderAgentScript)
+	h.writeScript(w, r, "agent.sh", "agent installer unavailable")
 }
 
 func (h *Handler) handleAgentUninstallScript(w http.ResponseWriter, r *http.Request) {
-	h.writeScript(w, r, "uninstall-agent.sh", "agent uninstaller unavailable", nil)
+	h.writeScript(w, r, "uninstall-agent.sh", "agent uninstaller unavailable")
 }
 
 func (h *Handler) writeScript(
@@ -53,15 +50,11 @@ func (h *Handler) writeScript(
 	r *http.Request,
 	name string,
 	unavailableDetail string,
-	render func(*http.Request, []byte) []byte,
 ) {
 	data, err := installerFiles.ReadFile(name)
 	if err != nil {
 		httpx.WriteProblem(w, r, httpx.InternalServerError(unavailableDetail))
 		return
-	}
-	if render != nil {
-		data = render(r, data)
 	}
 
 	w.Header().Set("Content-Type", "text/x-shellscript; charset=utf-8")
@@ -70,45 +63,6 @@ func (h *Handler) writeScript(
 	if _, err := w.Write(data); err != nil {
 		return
 	}
-}
-
-func (h *Handler) renderAgentScript(r *http.Request, data []byte) []byte {
-	script := string(data)
-	script = strings.ReplaceAll(script, "__NETSTAMP_AGENT_BINARY_URL__", installAssetURL(r, agentBinaryFilename))
-	script = strings.ReplaceAll(script, "__NETSTAMP_CONTROLLER_URL__", requestOrigin(r))
-	return []byte(script)
-}
-
-func installAssetURL(r *http.Request, filename string) string {
-	assetURL, err := url.Parse(requestOrigin(r))
-	if err != nil {
-		return pathpkg.Dir(r.URL.Path) + "/" + filename
-	}
-	assetURL.Path = pathpkg.Dir(r.URL.Path) + "/" + filename
-	return assetURL.String()
-}
-
-func requestOrigin(r *http.Request) string {
-	scheme := firstHeaderValue(r.Header.Get("X-Forwarded-Proto"))
-	if scheme == "" {
-		if r.TLS != nil {
-			scheme = "https"
-		} else {
-			scheme = "http"
-		}
-	}
-
-	host := firstHeaderValue(r.Header.Get("X-Forwarded-Host"))
-	if host == "" {
-		host = r.Host
-	}
-
-	return scheme + "://" + host
-}
-
-func firstHeaderValue(value string) string {
-	value, _, _ = strings.Cut(value, ",")
-	return strings.TrimSpace(value)
 }
 
 func (h *Handler) handleAgentBinary(w http.ResponseWriter, r *http.Request) {
