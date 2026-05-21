@@ -45,7 +45,7 @@ func (h *Handler) handleAgentUninstallScript(w http.ResponseWriter, r *http.Requ
 	h.writeScript(w, r, "uninstall-agent.sh", "agent uninstaller unavailable")
 }
 
-func (h *Handler) writeScript(w http.ResponseWriter, r *http.Request, name string, unavailableDetail string) {
+func (h *Handler) writeScript(w http.ResponseWriter, r *http.Request, name, unavailableDetail string) {
 	data, err := installerFiles.ReadFile(name)
 	if err != nil {
 		httpx.WriteProblem(w, r, httpx.InternalServerError(unavailableDetail))
