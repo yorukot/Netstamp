@@ -1,0 +1,184 @@
+.overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 120;
+	display: grid;
+	place-items: center;
+	padding: 1rem;
+	background: rgba(1, 2, 3, 0.78);
+	isolation: isolate;
+	animation: overlayFadeIn 180ms ease-out both;
+}
+
+.overlay[data-closing="true"] {
+	pointer-events: none;
+	animation: overlayFadeOut 180ms ease-in both;
+}
+
+.lineTop,
+.lineBottom {
+	position: fixed;
+	left: 0;
+	right: 0;
+	z-index: -1;
+	height: 50vh;
+	background: linear-gradient(rgba(255, 122, 26, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px), rgba(0, 0, 0, 0.72);
+	background-size:
+		2rem 2rem,
+		2rem 2rem,
+		100% 100%;
+	transform: scaleY(0);
+	animation: lineExtend 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.lineTop {
+	top: 0;
+	transform-origin: bottom;
+	border-bottom: 1px solid var(--ns-accent-border);
+	box-shadow: 0 0.5rem 1.8rem rgba(255, 122, 26, 0.18);
+}
+
+.lineBottom {
+	bottom: 0;
+	transform-origin: top;
+	border-top: 1px solid var(--ns-accent-border);
+	box-shadow: 0 -0.5rem 1.8rem rgba(255, 122, 26, 0.18);
+}
+
+.overlay[data-closing="true"] .lineTop,
+.overlay[data-closing="true"] .lineBottom {
+	animation: lineRetract 180ms ease-in both;
+}
+
+.dialog {
+	--ns-frame-cut: var(--ns-cut-lg);
+	--ns-frame-color: var(--ns-accent-border);
+	display: grid;
+	gap: 1rem;
+	width: min(31rem, 100%);
+	padding: 1rem;
+	color: var(--ns-text);
+	background: linear-gradient(rgba(255, 122, 26, 0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 122, 26, 0.07) 1px, transparent 1px), rgba(7, 9, 13, 0.98);
+	background-size:
+		1rem 1rem,
+		1rem 1rem,
+		100% 100%;
+	box-shadow:
+		0 1.5rem 4rem rgba(0, 0, 0, 0.62),
+		inset 0 0 0 1px rgba(255, 122, 26, 0.12);
+	opacity: 0;
+	transform: translateY(0.75rem) scale(0.96);
+	animation: dialogEnter 220ms 130ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.overlay[data-closing="true"] .dialog {
+	animation: dialogExit 140ms ease-in both;
+}
+
+.header {
+	display: grid;
+	gap: 0.45rem;
+}
+
+.header > span {
+	color: var(--ns-accent);
+	font-family: var(--ns-font-mono);
+	font-size: 0.6875rem;
+	font-weight: 800;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+}
+
+.header > strong {
+	color: var(--ns-text);
+	font-family: var(--ns-font-display);
+	font-size: clamp(1.35rem, 4vw, 2rem);
+	font-weight: 900;
+	line-height: 1;
+}
+
+.message {
+	margin: 0;
+	color: var(--ns-text-muted);
+	font-size: 0.95rem;
+	line-height: 1.55;
+}
+
+.actions {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	gap: 0.75rem;
+}
+
+@keyframes overlayFadeIn {
+	from {
+		background: rgba(1, 2, 3, 0);
+	}
+	to {
+		background: rgba(1, 2, 3, 0.78);
+	}
+}
+
+@keyframes overlayFadeOut {
+	from {
+		background: rgba(1, 2, 3, 0.78);
+	}
+	to {
+		background: rgba(1, 2, 3, 0);
+	}
+}
+
+@keyframes lineExtend {
+	from {
+		transform: scaleY(0);
+	}
+	to {
+		transform: scaleY(1);
+	}
+}
+
+@keyframes lineRetract {
+	from {
+		transform: scaleY(1);
+	}
+	to {
+		transform: scaleY(0);
+	}
+}
+
+@keyframes dialogEnter {
+	from {
+		opacity: 0;
+		transform: translateY(0.75rem) scale(0.96);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0) scale(1);
+	}
+}
+
+@keyframes dialogExit {
+	from {
+		opacity: 1;
+		transform: translateY(0) scale(1);
+	}
+	to {
+		opacity: 0;
+		transform: translateY(0.4rem) scale(0.97);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.overlay,
+	.overlay[data-closing="true"],
+	.lineTop,
+	.lineBottom,
+	.overlay[data-closing="true"] .lineTop,
+	.overlay[data-closing="true"] .lineBottom,
+	.dialog,
+	.overlay[data-closing="true"] .dialog {
+		animation-duration: 1ms;
+		animation-delay: 0ms;
+	}
+}

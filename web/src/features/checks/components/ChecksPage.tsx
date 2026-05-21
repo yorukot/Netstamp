@@ -7,6 +7,7 @@ import { projectQueries } from "@/shared/api/queries";
 import type { ApiSelector, CreateCheckInput } from "@/shared/api/types";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { ActionRow } from "@/shared/components/ActionRow";
+import { useConfirm } from "@/shared/components/confirmContext";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { classNames } from "@/shared/utils/classNames";
@@ -45,6 +46,7 @@ function isSelector(value: unknown): value is ApiSelector {
 
 export function ChecksPage() {
 	const { projectRef } = useCurrentProject();
+	const confirm = useConfirm();
 	const createCheckMutation = useCreateProjectCheckMutation(projectRef);
 	const updateCheckMutation = useUpdateProjectCheckMutation(projectRef);
 	const deleteCheckMutation = useDeleteProjectCheckMutation(projectRef);
@@ -164,8 +166,19 @@ export function ChecksPage() {
 		);
 	}
 
-	function deleteSelectedCheck() {
-		if (!selectedCheck || !window.confirm(`Delete check ${selectedCheck.name}?`)) {
+	async function deleteSelectedCheck() {
+		if (!selectedCheck) {
+			return;
+		}
+
+		const confirmed = await confirm({
+			title: `Delete ${selectedCheck.name}?`,
+			message: "This removes the check definition and stops future assignments for matching probes.",
+			confirmLabel: "Delete check",
+			tone: "danger"
+		});
+
+		if (!confirmed) {
 			return;
 		}
 
@@ -311,7 +324,7 @@ export function ChecksPage() {
 							<Button disabled={(!selectedCheck && !isCreating) || !projectRef || !activeCheckName || !activeTarget || saveCheckMutation.isPending} onClick={saveSelectedCheck}>
 								{saveCheckMutation.isPending ? "Saving" : isCreating ? "Create check" : "Save check"}
 							</Button>
-							<Button variant="danger" disabled={!selectedCheck || deleteCheckMutation.isPending} onClick={deleteSelectedCheck}>
+							<Button variant="danger" disabled={!selectedCheck || deleteCheckMutation.isPending} onClick={() => void deleteSelectedCheck()}>
 								{deleteCheckMutation.isPending ? "Deleting" : "Delete check"}
 							</Button>
 						</ActionRow>

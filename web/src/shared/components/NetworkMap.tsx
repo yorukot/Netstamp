@@ -101,7 +101,15 @@ export function NetworkMap({ probes, selectedId, onSelect, mode = "fleet", class
 	const selectedIdRef = useRef(selectedId);
 	const [mapReady, setMapReady] = useState(false);
 	const classes = ["ns-cut-frame", styles.map, className].filter(Boolean).join(" ");
-	const positionedProbes = useMemo(() => probes.filter(hasCoordinates), [probes]);
+	const positionedProbes = useMemo(() => {
+		const probesWithCoordinates = probes.filter(hasCoordinates);
+
+		if (mode !== "detail" || !selectedId) {
+			return probesWithCoordinates;
+		}
+
+		return probesWithCoordinates.filter(probe => probe.id === selectedId);
+	}, [mode, probes, selectedId]);
 
 	useEffect(() => {
 		let cancelled = false;
@@ -209,17 +217,18 @@ export function NetworkMap({ probes, selectedId, onSelect, mode = "fleet", class
 			return undefined;
 		}
 
-		const selectedProbe = positionedProbes.find(probe => probe.id === selectedId) || positionedProbes[0];
+		const selectedProbe = selectedId ? positionedProbes.find(probe => probe.id === selectedId) : positionedProbes[0];
 
 		if (!selectedProbe) {
 			return undefined;
 		}
 
 		const activeMap = map;
+		const selectedCoordinates = selectedProbe.coordinates;
 
 		function focusSelectedProbe() {
 			activeMap.easeTo({
-				center: selectedProbe.coordinates,
+				center: selectedCoordinates,
 				zoom: 12.35,
 				pitch: 35,
 				bearing: -20,

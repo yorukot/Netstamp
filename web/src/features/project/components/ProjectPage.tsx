@@ -10,13 +10,14 @@ import {
 import { projectQueries } from "@/shared/api/queries";
 import type { ApiLabel, ProjectMemberRole } from "@/shared/api/types";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
+import { useConfirm } from "@/shared/components/confirmContext";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { Button, DataTable, Panel, SelectField, Surface, TextField, type DataColumn } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { RoleSelect } from "./RoleSelect";
 import styles from "./ProjectPage.module.css";
+import { RoleSelect } from "./RoleSelect";
 
 interface MemberRow {
 	id: string;
@@ -36,6 +37,7 @@ interface LabelRow {
 
 export function ProjectPage() {
 	const { project, projectRef, setSelectedProjectRef } = useCurrentProject();
+	const confirm = useConfirm();
 	const updateProjectMutation = useUpdateProjectMutation(projectRef);
 	const addMemberMutation = useAddProjectMemberMutation(projectRef);
 	const removeMemberMutation = useRemoveProjectMemberMutation(projectRef);
@@ -97,8 +99,19 @@ export function ProjectPage() {
 		});
 	}
 
-	function deleteCurrentProject() {
-		if (!project || !window.confirm(`Delete project ${project.name}?`)) {
+	async function deleteCurrentProject() {
+		if (!project) {
+			return;
+		}
+
+		const confirmed = await confirm({
+			title: `Delete ${project.name}?`,
+			message: "This deletes the project, disables future assignments, and revokes all probe registration tokens.",
+			confirmLabel: "Delete project",
+			tone: "danger"
+		});
+
+		if (!confirmed) {
 			return;
 		}
 
@@ -223,7 +236,7 @@ export function ProjectPage() {
 					<Surface as="article" tone="danger" cut="md" padding="md">
 						<h3>Delete project</h3>
 						<p className={styles.warningCopy}>Delete this project, disable future assignments, and revoke all probe registration tokens.</p>
-						<Button variant="danger" disabled={!projectRef || deleteProjectMutation.isPending} onClick={deleteCurrentProject}>
+						<Button variant="danger" disabled={!projectRef || deleteProjectMutation.isPending} onClick={() => void deleteCurrentProject()}>
 							{deleteProjectMutation.isPending ? "Deleting" : "Delete project"}
 						</Button>
 					</Surface>

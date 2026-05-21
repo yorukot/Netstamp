@@ -1,9 +1,11 @@
 import { mapApiProbe } from "@/features/probes/api/probeAdapters";
 import type { Probe } from "@/features/probes/data/probes";
+import { probeSecretUpdateCommand } from "@/shared/api/installAssets";
 import { useDeleteProjectProbeMutation, useRotateProjectProbeSecretMutation, useUpdateProjectProbeMutation } from "@/shared/api/mutations";
 import { projectQueries } from "@/shared/api/queries";
+import { useConfirm } from "@/shared/components/confirmContext";
 import { classNames } from "@/shared/utils/classNames";
-import { Badge, Button, Checkbox, DataTable, Surface, TextField, type DataColumn } from "@netstamp/ui";
+import { Badge, Button, Checkbox, DataTable, Surface, Terminal, TextField, type DataColumn } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import styles from "./ProbeDetail.module.css";
@@ -27,6 +29,7 @@ interface ProbeDetailProps {
 }
 
 export function ProbeDetail({ probe, assignedRows, floating = false, projectRef, onDeleted }: ProbeDetailProps) {
+	const confirm = useConfirm();
 	const detailQuery = useQuery({
 		...projectQueries.probeDetail(projectRef || "", probe.id),
 		enabled: Boolean(projectRef && probe.id),
@@ -44,6 +47,7 @@ export function ProbeDetail({ probe, assignedRows, floating = false, projectRef,
 	const rotateSecretMutation = useRotateProjectProbeSecretMutation(projectRef);
 	const probeAssignments = assignedRows.filter(row => row.probe === activeProbe.name);
 	const detailRows = expandAssignedRows(probeAssignments);
+	const rotatedSecretCommand = rotatedSecret ? probeSecretUpdateCommand({ probeId: activeProbe.id, probeSecret: rotatedSecret }) : "";
 
 	function toggleLocationMode() {
 		const nextMode = locationMode === "manual" ? "auto" : "manual";
@@ -65,8 +69,15 @@ export function ProbeDetail({ probe, assignedRows, floating = false, projectRef,
 		}
 	}
 
-	function deleteProbe() {
-		if (!window.confirm(`Delete probe ${activeProbe.name}?`)) {
+	async function deleteProbe() {
+		const confirmed = await confirm({
+			title: `Delete ${activeProbe.name}?`,
+			message: "This removes the probe from the fleet and stops future check assignments for it.",
+			confirmLabel: "Delete probe",
+			tone: "danger"
+		});
+
+		if (!confirmed) {
 			return;
 		}
 
@@ -112,7 +123,7 @@ export function ProbeDetail({ probe, assignedRows, floating = false, projectRef,
 				>
 					{rotateSecretMutation.isPending ? "Rotating" : "Rotate secret"}
 				</Button>
-				<Button variant="danger" disabled={!projectRef || deleteProbeMutation.isPending} onClick={deleteProbe}>
+				<Button variant="danger" disabled={!projectRef || deleteProbeMutation.isPending} onClick={() => void deleteProbe()}>
 					{deleteProbeMutation.isPending ? "Deleting" : "Delete probe"}
 				</Button>
 			</div>
@@ -121,6 +132,10 @@ export function ProbeDetail({ probe, assignedRows, floating = false, projectRef,
 				<div className={classNames("ns-cut-frame", styles.secretPanel)}>
 					<span>New probe secret</span>
 					<code>{rotatedSecret}</code>
+					<p>Run this on the probe host to rewrite the systemd service environment with the rotated credential.</p>
+					<Terminal title="update command" meta="run on probe host">
+						{rotatedSecretCommand}
+					</Terminal>
 				</div>
 			) : null}
 

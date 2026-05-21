@@ -73,7 +73,7 @@
 	background: rgba(97, 255, 127, 0.08);
 }
 
-.secretPanel span {
+.secretPanel > span {
 	color: var(--ns-text-low);
 	font-family: var(--ns-font-mono);
 	font-size: 0.7rem;
@@ -82,12 +82,19 @@
 	text-transform: uppercase;
 }
 
-.secretPanel code {
+.secretPanel > code {
 	color: var(--ns-accent);
 	font-family: var(--ns-font-mono);
 	font-size: 0.75rem;
 	font-weight: 800;
 	overflow-wrap: anywhere;
+}
+
+.secretPanel > p {
+	margin: 0;
+	color: var(--ns-text-muted);
+	font-size: 0.8125rem;
+	line-height: 1.55;
 }
 
 .inputWithMode {

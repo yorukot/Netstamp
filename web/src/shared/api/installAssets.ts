@@ -33,14 +33,30 @@ function shellQuote(value: string) {
 }
 
 export function probeInstallCommand(input: { probeId: string; probeSecret: string }) {
-	const { apiVersion, controllerUrl } = controllerInstallTarget();
 	const installerUrl = installAssetUrl(installAssetPaths.agentInstaller);
 
+	return [`curl -fsSL ${shellQuote(installerUrl)} | sudo sh`, probeServiceInstallCommand(input)].join("\n");
+}
+
+export function probeServiceInstallCommand(input: { probeId: string; probeSecret: string }) {
+	const { controllerUrl } = controllerInstallTarget();
+
 	return [
-		`curl -fsSL ${shellQuote(installerUrl)} | sudo sh -s -- \\`,
-		`  --controller-url ${shellQuote(controllerUrl)} \\`,
+		`sudo netstamp-agent service install \\`,
+		`  --url ${shellQuote(controllerUrl)} \\`,
 		`  --probe-id ${shellQuote(input.probeId)} \\`,
-		`  --probe-secret ${shellQuote(input.probeSecret)} \\`,
-		`  --api-version ${shellQuote(apiVersion)}`
+		`  --probe-secret ${shellQuote(input.probeSecret)}`
+	].join("\n");
+}
+
+export function probeSecretUpdateCommand(input: { probeId: string; probeSecret: string }) {
+	const { controllerUrl } = controllerInstallTarget();
+
+	return [
+		`sudo netstamp-agent service install \\`,
+		`  --url ${shellQuote(controllerUrl)} \\`,
+		`  --probe-id ${shellQuote(input.probeId)} \\`,
+		`  --probe-secret ${shellQuote(input.probeSecret)} && \\`,
+		`sudo systemctl restart netstamp-agent`
 	].join("\n");
 }
