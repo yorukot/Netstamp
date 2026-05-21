@@ -168,12 +168,11 @@ func TestNewRouterOpenAPIUsesBackendBaseURLServerURL(t *testing.T) {
 	}
 }
 
-func TestNewRouterServesScalarDocsWhenAPIDocsExposed(t *testing.T) {
+func TestNewRouterServesScalarDocs(t *testing.T) {
 	for _, path := range []string{"/api/v1/docs", "/api/v1/docs/"} {
 		recorder := performRouterRequest(Dependencies{
 			APIVersion:     "v1",
 			RequestTimeout: time.Second,
-			ExposeAPIDocs:  true,
 		}, http.MethodGet, path)
 
 		if recorder.Code != http.StatusOK {
@@ -195,18 +194,6 @@ func TestNewRouterServesScalarDocsWhenAPIDocsExposed(t *testing.T) {
 			if !strings.Contains(body, want) {
 				t.Fatalf("expected %s Scalar docs body to contain %q, got %q", path, want, body)
 			}
-		}
-	}
-}
-
-func TestNewRouterHidesAPIDocsWhenDisabled(t *testing.T) {
-	for _, path := range []string{"/api/v1/docs", "/api/v1/docs/", "/api/v1/openapi.json"} {
-		recorder := performRouterRequest(Dependencies{
-			APIVersion:     "v1",
-			RequestTimeout: time.Second,
-		}, http.MethodGet, path)
-		if recorder.Code != http.StatusNotFound {
-			t.Fatalf("expected %s status 404, got %d", path, recorder.Code)
 		}
 	}
 }
@@ -383,7 +370,6 @@ func getOpenAPI(t *testing.T, dep Dependencies) openAPISnapshot {
 	if dep.RequestTimeout == 0 {
 		dep.RequestTimeout = time.Second
 	}
-	dep.ExposeAPIDocs = true
 	router := NewRouter(dep)
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest(http.MethodGet, "/api/"+dep.APIVersion+"/openapi.json", http.NoBody)

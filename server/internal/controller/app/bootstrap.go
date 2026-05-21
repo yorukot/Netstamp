@@ -153,7 +153,6 @@ func New(ctx context.Context) (*Application, error) {
 		ReadinessCheck:    readiness,
 		RequestTimeout:    cfg.HTTP.RequestTimeout,
 		MetricsHandler:    metricsProvider.Handler(),
-		ExposeAPIDocs:     cfg.Env != "production",
 	})
 
 	return &Application{

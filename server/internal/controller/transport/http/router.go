@@ -53,7 +53,6 @@ type Dependencies struct {
 	RequestTimeout    time.Duration
 	MetricsHandler    http.Handler
 	AgentBinaryPath   string
-	ExposeAPIDocs     bool
 }
 
 func NewRouter(dep Dependencies) http.Handler {
@@ -104,9 +103,8 @@ func routeMetrics(apiRouter, metricsHandler http.Handler) http.Handler {
 
 func registerAPIRoutes(api chi.Router, dep Dependencies) {
 	registerSystemRoutes(api, dep.ReadinessCheck)
-	if dep.ExposeAPIDocs {
-		registerOpenAPIRoutes(api, dep)
-	}
+	registerOpenAPIRoutes(api, dep)
+
 	installhttp.NewHandler(dep.AgentBinaryPath).RegisterRoutes(api)
 
 	authhttp.NewHandler(dep.AuthService, dep.AuthVerifier, dep.AuthCookieSecure).RegisterRoutes(api)
