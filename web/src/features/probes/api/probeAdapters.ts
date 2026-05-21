@@ -53,7 +53,7 @@ export function mapApiProbe(probe: ApiProbe, index: number): Probe {
 		id: probe.id,
 		name: probe.name,
 		status: mapProbeStatus(probe),
-		location: labelValue(probe, "location") || probe.subdivisionCode || "Unassigned",
+		location: labelValue(probe, "location") || probe.subdivisionCode || "-",
 		publicIp,
 		asn: status?.as || labelValue(probe, "as") || "-",
 		provider: labelValue(probe, "provider") || "Unlabeled",

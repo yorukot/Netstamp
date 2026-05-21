@@ -1,12 +1,16 @@
 import { mapApiProbe } from "@/features/probes/api/probeAdapters";
 import type { Probe } from "@/features/probes/data/probes";
+import { ApiError } from "@/shared/api/client";
 import { probeSecretUpdateCommand } from "@/shared/api/installAssets";
-import { useDeleteProjectProbeMutation, useRotateProjectProbeSecretMutation, useUpdateProjectProbeMutation } from "@/shared/api/mutations";
+import { createProjectLabel, useDeleteProjectProbeMutation, useRotateProjectProbeSecretMutation, useUpdateProjectProbeMutation } from "@/shared/api/mutations";
+import { apiQueryKeys } from "@/shared/api/queryKeys";
 import { projectQueries } from "@/shared/api/queries";
+import type { ApiLabel } from "@/shared/api/types";
 import { useConfirm } from "@/shared/components/confirmContext";
+import { pushErrorToast } from "@/shared/toast/toastStore";
 import { classNames } from "@/shared/utils/classNames";
 import { Badge, Button, Checkbox, DataTable, Surface, Terminal, TextField, type DataColumn } from "@netstamp/ui";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import styles from "./ProbeDetail.module.css";
 import { expandAssignedRows } from "./probeUtils";
@@ -30,18 +34,24 @@ interface ProbeDetailProps {
 
 export function ProbeDetail({ probe, assignedRows, floating = false, projectRef, onDeleted }: ProbeDetailProps) {
 	const confirm = useConfirm();
+	const queryClient = useQueryClient();
 	const detailQuery = useQuery({
 		...projectQueries.probeDetail(projectRef || "", probe.id),
-		enabled: Boolean(projectRef && probe.id),
-		select: data => mapApiProbe(data.probe, 0)
+		enabled: Boolean(projectRef && probe.id)
 	});
-	const activeProbe = detailQuery.data || probe;
+	const labelsQuery = useQuery({
+		...projectQueries.labels(projectRef || ""),
+		enabled: Boolean(projectRef)
+	});
+	const activeApiProbe = detailQuery.data?.probe ?? null;
+	const activeProbe = activeApiProbe ? mapApiProbe(activeApiProbe, 0) : probe;
 	const [probeName, setProbeName] = useState(activeProbe.name);
 	const [probeLocation, setProbeLocation] = useState(activeProbe.location);
 	const [probeAsn, setProbeAsn] = useState(activeProbe.asn);
 	const [locationMode, setLocationMode] = useState<DetectionMode>("manual");
 	const [asMode, setAsMode] = useState<DetectionMode>("auto");
 	const [rotatedSecret, setRotatedSecret] = useState("");
+	const [savingProbe, setSavingProbe] = useState(false);
 	const updateProbeMutation = useUpdateProjectProbeMutation(projectRef);
 	const deleteProbeMutation = useDeleteProjectProbeMutation(projectRef);
 	const rotateSecretMutation = useRotateProjectProbeSecretMutation(projectRef);
@@ -84,6 +94,66 @@ export function ProbeDetail({ probe, assignedRows, floating = false, projectRef,
 		deleteProbeMutation.mutate(activeProbe.id, { onSuccess: () => onDeleted?.() });
 	}
 
+	async function ensureProjectLabel(key: string, value: string, labels: ApiLabel[]) {
+		const normalizedValue = value.trim();
+		if (!projectRef || !normalizedValue || normalizedValue === "-") {
+			return null;
+		}
+
+		const existing = labels.find(label => label.key.toLowerCase() === key && label.value === normalizedValue);
+		if (existing) {
+			return existing.id;
+		}
+
+		try {
+			const created = await createProjectLabel(projectRef, { key, value: normalizedValue });
+			return created.label.id;
+		} catch (error) {
+			if (!(error instanceof ApiError && error.status === 409)) {
+				throw error;
+			}
+
+			const refreshed = await labelsQuery.refetch();
+			return refreshed.data?.labels.find(label => label.key.toLowerCase() === key && label.value === normalizedValue)?.id ?? null;
+		}
+	}
+
+	async function saveProbe() {
+		if (!projectRef || !activeApiProbe || !probeName.trim()) {
+			return;
+		}
+
+		setSavingProbe(true);
+		try {
+			const projectLabels = labelsQuery.data?.labels ?? [];
+			const currentLabels = activeApiProbe?.labels ?? [];
+			const labelIds = currentLabels
+				.filter(label => !(locationMode === "manual" && label.key.toLowerCase() === "location") && !(asMode === "manual" && label.key.toLowerCase() === "as"))
+				.map(label => label.id);
+			const locationLabelId = locationMode === "manual" ? await ensureProjectLabel("location", probeLocation, projectLabels) : null;
+			const asLabelId = asMode === "manual" ? await ensureProjectLabel("as", probeAsn, projectLabels) : null;
+
+			for (const labelId of [locationLabelId, asLabelId]) {
+				if (labelId && !labelIds.includes(labelId)) {
+					labelIds.push(labelId);
+				}
+			}
+
+			await updateProbeMutation.mutateAsync({
+				probeId: activeProbe.id,
+				body: {
+					name: probeName.trim(),
+					labelIds
+				}
+			});
+			await queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.labels(projectRef) });
+		} catch (error) {
+			pushErrorToast(error instanceof Error ? error.message : "Probe could not be saved.");
+		} finally {
+			setSavingProbe(false);
+		}
+	}
+
 	return (
 		<Surface as="section" tone="matte" cut="lg" padding="lg" className={classNames(styles.card, floating && styles.floating)} aria-label="Probe detail">
 			<div className={styles.header}>
@@ -113,8 +183,8 @@ export function ProbeDetail({ probe, assignedRows, floating = false, projectRef,
 			</div>
 
 			<div className={styles.actions}>
-				<Button disabled={!projectRef || updateProbeMutation.isPending || !probeName} onClick={() => updateProbeMutation.mutate({ probeId: activeProbe.id, body: { name: probeName } })}>
-					{updateProbeMutation.isPending ? "Saving" : "Save probe"}
+				<Button disabled={!projectRef || !activeApiProbe || updateProbeMutation.isPending || savingProbe || !probeName} onClick={() => void saveProbe()}>
+					{updateProbeMutation.isPending || savingProbe ? "Saving" : "Save probe"}
 				</Button>
 				<Button
 					variant="outline"
