@@ -1,8 +1,6 @@
 import type { Probe, ProbeStatus } from "@/features/probes/data/probes";
 import type { AssignedRow, ProbeSort } from "./types";
 
-const assignedOverflowRowCount = 18;
-
 function asnNumber(asn: string) {
 	return Number(asn.replace(/\D/g, "")) || 0;
 }
@@ -27,17 +25,5 @@ export function filterProbes(source: Probe[], search: string, statusFilter: "all
 }
 
 export function expandAssignedRows(rows: AssignedRow[]) {
-	if (!rows.length) {
-		return [];
-	}
-
-	return Array.from({ length: assignedOverflowRowCount }, (_, index) => {
-		const row = rows[index % rows.length];
-		const suffix = String(index + 1).padStart(2, "0");
-
-		return {
-			...row,
-			check: index < rows.length ? row.check : `${row.check}-${suffix}`
-		};
-	});
+	return rows;
 }

@@ -43,8 +43,7 @@ export function ProbeDetail({ probe, assignedRows, floating = false, projectRef,
 	const deleteProbeMutation = useDeleteProjectProbeMutation(projectRef);
 	const rotateSecretMutation = useRotateProjectProbeSecretMutation(projectRef);
 	const probeAssignments = assignedRows.filter(row => row.probe === activeProbe.name);
-	const baseRows = probeAssignments.length ? probeAssignments : assignedRows.filter(row => row.check === "api-latency");
-	const detailRows = expandAssignedRows(baseRows);
+	const detailRows = expandAssignedRows(probeAssignments);
 
 	function toggleLocationMode() {
 		const nextMode = locationMode === "manual" ? "auto" : "manual";

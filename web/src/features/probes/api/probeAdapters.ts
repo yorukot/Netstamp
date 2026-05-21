@@ -1,14 +1,6 @@
 import type { Probe, ProbeStatus } from "@/features/probes/data/probes";
 import type { ApiProbe } from "@/shared/api/types";
 
-const fallbackCoordinates: Array<[number, number]> = [
-	[120.6736, 24.1477],
-	[8.6821, 50.1109],
-	[-74.006, 40.7128],
-	[103.8198, 1.3521],
-	[-122.4194, 37.7749]
-];
-
 function formatRelativeTime(value: string | null | undefined) {
 	if (!value) {
 		return "never";
@@ -49,22 +41,24 @@ function labelValue(probe: ApiProbe, key: string) {
 }
 
 export function mapApiProbe(probe: ApiProbe, index: number): Probe {
-	const coordinates =
-		typeof probe.longitude === "number" && typeof probe.latitude === "number" ? ([probe.longitude, probe.latitude] as [number, number]) : fallbackCoordinates[index % fallbackCoordinates.length];
+	void index;
+
+	const coordinates = typeof probe.longitude === "number" && typeof probe.latitude === "number" ? ([probe.longitude, probe.latitude] as [number, number]) : undefined;
 	const status = probe.status;
 	const publicIp = status?.publicV4 || status?.publicV6 || status?.addrs?.[0] || "-";
 	const tags = probe.labels?.map(label => `${label.key}:${label.value}`) ?? [];
+	const ipFamily = status?.publicV4 && status.publicV6 ? "IPv4 / IPv6" : status?.publicV6 ? "IPv6" : status?.publicV4 ? "IPv4" : "-";
 
 	return {
 		id: probe.id,
 		name: probe.name,
 		status: mapProbeStatus(probe),
-		location: labelValue(probe, "location") || probe.subdivisionCode || `${coordinates[1].toFixed(2)}, ${coordinates[0].toFixed(2)}`,
+		location: labelValue(probe, "location") || probe.subdivisionCode || "Unassigned",
 		publicIp,
 		asn: status?.as || labelValue(probe, "as") || "-",
 		provider: labelValue(probe, "provider") || "Unlabeled",
 		region: probe.subdivisionCode || "unassigned",
-		ipFamily: status?.publicV4 && status.publicV6 ? "IPv4 / IPv6" : status?.publicV6 ? "IPv6" : "IPv4",
+		ipFamily,
 		lastHeartbeat: formatRelativeTime(status?.lastSeenAt),
 		tags,
 		version: status?.agentVersion || "-",
@@ -74,7 +68,7 @@ export function mapApiProbe(probe: ApiProbe, index: number): Probe {
 		queue: probe.enabled ? "accepting jobs" : "disabled",
 		loss: "-",
 		coordinates,
-		capabilities: ["ping"]
+		capabilities: []
 	};
 }
 

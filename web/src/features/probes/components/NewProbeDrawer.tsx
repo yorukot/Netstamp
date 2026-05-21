@@ -1,80 +1,64 @@
 import { pathForRoute } from "@/routes/routePaths";
 import { installAssetPaths, installAssetUrl, probeInstallCommand } from "@/shared/api/installAssets";
 import { useCreateProjectProbeMutation } from "@/shared/api/mutations";
+import { projectQueries } from "@/shared/api/queries";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { classNames } from "@/shared/utils/classNames";
 import { Badge, Button, Terminal, TextField } from "@netstamp/ui";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, type MouseEvent, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styles from "./NewProbeDrawer.module.css";
 import { ProbeWizardTimeline } from "./ProbeWizardTimeline";
-import { TagPicker } from "./TagPicker";
 
-const defaultProbeTags = ["Edge", "Home", "VPS", "Bare metal", "IPv6", "Web3", "Lab"];
 const drawerCloseDurationMs = 180;
-const installDetectionDurationMs = 1600;
 const createProbeSteps = [
 	{ number: "01", title: "Name", copy: "Probe identity" },
-	{ number: "02", title: "Install", copy: "Run command" },
-	{ number: "03", title: "Details", copy: "Optional metadata" }
+	{ number: "02", title: "Install", copy: "Run command" }
 ];
 
 export function NewProbeDrawer() {
 	const navigate = useNavigate();
 	const { projectRef } = useCurrentProject();
+	const queryClient = useQueryClient();
 	const closeTimeoutRef = useRef<number | null>(null);
-	const detectTimeoutRef = useRef<number | null>(null);
 	const [closing, setClosing] = useState(false);
 	const [currentStep, setCurrentStep] = useState(0);
-	const [installStatus, setInstallStatus] = useState<"idle" | "detecting" | "detected">("idle");
+	const [installStatus, setInstallStatus] = useState<"idle" | "detecting">("idle");
 	const [probeName, setProbeName] = useState("");
-	const [probeLocation, setProbeLocation] = useState("");
-	const [asn, setAsn] = useState("");
-	const [tagOptions, setTagOptions] = useState(defaultProbeTags);
-	const [selectedTags, setSelectedTags] = useState(["Edge"]);
-	const [newTag, setNewTag] = useState("");
 	const [registrationSecret, setRegistrationSecret] = useState("");
 	const [registeredProbeId, setRegisteredProbeId] = useState("");
 	const createProbeMutation = useCreateProjectProbeMutation(projectRef);
+	const createdProbeQuery = useQuery({
+		...projectQueries.probeDetail(projectRef || "", registeredProbeId),
+		enabled: Boolean(projectRef && registeredProbeId && currentStep === 1 && installStatus === "detecting"),
+		refetchInterval: query => {
+			const status = query.state.data?.probe.status;
+
+			return status?.state === "online" || status?.lastSeenAt ? false : 2500;
+		},
+		refetchIntervalInBackground: true
+	});
+	const heartbeatReceived = Boolean(createdProbeQuery.data?.probe.status?.state === "online" || createdProbeQuery.data?.probe.status?.lastSeenAt);
 	const canCreate = probeName.trim().length > 0 && Boolean(projectRef);
-	const token = registrationSecret || "waiting-for-controller";
 	const installerUrl = installAssetUrl(installAssetPaths.agentInstaller);
 	const uninstallerUrl = installAssetUrl(installAssetPaths.agentUninstaller);
 	const binaryUrl = installAssetUrl(installAssetPaths.linuxAmd64Binary);
-	const installCommand =
-		registeredProbeId && registrationSecret
-			? probeInstallCommand({ probeId: registeredProbeId, probeSecret: registrationSecret })
-			: `curl -fsSL '${installerUrl}' | sudo sh -s -- --probe-id waiting-for-controller --probe-secret ${token}`;
+	const installCommand = registeredProbeId && registrationSecret ? probeInstallCommand({ probeId: registeredProbeId, probeSecret: registrationSecret }) : "";
 
 	useEffect(() => {
 		return () => {
 			if (closeTimeoutRef.current) {
 				window.clearTimeout(closeTimeoutRef.current);
 			}
-
-			if (detectTimeoutRef.current) {
-				window.clearTimeout(detectTimeoutRef.current);
-			}
 		};
 	}, []);
 
 	useEffect(() => {
-		if (currentStep !== 1 || installStatus !== "detecting") {
-			return undefined;
+		if (heartbeatReceived) {
+			void queryClient.invalidateQueries({ queryKey: projectQueries.probes(projectRef || "").queryKey });
 		}
-
-		detectTimeoutRef.current = window.setTimeout(() => {
-			setInstallStatus("detected");
-			detectTimeoutRef.current = null;
-		}, installDetectionDurationMs);
-
-		return () => {
-			if (detectTimeoutRef.current) {
-				window.clearTimeout(detectTimeoutRef.current);
-				detectTimeoutRef.current = null;
-			}
-		};
-	}, [currentStep, installStatus]);
+	}, [heartbeatReceived, projectRef, queryClient]);
 
 	useEffect(() => {
 		function handleKeyDown(event: KeyboardEvent) {
@@ -124,22 +108,6 @@ export function NewProbeDrawer() {
 		startInstallDetection();
 	}
 
-	function toggleTag(tag: string) {
-		setSelectedTags(current => (current.includes(tag) ? current.filter(value => value !== tag) : [...current, tag]));
-	}
-
-	function addTag() {
-		const trimmedTag = newTag.trim();
-
-		if (!trimmedTag) {
-			return;
-		}
-
-		setTagOptions(current => (current.includes(trimmedTag) ? current : [...current, trimmedTag]));
-		setSelectedTags(current => (current.includes(trimmedTag) ? current : [...current, trimmedTag]));
-		setNewTag("");
-	}
-
 	function handleBackdropClick(event: MouseEvent<HTMLDivElement>) {
 		if (event.target === event.currentTarget) {
 			closeDrawer();
@@ -153,7 +121,7 @@ export function NewProbeDrawer() {
 					<div>
 						<Badge tone="accent">New probe wizard</Badge>
 						<h2>Create probe</h2>
-						<p>Name the probe, install it on a host, then optionally annotate it with network metadata.</p>
+						<p>Name the probe, install it on a host, then wait for the controller to receive its first heartbeat.</p>
 					</div>
 					<Button type="button" variant="ghost" size="sm" onClick={closeDrawer}>
 						Close
@@ -183,15 +151,15 @@ export function NewProbeDrawer() {
 
 						<section className={styles.workflowPanel} aria-hidden={currentStep !== 1}>
 							<div className={styles.stepCopy}>
-								<Badge tone={installStatus === "detected" ? "success" : "warning"}>{installStatus === "detected" ? "Probe detected" : "Auto detecting"}</Badge>
+								<Badge tone={heartbeatReceived ? "success" : "warning"}>{heartbeatReceived ? "Probe detected" : "Listening"}</Badge>
 								<h3>Install the probe</h3>
-								<p>Run the controller-served installer on the host. The wizard watches for the first heartbeat and unlocks metadata when the probe is detected.</p>
+								<p>Run the controller-served installer on the host. The wizard polls the controller and only completes after the probe heartbeat is recorded by the API.</p>
 							</div>
 
 							<div className={classNames("ns-cut-frame", styles.registrationBlock)}>
 								<div className={styles.tokenLine}>
 									<span>Registration token</span>
-									<strong>{token}</strong>
+									<strong>{registrationSecret || "-"}</strong>
 								</div>
 								<div className={styles.assetLinks}>
 									<Button asChild variant="outline" size="sm">
@@ -210,50 +178,23 @@ export function NewProbeDrawer() {
 							</div>
 
 							<div className={classNames("ns-cut-frame", styles.detectCard)}>
-								<Badge tone={installStatus === "detected" ? "success" : "warning"}>{installStatus === "detected" ? "Heartbeat received" : "Listening for heartbeat"}</Badge>
-								<strong>{installStatus === "detected" ? `${probeName.trim()} is online` : "Waiting for install to finish"}</strong>
-								<p>{installStatus === "detected" ? "The controller accepted the first signed result stream." : "Waiting for the first signed probe heartbeat."}</p>
+								<Badge tone={heartbeatReceived ? "success" : "warning"}>{heartbeatReceived ? "Heartbeat received" : "Listening for heartbeat"}</Badge>
+								<strong>{heartbeatReceived ? `${probeName.trim()} is online` : "Waiting for install to finish"}</strong>
+								<p>
+									{heartbeatReceived
+										? "The controller API reports a runtime heartbeat for this probe."
+										: createdProbeQuery.isError
+											? "The controller could not confirm heartbeat status yet. Polling will continue."
+											: "Waiting for the first signed probe heartbeat from the controller API."}
+								</p>
 							</div>
 
 							<div className={styles.actions}>
 								<Button type="button" variant="ghost" disabled={currentStep !== 1} onClick={() => setCurrentStep(0)}>
 									Back
 								</Button>
-								<Button type="button" disabled={installStatus !== "detected" || currentStep !== 1} onClick={() => setCurrentStep(2)}>
-									Continue to details
-								</Button>
-							</div>
-						</section>
-
-						<section className={styles.workflowPanel} aria-hidden={currentStep !== 2}>
-							<div className={styles.stepCopy}>
-								<Badge tone="accent">Step 03</Badge>
-								<h3>Add optional metadata</h3>
-								<p>Customize location, AS, and tags or we can guess it by ourselves.</p>
-							</div>
-
-							<div className={styles.formGrid}>
-								<TextField
-									label="Location (optional)"
-									value={probeLocation}
-									placeholder="Taipei, Taiwan"
-									disabled={currentStep !== 2}
-									onChange={event => setProbeLocation(event.currentTarget.value)}
-								/>
-								<TextField label="AS (optional)" value={asn} placeholder="AS3462" disabled={currentStep !== 2} onChange={event => setAsn(event.currentTarget.value)} />
-							</div>
-
-							<TagPicker tagOptions={tagOptions} selectedTags={selectedTags} newTag={newTag} disabled={currentStep !== 2} onToggleTag={toggleTag} onNewTagChange={setNewTag} onAddTag={addTag} />
-
-							<div className={styles.actions}>
-								<Button type="button" variant="ghost" disabled={currentStep !== 2} onClick={() => setCurrentStep(1)}>
-									Back
-								</Button>
-								<Button type="button" disabled={currentStep !== 2} onClick={closeDrawer}>
-									Save details
-								</Button>
-								<Button type="button" variant="outline" disabled={currentStep !== 2} onClick={closeDrawer}>
-									Skip
+								<Button type="button" disabled={!heartbeatReceived || currentStep !== 1} onClick={closeDrawer}>
+									Finish
 								</Button>
 							</div>
 						</section>

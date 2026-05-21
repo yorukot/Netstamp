@@ -4,7 +4,7 @@ import { Button, Input, PageShell } from "@netstamp/ui";
 import type { FormEvent, KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { useAuthMock } from "../hooks/useAuthMock";
+import { useAuth } from "../hooks/useAuth";
 import styles from "./OnboardingPage.module.css";
 
 interface OnboardingPageProps {
@@ -20,7 +20,7 @@ interface ScriptStep {
 const typeDelayMs = 34;
 
 export function OnboardingPage({ navigate }: OnboardingPageProps) {
-	const { session, loading, submitting, createProject } = useAuthMock();
+	const { session, loading, submitting, createProject } = useAuth();
 	const [activeStep, setActiveStep] = useState(0);
 	const [typedText, setTypedText] = useState("");
 	const [projectName, setProjectName] = useState("");

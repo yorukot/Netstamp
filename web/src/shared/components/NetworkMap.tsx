@@ -1,7 +1,7 @@
 import { type Probe } from "@/features/probes/data/probes";
 import type { Map as MapLibreMap, Marker as MapLibreMarker, StyleSpecification } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import styles from "./NetworkMap.module.css";
 
 interface NetworkMapProps {
@@ -89,6 +89,10 @@ function clearMarkers(markers: MarkerRecord[]) {
 	}
 }
 
+function hasCoordinates(probe: Probe): probe is Probe & { coordinates: [number, number] } {
+	return Array.isArray(probe.coordinates);
+}
+
 export function NetworkMap({ probes, selectedId, onSelect, mode = "fleet", className }: NetworkMapProps) {
 	const mapContainerRef = useRef<HTMLDivElement | null>(null);
 	const maplibreglRef = useRef<MapLibreModule | null>(null);
@@ -97,6 +101,7 @@ export function NetworkMap({ probes, selectedId, onSelect, mode = "fleet", class
 	const selectedIdRef = useRef(selectedId);
 	const [mapReady, setMapReady] = useState(false);
 	const classes = ["ns-cut-frame", styles.map, className].filter(Boolean).join(" ");
+	const positionedProbes = useMemo(() => probes.filter(hasCoordinates), [probes]);
 
 	useEffect(() => {
 		let cancelled = false;
@@ -169,7 +174,7 @@ export function NetworkMap({ probes, selectedId, onSelect, mode = "fleet", class
 
 		function renderMarkers() {
 			clearMarkers(markersRef.current);
-			markersRef.current = probes.map(probe => {
+			markersRef.current = positionedProbes.map(probe => {
 				const element = createMarkerElement(probe, mode, onSelect);
 				setMarkerActive(element, probe.id === selectedIdRef.current);
 
@@ -195,7 +200,7 @@ export function NetworkMap({ probes, selectedId, onSelect, mode = "fleet", class
 			clearMarkers(markersRef.current);
 			markersRef.current = [];
 		};
-	}, [mapReady, mode, onSelect, probes]);
+	}, [mapReady, mode, onSelect, positionedProbes]);
 
 	useEffect(() => {
 		const map = mapRef.current;
@@ -204,7 +209,7 @@ export function NetworkMap({ probes, selectedId, onSelect, mode = "fleet", class
 			return undefined;
 		}
 
-		const selectedProbe = probes.find(probe => probe.id === selectedId) || probes[0];
+		const selectedProbe = positionedProbes.find(probe => probe.id === selectedId) || positionedProbes[0];
 
 		if (!selectedProbe) {
 			return undefined;
@@ -231,13 +236,13 @@ export function NetworkMap({ probes, selectedId, onSelect, mode = "fleet", class
 		return () => {
 			activeMap.off("load", focusSelectedProbe);
 		};
-	}, [mapReady, mode, probes, selectedId]);
+	}, [mapReady, mode, positionedProbes, selectedId]);
 
 	useEffect(() => {
 		const map = mapRef.current;
 		const maplibregl = maplibreglRef.current;
 
-		if (!map || !maplibregl || !mapReady || mode !== "fleet" || probes.length === 0) {
+		if (!map || !maplibregl || !mapReady || mode !== "fleet" || positionedProbes.length === 0) {
 			return undefined;
 		}
 
@@ -245,9 +250,9 @@ export function NetworkMap({ probes, selectedId, onSelect, mode = "fleet", class
 		const activeMaplibregl = maplibregl;
 
 		function fitFleetBounds() {
-			const bounds = new activeMaplibregl.LngLatBounds(probes[0].coordinates, probes[0].coordinates);
+			const bounds = new activeMaplibregl.LngLatBounds(positionedProbes[0].coordinates, positionedProbes[0].coordinates);
 
-			for (const probe of probes.slice(1)) {
+			for (const probe of positionedProbes.slice(1)) {
 				bounds.extend(probe.coordinates);
 			}
 
@@ -267,7 +272,7 @@ export function NetworkMap({ probes, selectedId, onSelect, mode = "fleet", class
 		return () => {
 			activeMap.off("load", fitFleetBounds);
 		};
-	}, [mapReady, mode, probes]);
+	}, [mapReady, mode, positionedProbes]);
 
 	return (
 		<div className={classes}>

@@ -5,7 +5,7 @@ import { Badge, Button, PageShell, Panel, TextField } from "@netstamp/ui";
 import type { FormEvent } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
-import { useAuthMock } from "../hooks/useAuthMock";
+import { useAuth } from "../hooks/useAuth";
 import styles from "./AuthPage.module.css";
 
 interface AuthPageProps {
@@ -15,7 +15,7 @@ interface AuthPageProps {
 
 export function AuthPage({ mode = "login", navigate }: AuthPageProps) {
 	const isRegister = mode === "register";
-	const { submitting, login, register } = useAuthMock();
+	const { submitting, login, register } = useAuth();
 
 	async function handleSubmit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();

@@ -1,7 +1,6 @@
 import { mapApiChecks } from "@/features/checks/api/checkAdapters";
 import { mapApiMeasurements } from "@/features/checks/api/resultAdapters";
 import { type CheckDefinition } from "@/features/checks/data/checks";
-import { dnsData, latencyData, routeDiffData } from "@/features/insight/data/series";
 import { mapApiProbes } from "@/features/probes/api/probeAdapters";
 import { type Probe } from "@/features/probes/data/probes";
 import { projectQueries } from "@/shared/api/queries";
@@ -67,22 +66,6 @@ const resultColumns: DataColumn<ResultRow>[] = [
 	{ key: "metadata", label: "Raw metadata" }
 ];
 
-function checkSeries(check: CheckDefinition) {
-	if (check.type === "DNS") {
-		return dnsData;
-	}
-
-	if (check.type === "Traceroute") {
-		return routeDiffData.map((value, index) => 54 + value * 9 + index * 2);
-	}
-
-	return latencyData;
-}
-
-function shiftSeries(values: number[], seed: number) {
-	return values.map((value, index) => Math.max(0, Math.round(value + (((seed + 1) * 4 + index * 3) % 18) - 7)));
-}
-
 function timeLabel(value: string) {
 	return timeOptions.find(option => option.value === value)?.label || value;
 }
@@ -130,7 +113,8 @@ export function InsightPage() {
 
 	const selectedProbe = probes.find(probe => probe.id === selectedProbeId) || probes[0] || null;
 	const selectedTarget = checks.find(check => check.id === selectedTargetId) || checks[0] || null;
-	const measurementFilters = view === "probe" && selectedProbe ? { probeId: selectedProbe.id, limit: 100 } : view === "target" && selectedTarget ? { checkId: selectedTarget.id, limit: 100 } : { limit: 100 };
+	const measurementFilters =
+		view === "probe" && selectedProbe ? { probeId: selectedProbe.id, limit: 100 } : view === "target" && selectedTarget ? { checkId: selectedTarget.id, limit: 100 } : { limit: 100 };
 	const pingSeriesQuery = useQuery({
 		...projectQueries.pingSeries(projectRef || "", selectedProbe?.id || "", selectedTarget?.id || ""),
 		enabled: Boolean(projectRef && selectedProbe && selectedTarget && selectedTarget.type === "Ping")
@@ -155,6 +139,7 @@ export function InsightPage() {
 	}));
 	const selectedPingValues = pingSeriesQuery.data?.series[0]?.points.map(([, value]) => Math.round(value)) ?? [];
 	const selectedTracerouteValues = tracerouteRunsQuery.data?.runs.map(run => run.hopCount) ?? [];
+	const selectedSeriesValues = selectedPingValues.length ? selectedPingValues : selectedTracerouteValues;
 	const selectedTitle = view === "probe" ? selectedProbe?.name || "No probe selected" : selectedTarget?.target || "No target selected";
 	const selectedDetails = view === "probe" ? (selectedProbe ? detailsForProbe(selectedProbe) : []) : selectedTarget ? detailsForTarget(selectedTarget) : [];
 	const pickerOptions =
@@ -162,23 +147,23 @@ export function InsightPage() {
 
 	const graphCards: GraphCard[] =
 		view === "probe"
-			? checks.map((check, index) => ({
+			? checks.map(check => ({
 					key: check.id,
 					eyebrow: timeLabel(timeRange),
 					title: `${selectedProbe?.name || "probe"} → ${check.target}`,
 					copy: `${check.type} insight for ${assignedLabel(selectedProbe?.name || "", check.id)} probe-target measurement.`,
 					metric: check.type.toLowerCase(),
-					values: check.id === selectedTarget?.id && selectedPingValues.length ? selectedPingValues : check.id === selectedTarget?.id && selectedTracerouteValues.length ? selectedTracerouteValues : shiftSeries(checkSeries(check), index),
-					baseline: checkSeries(check)
+					values: check.id === selectedTarget?.id ? selectedSeriesValues : [],
+					baseline: []
 				}))
-			: probes.map((probe, index) => ({
+			: probes.map(probe => ({
 					key: probe.id,
 					eyebrow: timeLabel(timeRange),
 					title: `${probe.name} → ${selectedTarget?.target || "target"}`,
 					copy: `${selectedTarget?.type || "Ping"} insight from ${probe.location}; ${assignedLabel(probe.name, selectedTarget?.id || "")} path.`,
 					metric: (selectedTarget?.type || "Ping").toLowerCase(),
-					values: probe.id === selectedProbe?.id && selectedPingValues.length ? selectedPingValues : probe.id === selectedProbe?.id && selectedTracerouteValues.length ? selectedTracerouteValues : selectedTarget ? shiftSeries(checkSeries(selectedTarget), index) : [],
-					baseline: selectedTarget ? checkSeries(selectedTarget) : []
+					values: probe.id === selectedProbe?.id ? selectedSeriesValues : [],
+					baseline: []
 				}));
 
 	return (
