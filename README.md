@@ -300,8 +300,9 @@ just backend-probe server/probe.env
 Install a probe agent on a Linux systemd host:
 
 ```bash
-curl -fsSL https://example.com/api/v1/install/agent.sh | sudo sh -s -- \
-  --controller-url https://example.com \
+curl -fsSL https://example.com/api/v1/install/agent.sh | sudo sh
+sudo netstamp-agent service install \
+  --url https://example.com \
   --probe-id <probe-id> \
   --probe-secret <probe-secret>
 ```
@@ -313,6 +314,12 @@ curl -fsSL https://example.com/api/v1/install/uninstall-agent.sh | sudo sh
 ```
 
 Add `--purge` to the uninstall command to also remove `/etc/netstamp/probe.env`, `/etc/netstamp`, `/var/lib/netstamp`, and the `netstamp` system user/group.
+
+Check the systemd service status:
+
+```bash
+sudo netstamp-agent service status
+```
 
 ## Configuration
 
@@ -462,7 +469,7 @@ Required production environment values include:
 
 Run migrations before serving the controller. The compose stack includes a `migrate` service that applies Goose migrations before the controller starts.
 
-The controller serves Linux probe install assets at `/api/v1/install/agent.sh`, `/api/v1/install/uninstall-agent.sh`, and `/api/v1/install/netstamp-agent-linux-amd64`. The installer creates a `netstamp` system user, writes `/etc/netstamp/probe.env`, installs `/usr/local/bin/netstamp-agent`, and enables `netstamp-agent.service` with `CAP_NET_RAW` for ICMP probes.
+The controller serves Linux probe install assets at `/api/v1/install/agent.sh`, `/api/v1/install/uninstall-agent.sh`, and `/api/v1/install/netstamp-agent-linux-amd64`. The installer only installs `/usr/local/bin/netstamp-agent`. The `netstamp-agent service install` command creates a `netstamp` system user, writes `/etc/netstamp/probe.env`, and enables `netstamp-agent.service` with `CAP_NET_RAW` for ICMP probes.
 
 `TIMESCALEDB_IMAGE` may be overridden for local or deployment testing, but the selected image must include every extension enabled by migrations. The default lightweight image is enough for the current schema because it only requires core TimescaleDB features such as hypertables and `time_bucket`.
 

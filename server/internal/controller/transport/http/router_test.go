@@ -290,12 +290,21 @@ func TestNewRouterServesAgentInstallerScript(t *testing.T) {
 	body := recorder.Body.String()
 	for _, want := range []string{
 		"#!/bin/sh",
-		"--controller-url",
-		"systemctl enable --now",
-		"AmbientCapabilities=CAP_NET_RAW",
+		`binary_url="http://example.com/api/v1/install/netstamp-agent-linux-amd64"`,
+		`controller_url="http://example.com"`,
+		"sudo netstamp-agent service install --url",
 	} {
 		if !strings.Contains(body, want) {
 			t.Fatalf("expected install script body to contain %q", want)
+		}
+	}
+	for _, notWant := range []string{
+		"NETSTAMP_PROBE_SECRET",
+		"systemctl enable --now",
+		"AmbientCapabilities=CAP_NET_RAW",
+	} {
+		if strings.Contains(body, notWant) {
+			t.Fatalf("expected thin install script body not to contain %q", notWant)
 		}
 	}
 }
@@ -316,12 +325,14 @@ func TestNewRouterServesAgentUninstallerScript(t *testing.T) {
 	for _, want := range []string{
 		"#!/bin/sh",
 		"--purge",
-		"systemctl disable --now",
-		"Configuration preserved",
+		"exec \"$agent_path\" service uninstall \"$@\"",
 	} {
 		if !strings.Contains(body, want) {
 			t.Fatalf("expected uninstall script body to contain %q", want)
 		}
+	}
+	if strings.Contains(body, "systemctl disable --now") {
+		t.Fatalf("expected uninstall script wrapper not to contain systemctl implementation")
 	}
 }
 
