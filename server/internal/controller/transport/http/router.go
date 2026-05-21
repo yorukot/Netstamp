@@ -22,6 +22,7 @@ import (
 	assignmenthttp "github.com/yorukot/netstamp/internal/controller/transport/http/handler/assignment"
 	authhttp "github.com/yorukot/netstamp/internal/controller/transport/http/handler/auth"
 	checkhttp "github.com/yorukot/netstamp/internal/controller/transport/http/handler/check"
+	installhttp "github.com/yorukot/netstamp/internal/controller/transport/http/handler/install"
 	labelhttp "github.com/yorukot/netstamp/internal/controller/transport/http/handler/label"
 	probehttp "github.com/yorukot/netstamp/internal/controller/transport/http/handler/probe"
 	proberuntimehttp "github.com/yorukot/netstamp/internal/controller/transport/http/handler/proberuntime"
@@ -51,6 +52,8 @@ type Dependencies struct {
 	ReadinessCheck    func(context.Context) error
 	RequestTimeout    time.Duration
 	MetricsHandler    http.Handler
+	AgentBinaryPath   string
+	ExposeAPIDocs     bool
 }
 
 func NewRouter(dep Dependencies) http.Handler {
@@ -101,7 +104,10 @@ func routeMetrics(apiRouter, metricsHandler http.Handler) http.Handler {
 
 func registerAPIRoutes(api chi.Router, dep Dependencies) {
 	registerSystemRoutes(api, dep.ReadinessCheck)
-	registerOpenAPIRoutes(api, dep)
+	if dep.ExposeAPIDocs {
+		registerOpenAPIRoutes(api, dep)
+	}
+	installhttp.NewHandler(dep.AgentBinaryPath).RegisterRoutes(api)
 
 	authhttp.NewHandler(dep.AuthService, dep.AuthVerifier, dep.AuthCookieSecure).RegisterRoutes(api)
 	userhttp.NewHandler(dep.UserService, dep.AuthVerifier).RegisterRoutes(api)

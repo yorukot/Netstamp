@@ -21,6 +21,7 @@ import "./services/assignments.tsp";
 import "./services/probes.tsp";
 import "./services/results.tsp";
 import "./services/probe-runtime.tsp";
+import "./services/install.tsp";
 
 using Http;
 using OpenAPI;
@@ -41,4 +42,5 @@ using OpenAPI;
 @tagMetadata("Results", #{ description: "Authenticated result query endpoints." })
 @tagMetadata("Measurements", #{ description: "Raw-ish measurement rows for tables, logs, and recent activity views." })
 @tagMetadata("Probe Runtime", #{ description: "Probe-agent runtime handshake, polling, and result ingestion." })
+@tagMetadata("Install", #{ description: "Probe-agent install assets for Linux systemd hosts." })
 namespace Netstamp;

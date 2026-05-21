@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -76,6 +78,9 @@ func TestNewRouterServesOpenAPIWithoutRuntimeServices(t *testing.T) {
 	assertOpenAPIOperation(t, spec, http.MethodPost, "/runtime/probes/{probe_id}/heartbeat", "probeRuntimeHeartbeat")
 	assertOpenAPIOperation(t, spec, http.MethodGet, "/runtime/probes/{probe_id}/assignments", "listProbeRuntimeAssignments")
 	assertOpenAPIOperation(t, spec, http.MethodPost, "/runtime/probes/{probe_id}/results", "submitProbeRuntimeResults")
+	assertOpenAPIOperation(t, spec, http.MethodGet, "/install/agent.sh", "getAgentInstallerScript")
+	assertOpenAPIOperation(t, spec, http.MethodGet, "/install/uninstall-agent.sh", "getAgentUninstallerScript")
+	assertOpenAPIOperation(t, spec, http.MethodGet, "/install/netstamp-agent-linux-amd64", "downloadAgentLinuxAmd64")
 	assertOpenAPIPathAbsent(t, spec, "/probes/{probe_id}/runtime/hello")
 	assertOpenAPIPathAbsent(t, spec, "/probes/{probe_id}/runtime/heartbeat")
 	assertOpenAPIPathAbsent(t, spec, "/probes/{probe_id}/runtime/assignments")
@@ -168,6 +173,7 @@ func TestNewRouterServesScalarDocsWhenAPIDocsExposed(t *testing.T) {
 		recorder := performRouterRequest(Dependencies{
 			APIVersion:     "v1",
 			RequestTimeout: time.Second,
+			ExposeAPIDocs:  true,
 		}, http.MethodGet, path)
 
 		if recorder.Code != http.StatusOK {
@@ -269,12 +275,104 @@ func TestNewRouterServesMetricsOutsideVersionedAPI(t *testing.T) {
 	}
 }
 
+func TestNewRouterServesAgentInstallerScript(t *testing.T) {
+	recorder := performRouterRequest(Dependencies{
+		APIVersion:     "v1",
+		RequestTimeout: time.Second,
+	}, http.MethodGet, "/api/v1/install/agent.sh")
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected install script status 200, got %d", recorder.Code)
+	}
+	if got := recorder.Header().Get("Content-Type"); got != "text/x-shellscript; charset=utf-8" {
+		t.Fatalf("expected install script content type, got %q", got)
+	}
+	body := recorder.Body.String()
+	for _, want := range []string{
+		"#!/bin/sh",
+		"--controller-url",
+		"systemctl enable --now",
+		"AmbientCapabilities=CAP_NET_RAW",
+	} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("expected install script body to contain %q", want)
+		}
+	}
+}
+
+func TestNewRouterServesAgentUninstallerScript(t *testing.T) {
+	recorder := performRouterRequest(Dependencies{
+		APIVersion:     "v1",
+		RequestTimeout: time.Second,
+	}, http.MethodGet, "/api/v1/install/uninstall-agent.sh")
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected uninstall script status 200, got %d", recorder.Code)
+	}
+	if got := recorder.Header().Get("Content-Type"); got != "text/x-shellscript; charset=utf-8" {
+		t.Fatalf("expected uninstall script content type, got %q", got)
+	}
+	body := recorder.Body.String()
+	for _, want := range []string{
+		"#!/bin/sh",
+		"--purge",
+		"systemctl disable --now",
+		"Configuration preserved",
+	} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("expected uninstall script body to contain %q", want)
+		}
+	}
+}
+
+func TestNewRouterServesAgentBinary(t *testing.T) {
+	agentPath := filepath.Join(t.TempDir(), "agent")
+	if err := os.WriteFile(agentPath, []byte("agent-binary"), 0o755); err != nil {
+		t.Fatalf("write test agent binary: %v", err)
+	}
+
+	recorder := performRouterRequest(Dependencies{
+		APIVersion:      "v1",
+		RequestTimeout:  time.Second,
+		AgentBinaryPath: agentPath,
+	}, http.MethodGet, "/api/v1/install/netstamp-agent-linux-amd64")
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected agent binary status 200, got %d", recorder.Code)
+	}
+	if got := recorder.Header().Get("Content-Type"); got != "application/octet-stream" {
+		t.Fatalf("expected agent binary content type, got %q", got)
+	}
+	if got := recorder.Header().Get("Content-Disposition"); got != `attachment; filename="netstamp-agent-linux-amd64"` {
+		t.Fatalf("expected agent binary content disposition, got %q", got)
+	}
+	if recorder.Body.String() != "agent-binary" {
+		t.Fatalf("expected agent binary body, got %q", recorder.Body.String())
+	}
+}
+
+func TestNewRouterReportsMissingAgentBinary(t *testing.T) {
+	recorder := performRouterRequest(Dependencies{
+		APIVersion:      "v1",
+		RequestTimeout:  time.Second,
+		AgentBinaryPath: filepath.Join(t.TempDir(), "missing-agent"),
+	}, http.MethodGet, "/api/v1/install/netstamp-agent-linux-amd64")
+
+	if recorder.Code != http.StatusNotFound {
+		t.Fatalf("expected missing agent binary status 404, got %d", recorder.Code)
+	}
+	if body := recorder.Body.String(); !strings.Contains(body, `"detail":"agent binary not found"`) {
+		t.Fatalf("expected missing agent binary problem body, got %q", body)
+	}
+}
+
 func getOpenAPI(t *testing.T, dep Dependencies) openAPISnapshot {
 	t.Helper()
 
 	if dep.RequestTimeout == 0 {
 		dep.RequestTimeout = time.Second
 	}
+	dep.ExposeAPIDocs = true
 	router := NewRouter(dep)
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest(http.MethodGet, "/api/"+dep.APIVersion+"/openapi.json", http.NoBody)

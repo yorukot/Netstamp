@@ -10,7 +10,7 @@ Use the backend application and domain packages as the source of truth for resou
 
 - `main.tsp`: service metadata, server base path, tag metadata, and imports.
 - `models/`: shared scalars, auth, project/member, label, check, probe, runtime, and result models.
-- `services/`: route groups split by application feature: system, auth, projects, labels, checks, probes, results, and probe runtime.
+- `services/`: route groups split by application feature: system, auth, projects, labels, checks, probes, results, probe runtime, and install assets.
 - `tspconfig.yaml`: OpenAPI 3.1 JSON emitter configuration. Output is `../docs/public/openapi.json`.
 
 ## Commands

@@ -118,6 +118,57 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	"/install/agent.sh": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** Get Linux probe agent installer script */
+		get: operations["getAgentInstallerScript"];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	"/install/netstamp-agent-linux-amd64": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** Download Linux amd64 probe agent binary */
+		get: operations["downloadAgentLinuxAmd64"];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	"/install/uninstall-agent.sh": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** Get Linux probe agent uninstaller script */
+		get: operations["getAgentUninstallerScript"];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	"/projects": {
 		parameters: {
 			query?: never;
@@ -2256,6 +2307,102 @@ export interface operations {
 			};
 			/** @description Service unavailable. */
 			503: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	getAgentInstallerScript: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"text/x-shellscript": unknown;
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	downloadAgentLinuxAmd64: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/octet-stream": unknown;
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Service unavailable. */
+			503: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	getAgentUninstallerScript: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"text/x-shellscript": unknown;
+				};
+			};
+			/** @description Server error */
+			500: {
 				headers: {
 					[name: string]: unknown;
 				};

@@ -7,6 +7,10 @@
 	},
 	"tags": [
 		{
+			"name": "Install",
+			"description": "Probe-agent install assets for Linux systemd hosts."
+		},
+		{
 			"name": "Probe Runtime",
 			"description": "Probe-agent runtime handshake, polling, and result ingestion."
 		},
@@ -300,6 +304,106 @@
 					}
 				},
 				"tags": ["System"]
+			}
+		},
+		"/install/agent.sh": {
+			"get": {
+				"operationId": "getAgentInstallerScript",
+				"summary": "Get Linux probe agent installer script",
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"text/x-shellscript": {
+								"schema": {
+									"contentMediaType": "text/x-shellscript"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Install"]
+			}
+		},
+		"/install/netstamp-agent-linux-amd64": {
+			"get": {
+				"operationId": "downloadAgentLinuxAmd64",
+				"summary": "Download Linux amd64 probe agent binary",
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/octet-stream": {
+								"schema": {
+									"contentMediaType": "application/octet-stream"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"503": {
+						"description": "Service unavailable.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Install"]
+			}
+		},
+		"/install/uninstall-agent.sh": {
+			"get": {
+				"operationId": "getAgentUninstallerScript",
+				"summary": "Get Linux probe agent uninstaller script",
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"text/x-shellscript": {
+								"schema": {
+									"contentMediaType": "text/x-shellscript"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Install"]
 			}
 		},
 		"/projects": {
