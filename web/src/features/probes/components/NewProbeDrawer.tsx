@@ -1,10 +1,8 @@
 import { pathForRoute } from "@/routes/routePaths";
-import { createProjectProbe } from "@/shared/api/queries";
-import { apiQueryKeys } from "@/shared/api/queryKeys";
+import { useCreateProjectProbeMutation } from "@/shared/api/mutations";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { classNames } from "@/shared/utils/classNames";
 import { Badge, Button, Terminal, TextField } from "@netstamp/ui";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, type MouseEvent, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styles from "./NewProbeDrawer.module.css";
@@ -22,7 +20,6 @@ const createProbeSteps = [
 
 export function NewProbeDrawer() {
 	const navigate = useNavigate();
-	const queryClient = useQueryClient();
 	const { projectRef } = useCurrentProject();
 	const closeTimeoutRef = useRef<number | null>(null);
 	const detectTimeoutRef = useRef<number | null>(null);
@@ -36,16 +33,7 @@ export function NewProbeDrawer() {
 	const [selectedTags, setSelectedTags] = useState(["Edge"]);
 	const [newTag, setNewTag] = useState("");
 	const [registrationSecret, setRegistrationSecret] = useState("");
-	const createProbeMutation = useMutation({
-		mutationFn: () => createProjectProbe(projectRef || "", { enabled: true, name: probeName.trim() }),
-		onSuccess: data => {
-			setRegistrationSecret(data.secret);
-
-			if (projectRef) {
-				queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.probes(projectRef) });
-			}
-		}
-	});
+	const createProbeMutation = useCreateProjectProbeMutation(projectRef);
 	const canCreate = probeName.trim().length > 0 && Boolean(projectRef);
 	const token = registrationSecret || "waiting-for-controller";
 	const installCommand = [
@@ -123,7 +111,8 @@ export function NewProbeDrawer() {
 			return;
 		}
 
-		await createProbeMutation.mutateAsync();
+		const data = await createProbeMutation.mutateAsync({ enabled: true, name: probeName.trim() });
+		setRegistrationSecret(data.secret);
 		startInstallDetection();
 	}
 

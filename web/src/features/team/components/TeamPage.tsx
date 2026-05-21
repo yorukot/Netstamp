@@ -1,21 +1,19 @@
 import {
-	addProjectMember,
-	createProjectLabel,
-	deleteProject,
-	deleteProjectLabel,
-	projectQueries,
-	removeProjectMember,
-	updateProject,
-	updateProjectLabel,
-	updateProjectMemberRole
-} from "@/shared/api/queries";
-import { apiQueryKeys } from "@/shared/api/queryKeys";
+	useAddProjectMemberMutation,
+	useDeleteProjectLabelMutation,
+	useDeleteProjectMutation,
+	useRemoveProjectMemberMutation,
+	useSaveProjectLabelMutation,
+	useUpdateProjectMemberRoleMutation,
+	useUpdateProjectMutation
+} from "@/shared/api/mutations";
+import { projectQueries } from "@/shared/api/queries";
 import type { ApiLabel, ProjectMemberRole } from "@/shared/api/types";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { Button, DataTable, Panel, SelectField, Surface, TextField, type DataColumn } from "@netstamp/ui";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { RoleSelect } from "./RoleSelect";
 import styles from "./TeamPage.module.css";
@@ -37,8 +35,14 @@ interface LabelRow {
 }
 
 export function TeamPage() {
-	const queryClient = useQueryClient();
 	const { project, projectRef, setSelectedProjectRef } = useCurrentProject();
+	const updateProjectMutation = useUpdateProjectMutation(projectRef);
+	const addMemberMutation = useAddProjectMemberMutation(projectRef);
+	const removeMemberMutation = useRemoveProjectMemberMutation(projectRef);
+	const updateMemberRoleMutation = useUpdateProjectMemberRoleMutation(projectRef);
+	const saveLabelMutation = useSaveProjectLabelMutation(projectRef);
+	const deleteLabelMutation = useDeleteProjectLabelMutation(projectRef);
+	const deleteProjectMutation = useDeleteProjectMutation(projectRef);
 	const membersQuery = useQuery({
 		...projectQueries.members(projectRef || ""),
 		enabled: Boolean(projectRef)
@@ -49,7 +53,7 @@ export function TeamPage() {
 	});
 	const [projectName, setProjectName] = useState("");
 	const [projectSlug, setProjectSlug] = useState("");
-	const [memberUserId, setMemberUserId] = useState("");
+	const [memberEmail, setMemberEmail] = useState("");
 	const [memberRole, setMemberRole] = useState<ProjectMemberRole>("viewer");
 	const [selectedLabelId, setSelectedLabelId] = useState("");
 	const [labelKey, setLabelKey] = useState("");
@@ -59,81 +63,56 @@ export function TeamPage() {
 	const selectedLabel = labelsQuery.data?.labels?.find(label => label.id === selectedLabelId) ?? null;
 	const activeLabelKey = labelKey || selectedLabel?.key || "";
 	const activeLabelValue = labelValue || selectedLabel?.value || "";
-	const updateProjectMutation = useMutation({
-		mutationFn: () => updateProject(projectRef || "", { name: activeProjectName, slug: activeProjectSlug }),
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.all });
-		}
-	});
-	const addMemberMutation = useMutation({
-		mutationFn: () => addProjectMember(projectRef || "", { role: memberRole, userId: memberUserId }),
-		onSuccess: () => {
-			setMemberUserId("");
+	function addCurrentMember() {
+		addMemberMutation.mutate(
+			{ email: memberEmail, role: memberRole },
+			{
+				onSuccess: () => {
+					setMemberEmail("");
+				}
+			}
+		);
+	}
 
-			if (projectRef) {
-				queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.members(projectRef) });
+	function saveCurrentLabel() {
+		saveLabelMutation.mutate(
+			{ labelId: selectedLabel?.id, body: { key: activeLabelKey, value: activeLabelValue } },
+			{
+				onSuccess: data => {
+					setSelectedLabelId(data.label.id);
+					setLabelKey(data.label.key);
+					setLabelValue(data.label.value);
+				}
 			}
-		}
-	});
-	const removeMemberMutation = useMutation({
-		mutationFn: (userId: string) => removeProjectMember(projectRef || "", userId),
-		onSuccess: () => {
-			if (projectRef) {
-				queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.members(projectRef) });
-			}
-		}
-	});
-	const updateMemberRoleMutation = useMutation({
-		mutationFn: ({ userId, role }: { userId: string; role: ProjectMemberRole }) => updateProjectMemberRole(projectRef || "", userId, role),
-		onSuccess: () => {
-			if (projectRef) {
-				queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.members(projectRef) });
-			}
-		}
-	});
-	const saveLabelMutation = useMutation({
-		mutationFn: () => {
-			const body = { key: activeLabelKey, value: activeLabelValue };
-			return selectedLabel ? updateProjectLabel(projectRef || "", selectedLabel.id, body) : createProjectLabel(projectRef || "", body);
-		},
-		onSuccess: data => {
-			setSelectedLabelId(data.label.id);
-			setLabelKey(data.label.key);
-			setLabelValue(data.label.value);
+		);
+	}
 
-			if (projectRef) {
-				queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.labels(projectRef) });
-				queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.probes(projectRef) });
-				queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.checks(projectRef) });
+	function deleteCurrentLabel(labelId: string) {
+		deleteLabelMutation.mutate(labelId, {
+			onSuccess: () => {
+				setSelectedLabelId("");
+				setLabelKey("");
+				setLabelValue("");
 			}
-		}
-	});
-	const deleteLabelMutation = useMutation({
-		mutationFn: (labelId: string) => deleteProjectLabel(projectRef || "", labelId),
-		onSuccess: () => {
-			setSelectedLabelId("");
-			setLabelKey("");
-			setLabelValue("");
+		});
+	}
 
-			if (projectRef) {
-				queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.labels(projectRef) });
-				queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.probes(projectRef) });
-				queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.checks(projectRef) });
+	function deleteCurrentProject() {
+		if (!project || !window.confirm(`Delete organization ${project.name}?`)) {
+			return;
+		}
+
+		deleteProjectMutation.mutate(undefined, {
+			onSuccess: () => {
+				setSelectedProjectRef("");
 			}
-		}
-	});
-	const deleteProjectMutation = useMutation({
-		mutationFn: () => deleteProject(projectRef || ""),
-		onSuccess: () => {
-			setSelectedProjectRef("");
-			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.all });
-		}
-	});
+		});
+	}
 	const memberRows: MemberRow[] = (membersQuery.data?.members ?? []).map(member => ({
 		id: member.id,
 		userId: member.userId,
-		name: member.userId,
-		email: member.userId,
+		name: member.user.displayName,
+		email: member.user.email,
 		role: member.role,
 		lastActive: new Date(member.updatedAt).toLocaleString()
 	}));
@@ -166,7 +145,7 @@ export function TeamPage() {
 			key: "delete",
 			label: "Delete",
 			render: row => (
-				<Button variant="danger" size="sm" onClick={() => deleteLabelMutation.mutate(row.id)}>
+				<Button variant="danger" size="sm" onClick={() => deleteCurrentLabel(row.id)}>
 					Delete
 				</Button>
 			)
@@ -185,14 +164,6 @@ export function TeamPage() {
 		setLabelValue("");
 	}
 
-	function deleteCurrentProject() {
-		if (!project || !window.confirm(`Delete organization ${project.name}?`)) {
-			return;
-		}
-
-		deleteProjectMutation.mutate();
-	}
-
 	return (
 		<PageStack>
 			<ScreenHeader eyebrow="Team settings" title="Team" copy="Organization profile, member management, and destructive organization actions." />
@@ -202,14 +173,14 @@ export function TeamPage() {
 					<TextField label="Organization name" value={activeProjectName} disabled={!projectRef} onChange={event => setProjectName(event.currentTarget.value)} />
 					<TextField label="Slug" value={activeProjectSlug} disabled={!projectRef} onChange={event => setProjectSlug(event.currentTarget.value)} />
 				</div>
-				<Button disabled={!projectRef || updateProjectMutation.isPending} onClick={() => updateProjectMutation.mutate()}>
+				<Button disabled={!projectRef || updateProjectMutation.isPending} onClick={() => updateProjectMutation.mutate({ name: activeProjectName, slug: activeProjectSlug })}>
 					{updateProjectMutation.isPending ? "Saving" : "Save changes"}
 				</Button>
 			</Panel>
 
 			<Panel tone="glass" eyebrow="Members" title="Member management">
 				<div className={styles.formGridThree}>
-					<TextField label="User ID" value={memberUserId} onChange={event => setMemberUserId(event.currentTarget.value)} />
+					<TextField label="Email" value={memberEmail} onChange={event => setMemberEmail(event.currentTarget.value)} />
 					<SelectField
 						label="Role"
 						value={memberRole}
@@ -220,7 +191,7 @@ export function TeamPage() {
 							{ value: "viewer", label: "Viewer" }
 						]}
 					/>
-					<Button disabled={!projectRef || !memberUserId || addMemberMutation.isPending} onClick={() => addMemberMutation.mutate()}>
+					<Button disabled={!projectRef || !memberEmail || addMemberMutation.isPending} onClick={addCurrentMember}>
 						{addMemberMutation.isPending ? "Adding" : "Add member"}
 					</Button>
 				</div>
@@ -231,7 +202,7 @@ export function TeamPage() {
 				<div className={styles.formGridThree}>
 					<TextField label="Key" value={activeLabelKey} onChange={event => setLabelKey(event.currentTarget.value)} />
 					<TextField label="Value" value={activeLabelValue} onChange={event => setLabelValue(event.currentTarget.value)} />
-					<Button disabled={!projectRef || !activeLabelKey || !activeLabelValue || saveLabelMutation.isPending} onClick={() => saveLabelMutation.mutate()}>
+					<Button disabled={!projectRef || !activeLabelKey || !activeLabelValue || saveLabelMutation.isPending} onClick={saveCurrentLabel}>
 						{saveLabelMutation.isPending ? "Saving" : selectedLabel ? "Save label" : "Create label"}
 					</Button>
 				</div>

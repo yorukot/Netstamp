@@ -1,7 +1,7 @@
 import createClient from "openapi-fetch";
 import type { components, paths } from "./openapi";
 
-export type ApiProblem = components["schemas"]["ErrorModel"];
+export type ApiProblem = components["schemas"]["ProblemDetails"];
 
 export class ApiError extends Error {
 	readonly problem?: ApiProblem;

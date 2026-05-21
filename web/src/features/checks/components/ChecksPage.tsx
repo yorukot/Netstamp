@@ -1,8 +1,8 @@
 import { mapApiChecks, parseIntervalSeconds } from "@/features/checks/api/checkAdapters";
 import { type CheckDefinition, type CheckType } from "@/features/checks/data/checks";
 import { mapApiProbes } from "@/features/probes/api/probeAdapters";
-import { createProjectCheck, deleteProjectCheck, projectQueries, updateProjectCheck } from "@/shared/api/queries";
-import { apiQueryKeys } from "@/shared/api/queryKeys";
+import { useCreateProjectCheckMutation, useDeleteProjectCheckMutation, useUpdateProjectCheckMutation } from "@/shared/api/mutations";
+import { projectQueries } from "@/shared/api/queries";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { ActionRow } from "@/shared/components/ActionRow";
 import { PageStack } from "@/shared/components/PageStack";
@@ -10,7 +10,7 @@ import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { classNames } from "@/shared/utils/classNames";
 import { toneForStatus } from "@/shared/utils/statusTone";
 import { Badge, Button, Checkbox, DataTable, FieldLabel, Panel, SelectField, TextField, type DataColumn } from "@netstamp/ui";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import styles from "./ChecksPage.module.css";
 import { displayProbeSelection, logsForCheck, type LogRow } from "./checksPageData";
@@ -34,8 +34,10 @@ const logColumns: DataColumn<LogRow>[] = [
 ];
 
 export function ChecksPage() {
-	const queryClient = useQueryClient();
 	const { projectRef } = useCurrentProject();
+	const createCheckMutation = useCreateProjectCheckMutation(projectRef);
+	const updateCheckMutation = useUpdateProjectCheckMutation(projectRef);
+	const deleteCheckMutation = useDeleteProjectCheckMutation(projectRef);
 	const probesQuery = useQuery({
 		...projectQueries.probes(projectRef || ""),
 		enabled: Boolean(projectRef),
@@ -71,40 +73,7 @@ export function ChecksPage() {
 	const activeInterval = interval || selectedCheck?.interval || "30s";
 	const activeJitter = jitter || selectedCheck?.jitter || "4s";
 	const activeEnabled = selectedId ? enabled : selectedCheck?.status.toLowerCase().includes("disabled") ? "disabled" : enabled;
-	const saveCheckMutation = useMutation({
-		mutationFn: () => {
-			const body = {
-				intervalSeconds: parseIntervalSeconds(activeInterval),
-				name: activeCheckName,
-				target: activeTarget,
-				type: "ping"
-			} as const;
-
-			return isCreating ? createProjectCheck(projectRef || "", body) : updateProjectCheck(projectRef || "", selectedCheck?.id || "", body);
-		},
-		onSuccess: data => {
-			if (projectRef) {
-				queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.checks(projectRef) });
-			}
-
-			setSelectedId(data.check.id);
-			setCheckName(data.check.name);
-			setTarget(data.check.target);
-			setInterval(`${data.check.intervalSeconds}s`);
-		}
-	});
-	const deleteCheckMutation = useMutation({
-		mutationFn: (checkId: string) => deleteProjectCheck(projectRef || "", checkId),
-		onSuccess: () => {
-			if (projectRef) {
-				queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.checks(projectRef) });
-			}
-
-			setSelectedId("");
-			setCheckName("");
-			setTarget("");
-		}
-	});
+	const saveCheckMutation = isCreating ? createCheckMutation : updateCheckMutation;
 	const selectedLogs = selectedCheck ? logsForCheck(selectedCheck, activeSelectedProbes) : [];
 
 	function startNewCheck() {
@@ -138,7 +107,37 @@ export function ChecksPage() {
 			return;
 		}
 
-		deleteCheckMutation.mutate(selectedCheck.id);
+		deleteCheckMutation.mutate(selectedCheck.id, {
+			onSuccess: () => {
+				setSelectedId("");
+				setCheckName("");
+				setTarget("");
+			}
+		});
+	}
+
+	function saveSelectedCheck() {
+		const body = {
+			intervalSeconds: parseIntervalSeconds(activeInterval),
+			name: activeCheckName,
+			target: activeTarget,
+			type: "ping"
+		} as const;
+		const options = {
+			onSuccess: (data: Awaited<ReturnType<typeof createCheckMutation.mutateAsync>>) => {
+				setSelectedId(data.check.id);
+				setCheckName(data.check.name);
+				setTarget(data.check.target);
+				setInterval(`${data.check.intervalSeconds}s`);
+			}
+		};
+
+		if (isCreating) {
+			createCheckMutation.mutate(body, options);
+			return;
+		}
+
+		updateCheckMutation.mutate({ checkId: selectedCheck?.id || "", body }, options);
 	}
 
 	return (
@@ -222,7 +221,7 @@ export function ChecksPage() {
 						</div>
 
 						<ActionRow>
-							<Button disabled={(!selectedCheck && !isCreating) || !projectRef || !activeCheckName || !activeTarget || saveCheckMutation.isPending} onClick={() => saveCheckMutation.mutate()}>
+							<Button disabled={(!selectedCheck && !isCreating) || !projectRef || !activeCheckName || !activeTarget || saveCheckMutation.isPending} onClick={saveSelectedCheck}>
 								{saveCheckMutation.isPending ? "Saving" : isCreating ? "Create check" : "Save check"}
 							</Button>
 							<Button variant="danger" disabled={!selectedCheck || deleteCheckMutation.isPending} onClick={deleteSelectedCheck}>

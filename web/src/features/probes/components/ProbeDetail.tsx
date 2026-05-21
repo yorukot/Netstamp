@@ -1,10 +1,10 @@
 import { mapApiProbe } from "@/features/probes/api/probeAdapters";
 import type { Probe } from "@/features/probes/data/probes";
-import { deleteProjectProbe, projectQueries, rotateProjectProbeSecret, updateProjectProbe } from "@/shared/api/queries";
-import { apiQueryKeys } from "@/shared/api/queryKeys";
+import { useDeleteProjectProbeMutation, useRotateProjectProbeSecretMutation, useUpdateProjectProbeMutation } from "@/shared/api/mutations";
+import { projectQueries } from "@/shared/api/queries";
 import { classNames } from "@/shared/utils/classNames";
 import { Badge, Button, Checkbox, DataTable, Surface, TextField, type DataColumn } from "@netstamp/ui";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import styles from "./ProbeDetail.module.css";
 import { expandAssignedRows } from "./probeUtils";
@@ -27,7 +27,6 @@ interface ProbeDetailProps {
 }
 
 export function ProbeDetail({ probe, assignedRows, floating = false, projectRef, onDeleted }: ProbeDetailProps) {
-	const queryClient = useQueryClient();
 	const detailQuery = useQuery({
 		...projectQueries.probeDetail(projectRef || "", probe.id),
 		enabled: Boolean(projectRef && probe.id),
@@ -40,29 +39,9 @@ export function ProbeDetail({ probe, assignedRows, floating = false, projectRef,
 	const [locationMode, setLocationMode] = useState<DetectionMode>("manual");
 	const [asMode, setAsMode] = useState<DetectionMode>("auto");
 	const [rotatedSecret, setRotatedSecret] = useState("");
-	const updateProbeMutation = useMutation({
-		mutationFn: () => updateProjectProbe(projectRef || "", activeProbe.id, { name: probeName }),
-		onSuccess: () => {
-			if (projectRef) {
-				queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.probes(projectRef) });
-				queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.probeDetail(projectRef, activeProbe.id) });
-			}
-		}
-	});
-	const deleteProbeMutation = useMutation({
-		mutationFn: () => deleteProjectProbe(projectRef || "", activeProbe.id),
-		onSuccess: () => {
-			if (projectRef) {
-				queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.probes(projectRef) });
-			}
-
-			onDeleted?.();
-		}
-	});
-	const rotateSecretMutation = useMutation({
-		mutationFn: () => rotateProjectProbeSecret(projectRef || "", activeProbe.id),
-		onSuccess: data => setRotatedSecret(data.secret)
-	});
+	const updateProbeMutation = useUpdateProjectProbeMutation(projectRef);
+	const deleteProbeMutation = useDeleteProjectProbeMutation(projectRef);
+	const rotateSecretMutation = useRotateProjectProbeSecretMutation(projectRef);
 	const probeAssignments = assignedRows.filter(row => row.probe === activeProbe.name);
 	const baseRows = probeAssignments.length ? probeAssignments : assignedRows.filter(row => row.check === "api-latency");
 	const detailRows = expandAssignedRows(baseRows);
@@ -92,7 +71,7 @@ export function ProbeDetail({ probe, assignedRows, floating = false, projectRef,
 			return;
 		}
 
-		deleteProbeMutation.mutate();
+		deleteProbeMutation.mutate(activeProbe.id, { onSuccess: () => onDeleted?.() });
 	}
 
 	return (
@@ -124,10 +103,14 @@ export function ProbeDetail({ probe, assignedRows, floating = false, projectRef,
 			</div>
 
 			<div className={styles.actions}>
-				<Button disabled={!projectRef || updateProbeMutation.isPending || !probeName} onClick={() => updateProbeMutation.mutate()}>
+				<Button disabled={!projectRef || updateProbeMutation.isPending || !probeName} onClick={() => updateProbeMutation.mutate({ probeId: activeProbe.id, body: { name: probeName } })}>
 					{updateProbeMutation.isPending ? "Saving" : "Save probe"}
 				</Button>
-				<Button variant="outline" disabled={!projectRef || rotateSecretMutation.isPending} onClick={() => rotateSecretMutation.mutate()}>
+				<Button
+					variant="outline"
+					disabled={!projectRef || rotateSecretMutation.isPending}
+					onClick={() => rotateSecretMutation.mutate(activeProbe.id, { onSuccess: data => setRotatedSecret(data.secret) })}
+				>
 					{rotateSecretMutation.isPending ? "Rotating" : "Rotate secret"}
 				</Button>
 				<Button variant="danger" disabled={!projectRef || deleteProbeMutation.isPending} onClick={deleteProbe}>

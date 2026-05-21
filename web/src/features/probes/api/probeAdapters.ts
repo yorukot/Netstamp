@@ -9,7 +9,7 @@ const fallbackCoordinates: Array<[number, number]> = [
 	[-122.4194, 37.7749]
 ];
 
-function formatRelativeTime(value: string | null) {
+function formatRelativeTime(value: string | null | undefined) {
 	if (!value) {
 		return "never";
 	}
@@ -31,7 +31,7 @@ function formatRelativeTime(value: string | null) {
 }
 
 function mapProbeStatus(probe: ApiProbe): ProbeStatus {
-	const state = probe.status.state.toLowerCase();
+	const state = probe.status?.state?.toLowerCase() ?? "offline";
 
 	if (!probe.enabled || state.includes("drain")) {
 		return "Draining";
@@ -51,7 +51,8 @@ function labelValue(probe: ApiProbe, key: string) {
 export function mapApiProbe(probe: ApiProbe, index: number): Probe {
 	const coordinates =
 		typeof probe.longitude === "number" && typeof probe.latitude === "number" ? ([probe.longitude, probe.latitude] as [number, number]) : fallbackCoordinates[index % fallbackCoordinates.length];
-	const publicIp = probe.status.publicV4 || probe.status.publicV6 || probe.status.addrs?.[0] || "-";
+	const status = probe.status;
+	const publicIp = status?.publicV4 || status?.publicV6 || status?.addrs?.[0] || "-";
 	const tags = probe.labels?.map(label => `${label.key}:${label.value}`) ?? [];
 
 	return {
@@ -60,13 +61,13 @@ export function mapApiProbe(probe: ApiProbe, index: number): Probe {
 		status: mapProbeStatus(probe),
 		location: labelValue(probe, "location") || probe.subdivisionCode || `${coordinates[1].toFixed(2)}, ${coordinates[0].toFixed(2)}`,
 		publicIp,
-		asn: probe.status.as || labelValue(probe, "as") || "-",
+		asn: status?.as || labelValue(probe, "as") || "-",
 		provider: labelValue(probe, "provider") || "Unlabeled",
 		region: probe.subdivisionCode || "unassigned",
-		ipFamily: probe.status.publicV4 && probe.status.publicV6 ? "IPv4 / IPv6" : probe.status.publicV6 ? "IPv6" : "IPv4",
-		lastHeartbeat: formatRelativeTime(probe.status.lastSeenAt),
+		ipFamily: status?.publicV4 && status.publicV6 ? "IPv4 / IPv6" : status?.publicV6 ? "IPv6" : "IPv4",
+		lastHeartbeat: formatRelativeTime(status?.lastSeenAt),
 		tags,
-		version: probe.status.agentVersion || "-",
+		version: status?.agentVersion || "-",
 		uptime: "-",
 		cpu: "-",
 		memory: "-",
