@@ -1,6 +1,11 @@
 import { type Navigate } from "@/routes/routeTypes";
+import { ApiError } from "@/shared/api/client";
+import { createProject as createProjectRequest } from "@/shared/api/mutations";
+import { apiQueryKeys } from "@/shared/api/queryKeys";
+import { pushErrorToast } from "@/shared/toast/toastStore";
 import { classNames } from "@/shared/utils/classNames";
 import { Button, Input, PageShell } from "@netstamp/ui";
+import { useQueryClient } from "@tanstack/react-query";
 import type { FormEvent, KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
@@ -18,14 +23,42 @@ interface ScriptStep {
 }
 
 const typeDelayMs = 34;
+const maxProjectSlugLength = 64;
+const maxSlugAttempts = 20;
+
+function slugifyProjectName(name: string) {
+	return (
+		name
+			.toLowerCase()
+			.trim()
+			.replace(/[^a-z0-9]+/g, "-")
+			.replace(/^-|-$/g, "") || "yoru-project"
+	);
+}
+
+function projectSlugCandidate(baseSlug: string, attempt: number) {
+	if (attempt === 0) {
+		return baseSlug.slice(0, maxProjectSlugLength);
+	}
+
+	const suffix = `-${attempt + 1}`;
+	const baseLength = maxProjectSlugLength - suffix.length;
+	return `${baseSlug.slice(0, Math.max(1, baseLength)).replace(/-$/g, "")}${suffix}`;
+}
+
+function isProjectSlugConflict(error: unknown) {
+	return error instanceof ApiError && error.status === 409 && /project slug already exists/i.test(error.message);
+}
 
 export function OnboardingPage({ navigate }: OnboardingPageProps) {
-	const { session, loading, submitting, createProject } = useAuth();
+	const { session, loading, submitting } = useAuth();
+	const queryClient = useQueryClient();
 	const [activeStep, setActiveStep] = useState(0);
 	const [typedText, setTypedText] = useState("");
 	const [projectName, setProjectName] = useState("");
 	const [invites, setInvites] = useState([""]);
 	const [createdProject, setCreatedProject] = useState("");
+	const [creatingProject, setCreatingProject] = useState(false);
 	const projectInputRef = useRef<HTMLInputElement | null>(null);
 	const inviteRefs = useRef<Array<HTMLInputElement | null>>([]);
 	const displayName = session?.user.name.trim() || "there";
@@ -152,16 +185,32 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 		}
 
 		const normalizedProjectName = projectName.trim() || "Yoru Labs";
-		await createProject({
-			name: normalizedProjectName,
-			slug:
-				normalizedProjectName
-					.toLowerCase()
-					.trim()
-					.replace(/[^a-z0-9]+/g, "-")
-					.replace(/^-|-$/g, "") || "yoru-project"
-		});
-		setCreatedProject(normalizedProjectName);
+		const baseSlug = slugifyProjectName(normalizedProjectName);
+
+		setCreatingProject(true);
+		try {
+			for (let attempt = 0; attempt < maxSlugAttempts; attempt += 1) {
+				try {
+					await createProjectRequest({
+						name: normalizedProjectName,
+						slug: projectSlugCandidate(baseSlug, attempt)
+					});
+					await queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.list() });
+					setCreatedProject(normalizedProjectName);
+					return;
+				} catch (error) {
+					if (!isProjectSlugConflict(error)) {
+						throw error;
+					}
+				}
+			}
+
+			pushErrorToast("Project slug is already in use. Try a different project name.");
+		} catch (error) {
+			pushErrorToast(error instanceof Error ? error.message : "Project could not be created.");
+		} finally {
+			setCreatingProject(false);
+		}
 	}
 
 	if (loading) {
@@ -257,8 +306,8 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 											))}
 										</div>
 
-										<Button variant="plain" className={styles.tuiButton} type="submit" disabled={submitting}>
-											{submitting ? "[ creating project... ]" : "[ create project ]"}
+										<Button variant="plain" className={styles.tuiButton} type="submit" disabled={submitting || creatingProject}>
+											{submitting || creatingProject ? "[ creating project... ]" : "[ create project ]"}
 										</Button>
 									</div>
 								) : null}
