@@ -8,6 +8,14 @@ export default defineConfig(({ mode }) => {
 
 	return {
 		plugins: [react()],
+		build: {
+			chunkSizeWarningLimit: 1100,
+			rolldownOptions: {
+				output: {
+					codeSplitting: true
+				}
+			}
+		},
 		resolve: {
 			alias: {
 				"@": new URL("./src", import.meta.url).pathname
