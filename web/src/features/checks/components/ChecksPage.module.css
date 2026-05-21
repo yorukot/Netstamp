@@ -66,6 +66,44 @@
 	gap: 0.875rem;
 }
 
+.selectorRuleList {
+	display: grid;
+	gap: 0.75rem;
+}
+
+.selectorRule {
+	--ns-frame-cut: var(--ns-cut-sm);
+	--ns-frame-color: var(--ns-border-faint);
+	display: grid;
+	grid-template-columns: auto minmax(7rem, 0.9fr) minmax(7rem, 0.8fr) minmax(8rem, 1fr) auto;
+	gap: 0.75rem;
+	align-items: end;
+	padding: 0.75rem;
+	background: rgba(255, 255, 255, 0.025);
+}
+
+.selectorNegation {
+	display: inline-flex;
+	gap: 0.45rem;
+	align-items: center;
+	min-height: 2.5rem;
+	color: var(--ns-text-low);
+	font-family: var(--ns-font-mono);
+	font-size: 0.75rem;
+	font-weight: 800;
+	text-transform: uppercase;
+}
+
+.selectorExistsValue {
+	min-height: 2.5rem;
+	padding: 0.7rem 0.75rem;
+	border: 1px solid var(--ns-border-faint);
+	color: var(--ns-text-low);
+	background: rgba(255, 255, 255, 0.025);
+	font-family: var(--ns-font-mono);
+	font-size: 0.8125rem;
+}
+
 .selectorOptionGrid {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
@@ -133,5 +171,10 @@
 @media (max-width: 58rem) {
 	.checkListFilters {
 		grid-template-columns: 1fr;
+	}
+
+	.selectorRule {
+		grid-template-columns: 1fr;
+		align-items: stretch;
 	}
 }

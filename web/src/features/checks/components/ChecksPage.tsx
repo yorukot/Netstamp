@@ -10,9 +10,10 @@ import { ActionRow } from "@/shared/components/ActionRow";
 import { useConfirm } from "@/shared/components/confirmContext";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
+import { pushErrorToast } from "@/shared/toast/toastStore";
 import { classNames } from "@/shared/utils/classNames";
 import { toneForStatus } from "@/shared/utils/statusTone";
-import { Badge, Button, Checkbox, DataTable, FieldLabel, Panel, SelectField, TextField, type DataColumn } from "@netstamp/ui";
+import { Badge, Button, Checkbox, DataTable, FieldLabel, Panel, SelectField, TextAreaField, TextField, type DataColumn } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import styles from "./ChecksPage.module.css";
@@ -37,10 +38,12 @@ const logColumns: DataColumn<LogRow>[] = [
 ];
 
 type SelectorMode = "all-probes" | "all" | "any" | "advanced";
+type SelectorLabelOp = NonNullable<ApiSelector["label"]>["op"];
 
 interface SelectorState {
 	mode: SelectorMode;
-	labelIds: string[];
+	rules: SelectorRule[];
+	advancedText: string;
 }
 
 interface SelectorLabelOption {
@@ -49,20 +52,30 @@ interface SelectorLabelOption {
 	value: string;
 }
 
+interface SelectorRule {
+	id: string;
+	key: string;
+	op: SelectorLabelOp;
+	value: string;
+	values: string;
+	negated: boolean;
+}
+
 const selectorModeOptions: Array<{ value: SelectorMode; label: string }> = [
 	{ value: "all-probes", label: "All probes" },
 	{ value: "all", label: "Match all labels" },
-	{ value: "any", label: "Match any label" }
+	{ value: "any", label: "Match any label" },
+	{ value: "advanced", label: "Advanced JSON" }
+];
+
+const selectorOpOptions: Array<{ value: SelectorLabelOp; label: string }> = [
+	{ value: "eq", label: "equals" },
+	{ value: "in", label: "in values" },
+	{ value: "exists", label: "exists" }
 ];
 
 function selectorLabelId(key: string, value: string) {
 	return `${key}\u0000${value}`;
-}
-
-function splitSelectorLabelId(id: string): SelectorLabelOption {
-	const [key = "", value = ""] = id.split("\u0000");
-
-	return { id, key, value };
 }
 
 function selectorLabelOptions(labels: ApiLabel[]): SelectorLabelOption[] {
@@ -76,54 +89,139 @@ function selectorLabelOptions(labels: ApiLabel[]): SelectorLabelOption[] {
 	return Array.from(options.values()).sort((a, b) => a.key.localeCompare(b.key) || a.value.localeCompare(b.value));
 }
 
-function labelSelector(option: SelectorLabelOption): ApiSelector {
-	return { label: { key: option.key, op: "eq", value: option.value } };
+function selectorKeyOptions(options: SelectorLabelOption[], rules: SelectorRule[]) {
+	return Array.from(new Set([...options.map(option => option.key), ...rules.map(rule => rule.key.trim()).filter(Boolean)]))
+		.sort((a, b) => a.localeCompare(b))
+		.map(key => ({ value: key, label: key }));
 }
 
-function buildSelector(state: SelectorState, fallback?: ApiSelector): ApiSelector {
-	if (state.mode === "advanced") {
-		return fallback ?? {};
+function selectorValuesForKey(options: SelectorLabelOption[], key: string) {
+	return options.filter(option => option.key === key).map(option => option.value);
+}
+
+function createSelectorRule(options: SelectorLabelOption[], seed?: Partial<SelectorRule>): SelectorRule {
+	const firstOption = options[0];
+	return {
+		id: globalThis.crypto.randomUUID(),
+		key: seed?.key ?? firstOption?.key ?? "",
+		op: seed?.op ?? "eq",
+		value: seed?.value ?? firstOption?.value ?? "",
+		values: seed?.values ?? firstOption?.value ?? "",
+		negated: seed?.negated ?? false
+	};
+}
+
+function splitSelectorValues(value: string) {
+	return Array.from(
+		new Set(
+			value
+				.split(",")
+				.map(item => item.trim())
+				.filter(Boolean)
+		)
+	);
+}
+
+function selectorRuleLabel(rule: SelectorRule): NonNullable<ApiSelector["label"]> | null {
+	const key = rule.key.trim();
+	if (!key) {
+		return null;
 	}
 
-	if (state.mode === "all-probes" || state.labelIds.length === 0) {
+	if (rule.op === "exists") {
+		return { key, op: "exists" };
+	}
+
+	if (rule.op === "in") {
+		const values = splitSelectorValues(rule.values);
+		return values.length ? { key, op: "in", values } : null;
+	}
+
+	const value = rule.value.trim();
+	return value ? { key, op: "eq", value } : null;
+}
+
+function selectorRuleNode(rule: SelectorRule): ApiSelector | null {
+	const label = selectorRuleLabel(rule);
+	if (!label) {
+		return null;
+	}
+
+	const node: ApiSelector = { label };
+	return rule.negated ? { not: node } : node;
+}
+
+function parseAdvancedSelector(value: string): ApiSelector {
+	const trimmed = value.trim();
+	if (!trimmed) {
 		return {};
 	}
 
-	const children = state.labelIds.map(id => labelSelector(splitSelectorLabelId(id)));
+	const parsed: unknown = JSON.parse(trimmed);
+	if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+		throw new Error("Selector JSON must be an object.");
+	}
+
+	return parsed as ApiSelector;
+}
+
+function buildSelector(state: SelectorState): ApiSelector {
+	if (state.mode === "advanced") {
+		return parseAdvancedSelector(state.advancedText);
+	}
+
+	if (state.mode === "all-probes") {
+		return {};
+	}
+
+	const children = state.rules.map(selectorRuleNode).filter((selector): selector is ApiSelector => Boolean(selector));
+	if (!children.length) {
+		return {};
+	}
 
 	if (children.length === 1) {
 		return children[0];
 	}
 
-	if (state.mode === "any") {
-		return { any: children };
-	}
-
-	return { all: children };
+	return state.mode === "any" ? { any: children } : { all: children };
 }
 
 function isEmptySelector(selector: ApiSelector | null | undefined) {
 	return !selector || Object.keys(selector).length === 0;
 }
 
-function labelIdFromSelector(selector: ApiSelector | null | undefined) {
-	const label = selector?.label;
+function selectorRuleFromNode(selector: ApiSelector | null | undefined): SelectorRule | null {
+	const negated = Boolean(selector?.not);
+	const node = negated ? selector?.not : selector;
+	const label = node?.label;
 
-	if (label?.op !== "eq" || !label.value) {
-		return "";
+	if (!label) {
+		return null;
 	}
 
-	return selectorLabelId(label.key, label.value);
+	if (label.op === "exists") {
+		return createSelectorRule([], { key: label.key, op: "exists", negated });
+	}
+
+	if (label.op === "in" && label.values?.length) {
+		return createSelectorRule([], { key: label.key, op: "in", values: label.values.join(", "), negated });
+	}
+
+	if (label.op === "eq" && label.value) {
+		return createSelectorRule([], { key: label.key, op: "eq", value: label.value, values: label.value, negated });
+	}
+
+	return null;
 }
 
 function selectorStateFromApi(selector: ApiSelector | null | undefined): SelectorState {
 	if (isEmptySelector(selector)) {
-		return { mode: "all-probes", labelIds: [] };
+		return { mode: "all-probes", rules: [], advancedText: "" };
 	}
 
-	const labelId = labelIdFromSelector(selector);
-	if (labelId) {
-		return { mode: "all", labelIds: [labelId] };
+	const directRule = selectorRuleFromNode(selector);
+	if (directRule) {
+		return { mode: "all", rules: [directRule], advancedText: "" };
 	}
 
 	for (const mode of ["all", "any"] as const) {
@@ -132,17 +230,17 @@ function selectorStateFromApi(selector: ApiSelector | null | undefined): Selecto
 			continue;
 		}
 
-		const labelIds = children.map(labelIdFromSelector);
-		if (labelIds.every(Boolean)) {
-			return { mode, labelIds };
+		const rules = children.map(selectorRuleFromNode);
+		if (rules.every((rule): rule is SelectorRule => Boolean(rule))) {
+			return { mode, rules, advancedText: "" };
 		}
 	}
 
-	return { mode: "advanced", labelIds: [] };
+	return { mode: "advanced", rules: [], advancedText: JSON.stringify(selector, null, 2) };
 }
 
 function probeMatchesSelector(probeTags: string[], state: SelectorState) {
-	if (state.mode === "all-probes" || state.labelIds.length === 0) {
+	if (state.mode === "all-probes") {
 		return true;
 	}
 
@@ -150,9 +248,16 @@ function probeMatchesSelector(probeTags: string[], state: SelectorState) {
 		return false;
 	}
 
-	const matches = state.labelIds.map(id => {
-		const option = splitSelectorLabelId(id);
-		return probeTags.includes(`${option.key}:${option.value}`);
+	const matches = state.rules.map(rule => {
+		const key = rule.key.trim();
+		const matched =
+			rule.op === "exists"
+				? probeTags.some(tag => tag.startsWith(`${key}:`))
+				: rule.op === "in"
+					? splitSelectorValues(rule.values).some(value => probeTags.includes(`${key}:${value}`))
+					: probeTags.includes(`${key}:${rule.value.trim()}`);
+
+		return rule.negated ? !matched : matched;
 	});
 
 	return state.mode === "any" ? matches.some(Boolean) : matches.every(Boolean);
@@ -193,10 +298,9 @@ export function ChecksPage() {
 	const [jitter, setJitter] = useState("4s");
 	const [enabled, setEnabled] = useState("enabled");
 	const [selectedProbes, setSelectedProbes] = useState<string[]>([]);
-	const [selectorState, setSelectorState] = useState<SelectorState>({ mode: "all-probes", labelIds: [] });
+	const [selectorState, setSelectorState] = useState<SelectorState>({ mode: "all-probes", rules: [], advancedText: "" });
 	const isCreating = selectedId === "__new__";
 	const selectedListCheck = checkRows.find(check => check.id === selectedId) || checkRows[0] || null;
-	const selectedApiCheck = checksQuery.data?.checks.find(item => item.id === selectedListCheck?.id) ?? null;
 	const checkDetailQuery = useQuery({
 		...projectQueries.checkDetail(projectRef || "", selectedListCheck?.id || ""),
 		enabled: Boolean(projectRef && selectedListCheck && !isCreating),
@@ -220,7 +324,7 @@ export function ChecksPage() {
 	const locallyMatchedProbeNames = selectorState.mode === "advanced" ? assignedProbeNames : probes.filter(probe => probeMatchesSelector(probe.tags, selectorState)).map(probe => probe.name);
 	const activeSelectedProbes = selectedProbes.length ? selectedProbes : locallyMatchedProbeNames;
 	const selectorOptions = selectorLabelOptions(labelsQuery.data?.labels ?? []);
-	const selectedSelectorLabels = new Set(selectorState.labelIds);
+	const selectorKeys = selectorKeyOptions(selectorOptions, selectorState.rules);
 	const saveCheckMutation = isCreating ? createCheckMutation : updateCheckMutation;
 	const selectedLogs = selectedCheck ? (measurementsQuery.data ?? []) : [];
 
@@ -233,7 +337,7 @@ export function ChecksPage() {
 		setJitter("4s");
 		setEnabled("enabled");
 		setSelectedProbes(probes.map(probe => probe.name));
-		setSelectorState({ mode: "all-probes", labelIds: [] });
+		setSelectorState({ mode: "all-probes", rules: [], advancedText: "" });
 	}
 
 	function selectCheck(check: CheckDefinition) {
@@ -255,29 +359,60 @@ export function ChecksPage() {
 		setSelectedProbes([]);
 		setSelectorState(current => ({
 			mode,
-			labelIds: mode === "all-probes" ? [] : current.labelIds
+			rules: mode === "all-probes" ? [] : current.rules.length ? current.rules : mode === "advanced" ? current.rules : [createSelectorRule(selectorOptions)],
+			advancedText: mode === "advanced" ? current.advancedText || JSON.stringify(buildSelector({ ...current, mode: current.mode === "advanced" ? "all-probes" : current.mode }), null, 2) : current.advancedText
 		}));
 	}
 
-	function toggleSelectorLabel(labelId: string) {
+	function addSelectorRule() {
+		setSelectedProbes([]);
+		setSelectorState(current => ({
+			...current,
+			mode: current.mode === "all-probes" || current.mode === "advanced" ? "all" : current.mode,
+			rules: [...current.rules, createSelectorRule(selectorOptions)]
+		}));
+	}
+
+	function removeSelectorRule(ruleId: string) {
 		setSelectedProbes([]);
 		setSelectorState(current => {
-			const currentLabels = new Set(current.labelIds);
-			if (currentLabels.has(labelId)) {
-				currentLabels.delete(labelId);
-			} else {
-				currentLabels.add(labelId);
-			}
-
+			const rules = current.rules.filter(rule => rule.id !== ruleId);
 			return {
-				mode: current.mode === "all-probes" || current.mode === "advanced" ? "all" : current.mode,
-				labelIds: Array.from(currentLabels)
+				...current,
+				mode: rules.length ? current.mode : "all-probes",
+				rules
 			};
 		});
 	}
 
+	function updateSelectorRule(ruleId: string, patch: Partial<SelectorRule>) {
+		setSelectedProbes([]);
+		setSelectorState(current => ({
+			...current,
+			mode: current.mode === "all-probes" || current.mode === "advanced" ? "all" : current.mode,
+			rules: current.rules.map(rule => (rule.id === ruleId ? { ...rule, ...patch } : rule))
+		}));
+	}
+
+	function updateSelectorRuleKey(ruleId: string, key: string) {
+		const values = selectorValuesForKey(selectorOptions, key);
+		updateSelectorRule(ruleId, { key, value: values[0] ?? "", values: values.join(", ") });
+	}
+
+	function updateAdvancedSelectorText(value: string) {
+		setSelectedProbes([]);
+		setSelectorState(current => ({ ...current, mode: "advanced", advancedText: value }));
+	}
+
 	function previewSelector() {
-		const selector = buildSelector(selectorState, selectedApiCheck?.selector);
+		let selector: ApiSelector;
+
+		try {
+			selector = buildSelector(selectorState);
+		} catch (error) {
+			pushErrorToast(error instanceof Error ? error.message : "Selector JSON is invalid.");
+			return;
+		}
 
 		selectorPreviewMutation.mutate(
 			{ selector },
@@ -316,7 +451,15 @@ export function ChecksPage() {
 	}
 
 	function saveSelectedCheck() {
-		const selector = buildSelector(selectorState, selectedApiCheck?.selector);
+		let selector: ApiSelector;
+
+		try {
+			selector = buildSelector(selectorState);
+		} catch (error) {
+			pushErrorToast(error instanceof Error ? error.message : "Selector JSON is invalid.");
+			return;
+		}
+
 		const body: CreateCheckInput = {
 			intervalSeconds: parseIntervalSeconds(activeInterval),
 			name: activeCheckName,
@@ -412,24 +555,54 @@ export function ChecksPage() {
 							<div className={styles.selectorBuilder}>
 								<SelectField
 									label="Match mode"
-									value={selectorState.mode === "advanced" ? "all-probes" : selectorState.mode}
+									value={selectorState.mode}
 									onChange={event => setSelectorMode(event.currentTarget.value as SelectorMode)}
 									options={selectorModeOptions}
 								/>
-								{selectorState.mode === "advanced" ? <p className={styles.selectorNotice}>This check uses an advanced selector. Choose labels below to replace it with an editable rule.</p> : null}
-								<div className={styles.selectorOptionGrid} aria-label="Selector labels">
-									{selectorOptions.length ? (
-										selectorOptions.map(option => (
-											<label key={option.id} className={classNames("ns-cut-frame", styles.selectorOption)}>
-												<Checkbox checked={selectedSelectorLabels.has(option.id)} onChange={() => toggleSelectorLabel(option.id)} />
-												<span>{option.key}</span>
-												<strong>{option.value}</strong>
-											</label>
-										))
-									) : (
-										<p className={styles.selectorNotice}>No project labels yet. The selector will match every probe.</p>
-									)}
-								</div>
+								{selectorState.mode === "advanced" ? (
+									<TextAreaField label="Selector JSON" rows={8} value={selectorState.advancedText} onChange={event => updateAdvancedSelectorText(event.currentTarget.value)} spellCheck={false} />
+								) : null}
+								{selectorState.mode !== "all-probes" && selectorState.mode !== "advanced" ? (
+									<div className={styles.selectorRuleList}>
+										{selectorState.rules.map((rule, index) => {
+											const valuesForKey = selectorValuesForKey(selectorOptions, rule.key);
+
+											return (
+												<div className={classNames("ns-cut-frame", styles.selectorRule)} key={rule.id}>
+													<label className={styles.selectorNegation}>
+														<Checkbox checked={rule.negated} onChange={event => updateSelectorRule(rule.id, { negated: event.currentTarget.checked })} />
+														<span>not</span>
+													</label>
+													<SelectField
+														label={`Rule ${index + 1} key`}
+														value={rule.key}
+														onChange={event => updateSelectorRuleKey(rule.id, event.currentTarget.value)}
+														options={selectorKeys.length ? selectorKeys : [{ value: "", label: "No labels" }]}
+													/>
+													<SelectField label="Operator" value={rule.op} onChange={event => updateSelectorRule(rule.id, { op: event.currentTarget.value as SelectorLabelOp })} options={selectorOpOptions} />
+													{rule.op === "eq" ? (
+														<TextField label="Value" value={rule.value} onChange={event => updateSelectorRule(rule.id, { value: event.currentTarget.value })} />
+													) : null}
+													{rule.op === "in" ? (
+														<TextField label="Values" value={rule.values} helper={valuesForKey.length ? valuesForKey.join(", ") : undefined} onChange={event => updateSelectorRule(rule.id, { values: event.currentTarget.value })} />
+													) : null}
+													{rule.op === "exists" ? <div className={styles.selectorExistsValue}>any value</div> : null}
+													<Button type="button" variant="secondary" onClick={() => removeSelectorRule(rule.id)}>
+														Remove
+													</Button>
+												</div>
+											);
+										})}
+									</div>
+								) : null}
+								{selectorState.mode === "all-probes" ? <p className={styles.selectorNotice}>Matches every active probe.</p> : null}
+								{selectorState.mode !== "advanced" ? (
+									<ActionRow>
+										<Button type="button" variant="secondary" disabled={!selectorOptions.length} onClick={addSelectorRule}>
+											Add rule
+										</Button>
+									</ActionRow>
+								) : null}
 							</div>
 							<ActionRow>
 								<Button type="button" variant="secondary" disabled={!projectRef || selectorPreviewMutation.isPending} onClick={previewSelector}>
