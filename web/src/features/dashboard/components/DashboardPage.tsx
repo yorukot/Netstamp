@@ -76,7 +76,12 @@ export function DashboardPage({ navigate }: DashboardPageProps) {
 				<Panel tone="glass" eyebrow="Anomalies" title="Recent system events">
 					<div className={styles.feed}>
 						{events.map(event => (
-							<Event key={`${event.time}-${event.probe}-${event.check}`} title={`${event.check}: ${event.status}`} copy={`${event.probe} recorded ${event.latency}; ${event.event}.`} tone={event.status === "success" ? "success" : "warning"} />
+							<Event
+								key={`${event.time}-${event.probe}-${event.check}`}
+								title={`${event.check}: ${event.status}`}
+								copy={`${event.probe} recorded ${event.latency}; ${event.event}.`}
+								tone={event.status === "success" ? "success" : "warning"}
+							/>
 						))}
 					</div>
 				</Panel>

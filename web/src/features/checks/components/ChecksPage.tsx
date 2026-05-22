@@ -360,7 +360,8 @@ export function ChecksPage() {
 		setSelectorState(current => ({
 			mode,
 			rules: mode === "all-probes" ? [] : current.rules.length ? current.rules : mode === "advanced" ? current.rules : [createSelectorRule(selectorOptions)],
-			advancedText: mode === "advanced" ? current.advancedText || JSON.stringify(buildSelector({ ...current, mode: current.mode === "advanced" ? "all-probes" : current.mode }), null, 2) : current.advancedText
+			advancedText:
+				mode === "advanced" ? current.advancedText || JSON.stringify(buildSelector({ ...current, mode: current.mode === "advanced" ? "all-probes" : current.mode }), null, 2) : current.advancedText
 		}));
 	}
 
@@ -553,12 +554,7 @@ export function ChecksPage() {
 						<div className={styles.probeMultiSelect}>
 							<FieldLabel>Probe selector</FieldLabel>
 							<div className={styles.selectorBuilder}>
-								<SelectField
-									label="Match mode"
-									value={selectorState.mode}
-									onChange={event => setSelectorMode(event.currentTarget.value as SelectorMode)}
-									options={selectorModeOptions}
-								/>
+								<SelectField label="Match mode" value={selectorState.mode} onChange={event => setSelectorMode(event.currentTarget.value as SelectorMode)} options={selectorModeOptions} />
 								{selectorState.mode === "advanced" ? (
 									<TextAreaField label="Selector JSON" rows={8} value={selectorState.advancedText} onChange={event => updateAdvancedSelectorText(event.currentTarget.value)} spellCheck={false} />
 								) : null}
@@ -579,12 +575,20 @@ export function ChecksPage() {
 														onChange={event => updateSelectorRuleKey(rule.id, event.currentTarget.value)}
 														options={selectorKeys.length ? selectorKeys : [{ value: "", label: "No labels" }]}
 													/>
-													<SelectField label="Operator" value={rule.op} onChange={event => updateSelectorRule(rule.id, { op: event.currentTarget.value as SelectorLabelOp })} options={selectorOpOptions} />
-													{rule.op === "eq" ? (
-														<TextField label="Value" value={rule.value} onChange={event => updateSelectorRule(rule.id, { value: event.currentTarget.value })} />
-													) : null}
+													<SelectField
+														label="Operator"
+														value={rule.op}
+														onChange={event => updateSelectorRule(rule.id, { op: event.currentTarget.value as SelectorLabelOp })}
+														options={selectorOpOptions}
+													/>
+													{rule.op === "eq" ? <TextField label="Value" value={rule.value} onChange={event => updateSelectorRule(rule.id, { value: event.currentTarget.value })} /> : null}
 													{rule.op === "in" ? (
-														<TextField label="Values" value={rule.values} helper={valuesForKey.length ? valuesForKey.join(", ") : undefined} onChange={event => updateSelectorRule(rule.id, { values: event.currentTarget.value })} />
+														<TextField
+															label="Values"
+															value={rule.values}
+															helper={valuesForKey.length ? valuesForKey.join(", ") : undefined}
+															onChange={event => updateSelectorRule(rule.id, { values: event.currentTarget.value })}
+														/>
 													) : null}
 													{rule.op === "exists" ? <div className={styles.selectorExistsValue}>any value</div> : null}
 													<Button type="button" variant="secondary" onClick={() => removeSelectorRule(rule.id)}>

@@ -1,6 +1,6 @@
 import type { CheckDefinition } from "@/features/checks/data/checks";
-import type { Probe } from "@/features/probes/data/probes";
 import type { AssignedRow } from "@/features/probes/components/types";
+import type { Probe } from "@/features/probes/data/probes";
 import type { ApiMeasurement, ApiProjectAssignment } from "@/shared/api/types";
 import { formatInterval } from "./checkAdapters";
 
