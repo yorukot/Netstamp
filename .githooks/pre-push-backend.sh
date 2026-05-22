@@ -4,10 +4,19 @@ set -eu
 
 refs_file=${1:?"Usage: pre-push-backend.sh <pre-push-refs-file>"}
 zero_sha="0000000000000000000000000000000000000000"
+generated_openapi_path="server/internal/controller/transport/http/openapi/openapi.json"
 has_backend_changes=0
 
 has_backend_paths() {
-	if [ -n "$(printf '%s\n' "$1" | sed -n '/^server\//p; /^golangci\.yaml$/p' | head -n 1)" ]; then
+	if [ -n "$(printf '%s\n' "$1" | awk -v generated_openapi_path="$generated_openapi_path" '
+		$0 == generated_openapi_path {
+			next
+		}
+		/^server\// || $0 == "golangci.yaml" {
+			print
+			exit
+		}
+	')" ]; then
 		return 0
 	fi
 
