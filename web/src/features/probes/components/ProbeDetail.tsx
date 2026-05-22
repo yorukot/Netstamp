@@ -1,4 +1,13 @@
 import { mapApiProbe } from "@/features/probes/api/probeAdapters";
+import {
+	coordinateInputError,
+	formatCoordinate,
+	parseCoordinateInput,
+	searchNominatimLocation,
+	type CoordinateInputMode,
+	type GeocodeStatus,
+	type ProbeCoordinates
+} from "@/features/probes/data/probeLocation";
 import type { Probe } from "@/features/probes/data/probes";
 import { ApiError } from "@/shared/api/client";
 import { probeSecretUpdateCommand } from "@/shared/api/installAssets";
@@ -12,6 +21,7 @@ import { classNames } from "@/shared/utils/classNames";
 import { Badge, Button, Checkbox, DataTable, Surface, Terminal, TextField, type DataColumn } from "@netstamp/ui";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
+import { LocationPreviewMap } from "./LocationPreviewMap";
 import styles from "./ProbeDetail.module.css";
 import { expandAssignedRows } from "./probeUtils";
 import type { AssignedRow, DetectionMode } from "./types";
@@ -23,6 +33,14 @@ const assignedColumns: DataColumn<AssignedRow>[] = [
 	{ key: "jitter", label: "Jitter" },
 	{ key: "latest", label: "Latest" }
 ];
+
+function initialLatitude(probe: Probe) {
+	return probe.coordinates ? formatCoordinate(probe.coordinates[1]) : "";
+}
+
+function initialLongitude(probe: Probe) {
+	return probe.coordinates ? formatCoordinate(probe.coordinates[0]) : "";
+}
 
 async function writeClipboardText(value: string) {
 	if (navigator.clipboard?.writeText) {
@@ -64,37 +82,64 @@ export function ProbeDetail({ probe, assignedRows, floating = false, projectRef,
 	const activeApiProbe = detailQuery.data?.probe ?? null;
 	const activeProbe = activeApiProbe ? mapApiProbe(activeApiProbe, 0) : probe;
 	const [probeName, setProbeName] = useState(activeProbe.name);
-	const [probeLocation, setProbeLocation] = useState(activeProbe.location);
+	const [coordinateInputMode, setCoordinateInputMode] = useState<CoordinateInputMode>("search");
+	const [locationSearch, setLocationSearch] = useState(activeProbe.location === "-" ? "" : activeProbe.location);
+	const [locationName, setLocationName] = useState(activeProbe.location === "-" ? "" : activeProbe.location);
+	const [latitudeInput, setLatitudeInput] = useState(initialLatitude(activeProbe));
+	const [longitudeInput, setLongitudeInput] = useState(initialLongitude(activeProbe));
+	const [geocodeStatus, setGeocodeStatus] = useState<GeocodeStatus>("idle");
+	const [geocodeError, setGeocodeError] = useState("");
 	const [probeAsn, setProbeAsn] = useState(activeProbe.asn);
-	const [locationMode, setLocationMode] = useState<DetectionMode>("manual");
 	const [asMode, setAsMode] = useState<DetectionMode>("auto");
 	const [rotatedSecret, setRotatedSecret] = useState("");
 	const [secretCommandCopied, setSecretCommandCopied] = useState(false);
 	const [savingProbe, setSavingProbe] = useState(false);
+	const geocodeAbortRef = useRef<AbortController | null>(null);
 	const updateProbeMutation = useUpdateProjectProbeMutation(projectRef);
 	const deleteProbeMutation = useDeleteProjectProbeMutation(projectRef);
 	const rotateSecretMutation = useRotateProjectProbeSecretMutation(projectRef);
 	const probeAssignments = assignedRows.filter(row => row.probe === activeProbe.name);
 	const detailRows = expandAssignedRows(probeAssignments);
 	const rotatedSecretCommand = rotatedSecret ? probeSecretUpdateCommand({ probeId: activeProbe.id, probeSecret: rotatedSecret }) : "";
+	const latitude = parseCoordinateInput(latitudeInput);
+	const longitude = parseCoordinateInput(longitudeInput);
+	const latitudeError = coordinateInputMode === "manual" ? coordinateInputError("Latitude", latitudeInput, -90, 90) : "";
+	const longitudeError = coordinateInputMode === "manual" ? coordinateInputError("Longitude", longitudeInput, -180, 180) : "";
+	const visibleLatitudeError = latitudeInput.trim() ? latitudeError : "";
+	const visibleLongitudeError = longitudeInput.trim() ? longitudeError : "";
+	const searchCoordinatesReady = coordinateInputMode === "search" && latitude !== null && longitude !== null;
+	const manualCoordinatesReady = coordinateInputMode === "manual" && latitude !== null && longitude !== null && !latitudeError && !longitudeError;
+	const coordinatesReady = searchCoordinatesReady || manualCoordinatesReady;
+	const selectedCoordinates: ProbeCoordinates | null = coordinatesReady && latitude !== null && longitude !== null ? { latitude, longitude } : null;
+	const canSearchLocation = coordinateInputMode === "search" && locationSearch.trim().length > 0 && geocodeStatus !== "searching";
+	const locationInputInvalid = coordinateInputMode === "manual" && Boolean(latitudeInput.trim() || longitudeInput.trim()) && !manualCoordinatesReady;
+	const previewLocationName = locationName.trim() || "Manual coordinates";
 
 	useEffect(() => {
 		return () => {
 			if (copyTimeoutRef.current) {
 				window.clearTimeout(copyTimeoutRef.current);
 			}
+			geocodeAbortRef.current?.abort();
 		};
 	}, []);
 
-	function toggleLocationMode() {
-		const nextMode = locationMode === "manual" ? "auto" : "manual";
-
-		setLocationMode(nextMode);
-
-		if (nextMode === "auto") {
-			setProbeLocation(activeProbe.location);
+	useEffect(() => {
+		if (!activeApiProbe) {
+			return;
 		}
-	}
+
+		const nextProbe = mapApiProbe(activeApiProbe, 0);
+		const nextLocationName = activeApiProbe.locationName || "";
+
+		setProbeName(nextProbe.name);
+		setLocationSearch(nextLocationName);
+		setLocationName(nextLocationName);
+		setLatitudeInput(typeof activeApiProbe.latitude === "number" ? formatCoordinate(activeApiProbe.latitude) : "");
+		setLongitudeInput(typeof activeApiProbe.longitude === "number" ? formatCoordinate(activeApiProbe.longitude) : "");
+		setGeocodeStatus("idle");
+		setGeocodeError("");
+	}, [activeApiProbe]);
 
 	function toggleAsMode() {
 		const nextMode = asMode === "manual" ? "auto" : "manual";
@@ -103,6 +148,75 @@ export function ProbeDetail({ probe, assignedRows, floating = false, projectRef,
 
 		if (nextMode === "auto") {
 			setProbeAsn(activeProbe.asn);
+		}
+	}
+
+	function clearResolvedCoordinates() {
+		geocodeAbortRef.current?.abort();
+		geocodeAbortRef.current = null;
+		setLocationName("");
+		setLatitudeInput("");
+		setLongitudeInput("");
+		setGeocodeStatus("idle");
+		setGeocodeError("");
+	}
+
+	function updateLocationSearch(value: string) {
+		setLocationSearch(value);
+		clearResolvedCoordinates();
+	}
+
+	function updateCoordinateInputMode(nextMode: CoordinateInputMode) {
+		if (nextMode === coordinateInputMode) {
+			return;
+		}
+
+		setCoordinateInputMode(nextMode);
+		setGeocodeStatus("idle");
+		setGeocodeError("");
+
+		if (nextMode === "search") {
+			setLocationName("");
+			setLatitudeInput("");
+			setLongitudeInput("");
+		}
+	}
+
+	async function searchLocation() {
+		const query = locationSearch.trim();
+
+		if (!query || geocodeStatus === "searching") {
+			return;
+		}
+
+		geocodeAbortRef.current?.abort();
+		const abortController = new AbortController();
+		geocodeAbortRef.current = abortController;
+
+		setGeocodeStatus("searching");
+		setGeocodeError("");
+		setLocationName("");
+		setLatitudeInput("");
+		setLongitudeInput("");
+
+		try {
+			const result = await searchNominatimLocation(query, abortController.signal);
+
+			setLocationName(result.locationName);
+			setLatitudeInput(formatCoordinate(result.coordinates.latitude));
+			setLongitudeInput(formatCoordinate(result.coordinates.longitude));
+			setGeocodeStatus("resolved");
+		} catch (error) {
+			if (error instanceof DOMException && error.name === "AbortError") {
+				return;
+			}
+
+			setGeocodeStatus("error");
+			setGeocodeError(error instanceof Error ? error.message : "Location search failed.");
+		} finally {
+			if (geocodeAbortRef.current === abortController) {
+				geocodeAbortRef.current = null;
+			}
 		}
 	}
 
@@ -154,24 +268,25 @@ export function ProbeDetail({ probe, assignedRows, floating = false, projectRef,
 		try {
 			const projectLabels = labelsQuery.data?.labels ?? [];
 			const currentLabels = activeApiProbe?.labels ?? [];
-			const labelIds = currentLabels
-				.filter(label => !(locationMode === "manual" && label.key.toLowerCase() === "location") && !(asMode === "manual" && label.key.toLowerCase() === "as"))
-				.map(label => label.id);
-			const locationLabelId = locationMode === "manual" ? await ensureProjectLabel("location", probeLocation, projectLabels) : null;
+			const labelIds = currentLabels.filter(label => !(asMode === "manual" && label.key.toLowerCase() === "as")).map(label => label.id);
 			const asLabelId = asMode === "manual" ? await ensureProjectLabel("as", probeAsn, projectLabels) : null;
 
-			for (const labelId of [locationLabelId, asLabelId]) {
+			for (const labelId of [asLabelId]) {
 				if (labelId && !labelIds.includes(labelId)) {
 					labelIds.push(labelId);
 				}
 			}
 
+			const body = {
+				name: probeName.trim(),
+				...(locationName.trim() ? { locationName: locationName.trim() } : {}),
+				...(selectedCoordinates ? { latitude: selectedCoordinates.latitude, longitude: selectedCoordinates.longitude } : {}),
+				labelIds
+			};
+
 			await updateProbeMutation.mutateAsync({
 				probeId: activeProbe.id,
-				body: {
-					name: probeName.trim(),
-					labelIds
-				}
+				body
 			});
 			await queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.labels(projectRef) });
 		} catch (error) {
@@ -218,23 +333,92 @@ export function ProbeDetail({ probe, assignedRows, floating = false, projectRef,
 			<div className={styles.fieldGrid}>
 				<TextField className={styles.input} label="Probe name" value={probeName} onChange={event => setProbeName(event.currentTarget.value)} />
 				<div className={styles.inputWithMode}>
-					<TextField
-						className={styles.input}
-						label="Location (keywords search)"
-						value={probeLocation}
-						disabled={locationMode === "auto"}
-						onChange={event => setProbeLocation(event.currentTarget.value)}
-					/>
-					<ModeToggle mode={locationMode} label="location detect mode" onToggle={toggleLocationMode} />
-				</div>
-				<div className={styles.inputWithMode}>
 					<TextField className={styles.input} label="AS" value={probeAsn} disabled={asMode === "auto"} onChange={event => setProbeAsn(event.currentTarget.value)} />
 					<ModeToggle mode={asMode} label="AS detect mode" onToggle={toggleAsMode} />
 				</div>
 			</div>
 
+			<div className={styles.locationEditor}>
+				<div className={styles.locationMode} role="group" aria-label="Coordinate input mode">
+					<Button
+						type="button"
+						variant={coordinateInputMode === "search" ? "secondary" : "ghost"}
+						size="sm"
+						aria-pressed={coordinateInputMode === "search"}
+						onClick={() => updateCoordinateInputMode("search")}
+					>
+						Search name
+					</Button>
+					<Button
+						type="button"
+						variant={coordinateInputMode === "manual" ? "secondary" : "ghost"}
+						size="sm"
+						aria-pressed={coordinateInputMode === "manual"}
+						onClick={() => updateCoordinateInputMode("manual")}
+					>
+						Manual coordinates
+					</Button>
+				</div>
+
+				{coordinateInputMode === "search" ? (
+					<div className={styles.locationSearch}>
+						<TextField
+							className={styles.input}
+							label="Location search"
+							value={locationSearch}
+							placeholder="Taipei, Taiwan"
+							disabled={geocodeStatus === "searching"}
+							error={geocodeStatus === "error" ? geocodeError : undefined}
+							onChange={event => updateLocationSearch(event.currentTarget.value)}
+						/>
+						<Button type="button" variant="outline" size="sm" disabled={!canSearchLocation} onClick={() => void searchLocation()}>
+							{geocodeStatus === "searching" ? "Searching" : "Search"}
+						</Button>
+					</div>
+				) : (
+					<div className={styles.manualLocationFields}>
+						<TextField className={styles.input} label="Location name" value={locationName} placeholder="Taipei, Taiwan" onChange={event => setLocationName(event.currentTarget.value)} />
+						<div className={styles.coordinateGrid}>
+							<TextField
+								className={styles.input}
+								label="Latitude"
+								type="number"
+								inputMode="decimal"
+								step="any"
+								value={latitudeInput}
+								placeholder="25.037520"
+								error={visibleLatitudeError || undefined}
+								onChange={event => setLatitudeInput(event.currentTarget.value)}
+							/>
+							<TextField
+								className={styles.input}
+								label="Longitude"
+								type="number"
+								inputMode="decimal"
+								step="any"
+								value={longitudeInput}
+								placeholder="121.563680"
+								error={visibleLongitudeError || undefined}
+								onChange={event => setLongitudeInput(event.currentTarget.value)}
+							/>
+						</div>
+					</div>
+				)}
+
+				{selectedCoordinates ? (
+					<LocationPreviewMap coordinates={selectedCoordinates} locationName={previewLocationName} probeName={probeName.trim() || activeProbe.name} className={styles.locationPreview} />
+				) : (
+					<p className={styles.locationStatus} aria-live="polite">
+						{coordinateInputMode === "search" ? "Search for a place to update this probe location." : "Enter valid decimal coordinates to preview this probe location."}
+					</p>
+				)}
+			</div>
+
 			<div className={styles.actions}>
-				<Button disabled={!projectRef || !activeApiProbe || updateProbeMutation.isPending || savingProbe || !probeName} onClick={() => void saveProbe()}>
+				<Button
+					disabled={!projectRef || !activeApiProbe || updateProbeMutation.isPending || savingProbe || !probeName || locationInputInvalid || geocodeStatus === "searching"}
+					onClick={() => void saveProbe()}
+				>
 					{updateProbeMutation.isPending || savingProbe ? "Saving" : "Save probe"}
 				</Button>
 				<Button

@@ -304,6 +304,7 @@ export function useSaveProjectLabelMutation(projectRef: string | null | undefine
 		},
 		onSuccess: () => {
 			const ref = requireProjectRef(projectRef);
+			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.assignmentsRoot(ref) });
 			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.labels(ref) });
 			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.probes(ref) });
 			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.checks(ref) });
@@ -318,6 +319,7 @@ export function useDeleteProjectLabelMutation(projectRef: string | null | undefi
 		mutationFn: (labelId: string) => deleteProjectLabel(requireProjectRef(projectRef), labelId),
 		onSuccess: () => {
 			const ref = requireProjectRef(projectRef);
+			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.assignmentsRoot(ref) });
 			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.labels(ref) });
 			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.probes(ref) });
 			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.checks(ref) });

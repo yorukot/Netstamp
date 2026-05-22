@@ -112,10 +112,10 @@ func TestAPIAuthProjectAndProbeRuntimeFlow(t *testing.T) {
 	var createdProbe createProbeResponse
 	t.Logf("e2e: creating labeled probe under project %q", createdProject.Project.Slug)
 	suite.doJSON(t, http.MethodPost, "/api/v1/projects/"+createdProject.Project.Slug+"/probes", map[string]any{
-		"name":            "e2e-probe",
-		"enabled":         true,
-		"subdivisionCode": "JP-13",
-		"labelIds":        []string{createdLabel.Label.ID},
+		"name":         "e2e-probe",
+		"enabled":      true,
+		"locationName": "Tokyo, Japan",
+		"labelIds":     []string{createdLabel.Label.ID},
 	}, authCookieHeaders(sessionCookie), http.StatusCreated, &createdProbe)
 	if createdProbe.Probe.ID == "" {
 		t.Fatal("expected created probe id")

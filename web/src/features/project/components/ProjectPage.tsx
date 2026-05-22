@@ -1,14 +1,6 @@
-import {
-	useAddProjectMemberMutation,
-	useDeleteProjectLabelMutation,
-	useDeleteProjectMutation,
-	useRemoveProjectMemberMutation,
-	useSaveProjectLabelMutation,
-	useUpdateProjectMemberRoleMutation,
-	useUpdateProjectMutation
-} from "@/shared/api/mutations";
+import { useAddProjectMemberMutation, useDeleteProjectMutation, useRemoveProjectMemberMutation, useUpdateProjectMemberRoleMutation, useUpdateProjectMutation } from "@/shared/api/mutations";
 import { projectQueries } from "@/shared/api/queries";
-import type { ApiLabel, ProjectMemberRole } from "@/shared/api/types";
+import type { ProjectMemberRole } from "@/shared/api/types";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { useConfirm } from "@/shared/components/confirmContext";
 import { PageStack } from "@/shared/components/PageStack";
@@ -28,13 +20,6 @@ interface MemberRow {
 	lastActive: string;
 }
 
-interface LabelRow {
-	id: string;
-	key: string;
-	value: string;
-	updatedAt: string;
-}
-
 export function ProjectPage() {
 	const { project, projectRef, setSelectedProjectRef } = useCurrentProject();
 	const confirm = useConfirm();
@@ -42,29 +27,17 @@ export function ProjectPage() {
 	const addMemberMutation = useAddProjectMemberMutation(projectRef);
 	const removeMemberMutation = useRemoveProjectMemberMutation(projectRef);
 	const updateMemberRoleMutation = useUpdateProjectMemberRoleMutation(projectRef);
-	const saveLabelMutation = useSaveProjectLabelMutation(projectRef);
-	const deleteLabelMutation = useDeleteProjectLabelMutation(projectRef);
 	const deleteProjectMutation = useDeleteProjectMutation(projectRef);
 	const membersQuery = useQuery({
 		...projectQueries.members(projectRef || ""),
-		enabled: Boolean(projectRef)
-	});
-	const labelsQuery = useQuery({
-		...projectQueries.labels(projectRef || ""),
 		enabled: Boolean(projectRef)
 	});
 	const [projectName, setProjectName] = useState("");
 	const [projectSlug, setProjectSlug] = useState("");
 	const [memberEmail, setMemberEmail] = useState("");
 	const [memberRole, setMemberRole] = useState<ProjectMemberRole>("viewer");
-	const [selectedLabelId, setSelectedLabelId] = useState("");
-	const [labelKey, setLabelKey] = useState("");
-	const [labelValue, setLabelValue] = useState("");
 	const activeProjectName = projectName || project?.name || "";
 	const activeProjectSlug = projectSlug || project?.slug || "";
-	const selectedLabel = labelsQuery.data?.labels?.find(label => label.id === selectedLabelId) ?? null;
-	const activeLabelKey = labelKey || selectedLabel?.key || "";
-	const activeLabelValue = labelValue || selectedLabel?.value || "";
 	function addCurrentMember() {
 		addMemberMutation.mutate(
 			{ email: memberEmail, role: memberRole },
@@ -74,29 +47,6 @@ export function ProjectPage() {
 				}
 			}
 		);
-	}
-
-	function saveCurrentLabel() {
-		saveLabelMutation.mutate(
-			{ labelId: selectedLabel?.id, body: { key: activeLabelKey, value: activeLabelValue } },
-			{
-				onSuccess: data => {
-					setSelectedLabelId(data.label.id);
-					setLabelKey(data.label.key);
-					setLabelValue(data.label.value);
-				}
-			}
-		);
-	}
-
-	function deleteCurrentLabel(labelId: string) {
-		deleteLabelMutation.mutate(labelId, {
-			onSuccess: () => {
-				setSelectedLabelId("");
-				setLabelKey("");
-				setLabelValue("");
-			}
-		});
 	}
 
 	async function deleteCurrentProject() {
@@ -144,38 +94,6 @@ export function ProjectPage() {
 			)
 		}
 	];
-	const labelRows: LabelRow[] = (labelsQuery.data?.labels ?? []).map(label => ({
-		id: label.id,
-		key: label.key,
-		value: label.value,
-		updatedAt: new Date(label.updatedAt).toLocaleString()
-	}));
-	const labelColumns: DataColumn<LabelRow>[] = [
-		{ key: "key", label: "Key" },
-		{ key: "value", label: "Value" },
-		{ key: "updatedAt", label: "Updated" },
-		{
-			key: "delete",
-			label: "Delete",
-			render: row => (
-				<Button variant="danger" size="sm" onClick={() => deleteCurrentLabel(row.id)}>
-					Delete
-				</Button>
-			)
-		}
-	];
-
-	function selectLabel(label: ApiLabel) {
-		setSelectedLabelId(label.id);
-		setLabelKey(label.key);
-		setLabelValue(label.value);
-	}
-
-	function startNewLabel() {
-		setSelectedLabelId("");
-		setLabelKey("");
-		setLabelValue("");
-	}
 
 	return (
 		<PageStack>
@@ -209,26 +127,6 @@ export function ProjectPage() {
 					</Button>
 				</div>
 				<DataTable columns={memberColumns} rows={memberRows} getRowKey={row => row.id} />
-			</Panel>
-
-			<Panel tone="glass" eyebrow="Labels" title="Project labels">
-				<div className={styles.formGridThree}>
-					<TextField label="Key" value={activeLabelKey} onChange={event => setLabelKey(event.currentTarget.value)} />
-					<TextField label="Value" value={activeLabelValue} onChange={event => setLabelValue(event.currentTarget.value)} />
-					<Button disabled={!projectRef || !activeLabelKey || !activeLabelValue || saveLabelMutation.isPending} onClick={saveCurrentLabel}>
-						{saveLabelMutation.isPending ? "Saving" : selectedLabel ? "Save label" : "Create label"}
-					</Button>
-				</div>
-				<Button variant="outline" size="sm" onClick={startNewLabel}>
-					New label
-				</Button>
-				<DataTable
-					columns={labelColumns}
-					rows={labelRows}
-					getRowKey={row => row.id}
-					selectedKey={selectedLabelId}
-					onRowClick={row => selectLabel({ id: row.id, key: row.key, value: row.value, projectId: project?.id || "", createdAt: "", updatedAt: row.updatedAt })}
-				/>
 			</Panel>
 
 			<Panel tone="deep" eyebrow="Danger zone" title="Dangerous project actions">

@@ -3,7 +3,6 @@ package probe
 import (
 	"errors"
 	"net/netip"
-	"regexp"
 	"strings"
 	"time"
 
@@ -26,21 +25,19 @@ const (
 	StateOffline State = "offline"
 )
 
-var subdivisionCodeRe = regexp.MustCompile(`^[A-Z]{2}-[A-Z0-9]{1,3}$`)
-
 type Probe struct {
-	ID              string              `json:"id"`
-	ProjectID       string              `json:"projectId"`
-	Name            string              `json:"name"`
-	Enabled         bool                `json:"enabled"`
-	SubdivisionCode *string             `json:"subdivisionCode"`
-	Latitude        *float64            `json:"latitude"`
-	Longitude       *float64            `json:"longitude"`
-	Labels          []domainlabel.Label `json:"labels"`
-	Status          *Status             `json:"status"`
-	CreatedAt       time.Time           `json:"createdAt"`
-	UpdatedAt       time.Time           `json:"updatedAt"`
-	DeletedAt       *time.Time          `json:"-"`
+	ID           string              `json:"id"`
+	ProjectID    string              `json:"projectId"`
+	Name         string              `json:"name"`
+	Enabled      bool                `json:"enabled"`
+	LocationName *string             `json:"locationName"`
+	Latitude     *float64            `json:"latitude"`
+	Longitude    *float64            `json:"longitude"`
+	Labels       []domainlabel.Label `json:"labels"`
+	Status       *Status             `json:"status"`
+	CreatedAt    time.Time           `json:"createdAt"`
+	UpdatedAt    time.Time           `json:"updatedAt"`
+	DeletedAt    *time.Time          `json:"-"`
 }
 
 func VNProbeID(probeID string) (string, error) {
@@ -104,22 +101,28 @@ func VNProbeOptionalName(name *string) (*string, error) {
 	return &normalized, nil
 }
 
-func VNProbeSubdivisionCode(subdivisionCode string) (string, error) {
-	subdivisionCode = strings.TrimSpace(subdivisionCode)
+func VNProbeLocationName(locationName string) (string, error) {
+	locationName = strings.TrimSpace(locationName)
 
-	if !subdivisionCodeRe.MatchString(subdivisionCode) {
-		return "", errors.New("invalid subdivision code")
+	err := spvalidator.Min(locationName, 1)
+	if err != nil {
+		return "", err
 	}
 
-	return subdivisionCode, nil
+	err = spvalidator.Max(locationName, 256)
+	if err != nil {
+		return "", err
+	}
+
+	return locationName, nil
 }
 
-func VNProbeOptionalSubdivisionCode(subdivisionCode *string) (*string, error) {
-	if subdivisionCode == nil {
-		return nil, nil //nolint:nilnil // Nil means the caller did not provide a subdivision code.
+func VNProbeOptionalLocationName(locationName *string) (*string, error) {
+	if locationName == nil {
+		return nil, nil //nolint:nilnil // Nil means the caller did not provide a location name.
 	}
 
-	normalized, err := VNProbeSubdivisionCode(*subdivisionCode)
+	normalized, err := VNProbeLocationName(*locationName)
 	if err != nil {
 		return nil, err
 	}

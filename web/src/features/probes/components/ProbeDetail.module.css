@@ -53,9 +53,58 @@
 
 .fieldGrid {
 	display: grid;
-	grid-template-columns: minmax(8rem, 0.7fr) minmax(10rem, 1.25fr) minmax(7rem, 0.56fr);
+	grid-template-columns: minmax(10rem, 1fr) minmax(8rem, 0.56fr);
 	gap: 1rem;
 	align-items: start;
+}
+
+.locationEditor {
+	display: grid;
+	gap: 0.75rem;
+	min-width: 0;
+}
+
+.locationMode {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+}
+
+.locationMode button[aria-pressed="true"] {
+	--ns-frame-color: var(--ns-accent-border);
+}
+
+.locationSearch {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	gap: 0.625rem;
+	align-items: start;
+}
+
+.locationSearch > button {
+	margin-top: 1.45rem;
+}
+
+.manualLocationFields {
+	display: grid;
+	gap: 0.75rem;
+}
+
+.coordinateGrid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.75rem;
+}
+
+.locationPreview {
+	--ns-frame-color: rgba(255, 122, 26, 0.34);
+}
+
+.locationStatus {
+	margin: 0;
+	color: var(--ns-text-low);
+	font-size: 0.8125rem;
+	line-height: 1.5;
 }
 
 .actions {
@@ -182,6 +231,17 @@
 @media (max-width: 78rem) {
 	.fieldGrid {
 		grid-template-columns: 1fr;
+	}
+}
+
+@media (max-width: 42rem) {
+	.locationSearch,
+	.coordinateGrid {
+		grid-template-columns: 1fr;
+	}
+
+	.locationSearch > button {
+		margin-top: 0;
 	}
 }
 

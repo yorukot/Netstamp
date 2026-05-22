@@ -14,28 +14,41 @@ import (
 )
 
 const createProbe = `-- name: CreateProbe :one
-INSERT INTO probes (project_id, name, enabled, location, subdivision_code)
+INSERT INTO probes (project_id, name, enabled, location, location_name)
 VALUES ($1, $2, $3, $4, $5)
-RETURNING id, internal_id, project_id, name, enabled, location, subdivision_code, created_at, updated_at, deleted_at
+RETURNING id, internal_id, project_id, name, enabled, location, location_name, created_at, updated_at, deleted_at
 `
 
 type CreateProbeParams struct {
-	ProjectID       uuid.UUID    `json:"project_id"`
-	Name            string       `json:"name"`
-	Enabled         bool         `json:"enabled"`
-	Location        pgtype.Point `json:"location"`
-	SubdivisionCode *string      `json:"subdivision_code"`
+	ProjectID    uuid.UUID    `json:"project_id"`
+	Name         string       `json:"name"`
+	Enabled      bool         `json:"enabled"`
+	Location     pgtype.Point `json:"location"`
+	LocationName *string      `json:"location_name"`
 }
 
-func (q *Queries) CreateProbe(ctx context.Context, arg CreateProbeParams) (Probe, error) {
+type CreateProbeRow struct {
+	ID           uuid.UUID          `json:"id"`
+	InternalID   int64              `json:"internal_id"`
+	ProjectID    uuid.UUID          `json:"project_id"`
+	Name         string             `json:"name"`
+	Enabled      bool               `json:"enabled"`
+	Location     pgtype.Point       `json:"location"`
+	LocationName *string            `json:"location_name"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt    pgtype.Timestamptz `json:"deleted_at"`
+}
+
+func (q *Queries) CreateProbe(ctx context.Context, arg CreateProbeParams) (CreateProbeRow, error) {
 	row := q.db.QueryRow(ctx, createProbe,
 		arg.ProjectID,
 		arg.Name,
 		arg.Enabled,
 		arg.Location,
-		arg.SubdivisionCode,
+		arg.LocationName,
 	)
-	var i Probe
+	var i CreateProbeRow
 	err := row.Scan(
 		&i.ID,
 		&i.InternalID,
@@ -43,7 +56,7 @@ func (q *Queries) CreateProbe(ctx context.Context, arg CreateProbeParams) (Probe
 		&i.Name,
 		&i.Enabled,
 		&i.Location,
-		&i.SubdivisionCode,
+		&i.LocationName,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
@@ -209,7 +222,7 @@ SELECT probes.internal_id,
        probes.name,
        probes.enabled,
        probes.location,
-       probes.subdivision_code,
+       probes.location_name,
        probes.created_at,
        probes.updated_at,
        probes.deleted_at,
@@ -261,7 +274,7 @@ type GetActiveProbeRowsForProjectRow struct {
 	Name               string             `json:"name"`
 	Enabled            bool               `json:"enabled"`
 	Location           pgtype.Point       `json:"location"`
-	SubdivisionCode    *string            `json:"subdivision_code"`
+	LocationName       *string            `json:"location_name"`
 	CreatedAt          pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt          pgtype.Timestamptz `json:"updated_at"`
 	DeletedAt          pgtype.Timestamptz `json:"deleted_at"`
@@ -298,7 +311,7 @@ func (q *Queries) GetActiveProbeRowsForProject(ctx context.Context, arg GetActiv
 			&i.Name,
 			&i.Enabled,
 			&i.Location,
-			&i.SubdivisionCode,
+			&i.LocationName,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.DeletedAt,
@@ -610,7 +623,7 @@ SELECT probes.internal_id,
        probes.name,
        probes.enabled,
        probes.location,
-       probes.subdivision_code,
+       probes.location_name,
        probes.created_at,
        probes.updated_at,
        probes.deleted_at,
@@ -658,7 +671,7 @@ type ListActiveProbesForProjectRow struct {
 	Name               string             `json:"name"`
 	Enabled            bool               `json:"enabled"`
 	Location           pgtype.Point       `json:"location"`
-	SubdivisionCode    *string            `json:"subdivision_code"`
+	LocationName       *string            `json:"location_name"`
 	CreatedAt          pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt          pgtype.Timestamptz `json:"updated_at"`
 	DeletedAt          pgtype.Timestamptz `json:"deleted_at"`
@@ -695,7 +708,7 @@ func (q *Queries) ListActiveProbesForProject(ctx context.Context, projectID uuid
 			&i.Name,
 			&i.Enabled,
 			&i.Location,
-			&i.SubdivisionCode,
+			&i.LocationName,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.DeletedAt,
@@ -818,32 +831,45 @@ UPDATE probes
 SET name = $3,
     enabled = $4,
     location = $5,
-    subdivision_code = $6
+    location_name = $6
 WHERE project_id = $1
   AND id = $2
   AND deleted_at IS NULL
-RETURNING id, internal_id, project_id, name, enabled, location, subdivision_code, created_at, updated_at, deleted_at
+RETURNING id, internal_id, project_id, name, enabled, location, location_name, created_at, updated_at, deleted_at
 `
 
 type UpdateProbeParams struct {
-	ProjectID       uuid.UUID    `json:"project_id"`
-	ID              uuid.UUID    `json:"id"`
-	Name            string       `json:"name"`
-	Enabled         bool         `json:"enabled"`
-	Location        pgtype.Point `json:"location"`
-	SubdivisionCode *string      `json:"subdivision_code"`
+	ProjectID    uuid.UUID    `json:"project_id"`
+	ID           uuid.UUID    `json:"id"`
+	Name         string       `json:"name"`
+	Enabled      bool         `json:"enabled"`
+	Location     pgtype.Point `json:"location"`
+	LocationName *string      `json:"location_name"`
 }
 
-func (q *Queries) UpdateProbe(ctx context.Context, arg UpdateProbeParams) (Probe, error) {
+type UpdateProbeRow struct {
+	ID           uuid.UUID          `json:"id"`
+	InternalID   int64              `json:"internal_id"`
+	ProjectID    uuid.UUID          `json:"project_id"`
+	Name         string             `json:"name"`
+	Enabled      bool               `json:"enabled"`
+	Location     pgtype.Point       `json:"location"`
+	LocationName *string            `json:"location_name"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt    pgtype.Timestamptz `json:"deleted_at"`
+}
+
+func (q *Queries) UpdateProbe(ctx context.Context, arg UpdateProbeParams) (UpdateProbeRow, error) {
 	row := q.db.QueryRow(ctx, updateProbe,
 		arg.ProjectID,
 		arg.ID,
 		arg.Name,
 		arg.Enabled,
 		arg.Location,
-		arg.SubdivisionCode,
+		arg.LocationName,
 	)
-	var i Probe
+	var i UpdateProbeRow
 	err := row.Scan(
 		&i.ID,
 		&i.InternalID,
@@ -851,7 +877,7 @@ func (q *Queries) UpdateProbe(ctx context.Context, arg UpdateProbeParams) (Probe
 		&i.Name,
 		&i.Enabled,
 		&i.Location,
-		&i.SubdivisionCode,
+		&i.LocationName,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,

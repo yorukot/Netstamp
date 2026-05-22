@@ -443,6 +443,23 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	"/projects/{ref}/results/traceroute/topology": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** Query project traceroute topology */
+		get: operations["queryProjectTracerouteTopology"];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	"/projects/{ref}/selector-previews": {
 		parameters: {
 			query?: never;
@@ -864,7 +881,7 @@ export interface components {
 		 * @example {
 		 *       "name": "tokyo-vps-1",
 		 *       "enabled": true,
-		 *       "subdivisionCode": "JP-13",
+		 *       "locationName": "Tokyo, Japan",
 		 *       "latitude": 35.6762,
 		 *       "longitude": 139.6503,
 		 *       "labelIds": [
@@ -876,7 +893,7 @@ export interface components {
 			name: string;
 			/** @default true */
 			enabled: boolean;
-			subdivisionCode?: string;
+			locationName?: string;
 			/** Format: double */
 			latitude?: number;
 			/** Format: double */
@@ -1214,7 +1231,7 @@ export interface components {
 		 *       "projectId": "22222222-2222-2222-2222-222222222222",
 		 *       "name": "tokyo-vps-1",
 		 *       "enabled": true,
-		 *       "subdivisionCode": "JP-13",
+		 *       "locationName": "Tokyo, Japan",
 		 *       "latitude": 35.6762,
 		 *       "longitude": 139.6503,
 		 *       "labels": [],
@@ -1233,7 +1250,7 @@ export interface components {
 			projectId: components["schemas"]["uuid"];
 			name: string;
 			enabled: boolean;
-			subdivisionCode?: string;
+			locationName?: string;
 			/** Format: double */
 			latitude?: number;
 			/** Format: double */
@@ -1270,7 +1287,7 @@ export interface components {
 		 *         "projectId": "22222222-2222-2222-2222-222222222222",
 		 *         "name": "tokyo-vps-1",
 		 *         "enabled": true,
-		 *         "subdivisionCode": "JP-13",
+		 *         "locationName": "Tokyo, Japan",
 		 *         "latitude": 35.6762,
 		 *         "longitude": 139.6503,
 		 *         "labels": [],
@@ -2036,6 +2053,118 @@ export interface components {
 			query: components["schemas"]["TracerouteRunsQueryMetadata"];
 		};
 		/**
+		 * @example {
+		 *       "id": "probe:33333333-3333-3333-3333-333333333333->ip:192.0.2.1",
+		 *       "source": "probe:33333333-3333-3333-3333-333333333333",
+		 *       "target": "ip:192.0.2.1",
+		 *       "seenCount": 12,
+		 *       "avgRttMs": 1.8,
+		 *       "lossPercent": 0
+		 *     }
+		 */
+		TracerouteTopologyEdge: {
+			id: string;
+			source: string;
+			target: string;
+			/** Format: int32 */
+			seenCount: number;
+			/** Format: double */
+			avgRttMs?: number;
+			/** Format: double */
+			lossPercent?: number;
+		};
+		/**
+		 * @example {
+		 *       "id": "ip:192.0.2.1",
+		 *       "kind": "hop",
+		 *       "label": "gateway.local",
+		 *       "address": "192.0.2.1",
+		 *       "hostname": "gateway.local",
+		 *       "hopIndex": 1,
+		 *       "seenCount": 12,
+		 *       "avgRttMs": 1.8,
+		 *       "lossPercent": 0
+		 *     }
+		 */
+		TracerouteTopologyNode: {
+			id: string;
+			/** @enum {string} */
+			kind: "probe" | "hop" | "destination" | "unknown";
+			label: string;
+			address?: components["schemas"]["ipv4Address"] | components["schemas"]["ipv6Address"];
+			hostname?: string;
+			probeId?: components["schemas"]["uuid"];
+			checkId?: components["schemas"]["uuid"];
+			target?: string;
+			/** Format: int32 */
+			hopIndex?: number;
+			/** Format: int32 */
+			seenCount: number;
+			/** Format: double */
+			avgRttMs?: number;
+			/** Format: double */
+			lossPercent?: number;
+		};
+		/**
+		 * @example {
+		 *       "from": 1778662800000,
+		 *       "to": 1778749200000,
+		 *       "limit": 100
+		 *     }
+		 */
+		TracerouteTopologyQueryMetadata: {
+			/** Format: int64 */
+			from: number;
+			/** Format: int64 */
+			to: number;
+			/** Format: int32 */
+			limit: number;
+		};
+		/**
+		 * @example {
+		 *       "nodes": [
+		 *         {
+		 *           "id": "probe:33333333-3333-3333-3333-333333333333",
+		 *           "kind": "probe",
+		 *           "label": "fra-bm-02",
+		 *           "probeId": "33333333-3333-3333-3333-333333333333",
+		 *           "seenCount": 12
+		 *         },
+		 *         {
+		 *           "id": "ip:192.0.2.1",
+		 *           "kind": "hop",
+		 *           "label": "gateway.local",
+		 *           "address": "192.0.2.1",
+		 *           "hostname": "gateway.local",
+		 *           "hopIndex": 1,
+		 *           "seenCount": 12,
+		 *           "avgRttMs": 1.8,
+		 *           "lossPercent": 0
+		 *         }
+		 *       ],
+		 *       "edges": [
+		 *         {
+		 *           "id": "probe:33333333-3333-3333-3333-333333333333->ip:192.0.2.1",
+		 *           "source": "probe:33333333-3333-3333-3333-333333333333",
+		 *           "target": "ip:192.0.2.1",
+		 *           "seenCount": 12,
+		 *           "avgRttMs": 1.8,
+		 *           "lossPercent": 0
+		 *         }
+		 *       ],
+		 *       "query": {
+		 *         "from": 1778662800000,
+		 *         "to": 1778749200000,
+		 *         "limit": 100
+		 *       }
+		 *     }
+		 */
+		TracerouteTopologyResponse: {
+			nodes: components["schemas"]["TracerouteTopologyNode"][];
+			edges: components["schemas"]["TracerouteTopologyEdge"][];
+			query: components["schemas"]["TracerouteTopologyQueryMetadata"];
+		};
+		/**
 		 * @description Patch payload. At least one field must be provided.
 		 * @example {
 		 *       "name": "api-latency",
@@ -2096,7 +2225,7 @@ export interface components {
 		UpdateProbeRequest: {
 			name?: string;
 			enabled?: boolean;
-			subdivisionCode?: string;
+			locationName?: string;
 			/** Format: double */
 			latitude?: number;
 			/** Format: double */
@@ -2175,6 +2304,11 @@ export interface components {
 		"TracerouteRunsQuery.limit": number;
 		"TracerouteRunsQuery.probeId": components["schemas"]["uuid"];
 		"TracerouteRunsQuery.to": number;
+		"TracerouteTopologyQuery.checkId": components["schemas"]["uuid"];
+		"TracerouteTopologyQuery.from": number;
+		"TracerouteTopologyQuery.limit": number;
+		"TracerouteTopologyQuery.probeId": components["schemas"]["uuid"];
+		"TracerouteTopologyQuery.to": number;
 		UserIdPathParam: components["schemas"]["uuid"];
 	};
 	requestBodies: never;
@@ -4424,6 +4558,79 @@ export interface operations {
 				};
 				content: {
 					"application/json": components["schemas"]["TracerouteRunsResponse"];
+				};
+			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	queryProjectTracerouteTopology: {
+		parameters: {
+			query?: {
+				probeId?: components["parameters"]["TracerouteTopologyQuery.probeId"];
+				checkId?: components["parameters"]["TracerouteTopologyQuery.checkId"];
+				from?: components["parameters"]["TracerouteTopologyQuery.from"];
+				to?: components["parameters"]["TracerouteTopologyQuery.to"];
+				limit?: components["parameters"]["TracerouteTopologyQuery.limit"];
+			};
+			header?: never;
+			path: {
+				ref: components["parameters"]["ProjectRefParam"];
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["TracerouteTopologyResponse"];
 				};
 			};
 			/** @description The server could not understand the request due to invalid syntax. */

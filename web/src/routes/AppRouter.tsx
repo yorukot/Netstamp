@@ -17,6 +17,7 @@ const OnboardingPage = lazy(() => import("@/features/auth/components/OnboardingP
 const ChecksPage = lazy(() => import("@/features/checks/components/ChecksPage").then(module => ({ default: module.ChecksPage })));
 const DashboardPage = lazy(() => import("@/features/dashboard/components/DashboardPage").then(module => ({ default: module.DashboardPage })));
 const InsightPage = lazy(() => import("@/features/insight/components/InsightPage").then(module => ({ default: module.InsightPage })));
+const LabelsPage = lazy(() => import("@/features/labels/components/LabelsPage").then(module => ({ default: module.LabelsPage })));
 const NewProbeDrawer = lazy(() => import("@/features/probes/components/NewProbeDrawer").then(module => ({ default: module.NewProbeDrawer })));
 const ProbesPage = lazy(() => import("@/features/probes/components/ProbesPage").then(module => ({ default: module.ProbesPage })));
 const SettingsPage = lazy(() => import("@/features/settings/components/SettingsPage").then(module => ({ default: module.SettingsPage })));
@@ -87,8 +88,9 @@ const router = createBrowserRouter([
 				element: lazyRoute(<ProbesPage />),
 				children: [{ path: "new", element: lazyRoute(<NewProbeDrawer />) }]
 			},
-			{ path: appRoutePath("insight"), element: lazyRoute(<InsightPage />) },
+			{ path: appRoutePath("labels"), element: lazyRoute(<LabelsPage />) },
 			{ path: appRoutePath("checks"), element: lazyRoute(<ChecksPage />) },
+			{ path: appRoutePath("insight"), element: lazyRoute(<InsightPage />) },
 			{ path: appRoutePath("alerts"), element: lazyRoute(<AlertsPage />) },
 			{ path: appRoutePath("project"), element: lazyRoute(<ProjectPage />) },
 			{ path: appRoutePath("settings"), element: lazyRoute(<SettingsPage />) }

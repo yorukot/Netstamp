@@ -154,11 +154,11 @@ func (r *ProbeRepository) CreateProbe(ctx context.Context, input domainprobe.Pro
 		q := r.queries.WithTx(tx)
 
 		row, createErr := q.CreateProbe(ctx, sqlc.CreateProbeParams{
-			ProjectID:       projectID,
-			Name:            input.Name,
-			Enabled:         input.Enabled,
-			Location:        pointFromCoordinates(input.Longitude, input.Latitude),
-			SubdivisionCode: input.SubdivisionCode,
+			ProjectID:    projectID,
+			Name:         input.Name,
+			Enabled:      input.Enabled,
+			Location:     pointFromCoordinates(input.Longitude, input.Latitude),
+			LocationName: input.LocationName,
 		})
 		if createErr != nil {
 			return mapCreateProbeError(createErr)
@@ -267,12 +267,12 @@ func (r *ProbeRepository) UpdateProbe(ctx context.Context, input domainprobe.Pro
 		q := r.queries.WithTx(tx)
 
 		if _, updateErr := q.UpdateProbe(ctx, sqlc.UpdateProbeParams{
-			ProjectID:       projectID,
-			ID:              probeID,
-			Name:            input.Name,
-			Enabled:         input.Enabled,
-			Location:        pointFromCoordinates(input.Longitude, input.Latitude),
-			SubdivisionCode: input.SubdivisionCode,
+			ProjectID:    projectID,
+			ID:           probeID,
+			Name:         input.Name,
+			Enabled:      input.Enabled,
+			Location:     pointFromCoordinates(input.Longitude, input.Latitude),
+			LocationName: input.LocationName,
 		}); updateErr != nil {
 			if errors.Is(updateErr, pgx.ErrNoRows) {
 				return domainprobe.ErrProbeNotFound

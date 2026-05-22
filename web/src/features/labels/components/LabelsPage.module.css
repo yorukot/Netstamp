@@ -1,0 +1,132 @@
+.labelsGrid {
+	display: grid;
+	grid-template-columns: minmax(0, 1.1fr) minmax(22rem, 0.75fr);
+	gap: 1rem;
+	align-items: start;
+}
+
+.listStack,
+.editorStack {
+	display: grid;
+	gap: 1rem;
+}
+
+.filters {
+	display: grid;
+	grid-template-columns: minmax(14rem, 1fr) minmax(10rem, 0.45fr);
+	gap: 1rem;
+}
+
+.labelPair {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	align-items: center;
+	min-width: 0;
+}
+
+.labelPair strong {
+	min-width: 0;
+	overflow: hidden;
+	color: var(--ns-text);
+	font-family: var(--ns-font-mono);
+	font-size: 0.8125rem;
+	font-weight: 800;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.usageCell {
+	display: inline-flex;
+	align-items: center;
+}
+
+.editorPanel {
+	position: sticky;
+	top: 1rem;
+}
+
+.editorForm {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 1rem;
+}
+
+.editorActions {
+	margin: 0;
+}
+
+.errorNotice {
+	--ns-frame-cut: var(--ns-cut-sm);
+	--ns-frame-color: rgba(255, 69, 58, 0.34);
+	margin: 0;
+	padding: 0.75rem 0.875rem;
+	color: var(--ns-critical);
+	background: rgba(255, 69, 58, 0.08);
+	font-family: var(--ns-font-mono);
+	font-size: 0.8125rem;
+	line-height: 1.5;
+}
+
+.usagePanel {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.75rem;
+}
+
+.usagePanel > div {
+	--ns-frame-cut: var(--ns-cut-sm);
+	--ns-frame-color: var(--ns-border-faint);
+	display: grid;
+	gap: 0.5rem;
+	min-width: 0;
+	padding: 0.875rem;
+	border: 1px solid var(--ns-frame-color);
+	background: rgba(255, 255, 255, 0.025);
+	clip-path: polygon(0 0, calc(100% - var(--ns-frame-cut)) 0, 100% var(--ns-frame-cut), 100% 100%, var(--ns-frame-cut) 100%, 0 calc(100% - var(--ns-frame-cut)));
+}
+
+.usagePanel span {
+	color: var(--ns-text-low);
+	font-family: var(--ns-font-mono);
+	font-size: 0.6875rem;
+	font-weight: 800;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+.usagePanel strong {
+	color: var(--ns-text);
+	font-family: var(--ns-font-display);
+	font-size: 2rem;
+	line-height: 0.9;
+}
+
+.usagePanel p {
+	min-width: 0;
+	margin: 0;
+	overflow: hidden;
+	color: var(--ns-text-subtle);
+	font-size: 0.8125rem;
+	line-height: 1.5;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+@media (max-width: 78rem) {
+	.labelsGrid {
+		grid-template-columns: 1fr;
+	}
+
+	.editorPanel {
+		position: static;
+	}
+}
+
+@media (max-width: 58rem) {
+	.filters,
+	.editorForm,
+	.usagePanel {
+		grid-template-columns: 1fr;
+	}
+}

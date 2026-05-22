@@ -20,9 +20,9 @@ func normalizeCreateProbeInput(input CreateProbeInput) (CreateProbeInput, error)
 		validation.AddError("name", err, input.Name)
 	}
 
-	subdivisionCode, err := domainprobe.VNProbeOptionalSubdivisionCode(input.SubdivisionCode)
+	locationName, err := domainprobe.VNProbeOptionalLocationName(input.LocationName)
 	if err != nil {
-		validation.AddError("subdivisionCode", err, input.SubdivisionCode)
+		validation.AddError("locationName", err, input.LocationName)
 	}
 
 	latitude, longitude, latitudeErr, longitudeErr := domainprobe.VNProbeCoordinates(input.Latitude, input.Longitude)
@@ -47,14 +47,14 @@ func normalizeCreateProbeInput(input CreateProbeInput) (CreateProbeInput, error)
 	}
 
 	return CreateProbeInput{
-		CurrentUserID:   input.CurrentUserID,
-		ProjectRef:      projectRef,
-		Name:            name,
-		Enabled:         &enabled,
-		SubdivisionCode: subdivisionCode,
-		Latitude:        latitude,
-		Longitude:       longitude,
-		LabelIDs:        labelIDs,
+		CurrentUserID: input.CurrentUserID,
+		ProjectRef:    projectRef,
+		Name:          name,
+		Enabled:       &enabled,
+		LocationName:  locationName,
+		Latitude:      latitude,
+		Longitude:     longitude,
+		LabelIDs:      labelIDs,
 	}, nil
 }
 
@@ -106,15 +106,15 @@ func normalizeUpdateProbeInput(input UpdateProbeInput) (UpdateProbeInput, error)
 	}
 
 	return UpdateProbeInput{
-		CurrentUserID:   input.CurrentUserID,
-		ProjectRef:      projectRef,
-		ProbeID:         probeID,
-		Name:            output.Name,
-		Enabled:         input.Enabled,
-		SubdivisionCode: output.SubdivisionCode,
-		Latitude:        output.Latitude,
-		Longitude:       output.Longitude,
-		LabelIDs:        output.LabelIDs,
+		CurrentUserID: input.CurrentUserID,
+		ProjectRef:    projectRef,
+		ProbeID:       probeID,
+		Name:          output.Name,
+		Enabled:       input.Enabled,
+		LocationName:  output.LocationName,
+		Latitude:      output.Latitude,
+		Longitude:     output.Longitude,
+		LabelIDs:      output.LabelIDs,
 	}, nil
 }
 
@@ -141,12 +141,12 @@ func normalizeUpdateProbeName(nameInput *string, output *UpdateProbeInput, valid
 }
 
 func normalizeUpdateProbeLocation(input UpdateProbeInput, output *UpdateProbeInput, validation *appvalidation.Collector) {
-	if input.SubdivisionCode != nil {
-		subdivisionCode, err := domainprobe.VNProbeOptionalSubdivisionCode(input.SubdivisionCode)
+	if input.LocationName != nil {
+		locationName, err := domainprobe.VNProbeOptionalLocationName(input.LocationName)
 		if err != nil {
-			validation.AddError("subdivisionCode", err, input.SubdivisionCode)
+			validation.AddError("locationName", err, input.LocationName)
 		} else {
-			output.SubdivisionCode = subdivisionCode
+			output.LocationName = locationName
 		}
 	}
 	if input.Latitude == nil && input.Longitude == nil {
@@ -180,7 +180,7 @@ func normalizeUpdateProbeLabels(labelIDsInput *[]string, output *UpdateProbeInpu
 func hasUpdateProbeChanges(input UpdateProbeInput) bool {
 	return input.Name != nil ||
 		input.Enabled != nil ||
-		input.SubdivisionCode != nil ||
+		input.LocationName != nil ||
 		input.Latitude != nil ||
 		input.Longitude != nil ||
 		input.LabelIDs != nil

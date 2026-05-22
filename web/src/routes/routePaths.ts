@@ -8,6 +8,7 @@ export const routePaths = {
 	dashboard: "/dashboard",
 	probes: "/probes",
 	newProbe: "/probes/new",
+	labels: "/labels",
 	insight: "/insight",
 	checks: "/checks",
 	alerts: "/alerts",

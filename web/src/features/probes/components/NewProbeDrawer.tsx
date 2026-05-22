@@ -1,3 +1,12 @@
+import {
+	coordinateInputError,
+	formatCoordinate,
+	parseCoordinateInput,
+	searchNominatimLocation,
+	type CoordinateInputMode,
+	type GeocodeStatus,
+	type ProbeCoordinates
+} from "@/features/probes/data/probeLocation";
 import { pathForRoute } from "@/routes/routePaths";
 import { installAssetPaths, installAssetUrl, probeInstallCommand } from "@/shared/api/installAssets";
 import { useCreateProjectProbeMutation } from "@/shared/api/mutations";
@@ -6,8 +15,9 @@ import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { classNames } from "@/shared/utils/classNames";
 import { Badge, Button, Terminal, TextField } from "@netstamp/ui";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { type FormEvent, type MouseEvent, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type FormEvent, type MouseEvent } from "react";
 import { useNavigate } from "react-router-dom";
+import { LocationPreviewMap } from "./LocationPreviewMap";
 import styles from "./NewProbeDrawer.module.css";
 import { ProbeWizardTimeline } from "./ProbeWizardTimeline";
 
@@ -40,11 +50,20 @@ export function NewProbeDrawer() {
 	const queryClient = useQueryClient();
 	const closeTimeoutRef = useRef<number | null>(null);
 	const copyTimeoutRef = useRef<number | null>(null);
+	const geocodeAbortRef = useRef<AbortController | null>(null);
 	const [closing, setClosing] = useState(false);
 	const [currentStep, setCurrentStep] = useState(0);
 	const [installStatus, setInstallStatus] = useState<"idle" | "detecting">("idle");
 	const [installCommandCopied, setInstallCommandCopied] = useState(false);
 	const [probeName, setProbeName] = useState("");
+	const [coordinateInputMode, setCoordinateInputMode] = useState<CoordinateInputMode>("search");
+	const [locationSearch, setLocationSearch] = useState("");
+	const [locationSearchEdited, setLocationSearchEdited] = useState(false);
+	const [locationName, setLocationName] = useState("");
+	const [latitudeInput, setLatitudeInput] = useState("");
+	const [longitudeInput, setLongitudeInput] = useState("");
+	const [geocodeStatus, setGeocodeStatus] = useState<GeocodeStatus>("idle");
+	const [geocodeError, setGeocodeError] = useState("");
 	const [registrationSecret, setRegistrationSecret] = useState("");
 	const [registeredProbeId, setRegisteredProbeId] = useState("");
 	const createProbeMutation = useCreateProjectProbeMutation(projectRef);
@@ -59,7 +78,19 @@ export function NewProbeDrawer() {
 		refetchIntervalInBackground: true
 	});
 	const heartbeatReceived = Boolean(createdProbeQuery.data?.probe.status?.state === "online" || createdProbeQuery.data?.probe.status?.lastSeenAt);
-	const canCreate = probeName.trim().length > 0 && Boolean(projectRef);
+	const latitude = parseCoordinateInput(latitudeInput);
+	const longitude = parseCoordinateInput(longitudeInput);
+	const latitudeError = coordinateInputMode === "manual" ? coordinateInputError("Latitude", latitudeInput, -90, 90) : "";
+	const longitudeError = coordinateInputMode === "manual" ? coordinateInputError("Longitude", longitudeInput, -180, 180) : "";
+	const visibleLatitudeError = latitudeInput.trim() ? latitudeError : "";
+	const visibleLongitudeError = longitudeInput.trim() ? longitudeError : "";
+	const searchCoordinatesReady = coordinateInputMode === "search" && geocodeStatus === "resolved" && latitude !== null && longitude !== null;
+	const manualCoordinatesReady = coordinateInputMode === "manual" && latitude !== null && longitude !== null && !latitudeError && !longitudeError;
+	const coordinatesReady = searchCoordinatesReady || manualCoordinatesReady;
+	const selectedCoordinates: ProbeCoordinates | null = coordinatesReady && latitude !== null && longitude !== null ? { latitude, longitude } : null;
+	const canSearchLocation = coordinateInputMode === "search" && locationSearch.trim().length > 0 && geocodeStatus !== "searching";
+	const canCreate = probeName.trim().length > 0 && Boolean(projectRef) && Boolean(selectedCoordinates);
+	const previewTitle = locationName.trim() || "Manual coordinates";
 	const installerUrl = installAssetUrl(installAssetPaths.agentInstaller);
 	const uninstallerUrl = installAssetUrl(installAssetPaths.agentUninstaller);
 	const binaryUrl = installAssetUrl(installAssetPaths.linuxAmd64Binary);
@@ -73,6 +104,7 @@ export function NewProbeDrawer() {
 			if (copyTimeoutRef.current) {
 				window.clearTimeout(copyTimeoutRef.current);
 			}
+			geocodeAbortRef.current?.abort();
 		};
 	}, []);
 
@@ -105,11 +137,51 @@ export function NewProbeDrawer() {
 		closeTimeoutRef.current = window.setTimeout(() => navigate(pathForRoute("probes")), drawerCloseDurationMs);
 	}
 
+	function clearResolvedCoordinates() {
+		geocodeAbortRef.current?.abort();
+		geocodeAbortRef.current = null;
+		setLocationName("");
+		setLatitudeInput("");
+		setLongitudeInput("");
+		setGeocodeStatus("idle");
+		setGeocodeError("");
+	}
+
 	function updateProbeName(value: string) {
 		setProbeName(value);
 		setInstallStatus("idle");
 		setRegisteredProbeId("");
 		setRegistrationSecret("");
+
+		if (!locationSearchEdited) {
+			setLocationSearch(value);
+
+			if (coordinateInputMode === "search") {
+				clearResolvedCoordinates();
+			}
+		}
+	}
+
+	function updateLocationSearch(value: string) {
+		setLocationSearch(value);
+		setLocationSearchEdited(true);
+		clearResolvedCoordinates();
+	}
+
+	function updateCoordinateInputMode(nextMode: CoordinateInputMode) {
+		if (nextMode === coordinateInputMode) {
+			return;
+		}
+
+		setCoordinateInputMode(nextMode);
+		setGeocodeError("");
+		setGeocodeStatus("idle");
+
+		if (nextMode === "search") {
+			setLocationName("");
+			setLatitudeInput("");
+			setLongitudeInput("");
+		}
 	}
 
 	function startInstallDetection() {
@@ -141,14 +213,58 @@ export function NewProbeDrawer() {
 		}, 1800);
 	}
 
-	async function handleNameSubmit(event: FormEvent<HTMLFormElement>) {
-		event.preventDefault();
+	async function searchLocation() {
+		const query = locationSearch.trim();
 
-		if (!canCreate) {
+		if (!query || geocodeStatus === "searching") {
 			return;
 		}
 
-		const data = await createProbeMutation.mutateAsync({ enabled: true, name: probeName.trim() });
+		geocodeAbortRef.current?.abort();
+		const abortController = new AbortController();
+		geocodeAbortRef.current = abortController;
+
+		setGeocodeStatus("searching");
+		setGeocodeError("");
+		setLocationName("");
+		setLatitudeInput("");
+		setLongitudeInput("");
+
+		try {
+			const result = await searchNominatimLocation(query, abortController.signal);
+
+			setLocationName(result.locationName);
+			setLatitudeInput(formatCoordinate(result.coordinates.latitude));
+			setLongitudeInput(formatCoordinate(result.coordinates.longitude));
+			setGeocodeStatus("resolved");
+		} catch (error) {
+			if (error instanceof DOMException && error.name === "AbortError") {
+				return;
+			}
+
+			setGeocodeStatus("error");
+			setGeocodeError(error instanceof Error ? error.message : "Location search failed.");
+		} finally {
+			if (geocodeAbortRef.current === abortController) {
+				geocodeAbortRef.current = null;
+			}
+		}
+	}
+
+	async function handleNameSubmit(event: FormEvent<HTMLFormElement>) {
+		event.preventDefault();
+
+		if (!canCreate || !selectedCoordinates) {
+			return;
+		}
+
+		const data = await createProbeMutation.mutateAsync({
+			enabled: true,
+			name: probeName.trim(),
+			...(locationName.trim() ? { locationName: locationName.trim() } : {}),
+			latitude: selectedCoordinates.latitude,
+			longitude: selectedCoordinates.longitude
+		});
 		setRegisteredProbeId(data.probe.id);
 		setRegistrationSecret(data.secret);
 		startInstallDetection();
@@ -181,11 +297,86 @@ export function NewProbeDrawer() {
 						<form className={styles.workflowPanel} aria-hidden={currentStep !== 0} onSubmit={handleNameSubmit}>
 							<div className={styles.stepCopy}>
 								<Badge tone="accent">Step 01</Badge>
-								<h3>Enter probe name</h3>
-								<p>This name is embedded in the registration command and shown in the probe fleet.</p>
+								<h3>Enter probe identity</h3>
+								<p>The probe name and coordinates are stored before the install command is generated.</p>
 							</div>
 
 							<TextField label="Probe name" value={probeName} placeholder="taipei-home-01" required disabled={currentStep !== 0} onChange={event => updateProbeName(event.currentTarget.value)} />
+
+							<div className={styles.locationMode} role="group" aria-label="Coordinate input mode">
+								<Button
+									type="button"
+									variant={coordinateInputMode === "search" ? "secondary" : "ghost"}
+									size="sm"
+									aria-pressed={coordinateInputMode === "search"}
+									disabled={currentStep !== 0}
+									onClick={() => updateCoordinateInputMode("search")}
+								>
+									Search name
+								</Button>
+								<Button
+									type="button"
+									variant={coordinateInputMode === "manual" ? "secondary" : "ghost"}
+									size="sm"
+									aria-pressed={coordinateInputMode === "manual"}
+									disabled={currentStep !== 0}
+									onClick={() => updateCoordinateInputMode("manual")}
+								>
+									Manual coordinates
+								</Button>
+							</div>
+
+							{coordinateInputMode === "search" ? (
+								<div className={styles.locationSearch}>
+									<TextField
+										label="Location search"
+										value={locationSearch}
+										placeholder="Taipei 101"
+										disabled={currentStep !== 0 || geocodeStatus === "searching"}
+										error={geocodeStatus === "error" ? geocodeError : undefined}
+										onChange={event => updateLocationSearch(event.currentTarget.value)}
+									/>
+									<Button type="button" variant="outline" disabled={currentStep !== 0 || !canSearchLocation} onClick={() => void searchLocation()}>
+										{geocodeStatus === "searching" ? "Searching" : "Search"}
+									</Button>
+								</div>
+							) : (
+								<div className={styles.manualLocationFields}>
+									<TextField label="Location name" value={locationName} placeholder="Taipei, Taiwan" disabled={currentStep !== 0} onChange={event => setLocationName(event.currentTarget.value)} />
+									<div className={styles.coordinateGrid}>
+										<TextField
+											label="Latitude"
+											type="number"
+											inputMode="decimal"
+											step="any"
+											value={latitudeInput}
+											placeholder="25.033964"
+											disabled={currentStep !== 0}
+											error={visibleLatitudeError || undefined}
+											onChange={event => setLatitudeInput(event.currentTarget.value)}
+										/>
+										<TextField
+											label="Longitude"
+											type="number"
+											inputMode="decimal"
+											step="any"
+											value={longitudeInput}
+											placeholder="121.564468"
+											disabled={currentStep !== 0}
+											error={visibleLongitudeError || undefined}
+											onChange={event => setLongitudeInput(event.currentTarget.value)}
+										/>
+									</div>
+								</div>
+							)}
+
+							{selectedCoordinates ? (
+								<LocationPreviewMap coordinates={selectedCoordinates} locationName={previewTitle} probeName={probeName.trim() || previewTitle} />
+							) : (
+								<p className={styles.locationStatus} aria-live="polite">
+									{coordinateInputMode === "search" ? "Search for a place before continuing." : "Enter valid decimal coordinates before continuing."}
+								</p>
+							)}
 
 							<div className={styles.actions}>
 								<Button type="submit" disabled={!canCreate || currentStep !== 0 || createProbeMutation.isPending}>

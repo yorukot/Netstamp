@@ -374,16 +374,16 @@ type PingResult struct {
 }
 
 type Probe struct {
-	ID              uuid.UUID          `json:"id"`
-	InternalID      int64              `json:"internal_id"`
-	ProjectID       uuid.UUID          `json:"project_id"`
-	Name            string             `json:"name"`
-	Enabled         bool               `json:"enabled"`
-	Location        pgtype.Point       `json:"location"`
-	SubdivisionCode *string            `json:"subdivision_code"`
-	CreatedAt       pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
-	DeletedAt       pgtype.Timestamptz `json:"deleted_at"`
+	ID           uuid.UUID          `json:"id"`
+	InternalID   int64              `json:"internal_id"`
+	ProjectID    uuid.UUID          `json:"project_id"`
+	Name         string             `json:"name"`
+	Enabled      bool               `json:"enabled"`
+	Location     pgtype.Point       `json:"location"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt    pgtype.Timestamptz `json:"deleted_at"`
+	LocationName *string            `json:"location_name"`
 }
 
 type ProbeCheckAssignment struct {

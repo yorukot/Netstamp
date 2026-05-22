@@ -10,42 +10,42 @@ import (
 const testCurrentUserID = "11111111-1111-1111-1111-111111111111"
 
 func TestNormalizeCreateProbeInputReturnsAllFieldErrors(t *testing.T) {
-	subdivisionCode := "bad"
+	locationName := ""
 	latitude := 91.0
 	longitude := 181.0
 
 	_, err := normalizeCreateProbeInput(CreateProbeInput{
-		CurrentUserID:   testCurrentUserID,
-		ProjectRef:      "",
-		Name:            "",
-		SubdivisionCode: &subdivisionCode,
-		Latitude:        &latitude,
-		Longitude:       &longitude,
-		LabelIDs:        []string{""},
+		CurrentUserID: testCurrentUserID,
+		ProjectRef:    "",
+		Name:          "",
+		LocationName:  &locationName,
+		Latitude:      &latitude,
+		Longitude:     &longitude,
+		LabelIDs:      []string{""},
 	})
 
-	assertValidationFields(t, err, []string{"projectRef", "name", "subdivisionCode", "latitude", "longitude", "labelIds"})
+	assertValidationFields(t, err, []string{"projectRef", "name", "locationName", "latitude", "longitude", "labelIds"})
 }
 
 func TestNormalizeUpdateProbeInputReturnsAllFieldErrors(t *testing.T) {
 	name := ""
-	subdivisionCode := "bad"
+	locationName := ""
 	latitude := 91.0
 	longitude := 181.0
 	labelIDs := []string{""}
 
 	_, err := normalizeUpdateProbeInput(UpdateProbeInput{
-		CurrentUserID:   testCurrentUserID,
-		ProjectRef:      "",
-		ProbeID:         "",
-		Name:            &name,
-		SubdivisionCode: &subdivisionCode,
-		Latitude:        &latitude,
-		Longitude:       &longitude,
-		LabelIDs:        &labelIDs,
+		CurrentUserID: testCurrentUserID,
+		ProjectRef:    "",
+		ProbeID:       "",
+		Name:          &name,
+		LocationName:  &locationName,
+		Latitude:      &latitude,
+		Longitude:     &longitude,
+		LabelIDs:      &labelIDs,
 	})
 
-	assertValidationFields(t, err, []string{"projectRef", "probeId", "name", "subdivisionCode", "latitude", "longitude", "labelIds"})
+	assertValidationFields(t, err, []string{"projectRef", "probeId", "name", "locationName", "latitude", "longitude", "labelIds"})
 }
 
 func assertValidationFields(t *testing.T, err error, wantFields []string) {

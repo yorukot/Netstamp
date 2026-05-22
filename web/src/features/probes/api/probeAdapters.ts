@@ -1,3 +1,4 @@
+import { coordinateSummary } from "@/features/probes/data/probeLocation";
 import type { Probe, ProbeStatus } from "@/features/probes/data/probes";
 import type { ApiProbe } from "@/shared/api/types";
 
@@ -48,16 +49,17 @@ export function mapApiProbe(probe: ApiProbe, index: number): Probe {
 	const publicIp = status?.publicV4 || status?.publicV6 || status?.addrs?.[0] || "-";
 	const tags = probe.labels?.map(label => `${label.key}:${label.value}`) ?? [];
 	const ipFamily = status?.publicV4 && status.publicV6 ? "IPv4 / IPv6" : status?.publicV6 ? "IPv6" : status?.publicV4 ? "IPv4" : "-";
+	const location = probe.locationName || coordinateSummary(probe.latitude, probe.longitude) || "-";
 
 	return {
 		id: probe.id,
 		name: probe.name,
 		status: mapProbeStatus(probe),
-		location: labelValue(probe, "location") || probe.subdivisionCode || "-",
+		location,
 		publicIp,
 		asn: status?.as || labelValue(probe, "as") || "-",
 		provider: labelValue(probe, "provider") || "Unlabeled",
-		region: probe.subdivisionCode || "unassigned",
+		region: location,
 		ipFamily,
 		lastHeartbeat: formatRelativeTime(status?.lastSeenAt),
 		tags,

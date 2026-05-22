@@ -70,13 +70,13 @@ func (s *Service) CreateProbe(ctx context.Context, input CreateProbeInput) (Crea
 	}
 
 	probe, err := s.repo.CreateProbe(ctx, domainprobe.Probe{
-		ProjectID:       project.ID,
-		Name:            input.Name,
-		Enabled:         *input.Enabled,
-		SubdivisionCode: input.SubdivisionCode,
-		Latitude:        input.Latitude,
-		Longitude:       input.Longitude,
-		Labels:          labels,
+		ProjectID:    project.ID,
+		Name:         input.Name,
+		Enabled:      *input.Enabled,
+		LocationName: input.LocationName,
+		Latitude:     input.Latitude,
+		Longitude:    input.Longitude,
+		Labels:       labels,
 	}, secretHash)
 	if err != nil {
 		return CreateProbeOutput{}, flow.createFailure(err)
@@ -210,8 +210,8 @@ func (s *Service) syncUpdateProbeInput(ctx context.Context, input UpdateProbeInp
 	if input.Enabled != nil {
 		probe.Enabled = *input.Enabled
 	}
-	if input.SubdivisionCode != nil {
-		probe.SubdivisionCode = input.SubdivisionCode
+	if input.LocationName != nil {
+		probe.LocationName = input.LocationName
 	}
 	if input.Latitude != nil {
 		probe.Latitude = input.Latitude

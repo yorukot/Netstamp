@@ -21,7 +21,7 @@ SELECT probe_check_assignments.id AS assignment_id,
        probes.name AS probe_name,
        probes.enabled AS probe_enabled,
        probes.location AS probe_location,
-       probes.subdivision_code AS probe_subdivision_code,
+       probes.location_name AS probe_location_name,
        probes.created_at AS probe_created_at,
        probes.updated_at AS probe_updated_at,
        probes.deleted_at AS probe_deleted_at,
@@ -90,7 +90,7 @@ type ListProjectAssignmentsRow struct {
 	ProbeName                 string                 `json:"probe_name"`
 	ProbeEnabled              bool                   `json:"probe_enabled"`
 	ProbeLocation             pgtype.Point           `json:"probe_location"`
-	ProbeSubdivisionCode      *string                `json:"probe_subdivision_code"`
+	ProbeLocationName         *string                `json:"probe_location_name"`
 	ProbeCreatedAt            pgtype.Timestamptz     `json:"probe_created_at"`
 	ProbeUpdatedAt            pgtype.Timestamptz     `json:"probe_updated_at"`
 	ProbeDeletedAt            pgtype.Timestamptz     `json:"probe_deleted_at"`
@@ -137,7 +137,7 @@ func (q *Queries) ListProjectAssignments(ctx context.Context, arg ListProjectAss
 			&i.ProbeName,
 			&i.ProbeEnabled,
 			&i.ProbeLocation,
-			&i.ProbeSubdivisionCode,
+			&i.ProbeLocationName,
 			&i.ProbeCreatedAt,
 			&i.ProbeUpdatedAt,
 			&i.ProbeDeletedAt,

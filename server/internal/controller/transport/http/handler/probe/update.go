@@ -13,15 +13,15 @@ func (h *Handler) updateProbe(ctx context.Context, input *updateProbeInput) (*pr
 	}
 
 	probe, err := h.service.UpdateProbe(ctx, appprobe.UpdateProbeInput{
-		CurrentUserID:   currentUserID,
-		ProjectRef:      input.Ref,
-		ProbeID:         input.ProbeID,
-		Name:            input.Body.Name,
-		Enabled:         input.Body.Enabled,
-		SubdivisionCode: input.Body.SubdivisionCode,
-		Latitude:        input.Body.Latitude,
-		Longitude:       input.Body.Longitude,
-		LabelIDs:        input.Body.LabelIDs,
+		CurrentUserID: currentUserID,
+		ProjectRef:    input.Ref,
+		ProbeID:       input.ProbeID,
+		Name:          input.Body.Name,
+		Enabled:       input.Body.Enabled,
+		LocationName:  input.Body.LocationName,
+		Latitude:      input.Body.Latitude,
+		Longitude:     input.Body.Longitude,
+		LabelIDs:      input.Body.LabelIDs,
 	})
 	if err != nil {
 		return nil, mapProbeError(err, "update probe failed")
@@ -37,10 +37,10 @@ type updateProbeInput struct {
 }
 
 type updateProbeInputBody struct {
-	Name            *string   `json:"name,omitempty"`
-	Enabled         *bool     `json:"enabled,omitempty"`
-	SubdivisionCode *string   `json:"subdivisionCode,omitempty"`
-	Latitude        *float64  `json:"latitude,omitempty"`
-	Longitude       *float64  `json:"longitude,omitempty"`
-	LabelIDs        *[]string `json:"labelIds,omitempty"`
+	Name         *string   `json:"name,omitempty"`
+	Enabled      *bool     `json:"enabled,omitempty"`
+	LocationName *string   `json:"locationName,omitempty"`
+	Latitude     *float64  `json:"latitude,omitempty"`
+	Longitude    *float64  `json:"longitude,omitempty"`
+	LabelIDs     *[]string `json:"labelIds,omitempty"`
 }

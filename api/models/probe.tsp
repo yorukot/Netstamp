@@ -30,7 +30,7 @@ model ProbeStatus {
 	projectId: "22222222-2222-2222-2222-222222222222",
 	name: "tokyo-vps-1",
 	enabled: true,
-	subdivisionCode: "JP-13",
+	locationName: "Tokyo, Japan",
 	latitude: 35.6762,
 	longitude: 139.6503,
 	labels: #[],
@@ -48,8 +48,9 @@ model Probe {
 
 	enabled: boolean;
 
-	@pattern("^[A-Z]{2}-[A-Z0-9]{1,3}$")
-	subdivisionCode?: string;
+	@minLength(1)
+	@maxLength(256)
+	locationName?: string;
 
 	@minValue(-90)
 	@maxValue(90)
@@ -71,7 +72,7 @@ model Probe {
 		projectId: "22222222-2222-2222-2222-222222222222",
 		name: "tokyo-vps-1",
 		enabled: true,
-		subdivisionCode: "JP-13",
+		locationName: "Tokyo, Japan",
 		latitude: 35.6762,
 		longitude: 139.6503,
 		labels: #[],
@@ -120,7 +121,7 @@ model ProbeSecretResponse {
 	secret: string;
 }
 
-@example(#{ name: "tokyo-vps-1", enabled: true, subdivisionCode: "JP-13", latitude: 35.6762, longitude: 139.6503, labelIds: #["66666666-6666-6666-6666-666666666666"] })
+@example(#{ name: "tokyo-vps-1", enabled: true, locationName: "Tokyo, Japan", latitude: 35.6762, longitude: 139.6503, labelIds: #["66666666-6666-6666-6666-666666666666"] })
 model CreateProbeRequest {
 	@minLength(1)
 	@maxLength(128)
@@ -128,8 +129,9 @@ model CreateProbeRequest {
 
 	enabled?: boolean = true;
 
-	@pattern("^[A-Z]{2}-[A-Z0-9]{1,3}$")
-	subdivisionCode?: string;
+	@minLength(1)
+	@maxLength(256)
+	locationName?: string;
 
 	@minValue(-90)
 	@maxValue(90)
@@ -151,8 +153,9 @@ model UpdateProbeRequest {
 
 	enabled?: boolean;
 
-	@pattern("^[A-Z]{2}-[A-Z0-9]{1,3}$")
-	subdivisionCode?: string;
+	@minLength(1)
+	@maxLength(256)
+	locationName?: string;
 
 	@minValue(-90)
 	@maxValue(90)

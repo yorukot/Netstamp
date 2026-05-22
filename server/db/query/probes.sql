@@ -1,7 +1,7 @@
 -- name: CreateProbe :one
-INSERT INTO probes (project_id, name, enabled, location, subdivision_code)
+INSERT INTO probes (project_id, name, enabled, location, location_name)
 VALUES ($1, $2, $3, $4, $5)
-RETURNING id, internal_id, project_id, name, enabled, location, subdivision_code, created_at, updated_at, deleted_at;
+RETURNING id, internal_id, project_id, name, enabled, location, location_name, created_at, updated_at, deleted_at;
 
 -- name: CreateProbeCredential :one
 INSERT INTO probe_credentials (probe_id, secret_hash)
@@ -24,7 +24,7 @@ SELECT probes.internal_id,
        probes.name,
        probes.enabled,
        probes.location,
-       probes.subdivision_code,
+       probes.location_name,
        probes.created_at,
        probes.updated_at,
        probes.deleted_at,
@@ -71,7 +71,7 @@ SELECT probes.internal_id,
        probes.name,
        probes.enabled,
        probes.location,
-       probes.subdivision_code,
+       probes.location_name,
        probes.created_at,
        probes.updated_at,
        probes.deleted_at,
@@ -115,11 +115,11 @@ UPDATE probes
 SET name = $3,
     enabled = $4,
     location = $5,
-    subdivision_code = $6
+    location_name = $6
 WHERE project_id = $1
   AND id = $2
   AND deleted_at IS NULL
-RETURNING id, internal_id, project_id, name, enabled, location, subdivision_code, created_at, updated_at, deleted_at;
+RETURNING id, internal_id, project_id, name, enabled, location, location_name, created_at, updated_at, deleted_at;
 
 -- name: SoftDeleteProbe :one
 UPDATE probes
