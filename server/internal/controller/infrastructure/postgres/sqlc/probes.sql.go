@@ -213,7 +213,11 @@ SELECT probes.internal_id,
        probes.created_at,
        probes.updated_at,
        probes.deleted_at,
-       probe_statuses.status AS status,
+       (CASE
+           WHEN probe_statuses.last_seen_at IS NULL THEN 'offline'::probe_state
+           WHEN probe_statuses.last_seen_at < now() - interval '35 seconds' THEN 'offline'::probe_state
+           ELSE probe_statuses.status
+       END)::probe_state AS status,
        probe_statuses.last_seen_at AS status_last_seen_at,
        probe_statuses.agent_version AS status_agent_version,
        probe_statuses.public_v4 AS status_public_v4,
@@ -261,7 +265,7 @@ type GetActiveProbeRowsForProjectRow struct {
 	CreatedAt          pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt          pgtype.Timestamptz `json:"updated_at"`
 	DeletedAt          pgtype.Timestamptz `json:"deleted_at"`
-	Status             NullProbeState     `json:"status"`
+	Status             ProbeState         `json:"status"`
 	StatusLastSeenAt   pgtype.Timestamptz `json:"status_last_seen_at"`
 	StatusAgentVersion *string            `json:"status_agent_version"`
 	StatusPublicV4     *netip.Addr        `json:"status_public_v4"`
@@ -610,7 +614,11 @@ SELECT probes.internal_id,
        probes.created_at,
        probes.updated_at,
        probes.deleted_at,
-       probe_statuses.status AS status,
+       (CASE
+           WHEN probe_statuses.last_seen_at IS NULL THEN 'offline'::probe_state
+           WHEN probe_statuses.last_seen_at < now() - interval '35 seconds' THEN 'offline'::probe_state
+           ELSE probe_statuses.status
+       END)::probe_state AS status,
        probe_statuses.last_seen_at AS status_last_seen_at,
        probe_statuses.agent_version AS status_agent_version,
        probe_statuses.public_v4 AS status_public_v4,
@@ -654,7 +662,7 @@ type ListActiveProbesForProjectRow struct {
 	CreatedAt          pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt          pgtype.Timestamptz `json:"updated_at"`
 	DeletedAt          pgtype.Timestamptz `json:"deleted_at"`
-	Status             NullProbeState     `json:"status"`
+	Status             ProbeState         `json:"status"`
 	StatusLastSeenAt   pgtype.Timestamptz `json:"status_last_seen_at"`
 	StatusAgentVersion *string            `json:"status_agent_version"`
 	StatusPublicV4     *netip.Addr        `json:"status_public_v4"`

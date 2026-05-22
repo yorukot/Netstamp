@@ -152,13 +152,9 @@ func mapProbeStatus(row sqlc.ProbeStatus) domainprobe.Status {
 }
 
 func mapListProbeStatus(row sqlc.ListActiveProbesForProjectRow) *domainprobe.Status {
-	if !row.Status.Valid {
-		return nil
-	}
-
 	return &domainprobe.Status{
 		ProbeID:      row.ID.String(),
-		State:        domainprobe.State(row.Status.ProbeState),
+		State:        domainprobe.State(row.Status),
 		LastSeenAt:   timePtr(row.StatusLastSeenAt),
 		AgentVersion: row.StatusAgentVersion,
 		PublicV4:     cloneAddr(row.StatusPublicV4),
@@ -170,13 +166,9 @@ func mapListProbeStatus(row sqlc.ListActiveProbesForProjectRow) *domainprobe.Sta
 }
 
 func mapGetProbeStatus(row sqlc.GetActiveProbeRowsForProjectRow) *domainprobe.Status {
-	if !row.Status.Valid {
-		return nil
-	}
-
 	return &domainprobe.Status{
 		ProbeID:      row.ID.String(),
-		State:        domainprobe.State(row.Status.ProbeState),
+		State:        domainprobe.State(row.Status),
 		LastSeenAt:   timePtr(row.StatusLastSeenAt),
 		AgentVersion: row.StatusAgentVersion,
 		PublicV4:     cloneAddr(row.StatusPublicV4),

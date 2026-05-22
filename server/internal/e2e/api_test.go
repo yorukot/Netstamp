@@ -212,6 +212,16 @@ func TestAPIAuthProjectAndProbeRuntimeFlow(t *testing.T) {
 		hello.Config.AssignmentPollIntervalSeconds,
 	)
 
+	t.Log("e2e: sending heartbeat and verifying probe status is online")
+	suite.doJSON(t, http.MethodPost, "/api/v1/runtime/probes/"+createdProbe.Probe.ID+"/heartbeat", map[string]any{
+		"agentVersion": "netstamp-probe/0.1.0",
+	}, probeHeaders(createdProbe.Secret), http.StatusOK, nil)
+	assertProbeStatus(t, suite, sessionCookie, createdProject.Project.Slug, createdProbe.Probe.ID, "online")
+
+	t.Log("e2e: aging heartbeat beyond offline threshold and verifying probe status is offline")
+	expireProbeHeartbeat(t, suite, createdProbe.Probe.ID)
+	assertProbeStatus(t, suite, sessionCookie, createdProject.Project.Slug, createdProbe.Probe.ID, "offline")
+
 	var submitted submitResultsResponse
 	submitPayload := map[string]any{
 		"results": []map[string]any{{
@@ -306,6 +316,55 @@ func assertExtensionNotEnabled(t *testing.T, suite *apiSuite, extension string) 
 	}
 }
 
+func assertProbeStatus(t *testing.T, suite *apiSuite, sessionCookie *http.Cookie, projectSlug, probeID, wantState string) {
+	t.Helper()
+
+	var detail probeResponse
+	suite.doJSON(t, http.MethodGet, "/api/v1/projects/"+projectSlug+"/probes/"+probeID, nil, authCookieHeaders(sessionCookie), http.StatusOK, &detail)
+	assertProbeBodyStatus(t, detail.Probe, wantState)
+
+	var list listProbesResponse
+	suite.doJSON(t, http.MethodGet, "/api/v1/projects/"+projectSlug+"/probes", nil, authCookieHeaders(sessionCookie), http.StatusOK, &list)
+	for _, probe := range list.Probes {
+		if probe.ID == probeID {
+			assertProbeBodyStatus(t, probe, wantState)
+			return
+		}
+	}
+	t.Fatalf("expected probe %s in probe list, got %#v", probeID, list.Probes)
+}
+
+func assertProbeBodyStatus(t *testing.T, probe probeBody, wantState string) {
+	t.Helper()
+
+	if probe.Status == nil {
+		t.Fatalf("expected probe %s status %q, got nil", probe.ID, wantState)
+	}
+	if probe.Status.State != wantState {
+		t.Fatalf("expected probe %s status %q, got %q", probe.ID, wantState, probe.Status.State)
+	}
+}
+
+func expireProbeHeartbeat(t *testing.T, suite *apiSuite, probeID string) {
+	t.Helper()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	result, err := suite.pool.Exec(ctx, `
+UPDATE probe_statuses
+SET status = 'online',
+    last_seen_at = now() - interval '36 seconds',
+    updated_at = now()
+WHERE probe_id = $1::uuid
+`, probeID)
+	if err != nil {
+		t.Fatalf("expire probe heartbeat: %v", err)
+	}
+	if result.RowsAffected() != 1 {
+		t.Fatalf("expected one expired probe heartbeat row, got %d", result.RowsAffected())
+	}
+}
+
 func pingResultPayload(startedAt time.Time, rttAvgMs float64) map[string]any {
 	return map[string]any{
 		"startedAt":     startedAt.Format(time.RFC3339),
@@ -360,12 +419,27 @@ type createProbeResponse struct {
 	Secret string    `json:"secret"`
 }
 
+type probeResponse struct {
+	Probe probeBody `json:"probe"`
+}
+
+type listProbesResponse struct {
+	Probes []probeBody `json:"probes"`
+}
+
 type probeBody struct {
-	ID        string      `json:"id"`
-	ProjectID string      `json:"projectId"`
-	Name      string      `json:"name"`
-	Enabled   bool        `json:"enabled"`
-	Labels    []labelBody `json:"labels"`
+	ID        string           `json:"id"`
+	ProjectID string           `json:"projectId"`
+	Name      string           `json:"name"`
+	Enabled   bool             `json:"enabled"`
+	Labels    []labelBody      `json:"labels"`
+	Status    *probeStatusBody `json:"status"`
+}
+
+type probeStatusBody struct {
+	State        string     `json:"state"`
+	LastSeenAt   *time.Time `json:"lastSeenAt"`
+	AgentVersion *string    `json:"agentVersion"`
 }
 
 type helloResponse struct {

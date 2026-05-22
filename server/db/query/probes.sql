@@ -28,7 +28,11 @@ SELECT probes.internal_id,
        probes.created_at,
        probes.updated_at,
        probes.deleted_at,
-       probe_statuses.status AS status,
+       (CASE
+           WHEN probe_statuses.last_seen_at IS NULL THEN 'offline'::probe_state
+           WHEN probe_statuses.last_seen_at < now() - interval '35 seconds' THEN 'offline'::probe_state
+           ELSE probe_statuses.status
+       END)::probe_state AS status,
        probe_statuses.last_seen_at AS status_last_seen_at,
        probe_statuses.agent_version AS status_agent_version,
        probe_statuses.public_v4 AS status_public_v4,
@@ -71,7 +75,11 @@ SELECT probes.internal_id,
        probes.created_at,
        probes.updated_at,
        probes.deleted_at,
-       probe_statuses.status AS status,
+       (CASE
+           WHEN probe_statuses.last_seen_at IS NULL THEN 'offline'::probe_state
+           WHEN probe_statuses.last_seen_at < now() - interval '35 seconds' THEN 'offline'::probe_state
+           ELSE probe_statuses.status
+       END)::probe_state AS status,
        probe_statuses.last_seen_at AS status_last_seen_at,
        probe_statuses.agent_version AS status_agent_version,
        probe_statuses.public_v4 AS status_public_v4,
