@@ -1,9 +1,22 @@
 ---
 import OpenAPIExplorer from "../components/openapi/OpenAPIExplorer";
 import BaseLayout from "../layouts/BaseLayout.astro";
+import { absoluteUrl, createApiReferenceSchema, createBreadcrumbSchema, resolveSiteUrl } from "../lib/seo";
+
+const title = "OpenAPI - Netstamp";
+const description = "Browse the generated backend OpenAPI contract and send test requests from the browser.";
+const siteUrl = resolveSiteUrl(Astro.site);
+const pageUrl = absoluteUrl("/openapi/", siteUrl);
+const schema = [
+	createBreadcrumbSchema([
+		{ name: "Netstamp", url: siteUrl },
+		{ name: "OpenAPI", url: pageUrl }
+	]),
+	createApiReferenceSchema(siteUrl, pageUrl, title, description)
+];
 ---
 
-<BaseLayout title="OpenAPI - Netstamp" description="Browse the generated backend OpenAPI contract and send test requests from the browser.">
+<BaseLayout title={title} description={description} canonicalPath="/openapi/" schema={schema}>
 	<main class="openapiPage">
 		<OpenAPIExplorer client:load specUrl="/openapi.json" />
 	</main>

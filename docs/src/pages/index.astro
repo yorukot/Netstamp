@@ -1,8 +1,18 @@
 ---
 import { LandingPage } from "../components/landing/LandingPage";
 import BaseLayout from "../layouts/BaseLayout.astro";
+import { absoluteUrl, createBreadcrumbSchema, createSoftwareApplicationSchema, resolveSiteUrl } from "../lib/seo";
+
+const siteUrl = resolveSiteUrl(Astro.site);
+const imageUrl = absoluteUrl("/og.png", siteUrl);
+const schema = [createBreadcrumbSchema([{ name: "Netstamp", url: siteUrl }]), createSoftwareApplicationSchema(siteUrl, imageUrl)];
 ---
 
-<BaseLayout title="Netstamp - See the network before it fails you" description="Open-source network observability from probes you control. Measure latency, packet loss, DNS, and routes.">
+<BaseLayout
+	title="Netstamp - See the network before it fails you"
+	description="Open-source network observability from probes you control. Measure latency, packet loss, DNS, and routes."
+	canonicalPath="/"
+	schema={schema}
+>
 	<LandingPage client:idle />
 </BaseLayout>

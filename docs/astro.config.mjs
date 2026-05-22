@@ -4,6 +4,8 @@ import react from "@astrojs/react";
 import { defineConfig } from "astro/config";
 import remarkDirective from "remark-directive";
 
+const site = process.env.PUBLIC_SITE_URL || "https://netstamp.dev";
+
 const calloutLabels = {
 	note: "Note",
 	tip: "Tip",
@@ -147,6 +149,7 @@ function remarkTerminalCodeBlocks() {
 
 // https://astro.build/config
 export default defineConfig({
+	site,
 	output: "static",
 	integrations: [react(), mdx({ remarkPlugins: [remarkDirective, remarkCallouts, remarkTerminalCodeBlocks] })]
 });

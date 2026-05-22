@@ -2,6 +2,7 @@
 import Icon from "../components/icons/Icon.astro";
 import SearchBox from "../components/docs/SearchBox.astro";
 import { docsNav, docsPages, githubBaseUrl } from "../data/docs";
+import { absoluteUrl, createBreadcrumbSchema, createTechArticleSchema, resolveSiteUrl, type HeadEntry } from "../lib/seo";
 import BaseLayout from "./BaseLayout.astro";
 
 interface Heading {
@@ -24,12 +25,6 @@ interface Props {
 	};
 }
 
-interface HeadEntry {
-	tag: string;
-	content?: string;
-	attrs?: Record<string, string>;
-}
-
 const frontmatter = Astro.props.frontmatter ?? {};
 const title = Astro.props.title ?? frontmatter.title ?? "Docs";
 const description = Astro.props.description ?? frontmatter.description ?? "Netstamp documentation.";
@@ -45,6 +40,20 @@ const previousPage = currentPageIndex > 0 ? docsPages[currentPageIndex - 1] : un
 const nextPage = currentPageIndex >= 0 && currentPageIndex < docsPages.length - 1 ? docsPages[currentPageIndex + 1] : undefined;
 const editPath = Astro.props.editPath ?? frontmatter.editPath ?? currentPage?.editPath ?? Astro.url.pathname;
 const editUrl = `${githubBaseUrl}/${editPath}`;
+const siteUrl = resolveSiteUrl(Astro.site);
+const pageUrl = absoluteUrl(pathname, siteUrl);
+const breadcrumbs =
+	pathname === "/docs/"
+		? [
+				{ name: "Netstamp", url: siteUrl },
+				{ name: "Docs", url: pageUrl }
+			]
+		: [
+				{ name: "Netstamp", url: siteUrl },
+				{ name: "Docs", url: absoluteUrl("/docs/", siteUrl) },
+				{ name: title, url: pageUrl }
+			];
+const schema = [createBreadcrumbSchema(breadcrumbs), createTechArticleSchema(siteUrl, pageUrl, title, description)];
 
 function isActiveNavItem(href: string) {
 	return pathname === href || (href !== "/docs/" && pathname.startsWith(href));
@@ -58,7 +67,7 @@ const navGroups = docsNav.map(group => ({
 }));
 ---
 
-<BaseLayout title={browserTitle} description={description} head={extraHead}>
+<BaseLayout title={browserTitle} description={description} head={extraHead} canonicalPath={pathname} ogType="article" schema={schema}>
 	<div class="docsShell" data-docs-shell>
 		<aside class="docsSidebar" aria-label="Documentation navigation">
 			<div class="docsSidebarHeader">
