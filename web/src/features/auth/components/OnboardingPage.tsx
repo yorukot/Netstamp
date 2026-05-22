@@ -25,6 +25,8 @@ interface ScriptStep {
 const typeDelayMs = 34;
 const maxProjectSlugLength = 64;
 const maxSlugAttempts = 20;
+const randomSlugTokenLength = 6;
+const randomSlugTokenAlphabet = "abcdefghijklmnopqrstuvwxyz0123456789";
 
 function slugifyProjectName(name: string) {
 	return (
@@ -41,9 +43,16 @@ function projectSlugCandidate(baseSlug: string, attempt: number) {
 		return baseSlug.slice(0, maxProjectSlugLength);
 	}
 
-	const suffix = `-${attempt + 1}`;
+	const suffix = `-${randomSlugToken(randomSlugTokenLength)}`;
 	const baseLength = maxProjectSlugLength - suffix.length;
 	return `${baseSlug.slice(0, Math.max(1, baseLength)).replace(/-$/g, "")}${suffix}`;
+}
+
+function randomSlugToken(length: number) {
+	const values = new Uint8Array(length);
+	globalThis.crypto.getRandomValues(values);
+
+	return Array.from(values, value => randomSlugTokenAlphabet[value % randomSlugTokenAlphabet.length]).join("");
 }
 
 function isProjectSlugConflict(error: unknown) {

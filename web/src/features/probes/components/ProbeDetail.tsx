@@ -11,7 +11,7 @@ import { pushErrorToast } from "@/shared/toast/toastStore";
 import { classNames } from "@/shared/utils/classNames";
 import { Badge, Button, Checkbox, DataTable, Surface, Terminal, TextField, type DataColumn } from "@netstamp/ui";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import styles from "./ProbeDetail.module.css";
 import { expandAssignedRows } from "./probeUtils";
 import type { AssignedRow, DetectionMode } from "./types";
@@ -24,6 +24,23 @@ const assignedColumns: DataColumn<AssignedRow>[] = [
 	{ key: "latest", label: "Latest" }
 ];
 
+async function writeClipboardText(value: string) {
+	if (navigator.clipboard?.writeText) {
+		await navigator.clipboard.writeText(value);
+		return;
+	}
+
+	const textarea = document.createElement("textarea");
+	textarea.value = value;
+	textarea.setAttribute("readonly", "");
+	textarea.style.position = "fixed";
+	textarea.style.left = "-9999px";
+	document.body.appendChild(textarea);
+	textarea.select();
+	document.execCommand("copy");
+	textarea.remove();
+}
+
 interface ProbeDetailProps {
 	probe: Probe;
 	assignedRows: AssignedRow[];
@@ -35,6 +52,7 @@ interface ProbeDetailProps {
 export function ProbeDetail({ probe, assignedRows, floating = false, projectRef, onDeleted }: ProbeDetailProps) {
 	const confirm = useConfirm();
 	const queryClient = useQueryClient();
+	const copyTimeoutRef = useRef<number | null>(null);
 	const detailQuery = useQuery({
 		...projectQueries.probeDetail(projectRef || "", probe.id),
 		enabled: Boolean(projectRef && probe.id)
@@ -51,6 +69,7 @@ export function ProbeDetail({ probe, assignedRows, floating = false, projectRef,
 	const [locationMode, setLocationMode] = useState<DetectionMode>("manual");
 	const [asMode, setAsMode] = useState<DetectionMode>("auto");
 	const [rotatedSecret, setRotatedSecret] = useState("");
+	const [secretCommandCopied, setSecretCommandCopied] = useState(false);
 	const [savingProbe, setSavingProbe] = useState(false);
 	const updateProbeMutation = useUpdateProjectProbeMutation(projectRef);
 	const deleteProbeMutation = useDeleteProjectProbeMutation(projectRef);
@@ -58,6 +77,14 @@ export function ProbeDetail({ probe, assignedRows, floating = false, projectRef,
 	const probeAssignments = assignedRows.filter(row => row.probe === activeProbe.name);
 	const detailRows = expandAssignedRows(probeAssignments);
 	const rotatedSecretCommand = rotatedSecret ? probeSecretUpdateCommand({ probeId: activeProbe.id, probeSecret: rotatedSecret }) : "";
+
+	useEffect(() => {
+		return () => {
+			if (copyTimeoutRef.current) {
+				window.clearTimeout(copyTimeoutRef.current);
+			}
+		};
+	}, []);
 
 	function toggleLocationMode() {
 		const nextMode = locationMode === "manual" ? "auto" : "manual";
@@ -154,6 +181,30 @@ export function ProbeDetail({ probe, assignedRows, floating = false, projectRef,
 		}
 	}
 
+	async function copyRotatedSecretCommand() {
+		if (!rotatedSecretCommand) {
+			return;
+		}
+
+		try {
+			await writeClipboardText(rotatedSecretCommand);
+		} catch {
+			setSecretCommandCopied(false);
+			return;
+		}
+
+		setSecretCommandCopied(true);
+
+		if (copyTimeoutRef.current) {
+			window.clearTimeout(copyTimeoutRef.current);
+		}
+
+		copyTimeoutRef.current = window.setTimeout(() => {
+			setSecretCommandCopied(false);
+			copyTimeoutRef.current = null;
+		}, 1800);
+	}
+
 	return (
 		<Surface as="section" tone="matte" cut="lg" padding="lg" className={classNames(styles.card, floating && styles.floating)} aria-label="Probe detail">
 			<div className={styles.header}>
@@ -189,7 +240,14 @@ export function ProbeDetail({ probe, assignedRows, floating = false, projectRef,
 				<Button
 					variant="outline"
 					disabled={!projectRef || rotateSecretMutation.isPending}
-					onClick={() => rotateSecretMutation.mutate(activeProbe.id, { onSuccess: data => setRotatedSecret(data.secret) })}
+					onClick={() =>
+						rotateSecretMutation.mutate(activeProbe.id, {
+							onSuccess: data => {
+								setRotatedSecret(data.secret);
+								setSecretCommandCopied(false);
+							}
+						})
+					}
 				>
 					{rotateSecretMutation.isPending ? "Rotating" : "Rotate secret"}
 				</Button>
@@ -202,8 +260,15 @@ export function ProbeDetail({ probe, assignedRows, floating = false, projectRef,
 				<div className={classNames("ns-cut-frame", styles.secretPanel)}>
 					<span>New probe secret</span>
 					<code>{rotatedSecret}</code>
-					<p>Run this on the probe host to rewrite the systemd service environment with the rotated credential.</p>
-					<Terminal title="update command" meta="run on probe host">
+					<p>Rewrite the systemd service environment with the rotated credential.</p>
+					<Terminal
+						title="update command"
+						meta={
+							<Button type="button" variant="ghost" size="sm" disabled={!rotatedSecretCommand} onClick={() => void copyRotatedSecretCommand()}>
+								{secretCommandCopied ? "Copied" : "Copy to clipboard"}
+							</Button>
+						}
+					>
 						{rotatedSecretCommand}
 					</Terminal>
 				</div>
