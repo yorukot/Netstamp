@@ -4,6 +4,7 @@
 	z-index: 50;
 	display: flex;
 	justify-content: flex-end;
+	overflow: hidden;
 	background: rgba(3, 5, 7, 0.58);
 	backdrop-filter: blur(10px);
 	animation: drawerBackdropIn 300ms ease-out;
@@ -15,9 +16,12 @@
 }
 
 .drawer {
+	display: grid;
+	grid-template-rows: auto auto minmax(0, 1fr);
 	width: min(42rem, 100%);
-	min-height: 100%;
-	overflow: auto;
+	height: 100dvh;
+	min-height: 0;
+	overflow: hidden;
 	padding: 1.25rem;
 	border-left: 1px solid var(--ns-border-faint);
 	background: linear-gradient(135deg, rgba(255, 122, 26, 0.14), transparent 28rem), #070a0f;
@@ -110,11 +114,14 @@
 }
 
 .workflowViewport {
+	min-height: 0;
 	overflow: hidden;
 }
 
 .workflowTrack {
 	display: flex;
+	height: 100%;
+	min-height: 0;
 	transition: transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
 	will-change: transform;
 }
@@ -125,6 +132,8 @@
 	gap: 1rem;
 	align-content: start;
 	min-width: 0;
+	min-height: 0;
+	overflow: hidden;
 	padding-right: 0.125rem;
 }
 

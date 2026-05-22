@@ -1,5 +1,17 @@
-import { mapApiChecks, mapApiChecksWithAssignments, parseIntervalSeconds } from "@/features/checks/api/checkAdapters";
+import { mapApiCheck, mapApiChecksWithAssignments, parseIntervalSeconds } from "@/features/checks/api/checkAdapters";
 import { mapApiMeasurements, type LogRow } from "@/features/checks/api/resultAdapters";
+import {
+	buildPingConfigPayload,
+	buildTracerouteConfigPayload,
+	defaultPingConfigFormState,
+	defaultTracerouteConfigFormState,
+	pingConfigFormStateFromApi,
+	tracerouteConfigFormStateFromApi,
+	type IPFamilyFormValue,
+	type PingConfigFormState,
+	type TracerouteConfigFormState,
+	type TracerouteProtocolFormValue
+} from "@/features/checks/data/checkConfig";
 import { type CheckDefinition, type CheckType } from "@/features/checks/data/checks";
 import { mapApiProbes } from "@/features/probes/api/probeAdapters";
 import { useCreateProjectCheckMutation, useDeleteProjectCheckMutation, usePreviewProjectSelectorMutation, useUpdateProjectCheckMutation } from "@/shared/api/mutations";
@@ -72,6 +84,17 @@ const selectorOpOptions: Array<{ value: SelectorLabelOp; label: string }> = [
 	{ value: "eq", label: "equals" },
 	{ value: "in", label: "in values" },
 	{ value: "exists", label: "exists" }
+];
+
+const ipFamilyOptions: Array<{ value: IPFamilyFormValue; label: string }> = [
+	{ value: "", label: "Auto" },
+	{ value: "inet", label: "IPv4" },
+	{ value: "inet6", label: "IPv6" }
+];
+
+const tracerouteProtocolOptions: Array<{ value: TracerouteProtocolFormValue; label: string }> = [
+	{ value: "icmp", label: "ICMP" },
+	{ value: "udp", label: "UDP" }
 ];
 
 function selectorLabelId(key: string, value: string) {
@@ -299,14 +322,18 @@ export function ChecksPage() {
 	const [enabled, setEnabled] = useState("enabled");
 	const [selectedProbes, setSelectedProbes] = useState<string[]>([]);
 	const [selectorState, setSelectorState] = useState<SelectorState>({ mode: "all-probes", rules: [], advancedText: "" });
+	const [pingConfig, setPingConfig] = useState<PingConfigFormState>(defaultPingConfigFormState);
+	const [tracerouteConfig, setTracerouteConfig] = useState<TracerouteConfigFormState>(defaultTracerouteConfigFormState);
 	const isCreating = selectedId === "__new__";
-	const selectedListCheck = checkRows.find(check => check.id === selectedId) || checkRows[0] || null;
+	const selectedListCheck = checkRows.find(check => check.id === selectedId) || null;
+	const selectedListApiCheck = checksQuery.data?.checks.find(check => check.id === selectedListCheck?.id) || null;
 	const checkDetailQuery = useQuery({
 		...projectQueries.checkDetail(projectRef || "", selectedListCheck?.id || ""),
-		enabled: Boolean(projectRef && selectedListCheck && !isCreating),
-		select: data => mapApiChecks([data.check], probesQuery.data)[0]
+		enabled: Boolean(projectRef && selectedListCheck && !isCreating)
 	});
-	const selectedCheck = isCreating ? null : checkDetailQuery.data || selectedListCheck;
+	const selectedApiCheck = isCreating ? null : checkDetailQuery.data?.check || selectedListApiCheck;
+	const selectedAssignmentCount = (assignmentsQuery.data ?? []).filter(assignment => assignment.checkId === selectedListCheck?.id).length;
+	const selectedCheck = isCreating ? null : selectedApiCheck ? mapApiCheck(selectedApiCheck, selectedAssignmentCount) : selectedListCheck;
 	const measurementsQuery = useQuery({
 		...projectQueries.measurements(projectRef || "", { checkId: selectedListCheck?.id || "", limit: 10 }),
 		enabled: Boolean(projectRef && selectedListCheck && !isCreating),
@@ -318,6 +345,8 @@ export function ChecksPage() {
 	const activeInterval = interval || selectedCheck?.interval || "30s";
 	const activeJitter = jitter || selectedCheck?.jitter || "4s";
 	const activeEnabled = selectedId ? enabled : selectedCheck?.status.toLowerCase().includes("disabled") ? "disabled" : enabled;
+	const activePingConfig = selectedId || isCreating ? pingConfig : pingConfigFormStateFromApi(selectedApiCheck);
+	const activeTracerouteConfig = selectedId || isCreating ? tracerouteConfig : tracerouteConfigFormStateFromApi(selectedApiCheck);
 	const assignedProbeNames = (assignmentsQuery.data ?? [])
 		.filter(assignment => assignment.checkId === selectedListCheck?.id)
 		.map(assignment => assignment.probe?.name || probes.find(probe => probe.id === assignment.probeId)?.name || assignment.probeId);
@@ -327,17 +356,30 @@ export function ChecksPage() {
 	const selectorKeys = selectorKeyOptions(selectorOptions, selectorState.rules);
 	const saveCheckMutation = isCreating ? createCheckMutation : updateCheckMutation;
 	const selectedLogs = selectedCheck ? (measurementsQuery.data ?? []) : [];
+	const isEditorOpen = isCreating || Boolean(selectedCheck);
 
-	function startNewCheck() {
-		setSelectedId("__new__");
+	function resetEditorState() {
 		setCheckName("");
 		setTarget("");
 		setCheckType("Ping");
 		setInterval("30s");
 		setJitter("4s");
 		setEnabled("enabled");
-		setSelectedProbes(probes.map(probe => probe.name));
+		setSelectedProbes([]);
 		setSelectorState({ mode: "all-probes", rules: [], advancedText: "" });
+		setPingConfig(defaultPingConfigFormState);
+		setTracerouteConfig(defaultTracerouteConfigFormState);
+	}
+
+	function closeEditor() {
+		setSelectedId("");
+		resetEditorState();
+	}
+
+	function startNewCheck() {
+		setSelectedId("__new__");
+		resetEditorState();
+		setSelectedProbes(probes.map(probe => probe.name));
 	}
 
 	function selectCheck(check: CheckDefinition) {
@@ -353,6 +395,36 @@ export function ChecksPage() {
 		setEnabled(check.status.toLowerCase().includes("disabled") ? "disabled" : "enabled");
 		setSelectedProbes([]);
 		setSelectorState(nextSelectorState);
+		setPingConfig(pingConfigFormStateFromApi(apiCheck));
+		setTracerouteConfig(tracerouteConfigFormStateFromApi(apiCheck));
+	}
+
+	function prepareSelectedCheckEdit() {
+		if (isCreating || selectedId || !selectedCheck) {
+			return;
+		}
+
+		setSelectedId(selectedCheck.id);
+		setCheckName(selectedCheck.name);
+		setTarget(selectedCheck.target);
+		setCheckType(selectedCheck.type);
+		setInterval(selectedCheck.interval);
+		setJitter(selectedCheck.jitter);
+		setEnabled(selectedCheck.status.toLowerCase().includes("disabled") ? "disabled" : "enabled");
+		setSelectedProbes([]);
+		setSelectorState(selectorStateFromApi(selectedApiCheck?.selector));
+		setPingConfig(pingConfigFormStateFromApi(selectedApiCheck));
+		setTracerouteConfig(tracerouteConfigFormStateFromApi(selectedApiCheck));
+	}
+
+	function updatePingConfig(patch: Partial<PingConfigFormState>) {
+		prepareSelectedCheckEdit();
+		setPingConfig(current => ({ ...current, ...patch }));
+	}
+
+	function updateTracerouteConfig(patch: Partial<TracerouteConfigFormState>) {
+		prepareSelectedCheckEdit();
+		setTracerouteConfig(current => ({ ...current, ...patch }));
 	}
 
 	function setSelectorMode(mode: SelectorMode) {
@@ -444,9 +516,7 @@ export function ChecksPage() {
 
 		deleteCheckMutation.mutate(selectedCheck.id, {
 			onSuccess: () => {
-				setSelectedId("");
-				setCheckName("");
-				setTarget("");
+				closeEditor();
 			}
 		});
 	}
@@ -461,21 +531,31 @@ export function ChecksPage() {
 			return;
 		}
 
+		const type = activeCheckType === "Traceroute" ? "traceroute" : "ping";
 		const body: CreateCheckInput = {
 			intervalSeconds: parseIntervalSeconds(activeInterval),
 			name: activeCheckName,
 			selector,
 			target: activeTarget,
-			type: activeCheckType === "Traceroute" ? "traceroute" : "ping"
+			type
 		};
+		if (type === "traceroute") {
+			body.tracerouteConfig = buildTracerouteConfigPayload(activeTracerouteConfig);
+		} else {
+			body.pingConfig = buildPingConfigPayload(activePingConfig);
+		}
+
 		const options = {
 			onSuccess: (data: Awaited<ReturnType<typeof createCheckMutation.mutateAsync>>) => {
 				setSelectedId(data.check.id);
 				setCheckName(data.check.name);
 				setTarget(data.check.target);
+				setCheckType(data.check.type === "traceroute" ? "Traceroute" : "Ping");
 				setInterval(`${data.check.intervalSeconds}s`);
 				setSelectedProbes([]);
 				setSelectorState(selectorStateFromApi(data.check.selector));
+				setPingConfig(pingConfigFormStateFromApi(data.check));
+				setTracerouteConfig(tracerouteConfigFormStateFromApi(data.check));
 			}
 		};
 
@@ -496,7 +576,7 @@ export function ChecksPage() {
 				actions={<Button onClick={startNewCheck}>New check</Button>}
 			/>
 
-			<div className={styles.checkEditorGrid}>
+			<div className={classNames(styles.checkEditorGrid, !isEditorOpen && styles.checkEditorGridCollapsed)}>
 				<Panel tone="glass" eyebrow="Checks list" title="Definitions">
 					<div className={styles.checkListStack}>
 						<div className={styles.checkListFilters}>
@@ -520,122 +600,253 @@ export function ChecksPage() {
 								]}
 							/>
 						</div>
-						<DataTable columns={checkColumns} rows={checkRows} getRowKey={row => String(row.id)} selectedKey={isCreating ? "__new__" : selectedCheck?.id || ""} onRowClick={selectCheck} />
+						<DataTable columns={checkColumns} rows={checkRows} getRowKey={row => String(row.id)} selectedKey={isCreating ? "__new__" : selectedId} onRowClick={selectCheck} />
 					</div>
 				</Panel>
 
-				<Panel className={styles.stickyCheckPanel} tone="glass" eyebrow={isCreating ? "Create check" : "Edit check"} title={isCreating ? "New check" : selectedCheck?.name || "No check selected"}>
-					<div className={classNames("ns-scrollbar", styles.checkEditorStack)}>
-						<div className={styles.checkEditForm}>
-							<TextField label="Check name" value={activeCheckName} disabled={!selectedCheck && !isCreating} onChange={event => setCheckName(event.currentTarget.value)} />
-							<TextField label="Target" value={activeTarget} disabled={!selectedCheck && !isCreating} onChange={event => setTarget(event.currentTarget.value)} />
-							<SelectField
-								label="Check type"
-								value={activeCheckType}
-								onChange={event => setCheckType(event.currentTarget.value as CheckType)}
-								options={[
-									{ value: "Ping", label: "Ping" },
-									{ value: "Traceroute", label: "Traceroute" }
-								]}
-							/>
-							<TextField label="Interval" value={activeInterval} onChange={event => setInterval(event.currentTarget.value)} />
-							<TextField label="Jitter" value={activeJitter} onChange={event => setJitter(event.currentTarget.value)} />
-							<SelectField
-								label="Enabled"
-								value={activeEnabled}
-								onChange={event => setEnabled(event.currentTarget.value)}
-								options={[
-									{ value: "enabled", label: "Enabled" },
-									{ value: "disabled", label: "Disabled" }
-								]}
-							/>
-						</div>
+				{isEditorOpen ? (
+					<Panel
+						className={styles.stickyCheckPanel}
+						tone="glass"
+						eyebrow={isCreating ? "Create check" : "Edit check"}
+						title={isCreating ? "New check" : selectedCheck?.name}
+						actions={
+							<Button type="button" variant="secondary" onClick={closeEditor}>
+								Close
+							</Button>
+						}
+					>
+						<div className={classNames("ns-scrollbar", styles.checkEditorStack)}>
+							<div className={styles.checkEditForm}>
+								<TextField label="Check name" value={activeCheckName} disabled={!selectedCheck && !isCreating} onChange={event => setCheckName(event.currentTarget.value)} />
+								<TextField label="Target" value={activeTarget} disabled={!selectedCheck && !isCreating} onChange={event => setTarget(event.currentTarget.value)} />
+								<SelectField
+									label="Check type"
+									value={activeCheckType}
+									disabled={!isCreating}
+									onChange={event => setCheckType(event.currentTarget.value as CheckType)}
+									options={[
+										{ value: "Ping", label: "Ping" },
+										{ value: "Traceroute", label: "Traceroute" }
+									]}
+								/>
+								<TextField label="Interval" value={activeInterval} onChange={event => setInterval(event.currentTarget.value)} />
+								<TextField label="Jitter" value={activeJitter} onChange={event => setJitter(event.currentTarget.value)} />
+								<SelectField
+									label="Enabled"
+									value={activeEnabled}
+									onChange={event => setEnabled(event.currentTarget.value)}
+									options={[
+										{ value: "enabled", label: "Enabled" },
+										{ value: "disabled", label: "Disabled" }
+									]}
+								/>
+							</div>
 
-						<div className={styles.probeMultiSelect}>
-							<FieldLabel>Probe selector</FieldLabel>
-							<div className={styles.selectorBuilder}>
-								<SelectField label="Match mode" value={selectorState.mode} onChange={event => setSelectorMode(event.currentTarget.value as SelectorMode)} options={selectorModeOptions} />
-								{selectorState.mode === "advanced" ? (
-									<TextAreaField label="Selector JSON" rows={8} value={selectorState.advancedText} onChange={event => updateAdvancedSelectorText(event.currentTarget.value)} spellCheck={false} />
-								) : null}
-								{selectorState.mode !== "all-probes" && selectorState.mode !== "advanced" ? (
-									<div className={styles.selectorRuleList}>
-										{selectorState.rules.map((rule, index) => {
-											const valuesForKey = selectorValuesForKey(selectorOptions, rule.key);
-
-											return (
-												<div className={classNames("ns-cut-frame", styles.selectorRule)} key={rule.id}>
-													<label className={styles.selectorNegation}>
-														<Checkbox checked={rule.negated} onChange={event => updateSelectorRule(rule.id, { negated: event.currentTarget.checked })} />
-														<span>not</span>
-													</label>
-													<SelectField
-														label={`Rule ${index + 1} key`}
-														value={rule.key}
-														onChange={event => updateSelectorRuleKey(rule.id, event.currentTarget.value)}
-														options={selectorKeys.length ? selectorKeys : [{ value: "", label: "No labels" }]}
-													/>
-													<SelectField
-														label="Operator"
-														value={rule.op}
-														onChange={event => updateSelectorRule(rule.id, { op: event.currentTarget.value as SelectorLabelOp })}
-														options={selectorOpOptions}
-													/>
-													{rule.op === "eq" ? <TextField label="Value" value={rule.value} onChange={event => updateSelectorRule(rule.id, { value: event.currentTarget.value })} /> : null}
-													{rule.op === "in" ? (
-														<TextField
-															label="Values"
-															value={rule.values}
-															helper={valuesForKey.length ? valuesForKey.join(", ") : undefined}
-															onChange={event => updateSelectorRule(rule.id, { values: event.currentTarget.value })}
-														/>
-													) : null}
-													{rule.op === "exists" ? <div className={styles.selectorExistsValue}>any value</div> : null}
-													<Button type="button" variant="secondary" onClick={() => removeSelectorRule(rule.id)}>
-														Remove
-													</Button>
-												</div>
-											);
-										})}
+							<div className={styles.checkConfigSection}>
+								<FieldLabel>{activeCheckType} config</FieldLabel>
+								{activeCheckType === "Traceroute" ? (
+									<div className={styles.checkConfigGrid}>
+										<SelectField
+											label="Protocol"
+											value={activeTracerouteConfig.protocol}
+											disabled={!selectedCheck && !isCreating}
+											onChange={event => updateTracerouteConfig({ protocol: event.currentTarget.value as TracerouteProtocolFormValue })}
+											options={tracerouteProtocolOptions}
+										/>
+										<TextField
+											label="Max hops"
+											type="number"
+											min={1}
+											max={64}
+											step={1}
+											inputMode="numeric"
+											value={activeTracerouteConfig.maxHops}
+											disabled={!selectedCheck && !isCreating}
+											onChange={event => updateTracerouteConfig({ maxHops: event.currentTarget.value })}
+										/>
+										<TextField
+											label="Timeout ms"
+											type="number"
+											min={1}
+											max={60000}
+											step={1}
+											inputMode="numeric"
+											value={activeTracerouteConfig.timeoutMs}
+											disabled={!selectedCheck && !isCreating}
+											onChange={event => updateTracerouteConfig({ timeoutMs: event.currentTarget.value })}
+										/>
+										<TextField
+											label="Queries per hop"
+											type="number"
+											min={1}
+											max={10}
+											step={1}
+											inputMode="numeric"
+											value={activeTracerouteConfig.queriesPerHop}
+											disabled={!selectedCheck && !isCreating}
+											onChange={event => updateTracerouteConfig({ queriesPerHop: event.currentTarget.value })}
+										/>
+										<TextField
+											label="Packet size bytes"
+											type="number"
+											min={1}
+											max={65507}
+											step={1}
+											inputMode="numeric"
+											value={activeTracerouteConfig.packetSizeBytes}
+											disabled={!selectedCheck && !isCreating}
+											onChange={event => updateTracerouteConfig({ packetSizeBytes: event.currentTarget.value })}
+										/>
+										<TextField
+											label="Port"
+											type="number"
+											min={1}
+											max={65535}
+											step={1}
+											inputMode="numeric"
+											value={activeTracerouteConfig.port}
+											disabled={!selectedCheck && !isCreating}
+											onChange={event => updateTracerouteConfig({ port: event.currentTarget.value })}
+										/>
+										<SelectField
+											label="IP family"
+											value={activeTracerouteConfig.ipFamily}
+											disabled={!selectedCheck && !isCreating}
+											onChange={event => updateTracerouteConfig({ ipFamily: event.currentTarget.value as IPFamilyFormValue })}
+											options={ipFamilyOptions}
+										/>
 									</div>
-								) : null}
-								{selectorState.mode === "all-probes" ? <p className={styles.selectorNotice}>Matches every active probe.</p> : null}
-								{selectorState.mode !== "advanced" ? (
-									<ActionRow>
-										<Button type="button" variant="secondary" disabled={!selectorOptions.length} onClick={addSelectorRule}>
-											Add rule
-										</Button>
-									</ActionRow>
-								) : null}
+								) : (
+									<div className={styles.checkConfigGrid}>
+										<TextField
+											label="Packet count"
+											type="number"
+											min={1}
+											step={1}
+											inputMode="numeric"
+											value={activePingConfig.packetCount}
+											disabled={!selectedCheck && !isCreating}
+											onChange={event => updatePingConfig({ packetCount: event.currentTarget.value })}
+										/>
+										<TextField
+											label="Packet size bytes"
+											type="number"
+											min={1}
+											max={65507}
+											step={1}
+											inputMode="numeric"
+											value={activePingConfig.packetSizeBytes}
+											disabled={!selectedCheck && !isCreating}
+											onChange={event => updatePingConfig({ packetSizeBytes: event.currentTarget.value })}
+										/>
+										<TextField
+											label="Timeout ms"
+											type="number"
+											min={1}
+											step={1}
+											inputMode="numeric"
+											value={activePingConfig.timeoutMs}
+											disabled={!selectedCheck && !isCreating}
+											onChange={event => updatePingConfig({ timeoutMs: event.currentTarget.value })}
+										/>
+										<SelectField
+											label="IP family"
+											value={activePingConfig.ipFamily}
+											disabled={!selectedCheck && !isCreating}
+											onChange={event => updatePingConfig({ ipFamily: event.currentTarget.value as IPFamilyFormValue })}
+											options={ipFamilyOptions}
+										/>
+									</div>
+								)}
 							</div>
+
+							<div className={styles.probeMultiSelect}>
+								<FieldLabel>Probe selector</FieldLabel>
+								<div className={styles.selectorBuilder}>
+									<SelectField label="Match mode" value={selectorState.mode} onChange={event => setSelectorMode(event.currentTarget.value as SelectorMode)} options={selectorModeOptions} />
+									{selectorState.mode === "advanced" ? (
+										<TextAreaField label="Selector JSON" rows={8} value={selectorState.advancedText} onChange={event => updateAdvancedSelectorText(event.currentTarget.value)} spellCheck={false} />
+									) : null}
+									{selectorState.mode !== "all-probes" && selectorState.mode !== "advanced" ? (
+										<div className={styles.selectorRuleList}>
+											{selectorState.rules.map((rule, index) => {
+												const valuesForKey = selectorValuesForKey(selectorOptions, rule.key);
+
+												return (
+													<div className={classNames("ns-cut-frame", styles.selectorRule)} key={rule.id}>
+														<label className={styles.selectorNegation}>
+															<Checkbox checked={rule.negated} onChange={event => updateSelectorRule(rule.id, { negated: event.currentTarget.checked })} />
+															<span>not</span>
+														</label>
+														<SelectField
+															label={`Rule ${index + 1} key`}
+															value={rule.key}
+															onChange={event => updateSelectorRuleKey(rule.id, event.currentTarget.value)}
+															options={selectorKeys.length ? selectorKeys : [{ value: "", label: "No labels" }]}
+														/>
+														<SelectField
+															label="Operator"
+															value={rule.op}
+															onChange={event => updateSelectorRule(rule.id, { op: event.currentTarget.value as SelectorLabelOp })}
+															options={selectorOpOptions}
+														/>
+														{rule.op === "eq" ? <TextField label="Value" value={rule.value} onChange={event => updateSelectorRule(rule.id, { value: event.currentTarget.value })} /> : null}
+														{rule.op === "in" ? (
+															<TextField
+																label="Values"
+																value={rule.values}
+																helper={valuesForKey.length ? valuesForKey.join(", ") : undefined}
+																onChange={event => updateSelectorRule(rule.id, { values: event.currentTarget.value })}
+															/>
+														) : null}
+														{rule.op === "exists" ? <div className={styles.selectorExistsValue}>any value</div> : null}
+														<Button type="button" variant="secondary" onClick={() => removeSelectorRule(rule.id)}>
+															Remove
+														</Button>
+													</div>
+												);
+											})}
+										</div>
+									) : null}
+									{selectorState.mode === "all-probes" ? <p className={styles.selectorNotice}>Matches every active probe.</p> : null}
+									{selectorState.mode !== "advanced" ? (
+										<ActionRow>
+											<Button type="button" variant="secondary" disabled={!selectorOptions.length} onClick={addSelectorRule}>
+												Add rule
+											</Button>
+										</ActionRow>
+									) : null}
+								</div>
+								<ActionRow>
+									<Button type="button" variant="secondary" disabled={!projectRef || selectorPreviewMutation.isPending} onClick={previewSelector}>
+										{selectorPreviewMutation.isPending ? "Previewing" : "Preview selector"}
+									</Button>
+									<Badge tone="accent">{activeSelectedProbes.length} matched</Badge>
+								</ActionRow>
+								<div className={classNames("ns-cut-frame", styles.probeSummary)}>{displayProbeSelection(activeSelectedProbes)}</div>
+								<div className={styles.capabilityPills}>
+									{activeSelectedProbes.map(probe => (
+										<Badge key={probe} tone="muted">
+											{probe}
+										</Badge>
+									))}
+								</div>
+							</div>
+
 							<ActionRow>
-								<Button type="button" variant="secondary" disabled={!projectRef || selectorPreviewMutation.isPending} onClick={previewSelector}>
-									{selectorPreviewMutation.isPending ? "Previewing" : "Preview selector"}
+								<Button disabled={(!selectedCheck && !isCreating) || !projectRef || !activeCheckName || !activeTarget || saveCheckMutation.isPending} onClick={saveSelectedCheck}>
+									{saveCheckMutation.isPending ? "Saving" : isCreating ? "Create check" : "Save check"}
 								</Button>
-								<Badge tone="accent">{activeSelectedProbes.length} matched</Badge>
+								<Button variant="danger" disabled={!selectedCheck || deleteCheckMutation.isPending} onClick={() => void deleteSelectedCheck()}>
+									{deleteCheckMutation.isPending ? "Deleting" : "Delete check"}
+								</Button>
 							</ActionRow>
-							<div className={classNames("ns-cut-frame", styles.probeSummary)}>{displayProbeSelection(activeSelectedProbes)}</div>
-							<div className={styles.capabilityPills}>
-								{activeSelectedProbes.map(probe => (
-									<Badge key={probe} tone="muted">
-										{probe}
-									</Badge>
-								))}
-							</div>
+
+							<DataTable columns={logColumns} rows={selectedLogs} />
 						</div>
-
-						<ActionRow>
-							<Button disabled={(!selectedCheck && !isCreating) || !projectRef || !activeCheckName || !activeTarget || saveCheckMutation.isPending} onClick={saveSelectedCheck}>
-								{saveCheckMutation.isPending ? "Saving" : isCreating ? "Create check" : "Save check"}
-							</Button>
-							<Button variant="danger" disabled={!selectedCheck || deleteCheckMutation.isPending} onClick={() => void deleteSelectedCheck()}>
-								{deleteCheckMutation.isPending ? "Deleting" : "Delete check"}
-							</Button>
-						</ActionRow>
-
-						<DataTable columns={logColumns} rows={selectedLogs} />
-					</div>
-				</Panel>
+					</Panel>
+				) : null}
 			</div>
 		</PageStack>
 	);

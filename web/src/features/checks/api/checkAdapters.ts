@@ -1,3 +1,4 @@
+import { checkConfigSummaryFields } from "@/features/checks/data/checkConfig";
 import type { CheckDefinition, CheckType } from "@/features/checks/data/checks";
 import type { ApiCheck, ApiProjectAssignment } from "@/shared/api/types";
 
@@ -32,12 +33,7 @@ export function mapApiCheck(check: ApiCheck, assigned = 0): CheckDefinition {
 		latest: "-",
 		assigned,
 		description: check.description || "",
-		fields: [
-			["Target", check.target],
-			["Type", type],
-			["Interval", formatInterval(check.intervalSeconds)],
-			["Labels", String(check.labels?.length ?? 0)]
-		]
+		fields: [["Target", check.target], ["Type", type], ["Interval", formatInterval(check.intervalSeconds)], ["Labels", String(check.labels?.length ?? 0)], ...checkConfigSummaryFields(check)]
 	};
 }
 
