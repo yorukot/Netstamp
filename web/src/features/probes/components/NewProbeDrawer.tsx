@@ -109,6 +109,15 @@ export function NewProbeDrawer() {
 	}, []);
 
 	useEffect(() => {
+		const previousOverflow = document.body.style.overflow;
+		document.body.style.overflow = "hidden";
+
+		return () => {
+			document.body.style.overflow = previousOverflow;
+		};
+	}, []);
+
+	useEffect(() => {
 		if (heartbeatReceived) {
 			void queryClient.invalidateQueries({ queryKey: projectQueries.probes(projectRef || "").queryKey });
 		}
@@ -294,7 +303,7 @@ export function NewProbeDrawer() {
 
 				<div className={styles.workflowViewport}>
 					<div className={styles.workflowTrack} style={{ transform: `translateX(-${currentStep * 100}%)` }}>
-						<form className={styles.workflowPanel} aria-hidden={currentStep !== 0} onSubmit={handleNameSubmit}>
+						<form className={classNames("ns-scrollbar", styles.workflowPanel)} aria-hidden={currentStep !== 0} onSubmit={handleNameSubmit}>
 							<div className={styles.stepCopy}>
 								<Badge tone="accent">Step 01</Badge>
 								<h3>Enter probe identity</h3>
@@ -386,7 +395,7 @@ export function NewProbeDrawer() {
 							</div>
 						</form>
 
-						<section className={styles.workflowPanel} aria-hidden={currentStep !== 1}>
+						<section className={classNames("ns-scrollbar", styles.workflowPanel)} aria-hidden={currentStep !== 1}>
 							<div className={styles.stepCopy}>
 								<Badge tone={heartbeatReceived ? "success" : "warning"}>{heartbeatReceived ? "Probe detected" : "Listening"}</Badge>
 								<h3>Install the probe</h3>

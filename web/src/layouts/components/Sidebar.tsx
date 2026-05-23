@@ -15,7 +15,7 @@ interface SidebarProps {
 
 export function Sidebar({ user, onLogout }: SidebarProps) {
 	return (
-		<aside className={styles.sidebar}>
+		<aside className={classNames("ns-scrollbar", styles.sidebar)}>
 			<Link className={styles.brand} to={pathForRoute("landing")}>
 				<img className={styles.brandLogo} src={netstampLogo} alt="Netstamp" />
 			</Link>

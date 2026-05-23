@@ -7,10 +7,14 @@
 	position: sticky;
 	top: 0;
 	height: 100svh;
+	min-height: 0;
 	display: grid;
 	grid-template-rows: auto auto 1fr auto;
 	gap: 1.5rem;
+	overflow-y: auto;
+	overscroll-behavior: contain;
 	padding: 1rem;
+	scrollbar-gutter: stable;
 	border-right: 1px solid var(--ns-border);
 	background: linear-gradient(135deg, rgba(255, 122, 26, 0.08) 0 1px, transparent 1px 0.75rem), linear-gradient(180deg, #0c0f14, #05070a);
 	background-size:
