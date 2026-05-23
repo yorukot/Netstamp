@@ -76,14 +76,14 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 			{ prompt: "netstamp", text: `Nice to meet you, ${displayName}`, autoAdvanceAfter: 180 },
 			{ prompt: "netstamp", text: "Let's create our first project!", autoAdvanceAfter: 760 },
 			{ prompt: "project", text: "How should we call your project?" },
-			{ prompt: "friends", text: "Any friends?" }
+			{ prompt: "members", text: "Invite project members?" }
 		],
 		[displayName]
 	);
 
 	const activeScript = scriptSteps[activeStep];
 	const projectPromptReady = activeStep > 2 || (activeStep === 2 && typedText.length === scriptSteps[2].text.length);
-	const friendsPromptReady = activeStep > 3 || (activeStep === 3 && typedText.length === scriptSteps[3].text.length);
+	const membersPromptReady = activeStep > 3 || (activeStep === 3 && typedText.length === scriptSteps[3].text.length);
 
 	useEffect(() => {
 		if (!activeScript || loading) {
@@ -120,13 +120,13 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 	}, [activeStep, projectPromptReady]);
 
 	useEffect(() => {
-		if (!friendsPromptReady || activeStep !== 3) {
+		if (!membersPromptReady || activeStep !== 3) {
 			return undefined;
 		}
 
 		const frame = window.requestAnimationFrame(() => inviteRefs.current[0]?.focus());
 		return () => window.cancelAnimationFrame(frame);
-	}, [activeStep, friendsPromptReady]);
+	}, [activeStep, membersPromptReady]);
 
 	function focusInvite(index: number) {
 		window.requestAnimationFrame(() => inviteRefs.current[index]?.focus());
@@ -146,7 +146,7 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 		setInvites(current => current.filter((_, currentIndex) => currentIndex !== index));
 	}
 
-	function advanceToFriends() {
+	function advanceToMembers() {
 		if (!projectPromptReady || activeStep !== 2) {
 			return;
 		}
@@ -161,7 +161,7 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 		}
 
 		event.preventDefault();
-		advanceToFriends();
+		advanceToMembers();
 	}
 
 	function handleInviteKeyDown(event: ReactKeyboardEvent<HTMLInputElement>, index: number) {
@@ -189,7 +189,7 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 	async function handleSubmit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 
-		if (!friendsPromptReady) {
+		if (!membersPromptReady) {
 			return;
 		}
 
@@ -271,20 +271,20 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 											placeholder="Yoru Labs"
 											onChange={event => setProjectName(event.currentTarget.value)}
 											onKeyDown={handleProjectKeyDown}
-											autoComplete="organization"
+											autoComplete="off"
 										/>
 										{activeStep === 2 ? <small>Press Enter to continue.</small> : null}
 									</label>
 								) : null}
 
 								{activeStep >= 3 ? (
-									<ScriptLine prompt="friends" text={activeStep === 3 ? typedText : scriptSteps[3].text} cursor={activeStep === 3 && typedText.length < scriptSteps[3].text.length} />
+									<ScriptLine prompt="members" text={activeStep === 3 ? typedText : scriptSteps[3].text} cursor={activeStep === 3 && typedText.length < scriptSteps[3].text.length} />
 								) : null}
 
-								{friendsPromptReady ? (
+								{membersPromptReady ? (
 									<div className={styles.inviteSection}>
 										<div className={styles.inviteHeader}>
-											<p>Press Enter for next friend email. Backspace on an empty row deletes it.</p>
+											<p>Press Enter for next member email. Backspace on an empty row deletes it.</p>
 											<Button variant="plain" className={styles.tuiMiniButton} type="button" onClick={addInvite}>
 												+ add
 											</Button>
@@ -303,7 +303,7 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 															name={`invite-${index}`}
 															type="email"
 															value={invite}
-															placeholder="friend@example.com"
+															placeholder="member@example.com"
 															onChange={event => updateInvite(index, event.currentTarget.value)}
 															onKeyDown={event => handleInviteKeyDown(event, index)}
 														/>

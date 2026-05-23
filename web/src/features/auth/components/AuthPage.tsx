@@ -68,10 +68,10 @@ export function AuthPage({ mode = "login", navigate }: AuthPageProps) {
 
 			<section className={styles.authHero}>
 				<Badge tone="accent">Controller access</Badge>
-				<h1>{isRegister ? "Create your Netstamp workspace." : "Log in to your controller."}</h1>
+				<h1>{isRegister ? "Create your first Netstamp project." : "Log in to your controller."}</h1>
 				<p>
 					{isRegister
-						? "Start monitoring from probes you control. Set up your operator account, create a workspace, and connect your first probe."
+						? "Start monitoring from probes you control. Set up your operator account, create a project, and connect your first probe."
 						: "Review probe health, network checks, alerts, and recent results from your Netstamp controller."}
 				</p>
 			</section>
@@ -85,7 +85,7 @@ export function AuthPage({ mode = "login", navigate }: AuthPageProps) {
 						type="email"
 						defaultValue={isRegister ? undefined : "elvis@netstamp.dev"}
 						autoComplete={isRegister ? "email" : "username"}
-						helper={isRegister ? "Use the email that will own this workspace." : "Use the email connected to your workspace."}
+						helper={isRegister ? "Use the email that will own the first project." : "Use the email connected to your controller account."}
 					/>
 					<TextField
 						label="Password"
@@ -98,7 +98,7 @@ export function AuthPage({ mode = "login", navigate }: AuthPageProps) {
 					/>
 					{isRegister ? <TextField label="Password, again" name="passwordAgain" type="password" minLength={8} placeholder="***" autoComplete="new-password" /> : null}
 					<Button type="submit" size="lg" disabled={submitting}>
-						{submitting ? "Submitting" : isRegister ? "Create workspace" : "Log in"}
+						{submitting ? "Submitting" : isRegister ? "Create project" : "Log in"}
 					</Button>
 				</form>
 				<Link className={styles.modeLink} to={pathForRoute(isRegister ? "login" : "register")}>
