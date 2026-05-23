@@ -1,9 +1,9 @@
-import { mapApiChecks } from "@/features/checks/api/checkAdapters";
+import { formatInterval, mapApiChecks } from "@/features/checks/api/checkAdapters";
 import { type CheckDefinition } from "@/features/checks/data/checks";
 import { mapApiProbes } from "@/features/probes/api/probeAdapters";
-import { type Probe } from "@/features/probes/data/probes";
+import { type Probe, type ProbeStatus } from "@/features/probes/data/probes";
 import { projectQueries } from "@/shared/api/queries";
-import { type PingInsightResponse, type TracerouteHop, type TracerouteResult, type TracerouteTopologyEdge, type TracerouteTopologyNode } from "@/shared/api/types";
+import { type ApiProjectAssignment, type PingInsightResponse, type TracerouteHop, type TracerouteResult, type TracerouteTopologyEdge, type TracerouteTopologyNode } from "@/shared/api/types";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { BodyCopy } from "@/shared/components/BodyCopy";
 import { ChartPanel } from "@/shared/components/ChartPanel";
@@ -19,7 +19,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 import { useSearchParams } from "react-router-dom";
 import styles from "./InsightPage.module.css";
 
-type InsightView = "probe" | "target";
+type InsightMode = "overview" | "probe" | "target";
 type HopTone = Extract<BadgeTone, "success" | "warning" | "critical" | "muted">;
 
 interface EntityDetail {
@@ -27,11 +27,12 @@ interface EntityDetail {
 	value: string;
 }
 
-interface GraphCard {
+interface InsightPair {
 	key: string;
-	title: string;
-	metric: string;
-	selected: boolean;
+	probeId: string;
+	checkId: string;
+	probe: Probe;
+	check: CheckDefinition;
 }
 
 interface SummaryMetric {
@@ -162,8 +163,8 @@ interface TimeWindow {
 }
 
 interface ParsedInsightUrlState {
-	view: InsightView;
-	hasValidView: boolean;
+	mode: InsightMode;
+	hasValidMode: boolean;
 	timeWindow: TimeWindow;
 	hasValidTimeWindow: boolean;
 	probeId: string;
@@ -191,9 +192,10 @@ const timeRangeDurations: Record<string, number> = {
 	"30d": 30 * 24 * 60 * 60 * 1000
 };
 
-const viewOptions = [
-	{ value: "probe", label: "Choose a probe" },
-	{ value: "target", label: "Choose a target" }
+const modeOptions: Array<{ value: InsightMode; label: string }> = [
+	{ value: "overview", label: "Overview" },
+	{ value: "probe", label: "By probe" },
+	{ value: "target", label: "By target" }
 ];
 
 function hopColumns(maxRtt: number): DataColumn<HopDiagnostic>[] {
@@ -243,20 +245,20 @@ function parseEpochMs(value: string | null) {
 	return Number.isFinite(parsed) && parsed > 0 ? Math.trunc(parsed) : null;
 }
 
-function isInsightView(value: string | null): value is InsightView {
-	return value === "probe" || value === "target";
+function isInsightMode(value: string | null): value is InsightMode {
+	return value === "overview" || value === "probe" || value === "target";
 }
 
 function parseInsightUrlState(searchParams: URLSearchParams, fallbackTimeWindow: TimeWindow): ParsedInsightUrlState {
 	const from = parseEpochMs(searchParams.get("from"));
 	const to = parseEpochMs(searchParams.get("to"));
-	const rawView = searchParams.get("view");
+	const rawMode = searchParams.get("mode") || searchParams.get("view");
 	const hasValidTimeWindow = from !== null && to !== null && from < to;
-	const hasValidView = isInsightView(rawView);
+	const hasValidMode = isInsightMode(rawMode);
 
 	return {
-		view: hasValidView ? rawView : "probe",
-		hasValidView,
+		mode: hasValidMode ? rawMode : "overview",
+		hasValidMode,
 		timeWindow: hasValidTimeWindow ? { from, to } : fallbackTimeWindow,
 		hasValidTimeWindow,
 		probeId: searchParams.get("probeId") || "",
@@ -270,6 +272,130 @@ function timeRangeForWindow(timeWindow: TimeWindow) {
 	const option = timeOptions.find(candidate => timeRangeDurations[candidate.value] === duration);
 
 	return option?.value || customTimeOption.value;
+}
+
+function pairKey(probeId: string, checkId: string) {
+	return `${probeId}:${checkId}`;
+}
+
+function checkTypeFromApi(value: string | undefined): CheckDefinition["type"] {
+	return value?.toLowerCase() === "traceroute" ? "Traceroute" : "Ping";
+}
+
+function fallbackProbe(assignment: ApiProjectAssignment): Probe {
+	const location = assignment.probe?.locationName || "-";
+	const status: ProbeStatus = assignment.probe?.enabled === false ? "Draining" : "Offline";
+
+	return {
+		id: assignment.probeId,
+		name: assignment.probe?.name || assignment.probeId,
+		status,
+		location,
+		publicIp: "-",
+		asn: "-",
+		provider: "Unlabeled",
+		region: location,
+		ipFamily: "-",
+		lastHeartbeat: "never",
+		tags: assignment.probe?.labels?.map(label => `${label.key}:${label.value}`) ?? [],
+		version: "-",
+		uptime: "-",
+		cpu: "-",
+		memory: "-",
+		queue: assignment.probe?.enabled === false ? "disabled" : "accepting jobs",
+		loss: "-",
+		capabilities: []
+	};
+}
+
+function fallbackCheck(assignment: ApiProjectAssignment): CheckDefinition {
+	const type = checkTypeFromApi(assignment.check?.type);
+	const target = assignment.check?.target || assignment.checkId;
+
+	return {
+		id: assignment.checkId,
+		name: assignment.check?.name || target,
+		type,
+		target,
+		status: "Configured",
+		interval: assignment.check ? formatInterval(assignment.check.intervalSeconds) : "-",
+		latest: "-",
+		assigned: 0,
+		description: assignment.check?.description || "",
+		fields: [
+			["Target", target],
+			["Type", type],
+			["Interval", assignment.check ? formatInterval(assignment.check.intervalSeconds) : "-"]
+		]
+	};
+}
+
+function buildInsightPairs(assignments: ApiProjectAssignment[], probes: Probe[], checks: CheckDefinition[]): InsightPair[] {
+	const probesByID = new Map(probes.map(probe => [probe.id, probe]));
+	const checksByID = new Map(checks.map(check => [check.id, check]));
+	const seen = new Set<string>();
+	const pairs: InsightPair[] = [];
+
+	for (const assignment of assignments) {
+		const key = pairKey(assignment.probeId, assignment.checkId);
+
+		if (seen.has(key)) {
+			continue;
+		}
+
+		seen.add(key);
+		const probe = probesByID.get(assignment.probeId) || fallbackProbe(assignment);
+		const check = checksByID.get(assignment.checkId) || fallbackCheck(assignment);
+
+		pairs.push({
+			key,
+			probeId: assignment.probeId,
+			checkId: assignment.checkId,
+			probe,
+			check
+		});
+	}
+
+	return pairs.sort((a, b) => a.probe.name.localeCompare(b.probe.name) || a.check.target.localeCompare(b.check.target));
+}
+
+function uniquePairsByProbe(pairs: InsightPair[]) {
+	const values = new Map<string, { probe: Probe; count: number }>();
+
+	for (const pair of pairs) {
+		const current = values.get(pair.probeId);
+		values.set(pair.probeId, { probe: pair.probe, count: (current?.count ?? 0) + 1 });
+	}
+
+	return [...values.values()].sort((a, b) => a.probe.name.localeCompare(b.probe.name));
+}
+
+function uniquePairsByCheck(pairs: InsightPair[]) {
+	const values = new Map<string, { check: CheckDefinition; count: number }>();
+
+	for (const pair of pairs) {
+		const current = values.get(pair.checkId);
+		values.set(pair.checkId, { check: pair.check, count: (current?.count ?? 0) + 1 });
+	}
+
+	return [...values.values()].sort((a, b) => a.check.target.localeCompare(b.check.target));
+}
+
+function fallbackPairForMode(pairs: InsightPair[], mode: InsightMode, probeId: string, checkId: string) {
+	const exact = pairs.find(pair => pair.probeId === probeId && pair.checkId === checkId);
+	if (exact) {
+		return exact;
+	}
+
+	if (mode === "probe" && probeId) {
+		return pairs.find(pair => pair.probeId === probeId) || pairs[0] || null;
+	}
+
+	if (mode === "target" && checkId) {
+		return pairs.find(pair => pair.checkId === checkId) || pairs[0] || null;
+	}
+
+	return pairs[0] || null;
 }
 
 function detailsForProbe(probe: Probe): EntityDetail[] {
@@ -579,7 +705,7 @@ function compactTopologyLabel(value: string) {
 	return value.length > 18 ? `${value.slice(0, 15)}...` : value;
 }
 
-function topologyHopLabel(node: TracerouteTopologyNode) {
+function topologyHopLabel(node: Pick<TracerouteTopologyNode, "kind" | "hopIndex">) {
 	if (node.kind === "probe") {
 		return "agent";
 	}
@@ -1181,6 +1307,119 @@ function PingInsight({
 	);
 }
 
+function ModeControl({ mode, onChange }: { mode: InsightMode; onChange: (mode: InsightMode) => void }) {
+	return (
+		<div className={styles.modeField}>
+			<span className={styles.modeLabel}>Mode</span>
+			<div className={styles.modeControl} role="tablist" aria-label="Insight mode">
+				{modeOptions.map(option => (
+					<button
+						type="button"
+						role="tab"
+						aria-selected={mode === option.value}
+						className={styles.modeButton}
+						data-selected={mode === option.value || undefined}
+						onClick={() => onChange(option.value)}
+						key={option.value}
+					>
+						{option.label}
+					</button>
+				))}
+			</div>
+		</div>
+	);
+}
+
+function PairList({ pairs, selectedKey, onSelect, emptyLabel }: { pairs: InsightPair[]; selectedKey: string; onSelect: (pair: InsightPair) => void; emptyLabel: string }) {
+	if (!pairs.length) {
+		return <BodyCopy>{emptyLabel}</BodyCopy>;
+	}
+
+	return (
+		<div className={styles.entityList}>
+			{pairs.map(pair => (
+				<button type="button" className={styles.entityButton} data-selected={pair.key === selectedKey || undefined} onClick={() => onSelect(pair)} key={pair.key}>
+					<span>
+						{pair.probe.name} → {pair.check.target}
+					</span>
+					<strong>
+						{pair.check.type.toLowerCase()} · {pair.check.interval}
+					</strong>
+					<small className={styles.pairMeta}>
+						{pair.probe.location} · {pair.check.name}
+					</small>
+				</button>
+			))}
+		</div>
+	);
+}
+
+function GroupTopologyPanel({ title, nodes, edges, isLoading }: { title: string; nodes: TracerouteTopologyNode[]; edges: TracerouteTopologyEdge[]; isLoading: boolean }) {
+	const hasTopology = nodes.length > 0 && edges.length > 0;
+
+	return (
+		<Panel tone="deep" eyebrow="Traceroute topology" title={title}>
+			{hasTopology ? (
+				<TopologyRouteMap nodes={nodes} edges={edges} />
+			) : (
+				<BodyCopy>{isLoading ? "Loading aggregated route graph." : "No traceroute topology is available for the selected scope and time range."}</BodyCopy>
+			)}
+		</Panel>
+	);
+}
+
+function InsightPairDetail({
+	pair,
+	pingData,
+	isPingLoading,
+	isPingFetching,
+	tracerouteRuns,
+	topologyNodes,
+	topologyEdges,
+	isRunsLoading,
+	isTopologyLoading,
+	selectedRunStartedAt,
+	onSelectRun,
+	timeLabel
+}: {
+	pair: InsightPair | null;
+	pingData: PingInsightResponse | undefined;
+	isPingLoading: boolean;
+	isPingFetching: boolean;
+	tracerouteRuns: TracerouteResult[];
+	topologyNodes: TracerouteTopologyNode[];
+	topologyEdges: TracerouteTopologyEdge[];
+	isRunsLoading: boolean;
+	isTopologyLoading: boolean;
+	selectedRunStartedAt: string;
+	onSelectRun: (startedAt: string) => void;
+	timeLabel: string;
+}) {
+	if (!pair) {
+		return (
+			<Panel tone="deep" eyebrow="Insight detail" title="No assignment selected">
+				<BodyCopy>Select an active probe-check assignment to inspect result data.</BodyCopy>
+			</Panel>
+		);
+	}
+
+	return pair.check.type === "Traceroute" ? (
+		<TracerouteInsight
+			selectedProbe={pair.probe}
+			selectedTarget={pair.check}
+			runs={tracerouteRuns}
+			topologyNodes={topologyNodes}
+			topologyEdges={topologyEdges}
+			isRunsLoading={isRunsLoading}
+			isTopologyLoading={isTopologyLoading}
+			selectedRunStartedAt={selectedRunStartedAt}
+			onSelectRun={onSelectRun}
+		/>
+	) : (
+		<PingInsight selectedProbe={pair.probe} selectedTarget={pair.check} data={pingData} isLoading={isPingLoading} isFetching={isPingFetching} timeLabel={timeLabel} />
+	);
+}
+
 export function InsightPage() {
 	const { projectRef } = useCurrentProject();
 	const [searchParams, setSearchParams] = useSearchParams();
@@ -1197,54 +1436,75 @@ export function InsightPage() {
 		enabled: Boolean(projectRef),
 		select: data => mapApiChecks(data.checks, probesQuery.data)
 	});
-	const probes = probesQuery.data || [];
-	const checks = checksQuery.data || [];
+	const assignmentsQuery = useQuery({
+		...projectQueries.assignments(projectRef || ""),
+		enabled: Boolean(projectRef),
+		select: data => data.assignments
+	});
+	const probes = useMemo(() => probesQuery.data ?? [], [probesQuery.data]);
+	const checks = useMemo(() => checksQuery.data ?? [], [checksQuery.data]);
+	const assignments = useMemo(() => assignmentsQuery.data ?? [], [assignmentsQuery.data]);
+	const pairs = useMemo(() => buildInsightPairs(assignments, probes, checks), [assignments, checks, probes]);
 	const timeWindow = urlState.timeWindow;
 	const timeRange = timeRangeForWindow(timeWindow);
 	const timePickerOptions = timeRange === customTimeOption.value ? [...timeOptions, customTimeOption] : timeOptions;
-	const view = urlState.view;
-	const selectedProbe = probes.find(probe => probe.id === urlState.probeId) || probes[0] || null;
-	const selectedTarget = checks.find(check => check.id === urlState.checkId) || checks[0] || null;
-	const selectedRunStartedAt = selectedTarget?.type === "Traceroute" ? urlState.runStartedAt : "";
+	const mode = urlState.mode;
+	const selectedPair = useMemo(() => fallbackPairForMode(pairs, mode, urlState.probeId, urlState.checkId), [mode, pairs, urlState.checkId, urlState.probeId]);
+	const selectedRunStartedAt = selectedPair?.check.type === "Traceroute" ? urlState.runStartedAt : "";
+	const probeOptions = useMemo(() => uniquePairsByProbe(pairs), [pairs]);
+	const checkOptions = useMemo(() => uniquePairsByCheck(pairs), [pairs]);
+	const selectedKey = selectedPair?.key || "";
+	const probePairs = selectedPair ? pairs.filter(pair => pair.probeId === selectedPair.probeId) : [];
+	const targetPairs = selectedPair ? pairs.filter(pair => pair.checkId === selectedPair.checkId) : [];
+	const focusPairs = mode === "probe" ? probePairs : mode === "target" ? targetPairs : pairs;
+	const hasGroupTraceroute =
+		mode === "overview"
+			? pairs.some(pair => pair.check.type === "Traceroute")
+			: mode === "probe"
+				? probePairs.some(pair => pair.check.type === "Traceroute")
+				: selectedPair?.check.type === "Traceroute";
+	const groupTopologyFilters = useMemo(() => {
+		if (!hasGroupTraceroute) {
+			return null;
+		}
+
+		if (mode === "probe" && selectedPair) {
+			return { probeId: selectedPair.probeId, ...timeWindow, limit: 100 };
+		}
+
+		if (mode === "target" && selectedPair) {
+			return { checkId: selectedPair.checkId, ...timeWindow, limit: 100 };
+		}
+
+		return { ...timeWindow, limit: 100 };
+	}, [hasGroupTraceroute, mode, selectedPair, timeWindow]);
 	const pingInsightQuery = useQuery({
-		...projectQueries.pingInsight(projectRef || "", selectedProbe?.id || "", selectedTarget?.id || "", timeWindow),
-		enabled: Boolean(projectRef && selectedProbe && selectedTarget && selectedTarget.type === "Ping")
+		...projectQueries.pingInsight(projectRef || "", selectedPair?.probeId || "", selectedPair?.checkId || "", timeWindow),
+		enabled: Boolean(projectRef && selectedPair && selectedPair.check.type === "Ping")
 	});
 	const tracerouteRunsQuery = useQuery({
-		...projectQueries.tracerouteRuns(projectRef || "", selectedProbe?.id || "", selectedTarget?.id || "", { ...timeWindow, limit: 100 }),
-		enabled: Boolean(projectRef && selectedProbe && selectedTarget && selectedTarget.type === "Traceroute")
+		...projectQueries.tracerouteRuns(projectRef || "", selectedPair?.probeId || "", selectedPair?.checkId || "", { ...timeWindow, limit: 100 }),
+		enabled: Boolean(projectRef && selectedPair && selectedPair.check.type === "Traceroute")
 	});
-	const tracerouteTopologyQuery = useQuery({
+	const pairTopologyQuery = useQuery({
 		...projectQueries.tracerouteTopology(projectRef || "", {
-			probeId: selectedProbe?.id,
-			checkId: selectedTarget?.id,
+			probeId: selectedPair?.probeId,
+			checkId: selectedPair?.checkId,
 			...timeWindow,
 			limit: 100
 		}),
-		enabled: Boolean(projectRef && selectedProbe && selectedTarget && selectedTarget.type === "Traceroute")
+		enabled: Boolean(projectRef && selectedPair && selectedPair.check.type === "Traceroute")
 	});
-	const selectedTitle = view === "probe" ? selectedProbe?.name || "No probe selected" : selectedTarget?.target || "No target selected";
-	const selectedDetails = view === "probe" ? (selectedProbe ? detailsForProbe(selectedProbe) : []) : selectedTarget ? detailsForTarget(selectedTarget) : [];
-	const pickerOptions =
-		view === "probe" ? probes.map(probe => ({ value: probe.id, label: `${probe.name} · ${probe.location}` })) : checks.map(check => ({ value: check.id, label: `${check.target} · ${check.type}` }));
-
-	const graphCards: GraphCard[] =
-		view === "probe"
-			? checks.map(check => ({
-					key: check.id,
-					title: `${selectedProbe?.name || "probe"} → ${check.target}`,
-					metric: check.type.toLowerCase(),
-					selected: check.id === selectedTarget?.id
-				}))
-			: probes.map(probe => ({
-					key: probe.id,
-					title: `${probe.name} → ${selectedTarget?.target || "target"}`,
-					metric: (selectedTarget?.type || "Ping").toLowerCase(),
-					selected: probe.id === selectedProbe?.id
-				}));
+	const groupTopologyQuery = useQuery({
+		...projectQueries.tracerouteTopology(projectRef || "", groupTopologyFilters || {}),
+		enabled: Boolean(projectRef && groupTopologyFilters)
+	});
+	const isSelectionLoading = Boolean(projectRef) && (assignmentsQuery.isLoading || probesQuery.isLoading || checksQuery.isLoading);
+	const pingPairs = pairs.filter(pair => pair.check.type === "Ping").length;
+	const traceroutePairs = pairs.filter(pair => pair.check.type === "Traceroute").length;
 
 	useEffect(() => {
-		if (!probes.length || !checks.length) {
+		if (!projectRef) {
 			return;
 		}
 
@@ -1262,27 +1522,36 @@ export function InsightPage() {
 				changed = true;
 			}
 		};
-		const probeChanged = Boolean(selectedProbe && urlState.probeId !== selectedProbe.id);
-		const checkChanged = Boolean(selectedTarget && urlState.checkId !== selectedTarget.id);
 
 		if (!urlState.hasValidTimeWindow) {
 			setParam("from", String(timeWindow.from));
 			setParam("to", String(timeWindow.to));
 		}
 
-		if (!urlState.hasValidView) {
-			setParam("view", view);
+		if (next.has("view")) {
+			deleteParam("view");
 		}
 
-		if (selectedProbe) {
-			setParam("probeId", selectedProbe.id);
+		if (!urlState.hasValidMode || next.get("mode") !== mode) {
+			setParam("mode", mode);
 		}
 
-		if (selectedTarget) {
-			setParam("checkId", selectedTarget.id);
+		if (!pairs.length) {
+			deleteParam("probeId");
+			deleteParam("checkId");
+			deleteParam("runStartedAt");
+			if (changed) {
+				setSearchParams(next, { replace: true });
+			}
+			return;
 		}
 
-		if (!urlState.hasValidTimeWindow || probeChanged || checkChanged || selectedTarget?.type !== "Traceroute") {
+		if (selectedPair) {
+			setParam("probeId", selectedPair.probeId);
+			setParam("checkId", selectedPair.checkId);
+		}
+
+		if (!urlState.hasValidTimeWindow || selectedPair?.key !== pairKey(urlState.probeId, urlState.checkId) || selectedPair?.check.type !== "Traceroute") {
 			deleteParam("runStartedAt");
 		}
 
@@ -1290,19 +1559,18 @@ export function InsightPage() {
 			setSearchParams(next, { replace: true });
 		}
 	}, [
-		checks.length,
-		probes.length,
+		mode,
+		pairs.length,
+		projectRef,
 		searchParamString,
-		selectedProbe,
-		selectedTarget,
+		selectedPair,
 		setSearchParams,
 		timeWindow.from,
 		timeWindow.to,
 		urlState.checkId,
 		urlState.hasValidTimeWindow,
-		urlState.hasValidView,
-		urlState.probeId,
-		view
+		urlState.hasValidMode,
+		urlState.probeId
 	]);
 
 	function updateSearchParams(update: (next: URLSearchParams) => void, options: { replace?: boolean } = {}) {
@@ -1311,18 +1579,79 @@ export function InsightPage() {
 		setSearchParams(next, { replace: options.replace ?? false });
 	}
 
-	function selectGraphCard(graph: GraphCard) {
+	function selectPair(pair: InsightPair) {
 		updateSearchParams(next => {
+			next.set("probeId", pair.probeId);
+			next.set("checkId", pair.checkId);
 			next.delete("runStartedAt");
-
-			if (view === "probe") {
-				next.set("checkId", graph.key);
-				return;
-			}
-
-			next.set("probeId", graph.key);
 		});
 	}
+
+	const groupTopologyTitle =
+		mode === "probe" && selectedPair ? `${selectedPair.probe.name} route graph` : mode === "target" && selectedPair ? `${selectedPair.check.target} route graph` : "Project route graph";
+	const detail = (
+		<InsightPairDetail
+			pair={selectedPair}
+			pingData={pingInsightQuery.data}
+			isPingLoading={pingInsightQuery.isLoading}
+			isPingFetching={pingInsightQuery.isFetching}
+			tracerouteRuns={tracerouteRunsQuery.data?.runs ?? []}
+			topologyNodes={pairTopologyQuery.data?.nodes ?? []}
+			topologyEdges={pairTopologyQuery.data?.edges ?? []}
+			isRunsLoading={tracerouteRunsQuery.isLoading}
+			isTopologyLoading={pairTopologyQuery.isLoading}
+			selectedRunStartedAt={selectedRunStartedAt}
+			onSelectRun={startedAt =>
+				updateSearchParams(next => {
+					next.set("runStartedAt", startedAt);
+				})
+			}
+			timeLabel={timeLabel(timeRange)}
+		/>
+	);
+	const groupTopology = groupTopologyFilters ? (
+		<GroupTopologyPanel title={groupTopologyTitle} nodes={groupTopologyQuery.data?.nodes ?? []} edges={groupTopologyQuery.data?.edges ?? []} isLoading={groupTopologyQuery.isLoading} />
+	) : null;
+	const modeBody =
+		mode === "overview" ? (
+			<>
+				<ResponsiveGrid>
+					<Panel tone="glass" eyebrow="Assignments" title={`${pairs.length} active paths`}>
+						<PairList pairs={pairs} selectedKey={selectedKey} onSelect={selectPair} emptyLabel="No active assignments." />
+					</Panel>
+					<Panel tone="glass" eyebrow="Coverage" title="Assignment scope">
+						<KeyValueGrid
+							items={[
+								{ label: "Probes", value: formatCount(probeOptions.length) },
+								{ label: "Targets", value: formatCount(checkOptions.length) },
+								{ label: "Ping", value: formatCount(pingPairs) },
+								{ label: "Traceroute", value: formatCount(traceroutePairs) },
+								{ label: "Selected", value: selectedPair ? `${selectedPair.probe.name} -> ${selectedPair.check.target}` : "-" }
+							]}
+						/>
+					</Panel>
+				</ResponsiveGrid>
+				{groupTopology}
+				{detail}
+			</>
+		) : (
+			<>
+				<ResponsiveGrid>
+					<Panel
+						tone="glass"
+						eyebrow={mode === "probe" ? "Probe" : "Target"}
+						title={mode === "probe" ? selectedPair?.probe.name || "No probe selected" : selectedPair?.check.target || "No target selected"}
+					>
+						<KeyValueGrid items={mode === "probe" && selectedPair ? detailsForProbe(selectedPair.probe) : mode === "target" && selectedPair ? detailsForTarget(selectedPair.check) : []} />
+					</Panel>
+					<Panel tone="glass" eyebrow={mode === "probe" ? "Assigned targets" : "Assigned probes"} title={mode === "probe" ? `${focusPairs.length} targets` : `${focusPairs.length} probes`}>
+						<PairList pairs={focusPairs} selectedKey={selectedKey} onSelect={selectPair} emptyLabel="No assignments in this scope." />
+					</Panel>
+				</ResponsiveGrid>
+				{groupTopology}
+				{detail}
+			</>
+		);
 
 	return (
 		<PageStack>
@@ -1349,82 +1678,58 @@ export function InsightPage() {
 					}}
 					options={timePickerOptions}
 				/>
-				<SelectField
-					label="View"
-					value={view}
-					onChange={event => {
-						const nextView = event.currentTarget.value;
-
-						if (!isInsightView(nextView)) {
-							return;
-						}
-
+				<ModeControl
+					mode={mode}
+					onChange={nextMode => {
 						updateSearchParams(next => {
-							next.set("view", nextView);
-						});
-					}}
-					options={viewOptions}
-				/>
-				<SelectField
-					label={view === "probe" ? "Probe" : "Target"}
-					value={view === "probe" ? selectedProbe?.id || "" : selectedTarget?.id || ""}
-					onChange={event => {
-						updateSearchParams(next => {
+							next.set("mode", nextMode);
+							next.delete("view");
 							next.delete("runStartedAt");
-
-							if (view === "probe") {
-								next.set("probeId", event.currentTarget.value);
-								return;
-							}
-
-							next.set("checkId", event.currentTarget.value);
 						});
 					}}
-					options={pickerOptions}
 				/>
+				{mode === "overview" ? (
+					<div className={styles.overviewMeta}>
+						<span>{isSelectionLoading ? "loading assignments" : `${formatCount(pairs.length)} active paths`}</span>
+						<strong>{selectedPair ? `${selectedPair.probe.name} -> ${selectedPair.check.target}` : "No selection"}</strong>
+					</div>
+				) : mode === "probe" ? (
+					<SelectField
+						label="Probe"
+						value={selectedPair?.probeId || ""}
+						onChange={event => {
+							const nextPair = pairs.find(pair => pair.probeId === event.currentTarget.value);
+							if (nextPair) {
+								selectPair(nextPair);
+							}
+						}}
+						options={probeOptions.map(option => ({ value: option.probe.id, label: `${option.probe.name} · ${option.count} targets` }))}
+					/>
+				) : (
+					<SelectField
+						label="Target"
+						value={selectedPair?.checkId || ""}
+						onChange={event => {
+							const nextPair = pairs.find(pair => pair.checkId === event.currentTarget.value);
+							if (nextPair) {
+								selectPair(nextPair);
+							}
+						}}
+						options={checkOptions.map(option => ({ value: option.check.id, label: `${option.check.target} · ${option.count} probes` }))}
+					/>
+				)}
 			</div>
 
-			<ResponsiveGrid>
-				<Panel tone="glass" eyebrow={view === "probe" ? "Probe" : "Target"} title={selectedTitle}>
-					<KeyValueGrid items={selectedDetails} />
+			{isSelectionLoading && !pairs.length ? (
+				<Panel tone="deep" eyebrow="Assignments" title="Loading active paths">
+					<BodyCopy>Loading probe-check assignments for this project.</BodyCopy>
 				</Panel>
-				<Panel tone="glass" eyebrow={view === "probe" ? "Targets" : "Probes"} title={view === "probe" ? "Target list" : "Probe list"}>
-					<div className={styles.entityList}>
-						{graphCards.map(graph => (
-							<button type="button" className={styles.entityButton} data-selected={graph.selected || undefined} onClick={() => selectGraphCard(graph)} key={graph.key}>
-								<span>{graph.title}</span>
-								<strong>{graph.metric}</strong>
-							</button>
-						))}
-					</div>
+			) : !pairs.length ? (
+				<Panel tone="deep" eyebrow="Assignments" title="No active paths">
+					<BodyCopy>Create or refresh check assignments before opening result insight.</BodyCopy>
 				</Panel>
-			</ResponsiveGrid>
-
-			{selectedTarget?.type === "Traceroute" ? (
-				<TracerouteInsight
-					selectedProbe={selectedProbe}
-					selectedTarget={selectedTarget}
-					runs={tracerouteRunsQuery.data?.runs ?? []}
-					topologyNodes={tracerouteTopologyQuery.data?.nodes ?? []}
-					topologyEdges={tracerouteTopologyQuery.data?.edges ?? []}
-					isRunsLoading={tracerouteRunsQuery.isLoading}
-					isTopologyLoading={tracerouteTopologyQuery.isLoading}
-					selectedRunStartedAt={selectedRunStartedAt}
-					onSelectRun={startedAt =>
-						updateSearchParams(next => {
-							next.set("runStartedAt", startedAt);
-						})
-					}
-				/>
 			) : (
-				<PingInsight
-					selectedProbe={selectedProbe}
-					selectedTarget={selectedTarget}
-					data={pingInsightQuery.data}
-					isLoading={pingInsightQuery.isLoading}
-					isFetching={pingInsightQuery.isFetching}
-					timeLabel={timeLabel(timeRange)}
-				/>
+				modeBody
 			)}
 		</PageStack>
 	);
