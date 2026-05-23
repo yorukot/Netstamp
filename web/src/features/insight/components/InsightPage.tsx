@@ -15,7 +15,7 @@ import { pingInsightChartOption, type PingInsightChartBucket, type PingInsightSa
 import { classNames } from "@/shared/utils/classNames";
 import { Badge, DataTable, Panel, SelectField, type BadgeTone, type DataColumn } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useSearchParams } from "react-router-dom";
 import styles from "./InsightPage.module.css";
 
@@ -111,9 +111,24 @@ interface TopologyRouteLayout {
 	edges: TopologyRouteEdge[];
 	viewWidth: number;
 	viewHeight: number;
+	routeStartX: number;
+	routeEndX: number;
 }
 
 type TopologySeverity = "normal" | "warning" | "critical";
+type TopologyDetailPlacement = "above" | "below";
+type TopologyDetailTone = TopologySeverity | "agent" | "destination";
+
+interface TopologyHoverDetail {
+	id: string;
+	title: string;
+	subtitle?: string;
+	rows: EntityDetail[];
+	x: number;
+	y: number;
+	placement: TopologyDetailPlacement;
+	tone: TopologyDetailTone;
+}
 
 type TimelinePointStyle = CSSProperties & {
 	"--ns-timeline-x"?: string;
@@ -134,6 +149,11 @@ type TopologyMapStyle = CSSProperties & {
 type TopologyNodeStyle = CSSProperties & {
 	"--ns-topology-node-x"?: string;
 	"--ns-topology-node-y"?: string;
+};
+
+type TopologyDetailStyle = CSSProperties & {
+	"--ns-topology-detail-x"?: string;
+	"--ns-topology-detail-y"?: string;
 };
 
 interface TimeWindow {
@@ -518,6 +538,9 @@ const topologyRowGap = 76;
 const topologyPaddingX = 72;
 const topologyMinWidth = 760;
 const topologyMinHeight = 280;
+const topologyDetailInsetX = 132;
+const topologyDetailEstimatedHeight = 224;
+const topologyDetailGap = 16;
 
 function topologySeverity(lossPercent: number | undefined, avgRttMs: number | undefined): TopologySeverity {
 	if (typeof lossPercent === "number" && lossPercent >= 1) {
@@ -658,19 +681,17 @@ function topologyRouteLayout(nodes: TracerouteTopologyNode[], edges: TracerouteT
 				opacity: 0.34 + Math.min(0.48, seenRatio)
 			};
 		});
+	const routeStartX = Math.min(...routeNodes.map(node => node.x));
+	const routeEndX = Math.max(...routeNodes.map(node => node.x));
 
-	return { nodes: routeNodes, edges: routeEdges, viewWidth, viewHeight };
+	return { nodes: routeNodes, edges: routeEdges, viewWidth, viewHeight, routeStartX, routeEndX };
 }
 
 function topologyNodeTitle(node: TopologyRouteNode) {
-	return [
-		node.label,
-		node.hostname && node.address && node.hostname !== node.address ? `${node.hostname} (${node.address})` : node.address,
-		node.hopLabel,
-		`seen ${formatCount(node.seenCount)}`,
-		`avg ${formatMs(node.avgRttMs)}`,
-		`loss ${formatPercent(node.lossPercent)}`
-	]
+	const primaryName = node.hostname || node.label;
+	const secondaryName = node.hostname && node.label !== node.hostname ? node.label : null;
+
+	return [primaryName, secondaryName, node.address, node.hopLabel, `seen ${formatCount(node.seenCount)}`, `avg ${formatMs(node.avgRttMs)}`, `loss ${formatPercent(node.lossPercent)}`]
 		.filter(Boolean)
 		.join("\n");
 }
@@ -679,16 +700,137 @@ function topologyEdgeTitle(edge: TopologyRouteEdge) {
 	return [`${edge.sourceLabel} -> ${edge.targetLabel}`, `seen ${formatCount(edge.seenCount)}`, `avg ${formatMs(edge.avgRttMs)}`, `loss ${formatPercent(edge.lossPercent)}`].join("\n");
 }
 
+function topologyAriaLabel(value: string) {
+	return value.replace(/\s*\n\s*/g, ", ");
+}
+
+function clampNumber(value: number, min: number, max: number) {
+	return Math.min(Math.max(value, min), max);
+}
+
+function topologyDetailPosition(x: number, y: number, layout: TopologyRouteLayout): Pick<TopologyHoverDetail, "x" | "y" | "placement"> {
+	const maxX = Math.max(topologyDetailInsetX, layout.viewWidth - topologyDetailInsetX);
+	const hasRoomBelow = y + topologyDetailGap + topologyDetailEstimatedHeight <= layout.viewHeight;
+	const placement: TopologyDetailPlacement = hasRoomBelow ? "below" : "above";
+
+	return {
+		x: clampNumber(x, topologyDetailInsetX, maxX),
+		y,
+		placement
+	};
+}
+
+function topologyNodeDetailTone(node: TopologyRouteNode): TopologyDetailTone {
+	if (node.kind === "probe") {
+		return "agent";
+	}
+	if (node.kind === "destination") {
+		return "destination";
+	}
+	return node.severity;
+}
+
+function topologyNodeDetail(node: TopologyRouteNode, layout: TopologyRouteLayout): TopologyHoverDetail {
+	const position = topologyDetailPosition(node.x, node.y, layout);
+	const title = node.hostname || node.label;
+	const subtitle = node.hostname && node.label !== node.hostname ? node.label : undefined;
+
+	return {
+		id: `node:${node.id}`,
+		title,
+		subtitle,
+		x: position.x,
+		y: position.y,
+		placement: position.placement,
+		tone: topologyNodeDetailTone(node),
+		rows: [
+			...(node.address ? [{ label: "address", value: node.address }] : []),
+			{ label: "seen", value: formatCount(node.seenCount) },
+			{ label: "avg rtt", value: formatMs(node.avgRttMs) },
+			{ label: "loss", value: formatPercent(node.lossPercent) }
+		]
+	};
+}
+
+function topologyEdgeDetail(edge: TopologyRouteEdge, layout: TopologyRouteLayout): TopologyHoverDetail {
+	const position = topologyDetailPosition((edge.x1 + edge.x2) / 2, (edge.y1 + edge.y2) / 2, layout);
+
+	return {
+		id: `edge:${edge.source}->${edge.target}`,
+		title: `${edge.sourceLabel} -> ${edge.targetLabel}`,
+		x: position.x,
+		y: position.y,
+		placement: position.placement,
+		tone: topologySeverity(edge.lossPercent, edge.avgRttMs),
+		rows: [
+			{ label: "seen", value: formatCount(edge.seenCount) },
+			{ label: "avg rtt", value: formatMs(edge.avgRttMs) },
+			{ label: "loss", value: formatPercent(edge.lossPercent) }
+		]
+	};
+}
+
+function TopologyDetailCard({ detail }: { detail: TopologyHoverDetail }) {
+	const style: TopologyDetailStyle = {
+		"--ns-topology-detail-x": `${detail.x}px`,
+		"--ns-topology-detail-y": `${detail.y}px`
+	};
+
+	return (
+		<div className={classNames(styles.topologyDetail, styles[`topologyDetail${detail.tone}`])} style={style} data-placement={detail.placement} id="topology-detail-card">
+			<strong>{detail.title}</strong>
+			{detail.subtitle ? <span className={styles.topologyDetailSubtitle}>{detail.subtitle}</span> : null}
+			<dl>
+				{detail.rows.map(row => (
+					<div key={`${detail.id}:${row.label}`}>
+						<dt>{row.label}</dt>
+						<dd>{row.value}</dd>
+					</div>
+				))}
+			</dl>
+		</div>
+	);
+}
+
 function TopologyRouteMap({ nodes, edges }: { nodes: TracerouteTopologyNode[]; edges: TracerouteTopologyEdge[] }) {
+	const shellRef = useRef<HTMLDivElement>(null);
+	const viewportRef = useRef<HTMLDivElement>(null);
+	const [activeDetail, setActiveDetail] = useState<TopologyHoverDetail | null>(null);
 	const layout = topologyRouteLayout(nodes, edges);
 	const centerY = layout.viewHeight / 2 - 14;
 	const style: TopologyMapStyle = {
 		"--ns-topology-width": `${layout.viewWidth}px`,
 		"--ns-topology-height": `${layout.viewHeight}px`
 	};
+	const clearActiveDetail = () => setActiveDetail(null);
+	const showActiveDetail = (detail: TopologyHoverDetail) => {
+		const shell = shellRef.current;
+		const viewport = viewportRef.current;
+
+		if (!shell || !viewport) {
+			setActiveDetail(detail);
+			return;
+		}
+
+		const viewportRect = viewport.getBoundingClientRect();
+		const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+		const screenY = viewportRect.top + detail.y;
+		const hasRoomAbove = screenY - topologyDetailGap - topologyDetailEstimatedHeight >= 0;
+		const hasRoomBelow = screenY + topologyDetailGap + topologyDetailEstimatedHeight <= viewportHeight;
+		const placement = hasRoomAbove && (!hasRoomBelow || screenY > viewportHeight / 2) ? "above" : "below";
+		const maxVisibleX = Math.max(topologyDetailInsetX, viewport.clientWidth - topologyDetailInsetX);
+		const visibleX = clampNumber(detail.x - viewport.scrollLeft, topologyDetailInsetX, maxVisibleX);
+
+		setActiveDetail({
+			...detail,
+			x: viewport.offsetLeft + visibleX,
+			y: viewport.offsetTop + detail.y,
+			placement
+		});
+	};
 
 	return (
-		<div className={styles.topologyShell}>
+		<div className={styles.topologyShell} ref={shellRef}>
 			<div className={styles.topologyLegend} aria-hidden="true">
 				<span data-tone="agent">agent</span>
 				<span data-tone="normal">normal</span>
@@ -696,29 +838,54 @@ function TopologyRouteMap({ nodes, edges }: { nodes: TracerouteTopologyNode[]; e
 				<span data-tone="critical">loss</span>
 				<span data-tone="destination">destination</span>
 			</div>
-			<div className={styles.topologyViewport}>
+			<div className={styles.topologyViewport} ref={viewportRef} onScroll={clearActiveDetail}>
 				<div className={styles.topologyMap} style={style}>
 					<svg className={styles.topologySvg} viewBox={`0 0 ${layout.viewWidth} ${layout.viewHeight}`} role="img" aria-label="Aggregated traceroute topology">
-						<line className={styles.topologyCenterLine} x1={topologyPaddingX} x2={layout.viewWidth - topologyPaddingX} y1={centerY} y2={centerY} />
-						{layout.edges.map(edge => (
-							<g key={`${edge.source}->${edge.target}`}>
-								<title>{topologyEdgeTitle(edge)}</title>
-								<line className={styles.topologyEdge} x1={edge.x1} x2={edge.x2} y1={edge.y1} y2={edge.y2} stroke={edge.color} strokeWidth={edge.width} opacity={edge.opacity} />
-							</g>
-						))}
+						<line className={styles.topologyCenterLine} x1={layout.routeStartX} x2={layout.routeEndX} y1={centerY} y2={centerY} />
+						{layout.edges.map(edge => {
+							const edgeTitle = topologyEdgeTitle(edge);
+
+							return (
+								<g key={`${edge.source}->${edge.target}`}>
+									<line className={styles.topologyEdge} x1={edge.x1} x2={edge.x2} y1={edge.y1} y2={edge.y2} stroke={edge.color} strokeWidth={edge.width} opacity={edge.opacity} />
+									<line
+										aria-label={topologyAriaLabel(edgeTitle)}
+										aria-describedby={activeDetail?.id === `edge:${edge.source}->${edge.target}` ? "topology-detail-card" : undefined}
+										className={styles.topologyEdgeHit}
+										role="graphics-symbol"
+										tabIndex={0}
+										x1={edge.x1}
+										x2={edge.x2}
+										y1={edge.y1}
+										y2={edge.y2}
+										onBlur={clearActiveDetail}
+										onFocus={() => showActiveDetail(topologyEdgeDetail(edge, layout))}
+										onPointerEnter={() => showActiveDetail(topologyEdgeDetail(edge, layout))}
+										onPointerLeave={clearActiveDetail}
+									/>
+								</g>
+							);
+						})}
 					</svg>
 					{layout.nodes.map(node => {
 						const nodeStyle: TopologyNodeStyle = {
 							"--ns-topology-node-x": `${node.x}px`,
 							"--ns-topology-node-y": `${node.y}px`
 						};
+						const nodeTitle = topologyNodeTitle(node);
 
 						return (
 							<div
 								className={classNames(styles.topologyNode, styles[`topologyNode${node.kind}`], styles[`topologyNode${node.severity}`])}
 								style={nodeStyle}
-								title={topologyNodeTitle(node)}
+								tabIndex={0}
+								aria-describedby={activeDetail?.id === `node:${node.id}` ? "topology-detail-card" : undefined}
+								aria-label={topologyAriaLabel(nodeTitle)}
 								key={node.id}
+								onBlur={clearActiveDetail}
+								onFocus={() => showActiveDetail(topologyNodeDetail(node, layout))}
+								onPointerEnter={() => showActiveDetail(topologyNodeDetail(node, layout))}
+								onPointerLeave={clearActiveDetail}
 							>
 								<span className={styles.topologyNodeDot} />
 								<span className={styles.topologyNodeLabel}>
@@ -730,6 +897,7 @@ function TopologyRouteMap({ nodes, edges }: { nodes: TracerouteTopologyNode[]; e
 					})}
 				</div>
 			</div>
+			{activeDetail ? <TopologyDetailCard detail={activeDetail} /> : null}
 		</div>
 	);
 }

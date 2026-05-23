@@ -183,6 +183,7 @@
 }
 
 .topologyShell {
+	position: relative;
 	display: grid;
 	gap: 0.75rem;
 }
@@ -243,12 +244,9 @@
 	height: var(--ns-topology-height);
 	min-height: 17.5rem;
 	background:
-		linear-gradient(90deg, transparent, rgba(255, 122, 26, 0.28), transparent) center 50% / 100% 1px no-repeat,
-		linear-gradient(rgba(255, 122, 26, 0.045) 1px, transparent 1px),
-		linear-gradient(90deg, rgba(255, 122, 26, 0.035) 1px, transparent 1px),
+		linear-gradient(rgba(255, 122, 26, 0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 122, 26, 0.035) 1px, transparent 1px),
 		radial-gradient(circle at 50% 50%, rgba(255, 122, 26, 0.08), transparent 42%);
 	background-size:
-		100% 1px,
 		2rem 2rem,
 		2rem 2rem,
 		100% 100%;
@@ -257,14 +255,15 @@
 .topologySvg {
 	position: absolute;
 	inset: 0;
-	width: 100%;
-	height: 100%;
+	width: var(--ns-topology-width);
+	height: var(--ns-topology-height);
 	overflow: visible;
 	pointer-events: none;
 }
 
 .topologyCenterLine,
-.topologyEdge {
+.topologyEdge,
+.topologyEdgeHit {
 	vector-effect: non-scaling-stroke;
 }
 
@@ -278,6 +277,18 @@
 	stroke-linecap: round;
 }
 
+.topologyEdgeHit {
+	stroke: transparent;
+	stroke-linecap: round;
+	stroke-width: 1rem;
+	outline: none;
+	pointer-events: stroke;
+}
+
+.topologyEdgeHit:focus-visible {
+	stroke: rgba(255, 247, 236, 0.16);
+}
+
 .topologyNode {
 	position: absolute;
 	z-index: 1;
@@ -289,6 +300,16 @@
 	place-items: center;
 	color: var(--ns-accent);
 	transform: translate(-50%, -50%);
+}
+
+.topologyNode:focus-visible {
+	outline: none;
+}
+
+.topologyNode:focus-visible .topologyNodeDot {
+	box-shadow:
+		0 0 0 4px rgba(255, 247, 236, 0.18),
+		0 0 18px rgba(255, 122, 26, 0.28);
 }
 
 .topologyNodeDot {
@@ -374,6 +395,87 @@
 	box-shadow:
 		0 0 0 3px rgba(255, 69, 58, 0.14),
 		0 0 18px rgba(255, 69, 58, 0.24);
+}
+
+.topologyDetail {
+	--ns-topology-detail-color: var(--ns-accent);
+	position: absolute;
+	z-index: 8;
+	top: var(--ns-topology-detail-y);
+	left: var(--ns-topology-detail-x);
+	display: grid;
+	gap: 0.45rem;
+	width: min(15rem, calc(100% - 1rem));
+	padding: 0.75rem;
+	border: 1px solid color-mix(in srgb, var(--ns-topology-detail-color) 62%, transparent);
+	background: linear-gradient(135deg, color-mix(in srgb, var(--ns-topology-detail-color) 14%, transparent), transparent 58%), rgba(3, 5, 7, 0.96);
+	box-shadow:
+		0 0 0 1px rgba(255, 255, 255, 0.06),
+		0 1rem 2rem rgba(0, 0, 0, 0.42);
+	clip-path: polygon(var(--ns-cut-sm) 0, 100% 0, 100% calc(100% - var(--ns-cut-sm)), calc(100% - var(--ns-cut-sm)) 100%, 0 100%, 0 var(--ns-cut-sm));
+	color: var(--ns-text-muted);
+	font-family: var(--ns-font-mono);
+	font-size: 0.6875rem;
+	line-height: 1.35;
+	pointer-events: none;
+	transform: translate(-50%, 0.75rem);
+}
+
+.topologyDetail[data-placement="above"] {
+	transform: translate(-50%, calc(-100% - 0.75rem));
+}
+
+.topologyDetail strong {
+	color: var(--ns-text);
+	font-size: 0.75rem;
+	overflow-wrap: anywhere;
+}
+
+.topologyDetailSubtitle {
+	color: var(--ns-text-low);
+	overflow-wrap: anywhere;
+}
+
+.topologyDetail dl {
+	display: grid;
+	gap: 0.25rem;
+	margin: 0;
+}
+
+.topologyDetail dl div {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 1rem;
+	border-top: 1px solid rgba(255, 255, 255, 0.08);
+	padding-top: 0.25rem;
+}
+
+.topologyDetail dt {
+	color: var(--ns-text-low);
+	text-transform: uppercase;
+}
+
+.topologyDetail dd {
+	margin: 0;
+	color: var(--ns-text-muted);
+	text-align: right;
+}
+
+.topologyDetailagent {
+	--ns-topology-detail-color: var(--ns-metal);
+}
+
+.topologyDetailwarning {
+	--ns-topology-detail-color: var(--ns-warning);
+}
+
+.topologyDetailcritical {
+	--ns-topology-detail-color: var(--ns-critical);
+}
+
+.topologyDetaildestination {
+	--ns-topology-detail-color: var(--ns-accent-hover);
 }
 
 .hopIdentity {
