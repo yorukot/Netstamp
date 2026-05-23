@@ -76,19 +76,28 @@ interface TopologyGraphNode {
 	id: string;
 	name: string;
 	label: string;
+	address?: string;
+	hostname?: string;
+	kind: TracerouteTopologyNode["kind"];
+	hopIndex?: number;
+	hopLabel: string;
 	seenCount: number;
 	avgRttMs?: number;
 	lossPercent?: number;
 	x: number;
 	y: number;
+	symbol: string;
 	symbolSize: number;
-	itemStyle: { color: string; borderColor: string; borderWidth: number };
+	category: string;
+	itemStyle: { color: string; borderColor: string; borderWidth: number; shadowBlur?: number; shadowColor?: string };
 	labelLayout?: { hideOverlap: boolean };
 }
 
 interface TopologyGraphEdge {
 	source: string;
 	target: string;
+	sourceLabel: string;
+	targetLabel: string;
 	seenCount: number;
 	avgRttMs?: number;
 	lossPercent?: number;
@@ -100,10 +109,13 @@ interface TopologyTooltipParam {
 	data?: Partial<TopologyGraphNode & TopologyGraphEdge>;
 }
 
-type TimelineStyle = CSSProperties & {
-	"--ns-run-rtt"?: string;
-	"--ns-run-loss"?: string;
-	"--ns-run-hop"?: string;
+interface TopologyLabelParam {
+	data?: Partial<TopologyGraphNode>;
+}
+
+type TimelinePointStyle = CSSProperties & {
+	"--ns-timeline-x"?: string;
+	"--ns-timeline-y"?: string;
 };
 
 type RailStyle = CSSProperties & {
@@ -152,25 +164,27 @@ const viewOptions = [
 	{ value: "target", label: "Choose a target" }
 ];
 
-const hopColumns: DataColumn<HopDiagnostic>[] = [
-	{ key: "hopIndex", label: "Hop", render: row => String(row.hopIndex).padStart(2, "0") },
-	{
-		key: "label",
-		label: "Node",
-		render: row => (
-			<span className={styles.hopIdentity}>
-				<strong>{row.label}</strong>
-				{row.address !== row.label ? <span>{row.address}</span> : null}
-			</span>
-		)
-	},
-	{ key: "loss", label: "Loss", render: row => formatPercent(row.loss) },
-	{ key: "avgRtt", label: "Avg", render: row => formatMs(row.avgRtt) },
-	{ key: "medianRtt", label: "Median", render: row => formatMs(row.medianRtt) },
-	{ key: "range", label: "Range", render: row => `${formatMs(row.minRtt)} / ${formatMs(row.maxRtt)}` },
-	{ key: "sent", label: "Sent/Recv", render: row => `${row.sent}/${row.received}` },
-	{ key: "state", label: "State", render: row => <Badge tone={row.tone}>{row.state}</Badge> }
-];
+function hopColumns(maxRtt: number): DataColumn<HopDiagnostic>[] {
+	return [
+		{ key: "hopIndex", label: "Hop", render: row => String(row.hopIndex).padStart(2, "0") },
+		{
+			key: "label",
+			label: "Node",
+			render: row => (
+				<span className={styles.hopIdentity}>
+					<strong>{row.label}</strong>
+					{row.address !== row.label ? <span>{row.address}</span> : null}
+				</span>
+			)
+		},
+		{ key: "loss", label: "Loss", render: row => formatPercent(row.loss) },
+		{ key: "latency", label: "Latency", render: row => <LatencyRailCell hop={row} maxRtt={maxRtt} /> },
+		{ key: "medianRtt", label: "Median", render: row => formatMs(row.medianRtt) },
+		{ key: "range", label: "Range", render: row => `${formatMs(row.minRtt)} / ${formatMs(row.maxRtt)}` },
+		{ key: "sent", label: "Sent/Recv", render: row => `${row.sent}/${row.received}` },
+		{ key: "state", label: "State", render: row => <Badge tone={row.tone}>{row.state}</Badge> }
+	];
+}
 
 function timeLabel(value: string) {
 	if (value === customTimeOption.value) {
@@ -496,6 +510,112 @@ function topologyTone(lossPercent: number | undefined, avgRttMs: number | undefi
 	return "#ff7a1a";
 }
 
+const topologyColumnGap = 172;
+const topologyRowGap = 76;
+
+function topologyStatus(lossPercent: number | undefined, avgRttMs: number | undefined) {
+	if (typeof lossPercent === "number" && lossPercent >= 1) {
+		return "loss";
+	}
+
+	if (typeof avgRttMs === "number" && avgRttMs >= 100) {
+		return "high rtt";
+	}
+
+	return "normal";
+}
+
+function topologyKindRank(kind: TracerouteTopologyNode["kind"]) {
+	if (kind === "probe") {
+		return 0;
+	}
+
+	if (kind === "destination") {
+		return 2;
+	}
+
+	return 1;
+}
+
+function topologySiblingOffset(index: number) {
+	if (index === 0) {
+		return 0;
+	}
+
+	const distance = Math.ceil(index / 2);
+	return index % 2 === 1 ? -distance : distance;
+}
+
+function compactTopologyLabel(value: string) {
+	return value.length > 18 ? `${value.slice(0, 15)}...` : value;
+}
+
+function topologyHopLabel(node: TracerouteTopologyNode) {
+	if (node.kind === "probe") {
+		return "agent";
+	}
+
+	if (typeof node.hopIndex === "number") {
+		return `hop ${String(node.hopIndex).padStart(2, "0")}`;
+	}
+
+	return node.kind;
+}
+
+function topologyNodeSymbol(node: TracerouteTopologyNode) {
+	if (node.kind === "probe") {
+		return "diamond";
+	}
+
+	if (node.kind === "destination") {
+		return "rect";
+	}
+
+	return "circle";
+}
+
+function topologyNodeStyle(node: TracerouteTopologyNode) {
+	const status = topologyStatus(node.lossPercent, node.avgRttMs);
+	const stateColor = topologyTone(node.lossPercent, node.avgRttMs);
+
+	if (node.kind === "probe") {
+		return {
+			category: "agent",
+			itemStyle: {
+				color: "#c4ccd9",
+				borderColor: "rgba(255,247,236,0.86)",
+				borderWidth: 1.5,
+				shadowBlur: 8,
+				shadowColor: "rgba(196,204,217,0.18)"
+			}
+		};
+	}
+
+	if (node.kind === "destination") {
+		return {
+			category: "destination",
+			itemStyle: {
+				color: "rgba(255,122,26,0.26)",
+				borderColor: stateColor,
+				borderWidth: status === "normal" ? 2 : 3,
+				shadowBlur: 10,
+				shadowColor: "rgba(255,122,26,0.22)"
+			}
+		};
+	}
+
+	return {
+		category: status,
+		itemStyle: {
+			color: "rgba(3,5,8,0.98)",
+			borderColor: stateColor,
+			borderWidth: status === "normal" ? 2 : 3,
+			shadowBlur: status === "normal" ? 0 : 12,
+			shadowColor: status === "loss" ? "rgba(255,69,58,0.28)" : "rgba(255,159,10,0.24)"
+		}
+	};
+}
+
 function topologyColumn(node: TracerouteTopologyNode, maxHop: number) {
 	if (node.kind === "probe") {
 		return 0;
@@ -512,9 +632,17 @@ function topologyColumn(node: TracerouteTopologyNode, maxHop: number) {
 	return maxHop + 2;
 }
 
+function topologyLabelFormatter(params: TopologyLabelParam) {
+	const data = params.data;
+	const name = data?.name || "";
+	const hopLabel = data?.hopLabel || "";
+
+	return hopLabel ? `${name}\n${hopLabel}` : name;
+}
+
 function topologyChartOption(nodes: TracerouteTopologyNode[], edges: TracerouteTopologyEdge[]): ChartOption {
 	const maxHop = Math.max(0, ...nodes.map(node => node.hopIndex ?? 0));
-	const sortedNodes = [...nodes].sort((a, b) => topologyColumn(a, maxHop) - topologyColumn(b, maxHop) || a.label.localeCompare(b.label));
+	const sortedNodes = [...nodes].sort((a, b) => topologyColumn(a, maxHop) - topologyColumn(b, maxHop) || b.seenCount - a.seenCount || a.label.localeCompare(b.label));
 	const nodeColumns = new Map<number, TracerouteTopologyNode[]>();
 	const maxSeen = Math.max(1, ...nodes.map(node => node.seenCount), ...edges.map(edge => edge.seenCount));
 
@@ -523,53 +651,77 @@ function topologyChartOption(nodes: TracerouteTopologyNode[], edges: TracerouteT
 		nodeColumns.set(column, [...(nodeColumns.get(column) ?? []), node]);
 	}
 
-	const graphNodes: TopologyGraphNode[] = sortedNodes.map(node => {
-		const column = topologyColumn(node, maxHop);
-		const siblings = nodeColumns.get(column) ?? [];
-		const row = Math.max(
-			0,
-			siblings.findIndex(candidate => candidate.id === node.id)
+	for (const [column, siblings] of nodeColumns) {
+		nodeColumns.set(
+			column,
+			[...siblings].sort((a, b) => topologyKindRank(a.kind) - topologyKindRank(b.kind) || b.seenCount - a.seenCount || a.label.localeCompare(b.label))
 		);
-		const yOffset = row - (siblings.length - 1) / 2;
-		const color = node.kind === "probe" ? "#c4ccd9" : topologyTone(node.lossPercent, node.avgRttMs);
+	}
 
-		return {
-			id: node.id,
-			name: node.label.length > 22 ? `${node.label.slice(0, 19)}...` : node.label,
-			label: node.label,
-			seenCount: node.seenCount,
-			avgRttMs: node.avgRttMs,
-			lossPercent: node.lossPercent,
-			x: column * 180,
-			y: yOffset * 88,
-			symbolSize: 18 + Math.min(34, (node.seenCount / maxSeen) * 34),
-			itemStyle: {
-				color,
-				borderColor: "rgba(255,255,255,0.52)",
-				borderWidth: 1
-			},
-			labelLayout: { hideOverlap: true }
-		};
-	});
+	const graphNodes: TopologyGraphNode[] = [...nodeColumns.entries()]
+		.sort(([a], [b]) => a - b)
+		.flatMap(([column, siblings]) =>
+			siblings.map((node, index) => {
+				const yOffset = topologySiblingOffset(index);
+				const nodeStyle = topologyNodeStyle(node);
+
+				return {
+					id: node.id,
+					name: compactTopologyLabel(node.label),
+					label: node.label,
+					address: node.address,
+					hostname: node.hostname,
+					kind: node.kind,
+					hopIndex: node.hopIndex,
+					hopLabel: topologyHopLabel(node),
+					seenCount: node.seenCount,
+					avgRttMs: node.avgRttMs,
+					lossPercent: node.lossPercent,
+					x: column * topologyColumnGap,
+					y: yOffset * topologyRowGap,
+					symbol: topologyNodeSymbol(node),
+					symbolSize: 14 + Math.min(12, (node.seenCount / maxSeen) * 12),
+					category: nodeStyle.category,
+					itemStyle: nodeStyle.itemStyle,
+					labelLayout: { hideOverlap: true }
+				};
+			})
+		);
 	const knownNodeIds = new Set(graphNodes.map(node => node.id));
+	const graphNodeById = new Map(graphNodes.map(node => [node.id, node]));
 	const graphEdges: TopologyGraphEdge[] = edges
 		.filter(edge => knownNodeIds.has(edge.source) && knownNodeIds.has(edge.target))
-		.map(edge => ({
-			source: edge.source,
-			target: edge.target,
-			seenCount: edge.seenCount,
-			avgRttMs: edge.avgRttMs,
-			lossPercent: edge.lossPercent,
-			lineStyle: {
-				color: topologyTone(edge.lossPercent, edge.avgRttMs),
-				width: 1 + Math.min(5, (edge.seenCount / maxSeen) * 5),
-				opacity: 0.22 + Math.min(0.56, edge.seenCount / maxSeen),
-				curveness: 0.08
-			}
-		}));
+		.map(edge => {
+			const sourceNode = graphNodeById.get(edge.source);
+			const targetNode = graphNodeById.get(edge.target);
+
+			return {
+				source: edge.source,
+				target: edge.target,
+				sourceLabel: sourceNode?.label ?? edge.source,
+				targetLabel: targetNode?.label ?? edge.target,
+				seenCount: edge.seenCount,
+				avgRttMs: edge.avgRttMs,
+				lossPercent: edge.lossPercent,
+				lineStyle: {
+					color: topologyTone(edge.lossPercent, edge.avgRttMs),
+					width: 1.25 + Math.min(2.75, (edge.seenCount / maxSeen) * 2.75),
+					opacity: 0.28 + Math.min(0.52, edge.seenCount / maxSeen),
+					curveness: 0
+				}
+			};
+		});
 
 	return {
 		backgroundColor: "transparent",
+		legend: {
+			top: 0,
+			right: 6,
+			itemWidth: 8,
+			itemHeight: 8,
+			textStyle: { color: "#b8b3aa", fontFamily: "JetBrains Mono, monospace", fontSize: 10 },
+			data: ["agent", "normal", "high rtt", "loss", "destination"]
+		},
 		tooltip: {
 			trigger: "item",
 			backgroundColor: "rgba(10,13,18,0.96)",
@@ -579,10 +731,27 @@ function topologyChartOption(nodes: TracerouteTopologyNode[], edges: TracerouteT
 				const data = params.data;
 
 				if (params.dataType === "edge") {
-					return [`edge`, `seen ${formatCount(data?.seenCount)}`, `avg ${formatMs(data?.avgRttMs)}`, `loss ${formatPercent(data?.lossPercent)}`].map(escapeHtml).join("<br/>");
+					return [
+						`${data?.sourceLabel ?? "source"} -> ${data?.targetLabel ?? "target"}`,
+						`seen ${formatCount(data?.seenCount)}`,
+						`avg ${formatMs(data?.avgRttMs)}`,
+						`loss ${formatPercent(data?.lossPercent)}`
+					]
+						.map(escapeHtml)
+						.join("<br/>");
 				}
 
-				return [data?.label || "node", `seen ${formatCount(data?.seenCount)}`, `avg ${formatMs(data?.avgRttMs)}`, `loss ${formatPercent(data?.lossPercent)}`].map(escapeHtml).join("<br/>");
+				return [
+					data?.label || "node",
+					data?.hostname && data?.address && data.hostname !== data.address ? `${data.hostname} (${data.address})` : data?.address,
+					data?.hopLabel,
+					`seen ${formatCount(data?.seenCount)}`,
+					`avg ${formatMs(data?.avgRttMs)}`,
+					`loss ${formatPercent(data?.lossPercent)}`
+				]
+					.filter(Boolean)
+					.map(escapeHtml)
+					.join("<br/>");
 			}
 		},
 		series: [
@@ -590,16 +759,31 @@ function topologyChartOption(nodes: TracerouteTopologyNode[], edges: TracerouteT
 				type: "graph",
 				layout: "none",
 				roam: true,
+				scaleLimit: { min: 0.62, max: 2.6 },
+				left: 28,
+				top: 42,
+				right: 28,
+				bottom: 62,
 				data: graphNodes,
 				links: graphEdges,
 				edgeSymbol: ["none", "arrow"],
-				edgeSymbolSize: [0, 8],
+				edgeSymbolSize: [0, 6],
+				categories: [
+					{ name: "agent", itemStyle: { color: "#c4ccd9" } },
+					{ name: "normal", itemStyle: { color: "#ff7a1a" } },
+					{ name: "high rtt", itemStyle: { color: "#ff9f0a" } },
+					{ name: "loss", itemStyle: { color: "#ff453a" } },
+					{ name: "destination", itemStyle: { color: "#ff7a1a" } }
+				],
 				label: {
 					show: true,
 					position: "bottom",
+					distance: 9,
 					color: "#ddd4c8",
 					fontFamily: "JetBrains Mono, monospace",
-					fontSize: 10
+					fontSize: 10,
+					lineHeight: 14,
+					formatter: topologyLabelFormatter
 				},
 				lineStyle: {
 					color: "source"
@@ -612,47 +796,37 @@ function topologyChartOption(nodes: TracerouteTopologyNode[], edges: TracerouteT
 	};
 }
 
-function LatencyRail({ hops }: { hops: HopDiagnostic[] }) {
-	const maxRtt = Math.max(1, ...hops.map(hop => hop.maxRtt ?? hop.avgRtt ?? 0));
+function LatencyRailCell({ hop, maxRtt }: { hop: HopDiagnostic; maxRtt: number }) {
+	const start = ((hop.minRtt ?? hop.avgRtt ?? 0) / maxRtt) * 100;
+	const end = ((hop.maxRtt ?? hop.avgRtt ?? 0) / maxRtt) * 100;
+	const avg = ((hop.avgRtt ?? 0) / maxRtt) * 100;
+	const style: RailStyle = {
+		"--ns-hop-range-start": `${Math.max(0, Math.min(100, start))}%`,
+		"--ns-hop-range-end": `${Math.max(0, Math.min(100, end))}%`,
+		"--ns-hop-rtt": `${Math.max(0, Math.min(100, avg))}%`
+	};
 
 	return (
-		<div className={styles.latencyRail}>
-			<div className={styles.railHeader}>
-				<span>Latency rail</span>
-				<strong>max {formatMs(maxRtt)}</strong>
-			</div>
-			<div className={styles.railRows}>
-				{hops.map(hop => {
-					const start = ((hop.minRtt ?? hop.avgRtt ?? 0) / maxRtt) * 100;
-					const end = ((hop.maxRtt ?? hop.avgRtt ?? 0) / maxRtt) * 100;
-					const avg = ((hop.avgRtt ?? 0) / maxRtt) * 100;
-					const style: RailStyle = {
-						"--ns-hop-range-start": `${Math.max(0, Math.min(100, start))}%`,
-						"--ns-hop-range-end": `${Math.max(0, Math.min(100, end))}%`,
-						"--ns-hop-rtt": `${Math.max(0, Math.min(100, avg))}%`
-					};
-
-					return (
-						<div className={classNames(styles.railRow, styles[`railRow${hop.tone}`])} style={style} key={hop.id}>
-							<span className={styles.railHopIndex}>{String(hop.hopIndex).padStart(2, "0")}</span>
-							<span className={styles.railTrack}>
-								{hop.avgRtt !== null ? <span className={styles.railRange} /> : null}
-								{hop.avgRtt !== null ? <span className={styles.railPoint} /> : null}
-							</span>
-							<span className={styles.railValue}>{formatMs(hop.avgRtt)}</span>
-						</div>
-					);
-				})}
-			</div>
-		</div>
+		<span className={classNames(styles.railCell, styles[`railCell${hop.tone}`])} style={style}>
+			<span className={styles.railTrack}>
+				{hop.avgRtt !== null ? <span className={styles.railRange} /> : null}
+				{hop.avgRtt !== null ? <span className={styles.railPoint} /> : null}
+			</span>
+			<span className={styles.railValue}>{formatMs(hop.avgRtt)}</span>
+		</span>
 	);
 }
 
 function RunTimeline({ runs, selectedRun, onSelect }: { runs: TracerouteResult[]; selectedRun: TracerouteResult | null; onSelect: (startedAt: string) => void }) {
 	const chronologicalRuns = [...runs].sort((a, b) => Date.parse(a.startedAt) - Date.parse(b.startedAt));
-	const visibleRuns = chronologicalRuns.slice(-36);
-	const maxRtt = Math.max(1, ...visibleRuns.map(run => runFinalRtt(run) ?? 0));
-	const maxHopCount = Math.max(1, ...visibleRuns.map(run => run.hopCount));
+	const visibleRuns = chronologicalRuns.slice(-100);
+	const firstRunTime = visibleRuns.length ? Date.parse(visibleRuns[0].startedAt) : 0;
+	const lastRunTime = visibleRuns.length ? Date.parse(visibleRuns[visibleRuns.length - 1].startedAt) : firstRunTime;
+	const runTimeSpan = Math.max(1, lastRunTime - firstRunTime);
+	const rttValues = visibleRuns.map(run => runFinalRtt(run)).filter((value): value is number => typeof value === "number");
+	const minRtt = rttValues.length ? Math.min(...rttValues) : 0;
+	const maxRtt = rttValues.length ? Math.max(...rttValues) : 1;
+	const rttSpan = Math.max(1, maxRtt - minRtt);
 	const timelineRuns = visibleRuns.reduce<{ items: Array<{ run: TracerouteResult; changed: boolean }>; previousSignature: string }>(
 		(accumulator, run) => {
 			const signature = runPathSignature(run);
@@ -665,6 +839,16 @@ function RunTimeline({ runs, selectedRun, onSelect }: { runs: TracerouteResult[]
 		},
 		{ items: [], previousSignature: "" }
 	).items;
+	const points = timelineRuns.map(({ run, changed }) => {
+		const timestamp = Date.parse(run.startedAt);
+		const rtt = runFinalRtt(run);
+		const loss = runFinalLoss(run);
+		const x = 6 + ((timestamp - firstRunTime) / runTimeSpan) * 88;
+		const y = typeof rtt === "number" ? (maxRtt === minRtt ? 49 : 78 - ((rtt - minRtt) / rttSpan) * 58) : 82;
+
+		return { run, changed, rtt, loss, x, y };
+	});
+	const polylinePoints = points.map(point => `${point.x},${point.y}`).join(" ");
 
 	if (!visibleRuns.length) {
 		return <BodyCopy>No traceroute runs in this time range.</BodyCopy>;
@@ -672,37 +856,52 @@ function RunTimeline({ runs, selectedRun, onSelect }: { runs: TracerouteResult[]
 
 	return (
 		<div className={styles.timeline}>
-			<div className={styles.timelineRuns}>
-				{timelineRuns.map(({ run, changed }) => {
-					const style: TimelineStyle = {
-						"--ns-run-rtt": `${Math.max(4, ((runFinalRtt(run) ?? 0) / maxRtt) * 100)}%`,
-						"--ns-run-loss": `${Math.max(0, Math.min(100, runFinalLoss(run)))}%`,
-						"--ns-run-hop": `${Math.max(6, (run.hopCount / maxHopCount) * 100)}%`
+			<div className={styles.timelineChart}>
+				<svg className={styles.timelineSvg} viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+					<line className={styles.timelineGridLine} x1="6" x2="94" y1="20" y2="20" />
+					<line className={styles.timelineGridLine} x1="6" x2="94" y1="49" y2="49" />
+					<line className={styles.timelineAxisLine} x1="6" x2="94" y1="78" y2="78" />
+					{polylinePoints ? <polyline className={styles.timelineLine} points={polylinePoints} /> : null}
+				</svg>
+				{points.map(point => {
+					const style: TimelinePointStyle = {
+						"--ns-timeline-x": `${point.x}%`,
+						"--ns-timeline-y": `${point.y}%`
 					};
+					const selected = selectedRun?.startedAt === point.run.startedAt;
 
 					return (
 						<button
 							type="button"
-							className={classNames(styles.timelineRun, changed && styles.timelineChanged)}
+							className={styles.timelinePoint}
 							style={style}
-							data-selected={selectedRun?.startedAt === run.startedAt || undefined}
-							onClick={() => onSelect(run.startedAt)}
-							aria-label={`Select traceroute run ${formatTime(run.startedAt)}`}
-							key={run.startedAt}
+							data-selected={selected || undefined}
+							data-loss={point.loss > 0 || undefined}
+							data-changed={point.changed || undefined}
+							onClick={() => onSelect(point.run.startedAt)}
+							aria-label={`Select traceroute run ${formatTime(point.run.startedAt)} final RTT ${formatMs(point.rtt)} loss ${formatPercent(point.loss)}`}
+							key={point.run.startedAt}
 						>
-							<span className={styles.timelineRtt} />
-							<span className={styles.timelineLoss} />
-							<span className={styles.timelineHop} />
-							<span className={styles.timelineTime}>{formatShortTime(run.startedAt)}</span>
+							<span className={styles.timelinePointCore} />
+							<span className={styles.timelinePointLabel}>
+								{formatShortTime(point.run.startedAt)}
+								<br />
+								{formatMs(point.rtt)}
+							</span>
 						</button>
 					);
 				})}
+				<div className={styles.timelineAxisLabels}>
+					<span>{formatShortTime(visibleRuns[0].startedAt)}</span>
+					<strong>{formatMs(selectedRun ? runFinalRtt(selectedRun) : points[points.length - 1]?.rtt)} selected</strong>
+					<span>{formatShortTime(visibleRuns[visibleRuns.length - 1].startedAt)}</span>
+				</div>
 			</div>
 			<div className={styles.timelineLegend}>
-				<span>RTT</span>
+				<span>RTT line</span>
 				<span>Loss</span>
-				<span>Hops</span>
 				<span>Route change</span>
+				<span>Selected run</span>
 			</div>
 		</div>
 	);
@@ -775,25 +974,34 @@ function TracerouteInsight({
 				/>
 			</Panel>
 
-			<ResponsiveGrid collapseAt="lg" className={styles.tracerouteMainGrid}>
-				<Panel className={styles.tracePanel} tone="deep" eyebrow="Route trace" title="Hop latency and loss">
+			<Panel className={styles.tracePanel} tone="deep" eyebrow="Route trace" title="Hop latency, loss, and run timeline">
+				<div className={styles.traceStack}>
 					{diagnostics.length ? (
-						<div className={styles.traceGrid}>
-							<DataTable columns={hopColumns} rows={diagnostics} density="compact" minWidth="56rem" maxHeight="28rem" getRowKey={row => row.id} emptyLabel="No hop data" />
-							<LatencyRail hops={diagnostics} />
-						</div>
+						<DataTable
+							columns={hopColumns(Math.max(1, ...diagnostics.map(hop => hop.maxRtt ?? hop.avgRtt ?? 0)))}
+							rows={diagnostics}
+							density="compact"
+							minWidth="68rem"
+							maxHeight="28rem"
+							getRowKey={row => row.id}
+							emptyLabel="No hop data"
+						/>
 					) : (
 						<BodyCopy>This run did not include hop rows.</BodyCopy>
 					)}
-				</Panel>
-				<Panel tone="deep" eyebrow="Run timeline" title={`${runs.length} runs in window`}>
-					<RunTimeline runs={runs} selectedRun={selectedRun} onSelect={onSelectRun} />
-				</Panel>
-			</ResponsiveGrid>
+					<div className={styles.traceTimeline}>
+						<div className={styles.traceTimelineHeader}>
+							<span>Run timeline</span>
+							<strong>{runs.length} runs in window</strong>
+						</div>
+						<RunTimeline runs={runs} selectedRun={selectedRun} onSelect={onSelectRun} />
+					</div>
+				</div>
+			</Panel>
 
 			<Panel tone="deep" eyebrow="Topology" title="Aggregated route graph">
 				{hasTopology ? (
-					<ChartPanel option={topologyChartOption(topologyNodes, topologyEdges)} height="24rem" />
+					<ChartPanel className={styles.topologyChart} option={topologyChartOption(topologyNodes, topologyEdges)} height="clamp(22rem, 36vw, 32rem)" />
 				) : (
 					<BodyCopy>{isTopologyLoading ? "Loading topology for this route." : "Topology data is unavailable for the selected filters; hop rows still show the latest run."}</BodyCopy>
 				)}
