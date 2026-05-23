@@ -357,58 +357,64 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 					</Button>
 				</div>
 
-				{coordinateInputMode === "search" ? (
-					<div className={styles.locationSearch}>
-						<TextField
-							className={styles.input}
-							label="Location search"
-							value={locationSearch}
-							placeholder="Taipei, Taiwan"
-							disabled={geocodeStatus === "searching"}
-							error={geocodeStatus === "error" ? geocodeError : undefined}
-							onChange={event => updateLocationSearch(event.currentTarget.value)}
-						/>
-						<Button type="button" variant="outline" size="sm" disabled={!canSearchLocation} onClick={() => void searchLocation()}>
-							{geocodeStatus === "searching" ? "Searching" : "Search"}
-						</Button>
-					</div>
-				) : (
-					<div className={styles.manualLocationFields}>
-						<TextField className={styles.input} label="Location name" value={locationName} placeholder="Taipei, Taiwan" onChange={event => setLocationName(event.currentTarget.value)} />
-						<div className={styles.coordinateGrid}>
-							<TextField
-								className={styles.input}
-								label="Latitude"
-								type="number"
-								inputMode="decimal"
-								step="any"
-								value={latitudeInput}
-								placeholder="25.037520"
-								error={visibleLatitudeError || undefined}
-								onChange={event => setLatitudeInput(event.currentTarget.value)}
-							/>
-							<TextField
-								className={styles.input}
-								label="Longitude"
-								type="number"
-								inputMode="decimal"
-								step="any"
-								value={longitudeInput}
-								placeholder="121.563680"
-								error={visibleLongitudeError || undefined}
-								onChange={event => setLongitudeInput(event.currentTarget.value)}
-							/>
-						</div>
-					</div>
-				)}
+				<div className={styles.locationBody}>
+					<div className={styles.locationControls}>
+						{coordinateInputMode === "search" ? (
+							<div className={styles.locationSearch}>
+								<TextField
+									className={styles.input}
+									label="Location search"
+									value={locationSearch}
+									placeholder="Taipei, Taiwan"
+									disabled={geocodeStatus === "searching"}
+									error={geocodeStatus === "error" ? geocodeError : undefined}
+									onChange={event => updateLocationSearch(event.currentTarget.value)}
+								/>
+								<Button type="button" variant="outline" size="sm" disabled={!canSearchLocation} onClick={() => void searchLocation()}>
+									{geocodeStatus === "searching" ? "Searching" : "Search"}
+								</Button>
+							</div>
+						) : (
+							<div className={styles.manualLocationFields}>
+								<TextField className={styles.input} label="Location name" value={locationName} placeholder="Taipei, Taiwan" onChange={event => setLocationName(event.currentTarget.value)} />
+								<div className={styles.coordinateGrid}>
+									<TextField
+										className={styles.input}
+										label="Latitude"
+										type="number"
+										inputMode="decimal"
+										step="any"
+										value={latitudeInput}
+										placeholder="25.037520"
+										error={visibleLatitudeError || undefined}
+										onChange={event => setLatitudeInput(event.currentTarget.value)}
+									/>
+									<TextField
+										className={styles.input}
+										label="Longitude"
+										type="number"
+										inputMode="decimal"
+										step="any"
+										value={longitudeInput}
+										placeholder="121.563680"
+										error={visibleLongitudeError || undefined}
+										onChange={event => setLongitudeInput(event.currentTarget.value)}
+									/>
+								</div>
+							</div>
+						)}
 
-				{selectedCoordinates ? (
-					<LocationPreviewMap coordinates={selectedCoordinates} locationName={previewLocationName} probeName={probeName.trim() || activeProbe.name} className={styles.locationPreview} />
-				) : (
-					<p className={styles.locationStatus} aria-live="polite">
-						{coordinateInputMode === "search" ? "Search for a place to update this probe location." : "Enter valid decimal coordinates to preview this probe location."}
-					</p>
-				)}
+						{selectedCoordinates ? null : (
+							<p className={styles.locationStatus} aria-live="polite">
+								{coordinateInputMode === "search" ? "Search for a place to update this probe location." : "Enter valid decimal coordinates to preview this probe location."}
+							</p>
+						)}
+					</div>
+
+					{selectedCoordinates ? (
+						<LocationPreviewMap coordinates={selectedCoordinates} locationName={previewLocationName} probeName={probeName.trim() || activeProbe.name} className={styles.locationPreview} />
+					) : null}
+				</div>
 			</div>
 
 			<div className={styles.actions}>

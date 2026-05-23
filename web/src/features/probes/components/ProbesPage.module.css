@@ -17,14 +17,8 @@
 
 .lowerGrid {
 	display: grid;
-	grid-template-columns: minmax(16rem, 0.44fr) minmax(0, 1fr);
 	gap: 1rem;
 	align-items: stretch;
-	min-height: 17rem;
-}
-
-.miniMap {
-	height: 100%;
 	min-height: 17rem;
 }
 

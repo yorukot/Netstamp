@@ -59,6 +59,20 @@
 }
 
 .locationEditor {
+	container-type: inline-size;
+	display: grid;
+	gap: 0.75rem;
+	min-width: 0;
+}
+
+.locationBody {
+	display: grid;
+	gap: 0.875rem;
+	align-items: start;
+	min-width: 0;
+}
+
+.locationControls {
 	display: grid;
 	gap: 0.75rem;
 	min-width: 0;
@@ -231,6 +245,17 @@
 @media (max-width: 78rem) {
 	.fieldGrid {
 		grid-template-columns: 1fr;
+	}
+}
+
+@container (min-width: 56rem) {
+	.locationBody {
+		grid-template-columns: minmax(18rem, 0.58fr) minmax(26rem, 1fr);
+	}
+
+	.locationPreview {
+		align-self: stretch;
+		grid-template-rows: minmax(16rem, 1fr) auto;
 	}
 }
 

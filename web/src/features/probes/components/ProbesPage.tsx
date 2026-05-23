@@ -69,7 +69,6 @@ export function ProbesPage() {
 							onSelect={setSelectedId}
 						/>
 						<div className={styles.lowerGrid}>
-							<NetworkMap probes={probes} selectedId={selectedProbeId} onSelect={setSelectedId} mode="detail" className={styles.miniMap} />
 							{selectedProbe ? (
 								<ProbeDetail key={selectedProbe.id} probe={selectedProbe} assignedRows={assignedRows} projectRef={projectRef} onDeleted={() => setSelectedId("")} />
 							) : (
