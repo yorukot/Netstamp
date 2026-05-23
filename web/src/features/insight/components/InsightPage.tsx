@@ -1,10 +1,9 @@
 import { mapApiChecks } from "@/features/checks/api/checkAdapters";
-import { mapApiMeasurements } from "@/features/checks/api/resultAdapters";
 import { type CheckDefinition } from "@/features/checks/data/checks";
 import { mapApiProbes } from "@/features/probes/api/probeAdapters";
 import { type Probe } from "@/features/probes/data/probes";
 import { projectQueries } from "@/shared/api/queries";
-import { type TracerouteHop, type TracerouteResult, type TracerouteTopologyEdge, type TracerouteTopologyNode } from "@/shared/api/types";
+import { type PingInsightResponse, type TracerouteHop, type TracerouteResult, type TracerouteTopologyEdge, type TracerouteTopologyNode } from "@/shared/api/types";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { BodyCopy } from "@/shared/components/BodyCopy";
 import { ChartPanel } from "@/shared/components/ChartPanel";
@@ -12,26 +11,16 @@ import { KeyValueGrid } from "@/shared/components/KeyValueGrid";
 import { PageStack } from "@/shared/components/PageStack";
 import { ResponsiveGrid } from "@/shared/components/ResponsiveGrid";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
-import { lineChartOption, type ChartOption } from "@/shared/utils/chartOptions";
+import { pingInsightChartOption, type ChartOption, type PingInsightChartBucket, type PingInsightSampleDensityCell } from "@/shared/utils/chartOptions";
 import { classNames } from "@/shared/utils/classNames";
-import { toneForStatus } from "@/shared/utils/statusTone";
 import { Badge, DataTable, Panel, SelectField, type BadgeTone, type DataColumn } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, type CSSProperties } from "react";
+import { useSearchParams } from "react-router-dom";
 import styles from "./InsightPage.module.css";
 
 type InsightView = "probe" | "target";
 type HopTone = Extract<BadgeTone, "success" | "warning" | "critical" | "muted">;
-
-interface ResultRow {
-	time: string;
-	probe: string;
-	check: string;
-	status: string;
-	latency: string;
-	loss: string;
-	metadata: string;
-}
 
 interface EntityDetail {
 	label: string;
@@ -40,13 +29,15 @@ interface EntityDetail {
 
 interface GraphCard {
 	key: string;
-	eyebrow: string;
 	title: string;
-	copy: string;
 	metric: string;
-	values: number[];
-	baseline: number[];
 	selected: boolean;
+}
+
+interface SummaryMetric {
+	label: string;
+	value: string;
+	detail: string;
 }
 
 interface HopDiagnostic {
@@ -121,31 +112,44 @@ type RailStyle = CSSProperties & {
 	"--ns-hop-rtt"?: string;
 };
 
+interface TimeWindow {
+	from: number;
+	to: number;
+}
+
+interface ParsedInsightUrlState {
+	view: InsightView;
+	hasValidView: boolean;
+	timeWindow: TimeWindow;
+	hasValidTimeWindow: boolean;
+	probeId: string;
+	checkId: string;
+	runStartedAt: string;
+}
+
 const timeOptions = [
+	{ value: "15m", label: "Last 15 minutes" },
 	{ value: "1h", label: "Last 1 hour" },
+	{ value: "6h", label: "Last 6 hours" },
 	{ value: "24h", label: "Last 24 hours" },
-	{ value: "7d", label: "Last 7 days" }
+	{ value: "7d", label: "Last 7 days" },
+	{ value: "30d", label: "Last 30 days" }
 ];
 
+const customTimeOption = { value: "custom", label: "Custom range" };
+
 const timeRangeDurations: Record<string, number> = {
+	"15m": 15 * 60 * 1000,
 	"1h": 60 * 60 * 1000,
+	"6h": 6 * 60 * 60 * 1000,
 	"24h": 24 * 60 * 60 * 1000,
-	"7d": 7 * 24 * 60 * 60 * 1000
+	"7d": 7 * 24 * 60 * 60 * 1000,
+	"30d": 30 * 24 * 60 * 60 * 1000
 };
 
 const viewOptions = [
 	{ value: "probe", label: "Choose a probe" },
 	{ value: "target", label: "Choose a target" }
-];
-
-const resultColumns: DataColumn<ResultRow>[] = [
-	{ key: "time", label: "Time" },
-	{ key: "probe", label: "Probe" },
-	{ key: "check", label: "Check" },
-	{ key: "status", label: "Status", render: row => <Badge tone={toneForStatus(row.status)}>{row.status}</Badge> },
-	{ key: "latency", label: "Latency" },
-	{ key: "loss", label: "Loss" },
-	{ key: "metadata", label: "Raw metadata" }
 ];
 
 const hopColumns: DataColumn<HopDiagnostic>[] = [
@@ -169,6 +173,10 @@ const hopColumns: DataColumn<HopDiagnostic>[] = [
 ];
 
 function timeLabel(value: string) {
+	if (value === customTimeOption.value) {
+		return customTimeOption.label;
+	}
+
 	return timeOptions.find(option => option.value === value)?.label || value;
 }
 
@@ -179,8 +187,43 @@ function timeWindowForRange(value: string) {
 	return { from, to };
 }
 
-function assignedLabel(probeName: string, checkId: string) {
-	return probeName && checkId ? "available" : "unselected";
+function parseEpochMs(value: string | null) {
+	if (!value) {
+		return null;
+	}
+
+	const parsed = Number(value);
+
+	return Number.isFinite(parsed) && parsed > 0 ? Math.trunc(parsed) : null;
+}
+
+function isInsightView(value: string | null): value is InsightView {
+	return value === "probe" || value === "target";
+}
+
+function parseInsightUrlState(searchParams: URLSearchParams, fallbackTimeWindow: TimeWindow): ParsedInsightUrlState {
+	const from = parseEpochMs(searchParams.get("from"));
+	const to = parseEpochMs(searchParams.get("to"));
+	const rawView = searchParams.get("view");
+	const hasValidTimeWindow = from !== null && to !== null && from < to;
+	const hasValidView = isInsightView(rawView);
+
+	return {
+		view: hasValidView ? rawView : "probe",
+		hasValidView,
+		timeWindow: hasValidTimeWindow ? { from, to } : fallbackTimeWindow,
+		hasValidTimeWindow,
+		probeId: searchParams.get("probeId") || "",
+		checkId: searchParams.get("checkId") || "",
+		runStartedAt: searchParams.get("runStartedAt") || ""
+	};
+}
+
+function timeRangeForWindow(timeWindow: TimeWindow) {
+	const duration = timeWindow.to - timeWindow.from;
+	const option = timeOptions.find(candidate => timeRangeDurations[candidate.value] === duration);
+
+	return option?.value || customTimeOption.value;
 }
 
 function detailsForProbe(probe: Probe): EntityDetail[] {
@@ -231,6 +274,62 @@ function formatCount(value: number | null | undefined) {
 	}
 
 	return new Intl.NumberFormat().format(value);
+}
+
+function formatEpochMs(value: number | null | undefined) {
+	if (typeof value !== "number" || !Number.isFinite(value)) {
+		return "-";
+	}
+
+	return new Date(value).toLocaleString(undefined, { month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+}
+
+function pingSuccessRate(summary: PingInsightResponse["summary"] | undefined) {
+	if (!summary?.totalResults) {
+		return undefined;
+	}
+
+	return (summary.successfulCount / summary.totalResults) * 100;
+}
+
+function pingSummaryMetrics(data: PingInsightResponse | undefined): SummaryMetric[] {
+	const summary = data?.summary;
+	const sampleCount = data?.sampleDensity.reduce((total, cell) => total + cell.sampleCount, 0) ?? 0;
+
+	return [
+		{ label: "Latest", value: formatMs(summary?.latestRttAvgMs), detail: summary?.latestStatus || "no result" },
+		{ label: "Average", value: formatMs(summary?.avgRttMs), detail: "rtt avg" },
+		{ label: "P95", value: formatMs(summary?.p95RttMs), detail: "sample percentile" },
+		{ label: "P99", value: formatMs(summary?.p99RttMs), detail: "sample percentile" },
+		{ label: "Max", value: formatMs(summary?.maxRttMs), detail: "rtt max" },
+		{ label: "Loss", value: formatPercent(summary?.avgLossPercent), detail: "average" },
+		{ label: "Success", value: formatPercent(pingSuccessRate(summary)), detail: `${formatCount(summary?.successfulCount)}/${formatCount(summary?.totalResults)}` },
+		{ label: "Samples", value: formatCount(sampleCount), detail: `${formatCount(summary?.receivedCount)} replies` }
+	];
+}
+
+function pingChartBuckets(data: PingInsightResponse | undefined): PingInsightChartBucket[] {
+	return (data?.buckets ?? []).map(bucket => ({
+		timestampMs: bucket.timestampMs,
+		rttMinMs: bucket.rttMinMs,
+		rttAvgMs: bucket.rttAvgMs,
+		rttMedianMs: bucket.rttMedianMs,
+		rttMaxMs: bucket.rttMaxMs,
+		rttStddevMs: bucket.rttStddevMs,
+		lossPercent: bucket.lossPercent,
+		sentCount: bucket.sentCount,
+		receivedCount: bucket.receivedCount,
+		resultCount: bucket.resultCount
+	}));
+}
+
+function pingSampleDensity(data: PingInsightResponse | undefined): PingInsightSampleDensityCell[] {
+	return (data?.sampleDensity ?? []).map(cell => ({
+		timestampMs: cell.timestampMs,
+		rttBucketStartMs: cell.rttBucketStartMs,
+		rttBucketEndMs: cell.rttBucketEndMs,
+		sampleCount: cell.sampleCount
+	}));
 }
 
 function orderedHops(run: TracerouteResult | null | undefined) {
@@ -703,8 +802,77 @@ function TracerouteInsight({
 	);
 }
 
+function PingInsight({
+	selectedProbe,
+	selectedTarget,
+	data,
+	isLoading,
+	isFetching,
+	timeLabel
+}: {
+	selectedProbe: Probe | null;
+	selectedTarget: CheckDefinition | null;
+	data: PingInsightResponse | undefined;
+	isLoading: boolean;
+	isFetching: boolean;
+	timeLabel: string;
+}) {
+	if (!selectedProbe || !selectedTarget) {
+		return (
+			<Panel tone="deep" eyebrow="Ping" title="No ping target selected">
+				<BodyCopy>Select a probe and ping target to inspect latency spread, packet loss, and sample density.</BodyCopy>
+			</Panel>
+		);
+	}
+
+	if (isLoading && !data) {
+		return (
+			<Panel tone="deep" eyebrow="Ping" title="Loading ping insight">
+				<BodyCopy>Loading ping result buckets for this probe-target pair.</BodyCopy>
+			</Panel>
+		);
+	}
+
+	const buckets = pingChartBuckets(data);
+	const density = pingSampleDensity(data);
+	const metrics = pingSummaryMetrics(data);
+	const totalPoints = data?.query.totalPoints ?? 0;
+	const hasChartData = buckets.length > 0 || density.length > 0;
+
+	return (
+		<div className={styles.pingStack}>
+			<div className={styles.summaryGrid}>
+				{metrics.map(metric => (
+					<div className={classNames("ns-cut-frame", styles.summaryCell)} key={metric.label}>
+						<span>{metric.label}</span>
+						<strong>{metric.value}</strong>
+						<small>{metric.detail}</small>
+					</div>
+				))}
+			</div>
+
+			<Panel tone="deep" eyebrow={`${timeLabel} · ${data?.query.resolution || "pending"}`} title={`${selectedProbe.name} → ${selectedTarget.target}`}>
+				<div className={styles.chartMeta}>
+					<span>{isFetching ? "syncing result buckets" : `${formatCount(totalPoints)} results`}</span>
+					<span>latest {formatEpochMs(data?.summary.latestStartedAtMs)}</span>
+					<span>{data?.summary.latestResolvedIp || "unresolved"}</span>
+				</div>
+				{hasChartData ? (
+					<ChartPanel option={pingInsightChartOption(buckets, density)} height="27rem" />
+				) : (
+					<div className={styles.emptyState}>No ping results were recorded for this probe-target pair in the selected time range.</div>
+				)}
+			</Panel>
+		</div>
+	);
+}
+
 export function InsightPage() {
 	const { projectRef } = useCurrentProject();
+	const [searchParams, setSearchParams] = useSearchParams();
+	const searchParamString = searchParams.toString();
+	const fallbackTimeWindow = useMemo(() => timeWindowForRange("24h"), []);
+	const urlState = useMemo(() => parseInsightUrlState(new URLSearchParams(searchParamString), fallbackTimeWindow), [fallbackTimeWindow, searchParamString]);
 	const probesQuery = useQuery({
 		...projectQueries.probes(projectRef || ""),
 		enabled: Boolean(projectRef),
@@ -717,23 +885,15 @@ export function InsightPage() {
 	});
 	const probes = probesQuery.data || [];
 	const checks = checksQuery.data || [];
-	const [timeRange, setTimeRange] = useState("24h");
-	const [view, setView] = useState<InsightView>("probe");
-	const [selectedProbeId, setSelectedProbeId] = useState("");
-	const [selectedTargetId, setSelectedTargetId] = useState("");
-	const [selectedRunStartedAt, setSelectedRunStartedAt] = useState("");
-	const timeWindow = useMemo(() => timeWindowForRange(timeRange), [timeRange]);
-
-	const selectedProbe = probes.find(probe => probe.id === selectedProbeId) || probes[0] || null;
-	const selectedTarget = checks.find(check => check.id === selectedTargetId) || checks[0] || null;
-	const measurementFilters =
-		view === "probe" && selectedProbe
-			? { probeId: selectedProbe.id, limit: 100, ...timeWindow }
-			: view === "target" && selectedTarget
-				? { checkId: selectedTarget.id, limit: 100, ...timeWindow }
-				: { limit: 100, ...timeWindow };
-	const pingSeriesQuery = useQuery({
-		...projectQueries.pingSeries(projectRef || "", selectedProbe?.id || "", selectedTarget?.id || "", timeWindow),
+	const timeWindow = urlState.timeWindow;
+	const timeRange = timeRangeForWindow(timeWindow);
+	const timePickerOptions = timeRange === customTimeOption.value ? [...timeOptions, customTimeOption] : timeOptions;
+	const view = urlState.view;
+	const selectedProbe = probes.find(probe => probe.id === urlState.probeId) || probes[0] || null;
+	const selectedTarget = checks.find(check => check.id === urlState.checkId) || checks[0] || null;
+	const selectedRunStartedAt = selectedTarget?.type === "Traceroute" ? urlState.runStartedAt : "";
+	const pingInsightQuery = useQuery({
+		...projectQueries.pingInsight(projectRef || "", selectedProbe?.id || "", selectedTarget?.id || "", timeWindow),
 		enabled: Boolean(projectRef && selectedProbe && selectedTarget && selectedTarget.type === "Ping")
 	});
 	const tracerouteRunsQuery = useQuery({
@@ -749,21 +909,6 @@ export function InsightPage() {
 		}),
 		enabled: Boolean(projectRef && selectedProbe && selectedTarget && selectedTarget.type === "Traceroute")
 	});
-	const measurementsQuery = useQuery({
-		...projectQueries.measurements(projectRef || "", measurementFilters),
-		enabled: Boolean(projectRef && (selectedProbe || selectedTarget)),
-		select: data => mapApiMeasurements(data.measurements, probes, checks)
-	});
-	const resultRows: ResultRow[] = (measurementsQuery.data ?? []).map(row => ({
-		time: row.time,
-		probe: row.probe,
-		check: row.check,
-		status: row.status,
-		latency: row.latency,
-		loss: "-",
-		metadata: row.event
-	}));
-	const selectedPingValues = pingSeriesQuery.data?.series[0]?.points.map(([, value]) => Math.round(value)) ?? [];
 	const selectedTitle = view === "probe" ? selectedProbe?.name || "No probe selected" : selectedTarget?.target || "No target selected";
 	const selectedDetails = view === "probe" ? (selectedProbe ? detailsForProbe(selectedProbe) : []) : selectedTarget ? detailsForTarget(selectedTarget) : [];
 	const pickerOptions =
@@ -773,59 +918,153 @@ export function InsightPage() {
 		view === "probe"
 			? checks.map(check => ({
 					key: check.id,
-					eyebrow: timeLabel(timeRange),
 					title: `${selectedProbe?.name || "probe"} → ${check.target}`,
-					copy: `${check.type} insight for ${assignedLabel(selectedProbe?.name || "", check.id)} probe-target measurement.`,
 					metric: check.type.toLowerCase(),
-					values: check.id === selectedTarget?.id ? selectedPingValues : [],
-					baseline: [],
 					selected: check.id === selectedTarget?.id
 				}))
 			: probes.map(probe => ({
 					key: probe.id,
-					eyebrow: timeLabel(timeRange),
 					title: `${probe.name} → ${selectedTarget?.target || "target"}`,
-					copy: `${selectedTarget?.type || "Ping"} insight from ${probe.location}; ${assignedLabel(probe.name, selectedTarget?.id || "")} path.`,
 					metric: (selectedTarget?.type || "Ping").toLowerCase(),
-					values: probe.id === selectedProbe?.id ? selectedPingValues : [],
-					baseline: [],
 					selected: probe.id === selectedProbe?.id
 				}));
 
-	function selectGraphCard(graph: GraphCard) {
-		setSelectedRunStartedAt("");
-
-		if (view === "probe") {
-			setSelectedTargetId(graph.key);
+	useEffect(() => {
+		if (!probes.length || !checks.length) {
 			return;
 		}
 
-		setSelectedProbeId(graph.key);
+		const next = new URLSearchParams(searchParamString);
+		let changed = false;
+		const setParam = (key: string, value: string) => {
+			if (next.get(key) !== value) {
+				next.set(key, value);
+				changed = true;
+			}
+		};
+		const deleteParam = (key: string) => {
+			if (next.has(key)) {
+				next.delete(key);
+				changed = true;
+			}
+		};
+		const probeChanged = Boolean(selectedProbe && urlState.probeId !== selectedProbe.id);
+		const checkChanged = Boolean(selectedTarget && urlState.checkId !== selectedTarget.id);
+
+		if (!urlState.hasValidTimeWindow) {
+			setParam("from", String(timeWindow.from));
+			setParam("to", String(timeWindow.to));
+		}
+
+		if (!urlState.hasValidView) {
+			setParam("view", view);
+		}
+
+		if (selectedProbe) {
+			setParam("probeId", selectedProbe.id);
+		}
+
+		if (selectedTarget) {
+			setParam("checkId", selectedTarget.id);
+		}
+
+		if (!urlState.hasValidTimeWindow || probeChanged || checkChanged || selectedTarget?.type !== "Traceroute") {
+			deleteParam("runStartedAt");
+		}
+
+		if (changed) {
+			setSearchParams(next, { replace: true });
+		}
+	}, [
+		checks.length,
+		probes.length,
+		searchParamString,
+		selectedProbe,
+		selectedTarget,
+		setSearchParams,
+		timeWindow.from,
+		timeWindow.to,
+		urlState.checkId,
+		urlState.hasValidTimeWindow,
+		urlState.hasValidView,
+		urlState.probeId,
+		view
+	]);
+
+	function updateSearchParams(update: (next: URLSearchParams) => void, options: { replace?: boolean } = {}) {
+		const next = new URLSearchParams(searchParamString);
+		update(next);
+		setSearchParams(next, { replace: options.replace ?? false });
+	}
+
+	function selectGraphCard(graph: GraphCard) {
+		updateSearchParams(next => {
+			next.delete("runStartedAt");
+
+			if (view === "probe") {
+				next.set("checkId", graph.key);
+				return;
+			}
+
+			next.set("probeId", graph.key);
+		});
 	}
 
 	return (
 		<PageStack>
-			<ScreenHeader
-				eyebrow="Measurement insight"
-				title="Insight"
-				copy="Pick a time window, then switch between probe-first and target-first views to compare matching measurements and route diagnostics."
-			/>
+			<ScreenHeader eyebrow="Result insight" title="Insight" copy="Inspect ping latency spread, packet-loss density, and traceroute route diagnostics from result data." />
 
 			<div className={styles.filters}>
-				<SelectField label="Time" value={timeRange} onChange={event => setTimeRange(event.currentTarget.value)} options={timeOptions} />
-				<SelectField label="View" value={view} onChange={event => setView(event.currentTarget.value as InsightView)} options={viewOptions} />
+				<SelectField
+					label="Time"
+					value={timeRange}
+					onChange={event => {
+						const nextRange = event.currentTarget.value;
+
+						if (nextRange === customTimeOption.value) {
+							return;
+						}
+
+						const nextTimeWindow = timeWindowForRange(nextRange);
+
+						updateSearchParams(next => {
+							next.set("from", String(nextTimeWindow.from));
+							next.set("to", String(nextTimeWindow.to));
+							next.delete("runStartedAt");
+						});
+					}}
+					options={timePickerOptions}
+				/>
+				<SelectField
+					label="View"
+					value={view}
+					onChange={event => {
+						const nextView = event.currentTarget.value;
+
+						if (!isInsightView(nextView)) {
+							return;
+						}
+
+						updateSearchParams(next => {
+							next.set("view", nextView);
+						});
+					}}
+					options={viewOptions}
+				/>
 				<SelectField
 					label={view === "probe" ? "Probe" : "Target"}
 					value={view === "probe" ? selectedProbe?.id || "" : selectedTarget?.id || ""}
 					onChange={event => {
-						setSelectedRunStartedAt("");
+						updateSearchParams(next => {
+							next.delete("runStartedAt");
 
-						if (view === "probe") {
-							setSelectedProbeId(event.currentTarget.value);
-							return;
-						}
+							if (view === "probe") {
+								next.set("probeId", event.currentTarget.value);
+								return;
+							}
 
-						setSelectedTargetId(event.currentTarget.value);
+							next.set("checkId", event.currentTarget.value);
+						});
 					}}
 					options={pickerOptions}
 				/>
@@ -857,22 +1096,22 @@ export function InsightPage() {
 					isRunsLoading={tracerouteRunsQuery.isLoading}
 					isTopologyLoading={tracerouteTopologyQuery.isLoading}
 					selectedRunStartedAt={selectedRunStartedAt}
-					onSelectRun={setSelectedRunStartedAt}
+					onSelectRun={startedAt =>
+						updateSearchParams(next => {
+							next.set("runStartedAt", startedAt);
+						})
+					}
 				/>
 			) : (
-				<ResponsiveGrid>
-					{graphCards.map(graph => (
-						<Panel key={graph.key} tone="deep" eyebrow={graph.eyebrow} title={graph.title}>
-							<BodyCopy>{graph.copy}</BodyCopy>
-							<ChartPanel option={lineChartOption(graph.metric, graph.values, graph.baseline)} height="11rem" />
-						</Panel>
-					))}
-				</ResponsiveGrid>
+				<PingInsight
+					selectedProbe={selectedProbe}
+					selectedTarget={selectedTarget}
+					data={pingInsightQuery.data}
+					isLoading={pingInsightQuery.isLoading}
+					isFetching={pingInsightQuery.isFetching}
+					timeLabel={timeLabel(timeRange)}
+				/>
 			)}
-
-			<Panel tone="glass" eyebrow="Measurement table" title="Recent measurements">
-				<DataTable columns={resultColumns} rows={resultRows} />
-			</Panel>
 		</PageStack>
 	);
 }

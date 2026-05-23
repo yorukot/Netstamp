@@ -24,12 +24,15 @@ export interface PingInsightSampleDensityCell {
 }
 
 type PingMetricKey = "rttMinMs" | "rttAvgMs" | "rttMedianMs" | "rttMaxMs" | "rttStddevMs" | "lossPercent";
+type PingRttMetricKey = "rttMinMs" | "rttAvgMs" | "rttMedianMs" | "rttMaxMs";
 
 interface TooltipParam {
 	seriesName?: string;
 	value?: unknown;
 	marker?: string;
 }
+
+const pingRttMetricKeys: PingRttMetricKey[] = ["rttMinMs", "rttAvgMs", "rttMedianMs", "rttMaxMs"];
 
 function timestampLabel(value: number) {
 	return new Date(value).toLocaleString([], {
@@ -96,6 +99,38 @@ function pingTooltipFormatter(params: unknown) {
 	}
 
 	return lines.join("<br />");
+}
+
+function finiteNumbers(values: Array<number | undefined>) {
+	return values.filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+}
+
+function roundAxisFloor(value: number) {
+	return Math.floor(value * 10) / 10;
+}
+
+function roundAxisCeil(value: number) {
+	return Math.ceil(value * 10) / 10;
+}
+
+function pingRttAxisBounds(buckets: PingInsightChartBucket[], sampleDensity: PingInsightSampleDensityCell[]) {
+	const values = [
+		...buckets.flatMap(bucket => pingRttMetricKeys.flatMap(key => finiteNumbers([bucket[key]]))),
+		...sampleDensity.flatMap(cell => finiteNumbers([cell.rttBucketStartMs, cell.rttBucketEndMs]))
+	].filter(value => value >= 0);
+
+	if (!values.length) {
+		return { min: 0 };
+	}
+
+	const minValue = Math.min(...values);
+	const maxValue = Math.max(...values);
+	const span = Math.max(maxValue - minValue, maxValue * 0.08, 1);
+	const padding = Math.max(span * 0.12, 0.5);
+	const min = minValue <= 1 ? 0 : Math.max(0, roundAxisFloor(minValue - padding));
+	const max = Math.max(min + 1, roundAxisCeil(maxValue + padding));
+
+	return { min, max };
 }
 
 export function lineChartOption(title: string, values: number[], secondaryValues: number[] = []): ChartOption {
@@ -190,6 +225,7 @@ export function barChartOption(values: number[], name = "events"): ChartOption {
 export function pingInsightChartOption(buckets: PingInsightChartBucket[], sampleDensity: PingInsightSampleDensityCell[]): ChartOption {
 	const maxSampleCount = Math.max(1, ...sampleDensity.map(cell => cell.sampleCount));
 	const densityData = sampleDensity.map(cell => [cell.timestampMs, (cell.rttBucketStartMs + cell.rttBucketEndMs) / 2, cell.sampleCount]);
+	const rttAxisBounds = pingRttAxisBounds(buckets, sampleDensity);
 
 	return {
 		backgroundColor: "transparent",
@@ -252,7 +288,7 @@ export function pingInsightChartOption(buckets: PingInsightChartBucket[], sample
 				splitLine,
 				axisLine: { show: false },
 				axisTick: { show: false },
-				min: 0
+				...rttAxisBounds
 			},
 			{
 				type: "value",
