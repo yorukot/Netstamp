@@ -86,7 +86,7 @@ func tracerouteOptions(config domaintraceroute.Config) (gotraceroute.Options, er
 		Timeout:       time.Duration(config.TimeoutMs) * time.Millisecond,
 		PacketSize:    int(config.PacketSizeBytes),
 		UDPBasePort:   int(config.Port),
-		ResolveNames:  false,
+		ResolveNames:  true,
 	}, nil
 }
 

@@ -41,6 +41,7 @@ func TestTracerouteExecutorMapsOptionsAndSuccessfulTrace(t *testing.T) {
 					Probes: []gotraceroute.Probe{{
 						Attempt:    1,
 						Addr:       netip.MustParseAddr("2001:db8::1"),
+						Hostname:   "router.local",
 						RTT:        20 * time.Millisecond,
 						Status:     gotraceroute.StatusOK,
 						ReceivedAt: startedAt.Add(20 * time.Millisecond),
@@ -88,7 +89,7 @@ func TestTracerouteExecutorMapsOptionsAndSuccessfulTrace(t *testing.T) {
 		gotOptions.Timeout != 2*time.Second ||
 		gotOptions.PacketSize != 64 ||
 		gotOptions.UDPBasePort != 33435 ||
-		gotOptions.ResolveNames {
+		!gotOptions.ResolveNames {
 		t.Fatalf("unexpected options: %#v", gotOptions)
 	}
 	result := got.Traceroute
@@ -107,6 +108,9 @@ func TestTracerouteExecutorMapsOptionsAndSuccessfulTrace(t *testing.T) {
 	firstHop := result.Hops[0]
 	if firstHop.SentCount != 2 || firstHop.ReceivedCount != 2 || firstHop.LossPercent != 0 {
 		t.Fatalf("unexpected first hop counts: %#v", firstHop)
+	}
+	if firstHop.Hostname == nil || *firstHop.Hostname != "router.local" {
+		t.Fatalf("unexpected first hop hostname: %#v", firstHop.Hostname)
 	}
 	assertFloatPtr(t, "traceroute min", firstHop.RttMinMs, 20)
 	assertFloatPtr(t, "traceroute avg", firstHop.RttAvgMs, 30)
