@@ -9,6 +9,5 @@ export interface AssignedRow {
 	check: string;
 	type: CheckType;
 	interval: string;
-	jitter: string;
 	latest: string;
 }

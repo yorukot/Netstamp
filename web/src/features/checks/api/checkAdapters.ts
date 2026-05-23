@@ -29,7 +29,6 @@ export function mapApiCheck(check: ApiCheck, assigned = 0): CheckDefinition {
 		target: check.target,
 		status: "Configured",
 		interval: formatInterval(check.intervalSeconds),
-		jitter: "-",
 		latest: "-",
 		assigned,
 		description: check.description || "",

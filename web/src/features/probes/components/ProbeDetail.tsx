@@ -30,7 +30,6 @@ const assignedColumns: DataColumn<AssignedRow>[] = [
 	{ key: "check", label: "Assigned check" },
 	{ key: "type", label: "Type", render: row => <Badge tone="neutral">{row.type}</Badge> },
 	{ key: "interval", label: "Interval" },
-	{ key: "jitter", label: "Jitter" },
 	{ key: "latest", label: "Latest" }
 ];
 

@@ -67,7 +67,6 @@ export function mapApiAssignments(assignments: ApiProjectAssignment[] | null | u
 			check: assignment.check?.name || check?.name || assignment.checkId,
 			type: check?.type || "Ping",
 			interval: check?.interval || (assignment.check ? formatInterval(assignment.check.intervalSeconds) : "-"),
-			jitter: check?.jitter || "-",
 			latest: check?.latest || "-"
 		};
 	});

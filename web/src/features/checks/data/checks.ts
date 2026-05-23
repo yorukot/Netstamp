@@ -7,7 +7,6 @@ export interface CheckDefinition {
 	target: string;
 	status: string;
 	interval: string;
-	jitter: string;
 	latest: string;
 	assigned: number;
 	description: string;

@@ -10,9 +10,7 @@
 }
 
 .checkEditorGrid .stickyCheckPanel {
-	position: sticky;
-	top: 1rem;
-	max-height: calc(100svh - 2rem);
+	min-width: 0;
 }
 
 .checkListStack,
@@ -20,14 +18,10 @@
 	display: grid;
 	gap: 1rem;
 	min-height: 0;
-	padding-right: 0.35rem;
-	overscroll-behavior: contain;
 }
 
 .checkEditorStack {
 	align-content: start;
-	max-height: calc(100svh - 9rem);
-	overflow-y: auto;
 	overflow-x: visible;
 }
 

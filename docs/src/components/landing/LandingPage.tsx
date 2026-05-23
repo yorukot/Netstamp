@@ -223,7 +223,7 @@ export function LandingPage({ appHref = "/register" }: LandingPageProps) {
 						</div>
 						<div className={styles.checkTelemetry} aria-hidden="true">
 							<span>interval 30s</span>
-							<span>jitter +/-4s</span>
+							<span>timeout 3s</span>
 							<span>retention 30d</span>
 						</div>
 						<span className={styles.featureBadge} aria-hidden="true">

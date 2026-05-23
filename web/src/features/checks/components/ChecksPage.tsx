@@ -318,7 +318,6 @@ export function ChecksPage() {
 	const [target, setTarget] = useState("");
 	const [checkType, setCheckType] = useState<CheckType>("Ping");
 	const [interval, setInterval] = useState("30s");
-	const [jitter, setJitter] = useState("4s");
 	const [enabled, setEnabled] = useState("enabled");
 	const [selectedProbes, setSelectedProbes] = useState<string[]>([]);
 	const [selectorState, setSelectorState] = useState<SelectorState>({ mode: "all-probes", rules: [], advancedText: "" });
@@ -343,7 +342,6 @@ export function ChecksPage() {
 	const activeTarget = target || selectedCheck?.target || "";
 	const activeCheckType = isCreating || selectedId ? checkType : selectedCheck?.type || checkType;
 	const activeInterval = interval || selectedCheck?.interval || "30s";
-	const activeJitter = jitter || selectedCheck?.jitter || "4s";
 	const activeEnabled = selectedId ? enabled : selectedCheck?.status.toLowerCase().includes("disabled") ? "disabled" : enabled;
 	const activePingConfig = selectedId || isCreating ? pingConfig : pingConfigFormStateFromApi(selectedApiCheck);
 	const activeTracerouteConfig = selectedId || isCreating ? tracerouteConfig : tracerouteConfigFormStateFromApi(selectedApiCheck);
@@ -363,7 +361,6 @@ export function ChecksPage() {
 		setTarget("");
 		setCheckType("Ping");
 		setInterval("30s");
-		setJitter("4s");
 		setEnabled("enabled");
 		setSelectedProbes([]);
 		setSelectorState({ mode: "all-probes", rules: [], advancedText: "" });
@@ -391,7 +388,6 @@ export function ChecksPage() {
 		setTarget(check.target);
 		setCheckType(check.type);
 		setInterval(check.interval);
-		setJitter(check.jitter);
 		setEnabled(check.status.toLowerCase().includes("disabled") ? "disabled" : "enabled");
 		setSelectedProbes([]);
 		setSelectorState(nextSelectorState);
@@ -409,7 +405,6 @@ export function ChecksPage() {
 		setTarget(selectedCheck.target);
 		setCheckType(selectedCheck.type);
 		setInterval(selectedCheck.interval);
-		setJitter(selectedCheck.jitter);
 		setEnabled(selectedCheck.status.toLowerCase().includes("disabled") ? "disabled" : "enabled");
 		setSelectedProbes([]);
 		setSelectorState(selectorStateFromApi(selectedApiCheck?.selector));
@@ -631,7 +626,6 @@ export function ChecksPage() {
 									]}
 								/>
 								<TextField label="Interval" value={activeInterval} onChange={event => setInterval(event.currentTarget.value)} />
-								<TextField label="Jitter" value={activeJitter} onChange={event => setJitter(event.currentTarget.value)} />
 								<SelectField
 									label="Enabled"
 									value={activeEnabled}
@@ -698,17 +692,19 @@ export function ChecksPage() {
 											disabled={!selectedCheck && !isCreating}
 											onChange={event => updateTracerouteConfig({ packetSizeBytes: event.currentTarget.value })}
 										/>
-										<TextField
-											label="Port"
-											type="number"
-											min={1}
-											max={65535}
-											step={1}
-											inputMode="numeric"
-											value={activeTracerouteConfig.port}
-											disabled={!selectedCheck && !isCreating}
-											onChange={event => updateTracerouteConfig({ port: event.currentTarget.value })}
-										/>
+										{activeTracerouteConfig.protocol === "udp" ? (
+											<TextField
+												label="Port"
+												type="number"
+												min={1}
+												max={65535}
+												step={1}
+												inputMode="numeric"
+												value={activeTracerouteConfig.port}
+												disabled={!selectedCheck && !isCreating}
+												onChange={event => updateTracerouteConfig({ port: event.currentTarget.value })}
+											/>
+										) : null}
 										<SelectField
 											label="IP family"
 											value={activeTracerouteConfig.ipFamily}

@@ -91,9 +91,12 @@ export function buildTracerouteConfigPayload(state: TracerouteConfigFormState): 
 		maxHops: parseIntOrDefault(state.maxHops, defaultTracerouteConfigFormState.maxHops),
 		timeoutMs: parseIntOrDefault(state.timeoutMs, defaultTracerouteConfigFormState.timeoutMs),
 		queriesPerHop: parseIntOrDefault(state.queriesPerHop, defaultTracerouteConfigFormState.queriesPerHop),
-		packetSizeBytes: parseIntOrDefault(state.packetSizeBytes, defaultTracerouteConfigFormState.packetSizeBytes),
-		port: parseIntOrDefault(state.port, defaultTracerouteConfigFormState.port)
+		packetSizeBytes: parseIntOrDefault(state.packetSizeBytes, defaultTracerouteConfigFormState.packetSizeBytes)
 	};
+
+	if (state.protocol === "udp") {
+		config.port = parseIntOrDefault(state.port, defaultTracerouteConfigFormState.port);
+	}
 
 	if (state.ipFamily) {
 		config.ipFamily = state.ipFamily;
