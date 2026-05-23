@@ -27,6 +27,24 @@ func TestNormalizeQueryPingSeriesInputReturnsAllFieldErrors(t *testing.T) {
 	assertValidationFields(t, err, []string{"projectRef", "probeId", "checkId", "to", "from", "metric", "maxDataPoints"})
 }
 
+func TestNormalizeQueryPingInsightInputReturnsAllFieldErrors(t *testing.T) {
+	fromMs := int64(-1)
+	toMs := int64(0)
+	maxDataPoints := int32(0)
+
+	_, err := normalizeQueryPingInsightInput(QueryPingInsightInput{
+		ProjectRef:    "",
+		ProbeID:       "",
+		CheckID:       "",
+		FromMs:        &fromMs,
+		ToMs:          &toMs,
+		MaxDataPoints: &maxDataPoints,
+		Now:           time.Date(2026, 5, 19, 0, 0, 0, 0, time.UTC),
+	})
+
+	assertValidationFields(t, err, []string{"projectRef", "probeId", "checkId", "to", "from", "maxDataPoints"})
+}
+
 func TestNormalizeQueryTracerouteRunsInputReturnsAllFieldErrors(t *testing.T) {
 	fromMs := int64(-1)
 	toMs := int64(0)

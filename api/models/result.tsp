@@ -261,6 +261,170 @@ model PingSeriesResponse {
 	query: PingSeriesQueryMetadata;
 }
 
+@example(#{
+	timestampMs: 1778666400000,
+	resultCount: 12,
+	durationAvgMs: 1000,
+	rttMinMs: 10.1,
+	rttAvgMs: 12.3,
+	rttMedianMs: 12,
+	rttMaxMs: 15.6,
+	rttStddevMs: 1.7,
+	lossPercent: 0,
+	successRate: 100,
+	sentCount: 48,
+	receivedCount: 48,
+	timeoutCount: 0,
+	errorCount: 0,
+})
+model PingInsightBucket {
+	@minValue(1)
+	timestampMs: int64;
+
+	@minValue(0)
+	resultCount: int64;
+
+	@minValue(0)
+	durationAvgMs?: float64;
+
+	@minValue(0)
+	rttMinMs?: float64;
+
+	@minValue(0)
+	rttAvgMs?: float64;
+
+	@minValue(0)
+	rttMedianMs?: float64;
+
+	@minValue(0)
+	rttMaxMs?: float64;
+
+	@minValue(0)
+	rttStddevMs?: float64;
+
+	@minValue(0)
+	@maxValue(100)
+	lossPercent?: float64;
+
+	@minValue(0)
+	@maxValue(100)
+	successRate?: float64;
+
+	@minValue(0)
+	sentCount: int64;
+
+	@minValue(0)
+	receivedCount: int64;
+
+	@minValue(0)
+	timeoutCount: int64;
+
+	@minValue(0)
+	errorCount: int64;
+}
+
+@example(#{ timestampMs: 1778666400000, rttBucketStartMs: 10, rttBucketEndMs: 11, sampleCount: 3 })
+model PingSampleDensityCell {
+	@minValue(1)
+	timestampMs: int64;
+
+	@minValue(0)
+	rttBucketStartMs: float64;
+
+	@minValue(0)
+	rttBucketEndMs: float64;
+
+	@minValue(0)
+	sampleCount: int64;
+}
+
+@example(#{
+	totalResults: 487,
+	successfulCount: 480,
+	timeoutCount: 7,
+	errorCount: 0,
+	sentCount: 1948,
+	receivedCount: 1920,
+	avgLossPercent: 1.4,
+	avgRttMs: 12.3,
+	medianRttMs: 12,
+	maxRttMs: 42.5,
+	p95RttMs: 18.2,
+	p99RttMs: 31.7,
+	latestStatus: "successful",
+	latestStartedAtMs: 1778666400000,
+	latestRttAvgMs: 12.3,
+	latestLossPercent: 0,
+	latestResolvedIp: "1.1.1.1",
+})
+model PingInsightSummary {
+	@minValue(0)
+	totalResults: int64;
+
+	@minValue(0)
+	successfulCount: int64;
+
+	@minValue(0)
+	timeoutCount: int64;
+
+	@minValue(0)
+	errorCount: int64;
+
+	@minValue(0)
+	sentCount: int64;
+
+	@minValue(0)
+	receivedCount: int64;
+
+	@minValue(0)
+	@maxValue(100)
+	avgLossPercent?: float64;
+
+	@minValue(0)
+	avgRttMs?: float64;
+
+	@minValue(0)
+	medianRttMs?: float64;
+
+	@minValue(0)
+	maxRttMs?: float64;
+
+	@minValue(0)
+	p95RttMs?: float64;
+
+	@minValue(0)
+	p99RttMs?: float64;
+
+	latestStatus?: PingStatus;
+
+	@minValue(1)
+	latestStartedAtMs?: int64;
+
+	@minValue(0)
+	latestRttAvgMs?: float64;
+
+	@minValue(0)
+	@maxValue(100)
+	latestLossPercent?: float64;
+
+	latestResolvedIp?: ipAddress;
+}
+
+@example(#{
+	buckets: #[
+		#{ timestampMs: 1778666400000, resultCount: 12, rttAvgMs: 12.3, rttMinMs: 10.1, rttMaxMs: 15.6, lossPercent: 0, successRate: 100, sentCount: 48, receivedCount: 48, timeoutCount: 0, errorCount: 0 }
+	],
+	sampleDensity: #[#{ timestampMs: 1778666400000, rttBucketStartMs: 10, rttBucketEndMs: 11, sampleCount: 3 }],
+	summary: #{ totalResults: 487, successfulCount: 480, timeoutCount: 7, errorCount: 0, sentCount: 1948, receivedCount: 1920, avgLossPercent: 1.4, avgRttMs: 12.3 },
+	query: #{ from: 1778662800000, to: 1778749200000, maxDataPoints: 600, resolution: "bucket", totalPoints: 487 },
+})
+model PingInsightResponse {
+	buckets: PingInsightBucket[];
+	sampleDensity: PingSampleDensityCell[];
+	summary: PingInsightSummary;
+	query: PingSeriesQueryMetadata;
+}
+
 @example(#{ from: 1778662800000, to: 1778749200000, limit: 100, nextCursor: 1778666400000 })
 model TracerouteRunsQueryMetadata {
 	@minValue(1)
@@ -296,17 +460,7 @@ model TracerouteRunsResponse {
 	query: TracerouteRunsQueryMetadata;
 }
 
-@example(#{
-	id: "ip:192.0.2.1",
-	kind: "hop",
-	label: "gateway.local",
-	address: "192.0.2.1",
-	hostname: "gateway.local",
-	hopIndex: 1,
-	seenCount: 12,
-	avgRttMs: 1.8,
-	lossPercent: 0,
-})
+@example(#{ id: "ip:192.0.2.1", kind: "hop", label: "gateway.local", address: "192.0.2.1", hostname: "gateway.local", hopIndex: 1, seenCount: 12, avgRttMs: 1.8, lossPercent: 0 })
 model TracerouteTopologyNode {
 	id: string;
 	kind: TracerouteTopologyNodeKind;
@@ -372,10 +526,10 @@ model TracerouteTopologyQueryMetadata {
 @example(#{
 	nodes: #[
 		#{ id: "probe:33333333-3333-3333-3333-333333333333", kind: "probe", label: "fra-bm-02", probeId: "33333333-3333-3333-3333-333333333333", seenCount: 12 },
-		#{ id: "ip:192.0.2.1", kind: "hop", label: "gateway.local", address: "192.0.2.1", hostname: "gateway.local", hopIndex: 1, seenCount: 12, avgRttMs: 1.8, lossPercent: 0 },
+		#{ id: "ip:192.0.2.1", kind: "hop", label: "gateway.local", address: "192.0.2.1", hostname: "gateway.local", hopIndex: 1, seenCount: 12, avgRttMs: 1.8, lossPercent: 0 }
 	],
 	edges: #[
-		#{ id: "probe:33333333-3333-3333-3333-333333333333->ip:192.0.2.1", source: "probe:33333333-3333-3333-3333-333333333333", target: "ip:192.0.2.1", seenCount: 12, avgRttMs: 1.8, lossPercent: 0 },
+		#{ id: "probe:33333333-3333-3333-3333-333333333333->ip:192.0.2.1", source: "probe:33333333-3333-3333-3333-333333333333", target: "ip:192.0.2.1", seenCount: 12, avgRttMs: 1.8, lossPercent: 0 }
 	],
 	query: #{ from: 1778662800000, to: 1778749200000, limit: 100 },
 })

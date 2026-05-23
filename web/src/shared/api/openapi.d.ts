@@ -409,6 +409,23 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	"/projects/{ref}/results/ping/insight": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** Query project ping result insight */
+		get: operations["queryProjectPingResultInsight"];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	"/projects/{ref}/results/ping/series": {
 		parameters: {
 			query?: never;
@@ -1118,6 +1135,160 @@ export interface components {
 		};
 		/**
 		 * @example {
+		 *       "timestampMs": 1778666400000,
+		 *       "resultCount": 12,
+		 *       "durationAvgMs": 1000,
+		 *       "rttMinMs": 10.1,
+		 *       "rttAvgMs": 12.3,
+		 *       "rttMedianMs": 12,
+		 *       "rttMaxMs": 15.6,
+		 *       "rttStddevMs": 1.7,
+		 *       "lossPercent": 0,
+		 *       "successRate": 100,
+		 *       "sentCount": 48,
+		 *       "receivedCount": 48,
+		 *       "timeoutCount": 0,
+		 *       "errorCount": 0
+		 *     }
+		 */
+		PingInsightBucket: {
+			/** Format: int64 */
+			timestampMs: number;
+			/** Format: int64 */
+			resultCount: number;
+			/** Format: double */
+			durationAvgMs?: number;
+			/** Format: double */
+			rttMinMs?: number;
+			/** Format: double */
+			rttAvgMs?: number;
+			/** Format: double */
+			rttMedianMs?: number;
+			/** Format: double */
+			rttMaxMs?: number;
+			/** Format: double */
+			rttStddevMs?: number;
+			/** Format: double */
+			lossPercent?: number;
+			/** Format: double */
+			successRate?: number;
+			/** Format: int64 */
+			sentCount: number;
+			/** Format: int64 */
+			receivedCount: number;
+			/** Format: int64 */
+			timeoutCount: number;
+			/** Format: int64 */
+			errorCount: number;
+		};
+		/**
+		 * @example {
+		 *       "buckets": [
+		 *         {
+		 *           "timestampMs": 1778666400000,
+		 *           "resultCount": 12,
+		 *           "rttAvgMs": 12.3,
+		 *           "rttMinMs": 10.1,
+		 *           "rttMaxMs": 15.6,
+		 *           "lossPercent": 0,
+		 *           "successRate": 100,
+		 *           "sentCount": 48,
+		 *           "receivedCount": 48,
+		 *           "timeoutCount": 0,
+		 *           "errorCount": 0
+		 *         }
+		 *       ],
+		 *       "sampleDensity": [
+		 *         {
+		 *           "timestampMs": 1778666400000,
+		 *           "rttBucketStartMs": 10,
+		 *           "rttBucketEndMs": 11,
+		 *           "sampleCount": 3
+		 *         }
+		 *       ],
+		 *       "summary": {
+		 *         "totalResults": 487,
+		 *         "successfulCount": 480,
+		 *         "timeoutCount": 7,
+		 *         "errorCount": 0,
+		 *         "sentCount": 1948,
+		 *         "receivedCount": 1920,
+		 *         "avgLossPercent": 1.4,
+		 *         "avgRttMs": 12.3
+		 *       },
+		 *       "query": {
+		 *         "from": 1778662800000,
+		 *         "to": 1778749200000,
+		 *         "maxDataPoints": 600,
+		 *         "resolution": "bucket",
+		 *         "totalPoints": 487
+		 *       }
+		 *     }
+		 */
+		PingInsightResponse: {
+			buckets: components["schemas"]["PingInsightBucket"][];
+			sampleDensity: components["schemas"]["PingSampleDensityCell"][];
+			summary: components["schemas"]["PingInsightSummary"];
+			query: components["schemas"]["PingSeriesQueryMetadata"];
+		};
+		/**
+		 * @example {
+		 *       "totalResults": 487,
+		 *       "successfulCount": 480,
+		 *       "timeoutCount": 7,
+		 *       "errorCount": 0,
+		 *       "sentCount": 1948,
+		 *       "receivedCount": 1920,
+		 *       "avgLossPercent": 1.4,
+		 *       "avgRttMs": 12.3,
+		 *       "medianRttMs": 12,
+		 *       "maxRttMs": 42.5,
+		 *       "p95RttMs": 18.2,
+		 *       "p99RttMs": 31.7,
+		 *       "latestStatus": "successful",
+		 *       "latestStartedAtMs": 1778666400000,
+		 *       "latestRttAvgMs": 12.3,
+		 *       "latestLossPercent": 0,
+		 *       "latestResolvedIp": "1.1.1.1"
+		 *     }
+		 */
+		PingInsightSummary: {
+			/** Format: int64 */
+			totalResults: number;
+			/** Format: int64 */
+			successfulCount: number;
+			/** Format: int64 */
+			timeoutCount: number;
+			/** Format: int64 */
+			errorCount: number;
+			/** Format: int64 */
+			sentCount: number;
+			/** Format: int64 */
+			receivedCount: number;
+			/** Format: double */
+			avgLossPercent?: number;
+			/** Format: double */
+			avgRttMs?: number;
+			/** Format: double */
+			medianRttMs?: number;
+			/** Format: double */
+			maxRttMs?: number;
+			/** Format: double */
+			p95RttMs?: number;
+			/** Format: double */
+			p99RttMs?: number;
+			/** @enum {string} */
+			latestStatus?: "successful" | "timeout" | "error";
+			/** Format: int64 */
+			latestStartedAtMs?: number;
+			/** Format: double */
+			latestRttAvgMs?: number;
+			/** Format: double */
+			latestLossPercent?: number;
+			latestResolvedIp?: components["schemas"]["ipv4Address"] | components["schemas"]["ipv6Address"];
+		};
+		/**
+		 * @example {
 		 *       "startedAt": "2026-05-13T10:00:00Z",
 		 *       "finishedAt": "2026-05-13T10:00:01Z",
 		 *       "durationMs": 1000,
@@ -1171,6 +1342,24 @@ export interface components {
 			ipFamily?: "inet" | "inet6";
 			errorCode?: string;
 			errorMessage?: string;
+		};
+		/**
+		 * @example {
+		 *       "timestampMs": 1778666400000,
+		 *       "rttBucketStartMs": 10,
+		 *       "rttBucketEndMs": 11,
+		 *       "sampleCount": 3
+		 *     }
+		 */
+		PingSampleDensityCell: {
+			/** Format: int64 */
+			timestampMs: number;
+			/** Format: double */
+			rttBucketStartMs: number;
+			/** Format: double */
+			rttBucketEndMs: number;
+			/** Format: int64 */
+			sampleCount: number;
 		};
 		/**
 		 * @example {
@@ -2288,6 +2477,11 @@ export interface components {
 		"MeasurementQuery.status": "successful" | "timeout" | "error" | "partial";
 		"MeasurementQuery.to": number;
 		"MeasurementQuery.type": "ping" | "traceroute";
+		"PingInsightQuery.checkId": components["schemas"]["uuid"];
+		"PingInsightQuery.from": number;
+		"PingInsightQuery.maxDataPoints": number;
+		"PingInsightQuery.probeId": components["schemas"]["uuid"];
+		"PingInsightQuery.to": number;
 		"PingSeriesQuery.checkId": components["schemas"]["uuid"];
 		"PingSeriesQuery.from": number;
 		"PingSeriesQuery.maxDataPoints": number;
@@ -4423,6 +4617,79 @@ export interface operations {
 			};
 			/** @description Access is forbidden. */
 			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	queryProjectPingResultInsight: {
+		parameters: {
+			query: {
+				probeId: components["parameters"]["PingInsightQuery.probeId"];
+				checkId: components["parameters"]["PingInsightQuery.checkId"];
+				from?: components["parameters"]["PingInsightQuery.from"];
+				to?: components["parameters"]["PingInsightQuery.to"];
+				maxDataPoints?: components["parameters"]["PingInsightQuery.maxDataPoints"];
+			};
+			header?: never;
+			path: {
+				ref: components["parameters"]["ProjectRefParam"];
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["PingInsightResponse"];
+				};
+			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
 				headers: {
 					[name: string]: unknown;
 				};

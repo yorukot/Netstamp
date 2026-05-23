@@ -18,10 +18,15 @@ export type CreateProjectInput = components["schemas"]["CreateProjectRequest"];
 export type LoginInput = components["schemas"]["LoginUserRequest"];
 export type MeasurementStatus = components["parameters"]["MeasurementQuery.status"];
 export type MeasurementType = components["parameters"]["MeasurementQuery.type"];
+export type PingInsightResponse = components["schemas"]["PingInsightResponse"];
 export type PingSeriesMetric = components["parameters"]["PingSeriesQuery.metric"];
 export type ProjectMemberRole = NonNullable<components["schemas"]["UpdateProjectMemberRoleRequest"]["role"]>;
 export type RegisterInput = components["schemas"]["RegisterUserRequest"];
 export type SelectorPreviewInput = components["schemas"]["SelectorPreviewRequest"];
+export type TracerouteHop = components["schemas"]["TracerouteHop"];
+export type TracerouteResult = components["schemas"]["TracerouteResult"];
+export type TracerouteTopologyEdge = components["schemas"]["TracerouteTopologyEdge"];
+export type TracerouteTopologyNode = components["schemas"]["TracerouteTopologyNode"];
 export type UpdateCheckInput = components["schemas"]["UpdateCheckRequest"];
 export type UpdateCurrentUserInput = components["schemas"]["UpdateCurrentUserRequest"];
 export type UpdateLabelInput = components["schemas"]["UpdateLabelRequest"];
@@ -52,9 +57,23 @@ export interface PingSeriesFilters {
 	maxDataPoints?: number;
 }
 
+export interface PingInsightFilters {
+	from?: number;
+	to?: number;
+	maxDataPoints?: number;
+}
+
 export interface TracerouteRunsFilters {
 	from?: number;
 	to?: number;
 	limit?: number;
 	cursor?: number;
+}
+
+export interface TracerouteTopologyFilters {
+	probeId?: string;
+	checkId?: string;
+	from?: number;
+	to?: number;
+	limit?: number;
 }

@@ -30,6 +30,27 @@ model PingSeriesQuery {
 	maxDataPoints?: int32 = 600;
 }
 
+model PingInsightQuery {
+	@query
+	probeId: uuid;
+
+	@query
+	checkId: uuid;
+
+	@query
+	@minValue(1)
+	from?: int64;
+
+	@query
+	@minValue(1)
+	to?: int64;
+
+	@query
+	@minValue(1)
+	@maxValue(2000)
+	maxDataPoints?: int32 = 600;
+}
+
 model TracerouteRunsQuery {
 	@query
 	probeId: uuid;
@@ -86,6 +107,18 @@ interface ResultService {
 	@route("/ping/series")
 	queryProjectPingResultSeries(...ProjectRefParam, ...PingSeriesQuery):
 		| OkJson<PingSeriesResponse>
+		| BadRequestProblem
+		| UnauthorizedProblem
+		| NotFoundProblem
+		| UnprocessableEntityProblem
+		| InternalServerProblem;
+
+	@operationId("queryProjectPingResultInsight")
+	@summary("Query project ping result insight")
+	@get
+	@route("/ping/insight")
+	queryProjectPingResultInsight(...ProjectRefParam, ...PingInsightQuery):
+		| OkJson<PingInsightResponse>
 		| BadRequestProblem
 		| UnauthorizedProblem
 		| NotFoundProblem

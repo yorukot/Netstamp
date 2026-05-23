@@ -11,6 +11,7 @@ import (
 
 type PingSeriesRepository interface {
 	ListPingSeries(ctx context.Context, input domainping.SeriesQuery) (domainping.SeriesResult, error)
+	ListPingInsight(ctx context.Context, input domainping.InsightQuery) (domainping.InsightResult, error)
 }
 
 type TracerouteRunsRepository interface {

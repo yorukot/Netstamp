@@ -90,6 +90,79 @@ func TestQueryPingSeriesRejectsInvalidMetric(t *testing.T) {
 	}
 }
 
+func TestQueryPingInsightUsesDefaultsAndMapsDensity(t *testing.T) {
+	now := time.Date(2026, 5, 13, 12, 0, 0, 0, time.UTC)
+	pointTime := now.Add(-time.Hour)
+	rttAvg := 42.5
+	latestStatus := domainping.StatusSuccessful
+	latestStartedAt := pointTime
+	pings := &recordingPingSeriesRepository{
+		insightResult: domainping.InsightResult{
+			Buckets: []domainping.InsightBucket{{
+				Timestamp:     pointTime,
+				ResultCount:   3,
+				RttAvgMs:      &rttAvg,
+				LossPercent:   float64Pointer(0),
+				SuccessRate:   float64Pointer(100),
+				SentCount:     12,
+				ReceivedCount: 12,
+			}},
+			SampleDensity: []domainping.SampleDensityCell{{
+				Timestamp:        pointTime,
+				RttBucketStartMs: 40,
+				RttBucketEndMs:   41,
+				SampleCount:      2,
+			}},
+			Summary: domainping.InsightSummary{
+				TotalResults:    3,
+				SuccessfulCount: 3,
+				SentCount:       12,
+				ReceivedCount:   12,
+				AvgRttMs:        &rttAvg,
+				LatestStatus:    &latestStatus,
+				LatestStartedAt: &latestStartedAt,
+				LatestRttAvgMs:  &rttAvg,
+			},
+			Resolution:  domainping.SeriesResolutionRaw,
+			TotalPoints: 3,
+		},
+	}
+	service := NewService(pings, &recordingTracerouteRunsRepository{}, &recordingMeasurementRepository{}, staticProjectAccess{})
+
+	output, err := service.QueryPingInsight(context.Background(), QueryPingInsightInput{
+		CurrentUserID: testUserID,
+		ProjectRef:    "vector-ix",
+		ProbeID:       testProbeID,
+		CheckID:       testCheckID,
+		Now:           now,
+	})
+	if err != nil {
+		t.Fatalf("expected query to succeed: %v", err)
+	}
+
+	if pings.gotInsight.ProjectID != testProjectID || pings.gotInsight.ProbeID != testProbeID || pings.gotInsight.CheckID != testCheckID {
+		t.Fatalf("unexpected repository identity input: %#v", pings.gotInsight)
+	}
+	if !pings.gotInsight.From.Equal(now.Add(-24*time.Hour)) || !pings.gotInsight.To.Equal(now) {
+		t.Fatalf("unexpected default range: from=%s to=%s", pings.gotInsight.From, pings.gotInsight.To)
+	}
+	if pings.gotInsight.MaxDataPoints != defaultMaxDataPoint {
+		t.Fatalf("expected default max data points %d, got %d", defaultMaxDataPoint, pings.gotInsight.MaxDataPoints)
+	}
+	if output.Query.Resolution != string(domainping.SeriesResolutionRaw) || output.Query.TotalPoints != 3 {
+		t.Fatalf("unexpected query metadata: %#v", output.Query)
+	}
+	if len(output.Buckets) != 1 || output.Buckets[0].TimestampMs != pointTime.UnixMilli() || output.Buckets[0].RttAvgMs == nil || *output.Buckets[0].RttAvgMs != rttAvg {
+		t.Fatalf("unexpected insight buckets: %#v", output.Buckets)
+	}
+	if len(output.SampleDensity) != 1 || output.SampleDensity[0].SampleCount != 2 {
+		t.Fatalf("unexpected sample density: %#v", output.SampleDensity)
+	}
+	if output.Summary.LatestStatus == nil || *output.Summary.LatestStatus != string(domainping.StatusSuccessful) || output.Summary.LatestStartedAtMs == nil || *output.Summary.LatestStartedAtMs != pointTime.UnixMilli() {
+		t.Fatalf("unexpected summary: %#v", output.Summary)
+	}
+}
+
 func TestQueryTracerouteRunsUsesDefaultsAndMapsRuns(t *testing.T) {
 	now := time.Date(2026, 5, 13, 12, 0, 0, 0, time.UTC)
 	startedAt := now.Add(-time.Hour)
@@ -277,13 +350,20 @@ func (staticProjectAccess) GetProjectForUser(_ context.Context, projectRef, user
 }
 
 type recordingPingSeriesRepository struct {
-	got    domainping.SeriesQuery
-	result domainping.SeriesResult
+	got           domainping.SeriesQuery
+	gotInsight    domainping.InsightQuery
+	result        domainping.SeriesResult
+	insightResult domainping.InsightResult
 }
 
 func (r *recordingPingSeriesRepository) ListPingSeries(_ context.Context, input domainping.SeriesQuery) (domainping.SeriesResult, error) {
 	r.got = input
 	return r.result, nil
+}
+
+func (r *recordingPingSeriesRepository) ListPingInsight(_ context.Context, input domainping.InsightQuery) (domainping.InsightResult, error) {
+	r.gotInsight = input
+	return r.insightResult, nil
 }
 
 type recordingTracerouteRunsRepository struct {
@@ -335,4 +415,8 @@ func topologyEdgeByID(t *testing.T, edges []TracerouteTopologyEdge, id string) T
 	}
 	t.Fatalf("expected topology edge %q in %#v", id, edges)
 	return TracerouteTopologyEdge{}
+}
+
+func float64Pointer(value float64) *float64 {
+	return &value
 }

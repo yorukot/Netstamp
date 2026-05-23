@@ -13,6 +13,34 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countPingInsightPoints = `-- name: CountPingInsightPoints :one
+SELECT count(*)::bigint
+FROM ping_results
+WHERE probe_id = $1
+    AND check_id = $2
+    AND started_at >= $3
+    AND started_at < $4
+`
+
+type CountPingInsightPointsParams struct {
+	ProbeStorageID int64              `json:"probe_storage_id"`
+	CheckStorageID int64              `json:"check_storage_id"`
+	StartedAtFrom  pgtype.Timestamptz `json:"started_at_from"`
+	StartedAtTo    pgtype.Timestamptz `json:"started_at_to"`
+}
+
+func (q *Queries) CountPingInsightPoints(ctx context.Context, arg CountPingInsightPointsParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countPingInsightPoints,
+		arg.ProbeStorageID,
+		arg.CheckStorageID,
+		arg.StartedAtFrom,
+		arg.StartedAtTo,
+	)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const countPingResultSeriesPoints = `-- name: CountPingResultSeriesPoints :one
 SELECT count(*)::bigint
 FROM ping_results
@@ -135,6 +163,444 @@ func (q *Queries) CreatePingResult(ctx context.Context, arg CreatePingResultPara
 		arg.ErrorMessage,
 	)
 	return err
+}
+
+const getPingInsightSummary = `-- name: GetPingInsightSummary :one
+WITH filtered AS (
+    SELECT probe_id, check_id, started_at, finished_at, duration_ms, status, sent_count, received_count, loss_percent, rtt_min_ms, rtt_avg_ms, rtt_median_ms, rtt_max_ms, rtt_stddev_ms, rtt_samples_ms, resolved_ip, ip_family, error_code, error_message
+    FROM ping_results
+    WHERE probe_id = $1
+        AND check_id = $2
+        AND started_at >= $3
+        AND started_at < $4
+),
+samples AS (
+    SELECT sample.value::double precision AS rtt_sample_ms
+    FROM filtered
+    CROSS JOIN LATERAL unnest(rtt_samples_ms) AS sample(value)
+),
+latest AS (
+    SELECT probe_id, check_id, started_at, finished_at, duration_ms, status, sent_count, received_count, loss_percent, rtt_min_ms, rtt_avg_ms, rtt_median_ms, rtt_max_ms, rtt_stddev_ms, rtt_samples_ms, resolved_ip, ip_family, error_code, error_message
+    FROM filtered
+    ORDER BY started_at DESC
+    LIMIT 1
+)
+SELECT
+    count(*)::bigint AS total_results,
+    count(rtt_avg_ms)::bigint AS rtt_value_count,
+    (SELECT count(*)::bigint FROM samples) AS sample_count,
+    count(*) FILTER (WHERE status = 'successful')::bigint AS successful_count,
+    count(*) FILTER (WHERE status = 'timeout')::bigint AS timeout_count,
+    count(*) FILTER (WHERE status = 'error')::bigint AS error_count,
+    coalesce(sum(sent_count), 0)::bigint AS sent_count,
+    coalesce(sum(received_count), 0)::bigint AS received_count,
+    coalesce(avg(loss_percent), 0)::double precision AS avg_loss_percent,
+    coalesce(avg(rtt_avg_ms), 0)::double precision AS avg_rtt_ms,
+    coalesce((percentile_cont(0.5) WITHIN GROUP (ORDER BY rtt_median_ms) FILTER (WHERE rtt_median_ms IS NOT NULL)), 0)::double precision AS median_rtt_ms,
+    coalesce(max(rtt_max_ms), 0)::double precision AS max_rtt_ms,
+    coalesce((SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY rtt_sample_ms) FROM samples), 0)::double precision AS p95_rtt_ms,
+    coalesce((SELECT percentile_cont(0.99) WITHIN GROUP (ORDER BY rtt_sample_ms) FROM samples), 0)::double precision AS p99_rtt_ms,
+    coalesce((SELECT status::text FROM latest), '')::text AS latest_status,
+    coalesce((SELECT (extract(epoch FROM started_at) * 1000)::bigint FROM latest), 0)::bigint AS latest_started_at_ms,
+    (SELECT rtt_avg_ms FROM latest) AS latest_rtt_avg_ms,
+    coalesce((SELECT loss_percent FROM latest), 0)::double precision AS latest_loss_percent,
+    (SELECT resolved_ip FROM latest) AS latest_resolved_ip
+FROM filtered
+`
+
+type GetPingInsightSummaryParams struct {
+	ProbeStorageID int64              `json:"probe_storage_id"`
+	CheckStorageID int64              `json:"check_storage_id"`
+	StartedAtFrom  pgtype.Timestamptz `json:"started_at_from"`
+	StartedAtTo    pgtype.Timestamptz `json:"started_at_to"`
+}
+
+type GetPingInsightSummaryRow struct {
+	TotalResults      int64       `json:"total_results"`
+	RttValueCount     int64       `json:"rtt_value_count"`
+	SampleCount       int64       `json:"sample_count"`
+	SuccessfulCount   int64       `json:"successful_count"`
+	TimeoutCount      int64       `json:"timeout_count"`
+	ErrorCount        int64       `json:"error_count"`
+	SentCount         int64       `json:"sent_count"`
+	ReceivedCount     int64       `json:"received_count"`
+	AvgLossPercent    float64     `json:"avg_loss_percent"`
+	AvgRttMs          float64     `json:"avg_rtt_ms"`
+	MedianRttMs       float64     `json:"median_rtt_ms"`
+	MaxRttMs          float64     `json:"max_rtt_ms"`
+	P95RttMs          float64     `json:"p95_rtt_ms"`
+	P99RttMs          float64     `json:"p99_rtt_ms"`
+	LatestStatus      string      `json:"latest_status"`
+	LatestStartedAtMs int64       `json:"latest_started_at_ms"`
+	LatestRttAvgMs    *float64    `json:"latest_rtt_avg_ms"`
+	LatestLossPercent float64     `json:"latest_loss_percent"`
+	LatestResolvedIp  *netip.Addr `json:"latest_resolved_ip"`
+}
+
+func (q *Queries) GetPingInsightSummary(ctx context.Context, arg GetPingInsightSummaryParams) (GetPingInsightSummaryRow, error) {
+	row := q.db.QueryRow(ctx, getPingInsightSummary,
+		arg.ProbeStorageID,
+		arg.CheckStorageID,
+		arg.StartedAtFrom,
+		arg.StartedAtTo,
+	)
+	var i GetPingInsightSummaryRow
+	err := row.Scan(
+		&i.TotalResults,
+		&i.RttValueCount,
+		&i.SampleCount,
+		&i.SuccessfulCount,
+		&i.TimeoutCount,
+		&i.ErrorCount,
+		&i.SentCount,
+		&i.ReceivedCount,
+		&i.AvgLossPercent,
+		&i.AvgRttMs,
+		&i.MedianRttMs,
+		&i.MaxRttMs,
+		&i.P95RttMs,
+		&i.P99RttMs,
+		&i.LatestStatus,
+		&i.LatestStartedAtMs,
+		&i.LatestRttAvgMs,
+		&i.LatestLossPercent,
+		&i.LatestResolvedIp,
+	)
+	return i, err
+}
+
+const listPingInsightBucketRows = `-- name: ListPingInsightBucketRows :many
+SELECT
+    (extract(epoch FROM time_bucket(
+        (ceil(extract(epoch FROM ($1::timestamptz - $2::timestamptz)) / $3::double precision)::bigint * interval '1 second'),
+        started_at,
+        $2::timestamptz
+    )) * 1000)::bigint AS bucket_ms,
+    count(*)::bigint AS result_count,
+    count(rtt_avg_ms)::bigint AS rtt_value_count,
+    coalesce(avg(duration_ms), 0)::double precision AS duration_avg_ms,
+    coalesce(min(rtt_min_ms), 0)::double precision AS rtt_min_ms,
+    coalesce(avg(rtt_avg_ms), 0)::double precision AS rtt_avg_ms,
+    coalesce((percentile_cont(0.5) WITHIN GROUP (ORDER BY rtt_median_ms) FILTER (WHERE rtt_median_ms IS NOT NULL)), 0)::double precision AS rtt_median_ms,
+    coalesce(max(rtt_max_ms), 0)::double precision AS rtt_max_ms,
+    coalesce(avg(rtt_stddev_ms), 0)::double precision AS rtt_stddev_ms,
+    coalesce(avg(loss_percent), 0)::double precision AS loss_percent,
+    coalesce((100.0 * count(*) FILTER (WHERE status = 'successful') / NULLIF(count(*), 0)), 0)::double precision AS success_rate,
+    coalesce(sum(sent_count), 0)::bigint AS sent_count,
+    coalesce(sum(received_count), 0)::bigint AS received_count,
+    count(*) FILTER (WHERE status = 'timeout')::bigint AS timeout_count,
+    count(*) FILTER (WHERE status = 'error')::bigint AS error_count
+FROM ping_results
+WHERE probe_id = $4
+    AND check_id = $5
+    AND started_at >= $2
+    AND started_at < $1
+GROUP BY bucket_ms
+ORDER BY bucket_ms ASC
+`
+
+type ListPingInsightBucketRowsParams struct {
+	StartedAtTo    pgtype.Timestamptz `json:"started_at_to"`
+	StartedAtFrom  pgtype.Timestamptz `json:"started_at_from"`
+	MaxDataPoints  float64            `json:"max_data_points"`
+	ProbeStorageID int64              `json:"probe_storage_id"`
+	CheckStorageID int64              `json:"check_storage_id"`
+}
+
+type ListPingInsightBucketRowsRow struct {
+	BucketMs      int64   `json:"bucket_ms"`
+	ResultCount   int64   `json:"result_count"`
+	RttValueCount int64   `json:"rtt_value_count"`
+	DurationAvgMs float64 `json:"duration_avg_ms"`
+	RttMinMs      float64 `json:"rtt_min_ms"`
+	RttAvgMs      float64 `json:"rtt_avg_ms"`
+	RttMedianMs   float64 `json:"rtt_median_ms"`
+	RttMaxMs      float64 `json:"rtt_max_ms"`
+	RttStddevMs   float64 `json:"rtt_stddev_ms"`
+	LossPercent   float64 `json:"loss_percent"`
+	SuccessRate   float64 `json:"success_rate"`
+	SentCount     int64   `json:"sent_count"`
+	ReceivedCount int64   `json:"received_count"`
+	TimeoutCount  int64   `json:"timeout_count"`
+	ErrorCount    int64   `json:"error_count"`
+}
+
+func (q *Queries) ListPingInsightBucketRows(ctx context.Context, arg ListPingInsightBucketRowsParams) ([]ListPingInsightBucketRowsRow, error) {
+	rows, err := q.db.Query(ctx, listPingInsightBucketRows,
+		arg.StartedAtTo,
+		arg.StartedAtFrom,
+		arg.MaxDataPoints,
+		arg.ProbeStorageID,
+		arg.CheckStorageID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListPingInsightBucketRowsRow
+	for rows.Next() {
+		var i ListPingInsightBucketRowsRow
+		if err := rows.Scan(
+			&i.BucketMs,
+			&i.ResultCount,
+			&i.RttValueCount,
+			&i.DurationAvgMs,
+			&i.RttMinMs,
+			&i.RttAvgMs,
+			&i.RttMedianMs,
+			&i.RttMaxMs,
+			&i.RttStddevMs,
+			&i.LossPercent,
+			&i.SuccessRate,
+			&i.SentCount,
+			&i.ReceivedCount,
+			&i.TimeoutCount,
+			&i.ErrorCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listPingInsightBucketSampleDensity = `-- name: ListPingInsightBucketSampleDensity :many
+WITH samples AS (
+    SELECT
+        (extract(epoch FROM time_bucket(
+            (ceil(extract(epoch FROM ($1::timestamptz - $2::timestamptz)) / $3::double precision)::bigint * interval '1 second'),
+            started_at,
+            $2::timestamptz
+        )) * 1000)::bigint AS bucket_ms,
+        sample.value::double precision AS rtt_sample_ms
+    FROM ping_results
+    CROSS JOIN LATERAL unnest(rtt_samples_ms) AS sample(value)
+    WHERE probe_id = $4
+        AND check_id = $5
+        AND started_at >= $2
+        AND started_at < $1
+),
+bounds AS (
+    SELECT greatest(1.0, ceil(coalesce(max(rtt_sample_ms), 0) / 40.0))::double precision AS latency_bucket_ms
+    FROM samples
+)
+SELECT
+    bucket_ms,
+    (floor(rtt_sample_ms / bounds.latency_bucket_ms) * bounds.latency_bucket_ms)::double precision AS rtt_bucket_start_ms,
+    ((floor(rtt_sample_ms / bounds.latency_bucket_ms) + 1) * bounds.latency_bucket_ms)::double precision AS rtt_bucket_end_ms,
+    count(*)::bigint AS sample_count
+FROM samples
+CROSS JOIN bounds
+GROUP BY bucket_ms, rtt_bucket_start_ms, rtt_bucket_end_ms
+ORDER BY bucket_ms ASC, rtt_bucket_start_ms ASC
+`
+
+type ListPingInsightBucketSampleDensityParams struct {
+	StartedAtTo    pgtype.Timestamptz `json:"started_at_to"`
+	StartedAtFrom  pgtype.Timestamptz `json:"started_at_from"`
+	MaxDataPoints  float64            `json:"max_data_points"`
+	ProbeStorageID int64              `json:"probe_storage_id"`
+	CheckStorageID int64              `json:"check_storage_id"`
+}
+
+type ListPingInsightBucketSampleDensityRow struct {
+	BucketMs         int64   `json:"bucket_ms"`
+	RttBucketStartMs float64 `json:"rtt_bucket_start_ms"`
+	RttBucketEndMs   float64 `json:"rtt_bucket_end_ms"`
+	SampleCount      int64   `json:"sample_count"`
+}
+
+func (q *Queries) ListPingInsightBucketSampleDensity(ctx context.Context, arg ListPingInsightBucketSampleDensityParams) ([]ListPingInsightBucketSampleDensityRow, error) {
+	rows, err := q.db.Query(ctx, listPingInsightBucketSampleDensity,
+		arg.StartedAtTo,
+		arg.StartedAtFrom,
+		arg.MaxDataPoints,
+		arg.ProbeStorageID,
+		arg.CheckStorageID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListPingInsightBucketSampleDensityRow
+	for rows.Next() {
+		var i ListPingInsightBucketSampleDensityRow
+		if err := rows.Scan(
+			&i.BucketMs,
+			&i.RttBucketStartMs,
+			&i.RttBucketEndMs,
+			&i.SampleCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listPingInsightRawRows = `-- name: ListPingInsightRawRows :many
+SELECT
+    (extract(epoch FROM started_at) * 1000)::bigint AS bucket_ms,
+    1::bigint AS result_count,
+    duration_ms::double precision AS duration_avg_ms,
+    rtt_min_ms,
+    rtt_avg_ms,
+    rtt_median_ms,
+    rtt_max_ms,
+    rtt_stddev_ms,
+    loss_percent,
+    CASE WHEN status = 'successful' THEN 100.0 ELSE 0.0 END::double precision AS success_rate,
+    sent_count::bigint AS sent_count,
+    received_count::bigint AS received_count,
+    CASE WHEN status = 'timeout' THEN 1 ELSE 0 END::bigint AS timeout_count,
+    CASE WHEN status = 'error' THEN 1 ELSE 0 END::bigint AS error_count
+FROM ping_results
+WHERE probe_id = $1
+    AND check_id = $2
+    AND started_at >= $3
+    AND started_at < $4
+ORDER BY started_at ASC
+`
+
+type ListPingInsightRawRowsParams struct {
+	ProbeStorageID int64              `json:"probe_storage_id"`
+	CheckStorageID int64              `json:"check_storage_id"`
+	StartedAtFrom  pgtype.Timestamptz `json:"started_at_from"`
+	StartedAtTo    pgtype.Timestamptz `json:"started_at_to"`
+}
+
+type ListPingInsightRawRowsRow struct {
+	BucketMs      int64    `json:"bucket_ms"`
+	ResultCount   int64    `json:"result_count"`
+	DurationAvgMs float64  `json:"duration_avg_ms"`
+	RttMinMs      *float64 `json:"rtt_min_ms"`
+	RttAvgMs      *float64 `json:"rtt_avg_ms"`
+	RttMedianMs   *float64 `json:"rtt_median_ms"`
+	RttMaxMs      *float64 `json:"rtt_max_ms"`
+	RttStddevMs   *float64 `json:"rtt_stddev_ms"`
+	LossPercent   float64  `json:"loss_percent"`
+	SuccessRate   float64  `json:"success_rate"`
+	SentCount     int64    `json:"sent_count"`
+	ReceivedCount int64    `json:"received_count"`
+	TimeoutCount  int64    `json:"timeout_count"`
+	ErrorCount    int64    `json:"error_count"`
+}
+
+func (q *Queries) ListPingInsightRawRows(ctx context.Context, arg ListPingInsightRawRowsParams) ([]ListPingInsightRawRowsRow, error) {
+	rows, err := q.db.Query(ctx, listPingInsightRawRows,
+		arg.ProbeStorageID,
+		arg.CheckStorageID,
+		arg.StartedAtFrom,
+		arg.StartedAtTo,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListPingInsightRawRowsRow
+	for rows.Next() {
+		var i ListPingInsightRawRowsRow
+		if err := rows.Scan(
+			&i.BucketMs,
+			&i.ResultCount,
+			&i.DurationAvgMs,
+			&i.RttMinMs,
+			&i.RttAvgMs,
+			&i.RttMedianMs,
+			&i.RttMaxMs,
+			&i.RttStddevMs,
+			&i.LossPercent,
+			&i.SuccessRate,
+			&i.SentCount,
+			&i.ReceivedCount,
+			&i.TimeoutCount,
+			&i.ErrorCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listPingInsightRawSampleDensity = `-- name: ListPingInsightRawSampleDensity :many
+WITH samples AS (
+    SELECT
+        (extract(epoch FROM started_at) * 1000)::bigint AS bucket_ms,
+        sample.value::double precision AS rtt_sample_ms
+    FROM ping_results
+    CROSS JOIN LATERAL unnest(rtt_samples_ms) AS sample(value)
+    WHERE probe_id = $1
+        AND check_id = $2
+        AND started_at >= $3
+        AND started_at < $4
+),
+bounds AS (
+    SELECT greatest(1.0, ceil(coalesce(max(rtt_sample_ms), 0) / 40.0))::double precision AS latency_bucket_ms
+    FROM samples
+)
+SELECT
+    bucket_ms,
+    (floor(rtt_sample_ms / bounds.latency_bucket_ms) * bounds.latency_bucket_ms)::double precision AS rtt_bucket_start_ms,
+    ((floor(rtt_sample_ms / bounds.latency_bucket_ms) + 1) * bounds.latency_bucket_ms)::double precision AS rtt_bucket_end_ms,
+    count(*)::bigint AS sample_count
+FROM samples
+CROSS JOIN bounds
+GROUP BY bucket_ms, rtt_bucket_start_ms, rtt_bucket_end_ms
+ORDER BY bucket_ms ASC, rtt_bucket_start_ms ASC
+`
+
+type ListPingInsightRawSampleDensityParams struct {
+	ProbeStorageID int64              `json:"probe_storage_id"`
+	CheckStorageID int64              `json:"check_storage_id"`
+	StartedAtFrom  pgtype.Timestamptz `json:"started_at_from"`
+	StartedAtTo    pgtype.Timestamptz `json:"started_at_to"`
+}
+
+type ListPingInsightRawSampleDensityRow struct {
+	BucketMs         int64   `json:"bucket_ms"`
+	RttBucketStartMs float64 `json:"rtt_bucket_start_ms"`
+	RttBucketEndMs   float64 `json:"rtt_bucket_end_ms"`
+	SampleCount      int64   `json:"sample_count"`
+}
+
+func (q *Queries) ListPingInsightRawSampleDensity(ctx context.Context, arg ListPingInsightRawSampleDensityParams) ([]ListPingInsightRawSampleDensityRow, error) {
+	rows, err := q.db.Query(ctx, listPingInsightRawSampleDensity,
+		arg.ProbeStorageID,
+		arg.CheckStorageID,
+		arg.StartedAtFrom,
+		arg.StartedAtTo,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListPingInsightRawSampleDensityRow
+	for rows.Next() {
+		var i ListPingInsightRawSampleDensityRow
+		if err := rows.Scan(
+			&i.BucketMs,
+			&i.RttBucketStartMs,
+			&i.RttBucketEndMs,
+			&i.SampleCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listPingResultBucketSeries = `-- name: ListPingResultBucketSeries :many

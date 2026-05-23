@@ -256,3 +256,64 @@ type SeriesPoint struct {
 	Timestamp time.Time
 	Value     float64
 }
+
+type InsightQuery struct {
+	ProjectID     string
+	ProbeID       string
+	CheckID       string
+	From          time.Time
+	To            time.Time
+	MaxDataPoints int32
+}
+
+type InsightResult struct {
+	Buckets       []InsightBucket
+	SampleDensity []SampleDensityCell
+	Summary       InsightSummary
+	Resolution    SeriesResolution
+	TotalPoints   int64
+}
+
+type InsightBucket struct {
+	Timestamp     time.Time
+	ResultCount   int64
+	DurationAvgMs *float64
+	RttMinMs      *float64
+	RttAvgMs      *float64
+	RttMedianMs   *float64
+	RttMaxMs      *float64
+	RttStddevMs   *float64
+	LossPercent   *float64
+	SuccessRate   *float64
+	SentCount     int64
+	ReceivedCount int64
+	TimeoutCount  int64
+	ErrorCount    int64
+}
+
+type SampleDensityCell struct {
+	Timestamp        time.Time
+	RttBucketStartMs float64
+	RttBucketEndMs   float64
+	SampleCount      int64
+}
+
+type InsightSummary struct {
+	TotalResults      int64
+	SuccessfulCount   int64
+	TimeoutCount      int64
+	ErrorCount        int64
+	SentCount         int64
+	ReceivedCount     int64
+	AvgLossPercent    *float64
+	AvgRttMs          *float64
+	MedianRttMs       *float64
+	MaxRttMs          *float64
+	P95RttMs          *float64
+	P99RttMs          *float64
+	LatestStatus      *Status
+	LatestStartedAt   *time.Time
+	LatestRttAvgMs    *float64
+	LatestLossPercent *float64
+	LatestResolvedIP  *netip.Addr
+}

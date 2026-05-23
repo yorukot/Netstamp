@@ -52,6 +52,39 @@ func normalizeQueryPingSeriesInput(input QueryPingSeriesInput) (normalizedQueryP
 	}, nil
 }
 
+func normalizeQueryPingInsightInput(input QueryPingInsightInput) (normalizedQueryPingInsightInput, error) {
+	var validation appvalidation.Collector
+
+	base, err := normalizeQueryBase(
+		input.CurrentUserID,
+		input.ProjectRef,
+		input.ProbeID,
+		input.CheckID,
+		input.FromMs,
+		input.ToMs,
+		input.Now,
+	)
+	if err != nil {
+		if !validation.AddValidation(err) {
+			return normalizedQueryPingInsightInput{}, err
+		}
+	}
+	maxDataPoints, err := normalizeMaxDataPoints(input.MaxDataPoints)
+	if err != nil {
+		if !validation.AddValidation(err) {
+			return normalizedQueryPingInsightInput{}, err
+		}
+	}
+	if err := validation.Err(ErrInvalidInput); err != nil {
+		return normalizedQueryPingInsightInput{}, err
+	}
+
+	return normalizedQueryPingInsightInput{
+		normalizedQueryBase: base,
+		maxDataPoints:       maxDataPoints,
+	}, nil
+}
+
 func normalizeQueryTracerouteRunsInput(input QueryTracerouteRunsInput) (normalizedQueryTracerouteRunsInput, error) {
 	var validation appvalidation.Collector
 

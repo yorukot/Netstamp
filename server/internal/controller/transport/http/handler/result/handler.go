@@ -25,6 +25,7 @@ func NewHandler(service *appresult.Service, verifier appauth.TokenVerifier) *Han
 
 func (h *Handler) RegisterRoutes(api chi.Router) {
 	api.With(httpmiddleware.RequireAuth(h.verifier)).Get("/projects/{ref}/results/ping/series", h.handleQueryPingSeries)
+	api.With(httpmiddleware.RequireAuth(h.verifier)).Get("/projects/{ref}/results/ping/insight", h.handleQueryPingInsight)
 	api.With(httpmiddleware.RequireAuth(h.verifier)).Get("/projects/{ref}/results/traceroute/runs", h.handleQueryTracerouteRuns)
 	api.With(httpmiddleware.RequireAuth(h.verifier)).Get("/projects/{ref}/results/traceroute/topology", h.handleQueryTracerouteTopology)
 	api.With(httpmiddleware.RequireAuth(h.verifier)).Get("/projects/{ref}/measurements", h.handleQueryMeasurements)
@@ -37,6 +38,20 @@ func (h *Handler) handleQueryPingSeries(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	output, err := h.queryPingSeries(r.Context(), input)
+	if err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, output.Body)
+}
+
+func (h *Handler) handleQueryPingInsight(w http.ResponseWriter, r *http.Request) {
+	input, err := newQueryPingInsightInput(r)
+	if err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	output, err := h.queryPingInsight(r.Context(), input)
 	if err != nil {
 		httpx.WriteProblem(w, r, err)
 		return
@@ -106,6 +121,29 @@ func newQueryPingSeriesInput(r *http.Request) (*queryPingSeriesInput, error) {
 		From:          from,
 		To:            to,
 		Metric:        httpx.QueryString(r, "metric"),
+		MaxDataPoints: maxDataPoints,
+	}, nil
+}
+
+func newQueryPingInsightInput(r *http.Request) (*queryPingInsightInput, error) {
+	from, err := httpx.QueryInt64(r, "from")
+	if err != nil {
+		return nil, err
+	}
+	to, err := httpx.QueryInt64(r, "to")
+	if err != nil {
+		return nil, err
+	}
+	maxDataPoints, err := httpx.QueryInt32(r, "maxDataPoints")
+	if err != nil {
+		return nil, err
+	}
+	return &queryPingInsightInput{
+		Ref:           httpx.Path(r, "ref"),
+		ProbeID:       httpx.QueryString(r, "probeId"),
+		CheckID:       httpx.QueryString(r, "checkId"),
+		From:          from,
+		To:            to,
 		MaxDataPoints: maxDataPoints,
 	}, nil
 }

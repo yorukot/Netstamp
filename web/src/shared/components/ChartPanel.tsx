@@ -19,7 +19,18 @@ let chartRuntimePromise: Promise<typeof import("echarts/core")> | null = null;
 function loadChartRuntime() {
 	chartRuntimePromise ??= Promise.all([import("echarts/core"), import("echarts/charts"), import("echarts/components"), import("echarts/renderers")]).then(
 		([echarts, charts, components, renderers]) => {
-			echarts.use([charts.LineChart, charts.BarChart, components.GridComponent, components.TooltipComponent, components.LegendComponent, renderers.CanvasRenderer]);
+			echarts.use([
+				charts.LineChart,
+				charts.BarChart,
+				charts.GraphChart,
+				charts.ScatterChart,
+				components.GridComponent,
+				components.TooltipComponent,
+				components.LegendComponent,
+				components.DataZoomComponent,
+				components.VisualMapComponent,
+				renderers.CanvasRenderer
+			]);
 
 			return echarts;
 		}

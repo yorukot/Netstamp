@@ -72,6 +72,7 @@ func TestNewRouterServesOpenAPIWithoutRuntimeServices(t *testing.T) {
 	assertOpenAPIOperation(t, spec, http.MethodDelete, "/projects/{ref}/probes/{probe_id}", "deleteProjectProbe")
 	assertOpenAPIOperation(t, spec, http.MethodPost, "/projects/{ref}/probes/{probe_id}/secret-rotations", "rotateProjectProbeSecret")
 	assertOpenAPIOperation(t, spec, http.MethodGet, "/projects/{ref}/results/ping/series", "queryProjectPingResultSeries")
+	assertOpenAPIOperation(t, spec, http.MethodGet, "/projects/{ref}/results/ping/insight", "queryProjectPingResultInsight")
 	assertOpenAPIOperation(t, spec, http.MethodGet, "/projects/{ref}/results/traceroute/runs", "queryProjectTracerouteResultRuns")
 	assertOpenAPIOperation(t, spec, http.MethodGet, "/projects/{ref}/measurements", "listProjectMeasurements")
 	assertOpenAPIOperation(t, spec, http.MethodPost, "/runtime/probes/{probe_id}/hello", "probeRuntimeHello")
