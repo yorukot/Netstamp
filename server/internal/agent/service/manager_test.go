@@ -133,9 +133,9 @@ func TestManagerUpdateDownloadsBinaryAndRestartsInstalledService(t *testing.T) {
 	}
 	writeTestFile(t, paths.InstallPath, 0o755)
 	writeTestFile(t, paths.ServiceFile, 0o600)
-	binaryFilename, err := agentBinaryFilename("linux", runtime.GOARCH)
-	if err != nil {
-		t.Skip(err)
+	binaryFilename, binaryErr := agentBinaryFilename("linux", runtime.GOARCH)
+	if binaryErr != nil {
+		t.Skip(binaryErr)
 	}
 
 	mux := http.NewServeMux()
@@ -156,8 +156,9 @@ func TestManagerUpdateDownloadsBinaryAndRestartsInstalledService(t *testing.T) {
 		EUID:   func() int { return 0 },
 	})
 
-	if err := manager.Update(ctx, UpdateConfig{ControllerURL: server.URL}); err != nil {
-		t.Fatalf("update agent: %v", err)
+	updateErr := manager.Update(ctx, UpdateConfig{ControllerURL: server.URL})
+	if updateErr != nil {
+		t.Fatalf("update agent: %v", updateErr)
 	}
 	got, err := os.ReadFile(paths.InstallPath)
 	if err != nil {
@@ -188,9 +189,9 @@ func TestManagerUpdateUsesManagedEnvControllerURL(t *testing.T) {
 	dir := t.TempDir()
 	paths := testPaths(dir)
 	writeTestFile(t, paths.InstallPath, 0o755)
-	binaryFilename, err := agentBinaryFilename("linux", runtime.GOARCH)
-	if err != nil {
-		t.Skip(err)
+	binaryFilename, binaryErr := agentBinaryFilename("linux", runtime.GOARCH)
+	if binaryErr != nil {
+		t.Skip(binaryErr)
 	}
 
 	mux := http.NewServeMux()
@@ -199,11 +200,13 @@ func TestManagerUpdateUsesManagedEnvControllerURL(t *testing.T) {
 	})
 	server := httptest.NewServer(mux)
 	defer server.Close()
-	if err := os.MkdirAll(filepath.Dir(paths.EnvFile), 0o755); err != nil {
-		t.Fatalf("create env parent: %v", err)
+	mkdirErr := os.MkdirAll(filepath.Dir(paths.EnvFile), 0o755)
+	if mkdirErr != nil {
+		t.Fatalf("create env parent: %v", mkdirErr)
 	}
-	if err := os.WriteFile(paths.EnvFile, []byte(`NETSTAMP_PROBE_CONTROLLER_URL="`+server.URL+`"`+"\n"), 0o600); err != nil {
-		t.Fatalf("write env file: %v", err)
+	writeErr := os.WriteFile(paths.EnvFile, []byte(`NETSTAMP_PROBE_CONTROLLER_URL="`+server.URL+`"`+"\n"), 0o600)
+	if writeErr != nil {
+		t.Fatalf("write env file: %v", writeErr)
 	}
 
 	manager := NewManager(Options{
@@ -213,8 +216,9 @@ func TestManagerUpdateUsesManagedEnvControllerURL(t *testing.T) {
 		EUID:   func() int { return 0 },
 	})
 
-	if err := manager.Update(ctx, UpdateConfig{}); err != nil {
-		t.Fatalf("update agent: %v", err)
+	updateErr := manager.Update(ctx, UpdateConfig{})
+	if updateErr != nil {
+		t.Fatalf("update agent: %v", updateErr)
 	}
 	got, err := os.ReadFile(paths.InstallPath)
 	if err != nil {

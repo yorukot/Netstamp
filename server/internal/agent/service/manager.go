@@ -203,10 +203,7 @@ func (m *Manager) Update(ctx context.Context, config UpdateConfig) error {
 	if err := os.Chmod(m.paths.InstallPath, updateFileMode); err != nil {
 		return fmt.Errorf("chmod agent binary: %w", err)
 	}
-	if err := m.restartServiceIfInstalled(ctx); err != nil {
-		return err
-	}
-	return nil
+	return m.restartServiceIfInstalled(ctx)
 }
 
 func (m *Manager) Uninstall(ctx context.Context, purge bool) error {
@@ -492,7 +489,10 @@ func downloadAgentBinary(ctx context.Context, binaryURL string, dest io.Writer) 
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(io.LimitReader(response.Body, 1024))
+		body, readErr := io.ReadAll(io.LimitReader(response.Body, 1024))
+		if readErr != nil {
+			return fmt.Errorf("download agent binary returned status %d and failed to read response body: %w", response.StatusCode, readErr)
+		}
 		message := strings.TrimSpace(string(body))
 		if message == "" {
 			return fmt.Errorf("download agent binary returned status %d", response.StatusCode)
