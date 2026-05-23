@@ -11,6 +11,9 @@ Usage:
 
 Installs the netstamp-agent binary. Configure and start the systemd service with:
   sudo netstamp-agent service install --url CONTROLLER_URL --probe-id PROBE_ID --probe-secret PROBE_SECRET
+
+Update the installed binary later with:
+  sudo netstamp-agent update
 EOF
 }
 
@@ -77,3 +80,5 @@ install -m 0755 "${tmp_dir}/netstamp-agent" "$install_path"
 printf 'netstamp-agent installed at %s\n' "$install_path"
 printf 'Configure the service with:\n'
 printf '  sudo netstamp-agent service install --url %s --probe-id <probe-id> --probe-secret <probe-secret>\n' "$controller_url"
+printf 'Update the installed binary later with:\n'
+printf '  sudo netstamp-agent update\n'

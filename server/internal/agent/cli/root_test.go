@@ -55,6 +55,33 @@ func TestServiceInstallCommandRequiresFlags(t *testing.T) {
 	}
 }
 
+func TestUpdateCommandPassesFlagsToManager(t *testing.T) {
+	manager := &fakeServiceManager{}
+	var stdout bytes.Buffer
+
+	code := Execute(context.Background(), Options{
+		Args:           []string{"update", "--url", "https://netstamp.example.com", "--api-version", "v1"},
+		Stdout:         &stdout,
+		Stderr:         &bytes.Buffer{},
+		ServiceManager: manager,
+	})
+	if code != 0 {
+		t.Fatalf("expected exit code 0, got %d", code)
+	}
+	if !manager.updateCalled {
+		t.Fatal("expected update to be called")
+	}
+	if manager.updateConfig.ControllerURL != "https://netstamp.example.com" {
+		t.Fatalf("unexpected controller URL: %#v", manager.updateConfig)
+	}
+	if manager.updateConfig.APIVersion != "v1" {
+		t.Fatalf("unexpected api version: %#v", manager.updateConfig)
+	}
+	if stdout.String() != "netstamp-agent updated\n" {
+		t.Fatalf("unexpected stdout: %q", stdout.String())
+	}
+}
+
 func TestServiceUninstallCommandPassesPurge(t *testing.T) {
 	manager := &fakeServiceManager{}
 
@@ -95,6 +122,8 @@ func TestServiceStatusCommandCallsManager(t *testing.T) {
 type fakeServiceManager struct {
 	installCalled   bool
 	installConfig   agentservice.InstallConfig
+	updateCalled    bool
+	updateConfig    agentservice.UpdateConfig
 	uninstallCalled bool
 	purge           bool
 	statusCalled    bool
@@ -103,6 +132,12 @@ type fakeServiceManager struct {
 func (m *fakeServiceManager) Install(_ context.Context, config agentservice.InstallConfig) error {
 	m.installCalled = true
 	m.installConfig = config
+	return nil
+}
+
+func (m *fakeServiceManager) Update(_ context.Context, config agentservice.UpdateConfig) error {
+	m.updateCalled = true
+	m.updateConfig = config
 	return nil
 }
 

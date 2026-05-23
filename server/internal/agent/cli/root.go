@@ -23,6 +23,7 @@ type Options struct {
 
 type serviceManager interface {
 	Install(ctx context.Context, config agentservice.InstallConfig) error
+	Update(ctx context.Context, config agentservice.UpdateConfig) error
 	Uninstall(ctx context.Context, purge bool) error
 	Status(ctx context.Context) error
 }
@@ -53,6 +54,7 @@ func NewRootCommand(ctx context.Context, options Options) *cobra.Command {
 	root.SetArgs(options.Args)
 
 	root.AddCommand(newRunCommand(ctx, options))
+	root.AddCommand(newUpdateCommand(ctx, options))
 	root.AddCommand(newServiceCommand(ctx, options))
 
 	return root
@@ -69,6 +71,27 @@ func newRunCommand(ctx context.Context, options Options) *cobra.Command {
 			return runAgent(ctx, options.stderr())
 		},
 	}
+}
+
+func newUpdateCommand(ctx context.Context, options Options) *cobra.Command {
+	var config agentservice.UpdateConfig
+	cmd := &cobra.Command{
+		Use:           "update",
+		Short:         "Update the installed probe agent binary",
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		Args:          cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			if err := options.manager().Update(ctx, config); err != nil {
+				return err
+			}
+			_, _ = fmt.Fprintf(options.stdout(), "%s updated\n", agentservice.ServiceName)
+			return nil
+		},
+	}
+	cmd.Flags().StringVar(&config.ControllerURL, "url", "", "Netstamp controller URL")
+	cmd.Flags().StringVar(&config.APIVersion, "api-version", "", "Netstamp API version")
+	return cmd
 }
 
 func newServiceCommand(ctx context.Context, options Options) *cobra.Command {

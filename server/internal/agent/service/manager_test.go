@@ -3,8 +3,11 @@ package service
 import (
 	"context"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -118,6 +121,138 @@ func TestManagerInstallRejectsMissingBinary(t *testing.T) {
 	})
 	if err == nil || !strings.Contains(err.Error(), "agent binary is not installed") {
 		t.Fatalf("expected missing binary error, got %v", err)
+	}
+}
+
+func TestManagerUpdateDownloadsBinaryAndRestartsInstalledService(t *testing.T) {
+	ctx := context.Background()
+	dir := t.TempDir()
+	paths := testPaths(dir)
+	if err := os.MkdirAll(paths.SystemdRuntimeDir, 0o755); err != nil {
+		t.Fatalf("create systemd runtime dir: %v", err)
+	}
+	writeTestFile(t, paths.InstallPath, 0o755)
+	writeTestFile(t, paths.ServiceFile, 0o600)
+	binaryFilename, err := agentBinaryFilename("linux", runtime.GOARCH)
+	if err != nil {
+		t.Skip(err)
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/install/"+binaryFilename, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET request, got %s", r.Method)
+		}
+		_, _ = w.Write([]byte("new agent binary"))
+	})
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	runner := &fakeRunner{}
+	manager := NewManager(Options{
+		Paths:  paths,
+		Runner: runner,
+		OSName: "linux",
+		EUID:   func() int { return 0 },
+	})
+
+	if err := manager.Update(ctx, UpdateConfig{ControllerURL: server.URL}); err != nil {
+		t.Fatalf("update agent: %v", err)
+	}
+	got, err := os.ReadFile(paths.InstallPath)
+	if err != nil {
+		t.Fatalf("read updated binary: %v", err)
+	}
+	if string(got) != "new agent binary" {
+		t.Fatalf("unexpected binary contents: %q", got)
+	}
+	info, statErr := os.Stat(paths.InstallPath)
+	if statErr != nil {
+		t.Fatalf("stat updated binary: %v", statErr)
+	}
+	if info.Mode().Perm() != 0o755 {
+		t.Fatalf("expected updated binary mode 0755, got %o", info.Mode().Perm())
+	}
+	for _, want := range []string{
+		commandKey("systemctl", "daemon-reload"),
+		commandKey("systemctl", "restart", ServiceName),
+	} {
+		if !runner.ran(want) {
+			t.Fatalf("expected command %q to run, got %#v", want, runner.runs)
+		}
+	}
+}
+
+func TestManagerUpdateUsesManagedEnvControllerURL(t *testing.T) {
+	ctx := context.Background()
+	dir := t.TempDir()
+	paths := testPaths(dir)
+	writeTestFile(t, paths.InstallPath, 0o755)
+	binaryFilename, err := agentBinaryFilename("linux", runtime.GOARCH)
+	if err != nil {
+		t.Skip(err)
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/install/"+binaryFilename, func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte("env agent binary"))
+	})
+	server := httptest.NewServer(mux)
+	defer server.Close()
+	if err := os.MkdirAll(filepath.Dir(paths.EnvFile), 0o755); err != nil {
+		t.Fatalf("create env parent: %v", err)
+	}
+	if err := os.WriteFile(paths.EnvFile, []byte(`NETSTAMP_PROBE_CONTROLLER_URL="`+server.URL+`"`+"\n"), 0o600); err != nil {
+		t.Fatalf("write env file: %v", err)
+	}
+
+	manager := NewManager(Options{
+		Paths:  paths,
+		Runner: &fakeRunner{},
+		OSName: "linux",
+		EUID:   func() int { return 0 },
+	})
+
+	if err := manager.Update(ctx, UpdateConfig{}); err != nil {
+		t.Fatalf("update agent: %v", err)
+	}
+	got, err := os.ReadFile(paths.InstallPath)
+	if err != nil {
+		t.Fatalf("read updated binary: %v", err)
+	}
+	if string(got) != "env agent binary" {
+		t.Fatalf("unexpected binary contents: %q", got)
+	}
+}
+
+func TestManagerUpdatePreservesBinaryWhenDownloadFails(t *testing.T) {
+	ctx := context.Background()
+	dir := t.TempDir()
+	paths := testPaths(dir)
+	writeTestFile(t, paths.InstallPath, 0o755)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, "not found", http.StatusNotFound)
+	}))
+	defer server.Close()
+
+	manager := NewManager(Options{
+		Paths:  paths,
+		Runner: &fakeRunner{},
+		OSName: "linux",
+		EUID:   func() int { return 0 },
+	})
+
+	err := manager.Update(ctx, UpdateConfig{ControllerURL: server.URL})
+	if err == nil || !strings.Contains(err.Error(), "status 404") {
+		t.Fatalf("expected download failure, got %v", err)
+	}
+	got, readErr := os.ReadFile(paths.InstallPath)
+	if readErr != nil {
+		t.Fatalf("read existing binary: %v", readErr)
+	}
+	if string(got) != "test" {
+		t.Fatalf("expected existing binary to be preserved, got %q", got)
 	}
 }
 

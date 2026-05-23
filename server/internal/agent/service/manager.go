@@ -4,11 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
 	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
 )
@@ -22,12 +25,21 @@ const (
 	envFileMode     os.FileMode = 0o600
 	serviceDirMode  os.FileMode = 0o750
 	serviceFileMode os.FileMode = 0o600
+	updateFileMode  os.FileMode = 0o755
+
+	defaultUpdateAPIVersion = "v1"
+	updateHTTPTimeout       = 60 * time.Second
 )
 
 type InstallConfig struct {
 	ControllerURL string
 	ProbeID       string
 	ProbeSecret   string
+}
+
+type UpdateConfig struct {
+	ControllerURL string
+	APIVersion    string
 }
 
 type Paths struct {
@@ -147,6 +159,56 @@ func (m *Manager) Install(ctx context.Context, config InstallConfig) error {
 	return nil
 }
 
+func (m *Manager) Update(ctx context.Context, config UpdateConfig) error {
+	if err := m.requireRootLinuxHost(); err != nil {
+		return err
+	}
+	if err := m.requireInstalledBinary(); err != nil {
+		return err
+	}
+	config, err := m.normalizeUpdateConfig(config)
+	if err != nil {
+		return err
+	}
+
+	binaryFilename, err := agentBinaryFilename(m.osName, runtime.GOARCH)
+	if err != nil {
+		return err
+	}
+
+	installDir := filepath.Dir(m.paths.InstallPath)
+	tempFile, err := os.CreateTemp(installDir, "."+ServiceName+"-update-*")
+	if err != nil {
+		return fmt.Errorf("create temporary agent binary: %w", err)
+	}
+	tempPath := tempFile.Name()
+	defer func() {
+		_ = os.Remove(tempPath)
+	}()
+
+	downloadErr := downloadAgentBinary(ctx, config.agentBinaryURL(binaryFilename), tempFile)
+	closeErr := tempFile.Close()
+	if downloadErr != nil {
+		return downloadErr
+	}
+	if closeErr != nil {
+		return fmt.Errorf("close temporary agent binary: %w", closeErr)
+	}
+	if err := os.Chmod(tempPath, updateFileMode); err != nil {
+		return fmt.Errorf("chmod temporary agent binary: %w", err)
+	}
+	if err := os.Rename(tempPath, m.paths.InstallPath); err != nil {
+		return fmt.Errorf("replace agent binary: %w", err)
+	}
+	if err := os.Chmod(m.paths.InstallPath, updateFileMode); err != nil {
+		return fmt.Errorf("chmod agent binary: %w", err)
+	}
+	if err := m.restartServiceIfInstalled(ctx); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (m *Manager) Uninstall(ctx context.Context, purge bool) error {
 	if err := m.requireRootLinuxHost(); err != nil {
 		return err
@@ -184,6 +246,29 @@ func (m *Manager) Status(ctx context.Context) error {
 		return errors.New("service status is supported on Linux only")
 	}
 	return m.runner.Run(ctx, "systemctl", "status", ServiceName)
+}
+
+func (m *Manager) restartServiceIfInstalled(ctx context.Context) error {
+	info, err := os.Stat(m.paths.ServiceFile)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("stat systemd service: %w", err)
+	}
+	if info.IsDir() {
+		return fmt.Errorf("systemd service path is a directory: %s", m.paths.ServiceFile)
+	}
+	if _, err := os.Stat(m.paths.SystemdRuntimeDir); err != nil {
+		return fmt.Errorf("systemd does not appear to be running: %w", err)
+	}
+	if err := m.runner.Run(ctx, "systemctl", "daemon-reload"); err != nil {
+		return fmt.Errorf("reload systemd: %w", err)
+	}
+	if err := m.runner.Run(ctx, "systemctl", "restart", ServiceName); err != nil {
+		return fmt.Errorf("restart service: %w", err)
+	}
+	return nil
 }
 
 func (m *Manager) requireRootSystemdHost() error {
@@ -343,6 +428,126 @@ func normalizeInstallConfig(config InstallConfig) (InstallConfig, error) {
 		return InstallConfig{}, errors.New("probe secret must not contain a newline")
 	}
 	return config, nil
+}
+
+func (m *Manager) normalizeUpdateConfig(config UpdateConfig) (UpdateConfig, error) {
+	config.ControllerURL = strings.TrimSpace(config.ControllerURL)
+	config.APIVersion = strings.Trim(strings.TrimSpace(config.APIVersion), "/")
+	if config.APIVersion == "" {
+		config.APIVersion = defaultUpdateAPIVersion
+	}
+	if strings.Contains(config.APIVersion, "/") {
+		return UpdateConfig{}, errors.New("api version must not contain a slash")
+	}
+	if config.ControllerURL == "" {
+		config.ControllerURL = strings.TrimSpace(os.Getenv("NETSTAMP_PROBE_CONTROLLER_URL"))
+	}
+	if config.ControllerURL == "" {
+		value, err := envFileValue(m.paths.EnvFile, "NETSTAMP_PROBE_CONTROLLER_URL")
+		if err != nil && !errors.Is(err, os.ErrNotExist) {
+			return UpdateConfig{}, fmt.Errorf("read probe env file: %w", err)
+		}
+		config.ControllerURL = strings.TrimSpace(value)
+	}
+	if err := validateControllerURL(config.ControllerURL); err != nil {
+		return UpdateConfig{}, err
+	}
+	return config, nil
+}
+
+func (config UpdateConfig) agentBinaryURL(binaryFilename string) string {
+	binaryURL, err := url.JoinPath(strings.TrimRight(config.ControllerURL, "/"), "api", config.APIVersion, "install", binaryFilename)
+	if err != nil {
+		return strings.TrimRight(config.ControllerURL, "/") + "/api/" + config.APIVersion + "/install/" + binaryFilename
+	}
+	return binaryURL
+}
+
+func agentBinaryFilename(osName, arch string) (string, error) {
+	if osName != "linux" {
+		return "", errors.New("agent update is supported on Linux only")
+	}
+	switch arch {
+	case "amd64":
+		return "netstamp-agent-linux-amd64", nil
+	case "arm64":
+		return "netstamp-agent-linux-arm64", nil
+	default:
+		return "", fmt.Errorf("agent update currently supports linux/amd64 and linux/arm64 only, got linux/%s", arch)
+	}
+}
+
+func downloadAgentBinary(ctx context.Context, binaryURL string, dest io.Writer) error {
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, binaryURL, http.NoBody)
+	if err != nil {
+		return fmt.Errorf("create agent binary request: %w", err)
+	}
+	request.Header.Set("Accept", "application/octet-stream")
+
+	client := http.Client{Timeout: updateHTTPTimeout}
+	response, err := client.Do(request)
+	if err != nil {
+		return fmt.Errorf("download agent binary: %w", err)
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(io.LimitReader(response.Body, 1024))
+		message := strings.TrimSpace(string(body))
+		if message == "" {
+			return fmt.Errorf("download agent binary returned status %d", response.StatusCode)
+		}
+		return fmt.Errorf("download agent binary returned status %d: %s", response.StatusCode, message)
+	}
+
+	if _, err := io.Copy(dest, response.Body); err != nil {
+		return fmt.Errorf("write agent binary: %w", err)
+	}
+	return nil
+}
+
+func envFileValue(path, key string) (string, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+	for _, line := range strings.Split(string(data), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		name, value, ok := strings.Cut(line, "=")
+		if !ok || strings.TrimSpace(name) != key {
+			continue
+		}
+		return systemdEnvUnescape(strings.TrimSpace(value)), nil
+	}
+	return "", nil
+}
+
+func systemdEnvUnescape(value string) string {
+	if len(value) >= 2 && value[0] == '"' && value[len(value)-1] == '"' {
+		value = value[1 : len(value)-1]
+	}
+	var builder strings.Builder
+	builder.Grow(len(value))
+	escaped := false
+	for _, r := range value {
+		if escaped {
+			builder.WriteRune(r)
+			escaped = false
+			continue
+		}
+		if r == '\\' {
+			escaped = true
+			continue
+		}
+		builder.WriteRune(r)
+	}
+	if escaped {
+		builder.WriteByte('\\')
+	}
+	return builder.String()
 }
 
 func validateControllerURL(raw string) error {
