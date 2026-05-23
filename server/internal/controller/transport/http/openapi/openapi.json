@@ -396,6 +396,46 @@
 				"tags": ["Install"]
 			}
 		},
+		"/install/netstamp-agent-linux-arm64": {
+			"get": {
+				"operationId": "downloadAgentLinuxArm64",
+				"summary": "Download Linux arm64 probe agent binary",
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/octet-stream": {
+								"schema": {
+									"contentMediaType": "application/octet-stream"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"503": {
+						"description": "Service unavailable.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Install"]
+			}
+		},
 		"/install/uninstall-agent.sh": {
 			"get": {
 				"operationId": "getAgentUninstallerScript",

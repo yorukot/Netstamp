@@ -1,12 +1,13 @@
 import { absoluteApiUrl, apiBaseUrl } from "./client";
 import type { paths } from "./openapi";
 
-type InstallAssetPath = Extract<keyof paths, "/install/agent.sh" | "/install/uninstall-agent.sh" | "/install/netstamp-agent-linux-amd64">;
+type InstallAssetPath = Extract<keyof paths, "/install/agent.sh" | "/install/uninstall-agent.sh" | "/install/netstamp-agent-linux-amd64" | "/install/netstamp-agent-linux-arm64">;
 
 export const installAssetPaths = {
 	agentInstaller: "/install/agent.sh",
 	agentUninstaller: "/install/uninstall-agent.sh",
-	linuxAmd64Binary: "/install/netstamp-agent-linux-amd64"
+	linuxAmd64Binary: "/install/netstamp-agent-linux-amd64",
+	linuxArm64Binary: "/install/netstamp-agent-linux-arm64"
 } as const satisfies Record<string, InstallAssetPath>;
 
 export function installAssetUrl(path: InstallAssetPath) {

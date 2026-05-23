@@ -29,4 +29,10 @@ interface InstallService {
 	@get
 	@route("/netstamp-agent-linux-amd64")
 	downloadAgentLinuxAmd64(): AgentBinaryFile | NotFoundProblem | ServiceUnavailableProblem;
+
+	@operationId("downloadAgentLinuxArm64")
+	@summary("Download Linux arm64 probe agent binary")
+	@get
+	@route("/netstamp-agent-linux-arm64")
+	downloadAgentLinuxArm64(): AgentBinaryFile | NotFoundProblem | ServiceUnavailableProblem;
 }

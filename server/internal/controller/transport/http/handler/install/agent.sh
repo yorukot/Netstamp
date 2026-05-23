@@ -54,12 +54,17 @@ done
 
 case "$(uname -m)" in
 x86_64 | amd64)
-	binary_url="https://netstamp.dev/api/v1/install/netstamp-agent-linux-amd64"
+	binary_filename=netstamp-agent-linux-amd64
+	;;
+aarch64 | arm64)
+	binary_filename=netstamp-agent-linux-arm64
 	;;
 *)
-	die "this installer currently supports linux/amd64 only"
+	die "this installer currently supports linux/amd64 and linux/arm64 only"
 	;;
 esac
+
+binary_url="https://netstamp.dev/api/v1/install/${binary_filename}"
 
 tmp_dir=$(mktemp -d)
 trap 'rm -rf "$tmp_dir"' EXIT HUP INT TERM

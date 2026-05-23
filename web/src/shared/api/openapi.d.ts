@@ -152,6 +152,23 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	"/install/netstamp-agent-linux-arm64": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** Download Linux arm64 probe agent binary */
+		get: operations["downloadAgentLinuxArm64"];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	"/install/uninstall-agent.sh": {
 		parameters: {
 			query?: never;
@@ -2760,6 +2777,44 @@ export interface operations {
 		};
 	};
 	downloadAgentLinuxAmd64: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/octet-stream": unknown;
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Service unavailable. */
+			503: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	downloadAgentLinuxArm64: {
 		parameters: {
 			query?: never;
 			header?: never;
