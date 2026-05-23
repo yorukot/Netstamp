@@ -11,7 +11,7 @@ import { KeyValueGrid } from "@/shared/components/KeyValueGrid";
 import { PageStack } from "@/shared/components/PageStack";
 import { ResponsiveGrid } from "@/shared/components/ResponsiveGrid";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
-import { pingInsightChartOption, type ChartOption, type PingInsightChartBucket, type PingInsightSampleDensityCell } from "@/shared/utils/chartOptions";
+import { pingInsightChartOption, type PingInsightChartBucket, type PingInsightSampleDensityCell } from "@/shared/utils/chartOptions";
 import { classNames } from "@/shared/utils/classNames";
 import { Badge, DataTable, Panel, SelectField, type BadgeTone, type DataColumn } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
@@ -72,7 +72,7 @@ interface TracerouteSummary {
 	pathChangeCount: number;
 }
 
-interface TopologyGraphNode {
+interface TopologyRouteNode {
 	id: string;
 	name: string;
 	label: string;
@@ -86,14 +86,10 @@ interface TopologyGraphNode {
 	lossPercent?: number;
 	x: number;
 	y: number;
-	symbol: string;
-	symbolSize: number;
-	category: string;
-	itemStyle: { color: string; borderColor: string; borderWidth: number; shadowBlur?: number; shadowColor?: string };
-	labelLayout?: { hideOverlap: boolean };
+	severity: TopologySeverity;
 }
 
-interface TopologyGraphEdge {
+interface TopologyRouteEdge {
 	source: string;
 	target: string;
 	sourceLabel: string;
@@ -101,17 +97,23 @@ interface TopologyGraphEdge {
 	seenCount: number;
 	avgRttMs?: number;
 	lossPercent?: number;
-	lineStyle: { color: string; width: number; opacity: number; curveness: number };
+	x1: number;
+	y1: number;
+	x2: number;
+	y2: number;
+	color: string;
+	width: number;
+	opacity: number;
 }
 
-interface TopologyTooltipParam {
-	dataType?: "node" | "edge";
-	data?: Partial<TopologyGraphNode & TopologyGraphEdge>;
+interface TopologyRouteLayout {
+	nodes: TopologyRouteNode[];
+	edges: TopologyRouteEdge[];
+	viewWidth: number;
+	viewHeight: number;
 }
 
-interface TopologyLabelParam {
-	data?: Partial<TopologyGraphNode>;
-}
+type TopologySeverity = "normal" | "warning" | "critical";
 
 type TimelinePointStyle = CSSProperties & {
 	"--ns-timeline-x"?: string;
@@ -122,6 +124,16 @@ type RailStyle = CSSProperties & {
 	"--ns-hop-range-start"?: string;
 	"--ns-hop-range-end"?: string;
 	"--ns-hop-rtt"?: string;
+};
+
+type TopologyMapStyle = CSSProperties & {
+	"--ns-topology-width"?: string;
+	"--ns-topology-height"?: string;
+};
+
+type TopologyNodeStyle = CSSProperties & {
+	"--ns-topology-node-x"?: string;
+	"--ns-topology-node-y"?: string;
 };
 
 interface TimeWindow {
@@ -489,15 +501,6 @@ function runFinalLoss(run: TracerouteResult) {
 	return lastRespondingHop(run)?.lossPercent ?? 0;
 }
 
-function escapeHtml(value: unknown) {
-	return String(value ?? "")
-		.replaceAll("&", "&amp;")
-		.replaceAll("<", "&lt;")
-		.replaceAll(">", "&gt;")
-		.replaceAll('"', "&quot;")
-		.replaceAll("'", "&#39;");
-}
-
 function topologyTone(lossPercent: number | undefined, avgRttMs: number | undefined) {
 	if (typeof lossPercent === "number" && lossPercent >= 1) {
 		return "#ff453a";
@@ -510,16 +513,19 @@ function topologyTone(lossPercent: number | undefined, avgRttMs: number | undefi
 	return "#ff7a1a";
 }
 
-const topologyColumnGap = 172;
+const topologyColumnGap = 168;
 const topologyRowGap = 76;
+const topologyPaddingX = 72;
+const topologyMinWidth = 760;
+const topologyMinHeight = 280;
 
-function topologyStatus(lossPercent: number | undefined, avgRttMs: number | undefined) {
+function topologySeverity(lossPercent: number | undefined, avgRttMs: number | undefined): TopologySeverity {
 	if (typeof lossPercent === "number" && lossPercent >= 1) {
-		return "loss";
+		return "critical";
 	}
 
 	if (typeof avgRttMs === "number" && avgRttMs >= 100) {
-		return "high rtt";
+		return "warning";
 	}
 
 	return "normal";
@@ -562,60 +568,6 @@ function topologyHopLabel(node: TracerouteTopologyNode) {
 	return node.kind;
 }
 
-function topologyNodeSymbol(node: TracerouteTopologyNode) {
-	if (node.kind === "probe") {
-		return "diamond";
-	}
-
-	if (node.kind === "destination") {
-		return "rect";
-	}
-
-	return "circle";
-}
-
-function topologyNodeStyle(node: TracerouteTopologyNode) {
-	const status = topologyStatus(node.lossPercent, node.avgRttMs);
-	const stateColor = topologyTone(node.lossPercent, node.avgRttMs);
-
-	if (node.kind === "probe") {
-		return {
-			category: "agent",
-			itemStyle: {
-				color: "#c4ccd9",
-				borderColor: "rgba(255,247,236,0.86)",
-				borderWidth: 1.5,
-				shadowBlur: 8,
-				shadowColor: "rgba(196,204,217,0.18)"
-			}
-		};
-	}
-
-	if (node.kind === "destination") {
-		return {
-			category: "destination",
-			itemStyle: {
-				color: "rgba(255,122,26,0.26)",
-				borderColor: stateColor,
-				borderWidth: status === "normal" ? 2 : 3,
-				shadowBlur: 10,
-				shadowColor: "rgba(255,122,26,0.22)"
-			}
-		};
-	}
-
-	return {
-		category: status,
-		itemStyle: {
-			color: "rgba(3,5,8,0.98)",
-			borderColor: stateColor,
-			borderWidth: status === "normal" ? 2 : 3,
-			shadowBlur: status === "normal" ? 0 : 12,
-			shadowColor: status === "loss" ? "rgba(255,69,58,0.28)" : "rgba(255,159,10,0.24)"
-		}
-	};
-}
-
 function topologyColumn(node: TracerouteTopologyNode, maxHop: number) {
 	if (node.kind === "probe") {
 		return 0;
@@ -632,15 +584,7 @@ function topologyColumn(node: TracerouteTopologyNode, maxHop: number) {
 	return maxHop + 2;
 }
 
-function topologyLabelFormatter(params: TopologyLabelParam) {
-	const data = params.data;
-	const name = data?.name || "";
-	const hopLabel = data?.hopLabel || "";
-
-	return hopLabel ? `${name}\n${hopLabel}` : name;
-}
-
-function topologyChartOption(nodes: TracerouteTopologyNode[], edges: TracerouteTopologyEdge[]): ChartOption {
+function topologyRouteLayout(nodes: TracerouteTopologyNode[], edges: TracerouteTopologyEdge[]): TopologyRouteLayout {
 	const maxHop = Math.max(0, ...nodes.map(node => node.hopIndex ?? 0));
 	const sortedNodes = [...nodes].sort((a, b) => topologyColumn(a, maxHop) - topologyColumn(b, maxHop) || b.seenCount - a.seenCount || a.label.localeCompare(b.label));
 	const nodeColumns = new Map<number, TracerouteTopologyNode[]>();
@@ -658,12 +602,17 @@ function topologyChartOption(nodes: TracerouteTopologyNode[], edges: TracerouteT
 		);
 	}
 
-	const graphNodes: TopologyGraphNode[] = [...nodeColumns.entries()]
+	const columns = [...nodeColumns.entries()].sort(([a], [b]) => a - b);
+	const maxColumn = Math.max(1, ...columns.map(([column]) => column));
+	const maxOffset = Math.max(0, ...columns.map(([, siblings]) => Math.ceil((siblings.length - 1) / 2)));
+	const viewWidth = Math.max(topologyMinWidth, topologyPaddingX * 2 + maxColumn * topologyColumnGap);
+	const viewHeight = Math.max(topologyMinHeight, 176 + maxOffset * topologyRowGap * 2);
+	const centerY = viewHeight / 2 - 14;
+	const routeNodes: TopologyRouteNode[] = columns
 		.sort(([a], [b]) => a - b)
 		.flatMap(([column, siblings]) =>
 			siblings.map((node, index) => {
 				const yOffset = topologySiblingOffset(index);
-				const nodeStyle = topologyNodeStyle(node);
 
 				return {
 					id: node.id,
@@ -677,23 +626,20 @@ function topologyChartOption(nodes: TracerouteTopologyNode[], edges: TracerouteT
 					seenCount: node.seenCount,
 					avgRttMs: node.avgRttMs,
 					lossPercent: node.lossPercent,
-					x: column * topologyColumnGap,
-					y: yOffset * topologyRowGap,
-					symbol: topologyNodeSymbol(node),
-					symbolSize: 14 + Math.min(12, (node.seenCount / maxSeen) * 12),
-					category: nodeStyle.category,
-					itemStyle: nodeStyle.itemStyle,
-					labelLayout: { hideOverlap: true }
+					x: topologyPaddingX + column * topologyColumnGap,
+					y: centerY + yOffset * topologyRowGap,
+					severity: topologySeverity(node.lossPercent, node.avgRttMs)
 				};
 			})
 		);
-	const knownNodeIds = new Set(graphNodes.map(node => node.id));
-	const graphNodeById = new Map(graphNodes.map(node => [node.id, node]));
-	const graphEdges: TopologyGraphEdge[] = edges
+	const knownNodeIds = new Set(routeNodes.map(node => node.id));
+	const routeNodeById = new Map(routeNodes.map(node => [node.id, node]));
+	const routeEdges: TopologyRouteEdge[] = edges
 		.filter(edge => knownNodeIds.has(edge.source) && knownNodeIds.has(edge.target))
 		.map(edge => {
-			const sourceNode = graphNodeById.get(edge.source);
-			const targetNode = graphNodeById.get(edge.target);
+			const sourceNode = routeNodeById.get(edge.source);
+			const targetNode = routeNodeById.get(edge.target);
+			const seenRatio = edge.seenCount / maxSeen;
 
 			return {
 				source: edge.source,
@@ -703,97 +649,89 @@ function topologyChartOption(nodes: TracerouteTopologyNode[], edges: TracerouteT
 				seenCount: edge.seenCount,
 				avgRttMs: edge.avgRttMs,
 				lossPercent: edge.lossPercent,
-				lineStyle: {
-					color: topologyTone(edge.lossPercent, edge.avgRttMs),
-					width: 1.25 + Math.min(2.75, (edge.seenCount / maxSeen) * 2.75),
-					opacity: 0.28 + Math.min(0.52, edge.seenCount / maxSeen),
-					curveness: 0
-				}
+				x1: sourceNode?.x ?? 0,
+				y1: sourceNode?.y ?? 0,
+				x2: targetNode?.x ?? 0,
+				y2: targetNode?.y ?? 0,
+				color: topologyTone(edge.lossPercent, edge.avgRttMs),
+				width: 1.5 + Math.min(2.5, seenRatio * 2.5),
+				opacity: 0.34 + Math.min(0.48, seenRatio)
 			};
 		});
 
-	return {
-		backgroundColor: "transparent",
-		legend: {
-			top: 0,
-			right: 6,
-			itemWidth: 8,
-			itemHeight: 8,
-			textStyle: { color: "#b8b3aa", fontFamily: "JetBrains Mono, monospace", fontSize: 10 },
-			data: ["agent", "normal", "high rtt", "loss", "destination"]
-		},
-		tooltip: {
-			trigger: "item",
-			backgroundColor: "rgba(10,13,18,0.96)",
-			borderColor: "rgba(255,122,26,0.32)",
-			textStyle: { color: "#fff7ec", fontFamily: "JetBrains Mono, monospace", fontSize: 11 },
-			formatter: (params: TopologyTooltipParam) => {
-				const data = params.data;
+	return { nodes: routeNodes, edges: routeEdges, viewWidth, viewHeight };
+}
 
-				if (params.dataType === "edge") {
-					return [
-						`${data?.sourceLabel ?? "source"} -> ${data?.targetLabel ?? "target"}`,
-						`seen ${formatCount(data?.seenCount)}`,
-						`avg ${formatMs(data?.avgRttMs)}`,
-						`loss ${formatPercent(data?.lossPercent)}`
-					]
-						.map(escapeHtml)
-						.join("<br/>");
-				}
+function topologyNodeTitle(node: TopologyRouteNode) {
+	return [
+		node.label,
+		node.hostname && node.address && node.hostname !== node.address ? `${node.hostname} (${node.address})` : node.address,
+		node.hopLabel,
+		`seen ${formatCount(node.seenCount)}`,
+		`avg ${formatMs(node.avgRttMs)}`,
+		`loss ${formatPercent(node.lossPercent)}`
+	]
+		.filter(Boolean)
+		.join("\n");
+}
 
-				return [
-					data?.label || "node",
-					data?.hostname && data?.address && data.hostname !== data.address ? `${data.hostname} (${data.address})` : data?.address,
-					data?.hopLabel,
-					`seen ${formatCount(data?.seenCount)}`,
-					`avg ${formatMs(data?.avgRttMs)}`,
-					`loss ${formatPercent(data?.lossPercent)}`
-				]
-					.filter(Boolean)
-					.map(escapeHtml)
-					.join("<br/>");
-			}
-		},
-		series: [
-			{
-				type: "graph",
-				layout: "none",
-				roam: true,
-				scaleLimit: { min: 0.62, max: 2.6 },
-				left: 28,
-				top: 42,
-				right: 28,
-				bottom: 62,
-				data: graphNodes,
-				links: graphEdges,
-				edgeSymbol: ["none", "arrow"],
-				edgeSymbolSize: [0, 6],
-				categories: [
-					{ name: "agent", itemStyle: { color: "#c4ccd9" } },
-					{ name: "normal", itemStyle: { color: "#ff7a1a" } },
-					{ name: "high rtt", itemStyle: { color: "#ff9f0a" } },
-					{ name: "loss", itemStyle: { color: "#ff453a" } },
-					{ name: "destination", itemStyle: { color: "#ff7a1a" } }
-				],
-				label: {
-					show: true,
-					position: "bottom",
-					distance: 9,
-					color: "#ddd4c8",
-					fontFamily: "JetBrains Mono, monospace",
-					fontSize: 10,
-					lineHeight: 14,
-					formatter: topologyLabelFormatter
-				},
-				lineStyle: {
-					color: "source"
-				},
-				emphasis: {
-					focus: "adjacency"
-				}
-			}
-		]
+function topologyEdgeTitle(edge: TopologyRouteEdge) {
+	return [`${edge.sourceLabel} -> ${edge.targetLabel}`, `seen ${formatCount(edge.seenCount)}`, `avg ${formatMs(edge.avgRttMs)}`, `loss ${formatPercent(edge.lossPercent)}`].join("\n");
+}
+
+function TopologyRouteMap({ nodes, edges }: { nodes: TracerouteTopologyNode[]; edges: TracerouteTopologyEdge[] }) {
+	const layout = topologyRouteLayout(nodes, edges);
+	const centerY = layout.viewHeight / 2 - 14;
+	const style: TopologyMapStyle = {
+		"--ns-topology-width": `${layout.viewWidth}px`,
+		"--ns-topology-height": `${layout.viewHeight}px`
 	};
+
+	return (
+		<div className={styles.topologyShell}>
+			<div className={styles.topologyLegend} aria-hidden="true">
+				<span data-tone="agent">agent</span>
+				<span data-tone="normal">normal</span>
+				<span data-tone="warning">high rtt</span>
+				<span data-tone="critical">loss</span>
+				<span data-tone="destination">destination</span>
+			</div>
+			<div className={styles.topologyViewport}>
+				<div className={styles.topologyMap} style={style}>
+					<svg className={styles.topologySvg} viewBox={`0 0 ${layout.viewWidth} ${layout.viewHeight}`} role="img" aria-label="Aggregated traceroute topology">
+						<line className={styles.topologyCenterLine} x1={topologyPaddingX} x2={layout.viewWidth - topologyPaddingX} y1={centerY} y2={centerY} />
+						{layout.edges.map(edge => (
+							<g key={`${edge.source}->${edge.target}`}>
+								<title>{topologyEdgeTitle(edge)}</title>
+								<line className={styles.topologyEdge} x1={edge.x1} x2={edge.x2} y1={edge.y1} y2={edge.y2} stroke={edge.color} strokeWidth={edge.width} opacity={edge.opacity} />
+							</g>
+						))}
+					</svg>
+					{layout.nodes.map(node => {
+						const nodeStyle: TopologyNodeStyle = {
+							"--ns-topology-node-x": `${node.x}px`,
+							"--ns-topology-node-y": `${node.y}px`
+						};
+
+						return (
+							<div
+								className={classNames(styles.topologyNode, styles[`topologyNode${node.kind}`], styles[`topologyNode${node.severity}`])}
+								style={nodeStyle}
+								title={topologyNodeTitle(node)}
+								key={node.id}
+							>
+								<span className={styles.topologyNodeDot} />
+								<span className={styles.topologyNodeLabel}>
+									<strong>{node.name}</strong>
+									<span>{node.hopLabel}</span>
+								</span>
+							</div>
+						);
+					})}
+				</div>
+			</div>
+		</div>
+	);
 }
 
 function LatencyRailCell({ hop, maxRtt }: { hop: HopDiagnostic; maxRtt: number }) {
@@ -1001,7 +939,7 @@ function TracerouteInsight({
 
 			<Panel tone="deep" eyebrow="Topology" title="Aggregated route graph">
 				{hasTopology ? (
-					<ChartPanel className={styles.topologyChart} option={topologyChartOption(topologyNodes, topologyEdges)} height="clamp(22rem, 36vw, 32rem)" />
+					<TopologyRouteMap nodes={topologyNodes} edges={topologyEdges} />
 				) : (
 					<BodyCopy>{isTopologyLoading ? "Loading topology for this route." : "Topology data is unavailable for the selected filters; hop rows still show the latest run."}</BodyCopy>
 				)}
