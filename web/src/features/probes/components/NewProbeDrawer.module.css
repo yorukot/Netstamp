@@ -133,7 +133,8 @@
 	align-content: start;
 	min-width: 0;
 	min-height: 0;
-	overflow: hidden;
+	overflow-x: hidden;
+	overflow-y: auto;
 	padding-right: 0.125rem;
 }
 

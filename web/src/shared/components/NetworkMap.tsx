@@ -230,8 +230,8 @@ export function NetworkMap({ probes, selectedId, onSelect, mode = "fleet", class
 			activeMap.easeTo({
 				center: selectedCoordinates,
 				zoom: 12.35,
-				pitch: 35,
-				bearing: -20,
+				pitch: 0,
+				bearing: 0,
 				duration: 420
 			});
 		}

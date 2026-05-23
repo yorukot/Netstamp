@@ -17,7 +17,7 @@ import (
 	domaintraceroute "github.com/yorukot/netstamp/internal/domain/traceroute"
 )
 
-func mapProbe(row sqlc.Probe) domainprobe.Probe {
+func mapCreateProbeRow(row sqlc.CreateProbeRow) domainprobe.Probe {
 	return mapProbeFields(
 		row.ID,
 		row.ProjectID,

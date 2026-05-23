@@ -14,7 +14,7 @@ import { probeSecretUpdateCommand } from "@/shared/api/installAssets";
 import { createProjectLabel, useDeleteProjectProbeMutation, useRotateProjectProbeSecretMutation, useUpdateProjectProbeMutation } from "@/shared/api/mutations";
 import { projectQueries } from "@/shared/api/queries";
 import { apiQueryKeys } from "@/shared/api/queryKeys";
-import type { ApiLabel } from "@/shared/api/types";
+import type { ApiLabel, ApiProbe } from "@/shared/api/types";
 import { useConfirm } from "@/shared/components/confirmContext";
 import { pushErrorToast } from "@/shared/toast/toastStore";
 import { classNames } from "@/shared/utils/classNames";
@@ -68,19 +68,34 @@ interface ProbeDetailProps {
 }
 
 export function ProbeDetail({ probe, assignedRows, floating = false, projectRef, onDeleted }: ProbeDetailProps) {
-	const confirm = useConfirm();
-	const queryClient = useQueryClient();
-	const copyTimeoutRef = useRef<number | null>(null);
 	const detailQuery = useQuery({
 		...projectQueries.probeDetail(projectRef || "", probe.id),
 		enabled: Boolean(projectRef && probe.id)
 	});
+	const activeApiProbe = detailQuery.data?.probe ?? null;
+	const activeProbe = activeApiProbe ? mapApiProbe(activeApiProbe, 0) : probe;
+	const formKey = `${activeProbe.id}:${activeApiProbe?.updatedAt ?? "pending"}`;
+
+	return <ProbeDetailContent key={formKey} activeProbe={activeProbe} activeApiProbe={activeApiProbe} assignedRows={assignedRows} floating={floating} projectRef={projectRef} onDeleted={onDeleted} />;
+}
+
+interface ProbeDetailContentProps {
+	activeProbe: Probe;
+	activeApiProbe: ApiProbe | null;
+	assignedRows: AssignedRow[];
+	floating?: boolean;
+	projectRef?: string | null;
+	onDeleted?: () => void;
+}
+
+function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floating = false, projectRef, onDeleted }: ProbeDetailContentProps) {
+	const confirm = useConfirm();
+	const queryClient = useQueryClient();
+	const copyTimeoutRef = useRef<number | null>(null);
 	const labelsQuery = useQuery({
 		...projectQueries.labels(projectRef || ""),
 		enabled: Boolean(projectRef)
 	});
-	const activeApiProbe = detailQuery.data?.probe ?? null;
-	const activeProbe = activeApiProbe ? mapApiProbe(activeApiProbe, 0) : probe;
 	const [probeName, setProbeName] = useState(activeProbe.name);
 	const [coordinateInputMode, setCoordinateInputMode] = useState<CoordinateInputMode>("search");
 	const [locationSearch, setLocationSearch] = useState(activeProbe.location === "-" ? "" : activeProbe.location);
@@ -123,23 +138,6 @@ export function ProbeDetail({ probe, assignedRows, floating = false, projectRef,
 			geocodeAbortRef.current?.abort();
 		};
 	}, []);
-
-	useEffect(() => {
-		if (!activeApiProbe) {
-			return;
-		}
-
-		const nextProbe = mapApiProbe(activeApiProbe, 0);
-		const nextLocationName = activeApiProbe.locationName || "";
-
-		setProbeName(nextProbe.name);
-		setLocationSearch(nextLocationName);
-		setLocationName(nextLocationName);
-		setLatitudeInput(typeof activeApiProbe.latitude === "number" ? formatCoordinate(activeApiProbe.latitude) : "");
-		setLongitudeInput(typeof activeApiProbe.longitude === "number" ? formatCoordinate(activeApiProbe.longitude) : "");
-		setGeocodeStatus("idle");
-		setGeocodeError("");
-	}, [activeApiProbe]);
 
 	function toggleAsMode() {
 		const nextMode = asMode === "manual" ? "auto" : "manual";

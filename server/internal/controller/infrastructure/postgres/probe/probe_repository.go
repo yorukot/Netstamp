@@ -190,7 +190,7 @@ func (r *ProbeRepository) CreateProbe(ctx context.Context, input domainprobe.Pro
 		}
 
 		status := mapProbeStatus(statusRow)
-		created = mapProbe(row)
+		created = mapCreateProbeRow(row)
 		created.Status = &status
 		return nil
 	})
