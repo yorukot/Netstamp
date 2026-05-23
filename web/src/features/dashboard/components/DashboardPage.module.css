@@ -1,3 +1,18 @@
+.mapPanel {
+	display: grid;
+	gap: 1rem;
+}
+
+.mapCopy {
+	max-width: 54rem;
+	margin: 0;
+}
+
+.worldMap {
+	height: 32rem;
+	min-height: 24rem;
+}
+
 .feed {
 	display: grid;
 	gap: 1rem;
@@ -6,4 +21,11 @@
 .event {
 	display: grid;
 	gap: 0.75rem;
+}
+
+@media (max-width: 48rem) {
+	.worldMap {
+		height: 24rem;
+		min-height: 20rem;
+	}
 }
