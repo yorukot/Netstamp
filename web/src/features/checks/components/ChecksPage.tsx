@@ -338,10 +338,10 @@ export function ChecksPage() {
 		enabled: Boolean(projectRef && selectedListCheck && !isCreating),
 		select: data => mapApiMeasurements(data.measurements, probes, checkRows)
 	});
-	const activeCheckName = checkName || selectedCheck?.name || "";
-	const activeTarget = target || selectedCheck?.target || "";
+	const activeCheckName = isCreating || selectedId ? checkName : selectedCheck?.name || "";
+	const activeTarget = isCreating || selectedId ? target : selectedCheck?.target || "";
 	const activeCheckType = isCreating || selectedId ? checkType : selectedCheck?.type || checkType;
-	const activeInterval = interval || selectedCheck?.interval || "30s";
+	const activeInterval = isCreating || selectedId ? interval : selectedCheck?.interval || "30s";
 	const activeEnabled = selectedId ? enabled : selectedCheck?.status.toLowerCase().includes("disabled") ? "disabled" : enabled;
 	const activePingConfig = selectedId || isCreating ? pingConfig : pingConfigFormStateFromApi(selectedApiCheck);
 	const activeTracerouteConfig = selectedId || isCreating ? tracerouteConfig : tracerouteConfigFormStateFromApi(selectedApiCheck);
