@@ -182,6 +182,49 @@ func (ns NullProbeState) Value() (driver.Value, error) {
 	return string(ns.ProbeState), nil
 }
 
+type ProjectInviteStatus string
+
+const (
+	ProjectInviteStatusPending  ProjectInviteStatus = "pending"
+	ProjectInviteStatusAccepted ProjectInviteStatus = "accepted"
+	ProjectInviteStatusRejected ProjectInviteStatus = "rejected"
+)
+
+func (e *ProjectInviteStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ProjectInviteStatus(s)
+	case string:
+		*e = ProjectInviteStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ProjectInviteStatus: %T", src)
+	}
+	return nil
+}
+
+type NullProjectInviteStatus struct {
+	ProjectInviteStatus ProjectInviteStatus `json:"project_invite_status"`
+	Valid               bool                `json:"valid"` // Valid is true if ProjectInviteStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullProjectInviteStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.ProjectInviteStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ProjectInviteStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullProjectInviteStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ProjectInviteStatus), nil
+}
+
 type ProjectMemberRole string
 
 const (
@@ -431,6 +474,18 @@ type Project struct {
 	CreatedAt       pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
 	DeletedAt       pgtype.Timestamptz `json:"deleted_at"`
+}
+
+type ProjectInvite struct {
+	ID              uuid.UUID           `json:"id"`
+	ProjectID       uuid.UUID           `json:"project_id"`
+	InvitedUserID   uuid.UUID           `json:"invited_user_id"`
+	InvitedByUserID uuid.UUID           `json:"invited_by_user_id"`
+	Role            ProjectMemberRole   `json:"role"`
+	Status          ProjectInviteStatus `json:"status"`
+	CreatedAt       pgtype.Timestamptz  `json:"created_at"`
+	UpdatedAt       pgtype.Timestamptz  `json:"updated_at"`
+	ResolvedAt      pgtype.Timestamptz  `json:"resolved_at"`
 }
 
 type ProjectMember struct {

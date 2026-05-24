@@ -18,6 +18,14 @@ const (
 	RoleViewer Role = "viewer"
 )
 
+type InviteStatus string
+
+const (
+	InviteStatusPending  InviteStatus = "pending"
+	InviteStatusAccepted InviteStatus = "accepted"
+	InviteStatusRejected InviteStatus = "rejected"
+)
+
 func (r Role) IsValid() bool {
 	switch r {
 	case RoleOwner, RoleAdmin, RoleEditor, RoleViewer:
@@ -113,6 +121,27 @@ type MemberUser struct {
 	DisplayName string `json:"displayName"`
 }
 
+type Invite struct {
+	ID              string        `json:"id"`
+	ProjectID       string        `json:"projectId"`
+	InvitedUserID   string        `json:"invitedUserId"`
+	InvitedByUserID string        `json:"invitedByUserId"`
+	Role            Role          `json:"role"`
+	Status          InviteStatus  `json:"status"`
+	Project         InviteProject `json:"project"`
+	InvitedUser     MemberUser    `json:"invitedUser"`
+	InvitedByUser   MemberUser    `json:"invitedByUser"`
+	CreatedAt       time.Time     `json:"createdAt"`
+	UpdatedAt       time.Time     `json:"updatedAt"`
+	ResolvedAt      *time.Time    `json:"resolvedAt,omitempty"`
+}
+
+type InviteProject struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	Slug string `json:"slug"`
+}
+
 func VNProjectMemberUserID(userID string) (string, error) {
 	err := spvalidator.Required(userID)
 	if err != nil {
@@ -125,6 +154,20 @@ func VNProjectMemberUserID(userID string) (string, error) {
 	}
 
 	return userID, nil
+}
+
+func VNProjectInviteID(inviteID string) (string, error) {
+	err := spvalidator.Required(inviteID)
+	if err != nil {
+		return "", err
+	}
+
+	err = spvalidator.UUID(inviteID)
+	if err != nil {
+		return "", err
+	}
+
+	return inviteID, nil
 }
 
 func VNProjectMemberRole(role Role) (Role, error) {

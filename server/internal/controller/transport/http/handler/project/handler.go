@@ -24,15 +24,23 @@ func NewHandler(service *appproject.Service, verifier appauth.TokenVerifier) *Ha
 }
 
 func (h *Handler) RegisterRoutes(api chi.Router) {
-	api.With(httpmiddleware.RequireAuth(h.verifier)).Post("/projects", h.handleCreateProject)
-	api.With(httpmiddleware.RequireAuth(h.verifier)).Get("/projects", h.handleListProjects)
-	api.With(httpmiddleware.RequireAuth(h.verifier)).Get("/projects/{ref}", h.handleGetProject)
-	api.With(httpmiddleware.RequireAuth(h.verifier)).Patch("/projects/{ref}", h.handleUpdateProject)
-	api.With(httpmiddleware.RequireAuth(h.verifier)).Delete("/projects/{ref}", h.handleDeleteProject)
-	api.With(httpmiddleware.RequireAuth(h.verifier)).Get("/projects/{ref}/members", h.handleListMembers)
-	api.With(httpmiddleware.RequireAuth(h.verifier)).Post("/projects/{ref}/members", h.handleAddMember)
-	api.With(httpmiddleware.RequireAuth(h.verifier)).Patch("/projects/{ref}/members/{user_id}", h.handleUpdateMemberRole)
-	api.With(httpmiddleware.RequireAuth(h.verifier)).Delete("/projects/{ref}/members/{user_id}", h.handleRemoveMember)
+	api.Group(func(r chi.Router) {
+		r.Use(httpmiddleware.RequireAuth(h.verifier))
+
+		r.Post("/projects", h.handleCreateProject)
+		r.Get("/projects", h.handleListProjects)
+		r.Get("/projects/{ref}", h.handleGetProject)
+		r.Patch("/projects/{ref}", h.handleUpdateProject)
+		r.Delete("/projects/{ref}", h.handleDeleteProject)
+		r.Get("/projects/{ref}/members", h.handleListMembers)
+		r.Patch("/projects/{ref}/members/{user_id}", h.handleUpdateMemberRole)
+		r.Delete("/projects/{ref}/members/{user_id}", h.handleRemoveMember)
+		r.Post("/projects/{ref}/invites", h.handleCreateInvite)
+		r.Get("/projects/{ref}/invites", h.handleListProjectInvites)
+		r.Get("/me/project-invites", h.handleListUserInvites)
+		r.Post("/me/project-invites/{invite_id}/accept", h.handleAcceptInvite)
+		r.Post("/me/project-invites/{invite_id}/reject", h.handleRejectInvite)
+	})
 }
 
 func (h *Handler) handleCreateProject(w http.ResponseWriter, r *http.Request) {
@@ -83,14 +91,14 @@ func (h *Handler) handleListMembers(w http.ResponseWriter, r *http.Request) {
 	httpx.WriteJSON(w, http.StatusOK, output.Body)
 }
 
-func (h *Handler) handleAddMember(w http.ResponseWriter, r *http.Request) {
-	var body addMemberInputBody
+func (h *Handler) handleCreateInvite(w http.ResponseWriter, r *http.Request) {
+	var body createInviteInputBody
 	if err := httpx.DecodeJSON(r, &body); err != nil {
 		httpx.WriteProblem(w, r, err)
 		return
 	}
-	output, err := h.addMember(r.Context(), &addMemberInput{Ref: httpx.Path(r, "ref"), Body: body})
-	writeMemberOutput(w, r, http.StatusCreated, output, err)
+	output, err := h.createInvite(r.Context(), &createInviteInput{Ref: httpx.Path(r, "ref"), Body: body})
+	writeInviteOutput(w, r, http.StatusCreated, output, err)
 }
 
 func (h *Handler) handleUpdateMemberRole(w http.ResponseWriter, r *http.Request) {
@@ -117,6 +125,14 @@ func writeProjectOutput(w http.ResponseWriter, r *http.Request, status int, outp
 }
 
 func writeMemberOutput(w http.ResponseWriter, r *http.Request, status int, output *memberOutput, err error) {
+	if err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	httpx.WriteJSON(w, status, output.Body)
+}
+
+func writeInviteOutput(w http.ResponseWriter, r *http.Request, status int, output *inviteOutput, err error) {
 	if err != nil {
 		httpx.WriteProblem(w, r, err)
 		return

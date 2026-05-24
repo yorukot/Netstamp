@@ -16,10 +16,14 @@ type Repository interface {
 	SoftDeleteProject(ctx context.Context, projectID string) error
 	ListMembers(ctx context.Context, projectID string) ([]domainproject.Member, error)
 	GetMember(ctx context.Context, projectID, userID string) (domainproject.Member, error)
-	AddMember(ctx context.Context, input domainproject.Member) (domainproject.Member, error)
 	UpdateMemberRole(ctx context.Context, input domainproject.Member) (domainproject.Member, error)
 	DeleteMember(ctx context.Context, projectID, userID string) error
 	CountOwners(ctx context.Context, projectID string) (int, error)
+	CreateInvite(ctx context.Context, input domainproject.Invite) (domainproject.Invite, error)
+	ListProjectInvites(ctx context.Context, projectID string) ([]domainproject.Invite, error)
+	ListUserInvites(ctx context.Context, userID string) ([]domainproject.Invite, error)
+	AcceptInvite(ctx context.Context, inviteID, userID string) (domainproject.Invite, error)
+	RejectInvite(ctx context.Context, inviteID, userID string) (domainproject.Invite, error)
 }
 
 type UserLookup interface {
@@ -41,12 +45,18 @@ const (
 	ProjectEventDeleteSuccess           ProjectEventName = "project.delete.success"
 	ProjectEventDeleteFailure           ProjectEventName = "project.delete.failure"
 	ProjectEventListMembersFailure      ProjectEventName = "project.members.list.failure"
-	ProjectEventAddMemberSuccess        ProjectEventName = "project.member.add.success"
-	ProjectEventAddMemberFailure        ProjectEventName = "project.member.add.failure"
 	ProjectEventUpdateMemberRoleSuccess ProjectEventName = "project.member.role_update.success"
 	ProjectEventUpdateMemberRoleFailure ProjectEventName = "project.member.role_update.failure"
 	ProjectEventRemoveMemberSuccess     ProjectEventName = "project.member.remove.success"
 	ProjectEventRemoveMemberFailure     ProjectEventName = "project.member.remove.failure"
+	ProjectEventCreateInviteSuccess     ProjectEventName = "project.invite.create.success"
+	ProjectEventCreateInviteFailure     ProjectEventName = "project.invite.create.failure"
+	ProjectEventListInvitesFailure      ProjectEventName = "project.invites.list.failure"
+	ProjectEventListUserInvitesFailure  ProjectEventName = "project.invites.list_user.failure"
+	ProjectEventAcceptInviteSuccess     ProjectEventName = "project.invite.accept.success"
+	ProjectEventAcceptInviteFailure     ProjectEventName = "project.invite.accept.failure"
+	ProjectEventRejectInviteSuccess     ProjectEventName = "project.invite.reject.success"
+	ProjectEventRejectInviteFailure     ProjectEventName = "project.invite.reject.failure"
 )
 
 type ProjectEventAction string
@@ -58,9 +68,13 @@ const (
 	ProjectActionUpdate           ProjectEventAction = "update"
 	ProjectActionDelete           ProjectEventAction = "delete"
 	ProjectActionListMembers      ProjectEventAction = "list_members"
-	ProjectActionAddMember        ProjectEventAction = "add_member"
 	ProjectActionUpdateMemberRole ProjectEventAction = "update_member_role"
 	ProjectActionRemoveMember     ProjectEventAction = "remove_member"
+	ProjectActionCreateInvite     ProjectEventAction = "create_invite"
+	ProjectActionListInvites      ProjectEventAction = "list_invites"
+	ProjectActionListUserInvites  ProjectEventAction = "list_user_invites"
+	ProjectActionAcceptInvite     ProjectEventAction = "accept_invite"
+	ProjectActionRejectInvite     ProjectEventAction = "reject_invite"
 )
 
 type ProjectEventOutcome string
@@ -80,6 +94,8 @@ const (
 	ProjectReasonSlugAlreadyExists      ProjectEventReason = "slug_already_exists"
 	ProjectReasonMemberAlreadyExists    ProjectEventReason = "member_already_exists"
 	ProjectReasonMemberNotFound         ProjectEventReason = "member_not_found"
+	ProjectReasonInviteAlreadyExists    ProjectEventReason = "invite_already_exists"
+	ProjectReasonInviteNotFound         ProjectEventReason = "invite_not_found"
 	ProjectReasonUserNotFound           ProjectEventReason = "user_not_found"
 	ProjectReasonLastOwner              ProjectEventReason = "last_owner"
 	ProjectReasonProjectCreateFailed    ProjectEventReason = "project_create_failed"
@@ -94,6 +110,9 @@ const (
 	ProjectReasonMemberRoleUpdateFailed ProjectEventReason = "member_role_update_failed"
 	ProjectReasonMemberRemoveFailed     ProjectEventReason = "member_remove_failed"
 	ProjectReasonOwnerCountFailed       ProjectEventReason = "owner_count_failed"
+	ProjectReasonInvitesListFailed      ProjectEventReason = "invites_list_failed"
+	ProjectReasonInviteCreateFailed     ProjectEventReason = "invite_create_failed"
+	ProjectReasonInviteResolveFailed    ProjectEventReason = "invite_resolve_failed"
 )
 
 type ProjectEvent struct {
@@ -105,7 +124,9 @@ type ProjectEvent struct {
 	ProjectID    string
 	ProjectRef   string
 	ProjectSlug  string
+	InviteID     string
 	TargetUserID string
 	Role         domainproject.Role
+	InviteStatus domainproject.InviteStatus
 	Err          error
 }

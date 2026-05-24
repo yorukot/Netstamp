@@ -19,8 +19,10 @@ type projectFlow struct {
 	projectID    string
 	projectRef   string
 	projectSlug  string
+	inviteID     string
 	targetUserID string
 	role         domainproject.Role
+	inviteStatus domainproject.InviteStatus
 }
 
 func (s *Service) startProjectFlow(ctx context.Context, spanName string, action ProjectEventAction, actorUserID string) (context.Context, *projectFlow) {
@@ -66,6 +68,28 @@ func (f *projectFlow) setProjectSlug(slug string) {
 	}
 }
 
+func (f *projectFlow) setInvite(invite domainproject.Invite) {
+	f.setInviteID(invite.ID)
+	f.setProjectID(invite.ProjectID)
+	f.setTargetUser(invite.InvitedUserID)
+	f.setRole(invite.Role)
+	f.setInviteStatus(invite.Status)
+}
+
+func (f *projectFlow) setProjectID(projectID string) {
+	f.projectID = projectID
+	if projectID != "" {
+		f.span.SetAttributes(attrProjectID.String(projectID))
+	}
+}
+
+func (f *projectFlow) setInviteID(inviteID string) {
+	f.inviteID = inviteID
+	if inviteID != "" {
+		f.span.SetAttributes(attrProjectInviteID.String(inviteID))
+	}
+}
+
 func (f *projectFlow) setTargetUser(userID string) {
 	f.targetUserID = userID
 	if userID != "" {
@@ -77,6 +101,13 @@ func (f *projectFlow) setRole(role domainproject.Role) {
 	f.role = role
 	if role != "" {
 		f.span.SetAttributes(attrProjectMemberRole.String(string(role)))
+	}
+}
+
+func (f *projectFlow) setInviteStatus(status domainproject.InviteStatus) {
+	f.inviteStatus = status
+	if status != "" {
+		f.span.SetAttributes(attrProjectInviteStatus.String(string(status)))
 	}
 }
 
@@ -180,16 +211,41 @@ func (f *projectFlow) membersListFailure(err error) error {
 	return f.technicalFailure(ProjectEventListMembersFailure, ProjectReasonMembersListFailed, err)
 }
 
-func (f *projectFlow) memberAddFailure(err error) error {
+func (f *projectFlow) invitesListFailure(event ProjectEventName, err error) error {
+	if errors.Is(err, domainproject.ErrProjectNotFound) || errors.Is(err, identity.ErrUserNotFound) {
+		return err
+	}
+
+	return f.technicalFailure(event, ProjectReasonInvitesListFailed, err)
+}
+
+func (f *projectFlow) inviteCreateFailure(err error) error {
 	switch {
+	case errors.Is(err, domainproject.ErrInviteAlreadyExists):
+		return f.businessFailure(ProjectEventCreateInviteFailure, ProjectReasonInviteAlreadyExists, err)
 	case errors.Is(err, domainproject.ErrMemberAlreadyExists):
-		return f.businessFailure(ProjectEventAddMemberFailure, ProjectReasonMemberAlreadyExists, err)
+		return f.businessFailure(ProjectEventCreateInviteFailure, ProjectReasonMemberAlreadyExists, err)
 	case errors.Is(err, domainproject.ErrProjectNotFound):
-		return f.businessFailure(ProjectEventAddMemberFailure, ProjectReasonProjectNotFound, err)
+		return f.businessFailure(ProjectEventCreateInviteFailure, ProjectReasonProjectNotFound, err)
 	case errors.Is(err, identity.ErrUserNotFound):
-		return f.businessFailure(ProjectEventAddMemberFailure, ProjectReasonUserNotFound, err)
+		return f.businessFailure(ProjectEventCreateInviteFailure, ProjectReasonUserNotFound, err)
 	default:
-		return f.technicalFailure(ProjectEventAddMemberFailure, ProjectReasonMemberAddFailed, err)
+		return f.technicalFailure(ProjectEventCreateInviteFailure, ProjectReasonInviteCreateFailed, err)
+	}
+}
+
+func (f *projectFlow) inviteResolveFailure(event ProjectEventName, err error) error {
+	switch {
+	case errors.Is(err, domainproject.ErrInviteNotFound):
+		return f.businessFailure(event, ProjectReasonInviteNotFound, err)
+	case errors.Is(err, domainproject.ErrMemberAlreadyExists):
+		return f.businessFailure(event, ProjectReasonMemberAlreadyExists, err)
+	case errors.Is(err, domainproject.ErrProjectNotFound):
+		return f.businessFailure(event, ProjectReasonProjectNotFound, err)
+	case errors.Is(err, identity.ErrUserNotFound):
+		return f.businessFailure(event, ProjectReasonUserNotFound, err)
+	default:
+		return f.technicalFailure(event, ProjectReasonInviteResolveFailed, err)
 	}
 }
 
@@ -235,8 +291,10 @@ func (f *projectFlow) projectEvent(name ProjectEventName, outcome ProjectEventOu
 		ProjectID:    f.projectID,
 		ProjectRef:   f.projectRef,
 		ProjectSlug:  f.projectSlug,
+		InviteID:     f.inviteID,
 		TargetUserID: f.targetUserID,
 		Role:         f.role,
+		InviteStatus: f.inviteStatus,
 		Err:          err,
 	}
 }

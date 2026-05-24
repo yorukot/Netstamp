@@ -35,6 +35,7 @@ using OpenAPI;
 @tagMetadata("Users", #{ description: "Authenticated user profile, email, and password management." })
 @tagMetadata("Projects", #{ description: "Authenticated project lifecycle operations." })
 @tagMetadata("Project Members", #{ description: "Project membership and role management." })
+@tagMetadata("Project Invites", #{ description: "Pending project invitations and invite responses." })
 @tagMetadata("Labels", #{ description: "Project-scoped key/value labels used by selectors." })
 @tagMetadata("Checks", #{ description: "Ping and traceroute check definitions." })
 @tagMetadata("Assignments", #{ description: "Selector previews and effective probe-check assignments for console users." })

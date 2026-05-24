@@ -4,6 +4,8 @@ alias ProjectRole = "owner" | "admin" | "editor" | "viewer";
 
 alias AssignableProjectRole = "admin" | "editor" | "viewer";
 
+alias ProjectInviteStatus = "pending" | "accepted" | "rejected";
+
 @example(#{
 	id: "22222222-2222-2222-2222-222222222222",
 	name: "Engineering",
@@ -120,6 +122,88 @@ model ProjectMemberListResponse {
 	members: ProjectMember[];
 }
 
+@example(#{ id: "22222222-2222-2222-2222-222222222222", name: "Engineering", slug: "engineering" })
+model ProjectInviteProject {
+	id: uuid;
+
+	@minLength(1)
+	@maxLength(64)
+	name: string;
+
+	@minLength(1)
+	@maxLength(64)
+	@pattern("^[a-z0-9-]+$")
+	slug: string;
+}
+
+@example(#{
+	id: "77777777-7777-7777-7777-777777777777",
+	projectId: "22222222-2222-2222-2222-222222222222",
+	invitedUserId: "33333333-3333-3333-3333-333333333333",
+	invitedByUserId: "11111111-1111-1111-1111-111111111111",
+	role: "viewer",
+	status: "pending",
+	project: #{ id: "22222222-2222-2222-2222-222222222222", name: "Engineering", slug: "engineering" },
+	invitedUser: #{ id: "33333333-3333-3333-3333-333333333333", email: "member@example.com", displayName: "Pat Chen" },
+	invitedByUser: #{ id: "11111111-1111-1111-1111-111111111111", email: "owner@example.com", displayName: "Jane Doe" },
+	createdAt: utcDateTime.fromISO("2026-05-24T10:00:00Z"),
+	updatedAt: utcDateTime.fromISO("2026-05-24T10:00:00Z"),
+})
+model ProjectInvite {
+	id: uuid;
+	projectId: uuid;
+	invitedUserId: uuid;
+	invitedByUserId: uuid;
+	role: AssignableProjectRole;
+	status: ProjectInviteStatus;
+	project: ProjectInviteProject;
+	invitedUser: ProjectMemberUser;
+	invitedByUser: ProjectMemberUser;
+	createdAt: utcDateTime;
+	updatedAt: utcDateTime;
+	resolvedAt?: utcDateTime;
+}
+
+@example(#{
+	invite: #{
+		id: "77777777-7777-7777-7777-777777777777",
+		projectId: "22222222-2222-2222-2222-222222222222",
+		invitedUserId: "33333333-3333-3333-3333-333333333333",
+		invitedByUserId: "11111111-1111-1111-1111-111111111111",
+		role: "viewer",
+		status: "pending",
+		project: #{ id: "22222222-2222-2222-2222-222222222222", name: "Engineering", slug: "engineering" },
+		invitedUser: #{ id: "33333333-3333-3333-3333-333333333333", email: "member@example.com", displayName: "Pat Chen" },
+		invitedByUser: #{ id: "11111111-1111-1111-1111-111111111111", email: "owner@example.com", displayName: "Jane Doe" },
+		createdAt: utcDateTime.fromISO("2026-05-24T10:00:00Z"),
+		updatedAt: utcDateTime.fromISO("2026-05-24T10:00:00Z"),
+	},
+})
+model ProjectInviteResponse {
+	invite: ProjectInvite;
+}
+
+@example(#{
+	invites: #[
+		#{
+			id: "77777777-7777-7777-7777-777777777777",
+			projectId: "22222222-2222-2222-2222-222222222222",
+			invitedUserId: "33333333-3333-3333-3333-333333333333",
+			invitedByUserId: "11111111-1111-1111-1111-111111111111",
+			role: "viewer",
+			status: "pending",
+			project: #{ id: "22222222-2222-2222-2222-222222222222", name: "Engineering", slug: "engineering" },
+			invitedUser: #{ id: "33333333-3333-3333-3333-333333333333", email: "member@example.com", displayName: "Pat Chen" },
+			invitedByUser: #{ id: "11111111-1111-1111-1111-111111111111", email: "owner@example.com", displayName: "Jane Doe" },
+			createdAt: utcDateTime.fromISO("2026-05-24T10:00:00Z"),
+			updatedAt: utcDateTime.fromISO("2026-05-24T10:00:00Z"),
+		}
+	],
+})
+model ProjectInviteListResponse {
+	invites: ProjectInvite[];
+}
+
 @example(#{ name: "Engineering", slug: "engineering" })
 model CreateProjectRequest {
 	@minLength(1)
@@ -146,7 +230,7 @@ model UpdateProjectRequest {
 }
 
 @example(#{ email: "user@example.com", role: "viewer" })
-model AddProjectMemberRequest {
+model CreateProjectInviteRequest {
 	email: email;
 	role: AssignableProjectRole;
 }

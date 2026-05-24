@@ -186,6 +186,57 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	"/me/project-invites": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** List current user's pending project invites */
+		get: operations["listCurrentUserProjectInvites"];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	"/me/project-invites/{invite_id}/accept": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/** Accept project invite */
+		post: operations["acceptProjectInvite"];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	"/me/project-invites/{invite_id}/reject": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/** Reject project invite */
+		post: operations["rejectProjectInvite"];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	"/projects": {
 		parameters: {
 			query?: never;
@@ -280,6 +331,24 @@ export interface paths {
 		patch: operations["updateProjectCheck"];
 		trace?: never;
 	};
+	"/projects/{ref}/invites": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** List pending project invites */
+		get: operations["listProjectInvites"];
+		put?: never;
+		/** Create project invite */
+		post: operations["createProjectInvite"];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	"/projects/{ref}/labels": {
 		parameters: {
 			query?: never;
@@ -346,8 +415,7 @@ export interface paths {
 		/** List project members */
 		get: operations["listProjectMembers"];
 		put?: never;
-		/** Add project member */
-		post: operations["addProjectMember"];
+		post?: never;
 		delete?: never;
 		options?: never;
 		head?: never;
@@ -657,17 +725,6 @@ export interface components {
 		};
 		/**
 		 * @example {
-		 *       "email": "user@example.com",
-		 *       "role": "viewer"
-		 *     }
-		 */
-		AddProjectMemberRequest: {
-			email: components["schemas"]["email"];
-			/** @enum {string} */
-			role: "admin" | "editor" | "viewer";
-		};
-		/**
-		 * @example {
 		 *       "id": "77777777-7777-7777-7777-777777777777",
 		 *       "projectId": "22222222-2222-2222-2222-222222222222",
 		 *       "checkVersion": "01HXYZ7K6P4E4M3F0CB1W9DYJ5",
@@ -933,6 +990,17 @@ export interface components {
 			/** Format: double */
 			longitude?: number;
 			labelIds?: components["schemas"]["uuid"][];
+		};
+		/**
+		 * @example {
+		 *       "email": "user@example.com",
+		 *       "role": "viewer"
+		 *     }
+		 */
+		CreateProjectInviteRequest: {
+			email: components["schemas"]["email"];
+			/** @enum {string} */
+			role: "admin" | "editor" | "viewer";
 		};
 		/**
 		 * @example {
@@ -1655,6 +1723,130 @@ export interface components {
 		 */
 		ProjectAssignmentListResponse: {
 			assignments: components["schemas"]["ProjectAssignment"][];
+		};
+		/**
+		 * @example {
+		 *       "id": "77777777-7777-7777-7777-777777777777",
+		 *       "projectId": "22222222-2222-2222-2222-222222222222",
+		 *       "invitedUserId": "33333333-3333-3333-3333-333333333333",
+		 *       "invitedByUserId": "11111111-1111-1111-1111-111111111111",
+		 *       "role": "viewer",
+		 *       "status": "pending",
+		 *       "project": {
+		 *         "id": "22222222-2222-2222-2222-222222222222",
+		 *         "name": "Engineering",
+		 *         "slug": "engineering"
+		 *       },
+		 *       "invitedUser": {
+		 *         "id": "33333333-3333-3333-3333-333333333333",
+		 *         "email": "member@example.com",
+		 *         "displayName": "Pat Chen"
+		 *       },
+		 *       "invitedByUser": {
+		 *         "id": "11111111-1111-1111-1111-111111111111",
+		 *         "email": "owner@example.com",
+		 *         "displayName": "Jane Doe"
+		 *       },
+		 *       "createdAt": "2026-05-24T10:00:00Z",
+		 *       "updatedAt": "2026-05-24T10:00:00Z"
+		 *     }
+		 */
+		ProjectInvite: {
+			id: components["schemas"]["uuid"];
+			projectId: components["schemas"]["uuid"];
+			invitedUserId: components["schemas"]["uuid"];
+			invitedByUserId: components["schemas"]["uuid"];
+			/** @enum {string} */
+			role: "admin" | "editor" | "viewer";
+			/** @enum {string} */
+			status: "pending" | "accepted" | "rejected";
+			project: components["schemas"]["ProjectInviteProject"];
+			invitedUser: components["schemas"]["ProjectMemberUser"];
+			invitedByUser: components["schemas"]["ProjectMemberUser"];
+			/** Format: date-time */
+			createdAt: string;
+			/** Format: date-time */
+			updatedAt: string;
+			/** Format: date-time */
+			resolvedAt?: string;
+		};
+		/**
+		 * @example {
+		 *       "invites": [
+		 *         {
+		 *           "id": "77777777-7777-7777-7777-777777777777",
+		 *           "projectId": "22222222-2222-2222-2222-222222222222",
+		 *           "invitedUserId": "33333333-3333-3333-3333-333333333333",
+		 *           "invitedByUserId": "11111111-1111-1111-1111-111111111111",
+		 *           "role": "viewer",
+		 *           "status": "pending",
+		 *           "project": {
+		 *             "id": "22222222-2222-2222-2222-222222222222",
+		 *             "name": "Engineering",
+		 *             "slug": "engineering"
+		 *           },
+		 *           "invitedUser": {
+		 *             "id": "33333333-3333-3333-3333-333333333333",
+		 *             "email": "member@example.com",
+		 *             "displayName": "Pat Chen"
+		 *           },
+		 *           "invitedByUser": {
+		 *             "id": "11111111-1111-1111-1111-111111111111",
+		 *             "email": "owner@example.com",
+		 *             "displayName": "Jane Doe"
+		 *           },
+		 *           "createdAt": "2026-05-24T10:00:00Z",
+		 *           "updatedAt": "2026-05-24T10:00:00Z"
+		 *         }
+		 *       ]
+		 *     }
+		 */
+		ProjectInviteListResponse: {
+			invites: components["schemas"]["ProjectInvite"][];
+		};
+		/**
+		 * @example {
+		 *       "id": "22222222-2222-2222-2222-222222222222",
+		 *       "name": "Engineering",
+		 *       "slug": "engineering"
+		 *     }
+		 */
+		ProjectInviteProject: {
+			id: components["schemas"]["uuid"];
+			name: string;
+			slug: string;
+		};
+		/**
+		 * @example {
+		 *       "invite": {
+		 *         "id": "77777777-7777-7777-7777-777777777777",
+		 *         "projectId": "22222222-2222-2222-2222-222222222222",
+		 *         "invitedUserId": "33333333-3333-3333-3333-333333333333",
+		 *         "invitedByUserId": "11111111-1111-1111-1111-111111111111",
+		 *         "role": "viewer",
+		 *         "status": "pending",
+		 *         "project": {
+		 *           "id": "22222222-2222-2222-2222-222222222222",
+		 *           "name": "Engineering",
+		 *           "slug": "engineering"
+		 *         },
+		 *         "invitedUser": {
+		 *           "id": "33333333-3333-3333-3333-333333333333",
+		 *           "email": "member@example.com",
+		 *           "displayName": "Pat Chen"
+		 *         },
+		 *         "invitedByUser": {
+		 *           "id": "11111111-1111-1111-1111-111111111111",
+		 *           "email": "owner@example.com",
+		 *           "displayName": "Jane Doe"
+		 *         },
+		 *         "createdAt": "2026-05-24T10:00:00Z",
+		 *         "updatedAt": "2026-05-24T10:00:00Z"
+		 *       }
+		 *     }
+		 */
+		ProjectInviteResponse: {
+			invite: components["schemas"]["ProjectInvite"];
 		};
 		/**
 		 * @example {
@@ -2508,6 +2700,7 @@ export interface components {
 		ProbeIdPathParam: components["schemas"]["uuid"];
 		"ProjectAssignmentQuery.checkId": components["schemas"]["uuid"];
 		"ProjectAssignmentQuery.probeId": components["schemas"]["uuid"];
+		ProjectInviteIdPathParam: components["schemas"]["uuid"];
 		ProjectRefParam: string;
 		"TracerouteRunsQuery.checkId": components["schemas"]["uuid"];
 		"TracerouteRunsQuery.cursor": number;
@@ -2868,6 +3061,169 @@ export interface operations {
 				};
 				content: {
 					"text/x-shellscript": unknown;
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	listCurrentUserProjectInvites: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["ProjectInviteListResponse"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	acceptProjectInvite: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				invite_id: components["parameters"]["ProjectInviteIdPathParam"];
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["ProjectInviteResponse"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The request conflicts with the current state of the server. */
+			409: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	rejectProjectInvite: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				invite_id: components["parameters"]["ProjectInviteIdPathParam"];
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["ProjectInviteResponse"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Server error */
@@ -3605,6 +3961,162 @@ export interface operations {
 			};
 		};
 	};
+	listProjectInvites: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				ref: components["parameters"]["ProjectRefParam"];
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["ProjectInviteListResponse"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is forbidden. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	createProjectInvite: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				ref: components["parameters"]["ProjectRefParam"];
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				"application/json": components["schemas"]["CreateProjectInviteRequest"];
+			};
+		};
+		responses: {
+			/** @description The request has succeeded and a new resource has been created as a result. */
+			201: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["ProjectInviteResponse"];
+				};
+			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is forbidden. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The request conflicts with the current state of the server. */
+			409: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
 	listProjectLabels: {
 		parameters: {
 			query?: never;
@@ -4015,95 +4527,6 @@ export interface operations {
 			};
 			/** @description The server cannot find the requested resource. */
 			404: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
-			/** @description Client error */
-			422: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
-			/** @description Server error */
-			500: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
-		};
-	};
-	addProjectMember: {
-		parameters: {
-			query?: never;
-			header?: never;
-			path: {
-				ref: components["parameters"]["ProjectRefParam"];
-			};
-			cookie?: never;
-		};
-		requestBody: {
-			content: {
-				"application/json": components["schemas"]["AddProjectMemberRequest"];
-			};
-		};
-		responses: {
-			/** @description The request has succeeded and a new resource has been created as a result. */
-			201: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/json": components["schemas"]["ProjectMemberResponse"];
-				};
-			};
-			/** @description The server could not understand the request due to invalid syntax. */
-			400: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
-			/** @description Access is unauthorized. */
-			401: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
-			/** @description Access is forbidden. */
-			403: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
-			/** @description The server cannot find the requested resource. */
-			404: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
-			/** @description The request conflicts with the current state of the server. */
-			409: {
 				headers: {
 					[name: string]: unknown;
 				};

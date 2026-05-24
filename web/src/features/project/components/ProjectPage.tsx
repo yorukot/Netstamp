@@ -1,11 +1,13 @@
-import { useAddProjectMemberMutation, useDeleteProjectMutation, useRemoveProjectMemberMutation, useUpdateProjectMemberRoleMutation, useUpdateProjectMutation } from "@/shared/api/mutations";
+import { useSession } from "@/features/auth/session/SessionContext";
+import { useCreateProjectInviteMutation, useDeleteProjectMutation, useRemoveProjectMemberMutation, useUpdateProjectMemberRoleMutation, useUpdateProjectMutation } from "@/shared/api/mutations";
 import { projectQueries } from "@/shared/api/queries";
-import type { ProjectMemberRole } from "@/shared/api/types";
+import type { ApiProjectInvite, ProjectMemberRole } from "@/shared/api/types";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { useConfirm } from "@/shared/components/confirmContext";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
-import { Button, DataTable, Panel, SelectField, Surface, TextField, type DataColumn } from "@netstamp/ui";
+import { pushToast } from "@/shared/toast/toastStore";
+import { Badge, Button, DataTable, Panel, SelectField, Surface, TextField, type DataColumn } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import styles from "./ProjectPage.module.css";
@@ -18,13 +20,33 @@ interface MemberRow {
 	email: string;
 	role: string;
 	lastActive: string;
+	isCurrentUser: boolean;
+}
+
+interface InviteRow {
+	id: string;
+	name: string;
+	email: string;
+	role: ProjectMemberRole;
+	invitedBy: string;
+	createdAt: string;
+	status: string;
+}
+
+function formatDateTime(value: string) {
+	return new Date(value).toLocaleString();
+}
+
+function roleLabel(role: string) {
+	return role.charAt(0).toUpperCase() + role.slice(1);
 }
 
 export function ProjectPage() {
 	const { project, projectRef, setSelectedProjectRef } = useCurrentProject();
+	const { session } = useSession();
 	const confirm = useConfirm();
 	const updateProjectMutation = useUpdateProjectMutation(projectRef);
-	const addMemberMutation = useAddProjectMemberMutation(projectRef);
+	const createInviteMutation = useCreateProjectInviteMutation(projectRef);
 	const removeMemberMutation = useRemoveProjectMemberMutation(projectRef);
 	const updateMemberRoleMutation = useUpdateProjectMemberRoleMutation(projectRef);
 	const deleteProjectMutation = useDeleteProjectMutation(projectRef);
@@ -38,12 +60,28 @@ export function ProjectPage() {
 	const [memberRole, setMemberRole] = useState<ProjectMemberRole>("viewer");
 	const activeProjectName = projectName || project?.name || "";
 	const activeProjectSlug = projectSlug || project?.slug || "";
-	function addCurrentMember() {
-		addMemberMutation.mutate(
+	const currentUserId = session?.user.id ?? "";
+	const members = membersQuery.data?.members ?? [];
+	const currentMember = members.find(member => member.userId === currentUserId);
+	const isCurrentOwner = currentMember?.role === "owner";
+	const canManageMembers = currentMember?.role === "owner" || currentMember?.role === "admin";
+	const canLeaveProject = Boolean(projectRef && currentUserId && currentMember && !isCurrentOwner && !removeMemberMutation.isPending);
+	const invitesQuery = useQuery({
+		...projectQueries.invites(projectRef || ""),
+		enabled: Boolean(projectRef && canManageMembers)
+	});
+
+	function createCurrentInvite() {
+		createInviteMutation.mutate(
 			{ email: memberEmail, role: memberRole },
 			{
-				onSuccess: () => {
+				onSuccess: data => {
 					setMemberEmail("");
+					pushToast({
+						title: "Invite sent",
+						message: `${data.invite.invitedUser.email} can now accept access to ${data.invite.project.name}.`,
+						tone: "success"
+					});
 				}
 			}
 		);
@@ -71,13 +109,47 @@ export function ProjectPage() {
 			}
 		});
 	}
+
+	async function leaveCurrentProject() {
+		if (!canLeaveProject) {
+			return;
+		}
+
+		const confirmed = await confirm({
+			title: `Leave ${project?.name ?? "project"}?`,
+			message: "This removes your access to the project's probes, checks, alerts, and measurements.",
+			confirmLabel: "Leave project",
+			tone: "danger"
+		});
+
+		if (!confirmed) {
+			return;
+		}
+
+		removeMemberMutation.mutate(currentUserId, {
+			onSuccess: () => {
+				setSelectedProjectRef("");
+			}
+		});
+	}
+
 	const memberRows: MemberRow[] = (membersQuery.data?.members ?? []).map(member => ({
 		id: member.id,
 		userId: member.userId,
 		name: member.user.displayName,
 		email: member.user.email,
 		role: member.role,
-		lastActive: new Date(member.updatedAt).toLocaleString()
+		lastActive: new Date(member.updatedAt).toLocaleString(),
+		isCurrentUser: member.userId === currentUserId
+	}));
+	const inviteRows: InviteRow[] = (invitesQuery.data?.invites ?? []).map((invite: ApiProjectInvite) => ({
+		id: invite.id,
+		name: invite.invitedUser.displayName,
+		email: invite.invitedUser.email,
+		role: invite.role,
+		invitedBy: invite.invitedByUser.displayName,
+		createdAt: formatDateTime(invite.createdAt),
+		status: invite.status
 	}));
 	const memberColumns: DataColumn<MemberRow>[] = [
 		{ key: "name", label: "User ID" },
@@ -87,17 +159,38 @@ export function ProjectPage() {
 		{
 			key: "delete",
 			label: "Delete",
-			render: row => (
-				<Button variant="danger" size="sm" onClick={() => removeMemberMutation.mutate(row.userId)}>
-					Delete
-				</Button>
-			)
+			render: row =>
+				row.isCurrentUser ? (
+					<Button variant="outline" size="sm" disabled title="Use Leave project when your role allows it.">
+						Current user
+					</Button>
+				) : (
+					<Button variant="danger" size="sm" disabled={!projectRef || removeMemberMutation.isPending} onClick={() => removeMemberMutation.mutate(row.userId)}>
+						{removeMemberMutation.isPending ? "Deleting" : "Delete"}
+					</Button>
+				)
 		}
+	];
+	const inviteColumns: DataColumn<InviteRow>[] = [
+		{
+			key: "name",
+			label: "Invited user",
+			render: row => (
+				<span className={styles.stackedCell}>
+					<strong>{row.name}</strong>
+					<span>{row.email}</span>
+				</span>
+			)
+		},
+		{ key: "role", label: "Role", render: row => <Badge tone="accent">{roleLabel(row.role)}</Badge> },
+		{ key: "invitedBy", label: "Invited by" },
+		{ key: "createdAt", label: "Sent" },
+		{ key: "status", label: "Status", render: row => <Badge tone="warning">{roleLabel(row.status)}</Badge> }
 	];
 
 	return (
 		<PageStack>
-			<ScreenHeader eyebrow="Project settings" title="Project" copy="Project profile, member management, and destructive project actions." />
+			<ScreenHeader eyebrow="Project settings" title="Project" copy="Project profile, invites, member management, and destructive project actions." />
 
 			<Panel tone="glass" eyebrow="Project" title="Project info">
 				<div className={styles.projectInfoGrid}>
@@ -109,23 +202,41 @@ export function ProjectPage() {
 				</Button>
 			</Panel>
 
-			<Panel tone="glass" eyebrow="Members" title="Member management">
-				<div className={styles.formGridThree}>
-					<TextField label="Email" value={memberEmail} onChange={event => setMemberEmail(event.currentTarget.value)} />
-					<SelectField
-						label="Role"
-						value={memberRole}
-						onChange={event => setMemberRole(event.currentTarget.value as ProjectMemberRole)}
-						options={[
-							{ value: "admin", label: "Admin" },
-							{ value: "editor", label: "Editor" },
-							{ value: "viewer", label: "Viewer" }
-						]}
+			{canManageMembers ? (
+				<Panel tone="glass" eyebrow="Invites" title="Invite member">
+					<div className={styles.formGridThree}>
+						<TextField label="Email" value={memberEmail} onChange={event => setMemberEmail(event.currentTarget.value)} />
+						<SelectField
+							label="Role"
+							value={memberRole}
+							onChange={event => setMemberRole(event.currentTarget.value as ProjectMemberRole)}
+							options={[
+								{ value: "admin", label: "Admin" },
+								{ value: "editor", label: "Editor" },
+								{ value: "viewer", label: "Viewer" }
+							]}
+						/>
+						<Button disabled={!projectRef || !memberEmail || createInviteMutation.isPending} onClick={createCurrentInvite}>
+							{createInviteMutation.isPending ? "Sending" : "Send invite"}
+						</Button>
+					</div>
+				</Panel>
+			) : null}
+
+			{canManageMembers ? (
+				<Panel tone="glass" eyebrow="Pending access" title={`${inviteRows.length} pending invites`}>
+					<DataTable
+						columns={inviteColumns}
+						rows={inviteRows}
+						density="compact"
+						minWidth="46rem"
+						emptyLabel={invitesQuery.isLoading ? "Loading pending invites" : "No pending invites"}
+						getRowKey={row => row.id}
 					/>
-					<Button disabled={!projectRef || !memberEmail || addMemberMutation.isPending} onClick={addCurrentMember}>
-						{addMemberMutation.isPending ? "Adding" : "Add member"}
-					</Button>
-				</div>
+				</Panel>
+			) : null}
+
+			<Panel tone="glass" eyebrow="Members" title="Member access">
 				<DataTable columns={memberColumns} rows={memberRows} getRowKey={row => row.id} />
 			</Panel>
 
@@ -139,9 +250,13 @@ export function ProjectPage() {
 						</Button>
 					</Surface>
 					<Surface as="article" tone="danger" cut="md" padding="md">
-						<h3>Exit project</h3>
-						<p className={styles.warningCopy}>Leave this project and remove your access to its probes, checks, alerts, and measurements.</p>
-						<Button variant="outline">Exit project</Button>
+						<h3>Leave project</h3>
+						<p className={styles.warningCopy}>
+							{isCurrentOwner ? "Owners cannot leave a project while they hold the owner role." : "Leave this project and remove your access to its probes, checks, alerts, and measurements."}
+						</p>
+						<Button variant="outline" disabled={!canLeaveProject} onClick={() => void leaveCurrentProject()}>
+							{removeMemberMutation.isPending ? "Leaving" : "Leave project"}
+						</Button>
 					</Surface>
 				</div>
 			</Panel>

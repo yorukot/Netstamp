@@ -39,6 +39,10 @@
 			"description": "Project-scoped key/value labels used by selectors."
 		},
 		{
+			"name": "Project Invites",
+			"description": "Pending project invitations and invite responses."
+		},
+		{
 			"name": "Project Members",
 			"description": "Project membership and role management."
 		},
@@ -464,6 +468,199 @@
 					}
 				},
 				"tags": ["Install"]
+			}
+		},
+		"/me/project-invites": {
+			"get": {
+				"operationId": "listCurrentUserProjectInvites",
+				"summary": "List current user's pending project invites",
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProjectInviteListResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Project Invites"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/me/project-invites/{invite_id}/accept": {
+			"post": {
+				"operationId": "acceptProjectInvite",
+				"summary": "Accept project invite",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectInviteIdPathParam"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProjectInviteResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "The request conflicts with the current state of the server.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Project Invites"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/me/project-invites/{invite_id}/reject": {
+			"post": {
+				"operationId": "rejectProjectInvite",
+				"summary": "Reject project invite",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectInviteIdPathParam"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProjectInviteResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Project Invites"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
 			}
 		},
 		"/projects": {
@@ -1327,6 +1524,192 @@
 				]
 			}
 		},
+		"/projects/{ref}/invites": {
+			"get": {
+				"operationId": "listProjectInvites",
+				"summary": "List pending project invites",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProjectInviteListResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Project Invites"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			},
+			"post": {
+				"operationId": "createProjectInvite",
+				"summary": "Create project invite",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					}
+				],
+				"responses": {
+					"201": {
+						"description": "The request has succeeded and a new resource has been created as a result.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProjectInviteResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "The request conflicts with the current state of the server.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Project Invites"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/CreateProjectInviteRequest"
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
 		"/projects/{ref}/labels": {
 			"get": {
 				"operationId": "listProjectLabels",
@@ -1854,113 +2237,6 @@
 					}
 				},
 				"tags": ["Project Members"],
-				"security": [
-					{
-						"SessionCookieAuth": []
-					}
-				]
-			},
-			"post": {
-				"operationId": "addProjectMember",
-				"summary": "Add project member",
-				"parameters": [
-					{
-						"$ref": "#/components/parameters/ProjectRefParam"
-					}
-				],
-				"responses": {
-					"201": {
-						"description": "The request has succeeded and a new resource has been created as a result.",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProjectMemberResponse"
-								}
-							}
-						}
-					},
-					"400": {
-						"description": "The server could not understand the request due to invalid syntax.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"401": {
-						"description": "Access is unauthorized.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"403": {
-						"description": "Access is forbidden.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"404": {
-						"description": "The server cannot find the requested resource.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"409": {
-						"description": "The request conflicts with the current state of the server.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"422": {
-						"description": "Client error",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"500": {
-						"description": "Server error",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					}
-				},
-				"tags": ["Project Members"],
-				"requestBody": {
-					"required": true,
-					"content": {
-						"application/json": {
-							"schema": {
-								"$ref": "#/components/schemas/AddProjectMemberRequest"
-							}
-						}
-					}
-				},
 				"security": [
 					{
 						"SessionCookieAuth": []
@@ -3961,6 +4237,14 @@
 				},
 				"explode": false
 			},
+			"ProjectInviteIdPathParam": {
+				"name": "invite_id",
+				"in": "path",
+				"required": true,
+				"schema": {
+					"$ref": "#/components/schemas/uuid"
+				}
+			},
 			"ProjectRefParam": {
 				"name": "ref",
 				"in": "path",
@@ -4111,25 +4395,6 @@
 				"examples": [
 					{
 						"message": "Netstamp API is running"
-					}
-				]
-			},
-			"AddProjectMemberRequest": {
-				"type": "object",
-				"required": ["email", "role"],
-				"properties": {
-					"email": {
-						"$ref": "#/components/schemas/email"
-					},
-					"role": {
-						"type": "string",
-						"enum": ["admin", "editor", "viewer"]
-					}
-				},
-				"examples": [
-					{
-						"email": "user@example.com",
-						"role": "viewer"
 					}
 				]
 			},
@@ -4562,6 +4827,25 @@
 						"latitude": 35.6762,
 						"longitude": 139.6503,
 						"labelIds": ["66666666-6666-6666-6666-666666666666"]
+					}
+				]
+			},
+			"CreateProjectInviteRequest": {
+				"type": "object",
+				"required": ["email", "role"],
+				"properties": {
+					"email": {
+						"$ref": "#/components/schemas/email"
+					},
+					"role": {
+						"type": "string",
+						"enum": ["admin", "editor", "viewer"]
+					}
+				},
+				"examples": [
+					{
+						"email": "user@example.com",
+						"role": "viewer"
 					}
 				]
 			},
@@ -5834,6 +6118,188 @@
 								"selectorVersion": "01HXYZ7K6P4E4M3F0CB1W9DYJ6"
 							}
 						]
+					}
+				]
+			},
+			"ProjectInvite": {
+				"type": "object",
+				"required": ["id", "projectId", "invitedUserId", "invitedByUserId", "role", "status", "project", "invitedUser", "invitedByUser", "createdAt", "updatedAt"],
+				"properties": {
+					"id": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"projectId": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"invitedUserId": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"invitedByUserId": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"role": {
+						"type": "string",
+						"enum": ["admin", "editor", "viewer"]
+					},
+					"status": {
+						"type": "string",
+						"enum": ["pending", "accepted", "rejected"]
+					},
+					"project": {
+						"$ref": "#/components/schemas/ProjectInviteProject"
+					},
+					"invitedUser": {
+						"$ref": "#/components/schemas/ProjectMemberUser"
+					},
+					"invitedByUser": {
+						"$ref": "#/components/schemas/ProjectMemberUser"
+					},
+					"createdAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"updatedAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"resolvedAt": {
+						"type": "string",
+						"format": "date-time"
+					}
+				},
+				"examples": [
+					{
+						"id": "77777777-7777-7777-7777-777777777777",
+						"projectId": "22222222-2222-2222-2222-222222222222",
+						"invitedUserId": "33333333-3333-3333-3333-333333333333",
+						"invitedByUserId": "11111111-1111-1111-1111-111111111111",
+						"role": "viewer",
+						"status": "pending",
+						"project": {
+							"id": "22222222-2222-2222-2222-222222222222",
+							"name": "Engineering",
+							"slug": "engineering"
+						},
+						"invitedUser": {
+							"id": "33333333-3333-3333-3333-333333333333",
+							"email": "member@example.com",
+							"displayName": "Pat Chen"
+						},
+						"invitedByUser": {
+							"id": "11111111-1111-1111-1111-111111111111",
+							"email": "owner@example.com",
+							"displayName": "Jane Doe"
+						},
+						"createdAt": "2026-05-24T10:00:00Z",
+						"updatedAt": "2026-05-24T10:00:00Z"
+					}
+				]
+			},
+			"ProjectInviteListResponse": {
+				"type": "object",
+				"required": ["invites"],
+				"properties": {
+					"invites": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/ProjectInvite"
+						}
+					}
+				},
+				"examples": [
+					{
+						"invites": [
+							{
+								"id": "77777777-7777-7777-7777-777777777777",
+								"projectId": "22222222-2222-2222-2222-222222222222",
+								"invitedUserId": "33333333-3333-3333-3333-333333333333",
+								"invitedByUserId": "11111111-1111-1111-1111-111111111111",
+								"role": "viewer",
+								"status": "pending",
+								"project": {
+									"id": "22222222-2222-2222-2222-222222222222",
+									"name": "Engineering",
+									"slug": "engineering"
+								},
+								"invitedUser": {
+									"id": "33333333-3333-3333-3333-333333333333",
+									"email": "member@example.com",
+									"displayName": "Pat Chen"
+								},
+								"invitedByUser": {
+									"id": "11111111-1111-1111-1111-111111111111",
+									"email": "owner@example.com",
+									"displayName": "Jane Doe"
+								},
+								"createdAt": "2026-05-24T10:00:00Z",
+								"updatedAt": "2026-05-24T10:00:00Z"
+							}
+						]
+					}
+				]
+			},
+			"ProjectInviteProject": {
+				"type": "object",
+				"required": ["id", "name", "slug"],
+				"properties": {
+					"id": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"name": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 64
+					},
+					"slug": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 64,
+						"pattern": "^[a-z0-9-]+$"
+					}
+				},
+				"examples": [
+					{
+						"id": "22222222-2222-2222-2222-222222222222",
+						"name": "Engineering",
+						"slug": "engineering"
+					}
+				]
+			},
+			"ProjectInviteResponse": {
+				"type": "object",
+				"required": ["invite"],
+				"properties": {
+					"invite": {
+						"$ref": "#/components/schemas/ProjectInvite"
+					}
+				},
+				"examples": [
+					{
+						"invite": {
+							"id": "77777777-7777-7777-7777-777777777777",
+							"projectId": "22222222-2222-2222-2222-222222222222",
+							"invitedUserId": "33333333-3333-3333-3333-333333333333",
+							"invitedByUserId": "11111111-1111-1111-1111-111111111111",
+							"role": "viewer",
+							"status": "pending",
+							"project": {
+								"id": "22222222-2222-2222-2222-222222222222",
+								"name": "Engineering",
+								"slug": "engineering"
+							},
+							"invitedUser": {
+								"id": "33333333-3333-3333-3333-333333333333",
+								"email": "member@example.com",
+								"displayName": "Pat Chen"
+							},
+							"invitedByUser": {
+								"id": "11111111-1111-1111-1111-111111111111",
+								"email": "owner@example.com",
+								"displayName": "Jane Doe"
+							},
+							"createdAt": "2026-05-24T10:00:00Z",
+							"updatedAt": "2026-05-24T10:00:00Z"
+						}
 					}
 				]
 			},

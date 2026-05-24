@@ -71,6 +71,18 @@ export const projectQueries = {
 			queryFn: ({ signal }) => readApiData(apiClient.GET("/projects/{ref}/members", { params: { path: { ref } }, signal })),
 			staleTime: 60 * 1000
 		}),
+	invites: (ref: string) =>
+		queryOptions({
+			queryKey: apiQueryKeys.projects.invites(ref),
+			queryFn: ({ signal }) => readApiData(apiClient.GET("/projects/{ref}/invites", { params: { path: { ref } }, signal })),
+			staleTime: 60 * 1000
+		}),
+	currentUserInvites: () =>
+		queryOptions({
+			queryKey: apiQueryKeys.projects.currentUserInvites(),
+			queryFn: ({ signal }) => readApiData(apiClient.GET("/me/project-invites", { signal })),
+			staleTime: 60 * 1000
+		}),
 	measurements: (ref: string, filters: MeasurementFilters = {}) =>
 		queryOptions({
 			queryKey: apiQueryKeys.projects.measurements(ref, filters),

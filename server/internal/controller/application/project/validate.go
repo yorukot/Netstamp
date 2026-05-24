@@ -69,7 +69,7 @@ func normalizeUpdateProjectInput(input UpdateProjectInput) (UpdateProjectInput, 
 	return output, nil
 }
 
-func normalizeAddMemberInput(input AddMemberInput) (AddMemberInput, error) {
+func normalizeCreateInviteInput(input CreateInviteInput) (CreateInviteInput, error) {
 	var validation appvalidation.Collector
 
 	projectRef, err := domainproject.VNProjectRef(input.ProjectRef)
@@ -85,14 +85,31 @@ func normalizeAddMemberInput(input AddMemberInput) (AddMemberInput, error) {
 		validation.AddError("role", err, input.Role)
 	}
 	if err := validation.Err(ErrInvalidInput); err != nil {
-		return AddMemberInput{}, err
+		return CreateInviteInput{}, err
 	}
 
-	return AddMemberInput{
+	return CreateInviteInput{
 		CurrentUserID: input.CurrentUserID,
 		ProjectRef:    projectRef,
 		Email:         email,
 		Role:          role,
+	}, nil
+}
+
+func normalizeResolveInviteInput(input ResolveInviteInput) (ResolveInviteInput, error) {
+	var validation appvalidation.Collector
+
+	inviteID, err := domainproject.VNProjectInviteID(input.InviteID)
+	if err != nil {
+		validation.AddError("inviteId", err, input.InviteID)
+	}
+	if err := validation.Err(ErrInvalidInput); err != nil {
+		return ResolveInviteInput{}, err
+	}
+
+	return ResolveInviteInput{
+		CurrentUserID: input.CurrentUserID,
+		InviteID:      inviteID,
 	}, nil
 }
 

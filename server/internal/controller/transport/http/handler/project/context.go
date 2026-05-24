@@ -23,7 +23,7 @@ func currentUserID(ctx context.Context) (string, error) {
 
 func mapProjectError(err error, fallback string) error {
 	switch {
-	case errors.Is(err, domainproject.ErrProjectNotFound), errors.Is(err, domainproject.ErrMemberNotFound), errors.Is(err, identity.ErrUserNotFound):
+	case errors.Is(err, domainproject.ErrProjectNotFound), errors.Is(err, domainproject.ErrMemberNotFound), errors.Is(err, domainproject.ErrInviteNotFound), errors.Is(err, identity.ErrUserNotFound):
 		return httpx.NotFound("not found")
 	case errors.Is(err, appproject.ErrForbidden):
 		return httpx.Forbidden("forbidden")
@@ -31,6 +31,8 @@ func mapProjectError(err error, fallback string) error {
 		return httpx.Conflict("project slug already exists")
 	case errors.Is(err, domainproject.ErrMemberAlreadyExists):
 		return httpx.Conflict("project member already exists")
+	case errors.Is(err, domainproject.ErrInviteAlreadyExists):
+		return httpx.Conflict("project invite already exists")
 	case errors.Is(err, appproject.ErrLastOwner):
 		return httpx.Conflict("project must keep an owner")
 	case errors.Is(err, appproject.ErrInvalidInput):
@@ -66,6 +68,8 @@ func projectErrorLocation(field string) string {
 		return "path.ref"
 	case "memberUserId":
 		return "path.user_id"
+	case "inviteId":
+		return "path.invite_id"
 	case "email":
 		return "body.email"
 	default:

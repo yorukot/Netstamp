@@ -34,11 +34,25 @@ type ListMembersInput struct {
 	ProjectRef    string
 }
 
-type AddMemberInput struct {
+type CreateInviteInput struct {
 	CurrentUserID string
 	ProjectRef    string
 	Email         string
 	Role          domainproject.Role
+}
+
+type ListProjectInvitesInput struct {
+	CurrentUserID string
+	ProjectRef    string
+}
+
+type ListUserInvitesInput struct {
+	CurrentUserID string
+}
+
+type ResolveInviteInput struct {
+	CurrentUserID string
+	InviteID      string
 }
 
 type UpdateMemberRoleInput struct {

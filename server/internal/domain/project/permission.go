@@ -41,7 +41,7 @@ func CanAssignRole(actorRole, targetRole Role) bool {
 
 func CanRemoveMember(actorRole, memberRole Role, isSelf bool) bool {
 	if isSelf {
-		return true
+		return memberRole != RoleOwner
 	}
 	switch actorRole {
 	case RoleOwner:

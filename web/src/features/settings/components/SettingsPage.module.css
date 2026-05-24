@@ -35,6 +35,12 @@
 	font-size: 0.75rem;
 }
 
+.inviteActions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.375rem;
+}
+
 @media (max-width: 78rem) {
 	.settingsGrid {
 		grid-template-columns: 1fr;

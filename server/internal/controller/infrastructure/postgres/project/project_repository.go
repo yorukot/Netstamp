@@ -244,31 +244,6 @@ func (r *ProjectRepository) GetMember(ctx context.Context, projectIDValue, userI
 	return mapGetMember(row), nil
 }
 
-func (r *ProjectRepository) AddMember(ctx context.Context, input domainproject.Member) (domainproject.Member, error) {
-	ctx, span := postgres.StartDBSpan(ctx, pgprojectTracer, "project_members", "postgres.project_members.insert", "INSERT", "INSERT project member")
-	defer span.End()
-
-	projectID, userID, err := parseProjectAndUserIDs(input.ProjectID, input.UserID)
-	if err != nil {
-		return domainproject.Member{}, err
-	}
-
-	row, err := r.queries.CreateProjectMember(ctx, sqlc.CreateProjectMemberParams{
-		ProjectID: projectID,
-		UserID:    userID,
-		Role:      sqlc.ProjectMemberRole(input.Role),
-	})
-	if err != nil {
-		ok, mapped := mapCreateProjectMemberError(err)
-		if !ok {
-			postgres.RecordDBSpanError(span, err)
-		}
-		return domainproject.Member{}, mapped
-	}
-
-	return mapCreateMember(row), nil
-}
-
 func (r *ProjectRepository) UpdateMemberRole(ctx context.Context, input domainproject.Member) (domainproject.Member, error) {
 	ctx, span := postgres.StartDBSpan(ctx, pgprojectTracer, "project_members", "postgres.project_members.update_role", "UPDATE", "UPDATE project member role")
 	defer span.End()
@@ -335,6 +310,149 @@ func (r *ProjectRepository) CountOwners(ctx context.Context, projectIDValue stri
 	return int(count), nil
 }
 
+func (r *ProjectRepository) CreateInvite(ctx context.Context, input domainproject.Invite) (domainproject.Invite, error) {
+	ctx, span := postgres.StartDBSpan(ctx, pgprojectTracer, "project_invites", "postgres.project_invites.insert", "INSERT", "INSERT project invite")
+	defer span.End()
+
+	projectID, invitedUserID, invitedByUserID, err := parseProjectInviteUserIDs(input.ProjectID, input.InvitedUserID, input.InvitedByUserID)
+	if err != nil {
+		return domainproject.Invite{}, err
+	}
+
+	row, err := r.queries.CreateProjectInvite(ctx, sqlc.CreateProjectInviteParams{
+		ProjectID:       projectID,
+		InvitedUserID:   invitedUserID,
+		InvitedByUserID: invitedByUserID,
+		Role:            sqlc.ProjectMemberRole(input.Role),
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domainproject.Invite{}, domainproject.ErrMemberAlreadyExists
+		}
+		ok, mapped := mapCreateProjectInviteError(err)
+		if !ok {
+			postgres.RecordDBSpanError(span, err)
+		}
+		return domainproject.Invite{}, mapped
+	}
+
+	return mapCreateInvite(row), nil
+}
+
+func (r *ProjectRepository) ListProjectInvites(ctx context.Context, projectIDValue string) ([]domainproject.Invite, error) {
+	ctx, span := postgres.StartDBSpan(ctx, pgprojectTracer, "project_invites", "postgres.project_invites.list_for_project", "SELECT", "SELECT pending project invites")
+	defer span.End()
+
+	projectID, err := postgres.ParseUUID(projectIDValue, domainproject.ErrProjectNotFound)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := r.queries.ListPendingProjectInvites(ctx, projectID)
+	if err != nil {
+		postgres.RecordDBSpanError(span, err)
+		return nil, err
+	}
+
+	invites := make([]domainproject.Invite, 0, len(rows))
+	for _, row := range rows {
+		invites = append(invites, mapListProjectInvite(row))
+	}
+
+	return invites, nil
+}
+
+func (r *ProjectRepository) ListUserInvites(ctx context.Context, userIDValue string) ([]domainproject.Invite, error) {
+	ctx, span := postgres.StartDBSpan(ctx, pgprojectTracer, "project_invites", "postgres.project_invites.list_for_user", "SELECT", "SELECT pending user invites")
+	defer span.End()
+
+	userID, err := postgres.ParseUUID(userIDValue, identity.ErrUserNotFound)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := r.queries.ListPendingProjectInvitesForUser(ctx, userID)
+	if err != nil {
+		postgres.RecordDBSpanError(span, err)
+		return nil, err
+	}
+
+	invites := make([]domainproject.Invite, 0, len(rows))
+	for _, row := range rows {
+		invites = append(invites, mapListUserInvite(row))
+	}
+
+	return invites, nil
+}
+
+func (r *ProjectRepository) AcceptInvite(ctx context.Context, inviteIDValue, userIDValue string) (domainproject.Invite, error) {
+	ctx, span := postgres.StartDBSpan(ctx, pgprojectTracer, "project_invites", "postgres.project_invites.accept", "UPDATE", "ACCEPT pending project invite")
+	defer span.End()
+
+	inviteID, userID, err := parseInviteAndUserIDs(inviteIDValue, userIDValue)
+	if err != nil {
+		return domainproject.Invite{}, err
+	}
+
+	var invite domainproject.Invite
+	err = r.tx.InTx(ctx, func(ctx context.Context, tx pgx.Tx) error {
+		q := r.queries.WithTx(tx)
+
+		row, acceptErr := q.AcceptPendingProjectInvite(ctx, sqlc.AcceptPendingProjectInviteParams{
+			ID:            inviteID,
+			InvitedUserID: userID,
+		})
+		if acceptErr != nil {
+			if errors.Is(acceptErr, pgx.ErrNoRows) {
+				return domainproject.ErrInviteNotFound
+			}
+			return acceptErr
+		}
+		invite = mapAcceptInvite(row)
+
+		if _, memberErr := q.CreateProjectMember(ctx, sqlc.CreateProjectMemberParams{
+			ProjectID: row.ProjectID,
+			UserID:    row.InvitedUserID,
+			Role:      row.Role,
+		}); memberErr != nil {
+			_, mapped := mapCreateProjectMemberError(memberErr)
+			return mapped
+		}
+
+		return nil
+	})
+	if err != nil {
+		postgres.RecordDBSpanError(span, err)
+		return domainproject.Invite{}, err
+	}
+
+	return invite, nil
+}
+
+func (r *ProjectRepository) RejectInvite(ctx context.Context, inviteIDValue, userIDValue string) (domainproject.Invite, error) {
+	ctx, span := postgres.StartDBSpan(ctx, pgprojectTracer, "project_invites", "postgres.project_invites.reject", "UPDATE", "REJECT pending project invite")
+	defer span.End()
+
+	inviteID, userID, err := parseInviteAndUserIDs(inviteIDValue, userIDValue)
+	if err != nil {
+		return domainproject.Invite{}, err
+	}
+
+	row, err := r.queries.RejectPendingProjectInvite(ctx, sqlc.RejectPendingProjectInviteParams{
+		ID:            inviteID,
+		InvitedUserID: userID,
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domainproject.Invite{}, domainproject.ErrInviteNotFound
+		}
+		postgres.RecordDBSpanError(span, err)
+		return domainproject.Invite{}, err
+	}
+
+	return mapRejectInvite(row), nil
+}
+
 func parseProjectAndUserIDs(projectIDValue, userIDValue string) (uuid.UUID, uuid.UUID, error) {
 	projectID, err := postgres.ParseUUID(projectIDValue, domainproject.ErrProjectNotFound)
 	if err != nil {
@@ -346,4 +464,34 @@ func parseProjectAndUserIDs(projectIDValue, userIDValue string) (uuid.UUID, uuid
 	}
 
 	return projectID, userID, nil
+}
+
+func parseProjectInviteUserIDs(projectIDValue, invitedUserIDValue, invitedByUserIDValue string) (uuid.UUID, uuid.UUID, uuid.UUID, error) {
+	projectID, err := postgres.ParseUUID(projectIDValue, domainproject.ErrProjectNotFound)
+	if err != nil {
+		return uuid.Nil, uuid.Nil, uuid.Nil, err
+	}
+	invitedUserID, err := postgres.ParseUUID(invitedUserIDValue, identity.ErrUserNotFound)
+	if err != nil {
+		return uuid.Nil, uuid.Nil, uuid.Nil, err
+	}
+	invitedByUserID, err := postgres.ParseUUID(invitedByUserIDValue, identity.ErrUserNotFound)
+	if err != nil {
+		return uuid.Nil, uuid.Nil, uuid.Nil, err
+	}
+
+	return projectID, invitedUserID, invitedByUserID, nil
+}
+
+func parseInviteAndUserIDs(inviteIDValue, userIDValue string) (uuid.UUID, uuid.UUID, error) {
+	inviteID, err := postgres.ParseUUID(inviteIDValue, domainproject.ErrInviteNotFound)
+	if err != nil {
+		return uuid.Nil, uuid.Nil, err
+	}
+	userID, err := postgres.ParseUUID(userIDValue, identity.ErrUserNotFound)
+	if err != nil {
+		return uuid.Nil, uuid.Nil, err
+	}
+
+	return inviteID, userID, nil
 }

@@ -7,31 +7,31 @@ import (
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 )
 
-func (h *Handler) addMember(ctx context.Context, input *addMemberInput) (*memberOutput, error) {
+func (h *Handler) createInvite(ctx context.Context, input *createInviteInput) (*inviteOutput, error) {
 	currentUserID, err := currentUserID(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	member, err := h.service.AddMember(ctx, appproject.AddMemberInput{
+	invite, err := h.service.CreateInvite(ctx, appproject.CreateInviteInput{
 		CurrentUserID: currentUserID,
 		ProjectRef:    input.Ref,
 		Email:         input.Body.Email,
 		Role:          domainproject.Role(input.Body.Role),
 	})
 	if err != nil {
-		return nil, mapProjectError(err, "add project member failed")
+		return nil, mapProjectError(err, "create project invite failed")
 	}
 
-	return &memberOutput{Body: memberOutputBody{Member: member}}, nil
+	return &inviteOutput{Body: inviteOutputBody{Invite: invite}}, nil
 }
 
-type addMemberInput struct {
+type createInviteInput struct {
 	Ref  string
-	Body addMemberInputBody
+	Body createInviteInputBody
 }
 
-type addMemberInputBody struct {
+type createInviteInputBody struct {
 	Email string `json:"email,omitempty"`
 	Role  string `json:"role,omitempty"`
 }

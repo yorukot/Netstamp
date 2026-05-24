@@ -22,10 +22,6 @@ func mapProject(row sqlc.Project) domainproject.Project {
 	}
 }
 
-func mapCreateMember(row sqlc.CreateProjectMemberRow) domainproject.Member {
-	return mapMemberFields(row.ID, row.ProjectID, row.UserID, row.Role, row.CreatedAt, row.UpdatedAt, row.UserEmail, row.UserDisplayName)
-}
-
 func timePtr(value pgtype.Timestamptz) *time.Time {
 	if !value.Valid {
 		return nil
@@ -44,6 +40,106 @@ func mapGetMember(row sqlc.GetActiveProjectMemberRow) domainproject.Member {
 
 func mapUpdateMember(row sqlc.UpdateProjectMemberRoleRow) domainproject.Member {
 	return mapMemberFields(row.ID, row.ProjectID, row.UserID, row.Role, row.CreatedAt, row.UpdatedAt, row.UserEmail, row.UserDisplayName)
+}
+
+func mapCreateInvite(row sqlc.CreateProjectInviteRow) domainproject.Invite {
+	return mapInviteFields(
+		row.ID,
+		row.ProjectID,
+		row.InvitedUserID,
+		row.InvitedByUserID,
+		row.Role,
+		row.Status,
+		row.CreatedAt,
+		row.UpdatedAt,
+		row.ResolvedAt,
+		row.ProjectName,
+		row.ProjectSlug,
+		row.InvitedUserEmail,
+		row.InvitedUserDisplayName,
+		row.InvitedByUserEmail,
+		row.InvitedByUserDisplayName,
+	)
+}
+
+func mapListProjectInvite(row sqlc.ListPendingProjectInvitesRow) domainproject.Invite {
+	return mapInviteFields(
+		row.ID,
+		row.ProjectID,
+		row.InvitedUserID,
+		row.InvitedByUserID,
+		row.Role,
+		row.Status,
+		row.CreatedAt,
+		row.UpdatedAt,
+		row.ResolvedAt,
+		row.ProjectName,
+		row.ProjectSlug,
+		row.InvitedUserEmail,
+		row.InvitedUserDisplayName,
+		row.InvitedByUserEmail,
+		row.InvitedByUserDisplayName,
+	)
+}
+
+func mapListUserInvite(row sqlc.ListPendingProjectInvitesForUserRow) domainproject.Invite {
+	return mapInviteFields(
+		row.ID,
+		row.ProjectID,
+		row.InvitedUserID,
+		row.InvitedByUserID,
+		row.Role,
+		row.Status,
+		row.CreatedAt,
+		row.UpdatedAt,
+		row.ResolvedAt,
+		row.ProjectName,
+		row.ProjectSlug,
+		row.InvitedUserEmail,
+		row.InvitedUserDisplayName,
+		row.InvitedByUserEmail,
+		row.InvitedByUserDisplayName,
+	)
+}
+
+func mapAcceptInvite(row sqlc.AcceptPendingProjectInviteRow) domainproject.Invite {
+	return mapInviteFields(
+		row.ID,
+		row.ProjectID,
+		row.InvitedUserID,
+		row.InvitedByUserID,
+		row.Role,
+		row.Status,
+		row.CreatedAt,
+		row.UpdatedAt,
+		row.ResolvedAt,
+		row.ProjectName,
+		row.ProjectSlug,
+		row.InvitedUserEmail,
+		row.InvitedUserDisplayName,
+		row.InvitedByUserEmail,
+		row.InvitedByUserDisplayName,
+	)
+}
+
+func mapRejectInvite(row sqlc.RejectPendingProjectInviteRow) domainproject.Invite {
+	return mapInviteFields(
+		row.ID,
+		row.ProjectID,
+		row.InvitedUserID,
+		row.InvitedByUserID,
+		row.Role,
+		row.Status,
+		row.CreatedAt,
+		row.UpdatedAt,
+		row.ResolvedAt,
+		row.ProjectName,
+		row.ProjectSlug,
+		row.InvitedUserEmail,
+		row.InvitedUserDisplayName,
+		row.InvitedByUserEmail,
+		row.InvitedByUserDisplayName,
+	)
 }
 
 func mapMemberFields(
@@ -68,5 +164,50 @@ func mapMemberFields(
 		},
 		CreatedAt: createdAt.Time,
 		UpdatedAt: updatedAt.Time,
+	}
+}
+
+func mapInviteFields(
+	id uuid.UUID,
+	projectID uuid.UUID,
+	invitedUserID uuid.UUID,
+	invitedByUserID uuid.UUID,
+	role sqlc.ProjectMemberRole,
+	status sqlc.ProjectInviteStatus,
+	createdAt pgtype.Timestamptz,
+	updatedAt pgtype.Timestamptz,
+	resolvedAt pgtype.Timestamptz,
+	projectName string,
+	projectSlug string,
+	invitedUserEmail string,
+	invitedUserDisplayName string,
+	invitedByUserEmail string,
+	invitedByUserDisplayName string,
+) domainproject.Invite {
+	return domainproject.Invite{
+		ID:              id.String(),
+		ProjectID:       projectID.String(),
+		InvitedUserID:   invitedUserID.String(),
+		InvitedByUserID: invitedByUserID.String(),
+		Role:            domainproject.Role(role),
+		Status:          domainproject.InviteStatus(status),
+		Project: domainproject.InviteProject{
+			ID:   projectID.String(),
+			Name: projectName,
+			Slug: projectSlug,
+		},
+		InvitedUser: domainproject.MemberUser{
+			ID:          invitedUserID.String(),
+			Email:       invitedUserEmail,
+			DisplayName: invitedUserDisplayName,
+		},
+		InvitedByUser: domainproject.MemberUser{
+			ID:          invitedByUserID.String(),
+			Email:       invitedByUserEmail,
+			DisplayName: invitedByUserDisplayName,
+		},
+		CreatedAt:  createdAt.Time,
+		UpdatedAt:  updatedAt.Time,
+		ResolvedAt: timePtr(resolvedAt),
 	}
 }

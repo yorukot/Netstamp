@@ -18,6 +18,8 @@ var (
 	attrProjectID            = attribute.Key("project.id")
 	attrProjectRef           = attribute.Key("project.ref")
 	attrProjectSlug          = attribute.Key("project.slug")
+	attrProjectInviteID      = attribute.Key("project.invite.id")
+	attrProjectInviteStatus  = attribute.Key("project.invite.status")
 	attrProjectMemberUserID  = attribute.Key("project.member.user.id")
 	attrProjectMemberRole    = attribute.Key("project.member.role")
 )

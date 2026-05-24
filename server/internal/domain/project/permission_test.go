@@ -99,6 +99,35 @@ func TestCanAssignRole(t *testing.T) {
 	}
 }
 
+func TestCanRemoveMember(t *testing.T) {
+	tests := []struct {
+		name       string
+		actorRole  Role
+		memberRole Role
+		isSelf     bool
+		want       bool
+	}{
+		{name: "viewer can leave self", actorRole: RoleViewer, memberRole: RoleViewer, isSelf: true, want: true},
+		{name: "editor can leave self", actorRole: RoleEditor, memberRole: RoleEditor, isSelf: true, want: true},
+		{name: "admin can leave self", actorRole: RoleAdmin, memberRole: RoleAdmin, isSelf: true, want: true},
+		{name: "owner cannot leave self", actorRole: RoleOwner, memberRole: RoleOwner, isSelf: true, want: false},
+		{name: "owner can remove owner", actorRole: RoleOwner, memberRole: RoleOwner, want: true},
+		{name: "owner can remove admin", actorRole: RoleOwner, memberRole: RoleAdmin, want: true},
+		{name: "admin cannot remove owner", actorRole: RoleAdmin, memberRole: RoleOwner, want: false},
+		{name: "admin cannot remove admin", actorRole: RoleAdmin, memberRole: RoleAdmin, want: false},
+		{name: "admin can remove editor", actorRole: RoleAdmin, memberRole: RoleEditor, want: true},
+		{name: "editor cannot remove viewer", actorRole: RoleEditor, memberRole: RoleViewer, want: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := CanRemoveMember(tt.actorRole, tt.memberRole, tt.isSelf); got != tt.want {
+				t.Fatalf("expected %t, got %t", tt.want, got)
+			}
+		})
+	}
+}
+
 func TestIsValidRole(t *testing.T) {
 	tests := []struct {
 		role Role

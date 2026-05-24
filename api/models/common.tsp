@@ -201,3 +201,8 @@ model UserIdPathParam {
 	@path
 	user_id: uuid;
 }
+
+model ProjectInviteIdPathParam {
+	@path
+	invite_id: uuid;
+}

@@ -19,3 +19,19 @@ type memberOutput struct {
 type memberOutputBody struct {
 	Member domainproject.Member `json:"member"`
 }
+
+type inviteOutput struct {
+	Body inviteOutputBody
+}
+
+type inviteOutputBody struct {
+	Invite domainproject.Invite `json:"invite"`
+}
+
+type inviteListOutput struct {
+	Body inviteListOutputBody
+}
+
+type inviteListOutputBody struct {
+	Invites []domainproject.Invite `json:"invites"`
+}

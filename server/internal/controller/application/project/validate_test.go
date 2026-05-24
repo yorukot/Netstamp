@@ -71,8 +71,8 @@ func TestNormalizeUpdateProjectInputReturnsAllFieldErrors(t *testing.T) {
 }
 
 func TestNormalizeMemberInputsPreserveCurrentUserID(t *testing.T) {
-	t.Run("add", func(t *testing.T) {
-		input, err := normalizeAddMemberInput(AddMemberInput{
+	t.Run("create invite", func(t *testing.T) {
+		input, err := normalizeCreateInviteInput(CreateInviteInput{
 			CurrentUserID: testCurrentUserID,
 			ProjectRef:    " project ",
 			Email:         "member@example.com",
@@ -116,8 +116,8 @@ func TestNormalizeMemberInputsPreserveCurrentUserID(t *testing.T) {
 	})
 }
 
-func TestNormalizeAddMemberInputReturnsAllFieldErrors(t *testing.T) {
-	_, err := normalizeAddMemberInput(AddMemberInput{
+func TestNormalizeCreateInviteInputReturnsAllFieldErrors(t *testing.T) {
+	_, err := normalizeCreateInviteInput(CreateInviteInput{
 		CurrentUserID: testCurrentUserID,
 		ProjectRef:    "",
 		Email:         "",
@@ -125,6 +125,15 @@ func TestNormalizeAddMemberInputReturnsAllFieldErrors(t *testing.T) {
 	})
 
 	assertProjectValidationFields(t, err, []string{"projectRef", "email", "role"})
+}
+
+func TestNormalizeResolveInviteInputReturnsFieldError(t *testing.T) {
+	_, err := normalizeResolveInviteInput(ResolveInviteInput{
+		CurrentUserID: testCurrentUserID,
+		InviteID:      "",
+	})
+
+	assertProjectValidationFields(t, err, []string{"inviteId"})
 }
 
 func TestNormalizeUpdateMemberRoleInputReturnsAllFieldErrors(t *testing.T) {

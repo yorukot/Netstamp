@@ -10,6 +10,7 @@ interface RoleSelectProps {
 }
 
 const roleOptions = [
+	{ value: "owner", label: "Owner", disabled: true },
 	{ value: "admin", label: "Admin" },
 	{ value: "editor", label: "Editor" },
 	{ value: "viewer", label: "Viewer" }
@@ -29,7 +30,7 @@ export function RoleSelect({ role, name, onRoleChange }: RoleSelectProps) {
 			onChange={event => onRoleChange?.(event.currentTarget.value as ProjectMemberRole)}
 		>
 			{roleOptions.map(option => (
-				<option key={option.value} value={option.value}>
+				<option key={option.value} value={option.value} disabled={option.disabled}>
 					{option.label}
 				</option>
 			))}

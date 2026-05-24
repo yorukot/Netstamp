@@ -41,6 +41,22 @@
 	line-height: 1.6;
 }
 
+.stackedCell {
+	display: grid;
+	gap: 0.1875rem;
+	min-width: 0;
+}
+
+.stackedCell strong {
+	color: var(--ns-text);
+	font-size: 0.75rem;
+}
+
+.stackedCell span {
+	color: var(--ns-text-low);
+	font-size: 0.6875rem;
+}
+
 @media (max-width: 58rem) {
 	.projectInfoGrid,
 	.formGridThree,

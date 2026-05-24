@@ -36,11 +36,17 @@ func (r *ProjectEventRecorder) RecordProjectEvent(ctx context.Context, event app
 	if event.ProjectSlug != "" {
 		fields = append(fields, zap.String("project.slug", event.ProjectSlug))
 	}
+	if event.InviteID != "" {
+		fields = append(fields, zap.String("project.invite.id", event.InviteID))
+	}
 	if event.TargetUserID != "" {
 		fields = append(fields, zap.String("project.member.user.id", event.TargetUserID))
 	}
 	if event.Role != "" {
 		fields = append(fields, zap.String("project.member.role", string(event.Role)))
+	}
+	if event.InviteStatus != "" {
+		fields = append(fields, zap.String("project.invite.status", string(event.InviteStatus)))
 	}
 	if event.Err != nil {
 		fields = append(fields, zap.Error(event.Err))
@@ -65,6 +71,8 @@ func isExpectedProjectFailure(event appproject.ProjectEvent) bool {
 		appproject.ProjectReasonSlugAlreadyExists,
 		appproject.ProjectReasonMemberAlreadyExists,
 		appproject.ProjectReasonMemberNotFound,
+		appproject.ProjectReasonInviteAlreadyExists,
+		appproject.ProjectReasonInviteNotFound,
 		appproject.ProjectReasonUserNotFound,
 		appproject.ProjectReasonLastOwner:
 		return true

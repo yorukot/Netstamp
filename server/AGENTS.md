@@ -68,7 +68,7 @@ The backend currently uses authenticated users plus project-scoped membership ro
 
 Protected chi routes use `internal/controller/transport/http/middleware.RequireAuth`. It reads the `netstamp_session` HTTP-only cookie, verifies the JWT value through the auth `TokenVerifier`, and stores `identity.AccessTokenClaims` in the request context. Login and registration set this cookie, and `/auth/logout` clears it. Transport handlers read `claims.Subject` as `CurrentUserID` and pass it into application service inputs. Keep role checks out of HTTP handlers except for translating application errors into HTTP responses.
 
-Project membership is stored in `project_members` with role enum values defined by `internal/domain/project`: `owner`, `admin`, `editor`, and `viewer`. Project repository access methods such as `ListProjectsForUser`, `GetProjectForUser`, and `GetMemberRole` join existing project membership with non-deleted projects, so soft-deleted projects are not accessible. Removing a member hard-deletes the membership row. Creating a project creates the creator's `owner` membership in the same repository operation.
+Project membership is stored in `project_members` with role enum values defined by `internal/domain/project`: `owner`, `admin`, `editor`, and `viewer`. Project repository access methods such as `ListProjectsForUser`, `GetProjectForUser`, and `GetMemberRole` join existing project membership with non-deleted projects, so soft-deleted projects are not accessible. Removing a member hard-deletes the membership row. Creating a project creates the creator's `owner` membership in the same repository operation. New non-owner access starts as a pending row in `project_invites`; accepting an invite creates the membership in the same repository transaction that resolves the invite.
 
 All project-scoped permission rules belong in `internal/domain/project/permission.go`:
 
@@ -84,23 +84,25 @@ Current action policy:
 - `write:project_members`: `owner` and `admin`.
 - `write:project_labels`, `write:project_checks`, `write:project_probes`, and `create:probe`: `owner`, `admin`, and `editor`.
 
-Current member-management policy:
+Current member and invite-management policy:
 
 - Owners may assign `admin`, `editor`, or `viewer`, but not `owner`.
 - Admins may assign `editor` or `viewer`, but not `owner` or `admin`.
 - Admins cannot change an existing owner.
 - Role changes must not remove the last active owner from a project.
+- Owners cannot self-leave a project.
+- Owners/admins create pending invites instead of directly adding users as members. The invitee must accept the invite before membership is created.
 
 Feature services should enforce permissions after loading the project for the current user and before mutating project-scoped data:
 
-- Project service: list/get require existing membership; update requires `write:project`; delete requires `delete:project`; member add/update requires `write:project_members` plus assignability and last-owner checks. Member removal allows owner/admin-managed removal by policy and self-leave except when it would remove the last owner.
+- Project service: list/get require existing membership; update requires `write:project`; delete requires `delete:project`; invite create/list and member update require `write:project_members` plus assignability and last-owner checks where applicable. Member removal allows owner/admin-managed removal by policy and non-owner self-leave.
 - Label service: list requires active project membership; create/update/delete require `write:project_labels`.
 - Probe registry service: list/get require active project membership; create/update/delete and secret rotation require `write:project_probes`; label IDs are resolved inside the same project after the project permission check.
 - Check service: list/get require active project membership; create/update/delete require `write:project_checks`.
 
 Cross-feature authorization should use narrow application ports such as `ProjectAccess.GetProjectForUser` and `ProjectAccess.GetMemberRole`, usually implemented by the project repository and wired in `internal/controller/app/bootstrap.go`. Do not duplicate membership SQL or call another feature's application service just to check access.
 
-Error mapping is intentionally conservative. Missing/invalid user auth cookies return `401`. Inaccessible or missing projects, users, members, labels, checks, and probes generally map to `404` so project existence is not leaked through membership checks. Valid users without the required project role map to application `ErrForbidden` and HTTP `403`. Invalid role/input maps to `422`, and last-owner protection maps to `409`.
+Error mapping is intentionally conservative. Missing/invalid user auth cookies return `401`. Inaccessible or missing projects, users, members, invites, labels, checks, and probes generally map to `404` so project existence is not leaked through membership checks. Valid users without the required project role map to application `ErrForbidden` and HTTP `403`. Invalid role/input maps to `422`, and duplicate membership/invite or last-owner protection maps to `409`.
 
 When adding a new project-scoped action, add it to the project domain policy first, update `internal/domain/project/permission_test.go`, then wire the relevant application service to call `domainproject.Can`. Add focused service tests for allowed roles, denied roles, role lookup failures, and any feature-specific invariants.
 
@@ -129,14 +131,14 @@ Application-level events must follow the auth/project/label/probe/proberuntime p
 - Keep zap out of application packages. Services call the package recorder interface; `internal/controller/logger` owns zap fields, privacy handling, and log levels.
 - Pass concrete recorders from `internal/controller/app/bootstrap.go`. Do not silently install package-local no-op recorders; missing wiring should be visible in tests or startup composition.
 - Use small package-internal flow helpers to keep `context.Context`, request-scoped loggers, OpenTelemetry spans, event metadata, and success/failure recording together.
-- Log successful application events only for audit/security flows, not every expected endpoint. Auth register/login, project create/delete/member access changes, and check/label definition changes are audit-worthy; normal successful reads/lists and probe create success are covered by the HTTP request logger.
+- Log successful application events only for audit/security flows, not every expected endpoint. Auth register/login, project create/delete/member and invite access changes, and check/label definition changes are audit-worthy; normal successful reads/lists and probe create success are covered by the HTTP request logger.
 - Expected business/security failures use package-internal helpers such as `businessFailure`, log at `warn`, and should not attach raw error details. Unexpected technical failures use helpers such as `technicalFailure`, log at `error`, record the span error, and include the error field.
 - Keep sentinel error imports centralized in each application package `errors.go` when an application layer needs to expose errors from another domain. Other files in that package and its HTTP handlers should use the application package error names.
 - Never log raw passwords, password hashes, access tokens, JWT secrets, cookies, database passwords, probe plaintext secrets, probe secret hashes, raw request bodies, or raw personal data.
 
 Auth security events must go through `logger.AuthEventRecorder`. It pseudonymizes email into `user.email_hash` using `LOG_PSEUDONYM_KEY`.
 
-Project application events must go through `logger.ProjectEventRecorder`. Use these only for focused audit/security flows and failures where application semantics add value beyond HTTP request logs. Do not log project member email addresses.
+Project application events must go through `logger.ProjectEventRecorder`. Use these only for focused audit/security flows and failures where application semantics add value beyond HTTP request logs. Do not log project member or invite email addresses.
 
 Label application events must go through `logger.LabelEventRecorder`. Label create, update, and delete successes are audit-worthy; successful list and resolve operations are covered by the HTTP request logger. Label failure events should preserve project and label identifiers when available, but must never include label key or value text.
 
@@ -218,7 +220,7 @@ The observability compose setup requires `LOG_PSEUDONYM_KEY`, `DATABASE_PASSWORD
 
 The database is PostgreSQL with TimescaleDB in Docker. The compose files default `TIMESCALEDB_IMAGE` to the lightweight `timescale/timescaledb:latest-pg16` image and mount data at `/var/lib/postgresql/data`. Do not switch back to the heavier `timescale/timescaledb-ha` image unless the schema needs extensions or services that are not present in the lightweight image.
 
-The initial Goose migration enables `pgcrypto`, `citext`, and `timescaledb`, then creates users, projects, project members, probes, selector-based ping checks, key/value labels, effective probe-check rows, ping results, and the ping results hypertable. Follow-up migrations add traceroute check configuration plus traceroute run and hop result tables. Result series downsampling uses core TimescaleDB `time_bucket`; `timescaledb_toolkit` and DB-side `lttb` are intentionally not required. Probes and checks keep public UUIDs but also have internal bigint IDs, while `ping_results` and `traceroute_results` store bigint probe/check dimensions with `(probe_id, check_id, started_at)` as their primary key and no generated result ID. Traceroute hop rows store per-hop aggregate RTT fields and `rtt_samples_ms` arrays, matching the ping result sample-table shape.
+The initial Goose migration enables `pgcrypto`, `citext`, and `timescaledb`, then creates users, projects, project members, probes, selector-based ping checks, key/value labels, effective probe-check rows, ping results, and the ping results hypertable. Follow-up migrations add traceroute check configuration plus traceroute run and hop result tables, probe location naming, and project invites. Result series downsampling uses core TimescaleDB `time_bucket`; `timescaledb_toolkit` and DB-side `lttb` are intentionally not required. Probes and checks keep public UUIDs but also have internal bigint IDs, while `ping_results` and `traceroute_results` store bigint probe/check dimensions with `(probe_id, check_id, started_at)` as their primary key and no generated result ID. Traceroute hop rows store per-hop aggregate RTT fields and `rtt_samples_ms` arrays, matching the ping result sample-table shape.
 
 Add schema changes as timestamped Goose migrations under `db/migrations/`, following the pattern in `db/migrations/README.md`, such as `202604300001_create_example_table.sql`. Add typed SQL queries under `db/query/*.sql`, then run `just backend-sqlc`. Do not edit `internal/controller/infrastructure/postgres/sqlc/*.go` manually. Keep repositories responsible for mapping sqlc rows and pgx errors into domain/application types.
 

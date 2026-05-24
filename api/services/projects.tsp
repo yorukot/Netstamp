@@ -56,19 +56,6 @@ interface ProjectMemberService {
 	@get
 	listProjectMembers(...ProjectRefParam): OkJson<ProjectMemberListResponse> | UnauthorizedProblem | NotFoundProblem | UnprocessableEntityProblem | InternalServerProblem;
 
-	@operationId("addProjectMember")
-	@summary("Add project member")
-	@post
-	addProjectMember(...ProjectRefParam, @body body: AddProjectMemberRequest):
-		| CreatedJson<ProjectMemberResponse>
-		| BadRequestProblem
-		| UnauthorizedProblem
-		| ForbiddenProblem
-		| NotFoundProblem
-		| ConflictProblem
-		| UnprocessableEntityProblem
-		| InternalServerProblem;
-
 	@operationId("updateProjectMemberRole")
 	@summary("Update project member role")
 	@patch
@@ -93,6 +80,68 @@ interface ProjectMemberService {
 		| ForbiddenProblem
 		| NotFoundProblem
 		| ConflictProblem
+		| UnprocessableEntityProblem
+		| InternalServerProblem;
+}
+
+@tag("Project Invites")
+@useAuth(SessionCookieAuth)
+@route("/projects/{ref}/invites")
+interface ProjectInviteService {
+	@operationId("listProjectInvites")
+	@summary("List pending project invites")
+	@get
+	listProjectInvites(...ProjectRefParam):
+		| OkJson<ProjectInviteListResponse>
+		| UnauthorizedProblem
+		| ForbiddenProblem
+		| NotFoundProblem
+		| UnprocessableEntityProblem
+		| InternalServerProblem;
+
+	@operationId("createProjectInvite")
+	@summary("Create project invite")
+	@post
+	createProjectInvite(...ProjectRefParam, @body body: CreateProjectInviteRequest):
+		| CreatedJson<ProjectInviteResponse>
+		| BadRequestProblem
+		| UnauthorizedProblem
+		| ForbiddenProblem
+		| NotFoundProblem
+		| ConflictProblem
+		| UnprocessableEntityProblem
+		| InternalServerProblem;
+}
+
+@tag("Project Invites")
+@useAuth(SessionCookieAuth)
+@route("/me/project-invites")
+interface CurrentUserProjectInviteService {
+	@operationId("listCurrentUserProjectInvites")
+	@summary("List current user's pending project invites")
+	@get
+	listCurrentUserProjectInvites(): OkJson<ProjectInviteListResponse> | UnauthorizedProblem | InternalServerProblem;
+
+	@operationId("acceptProjectInvite")
+	@summary("Accept project invite")
+	@post
+	@route("/{invite_id}/accept")
+	acceptProjectInvite(...ProjectInviteIdPathParam):
+		| OkJson<ProjectInviteResponse>
+		| UnauthorizedProblem
+		| NotFoundProblem
+		| ConflictProblem
+		| UnprocessableEntityProblem
+		| InternalServerProblem;
+
+	@operationId("rejectProjectInvite")
+	@summary("Reject project invite")
+	@post
+	@route("/{invite_id}/reject")
+	rejectProjectInvite(...ProjectInviteIdPathParam):
+		| OkJson<ProjectInviteResponse>
+		| UnauthorizedProblem
+		| NotFoundProblem
 		| UnprocessableEntityProblem
 		| InternalServerProblem;
 }

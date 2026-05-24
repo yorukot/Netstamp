@@ -2,13 +2,15 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ApiError, apiClient, readApiData, readEmptyApiResponse } from "./client";
 import { apiQueryKeys } from "./queryKeys";
 import type {
-	AddMemberInput,
+	ApiMember,
+	ApiProjectInvite,
 	ChangeCurrentUserEmailInput,
 	ChangeCurrentUserPasswordInput,
 	CreateCheckInput,
 	CreateLabelInput,
 	CreateProbeInput,
 	CreateProjectInput,
+	CreateProjectInviteInput,
 	LoginInput,
 	ProjectMemberRole,
 	RegisterInput,
@@ -21,6 +23,8 @@ import type {
 } from "./types";
 
 type SaveProjectLabelVariables = { labelId?: string; body: CreateLabelInput };
+type ProjectMembersCache = { members: ApiMember[] };
+type ProjectInvitesCache = { invites: ApiProjectInvite[] };
 
 function requireProjectRef(projectRef: string | null | undefined) {
 	if (!projectRef) {
@@ -94,8 +98,8 @@ export function deleteProjectLabel(ref: string, labelId: string) {
 	return readEmptyApiResponse(apiClient.DELETE("/projects/{ref}/labels/{label_id}", { params: { path: { ref, label_id: labelId } } }));
 }
 
-export function addProjectMember(ref: string, body: AddMemberInput) {
-	return readApiData(apiClient.POST("/projects/{ref}/members", { params: { path: { ref } }, body }));
+export function createProjectInvite(ref: string, body: CreateProjectInviteInput) {
+	return readApiData(apiClient.POST("/projects/{ref}/invites", { params: { path: { ref } }, body }));
 }
 
 export function removeProjectMember(ref: string, userId: string) {
@@ -104,6 +108,14 @@ export function removeProjectMember(ref: string, userId: string) {
 
 export function updateProjectMemberRole(ref: string, userId: string, role: ProjectMemberRole) {
 	return readApiData(apiClient.PATCH("/projects/{ref}/members/{user_id}", { params: { path: { ref, user_id: userId } }, body: { role } }));
+}
+
+export function acceptProjectInvite(inviteId: string) {
+	return readApiData(apiClient.POST("/me/project-invites/{invite_id}/accept", { params: { path: { invite_id: inviteId } } }));
+}
+
+export function rejectProjectInvite(inviteId: string) {
+	return readApiData(apiClient.POST("/me/project-invites/{invite_id}/reject", { params: { path: { invite_id: inviteId } } }));
 }
 
 export function rotateProjectProbeSecret(ref: string, probeId: string) {
@@ -327,13 +339,43 @@ export function useDeleteProjectLabelMutation(projectRef: string | null | undefi
 	});
 }
 
-export function useAddProjectMemberMutation(projectRef: string | null | undefined) {
+export function useCreateProjectInviteMutation(projectRef: string | null | undefined) {
 	const queryClient = useQueryClient();
 
 	return useMutation({
-		mutationFn: (body: AddMemberInput) => addProjectMember(requireProjectRef(projectRef), body),
+		mutationFn: (body: CreateProjectInviteInput) => createProjectInvite(requireProjectRef(projectRef), body),
+		onSuccess: data => {
+			const ref = requireProjectRef(projectRef);
+			queryClient.setQueryData<ProjectInvitesCache | undefined>(apiQueryKeys.projects.invites(ref), current =>
+				current ? { ...current, invites: [data.invite, ...current.invites.filter(invite => invite.id !== data.invite.id)] } : current
+			);
+			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.invites(ref) });
+		}
+	});
+}
+
+export function useAcceptProjectInviteMutation() {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: acceptProjectInvite,
+		onSuccess: data => {
+			const projectRef = projectCacheRef(data.invite.project);
+			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.currentUserInvites() });
+			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.list() });
+			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.detail(projectRef) });
+			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.members(projectRef) });
+		}
+	});
+}
+
+export function useRejectProjectInviteMutation() {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: rejectProjectInvite,
 		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.members(requireProjectRef(projectRef)) });
+			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.currentUserInvites() });
 		}
 	});
 }
@@ -343,8 +385,12 @@ export function useRemoveProjectMemberMutation(projectRef: string | null | undef
 
 	return useMutation({
 		mutationFn: (userId: string) => removeProjectMember(requireProjectRef(projectRef), userId),
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.members(requireProjectRef(projectRef)) });
+		onSuccess: (_data, userId) => {
+			const ref = requireProjectRef(projectRef);
+			queryClient.setQueryData<ProjectMembersCache | undefined>(apiQueryKeys.projects.members(ref), data =>
+				data ? { ...data, members: data.members.filter(member => member.userId !== userId) } : data
+			);
+			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.list() });
 		}
 	});
 }

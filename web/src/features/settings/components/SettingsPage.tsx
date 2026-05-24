@@ -1,12 +1,24 @@
 import { useSession } from "@/features/auth/session/SessionContext";
-import { useChangeCurrentUserEmailMutation, useChangeCurrentUserPasswordMutation, useUpdateCurrentUserMutation } from "@/shared/api/mutations";
+import { pathForRoute } from "@/routes/routePaths";
+import {
+	useAcceptProjectInviteMutation,
+	useChangeCurrentUserEmailMutation,
+	useChangeCurrentUserPasswordMutation,
+	useRejectProjectInviteMutation,
+	useUpdateCurrentUserMutation
+} from "@/shared/api/mutations";
+import { projectQueries } from "@/shared/api/queries";
+import type { ApiProjectInvite } from "@/shared/api/types";
+import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { ActionRow } from "@/shared/components/ActionRow";
 import { BodyCopy } from "@/shared/components/BodyCopy";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { pushToast } from "@/shared/toast/toastStore";
-import { Button, Panel, SignalAvatar, TextField } from "@netstamp/ui";
+import { Badge, Button, DataTable, Panel, SignalAvatar, TextField, type DataColumn } from "@netstamp/ui";
+import { useQuery } from "@tanstack/react-query";
 import type { FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
 import styles from "./SettingsPage.module.css";
 
 function formValue(form: HTMLFormElement, name: string) {
@@ -14,11 +26,33 @@ function formValue(form: HTMLFormElement, name: string) {
 	return typeof value === "string" ? value.trim() : "";
 }
 
+interface InviteRow {
+	id: string;
+	project: string;
+	role: string;
+	invitedBy: string;
+	createdAt: string;
+	source: ApiProjectInvite;
+}
+
+function formatDateTime(value: string) {
+	return new Date(value).toLocaleString();
+}
+
+function roleLabel(role: string) {
+	return role.charAt(0).toUpperCase() + role.slice(1);
+}
+
 export function SettingsPage() {
 	const { session } = useSession();
+	const { setSelectedProjectRef } = useCurrentProject();
+	const navigate = useNavigate();
 	const updateUserMutation = useUpdateCurrentUserMutation();
 	const changeEmailMutation = useChangeCurrentUserEmailMutation();
 	const changePasswordMutation = useChangeCurrentUserPasswordMutation();
+	const acceptInviteMutation = useAcceptProjectInviteMutation();
+	const rejectInviteMutation = useRejectProjectInviteMutation();
+	const invitesQuery = useQuery(projectQueries.currentUserInvites());
 
 	if (!session) {
 		return null;
@@ -54,9 +88,85 @@ export function SettingsPage() {
 		});
 	}
 
+	function acceptInvite(invite: ApiProjectInvite) {
+		acceptInviteMutation.mutate(invite.id, {
+			onSuccess: data => {
+				const projectRef = data.invite.project.slug || data.invite.project.id;
+				setSelectedProjectRef(projectRef);
+				pushToast({
+					title: "Invite accepted",
+					message: `Switched to ${data.invite.project.name}.`,
+					tone: "success"
+				});
+				navigate(pathForRoute("dashboard"));
+			}
+		});
+	}
+
+	function rejectInvite(invite: ApiProjectInvite) {
+		rejectInviteMutation.mutate(invite.id, {
+			onSuccess: data => {
+				pushToast({
+					title: "Invite rejected",
+					message: `${data.invite.project.name} was removed from pending invitations.`,
+					tone: "success"
+				});
+			}
+		});
+	}
+
+	const inviteRows: InviteRow[] = (invitesQuery.data?.invites ?? []).map(invite => ({
+		id: invite.id,
+		project: invite.project.name,
+		role: invite.role,
+		invitedBy: invite.invitedByUser.displayName,
+		createdAt: formatDateTime(invite.createdAt),
+		source: invite
+	}));
+	const inviteColumns: DataColumn<InviteRow>[] = [
+		{
+			key: "project",
+			label: "Project",
+			render: row => <strong>{row.project}</strong>
+		},
+		{ key: "role", label: "Role", render: row => <Badge tone="accent">{roleLabel(row.role)}</Badge> },
+		{ key: "invitedBy", label: "Invited by" },
+		{ key: "createdAt", label: "Sent" },
+		{
+			key: "actions",
+			label: "Actions",
+			render: row => {
+				const accepting = acceptInviteMutation.isPending && acceptInviteMutation.variables === row.id;
+				const rejecting = rejectInviteMutation.isPending && rejectInviteMutation.variables === row.id;
+
+				return (
+					<div className={styles.inviteActions}>
+						<Button size="sm" disabled={acceptInviteMutation.isPending || rejectInviteMutation.isPending} onClick={() => acceptInvite(row.source)}>
+							{accepting ? "Accepting" : "Accept"}
+						</Button>
+						<Button variant="ghost" size="sm" disabled={acceptInviteMutation.isPending || rejectInviteMutation.isPending} onClick={() => rejectInvite(row.source)}>
+							{rejecting ? "Rejecting" : "Reject"}
+						</Button>
+					</div>
+				);
+			}
+		}
+	];
+
 	return (
 		<PageStack>
 			<ScreenHeader eyebrow="User settings" title="Account" copy="Set your display name, rotate the login email, and change the password used for controller access." />
+
+			<Panel tone="glass" eyebrow="Invitations" title={`${inviteRows.length} pending project invites`}>
+				<DataTable
+					columns={inviteColumns}
+					rows={inviteRows}
+					density="compact"
+					minWidth="46rem"
+					emptyLabel={invitesQuery.isLoading ? "Loading project invitations" : "No pending project invitations"}
+					getRowKey={row => row.id}
+				/>
+			</Panel>
 
 			<div className={styles.settingsGrid}>
 				<Panel tone="glass" eyebrow="Identity" title="Profile">

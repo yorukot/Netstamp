@@ -2,6 +2,7 @@ package project
 
 import (
 	"context"
+	"errors"
 
 	"github.com/yorukot/netstamp/internal/domain/identity"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
@@ -168,46 +169,135 @@ func (s *Service) ListMembers(ctx context.Context, input ListMembersInput) ([]do
 	return members, nil
 }
 
-func (s *Service) AddMember(ctx context.Context, input AddMemberInput) (domainproject.Member, error) {
-	ctx, flow := s.startProjectFlow(ctx, "project.member.add", ProjectActionAddMember, input.CurrentUserID)
+func (s *Service) CreateInvite(ctx context.Context, input CreateInviteInput) (domainproject.Invite, error) {
+	ctx, flow := s.startProjectFlow(ctx, "project.invite.create", ProjectActionCreateInvite, input.CurrentUserID)
 	defer flow.end()
 	flow.setRole(input.Role)
 
-	input, err := normalizeAddMemberInput(input)
+	input, err := normalizeCreateInviteInput(input)
 	if err != nil {
-		return domainproject.Member{}, flow.businessFailure(ProjectEventAddMemberFailure, ProjectReasonInvalidInput, err)
+		return domainproject.Invite{}, flow.businessFailure(ProjectEventCreateInviteFailure, ProjectReasonInvalidInput, err)
 	}
 	flow.setRole(input.Role)
 
-	project, err := s.loadProjectForUser(ctx, flow, input.ProjectRef, input.CurrentUserID, ProjectEventAddMemberFailure)
+	project, err := s.loadProjectForUser(ctx, flow, input.ProjectRef, input.CurrentUserID, ProjectEventCreateInviteFailure)
 	if err != nil {
-		return domainproject.Member{}, err
+		return domainproject.Invite{}, err
 	}
-	actorRole, err := s.requireRole(ctx, flow, project.ID, input.CurrentUserID, ProjectEventAddMemberFailure, domainproject.ActionManageMembers)
+	actorRole, err := s.requireRole(ctx, flow, project.ID, input.CurrentUserID, ProjectEventCreateInviteFailure, domainproject.ActionManageMembers)
 	if err != nil {
-		return domainproject.Member{}, err
+		return domainproject.Invite{}, err
 	}
 	if !domainproject.CanAssignRole(actorRole, input.Role) {
-		return domainproject.Member{}, flow.businessFailure(ProjectEventAddMemberFailure, ProjectReasonForbidden, ErrForbidden)
+		return domainproject.Invite{}, flow.businessFailure(ProjectEventCreateInviteFailure, ProjectReasonForbidden, ErrForbidden)
 	}
 
 	user, err := s.getUserByEmail(ctx, input.Email)
 	if err != nil {
-		return domainproject.Member{}, flow.memberAddFailure(err)
+		return domainproject.Invite{}, flow.inviteCreateFailure(err)
 	}
 	flow.setTargetUser(user.ID)
 
-	member, err := s.repo.AddMember(ctx, domainproject.Member{
-		ProjectID: project.ID,
-		UserID:    user.ID,
-		Role:      input.Role,
+	if _, err := s.repo.GetMember(ctx, project.ID, user.ID); err == nil {
+		return domainproject.Invite{}, flow.inviteCreateFailure(domainproject.ErrMemberAlreadyExists)
+	} else if !errors.Is(err, domainproject.ErrMemberNotFound) {
+		return domainproject.Invite{}, flow.memberLookupFailure(ProjectEventCreateInviteFailure, err)
+	}
+
+	invite, err := s.repo.CreateInvite(ctx, domainproject.Invite{
+		ProjectID:       project.ID,
+		InvitedUserID:   user.ID,
+		InvitedByUserID: input.CurrentUserID,
+		Role:            input.Role,
 	})
 	if err != nil {
-		return domainproject.Member{}, flow.memberAddFailure(err)
+		return domainproject.Invite{}, flow.inviteCreateFailure(err)
 	}
-	flow.success(ProjectEventAddMemberSuccess)
+	flow.setInvite(invite)
+	flow.success(ProjectEventCreateInviteSuccess)
 
-	return member, nil
+	return invite, nil
+}
+
+func (s *Service) ListProjectInvites(ctx context.Context, input ListProjectInvitesInput) ([]domainproject.Invite, error) {
+	ctx, flow := s.startProjectFlow(ctx, "project.invites.list", ProjectActionListInvites, input.CurrentUserID)
+	defer flow.end()
+
+	projectRef, err := domainproject.VNProjectRef(input.ProjectRef)
+	if err != nil {
+		err = invalidProjectField("projectRef", err.Error(), input.ProjectRef)
+		return nil, flow.businessFailure(ProjectEventListInvitesFailure, ProjectReasonInvalidInput, err)
+	}
+
+	project, err := s.loadProjectForUser(ctx, flow, projectRef, input.CurrentUserID, ProjectEventListInvitesFailure)
+	if err != nil {
+		return nil, err
+	}
+	_, err = s.requireRole(ctx, flow, project.ID, input.CurrentUserID, ProjectEventListInvitesFailure, domainproject.ActionManageMembers)
+	if err != nil {
+		return nil, err
+	}
+
+	invites, err := s.repo.ListProjectInvites(ctx, project.ID)
+	if err != nil {
+		return nil, flow.invitesListFailure(ProjectEventListInvitesFailure, err)
+	}
+
+	return invites, nil
+}
+
+func (s *Service) ListUserInvites(ctx context.Context, input ListUserInvitesInput) ([]domainproject.Invite, error) {
+	ctx, flow := s.startProjectFlow(ctx, "project.invites.list_user", ProjectActionListUserInvites, input.CurrentUserID)
+	defer flow.end()
+
+	invites, err := s.repo.ListUserInvites(ctx, input.CurrentUserID)
+	if err != nil {
+		return nil, flow.invitesListFailure(ProjectEventListUserInvitesFailure, err)
+	}
+
+	return invites, nil
+}
+
+func (s *Service) AcceptInvite(ctx context.Context, input ResolveInviteInput) (domainproject.Invite, error) {
+	ctx, flow := s.startProjectFlow(ctx, "project.invite.accept", ProjectActionAcceptInvite, input.CurrentUserID)
+	defer flow.end()
+	flow.setInviteID(input.InviteID)
+
+	input, err := normalizeResolveInviteInput(input)
+	if err != nil {
+		return domainproject.Invite{}, flow.businessFailure(ProjectEventAcceptInviteFailure, ProjectReasonInvalidInput, err)
+	}
+	flow.setInviteID(input.InviteID)
+
+	invite, err := s.repo.AcceptInvite(ctx, input.InviteID, input.CurrentUserID)
+	if err != nil {
+		return domainproject.Invite{}, flow.inviteResolveFailure(ProjectEventAcceptInviteFailure, err)
+	}
+	flow.setInvite(invite)
+	flow.success(ProjectEventAcceptInviteSuccess)
+
+	return invite, nil
+}
+
+func (s *Service) RejectInvite(ctx context.Context, input ResolveInviteInput) (domainproject.Invite, error) {
+	ctx, flow := s.startProjectFlow(ctx, "project.invite.reject", ProjectActionRejectInvite, input.CurrentUserID)
+	defer flow.end()
+	flow.setInviteID(input.InviteID)
+
+	input, err := normalizeResolveInviteInput(input)
+	if err != nil {
+		return domainproject.Invite{}, flow.businessFailure(ProjectEventRejectInviteFailure, ProjectReasonInvalidInput, err)
+	}
+	flow.setInviteID(input.InviteID)
+
+	invite, err := s.repo.RejectInvite(ctx, input.InviteID, input.CurrentUserID)
+	if err != nil {
+		return domainproject.Invite{}, flow.inviteResolveFailure(ProjectEventRejectInviteFailure, err)
+	}
+	flow.setInvite(invite)
+	flow.success(ProjectEventRejectInviteSuccess)
+
+	return invite, nil
 }
 
 func (s *Service) UpdateMemberRole(ctx context.Context, input UpdateMemberRoleInput) (domainproject.Member, error) {
@@ -232,7 +322,7 @@ func (s *Service) UpdateMemberRole(ctx context.Context, input UpdateMemberRoleIn
 		return domainproject.Member{}, err
 	}
 	if !domainproject.CanAssignRole(actorRole, input.Role) {
-		return domainproject.Member{}, flow.businessFailure(ProjectEventAddMemberFailure, ProjectReasonForbidden, ErrForbidden)
+		return domainproject.Member{}, flow.businessFailure(ProjectEventUpdateMemberRoleFailure, ProjectReasonForbidden, ErrForbidden)
 	}
 
 	member, err := s.repo.GetMember(ctx, project.ID, input.UserID)
@@ -281,11 +371,6 @@ func (s *Service) RemoveMember(ctx context.Context, input RemoveMemberInput) err
 	if err != nil {
 		return err
 	}
-	actorRole, err := s.requireRole(ctx, flow, project.ID, input.CurrentUserID, ProjectEventRemoveMemberFailure, domainproject.ActionManageMembers)
-	if err != nil {
-		return err
-	}
-
 	member, err := s.repo.GetMember(ctx, project.ID, input.UserID)
 	if err != nil {
 		return flow.memberLookupFailure(ProjectEventRemoveMemberFailure, err)
@@ -293,6 +378,13 @@ func (s *Service) RemoveMember(ctx context.Context, input RemoveMemberInput) err
 	flow.setRole(member.Role)
 
 	isSelf := input.CurrentUserID == input.UserID
+	actorRole := member.Role
+	if !isSelf {
+		actorRole, err = s.requireRole(ctx, flow, project.ID, input.CurrentUserID, ProjectEventRemoveMemberFailure, domainproject.ActionManageMembers)
+		if err != nil {
+			return err
+		}
+	}
 	if !domainproject.CanRemoveMember(actorRole, member.Role, isSelf) {
 		return flow.businessFailure(ProjectEventRemoveMemberFailure, ProjectReasonForbidden, ErrForbidden)
 	}
