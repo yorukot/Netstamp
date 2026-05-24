@@ -1,5 +1,4 @@
 import { mapApiCheck, mapApiChecksWithAssignments, parseIntervalSeconds } from "@/features/checks/api/checkAdapters";
-import { mapApiMeasurements, type LogRow } from "@/features/checks/api/resultAdapters";
 import {
 	buildPingConfigPayload,
 	buildTracerouteConfigPayload,
@@ -38,15 +37,6 @@ const checkColumns: DataColumn<CheckDefinition>[] = [
 	{ key: "status", label: "Latest status", render: row => <Badge tone={toneForStatus(row.status)}>{row.status}</Badge> },
 	{ key: "interval", label: "Interval" },
 	{ key: "assigned", label: "Assigned probes" }
-];
-
-const logColumns: DataColumn<LogRow>[] = [
-	{ key: "time", label: "Time" },
-	{ key: "check", label: "Check" },
-	{ key: "probe", label: "Probe" },
-	{ key: "status", label: "Status", render: row => <Badge tone={toneForStatus(row.status)}>{row.status}</Badge> },
-	{ key: "latency", label: "Latency" },
-	{ key: "event", label: "Event" }
 ];
 
 type SelectorMode = "all-probes" | "all" | "any" | "advanced";
@@ -333,11 +323,6 @@ export function ChecksPage() {
 	const selectedApiCheck = isCreating ? null : checkDetailQuery.data?.check || selectedListApiCheck;
 	const selectedAssignmentCount = (assignmentsQuery.data ?? []).filter(assignment => assignment.checkId === selectedListCheck?.id).length;
 	const selectedCheck = isCreating ? null : selectedApiCheck ? mapApiCheck(selectedApiCheck, selectedAssignmentCount) : selectedListCheck;
-	const measurementsQuery = useQuery({
-		...projectQueries.measurements(projectRef || "", { checkId: selectedListCheck?.id || "", limit: 10 }),
-		enabled: Boolean(projectRef && selectedListCheck && !isCreating),
-		select: data => mapApiMeasurements(data.measurements, probes, checkRows)
-	});
 	const activeCheckName = isCreating || selectedId ? checkName : selectedCheck?.name || "";
 	const activeTarget = isCreating || selectedId ? target : selectedCheck?.target || "";
 	const activeCheckType = isCreating || selectedId ? checkType : selectedCheck?.type || checkType;
@@ -353,7 +338,6 @@ export function ChecksPage() {
 	const selectorOptions = selectorLabelOptions(labelsQuery.data?.labels ?? []);
 	const selectorKeys = selectorKeyOptions(selectorOptions, selectorState.rules);
 	const saveCheckMutation = isCreating ? createCheckMutation : updateCheckMutation;
-	const selectedLogs = selectedCheck ? (measurementsQuery.data ?? []) : [];
 	const isEditorOpen = isCreating || Boolean(selectedCheck);
 
 	function resetEditorState() {
@@ -838,8 +822,6 @@ export function ChecksPage() {
 									{deleteCheckMutation.isPending ? "Deleting" : "Delete check"}
 								</Button>
 							</ActionRow>
-
-							<DataTable columns={logColumns} rows={selectedLogs} />
 						</div>
 					</Panel>
 				) : null}
