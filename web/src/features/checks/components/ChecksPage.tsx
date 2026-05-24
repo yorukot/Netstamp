@@ -23,7 +23,6 @@ import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { pushErrorToast } from "@/shared/toast/toastStore";
 import { classNames } from "@/shared/utils/classNames";
-import { toneForStatus } from "@/shared/utils/statusTone";
 import { Badge, Button, Checkbox, DataTable, FieldLabel, Panel, SelectField, TextAreaField, TextField, type DataColumn } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
@@ -34,7 +33,6 @@ const checkColumns: DataColumn<CheckDefinition>[] = [
 	{ key: "name", label: "Check name" },
 	{ key: "type", label: "Type", render: row => <Badge tone="accent">{row.type}</Badge> },
 	{ key: "target", label: "Target" },
-	{ key: "status", label: "Latest status", render: row => <Badge tone={toneForStatus(row.status)}>{row.status}</Badge> },
 	{ key: "interval", label: "Interval" },
 	{ key: "assigned", label: "Assigned probes" }
 ];
