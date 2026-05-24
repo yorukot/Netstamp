@@ -137,6 +137,36 @@ func (q *Queries) CreateProbeCheckAssignment(ctx context.Context, arg CreateProb
 	return err
 }
 
+const createTCPCheckConfig = `-- name: CreateTCPCheckConfig :one
+INSERT INTO tcp_check_configs (check_id, port, timeout_ms, ip_family)
+VALUES ($1, $2, $3, $4)
+RETURNING check_id, port, timeout_ms, ip_family
+`
+
+type CreateTCPCheckConfigParams struct {
+	CheckID   uuid.UUID    `json:"check_id"`
+	Port      int32        `json:"port"`
+	TimeoutMs int32        `json:"timeout_ms"`
+	IpFamily  NullIpFamily `json:"ip_family"`
+}
+
+func (q *Queries) CreateTCPCheckConfig(ctx context.Context, arg CreateTCPCheckConfigParams) (TcpCheckConfig, error) {
+	row := q.db.QueryRow(ctx, createTCPCheckConfig,
+		arg.CheckID,
+		arg.Port,
+		arg.TimeoutMs,
+		arg.IpFamily,
+	)
+	var i TcpCheckConfig
+	err := row.Scan(
+		&i.CheckID,
+		&i.Port,
+		&i.TimeoutMs,
+		&i.IpFamily,
+	)
+	return i, err
+}
+
 const createTracerouteCheckConfig = `-- name: CreateTracerouteCheckConfig :one
 INSERT INTO traceroute_check_configs (check_id, protocol, max_hops, timeout_ms, queries_per_hop, packet_size_bytes, port, ip_family)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -259,6 +289,9 @@ SELECT checks.internal_id,
        ping_check_configs.packet_size_bytes AS ping_packet_size_bytes,
        ping_check_configs.timeout_ms AS ping_timeout_ms,
        ping_check_configs.ip_family AS ping_ip_family,
+       tcp_check_configs.port AS tcp_port,
+       tcp_check_configs.timeout_ms AS tcp_timeout_ms,
+       tcp_check_configs.ip_family AS tcp_ip_family,
        traceroute_check_configs.protocol AS traceroute_protocol,
        traceroute_check_configs.max_hops AS traceroute_max_hops,
        traceroute_check_configs.timeout_ms AS traceroute_timeout_ms,
@@ -268,6 +301,7 @@ SELECT checks.internal_id,
        traceroute_check_configs.ip_family AS traceroute_ip_family
 FROM checks
 LEFT JOIN ping_check_configs ON ping_check_configs.check_id = checks.id
+LEFT JOIN tcp_check_configs ON tcp_check_configs.check_id = checks.id
 LEFT JOIN traceroute_check_configs ON traceroute_check_configs.check_id = checks.id
 WHERE checks.project_id = $1
   AND checks.id = $2
@@ -296,6 +330,9 @@ type GetActiveCheckForProjectRow struct {
 	PingPacketSizeBytes       *int32                 `json:"ping_packet_size_bytes"`
 	PingTimeoutMs             *int32                 `json:"ping_timeout_ms"`
 	PingIpFamily              NullIpFamily           `json:"ping_ip_family"`
+	TcpPort                   *int32                 `json:"tcp_port"`
+	TcpTimeoutMs              *int32                 `json:"tcp_timeout_ms"`
+	TcpIpFamily               NullIpFamily           `json:"tcp_ip_family"`
 	TracerouteProtocol        NullTracerouteProtocol `json:"traceroute_protocol"`
 	TracerouteMaxHops         *int32                 `json:"traceroute_max_hops"`
 	TracerouteTimeoutMs       *int32                 `json:"traceroute_timeout_ms"`
@@ -325,6 +362,9 @@ func (q *Queries) GetActiveCheckForProject(ctx context.Context, arg GetActiveChe
 		&i.PingPacketSizeBytes,
 		&i.PingTimeoutMs,
 		&i.PingIpFamily,
+		&i.TcpPort,
+		&i.TcpTimeoutMs,
+		&i.TcpIpFamily,
 		&i.TracerouteProtocol,
 		&i.TracerouteMaxHops,
 		&i.TracerouteTimeoutMs,
@@ -353,6 +393,9 @@ SELECT checks.internal_id,
        ping_check_configs.packet_size_bytes AS ping_packet_size_bytes,
        ping_check_configs.timeout_ms AS ping_timeout_ms,
        ping_check_configs.ip_family AS ping_ip_family,
+       tcp_check_configs.port AS tcp_port,
+       tcp_check_configs.timeout_ms AS tcp_timeout_ms,
+       tcp_check_configs.ip_family AS tcp_ip_family,
        traceroute_check_configs.protocol AS traceroute_protocol,
        traceroute_check_configs.max_hops AS traceroute_max_hops,
        traceroute_check_configs.timeout_ms AS traceroute_timeout_ms,
@@ -362,6 +405,7 @@ SELECT checks.internal_id,
        traceroute_check_configs.ip_family AS traceroute_ip_family
 FROM checks
 LEFT JOIN ping_check_configs ON ping_check_configs.check_id = checks.id
+LEFT JOIN tcp_check_configs ON tcp_check_configs.check_id = checks.id
 LEFT JOIN traceroute_check_configs ON traceroute_check_configs.check_id = checks.id
 WHERE checks.project_id = $1
   AND checks.deleted_at IS NULL
@@ -385,6 +429,9 @@ type ListActiveChecksForProjectRow struct {
 	PingPacketSizeBytes       *int32                 `json:"ping_packet_size_bytes"`
 	PingTimeoutMs             *int32                 `json:"ping_timeout_ms"`
 	PingIpFamily              NullIpFamily           `json:"ping_ip_family"`
+	TcpPort                   *int32                 `json:"tcp_port"`
+	TcpTimeoutMs              *int32                 `json:"tcp_timeout_ms"`
+	TcpIpFamily               NullIpFamily           `json:"tcp_ip_family"`
 	TracerouteProtocol        NullTracerouteProtocol `json:"traceroute_protocol"`
 	TracerouteMaxHops         *int32                 `json:"traceroute_max_hops"`
 	TracerouteTimeoutMs       *int32                 `json:"traceroute_timeout_ms"`
@@ -420,6 +467,9 @@ func (q *Queries) ListActiveChecksForProject(ctx context.Context, projectID uuid
 			&i.PingPacketSizeBytes,
 			&i.PingTimeoutMs,
 			&i.PingIpFamily,
+			&i.TcpPort,
+			&i.TcpTimeoutMs,
+			&i.TcpIpFamily,
 			&i.TracerouteProtocol,
 			&i.TracerouteMaxHops,
 			&i.TracerouteTimeoutMs,
@@ -674,6 +724,39 @@ func (q *Queries) UpdatePingCheckConfig(ctx context.Context, arg UpdatePingCheck
 		&i.CheckID,
 		&i.PacketCount,
 		&i.PacketSizeBytes,
+		&i.TimeoutMs,
+		&i.IpFamily,
+	)
+	return i, err
+}
+
+const updateTCPCheckConfig = `-- name: UpdateTCPCheckConfig :one
+UPDATE tcp_check_configs
+SET port = $2,
+    timeout_ms = $3,
+    ip_family = $4
+WHERE check_id = $1
+RETURNING check_id, port, timeout_ms, ip_family
+`
+
+type UpdateTCPCheckConfigParams struct {
+	CheckID   uuid.UUID    `json:"check_id"`
+	Port      int32        `json:"port"`
+	TimeoutMs int32        `json:"timeout_ms"`
+	IpFamily  NullIpFamily `json:"ip_family"`
+}
+
+func (q *Queries) UpdateTCPCheckConfig(ctx context.Context, arg UpdateTCPCheckConfigParams) (TcpCheckConfig, error) {
+	row := q.db.QueryRow(ctx, updateTCPCheckConfig,
+		arg.CheckID,
+		arg.Port,
+		arg.TimeoutMs,
+		arg.IpFamily,
+	)
+	var i TcpCheckConfig
+	err := row.Scan(
+		&i.CheckID,
+		&i.Port,
 		&i.TimeoutMs,
 		&i.IpFamily,
 	)

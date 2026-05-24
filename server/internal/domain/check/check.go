@@ -10,6 +10,7 @@ import (
 
 	domainlabel "github.com/yorukot/netstamp/internal/domain/label"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
+	domaintcp "github.com/yorukot/netstamp/internal/domain/tcp"
 	domaintraceroute "github.com/yorukot/netstamp/internal/domain/traceroute"
 )
 
@@ -22,6 +23,7 @@ type Type string
 
 const (
 	TypePing       Type = "ping"
+	TypeTCP        Type = "tcp"
 	TypeTraceroute Type = "traceroute"
 )
 
@@ -41,6 +43,7 @@ type Check struct {
 
 	// Configs are nullable because each check type owns exactly one config payload.
 	PingConfig       *domainping.Config       `json:"pingConfig,omitempty"`
+	TCPConfig        *domaintcp.Config        `json:"tcpConfig,omitempty"`
 	TracerouteConfig *domaintraceroute.Config `json:"tracerouteConfig,omitempty"`
 }
 
@@ -84,6 +87,8 @@ func VNCheckType(t Type) (Type, error) {
 	switch t {
 	case TypePing:
 		return TypePing, nil
+	case TypeTCP:
+		return TypeTCP, nil
 	case TypeTraceroute:
 		return TypeTraceroute, nil
 	default:

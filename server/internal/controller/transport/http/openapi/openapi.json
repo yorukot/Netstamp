@@ -32,7 +32,7 @@
 		},
 		{
 			"name": "Checks",
-			"description": "Ping and traceroute check definitions."
+			"description": "Ping, TCP, and traceroute check definitions."
 		},
 		{
 			"name": "Labels",
@@ -4090,7 +4090,7 @@
 				"required": false,
 				"schema": {
 					"type": "string",
-					"enum": ["ping", "traceroute"]
+					"enum": ["ping", "tcp", "traceroute"]
 				},
 				"explode": false
 			},
@@ -4534,7 +4534,7 @@
 					},
 					"type": {
 						"type": "string",
-						"enum": ["ping", "traceroute"]
+						"enum": ["ping", "tcp", "traceroute"]
 					},
 					"target": {
 						"type": "string",
@@ -4570,6 +4570,9 @@
 					},
 					"pingConfig": {
 						"$ref": "#/components/schemas/PingConfig"
+					},
+					"tcpConfig": {
+						"$ref": "#/components/schemas/TcpConfig"
 					},
 					"tracerouteConfig": {
 						"$ref": "#/components/schemas/TracerouteConfig"
@@ -4703,7 +4706,7 @@
 					},
 					"type": {
 						"type": "string",
-						"enum": ["ping", "traceroute"]
+						"enum": ["ping", "tcp", "traceroute"]
 					},
 					"target": {
 						"type": "string",
@@ -4731,6 +4734,9 @@
 					},
 					"pingConfig": {
 						"$ref": "#/components/schemas/PingConfigPatch"
+					},
+					"tcpConfig": {
+						"$ref": "#/components/schemas/TcpConfigPatch"
 					},
 					"tracerouteConfig": {
 						"$ref": "#/components/schemas/TracerouteConfigPatch"
@@ -5030,7 +5036,7 @@
 				"properties": {
 					"type": {
 						"type": "string",
-						"enum": ["ping", "traceroute"]
+						"enum": ["ping", "tcp", "traceroute"]
 					},
 					"startedAt": {
 						"type": "string",
@@ -6643,12 +6649,18 @@
 					},
 					"type": {
 						"type": "string",
-						"enum": ["ping", "traceroute"]
+						"enum": ["ping", "tcp", "traceroute"]
 					},
 					"ping": {
 						"type": "array",
 						"items": {
 							"$ref": "#/components/schemas/PingResult"
+						}
+					},
+					"tcp": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/TcpResult"
 						}
 					},
 					"traceroute": {
@@ -6999,6 +7011,120 @@
 					{
 						"accepted": 1,
 						"serverTime": "2026-05-13T10:00:02Z"
+					}
+				]
+			},
+			"TcpConfig": {
+				"type": "object",
+				"required": ["port", "timeoutMs"],
+				"properties": {
+					"port": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 1,
+						"maximum": 65535
+					},
+					"timeoutMs": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 1
+					},
+					"ipFamily": {
+						"type": "string",
+						"enum": ["inet", "inet6"]
+					}
+				},
+				"examples": [
+					{
+						"port": 443,
+						"timeoutMs": 3000,
+						"ipFamily": "inet"
+					}
+				]
+			},
+			"TcpConfigPatch": {
+				"type": "object",
+				"properties": {
+					"port": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 1,
+						"maximum": 65535
+					},
+					"timeoutMs": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 1
+					},
+					"ipFamily": {
+						"type": "string",
+						"enum": ["inet", "inet6"]
+					}
+				},
+				"examples": [
+					{
+						"port": 443,
+						"timeoutMs": 3000,
+						"ipFamily": "inet"
+					}
+				]
+			},
+			"TcpResult": {
+				"type": "object",
+				"required": ["startedAt", "finishedAt", "durationMs", "status"],
+				"properties": {
+					"startedAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"finishedAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"durationMs": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 0
+					},
+					"status": {
+						"type": "string",
+						"enum": ["successful", "timeout", "error"]
+					},
+					"connectDurationMs": {
+						"type": "number",
+						"format": "double",
+						"minimum": 0
+					},
+					"resolvedIp": {
+						"anyOf": [
+							{
+								"$ref": "#/components/schemas/ipv4Address"
+							},
+							{
+								"$ref": "#/components/schemas/ipv6Address"
+							}
+						]
+					},
+					"ipFamily": {
+						"type": "string",
+						"enum": ["inet", "inet6"]
+					},
+					"errorCode": {
+						"type": "string"
+					},
+					"errorMessage": {
+						"type": "string"
+					}
+				},
+				"examples": [
+					{
+						"startedAt": "2026-05-13T10:00:00Z",
+						"finishedAt": "2026-05-13T10:00:00.042Z",
+						"durationMs": 42,
+						"status": "successful",
+						"connectDurationMs": 42,
+						"resolvedIp": "93.184.216.34",
+						"ipFamily": "inet"
 					}
 				]
 			},
@@ -7576,7 +7702,7 @@
 					},
 					"type": {
 						"type": "string",
-						"enum": ["ping", "traceroute"]
+						"enum": ["ping", "tcp", "traceroute"]
 					},
 					"target": {
 						"type": "string",
@@ -7598,6 +7724,9 @@
 					},
 					"pingConfig": {
 						"$ref": "#/components/schemas/PingConfigPatch"
+					},
+					"tcpConfig": {
+						"$ref": "#/components/schemas/TcpConfigPatch"
 					},
 					"tracerouteConfig": {
 						"$ref": "#/components/schemas/TracerouteConfigPatch"

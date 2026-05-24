@@ -47,6 +47,7 @@ type RuntimeResultGroupInput struct {
 	CheckID    string
 	Type       string
 	Ping       []PingResultInput
+	TCP        []TCPResultInput
 	Traceroute []TracerouteResultInput
 }
 
@@ -68,6 +69,18 @@ type PingResultInput struct {
 	IPFamily      *string
 	ErrorCode     *string
 	ErrorMessage  *string
+}
+
+type TCPResultInput struct {
+	StartedAt         time.Time
+	FinishedAt        time.Time
+	DurationMs        int32
+	Status            string
+	ConnectDurationMs *float64
+	ResolvedIP        *netip.Addr
+	IPFamily          *string
+	ErrorCode         *string
+	ErrorMessage      *string
 }
 
 type SubmitResultsOutput struct {

@@ -5,6 +5,7 @@ import (
 
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
+	domaintcp "github.com/yorukot/netstamp/internal/domain/tcp"
 	domaintraceroute "github.com/yorukot/netstamp/internal/domain/traceroute"
 )
 
@@ -31,6 +32,7 @@ type CreateCheckInput struct {
 	LabelIDs        []string
 
 	PingConfig       *PingConfigInput
+	TCPConfig        *TCPConfigInput
 	TracerouteConfig *TracerouteConfigInput
 }
 
@@ -45,6 +47,7 @@ type UpdateCheckInput struct {
 	Description      *string
 	IntervalSeconds  *int32
 	PingConfig       *PingConfigInput
+	TCPConfig        *TCPConfigInput
 	TracerouteConfig *TracerouteConfigInput
 	LabelIDs         *[]string
 }
@@ -66,6 +69,12 @@ type TracerouteConfigInput struct {
 	IPFamily        *string
 }
 
+type TCPConfigInput struct {
+	Port      *int32
+	TimeoutMs *int32
+	IPFamily  *string
+}
+
 type normalizedCreateCheckInput struct {
 	projectRef       string
 	name             string
@@ -75,6 +84,7 @@ type normalizedCreateCheckInput struct {
 	description      *string
 	intervalSeconds  int32
 	pingConfig       *domainping.Config
+	tcpConfig        *domaintcp.Config
 	tracerouteConfig *domaintraceroute.Config
 	labelIDs         []string
 }
@@ -89,6 +99,7 @@ type normalizedUpdateCheckInput struct {
 	description      *string
 	intervalSeconds  *int32
 	pingConfig       updatePingConfigPatch
+	tcpConfig        updateTCPConfigPatch
 	tracerouteConfig updateTracerouteConfigPatch
 	replaceLabels    bool
 	labelIDs         []string

@@ -46,6 +46,41 @@ WITH measurements AS (
 
     UNION ALL
 
+    SELECT 'tcp'::text AS measurement_type,
+           tcp_results.started_at,
+           tcp_results.finished_at,
+           tcp_results.duration_ms,
+           tcp_results.status::text AS status,
+           probes.id AS probe_id,
+           checks.id AS check_id,
+           tcp_results.connect_duration_ms AS latency_ms,
+           0::double precision AS loss_percent,
+           CASE
+               WHEN tcp_results.connect_duration_ms IS NULL THEN NULL::text
+               ELSE format('connect duration: %sms', tcp_results.connect_duration_ms)::text
+           END AS metadata,
+           tcp_results.error_code,
+           tcp_results.error_message
+    FROM tcp_results
+    JOIN probes ON probes.internal_id = tcp_results.probe_id
+    JOIN checks ON checks.internal_id = tcp_results.check_id
+    WHERE probes.project_id = $5
+      AND checks.project_id = $5
+      AND probes.deleted_at IS NULL
+      AND checks.deleted_at IS NULL
+      AND tcp_results.started_at >= $6
+      AND tcp_results.started_at < $7
+      AND (
+          $8::uuid IS NULL
+          OR probes.id = $8::uuid
+      )
+      AND (
+          $9::uuid IS NULL
+          OR checks.id = $9::uuid
+      )
+
+    UNION ALL
+
     SELECT 'traceroute'::text AS measurement_type,
            traceroute_results.started_at,
            traceroute_results.finished_at,

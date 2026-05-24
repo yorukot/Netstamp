@@ -38,6 +38,7 @@ type runtimeResultGroupBody struct {
 	CheckID    string                        `json:"checkId"`
 	Type       string                        `json:"type"`
 	Ping       []pingResultBody              `json:"ping,omitempty"`
+	TCP        []runtimeTCPResultBody        `json:"tcp,omitempty"`
 	Traceroute []runtimeTracerouteResultBody `json:"traceroute,omitempty"`
 }
 
@@ -59,6 +60,18 @@ type pingResultBody struct {
 	IPFamily      *string     `json:"ipFamily,omitempty"`
 	ErrorCode     *string     `json:"errorCode,omitempty"`
 	ErrorMessage  *string     `json:"errorMessage,omitempty"`
+}
+
+type runtimeTCPResultBody struct {
+	StartedAt         time.Time   `json:"startedAt"`
+	FinishedAt        time.Time   `json:"finishedAt"`
+	DurationMs        int32       `json:"durationMs"`
+	Status            string      `json:"status"`
+	ConnectDurationMs *float64    `json:"connectDurationMs,omitempty"`
+	ResolvedIP        *netip.Addr `json:"resolvedIp,omitempty"`
+	IPFamily          *string     `json:"ipFamily,omitempty"`
+	ErrorCode         *string     `json:"errorCode,omitempty"`
+	ErrorMessage      *string     `json:"errorMessage,omitempty"`
 }
 
 type runtimeTracerouteResultBody struct {
@@ -108,6 +121,7 @@ func newSubmitResultsInput(auth appproberuntime.RuntimeAuthInput, body submitRes
 			CheckID:    group.CheckID,
 			Type:       group.Type,
 			Ping:       newPingResultInputs(group.Ping),
+			TCP:        newTCPResultInputs(group.TCP),
 			Traceroute: newTracerouteResultInputs(group.Traceroute),
 		})
 	}
@@ -116,6 +130,25 @@ func newSubmitResultsInput(auth appproberuntime.RuntimeAuthInput, body submitRes
 		RuntimeAuthInput: auth,
 		Results:          results,
 	}
+}
+
+func newTCPResultInputs(values []runtimeTCPResultBody) []appproberuntime.TCPResultInput {
+	results := make([]appproberuntime.TCPResultInput, 0, len(values))
+	for _, value := range values {
+		results = append(results, appproberuntime.TCPResultInput{
+			StartedAt:         value.StartedAt,
+			FinishedAt:        value.FinishedAt,
+			DurationMs:        value.DurationMs,
+			Status:            value.Status,
+			ConnectDurationMs: value.ConnectDurationMs,
+			ResolvedIP:        cloneAddr(value.ResolvedIP),
+			IPFamily:          value.IPFamily,
+			ErrorCode:         value.ErrorCode,
+			ErrorMessage:      value.ErrorMessage,
+		})
+	}
+
+	return results
 }
 
 func newTracerouteResultInputs(values []runtimeTracerouteResultBody) []appproberuntime.TracerouteResultInput {

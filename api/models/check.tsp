@@ -1,8 +1,9 @@
 namespace Netstamp;
 
-alias CheckType = "ping" | "traceroute";
+alias CheckType = "ping" | "tcp" | "traceroute";
 alias IPFamily = "inet" | "inet6";
 alias PingStatus = "successful" | "timeout" | "error";
+alias TcpStatus = "successful" | "timeout" | "error";
 alias TracerouteProtocol = "icmp" | "udp";
 alias TracerouteStatus = "successful" | "timeout" | "error" | "partial";
 
@@ -29,6 +30,30 @@ model PingConfigPatch {
 	@minValue(1)
 	@maxValue(65507)
 	packetSizeBytes?: int32;
+
+	@minValue(1)
+	timeoutMs?: int32;
+
+	ipFamily?: IPFamily;
+}
+
+@example(#{ port: 443, timeoutMs: 3000, ipFamily: "inet" })
+model TcpConfig {
+	@minValue(1)
+	@maxValue(65535)
+	port: int32;
+
+	@minValue(1)
+	timeoutMs: int32;
+
+	ipFamily?: IPFamily;
+}
+
+@example(#{ port: 443, timeoutMs: 3000, ipFamily: "inet" })
+model TcpConfigPatch {
+	@minValue(1)
+	@maxValue(65535)
+	port?: int32;
 
 	@minValue(1)
 	timeoutMs?: int32;
@@ -140,6 +165,7 @@ model Check {
 	createdAt: utcDateTime;
 	updatedAt: utcDateTime;
 	pingConfig?: PingConfig;
+	tcpConfig?: TcpConfig;
 	tracerouteConfig?: TracerouteConfig;
 }
 
@@ -216,6 +242,7 @@ model CreateCheckRequest {
 
 	labelIds?: uuid[];
 	pingConfig?: PingConfigPatch;
+	tcpConfig?: TcpConfigPatch;
 	tracerouteConfig?: TracerouteConfigPatch;
 }
 
@@ -242,6 +269,7 @@ model UpdateCheckRequest {
 	intervalSeconds?: int32;
 
 	pingConfig?: PingConfigPatch;
+	tcpConfig?: TcpConfigPatch;
 	tracerouteConfig?: TracerouteConfigPatch;
 	labelIds?: uuid[];
 }

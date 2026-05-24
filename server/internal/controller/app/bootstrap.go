@@ -27,6 +27,7 @@ import (
 	pgprobe "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/probe"
 	pgproject "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/project"
 	pgresult "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/result"
+	pgtcp "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/tcp"
 	pgtraceroute "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/traceroute"
 	pguser "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/user"
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/security"
@@ -129,9 +130,10 @@ func New(ctx context.Context) (*Application, error) {
 	checkSvc := appcheck.NewService(checkRepo, projectRepo, labelRepo, assignmentSvc, checkEvents)
 	probeSvc := appprobe.NewService(probeRepo, projectRepo, labelRepo, assignmentSvc, security.NewProbeSecretGenerator(), probeEvents)
 	pingRepo := pgping.NewPingRepository(dbPool)
+	tcpRepo := pgtcp.NewTCPRepository(dbPool)
 	tracerouteRepo := pgtraceroute.NewTracerouteRepository(dbPool)
 	resultRepo := pgresult.NewResultRepository(dbPool)
-	probeRuntimeSvc := appproberuntime.NewService(probeRepo, pingRepo, tracerouteRepo, security.NewProbeSecretVerifier(), probeRuntimeEvents)
+	probeRuntimeSvc := appproberuntime.NewServiceWithTCP(probeRepo, pingRepo, tcpRepo, tracerouteRepo, security.NewProbeSecretVerifier(), probeRuntimeEvents)
 	resultSvc := appresult.NewService(pingRepo, tracerouteRepo, resultRepo, projectRepo)
 	readiness := postgres.NewReadinessCheck(dbPool)
 

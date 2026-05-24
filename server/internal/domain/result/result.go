@@ -6,6 +6,7 @@ type MeasurementType string
 
 const (
 	MeasurementTypePing       MeasurementType = "ping"
+	MeasurementTypeTCP        MeasurementType = "tcp"
 	MeasurementTypeTraceroute MeasurementType = "traceroute"
 )
 

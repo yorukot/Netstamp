@@ -12,6 +12,7 @@ import (
 	domainlabel "github.com/yorukot/netstamp/internal/domain/label"
 	domainnetwork "github.com/yorukot/netstamp/internal/domain/network"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
+	domaintcp "github.com/yorukot/netstamp/internal/domain/tcp"
 	domaintraceroute "github.com/yorukot/netstamp/internal/domain/traceroute"
 )
 
@@ -26,6 +27,23 @@ func mapStoredPingCheck(row sqlc.Check, config sqlc.PingCheckConfig) domaincheck
 		Description:     row.Description,
 		IntervalSeconds: row.IntervalSeconds,
 		PingConfig:      pingConfigPtr(mapPingConfig(config)),
+		CreatedAt:       row.CreatedAt.Time,
+		UpdatedAt:       row.UpdatedAt.Time,
+		DeletedAt:       timePtr(row.DeletedAt),
+	}
+}
+
+func mapStoredTCPCheck(row sqlc.Check, config sqlc.TcpCheckConfig) domaincheck.Check {
+	return domaincheck.Check{
+		ID:              row.ID.String(),
+		ProjectID:       row.ProjectID.String(),
+		Name:            row.Name,
+		Type:            domaincheck.Type(row.CheckType),
+		Target:          row.Target,
+		Selector:        cloneRawMessage(row.Selector),
+		Description:     row.Description,
+		IntervalSeconds: row.IntervalSeconds,
+		TCPConfig:       tcpConfigPtr(mapTCPConfig(config)),
 		CreatedAt:       row.CreatedAt.Time,
 		UpdatedAt:       row.UpdatedAt.Time,
 		DeletedAt:       timePtr(row.DeletedAt),
@@ -63,6 +81,9 @@ func mapListCheck(row sqlc.ListActiveChecksForProjectRow) domaincheck.Check {
 		row.PingPacketSizeBytes,
 		row.PingTimeoutMs,
 		row.PingIpFamily,
+		row.TcpPort,
+		row.TcpTimeoutMs,
+		row.TcpIpFamily,
 		row.TracerouteProtocol,
 		row.TracerouteMaxHops,
 		row.TracerouteTimeoutMs,
@@ -90,6 +111,9 @@ func mapGetCheck(row sqlc.GetActiveCheckForProjectRow) domaincheck.Check {
 		row.PingPacketSizeBytes,
 		row.PingTimeoutMs,
 		row.PingIpFamily,
+		row.TcpPort,
+		row.TcpTimeoutMs,
+		row.TcpIpFamily,
 		row.TracerouteProtocol,
 		row.TracerouteMaxHops,
 		row.TracerouteTimeoutMs,
@@ -116,6 +140,9 @@ func mapSelectedCheck(
 	pingPacketSizeBytes *int32,
 	pingTimeoutMs *int32,
 	pingIPFamily sqlc.NullIpFamily,
+	tcpPort *int32,
+	tcpTimeoutMs *int32,
+	tcpIPFamily sqlc.NullIpFamily,
 	tracerouteProtocol sqlc.NullTracerouteProtocol,
 	tracerouteMaxHops *int32,
 	tracerouteTimeoutMs *int32,
@@ -141,6 +168,7 @@ func mapSelectedCheck(
 		DeletedAt:       timePtr(deletedAt),
 	}
 	check.PingConfig = mapOptionalPingConfig(pingPacketCount, pingPacketSizeBytes, pingTimeoutMs, pingIPFamily)
+	check.TCPConfig = mapOptionalTCPConfig(tcpPort, tcpTimeoutMs, tcpIPFamily)
 	check.TracerouteConfig = mapOptionalTracerouteConfig(
 		tracerouteProtocol,
 		tracerouteMaxHops,
@@ -164,6 +192,18 @@ func mapPingConfig(row sqlc.PingCheckConfig) domainping.Config {
 }
 
 func pingConfigPtr(config domainping.Config) *domainping.Config {
+	return &config
+}
+
+func mapTCPConfig(row sqlc.TcpCheckConfig) domaintcp.Config {
+	return domaintcp.Config{
+		Port:      row.Port,
+		TimeoutMs: row.TimeoutMs,
+		IPFamily:  mapIPFamily(row.IpFamily),
+	}
+}
+
+func tcpConfigPtr(config domaintcp.Config) *domaintcp.Config {
 	return &config
 }
 
@@ -193,6 +233,18 @@ func mapOptionalPingConfig(packetCount, packetSizeBytes, timeoutMs *int32, ipFam
 		PacketSizeBytes: *packetSizeBytes,
 		TimeoutMs:       *timeoutMs,
 		IPFamily:        mapIPFamily(ipFamily),
+	}
+}
+
+func mapOptionalTCPConfig(port, timeoutMs *int32, ipFamily sqlc.NullIpFamily) *domaintcp.Config {
+	if port == nil || timeoutMs == nil {
+		return nil
+	}
+
+	return &domaintcp.Config{
+		Port:      *port,
+		TimeoutMs: *timeoutMs,
+		IPFamily:  mapIPFamily(ipFamily),
 	}
 }
 

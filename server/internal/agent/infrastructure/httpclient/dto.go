@@ -9,6 +9,7 @@ import (
 	domainnetwork "github.com/yorukot/netstamp/internal/domain/network"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
+	domaintcp "github.com/yorukot/netstamp/internal/domain/tcp"
 	domaintraceroute "github.com/yorukot/netstamp/internal/domain/traceroute"
 )
 
@@ -44,6 +45,7 @@ type RuntimeResultGroup struct {
 	CheckID    string                 `json:"checkId"`
 	Type       domaincheck.Type       `json:"type"`
 	Ping       []PingResultBody       `json:"ping,omitempty"`
+	TCP        []TCPResultBody        `json:"tcp,omitempty"`
 	Traceroute []TracerouteResultBody `json:"traceroute,omitempty"`
 }
 
@@ -65,6 +67,18 @@ type PingResultBody struct {
 	IPFamily      *domainnetwork.IPFamily `json:"ipFamily,omitempty"`
 	ErrorCode     *string                 `json:"errorCode,omitempty"`
 	ErrorMessage  *string                 `json:"errorMessage,omitempty"`
+}
+
+type TCPResultBody struct {
+	StartedAt         time.Time               `json:"startedAt"`
+	FinishedAt        time.Time               `json:"finishedAt"`
+	DurationMs        int32                   `json:"durationMs"`
+	Status            domaintcp.Status        `json:"status"`
+	ConnectDurationMs *float64                `json:"connectDurationMs,omitempty"`
+	ResolvedIP        *netip.Addr             `json:"resolvedIp,omitempty"`
+	IPFamily          *domainnetwork.IPFamily `json:"ipFamily,omitempty"`
+	ErrorCode         *string                 `json:"errorCode,omitempty"`
+	ErrorMessage      *string                 `json:"errorMessage,omitempty"`
 }
 
 type SubmitResultsResponse struct {

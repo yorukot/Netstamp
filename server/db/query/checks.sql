@@ -15,6 +15,9 @@ SELECT checks.internal_id,
        ping_check_configs.packet_size_bytes AS ping_packet_size_bytes,
        ping_check_configs.timeout_ms AS ping_timeout_ms,
        ping_check_configs.ip_family AS ping_ip_family,
+       tcp_check_configs.port AS tcp_port,
+       tcp_check_configs.timeout_ms AS tcp_timeout_ms,
+       tcp_check_configs.ip_family AS tcp_ip_family,
        traceroute_check_configs.protocol AS traceroute_protocol,
        traceroute_check_configs.max_hops AS traceroute_max_hops,
        traceroute_check_configs.timeout_ms AS traceroute_timeout_ms,
@@ -24,6 +27,7 @@ SELECT checks.internal_id,
        traceroute_check_configs.ip_family AS traceroute_ip_family
 FROM checks
 LEFT JOIN ping_check_configs ON ping_check_configs.check_id = checks.id
+LEFT JOIN tcp_check_configs ON tcp_check_configs.check_id = checks.id
 LEFT JOIN traceroute_check_configs ON traceroute_check_configs.check_id = checks.id
 WHERE checks.project_id = $1
   AND checks.deleted_at IS NULL
@@ -46,6 +50,9 @@ SELECT checks.internal_id,
        ping_check_configs.packet_size_bytes AS ping_packet_size_bytes,
        ping_check_configs.timeout_ms AS ping_timeout_ms,
        ping_check_configs.ip_family AS ping_ip_family,
+       tcp_check_configs.port AS tcp_port,
+       tcp_check_configs.timeout_ms AS tcp_timeout_ms,
+       tcp_check_configs.ip_family AS tcp_ip_family,
        traceroute_check_configs.protocol AS traceroute_protocol,
        traceroute_check_configs.max_hops AS traceroute_max_hops,
        traceroute_check_configs.timeout_ms AS traceroute_timeout_ms,
@@ -55,6 +62,7 @@ SELECT checks.internal_id,
        traceroute_check_configs.ip_family AS traceroute_ip_family
 FROM checks
 LEFT JOIN ping_check_configs ON ping_check_configs.check_id = checks.id
+LEFT JOIN tcp_check_configs ON tcp_check_configs.check_id = checks.id
 LEFT JOIN traceroute_check_configs ON traceroute_check_configs.check_id = checks.id
 WHERE checks.project_id = $1
   AND checks.id = $2
@@ -99,6 +107,19 @@ SET packet_count = $2,
     ip_family = $5
 WHERE check_id = $1
 RETURNING check_id, packet_count, packet_size_bytes, timeout_ms, ip_family;
+
+-- name: CreateTCPCheckConfig :one
+INSERT INTO tcp_check_configs (check_id, port, timeout_ms, ip_family)
+VALUES ($1, $2, $3, $4)
+RETURNING check_id, port, timeout_ms, ip_family;
+
+-- name: UpdateTCPCheckConfig :one
+UPDATE tcp_check_configs
+SET port = $2,
+    timeout_ms = $3,
+    ip_family = $4
+WHERE check_id = $1
+RETURNING check_id, port, timeout_ms, ip_family;
 
 -- name: CreateTracerouteCheckConfig :one
 INSERT INTO traceroute_check_configs (check_id, protocol, max_hops, timeout_ms, queries_per_hop, packet_size_bytes, port, ip_family)

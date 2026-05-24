@@ -12,6 +12,7 @@ import (
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
+	domaintcp "github.com/yorukot/netstamp/internal/domain/tcp"
 	domaintraceroute "github.com/yorukot/netstamp/internal/domain/traceroute"
 )
 
@@ -303,6 +304,59 @@ func TestSubmitResultsWritesAssignedTracerouteResults(t *testing.T) {
 	assertNoProbeRuntimeEvents(t, recorder)
 }
 
+func TestSubmitResultsWritesAssignedTCPResults(t *testing.T) {
+	assignment := newAssignment(testCheckID, domaincheck.TypeTCP)
+	probes := &fakeProbeRepository{assignments: []domainassignment.Assignment{assignment}}
+	tcps := &fakeTCPResultRepository{}
+	recorder := &recordingProbeRuntimeEventRecorder{}
+	service := NewServiceWithTCP(probes, &fakePingResultRepository{}, tcps, &fakeTracerouteResultRepository{}, fakeSecretVerifier{valid: true}, recorder)
+	startedAt := time.Date(2026, 5, 13, 10, 0, 0, 0, time.UTC)
+	finishedAt := startedAt.Add(42 * time.Millisecond)
+	resolved := netip.MustParseAddr("93.184.216.34")
+	ipFamily := "inet"
+	connectDurationMs := 42.0
+
+	output, err := service.SubmitResults(context.Background(), SubmitResultsInput{
+		RuntimeAuthInput: RuntimeAuthInput{
+			ProbeID:    testProbeID,
+			Credential: "plain-secret",
+		},
+		Results: []RuntimeResultGroupInput{{
+			CheckID: testCheckID,
+			Type:    string(domaincheck.TypeTCP),
+			TCP: []TCPResultInput{{
+				StartedAt:         startedAt,
+				FinishedAt:        finishedAt,
+				DurationMs:        42,
+				Status:            string(domaintcp.StatusSuccessful),
+				ConnectDurationMs: &connectDurationMs,
+				ResolvedIP:        &resolved,
+				IPFamily:          &ipFamily,
+			}},
+		}},
+	})
+	if err != nil {
+		t.Fatalf("expected submit results to succeed: %v", err)
+	}
+	if output.Accepted != 1 || output.ServerTime.IsZero() {
+		t.Fatalf("unexpected output: %#v", output)
+	}
+	if len(tcps.gotInputs) != 1 {
+		t.Fatalf("expected one tcp result, got %#v", tcps.gotInputs)
+	}
+	got := tcps.gotInputs[0]
+	if got.ProbeStorageID != testProbeStoreID || got.CheckStorageID != testCheckStoreID {
+		t.Fatalf("expected storage identity on result, got %#v", got)
+	}
+	if !got.StartedAt.Equal(startedAt) || got.Status != domaintcp.StatusSuccessful {
+		t.Fatalf("unexpected stored tcp result: %#v", got)
+	}
+	if got.ConnectDurationMs == nil || *got.ConnectDurationMs != connectDurationMs {
+		t.Fatalf("expected connect duration, got %#v", got.ConnectDurationMs)
+	}
+	assertNoProbeRuntimeEvents(t, recorder)
+}
+
 func TestSubmitResultsRejectsUnassignedCheck(t *testing.T) {
 	pings := &fakePingResultRepository{}
 	recorder := &recordingProbeRuntimeEventRecorder{}
@@ -487,12 +541,16 @@ func TestRuntimeRecordsSecretVerifierMissing(t *testing.T) {
 
 func newAssignment(checkID string, checkType domaincheck.Type) domainassignment.Assignment {
 	pingConfig := domainping.DefaultConfig()
+	tcpConfig := domaintcp.DefaultConfig()
 	tracerouteConfig := domaintraceroute.DefaultConfig()
 	var pingConfigPtr *domainping.Config
+	var tcpConfigPtr *domaintcp.Config
 	var tracerouteConfigPtr *domaintraceroute.Config
 	switch checkType {
 	case domaincheck.TypePing:
 		pingConfigPtr = &pingConfig
+	case domaincheck.TypeTCP:
+		tcpConfigPtr = &tcpConfig
 	case domaincheck.TypeTraceroute:
 		tracerouteConfigPtr = &tracerouteConfig
 	}
@@ -511,6 +569,7 @@ func newAssignment(checkID string, checkType domaincheck.Type) domainassignment.
 			Target:           "1.1.1.1",
 			IntervalSeconds:  30,
 			PingConfig:       pingConfigPtr,
+			TCPConfig:        tcpConfigPtr,
 			TracerouteConfig: tracerouteConfigPtr,
 		},
 	}
@@ -643,6 +702,16 @@ type fakePingResultRepository struct {
 
 func (r *fakePingResultRepository) CreatePingResults(_ context.Context, inputs []domainping.ResultStorageInput) error {
 	r.gotInputs = append([]domainping.ResultStorageInput(nil), inputs...)
+	return r.err
+}
+
+type fakeTCPResultRepository struct {
+	gotInputs []domaintcp.ResultStorageInput
+	err       error
+}
+
+func (r *fakeTCPResultRepository) CreateTCPResults(_ context.Context, inputs []domaintcp.ResultStorageInput) error {
+	r.gotInputs = append([]domaintcp.ResultStorageInput(nil), inputs...)
 	return r.err
 }
 

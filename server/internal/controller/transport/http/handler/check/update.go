@@ -23,6 +23,7 @@ func (h *Handler) updateCheck(ctx context.Context, input *updateCheckInput) (*ch
 		Description:      input.Body.Description,
 		IntervalSeconds:  input.Body.IntervalSeconds,
 		PingConfig:       input.Body.PingConfig.appInput(),
+		TCPConfig:        input.Body.TCPConfig.appInput(),
 		TracerouteConfig: input.Body.TracerouteConfig.appInput(),
 		LabelIDs:         input.Body.LabelIDs,
 	})
@@ -47,6 +48,7 @@ type updateCheckInputBody struct {
 	Description      *string                     `json:"description,omitempty"`
 	IntervalSeconds  *int32                      `json:"intervalSeconds,omitempty"`
 	PingConfig       *checkPingConfigInput       `json:"pingConfig,omitempty"`
+	TCPConfig        *checkTCPConfigInput        `json:"tcpConfig,omitempty"`
 	TracerouteConfig *checkTracerouteConfigInput `json:"tracerouteConfig,omitempty"`
 	LabelIDs         *[]string                   `json:"labelIds,omitempty"`
 }

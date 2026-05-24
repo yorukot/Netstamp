@@ -5,7 +5,7 @@ using Http;
 namespace Netstamp;
 
 alias PingMetric = "rttAvgMs" | "lossPercent" | "successRate";
-alias MeasurementType = "ping" | "traceroute";
+alias MeasurementType = "ping" | "tcp" | "traceroute";
 alias MeasurementStatus = "successful" | "timeout" | "error" | "partial";
 alias SeriesResolution = "raw" | "bucket";
 alias TracerouteTopologyNodeKind = "probe" | "hop" | "destination" | "unknown";
@@ -62,6 +62,33 @@ model PingResult {
 	rttStddevMs?: float64;
 
 	rttSamplesMs?: float64[];
+	resolvedIp?: ipAddress;
+	ipFamily?: IPFamily;
+	errorCode?: string;
+	errorMessage?: string;
+}
+
+@example(#{
+	startedAt: utcDateTime.fromISO("2026-05-13T10:00:00Z"),
+	finishedAt: utcDateTime.fromISO("2026-05-13T10:00:00.042Z"),
+	durationMs: 42,
+	status: "successful",
+	connectDurationMs: 42,
+	resolvedIp: "93.184.216.34",
+	ipFamily: "inet",
+})
+model TcpResult {
+	startedAt: utcDateTime;
+	finishedAt: utcDateTime;
+
+	@minValue(0)
+	durationMs: int32;
+
+	status: TcpStatus;
+
+	@minValue(0)
+	connectDurationMs?: float64;
+
 	resolvedIp?: ipAddress;
 	ipFamily?: IPFamily;
 	errorCode?: string;
@@ -176,6 +203,7 @@ model RuntimeResultGroup {
 	checkId: uuid;
 	type: CheckType;
 	ping?: PingResult[];
+	tcp?: TcpResult[];
 	traceroute?: TracerouteResult[];
 }
 

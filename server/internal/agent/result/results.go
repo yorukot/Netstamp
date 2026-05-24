@@ -12,6 +12,7 @@ import (
 	agentworker "github.com/yorukot/netstamp/internal/agent/worker"
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
+	domaintcp "github.com/yorukot/netstamp/internal/domain/tcp"
 	domaintraceroute "github.com/yorukot/netstamp/internal/domain/traceroute"
 )
 
@@ -134,6 +135,8 @@ func groupResults(batch []agentworker.ResultEnvelope) []httpclient.RuntimeResult
 		switch result.Type {
 		case domaincheck.TypePing:
 			values.ping = append(values.ping, pingResultBody(result.Ping))
+		case domaincheck.TypeTCP:
+			values.tcp = append(values.tcp, tcpResultBody(result.TCP))
 		case domaincheck.TypeTraceroute:
 			values.traceroute = append(values.traceroute, tracerouteResultBody(result.Traceroute))
 		}
@@ -147,6 +150,7 @@ func groupResults(batch []agentworker.ResultEnvelope) []httpclient.RuntimeResult
 			CheckID:    key.checkID,
 			Type:       key.checkType,
 			Ping:       values.ping,
+			TCP:        values.tcp,
 			Traceroute: values.traceroute,
 		})
 	}
@@ -156,6 +160,7 @@ func groupResults(batch []agentworker.ResultEnvelope) []httpclient.RuntimeResult
 
 type runtimeResultGroupValues struct {
 	ping       []httpclient.PingResultBody
+	tcp        []httpclient.TCPResultBody
 	traceroute []httpclient.TracerouteResultBody
 }
 
@@ -183,6 +188,20 @@ func pingResultBody(result domainping.Result) httpclient.PingResultBody {
 		IPFamily:      result.IPFamily,
 		ErrorCode:     result.ErrorCode,
 		ErrorMessage:  result.ErrorMessage,
+	}
+}
+
+func tcpResultBody(result domaintcp.Result) httpclient.TCPResultBody {
+	return httpclient.TCPResultBody{
+		StartedAt:         result.StartedAt,
+		FinishedAt:        result.FinishedAt,
+		DurationMs:        result.DurationMs,
+		Status:            result.Status,
+		ConnectDurationMs: result.ConnectDurationMs,
+		ResolvedIP:        result.ResolvedIP,
+		IPFamily:          result.IPFamily,
+		ErrorCode:         result.ErrorCode,
+		ErrorMessage:      result.ErrorMessage,
 	}
 }
 

@@ -8,21 +8,28 @@ import (
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
+	domaintcp "github.com/yorukot/netstamp/internal/domain/tcp"
 	domaintraceroute "github.com/yorukot/netstamp/internal/domain/traceroute"
 )
 
 type Service struct {
 	probes         ProbeRepository
 	pings          PingResultRepository
+	tcps           TCPResultRepository
 	traceroutes    TracerouteResultRepository
 	secretVerifier SecretVerifier
 	events         EventRecorder
 }
 
 func NewService(probes ProbeRepository, pings PingResultRepository, traceroutes TracerouteResultRepository, secretVerifier SecretVerifier, events EventRecorder) *Service {
+	return NewServiceWithTCP(probes, pings, nil, traceroutes, secretVerifier, events)
+}
+
+func NewServiceWithTCP(probes ProbeRepository, pings PingResultRepository, tcps TCPResultRepository, traceroutes TracerouteResultRepository, secretVerifier SecretVerifier, events EventRecorder) *Service {
 	return &Service{
 		probes:         probes,
 		pings:          pings,
+		tcps:           tcps,
 		traceroutes:    traceroutes,
 		secretVerifier: secretVerifier,
 		events:         events,
@@ -106,7 +113,7 @@ func (s *Service) SubmitResults(ctx context.Context, input SubmitResultsInput) (
 	if err != nil {
 		return SubmitResultsOutput{}, flow.assignmentLookupFailure(ProbeRuntimeEventSubmitResultsFailure, err)
 	}
-	pingResults, tracerouteResults, err := collectResultWrites(normalized, assignmentsByCheckID(assignments))
+	pingResults, tcpResults, tracerouteResults, err := collectResultWrites(normalized, assignmentsByCheckID(assignments))
 	if err != nil {
 		return SubmitResultsOutput{}, flow.businessFailure(ProbeRuntimeEventSubmitResultsFailure, ProbeRuntimeReasonInvalidInput, err)
 	}
@@ -116,6 +123,14 @@ func (s *Service) SubmitResults(ctx context.Context, input SubmitResultsInput) (
 			return SubmitResultsOutput{}, flow.resultWriteFailure(ProbeRuntimeEventSubmitResultsFailure, errPingRepositoryMissing)
 		}
 		if err := s.pings.CreatePingResults(ctx, pingResults); err != nil {
+			return SubmitResultsOutput{}, flow.resultWriteFailure(ProbeRuntimeEventSubmitResultsFailure, err)
+		}
+	}
+	if len(tcpResults) > 0 {
+		if s.tcps == nil {
+			return SubmitResultsOutput{}, flow.resultWriteFailure(ProbeRuntimeEventSubmitResultsFailure, errTCPRepositoryMissing)
+		}
+		if err := s.tcps.CreateTCPResults(ctx, tcpResults); err != nil {
 			return SubmitResultsOutput{}, flow.resultWriteFailure(ProbeRuntimeEventSubmitResultsFailure, err)
 		}
 	}
@@ -132,32 +147,44 @@ func (s *Service) SubmitResults(ctx context.Context, input SubmitResultsInput) (
 	return SubmitResultsOutput{Accepted: normalized.accepted, ServerTime: time.Now().UTC()}, nil
 }
 
-func collectResultWrites(normalized normalizedSubmitResultsInput, assignmentByCheckID map[string]domainassignment.Assignment) ([]domainping.ResultStorageInput, []domaintraceroute.ResultStorageInput, error) {
+func collectResultWrites(normalized normalizedSubmitResultsInput, assignmentByCheckID map[string]domainassignment.Assignment) ([]domainping.ResultStorageInput, []domaintcp.ResultStorageInput, []domaintraceroute.ResultStorageInput, error) {
 	pingResults := make([]domainping.ResultStorageInput, 0, normalized.accepted)
+	tcpResults := make([]domaintcp.ResultStorageInput, 0, normalized.accepted)
 	tracerouteResults := make([]domaintraceroute.ResultStorageInput, 0, normalized.accepted)
 	for _, group := range normalized.groups {
 		assignment, ok := assignmentByCheckID[group.checkID]
 		if !ok {
-			return nil, nil, invalidRuntimeField(resultGroupField(group.index, "checkId"), "check is not an active assignment for this probe", group.checkID)
+			return nil, nil, nil, invalidRuntimeField(resultGroupField(group.index, "checkId"), "check is not an active assignment for this probe", group.checkID)
 		}
 		if assignment.Check == nil || assignment.Check.Type != group.checkType {
-			return nil, nil, invalidRuntimeField(resultGroupField(group.index, "type"), "does not match assigned check type", string(group.checkType))
+			return nil, nil, nil, invalidRuntimeField(resultGroupField(group.index, "type"), "does not match assigned check type", string(group.checkType))
 		}
 
 		switch group.checkType {
 		case domaincheck.TypePing:
 			pingResults = appendPingStorageIDs(pingResults, group.ping, assignment)
+		case domaincheck.TypeTCP:
+			tcpResults = appendTCPStorageIDs(tcpResults, group.tcp, assignment)
 		case domaincheck.TypeTraceroute:
 			tracerouteResults = appendTracerouteStorageIDs(tracerouteResults, group.traceroute, assignment)
 		default:
-			return nil, nil, invalidRuntimeField(resultGroupField(group.index, "type"), "unsupported result type", string(group.checkType))
+			return nil, nil, nil, invalidRuntimeField(resultGroupField(group.index, "type"), "unsupported result type", string(group.checkType))
 		}
 	}
 
-	return pingResults, tracerouteResults, nil
+	return pingResults, tcpResults, tracerouteResults, nil
 }
 
 func appendPingStorageIDs(results, inputs []domainping.ResultStorageInput, assignment domainassignment.Assignment) []domainping.ResultStorageInput {
+	for _, result := range inputs {
+		result.ProbeStorageID = assignment.ProbeStorageID
+		result.CheckStorageID = assignment.CheckStorageID
+		results = append(results, result)
+	}
+	return results
+}
+
+func appendTCPStorageIDs(results, inputs []domaintcp.ResultStorageInput, assignment domainassignment.Assignment) []domaintcp.ResultStorageInput {
 	for _, result := range inputs {
 		result.ProbeStorageID = assignment.ProbeStorageID
 		result.CheckStorageID = assignment.CheckStorageID

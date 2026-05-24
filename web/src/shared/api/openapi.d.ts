@@ -841,7 +841,7 @@ export interface components {
 			projectId: components["schemas"]["uuid"];
 			name: string;
 			/** @enum {string} */
-			type: "ping" | "traceroute";
+			type: "ping" | "tcp" | "traceroute";
 			target: string;
 			selector?: components["schemas"]["Selector"];
 			description?: string;
@@ -853,6 +853,7 @@ export interface components {
 			/** Format: date-time */
 			updatedAt: string;
 			pingConfig?: components["schemas"]["PingConfig"];
+			tcpConfig?: components["schemas"]["TcpConfig"];
 			tracerouteConfig?: components["schemas"]["TracerouteConfig"];
 		};
 		/**
@@ -948,7 +949,7 @@ export interface components {
 		CreateCheckRequest: {
 			name: string;
 			/** @enum {string} */
-			type: "ping" | "traceroute";
+			type: "ping" | "tcp" | "traceroute";
 			target: string;
 			selector?: components["schemas"]["Selector"];
 			description?: string;
@@ -956,6 +957,7 @@ export interface components {
 			intervalSeconds: number;
 			labelIds?: components["schemas"]["uuid"][];
 			pingConfig?: components["schemas"]["PingConfigPatch"];
+			tcpConfig?: components["schemas"]["TcpConfigPatch"];
 			tracerouteConfig?: components["schemas"]["TracerouteConfigPatch"];
 		};
 		/**
@@ -1119,7 +1121,7 @@ export interface components {
 		 */
 		Measurement: {
 			/** @enum {string} */
-			type: "ping" | "traceroute";
+			type: "ping" | "tcp" | "traceroute";
 			/** Format: date-time */
 			startedAt: string;
 			/** Format: date-time */
@@ -2081,8 +2083,9 @@ export interface components {
 		RuntimeResultGroup: {
 			checkId: components["schemas"]["uuid"];
 			/** @enum {string} */
-			type: "ping" | "traceroute";
+			type: "ping" | "tcp" | "traceroute";
 			ping?: components["schemas"]["PingResult"][];
+			tcp?: components["schemas"]["TcpResult"][];
 			traceroute?: components["schemas"]["TracerouteResult"][];
 		};
 		/**
@@ -2259,6 +2262,64 @@ export interface components {
 			accepted: number;
 			/** Format: date-time */
 			serverTime: string;
+		};
+		/**
+		 * @example {
+		 *       "port": 443,
+		 *       "timeoutMs": 3000,
+		 *       "ipFamily": "inet"
+		 *     }
+		 */
+		TcpConfig: {
+			/** Format: int32 */
+			port: number;
+			/** Format: int32 */
+			timeoutMs: number;
+			/** @enum {string} */
+			ipFamily?: "inet" | "inet6";
+		};
+		/**
+		 * @example {
+		 *       "port": 443,
+		 *       "timeoutMs": 3000,
+		 *       "ipFamily": "inet"
+		 *     }
+		 */
+		TcpConfigPatch: {
+			/** Format: int32 */
+			port?: number;
+			/** Format: int32 */
+			timeoutMs?: number;
+			/** @enum {string} */
+			ipFamily?: "inet" | "inet6";
+		};
+		/**
+		 * @example {
+		 *       "startedAt": "2026-05-13T10:00:00Z",
+		 *       "finishedAt": "2026-05-13T10:00:00.042Z",
+		 *       "durationMs": 42,
+		 *       "status": "successful",
+		 *       "connectDurationMs": 42,
+		 *       "resolvedIp": "93.184.216.34",
+		 *       "ipFamily": "inet"
+		 *     }
+		 */
+		TcpResult: {
+			/** Format: date-time */
+			startedAt: string;
+			/** Format: date-time */
+			finishedAt: string;
+			/** Format: int32 */
+			durationMs: number;
+			/** @enum {string} */
+			status: "successful" | "timeout" | "error";
+			/** Format: double */
+			connectDurationMs?: number;
+			resolvedIp?: components["schemas"]["ipv4Address"] | components["schemas"]["ipv6Address"];
+			/** @enum {string} */
+			ipFamily?: "inet" | "inet6";
+			errorCode?: string;
+			errorMessage?: string;
 		};
 		/**
 		 * @example {
@@ -2579,13 +2640,14 @@ export interface components {
 		UpdateCheckRequest: {
 			name?: string;
 			/** @enum {string} */
-			type?: "ping" | "traceroute";
+			type?: "ping" | "tcp" | "traceroute";
 			target?: string;
 			selector?: components["schemas"]["Selector"];
 			description?: string;
 			/** Format: int32 */
 			intervalSeconds?: number;
 			pingConfig?: components["schemas"]["PingConfigPatch"];
+			tcpConfig?: components["schemas"]["TcpConfigPatch"];
 			tracerouteConfig?: components["schemas"]["TracerouteConfigPatch"];
 			labelIds?: components["schemas"]["uuid"][];
 		};
@@ -2685,7 +2747,7 @@ export interface components {
 		"MeasurementQuery.probeId": components["schemas"]["uuid"];
 		"MeasurementQuery.status": "successful" | "timeout" | "error" | "partial";
 		"MeasurementQuery.to": number;
-		"MeasurementQuery.type": "ping" | "traceroute";
+		"MeasurementQuery.type": "ping" | "tcp" | "traceroute";
 		"PingInsightQuery.checkId": components["schemas"]["uuid"];
 		"PingInsightQuery.from": number;
 		"PingInsightQuery.maxDataPoints": number;

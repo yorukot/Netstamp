@@ -10,6 +10,7 @@ import (
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 	domainselector "github.com/yorukot/netstamp/internal/domain/selector"
+	domaintcp "github.com/yorukot/netstamp/internal/domain/tcp"
 	domaintraceroute "github.com/yorukot/netstamp/internal/domain/traceroute"
 )
 
@@ -76,9 +77,10 @@ func normalizeCreateCheckInput(input CreateCheckInput) (normalizedCreateCheckInp
 		validation.AddError("intervalSeconds", err, input.IntervalSeconds)
 	}
 	var pingConfig *domainping.Config
+	var tcpConfig *domaintcp.Config
 	var tracerouteConfig *domaintraceroute.Config
 	if checkType != "" {
-		pingConfig, tracerouteConfig, err = normalizeCreateTypeConfig(checkType, input.PingConfig, input.TracerouteConfig)
+		pingConfig, tcpConfig, tracerouteConfig, err = normalizeCreateTypeConfig(checkType, input.PingConfig, input.TCPConfig, input.TracerouteConfig)
 		if err != nil {
 			if !validation.AddValidation(err) {
 				return normalizedCreateCheckInput{}, err
@@ -102,6 +104,7 @@ func normalizeCreateCheckInput(input CreateCheckInput) (normalizedCreateCheckInp
 		description:      description,
 		intervalSeconds:  interval,
 		pingConfig:       pingConfig,
+		tcpConfig:        tcpConfig,
 		tracerouteConfig: tracerouteConfig,
 		labelIDs:         labelIDs,
 	}, nil
@@ -127,7 +130,7 @@ func normalizeUpdateCheckInput(input UpdateCheckInput) (normalizedUpdateCheckInp
 	}
 
 	fields := normalizeUpdateCheckFields(input, &validation)
-	pingConfig, tracerouteConfig, labelIDs, replaceLabels := normalizeUpdateCheckCollections(input, &validation)
+	pingConfig, tcpConfig, tracerouteConfig, labelIDs, replaceLabels := normalizeUpdateCheckCollections(input, &validation)
 	if err := validation.Err(ErrInvalidInput); err != nil {
 		return normalizedUpdateCheckInput{}, err
 	}
@@ -142,6 +145,7 @@ func normalizeUpdateCheckInput(input UpdateCheckInput) (normalizedUpdateCheckInp
 		description:      fields.description,
 		intervalSeconds:  fields.intervalSeconds,
 		pingConfig:       pingConfig,
+		tcpConfig:        tcpConfig,
 		tracerouteConfig: tracerouteConfig,
 		replaceLabels:    replaceLabels,
 		labelIDs:         labelIDs,
@@ -211,11 +215,17 @@ func normalizeUpdateCheckFields(input UpdateCheckInput, validation *appvalidatio
 	return fields
 }
 
-func normalizeUpdateCheckCollections(input UpdateCheckInput, validation *appvalidation.Collector) (updatePingConfigPatch, updateTracerouteConfigPatch, []string, bool) {
+func normalizeUpdateCheckCollections(input UpdateCheckInput, validation *appvalidation.Collector) (updatePingConfigPatch, updateTCPConfigPatch, updateTracerouteConfigPatch, []string, bool) {
 	pingConfig, err := normalizeUpdatePingConfig(input.PingConfig)
 	if err != nil {
 		if !validation.AddValidation(err) {
 			validation.AddError("pingConfig", err, input.PingConfig)
+		}
+	}
+	tcpConfig, err := normalizeUpdateTCPConfig(input.TCPConfig)
+	if err != nil {
+		if !validation.AddValidation(err) {
+			validation.AddError("tcpConfig", err, input.TCPConfig)
 		}
 	}
 	tracerouteConfig, err := normalizeUpdateTracerouteConfig(input.TracerouteConfig)
@@ -232,7 +242,7 @@ func normalizeUpdateCheckCollections(input UpdateCheckInput, validation *appvali
 		}
 	}
 
-	return pingConfig, tracerouteConfig, labelIDs, replaceLabels
+	return pingConfig, tcpConfig, tracerouteConfig, labelIDs, replaceLabels
 }
 
 type updatePingConfigPatch struct {
@@ -240,6 +250,12 @@ type updatePingConfigPatch struct {
 	packetSizeBytes *int32
 	timeoutMs       *int32
 	ipFamily        *domainnetwork.IPFamily
+}
+
+type updateTCPConfigPatch struct {
+	port      *int32
+	timeoutMs *int32
+	ipFamily  *domainnetwork.IPFamily
 }
 
 type updateTracerouteConfigPatch struct {
@@ -255,6 +271,12 @@ type updateTracerouteConfigPatch struct {
 func (patch updatePingConfigPatch) hasChanges() bool {
 	return patch.packetCount != nil ||
 		patch.packetSizeBytes != nil ||
+		patch.timeoutMs != nil ||
+		patch.ipFamily != nil
+}
+
+func (patch updateTCPConfigPatch) hasChanges() bool {
+	return patch.port != nil ||
 		patch.timeoutMs != nil ||
 		patch.ipFamily != nil
 }
@@ -355,6 +377,45 @@ func normalizeUpdatePingConfig(input *PingConfigInput) (updatePingConfigPatch, e
 	}
 	if err := validation.Err(ErrInvalidInput); err != nil {
 		return updatePingConfigPatch{}, err
+	}
+
+	return patch, nil
+}
+
+func normalizeUpdateTCPConfig(input *TCPConfigInput) (updateTCPConfigPatch, error) {
+	if input == nil {
+		return updateTCPConfigPatch{}, nil
+	}
+
+	var validation appvalidation.Collector
+	var patch updateTCPConfigPatch
+
+	port, err := normalizeOptionalTCPPort(input.Port)
+	if err != nil {
+		if !validation.AddValidation(err) {
+			return updateTCPConfigPatch{}, err
+		}
+	} else {
+		patch.port = port
+	}
+	timeoutMs, err := normalizeOptionalTCPTimeoutMs(input.TimeoutMs)
+	if err != nil {
+		if !validation.AddValidation(err) {
+			return updateTCPConfigPatch{}, err
+		}
+	} else {
+		patch.timeoutMs = timeoutMs
+	}
+	ipFamily, err := normalizeOptionalTCPIPFamily(input.IPFamily)
+	if err != nil {
+		if !validation.AddValidation(err) {
+			return updateTCPConfigPatch{}, err
+		}
+	} else {
+		patch.ipFamily = ipFamily
+	}
+	if err := validation.Err(ErrInvalidInput); err != nil {
+		return updateTCPConfigPatch{}, err
 	}
 
 	return patch, nil
@@ -484,6 +545,40 @@ func normalizeOptionalIPFamily(input *string) (*domainnetwork.IPFamily, error) {
 	return ipFamily, nil
 }
 
+func normalizeOptionalTCPPort(input *int32) (*int32, error) {
+	if input == nil {
+		return nil, nil //nolint:nilnil // Nil means the update did not include a TCP port.
+	}
+	port, err := domaintcp.VNConfigPort(*input)
+	if err != nil {
+		return nil, invalidCheckField("tcpConfig.port", err.Error(), input)
+	}
+	return &port, nil
+}
+
+func normalizeOptionalTCPTimeoutMs(input *int32) (*int32, error) {
+	if input == nil {
+		return nil, nil //nolint:nilnil // Nil means the update did not include a TCP timeout.
+	}
+	timeoutMs, err := domaintcp.VNConfigTimeoutMs(*input)
+	if err != nil {
+		return nil, invalidCheckField("tcpConfig.timeoutMs", err.Error(), input)
+	}
+	return &timeoutMs, nil
+}
+
+func normalizeOptionalTCPIPFamily(input *string) (*domainnetwork.IPFamily, error) {
+	ipFamily, err := domainnetwork.ParseOptionalIPFamily(input)
+	if err != nil {
+		return nil, invalidCheckField("tcpConfig.ipFamily", `must be "inet" or "inet6"`, input)
+	}
+	ipFamily, err = domaintcp.VNConfigIPFamily(ipFamily)
+	if err != nil {
+		return nil, invalidCheckField("tcpConfig.ipFamily", err.Error(), input)
+	}
+	return ipFamily, nil
+}
+
 func normalizeOptionalTracerouteProtocol(input *string) (*domaintraceroute.Protocol, error) {
 	if input == nil {
 		return nil, nil //nolint:nilnil // Nil means the update did not include a protocol.
@@ -581,6 +676,7 @@ func hasUpdateCheckChanges(input UpdateCheckInput) bool {
 		input.Description != nil ||
 		input.IntervalSeconds != nil ||
 		input.PingConfig.hasChanges() ||
+		input.TCPConfig.hasChanges() ||
 		input.TracerouteConfig.hasChanges() ||
 		input.LabelIDs != nil
 }
@@ -591,6 +687,15 @@ func (input *PingConfigInput) hasChanges() bool {
 	}
 	return input.PacketCount != nil ||
 		input.PacketSizeBytes != nil ||
+		input.TimeoutMs != nil ||
+		input.IPFamily != nil
+}
+
+func (input *TCPConfigInput) hasChanges() bool {
+	if input == nil {
+		return false
+	}
+	return input.Port != nil ||
 		input.TimeoutMs != nil ||
 		input.IPFamily != nil
 }
@@ -687,42 +792,67 @@ func normalizeSelector(selector map[string]any) (json.RawMessage, error) {
 	return raw, nil
 }
 
-func normalizeCreateTypeConfig(checkType domaincheck.Type, pingInput *PingConfigInput, tracerouteInput *TracerouteConfigInput) (*domainping.Config, *domaintraceroute.Config, error) {
+func normalizeCreateTypeConfig(checkType domaincheck.Type, pingInput *PingConfigInput, tcpInput *TCPConfigInput, tracerouteInput *TracerouteConfigInput) (*domainping.Config, *domaintcp.Config, *domaintraceroute.Config, error) {
 	switch checkType {
 	case domaincheck.TypePing:
 		var validation appvalidation.Collector
+		if tcpInput != nil {
+			validation.Add("tcpConfig", "must be omitted for ping checks", tcpInput)
+		}
 		if tracerouteInput != nil {
 			validation.Add("tracerouteConfig", "must be omitted for ping checks", tracerouteInput)
 		}
 		config, err := normalizePingConfig(pingInput)
 		if err != nil {
 			if !validation.AddValidation(err) {
-				return nil, nil, err
+				return nil, nil, nil, err
 			}
 		}
 		if err := validation.Err(ErrInvalidInput); err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 
-		return &config, nil, nil
+		return &config, nil, nil, nil
+	case domaincheck.TypeTCP:
+		var validation appvalidation.Collector
+		if pingInput != nil {
+			validation.Add("pingConfig", "must be omitted for tcp checks", pingInput)
+		}
+		if tracerouteInput != nil {
+			validation.Add("tracerouteConfig", "must be omitted for tcp checks", tracerouteInput)
+		}
+		config, err := normalizeTCPConfig(tcpInput)
+		if err != nil {
+			if !validation.AddValidation(err) {
+				return nil, nil, nil, err
+			}
+		}
+		if err := validation.Err(ErrInvalidInput); err != nil {
+			return nil, nil, nil, err
+		}
+
+		return nil, &config, nil, nil
 	case domaincheck.TypeTraceroute:
 		var validation appvalidation.Collector
 		if pingInput != nil {
 			validation.Add("pingConfig", "must be omitted for traceroute checks", pingInput)
 		}
+		if tcpInput != nil {
+			validation.Add("tcpConfig", "must be omitted for traceroute checks", tcpInput)
+		}
 		config, err := normalizeTracerouteConfig(tracerouteInput)
 		if err != nil {
 			if !validation.AddValidation(err) {
-				return nil, nil, err
+				return nil, nil, nil, err
 			}
 		}
 		if err := validation.Err(ErrInvalidInput); err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 
-		return nil, &config, nil
+		return nil, nil, &config, nil
 	default:
-		return nil, nil, invalidCheckField("type", "unsupported check type", string(checkType))
+		return nil, nil, nil, invalidCheckField("type", "unsupported check type", string(checkType))
 	}
 }
 
@@ -776,6 +906,59 @@ func normalizePingConfig(input *PingConfigInput) (domainping.Config, error) {
 	}
 
 	return config, nil
+}
+
+func normalizeTCPConfig(input *TCPConfigInput) (domaintcp.Config, error) {
+	config := domaintcp.DefaultConfig()
+
+	if input == nil {
+		return config, nil
+	}
+
+	var validation appvalidation.Collector
+
+	if input.Port != nil {
+		port, err := domaintcp.VNConfigPort(*input.Port)
+		if err != nil {
+			validation.AddError("tcpConfig.port", err, input.Port)
+		} else {
+			config.Port = port
+		}
+	}
+	if input.TimeoutMs != nil {
+		timeoutMs, err := domaintcp.VNConfigTimeoutMs(*input.TimeoutMs)
+		if err != nil {
+			validation.AddError("tcpConfig.timeoutMs", err, input.TimeoutMs)
+		} else {
+			config.TimeoutMs = timeoutMs
+		}
+	}
+
+	ipFamily, err := normalizeTCPConfigIPFamily(input.IPFamily)
+	if err != nil {
+		if !validation.AddValidation(err) {
+			validation.AddError("tcpConfig.ipFamily", err, input.IPFamily)
+		}
+	} else {
+		config.IPFamily = ipFamily
+	}
+	if err := validation.Err(ErrInvalidInput); err != nil {
+		return domaintcp.Config{}, err
+	}
+
+	return config, nil
+}
+
+func normalizeTCPConfigIPFamily(input *string) (*domainnetwork.IPFamily, error) {
+	ipFamily, err := domainnetwork.ParseOptionalIPFamily(input)
+	if err != nil {
+		return nil, invalidCheckField("tcpConfig.ipFamily", `must be "inet" or "inet6"`, input)
+	}
+	ipFamily, err = domaintcp.VNConfigIPFamily(ipFamily)
+	if err != nil {
+		return nil, invalidCheckField("tcpConfig.ipFamily", err.Error(), input)
+	}
+	return ipFamily, nil
 }
 
 func normalizeTracerouteConfig(input *TracerouteConfigInput) (domaintraceroute.Config, error) {

@@ -416,7 +416,7 @@ func normalizeMeasurementType(input string) (*string, error) {
 	switch value {
 	case "":
 		return nil, nil //nolint:nilnil // Nil means no type filter was provided.
-	case "ping", "traceroute":
+	case "ping", "tcp", "traceroute":
 		return &value, nil
 	default:
 		return nil, invalidResultField("type", "unsupported measurement type", input)

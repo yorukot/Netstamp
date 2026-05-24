@@ -16,6 +16,7 @@ import (
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 	domainselector "github.com/yorukot/netstamp/internal/domain/selector"
+	domaintcp "github.com/yorukot/netstamp/internal/domain/tcp"
 	domaintraceroute "github.com/yorukot/netstamp/internal/domain/traceroute"
 )
 
@@ -266,6 +267,8 @@ func (r *CheckRepository) writeCheckConfig(ctx context.Context, q *sqlc.Queries,
 	switch input.Type {
 	case domaincheck.TypePing:
 		return r.writePingCheckConfig(ctx, q, row, input.PingConfig, mode)
+	case domaincheck.TypeTCP:
+		return r.writeTCPCheckConfig(ctx, q, row, input.TCPConfig, mode)
 	case domaincheck.TypeTraceroute:
 		return r.writeTracerouteCheckConfig(ctx, q, row, input.TracerouteConfig, mode)
 	default:
@@ -304,6 +307,40 @@ func (r *CheckRepository) writePingCheckConfig(ctx context.Context, q *sqlc.Quer
 			return domaincheck.Check{}, err
 		}
 		return mapStoredPingCheck(row, stored), nil
+	default:
+		return domaincheck.Check{}, domaincheck.ErrInvalidInput
+	}
+}
+
+func (r *CheckRepository) writeTCPCheckConfig(ctx context.Context, q *sqlc.Queries, row sqlc.Check, config *domaintcp.Config, mode checkConfigWriteMode) (domaincheck.Check, error) {
+	if config == nil {
+		defaultConfig := domaintcp.DefaultConfig()
+		config = &defaultConfig
+	}
+
+	switch mode {
+	case checkConfigWriteCreate:
+		stored, err := q.CreateTCPCheckConfig(ctx, sqlc.CreateTCPCheckConfigParams{
+			CheckID:   row.ID,
+			Port:      config.Port,
+			TimeoutMs: config.TimeoutMs,
+			IpFamily:  sqlcIPFamily(config.IPFamily),
+		})
+		if err != nil {
+			return domaincheck.Check{}, err
+		}
+		return mapStoredTCPCheck(row, stored), nil
+	case checkConfigWriteUpdate:
+		stored, err := q.UpdateTCPCheckConfig(ctx, sqlc.UpdateTCPCheckConfigParams{
+			CheckID:   row.ID,
+			Port:      config.Port,
+			TimeoutMs: config.TimeoutMs,
+			IpFamily:  sqlcIPFamily(config.IPFamily),
+		})
+		if err != nil {
+			return domaincheck.Check{}, err
+		}
+		return mapStoredTCPCheck(row, stored), nil
 	default:
 		return domaincheck.Check{}, domaincheck.ErrInvalidInput
 	}

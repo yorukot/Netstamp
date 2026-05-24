@@ -24,6 +24,7 @@ func (h *Handler) createCheck(ctx context.Context, input *createCheckInput) (*ch
 		LabelIDs:        input.Body.LabelIDs,
 
 		PingConfig:       input.Body.PingConfig.appInput(),
+		TCPConfig:        input.Body.TCPConfig.appInput(),
 		TracerouteConfig: input.Body.TracerouteConfig.appInput(),
 	})
 	if err != nil {
@@ -48,5 +49,6 @@ type createCheckInputBody struct {
 	LabelIDs        []string       `json:"labelIds,omitempty"`
 
 	PingConfig       *checkPingConfigInput       `json:"pingConfig,omitempty"`
+	TCPConfig        *checkTCPConfigInput        `json:"tcpConfig,omitempty"`
 	TracerouteConfig *checkTracerouteConfigInput `json:"tracerouteConfig,omitempty"`
 }

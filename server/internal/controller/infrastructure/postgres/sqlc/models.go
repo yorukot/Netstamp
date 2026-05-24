@@ -18,6 +18,7 @@ type CheckType string
 const (
 	CheckTypePing       CheckType = "ping"
 	CheckTypeTraceroute CheckType = "traceroute"
+	CheckTypeTcp        CheckType = "tcp"
 )
 
 func (e *CheckType) Scan(src interface{}) error {
@@ -269,6 +270,49 @@ func (ns NullProjectMemberRole) Value() (driver.Value, error) {
 	return string(ns.ProjectMemberRole), nil
 }
 
+type TcpStatus string
+
+const (
+	TcpStatusSuccessful TcpStatus = "successful"
+	TcpStatusTimeout    TcpStatus = "timeout"
+	TcpStatusError      TcpStatus = "error"
+)
+
+func (e *TcpStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = TcpStatus(s)
+	case string:
+		*e = TcpStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for TcpStatus: %T", src)
+	}
+	return nil
+}
+
+type NullTcpStatus struct {
+	TcpStatus TcpStatus `json:"tcp_status"`
+	Valid     bool      `json:"valid"` // Valid is true if TcpStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullTcpStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.TcpStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.TcpStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullTcpStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.TcpStatus), nil
+}
+
 type TracerouteProtocol string
 
 const (
@@ -495,6 +539,27 @@ type ProjectMember struct {
 	Role      ProjectMemberRole  `json:"role"`
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+}
+
+type TcpCheckConfig struct {
+	CheckID   uuid.UUID    `json:"check_id"`
+	Port      int32        `json:"port"`
+	TimeoutMs int32        `json:"timeout_ms"`
+	IpFamily  NullIpFamily `json:"ip_family"`
+}
+
+type TcpResult struct {
+	ProbeID           int64              `json:"probe_id"`
+	CheckID           int64              `json:"check_id"`
+	StartedAt         pgtype.Timestamptz `json:"started_at"`
+	FinishedAt        pgtype.Timestamptz `json:"finished_at"`
+	DurationMs        int32              `json:"duration_ms"`
+	Status            TcpStatus          `json:"status"`
+	ConnectDurationMs *float64           `json:"connect_duration_ms"`
+	ResolvedIp        *netip.Addr        `json:"resolved_ip"`
+	IpFamily          NullIpFamily       `json:"ip_family"`
+	ErrorCode         *string            `json:"error_code"`
+	ErrorMessage      *string            `json:"error_message"`
 }
 
 type TracerouteCheckConfig struct {

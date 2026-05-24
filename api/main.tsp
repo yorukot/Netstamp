@@ -37,7 +37,7 @@ using OpenAPI;
 @tagMetadata("Project Members", #{ description: "Project membership and role management." })
 @tagMetadata("Project Invites", #{ description: "Pending project invitations and invite responses." })
 @tagMetadata("Labels", #{ description: "Project-scoped key/value labels used by selectors." })
-@tagMetadata("Checks", #{ description: "Ping and traceroute check definitions." })
+@tagMetadata("Checks", #{ description: "Ping, TCP, and traceroute check definitions." })
 @tagMetadata("Assignments", #{ description: "Selector previews and effective probe-check assignments for console users." })
 @tagMetadata("Probes", #{ description: "Project-scoped probe registration and secret management." })
 @tagMetadata("Results", #{ description: "Authenticated result query endpoints." })

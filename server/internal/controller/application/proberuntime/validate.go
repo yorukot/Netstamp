@@ -9,6 +9,7 @@ import (
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
+	domaintcp "github.com/yorukot/netstamp/internal/domain/tcp"
 	domaintraceroute "github.com/yorukot/netstamp/internal/domain/traceroute"
 )
 
@@ -38,6 +39,7 @@ type normalizedResultGroup struct {
 	checkID    string
 	checkType  domaincheck.Type
 	ping       []domainping.ResultStorageInput
+	tcp        []domaintcp.ResultStorageInput
 	traceroute []domaintraceroute.ResultStorageInput
 	index      int
 }
@@ -91,6 +93,14 @@ func normalizeSubmitResults(input SubmitResultsInput) (normalizedSubmitResultsIn
 			}
 			seenResults[resultKey] = struct{}{}
 		}
+		for j, result := range normalized.tcp {
+			resultKey := normalized.checkID + "\x00" + string(normalized.checkType) + "\x00" + result.StartedAt.Format(timeKeyLayout)
+			if _, ok := seenResults[resultKey]; ok {
+				validation.Add(resultGroupField(i, fmt.Sprintf("tcp[%d].startedAt", j)), "duplicate result startedAt for check", result.StartedAt)
+				continue
+			}
+			seenResults[resultKey] = struct{}{}
+		}
 		for j, result := range normalized.traceroute {
 			resultKey := normalized.checkID + "\x00" + string(normalized.checkType) + "\x00" + result.StartedAt.Format(timeKeyLayout)
 			if _, ok := seenResults[resultKey]; ok {
@@ -104,7 +114,7 @@ func normalizeSubmitResults(input SubmitResultsInput) (normalizedSubmitResultsIn
 			checkIDs = append(checkIDs, normalized.checkID)
 			seenChecks[normalized.checkID] = struct{}{}
 		}
-		accepted += len(normalized.ping) + len(normalized.traceroute)
+		accepted += len(normalized.ping) + len(normalized.tcp) + len(normalized.traceroute)
 		groups = append(groups, normalized)
 	}
 	if err := validation.Err(ErrInvalidInput); err != nil {
@@ -125,16 +135,19 @@ func normalizeResultGroup(input RuntimeResultGroupInput, index int) (normalizedR
 	}
 
 	checkType := domaincheck.Type(strings.TrimSpace(input.Type))
-	if checkType != domaincheck.TypePing && checkType != domaincheck.TypeTraceroute {
+	if checkType != domaincheck.TypePing && checkType != domaincheck.TypeTCP && checkType != domaincheck.TypeTraceroute {
 		validation.Add(resultGroupField(index, "type"), "unsupported result type", input.Type)
 	}
-	if validation.HasErrors() && checkType != domaincheck.TypePing && checkType != domaincheck.TypeTraceroute {
+	if validation.HasErrors() && checkType != domaincheck.TypePing && checkType != domaincheck.TypeTCP && checkType != domaincheck.TypeTraceroute {
 		return normalizedResultGroup{}, validation.Err(ErrInvalidInput)
 	}
 
 	switch checkType {
 	case domaincheck.TypePing:
-		validateResultGroupShape(&validation, index, "ping", input.Ping, "traceroute", input.Traceroute)
+		validateResultGroupShape(&validation, index, "ping", input.Ping, map[string]int{
+			"tcp":        len(input.TCP),
+			"traceroute": len(input.Traceroute),
+		})
 		pingResults := normalizeRuntimeResults(input.Ping, index, "ping", normalizePingResult, &validation)
 		if err := validation.Err(ErrInvalidInput); err != nil {
 			return normalizedResultGroup{}, err
@@ -146,8 +159,27 @@ func normalizeResultGroup(input RuntimeResultGroupInput, index int) (normalizedR
 			ping:      pingResults,
 			index:     index,
 		}, nil
+	case domaincheck.TypeTCP:
+		validateResultGroupShape(&validation, index, "tcp", input.TCP, map[string]int{
+			"ping":       len(input.Ping),
+			"traceroute": len(input.Traceroute),
+		})
+		tcpResults := normalizeRuntimeResults(input.TCP, index, "tcp", normalizeTCPResult, &validation)
+		if err := validation.Err(ErrInvalidInput); err != nil {
+			return normalizedResultGroup{}, err
+		}
+
+		return normalizedResultGroup{
+			checkID:   checkID,
+			checkType: checkType,
+			tcp:       tcpResults,
+			index:     index,
+		}, nil
 	case domaincheck.TypeTraceroute:
-		validateResultGroupShape(&validation, index, "traceroute", input.Traceroute, "ping", input.Ping)
+		validateResultGroupShape(&validation, index, "traceroute", input.Traceroute, map[string]int{
+			"ping": len(input.Ping),
+			"tcp":  len(input.TCP),
+		})
 		tracerouteResults := normalizeRuntimeResults(input.Traceroute, index, "traceroute", normalizeTracerouteResult, &validation)
 		if err := validation.Err(ErrInvalidInput); err != nil {
 			return normalizedResultGroup{}, err
@@ -164,12 +196,14 @@ func normalizeResultGroup(input RuntimeResultGroupInput, index int) (normalizedR
 	}
 }
 
-func validateResultGroupShape[T, O any](validation *appvalidation.Collector, index int, requiredField string, required []T, omittedField string, omitted []O) {
+func validateResultGroupShape[T any](validation *appvalidation.Collector, index int, requiredField string, required []T, omitted map[string]int) {
 	if len(required) == 0 {
 		validation.Add(resultGroupField(index, requiredField), "must include at least one "+requiredField+" result", required)
 	}
-	if len(omitted) > 0 {
-		validation.Add(resultGroupField(index, omittedField), "must be omitted for "+requiredField+" results", omitted)
+	for omittedField, omittedCount := range omitted {
+		if omittedCount > 0 {
+			validation.Add(resultGroupField(index, omittedField), "must be omitted for "+requiredField+" results", omittedCount)
+		}
 	}
 }
 

@@ -7,6 +7,7 @@ import (
 	domainlabel "github.com/yorukot/netstamp/internal/domain/label"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
+	domaintcp "github.com/yorukot/netstamp/internal/domain/tcp"
 	domaintraceroute "github.com/yorukot/netstamp/internal/domain/traceroute"
 )
 
@@ -108,6 +109,7 @@ func (s *Service) CreateCheck(ctx context.Context, input CreateCheckInput) (doma
 		Description:      normalized.description,
 		IntervalSeconds:  normalized.intervalSeconds,
 		PingConfig:       normalized.pingConfig,
+		TCPConfig:        normalized.tcpConfig,
 		TracerouteConfig: normalized.tracerouteConfig,
 	}
 	check, err := s.repo.CreateCheck(ctx, checkInput, normalized.labelIDs)
@@ -202,7 +204,7 @@ func buildUpdatedCheck(projectID string, current domaincheck.Check, normalized n
 		return domaincheck.Check{}, err
 	}
 
-	pingConfig, tracerouteConfig, err := mergedTypeConfigs(current, normalized)
+	pingConfig, tcpConfig, tracerouteConfig, err := mergedTypeConfigs(current, normalized)
 	if err != nil {
 		return domaincheck.Check{}, err
 	}
@@ -217,6 +219,7 @@ func buildUpdatedCheck(projectID string, current domaincheck.Check, normalized n
 		Description:      mergedDescription(current.Description, normalized.description),
 		IntervalSeconds:  mergedInt32(current.IntervalSeconds, normalized.intervalSeconds),
 		PingConfig:       pingConfig,
+		TCPConfig:        tcpConfig,
 		TracerouteConfig: tracerouteConfig,
 	}, nil
 }
@@ -237,6 +240,23 @@ func mergedPingConfig(current *domainping.Config, normalized normalizedUpdateChe
 	}
 	if normalized.pingConfig.ipFamily != nil {
 		config.IPFamily = normalized.pingConfig.ipFamily
+	}
+	return &config
+}
+
+func mergedTCPConfig(current *domaintcp.Config, normalized normalizedUpdateCheckInput) *domaintcp.Config {
+	config := domaintcp.DefaultConfig()
+	if current != nil {
+		config = *current
+	}
+	if normalized.tcpConfig.port != nil {
+		config.Port = *normalized.tcpConfig.port
+	}
+	if normalized.tcpConfig.timeoutMs != nil {
+		config.TimeoutMs = *normalized.tcpConfig.timeoutMs
+	}
+	if normalized.tcpConfig.ipFamily != nil {
+		config.IPFamily = normalized.tcpConfig.ipFamily
 	}
 	return &config
 }
@@ -270,21 +290,26 @@ func mergedTracerouteConfig(current *domaintraceroute.Config, normalized normali
 	return &config
 }
 
-func mergedTypeConfigs(current domaincheck.Check, normalized normalizedUpdateCheckInput) (*domainping.Config, *domaintraceroute.Config, error) {
+func mergedTypeConfigs(current domaincheck.Check, normalized normalizedUpdateCheckInput) (*domainping.Config, *domaintcp.Config, *domaintraceroute.Config, error) {
 	if normalized.pingConfig.hasChanges() && current.Type != domaincheck.TypePing {
-		return nil, nil, invalidCheckField("pingConfig", "must be omitted for non-ping checks", nil)
+		return nil, nil, nil, invalidCheckField("pingConfig", "must be omitted for non-ping checks", nil)
+	}
+	if normalized.tcpConfig.hasChanges() && current.Type != domaincheck.TypeTCP {
+		return nil, nil, nil, invalidCheckField("tcpConfig", "must be omitted for non-tcp checks", nil)
 	}
 	if normalized.tracerouteConfig.hasChanges() && current.Type != domaincheck.TypeTraceroute {
-		return nil, nil, invalidCheckField("tracerouteConfig", "must be omitted for non-traceroute checks", nil)
+		return nil, nil, nil, invalidCheckField("tracerouteConfig", "must be omitted for non-traceroute checks", nil)
 	}
 
 	switch current.Type {
 	case domaincheck.TypePing:
-		return mergedPingConfig(current.PingConfig, normalized), nil, nil
+		return mergedPingConfig(current.PingConfig, normalized), nil, nil, nil
+	case domaincheck.TypeTCP:
+		return nil, mergedTCPConfig(current.TCPConfig, normalized), nil, nil
 	case domaincheck.TypeTraceroute:
-		return nil, mergedTracerouteConfig(current.TracerouteConfig, normalized), nil
+		return nil, nil, mergedTracerouteConfig(current.TracerouteConfig, normalized), nil
 	default:
-		return nil, nil, domaincheck.ErrInvalidInput
+		return nil, nil, nil, domaincheck.ErrInvalidInput
 	}
 }
 
