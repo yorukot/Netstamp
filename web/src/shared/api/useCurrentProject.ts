@@ -39,11 +39,20 @@ export function CurrentProjectProvider({ children }: { children: ReactNode }) {
 	return createElement(CurrentProjectContext.Provider, { value }, children);
 }
 
-export function useCurrentProject() {
+export function useProjectSelection() {
 	const context = useContext(CurrentProjectContext);
+
+	return {
+		selectedProjectRef: context?.selectedProjectRef ?? "",
+		setSelectedProjectRef: context?.setSelectedProjectRef ?? (() => undefined)
+	};
+}
+
+export function useCurrentProject() {
+	const { selectedProjectRef, setSelectedProjectRef } = useProjectSelection();
 	const projectsQuery = useQuery(projectQueries.list());
 	const projects = projectsQuery.data?.projects ?? [];
-	const listProject = projects.find(item => item.slug === context?.selectedProjectRef || item.id === context?.selectedProjectRef) ?? projects[0] ?? null;
+	const listProject = projects.find(item => item.slug === selectedProjectRef || item.id === selectedProjectRef) ?? projects[0] ?? null;
 	const listProjectRef = listProject?.slug || listProject?.id || null;
 	const projectDetailQuery = useQuery({
 		...projectQueries.detail(listProjectRef || ""),
@@ -57,7 +66,7 @@ export function useCurrentProject() {
 		projectRef,
 		projectDetailQuery,
 		projectsQuery,
-		selectedProjectRef: context?.selectedProjectRef ?? "",
-		setSelectedProjectRef: context?.setSelectedProjectRef ?? (() => undefined)
+		selectedProjectRef,
+		setSelectedProjectRef
 	};
 }
