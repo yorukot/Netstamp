@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/postgres"
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/sqlc"
@@ -229,15 +230,13 @@ func (r *ProjectRepository) GetMember(ctx context.Context, projectIDValue, userI
 		return domainproject.Member{}, err
 	}
 
-	row, err := r.queries.GetActiveProjectMember(ctx, sqlc.GetActiveProjectMemberParams{
-		ProjectID: projectID,
-		UserID:    userID,
+	row, err := queryProjectRow(span, domainproject.ErrMemberNotFound, func() (sqlc.GetActiveProjectMemberRow, error) {
+		return r.queries.GetActiveProjectMember(ctx, sqlc.GetActiveProjectMemberParams{
+			ProjectID: projectID,
+			UserID:    userID,
+		})
 	})
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return domainproject.Member{}, domainproject.ErrMemberNotFound
-		}
-		postgres.RecordDBSpanError(span, err)
 		return domainproject.Member{}, err
 	}
 
@@ -438,19 +437,31 @@ func (r *ProjectRepository) RejectInvite(ctx context.Context, inviteIDValue, use
 		return domainproject.Invite{}, err
 	}
 
-	row, err := r.queries.RejectPendingProjectInvite(ctx, sqlc.RejectPendingProjectInviteParams{
-		ID:            inviteID,
-		InvitedUserID: userID,
+	row, err := queryProjectRow(span, domainproject.ErrInviteNotFound, func() (sqlc.RejectPendingProjectInviteRow, error) {
+		return r.queries.RejectPendingProjectInvite(ctx, sqlc.RejectPendingProjectInviteParams{
+			ID:            inviteID,
+			InvitedUserID: userID,
+		})
 	})
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return domainproject.Invite{}, domainproject.ErrInviteNotFound
-		}
-		postgres.RecordDBSpanError(span, err)
 		return domainproject.Invite{}, err
 	}
 
 	return mapRejectInvite(row), nil
+}
+
+func queryProjectRow[T any](span trace.Span, notFound error, query func() (T, error)) (T, error) {
+	row, err := query()
+	if err != nil {
+		var zero T
+		if errors.Is(err, pgx.ErrNoRows) {
+			return zero, notFound
+		}
+		postgres.RecordDBSpanError(span, err)
+		return zero, err
+	}
+
+	return row, nil
 }
 
 func parseProjectAndUserIDs(projectIDValue, userIDValue string) (uuid.UUID, uuid.UUID, error) {

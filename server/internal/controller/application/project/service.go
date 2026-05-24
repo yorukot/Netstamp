@@ -14,6 +14,8 @@ type Service struct {
 	events     EventRecorder
 }
 
+type resolveInviteFunc func(context.Context, string, string) (domainproject.Invite, error)
+
 func NewService(repo Repository, userLookup UserLookup, events EventRecorder) *Service {
 	return &Service{
 		repo:       repo,
@@ -198,10 +200,12 @@ func (s *Service) CreateInvite(ctx context.Context, input CreateInviteInput) (do
 	}
 	flow.setTargetUser(user.ID)
 
-	if _, err := s.repo.GetMember(ctx, project.ID, user.ID); err == nil {
+	_, memberErr := s.repo.GetMember(ctx, project.ID, user.ID)
+	if memberErr == nil {
 		return domainproject.Invite{}, flow.inviteCreateFailure(domainproject.ErrMemberAlreadyExists)
-	} else if !errors.Is(err, domainproject.ErrMemberNotFound) {
-		return domainproject.Invite{}, flow.memberLookupFailure(ProjectEventCreateInviteFailure, err)
+	}
+	if !errors.Is(memberErr, domainproject.ErrMemberNotFound) {
+		return domainproject.Invite{}, flow.memberLookupFailure(ProjectEventCreateInviteFailure, memberErr)
 	}
 
 	invite, err := s.repo.CreateInvite(ctx, domainproject.Invite{
@@ -259,43 +263,54 @@ func (s *Service) ListUserInvites(ctx context.Context, input ListUserInvitesInpu
 }
 
 func (s *Service) AcceptInvite(ctx context.Context, input ResolveInviteInput) (domainproject.Invite, error) {
-	ctx, flow := s.startProjectFlow(ctx, "project.invite.accept", ProjectActionAcceptInvite, input.CurrentUserID)
-	defer flow.end()
-	flow.setInviteID(input.InviteID)
-
-	input, err := normalizeResolveInviteInput(input)
-	if err != nil {
-		return domainproject.Invite{}, flow.businessFailure(ProjectEventAcceptInviteFailure, ProjectReasonInvalidInput, err)
-	}
-	flow.setInviteID(input.InviteID)
-
-	invite, err := s.repo.AcceptInvite(ctx, input.InviteID, input.CurrentUserID)
-	if err != nil {
-		return domainproject.Invite{}, flow.inviteResolveFailure(ProjectEventAcceptInviteFailure, err)
-	}
-	flow.setInvite(invite)
-	flow.success(ProjectEventAcceptInviteSuccess)
-
-	return invite, nil
+	return s.resolveInvite(
+		ctx,
+		input,
+		"project.invite.accept",
+		ProjectActionAcceptInvite,
+		ProjectEventAcceptInviteSuccess,
+		ProjectEventAcceptInviteFailure,
+		s.repo.AcceptInvite,
+	)
 }
 
 func (s *Service) RejectInvite(ctx context.Context, input ResolveInviteInput) (domainproject.Invite, error) {
-	ctx, flow := s.startProjectFlow(ctx, "project.invite.reject", ProjectActionRejectInvite, input.CurrentUserID)
+	return s.resolveInvite(
+		ctx,
+		input,
+		"project.invite.reject",
+		ProjectActionRejectInvite,
+		ProjectEventRejectInviteSuccess,
+		ProjectEventRejectInviteFailure,
+		s.repo.RejectInvite,
+	)
+}
+
+func (s *Service) resolveInvite(
+	ctx context.Context,
+	input ResolveInviteInput,
+	spanName string,
+	action ProjectEventAction,
+	successEvent ProjectEventName,
+	failureEvent ProjectEventName,
+	resolve resolveInviteFunc,
+) (domainproject.Invite, error) {
+	ctx, flow := s.startProjectFlow(ctx, spanName, action, input.CurrentUserID)
 	defer flow.end()
 	flow.setInviteID(input.InviteID)
 
 	input, err := normalizeResolveInviteInput(input)
 	if err != nil {
-		return domainproject.Invite{}, flow.businessFailure(ProjectEventRejectInviteFailure, ProjectReasonInvalidInput, err)
+		return domainproject.Invite{}, flow.businessFailure(failureEvent, ProjectReasonInvalidInput, err)
 	}
 	flow.setInviteID(input.InviteID)
 
-	invite, err := s.repo.RejectInvite(ctx, input.InviteID, input.CurrentUserID)
+	invite, err := resolve(ctx, input.InviteID, input.CurrentUserID)
 	if err != nil {
-		return domainproject.Invite{}, flow.inviteResolveFailure(ProjectEventRejectInviteFailure, err)
+		return domainproject.Invite{}, flow.inviteResolveFailure(failureEvent, err)
 	}
 	flow.setInvite(invite)
-	flow.success(ProjectEventRejectInviteSuccess)
+	flow.success(successEvent)
 
 	return invite, nil
 }

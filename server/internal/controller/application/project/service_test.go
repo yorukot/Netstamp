@@ -232,7 +232,7 @@ func (r *projectServiceRepository) GetProjectForUser(context.Context, string, st
 	return r.project, nil
 }
 
-func (r *projectServiceRepository) GetMemberRole(_ context.Context, _ string, userID string) (domainproject.Role, error) {
+func (r *projectServiceRepository) GetMemberRole(_ context.Context, _, userID string) (domainproject.Role, error) {
 	r.getMemberRoleCalls++
 	member, ok := r.members[userID]
 	if !ok {
@@ -260,7 +260,7 @@ func (r *projectServiceRepository) ListMembers(context.Context, string) ([]domai
 	return members, nil
 }
 
-func (r *projectServiceRepository) GetMember(_ context.Context, _ string, userID string) (domainproject.Member, error) {
+func (r *projectServiceRepository) GetMember(_ context.Context, _, userID string) (domainproject.Member, error) {
 	member, ok := r.members[userID]
 	if !ok {
 		return domainproject.Member{}, domainproject.ErrMemberNotFound
@@ -273,7 +273,7 @@ func (r *projectServiceRepository) UpdateMemberRole(_ context.Context, input dom
 	return input, nil
 }
 
-func (r *projectServiceRepository) DeleteMember(_ context.Context, _ string, userID string) error {
+func (r *projectServiceRepository) DeleteMember(_ context.Context, _, userID string) error {
 	r.deletedUserID = userID
 	return nil
 }
