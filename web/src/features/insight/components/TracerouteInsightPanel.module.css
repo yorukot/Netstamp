@@ -1,0 +1,66 @@
+.tracerouteStack {
+	display: grid;
+	gap: 1rem;
+}
+
+.tracePanel {
+	min-width: 0;
+}
+
+.traceStack {
+	display: grid;
+	gap: 1.25rem;
+}
+
+.traceTimeline {
+	display: grid;
+	gap: 1rem;
+	padding-top: 1.25rem;
+	border-top: 1px solid var(--ns-border-faint);
+}
+
+.traceTimelineHeader {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 1rem;
+	color: var(--ns-text-low);
+	font-family: var(--ns-font-mono);
+	font-size: 0.6875rem;
+	line-height: 1;
+	text-transform: uppercase;
+}
+
+.traceTimelineHeader span {
+	color: var(--ns-accent-hover);
+	letter-spacing: 0.18em;
+}
+
+.traceTimelineHeader strong {
+	color: var(--ns-text);
+	font-family: var(--ns-font-display);
+	font-size: 1.25rem;
+	line-height: 1;
+	text-transform: none;
+}
+
+.hopIdentity {
+	display: grid;
+	gap: 0.25rem;
+	min-width: 12rem;
+}
+
+.hopIdentity strong {
+	color: var(--ns-text);
+	font-size: 0.75rem;
+	font-weight: 700;
+	overflow-wrap: anywhere;
+	white-space: normal;
+}
+
+.hopIdentity span {
+	color: var(--ns-text-low);
+	font-size: 0.6875rem;
+	overflow-wrap: anywhere;
+	white-space: normal;
+}

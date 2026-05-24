@@ -5,6 +5,7 @@
 - Route-level product areas live under `web/src/features/<feature>/components`.
 - Keep feature-only UI and CSS modules colocated with that feature.
 - Put reused app-level components in `web/src/shared/components`.
+- Put reusable chart, map, timeline, and other domain-neutral visualization primitives in `web/src/shared/visualizations`.
 - Put shared utilities, mock data, and data helpers in `web/src/shared/utils`.
 - Use `@netstamp/ui` for reusable primitives before adding app-local controls.
 - Use `@` aliases for imports to avoid relative paths and improve readability.
