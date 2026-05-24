@@ -46,6 +46,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    ports:
+      - "${DATABASE_PUBLISH_ADDR:-0.0.0.0}:${DATABASE_PUBLISH_PORT:-5432}:5432"
     labels:
       - netstamp.logs=enabled
 
