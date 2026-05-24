@@ -16,7 +16,6 @@ export function SignalAvatar({ src, alt = "", size = "md", referrerPolicy, class
 	return (
 		<span className={classes} {...props}>
 			<img src={src} alt={alt} referrerPolicy={referrerPolicy} />
-			<span className={styles.overlay} aria-hidden="true" />
 		</span>
 	);
 }
