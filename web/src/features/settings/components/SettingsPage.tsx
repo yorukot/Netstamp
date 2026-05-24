@@ -60,9 +60,8 @@ export function SettingsPage() {
 
 			<div className={styles.settingsGrid}>
 				<Panel tone="glass" eyebrow="Identity" title="Profile">
-					<form id="username-settings" className={styles.settingsForm} onSubmit={handleIdentitySubmit}>
+					<form id="identity-settings" className={styles.settingsForm} onSubmit={handleIdentitySubmit}>
 						<TextField label="Display name" name="name" defaultValue={user.name} />
-						<TextField label="Username" name="username" defaultValue={user.username} disabled helper="Derived from your sign-in email." />
 						<ActionRow>
 							<Button type="submit" disabled={updateUserMutation.isPending}>
 								{updateUserMutation.isPending ? "Saving" : "Save identity"}
