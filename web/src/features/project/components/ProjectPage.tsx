@@ -47,6 +47,46 @@ function roleLabel(role: string) {
 	return role.charAt(0).toUpperCase() + role.slice(1);
 }
 
+function canRemoveMember(actorRole: string | undefined, memberRole: string, isCurrentUser: boolean) {
+	if (isCurrentUser) {
+		return false;
+	}
+
+	if (actorRole === "owner") {
+		return true;
+	}
+
+	if (actorRole === "admin") {
+		return memberRole === "editor" || memberRole === "viewer";
+	}
+
+	return false;
+}
+
+function blockedRemoveLabel(actorRole: string | undefined, memberRole: string) {
+	if (memberRole === "owner") {
+		return "Owner protected";
+	}
+
+	if (actorRole === "admin" && memberRole === "admin") {
+		return "Admin protected";
+	}
+
+	return "No access";
+}
+
+function canUpdateMemberRole(actorRole: string | undefined, memberRole: string) {
+	if (actorRole === "owner") {
+		return true;
+	}
+
+	if (actorRole === "admin") {
+		return memberRole !== "owner";
+	}
+
+	return false;
+}
+
 export function ProjectPage() {
 	const { project, projectRef, setSelectedProjectRef } = useCurrentProject();
 	const { session } = useSession();
@@ -70,6 +110,7 @@ export function ProjectPage() {
 	const currentUserId = session?.user.id ?? "";
 	const members = membersQuery.data?.members ?? [];
 	const currentMember = members.find(member => member.userId === currentUserId);
+	const currentMemberRole = currentMember?.role;
 	const isCurrentOwner = currentMember?.role === "owner";
 	const canManageMembers = currentMember?.role === "owner" || currentMember?.role === "admin";
 	const canLeaveProject = Boolean(projectRef && currentUserId && currentMember && !isCurrentOwner && !removeMemberMutation.isPending);
@@ -177,21 +218,47 @@ export function ProjectPage() {
 	const memberColumns: DataColumn<MemberRow>[] = [
 		{ key: "name", label: "User ID" },
 		{ key: "email", label: "Account" },
-		{ key: "role", label: "Role", render: row => <RoleSelect role={row.role} name={row.name} onRoleChange={role => updateMemberRoleMutation.mutate({ userId: row.userId, role })} /> },
+		{
+			key: "role",
+			label: "Role",
+			render: row => (
+				<RoleSelect
+					role={row.role}
+					name={row.name}
+					disabled={updateMemberRoleMutation.isPending || !canUpdateMemberRole(currentMemberRole, row.role)}
+					onRoleChange={role => updateMemberRoleMutation.mutate({ userId: row.userId, role })}
+				/>
+			)
+		},
 		{ key: "lastActive", label: "Last active" },
 		{
 			key: "delete",
 			label: "Delete",
-			render: row =>
-				row.isCurrentUser ? (
-					<Button variant="outline" size="sm" disabled title="Use Leave project when your role allows it.">
-						Current user
-					</Button>
-				) : (
-					<Button variant="danger" size="sm" disabled={!projectRef || removeMemberMutation.isPending} onClick={() => removeMemberMutation.mutate(row.userId)}>
+			render: row => {
+				const canDeleteMember = Boolean(projectRef) && canRemoveMember(currentMemberRole, row.role, row.isCurrentUser);
+
+				if (row.isCurrentUser) {
+					return (
+						<Button variant="outline" size="sm" disabled title="Use Leave project when your role allows it.">
+							Current user
+						</Button>
+					);
+				}
+
+				if (!canDeleteMember) {
+					return (
+						<Button variant="outline" size="sm" disabled>
+							{blockedRemoveLabel(currentMemberRole, row.role)}
+						</Button>
+					);
+				}
+
+				return (
+					<Button variant="danger" size="sm" disabled={removeMemberMutation.isPending} onClick={() => removeMemberMutation.mutate(row.userId)}>
 						{removeMemberMutation.isPending ? "Deleting" : "Delete"}
 					</Button>
-				)
+				);
+			}
 		}
 	];
 	const inviteColumns: DataColumn<InviteRow>[] = [

@@ -6,6 +6,7 @@ import styles from "./RoleSelect.module.css";
 interface RoleSelectProps {
 	role: string;
 	name: string;
+	disabled?: boolean;
 	onRoleChange?: (role: ProjectMemberRole) => void;
 }
 
@@ -16,7 +17,7 @@ const roleOptions = [
 	{ value: "viewer", label: "Viewer" }
 ];
 
-export function RoleSelect({ role, name, onRoleChange }: RoleSelectProps) {
+export function RoleSelect({ role, name, disabled, onRoleChange }: RoleSelectProps) {
 	const selectedRole = role.toLowerCase();
 	const roleClass = styles[selectedRole as keyof typeof styles] || styles.member;
 
@@ -26,6 +27,7 @@ export function RoleSelect({ role, name, onRoleChange }: RoleSelectProps) {
 			frameClassName={classNames(styles.frame, roleClass)}
 			className={styles.select}
 			value={selectedRole}
+			disabled={disabled}
 			aria-label={`Change role for ${name}`}
 			onChange={event => onRoleChange?.(event.currentTarget.value as ProjectMemberRole)}
 		>
