@@ -297,7 +297,7 @@ function fallbackProbe(assignment: ApiProjectAssignment): Probe {
 		region: location,
 		ipFamily: "-",
 		lastHeartbeat: "never",
-		tags: assignment.probe?.labels?.map(label => `${label.key}:${label.value}`) ?? [],
+		labelTokens: assignment.probe?.labels?.map(label => `${label.key}:${label.value}`) ?? [],
 		version: "-",
 		uptime: "-",
 		cpu: "-",

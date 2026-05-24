@@ -11,7 +11,7 @@ export interface Probe {
 	region: string;
 	ipFamily: string;
 	lastHeartbeat: string;
-	tags: string[];
+	labelTokens: string[];
 	version: string;
 	uptime: string;
 	cpu: string;

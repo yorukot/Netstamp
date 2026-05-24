@@ -19,13 +19,13 @@ const probeColumns: DataColumn<Probe>[] = [
 	{ key: "ipFamily", label: "Support IP Family" },
 	{ key: "lastHeartbeat", label: "Last heartbeat" },
 	{
-		key: "tags",
-		label: "Tags",
+		key: "labelTokens",
+		label: "Labels",
 		render: probe => (
-			<span className={styles.tagList}>
-				{probe.tags.map(tag => (
-					<Badge key={tag} tone="muted" dot={false}>
-						{tag}
+			<span className={styles.labelList}>
+				{probe.labelTokens.map(labelToken => (
+					<Badge key={labelToken} tone="muted" dot={false}>
+						{labelToken}
 					</Badge>
 				))}
 			</span>

@@ -262,7 +262,7 @@ function selectorStateFromApi(selector: ApiSelector | null | undefined): Selecto
 	return { mode: "advanced", rules: [], advancedText: JSON.stringify(selector, null, 2) };
 }
 
-function probeMatchesSelector(probeTags: string[], state: SelectorState) {
+function probeMatchesSelector(probeLabelTokens: string[], state: SelectorState) {
 	if (state.mode === "all-probes") {
 		return true;
 	}
@@ -275,10 +275,10 @@ function probeMatchesSelector(probeTags: string[], state: SelectorState) {
 		const key = rule.key.trim();
 		const matched =
 			rule.op === "exists"
-				? probeTags.some(tag => tag.startsWith(`${key}:`))
+				? probeLabelTokens.some(labelToken => labelToken.startsWith(`${key}:`))
 				: rule.op === "in"
-					? splitSelectorValues(rule.values).some(value => probeTags.includes(`${key}:${value}`))
-					: probeTags.includes(`${key}:${rule.value.trim()}`);
+					? splitSelectorValues(rule.values).some(value => probeLabelTokens.includes(`${key}:${value}`))
+					: probeLabelTokens.includes(`${key}:${rule.value.trim()}`);
 
 		return rule.negated ? !matched : matched;
 	});
@@ -348,7 +348,7 @@ export function ChecksPage() {
 	const assignedProbeNames = (assignmentsQuery.data ?? [])
 		.filter(assignment => assignment.checkId === selectedListCheck?.id)
 		.map(assignment => assignment.probe?.name || probes.find(probe => probe.id === assignment.probeId)?.name || assignment.probeId);
-	const locallyMatchedProbeNames = selectorState.mode === "advanced" ? assignedProbeNames : probes.filter(probe => probeMatchesSelector(probe.tags, selectorState)).map(probe => probe.name);
+	const locallyMatchedProbeNames = selectorState.mode === "advanced" ? assignedProbeNames : probes.filter(probe => probeMatchesSelector(probe.labelTokens, selectorState)).map(probe => probe.name);
 	const activeSelectedProbes = selectedProbes.length ? selectedProbes : locallyMatchedProbeNames;
 	const selectorOptions = selectorLabelOptions(labelsQuery.data?.labels ?? []);
 	const selectorKeys = selectorKeyOptions(selectorOptions, selectorState.rules);

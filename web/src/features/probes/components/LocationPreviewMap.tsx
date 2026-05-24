@@ -23,7 +23,7 @@ export function LocationPreviewMap({ coordinates, locationName, probeName, class
 		region: locationName || "preview",
 		ipFamily: "-",
 		lastHeartbeat: "never",
-		tags: [],
+		labelTokens: [],
 		version: "-",
 		uptime: "-",
 		cpu: "-",

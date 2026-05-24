@@ -8,7 +8,7 @@ function asnNumber(asn: string) {
 export function filterProbes(source: Probe[], search: string, statusFilter: "all" | ProbeStatus, providerFilter: string, sortKey: ProbeSort) {
 	const term = search.trim().toLowerCase();
 	const filtered = source.filter(probe => {
-		const searchable = [probe.name, probe.location, probe.publicIp, probe.asn, probe.provider, probe.region, ...probe.tags].join(" ").toLowerCase();
+		const searchable = [probe.name, probe.location, probe.publicIp, probe.asn, probe.provider, probe.region, ...probe.labelTokens].join(" ").toLowerCase();
 
 		return (!term || searchable.includes(term)) && (statusFilter === "all" || probe.status === statusFilter) && (providerFilter === "all" || probe.provider === providerFilter);
 	});

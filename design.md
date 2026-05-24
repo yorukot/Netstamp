@@ -92,7 +92,7 @@ Orange is the brand and interaction color. Green, yellow, and red are reserved f
 - `--ns-border-strong`: `rgba(255, 255, 255, 0.48)`, hover/active neutral frame.
 - `--ns-border-faint`: `rgba(255, 255, 255, 0.16)`, quiet dividers and nested frames.
 - `--ns-radius-*`: all `0`.
-- `--ns-cut-xs`: `0.375rem`, badges and tiny tags.
+- `--ns-cut-xs`: `0.375rem`, badges and compact labels.
 - `--ns-cut-sm`: `0.5rem`, buttons, nav items, fields, small frames.
 - `--ns-cut-md`: `0.75rem`, tables and medium cards.
 - `--ns-cut-lg`: `1rem`, panels, landing feature cards, footer blocks.
@@ -343,7 +343,7 @@ Use icons from the existing icon system in docs or Phosphor web components where
 
 ### Badges
 
-Badges are operational tags.
+Badges can represent operational labels or state.
 
 - Use mono uppercase text.
 - Optional dot is square and uses current color.

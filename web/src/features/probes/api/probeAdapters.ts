@@ -47,7 +47,7 @@ export function mapApiProbe(probe: ApiProbe, index: number): Probe {
 	const coordinates = typeof probe.longitude === "number" && typeof probe.latitude === "number" ? ([probe.longitude, probe.latitude] as [number, number]) : undefined;
 	const status = probe.status;
 	const publicIp = status?.publicV4 || status?.publicV6 || status?.addrs?.[0] || "-";
-	const tags = probe.labels?.map(label => `${label.key}:${label.value}`) ?? [];
+	const labelTokens = probe.labels?.map(label => `${label.key}:${label.value}`) ?? [];
 	const ipFamily = status?.publicV4 && status.publicV6 ? "IPv4 / IPv6" : status?.publicV6 ? "IPv6" : status?.publicV4 ? "IPv4" : "-";
 	const location = probe.locationName || coordinateSummary(probe.latitude, probe.longitude) || "-";
 
@@ -62,7 +62,7 @@ export function mapApiProbe(probe: ApiProbe, index: number): Probe {
 		region: location,
 		ipFamily,
 		lastHeartbeat: formatRelativeTime(status?.lastSeenAt),
-		tags,
+		labelTokens,
 		version: status?.agentVersion || "-",
 		uptime: "-",
 		cpu: "-",
