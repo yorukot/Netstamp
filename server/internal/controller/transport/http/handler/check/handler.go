@@ -24,11 +24,15 @@ func NewHandler(service *appcheck.Service, verifier appauth.TokenVerifier) *Hand
 }
 
 func (h *Handler) RegisterRoutes(api chi.Router) {
-	api.With(httpmiddleware.RequireAuth(h.verifier)).Get("/projects/{ref}/checks", h.handleListChecks)
-	api.With(httpmiddleware.RequireAuth(h.verifier)).Post("/projects/{ref}/checks", h.handleCreateCheck)
-	api.With(httpmiddleware.RequireAuth(h.verifier)).Get("/projects/{ref}/checks/{check_id}", h.handleGetCheck)
-	api.With(httpmiddleware.RequireAuth(h.verifier)).Patch("/projects/{ref}/checks/{check_id}", h.handleUpdateCheck)
-	api.With(httpmiddleware.RequireAuth(h.verifier)).Delete("/projects/{ref}/checks/{check_id}", h.handleDeleteCheck)
+	api.Group(func(r chi.Router) {
+		r.Use(httpmiddleware.RequireAuth(h.verifier))
+
+		r.Get("/projects/{ref}/checks", h.handleListChecks)
+		r.Post("/projects/{ref}/checks", h.handleCreateCheck)
+		r.Get("/projects/{ref}/checks/{check_id}", h.handleGetCheck)
+		r.Patch("/projects/{ref}/checks/{check_id}", h.handleUpdateCheck)
+		r.Delete("/projects/{ref}/checks/{check_id}", h.handleDeleteCheck)
+	})
 }
 
 func (h *Handler) handleListChecks(w http.ResponseWriter, r *http.Request) {

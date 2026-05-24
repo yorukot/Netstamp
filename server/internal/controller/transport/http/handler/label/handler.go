@@ -24,10 +24,14 @@ func NewHandler(service *applabel.Service, verifier appauth.TokenVerifier) *Hand
 }
 
 func (h *Handler) RegisterRoutes(api chi.Router) {
-	api.With(httpmiddleware.RequireAuth(h.verifier)).Get("/projects/{ref}/labels", h.handleListLabels)
-	api.With(httpmiddleware.RequireAuth(h.verifier)).Post("/projects/{ref}/labels", h.handleCreateLabel)
-	api.With(httpmiddleware.RequireAuth(h.verifier)).Patch("/projects/{ref}/labels/{label_id}", h.handleUpdateLabel)
-	api.With(httpmiddleware.RequireAuth(h.verifier)).Delete("/projects/{ref}/labels/{label_id}", h.handleDeleteLabel)
+	api.Group(func(r chi.Router) {
+		r.Use(httpmiddleware.RequireAuth(h.verifier))
+
+		r.Get("/projects/{ref}/labels", h.handleListLabels)
+		r.Post("/projects/{ref}/labels", h.handleCreateLabel)
+		r.Patch("/projects/{ref}/labels/{label_id}", h.handleUpdateLabel)
+		r.Delete("/projects/{ref}/labels/{label_id}", h.handleDeleteLabel)
+	})
 }
 
 func (h *Handler) handleListLabels(w http.ResponseWriter, r *http.Request) {

@@ -1,6 +1,7 @@
 package httpserver
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -12,6 +13,8 @@ import (
 
 	chimw "github.com/go-chi/chi/v5/middleware"
 	"go.opentelemetry.io/otel/trace"
+
+	"github.com/yorukot/netstamp/internal/domain/identity"
 )
 
 type openAPISnapshot struct {
@@ -197,6 +200,109 @@ func TestNewRouterServesScalarDocs(t *testing.T) {
 				t.Fatalf("expected %s Scalar docs body to contain %q, got %q", path, want, body)
 			}
 		}
+	}
+}
+
+func TestNewRouterProtectedRoutesRequireSessionCookie(t *testing.T) {
+	dep := Dependencies{
+		APIVersion:     "v1",
+		AuthVerifier:   staticRouterTokenVerifier{},
+		RequestTimeout: time.Second,
+	}
+
+	for _, route := range []struct {
+		method string
+		path   string
+	}{
+		{method: http.MethodGet, path: "/api/v1/auth/me"},
+		{method: http.MethodPatch, path: "/api/v1/users/me"},
+		{method: http.MethodPost, path: "/api/v1/users/me/email-change"},
+		{method: http.MethodPost, path: "/api/v1/users/me/password-change"},
+		{method: http.MethodPost, path: "/api/v1/projects/vector-ix/selector-previews"},
+		{method: http.MethodGet, path: "/api/v1/projects/vector-ix/assignments"},
+		{method: http.MethodGet, path: "/api/v1/projects/vector-ix/labels"},
+		{method: http.MethodPost, path: "/api/v1/projects/vector-ix/labels"},
+		{method: http.MethodPatch, path: "/api/v1/projects/vector-ix/labels/label-1"},
+		{method: http.MethodDelete, path: "/api/v1/projects/vector-ix/labels/label-1"},
+		{method: http.MethodGet, path: "/api/v1/projects/vector-ix/checks"},
+		{method: http.MethodPost, path: "/api/v1/projects/vector-ix/checks"},
+		{method: http.MethodGet, path: "/api/v1/projects/vector-ix/checks/check-1"},
+		{method: http.MethodPatch, path: "/api/v1/projects/vector-ix/checks/check-1"},
+		{method: http.MethodDelete, path: "/api/v1/projects/vector-ix/checks/check-1"},
+		{method: http.MethodGet, path: "/api/v1/projects/vector-ix/probes"},
+		{method: http.MethodPost, path: "/api/v1/projects/vector-ix/probes"},
+		{method: http.MethodGet, path: "/api/v1/projects/vector-ix/probes/probe-1"},
+		{method: http.MethodPatch, path: "/api/v1/projects/vector-ix/probes/probe-1"},
+		{method: http.MethodDelete, path: "/api/v1/projects/vector-ix/probes/probe-1"},
+		{method: http.MethodPost, path: "/api/v1/projects/vector-ix/probes/probe-1/secret-rotations"},
+		{method: http.MethodGet, path: "/api/v1/projects/vector-ix/results/ping/series"},
+		{method: http.MethodGet, path: "/api/v1/projects/vector-ix/results/ping/insight"},
+		{method: http.MethodGet, path: "/api/v1/projects/vector-ix/results/traceroute/runs"},
+		{method: http.MethodGet, path: "/api/v1/projects/vector-ix/results/traceroute/topology"},
+		{method: http.MethodGet, path: "/api/v1/projects/vector-ix/measurements"},
+	} {
+		t.Run(route.method+" "+route.path, func(t *testing.T) {
+			recorder := performRouterRequest(dep, route.method, route.path)
+
+			if recorder.Code != http.StatusUnauthorized {
+				t.Fatalf("expected status 401, got %d", recorder.Code)
+			}
+			if got := recorder.Header().Get("WWW-Authenticate"); got != "" {
+				t.Fatalf("expected empty WWW-Authenticate, got %q", got)
+			}
+		})
+	}
+}
+
+func TestNewRouterRuntimeRoutesRequireProbeCredential(t *testing.T) {
+	dep := Dependencies{
+		APIVersion:     "v1",
+		RequestTimeout: time.Second,
+	}
+
+	for _, route := range []struct {
+		method string
+		path   string
+	}{
+		{method: http.MethodPost, path: "/api/v1/runtime/probes/probe-1/hello"},
+		{method: http.MethodPost, path: "/api/v1/runtime/probes/probe-1/heartbeat"},
+		{method: http.MethodGet, path: "/api/v1/runtime/probes/probe-1/assignments"},
+		{method: http.MethodPost, path: "/api/v1/runtime/probes/probe-1/results"},
+	} {
+		t.Run(route.method+" "+route.path, func(t *testing.T) {
+			recorder := performRouterRequest(dep, route.method, route.path)
+
+			if recorder.Code != http.StatusUnauthorized {
+				t.Fatalf("expected status 401, got %d", recorder.Code)
+			}
+			if got := recorder.Header().Get("WWW-Authenticate"); got != "Probe" {
+				t.Fatalf("expected Probe WWW-Authenticate, got %q", got)
+			}
+		})
+	}
+}
+
+func TestNewRouterPublicRoutesBypassAuthGroups(t *testing.T) {
+	for _, route := range []struct {
+		method string
+		path   string
+		status int
+	}{
+		{method: http.MethodGet, path: "/api/v1/healthz", status: http.StatusOK},
+		{method: http.MethodGet, path: "/api/v1/openapi.json", status: http.StatusOK},
+		{method: http.MethodGet, path: "/api/v1/docs", status: http.StatusOK},
+		{method: http.MethodPost, path: "/api/v1/auth/logout", status: http.StatusNoContent},
+	} {
+		t.Run(route.method+" "+route.path, func(t *testing.T) {
+			recorder := performRouterRequest(Dependencies{
+				APIVersion:     "v1",
+				RequestTimeout: time.Second,
+			}, route.method, route.path)
+
+			if recorder.Code != route.status {
+				t.Fatalf("expected status %d, got %d", route.status, recorder.Code)
+			}
+		})
 	}
 }
 
@@ -421,6 +527,15 @@ func performRouterRequestWithHeaders(dep Dependencies, method, path string, head
 	}
 	router.ServeHTTP(recorder, request)
 	return recorder
+}
+
+type staticRouterTokenVerifier struct{}
+
+func (staticRouterTokenVerifier) VerifyAccessToken(context.Context, string) (identity.AccessTokenClaims, error) {
+	return identity.AccessTokenClaims{
+		Subject: "user-1",
+		Email:   "user@example.com",
+	}, nil
 }
 
 func assertOpenAPIOperation(t *testing.T, spec openAPISnapshot, method, path, operationID string) {

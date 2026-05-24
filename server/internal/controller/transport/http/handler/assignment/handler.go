@@ -24,8 +24,12 @@ func NewHandler(service *appassignment.Service, verifier appauth.TokenVerifier) 
 }
 
 func (h *Handler) RegisterRoutes(api chi.Router) {
-	api.With(httpmiddleware.RequireAuth(h.verifier)).Post("/projects/{ref}/selector-previews", h.handlePreviewSelector)
-	api.With(httpmiddleware.RequireAuth(h.verifier)).Get("/projects/{ref}/assignments", h.handleListProjectAssignments)
+	api.Group(func(r chi.Router) {
+		r.Use(httpmiddleware.RequireAuth(h.verifier))
+
+		r.Post("/projects/{ref}/selector-previews", h.handlePreviewSelector)
+		r.Get("/projects/{ref}/assignments", h.handleListProjectAssignments)
+	})
 }
 
 func (h *Handler) handlePreviewSelector(w http.ResponseWriter, r *http.Request) {

@@ -24,11 +24,15 @@ func NewHandler(service *appresult.Service, verifier appauth.TokenVerifier) *Han
 }
 
 func (h *Handler) RegisterRoutes(api chi.Router) {
-	api.With(httpmiddleware.RequireAuth(h.verifier)).Get("/projects/{ref}/results/ping/series", h.handleQueryPingSeries)
-	api.With(httpmiddleware.RequireAuth(h.verifier)).Get("/projects/{ref}/results/ping/insight", h.handleQueryPingInsight)
-	api.With(httpmiddleware.RequireAuth(h.verifier)).Get("/projects/{ref}/results/traceroute/runs", h.handleQueryTracerouteRuns)
-	api.With(httpmiddleware.RequireAuth(h.verifier)).Get("/projects/{ref}/results/traceroute/topology", h.handleQueryTracerouteTopology)
-	api.With(httpmiddleware.RequireAuth(h.verifier)).Get("/projects/{ref}/measurements", h.handleQueryMeasurements)
+	api.Group(func(r chi.Router) {
+		r.Use(httpmiddleware.RequireAuth(h.verifier))
+
+		r.Get("/projects/{ref}/results/ping/series", h.handleQueryPingSeries)
+		r.Get("/projects/{ref}/results/ping/insight", h.handleQueryPingInsight)
+		r.Get("/projects/{ref}/results/traceroute/runs", h.handleQueryTracerouteRuns)
+		r.Get("/projects/{ref}/results/traceroute/topology", h.handleQueryTracerouteTopology)
+		r.Get("/projects/{ref}/measurements", h.handleQueryMeasurements)
+	})
 }
 
 func (h *Handler) handleQueryPingSeries(w http.ResponseWriter, r *http.Request) {

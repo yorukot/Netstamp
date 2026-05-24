@@ -18,10 +18,14 @@ func NewHandler(service *appproberuntime.Service) *Handler {
 }
 
 func (h *Handler) RegisterRoutes(api chi.Router) {
-	api.With(requireRuntimeAuth).Post("/runtime/probes/{probe_id}/hello", h.handleHello)
-	api.With(requireRuntimeAuth).Post("/runtime/probes/{probe_id}/heartbeat", h.handleHeartbeat)
-	api.With(requireRuntimeAuth).Get("/runtime/probes/{probe_id}/assignments", h.handleListAssignments)
-	api.With(requireRuntimeAuth).Post("/runtime/probes/{probe_id}/results", h.handleSubmitResults)
+	api.Group(func(r chi.Router) {
+		r.Use(requireRuntimeAuth)
+
+		r.Post("/runtime/probes/{probe_id}/hello", h.handleHello)
+		r.Post("/runtime/probes/{probe_id}/heartbeat", h.handleHeartbeat)
+		r.Get("/runtime/probes/{probe_id}/assignments", h.handleListAssignments)
+		r.Post("/runtime/probes/{probe_id}/results", h.handleSubmitResults)
+	})
 }
 
 func (h *Handler) handleHello(w http.ResponseWriter, r *http.Request) {

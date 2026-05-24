@@ -24,12 +24,16 @@ func NewHandler(service *appprobe.Service, verifier appauth.TokenVerifier) *Hand
 }
 
 func (h *Handler) RegisterRoutes(api chi.Router) {
-	api.With(httpmiddleware.RequireAuth(h.verifier)).Get("/projects/{ref}/probes", h.handleListProbes)
-	api.With(httpmiddleware.RequireAuth(h.verifier)).Post("/projects/{ref}/probes", h.handleCreateProbe)
-	api.With(httpmiddleware.RequireAuth(h.verifier)).Get("/projects/{ref}/probes/{probe_id}", h.handleGetProbe)
-	api.With(httpmiddleware.RequireAuth(h.verifier)).Patch("/projects/{ref}/probes/{probe_id}", h.handleUpdateProbe)
-	api.With(httpmiddleware.RequireAuth(h.verifier)).Delete("/projects/{ref}/probes/{probe_id}", h.handleDeleteProbe)
-	api.With(httpmiddleware.RequireAuth(h.verifier)).Post("/projects/{ref}/probes/{probe_id}/secret-rotations", h.handleRotateSecret)
+	api.Group(func(r chi.Router) {
+		r.Use(httpmiddleware.RequireAuth(h.verifier))
+
+		r.Get("/projects/{ref}/probes", h.handleListProbes)
+		r.Post("/projects/{ref}/probes", h.handleCreateProbe)
+		r.Get("/projects/{ref}/probes/{probe_id}", h.handleGetProbe)
+		r.Patch("/projects/{ref}/probes/{probe_id}", h.handleUpdateProbe)
+		r.Delete("/projects/{ref}/probes/{probe_id}", h.handleDeleteProbe)
+		r.Post("/projects/{ref}/probes/{probe_id}/secret-rotations", h.handleRotateSecret)
+	})
 }
 
 func (h *Handler) handleListProbes(w http.ResponseWriter, r *http.Request) {

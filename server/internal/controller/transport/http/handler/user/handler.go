@@ -24,9 +24,13 @@ func NewHandler(service *appuser.Service, verifier appauth.TokenVerifier) *Handl
 }
 
 func (h *Handler) RegisterRoutes(api chi.Router) {
-	api.With(httpmiddleware.RequireAuth(h.verifier)).Patch("/users/me", h.handleUpdateCurrentUser)
-	api.With(httpmiddleware.RequireAuth(h.verifier)).Post("/users/me/email-change", h.handleChangeCurrentUserEmail)
-	api.With(httpmiddleware.RequireAuth(h.verifier)).Post("/users/me/password-change", h.handleChangeCurrentUserPassword)
+	api.Group(func(r chi.Router) {
+		r.Use(httpmiddleware.RequireAuth(h.verifier))
+
+		r.Patch("/users/me", h.handleUpdateCurrentUser)
+		r.Post("/users/me/email-change", h.handleChangeCurrentUserEmail)
+		r.Post("/users/me/password-change", h.handleChangeCurrentUserPassword)
+	})
 }
 
 func (h *Handler) handleUpdateCurrentUser(w http.ResponseWriter, r *http.Request) {

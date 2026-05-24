@@ -28,7 +28,11 @@ func (h *Handler) RegisterRoutes(api chi.Router) {
 	api.Post("/auth/register", h.handleRegister)
 	api.Post("/auth/login", h.handleLogin)
 	api.Post("/auth/logout", h.handleLogout)
-	api.With(httpmiddleware.RequireAuth(h.verifier)).Get("/auth/me", h.handleMe)
+	api.Group(func(r chi.Router) {
+		r.Use(httpmiddleware.RequireAuth(h.verifier))
+
+		r.Get("/auth/me", h.handleMe)
+	})
 }
 
 func (h *Handler) handleRegister(w http.ResponseWriter, r *http.Request) {
