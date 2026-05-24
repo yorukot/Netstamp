@@ -33,6 +33,12 @@ interface InviteRow {
 	status: string;
 }
 
+interface ProjectDraft {
+	projectId: string;
+	name: string | null;
+	slug: string | null;
+}
+
 function formatDateTime(value: string) {
 	return new Date(value).toLocaleString();
 }
@@ -54,12 +60,13 @@ export function ProjectPage() {
 		...projectQueries.members(projectRef || ""),
 		enabled: Boolean(projectRef)
 	});
-	const [projectName, setProjectName] = useState("");
-	const [projectSlug, setProjectSlug] = useState("");
+	const [projectDraft, setProjectDraft] = useState<ProjectDraft>({ projectId: "", name: null, slug: null });
 	const [memberEmail, setMemberEmail] = useState("");
 	const [memberRole, setMemberRole] = useState<ProjectMemberRole>("viewer");
-	const activeProjectName = projectName || project?.name || "";
-	const activeProjectSlug = projectSlug || project?.slug || "";
+	const activeProjectId = project?.id ?? "";
+	const activeProjectDraft = projectDraft.projectId === activeProjectId ? projectDraft : null;
+	const activeProjectName = activeProjectDraft?.name ?? project?.name ?? "";
+	const activeProjectSlug = activeProjectDraft?.slug ?? project?.slug ?? "";
 	const currentUserId = session?.user.id ?? "";
 	const members = membersQuery.data?.members ?? [];
 	const currentMember = members.find(member => member.userId === currentUserId);
@@ -70,6 +77,22 @@ export function ProjectPage() {
 		...projectQueries.invites(projectRef || ""),
 		enabled: Boolean(projectRef && canManageMembers)
 	});
+
+	function updateProjectNameDraft(name: string) {
+		setProjectDraft(current => ({
+			projectId: activeProjectId,
+			name,
+			slug: current.projectId === activeProjectId ? current.slug : null
+		}));
+	}
+
+	function updateProjectSlugDraft(slug: string) {
+		setProjectDraft(current => ({
+			projectId: activeProjectId,
+			name: current.projectId === activeProjectId ? current.name : null,
+			slug
+		}));
+	}
 
 	function createCurrentInvite() {
 		createInviteMutation.mutate(
@@ -194,10 +217,20 @@ export function ProjectPage() {
 
 			<Panel tone="glass" eyebrow="Project" title="Project info">
 				<div className={styles.projectInfoGrid}>
-					<TextField label="Project name" value={activeProjectName} disabled={!projectRef} onChange={event => setProjectName(event.currentTarget.value)} />
-					<TextField label="Slug" value={activeProjectSlug} disabled={!projectRef} onChange={event => setProjectSlug(event.currentTarget.value)} />
+					<TextField label="Project name" value={activeProjectName} disabled={!projectRef} onChange={event => updateProjectNameDraft(event.currentTarget.value)} />
+					<TextField label="Slug" value={activeProjectSlug} disabled={!projectRef} onChange={event => updateProjectSlugDraft(event.currentTarget.value)} />
 				</div>
-				<Button disabled={!projectRef || updateProjectMutation.isPending} onClick={() => updateProjectMutation.mutate({ name: activeProjectName, slug: activeProjectSlug })}>
+				<Button
+					disabled={!projectRef || updateProjectMutation.isPending}
+					onClick={() =>
+						updateProjectMutation.mutate(
+							{ name: activeProjectName, slug: activeProjectSlug },
+							{
+								onSuccess: data => setProjectDraft({ projectId: data.project.id, name: null, slug: null })
+							}
+						)
+					}
+				>
 					{updateProjectMutation.isPending ? "Saving" : "Save changes"}
 				</Button>
 			</Panel>
