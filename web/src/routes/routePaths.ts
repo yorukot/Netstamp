@@ -11,7 +11,6 @@ export const routePaths = {
 	labels: "/labels",
 	insight: "/insight",
 	checks: "/checks",
-	alerts: "/alerts",
 	project: "/project",
 	settings: "/settings"
 } satisfies Record<Route, string>;

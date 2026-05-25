@@ -11,7 +11,6 @@ import { createBrowserRouter, Navigate as RouterNavigate, RouterProvider, useLoc
 import { pathForRoute } from "./routePaths";
 import type { AppRoute, Navigate } from "./routeTypes";
 
-const AlertsPage = lazy(() => import("@/features/alerts/components/AlertsPage").then(module => ({ default: module.AlertsPage })));
 const AuthPage = lazy(() => import("@/features/auth/components/AuthPage").then(module => ({ default: module.AuthPage })));
 const OnboardingPage = lazy(() => import("@/features/auth/components/OnboardingPage").then(module => ({ default: module.OnboardingPage })));
 const ChecksPage = lazy(() => import("@/features/checks/components/ChecksPage").then(module => ({ default: module.ChecksPage })));
@@ -91,7 +90,6 @@ const router = createBrowserRouter([
 			{ path: appRoutePath("labels"), element: lazyRoute(<LabelsPage />) },
 			{ path: appRoutePath("checks"), element: lazyRoute(<ChecksPage />) },
 			{ path: appRoutePath("insight"), element: lazyRoute(<InsightPage />) },
-			{ path: appRoutePath("alerts"), element: lazyRoute(<AlertsPage />) },
 			{ path: appRoutePath("project"), element: lazyRoute(<ProjectPage />) },
 			{ path: appRoutePath("settings"), element: lazyRoute(<SettingsPage />) }
 		]
