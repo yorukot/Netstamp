@@ -1,6 +1,7 @@
 import type { ApiCheck, CreateCheckInput } from "@/shared/api/types";
 
 export type PingConfigPayload = NonNullable<CreateCheckInput["pingConfig"]>;
+export type TCPConfigPayload = NonNullable<CreateCheckInput["tcpConfig"]>;
 export type TracerouteConfigPayload = NonNullable<CreateCheckInput["tracerouteConfig"]>;
 export type IPFamilyFormValue = "" | NonNullable<PingConfigPayload["ipFamily"]>;
 export type TracerouteProtocolFormValue = NonNullable<TracerouteConfigPayload["protocol"]>;
@@ -22,6 +23,12 @@ export interface TracerouteConfigFormState {
 	ipFamily: IPFamilyFormValue;
 }
 
+export interface TCPConfigFormState {
+	port: string;
+	timeoutMs: string;
+	ipFamily: IPFamilyFormValue;
+}
+
 export const defaultPingConfigFormState: PingConfigFormState = {
 	packetCount: "4",
 	packetSizeBytes: "56",
@@ -36,6 +43,12 @@ export const defaultTracerouteConfigFormState: TracerouteConfigFormState = {
 	queriesPerHop: "3",
 	packetSizeBytes: "56",
 	port: "33434",
+	ipFamily: ""
+};
+
+export const defaultTCPConfigFormState: TCPConfigFormState = {
+	port: "443",
+	timeoutMs: "3000",
 	ipFamily: ""
 };
 
@@ -54,6 +67,16 @@ export function pingConfigFormStateFromApi(check: Pick<ApiCheck, "pingConfig"> |
 		packetSizeBytes: String(config?.packetSizeBytes ?? defaultPingConfigFormState.packetSizeBytes),
 		timeoutMs: String(config?.timeoutMs ?? defaultPingConfigFormState.timeoutMs),
 		ipFamily: config?.ipFamily ?? defaultPingConfigFormState.ipFamily
+	};
+}
+
+export function tcpConfigFormStateFromApi(check: Pick<ApiCheck, "tcpConfig"> | null | undefined): TCPConfigFormState {
+	const config = check?.tcpConfig;
+
+	return {
+		port: String(config?.port ?? defaultTCPConfigFormState.port),
+		timeoutMs: String(config?.timeoutMs ?? defaultTCPConfigFormState.timeoutMs),
+		ipFamily: config?.ipFamily ?? defaultTCPConfigFormState.ipFamily
 	};
 }
 
@@ -76,6 +99,19 @@ export function buildPingConfigPayload(state: PingConfigFormState): PingConfigPa
 		packetCount: parseIntOrDefault(state.packetCount, defaultPingConfigFormState.packetCount),
 		packetSizeBytes: parseIntOrDefault(state.packetSizeBytes, defaultPingConfigFormState.packetSizeBytes),
 		timeoutMs: parseIntOrDefault(state.timeoutMs, defaultPingConfigFormState.timeoutMs)
+	};
+
+	if (state.ipFamily) {
+		config.ipFamily = state.ipFamily;
+	}
+
+	return config;
+}
+
+export function buildTCPConfigPayload(state: TCPConfigFormState): TCPConfigPayload {
+	const config: TCPConfigPayload = {
+		port: parseIntOrDefault(state.port, defaultTCPConfigFormState.port),
+		timeoutMs: parseIntOrDefault(state.timeoutMs, defaultTCPConfigFormState.timeoutMs)
 	};
 
 	if (state.ipFamily) {
@@ -114,6 +150,16 @@ export function checkConfigSummaryFields(check: ApiCheck): Array<[label: string,
 			["Max hops", config.maxHops],
 			["Queries/hop", config.queriesPerHop],
 			["Timeout", `${config.timeoutMs}ms`]
+		];
+	}
+
+	if (check.type === "tcp") {
+		const config = tcpConfigFormStateFromApi(check);
+
+		return [
+			["Port", config.port],
+			["Timeout", `${config.timeoutMs}ms`],
+			["IP family", config.ipFamily || "Auto"]
 		];
 	}
 

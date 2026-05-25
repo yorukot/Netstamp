@@ -1,13 +1,17 @@
 import { mapApiCheck, mapApiChecksWithAssignments, parseIntervalSeconds } from "@/features/checks/api/checkAdapters";
 import {
 	buildPingConfigPayload,
+	buildTCPConfigPayload,
 	buildTracerouteConfigPayload,
 	defaultPingConfigFormState,
+	defaultTCPConfigFormState,
 	defaultTracerouteConfigFormState,
 	pingConfigFormStateFromApi,
+	tcpConfigFormStateFromApi,
 	tracerouteConfigFormStateFromApi,
 	type IPFamilyFormValue,
 	type PingConfigFormState,
+	type TCPConfigFormState,
 	type TracerouteConfigFormState,
 	type TracerouteProtocolFormValue
 } from "@/features/checks/data/checkConfig";
@@ -84,6 +88,17 @@ const tracerouteProtocolOptions: Array<{ value: TracerouteProtocolFormValue; lab
 	{ value: "icmp", label: "ICMP" },
 	{ value: "udp", label: "UDP" }
 ];
+
+function checkTypeFromApi(type: string): CheckType {
+	switch (type) {
+		case "tcp":
+			return "TCP";
+		case "traceroute":
+			return "Traceroute";
+		default:
+			return "Ping";
+	}
+}
 
 function selectorLabelId(key: string, value: string) {
 	return `${key}\u0000${value}`;
@@ -310,6 +325,7 @@ export function ChecksPage() {
 	const [selectedProbes, setSelectedProbes] = useState<string[]>([]);
 	const [selectorState, setSelectorState] = useState<SelectorState>({ mode: "all-probes", rules: [], advancedText: "" });
 	const [pingConfig, setPingConfig] = useState<PingConfigFormState>(defaultPingConfigFormState);
+	const [tcpConfig, setTCPConfig] = useState<TCPConfigFormState>(defaultTCPConfigFormState);
 	const [tracerouteConfig, setTracerouteConfig] = useState<TracerouteConfigFormState>(defaultTracerouteConfigFormState);
 	const isCreating = selectedId === "__new__";
 	const selectedListCheck = checkRows.find(check => check.id === selectedId) || null;
@@ -327,6 +343,7 @@ export function ChecksPage() {
 	const activeInterval = isCreating || selectedId ? interval : selectedCheck?.interval || "30s";
 	const activeEnabled = selectedId ? enabled : selectedCheck?.status.toLowerCase().includes("disabled") ? "disabled" : enabled;
 	const activePingConfig = selectedId || isCreating ? pingConfig : pingConfigFormStateFromApi(selectedApiCheck);
+	const activeTCPConfig = selectedId || isCreating ? tcpConfig : tcpConfigFormStateFromApi(selectedApiCheck);
 	const activeTracerouteConfig = selectedId || isCreating ? tracerouteConfig : tracerouteConfigFormStateFromApi(selectedApiCheck);
 	const assignedProbeNames = (assignmentsQuery.data ?? [])
 		.filter(assignment => assignment.checkId === selectedListCheck?.id)
@@ -347,6 +364,7 @@ export function ChecksPage() {
 		setSelectedProbes([]);
 		setSelectorState({ mode: "all-probes", rules: [], advancedText: "" });
 		setPingConfig(defaultPingConfigFormState);
+		setTCPConfig(defaultTCPConfigFormState);
 		setTracerouteConfig(defaultTracerouteConfigFormState);
 	}
 
@@ -374,6 +392,7 @@ export function ChecksPage() {
 		setSelectedProbes([]);
 		setSelectorState(nextSelectorState);
 		setPingConfig(pingConfigFormStateFromApi(apiCheck));
+		setTCPConfig(tcpConfigFormStateFromApi(apiCheck));
 		setTracerouteConfig(tracerouteConfigFormStateFromApi(apiCheck));
 	}
 
@@ -391,12 +410,18 @@ export function ChecksPage() {
 		setSelectedProbes([]);
 		setSelectorState(selectorStateFromApi(selectedApiCheck?.selector));
 		setPingConfig(pingConfigFormStateFromApi(selectedApiCheck));
+		setTCPConfig(tcpConfigFormStateFromApi(selectedApiCheck));
 		setTracerouteConfig(tracerouteConfigFormStateFromApi(selectedApiCheck));
 	}
 
 	function updatePingConfig(patch: Partial<PingConfigFormState>) {
 		prepareSelectedCheckEdit();
 		setPingConfig(current => ({ ...current, ...patch }));
+	}
+
+	function updateTCPConfig(patch: Partial<TCPConfigFormState>) {
+		prepareSelectedCheckEdit();
+		setTCPConfig(current => ({ ...current, ...patch }));
 	}
 
 	function updateTracerouteConfig(patch: Partial<TracerouteConfigFormState>) {
@@ -508,7 +533,7 @@ export function ChecksPage() {
 			return;
 		}
 
-		const type = activeCheckType === "Traceroute" ? "traceroute" : "ping";
+		const type = activeCheckType === "Traceroute" ? "traceroute" : activeCheckType === "TCP" ? "tcp" : "ping";
 		const body: CreateCheckInput = {
 			intervalSeconds: parseIntervalSeconds(activeInterval),
 			name: activeCheckName,
@@ -518,6 +543,8 @@ export function ChecksPage() {
 		};
 		if (type === "traceroute") {
 			body.tracerouteConfig = buildTracerouteConfigPayload(activeTracerouteConfig);
+		} else if (type === "tcp") {
+			body.tcpConfig = buildTCPConfigPayload(activeTCPConfig);
 		} else {
 			body.pingConfig = buildPingConfigPayload(activePingConfig);
 		}
@@ -527,11 +554,12 @@ export function ChecksPage() {
 				setSelectedId(data.check.id);
 				setCheckName(data.check.name);
 				setTarget(data.check.target);
-				setCheckType(data.check.type === "traceroute" ? "Traceroute" : "Ping");
+				setCheckType(checkTypeFromApi(data.check.type));
 				setInterval(`${data.check.intervalSeconds}s`);
 				setSelectedProbes([]);
 				setSelectorState(selectorStateFromApi(data.check.selector));
 				setPingConfig(pingConfigFormStateFromApi(data.check));
+				setTCPConfig(tcpConfigFormStateFromApi(data.check));
 				setTracerouteConfig(tracerouteConfigFormStateFromApi(data.check));
 			}
 		};
@@ -564,6 +592,7 @@ export function ChecksPage() {
 								options={[
 									{ value: "all", label: "All types" },
 									{ value: "ping", label: "Ping" },
+									{ value: "tcp", label: "TCP" },
 									{ value: "traceroute", label: "Traceroute" }
 								]}
 							/>
@@ -604,6 +633,7 @@ export function ChecksPage() {
 									onChange={event => setCheckType(event.currentTarget.value as CheckType)}
 									options={[
 										{ value: "Ping", label: "Ping" },
+										{ value: "TCP", label: "TCP" },
 										{ value: "Traceroute", label: "Traceroute" }
 									]}
 								/>
@@ -692,6 +722,37 @@ export function ChecksPage() {
 											value={activeTracerouteConfig.ipFamily}
 											disabled={!selectedCheck && !isCreating}
 											onChange={event => updateTracerouteConfig({ ipFamily: event.currentTarget.value as IPFamilyFormValue })}
+											options={ipFamilyOptions}
+										/>
+									</div>
+								) : activeCheckType === "TCP" ? (
+									<div className={styles.checkConfigGrid}>
+										<TextField
+											label="Port"
+											type="number"
+											min={1}
+											max={65535}
+											step={1}
+											inputMode="numeric"
+											value={activeTCPConfig.port}
+											disabled={!selectedCheck && !isCreating}
+											onChange={event => updateTCPConfig({ port: event.currentTarget.value })}
+										/>
+										<TextField
+											label="Timeout ms"
+											type="number"
+											min={1}
+											step={1}
+											inputMode="numeric"
+											value={activeTCPConfig.timeoutMs}
+											disabled={!selectedCheck && !isCreating}
+											onChange={event => updateTCPConfig({ timeoutMs: event.currentTarget.value })}
+										/>
+										<SelectField
+											label="IP family"
+											value={activeTCPConfig.ipFamily}
+											disabled={!selectedCheck && !isCreating}
+											onChange={event => updateTCPConfig({ ipFamily: event.currentTarget.value as IPFamilyFormValue })}
 											options={ipFamilyOptions}
 										/>
 									</div>

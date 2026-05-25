@@ -3,11 +3,14 @@ import type { CheckDefinition, CheckType } from "@/features/checks/data/checks";
 import type { ApiCheck, ApiProjectAssignment } from "@/shared/api/types";
 
 function mapCheckType(type: string): CheckType {
-	if (type.toLowerCase() === "traceroute") {
-		return "Traceroute";
+	switch (type.toLowerCase()) {
+		case "tcp":
+			return "TCP";
+		case "traceroute":
+			return "Traceroute";
+		default:
+			return "Ping";
 	}
-
-	return "Ping";
 }
 
 export function formatInterval(seconds: number) {

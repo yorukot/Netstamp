@@ -1,4 +1,4 @@
-export type CheckType = "Ping" | "Traceroute";
+export type CheckType = "Ping" | "TCP" | "Traceroute";
 
 export interface CheckDefinition {
 	id: string;
