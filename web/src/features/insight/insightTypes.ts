@@ -2,7 +2,11 @@ import type { CheckDefinition } from "@/features/checks/data/checks";
 import type { Probe } from "@/features/probes/data/probes";
 import type { BadgeTone } from "@netstamp/ui";
 
-export type InsightMode = "overview" | "probe" | "target";
+export type InsightCheckTypeFilter = "all" | "ping" | "traceroute";
+export type InsightGroupBy = "check" | "probe";
+export type InsightRefreshInterval = "off" | "10s" | "30s" | "1m" | "5m";
+export type InsightRelativeRange = "15m" | "1h" | "6h" | "24h" | "7d" | "30d";
+export type InsightTimeMode = "relative" | "absolute";
 export type HopTone = Extract<BadgeTone, "success" | "warning" | "critical" | "muted">;
 
 export interface EntityDetail {
@@ -62,10 +66,18 @@ export interface TimeWindow {
 }
 
 export interface ParsedInsightUrlState {
-	mode: InsightMode;
-	hasValidMode: boolean;
+	checkType: InsightCheckTypeFilter;
+	hasValidCheckType: boolean;
+	groupBy: InsightGroupBy;
+	hasValidGroupBy: boolean;
+	timeMode: InsightTimeMode;
+	hasValidTimeMode: boolean;
+	timeRange: InsightRelativeRange;
+	hasValidTimeRange: boolean;
 	timeWindow: TimeWindow;
 	hasValidTimeWindow: boolean;
+	refresh: InsightRefreshInterval;
+	hasValidRefresh: boolean;
 	probeId: string;
 	checkId: string;
 	runStartedAt: string;

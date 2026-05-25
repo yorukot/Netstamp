@@ -3,12 +3,22 @@ import { type CheckDefinition } from "@/features/checks/data/checks";
 import { GroupTopologyPanel } from "@/features/insight/components/GroupTopologyPanel";
 import { PingInsightPanel } from "@/features/insight/components/PingInsightPanel";
 import { TracerouteInsightPanel } from "@/features/insight/components/TracerouteInsightPanel";
-import { formatCount } from "@/features/insight/insightFormatters";
-import { type EntityDetail, type InsightMode, type InsightPair, type ParsedInsightUrlState, type TimeWindow } from "@/features/insight/insightTypes";
+import { formatCount, formatEpochMs, formatMs, formatPercent } from "@/features/insight/insightFormatters";
+import {
+	type InsightCheckTypeFilter,
+	type InsightGroupBy,
+	type InsightPair,
+	type InsightRefreshInterval,
+	type InsightRelativeRange,
+	type InsightTimeMode,
+	type ParsedInsightUrlState,
+	type TimeWindow
+} from "@/features/insight/insightTypes";
 import { mapApiProbes } from "@/features/probes/api/probeAdapters";
 import { type Probe, type ProbeStatus } from "@/features/probes/data/probes";
 import { projectQueries } from "@/shared/api/queries";
-import { type ApiProjectAssignment, type PingInsightResponse, type TracerouteResult } from "@/shared/api/types";
+import { apiQueryKeys } from "@/shared/api/queryKeys";
+import { type ApiMeasurement, type ApiProjectAssignment, type PingInsightResponse, type TracerouteResult } from "@/shared/api/types";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { BodyCopy } from "@/shared/components/BodyCopy";
 import { KeyValueGrid } from "@/shared/components/KeyValueGrid";
@@ -16,13 +26,14 @@ import { PageStack } from "@/shared/components/PageStack";
 import { ResponsiveGrid } from "@/shared/components/ResponsiveGrid";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { type RouteTopologyEdge, type RouteTopologyNode } from "@/shared/visualizations/RouteTopologyMap";
-import { Panel, SelectField } from "@netstamp/ui";
-import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo } from "react";
+import { Badge, Button, DataTable, Input, Panel, Select, TextField, type BadgeTone, type DataColumn } from "@netstamp/ui";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type CSSProperties } from "react";
+import { createPortal } from "react-dom";
 import { useSearchParams } from "react-router-dom";
 import styles from "./InsightPage.module.css";
 
-const timeOptions = [
+const timeOptions: Array<{ value: InsightRelativeRange; label: string }> = [
 	{ value: "15m", label: "Last 15 minutes" },
 	{ value: "1h", label: "Last 1 hour" },
 	{ value: "6h", label: "Last 6 hours" },
@@ -31,9 +42,7 @@ const timeOptions = [
 	{ value: "30d", label: "Last 30 days" }
 ];
 
-const customTimeOption = { value: "custom", label: "Custom range" };
-
-const timeRangeDurations: Record<string, number> = {
+const timeRangeDurations: Record<InsightRelativeRange, number> = {
 	"15m": 15 * 60 * 1000,
 	"1h": 60 * 60 * 1000,
 	"6h": 6 * 60 * 60 * 1000,
@@ -42,25 +51,112 @@ const timeRangeDurations: Record<string, number> = {
 	"30d": 30 * 24 * 60 * 60 * 1000
 };
 
-const modeOptions: Array<{ value: InsightMode; label: string }> = [
-	{ value: "overview", label: "Overview" },
-	{ value: "probe", label: "By probe" },
-	{ value: "target", label: "By target" }
+const refreshOptions: Array<{ value: InsightRefreshInterval; label: string }> = [
+	{ value: "off", label: "Off" },
+	{ value: "10s", label: "10s" },
+	{ value: "30s", label: "30s" },
+	{ value: "1m", label: "1m" },
+	{ value: "5m", label: "5m" }
 ];
 
-function timeLabel(value: string) {
-	if (value === customTimeOption.value) {
-		return customTimeOption.label;
-	}
+const refreshDurations: Partial<Record<InsightRefreshInterval, number>> = {
+	"10s": 10 * 1000,
+	"30s": 30 * 1000,
+	"1m": 60 * 1000,
+	"5m": 5 * 60 * 1000
+};
 
+const checkTypeOptions: Array<{ value: InsightCheckTypeFilter; label: string }> = [
+	{ value: "all", label: "All" },
+	{ value: "ping", label: "Ping" },
+	{ value: "traceroute", label: "Traceroute" }
+];
+
+const groupByOptions: Array<{ value: InsightGroupBy; label: string }> = [
+	{ value: "check", label: "By check" },
+	{ value: "probe", label: "By probe" }
+];
+
+type SegmentOption<TValue extends string> = {
+	value: TValue;
+	label: string;
+};
+
+type GroupStatus = {
+	label: string;
+	tone: BadgeTone;
+	rank: number;
+};
+
+interface MeasurementSummary {
+	total: number;
+	successful: number;
+	timeout: number;
+	error: number;
+	partial: number;
+	latestStartedAtMs: number | null;
+	avgLatencyMs: number | null;
+	avgLossPercent: number | null;
+	status: GroupStatus;
+}
+
+interface InsightGroupRow {
+	key: string;
+	id: string;
+	groupBy: InsightGroupBy;
+	label: string;
+	secondary: string;
+	pairs: InsightPair[];
+	pairCount: number;
+	probeCount: number;
+	checkCount: number;
+	pingCount: number;
+	tracerouteCount: number;
+	measurements: ApiMeasurement[];
+	summary: MeasurementSummary;
+	searchText: string;
+}
+
+interface MeasurementRow {
+	id: string;
+	time: string;
+	scope: string;
+	type: string;
+	status: string;
+	latency: string;
+	loss: string;
+	event: string;
+	raw: ApiMeasurement;
+}
+
+function timeLabel(value: InsightRelativeRange) {
 	return timeOptions.find(option => option.value === value)?.label || value;
 }
 
-function timeWindowForRange(value: string) {
-	const to = Date.now();
+function timeWindowForRange(value: InsightRelativeRange, now = Date.now()) {
+	const to = now;
 	const from = to - (timeRangeDurations[value] ?? timeRangeDurations["24h"]);
 
 	return { from, to };
+}
+
+function relativeRangeForWindow(timeWindow: TimeWindow): InsightRelativeRange | null {
+	const duration = timeWindow.to - timeWindow.from;
+	const option = timeOptions.find(candidate => timeRangeDurations[candidate.value] === duration);
+
+	return option?.value ?? null;
+}
+
+function isInsightTimeMode(value: string | null): value is InsightTimeMode {
+	return value === "relative" || value === "absolute";
+}
+
+function isInsightRelativeRange(value: string | null): value is InsightRelativeRange {
+	return value === "15m" || value === "1h" || value === "6h" || value === "24h" || value === "7d" || value === "30d";
+}
+
+function isInsightRefreshInterval(value: string | null): value is InsightRefreshInterval {
+	return value === "off" || value === "10s" || value === "30s" || value === "1m" || value === "5m";
 }
 
 function parseEpochMs(value: string | null) {
@@ -73,33 +169,96 @@ function parseEpochMs(value: string | null) {
 	return Number.isFinite(parsed) && parsed > 0 ? Math.trunc(parsed) : null;
 }
 
-function isInsightMode(value: string | null): value is InsightMode {
-	return value === "overview" || value === "probe" || value === "target";
+function isInsightCheckTypeFilter(value: string | null): value is InsightCheckTypeFilter {
+	return value === "all" || value === "ping" || value === "traceroute";
 }
 
-function parseInsightUrlState(searchParams: URLSearchParams, fallbackTimeWindow: TimeWindow): ParsedInsightUrlState {
+function isInsightGroupBy(value: string | null): value is InsightGroupBy {
+	return value === "check" || value === "probe";
+}
+
+function parseInsightUrlState(searchParams: URLSearchParams, now: number): ParsedInsightUrlState {
 	const from = parseEpochMs(searchParams.get("from"));
 	const to = parseEpochMs(searchParams.get("to"));
-	const rawMode = searchParams.get("mode") || searchParams.get("view");
+	const rawCheckType = searchParams.get("type");
+	const rawGroupBy = searchParams.get("groupBy");
+	const rawTimeMode = searchParams.get("timeMode");
+	const rawTimeRange = searchParams.get("range");
+	const rawRefresh = searchParams.get("refresh");
 	const hasValidTimeWindow = from !== null && to !== null && from < to;
-	const hasValidMode = isInsightMode(rawMode);
+	const hasValidCheckType = isInsightCheckTypeFilter(rawCheckType);
+	const hasValidGroupBy = isInsightGroupBy(rawGroupBy);
+	const hasValidTimeMode = isInsightTimeMode(rawTimeMode);
+	const hasValidTimeRange = isInsightRelativeRange(rawTimeRange);
+	const hasValidRefresh = isInsightRefreshInterval(rawRefresh);
+	const legacyRelativeRange = hasValidTimeWindow ? relativeRangeForWindow({ from, to }) : null;
+	const timeMode: InsightTimeMode = hasValidTimeMode ? rawTimeMode : legacyRelativeRange ? "relative" : hasValidTimeWindow ? "absolute" : "relative";
+	const timeRange: InsightRelativeRange = hasValidTimeRange ? rawTimeRange : (legacyRelativeRange ?? "24h");
+	const timeWindow = timeMode === "relative" ? timeWindowForRange(timeRange, now) : hasValidTimeWindow ? { from, to } : timeWindowForRange("24h", now);
 
 	return {
-		mode: hasValidMode ? rawMode : "overview",
-		hasValidMode,
-		timeWindow: hasValidTimeWindow ? { from, to } : fallbackTimeWindow,
-		hasValidTimeWindow,
+		checkType: hasValidCheckType ? rawCheckType : "all",
+		hasValidCheckType,
+		groupBy: hasValidGroupBy ? rawGroupBy : "check",
+		hasValidGroupBy,
+		timeMode,
+		hasValidTimeMode,
+		timeRange,
+		hasValidTimeRange,
+		timeWindow,
+		hasValidTimeWindow: timeMode === "relative" || hasValidTimeWindow,
+		refresh: hasValidRefresh ? rawRefresh : "off",
+		hasValidRefresh,
 		probeId: searchParams.get("probeId") || "",
 		checkId: searchParams.get("checkId") || "",
 		runStartedAt: searchParams.get("runStartedAt") || ""
 	};
 }
 
-function timeRangeForWindow(timeWindow: TimeWindow) {
-	const duration = timeWindow.to - timeWindow.from;
-	const option = timeOptions.find(candidate => timeRangeDurations[candidate.value] === duration);
+function formatDateTimeLocal(value: number) {
+	const date = new Date(value);
+	const offsetMs = date.getTimezoneOffset() * 60 * 1000;
 
-	return option?.value || customTimeOption.value;
+	return new Date(value - offsetMs).toISOString().slice(0, 16);
+}
+
+function parseDateTimeLocal(value: string) {
+	const parsed = new Date(value).getTime();
+
+	return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+function formatAbsoluteTime(value: number) {
+	return new Date(value).toLocaleString(undefined, { month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+}
+
+function displayTimeRange(timeMode: InsightTimeMode, timeRange: InsightRelativeRange, timeWindow: TimeWindow) {
+	if (timeMode === "relative") {
+		return timeLabel(timeRange);
+	}
+
+	return `${formatAbsoluteTime(timeWindow.from)} -> ${formatAbsoluteTime(timeWindow.to)}`;
+}
+
+function timePopoverStyle(anchor: HTMLElement | null): CSSProperties | undefined {
+	if (!anchor || typeof window === "undefined") {
+		return undefined;
+	}
+
+	const rect = anchor.getBoundingClientRect();
+	const gap = 10;
+	const availableWidth = Math.max(280, window.innerWidth - gap * 2);
+	const width = Math.min(Math.max(rect.width, 460), availableWidth);
+	const left = Math.min(Math.max(gap, rect.left), window.innerWidth - width - gap);
+	const top = Math.max(gap, Math.min(rect.bottom + gap, Math.max(gap, window.innerHeight - gap - 220)));
+	const maxHeight = Math.max(180, window.innerHeight - top - gap);
+
+	return {
+		left,
+		maxHeight,
+		top,
+		width
+	};
 }
 
 function pairKey(probeId: string, checkId: string) {
@@ -108,6 +267,18 @@ function pairKey(probeId: string, checkId: string) {
 
 function checkTypeFromApi(value: string | undefined): CheckDefinition["type"] {
 	return value?.toLowerCase() === "traceroute" ? "Traceroute" : "Ping";
+}
+
+function pairCheckType(pair: InsightPair): Exclude<InsightCheckTypeFilter, "all"> {
+	return pair.check.type === "Traceroute" ? "traceroute" : "ping";
+}
+
+function checkTypeFilterFromCheck(check: CheckDefinition): Exclude<InsightCheckTypeFilter, "all"> {
+	return check.type === "Traceroute" ? "traceroute" : "ping";
+}
+
+function matchesCheckType(pair: InsightPair, checkType: InsightCheckTypeFilter) {
+	return checkType === "all" || pairCheckType(pair) === checkType;
 }
 
 function fallbackProbe(assignment: ApiProjectAssignment): Probe {
@@ -184,78 +355,213 @@ function buildInsightPairs(assignments: ApiProjectAssignment[], probes: Probe[],
 		});
 	}
 
-	return pairs.sort((a, b) => a.probe.name.localeCompare(b.probe.name) || a.check.target.localeCompare(b.check.target));
+	return pairs.sort((a, b) => a.check.target.localeCompare(b.check.target) || a.probe.name.localeCompare(b.probe.name));
 }
 
-function uniquePairsByProbe(pairs: InsightPair[]) {
-	const values = new Map<string, { probe: Probe; count: number }>();
+function normalizeSearch(value: string) {
+	return value.trim().toLowerCase();
+}
+
+function measurementLatency(measurement: ApiMeasurement) {
+	if (typeof measurement.latencyMs === "number" && Number.isFinite(measurement.latencyMs)) {
+		return measurement.latencyMs;
+	}
+
+	if (typeof measurement.durationMs === "number" && Number.isFinite(measurement.durationMs)) {
+		return measurement.durationMs;
+	}
+
+	return null;
+}
+
+function average(values: number[]) {
+	if (!values.length) {
+		return null;
+	}
+
+	return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function summarizeMeasurements(measurements: ApiMeasurement[]): MeasurementSummary {
+	const successful = measurements.filter(measurement => measurement.status === "successful").length;
+	const timeout = measurements.filter(measurement => measurement.status === "timeout").length;
+	const error = measurements.filter(measurement => measurement.status === "error").length;
+	const partial = measurements.filter(measurement => measurement.status === "partial").length;
+	const latestStartedAtMs = measurements.reduce<number | null>((latest, measurement) => {
+		const next = new Date(measurement.startedAt).getTime();
+		if (!Number.isFinite(next)) {
+			return latest;
+		}
+
+		return latest === null || next > latest ? next : latest;
+	}, null);
+	const latencyValues = measurements.map(measurementLatency).filter((value): value is number => typeof value === "number");
+	const lossValues = measurements.map(measurement => measurement.lossPercent).filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+	let status: GroupStatus = { label: "No data", tone: "warning", rank: 2 };
+
+	if (error || timeout) {
+		status = { label: `${formatCount(error + timeout)} failing`, tone: "critical", rank: 0 };
+	} else if (partial) {
+		status = { label: `${formatCount(partial)} partial`, tone: "warning", rank: 1 };
+	} else if (measurements.length) {
+		status = { label: "Reporting", tone: "success", rank: 3 };
+	}
+
+	return {
+		total: measurements.length,
+		successful,
+		timeout,
+		error,
+		partial,
+		latestStartedAtMs,
+		avgLatencyMs: average(latencyValues),
+		avgLossPercent: average(lossValues),
+		status
+	};
+}
+
+function groupMeasurementsForPairs(measurements: ApiMeasurement[], pairs: InsightPair[]) {
+	const pairKeys = new Set(pairs.map(pair => pair.key));
+
+	return measurements.filter(measurement => pairKeys.has(pairKey(measurement.probeId, measurement.checkId)));
+}
+
+function buildSearchText(pairs: InsightPair[], label: string, secondary: string) {
+	return [
+		label,
+		secondary,
+		...pairs.flatMap(pair => [pair.probe.name, pair.probe.location, pair.probe.asn, pair.probe.provider, pair.check.name, pair.check.target, pair.check.description, ...pair.probe.labelTokens])
+	]
+		.join(" ")
+		.toLowerCase();
+}
+
+function buildInsightGroups(pairs: InsightPair[], measurements: ApiMeasurement[], groupBy: InsightGroupBy): InsightGroupRow[] {
+	const grouped = new Map<string, InsightPair[]>();
 
 	for (const pair of pairs) {
-		const current = values.get(pair.probeId);
-		values.set(pair.probeId, { probe: pair.probe, count: (current?.count ?? 0) + 1 });
+		const id = groupBy === "check" ? pair.checkId : pair.probeId;
+		grouped.set(id, [...(grouped.get(id) ?? []), pair]);
 	}
 
-	return [...values.values()].sort((a, b) => a.probe.name.localeCompare(b.probe.name));
+	return [...grouped.entries()]
+		.map(([id, groupPairs]) => {
+			const firstPair = groupPairs[0];
+			const groupMeasurements = groupMeasurementsForPairs(measurements, groupPairs);
+			const probeCount = new Set(groupPairs.map(pair => pair.probeId)).size;
+			const checkCount = new Set(groupPairs.map(pair => pair.checkId)).size;
+			const pingCount = groupPairs.filter(pair => pair.check.type === "Ping").length;
+			const tracerouteCount = groupPairs.filter(pair => pair.check.type === "Traceroute").length;
+			const label = groupBy === "check" ? firstPair.check.target : firstPair.probe.name;
+			const secondary =
+				groupBy === "check" ? `${firstPair.check.name} · ${firstPair.check.type} · ${formatCount(probeCount)} probes` : `${firstPair.probe.location} · ${formatCount(checkCount)} checks`;
+
+			return {
+				key: `${groupBy}:${id}`,
+				id,
+				groupBy,
+				label,
+				secondary,
+				pairs: groupPairs,
+				pairCount: groupPairs.length,
+				probeCount,
+				checkCount,
+				pingCount,
+				tracerouteCount,
+				measurements: groupMeasurements,
+				summary: summarizeMeasurements(groupMeasurements),
+				searchText: buildSearchText(groupPairs, label, secondary)
+			};
+		})
+		.sort((a, b) => {
+			if (a.summary.status.rank !== b.summary.status.rank) {
+				return a.summary.status.rank - b.summary.status.rank;
+			}
+
+			if (a.summary.latestStartedAtMs !== b.summary.latestStartedAtMs) {
+				return (b.summary.latestStartedAtMs ?? 0) - (a.summary.latestStartedAtMs ?? 0);
+			}
+
+			return a.label.localeCompare(b.label);
+		});
 }
 
-function uniquePairsByCheck(pairs: InsightPair[]) {
-	const values = new Map<string, { check: CheckDefinition; count: number }>();
+function scopePairs(pairs: InsightPair[], checkType: InsightCheckTypeFilter, probeId: string, checkId: string) {
+	return pairs.filter(pair => matchesCheckType(pair, checkType) && (!probeId || pair.probeId === probeId) && (!checkId || pair.checkId === checkId));
+}
 
-	for (const pair of pairs) {
-		const current = values.get(pair.checkId);
-		values.set(pair.checkId, { check: pair.check, count: (current?.count ?? 0) + 1 });
+function measurementEvent(measurement: ApiMeasurement) {
+	return measurement.errorMessage || measurement.errorCode || measurement.metadata || measurement.type;
+}
+
+function buildMeasurementRows(measurements: ApiMeasurement[], pairs: InsightPair[]): MeasurementRow[] {
+	const pairsByKey = new Map(pairs.map(pair => [pair.key, pair]));
+
+	return measurements
+		.map((measurement, index) => {
+			const pair = pairsByKey.get(pairKey(measurement.probeId, measurement.checkId));
+			const latency = measurementLatency(measurement);
+
+			return {
+				id: `${measurement.startedAt}-${measurement.probeId}-${measurement.checkId}-${index}`,
+				time: new Date(measurement.startedAt).toLocaleString(undefined, { month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit" }),
+				scope: pair ? `${pair.probe.name} -> ${pair.check.target}` : `${measurement.probeId} -> ${measurement.checkId}`,
+				type: measurement.type,
+				status: measurement.status,
+				latency: formatMs(latency),
+				loss: formatPercent(measurement.lossPercent),
+				event: measurementEvent(measurement),
+				raw: measurement
+			};
+		})
+		.sort((a, b) => new Date(b.raw.startedAt).getTime() - new Date(a.raw.startedAt).getTime());
+}
+
+function pairLatestMeasurement(pair: InsightPair, measurements: ApiMeasurement[]) {
+	const latest = measurements
+		.filter(measurement => measurement.probeId === pair.probeId && measurement.checkId === pair.checkId)
+		.sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime())[0];
+
+	if (!latest) {
+		return { status: "No data", latency: "-", loss: "-", time: "-" };
 	}
 
-	return [...values.values()].sort((a, b) => a.check.target.localeCompare(b.check.target));
+	return {
+		status: latest.status,
+		latency: formatMs(measurementLatency(latest)),
+		loss: formatPercent(latest.lossPercent),
+		time: new Date(latest.startedAt).toLocaleString(undefined, { month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit" })
+	};
 }
 
-function fallbackPairForMode(pairs: InsightPair[], mode: InsightMode, probeId: string, checkId: string) {
-	const exact = pairs.find(pair => pair.probeId === probeId && pair.checkId === checkId);
-	if (exact) {
-		return exact;
+function statusTone(status: string): BadgeTone {
+	if (status === "successful" || status === "Reporting") {
+		return "success";
 	}
 
-	if (mode === "probe" && probeId) {
-		return pairs.find(pair => pair.probeId === probeId) || pairs[0] || null;
+	if (status === "timeout" || status === "error" || status.includes("failing")) {
+		return "critical";
 	}
 
-	if (mode === "target" && checkId) {
-		return pairs.find(pair => pair.checkId === checkId) || pairs[0] || null;
+	if (status === "partial" || status === "No data") {
+		return "warning";
 	}
 
-	return pairs[0] || null;
+	return "neutral";
 }
 
-function detailsForProbe(probe: Probe): EntityDetail[] {
-	return [
-		{ label: "Status", value: probe.status },
-		{ label: "Location", value: probe.location },
-		{ label: "Network", value: probe.asn },
-		{ label: "Last heartbeat", value: probe.lastHeartbeat }
-	];
-}
-
-function detailsForTarget(check: CheckDefinition): EntityDetail[] {
-	return [
-		{ label: "Target", value: check.target },
-		{ label: "Family", value: check.type },
-		{ label: "Interval", value: check.interval },
-		{ label: "Latest", value: check.latest }
-	];
-}
-
-function ModeControl({ mode, onChange }: { mode: InsightMode; onChange: (mode: InsightMode) => void }) {
+function SegmentedControl<TValue extends string>({ label, value, options, onChange }: { label: string; value: TValue; options: Array<SegmentOption<TValue>>; onChange: (value: TValue) => void }) {
 	return (
-		<div className={styles.modeField}>
-			<span className={styles.modeLabel}>Mode</span>
-			<div className={styles.modeControl} role="tablist" aria-label="Insight mode">
-				{modeOptions.map(option => (
+		<div className={styles.segmentField}>
+			<span className={styles.segmentLabel}>{label}</span>
+			<div className={styles.segmentControl} role="tablist" aria-label={label}>
+				{options.map(option => (
 					<button
 						type="button"
 						role="tab"
-						aria-selected={mode === option.value}
-						className={styles.modeButton}
-						data-selected={mode === option.value || undefined}
+						aria-selected={value === option.value}
+						className={styles.segmentButton}
+						data-selected={value === option.value || undefined}
 						onClick={() => onChange(option.value)}
 						key={option.value}
 					>
@@ -267,26 +573,204 @@ function ModeControl({ mode, onChange }: { mode: InsightMode; onChange: (mode: I
 	);
 }
 
-function PairList({ pairs, selectedKey, onSelect, emptyLabel }: { pairs: InsightPair[]; selectedKey: string; onSelect: (pair: InsightPair) => void; emptyLabel: string }) {
-	if (!pairs.length) {
-		return <BodyCopy>{emptyLabel}</BodyCopy>;
+function FocusChip({ label, value, invalid, onClear }: { label: string; value: string; invalid?: boolean; onClear: () => void }) {
+	return (
+		<div className={styles.focusChip} data-invalid={invalid || undefined}>
+			<span>{label}</span>
+			<strong>{value}</strong>
+			<button type="button" onClick={onClear}>
+				Clear
+			</button>
+		</div>
+	);
+}
+
+function InsightTimeControl({
+	timeMode,
+	timeRange,
+	timeWindow,
+	refresh,
+	onApplyRelative,
+	onApplyAbsolute,
+	onRefresh,
+	onRefreshChange
+}: {
+	timeMode: InsightTimeMode;
+	timeRange: InsightRelativeRange;
+	timeWindow: TimeWindow;
+	refresh: InsightRefreshInterval;
+	onApplyRelative: (range: InsightRelativeRange) => void;
+	onApplyAbsolute: (timeWindow: TimeWindow) => void;
+	onRefresh: () => void;
+	onRefreshChange: (refresh: InsightRefreshInterval) => void;
+}) {
+	const [open, setOpen] = useState(false);
+	const [popoverStyle, setPopoverStyle] = useState<CSSProperties>();
+	const rootRef = useRef<HTMLDivElement>(null);
+	const popoverRef = useRef<HTMLDivElement>(null);
+	const timeWindowKey = `${timeWindow.from}:${timeWindow.to}`;
+	const initialAbsoluteDraft = {
+		key: timeWindowKey,
+		from: formatDateTimeLocal(timeWindow.from),
+		to: formatDateTimeLocal(timeWindow.to)
+	};
+	const [absoluteDraft, setAbsoluteDraft] = useState(initialAbsoluteDraft);
+	const activeAbsoluteDraft = absoluteDraft.key === timeWindowKey ? absoluteDraft : initialAbsoluteDraft;
+	const absoluteFrom = activeAbsoluteDraft.from;
+	const absoluteTo = activeAbsoluteDraft.to;
+	const timeButtonId = useId();
+	const absoluteFromMs = parseDateTimeLocal(absoluteFrom);
+	const absoluteToMs = parseDateTimeLocal(absoluteTo);
+	const canApplyAbsolute = absoluteFromMs !== null && absoluteToMs !== null && absoluteFromMs < absoluteToMs;
+
+	function applyAbsolute() {
+		if (absoluteFromMs === null || absoluteToMs === null || absoluteFromMs >= absoluteToMs) {
+			return;
+		}
+
+		onApplyAbsolute({ from: absoluteFromMs, to: absoluteToMs });
+		setOpen(false);
 	}
 
+	function applyNow() {
+		if (timeMode === "relative") {
+			onApplyRelative(timeRange);
+			setOpen(false);
+			return;
+		}
+
+		const duration = Math.max(timeWindow.to - timeWindow.from, timeRangeDurations["15m"]);
+		const to = Date.now();
+		onApplyAbsolute({ from: to - duration, to });
+		setOpen(false);
+	}
+
+	function togglePopover() {
+		if (open) {
+			setOpen(false);
+			return;
+		}
+
+		setPopoverStyle(timePopoverStyle(rootRef.current));
+		setOpen(true);
+	}
+
+	useEffect(() => {
+		if (!open) {
+			return;
+		}
+
+		function updatePosition() {
+			setPopoverStyle(timePopoverStyle(rootRef.current));
+		}
+
+		function handlePointerDown(event: PointerEvent) {
+			const target = event.target as Node;
+
+			if (rootRef.current?.contains(target) || popoverRef.current?.contains(target)) {
+				return;
+			}
+
+			setOpen(false);
+		}
+
+		window.addEventListener("resize", updatePosition);
+		window.addEventListener("scroll", updatePosition, true);
+		window.addEventListener("pointerdown", handlePointerDown);
+
+		return () => {
+			window.removeEventListener("resize", updatePosition);
+			window.removeEventListener("scroll", updatePosition, true);
+			window.removeEventListener("pointerdown", handlePointerDown);
+		};
+	}, [open]);
+
+	const timePopover =
+		open && popoverStyle && typeof document !== "undefined"
+			? createPortal(
+					<div ref={popoverRef} id={`${timeButtonId}-panel`} className={styles.timePopover} style={popoverStyle} role="dialog" aria-labelledby={timeButtonId}>
+						<section className={styles.timeSection}>
+							<h4>Relative time</h4>
+							<div className={styles.timePresetGrid}>
+								{timeOptions.map(option => (
+									<button
+										type="button"
+										className={styles.timePreset}
+										data-selected={timeMode === "relative" && timeRange === option.value}
+										onClick={() => {
+											onApplyRelative(option.value);
+											setOpen(false);
+										}}
+										key={option.value}
+									>
+										{option.label}
+									</button>
+								))}
+							</div>
+						</section>
+						<section className={styles.timeSection}>
+							<h4>Absolute time</h4>
+							<div className={styles.absoluteGrid}>
+								<label>
+									<span>From</span>
+									<Input variant="compact" type="datetime-local" value={absoluteFrom} onChange={event => setAbsoluteDraft({ ...activeAbsoluteDraft, from: event.currentTarget.value })} />
+								</label>
+								<label>
+									<span>To</span>
+									<Input variant="compact" type="datetime-local" value={absoluteTo} onChange={event => setAbsoluteDraft({ ...activeAbsoluteDraft, to: event.currentTarget.value })} />
+								</label>
+							</div>
+							<div className={styles.timeActions}>
+								<Button type="button" variant="outline" size="sm" onClick={applyNow}>
+									Now
+								</Button>
+								<Button type="button" variant="secondary" size="sm" disabled={!canApplyAbsolute} onClick={applyAbsolute}>
+									Apply time range
+								</Button>
+							</div>
+						</section>
+					</div>,
+					document.body
+				)
+			: null;
+
 	return (
-		<div className={styles.entityList}>
-			{pairs.map(pair => (
-				<button type="button" className={styles.entityButton} data-selected={pair.key === selectedKey || undefined} onClick={() => onSelect(pair)} key={pair.key}>
-					<span>
-						{pair.probe.name} → {pair.check.target}
-					</span>
-					<strong>
-						{pair.check.type.toLowerCase()} · {pair.check.interval}
-					</strong>
-					<small className={styles.pairMeta}>
-						{pair.probe.location} · {pair.check.name}
-					</small>
+		<div ref={rootRef} className={styles.timeControlRoot}>
+			<span className={styles.segmentLabel}>Time</span>
+			<div className={styles.timeControls}>
+				<button id={timeButtonId} type="button" className={styles.timeTrigger} aria-expanded={open} aria-controls={`${timeButtonId}-panel`} onClick={togglePopover}>
+					<span>{displayTimeRange(timeMode, timeRange, timeWindow)}</span>
 				</button>
-			))}
+				<Button type="button" variant="outline" size="sm" className={styles.refreshButton} onClick={onRefresh}>
+					Refresh
+				</Button>
+				<label className={styles.refreshField}>
+					<span>Refresh</span>
+					<Select
+						variant="compact"
+						value={refresh}
+						className={styles.refreshSelect}
+						aria-label="Refresh interval"
+						onChange={event => onRefreshChange(event.currentTarget.value as InsightRefreshInterval)}
+					>
+						{refreshOptions.map(option => (
+							<option value={option.value} key={option.value}>
+								{option.label}
+							</option>
+						))}
+					</Select>
+				</label>
+			</div>
+			{timePopover}
+		</div>
+	);
+}
+
+function GroupTitle({ row }: { row: InsightGroupRow }) {
+	return (
+		<div className={styles.rowTitle}>
+			<strong>{row.label}</strong>
+			<span>{row.secondary}</span>
 		</div>
 	);
 }
@@ -319,11 +803,7 @@ function InsightPairDetail({
 	timeLabel: string;
 }) {
 	if (!pair) {
-		return (
-			<Panel tone="deep" eyebrow="Insight detail" title="No assignment selected">
-				<BodyCopy>Select an active probe-check assignment to inspect result data.</BodyCopy>
-			</Panel>
-		);
+		return null;
 	}
 
 	return pair.check.type === "Traceroute" ? (
@@ -345,10 +825,12 @@ function InsightPairDetail({
 
 export function InsightPage() {
 	const { projectRef } = useCurrentProject();
+	const queryClient = useQueryClient();
 	const [searchParams, setSearchParams] = useSearchParams();
+	const [search, setSearch] = useState("");
+	const [nowMs, setNowMs] = useState(() => Date.now());
 	const searchParamString = searchParams.toString();
-	const fallbackTimeWindow = useMemo(() => timeWindowForRange("24h"), []);
-	const urlState = useMemo(() => parseInsightUrlState(new URLSearchParams(searchParamString), fallbackTimeWindow), [fallbackTimeWindow, searchParamString]);
+	const urlState = useMemo(() => parseInsightUrlState(new URLSearchParams(searchParamString), nowMs), [nowMs, searchParamString]);
 	const probesQuery = useQuery({
 		...projectQueries.probes(projectRef || ""),
 		enabled: Boolean(projectRef),
@@ -368,63 +850,143 @@ export function InsightPage() {
 	const checks = useMemo(() => checksQuery.data ?? [], [checksQuery.data]);
 	const assignments = useMemo(() => assignmentsQuery.data ?? [], [assignmentsQuery.data]);
 	const pairs = useMemo(() => buildInsightPairs(assignments, probes, checks), [assignments, checks, probes]);
+	const isSelectionLoading = Boolean(projectRef) && (assignmentsQuery.isLoading || probesQuery.isLoading || checksQuery.isLoading);
+	const knownProbeIds = useMemo(() => new Set(pairs.map(pair => pair.probeId)), [pairs]);
+	const knownCheckIds = useMemo(() => new Set(pairs.map(pair => pair.checkId)), [pairs]);
+	const hasProbeFocus = Boolean(urlState.probeId);
+	const hasCheckFocus = Boolean(urlState.checkId);
+	const hasInvalidProbeFocus = hasProbeFocus && !isSelectionLoading && !knownProbeIds.has(urlState.probeId);
+	const hasInvalidCheckFocus = hasCheckFocus && !isSelectionLoading && !knownCheckIds.has(urlState.checkId);
+	const hasInvalidFocus = hasInvalidProbeFocus || hasInvalidCheckFocus;
+	const activeProbeId = hasInvalidProbeFocus ? "" : urlState.probeId;
+	const activeCheckId = hasInvalidCheckFocus ? "" : urlState.checkId;
 	const timeWindow = urlState.timeWindow;
-	const timeRange = timeRangeForWindow(timeWindow);
-	const timePickerOptions = timeRange === customTimeOption.value ? [...timeOptions, customTimeOption] : timeOptions;
-	const mode = urlState.mode;
-	const selectedPair = useMemo(() => fallbackPairForMode(pairs, mode, urlState.probeId, urlState.checkId), [mode, pairs, urlState.checkId, urlState.probeId]);
-	const selectedRunStartedAt = selectedPair?.check.type === "Traceroute" ? urlState.runStartedAt : "";
-	const probeOptions = useMemo(() => uniquePairsByProbe(pairs), [pairs]);
-	const checkOptions = useMemo(() => uniquePairsByCheck(pairs), [pairs]);
-	const selectedKey = selectedPair?.key || "";
-	const probePairs = selectedPair ? pairs.filter(pair => pair.probeId === selectedPair.probeId) : [];
-	const targetPairs = selectedPair ? pairs.filter(pair => pair.checkId === selectedPair.checkId) : [];
-	const focusPairs = mode === "probe" ? probePairs : mode === "target" ? targetPairs : pairs;
-	const hasGroupTraceroute =
-		mode === "overview"
-			? pairs.some(pair => pair.check.type === "Traceroute")
-			: mode === "probe"
-				? probePairs.some(pair => pair.check.type === "Traceroute")
-				: selectedPair?.check.type === "Traceroute";
-	const groupTopologyFilters = useMemo(() => {
-		if (!hasGroupTraceroute) {
-			return null;
-		}
-
-		if (mode === "probe" && selectedPair) {
-			return { probeId: selectedPair.probeId, ...timeWindow, limit: 100 };
-		}
-
-		if (mode === "target" && selectedPair) {
-			return { checkId: selectedPair.checkId, ...timeWindow, limit: 100 };
-		}
-
-		return { ...timeWindow, limit: 100 };
-	}, [hasGroupTraceroute, mode, selectedPair, timeWindow]);
-	const pingInsightQuery = useQuery({
-		...projectQueries.pingInsight(projectRef || "", selectedPair?.probeId || "", selectedPair?.checkId || "", timeWindow),
-		enabled: Boolean(projectRef && selectedPair && selectedPair.check.type === "Ping")
+	const timeMode = urlState.timeMode;
+	const timeRange = urlState.timeRange;
+	const refresh = urlState.refresh;
+	const checkType = urlState.checkType;
+	const groupBy = urlState.groupBy;
+	const scopedPairs = useMemo(() => (hasInvalidFocus ? [] : scopePairs(pairs, checkType, activeProbeId, activeCheckId)), [activeCheckId, activeProbeId, checkType, hasInvalidFocus, pairs]);
+	const exactPair = activeProbeId && activeCheckId && scopedPairs.length === 1 ? scopedPairs[0] : null;
+	const selectedProbe = activeProbeId ? scopedPairs.find(pair => pair.probeId === activeProbeId)?.probe || probes.find(probe => probe.id === activeProbeId) || null : null;
+	const selectedCheck = activeCheckId ? scopedPairs.find(pair => pair.checkId === activeCheckId)?.check || checks.find(check => check.id === activeCheckId) || null : null;
+	const measurementFilters = useMemo(
+		() => ({
+			...timeWindow,
+			limit: 200,
+			...(checkType === "all" ? {} : { type: checkType }),
+			...(activeProbeId ? { probeId: activeProbeId } : {}),
+			...(activeCheckId ? { checkId: activeCheckId } : {})
+		}),
+		[activeCheckId, activeProbeId, checkType, timeWindow]
+	);
+	const measurementsQuery = useQuery({
+		...projectQueries.measurements(projectRef || "", measurementFilters),
+		enabled: Boolean(projectRef && !isSelectionLoading && !hasInvalidFocus)
 	});
-	const tracerouteRunsQuery = useQuery({
-		...projectQueries.tracerouteRuns(projectRef || "", selectedPair?.probeId || "", selectedPair?.checkId || "", { ...timeWindow, limit: 100 }),
-		enabled: Boolean(projectRef && selectedPair && selectedPair.check.type === "Traceroute")
-	});
-	const pairTopologyQuery = useQuery({
-		...projectQueries.tracerouteTopology(projectRef || "", {
-			probeId: selectedPair?.probeId,
-			checkId: selectedPair?.checkId,
+	const measurements = useMemo(() => measurementsQuery.data?.measurements ?? [], [measurementsQuery.data?.measurements]);
+	const groups = useMemo(() => buildInsightGroups(scopedPairs, measurements, groupBy), [groupBy, measurements, scopedPairs]);
+	const searchTerm = normalizeSearch(search);
+	const visibleGroups = useMemo(() => (searchTerm ? groups.filter(group => group.searchText.includes(searchTerm)) : groups), [groups, searchTerm]);
+	const measurementRows = useMemo(() => buildMeasurementRows(measurements, scopedPairs).slice(0, 40), [measurements, scopedPairs]);
+	const scopeSummary = useMemo(() => summarizeMeasurements(measurements), [measurements]);
+	const selectedRunStartedAt = exactPair?.check.type === "Traceroute" ? urlState.runStartedAt : "";
+	const canQueryPairDetail = Boolean(projectRef && exactPair);
+	const canQueryTracerouteGroup = Boolean(projectRef && !exactPair && scopedPairs.some(pair => pair.check.type === "Traceroute") && !hasInvalidFocus);
+	const tracerouteTopologyFilters = useMemo(
+		() => ({
+			...(activeProbeId ? { probeId: activeProbeId } : {}),
+			...(activeCheckId ? { checkId: activeCheckId } : {}),
 			...timeWindow,
 			limit: 100
 		}),
-		enabled: Boolean(projectRef && selectedPair && selectedPair.check.type === "Traceroute")
+		[activeCheckId, activeProbeId, timeWindow]
+	);
+	const pingInsightQuery = useQuery({
+		...projectQueries.pingInsight(projectRef || "", exactPair?.probeId || "", exactPair?.checkId || "", timeWindow),
+		enabled: Boolean(canQueryPairDetail && exactPair?.check.type === "Ping")
+	});
+	const tracerouteRunsQuery = useQuery({
+		...projectQueries.tracerouteRuns(projectRef || "", exactPair?.probeId || "", exactPair?.checkId || "", { ...timeWindow, limit: 100 }),
+		enabled: Boolean(canQueryPairDetail && exactPair?.check.type === "Traceroute")
+	});
+	const pairTopologyQuery = useQuery({
+		...projectQueries.tracerouteTopology(projectRef || "", {
+			probeId: exactPair?.probeId,
+			checkId: exactPair?.checkId,
+			...timeWindow,
+			limit: 100
+		}),
+		enabled: Boolean(canQueryPairDetail && exactPair?.check.type === "Traceroute")
 	});
 	const groupTopologyQuery = useQuery({
-		...projectQueries.tracerouteTopology(projectRef || "", groupTopologyFilters || {}),
-		enabled: Boolean(projectRef && groupTopologyFilters)
+		...projectQueries.tracerouteTopology(projectRef || "", tracerouteTopologyFilters),
+		enabled: canQueryTracerouteGroup
 	});
-	const isSelectionLoading = Boolean(projectRef) && (assignmentsQuery.isLoading || probesQuery.isLoading || checksQuery.isLoading);
-	const pingPairs = pairs.filter(pair => pair.check.type === "Ping").length;
-	const traceroutePairs = pairs.filter(pair => pair.check.type === "Traceroute").length;
+	const groupColumns: DataColumn<InsightGroupRow>[] = [
+		{ key: "scope", label: groupBy === "check" ? "Check" : "Probe", render: row => <GroupTitle row={row} /> },
+		{
+			key: "status",
+			label: "Status",
+			render: row => <Badge tone={row.summary.status.tone}>{row.summary.status.label}</Badge>
+		},
+		{ key: "coverage", label: "Coverage", render: row => `${formatCount(row.probeCount)} probes · ${formatCount(row.checkCount)} checks` },
+		{ key: "measurements", label: "Results", render: row => formatCount(row.summary.total) },
+		{ key: "latency", label: "Avg latency", render: row => formatMs(row.summary.avgLatencyMs) },
+		{ key: "loss", label: "Avg loss", render: row => formatPercent(row.summary.avgLossPercent) },
+		{ key: "latest", label: "Last seen", render: row => formatEpochMs(row.summary.latestStartedAtMs) }
+	];
+	const pairColumns: DataColumn<InsightPair>[] = [
+		{
+			key: "probe",
+			label: "Probe",
+			render: pair => (
+				<div className={styles.rowTitle}>
+					<strong>{pair.probe.name}</strong>
+					<span>{pair.probe.location}</span>
+				</div>
+			)
+		},
+		{
+			key: "check",
+			label: "Check",
+			render: pair => (
+				<div className={styles.rowTitle}>
+					<strong>{pair.check.target}</strong>
+					<span>{pair.check.name}</span>
+				</div>
+			)
+		},
+		{ key: "type", label: "Type", render: pair => <Badge tone="accent">{pair.check.type}</Badge> },
+		{ key: "interval", label: "Interval", render: pair => pair.check.interval },
+		{
+			key: "latest",
+			label: "Latest",
+			render: pair => {
+				const latest = pairLatestMeasurement(pair, measurements);
+
+				return (
+					<div className={styles.rowTitle}>
+						<strong>
+							<Badge tone={statusTone(latest.status)}>{latest.status}</Badge>
+						</strong>
+						<span>
+							{latest.latency} · {latest.loss} · {latest.time}
+						</span>
+					</div>
+				);
+			}
+		}
+	];
+	const measurementColumns: DataColumn<MeasurementRow>[] = [
+		{ key: "time", label: "Time" },
+		{ key: "scope", label: "Scope" },
+		{ key: "type", label: "Type", render: row => <Badge tone="accent">{row.type}</Badge> },
+		{ key: "status", label: "Status", render: row => <Badge tone={statusTone(row.status)}>{row.status}</Badge> },
+		{ key: "latency", label: "Latency" },
+		{ key: "loss", label: "Loss" },
+		{ key: "event", label: "Event" }
+	];
 
 	useEffect(() => {
 		if (!projectRef) {
@@ -446,35 +1008,35 @@ export function InsightPage() {
 			}
 		};
 
-		if (!urlState.hasValidTimeWindow) {
+		if (!urlState.hasValidTimeMode) {
+			setParam("timeMode", timeMode);
+		}
+
+		if (timeMode === "relative") {
+			setParam("range", timeRange);
+			deleteParam("from");
+			deleteParam("to");
+		} else if (!urlState.hasValidTimeWindow) {
 			setParam("from", String(timeWindow.from));
 			setParam("to", String(timeWindow.to));
 		}
 
-		if (next.has("view")) {
-			deleteParam("view");
+		if (!urlState.hasValidRefresh) {
+			setParam("refresh", refresh);
 		}
 
-		if (!urlState.hasValidMode || next.get("mode") !== mode) {
-			setParam("mode", mode);
+		if (!urlState.hasValidCheckType) {
+			setParam("type", checkType);
 		}
 
-		if (!pairs.length) {
-			deleteParam("probeId");
-			deleteParam("checkId");
-			deleteParam("runStartedAt");
-			if (changed) {
-				setSearchParams(next, { replace: true });
-			}
-			return;
+		if (!urlState.hasValidGroupBy) {
+			setParam("groupBy", groupBy);
 		}
 
-		if (selectedPair) {
-			setParam("probeId", selectedPair.probeId);
-			setParam("checkId", selectedPair.checkId);
-		}
+		deleteParam("mode");
+		deleteParam("view");
 
-		if (!urlState.hasValidTimeWindow || selectedPair?.key !== pairKey(urlState.probeId, urlState.checkId) || selectedPair?.check.type !== "Traceroute") {
+		if (!exactPair || exactPair.check.type !== "Traceroute") {
 			deleteParam("runStartedAt");
 		}
 
@@ -482,24 +1044,96 @@ export function InsightPage() {
 			setSearchParams(next, { replace: true });
 		}
 	}, [
-		mode,
-		pairs.length,
+		checkType,
+		exactPair,
+		groupBy,
 		projectRef,
+		refresh,
 		searchParamString,
-		selectedPair,
 		setSearchParams,
+		timeMode,
+		timeRange,
 		timeWindow.from,
 		timeWindow.to,
-		urlState.checkId,
-		urlState.hasValidMode,
-		urlState.hasValidTimeWindow,
-		urlState.probeId
+		urlState.hasValidCheckType,
+		urlState.hasValidGroupBy,
+		urlState.hasValidRefresh,
+		urlState.hasValidTimeMode,
+		urlState.hasValidTimeWindow
 	]);
 
 	function updateSearchParams(update: (next: URLSearchParams) => void, options: { replace?: boolean } = {}) {
 		const next = new URLSearchParams(searchParamString);
 		update(next);
 		setSearchParams(next, { replace: options.replace ?? false });
+	}
+
+	const refreshProjectQueries = useCallback(() => {
+		if (!projectRef) {
+			return;
+		}
+
+		void queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.detail(projectRef) });
+	}, [projectRef, queryClient]);
+
+	const refreshInsight = useCallback(() => {
+		if (timeMode === "relative") {
+			setNowMs(Date.now());
+		}
+
+		refreshProjectQueries();
+	}, [refreshProjectQueries, timeMode]);
+
+	useEffect(() => {
+		const refreshDuration = refreshDurations[refresh];
+
+		if (!refreshDuration) {
+			return;
+		}
+
+		const interval = window.setInterval(refreshInsight, refreshDuration);
+
+		return () => window.clearInterval(interval);
+	}, [refresh, refreshInsight]);
+
+	function applyRelativeRange(range: InsightRelativeRange) {
+		setNowMs(Date.now());
+		updateSearchParams(next => {
+			next.set("timeMode", "relative");
+			next.set("range", range);
+			next.delete("from");
+			next.delete("to");
+			next.delete("runStartedAt");
+		});
+		refreshProjectQueries();
+	}
+
+	function applyAbsoluteWindow(nextTimeWindow: TimeWindow) {
+		updateSearchParams(next => {
+			next.set("timeMode", "absolute");
+			next.set("from", String(nextTimeWindow.from));
+			next.set("to", String(nextTimeWindow.to));
+			next.delete("range");
+			next.delete("runStartedAt");
+		});
+		refreshProjectQueries();
+	}
+
+	function updateRefresh(nextRefresh: InsightRefreshInterval) {
+		updateSearchParams(next => {
+			next.set("refresh", nextRefresh);
+		});
+	}
+
+	function selectGroup(row: InsightGroupRow) {
+		updateSearchParams(next => {
+			if (row.groupBy === "check") {
+				next.set("checkId", row.id);
+			} else {
+				next.set("probeId", row.id);
+			}
+			next.delete("runStartedAt");
+		});
 	}
 
 	function selectPair(pair: InsightPair) {
@@ -510,11 +1144,50 @@ export function InsightPage() {
 		});
 	}
 
-	const groupTopologyTitle =
-		mode === "probe" && selectedPair ? `${selectedPair.probe.name} route graph` : mode === "target" && selectedPair ? `${selectedPair.check.target} route graph` : "Project route graph";
-	const detail = (
+	function clearProbeFocus() {
+		updateSearchParams(next => {
+			next.delete("probeId");
+			next.delete("runStartedAt");
+		});
+	}
+
+	function clearCheckFocus() {
+		updateSearchParams(next => {
+			next.delete("checkId");
+			next.delete("runStartedAt");
+		});
+	}
+
+	function resetScope() {
+		setSearch("");
+		updateSearchParams(next => {
+			next.set("type", "all");
+			next.set("groupBy", "check");
+			next.delete("probeId");
+			next.delete("checkId");
+			next.delete("runStartedAt");
+		});
+	}
+
+	const scopeTitle = exactPair
+		? `${exactPair.probe.name} -> ${exactPair.check.target}`
+		: selectedProbe && selectedCheck
+			? "No active assignment"
+			: selectedProbe
+				? selectedProbe.name
+				: selectedCheck
+					? selectedCheck.target
+					: "Project scope";
+	const groupTopologyTitle = selectedProbe
+		? `${selectedProbe.name} route graph`
+		: selectedCheck
+			? `${selectedCheck.target} route graph`
+			: checkType === "traceroute"
+				? "Traceroute route graph"
+				: "Project route graph";
+	const pairDetail = (
 		<InsightPairDetail
-			pair={selectedPair}
+			pair={exactPair}
 			pingData={pingInsightQuery.data}
 			isPingLoading={pingInsightQuery.isLoading}
 			isPingFetching={pingInsightQuery.isFetching}
@@ -529,119 +1202,81 @@ export function InsightPage() {
 					next.set("runStartedAt", startedAt);
 				})
 			}
-			timeLabel={timeLabel(timeRange)}
+			timeLabel={displayTimeRange(timeMode, timeRange, timeWindow)}
 		/>
 	);
-	const groupTopology = groupTopologyFilters ? (
-		<GroupTopologyPanel title={groupTopologyTitle} nodes={groupTopologyQuery.data?.nodes ?? []} edges={groupTopologyQuery.data?.edges ?? []} isLoading={groupTopologyQuery.isLoading} />
-	) : null;
-	const modeBody =
-		mode === "overview" ? (
-			<>
-				<ResponsiveGrid>
-					<Panel tone="glass" eyebrow="Assignments" title={`${pairs.length} active paths`}>
-						<PairList pairs={pairs} selectedKey={selectedKey} onSelect={selectPair} emptyLabel="No active assignments." />
-					</Panel>
-					<Panel tone="glass" eyebrow="Coverage" title="Assignment scope">
-						<KeyValueGrid
-							items={[
-								{ label: "Probes", value: formatCount(probeOptions.length) },
-								{ label: "Targets", value: formatCount(checkOptions.length) },
-								{ label: "Ping", value: formatCount(pingPairs) },
-								{ label: "Traceroute", value: formatCount(traceroutePairs) },
-								{ label: "Selected", value: selectedPair ? `${selectedPair.probe.name} → ${selectedPair.check.target}` : "-" }
-							]}
-						/>
-					</Panel>
-				</ResponsiveGrid>
-				{groupTopology}
-				{detail}
-			</>
-		) : (
-			<>
-				<ResponsiveGrid>
-					<Panel
-						tone="glass"
-						eyebrow={mode === "probe" ? "Probe" : "Target"}
-						title={mode === "probe" ? selectedPair?.probe.name || "No probe selected" : selectedPair?.check.target || "No target selected"}
-					>
-						<KeyValueGrid items={mode === "probe" && selectedPair ? detailsForProbe(selectedPair.probe) : mode === "target" && selectedPair ? detailsForTarget(selectedPair.check) : []} />
-					</Panel>
-					<Panel tone="glass" eyebrow={mode === "probe" ? "Assigned targets" : "Assigned probes"} title={mode === "probe" ? `${focusPairs.length} targets` : `${focusPairs.length} probes`}>
-						<PairList pairs={focusPairs} selectedKey={selectedKey} onSelect={selectPair} emptyLabel="No assignments in this scope." />
-					</Panel>
-				</ResponsiveGrid>
-				{groupTopology}
-				{detail}
-			</>
-		);
 
 	return (
 		<PageStack>
-			<ScreenHeader eyebrow="Result insight" title="Insight" copy="Inspect ping latency spread, packet-loss density, and traceroute route diagnostics from result data." />
+			<ScreenHeader eyebrow="Result insight" title="Insight" copy="Start from project scope, narrow by check or probe, then drill into an exact assignment for packet and route detail." />
 
-			<div className={styles.filters}>
-				<SelectField
-					label="Time"
-					value={timeRange}
-					onChange={event => {
-						const nextRange = event.currentTarget.value;
-
-						if (nextRange === customTimeOption.value) {
-							return;
-						}
-
-						const nextTimeWindow = timeWindowForRange(nextRange);
-
-						updateSearchParams(next => {
-							next.set("from", String(nextTimeWindow.from));
-							next.set("to", String(nextTimeWindow.to));
-							next.delete("runStartedAt");
-						});
-					}}
-					options={timePickerOptions}
-				/>
-				<ModeControl
-					mode={mode}
-					onChange={nextMode => {
-						updateSearchParams(next => {
-							next.set("mode", nextMode);
-							next.delete("view");
-							next.delete("runStartedAt");
-						});
-					}}
-				/>
-				{mode === "overview" ? (
-					<div className={styles.overviewMeta}>
-						<span>{isSelectionLoading ? "loading assignments" : `${formatCount(pairs.length)} active paths`}</span>
-						<strong>{selectedPair ? `${selectedPair.probe.name} → ${selectedPair.check.target}` : "No selection"}</strong>
-					</div>
-				) : mode === "probe" ? (
-					<SelectField
-						label="Probe"
-						value={selectedPair?.probeId || ""}
-						onChange={event => {
-							const nextPair = pairs.find(pair => pair.probeId === event.currentTarget.value);
-							if (nextPair) {
-								selectPair(nextPair);
-							}
-						}}
-						options={probeOptions.map(option => ({ value: option.probe.id, label: `${option.probe.name} · ${option.count} targets` }))}
+			<Panel
+				tone="deep"
+				eyebrow="Scope"
+				title={scopeTitle}
+				actions={
+					<Button variant="outline" size="sm" onClick={resetScope}>
+						Reset scope
+					</Button>
+				}
+			>
+				<div className={styles.scopeBar}>
+					<InsightTimeControl
+						timeMode={timeMode}
+						timeRange={timeRange}
+						timeWindow={timeWindow}
+						refresh={refresh}
+						onApplyRelative={applyRelativeRange}
+						onApplyAbsolute={applyAbsoluteWindow}
+						onRefresh={refreshInsight}
+						onRefreshChange={updateRefresh}
 					/>
-				) : (
-					<SelectField
-						label="Target"
-						value={selectedPair?.checkId || ""}
-						onChange={event => {
-							const nextPair = pairs.find(pair => pair.checkId === event.currentTarget.value);
-							if (nextPair) {
-								selectPair(nextPair);
-							}
+					<SegmentedControl
+						label="Type"
+						value={checkType}
+						options={checkTypeOptions}
+						onChange={nextType => {
+							updateSearchParams(next => {
+								next.set("type", nextType);
+								next.delete("runStartedAt");
+								if (nextType !== "all" && selectedCheck && checkTypeFilterFromCheck(selectedCheck) !== nextType) {
+									next.delete("checkId");
+								}
+							});
 						}}
-						options={checkOptions.map(option => ({ value: option.check.id, label: `${option.check.target} · ${option.count} probes` }))}
 					/>
-				)}
-			</div>
+					<SegmentedControl
+						label="Group"
+						value={groupBy}
+						options={groupByOptions}
+						onChange={nextGroupBy => {
+							updateSearchParams(next => {
+								next.set("groupBy", nextGroupBy);
+							});
+						}}
+					/>
+					<TextField label="Search" placeholder="check, probe, target, label, location" value={search} onChange={event => setSearch(event.currentTarget.value)} />
+				</div>
+				<div className={styles.focusChips} aria-label="Active Insight scope">
+					{hasProbeFocus ? (
+						<FocusChip
+							label="Probe"
+							value={hasInvalidProbeFocus ? `Unknown probe ${urlState.probeId}` : selectedProbe?.name || urlState.probeId}
+							invalid={hasInvalidProbeFocus}
+							onClear={clearProbeFocus}
+						/>
+					) : null}
+					{hasCheckFocus ? (
+						<FocusChip
+							label="Check"
+							value={hasInvalidCheckFocus ? `Unknown check ${urlState.checkId}` : selectedCheck?.target || urlState.checkId}
+							invalid={hasInvalidCheckFocus}
+							onClear={clearCheckFocus}
+						/>
+					) : null}
+					{!hasProbeFocus && !hasCheckFocus ? <span className={styles.scopeHint}>All active assignments in this project are included.</span> : null}
+				</div>
+			</Panel>
 
 			{isSelectionLoading && !pairs.length ? (
 				<Panel tone="deep" eyebrow="Assignments" title="Loading active paths">
@@ -651,8 +1286,88 @@ export function InsightPage() {
 				<Panel tone="deep" eyebrow="Assignments" title="No active paths">
 					<BodyCopy>Create or refresh check assignments before opening result insight.</BodyCopy>
 				</Panel>
+			) : hasInvalidFocus ? (
+				<Panel tone="deep" eyebrow="Scope" title="The shared scope is no longer valid">
+					<BodyCopy>Clear the unknown probe or check chip to return to active assignments.</BodyCopy>
+				</Panel>
 			) : (
-				modeBody
+				<>
+					<ResponsiveGrid>
+						<Panel tone="glass" eyebrow="Scope summary" title={`${formatCount(scopedPairs.length)} active paths`}>
+							<KeyValueGrid
+								items={[
+									{ label: "Groups", value: formatCount(groups.length) },
+									{ label: "Results", value: measurementsQuery.isLoading ? "Loading" : formatCount(scopeSummary.total) },
+									{ label: "Failing", value: formatCount(scopeSummary.error + scopeSummary.timeout) },
+									{ label: "Avg latency", value: formatMs(scopeSummary.avgLatencyMs) },
+									{ label: "Avg loss", value: formatPercent(scopeSummary.avgLossPercent) },
+									{ label: "Last seen", value: formatEpochMs(scopeSummary.latestStartedAtMs) }
+								]}
+							/>
+						</Panel>
+						<Panel tone="glass" eyebrow="Drilldown state" title={exactPair ? "Exact assignment selected" : "Select a row to narrow scope"}>
+							<div className={styles.detailNotice}>
+								<Badge tone={scopeSummary.status.tone}>{scopeSummary.status.label}</Badge>
+								<p>
+									{exactPair
+										? "Packet-level and route-level detail is loaded for this exact probe-check assignment."
+										: "Grouped rows narrow the scope first. Choose one assignment in the table below to load detailed ping or traceroute diagnostics."}
+								</p>
+							</div>
+						</Panel>
+					</ResponsiveGrid>
+
+					<Panel tone="glass" eyebrow="Grouped scope" title={groupBy === "check" ? `${formatCount(visibleGroups.length)} checks` : `${formatCount(visibleGroups.length)} probes`}>
+						<DataTable
+							columns={groupColumns}
+							rows={visibleGroups}
+							density="compact"
+							minWidth="58rem"
+							maxHeight="28rem"
+							ariaLabel="Insight grouped scope"
+							getRowKey={row => row.key}
+							getRowAriaLabel={row => `Focus ${row.label}`}
+							selectedKey={selectedCheck && groupBy === "check" ? `check:${selectedCheck.id}` : selectedProbe && groupBy === "probe" ? `probe:${selectedProbe.id}` : undefined}
+							onRowClick={selectGroup}
+							emptyLabel={searchTerm ? "No groups match the current search." : "No assignments match the current scope."}
+						/>
+					</Panel>
+
+					<Panel tone="glass" eyebrow="Assignments" title={exactPair ? "Selected assignment" : `${formatCount(scopedPairs.length)} assignments in scope`}>
+						<DataTable
+							columns={pairColumns}
+							rows={scopedPairs}
+							density="compact"
+							minWidth="52rem"
+							maxHeight="24rem"
+							ariaLabel="Insight assignments"
+							getRowKey={row => row.key}
+							getRowAriaLabel={row => `Open ${row.probe.name} to ${row.check.target}`}
+							selectedKey={exactPair?.key}
+							onRowClick={selectPair}
+							emptyLabel="No assignments match the current scope."
+						/>
+					</Panel>
+
+					{canQueryTracerouteGroup ? (
+						<GroupTopologyPanel title={groupTopologyTitle} nodes={groupTopologyQuery.data?.nodes ?? []} edges={groupTopologyQuery.data?.edges ?? []} isLoading={groupTopologyQuery.isLoading} />
+					) : null}
+
+					{pairDetail}
+
+					<Panel tone="glass" eyebrow="Recent evidence" title={`${formatCount(measurementRows.length)} latest rows`}>
+						<DataTable
+							columns={measurementColumns}
+							rows={measurementRows}
+							density="compact"
+							minWidth="60rem"
+							maxHeight="24rem"
+							ariaLabel="Recent measurements"
+							getRowKey={row => row.id}
+							emptyLabel={measurementsQuery.isLoading ? "Loading recent measurements." : "No measurements in the selected time range."}
+						/>
+					</Panel>
+				</>
 			)}
 		</PageStack>
 	);

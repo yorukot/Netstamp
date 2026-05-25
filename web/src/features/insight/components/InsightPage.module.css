@@ -1,17 +1,17 @@
-.filters {
+.scopeBar {
 	display: grid;
-	grid-template-columns: minmax(12rem, 0.45fr) minmax(22rem, 1fr) minmax(14rem, 0.65fr);
+	grid-template-columns: minmax(30rem, 1.45fr) minmax(15rem, 0.8fr) minmax(13rem, 0.7fr) minmax(18rem, 1fr);
 	gap: 1rem;
 	align-items: end;
 }
 
-.modeField {
+.segmentField {
 	display: grid;
 	gap: 0.45rem;
 	min-width: 0;
 }
 
-.modeLabel {
+.segmentLabel {
 	color: var(--ns-text-low);
 	font-family: var(--ns-font-mono);
 	font-size: 0.6875rem;
@@ -20,17 +20,18 @@
 	text-transform: uppercase;
 }
 
-.modeControl {
+.segmentControl {
 	--ns-frame-cut: var(--ns-cut-sm);
 	display: grid;
-	grid-template-columns: repeat(3, minmax(0, 1fr));
+	grid-auto-flow: column;
+	grid-auto-columns: minmax(0, 1fr);
 	min-height: 2.75rem;
 	border: 1px solid var(--ns-border-faint);
 	background: var(--ns-surface-deep);
 	clip-path: polygon(var(--ns-frame-cut) 0, 100% 0, 100% calc(100% - var(--ns-frame-cut)), calc(100% - var(--ns-frame-cut)) 100%, 0 100%, 0 var(--ns-frame-cut));
 }
 
-.modeButton {
+.segmentButton {
 	display: inline-grid;
 	place-items: center;
 	min-width: 0;
@@ -50,117 +51,339 @@
 		color var(--ns-transition);
 }
 
-.modeButton:last-child {
+.segmentButton:last-child {
 	border-right: 0;
 }
 
-.modeButton:hover,
-.modeButton:focus-visible,
-.modeButton[data-selected="true"] {
+.segmentButton:hover,
+.segmentButton:focus-visible,
+.segmentButton[data-selected="true"] {
 	color: var(--ns-text);
 	background: rgba(255, 122, 26, 0.14);
 	outline: none;
 }
 
-.overviewMeta {
+.focusChips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.625rem;
+	align-items: center;
+	margin-top: 1rem;
+	min-height: 2.25rem;
+}
+
+.focusChip {
 	--ns-frame-cut: var(--ns-cut-sm);
 	display: grid;
-	min-height: 2.75rem;
-	gap: 0.25rem;
-	align-content: center;
-	min-width: 0;
-	padding: 0.6rem 0.75rem;
-	background: rgba(255, 255, 255, 0.025);
-	border: 1px solid var(--ns-border-faint);
+	grid-template-columns: auto minmax(4rem, auto) auto;
+	gap: 0.625rem;
+	align-items: center;
+	max-width: 100%;
+	padding: 0.5rem 0.6rem;
+	color: var(--ns-text-muted);
+	background: rgba(255, 122, 26, 0.1);
+	border: 1px solid rgba(255, 122, 26, 0.42);
 	clip-path: polygon(var(--ns-frame-cut) 0, 100% 0, 100% calc(100% - var(--ns-frame-cut)), calc(100% - var(--ns-frame-cut)) 100%, 0 100%, 0 var(--ns-frame-cut));
 	font-family: var(--ns-font-mono);
 }
 
-.overviewMeta span {
+.focusChip[data-invalid="true"] {
+	background: rgba(255, 69, 58, 0.12);
+	border-color: rgba(255, 69, 58, 0.56);
+}
+
+.focusChip span {
 	color: var(--ns-text-low);
 	font-size: 0.6875rem;
 	font-weight: 800;
 	text-transform: uppercase;
 }
 
-.overviewMeta strong {
+.focusChip strong {
 	min-width: 0;
-	color: var(--ns-text-muted);
+	overflow: hidden;
+	color: var(--ns-text);
 	font-size: 0.75rem;
-	font-weight: 700;
+	font-weight: 800;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.focusChip button {
+	color: var(--ns-accent-hover);
+	background: transparent;
+	border: 0;
+	font-family: var(--ns-font-mono);
+	font-size: 0.6875rem;
+	font-weight: 900;
+	text-transform: uppercase;
+	cursor: pointer;
+}
+
+.focusChip button:hover,
+.focusChip button:focus-visible {
+	color: var(--ns-text);
+	outline: none;
+}
+
+.scopeHint {
+	color: var(--ns-text-low);
+	font-family: var(--ns-font-mono);
+	font-size: 0.75rem;
+	line-height: 1.45;
+}
+
+.timeControlRoot {
+	position: relative;
+	display: grid;
+	gap: 0.45rem;
+	min-width: 0;
+}
+
+.timeControls {
+	display: grid;
+	grid-template-columns: minmax(13rem, 1fr) auto minmax(6.5rem, 0.42fr);
+	gap: 0.625rem;
+	align-items: end;
+	min-width: 0;
+}
+
+.timeTrigger {
+	--ns-frame-cut: var(--ns-cut-sm);
+	width: 100%;
+	min-width: 0;
+	min-height: 2.75rem;
+	color: var(--ns-text);
+	background: var(--ns-surface-deep);
+	border: 1px solid var(--ns-border-faint);
+	clip-path: polygon(var(--ns-frame-cut) 0, 100% 0, 100% calc(100% - var(--ns-frame-cut)), calc(100% - var(--ns-frame-cut)) 100%, 0 100%, 0 var(--ns-frame-cut));
+	font-family: var(--ns-font-mono);
+	font-size: 0.875rem;
+	font-weight: 800;
+	line-height: 1.1;
+}
+
+.timeTrigger {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	gap: 0.75rem;
+	align-items: center;
+	padding: 0.75rem 1rem;
+	text-align: left;
+	cursor: pointer;
+}
+
+.timeTrigger::after {
+	width: 0.55rem;
+	height: 0.55rem;
+	border-right: 2px solid var(--ns-accent-hover);
+	border-bottom: 2px solid var(--ns-accent-hover);
+	content: "";
+	transform: rotate(45deg) translateY(-0.125rem);
+}
+
+.timeTrigger span {
+	min-width: 0;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
 
-.entityList {
-	display: grid;
-	gap: 0.625rem;
+.timeTrigger:hover,
+.timeTrigger:focus-visible {
+	border-color: var(--ns-border-strong);
+	outline: none;
 }
 
-.entityButton {
-	--ns-frame-color: var(--ns-border-faint);
-	--ns-frame-cut: var(--ns-cut-sm);
+.refreshButton {
+	min-height: 2.75rem;
+}
+
+.refreshField {
 	display: grid;
-	gap: 0.5rem;
-	width: 100%;
-	padding: 0.875rem;
-	color: var(--ns-text-muted);
-	background: linear-gradient(rgba(255, 122, 26, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 122, 26, 0.035) 1px, transparent 1px), var(--ns-surface-deep);
+	gap: 0.45rem;
+	min-width: 0;
+}
+
+.refreshField span {
+	color: var(--ns-text-low);
+	font-family: var(--ns-font-mono);
+	font-size: 0.6875rem;
+	font-weight: 800;
+	line-height: 1;
+	text-transform: uppercase;
+}
+
+.refreshSelect {
+	min-height: 2.75rem;
+	font-size: 0.875rem;
+	font-weight: 800;
+}
+
+.timePopover {
+	--ns-frame-cut: var(--ns-cut-md);
+	position: fixed;
+	z-index: 1000;
+	display: grid;
+	gap: 1rem;
+	overflow: auto;
+	padding: 1rem;
+	background: linear-gradient(rgba(255, 122, 26, 0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 122, 26, 0.035) 1px, transparent 1px), var(--ns-glass-dark);
 	background-size:
 		1rem 1rem,
 		1rem 1rem,
 		100% 100%;
-	border: 1px solid var(--ns-frame-color);
+	border: 1px solid var(--ns-border-strong);
+	box-shadow: var(--ns-shadow-md);
 	clip-path: polygon(var(--ns-frame-cut) 0, 100% 0, 100% calc(100% - var(--ns-frame-cut)), calc(100% - var(--ns-frame-cut)) 100%, 0 100%, 0 var(--ns-frame-cut));
-	cursor: pointer;
-	text-align: left;
-	transition:
-		background var(--ns-transition),
-		border-color var(--ns-transition),
-		color var(--ns-transition);
 }
 
-.entityButton:hover,
-.entityButton:focus-visible,
-.entityButton[data-selected="true"] {
-	--ns-frame-color: rgba(255, 122, 26, 0.58);
-	color: var(--ns-text);
-	background: linear-gradient(rgba(255, 122, 26, 0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 122, 26, 0.055) 1px, transparent 1px), rgba(255, 122, 26, 0.12);
-	outline: none;
+.timeSection {
+	display: grid;
+	gap: 0.75rem;
 }
 
-.entityButton span {
-	color: inherit;
-	font-family: var(--ns-font-mono);
-	font-size: 0.8125rem;
-	font-weight: 700;
-	line-height: 1.45;
-	overflow-wrap: anywhere;
-}
-
-.entityButton strong {
+.timeSection h4 {
+	margin: 0;
 	color: var(--ns-text-low);
 	font-family: var(--ns-font-mono);
 	font-size: 0.6875rem;
-	letter-spacing: 0;
+	font-weight: 900;
+	letter-spacing: 0.08em;
+	line-height: 1;
 	text-transform: uppercase;
 }
 
-.entityButton[data-selected="true"] strong {
-	color: var(--ns-accent-hover);
+.timePresetGrid {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 0.5rem;
 }
 
-.pairMeta {
+.timePreset {
+	--ns-frame-cut: var(--ns-cut-sm);
+	min-height: 2.5rem;
+	padding: 0.55rem 0.7rem;
+	color: var(--ns-text-subtle);
+	background: var(--ns-surface-deep);
+	border: 1px solid var(--ns-border-faint);
+	clip-path: polygon(var(--ns-frame-cut) 0, 100% 0, 100% calc(100% - var(--ns-frame-cut)), calc(100% - var(--ns-frame-cut)) 100%, 0 100%, 0 var(--ns-frame-cut));
+	font-family: var(--ns-font-mono);
+	font-size: 0.75rem;
+	font-weight: 800;
+	cursor: pointer;
+}
+
+.timePreset:hover,
+.timePreset:focus-visible,
+.timePreset[data-selected="true"] {
+	color: var(--ns-text);
+	background: rgba(255, 122, 26, 0.14);
+	border-color: rgba(255, 122, 26, 0.5);
+	outline: none;
+}
+
+.absoluteGrid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.75rem;
+}
+
+.absoluteGrid label {
+	display: grid;
+	gap: 0.45rem;
+	min-width: 0;
+}
+
+.absoluteGrid span {
 	color: var(--ns-text-low);
 	font-family: var(--ns-font-mono);
 	font-size: 0.6875rem;
+	font-weight: 800;
+	text-transform: uppercase;
+}
+
+.timeActions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.625rem;
+	justify-content: flex-end;
+}
+
+.detailNotice {
+	display: grid;
+	gap: 0.75rem;
+	align-content: start;
+	min-height: 100%;
+}
+
+.detailNotice p {
+	margin: 0;
+	color: var(--ns-text-muted);
+	font-size: 0.95rem;
+	line-height: 1.55;
+}
+
+.rowTitle {
+	display: grid;
+	gap: 0.2rem;
+	min-width: 0;
+}
+
+.rowTitle strong {
+	min-width: 0;
+	color: var(--ns-text);
+	font-family: var(--ns-font-mono);
+	font-size: 0.8125rem;
+	font-weight: 800;
 	line-height: 1.35;
 	overflow-wrap: anywhere;
 }
 
-@media (max-width: 58rem) {
-	.filters {
+.rowTitle span {
+	min-width: 0;
+	color: var(--ns-text-low);
+	font-family: var(--ns-font-mono);
+	font-size: 0.6875rem;
+	font-weight: 700;
+	line-height: 1.35;
+	overflow-wrap: anywhere;
+}
+
+@media (max-width: 72rem) {
+	.scopeBar {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	.timeControlRoot {
+		grid-column: 1 / -1;
+	}
+}
+
+@media (max-width: 44rem) {
+	.scopeBar {
+		grid-template-columns: 1fr;
+	}
+
+	.focusChip {
+		grid-template-columns: 1fr auto;
+		width: 100%;
+	}
+
+	.focusChip span {
+		grid-column: 1 / -1;
+	}
+
+	.timeControls {
+		grid-template-columns: 1fr;
+	}
+
+	.timePopover {
+		width: min(100%, calc(100vw - 2rem));
+	}
+
+	.timePresetGrid,
+	.absoluteGrid {
 		grid-template-columns: 1fr;
 	}
 }
