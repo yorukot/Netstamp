@@ -396,7 +396,6 @@ export function RouteTopologyMap({ nodes, edges }: { nodes: RouteTopologyNode[];
 	const viewportRef = useRef<HTMLDivElement>(null);
 	const [activeDetail, setActiveDetail] = useState<TopologyHoverDetail | null>(null);
 	const layout = topologyRouteLayout(nodes, edges);
-	const centerY = layout.viewHeight / 2 - 14;
 	const style: TopologyMapStyle = {
 		"--ns-topology-width": `${layout.viewWidth}px`,
 		"--ns-topology-height": `${layout.viewHeight}px`
@@ -440,7 +439,6 @@ export function RouteTopologyMap({ nodes, edges }: { nodes: RouteTopologyNode[];
 			<div className={styles.topologyViewport} ref={viewportRef} onScroll={clearActiveDetail}>
 				<div className={styles.topologyMap} style={style}>
 					<svg className={styles.topologySvg} viewBox={`0 0 ${layout.viewWidth} ${layout.viewHeight}`} role="img" aria-label="Aggregated route topology">
-						<line className={styles.topologyCenterLine} x1={layout.routeStartX} x2={layout.routeEndX} y1={centerY} y2={centerY} />
 						{layout.edges.map(edge => {
 							const edgeTitle = topologyEdgeTitle(edge);
 

@@ -77,16 +77,9 @@
 	pointer-events: none;
 }
 
-.topologyCenterLine,
 .topologyEdge,
 .topologyEdgeHit {
 	vector-effect: non-scaling-stroke;
-}
-
-.topologyCenterLine {
-	stroke: rgba(196, 204, 217, 0.18);
-	stroke-dasharray: 4 8;
-	stroke-width: 1;
 }
 
 .topologyEdge {
