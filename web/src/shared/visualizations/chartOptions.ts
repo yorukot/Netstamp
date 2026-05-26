@@ -244,7 +244,28 @@ export function pingInsightChartOption(buckets: PingInsightChartBucket[], sample
 			itemWidth: 12,
 			itemHeight: 6
 		},
-		grid: { top: 34, right: 44, bottom: 54, left: 48 },
+		grid: { top: 34, right: 44, bottom: 30, left: 48 },
+		// Toolbox dataZoom must be mounted for ECharts' select brush to work.
+		toolbox: {
+			show: true,
+			left: -1000,
+			top: -1000,
+			itemSize: 0,
+			itemGap: 0,
+			feature: {
+				dataZoom: {
+					show: true,
+					xAxisIndex: [0],
+					yAxisIndex: false,
+					filterMode: "none",
+					brushStyle: {
+						color: "rgba(255, 122, 26, 0.16)",
+						borderColor: "rgba(255, 122, 26, 0.76)",
+						borderWidth: 1
+					}
+				}
+			}
+		},
 		visualMap: {
 			show: false,
 			type: "continuous",
@@ -256,20 +277,6 @@ export function pingInsightChartOption(buckets: PingInsightChartBucket[], sample
 				color: ["rgba(255,122,26,0.18)", "rgba(255,122,26,0.5)", "#FF7A1A", "#FFF7EC"]
 			}
 		},
-		dataZoom: [
-			{ type: "inside", xAxisIndex: [0], filterMode: "none" },
-			{
-				type: "slider",
-				xAxisIndex: [0],
-				bottom: 10,
-				height: 18,
-				borderColor: "rgba(255,255,255,0.16)",
-				backgroundColor: "rgba(255,255,255,0.025)",
-				fillerColor: "rgba(255,122,26,0.18)",
-				handleStyle: { color: "#FF7A1A" },
-				textStyle: { color: "#77736B", fontFamily: "JetBrains Mono, monospace" }
-			}
-		],
 		xAxis: {
 			type: "time",
 			axisLabel: {

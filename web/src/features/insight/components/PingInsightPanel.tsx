@@ -17,9 +17,10 @@ interface PingInsightPanelProps {
 	isLoading: boolean;
 	isFetching: boolean;
 	timeLabel: string;
+	onSelectTimeWindow: (timeWindow: { from: number; to: number }) => void;
 }
 
-export function PingInsightPanel({ selectedProbe, selectedTarget, data, isLoading, isFetching, timeLabel }: PingInsightPanelProps) {
+export function PingInsightPanel({ selectedProbe, selectedTarget, data, isLoading, isFetching, timeLabel, onSelectTimeWindow }: PingInsightPanelProps) {
 	if (!selectedProbe || !selectedTarget) {
 		return (
 			<Panel tone="deep" eyebrow="Ping" title="No ping target selected">
@@ -41,6 +42,7 @@ export function PingInsightPanel({ selectedProbe, selectedTarget, data, isLoadin
 	const metrics = pingSummaryMetrics(data);
 	const totalPoints = data?.query.totalPoints ?? 0;
 	const hasChartData = buckets.length > 0 || density.length > 0;
+	const queryWindow = data?.query ? { from: data.query.from, to: data.query.to } : undefined;
 
 	return (
 		<div className={styles.pingStack}>
@@ -61,7 +63,7 @@ export function PingInsightPanel({ selectedProbe, selectedTarget, data, isLoadin
 					<span>{data?.summary.latestResolvedIp || "unresolved"}</span>
 				</div>
 				{hasChartData ? (
-					<ChartPanel option={pingInsightChartOption(buckets, density)} height="27rem" />
+					<ChartPanel option={pingInsightChartOption(buckets, density)} height="27rem" onTimeRangeSelect={onSelectTimeWindow} timeRangeBounds={queryWindow} />
 				) : (
 					<div className={styles.emptyState}>No ping results were recorded for this probe-target pair in the selected time range.</div>
 				)}

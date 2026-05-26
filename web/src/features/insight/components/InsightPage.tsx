@@ -748,7 +748,8 @@ function InsightPairDetail({
 	isTopologyLoading,
 	selectedRunStartedAt,
 	onSelectRun,
-	timeLabel
+	timeLabel,
+	onSelectTimeWindow
 }: {
 	pair: InsightPair | null;
 	pingData: PingInsightResponse | undefined;
@@ -762,6 +763,7 @@ function InsightPairDetail({
 	selectedRunStartedAt: string;
 	onSelectRun: (startedAt: string) => void;
 	timeLabel: string;
+	onSelectTimeWindow: (timeWindow: TimeWindow) => void;
 }) {
 	if (!pair) {
 		return null;
@@ -780,7 +782,15 @@ function InsightPairDetail({
 			onSelectRun={onSelectRun}
 		/>
 	) : (
-		<PingInsightPanel selectedProbe={pair.probe} selectedTarget={pair.check} data={pingData} isLoading={isPingLoading} isFetching={isPingFetching} timeLabel={timeLabel} />
+		<PingInsightPanel
+			selectedProbe={pair.probe}
+			selectedTarget={pair.check}
+			data={pingData}
+			isLoading={isPingLoading}
+			isFetching={isPingFetching}
+			timeLabel={timeLabel}
+			onSelectTimeWindow={onSelectTimeWindow}
+		/>
 	);
 }
 
@@ -827,19 +837,20 @@ export function InsightPage() {
 	const refresh = urlState.refresh;
 	const checkType = urlState.checkType;
 	const groupBy = urlState.groupBy;
+	const resultWindowFilters = useMemo(() => ({ from: timeWindow.from, to: timeWindow.to }), [timeWindow.from, timeWindow.to]);
 	const scopedPairs = useMemo(() => (hasInvalidFocus ? [] : scopePairs(pairs, checkType, activeProbeId, activeCheckId)), [activeCheckId, activeProbeId, checkType, hasInvalidFocus, pairs]);
 	const exactPair = activeProbeId && activeCheckId && scopedPairs.length === 1 ? scopedPairs[0] : null;
 	const selectedProbe = activeProbeId ? scopedPairs.find(pair => pair.probeId === activeProbeId)?.probe || probes.find(probe => probe.id === activeProbeId) || null : null;
 	const selectedCheck = activeCheckId ? scopedPairs.find(pair => pair.checkId === activeCheckId)?.check || checks.find(check => check.id === activeCheckId) || null : null;
 	const measurementFilters = useMemo(
 		() => ({
-			...timeWindow,
+			...resultWindowFilters,
 			limit: 200,
 			...(checkType === "all" ? {} : { type: checkType }),
 			...(activeProbeId ? { probeId: activeProbeId } : {}),
 			...(activeCheckId ? { checkId: activeCheckId } : {})
 		}),
-		[activeCheckId, activeProbeId, checkType, timeWindow]
+		[activeCheckId, activeProbeId, checkType, resultWindowFilters]
 	);
 	const measurementsQuery = useQuery({
 		...projectQueries.measurements(projectRef || "", measurementFilters),
@@ -857,24 +868,24 @@ export function InsightPage() {
 		() => ({
 			...(activeProbeId ? { probeId: activeProbeId } : {}),
 			...(activeCheckId ? { checkId: activeCheckId } : {}),
-			...timeWindow,
+			...resultWindowFilters,
 			limit: 100
 		}),
-		[activeCheckId, activeProbeId, timeWindow]
+		[activeCheckId, activeProbeId, resultWindowFilters]
 	);
 	const pingInsightQuery = useQuery({
-		...projectQueries.pingInsight(projectRef || "", exactPair?.probeId || "", exactPair?.checkId || "", timeWindow),
+		...projectQueries.pingInsight(projectRef || "", exactPair?.probeId || "", exactPair?.checkId || "", resultWindowFilters),
 		enabled: Boolean(canQueryPairDetail && exactPair?.check.type === "Ping")
 	});
 	const tracerouteRunsQuery = useQuery({
-		...projectQueries.tracerouteRuns(projectRef || "", exactPair?.probeId || "", exactPair?.checkId || "", { ...timeWindow, limit: 100 }),
+		...projectQueries.tracerouteRuns(projectRef || "", exactPair?.probeId || "", exactPair?.checkId || "", { ...resultWindowFilters, limit: 100 }),
 		enabled: Boolean(canQueryPairDetail && exactPair?.check.type === "Traceroute")
 	});
 	const pairTopologyQuery = useQuery({
 		...projectQueries.tracerouteTopology(projectRef || "", {
 			probeId: exactPair?.probeId,
 			checkId: exactPair?.checkId,
-			...timeWindow,
+			...resultWindowFilters,
 			limit: 100
 		}),
 		enabled: Boolean(canQueryPairDetail && exactPair?.check.type === "Traceroute")
@@ -1059,14 +1070,24 @@ export function InsightPage() {
 	}
 
 	function applyAbsoluteWindow(nextTimeWindow: TimeWindow) {
+		const from = Math.trunc(nextTimeWindow.from);
+		const to = Math.trunc(nextTimeWindow.to);
+
+		if (!Number.isFinite(from) || !Number.isFinite(to) || to <= from) {
+			return;
+		}
+
+		if (timeMode === "absolute" && timeWindow.from === from && timeWindow.to === to) {
+			return;
+		}
+
 		updateSearchParams(next => {
 			next.set("timeMode", "absolute");
-			next.set("from", String(nextTimeWindow.from));
-			next.set("to", String(nextTimeWindow.to));
+			next.set("from", String(from));
+			next.set("to", String(to));
 			next.delete("range");
 			next.delete("runStartedAt");
 		});
-		refreshProjectQueries();
 	}
 
 	function updateRefresh(nextRefresh: InsightRefreshInterval) {
@@ -1078,9 +1099,17 @@ export function InsightPage() {
 	function selectGroup(row: InsightGroupRow) {
 		updateSearchParams(next => {
 			if (row.groupBy === "check") {
-				next.set("checkId", row.id);
+				if (activeCheckId === row.id) {
+					next.delete("checkId");
+				} else {
+					next.set("checkId", row.id);
+				}
 			} else {
-				next.set("probeId", row.id);
+				if (activeProbeId === row.id) {
+					next.delete("probeId");
+				} else {
+					next.set("probeId", row.id);
+				}
 			}
 			next.delete("runStartedAt");
 		});
@@ -1088,8 +1117,16 @@ export function InsightPage() {
 
 	function selectPair(pair: InsightPair) {
 		updateSearchParams(next => {
-			next.set("probeId", pair.probeId);
-			next.set("checkId", pair.checkId);
+			if (exactPair?.key === pair.key) {
+				if (groupBy === "check") {
+					next.delete("probeId");
+				} else {
+					next.delete("checkId");
+				}
+			} else {
+				next.set("probeId", pair.probeId);
+				next.set("checkId", pair.checkId);
+			}
 			next.delete("runStartedAt");
 		});
 	}
@@ -1153,6 +1190,7 @@ export function InsightPage() {
 				})
 			}
 			timeLabel={displayTimeRange(timeMode, timeRange, timeWindow)}
+			onSelectTimeWindow={applyAbsoluteWindow}
 		/>
 	);
 

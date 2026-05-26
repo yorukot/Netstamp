@@ -1,4 +1,21 @@
 .chart {
+	position: relative;
 	width: 100%;
 	min-height: 10rem;
+}
+
+.chart[data-selectable="true"] {
+	cursor: crosshair;
+	touch-action: none;
+	user-select: none;
+}
+
+.chart[data-selectable="true"] .chartSurface,
+.chart[data-selectable="true"] canvas {
+	cursor: crosshair !important;
+}
+
+.chartSurface {
+	position: absolute;
+	inset: 0;
 }
