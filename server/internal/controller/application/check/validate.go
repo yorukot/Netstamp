@@ -795,65 +795,92 @@ func normalizeSelector(selector map[string]any) (json.RawMessage, error) {
 func normalizeCreateTypeConfig(checkType domaincheck.Type, pingInput *PingConfigInput, tcpInput *TCPConfigInput, tracerouteInput *TracerouteConfigInput) (*domainping.Config, *domaintcp.Config, *domaintraceroute.Config, error) {
 	switch checkType {
 	case domaincheck.TypePing:
-		var validation appvalidation.Collector
-		if tcpInput != nil {
-			validation.Add("tcpConfig", "must be omitted for ping checks", tcpInput)
-		}
-		if tracerouteInput != nil {
-			validation.Add("tracerouteConfig", "must be omitted for ping checks", tracerouteInput)
-		}
-		config, err := normalizePingConfig(pingInput)
+		config, err := normalizeCreatePingTypeConfig(pingInput, tcpInput, tracerouteInput)
 		if err != nil {
-			if !validation.AddValidation(err) {
-				return nil, nil, nil, err
-			}
-		}
-		if err := validation.Err(ErrInvalidInput); err != nil {
 			return nil, nil, nil, err
 		}
 
-		return &config, nil, nil, nil
+		return config, nil, nil, nil
 	case domaincheck.TypeTCP:
-		var validation appvalidation.Collector
-		if pingInput != nil {
-			validation.Add("pingConfig", "must be omitted for tcp checks", pingInput)
-		}
-		if tracerouteInput != nil {
-			validation.Add("tracerouteConfig", "must be omitted for tcp checks", tracerouteInput)
-		}
-		config, err := normalizeTCPConfig(tcpInput)
+		config, err := normalizeCreateTCPTypeConfig(pingInput, tcpInput, tracerouteInput)
 		if err != nil {
-			if !validation.AddValidation(err) {
-				return nil, nil, nil, err
-			}
-		}
-		if err := validation.Err(ErrInvalidInput); err != nil {
 			return nil, nil, nil, err
 		}
 
-		return nil, &config, nil, nil
+		return nil, config, nil, nil
 	case domaincheck.TypeTraceroute:
-		var validation appvalidation.Collector
-		if pingInput != nil {
-			validation.Add("pingConfig", "must be omitted for traceroute checks", pingInput)
-		}
-		if tcpInput != nil {
-			validation.Add("tcpConfig", "must be omitted for traceroute checks", tcpInput)
-		}
-		config, err := normalizeTracerouteConfig(tracerouteInput)
+		config, err := normalizeCreateTracerouteTypeConfig(pingInput, tcpInput, tracerouteInput)
 		if err != nil {
-			if !validation.AddValidation(err) {
-				return nil, nil, nil, err
-			}
-		}
-		if err := validation.Err(ErrInvalidInput); err != nil {
 			return nil, nil, nil, err
 		}
 
-		return nil, nil, &config, nil
+		return nil, nil, config, nil
 	default:
 		return nil, nil, nil, invalidCheckField("type", "unsupported check type", string(checkType))
 	}
+}
+
+func normalizeCreatePingTypeConfig(pingInput *PingConfigInput, tcpInput *TCPConfigInput, tracerouteInput *TracerouteConfigInput) (*domainping.Config, error) {
+	var validation appvalidation.Collector
+	if tcpInput != nil {
+		validation.Add("tcpConfig", "must be omitted for ping checks", tcpInput)
+	}
+	if tracerouteInput != nil {
+		validation.Add("tracerouteConfig", "must be omitted for ping checks", tracerouteInput)
+	}
+	config, err := normalizePingConfig(pingInput)
+	if err != nil {
+		if !validation.AddValidation(err) {
+			return nil, err
+		}
+	}
+	if err := validation.Err(ErrInvalidInput); err != nil {
+		return nil, err
+	}
+
+	return &config, nil
+}
+
+func normalizeCreateTCPTypeConfig(pingInput *PingConfigInput, tcpInput *TCPConfigInput, tracerouteInput *TracerouteConfigInput) (*domaintcp.Config, error) {
+	var validation appvalidation.Collector
+	if pingInput != nil {
+		validation.Add("pingConfig", "must be omitted for tcp checks", pingInput)
+	}
+	if tracerouteInput != nil {
+		validation.Add("tracerouteConfig", "must be omitted for tcp checks", tracerouteInput)
+	}
+	config, err := normalizeTCPConfig(tcpInput)
+	if err != nil {
+		if !validation.AddValidation(err) {
+			return nil, err
+		}
+	}
+	if err := validation.Err(ErrInvalidInput); err != nil {
+		return nil, err
+	}
+
+	return &config, nil
+}
+
+func normalizeCreateTracerouteTypeConfig(pingInput *PingConfigInput, tcpInput *TCPConfigInput, tracerouteInput *TracerouteConfigInput) (*domaintraceroute.Config, error) {
+	var validation appvalidation.Collector
+	if pingInput != nil {
+		validation.Add("pingConfig", "must be omitted for traceroute checks", pingInput)
+	}
+	if tcpInput != nil {
+		validation.Add("tcpConfig", "must be omitted for traceroute checks", tcpInput)
+	}
+	config, err := normalizeTracerouteConfig(tracerouteInput)
+	if err != nil {
+		if !validation.AddValidation(err) {
+			return nil, err
+		}
+	}
+	if err := validation.Err(ErrInvalidInput); err != nil {
+		return nil, err
+	}
+
+	return &config, nil
 }
 
 func normalizePingConfig(input *PingConfigInput) (domainping.Config, error) {

@@ -135,65 +135,81 @@ func normalizeResultGroup(input RuntimeResultGroupInput, index int) (normalizedR
 	}
 
 	checkType := domaincheck.Type(strings.TrimSpace(input.Type))
-	if checkType != domaincheck.TypePing && checkType != domaincheck.TypeTCP && checkType != domaincheck.TypeTraceroute {
+	if !isSupportedResultGroupType(checkType) {
 		validation.Add(resultGroupField(index, "type"), "unsupported result type", input.Type)
 	}
-	if validation.HasErrors() && checkType != domaincheck.TypePing && checkType != domaincheck.TypeTCP && checkType != domaincheck.TypeTraceroute {
+	if validation.HasErrors() && !isSupportedResultGroupType(checkType) {
 		return normalizedResultGroup{}, validation.Err(ErrInvalidInput)
 	}
 
 	switch checkType {
 	case domaincheck.TypePing:
-		validateResultGroupShape(&validation, index, "ping", input.Ping, map[string]int{
-			"tcp":        len(input.TCP),
-			"traceroute": len(input.Traceroute),
-		})
-		pingResults := normalizeRuntimeResults(input.Ping, index, "ping", normalizePingResult, &validation)
-		if err := validation.Err(ErrInvalidInput); err != nil {
-			return normalizedResultGroup{}, err
-		}
-
-		return normalizedResultGroup{
-			checkID:   checkID,
-			checkType: checkType,
-			ping:      pingResults,
-			index:     index,
-		}, nil
+		return normalizePingResultGroup(input, index, checkID, &validation)
 	case domaincheck.TypeTCP:
-		validateResultGroupShape(&validation, index, "tcp", input.TCP, map[string]int{
-			"ping":       len(input.Ping),
-			"traceroute": len(input.Traceroute),
-		})
-		tcpResults := normalizeRuntimeResults(input.TCP, index, "tcp", normalizeTCPResult, &validation)
-		if err := validation.Err(ErrInvalidInput); err != nil {
-			return normalizedResultGroup{}, err
-		}
-
-		return normalizedResultGroup{
-			checkID:   checkID,
-			checkType: checkType,
-			tcp:       tcpResults,
-			index:     index,
-		}, nil
+		return normalizeTCPResultGroup(input, index, checkID, &validation)
 	case domaincheck.TypeTraceroute:
-		validateResultGroupShape(&validation, index, "traceroute", input.Traceroute, map[string]int{
-			"ping": len(input.Ping),
-			"tcp":  len(input.TCP),
-		})
-		tracerouteResults := normalizeRuntimeResults(input.Traceroute, index, "traceroute", normalizeTracerouteResult, &validation)
-		if err := validation.Err(ErrInvalidInput); err != nil {
-			return normalizedResultGroup{}, err
-		}
-
-		return normalizedResultGroup{
-			checkID:    checkID,
-			checkType:  checkType,
-			traceroute: tracerouteResults,
-			index:      index,
-		}, nil
+		return normalizeTracerouteResultGroup(input, index, checkID, &validation)
 	default:
 		return normalizedResultGroup{}, invalidRuntimeField(resultGroupField(index, "type"), "unsupported result type", input.Type)
 	}
+}
+
+func isSupportedResultGroupType(checkType domaincheck.Type) bool {
+	return checkType == domaincheck.TypePing || checkType == domaincheck.TypeTCP || checkType == domaincheck.TypeTraceroute
+}
+
+func normalizePingResultGroup(input RuntimeResultGroupInput, index int, checkID string, validation *appvalidation.Collector) (normalizedResultGroup, error) {
+	validateResultGroupShape(validation, index, "ping", input.Ping, map[string]int{
+		"tcp":        len(input.TCP),
+		"traceroute": len(input.Traceroute),
+	})
+	pingResults := normalizeRuntimeResults(input.Ping, index, "ping", normalizePingResult, validation)
+	if err := validation.Err(ErrInvalidInput); err != nil {
+		return normalizedResultGroup{}, err
+	}
+
+	return normalizedResultGroup{
+		checkID:   checkID,
+		checkType: domaincheck.TypePing,
+		ping:      pingResults,
+		index:     index,
+	}, nil
+}
+
+func normalizeTCPResultGroup(input RuntimeResultGroupInput, index int, checkID string, validation *appvalidation.Collector) (normalizedResultGroup, error) {
+	validateResultGroupShape(validation, index, "tcp", input.TCP, map[string]int{
+		"ping":       len(input.Ping),
+		"traceroute": len(input.Traceroute),
+	})
+	tcpResults := normalizeRuntimeResults(input.TCP, index, "tcp", normalizeTCPResult, validation)
+	if err := validation.Err(ErrInvalidInput); err != nil {
+		return normalizedResultGroup{}, err
+	}
+
+	return normalizedResultGroup{
+		checkID:   checkID,
+		checkType: domaincheck.TypeTCP,
+		tcp:       tcpResults,
+		index:     index,
+	}, nil
+}
+
+func normalizeTracerouteResultGroup(input RuntimeResultGroupInput, index int, checkID string, validation *appvalidation.Collector) (normalizedResultGroup, error) {
+	validateResultGroupShape(validation, index, "traceroute", input.Traceroute, map[string]int{
+		"ping": len(input.Ping),
+		"tcp":  len(input.TCP),
+	})
+	tracerouteResults := normalizeRuntimeResults(input.Traceroute, index, "traceroute", normalizeTracerouteResult, validation)
+	if err := validation.Err(ErrInvalidInput); err != nil {
+		return normalizedResultGroup{}, err
+	}
+
+	return normalizedResultGroup{
+		checkID:    checkID,
+		checkType:  domaincheck.TypeTraceroute,
+		traceroute: tracerouteResults,
+		index:      index,
+	}, nil
 }
 
 func validateResultGroupShape[T any](validation *appvalidation.Collector, index int, requiredField string, required []T, omitted map[string]int) {
