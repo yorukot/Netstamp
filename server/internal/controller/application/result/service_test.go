@@ -258,11 +258,13 @@ func TestQueryTracerouteTopologyAggregatesRuns(t *testing.T) {
 	rttOne := 1.0
 	rttThree := 3.0
 	rttTen := 10.0
+	firstRunStartedAt := now.Add(-time.Minute)
+	secondRunStartedAt := now.Add(-2 * time.Minute)
 	traceroutes := &recordingTracerouteRunsRepository{
 		topologyResult: domaintraceroute.TopologyRunResult{
 			Runs: []domaintraceroute.TopologyRun{
 				{
-					StartedAt:  now.Add(-time.Minute),
+					StartedAt:  firstRunStartedAt,
 					ProbeID:    testProbeID,
 					ProbeName:  "fra-bm-02",
 					CheckID:    testCheckID,
@@ -275,7 +277,7 @@ func TestQueryTracerouteTopologyAggregatesRuns(t *testing.T) {
 					},
 				},
 				{
-					StartedAt:  now.Add(-2 * time.Minute),
+					StartedAt:  secondRunStartedAt,
 					ProbeID:    testProbeID,
 					ProbeName:  "fra-bm-02",
 					CheckID:    testCheckID,
@@ -315,28 +317,295 @@ func TestQueryTracerouteTopologyAggregatesRuns(t *testing.T) {
 	if probeNode.Kind != "probe" || probeNode.SeenCount != 2 || probeNode.ProbeID == nil || *probeNode.ProbeID != testProbeID {
 		t.Fatalf("unexpected probe node: %#v", probeNode)
 	}
-	gatewayNode := topologyNodeByID(t, output.Nodes, "ip:"+gateway.String())
+	gatewayNodeID := "ip:1:" + gateway.String()
+	destinationNodeID := "ip:2:" + destination.String()
+
+	gatewayNode := topologyNodeByID(t, output.Nodes, gatewayNodeID)
 	if gatewayNode.SeenCount != 2 || gatewayNode.Hostname == nil || *gatewayNode.Hostname != gatewayName {
 		t.Fatalf("unexpected gateway node: %#v", gatewayNode)
 	}
 	if gatewayNode.AvgRttMs == nil || *gatewayNode.AvgRttMs != 2 || gatewayNode.LossPercent == nil || *gatewayNode.LossPercent != 5 {
 		t.Fatalf("unexpected gateway aggregate metrics: %#v", gatewayNode)
 	}
-	destinationNode := topologyNodeByID(t, output.Nodes, "ip:"+destination.String())
+	destinationNode := topologyNodeByID(t, output.Nodes, destinationNodeID)
 	if destinationNode.Kind != "destination" || destinationNode.SeenCount != 1 {
 		t.Fatalf("unexpected destination node: %#v", destinationNode)
 	}
-	unknownNode := topologyNodeByID(t, output.Nodes, "unknown:2")
-	if unknownNode.Kind != "unknown" || unknownNode.SeenCount != 1 || unknownNode.LossPercent == nil || *unknownNode.LossPercent != 100 {
-		t.Fatalf("unexpected unknown node: %#v", unknownNode)
+	if topologyNodeExists(output.Nodes, topologyTimeoutNodeID(2)) {
+		t.Fatalf("timeout node should be suppressed because this traceroute hop has a known response: %#v", output.Nodes)
 	}
 
-	probeGatewayEdge := topologyEdgeByID(t, output.Edges, "probe:"+testProbeID+"->ip:"+gateway.String())
+	probeGatewayEdge := topologyEdgeByID(t, output.Edges, "probe:"+testProbeID+"->"+gatewayNodeID)
 	if probeGatewayEdge.SeenCount != 2 || probeGatewayEdge.AvgRttMs == nil || *probeGatewayEdge.AvgRttMs != 2 {
 		t.Fatalf("unexpected probe gateway edge: %#v", probeGatewayEdge)
 	}
-	if len(output.Edges) != 3 {
-		t.Fatalf("expected three topology edges, got %#v", output.Edges)
+	if len(output.Edges) != 2 {
+		t.Fatalf("expected two topology edges, got %#v", output.Edges)
+	}
+}
+
+func TestNewTracerouteTopologyPreservesBoundedTimeouts(t *testing.T) {
+	startedAt := time.Date(2026, 5, 13, 12, 0, 0, 0, time.UTC)
+	gateway := netip.MustParseAddr("192.0.2.1")
+	destination := netip.MustParseAddr("203.0.113.20")
+	rttOne := 1.0
+	rttTen := 10.0
+
+	nodes, edges := newTracerouteTopology([]domaintraceroute.TopologyRun{{
+		StartedAt:  startedAt,
+		ProbeID:    testProbeID,
+		ProbeName:  "fra-bm-02",
+		CheckID:    testCheckID,
+		CheckName:  "validator-route",
+		Target:     "validator.example",
+		ResolvedIP: &destination,
+		Hops: []domaintraceroute.TopologyHop{
+			{HopIndex: 1, Address: &gateway, LossPercent: 0, RttAvgMs: &rttOne},
+			{HopIndex: 2, LossPercent: 100},
+			{HopIndex: 3, Address: &destination, LossPercent: 0, RttAvgMs: &rttTen},
+		},
+	}})
+
+	gatewayNodeID := "ip:1:" + gateway.String()
+	timeoutNodeID := topologyTimeoutNodeID(2)
+	destinationNodeID := "ip:3:" + destination.String()
+	if len(nodes) != 4 {
+		t.Fatalf("expected probe, gateway, timeout, and destination nodes, got %#v", nodes)
+	}
+	if len(edges) != 3 {
+		t.Fatalf("expected route edges through bounded timeout, got %#v", edges)
+	}
+	topologyEdgeByID(t, edges, "probe:"+testProbeID+"->"+gatewayNodeID)
+	timeoutNode := topologyNodeByID(t, nodes, timeoutNodeID)
+	if timeoutNode.Kind != "unknown" || timeoutNode.HopIndex == nil || *timeoutNode.HopIndex != 2 {
+		t.Fatalf("unexpected bounded timeout node: %#v", timeoutNode)
+	}
+	timeoutEdge := topologyEdgeByID(t, edges, gatewayNodeID+"->"+timeoutNodeID)
+	if timeoutEdge.LossPercent == nil || *timeoutEdge.LossPercent != 100 {
+		t.Fatalf("timeout loss should stay on the timeout edge: %#v", timeoutEdge)
+	}
+	topologyEdgeByID(t, edges, timeoutNodeID+"->"+destinationNodeID)
+	if topologyEdgeExists(edges, gatewayNodeID+"->"+destinationNodeID) {
+		t.Fatalf("bounded timeout should not be hidden behind a direct edge: %#v", edges)
+	}
+}
+
+func TestNewTracerouteTopologyMergesTimeoutsForSameTracerouteHop(t *testing.T) {
+	firstStartedAt := time.Date(2026, 5, 13, 12, 0, 0, 0, time.UTC)
+	secondStartedAt := firstStartedAt.Add(time.Minute)
+	gateway := netip.MustParseAddr("192.0.2.1")
+
+	nodes, _ := newTracerouteTopology([]domaintraceroute.TopologyRun{
+		{
+			StartedAt: firstStartedAt,
+			ProbeID:   testProbeID,
+			ProbeName: "fra-bm-02",
+			CheckID:   testCheckID,
+			CheckName: "validator-route",
+			Target:    "validator.example",
+			Hops: []domaintraceroute.TopologyHop{
+				{HopIndex: 1, Address: &gateway, LossPercent: 0},
+				{HopIndex: 2, LossPercent: 100},
+			},
+		},
+		{
+			StartedAt: secondStartedAt,
+			ProbeID:   testProbeID,
+			ProbeName: "fra-bm-02",
+			CheckID:   testCheckID,
+			CheckName: "validator-route",
+			Target:    "validator.example",
+			Hops: []domaintraceroute.TopologyHop{
+				{HopIndex: 1, Address: &gateway, LossPercent: 0},
+				{HopIndex: 2, LossPercent: 100},
+			},
+		},
+	})
+
+	timeoutNodeID := topologyTimeoutNodeID(2)
+	timeoutNode := topologyNodeByID(t, nodes, timeoutNodeID)
+	if timeoutNode.Kind != "unknown" || timeoutNode.SeenCount != 2 {
+		t.Fatalf("expected same traceroute hop timeouts to merge, got %#v", timeoutNode)
+	}
+}
+
+func TestNewTracerouteTopologySuppressesTimeoutWhenTracerouteHopHasKnownResponse(t *testing.T) {
+	firstStartedAt := time.Date(2026, 5, 13, 12, 0, 0, 0, time.UTC)
+	secondStartedAt := firstStartedAt.Add(time.Minute)
+	gateway := netip.MustParseAddr("192.0.2.1")
+	knownHop := netip.MustParseAddr("198.51.100.10")
+
+	nodes, edges := newTracerouteTopology([]domaintraceroute.TopologyRun{
+		{
+			StartedAt: firstStartedAt,
+			ProbeID:   testProbeID,
+			ProbeName: "fra-bm-02",
+			CheckID:   testCheckID,
+			CheckName: "validator-route",
+			Target:    "validator.example",
+			Hops: []domaintraceroute.TopologyHop{
+				{HopIndex: 1, Address: &gateway, LossPercent: 0},
+				{HopIndex: 2, LossPercent: 100},
+			},
+		},
+		{
+			StartedAt: secondStartedAt,
+			ProbeID:   testProbeID,
+			ProbeName: "fra-bm-02",
+			CheckID:   testCheckID,
+			CheckName: "validator-route",
+			Target:    "validator.example",
+			Hops: []domaintraceroute.TopologyHop{
+				{HopIndex: 1, Address: &gateway, LossPercent: 0},
+				{HopIndex: 2, Address: &knownHop, LossPercent: 0},
+			},
+		},
+	})
+
+	gatewayNodeID := "ip:1:" + gateway.String()
+	knownHopNodeID := "ip:2:" + knownHop.String()
+	timeoutNodeID := topologyTimeoutNodeID(2)
+	if topologyNodeExists(nodes, timeoutNodeID) {
+		t.Fatalf("timeout node should be suppressed when the traceroute hop has a known response: %#v", nodes)
+	}
+	topologyNodeByID(t, nodes, knownHopNodeID)
+	topologyEdgeByID(t, edges, gatewayNodeID+"->"+knownHopNodeID)
+}
+
+func TestNewTracerouteTopologyKeepsTimeoutsSeparatePerTraceroute(t *testing.T) {
+	startedAt := time.Date(2026, 5, 13, 12, 0, 0, 0, time.UTC)
+	otherCheckID := "55555555-5555-5555-5555-555555555555"
+	gateway := netip.MustParseAddr("192.0.2.1")
+
+	nodes, _ := newTracerouteTopology([]domaintraceroute.TopologyRun{
+		{
+			StartedAt: startedAt,
+			ProbeID:   testProbeID,
+			ProbeName: "fra-bm-02",
+			CheckID:   testCheckID,
+			CheckName: "validator-route",
+			Target:    "validator.example",
+			Hops: []domaintraceroute.TopologyHop{
+				{HopIndex: 1, Address: &gateway, LossPercent: 0},
+				{HopIndex: 2, LossPercent: 100},
+			},
+		},
+		{
+			StartedAt: startedAt,
+			ProbeID:   testProbeID,
+			ProbeName: "fra-bm-02",
+			CheckID:   otherCheckID,
+			CheckName: "alternate-route",
+			Target:    "alternate.example",
+			Hops: []domaintraceroute.TopologyHop{
+				{HopIndex: 1, Address: &gateway, LossPercent: 0},
+				{HopIndex: 2, LossPercent: 100},
+			},
+		},
+	})
+
+	firstTimeout := topologyNodeByID(t, nodes, topologyTimeoutNodeIDFor(testProbeID, testCheckID, 2))
+	secondTimeout := topologyNodeByID(t, nodes, topologyTimeoutNodeIDFor(testProbeID, otherCheckID, 2))
+	if firstTimeout.ID == secondTimeout.ID || firstTimeout.SeenCount != 1 || secondTimeout.SeenCount != 1 {
+		t.Fatalf("expected one timeout node per traceroute hop, got %#v and %#v", firstTimeout, secondTimeout)
+	}
+}
+
+func TestNewTracerouteTopologyPrefersKnownHopOverTimeoutForSameRunHop(t *testing.T) {
+	startedAt := time.Date(2026, 5, 13, 12, 0, 0, 0, time.UTC)
+	gateway := netip.MustParseAddr("192.0.2.1")
+	hopAddress := netip.MustParseAddr("198.51.100.10")
+	destination := netip.MustParseAddr("203.0.113.20")
+
+	nodes, edges := newTracerouteTopology([]domaintraceroute.TopologyRun{{
+		StartedAt:  startedAt,
+		ProbeID:    testProbeID,
+		ProbeName:  "fra-bm-02",
+		CheckID:    testCheckID,
+		CheckName:  "validator-route",
+		Target:     "validator.example",
+		ResolvedIP: &destination,
+		Hops: []domaintraceroute.TopologyHop{
+			{HopIndex: 1, Address: &gateway, LossPercent: 0},
+			{HopIndex: 2, LossPercent: 100},
+			{HopIndex: 2, Address: &hopAddress, LossPercent: 50},
+			{HopIndex: 3, Address: &destination, LossPercent: 0},
+		},
+	}})
+
+	gatewayNodeID := "ip:1:" + gateway.String()
+	knownHopNodeID := "ip:2:" + hopAddress.String()
+	destinationNodeID := "ip:3:" + destination.String()
+	timeoutNodeID := topologyTimeoutNodeID(2)
+	if topologyNodeExists(nodes, timeoutNodeID) {
+		t.Fatalf("timeout node should be suppressed when the same run hop has a known address: %#v", nodes)
+	}
+	topologyNodeByID(t, nodes, knownHopNodeID)
+	topologyEdgeByID(t, edges, gatewayNodeID+"->"+knownHopNodeID)
+	topologyEdgeByID(t, edges, knownHopNodeID+"->"+destinationNodeID)
+}
+
+func TestNewTracerouteTopologyMergesDuplicateTimeoutsForSameRunHop(t *testing.T) {
+	startedAt := time.Date(2026, 5, 13, 12, 0, 0, 0, time.UTC)
+	gateway := netip.MustParseAddr("192.0.2.1")
+	destination := netip.MustParseAddr("203.0.113.20")
+
+	nodes, edges := newTracerouteTopology([]domaintraceroute.TopologyRun{{
+		StartedAt:  startedAt,
+		ProbeID:    testProbeID,
+		ProbeName:  "fra-bm-02",
+		CheckID:    testCheckID,
+		CheckName:  "validator-route",
+		Target:     "validator.example",
+		ResolvedIP: &destination,
+		Hops: []domaintraceroute.TopologyHop{
+			{HopIndex: 1, Address: &gateway, LossPercent: 0},
+			{HopIndex: 2, LossPercent: 100},
+			{HopIndex: 2, LossPercent: 100},
+			{HopIndex: 3, Address: &destination, LossPercent: 0},
+		},
+	}})
+
+	timeoutNodeID := topologyTimeoutNodeID(2)
+	timeoutNode := topologyNodeByID(t, nodes, timeoutNodeID)
+	if timeoutNode.SeenCount != 1 {
+		t.Fatalf("expected duplicate same-run timeout hops to aggregate into one observation, got %#v", timeoutNode)
+	}
+	if topologyEdgeExists(edges, timeoutNodeID+"->"+timeoutNodeID) {
+		t.Fatalf("duplicate same-run timeout hops should not create a self edge: %#v", edges)
+	}
+}
+
+func TestNewTracerouteTopologyScopesKnownHopNodesByHopIndex(t *testing.T) {
+	repeatedHop := netip.MustParseAddr("192.0.2.1")
+
+	nodes, _ := newTracerouteTopology([]domaintraceroute.TopologyRun{
+		{
+			ProbeID:   testProbeID,
+			ProbeName: "fra-bm-02",
+			CheckID:   testCheckID,
+			CheckName: "validator-route",
+			Target:    "validator.example",
+			Hops: []domaintraceroute.TopologyHop{
+				{HopIndex: 1, Address: &repeatedHop, LossPercent: 0},
+			},
+		},
+		{
+			ProbeID:   testProbeID,
+			ProbeName: "fra-bm-02",
+			CheckID:   testCheckID,
+			CheckName: "validator-route",
+			Target:    "validator.example",
+			Hops: []domaintraceroute.TopologyHop{
+				{HopIndex: 2, Address: &repeatedHop, LossPercent: 0},
+			},
+		},
+	})
+
+	firstLayerNode := topologyNodeByID(t, nodes, "ip:1:"+repeatedHop.String())
+	secondLayerNode := topologyNodeByID(t, nodes, "ip:2:"+repeatedHop.String())
+	if firstLayerNode.HopIndex == nil || *firstLayerNode.HopIndex != 1 || secondLayerNode.HopIndex == nil || *secondLayerNode.HopIndex != 2 {
+		t.Fatalf("expected separate hop-layer nodes, got %#v and %#v", firstLayerNode, secondLayerNode)
 	}
 }
 
@@ -405,6 +674,15 @@ func topologyNodeByID(t *testing.T, nodes []TracerouteTopologyNode, id string) T
 	return TracerouteTopologyNode{}
 }
 
+func topologyNodeExists(nodes []TracerouteTopologyNode, id string) bool {
+	for _, node := range nodes {
+		if node.ID == id {
+			return true
+		}
+	}
+	return false
+}
+
 func topologyEdgeByID(t *testing.T, edges []TracerouteTopologyEdge, id string) TracerouteTopologyEdge {
 	t.Helper()
 
@@ -415,6 +693,29 @@ func topologyEdgeByID(t *testing.T, edges []TracerouteTopologyEdge, id string) T
 	}
 	t.Fatalf("expected topology edge %q in %#v", id, edges)
 	return TracerouteTopologyEdge{}
+}
+
+func topologyEdgeExists(edges []TracerouteTopologyEdge, id string) bool {
+	for _, edge := range edges {
+		if edge.ID == id {
+			return true
+		}
+	}
+	return false
+}
+
+func topologyTimeoutNodeID(hopIndex int32) string {
+	return topologyTimeoutNodeIDFor(testProbeID, testCheckID, hopIndex)
+}
+
+func topologyTimeoutNodeIDFor(probeID, checkID string, hopIndex int32) string {
+	return topologyTimeoutNode(
+		domaintraceroute.TopologyRun{
+			ProbeID: probeID,
+			CheckID: checkID,
+		},
+		domaintraceroute.TopologyHop{HopIndex: hopIndex},
+	).ID
 }
 
 func float64Pointer(value float64) *float64 {

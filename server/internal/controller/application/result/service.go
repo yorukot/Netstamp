@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"go.opentelemetry.io/otel/codes"
@@ -504,11 +505,18 @@ type tracerouteTopologyEdgeAggregate struct {
 	lossCount int32
 }
 
+type tracerouteHopKey struct {
+	probeID  string
+	checkID  string
+	hopIndex int32
+}
+
 func newTracerouteTopology(runs []domaintraceroute.TopologyRun) ([]TracerouteTopologyNode, []TracerouteTopologyEdge) {
 	nodeIndex := make(map[string]int)
 	edgeIndex := make(map[string]int)
 	nodes := make([]tracerouteTopologyNodeAggregate, 0)
 	edges := make([]tracerouteTopologyEdgeAggregate, 0)
+	knownHopIndex := topologyKnownHopIndex(runs)
 
 	for _, run := range runs {
 		probeNode := topologyProbeNode(run)
@@ -516,8 +524,17 @@ func newTracerouteTopology(runs []domaintraceroute.TopologyRun) ([]TracerouteTop
 		nodes[probeIndex].node.SeenCount++
 
 		sourceID := probeNode.ID
-		for _, hop := range run.Hops {
-			hopNode := topologyHopNode(run, hop)
+		for _, hop := range topologyRunHops(run.Hops) {
+			var hopNode TracerouteTopologyNode
+			if hop.Address == nil {
+				if knownHopIndex[tracerouteHopKey{probeID: run.ProbeID, checkID: run.CheckID, hopIndex: hop.HopIndex}] {
+					continue
+				}
+				hopNode = topologyTimeoutNode(run, hop)
+			} else {
+				hopNode = topologyHopNode(run, hop)
+			}
+
 			hopIndex := upsertTopologyNode(&nodes, nodeIndex, hopNode)
 			addTopologyNodeSample(&nodes[hopIndex], hop.RttAvgMs, &hop.LossPercent)
 
@@ -546,6 +563,63 @@ func newTracerouteTopology(runs []domaintraceroute.TopologyRun) ([]TracerouteTop
 	return outputNodes, outputEdges
 }
 
+func topologyKnownHopIndex(runs []domaintraceroute.TopologyRun) map[tracerouteHopKey]bool {
+	values := make(map[tracerouteHopKey]bool)
+	for _, run := range runs {
+		for _, hop := range run.Hops {
+			if hop.Address == nil {
+				continue
+			}
+			values[tracerouteHopKey{probeID: run.ProbeID, checkID: run.CheckID, hopIndex: hop.HopIndex}] = true
+		}
+	}
+	return values
+}
+
+func topologyRunHops(hops []domaintraceroute.TopologyHop) []domaintraceroute.TopologyHop {
+	hopByIndex := make(map[int32]domaintraceroute.TopologyHop, len(hops))
+
+	for _, hop := range hops {
+		existing, ok := hopByIndex[hop.HopIndex]
+		if !ok || topologyPreferHop(existing, hop) {
+			hopByIndex[hop.HopIndex] = hop
+		}
+	}
+
+	values := make([]domaintraceroute.TopologyHop, 0, len(hopByIndex))
+	for _, hop := range hopByIndex {
+		values = append(values, hop)
+	}
+	slices.SortFunc(values, func(a, b domaintraceroute.TopologyHop) int {
+		switch {
+		case a.HopIndex < b.HopIndex:
+			return -1
+		case a.HopIndex > b.HopIndex:
+			return 1
+		default:
+			return 0
+		}
+	})
+
+	return values
+}
+
+func topologyPreferHop(existing, next domaintraceroute.TopologyHop) bool {
+	if existing.Address == nil && next.Address != nil {
+		return true
+	}
+	if existing.Address != nil && next.Address == nil {
+		return false
+	}
+	if existing.Hostname == nil && next.Hostname != nil {
+		return true
+	}
+	if existing.RttAvgMs == nil && next.RttAvgMs != nil {
+		return true
+	}
+	return false
+}
+
 func topologyProbeNode(run domaintraceroute.TopologyRun) TracerouteTopologyNode {
 	return TracerouteTopologyNode{
 		ID:      "probe:" + run.ProbeID,
@@ -557,15 +631,6 @@ func topologyProbeNode(run domaintraceroute.TopologyRun) TracerouteTopologyNode 
 
 func topologyHopNode(run domaintraceroute.TopologyRun, hop domaintraceroute.TopologyHop) TracerouteTopologyNode {
 	hopIndex := hop.HopIndex
-	if hop.Address == nil {
-		return TracerouteTopologyNode{
-			ID:       fmt.Sprintf("unknown:%d", hop.HopIndex),
-			Kind:     "unknown",
-			Label:    fmt.Sprintf("hop %d timeout", hop.HopIndex),
-			HopIndex: &hopIndex,
-		}
-	}
-
 	kind := "hop"
 	if run.ResolvedIP != nil && *run.ResolvedIP == *hop.Address {
 		kind = "destination"
@@ -576,7 +641,7 @@ func topologyHopNode(run domaintraceroute.TopologyRun, hop domaintraceroute.Topo
 	}
 
 	return TracerouteTopologyNode{
-		ID:       "ip:" + hop.Address.String(),
+		ID:       fmt.Sprintf("ip:%d:%s", hop.HopIndex, hop.Address.String()),
 		Kind:     kind,
 		Label:    label,
 		Address:  hop.Address,
@@ -585,14 +650,47 @@ func topologyHopNode(run domaintraceroute.TopologyRun, hop domaintraceroute.Topo
 	}
 }
 
+func topologyTimeoutNode(run domaintraceroute.TopologyRun, hop domaintraceroute.TopologyHop) TracerouteTopologyNode {
+	hopIndex := hop.HopIndex
+	return TracerouteTopologyNode{
+		ID:       fmt.Sprintf("timeout:%s:%s:%d", run.ProbeID, run.CheckID, hop.HopIndex),
+		Kind:     "unknown",
+		Label:    fmt.Sprintf("hop %d timeout", hop.HopIndex),
+		HopIndex: &hopIndex,
+	}
+}
+
 func upsertTopologyNode(nodes *[]tracerouteTopologyNodeAggregate, index map[string]int, node TracerouteTopologyNode) int {
 	if existing, ok := index[node.ID]; ok {
+		mergeTopologyNode(&(*nodes)[existing].node, node)
 		return existing
 	}
 	next := len(*nodes)
 	index[node.ID] = next
 	*nodes = append(*nodes, tracerouteTopologyNodeAggregate{node: node})
 	return next
+}
+
+func mergeTopologyNode(existing *TracerouteTopologyNode, next TracerouteTopologyNode) {
+	if existing.Kind != "destination" && next.Kind == "destination" {
+		existing.Kind = next.Kind
+	}
+	if existing.Hostname == nil && next.Hostname != nil {
+		existing.Hostname = next.Hostname
+		existing.Label = next.Label
+	}
+	if existing.Address == nil && next.Address != nil {
+		existing.Address = next.Address
+	}
+	if existing.ProbeID == nil && next.ProbeID != nil {
+		existing.ProbeID = next.ProbeID
+	}
+	if existing.CheckID == nil && next.CheckID != nil {
+		existing.CheckID = next.CheckID
+	}
+	if existing.Target == nil && next.Target != nil {
+		existing.Target = next.Target
+	}
 }
 
 func upsertTopologyEdge(edges *[]tracerouteTopologyEdgeAggregate, index map[string]int, source, target string) int {

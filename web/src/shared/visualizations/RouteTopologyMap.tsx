@@ -70,6 +70,20 @@ interface TopologyRouteLayout {
 	routeEndX: number;
 }
 
+type TopologyColumn = [number, RouteTopologyNode[]];
+
+interface TopologyWeightedNeighbor {
+	id: string;
+	weight: number;
+}
+
+interface TopologyNeighborScore {
+	value: number;
+	dominantValue: number;
+	weight: number;
+	hasScore: boolean;
+}
+
 interface TopologyHoverDetail {
 	id: string;
 	title: string;
@@ -165,13 +179,8 @@ function topologyKindRank(kind: RouteTopologyNodeKind) {
 	return 1;
 }
 
-function topologySiblingOffset(index: number) {
-	if (index === 0) {
-		return 0;
-	}
-
-	const distance = Math.ceil(index / 2);
-	return index % 2 === 1 ? -distance : distance;
+function topologySiblingOffset(index: number, total: number) {
+	return index - (total - 1) / 2;
 }
 
 function compactTopologyLabel(value: string) {
@@ -206,6 +215,115 @@ function topologyColumn(node: RouteTopologyNode, maxHop: number) {
 	return maxHop + 2;
 }
 
+function topologyBaseNodeCompare(a: RouteTopologyNode, b: RouteTopologyNode) {
+	return topologyKindRank(a.kind) - topologyKindRank(b.kind) || b.seenCount - a.seenCount || a.label.localeCompare(b.label);
+}
+
+function topologyOrderIndex(columns: TopologyColumn[]) {
+	const order = new Map<string, number>();
+
+	for (const [, siblings] of columns) {
+		siblings.forEach((node, index) => order.set(node.id, index));
+	}
+
+	return order;
+}
+
+function topologyNeighborScore(id: string, neighbors: Map<string, TopologyWeightedNeighbor[]>, order: Map<string, number>): TopologyNeighborScore {
+	const values = neighbors.get(id) ?? [];
+	let weightedSum = 0;
+	let totalWeight = 0;
+	let dominantWeight = 0;
+	let dominantValue = 0;
+
+	for (const neighbor of values) {
+		const neighborOrder = order.get(neighbor.id);
+
+		if (typeof neighborOrder !== "number") {
+			continue;
+		}
+
+		const weight = Math.max(1, neighbor.weight);
+		weightedSum += neighborOrder * weight;
+		totalWeight += weight;
+
+		if (weight > dominantWeight) {
+			dominantWeight = weight;
+			dominantValue = neighborOrder;
+		}
+	}
+
+	if (totalWeight === 0) {
+		return { value: 0, dominantValue: 0, weight: 0, hasScore: false };
+	}
+
+	return {
+		value: weightedSum / totalWeight,
+		dominantValue,
+		weight: totalWeight,
+		hasScore: true
+	};
+}
+
+function topologyReorderSiblings(siblings: RouteTopologyNode[], neighbors: Map<string, TopologyWeightedNeighbor[]>, order: Map<string, number>) {
+	const currentIndex = new Map(siblings.map((node, index) => [node.id, index]));
+
+	return [...siblings].sort((a, b) => {
+		const aScore = topologyNeighborScore(a.id, neighbors, order);
+		const bScore = topologyNeighborScore(b.id, neighbors, order);
+		const aValue = aScore.hasScore ? aScore.value : (currentIndex.get(a.id) ?? 0);
+		const bValue = bScore.hasScore ? bScore.value : (currentIndex.get(b.id) ?? 0);
+		const scoreDelta = aValue - bValue;
+
+		if (Math.abs(scoreDelta) > 0.0001) {
+			return scoreDelta;
+		}
+
+		const dominantDelta = aScore.dominantValue - bScore.dominantValue;
+		if (aScore.hasScore && bScore.hasScore && Math.abs(dominantDelta) > 0.0001) {
+			return dominantDelta;
+		}
+
+		const weightDelta = bScore.weight - aScore.weight;
+		if (Math.abs(weightDelta) > 0.0001) {
+			return weightDelta;
+		}
+
+		return (currentIndex.get(a.id) ?? 0) - (currentIndex.get(b.id) ?? 0) || topologyBaseNodeCompare(a, b);
+	});
+}
+
+function topologyOrderedColumns(nodeColumns: Map<number, RouteTopologyNode[]>, edges: RouteTopologyEdge[]): TopologyColumn[] {
+	const columns: TopologyColumn[] = [...nodeColumns.entries()].sort(([a], [b]) => a - b).map(([column, siblings]) => [column, [...siblings].sort(topologyBaseNodeCompare)]);
+	const knownNodeIds = new Set(columns.flatMap(([, siblings]) => siblings.map(node => node.id)));
+	const incoming = new Map<string, TopologyWeightedNeighbor[]>();
+	const outgoing = new Map<string, TopologyWeightedNeighbor[]>();
+
+	for (const edge of edges) {
+		if (!knownNodeIds.has(edge.source) || !knownNodeIds.has(edge.target)) {
+			continue;
+		}
+
+		incoming.set(edge.target, [...(incoming.get(edge.target) ?? []), { id: edge.source, weight: edge.seenCount }]);
+		outgoing.set(edge.source, [...(outgoing.get(edge.source) ?? []), { id: edge.target, weight: edge.seenCount }]);
+	}
+
+	let order = topologyOrderIndex(columns);
+	for (let pass = 0; pass < 8; pass++) {
+		for (let index = 1; index < columns.length; index++) {
+			columns[index] = [columns[index][0], topologyReorderSiblings(columns[index][1], incoming, order)];
+			order = topologyOrderIndex(columns);
+		}
+
+		for (let index = columns.length - 2; index >= 0; index--) {
+			columns[index] = [columns[index][0], topologyReorderSiblings(columns[index][1], outgoing, order)];
+			order = topologyOrderIndex(columns);
+		}
+	}
+
+	return columns;
+}
+
 function topologyRouteLayout(nodes: RouteTopologyNode[], edges: RouteTopologyEdge[]): TopologyRouteLayout {
 	const maxHop = Math.max(0, ...nodes.map(node => node.hopIndex ?? 0));
 	const sortedNodes = [...nodes].sort((a, b) => topologyColumn(a, maxHop) - topologyColumn(b, maxHop) || b.seenCount - a.seenCount || a.label.localeCompare(b.label));
@@ -217,16 +335,9 @@ function topologyRouteLayout(nodes: RouteTopologyNode[], edges: RouteTopologyEdg
 		nodeColumns.set(column, [...(nodeColumns.get(column) ?? []), node]);
 	}
 
-	for (const [column, siblings] of nodeColumns) {
-		nodeColumns.set(
-			column,
-			[...siblings].sort((a, b) => topologyKindRank(a.kind) - topologyKindRank(b.kind) || b.seenCount - a.seenCount || a.label.localeCompare(b.label))
-		);
-	}
-
-	const columns = [...nodeColumns.entries()].sort(([a], [b]) => a - b);
+	const columns = topologyOrderedColumns(nodeColumns, edges);
 	const maxColumn = Math.max(1, ...columns.map(([column]) => column));
-	const maxOffset = Math.max(0, ...columns.map(([, siblings]) => Math.ceil((siblings.length - 1) / 2)));
+	const maxOffset = Math.max(0, ...columns.map(([, siblings]) => (siblings.length - 1) / 2));
 	const viewWidth = Math.max(topologyMinWidth, topologyPaddingX * 2 + maxColumn * topologyColumnGap);
 	const viewHeight = Math.max(topologyMinHeight, 176 + maxOffset * topologyRowGap * 2);
 	const centerY = viewHeight / 2 - 14;
@@ -234,7 +345,7 @@ function topologyRouteLayout(nodes: RouteTopologyNode[], edges: RouteTopologyEdg
 		.sort(([a], [b]) => a - b)
 		.flatMap(([column, siblings]) =>
 			siblings.map((node, index) => {
-				const yOffset = topologySiblingOffset(index);
+				const yOffset = topologySiblingOffset(index, siblings.length);
 
 				return {
 					id: node.id,
