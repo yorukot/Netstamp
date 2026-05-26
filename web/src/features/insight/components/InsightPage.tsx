@@ -117,18 +117,6 @@ interface InsightGroupRow {
 	searchText: string;
 }
 
-interface MeasurementRow {
-	id: string;
-	time: string;
-	scope: string;
-	type: string;
-	status: string;
-	latency: string;
-	loss: string;
-	event: string;
-	raw: ApiMeasurement;
-}
-
 function timeLabel(value: InsightRelativeRange) {
 	return timeOptions.find(option => option.value === value)?.label || value;
 }
@@ -488,33 +476,6 @@ function buildInsightGroups(pairs: InsightPair[], measurements: ApiMeasurement[]
 
 function scopePairs(pairs: InsightPair[], checkType: InsightCheckTypeFilter, probeId: string, checkId: string) {
 	return pairs.filter(pair => matchesCheckType(pair, checkType) && (!probeId || pair.probeId === probeId) && (!checkId || pair.checkId === checkId));
-}
-
-function measurementEvent(measurement: ApiMeasurement) {
-	return measurement.errorMessage || measurement.errorCode || measurement.metadata || measurement.type;
-}
-
-function buildMeasurementRows(measurements: ApiMeasurement[], pairs: InsightPair[]): MeasurementRow[] {
-	const pairsByKey = new Map(pairs.map(pair => [pair.key, pair]));
-
-	return measurements
-		.map((measurement, index) => {
-			const pair = pairsByKey.get(pairKey(measurement.probeId, measurement.checkId));
-			const latency = measurementLatency(measurement);
-
-			return {
-				id: `${measurement.startedAt}-${measurement.probeId}-${measurement.checkId}-${index}`,
-				time: new Date(measurement.startedAt).toLocaleString(undefined, { month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit" }),
-				scope: pair ? `${pair.probe.name} -> ${pair.check.target}` : `${measurement.probeId} -> ${measurement.checkId}`,
-				type: measurement.type,
-				status: measurement.status,
-				latency: formatMs(latency),
-				loss: formatPercent(measurement.lossPercent),
-				event: measurementEvent(measurement),
-				raw: measurement
-			};
-		})
-		.sort((a, b) => new Date(b.raw.startedAt).getTime() - new Date(a.raw.startedAt).getTime());
 }
 
 function pairLatestMeasurement(pair: InsightPair, measurements: ApiMeasurement[]) {
@@ -888,7 +849,6 @@ export function InsightPage() {
 	const groups = useMemo(() => buildInsightGroups(scopedPairs, measurements, groupBy), [groupBy, measurements, scopedPairs]);
 	const searchTerm = normalizeSearch(search);
 	const visibleGroups = useMemo(() => (searchTerm ? groups.filter(group => group.searchText.includes(searchTerm)) : groups), [groups, searchTerm]);
-	const measurementRows = useMemo(() => buildMeasurementRows(measurements, scopedPairs).slice(0, 40), [measurements, scopedPairs]);
 	const scopeSummary = useMemo(() => summarizeMeasurements(measurements), [measurements]);
 	const selectedRunStartedAt = exactPair?.check.type === "Traceroute" ? urlState.runStartedAt : "";
 	const canQueryPairDetail = Boolean(projectRef && exactPair);
@@ -978,16 +938,6 @@ export function InsightPage() {
 			}
 		}
 	];
-	const measurementColumns: DataColumn<MeasurementRow>[] = [
-		{ key: "time", label: "Time" },
-		{ key: "scope", label: "Scope" },
-		{ key: "type", label: "Type", render: row => <Badge tone="accent">{row.type}</Badge> },
-		{ key: "status", label: "Status", render: row => <Badge tone={statusTone(row.status)}>{row.status}</Badge> },
-		{ key: "latency", label: "Latency" },
-		{ key: "loss", label: "Loss" },
-		{ key: "event", label: "Event" }
-	];
-
 	useEffect(() => {
 		if (!projectRef) {
 			return;
@@ -1354,19 +1304,6 @@ export function InsightPage() {
 					) : null}
 
 					{pairDetail}
-
-					<Panel tone="glass" eyebrow="Recent evidence" title={`${formatCount(measurementRows.length)} latest rows`}>
-						<DataTable
-							columns={measurementColumns}
-							rows={measurementRows}
-							density="compact"
-							minWidth="60rem"
-							maxHeight="24rem"
-							ariaLabel="Recent measurements"
-							getRowKey={row => row.id}
-							emptyLabel={measurementsQuery.isLoading ? "Loading recent measurements." : "No measurements in the selected time range."}
-						/>
-					</Panel>
 				</>
 			)}
 		</PageStack>
