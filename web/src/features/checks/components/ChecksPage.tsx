@@ -321,7 +321,6 @@ export function ChecksPage() {
 	const [target, setTarget] = useState("");
 	const [checkType, setCheckType] = useState<CheckType>("Ping");
 	const [interval, setInterval] = useState("30s");
-	const [enabled, setEnabled] = useState("enabled");
 	const [selectedProbes, setSelectedProbes] = useState<string[]>([]);
 	const [selectorState, setSelectorState] = useState<SelectorState>({ mode: "all-probes", rules: [], advancedText: "" });
 	const [pingConfig, setPingConfig] = useState<PingConfigFormState>(defaultPingConfigFormState);
@@ -341,7 +340,6 @@ export function ChecksPage() {
 	const activeTarget = isCreating || selectedId ? target : selectedCheck?.target || "";
 	const activeCheckType = isCreating || selectedId ? checkType : selectedCheck?.type || checkType;
 	const activeInterval = isCreating || selectedId ? interval : selectedCheck?.interval || "30s";
-	const activeEnabled = selectedId ? enabled : selectedCheck?.status.toLowerCase().includes("disabled") ? "disabled" : enabled;
 	const activePingConfig = selectedId || isCreating ? pingConfig : pingConfigFormStateFromApi(selectedApiCheck);
 	const activeTCPConfig = selectedId || isCreating ? tcpConfig : tcpConfigFormStateFromApi(selectedApiCheck);
 	const activeTracerouteConfig = selectedId || isCreating ? tracerouteConfig : tracerouteConfigFormStateFromApi(selectedApiCheck);
@@ -360,7 +358,6 @@ export function ChecksPage() {
 		setTarget("");
 		setCheckType("Ping");
 		setInterval("30s");
-		setEnabled("enabled");
 		setSelectedProbes([]);
 		setSelectorState({ mode: "all-probes", rules: [], advancedText: "" });
 		setPingConfig(defaultPingConfigFormState);
@@ -388,7 +385,6 @@ export function ChecksPage() {
 		setTarget(check.target);
 		setCheckType(check.type);
 		setInterval(check.interval);
-		setEnabled(check.status.toLowerCase().includes("disabled") ? "disabled" : "enabled");
 		setSelectedProbes([]);
 		setSelectorState(nextSelectorState);
 		setPingConfig(pingConfigFormStateFromApi(apiCheck));
@@ -406,7 +402,6 @@ export function ChecksPage() {
 		setTarget(selectedCheck.target);
 		setCheckType(selectedCheck.type);
 		setInterval(selectedCheck.interval);
-		setEnabled(selectedCheck.status.toLowerCase().includes("disabled") ? "disabled" : "enabled");
 		setSelectedProbes([]);
 		setSelectorState(selectorStateFromApi(selectedApiCheck?.selector));
 		setPingConfig(pingConfigFormStateFromApi(selectedApiCheck));
@@ -596,15 +591,6 @@ export function ChecksPage() {
 									{ value: "traceroute", label: "Traceroute" }
 								]}
 							/>
-							<SelectField
-								label="Enabled"
-								defaultValue="all"
-								options={[
-									{ value: "all", label: "All states" },
-									{ value: "enabled", label: "Enabled" },
-									{ value: "disabled", label: "Disabled" }
-								]}
-							/>
 						</div>
 						<DataTable columns={checkColumns} rows={checkRows} getRowKey={row => String(row.id)} selectedKey={isCreating ? "__new__" : selectedId} onRowClick={selectCheck} />
 					</div>
@@ -638,15 +624,6 @@ export function ChecksPage() {
 									]}
 								/>
 								<TextField label="Interval" value={activeInterval} onChange={event => setInterval(event.currentTarget.value)} />
-								<SelectField
-									label="Enabled"
-									value={activeEnabled}
-									onChange={event => setEnabled(event.currentTarget.value)}
-									options={[
-										{ value: "enabled", label: "Enabled" },
-										{ value: "disabled", label: "Disabled" }
-									]}
-								/>
 							</div>
 
 							<div className={styles.checkConfigSection}>
