@@ -21,9 +21,7 @@ import { apiQueryKeys } from "@/shared/api/queryKeys";
 import { type ApiMeasurement, type ApiProjectAssignment, type PingInsightResponse, type TracerouteResult } from "@/shared/api/types";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { BodyCopy } from "@/shared/components/BodyCopy";
-import { KeyValueGrid } from "@/shared/components/KeyValueGrid";
 import { PageStack } from "@/shared/components/PageStack";
-import { ResponsiveGrid } from "@/shared/components/ResponsiveGrid";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { type RouteTopologyEdge, type RouteTopologyNode } from "@/shared/visualizations/RouteTopologyMap";
 import { Badge, Button, DataTable, Input, Panel, Select, TextField, type BadgeTone, type DataColumn } from "@netstamp/ui";
@@ -860,7 +858,6 @@ export function InsightPage() {
 	const groups = useMemo(() => buildInsightGroups(scopedPairs, measurements, groupBy), [groupBy, measurements, scopedPairs]);
 	const searchTerm = normalizeSearch(search);
 	const visibleGroups = useMemo(() => (searchTerm ? groups.filter(group => group.searchText.includes(searchTerm)) : groups), [groups, searchTerm]);
-	const scopeSummary = useMemo(() => summarizeMeasurements(measurements), [measurements]);
 	const selectedRunStartedAt = exactPair?.check.type === "Traceroute" ? urlState.runStartedAt : "";
 	const canQueryPairDetail = Boolean(projectRef && exactPair);
 	const canQueryTracerouteGroup = Boolean(projectRef && !exactPair && scopedPairs.some(pair => pair.check.type === "Traceroute") && !hasInvalidFocus);
@@ -1280,31 +1277,6 @@ export function InsightPage() {
 				</Panel>
 			) : (
 				<>
-					<ResponsiveGrid>
-						<Panel tone="glass" eyebrow="Scope summary" title={`${formatCount(scopedPairs.length)} active paths`}>
-							<KeyValueGrid
-								items={[
-									{ label: "Groups", value: formatCount(groups.length) },
-									{ label: "Results", value: measurementsQuery.isLoading ? "Loading" : formatCount(scopeSummary.total) },
-									{ label: "Failing", value: formatCount(scopeSummary.error + scopeSummary.timeout) },
-									{ label: "Avg latency", value: formatMs(scopeSummary.avgLatencyMs) },
-									{ label: "Avg loss", value: formatPercent(scopeSummary.avgLossPercent) },
-									{ label: "Last seen", value: formatEpochMs(scopeSummary.latestStartedAtMs) }
-								]}
-							/>
-						</Panel>
-						<Panel tone="glass" eyebrow="Drilldown state" title={exactPair ? "Exact assignment selected" : "Select a row to narrow scope"}>
-							<div className={styles.detailNotice}>
-								<Badge tone={scopeSummary.status.tone}>{scopeSummary.status.label}</Badge>
-								<p>
-									{exactPair
-										? "Packet-level and route-level detail is loaded for this exact probe-check assignment."
-										: "Grouped rows narrow the scope first. Choose one assignment in the table below to load detailed ping or traceroute diagnostics."}
-								</p>
-							</div>
-						</Panel>
-					</ResponsiveGrid>
-
 					<Panel tone="glass" eyebrow="Grouped scope" title={groupBy === "check" ? `${formatCount(visibleGroups.length)} checks` : `${formatCount(visibleGroups.length)} probes`}>
 						<DataTable
 							columns={groupColumns}

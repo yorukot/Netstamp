@@ -310,20 +310,6 @@
 	justify-content: flex-end;
 }
 
-.detailNotice {
-	display: grid;
-	gap: 0.75rem;
-	align-content: start;
-	min-height: 100%;
-}
-
-.detailNotice p {
-	margin: 0;
-	color: var(--ns-text-muted);
-	font-size: 0.95rem;
-	line-height: 1.55;
-}
-
 .rowTitle {
 	display: grid;
 	gap: 0.2rem;
