@@ -1,10 +1,10 @@
 import type { CheckDefinition } from "@/features/checks/data/checks";
 import { buildHopDiagnostics, selectedTimelineValueLabel, tracerouteInsightTimelinePoints } from "@/features/insight/data/tracerouteInsightData";
-import { formatMs, formatPercent } from "@/features/insight/insightFormatters";
 import type { HopDiagnostic, TimeWindow } from "@/features/insight/insightTypes";
 import type { Probe } from "@/features/probes/data/probes";
 import type { TracerouteInsightResponse, TracerouteResult } from "@/shared/api/types";
 import { BodyCopy } from "@/shared/components/BodyCopy";
+import { formatMs, formatPercent } from "@/shared/utils/insightFormatters";
 import { LatencyRail } from "@/shared/visualizations/LatencyRail";
 import { RouteTopologyMap, type RouteTopologyEdge, type RouteTopologyNode } from "@/shared/visualizations/RouteTopologyMap";
 import { RunTimeline } from "@/shared/visualizations/RunTimeline";

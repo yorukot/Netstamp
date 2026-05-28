@@ -1,7 +1,7 @@
 import type { HopDiagnostic, HopTone, TracerouteSummary } from "@/features/insight/insightTypes";
 import type { TracerouteHop, TracerouteInsightResponse, TracerouteResult } from "@/shared/api/types";
+import { formatMs, formatPercent, formatShortTime, formatTime } from "@/shared/utils/insightFormatters";
 import type { RunTimelinePoint } from "@/shared/visualizations/RunTimeline";
-import { formatMs, formatPercent, formatShortTime, formatTime } from "../insightFormatters";
 
 function orderedHops(run: TracerouteResult | null | undefined) {
 	return [...(run?.hops ?? [])].sort((a, b) => a.hopIndex - b.hopIndex);

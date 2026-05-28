@@ -1,10 +1,10 @@
 import type { CheckDefinition } from "@/features/checks/data/checks";
 import { tcpChartBuckets, tcpSummaryMetrics } from "@/features/insight/data/tcpInsightData";
-import { formatCount, formatEpochMs } from "@/features/insight/insightFormatters";
 import type { Probe } from "@/features/probes/data/probes";
 import type { TcpInsightResponse } from "@/shared/api/types";
 import { BodyCopy } from "@/shared/components/BodyCopy";
 import { classNames } from "@/shared/utils/classNames";
+import { formatCount, formatEpochMs } from "@/shared/utils/insightFormatters";
 import { ChartPanel } from "@/shared/visualizations/ChartPanel";
 import { tcpInsightChartOption } from "@/shared/visualizations/chartOptions";
 import { Panel } from "@netstamp/ui";

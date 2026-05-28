@@ -4,7 +4,6 @@ import { GroupTopologyPanel } from "@/features/insight/components/GroupTopologyP
 import { PingInsightPanel } from "@/features/insight/components/PingInsightPanel";
 import { TcpInsightPanel } from "@/features/insight/components/TcpInsightPanel";
 import { TracerouteInsightPanel } from "@/features/insight/components/TracerouteInsightPanel";
-import { formatCount, formatEpochMs, formatMs, formatPercent } from "@/features/insight/insightFormatters";
 import {
 	type InsightCheckTypeFilter,
 	type InsightGroupBy,
@@ -24,6 +23,7 @@ import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { BodyCopy } from "@/shared/components/BodyCopy";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
+import { formatCount, formatEpochMs, formatMs, formatPercent } from "@/shared/utils/insightFormatters";
 import { type RouteTopologyEdge, type RouteTopologyNode } from "@/shared/visualizations/RouteTopologyMap";
 import { Badge, Button, DataTable, Input, Panel, Select, TextField, type BadgeTone, type DataColumn } from "@netstamp/ui";
 import { useQuery, useQueryClient } from "@tanstack/react-query";

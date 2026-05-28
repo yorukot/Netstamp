@@ -22,12 +22,6 @@ export interface InsightPair {
 	check: CheckDefinition;
 }
 
-export interface SummaryMetric {
-	label: string;
-	value: string;
-	detail: string;
-}
-
 export interface HopDiagnostic {
 	id: string;
 	hopIndex: number;

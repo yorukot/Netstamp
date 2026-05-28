@@ -1,7 +1,7 @@
-import type { SummaryMetric } from "@/features/insight/insightTypes";
 import type { TcpInsightResponse } from "@/shared/api/types";
+import { formatCount, formatMs, formatPercent } from "@/shared/utils/insightFormatters";
+import type { SummaryMetric } from "@/shared/utils/insightTypes";
 import type { TcpInsightChartBucket } from "@/shared/visualizations/chartOptions";
-import { formatCount, formatMs, formatPercent } from "../insightFormatters";
 
 function tcpSuccessRate(summary: TcpInsightResponse["summary"] | undefined) {
 	if (!summary?.totalResults) {

@@ -1,10 +1,10 @@
 import type { CheckDefinition } from "@/features/checks/data/checks";
-import { pingChartBuckets, pingSampleDensity, pingSummaryMetrics } from "@/features/insight/data/pingInsightData";
-import { formatCount, formatEpochMs } from "@/features/insight/insightFormatters";
 import type { Probe } from "@/features/probes/data/probes";
 import type { PingInsightResponse } from "@/shared/api/types";
 import { BodyCopy } from "@/shared/components/BodyCopy";
 import { classNames } from "@/shared/utils/classNames";
+import { formatCount, formatEpochMs } from "@/shared/utils/insightFormatters";
+import { pingChartBuckets, pingSampleDensity, pingSummaryMetrics } from "@/shared/utils/pingInsightData";
 import { ChartPanel } from "@/shared/visualizations/ChartPanel";
 import { pingInsightChartOption } from "@/shared/visualizations/chartOptions";
 import { Panel } from "@netstamp/ui";

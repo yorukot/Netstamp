@@ -1,8 +1,8 @@
-import { pingChartBuckets, pingSampleDensity, pingSummaryMetrics } from "@/features/insight/data/pingInsightData";
-import { formatCount, formatEpochMs } from "@/features/insight/insightFormatters";
 import { publicPageQueries } from "@/shared/api/queries";
 import type { ApiPublicPageFolder, ApiPublicPingPair } from "@/shared/api/types";
 import { classNames } from "@/shared/utils/classNames";
+import { formatCount, formatEpochMs } from "@/shared/utils/insightFormatters";
+import { pingChartBuckets, pingSampleDensity, pingSummaryMetrics } from "@/shared/utils/pingInsightData";
 import { ChartPanel } from "@/shared/visualizations/ChartPanel";
 import { pingInsightChartOption } from "@/shared/visualizations/chartOptions";
 import { Badge, Button, DataTable, Panel, SelectField, type BadgeTone, type DataColumn } from "@netstamp/ui";

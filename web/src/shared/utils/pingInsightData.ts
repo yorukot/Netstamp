@@ -1,7 +1,7 @@
-import type { SummaryMetric } from "@/features/insight/insightTypes";
 import type { PingInsightResponse, PublicPingInsightResponse } from "@/shared/api/types";
 import type { PingInsightChartBucket, PingInsightSampleDensityCell } from "@/shared/visualizations/chartOptions";
-import { formatCount, formatMs, formatPercent } from "../insightFormatters";
+import { formatCount, formatMs, formatPercent } from "./insightFormatters";
+import type { SummaryMetric } from "./insightTypes";
 
 type PingInsightLike = PingInsightResponse | PublicPingInsightResponse;
 
