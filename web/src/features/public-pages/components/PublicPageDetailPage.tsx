@@ -14,6 +14,7 @@ import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { useConfirm } from "@/shared/components/confirmContext";
 import { pushToast } from "@/shared/toast/toastStore";
+import { isPublicPageDescendantFolder, publicPageFolderLabel } from "@/shared/utils/publicPageFolders";
 import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
 import { Button, Checkbox, Panel, SelectField, TextAreaField, TextField } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
@@ -95,43 +96,6 @@ function sortOrderValue(value: string) {
 	return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
 }
 
-function folderLabel(folder: ApiPublicPageFolder, folders: ApiPublicPageFolder[]) {
-	const names: string[] = [folder.name];
-	let current = folder;
-	const guard = new Set<string>([folder.id]);
-
-	while (current.parentId) {
-		const parent = folders.find(candidate => candidate.id === current.parentId);
-		if (!parent || guard.has(parent.id)) {
-			break;
-		}
-		names.unshift(parent.name);
-		guard.add(parent.id);
-		current = parent;
-	}
-
-	return names.join(" / ");
-}
-
-function isDescendantFolder(folder: ApiPublicPageFolder, ancestorID: string, folders: ApiPublicPageFolder[]) {
-	let current = folder;
-	const guard = new Set<string>([folder.id]);
-
-	while (current.parentId) {
-		if (current.parentId === ancestorID) {
-			return true;
-		}
-		const parent = folders.find(candidate => candidate.id === current.parentId);
-		if (!parent || guard.has(parent.id)) {
-			return false;
-		}
-		guard.add(parent.id);
-		current = parent;
-	}
-
-	return false;
-}
-
 function pingChecks(checks: ApiCheck[] | null | undefined) {
 	return (checks ?? []).filter(check => check.type === "ping");
 }
@@ -181,17 +145,17 @@ export function PublicPageDetailPage() {
 		{ value: "", label: "Root folder" },
 		...folders.map(folder => ({
 			value: folder.id,
-			label: folderLabel(folder, folders)
+			label: publicPageFolderLabel(folder, folders)
 		}))
 	];
 	const folderEditParentOptions = selectedFolder
 		? [
 				{ value: "", label: "Root folder" },
 				...folders
-					.filter(folder => folder.id !== selectedFolder.id && !isDescendantFolder(folder, selectedFolder.id, folders))
+					.filter(folder => folder.id !== selectedFolder.id && !isPublicPageDescendantFolder(folder, selectedFolder.id, folders))
 					.map(folder => ({
 						value: folder.id,
-						label: folderLabel(folder, folders)
+						label: publicPageFolderLabel(folder, folders)
 					}))
 			]
 		: folderOptions;
@@ -534,7 +498,7 @@ export function PublicPageDetailPage() {
 												className={folder.id === selectedFolder?.id ? styles.folderButtonActive : styles.folderButton}
 												onClick={() => setSelectedFolderId(folder.id)}
 											>
-												<span>{folderLabel(folder, folders)}</span>
+												<span>{publicPageFolderLabel(folder, folders)}</span>
 												<small>{folder.checks?.length ?? 0} checks</small>
 											</button>
 										))}
@@ -547,7 +511,7 @@ export function PublicPageDetailPage() {
 										<div className={styles.sectionHeader}>
 											<div>
 												<span>Selected folder</span>
-												<strong>{folderLabel(selectedFolder, folders)}</strong>
+												<strong>{publicPageFolderLabel(selectedFolder, folders)}</strong>
 											</div>
 										</div>
 										<div className={styles.folderGrid}>

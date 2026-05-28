@@ -3,6 +3,7 @@ import type { ApiPublicPageFolder, ApiPublicPingPair } from "@/shared/api/types"
 import { classNames } from "@/shared/utils/classNames";
 import { formatCount, formatEpochMs } from "@/shared/utils/insightFormatters";
 import { pingChartBuckets, pingSampleDensity, pingSummaryMetrics } from "@/shared/utils/pingInsightData";
+import { publicPageFolderLabel } from "@/shared/utils/publicPageFolders";
 import { ChartPanel } from "@/shared/visualizations/ChartPanel";
 import { pingInsightChartOption } from "@/shared/visualizations/chartOptions";
 import { Badge, Button, DataTable, Panel, SelectField, type BadgeTone, type DataColumn } from "@netstamp/ui";
@@ -50,25 +51,6 @@ const EMPTY_PAIRS: ApiPublicPingPair[] = [];
 
 function pairKey(pair: ApiPublicPingPair) {
 	return `${pair.checkId}:${pair.probeId}`;
-}
-
-function folderLabel(folder: ApiPublicPageFolder, folders: ApiPublicPageFolder[]) {
-	const names: string[] = [folder.name];
-	let current = folder;
-	const guard = new Set<string>([folder.id]);
-
-	while (current.parentId) {
-		const parent = folders.find(candidate => candidate.id === current.parentId);
-		if (!parent || guard.has(parent.id)) {
-			break;
-		}
-
-		names.unshift(parent.name);
-		guard.add(parent.id);
-		current = parent;
-	}
-
-	return names.join(" / ");
 }
 
 function isPublicRelativeRange(value: string | null): value is PublicRelativeRange {
@@ -169,7 +151,7 @@ export function PublicPage() {
 	const probeOptions = selectedCheckId ? probeOptionsForCheck(visiblePairs, selectedCheckId) : [];
 	const rows: PairRow[] = visiblePairs.map(pair => ({
 		id: pairKey(pair),
-		folder: folderLabel(folders.find(folder => folder.id === pair.folderId) ?? { id: pair.folderId, name: "Folder", sortOrder: 0, createdAt: "", updatedAt: "" }, folders),
+		folder: publicPageFolderLabel(folders.find(folder => folder.id === pair.folderId) ?? { id: pair.folderId, name: "Folder", sortOrder: 0, createdAt: "", updatedAt: "" }, folders),
 		check: pair.checkName,
 		checkDescription: pair.checkDescription ?? "",
 		probe: pair.probeName,
@@ -358,7 +340,7 @@ export function PublicPage() {
 						</button>
 						{folders.map(folder => (
 							<button key={folder.id} type="button" className={folder.id === activeFolderId ? styles.folderTabActive : styles.folderTab} onClick={() => selectFolder(folder.id)}>
-								<span>{folderLabel(folder, folders)}</span>
+								<span>{publicPageFolderLabel(folder, folders)}</span>
 								<small>{folderCounts.get(folder.id) ?? 0} pairs</small>
 							</button>
 						))}
