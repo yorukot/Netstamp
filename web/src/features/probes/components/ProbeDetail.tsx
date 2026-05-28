@@ -18,13 +18,13 @@ import type { ApiLabel, ApiProbe } from "@/shared/api/types";
 import { useConfirm } from "@/shared/components/confirmContext";
 import { pushErrorToast } from "@/shared/toast/toastStore";
 import { classNames } from "@/shared/utils/classNames";
-import { Badge, Button, Checkbox, DataTable, Surface, Terminal, TextField, type DataColumn } from "@netstamp/ui";
+import { Badge, Button, DataTable, Surface, Terminal, TextField, type DataColumn } from "@netstamp/ui";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { LocationPreviewMap } from "./LocationPreviewMap";
 import styles from "./ProbeDetail.module.css";
 import { expandAssignedRows } from "./probeUtils";
-import type { AssignedRow, DetectionMode } from "./types";
+import type { AssignedRow } from "./types";
 
 const assignedColumns: DataColumn<AssignedRow>[] = [
 	{ key: "check", label: "Assigned check" },
@@ -104,7 +104,6 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 	const [geocodeStatus, setGeocodeStatus] = useState<GeocodeStatus>("idle");
 	const [geocodeError, setGeocodeError] = useState("");
 	const [probeAsn, setProbeAsn] = useState(activeProbe.asn);
-	const [asMode, setAsMode] = useState<DetectionMode>("auto");
 	const [rotatedSecret, setRotatedSecret] = useState("");
 	const [secretCommandCopied, setSecretCommandCopied] = useState(false);
 	const [savingProbe, setSavingProbe] = useState(false);
@@ -137,16 +136,6 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 			geocodeAbortRef.current?.abort();
 		};
 	}, []);
-
-	function toggleAsMode() {
-		const nextMode = asMode === "manual" ? "auto" : "manual";
-
-		setAsMode(nextMode);
-
-		if (nextMode === "auto") {
-			setProbeAsn(activeProbe.asn);
-		}
-	}
 
 	function clearResolvedCoordinates() {
 		geocodeAbortRef.current?.abort();
@@ -265,8 +254,8 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 		try {
 			const projectLabels = labelsQuery.data?.labels ?? [];
 			const currentLabels = activeApiProbe?.labels ?? [];
-			const labelIds = currentLabels.filter(label => !(asMode === "manual" && label.key.toLowerCase() === "as")).map(label => label.id);
-			const asLabelId = asMode === "manual" ? await ensureProjectLabel("as", probeAsn, projectLabels) : null;
+			const labelIds = currentLabels.filter(label => label.key.toLowerCase() !== "as").map(label => label.id);
+			const asLabelId = await ensureProjectLabel("as", probeAsn, projectLabels);
 
 			for (const labelId of [asLabelId]) {
 				if (labelId && !labelIds.includes(labelId)) {
@@ -329,10 +318,7 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 
 			<div className={styles.fieldGrid}>
 				<TextField className={styles.input} label="Probe name" value={probeName} onChange={event => setProbeName(event.currentTarget.value)} />
-				<div className={styles.inputWithMode}>
-					<TextField className={styles.input} label="AS" value={probeAsn} disabled={asMode === "auto"} onChange={event => setProbeAsn(event.currentTarget.value)} />
-					<ModeToggle mode={asMode} label="AS detect mode" onToggle={toggleAsMode} />
-				</div>
+				<TextField className={styles.input} label="AS" value={probeAsn} onChange={event => setProbeAsn(event.currentTarget.value)} />
 			</div>
 
 			<div className={styles.locationEditor}>
@@ -471,25 +457,5 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 				getRowKey={(row, index) => `${row.probe}-${row.check}-${index}`}
 			/>
 		</Surface>
-	);
-}
-
-interface ModeToggleProps {
-	mode: DetectionMode;
-	label: string;
-	onToggle: () => void;
-}
-
-function ModeToggle({ mode, label, onToggle }: ModeToggleProps) {
-	const modeClass = mode === "manual" ? styles.modeToggleManual : styles.modeToggleAuto;
-
-	return (
-		<label className={classNames(styles.modeToggle, modeClass)}>
-			<Checkbox className={styles.modeInput} checked={mode === "auto"} aria-label={label} onChange={onToggle} />
-			<span className={styles.modePill}>
-				<span className={styles.modeDot} aria-hidden="true" />
-				<span>{mode}</span>
-			</span>
-		</label>
 	);
 }
