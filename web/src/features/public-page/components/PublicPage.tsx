@@ -4,6 +4,7 @@ import { classNames } from "@/shared/utils/classNames";
 import { formatCount, formatEpochMs } from "@/shared/utils/insightFormatters";
 import { pingChartBuckets, pingSampleDensity, pingSummaryMetrics } from "@/shared/utils/pingInsightData";
 import { publicPageFolderLabel } from "@/shared/utils/publicPageFolders";
+import { formatTimeWindow, isRelativeTimeRange, parseEpochMs, relativeTimeOptions, timeWindowForRelativeRange, type RelativeTimeRange } from "@/shared/utils/timeRanges";
 import { ChartPanel } from "@/shared/visualizations/ChartPanel";
 import { pingInsightChartOption } from "@/shared/visualizations/chartOptions";
 import { Badge, Button, DataTable, Panel, SelectField, type BadgeTone, type DataColumn } from "@netstamp/ui";
@@ -13,7 +14,7 @@ import { Helmet } from "react-helmet-async";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import styles from "./PublicPage.module.css";
 
-type PublicRelativeRange = "15m" | "1h" | "6h" | "24h" | "7d" | "30d";
+type PublicRelativeRange = RelativeTimeRange;
 type TimeSelectValue = PublicRelativeRange | "custom";
 
 interface PairRow {
@@ -28,56 +29,13 @@ interface PairRow {
 	source: ApiPublicPingPair;
 }
 
-const timeOptions: Array<{ value: PublicRelativeRange; label: string }> = [
-	{ value: "15m", label: "Last 15 minutes" },
-	{ value: "1h", label: "Last 1 hour" },
-	{ value: "6h", label: "Last 6 hours" },
-	{ value: "24h", label: "Last 24 hours" },
-	{ value: "7d", label: "Last 7 days" },
-	{ value: "30d", label: "Last 30 days" }
-];
-
-const timeRangeDurations: Record<PublicRelativeRange, number> = {
-	"15m": 15 * 60 * 1000,
-	"1h": 60 * 60 * 1000,
-	"6h": 6 * 60 * 60 * 1000,
-	"24h": 24 * 60 * 60 * 1000,
-	"7d": 7 * 24 * 60 * 60 * 1000,
-	"30d": 30 * 24 * 60 * 60 * 1000
-};
+const timeOptions: Array<{ value: PublicRelativeRange; label: string }> = relativeTimeOptions;
 
 const EMPTY_FOLDERS: ApiPublicPageFolder[] = [];
 const EMPTY_PAIRS: ApiPublicPingPair[] = [];
 
 function pairKey(pair: ApiPublicPingPair) {
 	return `${pair.checkId}:${pair.probeId}`;
-}
-
-function isPublicRelativeRange(value: string | null): value is PublicRelativeRange {
-	return value === "15m" || value === "1h" || value === "6h" || value === "24h" || value === "7d" || value === "30d";
-}
-
-function parseEpochMs(value: string | null) {
-	if (!value) {
-		return null;
-	}
-
-	const parsed = Number(value);
-
-	return Number.isFinite(parsed) && parsed > 0 ? Math.trunc(parsed) : null;
-}
-
-function timeWindowForRange(value: PublicRelativeRange, now = Date.now()) {
-	const to = now;
-	const from = to - timeRangeDurations[value];
-
-	return { from, to };
-}
-
-function formatTimeRange(from: number, to: number) {
-	const options: Intl.DateTimeFormatOptions = { month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit" };
-
-	return `${new Date(from).toLocaleString(undefined, options)} - ${new Date(to).toLocaleString(undefined, options)}`;
 }
 
 function statusTone(status: ApiPublicPingPair["probeStatus"]): BadgeTone {
@@ -133,9 +91,9 @@ export function PublicPage() {
 	const rawTo = parseEpochMs(searchParams.get("to"));
 	const hasAbsoluteWindow = rawFrom !== null && rawTo !== null && rawFrom < rawTo;
 	const requestedRange = searchParams.get("range");
-	const relativeRange: PublicRelativeRange = isPublicRelativeRange(requestedRange) ? requestedRange : "24h";
-	const timeWindow = hasAbsoluteWindow ? { from: rawFrom, to: rawTo } : timeWindowForRange(relativeRange, nowMs);
-	const timeLabel = hasAbsoluteWindow ? formatTimeRange(timeWindow.from, timeWindow.to) : (timeOptions.find(option => option.value === relativeRange)?.label ?? "Last 24 hours");
+	const relativeRange: PublicRelativeRange = isRelativeTimeRange(requestedRange) ? requestedRange : "24h";
+	const timeWindow = hasAbsoluteWindow ? { from: rawFrom, to: rawTo } : timeWindowForRelativeRange(relativeRange, nowMs);
+	const timeLabel = hasAbsoluteWindow ? formatTimeWindow(timeWindow.from, timeWindow.to) : (timeOptions.find(option => option.value === relativeRange)?.label ?? "Last 24 hours");
 	const timeSelectValue: TimeSelectValue = hasAbsoluteWindow ? "custom" : relativeRange;
 	const timeSelectOptions = hasAbsoluteWindow ? [...timeOptions, { value: "custom", label: "Custom window" }] : timeOptions;
 	const insightQuery = useQuery({
@@ -245,7 +203,7 @@ export function PublicPage() {
 	}
 
 	function selectTimeWindow(value: string) {
-		if (!isPublicRelativeRange(value)) {
+		if (!isRelativeTimeRange(value)) {
 			return;
 		}
 

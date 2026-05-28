@@ -24,6 +24,15 @@ import { BodyCopy } from "@/shared/components/BodyCopy";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { formatCount, formatEpochMs, formatMs, formatPercent } from "@/shared/utils/insightFormatters";
+import {
+	formatAbsoluteTime,
+	isRelativeTimeRange as isInsightRelativeRange,
+	parseEpochMs,
+	relativeRangeForTimeWindow as relativeRangeForWindow,
+	relativeTimeOptions,
+	relativeTimeRangeDurations,
+	timeWindowForRelativeRange as timeWindowForRange
+} from "@/shared/utils/timeRanges";
 import { type RouteTopologyEdge, type RouteTopologyNode } from "@/shared/visualizations/RouteTopologyMap";
 import { Badge, Button, DataTable, Input, Panel, Select, TextField, type BadgeTone, type DataColumn } from "@netstamp/ui";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -32,23 +41,8 @@ import { createPortal } from "react-dom";
 import { useSearchParams } from "react-router-dom";
 import styles from "./InsightPage.module.css";
 
-const timeOptions: Array<{ value: InsightRelativeRange; label: string }> = [
-	{ value: "15m", label: "Last 15 minutes" },
-	{ value: "1h", label: "Last 1 hour" },
-	{ value: "6h", label: "Last 6 hours" },
-	{ value: "24h", label: "Last 24 hours" },
-	{ value: "7d", label: "Last 7 days" },
-	{ value: "30d", label: "Last 30 days" }
-];
-
-const timeRangeDurations: Record<InsightRelativeRange, number> = {
-	"15m": 15 * 60 * 1000,
-	"1h": 60 * 60 * 1000,
-	"6h": 6 * 60 * 60 * 1000,
-	"24h": 24 * 60 * 60 * 1000,
-	"7d": 7 * 24 * 60 * 60 * 1000,
-	"30d": 30 * 24 * 60 * 60 * 1000
-};
+const timeOptions: Array<{ value: InsightRelativeRange; label: string }> = relativeTimeOptions;
+const timeRangeDurations: Record<InsightRelativeRange, number> = relativeTimeRangeDurations;
 
 const refreshOptions: Array<{ value: InsightRefreshInterval; label: string }> = [
 	{ value: "off", label: "Off" },
@@ -122,40 +116,12 @@ function timeLabel(value: InsightRelativeRange) {
 	return timeOptions.find(option => option.value === value)?.label || value;
 }
 
-function timeWindowForRange(value: InsightRelativeRange, now = Date.now()) {
-	const to = now;
-	const from = to - (timeRangeDurations[value] ?? timeRangeDurations["24h"]);
-
-	return { from, to };
-}
-
-function relativeRangeForWindow(timeWindow: TimeWindow): InsightRelativeRange | null {
-	const duration = timeWindow.to - timeWindow.from;
-	const option = timeOptions.find(candidate => timeRangeDurations[candidate.value] === duration);
-
-	return option?.value ?? null;
-}
-
 function isInsightTimeMode(value: string | null): value is InsightTimeMode {
 	return value === "relative" || value === "absolute";
 }
 
-function isInsightRelativeRange(value: string | null): value is InsightRelativeRange {
-	return value === "15m" || value === "1h" || value === "6h" || value === "24h" || value === "7d" || value === "30d";
-}
-
 function isInsightRefreshInterval(value: string | null): value is InsightRefreshInterval {
 	return value === "off" || value === "10s" || value === "30s" || value === "1m" || value === "5m";
-}
-
-function parseEpochMs(value: string | null) {
-	if (!value) {
-		return null;
-	}
-
-	const parsed = Number(value);
-
-	return Number.isFinite(parsed) && parsed > 0 ? Math.trunc(parsed) : null;
 }
 
 function isInsightCheckTypeFilter(value: string | null): value is InsightCheckTypeFilter {
@@ -215,10 +181,6 @@ function parseDateTimeLocal(value: string) {
 	const parsed = new Date(value).getTime();
 
 	return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
-}
-
-function formatAbsoluteTime(value: number) {
-	return new Date(value).toLocaleString(undefined, { month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit" });
 }
 
 function displayTimeRange(timeMode: InsightTimeMode, timeRange: InsightRelativeRange, timeWindow: TimeWindow) {

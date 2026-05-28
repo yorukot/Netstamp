@@ -1,11 +1,12 @@
 import type { CheckDefinition } from "@/features/checks/data/checks";
 import type { Probe } from "@/features/probes/data/probes";
+import type { RelativeTimeRange, TimeWindow as SharedTimeWindow } from "@/shared/utils/timeRanges";
 import type { BadgeTone } from "@netstamp/ui";
 
 export type InsightCheckTypeFilter = "all" | "ping" | "tcp" | "traceroute";
 export type InsightGroupBy = "check" | "probe";
 export type InsightRefreshInterval = "off" | "10s" | "30s" | "1m" | "5m";
-export type InsightRelativeRange = "15m" | "1h" | "6h" | "24h" | "7d" | "30d";
+export type InsightRelativeRange = RelativeTimeRange;
 export type InsightTimeMode = "relative" | "absolute";
 export type HopTone = Extract<BadgeTone, "success" | "warning" | "critical" | "muted">;
 
@@ -54,10 +55,7 @@ export interface TracerouteSummary {
 	pathChangeCount: number;
 }
 
-export interface TimeWindow {
-	from: number;
-	to: number;
-}
+export type TimeWindow = SharedTimeWindow;
 
 export interface ParsedInsightUrlState {
 	checkType: InsightCheckTypeFilter;
