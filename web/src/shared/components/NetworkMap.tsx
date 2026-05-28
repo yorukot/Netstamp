@@ -1,11 +1,16 @@
-import { type Probe } from "@/features/probes/data/probes";
 import type { Map as MapLibreMap, Marker as MapLibreMarker, StyleSpecification } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styles from "./NetworkMap.module.css";
 
+export interface NetworkMapMarker {
+	id: string;
+	name: string;
+	coordinates?: [number, number];
+}
+
 interface NetworkMapProps {
-	probes: Probe[];
+	probes: NetworkMapMarker[];
 	selectedId: string;
 	onSelect?: (probeId: string) => void;
 	mode?: "fleet" | "detail";
@@ -57,7 +62,7 @@ function setMarkerActive(element: HTMLElement, active: boolean) {
 	element.dataset.active = String(active);
 }
 
-function createMarkerElement(probe: Probe, mode: "fleet" | "detail", onSelect?: (probeId: string) => void) {
+function createMarkerElement(probe: NetworkMapMarker, mode: "fleet" | "detail", onSelect?: (probeId: string) => void) {
 	const markerEl = document.createElement("button");
 	markerEl.type = "button";
 	markerEl.className = styles.marker;
@@ -89,7 +94,7 @@ function clearMarkers(markers: MarkerRecord[]) {
 	}
 }
 
-function hasCoordinates(probe: Probe): probe is Probe & { coordinates: [number, number] } {
+function hasCoordinates(probe: NetworkMapMarker): probe is NetworkMapMarker & { coordinates: [number, number] } {
 	return Array.isArray(probe.coordinates);
 }
 
