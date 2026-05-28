@@ -495,12 +495,12 @@ function SegmentedControl<TValue extends string>({ label, value, options, onChan
 	return (
 		<div className={styles.segmentField}>
 			<span className={styles.segmentLabel}>{label}</span>
-			<div className={styles.segmentControl} role="tablist" aria-label={label}>
+			<div className={styles.segmentControl} role="radiogroup" aria-label={label}>
 				{options.map(option => (
 					<button
 						type="button"
-						role="tab"
-						aria-selected={value === option.value}
+						role="radio"
+						aria-checked={value === option.value}
 						className={styles.segmentButton}
 						data-selected={value === option.value || undefined}
 						onClick={() => onChange(option.value)}
