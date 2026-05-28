@@ -17,31 +17,13 @@ import { pushToast } from "@/shared/toast/toastStore";
 import { nullableTrimmedText, optionalTrimmedText } from "@/shared/utils/formText";
 import { isPublicPageDescendantFolder, publicPageFolderLabel } from "@/shared/utils/publicPageFolders";
 import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
-import { Button, Checkbox, Panel, SelectField, TextAreaField, TextField } from "@netstamp/ui";
+import { Button, Panel } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { isValidPublicPageSlug, PUBLIC_PAGE_SLUG_HELPER, sanitizePublicPageSlug } from "../publicPageSlug";
+import { isValidPublicPageSlug } from "../publicPageSlug";
 import styles from "./PublicPageDetailPage.module.css";
-
-interface PageDraft {
-	pageId: string;
-	slug: string;
-	title: string;
-	description: string;
-	enabled: boolean;
-}
-
-interface FolderDraft {
-	parentId: string;
-	name: string;
-	description: string;
-	sortOrder: string;
-}
-
-interface FolderEditDraft extends FolderDraft {
-	folderId: string;
-}
+import { PublicPageChecksSection, PublicPageFoldersSection, PublicPageSettingsSection, type FolderDraft, type FolderEditDraft, type PageDraft } from "./PublicPageDetailSections";
 
 interface FolderChecksDraft {
 	folderId: string;
@@ -373,236 +355,52 @@ export function PublicPageDetailPage() {
 
 					{selectedPage ? (
 						<div className={styles.detailGrid}>
-							<div className={styles.detailSection}>
-								<div className={styles.sectionHeader}>
-									<div>
-										<span>Page settings</span>
-										<strong>/s/{selectedPage.slug}</strong>
-									</div>
-									{canWrite ? (
-										<Button variant="danger" size="sm" disabled={deletePageMutation.isPending} onClick={() => void deletePage(selectedPage)}>
-											Delete
-										</Button>
-									) : null}
-								</div>
-								{canWrite ? (
-									<div className={styles.editGrid}>
-										<TextField
-											label="Slug"
-											value={pageDraftValue.slug}
-											maxLength={64}
-											pattern="[a-z0-9-]+"
-											helper={PUBLIC_PAGE_SLUG_HELPER}
-											error={slugValid ? undefined : PUBLIC_PAGE_SLUG_HELPER}
-											onChange={event => {
-												const value = sanitizePublicPageSlug(event.currentTarget.value);
-												updateSelectedPageDraft({ slug: value });
-											}}
-										/>
-										<TextField
-											label="Title"
-											value={pageDraftValue.title}
-											onChange={event => {
-												const { value } = event.currentTarget;
-												updateSelectedPageDraft({ title: value });
-											}}
-										/>
-										<TextField
-											label="Description"
-											value={pageDraftValue.description}
-											onChange={event => {
-												const { value } = event.currentTarget;
-												updateSelectedPageDraft({ description: value });
-											}}
-										/>
-										<label className={styles.checkboxRow}>
-											<Checkbox
-												checked={pageDraftValue.enabled}
-												onChange={event => {
-													const { checked } = event.currentTarget;
-													updateSelectedPageDraft({ enabled: checked });
-												}}
-											/>
-											<span>Enabled</span>
-										</label>
-										<Button disabled={!slugValid || !pageDraftValue.title || updatePageMutation.isPending} onClick={updatePage}>
-											{updatePageMutation.isPending ? "Saving" : "Save page"}
-										</Button>
-									</div>
-								) : null}
-							</div>
-
-							<div className={styles.detailSection}>
-								<div className={styles.sectionHeader}>
-									<div>
-										<span>Folders</span>
-										<strong>{folders.length} nodes</strong>
-									</div>
-								</div>
-								{canWrite ? (
-									<div className={styles.folderGrid}>
-										<SelectField
-											label="Parent"
-											value={folderDraft.parentId}
-											options={folderOptions}
-											onChange={event => {
-												const { value } = event.currentTarget;
-												setFolderDraft(current => ({ ...current, parentId: value }));
-											}}
-										/>
-										<TextField
-											label="Name"
-											value={folderDraft.name}
-											onChange={event => {
-												const { value } = event.currentTarget;
-												setFolderDraft(current => ({ ...current, name: value }));
-											}}
-										/>
-										<TextField
-											label="Sort"
-											value={folderDraft.sortOrder}
-											onChange={event => {
-												const { value } = event.currentTarget;
-												setFolderDraft(current => ({ ...current, sortOrder: value }));
-											}}
-										/>
-										<TextAreaField
-											label="Description"
-											value={folderDraft.description}
-											onChange={event => {
-												const { value } = event.currentTarget;
-												setFolderDraft(current => ({ ...current, description: value }));
-											}}
-											rows={2}
-										/>
-										<Button disabled={!folderDraft.name || createFolderMutation.isPending} onClick={createFolder}>
-											{createFolderMutation.isPending ? "Creating" : "Create folder"}
-										</Button>
-									</div>
-								) : null}
-								{folders.length ? (
-									<div className={styles.folderList}>
-										{folders.map(folder => (
-											<button
-												key={folder.id}
-												type="button"
-												className={folder.id === selectedFolder?.id ? styles.folderButtonActive : styles.folderButton}
-												onClick={() => setSelectedFolderId(folder.id)}
-											>
-												<span>{publicPageFolderLabel(folder, folders)}</span>
-												<small>{folder.checks?.length ?? 0} checks</small>
-											</button>
-										))}
-									</div>
-								) : (
-									<div className={styles.emptyState}>{pageDetailQuery.isLoading ? "Loading folders" : "No folders on this public page"}</div>
-								)}
-								{selectedFolder && canWrite ? (
-									<div className={styles.folderEditor}>
-										<div className={styles.sectionHeader}>
-											<div>
-												<span>Selected folder</span>
-												<strong>{publicPageFolderLabel(selectedFolder, folders)}</strong>
-											</div>
-										</div>
-										<div className={styles.folderGrid}>
-											<SelectField
-												label="Parent"
-												value={folderEditValue.parentId}
-												options={folderEditParentOptions}
-												onChange={event => {
-													const { value } = event.currentTarget;
-													updateSelectedFolderDraft({ parentId: value });
-												}}
-											/>
-											<TextField
-												label="Name"
-												value={folderEditValue.name}
-												onChange={event => {
-													const { value } = event.currentTarget;
-													updateSelectedFolderDraft({ name: value });
-												}}
-											/>
-											<TextField
-												label="Sort"
-												value={folderEditValue.sortOrder}
-												onChange={event => {
-													const { value } = event.currentTarget;
-													updateSelectedFolderDraft({ sortOrder: value });
-												}}
-											/>
-											<TextAreaField
-												label="Description"
-												value={folderEditValue.description}
-												onChange={event => {
-													const { value } = event.currentTarget;
-													updateSelectedFolderDraft({ description: value });
-												}}
-												rows={2}
-											/>
-											<Button disabled={!folderEditValue.name.trim() || updateFolderMutation.isPending} onClick={updateFolder}>
-												{updateFolderMutation.isPending ? "Saving" : "Save folder"}
-											</Button>
-										</div>
-									</div>
-								) : null}
-							</div>
+							<PublicPageSettingsSection
+								selectedPage={selectedPage}
+								canWrite={canWrite}
+								pageDraftValue={pageDraftValue}
+								slugValid={slugValid}
+								deletePending={deletePageMutation.isPending}
+								updatePending={updatePageMutation.isPending}
+								onDeletePage={() => void deletePage(selectedPage)}
+								onUpdatePage={updatePage}
+								onPageDraftChange={updateSelectedPageDraft}
+							/>
+							<PublicPageFoldersSection
+								folders={folders}
+								selectedFolder={selectedFolder}
+								canWrite={canWrite}
+								isLoading={pageDetailQuery.isLoading}
+								folderDraft={folderDraft}
+								folderOptions={folderOptions}
+								folderEditValue={folderEditValue}
+								folderEditParentOptions={folderEditParentOptions}
+								createPending={createFolderMutation.isPending}
+								updatePending={updateFolderMutation.isPending}
+								onCreateFolder={createFolder}
+								onSelectFolder={setSelectedFolderId}
+								onFolderDraftChange={patch => setFolderDraft(current => ({ ...current, ...patch }))}
+								onFolderEditChange={updateSelectedFolderDraft}
+								onUpdateFolder={updateFolder}
+							/>
 						</div>
 					) : null}
 
 					{selectedPage && selectedFolder ? (
-						<div className={styles.checkSection}>
-							<div className={styles.sectionHeader}>
-								<div>
-									<span>Published Ping checks</span>
-									<strong>{selectedFolder.name}</strong>
-								</div>
-								{canWrite ? (
-									<div className={styles.actionCluster}>
-										<Button variant="outline" size="sm" disabled={setFolderChecksMutation.isPending} onClick={saveFolderChecks}>
-											{setFolderChecksMutation.isPending ? "Saving" : "Save checks"}
-										</Button>
-										<Button variant="danger" size="sm" disabled={deleteFolderMutation.isPending} onClick={() => void deleteFolder(selectedFolder)}>
-											Delete folder
-										</Button>
-									</div>
-								) : null}
-							</div>
-							<div className={styles.checkGrid}>
-								{checksQuery.isError ? (
-									<div className={styles.errorState}>
-										<div>
-											<strong>Ping checks unavailable</strong>
-											<span>{requestErrorMessage(checksQuery.error, "Load Ping checks failed", { prefixFallback: true })}</span>
-										</div>
-										<Button variant="outline" size="sm" onClick={() => void checksQuery.refetch()}>
-											Retry
-										</Button>
-									</div>
-								) : null}
-								{publicChecks.map(check => {
-									const checked = selectedCheckIds.includes(check.id);
-
-									return (
-										<label key={check.id} className={styles.checkOption}>
-											<Checkbox
-												checked={checked}
-												disabled={!canWrite}
-												onChange={event => {
-													const { checked: nextChecked } = event.currentTarget;
-													toggleCheck(check.id, nextChecked);
-												}}
-											/>
-											<span>
-												<strong>{check.name}</strong>
-												<small>{`${check.intervalSeconds}s interval`}</small>
-											</span>
-										</label>
-									);
-								})}
-								{!checksQuery.isError && !publicChecks.length ? <div className={styles.emptyState}>{checksQuery.isLoading ? "Loading Ping checks" : "No Ping checks in this project"}</div> : null}
-							</div>
-						</div>
+						<PublicPageChecksSection
+							selectedFolder={selectedFolder}
+							canWrite={canWrite}
+							publicChecks={publicChecks}
+							selectedCheckIds={selectedCheckIds}
+							isChecksLoading={checksQuery.isLoading}
+							checksError={checksQuery.error}
+							savePending={setFolderChecksMutation.isPending}
+							deletePending={deleteFolderMutation.isPending}
+							onSaveChecks={saveFolderChecks}
+							onDeleteFolder={() => void deleteFolder(selectedFolder)}
+							onRetryChecks={() => void checksQuery.refetch()}
+							onToggleCheck={toggleCheck}
+						/>
 					) : null}
 				</div>
 			</Panel>
