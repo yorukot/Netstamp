@@ -3264,27 +3264,30 @@ export interface components {
 		};
 		/**
 		 * @example {
+		 *       "parentId": null,
 		 *       "name": "US East",
+		 *       "description": null,
 		 *       "sortOrder": 1
 		 *     }
 		 */
 		UpdatePublicPageFolderRequest: {
-			parentId?: components["schemas"]["uuid"];
+			parentId?: components["schemas"]["uuid"] | null;
 			name?: string;
-			description?: string;
+			description?: string | null;
 			/** Format: int32 */
 			sortOrder?: number;
 		};
 		/**
 		 * @example {
 		 *       "title": "Public Edge Latency",
+		 *       "description": null,
 		 *       "enabled": false
 		 *     }
 		 */
 		UpdatePublicPageRequest: {
 			slug?: string;
 			title?: string;
-			description?: string;
+			description?: string | null;
 			enabled?: boolean;
 		};
 		/**

@@ -309,6 +309,7 @@ export function useUpdateProjectPublicPageFolderMutation(projectRef: string | nu
 		onSuccess: (_data, variables) => {
 			const ref = requireProjectRef(projectRef);
 			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.publicPageDetail(ref, variables.pageId) });
+			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.publicPages(ref) });
 			queryClient.invalidateQueries({ queryKey: apiQueryKeys.publicPages.all });
 		}
 	});
@@ -337,6 +338,7 @@ export function useSetProjectPublicPageFolderChecksMutation(projectRef: string |
 		onSuccess: (_data, variables) => {
 			const ref = requireProjectRef(projectRef);
 			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.publicPageDetail(ref, variables.pageId) });
+			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.publicPages(ref) });
 			queryClient.invalidateQueries({ queryKey: apiQueryKeys.publicPages.all });
 		}
 	});

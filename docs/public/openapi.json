@@ -10029,7 +10029,14 @@
 				"type": "object",
 				"properties": {
 					"parentId": {
-						"$ref": "#/components/schemas/uuid"
+						"anyOf": [
+							{
+								"$ref": "#/components/schemas/uuid"
+							},
+							{
+								"type": "null"
+							}
+						]
 					},
 					"name": {
 						"type": "string",
@@ -10037,7 +10044,14 @@
 						"maxLength": 128
 					},
 					"description": {
-						"type": "string",
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
 						"minLength": 1,
 						"maxLength": 1024
 					},
@@ -10049,7 +10063,9 @@
 				},
 				"examples": [
 					{
+						"parentId": null,
 						"name": "US East",
+						"description": null,
 						"sortOrder": 1
 					}
 				]
@@ -10069,7 +10085,14 @@
 						"maxLength": 128
 					},
 					"description": {
-						"type": "string",
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
 						"minLength": 1,
 						"maxLength": 1024
 					},
@@ -10080,6 +10103,7 @@
 				"examples": [
 					{
 						"title": "Public Edge Latency",
+						"description": null,
 						"enabled": false
 					}
 				]

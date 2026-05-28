@@ -165,7 +165,7 @@ model CreatePublicPageRequest {
 	enabled?: boolean = true;
 }
 
-@example(#{ title: "Public Edge Latency", enabled: false })
+@example(#{ title: "Public Edge Latency", description: null, enabled: false })
 model UpdatePublicPageRequest {
 	@minLength(1)
 	@maxLength(64)
@@ -178,7 +178,7 @@ model UpdatePublicPageRequest {
 
 	@minLength(1)
 	@maxLength(1024)
-	description?: string;
+	description?: string | null;
 
 	enabled?: boolean;
 }
@@ -199,9 +199,9 @@ model CreatePublicPageFolderRequest {
 	sortOrder?: int32 = 0;
 }
 
-@example(#{ name: "US East", sortOrder: 1 })
+@example(#{ parentId: null, name: "US East", description: null, sortOrder: 1 })
 model UpdatePublicPageFolderRequest {
-	parentId?: uuid;
+	parentId?: uuid | null;
 
 	@minLength(1)
 	@maxLength(128)
@@ -209,7 +209,7 @@ model UpdatePublicPageFolderRequest {
 
 	@minLength(1)
 	@maxLength(1024)
-	description?: string;
+	description?: string | null;
 
 	@minValue(0)
 	sortOrder?: int32;

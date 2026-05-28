@@ -9,7 +9,7 @@ import {
 	useUpdateProjectPublicPageMutation
 } from "@/shared/api/mutations";
 import { projectQueries } from "@/shared/api/queries";
-import type { ApiCheck, ApiPublicPage, ApiPublicPageFolder, UpdatePublicPageFolderInput } from "@/shared/api/types";
+import type { ApiCheck, ApiPublicPage, ApiPublicPageFolder, UpdatePublicPageFolderInput, UpdatePublicPageInput } from "@/shared/api/types";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
@@ -79,6 +79,11 @@ function folderEditDraftFromFolder(folder: ApiPublicPageFolder | null): FolderEd
 function optionalText(value: string) {
 	const trimmed = value.trim();
 	return trimmed ? trimmed : undefined;
+}
+
+function nullableText(value: string) {
+	const trimmed = value.trim();
+	return trimmed ? trimmed : null;
 }
 
 function pageUrl(slug: string) {
@@ -245,15 +250,17 @@ export function PublicPageDetailPage() {
 			return;
 		}
 
+		const body: UpdatePublicPageInput = {
+			slug: pageDraftValue.slug,
+			title: pageDraftValue.title,
+			description: nullableText(pageDraftValue.description),
+			enabled: pageDraftValue.enabled
+		};
+
 		updatePageMutation.mutate(
 			{
 				pageId: selectedPage.id,
-				body: {
-					slug: pageDraftValue.slug,
-					title: pageDraftValue.title,
-					description: optionalText(pageDraftValue.description),
-					enabled: pageDraftValue.enabled
-				}
+				body
 			},
 			{
 				onSuccess: data => pushToast({ title: "Public page updated", message: `/s/${data.publicPage.slug} was saved.`, tone: "success" })
@@ -311,12 +318,12 @@ export function PublicPageDetailPage() {
 			return;
 		}
 
-		const body = {
+		const body: UpdatePublicPageFolderInput = {
 			parentId: folderEditValue.parentId || null,
 			name: folderEditValue.name,
-			description: optionalText(folderEditValue.description),
+			description: nullableText(folderEditValue.description),
 			sortOrder: sortOrderValue(folderEditValue.sortOrder)
-		} as UpdatePublicPageFolderInput;
+		};
 
 		updateFolderMutation.mutate(
 			{ pageId: selectedPage.id, folderId: selectedFolder.id, body },
