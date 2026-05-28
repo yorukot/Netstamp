@@ -289,7 +289,7 @@ func normalizeQueryPublicPingInsightInput(input QueryPublicPingInsightInput) (Qu
 
 func optionalSlug(value *string) (*string, error) {
 	if value == nil {
-		return nil, nil
+		return nil, nil //nolint:nilnil // Nil means the update did not include a slug.
 	}
 	normalized, err := domainpublicpage.VNSlug(*value)
 	if err != nil {
@@ -300,7 +300,7 @@ func optionalSlug(value *string) (*string, error) {
 
 func optionalTitle(value *string) (*string, error) {
 	if value == nil {
-		return nil, nil
+		return nil, nil //nolint:nilnil // Nil means the update did not include a title.
 	}
 	normalized, err := domainpublicpage.VNTitle(*value)
 	if err != nil {
@@ -311,14 +311,14 @@ func optionalTitle(value *string) (*string, error) {
 
 func optionalDescription(value *string, set bool) (*string, error) {
 	if !set {
-		return nil, nil
+		return nil, nil //nolint:nilnil // Nil means the update did not include a description.
 	}
 	return domainpublicpage.VNDescription(value)
 }
 
 func optionalFolderID(value *string) (*string, error) {
 	if value == nil {
-		return nil, nil
+		return nil, nil //nolint:nilnil // Nil means no parent folder was provided.
 	}
 	normalized, err := domainpublicpage.VNFolderID(*value)
 	if err != nil {
@@ -329,17 +329,17 @@ func optionalFolderID(value *string) (*string, error) {
 
 func optionalDescriptionID(value *string, set bool) (*string, error) {
 	if !set {
-		return nil, nil
+		return nil, nil //nolint:nilnil // Nil means the update did not include a parent folder.
 	}
 	if value == nil {
-		return nil, nil
+		return nil, nil //nolint:nilnil // Nil means the parent folder should be cleared.
 	}
 	return optionalFolderID(value)
 }
 
 func optionalFolderName(value *string) (*string, error) {
 	if value == nil {
-		return nil, nil
+		return nil, nil //nolint:nilnil // Nil means the update did not include a folder name.
 	}
 	normalized, err := domainpublicpage.VNFolderName(*value)
 	if err != nil {
@@ -350,7 +350,7 @@ func optionalFolderName(value *string) (*string, error) {
 
 func optionalSortOrder(value *int32) (*int32, error) {
 	if value == nil {
-		return nil, nil
+		return nil, nil //nolint:nilnil // Nil means the update did not include a sort order.
 	}
 	normalized, err := domainpublicpage.VNSortOrder(*value)
 	if err != nil {

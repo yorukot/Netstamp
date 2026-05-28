@@ -132,7 +132,7 @@ func VNDescription(description *string) (*string, error) {
 
 	trimmed := strings.TrimSpace(*description)
 	if trimmed == "" {
-		return nil, nil
+		return nil, nil //nolint:nilnil // Nil means an empty description should be stored as absent.
 	}
 	if err := spvalidator.Max(trimmed, 1024); err != nil {
 		return nil, err

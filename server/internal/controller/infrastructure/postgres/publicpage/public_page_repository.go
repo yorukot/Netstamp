@@ -312,26 +312,27 @@ func (r *PublicPageRepository) SetFolderChecks(ctx context.Context, projectIDVal
 	}
 	err = r.tx.InTx(ctx, func(ctx context.Context, tx pgx.Tx) error {
 		q := r.queries.WithTx(tx)
-		if err := q.DeletePublicPageFolderChecks(ctx, sqlc.DeletePublicPageFolderChecksParams{
+		deleteErr := q.DeletePublicPageFolderChecks(ctx, sqlc.DeletePublicPageFolderChecksParams{
 			PublicPageID: pageID,
 			ProjectID:    projectID,
 			FolderID:     folderID,
-		}); err != nil {
-			return err
+		})
+		if deleteErr != nil {
+			return deleteErr
 		}
 		for index, checkID := range checkIDs {
-			_, err := q.CreatePublicPageFolderCheck(ctx, sqlc.CreatePublicPageFolderCheckParams{
+			_, createErr := q.CreatePublicPageFolderCheck(ctx, sqlc.CreatePublicPageFolderCheckParams{
 				PublicPageID: pageID,
 				ProjectID:    projectID,
 				FolderID:     folderID,
 				CheckID:      checkID,
 				SortOrder:    int32(index),
 			})
-			if err != nil {
-				if errors.Is(err, pgx.ErrNoRows) {
+			if createErr != nil {
+				if errors.Is(createErr, pgx.ErrNoRows) {
 					return domainpublicpage.ErrInvalidInput
 				}
-				return mapPublicPageWriteError(err)
+				return mapPublicPageWriteError(createErr)
 			}
 		}
 		return nil
@@ -437,7 +438,7 @@ func parseFolderUpdateIDs(projectIDValue, pageIDValue, folderIDValue string, par
 
 func parseOptionalFolderID(folderIDValue *string) (*uuid.UUID, error) {
 	if folderIDValue == nil {
-		return nil, nil
+		return nil, nil //nolint:nilnil // Nil means no parent folder was provided.
 	}
 	folderID, err := postgres.ParseUUID(*folderIDValue, domainpublicpage.ErrFolderNotFound)
 	if err != nil {

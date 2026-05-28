@@ -178,10 +178,12 @@ func (s *Service) CreateFolder(ctx context.Context, input CreateFolderInput) (do
 	if err != nil {
 		return domainpublicpage.Folder{}, err
 	}
-	if err := s.ensurePageExists(ctx, project.ID, input.PageID); err != nil {
+	err = s.ensurePageExists(ctx, project.ID, input.PageID)
+	if err != nil {
 		return domainpublicpage.Folder{}, flow.pageLookupFailure(PublicPageEventCreateFolderFailure, err)
 	}
-	if err := s.ensureParentValid(ctx, project.ID, input.PageID, "", input.ParentID); err != nil {
+	err = s.ensureParentValid(ctx, project.ID, input.PageID, "", input.ParentID)
+	if err != nil {
 		return domainpublicpage.Folder{}, flow.folderLookupFailure(PublicPageEventCreateFolderFailure, err)
 	}
 
@@ -217,11 +219,13 @@ func (s *Service) UpdateFolder(ctx context.Context, input UpdateFolderInput) (do
 		return domainpublicpage.Folder{}, err
 	}
 	record.ProjectID = project.ID
-	if err := s.ensurePageExists(ctx, project.ID, record.PageID); err != nil {
+	err = s.ensurePageExists(ctx, project.ID, record.PageID)
+	if err != nil {
 		return domainpublicpage.Folder{}, flow.pageLookupFailure(PublicPageEventUpdateFolderFailure, err)
 	}
 	if record.ParentIDSet {
-		if err := s.ensureParentValid(ctx, project.ID, record.PageID, record.ID, record.ParentID); err != nil {
+		err = s.ensureParentValid(ctx, project.ID, record.PageID, record.ID, record.ParentID)
+		if err != nil {
 			return domainpublicpage.Folder{}, flow.folderLookupFailure(PublicPageEventUpdateFolderFailure, err)
 		}
 	}
@@ -284,10 +288,12 @@ func (s *Service) SetFolderChecks(ctx context.Context, input SetFolderChecksInpu
 	if err != nil {
 		return nil, err
 	}
-	if err := s.ensurePageExists(ctx, project.ID, input.PageID); err != nil {
+	err = s.ensurePageExists(ctx, project.ID, input.PageID)
+	if err != nil {
 		return nil, flow.pageLookupFailure(PublicPageEventSetFolderChecksFailure, err)
 	}
-	if err := s.ensureFolderExists(ctx, project.ID, input.PageID, input.FolderID); err != nil {
+	err = s.ensureFolderExists(ctx, project.ID, input.PageID, input.FolderID)
+	if err != nil {
 		return nil, flow.folderLookupFailure(PublicPageEventSetFolderChecksFailure, err)
 	}
 

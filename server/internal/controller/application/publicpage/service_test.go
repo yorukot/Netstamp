@@ -128,7 +128,7 @@ func TestListPagesRecordsTechnicalFailure(t *testing.T) {
 	if event.Reason != PublicPageReasonPageListFailed {
 		t.Fatalf("expected page list failed reason, got %s", event.Reason)
 	}
-	if event.Err != expected {
+	if !errors.Is(event.Err, expected) {
 		t.Fatalf("expected event error to preserve cause")
 	}
 	if event.ProjectID != testProjectID || event.ProjectRef != "project" {
