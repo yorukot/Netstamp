@@ -1,6 +1,6 @@
-import { classNames } from "@/shared/utils/classNames";
 import { useRef, useState, type CSSProperties } from "react";
 import styles from "./RouteTopologyMap.module.css";
+import { TopologyDetailCard, TopologyEdgeLayer, TopologyLegend, TopologyNodeLayer } from "./RouteTopologyMapParts";
 
 export type RouteTopologyNodeKind = "probe" | "hop" | "destination" | "unknown";
 type TopologySeverity = "normal" | "warning" | "critical";
@@ -27,7 +27,7 @@ export interface RouteTopologyEdge {
 	lossPercent?: number;
 }
 
-interface TopologyRouteNode {
+export interface TopologyRouteNode {
 	id: string;
 	name: string;
 	label: string;
@@ -44,7 +44,7 @@ interface TopologyRouteNode {
 	severity: TopologySeverity;
 }
 
-interface TopologyRouteEdge {
+export interface TopologyRouteEdge {
 	source: string;
 	target: string;
 	sourceLabel: string;
@@ -84,7 +84,7 @@ interface TopologyNeighborScore {
 	hasScore: boolean;
 }
 
-interface TopologyHoverDetail {
+export interface TopologyHoverDetail {
 	id: string;
 	title: string;
 	subtitle?: string;
@@ -98,16 +98,6 @@ interface TopologyHoverDetail {
 type TopologyMapStyle = CSSProperties & {
 	"--ns-topology-width"?: string;
 	"--ns-topology-height"?: string;
-};
-
-type TopologyNodeStyle = CSSProperties & {
-	"--ns-topology-node-x"?: string;
-	"--ns-topology-node-y"?: string;
-};
-
-type TopologyDetailStyle = CSSProperties & {
-	"--ns-topology-detail-x"?: string;
-	"--ns-topology-detail-y"?: string;
 };
 
 const topologyColumnGap = 168;
@@ -480,28 +470,6 @@ function topologyEdgeDetail(edge: TopologyRouteEdge, layout: TopologyRouteLayout
 	};
 }
 
-function TopologyDetailCard({ detail }: { detail: TopologyHoverDetail }) {
-	const style: TopologyDetailStyle = {
-		"--ns-topology-detail-x": `${detail.x}px`,
-		"--ns-topology-detail-y": `${detail.y}px`
-	};
-
-	return (
-		<div className={classNames(styles.topologyDetail, styles[`topologyDetail${detail.tone}`])} style={style} data-placement={detail.placement} id="topology-detail-card">
-			<strong>{detail.title}</strong>
-			{detail.subtitle ? <span className={styles.topologyDetailSubtitle}>{detail.subtitle}</span> : null}
-			<dl>
-				{detail.rows.map(row => (
-					<div key={`${detail.id}:${row.label}`}>
-						<dt>{row.label}</dt>
-						<dd>{row.value}</dd>
-					</div>
-				))}
-			</dl>
-		</div>
-	);
-}
-
 export function RouteTopologyMap({ nodes, edges }: { nodes: RouteTopologyNode[]; edges: RouteTopologyEdge[] }) {
 	const shellRef = useRef<HTMLDivElement>(null);
 	const viewportRef = useRef<HTMLDivElement>(null);
@@ -540,69 +508,27 @@ export function RouteTopologyMap({ nodes, edges }: { nodes: RouteTopologyNode[];
 
 	return (
 		<div className={styles.topologyShell} ref={shellRef}>
-			<div className={styles.topologyLegend} aria-hidden="true">
-				<span data-tone="agent">agent</span>
-				<span data-tone="normal">normal</span>
-				<span data-tone="warning">high rtt</span>
-				<span data-tone="critical">loss</span>
-				<span data-tone="destination">destination</span>
-			</div>
+			<TopologyLegend />
 			<div className={styles.topologyViewport} ref={viewportRef} onScroll={clearActiveDetail}>
 				<div className={styles.topologyMap} style={style}>
 					<svg className={styles.topologySvg} viewBox={`0 0 ${layout.viewWidth} ${layout.viewHeight}`} role="img" aria-label="Aggregated route topology">
-						{layout.edges.map(edge => {
-							const edgeTitle = topologyEdgeTitle(edge);
-
-							return (
-								<g key={`${edge.source}->${edge.target}`}>
-									<line className={styles.topologyEdge} x1={edge.x1} x2={edge.x2} y1={edge.y1} y2={edge.y2} stroke={edge.color} strokeWidth={edge.width} opacity={edge.opacity} />
-									<line
-										aria-label={topologyAriaLabel(edgeTitle)}
-										aria-describedby={activeDetail?.id === `edge:${edge.source}->${edge.target}` ? "topology-detail-card" : undefined}
-										className={styles.topologyEdgeHit}
-										role="graphics-symbol"
-										tabIndex={0}
-										x1={edge.x1}
-										x2={edge.x2}
-										y1={edge.y1}
-										y2={edge.y2}
-										onBlur={clearActiveDetail}
-										onFocus={() => showActiveDetail(topologyEdgeDetail(edge, layout))}
-										onPointerEnter={() => showActiveDetail(topologyEdgeDetail(edge, layout))}
-										onPointerLeave={clearActiveDetail}
-									/>
-								</g>
-							);
-						})}
+						<TopologyEdgeLayer
+							edges={layout.edges}
+							activeDetail={activeDetail}
+							onClearDetail={clearActiveDetail}
+							onShowDetail={edge => showActiveDetail(topologyEdgeDetail(edge, layout))}
+							getEdgeTitle={topologyEdgeTitle}
+							ariaLabel={topologyAriaLabel}
+						/>
 					</svg>
-					{layout.nodes.map(node => {
-						const nodeStyle: TopologyNodeStyle = {
-							"--ns-topology-node-x": `${node.x}px`,
-							"--ns-topology-node-y": `${node.y}px`
-						};
-						const nodeTitle = topologyNodeTitle(node);
-
-						return (
-							<div
-								className={classNames(styles.topologyNode, styles[`topologyNode${node.kind}`], styles[`topologyNode${node.severity}`])}
-								style={nodeStyle}
-								tabIndex={0}
-								aria-describedby={activeDetail?.id === `node:${node.id}` ? "topology-detail-card" : undefined}
-								aria-label={topologyAriaLabel(nodeTitle)}
-								key={node.id}
-								onBlur={clearActiveDetail}
-								onFocus={() => showActiveDetail(topologyNodeDetail(node, layout))}
-								onPointerEnter={() => showActiveDetail(topologyNodeDetail(node, layout))}
-								onPointerLeave={clearActiveDetail}
-							>
-								<span className={styles.topologyNodeDot} />
-								<span className={styles.topologyNodeLabel}>
-									<strong>{node.name}</strong>
-									<span>{node.hopLabel}</span>
-								</span>
-							</div>
-						);
-					})}
+					<TopologyNodeLayer
+						nodes={layout.nodes}
+						activeDetail={activeDetail}
+						onClearDetail={clearActiveDetail}
+						onShowDetail={node => showActiveDetail(topologyNodeDetail(node, layout))}
+						getNodeTitle={topologyNodeTitle}
+						ariaLabel={topologyAriaLabel}
+					/>
 				</div>
 			</div>
 			{activeDetail ? <TopologyDetailCard detail={activeDetail} /> : null}
