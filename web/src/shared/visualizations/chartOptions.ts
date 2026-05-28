@@ -32,6 +32,23 @@ interface TooltipParam {
 	marker?: string;
 }
 
+interface SmokeRenderApi {
+	coord: (value: [number, number]) => [number, number];
+	value: (dimension: number) => number | string;
+}
+
+interface CartesianCoordSys {
+	height: number;
+	width: number;
+	x: number;
+	y: number;
+}
+
+interface CustomRenderParams {
+	coordSys?: CartesianCoordSys;
+	dataIndex: number;
+}
+
 const pingRttMetricKeys: PingRttMetricKey[] = ["rttMinMs", "rttAvgMs", "rttMedianMs", "rttMaxMs"];
 
 function timestampLabel(value: number) {
@@ -73,7 +90,9 @@ function tooltipValue(value: unknown) {
 
 	return {
 		metric,
-		sampleCount: typeof sampleCount === "number" ? sampleCount : null
+		sampleCount: typeof sampleCount === "number" ? sampleCount : null,
+		rttBucketStartMs: typeof value[3] === "number" ? value[3] : null,
+		rttBucketEndMs: typeof value[4] === "number" ? value[4] : null
 	};
 }
 
@@ -85,13 +104,20 @@ function pingTooltipFormatter(params: unknown) {
 
 	for (const item of items) {
 		const parsed = tooltipValue(item.value);
-		if (!parsed || item.seriesName === "spread base" || item.seriesName === "spread range") {
+		if (!parsed || item.seriesName === "range base" || item.seriesName === "latency spread") {
 			continue;
 		}
 
-		const suffix = item.seriesName === "loss" ? "%" : item.seriesName === "sample density" ? "ms" : "ms";
-		const count = item.seriesName === "sample density" && parsed.sampleCount !== null ? ` · ${parsed.sampleCount} samples` : "";
-		lines.push(`${item.marker || ""}${item.seriesName}: ${parsed.metric.toFixed(1)}${suffix}${count}`);
+		if (item.seriesName === "smoke") {
+			const bucket =
+				parsed.rttBucketStartMs !== null && parsed.rttBucketEndMs !== null ? `${parsed.rttBucketStartMs.toFixed(1)}-${parsed.rttBucketEndMs.toFixed(1)}ms` : `${parsed.metric.toFixed(1)}ms`;
+			const count = parsed.sampleCount !== null ? ` · ${parsed.sampleCount} samples` : "";
+			lines.push(`${item.marker || ""}smoke: ${bucket}${count}`);
+			continue;
+		}
+
+		const suffix = item.seriesName === "loss" ? "%" : "ms";
+		lines.push(`${item.marker || ""}${item.seriesName}: ${parsed.metric.toFixed(1)}${suffix}`);
 	}
 
 	if (firstValue === null && lines.length === 0) {
@@ -131,6 +157,146 @@ function pingRttAxisBounds(buckets: PingInsightChartBucket[], sampleDensity: Pin
 	const max = Math.max(min + 1, roundAxisCeil(maxValue + padding));
 
 	return { min, max };
+}
+
+function uniqueSortedTimestamps(timestamps: number[]) {
+	return Array.from(new Set(timestamps.filter(timestamp => Number.isFinite(timestamp)))).sort((a, b) => a - b);
+}
+
+function inferTimestampStep(timestamps: number[]) {
+	const gaps = timestamps.flatMap((timestamp, index) => {
+		const next = timestamps[index + 1];
+		return typeof next === "number" && next > timestamp ? [next - timestamp] : [];
+	});
+
+	if (!gaps.length) {
+		return 60_000;
+	}
+
+	return gaps[Math.floor(gaps.length / 2)] || gaps[0] || 60_000;
+}
+
+function timeBoundsByTimestamp(timestampsInput: number[]) {
+	const timestamps = uniqueSortedTimestamps(timestampsInput);
+	const defaultStep = inferTimestampStep(timestamps);
+	const bounds = new Map<number, { from: number; to: number }>();
+
+	timestamps.forEach((timestamp, index) => {
+		const previous = timestamps[index - 1];
+		const next = timestamps[index + 1];
+		const leftGap = typeof previous === "number" && timestamp > previous ? timestamp - previous : defaultStep;
+		const rightGap = typeof next === "number" && next > timestamp ? next - timestamp : defaultStep;
+
+		bounds.set(timestamp, {
+			from: timestamp - leftGap / 2,
+			to: timestamp + rightGap / 2
+		});
+	});
+
+	return bounds;
+}
+
+function smokeData(sampleDensity: PingInsightSampleDensityCell[]) {
+	const timeBounds = timeBoundsByTimestamp(sampleDensity.map(cell => cell.timestampMs));
+
+	return sampleDensity.map(cell => {
+		const bounds = timeBounds.get(cell.timestampMs) ?? { from: cell.timestampMs - 30_000, to: cell.timestampMs + 30_000 };
+		return [cell.timestampMs, (cell.rttBucketStartMs + cell.rttBucketEndMs) / 2, cell.sampleCount, cell.rttBucketStartMs, cell.rttBucketEndMs, bounds.from, bounds.to];
+	});
+}
+
+function lossBandData(buckets: PingInsightChartBucket[]) {
+	const timeBounds = timeBoundsByTimestamp(buckets.map(bucket => bucket.timestampMs));
+
+	return buckets.flatMap(bucket => {
+		const lossPercent = bucket.lossPercent;
+		if (typeof lossPercent !== "number" || !Number.isFinite(lossPercent) || lossPercent <= 5) {
+			return [];
+		}
+
+		const bounds = timeBounds.get(bucket.timestampMs) ?? { from: bucket.timestampMs - 30_000, to: bucket.timestampMs + 30_000 };
+		return [[bucket.timestampMs, lossPercent, bounds.from, bounds.to]];
+	});
+}
+
+function smokeCellColor(sampleCount: number, maxSampleCount: number) {
+	const intensity = Math.log1p(Math.max(sampleCount, 0)) / Math.log1p(Math.max(maxSampleCount, 1));
+	const opacity = 0.08 + Math.min(1, intensity) * 0.46;
+	return `rgba(255, 247, 236, ${opacity.toFixed(3)})`;
+}
+
+function smokeRenderItem(maxSampleCount: number) {
+	return function renderSmokeCell(_params: CustomRenderParams, api: SmokeRenderApi) {
+		const sampleCount = Number(api.value(2));
+		const rttStartMs = Number(api.value(3));
+		const rttEndMs = Number(api.value(4));
+		const timeStartMs = Number(api.value(5));
+		const timeEndMs = Number(api.value(6));
+
+		if (![sampleCount, rttStartMs, rttEndMs, timeStartMs, timeEndMs].every(Number.isFinite)) {
+			return undefined;
+		}
+
+		const start = api.coord([timeStartMs, rttEndMs]);
+		const end = api.coord([timeEndMs, rttStartMs]);
+		const x = Math.min(start[0], end[0]);
+		const y = Math.min(start[1], end[1]);
+		const width = Math.max(1, Math.abs(end[0] - start[0]));
+		const height = Math.max(1.5, Math.abs(end[1] - start[1]));
+
+		return {
+			type: "rect",
+			shape: { x, y, width, height },
+			style: {
+				fill: smokeCellColor(sampleCount, maxSampleCount)
+			}
+		};
+	};
+}
+
+function lossBandColor(lossPercent: number) {
+	if (lossPercent >= 50) {
+		return "rgba(255, 69, 58, 0.34)";
+	}
+
+	if (lossPercent >= 20) {
+		return "rgba(255, 69, 58, 0.24)";
+	}
+
+	if (lossPercent >= 5) {
+		return "rgba(255, 122, 26, 0.18)";
+	}
+
+	return "rgba(255, 122, 26, 0.18)";
+}
+
+function lossBandRenderItem(params: CustomRenderParams, api: SmokeRenderApi) {
+	const lossPercent = Number(api.value(1));
+	const timeStartMs = Number(api.value(2));
+	const timeEndMs = Number(api.value(3));
+	const coordSys = params.coordSys;
+
+	if (!coordSys || ![lossPercent, timeStartMs, timeEndMs].every(Number.isFinite) || lossPercent <= 0) {
+		return undefined;
+	}
+
+	const start = api.coord([timeStartMs, 0]);
+	const end = api.coord([timeEndMs, 0]);
+	const x = Math.min(start[0], end[0]);
+	const width = Math.max(1, Math.abs(end[0] - start[0]));
+
+	return {
+		type: "rect",
+		shape: {
+			x,
+			y: coordSys.y,
+			width,
+			height: coordSys.height
+		},
+		style: {
+			fill: lossBandColor(lossPercent)
+		}
+	};
 }
 
 export function lineChartOption(title: string, values: number[], secondaryValues: number[] = []): ChartOption {
@@ -224,12 +390,13 @@ export function barChartOption(values: number[], name = "events"): ChartOption {
 
 export function pingInsightChartOption(buckets: PingInsightChartBucket[], sampleDensity: PingInsightSampleDensityCell[]): ChartOption {
 	const maxSampleCount = Math.max(1, ...sampleDensity.map(cell => cell.sampleCount));
-	const densityData = sampleDensity.map(cell => [cell.timestampMs, (cell.rttBucketStartMs + cell.rttBucketEndMs) / 2, cell.sampleCount]);
+	const smokeCells = smokeData(sampleDensity);
+	const lossBands = lossBandData(buckets);
 	const rttAxisBounds = pingRttAxisBounds(buckets, sampleDensity);
 
 	return {
 		backgroundColor: "transparent",
-		color: ["#FF7A1A", "#FFE0C2", "#C4CCD9", "#77736B", "#FF453A"],
+		color: ["#FFF7EC", "#FF7A1A", "#FF453A"],
 		tooltip: {
 			trigger: "axis",
 			backgroundColor: "rgba(2,3,4,0.96)",
@@ -240,6 +407,7 @@ export function pingInsightChartOption(buckets: PingInsightChartBucket[], sample
 		legend: {
 			top: 0,
 			right: 0,
+			data: ["smoke", "median", "loss"],
 			textStyle: { color: "#B8B3AA", fontFamily: "JetBrains Mono, monospace", fontSize: 10 },
 			itemWidth: 12,
 			itemHeight: 6
@@ -266,17 +434,6 @@ export function pingInsightChartOption(buckets: PingInsightChartBucket[], sample
 				}
 			}
 		},
-		visualMap: {
-			show: false,
-			type: "continuous",
-			min: 0,
-			max: maxSampleCount,
-			dimension: 2,
-			seriesIndex: 0,
-			inRange: {
-				color: ["rgba(255,122,26,0.18)", "rgba(255,122,26,0.5)", "#FF7A1A", "#FFF7EC"]
-			}
-		},
 		xAxis: {
 			type: "time",
 			axisLabel: {
@@ -296,31 +453,32 @@ export function pingInsightChartOption(buckets: PingInsightChartBucket[], sample
 				axisLine: { show: false },
 				axisTick: { show: false },
 				...rttAxisBounds
-			},
-			{
-				type: "value",
-				name: "loss %",
-				nameTextStyle: { color: "#77736B", fontFamily: "JetBrains Mono, monospace", fontSize: 10 },
-				axisLabel,
-				splitLine: { show: false },
-				axisLine: { show: false },
-				axisTick: { show: false },
-				min: 0,
-				max: 100
 			}
 		],
 		series: [
 			{
-				name: "sample density",
-				type: "scatter",
-				data: densityData,
-				showSymbol: true,
-				symbolSize: (value: number[]) => Math.min(13, 3 + Math.sqrt(value[2] || 1) * 2.2),
-				itemStyle: { opacity: 0.82 },
-				z: 6
+				name: "loss",
+				type: "custom",
+				coordinateSystem: "cartesian2d",
+				renderItem: lossBandRenderItem,
+				data: lossBands,
+				clip: true,
+				encode: { x: 0, tooltip: 1 },
+				z: 1
 			},
 			{
-				name: "spread base",
+				name: "smoke",
+				type: "custom",
+				coordinateSystem: "cartesian2d",
+				renderItem: smokeRenderItem(maxSampleCount),
+				data: smokeCells,
+				clip: true,
+				encode: { x: 0, y: 1 },
+				tooltip: { show: false },
+				z: 4
+			},
+			{
+				name: "range base",
 				type: "line",
 				stack: "rtt-spread",
 				data: spreadData(buckets, "base"),
@@ -330,23 +488,14 @@ export function pingInsightChartOption(buckets: PingInsightChartBucket[], sample
 				silent: true
 			},
 			{
-				name: "spread range",
+				name: "latency spread",
 				type: "line",
 				stack: "rtt-spread",
 				data: spreadData(buckets, "range"),
 				showSymbol: false,
 				lineStyle: { opacity: 0 },
-				areaStyle: { color: "rgba(255,122,26,0.12)" },
+				areaStyle: { color: "rgba(196,204,217,0.08)" },
 				silent: true
-			},
-			{
-				name: "avg",
-				type: "line",
-				data: metricData(buckets, "rttAvgMs"),
-				showSymbol: false,
-				smooth: true,
-				lineStyle: { width: 2.5, color: "#FF7A1A", shadowBlur: 14, shadowColor: "rgba(255,122,26,0.32)" },
-				z: 8
 			},
 			{
 				name: "median",
@@ -354,31 +503,8 @@ export function pingInsightChartOption(buckets: PingInsightChartBucket[], sample
 				data: metricData(buckets, "rttMedianMs"),
 				showSymbol: false,
 				smooth: true,
-				lineStyle: { width: 1.5, color: "#FFE0C2" },
-				z: 7
-			},
-			{
-				name: "min",
-				type: "line",
-				data: metricData(buckets, "rttMinMs"),
-				showSymbol: false,
-				lineStyle: { width: 1, color: "rgba(196,204,217,0.42)" }
-			},
-			{
-				name: "max",
-				type: "line",
-				data: metricData(buckets, "rttMaxMs"),
-				showSymbol: false,
-				lineStyle: { width: 1, color: "rgba(196,204,217,0.52)" }
-			},
-			{
-				name: "loss",
-				type: "bar",
-				yAxisIndex: 1,
-				data: metricData(buckets, "lossPercent"),
-				barWidth: 4,
-				itemStyle: { color: "rgba(255,69,58,0.52)" },
-				z: 2
+				lineStyle: { width: 2.25, color: "#FF7A1A", shadowBlur: 12, shadowColor: "rgba(255,122,26,0.36)" },
+				z: 8
 			}
 		]
 	};

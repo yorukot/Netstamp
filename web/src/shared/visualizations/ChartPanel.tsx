@@ -46,6 +46,7 @@ function loadChartRuntime() {
 			echarts.use([
 				charts.LineChart,
 				charts.BarChart,
+				charts.CustomChart,
 				charts.GraphChart,
 				charts.ScatterChart,
 				components.GridComponent,
