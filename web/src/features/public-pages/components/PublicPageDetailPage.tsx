@@ -14,6 +14,7 @@ import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { useConfirm } from "@/shared/components/confirmContext";
 import { pushToast } from "@/shared/toast/toastStore";
+import { nullableTrimmedText, optionalTrimmedText } from "@/shared/utils/formText";
 import { isPublicPageDescendantFolder, publicPageFolderLabel } from "@/shared/utils/publicPageFolders";
 import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
 import { Button, Checkbox, Panel, SelectField, TextAreaField, TextField } from "@netstamp/ui";
@@ -75,16 +76,6 @@ function folderEditDraftFromFolder(folder: ApiPublicPageFolder | null): FolderEd
 		description: folder?.description ?? "",
 		sortOrder: String(folder?.sortOrder ?? 0)
 	};
-}
-
-function optionalText(value: string) {
-	const trimmed = value.trim();
-	return trimmed ? trimmed : undefined;
-}
-
-function nullableText(value: string) {
-	const trimmed = value.trim();
-	return trimmed ? trimmed : null;
 }
 
 function pageUrl(slug: string) {
@@ -205,7 +196,7 @@ export function PublicPageDetailPage() {
 		const body: UpdatePublicPageInput = {
 			slug: pageDraftValue.slug,
 			title: pageDraftValue.title,
-			description: nullableText(pageDraftValue.description),
+			description: nullableTrimmedText(pageDraftValue.description),
 			enabled: pageDraftValue.enabled
 		};
 
@@ -251,7 +242,7 @@ export function PublicPageDetailPage() {
 				body: {
 					parentId: folderDraft.parentId || undefined,
 					name: folderDraft.name,
-					description: optionalText(folderDraft.description),
+					description: optionalTrimmedText(folderDraft.description),
 					sortOrder: sortOrderValue(folderDraft.sortOrder)
 				}
 			},
@@ -273,7 +264,7 @@ export function PublicPageDetailPage() {
 		const body: UpdatePublicPageFolderInput = {
 			parentId: folderEditValue.parentId || null,
 			name: folderEditValue.name,
-			description: nullableText(folderEditValue.description),
+			description: nullableTrimmedText(folderEditValue.description),
 			sortOrder: sortOrderValue(folderEditValue.sortOrder)
 		};
 

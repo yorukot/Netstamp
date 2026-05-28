@@ -6,6 +6,7 @@ import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { pushToast } from "@/shared/toast/toastStore";
+import { optionalTrimmedText } from "@/shared/utils/formText";
 import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
 import { Badge, Button, Checkbox, DataTable, Panel, TextField, type DataColumn } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
@@ -34,11 +35,6 @@ const EMPTY_PUBLIC_PAGES: ApiPublicPage[] = [];
 
 function emptyCreateDraft(): CreatePageDraft {
 	return { slug: "", title: "", description: "", enabled: true };
-}
-
-function optionalText(value: string) {
-	const trimmed = value.trim();
-	return trimmed ? trimmed : undefined;
 }
 
 function formatDateTime(value: string) {
@@ -98,7 +94,7 @@ export function PublicPagesPage() {
 			{
 				slug: createDraft.slug,
 				title: createDraft.title,
-				description: optionalText(createDraft.description),
+				description: optionalTrimmedText(createDraft.description),
 				enabled: createDraft.enabled
 			},
 			{
