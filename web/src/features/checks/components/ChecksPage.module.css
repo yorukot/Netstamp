@@ -32,7 +32,6 @@
 }
 
 .checkEditForm,
-.checkConfigSection,
 .probeMultiSelect {
 	display: grid;
 	gap: 1rem;
@@ -47,16 +46,6 @@
 .checkEditForm > * {
 	flex: 1 1 14rem;
 	min-width: 0;
-}
-
-.checkConfigSection {
-	margin-bottom: 1rem;
-}
-
-.checkConfigGrid {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
-	gap: 1rem;
 }
 
 .probeSummary {

@@ -9,11 +9,9 @@ import {
 	pingConfigFormStateFromApi,
 	tcpConfigFormStateFromApi,
 	tracerouteConfigFormStateFromApi,
-	type IPFamilyFormValue,
 	type PingConfigFormState,
 	type TCPConfigFormState,
-	type TracerouteConfigFormState,
-	type TracerouteProtocolFormValue
+	type TracerouteConfigFormState
 } from "@/features/checks/data/checkConfig";
 import { type CheckDefinition, type CheckType } from "@/features/checks/data/checks";
 import { mapApiProbes } from "@/features/probes/api/probeAdapters";
@@ -30,6 +28,7 @@ import { classNames } from "@/shared/utils/classNames";
 import { Badge, Button, Checkbox, DataTable, FieldLabel, Panel, SelectField, TextAreaField, TextField, type DataColumn } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import { CheckConfigFields } from "./CheckConfigFields";
 import styles from "./ChecksPage.module.css";
 import { displayProbeSelection } from "./checksPageData";
 
@@ -76,17 +75,6 @@ const selectorOpOptions: Array<{ value: SelectorLabelOp; label: string }> = [
 	{ value: "eq", label: "equals" },
 	{ value: "in", label: "in values" },
 	{ value: "exists", label: "exists" }
-];
-
-const ipFamilyOptions: Array<{ value: IPFamilyFormValue; label: string }> = [
-	{ value: "", label: "Auto" },
-	{ value: "inet", label: "IPv4" },
-	{ value: "inet6", label: "IPv6" }
-];
-
-const tracerouteProtocolOptions: Array<{ value: TracerouteProtocolFormValue; label: string }> = [
-	{ value: "icmp", label: "ICMP" },
-	{ value: "udp", label: "UDP" }
 ];
 
 function checkTypeFromApi(type: string): CheckType {
@@ -626,156 +614,16 @@ export function ChecksPage() {
 								<TextField label="Interval" value={activeInterval} onChange={event => setInterval(event.currentTarget.value)} />
 							</div>
 
-							<div className={styles.checkConfigSection}>
-								<FieldLabel>{activeCheckType} config</FieldLabel>
-								{activeCheckType === "Traceroute" ? (
-									<div className={styles.checkConfigGrid}>
-										<SelectField
-											label="Protocol"
-											value={activeTracerouteConfig.protocol}
-											disabled={!selectedCheck && !isCreating}
-											onChange={event => updateTracerouteConfig({ protocol: event.currentTarget.value as TracerouteProtocolFormValue })}
-											options={tracerouteProtocolOptions}
-										/>
-										<TextField
-											label="Max hops"
-											type="number"
-											min={1}
-											max={64}
-											step={1}
-											inputMode="numeric"
-											value={activeTracerouteConfig.maxHops}
-											disabled={!selectedCheck && !isCreating}
-											onChange={event => updateTracerouteConfig({ maxHops: event.currentTarget.value })}
-										/>
-										<TextField
-											label="Timeout ms"
-											type="number"
-											min={1}
-											max={60000}
-											step={1}
-											inputMode="numeric"
-											value={activeTracerouteConfig.timeoutMs}
-											disabled={!selectedCheck && !isCreating}
-											onChange={event => updateTracerouteConfig({ timeoutMs: event.currentTarget.value })}
-										/>
-										<TextField
-											label="Queries per hop"
-											type="number"
-											min={1}
-											max={10}
-											step={1}
-											inputMode="numeric"
-											value={activeTracerouteConfig.queriesPerHop}
-											disabled={!selectedCheck && !isCreating}
-											onChange={event => updateTracerouteConfig({ queriesPerHop: event.currentTarget.value })}
-										/>
-										<TextField
-											label="Packet size bytes"
-											type="number"
-											min={1}
-											max={65507}
-											step={1}
-											inputMode="numeric"
-											value={activeTracerouteConfig.packetSizeBytes}
-											disabled={!selectedCheck && !isCreating}
-											onChange={event => updateTracerouteConfig({ packetSizeBytes: event.currentTarget.value })}
-										/>
-										{activeTracerouteConfig.protocol === "udp" ? (
-											<TextField
-												label="Port"
-												type="number"
-												min={1}
-												max={65535}
-												step={1}
-												inputMode="numeric"
-												value={activeTracerouteConfig.port}
-												disabled={!selectedCheck && !isCreating}
-												onChange={event => updateTracerouteConfig({ port: event.currentTarget.value })}
-											/>
-										) : null}
-										<SelectField
-											label="IP family"
-											value={activeTracerouteConfig.ipFamily}
-											disabled={!selectedCheck && !isCreating}
-											onChange={event => updateTracerouteConfig({ ipFamily: event.currentTarget.value as IPFamilyFormValue })}
-											options={ipFamilyOptions}
-										/>
-									</div>
-								) : activeCheckType === "TCP" ? (
-									<div className={styles.checkConfigGrid}>
-										<TextField
-											label="Port"
-											type="number"
-											min={1}
-											max={65535}
-											step={1}
-											inputMode="numeric"
-											value={activeTCPConfig.port}
-											disabled={!selectedCheck && !isCreating}
-											onChange={event => updateTCPConfig({ port: event.currentTarget.value })}
-										/>
-										<TextField
-											label="Timeout ms"
-											type="number"
-											min={1}
-											step={1}
-											inputMode="numeric"
-											value={activeTCPConfig.timeoutMs}
-											disabled={!selectedCheck && !isCreating}
-											onChange={event => updateTCPConfig({ timeoutMs: event.currentTarget.value })}
-										/>
-										<SelectField
-											label="IP family"
-											value={activeTCPConfig.ipFamily}
-											disabled={!selectedCheck && !isCreating}
-											onChange={event => updateTCPConfig({ ipFamily: event.currentTarget.value as IPFamilyFormValue })}
-											options={ipFamilyOptions}
-										/>
-									</div>
-								) : (
-									<div className={styles.checkConfigGrid}>
-										<TextField
-											label="Packet count"
-											type="number"
-											min={1}
-											step={1}
-											inputMode="numeric"
-											value={activePingConfig.packetCount}
-											disabled={!selectedCheck && !isCreating}
-											onChange={event => updatePingConfig({ packetCount: event.currentTarget.value })}
-										/>
-										<TextField
-											label="Packet size bytes"
-											type="number"
-											min={1}
-											max={65507}
-											step={1}
-											inputMode="numeric"
-											value={activePingConfig.packetSizeBytes}
-											disabled={!selectedCheck && !isCreating}
-											onChange={event => updatePingConfig({ packetSizeBytes: event.currentTarget.value })}
-										/>
-										<TextField
-											label="Timeout ms"
-											type="number"
-											min={1}
-											step={1}
-											inputMode="numeric"
-											value={activePingConfig.timeoutMs}
-											disabled={!selectedCheck && !isCreating}
-											onChange={event => updatePingConfig({ timeoutMs: event.currentTarget.value })}
-										/>
-										<SelectField
-											label="IP family"
-											value={activePingConfig.ipFamily}
-											disabled={!selectedCheck && !isCreating}
-											onChange={event => updatePingConfig({ ipFamily: event.currentTarget.value as IPFamilyFormValue })}
-											options={ipFamilyOptions}
-										/>
-									</div>
-								)}
-							</div>
+							<CheckConfigFields
+								checkType={activeCheckType}
+								disabled={!selectedCheck && !isCreating}
+								pingConfig={activePingConfig}
+								tcpConfig={activeTCPConfig}
+								tracerouteConfig={activeTracerouteConfig}
+								onPingConfigChange={updatePingConfig}
+								onTCPConfigChange={updateTCPConfig}
+								onTracerouteConfigChange={updateTracerouteConfig}
+							/>
 
 							<div className={styles.probeMultiSelect}>
 								<FieldLabel>Probe selector</FieldLabel>
