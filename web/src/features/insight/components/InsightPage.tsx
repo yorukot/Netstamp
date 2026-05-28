@@ -159,7 +159,7 @@ function parseEpochMs(value: string | null) {
 }
 
 function isInsightCheckTypeFilter(value: string | null): value is InsightCheckTypeFilter {
-	return value === "all" || value === "ping" || value === "traceroute";
+	return value === "all" || value === "ping" || value === "tcp" || value === "traceroute";
 }
 
 function isInsightGroupBy(value: string | null): value is InsightGroupBy {
