@@ -74,7 +74,7 @@ func NewRouter(dep Dependencies) http.Handler {
 func newAPIRouter(dep Dependencies) http.Handler {
 	r := chi.NewRouter()
 	r.Use(chimw.RequestID)
-	r.Use(chimw.RealIP)
+	r.Use(chimw.ClientIPFromRemoteAddr)
 	r.Use(chimw.StripSlashes)
 	r.Use(otelhttp.NewMiddleware("http.server",
 		otelhttp.WithSpanNameFormatter(httptracing.RequestSpanName),

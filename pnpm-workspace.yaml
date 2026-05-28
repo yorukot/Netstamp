@@ -6,3 +6,6 @@ packages:
 allowBuilds:
   esbuild: true
   sharp: true
+peerDependencyRules:
+  allowedVersions:
+    "openapi-typescript>typescript": "^6.0.0"

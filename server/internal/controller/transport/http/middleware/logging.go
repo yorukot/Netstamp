@@ -30,7 +30,7 @@ func ZapRequestLogger(root *zap.Logger) func(http.Handler) http.Handler {
 				zap.String("request_id", requestID),
 				zap.String("http.request.method", r.Method),
 				zap.String("url.path", r.URL.Path),
-				zap.String("client.address", clientAddress(r.RemoteAddr)),
+				zap.String("client.address", clientAddress(r)),
 				zap.String("user_agent.original", r.UserAgent()),
 			)
 			if traceFields := logger.TraceFields(r.Context()); len(traceFields) > 0 {
@@ -69,7 +69,12 @@ func ZapRequestLogger(root *zap.Logger) func(http.Handler) http.Handler {
 	}
 }
 
-func clientAddress(remoteAddr string) string {
+func clientAddress(r *http.Request) string {
+	if ip := chimw.GetClientIP(r.Context()); ip != "" {
+		return ip
+	}
+
+	remoteAddr := r.RemoteAddr
 	host, _, err := net.SplitHostPort(remoteAddr)
 	if err != nil {
 		return remoteAddr

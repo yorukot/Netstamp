@@ -29,7 +29,7 @@ func ZapRecoverer(root *zap.Logger) func(http.Handler) http.Handler {
 						zap.String("request_id", requestID),
 						zap.String("http.request.method", r.Method),
 						zap.String("url.path", r.URL.Path),
-						zap.String("client.address", clientAddress(r.RemoteAddr)),
+						zap.String("client.address", clientAddress(r)),
 						zap.String("user_agent.original", r.UserAgent()),
 						zap.Any("panic", recovered),
 						zap.Stack("stacktrace"),

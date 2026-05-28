@@ -10,21 +10,21 @@
 		"preview": "astro preview"
 	},
 	"dependencies": {
-		"@astrojs/mdx": "^4.2.3",
-		"@astrojs/react": "^5.0.4",
+		"@astrojs/mdx": "^5.0.6",
+		"@astrojs/react": "^5.0.5",
 		"@netstamp/brand": "workspace:*",
 		"@netstamp/ui": "workspace:*",
 		"@phosphor-icons/webcomponents": "^2.1.5",
-		"astro": "^6.2.2",
-		"fuse.js": "^7.1.0",
+		"astro": "^6.3.8",
+		"fuse.js": "^7.3.0",
 		"gsap": "^3.15.0",
-		"react": "^19.2.5",
-		"react-dom": "^19.2.5",
+		"react": "^19.2.6",
+		"react-dom": "^19.2.6",
 		"remark-directive": "^4.0.0",
 		"three": "^0.184.0"
 	},
 	"devDependencies": {
-		"@types/react": "^19.2.14",
+		"@types/react": "^19.2.15",
 		"@types/react-dom": "^19.2.3"
 	}
 }
