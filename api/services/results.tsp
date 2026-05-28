@@ -76,6 +76,27 @@ model TracerouteRunsQuery {
 	cursor?: int64;
 }
 
+model TracerouteInsightQuery {
+	@query
+	probeId: uuid;
+
+	@query
+	checkId: uuid;
+
+	@query
+	@minValue(1)
+	from?: int64;
+
+	@query
+	@minValue(1)
+	to?: int64;
+
+	@query
+	@minValue(1)
+	@maxValue(2000)
+	maxDataPoints?: int32 = 600;
+}
+
 model TracerouteTopologyQuery {
 	@query
 	probeId?: uuid;
@@ -131,6 +152,18 @@ interface ResultService {
 	@route("/traceroute/runs")
 	queryProjectTracerouteResultRuns(...ProjectRefParam, ...TracerouteRunsQuery):
 		| OkJson<TracerouteRunsResponse>
+		| BadRequestProblem
+		| UnauthorizedProblem
+		| NotFoundProblem
+		| UnprocessableEntityProblem
+		| InternalServerProblem;
+
+	@operationId("queryProjectTracerouteResultInsight")
+	@summary("Query project traceroute result insight")
+	@get
+	@route("/traceroute/insight")
+	queryProjectTracerouteResultInsight(...ProjectRefParam, ...TracerouteInsightQuery):
+		| OkJson<TracerouteInsightResponse>
 		| BadRequestProblem
 		| UnauthorizedProblem
 		| NotFoundProblem

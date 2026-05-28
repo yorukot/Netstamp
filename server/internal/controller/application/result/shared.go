@@ -27,6 +27,14 @@ func averagePtr(sum float64, count int32) *float64 {
 	return &average
 }
 
+func timePtr(value *time.Time) *time.Time {
+	if value == nil {
+		return nil
+	}
+	copied := value.UTC()
+	return &copied
+}
+
 func timePtrMillis(value *time.Time) *int64 {
 	if value == nil {
 		return nil

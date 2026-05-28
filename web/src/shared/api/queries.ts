@@ -1,7 +1,7 @@
 import { queryOptions } from "@tanstack/react-query";
 import { apiClient, readApiData } from "./client";
 import { apiQueryKeys } from "./queryKeys";
-import type { MeasurementFilters, PingInsightFilters, PingSeriesFilters, ProjectAssignmentFilters, TracerouteRunsFilters, TracerouteTopologyFilters } from "./types";
+import type { MeasurementFilters, PingInsightFilters, PingSeriesFilters, ProjectAssignmentFilters, TracerouteInsightFilters, TracerouteRunsFilters, TracerouteTopologyFilters } from "./types";
 
 export const systemQueries = {
 	root: () =>
@@ -132,6 +132,18 @@ export const projectQueries = {
 				readApiData(
 					apiClient.GET("/projects/{ref}/results/traceroute/runs", {
 						params: { path: { ref }, query: { probeId, checkId, limit: 100, ...filters } },
+						signal
+					})
+				),
+			staleTime: 30 * 1000
+		}),
+	tracerouteInsight: (ref: string, probeId: string, checkId: string, filters: TracerouteInsightFilters = {}) =>
+		queryOptions({
+			queryKey: apiQueryKeys.projects.tracerouteInsight(ref, probeId, checkId, filters),
+			queryFn: ({ signal }) =>
+				readApiData(
+					apiClient.GET("/projects/{ref}/results/traceroute/insight", {
+						params: { path: { ref }, query: { probeId, checkId, maxDataPoints: 600, ...filters } },
 						signal
 					})
 				),

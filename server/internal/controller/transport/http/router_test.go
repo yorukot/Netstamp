@@ -77,6 +77,7 @@ func TestNewRouterServesOpenAPIWithoutRuntimeServices(t *testing.T) {
 	assertOpenAPIOperation(t, spec, http.MethodGet, "/projects/{ref}/results/ping/series", "queryProjectPingResultSeries")
 	assertOpenAPIOperation(t, spec, http.MethodGet, "/projects/{ref}/results/ping/insight", "queryProjectPingResultInsight")
 	assertOpenAPIOperation(t, spec, http.MethodGet, "/projects/{ref}/results/traceroute/runs", "queryProjectTracerouteResultRuns")
+	assertOpenAPIOperation(t, spec, http.MethodGet, "/projects/{ref}/results/traceroute/insight", "queryProjectTracerouteResultInsight")
 	assertOpenAPIOperation(t, spec, http.MethodGet, "/projects/{ref}/measurements", "listProjectMeasurements")
 	assertOpenAPIOperation(t, spec, http.MethodPost, "/runtime/probes/{probe_id}/hello", "probeRuntimeHello")
 	assertOpenAPIOperation(t, spec, http.MethodPost, "/runtime/probes/{probe_id}/heartbeat", "probeRuntimeHeartbeat")
@@ -238,6 +239,7 @@ func TestNewRouterProtectedRoutesRequireSessionCookie(t *testing.T) {
 		{method: http.MethodGet, path: "/api/v1/projects/vector-ix/results/ping/series"},
 		{method: http.MethodGet, path: "/api/v1/projects/vector-ix/results/ping/insight"},
 		{method: http.MethodGet, path: "/api/v1/projects/vector-ix/results/traceroute/runs"},
+		{method: http.MethodGet, path: "/api/v1/projects/vector-ix/results/traceroute/insight"},
 		{method: http.MethodGet, path: "/api/v1/projects/vector-ix/results/traceroute/topology"},
 		{method: http.MethodGet, path: "/api/v1/projects/vector-ix/measurements"},
 	} {

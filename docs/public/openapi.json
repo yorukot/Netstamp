@@ -3123,6 +3123,100 @@
 				]
 			}
 		},
+		"/projects/{ref}/results/traceroute/insight": {
+			"get": {
+				"operationId": "queryProjectTracerouteResultInsight",
+				"summary": "Query project traceroute result insight",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					},
+					{
+						"$ref": "#/components/parameters/TracerouteInsightQuery.probeId"
+					},
+					{
+						"$ref": "#/components/parameters/TracerouteInsightQuery.checkId"
+					},
+					{
+						"$ref": "#/components/parameters/TracerouteInsightQuery.from"
+					},
+					{
+						"$ref": "#/components/parameters/TracerouteInsightQuery.to"
+					},
+					{
+						"$ref": "#/components/parameters/TracerouteInsightQuery.maxDataPoints"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/TracerouteInsightResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Results"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
 		"/projects/{ref}/results/traceroute/runs": {
 			"get": {
 				"operationId": "queryProjectTracerouteResultRuns",
@@ -4255,6 +4349,59 @@
 					"minLength": 1,
 					"maxLength": 64
 				}
+			},
+			"TracerouteInsightQuery.checkId": {
+				"name": "checkId",
+				"in": "query",
+				"required": true,
+				"schema": {
+					"$ref": "#/components/schemas/uuid"
+				},
+				"explode": false
+			},
+			"TracerouteInsightQuery.from": {
+				"name": "from",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "integer",
+					"format": "int64",
+					"minimum": 1
+				},
+				"explode": false
+			},
+			"TracerouteInsightQuery.maxDataPoints": {
+				"name": "maxDataPoints",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "integer",
+					"format": "int32",
+					"minimum": 1,
+					"maximum": 2000,
+					"default": 600
+				},
+				"explode": false
+			},
+			"TracerouteInsightQuery.probeId": {
+				"name": "probeId",
+				"in": "query",
+				"required": true,
+				"schema": {
+					"$ref": "#/components/schemas/uuid"
+				},
+				"explode": false
+			},
+			"TracerouteInsightQuery.to": {
+				"name": "to",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "integer",
+					"format": "int64",
+					"minimum": 1
+				},
+				"explode": false
 			},
 			"TracerouteRunsQuery.checkId": {
 				"name": "checkId",
@@ -7329,6 +7476,147 @@
 						"rttMaxMs": 1.9,
 						"rttStddevMs": 0.2,
 						"rttSamplesMs": [1.5, 1.7, 1.9]
+					}
+				]
+			},
+			"TracerouteInsightPoint": {
+				"type": "object",
+				"required": ["timestampMs", "bucketFromMs", "bucketToMs", "resultCount", "hasLoss", "hasRouteChange", "destinationReached"],
+				"properties": {
+					"timestampMs": {
+						"type": "integer",
+						"format": "int64",
+						"minimum": 1
+					},
+					"bucketFromMs": {
+						"type": "integer",
+						"format": "int64",
+						"minimum": 1
+					},
+					"bucketToMs": {
+						"type": "integer",
+						"format": "int64",
+						"minimum": 1
+					},
+					"runStartedAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"resultCount": {
+						"type": "integer",
+						"format": "int64",
+						"minimum": 1
+					},
+					"finalRttAvgMs": {
+						"type": "number",
+						"format": "double",
+						"minimum": 0
+					},
+					"finalLossPercent": {
+						"type": "number",
+						"format": "double",
+						"minimum": 0,
+						"maximum": 100
+					},
+					"hasLoss": {
+						"type": "boolean"
+					},
+					"hasRouteChange": {
+						"type": "boolean"
+					},
+					"destinationReached": {
+						"type": "boolean"
+					}
+				},
+				"examples": [
+					{
+						"timestampMs": 1778666400000,
+						"bucketFromMs": 1778666400000,
+						"bucketToMs": 1778667000000,
+						"resultCount": 5,
+						"finalRttAvgMs": 12.4,
+						"finalLossPercent": 0,
+						"hasLoss": false,
+						"hasRouteChange": true,
+						"destinationReached": true
+					}
+				]
+			},
+			"TracerouteInsightQueryMetadata": {
+				"type": "object",
+				"required": ["from", "to", "maxDataPoints", "resolution", "totalRuns"],
+				"properties": {
+					"from": {
+						"type": "integer",
+						"format": "int64",
+						"minimum": 1
+					},
+					"to": {
+						"type": "integer",
+						"format": "int64",
+						"minimum": 1
+					},
+					"maxDataPoints": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 1,
+						"maximum": 2000
+					},
+					"resolution": {
+						"type": "string",
+						"enum": ["raw", "bucket"]
+					},
+					"totalRuns": {
+						"type": "integer",
+						"format": "int64",
+						"minimum": 0
+					}
+				},
+				"examples": [
+					{
+						"from": 1778662800000,
+						"to": 1778749200000,
+						"maxDataPoints": 600,
+						"resolution": "bucket",
+						"totalRuns": 487
+					}
+				]
+			},
+			"TracerouteInsightResponse": {
+				"type": "object",
+				"required": ["points", "query"],
+				"properties": {
+					"points": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/TracerouteInsightPoint"
+						}
+					},
+					"query": {
+						"$ref": "#/components/schemas/TracerouteInsightQueryMetadata"
+					}
+				},
+				"examples": [
+					{
+						"points": [
+							{
+								"timestampMs": 1778666400000,
+								"bucketFromMs": 1778666400000,
+								"bucketToMs": 1778667000000,
+								"resultCount": 5,
+								"finalRttAvgMs": 12.4,
+								"hasLoss": false,
+								"hasRouteChange": true,
+								"destinationReached": true
+							}
+						],
+						"query": {
+							"from": 1778662800000,
+							"to": 1778749200000,
+							"maxDataPoints": 600,
+							"resolution": "bucket",
+							"totalRuns": 487
+						}
 					}
 				]
 			},

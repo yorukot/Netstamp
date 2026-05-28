@@ -25,6 +25,7 @@ export type ProjectMemberRole = NonNullable<components["schemas"]["UpdateProject
 export type RegisterInput = components["schemas"]["RegisterUserRequest"];
 export type SelectorPreviewInput = components["schemas"]["SelectorPreviewRequest"];
 export type TracerouteHop = components["schemas"]["TracerouteHop"];
+export type TracerouteInsightResponse = components["schemas"]["TracerouteInsightResponse"];
 export type TracerouteResult = components["schemas"]["TracerouteResult"];
 export type TracerouteTopologyEdge = components["schemas"]["TracerouteTopologyEdge"];
 export type TracerouteTopologyNode = components["schemas"]["TracerouteTopologyNode"];
@@ -69,6 +70,12 @@ export interface TracerouteRunsFilters {
 	to?: number;
 	limit?: number;
 	cursor?: number;
+}
+
+export interface TracerouteInsightFilters {
+	from?: number;
+	to?: number;
+	maxDataPoints?: number;
 }
 
 export interface TracerouteTopologyFilters {

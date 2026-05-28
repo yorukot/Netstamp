@@ -30,6 +30,7 @@ func (h *Handler) RegisterRoutes(api chi.Router) {
 		r.Get("/projects/{ref}/results/ping/series", h.handleQueryPingSeries)
 		r.Get("/projects/{ref}/results/ping/insight", h.handleQueryPingInsight)
 		r.Get("/projects/{ref}/results/traceroute/runs", h.handleQueryTracerouteRuns)
+		r.Get("/projects/{ref}/results/traceroute/insight", h.handleQueryTracerouteInsight)
 		r.Get("/projects/{ref}/results/traceroute/topology", h.handleQueryTracerouteTopology)
 		r.Get("/projects/{ref}/measurements", h.handleQueryMeasurements)
 	})
@@ -70,6 +71,20 @@ func (h *Handler) handleQueryTracerouteRuns(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	output, err := h.queryTracerouteRuns(r.Context(), input)
+	if err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, output.Body)
+}
+
+func (h *Handler) handleQueryTracerouteInsight(w http.ResponseWriter, r *http.Request) {
+	input, err := newQueryTracerouteInsightInput(r)
+	if err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	output, err := h.queryTracerouteInsight(r.Context(), input)
 	if err != nil {
 		httpx.WriteProblem(w, r, err)
 		return
@@ -177,6 +192,29 @@ func newQueryTracerouteRunsInput(r *http.Request) (*queryTracerouteRunsInput, er
 		To:      to,
 		Limit:   limit,
 		Cursor:  cursor,
+	}, nil
+}
+
+func newQueryTracerouteInsightInput(r *http.Request) (*queryTracerouteInsightInput, error) {
+	from, err := httpx.QueryInt64(r, "from")
+	if err != nil {
+		return nil, err
+	}
+	to, err := httpx.QueryInt64(r, "to")
+	if err != nil {
+		return nil, err
+	}
+	maxDataPoints, err := httpx.QueryInt32(r, "maxDataPoints")
+	if err != nil {
+		return nil, err
+	}
+	return &queryTracerouteInsightInput{
+		Ref:           httpx.Path(r, "ref"),
+		ProbeID:       httpx.QueryString(r, "probeId"),
+		CheckID:       httpx.QueryString(r, "checkId"),
+		From:          from,
+		To:            to,
+		MaxDataPoints: maxDataPoints,
 	}, nil
 }
 

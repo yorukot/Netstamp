@@ -138,6 +138,44 @@ func mapTopologyRows(rows []sqlc.ListTracerouteTopologyRowsRow) domaintraceroute
 	return domaintraceroute.TopologyRunResult{Runs: runs}
 }
 
+func mapRawInsightRows(rows []sqlc.ListTracerouteInsightRawRowsRow) []domaintraceroute.InsightPoint {
+	values := make([]domaintraceroute.InsightPoint, 0, len(rows))
+	for _, row := range rows {
+		runStartedAt := row.RunStartedAt.Time.UTC()
+		values = append(values, domaintraceroute.InsightPoint{
+			Timestamp:          time.UnixMilli(row.BucketMs).UTC(),
+			BucketFrom:         time.UnixMilli(row.BucketFromMs).UTC(),
+			BucketTo:           time.UnixMilli(row.BucketToMs).UTC(),
+			RunStartedAt:       &runStartedAt,
+			ResultCount:        row.ResultCount,
+			FinalRttAvgMs:      floatPtrIf(row.FinalRttValueCount, row.FinalRttAvgMs),
+			FinalLossPercent:   floatPtrIf(row.FinalLossValueCount, row.FinalLossPercent),
+			HasLoss:            row.HasLoss,
+			HasRouteChange:     row.HasRouteChange,
+			DestinationReached: row.DestinationReached,
+		})
+	}
+	return values
+}
+
+func mapBucketInsightRows(rows []sqlc.ListTracerouteInsightBucketRowsRow) []domaintraceroute.InsightPoint {
+	values := make([]domaintraceroute.InsightPoint, 0, len(rows))
+	for _, row := range rows {
+		values = append(values, domaintraceroute.InsightPoint{
+			Timestamp:          time.UnixMilli(row.BucketMs).UTC(),
+			BucketFrom:         time.UnixMilli(row.BucketFromMs).UTC(),
+			BucketTo:           time.UnixMilli(row.BucketToMs).UTC(),
+			ResultCount:        row.ResultCount,
+			FinalRttAvgMs:      floatPtrIf(row.FinalRttValueCount, row.FinalRttAvgMs),
+			FinalLossPercent:   floatPtrIf(row.FinalLossValueCount, row.FinalLossPercent),
+			HasLoss:            row.HasLoss,
+			HasRouteChange:     row.HasRouteChange,
+			DestinationReached: row.DestinationReached,
+		})
+	}
+	return values
+}
+
 func mapHop(row sqlc.ListTracerouteRunRowsRow) domaintraceroute.Hop {
 	return domaintraceroute.Hop{
 		HopIndex:      derefInt32(row.HopIndex),
@@ -169,4 +207,12 @@ func derefFloat64(value *float64) float64 {
 		return 0
 	}
 	return *value
+}
+
+func floatPtrIf(count int64, value float64) *float64 {
+	if count == 0 {
+		return nil
+	}
+	copied := value
+	return &copied
 }

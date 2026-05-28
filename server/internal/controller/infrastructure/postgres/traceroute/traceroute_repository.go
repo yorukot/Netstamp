@@ -135,6 +135,86 @@ func (r *TracerouteRepository) ListTracerouteRuns(ctx context.Context, input dom
 	return mapRunRows(rows, input.Limit), nil
 }
 
+func (r *TracerouteRepository) ListTracerouteInsight(ctx context.Context, input domaintraceroute.InsightQuery) (domaintraceroute.InsightResult, error) {
+	ctx, span := postgres.StartDBSpan(ctx, pgtracerouteTracer, "traceroute_results", "postgres.traceroute_results.insight", "SELECT", "SELECT traceroute insight")
+	defer span.End()
+
+	projectID, err := postgres.ParseUUID(input.ProjectID, domainproject.ErrProjectNotFound)
+	if err != nil {
+		return domaintraceroute.InsightResult{}, err
+	}
+	probeID, err := postgres.ParseUUID(input.ProbeID, domainprobe.ErrInvalidInput)
+	if err != nil {
+		return domaintraceroute.InsightResult{}, err
+	}
+	checkID, err := postgres.ParseUUID(input.CheckID, domaincheck.ErrInvalidInput)
+	if err != nil {
+		return domaintraceroute.InsightResult{}, err
+	}
+
+	storageIDs, err := r.queries.ResolveTracerouteRunStorageIDs(ctx, sqlc.ResolveTracerouteRunStorageIDsParams{
+		CheckID:   checkID,
+		ProjectID: projectID,
+		ProbeID:   probeID,
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domaintraceroute.InsightResult{}, domainprobe.ErrProbeNotFound
+		}
+		postgres.RecordDBSpanError(span, err)
+		return domaintraceroute.InsightResult{}, err
+	}
+
+	startedAtFrom := timestamptz(input.From)
+	startedAtTo := timestamptz(input.To)
+	countParams := sqlc.CountTracerouteInsightPointsParams{
+		ProbeStorageID: storageIDs.ProbeStorageID,
+		CheckStorageID: storageIDs.CheckStorageID,
+		StartedAtFrom:  startedAtFrom,
+		StartedAtTo:    startedAtTo,
+	}
+	totalRuns, err := r.queries.CountTracerouteInsightPoints(ctx, countParams)
+	if err != nil {
+		postgres.RecordDBSpanError(span, err)
+		return domaintraceroute.InsightResult{}, err
+	}
+
+	if totalRuns <= 200 {
+		rows, rawErr := r.queries.ListTracerouteInsightRawRows(ctx, sqlc.ListTracerouteInsightRawRowsParams{
+			ProbeStorageID: storageIDs.ProbeStorageID,
+			CheckStorageID: storageIDs.CheckStorageID,
+			StartedAtFrom:  startedAtFrom,
+			StartedAtTo:    startedAtTo,
+		})
+		if rawErr != nil {
+			postgres.RecordDBSpanError(span, rawErr)
+			return domaintraceroute.InsightResult{}, rawErr
+		}
+		return domaintraceroute.InsightResult{
+			Points:     mapRawInsightRows(rows),
+			Resolution: domaintraceroute.InsightResolutionRaw,
+			TotalRuns:  totalRuns,
+		}, nil
+	}
+
+	rows, bucketErr := r.queries.ListTracerouteInsightBucketRows(ctx, sqlc.ListTracerouteInsightBucketRowsParams{
+		ProbeStorageID: storageIDs.ProbeStorageID,
+		CheckStorageID: storageIDs.CheckStorageID,
+		StartedAtFrom:  startedAtFrom,
+		StartedAtTo:    startedAtTo,
+		MaxDataPoints:  float64(input.MaxDataPoints),
+	})
+	if bucketErr != nil {
+		postgres.RecordDBSpanError(span, bucketErr)
+		return domaintraceroute.InsightResult{}, bucketErr
+	}
+	return domaintraceroute.InsightResult{
+		Points:     mapBucketInsightRows(rows),
+		Resolution: domaintraceroute.InsightResolutionBucket,
+		TotalRuns:  totalRuns,
+	}, nil
+}
+
 func (r *TracerouteRepository) ListTracerouteTopologyRuns(ctx context.Context, input domaintraceroute.TopologyQuery) (domaintraceroute.TopologyRunResult, error) {
 	ctx, span := postgres.StartDBSpan(ctx, pgtracerouteTracer, "traceroute_results", "postgres.traceroute_results.topology", "SELECT", "SELECT traceroute topology")
 	defer span.End()

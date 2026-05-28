@@ -10,6 +10,10 @@
 	overflow: hidden;
 }
 
+.timelineChart[data-selectable="true"] {
+	cursor: crosshair;
+}
+
 .timelineSvg {
 	position: absolute;
 	inset: 0;
@@ -39,9 +43,21 @@
 	filter: drop-shadow(0 0 10px rgba(255, 122, 26, 0.28));
 }
 
+.timelineSelection {
+	position: absolute;
+	top: 0.5rem;
+	bottom: 2.25rem;
+	left: var(--ns-selection-left);
+	z-index: 1;
+	width: var(--ns-selection-width);
+	background: linear-gradient(90deg, rgba(255, 122, 26, 0.08), rgba(255, 122, 26, 0.18)), repeating-linear-gradient(90deg, rgba(255, 247, 236, 0.18) 0 1px, transparent 1px 0.6rem);
+	border-inline: 1px solid var(--ns-accent-hover);
+	pointer-events: none;
+}
+
 .timelinePoint {
 	position: absolute;
-	z-index: 1;
+	z-index: 2;
 	top: var(--ns-timeline-y);
 	left: var(--ns-timeline-x);
 	display: grid;

@@ -18,7 +18,7 @@ import { mapApiProbes } from "@/features/probes/api/probeAdapters";
 import { type Probe, type ProbeStatus } from "@/features/probes/data/probes";
 import { projectQueries } from "@/shared/api/queries";
 import { apiQueryKeys } from "@/shared/api/queryKeys";
-import { type ApiMeasurement, type ApiProjectAssignment, type PingInsightResponse, type TracerouteResult } from "@/shared/api/types";
+import { type ApiMeasurement, type ApiProjectAssignment, type PingInsightResponse, type TracerouteInsightResponse, type TracerouteResult } from "@/shared/api/types";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { BodyCopy } from "@/shared/components/BodyCopy";
 import { PageStack } from "@/shared/components/PageStack";
@@ -739,9 +739,11 @@ function InsightPairDetail({
 	pingData,
 	isPingLoading,
 	isPingFetching,
+	tracerouteInsight,
 	tracerouteRuns,
 	topologyNodes,
 	topologyEdges,
+	isTracerouteInsightLoading,
 	isRunsLoading,
 	isTopologyLoading,
 	selectedRunStartedAt,
@@ -753,9 +755,11 @@ function InsightPairDetail({
 	pingData: PingInsightResponse | undefined;
 	isPingLoading: boolean;
 	isPingFetching: boolean;
+	tracerouteInsight: TracerouteInsightResponse | undefined;
 	tracerouteRuns: TracerouteResult[];
 	topologyNodes: RouteTopologyNode[];
 	topologyEdges: RouteTopologyEdge[];
+	isTracerouteInsightLoading: boolean;
 	isRunsLoading: boolean;
 	isTopologyLoading: boolean;
 	selectedRunStartedAt: string;
@@ -771,13 +775,16 @@ function InsightPairDetail({
 		<TracerouteInsightPanel
 			selectedProbe={pair.probe}
 			selectedTarget={pair.check}
+			insight={tracerouteInsight}
 			runs={tracerouteRuns}
 			topologyNodes={topologyNodes}
 			topologyEdges={topologyEdges}
+			isInsightLoading={isTracerouteInsightLoading}
 			isRunsLoading={isRunsLoading}
 			isTopologyLoading={isTopologyLoading}
 			selectedRunStartedAt={selectedRunStartedAt}
 			onSelectRun={onSelectRun}
+			onSelectTimeWindow={onSelectTimeWindow}
 		/>
 	) : (
 		<PingInsightPanel
@@ -874,8 +881,12 @@ export function InsightPage() {
 		...projectQueries.pingInsight(projectRef || "", exactPair?.probeId || "", exactPair?.checkId || "", resultWindowFilters),
 		enabled: Boolean(canQueryPairDetail && exactPair?.check.type === "Ping")
 	});
+	const tracerouteInsightQuery = useQuery({
+		...projectQueries.tracerouteInsight(projectRef || "", exactPair?.probeId || "", exactPair?.checkId || "", resultWindowFilters),
+		enabled: Boolean(canQueryPairDetail && exactPair?.check.type === "Traceroute")
+	});
 	const tracerouteRunsQuery = useQuery({
-		...projectQueries.tracerouteRuns(projectRef || "", exactPair?.probeId || "", exactPair?.checkId || "", { ...resultWindowFilters, limit: 100 }),
+		...projectQueries.tracerouteRuns(projectRef || "", exactPair?.probeId || "", exactPair?.checkId || "", { ...resultWindowFilters, limit: 200 }),
 		enabled: Boolean(canQueryPairDetail && exactPair?.check.type === "Traceroute")
 	});
 	const pairTopologyQuery = useQuery({
@@ -1175,9 +1186,11 @@ export function InsightPage() {
 			pingData={pingInsightQuery.data}
 			isPingLoading={pingInsightQuery.isLoading}
 			isPingFetching={pingInsightQuery.isFetching}
+			tracerouteInsight={tracerouteInsightQuery.data}
 			tracerouteRuns={tracerouteRunsQuery.data?.runs ?? []}
 			topologyNodes={pairTopologyQuery.data?.nodes ?? []}
 			topologyEdges={pairTopologyQuery.data?.edges ?? []}
+			isTracerouteInsightLoading={tracerouteInsightQuery.isLoading}
 			isRunsLoading={tracerouteRunsQuery.isLoading}
 			isTopologyLoading={pairTopologyQuery.isLoading}
 			selectedRunStartedAt={selectedRunStartedAt}

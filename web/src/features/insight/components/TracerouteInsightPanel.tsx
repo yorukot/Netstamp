@@ -1,9 +1,9 @@
 import type { CheckDefinition } from "@/features/checks/data/checks";
-import { buildHopDiagnostics, selectedTimelineValueLabel, tracerouteTimelinePoints } from "@/features/insight/data/tracerouteInsightData";
+import { buildHopDiagnostics, selectedTimelineValueLabel, tracerouteInsightTimelinePoints } from "@/features/insight/data/tracerouteInsightData";
 import { formatMs, formatPercent } from "@/features/insight/insightFormatters";
-import type { HopDiagnostic } from "@/features/insight/insightTypes";
+import type { HopDiagnostic, TimeWindow } from "@/features/insight/insightTypes";
 import type { Probe } from "@/features/probes/data/probes";
-import type { TracerouteResult } from "@/shared/api/types";
+import type { TracerouteInsightResponse, TracerouteResult } from "@/shared/api/types";
 import { BodyCopy } from "@/shared/components/BodyCopy";
 import { LatencyRail } from "@/shared/visualizations/LatencyRail";
 import { RouteTopologyMap, type RouteTopologyEdge, type RouteTopologyNode } from "@/shared/visualizations/RouteTopologyMap";
@@ -40,30 +40,49 @@ function hopColumns(maxRtt: number): DataColumn<HopDiagnostic>[] {
 interface TracerouteInsightPanelProps {
 	selectedProbe: Probe | null;
 	selectedTarget: CheckDefinition | null;
+	insight: TracerouteInsightResponse | undefined;
 	runs: TracerouteResult[];
 	topologyNodes: RouteTopologyNode[];
 	topologyEdges: RouteTopologyEdge[];
+	isInsightLoading: boolean;
 	isRunsLoading: boolean;
 	isTopologyLoading: boolean;
 	selectedRunStartedAt: string;
 	onSelectRun: (startedAt: string) => void;
+	onSelectTimeWindow: (timeWindow: TimeWindow) => void;
 }
 
 export function TracerouteInsightPanel({
 	selectedProbe,
 	selectedTarget,
+	insight,
 	runs,
 	topologyNodes,
 	topologyEdges,
+	isInsightLoading,
 	isRunsLoading,
 	isTopologyLoading,
 	selectedRunStartedAt,
-	onSelectRun
+	onSelectRun,
+	onSelectTimeWindow
 }: TracerouteInsightPanelProps) {
 	const selectedRun = runs.find(run => run.startedAt === selectedRunStartedAt) || runs[0] || null;
 	const diagnostics = buildHopDiagnostics(selectedRun);
-	const timelinePoints = tracerouteTimelinePoints(runs);
+	const timelinePoints = tracerouteInsightTimelinePoints(insight);
+	const timeRangeBounds = insight?.query ? { from: insight.query.from, to: insight.query.to } : undefined;
 	const hasTopology = topologyNodes.length > 0 && topologyEdges.length > 0;
+	const totalRuns = insight?.query.totalRuns ?? runs.length;
+
+	function handleSelectTimelinePoint(point: (typeof timelinePoints)[number]) {
+		if (point.runStartedAt) {
+			onSelectRun(point.runStartedAt);
+			return;
+		}
+
+		if (typeof point.rangeFromMs === "number" && typeof point.rangeToMs === "number" && point.rangeToMs > point.rangeFromMs) {
+			onSelectTimeWindow({ from: point.rangeFromMs, to: point.rangeToMs });
+		}
+	}
 
 	if (!selectedProbe || !selectedTarget) {
 		return (
@@ -73,7 +92,7 @@ export function TracerouteInsightPanel({
 		);
 	}
 
-	if (isRunsLoading && !runs.length) {
+	if ((isRunsLoading || isInsightLoading) && !runs.length && !timelinePoints.length) {
 		return (
 			<Panel tone="deep" eyebrow="Traceroute" title="Loading route">
 				<BodyCopy>Loading traceroute runs for this probe-target pair.</BodyCopy>
@@ -81,7 +100,7 @@ export function TracerouteInsightPanel({
 		);
 	}
 
-	if (!runs.length) {
+	if (!runs.length && !timelinePoints.length) {
 		return (
 			<Panel tone="deep" eyebrow="Traceroute" title="No traceroute runs">
 				<BodyCopy>No traceroute results were recorded for this probe-target pair in the selected time range.</BodyCopy>
@@ -109,14 +128,16 @@ export function TracerouteInsightPanel({
 					<div className={styles.traceTimeline}>
 						<div className={styles.traceTimelineHeader}>
 							<span>Run timeline</span>
-							<strong>{runs.length} runs in window</strong>
+							<strong>{totalRuns} runs in window</strong>
 						</div>
 						<RunTimeline
 							points={timelinePoints}
 							selectedPointId={selectedRun?.startedAt}
 							selectedValueLabel={selectedTimelineValueLabel(selectedRun, timelinePoints)}
+							timeRangeBounds={timeRangeBounds}
 							emptyState={<BodyCopy>No traceroute runs in this time range.</BodyCopy>}
-							onSelectPoint={onSelectRun}
+							onSelectPoint={handleSelectTimelinePoint}
+							onSelectTimeRange={onSelectTimeWindow}
 						/>
 					</div>
 				</div>

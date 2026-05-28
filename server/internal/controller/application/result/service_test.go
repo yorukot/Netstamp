@@ -250,6 +250,60 @@ func TestQueryTracerouteRunsUsesDefaultsAndMapsRuns(t *testing.T) {
 	}
 }
 
+func TestQueryTracerouteInsightUsesDefaultsAndMapsPoints(t *testing.T) {
+	now := time.Date(2026, 5, 13, 12, 0, 0, 0, time.UTC)
+	pointTime := now.Add(-30 * time.Minute)
+	bucketTo := pointTime.Add(time.Minute)
+	rttAvg := 6.2
+	loss := 25.0
+	traceroutes := &recordingTracerouteRunsRepository{
+		insightResult: domaintraceroute.InsightResult{
+			Points: []domaintraceroute.InsightPoint{{
+				Timestamp:          pointTime,
+				BucketFrom:         pointTime,
+				BucketTo:           bucketTo,
+				RunStartedAt:       &pointTime,
+				ResultCount:        1,
+				FinalRttAvgMs:      &rttAvg,
+				FinalLossPercent:   &loss,
+				HasLoss:            true,
+				HasRouteChange:     true,
+				DestinationReached: false,
+			}},
+			Resolution: domaintraceroute.InsightResolutionRaw,
+			TotalRuns:  1,
+		},
+	}
+	service := NewService(&recordingPingSeriesRepository{}, traceroutes, &recordingMeasurementRepository{}, staticProjectAccess{})
+
+	output, err := service.QueryTracerouteInsight(context.Background(), QueryTracerouteInsightInput{
+		CurrentUserID: testUserID,
+		ProjectRef:    "vector-ix",
+		ProbeID:       testProbeID,
+		CheckID:       testCheckID,
+		Now:           now,
+	})
+	if err != nil {
+		t.Fatalf("expected query to succeed: %v", err)
+	}
+
+	if traceroutes.gotInsight.ProjectID != testProjectID || traceroutes.gotInsight.ProbeID != testProbeID || traceroutes.gotInsight.CheckID != testCheckID {
+		t.Fatalf("unexpected repository identity input: %#v", traceroutes.gotInsight)
+	}
+	if !traceroutes.gotInsight.From.Equal(now.Add(-24*time.Hour)) || !traceroutes.gotInsight.To.Equal(now) {
+		t.Fatalf("unexpected default range: from=%s to=%s", traceroutes.gotInsight.From, traceroutes.gotInsight.To)
+	}
+	if traceroutes.gotInsight.MaxDataPoints != defaultMaxDataPoint {
+		t.Fatalf("expected default max data points %d, got %d", defaultMaxDataPoint, traceroutes.gotInsight.MaxDataPoints)
+	}
+	if output.Query.Resolution != string(domaintraceroute.InsightResolutionRaw) || output.Query.TotalRuns != 1 {
+		t.Fatalf("unexpected query metadata: %#v", output.Query)
+	}
+	if len(output.Points) != 1 || output.Points[0].TimestampMs != pointTime.UnixMilli() || output.Points[0].RunStartedAt == nil || !output.Points[0].HasLoss || !output.Points[0].HasRouteChange {
+		t.Fatalf("unexpected insight points: %#v", output.Points)
+	}
+}
+
 func TestQueryTracerouteTopologyAggregatesRuns(t *testing.T) {
 	now := time.Date(2026, 5, 13, 12, 0, 0, 0, time.UTC)
 	gateway := netip.MustParseAddr("192.0.2.1")
@@ -637,14 +691,21 @@ func (r *recordingPingSeriesRepository) ListPingInsight(_ context.Context, input
 
 type recordingTracerouteRunsRepository struct {
 	got            domaintraceroute.RunQuery
+	gotInsight     domaintraceroute.InsightQuery
 	gotTopology    domaintraceroute.TopologyQuery
 	result         domaintraceroute.RunResult
+	insightResult  domaintraceroute.InsightResult
 	topologyResult domaintraceroute.TopologyRunResult
 }
 
 func (r *recordingTracerouteRunsRepository) ListTracerouteRuns(_ context.Context, input domaintraceroute.RunQuery) (domaintraceroute.RunResult, error) {
 	r.got = input
 	return r.result, nil
+}
+
+func (r *recordingTracerouteRunsRepository) ListTracerouteInsight(_ context.Context, input domaintraceroute.InsightQuery) (domaintraceroute.InsightResult, error) {
+	r.gotInsight = input
+	return r.insightResult, nil
 }
 
 func (r *recordingTracerouteRunsRepository) ListTracerouteTopologyRuns(_ context.Context, input domaintraceroute.TopologyQuery) (domaintraceroute.TopologyRunResult, error) {

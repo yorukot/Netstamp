@@ -488,6 +488,73 @@ model TracerouteRunsResponse {
 	query: TracerouteRunsQueryMetadata;
 }
 
+@example(#{ from: 1778662800000, to: 1778749200000, maxDataPoints: 600, resolution: "bucket", totalRuns: 487 })
+model TracerouteInsightQueryMetadata {
+	@minValue(1)
+	from: int64;
+
+	@minValue(1)
+	to: int64;
+
+	@minValue(1)
+	@maxValue(2000)
+	maxDataPoints: int32;
+
+	resolution: SeriesResolution;
+
+	@minValue(0)
+	totalRuns: int64;
+}
+
+@example(#{
+	timestampMs: 1778666400000,
+	bucketFromMs: 1778666400000,
+	bucketToMs: 1778667000000,
+	resultCount: 5,
+	finalRttAvgMs: 12.4,
+	finalLossPercent: 0,
+	hasLoss: false,
+	hasRouteChange: true,
+	destinationReached: true,
+})
+model TracerouteInsightPoint {
+	@minValue(1)
+	timestampMs: int64;
+
+	@minValue(1)
+	bucketFromMs: int64;
+
+	@minValue(1)
+	bucketToMs: int64;
+
+	runStartedAt?: utcDateTime;
+
+	@minValue(1)
+	resultCount: int64;
+
+	@minValue(0)
+	finalRttAvgMs?: float64;
+
+	@minValue(0)
+	@maxValue(100)
+	finalLossPercent?: float64;
+
+	hasLoss: boolean;
+	hasRouteChange: boolean;
+	destinationReached: boolean;
+}
+
+@example(#{
+	points: #[
+		#{ timestampMs: 1778666400000, bucketFromMs: 1778666400000, bucketToMs: 1778667000000, resultCount: 5, finalRttAvgMs: 12.4, hasLoss: false, hasRouteChange: true, destinationReached: true }
+	],
+	query: #{ from: 1778662800000, to: 1778749200000, maxDataPoints: 600, resolution: "bucket", totalRuns: 487 },
+})
+model TracerouteInsightResponse {
+	points: TracerouteInsightPoint[];
+	query: TracerouteInsightQueryMetadata;
+}
+
 @example(#{ id: "ip:192.0.2.1", kind: "hop", label: "gateway.local", address: "192.0.2.1", hostname: "gateway.local", hopIndex: 1, seenCount: 12, avgRttMs: 1.8, lossPercent: 0 })
 model TracerouteTopologyNode {
 	id: string;

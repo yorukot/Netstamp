@@ -326,6 +326,22 @@ type RunQuery struct {
 	Cursor    *time.Time
 }
 
+type InsightQuery struct {
+	ProjectID     string
+	ProbeID       string
+	CheckID       string
+	From          time.Time
+	To            time.Time
+	MaxDataPoints int32
+}
+
+type InsightResolution string
+
+const (
+	InsightResolutionRaw    InsightResolution = "raw"
+	InsightResolutionBucket InsightResolution = "bucket"
+)
+
 type TopologyQuery struct {
 	ProjectID string
 	ProbeID   string
@@ -338,6 +354,25 @@ type TopologyQuery struct {
 type RunResult struct {
 	Runs       []Run
 	NextCursor *time.Time
+}
+
+type InsightResult struct {
+	Points     []InsightPoint
+	Resolution InsightResolution
+	TotalRuns  int64
+}
+
+type InsightPoint struct {
+	Timestamp          time.Time
+	BucketFrom         time.Time
+	BucketTo           time.Time
+	RunStartedAt       *time.Time
+	ResultCount        int64
+	FinalRttAvgMs      *float64
+	FinalLossPercent   *float64
+	HasLoss            bool
+	HasRouteChange     bool
+	DestinationReached bool
 }
 
 type TopologyRunResult struct {

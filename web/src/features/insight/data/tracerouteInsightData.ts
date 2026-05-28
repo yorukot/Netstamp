@@ -1,5 +1,5 @@
 import type { HopDiagnostic, HopTone, TracerouteSummary } from "@/features/insight/insightTypes";
-import type { TracerouteHop, TracerouteResult } from "@/shared/api/types";
+import type { TracerouteHop, TracerouteInsightResponse, TracerouteResult } from "@/shared/api/types";
 import type { RunTimelinePoint } from "@/shared/visualizations/RunTimeline";
 import { formatMs, formatPercent, formatShortTime, formatTime } from "../insightFormatters";
 
@@ -142,34 +142,26 @@ export function runFinalRtt(run: TracerouteResult) {
 	return lastRespondingHop(run)?.rttAvgMs ?? null;
 }
 
-function runFinalLoss(run: TracerouteResult) {
-	return lastRespondingHop(run)?.lossPercent ?? 0;
-}
-
-export function tracerouteTimelinePoints(runs: TracerouteResult[]): RunTimelinePoint[] {
-	const chronologicalRuns = [...runs].sort((a, b) => Date.parse(a.startedAt) - Date.parse(b.startedAt));
-	const visibleRuns = chronologicalRuns.slice(-100);
-	let previousSignature = "";
-
-	return visibleRuns.map(run => {
-		const signature = runPathSignature(run);
-		const changed = Boolean(previousSignature && signature && signature !== previousSignature);
-		const rtt = runFinalRtt(run);
-		const loss = runFinalLoss(run);
-
-		if (signature) {
-			previousSignature = signature;
-		}
+export function tracerouteInsightTimelinePoints(data: TracerouteInsightResponse | undefined): RunTimelinePoint[] {
+	return (data?.points ?? []).map(point => {
+		const value = point.finalRttAvgMs ?? null;
+		const labelTime = new Date(point.timestampMs).toISOString();
+		const isRawRun = data?.query.resolution === "raw" && Boolean(point.runStartedAt);
 
 		return {
-			id: run.startedAt,
-			timestampMs: Date.parse(run.startedAt),
-			label: formatShortTime(run.startedAt),
-			value: rtt,
-			valueLabel: formatMs(rtt),
-			ariaLabel: `Select traceroute run ${formatTime(run.startedAt)} final RTT ${formatMs(rtt)} loss ${formatPercent(loss)}`,
-			hasLoss: loss > 0,
-			hasChange: changed
+			id: point.runStartedAt || `${point.bucketFromMs}:${point.bucketToMs}`,
+			timestampMs: point.timestampMs,
+			rangeFromMs: point.bucketFromMs,
+			rangeToMs: point.bucketToMs,
+			runStartedAt: point.runStartedAt,
+			label: formatShortTime(labelTime),
+			value,
+			valueLabel: formatMs(value),
+			ariaLabel: isRawRun
+				? `Select traceroute run ${formatTime(point.runStartedAt || labelTime)} final RTT ${formatMs(value)} loss ${formatPercent(point.finalLossPercent)}`
+				: `Narrow traceroute timeline bucket ${formatShortTime(labelTime)} final RTT ${formatMs(value)} loss ${formatPercent(point.finalLossPercent)}`,
+			hasLoss: point.hasLoss,
+			hasChange: point.hasRouteChange
 		};
 	});
 }

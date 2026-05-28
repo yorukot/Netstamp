@@ -1,9 +1,12 @@
-import type { CSSProperties, ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from "react";
 import styles from "./RunTimeline.module.css";
 
 export interface RunTimelinePoint {
 	id: string;
 	timestampMs: number;
+	rangeFromMs?: number;
+	rangeToMs?: number;
+	runStartedAt?: string;
 	label: string;
 	value: number | null;
 	valueLabel: string;
@@ -17,25 +20,36 @@ type TimelinePointStyle = CSSProperties & {
 	"--ns-timeline-y"?: string;
 };
 
+type TimelineSelectionStyle = CSSProperties & {
+	"--ns-selection-left"?: string;
+	"--ns-selection-width"?: string;
+};
+
 interface RunTimelineProps {
 	points: RunTimelinePoint[];
 	selectedPointId?: string;
 	selectedValueLabel?: string;
 	emptyState?: ReactNode;
-	onSelectPoint: (id: string) => void;
+	timeRangeBounds?: { from: number; to: number };
+	minTimeRangeMs?: number;
+	onSelectPoint: (point: RunTimelinePoint) => void;
+	onSelectTimeRange?: (range: { from: number; to: number }) => void;
 }
 
-export function RunTimeline({ points, selectedPointId, selectedValueLabel, emptyState, onSelectPoint }: RunTimelineProps) {
-	const sortedPoints = [...points].sort((a, b) => a.timestampMs - b.timestampMs);
+function clamp(value: number, min: number, max: number) {
+	return Math.min(max, Math.max(min, value));
+}
 
-	if (!sortedPoints.length) {
-		return emptyState;
-	}
-
-	const firstPoint = sortedPoints[0];
-	const lastPoint = sortedPoints[sortedPoints.length - 1];
-	const firstTime = firstPoint.timestampMs;
-	const lastTime = lastPoint.timestampMs;
+export function RunTimeline({ points, selectedPointId, selectedValueLabel, emptyState, timeRangeBounds, minTimeRangeMs = 1000, onSelectPoint, onSelectTimeRange }: RunTimelineProps) {
+	const chartRef = useRef<HTMLDivElement | null>(null);
+	const [selection, setSelection] = useState<{ anchorMs: number; focusMs: number } | null>(null);
+	const selectionRef = useRef(selection);
+	const sortedPoints = useMemo(() => [...points].sort((a, b) => a.timestampMs - b.timestampMs), [points]);
+	const fallbackPoint: RunTimelinePoint = { id: "empty", timestampMs: timeRangeBounds?.from ?? 0, label: "-", value: null, valueLabel: "-", ariaLabel: "No timeline points" };
+	const firstPoint = sortedPoints[0] ?? fallbackPoint;
+	const lastPoint = sortedPoints[sortedPoints.length - 1] ?? fallbackPoint;
+	const firstTime = timeRangeBounds?.from ?? firstPoint.timestampMs;
+	const lastTime = timeRangeBounds?.to ?? lastPoint.timestampMs;
 	const timeSpan = Math.max(1, lastTime - firstTime);
 	const values = sortedPoints.map(point => point.value).filter((value): value is number => typeof value === "number");
 	const minValue = values.length ? Math.min(...values) : 0;
@@ -50,16 +64,102 @@ export function RunTimeline({ points, selectedPointId, selectedValueLabel, empty
 		return { ...point, x, y };
 	});
 	const polylinePoints = viewPoints.map(point => `${point.x},${point.y}`).join(" ");
+	const selectionRange = selection
+		? {
+				from: Math.min(selection.anchorMs, selection.focusMs),
+				to: Math.max(selection.anchorMs, selection.focusMs)
+			}
+		: null;
+	const selectionStyle: TimelineSelectionStyle | undefined = selectionRange
+		? {
+				"--ns-selection-left": `${6 + ((selectionRange.from - firstTime) / timeSpan) * 88}%`,
+				"--ns-selection-width": `${((selectionRange.to - selectionRange.from) / timeSpan) * 88}%`
+			}
+		: undefined;
+
+	const timeFromPointer = useCallback(
+		(event: PointerEvent<HTMLDivElement> | globalThis.PointerEvent) => {
+			if (!chartRef.current) {
+				return firstTime;
+			}
+
+			const rect = chartRef.current.getBoundingClientRect();
+			const percent = clamp(((event.clientX - rect.left) / Math.max(1, rect.width)) * 100, 6, 94);
+			return Math.trunc(firstTime + ((percent - 6) / 88) * timeSpan);
+		},
+		[firstTime, timeSpan]
+	);
+
+	function beginSelection(event: PointerEvent<HTMLDivElement>) {
+		if (!onSelectTimeRange || (event.target as HTMLElement).closest("button")) {
+			return;
+		}
+
+		const anchorMs = timeFromPointer(event);
+		event.currentTarget.setPointerCapture(event.pointerId);
+		const nextSelection = { anchorMs, focusMs: anchorMs };
+		selectionRef.current = nextSelection;
+		setSelection(nextSelection);
+	}
+
+	useEffect(() => {
+		selectionRef.current = selection;
+	}, [selection]);
+
+	useEffect(() => {
+		if (!selection || !onSelectTimeRange) {
+			return undefined;
+		}
+		const selectTimeRange = onSelectTimeRange;
+
+		function handlePointerMove(event: globalThis.PointerEvent) {
+			setSelection(current => {
+				const next = current ? { ...current, focusMs: timeFromPointer(event) } : current;
+				selectionRef.current = next;
+				return next;
+			});
+		}
+
+		function handlePointerUp() {
+			const activeSelection = selectionRef.current;
+
+			if (!activeSelection) {
+				return;
+			}
+
+			const from = Math.trunc(Math.min(activeSelection.anchorMs, activeSelection.focusMs));
+			const to = Math.trunc(Math.max(activeSelection.anchorMs, activeSelection.focusMs));
+
+			if (to - from >= minTimeRangeMs) {
+				selectTimeRange({ from, to });
+			}
+
+			setSelection(null);
+		}
+
+		window.addEventListener("pointermove", handlePointerMove);
+		window.addEventListener("pointerup", handlePointerUp, { once: true });
+
+		return () => {
+			window.removeEventListener("pointermove", handlePointerMove);
+			window.removeEventListener("pointerup", handlePointerUp);
+		};
+	}, [minTimeRangeMs, onSelectTimeRange, selection, timeFromPointer]);
+
+	if (!sortedPoints.length) {
+		return emptyState;
+	}
 
 	return (
 		<div className={styles.timeline}>
-			<div className={styles.timelineChart}>
+			<div className={styles.timelineChart} ref={chartRef} onPointerDown={beginSelection} data-selectable={Boolean(onSelectTimeRange) || undefined}>
 				<svg className={styles.timelineSvg} viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
 					<line className={styles.timelineGridLine} x1="6" x2="94" y1="20" y2="20" />
 					<line className={styles.timelineGridLine} x1="6" x2="94" y1="49" y2="49" />
 					<line className={styles.timelineAxisLine} x1="6" x2="94" y1="78" y2="78" />
 					{polylinePoints ? <polyline className={styles.timelineLine} points={polylinePoints} /> : null}
 				</svg>
+				{selectionRange ? <div className={styles.timelineSelection} style={selectionStyle} aria-hidden="true" /> : null}
 				{viewPoints.map(point => {
 					const style: TimelinePointStyle = {
 						"--ns-timeline-x": `${point.x}%`,
@@ -75,7 +175,7 @@ export function RunTimeline({ points, selectedPointId, selectedValueLabel, empty
 							data-selected={selected || undefined}
 							data-loss={point.hasLoss || undefined}
 							data-changed={point.hasChange || undefined}
-							onClick={() => onSelectPoint(point.id)}
+							onClick={() => onSelectPoint(point)}
 							aria-label={point.ariaLabel}
 							key={point.id}
 						>

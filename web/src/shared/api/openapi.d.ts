@@ -528,6 +528,23 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	"/projects/{ref}/results/traceroute/insight": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** Query project traceroute result insight */
+		get: operations["queryProjectTracerouteResultInsight"];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	"/projects/{ref}/results/traceroute/runs": {
 		parameters: {
 			query?: never;
@@ -2422,6 +2439,86 @@ export interface components {
 		};
 		/**
 		 * @example {
+		 *       "timestampMs": 1778666400000,
+		 *       "bucketFromMs": 1778666400000,
+		 *       "bucketToMs": 1778667000000,
+		 *       "resultCount": 5,
+		 *       "finalRttAvgMs": 12.4,
+		 *       "finalLossPercent": 0,
+		 *       "hasLoss": false,
+		 *       "hasRouteChange": true,
+		 *       "destinationReached": true
+		 *     }
+		 */
+		TracerouteInsightPoint: {
+			/** Format: int64 */
+			timestampMs: number;
+			/** Format: int64 */
+			bucketFromMs: number;
+			/** Format: int64 */
+			bucketToMs: number;
+			/** Format: date-time */
+			runStartedAt?: string;
+			/** Format: int64 */
+			resultCount: number;
+			/** Format: double */
+			finalRttAvgMs?: number;
+			/** Format: double */
+			finalLossPercent?: number;
+			hasLoss: boolean;
+			hasRouteChange: boolean;
+			destinationReached: boolean;
+		};
+		/**
+		 * @example {
+		 *       "from": 1778662800000,
+		 *       "to": 1778749200000,
+		 *       "maxDataPoints": 600,
+		 *       "resolution": "bucket",
+		 *       "totalRuns": 487
+		 *     }
+		 */
+		TracerouteInsightQueryMetadata: {
+			/** Format: int64 */
+			from: number;
+			/** Format: int64 */
+			to: number;
+			/** Format: int32 */
+			maxDataPoints: number;
+			/** @enum {string} */
+			resolution: "raw" | "bucket";
+			/** Format: int64 */
+			totalRuns: number;
+		};
+		/**
+		 * @example {
+		 *       "points": [
+		 *         {
+		 *           "timestampMs": 1778666400000,
+		 *           "bucketFromMs": 1778666400000,
+		 *           "bucketToMs": 1778667000000,
+		 *           "resultCount": 5,
+		 *           "finalRttAvgMs": 12.4,
+		 *           "hasLoss": false,
+		 *           "hasRouteChange": true,
+		 *           "destinationReached": true
+		 *         }
+		 *       ],
+		 *       "query": {
+		 *         "from": 1778662800000,
+		 *         "to": 1778749200000,
+		 *         "maxDataPoints": 600,
+		 *         "resolution": "bucket",
+		 *         "totalRuns": 487
+		 *       }
+		 *     }
+		 */
+		TracerouteInsightResponse: {
+			points: components["schemas"]["TracerouteInsightPoint"][];
+			query: components["schemas"]["TracerouteInsightQueryMetadata"];
+		};
+		/**
+		 * @example {
 		 *       "startedAt": "2026-05-13T10:00:00Z",
 		 *       "finishedAt": "2026-05-13T10:00:04Z",
 		 *       "durationMs": 4000,
@@ -2764,6 +2861,11 @@ export interface components {
 		"ProjectAssignmentQuery.probeId": components["schemas"]["uuid"];
 		ProjectInviteIdPathParam: components["schemas"]["uuid"];
 		ProjectRefParam: string;
+		"TracerouteInsightQuery.checkId": components["schemas"]["uuid"];
+		"TracerouteInsightQuery.from": number;
+		"TracerouteInsightQuery.maxDataPoints": number;
+		"TracerouteInsightQuery.probeId": components["schemas"]["uuid"];
+		"TracerouteInsightQuery.to": number;
 		"TracerouteRunsQuery.checkId": components["schemas"]["uuid"];
 		"TracerouteRunsQuery.cursor": number;
 		"TracerouteRunsQuery.from": number;
@@ -5291,6 +5393,79 @@ export interface operations {
 				};
 				content: {
 					"application/json": components["schemas"]["PingSeriesResponse"];
+				};
+			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	queryProjectTracerouteResultInsight: {
+		parameters: {
+			query: {
+				probeId: components["parameters"]["TracerouteInsightQuery.probeId"];
+				checkId: components["parameters"]["TracerouteInsightQuery.checkId"];
+				from?: components["parameters"]["TracerouteInsightQuery.from"];
+				to?: components["parameters"]["TracerouteInsightQuery.to"];
+				maxDataPoints?: components["parameters"]["TracerouteInsightQuery.maxDataPoints"];
+			};
+			header?: never;
+			path: {
+				ref: components["parameters"]["ProjectRefParam"];
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["TracerouteInsightResponse"];
 				};
 			};
 			/** @description The server could not understand the request due to invalid syntax. */

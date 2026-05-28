@@ -119,6 +119,39 @@ func normalizeQueryTracerouteRunsInput(input QueryTracerouteRunsInput) (normaliz
 	}, nil
 }
 
+func normalizeQueryTracerouteInsightInput(input QueryTracerouteInsightInput) (normalizedQueryTracerouteInsightInput, error) {
+	var validation appvalidation.Collector
+
+	base, err := normalizeQueryBase(
+		input.CurrentUserID,
+		input.ProjectRef,
+		input.ProbeID,
+		input.CheckID,
+		input.FromMs,
+		input.ToMs,
+		input.Now,
+	)
+	if err != nil {
+		if !validation.AddValidation(err) {
+			return normalizedQueryTracerouteInsightInput{}, err
+		}
+	}
+	maxDataPoints, err := normalizeMaxDataPoints(input.MaxDataPoints)
+	if err != nil {
+		if !validation.AddValidation(err) {
+			return normalizedQueryTracerouteInsightInput{}, err
+		}
+	}
+	if err := validation.Err(ErrInvalidInput); err != nil {
+		return normalizedQueryTracerouteInsightInput{}, err
+	}
+
+	return normalizedQueryTracerouteInsightInput{
+		normalizedQueryBase: base,
+		maxDataPoints:       maxDataPoints,
+	}, nil
+}
+
 func normalizeQueryTracerouteTopologyInput(input QueryTracerouteTopologyInput) (normalizedQueryTracerouteTopologyInput, error) {
 	var validation appvalidation.Collector
 

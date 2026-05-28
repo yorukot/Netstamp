@@ -83,6 +83,180 @@ WHERE probes.project_id = sqlc.arg(project_id)
   AND probes.id = sqlc.arg(probe_id)
   AND probes.deleted_at IS NULL;
 
+-- name: CountTracerouteInsightPoints :one
+SELECT count(*)::bigint
+FROM traceroute_results
+WHERE traceroute_results.probe_id = sqlc.arg(probe_storage_id)
+    AND traceroute_results.check_id = sqlc.arg(check_storage_id)
+    AND traceroute_results.started_at >= sqlc.arg(started_at_from)
+    AND traceroute_results.started_at < sqlc.arg(started_at_to);
+
+-- name: ListTracerouteInsightRawRows :many
+WITH runs AS (
+    SELECT *
+    FROM traceroute_results
+    WHERE traceroute_results.probe_id = sqlc.arg(probe_storage_id)
+        AND traceroute_results.check_id = sqlc.arg(check_storage_id)
+        AND traceroute_results.started_at >= sqlc.arg(started_at_from)
+        AND traceroute_results.started_at < sqlc.arg(started_at_to)
+),
+run_points AS (
+    SELECT
+        runs.started_at,
+        runs.finished_at,
+        runs.destination_reached,
+        final_hop.rtt_avg_ms AS final_rtt_avg_ms,
+        final_hop.loss_percent AS final_loss_percent,
+        signature.path_signature
+    FROM runs
+    LEFT JOIN LATERAL (
+        SELECT
+            traceroute_result_hops.rtt_avg_ms,
+            traceroute_result_hops.loss_percent
+        FROM traceroute_result_hops
+        WHERE traceroute_result_hops.probe_id = runs.probe_id
+            AND traceroute_result_hops.check_id = runs.check_id
+            AND traceroute_result_hops.started_at = runs.started_at
+            AND (
+                traceroute_result_hops.received_count > 0
+                OR traceroute_result_hops.rtt_avg_ms IS NOT NULL
+            )
+        ORDER BY traceroute_result_hops.hop_index DESC
+        LIMIT 1
+    ) final_hop ON TRUE
+    LEFT JOIN LATERAL (
+        SELECT string_agg(
+            coalesce(
+                traceroute_result_hops.address::text,
+                traceroute_result_hops.hostname,
+                traceroute_result_hops.error_code,
+                'unknown:' || traceroute_result_hops.hop_index::text
+            ),
+            '>' ORDER BY traceroute_result_hops.hop_index
+        ) AS path_signature
+        FROM traceroute_result_hops
+        WHERE traceroute_result_hops.probe_id = runs.probe_id
+            AND traceroute_result_hops.check_id = runs.check_id
+            AND traceroute_result_hops.started_at = runs.started_at
+    ) signature ON TRUE
+),
+scored AS (
+    SELECT
+        run_points.*,
+        lag(run_points.path_signature) OVER (ORDER BY run_points.started_at ASC) AS previous_path_signature
+    FROM run_points
+)
+SELECT
+    (extract(epoch FROM scored.started_at) * 1000)::bigint AS bucket_ms,
+    (extract(epoch FROM scored.started_at) * 1000)::bigint AS bucket_from_ms,
+    (extract(epoch FROM scored.finished_at) * 1000)::bigint AS bucket_to_ms,
+    scored.started_at AS run_started_at,
+    1::bigint AS result_count,
+    CASE WHEN scored.final_rtt_avg_ms IS NULL THEN 0 ELSE 1 END::bigint AS final_rtt_value_count,
+    coalesce(scored.final_rtt_avg_ms, 0)::double precision AS final_rtt_avg_ms,
+    CASE WHEN scored.final_loss_percent IS NULL THEN 0 ELSE 1 END::bigint AS final_loss_value_count,
+    coalesce(scored.final_loss_percent, 0)::double precision AS final_loss_percent,
+    (NOT scored.destination_reached OR coalesce(scored.final_loss_percent, 0) > 0)::boolean AS has_loss,
+    (
+        scored.previous_path_signature IS NOT NULL
+        AND scored.path_signature IS NOT NULL
+        AND scored.path_signature <> scored.previous_path_signature
+    )::boolean AS has_route_change,
+    scored.destination_reached::boolean AS destination_reached
+FROM scored
+ORDER BY scored.started_at ASC;
+
+-- name: ListTracerouteInsightBucketRows :many
+WITH settings AS (
+    SELECT (
+        ceil(extract(epoch FROM (sqlc.arg(started_at_to)::timestamptz - sqlc.arg(started_at_from)::timestamptz)) / sqlc.arg(max_data_points)::double precision)::bigint * interval '1 second'
+    ) AS bucket_width
+),
+runs AS (
+    SELECT *
+    FROM traceroute_results
+    WHERE traceroute_results.probe_id = sqlc.arg(probe_storage_id)
+        AND traceroute_results.check_id = sqlc.arg(check_storage_id)
+        AND traceroute_results.started_at >= sqlc.arg(started_at_from)
+        AND traceroute_results.started_at < sqlc.arg(started_at_to)
+),
+run_points AS (
+    SELECT
+        runs.started_at,
+        runs.destination_reached,
+        final_hop.rtt_avg_ms AS final_rtt_avg_ms,
+        final_hop.loss_percent AS final_loss_percent,
+        signature.path_signature
+    FROM runs
+    LEFT JOIN LATERAL (
+        SELECT
+            traceroute_result_hops.rtt_avg_ms,
+            traceroute_result_hops.loss_percent
+        FROM traceroute_result_hops
+        WHERE traceroute_result_hops.probe_id = runs.probe_id
+            AND traceroute_result_hops.check_id = runs.check_id
+            AND traceroute_result_hops.started_at = runs.started_at
+            AND (
+                traceroute_result_hops.received_count > 0
+                OR traceroute_result_hops.rtt_avg_ms IS NOT NULL
+            )
+        ORDER BY traceroute_result_hops.hop_index DESC
+        LIMIT 1
+    ) final_hop ON TRUE
+    LEFT JOIN LATERAL (
+        SELECT string_agg(
+            coalesce(
+                traceroute_result_hops.address::text,
+                traceroute_result_hops.hostname,
+                traceroute_result_hops.error_code,
+                'unknown:' || traceroute_result_hops.hop_index::text
+            ),
+            '>' ORDER BY traceroute_result_hops.hop_index
+        ) AS path_signature
+        FROM traceroute_result_hops
+        WHERE traceroute_result_hops.probe_id = runs.probe_id
+            AND traceroute_result_hops.check_id = runs.check_id
+            AND traceroute_result_hops.started_at = runs.started_at
+    ) signature ON TRUE
+),
+scored AS (
+    SELECT
+        run_points.*,
+        lag(run_points.path_signature) OVER (ORDER BY run_points.started_at ASC) AS previous_path_signature
+    FROM run_points
+),
+bucketed AS (
+    SELECT
+        time_bucket(settings.bucket_width, scored.started_at, sqlc.arg(started_at_from)::timestamptz) AS bucket,
+        settings.bucket_width,
+        scored.destination_reached,
+        scored.final_rtt_avg_ms,
+        scored.final_loss_percent,
+        (NOT scored.destination_reached OR coalesce(scored.final_loss_percent, 0) > 0)::boolean AS has_loss,
+        (
+            scored.previous_path_signature IS NOT NULL
+            AND scored.path_signature IS NOT NULL
+            AND scored.path_signature <> scored.previous_path_signature
+        )::boolean AS has_route_change
+    FROM scored
+    CROSS JOIN settings
+)
+SELECT
+    (extract(epoch FROM bucketed.bucket) * 1000)::bigint AS bucket_ms,
+    (extract(epoch FROM bucketed.bucket) * 1000)::bigint AS bucket_from_ms,
+    (extract(epoch FROM (bucketed.bucket + bucketed.bucket_width)) * 1000)::bigint AS bucket_to_ms,
+    count(*)::bigint AS result_count,
+    count(bucketed.final_rtt_avg_ms)::bigint AS final_rtt_value_count,
+    coalesce(avg(bucketed.final_rtt_avg_ms), 0)::double precision AS final_rtt_avg_ms,
+    count(bucketed.final_loss_percent)::bigint AS final_loss_value_count,
+    coalesce(avg(bucketed.final_loss_percent), 0)::double precision AS final_loss_percent,
+    bool_or(bucketed.has_loss)::boolean AS has_loss,
+    bool_or(bucketed.has_route_change)::boolean AS has_route_change,
+    bool_and(bucketed.destination_reached)::boolean AS destination_reached
+FROM bucketed
+GROUP BY bucketed.bucket, bucketed.bucket_width
+ORDER BY bucketed.bucket ASC;
+
 -- name: ListTracerouteRunRows :many
 WITH selected_runs AS (
     SELECT *

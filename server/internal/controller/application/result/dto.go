@@ -48,6 +48,17 @@ type QueryTracerouteRunsInput struct {
 	Now           time.Time
 }
 
+type QueryTracerouteInsightInput struct {
+	CurrentUserID string
+	ProjectRef    string
+	ProbeID       string
+	CheckID       string
+	FromMs        *int64
+	ToMs          *int64
+	MaxDataPoints *int32
+	Now           time.Time
+}
+
 type QueryTracerouteTopologyInput struct {
 	CurrentUserID string
 	ProjectRef    string
@@ -88,6 +99,11 @@ type PingInsightOutput struct {
 type TracerouteRunsOutput struct {
 	Runs  []TracerouteRun
 	Query TracerouteRunsQueryMetadata
+}
+
+type TracerouteInsightOutput struct {
+	Points []TracerouteInsightPoint
+	Query  TracerouteInsightQueryMetadata
 }
 
 type TracerouteTopologyOutput struct {
@@ -145,6 +161,19 @@ type TracerouteHop struct {
 	RttSamplesMs  []float64
 	ErrorCode     *string
 	ErrorMessage  *string
+}
+
+type TracerouteInsightPoint struct {
+	TimestampMs        int64
+	BucketFromMs       int64
+	BucketToMs         int64
+	RunStartedAt       *time.Time
+	ResultCount        int64
+	FinalRttAvgMs      *float64
+	FinalLossPercent   *float64
+	HasLoss            bool
+	HasRouteChange     bool
+	DestinationReached bool
 }
 
 type TracerouteTopologyNode struct {
@@ -248,6 +277,14 @@ type TracerouteRunsQueryMetadata struct {
 	NextCursor *int64
 }
 
+type TracerouteInsightQueryMetadata struct {
+	FromMs        int64
+	ToMs          int64
+	MaxDataPoints int32
+	Resolution    string
+	TotalRuns     int64
+}
+
 type TracerouteTopologyQueryMetadata struct {
 	FromMs int64
 	ToMs   int64
@@ -288,6 +325,12 @@ type normalizedQueryTracerouteRunsInput struct {
 
 	limit  int32
 	cursor *time.Time
+}
+
+type normalizedQueryTracerouteInsightInput struct {
+	normalizedQueryBase
+
+	maxDataPoints int32
 }
 
 type normalizedQueryTracerouteTopologyInput struct {
