@@ -1,11 +1,10 @@
 import type { CheckDefinition } from "@/features/checks/data/checks";
-import { buildHopDiagnostics, selectedTimelineValueLabel, summarizeTraceroute, tracerouteTimelinePoints } from "@/features/insight/data/tracerouteInsightData";
-import { formatCount, formatMs, formatPercent, formatTime } from "@/features/insight/insightFormatters";
+import { buildHopDiagnostics, selectedTimelineValueLabel, tracerouteTimelinePoints } from "@/features/insight/data/tracerouteInsightData";
+import { formatMs, formatPercent } from "@/features/insight/insightFormatters";
 import type { HopDiagnostic } from "@/features/insight/insightTypes";
 import type { Probe } from "@/features/probes/data/probes";
 import type { TracerouteResult } from "@/shared/api/types";
 import { BodyCopy } from "@/shared/components/BodyCopy";
-import { KeyValueGrid } from "@/shared/components/KeyValueGrid";
 import { LatencyRail } from "@/shared/visualizations/LatencyRail";
 import { RouteTopologyMap, type RouteTopologyEdge, type RouteTopologyNode } from "@/shared/visualizations/RouteTopologyMap";
 import { RunTimeline } from "@/shared/visualizations/RunTimeline";
@@ -63,14 +62,13 @@ export function TracerouteInsightPanel({
 }: TracerouteInsightPanelProps) {
 	const selectedRun = runs.find(run => run.startedAt === selectedRunStartedAt) || runs[0] || null;
 	const diagnostics = buildHopDiagnostics(selectedRun);
-	const summary = summarizeTraceroute(runs, selectedRun);
 	const timelinePoints = tracerouteTimelinePoints(runs);
 	const hasTopology = topologyNodes.length > 0 && topologyEdges.length > 0;
 
 	if (!selectedProbe || !selectedTarget) {
 		return (
 			<Panel tone="deep" eyebrow="Traceroute" title="No route selected">
-				<BodyCopy>Select a probe and traceroute target to inspect route health.</BodyCopy>
+				<BodyCopy>Select a probe and traceroute target to inspect route details.</BodyCopy>
 			</Panel>
 		);
 	}
@@ -93,21 +91,6 @@ export function TracerouteInsightPanel({
 
 	return (
 		<div className={styles.tracerouteStack}>
-			<Panel tone="glass" eyebrow="Route health" title={`${selectedProbe.name} → ${selectedTarget.target}`}>
-				<KeyValueGrid
-					items={[
-						{ label: "Destination", value: <Badge tone={summary.statusTone}>{summary.statusLabel}</Badge> },
-						{ label: "Final RTT", value: formatMs(summary.finalRtt) },
-						{ label: "Final loss", value: formatPercent(summary.finalLoss) },
-						{ label: "Hops", value: String(selectedRun?.hopCount ?? "-") },
-						{ label: "Path changes", value: formatCount(summary.pathChangeCount) },
-						{ label: "First loss", value: summary.firstPropagatedLossHop ? `hop ${summary.firstPropagatedLossHop}` : "none" },
-						{ label: "First RTT jump", value: summary.firstRttJumpHop ? `hop ${summary.firstRttJumpHop}` : "none" },
-						{ label: "Run", value: selectedRun ? formatTime(selectedRun.startedAt) : "-" }
-					]}
-				/>
-			</Panel>
-
 			<Panel className={styles.tracePanel} tone="deep" eyebrow="Route trace" title="Hop latency, loss, and run timeline">
 				<div className={styles.traceStack}>
 					{diagnostics.length ? (
