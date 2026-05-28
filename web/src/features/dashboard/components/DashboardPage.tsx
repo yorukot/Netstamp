@@ -1,5 +1,4 @@
 import { mapApiChecks } from "@/features/checks/api/checkAdapters";
-import { mapApiMeasurements } from "@/features/checks/api/resultAdapters";
 import { mapApiProbes } from "@/features/probes/api/probeAdapters";
 import { type Navigate } from "@/routes/routeTypes";
 import { projectQueries } from "@/shared/api/queries";
@@ -10,7 +9,7 @@ import { NetworkMap } from "@/shared/components/NetworkMap";
 import { PageStack } from "@/shared/components/PageStack";
 import { ResponsiveGrid } from "@/shared/components/ResponsiveGrid";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
-import { Badge, Button, MetricCard, Panel, Surface, type BadgeTone } from "@netstamp/ui";
+import { Button, MetricCard, Panel } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import styles from "./DashboardPage.module.css";
@@ -34,14 +33,8 @@ export function DashboardPage({ navigate }: DashboardPageProps) {
 		select: data => mapApiChecks(data.checks, probes)
 	});
 	const checks = checksQuery.data ?? [];
-	const measurementsQuery = useQuery({
-		...projectQueries.measurements(projectRef || "", { limit: 3 }),
-		enabled: Boolean(projectRef),
-		select: data => mapApiMeasurements(data.measurements, probes, checks)
-	});
 	const onlineProbes = probes.filter(probe => probe.status === "Online").length;
 	const activeChecks = checks.length;
-	const events = measurementsQuery.data ?? [];
 	const positionedProbes = probes.filter(probe => probe.coordinates);
 	const activeProbeId = positionedProbes.some(probe => probe.id === selectedProbeId) ? selectedProbeId : (positionedProbes[0]?.id ?? "");
 	const mapTitle = projectRef ? `${positionedProbes.length} positioned / ${probes.length} probes` : "No project selected";
@@ -58,7 +51,7 @@ export function DashboardPage({ navigate }: DashboardPageProps) {
 			<ScreenHeader
 				eyebrow="Controller overview"
 				title="Dashboard"
-				copy="A premium active-measurement cockpit for probe health, scheduled checks, stream semantics, and recent path anomalies."
+				copy="A premium active-measurement cockpit for probe health, scheduled checks, and stream semantics."
 				actions={
 					<>
 						<Button variant="secondary" onClick={() => navigate("newProbe")}>
@@ -79,38 +72,9 @@ export function DashboardPage({ navigate }: DashboardPageProps) {
 				<NetworkMap probes={probes} selectedId={activeProbeId} onSelect={setSelectedProbeId} mode="fleet" className={styles.worldMap} />
 			</Panel>
 
-			<ResponsiveGrid>
-				<Panel tone="glass" eyebrow="Fleet bitmap" title={`${probes.length} probes, ${onlineProbes} lit`}>
-					<FleetMatrix total={Math.max(probes.length, 1)} online={onlineProbes} />
-				</Panel>
-				<Panel tone="glass" eyebrow="Anomalies" title="Recent system events">
-					<div className={styles.feed}>
-						{events.map(event => (
-							<Event
-								key={`${event.time}-${event.probe}-${event.check}`}
-								title={`${event.check}: ${event.status}`}
-								copy={`${event.probe} recorded ${event.latency}; ${event.event}.`}
-								tone={event.status === "success" ? "success" : "warning"}
-							/>
-						))}
-					</div>
-				</Panel>
-			</ResponsiveGrid>
+			<Panel tone="glass" eyebrow="Fleet bitmap" title={`${probes.length} probes, ${onlineProbes} lit`}>
+				<FleetMatrix total={Math.max(probes.length, 1)} online={onlineProbes} />
+			</Panel>
 		</PageStack>
-	);
-}
-
-interface EventProps {
-	title: string;
-	copy: string;
-	tone: BadgeTone;
-}
-
-function Event({ title, copy, tone }: EventProps) {
-	return (
-		<Surface as="article" className={styles.event} tone="flat" cut="md" padding="sm">
-			<Badge tone={tone}>{title}</Badge>
-			<BodyCopy>{copy}</BodyCopy>
-		</Surface>
 	);
 }
