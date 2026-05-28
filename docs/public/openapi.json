@@ -15,6 +15,10 @@
 			"description": "Probe-agent runtime handshake, polling, and result ingestion."
 		},
 		{
+			"name": "Public Pages",
+			"description": "Public Ping insight pages and project-owned publishing controls."
+		},
+		{
 			"name": "Measurements",
 			"description": "Raw-ish measurement rows for tables, logs, and recent activity views."
 		},
@@ -2932,6 +2936,835 @@
 				]
 			}
 		},
+		"/projects/{ref}/public-pages": {
+			"get": {
+				"operationId": "listProjectPublicPages",
+				"summary": "List project public pages",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/PublicPageListResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Public Pages"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			},
+			"post": {
+				"operationId": "createProjectPublicPage",
+				"summary": "Create project public page",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					}
+				],
+				"responses": {
+					"201": {
+						"description": "The request has succeeded and a new resource has been created as a result.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/PublicPageResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "The request conflicts with the current state of the server.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Public Pages"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/CreatePublicPageRequest"
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/projects/{ref}/public-pages/{page_id}": {
+			"get": {
+				"operationId": "getProjectPublicPage",
+				"summary": "Get project public page",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					},
+					{
+						"$ref": "#/components/parameters/PublicPageIdPathParam"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/PublicPageResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Public Pages"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			},
+			"patch": {
+				"operationId": "updateProjectPublicPage",
+				"summary": "Update project public page",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					},
+					{
+						"$ref": "#/components/parameters/PublicPageIdPathParam"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/PublicPageResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "The request conflicts with the current state of the server.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Public Pages"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/UpdatePublicPageRequest"
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			},
+			"delete": {
+				"operationId": "deleteProjectPublicPage",
+				"summary": "Delete project public page",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					},
+					{
+						"$ref": "#/components/parameters/PublicPageIdPathParam"
+					}
+				],
+				"responses": {
+					"204": {
+						"description": "There is no content to send for this request, but the headers may be useful. "
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Public Pages"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/projects/{ref}/public-pages/{page_id}/folders": {
+			"post": {
+				"operationId": "createProjectPublicPageFolder",
+				"summary": "Create project public page folder",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					},
+					{
+						"$ref": "#/components/parameters/PublicPageIdPathParam"
+					}
+				],
+				"responses": {
+					"201": {
+						"description": "The request has succeeded and a new resource has been created as a result.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/PublicPageFolderResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Public Pages"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/CreatePublicPageFolderRequest"
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/projects/{ref}/public-pages/{page_id}/folders/{folder_id}": {
+			"patch": {
+				"operationId": "updateProjectPublicPageFolder",
+				"summary": "Update project public page folder",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					},
+					{
+						"$ref": "#/components/parameters/PublicPageIdPathParam"
+					},
+					{
+						"$ref": "#/components/parameters/PublicPageFolderIdPathParam"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/PublicPageFolderResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Public Pages"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/UpdatePublicPageFolderRequest"
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			},
+			"delete": {
+				"operationId": "deleteProjectPublicPageFolder",
+				"summary": "Delete project public page folder",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					},
+					{
+						"$ref": "#/components/parameters/PublicPageIdPathParam"
+					},
+					{
+						"$ref": "#/components/parameters/PublicPageFolderIdPathParam"
+					}
+				],
+				"responses": {
+					"204": {
+						"description": "There is no content to send for this request, but the headers may be useful. "
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Public Pages"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/projects/{ref}/public-pages/{page_id}/folders/{folder_id}/checks": {
+			"put": {
+				"operationId": "setProjectPublicPageFolderChecks",
+				"summary": "Set project public page folder checks",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					},
+					{
+						"$ref": "#/components/parameters/PublicPageIdPathParam"
+					},
+					{
+						"$ref": "#/components/parameters/PublicPageFolderIdPathParam"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/PublicPageFolderChecksResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "The request conflicts with the current state of the server.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Public Pages"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/SetPublicPageFolderChecksRequest"
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
 		"/projects/{ref}/results/ping/insight": {
 			"get": {
 				"operationId": "queryProjectPingResultInsight",
@@ -3496,6 +4329,139 @@
 						"SessionCookieAuth": []
 					}
 				]
+			}
+		},
+		"/public-pages/{slug}": {
+			"get": {
+				"operationId": "getPublicPage",
+				"summary": "Get public page",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/PublicPageSlugPathParam"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/PublicPageResponse"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Public Pages"]
+			}
+		},
+		"/public-pages/{slug}/results/ping/insight": {
+			"get": {
+				"operationId": "queryPublicPagePingInsight",
+				"summary": "Query public page ping insight",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/PublicPageSlugPathParam"
+					},
+					{
+						"$ref": "#/components/parameters/PublicPingInsightQuery.probeId"
+					},
+					{
+						"$ref": "#/components/parameters/PublicPingInsightQuery.checkId"
+					},
+					{
+						"$ref": "#/components/parameters/PublicPingInsightQuery.from"
+					},
+					{
+						"$ref": "#/components/parameters/PublicPingInsightQuery.to"
+					},
+					{
+						"$ref": "#/components/parameters/PublicPingInsightQuery.maxDataPoints"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/PublicPingInsightResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Public Pages"]
 			}
 		},
 		"/runtime/probes/{probe_id}/assignments": {
@@ -4350,6 +5316,86 @@
 					"maxLength": 64
 				}
 			},
+			"PublicPageFolderIdPathParam": {
+				"name": "folder_id",
+				"in": "path",
+				"required": true,
+				"schema": {
+					"$ref": "#/components/schemas/uuid"
+				}
+			},
+			"PublicPageIdPathParam": {
+				"name": "page_id",
+				"in": "path",
+				"required": true,
+				"schema": {
+					"$ref": "#/components/schemas/uuid"
+				}
+			},
+			"PublicPageSlugPathParam": {
+				"name": "slug",
+				"in": "path",
+				"required": true,
+				"schema": {
+					"type": "string",
+					"pattern": "^[a-z0-9-]+$",
+					"minLength": 1,
+					"maxLength": 64
+				}
+			},
+			"PublicPingInsightQuery.checkId": {
+				"name": "checkId",
+				"in": "query",
+				"required": true,
+				"schema": {
+					"$ref": "#/components/schemas/uuid"
+				},
+				"explode": false
+			},
+			"PublicPingInsightQuery.from": {
+				"name": "from",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "integer",
+					"format": "int64",
+					"minimum": 1
+				},
+				"explode": false
+			},
+			"PublicPingInsightQuery.maxDataPoints": {
+				"name": "maxDataPoints",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "integer",
+					"format": "int32",
+					"minimum": 1,
+					"maximum": 2000,
+					"default": 600
+				},
+				"explode": false
+			},
+			"PublicPingInsightQuery.probeId": {
+				"name": "probeId",
+				"in": "query",
+				"required": true,
+				"schema": {
+					"$ref": "#/components/schemas/uuid"
+				},
+				"explode": false
+			},
+			"PublicPingInsightQuery.to": {
+				"name": "to",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "integer",
+					"format": "int64",
+					"minimum": 1
+				},
+				"explode": false
+			},
 			"TracerouteInsightQuery.checkId": {
 				"name": "checkId",
 				"in": "query",
@@ -5022,6 +6068,72 @@
 					{
 						"name": "Engineering",
 						"slug": "engineering"
+					}
+				]
+			},
+			"CreatePublicPageFolderRequest": {
+				"type": "object",
+				"required": ["name"],
+				"properties": {
+					"parentId": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"name": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 128
+					},
+					"description": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 1024
+					},
+					"sortOrder": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 0,
+						"default": 0
+					}
+				},
+				"examples": [
+					{
+						"parentId": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+						"name": "Ashburn",
+						"sortOrder": 0
+					}
+				]
+			},
+			"CreatePublicPageRequest": {
+				"type": "object",
+				"required": ["slug", "title"],
+				"properties": {
+					"slug": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 64,
+						"pattern": "^[a-z0-9-]+$"
+					},
+					"title": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 128
+					},
+					"description": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 1024
+					},
+					"enabled": {
+						"type": "boolean",
+						"default": true
+					}
+				},
+				"examples": [
+					{
+						"slug": "public-edge",
+						"title": "Public Edge Latency",
+						"description": "Public ping insight.",
+						"enabled": true
 					}
 				]
 			},
@@ -6629,6 +7741,378 @@
 					}
 				]
 			},
+			"PublicPage": {
+				"type": "object",
+				"required": ["id", "slug", "title", "enabled", "createdAt", "updatedAt"],
+				"properties": {
+					"id": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"slug": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 64,
+						"pattern": "^[a-z0-9-]+$"
+					},
+					"title": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 128
+					},
+					"description": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 1024
+					},
+					"enabled": {
+						"type": "boolean"
+					},
+					"folders": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/PublicPageFolder"
+						}
+					},
+					"pairs": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/PublicPingPair"
+						}
+					},
+					"createdAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"updatedAt": {
+						"type": "string",
+						"format": "date-time"
+					}
+				},
+				"examples": [
+					{
+						"id": "99999999-9999-9999-9999-999999999999",
+						"slug": "public-edge",
+						"title": "Public Edge Latency",
+						"description": "Public ping insight for selected edge checks.",
+						"enabled": true,
+						"folders": [],
+						"pairs": [],
+						"createdAt": "2026-05-28T10:00:00Z",
+						"updatedAt": "2026-05-28T10:00:00Z"
+					}
+				]
+			},
+			"PublicPageCheck": {
+				"type": "object",
+				"required": ["id", "folderId", "name", "intervalSeconds", "sortOrder", "createdAt", "updatedAt"],
+				"properties": {
+					"id": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"folderId": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"name": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 128
+					},
+					"description": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 1024
+					},
+					"intervalSeconds": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 1
+					},
+					"sortOrder": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 0
+					},
+					"createdAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"updatedAt": {
+						"type": "string",
+						"format": "date-time"
+					}
+				},
+				"examples": [
+					{
+						"id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+						"folderId": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+						"name": "edge-api",
+						"description": "Public latency to the edge API.",
+						"intervalSeconds": 30,
+						"sortOrder": 0,
+						"createdAt": "2026-05-28T10:00:00Z",
+						"updatedAt": "2026-05-28T10:00:00Z"
+					}
+				]
+			},
+			"PublicPageFolder": {
+				"type": "object",
+				"required": ["id", "name", "sortOrder", "createdAt", "updatedAt"],
+				"properties": {
+					"id": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"parentId": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"name": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 128
+					},
+					"description": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 1024
+					},
+					"sortOrder": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 0
+					},
+					"checks": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/PublicPageCheck"
+						}
+					},
+					"createdAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"updatedAt": {
+						"type": "string",
+						"format": "date-time"
+					}
+				},
+				"examples": [
+					{
+						"id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+						"name": "North America",
+						"description": "Public probes in North America.",
+						"sortOrder": 0,
+						"checks": [],
+						"createdAt": "2026-05-28T10:00:00Z",
+						"updatedAt": "2026-05-28T10:00:00Z"
+					}
+				]
+			},
+			"PublicPageFolderChecksResponse": {
+				"type": "object",
+				"required": ["checks"],
+				"properties": {
+					"checks": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/PublicPageCheck"
+						}
+					}
+				}
+			},
+			"PublicPageFolderResponse": {
+				"type": "object",
+				"required": ["folder"],
+				"properties": {
+					"folder": {
+						"$ref": "#/components/schemas/PublicPageFolder"
+					}
+				}
+			},
+			"PublicPageListResponse": {
+				"type": "object",
+				"required": ["publicPages"],
+				"properties": {
+					"publicPages": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/PublicPage"
+						}
+					}
+				}
+			},
+			"PublicPageResponse": {
+				"type": "object",
+				"required": ["publicPage"],
+				"properties": {
+					"publicPage": {
+						"$ref": "#/components/schemas/PublicPage"
+					}
+				}
+			},
+			"PublicPingInsightResponse": {
+				"type": "object",
+				"required": ["buckets", "sampleDensity", "summary", "query"],
+				"properties": {
+					"buckets": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/PingInsightBucket"
+						}
+					},
+					"sampleDensity": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/PingSampleDensityCell"
+						}
+					},
+					"summary": {
+						"$ref": "#/components/schemas/PublicPingInsightSummary"
+					},
+					"query": {
+						"$ref": "#/components/schemas/PingSeriesQueryMetadata"
+					}
+				}
+			},
+			"PublicPingInsightSummary": {
+				"type": "object",
+				"required": ["totalResults", "successfulCount", "timeoutCount", "errorCount", "sentCount", "receivedCount"],
+				"properties": {
+					"totalResults": {
+						"type": "integer",
+						"format": "int64",
+						"minimum": 0
+					},
+					"successfulCount": {
+						"type": "integer",
+						"format": "int64",
+						"minimum": 0
+					},
+					"timeoutCount": {
+						"type": "integer",
+						"format": "int64",
+						"minimum": 0
+					},
+					"errorCount": {
+						"type": "integer",
+						"format": "int64",
+						"minimum": 0
+					},
+					"sentCount": {
+						"type": "integer",
+						"format": "int64",
+						"minimum": 0
+					},
+					"receivedCount": {
+						"type": "integer",
+						"format": "int64",
+						"minimum": 0
+					},
+					"avgLossPercent": {
+						"type": "number",
+						"format": "double",
+						"minimum": 0,
+						"maximum": 100
+					},
+					"avgRttMs": {
+						"type": "number",
+						"format": "double",
+						"minimum": 0
+					},
+					"medianRttMs": {
+						"type": "number",
+						"format": "double",
+						"minimum": 0
+					},
+					"maxRttMs": {
+						"type": "number",
+						"format": "double",
+						"minimum": 0
+					},
+					"p95RttMs": {
+						"type": "number",
+						"format": "double",
+						"minimum": 0
+					},
+					"p99RttMs": {
+						"type": "number",
+						"format": "double",
+						"minimum": 0
+					},
+					"latestStatus": {
+						"type": "string",
+						"enum": ["successful", "timeout", "error"]
+					},
+					"latestStartedAtMs": {
+						"type": "integer",
+						"format": "int64",
+						"minimum": 1
+					},
+					"latestRttAvgMs": {
+						"type": "number",
+						"format": "double",
+						"minimum": 0
+					},
+					"latestLossPercent": {
+						"type": "number",
+						"format": "double",
+						"minimum": 0,
+						"maximum": 100
+					}
+				}
+			},
+			"PublicPingPair": {
+				"type": "object",
+				"required": ["folderId", "probeId", "probeName", "probeStatus", "checkId", "checkName", "checkIntervalSeconds"],
+				"properties": {
+					"folderId": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"probeId": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"probeName": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 128
+					},
+					"probeLocationName": {
+						"type": "string"
+					},
+					"probeStatus": {
+						"type": "string",
+						"enum": ["online", "offline"]
+					},
+					"checkId": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"checkName": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 128
+					},
+					"checkDescription": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 1024
+					},
+					"checkIntervalSeconds": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 1
+					}
+				},
+				"examples": [
+					{
+						"folderId": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+						"probeId": "33333333-3333-3333-3333-333333333333",
+						"probeName": "iad-edge-1",
+						"probeLocationName": "Ashburn, VA",
+						"probeStatus": "online",
+						"checkId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+						"checkName": "edge-api",
+						"checkIntervalSeconds": 30
+					}
+				]
+			},
 			"RegisterUserRequest": {
 				"type": "object",
 				"required": ["email", "displayName", "password"],
@@ -7102,6 +8586,23 @@
 						},
 						"unit": "ms",
 						"points": [[1778666400000, 12.3]]
+					}
+				]
+			},
+			"SetPublicPageFolderChecksRequest": {
+				"type": "object",
+				"required": ["checkIds"],
+				"properties": {
+					"checkIds": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/uuid"
+						}
+					}
+				},
+				"examples": [
+					{
+						"checkIds": ["aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"]
 					}
 				]
 			},
@@ -8157,6 +9658,65 @@
 					{
 						"name": "Platform Engineering",
 						"slug": "platform-engineering"
+					}
+				]
+			},
+			"UpdatePublicPageFolderRequest": {
+				"type": "object",
+				"properties": {
+					"parentId": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"name": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 128
+					},
+					"description": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 1024
+					},
+					"sortOrder": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 0
+					}
+				},
+				"examples": [
+					{
+						"name": "US East",
+						"sortOrder": 1
+					}
+				]
+			},
+			"UpdatePublicPageRequest": {
+				"type": "object",
+				"properties": {
+					"slug": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 64,
+						"pattern": "^[a-z0-9-]+$"
+					},
+					"title": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 128
+					},
+					"description": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 1024
+					},
+					"enabled": {
+						"type": "boolean"
+					}
+				},
+				"examples": [
+					{
+						"title": "Public Edge Latency",
+						"enabled": false
 					}
 				]
 			},

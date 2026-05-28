@@ -10,6 +10,7 @@ import "./models/check.tsp";
 import "./models/probe.tsp";
 import "./models/assignment.tsp";
 import "./models/result.tsp";
+import "./models/public-page.tsp";
 
 import "./services/system.tsp";
 import "./services/auth.tsp";
@@ -20,6 +21,7 @@ import "./services/checks.tsp";
 import "./services/assignments.tsp";
 import "./services/probes.tsp";
 import "./services/results.tsp";
+import "./services/public-pages.tsp";
 import "./services/probe-runtime.tsp";
 import "./services/install.tsp";
 
@@ -42,6 +44,7 @@ using OpenAPI;
 @tagMetadata("Probes", #{ description: "Project-scoped probe registration and secret management." })
 @tagMetadata("Results", #{ description: "Authenticated result query endpoints." })
 @tagMetadata("Measurements", #{ description: "Raw-ish measurement rows for tables, logs, and recent activity views." })
+@tagMetadata("Public Pages", #{ description: "Public Ping insight pages and project-owned publishing controls." })
 @tagMetadata("Probe Runtime", #{ description: "Probe-agent runtime handshake, polling, and result ingestion." })
 @tagMetadata("Install", #{ description: "Probe-agent install assets for Linux systemd hosts." })
 namespace Netstamp;

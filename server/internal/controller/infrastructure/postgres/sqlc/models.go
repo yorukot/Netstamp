@@ -714,6 +714,38 @@ type ProjectMember struct {
 	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
 }
 
+type PublicPage struct {
+	ID          uuid.UUID          `json:"id"`
+	ProjectID   uuid.UUID          `json:"project_id"`
+	Slug        string             `json:"slug"`
+	Title       string             `json:"title"`
+	Description *string            `json:"description"`
+	Enabled     bool               `json:"enabled"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt   pgtype.Timestamptz `json:"deleted_at"`
+}
+
+type PublicPageFolder struct {
+	ID           uuid.UUID          `json:"id"`
+	PublicPageID uuid.UUID          `json:"public_page_id"`
+	ParentID     *uuid.UUID         `json:"parent_id"`
+	Name         string             `json:"name"`
+	Description  *string            `json:"description"`
+	SortOrder    int32              `json:"sort_order"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
+}
+
+type PublicPageFolderCheck struct {
+	PublicPageID uuid.UUID          `json:"public_page_id"`
+	ProjectID    uuid.UUID          `json:"project_id"`
+	FolderID     uuid.UUID          `json:"folder_id"`
+	CheckID      uuid.UUID          `json:"check_id"`
+	SortOrder    int32              `json:"sort_order"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+}
+
 type TcpCheckConfig struct {
 	CheckID   uuid.UUID    `json:"check_id"`
 	Port      int32        `json:"port"`

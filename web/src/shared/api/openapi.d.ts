@@ -494,6 +494,95 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	"/projects/{ref}/public-pages": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** List project public pages */
+		get: operations["listProjectPublicPages"];
+		put?: never;
+		/** Create project public page */
+		post: operations["createProjectPublicPage"];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	"/projects/{ref}/public-pages/{page_id}": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** Get project public page */
+		get: operations["getProjectPublicPage"];
+		put?: never;
+		post?: never;
+		/** Delete project public page */
+		delete: operations["deleteProjectPublicPage"];
+		options?: never;
+		head?: never;
+		/** Update project public page */
+		patch: operations["updateProjectPublicPage"];
+		trace?: never;
+	};
+	"/projects/{ref}/public-pages/{page_id}/folders": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/** Create project public page folder */
+		post: operations["createProjectPublicPageFolder"];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	"/projects/{ref}/public-pages/{page_id}/folders/{folder_id}": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		post?: never;
+		/** Delete project public page folder */
+		delete: operations["deleteProjectPublicPageFolder"];
+		options?: never;
+		head?: never;
+		/** Update project public page folder */
+		patch: operations["updateProjectPublicPageFolder"];
+		trace?: never;
+	};
+	"/projects/{ref}/public-pages/{page_id}/folders/{folder_id}/checks": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		/** Set project public page folder checks */
+		put: operations["setProjectPublicPageFolderChecks"];
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	"/projects/{ref}/results/ping/insight": {
 		parameters: {
 			query?: never;
@@ -593,6 +682,40 @@ export interface paths {
 		 * @description Validate a selector AST, return its canonical form, and list the project probes it currently matches.
 		 */
 		post: operations["previewProjectSelector"];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	"/public-pages/{slug}": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** Get public page */
+		get: operations["getPublicPage"];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	"/public-pages/{slug}/results/ping/insight": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** Query public page ping insight */
+		get: operations["queryPublicPagePingInsight"];
+		put?: never;
+		post?: never;
 		delete?: never;
 		options?: never;
 		head?: never;
@@ -1030,6 +1153,38 @@ export interface components {
 		CreateProjectRequest: {
 			name: string;
 			slug: string;
+		};
+		/**
+		 * @example {
+		 *       "parentId": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+		 *       "name": "Ashburn",
+		 *       "sortOrder": 0
+		 *     }
+		 */
+		CreatePublicPageFolderRequest: {
+			parentId?: components["schemas"]["uuid"];
+			name: string;
+			description?: string;
+			/**
+			 * Format: int32
+			 * @default 0
+			 */
+			sortOrder: number;
+		};
+		/**
+		 * @example {
+		 *       "slug": "public-edge",
+		 *       "title": "Public Edge Latency",
+		 *       "description": "Public ping insight.",
+		 *       "enabled": true
+		 *     }
+		 */
+		CreatePublicPageRequest: {
+			slug: string;
+			title: string;
+			description?: string;
+			/** @default true */
+			enabled: boolean;
 		};
 		/**
 		 * @example {
@@ -1982,6 +2137,159 @@ export interface components {
 		};
 		/**
 		 * @example {
+		 *       "id": "99999999-9999-9999-9999-999999999999",
+		 *       "slug": "public-edge",
+		 *       "title": "Public Edge Latency",
+		 *       "description": "Public ping insight for selected edge checks.",
+		 *       "enabled": true,
+		 *       "folders": [],
+		 *       "pairs": [],
+		 *       "createdAt": "2026-05-28T10:00:00Z",
+		 *       "updatedAt": "2026-05-28T10:00:00Z"
+		 *     }
+		 */
+		PublicPage: {
+			id: components["schemas"]["uuid"];
+			slug: string;
+			title: string;
+			description?: string;
+			enabled: boolean;
+			folders?: components["schemas"]["PublicPageFolder"][];
+			pairs?: components["schemas"]["PublicPingPair"][];
+			/** Format: date-time */
+			createdAt: string;
+			/** Format: date-time */
+			updatedAt: string;
+		};
+		/**
+		 * @example {
+		 *       "id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+		 *       "folderId": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+		 *       "name": "edge-api",
+		 *       "description": "Public latency to the edge API.",
+		 *       "intervalSeconds": 30,
+		 *       "sortOrder": 0,
+		 *       "createdAt": "2026-05-28T10:00:00Z",
+		 *       "updatedAt": "2026-05-28T10:00:00Z"
+		 *     }
+		 */
+		PublicPageCheck: {
+			id: components["schemas"]["uuid"];
+			folderId: components["schemas"]["uuid"];
+			name: string;
+			description?: string;
+			/** Format: int32 */
+			intervalSeconds: number;
+			/** Format: int32 */
+			sortOrder: number;
+			/** Format: date-time */
+			createdAt: string;
+			/** Format: date-time */
+			updatedAt: string;
+		};
+		/**
+		 * @example {
+		 *       "id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+		 *       "name": "North America",
+		 *       "description": "Public probes in North America.",
+		 *       "sortOrder": 0,
+		 *       "checks": [],
+		 *       "createdAt": "2026-05-28T10:00:00Z",
+		 *       "updatedAt": "2026-05-28T10:00:00Z"
+		 *     }
+		 */
+		PublicPageFolder: {
+			id: components["schemas"]["uuid"];
+			parentId?: components["schemas"]["uuid"];
+			name: string;
+			description?: string;
+			/** Format: int32 */
+			sortOrder: number;
+			checks?: components["schemas"]["PublicPageCheck"][];
+			/** Format: date-time */
+			createdAt: string;
+			/** Format: date-time */
+			updatedAt: string;
+		};
+		PublicPageFolderChecksResponse: {
+			checks: components["schemas"]["PublicPageCheck"][];
+		};
+		PublicPageFolderResponse: {
+			folder: components["schemas"]["PublicPageFolder"];
+		};
+		PublicPageListResponse: {
+			publicPages: components["schemas"]["PublicPage"][];
+		};
+		PublicPageResponse: {
+			publicPage: components["schemas"]["PublicPage"];
+		};
+		PublicPingInsightResponse: {
+			buckets: components["schemas"]["PingInsightBucket"][];
+			sampleDensity: components["schemas"]["PingSampleDensityCell"][];
+			summary: components["schemas"]["PublicPingInsightSummary"];
+			query: components["schemas"]["PingSeriesQueryMetadata"];
+		};
+		PublicPingInsightSummary: {
+			/** Format: int64 */
+			totalResults: number;
+			/** Format: int64 */
+			successfulCount: number;
+			/** Format: int64 */
+			timeoutCount: number;
+			/** Format: int64 */
+			errorCount: number;
+			/** Format: int64 */
+			sentCount: number;
+			/** Format: int64 */
+			receivedCount: number;
+			/** Format: double */
+			avgLossPercent?: number;
+			/** Format: double */
+			avgRttMs?: number;
+			/** Format: double */
+			medianRttMs?: number;
+			/** Format: double */
+			maxRttMs?: number;
+			/** Format: double */
+			p95RttMs?: number;
+			/** Format: double */
+			p99RttMs?: number;
+			/** @enum {string} */
+			latestStatus?: "successful" | "timeout" | "error";
+			/** Format: int64 */
+			latestStartedAtMs?: number;
+			/** Format: double */
+			latestRttAvgMs?: number;
+			/** Format: double */
+			latestLossPercent?: number;
+		};
+		/**
+		 * @example {
+		 *       "folderId": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+		 *       "probeId": "33333333-3333-3333-3333-333333333333",
+		 *       "probeName": "iad-edge-1",
+		 *       "probeLocationName": "Ashburn, VA",
+		 *       "probeStatus": "online",
+		 *       "checkId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+		 *       "checkName": "edge-api",
+		 *       "checkIntervalSeconds": 30
+		 *     }
+		 */
+		PublicPingPair: {
+			folderId: components["schemas"]["uuid"];
+			probeId: components["schemas"]["uuid"];
+			probeName: string;
+			probeLocationName?: string;
+			/** @enum {string} */
+			probeStatus: "online" | "offline";
+			checkId: components["schemas"]["uuid"];
+			checkName: string;
+			checkDescription?: string;
+			/** Format: int32 */
+			checkIntervalSeconds: number;
+		};
+		/**
+		 * @example {
 		 *       "email": "user@example.com",
 		 *       "displayName": "Jane Doe",
 		 *       "password": "correct-horse-battery-staple"
@@ -2243,6 +2551,16 @@ export interface components {
 			labels: Record<string, never>;
 			unit: string;
 			points: [number, number][];
+		};
+		/**
+		 * @example {
+		 *       "checkIds": [
+		 *         "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+		 *       ]
+		 *     }
+		 */
+		SetPublicPageFolderChecksRequest: {
+			checkIds: components["schemas"]["uuid"][];
 		};
 		/**
 		 * @example {
@@ -2811,6 +3129,31 @@ export interface components {
 		};
 		/**
 		 * @example {
+		 *       "name": "US East",
+		 *       "sortOrder": 1
+		 *     }
+		 */
+		UpdatePublicPageFolderRequest: {
+			parentId?: components["schemas"]["uuid"];
+			name?: string;
+			description?: string;
+			/** Format: int32 */
+			sortOrder?: number;
+		};
+		/**
+		 * @example {
+		 *       "title": "Public Edge Latency",
+		 *       "enabled": false
+		 *     }
+		 */
+		UpdatePublicPageRequest: {
+			slug?: string;
+			title?: string;
+			description?: string;
+			enabled?: boolean;
+		};
+		/**
+		 * @example {
 		 *       "id": "11111111-1111-1111-1111-111111111111",
 		 *       "email": "user@example.com",
 		 *       "displayName": "Jane Doe"
@@ -2861,6 +3204,14 @@ export interface components {
 		"ProjectAssignmentQuery.probeId": components["schemas"]["uuid"];
 		ProjectInviteIdPathParam: components["schemas"]["uuid"];
 		ProjectRefParam: string;
+		PublicPageFolderIdPathParam: components["schemas"]["uuid"];
+		PublicPageIdPathParam: components["schemas"]["uuid"];
+		PublicPageSlugPathParam: string;
+		"PublicPingInsightQuery.checkId": components["schemas"]["uuid"];
+		"PublicPingInsightQuery.from": number;
+		"PublicPingInsightQuery.maxDataPoints": number;
+		"PublicPingInsightQuery.probeId": components["schemas"]["uuid"];
+		"PublicPingInsightQuery.to": number;
 		"TracerouteInsightQuery.checkId": components["schemas"]["uuid"];
 		"TracerouteInsightQuery.from": number;
 		"TracerouteInsightQuery.maxDataPoints": number;
@@ -5295,6 +5646,689 @@ export interface operations {
 			};
 		};
 	};
+	listProjectPublicPages: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				ref: components["parameters"]["ProjectRefParam"];
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["PublicPageListResponse"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	createProjectPublicPage: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				ref: components["parameters"]["ProjectRefParam"];
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				"application/json": components["schemas"]["CreatePublicPageRequest"];
+			};
+		};
+		responses: {
+			/** @description The request has succeeded and a new resource has been created as a result. */
+			201: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["PublicPageResponse"];
+				};
+			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is forbidden. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The request conflicts with the current state of the server. */
+			409: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	getProjectPublicPage: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				ref: components["parameters"]["ProjectRefParam"];
+				page_id: components["parameters"]["PublicPageIdPathParam"];
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["PublicPageResponse"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	deleteProjectPublicPage: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				ref: components["parameters"]["ProjectRefParam"];
+				page_id: components["parameters"]["PublicPageIdPathParam"];
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description There is no content to send for this request, but the headers may be useful. */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is forbidden. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	updateProjectPublicPage: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				ref: components["parameters"]["ProjectRefParam"];
+				page_id: components["parameters"]["PublicPageIdPathParam"];
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				"application/json": components["schemas"]["UpdatePublicPageRequest"];
+			};
+		};
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["PublicPageResponse"];
+				};
+			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is forbidden. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The request conflicts with the current state of the server. */
+			409: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	createProjectPublicPageFolder: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				ref: components["parameters"]["ProjectRefParam"];
+				page_id: components["parameters"]["PublicPageIdPathParam"];
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				"application/json": components["schemas"]["CreatePublicPageFolderRequest"];
+			};
+		};
+		responses: {
+			/** @description The request has succeeded and a new resource has been created as a result. */
+			201: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["PublicPageFolderResponse"];
+				};
+			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is forbidden. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	deleteProjectPublicPageFolder: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				ref: components["parameters"]["ProjectRefParam"];
+				page_id: components["parameters"]["PublicPageIdPathParam"];
+				folder_id: components["parameters"]["PublicPageFolderIdPathParam"];
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description There is no content to send for this request, but the headers may be useful. */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is forbidden. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	updateProjectPublicPageFolder: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				ref: components["parameters"]["ProjectRefParam"];
+				page_id: components["parameters"]["PublicPageIdPathParam"];
+				folder_id: components["parameters"]["PublicPageFolderIdPathParam"];
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				"application/json": components["schemas"]["UpdatePublicPageFolderRequest"];
+			};
+		};
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["PublicPageFolderResponse"];
+				};
+			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is forbidden. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	setProjectPublicPageFolderChecks: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				ref: components["parameters"]["ProjectRefParam"];
+				page_id: components["parameters"]["PublicPageIdPathParam"];
+				folder_id: components["parameters"]["PublicPageFolderIdPathParam"];
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				"application/json": components["schemas"]["SetPublicPageFolderChecksRequest"];
+			};
+		};
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["PublicPageFolderChecksResponse"];
+				};
+			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is forbidden. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The request conflicts with the current state of the server. */
+			409: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
 	queryProjectPingResultInsight: {
 		parameters: {
 			query: {
@@ -5697,6 +6731,119 @@ export interface operations {
 			};
 			/** @description Access is unauthorized. */
 			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	getPublicPage: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				slug: components["parameters"]["PublicPageSlugPathParam"];
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["PublicPageResponse"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	queryPublicPagePingInsight: {
+		parameters: {
+			query: {
+				probeId: components["parameters"]["PublicPingInsightQuery.probeId"];
+				checkId: components["parameters"]["PublicPingInsightQuery.checkId"];
+				from?: components["parameters"]["PublicPingInsightQuery.from"];
+				to?: components["parameters"]["PublicPingInsightQuery.to"];
+				maxDataPoints?: components["parameters"]["PublicPingInsightQuery.maxDataPoints"];
+			};
+			header?: never;
+			path: {
+				slug: components["parameters"]["PublicPageSlugPathParam"];
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["PublicPingInsightResponse"];
+				};
+			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
 				headers: {
 					[name: string]: unknown;
 				};
