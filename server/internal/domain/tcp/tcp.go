@@ -150,3 +150,56 @@ type ResultStorageInput struct {
 	ErrorCode         *string
 	ErrorMessage      *string
 }
+
+type InsightQuery struct {
+	ProjectID     string
+	ProbeID       string
+	CheckID       string
+	From          time.Time
+	To            time.Time
+	MaxDataPoints int32
+}
+
+type InsightResolution string
+
+const (
+	InsightResolutionRaw    InsightResolution = "raw"
+	InsightResolutionBucket InsightResolution = "bucket"
+)
+
+type InsightResult struct {
+	Buckets     []InsightBucket
+	Summary     InsightSummary
+	Resolution  InsightResolution
+	TotalPoints int64
+}
+
+type InsightBucket struct {
+	Timestamp       time.Time
+	ResultCount     int64
+	DurationAvgMs   *float64
+	ConnectMinMs    *float64
+	ConnectAvgMs    *float64
+	ConnectMedianMs *float64
+	ConnectMaxMs    *float64
+	ConnectStddevMs *float64
+	SuccessRate     *float64
+	TimeoutCount    int64
+	ErrorCount      int64
+}
+
+type InsightSummary struct {
+	TotalResults     int64
+	SuccessfulCount  int64
+	TimeoutCount     int64
+	ErrorCount       int64
+	AvgConnectMs     *float64
+	MedianConnectMs  *float64
+	MaxConnectMs     *float64
+	P95ConnectMs     *float64
+	P99ConnectMs     *float64
+	LatestStatus     *Status
+	LatestStartedAt  *time.Time
+	LatestConnectMs  *float64
+	LatestResolvedIP *netip.Addr
+}

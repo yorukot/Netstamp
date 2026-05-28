@@ -1,9 +1,11 @@
 import type { SummaryMetric } from "@/features/insight/insightTypes";
-import type { PingInsightResponse } from "@/shared/api/types";
+import type { PingInsightResponse, PublicPingInsightResponse } from "@/shared/api/types";
 import type { PingInsightChartBucket, PingInsightSampleDensityCell } from "@/shared/visualizations/chartOptions";
 import { formatCount, formatMs, formatPercent } from "../insightFormatters";
 
-function pingSuccessRate(summary: PingInsightResponse["summary"] | undefined) {
+type PingInsightLike = PingInsightResponse | PublicPingInsightResponse;
+
+function pingSuccessRate(summary: PingInsightLike["summary"] | undefined) {
 	if (!summary?.totalResults) {
 		return undefined;
 	}
@@ -11,7 +13,7 @@ function pingSuccessRate(summary: PingInsightResponse["summary"] | undefined) {
 	return (summary.successfulCount / summary.totalResults) * 100;
 }
 
-export function pingSummaryMetrics(data: PingInsightResponse | undefined): SummaryMetric[] {
+export function pingSummaryMetrics(data: PingInsightLike | undefined): SummaryMetric[] {
 	const summary = data?.summary;
 	const sampleCount = data?.sampleDensity.reduce((total, cell) => total + cell.sampleCount, 0) ?? 0;
 
@@ -27,7 +29,7 @@ export function pingSummaryMetrics(data: PingInsightResponse | undefined): Summa
 	];
 }
 
-export function pingChartBuckets(data: PingInsightResponse | undefined): PingInsightChartBucket[] {
+export function pingChartBuckets(data: PingInsightLike | undefined): PingInsightChartBucket[] {
 	return (data?.buckets ?? []).map(bucket => ({
 		timestampMs: bucket.timestampMs,
 		rttMinMs: bucket.rttMinMs,
@@ -42,7 +44,7 @@ export function pingChartBuckets(data: PingInsightResponse | undefined): PingIns
 	}));
 }
 
-export function pingSampleDensity(data: PingInsightResponse | undefined): PingInsightSampleDensityCell[] {
+export function pingSampleDensity(data: PingInsightLike | undefined): PingInsightSampleDensityCell[] {
 	return (data?.sampleDensity ?? []).map(cell => ({
 		timestampMs: cell.timestampMs,
 		rttBucketStartMs: cell.rttBucketStartMs,

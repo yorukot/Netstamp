@@ -36,6 +36,17 @@ type QueryPingInsightInput struct {
 	Now           time.Time
 }
 
+type QueryTCPInsightInput struct {
+	CurrentUserID string
+	ProjectRef    string
+	ProbeID       string
+	CheckID       string
+	FromMs        *int64
+	ToMs          *int64
+	MaxDataPoints *int32
+	Now           time.Time
+}
+
 type QueryTracerouteRunsInput struct {
 	CurrentUserID string
 	ProjectRef    string
@@ -94,6 +105,12 @@ type PingInsightOutput struct {
 	SampleDensity []PingSampleDensityCell
 	Summary       PingInsightSummary
 	Query         QueryMetadata
+}
+
+type TCPInsightOutput struct {
+	Buckets []TCPInsightBucket
+	Summary TCPInsightSummary
+	Query   QueryMetadata
 }
 
 type TracerouteRunsOutput struct {
@@ -262,6 +279,36 @@ type PingInsightSummary struct {
 	LatestResolvedIP  *netip.Addr
 }
 
+type TCPInsightBucket struct {
+	TimestampMs     int64
+	ResultCount     int64
+	DurationAvgMs   *float64
+	ConnectMinMs    *float64
+	ConnectAvgMs    *float64
+	ConnectMedianMs *float64
+	ConnectMaxMs    *float64
+	ConnectStddevMs *float64
+	SuccessRate     *float64
+	TimeoutCount    int64
+	ErrorCount      int64
+}
+
+type TCPInsightSummary struct {
+	TotalResults      int64
+	SuccessfulCount   int64
+	TimeoutCount      int64
+	ErrorCount        int64
+	AvgConnectMs      *float64
+	MedianConnectMs   *float64
+	MaxConnectMs      *float64
+	P95ConnectMs      *float64
+	P99ConnectMs      *float64
+	LatestStatus      *string
+	LatestStartedAtMs *int64
+	LatestConnectMs   *float64
+	LatestResolvedIP  *netip.Addr
+}
+
 type QueryMetadata struct {
 	FromMs        int64
 	ToMs          int64
@@ -306,6 +353,12 @@ type normalizedQueryPingSeriesInput struct {
 }
 
 type normalizedQueryPingInsightInput struct {
+	normalizedQueryBase
+
+	maxDataPoints int32
+}
+
+type normalizedQueryTCPInsightInput struct {
 	normalizedQueryBase
 
 	maxDataPoints int32

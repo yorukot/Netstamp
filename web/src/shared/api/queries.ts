@@ -1,7 +1,17 @@
 import { queryOptions } from "@tanstack/react-query";
 import { apiClient, readApiData } from "./client";
 import { apiQueryKeys } from "./queryKeys";
-import type { MeasurementFilters, PingInsightFilters, PingSeriesFilters, ProjectAssignmentFilters, TracerouteInsightFilters, TracerouteRunsFilters, TracerouteTopologyFilters } from "./types";
+import type {
+	MeasurementFilters,
+	PingInsightFilters,
+	PingSeriesFilters,
+	ProjectAssignmentFilters,
+	PublicPingInsightFilters,
+	TcpInsightFilters,
+	TracerouteInsightFilters,
+	TracerouteRunsFilters,
+	TracerouteTopologyFilters
+} from "./types";
 
 export const systemQueries = {
 	root: () =>
@@ -77,6 +87,18 @@ export const projectQueries = {
 			queryFn: ({ signal }) => readApiData(apiClient.GET("/projects/{ref}/invites", { params: { path: { ref } }, signal })),
 			staleTime: 60 * 1000
 		}),
+	publicPages: (ref: string) =>
+		queryOptions({
+			queryKey: apiQueryKeys.projects.publicPages(ref),
+			queryFn: ({ signal }) => readApiData(apiClient.GET("/projects/{ref}/public-pages", { params: { path: { ref } }, signal })),
+			staleTime: 60 * 1000
+		}),
+	publicPageDetail: (ref: string, pageId: string) =>
+		queryOptions({
+			queryKey: apiQueryKeys.projects.publicPageDetail(ref, pageId),
+			queryFn: ({ signal }) => readApiData(apiClient.GET("/projects/{ref}/public-pages/{page_id}", { params: { path: { ref, page_id: pageId } }, signal })),
+			staleTime: 30 * 1000
+		}),
 	currentUserInvites: () =>
 		queryOptions({
 			queryKey: apiQueryKeys.projects.currentUserInvites(),
@@ -107,6 +129,18 @@ export const projectQueries = {
 			queryFn: ({ signal }) =>
 				readApiData(
 					apiClient.GET("/projects/{ref}/results/ping/insight", {
+						params: { path: { ref }, query: { probeId, checkId, maxDataPoints: 600, ...filters } },
+						signal
+					})
+				),
+			staleTime: 30 * 1000
+		}),
+	tcpInsight: (ref: string, probeId: string, checkId: string, filters: TcpInsightFilters = {}) =>
+		queryOptions({
+			queryKey: apiQueryKeys.projects.tcpInsight(ref, probeId, checkId, filters),
+			queryFn: ({ signal }) =>
+				readApiData(
+					apiClient.GET("/projects/{ref}/results/tcp/insight", {
 						params: { path: { ref }, query: { probeId, checkId, maxDataPoints: 600, ...filters } },
 						signal
 					})
@@ -156,6 +190,28 @@ export const projectQueries = {
 				readApiData(
 					apiClient.GET("/projects/{ref}/results/traceroute/topology", {
 						params: { path: { ref }, query: { limit: 100, ...filters } },
+						signal
+					})
+				),
+			staleTime: 30 * 1000
+		})
+};
+
+export const publicPageQueries = {
+	detail: (slug: string) =>
+		queryOptions({
+			queryKey: apiQueryKeys.publicPages.detail(slug),
+			queryFn: ({ signal }) => readApiData(apiClient.GET("/public-pages/{slug}", { params: { path: { slug } }, signal })),
+			retry: false,
+			staleTime: 30 * 1000
+		}),
+	pingInsight: (slug: string, probeId: string, checkId: string, filters: PublicPingInsightFilters = {}) =>
+		queryOptions({
+			queryKey: apiQueryKeys.publicPages.pingInsight(slug, probeId, checkId, filters),
+			queryFn: ({ signal }) =>
+				readApiData(
+					apiClient.GET("/public-pages/{slug}/results/ping/insight", {
+						params: { path: { slug }, query: { probeId, checkId, maxDataPoints: 600, ...filters } },
 						signal
 					})
 				),

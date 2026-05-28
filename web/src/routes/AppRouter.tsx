@@ -19,6 +19,9 @@ const InsightPage = lazy(() => import("@/features/insight/components/InsightPage
 const LabelsPage = lazy(() => import("@/features/labels/components/LabelsPage").then(module => ({ default: module.LabelsPage })));
 const NewProbeDrawer = lazy(() => import("@/features/probes/components/NewProbeDrawer").then(module => ({ default: module.NewProbeDrawer })));
 const ProbesPage = lazy(() => import("@/features/probes/components/ProbesPage").then(module => ({ default: module.ProbesPage })));
+const PublicPage = lazy(() => import("@/features/public-page/components/PublicPage").then(module => ({ default: module.PublicPage })));
+const PublicPageDetailPage = lazy(() => import("@/features/public-pages/components/PublicPageDetailPage").then(module => ({ default: module.PublicPageDetailPage })));
+const PublicPagesPage = lazy(() => import("@/features/public-pages/components/PublicPagesPage").then(module => ({ default: module.PublicPagesPage })));
 const SettingsPage = lazy(() => import("@/features/settings/components/SettingsPage").then(module => ({ default: module.SettingsPage })));
 const ProjectPage = lazy(() => import("@/features/project/components/ProjectPage").then(module => ({ default: module.ProjectPage })));
 
@@ -87,6 +90,7 @@ const router = createBrowserRouter([
 	{ path: pathForRoute("login"), element: <AuthRoute mode="login" /> },
 	{ path: pathForRoute("register"), element: <AuthRoute mode="register" /> },
 	{ path: pathForRoute("onboarding"), element: <OnboardingRoute /> },
+	{ path: "/s/:slug", element: lazyRoute(<PublicPage />) },
 	{
 		element: <ProtectedAppShell />,
 		children: [
@@ -99,6 +103,8 @@ const router = createBrowserRouter([
 			{ path: appRoutePath("labels"), element: lazyRoute(<LabelsPage />) },
 			{ path: appRoutePath("checks"), element: lazyRoute(<ChecksPage />) },
 			{ path: appRoutePath("insight"), element: lazyRoute(<InsightPage />) },
+			{ path: appRoutePath("publicPages"), element: lazyRoute(<PublicPagesPage />) },
+			{ path: "public-pages/:pageId", element: lazyRoute(<PublicPageDetailPage />) },
 			{ path: appRoutePath("project"), element: lazyRoute(<ProjectPage />) },
 			{ path: appRoutePath("settings"), element: lazyRoute(<SettingsPage />) }
 		]

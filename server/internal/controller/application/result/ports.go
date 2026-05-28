@@ -6,12 +6,17 @@ import (
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 	domainresult "github.com/yorukot/netstamp/internal/domain/result"
+	domaintcp "github.com/yorukot/netstamp/internal/domain/tcp"
 	domaintraceroute "github.com/yorukot/netstamp/internal/domain/traceroute"
 )
 
 type PingSeriesRepository interface {
 	ListPingSeries(ctx context.Context, input domainping.SeriesQuery) (domainping.SeriesResult, error)
 	ListPingInsight(ctx context.Context, input domainping.InsightQuery) (domainping.InsightResult, error)
+}
+
+type TCPInsightRepository interface {
+	ListTCPInsight(ctx context.Context, input domaintcp.InsightQuery) (domaintcp.InsightResult, error)
 }
 
 type TracerouteRunsRepository interface {

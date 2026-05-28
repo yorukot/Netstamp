@@ -9,8 +9,37 @@ import (
 	"context"
 	"net/netip"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
+
+const countTCPInsightPoints = `-- name: CountTCPInsightPoints :one
+SELECT count(*)::bigint
+FROM tcp_results
+WHERE probe_id = $1
+    AND check_id = $2
+    AND started_at >= $3
+    AND started_at < $4
+`
+
+type CountTCPInsightPointsParams struct {
+	ProbeStorageID int64              `json:"probe_storage_id"`
+	CheckStorageID int64              `json:"check_storage_id"`
+	StartedAtFrom  pgtype.Timestamptz `json:"started_at_from"`
+	StartedAtTo    pgtype.Timestamptz `json:"started_at_to"`
+}
+
+func (q *Queries) CountTCPInsightPoints(ctx context.Context, arg CountTCPInsightPointsParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countTCPInsightPoints,
+		arg.ProbeStorageID,
+		arg.CheckStorageID,
+		arg.StartedAtFrom,
+		arg.StartedAtTo,
+	)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
 
 const createTCPResult = `-- name: CreateTCPResult :exec
 INSERT INTO tcp_results (
@@ -71,4 +100,295 @@ func (q *Queries) CreateTCPResult(ctx context.Context, arg CreateTCPResultParams
 		arg.ErrorMessage,
 	)
 	return err
+}
+
+const getTCPInsightSummary = `-- name: GetTCPInsightSummary :one
+WITH filtered AS (
+    SELECT probe_id, check_id, started_at, finished_at, duration_ms, status, connect_duration_ms, resolved_ip, ip_family, error_code, error_message
+    FROM tcp_results
+    WHERE probe_id = $1
+        AND check_id = $2
+        AND started_at >= $3
+        AND started_at < $4
+),
+latest AS (
+    SELECT probe_id, check_id, started_at, finished_at, duration_ms, status, connect_duration_ms, resolved_ip, ip_family, error_code, error_message
+    FROM filtered
+    ORDER BY started_at DESC
+    LIMIT 1
+)
+SELECT
+    count(*)::bigint AS total_results,
+    count(connect_duration_ms)::bigint AS connect_value_count,
+    count(*) FILTER (WHERE status = 'successful')::bigint AS successful_count,
+    count(*) FILTER (WHERE status = 'timeout')::bigint AS timeout_count,
+    count(*) FILTER (WHERE status = 'error')::bigint AS error_count,
+    coalesce(avg(connect_duration_ms), 0)::double precision AS avg_connect_ms,
+    coalesce(percentile_cont(0.5) WITHIN GROUP (ORDER BY connect_duration_ms) FILTER (WHERE connect_duration_ms IS NOT NULL), 0)::double precision AS median_connect_ms,
+    coalesce(max(connect_duration_ms), 0)::double precision AS max_connect_ms,
+    coalesce(percentile_cont(0.95) WITHIN GROUP (ORDER BY connect_duration_ms) FILTER (WHERE connect_duration_ms IS NOT NULL), 0)::double precision AS p95_connect_ms,
+    coalesce(percentile_cont(0.99) WITHIN GROUP (ORDER BY connect_duration_ms) FILTER (WHERE connect_duration_ms IS NOT NULL), 0)::double precision AS p99_connect_ms,
+    coalesce((SELECT status::text FROM latest), '')::text AS latest_status,
+    coalesce((SELECT (extract(epoch FROM started_at) * 1000)::bigint FROM latest), 0)::bigint AS latest_started_at_ms,
+    (SELECT connect_duration_ms FROM latest) AS latest_connect_ms,
+    (SELECT resolved_ip FROM latest) AS latest_resolved_ip
+FROM filtered
+`
+
+type GetTCPInsightSummaryParams struct {
+	ProbeStorageID int64              `json:"probe_storage_id"`
+	CheckStorageID int64              `json:"check_storage_id"`
+	StartedAtFrom  pgtype.Timestamptz `json:"started_at_from"`
+	StartedAtTo    pgtype.Timestamptz `json:"started_at_to"`
+}
+
+type GetTCPInsightSummaryRow struct {
+	TotalResults      int64       `json:"total_results"`
+	ConnectValueCount int64       `json:"connect_value_count"`
+	SuccessfulCount   int64       `json:"successful_count"`
+	TimeoutCount      int64       `json:"timeout_count"`
+	ErrorCount        int64       `json:"error_count"`
+	AvgConnectMs      float64     `json:"avg_connect_ms"`
+	MedianConnectMs   float64     `json:"median_connect_ms"`
+	MaxConnectMs      float64     `json:"max_connect_ms"`
+	P95ConnectMs      float64     `json:"p95_connect_ms"`
+	P99ConnectMs      float64     `json:"p99_connect_ms"`
+	LatestStatus      string      `json:"latest_status"`
+	LatestStartedAtMs int64       `json:"latest_started_at_ms"`
+	LatestConnectMs   *float64    `json:"latest_connect_ms"`
+	LatestResolvedIp  *netip.Addr `json:"latest_resolved_ip"`
+}
+
+func (q *Queries) GetTCPInsightSummary(ctx context.Context, arg GetTCPInsightSummaryParams) (GetTCPInsightSummaryRow, error) {
+	row := q.db.QueryRow(ctx, getTCPInsightSummary,
+		arg.ProbeStorageID,
+		arg.CheckStorageID,
+		arg.StartedAtFrom,
+		arg.StartedAtTo,
+	)
+	var i GetTCPInsightSummaryRow
+	err := row.Scan(
+		&i.TotalResults,
+		&i.ConnectValueCount,
+		&i.SuccessfulCount,
+		&i.TimeoutCount,
+		&i.ErrorCount,
+		&i.AvgConnectMs,
+		&i.MedianConnectMs,
+		&i.MaxConnectMs,
+		&i.P95ConnectMs,
+		&i.P99ConnectMs,
+		&i.LatestStatus,
+		&i.LatestStartedAtMs,
+		&i.LatestConnectMs,
+		&i.LatestResolvedIp,
+	)
+	return i, err
+}
+
+const listTCPInsightBucketRows = `-- name: ListTCPInsightBucketRows :many
+WITH bucketed AS (
+    SELECT
+        (extract(epoch FROM time_bucket(
+            (ceil(extract(epoch FROM ($1::timestamptz - $2::timestamptz)) / $3::double precision)::bigint * interval '1 second'),
+            started_at,
+            $2::timestamptz
+        )) * 1000)::bigint AS bucket_ms,
+        duration_ms,
+        status,
+        connect_duration_ms
+    FROM tcp_results
+    WHERE probe_id = $4
+        AND check_id = $5
+        AND started_at >= $2
+        AND started_at < $1
+)
+SELECT
+    bucket_ms,
+    count(*)::bigint AS result_count,
+    count(connect_duration_ms)::bigint AS connect_value_count,
+    coalesce(avg(duration_ms), 0)::double precision AS duration_avg_ms,
+    coalesce(min(connect_duration_ms), 0)::double precision AS connect_min_ms,
+    coalesce(avg(connect_duration_ms), 0)::double precision AS connect_avg_ms,
+    coalesce(percentile_cont(0.5) WITHIN GROUP (ORDER BY connect_duration_ms) FILTER (WHERE connect_duration_ms IS NOT NULL), 0)::double precision AS connect_median_ms,
+    coalesce(max(connect_duration_ms), 0)::double precision AS connect_max_ms,
+    coalesce(stddev_pop(connect_duration_ms), 0)::double precision AS connect_stddev_ms,
+    coalesce((100.0 * count(*) FILTER (WHERE status = 'successful') / NULLIF(count(*), 0)), 0)::double precision AS success_rate,
+    count(*) FILTER (WHERE status = 'timeout')::bigint AS timeout_count,
+    count(*) FILTER (WHERE status = 'error')::bigint AS error_count
+FROM bucketed
+GROUP BY bucket_ms
+ORDER BY bucket_ms ASC
+`
+
+type ListTCPInsightBucketRowsParams struct {
+	StartedAtTo    pgtype.Timestamptz `json:"started_at_to"`
+	StartedAtFrom  pgtype.Timestamptz `json:"started_at_from"`
+	MaxDataPoints  float64            `json:"max_data_points"`
+	ProbeStorageID int64              `json:"probe_storage_id"`
+	CheckStorageID int64              `json:"check_storage_id"`
+}
+
+type ListTCPInsightBucketRowsRow struct {
+	BucketMs          int64   `json:"bucket_ms"`
+	ResultCount       int64   `json:"result_count"`
+	ConnectValueCount int64   `json:"connect_value_count"`
+	DurationAvgMs     float64 `json:"duration_avg_ms"`
+	ConnectMinMs      float64 `json:"connect_min_ms"`
+	ConnectAvgMs      float64 `json:"connect_avg_ms"`
+	ConnectMedianMs   float64 `json:"connect_median_ms"`
+	ConnectMaxMs      float64 `json:"connect_max_ms"`
+	ConnectStddevMs   float64 `json:"connect_stddev_ms"`
+	SuccessRate       float64 `json:"success_rate"`
+	TimeoutCount      int64   `json:"timeout_count"`
+	ErrorCount        int64   `json:"error_count"`
+}
+
+func (q *Queries) ListTCPInsightBucketRows(ctx context.Context, arg ListTCPInsightBucketRowsParams) ([]ListTCPInsightBucketRowsRow, error) {
+	rows, err := q.db.Query(ctx, listTCPInsightBucketRows,
+		arg.StartedAtTo,
+		arg.StartedAtFrom,
+		arg.MaxDataPoints,
+		arg.ProbeStorageID,
+		arg.CheckStorageID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListTCPInsightBucketRowsRow
+	for rows.Next() {
+		var i ListTCPInsightBucketRowsRow
+		if err := rows.Scan(
+			&i.BucketMs,
+			&i.ResultCount,
+			&i.ConnectValueCount,
+			&i.DurationAvgMs,
+			&i.ConnectMinMs,
+			&i.ConnectAvgMs,
+			&i.ConnectMedianMs,
+			&i.ConnectMaxMs,
+			&i.ConnectStddevMs,
+			&i.SuccessRate,
+			&i.TimeoutCount,
+			&i.ErrorCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listTCPInsightRawRows = `-- name: ListTCPInsightRawRows :many
+SELECT
+    (extract(epoch FROM started_at) * 1000)::bigint AS bucket_ms,
+    1::bigint AS result_count,
+    duration_ms::double precision AS duration_avg_ms,
+    connect_duration_ms AS connect_min_ms,
+    connect_duration_ms AS connect_avg_ms,
+    connect_duration_ms AS connect_median_ms,
+    connect_duration_ms AS connect_max_ms,
+    NULL::double precision AS connect_stddev_ms,
+    CASE WHEN status = 'successful' THEN 100.0 ELSE 0.0 END::double precision AS success_rate,
+    CASE WHEN status = 'timeout' THEN 1 ELSE 0 END::bigint AS timeout_count,
+    CASE WHEN status = 'error' THEN 1 ELSE 0 END::bigint AS error_count
+FROM tcp_results
+WHERE probe_id = $1
+    AND check_id = $2
+    AND started_at >= $3
+    AND started_at < $4
+ORDER BY started_at ASC
+`
+
+type ListTCPInsightRawRowsParams struct {
+	ProbeStorageID int64              `json:"probe_storage_id"`
+	CheckStorageID int64              `json:"check_storage_id"`
+	StartedAtFrom  pgtype.Timestamptz `json:"started_at_from"`
+	StartedAtTo    pgtype.Timestamptz `json:"started_at_to"`
+}
+
+type ListTCPInsightRawRowsRow struct {
+	BucketMs        int64    `json:"bucket_ms"`
+	ResultCount     int64    `json:"result_count"`
+	DurationAvgMs   float64  `json:"duration_avg_ms"`
+	ConnectMinMs    *float64 `json:"connect_min_ms"`
+	ConnectAvgMs    *float64 `json:"connect_avg_ms"`
+	ConnectMedianMs *float64 `json:"connect_median_ms"`
+	ConnectMaxMs    *float64 `json:"connect_max_ms"`
+	ConnectStddevMs *float64 `json:"connect_stddev_ms"`
+	SuccessRate     float64  `json:"success_rate"`
+	TimeoutCount    int64    `json:"timeout_count"`
+	ErrorCount      int64    `json:"error_count"`
+}
+
+func (q *Queries) ListTCPInsightRawRows(ctx context.Context, arg ListTCPInsightRawRowsParams) ([]ListTCPInsightRawRowsRow, error) {
+	rows, err := q.db.Query(ctx, listTCPInsightRawRows,
+		arg.ProbeStorageID,
+		arg.CheckStorageID,
+		arg.StartedAtFrom,
+		arg.StartedAtTo,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListTCPInsightRawRowsRow
+	for rows.Next() {
+		var i ListTCPInsightRawRowsRow
+		if err := rows.Scan(
+			&i.BucketMs,
+			&i.ResultCount,
+			&i.DurationAvgMs,
+			&i.ConnectMinMs,
+			&i.ConnectAvgMs,
+			&i.ConnectMedianMs,
+			&i.ConnectMaxMs,
+			&i.ConnectStddevMs,
+			&i.SuccessRate,
+			&i.TimeoutCount,
+			&i.ErrorCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const resolveTCPInsightStorageIDs = `-- name: ResolveTCPInsightStorageIDs :one
+SELECT probes.internal_id AS probe_storage_id,
+       checks.internal_id AS check_storage_id
+FROM probes
+JOIN checks
+    ON checks.project_id = probes.project_id
+    AND checks.id = $1
+    AND checks.deleted_at IS NULL
+WHERE probes.project_id = $2
+  AND probes.id = $3
+  AND probes.deleted_at IS NULL
+`
+
+type ResolveTCPInsightStorageIDsParams struct {
+	CheckID   uuid.UUID `json:"check_id"`
+	ProjectID uuid.UUID `json:"project_id"`
+	ProbeID   uuid.UUID `json:"probe_id"`
+}
+
+type ResolveTCPInsightStorageIDsRow struct {
+	ProbeStorageID int64 `json:"probe_storage_id"`
+	CheckStorageID int64 `json:"check_storage_id"`
+}
+
+func (q *Queries) ResolveTCPInsightStorageIDs(ctx context.Context, arg ResolveTCPInsightStorageIDsParams) (ResolveTCPInsightStorageIDsRow, error) {
+	row := q.db.QueryRow(ctx, resolveTCPInsightStorageIDs, arg.CheckID, arg.ProjectID, arg.ProbeID)
+	var i ResolveTCPInsightStorageIDsRow
+	err := row.Scan(&i.ProbeStorageID, &i.CheckStorageID)
+	return i, err
 }

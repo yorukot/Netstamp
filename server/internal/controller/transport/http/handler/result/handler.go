@@ -29,6 +29,7 @@ func (h *Handler) RegisterRoutes(api chi.Router) {
 
 		r.Get("/projects/{ref}/results/ping/series", h.handleQueryPingSeries)
 		r.Get("/projects/{ref}/results/ping/insight", h.handleQueryPingInsight)
+		r.Get("/projects/{ref}/results/tcp/insight", h.handleQueryTCPInsight)
 		r.Get("/projects/{ref}/results/traceroute/runs", h.handleQueryTracerouteRuns)
 		r.Get("/projects/{ref}/results/traceroute/insight", h.handleQueryTracerouteInsight)
 		r.Get("/projects/{ref}/results/traceroute/topology", h.handleQueryTracerouteTopology)
@@ -57,6 +58,20 @@ func (h *Handler) handleQueryPingInsight(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	output, err := h.queryPingInsight(r.Context(), input)
+	if err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, output.Body)
+}
+
+func (h *Handler) handleQueryTCPInsight(w http.ResponseWriter, r *http.Request) {
+	input, err := newQueryTCPInsightInput(r)
+	if err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	output, err := h.queryTCPInsight(r.Context(), input)
 	if err != nil {
 		httpx.WriteProblem(w, r, err)
 		return
@@ -158,6 +173,29 @@ func newQueryPingInsightInput(r *http.Request) (*queryPingInsightInput, error) {
 		return nil, err
 	}
 	return &queryPingInsightInput{
+		Ref:           httpx.Path(r, "ref"),
+		ProbeID:       httpx.QueryString(r, "probeId"),
+		CheckID:       httpx.QueryString(r, "checkId"),
+		From:          from,
+		To:            to,
+		MaxDataPoints: maxDataPoints,
+	}, nil
+}
+
+func newQueryTCPInsightInput(r *http.Request) (*queryTCPInsightInput, error) {
+	from, err := httpx.QueryInt64(r, "from")
+	if err != nil {
+		return nil, err
+	}
+	to, err := httpx.QueryInt64(r, "to")
+	if err != nil {
+		return nil, err
+	}
+	maxDataPoints, err := httpx.QueryInt32(r, "maxDataPoints")
+	if err != nil {
+		return nil, err
+	}
+	return &queryTCPInsightInput{
 		Ref:           httpx.Path(r, "ref"),
 		ProbeID:       httpx.QueryString(r, "probeId"),
 		CheckID:       httpx.QueryString(r, "checkId"),

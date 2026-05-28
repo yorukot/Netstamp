@@ -617,6 +617,23 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	"/projects/{ref}/results/tcp/insight": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** Query project TCP result insight */
+		get: operations["queryProjectTcpResultInsight"];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	"/projects/{ref}/results/traceroute/insight": {
 		parameters: {
 			query?: never;
@@ -2630,6 +2647,124 @@ export interface components {
 		};
 		/**
 		 * @example {
+		 *       "timestampMs": 1778666400000,
+		 *       "resultCount": 12,
+		 *       "durationAvgMs": 42,
+		 *       "connectMinMs": 10.1,
+		 *       "connectAvgMs": 12.3,
+		 *       "connectMedianMs": 12,
+		 *       "connectMaxMs": 15.6,
+		 *       "connectStddevMs": 1.7,
+		 *       "successRate": 100,
+		 *       "timeoutCount": 0,
+		 *       "errorCount": 0
+		 *     }
+		 */
+		TcpInsightBucket: {
+			/** Format: int64 */
+			timestampMs: number;
+			/** Format: int64 */
+			resultCount: number;
+			/** Format: double */
+			durationAvgMs?: number;
+			/** Format: double */
+			connectMinMs?: number;
+			/** Format: double */
+			connectAvgMs?: number;
+			/** Format: double */
+			connectMedianMs?: number;
+			/** Format: double */
+			connectMaxMs?: number;
+			/** Format: double */
+			connectStddevMs?: number;
+			/** Format: double */
+			successRate?: number;
+			/** Format: int64 */
+			timeoutCount: number;
+			/** Format: int64 */
+			errorCount: number;
+		};
+		/**
+		 * @example {
+		 *       "buckets": [
+		 *         {
+		 *           "timestampMs": 1778666400000,
+		 *           "resultCount": 12,
+		 *           "connectAvgMs": 12.3,
+		 *           "connectMinMs": 10.1,
+		 *           "connectMaxMs": 15.6,
+		 *           "successRate": 100,
+		 *           "timeoutCount": 0,
+		 *           "errorCount": 0
+		 *         }
+		 *       ],
+		 *       "summary": {
+		 *         "totalResults": 487,
+		 *         "successfulCount": 480,
+		 *         "timeoutCount": 7,
+		 *         "errorCount": 0,
+		 *         "avgConnectMs": 12.3
+		 *       },
+		 *       "query": {
+		 *         "from": 1778662800000,
+		 *         "to": 1778749200000,
+		 *         "maxDataPoints": 600,
+		 *         "resolution": "bucket",
+		 *         "totalPoints": 487
+		 *       }
+		 *     }
+		 */
+		TcpInsightResponse: {
+			buckets: components["schemas"]["TcpInsightBucket"][];
+			summary: components["schemas"]["TcpInsightSummary"];
+			query: components["schemas"]["PingSeriesQueryMetadata"];
+		};
+		/**
+		 * @example {
+		 *       "totalResults": 487,
+		 *       "successfulCount": 480,
+		 *       "timeoutCount": 7,
+		 *       "errorCount": 0,
+		 *       "avgConnectMs": 12.3,
+		 *       "medianConnectMs": 12,
+		 *       "maxConnectMs": 42.5,
+		 *       "p95ConnectMs": 18.2,
+		 *       "p99ConnectMs": 31.7,
+		 *       "latestStatus": "successful",
+		 *       "latestStartedAtMs": 1778666400000,
+		 *       "latestConnectMs": 12.3,
+		 *       "latestResolvedIp": "1.1.1.1"
+		 *     }
+		 */
+		TcpInsightSummary: {
+			/** Format: int64 */
+			totalResults: number;
+			/** Format: int64 */
+			successfulCount: number;
+			/** Format: int64 */
+			timeoutCount: number;
+			/** Format: int64 */
+			errorCount: number;
+			/** Format: double */
+			avgConnectMs?: number;
+			/** Format: double */
+			medianConnectMs?: number;
+			/** Format: double */
+			maxConnectMs?: number;
+			/** Format: double */
+			p95ConnectMs?: number;
+			/** Format: double */
+			p99ConnectMs?: number;
+			/** @enum {string} */
+			latestStatus?: "successful" | "timeout" | "error";
+			/** Format: int64 */
+			latestStartedAtMs?: number;
+			/** Format: double */
+			latestConnectMs?: number;
+			latestResolvedIp?: components["schemas"]["ipv4Address"] | components["schemas"]["ipv6Address"];
+		};
+		/**
+		 * @example {
 		 *       "startedAt": "2026-05-13T10:00:00Z",
 		 *       "finishedAt": "2026-05-13T10:00:00.042Z",
 		 *       "durationMs": 42,
@@ -3212,6 +3347,11 @@ export interface components {
 		"PublicPingInsightQuery.maxDataPoints": number;
 		"PublicPingInsightQuery.probeId": components["schemas"]["uuid"];
 		"PublicPingInsightQuery.to": number;
+		"TcpInsightQuery.checkId": components["schemas"]["uuid"];
+		"TcpInsightQuery.from": number;
+		"TcpInsightQuery.maxDataPoints": number;
+		"TcpInsightQuery.probeId": components["schemas"]["uuid"];
+		"TcpInsightQuery.to": number;
 		"TracerouteInsightQuery.checkId": components["schemas"]["uuid"];
 		"TracerouteInsightQuery.from": number;
 		"TracerouteInsightQuery.maxDataPoints": number;
@@ -6427,6 +6567,79 @@ export interface operations {
 				};
 				content: {
 					"application/json": components["schemas"]["PingSeriesResponse"];
+				};
+			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	queryProjectTcpResultInsight: {
+		parameters: {
+			query: {
+				probeId: components["parameters"]["TcpInsightQuery.probeId"];
+				checkId: components["parameters"]["TcpInsightQuery.checkId"];
+				from?: components["parameters"]["TcpInsightQuery.from"];
+				to?: components["parameters"]["TcpInsightQuery.to"];
+				maxDataPoints?: components["parameters"]["TcpInsightQuery.maxDataPoints"];
+			};
+			header?: never;
+			path: {
+				ref: components["parameters"]["ProjectRefParam"];
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["TcpInsightResponse"];
 				};
 			};
 			/** @description The server could not understand the request due to invalid syntax. */

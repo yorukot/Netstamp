@@ -1,0 +1,235 @@
+.panelStack {
+	display: grid;
+	gap: 1rem;
+}
+
+.formGrid,
+.editGrid,
+.folderGrid {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
+	gap: 0.875rem;
+	align-items: end;
+}
+
+.folderGrid {
+	grid-template-columns: minmax(12rem, 1fr) minmax(12rem, 1fr) 6rem minmax(14rem, 1.2fr) auto;
+}
+
+.detailGrid {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	gap: 1rem;
+}
+
+.detailSection,
+.checkSection {
+	display: grid;
+	gap: 1rem;
+	min-width: 0;
+	padding: 1rem;
+	background: rgba(255, 255, 255, 0.02);
+	border: 1px solid var(--ns-border-faint);
+}
+
+.sectionHeader {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.75rem;
+	align-items: start;
+	justify-content: space-between;
+}
+
+.sectionHeader div:first-child {
+	display: grid;
+	gap: 0.25rem;
+	min-width: 0;
+}
+
+.sectionHeader span,
+.stackedCell span,
+.folderButton small,
+.folderButtonActive small,
+.checkOption small,
+.checkOptionDisabled small,
+.emptyState {
+	color: var(--ns-text-low);
+	font-family: var(--ns-font-mono);
+	font-size: 0.7rem;
+	text-transform: uppercase;
+}
+
+.sectionHeader strong,
+.stackedCell strong,
+.checkOption strong,
+.checkOptionDisabled strong {
+	color: var(--ns-text);
+	font-size: 0.875rem;
+	overflow-wrap: anywhere;
+}
+
+.actionCluster {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	justify-content: flex-end;
+}
+
+.checkboxRow {
+	display: inline-flex;
+	min-height: 2.625rem;
+	gap: 0.5rem;
+	align-items: center;
+	color: var(--ns-text-muted);
+	font-family: var(--ns-font-mono);
+	font-size: 0.75rem;
+	text-transform: uppercase;
+}
+
+.stackedCell {
+	display: grid;
+	gap: 0.2rem;
+	min-width: 0;
+}
+
+.folderList {
+	display: grid;
+	gap: 0.5rem;
+}
+
+.folderEditor {
+	display: grid;
+	gap: 0.875rem;
+	padding-top: 1rem;
+	border-top: 1px solid var(--ns-border-faint);
+}
+
+.folderButton,
+.folderButtonActive {
+	--ns-frame-cut: var(--ns-cut-sm);
+	display: flex;
+	width: 100%;
+	gap: 0.5rem;
+	align-items: center;
+	justify-content: space-between;
+	padding: 0.75rem;
+	color: var(--ns-text-muted);
+	background: #04070b;
+	border: 1px solid var(--ns-border-faint);
+	clip-path: polygon(var(--ns-frame-cut) 0, 100% 0, 100% calc(100% - var(--ns-frame-cut)), calc(100% - var(--ns-frame-cut)) 100%, 0 100%, 0 var(--ns-frame-cut));
+	cursor: pointer;
+	text-align: left;
+}
+
+.folderButtonActive {
+	color: var(--ns-text);
+	border-color: var(--ns-accent-border);
+	box-shadow: 0 0 0 1px rgba(255, 122, 26, 0.18);
+}
+
+.folderButton span,
+.folderButtonActive span {
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+
+.checkGrid {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 0.75rem;
+}
+
+.checkOption,
+.checkOptionDisabled {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr);
+	gap: 0.625rem;
+	align-items: start;
+	min-height: 5rem;
+	padding: 0.875rem;
+	background: #04070b;
+	border: 1px solid var(--ns-border-faint);
+}
+
+.checkOptionDisabled {
+	opacity: 0.48;
+}
+
+.checkOption span,
+.checkOptionDisabled span {
+	display: grid;
+	gap: 0.25rem;
+	min-width: 0;
+}
+
+.emptyState {
+	display: grid;
+	min-height: 5rem;
+	place-items: center;
+	padding: 1rem;
+	color: var(--ns-text-low);
+	text-align: center;
+	border: 1px dashed var(--ns-border-faint);
+	text-transform: none;
+}
+
+.errorState {
+	grid-column: 1 / -1;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.875rem;
+	align-items: center;
+	justify-content: space-between;
+	min-height: 5rem;
+	padding: 1rem;
+	background: rgba(255, 69, 58, 0.08);
+	border: 1px solid rgba(255, 69, 58, 0.48);
+	color: var(--ns-text);
+}
+
+.errorState div {
+	display: grid;
+	gap: 0.25rem;
+	min-width: 0;
+}
+
+.errorState strong {
+	color: var(--ns-critical);
+	font-family: var(--ns-font-display);
+	font-size: 0.9rem;
+	text-transform: uppercase;
+}
+
+.errorState span {
+	color: var(--ns-text-subtle);
+	font-size: 0.8125rem;
+	overflow-wrap: anywhere;
+}
+
+@media (max-width: 82rem) {
+	.formGrid,
+	.editGrid,
+	.folderGrid,
+	.detailGrid,
+	.checkGrid {
+		grid-template-columns: 1fr;
+	}
+
+	.formGrid > button,
+	.editGrid > button,
+	.folderGrid > button {
+		justify-self: start;
+	}
+}
+
+@media (max-width: 44rem) {
+	.sectionHeader,
+	.actionCluster {
+		display: grid;
+		justify-content: stretch;
+	}
+
+	.actionCluster > * {
+		width: 100%;
+	}
+}

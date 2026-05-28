@@ -1,0 +1,290 @@
+.publicShell {
+	min-height: 100vh;
+	padding: 1.25rem;
+	color: var(--ns-text);
+}
+
+.publicHeader {
+	display: flex;
+	gap: 1rem;
+	align-items: center;
+	justify-content: space-between;
+	max-width: 104rem;
+	margin: 0 auto 1rem;
+	padding: 0.75rem 0;
+}
+
+.brandLink {
+	display: inline-grid;
+	gap: 0.15rem;
+	color: var(--ns-text);
+	text-decoration: none;
+}
+
+.brandLink span,
+.titleBand p,
+.pageStats,
+.chartMeta,
+.emptyState,
+.stackedCell span,
+.folderTab small,
+.folderTabActive small,
+.summaryCell span,
+.summaryCell small {
+	font-family: var(--ns-font-mono);
+}
+
+.brandLink span,
+.titleBand p,
+.summaryCell span {
+	color: var(--ns-accent-hover);
+	font-size: 0.7rem;
+	font-weight: 700;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+}
+
+.brandLink strong {
+	color: var(--ns-text-low);
+	font-family: var(--ns-font-mono);
+	font-size: 0.75rem;
+	font-weight: 500;
+}
+
+.headerActions,
+.controlActions,
+.chartMeta {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	align-items: center;
+}
+
+.publicMain {
+	display: grid;
+	gap: 1rem;
+	max-width: 104rem;
+	margin: 0 auto;
+}
+
+.titleBand {
+	display: flex;
+	gap: 1rem;
+	align-items: end;
+	justify-content: space-between;
+	padding: clamp(1.25rem, 3vw, 2rem);
+	background: linear-gradient(135deg, rgba(255, 122, 26, 0.16), rgba(196, 204, 217, 0.05) 42%, rgba(48, 209, 88, 0.08));
+	border: 1px solid var(--ns-border-faint);
+}
+
+.titleBand > div:first-child {
+	display: grid;
+	gap: 0.5rem;
+	min-width: 0;
+}
+
+.titleBand h1 {
+	margin: 0;
+	color: var(--ns-text);
+	font-family: var(--ns-font-display);
+	font-size: clamp(2rem, 4vw, 4.25rem);
+	line-height: 0.95;
+	overflow-wrap: anywhere;
+}
+
+.titleBand > div:first-child > span {
+	max-width: 56rem;
+	color: var(--ns-text-muted);
+	font-size: 0.95rem;
+	line-height: 1.6;
+}
+
+.pageStats {
+	display: grid;
+	gap: 0.4rem;
+	justify-items: end;
+	color: var(--ns-text-low);
+	font-size: 0.75rem;
+	white-space: nowrap;
+}
+
+.contentGrid {
+	display: grid;
+	grid-template-columns: minmax(14rem, 18rem) minmax(0, 1fr);
+	gap: 1rem;
+	align-items: start;
+}
+
+.folderRail {
+	position: sticky;
+	top: 1rem;
+	display: grid;
+	gap: 0.5rem;
+}
+
+.folderTab,
+.folderTabActive {
+	--ns-frame-cut: var(--ns-cut-sm);
+	display: grid;
+	gap: 0.25rem;
+	width: 100%;
+	padding: 0.85rem;
+	color: var(--ns-text-muted);
+	background: #04070b;
+	border: 1px solid var(--ns-border-faint);
+	clip-path: polygon(var(--ns-frame-cut) 0, 100% 0, 100% calc(100% - var(--ns-frame-cut)), calc(100% - var(--ns-frame-cut)) 100%, 0 100%, 0 var(--ns-frame-cut));
+	cursor: pointer;
+	text-align: left;
+}
+
+.folderTabActive {
+	color: var(--ns-text);
+	border-color: var(--ns-accent-border);
+	background: rgba(255, 122, 26, 0.09);
+}
+
+.folderTab span,
+.folderTabActive span {
+	overflow-wrap: anywhere;
+}
+
+.folderTab small,
+.folderTabActive small {
+	color: var(--ns-text-low);
+	font-size: 0.7rem;
+	text-transform: uppercase;
+}
+
+.insightStack {
+	display: grid;
+	gap: 1rem;
+	min-width: 0;
+}
+
+.controlActions {
+	align-items: end;
+	justify-content: flex-end;
+}
+
+.controlActions > label {
+	min-width: 11rem;
+}
+
+.stackedCell {
+	display: grid;
+	gap: 0.2rem;
+	min-width: 0;
+}
+
+.stackedCell strong {
+	color: var(--ns-text);
+	font-size: 0.78rem;
+	overflow-wrap: anywhere;
+}
+
+.stackedCell span {
+	color: var(--ns-text-low);
+	font-size: 0.7rem;
+}
+
+.summaryGrid {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 0.75rem;
+}
+
+.summaryCell {
+	--ns-frame-color: rgba(196, 204, 217, 0.18);
+	--ns-frame-cut: var(--ns-cut-sm);
+	display: grid;
+	min-height: 6.25rem;
+	gap: 0.35rem;
+	align-content: start;
+	padding: 0.875rem;
+	background: #04070b;
+	border: 1px solid var(--ns-frame-color);
+	clip-path: polygon(var(--ns-frame-cut) 0, 100% 0, 100% calc(100% - var(--ns-frame-cut)), calc(100% - var(--ns-frame-cut)) 100%, 0 100%, 0 var(--ns-frame-cut));
+}
+
+.summaryCell span {
+	color: var(--ns-text-low);
+}
+
+.summaryCell strong {
+	color: var(--ns-text);
+	font-family: var(--ns-font-display);
+	font-size: clamp(1.3rem, 2vw, 1.85rem);
+	line-height: 1;
+	overflow-wrap: anywhere;
+}
+
+.summaryCell small {
+	color: var(--ns-text-subtle);
+	font-size: 0.75rem;
+}
+
+.chartMeta {
+	margin-bottom: 0.75rem;
+	color: var(--ns-text-low);
+	font-size: 0.75rem;
+}
+
+.chartMeta span {
+	padding: 0.35rem 0.5rem;
+	background: rgba(255, 255, 255, 0.02);
+	border: 1px solid var(--ns-border-faint);
+}
+
+.emptyState {
+	display: grid;
+	min-height: 14rem;
+	place-items: center;
+	color: var(--ns-text-low);
+	font-size: 0.8125rem;
+	text-align: center;
+}
+
+@media (max-width: 84rem) {
+	.contentGrid {
+		grid-template-columns: 1fr;
+	}
+
+	.folderRail {
+		position: static;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+@media (max-width: 66rem) {
+	.titleBand,
+	.publicHeader {
+		display: grid;
+		align-items: start;
+	}
+
+	.pageStats {
+		justify-items: start;
+		white-space: normal;
+	}
+
+	.summaryGrid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	.controlActions,
+	.controlActions > label,
+	.controlActions > button {
+		width: 100%;
+	}
+}
+
+@media (max-width: 42rem) {
+	.publicShell {
+		padding: 0.75rem;
+	}
+
+	.folderRail,
+	.summaryGrid {
+		grid-template-columns: 1fr;
+	}
+}

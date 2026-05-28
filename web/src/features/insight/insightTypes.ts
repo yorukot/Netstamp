@@ -2,7 +2,7 @@ import type { CheckDefinition } from "@/features/checks/data/checks";
 import type { Probe } from "@/features/probes/data/probes";
 import type { BadgeTone } from "@netstamp/ui";
 
-export type InsightCheckTypeFilter = "all" | "ping" | "traceroute";
+export type InsightCheckTypeFilter = "all" | "ping" | "tcp" | "traceroute";
 export type InsightGroupBy = "check" | "probe";
 export type InsightRefreshInterval = "off" | "10s" | "30s" | "1m" | "5m";
 export type InsightRelativeRange = "15m" | "1h" | "6h" | "24h" | "7d" | "30d";

@@ -85,6 +85,39 @@ func normalizeQueryPingInsightInput(input QueryPingInsightInput) (normalizedQuer
 	}, nil
 }
 
+func normalizeQueryTCPInsightInput(input QueryTCPInsightInput) (normalizedQueryTCPInsightInput, error) {
+	var validation appvalidation.Collector
+
+	base, err := normalizeQueryBase(
+		input.CurrentUserID,
+		input.ProjectRef,
+		input.ProbeID,
+		input.CheckID,
+		input.FromMs,
+		input.ToMs,
+		input.Now,
+	)
+	if err != nil {
+		if !validation.AddValidation(err) {
+			return normalizedQueryTCPInsightInput{}, err
+		}
+	}
+	maxDataPoints, err := normalizeMaxDataPoints(input.MaxDataPoints)
+	if err != nil {
+		if !validation.AddValidation(err) {
+			return normalizedQueryTCPInsightInput{}, err
+		}
+	}
+	if err := validation.Err(ErrInvalidInput); err != nil {
+		return normalizedQueryTCPInsightInput{}, err
+	}
+
+	return normalizedQueryTCPInsightInput{
+		normalizedQueryBase: base,
+		maxDataPoints:       maxDataPoints,
+	}, nil
+}
+
 func normalizeQueryTracerouteRunsInput(input QueryTracerouteRunsInput) (normalizedQueryTracerouteRunsInput, error) {
 	var validation appvalidation.Collector
 

@@ -8,12 +8,18 @@ export type ApiProbe = components["schemas"]["Probe"];
 export type ApiProject = components["schemas"]["Project"];
 export type ApiProjectAssignment = components["schemas"]["ProjectAssignment"];
 export type ApiProjectInvite = components["schemas"]["ProjectInvite"];
+export type ApiPublicPage = components["schemas"]["PublicPage"];
+export type ApiPublicPageCheck = components["schemas"]["PublicPageCheck"];
+export type ApiPublicPageFolder = components["schemas"]["PublicPageFolder"];
+export type ApiPublicPingPair = components["schemas"]["PublicPingPair"];
 export type ApiSelector = components["schemas"]["Selector"];
 export type ChangeCurrentUserEmailInput = components["schemas"]["ChangeCurrentUserEmailRequest"];
 export type ChangeCurrentUserPasswordInput = components["schemas"]["ChangeCurrentUserPasswordRequest"];
 export type CreateCheckInput = components["schemas"]["CreateCheckRequest"];
 export type CreateLabelInput = components["schemas"]["CreateLabelRequest"];
 export type CreateProbeInput = components["schemas"]["CreateProbeRequest"];
+export type CreatePublicPageFolderInput = components["schemas"]["CreatePublicPageFolderRequest"];
+export type CreatePublicPageInput = components["schemas"]["CreatePublicPageRequest"];
 export type CreateProjectInviteInput = components["schemas"]["CreateProjectInviteRequest"];
 export type CreateProjectInput = components["schemas"]["CreateProjectRequest"];
 export type LoginInput = components["schemas"]["LoginUserRequest"];
@@ -22,8 +28,11 @@ export type MeasurementType = components["parameters"]["MeasurementQuery.type"];
 export type PingInsightResponse = components["schemas"]["PingInsightResponse"];
 export type PingSeriesMetric = components["parameters"]["PingSeriesQuery.metric"];
 export type ProjectMemberRole = NonNullable<components["schemas"]["UpdateProjectMemberRoleRequest"]["role"]>;
+export type PublicPingInsightResponse = components["schemas"]["PublicPingInsightResponse"];
 export type RegisterInput = components["schemas"]["RegisterUserRequest"];
 export type SelectorPreviewInput = components["schemas"]["SelectorPreviewRequest"];
+export type SetPublicPageFolderChecksInput = components["schemas"]["SetPublicPageFolderChecksRequest"];
+export type TcpInsightResponse = components["schemas"]["TcpInsightResponse"];
 export type TracerouteHop = components["schemas"]["TracerouteHop"];
 export type TracerouteInsightResponse = components["schemas"]["TracerouteInsightResponse"];
 export type TracerouteResult = components["schemas"]["TracerouteResult"];
@@ -34,6 +43,8 @@ export type UpdateCurrentUserInput = components["schemas"]["UpdateCurrentUserReq
 export type UpdateLabelInput = components["schemas"]["UpdateLabelRequest"];
 export type UpdateProbeInput = components["schemas"]["UpdateProbeRequest"];
 export type UpdateProjectInput = components["schemas"]["UpdateProjectRequest"];
+export type UpdatePublicPageFolderInput = components["schemas"]["UpdatePublicPageFolderRequest"];
+export type UpdatePublicPageInput = components["schemas"]["UpdatePublicPageRequest"];
 export type UserResponse = components["schemas"]["User"];
 
 export interface ProjectAssignmentFilters {
@@ -60,6 +71,18 @@ export interface PingSeriesFilters {
 }
 
 export interface PingInsightFilters {
+	from?: number;
+	to?: number;
+	maxDataPoints?: number;
+}
+
+export interface TcpInsightFilters {
+	from?: number;
+	to?: number;
+	maxDataPoints?: number;
+}
+
+export interface PublicPingInsightFilters {
 	from?: number;
 	to?: number;
 	maxDataPoints?: number;

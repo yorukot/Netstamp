@@ -2,6 +2,7 @@ import { formatInterval, mapApiChecks } from "@/features/checks/api/checkAdapter
 import { type CheckDefinition } from "@/features/checks/data/checks";
 import { GroupTopologyPanel } from "@/features/insight/components/GroupTopologyPanel";
 import { PingInsightPanel } from "@/features/insight/components/PingInsightPanel";
+import { TcpInsightPanel } from "@/features/insight/components/TcpInsightPanel";
 import { TracerouteInsightPanel } from "@/features/insight/components/TracerouteInsightPanel";
 import { formatCount, formatEpochMs, formatMs, formatPercent } from "@/features/insight/insightFormatters";
 import {
@@ -18,7 +19,7 @@ import { mapApiProbes } from "@/features/probes/api/probeAdapters";
 import { type Probe, type ProbeStatus } from "@/features/probes/data/probes";
 import { projectQueries } from "@/shared/api/queries";
 import { apiQueryKeys } from "@/shared/api/queryKeys";
-import { type ApiMeasurement, type ApiProjectAssignment, type PingInsightResponse, type TracerouteInsightResponse, type TracerouteResult } from "@/shared/api/types";
+import { type ApiMeasurement, type ApiProjectAssignment, type PingInsightResponse, type TcpInsightResponse, type TracerouteInsightResponse, type TracerouteResult } from "@/shared/api/types";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { BodyCopy } from "@/shared/components/BodyCopy";
 import { PageStack } from "@/shared/components/PageStack";
@@ -67,6 +68,7 @@ const refreshDurations: Partial<Record<InsightRefreshInterval, number>> = {
 const checkTypeOptions: Array<{ value: InsightCheckTypeFilter; label: string }> = [
 	{ value: "all", label: "All" },
 	{ value: "ping", label: "Ping" },
+	{ value: "tcp", label: "TCP" },
 	{ value: "traceroute", label: "Traceroute" }
 ];
 
@@ -109,6 +111,7 @@ interface InsightGroupRow {
 	probeCount: number;
 	checkCount: number;
 	pingCount: number;
+	tcpCount: number;
 	tracerouteCount: number;
 	measurements: ApiMeasurement[];
 	summary: MeasurementSummary;
@@ -252,14 +255,29 @@ function pairKey(probeId: string, checkId: string) {
 }
 
 function checkTypeFromApi(value: string | undefined): CheckDefinition["type"] {
-	return value?.toLowerCase() === "traceroute" ? "Traceroute" : "Ping";
+	switch (value?.toLowerCase()) {
+		case "tcp":
+			return "TCP";
+		case "traceroute":
+			return "Traceroute";
+		default:
+			return "Ping";
+	}
 }
 
 function pairCheckType(pair: InsightPair): Exclude<InsightCheckTypeFilter, "all"> {
+	if (pair.check.type === "TCP") {
+		return "tcp";
+	}
+
 	return pair.check.type === "Traceroute" ? "traceroute" : "ping";
 }
 
 function checkTypeFilterFromCheck(check: CheckDefinition): Exclude<InsightCheckTypeFilter, "all"> {
+	if (check.type === "TCP") {
+		return "tcp";
+	}
+
 	return check.type === "Traceroute" ? "traceroute" : "ping";
 }
 
@@ -437,6 +455,7 @@ function buildInsightGroups(pairs: InsightPair[], measurements: ApiMeasurement[]
 			const probeCount = new Set(groupPairs.map(pair => pair.probeId)).size;
 			const checkCount = new Set(groupPairs.map(pair => pair.checkId)).size;
 			const pingCount = groupPairs.filter(pair => pair.check.type === "Ping").length;
+			const tcpCount = groupPairs.filter(pair => pair.check.type === "TCP").length;
 			const tracerouteCount = groupPairs.filter(pair => pair.check.type === "Traceroute").length;
 			const label = groupBy === "check" ? firstPair.check.target : firstPair.probe.name;
 			const secondary =
@@ -453,6 +472,7 @@ function buildInsightGroups(pairs: InsightPair[], measurements: ApiMeasurement[]
 				probeCount,
 				checkCount,
 				pingCount,
+				tcpCount,
 				tracerouteCount,
 				measurements: groupMeasurements,
 				summary: summarizeMeasurements(groupMeasurements),
@@ -737,8 +757,11 @@ function GroupTitle({ row }: { row: InsightGroupRow }) {
 function InsightPairDetail({
 	pair,
 	pingData,
+	tcpData,
 	isPingLoading,
 	isPingFetching,
+	isTCPLoading,
+	isTCPFetching,
 	tracerouteInsight,
 	tracerouteRuns,
 	topologyNodes,
@@ -753,8 +776,11 @@ function InsightPairDetail({
 }: {
 	pair: InsightPair | null;
 	pingData: PingInsightResponse | undefined;
+	tcpData: TcpInsightResponse | undefined;
 	isPingLoading: boolean;
 	isPingFetching: boolean;
+	isTCPLoading: boolean;
+	isTCPFetching: boolean;
 	tracerouteInsight: TracerouteInsightResponse | undefined;
 	tracerouteRuns: TracerouteResult[];
 	topologyNodes: RouteTopologyNode[];
@@ -769,6 +795,20 @@ function InsightPairDetail({
 }) {
 	if (!pair) {
 		return null;
+	}
+
+	if (pair.check.type === "TCP") {
+		return (
+			<TcpInsightPanel
+				selectedProbe={pair.probe}
+				selectedTarget={pair.check}
+				data={tcpData}
+				isLoading={isTCPLoading}
+				isFetching={isTCPFetching}
+				timeLabel={timeLabel}
+				onSelectTimeWindow={onSelectTimeWindow}
+			/>
+		);
 	}
 
 	return pair.check.type === "Traceroute" ? (
@@ -880,6 +920,10 @@ export function InsightPage() {
 	const pingInsightQuery = useQuery({
 		...projectQueries.pingInsight(projectRef || "", exactPair?.probeId || "", exactPair?.checkId || "", resultWindowFilters),
 		enabled: Boolean(canQueryPairDetail && exactPair?.check.type === "Ping")
+	});
+	const tcpInsightQuery = useQuery({
+		...projectQueries.tcpInsight(projectRef || "", exactPair?.probeId || "", exactPair?.checkId || "", resultWindowFilters),
+		enabled: Boolean(canQueryPairDetail && exactPair?.check.type === "TCP")
 	});
 	const tracerouteInsightQuery = useQuery({
 		...projectQueries.tracerouteInsight(projectRef || "", exactPair?.probeId || "", exactPair?.checkId || "", resultWindowFilters),
@@ -1184,8 +1228,11 @@ export function InsightPage() {
 		<InsightPairDetail
 			pair={exactPair}
 			pingData={pingInsightQuery.data}
+			tcpData={tcpInsightQuery.data}
 			isPingLoading={pingInsightQuery.isLoading}
 			isPingFetching={pingInsightQuery.isFetching}
+			isTCPLoading={tcpInsightQuery.isLoading}
+			isTCPFetching={tcpInsightQuery.isFetching}
 			tracerouteInsight={tracerouteInsightQuery.data}
 			tracerouteRuns={tracerouteRunsQuery.data?.runs ?? []}
 			topologyNodes={pairTopologyQuery.data?.nodes ?? []}

@@ -12,6 +12,7 @@ import (
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 	domainresult "github.com/yorukot/netstamp/internal/domain/result"
+	domaintcp "github.com/yorukot/netstamp/internal/domain/tcp"
 	domaintraceroute "github.com/yorukot/netstamp/internal/domain/traceroute"
 )
 
@@ -35,7 +36,7 @@ func TestQueryPingSeriesUsesDefaultsAndMapsPoints(t *testing.T) {
 			TotalPoints: 1,
 		},
 	}
-	service := NewService(pings, &recordingTracerouteRunsRepository{}, &recordingMeasurementRepository{}, staticProjectAccess{})
+	service := NewService(pings, &recordingTCPInsightRepository{}, &recordingTracerouteRunsRepository{}, &recordingMeasurementRepository{}, staticProjectAccess{})
 
 	output, err := service.QueryPingSeries(context.Background(), QueryPingSeriesInput{
 		CurrentUserID: testUserID,
@@ -75,7 +76,7 @@ func TestQueryPingSeriesUsesDefaultsAndMapsPoints(t *testing.T) {
 }
 
 func TestQueryPingSeriesRejectsInvalidMetric(t *testing.T) {
-	service := NewService(&recordingPingSeriesRepository{}, &recordingTracerouteRunsRepository{}, &recordingMeasurementRepository{}, staticProjectAccess{})
+	service := NewService(&recordingPingSeriesRepository{}, &recordingTCPInsightRepository{}, &recordingTracerouteRunsRepository{}, &recordingMeasurementRepository{}, staticProjectAccess{})
 
 	_, err := service.QueryPingSeries(context.Background(), QueryPingSeriesInput{
 		CurrentUserID: testUserID,
@@ -127,7 +128,7 @@ func TestQueryPingInsightUsesDefaultsAndMapsDensity(t *testing.T) {
 			TotalPoints: 3,
 		},
 	}
-	service := NewService(pings, &recordingTracerouteRunsRepository{}, &recordingMeasurementRepository{}, staticProjectAccess{})
+	service := NewService(pings, &recordingTCPInsightRepository{}, &recordingTracerouteRunsRepository{}, &recordingMeasurementRepository{}, staticProjectAccess{})
 
 	output, err := service.QueryPingInsight(context.Background(), QueryPingInsightInput{
 		CurrentUserID: testUserID,
@@ -159,6 +160,66 @@ func TestQueryPingInsightUsesDefaultsAndMapsDensity(t *testing.T) {
 		t.Fatalf("unexpected sample density: %#v", output.SampleDensity)
 	}
 	if output.Summary.LatestStatus == nil || *output.Summary.LatestStatus != string(domainping.StatusSuccessful) || output.Summary.LatestStartedAtMs == nil || *output.Summary.LatestStartedAtMs != pointTime.UnixMilli() {
+		t.Fatalf("unexpected summary: %#v", output.Summary)
+	}
+}
+
+func TestQueryTCPInsightUsesDefaultsAndMapsBuckets(t *testing.T) {
+	now := time.Date(2026, 5, 13, 12, 0, 0, 0, time.UTC)
+	pointTime := now.Add(-time.Hour)
+	connectAvg := 42.5
+	latestStatus := domaintcp.StatusSuccessful
+	latestStartedAt := pointTime
+	tcps := &recordingTCPInsightRepository{
+		insightResult: domaintcp.InsightResult{
+			Buckets: []domaintcp.InsightBucket{{
+				Timestamp:       pointTime,
+				ResultCount:     3,
+				ConnectAvgMs:    &connectAvg,
+				ConnectMedianMs: &connectAvg,
+				SuccessRate:     float64Pointer(100),
+			}},
+			Summary: domaintcp.InsightSummary{
+				TotalResults:    3,
+				SuccessfulCount: 3,
+				AvgConnectMs:    &connectAvg,
+				LatestStatus:    &latestStatus,
+				LatestStartedAt: &latestStartedAt,
+				LatestConnectMs: &connectAvg,
+			},
+			Resolution:  domaintcp.InsightResolutionRaw,
+			TotalPoints: 3,
+		},
+	}
+	service := NewService(&recordingPingSeriesRepository{}, tcps, &recordingTracerouteRunsRepository{}, &recordingMeasurementRepository{}, staticProjectAccess{})
+
+	output, err := service.QueryTCPInsight(context.Background(), QueryTCPInsightInput{
+		CurrentUserID: testUserID,
+		ProjectRef:    "vector-ix",
+		ProbeID:       testProbeID,
+		CheckID:       testCheckID,
+		Now:           now,
+	})
+	if err != nil {
+		t.Fatalf("expected query to succeed: %v", err)
+	}
+
+	if tcps.gotInsight.ProjectID != testProjectID || tcps.gotInsight.ProbeID != testProbeID || tcps.gotInsight.CheckID != testCheckID {
+		t.Fatalf("unexpected repository identity input: %#v", tcps.gotInsight)
+	}
+	if !tcps.gotInsight.From.Equal(now.Add(-24*time.Hour)) || !tcps.gotInsight.To.Equal(now) {
+		t.Fatalf("unexpected default range: from=%s to=%s", tcps.gotInsight.From, tcps.gotInsight.To)
+	}
+	if tcps.gotInsight.MaxDataPoints != defaultMaxDataPoint {
+		t.Fatalf("expected default max data points %d, got %d", defaultMaxDataPoint, tcps.gotInsight.MaxDataPoints)
+	}
+	if output.Query.Resolution != string(domaintcp.InsightResolutionRaw) || output.Query.TotalPoints != 3 {
+		t.Fatalf("unexpected query metadata: %#v", output.Query)
+	}
+	if len(output.Buckets) != 1 || output.Buckets[0].TimestampMs != pointTime.UnixMilli() || output.Buckets[0].ConnectAvgMs == nil || *output.Buckets[0].ConnectAvgMs != connectAvg {
+		t.Fatalf("unexpected insight buckets: %#v", output.Buckets)
+	}
+	if output.Summary.LatestStatus == nil || *output.Summary.LatestStatus != string(domaintcp.StatusSuccessful) || output.Summary.LatestStartedAtMs == nil || *output.Summary.LatestStartedAtMs != pointTime.UnixMilli() {
 		t.Fatalf("unexpected summary: %#v", output.Summary)
 	}
 }
@@ -206,7 +267,7 @@ func TestQueryTracerouteRunsUsesDefaultsAndMapsRuns(t *testing.T) {
 			NextCursor: &nextCursor,
 		},
 	}
-	service := NewService(&recordingPingSeriesRepository{}, traceroutes, &recordingMeasurementRepository{}, staticProjectAccess{})
+	service := NewService(&recordingPingSeriesRepository{}, &recordingTCPInsightRepository{}, traceroutes, &recordingMeasurementRepository{}, staticProjectAccess{})
 
 	output, err := service.QueryTracerouteRuns(context.Background(), QueryTracerouteRunsInput{
 		CurrentUserID: testUserID,
@@ -274,7 +335,7 @@ func TestQueryTracerouteInsightUsesDefaultsAndMapsPoints(t *testing.T) {
 			TotalRuns:  1,
 		},
 	}
-	service := NewService(&recordingPingSeriesRepository{}, traceroutes, &recordingMeasurementRepository{}, staticProjectAccess{})
+	service := NewService(&recordingPingSeriesRepository{}, &recordingTCPInsightRepository{}, traceroutes, &recordingMeasurementRepository{}, staticProjectAccess{})
 
 	output, err := service.QueryTracerouteInsight(context.Background(), QueryTracerouteInsightInput{
 		CurrentUserID: testUserID,
@@ -346,7 +407,7 @@ func TestQueryTracerouteTopologyAggregatesRuns(t *testing.T) {
 			},
 		},
 	}
-	service := NewService(&recordingPingSeriesRepository{}, traceroutes, &recordingMeasurementRepository{}, staticProjectAccess{})
+	service := NewService(&recordingPingSeriesRepository{}, &recordingTCPInsightRepository{}, traceroutes, &recordingMeasurementRepository{}, staticProjectAccess{})
 
 	output, err := service.QueryTracerouteTopology(context.Background(), QueryTracerouteTopologyInput{
 		CurrentUserID: testUserID,
@@ -685,6 +746,16 @@ func (r *recordingPingSeriesRepository) ListPingSeries(_ context.Context, input 
 }
 
 func (r *recordingPingSeriesRepository) ListPingInsight(_ context.Context, input domainping.InsightQuery) (domainping.InsightResult, error) {
+	r.gotInsight = input
+	return r.insightResult, nil
+}
+
+type recordingTCPInsightRepository struct {
+	gotInsight    domaintcp.InsightQuery
+	insightResult domaintcp.InsightResult
+}
+
+func (r *recordingTCPInsightRepository) ListTCPInsight(_ context.Context, input domaintcp.InsightQuery) (domaintcp.InsightResult, error) {
 	r.gotInsight = input
 	return r.insightResult, nil
 }

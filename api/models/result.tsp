@@ -453,6 +453,122 @@ model PingInsightResponse {
 	query: PingSeriesQueryMetadata;
 }
 
+@example(#{
+	timestampMs: 1778666400000,
+	resultCount: 12,
+	durationAvgMs: 42,
+	connectMinMs: 10.1,
+	connectAvgMs: 12.3,
+	connectMedianMs: 12,
+	connectMaxMs: 15.6,
+	connectStddevMs: 1.7,
+	successRate: 100,
+	timeoutCount: 0,
+	errorCount: 0,
+})
+model TcpInsightBucket {
+	@minValue(1)
+	timestampMs: int64;
+
+	@minValue(0)
+	resultCount: int64;
+
+	@minValue(0)
+	durationAvgMs?: float64;
+
+	@minValue(0)
+	connectMinMs?: float64;
+
+	@minValue(0)
+	connectAvgMs?: float64;
+
+	@minValue(0)
+	connectMedianMs?: float64;
+
+	@minValue(0)
+	connectMaxMs?: float64;
+
+	@minValue(0)
+	connectStddevMs?: float64;
+
+	@minValue(0)
+	@maxValue(100)
+	successRate?: float64;
+
+	@minValue(0)
+	timeoutCount: int64;
+
+	@minValue(0)
+	errorCount: int64;
+}
+
+@example(#{
+	totalResults: 487,
+	successfulCount: 480,
+	timeoutCount: 7,
+	errorCount: 0,
+	avgConnectMs: 12.3,
+	medianConnectMs: 12,
+	maxConnectMs: 42.5,
+	p95ConnectMs: 18.2,
+	p99ConnectMs: 31.7,
+	latestStatus: "successful",
+	latestStartedAtMs: 1778666400000,
+	latestConnectMs: 12.3,
+	latestResolvedIp: "1.1.1.1",
+})
+model TcpInsightSummary {
+	@minValue(0)
+	totalResults: int64;
+
+	@minValue(0)
+	successfulCount: int64;
+
+	@minValue(0)
+	timeoutCount: int64;
+
+	@minValue(0)
+	errorCount: int64;
+
+	@minValue(0)
+	avgConnectMs?: float64;
+
+	@minValue(0)
+	medianConnectMs?: float64;
+
+	@minValue(0)
+	maxConnectMs?: float64;
+
+	@minValue(0)
+	p95ConnectMs?: float64;
+
+	@minValue(0)
+	p99ConnectMs?: float64;
+
+	latestStatus?: TcpStatus;
+
+	@minValue(1)
+	latestStartedAtMs?: int64;
+
+	@minValue(0)
+	latestConnectMs?: float64;
+
+	latestResolvedIp?: ipAddress;
+}
+
+@example(#{
+	buckets: #[
+		#{ timestampMs: 1778666400000, resultCount: 12, connectAvgMs: 12.3, connectMinMs: 10.1, connectMaxMs: 15.6, successRate: 100, timeoutCount: 0, errorCount: 0 }
+	],
+	summary: #{ totalResults: 487, successfulCount: 480, timeoutCount: 7, errorCount: 0, avgConnectMs: 12.3 },
+	query: #{ from: 1778662800000, to: 1778749200000, maxDataPoints: 600, resolution: "bucket", totalPoints: 487 },
+})
+model TcpInsightResponse {
+	buckets: TcpInsightBucket[];
+	summary: TcpInsightSummary;
+	query: PingSeriesQueryMetadata;
+}
+
 @example(#{ from: 1778662800000, to: 1778749200000, limit: 100, nextCursor: 1778666400000 })
 model TracerouteRunsQueryMetadata {
 	@minValue(1)

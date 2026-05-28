@@ -99,7 +99,7 @@ func VNFolderID(folderID string) (string, error) {
 }
 
 func VNSlug(slug string) (string, error) {
-	slug = strings.ToLower(strings.TrimSpace(slug))
+	slug = strings.TrimSpace(slug)
 	if err := spvalidator.Min(slug, 1); err != nil {
 		return "", err
 	}

@@ -118,6 +118,7 @@ func New(ctx context.Context) (*Application, error) {
 	probeEvents := logger.NewProbeEventRecorder(log)
 	probeRuntimeEvents := logger.NewProbeRuntimeEventRecorder(log)
 	assignmentEvents := logger.NewAssignmentEventRecorder(log)
+	publicPageEvents := logger.NewPublicPageEventRecorder(log)
 
 	authSvc := appauth.NewService(userRepo, passwordHasher, tokenIssuer, authEvents)
 	userSvc := appuser.NewService(userRepo, passwordHasher, userEvents)
@@ -136,9 +137,9 @@ func New(ctx context.Context) (*Application, error) {
 	tracerouteRepo := pgtraceroute.NewTracerouteRepository(dbPool)
 	resultRepo := pgresult.NewResultRepository(dbPool)
 	publicPageRepo := pgpublicpage.NewPublicPageRepository(dbPool)
-	publicPageSvc := apppublicpage.NewService(publicPageRepo, projectRepo, pingRepo)
+	publicPageSvc := apppublicpage.NewService(publicPageRepo, projectRepo, pingRepo, publicPageEvents)
 	probeRuntimeSvc := appproberuntime.NewServiceWithTCP(probeRepo, pingRepo, tcpRepo, tracerouteRepo, security.NewProbeSecretVerifier(), probeRuntimeEvents)
-	resultSvc := appresult.NewService(pingRepo, tracerouteRepo, resultRepo, projectRepo)
+	resultSvc := appresult.NewService(pingRepo, tcpRepo, tracerouteRepo, resultRepo, projectRepo)
 	readiness := postgres.NewReadinessCheck(dbPool)
 
 	httpHandler := httpserver.NewRouter(httpserver.Dependencies{

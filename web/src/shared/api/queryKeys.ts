@@ -20,9 +20,12 @@ export const apiQueryKeys = {
 		measurements: (ref: string, filters: object = {}) => [...apiQueryKeys.projects.detail(ref), "measurements", filters] as const,
 		members: (ref: string) => [...apiQueryKeys.projects.detail(ref), "members"] as const,
 		invites: (ref: string) => [...apiQueryKeys.projects.detail(ref), "invites"] as const,
+		publicPages: (ref: string) => [...apiQueryKeys.projects.detail(ref), "public-pages"] as const,
+		publicPageDetail: (ref: string, pageId: string) => [...apiQueryKeys.projects.publicPages(ref), pageId] as const,
 		currentUserInvites: () => [...apiQueryKeys.projects.all, "current-user-invites"] as const,
 		pingInsight: (ref: string, probeId: string, checkId: string, filters: object = {}) => [...apiQueryKeys.projects.detail(ref), "results", "ping", "insight", probeId, checkId, filters] as const,
 		pingSeries: (ref: string, probeId: string, checkId: string, filters: object = {}) => [...apiQueryKeys.projects.detail(ref), "results", "ping", "series", probeId, checkId, filters] as const,
+		tcpInsight: (ref: string, probeId: string, checkId: string, filters: object = {}) => [...apiQueryKeys.projects.detail(ref), "results", "tcp", "insight", probeId, checkId, filters] as const,
 		probes: (ref: string) => [...apiQueryKeys.projects.detail(ref), "probes"] as const,
 		probeDetail: (ref: string, probeId: string) => [...apiQueryKeys.projects.probes(ref), probeId] as const,
 		tracerouteInsight: (ref: string, probeId: string, checkId: string, filters: object = {}) =>
@@ -30,5 +33,10 @@ export const apiQueryKeys = {
 		tracerouteRuns: (ref: string, probeId: string, checkId: string, filters: object = {}) =>
 			[...apiQueryKeys.projects.detail(ref), "results", "traceroute", "runs", probeId, checkId, filters] as const,
 		tracerouteTopology: (ref: string, filters: object = {}) => [...apiQueryKeys.projects.detail(ref), "results", "traceroute", "topology", filters] as const
+	},
+	publicPages: {
+		all: ["public-pages"] as const,
+		detail: (slug: string) => [...apiQueryKeys.publicPages.all, slug] as const,
+		pingInsight: (slug: string, probeId: string, checkId: string, filters: object = {}) => [...apiQueryKeys.publicPages.detail(slug), "ping", "insight", probeId, checkId, filters] as const
 	}
 };

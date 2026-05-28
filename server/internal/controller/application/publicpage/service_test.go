@@ -22,7 +22,7 @@ const (
 
 func TestCreatePageRejectsViewer(t *testing.T) {
 	repo := &publicPageRepositoryFake{}
-	service := NewService(repo, &projectAccessFake{role: domainproject.RoleViewer}, nil)
+	service := NewService(repo, &projectAccessFake{role: domainproject.RoleViewer}, nil, &publicPageEventRecorderFake{})
 
 	_, err := service.CreatePage(context.Background(), CreatePageInput{
 		CurrentUserID: testUserID,
@@ -47,7 +47,7 @@ func TestUpdateFolderRejectsCycle(t *testing.T) {
 			{ID: testChildID, PageID: testPageID, ParentID: &parentID, Name: "Child"},
 		},
 	}
-	service := NewService(repo, &projectAccessFake{role: domainproject.RoleOwner}, nil)
+	service := NewService(repo, &projectAccessFake{role: domainproject.RoleOwner}, nil, &publicPageEventRecorderFake{})
 	newParentID := testChildID
 
 	_, err := service.UpdateFolder(context.Background(), UpdateFolderInput{
@@ -70,7 +70,7 @@ func TestSetFolderChecksRejectsDuplicateIDs(t *testing.T) {
 	repo := &publicPageRepositoryFake{
 		folders: []domainpublicpage.Folder{{ID: testFolderID, PageID: testPageID, Name: "Root"}},
 	}
-	service := NewService(repo, &projectAccessFake{role: domainproject.RoleOwner}, nil)
+	service := NewService(repo, &projectAccessFake{role: domainproject.RoleOwner}, nil, &publicPageEventRecorderFake{})
 
 	_, err := service.SetFolderChecks(context.Background(), SetFolderChecksInput{
 		CurrentUserID: testUserID,
@@ -90,7 +90,7 @@ func TestSetFolderChecksRejectsDuplicateIDs(t *testing.T) {
 func TestQueryPublicPingInsightRequiresPublishedPair(t *testing.T) {
 	repo := &publicPageRepositoryFake{resolveErr: domainpublicpage.ErrCheckNotPublished}
 	pings := &pingInsightRepositoryFake{}
-	service := NewService(repo, &projectAccessFake{role: domainproject.RoleOwner}, pings)
+	service := NewService(repo, &projectAccessFake{role: domainproject.RoleOwner}, pings, &publicPageEventRecorderFake{})
 
 	_, err := service.QueryPublicPingInsight(context.Background(), QueryPublicPingInsightInput{
 		Slug:    "public-edge",
@@ -102,6 +102,37 @@ func TestQueryPublicPingInsightRequiresPublishedPair(t *testing.T) {
 	}
 	if pings.called {
 		t.Fatalf("expected ping repository not to be called")
+	}
+}
+
+func TestListPagesRecordsTechnicalFailure(t *testing.T) {
+	expected := errors.New("database unavailable")
+	events := &publicPageEventRecorderFake{}
+	service := NewService(&publicPageRepositoryFake{listErr: expected}, &projectAccessFake{role: domainproject.RoleOwner}, nil, events)
+
+	_, err := service.ListPages(context.Background(), ListPagesInput{
+		CurrentUserID: testUserID,
+		ProjectRef:    "project",
+	})
+	if !errors.Is(err, expected) {
+		t.Fatalf("expected list error, got %v", err)
+	}
+	if len(events.events) != 1 {
+		t.Fatalf("expected one event, got %d", len(events.events))
+	}
+
+	event := events.events[0]
+	if event.Name != PublicPageEventListFailure {
+		t.Fatalf("expected list failure event, got %s", event.Name)
+	}
+	if event.Reason != PublicPageReasonPageListFailed {
+		t.Fatalf("expected page list failed reason, got %s", event.Reason)
+	}
+	if event.Err != expected {
+		t.Fatalf("expected event error to preserve cause")
+	}
+	if event.ProjectID != testProjectID || event.ProjectRef != "project" {
+		t.Fatalf("expected project context on event, got id=%q ref=%q", event.ProjectID, event.ProjectRef)
 	}
 }
 
@@ -122,11 +153,15 @@ type publicPageRepositoryFake struct {
 	updateFolderCalled    bool
 	setFolderChecksCalled bool
 	folders               []domainpublicpage.Folder
+	listErr               error
 	resolveErr            error
 	resolvedPairProjectID string
 }
 
 func (f *publicPageRepositoryFake) ListPages(context.Context, string) ([]domainpublicpage.Page, error) {
+	if f.listErr != nil {
+		return nil, f.listErr
+	}
 	return nil, nil
 }
 
@@ -198,4 +233,12 @@ type pingInsightRepositoryFake struct {
 func (f *pingInsightRepositoryFake) ListPingInsight(context.Context, domainping.InsightQuery) (domainping.InsightResult, error) {
 	f.called = true
 	return domainping.InsightResult{}, nil
+}
+
+type publicPageEventRecorderFake struct {
+	events []PublicPageEvent
+}
+
+func (f *publicPageEventRecorderFake) RecordPublicPageEvent(_ context.Context, event PublicPageEvent) {
+	f.events = append(f.events, event)
 }
