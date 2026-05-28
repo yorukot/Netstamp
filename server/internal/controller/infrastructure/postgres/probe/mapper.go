@@ -14,6 +14,7 @@ import (
 	domainnetwork "github.com/yorukot/netstamp/internal/domain/network"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
+	domaintcp "github.com/yorukot/netstamp/internal/domain/tcp"
 	domaintraceroute "github.com/yorukot/netstamp/internal/domain/traceroute"
 )
 
@@ -228,6 +229,7 @@ func mapAssignment(row sqlc.ListActiveAssignmentsForProbeRow) domainassignment.A
 			Target:          row.Target,
 			IntervalSeconds: row.IntervalSeconds,
 			PingConfig:      mapOptionalPingConfig(row.PingPacketCount, row.PingPacketSizeBytes, row.PingTimeoutMs, row.PingIpFamily),
+			TCPConfig:       mapOptionalTCPConfig(row.TcpPort, row.TcpTimeoutMs, row.TcpIpFamily),
 			TracerouteConfig: mapOptionalTracerouteConfig(
 				row.TracerouteProtocol,
 				row.TracerouteMaxHops,
@@ -255,6 +257,18 @@ func mapOptionalPingConfig(packetCount, packetSizeBytes, timeoutMs *int32, ipFam
 		PacketSizeBytes: *packetSizeBytes,
 		TimeoutMs:       *timeoutMs,
 		IPFamily:        mapIPFamily(ipFamily),
+	}
+}
+
+func mapOptionalTCPConfig(port, timeoutMs *int32, ipFamily sqlc.NullIpFamily) *domaintcp.Config {
+	if port == nil || timeoutMs == nil {
+		return nil
+	}
+
+	return &domaintcp.Config{
+		Port:      *port,
+		TimeoutMs: *timeoutMs,
+		IPFamily:  mapIPFamily(ipFamily),
 	}
 }
 

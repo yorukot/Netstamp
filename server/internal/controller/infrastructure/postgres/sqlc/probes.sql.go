@@ -357,6 +357,9 @@ SELECT probe_check_assignments.id AS assignment_id,
        ping_check_configs.packet_size_bytes AS ping_packet_size_bytes,
        ping_check_configs.timeout_ms AS ping_timeout_ms,
        ping_check_configs.ip_family AS ping_ip_family,
+       tcp_check_configs.port AS tcp_port,
+       tcp_check_configs.timeout_ms AS tcp_timeout_ms,
+       tcp_check_configs.ip_family AS tcp_ip_family,
        traceroute_check_configs.protocol AS traceroute_protocol,
        traceroute_check_configs.max_hops AS traceroute_max_hops,
        traceroute_check_configs.timeout_ms AS traceroute_timeout_ms,
@@ -372,6 +375,7 @@ JOIN checks
     ON checks.project_id = probe_check_assignments.project_id
     AND checks.id = probe_check_assignments.check_id
 LEFT JOIN ping_check_configs ON ping_check_configs.check_id = checks.id
+LEFT JOIN tcp_check_configs ON tcp_check_configs.check_id = checks.id
 LEFT JOIN traceroute_check_configs ON traceroute_check_configs.check_id = checks.id
 WHERE probe_check_assignments.probe_id = $1
   AND probe_check_assignments.deleted_at IS NULL
@@ -398,6 +402,9 @@ type ListActiveAssignmentsForProbeRow struct {
 	PingPacketSizeBytes       *int32                 `json:"ping_packet_size_bytes"`
 	PingTimeoutMs             *int32                 `json:"ping_timeout_ms"`
 	PingIpFamily              NullIpFamily           `json:"ping_ip_family"`
+	TcpPort                   *int32                 `json:"tcp_port"`
+	TcpTimeoutMs              *int32                 `json:"tcp_timeout_ms"`
+	TcpIpFamily               NullIpFamily           `json:"tcp_ip_family"`
 	TracerouteProtocol        NullTracerouteProtocol `json:"traceroute_protocol"`
 	TracerouteMaxHops         *int32                 `json:"traceroute_max_hops"`
 	TracerouteTimeoutMs       *int32                 `json:"traceroute_timeout_ms"`
@@ -432,6 +439,9 @@ func (q *Queries) ListActiveAssignmentsForProbe(ctx context.Context, probeID uui
 			&i.PingPacketSizeBytes,
 			&i.PingTimeoutMs,
 			&i.PingIpFamily,
+			&i.TcpPort,
+			&i.TcpTimeoutMs,
+			&i.TcpIpFamily,
 			&i.TracerouteProtocol,
 			&i.TracerouteMaxHops,
 			&i.TracerouteTimeoutMs,
@@ -466,6 +476,9 @@ SELECT probe_check_assignments.id AS assignment_id,
        ping_check_configs.packet_size_bytes AS ping_packet_size_bytes,
        ping_check_configs.timeout_ms AS ping_timeout_ms,
        ping_check_configs.ip_family AS ping_ip_family,
+       tcp_check_configs.port AS tcp_port,
+       tcp_check_configs.timeout_ms AS tcp_timeout_ms,
+       tcp_check_configs.ip_family AS tcp_ip_family,
        traceroute_check_configs.protocol AS traceroute_protocol,
        traceroute_check_configs.max_hops AS traceroute_max_hops,
        traceroute_check_configs.timeout_ms AS traceroute_timeout_ms,
@@ -481,6 +494,7 @@ JOIN checks
     ON checks.project_id = probe_check_assignments.project_id
     AND checks.id = probe_check_assignments.check_id
 LEFT JOIN ping_check_configs ON ping_check_configs.check_id = checks.id
+LEFT JOIN tcp_check_configs ON tcp_check_configs.check_id = checks.id
 LEFT JOIN traceroute_check_configs ON traceroute_check_configs.check_id = checks.id
 WHERE probe_check_assignments.probe_id = $1
   AND probe_check_assignments.check_id = ANY($2::uuid[])
@@ -513,6 +527,9 @@ type ListActiveAssignmentsForProbeChecksRow struct {
 	PingPacketSizeBytes       *int32                 `json:"ping_packet_size_bytes"`
 	PingTimeoutMs             *int32                 `json:"ping_timeout_ms"`
 	PingIpFamily              NullIpFamily           `json:"ping_ip_family"`
+	TcpPort                   *int32                 `json:"tcp_port"`
+	TcpTimeoutMs              *int32                 `json:"tcp_timeout_ms"`
+	TcpIpFamily               NullIpFamily           `json:"tcp_ip_family"`
 	TracerouteProtocol        NullTracerouteProtocol `json:"traceroute_protocol"`
 	TracerouteMaxHops         *int32                 `json:"traceroute_max_hops"`
 	TracerouteTimeoutMs       *int32                 `json:"traceroute_timeout_ms"`
@@ -547,6 +564,9 @@ func (q *Queries) ListActiveAssignmentsForProbeChecks(ctx context.Context, arg L
 			&i.PingPacketSizeBytes,
 			&i.PingTimeoutMs,
 			&i.PingIpFamily,
+			&i.TcpPort,
+			&i.TcpTimeoutMs,
+			&i.TcpIpFamily,
 			&i.TracerouteProtocol,
 			&i.TracerouteMaxHops,
 			&i.TracerouteTimeoutMs,
