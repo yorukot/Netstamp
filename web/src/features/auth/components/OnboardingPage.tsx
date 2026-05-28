@@ -1,6 +1,6 @@
 import { type Navigate } from "@/routes/routeTypes";
 import { ApiError } from "@/shared/api/client";
-import { createProject as createProjectRequest } from "@/shared/api/mutations";
+import { createProjectInvite as createProjectInviteRequest, createProject as createProjectRequest } from "@/shared/api/mutations";
 import { apiQueryKeys } from "@/shared/api/queryKeys";
 import { pushErrorToast } from "@/shared/toast/toastStore";
 import { classNames } from "@/shared/utils/classNames";
@@ -186,6 +186,10 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 		focusInvite(nextIndex);
 	}
 
+	function normalizedInviteEmails() {
+		return Array.from(new Set(invites.map(invite => invite.trim()).filter(Boolean)));
+	}
+
 	async function handleSubmit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 
@@ -200,10 +204,22 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 		try {
 			for (let attempt = 0; attempt < maxSlugAttempts; attempt += 1) {
 				try {
-					await createProjectRequest({
+					const data = await createProjectRequest({
 						name: normalizedProjectName,
 						slug: projectSlugCandidate(baseSlug, attempt)
 					});
+					const projectRef = data.project.slug || data.project.id;
+					const inviteEmails = normalizedInviteEmails();
+
+					if (inviteEmails.length) {
+						const inviteResults = await Promise.allSettled(inviteEmails.map(email => createProjectInviteRequest(projectRef, { email, role: "viewer" })));
+						const failedInviteCount = inviteResults.filter(result => result.status === "rejected").length;
+
+						if (failedInviteCount) {
+							pushErrorToast(`${failedInviteCount} project invite${failedInviteCount === 1 ? "" : "s"} could not be sent.`);
+						}
+					}
+
 					await queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.list() });
 					setCreatedProject(normalizedProjectName);
 					return;
