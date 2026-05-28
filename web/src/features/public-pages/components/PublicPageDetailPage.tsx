@@ -1,5 +1,4 @@
 import { useSession } from "@/features/auth/session/SessionContext";
-import { ApiError } from "@/shared/api/client";
 import {
 	useCreateProjectPublicPageFolderMutation,
 	useDeleteProjectPublicPageFolderMutation,
@@ -15,6 +14,7 @@ import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { useConfirm } from "@/shared/components/confirmContext";
 import { pushToast } from "@/shared/toast/toastStore";
+import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
 import { Button, Checkbox, Panel, SelectField, TextAreaField, TextField } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
@@ -134,18 +134,6 @@ function isDescendantFolder(folder: ApiPublicPageFolder, ancestorID: string, fol
 
 function pingChecks(checks: ApiCheck[] | null | undefined) {
 	return (checks ?? []).filter(check => check.type === "ping");
-}
-
-function requestErrorMessage(error: unknown, fallback: string) {
-	if (error instanceof ApiError) {
-		return `${fallback}: ${error.message}`;
-	}
-
-	if (error instanceof Error) {
-		return `${fallback}: ${error.message}`;
-	}
-
-	return fallback;
 }
 
 export function PublicPageDetailPage() {
@@ -418,7 +406,7 @@ export function PublicPageDetailPage() {
 						<div className={styles.errorState}>
 							<div>
 								<strong>Public page unavailable</strong>
-								<span>{requestErrorMessage(pageDetailQuery.error, "Load public page detail failed")}</span>
+								<span>{requestErrorMessage(pageDetailQuery.error, "Load public page detail failed", { prefixFallback: true })}</span>
 							</div>
 							<Button variant="outline" size="sm" onClick={() => void pageDetailQuery.refetch()}>
 								Retry
@@ -630,7 +618,7 @@ export function PublicPageDetailPage() {
 									<div className={styles.errorState}>
 										<div>
 											<strong>Ping checks unavailable</strong>
-											<span>{requestErrorMessage(checksQuery.error, "Load Ping checks failed")}</span>
+											<span>{requestErrorMessage(checksQuery.error, "Load Ping checks failed", { prefixFallback: true })}</span>
 										</div>
 										<Button variant="outline" size="sm" onClick={() => void checksQuery.refetch()}>
 											Retry

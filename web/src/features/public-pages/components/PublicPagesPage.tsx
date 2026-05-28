@@ -1,5 +1,4 @@
 import { useSession } from "@/features/auth/session/SessionContext";
-import { ApiError } from "@/shared/api/client";
 import { useCreateProjectPublicPageMutation } from "@/shared/api/mutations";
 import { projectQueries } from "@/shared/api/queries";
 import type { ApiPublicPage } from "@/shared/api/types";
@@ -7,6 +6,7 @@ import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { pushToast } from "@/shared/toast/toastStore";
+import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
 import { Badge, Button, Checkbox, DataTable, Panel, TextField, type DataColumn } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
@@ -43,18 +43,6 @@ function optionalText(value: string) {
 
 function formatDateTime(value: string) {
 	return new Date(value).toLocaleString();
-}
-
-function requestErrorMessage(error: unknown, fallback: string) {
-	if (error instanceof ApiError) {
-		return `${fallback}: ${error.message}`;
-	}
-
-	if (error instanceof Error) {
-		return `${fallback}: ${error.message}`;
-	}
-
-	return fallback;
 }
 
 export function PublicPagesPage() {
@@ -137,7 +125,7 @@ export function PublicPagesPage() {
 						<div className={styles.errorState}>
 							<div>
 								<strong>Public pages unavailable</strong>
-								<span>{requestErrorMessage(pagesQuery.error, "List public pages failed")}</span>
+								<span>{requestErrorMessage(pagesQuery.error, "List public pages failed", { prefixFallback: true })}</span>
 							</div>
 							<Button variant="outline" size="sm" onClick={() => void pagesQuery.refetch()}>
 								Retry

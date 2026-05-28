@@ -1,22 +1,11 @@
 import { pushErrorToast } from "@/shared/toast/toastStore";
+import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
 import { MutationCache, QueryCache, QueryClient } from "@tanstack/react-query";
 import { ApiError } from "./client";
 
-function messageForError(error: unknown) {
-	if (error instanceof ApiError) {
-		return error.message;
-	}
-
-	if (error instanceof Error) {
-		return error.message;
-	}
-
-	return "Something went wrong.";
-}
-
 export const queryClient = new QueryClient({
 	mutationCache: new MutationCache({
-		onError: error => pushErrorToast(messageForError(error))
+		onError: error => pushErrorToast(requestErrorMessage(error))
 	}),
 	queryCache: new QueryCache({
 		onError: (error, query) => {
@@ -24,7 +13,7 @@ export const queryClient = new QueryClient({
 				return;
 			}
 
-			pushErrorToast(messageForError(error));
+			pushErrorToast(requestErrorMessage(error));
 		}
 	}),
 	defaultOptions: {

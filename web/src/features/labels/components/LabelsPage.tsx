@@ -1,4 +1,3 @@
-import { ApiError } from "@/shared/api/client";
 import { useDeleteProjectLabelMutation, useSaveProjectLabelMutation } from "@/shared/api/mutations";
 import { projectQueries } from "@/shared/api/queries";
 import type { ApiCheck, ApiLabel, ApiProbe } from "@/shared/api/types";
@@ -8,6 +7,7 @@ import { useConfirm } from "@/shared/components/confirmContext";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { classNames } from "@/shared/utils/classNames";
+import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
 import { Badge, Button, DataTable, Panel, SelectField, TextField, type DataColumn } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
@@ -72,18 +72,6 @@ function buildUsage(labels: ApiLabel[], probes: ApiProbe[], checks: ApiCheck[]) 
 	}
 
 	return usage;
-}
-
-function messageForError(error: unknown) {
-	if (error instanceof ApiError && error.problem?.errors?.length) {
-		return `${error.message}: ${error.problem.errors.map(item => item.message).join(", ")}`;
-	}
-
-	if (error instanceof Error) {
-		return error.message;
-	}
-
-	return "Label operation failed.";
 }
 
 function usageNames(names: string[]) {
@@ -305,7 +293,7 @@ export function LabelsPage() {
 							<TextField label="Value" placeholder="tokyo" value={draftValue} disabled={!projectRef} onChange={event => setDraftValue(event.currentTarget.value)} />
 						</div>
 
-						{mutationError ? <p className={classNames("ns-cut-frame", styles.errorNotice)}>{messageForError(mutationError)}</p> : null}
+						{mutationError ? <p className={classNames("ns-cut-frame", styles.errorNotice)}>{requestErrorMessage(mutationError, "Label operation failed.")}</p> : null}
 
 						<ActionRow className={styles.editorActions}>
 							<Button disabled={!canSave || saveLabelMutation.isPending} onClick={saveLabel}>
