@@ -83,7 +83,6 @@ export function AuthPage({ mode = "login", navigate }: AuthPageProps) {
 						label="Email"
 						name="email"
 						type="email"
-						defaultValue={isRegister ? undefined : "elvis@netstamp.dev"}
 						autoComplete={isRegister ? "email" : "username"}
 						helper={isRegister ? "Use the email that will own the first project." : "Use the email connected to your controller account."}
 					/>
@@ -92,11 +91,10 @@ export function AuthPage({ mode = "login", navigate }: AuthPageProps) {
 						name="password"
 						type="password"
 						minLength={isRegister ? 8 : undefined}
-						placeholder="***"
 						autoComplete={isRegister ? "new-password" : "current-password"}
 						helper={isRegister ? "Choose a password for controller access." : "Enter your account password."}
 					/>
-					{isRegister ? <TextField label="Password, again" name="passwordAgain" type="password" minLength={8} placeholder="***" autoComplete="new-password" /> : null}
+					{isRegister ? <TextField label="Password, again" name="passwordAgain" type="password" minLength={8} autoComplete="new-password" /> : null}
 					<Button type="submit" size="lg" disabled={submitting}>
 						{submitting ? "Submitting" : isRegister ? "Create project" : "Log in"}
 					</Button>

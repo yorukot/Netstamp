@@ -41,7 +41,16 @@ interface AuthRouteProps {
 }
 
 function AuthRoute({ mode }: AuthRouteProps) {
+	const { loading, session } = useSession();
 	const navigate = useRouteNavigate();
+
+	if (loading) {
+		return null;
+	}
+
+	if (session) {
+		return <RouterNavigate to={pathForRoute("dashboard")} replace />;
+	}
 
 	return lazyRoute(<AuthPage mode={mode} navigate={navigate} />);
 }
