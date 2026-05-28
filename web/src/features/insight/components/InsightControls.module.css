@@ -1,0 +1,309 @@
+.segmentField {
+	display: grid;
+	gap: 0.45rem;
+	min-width: 0;
+}
+
+.segmentLabel {
+	color: var(--ns-text-low);
+	font-family: var(--ns-font-mono);
+	font-size: 0.6875rem;
+	font-weight: 800;
+	line-height: 1;
+	text-transform: uppercase;
+}
+
+.segmentControl {
+	--ns-frame-cut: var(--ns-cut-sm);
+	display: grid;
+	grid-auto-flow: column;
+	grid-auto-columns: minmax(0, 1fr);
+	min-height: 2.75rem;
+	border: 1px solid var(--ns-border-faint);
+	background: var(--ns-surface-deep);
+	clip-path: polygon(var(--ns-frame-cut) 0, 100% 0, 100% calc(100% - var(--ns-frame-cut)), calc(100% - var(--ns-frame-cut)) 100%, 0 100%, 0 var(--ns-frame-cut));
+}
+
+.segmentButton {
+	display: inline-grid;
+	place-items: center;
+	min-width: 0;
+	padding: 0.7rem 0.55rem;
+	color: var(--ns-text-subtle);
+	background: transparent;
+	border: 0;
+	border-right: 1px solid var(--ns-border-faint);
+	font-family: var(--ns-font-mono);
+	font-size: 0.6875rem;
+	font-weight: 800;
+	line-height: 1.1;
+	text-transform: uppercase;
+	cursor: pointer;
+	transition:
+		background var(--ns-transition),
+		color var(--ns-transition);
+}
+
+.segmentButton:last-child {
+	border-right: 0;
+}
+
+.segmentButton:hover,
+.segmentButton:focus-visible,
+.segmentButton[data-selected="true"] {
+	color: var(--ns-text);
+	background: rgba(255, 122, 26, 0.14);
+	outline: none;
+}
+
+.focusChip {
+	--ns-frame-cut: var(--ns-cut-sm);
+	display: grid;
+	grid-template-columns: auto minmax(4rem, auto) auto;
+	gap: 0.625rem;
+	align-items: center;
+	max-width: 100%;
+	padding: 0.5rem 0.6rem;
+	color: var(--ns-text-muted);
+	background: rgba(255, 122, 26, 0.1);
+	border: 1px solid rgba(255, 122, 26, 0.42);
+	clip-path: polygon(var(--ns-frame-cut) 0, 100% 0, 100% calc(100% - var(--ns-frame-cut)), calc(100% - var(--ns-frame-cut)) 100%, 0 100%, 0 var(--ns-frame-cut));
+	font-family: var(--ns-font-mono);
+}
+
+.focusChip[data-invalid="true"] {
+	background: rgba(255, 69, 58, 0.12);
+	border-color: rgba(255, 69, 58, 0.56);
+}
+
+.focusChip span {
+	color: var(--ns-text-low);
+	font-size: 0.6875rem;
+	font-weight: 800;
+	text-transform: uppercase;
+}
+
+.focusChip strong {
+	min-width: 0;
+	overflow: hidden;
+	color: var(--ns-text);
+	font-size: 0.75rem;
+	font-weight: 800;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.focusChip button {
+	color: var(--ns-accent-hover);
+	background: transparent;
+	border: 0;
+	font-family: var(--ns-font-mono);
+	font-size: 0.6875rem;
+	font-weight: 900;
+	text-transform: uppercase;
+	cursor: pointer;
+}
+
+.focusChip button:hover,
+.focusChip button:focus-visible {
+	color: var(--ns-text);
+	outline: none;
+}
+
+.timeControlRoot {
+	position: relative;
+	display: grid;
+	gap: 0.45rem;
+	min-width: 0;
+}
+
+.timeControls {
+	display: grid;
+	grid-template-columns: minmax(13rem, 1fr) auto minmax(6.5rem, 0.42fr);
+	gap: 0.625rem;
+	align-items: end;
+	min-width: 0;
+}
+
+.timeTrigger {
+	--ns-frame-cut: var(--ns-cut-sm);
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	gap: 0.75rem;
+	align-items: center;
+	width: 100%;
+	min-width: 0;
+	min-height: 2.75rem;
+	padding: 0.75rem 1rem;
+	color: var(--ns-text);
+	background: var(--ns-surface-deep);
+	border: 1px solid var(--ns-border-faint);
+	clip-path: polygon(var(--ns-frame-cut) 0, 100% 0, 100% calc(100% - var(--ns-frame-cut)), calc(100% - var(--ns-frame-cut)) 100%, 0 100%, 0 var(--ns-frame-cut));
+	font-family: var(--ns-font-mono);
+	font-size: 0.875rem;
+	font-weight: 800;
+	line-height: 1.1;
+	text-align: left;
+	cursor: pointer;
+}
+
+.timeTrigger::after {
+	width: 0.55rem;
+	height: 0.55rem;
+	border-right: 2px solid var(--ns-accent-hover);
+	border-bottom: 2px solid var(--ns-accent-hover);
+	content: "";
+	transform: rotate(45deg) translateY(-0.125rem);
+}
+
+.timeTrigger span {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.timeTrigger:hover,
+.timeTrigger:focus-visible {
+	border-color: var(--ns-border-strong);
+	outline: none;
+}
+
+.refreshButton {
+	min-height: 2.75rem;
+}
+
+.refreshField {
+	display: grid;
+	gap: 0.45rem;
+	min-width: 0;
+}
+
+.refreshField span {
+	color: var(--ns-text-low);
+	font-family: var(--ns-font-mono);
+	font-size: 0.6875rem;
+	font-weight: 800;
+	line-height: 1;
+	text-transform: uppercase;
+}
+
+.refreshSelect {
+	min-height: 2.75rem;
+	font-size: 0.875rem;
+	font-weight: 800;
+}
+
+.timePopover {
+	--ns-frame-cut: var(--ns-cut-md);
+	position: fixed;
+	z-index: 1000;
+	display: grid;
+	gap: 1rem;
+	overflow: auto;
+	padding: 1rem;
+	background: linear-gradient(rgba(255, 122, 26, 0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 122, 26, 0.035) 1px, transparent 1px), var(--ns-glass-dark);
+	background-size:
+		1rem 1rem,
+		1rem 1rem,
+		100% 100%;
+	border: 1px solid var(--ns-border-strong);
+	box-shadow: var(--ns-shadow-md);
+	clip-path: polygon(var(--ns-frame-cut) 0, 100% 0, 100% calc(100% - var(--ns-frame-cut)), calc(100% - var(--ns-frame-cut)) 100%, 0 100%, 0 var(--ns-frame-cut));
+}
+
+.timeSection {
+	display: grid;
+	gap: 0.75rem;
+}
+
+.timeSection h4 {
+	margin: 0;
+	color: var(--ns-text-low);
+	font-family: var(--ns-font-mono);
+	font-size: 0.6875rem;
+	font-weight: 900;
+	letter-spacing: 0.08em;
+	line-height: 1;
+	text-transform: uppercase;
+}
+
+.timePresetGrid {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 0.5rem;
+}
+
+.timePreset {
+	--ns-frame-cut: var(--ns-cut-sm);
+	min-height: 2.5rem;
+	padding: 0.55rem 0.7rem;
+	color: var(--ns-text-subtle);
+	background: var(--ns-surface-deep);
+	border: 1px solid var(--ns-border-faint);
+	clip-path: polygon(var(--ns-frame-cut) 0, 100% 0, 100% calc(100% - var(--ns-frame-cut)), calc(100% - var(--ns-frame-cut)) 100%, 0 100%, 0 var(--ns-frame-cut));
+	font-family: var(--ns-font-mono);
+	font-size: 0.75rem;
+	font-weight: 800;
+	cursor: pointer;
+}
+
+.timePreset:hover,
+.timePreset:focus-visible,
+.timePreset[data-selected="true"] {
+	color: var(--ns-text);
+	background: rgba(255, 122, 26, 0.14);
+	border-color: rgba(255, 122, 26, 0.5);
+	outline: none;
+}
+
+.absoluteGrid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.75rem;
+}
+
+.absoluteGrid label {
+	display: grid;
+	gap: 0.45rem;
+	min-width: 0;
+}
+
+.absoluteGrid span {
+	color: var(--ns-text-low);
+	font-family: var(--ns-font-mono);
+	font-size: 0.6875rem;
+	font-weight: 800;
+	text-transform: uppercase;
+}
+
+.timeActions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.625rem;
+	justify-content: flex-end;
+}
+
+@media (max-width: 44rem) {
+	.focusChip {
+		grid-template-columns: 1fr auto;
+		width: 100%;
+	}
+
+	.focusChip span {
+		grid-column: 1 / -1;
+	}
+
+	.timeControls {
+		grid-template-columns: 1fr;
+	}
+
+	.timePopover {
+		width: min(100%, calc(100vw - 2rem));
+	}
+
+	.timePresetGrid,
+	.absoluteGrid {
+		grid-template-columns: 1fr;
+	}
+}
