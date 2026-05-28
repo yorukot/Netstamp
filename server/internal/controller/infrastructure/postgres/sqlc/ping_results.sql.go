@@ -194,9 +194,17 @@ SELECT
     count(*) FILTER (WHERE status = 'error')::bigint AS error_count,
     coalesce(sum(sent_count), 0)::bigint AS sent_count,
     coalesce(sum(received_count), 0)::bigint AS received_count,
-    coalesce(avg(loss_percent), 0)::double precision AS avg_loss_percent,
-    coalesce(avg(rtt_avg_ms), 0)::double precision AS avg_rtt_ms,
-    coalesce((percentile_cont(0.5) WITHIN GROUP (ORDER BY rtt_median_ms) FILTER (WHERE rtt_median_ms IS NOT NULL)), 0)::double precision AS median_rtt_ms,
+    coalesce(
+        100.0 * (sum(sent_count) - sum(received_count)) / NULLIF(sum(sent_count), 0),
+        avg(loss_percent),
+        0
+    )::double precision AS avg_loss_percent,
+    coalesce((SELECT avg(rtt_sample_ms) FROM samples), avg(rtt_avg_ms), 0)::double precision AS avg_rtt_ms,
+    coalesce(
+        (SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY rtt_sample_ms) FROM samples),
+        (percentile_cont(0.5) WITHIN GROUP (ORDER BY rtt_median_ms) FILTER (WHERE rtt_median_ms IS NOT NULL)),
+        0
+    )::double precision AS median_rtt_ms,
     coalesce(max(rtt_max_ms), 0)::double precision AS max_rtt_ms,
     coalesce((SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY rtt_sample_ms) FROM samples), 0)::double precision AS p95_rtt_ms,
     coalesce((SELECT percentile_cont(0.99) WITHIN GROUP (ORDER BY rtt_sample_ms) FROM samples), 0)::double precision AS p99_rtt_ms,
@@ -270,33 +278,66 @@ func (q *Queries) GetPingInsightSummary(ctx context.Context, arg GetPingInsightS
 }
 
 const listPingInsightBucketRows = `-- name: ListPingInsightBucketRows :many
+WITH bucketed AS (
+    SELECT
+        (extract(epoch FROM time_bucket(
+            (ceil(extract(epoch FROM ($1::timestamptz - $2::timestamptz)) / $3::double precision)::bigint * interval '1 second'),
+            started_at,
+            $2::timestamptz
+        )) * 1000)::bigint AS bucket_ms,
+        duration_ms,
+        status,
+        sent_count,
+        received_count,
+        loss_percent,
+        rtt_min_ms,
+        rtt_avg_ms,
+        rtt_max_ms,
+        rtt_samples_ms
+    FROM ping_results
+    WHERE probe_id = $4
+        AND check_id = $5
+        AND started_at >= $2
+        AND started_at < $1
+),
+sample_stats AS (
+    SELECT
+        bucket_ms,
+        (percentile_cont(0.5) WITHIN GROUP (ORDER BY rtt_sample_ms))::double precision AS rtt_median_ms,
+        stddev_pop(rtt_sample_ms)::double precision AS rtt_stddev_ms
+    FROM (
+        SELECT
+            bucketed.bucket_ms,
+            sample.value::double precision AS rtt_sample_ms
+        FROM bucketed
+        CROSS JOIN LATERAL unnest(rtt_samples_ms) AS sample(value)
+    ) samples
+    GROUP BY bucket_ms
+)
 SELECT
-    (extract(epoch FROM time_bucket(
-        (ceil(extract(epoch FROM ($1::timestamptz - $2::timestamptz)) / $3::double precision)::bigint * interval '1 second'),
-        started_at,
-        $2::timestamptz
-    )) * 1000)::bigint AS bucket_ms,
+    bucketed.bucket_ms,
     count(*)::bigint AS result_count,
     count(rtt_avg_ms)::bigint AS rtt_value_count,
     coalesce(avg(duration_ms), 0)::double precision AS duration_avg_ms,
     coalesce(min(rtt_min_ms), 0)::double precision AS rtt_min_ms,
     coalesce(avg(rtt_avg_ms), 0)::double precision AS rtt_avg_ms,
-    coalesce((percentile_cont(0.5) WITHIN GROUP (ORDER BY rtt_median_ms) FILTER (WHERE rtt_median_ms IS NOT NULL)), 0)::double precision AS rtt_median_ms,
+    coalesce(sample_stats.rtt_median_ms, 0)::double precision AS rtt_median_ms,
     coalesce(max(rtt_max_ms), 0)::double precision AS rtt_max_ms,
-    coalesce(avg(rtt_stddev_ms), 0)::double precision AS rtt_stddev_ms,
-    coalesce(avg(loss_percent), 0)::double precision AS loss_percent,
+    coalesce(sample_stats.rtt_stddev_ms, 0)::double precision AS rtt_stddev_ms,
+    coalesce(
+        100.0 * (sum(sent_count) - sum(received_count)) / NULLIF(sum(sent_count), 0),
+        avg(loss_percent),
+        0
+    )::double precision AS loss_percent,
     coalesce((100.0 * count(*) FILTER (WHERE status = 'successful') / NULLIF(count(*), 0)), 0)::double precision AS success_rate,
     coalesce(sum(sent_count), 0)::bigint AS sent_count,
     coalesce(sum(received_count), 0)::bigint AS received_count,
     count(*) FILTER (WHERE status = 'timeout')::bigint AS timeout_count,
     count(*) FILTER (WHERE status = 'error')::bigint AS error_count
-FROM ping_results
-WHERE probe_id = $4
-    AND check_id = $5
-    AND started_at >= $2
-    AND started_at < $1
-GROUP BY bucket_ms
-ORDER BY bucket_ms ASC
+FROM bucketed
+LEFT JOIN sample_stats ON sample_stats.bucket_ms = bucketed.bucket_ms
+GROUP BY bucketed.bucket_ms, sample_stats.rtt_median_ms, sample_stats.rtt_stddev_ms
+ORDER BY bucketed.bucket_ms ASC
 `
 
 type ListPingInsightBucketRowsParams struct {
@@ -612,7 +653,10 @@ SELECT
     )) * 1000)::bigint AS bucket_ms,
     CASE $4::text
         WHEN 'rttAvgMs' THEN avg(rtt_avg_ms)
-        WHEN 'lossPercent' THEN avg(loss_percent)
+        WHEN 'lossPercent' THEN coalesce(
+            100.0 * (sum(sent_count) - sum(received_count)) / NULLIF(sum(sent_count), 0),
+            avg(loss_percent)
+        )
         WHEN 'successRate' THEN 100.0 * count(*) FILTER (WHERE status = 'successful') / NULLIF(count(*), 0)
     END::double precision AS value
 FROM ping_results
