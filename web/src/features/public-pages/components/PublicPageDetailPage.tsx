@@ -22,7 +22,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { isValidPublicPageSlug, PUBLIC_PAGE_SLUG_HELPER, sanitizePublicPageSlug } from "../publicPageSlug";
-import styles from "./PublicPagesPage.module.css";
+import styles from "./PublicPageDetailPage.module.css";
 
 interface PageDraft {
 	pageId: string;
