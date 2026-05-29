@@ -290,13 +290,12 @@ export function NewProbeDrawer() {
 			<aside className={classNames(styles.drawer, closing && styles.drawerClosing)} aria-label="New probe wizard">
 				<div className={styles.header}>
 					<div>
-						<Badge tone="accent">New probe wizard</Badge>
+						<button type="button" className={styles.backLink} onClick={closeDrawer}>
+							back to probes
+						</button>
 						<h2>Create probe</h2>
 						<p>Name the probe, install it on a host, then wait for the controller to receive its first heartbeat.</p>
 					</div>
-					<Button type="button" variant="ghost" size="sm" onClick={closeDrawer}>
-						Close
-					</Button>
 				</div>
 
 				<ProbeWizardTimeline steps={createProbeSteps} currentStep={currentStep} />

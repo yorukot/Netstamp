@@ -20,7 +20,7 @@ import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
 import { Button, Panel } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { isValidPublicPageSlug } from "../publicPageSlug";
 import styles from "./PublicPageDetailPage.module.css";
 import { PublicPageChecksSection, PublicPageFoldersSection, PublicPageSettingsSection, type FolderDraft, type FolderEditDraft, type PageDraft } from "./PublicPageDetailSections";
@@ -313,12 +313,10 @@ export function PublicPageDetailPage() {
 	return (
 		<PageStack>
 			<ScreenHeader
+				backLink={{ to: "/public-pages", label: "back to public pages" }}
 				title={selectedPage ? selectedPage.title : "Public Page"}
 				actions={
 					<div className={styles.actionCluster}>
-						<Button asChild variant="outline" size="sm">
-							<Link to="/public-pages">Back</Link>
-						</Button>
 						{selectedPage ? (
 							<>
 								<Button asChild variant="outline" size="sm">

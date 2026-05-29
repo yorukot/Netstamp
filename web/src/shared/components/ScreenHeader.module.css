@@ -8,7 +8,30 @@
 
 .titleBlock {
 	display: grid;
+	gap: 0.75rem;
 	min-width: 0;
+}
+
+.backLink {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.45rem;
+	width: fit-content;
+	color: var(--ns-accent-hover);
+	font-family: var(--ns-font-mono);
+	font-size: 0.75rem;
+	font-weight: 800;
+	letter-spacing: 0.08em;
+	line-height: 1;
+	text-decoration: none;
+}
+
+.backLink::before {
+	content: "<-";
+}
+
+.backLink:hover {
+	color: var(--ns-accent);
 }
 
 .header h1 {
