@@ -1,6 +1,21 @@
 .shell {
+	min-height: 100vh;
+	min-height: 100svh;
 	display: grid;
 	grid-template-columns: 17rem minmax(0, 1fr);
+	color: var(--ns-text);
+	background:
+		radial-gradient(circle at 16% 11rem, rgba(255, 122, 26, 0.13), transparent 22rem), radial-gradient(circle at 88% 6rem, rgba(255, 122, 26, 0.08), transparent 20rem),
+		linear-gradient(rgba(255, 122, 26, 0.09) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 122, 26, 0.09) 1px, transparent 1px),
+		linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px), var(--ns-bg);
+	background-size:
+		100% 100%,
+		100% 100%,
+		8rem 8rem,
+		8rem 8rem,
+		2rem 2rem,
+		2rem 2rem,
+		100% 100%;
 }
 
 .sidebar {
