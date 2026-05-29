@@ -14,11 +14,16 @@ interface NetworkMapProps {
 	selectedId: string;
 	onSelect?: (probeId: string) => void;
 	mode?: "fleet" | "detail";
+	fleetFitPadding?: MapPadding;
+	fleetMaxZoom?: number;
 	className?: string;
 }
 
 const defaultCenter: [number, number] = [74, 29];
+const defaultFleetFitPadding = { top: 128, right: 96, bottom: 180, left: 96 };
+const defaultFleetMaxZoom = 4.2;
 type MapLibreModule = typeof import("maplibre-gl");
+type MapPadding = number | { top: number; right: number; bottom: number; left: number };
 interface MarkerRecord {
 	marker: MapLibreMarker;
 	element: HTMLButtonElement;
@@ -98,7 +103,23 @@ function hasCoordinates(probe: NetworkMapMarker): probe is NetworkMapMarker & { 
 	return Array.isArray(probe.coordinates);
 }
 
-export function NetworkMap({ probes, selectedId, onSelect, mode = "fleet", className }: NetworkMapProps) {
+function fitFleetBounds(map: MapLibreMap, maplibregl: MapLibreModule, probes: Array<NetworkMapMarker & { coordinates: [number, number] }>, padding: MapPadding, maxZoom: number) {
+	map.resize();
+
+	const bounds = new maplibregl.LngLatBounds(probes[0].coordinates, probes[0].coordinates);
+
+	for (const probe of probes.slice(1)) {
+		bounds.extend(probe.coordinates);
+	}
+
+	map.fitBounds(bounds, {
+		padding,
+		maxZoom,
+		duration: 520
+	});
+}
+
+export function NetworkMap({ probes, selectedId, onSelect, mode = "fleet", fleetFitPadding = defaultFleetFitPadding, fleetMaxZoom = defaultFleetMaxZoom, className }: NetworkMapProps) {
 	const mapContainerRef = useRef<HTMLDivElement | null>(null);
 	const maplibreglRef = useRef<MapLibreModule | null>(null);
 	const mapRef = useRef<MapLibreMap | null>(null);
@@ -157,14 +178,37 @@ export function NetworkMap({ probes, selectedId, onSelect, mode = "fleet", class
 			return undefined;
 		}
 
+		let animationFrame = 0;
 		const resizeObserver = new ResizeObserver(() => {
-			mapRef.current?.resize();
+			const map = mapRef.current;
+			const maplibregl = maplibreglRef.current;
+
+			map?.resize();
+
+			if (!map || !maplibregl || !mapReady || mode !== "fleet" || positionedProbes.length === 0 || !map.loaded()) {
+				return;
+			}
+
+			if (animationFrame) {
+				window.cancelAnimationFrame(animationFrame);
+			}
+
+			animationFrame = window.requestAnimationFrame(() => {
+				animationFrame = 0;
+				fitFleetBounds(map, maplibregl, positionedProbes, fleetFitPadding, fleetMaxZoom);
+			});
 		});
 
 		resizeObserver.observe(mapContainerRef.current);
 
-		return () => resizeObserver.disconnect();
-	}, []);
+		return () => {
+			resizeObserver.disconnect();
+
+			if (animationFrame) {
+				window.cancelAnimationFrame(animationFrame);
+			}
+		};
+	}, [fleetFitPadding, fleetMaxZoom, mapReady, mode, positionedProbes]);
 
 	useEffect(() => {
 		selectedIdRef.current = selectedId;
@@ -263,32 +307,20 @@ export function NetworkMap({ probes, selectedId, onSelect, mode = "fleet", class
 		const activeMap = map;
 		const activeMaplibregl = maplibregl;
 
-		function fitFleetBounds() {
-			activeMap.resize();
-
-			const bounds = new activeMaplibregl.LngLatBounds(positionedProbes[0].coordinates, positionedProbes[0].coordinates);
-
-			for (const probe of positionedProbes.slice(1)) {
-				bounds.extend(probe.coordinates);
-			}
-
-			activeMap.fitBounds(bounds, {
-				padding: { top: 128, right: 96, bottom: 180, left: 96 },
-				maxZoom: 4.2,
-				duration: 520
-			});
+		function focusFleetBounds() {
+			fitFleetBounds(activeMap, activeMaplibregl, positionedProbes, fleetFitPadding, fleetMaxZoom);
 		}
 
 		if (activeMap.loaded()) {
-			fitFleetBounds();
+			focusFleetBounds();
 		} else {
-			activeMap.once("load", fitFleetBounds);
+			activeMap.once("load", focusFleetBounds);
 		}
 
 		return () => {
-			activeMap.off("load", fitFleetBounds);
+			activeMap.off("load", focusFleetBounds);
 		};
-	}, [mapReady, mode, positionedProbes]);
+	}, [fleetFitPadding, fleetMaxZoom, mapReady, mode, positionedProbes]);
 
 	return (
 		<div className={classes}>

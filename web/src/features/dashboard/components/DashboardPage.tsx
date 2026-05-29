@@ -15,6 +15,9 @@ interface DashboardPageProps {
 	navigate: Navigate;
 }
 
+const dashboardFleetFitPadding = { top: 44, right: 48, bottom: 56, left: 48 };
+const dashboardFleetMaxZoom = 5.4;
+
 export function DashboardPage({ navigate }: DashboardPageProps) {
 	const { projectRef } = useCurrentProject();
 	const [selectedProbeId, setSelectedProbeId] = useState("");
@@ -44,7 +47,15 @@ export function DashboardPage({ navigate }: DashboardPageProps) {
 				<MetricCard className={styles.metric} label="Active Checks" value={String(activeChecks)} />
 			</div>
 
-			<NetworkMap probes={probes} selectedId={activeProbeId} onSelect={setSelectedProbeId} mode="fleet" className={styles.worldMap} />
+			<NetworkMap
+				probes={probes}
+				selectedId={activeProbeId}
+				onSelect={setSelectedProbeId}
+				mode="fleet"
+				fleetFitPadding={dashboardFleetFitPadding}
+				fleetMaxZoom={dashboardFleetMaxZoom}
+				className={styles.worldMap}
+			/>
 		</PageStack>
 	);
 }
