@@ -557,12 +557,7 @@ export function ChecksPage() {
 
 	return (
 		<PageStack>
-			<ScreenHeader
-				eyebrow="Check management"
-				title="Checks"
-				copy="Select a check, edit its schedule and type, assign probes, and review the latest measurement logs."
-				actions={<Button onClick={startNewCheck}>New check</Button>}
-			/>
+			<ScreenHeader title="Checks" actions={<Button onClick={startNewCheck}>New check</Button>} />
 
 			<div className={classNames(styles.checkEditorGrid, !isEditorOpen && styles.checkEditorGridCollapsed)}>
 				<Panel tone="glass" eyebrow="Checks list" title="Definitions">

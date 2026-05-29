@@ -280,7 +280,7 @@ export function ProjectPage() {
 
 	return (
 		<PageStack>
-			<ScreenHeader eyebrow="Project settings" title="Project" copy="Project profile, invites, member management, and destructive project actions." />
+			<ScreenHeader title="Project" />
 
 			<Panel tone="glass" eyebrow="Project" title="Project info">
 				<div className={styles.projectInfoGrid}>

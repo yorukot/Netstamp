@@ -155,7 +155,7 @@ export function SettingsPage() {
 
 	return (
 		<PageStack>
-			<ScreenHeader eyebrow="User settings" title="Account" copy="Set your display name, rotate the login email, and change the password used for controller access." />
+			<ScreenHeader title="Account" />
 
 			<Panel tone="glass" eyebrow="Invitations" title={`${inviteRows.length} pending project invites`}>
 				<DataTable

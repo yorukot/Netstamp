@@ -313,9 +313,7 @@ export function PublicPageDetailPage() {
 	return (
 		<PageStack>
 			<ScreenHeader
-				eyebrow="Public page detail"
 				title={selectedPage ? selectedPage.title : "Public Page"}
-				copy={selectedPage ? `/s/${selectedPage.slug}` : "Manage page metadata, folders, and published Ping checks."}
 				actions={
 					<div className={styles.actionCluster}>
 						<Button asChild variant="outline" size="sm">

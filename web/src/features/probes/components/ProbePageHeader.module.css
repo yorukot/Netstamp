@@ -7,40 +7,12 @@
 }
 
 .header h1 {
-	margin: 0.55rem 0 0.2rem;
+	margin: 0;
 	color: #ffffff;
 	font-family: var(--ns-font-display);
 	font-size: clamp(3rem, 7vw, 5rem);
 	font-weight: 900;
-	letter-spacing: -0.055em;
 	line-height: 0.86;
-}
-
-.kicker {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.625rem;
-	color: var(--ns-text-muted);
-	font-family: var(--ns-font-mono);
-	font-size: 0.6875rem;
-	font-weight: 800;
-	letter-spacing: 0.12em;
-	text-transform: uppercase;
-}
-
-.kicker::before {
-	content: "";
-	width: 0.75rem;
-	height: 0.75rem;
-	background: currentColor;
-}
-
-.kickerNeutral {
-	color: #f3f3f3;
-}
-
-.kickerAccent {
-	color: var(--ns-accent);
 }
 
 .actions {

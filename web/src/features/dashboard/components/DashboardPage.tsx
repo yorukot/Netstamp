@@ -49,9 +49,7 @@ export function DashboardPage({ navigate }: DashboardPageProps) {
 	return (
 		<PageStack>
 			<ScreenHeader
-				eyebrow="Controller overview"
 				title="Dashboard"
-				copy="A premium active-measurement cockpit for probe health, scheduled checks, and stream semantics."
 				actions={
 					<>
 						<Button variant="secondary" onClick={() => navigate("newProbe")}>

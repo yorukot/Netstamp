@@ -6,31 +6,9 @@
 	margin-bottom: 1.5rem;
 }
 
-.header div:first-child {
+.titleBlock {
 	display: grid;
-	gap: 1rem;
 	min-width: 0;
-}
-
-.eyebrow {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.5rem;
-	width: fit-content;
-	color: var(--ns-accent-hover);
-	font-family: var(--ns-font-mono);
-	font-size: 0.6875rem;
-	font-weight: 650;
-	letter-spacing: 0.07em;
-	line-height: 1;
-	text-transform: uppercase;
-}
-
-.eyebrow::before {
-	content: "";
-	width: 0.4375rem;
-	height: 0.4375rem;
-	background: currentcolor;
 }
 
 .header h1 {
@@ -39,16 +17,8 @@
 	color: var(--ns-text);
 	font-family: var(--ns-font-display);
 	font-size: clamp(3rem, 6vw, 5.75rem);
-	letter-spacing: -0.05em;
 	font-weight: 650;
 	line-height: 0.9;
-}
-
-.header p {
-	max-width: 48rem;
-	margin: 0;
-	color: var(--ns-text-muted);
-	font-size: 1rem;
 }
 
 .actions {

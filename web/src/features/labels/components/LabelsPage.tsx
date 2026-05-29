@@ -259,12 +259,7 @@ export function LabelsPage() {
 
 	return (
 		<PageStack>
-			<ScreenHeader
-				eyebrow="Label management"
-				title="Labels"
-				copy="Manage project label keys and values that drive probe grouping, check selectors, and assignment refreshes."
-				actions={<Button onClick={startNewLabel}>New label</Button>}
-			/>
+			<ScreenHeader title="Labels" actions={<Button onClick={startNewLabel}>New label</Button>} />
 
 			<div className={styles.labelsGrid}>
 				<Panel tone="glass" eyebrow="Registry" title={`${rows.length} labels`}>

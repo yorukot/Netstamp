@@ -44,7 +44,7 @@ function formatDateTime(value: string) {
 export function PublicPagesPage() {
 	const navigate = useNavigate();
 	const { session } = useSession();
-	const { project, projectRef } = useCurrentProject();
+	const { projectRef } = useCurrentProject();
 	const [createDraft, setCreateDraft] = useState(emptyCreateDraft);
 	const pagesQuery = useQuery({
 		...projectQueries.publicPages(projectRef || ""),
@@ -109,11 +109,7 @@ export function PublicPagesPage() {
 
 	return (
 		<PageStack>
-			<ScreenHeader
-				eyebrow="Public pages"
-				title="Public Pages"
-				copy={projectRef ? `Publish selected Ping insight views for ${project?.name ?? "the current project"}.` : "Select a project to manage public Ping insight pages."}
-			/>
+			<ScreenHeader title="Public Pages" />
 
 			<Panel tone="glass" eyebrow="Public pages" title={`${pages.length} public pages`}>
 				<div className={styles.panelStack}>

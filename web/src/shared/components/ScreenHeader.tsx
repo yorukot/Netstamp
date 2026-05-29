@@ -2,19 +2,15 @@ import type { ReactNode } from "react";
 import styles from "./ScreenHeader.module.css";
 
 interface ScreenHeaderProps {
-	eyebrow?: ReactNode;
 	title: ReactNode;
-	copy?: ReactNode;
 	actions?: ReactNode;
 }
 
-export function ScreenHeader({ eyebrow, title, copy, actions }: ScreenHeaderProps) {
+export function ScreenHeader({ title, actions }: ScreenHeaderProps) {
 	return (
 		<header className={styles.header}>
-			<div>
-				{eyebrow ? <span className={styles.eyebrow}>{eyebrow}</span> : null}
+			<div className={styles.titleBlock}>
 				<h1>{title}</h1>
-				{copy ? <p>{copy}</p> : null}
 			</div>
 			{actions ? <div className={styles.actions}>{actions}</div> : null}
 		</header>

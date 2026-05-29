@@ -935,7 +935,7 @@ export function InsightPage() {
 
 	return (
 		<PageStack>
-			<ScreenHeader eyebrow="Result insight" title="Insight" copy="Start from project scope, narrow by check or probe, then drill into an exact assignment for packet and route detail." />
+			<ScreenHeader title="Insight" />
 
 			<Panel
 				tone="deep"

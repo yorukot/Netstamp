@@ -15,7 +15,6 @@ export function ProbePageHeader({ view, onViewChange, overlay = false }: ProbePa
 	return (
 		<header className={classNames(styles.header, overlay && styles.overlay)}>
 			<div>
-				<span className={classNames(styles.kicker, overlay ? styles.kickerAccent : styles.kickerNeutral)}>{overlay ? "Probe management" : "Last 24 hours"}</span>
 				<h1>Probe Fleet</h1>
 			</div>
 			<div className={styles.actions}>
