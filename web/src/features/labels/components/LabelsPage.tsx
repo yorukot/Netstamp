@@ -30,6 +30,8 @@ interface LabelRow {
 	checkNames: string[];
 }
 
+type LabelEditorMode = "idle" | "create" | "edit";
+
 const emptyLabels: ApiLabel[] = [];
 const emptyProbes: ApiProbe[] = [];
 const emptyChecks: ApiCheck[] = [];
@@ -103,6 +105,7 @@ export function LabelsPage() {
 	const probes = probesQuery.data?.probes ?? emptyProbes;
 	const checks = checksQuery.data?.checks ?? emptyChecks;
 	const [selectedLabelId, setSelectedLabelId] = useState("");
+	const [editorMode, setEditorMode] = useState<LabelEditorMode>("idle");
 	const [draftKey, setDraftKey] = useState("");
 	const [draftValue, setDraftValue] = useState("");
 	const [search, setSearch] = useState("");
@@ -142,7 +145,9 @@ export function LabelsPage() {
 	}, [keyFilter, rows, search]);
 	const selectedLabel = labels.find(label => label.id === selectedLabelId) ?? null;
 	const selectedRow = rows.find(row => row.id === selectedLabelId) ?? null;
-	const isEditing = Boolean(selectedLabel);
+	const isCreating = editorMode === "create";
+	const isEditing = editorMode === "edit" && Boolean(selectedLabel);
+	const isEditorOpen = isCreating || isEditing;
 	const mutationError = saveLabelMutation.error ?? deleteLabelMutation.error;
 	const canSave = Boolean(projectRef && draftKey.trim() && draftValue.trim() && (!selectedLabel || selectedLabel.key !== draftKey.trim() || selectedLabel.value !== draftValue.trim()));
 	const emptyLabel = projectRef ? (labelsQuery.isLoading ? "Loading labels" : "No labels match this view") : "Select a project to manage labels";
@@ -199,6 +204,7 @@ export function LabelsPage() {
 
 	function selectLabel(row: LabelRow) {
 		setSelectedLabelId(row.id);
+		setEditorMode("edit");
 		setDraftKey(row.key);
 		setDraftValue(row.value);
 		saveLabelMutation.reset();
@@ -207,6 +213,16 @@ export function LabelsPage() {
 
 	function startNewLabel() {
 		setSelectedLabelId("");
+		setEditorMode("create");
+		setDraftKey("");
+		setDraftValue("");
+		saveLabelMutation.reset();
+		deleteLabelMutation.reset();
+	}
+
+	function closeEditor() {
+		setSelectedLabelId("");
+		setEditorMode("idle");
 		setDraftKey("");
 		setDraftValue("");
 		saveLabelMutation.reset();
@@ -229,6 +245,7 @@ export function LabelsPage() {
 			{
 				onSuccess: data => {
 					setSelectedLabelId(data.label.id);
+					setEditorMode("edit");
 					setDraftKey(data.label.key);
 					setDraftValue(data.label.value);
 				}
@@ -251,7 +268,7 @@ export function LabelsPage() {
 		deleteLabelMutation.mutate(row.id, {
 			onSuccess: () => {
 				if (selectedLabelId === row.id) {
-					startNewLabel();
+					closeEditor();
 				}
 			}
 		});
@@ -261,7 +278,7 @@ export function LabelsPage() {
 		<PageStack>
 			<ScreenHeader title="Labels" actions={<Button onClick={startNewLabel}>New label</Button>} />
 
-			<div className={styles.labelsGrid}>
+			<div className={classNames(styles.labelsGrid, !isEditorOpen && styles.labelsGridCollapsed)}>
 				<Panel tone="glass" title={`${rows.length} labels`}>
 					<div className={styles.listStack}>
 						<div className={styles.filters}>
@@ -281,41 +298,52 @@ export function LabelsPage() {
 					</div>
 				</Panel>
 
-				<Panel className={styles.editorPanel} tone="glass" title={isEditing ? selectedRow?.token : "New label"}>
-					<div className={styles.editorStack}>
-						<div className={styles.editorForm}>
-							<TextField label="Key" placeholder="region" value={draftKey} disabled={!projectRef} onChange={event => setDraftKey(event.currentTarget.value)} />
-							<TextField label="Value" placeholder="tokyo" value={draftValue} disabled={!projectRef} onChange={event => setDraftValue(event.currentTarget.value)} />
-						</div>
-
-						{mutationError ? <p className={classNames("ns-cut-frame", styles.errorNotice)}>{requestErrorMessage(mutationError, "Label operation failed.")}</p> : null}
-
-						<ActionRow className={styles.editorActions}>
-							<Button disabled={!canSave || saveLabelMutation.isPending} onClick={saveLabel}>
-								{saveLabelMutation.isPending ? "Saving" : isEditing ? "Save label" : "Create label"}
+				{isEditorOpen ? (
+					<Panel
+						className={styles.editorPanel}
+						tone="glass"
+						title={isEditing ? selectedRow?.token : "New label"}
+						actions={
+							<Button type="button" variant="secondary" onClick={closeEditor}>
+								Close
 							</Button>
-							<Button variant="secondary" disabled={!projectRef} onClick={startNewLabel}>
-								Reset
-							</Button>
-							<Button variant="danger" disabled={!selectedRow || deleteLabelMutation.isPending} onClick={() => selectedRow && void deleteLabel(selectedRow)}>
-								{deleteLabelMutation.isPending ? "Deleting" : "Delete selected"}
-							</Button>
-						</ActionRow>
-
-						<div className={styles.usagePanel}>
-							<div>
-								<span>Probe usage</span>
-								<strong>{selectedRow?.probeCount ?? 0}</strong>
-								<p>{usageNames(selectedRow?.probeNames ?? [])}</p>
+						}
+					>
+						<div className={styles.editorStack}>
+							<div className={styles.editorForm}>
+								<TextField label="Key" placeholder="region" value={draftKey} disabled={!projectRef} onChange={event => setDraftKey(event.currentTarget.value)} />
+								<TextField label="Value" placeholder="tokyo" value={draftValue} disabled={!projectRef} onChange={event => setDraftValue(event.currentTarget.value)} />
 							</div>
-							<div>
-								<span>Check usage</span>
-								<strong>{selectedRow?.checkCount ?? 0}</strong>
-								<p>{usageNames(selectedRow?.checkNames ?? [])}</p>
+
+							{mutationError ? <p className={classNames("ns-cut-frame", styles.errorNotice)}>{requestErrorMessage(mutationError, "Label operation failed.")}</p> : null}
+
+							<ActionRow className={styles.editorActions}>
+								<Button disabled={!canSave || saveLabelMutation.isPending} onClick={saveLabel}>
+									{saveLabelMutation.isPending ? "Saving" : isEditing ? "Save label" : "Create label"}
+								</Button>
+								<Button variant="secondary" disabled={!projectRef} onClick={startNewLabel}>
+									Reset
+								</Button>
+								<Button variant="danger" disabled={!selectedRow || deleteLabelMutation.isPending} onClick={() => selectedRow && void deleteLabel(selectedRow)}>
+									{deleteLabelMutation.isPending ? "Deleting" : "Delete selected"}
+								</Button>
+							</ActionRow>
+
+							<div className={styles.usagePanel}>
+								<div>
+									<span>Probe usage</span>
+									<strong>{selectedRow?.probeCount ?? 0}</strong>
+									<p>{usageNames(selectedRow?.probeNames ?? [])}</p>
+								</div>
+								<div>
+									<span>Check usage</span>
+									<strong>{selectedRow?.checkCount ?? 0}</strong>
+									<p>{usageNames(selectedRow?.checkNames ?? [])}</p>
+								</div>
 							</div>
 						</div>
-					</div>
-				</Panel>
+					</Panel>
+				) : null}
 			</div>
 		</PageStack>
 	);

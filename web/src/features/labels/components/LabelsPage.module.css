@@ -5,6 +5,10 @@
 	align-items: start;
 }
 
+.labelsGridCollapsed {
+	grid-template-columns: minmax(0, 1fr);
+}
+
 .listStack,
 .editorStack {
 	display: grid;

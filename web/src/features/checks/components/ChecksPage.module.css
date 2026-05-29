@@ -10,6 +10,8 @@
 }
 
 .checkEditorGrid .stickyCheckPanel {
+	position: sticky;
+	top: 1rem;
 	min-width: 0;
 }
 
@@ -163,6 +165,10 @@
 @media (max-width: 78rem) {
 	.checkEditorGrid {
 		grid-template-columns: 1fr;
+	}
+
+	.checkEditorGrid .stickyCheckPanel {
+		position: static;
 	}
 }
 
