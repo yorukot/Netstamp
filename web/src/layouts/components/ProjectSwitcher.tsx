@@ -1,26 +1,31 @@
 import { CreateProjectModal } from "@/features/project/components/CreateProjectModal";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
-import { Button, Select } from "@netstamp/ui";
+import { Select } from "@netstamp/ui";
 import { useState } from "react";
 import styles from "../AppShell.module.css";
+
+const CREATE_PROJECT_VALUE = "__create_project__";
 
 export function ProjectSwitcher() {
 	const { projectRef, projectsQuery, setSelectedProjectRef } = useCurrentProject();
 	const [createModalOpen, setCreateModalOpen] = useState(false);
 	const projects = projectsQuery.data?.projects ?? [];
 
+	function selectProject(value: string) {
+		if (value === CREATE_PROJECT_VALUE) {
+			setCreateModalOpen(true);
+			return;
+		}
+
+		setSelectedProjectRef(value);
+	}
+
 	return (
 		<>
 			<div className={styles.projectSelect}>
 				<label className={styles.projectSelectField}>
 					<span>project</span>
-					<Select
-						variant="compact"
-						frameClassName={styles.projectFrame}
-						className={styles.projectControl}
-						value={projectRef || ""}
-						onChange={event => setSelectedProjectRef(event.currentTarget.value)}
-					>
+					<Select variant="compact" frameClassName={styles.projectFrame} className={styles.projectControl} value={projectRef || ""} onChange={event => selectProject(event.currentTarget.value)}>
 						{projects.length ? (
 							projects.map(project => (
 								<option key={project.id} value={project.slug || project.id}>
@@ -30,11 +35,9 @@ export function ProjectSwitcher() {
 						) : (
 							<option value="">No project</option>
 						)}
+						<option value={CREATE_PROJECT_VALUE}>Create new project</option>
 					</Select>
 				</label>
-				<Button className={styles.projectCreateButton} type="button" variant="outline" size="sm" onClick={() => setCreateModalOpen(true)}>
-					Create new project
-				</Button>
 			</div>
 			{createModalOpen ? <CreateProjectModal onClose={() => setCreateModalOpen(false)} /> : null}
 		</>
