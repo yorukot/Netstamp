@@ -108,8 +108,8 @@ export function AuthPage({ mode = "login", navigate }: AuthPageProps) {
 					{isRegister ? "or log in" : "or sign up"}
 				</Link>
 				<div className={styles.homeAction}>
-					<Button className={styles.homeButton} variant="secondary" size="lg" onClick={() => window.open("/", "_blank")}>
-						Go to home
+					<Button className={styles.homeButton} variant="secondary" size="lg" asChild>
+						<a href="/">Go to home</a>
 					</Button>
 				</div>
 			</Panel>
