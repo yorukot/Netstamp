@@ -23,7 +23,7 @@ interface TcpInsightPanelProps {
 export function TcpInsightPanel({ selectedProbe, selectedTarget, data, isLoading, isFetching, timeLabel, onSelectTimeWindow }: TcpInsightPanelProps) {
 	if (!selectedProbe || !selectedTarget) {
 		return (
-			<Panel tone="deep" eyebrow="TCP" title="No TCP target selected">
+			<Panel tone="deep" title="No TCP target selected">
 				<BodyCopy>Select a probe and TCP target to inspect connect latency and failure windows.</BodyCopy>
 			</Panel>
 		);
@@ -31,7 +31,7 @@ export function TcpInsightPanel({ selectedProbe, selectedTarget, data, isLoading
 
 	if (isLoading && !data) {
 		return (
-			<Panel tone="deep" eyebrow="TCP" title="Loading TCP insight">
+			<Panel tone="deep" title="Loading TCP insight">
 				<BodyCopy>Loading TCP result buckets for this probe-target pair.</BodyCopy>
 			</Panel>
 		);
@@ -55,7 +55,7 @@ export function TcpInsightPanel({ selectedProbe, selectedTarget, data, isLoading
 				))}
 			</div>
 
-			<Panel tone="deep" eyebrow={`${timeLabel} · ${data?.query.resolution || "pending"}`} title={`${selectedProbe.name} -> ${selectedTarget.target}`}>
+			<Panel tone="deep" title={`${selectedProbe.name} -> ${selectedTarget.target}`}>
 				<div className={styles.chartMeta}>
 					<span>{isFetching ? "syncing result buckets" : `${formatCount(totalPoints)} results`}</span>
 					<span>latest {formatEpochMs(data?.summary.latestStartedAtMs)}</span>

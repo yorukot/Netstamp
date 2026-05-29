@@ -676,7 +676,7 @@ export default function OpenAPIExplorer({ specUrl }: OpenAPIExplorerProps) {
 						</a>
 					</div>
 
-					<Panel title="Server" eyebrow="request target" tone="deep" className={styles.serverPanel}>
+					<Panel title="Server" tone="deep" className={styles.serverPanel}>
 						<Input value={baseUrl} onChange={event => setBaseUrl(event.currentTarget.value)} aria-label="API server URL" />
 						<p>Used by the sticky request console. Point it at a local or deployed backend before testing.</p>
 					</Panel>
@@ -815,7 +815,7 @@ export default function OpenAPIExplorer({ specUrl }: OpenAPIExplorerProps) {
 			</main>
 
 			<aside className={styles.console} aria-label="Request console">
-				<Panel title="Request Console" eyebrow={selected ? `${methodLabels[selected.method]} ${selected.path}` : "select operation"} tone="deep" className={styles.consolePanel}>
+				<Panel title="Request Console" tone="deep" className={styles.consolePanel}>
 					<div className={styles.formGrid}>
 						<label>
 							<FieldLabel>Server</FieldLabel>

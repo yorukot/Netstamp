@@ -140,7 +140,7 @@ export const Overview: Story = {
 						<p>Used for high-intensity blocks and landing page visual anchors.</p>
 					</Surface>
 				</div>
-				<Panel eyebrow="panel" title="Operational summary">
+				<Panel title="Operational summary">
 					<p>Panel composes Surface with a header, separator, and action slot.</p>
 				</Panel>
 			</section>

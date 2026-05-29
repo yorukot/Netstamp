@@ -111,7 +111,7 @@ export function PublicPagesPage() {
 		<PageStack>
 			<ScreenHeader title="Public Pages" />
 
-			<Panel tone="glass" eyebrow="Public pages" title={`${pages.length} public pages`}>
+			<Panel tone="glass" title={`${pages.length} public pages`}>
 				<div className={styles.panelStack}>
 					{pagesQuery.isError ? (
 						<div className={styles.errorState}>

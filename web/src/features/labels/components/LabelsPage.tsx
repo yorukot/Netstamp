@@ -262,7 +262,7 @@ export function LabelsPage() {
 			<ScreenHeader title="Labels" actions={<Button onClick={startNewLabel}>New label</Button>} />
 
 			<div className={styles.labelsGrid}>
-				<Panel tone="glass" eyebrow="Registry" title={`${rows.length} labels`}>
+				<Panel tone="glass" title={`${rows.length} labels`}>
 					<div className={styles.listStack}>
 						<div className={styles.filters}>
 							<TextField label="Search" placeholder="region:tokyo, provider, edge" value={search} disabled={!projectRef} onChange={event => setSearch(event.currentTarget.value)} />
@@ -281,7 +281,7 @@ export function LabelsPage() {
 					</div>
 				</Panel>
 
-				<Panel className={styles.editorPanel} tone="glass" eyebrow={isEditing ? "Edit label" : "Create label"} title={isEditing ? selectedRow?.token : "New label"}>
+				<Panel className={styles.editorPanel} tone="glass" title={isEditing ? selectedRow?.token : "New label"}>
 					<div className={styles.editorStack}>
 						<div className={styles.editorForm}>
 							<TextField label="Key" placeholder="region" value={draftKey} disabled={!projectRef} onChange={event => setDraftKey(event.currentTarget.value)} />

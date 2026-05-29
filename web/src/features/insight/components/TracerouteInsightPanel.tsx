@@ -86,7 +86,7 @@ export function TracerouteInsightPanel({
 
 	if (!selectedProbe || !selectedTarget) {
 		return (
-			<Panel tone="deep" eyebrow="Traceroute" title="No route selected">
+			<Panel tone="deep" title="No route selected">
 				<BodyCopy>Select a probe and traceroute target to inspect route details.</BodyCopy>
 			</Panel>
 		);
@@ -94,7 +94,7 @@ export function TracerouteInsightPanel({
 
 	if ((isRunsLoading || isInsightLoading) && !runs.length && !timelinePoints.length) {
 		return (
-			<Panel tone="deep" eyebrow="Traceroute" title="Loading route">
+			<Panel tone="deep" title="Loading route">
 				<BodyCopy>Loading traceroute runs for this probe-target pair.</BodyCopy>
 			</Panel>
 		);
@@ -102,7 +102,7 @@ export function TracerouteInsightPanel({
 
 	if (!runs.length && !timelinePoints.length) {
 		return (
-			<Panel tone="deep" eyebrow="Traceroute" title="No traceroute runs">
+			<Panel tone="deep" title="No traceroute runs">
 				<BodyCopy>No traceroute results were recorded for this probe-target pair in the selected time range.</BodyCopy>
 			</Panel>
 		);
@@ -110,7 +110,7 @@ export function TracerouteInsightPanel({
 
 	return (
 		<div className={styles.tracerouteStack}>
-			<Panel className={styles.tracePanel} tone="deep" eyebrow="Route trace" title="Hop latency, loss, and run timeline">
+			<Panel className={styles.tracePanel} tone="deep" title="Hop latency, loss, and run timeline">
 				<div className={styles.traceStack}>
 					{diagnostics.length ? (
 						<DataTable
@@ -143,7 +143,7 @@ export function TracerouteInsightPanel({
 				</div>
 			</Panel>
 
-			<Panel tone="deep" eyebrow="Topology" title="Aggregated route graph">
+			<Panel tone="deep" title="Aggregated route graph">
 				{hasTopology ? (
 					<RouteTopologyMap nodes={topologyNodes} edges={topologyEdges} />
 				) : (

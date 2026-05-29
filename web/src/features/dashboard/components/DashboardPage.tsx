@@ -54,7 +54,7 @@ export function DashboardPage({ navigate }: DashboardPageProps) {
 				<MetricCard label="Active Checks" value={String(activeChecks)} />
 			</ResponsiveGrid>
 
-			<Panel className={styles.mapPanel} tone="deep" eyebrow="Probe geography" title={mapTitle}>
+			<Panel className={styles.mapPanel} tone="deep" title={mapTitle}>
 				<BodyCopy className={styles.mapCopy}>{mapCopy}</BodyCopy>
 				<NetworkMap probes={probes} selectedId={activeProbeId} onSelect={setSelectedProbeId} mode="fleet" className={styles.worldMap} />
 			</Panel>

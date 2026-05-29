@@ -560,7 +560,7 @@ export function ChecksPage() {
 			<ScreenHeader title="Checks" actions={<Button onClick={startNewCheck}>New check</Button>} />
 
 			<div className={classNames(styles.checkEditorGrid, !isEditorOpen && styles.checkEditorGridCollapsed)}>
-				<Panel tone="glass" eyebrow="Checks list" title="Definitions">
+				<Panel tone="glass" title="Definitions">
 					<div className={styles.checkListStack}>
 						<div className={styles.checkListFilters}>
 							<TextField label="Search" placeholder="check name, target, description" />
@@ -583,7 +583,6 @@ export function ChecksPage() {
 					<Panel
 						className={styles.stickyCheckPanel}
 						tone="glass"
-						eyebrow={isCreating ? "Create check" : "Edit check"}
 						title={isCreating ? "New check" : selectedCheck?.name}
 						actions={
 							<Button type="button" variant="secondary" onClick={closeEditor}>

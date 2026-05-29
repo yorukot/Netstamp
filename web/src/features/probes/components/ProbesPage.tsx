@@ -72,7 +72,7 @@ export function ProbesPage() {
 							{selectedProbe ? (
 								<ProbeDetail key={selectedProbe.id} probe={selectedProbe} assignedRows={assignedRows} projectRef={projectRef} onDeleted={() => setSelectedId("")} />
 							) : (
-								<Panel tone="matte" eyebrow="Probe detail" title={projectRef ? "No probes yet" : "No project selected"} />
+								<Panel tone="matte" title={projectRef ? "No probes yet" : "No project selected"} />
 							)}
 						</div>
 					</div>

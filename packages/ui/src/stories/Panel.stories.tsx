@@ -8,7 +8,6 @@ const meta = {
 	component: Panel,
 	args: {
 		children: <p>Probe telemetry, recent incidents, and action controls can live inside a Panel body.</p>,
-		eyebrow: "Operations",
 		padded: true,
 		title: "Probe summary",
 		tone: "glass"
@@ -42,7 +41,7 @@ export const WithActions: Story = {
 	render: () => (
 		<div className="storybook-canvas">
 			<div className="storybook-demo">
-				<Panel eyebrow="Runbook" title="Incident queue" actions={<Button size="sm">Acknowledge</Button>}>
+				<Panel title="Incident queue" actions={<Button size="sm">Acknowledge</Button>}>
 					<p>Keep primary actions visible while preserving the cut-frame panel treatment.</p>
 				</Panel>
 			</div>
@@ -55,7 +54,7 @@ export const Tones: Story = {
 		<div className="storybook-canvas">
 			<div className="storybook-grid">
 				{tones.map(tone => (
-					<Panel key={tone} eyebrow="Tone" title={tone} tone={tone}>
+					<Panel key={tone} title={tone} tone={tone}>
 						<p>Panel tone: {tone}</p>
 					</Panel>
 				))}
@@ -68,7 +67,7 @@ export const Unpadded: Story = {
 	render: () => (
 		<div className="storybook-canvas">
 			<div className="storybook-demo">
-				<Panel eyebrow="Dense" title="Unpadded table shell" padded={false}>
+				<Panel title="Unpadded table shell" padded={false}>
 					<p className="storybook-specimen">Content can opt into its own spacing when Panel padding is disabled.</p>
 				</Panel>
 			</div>

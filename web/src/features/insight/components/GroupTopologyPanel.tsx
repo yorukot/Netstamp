@@ -13,7 +13,7 @@ export function GroupTopologyPanel({ title, nodes, edges, isLoading }: GroupTopo
 	const hasTopology = nodes.length > 0 && edges.length > 0;
 
 	return (
-		<Panel tone="deep" eyebrow="Traceroute topology" title={title}>
+		<Panel tone="deep" title={title}>
 			{hasTopology ? (
 				<RouteTopologyMap nodes={nodes} edges={edges} />
 			) : (

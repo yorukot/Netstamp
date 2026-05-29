@@ -939,7 +939,6 @@ export function InsightPage() {
 
 			<Panel
 				tone="deep"
-				eyebrow="Scope"
 				title={scopeTitle}
 				actions={
 					<Button variant="outline" size="sm" onClick={resetScope}>
@@ -1007,20 +1006,20 @@ export function InsightPage() {
 			</Panel>
 
 			{isSelectionLoading && !pairs.length ? (
-				<Panel tone="deep" eyebrow="Assignments" title="Loading active paths">
+				<Panel tone="deep" title="Loading active paths">
 					<BodyCopy>Loading probe-check assignments for this project.</BodyCopy>
 				</Panel>
 			) : !pairs.length ? (
-				<Panel tone="deep" eyebrow="Assignments" title="No active paths">
+				<Panel tone="deep" title="No active paths">
 					<BodyCopy>Create or refresh check assignments before opening result insight.</BodyCopy>
 				</Panel>
 			) : hasInvalidFocus ? (
-				<Panel tone="deep" eyebrow="Scope" title="The shared scope is no longer valid">
+				<Panel tone="deep" title="The shared scope is no longer valid">
 					<BodyCopy>Clear the unknown probe or check chip to return to active assignments.</BodyCopy>
 				</Panel>
 			) : (
 				<>
-					<Panel tone="glass" eyebrow="Grouped scope" title={groupBy === "check" ? `${formatCount(visibleGroups.length)} checks` : `${formatCount(visibleGroups.length)} probes`}>
+					<Panel tone="glass" title={groupBy === "check" ? `${formatCount(visibleGroups.length)} checks` : `${formatCount(visibleGroups.length)} probes`}>
 						<DataTable
 							columns={groupColumns}
 							rows={visibleGroups}
@@ -1036,7 +1035,7 @@ export function InsightPage() {
 						/>
 					</Panel>
 
-					<Panel tone="glass" eyebrow="Assignments" title={exactPair ? "Selected assignment" : `${formatCount(scopedPairs.length)} assignments in scope`}>
+					<Panel tone="glass" title={exactPair ? "Selected assignment" : `${formatCount(scopedPairs.length)} assignments in scope`}>
 						<DataTable
 							columns={pairColumns}
 							rows={scopedPairs}

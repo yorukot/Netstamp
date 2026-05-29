@@ -335,7 +335,7 @@ export function PublicPageDetailPage() {
 				}
 			/>
 
-			<Panel tone="glass" eyebrow="Editor" title={selectedPage ? `/s/${selectedPage.slug}` : "Public page"}>
+			<Panel tone="glass" title={selectedPage ? `/s/${selectedPage.slug}` : "Public page"}>
 				<div className={styles.panelStack}>
 					{pageDetailQuery.isError ? (
 						<div className={styles.errorState}>

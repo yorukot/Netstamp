@@ -282,7 +282,7 @@ export function ProjectPage() {
 		<PageStack>
 			<ScreenHeader title="Project" />
 
-			<Panel tone="glass" eyebrow="Project" title="Project info">
+			<Panel tone="glass" title="Project info">
 				<div className={styles.projectInfoGrid}>
 					<TextField label="Project name" value={activeProjectName} disabled={!projectRef} onChange={event => updateProjectNameDraft(event.currentTarget.value)} />
 					<TextField label="Slug" value={activeProjectSlug} disabled={!projectRef} onChange={event => updateProjectSlugDraft(event.currentTarget.value)} />
@@ -303,7 +303,7 @@ export function ProjectPage() {
 			</Panel>
 
 			{canManageMembers ? (
-				<Panel tone="glass" eyebrow="Invites" title="Invite member">
+				<Panel tone="glass" title="Invite member">
 					<div className={styles.formGridThree}>
 						<TextField label="Email" value={memberEmail} onChange={event => setMemberEmail(event.currentTarget.value)} />
 						<SelectField
@@ -324,7 +324,7 @@ export function ProjectPage() {
 			) : null}
 
 			{canManageMembers ? (
-				<Panel tone="glass" eyebrow="Pending access" title={`${inviteRows.length} pending invites`}>
+				<Panel tone="glass" title={`${inviteRows.length} pending invites`}>
 					<DataTable
 						columns={inviteColumns}
 						rows={inviteRows}
@@ -336,11 +336,11 @@ export function ProjectPage() {
 				</Panel>
 			) : null}
 
-			<Panel tone="glass" eyebrow="Members" title="Member access">
+			<Panel tone="glass" title="Member access">
 				<DataTable columns={memberColumns} rows={memberRows} getRowKey={row => row.id} />
 			</Panel>
 
-			<Panel tone="deep" eyebrow="Danger zone" title="Dangerous project actions">
+			<Panel tone="deep" title="Dangerous project actions">
 				<div className={styles.dangerZoneGrid}>
 					<Surface as="article" tone="danger" cut="md" padding="md">
 						<h3>Delete project</h3>

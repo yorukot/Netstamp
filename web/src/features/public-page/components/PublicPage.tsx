@@ -235,7 +235,7 @@ export function PublicPage() {
 	if (publicPageQuery.isLoading) {
 		return (
 			<div className={classNames("ns-grid-shell", styles.publicShell)}>
-				<Panel tone="deep" eyebrow="Public page" title="Loading Ping insight">
+				<Panel tone="deep" title="Loading Ping insight">
 					<div className={styles.emptyState}>Loading public page configuration.</div>
 				</Panel>
 			</div>
@@ -248,7 +248,7 @@ export function PublicPage() {
 				<Helmet>
 					<title>Public page not found | Netstamp</title>
 				</Helmet>
-				<Panel tone="deep" eyebrow="Public page" title="Page unavailable">
+				<Panel tone="deep" title="Page unavailable">
 					<div className={styles.emptyState}>This public page is disabled or no longer exists.</div>
 					<Button asChild variant="outline">
 						<Link to="/login">Sign in</Link>
@@ -307,7 +307,6 @@ export function PublicPage() {
 					<section className={styles.insightStack}>
 						<Panel
 							tone="glass"
-							eyebrow="Selector"
 							title={activePair ? `${activePair.checkName} from ${activePair.probeName}` : "No Ping check selected"}
 							actions={
 								<div className={styles.controlActions}>
@@ -343,7 +342,7 @@ export function PublicPage() {
 							))}
 						</div>
 
-						<Panel tone="deep" eyebrow={`${timeLabel} · ${insightQuery.data?.query.resolution || "pending"}`} title="Ping latency and loss">
+						<Panel tone="deep" title="Ping latency and loss">
 							<div className={styles.chartMeta}>
 								<span>{insightQuery.isFetching ? "syncing result buckets" : `${formatCount(insightQuery.data?.query.totalPoints)} results`}</span>
 								<span>latest {formatEpochMs(insightQuery.data?.summary.latestStartedAtMs)}</span>

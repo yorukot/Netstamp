@@ -157,7 +157,7 @@ export function SettingsPage() {
 		<PageStack>
 			<ScreenHeader title="Account" />
 
-			<Panel tone="glass" eyebrow="Invitations" title={`${inviteRows.length} pending project invites`}>
+			<Panel tone="glass" title={`${inviteRows.length} pending project invites`}>
 				<DataTable
 					columns={inviteColumns}
 					rows={inviteRows}
@@ -169,7 +169,7 @@ export function SettingsPage() {
 			</Panel>
 
 			<div className={styles.settingsGrid}>
-				<Panel tone="glass" eyebrow="Identity" title="Profile">
+				<Panel tone="glass" title="Profile">
 					<form id="identity-settings" className={styles.settingsForm} onSubmit={handleIdentitySubmit}>
 						<TextField label="Display name" name="name" defaultValue={user.name} />
 						<ActionRow>
@@ -180,7 +180,7 @@ export function SettingsPage() {
 					</form>
 				</Panel>
 
-				<Panel tone="deep" eyebrow="Profile image" title="Gravatar signal preview">
+				<Panel tone="deep" title="Gravatar signal preview">
 					<div className={styles.profilePreview}>
 						<SignalAvatar size="lg" src={user.gravatarUrl} referrerPolicy="no-referrer" aria-hidden="true" />
 						<div>
@@ -193,7 +193,7 @@ export function SettingsPage() {
 			</div>
 
 			<div className={styles.settingsGrid}>
-				<Panel tone="glass" eyebrow="Email" title="Change email">
+				<Panel tone="glass" title="Change email">
 					<form className={styles.settingsForm} onSubmit={handleEmailSubmit}>
 						<TextField label="Current email" name="current-email" type="email" defaultValue={user.email} />
 						<TextField label="New email" name="new-email" type="email" placeholder="operator@example.com" />
@@ -206,7 +206,7 @@ export function SettingsPage() {
 					</form>
 				</Panel>
 
-				<Panel tone="glass" eyebrow="Security" title="Change password">
+				<Panel tone="glass" title="Change password">
 					<form className={styles.settingsForm} onSubmit={handlePasswordSubmit}>
 						<TextField label="Current password" name="current-password" type="password" autoComplete="current-password" />
 						<TextField label="New password" name="new-password" type="password" autoComplete="new-password" />

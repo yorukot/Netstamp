@@ -23,7 +23,7 @@ interface PingInsightPanelProps {
 export function PingInsightPanel({ selectedProbe, selectedTarget, data, isLoading, isFetching, timeLabel, onSelectTimeWindow }: PingInsightPanelProps) {
 	if (!selectedProbe || !selectedTarget) {
 		return (
-			<Panel tone="deep" eyebrow="Ping" title="No ping target selected">
+			<Panel tone="deep" title="No ping target selected">
 				<BodyCopy>Select a probe and ping target to inspect latency spread, packet loss, and sample density.</BodyCopy>
 			</Panel>
 		);
@@ -31,7 +31,7 @@ export function PingInsightPanel({ selectedProbe, selectedTarget, data, isLoadin
 
 	if (isLoading && !data) {
 		return (
-			<Panel tone="deep" eyebrow="Ping" title="Loading ping insight">
+			<Panel tone="deep" title="Loading ping insight">
 				<BodyCopy>Loading ping result buckets for this probe-target pair.</BodyCopy>
 			</Panel>
 		);
@@ -56,7 +56,7 @@ export function PingInsightPanel({ selectedProbe, selectedTarget, data, isLoadin
 				))}
 			</div>
 
-			<Panel tone="deep" eyebrow={`${timeLabel} · ${data?.query.resolution || "pending"}`} title={`${selectedProbe.name} → ${selectedTarget.target}`}>
+			<Panel tone="deep" title={`${selectedProbe.name} → ${selectedTarget.target}`}>
 				<div className={styles.chartMeta}>
 					<span>{isFetching ? "syncing result buckets" : `${formatCount(totalPoints)} results`}</span>
 					<span>latest {formatEpochMs(data?.summary.latestStartedAtMs)}</span>
