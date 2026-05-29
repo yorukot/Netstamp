@@ -6,7 +6,6 @@ import { projectQueries } from "@/shared/api/queries";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { NetworkMap } from "@/shared/components/NetworkMap";
 import { classNames } from "@/shared/utils/classNames";
-import { Panel } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Outlet } from "react-router-dom";
@@ -43,7 +42,7 @@ export function ProbesPage() {
 	const [statusFilter, setStatusFilter] = useState<"all" | ProbeStatus>("all");
 	const [providerFilter, setProviderFilter] = useState("all");
 	const [sortKey, setSortKey] = useState<ProbeSort>("heartbeat");
-	const selectedProbe = probes.find(probe => probe.id === selectedId) || probes[0] || null;
+	const selectedProbe = probes.find(probe => probe.id === selectedId) || null;
 	const selectedProbeId = selectedProbe?.id || "";
 	const visibleProbes = filterProbes(probes, search, statusFilter, providerFilter, sortKey);
 	const assignedRows: AssignedRow[] = mapApiAssignments(assignmentsQuery.data, probes, checks);
@@ -53,7 +52,7 @@ export function ProbesPage() {
 			{view === "grid" ? (
 				<>
 					<ProbePageHeader view={view} onViewChange={setView} />
-					<div className={styles.gridLayout}>
+					<div className={classNames(styles.gridLayout, selectedProbe && styles.gridLayoutExpanded)}>
 						<ProbeList
 							probes={visibleProbes}
 							providerOptions={providerOptions}
@@ -68,13 +67,11 @@ export function ProbesPage() {
 							onSortChange={setSortKey}
 							onSelect={setSelectedId}
 						/>
-						<div className={styles.lowerGrid}>
-							{selectedProbe ? (
+						{selectedProbe ? (
+							<div className={styles.detailColumn}>
 								<ProbeDetail key={selectedProbe.id} probe={selectedProbe} assignedRows={assignedRows} projectRef={projectRef} onDeleted={() => setSelectedId("")} />
-							) : (
-								<Panel tone="matte" title={projectRef ? "No probes yet" : "No project selected"} />
-							)}
-						</div>
+							</div>
+						) : null}
 					</div>
 				</>
 			) : (

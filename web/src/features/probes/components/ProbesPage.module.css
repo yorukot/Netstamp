@@ -12,14 +12,19 @@
 
 .gridLayout {
 	display: grid;
+	grid-template-columns: minmax(0, 1fr);
 	gap: 1rem;
+	align-items: start;
 }
 
-.lowerGrid {
-	display: grid;
-	gap: 1rem;
-	align-items: stretch;
-	min-height: 17rem;
+.gridLayoutExpanded {
+	grid-template-columns: minmax(0, 1.05fr) minmax(24rem, 0.95fr);
+}
+
+.detailColumn {
+	position: sticky;
+	top: 1rem;
+	min-width: 0;
 }
 
 .mapView {
@@ -40,8 +45,12 @@
 }
 
 @media (max-width: 78rem) {
-	.lowerGrid {
+	.gridLayoutExpanded {
 		grid-template-columns: 1fr;
+	}
+
+	.detailColumn {
+		position: static;
 	}
 }
 

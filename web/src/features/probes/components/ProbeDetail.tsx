@@ -309,7 +309,6 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 	return (
 		<Surface as="section" tone="matte" cut="lg" padding="lg" className={classNames(styles.card, floating && styles.floating)} aria-label="Probe detail">
 			<div className={styles.header}>
-				<span>Probe detail</span>
 				<strong>
 					{activeProbe.name}
 					<small> · uptime {activeProbe.uptime}</small>

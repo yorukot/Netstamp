@@ -14,17 +14,19 @@ interface ProbePageHeaderProps {
 export function ProbePageHeader({ view, onViewChange, overlay = false }: ProbePageHeaderProps) {
 	return (
 		<header className={classNames(styles.header, overlay && styles.overlay)}>
-			<div>
-				<h1>Probe Fleet</h1>
+			<div className={styles.titleArea}>
+				<h1>Probe</h1>
+				<div className={styles.viewActions} role="group" aria-label="Probe view">
+					<Button type="button" size="sm" variant={view === "grid" ? "secondary" : "ghost"} onClick={() => onViewChange("grid")}>
+						Grid View
+					</Button>
+					<Button type="button" size="sm" variant={view === "map" ? "secondary" : "ghost"} onClick={() => onViewChange("map")}>
+						Map View
+					</Button>
+				</div>
 			</div>
-			<div className={styles.actions}>
-				<Button type="button" size="sm" variant={view === "grid" ? "secondary" : "ghost"} onClick={() => onViewChange("grid")}>
-					Grid View
-				</Button>
-				<Button type="button" size="sm" variant={view === "map" ? "secondary" : "ghost"} onClick={() => onViewChange("map")}>
-					Map View
-				</Button>
-				<Button className={styles.createButton} size="sm" asChild>
+			<div className={styles.primaryActions}>
+				<Button size="sm" asChild>
 					<Link to={pathForRoute("newProbe")}>Create Probe</Link>
 				</Button>
 			</div>

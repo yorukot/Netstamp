@@ -16,32 +16,17 @@
 
 .header {
 	display: grid;
-	gap: 0.5rem;
-}
-
-.header > span {
-	color: #ffffff;
-	font-family: var(--ns-font-mono);
-	font-size: 0.8125rem;
-	letter-spacing: 0.08em;
 }
 
 .header strong {
 	display: inline-flex;
 	align-items: center;
 	gap: 0.35rem;
-	color: var(--ns-accent);
+	color: var(--ns-text);
 	font-family: var(--ns-font-mono);
 	font-size: 0.8125rem;
 	font-weight: 800;
 	letter-spacing: 0.04em;
-}
-
-.header strong::before {
-	content: "";
-	width: 0.45rem;
-	height: 0.45rem;
-	background: var(--ns-accent);
 }
 
 .header small {
