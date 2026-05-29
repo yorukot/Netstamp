@@ -4,7 +4,6 @@ import { type Navigate } from "@/routes/routeTypes";
 import { projectQueries } from "@/shared/api/queries";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { BodyCopy } from "@/shared/components/BodyCopy";
-import { FleetMatrix } from "@/shared/components/FleetMatrix";
 import { NetworkMap } from "@/shared/components/NetworkMap";
 import { PageStack } from "@/shared/components/PageStack";
 import { ResponsiveGrid } from "@/shared/components/ResponsiveGrid";
@@ -48,30 +47,16 @@ export function DashboardPage({ navigate }: DashboardPageProps) {
 
 	return (
 		<PageStack>
-			<ScreenHeader
-				title="Dashboard"
-				actions={
-					<>
-						<Button variant="secondary" onClick={() => navigate("newProbe")}>
-							New probe wizard
-						</Button>
-						<Button onClick={() => navigate("checks")}>Create check</Button>
-					</>
-				}
-			/>
+			<ScreenHeader title="Dashboard" actions={<Button onClick={() => navigate("newProbe")}>New Probe</Button>} />
 
 			<ResponsiveGrid>
-				<MetricCard label="Probes Online" value={`${onlineProbes}/${probes.length}`} detail="fleet" tone="success" />
-				<MetricCard label="Active Checks" value={String(activeChecks)} detail="scheduled" tone="accent" />
+				<MetricCard label="Probes Online" value={`${onlineProbes}/${probes.length}`} />
+				<MetricCard label="Active Checks" value={String(activeChecks)} />
 			</ResponsiveGrid>
 
 			<Panel className={styles.mapPanel} tone="deep" eyebrow="Probe geography" title={mapTitle}>
 				<BodyCopy className={styles.mapCopy}>{mapCopy}</BodyCopy>
 				<NetworkMap probes={probes} selectedId={activeProbeId} onSelect={setSelectedProbeId} mode="fleet" className={styles.worldMap} />
-			</Panel>
-
-			<Panel tone="glass" eyebrow="Fleet bitmap" title={`${probes.length} probes, ${onlineProbes} lit`}>
-				<FleetMatrix total={Math.max(probes.length, 1)} online={onlineProbes} />
 			</Panel>
 		</PageStack>
 	);
