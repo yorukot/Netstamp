@@ -1,42 +1,66 @@
 .authShell {
+	position: relative;
+	isolation: isolate;
+	overflow: hidden;
 	display: grid;
-	grid-template-columns: minmax(0, 1fr) minmax(24rem, 31rem);
-	gap: 1rem;
-	align-items: center;
-	padding: 2rem;
+	place-items: center;
+	padding: clamp(1rem, 4vw, 3rem);
 }
 
 .authVisual {
-	display: grid;
-	gap: 1rem;
-	align-content: center;
-	justify-items: center;
-	max-width: 52rem;
+	position: absolute;
+	inset: 0;
+	z-index: 0;
+	overflow: hidden;
 	margin: 0;
+	pointer-events: none;
+}
+
+.authVisual::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	z-index: 1;
+	background:
+		radial-gradient(circle at 50% 46%, rgba(1, 2, 3, 0.1), rgba(1, 2, 3, 0.68) 34rem, rgba(1, 2, 3, 0.92) 76%),
+		linear-gradient(90deg, rgba(1, 2, 3, 0.42), rgba(1, 2, 3, 0.04) 42%, rgba(1, 2, 3, 0.46));
 }
 
 .authMap {
-	width: min(100%, 52rem);
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: min(152vw, 120rem);
+	min-width: 74rem;
 	height: auto;
-	max-height: min(62vh, 42rem);
+	max-width: none;
 	object-fit: contain;
-	filter: drop-shadow(0 1.5rem 2.5rem rgba(0, 0, 0, 0.45));
+	opacity: 0.72;
+	filter: drop-shadow(0 1.5rem 2.75rem rgba(0, 0, 0, 0.55)) saturate(1.08);
+	transform: translate(-50%, -52%);
 }
 
 .authCaption {
+	position: absolute;
+	bottom: clamp(1rem, 4vw, 3rem);
+	left: clamp(1rem, 4vw, 3rem);
+	z-index: 2;
 	max-width: 43rem;
 	margin: 0;
 	color: var(--ns-text-muted);
 	font-size: clamp(0.9375rem, 1.3vw, 1.125rem);
 	line-height: 1.7;
-	text-align: center;
+	text-align: left;
+	text-shadow: 0 0.125rem 1rem rgba(0, 0, 0, 0.92);
 }
 
 .authCard {
-	align-self: stretch;
+	z-index: 1;
 	display: flex;
 	flex-direction: column;
 	justify-content: center;
+	width: min(100%, 31rem);
+	min-height: min(36rem, calc(100svh - 6rem));
 }
 
 .form {
@@ -76,7 +100,27 @@
 
 @media (max-width: 56rem) {
 	.authShell {
-		grid-template-columns: 1fr;
-		padding: 1rem;
+		align-items: center;
+		padding: 1rem 1rem 8rem;
+	}
+
+	.authMap {
+		width: 190vw;
+		min-width: 48rem;
+		opacity: 0.48;
+		transform: translate(-48%, -52%);
+	}
+
+	.authCaption {
+		right: 1rem;
+		bottom: 1rem;
+		left: 1rem;
+		max-width: none;
+		font-size: 0.8125rem;
+		line-height: 1.55;
+	}
+
+	.authCard {
+		min-height: auto;
 	}
 }

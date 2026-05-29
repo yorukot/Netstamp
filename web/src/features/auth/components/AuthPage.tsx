@@ -77,7 +77,7 @@ export function AuthPage({ mode = "login", navigate }: AuthPageProps) {
 			</Helmet>
 
 			<figure className={styles.authVisual}>
-				<img className={styles.authMap} src={taiwanSubmarineCablesMap} alt="Taiwan submarine cable routes" loading="eager" decoding="async" />
+				<img className={styles.authMap} src={taiwanSubmarineCablesMap} alt="" aria-hidden="true" loading="eager" decoding="async" />
 				<figcaption className={styles.authCaption}>{caption}</figcaption>
 			</figure>
 
