@@ -20,6 +20,7 @@ import { projectQueries } from "@/shared/api/queries";
 import type { ApiLabel, ApiSelector, CreateCheckInput } from "@/shared/api/types";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { ActionRow } from "@/shared/components/ActionRow";
+import { CloseButton } from "@/shared/components/CloseButton";
 import { useConfirm } from "@/shared/components/confirmContext";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
@@ -580,16 +581,7 @@ export function ChecksPage() {
 				</Panel>
 
 				{isEditorOpen ? (
-					<Panel
-						className={styles.stickyCheckPanel}
-						tone="glass"
-						title={isCreating ? "New check" : selectedCheck?.name}
-						actions={
-							<Button type="button" variant="secondary" onClick={closeEditor}>
-								Close
-							</Button>
-						}
-					>
+					<Panel className={styles.stickyCheckPanel} tone="glass" title={isCreating ? "New check" : selectedCheck?.name} actions={<CloseButton ariaLabel="Close check editor" onClick={closeEditor} />}>
 						<div className={classNames("ns-scrollbar", styles.checkEditorStack)}>
 							<div className={styles.checkEditForm}>
 								<TextField label="Check name" value={activeCheckName} disabled={!selectedCheck && !isCreating} onChange={event => setCheckName(event.currentTarget.value)} />

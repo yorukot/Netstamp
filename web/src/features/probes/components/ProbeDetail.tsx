@@ -15,6 +15,7 @@ import { createProjectLabel, useDeleteProjectProbeMutation, useRotateProjectProb
 import { projectQueries } from "@/shared/api/queries";
 import { apiQueryKeys } from "@/shared/api/queryKeys";
 import type { ApiLabel, ApiProbe } from "@/shared/api/types";
+import { CloseButton } from "@/shared/components/CloseButton";
 import { useConfirm } from "@/shared/components/confirmContext";
 import { pushErrorToast } from "@/shared/toast/toastStore";
 import { classNames } from "@/shared/utils/classNames";
@@ -63,10 +64,11 @@ interface ProbeDetailProps {
 	assignedRows: AssignedRow[];
 	floating?: boolean;
 	projectRef?: string | null;
+	onClose?: () => void;
 	onDeleted?: () => void;
 }
 
-export function ProbeDetail({ probe, assignedRows, floating = false, projectRef, onDeleted }: ProbeDetailProps) {
+export function ProbeDetail({ probe, assignedRows, floating = false, projectRef, onClose, onDeleted }: ProbeDetailProps) {
 	const detailQuery = useQuery({
 		...projectQueries.probeDetail(projectRef || "", probe.id),
 		enabled: Boolean(projectRef && probe.id)
@@ -75,7 +77,18 @@ export function ProbeDetail({ probe, assignedRows, floating = false, projectRef,
 	const activeProbe = activeApiProbe ? mapApiProbe(activeApiProbe, 0) : probe;
 	const formKey = `${activeProbe.id}:${activeApiProbe?.updatedAt ?? "pending"}`;
 
-	return <ProbeDetailContent key={formKey} activeProbe={activeProbe} activeApiProbe={activeApiProbe} assignedRows={assignedRows} floating={floating} projectRef={projectRef} onDeleted={onDeleted} />;
+	return (
+		<ProbeDetailContent
+			key={formKey}
+			activeProbe={activeProbe}
+			activeApiProbe={activeApiProbe}
+			assignedRows={assignedRows}
+			floating={floating}
+			projectRef={projectRef}
+			onClose={onClose}
+			onDeleted={onDeleted}
+		/>
+	);
 }
 
 interface ProbeDetailContentProps {
@@ -84,10 +97,11 @@ interface ProbeDetailContentProps {
 	assignedRows: AssignedRow[];
 	floating?: boolean;
 	projectRef?: string | null;
+	onClose?: () => void;
 	onDeleted?: () => void;
 }
 
-function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floating = false, projectRef, onDeleted }: ProbeDetailContentProps) {
+function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floating = false, projectRef, onClose, onDeleted }: ProbeDetailContentProps) {
 	const confirm = useConfirm();
 	const queryClient = useQueryClient();
 	const copyTimeoutRef = useRef<number | null>(null);
@@ -313,6 +327,7 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 					{activeProbe.name}
 					<small> · uptime {activeProbe.uptime}</small>
 				</strong>
+				{onClose ? <CloseButton ariaLabel="Close probe options" onClick={onClose} /> : null}
 			</div>
 
 			<div className={styles.fieldGrid}>

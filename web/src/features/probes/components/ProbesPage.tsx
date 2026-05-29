@@ -69,7 +69,7 @@ export function ProbesPage() {
 						/>
 						{selectedProbe ? (
 							<div className={styles.detailColumn}>
-								<ProbeDetail key={selectedProbe.id} probe={selectedProbe} assignedRows={assignedRows} projectRef={projectRef} onDeleted={() => setSelectedId("")} />
+								<ProbeDetail key={selectedProbe.id} probe={selectedProbe} assignedRows={assignedRows} projectRef={projectRef} onClose={() => setSelectedId("")} onDeleted={() => setSelectedId("")} />
 							</div>
 						) : null}
 					</div>
@@ -78,7 +78,17 @@ export function ProbesPage() {
 				<div className={styles.mapView}>
 					<NetworkMap probes={probes} selectedId={selectedProbeId} onSelect={setSelectedId} mode="fleet" className={styles.fullMap} />
 					<ProbePageHeader view={view} onViewChange={setView} overlay />
-					{selectedProbe ? <ProbeDetail key={selectedProbe.id} probe={selectedProbe} assignedRows={assignedRows} projectRef={projectRef} onDeleted={() => setSelectedId("")} floating /> : null}
+					{selectedProbe ? (
+						<ProbeDetail
+							key={selectedProbe.id}
+							probe={selectedProbe}
+							assignedRows={assignedRows}
+							projectRef={projectRef}
+							onClose={() => setSelectedId("")}
+							onDeleted={() => setSelectedId("")}
+							floating
+						/>
+					) : null}
 				</div>
 			)}
 

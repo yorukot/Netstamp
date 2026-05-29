@@ -1,4 +1,3 @@
-import * as Separator from "@radix-ui/react-separator";
 import type { ComponentPropsWithoutRef, ElementType, ReactNode } from "react";
 import { Surface, type SurfaceTone } from "../Surface/Surface";
 import styles from "./Panel.module.css";
@@ -24,7 +23,6 @@ export function Panel({ as: Comp = "section", tone = "glass", title, actions, pa
 					{actions ? <div className={styles.actions}>{actions}</div> : null}
 				</div>
 			) : null}
-			{title || actions ? <Separator.Root className={styles.separator} /> : null}
 			{children}
 		</Surface>
 	);

@@ -64,60 +64,65 @@ export function ProbeList({
 	onSelect
 }: ProbeListProps) {
 	return (
-		<Panel className={styles.panel} tone="matte" aria-label="Probe list">
-			<div className={styles.toolbar}>
-				<span className={styles.title}>Probe list</span>
-				<Input
-					variant="compact"
-					frameClassName={styles.controlFrame}
-					className={styles.control}
-					aria-label="Search probes"
-					placeholder="Search"
-					value={search}
-					onChange={event => onSearchChange(event.currentTarget.value)}
-				/>
-				<Select
-					variant="compact"
-					frameClassName={styles.controlFrame}
-					className={styles.control}
-					aria-label="Filter status"
-					value={statusFilter}
-					onChange={event => onStatusChange(event.currentTarget.value as "all" | ProbeStatus)}
-				>
-					<option value="all">Status</option>
-					<option value="Online">Online</option>
-					<option value="Draining">Draining</option>
-					<option value="Offline">Offline</option>
-				</Select>
-				<Select
-					variant="compact"
-					frameClassName={styles.controlFrame}
-					className={styles.control}
-					aria-label="Filter provider"
-					value={providerFilter}
-					onChange={event => onProviderChange(event.currentTarget.value)}
-				>
-					<option value="all">Provider</option>
-					{providerOptions.map(provider => (
-						<option key={provider} value={provider}>
-							{provider}
-						</option>
-					))}
-				</Select>
-				<Select
-					variant="compact"
-					frameClassName={classNames(styles.controlFrame, styles.sortControl)}
-					className={styles.control}
-					aria-label="Sort probes"
-					value={sortKey}
-					onChange={event => onSortChange(event.currentTarget.value as ProbeSort)}
-				>
-					<option value="heartbeat">Sort: Last Heartbeat</option>
-					<option value="name">Sort: Probe Name</option>
-					<option value="asn">Sort: AS</option>
-				</Select>
-			</div>
-
+		<Panel
+			className={styles.panel}
+			tone="glass"
+			title="Probe list"
+			actions={
+				<div className={styles.filters}>
+					<Input
+						variant="compact"
+						frameClassName={styles.controlFrame}
+						className={styles.control}
+						aria-label="Search probes"
+						placeholder="Search"
+						value={search}
+						onChange={event => onSearchChange(event.currentTarget.value)}
+					/>
+					<Select
+						variant="compact"
+						frameClassName={styles.controlFrame}
+						className={styles.control}
+						aria-label="Filter status"
+						value={statusFilter}
+						onChange={event => onStatusChange(event.currentTarget.value as "all" | ProbeStatus)}
+					>
+						<option value="all">Status</option>
+						<option value="Online">Online</option>
+						<option value="Draining">Draining</option>
+						<option value="Offline">Offline</option>
+					</Select>
+					<Select
+						variant="compact"
+						frameClassName={styles.controlFrame}
+						className={styles.control}
+						aria-label="Filter provider"
+						value={providerFilter}
+						onChange={event => onProviderChange(event.currentTarget.value)}
+					>
+						<option value="all">Provider</option>
+						{providerOptions.map(provider => (
+							<option key={provider} value={provider}>
+								{provider}
+							</option>
+						))}
+					</Select>
+					<Select
+						variant="compact"
+						frameClassName={classNames(styles.controlFrame, styles.sortControl)}
+						className={styles.control}
+						aria-label="Sort probes"
+						value={sortKey}
+						onChange={event => onSortChange(event.currentTarget.value as ProbeSort)}
+					>
+						<option value="heartbeat">Sort: Last Heartbeat</option>
+						<option value="name">Sort: Probe Name</option>
+						<option value="asn">Sort: AS</option>
+					</Select>
+				</div>
+			}
+			aria-label="Probe list"
+		>
 			<DataTable
 				ariaLabel="Probes"
 				columns={probeColumns}

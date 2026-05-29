@@ -1,0 +1,47 @@
+.button {
+	--ns-frame-cut: var(--ns-cut-sm);
+	--ns-frame-color: rgba(255, 122, 26, 0.48);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 auto;
+	width: 2rem;
+	height: 2rem;
+	padding: 0;
+	color: var(--ns-text-muted);
+	background: linear-gradient(135deg, rgba(255, 122, 26, 0.18) 0 1px, transparent 1px 0.55rem), linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent), #080a0e;
+	box-shadow:
+		0 0 0 1px rgba(0, 0, 0, 0.88),
+		0 0 1rem rgba(255, 122, 26, 0.06);
+	transition:
+		color var(--ns-transition),
+		background-color var(--ns-transition),
+		box-shadow var(--ns-transition),
+		transform var(--ns-transition);
+}
+
+.button svg {
+	position: relative;
+	z-index: 1;
+}
+
+.button:hover {
+	--ns-frame-color: var(--ns-accent-border);
+	color: var(--ns-text);
+	background-color: rgba(255, 122, 26, 0.16);
+	box-shadow:
+		0 0 0 1px rgba(0, 0, 0, 0.9),
+		0 0 1.25rem rgba(255, 122, 26, 0.16);
+	transform: translateY(-0.0625rem);
+}
+
+.button:active {
+	color: var(--ns-text-on-accent);
+	background-color: var(--ns-accent-active);
+	transform: translateY(0);
+}
+
+.button:focus-visible {
+	outline: 2px solid var(--ns-accent);
+	outline-offset: 2px;
+}

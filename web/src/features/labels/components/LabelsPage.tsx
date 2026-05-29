@@ -3,6 +3,7 @@ import { projectQueries } from "@/shared/api/queries";
 import type { ApiCheck, ApiLabel, ApiProbe } from "@/shared/api/types";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { ActionRow } from "@/shared/components/ActionRow";
+import { CloseButton } from "@/shared/components/CloseButton";
 import { useConfirm } from "@/shared/components/confirmContext";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
@@ -299,16 +300,7 @@ export function LabelsPage() {
 				</Panel>
 
 				{isEditorOpen ? (
-					<Panel
-						className={styles.editorPanel}
-						tone="glass"
-						title={isEditing ? selectedRow?.token : "New label"}
-						actions={
-							<Button type="button" variant="secondary" onClick={closeEditor}>
-								Close
-							</Button>
-						}
-					>
+					<Panel className={styles.editorPanel} tone="glass" title={isEditing ? selectedRow?.token : "New label"} actions={<CloseButton ariaLabel="Close label editor" onClick={closeEditor} />}>
 						<div className={styles.editorStack}>
 							<div className={styles.editorForm}>
 								<TextField label="Key" placeholder="region" value={draftKey} disabled={!projectRef} onChange={event => setDraftKey(event.currentTarget.value)} />

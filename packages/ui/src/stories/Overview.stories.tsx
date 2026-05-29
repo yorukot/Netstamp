@@ -141,7 +141,7 @@ export const Overview: Story = {
 					</Surface>
 				</div>
 				<Panel title="Operational summary">
-					<p>Panel composes Surface with a header, separator, and action slot.</p>
+					<p>Panel composes Surface with a header and action slot.</p>
 				</Panel>
 			</section>
 

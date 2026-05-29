@@ -32,12 +32,6 @@
 	flex-wrap: wrap;
 }
 
-.separator {
-	height: 1px;
-	margin: 0 calc(var(--ns-surface-padding-x, 1.25rem) * -1) 1rem;
-	background: linear-gradient(90deg, transparent, var(--ns-border), transparent);
-}
-
 @media (max-width: 48rem) {
 	.header {
 		display: grid;

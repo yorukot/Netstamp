@@ -12,6 +12,7 @@ import { installAssetPaths, installAssetUrl, probeInstallCommand } from "@/share
 import { useCreateProjectProbeMutation } from "@/shared/api/mutations";
 import { projectQueries } from "@/shared/api/queries";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
+import { CloseButton } from "@/shared/components/CloseButton";
 import { classNames } from "@/shared/utils/classNames";
 import { Badge, Button, Terminal, TextField } from "@netstamp/ui";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -296,6 +297,7 @@ export function NewProbeDrawer() {
 						<h2>Create probe</h2>
 						<p>Name the probe, install it on a host, then wait for the controller to receive its first heartbeat.</p>
 					</div>
+					<CloseButton ariaLabel="Close probe wizard" onClick={closeDrawer} />
 				</div>
 
 				<ProbeWizardTimeline steps={createProbeSteps} currentStep={currentStep} />
