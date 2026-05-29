@@ -39,6 +39,10 @@
 	gap: 1.5rem;
 }
 
+.siteNavActions {
+	gap: 0.75rem;
+}
+
 .siteNavLink {
 	display: inline-flex;
 	align-items: center;
@@ -58,7 +62,45 @@
 	color: var(--ns-accent-hover);
 }
 
+.siteNavSignIn {
+	--ns-frame-cut: var(--ns-cut-sm);
+	--ns-frame-color: var(--ns-accent);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 2.25rem;
+	padding: 0.55rem 0.875rem;
+	color: var(--ns-text-on-accent);
+	background: var(--ns-accent);
+	box-shadow:
+		0 0 0 1px rgba(0, 0, 0, 0.85),
+		0 0 0 0.25rem rgba(255, 122, 26, 0.12);
+	font-family: var(--ns-font-mono);
+	font-size: 0.75rem;
+	font-weight: 800;
+	letter-spacing: 0.06em;
+	line-height: 1;
+	text-decoration: none;
+	text-transform: uppercase;
+	transition:
+		background var(--ns-transition),
+		box-shadow var(--ns-transition),
+		color var(--ns-transition),
+		transform var(--ns-transition);
+}
+
+.siteNavSignIn:hover {
+	--ns-frame-color: var(--ns-accent-hover);
+	color: #070503;
+	background: var(--ns-accent-hover);
+	box-shadow:
+		0 0 0 1px rgba(0, 0, 0, 0.9),
+		0 0 0 0.3125rem var(--ns-accent-glow);
+	transform: translateY(-0.0625rem);
+}
+
 .siteNavLink:focus-visible,
+.siteNavSignIn:focus-visible,
 .siteBrand:focus-visible,
 .docsNavItem:focus-visible,
 .docsNavGroupToggle:focus-visible,
@@ -968,6 +1010,12 @@
 
 	.siteNavPrimary {
 		gap: 0.75rem;
+	}
+
+	.siteNavSignIn {
+		min-height: 2rem;
+		padding: 0.45rem 0.625rem;
+		font-size: 0.6875rem;
 	}
 
 	.siteNavLink span {
