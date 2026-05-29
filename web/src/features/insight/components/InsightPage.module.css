@@ -1,8 +1,5 @@
 .scopeBar {
-	display: grid;
-	grid-template-columns: minmax(30rem, 1.45fr) minmax(15rem, 0.8fr) minmax(13rem, 0.7fr) minmax(18rem, 1fr);
-	gap: 1rem;
-	align-items: end;
+	--ns-filter-grid-template: minmax(30rem, 1.45fr) minmax(15rem, 0.8fr) minmax(13rem, 0.7fr) minmax(18rem, 1fr);
 }
 
 .scopeTimeControl {
@@ -53,7 +50,7 @@
 
 @media (max-width: 72rem) {
 	.scopeBar {
-		grid-template-columns: repeat(2, minmax(0, 1fr));
+		--ns-filter-grid-template: repeat(2, minmax(0, 1fr));
 	}
 
 	.scopeTimeControl {
@@ -63,6 +60,6 @@
 
 @media (max-width: 44rem) {
 	.scopeBar {
-		grid-template-columns: 1fr;
+		--ns-filter-grid-template: 1fr;
 	}
 }

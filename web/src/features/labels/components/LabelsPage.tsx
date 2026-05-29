@@ -5,6 +5,7 @@ import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { ActionRow } from "@/shared/components/ActionRow";
 import { CloseButton } from "@/shared/components/CloseButton";
 import { useConfirm } from "@/shared/components/confirmContext";
+import { FilterGrid } from "@/shared/components/FilterGrid";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { classNames } from "@/shared/utils/classNames";
@@ -282,10 +283,10 @@ export function LabelsPage() {
 			<div className={classNames(styles.labelsGrid, !isEditorOpen && styles.labelsGridCollapsed)}>
 				<Panel tone="glass" title={`${rows.length} labels`}>
 					<div className={styles.listStack}>
-						<div className={styles.filters}>
+						<FilterGrid className={styles.filters}>
 							<TextField label="Search" placeholder="region:tokyo, provider, edge" value={search} disabled={!projectRef} onChange={event => setSearch(event.currentTarget.value)} />
 							<SelectField label="Key" value={keyFilter} disabled={!projectRef} options={keyOptions} onChange={event => setKeyFilter(event.currentTarget.value)} />
-						</div>
+						</FilterGrid>
 						<DataTable
 							ariaLabel="Project labels"
 							columns={columns}

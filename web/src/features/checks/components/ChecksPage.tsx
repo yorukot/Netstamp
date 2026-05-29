@@ -22,6 +22,7 @@ import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { ActionRow } from "@/shared/components/ActionRow";
 import { CloseButton } from "@/shared/components/CloseButton";
 import { useConfirm } from "@/shared/components/confirmContext";
+import { FilterGrid } from "@/shared/components/FilterGrid";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { pushErrorToast } from "@/shared/toast/toastStore";
@@ -563,7 +564,7 @@ export function ChecksPage() {
 			<div className={classNames(styles.checkEditorGrid, !isEditorOpen && styles.checkEditorGridCollapsed)}>
 				<Panel tone="glass" title="Definitions">
 					<div className={styles.checkListStack}>
-						<div className={styles.checkListFilters}>
+						<FilterGrid className={styles.checkListFilters}>
 							<TextField label="Search" placeholder="check name, target, description" />
 							<SelectField
 								label="Type"
@@ -575,7 +576,7 @@ export function ChecksPage() {
 									{ value: "traceroute", label: "Traceroute" }
 								]}
 							/>
-						</div>
+						</FilterGrid>
 						<DataTable columns={checkColumns} rows={checkRows} getRowKey={row => String(row.id)} selectedKey={isCreating ? "__new__" : selectedId} onRowClick={selectCheck} />
 					</div>
 				</Panel>

@@ -22,6 +22,7 @@ import { apiQueryKeys } from "@/shared/api/queryKeys";
 import { type ApiMeasurement, type ApiProjectAssignment, type PingInsightResponse, type TcpInsightResponse, type TracerouteInsightResponse, type TracerouteResult } from "@/shared/api/types";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { BodyCopy } from "@/shared/components/BodyCopy";
+import { FilterGrid } from "@/shared/components/FilterGrid";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { formatCount, formatEpochMs, formatMs, formatPercent } from "@/shared/utils/insightFormatters";
@@ -916,7 +917,7 @@ export function InsightPage() {
 			<ScreenHeader title="Insight" />
 
 			<Panel
-				tone="deep"
+				tone="glass"
 				title={scopeTitle}
 				actions={
 					<Button variant="outline" size="sm" onClick={resetScope}>
@@ -924,7 +925,7 @@ export function InsightPage() {
 					</Button>
 				}
 			>
-				<div className={styles.scopeBar}>
+				<FilterGrid className={styles.scopeBar}>
 					<InsightTimeControl
 						className={styles.scopeTimeControl}
 						timeMode={timeMode}
@@ -961,7 +962,7 @@ export function InsightPage() {
 						}}
 					/>
 					<TextField label="Search" placeholder="check, probe, target, label, location" value={search} onChange={event => setSearch(event.currentTarget.value)} />
-				</div>
+				</FilterGrid>
 				<div className={styles.focusChips} aria-label="Active Insight scope">
 					{hasProbeFocus ? (
 						<FocusChip

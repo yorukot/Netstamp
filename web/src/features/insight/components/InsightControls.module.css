@@ -15,13 +15,19 @@
 
 .segmentControl {
 	--ns-frame-cut: var(--ns-cut-sm);
+	--ns-frame-color: var(--ns-border);
 	display: grid;
 	grid-auto-flow: column;
 	grid-auto-columns: minmax(0, 1fr);
 	min-height: 2.75rem;
-	border: 1px solid var(--ns-border-faint);
-	background: var(--ns-surface-deep);
-	clip-path: polygon(var(--ns-frame-cut) 0, 100% 0, 100% calc(100% - var(--ns-frame-cut)), calc(100% - var(--ns-frame-cut)) 100%, 0 100%, 0 var(--ns-frame-cut));
+	background: #05070a;
+	box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.8);
+}
+
+.segmentControl:focus-within {
+	--ns-frame-color: var(--ns-accent-active);
+	outline: 2px solid var(--ns-accent-active);
+	outline-offset: 2px;
 }
 
 .segmentButton {
@@ -58,6 +64,7 @@
 
 .focusChip {
 	--ns-frame-cut: var(--ns-cut-sm);
+	--ns-frame-color: rgba(255, 122, 26, 0.42);
 	display: grid;
 	grid-template-columns: auto minmax(4rem, auto) auto;
 	gap: 0.625rem;
@@ -66,14 +73,12 @@
 	padding: 0.5rem 0.6rem;
 	color: var(--ns-text-muted);
 	background: rgba(255, 122, 26, 0.1);
-	border: 1px solid rgba(255, 122, 26, 0.42);
-	clip-path: polygon(var(--ns-frame-cut) 0, 100% 0, 100% calc(100% - var(--ns-frame-cut)), calc(100% - var(--ns-frame-cut)) 100%, 0 100%, 0 var(--ns-frame-cut));
 	font-family: var(--ns-font-mono);
 }
 
 .focusChip[data-invalid="true"] {
+	--ns-frame-color: rgba(255, 69, 58, 0.56);
 	background: rgba(255, 69, 58, 0.12);
-	border-color: rgba(255, 69, 58, 0.56);
 }
 
 .focusChip span {
@@ -127,6 +132,7 @@
 
 .timeTrigger {
 	--ns-frame-cut: var(--ns-cut-sm);
+	--ns-frame-color: var(--ns-border);
 	display: grid;
 	grid-template-columns: minmax(0, 1fr) auto;
 	gap: 0.75rem;
@@ -136,9 +142,8 @@
 	min-height: 2.75rem;
 	padding: 0.75rem 1rem;
 	color: var(--ns-text);
-	background: var(--ns-surface-deep);
-	border: 1px solid var(--ns-border-faint);
-	clip-path: polygon(var(--ns-frame-cut) 0, 100% 0, 100% calc(100% - var(--ns-frame-cut)), calc(100% - var(--ns-frame-cut)) 100%, 0 100%, 0 var(--ns-frame-cut));
+	background: #05070a;
+	box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.8);
 	font-family: var(--ns-font-mono);
 	font-size: 0.875rem;
 	font-weight: 800;
@@ -165,7 +170,7 @@
 
 .timeTrigger:hover,
 .timeTrigger:focus-visible {
-	border-color: var(--ns-border-strong);
+	--ns-frame-color: var(--ns-border-strong);
 	outline: none;
 }
 
@@ -173,29 +178,9 @@
 	min-height: 2.75rem;
 }
 
-.refreshField {
-	display: grid;
-	gap: 0.45rem;
-	min-width: 0;
-}
-
-.refreshField span {
-	color: var(--ns-text-low);
-	font-family: var(--ns-font-mono);
-	font-size: 0.6875rem;
-	font-weight: 800;
-	line-height: 1;
-	text-transform: uppercase;
-}
-
-.refreshSelect {
-	min-height: 2.75rem;
-	font-size: 0.875rem;
-	font-weight: 800;
-}
-
 .timePopover {
 	--ns-frame-cut: var(--ns-cut-md);
+	--ns-frame-color: var(--ns-border-strong);
 	position: fixed;
 	z-index: 1000;
 	display: grid;
@@ -207,9 +192,7 @@
 		1rem 1rem,
 		1rem 1rem,
 		100% 100%;
-	border: 1px solid var(--ns-border-strong);
 	box-shadow: var(--ns-shadow-md);
-	clip-path: polygon(var(--ns-frame-cut) 0, 100% 0, 100% calc(100% - var(--ns-frame-cut)), calc(100% - var(--ns-frame-cut)) 100%, 0 100%, 0 var(--ns-frame-cut));
 }
 
 .timeSection {
@@ -236,12 +219,11 @@
 
 .timePreset {
 	--ns-frame-cut: var(--ns-cut-sm);
+	--ns-frame-color: var(--ns-border-faint);
 	min-height: 2.5rem;
 	padding: 0.55rem 0.7rem;
 	color: var(--ns-text-subtle);
 	background: var(--ns-surface-deep);
-	border: 1px solid var(--ns-border-faint);
-	clip-path: polygon(var(--ns-frame-cut) 0, 100% 0, 100% calc(100% - var(--ns-frame-cut)), calc(100% - var(--ns-frame-cut)) 100%, 0 100%, 0 var(--ns-frame-cut));
 	font-family: var(--ns-font-mono);
 	font-size: 0.75rem;
 	font-weight: 800;
@@ -251,9 +233,9 @@
 .timePreset:hover,
 .timePreset:focus-visible,
 .timePreset[data-selected="true"] {
+	--ns-frame-color: rgba(255, 122, 26, 0.5);
 	color: var(--ns-text);
 	background: rgba(255, 122, 26, 0.14);
-	border-color: rgba(255, 122, 26, 0.5);
 	outline: none;
 }
 
@@ -261,20 +243,6 @@
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
 	gap: 0.75rem;
-}
-
-.absoluteGrid label {
-	display: grid;
-	gap: 0.45rem;
-	min-width: 0;
-}
-
-.absoluteGrid span {
-	color: var(--ns-text-low);
-	font-family: var(--ns-font-mono);
-	font-size: 0.6875rem;
-	font-weight: 800;
-	text-transform: uppercase;
 }
 
 .timeActions {

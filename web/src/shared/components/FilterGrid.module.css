@@ -1,0 +1,23 @@
+.root {
+	display: grid;
+	grid-template-columns: var(--ns-filter-grid-template, repeat(auto-fit, minmax(min(var(--ns-filter-grid-min, 12rem), 100%), 1fr)));
+	gap: var(--ns-filter-grid-gap, 1rem);
+	align-items: var(--ns-filter-grid-align, end);
+	min-width: 0;
+}
+
+.root > * {
+	min-width: 0;
+}
+
+@media (max-width: 58rem) {
+	.root {
+		grid-template-columns: var(--ns-filter-grid-tablet-template, var(--ns-filter-grid-template, repeat(auto-fit, minmax(min(13rem, 100%), 1fr))));
+	}
+}
+
+@media (max-width: 38rem) {
+	.root {
+		grid-template-columns: var(--ns-filter-grid-mobile-template, 1fr);
+	}
+}

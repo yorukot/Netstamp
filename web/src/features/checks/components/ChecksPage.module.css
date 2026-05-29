@@ -28,9 +28,9 @@
 }
 
 .checkListFilters {
-	display: grid;
-	grid-template-columns: minmax(16rem, 1fr) repeat(2, minmax(9rem, 0.45fr));
-	gap: 1rem;
+	--ns-filter-grid-template: minmax(16rem, 1fr) minmax(9rem, 0.45fr);
+	--ns-filter-grid-tablet-template: 1fr;
+	--ns-filter-grid-mobile-template: 1fr;
 }
 
 .checkEditForm,
@@ -173,10 +173,6 @@
 }
 
 @media (max-width: 58rem) {
-	.checkListFilters {
-		grid-template-columns: 1fr;
-	}
-
 	.selectorRule {
 		grid-template-columns: 1fr;
 		align-items: stretch;

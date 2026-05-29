@@ -16,9 +16,9 @@
 }
 
 .filters {
-	display: grid;
-	grid-template-columns: minmax(14rem, 1fr) minmax(10rem, 0.45fr);
-	gap: 1rem;
+	--ns-filter-grid-template: minmax(14rem, 1fr) minmax(10rem, 0.45fr);
+	--ns-filter-grid-tablet-template: 1fr;
+	--ns-filter-grid-mobile-template: 1fr;
 }
 
 .labelPair {
@@ -128,7 +128,6 @@
 }
 
 @media (max-width: 58rem) {
-	.filters,
 	.editorForm,
 	.usagePanel {
 		grid-template-columns: 1fr;

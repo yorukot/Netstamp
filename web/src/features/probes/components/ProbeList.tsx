@@ -1,6 +1,6 @@
 import type { Probe, ProbeStatus } from "@/features/probes/data/probes";
-import { classNames } from "@/shared/utils/classNames";
-import { Badge, DataTable, Input, Panel, Select, type BadgeTone, type DataColumn } from "@netstamp/ui";
+import { FilterGrid } from "@/shared/components/FilterGrid";
+import { Badge, DataTable, Panel, SelectField, TextField, type BadgeTone, type DataColumn } from "@netstamp/ui";
 import styles from "./ProbeList.module.css";
 import type { ProbeSort } from "./types";
 
@@ -9,6 +9,17 @@ const statusTones: Record<ProbeStatus, BadgeTone> = {
 	Draining: "warning",
 	Offline: "critical"
 };
+const statusFilterOptions: Array<{ value: "all" | ProbeStatus; label: string }> = [
+	{ value: "all", label: "All statuses" },
+	{ value: "Online", label: "Online" },
+	{ value: "Draining", label: "Draining" },
+	{ value: "Offline", label: "Offline" }
+];
+const sortOptions: Array<{ value: ProbeSort; label: string }> = [
+	{ value: "heartbeat", label: "Last heartbeat" },
+	{ value: "name", label: "Probe name" },
+	{ value: "asn", label: "AS" }
+];
 
 const probeColumns: DataColumn<Probe>[] = [
 	{ key: "name", label: "Probe name" },
@@ -63,78 +74,37 @@ export function ProbeList({
 	onSortChange,
 	onSelect
 }: ProbeListProps) {
+	const providerFilterOptions = [
+		{ value: "all", label: "All providers" },
+		...providerOptions.map(provider => ({
+			value: provider,
+			label: provider
+		}))
+	];
+
 	return (
-		<Panel
-			className={styles.panel}
-			tone="glass"
-			title="Probe list"
-			actions={
-				<div className={styles.filters}>
-					<Input
-						variant="compact"
-						frameClassName={styles.controlFrame}
-						className={styles.control}
-						aria-label="Search probes"
-						placeholder="Search"
-						value={search}
-						onChange={event => onSearchChange(event.currentTarget.value)}
-					/>
-					<Select
-						variant="compact"
-						frameClassName={styles.controlFrame}
-						className={styles.control}
-						aria-label="Filter status"
-						value={statusFilter}
-						onChange={event => onStatusChange(event.currentTarget.value as "all" | ProbeStatus)}
-					>
-						<option value="all">Status</option>
-						<option value="Online">Online</option>
-						<option value="Draining">Draining</option>
-						<option value="Offline">Offline</option>
-					</Select>
-					<Select
-						variant="compact"
-						frameClassName={styles.controlFrame}
-						className={styles.control}
-						aria-label="Filter provider"
-						value={providerFilter}
-						onChange={event => onProviderChange(event.currentTarget.value)}
-					>
-						<option value="all">Provider</option>
-						{providerOptions.map(provider => (
-							<option key={provider} value={provider}>
-								{provider}
-							</option>
-						))}
-					</Select>
-					<Select
-						variant="compact"
-						frameClassName={classNames(styles.controlFrame, styles.sortControl)}
-						className={styles.control}
-						aria-label="Sort probes"
-						value={sortKey}
-						onChange={event => onSortChange(event.currentTarget.value as ProbeSort)}
-					>
-						<option value="heartbeat">Sort: Last Heartbeat</option>
-						<option value="name">Sort: Probe Name</option>
-						<option value="asn">Sort: AS</option>
-					</Select>
-				</div>
-			}
-			aria-label="Probe list"
-		>
-			<DataTable
-				ariaLabel="Probes"
-				columns={probeColumns}
-				rows={probes}
-				density="compact"
-				minWidth="62rem"
-				maxHeight="min(28rem, 46svh)"
-				getRowKey={probe => probe.id}
-				selectedKey={selectedId}
-				onRowClick={probe => onSelect(probe.id)}
-				emptyLabel="No probes found"
-			/>
+		<Panel className={styles.panel} tone="glass" title="Probe list" aria-label="Probe list">
+			<div className={styles.listStack}>
+				<FilterGrid className={styles.filters}>
+					<TextField label="Search" placeholder="probe name, location, provider, label" value={search} onChange={event => onSearchChange(event.currentTarget.value)} />
+					<SelectField label="Status" value={statusFilter} options={statusFilterOptions} onChange={event => onStatusChange(event.currentTarget.value as "all" | ProbeStatus)} />
+					<SelectField label="Provider" value={providerFilter} options={providerFilterOptions} onChange={event => onProviderChange(event.currentTarget.value)} />
+					<SelectField label="Sort" value={sortKey} options={sortOptions} onChange={event => onSortChange(event.currentTarget.value as ProbeSort)} />
+				</FilterGrid>
+
+				<DataTable
+					ariaLabel="Probes"
+					columns={probeColumns}
+					rows={probes}
+					density="compact"
+					minWidth="62rem"
+					maxHeight="min(28rem, 46svh)"
+					getRowKey={probe => probe.id}
+					selectedKey={selectedId}
+					onRowClick={probe => onSelect(probe.id)}
+					emptyLabel="No probes found"
+				/>
+			</div>
 		</Panel>
 	);
 }

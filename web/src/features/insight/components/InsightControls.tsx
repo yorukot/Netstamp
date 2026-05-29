@@ -2,7 +2,7 @@ import { displayInsightTimeRange } from "@/features/insight/insightTime";
 import type { InsightRefreshInterval, InsightRelativeRange, InsightTimeMode, TimeWindow } from "@/features/insight/insightTypes";
 import { classNames } from "@/shared/utils/classNames";
 import { relativeTimeOptions, relativeTimeRangeDurations } from "@/shared/utils/timeRanges";
-import { Button, Input, Select } from "@netstamp/ui";
+import { Button, SelectField, TextField } from "@netstamp/ui";
 import { useEffect, useId, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import styles from "./InsightControls.module.css";
@@ -71,7 +71,7 @@ export function SegmentedControl<TValue extends string>({
 	return (
 		<div className={styles.segmentField}>
 			<span className={styles.segmentLabel}>{label}</span>
-			<div className={styles.segmentControl} role="radiogroup" aria-label={label}>
+			<div className={classNames("ns-cut-frame", styles.segmentControl)} role="radiogroup" aria-label={label}>
 				{options.map(option => (
 					<button
 						type="button"
@@ -92,7 +92,7 @@ export function SegmentedControl<TValue extends string>({
 
 export function FocusChip({ label, value, invalid, onClear }: { label: string; value: string; invalid?: boolean; onClear: () => void }) {
 	return (
-		<div className={styles.focusChip} data-invalid={invalid || undefined}>
+		<div className={classNames("ns-cut-frame", styles.focusChip)} data-invalid={invalid || undefined}>
 			<span>{label}</span>
 			<strong>{value}</strong>
 			<button type="button" onClick={onClear}>
@@ -207,14 +207,21 @@ export function InsightTimeControl({
 	const timePopover =
 		open && popoverStyle && typeof document !== "undefined"
 			? createPortal(
-					<div ref={popoverRef} id={`${timeButtonId}-panel`} className={styles.timePopover} style={popoverStyle} role="dialog" aria-labelledby={timeButtonId}>
+					<div
+						ref={popoverRef}
+						id={`${timeButtonId}-panel`}
+						className={classNames("ns-cut-frame", "ns-scrollbar", styles.timePopover)}
+						style={popoverStyle}
+						role="dialog"
+						aria-labelledby={timeButtonId}
+					>
 						<section className={styles.timeSection}>
 							<h4>Relative time</h4>
 							<div className={styles.timePresetGrid}>
 								{timeOptions.map(option => (
 									<button
 										type="button"
-										className={styles.timePreset}
+										className={classNames("ns-cut-frame", styles.timePreset)}
 										data-selected={timeMode === "relative" && timeRange === option.value}
 										onClick={() => {
 											onApplyRelative(option.value);
@@ -230,14 +237,8 @@ export function InsightTimeControl({
 						<section className={styles.timeSection}>
 							<h4>Absolute time</h4>
 							<div className={styles.absoluteGrid}>
-								<label>
-									<span>From</span>
-									<Input variant="compact" type="datetime-local" value={absoluteFrom} onChange={event => setAbsoluteDraft({ ...activeAbsoluteDraft, from: event.currentTarget.value })} />
-								</label>
-								<label>
-									<span>To</span>
-									<Input variant="compact" type="datetime-local" value={absoluteTo} onChange={event => setAbsoluteDraft({ ...activeAbsoluteDraft, to: event.currentTarget.value })} />
-								</label>
+								<TextField label="From" type="datetime-local" value={absoluteFrom} onChange={event => setAbsoluteDraft({ ...activeAbsoluteDraft, from: event.currentTarget.value })} />
+								<TextField label="To" type="datetime-local" value={absoluteTo} onChange={event => setAbsoluteDraft({ ...activeAbsoluteDraft, to: event.currentTarget.value })} />
 							</div>
 							<div className={styles.timeActions}>
 								<Button type="button" variant="outline" size="sm" onClick={applyNow}>
@@ -257,28 +258,13 @@ export function InsightTimeControl({
 		<div ref={rootRef} className={classNames(styles.timeControlRoot, className)}>
 			<span className={styles.segmentLabel}>Time</span>
 			<div className={styles.timeControls}>
-				<button id={timeButtonId} type="button" className={styles.timeTrigger} aria-expanded={open} aria-controls={`${timeButtonId}-panel`} onClick={togglePopover}>
+				<button id={timeButtonId} type="button" className={classNames("ns-cut-frame", styles.timeTrigger)} aria-expanded={open} aria-controls={`${timeButtonId}-panel`} onClick={togglePopover}>
 					<span>{displayInsightTimeRange(timeMode, timeRange, timeWindow)}</span>
 				</button>
 				<Button type="button" variant="outline" size="sm" className={styles.refreshButton} onClick={onRefresh}>
 					Refresh
 				</Button>
-				<label className={styles.refreshField}>
-					<span>Refresh</span>
-					<Select
-						variant="compact"
-						value={refresh}
-						className={styles.refreshSelect}
-						aria-label="Refresh interval"
-						onChange={event => onRefreshChange(event.currentTarget.value as InsightRefreshInterval)}
-					>
-						{refreshOptions.map(option => (
-							<option value={option.value} key={option.value}>
-								{option.label}
-							</option>
-						))}
-					</Select>
-				</label>
+				<SelectField label="Refresh" value={refresh} options={refreshOptions} onChange={event => onRefreshChange(event.currentTarget.value as InsightRefreshInterval)} />
 			</div>
 			{timePopover}
 		</div>
