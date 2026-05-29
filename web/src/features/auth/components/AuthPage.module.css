@@ -6,26 +6,30 @@
 	padding: 2rem;
 }
 
-.authHero {
+.authVisual {
 	display: grid;
-	gap: 1.5rem;
-	max-width: 47rem;
-}
-
-.authHero h1 {
+	gap: 1rem;
+	align-content: center;
+	justify-items: center;
+	max-width: 52rem;
 	margin: 0;
-	color: var(--ns-text);
-	font-family: var(--ns-font-display);
-	font-size: clamp(3rem, 5vw, 7rem);
-	font-weight: 650;
-	line-height: 0.9;
 }
 
-.authHero p {
-	max-width: 42rem;
+.authMap {
+	width: min(100%, 52rem);
+	height: auto;
+	max-height: min(62vh, 42rem);
+	object-fit: contain;
+	filter: drop-shadow(0 1.5rem 2.5rem rgba(0, 0, 0, 0.45));
+}
+
+.authCaption {
+	max-width: 43rem;
 	margin: 0;
 	color: var(--ns-text-muted);
-	font-size: 1.125rem;
+	font-size: clamp(0.9375rem, 1.3vw, 1.125rem);
+	line-height: 1.7;
+	text-align: center;
 }
 
 .authCard {

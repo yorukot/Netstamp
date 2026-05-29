@@ -1,12 +1,21 @@
 import { pathForRoute } from "@/routes/routePaths";
 import type { Navigate } from "@/routes/routeTypes";
 import { pushErrorToast } from "@/shared/toast/toastStore";
-import { Badge, Button, PageShell, Panel, TextField } from "@netstamp/ui";
-import type { FormEvent } from "react";
+import { Button, PageShell, Panel, TextField } from "@netstamp/ui";
+import { useState, type FormEvent } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
+import taiwanSubmarineCablesMap from "../../../../../docs/src/assets/taiwan_submarine_cables.svg?url";
 import { useAuth } from "../hooks/useAuth";
 import styles from "./AuthPage.module.css";
+
+const AUTH_CAPTIONS = [
+	"Major ISPs do not always choose routes based on the lowest latency. Cost, interconnection agreements, and commercial routing policies can also affect where your packets go.",
+	"During daily peak hours, Taiwan’s academic network often approaches its capacity limit, affecting connection quality to some overseas websites, academic databases, and cloud services.",
+	"Did you know? Submarine cables are only a few centimeters thick, yet they carry almost all communications between Taiwan and the rest of the world.",
+	"Did you know? More than 99% of global international data traffic is still carried by submarine cables.",
+	"Did you know? Vietnam once had 3 of its 5 international submarine cables fail at the same time, making access to overseas services difficult."
+] as const;
 
 interface AuthPageProps {
 	mode?: "login" | "register";
@@ -16,6 +25,7 @@ interface AuthPageProps {
 export function AuthPage({ mode = "login", navigate }: AuthPageProps) {
 	const isRegister = mode === "register";
 	const { submitting, login, register } = useAuth();
+	const [caption] = useState(() => AUTH_CAPTIONS[Math.floor(Math.random() * AUTH_CAPTIONS.length)]);
 
 	async function handleSubmit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
@@ -66,15 +76,10 @@ export function AuthPage({ mode = "login", navigate }: AuthPageProps) {
 				<meta name="description" content="Access the Netstamp distributed network observability console." />
 			</Helmet>
 
-			<section className={styles.authHero}>
-				<Badge tone="accent">Controller access</Badge>
-				<h1>{isRegister ? "Create your first Netstamp project." : "Log in to your controller."}</h1>
-				<p>
-					{isRegister
-						? "Start monitoring from probes you control. Set up your operator account, create a project, and connect your first probe."
-						: "Review probe health, network checks, alerts, and recent results from your Netstamp controller."}
-				</p>
-			</section>
+			<figure className={styles.authVisual}>
+				<img className={styles.authMap} src={taiwanSubmarineCablesMap} alt="Taiwan submarine cable routes" loading="eager" decoding="async" />
+				<figcaption className={styles.authCaption}>{caption}</figcaption>
+			</figure>
 
 			<Panel className={styles.authCard} tone="glass" eyebrow="Account" title={isRegister ? "Sign up" : "Log in"}>
 				<form className={styles.form} onSubmit={handleSubmit}>
