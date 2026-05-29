@@ -360,6 +360,24 @@ Probe settings:
 | `NETSTAMP_PROBE_HTTP_TIMEOUT`   | Probe HTTP client timeout           |
 | `NETSTAMP_PROBE_MAX_WORKERS`    | Maximum concurrent check workers    |
 
+Frontend and docs tracker settings are build-time public variables. Use the `VITE_NETSTAMP_*` prefix in `web/` and the `PUBLIC_NETSTAMP_*` prefix in `docs/`.
+
+| Suffix                       | Purpose                                                   | Default                             |
+| ---------------------------- | --------------------------------------------------------- | ----------------------------------- |
+| `GA_MEASUREMENT_ID`          | Google Analytics GA4 measurement ID                       | empty                               |
+| `GOOGLE_TAG_ID`              | Generic Google tag ID, used before `GA_MEASUREMENT_ID`    | empty                               |
+| `CLARITY_PROJECT_ID`         | Microsoft Clarity project ID                              | empty                               |
+| `POSTHOG_KEY`                | PostHog project API key                                   | empty                               |
+| `POSTHOG_HOST`               | PostHog API host                                          | `https://us.i.posthog.com`          |
+| `PLAUSIBLE_DOMAIN`           | Plausible site domain                                     | empty                               |
+| `PLAUSIBLE_SCRIPT_URL`       | Plausible script URL for cloud or self-hosted deployments | `https://plausible.io/js/script.js` |
+| `UMAMI_WEBSITE_ID`           | Umami website ID                                          | empty                               |
+| `UMAMI_SCRIPT_URL`           | Umami script URL for cloud or self-hosted deployments     | `https://cloud.umami.is/script.js`  |
+| `TRACKING_CONSENT_MODE`      | `regional`, `always`, or `never` consent gating           | `regional`                          |
+| `TRACKING_CONSENT_COUNTRIES` | Comma-separated ISO country codes that require consent    | EEA, UK, and Switzerland            |
+
+In `regional` mode, Netstamp asks for consent only in configured countries and asks when the visitor country is unknown. Country resolution checks an injected `window.NETSTAMP_VISITOR_COUNTRY`, `<html data-netstamp-country>`, `<meta name="netstamp-visitor-country">`, then Cloudflare `/cdn-cgi/trace`.
+
 Never commit production `.env` files, JWT secrets, database passwords, probe secrets, or telemetry endpoints with credentials.
 
 ## Common Commands

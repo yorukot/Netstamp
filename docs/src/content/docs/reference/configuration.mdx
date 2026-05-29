@@ -24,6 +24,26 @@ The docs app lives in `docs/`. Astro configuration is in `docs/astro.config.mjs`
 
 Documentation pages are MDX files under `docs/src/content/docs/`. The left sidebar and search index scan those files automatically from their frontmatter.
 
+## Web And Docs Trackers
+
+The web app and docs site can load optional browser trackers at build time. Use the `VITE_NETSTAMP_*` prefix for `web/` and the `PUBLIC_NETSTAMP_*` prefix for `docs/`.
+
+| Suffix                       | Purpose                                                   | Default                             |
+| ---------------------------- | --------------------------------------------------------- | ----------------------------------- |
+| `GA_MEASUREMENT_ID`          | Google Analytics GA4 measurement ID                       | empty                               |
+| `GOOGLE_TAG_ID`              | Generic Google tag ID, used before `GA_MEASUREMENT_ID`    | empty                               |
+| `CLARITY_PROJECT_ID`         | Microsoft Clarity project ID                              | empty                               |
+| `POSTHOG_KEY`                | PostHog project API key                                   | empty                               |
+| `POSTHOG_HOST`               | PostHog API host                                          | `https://us.i.posthog.com`          |
+| `PLAUSIBLE_DOMAIN`           | Plausible site domain                                     | empty                               |
+| `PLAUSIBLE_SCRIPT_URL`       | Plausible script URL for cloud or self-hosted deployments | `https://plausible.io/js/script.js` |
+| `UMAMI_WEBSITE_ID`           | Umami website ID                                          | empty                               |
+| `UMAMI_SCRIPT_URL`           | Umami script URL for cloud or self-hosted deployments     | `https://cloud.umami.is/script.js`  |
+| `TRACKING_CONSENT_MODE`      | `regional`, `always`, or `never` consent gating           | `regional`                          |
+| `TRACKING_CONSENT_COUNTRIES` | Comma-separated ISO country codes that require consent    | EEA, UK, and Switzerland            |
+
+When any tracker ID is set, `regional` mode asks for consent only in configured countries. If the visitor country cannot be resolved, the banner is shown before trackers load. Country resolution checks `window.NETSTAMP_VISITOR_COUNTRY`, `<html data-netstamp-country>`, `<meta name="netstamp-visitor-country">`, then Cloudflare `/cdn-cgi/trace`.
+
 ## Backend And API Assets
 
 Backend source lives in `server/`. The docs API explorer reads `docs/public/openapi.json`, which should be regenerated from the TypeSpec contract when API behavior changes. Non-production backend environments also expose Scalar docs at `/api/v1/docs`; production does not register that runtime docs route or `/api/v1/openapi.json`.

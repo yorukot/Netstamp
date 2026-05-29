@@ -3,6 +3,7 @@ import faviconUrl from "@netstamp/brand/assets/netstamp-favicon.svg?url";
 import "@netstamp/ui/styles";
 import { ClientRouter } from "astro:transitions";
 import TopNav from "../components/docs/TopNav.astro";
+import TrackingConsent from "../components/tracking/TrackingConsent.astro";
 import { absoluteUrl, createPageSeoHead, createSchemaGraph, resolveSiteUrl, type HeadEntry } from "../lib/seo";
 import "../styles/docs.css";
 
@@ -99,5 +100,6 @@ const schemaGraph = createSchemaGraph({ title, description, pageUrl: canonicalUr
 		</script>
 		{nav ? <TopNav /> : null}
 		<slot />
+		<TrackingConsent />
 	</body>
 </html>

@@ -1,0 +1,181 @@
+---
+import { hasEnabledTrackers, normalizeTrackerConfig } from "@netstamp/ui/tracking";
+
+const trackerConfig = normalizeTrackerConfig({
+	googleTagId: import.meta.env.PUBLIC_NETSTAMP_GOOGLE_TAG_ID || import.meta.env.PUBLIC_NETSTAMP_GA_MEASUREMENT_ID,
+	clarityProjectId: import.meta.env.PUBLIC_NETSTAMP_CLARITY_PROJECT_ID,
+	posthogKey: import.meta.env.PUBLIC_NETSTAMP_POSTHOG_KEY,
+	posthogHost: import.meta.env.PUBLIC_NETSTAMP_POSTHOG_HOST,
+	plausibleDomain: import.meta.env.PUBLIC_NETSTAMP_PLAUSIBLE_DOMAIN,
+	plausibleScriptUrl: import.meta.env.PUBLIC_NETSTAMP_PLAUSIBLE_SCRIPT_URL,
+	umamiWebsiteId: import.meta.env.PUBLIC_NETSTAMP_UMAMI_WEBSITE_ID,
+	umamiScriptUrl: import.meta.env.PUBLIC_NETSTAMP_UMAMI_SCRIPT_URL,
+	consentMode: import.meta.env.PUBLIC_NETSTAMP_TRACKING_CONSENT_MODE,
+	consentCountries: import.meta.env.PUBLIC_NETSTAMP_TRACKING_CONSENT_COUNTRIES
+});
+const trackersEnabled = hasEnabledTrackers(trackerConfig);
+const trackerConfigJson = JSON.stringify(trackerConfig).replace(/</g, "\\u003c");
+---
+
+<section class="trackingConsent ns-cut-frame" data-netstamp-tracking-consent data-netstamp-trackers-enabled={trackersEnabled ? "true" : "false"} hidden aria-label="Analytics consent">
+	<div class="trackingConsentCopy">
+		<strong>Analytics consent</strong>
+		<p>Netstamp can load optional analytics to understand product and docs usage. Declining keeps those trackers disabled in this browser.</p>
+	</div>
+	<div class="trackingConsentActions">
+		<button class="ns-cut-frame" type="button" data-netstamp-consent-decline>Decline</button>
+		<button class="ns-cut-frame" type="button" data-netstamp-consent-accept>Accept</button>
+	</div>
+</section>
+<script type="application/json" id="netstamp-tracking-config" set:html={trackerConfigJson} />
+<script>
+	import { bindTrackingPageViews, loadConfiguredTrackers, readTrackingConsent, shouldRequestTrackingConsent, writeTrackingConsent } from "@netstamp/ui/tracking";
+
+	const configElement = document.getElementById("netstamp-tracking-config");
+	const banner = document.querySelector("[data-netstamp-tracking-consent]") as HTMLElement | null;
+	const acceptButton = document.querySelector("[data-netstamp-consent-accept]") as HTMLButtonElement | null;
+	const declineButton = document.querySelector("[data-netstamp-consent-decline]") as HTMLButtonElement | null;
+	const trackerConfig = JSON.parse(configElement?.textContent || "{}");
+
+	async function activateTracking() {
+		await loadConfiguredTrackers(trackerConfig);
+		bindTrackingPageViews(trackerConfig, ["astro:page-load"]);
+	}
+
+	async function syncTrackingConsent() {
+		if (banner?.dataset.netstampTrackersEnabled !== "true") {
+			return;
+		}
+
+		const storedConsent = readTrackingConsent(trackerConfig);
+
+		if (storedConsent === "accepted") {
+			await activateTracking();
+			return;
+		}
+
+		if (storedConsent === "declined") {
+			return;
+		}
+
+		if (await shouldRequestTrackingConsent(trackerConfig)) {
+			banner?.removeAttribute("hidden");
+			return;
+		}
+
+		await activateTracking();
+	}
+
+	acceptButton?.addEventListener("click", () => {
+		writeTrackingConsent(trackerConfig, "accepted");
+		banner?.setAttribute("hidden", "");
+		void activateTracking();
+	});
+
+	declineButton?.addEventListener("click", () => {
+		writeTrackingConsent(trackerConfig, "declined");
+		banner?.setAttribute("hidden", "");
+	});
+
+	void syncTrackingConsent();
+</script>
+<style>
+	.trackingConsent {
+		--ns-frame-cut: var(--ns-cut-md);
+		--ns-frame-color: var(--ns-accent-border);
+		position: fixed;
+		right: max(1rem, env(safe-area-inset-right));
+		bottom: max(1rem, env(safe-area-inset-bottom));
+		z-index: 120;
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto;
+		gap: 1rem;
+		width: min(42rem, calc(100vw - 2rem));
+		padding: 1rem;
+		color: var(--ns-text);
+		background: linear-gradient(135deg, rgba(255, 122, 26, 0.14), transparent 42%), rgba(3, 5, 8, 0.98);
+		box-shadow: var(--ns-shadow-md);
+	}
+
+	.trackingConsent[hidden] {
+		display: none;
+	}
+
+	.trackingConsentCopy {
+		display: grid;
+		gap: 0.35rem;
+		min-width: 0;
+	}
+
+	.trackingConsentCopy strong {
+		color: var(--ns-text);
+		font-family: var(--ns-font-mono);
+		font-size: 0.75rem;
+		font-weight: 900;
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+	}
+
+	.trackingConsentCopy p {
+		margin: 0;
+		color: var(--ns-text-muted);
+		font-size: 0.88rem;
+		line-height: 1.55;
+	}
+
+	.trackingConsentActions {
+		display: flex;
+		align-items: end;
+		justify-content: flex-end;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+	}
+
+	.trackingConsentActions button {
+		--ns-frame-cut: var(--ns-cut-sm);
+		--ns-frame-color: var(--ns-border);
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		min-height: 2rem;
+		padding: 0.375rem 0.75rem;
+		color: var(--ns-text-muted);
+		background: #111318;
+		border: 0;
+		font-family: var(--ns-font-mono);
+		font-size: 0.75rem;
+		font-weight: 800;
+		letter-spacing: 0.06em;
+		line-height: 1;
+		text-transform: uppercase;
+		cursor: pointer;
+	}
+
+	.trackingConsentActions button:last-child {
+		--ns-frame-color: var(--ns-accent);
+		color: var(--ns-text-on-accent);
+		background: var(--ns-accent);
+	}
+
+	.trackingConsentActions button:hover,
+	.trackingConsentActions button:focus-visible {
+		--ns-frame-color: var(--ns-accent-hover);
+		color: var(--ns-text);
+		outline: 2px solid var(--ns-accent);
+		outline-offset: 2px;
+	}
+
+	@media (max-width: 42rem) {
+		.trackingConsent {
+			grid-template-columns: 1fr;
+		}
+
+		.trackingConsentActions {
+			justify-content: stretch;
+		}
+
+		.trackingConsentActions button {
+			flex: 1 1 8rem;
+		}
+	}
+</style>

@@ -3,6 +3,17 @@
 interface ImportMetaEnv {
 	readonly VITE_NETSTAMP_API_BASE_URL?: string;
 	readonly VITE_NETSTAMP_API_PROXY_TARGET?: string;
+	readonly VITE_NETSTAMP_GA_MEASUREMENT_ID?: string;
+	readonly VITE_NETSTAMP_GOOGLE_TAG_ID?: string;
+	readonly VITE_NETSTAMP_CLARITY_PROJECT_ID?: string;
+	readonly VITE_NETSTAMP_POSTHOG_KEY?: string;
+	readonly VITE_NETSTAMP_POSTHOG_HOST?: string;
+	readonly VITE_NETSTAMP_PLAUSIBLE_DOMAIN?: string;
+	readonly VITE_NETSTAMP_PLAUSIBLE_SCRIPT_URL?: string;
+	readonly VITE_NETSTAMP_UMAMI_WEBSITE_ID?: string;
+	readonly VITE_NETSTAMP_UMAMI_SCRIPT_URL?: string;
+	readonly VITE_NETSTAMP_TRACKING_CONSENT_MODE?: "regional" | "always" | "never";
+	readonly VITE_NETSTAMP_TRACKING_CONSENT_COUNTRIES?: string;
 }
 
 interface ImportMeta {

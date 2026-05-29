@@ -5,9 +5,10 @@ import { queryClient } from "@/shared/api/queryClient";
 import { CurrentProjectProvider } from "@/shared/api/useCurrentProject";
 import { ConfirmProvider } from "@/shared/components/ConfirmProvider";
 import { ToastProvider } from "@/shared/components/ToastProvider";
+import { TrackingConsentBanner } from "@/shared/tracking/TrackingConsentBanner";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { lazy, Suspense, type ReactNode } from "react";
-import { createBrowserRouter, Navigate as RouterNavigate, RouterProvider, useLocation, useNavigate } from "react-router-dom";
+import { createBrowserRouter, Outlet, Navigate as RouterNavigate, RouterProvider, useLocation, useNavigate } from "react-router-dom";
 import { pathForRoute } from "./routePaths";
 import type { AppRoute, Navigate } from "./routeTypes";
 
@@ -85,31 +86,45 @@ function ProtectedAppShell() {
 	return <AppShell />;
 }
 
+function RouteFrame() {
+	return (
+		<>
+			<Outlet />
+			<TrackingConsentBanner />
+		</>
+	);
+}
+
 const router = createBrowserRouter([
-	{ path: pathForRoute("landing"), element: <RouterNavigate to={pathForRoute("login")} replace /> },
-	{ path: pathForRoute("login"), element: <AuthRoute mode="login" /> },
-	{ path: pathForRoute("register"), element: <AuthRoute mode="register" /> },
-	{ path: pathForRoute("onboarding"), element: <OnboardingRoute /> },
-	{ path: "/s/:slug", element: lazyRoute(<PublicPage />) },
 	{
-		element: <ProtectedAppShell />,
+		element: <RouteFrame />,
 		children: [
-			{ path: appRoutePath("dashboard"), element: <DashboardRoute /> },
+			{ path: pathForRoute("landing"), element: <RouterNavigate to={pathForRoute("login")} replace /> },
+			{ path: pathForRoute("login"), element: <AuthRoute mode="login" /> },
+			{ path: pathForRoute("register"), element: <AuthRoute mode="register" /> },
+			{ path: pathForRoute("onboarding"), element: <OnboardingRoute /> },
+			{ path: "/s/:slug", element: lazyRoute(<PublicPage />) },
 			{
-				path: appRoutePath("probes"),
-				element: lazyRoute(<ProbesPage />),
-				children: [{ path: "new", element: lazyRoute(<NewProbeDrawer />) }]
+				element: <ProtectedAppShell />,
+				children: [
+					{ path: appRoutePath("dashboard"), element: <DashboardRoute /> },
+					{
+						path: appRoutePath("probes"),
+						element: lazyRoute(<ProbesPage />),
+						children: [{ path: "new", element: lazyRoute(<NewProbeDrawer />) }]
+					},
+					{ path: appRoutePath("labels"), element: lazyRoute(<LabelsPage />) },
+					{ path: appRoutePath("checks"), element: lazyRoute(<ChecksPage />) },
+					{ path: appRoutePath("insight"), element: lazyRoute(<InsightPage />) },
+					{ path: appRoutePath("publicPages"), element: lazyRoute(<PublicPagesPage />) },
+					{ path: "public-pages/:pageId", element: lazyRoute(<PublicPageDetailPage />) },
+					{ path: appRoutePath("project"), element: lazyRoute(<ProjectPage />) },
+					{ path: appRoutePath("settings"), element: lazyRoute(<SettingsPage />) }
+				]
 			},
-			{ path: appRoutePath("labels"), element: lazyRoute(<LabelsPage />) },
-			{ path: appRoutePath("checks"), element: lazyRoute(<ChecksPage />) },
-			{ path: appRoutePath("insight"), element: lazyRoute(<InsightPage />) },
-			{ path: appRoutePath("publicPages"), element: lazyRoute(<PublicPagesPage />) },
-			{ path: "public-pages/:pageId", element: lazyRoute(<PublicPageDetailPage />) },
-			{ path: appRoutePath("project"), element: lazyRoute(<ProjectPage />) },
-			{ path: appRoutePath("settings"), element: lazyRoute(<SettingsPage />) }
+			{ path: "*", element: <RouterNavigate to={pathForRoute("login")} replace /> }
 		]
-	},
-	{ path: "*", element: <RouterNavigate to={pathForRoute("login")} replace /> }
+	}
 ]);
 
 export function AppRouter() {

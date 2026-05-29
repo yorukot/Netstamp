@@ -11,6 +11,10 @@
 			"types": "./dist/components/*.d.ts",
 			"import": "./dist/components/*.js"
 		},
+		"./tracking": {
+			"types": "./dist/tracking/index.d.ts",
+			"import": "./dist/tracking/index.js"
+		},
 		"./styles": "./dist/styles/tokens.css"
 	},
 	"files": [
