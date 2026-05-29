@@ -81,7 +81,7 @@ export function AuthPage({ mode = "login", navigate }: AuthPageProps) {
 				<figcaption className={styles.authCaption}>{caption}</figcaption>
 			</figure>
 
-			<Panel className={styles.authCard} tone="glass" eyebrow="Account" title={isRegister ? "Sign up" : "Log in"}>
+			<Panel className={styles.authCard} tone="glass" title={isRegister ? "Sign up" : "Log in"}>
 				<form className={styles.form} onSubmit={handleSubmit}>
 					{isRegister ? <TextField label="Display Name" name="displayName" type="text" autoComplete="name" /> : null}
 					<TextField
