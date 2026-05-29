@@ -264,6 +264,8 @@ export function NetworkMap({ probes, selectedId, onSelect, mode = "fleet", class
 		const activeMaplibregl = maplibregl;
 
 		function fitFleetBounds() {
+			activeMap.resize();
+
 			const bounds = new activeMaplibregl.LngLatBounds(positionedProbes[0].coordinates, positionedProbes[0].coordinates);
 
 			for (const probe of positionedProbes.slice(1)) {

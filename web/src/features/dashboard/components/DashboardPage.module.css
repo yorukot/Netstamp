@@ -1,21 +1,30 @@
-.mapPanel {
-	display: grid;
+.dashboard {
+	flex: 1 1 auto;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+}
+
+.metrics {
+	display: flex;
+	align-items: stretch;
+	flex-wrap: wrap;
 	gap: 1rem;
 }
 
-.mapCopy {
-	max-width: 54rem;
-	margin: 0;
+.metric {
+	flex: 0 1 16rem;
+	min-width: min(100%, 13.5rem);
 }
 
 .worldMap {
-	height: 32rem;
-	min-height: 24rem;
+	flex: 1 1 22rem;
+	min-height: 22rem;
 }
 
 @media (max-width: 48rem) {
 	.worldMap {
-		height: 24rem;
-		min-height: 20rem;
+		flex-basis: 18rem;
+		min-height: 18rem;
 	}
 }
