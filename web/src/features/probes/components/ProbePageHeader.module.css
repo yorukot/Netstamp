@@ -1,6 +1,6 @@
 .header {
 	display: flex;
-	align-items: flex-start;
+	align-items: flex-end;
 	justify-content: space-between;
 	gap: 1rem;
 	min-width: 0;
@@ -39,7 +39,6 @@
 	top: 0;
 	left: 0;
 	right: 0;
-	align-items: flex-start;
 	padding: 3rem 1.5rem 0;
 	pointer-events: none;
 }

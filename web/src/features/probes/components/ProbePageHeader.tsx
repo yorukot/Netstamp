@@ -26,8 +26,8 @@ export function ProbePageHeader({ view, onViewChange, overlay = false }: ProbePa
 				</div>
 			</div>
 			<div className={styles.primaryActions}>
-				<Button size="sm" asChild>
-					<Link to={pathForRoute("newProbe")}>Create Probe</Link>
+				<Button asChild>
+					<Link to={pathForRoute("newProbe")}>New probe</Link>
 				</Button>
 			</div>
 		</header>
