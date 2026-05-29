@@ -13,6 +13,26 @@ export default defineConfig([
 		languageOptions: {
 			globals: globals.browser,
 			parserOptions: { ecmaFeatures: { jsx: true } }
+		},
+		rules: {
+			"no-restricted-globals": [
+				"error",
+				{ name: "alert", message: "Use pushToast, pushErrorToast, or useAlertDialog instead of browser alert()." },
+				{ name: "confirm", message: "Use useConfirm() instead of browser confirm()." },
+				{ name: "prompt", message: "Use usePromptDialog() instead of browser prompt()." }
+			],
+			"no-restricted-properties": [
+				"error",
+				{ object: "globalThis", property: "alert", message: "Use pushToast, pushErrorToast, or useAlertDialog instead." },
+				{ object: "globalThis", property: "confirm", message: "Use useConfirm() instead." },
+				{ object: "globalThis", property: "prompt", message: "Use usePromptDialog() instead." },
+				{ object: "self", property: "alert", message: "Use pushToast, pushErrorToast, or useAlertDialog instead." },
+				{ object: "self", property: "confirm", message: "Use useConfirm() instead." },
+				{ object: "self", property: "prompt", message: "Use usePromptDialog() instead." },
+				{ object: "window", property: "alert", message: "Use pushToast, pushErrorToast, or useAlertDialog instead." },
+				{ object: "window", property: "confirm", message: "Use useConfirm() instead." },
+				{ object: "window", property: "prompt", message: "Use usePromptDialog() instead." }
+			]
 		}
 	}
 ]);
