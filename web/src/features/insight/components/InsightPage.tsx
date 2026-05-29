@@ -5,7 +5,6 @@ import { FocusChip, InsightTimeControl, SegmentedControl } from "@/features/insi
 import { PingInsightPanel } from "@/features/insight/components/PingInsightPanel";
 import { TcpInsightPanel } from "@/features/insight/components/TcpInsightPanel";
 import { TracerouteInsightPanel } from "@/features/insight/components/TracerouteInsightPanel";
-import { displayInsightTimeRange } from "@/features/insight/insightTime";
 import {
 	type InsightCheckTypeFilter,
 	type InsightGroupBy,
@@ -453,7 +452,6 @@ function InsightPairDetail({
 	isTopologyLoading,
 	selectedRunStartedAt,
 	onSelectRun,
-	timeLabel,
 	onSelectTimeWindow
 }: {
 	pair: InsightPair | null;
@@ -472,7 +470,6 @@ function InsightPairDetail({
 	isTopologyLoading: boolean;
 	selectedRunStartedAt: string;
 	onSelectRun: (startedAt: string) => void;
-	timeLabel: string;
 	onSelectTimeWindow: (timeWindow: TimeWindow) => void;
 }) {
 	if (!pair) {
@@ -480,17 +477,7 @@ function InsightPairDetail({
 	}
 
 	if (pair.check.type === "TCP") {
-		return (
-			<TcpInsightPanel
-				selectedProbe={pair.probe}
-				selectedTarget={pair.check}
-				data={tcpData}
-				isLoading={isTCPLoading}
-				isFetching={isTCPFetching}
-				timeLabel={timeLabel}
-				onSelectTimeWindow={onSelectTimeWindow}
-			/>
-		);
+		return <TcpInsightPanel selectedProbe={pair.probe} selectedTarget={pair.check} data={tcpData} isLoading={isTCPLoading} isFetching={isTCPFetching} onSelectTimeWindow={onSelectTimeWindow} />;
 	}
 
 	return pair.check.type === "Traceroute" ? (
@@ -509,15 +496,7 @@ function InsightPairDetail({
 			onSelectTimeWindow={onSelectTimeWindow}
 		/>
 	) : (
-		<PingInsightPanel
-			selectedProbe={pair.probe}
-			selectedTarget={pair.check}
-			data={pingData}
-			isLoading={isPingLoading}
-			isFetching={isPingFetching}
-			timeLabel={timeLabel}
-			onSelectTimeWindow={onSelectTimeWindow}
-		/>
+		<PingInsightPanel selectedProbe={pair.probe} selectedTarget={pair.check} data={pingData} isLoading={isPingLoading} isFetching={isPingFetching} onSelectTimeWindow={onSelectTimeWindow} />
 	);
 }
 
@@ -928,7 +907,6 @@ export function InsightPage() {
 					next.set("runStartedAt", startedAt);
 				})
 			}
-			timeLabel={displayInsightTimeRange(timeMode, timeRange, timeWindow)}
 			onSelectTimeWindow={applyAbsoluteWindow}
 		/>
 	);

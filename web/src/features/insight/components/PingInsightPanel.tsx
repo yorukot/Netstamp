@@ -16,11 +16,10 @@ interface PingInsightPanelProps {
 	data: PingInsightResponse | undefined;
 	isLoading: boolean;
 	isFetching: boolean;
-	timeLabel: string;
 	onSelectTimeWindow: (timeWindow: { from: number; to: number }) => void;
 }
 
-export function PingInsightPanel({ selectedProbe, selectedTarget, data, isLoading, isFetching, timeLabel, onSelectTimeWindow }: PingInsightPanelProps) {
+export function PingInsightPanel({ selectedProbe, selectedTarget, data, isLoading, isFetching, onSelectTimeWindow }: PingInsightPanelProps) {
 	if (!selectedProbe || !selectedTarget) {
 		return (
 			<Panel tone="deep" title="No ping target selected">

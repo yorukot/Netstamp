@@ -16,11 +16,10 @@ interface TcpInsightPanelProps {
 	data: TcpInsightResponse | undefined;
 	isLoading: boolean;
 	isFetching: boolean;
-	timeLabel: string;
 	onSelectTimeWindow: (timeWindow: { from: number; to: number }) => void;
 }
 
-export function TcpInsightPanel({ selectedProbe, selectedTarget, data, isLoading, isFetching, timeLabel, onSelectTimeWindow }: TcpInsightPanelProps) {
+export function TcpInsightPanel({ selectedProbe, selectedTarget, data, isLoading, isFetching, onSelectTimeWindow }: TcpInsightPanelProps) {
 	if (!selectedProbe || !selectedTarget) {
 		return (
 			<Panel tone="deep" title="No TCP target selected">

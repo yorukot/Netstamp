@@ -4,7 +4,7 @@ import { classNames } from "@/shared/utils/classNames";
 import { formatCount, formatEpochMs } from "@/shared/utils/insightFormatters";
 import { pingChartBuckets, pingSampleDensity, pingSummaryMetrics } from "@/shared/utils/pingInsightData";
 import { publicPageFolderLabel } from "@/shared/utils/publicPageFolders";
-import { formatTimeWindow, isRelativeTimeRange, parseEpochMs, relativeTimeOptions, timeWindowForRelativeRange, type RelativeTimeRange } from "@/shared/utils/timeRanges";
+import { isRelativeTimeRange, parseEpochMs, relativeTimeOptions, timeWindowForRelativeRange, type RelativeTimeRange } from "@/shared/utils/timeRanges";
 import { ChartPanel } from "@/shared/visualizations/ChartPanel";
 import { pingInsightChartOption } from "@/shared/visualizations/chartOptions";
 import { Badge, Button, DataTable, Panel, SelectField, type BadgeTone, type DataColumn } from "@netstamp/ui";
@@ -93,7 +93,6 @@ export function PublicPage() {
 	const requestedRange = searchParams.get("range");
 	const relativeRange: PublicRelativeRange = isRelativeTimeRange(requestedRange) ? requestedRange : "24h";
 	const timeWindow = hasAbsoluteWindow ? { from: rawFrom, to: rawTo } : timeWindowForRelativeRange(relativeRange, nowMs);
-	const timeLabel = hasAbsoluteWindow ? formatTimeWindow(timeWindow.from, timeWindow.to) : (timeOptions.find(option => option.value === relativeRange)?.label ?? "Last 24 hours");
 	const timeSelectValue: TimeSelectValue = hasAbsoluteWindow ? "custom" : relativeRange;
 	const timeSelectOptions = hasAbsoluteWindow ? [...timeOptions, { value: "custom", label: "Custom window" }] : timeOptions;
 	const insightQuery = useQuery({
