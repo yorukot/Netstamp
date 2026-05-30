@@ -1,0 +1,30 @@
+---
+title: 架構
+description: 公開網站、服務應用、API 與共用 UI 套件依部署目標與職責分離。
+icon: route
+head:
+  - tag: title
+    content: 架構 | Netstamp 文件
+---
+
+## 介面
+
+`docs/` 是公開網站與文件介面。它使用 Astro，並輸出可供 GitHub Pages 使用的靜態資產。首頁之所以以 React island 呈現，只是因為它重用了互動式的視覺元件。
+
+`web/` 是服務本身。它使用 React Router，並會把 `/` 重新導向到 `/login`，讓產品的身分驗證與公開網站保持分離。
+
+`packages/ui/` 包含可重用的 React 基礎元件與共用設計 token。像 `GlobalFooter` 這類跨介面的 UI 應放在這裡。
+
+## 請求流程
+
+後端用 chi 在 `/api/{version}` 底下提供 HTTP 路由。公開 API 合約以 TypeSpec 撰寫、輸出成 OpenAPI，並由後端提供給文件的 API 探索器。
+
+```text
+Browser -> web/ React app -> /api/v1/* -> chi -> application service -> PostgreSQL/TimescaleDB
+```
+
+:::warning 不要從 `docs/` 匯入 `web/src`。共用的 React 程式碼應移入 `packages/ui`，而文件專用的 Astro 元件應留在 `docs/src`。:::
+
+## 路由
+
+文件網站擁有 `/`、`/docs/*`、`/openapi/` 與 `/storybook/`。服務應用則擁有 `/login`、`/register`，以及 `/dashboard`、`/probes`、`/settings` 等需驗證的路由。

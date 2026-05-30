@@ -1,0 +1,27 @@
+---
+title: UI 系統
+description: 共用 UI 基礎元件在文件與產品介面間使用相同的深色技術控制台語彙。
+icon: cube
+head:
+  - tag: title
+    content: UI 系統 | Netstamp 文件
+---
+
+## Token
+
+`@netstamp/ui/styles` 定義了字型、顏色、cut-frame 邊框、陰影、捲軸與 page shell 工具類別。在每個應用的根節點或 Astro 版面匯入一次即可。
+
+```ts
+import "@netstamp/ui/styles";
+import { Button, Panel, MetricCard } from "@netstamp/ui";
+```
+
+## 元件
+
+這個套件匯出 `Button`、`Badge`、`Surface`、`Panel`、`MetricCard`、`Field`、`DataTable`、`Terminal`、`SignalAvatar`、`PageShell` 與 `GlobalFooter` 等基礎元件。
+
+:::note Astro 頁面預設維持靜態。只有需要實際 React 元件或首頁瀏覽器特效的頁面才會 hydrate React。:::
+
+## Storybook
+
+元件型錄以 Storybook 建置，並與文件網站一起發佈於 [`/storybook/`](/storybook/)。在本機用 `pnpm --filter @netstamp/ui storybook` 執行。

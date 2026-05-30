@@ -1,0 +1,34 @@
+---
+title: API 探索器
+description: 用自動產生的 OpenAPI 探索器檢視路由，讓文件與後端行為保持一致。
+icon: api
+head:
+  - tag: title
+    content: API 探索器 | Netstamp 文件
+---
+
+## 合約來源
+
+API 探索器會讀取 `docs/public/openapi.json`。這個檔案是從 `api/` 裡的 TypeSpec 合約產生，再複製到後端，讓非正式環境的執行期文件能提供相同的 schema。
+
+```bash
+pnpm generate:openapi
+```
+
+## 使用探索器
+
+從文件導航開啟 [`/openapi/`](/openapi/)。這個頁面會載入產生的合約，並依 TypeSpec 中定義的標籤把操作分組。
+
+在撰寫其他指南之前，用它來確認請求主體、回應 schema 與路由路徑。
+
+後端的非正式環境也會在 `/api/v1/docs` 提供 Scalar API 文件，該頁面從同一個 controller 程序載入 `/api/v1/openapi.json`。正式環境不會註冊任何一個後端執行期文件路由。
+
+## 需驗證的路由
+
+當後端有要求時，需驗證的路由仍需要有效的 session cookie。探索器可以描述請求的形狀，但不會繞過應用程式的身分驗證。
+
+:::warning 不要為了路由變更而手動編輯 `docs/public/openapi.json`。請從 TypeSpec 重新產生，讓文件、web API 型別與執行期 schema 一起保持同步。:::
+
+## 文件更新
+
+當路由有變動時，更新說明使用者可見行為的指南或參考頁面。把實作細節留在後端程式碼，文件則用來說明意圖、流程與範例。

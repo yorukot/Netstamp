@@ -1,0 +1,63 @@
+---
+title: 設定
+description: 文件、web、後端、共用 UI、格式化與產生的 API 資產各自的工作區設定位置。
+icon: wrench
+head:
+  - tag: title
+    content: 設定 | Netstamp 文件
+---
+
+## 工作區檔案
+
+根目錄的 `package.json`、`pnpm-workspace.yaml` 與 `Justfile` 定義了共用的進入點。當變更跨越套件邊界時，優先使用這些指令。
+
+```bash
+pnpm install
+just lint
+just test
+just build
+```
+
+## 文件設定
+
+文件應用位於 `docs/`。Astro 設定在 `docs/astro.config.mjs`，共用的文件樣式則在 `docs/src/styles/docs.css`。
+
+文件頁面是 `docs/src/content/docs/` 底下的 MDX 檔案。左側欄與搜尋索引會自動從這些檔案的 frontmatter 掃描建立。
+
+## Web 與文件的追蹤工具
+
+web 應用與文件網站可在建置時載入選用的瀏覽器追蹤工具。`web/` 使用 `VITE_NETSTAMP_*` 前綴，`docs/` 使用 `PUBLIC_NETSTAMP_*` 前綴。
+
+| 後綴                         | 用途                                          | 預設值                              |
+| ---------------------------- | --------------------------------------------- | ----------------------------------- |
+| `GA_MEASUREMENT_ID`          | Google Analytics GA4 量測 ID                  | 空白                                |
+| `GOOGLE_TAG_ID`              | 通用 Google tag ID，優先於 `GA_MEASUREMENT_ID` | 空白                                |
+| `CLARITY_PROJECT_ID`         | Microsoft Clarity 專案 ID                     | 空白                                |
+| `POSTHOG_KEY`                | PostHog 專案 API key                          | 空白                                |
+| `POSTHOG_HOST`               | PostHog API host                              | `https://us.i.posthog.com`          |
+| `PLAUSIBLE_DOMAIN`           | Plausible 網站網域                            | 空白                                |
+| `PLAUSIBLE_SCRIPT_URL`       | 雲端或自架部署的 Plausible 指令稿 URL         | `https://plausible.io/js/script.js` |
+| `UMAMI_WEBSITE_ID`           | Umami 網站 ID                                 | 空白                                |
+| `UMAMI_SCRIPT_URL`           | 雲端或自架部署的 Umami 指令稿 URL             | `https://cloud.umami.is/script.js`  |
+| `TRACKING_CONSENT_MODE`      | `regional`、`always` 或 `never` 的同意門檻    | `regional`                          |
+| `TRACKING_CONSENT_COUNTRIES` | 需要同意的 ISO 國家代碼，以逗號分隔           | EEA、英國與瑞士                     |
+
+當任何追蹤工具 ID 有設定時，`regional` 模式只會在設定的國家詢問同意。若無法解析訪客所在國家，則會在載入追蹤工具前先顯示橫幅。國家解析會依序檢查 `window.NETSTAMP_VISITOR_COUNTRY`、`<html data-netstamp-country>`、`<meta name="netstamp-visitor-country">`，最後是 Cloudflare 的 `/cdn-cgi/trace`。
+
+## 後端與 API 資產
+
+後端原始碼位於 `server/`。文件的 API 探索器會讀取 `docs/public/openapi.json`，當 API 行為變動時應從 TypeSpec 合約重新產生。非正式環境的後端也會在 `/api/v1/docs` 提供 Scalar 文件；正式環境不會註冊該執行期文件路由或 `/api/v1/openapi.json`。
+
+## 資料庫映像檔
+
+Docker Compose 為 PostgreSQL/TimescaleDB 服務使用 `TIMESCALEDB_IMAGE`，並預設為輕量的 `timescale/timescaledb:latest-pg16` 映像檔。
+
+目前的 migration 只啟用核心的 TimescaleDB。結果序列的降採樣使用 `time_bucket`，因此不需要 TimescaleDB Toolkit 與 DB 端的 `lttb`。若未來的 schema 加入額外的 extension，所選映像檔必須先包含這些 extension 套件，Goose 才能啟用它們。
+
+## 共用 UI
+
+可重用的 React 基礎元件位於 `packages/ui/`，由服務應用與文件共同使用。這些元件的靜態文件透過 Storybook 建置發佈於 `/storybook/`。
+
+## 更新規則
+
+當設定變更影響到本機指令、專案結構或文件行為時，在同一次變更中更新最接近的 `AGENTS.md` 指引。

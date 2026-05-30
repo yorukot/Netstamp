@@ -1,0 +1,38 @@
+---
+title: 部署
+description: 靜態文件建置、產生的 API 合約與 Storybook 輸出如何組裝以供發佈。
+icon: deployment
+head:
+  - tag: title
+    content: 部署 | Netstamp 文件
+---
+
+## 靜態輸出
+
+文件網站是一個會建置到 `docs/dist` 的 Astro 應用。它擁有公開首頁、文件路由、產生的 OpenAPI 探索器與靜態 Storybook 輸出。頁面仍以靜態檔案預先算繪，而 Astro 的 `ClientRouter` 會把站內導航變成類似 SPA 的體驗。
+
+```bash
+pnpm build:docs
+```
+
+## 建置步驟
+
+文件建置會先把共用 UI 的 Storybook 輸出發佈到 `docs/public/storybook`，再執行 `astro build`。Astro 會把該 Storybook 產物連同其餘靜態網站一起複製到 `docs/dist/storybook`。
+
+如此能讓 API 參考、文件頁面與元件範例都在同一個可部署的產物中。
+
+當後端路由變動時，另外重新產生 OpenAPI 合約：
+
+```bash
+pnpm generate:openapi
+```
+
+## 路由歸屬
+
+文件介面擁有 `/`、`/docs/*`、`/openapi/` 與 `/storybook/`。服務應用則擁有 `/login`、`/register` 等產品路由，以及需驗證的 dashboard 路徑。
+
+:::note 部署文件請聚焦於路由歸屬與產生的產物。執行期的服務部署細節應放在後端與基礎設施設定旁邊。:::
+
+## 驗證
+
+在發佈會動到 MDX、導航、共用 UI Storybook 輸出或 Astro 版面程式碼的變更前，先跑一次文件建置。當後端 API 路由或 schema 變動時，在該建置之前先執行 `pnpm generate:openapi`。
