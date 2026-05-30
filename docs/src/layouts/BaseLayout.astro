@@ -4,6 +4,8 @@ import "@netstamp/ui/styles";
 import { ClientRouter } from "astro:transitions";
 import TopNav from "../components/docs/TopNav.astro";
 import TrackingConsent from "../components/tracking/TrackingConsent.astro";
+import type { LocaleAlternate } from "../data/docs";
+import { defaultLocale, localeDir, localeHtmlLang, localeOpenGraph, type Locale } from "../i18n/config";
 import { absoluteUrl, createPageSeoHead, createSchemaGraph, resolveSiteUrl, type HeadEntry } from "../lib/seo";
 import "../styles/docs.css";
 
@@ -17,6 +19,8 @@ interface Props {
 	ogType?: "article" | "website";
 	noindex?: boolean;
 	schema?: Record<string, unknown>[];
+	locale?: Locale;
+	localeAlternates?: LocaleAlternate[];
 }
 
 const {
@@ -28,18 +32,31 @@ const {
 	canonicalPath,
 	ogType = "website",
 	noindex = false,
-	schema = []
+	schema = [],
+	locale = defaultLocale,
+	localeAlternates = []
 } = Astro.props;
 const siteUrl = resolveSiteUrl(Astro.site);
 const canonicalUrl = absoluteUrl(canonicalPath ?? Astro.url.pathname, siteUrl);
 const imageUrl = absoluteUrl("/og.png", siteUrl);
 const absoluteLogoUrl = absoluteUrl("/brand/netstamp-logo-light.svg", siteUrl);
-const seoHead = createPageSeoHead({ title, description, canonicalUrl, imageUrl, ogType, noindex });
+const seoHead = createPageSeoHead({ title, description, canonicalUrl, imageUrl, ogType, noindex, ogLocale: localeOpenGraph[locale] });
 const schemaGraph = createSchemaGraph({ title, description, pageUrl: canonicalUrl, siteUrl, logoUrl: absoluteLogoUrl, imageUrl, schemas: schema });
+const translatedAlternates = localeAlternates.filter(alternate => alternate.available);
+const defaultAlternateHref = localeAlternates.find(alternate => alternate.locale === defaultLocale)?.href ?? canonicalPath ?? Astro.url.pathname;
+const hreflangHead: HeadEntry[] = translatedAlternates.length
+	? [
+			...translatedAlternates.map(alternate => ({
+				tag: "link",
+				attrs: { rel: "alternate", hreflang: localeHtmlLang[alternate.locale], href: absoluteUrl(alternate.href, siteUrl) }
+			})),
+			{ tag: "link", attrs: { rel: "alternate", hreflang: "x-default", href: absoluteUrl(defaultAlternateHref, siteUrl) } }
+		]
+	: [];
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang={localeHtmlLang[locale]} dir={localeDir[locale]}>
 	<head>
 		<meta charset="utf-8" />
 		<link rel="icon" type="image/svg+xml" href={faviconUrl} />
@@ -53,6 +70,12 @@ const schemaGraph = createSchemaGraph({ title, description, pageUrl: canonicalUr
 			})
 		}
 		<script type="application/ld+json" set:html={JSON.stringify(schemaGraph)} />
+		{
+			hreflangHead.map(entry => {
+				const HeadTag = entry.tag;
+				return <HeadTag {...entry.attrs} />;
+			})
+		}
 		<ClientRouter />
 		{
 			head.map(entry => {
@@ -98,7 +121,7 @@ const schemaGraph = createSchemaGraph({ title, description, pageUrl: canonicalUr
 			import "@phosphor-icons/webcomponents/PhWarning";
 			import "@phosphor-icons/webcomponents/PhWrench";
 		</script>
-		{nav ? <TopNav /> : null}
+		{nav ? <TopNav locale={locale} localeAlternates={localeAlternates} /> : null}
 		<slot />
 		<TrackingConsent />
 	</body>

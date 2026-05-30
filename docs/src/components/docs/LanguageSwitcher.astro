@@ -1,0 +1,34 @@
+---
+import type { LocaleAlternate } from "../../data/docs";
+import { localeHtmlLang, localeNames, localeShortLabel, type Locale } from "../../i18n/config";
+
+interface Props {
+	locale: Locale;
+	alternates: LocaleAlternate[];
+	label: string;
+}
+
+const { locale, alternates, label } = Astro.props;
+---
+
+{
+	alternates.length > 1 && (
+		<div class="langSwitch" role="group" aria-label={label}>
+			{alternates.map(alternate => {
+				const isActive = alternate.locale === locale;
+
+				return (
+					<a
+						href={alternate.href}
+						class:list={["langSwitchOption", isActive && "active", !alternate.available && "fallback"]}
+						aria-current={isActive ? "true" : undefined}
+						hreflang={localeHtmlLang[alternate.locale]}
+						title={localeNames[alternate.locale]}
+					>
+						{localeShortLabel[alternate.locale]}
+					</a>
+				);
+			})}
+		</div>
+	)
+}

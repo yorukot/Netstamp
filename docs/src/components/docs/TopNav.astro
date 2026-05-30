@@ -1,9 +1,21 @@
 ---
 import netstampLogo from "@netstamp/brand/assets/netstamp-logo-light.svg?url";
+import type { LocaleAlternate } from "../../data/docs";
+import { defaultLocale, docsBasePath, getUiStrings, type Locale } from "../../i18n/config";
 import Icon from "../icons/Icon.astro";
+import LanguageSwitcher from "./LanguageSwitcher.astro";
+
+interface Props {
+	locale?: Locale;
+	localeAlternates?: LocaleAlternate[];
+}
+
+const { locale = defaultLocale, localeAlternates = [] } = Astro.props;
+const strings = getUiStrings(locale);
+const docsHref = `${docsBasePath(locale)}/`;
 
 const pathname = Astro.url.pathname;
-const isDocs = pathname.startsWith("/docs");
+const isDocs = pathname === docsHref || pathname.startsWith(`${docsBasePath(locale)}/`);
 const isOpenAPI = pathname.startsWith("/openapi");
 const isComponents = pathname.startsWith("/storybook") || pathname.startsWith("/components");
 ---
@@ -14,9 +26,9 @@ const isComponents = pathname.startsWith("/storybook") || pathname.startsWith("/
 			<img src={netstampLogo} alt="Netstamp" />
 		</a>
 		<div class="siteNavLinks" aria-label="Docs sections">
-			<a href="/docs/" class:list={["siteNavLink", isDocs && "active"]}>
+			<a href={docsHref} class:list={["siteNavLink", isDocs && "active"]}>
 				<Icon name="book" size={16} />
-				<span>Docs</span>
+				<span>{strings.docs}</span>
 			</a>
 			<a href="/openapi/" class:list={["siteNavLink", isOpenAPI && "active"]}>
 				<Icon name="server" size={16} />
@@ -29,10 +41,11 @@ const isComponents = pathname.startsWith("/storybook") || pathname.startsWith("/
 		</div>
 	</div>
 	<div class="siteNavActions">
+		<LanguageSwitcher locale={locale} alternates={localeAlternates} label={strings.language} />
 		<a href="https://github.com/yorukot/netstamp" class="siteNavLink" target="_blank" rel="noreferrer">
 			<Icon name="github" size={16} />
 			<span>GitHub</span>
 		</a>
-		<a href="/login" class="siteNavSignIn ns-cut-frame">Sign in</a>
+		<a href="/login" class="siteNavSignIn ns-cut-frame">{strings.signIn}</a>
 	</div>
 </nav>

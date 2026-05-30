@@ -1,15 +1,17 @@
 ---
 import { render } from "astro:content";
 import { Terminal } from "@netstamp/ui";
-import { getDocRoutes, type ResolvedDoc } from "../../data/docs";
-import { defaultLocale } from "../../i18n/config";
-import DocLayout from "../../layouts/DocLayout.astro";
+import { getIndexDoc, type ResolvedDoc } from "../../../data/docs";
+import { prefixedLocales } from "../../../i18n/config";
+import DocLayout from "../../../layouts/DocLayout.astro";
 
 export async function getStaticPaths() {
-	return getDocRoutes(defaultLocale).map(doc => ({
-		params: { slug: doc.slug },
-		props: { doc }
-	}));
+	return prefixedLocales
+		.map(locale => {
+			const doc = getIndexDoc(locale);
+			return doc ? { params: { locale }, props: { doc } } : null;
+		})
+		.filter((route): route is { params: { locale: string }; props: { doc: ResolvedDoc } } => Boolean(route));
 }
 
 const { doc } = Astro.props as { doc: ResolvedDoc };

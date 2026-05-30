@@ -1,11 +1,18 @@
 ---
-import { docsSearchIndex } from "../../data/docs";
+import { getDocsSearchIndex } from "../../data/docs";
+import { defaultLocale, getUiStrings, type Locale } from "../../i18n/config";
 import Icon from "../icons/Icon.astro";
 
-const dataJson = JSON.stringify(docsSearchIndex);
+interface Props {
+	locale?: Locale;
+}
+
+const { locale = defaultLocale } = Astro.props;
+const strings = getUiStrings(locale);
+const dataJson = JSON.stringify(getDocsSearchIndex(locale));
 ---
 
-<div class="docsSearch" data-docs-search data-search-index={dataJson}>
+<div class="docsSearch" data-docs-search data-search-index={dataJson} data-search-empty={strings.searchEmpty}>
 	<button class="docsSearchTrigger" type="button" data-search-open aria-haspopup="dialog" aria-controls="docs-search-dialog">
 		<span class="docsSearchTriggerLabel">
 			<Icon name="search" size={16} />
@@ -14,16 +21,16 @@ const dataJson = JSON.stringify(docsSearchIndex);
 	</button>
 
 	<div class="docsSearchOverlay" id="docs-search-dialog" data-search-dialog hidden>
-		<button class="docsSearchScrim" type="button" aria-label="Close search" data-search-close></button>
+		<button class="docsSearchScrim" type="button" aria-label={strings.searchClose} data-search-close></button>
 		<div class="docsSearchPanel" role="dialog" aria-modal="true" aria-labelledby="docs-search-title">
 			<header class="docsSearchHeader">
 				<div class="docsSearchTitle" id="docs-search-title">
 					<Icon name="search" size={16} />
-					<span>Search docs</span>
+					<span>{strings.searchTitle}</span>
 				</div>
-				<button class="docsSearchClose" type="button" data-search-close>Close</button>
+				<button class="docsSearchClose" type="button" data-search-close>{strings.searchClose}</button>
 			</header>
-			<input id="docs-search-input" type="search" autocomplete="off" placeholder="Search documentation" data-search-input />
+			<input id="docs-search-input" type="search" autocomplete="off" placeholder={strings.searchPlaceholder} data-search-input />
 			<div class="docsSearchResults" data-search-results hidden></div>
 		</div>
 	</div>
@@ -45,6 +52,7 @@ const dataJson = JSON.stringify(docsSearchIndex);
 		const input = root.querySelector("[data-search-input]");
 		const results = root.querySelector("[data-search-results]");
 		const closeButtons = root.querySelectorAll("[data-search-close]");
+		const emptyLabel = root.dataset.searchEmpty ?? "No matches";
 		const entries = JSON.parse(root.dataset.searchIndex ?? "[]");
 		const fuse = new Fuse(entries, {
 			keys: ["title", "description", "keywords", "content"],
@@ -112,7 +120,7 @@ const dataJson = JSON.stringify(docsSearchIndex);
 			if (!matches.length) {
 				const empty = document.createElement("div");
 				empty.className = "docsSearchEmpty";
-				empty.textContent = "No matches";
+				empty.textContent = emptyLabel;
 				results.append(empty);
 				(results as HTMLElement).hidden = false;
 				return;

@@ -11,6 +11,7 @@ interface PageSeoOptions {
 	imageUrl: string;
 	ogType?: "article" | "website";
 	noindex?: boolean;
+	ogLocale?: string;
 }
 
 interface SchemaGraphOptions {
@@ -44,7 +45,7 @@ export function absoluteUrl(pathOrUrl: string, siteUrl = fallbackSiteUrl) {
 	return new URL(relativePath, baseUrl).toString();
 }
 
-export function createPageSeoHead({ title, description, canonicalUrl, imageUrl, ogType = "website", noindex = false }: PageSeoOptions): HeadEntry[] {
+export function createPageSeoHead({ title, description, canonicalUrl, imageUrl, ogType = "website", noindex = false, ogLocale = "en_US" }: PageSeoOptions): HeadEntry[] {
 	const robots = noindex ? "noindex,nofollow,noarchive" : "index,follow,max-image-preview:large";
 
 	return [
@@ -63,7 +64,7 @@ export function createPageSeoHead({ title, description, canonicalUrl, imageUrl, 
 		{ tag: "meta", attrs: { property: "og:image:width", content: "1200" } },
 		{ tag: "meta", attrs: { property: "og:image:height", content: "600" } },
 		{ tag: "meta", attrs: { property: "og:image:alt", content: "Netstamp network observability map preview" } },
-		{ tag: "meta", attrs: { property: "og:locale", content: "en_US" } },
+		{ tag: "meta", attrs: { property: "og:locale", content: ogLocale } },
 		{ tag: "meta", attrs: { name: "twitter:card", content: "summary_large_image" } },
 		{ tag: "meta", attrs: { name: "twitter:title", content: title } },
 		{ tag: "meta", attrs: { name: "twitter:description", content: description } },

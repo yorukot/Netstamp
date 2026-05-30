@@ -1,4 +1,5 @@
-import { docsPages } from "../data/docs";
+import { getDocsPages } from "../data/docs";
+import { locales } from "../i18n/config";
 import { absoluteUrl, resolveSiteUrl } from "../lib/seo";
 
 export const prerender = true;
@@ -35,9 +36,11 @@ export function GET({ site }: { site?: URL }) {
 		routes.set(route.path, route);
 	}
 
-	for (const page of docsPages) {
-		if (!routes.has(page.href)) {
-			routes.set(page.href, routeForDoc(page.href));
+	for (const locale of locales) {
+		for (const page of getDocsPages(locale)) {
+			if (!routes.has(page.href)) {
+				routes.set(page.href, routeForDoc(page.href));
+			}
 		}
 	}
 

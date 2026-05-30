@@ -1,16 +1,20 @@
 ---
 import { render } from "astro:content";
 import { Terminal } from "@netstamp/ui";
-import { getIndexDoc } from "../../data/docs";
-import { defaultLocale } from "../../i18n/config";
-import DocLayout from "../../layouts/DocLayout.astro";
+import { getDocRoutes, type ResolvedDoc } from "../../../data/docs";
+import { prefixedLocales } from "../../../i18n/config";
+import DocLayout from "../../../layouts/DocLayout.astro";
 
-const doc = getIndexDoc(defaultLocale);
-
-if (!doc) {
-	throw new Error("Missing docs index content entry.");
+export async function getStaticPaths() {
+	return prefixedLocales.flatMap(locale =>
+		getDocRoutes(locale).map(doc => ({
+			params: { locale, slug: doc.slug },
+			props: { doc }
+		}))
+	);
 }
 
+const { doc } = Astro.props as { doc: ResolvedDoc };
 const { Content, headings } = await render(doc.entry);
 ---
 

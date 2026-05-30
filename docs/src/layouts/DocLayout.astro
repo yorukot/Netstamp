@@ -1,7 +1,8 @@
 ---
 import Icon from "../components/icons/Icon.astro";
 import SearchBox from "../components/docs/SearchBox.astro";
-import { docsNav, docsPages, githubBaseUrl } from "../data/docs";
+import { getDocsNav, getDocsPages, getLocaleAlternates, githubBaseUrl } from "../data/docs";
+import { defaultLocale, docsBasePath, getUiStrings, type Locale } from "../i18n/config";
 import { absoluteUrl, createBreadcrumbSchema, createTechArticleSchema, resolveSiteUrl, type HeadEntry } from "../lib/seo";
 import BaseLayout from "./BaseLayout.astro";
 
@@ -17,6 +18,9 @@ interface Props {
 	headings?: Heading[];
 	editPath?: string;
 	head?: HeadEntry[];
+	locale?: Locale;
+	logicalPath?: string;
+	isFallback?: boolean;
 	frontmatter?: {
 		title?: string;
 		description?: string;
@@ -26,7 +30,10 @@ interface Props {
 }
 
 const frontmatter = Astro.props.frontmatter ?? {};
-const title = Astro.props.title ?? frontmatter.title ?? "Docs";
+const locale = Astro.props.locale ?? defaultLocale;
+const strings = getUiStrings(locale);
+const docsHome = `${docsBasePath(locale)}/`;
+const title = Astro.props.title ?? frontmatter.title ?? strings.docs;
 const description = Astro.props.description ?? frontmatter.description ?? "Netstamp documentation.";
 const head = Astro.props.head ?? frontmatter.head ?? [];
 const browserTitle = head.find(entry => entry.tag === "title")?.content ?? `${title} - Netstamp Docs`;
@@ -34,47 +41,63 @@ const extraHead = head.filter(entry => entry.tag !== "title");
 const markdownHeadings = Astro.props.headings?.filter((heading): heading is Heading => heading.depth === 2 || heading.depth === 3) ?? [];
 const headings = markdownHeadings;
 const pathname = Astro.url.pathname.endsWith("/") ? Astro.url.pathname : `${Astro.url.pathname}/`;
+const docsPages = getDocsPages(locale);
+const docsNav = getDocsNav(locale);
 const currentPageIndex = docsPages.findIndex(page => page.href === pathname);
 const currentPage = currentPageIndex >= 0 ? docsPages[currentPageIndex] : undefined;
+const logicalPath = Astro.props.logicalPath ?? currentPage?.logicalPath ?? "index";
+const isFallback = Astro.props.isFallback ?? (currentPage ? !currentPage.translated : false);
 const previousPage = currentPageIndex > 0 ? docsPages[currentPageIndex - 1] : undefined;
 const nextPage = currentPageIndex >= 0 && currentPageIndex < docsPages.length - 1 ? docsPages[currentPageIndex + 1] : undefined;
 const editPath = Astro.props.editPath ?? frontmatter.editPath ?? currentPage?.editPath ?? Astro.url.pathname;
 const editUrl = `${githubBaseUrl}/${editPath}`;
+const localeAlternates = getLocaleAlternates(logicalPath);
 const siteUrl = resolveSiteUrl(Astro.site);
 const pageUrl = absoluteUrl(pathname, siteUrl);
 const breadcrumbs =
-	pathname === "/docs/"
+	pathname === docsHome
 		? [
 				{ name: "Netstamp", url: siteUrl },
-				{ name: "Docs", url: pageUrl }
+				{ name: strings.docs, url: pageUrl }
 			]
 		: [
 				{ name: "Netstamp", url: siteUrl },
-				{ name: "Docs", url: absoluteUrl("/docs/", siteUrl) },
+				{ name: strings.docs, url: absoluteUrl(docsHome, siteUrl) },
 				{ name: title, url: pageUrl }
 			];
 const schema = [createBreadcrumbSchema(breadcrumbs), createTechArticleSchema(siteUrl, pageUrl, title, description)];
 
 function isActiveNavItem(href: string) {
-	return pathname === href || (href !== "/docs/" && pathname.startsWith(href));
+	return pathname === href || (href !== docsHome && pathname.startsWith(href));
 }
 
 const navGroups = docsNav.map(group => ({
 	...group,
-	id: group.title.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+	id: group.key.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
 	active: group.items.some(item => isActiveNavItem(item.href)),
 	items: group.items.map(item => ({ ...item, active: isActiveNavItem(item.href) }))
 }));
 ---
 
-<BaseLayout title={browserTitle} description={description} head={extraHead} canonicalPath={pathname} ogType="article" schema={schema}>
+<BaseLayout title={browserTitle} description={description} head={extraHead} canonicalPath={pathname} ogType="article" schema={schema} locale={locale} localeAlternates={localeAlternates}>
 	<div class="docsShell" data-docs-shell>
 		<aside class="docsSidebar" aria-label="Documentation navigation">
 			<div class="docsSidebarHeader">
-				<SearchBox />
-				<button class="docsSidebarFold" type="button" data-docs-sidebar-toggle aria-label="Fold documentation sidebar" aria-pressed="false" title="Fold sidebar">
+				<SearchBox locale={locale} />
+				<button
+					class="docsSidebarFold"
+					type="button"
+					data-docs-sidebar-toggle
+					aria-label={strings.foldSidebar}
+					aria-pressed="false"
+					title={strings.foldSidebar}
+					data-fold-aria={strings.foldSidebar}
+					data-expand-aria={strings.expandSidebar}
+					data-fold-label={strings.foldLabel}
+					data-expand-label={strings.expandLabel}
+				>
 					<Icon name="sidebar" size={18} />
-					<span data-sidebar-toggle-label>Fold</span>
+					<span data-sidebar-toggle-label>{strings.foldLabel}</span>
 				</button>
 			</div>
 			<nav class="docsNavTree">
@@ -118,6 +141,16 @@ const navGroups = docsNav.map(group => ({
 				<h1>{title}</h1>
 				<p>{description}</p>
 			</header>
+			{
+				isFallback && (
+					<aside class="callout callout-note docFallbackNotice">
+						<p class="docFallbackNoticeText">
+							<Icon name="note" size={16} />
+							<span>{strings.fallbackNotice}</span>
+						</p>
+					</aside>
+				)
+			}
 			<article class="docProse">
 				<slot />
 			</article>
@@ -128,7 +161,7 @@ const navGroups = docsNav.map(group => ({
 							<a class="docPagerLink previous" href={previousPage.href}>
 								<Icon name="arrowLeft" size={18} />
 								<span>
-									<small>Previous</small>
+									<small>{strings.previous}</small>
 									<strong>{previousPage.title}</strong>
 								</span>
 							</a>
@@ -136,8 +169,8 @@ const navGroups = docsNav.map(group => ({
 							<span class="docPagerLink previous disabled" aria-disabled="true">
 								<Icon name="arrowLeft" size={18} />
 								<span>
-									<small>Previous</small>
-									<strong>No previous page</strong>
+									<small>{strings.previous}</small>
+									<strong>{strings.noPreviousPage}</strong>
 								</span>
 							</span>
 						)
@@ -146,7 +179,7 @@ const navGroups = docsNav.map(group => ({
 						nextPage ? (
 							<a class="docPagerLink next" href={nextPage.href}>
 								<span>
-									<small>Next</small>
+									<small>{strings.next}</small>
 									<strong>{nextPage.title}</strong>
 								</span>
 								<Icon name="arrowRight" size={18} />
@@ -154,8 +187,8 @@ const navGroups = docsNav.map(group => ({
 						) : (
 							<span class="docPagerLink next disabled" aria-disabled="true">
 								<span>
-									<small>Next</small>
-									<strong>No next page</strong>
+									<small>{strings.next}</small>
+									<strong>{strings.noNextPage}</strong>
 								</span>
 								<Icon name="arrowRight" size={18} />
 							</span>
@@ -164,7 +197,7 @@ const navGroups = docsNav.map(group => ({
 				</nav>
 				<a class="editLink" href={editUrl} target="_blank" rel="noreferrer">
 					<Icon name="edit" size={16} />
-					Edit on GitHub
+					{strings.editOnGithub}
 				</a>
 			</footer>
 		</main>
@@ -173,7 +206,7 @@ const navGroups = docsNav.map(group => ({
 			<div class="docsTocInner">
 				<div class="docsTocTitle">
 					<Icon name="toc" size={16} />
-					<span>On This Page</span>
+					<span>{strings.onThisPage}</span>
 				</div>
 				{
 					headings.length ? (
@@ -185,7 +218,7 @@ const navGroups = docsNav.map(group => ({
 							))}
 						</nav>
 					) : (
-						<p>No headings</p>
+						<p>{strings.noHeadings}</p>
 					)
 				}
 			</div>
@@ -222,12 +255,17 @@ const navGroups = docsNav.map(group => ({
 			const sidebarToggle = document.querySelector("[data-docs-sidebar-toggle]");
 			const sidebarToggleLabel = sidebarToggle?.querySelector("[data-sidebar-toggle-label]");
 
+			const foldAria = sidebarToggle?.getAttribute("data-fold-aria") ?? "Fold documentation sidebar";
+			const expandAria = sidebarToggle?.getAttribute("data-expand-aria") ?? "Expand documentation sidebar";
+			const foldLabel = sidebarToggle?.getAttribute("data-fold-label") ?? "Fold";
+			const expandLabel = sidebarToggle?.getAttribute("data-expand-label") ?? "Expand";
+
 			function setSidebarFolded(folded: boolean) {
 				sidebarShell.classList.toggle("sidebarFolded", folded);
 				sidebarToggle?.setAttribute("aria-pressed", String(folded));
-				sidebarToggle?.setAttribute("aria-label", folded ? "Expand documentation sidebar" : "Fold documentation sidebar");
-				sidebarToggle?.setAttribute("title", folded ? "Expand sidebar" : "Fold sidebar");
-				if (sidebarToggleLabel) sidebarToggleLabel.textContent = folded ? "Expand" : "Fold";
+				sidebarToggle?.setAttribute("aria-label", folded ? expandAria : foldAria);
+				sidebarToggle?.setAttribute("title", folded ? expandAria : foldAria);
+				if (sidebarToggleLabel) sidebarToggleLabel.textContent = folded ? expandLabel : foldLabel;
 				writeSidebarState(folded);
 			}
 
