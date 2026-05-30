@@ -28,19 +28,19 @@ just build
 
 web 應用與文件網站可在建置時載入選用的瀏覽器追蹤工具。`web/` 使用 `VITE_NETSTAMP_*` 前綴，`docs/` 使用 `PUBLIC_NETSTAMP_*` 前綴。
 
-| 後綴                         | 用途                                          | 預設值                              |
-| ---------------------------- | --------------------------------------------- | ----------------------------------- |
-| `GA_MEASUREMENT_ID`          | Google Analytics GA4 量測 ID                  | 空白                                |
+| 後綴                         | 用途                                           | 預設值                              |
+| ---------------------------- | ---------------------------------------------- | ----------------------------------- |
+| `GA_MEASUREMENT_ID`          | Google Analytics GA4 量測 ID                   | 空白                                |
 | `GOOGLE_TAG_ID`              | 通用 Google tag ID，優先於 `GA_MEASUREMENT_ID` | 空白                                |
-| `CLARITY_PROJECT_ID`         | Microsoft Clarity 專案 ID                     | 空白                                |
-| `POSTHOG_KEY`                | PostHog 專案 API key                          | 空白                                |
-| `POSTHOG_HOST`               | PostHog API host                              | `https://us.i.posthog.com`          |
-| `PLAUSIBLE_DOMAIN`           | Plausible 網站網域                            | 空白                                |
-| `PLAUSIBLE_SCRIPT_URL`       | 雲端或自架部署的 Plausible 指令稿 URL         | `https://plausible.io/js/script.js` |
-| `UMAMI_WEBSITE_ID`           | Umami 網站 ID                                 | 空白                                |
-| `UMAMI_SCRIPT_URL`           | 雲端或自架部署的 Umami 指令稿 URL             | `https://cloud.umami.is/script.js`  |
-| `TRACKING_CONSENT_MODE`      | `regional`、`always` 或 `never` 的同意門檻    | `regional`                          |
-| `TRACKING_CONSENT_COUNTRIES` | 需要同意的 ISO 國家代碼，以逗號分隔           | EEA、英國與瑞士                     |
+| `CLARITY_PROJECT_ID`         | Microsoft Clarity 專案 ID                      | 空白                                |
+| `POSTHOG_KEY`                | PostHog 專案 API key                           | 空白                                |
+| `POSTHOG_HOST`               | PostHog API host                               | `https://us.i.posthog.com`          |
+| `PLAUSIBLE_DOMAIN`           | Plausible 網站網域                             | 空白                                |
+| `PLAUSIBLE_SCRIPT_URL`       | 雲端或自架部署的 Plausible 指令稿 URL          | `https://plausible.io/js/script.js` |
+| `UMAMI_WEBSITE_ID`           | Umami 網站 ID                                  | 空白                                |
+| `UMAMI_SCRIPT_URL`           | 雲端或自架部署的 Umami 指令稿 URL              | `https://cloud.umami.is/script.js`  |
+| `TRACKING_CONSENT_MODE`      | `regional`、`always` 或 `never` 的同意門檻     | `regional`                          |
+| `TRACKING_CONSENT_COUNTRIES` | 需要同意的 ISO 國家代碼，以逗號分隔            | EEA、英國與瑞士                     |
 
 當任何追蹤工具 ID 有設定時，`regional` 模式只會在設定的國家詢問同意。若無法解析訪客所在國家，則會在載入追蹤工具前先顯示橫幅。國家解析會依序檢查 `window.NETSTAMP_VISITOR_COUNTRY`、`<html data-netstamp-country>`、`<meta name="netstamp-visitor-country">`，最後是 Cloudflare 的 `/cdn-cgi/trace`。
 
