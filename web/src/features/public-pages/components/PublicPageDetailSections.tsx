@@ -1,8 +1,8 @@
+import { PUBLIC_PAGE_SLUG_HELPER, sanitizePublicPageSlug } from "@/features/public-pages/publicPageSlug";
 import type { ApiCheck, ApiPublicPage, ApiPublicPageFolder } from "@/shared/api/types";
 import { publicPageFolderLabel } from "@/shared/utils/publicPageFolders";
 import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
 import { Button, Checkbox, SelectField, TextAreaField, TextField } from "@netstamp/ui";
-import { PUBLIC_PAGE_SLUG_HELPER, sanitizePublicPageSlug } from "../publicPageSlug";
 import styles from "./PublicPageDetailPage.module.css";
 
 export interface PageDraft {

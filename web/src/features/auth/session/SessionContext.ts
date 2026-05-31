@@ -1,5 +1,5 @@
+import type { AuthCredentials, ProjectDraft, RegisterPayload, SessionSnapshot } from "@/features/auth/services/authService";
 import { createContext, useContext } from "react";
-import type { AuthCredentials, ProjectDraft, RegisterPayload, SessionSnapshot } from "../services/authService";
 
 export interface SessionContextValue {
 	session: SessionSnapshot | null;

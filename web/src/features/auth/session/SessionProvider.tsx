@@ -1,8 +1,8 @@
+import { type AuthCredentials, type ProjectDraft, type RegisterPayload, createSessionSnapshot, mapApiUser, mapProject } from "@/features/auth/services/authService";
 import { useCreateProjectMutation, useLoginMutation, useLogoutMutation, useRegisterMutation } from "@/shared/api/mutations";
 import { authQueries } from "@/shared/api/queries";
 import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-import { type AuthCredentials, type ProjectDraft, type RegisterPayload, createSessionSnapshot, mapApiUser, mapProject } from "../services/authService";
 import { SessionContext } from "./SessionContext";
 
 interface SessionProviderProps {

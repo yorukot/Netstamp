@@ -1,12 +1,12 @@
+import { useAuth } from "@/features/auth/hooks/useAuth";
 import { pathForRoute } from "@/routes/routePaths";
 import type { Navigate } from "@/routes/routeTypes";
+import taiwanSubmarineCablesMap from "@/shared/assets/taiwan_submarine_cables.svg?url";
 import { pushErrorToast } from "@/shared/toast/toastStore";
 import { Button, PageShell, Panel, TextField } from "@netstamp/ui";
 import { useState, type FormEvent } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
-import taiwanSubmarineCablesMap from "../../../../../docs/src/assets/taiwan_submarine_cables.svg?url";
-import { useAuth } from "../hooks/useAuth";
 import styles from "./AuthPage.module.css";
 
 const AUTH_CAPTIONS = [

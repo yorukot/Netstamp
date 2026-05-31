@@ -1,4 +1,5 @@
 import { useSession } from "@/features/auth/session/SessionContext";
+import { isValidPublicPageSlug } from "@/features/public-pages/publicPageSlug";
 import {
 	useCreateProjectPublicPageFolderMutation,
 	useDeleteProjectPublicPageFolderMutation,
@@ -21,7 +22,6 @@ import { Button, Panel } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { isValidPublicPageSlug } from "../publicPageSlug";
 import styles from "./PublicPageDetailPage.module.css";
 import { PublicPageChecksSection, PublicPageFoldersSection, PublicPageSettingsSection, type FolderDraft, type FolderEditDraft, type PageDraft } from "./PublicPageDetailSections";
 

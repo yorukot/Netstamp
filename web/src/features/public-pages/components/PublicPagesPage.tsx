@@ -1,4 +1,5 @@
 import { useSession } from "@/features/auth/session/SessionContext";
+import { isValidPublicPageSlug, PUBLIC_PAGE_SLUG_HELPER, sanitizePublicPageSlug } from "@/features/public-pages/publicPageSlug";
 import { useCreateProjectPublicPageMutation } from "@/shared/api/mutations";
 import { projectQueries } from "@/shared/api/queries";
 import type { ApiPublicPage } from "@/shared/api/types";
@@ -12,7 +13,6 @@ import { Badge, Button, Checkbox, DataTable, Panel, TextField, type DataColumn }
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { isValidPublicPageSlug, PUBLIC_PAGE_SLUG_HELPER, sanitizePublicPageSlug } from "../publicPageSlug";
 import styles from "./PublicPagesPage.module.css";
 
 interface PageRow {

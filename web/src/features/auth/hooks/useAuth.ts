@@ -1,1 +1,1 @@
-export { useSession as useAuth } from "../session/SessionContext";
+export { useSession as useAuth } from "@/features/auth/session/SessionContext";

@@ -1,3 +1,4 @@
+import { useAuth } from "@/features/auth/hooks/useAuth";
 import { type Navigate } from "@/routes/routeTypes";
 import { ApiError } from "@/shared/api/client";
 import { createProjectInvite as createProjectInviteRequest, createProject as createProjectRequest } from "@/shared/api/mutations";
@@ -9,7 +10,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import type { FormEvent, KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { useAuth } from "../hooks/useAuth";
 import styles from "./OnboardingPage.module.css";
 
 interface OnboardingPageProps {

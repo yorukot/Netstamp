@@ -1,4 +1,5 @@
 import type { SessionUser } from "@/features/auth/services/authService";
+import styles from "@/layouts/AppShell.module.css";
 import { pathForRoute } from "@/routes/routePaths";
 import { projectQueries } from "@/shared/api/queries";
 import { classNames } from "@/shared/utils/classNames";
@@ -6,7 +7,6 @@ import { Button, SignalAvatar } from "@netstamp/ui";
 import { EnvelopeSimple } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import styles from "../AppShell.module.css";
 
 interface UserMenuProps {
 	user: SessionUser;

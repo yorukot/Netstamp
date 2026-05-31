@@ -1,8 +1,8 @@
 import { CreateProjectModal } from "@/features/project/components/CreateProjectModal";
+import styles from "@/layouts/AppShell.module.css";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { Select } from "@netstamp/ui";
 import { useState } from "react";
-import styles from "../AppShell.module.css";
 
 const CREATE_PROJECT_VALUE = "__create_project__";
 

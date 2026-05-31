@@ -1,10 +1,10 @@
 import type { SessionUser } from "@/features/auth/services/authService";
+import styles from "@/layouts/AppShell.module.css";
 import { pathForRoute } from "@/routes/routePaths";
 import { sidebarItems } from "@/routes/sidebarItems";
 import { classNames } from "@/shared/utils/classNames";
 import netstampLogo from "@netstamp/brand/assets/netstamp-logo-light.svg";
 import { Link, NavLink } from "react-router-dom";
-import styles from "../AppShell.module.css";
 import { ProjectSwitcher } from "./ProjectSwitcher";
 import { UserMenu } from "./UserMenu";
 
