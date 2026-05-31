@@ -2,6 +2,7 @@
 import mdx from "@astrojs/mdx";
 import react from "@astrojs/react";
 import { defineConfig } from "astro/config";
+import { fileURLToPath } from "node:url";
 import remarkDirective from "remark-directive";
 
 const site = process.env.PUBLIC_SITE_URL || "https://netstamp.dev";
@@ -155,7 +156,7 @@ export default defineConfig({
 	vite: {
 		resolve: {
 			alias: {
-				"@": new URL("./src", import.meta.url).pathname
+				"@": fileURLToPath(new URL("./src", import.meta.url))
 			}
 		}
 	}

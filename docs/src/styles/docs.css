@@ -1125,6 +1125,10 @@
 	background: var(--ns-accent-hover);
 }
 
+.langSwitchOption.fallback:not(.active) {
+	color: var(--ns-text-low);
+}
+
 .langSwitchOption:focus-visible {
 	outline: 2px solid var(--ns-accent);
 	outline-offset: 0.25rem;
