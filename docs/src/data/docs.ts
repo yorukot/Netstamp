@@ -1,5 +1,5 @@
+import { defaultLocale, docsBasePath, getSectionLabel, localeFromSegment, locales, type Locale } from "@/i18n/config";
 import { getCollection, type CollectionEntry } from "astro:content";
-import { defaultLocale, docsBasePath, getSectionLabel, localeFromSegment, locales, type Locale } from "../i18n/config";
 
 export type DocIcon = "activity" | "api" | "bolt" | "book" | "code" | "compass" | "cube" | "database" | "deployment" | "key" | "map" | "route" | "server" | "shield" | "terminal" | "users" | "wrench";
 

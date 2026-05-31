@@ -1,6 +1,6 @@
-import { getDocsPages } from "../data/docs";
-import { locales } from "../i18n/config";
-import { absoluteUrl, resolveSiteUrl } from "../lib/seo";
+import { getDocsPages } from "@/data/docs";
+import { locales } from "@/i18n/config";
+import { absoluteUrl, resolveSiteUrl } from "@/lib/seo";
 
 export const prerender = true;
 

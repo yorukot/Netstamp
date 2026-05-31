@@ -1,6 +1,6 @@
+import taiwanSubmarineCablesMap from "@/assets/taiwan_submarine_cables.svg?url";
 import { Badge, Button, GlobalFooter } from "@netstamp/ui";
 import { lazy, Suspense, useEffect, useRef } from "react";
-import taiwanSubmarineCablesMap from "../../assets/taiwan_submarine_cables.svg?url";
 import { GlobalNetworkAnimation } from "./GlobalNetworkAnimation";
 import styles from "./LandingPage.module.css";
 

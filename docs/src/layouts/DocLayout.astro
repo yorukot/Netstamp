@@ -1,9 +1,9 @@
 ---
-import Icon from "../components/icons/Icon.astro";
-import SearchBox from "../components/docs/SearchBox.astro";
-import { getDocsNav, getDocsPages, getLocaleAlternates, githubBaseUrl } from "../data/docs";
-import { defaultLocale, docsBasePath, getUiStrings, type Locale } from "../i18n/config";
-import { absoluteUrl, createBreadcrumbSchema, createTechArticleSchema, resolveSiteUrl, type HeadEntry } from "../lib/seo";
+import Icon from "@/components/icons/Icon.astro";
+import SearchBox from "@/components/docs/SearchBox.astro";
+import { getDocsNav, getDocsPages, getLocaleAlternates, githubBaseUrl } from "@/data/docs";
+import { defaultLocale, docsBasePath, getUiStrings, type Locale } from "@/i18n/config";
+import { absoluteUrl, createBreadcrumbSchema, createTechArticleSchema, resolveSiteUrl, type HeadEntry } from "@/lib/seo";
 import BaseLayout from "./BaseLayout.astro";
 
 interface Heading {

@@ -1,9 +1,9 @@
 ---
 import { render } from "astro:content";
 import { Terminal } from "@netstamp/ui";
-import { getIndexDoc } from "../../data/docs";
-import { defaultLocale } from "../../i18n/config";
-import DocLayout from "../../layouts/DocLayout.astro";
+import { getIndexDoc } from "@/data/docs";
+import { defaultLocale } from "@/i18n/config";
+import DocLayout from "@/layouts/DocLayout.astro";
 
 const doc = getIndexDoc(defaultLocale);
 

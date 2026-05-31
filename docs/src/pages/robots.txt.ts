@@ -1,4 +1,4 @@
-import { absoluteUrl, resolveSiteUrl } from "../lib/seo";
+import { absoluteUrl, resolveSiteUrl } from "@/lib/seo";
 
 export const prerender = true;
 

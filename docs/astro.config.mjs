@@ -151,5 +151,12 @@ function remarkTerminalCodeBlocks() {
 export default defineConfig({
 	site,
 	output: "static",
-	integrations: [react(), mdx({ remarkPlugins: [remarkDirective, remarkCallouts, remarkTerminalCodeBlocks] })]
+	integrations: [react(), mdx({ remarkPlugins: [remarkDirective, remarkCallouts, remarkTerminalCodeBlocks] })],
+	vite: {
+		resolve: {
+			alias: {
+				"@": new URL("./src", import.meta.url).pathname
+			}
+		}
+	}
 });
