@@ -1411,157 +1411,47 @@ export interface components {
 		};
 		/**
 		 * @example {
-		 *       "timestampMs": 1778666400000,
-		 *       "resultCount": 12,
-		 *       "durationAvgMs": 1000,
-		 *       "rttMinMs": 10.1,
-		 *       "rttAvgMs": 12.3,
-		 *       "rttMedianMs": 12,
-		 *       "rttMaxMs": 15.6,
-		 *       "rttStddevMs": 1.7,
-		 *       "lossPercent": 0,
-		 *       "successRate": 100,
-		 *       "sentCount": 48,
-		 *       "receivedCount": 48,
-		 *       "timeoutCount": 0,
-		 *       "errorCount": 0
-		 *     }
-		 */
-		PingInsightBucket: {
-			/** Format: int64 */
-			timestampMs: number;
-			/** Format: int64 */
-			resultCount: number;
-			/** Format: double */
-			durationAvgMs?: number;
-			/** Format: double */
-			rttMinMs?: number;
-			/** Format: double */
-			rttAvgMs?: number;
-			/** Format: double */
-			rttMedianMs?: number;
-			/** Format: double */
-			rttMaxMs?: number;
-			/** Format: double */
-			rttStddevMs?: number;
-			/** Format: double */
-			lossPercent?: number;
-			/** Format: double */
-			successRate?: number;
-			/** Format: int64 */
-			sentCount: number;
-			/** Format: int64 */
-			receivedCount: number;
-			/** Format: int64 */
-			timeoutCount: number;
-			/** Format: int64 */
-			errorCount: number;
-		};
-		/**
-		 * @example {
-		 *       "buckets": [
-		 *         {
-		 *           "timestampMs": 1778666400000,
-		 *           "resultCount": 12,
-		 *           "rttAvgMs": 12.3,
-		 *           "rttMinMs": 10.1,
-		 *           "rttMaxMs": 15.6,
-		 *           "lossPercent": 0,
-		 *           "successRate": 100,
-		 *           "sentCount": 48,
-		 *           "receivedCount": 48,
-		 *           "timeoutCount": 0,
-		 *           "errorCount": 0
-		 *         }
-		 *       ],
-		 *       "sampleDensity": [
-		 *         {
-		 *           "timestampMs": 1778666400000,
-		 *           "rttBucketStartMs": 10,
-		 *           "rttBucketEndMs": 11,
-		 *           "sampleCount": 3
-		 *         }
-		 *       ],
 		 *       "summary": {
-		 *         "totalResults": 487,
-		 *         "successfulCount": 480,
-		 *         "timeoutCount": 7,
-		 *         "errorCount": 0,
-		 *         "sentCount": 1948,
-		 *         "receivedCount": 1920,
-		 *         "avgLossPercent": 1.4,
-		 *         "avgRttMs": 12.3
+		 *         "averageRttMs": 12.3,
+		 *         "maxRttMs": 42.5,
+		 *         "lossPercent": 1.4,
+		 *         "successRate": 98.6,
+		 *         "samples": 1920
 		 *       },
-		 *       "query": {
+		 *       "meta": {
 		 *         "from": 1778662800000,
 		 *         "to": 1778749200000,
 		 *         "maxDataPoints": 600,
-		 *         "resolution": "bucket",
+		 *         "source": "aggregate",
+		 *         "resolution": "1m",
 		 *         "totalPoints": 487
 		 *       }
 		 *     }
 		 */
 		PingInsightResponse: {
-			buckets: components["schemas"]["PingInsightBucket"][];
-			sampleDensity: components["schemas"]["PingSampleDensityCell"][];
 			summary: components["schemas"]["PingInsightSummary"];
-			query: components["schemas"]["PingSeriesQueryMetadata"];
+			meta: components["schemas"]["PingSeriesQueryMetadata"];
 		};
 		/**
 		 * @example {
-		 *       "totalResults": 487,
-		 *       "successfulCount": 480,
-		 *       "timeoutCount": 7,
-		 *       "errorCount": 0,
-		 *       "sentCount": 1948,
-		 *       "receivedCount": 1920,
-		 *       "avgLossPercent": 1.4,
-		 *       "avgRttMs": 12.3,
-		 *       "medianRttMs": 12,
+		 *       "averageRttMs": 12.3,
 		 *       "maxRttMs": 42.5,
-		 *       "p95RttMs": 18.2,
-		 *       "p99RttMs": 31.7,
-		 *       "latestStatus": "successful",
-		 *       "latestStartedAtMs": 1778666400000,
-		 *       "latestRttAvgMs": 12.3,
-		 *       "latestLossPercent": 0,
-		 *       "latestResolvedIp": "1.1.1.1"
+		 *       "lossPercent": 1.4,
+		 *       "successRate": 98.6,
+		 *       "samples": 1920
 		 *     }
 		 */
 		PingInsightSummary: {
-			/** Format: int64 */
-			totalResults: number;
-			/** Format: int64 */
-			successfulCount: number;
-			/** Format: int64 */
-			timeoutCount: number;
-			/** Format: int64 */
-			errorCount: number;
-			/** Format: int64 */
-			sentCount: number;
-			/** Format: int64 */
-			receivedCount: number;
 			/** Format: double */
-			avgLossPercent?: number;
-			/** Format: double */
-			avgRttMs?: number;
-			/** Format: double */
-			medianRttMs?: number;
+			averageRttMs?: number;
 			/** Format: double */
 			maxRttMs?: number;
 			/** Format: double */
-			p95RttMs?: number;
+			lossPercent?: number;
 			/** Format: double */
-			p99RttMs?: number;
-			/** @enum {string} */
-			latestStatus?: "successful" | "timeout" | "error";
+			successRate?: number;
 			/** Format: int64 */
-			latestStartedAtMs?: number;
-			/** Format: double */
-			latestRttAvgMs?: number;
-			/** Format: double */
-			latestLossPercent?: number;
-			latestResolvedIp?: components["schemas"]["ipv4Address"] | components["schemas"]["ipv6Address"];
+			samples: number;
 		};
 		/**
 		 * @example {
@@ -1621,27 +1511,10 @@ export interface components {
 		};
 		/**
 		 * @example {
-		 *       "timestampMs": 1778666400000,
-		 *       "rttBucketStartMs": 10,
-		 *       "rttBucketEndMs": 11,
-		 *       "sampleCount": 3
-		 *     }
-		 */
-		PingSampleDensityCell: {
-			/** Format: int64 */
-			timestampMs: number;
-			/** Format: double */
-			rttBucketStartMs: number;
-			/** Format: double */
-			rttBucketEndMs: number;
-			/** Format: int64 */
-			sampleCount: number;
-		};
-		/**
-		 * @example {
 		 *       "from": 1778662800000,
 		 *       "to": 1778749200000,
 		 *       "maxDataPoints": 600,
+		 *       "source": "raw",
 		 *       "resolution": "bucket",
 		 *       "totalPoints": 487
 		 *     }
@@ -1654,15 +1527,17 @@ export interface components {
 			/** Format: int32 */
 			maxDataPoints: number;
 			/** @enum {string} */
-			resolution: "raw" | "bucket";
+			source?: "raw" | "aggregate";
+			/** @enum {string} */
+			resolution: "raw" | "bucket" | "1m";
 			/** Format: int64 */
 			totalPoints: number;
 		};
 		/**
 		 * @example {
-		 *       "series": [
-		 *         {
-		 *           "name": "rttAvgMs",
+		 *       "series": {
+		 *         "latency_avg": {
+		 *           "name": "latency_avg",
 		 *           "labels": {
 		 *             "probeId": "33333333-3333-3333-3333-333333333333",
 		 *             "checkId": "44444444-4444-4444-4444-444444444444",
@@ -1676,19 +1551,20 @@ export interface components {
 		 *             ]
 		 *           ]
 		 *         }
-		 *       ],
-		 *       "query": {
+		 *       },
+		 *       "meta": {
 		 *         "from": 1778662800000,
 		 *         "to": 1778749200000,
 		 *         "maxDataPoints": 600,
+		 *         "source": "raw",
 		 *         "resolution": "bucket",
 		 *         "totalPoints": 487
 		 *       }
 		 *     }
 		 */
 		PingSeriesResponse: {
-			series: components["schemas"]["Series"][];
-			query: components["schemas"]["PingSeriesQueryMetadata"];
+			series: Record<string, never>;
+			meta: components["schemas"]["PingSeriesQueryMetadata"];
 		};
 		/**
 		 * @example {
@@ -2241,44 +2117,20 @@ export interface components {
 			publicPage: components["schemas"]["PublicPage"];
 		};
 		PublicPingInsightResponse: {
-			buckets: components["schemas"]["PingInsightBucket"][];
-			sampleDensity: components["schemas"]["PingSampleDensityCell"][];
 			summary: components["schemas"]["PublicPingInsightSummary"];
-			query: components["schemas"]["PingSeriesQueryMetadata"];
+			meta: components["schemas"]["PingSeriesQueryMetadata"];
 		};
 		PublicPingInsightSummary: {
-			/** Format: int64 */
-			totalResults: number;
-			/** Format: int64 */
-			successfulCount: number;
-			/** Format: int64 */
-			timeoutCount: number;
-			/** Format: int64 */
-			errorCount: number;
-			/** Format: int64 */
-			sentCount: number;
-			/** Format: int64 */
-			receivedCount: number;
 			/** Format: double */
-			avgLossPercent?: number;
-			/** Format: double */
-			avgRttMs?: number;
-			/** Format: double */
-			medianRttMs?: number;
+			averageRttMs?: number;
 			/** Format: double */
 			maxRttMs?: number;
 			/** Format: double */
-			p95RttMs?: number;
+			lossPercent?: number;
 			/** Format: double */
-			p99RttMs?: number;
-			/** @enum {string} */
-			latestStatus?: "successful" | "timeout" | "error";
+			successRate?: number;
 			/** Format: int64 */
-			latestStartedAtMs?: number;
-			/** Format: double */
-			latestRttAvgMs?: number;
-			/** Format: double */
-			latestLossPercent?: number;
+			samples: number;
 		};
 		/**
 		 * @example {
@@ -2548,7 +2400,7 @@ export interface components {
 		};
 		/**
 		 * @example {
-		 *       "name": "rttAvgMs",
+		 *       "name": "latency_avg",
 		 *       "labels": {
 		 *         "probeId": "33333333-3333-3333-3333-333333333333",
 		 *         "checkId": "44444444-4444-4444-4444-444444444444",
@@ -2939,7 +2791,7 @@ export interface components {
 			/** Format: int32 */
 			maxDataPoints: number;
 			/** @enum {string} */
-			resolution: "raw" | "bucket";
+			resolution: "raw" | "bucket" | "1m";
 			/** Format: int64 */
 			totalRuns: number;
 		};
@@ -3334,8 +3186,8 @@ export interface components {
 		"PingSeriesQuery.checkId": components["schemas"]["uuid"];
 		"PingSeriesQuery.from": number;
 		"PingSeriesQuery.maxDataPoints": number;
-		"PingSeriesQuery.metric": "rttAvgMs" | "lossPercent" | "successRate";
 		"PingSeriesQuery.probeId": components["schemas"]["uuid"];
+		"PingSeriesQuery.series": string;
 		"PingSeriesQuery.to": number;
 		ProbeIdPathParam: components["schemas"]["uuid"];
 		"ProjectAssignmentQuery.checkId": components["schemas"]["uuid"];
@@ -6552,7 +6404,7 @@ export interface operations {
 				checkId: components["parameters"]["PingSeriesQuery.checkId"];
 				from?: components["parameters"]["PingSeriesQuery.from"];
 				to?: components["parameters"]["PingSeriesQuery.to"];
-				metric?: components["parameters"]["PingSeriesQuery.metric"];
+				series?: components["parameters"]["PingSeriesQuery.series"];
 				maxDataPoints?: components["parameters"]["PingSeriesQuery.maxDataPoints"];
 			};
 			header?: never;

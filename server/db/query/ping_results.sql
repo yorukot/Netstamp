@@ -61,244 +61,311 @@ FROM ping_results
 WHERE probe_id = sqlc.arg(probe_storage_id)
     AND check_id = sqlc.arg(check_storage_id)
     AND started_at >= sqlc.arg(started_at_from)
-    AND started_at < sqlc.arg(started_at_to)
-    AND (sqlc.arg(metric)::text != 'rttAvgMs' OR rtt_avg_ms IS NOT NULL);
+    AND started_at < sqlc.arg(started_at_to);
 
--- name: CountPingInsightPoints :one
-SELECT count(*)::bigint
+-- name: CountPingResultRollupSeriesPoints :one
+SELECT coalesce(sum(result_count), 0)::bigint
+FROM ping_result_rollups_1m
+WHERE probe_id = sqlc.arg(probe_storage_id)
+    AND check_id = sqlc.arg(check_storage_id)
+    AND bucket >= sqlc.arg(started_at_from)::timestamptz
+    AND bucket < sqlc.arg(started_at_to)::timestamptz;
+
+-- name: ListPingLatencyAvgRawSeries :many
+SELECT
+    (extract(epoch FROM started_at) * 1000)::bigint AS bucket_ms,
+    coalesce(rtt_avg_ms, 0)::double precision AS value
+FROM ping_results
+WHERE probe_id = sqlc.arg(probe_storage_id)
+    AND check_id = sqlc.arg(check_storage_id)
+    AND started_at >= sqlc.arg(started_at_from)
+    AND started_at < sqlc.arg(started_at_to)
+    AND rtt_avg_ms IS NOT NULL
+ORDER BY started_at ASC;
+
+-- name: ListPingLatencyMinRawSeries :many
+SELECT
+    (extract(epoch FROM started_at) * 1000)::bigint AS bucket_ms,
+    coalesce(rtt_min_ms, 0)::double precision AS value
+FROM ping_results
+WHERE probe_id = sqlc.arg(probe_storage_id)
+    AND check_id = sqlc.arg(check_storage_id)
+    AND started_at >= sqlc.arg(started_at_from)
+    AND started_at < sqlc.arg(started_at_to)
+    AND rtt_min_ms IS NOT NULL
+ORDER BY started_at ASC;
+
+-- name: ListPingLatencyMaxRawSeries :many
+SELECT
+    (extract(epoch FROM started_at) * 1000)::bigint AS bucket_ms,
+    coalesce(rtt_max_ms, 0)::double precision AS value
+FROM ping_results
+WHERE probe_id = sqlc.arg(probe_storage_id)
+    AND check_id = sqlc.arg(check_storage_id)
+    AND started_at >= sqlc.arg(started_at_from)
+    AND started_at < sqlc.arg(started_at_to)
+    AND rtt_max_ms IS NOT NULL
+ORDER BY started_at ASC;
+
+-- name: ListPingLossPercentRawSeries :many
+SELECT
+    (extract(epoch FROM started_at) * 1000)::bigint AS bucket_ms,
+    loss_percent::double precision AS value
+FROM ping_results
+WHERE probe_id = sqlc.arg(probe_storage_id)
+    AND check_id = sqlc.arg(check_storage_id)
+    AND started_at >= sqlc.arg(started_at_from)
+    AND started_at < sqlc.arg(started_at_to)
+ORDER BY started_at ASC;
+
+-- name: ListPingLatencyAvgBucketSeries :many
+WITH settings AS (
+    SELECT (
+        greatest(
+            1,
+            ceil(extract(epoch FROM (sqlc.arg(started_at_to)::timestamptz - sqlc.arg(started_at_from)::timestamptz)) / sqlc.arg(max_data_points)::double precision)::bigint
+        ) * interval '1 second'
+    ) AS bucket_width
+)
+SELECT
+    (extract(epoch FROM time_bucket(settings.bucket_width, started_at, sqlc.arg(started_at_from)::timestamptz)) * 1000)::bigint AS bucket_ms,
+    coalesce(avg(rtt_avg_ms), 0)::double precision AS value
+FROM ping_results
+CROSS JOIN settings
+WHERE probe_id = sqlc.arg(probe_storage_id)
+    AND check_id = sqlc.arg(check_storage_id)
+    AND started_at >= sqlc.arg(started_at_from)
+    AND started_at < sqlc.arg(started_at_to)
+GROUP BY bucket_ms
+HAVING count(rtt_avg_ms) > 0
+ORDER BY bucket_ms ASC;
+
+-- name: ListPingLatencyMinBucketSeries :many
+WITH settings AS (
+    SELECT (
+        greatest(
+            1,
+            ceil(extract(epoch FROM (sqlc.arg(started_at_to)::timestamptz - sqlc.arg(started_at_from)::timestamptz)) / sqlc.arg(max_data_points)::double precision)::bigint
+        ) * interval '1 second'
+    ) AS bucket_width
+)
+SELECT
+    (extract(epoch FROM time_bucket(settings.bucket_width, started_at, sqlc.arg(started_at_from)::timestamptz)) * 1000)::bigint AS bucket_ms,
+    coalesce(min(rtt_min_ms), 0)::double precision AS value
+FROM ping_results
+CROSS JOIN settings
+WHERE probe_id = sqlc.arg(probe_storage_id)
+    AND check_id = sqlc.arg(check_storage_id)
+    AND started_at >= sqlc.arg(started_at_from)
+    AND started_at < sqlc.arg(started_at_to)
+GROUP BY bucket_ms
+HAVING count(rtt_min_ms) > 0
+ORDER BY bucket_ms ASC;
+
+-- name: ListPingLatencyMaxBucketSeries :many
+WITH settings AS (
+    SELECT (
+        greatest(
+            1,
+            ceil(extract(epoch FROM (sqlc.arg(started_at_to)::timestamptz - sqlc.arg(started_at_from)::timestamptz)) / sqlc.arg(max_data_points)::double precision)::bigint
+        ) * interval '1 second'
+    ) AS bucket_width
+)
+SELECT
+    (extract(epoch FROM time_bucket(settings.bucket_width, started_at, sqlc.arg(started_at_from)::timestamptz)) * 1000)::bigint AS bucket_ms,
+    coalesce(max(rtt_max_ms), 0)::double precision AS value
+FROM ping_results
+CROSS JOIN settings
+WHERE probe_id = sqlc.arg(probe_storage_id)
+    AND check_id = sqlc.arg(check_storage_id)
+    AND started_at >= sqlc.arg(started_at_from)
+    AND started_at < sqlc.arg(started_at_to)
+GROUP BY bucket_ms
+HAVING count(rtt_max_ms) > 0
+ORDER BY bucket_ms ASC;
+
+-- name: ListPingLossPercentBucketSeries :many
+WITH settings AS (
+    SELECT (
+        greatest(
+            1,
+            ceil(extract(epoch FROM (sqlc.arg(started_at_to)::timestamptz - sqlc.arg(started_at_from)::timestamptz)) / sqlc.arg(max_data_points)::double precision)::bigint
+        ) * interval '1 second'
+    ) AS bucket_width
+)
+SELECT
+    (extract(epoch FROM time_bucket(settings.bucket_width, started_at, sqlc.arg(started_at_from)::timestamptz)) * 1000)::bigint AS bucket_ms,
+    coalesce(
+        100.0 * (sum(sent_count) - sum(received_count)) / NULLIF(sum(sent_count), 0),
+        avg(loss_percent),
+        0
+    )::double precision AS value
+FROM ping_results
+CROSS JOIN settings
+WHERE probe_id = sqlc.arg(probe_storage_id)
+    AND check_id = sqlc.arg(check_storage_id)
+    AND started_at >= sqlc.arg(started_at_from)
+    AND started_at < sqlc.arg(started_at_to)
+GROUP BY bucket_ms
+ORDER BY bucket_ms ASC;
+
+-- name: ListPingLatencyAvgRollupSeries :many
+WITH settings AS (
+    SELECT (
+        greatest(
+            60,
+            ceil(extract(epoch FROM (sqlc.arg(started_at_to)::timestamptz - sqlc.arg(started_at_from)::timestamptz)) / sqlc.arg(max_data_points)::double precision)::bigint
+        ) * interval '1 second'
+    ) AS bucket_width
+),
+bucketed AS (
+    SELECT
+        time_bucket(settings.bucket_width, bucket, sqlc.arg(started_at_from)::timestamptz) AS query_bucket,
+        rtt_avg_sum_ms,
+        rtt_avg_count
+    FROM ping_result_rollups_1m
+    CROSS JOIN settings
+    WHERE probe_id = sqlc.arg(probe_storage_id)
+        AND check_id = sqlc.arg(check_storage_id)
+        AND bucket >= sqlc.arg(started_at_from)
+        AND bucket < sqlc.arg(started_at_to)
+)
+SELECT
+    (extract(epoch FROM query_bucket) * 1000)::bigint AS bucket_ms,
+    coalesce(sum(rtt_avg_sum_ms) / NULLIF(sum(rtt_avg_count), 0), 0)::double precision AS value
+FROM bucketed
+GROUP BY query_bucket
+HAVING sum(rtt_avg_count) > 0
+ORDER BY query_bucket ASC;
+
+-- name: ListPingLatencyMinRollupSeries :many
+WITH settings AS (
+    SELECT (
+        greatest(
+            60,
+            ceil(extract(epoch FROM (sqlc.arg(started_at_to)::timestamptz - sqlc.arg(started_at_from)::timestamptz)) / sqlc.arg(max_data_points)::double precision)::bigint
+        ) * interval '1 second'
+    ) AS bucket_width
+),
+bucketed AS (
+    SELECT
+        time_bucket(settings.bucket_width, bucket, sqlc.arg(started_at_from)::timestamptz) AS query_bucket,
+        rtt_avg_count,
+        rtt_min_ms
+    FROM ping_result_rollups_1m
+    CROSS JOIN settings
+    WHERE probe_id = sqlc.arg(probe_storage_id)
+        AND check_id = sqlc.arg(check_storage_id)
+        AND bucket >= sqlc.arg(started_at_from)
+        AND bucket < sqlc.arg(started_at_to)
+)
+SELECT
+    (extract(epoch FROM query_bucket) * 1000)::bigint AS bucket_ms,
+    coalesce(min(rtt_min_ms), 0)::double precision AS value
+FROM bucketed
+GROUP BY query_bucket
+HAVING sum(rtt_avg_count) > 0
+ORDER BY query_bucket ASC;
+
+-- name: ListPingLatencyMaxRollupSeries :many
+WITH settings AS (
+    SELECT (
+        greatest(
+            60,
+            ceil(extract(epoch FROM (sqlc.arg(started_at_to)::timestamptz - sqlc.arg(started_at_from)::timestamptz)) / sqlc.arg(max_data_points)::double precision)::bigint
+        ) * interval '1 second'
+    ) AS bucket_width
+),
+bucketed AS (
+    SELECT
+        time_bucket(settings.bucket_width, bucket, sqlc.arg(started_at_from)::timestamptz) AS query_bucket,
+        rtt_avg_count,
+        rtt_max_ms
+    FROM ping_result_rollups_1m
+    CROSS JOIN settings
+    WHERE probe_id = sqlc.arg(probe_storage_id)
+        AND check_id = sqlc.arg(check_storage_id)
+        AND bucket >= sqlc.arg(started_at_from)
+        AND bucket < sqlc.arg(started_at_to)
+)
+SELECT
+    (extract(epoch FROM query_bucket) * 1000)::bigint AS bucket_ms,
+    coalesce(max(rtt_max_ms), 0)::double precision AS value
+FROM bucketed
+GROUP BY query_bucket
+HAVING sum(rtt_avg_count) > 0
+ORDER BY query_bucket ASC;
+
+-- name: ListPingLossPercentRollupSeries :many
+WITH settings AS (
+    SELECT (
+        greatest(
+            60,
+            ceil(extract(epoch FROM (sqlc.arg(started_at_to)::timestamptz - sqlc.arg(started_at_from)::timestamptz)) / sqlc.arg(max_data_points)::double precision)::bigint
+        ) * interval '1 second'
+    ) AS bucket_width
+),
+bucketed AS (
+    SELECT
+        time_bucket(settings.bucket_width, bucket, sqlc.arg(started_at_from)::timestamptz) AS query_bucket,
+        sent_count,
+        received_count
+    FROM ping_result_rollups_1m
+    CROSS JOIN settings
+    WHERE probe_id = sqlc.arg(probe_storage_id)
+        AND check_id = sqlc.arg(check_storage_id)
+        AND bucket >= sqlc.arg(started_at_from)
+        AND bucket < sqlc.arg(started_at_to)
+)
+SELECT
+    (extract(epoch FROM query_bucket) * 1000)::bigint AS bucket_ms,
+    coalesce(
+        100.0 * (sum(sent_count) - sum(received_count)) / NULLIF(sum(sent_count), 0),
+        0
+    )::double precision AS value
+FROM bucketed
+GROUP BY query_bucket
+ORDER BY query_bucket ASC;
+
+-- name: GetPingInsightSummary :one
+SELECT
+    count(*)::bigint AS total_results,
+    count(rtt_avg_ms)::bigint AS rtt_value_count,
+    coalesce(sum(received_count), 0)::bigint AS samples,
+    coalesce(avg(rtt_avg_ms), 0)::double precision AS average_rtt_ms,
+    coalesce(max(rtt_max_ms), 0)::double precision AS max_rtt_ms,
+    coalesce(
+        100.0 * (sum(sent_count) - sum(received_count)) / NULLIF(sum(sent_count), 0),
+        avg(loss_percent),
+        0
+    )::double precision AS loss_percent,
+    coalesce(
+        100.0 * count(*) FILTER (WHERE status = 'successful') / NULLIF(count(*), 0),
+        0
+    )::double precision AS success_rate
 FROM ping_results
 WHERE probe_id = sqlc.arg(probe_storage_id)
     AND check_id = sqlc.arg(check_storage_id)
     AND started_at >= sqlc.arg(started_at_from)
     AND started_at < sqlc.arg(started_at_to);
 
--- name: ListPingResultRawSeries :many
+-- name: GetPingInsightRollupSummary :one
 SELECT
-    (extract(epoch FROM started_at) * 1000)::bigint AS bucket_ms,
-    CASE sqlc.arg(metric)::text
-        WHEN 'rttAvgMs' THEN rtt_avg_ms
-        WHEN 'lossPercent' THEN loss_percent
-        WHEN 'successRate' THEN CASE WHEN status = 'successful' THEN 100.0 ELSE 0.0 END
-    END::double precision AS value
-FROM ping_results
-WHERE probe_id = sqlc.arg(probe_storage_id)
-    AND check_id = sqlc.arg(check_storage_id)
-    AND started_at >= sqlc.arg(started_at_from)
-    AND started_at < sqlc.arg(started_at_to)
-    AND (sqlc.arg(metric)::text != 'rttAvgMs' OR rtt_avg_ms IS NOT NULL)
-ORDER BY started_at ASC;
-
--- name: ListPingResultBucketSeries :many
-SELECT
-    (extract(epoch FROM time_bucket(
-        (ceil(extract(epoch FROM (sqlc.arg(started_at_to)::timestamptz - sqlc.arg(started_at_from)::timestamptz)) / sqlc.arg(max_data_points)::double precision)::bigint * interval '1 second'),
-        started_at,
-        sqlc.arg(started_at_from)::timestamptz
-    )) * 1000)::bigint AS bucket_ms,
-    CASE sqlc.arg(metric)::text
-        WHEN 'rttAvgMs' THEN avg(rtt_avg_ms)
-        WHEN 'lossPercent' THEN coalesce(
-            100.0 * (sum(sent_count) - sum(received_count)) / NULLIF(sum(sent_count), 0),
-            avg(loss_percent)
-        )
-        WHEN 'successRate' THEN 100.0 * count(*) FILTER (WHERE status = 'successful') / NULLIF(count(*), 0)
-    END::double precision AS value
-FROM ping_results
-WHERE probe_id = sqlc.arg(probe_storage_id)
-    AND check_id = sqlc.arg(check_storage_id)
-    AND started_at >= sqlc.arg(started_at_from)
-    AND started_at < sqlc.arg(started_at_to)
-    AND (sqlc.arg(metric)::text != 'rttAvgMs' OR rtt_avg_ms IS NOT NULL)
-GROUP BY bucket_ms
-ORDER BY bucket_ms ASC;
-
--- name: ListPingInsightRawRows :many
-SELECT
-    (extract(epoch FROM started_at) * 1000)::bigint AS bucket_ms,
-    1::bigint AS result_count,
-    duration_ms::double precision AS duration_avg_ms,
-    rtt_min_ms,
-    rtt_avg_ms,
-    rtt_median_ms,
-    rtt_max_ms,
-    rtt_stddev_ms,
-    loss_percent,
-    CASE WHEN status = 'successful' THEN 100.0 ELSE 0.0 END::double precision AS success_rate,
-    sent_count::bigint AS sent_count,
-    received_count::bigint AS received_count,
-    CASE WHEN status = 'timeout' THEN 1 ELSE 0 END::bigint AS timeout_count,
-    CASE WHEN status = 'error' THEN 1 ELSE 0 END::bigint AS error_count
-FROM ping_results
-WHERE probe_id = sqlc.arg(probe_storage_id)
-    AND check_id = sqlc.arg(check_storage_id)
-    AND started_at >= sqlc.arg(started_at_from)
-    AND started_at < sqlc.arg(started_at_to)
-ORDER BY started_at ASC;
-
--- name: ListPingInsightBucketRows :many
-WITH bucketed AS (
-    SELECT
-        (extract(epoch FROM time_bucket(
-            (ceil(extract(epoch FROM (sqlc.arg(started_at_to)::timestamptz - sqlc.arg(started_at_from)::timestamptz)) / sqlc.arg(max_data_points)::double precision)::bigint * interval '1 second'),
-            started_at,
-            sqlc.arg(started_at_from)::timestamptz
-        )) * 1000)::bigint AS bucket_ms,
-        duration_ms,
-        status,
-        sent_count,
-        received_count,
-        loss_percent,
-        rtt_min_ms,
-        rtt_avg_ms,
-        rtt_max_ms,
-        rtt_samples_ms
-    FROM ping_results
-    WHERE probe_id = sqlc.arg(probe_storage_id)
-        AND check_id = sqlc.arg(check_storage_id)
-        AND started_at >= sqlc.arg(started_at_from)
-        AND started_at < sqlc.arg(started_at_to)
-),
-sample_stats AS (
-    SELECT
-        bucket_ms,
-        (percentile_cont(0.5) WITHIN GROUP (ORDER BY rtt_sample_ms))::double precision AS rtt_median_ms,
-        stddev_pop(rtt_sample_ms)::double precision AS rtt_stddev_ms
-    FROM (
-        SELECT
-            bucketed.bucket_ms,
-            sample.value::double precision AS rtt_sample_ms
-        FROM bucketed
-        CROSS JOIN LATERAL unnest(rtt_samples_ms) AS sample(value)
-    ) samples
-    GROUP BY bucket_ms
-)
-SELECT
-    bucketed.bucket_ms,
-    count(*)::bigint AS result_count,
-    count(rtt_avg_ms)::bigint AS rtt_value_count,
-    coalesce(avg(duration_ms), 0)::double precision AS duration_avg_ms,
-    coalesce(min(rtt_min_ms), 0)::double precision AS rtt_min_ms,
-    coalesce(avg(rtt_avg_ms), 0)::double precision AS rtt_avg_ms,
-    coalesce(sample_stats.rtt_median_ms, 0)::double precision AS rtt_median_ms,
-    coalesce(max(rtt_max_ms), 0)::double precision AS rtt_max_ms,
-    coalesce(sample_stats.rtt_stddev_ms, 0)::double precision AS rtt_stddev_ms,
+    coalesce(sum(result_count), 0)::bigint AS total_results,
+    coalesce(sum(rtt_avg_count), 0)::bigint AS rtt_value_count,
+    coalesce(sum(received_count), 0)::bigint AS samples,
+    coalesce(sum(rtt_avg_sum_ms) / NULLIF(sum(rtt_avg_count), 0), 0)::double precision AS average_rtt_ms,
+    coalesce(max(rtt_max_ms), 0)::double precision AS max_rtt_ms,
     coalesce(
         100.0 * (sum(sent_count) - sum(received_count)) / NULLIF(sum(sent_count), 0),
-        avg(loss_percent),
         0
     )::double precision AS loss_percent,
-    coalesce((100.0 * count(*) FILTER (WHERE status = 'successful') / NULLIF(count(*), 0)), 0)::double precision AS success_rate,
-    coalesce(sum(sent_count), 0)::bigint AS sent_count,
-    coalesce(sum(received_count), 0)::bigint AS received_count,
-    count(*) FILTER (WHERE status = 'timeout')::bigint AS timeout_count,
-    count(*) FILTER (WHERE status = 'error')::bigint AS error_count
-FROM bucketed
-LEFT JOIN sample_stats ON sample_stats.bucket_ms = bucketed.bucket_ms
-GROUP BY bucketed.bucket_ms, sample_stats.rtt_median_ms, sample_stats.rtt_stddev_ms
-ORDER BY bucketed.bucket_ms ASC;
-
--- name: ListPingInsightRawSampleDensity :many
-WITH samples AS (
-    SELECT
-        (extract(epoch FROM started_at) * 1000)::bigint AS bucket_ms,
-        sample.value::double precision AS rtt_sample_ms
-    FROM ping_results
-    CROSS JOIN LATERAL unnest(rtt_samples_ms) AS sample(value)
-    WHERE probe_id = sqlc.arg(probe_storage_id)
-        AND check_id = sqlc.arg(check_storage_id)
-        AND started_at >= sqlc.arg(started_at_from)
-        AND started_at < sqlc.arg(started_at_to)
-),
-bounds AS (
-    SELECT greatest(1.0, ceil(coalesce(max(rtt_sample_ms), 0) / 40.0))::double precision AS latency_bucket_ms
-    FROM samples
-)
-SELECT
-    bucket_ms,
-    (floor(rtt_sample_ms / bounds.latency_bucket_ms) * bounds.latency_bucket_ms)::double precision AS rtt_bucket_start_ms,
-    ((floor(rtt_sample_ms / bounds.latency_bucket_ms) + 1) * bounds.latency_bucket_ms)::double precision AS rtt_bucket_end_ms,
-    count(*)::bigint AS sample_count
-FROM samples
-CROSS JOIN bounds
-GROUP BY bucket_ms, rtt_bucket_start_ms, rtt_bucket_end_ms
-ORDER BY bucket_ms ASC, rtt_bucket_start_ms ASC;
-
--- name: ListPingInsightBucketSampleDensity :many
-WITH samples AS (
-    SELECT
-        (extract(epoch FROM time_bucket(
-            (ceil(extract(epoch FROM (sqlc.arg(started_at_to)::timestamptz - sqlc.arg(started_at_from)::timestamptz)) / sqlc.arg(max_data_points)::double precision)::bigint * interval '1 second'),
-            started_at,
-            sqlc.arg(started_at_from)::timestamptz
-        )) * 1000)::bigint AS bucket_ms,
-        sample.value::double precision AS rtt_sample_ms
-    FROM ping_results
-    CROSS JOIN LATERAL unnest(rtt_samples_ms) AS sample(value)
-    WHERE probe_id = sqlc.arg(probe_storage_id)
-        AND check_id = sqlc.arg(check_storage_id)
-        AND started_at >= sqlc.arg(started_at_from)
-        AND started_at < sqlc.arg(started_at_to)
-),
-bounds AS (
-    SELECT greatest(1.0, ceil(coalesce(max(rtt_sample_ms), 0) / 40.0))::double precision AS latency_bucket_ms
-    FROM samples
-)
-SELECT
-    bucket_ms,
-    (floor(rtt_sample_ms / bounds.latency_bucket_ms) * bounds.latency_bucket_ms)::double precision AS rtt_bucket_start_ms,
-    ((floor(rtt_sample_ms / bounds.latency_bucket_ms) + 1) * bounds.latency_bucket_ms)::double precision AS rtt_bucket_end_ms,
-    count(*)::bigint AS sample_count
-FROM samples
-CROSS JOIN bounds
-GROUP BY bucket_ms, rtt_bucket_start_ms, rtt_bucket_end_ms
-ORDER BY bucket_ms ASC, rtt_bucket_start_ms ASC;
-
--- name: GetPingInsightSummary :one
-WITH filtered AS (
-    SELECT *
-    FROM ping_results
-    WHERE probe_id = sqlc.arg(probe_storage_id)
-        AND check_id = sqlc.arg(check_storage_id)
-        AND started_at >= sqlc.arg(started_at_from)
-        AND started_at < sqlc.arg(started_at_to)
-),
-samples AS (
-    SELECT sample.value::double precision AS rtt_sample_ms
-    FROM filtered
-    CROSS JOIN LATERAL unnest(rtt_samples_ms) AS sample(value)
-),
-latest AS (
-    SELECT *
-    FROM filtered
-    ORDER BY started_at DESC
-    LIMIT 1
-)
-SELECT
-    count(*)::bigint AS total_results,
-    count(rtt_avg_ms)::bigint AS rtt_value_count,
-    (SELECT count(*)::bigint FROM samples) AS sample_count,
-    count(*) FILTER (WHERE status = 'successful')::bigint AS successful_count,
-    count(*) FILTER (WHERE status = 'timeout')::bigint AS timeout_count,
-    count(*) FILTER (WHERE status = 'error')::bigint AS error_count,
-    coalesce(sum(sent_count), 0)::bigint AS sent_count,
-    coalesce(sum(received_count), 0)::bigint AS received_count,
     coalesce(
-        100.0 * (sum(sent_count) - sum(received_count)) / NULLIF(sum(sent_count), 0),
-        avg(loss_percent),
+        100.0 * sum(successful_count) / NULLIF(sum(result_count), 0),
         0
-    )::double precision AS avg_loss_percent,
-    coalesce((SELECT avg(rtt_sample_ms) FROM samples), avg(rtt_avg_ms), 0)::double precision AS avg_rtt_ms,
-    coalesce(
-        (SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY rtt_sample_ms) FROM samples),
-        (percentile_cont(0.5) WITHIN GROUP (ORDER BY rtt_median_ms) FILTER (WHERE rtt_median_ms IS NOT NULL)),
-        0
-    )::double precision AS median_rtt_ms,
-    coalesce(max(rtt_max_ms), 0)::double precision AS max_rtt_ms,
-    coalesce((SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY rtt_sample_ms) FROM samples), 0)::double precision AS p95_rtt_ms,
-    coalesce((SELECT percentile_cont(0.99) WITHIN GROUP (ORDER BY rtt_sample_ms) FROM samples), 0)::double precision AS p99_rtt_ms,
-    coalesce((SELECT status::text FROM latest), '')::text AS latest_status,
-    coalesce((SELECT (extract(epoch FROM started_at) * 1000)::bigint FROM latest), 0)::bigint AS latest_started_at_ms,
-    (SELECT rtt_avg_ms FROM latest) AS latest_rtt_avg_ms,
-    coalesce((SELECT loss_percent FROM latest), 0)::double precision AS latest_loss_percent,
-    (SELECT resolved_ip FROM latest) AS latest_resolved_ip
-FROM filtered;
+    )::double precision AS success_rate
+FROM ping_result_rollups_1m
+WHERE probe_id = sqlc.arg(probe_storage_id)
+    AND check_id = sqlc.arg(check_storage_id)
+    AND bucket >= sqlc.arg(started_at_from)::timestamptz
+    AND bucket < sqlc.arg(started_at_to)::timestamptz;

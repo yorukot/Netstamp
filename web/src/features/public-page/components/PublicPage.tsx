@@ -1,12 +1,10 @@
 import { publicPageQueries } from "@/shared/api/queries";
 import type { ApiPublicPageFolder, ApiPublicPingPair } from "@/shared/api/types";
 import { classNames } from "@/shared/utils/classNames";
-import { formatCount, formatEpochMs } from "@/shared/utils/insightFormatters";
-import { pingChartBuckets, pingSampleDensity, pingSummaryMetrics } from "@/shared/utils/pingInsightData";
+import { formatCount } from "@/shared/utils/insightFormatters";
+import { pingSummaryMetrics } from "@/shared/utils/pingInsightData";
 import { publicPageFolderLabel } from "@/shared/utils/publicPageFolders";
 import { isRelativeTimeRange, parseEpochMs, relativeTimeOptions, timeWindowForRelativeRange, type RelativeTimeRange } from "@/shared/utils/timeRanges";
-import { ChartPanel } from "@/shared/visualizations/ChartPanel";
-import { pingInsightChartOption } from "@/shared/visualizations/chartOptions";
 import { Badge, Button, DataTable, Panel, SelectField, type BadgeTone, type DataColumn } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
@@ -99,11 +97,8 @@ export function PublicPage() {
 		...publicPageQueries.pingInsight(slug, selectedProbeId, selectedCheckId, { from: timeWindow.from, to: timeWindow.to }),
 		enabled: Boolean(slug && activePair)
 	});
-	const buckets = pingChartBuckets(insightQuery.data);
-	const density = pingSampleDensity(insightQuery.data);
 	const metrics = pingSummaryMetrics(insightQuery.data);
-	const hasChartData = buckets.length > 0 || density.length > 0;
-	const queryWindow = insightQuery.data?.query ? { from: insightQuery.data.query.from, to: insightQuery.data.query.to } : timeWindow;
+	const insightMeta = insightQuery.data?.meta;
 	const checkOptions = uniqueCheckOptions(visiblePairs);
 	const probeOptions = selectedCheckId ? probeOptionsForCheck(visiblePairs, selectedCheckId) : [];
 	const rows: PairRow[] = visiblePairs.map(pair => ({
@@ -211,14 +206,6 @@ export function PublicPage() {
 			params.set("range", value);
 			params.delete("from");
 			params.delete("to");
-		});
-	}
-
-	function selectChartTimeWindow(range: { from: number; to: number }) {
-		updateParams(params => {
-			params.set("from", String(Math.trunc(range.from)));
-			params.set("to", String(Math.trunc(range.to)));
-			params.delete("range");
 		});
 	}
 
@@ -341,19 +328,13 @@ export function PublicPage() {
 							))}
 						</div>
 
-						<Panel tone="deep" title="Ping latency and loss">
+						<Panel tone="deep" title="Ping summary">
 							<div className={styles.chartMeta}>
-								<span>{insightQuery.isFetching ? "syncing result buckets" : `${formatCount(insightQuery.data?.query.totalPoints)} results`}</span>
-								<span>latest {formatEpochMs(insightQuery.data?.summary.latestStartedAtMs)}</span>
+								<span>{insightQuery.isFetching ? "syncing summary" : `${formatCount(insightMeta?.totalPoints)} points`}</span>
+								<span>{[insightMeta?.source, insightMeta?.resolution].filter(Boolean).join(" / ") || "pending"}</span>
 								{activePair ? <span>{activePair.probeLocationName || activePair.probeName}</span> : null}
 							</div>
-							{activePair && hasChartData ? (
-								<ChartPanel option={pingInsightChartOption(buckets, density)} height="27rem" onTimeRangeSelect={selectChartTimeWindow} timeRangeBounds={queryWindow} />
-							) : (
-								<div className={styles.emptyState}>
-									{activePair ? "No Ping results were recorded in the selected time range." : "Select a published Ping check to render the public insight chart."}
-								</div>
-							)}
+							<div className={styles.emptyState}>{activePair ? "No public Ping series data is available for this view." : "Select a published Ping check to render the public insight summary."}</div>
 						</Panel>
 					</section>
 				</div>

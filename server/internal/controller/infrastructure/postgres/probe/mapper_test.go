@@ -13,6 +13,7 @@ import (
 func TestMapAssignmentIncludesTCPConfig(t *testing.T) {
 	port := int32(8443)
 	timeoutMs := int32(1200)
+	ipFamily := sqlc.IpFamilyInet6
 
 	assignment := mapAssignment(sqlc.ListActiveAssignmentsForProbeRow{
 		AssignmentID:    uuid.MustParse("0ac05ca4-0df0-445a-ac33-ed46e9595ccc"),
@@ -28,10 +29,7 @@ func TestMapAssignmentIncludesTCPConfig(t *testing.T) {
 		IntervalSeconds: 30,
 		TcpPort:         &port,
 		TcpTimeoutMs:    &timeoutMs,
-		TcpIpFamily: sqlc.NullIpFamily{
-			IpFamily: sqlc.IpFamilyInet6,
-			Valid:    true,
-		},
+		TcpIpFamily:     &ipFamily,
 	})
 
 	if assignment.Check == nil {

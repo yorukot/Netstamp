@@ -3,6 +3,7 @@ package result
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
@@ -27,7 +28,7 @@ func (s *Service) QueryPingSeries(ctx context.Context, input QueryPingSeriesInpu
 		attrProjectRef.String(normalized.projectRef),
 		attrProbeID.String(normalized.probeID),
 		attrCheckID.String(normalized.checkID),
-		attrMetric.String(string(normalized.metric)),
+		attrSeries.String(strings.Join(pingSeriesKeyStrings(normalized.series), ",")),
 	)
 
 	project, err := s.projectAccess.GetProjectForUser(ctx, normalized.projectRef, normalized.currentUserID)
@@ -51,7 +52,7 @@ func (s *Service) QueryPingSeries(ctx context.Context, input QueryPingSeriesInpu
 		CheckID:       normalized.checkID,
 		From:          normalized.from,
 		To:            normalized.to,
-		Metric:        string(normalized.metric),
+		Series:        pingSeriesKeyStrings(normalized.series),
 		MaxDataPoints: normalized.maxDataPoints,
 	})
 	if err != nil {
@@ -61,20 +62,12 @@ func (s *Service) QueryPingSeries(ctx context.Context, input QueryPingSeriesInpu
 	}
 
 	return PingSeriesOutput{
-		Series: []Series{{
-			Name: string(normalized.metric),
-			Labels: SeriesLabels{
-				ProbeID:   normalized.probeID,
-				CheckID:   normalized.checkID,
-				CheckType: "ping",
-			},
-			Unit:   unitForMetric(normalized.metric),
-			Points: newSeriesPoints(result.Points),
-		}},
-		Query: QueryMetadata{
+		Series: newPingSeries(result.Series, normalized.series, normalized.probeID, normalized.checkID),
+		Meta: QueryMetadata{
 			FromMs:        normalized.from.UnixMilli(),
 			ToMs:          normalized.to.UnixMilli(),
 			MaxDataPoints: normalized.maxDataPoints,
+			Source:        string(result.Source),
 			Resolution:    string(result.Resolution),
 			TotalPoints:   result.TotalPoints,
 		},
@@ -130,17 +123,35 @@ func (s *Service) QueryPingInsight(ctx context.Context, input QueryPingInsightIn
 	}
 
 	return PingInsightOutput{
-		Buckets:       newPingInsightBuckets(result.Buckets),
-		SampleDensity: newPingSampleDensity(result.SampleDensity),
-		Summary:       newPingInsightSummary(result.Summary),
-		Query: QueryMetadata{
+		Summary: newPingInsightSummary(result.Summary),
+		Meta: QueryMetadata{
 			FromMs:        normalized.from.UnixMilli(),
 			ToMs:          normalized.to.UnixMilli(),
 			MaxDataPoints: normalized.maxDataPoints,
+			Source:        string(result.Source),
 			Resolution:    string(result.Resolution),
 			TotalPoints:   result.TotalPoints,
 		},
 	}, nil
+}
+
+func newPingSeries(series map[string]domainping.SeriesData, requested []PingSeriesKey, probeID, checkID string) map[string]Series {
+	values := make(map[string]Series, len(requested))
+	for _, key := range requested {
+		name := string(key)
+		data := series[name]
+		values[name] = Series{
+			Name: name,
+			Labels: SeriesLabels{
+				ProbeID:   probeID,
+				CheckID:   checkID,
+				CheckType: "ping",
+			},
+			Unit:   unitForSeries(key),
+			Points: newSeriesPoints(data.Points),
+		}
+	}
+	return values
 }
 
 func newSeriesPoints(points []domainping.SeriesPoint) []SeriesPoint {
@@ -154,79 +165,31 @@ func newSeriesPoints(points []domainping.SeriesPoint) []SeriesPoint {
 	return values
 }
 
-func newPingInsightBuckets(buckets []domainping.InsightBucket) []PingInsightBucket {
-	values := make([]PingInsightBucket, 0, len(buckets))
-	for _, bucket := range buckets {
-		values = append(values, PingInsightBucket{
-			TimestampMs:   bucket.Timestamp.UTC().UnixMilli(),
-			ResultCount:   bucket.ResultCount,
-			DurationAvgMs: bucket.DurationAvgMs,
-			RttMinMs:      bucket.RttMinMs,
-			RttAvgMs:      bucket.RttAvgMs,
-			RttMedianMs:   bucket.RttMedianMs,
-			RttMaxMs:      bucket.RttMaxMs,
-			RttStddevMs:   bucket.RttStddevMs,
-			LossPercent:   bucket.LossPercent,
-			SuccessRate:   bucket.SuccessRate,
-			SentCount:     bucket.SentCount,
-			ReceivedCount: bucket.ReceivedCount,
-			TimeoutCount:  bucket.TimeoutCount,
-			ErrorCount:    bucket.ErrorCount,
-		})
-	}
-	return values
-}
-
-func newPingSampleDensity(cells []domainping.SampleDensityCell) []PingSampleDensityCell {
-	values := make([]PingSampleDensityCell, 0, len(cells))
-	for _, cell := range cells {
-		values = append(values, PingSampleDensityCell{
-			TimestampMs:      cell.Timestamp.UTC().UnixMilli(),
-			RttBucketStartMs: cell.RttBucketStartMs,
-			RttBucketEndMs:   cell.RttBucketEndMs,
-			SampleCount:      cell.SampleCount,
-		})
-	}
-	return values
-}
-
 func newPingInsightSummary(summary domainping.InsightSummary) PingInsightSummary {
 	return PingInsightSummary{
-		TotalResults:      summary.TotalResults,
-		SuccessfulCount:   summary.SuccessfulCount,
-		TimeoutCount:      summary.TimeoutCount,
-		ErrorCount:        summary.ErrorCount,
-		SentCount:         summary.SentCount,
-		ReceivedCount:     summary.ReceivedCount,
-		AvgLossPercent:    summary.AvgLossPercent,
-		AvgRttMs:          summary.AvgRttMs,
-		MedianRttMs:       summary.MedianRttMs,
-		MaxRttMs:          summary.MaxRttMs,
-		P95RttMs:          summary.P95RttMs,
-		P99RttMs:          summary.P99RttMs,
-		LatestStatus:      pingStatusString(summary.LatestStatus),
-		LatestStartedAtMs: timePtrMillis(summary.LatestStartedAt),
-		LatestRttAvgMs:    summary.LatestRttAvgMs,
-		LatestLossPercent: summary.LatestLossPercent,
-		LatestResolvedIP:  summary.LatestResolvedIP,
+		AverageRttMs: summary.AverageRttMs,
+		MaxRttMs:     summary.MaxRttMs,
+		LossPercent:  summary.LossPercent,
+		SuccessRate:  summary.SuccessRate,
+		Samples:      summary.Samples,
 	}
 }
 
-func pingStatusString(value *domainping.Status) *string {
-	if value == nil {
-		return nil
-	}
-	copied := string(*value)
-	return &copied
-}
-
-func unitForMetric(metric PingMetric) string {
-	switch metric {
-	case PingMetricRTTAvgMS:
+func unitForSeries(key PingSeriesKey) string {
+	switch key {
+	case PingSeriesLatencyAvg, PingSeriesLatencyMin, PingSeriesLatencyMax:
 		return "ms"
-	case PingMetricLossPercent, PingMetricSuccessRate:
+	case PingSeriesLossPercent:
 		return "percent"
 	default:
 		return ""
 	}
+}
+
+func pingSeriesKeyStrings(keys []PingSeriesKey) []string {
+	values := make([]string, 0, len(keys))
+	for _, key := range keys {
+		values = append(values, string(key))
+	}
+	return values
 }

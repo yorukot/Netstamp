@@ -42,6 +42,7 @@ import (
 	pgprobe "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/probe"
 	pgproject "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/project"
 	pgresult "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/result"
+	pgtcp "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/tcp"
 	pgtraceroute "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/traceroute"
 	pguser "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/user"
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/security"
@@ -219,6 +220,7 @@ func newTestRouter(pool *pgxpool.Pool) http.Handler {
 	checkRepo := pgcheck.NewCheckRepository(pool)
 	probeRepo := pgprobe.NewProbeRepository(pool)
 	pingRepo := pgping.NewPingRepository(pool)
+	tcpRepo := pgtcp.NewTCPRepository(pool)
 	tracerouteRepo := pgtraceroute.NewTracerouteRepository(pool)
 	resultRepo := pgresult.NewResultRepository(pool)
 	assignmentRepo := pgassignment.NewAssignmentRepository(pool)
@@ -243,15 +245,16 @@ func newTestRouter(pool *pgxpool.Pool) http.Handler {
 		CheckService:      appcheck.NewService(checkRepo, projectRepo, labelRepo, assignmentSvc, events),
 		LabelService:      applabel.NewService(labelRepo, projectRepo, events, assignmentSvc),
 		ProbeService:      appprobe.NewService(probeRepo, projectRepo, labelRepo, assignmentSvc, security.NewProbeSecretGenerator(), events),
-		ProbeRuntime: appproberuntime.NewService(
+		ProbeRuntime: appproberuntime.NewServiceWithTCP(
 			probeRepo,
 			pingRepo,
+			tcpRepo,
 			tracerouteRepo,
 			security.NewProbeSecretVerifier(),
 			events,
 		),
 		ProjectService: appproject.NewService(projectRepo, userRepo, events),
-		ResultService:  appresult.NewService(pingRepo, tracerouteRepo, resultRepo, projectRepo),
+		ResultService:  appresult.NewService(pingRepo, tcpRepo, tracerouteRepo, resultRepo, projectRepo),
 		ReadinessCheck: postgres.NewReadinessCheck(pool),
 		RequestTimeout: 15 * time.Second,
 	})

@@ -5,6 +5,7 @@ import type {
 	MeasurementFilters,
 	PingInsightFilters,
 	PingSeriesFilters,
+	PingSeriesResponse,
 	ProjectAssignmentFilters,
 	PublicPingInsightFilters,
 	TcpInsightFilters,
@@ -12,6 +13,8 @@ import type {
 	TracerouteRunsFilters,
 	TracerouteTopologyFilters
 } from "./types";
+
+const defaultPingSeries = "latency_avg,latency_min,latency_max,loss_percent";
 
 export const systemQueries = {
 	root: () =>
@@ -117,10 +120,10 @@ export const projectQueries = {
 			queryFn: ({ signal }) =>
 				readApiData(
 					apiClient.GET("/projects/{ref}/results/ping/series", {
-						params: { path: { ref }, query: { probeId, checkId, maxDataPoints: 120, ...filters } },
+						params: { path: { ref }, query: { probeId, checkId, series: defaultPingSeries, maxDataPoints: 600, ...filters } },
 						signal
 					})
-				),
+				) as Promise<PingSeriesResponse>,
 			staleTime: 30 * 1000
 		}),
 	pingInsight: (ref: string, probeId: string, checkId: string, filters: PingInsightFilters = {}) =>

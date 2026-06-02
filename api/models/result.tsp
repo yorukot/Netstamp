@@ -4,10 +4,11 @@ using Http;
 
 namespace Netstamp;
 
-alias PingMetric = "rttAvgMs" | "lossPercent" | "successRate";
+alias PingSeriesKey = "latency_avg" | "latency_min" | "latency_max" | "loss_percent";
 alias MeasurementType = "ping" | "tcp" | "traceroute";
 alias MeasurementStatus = "successful" | "timeout" | "error" | "partial";
-alias SeriesResolution = "raw" | "bucket";
+alias SeriesResolution = "raw" | "bucket" | "1m";
+alias SeriesSource = "raw" | "aggregate";
 alias TracerouteTopologyNodeKind = "probe" | "hop" | "destination" | "unknown";
 
 @example(#{
@@ -243,7 +244,7 @@ model SubmitResultsResponse {
 alias SeriesPoint = [int64, float64];
 
 @example(#{
-	name: "rttAvgMs",
+	name: "latency_avg",
 	labels: #{ probeId: "33333333-3333-3333-3333-333333333333", checkId: "44444444-4444-4444-4444-444444444444", checkType: "ping" },
 	unit: "ms",
 	points: #[#[1778666400000, 12.3]],
@@ -255,7 +256,7 @@ model Series {
 	points: SeriesPoint[];
 }
 
-@example(#{ from: 1778662800000, to: 1778749200000, maxDataPoints: 600, resolution: "bucket", totalPoints: 487 })
+@example(#{ from: 1778662800000, to: 1778749200000, maxDataPoints: 600, source: "raw", resolution: "bucket", totalPoints: 487 })
 model PingSeriesQueryMetadata {
 	@minValue(1)
 	from: int64;
@@ -267,6 +268,7 @@ model PingSeriesQueryMetadata {
 	@maxValue(2000)
 	maxDataPoints: int32;
 
+	source?: SeriesSource;
 	resolution: SeriesResolution;
 
 	@minValue(0)
@@ -274,61 +276,34 @@ model PingSeriesQueryMetadata {
 }
 
 @example(#{
-	series: #[
-		#{
-			name: "rttAvgMs",
+	series: #{
+		latency_avg: #{
+			name: "latency_avg",
 			labels: #{ probeId: "33333333-3333-3333-3333-333333333333", checkId: "44444444-4444-4444-4444-444444444444", checkType: "ping" },
 			unit: "ms",
 			points: #[#[1778666400000, 12.3]],
 		}
-	],
-	query: #{ from: 1778662800000, to: 1778749200000, maxDataPoints: 600, resolution: "bucket", totalPoints: 487 },
+	},
+	meta: #{ from: 1778662800000, to: 1778749200000, maxDataPoints: 600, source: "raw", resolution: "bucket", totalPoints: 487 },
 })
 model PingSeriesResponse {
-	series: Series[];
-	query: PingSeriesQueryMetadata;
+	series: Record<Series>;
+	meta: PingSeriesQueryMetadata;
 }
 
 @example(#{
-	timestampMs: 1778666400000,
-	resultCount: 12,
-	durationAvgMs: 1000,
-	rttMinMs: 10.1,
-	rttAvgMs: 12.3,
-	rttMedianMs: 12,
-	rttMaxMs: 15.6,
-	rttStddevMs: 1.7,
-	lossPercent: 0,
-	successRate: 100,
-	sentCount: 48,
-	receivedCount: 48,
-	timeoutCount: 0,
-	errorCount: 0,
+	averageRttMs: 12.3,
+	maxRttMs: 42.5,
+	lossPercent: 1.4,
+	successRate: 98.6,
+	samples: 1920,
 })
-model PingInsightBucket {
-	@minValue(1)
-	timestampMs: int64;
+model PingInsightSummary {
+	@minValue(0)
+	averageRttMs?: float64;
 
 	@minValue(0)
-	resultCount: int64;
-
-	@minValue(0)
-	durationAvgMs?: float64;
-
-	@minValue(0)
-	rttMinMs?: float64;
-
-	@minValue(0)
-	rttAvgMs?: float64;
-
-	@minValue(0)
-	rttMedianMs?: float64;
-
-	@minValue(0)
-	rttMaxMs?: float64;
-
-	@minValue(0)
-	rttStddevMs?: float64;
+	maxRttMs?: float64;
 
 	@minValue(0)
 	@maxValue(100)
@@ -339,118 +314,16 @@ model PingInsightBucket {
 	successRate?: float64;
 
 	@minValue(0)
-	sentCount: int64;
-
-	@minValue(0)
-	receivedCount: int64;
-
-	@minValue(0)
-	timeoutCount: int64;
-
-	@minValue(0)
-	errorCount: int64;
-}
-
-@example(#{ timestampMs: 1778666400000, rttBucketStartMs: 10, rttBucketEndMs: 11, sampleCount: 3 })
-model PingSampleDensityCell {
-	@minValue(1)
-	timestampMs: int64;
-
-	@minValue(0)
-	rttBucketStartMs: float64;
-
-	@minValue(0)
-	rttBucketEndMs: float64;
-
-	@minValue(0)
-	sampleCount: int64;
+	samples: int64;
 }
 
 @example(#{
-	totalResults: 487,
-	successfulCount: 480,
-	timeoutCount: 7,
-	errorCount: 0,
-	sentCount: 1948,
-	receivedCount: 1920,
-	avgLossPercent: 1.4,
-	avgRttMs: 12.3,
-	medianRttMs: 12,
-	maxRttMs: 42.5,
-	p95RttMs: 18.2,
-	p99RttMs: 31.7,
-	latestStatus: "successful",
-	latestStartedAtMs: 1778666400000,
-	latestRttAvgMs: 12.3,
-	latestLossPercent: 0,
-	latestResolvedIp: "1.1.1.1",
-})
-model PingInsightSummary {
-	@minValue(0)
-	totalResults: int64;
-
-	@minValue(0)
-	successfulCount: int64;
-
-	@minValue(0)
-	timeoutCount: int64;
-
-	@minValue(0)
-	errorCount: int64;
-
-	@minValue(0)
-	sentCount: int64;
-
-	@minValue(0)
-	receivedCount: int64;
-
-	@minValue(0)
-	@maxValue(100)
-	avgLossPercent?: float64;
-
-	@minValue(0)
-	avgRttMs?: float64;
-
-	@minValue(0)
-	medianRttMs?: float64;
-
-	@minValue(0)
-	maxRttMs?: float64;
-
-	@minValue(0)
-	p95RttMs?: float64;
-
-	@minValue(0)
-	p99RttMs?: float64;
-
-	latestStatus?: PingStatus;
-
-	@minValue(1)
-	latestStartedAtMs?: int64;
-
-	@minValue(0)
-	latestRttAvgMs?: float64;
-
-	@minValue(0)
-	@maxValue(100)
-	latestLossPercent?: float64;
-
-	latestResolvedIp?: ipAddress;
-}
-
-@example(#{
-	buckets: #[
-		#{ timestampMs: 1778666400000, resultCount: 12, rttAvgMs: 12.3, rttMinMs: 10.1, rttMaxMs: 15.6, lossPercent: 0, successRate: 100, sentCount: 48, receivedCount: 48, timeoutCount: 0, errorCount: 0 }
-	],
-	sampleDensity: #[#{ timestampMs: 1778666400000, rttBucketStartMs: 10, rttBucketEndMs: 11, sampleCount: 3 }],
-	summary: #{ totalResults: 487, successfulCount: 480, timeoutCount: 7, errorCount: 0, sentCount: 1948, receivedCount: 1920, avgLossPercent: 1.4, avgRttMs: 12.3 },
-	query: #{ from: 1778662800000, to: 1778749200000, maxDataPoints: 600, resolution: "bucket", totalPoints: 487 },
+	summary: #{ averageRttMs: 12.3, maxRttMs: 42.5, lossPercent: 1.4, successRate: 98.6, samples: 1920 },
+	meta: #{ from: 1778662800000, to: 1778749200000, maxDataPoints: 600, source: "aggregate", resolution: "1m", totalPoints: 487 },
 })
 model PingInsightResponse {
-	buckets: PingInsightBucket[];
-	sampleDensity: PingSampleDensityCell[];
 	summary: PingInsightSummary;
-	query: PingSeriesQueryMetadata;
+	meta: PingSeriesQueryMetadata;
 }
 
 @example(#{

@@ -14,15 +14,13 @@ func sqlcTCPStatus(value domaintcp.Status) sqlc.TcpStatus {
 	return sqlc.TcpStatus(value)
 }
 
-func sqlcIPFamily(value *domainnetwork.IPFamily) sqlc.NullIpFamily {
+func sqlcIPFamily(value *domainnetwork.IPFamily) *sqlc.IpFamily {
 	if value == nil {
-		return sqlc.NullIpFamily{}
+		return nil
 	}
 
-	return sqlc.NullIpFamily{
-		IpFamily: sqlc.IpFamily(*value),
-		Valid:    true,
-	}
+	ipFamily := sqlc.IpFamily(*value)
+	return &ipFamily
 }
 
 func timestamptz(value time.Time) pgtype.Timestamptz {

@@ -90,59 +90,23 @@ type pingPairBody struct {
 }
 
 type pingInsightBody struct {
-	Buckets       []pingInsightBucketBody     `json:"buckets"`
-	SampleDensity []pingSampleDensityCellBody `json:"sampleDensity"`
-	Summary       pingInsightSummaryBody      `json:"summary"`
-	Query         queryMetadataBody           `json:"query"`
-}
-
-type pingInsightBucketBody struct {
-	TimestampMs   int64    `json:"timestampMs"`
-	ResultCount   int64    `json:"resultCount"`
-	DurationAvgMs *float64 `json:"durationAvgMs,omitempty"`
-	RttMinMs      *float64 `json:"rttMinMs,omitempty"`
-	RttAvgMs      *float64 `json:"rttAvgMs,omitempty"`
-	RttMedianMs   *float64 `json:"rttMedianMs,omitempty"`
-	RttMaxMs      *float64 `json:"rttMaxMs,omitempty"`
-	RttStddevMs   *float64 `json:"rttStddevMs,omitempty"`
-	LossPercent   *float64 `json:"lossPercent,omitempty"`
-	SuccessRate   *float64 `json:"successRate,omitempty"`
-	SentCount     int64    `json:"sentCount"`
-	ReceivedCount int64    `json:"receivedCount"`
-	TimeoutCount  int64    `json:"timeoutCount"`
-	ErrorCount    int64    `json:"errorCount"`
-}
-
-type pingSampleDensityCellBody struct {
-	TimestampMs      int64   `json:"timestampMs"`
-	RttBucketStartMs float64 `json:"rttBucketStartMs"`
-	RttBucketEndMs   float64 `json:"rttBucketEndMs"`
-	SampleCount      int64   `json:"sampleCount"`
+	Summary pingInsightSummaryBody `json:"summary"`
+	Meta    queryMetadataBody      `json:"meta"`
 }
 
 type pingInsightSummaryBody struct {
-	TotalResults      int64    `json:"totalResults"`
-	SuccessfulCount   int64    `json:"successfulCount"`
-	TimeoutCount      int64    `json:"timeoutCount"`
-	ErrorCount        int64    `json:"errorCount"`
-	SentCount         int64    `json:"sentCount"`
-	ReceivedCount     int64    `json:"receivedCount"`
-	AvgLossPercent    *float64 `json:"avgLossPercent,omitempty"`
-	AvgRttMs          *float64 `json:"avgRttMs,omitempty"`
-	MedianRttMs       *float64 `json:"medianRttMs,omitempty"`
-	MaxRttMs          *float64 `json:"maxRttMs,omitempty"`
-	P95RttMs          *float64 `json:"p95RttMs,omitempty"`
-	P99RttMs          *float64 `json:"p99RttMs,omitempty"`
-	LatestStatus      *string  `json:"latestStatus,omitempty"`
-	LatestStartedAtMs *int64   `json:"latestStartedAtMs,omitempty"`
-	LatestRttAvgMs    *float64 `json:"latestRttAvgMs,omitempty"`
-	LatestLossPercent *float64 `json:"latestLossPercent,omitempty"`
+	AverageRttMs *float64 `json:"averageRttMs,omitempty"`
+	MaxRttMs     *float64 `json:"maxRttMs,omitempty"`
+	LossPercent  *float64 `json:"lossPercent,omitempty"`
+	SuccessRate  *float64 `json:"successRate,omitempty"`
+	Samples      int64    `json:"samples"`
 }
 
 type queryMetadataBody struct {
 	FromMs        int64  `json:"from"`
 	ToMs          int64  `json:"to"`
 	MaxDataPoints int32  `json:"maxDataPoints"`
+	Source        string `json:"source,omitempty"`
 	Resolution    string `json:"resolution"`
 	TotalPoints   int64  `json:"totalPoints"`
 }
@@ -227,33 +191,16 @@ func newPingPairBodies(pairs []domainpublicpage.PingPair) []pingPairBody {
 
 func newPingInsightBody(output apppublicpage.PublicPingInsightOutput) pingInsightBody {
 	return pingInsightBody{
-		Buckets:       newPingInsightBucketBodies(output.Buckets),
-		SampleDensity: newPingSampleDensityBodies(output.SampleDensity),
-		Summary:       newPingInsightSummaryBody(output.Summary),
-		Query: queryMetadataBody{
-			FromMs:        output.Query.FromMs,
-			ToMs:          output.Query.ToMs,
-			MaxDataPoints: output.Query.MaxDataPoints,
-			Resolution:    output.Query.Resolution,
-			TotalPoints:   output.Query.TotalPoints,
+		Summary: newPingInsightSummaryBody(output.Summary),
+		Meta: queryMetadataBody{
+			FromMs:        output.Meta.FromMs,
+			ToMs:          output.Meta.ToMs,
+			MaxDataPoints: output.Meta.MaxDataPoints,
+			Source:        output.Meta.Source,
+			Resolution:    output.Meta.Resolution,
+			TotalPoints:   output.Meta.TotalPoints,
 		},
 	}
-}
-
-func newPingInsightBucketBodies(buckets []apppublicpage.PingInsightBucket) []pingInsightBucketBody {
-	values := make([]pingInsightBucketBody, 0, len(buckets))
-	for _, bucket := range buckets {
-		values = append(values, pingInsightBucketBody(bucket))
-	}
-	return values
-}
-
-func newPingSampleDensityBodies(cells []apppublicpage.PingSampleDensityCell) []pingSampleDensityCellBody {
-	values := make([]pingSampleDensityCellBody, 0, len(cells))
-	for _, cell := range cells {
-		values = append(values, pingSampleDensityCellBody(cell))
-	}
-	return values
 }
 
 func newPingInsightSummaryBody(summary apppublicpage.PingInsightSummary) pingInsightSummaryBody {

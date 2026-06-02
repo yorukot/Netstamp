@@ -60,7 +60,7 @@ func resultErrorLocation(field string) string {
 		return "query.probeId"
 	case "checkId":
 		return "query.checkId"
-	case "from", "to", "metric", "maxDataPoints", "limit", "cursor", "type", "status":
+	case "from", "to", "series", "maxDataPoints", "limit", "cursor", "type", "status":
 		return "query." + field
 	default:
 		return "query"

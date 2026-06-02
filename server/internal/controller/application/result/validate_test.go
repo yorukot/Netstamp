@@ -19,12 +19,12 @@ func TestNormalizeQueryPingSeriesInputReturnsAllFieldErrors(t *testing.T) {
 		CheckID:       "",
 		FromMs:        &fromMs,
 		ToMs:          &toMs,
-		Metric:        "bad",
+		Series:        "bad",
 		MaxDataPoints: &maxDataPoints,
 		Now:           time.Date(2026, 5, 19, 0, 0, 0, 0, time.UTC),
 	})
 
-	assertValidationFields(t, err, []string{"projectRef", "probeId", "checkId", "to", "from", "metric", "maxDataPoints"})
+	assertValidationFields(t, err, []string{"projectRef", "probeId", "checkId", "to", "from", "series", "maxDataPoints"})
 }
 
 func TestNormalizeQueryPingInsightInputReturnsAllFieldErrors(t *testing.T) {

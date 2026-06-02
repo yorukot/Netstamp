@@ -3880,7 +3880,7 @@
 						"$ref": "#/components/parameters/PingSeriesQuery.to"
 					},
 					{
-						"$ref": "#/components/parameters/PingSeriesQuery.metric"
+						"$ref": "#/components/parameters/PingSeriesQuery.series"
 					},
 					{
 						"$ref": "#/components/parameters/PingSeriesQuery.maxDataPoints"
@@ -5334,23 +5334,22 @@
 				},
 				"explode": false
 			},
-			"PingSeriesQuery.metric": {
-				"name": "metric",
-				"in": "query",
-				"required": false,
-				"schema": {
-					"type": "string",
-					"enum": ["rttAvgMs", "lossPercent", "successRate"],
-					"default": "rttAvgMs"
-				},
-				"explode": false
-			},
 			"PingSeriesQuery.probeId": {
 				"name": "probeId",
 				"in": "query",
 				"required": true,
 				"schema": {
 					"$ref": "#/components/schemas/uuid"
+				},
+				"explode": false
+			},
+			"PingSeriesQuery.series": {
+				"name": "series",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"default": "latency_avg,latency_min,latency_max,loss_percent"
 				},
 				"explode": false
 			},
@@ -6642,46 +6641,47 @@
 					}
 				]
 			},
-			"PingInsightBucket": {
+			"PingInsightResponse": {
 				"type": "object",
-				"required": ["timestampMs", "resultCount", "sentCount", "receivedCount", "timeoutCount", "errorCount"],
+				"required": ["summary", "meta"],
 				"properties": {
-					"timestampMs": {
-						"type": "integer",
-						"format": "int64",
-						"minimum": 1
+					"summary": {
+						"$ref": "#/components/schemas/PingInsightSummary"
 					},
-					"resultCount": {
-						"type": "integer",
-						"format": "int64",
-						"minimum": 0
-					},
-					"durationAvgMs": {
+					"meta": {
+						"$ref": "#/components/schemas/PingSeriesQueryMetadata"
+					}
+				},
+				"examples": [
+					{
+						"summary": {
+							"averageRttMs": 12.3,
+							"maxRttMs": 42.5,
+							"lossPercent": 1.4,
+							"successRate": 98.6,
+							"samples": 1920
+						},
+						"meta": {
+							"from": 1778662800000,
+							"to": 1778749200000,
+							"maxDataPoints": 600,
+							"source": "aggregate",
+							"resolution": "1m",
+							"totalPoints": 487
+						}
+					}
+				]
+			},
+			"PingInsightSummary": {
+				"type": "object",
+				"required": ["samples"],
+				"properties": {
+					"averageRttMs": {
 						"type": "number",
 						"format": "double",
 						"minimum": 0
 					},
-					"rttMinMs": {
-						"type": "number",
-						"format": "double",
-						"minimum": 0
-					},
-					"rttAvgMs": {
-						"type": "number",
-						"format": "double",
-						"minimum": 0
-					},
-					"rttMedianMs": {
-						"type": "number",
-						"format": "double",
-						"minimum": 0
-					},
-					"rttMaxMs": {
-						"type": "number",
-						"format": "double",
-						"minimum": 0
-					},
-					"rttStddevMs": {
+					"maxRttMs": {
 						"type": "number",
 						"format": "double",
 						"minimum": 0
@@ -6698,22 +6698,7 @@
 						"minimum": 0,
 						"maximum": 100
 					},
-					"sentCount": {
-						"type": "integer",
-						"format": "int64",
-						"minimum": 0
-					},
-					"receivedCount": {
-						"type": "integer",
-						"format": "int64",
-						"minimum": 0
-					},
-					"timeoutCount": {
-						"type": "integer",
-						"format": "int64",
-						"minimum": 0
-					},
-					"errorCount": {
+					"samples": {
 						"type": "integer",
 						"format": "int64",
 						"minimum": 0
@@ -6721,206 +6706,11 @@
 				},
 				"examples": [
 					{
-						"timestampMs": 1778666400000,
-						"resultCount": 12,
-						"durationAvgMs": 1000,
-						"rttMinMs": 10.1,
-						"rttAvgMs": 12.3,
-						"rttMedianMs": 12,
-						"rttMaxMs": 15.6,
-						"rttStddevMs": 1.7,
-						"lossPercent": 0,
-						"successRate": 100,
-						"sentCount": 48,
-						"receivedCount": 48,
-						"timeoutCount": 0,
-						"errorCount": 0
-					}
-				]
-			},
-			"PingInsightResponse": {
-				"type": "object",
-				"required": ["buckets", "sampleDensity", "summary", "query"],
-				"properties": {
-					"buckets": {
-						"type": "array",
-						"items": {
-							"$ref": "#/components/schemas/PingInsightBucket"
-						}
-					},
-					"sampleDensity": {
-						"type": "array",
-						"items": {
-							"$ref": "#/components/schemas/PingSampleDensityCell"
-						}
-					},
-					"summary": {
-						"$ref": "#/components/schemas/PingInsightSummary"
-					},
-					"query": {
-						"$ref": "#/components/schemas/PingSeriesQueryMetadata"
-					}
-				},
-				"examples": [
-					{
-						"buckets": [
-							{
-								"timestampMs": 1778666400000,
-								"resultCount": 12,
-								"rttAvgMs": 12.3,
-								"rttMinMs": 10.1,
-								"rttMaxMs": 15.6,
-								"lossPercent": 0,
-								"successRate": 100,
-								"sentCount": 48,
-								"receivedCount": 48,
-								"timeoutCount": 0,
-								"errorCount": 0
-							}
-						],
-						"sampleDensity": [
-							{
-								"timestampMs": 1778666400000,
-								"rttBucketStartMs": 10,
-								"rttBucketEndMs": 11,
-								"sampleCount": 3
-							}
-						],
-						"summary": {
-							"totalResults": 487,
-							"successfulCount": 480,
-							"timeoutCount": 7,
-							"errorCount": 0,
-							"sentCount": 1948,
-							"receivedCount": 1920,
-							"avgLossPercent": 1.4,
-							"avgRttMs": 12.3
-						},
-						"query": {
-							"from": 1778662800000,
-							"to": 1778749200000,
-							"maxDataPoints": 600,
-							"resolution": "bucket",
-							"totalPoints": 487
-						}
-					}
-				]
-			},
-			"PingInsightSummary": {
-				"type": "object",
-				"required": ["totalResults", "successfulCount", "timeoutCount", "errorCount", "sentCount", "receivedCount"],
-				"properties": {
-					"totalResults": {
-						"type": "integer",
-						"format": "int64",
-						"minimum": 0
-					},
-					"successfulCount": {
-						"type": "integer",
-						"format": "int64",
-						"minimum": 0
-					},
-					"timeoutCount": {
-						"type": "integer",
-						"format": "int64",
-						"minimum": 0
-					},
-					"errorCount": {
-						"type": "integer",
-						"format": "int64",
-						"minimum": 0
-					},
-					"sentCount": {
-						"type": "integer",
-						"format": "int64",
-						"minimum": 0
-					},
-					"receivedCount": {
-						"type": "integer",
-						"format": "int64",
-						"minimum": 0
-					},
-					"avgLossPercent": {
-						"type": "number",
-						"format": "double",
-						"minimum": 0,
-						"maximum": 100
-					},
-					"avgRttMs": {
-						"type": "number",
-						"format": "double",
-						"minimum": 0
-					},
-					"medianRttMs": {
-						"type": "number",
-						"format": "double",
-						"minimum": 0
-					},
-					"maxRttMs": {
-						"type": "number",
-						"format": "double",
-						"minimum": 0
-					},
-					"p95RttMs": {
-						"type": "number",
-						"format": "double",
-						"minimum": 0
-					},
-					"p99RttMs": {
-						"type": "number",
-						"format": "double",
-						"minimum": 0
-					},
-					"latestStatus": {
-						"type": "string",
-						"enum": ["successful", "timeout", "error"]
-					},
-					"latestStartedAtMs": {
-						"type": "integer",
-						"format": "int64",
-						"minimum": 1
-					},
-					"latestRttAvgMs": {
-						"type": "number",
-						"format": "double",
-						"minimum": 0
-					},
-					"latestLossPercent": {
-						"type": "number",
-						"format": "double",
-						"minimum": 0,
-						"maximum": 100
-					},
-					"latestResolvedIp": {
-						"anyOf": [
-							{
-								"$ref": "#/components/schemas/ipv4Address"
-							},
-							{
-								"$ref": "#/components/schemas/ipv6Address"
-							}
-						]
-					}
-				},
-				"examples": [
-					{
-						"totalResults": 487,
-						"successfulCount": 480,
-						"timeoutCount": 7,
-						"errorCount": 0,
-						"sentCount": 1948,
-						"receivedCount": 1920,
-						"avgLossPercent": 1.4,
-						"avgRttMs": 12.3,
-						"medianRttMs": 12,
+						"averageRttMs": 12.3,
 						"maxRttMs": 42.5,
-						"p95RttMs": 18.2,
-						"p99RttMs": 31.7,
-						"latestStatus": "successful",
-						"latestStartedAtMs": 1778666400000,
-						"latestRttAvgMs": 12.3,
-						"latestLossPercent": 0,
-						"latestResolvedIp": "1.1.1.1"
+						"lossPercent": 1.4,
+						"successRate": 98.6,
+						"samples": 1920
 					}
 				]
 			},
@@ -7034,40 +6824,6 @@
 					}
 				]
 			},
-			"PingSampleDensityCell": {
-				"type": "object",
-				"required": ["timestampMs", "rttBucketStartMs", "rttBucketEndMs", "sampleCount"],
-				"properties": {
-					"timestampMs": {
-						"type": "integer",
-						"format": "int64",
-						"minimum": 1
-					},
-					"rttBucketStartMs": {
-						"type": "number",
-						"format": "double",
-						"minimum": 0
-					},
-					"rttBucketEndMs": {
-						"type": "number",
-						"format": "double",
-						"minimum": 0
-					},
-					"sampleCount": {
-						"type": "integer",
-						"format": "int64",
-						"minimum": 0
-					}
-				},
-				"examples": [
-					{
-						"timestampMs": 1778666400000,
-						"rttBucketStartMs": 10,
-						"rttBucketEndMs": 11,
-						"sampleCount": 3
-					}
-				]
-			},
 			"PingSeriesQueryMetadata": {
 				"type": "object",
 				"required": ["from", "to", "maxDataPoints", "resolution", "totalPoints"],
@@ -7088,9 +6844,13 @@
 						"minimum": 1,
 						"maximum": 2000
 					},
+					"source": {
+						"type": "string",
+						"enum": ["raw", "aggregate"]
+					},
 					"resolution": {
 						"type": "string",
-						"enum": ["raw", "bucket"]
+						"enum": ["raw", "bucket", "1m"]
 					},
 					"totalPoints": {
 						"type": "integer",
@@ -7103,6 +6863,7 @@
 						"from": 1778662800000,
 						"to": 1778749200000,
 						"maxDataPoints": 600,
+						"source": "raw",
 						"resolution": "bucket",
 						"totalPoints": 487
 					}
@@ -7110,23 +6871,23 @@
 			},
 			"PingSeriesResponse": {
 				"type": "object",
-				"required": ["series", "query"],
+				"required": ["series", "meta"],
 				"properties": {
 					"series": {
-						"type": "array",
-						"items": {
+						"type": "object",
+						"unevaluatedProperties": {
 							"$ref": "#/components/schemas/Series"
 						}
 					},
-					"query": {
+					"meta": {
 						"$ref": "#/components/schemas/PingSeriesQueryMetadata"
 					}
 				},
 				"examples": [
 					{
-						"series": [
-							{
-								"name": "rttAvgMs",
+						"series": {
+							"latency_avg": {
+								"name": "latency_avg",
 								"labels": {
 									"probeId": "33333333-3333-3333-3333-333333333333",
 									"checkId": "44444444-4444-4444-4444-444444444444",
@@ -7135,11 +6896,12 @@
 								"unit": "ms",
 								"points": [[1778666400000, 12.3]]
 							}
-						],
-						"query": {
+						},
+						"meta": {
 							"from": 1778662800000,
 							"to": 1778749200000,
 							"maxDataPoints": 600,
+							"source": "raw",
 							"resolution": "bucket",
 							"totalPoints": 487
 						}
@@ -8097,74 +7859,21 @@
 			},
 			"PublicPingInsightResponse": {
 				"type": "object",
-				"required": ["buckets", "sampleDensity", "summary", "query"],
+				"required": ["summary", "meta"],
 				"properties": {
-					"buckets": {
-						"type": "array",
-						"items": {
-							"$ref": "#/components/schemas/PingInsightBucket"
-						}
-					},
-					"sampleDensity": {
-						"type": "array",
-						"items": {
-							"$ref": "#/components/schemas/PingSampleDensityCell"
-						}
-					},
 					"summary": {
 						"$ref": "#/components/schemas/PublicPingInsightSummary"
 					},
-					"query": {
+					"meta": {
 						"$ref": "#/components/schemas/PingSeriesQueryMetadata"
 					}
 				}
 			},
 			"PublicPingInsightSummary": {
 				"type": "object",
-				"required": ["totalResults", "successfulCount", "timeoutCount", "errorCount", "sentCount", "receivedCount"],
+				"required": ["samples"],
 				"properties": {
-					"totalResults": {
-						"type": "integer",
-						"format": "int64",
-						"minimum": 0
-					},
-					"successfulCount": {
-						"type": "integer",
-						"format": "int64",
-						"minimum": 0
-					},
-					"timeoutCount": {
-						"type": "integer",
-						"format": "int64",
-						"minimum": 0
-					},
-					"errorCount": {
-						"type": "integer",
-						"format": "int64",
-						"minimum": 0
-					},
-					"sentCount": {
-						"type": "integer",
-						"format": "int64",
-						"minimum": 0
-					},
-					"receivedCount": {
-						"type": "integer",
-						"format": "int64",
-						"minimum": 0
-					},
-					"avgLossPercent": {
-						"type": "number",
-						"format": "double",
-						"minimum": 0,
-						"maximum": 100
-					},
-					"avgRttMs": {
-						"type": "number",
-						"format": "double",
-						"minimum": 0
-					},
-					"medianRttMs": {
+					"averageRttMs": {
 						"type": "number",
 						"format": "double",
 						"minimum": 0
@@ -8174,35 +7883,22 @@
 						"format": "double",
 						"minimum": 0
 					},
-					"p95RttMs": {
-						"type": "number",
-						"format": "double",
-						"minimum": 0
-					},
-					"p99RttMs": {
-						"type": "number",
-						"format": "double",
-						"minimum": 0
-					},
-					"latestStatus": {
-						"type": "string",
-						"enum": ["successful", "timeout", "error"]
-					},
-					"latestStartedAtMs": {
-						"type": "integer",
-						"format": "int64",
-						"minimum": 1
-					},
-					"latestRttAvgMs": {
-						"type": "number",
-						"format": "double",
-						"minimum": 0
-					},
-					"latestLossPercent": {
+					"lossPercent": {
 						"type": "number",
 						"format": "double",
 						"minimum": 0,
 						"maximum": 100
+					},
+					"successRate": {
+						"type": "number",
+						"format": "double",
+						"minimum": 0,
+						"maximum": 100
+					},
+					"samples": {
+						"type": "integer",
+						"format": "int64",
+						"minimum": 0
 					}
 				}
 			},
@@ -8725,7 +8421,7 @@
 				},
 				"examples": [
 					{
-						"name": "rttAvgMs",
+						"name": "latency_avg",
 						"labels": {
 							"probeId": "33333333-3333-3333-3333-333333333333",
 							"checkId": "44444444-4444-4444-4444-444444444444",
@@ -9429,7 +9125,7 @@
 					},
 					"resolution": {
 						"type": "string",
-						"enum": ["raw", "bucket"]
+						"enum": ["raw", "bucket", "1m"]
 					},
 					"totalRuns": {
 						"type": "integer",

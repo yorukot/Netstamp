@@ -154,7 +154,7 @@ func newQueryPingSeriesInput(r *http.Request) (*queryPingSeriesInput, error) {
 		CheckID:       httpx.QueryString(r, "checkId"),
 		From:          from,
 		To:            to,
-		Metric:        httpx.QueryString(r, "metric"),
+		Series:        httpx.QueryString(r, "series"),
 		MaxDataPoints: maxDataPoints,
 	}, nil
 }

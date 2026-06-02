@@ -14,23 +14,21 @@ func sqlcTracerouteStatus(value domaintraceroute.Status) sqlc.TracerouteStatus {
 	return sqlc.TracerouteStatus(value)
 }
 
-func sqlcIPFamily(value *domainnetwork.IPFamily) sqlc.NullIpFamily {
+func sqlcIPFamily(value *domainnetwork.IPFamily) *sqlc.IpFamily {
 	if value == nil {
-		return sqlc.NullIpFamily{}
-	}
-
-	return sqlc.NullIpFamily{
-		IpFamily: sqlc.IpFamily(*value),
-		Valid:    true,
-	}
-}
-
-func mapIPFamily(value sqlc.NullIpFamily) *domainnetwork.IPFamily {
-	if !value.Valid {
 		return nil
 	}
 
-	ipFamily := domainnetwork.IPFamily(value.IpFamily)
+	ipFamily := sqlc.IpFamily(*value)
+	return &ipFamily
+}
+
+func mapIPFamily(value *sqlc.IpFamily) *domainnetwork.IPFamily {
+	if value == nil {
+		return nil
+	}
+
+	ipFamily := domainnetwork.IPFamily(*value)
 	return &ipFamily
 }
 

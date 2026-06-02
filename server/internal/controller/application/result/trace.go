@@ -12,5 +12,5 @@ const (
 	attrProjectID  = attribute.Key("project.id")
 	attrProbeID    = attribute.Key("probe.id")
 	attrCheckID    = attribute.Key("check.id")
-	attrMetric     = attribute.Key("result.metric")
+	attrSeries     = attribute.Key("result.series")
 )

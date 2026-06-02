@@ -22,7 +22,7 @@ model PingSeriesQuery {
 	to?: int64;
 
 	@query
-	metric?: PingMetric = "rttAvgMs";
+	series?: string = "latency_avg,latency_min,latency_max,loss_percent";
 
 	@query
 	@minValue(1)

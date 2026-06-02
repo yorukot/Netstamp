@@ -139,17 +139,17 @@ func mapSelectedCheck(
 	pingPacketCount *int32,
 	pingPacketSizeBytes *int32,
 	pingTimeoutMs *int32,
-	pingIPFamily sqlc.NullIpFamily,
+	pingIPFamily *sqlc.IpFamily,
 	tcpPort *int32,
 	tcpTimeoutMs *int32,
-	tcpIPFamily sqlc.NullIpFamily,
-	tracerouteProtocol sqlc.NullTracerouteProtocol,
+	tcpIPFamily *sqlc.IpFamily,
+	tracerouteProtocol *sqlc.TracerouteProtocol,
 	tracerouteMaxHops *int32,
 	tracerouteTimeoutMs *int32,
 	tracerouteQueriesPerHop *int32,
 	traceroutePacketSizeBytes *int32,
 	traceroutePort *int32,
-	tracerouteIPFamily sqlc.NullIpFamily,
+	tracerouteIPFamily *sqlc.IpFamily,
 	createdAt pgtype.Timestamptz,
 	updatedAt pgtype.Timestamptz,
 	deletedAt pgtype.Timestamptz,
@@ -223,7 +223,7 @@ func tracerouteConfigPtr(config domaintraceroute.Config) *domaintraceroute.Confi
 	return &config
 }
 
-func mapOptionalPingConfig(packetCount, packetSizeBytes, timeoutMs *int32, ipFamily sqlc.NullIpFamily) *domainping.Config {
+func mapOptionalPingConfig(packetCount, packetSizeBytes, timeoutMs *int32, ipFamily *sqlc.IpFamily) *domainping.Config {
 	if packetCount == nil || packetSizeBytes == nil || timeoutMs == nil {
 		return nil
 	}
@@ -236,7 +236,7 @@ func mapOptionalPingConfig(packetCount, packetSizeBytes, timeoutMs *int32, ipFam
 	}
 }
 
-func mapOptionalTCPConfig(port, timeoutMs *int32, ipFamily sqlc.NullIpFamily) *domaintcp.Config {
+func mapOptionalTCPConfig(port, timeoutMs *int32, ipFamily *sqlc.IpFamily) *domaintcp.Config {
 	if port == nil || timeoutMs == nil {
 		return nil
 	}
@@ -249,20 +249,20 @@ func mapOptionalTCPConfig(port, timeoutMs *int32, ipFamily sqlc.NullIpFamily) *d
 }
 
 func mapOptionalTracerouteConfig(
-	protocol sqlc.NullTracerouteProtocol,
+	protocol *sqlc.TracerouteProtocol,
 	maxHops *int32,
 	timeoutMs *int32,
 	queriesPerHop *int32,
 	packetSizeBytes *int32,
 	port *int32,
-	ipFamily sqlc.NullIpFamily,
+	ipFamily *sqlc.IpFamily,
 ) *domaintraceroute.Config {
-	if !protocol.Valid || maxHops == nil || timeoutMs == nil || queriesPerHop == nil || packetSizeBytes == nil || port == nil {
+	if protocol == nil || maxHops == nil || timeoutMs == nil || queriesPerHop == nil || packetSizeBytes == nil || port == nil {
 		return nil
 	}
 
 	return &domaintraceroute.Config{
-		Protocol:        domaintraceroute.Protocol(protocol.TracerouteProtocol),
+		Protocol:        domaintraceroute.Protocol(*protocol),
 		MaxHops:         *maxHops,
 		TimeoutMs:       *timeoutMs,
 		QueriesPerHop:   *queriesPerHop,
@@ -280,23 +280,21 @@ func sqlcTracerouteProtocol(value domaintraceroute.Protocol) sqlc.TracerouteProt
 	return sqlc.TracerouteProtocol(value)
 }
 
-func sqlcIPFamily(value *domainnetwork.IPFamily) sqlc.NullIpFamily {
+func sqlcIPFamily(value *domainnetwork.IPFamily) *sqlc.IpFamily {
 	if value == nil {
-		return sqlc.NullIpFamily{}
-	}
-
-	return sqlc.NullIpFamily{
-		IpFamily: sqlc.IpFamily(*value),
-		Valid:    true,
-	}
-}
-
-func mapIPFamily(value sqlc.NullIpFamily) *domainnetwork.IPFamily {
-	if !value.Valid {
 		return nil
 	}
 
-	ipFamily := domainnetwork.IPFamily(value.IpFamily)
+	ipFamily := sqlc.IpFamily(*value)
+	return &ipFamily
+}
+
+func mapIPFamily(value *sqlc.IpFamily) *domainnetwork.IPFamily {
+	if value == nil {
+		return nil
+	}
+
+	ipFamily := domainnetwork.IPFamily(*value)
 	return &ipFamily
 }
 

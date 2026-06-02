@@ -19,7 +19,15 @@ import { mapApiProbes } from "@/features/probes/api/probeAdapters";
 import { type Probe, type ProbeStatus } from "@/features/probes/data/probes";
 import { projectQueries } from "@/shared/api/queries";
 import { apiQueryKeys } from "@/shared/api/queryKeys";
-import { type ApiMeasurement, type ApiProjectAssignment, type PingInsightResponse, type TcpInsightResponse, type TracerouteInsightResponse, type TracerouteResult } from "@/shared/api/types";
+import {
+	type ApiMeasurement,
+	type ApiProjectAssignment,
+	type PingInsightResponse,
+	type PingSeriesResponse,
+	type TcpInsightResponse,
+	type TracerouteInsightResponse,
+	type TracerouteResult
+} from "@/shared/api/types";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { BodyCopy } from "@/shared/components/BodyCopy";
 import { FilterGrid } from "@/shared/components/FilterGrid";
@@ -438,9 +446,11 @@ function GroupTitle({ row }: { row: InsightGroupRow }) {
 
 function InsightPairDetail({
 	pair,
-	pingData,
+	pingInsightData,
+	pingSeriesData,
 	tcpData,
-	isPingLoading,
+	isPingInsightLoading,
+	isPingSeriesLoading,
 	isPingFetching,
 	isTCPLoading,
 	isTCPFetching,
@@ -456,9 +466,11 @@ function InsightPairDetail({
 	onSelectTimeWindow
 }: {
 	pair: InsightPair | null;
-	pingData: PingInsightResponse | undefined;
+	pingInsightData: PingInsightResponse | undefined;
+	pingSeriesData: PingSeriesResponse | undefined;
 	tcpData: TcpInsightResponse | undefined;
-	isPingLoading: boolean;
+	isPingInsightLoading: boolean;
+	isPingSeriesLoading: boolean;
 	isPingFetching: boolean;
 	isTCPLoading: boolean;
 	isTCPFetching: boolean;
@@ -497,7 +509,16 @@ function InsightPairDetail({
 			onSelectTimeWindow={onSelectTimeWindow}
 		/>
 	) : (
-		<PingInsightPanel selectedProbe={pair.probe} selectedTarget={pair.check} data={pingData} isLoading={isPingLoading} isFetching={isPingFetching} onSelectTimeWindow={onSelectTimeWindow} />
+		<PingInsightPanel
+			selectedProbe={pair.probe}
+			selectedTarget={pair.check}
+			insightData={pingInsightData}
+			seriesData={pingSeriesData}
+			isInsightLoading={isPingInsightLoading}
+			isSeriesLoading={isPingSeriesLoading}
+			isFetching={isPingFetching}
+			onSelectTimeWindow={onSelectTimeWindow}
+		/>
 	);
 }
 
@@ -581,6 +602,10 @@ export function InsightPage() {
 	);
 	const pingInsightQuery = useQuery({
 		...projectQueries.pingInsight(projectRef || "", exactPair?.probeId || "", exactPair?.checkId || "", resultWindowFilters),
+		enabled: Boolean(canQueryPairDetail && exactPair?.check.type === "Ping")
+	});
+	const pingSeriesQuery = useQuery({
+		...projectQueries.pingSeries(projectRef || "", exactPair?.probeId || "", exactPair?.checkId || "", resultWindowFilters),
 		enabled: Boolean(canQueryPairDetail && exactPair?.check.type === "Ping")
 	});
 	const tcpInsightQuery = useQuery({
@@ -889,10 +914,12 @@ export function InsightPage() {
 	const pairDetail = (
 		<InsightPairDetail
 			pair={exactPair}
-			pingData={pingInsightQuery.data}
+			pingInsightData={pingInsightQuery.data}
+			pingSeriesData={pingSeriesQuery.data}
 			tcpData={tcpInsightQuery.data}
-			isPingLoading={pingInsightQuery.isLoading}
-			isPingFetching={pingInsightQuery.isFetching}
+			isPingInsightLoading={pingInsightQuery.isLoading}
+			isPingSeriesLoading={pingSeriesQuery.isLoading}
+			isPingFetching={pingInsightQuery.isFetching || pingSeriesQuery.isFetching}
 			isTCPLoading={tcpInsightQuery.isLoading}
 			isTCPFetching={tcpInsightQuery.isFetching}
 			tracerouteInsight={tracerouteInsightQuery.data}

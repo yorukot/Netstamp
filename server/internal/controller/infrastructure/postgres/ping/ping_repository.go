@@ -3,7 +3,6 @@ package pgping
 import (
 	"context"
 	"errors"
-	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -76,82 +75,125 @@ func storageRTTSamples(samples []float64) []float64 {
 	return append([]float64{}, samples...)
 }
 
+type pingSeriesReadMode string
+
+const (
+	pingSeriesReadModeRaw    pingSeriesReadMode = "raw"
+	pingSeriesReadModeBucket pingSeriesReadMode = "bucket"
+	pingSeriesReadModeRollup pingSeriesReadMode = "rollup"
+)
+
+type pingSeriesScope struct {
+	probeStorageID int64
+	checkStorageID int64
+	startedAtFrom  pgtype.Timestamptz
+	startedAtTo    pgtype.Timestamptz
+	maxDataPoints  int32
+}
+
 func (r *PingRepository) ListPingSeries(ctx context.Context, input domainping.SeriesQuery) (domainping.SeriesResult, error) {
 	ctx, span := postgres.StartDBSpan(ctx, pgpingTracer, "ping_results", "postgres.ping_results.series", "SELECT", "SELECT ping result time series")
 	defer span.End()
 
-	projectID, err := postgres.ParseUUID(input.ProjectID, domainproject.ErrProjectNotFound)
-	if err != nil {
-		return domainping.SeriesResult{}, err
-	}
-	probeID, err := postgres.ParseUUID(input.ProbeID, domainprobe.ErrInvalidInput)
-	if err != nil {
-		return domainping.SeriesResult{}, err
-	}
-	checkID, err := postgres.ParseUUID(input.CheckID, domaincheck.ErrInvalidInput)
-	if err != nil {
-		return domainping.SeriesResult{}, err
-	}
-	storageIDs, err := r.queries.ResolvePingSeriesStorageIDs(ctx, sqlc.ResolvePingSeriesStorageIDsParams{
-		CheckID:   checkID,
-		ProjectID: projectID,
-		ProbeID:   probeID,
-	})
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return domainping.SeriesResult{}, domainprobe.ErrProbeNotFound
-		}
-		postgres.RecordDBSpanError(span, err)
-		return domainping.SeriesResult{}, err
-	}
-
-	startedAtFrom := pgtype.Timestamptz{Time: input.From.UTC(), Valid: true}
-	startedAtTo := pgtype.Timestamptz{Time: input.To.UTC(), Valid: true}
-	countParams := sqlc.CountPingResultSeriesPointsParams{
-		ProbeStorageID: storageIDs.ProbeStorageID,
-		CheckStorageID: storageIDs.CheckStorageID,
-		StartedAtFrom:  startedAtFrom,
-		StartedAtTo:    startedAtTo,
-		Metric:         input.Metric,
-	}
-	totalPoints, err := r.queries.CountPingResultSeriesPoints(ctx, countParams)
+	probeStorageID, checkStorageID, err := r.resolvePingStorageIDs(ctx, input.ProjectID, input.ProbeID, input.CheckID)
 	if err != nil {
 		postgres.RecordDBSpanError(span, err)
 		return domainping.SeriesResult{}, err
 	}
 
-	if totalPoints <= int64(input.MaxDataPoints) {
-		points, rawErr := r.listRawPingSeries(ctx, storageIDs.ProbeStorageID, storageIDs.CheckStorageID, startedAtFrom, startedAtTo, input.Metric)
-		if rawErr != nil {
-			postgres.RecordDBSpanError(span, rawErr)
-			return domainping.SeriesResult{}, rawErr
-		}
-		return domainping.SeriesResult{Points: points, Resolution: domainping.SeriesResolutionRaw, TotalPoints: totalPoints}, nil
+	scope := pingSeriesScope{
+		probeStorageID: probeStorageID,
+		checkStorageID: checkStorageID,
+		startedAtFrom:  pgtype.Timestamptz{Time: input.From.UTC(), Valid: true},
+		startedAtTo:    pgtype.Timestamptz{Time: input.To.UTC(), Valid: true},
+		maxDataPoints:  input.MaxDataPoints,
+	}
+	mode, source, resolution, totalPoints, err := r.pingSeriesReadPlan(ctx, scope)
+	if err != nil {
+		postgres.RecordDBSpanError(span, err)
+		return domainping.SeriesResult{}, err
 	}
 
-	points, bucketErr := r.listBucketPingSeries(ctx, storageIDs.ProbeStorageID, storageIDs.CheckStorageID, startedAtFrom, startedAtTo, input)
-	if bucketErr != nil {
-		postgres.RecordDBSpanError(span, bucketErr)
-		return domainping.SeriesResult{}, bucketErr
+	series := make(map[string]domainping.SeriesData, len(input.Series))
+	for _, key := range input.Series {
+		points, listErr := r.listPingSeriesByKey(ctx, key, mode, scope)
+		if listErr != nil {
+			postgres.RecordDBSpanError(span, listErr)
+			return domainping.SeriesResult{}, listErr
+		}
+		series[key] = domainping.SeriesData{Points: points}
 	}
-	return domainping.SeriesResult{Points: points, Resolution: domainping.SeriesResolutionBucket, TotalPoints: totalPoints}, nil
+
+	return domainping.SeriesResult{
+		Series:      series,
+		Resolution:  resolution,
+		Source:      source,
+		TotalPoints: totalPoints,
+	}, nil
 }
 
 func (r *PingRepository) ListPingInsight(ctx context.Context, input domainping.InsightQuery) (domainping.InsightResult, error) {
 	ctx, span := postgres.StartDBSpan(ctx, pgpingTracer, "ping_results", "postgres.ping_results.insight", "SELECT", "SELECT ping insight")
 	defer span.End()
 
-	projectID, err := postgres.ParseUUID(input.ProjectID, domainproject.ErrProjectNotFound)
+	probeStorageID, checkStorageID, err := r.resolvePingStorageIDs(ctx, input.ProjectID, input.ProbeID, input.CheckID)
 	if err != nil {
+		postgres.RecordDBSpanError(span, err)
 		return domainping.InsightResult{}, err
 	}
-	probeID, err := postgres.ParseUUID(input.ProbeID, domainprobe.ErrInvalidInput)
+
+	scope := pingSeriesScope{
+		probeStorageID: probeStorageID,
+		checkStorageID: checkStorageID,
+		startedAtFrom:  pgtype.Timestamptz{Time: input.From.UTC(), Valid: true},
+		startedAtTo:    pgtype.Timestamptz{Time: input.To.UTC(), Valid: true},
+		maxDataPoints:  input.MaxDataPoints,
+	}
+	mode, source, resolution, totalPoints, err := r.pingSeriesReadPlan(ctx, scope)
 	if err != nil {
+		postgres.RecordDBSpanError(span, err)
 		return domainping.InsightResult{}, err
 	}
-	checkID, err := postgres.ParseUUID(input.CheckID, domaincheck.ErrInvalidInput)
+
+	var summary domainping.InsightSummary
+	if mode == pingSeriesReadModeRollup {
+		summary, err = r.pingRollupInsightSummary(ctx, scope)
+		if err != nil {
+			postgres.RecordDBSpanError(span, err)
+			return domainping.InsightResult{}, err
+		}
+	} else {
+		summary, err = r.pingInsightSummary(ctx, scope)
+		if err != nil {
+			postgres.RecordDBSpanError(span, err)
+			return domainping.InsightResult{}, err
+		}
+	}
+
+	return domainping.InsightResult{
+		Summary:     summary,
+		Resolution:  resolution,
+		Source:      source,
+		TotalPoints: totalPoints,
+	}, nil
+}
+
+func usePingRollup(rawPoints, rollupPoints int64) bool {
+	return rollupPoints > rawPoints
+}
+
+func (r *PingRepository) resolvePingStorageIDs(ctx context.Context, projectIDValue, probeIDValue, checkIDValue string) (int64, int64, error) {
+	projectID, err := postgres.ParseUUID(projectIDValue, domainproject.ErrProjectNotFound)
 	if err != nil {
-		return domainping.InsightResult{}, err
+		return 0, 0, err
+	}
+	probeID, err := postgres.ParseUUID(probeIDValue, domainprobe.ErrInvalidInput)
+	if err != nil {
+		return 0, 0, err
+	}
+	checkID, err := postgres.ParseUUID(checkIDValue, domaincheck.ErrInvalidInput)
+	if err != nil {
+		return 0, 0, err
 	}
 	storageIDs, err := r.queries.ResolvePingSeriesStorageIDs(ctx, sqlc.ResolvePingSeriesStorageIDsParams{
 		CheckID:   checkID,
@@ -160,96 +202,197 @@ func (r *PingRepository) ListPingInsight(ctx context.Context, input domainping.I
 	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return domainping.InsightResult{}, domainprobe.ErrProbeNotFound
+			return 0, 0, domainprobe.ErrProbeNotFound
 		}
-		postgres.RecordDBSpanError(span, err)
-		return domainping.InsightResult{}, err
+		return 0, 0, err
 	}
 
-	startedAtFrom := pgtype.Timestamptz{Time: input.From.UTC(), Valid: true}
-	startedAtTo := pgtype.Timestamptz{Time: input.To.UTC(), Valid: true}
-	countParams := sqlc.CountPingInsightPointsParams{
-		ProbeStorageID: storageIDs.ProbeStorageID,
-		CheckStorageID: storageIDs.CheckStorageID,
-		StartedAtFrom:  startedAtFrom,
-		StartedAtTo:    startedAtTo,
-	}
-	totalPoints, err := r.queries.CountPingInsightPoints(ctx, countParams)
-	if err != nil {
-		postgres.RecordDBSpanError(span, err)
-		return domainping.InsightResult{}, err
-	}
-
-	summary, err := r.pingInsightSummary(ctx, storageIDs.ProbeStorageID, storageIDs.CheckStorageID, startedAtFrom, startedAtTo)
-	if err != nil {
-		postgres.RecordDBSpanError(span, err)
-		return domainping.InsightResult{}, err
-	}
-
-	if totalPoints <= int64(input.MaxDataPoints) {
-		buckets, cells, rawErr := r.listRawPingInsight(ctx, storageIDs.ProbeStorageID, storageIDs.CheckStorageID, startedAtFrom, startedAtTo)
-		if rawErr != nil {
-			postgres.RecordDBSpanError(span, rawErr)
-			return domainping.InsightResult{}, rawErr
-		}
-		return domainping.InsightResult{
-			Buckets:       buckets,
-			SampleDensity: cells,
-			Summary:       summary,
-			Resolution:    domainping.SeriesResolutionRaw,
-			TotalPoints:   totalPoints,
-		}, nil
-	}
-
-	buckets, cells, bucketErr := r.listBucketPingInsight(ctx, storageIDs.ProbeStorageID, storageIDs.CheckStorageID, startedAtFrom, startedAtTo, input.MaxDataPoints)
-	if bucketErr != nil {
-		postgres.RecordDBSpanError(span, bucketErr)
-		return domainping.InsightResult{}, bucketErr
-	}
-	return domainping.InsightResult{
-		Buckets:       buckets,
-		SampleDensity: cells,
-		Summary:       summary,
-		Resolution:    domainping.SeriesResolutionBucket,
-		TotalPoints:   totalPoints,
-	}, nil
+	return storageIDs.ProbeStorageID, storageIDs.CheckStorageID, nil
 }
 
-func (r *PingRepository) listRawPingSeries(ctx context.Context, probeStorageID, checkStorageID int64, startedAtFrom, startedAtTo pgtype.Timestamptz, metric string) ([]domainping.SeriesPoint, error) {
-	rows, err := r.queries.ListPingResultRawSeries(ctx, sqlc.ListPingResultRawSeriesParams{
-		Metric:         metric,
-		ProbeStorageID: probeStorageID,
-		CheckStorageID: checkStorageID,
-		StartedAtFrom:  startedAtFrom,
-		StartedAtTo:    startedAtTo,
+func (r *PingRepository) pingSeriesReadPlan(ctx context.Context, scope pingSeriesScope) (pingSeriesReadMode, domainping.SeriesSource, domainping.SeriesResolution, int64, error) {
+	totalPoints, err := r.queries.CountPingResultSeriesPoints(ctx, sqlc.CountPingResultSeriesPointsParams{
+		ProbeStorageID: scope.probeStorageID,
+		CheckStorageID: scope.checkStorageID,
+		StartedAtFrom:  scope.startedAtFrom,
+		StartedAtTo:    scope.startedAtTo,
 	})
 	if err != nil {
-		return nil, err
+		return "", "", "", 0, err
 	}
-	return rawSeriesRows(rows), nil
-}
-
-func (r *PingRepository) listBucketPingSeries(ctx context.Context, probeStorageID, checkStorageID int64, startedAtFrom, startedAtTo pgtype.Timestamptz, input domainping.SeriesQuery) ([]domainping.SeriesPoint, error) {
-	rows, err := r.queries.ListPingResultBucketSeries(ctx, sqlc.ListPingResultBucketSeriesParams{
-		StartedAtTo:    startedAtTo,
-		StartedAtFrom:  startedAtFrom,
-		MaxDataPoints:  float64(input.MaxDataPoints),
-		Metric:         input.Metric,
-		ProbeStorageID: probeStorageID,
-		CheckStorageID: checkStorageID,
+	rollupPoints, err := r.queries.CountPingResultRollupSeriesPoints(ctx, sqlc.CountPingResultRollupSeriesPointsParams{
+		ProbeStorageID: scope.probeStorageID,
+		CheckStorageID: scope.checkStorageID,
+		StartedAtFrom:  scope.startedAtFrom,
+		StartedAtTo:    scope.startedAtTo,
 	})
 	if err != nil {
-		return nil, err
+		return "", "", "", 0, err
 	}
-	return bucketSeriesRows(rows), nil
+
+	if usePingRollup(totalPoints, rollupPoints) {
+		return pingSeriesReadModeRollup, domainping.SeriesSourceAggregate, domainping.SeriesResolutionOneMinute, rollupPoints, nil
+	}
+	if totalPoints <= int64(scope.maxDataPoints) {
+		return pingSeriesReadModeRaw, domainping.SeriesSourceRaw, domainping.SeriesResolutionRaw, totalPoints, nil
+	}
+
+	return pingSeriesReadModeBucket, domainping.SeriesSourceRaw, domainping.SeriesResolutionBucket, totalPoints, nil
 }
 
-func (r *PingRepository) pingInsightSummary(ctx context.Context, probeStorageID, checkStorageID int64, startedAtFrom, startedAtTo pgtype.Timestamptz) (domainping.InsightSummary, error) {
+func (r *PingRepository) listPingSeriesByKey(ctx context.Context, key string, mode pingSeriesReadMode, scope pingSeriesScope) ([]domainping.SeriesPoint, error) {
+	switch key {
+	case "latency_avg":
+		return r.listPingLatencyAvgSeries(ctx, mode, scope)
+	case "latency_min":
+		return r.listPingLatencyMinSeries(ctx, mode, scope)
+	case "latency_max":
+		return r.listPingLatencyMaxSeries(ctx, mode, scope)
+	case "loss_percent":
+		return r.listPingLossPercentSeries(ctx, mode, scope)
+	default:
+		return nil, errors.New("unsupported ping series")
+	}
+}
+
+func (r *PingRepository) listPingLatencyAvgSeries(ctx context.Context, mode pingSeriesReadMode, scope pingSeriesScope) ([]domainping.SeriesPoint, error) {
+	switch mode {
+	case pingSeriesReadModeRaw:
+		rows, err := r.queries.ListPingLatencyAvgRawSeries(ctx, sqlc.ListPingLatencyAvgRawSeriesParams{
+			ProbeStorageID: scope.probeStorageID,
+			CheckStorageID: scope.checkStorageID,
+			StartedAtFrom:  scope.startedAtFrom,
+			StartedAtTo:    scope.startedAtTo,
+		})
+		return latencyAvgRawSeriesRows(rows), err
+	case pingSeriesReadModeBucket:
+		rows, err := r.queries.ListPingLatencyAvgBucketSeries(ctx, sqlc.ListPingLatencyAvgBucketSeriesParams{
+			StartedAtTo:    scope.startedAtTo,
+			StartedAtFrom:  scope.startedAtFrom,
+			MaxDataPoints:  float64(scope.maxDataPoints),
+			ProbeStorageID: scope.probeStorageID,
+			CheckStorageID: scope.checkStorageID,
+		})
+		return latencyAvgBucketSeriesRows(rows), err
+	case pingSeriesReadModeRollup:
+		rows, err := r.queries.ListPingLatencyAvgRollupSeries(ctx, sqlc.ListPingLatencyAvgRollupSeriesParams{
+			StartedAtTo:    scope.startedAtTo,
+			StartedAtFrom:  scope.startedAtFrom,
+			MaxDataPoints:  float64(scope.maxDataPoints),
+			ProbeStorageID: scope.probeStorageID,
+			CheckStorageID: scope.checkStorageID,
+		})
+		return latencyAvgRollupSeriesRows(rows), err
+	default:
+		return nil, errors.New("unsupported ping series read mode")
+	}
+}
+
+func (r *PingRepository) listPingLatencyMinSeries(ctx context.Context, mode pingSeriesReadMode, scope pingSeriesScope) ([]domainping.SeriesPoint, error) {
+	switch mode {
+	case pingSeriesReadModeRaw:
+		rows, err := r.queries.ListPingLatencyMinRawSeries(ctx, sqlc.ListPingLatencyMinRawSeriesParams{
+			ProbeStorageID: scope.probeStorageID,
+			CheckStorageID: scope.checkStorageID,
+			StartedAtFrom:  scope.startedAtFrom,
+			StartedAtTo:    scope.startedAtTo,
+		})
+		return latencyMinRawSeriesRows(rows), err
+	case pingSeriesReadModeBucket:
+		rows, err := r.queries.ListPingLatencyMinBucketSeries(ctx, sqlc.ListPingLatencyMinBucketSeriesParams{
+			StartedAtTo:    scope.startedAtTo,
+			StartedAtFrom:  scope.startedAtFrom,
+			MaxDataPoints:  float64(scope.maxDataPoints),
+			ProbeStorageID: scope.probeStorageID,
+			CheckStorageID: scope.checkStorageID,
+		})
+		return latencyMinBucketSeriesRows(rows), err
+	case pingSeriesReadModeRollup:
+		rows, err := r.queries.ListPingLatencyMinRollupSeries(ctx, sqlc.ListPingLatencyMinRollupSeriesParams{
+			StartedAtTo:    scope.startedAtTo,
+			StartedAtFrom:  scope.startedAtFrom,
+			MaxDataPoints:  float64(scope.maxDataPoints),
+			ProbeStorageID: scope.probeStorageID,
+			CheckStorageID: scope.checkStorageID,
+		})
+		return latencyMinRollupSeriesRows(rows), err
+	default:
+		return nil, errors.New("unsupported ping series read mode")
+	}
+}
+
+func (r *PingRepository) listPingLatencyMaxSeries(ctx context.Context, mode pingSeriesReadMode, scope pingSeriesScope) ([]domainping.SeriesPoint, error) {
+	switch mode {
+	case pingSeriesReadModeRaw:
+		rows, err := r.queries.ListPingLatencyMaxRawSeries(ctx, sqlc.ListPingLatencyMaxRawSeriesParams{
+			ProbeStorageID: scope.probeStorageID,
+			CheckStorageID: scope.checkStorageID,
+			StartedAtFrom:  scope.startedAtFrom,
+			StartedAtTo:    scope.startedAtTo,
+		})
+		return latencyMaxRawSeriesRows(rows), err
+	case pingSeriesReadModeBucket:
+		rows, err := r.queries.ListPingLatencyMaxBucketSeries(ctx, sqlc.ListPingLatencyMaxBucketSeriesParams{
+			StartedAtTo:    scope.startedAtTo,
+			StartedAtFrom:  scope.startedAtFrom,
+			MaxDataPoints:  float64(scope.maxDataPoints),
+			ProbeStorageID: scope.probeStorageID,
+			CheckStorageID: scope.checkStorageID,
+		})
+		return latencyMaxBucketSeriesRows(rows), err
+	case pingSeriesReadModeRollup:
+		rows, err := r.queries.ListPingLatencyMaxRollupSeries(ctx, sqlc.ListPingLatencyMaxRollupSeriesParams{
+			StartedAtTo:    scope.startedAtTo,
+			StartedAtFrom:  scope.startedAtFrom,
+			MaxDataPoints:  float64(scope.maxDataPoints),
+			ProbeStorageID: scope.probeStorageID,
+			CheckStorageID: scope.checkStorageID,
+		})
+		return latencyMaxRollupSeriesRows(rows), err
+	default:
+		return nil, errors.New("unsupported ping series read mode")
+	}
+}
+
+func (r *PingRepository) listPingLossPercentSeries(ctx context.Context, mode pingSeriesReadMode, scope pingSeriesScope) ([]domainping.SeriesPoint, error) {
+	switch mode {
+	case pingSeriesReadModeRaw:
+		rows, err := r.queries.ListPingLossPercentRawSeries(ctx, sqlc.ListPingLossPercentRawSeriesParams{
+			ProbeStorageID: scope.probeStorageID,
+			CheckStorageID: scope.checkStorageID,
+			StartedAtFrom:  scope.startedAtFrom,
+			StartedAtTo:    scope.startedAtTo,
+		})
+		return lossPercentRawSeriesRows(rows), err
+	case pingSeriesReadModeBucket:
+		rows, err := r.queries.ListPingLossPercentBucketSeries(ctx, sqlc.ListPingLossPercentBucketSeriesParams{
+			StartedAtTo:    scope.startedAtTo,
+			StartedAtFrom:  scope.startedAtFrom,
+			MaxDataPoints:  float64(scope.maxDataPoints),
+			ProbeStorageID: scope.probeStorageID,
+			CheckStorageID: scope.checkStorageID,
+		})
+		return lossPercentBucketSeriesRows(rows), err
+	case pingSeriesReadModeRollup:
+		rows, err := r.queries.ListPingLossPercentRollupSeries(ctx, sqlc.ListPingLossPercentRollupSeriesParams{
+			StartedAtTo:    scope.startedAtTo,
+			StartedAtFrom:  scope.startedAtFrom,
+			MaxDataPoints:  float64(scope.maxDataPoints),
+			ProbeStorageID: scope.probeStorageID,
+			CheckStorageID: scope.checkStorageID,
+		})
+		return lossPercentRollupSeriesRows(rows), err
+	default:
+		return nil, errors.New("unsupported ping series read mode")
+	}
+}
+
+func (r *PingRepository) pingInsightSummary(ctx context.Context, scope pingSeriesScope) (domainping.InsightSummary, error) {
 	row, err := r.queries.GetPingInsightSummary(ctx, sqlc.GetPingInsightSummaryParams{
-		ProbeStorageID: probeStorageID,
-		CheckStorageID: checkStorageID,
-		StartedAtFrom:  startedAtFrom,
-		StartedAtTo:    startedAtTo,
+		ProbeStorageID: scope.probeStorageID,
+		CheckStorageID: scope.checkStorageID,
+		StartedAtFrom:  scope.startedAtFrom,
+		StartedAtTo:    scope.startedAtTo,
 	})
 	if err != nil {
 		return domainping.InsightSummary{}, err
@@ -257,192 +400,15 @@ func (r *PingRepository) pingInsightSummary(ctx context.Context, probeStorageID,
 	return pingInsightSummary(row), nil
 }
 
-func (r *PingRepository) listRawPingInsight(ctx context.Context, probeStorageID, checkStorageID int64, startedAtFrom, startedAtTo pgtype.Timestamptz) ([]domainping.InsightBucket, []domainping.SampleDensityCell, error) {
-	rows, err := r.queries.ListPingInsightRawRows(ctx, sqlc.ListPingInsightRawRowsParams{
-		ProbeStorageID: probeStorageID,
-		CheckStorageID: checkStorageID,
-		StartedAtFrom:  startedAtFrom,
-		StartedAtTo:    startedAtTo,
+func (r *PingRepository) pingRollupInsightSummary(ctx context.Context, scope pingSeriesScope) (domainping.InsightSummary, error) {
+	row, err := r.queries.GetPingInsightRollupSummary(ctx, sqlc.GetPingInsightRollupSummaryParams{
+		ProbeStorageID: scope.probeStorageID,
+		CheckStorageID: scope.checkStorageID,
+		StartedAtFrom:  scope.startedAtFrom,
+		StartedAtTo:    scope.startedAtTo,
 	})
 	if err != nil {
-		return nil, nil, err
+		return domainping.InsightSummary{}, err
 	}
-	cells, err := r.queries.ListPingInsightRawSampleDensity(ctx, sqlc.ListPingInsightRawSampleDensityParams{
-		ProbeStorageID: probeStorageID,
-		CheckStorageID: checkStorageID,
-		StartedAtFrom:  startedAtFrom,
-		StartedAtTo:    startedAtTo,
-	})
-	if err != nil {
-		return nil, nil, err
-	}
-	return rawInsightRows(rows), rawSampleDensityCells(cells), nil
-}
-
-func (r *PingRepository) listBucketPingInsight(ctx context.Context, probeStorageID, checkStorageID int64, startedAtFrom, startedAtTo pgtype.Timestamptz, maxDataPoints int32) ([]domainping.InsightBucket, []domainping.SampleDensityCell, error) {
-	rows, err := r.queries.ListPingInsightBucketRows(ctx, sqlc.ListPingInsightBucketRowsParams{
-		StartedAtTo:    startedAtTo,
-		StartedAtFrom:  startedAtFrom,
-		MaxDataPoints:  float64(maxDataPoints),
-		ProbeStorageID: probeStorageID,
-		CheckStorageID: checkStorageID,
-	})
-	if err != nil {
-		return nil, nil, err
-	}
-	cells, err := r.queries.ListPingInsightBucketSampleDensity(ctx, sqlc.ListPingInsightBucketSampleDensityParams{
-		StartedAtTo:    startedAtTo,
-		StartedAtFrom:  startedAtFrom,
-		MaxDataPoints:  float64(maxDataPoints),
-		ProbeStorageID: probeStorageID,
-		CheckStorageID: checkStorageID,
-	})
-	if err != nil {
-		return nil, nil, err
-	}
-	return bucketInsightRows(rows), bucketSampleDensityCells(cells), nil
-}
-
-func rawSeriesRows(rows []sqlc.ListPingResultRawSeriesRow) []domainping.SeriesPoint {
-	points := make([]domainping.SeriesPoint, 0, len(rows))
-	for _, row := range rows {
-		points = append(points, seriesPoint(row.BucketMs, row.Value))
-	}
-	return points
-}
-
-func bucketSeriesRows(rows []sqlc.ListPingResultBucketSeriesRow) []domainping.SeriesPoint {
-	points := make([]domainping.SeriesPoint, 0, len(rows))
-	for _, row := range rows {
-		points = append(points, seriesPoint(row.BucketMs, row.Value))
-	}
-	return points
-}
-
-func rawInsightRows(rows []sqlc.ListPingInsightRawRowsRow) []domainping.InsightBucket {
-	buckets := make([]domainping.InsightBucket, 0, len(rows))
-	for _, row := range rows {
-		buckets = append(buckets, domainping.InsightBucket{
-			Timestamp:     time.UnixMilli(row.BucketMs).UTC(),
-			ResultCount:   row.ResultCount,
-			DurationAvgMs: floatPtr(row.DurationAvgMs),
-			RttMinMs:      row.RttMinMs,
-			RttAvgMs:      row.RttAvgMs,
-			RttMedianMs:   row.RttMedianMs,
-			RttMaxMs:      row.RttMaxMs,
-			RttStddevMs:   row.RttStddevMs,
-			LossPercent:   floatPtr(row.LossPercent),
-			SuccessRate:   floatPtr(row.SuccessRate),
-			SentCount:     row.SentCount,
-			ReceivedCount: row.ReceivedCount,
-			TimeoutCount:  row.TimeoutCount,
-			ErrorCount:    row.ErrorCount,
-		})
-	}
-	return buckets
-}
-
-func bucketInsightRows(rows []sqlc.ListPingInsightBucketRowsRow) []domainping.InsightBucket {
-	buckets := make([]domainping.InsightBucket, 0, len(rows))
-	for _, row := range rows {
-		buckets = append(buckets, domainping.InsightBucket{
-			Timestamp:     time.UnixMilli(row.BucketMs).UTC(),
-			ResultCount:   row.ResultCount,
-			DurationAvgMs: floatPtr(row.DurationAvgMs),
-			RttMinMs:      floatPtrIf(row.RttValueCount, row.RttMinMs),
-			RttAvgMs:      floatPtrIf(row.RttValueCount, row.RttAvgMs),
-			RttMedianMs:   floatPtrIf(row.RttValueCount, row.RttMedianMs),
-			RttMaxMs:      floatPtrIf(row.RttValueCount, row.RttMaxMs),
-			RttStddevMs:   floatPtrIf(row.RttValueCount, row.RttStddevMs),
-			LossPercent:   floatPtr(row.LossPercent),
-			SuccessRate:   floatPtr(row.SuccessRate),
-			SentCount:     row.SentCount,
-			ReceivedCount: row.ReceivedCount,
-			TimeoutCount:  row.TimeoutCount,
-			ErrorCount:    row.ErrorCount,
-		})
-	}
-	return buckets
-}
-
-func rawSampleDensityCells(rows []sqlc.ListPingInsightRawSampleDensityRow) []domainping.SampleDensityCell {
-	cells := make([]domainping.SampleDensityCell, 0, len(rows))
-	for _, row := range rows {
-		cells = append(cells, sampleDensityCell(row.BucketMs, row.RttBucketStartMs, row.RttBucketEndMs, row.SampleCount))
-	}
-	return cells
-}
-
-func bucketSampleDensityCells(rows []sqlc.ListPingInsightBucketSampleDensityRow) []domainping.SampleDensityCell {
-	cells := make([]domainping.SampleDensityCell, 0, len(rows))
-	for _, row := range rows {
-		cells = append(cells, sampleDensityCell(row.BucketMs, row.RttBucketStartMs, row.RttBucketEndMs, row.SampleCount))
-	}
-	return cells
-}
-
-func sampleDensityCell(bucketMs int64, rttBucketStartMs, rttBucketEndMs float64, sampleCount int64) domainping.SampleDensityCell {
-	return domainping.SampleDensityCell{
-		Timestamp:        time.UnixMilli(bucketMs).UTC(),
-		RttBucketStartMs: rttBucketStartMs,
-		RttBucketEndMs:   rttBucketEndMs,
-		SampleCount:      sampleCount,
-	}
-}
-
-func pingInsightSummary(row sqlc.GetPingInsightSummaryRow) domainping.InsightSummary {
-	return domainping.InsightSummary{
-		TotalResults:      row.TotalResults,
-		SuccessfulCount:   row.SuccessfulCount,
-		TimeoutCount:      row.TimeoutCount,
-		ErrorCount:        row.ErrorCount,
-		SentCount:         row.SentCount,
-		ReceivedCount:     row.ReceivedCount,
-		AvgLossPercent:    floatPtrIf(row.TotalResults, row.AvgLossPercent),
-		AvgRttMs:          floatPtrIf(row.RttValueCount, row.AvgRttMs),
-		MedianRttMs:       floatPtrIf(row.RttValueCount, row.MedianRttMs),
-		MaxRttMs:          floatPtrIf(row.RttValueCount, row.MaxRttMs),
-		P95RttMs:          floatPtrIf(row.SampleCount, row.P95RttMs),
-		P99RttMs:          floatPtrIf(row.SampleCount, row.P99RttMs),
-		LatestStatus:      pingStatusPtr(row.LatestStatus),
-		LatestStartedAt:   timeMillisPtr(row.LatestStartedAtMs),
-		LatestRttAvgMs:    row.LatestRttAvgMs,
-		LatestLossPercent: floatPtrIf(row.TotalResults, row.LatestLossPercent),
-		LatestResolvedIP:  row.LatestResolvedIp,
-	}
-}
-
-func seriesPoint(timestampMs int64, value float64) domainping.SeriesPoint {
-	return domainping.SeriesPoint{
-		Timestamp: time.UnixMilli(timestampMs).UTC(),
-		Value:     value,
-	}
-}
-
-func floatPtr(value float64) *float64 {
-	copied := value
-	return &copied
-}
-
-func floatPtrIf(count int64, value float64) *float64 {
-	if count == 0 {
-		return nil
-	}
-	return floatPtr(value)
-}
-
-func pingStatusPtr(value string) *domainping.Status {
-	if value == "" {
-		return nil
-	}
-	status := domainping.Status(value)
-	return &status
-}
-
-func timeMillisPtr(value int64) *time.Time {
-	if value == 0 {
-		return nil
-	}
-	timestamp := time.UnixMilli(value).UTC()
-	return &timestamp
+	return pingRollupInsightSummary(row), nil
 }

@@ -247,7 +247,7 @@ func mapAssignmentForProbeChecks(row sqlc.ListActiveAssignmentsForProbeChecksRow
 	return mapAssignment(sqlc.ListActiveAssignmentsForProbeRow(row))
 }
 
-func mapOptionalPingConfig(packetCount, packetSizeBytes, timeoutMs *int32, ipFamily sqlc.NullIpFamily) *domainping.Config {
+func mapOptionalPingConfig(packetCount, packetSizeBytes, timeoutMs *int32, ipFamily *sqlc.IpFamily) *domainping.Config {
 	if packetCount == nil || packetSizeBytes == nil || timeoutMs == nil {
 		return nil
 	}
@@ -260,7 +260,7 @@ func mapOptionalPingConfig(packetCount, packetSizeBytes, timeoutMs *int32, ipFam
 	}
 }
 
-func mapOptionalTCPConfig(port, timeoutMs *int32, ipFamily sqlc.NullIpFamily) *domaintcp.Config {
+func mapOptionalTCPConfig(port, timeoutMs *int32, ipFamily *sqlc.IpFamily) *domaintcp.Config {
 	if port == nil || timeoutMs == nil {
 		return nil
 	}
@@ -273,20 +273,20 @@ func mapOptionalTCPConfig(port, timeoutMs *int32, ipFamily sqlc.NullIpFamily) *d
 }
 
 func mapOptionalTracerouteConfig(
-	protocol sqlc.NullTracerouteProtocol,
+	protocol *sqlc.TracerouteProtocol,
 	maxHops *int32,
 	timeoutMs *int32,
 	queriesPerHop *int32,
 	packetSizeBytes *int32,
 	port *int32,
-	ipFamily sqlc.NullIpFamily,
+	ipFamily *sqlc.IpFamily,
 ) *domaintraceroute.Config {
-	if !protocol.Valid || maxHops == nil || timeoutMs == nil || queriesPerHop == nil || packetSizeBytes == nil || port == nil {
+	if protocol == nil || maxHops == nil || timeoutMs == nil || queriesPerHop == nil || packetSizeBytes == nil || port == nil {
 		return nil
 	}
 
 	return &domaintraceroute.Config{
-		Protocol:        domaintraceroute.Protocol(protocol.TracerouteProtocol),
+		Protocol:        domaintraceroute.Protocol(*protocol),
 		MaxHops:         *maxHops,
 		TimeoutMs:       *timeoutMs,
 		QueriesPerHop:   *queriesPerHop,
@@ -300,12 +300,12 @@ func sqlcProbeState(value domainprobe.State) sqlc.ProbeState {
 	return sqlc.ProbeState(value)
 }
 
-func mapIPFamily(value sqlc.NullIpFamily) *domainnetwork.IPFamily {
-	if !value.Valid {
+func mapIPFamily(value *sqlc.IpFamily) *domainnetwork.IPFamily {
+	if value == nil {
 		return nil
 	}
 
-	ipFamily := domainnetwork.IPFamily(value.IpFamily)
+	ipFamily := domainnetwork.IPFamily(*value)
 	return &ipFamily
 }
 

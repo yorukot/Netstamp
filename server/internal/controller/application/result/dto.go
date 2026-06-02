@@ -5,12 +5,13 @@ import (
 	"time"
 )
 
-type PingMetric string
+type PingSeriesKey string
 
 const (
-	PingMetricRTTAvgMS    PingMetric = "rttAvgMs"
-	PingMetricLossPercent PingMetric = "lossPercent"
-	PingMetricSuccessRate PingMetric = "successRate"
+	PingSeriesLatencyAvg  PingSeriesKey = "latency_avg"
+	PingSeriesLatencyMin  PingSeriesKey = "latency_min"
+	PingSeriesLatencyMax  PingSeriesKey = "latency_max"
+	PingSeriesLossPercent PingSeriesKey = "loss_percent"
 )
 
 type QueryPingSeriesInput struct {
@@ -20,7 +21,7 @@ type QueryPingSeriesInput struct {
 	CheckID       string
 	FromMs        *int64
 	ToMs          *int64
-	Metric        string
+	Series        string
 	MaxDataPoints *int32
 	Now           time.Time
 }
@@ -96,15 +97,13 @@ type QueryMeasurementsInput struct {
 }
 
 type PingSeriesOutput struct {
-	Series []Series
-	Query  QueryMetadata
+	Series map[string]Series
+	Meta   QueryMetadata
 }
 
 type PingInsightOutput struct {
-	Buckets       []PingInsightBucket
-	SampleDensity []PingSampleDensityCell
-	Summary       PingInsightSummary
-	Query         QueryMetadata
+	Summary PingInsightSummary
+	Meta    QueryMetadata
 }
 
 type TCPInsightOutput struct {
@@ -235,48 +234,12 @@ type SeriesPoint struct {
 	Value       float64
 }
 
-type PingInsightBucket struct {
-	TimestampMs   int64
-	ResultCount   int64
-	DurationAvgMs *float64
-	RttMinMs      *float64
-	RttAvgMs      *float64
-	RttMedianMs   *float64
-	RttMaxMs      *float64
-	RttStddevMs   *float64
-	LossPercent   *float64
-	SuccessRate   *float64
-	SentCount     int64
-	ReceivedCount int64
-	TimeoutCount  int64
-	ErrorCount    int64
-}
-
-type PingSampleDensityCell struct {
-	TimestampMs      int64
-	RttBucketStartMs float64
-	RttBucketEndMs   float64
-	SampleCount      int64
-}
-
 type PingInsightSummary struct {
-	TotalResults      int64
-	SuccessfulCount   int64
-	TimeoutCount      int64
-	ErrorCount        int64
-	SentCount         int64
-	ReceivedCount     int64
-	AvgLossPercent    *float64
-	AvgRttMs          *float64
-	MedianRttMs       *float64
-	MaxRttMs          *float64
-	P95RttMs          *float64
-	P99RttMs          *float64
-	LatestStatus      *string
-	LatestStartedAtMs *int64
-	LatestRttAvgMs    *float64
-	LatestLossPercent *float64
-	LatestResolvedIP  *netip.Addr
+	AverageRttMs *float64
+	MaxRttMs     *float64
+	LossPercent  *float64
+	SuccessRate  *float64
+	Samples      int64
 }
 
 type TCPInsightBucket struct {
@@ -313,6 +276,7 @@ type QueryMetadata struct {
 	FromMs        int64
 	ToMs          int64
 	MaxDataPoints int32
+	Source        string
 	Resolution    string
 	TotalPoints   int64
 }
@@ -348,7 +312,7 @@ type MeasurementQueryMetadata struct {
 type normalizedQueryPingSeriesInput struct {
 	normalizedQueryBase
 
-	metric        PingMetric
+	series        []PingSeriesKey
 	maxDataPoints int32
 }
 

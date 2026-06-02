@@ -279,7 +279,7 @@ func TestAPIAuthProjectAndProbeRuntimeFlow(t *testing.T) {
 
 	var series pingSeriesResponse
 	seriesPath := fmt.Sprintf(
-		"/api/v1/projects/%s/results/ping/series?probeId=%s&checkId=%s&from=%d&to=%d&metric=rttAvgMs&maxDataPoints=2",
+		"/api/v1/projects/%s/results/ping/series?probeId=%s&checkId=%s&from=%d&to=%d&series=latency_avg&maxDataPoints=2",
 		createdProject.Project.Slug,
 		createdProbe.Probe.ID,
 		plainCheck.Check.ID,
@@ -288,17 +288,18 @@ func TestAPIAuthProjectAndProbeRuntimeFlow(t *testing.T) {
 	)
 	t.Log("e2e: querying ping result series with maxDataPoints forcing bucket resolution")
 	suite.doJSON(t, http.MethodGet, seriesPath, nil, authCookieHeaders(sessionCookie), http.StatusOK, &series)
-	if series.Query.Resolution != "bucket" {
-		t.Fatalf("expected bucket resolution without TimescaleDB Toolkit LTTB, got %#v", series.Query)
+	if series.Meta.Resolution != "bucket" || series.Meta.Source != "raw" {
+		t.Fatalf("expected raw bucket resolution without TimescaleDB Toolkit LTTB, got %#v", series.Meta)
 	}
-	if series.Query.TotalPoints != 3 {
-		t.Fatalf("expected three source points in series metadata, got %#v", series.Query)
+	if series.Meta.TotalPoints != 3 {
+		t.Fatalf("expected three source points in series metadata, got %#v", series.Meta)
 	}
-	if len(series.Series) != 1 || series.Series[0].Name != "rttAvgMs" || len(series.Series[0].Points) == 0 {
-		t.Fatalf("expected rttAvgMs series with bucketed points, got %#v", series.Series)
+	latencyAvg, ok := series.Series["latency_avg"]
+	if !ok || latencyAvg.Name != "latency_avg" || len(latencyAvg.Points) == 0 {
+		t.Fatalf("expected latency_avg series with bucketed points, got %#v", series.Series)
 	}
-	if len(series.Series[0].Points) > 2 {
-		t.Fatalf("expected bucketed series to honor maxDataPoints target, got %d points: %#v", len(series.Series[0].Points), series.Series[0].Points)
+	if len(latencyAvg.Points) > 2 {
+		t.Fatalf("expected bucketed series to honor maxDataPoints target, got %d points: %#v", len(latencyAvg.Points), latencyAvg.Points)
 	}
 }
 
@@ -453,8 +454,8 @@ type submitResultsResponse struct {
 }
 
 type pingSeriesResponse struct {
-	Series []seriesBody        `json:"series"`
-	Query  seriesQueryMetadata `json:"query"`
+	Series map[string]seriesBody `json:"series"`
+	Meta   seriesQueryMetadata   `json:"meta"`
 }
 
 type seriesBody struct {
@@ -470,6 +471,7 @@ type seriesQueryMetadata struct {
 	FromMs        int64  `json:"from"`
 	ToMs          int64  `json:"to"`
 	MaxDataPoints int32  `json:"maxDataPoints"`
+	Source        string `json:"source"`
 	Resolution    string `json:"resolution"`
 	TotalPoints   int64  `json:"totalPoints"`
 }

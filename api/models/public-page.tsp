@@ -222,58 +222,24 @@ model SetPublicPageFolderChecksRequest {
 
 model PublicPingInsightSummary {
 	@minValue(0)
-	totalResults: int64;
-
-	@minValue(0)
-	successfulCount: int64;
-
-	@minValue(0)
-	timeoutCount: int64;
-
-	@minValue(0)
-	errorCount: int64;
-
-	@minValue(0)
-	sentCount: int64;
-
-	@minValue(0)
-	receivedCount: int64;
-
-	@minValue(0)
-	@maxValue(100)
-	avgLossPercent?: float64;
-
-	@minValue(0)
-	avgRttMs?: float64;
-
-	@minValue(0)
-	medianRttMs?: float64;
+	averageRttMs?: float64;
 
 	@minValue(0)
 	maxRttMs?: float64;
 
 	@minValue(0)
-	p95RttMs?: float64;
-
-	@minValue(0)
-	p99RttMs?: float64;
-
-	latestStatus?: PingStatus;
-
-	@minValue(1)
-	latestStartedAtMs?: int64;
-
-	@minValue(0)
-	latestRttAvgMs?: float64;
+	@maxValue(100)
+	lossPercent?: float64;
 
 	@minValue(0)
 	@maxValue(100)
-	latestLossPercent?: float64;
+	successRate?: float64;
+
+	@minValue(0)
+	samples: int64;
 }
 
 model PublicPingInsightResponse {
-	buckets: PingInsightBucket[];
-	sampleDensity: PingSampleDensityCell[];
 	summary: PublicPingInsightSummary;
-	query: PingSeriesQueryMetadata;
+	meta: PingSeriesQueryMetadata;
 }

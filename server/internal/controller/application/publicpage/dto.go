@@ -94,59 +94,23 @@ type QueryPublicPingInsightInput struct {
 }
 
 type PublicPingInsightOutput struct {
-	Buckets       []PingInsightBucket
-	SampleDensity []PingSampleDensityCell
-	Summary       PingInsightSummary
-	Query         QueryMetadata
-}
-
-type PingInsightBucket struct {
-	TimestampMs   int64
-	ResultCount   int64
-	DurationAvgMs *float64
-	RttMinMs      *float64
-	RttAvgMs      *float64
-	RttMedianMs   *float64
-	RttMaxMs      *float64
-	RttStddevMs   *float64
-	LossPercent   *float64
-	SuccessRate   *float64
-	SentCount     int64
-	ReceivedCount int64
-	TimeoutCount  int64
-	ErrorCount    int64
-}
-
-type PingSampleDensityCell struct {
-	TimestampMs      int64
-	RttBucketStartMs float64
-	RttBucketEndMs   float64
-	SampleCount      int64
+	Summary PingInsightSummary
+	Meta    QueryMetadata
 }
 
 type PingInsightSummary struct {
-	TotalResults      int64
-	SuccessfulCount   int64
-	TimeoutCount      int64
-	ErrorCount        int64
-	SentCount         int64
-	ReceivedCount     int64
-	AvgLossPercent    *float64
-	AvgRttMs          *float64
-	MedianRttMs       *float64
-	MaxRttMs          *float64
-	P95RttMs          *float64
-	P99RttMs          *float64
-	LatestStatus      *string
-	LatestStartedAtMs *int64
-	LatestRttAvgMs    *float64
-	LatestLossPercent *float64
+	AverageRttMs *float64
+	MaxRttMs     *float64
+	LossPercent  *float64
+	SuccessRate  *float64
+	Samples      int64
 }
 
 type QueryMetadata struct {
 	FromMs        int64
 	ToMs          int64
 	MaxDataPoints int32
+	Source        string
 	Resolution    string
 	TotalPoints   int64
 }

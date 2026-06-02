@@ -26,7 +26,14 @@ export type LoginInput = components["schemas"]["LoginUserRequest"];
 export type MeasurementStatus = components["parameters"]["MeasurementQuery.status"];
 export type MeasurementType = components["parameters"]["MeasurementQuery.type"];
 export type PingInsightResponse = components["schemas"]["PingInsightResponse"];
-export type PingSeriesMetric = components["parameters"]["PingSeriesQuery.metric"];
+export type ApiSeries = Omit<components["schemas"]["Series"], "labels"> & {
+	labels: Record<string, string>;
+};
+export type PingSeriesKey = "latency_avg" | "latency_min" | "latency_max" | "loss_percent";
+export type PingSeriesParameter = components["parameters"]["PingSeriesQuery.series"];
+export type PingSeriesResponse = Omit<components["schemas"]["PingSeriesResponse"], "series"> & {
+	series: Partial<Record<PingSeriesKey, ApiSeries>> & Record<string, ApiSeries | undefined>;
+};
 export type ProjectMemberRole = NonNullable<components["schemas"]["UpdateProjectMemberRoleRequest"]["role"]>;
 export type PublicPingInsightResponse = components["schemas"]["PublicPingInsightResponse"];
 export type RegisterInput = components["schemas"]["RegisterUserRequest"];
@@ -66,7 +73,7 @@ export interface MeasurementFilters {
 export interface PingSeriesFilters {
 	from?: number;
 	to?: number;
-	metric?: PingSeriesMetric;
+	series?: PingSeriesParameter;
 	maxDataPoints?: number;
 }
 

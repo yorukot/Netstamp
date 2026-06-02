@@ -28,11 +28,16 @@ func TestQueryPingSeriesUsesDefaultsAndMapsPoints(t *testing.T) {
 	pointTime := now.Add(-time.Hour)
 	pings := &recordingPingSeriesRepository{
 		result: domainping.SeriesResult{
-			Points: []domainping.SeriesPoint{{
-				Timestamp: pointTime,
-				Value:     42.5,
-			}},
+			Series: map[string]domainping.SeriesData{
+				string(PingSeriesLatencyAvg): {
+					Points: []domainping.SeriesPoint{{
+						Timestamp: pointTime,
+						Value:     42.5,
+					}},
+				},
+			},
 			Resolution:  domainping.SeriesResolutionRaw,
+			Source:      domainping.SeriesSourceRaw,
 			TotalPoints: 1,
 		},
 	}
@@ -55,27 +60,34 @@ func TestQueryPingSeriesUsesDefaultsAndMapsPoints(t *testing.T) {
 	if !pings.got.From.Equal(now.Add(-24*time.Hour)) || !pings.got.To.Equal(now) {
 		t.Fatalf("unexpected default range: from=%s to=%s", pings.got.From, pings.got.To)
 	}
-	if pings.got.Metric != string(PingMetricRTTAvgMS) {
-		t.Fatalf("expected default metric %q, got %q", PingMetricRTTAvgMS, pings.got.Metric)
+	wantSeries := []string{
+		string(PingSeriesLatencyAvg),
+		string(PingSeriesLatencyMin),
+		string(PingSeriesLatencyMax),
+		string(PingSeriesLossPercent),
+	}
+	if !slices.Equal(pings.got.Series, wantSeries) {
+		t.Fatalf("expected default series %#v, got %#v", wantSeries, pings.got.Series)
 	}
 	if pings.got.MaxDataPoints != defaultMaxDataPoint {
 		t.Fatalf("expected default max data points %d, got %d", defaultMaxDataPoint, pings.got.MaxDataPoints)
 	}
-	if output.Query.FromMs != now.Add(-24*time.Hour).UnixMilli() || output.Query.ToMs != now.UnixMilli() {
-		t.Fatalf("unexpected output query metadata: %#v", output.Query)
+	if output.Meta.FromMs != now.Add(-24*time.Hour).UnixMilli() || output.Meta.ToMs != now.UnixMilli() {
+		t.Fatalf("unexpected output query metadata: %#v", output.Meta)
 	}
-	if len(output.Series) != 1 || len(output.Series[0].Points) != 1 {
+	latencyAvg := output.Series[string(PingSeriesLatencyAvg)]
+	if len(output.Series) != 4 || len(latencyAvg.Points) != 1 {
 		t.Fatalf("expected one series with one point, got %#v", output.Series)
 	}
-	if got := output.Series[0].Points[0]; got.TimestampMs != pointTime.UnixMilli() || got.Value != 42.5 {
+	if got := latencyAvg.Points[0]; got.TimestampMs != pointTime.UnixMilli() || got.Value != 42.5 {
 		t.Fatalf("unexpected mapped point: %#v", got)
 	}
-	if output.Query.Resolution != string(domainping.SeriesResolutionRaw) || output.Query.TotalPoints != 1 {
-		t.Fatalf("unexpected query sampling metadata: %#v", output.Query)
+	if output.Meta.Resolution != string(domainping.SeriesResolutionRaw) || output.Meta.Source != string(domainping.SeriesSourceRaw) || output.Meta.TotalPoints != 1 {
+		t.Fatalf("unexpected query sampling metadata: %#v", output.Meta)
 	}
 }
 
-func TestQueryPingSeriesRejectsInvalidMetric(t *testing.T) {
+func TestQueryPingSeriesRejectsInvalidSeries(t *testing.T) {
 	service := NewService(&recordingPingSeriesRepository{}, &recordingTCPInsightRepository{}, &recordingTracerouteRunsRepository{}, &recordingMeasurementRepository{}, staticProjectAccess{})
 
 	_, err := service.QueryPingSeries(context.Background(), QueryPingSeriesInput{
@@ -83,7 +95,7 @@ func TestQueryPingSeriesRejectsInvalidMetric(t *testing.T) {
 		ProjectRef:    "vector-ix",
 		ProbeID:       testProbeID,
 		CheckID:       testCheckID,
-		Metric:        "median",
+		Series:        "median",
 		Now:           time.Date(2026, 5, 13, 12, 0, 0, 0, time.UTC),
 	})
 	if !errors.Is(err, ErrInvalidInput) {
@@ -91,40 +103,23 @@ func TestQueryPingSeriesRejectsInvalidMetric(t *testing.T) {
 	}
 }
 
-func TestQueryPingInsightUsesDefaultsAndMapsDensity(t *testing.T) {
+func TestQueryPingInsightUsesDefaultsAndMapsSummary(t *testing.T) {
 	now := time.Date(2026, 5, 13, 12, 0, 0, 0, time.UTC)
-	pointTime := now.Add(-time.Hour)
 	rttAvg := 42.5
-	latestStatus := domainping.StatusSuccessful
-	latestStartedAt := pointTime
+	rttMax := 82.5
+	lossPercent := 1.25
+	successRate := 98.5
 	pings := &recordingPingSeriesRepository{
 		insightResult: domainping.InsightResult{
-			Buckets: []domainping.InsightBucket{{
-				Timestamp:     pointTime,
-				ResultCount:   3,
-				RttAvgMs:      &rttAvg,
-				LossPercent:   float64Pointer(0),
-				SuccessRate:   float64Pointer(100),
-				SentCount:     12,
-				ReceivedCount: 12,
-			}},
-			SampleDensity: []domainping.SampleDensityCell{{
-				Timestamp:        pointTime,
-				RttBucketStartMs: 40,
-				RttBucketEndMs:   41,
-				SampleCount:      2,
-			}},
 			Summary: domainping.InsightSummary{
-				TotalResults:    3,
-				SuccessfulCount: 3,
-				SentCount:       12,
-				ReceivedCount:   12,
-				AvgRttMs:        &rttAvg,
-				LatestStatus:    &latestStatus,
-				LatestStartedAt: &latestStartedAt,
-				LatestRttAvgMs:  &rttAvg,
+				AverageRttMs: &rttAvg,
+				MaxRttMs:     &rttMax,
+				LossPercent:  &lossPercent,
+				SuccessRate:  &successRate,
+				Samples:      12,
 			},
 			Resolution:  domainping.SeriesResolutionRaw,
+			Source:      domainping.SeriesSourceRaw,
 			TotalPoints: 3,
 		},
 	}
@@ -150,16 +145,10 @@ func TestQueryPingInsightUsesDefaultsAndMapsDensity(t *testing.T) {
 	if pings.gotInsight.MaxDataPoints != defaultMaxDataPoint {
 		t.Fatalf("expected default max data points %d, got %d", defaultMaxDataPoint, pings.gotInsight.MaxDataPoints)
 	}
-	if output.Query.Resolution != string(domainping.SeriesResolutionRaw) || output.Query.TotalPoints != 3 {
-		t.Fatalf("unexpected query metadata: %#v", output.Query)
+	if output.Meta.Resolution != string(domainping.SeriesResolutionRaw) || output.Meta.Source != string(domainping.SeriesSourceRaw) || output.Meta.TotalPoints != 3 {
+		t.Fatalf("unexpected query metadata: %#v", output.Meta)
 	}
-	if len(output.Buckets) != 1 || output.Buckets[0].TimestampMs != pointTime.UnixMilli() || output.Buckets[0].RttAvgMs == nil || *output.Buckets[0].RttAvgMs != rttAvg {
-		t.Fatalf("unexpected insight buckets: %#v", output.Buckets)
-	}
-	if len(output.SampleDensity) != 1 || output.SampleDensity[0].SampleCount != 2 {
-		t.Fatalf("unexpected sample density: %#v", output.SampleDensity)
-	}
-	if output.Summary.LatestStatus == nil || *output.Summary.LatestStatus != string(domainping.StatusSuccessful) || output.Summary.LatestStartedAtMs == nil || *output.Summary.LatestStartedAtMs != pointTime.UnixMilli() {
+	if output.Summary.AverageRttMs == nil || *output.Summary.AverageRttMs != rttAvg || output.Summary.MaxRttMs == nil || *output.Summary.MaxRttMs != rttMax || output.Summary.Samples != 12 {
 		t.Fatalf("unexpected summary: %#v", output.Summary)
 	}
 }

@@ -35,7 +35,7 @@ func normalizeQueryPingSeriesInput(input QueryPingSeriesInput) (normalizedQueryP
 			return normalizedQueryPingSeriesInput{}, err
 		}
 	}
-	metric, maxDataPoints, err := normalizePingSeriesOptions(input)
+	series, maxDataPoints, err := normalizePingSeriesOptions(input)
 	if err != nil {
 		if !validation.AddValidation(err) {
 			return normalizedQueryPingSeriesInput{}, err
@@ -47,7 +47,7 @@ func normalizeQueryPingSeriesInput(input QueryPingSeriesInput) (normalizedQueryP
 
 	return normalizedQueryPingSeriesInput{
 		normalizedQueryBase: base,
-		metric:              metric,
+		series:              series,
 		maxDataPoints:       maxDataPoints,
 	}, nil
 }
@@ -295,26 +295,26 @@ func normalizeQueryMeasurementsInput(input QueryMeasurementsInput) (normalizedQu
 	}, nil
 }
 
-func normalizePingSeriesOptions(input QueryPingSeriesInput) (PingMetric, int32, error) {
+func normalizePingSeriesOptions(input QueryPingSeriesInput) ([]PingSeriesKey, int32, error) {
 	var validation appvalidation.Collector
 
-	metric, err := normalizeMetric(input.Metric)
+	series, err := normalizePingSeries(input.Series)
 	if err != nil {
 		if !validation.AddValidation(err) {
-			return "", 0, err
+			return nil, 0, err
 		}
 	}
 	maxDataPoints, err := normalizeMaxDataPoints(input.MaxDataPoints)
 	if err != nil {
 		if !validation.AddValidation(err) {
-			return "", 0, err
+			return nil, 0, err
 		}
 	}
 	if err := validation.Err(ErrInvalidInput); err != nil {
-		return "", 0, err
+		return nil, 0, err
 	}
 
-	return metric, maxDataPoints, nil
+	return series, maxDataPoints, nil
 }
 
 func normalizeTracerouteRunOptions(input QueryTracerouteRunsInput) (int32, *time.Time, error) {
@@ -423,18 +423,50 @@ func normalizeRange(fromMs, toMs *int64, now time.Time) (time.Time, time.Time, e
 	return from, to, nil
 }
 
-func normalizeMetric(input string) (PingMetric, error) {
-	switch PingMetric(input) {
-	case "":
-		return PingMetricRTTAvgMS, nil
-	case PingMetricRTTAvgMS:
-		return PingMetricRTTAvgMS, nil
-	case PingMetricLossPercent:
-		return PingMetricLossPercent, nil
-	case PingMetricSuccessRate:
-		return PingMetricSuccessRate, nil
+func normalizePingSeries(input string) ([]PingSeriesKey, error) {
+	if strings.TrimSpace(input) == "" {
+		return []PingSeriesKey{
+			PingSeriesLatencyAvg,
+			PingSeriesLatencyMin,
+			PingSeriesLatencyMax,
+			PingSeriesLossPercent,
+		}, nil
+	}
+
+	parts := strings.Split(input, ",")
+	seen := make(map[PingSeriesKey]struct{}, len(parts))
+	series := make([]PingSeriesKey, 0, len(parts))
+	for _, part := range parts {
+		key, err := normalizePingSeriesKey(part)
+		if err != nil {
+			return nil, err
+		}
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		seen[key] = struct{}{}
+		series = append(series, key)
+	}
+	if len(series) == 0 {
+		return nil, invalidResultField("series", "must include at least one ping series", input)
+	}
+
+	return series, nil
+}
+
+func normalizePingSeriesKey(input string) (PingSeriesKey, error) {
+	trimmed := strings.TrimSpace(input)
+	switch PingSeriesKey(trimmed) {
+	case PingSeriesLatencyAvg:
+		return PingSeriesLatencyAvg, nil
+	case PingSeriesLatencyMin:
+		return PingSeriesLatencyMin, nil
+	case PingSeriesLatencyMax:
+		return PingSeriesLatencyMax, nil
+	case PingSeriesLossPercent:
+		return PingSeriesLossPercent, nil
 	default:
-		return "", invalidResultField("metric", "unsupported ping metric", input)
+		return "", invalidResultField("series", "unsupported ping series", input)
 	}
 }
 

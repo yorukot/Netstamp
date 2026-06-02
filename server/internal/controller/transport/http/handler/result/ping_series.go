@@ -19,7 +19,7 @@ func (h *Handler) queryPingSeries(ctx context.Context, input *queryPingSeriesInp
 		CheckID:       input.CheckID,
 		FromMs:        optionalInt64(input.From),
 		ToMs:          optionalInt64(input.To),
-		Metric:        input.Metric,
+		Series:        input.Series,
 		MaxDataPoints: optionalInt32(input.MaxDataPoints),
 	})
 	if err != nil {
@@ -35,7 +35,7 @@ type queryPingSeriesInput struct {
 	CheckID       string
 	From          int64
 	To            int64
-	Metric        string
+	Series        string
 	MaxDataPoints int32
 }
 
@@ -44,8 +44,8 @@ type queryPingSeriesOutput struct {
 }
 
 type queryPingSeriesBody struct {
-	Series []seriesBody      `json:"series"`
-	Query  queryMetadataBody `json:"query"`
+	Series map[string]seriesBody `json:"series"`
+	Meta   queryMetadataBody     `json:"meta"`
 }
 
 type seriesBody struct {
@@ -61,18 +61,19 @@ type queryMetadataBody struct {
 	FromMs        int64  `json:"from"`
 	ToMs          int64  `json:"to"`
 	MaxDataPoints int32  `json:"maxDataPoints"`
+	Source        string `json:"source,omitempty"`
 	Resolution    string `json:"resolution"`
 	TotalPoints   int64  `json:"totalPoints"`
 }
 
 func newQueryPingSeriesBody(output appresult.PingSeriesOutput) queryPingSeriesBody {
-	series := make([]seriesBody, 0, len(output.Series))
-	for _, value := range output.Series {
+	series := make(map[string]seriesBody, len(output.Series))
+	for name, value := range output.Series {
 		points := make([]pointTuple, 0, len(value.Points))
 		for _, point := range value.Points {
 			points = append(points, pointTuple{float64(point.TimestampMs), point.Value})
 		}
-		series = append(series, seriesBody{
+		series[name] = seriesBody{
 			Name: value.Name,
 			Labels: map[string]string{
 				"probeId":   value.Labels.ProbeID,
@@ -81,17 +82,18 @@ func newQueryPingSeriesBody(output appresult.PingSeriesOutput) queryPingSeriesBo
 			},
 			Unit:   value.Unit,
 			Points: points,
-		})
+		}
 	}
 
 	return queryPingSeriesBody{
 		Series: series,
-		Query: queryMetadataBody{
-			FromMs:        output.Query.FromMs,
-			ToMs:          output.Query.ToMs,
-			MaxDataPoints: output.Query.MaxDataPoints,
-			Resolution:    output.Query.Resolution,
-			TotalPoints:   output.Query.TotalPoints,
+		Meta: queryMetadataBody{
+			FromMs:        output.Meta.FromMs,
+			ToMs:          output.Meta.ToMs,
+			MaxDataPoints: output.Meta.MaxDataPoints,
+			Source:        output.Meta.Source,
+			Resolution:    output.Meta.Resolution,
+			TotalPoints:   output.Meta.TotalPoints,
 		},
 	}
 }
