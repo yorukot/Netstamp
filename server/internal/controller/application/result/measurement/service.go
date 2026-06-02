@@ -1,4 +1,4 @@
-package result
+package measurement
 
 import (
 	"context"
@@ -7,10 +7,23 @@ import (
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 
+	resultshared "github.com/yorukot/netstamp/internal/controller/application/result/shared"
 	domainresult "github.com/yorukot/netstamp/internal/domain/result"
 )
 
-func (s *Service) QueryMeasurements(ctx context.Context, input QueryMeasurementsInput) (MeasurementsOutput, error) {
+type Service struct {
+	measurements  Repository
+	projectAccess resultshared.ProjectAccess
+}
+
+func NewService(measurements Repository, projectAccess resultshared.ProjectAccess) *Service {
+	return &Service{
+		measurements:  measurements,
+		projectAccess: projectAccess,
+	}
+}
+
+func (s *Service) Query(ctx context.Context, input QueryInput) (Output, error) {
 	ctx, span := resultTracer.Start(ctx, "result.measurements.query", trace.WithAttributes(
 		attrProjectRef.String(input.ProjectRef),
 		attrProbeID.String(input.ProbeID),
@@ -18,22 +31,22 @@ func (s *Service) QueryMeasurements(ctx context.Context, input QueryMeasurements
 	))
 	defer span.End()
 
-	normalized, err := normalizeQueryMeasurementsInput(input)
+	normalized, err := normalizeQueryInput(input)
 	if err != nil {
 		span.SetStatus(codes.Error, "invalid result query input")
-		return MeasurementsOutput{}, err
+		return Output{}, err
 	}
 	span.SetAttributes(
-		attrProjectRef.String(normalized.projectRef),
-		attrProbeID.String(normalized.probeID),
-		attrCheckID.String(normalized.checkID),
+		attrProjectRef.String(normalized.base.ProjectRef),
+		attrProbeID.String(normalized.base.ProbeID),
+		attrCheckID.String(normalized.base.CheckID),
 	)
 
-	project, err := s.projectAccess.GetProjectForUser(ctx, normalized.projectRef, normalized.currentUserID)
+	project, err := s.projectAccess.GetProjectForUser(ctx, normalized.base.ProjectRef, normalized.base.CurrentUserID)
 	if err != nil {
 		span.SetStatus(codes.Error, "project lookup failed")
 		span.RecordError(err)
-		return MeasurementsOutput{}, err
+		return Output{}, err
 	}
 	span.SetAttributes(attrProjectID.String(project.ID))
 
@@ -41,34 +54,35 @@ func (s *Service) QueryMeasurements(ctx context.Context, input QueryMeasurements
 		configuredErr := errors.New("measurement result repository is not configured")
 		span.SetStatus(codes.Error, "measurement repository missing")
 		span.RecordError(configuredErr)
-		return MeasurementsOutput{}, configuredErr
+		return Output{}, configuredErr
 	}
 
 	resultType := domainMeasurementType(normalized.resultType)
+	// TODO: Rework measurements around the future result model instead of keeping this cross-type SQL feed.
 	result, err := s.measurements.ListMeasurements(ctx, domainresult.MeasurementQuery{
 		ProjectID: project.ID,
-		ProbeID:   normalized.probeID,
-		CheckID:   normalized.checkID,
+		ProbeID:   normalized.base.ProbeID,
+		CheckID:   normalized.base.CheckID,
 		Type:      resultType,
 		Status:    normalized.status,
-		From:      normalized.from,
-		To:        normalized.to,
+		From:      normalized.base.From,
+		To:        normalized.base.To,
 		Limit:     normalized.limit,
 		Cursor:    normalized.cursor,
 	})
 	if err != nil {
 		span.SetStatus(codes.Error, "measurements query failed")
 		span.RecordError(err)
-		return MeasurementsOutput{}, err
+		return Output{}, err
 	}
 
-	return MeasurementsOutput{
+	return Output{
 		Measurements: newMeasurements(result.Measurements),
-		Query: MeasurementQueryMetadata{
-			FromMs:     normalized.from.UnixMilli(),
-			ToMs:       normalized.to.UnixMilli(),
+		Query: QueryMetadata{
+			FromMs:     normalized.base.From.UnixMilli(),
+			ToMs:       normalized.base.To.UnixMilli(),
 			Limit:      normalized.limit,
-			NextCursor: timePtrMillis(result.NextCursor),
+			NextCursor: resultshared.TimePtrMillis(result.NextCursor),
 		},
 	}, nil
 }

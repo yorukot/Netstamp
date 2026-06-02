@@ -31,7 +31,8 @@ type ProjectAccess interface {
 }
 
 type PingInsightRepository interface {
-	ListPingInsight(ctx context.Context, input domainping.InsightQuery) (domainping.InsightResult, error)
+	CountPingSeriesPoints(ctx context.Context, input domainping.SeriesPointCountQuery) (domainping.SeriesPointCounts, error)
+	GetPingInsightSummary(ctx context.Context, input domainping.InsightSummaryQuery) (domainping.InsightSummary, error)
 }
 
 type EventRecorder interface {

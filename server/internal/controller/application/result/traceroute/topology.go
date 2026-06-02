@@ -1,105 +1,41 @@
-package result
+package traceroute
 
 import (
-	"context"
-	"errors"
 	"fmt"
 	"slices"
 
-	"go.opentelemetry.io/otel/codes"
-	"go.opentelemetry.io/otel/trace"
-
+	resultshared "github.com/yorukot/netstamp/internal/controller/application/result/shared"
 	domaintraceroute "github.com/yorukot/netstamp/internal/domain/traceroute"
 )
 
-func (s *Service) QueryTracerouteTopology(ctx context.Context, input QueryTracerouteTopologyInput) (TracerouteTopologyOutput, error) {
-	ctx, span := resultTracer.Start(ctx, "result.traceroute.topology.query", trace.WithAttributes(
-		attrProjectRef.String(input.ProjectRef),
-		attrProbeID.String(input.ProbeID),
-		attrCheckID.String(input.CheckID),
-	))
-	defer span.End()
-
-	normalized, err := normalizeQueryTracerouteTopologyInput(input)
-	if err != nil {
-		span.SetStatus(codes.Error, "invalid result query input")
-		return TracerouteTopologyOutput{}, err
-	}
-	span.SetAttributes(
-		attrProjectRef.String(normalized.projectRef),
-		attrProbeID.String(normalized.probeID),
-		attrCheckID.String(normalized.checkID),
-	)
-
-	project, err := s.projectAccess.GetProjectForUser(ctx, normalized.projectRef, normalized.currentUserID)
-	if err != nil {
-		span.SetStatus(codes.Error, "project lookup failed")
-		span.RecordError(err)
-		return TracerouteTopologyOutput{}, err
-	}
-	span.SetAttributes(attrProjectID.String(project.ID))
-
-	if s.traceroutes == nil {
-		configuredErr := errors.New("traceroute result repository is not configured")
-		span.SetStatus(codes.Error, "traceroute repository missing")
-		span.RecordError(configuredErr)
-		return TracerouteTopologyOutput{}, configuredErr
-	}
-
-	result, err := s.traceroutes.ListTracerouteTopologyRuns(ctx, domaintraceroute.TopologyQuery{
-		ProjectID: project.ID,
-		ProbeID:   normalized.probeID,
-		CheckID:   normalized.checkID,
-		From:      normalized.from,
-		To:        normalized.to,
-		Limit:     normalized.limit,
-	})
-	if err != nil {
-		span.SetStatus(codes.Error, "traceroute topology query failed")
-		span.RecordError(err)
-		return TracerouteTopologyOutput{}, err
-	}
-
-	nodes, edges := newTracerouteTopology(result.Runs)
-	return TracerouteTopologyOutput{
-		Nodes: nodes,
-		Edges: edges,
-		Query: TracerouteTopologyQueryMetadata{
-			FromMs: normalized.from.UnixMilli(),
-			ToMs:   normalized.to.UnixMilli(),
-			Limit:  normalized.limit,
-		},
-	}, nil
-}
-
-type tracerouteTopologyNodeAggregate struct {
-	node      TracerouteTopologyNode
+type topologyNodeAggregate struct {
+	node      TopologyNode
 	rttSum    float64
 	rttCount  int32
 	lossSum   float64
 	lossCount int32
 }
 
-type tracerouteTopologyEdgeAggregate struct {
-	edge      TracerouteTopologyEdge
+type topologyEdgeAggregate struct {
+	edge      TopologyEdge
 	rttSum    float64
 	rttCount  int32
 	lossSum   float64
 	lossCount int32
 }
 
-type tracerouteHopKey struct {
+type hopKey struct {
 	probeID  string
 	checkID  string
 	hopIndex int32
 }
 
-func newTracerouteTopology(runs []domaintraceroute.TopologyRun) ([]TracerouteTopologyNode, []TracerouteTopologyEdge) {
+func newTopology(runs []domaintraceroute.TopologyRun) ([]TopologyNode, []TopologyEdge) {
 	nodeIndex := make(map[string]int)
 	edgeIndex := make(map[string]int)
-	nodes := make([]tracerouteTopologyNodeAggregate, 0)
-	edges := make([]tracerouteTopologyEdgeAggregate, 0)
-	knownHopIndex := topologyKnownHopIndex(runs)
+	nodes := make([]topologyNodeAggregate, 0)
+	edges := make([]topologyEdgeAggregate, 0)
+	knownHopIndex := knownHopIndex(runs)
 
 	for _, run := range runs {
 		probeNode := topologyProbeNode(run)
@@ -108,9 +44,9 @@ func newTracerouteTopology(runs []domaintraceroute.TopologyRun) ([]TracerouteTop
 
 		sourceID := probeNode.ID
 		for _, hop := range topologyRunHops(run.Hops) {
-			var hopNode TracerouteTopologyNode
+			var hopNode TopologyNode
 			if hop.Address == nil {
-				if knownHopIndex[tracerouteHopKey{probeID: run.ProbeID, checkID: run.CheckID, hopIndex: hop.HopIndex}] {
+				if knownHopIndex[hopKey{probeID: run.ProbeID, checkID: run.CheckID, hopIndex: hop.HopIndex}] {
 					continue
 				}
 				hopNode = topologyTimeoutNode(run, hop)
@@ -127,33 +63,33 @@ func newTracerouteTopology(runs []domaintraceroute.TopologyRun) ([]TracerouteTop
 		}
 	}
 
-	outputNodes := make([]TracerouteTopologyNode, 0, len(nodes))
+	outputNodes := make([]TopologyNode, 0, len(nodes))
 	for _, aggregate := range nodes {
 		node := aggregate.node
-		node.AvgRttMs = averagePtr(aggregate.rttSum, aggregate.rttCount)
-		node.LossPercent = averagePtr(aggregate.lossSum, aggregate.lossCount)
+		node.AvgRttMs = resultshared.AveragePtr(aggregate.rttSum, aggregate.rttCount)
+		node.LossPercent = resultshared.AveragePtr(aggregate.lossSum, aggregate.lossCount)
 		outputNodes = append(outputNodes, node)
 	}
 
-	outputEdges := make([]TracerouteTopologyEdge, 0, len(edges))
+	outputEdges := make([]TopologyEdge, 0, len(edges))
 	for _, aggregate := range edges {
 		edge := aggregate.edge
-		edge.AvgRttMs = averagePtr(aggregate.rttSum, aggregate.rttCount)
-		edge.LossPercent = averagePtr(aggregate.lossSum, aggregate.lossCount)
+		edge.AvgRttMs = resultshared.AveragePtr(aggregate.rttSum, aggregate.rttCount)
+		edge.LossPercent = resultshared.AveragePtr(aggregate.lossSum, aggregate.lossCount)
 		outputEdges = append(outputEdges, edge)
 	}
 
 	return outputNodes, outputEdges
 }
 
-func topologyKnownHopIndex(runs []domaintraceroute.TopologyRun) map[tracerouteHopKey]bool {
-	values := make(map[tracerouteHopKey]bool)
+func knownHopIndex(runs []domaintraceroute.TopologyRun) map[hopKey]bool {
+	values := make(map[hopKey]bool)
 	for _, run := range runs {
 		for _, hop := range run.Hops {
 			if hop.Address == nil {
 				continue
 			}
-			values[tracerouteHopKey{probeID: run.ProbeID, checkID: run.CheckID, hopIndex: hop.HopIndex}] = true
+			values[hopKey{probeID: run.ProbeID, checkID: run.CheckID, hopIndex: hop.HopIndex}] = true
 		}
 	}
 	return values
@@ -203,16 +139,16 @@ func topologyPreferHop(existing, next domaintraceroute.TopologyHop) bool {
 	return false
 }
 
-func topologyProbeNode(run domaintraceroute.TopologyRun) TracerouteTopologyNode {
-	return TracerouteTopologyNode{
+func topologyProbeNode(run domaintraceroute.TopologyRun) TopologyNode {
+	return TopologyNode{
 		ID:      "probe:" + run.ProbeID,
 		Kind:    "probe",
 		Label:   run.ProbeName,
-		ProbeID: stringPointer(run.ProbeID),
+		ProbeID: resultshared.StringPointer(run.ProbeID),
 	}
 }
 
-func topologyHopNode(run domaintraceroute.TopologyRun, hop domaintraceroute.TopologyHop) TracerouteTopologyNode {
+func topologyHopNode(run domaintraceroute.TopologyRun, hop domaintraceroute.TopologyHop) TopologyNode {
 	hopIndex := hop.HopIndex
 	kind := "hop"
 	if run.ResolvedIP != nil && *run.ResolvedIP == *hop.Address {
@@ -223,7 +159,7 @@ func topologyHopNode(run domaintraceroute.TopologyRun, hop domaintraceroute.Topo
 		label = *hop.Hostname
 	}
 
-	return TracerouteTopologyNode{
+	return TopologyNode{
 		ID:       fmt.Sprintf("ip:%d:%s", hop.HopIndex, hop.Address.String()),
 		Kind:     kind,
 		Label:    label,
@@ -233,9 +169,9 @@ func topologyHopNode(run domaintraceroute.TopologyRun, hop domaintraceroute.Topo
 	}
 }
 
-func topologyTimeoutNode(run domaintraceroute.TopologyRun, hop domaintraceroute.TopologyHop) TracerouteTopologyNode {
+func topologyTimeoutNode(run domaintraceroute.TopologyRun, hop domaintraceroute.TopologyHop) TopologyNode {
 	hopIndex := hop.HopIndex
-	return TracerouteTopologyNode{
+	return TopologyNode{
 		ID:       fmt.Sprintf("timeout:%s:%s:%d", run.ProbeID, run.CheckID, hop.HopIndex),
 		Kind:     "unknown",
 		Label:    fmt.Sprintf("hop %d timeout", hop.HopIndex),
@@ -243,18 +179,18 @@ func topologyTimeoutNode(run domaintraceroute.TopologyRun, hop domaintraceroute.
 	}
 }
 
-func upsertTopologyNode(nodes *[]tracerouteTopologyNodeAggregate, index map[string]int, node TracerouteTopologyNode) int {
+func upsertTopologyNode(nodes *[]topologyNodeAggregate, index map[string]int, node TopologyNode) int {
 	if existing, ok := index[node.ID]; ok {
 		mergeTopologyNode(&(*nodes)[existing].node, node)
 		return existing
 	}
 	next := len(*nodes)
 	index[node.ID] = next
-	*nodes = append(*nodes, tracerouteTopologyNodeAggregate{node: node})
+	*nodes = append(*nodes, topologyNodeAggregate{node: node})
 	return next
 }
 
-func mergeTopologyNode(existing *TracerouteTopologyNode, next TracerouteTopologyNode) {
+func mergeTopologyNode(existing *TopologyNode, next TopologyNode) {
 	if existing.Kind != "destination" && next.Kind == "destination" {
 		existing.Kind = next.Kind
 	}
@@ -276,15 +212,15 @@ func mergeTopologyNode(existing *TracerouteTopologyNode, next TracerouteTopology
 	}
 }
 
-func upsertTopologyEdge(edges *[]tracerouteTopologyEdgeAggregate, index map[string]int, source, target string) int {
+func upsertTopologyEdge(edges *[]topologyEdgeAggregate, index map[string]int, source, target string) int {
 	id := source + "->" + target
 	if existing, ok := index[id]; ok {
 		return existing
 	}
 	next := len(*edges)
 	index[id] = next
-	*edges = append(*edges, tracerouteTopologyEdgeAggregate{
-		edge: TracerouteTopologyEdge{
+	*edges = append(*edges, topologyEdgeAggregate{
+		edge: TopologyEdge{
 			ID:     id,
 			Source: source,
 			Target: target,
@@ -293,7 +229,7 @@ func upsertTopologyEdge(edges *[]tracerouteTopologyEdgeAggregate, index map[stri
 	return next
 }
 
-func addTopologyNodeSample(node *tracerouteTopologyNodeAggregate, rttAvgMs, lossPercent *float64) {
+func addTopologyNodeSample(node *topologyNodeAggregate, rttAvgMs, lossPercent *float64) {
 	node.node.SeenCount++
 	if rttAvgMs != nil {
 		node.rttSum += *rttAvgMs
@@ -305,7 +241,7 @@ func addTopologyNodeSample(node *tracerouteTopologyNodeAggregate, rttAvgMs, loss
 	}
 }
 
-func addTopologyEdgeSample(edge *tracerouteTopologyEdgeAggregate, rttAvgMs, lossPercent *float64) {
+func addTopologyEdgeSample(edge *topologyEdgeAggregate, rttAvgMs, lossPercent *float64) {
 	edge.edge.SeenCount++
 	if rttAvgMs != nil {
 		edge.rttSum += *rttAvgMs

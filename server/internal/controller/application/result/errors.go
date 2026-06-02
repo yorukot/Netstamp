@@ -1,5 +1,5 @@
 package result
 
-import "errors"
+import resultshared "github.com/yorukot/netstamp/internal/controller/application/result/shared"
 
-var ErrInvalidInput = errors.New("invalid result query input")
+var ErrInvalidInput = resultshared.ErrInvalidInput

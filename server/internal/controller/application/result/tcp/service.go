@@ -1,4 +1,4 @@
-package result
+package tcp
 
 import (
 	"context"
@@ -7,10 +7,23 @@ import (
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 
+	resultshared "github.com/yorukot/netstamp/internal/controller/application/result/shared"
 	domaintcp "github.com/yorukot/netstamp/internal/domain/tcp"
 )
 
-func (s *Service) QueryTCPInsight(ctx context.Context, input QueryTCPInsightInput) (TCPInsightOutput, error) {
+type Service struct {
+	insights      InsightRepository
+	projectAccess resultshared.ProjectAccess
+}
+
+func NewService(insights InsightRepository, projectAccess resultshared.ProjectAccess) *Service {
+	return &Service{
+		insights:      insights,
+		projectAccess: projectAccess,
+	}
+}
+
+func (s *Service) QueryInsight(ctx context.Context, input QueryInsightInput) (InsightOutput, error) {
 	ctx, span := resultTracer.Start(ctx, "result.tcp.insight.query", trace.WithAttributes(
 		attrProjectRef.String(input.ProjectRef),
 		attrProbeID.String(input.ProbeID),
@@ -18,52 +31,52 @@ func (s *Service) QueryTCPInsight(ctx context.Context, input QueryTCPInsightInpu
 	))
 	defer span.End()
 
-	normalized, err := normalizeQueryTCPInsightInput(input)
+	normalized, err := normalizeQueryInsightInput(input)
 	if err != nil {
 		span.SetStatus(codes.Error, "invalid result query input")
-		return TCPInsightOutput{}, err
+		return InsightOutput{}, err
 	}
 	span.SetAttributes(
-		attrProjectRef.String(normalized.projectRef),
-		attrProbeID.String(normalized.probeID),
-		attrCheckID.String(normalized.checkID),
+		attrProjectRef.String(normalized.base.ProjectRef),
+		attrProbeID.String(normalized.base.ProbeID),
+		attrCheckID.String(normalized.base.CheckID),
 	)
 
-	project, err := s.projectAccess.GetProjectForUser(ctx, normalized.projectRef, normalized.currentUserID)
+	project, err := s.projectAccess.GetProjectForUser(ctx, normalized.base.ProjectRef, normalized.base.CurrentUserID)
 	if err != nil {
 		span.SetStatus(codes.Error, "project lookup failed")
 		span.RecordError(err)
-		return TCPInsightOutput{}, err
+		return InsightOutput{}, err
 	}
 	span.SetAttributes(attrProjectID.String(project.ID))
 
-	if s.tcps == nil {
+	if s.insights == nil {
 		configuredErr := errors.New("tcp result repository is not configured")
 		span.SetStatus(codes.Error, "tcp repository missing")
 		span.RecordError(configuredErr)
-		return TCPInsightOutput{}, configuredErr
+		return InsightOutput{}, configuredErr
 	}
 
-	result, err := s.tcps.ListTCPInsight(ctx, domaintcp.InsightQuery{
+	result, err := s.insights.ListTCPInsight(ctx, domaintcp.InsightQuery{
 		ProjectID:     project.ID,
-		ProbeID:       normalized.probeID,
-		CheckID:       normalized.checkID,
-		From:          normalized.from,
-		To:            normalized.to,
+		ProbeID:       normalized.base.ProbeID,
+		CheckID:       normalized.base.CheckID,
+		From:          normalized.base.From,
+		To:            normalized.base.To,
 		MaxDataPoints: normalized.maxDataPoints,
 	})
 	if err != nil {
 		span.SetStatus(codes.Error, "tcp insight query failed")
 		span.RecordError(err)
-		return TCPInsightOutput{}, err
+		return InsightOutput{}, err
 	}
 
-	return TCPInsightOutput{
-		Buckets: newTCPInsightBuckets(result.Buckets),
-		Summary: newTCPInsightSummary(result.Summary),
-		Query: QueryMetadata{
-			FromMs:        normalized.from.UnixMilli(),
-			ToMs:          normalized.to.UnixMilli(),
+	return InsightOutput{
+		Buckets: newInsightBuckets(result.Buckets),
+		Summary: newInsightSummary(result.Summary),
+		Query: resultshared.QueryMetadata{
+			FromMs:        normalized.base.From.UnixMilli(),
+			ToMs:          normalized.base.To.UnixMilli(),
 			MaxDataPoints: normalized.maxDataPoints,
 			Resolution:    string(result.Resolution),
 			TotalPoints:   result.TotalPoints,
@@ -71,10 +84,10 @@ func (s *Service) QueryTCPInsight(ctx context.Context, input QueryTCPInsightInpu
 	}, nil
 }
 
-func newTCPInsightBuckets(buckets []domaintcp.InsightBucket) []TCPInsightBucket {
-	values := make([]TCPInsightBucket, 0, len(buckets))
+func newInsightBuckets(buckets []domaintcp.InsightBucket) []InsightBucket {
+	values := make([]InsightBucket, 0, len(buckets))
 	for _, bucket := range buckets {
-		values = append(values, TCPInsightBucket{
+		values = append(values, InsightBucket{
 			TimestampMs:     bucket.Timestamp.UTC().UnixMilli(),
 			ResultCount:     bucket.ResultCount,
 			DurationAvgMs:   bucket.DurationAvgMs,
@@ -91,8 +104,8 @@ func newTCPInsightBuckets(buckets []domaintcp.InsightBucket) []TCPInsightBucket 
 	return values
 }
 
-func newTCPInsightSummary(summary domaintcp.InsightSummary) TCPInsightSummary {
-	return TCPInsightSummary{
+func newInsightSummary(summary domaintcp.InsightSummary) InsightSummary {
+	return InsightSummary{
 		TotalResults:      summary.TotalResults,
 		SuccessfulCount:   summary.SuccessfulCount,
 		TimeoutCount:      summary.TimeoutCount,
@@ -102,14 +115,14 @@ func newTCPInsightSummary(summary domaintcp.InsightSummary) TCPInsightSummary {
 		MaxConnectMs:      summary.MaxConnectMs,
 		P95ConnectMs:      summary.P95ConnectMs,
 		P99ConnectMs:      summary.P99ConnectMs,
-		LatestStatus:      tcpStatusString(summary.LatestStatus),
-		LatestStartedAtMs: timePtrMillis(summary.LatestStartedAt),
+		LatestStatus:      statusString(summary.LatestStatus),
+		LatestStartedAtMs: resultshared.TimePtrMillis(summary.LatestStartedAt),
 		LatestConnectMs:   summary.LatestConnectMs,
 		LatestResolvedIP:  summary.LatestResolvedIP,
 	}
 }
 
-func tcpStatusString(value *domaintcp.Status) *string {
+func statusString(value *domaintcp.Status) *string {
 	if value == nil {
 		return nil
 	}

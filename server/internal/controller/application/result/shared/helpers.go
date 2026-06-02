@@ -1,4 +1,4 @@
-package result
+package shared
 
 import (
 	"time"
@@ -6,7 +6,7 @@ import (
 	domainnetwork "github.com/yorukot/netstamp/internal/domain/network"
 )
 
-func ipFamilyString(value *domainnetwork.IPFamily) *string {
+func IPFamilyString(value *domainnetwork.IPFamily) *string {
 	if value == nil {
 		return nil
 	}
@@ -14,12 +14,12 @@ func ipFamilyString(value *domainnetwork.IPFamily) *string {
 	return &copied
 }
 
-func stringPointer(value string) *string {
+func StringPointer(value string) *string {
 	copied := value
 	return &copied
 }
 
-func averagePtr(sum float64, count int32) *float64 {
+func AveragePtr(sum float64, count int32) *float64 {
 	if count == 0 {
 		return nil
 	}
@@ -27,7 +27,7 @@ func averagePtr(sum float64, count int32) *float64 {
 	return &average
 }
 
-func timePtr(value *time.Time) *time.Time {
+func TimePtr(value *time.Time) *time.Time {
 	if value == nil {
 		return nil
 	}
@@ -35,7 +35,7 @@ func timePtr(value *time.Time) *time.Time {
 	return &copied
 }
 
-func timePtrMillis(value *time.Time) *int64 {
+func TimePtrMillis(value *time.Time) *int64 {
 	if value == nil {
 		return nil
 	}

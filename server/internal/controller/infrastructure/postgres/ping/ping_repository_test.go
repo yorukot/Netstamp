@@ -26,28 +26,6 @@ func TestStorageRTTSamplesCopiesValues(t *testing.T) {
 	}
 }
 
-func TestUsePingRollupOnlyWhenRollupCoversMoreSourcePoints(t *testing.T) {
-	tests := []struct {
-		name         string
-		rawPoints    int64
-		rollupPoints int64
-		want         bool
-	}{
-		{name: "raw and rollup equal prefers raw", rawPoints: 3, rollupPoints: 3, want: false},
-		{name: "raw has unrefreshed historical data", rawPoints: 3, rollupPoints: 0, want: false},
-		{name: "rollup covers retained historical data", rawPoints: 2, rollupPoints: 100, want: true},
-		{name: "rollup only", rawPoints: 0, rollupPoints: 12, want: true},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := usePingRollup(tt.rawPoints, tt.rollupPoints); got != tt.want {
-				t.Fatalf("usePingRollup(%d, %d) = %t, want %t", tt.rawPoints, tt.rollupPoints, got, tt.want)
-			}
-		})
-	}
-}
-
 func TestPingRollupInsightSummaryMapsAggregateFields(t *testing.T) {
 	got := pingRollupInsightSummary(sqlc.GetPingInsightRollupSummaryRow{
 		TotalResults:  3,

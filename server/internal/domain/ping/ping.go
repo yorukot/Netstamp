@@ -229,7 +229,35 @@ type ResultStorageInput struct {
 	ErrorMessage   *string
 }
 
-type SeriesQuery struct {
+type SeriesPointCountQuery struct {
+	ProjectID string
+	ProbeID   string
+	CheckID   string
+	From      time.Time
+	To        time.Time
+}
+
+type SeriesPointCounts struct {
+	Raw    int64
+	Rollup int64
+}
+
+type SeriesReadMode string
+
+const (
+	SeriesReadModeRaw    SeriesReadMode = "raw"
+	SeriesReadModeBucket SeriesReadMode = "bucket"
+	SeriesReadModeRollup SeriesReadMode = "rollup"
+)
+
+type SeriesReadPlan struct {
+	Mode        SeriesReadMode
+	Source      SeriesSource
+	Resolution  SeriesResolution
+	TotalPoints int64
+}
+
+type SeriesReadQuery struct {
 	ProjectID     string
 	ProbeID       string
 	CheckID       string
@@ -237,6 +265,7 @@ type SeriesQuery struct {
 	To            time.Time
 	Series        []string
 	MaxDataPoints int32
+	Mode          SeriesReadMode
 }
 
 type SeriesResolution string
@@ -270,13 +299,13 @@ type SeriesPoint struct {
 	Value     float64
 }
 
-type InsightQuery struct {
-	ProjectID     string
-	ProbeID       string
-	CheckID       string
-	From          time.Time
-	To            time.Time
-	MaxDataPoints int32
+type InsightSummaryQuery struct {
+	ProjectID string
+	ProbeID   string
+	CheckID   string
+	From      time.Time
+	To        time.Time
+	Source    SeriesSource
 }
 
 type InsightResult struct {

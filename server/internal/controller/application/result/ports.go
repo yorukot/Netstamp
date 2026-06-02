@@ -3,16 +3,21 @@ package result
 import (
 	"context"
 
+	"github.com/yorukot/netstamp/internal/controller/application/result/measurement"
+	"github.com/yorukot/netstamp/internal/controller/application/result/ping"
+	resultshared "github.com/yorukot/netstamp/internal/controller/application/result/shared"
+	"github.com/yorukot/netstamp/internal/controller/application/result/tcp"
+	"github.com/yorukot/netstamp/internal/controller/application/result/traceroute"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
-	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 	domainresult "github.com/yorukot/netstamp/internal/domain/result"
 	domaintcp "github.com/yorukot/netstamp/internal/domain/tcp"
 	domaintraceroute "github.com/yorukot/netstamp/internal/domain/traceroute"
 )
 
 type PingSeriesRepository interface {
-	ListPingSeries(ctx context.Context, input domainping.SeriesQuery) (domainping.SeriesResult, error)
-	ListPingInsight(ctx context.Context, input domainping.InsightQuery) (domainping.InsightResult, error)
+	CountPingSeriesPoints(ctx context.Context, input domainping.SeriesPointCountQuery) (domainping.SeriesPointCounts, error)
+	ListPingSeries(ctx context.Context, input domainping.SeriesReadQuery) (map[string]domainping.SeriesData, error)
+	GetPingInsightSummary(ctx context.Context, input domainping.InsightSummaryQuery) (domainping.InsightSummary, error)
 }
 
 type TCPInsightRepository interface {
@@ -30,5 +35,10 @@ type MeasurementRepository interface {
 }
 
 type ProjectAccess interface {
-	GetProjectForUser(ctx context.Context, projectRef, userID string) (domainproject.Project, error)
+	resultshared.ProjectAccess
 }
+
+var _ ping.SeriesRepository = (PingSeriesRepository)(nil)
+var _ tcp.InsightRepository = (TCPInsightRepository)(nil)
+var _ traceroute.RunsRepository = (TracerouteRunsRepository)(nil)
+var _ measurement.Repository = (MeasurementRepository)(nil)

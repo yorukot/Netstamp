@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/yorukot/netstamp/internal/controller/application/pingquery"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 	domainpublicpage "github.com/yorukot/netstamp/internal/domain/publicpage"
@@ -345,19 +346,31 @@ func (s *Service) QueryPublicPingInsight(ctx context.Context, input QueryPublicP
 		return PublicPingInsightOutput{}, flow.technicalFailure(PublicPageEventPingInsightFailure, PublicPageReasonPingRepositoryNotConfigured, errors.New("ping repository is not configured"))
 	}
 
-	result, err := s.pings.ListPingInsight(ctx, domainping.InsightQuery{
-		ProjectID:     projectID,
-		ProbeID:       input.ProbeID,
-		CheckID:       input.CheckID,
-		From:          from,
-		To:            to,
-		MaxDataPoints: maxDataPoints,
+	counts, err := s.pings.CountPingSeriesPoints(ctx, domainping.SeriesPointCountQuery{
+		ProjectID: projectID,
+		ProbeID:   input.ProbeID,
+		CheckID:   input.CheckID,
+		From:      from,
+		To:        to,
+	})
+	if err != nil {
+		return PublicPingInsightOutput{}, flow.technicalFailure(PublicPageEventPingInsightFailure, PublicPageReasonPingInsightQueryFailed, err)
+	}
+	plan := pingquery.SelectReadPlan(counts, maxDataPoints)
+
+	summary, err := s.pings.GetPingInsightSummary(ctx, domainping.InsightSummaryQuery{
+		ProjectID: projectID,
+		ProbeID:   input.ProbeID,
+		CheckID:   input.CheckID,
+		From:      from,
+		To:        to,
+		Source:    plan.Source,
 	})
 	if err != nil {
 		return PublicPingInsightOutput{}, flow.technicalFailure(PublicPageEventPingInsightFailure, PublicPageReasonPingInsightQueryFailed, err)
 	}
 
-	return newPublicPingInsightOutput(result, from, to, maxDataPoints), nil
+	return newPublicPingInsightOutput(summary, plan, from, to, maxDataPoints), nil
 }
 
 func (s *Service) hydratePage(ctx context.Context, flow *publicPageFlow, page domainpublicpage.Page, event PublicPageEventName) (domainpublicpage.Page, error) {
@@ -457,16 +470,16 @@ func attachChecks(folders []domainpublicpage.Folder, checks []domainpublicpage.P
 	return folders
 }
 
-func newPublicPingInsightOutput(result domainping.InsightResult, from, to time.Time, maxDataPoints int32) PublicPingInsightOutput {
+func newPublicPingInsightOutput(summary domainping.InsightSummary, plan domainping.SeriesReadPlan, from, to time.Time, maxDataPoints int32) PublicPingInsightOutput {
 	return PublicPingInsightOutput{
-		Summary: newPingInsightSummary(result.Summary),
+		Summary: newPingInsightSummary(summary),
 		Meta: QueryMetadata{
 			FromMs:        from.UTC().UnixMilli(),
 			ToMs:          to.UTC().UnixMilli(),
 			MaxDataPoints: maxDataPoints,
-			Source:        string(result.Source),
-			Resolution:    string(result.Resolution),
-			TotalPoints:   result.TotalPoints,
+			Source:        string(plan.Source),
+			Resolution:    string(plan.Resolution),
+			TotalPoints:   plan.TotalPoints,
 		},
 	}
 }
