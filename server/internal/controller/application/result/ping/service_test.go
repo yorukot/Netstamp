@@ -23,7 +23,7 @@ func TestQuerySeriesUsesDefaultsAndMapsPoints(t *testing.T) {
 	now := time.Date(2026, 5, 13, 12, 0, 0, 0, time.UTC)
 	pointTime := now.Add(-time.Hour)
 	repo := &recordingSeriesRepository{
-		counts: domainping.SeriesPointCounts{Raw: 1},
+		rawPoints: 1,
 		series: map[string]domainping.SeriesData{
 			string(SeriesLatencyAvg): {
 				Points: []domainping.SeriesPoint{{Timestamp: pointTime, Value: 42.5}},
@@ -92,7 +92,7 @@ func TestQueryInsightUsesDefaultsAndMapsSummary(t *testing.T) {
 	lossPercent := 1.25
 	successRate := 98.5
 	repo := &recordingSeriesRepository{
-		counts: domainping.SeriesPointCounts{Raw: 3},
+		rawPoints: 3,
 		summary: domainping.InsightSummary{
 			AverageRttMs: &rttAvg,
 			MaxRttMs:     &rttMax,
@@ -135,17 +135,18 @@ func (staticProjectAccess) GetProjectForUser(_ context.Context, projectRef, user
 }
 
 type recordingSeriesRepository struct {
-	gotCount   domainping.SeriesPointCountQuery
-	gotSeries  domainping.SeriesReadQuery
-	gotSummary domainping.InsightSummaryQuery
-	counts     domainping.SeriesPointCounts
-	series     map[string]domainping.SeriesData
-	summary    domainping.InsightSummary
+	gotCount     domainping.SeriesPointCountQuery
+	gotSeries    domainping.SeriesReadQuery
+	gotSummary   domainping.InsightSummaryQuery
+	rawPoints    int64
+	rollupPoints int64
+	series       map[string]domainping.SeriesData
+	summary      domainping.InsightSummary
 }
 
-func (r *recordingSeriesRepository) CountPingSeriesPoints(_ context.Context, input domainping.SeriesPointCountQuery) (domainping.SeriesPointCounts, error) {
+func (r *recordingSeriesRepository) CountPingSeriesPoints(_ context.Context, input domainping.SeriesPointCountQuery) (int64, int64, error) {
 	r.gotCount = input
-	return r.counts, nil
+	return r.rawPoints, r.rollupPoints, nil
 }
 
 func (r *recordingSeriesRepository) ListPingSeries(_ context.Context, input domainping.SeriesReadQuery) (map[string]domainping.SeriesData, error) {

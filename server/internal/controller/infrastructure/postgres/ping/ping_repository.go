@@ -83,14 +83,14 @@ type pingSeriesScope struct {
 	maxDataPoints  int32
 }
 
-func (r *PingRepository) CountPingSeriesPoints(ctx context.Context, input domainping.SeriesPointCountQuery) (domainping.SeriesPointCounts, error) {
+func (r *PingRepository) CountPingSeriesPoints(ctx context.Context, input domainping.SeriesPointCountQuery) (int64, int64, error) {
 	ctx, span := postgres.StartDBSpan(ctx, pgpingTracer, "ping_results", "postgres.ping_results.series_count", "SELECT", "SELECT ping result point counts")
 	defer span.End()
 
 	probeStorageID, checkStorageID, err := r.resolvePingStorageIDs(ctx, input.ProjectID, input.ProbeID, input.CheckID)
 	if err != nil {
 		postgres.RecordDBSpanError(span, err)
-		return domainping.SeriesPointCounts{}, err
+		return 0, 0, err
 	}
 
 	rawPoints, err := r.queries.CountPingResultSeriesPoints(ctx, sqlc.CountPingResultSeriesPointsParams{
@@ -101,7 +101,7 @@ func (r *PingRepository) CountPingSeriesPoints(ctx context.Context, input domain
 	})
 	if err != nil {
 		postgres.RecordDBSpanError(span, err)
-		return domainping.SeriesPointCounts{}, err
+		return 0, 0, err
 	}
 	rollupPoints, err := r.queries.CountPingResultRollupSeriesPoints(ctx, sqlc.CountPingResultRollupSeriesPointsParams{
 		ProbeStorageID: probeStorageID,
@@ -111,10 +111,10 @@ func (r *PingRepository) CountPingSeriesPoints(ctx context.Context, input domain
 	})
 	if err != nil {
 		postgres.RecordDBSpanError(span, err)
-		return domainping.SeriesPointCounts{}, err
+		return 0, 0, err
 	}
 
-	return domainping.SeriesPointCounts{Raw: rawPoints, Rollup: rollupPoints}, nil
+	return rawPoints, rollupPoints, nil
 }
 
 func (r *PingRepository) ListPingSeries(ctx context.Context, input domainping.SeriesReadQuery) (map[string]domainping.SeriesData, error) {

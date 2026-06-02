@@ -9,13 +9,15 @@ import (
 func TestSelectReadPlan(t *testing.T) {
 	tests := []struct {
 		name          string
-		counts        domainping.SeriesPointCounts
+		rawPoints     int64
+		rollupPoints  int64
 		maxDataPoints int32
 		want          domainping.SeriesReadPlan
 	}{
 		{
 			name:          "raw fits requested density",
-			counts:        domainping.SeriesPointCounts{Raw: 3, Rollup: 3},
+			rawPoints:     3,
+			rollupPoints:  3,
 			maxDataPoints: 3,
 			want: domainping.SeriesReadPlan{
 				Mode:        domainping.SeriesReadModeRaw,
@@ -26,7 +28,8 @@ func TestSelectReadPlan(t *testing.T) {
 		},
 		{
 			name:          "bucket raw points above requested density",
-			counts:        domainping.SeriesPointCounts{Raw: 4, Rollup: 0},
+			rawPoints:     4,
+			rollupPoints:  0,
 			maxDataPoints: 3,
 			want: domainping.SeriesReadPlan{
 				Mode:        domainping.SeriesReadModeBucket,
@@ -37,7 +40,8 @@ func TestSelectReadPlan(t *testing.T) {
 		},
 		{
 			name:          "rollup covers retained historical data",
-			counts:        domainping.SeriesPointCounts{Raw: 2, Rollup: 100},
+			rawPoints:     2,
+			rollupPoints:  100,
 			maxDataPoints: 50,
 			want: domainping.SeriesReadPlan{
 				Mode:        domainping.SeriesReadModeRollup,
@@ -48,7 +52,8 @@ func TestSelectReadPlan(t *testing.T) {
 		},
 		{
 			name:          "raw and rollup equal prefers raw",
-			counts:        domainping.SeriesPointCounts{Raw: 3, Rollup: 3},
+			rawPoints:     3,
+			rollupPoints:  3,
 			maxDataPoints: 10,
 			want: domainping.SeriesReadPlan{
 				Mode:        domainping.SeriesReadModeRaw,
@@ -61,7 +66,7 @@ func TestSelectReadPlan(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := SelectReadPlan(tt.counts, tt.maxDataPoints); got != tt.want {
+			if got := SelectReadPlan(tt.rawPoints, tt.rollupPoints, tt.maxDataPoints); got != tt.want {
 				t.Fatalf("unexpected ping read plan: got %#v want %#v", got, tt.want)
 			}
 		})

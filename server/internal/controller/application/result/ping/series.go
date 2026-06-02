@@ -48,7 +48,7 @@ func (s *Service) QuerySeries(ctx context.Context, input QuerySeriesInput) (Seri
 		return SeriesOutput{}, configuredErr
 	}
 
-	counts, err := s.series.CountPingSeriesPoints(ctx, domainping.SeriesPointCountQuery{
+	rawPoints, rollupPoints, err := s.series.CountPingSeriesPoints(ctx, domainping.SeriesPointCountQuery{
 		ProjectID: project.ID,
 		ProbeID:   normalized.base.ProbeID,
 		CheckID:   normalized.base.CheckID,
@@ -60,7 +60,7 @@ func (s *Service) QuerySeries(ctx context.Context, input QuerySeriesInput) (Seri
 		span.RecordError(err)
 		return SeriesOutput{}, err
 	}
-	plan := pingquery.SelectReadPlan(counts, normalized.maxDataPoints)
+	plan := pingquery.SelectReadPlan(rawPoints, rollupPoints, normalized.maxDataPoints)
 
 	series, err := s.series.ListPingSeries(ctx, domainping.SeriesReadQuery{
 		ProjectID:     project.ID,

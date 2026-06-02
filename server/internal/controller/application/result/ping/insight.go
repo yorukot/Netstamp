@@ -46,7 +46,7 @@ func (s *Service) QueryInsight(ctx context.Context, input QueryInsightInput) (In
 		return InsightOutput{}, configuredErr
 	}
 
-	counts, err := s.series.CountPingSeriesPoints(ctx, domainping.SeriesPointCountQuery{
+	rawPoints, rollupPoints, err := s.series.CountPingSeriesPoints(ctx, domainping.SeriesPointCountQuery{
 		ProjectID: project.ID,
 		ProbeID:   normalized.base.ProbeID,
 		CheckID:   normalized.base.CheckID,
@@ -58,7 +58,7 @@ func (s *Service) QueryInsight(ctx context.Context, input QueryInsightInput) (In
 		span.RecordError(err)
 		return InsightOutput{}, err
 	}
-	plan := pingquery.SelectReadPlan(counts, normalized.maxDataPoints)
+	plan := pingquery.SelectReadPlan(rawPoints, rollupPoints, normalized.maxDataPoints)
 
 	summary, err := s.series.GetPingInsightSummary(ctx, domainping.InsightSummaryQuery{
 		ProjectID: project.ID,

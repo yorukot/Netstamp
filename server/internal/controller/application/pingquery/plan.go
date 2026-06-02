@@ -2,21 +2,21 @@ package pingquery
 
 import domainping "github.com/yorukot/netstamp/internal/domain/ping"
 
-func SelectReadPlan(counts domainping.SeriesPointCounts, maxDataPoints int32) domainping.SeriesReadPlan {
-	if useRollup(counts.Raw, counts.Rollup) {
+func SelectReadPlan(rawPoints, rollupPoints int64, maxDataPoints int32) domainping.SeriesReadPlan {
+	if useRollup(rawPoints, rollupPoints) {
 		return domainping.SeriesReadPlan{
 			Mode:        domainping.SeriesReadModeRollup,
 			Source:      domainping.SeriesSourceAggregate,
 			Resolution:  domainping.SeriesResolutionOneMinute,
-			TotalPoints: counts.Rollup,
+			TotalPoints: rollupPoints,
 		}
 	}
-	if counts.Raw <= int64(maxDataPoints) {
+	if rawPoints <= int64(maxDataPoints) {
 		return domainping.SeriesReadPlan{
 			Mode:        domainping.SeriesReadModeRaw,
 			Source:      domainping.SeriesSourceRaw,
 			Resolution:  domainping.SeriesResolutionRaw,
-			TotalPoints: counts.Raw,
+			TotalPoints: rawPoints,
 		}
 	}
 
@@ -24,7 +24,7 @@ func SelectReadPlan(counts domainping.SeriesPointCounts, maxDataPoints int32) do
 		Mode:        domainping.SeriesReadModeBucket,
 		Source:      domainping.SeriesSourceRaw,
 		Resolution:  domainping.SeriesResolutionBucket,
-		TotalPoints: counts.Raw,
+		TotalPoints: rawPoints,
 	}
 }
 

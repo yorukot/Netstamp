@@ -346,7 +346,7 @@ func (s *Service) QueryPublicPingInsight(ctx context.Context, input QueryPublicP
 		return PublicPingInsightOutput{}, flow.technicalFailure(PublicPageEventPingInsightFailure, PublicPageReasonPingRepositoryNotConfigured, errors.New("ping repository is not configured"))
 	}
 
-	counts, err := s.pings.CountPingSeriesPoints(ctx, domainping.SeriesPointCountQuery{
+	rawPoints, rollupPoints, err := s.pings.CountPingSeriesPoints(ctx, domainping.SeriesPointCountQuery{
 		ProjectID: projectID,
 		ProbeID:   input.ProbeID,
 		CheckID:   input.CheckID,
@@ -356,7 +356,7 @@ func (s *Service) QueryPublicPingInsight(ctx context.Context, input QueryPublicP
 	if err != nil {
 		return PublicPingInsightOutput{}, flow.technicalFailure(PublicPageEventPingInsightFailure, PublicPageReasonPingInsightQueryFailed, err)
 	}
-	plan := pingquery.SelectReadPlan(counts, maxDataPoints)
+	plan := pingquery.SelectReadPlan(rawPoints, rollupPoints, maxDataPoints)
 
 	summary, err := s.pings.GetPingInsightSummary(ctx, domainping.InsightSummaryQuery{
 		ProjectID: projectID,

@@ -237,11 +237,6 @@ type SeriesPointCountQuery struct {
 	To        time.Time
 }
 
-type SeriesPointCounts struct {
-	Raw    int64
-	Rollup int64
-}
-
 type SeriesReadMode string
 
 const (
