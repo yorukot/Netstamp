@@ -408,6 +408,17 @@ export function NewProbeDrawer() {
 									<span>Registration token</span>
 									<strong>{registrationSecret || "-"}</strong>
 								</div>
+								<Terminal
+									title="install command"
+									className={styles.installCommand}
+									meta={
+										<Button type="button" variant="ghost" size="sm" className={styles.copyCommandButton} disabled={!installCommand} onClick={() => void copyInstallCommand()}>
+											{installCommandCopied ? "Copied" : "Copy"}
+										</Button>
+									}
+								>
+									{installCommand}
+								</Terminal>
 								<div className={styles.assetLinks}>
 									<Button asChild variant="outline" size="sm">
 										<a href={installerUrl}>Installer</a>
@@ -419,16 +430,6 @@ export function NewProbeDrawer() {
 										<a href={uninstallerUrl}>Uninstaller</a>
 									</Button>
 								</div>
-								<Terminal
-									title="install command"
-									meta={
-										<Button type="button" variant="ghost" size="sm" className={styles.copyCommandButton} disabled={!installCommand} onClick={() => void copyInstallCommand()}>
-											{installCommandCopied ? "Copied" : "Copy to clipboard"}
-										</Button>
-									}
-								>
-									{installCommand}
-								</Terminal>
 							</div>
 
 							<div className={classNames("ns-cut-frame", styles.detectCard)}>

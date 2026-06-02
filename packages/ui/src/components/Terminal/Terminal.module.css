@@ -1,6 +1,9 @@
 .shell {
 	--ns-frame-cut: var(--ns-cut-lg);
 	--ns-frame-color: var(--ns-border);
+	display: grid;
+	grid-template-rows: auto minmax(0, auto);
+	min-width: 0;
 	background: linear-gradient(rgba(255, 122, 26, 0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 122, 26, 0.08) 1px, transparent 1px), #030507;
 	background-size:
 		1rem 1rem,
@@ -55,6 +58,7 @@
 }
 
 .terminal {
+	min-width: 0;
 	margin: 0;
 	padding: 1rem;
 	overflow: auto;
