@@ -40,7 +40,9 @@ type ProjectAccess interface {
 	resultshared.ProjectAccess
 }
 
-var _ ping.SeriesRepository = (PingSeriesRepository)(nil)
-var _ tcp.InsightRepository = (TCPInsightRepository)(nil)
-var _ traceroute.RunsRepository = (TracerouteRunsRepository)(nil)
-var _ measurement.Repository = (MeasurementRepository)(nil)
+var (
+	_ ping.SeriesRepository     = (PingSeriesRepository)(nil)
+	_ tcp.InsightRepository     = (TCPInsightRepository)(nil)
+	_ traceroute.RunsRepository = (TracerouteRunsRepository)(nil)
+	_ measurement.Repository    = (MeasurementRepository)(nil)
+)
