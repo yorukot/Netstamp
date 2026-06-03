@@ -17,7 +17,7 @@ export const apiQueryKeys = {
 		checks: (ref: string) => [...apiQueryKeys.projects.detail(ref), "checks"] as const,
 		checkDetail: (ref: string, checkId: string) => [...apiQueryKeys.projects.checks(ref), checkId] as const,
 		labels: (ref: string) => [...apiQueryKeys.projects.detail(ref), "labels"] as const,
-		measurements: (ref: string, filters: object = {}) => [...apiQueryKeys.projects.detail(ref), "measurements", filters] as const,
+		latestResults: (ref: string, filters: object = {}) => [...apiQueryKeys.projects.detail(ref), "results", "latest", filters] as const,
 		members: (ref: string) => [...apiQueryKeys.projects.detail(ref), "members"] as const,
 		invites: (ref: string) => [...apiQueryKeys.projects.detail(ref), "invites"] as const,
 		publicPages: (ref: string) => [...apiQueryKeys.projects.detail(ref), "public-pages"] as const,

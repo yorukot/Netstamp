@@ -20,7 +20,7 @@ import { type Probe, type ProbeStatus } from "@/features/probes/data/probes";
 import { projectQueries } from "@/shared/api/queries";
 import { apiQueryKeys } from "@/shared/api/queryKeys";
 import {
-	type ApiMeasurement,
+	type ApiLatestResult,
 	type ApiProjectAssignment,
 	type PingInsightResponse,
 	type PingSeriesResponse,
@@ -34,7 +34,7 @@ import { BodyCopy } from "@/shared/components/BodyCopy";
 import { FilterGrid } from "@/shared/components/FilterGrid";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
-import { formatCount, formatEpochMs, formatMs, formatPercent } from "@/shared/utils/insightFormatters";
+import { formatCount, formatEpochMs } from "@/shared/utils/insightFormatters";
 import {
 	isRelativeTimeRange as isInsightRelativeRange,
 	parseEpochMs,
@@ -73,15 +73,8 @@ type GroupStatus = {
 	rank: number;
 };
 
-interface MeasurementSummary {
-	total: number;
-	successful: number;
-	timeout: number;
-	error: number;
-	partial: number;
+interface LatestSummary {
 	latestStartedAtMs: number | null;
-	avgLatencyMs: number | null;
-	avgLossPercent: number | null;
 	status: GroupStatus;
 }
 
@@ -98,8 +91,7 @@ interface InsightGroupRow {
 	pingCount: number;
 	tcpCount: number;
 	tracerouteCount: number;
-	measurements: ApiMeasurement[];
-	summary: MeasurementSummary;
+	summary: LatestSummary;
 	searchText: string;
 }
 
@@ -273,68 +265,43 @@ function normalizeSearch(value: string) {
 	return value.trim().toLowerCase();
 }
 
-function measurementLatency(measurement: ApiMeasurement) {
-	if (typeof measurement.latencyMs === "number" && Number.isFinite(measurement.latencyMs)) {
-		return measurement.latencyMs;
-	}
-
-	if (typeof measurement.durationMs === "number" && Number.isFinite(measurement.durationMs)) {
-		return measurement.durationMs;
-	}
-
-	return null;
+function latestStartedAtMs(result: ApiLatestResult) {
+	const startedAt = new Date(result.latestStartedAt).getTime();
+	return Number.isFinite(startedAt) ? startedAt : null;
 }
 
-function average(values: number[]) {
-	if (!values.length) {
-		return null;
-	}
-
-	return values.reduce((sum, value) => sum + value, 0) / values.length;
-}
-
-function summarizeMeasurements(measurements: ApiMeasurement[]): MeasurementSummary {
-	const successful = measurements.filter(measurement => measurement.status === "successful").length;
-	const timeout = measurements.filter(measurement => measurement.status === "timeout").length;
-	const error = measurements.filter(measurement => measurement.status === "error").length;
-	const partial = measurements.filter(measurement => measurement.status === "partial").length;
-	const latestStartedAtMs = measurements.reduce<number | null>((latest, measurement) => {
-		const next = new Date(measurement.startedAt).getTime();
-		if (!Number.isFinite(next)) {
+function summarizeLatestResults(results: ApiLatestResult[]): LatestSummary {
+	const timeout = results.filter(result => result.latestStatus === "timeout").length;
+	const error = results.filter(result => result.latestStatus === "error").length;
+	const partial = results.filter(result => result.latestStatus === "partial").length;
+	const latestStartedAt = results.reduce<number | null>((latest, result) => {
+		const next = latestStartedAtMs(result);
+		if (next === null) {
 			return latest;
 		}
 
 		return latest === null || next > latest ? next : latest;
 	}, null);
-	const latencyValues = measurements.map(measurementLatency).filter((value): value is number => typeof value === "number");
-	const lossValues = measurements.map(measurement => measurement.lossPercent).filter((value): value is number => typeof value === "number" && Number.isFinite(value));
 	let status: GroupStatus = { label: "No data", tone: "warning", rank: 2 };
 
 	if (error || timeout) {
 		status = { label: `${formatCount(error + timeout)} failing`, tone: "critical", rank: 0 };
 	} else if (partial) {
 		status = { label: `${formatCount(partial)} partial`, tone: "warning", rank: 1 };
-	} else if (measurements.length) {
+	} else if (results.length) {
 		status = { label: "Reporting", tone: "success", rank: 3 };
 	}
 
 	return {
-		total: measurements.length,
-		successful,
-		timeout,
-		error,
-		partial,
-		latestStartedAtMs,
-		avgLatencyMs: average(latencyValues),
-		avgLossPercent: average(lossValues),
+		latestStartedAtMs: latestStartedAt,
 		status
 	};
 }
 
-function groupMeasurementsForPairs(measurements: ApiMeasurement[], pairs: InsightPair[]) {
+function groupLatestResultsForPairs(results: ApiLatestResult[], pairs: InsightPair[]) {
 	const pairKeys = new Set(pairs.map(pair => pair.key));
 
-	return measurements.filter(measurement => pairKeys.has(pairKey(measurement.probeId, measurement.checkId)));
+	return results.filter(result => pairKeys.has(pairKey(result.probeId, result.checkId)));
 }
 
 function buildSearchText(pairs: InsightPair[], label: string, secondary: string) {
@@ -347,7 +314,7 @@ function buildSearchText(pairs: InsightPair[], label: string, secondary: string)
 		.toLowerCase();
 }
 
-function buildInsightGroups(pairs: InsightPair[], measurements: ApiMeasurement[], groupBy: InsightGroupBy): InsightGroupRow[] {
+function buildInsightGroups(pairs: InsightPair[], latestResults: ApiLatestResult[], groupBy: InsightGroupBy): InsightGroupRow[] {
 	const grouped = new Map<string, InsightPair[]>();
 
 	for (const pair of pairs) {
@@ -358,7 +325,7 @@ function buildInsightGroups(pairs: InsightPair[], measurements: ApiMeasurement[]
 	return [...grouped.entries()]
 		.map(([id, groupPairs]) => {
 			const firstPair = groupPairs[0];
-			const groupMeasurements = groupMeasurementsForPairs(measurements, groupPairs);
+			const groupLatestResults = groupLatestResultsForPairs(latestResults, groupPairs);
 			const probeCount = new Set(groupPairs.map(pair => pair.probeId)).size;
 			const checkCount = new Set(groupPairs.map(pair => pair.checkId)).size;
 			const pingCount = groupPairs.filter(pair => pair.check.type === "Ping").length;
@@ -381,8 +348,7 @@ function buildInsightGroups(pairs: InsightPair[], measurements: ApiMeasurement[]
 				pingCount,
 				tcpCount,
 				tracerouteCount,
-				measurements: groupMeasurements,
-				summary: summarizeMeasurements(groupMeasurements),
+				summary: summarizeLatestResults(groupLatestResults),
 				searchText: buildSearchText(groupPairs, label, secondary)
 			};
 		})
@@ -403,20 +369,16 @@ function scopePairs(pairs: InsightPair[], checkType: InsightCheckTypeFilter, pro
 	return pairs.filter(pair => matchesCheckType(pair, checkType) && (!probeId || pair.probeId === probeId) && (!checkId || pair.checkId === checkId));
 }
 
-function pairLatestMeasurement(pair: InsightPair, measurements: ApiMeasurement[]) {
-	const latest = measurements
-		.filter(measurement => measurement.probeId === pair.probeId && measurement.checkId === pair.checkId)
-		.sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime())[0];
+function pairLatestResult(pair: InsightPair, latestResults: ApiLatestResult[]) {
+	const latest = latestResults.find(result => result.probeId === pair.probeId && result.checkId === pair.checkId);
 
 	if (!latest) {
-		return { status: "No data", latency: "-", loss: "-", time: "-" };
+		return { status: "No data", time: "-" };
 	}
 
 	return {
-		status: latest.status,
-		latency: formatMs(measurementLatency(latest)),
-		loss: formatPercent(latest.lossPercent),
-		time: new Date(latest.startedAt).toLocaleString(undefined, { month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit" })
+		status: latest.latestStatus,
+		time: new Date(latest.latestStartedAt).toLocaleString(undefined, { month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit" })
 	};
 }
 
@@ -586,22 +548,20 @@ export function InsightPage() {
 	const exactPair = activeProbeId && activeCheckId && scopedPairs.length === 1 ? scopedPairs[0] : null;
 	const selectedProbe = activeProbeId ? scopedPairs.find(pair => pair.probeId === activeProbeId)?.probe || probes.find(probe => probe.id === activeProbeId) || null : null;
 	const selectedCheck = activeCheckId ? scopedPairs.find(pair => pair.checkId === activeCheckId)?.check || checks.find(check => check.id === activeCheckId) || null : null;
-	const measurementFilters = useMemo(
+	const latestResultFilters = useMemo(
 		() => ({
-			...resultWindowFilters,
-			limit: 200,
 			...(checkType === "all" ? {} : { type: checkType }),
 			...(activeProbeId ? { probeId: activeProbeId } : {}),
 			...(activeCheckId ? { checkId: activeCheckId } : {})
 		}),
-		[activeCheckId, activeProbeId, checkType, resultWindowFilters]
+		[activeCheckId, activeProbeId, checkType]
 	);
-	const measurementsQuery = useQuery({
-		...projectQueries.measurements(projectRef || "", measurementFilters),
+	const latestResultsQuery = useQuery({
+		...projectQueries.latestResults(projectRef || "", latestResultFilters),
 		enabled: Boolean(projectRef && !isSelectionLoading && !hasInvalidFocus)
 	});
-	const measurements = useMemo(() => measurementsQuery.data?.measurements ?? [], [measurementsQuery.data?.measurements]);
-	const groups = useMemo(() => buildInsightGroups(scopedPairs, measurements, groupBy), [groupBy, measurements, scopedPairs]);
+	const latestResults = useMemo(() => latestResultsQuery.data?.results ?? [], [latestResultsQuery.data?.results]);
+	const groups = useMemo(() => buildInsightGroups(scopedPairs, latestResults, groupBy), [groupBy, latestResults, scopedPairs]);
 	const searchTerm = normalizeSearch(search);
 	const visibleGroups = useMemo(() => (searchTerm ? groups.filter(group => group.searchText.includes(searchTerm)) : groups), [groups, searchTerm]);
 	const selectedRunStartedAt = exactPair?.check.type === "Traceroute" ? urlState.runStartedAt : "";
@@ -661,9 +621,6 @@ export function InsightPage() {
 			render: row => <Badge tone={row.summary.status.tone}>{row.summary.status.label}</Badge>
 		},
 		{ key: "coverage", label: "Coverage", render: row => `${formatCount(row.probeCount)} probes · ${formatCount(row.checkCount)} checks` },
-		{ key: "measurements", label: "Results", render: row => formatCount(row.summary.total) },
-		{ key: "latency", label: "Avg latency", render: row => formatMs(row.summary.avgLatencyMs) },
-		{ key: "loss", label: "Avg loss", render: row => formatPercent(row.summary.avgLossPercent) },
 		{ key: "latest", label: "Last seen", render: row => formatEpochMs(row.summary.latestStartedAtMs) }
 	];
 	const pairColumns: DataColumn<InsightPair>[] = [
@@ -693,16 +650,14 @@ export function InsightPage() {
 			key: "latest",
 			label: "Latest",
 			render: pair => {
-				const latest = pairLatestMeasurement(pair, measurements);
+				const latest = pairLatestResult(pair, latestResults);
 
 				return (
 					<div className={styles.rowTitle}>
 						<strong>
 							<Badge tone={statusTone(latest.status)}>{latest.status}</Badge>
 						</strong>
-						<span>
-							{latest.latency} · {latest.loss} · {latest.time}
-						</span>
+						<span>{latest.time}</span>
 					</div>
 				);
 			}

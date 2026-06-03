@@ -19,10 +19,6 @@
 			"description": "Public Ping insight pages and project-owned publishing controls."
 		},
 		{
-			"name": "Measurements",
-			"description": "Raw-ish measurement rows for tables, logs, and recent activity views."
-		},
-		{
 			"name": "Results",
 			"description": "Authenticated result query endpoints."
 		},
@@ -2075,110 +2071,6 @@
 				]
 			}
 		},
-		"/projects/{ref}/measurements": {
-			"get": {
-				"operationId": "listProjectMeasurements",
-				"summary": "List project measurements",
-				"description": "List recent raw-ish measurement rows for dashboard activity, check logs, and measurement tables. Aggregated chart series remain under the result series endpoints.",
-				"parameters": [
-					{
-						"$ref": "#/components/parameters/ProjectRefParam"
-					},
-					{
-						"$ref": "#/components/parameters/MeasurementQuery.probeId"
-					},
-					{
-						"$ref": "#/components/parameters/MeasurementQuery.checkId"
-					},
-					{
-						"$ref": "#/components/parameters/MeasurementQuery.type"
-					},
-					{
-						"$ref": "#/components/parameters/MeasurementQuery.status"
-					},
-					{
-						"$ref": "#/components/parameters/MeasurementQuery.from"
-					},
-					{
-						"$ref": "#/components/parameters/MeasurementQuery.to"
-					},
-					{
-						"$ref": "#/components/parameters/MeasurementQuery.limit"
-					},
-					{
-						"$ref": "#/components/parameters/MeasurementQuery.cursor"
-					}
-				],
-				"responses": {
-					"200": {
-						"description": "The request has succeeded.",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/MeasurementListResponse"
-								}
-							}
-						}
-					},
-					"400": {
-						"description": "The server could not understand the request due to invalid syntax.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"401": {
-						"description": "Access is unauthorized.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"404": {
-						"description": "The server cannot find the requested resource.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"422": {
-						"description": "Client error",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"500": {
-						"description": "Server error",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					}
-				},
-				"tags": ["Measurements"],
-				"security": [
-					{
-						"SessionCookieAuth": []
-					}
-				]
-			}
-		},
 		"/projects/{ref}/members": {
 			"get": {
 				"operationId": "listProjectMembers",
@@ -3765,6 +3657,95 @@
 				]
 			}
 		},
+		"/projects/{ref}/results/latest": {
+			"get": {
+				"operationId": "queryProjectLatestResults",
+				"summary": "Query project latest results",
+				"description": "List latest all-time result timestamps and statuses for active assignment pairs. Chart series and detailed result rows remain under type-specific result endpoints.",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					},
+					{
+						"$ref": "#/components/parameters/LatestResultsQuery.probeId"
+					},
+					{
+						"$ref": "#/components/parameters/LatestResultsQuery.checkId"
+					},
+					{
+						"$ref": "#/components/parameters/LatestResultsQuery.type"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LatestResultsResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Results"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
 		"/projects/{ref}/results/ping/insight": {
 			"get": {
 				"operationId": "queryProjectPingResultInsight",
@@ -5261,7 +5242,7 @@
 					"$ref": "#/components/schemas/uuid"
 				}
 			},
-			"MeasurementQuery.checkId": {
+			"LatestResultsQuery.checkId": {
 				"name": "checkId",
 				"in": "query",
 				"required": false,
@@ -5270,42 +5251,7 @@
 				},
 				"explode": false
 			},
-			"MeasurementQuery.cursor": {
-				"name": "cursor",
-				"in": "query",
-				"required": false,
-				"schema": {
-					"type": "integer",
-					"format": "int64",
-					"minimum": 1
-				},
-				"explode": false
-			},
-			"MeasurementQuery.from": {
-				"name": "from",
-				"in": "query",
-				"required": false,
-				"schema": {
-					"type": "integer",
-					"format": "int64",
-					"minimum": 1
-				},
-				"explode": false
-			},
-			"MeasurementQuery.limit": {
-				"name": "limit",
-				"in": "query",
-				"required": false,
-				"schema": {
-					"type": "integer",
-					"format": "int32",
-					"minimum": 1,
-					"maximum": 500,
-					"default": 100
-				},
-				"explode": false
-			},
-			"MeasurementQuery.probeId": {
+			"LatestResultsQuery.probeId": {
 				"name": "probeId",
 				"in": "query",
 				"required": false,
@@ -5314,28 +5260,7 @@
 				},
 				"explode": false
 			},
-			"MeasurementQuery.status": {
-				"name": "status",
-				"in": "query",
-				"required": false,
-				"schema": {
-					"type": "string",
-					"enum": ["successful", "timeout", "error", "partial"]
-				},
-				"explode": false
-			},
-			"MeasurementQuery.to": {
-				"name": "to",
-				"in": "query",
-				"required": false,
-				"schema": {
-					"type": "integer",
-					"format": "int64",
-					"minimum": 1
-				},
-				"explode": false
-			},
-			"MeasurementQuery.type": {
+			"LatestResultsQuery.type": {
 				"name": "type",
 				"in": "query",
 				"required": false,
@@ -6568,6 +6493,64 @@
 					}
 				]
 			},
+			"LatestResult": {
+				"type": "object",
+				"required": ["type", "probeId", "checkId", "latestStartedAt", "latestStatus"],
+				"properties": {
+					"type": {
+						"type": "string",
+						"enum": ["ping", "tcp", "traceroute"]
+					},
+					"probeId": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"checkId": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"latestStartedAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"latestStatus": {
+						"type": "string",
+						"enum": ["successful", "timeout", "error", "partial"]
+					}
+				},
+				"examples": [
+					{
+						"type": "ping",
+						"probeId": "33333333-3333-3333-3333-333333333333",
+						"checkId": "44444444-4444-4444-4444-444444444444",
+						"latestStartedAt": "2026-05-13T10:00:00Z",
+						"latestStatus": "successful"
+					}
+				]
+			},
+			"LatestResultsResponse": {
+				"type": "object",
+				"required": ["results"],
+				"properties": {
+					"results": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/LatestResult"
+						}
+					}
+				},
+				"examples": [
+					{
+						"results": [
+							{
+								"type": "ping",
+								"probeId": "33333333-3333-3333-3333-333333333333",
+								"checkId": "44444444-4444-4444-4444-444444444444",
+								"latestStartedAt": "2026-05-13T10:00:00Z",
+								"latestStatus": "successful"
+							}
+						]
+					}
+				]
+			},
 			"LoginUserRequest": {
 				"type": "object",
 				"required": ["email", "password"],
@@ -6592,145 +6575,6 @@
 					{
 						"email": "user@example.com",
 						"password": "correct-horse-battery-staple"
-					}
-				]
-			},
-			"Measurement": {
-				"type": "object",
-				"required": ["type", "startedAt", "finishedAt", "probeId", "checkId", "status", "durationMs"],
-				"properties": {
-					"type": {
-						"type": "string",
-						"enum": ["ping", "tcp", "traceroute"]
-					},
-					"startedAt": {
-						"type": "string",
-						"format": "date-time"
-					},
-					"finishedAt": {
-						"type": "string",
-						"format": "date-time"
-					},
-					"probeId": {
-						"$ref": "#/components/schemas/uuid"
-					},
-					"checkId": {
-						"$ref": "#/components/schemas/uuid"
-					},
-					"status": {
-						"type": "string",
-						"enum": ["successful", "timeout", "error", "partial"]
-					},
-					"durationMs": {
-						"type": "integer",
-						"format": "int32",
-						"minimum": 0
-					},
-					"latencyMs": {
-						"type": "number",
-						"format": "double",
-						"minimum": 0
-					},
-					"lossPercent": {
-						"type": "number",
-						"format": "double",
-						"minimum": 0,
-						"maximum": 100
-					},
-					"metadata": {
-						"type": "string"
-					},
-					"errorCode": {
-						"type": "string"
-					},
-					"errorMessage": {
-						"type": "string"
-					}
-				},
-				"examples": [
-					{
-						"type": "ping",
-						"startedAt": "2026-05-13T10:00:00Z",
-						"finishedAt": "2026-05-13T10:00:01Z",
-						"probeId": "33333333-3333-3333-3333-333333333333",
-						"checkId": "44444444-4444-4444-4444-444444444444",
-						"status": "successful",
-						"durationMs": 1000,
-						"latencyMs": 12.3,
-						"lossPercent": 0,
-						"metadata": "4 packets transmitted, 4 received"
-					}
-				]
-			},
-			"MeasurementListResponse": {
-				"type": "object",
-				"required": ["measurements", "query"],
-				"properties": {
-					"measurements": {
-						"type": "array",
-						"items": {
-							"$ref": "#/components/schemas/Measurement"
-						}
-					},
-					"query": {
-						"$ref": "#/components/schemas/MeasurementQueryMetadata"
-					}
-				},
-				"examples": [
-					{
-						"measurements": [
-							{
-								"type": "ping",
-								"startedAt": "2026-05-13T10:00:00Z",
-								"finishedAt": "2026-05-13T10:00:01Z",
-								"probeId": "33333333-3333-3333-3333-333333333333",
-								"checkId": "44444444-4444-4444-4444-444444444444",
-								"status": "successful",
-								"durationMs": 1000,
-								"latencyMs": 12.3,
-								"lossPercent": 0
-							}
-						],
-						"query": {
-							"from": 1778662800000,
-							"to": 1778749200000,
-							"limit": 100
-						}
-					}
-				]
-			},
-			"MeasurementQueryMetadata": {
-				"type": "object",
-				"required": ["from", "to", "limit"],
-				"properties": {
-					"from": {
-						"type": "integer",
-						"format": "int64",
-						"minimum": 1
-					},
-					"to": {
-						"type": "integer",
-						"format": "int64",
-						"minimum": 1
-					},
-					"limit": {
-						"type": "integer",
-						"format": "int32",
-						"minimum": 1,
-						"maximum": 500
-					},
-					"nextCursor": {
-						"type": "integer",
-						"format": "int64",
-						"minimum": 1
-					}
-				},
-				"examples": [
-					{
-						"from": 1778662800000,
-						"to": 1778749200000,
-						"limit": 100,
-						"nextCursor": 1778666400000
 					}
 				]
 			},

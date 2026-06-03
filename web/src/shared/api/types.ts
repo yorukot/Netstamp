@@ -2,7 +2,7 @@ import type { components } from "./openapi";
 
 export type ApiCheck = components["schemas"]["Check"];
 export type ApiLabel = components["schemas"]["Label"];
-export type ApiMeasurement = components["schemas"]["Measurement"];
+export type ApiLatestResult = components["schemas"]["LatestResult"];
 export type ApiMember = components["schemas"]["ProjectMember"];
 export type ApiProbe = components["schemas"]["Probe"];
 export type ApiProject = components["schemas"]["Project"];
@@ -23,8 +23,7 @@ export type CreatePublicPageInput = components["schemas"]["CreatePublicPageReque
 export type CreateProjectInviteInput = components["schemas"]["CreateProjectInviteRequest"];
 export type CreateProjectInput = components["schemas"]["CreateProjectRequest"];
 export type LoginInput = components["schemas"]["LoginUserRequest"];
-export type MeasurementStatus = components["parameters"]["MeasurementQuery.status"];
-export type MeasurementType = components["parameters"]["MeasurementQuery.type"];
+export type LatestResultType = components["parameters"]["LatestResultsQuery.type"];
 export type PingInsightResponse = components["schemas"]["PingInsightResponse"];
 export type ApiSeries = Omit<components["schemas"]["Series"], "labels"> & {
 	labels: Record<string, string>;
@@ -64,15 +63,10 @@ export interface ProjectAssignmentFilters {
 	checkId?: string;
 }
 
-export interface MeasurementFilters {
+export interface LatestResultsFilters {
 	probeId?: string;
 	checkId?: string;
-	type?: MeasurementType;
-	status?: MeasurementStatus;
-	from?: number;
-	to?: number;
-	limit?: number;
-	cursor?: number;
+	type?: LatestResultType;
 }
 
 export interface PingSeriesFilters {

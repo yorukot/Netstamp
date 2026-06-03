@@ -1,7 +1,7 @@
 package result
 
 import (
-	"github.com/yorukot/netstamp/internal/controller/application/result/measurement"
+	"github.com/yorukot/netstamp/internal/controller/application/result/latest"
 	"github.com/yorukot/netstamp/internal/controller/application/result/ping"
 	resultshared "github.com/yorukot/netstamp/internal/controller/application/result/shared"
 	"github.com/yorukot/netstamp/internal/controller/application/result/tcp"
@@ -33,7 +33,7 @@ type (
 	QueryTracerouteRunsInput     = traceroute.QueryRunsInput
 	QueryTracerouteInsightInput  = traceroute.QueryInsightInput
 	QueryTracerouteTopologyInput = traceroute.QueryTopologyInput
-	QueryMeasurementsInput       = measurement.QueryInput
+	QueryLatestResultsInput      = latest.QueryInput
 )
 
 type (
@@ -44,11 +44,11 @@ type (
 	TracerouteRunsOutput     = traceroute.RunsOutput
 	TracerouteInsightOutput  = traceroute.InsightOutput
 	TracerouteTopologyOutput = traceroute.TopologyOutput
-	MeasurementsOutput       = measurement.Output
+	LatestResultsOutput      = latest.Output
 )
 
 type (
-	Measurement                     = measurement.Measurement
+	LatestResult                    = latest.Result
 	TracerouteRun                   = traceroute.Run
 	TracerouteHop                   = traceroute.Hop
 	TracerouteInsightPoint          = traceroute.InsightPoint
@@ -63,5 +63,4 @@ type (
 	TracerouteRunsQueryMetadata     = traceroute.RunsQueryMetadata
 	TracerouteInsightQueryMetadata  = traceroute.InsightQueryMetadata
 	TracerouteTopologyQueryMetadata = traceroute.TopologyQueryMetadata
-	MeasurementQueryMetadata        = measurement.QueryMetadata
 )

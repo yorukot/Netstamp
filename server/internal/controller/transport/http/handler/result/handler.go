@@ -29,12 +29,12 @@ func (h *Handler) RegisterRoutes(api chi.Router) {
 
 		r.Get("/projects/{ref}/results/ping/series", h.handleQueryPingSeries)
 		r.Get("/projects/{ref}/results/ping/insight", h.handleQueryPingInsight)
+		r.Get("/projects/{ref}/results/latest", h.handleQueryLatestResults)
 		r.Get("/projects/{ref}/results/tcp/series", h.handleQueryTCPSeries)
 		r.Get("/projects/{ref}/results/tcp/insight", h.handleQueryTCPInsight)
 		r.Get("/projects/{ref}/results/traceroute/runs", h.handleQueryTracerouteRuns)
 		r.Get("/projects/{ref}/results/traceroute/insight", h.handleQueryTracerouteInsight)
 		r.Get("/projects/{ref}/results/traceroute/topology", h.handleQueryTracerouteTopology)
-		r.Get("/projects/{ref}/measurements", h.handleQueryMeasurements)
 	})
 }
 
@@ -73,6 +73,20 @@ func (h *Handler) handleQueryTCPSeries(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	output, err := h.queryTCPSeries(r.Context(), input)
+	if err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, output.Body)
+}
+
+func (h *Handler) handleQueryLatestResults(w http.ResponseWriter, r *http.Request) {
+	input, err := newQueryLatestResultsInput(r)
+	if err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	output, err := h.queryLatestResults(r.Context(), input)
 	if err != nil {
 		httpx.WriteProblem(w, r, err)
 		return
@@ -129,20 +143,6 @@ func (h *Handler) handleQueryTracerouteTopology(w http.ResponseWriter, r *http.R
 		return
 	}
 	output, err := h.queryTracerouteTopology(r.Context(), input)
-	if err != nil {
-		httpx.WriteProblem(w, r, err)
-		return
-	}
-	httpx.WriteJSON(w, http.StatusOK, output.Body)
-}
-
-func (h *Handler) handleQueryMeasurements(w http.ResponseWriter, r *http.Request) {
-	input, err := newQueryMeasurementsInput(r)
-	if err != nil {
-		httpx.WriteProblem(w, r, err)
-		return
-	}
-	output, err := h.queryMeasurements(r.Context(), input)
 	if err != nil {
 		httpx.WriteProblem(w, r, err)
 		return
@@ -218,6 +218,15 @@ func newQueryTCPSeriesInput(r *http.Request) (*queryTCPSeriesInput, error) {
 		To:            to,
 		Series:        httpx.QueryString(r, "series"),
 		MaxDataPoints: maxDataPoints,
+	}, nil
+}
+
+func newQueryLatestResultsInput(r *http.Request) (*queryLatestResultsInput, error) {
+	return &queryLatestResultsInput{
+		Ref:     httpx.Path(r, "ref"),
+		ProbeID: httpx.QueryString(r, "probeId"),
+		CheckID: httpx.QueryString(r, "checkId"),
+		Type:    httpx.QueryString(r, "type"),
 	}, nil
 }
 
@@ -315,35 +324,5 @@ func newQueryTracerouteTopologyInput(r *http.Request) (*queryTracerouteTopologyI
 		From:    from,
 		To:      to,
 		Limit:   limit,
-	}, nil
-}
-
-func newQueryMeasurementsInput(r *http.Request) (*queryMeasurementsInput, error) {
-	from, err := httpx.QueryInt64(r, "from")
-	if err != nil {
-		return nil, err
-	}
-	to, err := httpx.QueryInt64(r, "to")
-	if err != nil {
-		return nil, err
-	}
-	limit, err := httpx.QueryInt32(r, "limit")
-	if err != nil {
-		return nil, err
-	}
-	cursor, err := httpx.QueryInt64(r, "cursor")
-	if err != nil {
-		return nil, err
-	}
-	return &queryMeasurementsInput{
-		Ref:     httpx.Path(r, "ref"),
-		ProbeID: httpx.QueryString(r, "probeId"),
-		CheckID: httpx.QueryString(r, "checkId"),
-		Type:    httpx.QueryString(r, "type"),
-		Status:  httpx.QueryString(r, "status"),
-		From:    from,
-		To:      to,
-		Limit:   limit,
-		Cursor:  cursor,
 	}, nil
 }

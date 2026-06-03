@@ -3,25 +3,25 @@ package result
 import (
 	"context"
 
-	"github.com/yorukot/netstamp/internal/controller/application/result/measurement"
+	"github.com/yorukot/netstamp/internal/controller/application/result/latest"
 	"github.com/yorukot/netstamp/internal/controller/application/result/ping"
 	"github.com/yorukot/netstamp/internal/controller/application/result/tcp"
 	"github.com/yorukot/netstamp/internal/controller/application/result/traceroute"
 )
 
 type Service struct {
-	pings        *ping.Service
-	tcps         *tcp.Service
-	traceroutes  *traceroute.Service
-	measurements *measurement.Service
+	pings         *ping.Service
+	tcps          *tcp.Service
+	traceroutes   *traceroute.Service
+	latestResults *latest.Service
 }
 
-func NewService(pings PingSeriesRepository, tcps TCPInsightRepository, traceroutes TracerouteRunsRepository, measurements MeasurementRepository, projectAccess ProjectAccess) *Service {
+func NewService(pings PingSeriesRepository, tcps TCPInsightRepository, traceroutes TracerouteRunsRepository, latestResults LatestRepository, projectAccess ProjectAccess) *Service {
 	return &Service{
-		pings:        ping.NewService(pings, projectAccess),
-		tcps:         tcp.NewService(tcps, projectAccess),
-		traceroutes:  traceroute.NewService(traceroutes, projectAccess),
-		measurements: measurement.NewService(measurements, projectAccess),
+		pings:         ping.NewService(pings, projectAccess),
+		tcps:          tcp.NewService(tcps, projectAccess),
+		traceroutes:   traceroute.NewService(traceroutes, projectAccess),
+		latestResults: latest.NewService(latestResults, projectAccess),
 	}
 }
 
@@ -53,6 +53,6 @@ func (s *Service) QueryTracerouteTopology(ctx context.Context, input QueryTracer
 	return s.traceroutes.QueryTopology(ctx, input)
 }
 
-func (s *Service) QueryMeasurements(ctx context.Context, input QueryMeasurementsInput) (MeasurementsOutput, error) {
-	return s.measurements.Query(ctx, input)
+func (s *Service) QueryLatestResults(ctx context.Context, input QueryLatestResultsInput) (LatestResultsOutput, error) {
+	return s.latestResults.Query(ctx, input)
 }

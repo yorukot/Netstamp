@@ -76,9 +76,9 @@ func TestNewRouterServesOpenAPIWithoutRuntimeServices(t *testing.T) {
 	assertOpenAPIOperation(t, spec, http.MethodPost, "/projects/{ref}/probes/{probe_id}/secret-rotations", "rotateProjectProbeSecret")
 	assertOpenAPIOperation(t, spec, http.MethodGet, "/projects/{ref}/results/ping/series", "queryProjectPingResultSeries")
 	assertOpenAPIOperation(t, spec, http.MethodGet, "/projects/{ref}/results/ping/insight", "queryProjectPingResultInsight")
+	assertOpenAPIOperation(t, spec, http.MethodGet, "/projects/{ref}/results/latest", "queryProjectLatestResults")
 	assertOpenAPIOperation(t, spec, http.MethodGet, "/projects/{ref}/results/traceroute/runs", "queryProjectTracerouteResultRuns")
 	assertOpenAPIOperation(t, spec, http.MethodGet, "/projects/{ref}/results/traceroute/insight", "queryProjectTracerouteResultInsight")
-	assertOpenAPIOperation(t, spec, http.MethodGet, "/projects/{ref}/measurements", "listProjectMeasurements")
 	assertOpenAPIOperation(t, spec, http.MethodPost, "/runtime/probes/{probe_id}/hello", "probeRuntimeHello")
 	assertOpenAPIOperation(t, spec, http.MethodPost, "/runtime/probes/{probe_id}/heartbeat", "probeRuntimeHeartbeat")
 	assertOpenAPIOperation(t, spec, http.MethodGet, "/runtime/probes/{probe_id}/assignments", "listProbeRuntimeAssignments")
@@ -247,10 +247,10 @@ func TestNewRouterProtectedRoutesRequireSessionCookie(t *testing.T) {
 		{method: http.MethodPut, path: "/api/v1/projects/vector-ix/public-pages/page-1/folders/folder-1/checks"},
 		{method: http.MethodGet, path: "/api/v1/projects/vector-ix/results/ping/series"},
 		{method: http.MethodGet, path: "/api/v1/projects/vector-ix/results/ping/insight"},
+		{method: http.MethodGet, path: "/api/v1/projects/vector-ix/results/latest"},
 		{method: http.MethodGet, path: "/api/v1/projects/vector-ix/results/traceroute/runs"},
 		{method: http.MethodGet, path: "/api/v1/projects/vector-ix/results/traceroute/insight"},
 		{method: http.MethodGet, path: "/api/v1/projects/vector-ix/results/traceroute/topology"},
-		{method: http.MethodGet, path: "/api/v1/projects/vector-ix/measurements"},
 	} {
 		t.Run(route.method+" "+route.path, func(t *testing.T) {
 			recorder := performRouterRequest(dep, route.method, route.path)

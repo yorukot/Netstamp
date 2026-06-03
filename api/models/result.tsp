@@ -6,8 +6,7 @@ namespace Netstamp;
 
 alias PingSeriesKey = "latency_avg" | "latency_min" | "latency_max" | "loss_percent";
 alias TcpSeriesKey = "connect_avg" | "connect_min" | "connect_max" | "failure_percent";
-alias MeasurementType = "ping" | "tcp" | "traceroute";
-alias MeasurementStatus = "successful" | "timeout" | "error" | "partial";
+alias LatestResultStatus = "successful" | "timeout" | "error" | "partial";
 alias SeriesResolution = "raw" | "bucket" | "1m";
 alias SeriesSource = "raw" | "aggregate";
 alias TracerouteTopologyNodeKind = "probe" | "hop" | "destination" | "unknown";
@@ -561,77 +560,35 @@ model TracerouteTopologyResponse {
 
 @example(#{
 	type: "ping",
-	startedAt: utcDateTime.fromISO("2026-05-13T10:00:00Z"),
-	finishedAt: utcDateTime.fromISO("2026-05-13T10:00:01Z"),
 	probeId: "33333333-3333-3333-3333-333333333333",
 	checkId: "44444444-4444-4444-4444-444444444444",
-	status: "successful",
-	durationMs: 1000,
-	latencyMs: 12.3,
-	lossPercent: 0,
-	metadata: "4 packets transmitted, 4 received",
+	latestStartedAt: utcDateTime.fromISO("2026-05-13T10:00:00Z"),
+	latestStatus: "successful",
 })
-model Measurement {
-	type: MeasurementType;
-	startedAt: utcDateTime;
-	finishedAt: utcDateTime;
+model LatestResult {
+	type: CheckType;
 	probeId: uuid;
 	checkId: uuid;
-	status: MeasurementStatus;
-
-	@minValue(0)
-	durationMs: int32;
-
-	@minValue(0)
-	latencyMs?: float64;
-
-	@minValue(0)
-	@maxValue(100)
-	lossPercent?: float64;
-
-	metadata?: string;
-	errorCode?: string;
-	errorMessage?: string;
-}
-
-@example(#{ from: 1778662800000, to: 1778749200000, limit: 100, nextCursor: 1778666400000 })
-model MeasurementQueryMetadata {
-	@minValue(1)
-	from: int64;
-
-	@minValue(1)
-	to: int64;
-
-	@minValue(1)
-	@maxValue(500)
-	limit: int32;
-
-	@minValue(1)
-	nextCursor?: int64;
+	latestStartedAt: utcDateTime;
+	latestStatus: LatestResultStatus;
 }
 
 @example(#{
-	measurements: #[
+	results: #[
 		#{
 			type: "ping",
-			startedAt: utcDateTime.fromISO("2026-05-13T10:00:00Z"),
-			finishedAt: utcDateTime.fromISO("2026-05-13T10:00:01Z"),
 			probeId: "33333333-3333-3333-3333-333333333333",
 			checkId: "44444444-4444-4444-4444-444444444444",
-			status: "successful",
-			durationMs: 1000,
-			latencyMs: 12.3,
-			lossPercent: 0,
+			latestStartedAt: utcDateTime.fromISO("2026-05-13T10:00:00Z"),
+			latestStatus: "successful",
 		}
 	],
-	query: #{ from: 1778662800000, to: 1778749200000, limit: 100 },
 })
-model MeasurementListResponse {
-	measurements: Measurement[];
-	query: MeasurementQueryMetadata;
+model LatestResultsResponse {
+	results: LatestResult[];
 }
 
-model MeasurementQuery {
+model LatestResultsQuery {
 	@query
 	probeId?: uuid;
 
@@ -639,27 +596,7 @@ model MeasurementQuery {
 	checkId?: uuid;
 
 	@query
-	type?: MeasurementType;
-
-	@query
-	status?: MeasurementStatus;
-
-	@query
-	@minValue(1)
-	from?: int64;
-
-	@query
-	@minValue(1)
-	to?: int64;
-
-	@query
-	@minValue(1)
-	@maxValue(500)
-	limit?: int32 = 100;
-
-	@query
-	@minValue(1)
-	cursor?: int64;
+	type?: CheckType;
 }
 
 @example(#{ agentVersion: "netstamp-probe/0.1.0", publicV4: "203.0.113.10", publicV6: "2001:db8::10", as: "AS15169 Google LLC", addrs: #["10.0.0.10"] })

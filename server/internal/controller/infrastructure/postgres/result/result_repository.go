@@ -2,7 +2,6 @@ package pgresult
 
 import (
 	"context"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -23,40 +22,35 @@ func NewResultRepository(pool *pgxpool.Pool) *ResultRepository {
 	return &ResultRepository{queries: sqlc.New(pool)}
 }
 
-func (r *ResultRepository) ListMeasurements(ctx context.Context, input domainresult.MeasurementQuery) (domainresult.MeasurementResult, error) {
-	ctx, span := postgres.StartDBSpan(ctx, pgresultTracer, "results", "postgres.results.measurements", "SELECT", "SELECT project measurements")
+func (r *ResultRepository) ListLatestResults(ctx context.Context, input domainresult.LatestResultQuery) (domainresult.LatestResultList, error) {
+	ctx, span := postgres.StartDBSpan(ctx, pgresultTracer, "results", "postgres.results.latest", "SELECT", "SELECT latest project results")
 	defer span.End()
 
 	projectID, err := postgres.ParseUUID(input.ProjectID, domainproject.ErrProjectNotFound)
 	if err != nil {
-		return domainresult.MeasurementResult{}, err
+		return domainresult.LatestResultList{}, err
 	}
 	probeID, err := optionalUUID(input.ProbeID, domainprobe.ErrInvalidInput)
 	if err != nil {
-		return domainresult.MeasurementResult{}, err
+		return domainresult.LatestResultList{}, err
 	}
 	checkID, err := optionalUUID(input.CheckID, domaincheck.ErrInvalidInput)
 	if err != nil {
-		return domainresult.MeasurementResult{}, err
+		return domainresult.LatestResultList{}, err
 	}
 
-	rows, err := r.queries.ListProjectMeasurements(ctx, sqlc.ListProjectMeasurementsParams{
-		ProjectID:       projectID,
-		ProbeID:         probeID,
-		CheckID:         checkID,
-		MeasurementType: measurementTypeParam(input.Type),
-		Status:          input.Status,
-		StartedAtFrom:   input.From.UTC(),
-		StartedAtTo:     input.To.UTC(),
-		CursorStartedAt: optionalTime(input.Cursor),
-		LimitCount:      input.Limit + 1,
+	rows, err := r.queries.ListLatestResults(ctx, sqlc.ListLatestResultsParams{
+		ProjectID:  projectID,
+		ProbeID:    probeID,
+		CheckID:    checkID,
+		ResultType: latestResultTypeParam(input.Type),
 	})
 	if err != nil {
 		postgres.RecordDBSpanError(span, err)
-		return domainresult.MeasurementResult{}, err
+		return domainresult.LatestResultList{}, err
 	}
 
-	return mapMeasurements(rows, input.Limit)
+	return mapLatestResults(rows), nil
 }
 
 func optionalUUID(value string, invalidErr error) (*uuid.UUID, error) {
@@ -70,7 +64,7 @@ func optionalUUID(value string, invalidErr error) (*uuid.UUID, error) {
 	return &id, nil
 }
 
-func measurementTypeParam(value *domainresult.MeasurementType) *string {
+func latestResultTypeParam(value *domainresult.LatestResultType) *string {
 	if value == nil {
 		return nil
 	}
@@ -78,53 +72,17 @@ func measurementTypeParam(value *domainresult.MeasurementType) *string {
 	return &output
 }
 
-func optionalTime(value *time.Time) *time.Time {
-	if value == nil {
-		return nil
-	}
-	copied := value.UTC()
-	return &copied
-}
-
-func mapMeasurements(rows []sqlc.ListProjectMeasurementsRow, limit int32) (domainresult.MeasurementResult, error) {
-	measurements := make([]domainresult.Measurement, 0, len(rows))
-	for index, row := range rows {
-		if int32(index) >= limit {
-			nextCursor := row.StartedAt
-			return domainresult.MeasurementResult{
-				Measurements: measurements,
-				NextCursor:   &nextCursor,
-			}, nil
-		}
-		measurements = append(measurements, domainresult.Measurement{
-			Type:         domainresult.MeasurementType(row.MeasurementType),
-			StartedAt:    row.StartedAt,
-			FinishedAt:   row.FinishedAt,
-			ProbeID:      row.ProbeID.String(),
-			CheckID:      row.CheckID.String(),
-			Status:       row.Status,
-			DurationMs:   row.DurationMs,
-			LatencyMs:    row.LatencyMs,
-			LossPercent:  measurementLossPercent(row),
-			Metadata:     stringPtr(row.Metadata),
-			ErrorCode:    row.ErrorCode,
-			ErrorMessage: row.ErrorMessage,
+func mapLatestResults(rows []sqlc.ListLatestResultsRow) domainresult.LatestResultList {
+	results := make([]domainresult.LatestResult, 0, len(rows))
+	for _, row := range rows {
+		results = append(results, domainresult.LatestResult{
+			Type:            domainresult.LatestResultType(row.ResultType),
+			ProbeID:         row.ProbeID.String(),
+			CheckID:         row.CheckID.String(),
+			LatestStartedAt: row.LatestStartedAt,
+			LatestStatus:    row.LatestStatus,
 		})
 	}
 
-	return domainresult.MeasurementResult{Measurements: measurements}, nil
-}
-
-func measurementLossPercent(row sqlc.ListProjectMeasurementsRow) *float64 {
-	if row.MeasurementType != string(domainresult.MeasurementTypePing) {
-		return nil
-	}
-	return &row.LossPercent
-}
-
-func stringPtr(value string) *string {
-	if value == "" {
-		return nil
-	}
-	return &value
+	return domainresult.LatestResultList{Results: results}
 }

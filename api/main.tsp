@@ -43,7 +43,6 @@ using OpenAPI;
 @tagMetadata("Assignments", #{ description: "Selector previews and effective probe-check assignments for console users." })
 @tagMetadata("Probes", #{ description: "Project-scoped probe registration and secret management." })
 @tagMetadata("Results", #{ description: "Authenticated result query endpoints." })
-@tagMetadata("Measurements", #{ description: "Raw-ish measurement rows for tables, logs, and recent activity views." })
 @tagMetadata("Public Pages", #{ description: "Public Ping insight pages and project-owned publishing controls." })
 @tagMetadata("Probe Runtime", #{ description: "Probe-agent runtime handshake, polling, and result ingestion." })
 @tagMetadata("Install", #{ description: "Probe-agent install assets for Linux systemd hosts." })

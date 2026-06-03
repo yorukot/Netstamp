@@ -2,7 +2,7 @@ import { queryOptions } from "@tanstack/react-query";
 import { apiClient, readApiData } from "./client";
 import { apiQueryKeys } from "./queryKeys";
 import type {
-	MeasurementFilters,
+	LatestResultsFilters,
 	PingInsightFilters,
 	PingSeriesFilters,
 	PingSeriesResponse,
@@ -111,10 +111,10 @@ export const projectQueries = {
 			queryFn: ({ signal }) => readApiData(apiClient.GET("/me/project-invites", { signal })),
 			staleTime: 60 * 1000
 		}),
-	measurements: (ref: string, filters: MeasurementFilters = {}) =>
+	latestResults: (ref: string, filters: LatestResultsFilters = {}) =>
 		queryOptions({
-			queryKey: apiQueryKeys.projects.measurements(ref, filters),
-			queryFn: ({ signal }) => readApiData(apiClient.GET("/projects/{ref}/measurements", { params: { path: { ref }, query: filters }, signal })),
+			queryKey: apiQueryKeys.projects.latestResults(ref, filters),
+			queryFn: ({ signal }) => readApiData(apiClient.GET("/projects/{ref}/results/latest", { params: { path: { ref }, query: filters }, signal })),
 			staleTime: 15 * 1000
 		}),
 	pingSeries: (ref: string, probeId: string, checkId: string, filters: PingSeriesFilters = {}) =>

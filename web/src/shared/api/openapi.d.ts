@@ -385,26 +385,6 @@ export interface paths {
 		patch: operations["updateProjectLabel"];
 		trace?: never;
 	};
-	"/projects/{ref}/measurements": {
-		parameters: {
-			query?: never;
-			header?: never;
-			path?: never;
-			cookie?: never;
-		};
-		/**
-		 * List project measurements
-		 * @description List recent raw-ish measurement rows for dashboard activity, check logs, and measurement tables. Aggregated chart series remain under the result series endpoints.
-		 */
-		get: operations["listProjectMeasurements"];
-		put?: never;
-		post?: never;
-		delete?: never;
-		options?: never;
-		head?: never;
-		patch?: never;
-		trace?: never;
-	};
 	"/projects/{ref}/members": {
 		parameters: {
 			query?: never;
@@ -576,6 +556,26 @@ export interface paths {
 		get?: never;
 		/** Set project public page folder checks */
 		put: operations["setProjectPublicPageFolderChecks"];
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	"/projects/{ref}/results/latest": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Query project latest results
+		 * @description List latest all-time result timestamps and statuses for active assignment pairs. Chart series and detailed result rows remain under type-specific result endpoints.
+		 */
+		get: operations["queryProjectLatestResults"];
+		put?: never;
 		post?: never;
 		delete?: never;
 		options?: never;
@@ -1298,6 +1298,41 @@ export interface components {
 		};
 		/**
 		 * @example {
+		 *       "type": "ping",
+		 *       "probeId": "33333333-3333-3333-3333-333333333333",
+		 *       "checkId": "44444444-4444-4444-4444-444444444444",
+		 *       "latestStartedAt": "2026-05-13T10:00:00Z",
+		 *       "latestStatus": "successful"
+		 *     }
+		 */
+		LatestResult: {
+			/** @enum {string} */
+			type: "ping" | "tcp" | "traceroute";
+			probeId: components["schemas"]["uuid"];
+			checkId: components["schemas"]["uuid"];
+			/** Format: date-time */
+			latestStartedAt: string;
+			/** @enum {string} */
+			latestStatus: "successful" | "timeout" | "error" | "partial";
+		};
+		/**
+		 * @example {
+		 *       "results": [
+		 *         {
+		 *           "type": "ping",
+		 *           "probeId": "33333333-3333-3333-3333-333333333333",
+		 *           "checkId": "44444444-4444-4444-4444-444444444444",
+		 *           "latestStartedAt": "2026-05-13T10:00:00Z",
+		 *           "latestStatus": "successful"
+		 *         }
+		 *       ]
+		 *     }
+		 */
+		LatestResultsResponse: {
+			results: components["schemas"]["LatestResult"][];
+		};
+		/**
+		 * @example {
 		 *       "email": "user@example.com",
 		 *       "password": "correct-horse-battery-staple"
 		 *     }
@@ -1310,85 +1345,6 @@ export interface components {
 			 * @description Plain-text password to verify. It is never returned by the API.
 			 */
 			password: string;
-		};
-		/**
-		 * @example {
-		 *       "type": "ping",
-		 *       "startedAt": "2026-05-13T10:00:00Z",
-		 *       "finishedAt": "2026-05-13T10:00:01Z",
-		 *       "probeId": "33333333-3333-3333-3333-333333333333",
-		 *       "checkId": "44444444-4444-4444-4444-444444444444",
-		 *       "status": "successful",
-		 *       "durationMs": 1000,
-		 *       "latencyMs": 12.3,
-		 *       "lossPercent": 0,
-		 *       "metadata": "4 packets transmitted, 4 received"
-		 *     }
-		 */
-		Measurement: {
-			/** @enum {string} */
-			type: "ping" | "tcp" | "traceroute";
-			/** Format: date-time */
-			startedAt: string;
-			/** Format: date-time */
-			finishedAt: string;
-			probeId: components["schemas"]["uuid"];
-			checkId: components["schemas"]["uuid"];
-			/** @enum {string} */
-			status: "successful" | "timeout" | "error" | "partial";
-			/** Format: int32 */
-			durationMs: number;
-			/** Format: double */
-			latencyMs?: number;
-			/** Format: double */
-			lossPercent?: number;
-			metadata?: string;
-			errorCode?: string;
-			errorMessage?: string;
-		};
-		/**
-		 * @example {
-		 *       "measurements": [
-		 *         {
-		 *           "type": "ping",
-		 *           "startedAt": "2026-05-13T10:00:00Z",
-		 *           "finishedAt": "2026-05-13T10:00:01Z",
-		 *           "probeId": "33333333-3333-3333-3333-333333333333",
-		 *           "checkId": "44444444-4444-4444-4444-444444444444",
-		 *           "status": "successful",
-		 *           "durationMs": 1000,
-		 *           "latencyMs": 12.3,
-		 *           "lossPercent": 0
-		 *         }
-		 *       ],
-		 *       "query": {
-		 *         "from": 1778662800000,
-		 *         "to": 1778749200000,
-		 *         "limit": 100
-		 *       }
-		 *     }
-		 */
-		MeasurementListResponse: {
-			measurements: components["schemas"]["Measurement"][];
-			query: components["schemas"]["MeasurementQueryMetadata"];
-		};
-		/**
-		 * @example {
-		 *       "from": 1778662800000,
-		 *       "to": 1778749200000,
-		 *       "limit": 100,
-		 *       "nextCursor": 1778666400000
-		 *     }
-		 */
-		MeasurementQueryMetadata: {
-			/** Format: int64 */
-			from: number;
-			/** Format: int64 */
-			to: number;
-			/** Format: int32 */
-			limit: number;
-			/** Format: int64 */
-			nextCursor?: number;
 		};
 		/**
 		 * @example {
@@ -3146,14 +3102,9 @@ export interface components {
 	parameters: {
 		CheckIdPathParam: components["schemas"]["uuid"];
 		LabelIdPathParam: components["schemas"]["uuid"];
-		"MeasurementQuery.checkId": components["schemas"]["uuid"];
-		"MeasurementQuery.cursor": number;
-		"MeasurementQuery.from": number;
-		"MeasurementQuery.limit": number;
-		"MeasurementQuery.probeId": components["schemas"]["uuid"];
-		"MeasurementQuery.status": "successful" | "timeout" | "error" | "partial";
-		"MeasurementQuery.to": number;
-		"MeasurementQuery.type": "ping" | "tcp" | "traceroute";
+		"LatestResultsQuery.checkId": components["schemas"]["uuid"];
+		"LatestResultsQuery.probeId": components["schemas"]["uuid"];
+		"LatestResultsQuery.type": "ping" | "tcp" | "traceroute";
 		"PingInsightQuery.checkId": components["schemas"]["uuid"];
 		"PingInsightQuery.from": number;
 		"PingInsightQuery.maxDataPoints": number;
@@ -4912,82 +4863,6 @@ export interface operations {
 			};
 		};
 	};
-	listProjectMeasurements: {
-		parameters: {
-			query?: {
-				probeId?: components["parameters"]["MeasurementQuery.probeId"];
-				checkId?: components["parameters"]["MeasurementQuery.checkId"];
-				type?: components["parameters"]["MeasurementQuery.type"];
-				status?: components["parameters"]["MeasurementQuery.status"];
-				from?: components["parameters"]["MeasurementQuery.from"];
-				to?: components["parameters"]["MeasurementQuery.to"];
-				limit?: components["parameters"]["MeasurementQuery.limit"];
-				cursor?: components["parameters"]["MeasurementQuery.cursor"];
-			};
-			header?: never;
-			path: {
-				ref: components["parameters"]["ProjectRefParam"];
-			};
-			cookie?: never;
-		};
-		requestBody?: never;
-		responses: {
-			/** @description The request has succeeded. */
-			200: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/json": components["schemas"]["MeasurementListResponse"];
-				};
-			};
-			/** @description The server could not understand the request due to invalid syntax. */
-			400: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
-			/** @description Access is unauthorized. */
-			401: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
-			/** @description The server cannot find the requested resource. */
-			404: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
-			/** @description Client error */
-			422: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
-			/** @description Server error */
-			500: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
-		};
-	};
 	listProjectMembers: {
 		parameters: {
 			query?: never;
@@ -6279,6 +6154,77 @@ export interface operations {
 			};
 			/** @description The request conflicts with the current state of the server. */
 			409: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	queryProjectLatestResults: {
+		parameters: {
+			query?: {
+				probeId?: components["parameters"]["LatestResultsQuery.probeId"];
+				checkId?: components["parameters"]["LatestResultsQuery.checkId"];
+				type?: components["parameters"]["LatestResultsQuery.type"];
+			};
+			header?: never;
+			path: {
+				ref: components["parameters"]["ProjectRefParam"];
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["LatestResultsResponse"];
+				};
+			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
 				headers: {
 					[name: string]: unknown;
 				};

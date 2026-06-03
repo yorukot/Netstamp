@@ -3,7 +3,7 @@ package result
 import (
 	"context"
 
-	"github.com/yorukot/netstamp/internal/controller/application/result/measurement"
+	"github.com/yorukot/netstamp/internal/controller/application/result/latest"
 	"github.com/yorukot/netstamp/internal/controller/application/result/ping"
 	resultshared "github.com/yorukot/netstamp/internal/controller/application/result/shared"
 	"github.com/yorukot/netstamp/internal/controller/application/result/tcp"
@@ -32,8 +32,8 @@ type TracerouteRunsRepository interface {
 	ListTracerouteTopologyRuns(ctx context.Context, input domaintraceroute.TopologyQuery) (domaintraceroute.TopologyRunResult, error)
 }
 
-type MeasurementRepository interface {
-	ListMeasurements(ctx context.Context, input domainresult.MeasurementQuery) (domainresult.MeasurementResult, error)
+type LatestRepository interface {
+	ListLatestResults(ctx context.Context, input domainresult.LatestResultQuery) (domainresult.LatestResultList, error)
 }
 
 type ProjectAccess interface {
@@ -44,5 +44,5 @@ var (
 	_ ping.SeriesRepository     = (PingSeriesRepository)(nil)
 	_ tcp.InsightRepository     = (TCPInsightRepository)(nil)
 	_ traceroute.RunsRepository = (TracerouteRunsRepository)(nil)
-	_ measurement.Repository    = (MeasurementRepository)(nil)
+	_ latest.Repository         = (LatestRepository)(nil)
 )

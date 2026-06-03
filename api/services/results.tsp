@@ -191,6 +191,19 @@ interface ResultService {
 		| UnprocessableEntityProblem
 		| InternalServerProblem;
 
+	@operationId("queryProjectLatestResults")
+	@summary("Query project latest results")
+	@doc("List latest all-time result timestamps and statuses for active assignment pairs. Chart series and detailed result rows remain under type-specific result endpoints.")
+	@get
+	@route("/latest")
+	queryProjectLatestResults(...ProjectRefParam, ...LatestResultsQuery):
+		| OkJson<LatestResultsResponse>
+		| BadRequestProblem
+		| UnauthorizedProblem
+		| NotFoundProblem
+		| UnprocessableEntityProblem
+		| InternalServerProblem;
+
 	@operationId("queryProjectTcpResultSeries")
 	@summary("Query project TCP result series")
 	@get
@@ -245,23 +258,6 @@ interface ResultService {
 	@route("/traceroute/topology")
 	queryProjectTracerouteTopology(...ProjectRefParam, ...TracerouteTopologyQuery):
 		| OkJson<TracerouteTopologyResponse>
-		| BadRequestProblem
-		| UnauthorizedProblem
-		| NotFoundProblem
-		| UnprocessableEntityProblem
-		| InternalServerProblem;
-}
-
-@tag("Measurements")
-@useAuth(SessionCookieAuth)
-@route("/projects/{ref}/measurements")
-interface MeasurementService {
-	@operationId("listProjectMeasurements")
-	@summary("List project measurements")
-	@doc("List recent raw-ish measurement rows for dashboard activity, check logs, and measurement tables. Aggregated chart series remain under the result series endpoints.")
-	@get
-	listProjectMeasurements(...ProjectRefParam, ...MeasurementQuery):
-		| OkJson<MeasurementListResponse>
 		| BadRequestProblem
 		| UnauthorizedProblem
 		| NotFoundProblem
