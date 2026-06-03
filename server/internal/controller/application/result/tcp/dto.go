@@ -1,11 +1,31 @@
 package tcp
 
 import (
-	"net/netip"
 	"time"
 
 	resultshared "github.com/yorukot/netstamp/internal/controller/application/result/shared"
 )
+
+type SeriesKey string
+
+const (
+	SeriesConnectAvg     SeriesKey = "connect_avg"
+	SeriesConnectMin     SeriesKey = "connect_min"
+	SeriesConnectMax     SeriesKey = "connect_max"
+	SeriesFailurePercent SeriesKey = "failure_percent"
+)
+
+type QuerySeriesInput struct {
+	CurrentUserID string
+	ProjectRef    string
+	ProbeID       string
+	CheckID       string
+	FromMs        *int64
+	ToMs          *int64
+	Series        string
+	MaxDataPoints *int32
+	Now           time.Time
+}
 
 type QueryInsightInput struct {
 	CurrentUserID string
@@ -18,40 +38,47 @@ type QueryInsightInput struct {
 	Now           time.Time
 }
 
-type InsightOutput struct {
-	Buckets []InsightBucket
-	Summary InsightSummary
-	Query   resultshared.QueryMetadata
+type SeriesOutput struct {
+	Series map[string]Series
+	Meta   resultshared.QueryMetadata
 }
 
-type InsightBucket struct {
-	TimestampMs     int64
-	ResultCount     int64
-	DurationAvgMs   *float64
-	ConnectMinMs    *float64
-	ConnectAvgMs    *float64
-	ConnectMedianMs *float64
-	ConnectMaxMs    *float64
-	ConnectStddevMs *float64
-	SuccessRate     *float64
-	TimeoutCount    int64
-	ErrorCount      int64
+type InsightOutput struct {
+	Summary InsightSummary
+	Meta    resultshared.QueryMetadata
+}
+
+type Series struct {
+	Name   string
+	Labels SeriesLabels
+	Unit   string
+	Points []SeriesPoint
+}
+
+type SeriesLabels struct {
+	ProbeID   string
+	CheckID   string
+	CheckType string
+}
+
+type SeriesPoint struct {
+	TimestampMs int64
+	Value       float64
 }
 
 type InsightSummary struct {
-	TotalResults      int64
-	SuccessfulCount   int64
-	TimeoutCount      int64
-	ErrorCount        int64
-	AvgConnectMs      *float64
-	MedianConnectMs   *float64
-	MaxConnectMs      *float64
-	P95ConnectMs      *float64
-	P99ConnectMs      *float64
-	LatestStatus      *string
-	LatestStartedAtMs *int64
-	LatestConnectMs   *float64
-	LatestResolvedIP  *netip.Addr
+	AverageConnectMs *float64
+	MaxConnectMs     *float64
+	FailurePercent   *float64
+	SuccessRate      *float64
+	Samples          int64
+}
+
+type normalizedSeriesInput struct {
+	base resultshared.QueryBase
+
+	series        []SeriesKey
+	maxDataPoints int32
 }
 
 type normalizedInsightInput struct {

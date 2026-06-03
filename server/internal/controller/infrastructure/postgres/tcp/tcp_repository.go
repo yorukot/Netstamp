@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/postgres"
@@ -39,8 +38,8 @@ func (r *TCPRepository) CreateTCPResults(ctx context.Context, inputs []domaintcp
 			createErr := q.CreateTCPResult(ctx, sqlc.CreateTCPResultParams{
 				ProbeStorageID:    input.ProbeStorageID,
 				CheckStorageID:    input.CheckStorageID,
-				StartedAt:         timestamptz(input.StartedAt),
-				FinishedAt:        timestamptz(input.FinishedAt),
+				StartedAt:         input.StartedAt.UTC(),
+				FinishedAt:        input.FinishedAt.UTC(),
 				DurationMs:        input.DurationMs,
 				Status:            sqlcTCPStatus(input.Status),
 				ConnectDurationMs: input.ConnectDurationMs,
@@ -64,21 +63,118 @@ func (r *TCPRepository) CreateTCPResults(ctx context.Context, inputs []domaintcp
 	return nil
 }
 
-func (r *TCPRepository) ListTCPInsight(ctx context.Context, input domaintcp.InsightQuery) (domaintcp.InsightResult, error) {
-	ctx, span := postgres.StartDBSpan(ctx, pgtcpTracer, "tcp_results", "postgres.tcp_results.insight", "SELECT", "SELECT tcp insight")
+type tcpSeriesScope struct {
+	probeStorageID int64
+	checkStorageID int64
+	startedAtFrom  time.Time
+	startedAtTo    time.Time
+	maxDataPoints  int32
+}
+
+func (r *TCPRepository) CountTCPSeriesPoints(ctx context.Context, input domaintcp.SeriesPointCountQuery) (int64, error) {
+	ctx, span := postgres.StartDBSpan(ctx, pgtcpTracer, "tcp_results", "postgres.tcp_results.series_count", "SELECT", "SELECT tcp result point count")
 	defer span.End()
 
-	projectID, err := postgres.ParseUUID(input.ProjectID, domainproject.ErrProjectNotFound)
+	probeStorageID, checkStorageID, err := r.resolveTCPStorageIDs(ctx, input.ProjectID, input.ProbeID, input.CheckID)
 	if err != nil {
-		return domaintcp.InsightResult{}, err
+		postgres.RecordDBSpanError(span, err)
+		return 0, err
 	}
-	probeID, err := postgres.ParseUUID(input.ProbeID, domainprobe.ErrInvalidInput)
+
+	rawPoints, err := r.queries.CountTCPResultSeriesPoints(ctx, sqlc.CountTCPResultSeriesPointsParams{
+		ProbeStorageID: probeStorageID,
+		CheckStorageID: checkStorageID,
+		StartedAtFrom:  input.From.UTC(),
+		StartedAtTo:    input.To.UTC(),
+	})
 	if err != nil {
-		return domaintcp.InsightResult{}, err
+		postgres.RecordDBSpanError(span, err)
+		return 0, err
 	}
-	checkID, err := postgres.ParseUUID(input.CheckID, domaincheck.ErrInvalidInput)
+
+	return rawPoints, nil
+}
+
+func (r *TCPRepository) ListTCPSeries(ctx context.Context, input domaintcp.SeriesReadQuery) (map[string]domaintcp.SeriesData, error) {
+	ctx, span := postgres.StartDBSpan(ctx, pgtcpTracer, "tcp_results", "postgres.tcp_results.series", "SELECT", "SELECT tcp result time series")
+	defer span.End()
+
+	probeStorageID, checkStorageID, err := r.resolveTCPStorageIDs(ctx, input.ProjectID, input.ProbeID, input.CheckID)
 	if err != nil {
-		return domaintcp.InsightResult{}, err
+		postgres.RecordDBSpanError(span, err)
+		return nil, err
+	}
+	scope := tcpSeriesScope{
+		probeStorageID: probeStorageID,
+		checkStorageID: checkStorageID,
+		startedAtFrom:  input.From.UTC(),
+		startedAtTo:    input.To.UTC(),
+		maxDataPoints:  input.MaxDataPoints,
+	}
+
+	series := make(map[string]domaintcp.SeriesData, len(input.Series))
+	for _, key := range input.Series {
+		points, listErr := r.listTCPSeriesByKey(ctx, key, input.Mode, scope)
+		if listErr != nil {
+			postgres.RecordDBSpanError(span, listErr)
+			return nil, listErr
+		}
+		series[key] = domaintcp.SeriesData{Points: points}
+	}
+
+	return series, nil
+}
+
+func (r *TCPRepository) GetTCPInsightSummary(ctx context.Context, input domaintcp.InsightSummaryQuery) (domaintcp.InsightSummary, error) {
+	ctx, span := postgres.StartDBSpan(ctx, pgtcpTracer, "tcp_results", "postgres.tcp_results.insight_summary", "SELECT", "SELECT tcp insight summary")
+	defer span.End()
+
+	probeStorageID, checkStorageID, err := r.resolveTCPStorageIDs(ctx, input.ProjectID, input.ProbeID, input.CheckID)
+	if err != nil {
+		postgres.RecordDBSpanError(span, err)
+		return domaintcp.InsightSummary{}, err
+	}
+	scope := tcpSeriesScope{
+		probeStorageID: probeStorageID,
+		checkStorageID: checkStorageID,
+		startedAtFrom:  input.From.UTC(),
+		startedAtTo:    input.To.UTC(),
+	}
+
+	switch input.Source {
+	case domaintcp.SeriesSourceRaw:
+		summary, summaryErr := r.tcpInsightSummary(ctx, scope)
+		if summaryErr != nil {
+			postgres.RecordDBSpanError(span, summaryErr)
+			return domaintcp.InsightSummary{}, summaryErr
+		}
+		return summary, nil
+	case domaintcp.SeriesSourceAggregate:
+		summary, summaryErr := r.tcpInsightRollupSummary(ctx, scope)
+		if summaryErr != nil {
+			postgres.RecordDBSpanError(span, summaryErr)
+			return domaintcp.InsightSummary{}, summaryErr
+		}
+		return summary, nil
+	default:
+		err := errors.New("unsupported tcp insight summary source")
+		postgres.RecordDBSpanError(span, err)
+		return domaintcp.InsightSummary{}, err
+	}
+}
+
+func (r *TCPRepository) resolveTCPStorageIDs(ctx context.Context, projectIDValue, probeIDValue, checkIDValue string) (int64, int64, error) {
+	projectID, err := postgres.ParseUUID(projectIDValue, domainproject.ErrProjectNotFound)
+	if err != nil {
+		return 0, 0, err
+	}
+	probeID, err := postgres.ParseUUID(probeIDValue, domainprobe.ErrInvalidInput)
+	if err != nil {
+		return 0, 0, err
+	}
+	checkID, err := postgres.ParseUUID(checkIDValue, domaincheck.ErrInvalidInput)
+	if err != nil {
+		return 0, 0, err
 	}
 	storageIDs, err := r.queries.ResolveTCPInsightStorageIDs(ctx, sqlc.ResolveTCPInsightStorageIDsParams{
 		CheckID:   checkID,
@@ -87,65 +183,20 @@ func (r *TCPRepository) ListTCPInsight(ctx context.Context, input domaintcp.Insi
 	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return domaintcp.InsightResult{}, domainprobe.ErrProbeNotFound
+			return 0, 0, domainprobe.ErrProbeNotFound
 		}
-		postgres.RecordDBSpanError(span, err)
-		return domaintcp.InsightResult{}, err
+		return 0, 0, err
 	}
 
-	startedAtFrom := pgtype.Timestamptz{Time: input.From.UTC(), Valid: true}
-	startedAtTo := pgtype.Timestamptz{Time: input.To.UTC(), Valid: true}
-	countParams := sqlc.CountTCPInsightPointsParams{
-		ProbeStorageID: storageIDs.ProbeStorageID,
-		CheckStorageID: storageIDs.CheckStorageID,
-		StartedAtFrom:  startedAtFrom,
-		StartedAtTo:    startedAtTo,
-	}
-	totalPoints, err := r.queries.CountTCPInsightPoints(ctx, countParams)
-	if err != nil {
-		postgres.RecordDBSpanError(span, err)
-		return domaintcp.InsightResult{}, err
-	}
-
-	summary, err := r.tcpInsightSummary(ctx, storageIDs.ProbeStorageID, storageIDs.CheckStorageID, startedAtFrom, startedAtTo)
-	if err != nil {
-		postgres.RecordDBSpanError(span, err)
-		return domaintcp.InsightResult{}, err
-	}
-
-	if totalPoints <= int64(input.MaxDataPoints) {
-		buckets, rawErr := r.listRawTCPInsight(ctx, storageIDs.ProbeStorageID, storageIDs.CheckStorageID, startedAtFrom, startedAtTo)
-		if rawErr != nil {
-			postgres.RecordDBSpanError(span, rawErr)
-			return domaintcp.InsightResult{}, rawErr
-		}
-		return domaintcp.InsightResult{
-			Buckets:     buckets,
-			Summary:     summary,
-			Resolution:  domaintcp.InsightResolutionRaw,
-			TotalPoints: totalPoints,
-		}, nil
-	}
-
-	buckets, bucketErr := r.listBucketTCPInsight(ctx, storageIDs.ProbeStorageID, storageIDs.CheckStorageID, startedAtFrom, startedAtTo, input.MaxDataPoints)
-	if bucketErr != nil {
-		postgres.RecordDBSpanError(span, bucketErr)
-		return domaintcp.InsightResult{}, bucketErr
-	}
-	return domaintcp.InsightResult{
-		Buckets:     buckets,
-		Summary:     summary,
-		Resolution:  domaintcp.InsightResolutionBucket,
-		TotalPoints: totalPoints,
-	}, nil
+	return storageIDs.ProbeStorageID, storageIDs.CheckStorageID, nil
 }
 
-func (r *TCPRepository) tcpInsightSummary(ctx context.Context, probeStorageID, checkStorageID int64, startedAtFrom, startedAtTo pgtype.Timestamptz) (domaintcp.InsightSummary, error) {
+func (r *TCPRepository) tcpInsightSummary(ctx context.Context, scope tcpSeriesScope) (domaintcp.InsightSummary, error) {
 	row, err := r.queries.GetTCPInsightSummary(ctx, sqlc.GetTCPInsightSummaryParams{
-		ProbeStorageID: probeStorageID,
-		CheckStorageID: checkStorageID,
-		StartedAtFrom:  startedAtFrom,
-		StartedAtTo:    startedAtTo,
+		ProbeStorageID: scope.probeStorageID,
+		CheckStorageID: scope.checkStorageID,
+		StartedAtFrom:  scope.startedAtFrom,
+		StartedAtTo:    scope.startedAtTo,
 	})
 	if err != nil {
 		return domaintcp.InsightSummary{}, err
@@ -153,115 +204,162 @@ func (r *TCPRepository) tcpInsightSummary(ctx context.Context, probeStorageID, c
 	return tcpInsightSummary(row), nil
 }
 
-func (r *TCPRepository) listRawTCPInsight(ctx context.Context, probeStorageID, checkStorageID int64, startedAtFrom, startedAtTo pgtype.Timestamptz) ([]domaintcp.InsightBucket, error) {
-	rows, err := r.queries.ListTCPInsightRawRows(ctx, sqlc.ListTCPInsightRawRowsParams{
-		ProbeStorageID: probeStorageID,
-		CheckStorageID: checkStorageID,
-		StartedAtFrom:  startedAtFrom,
-		StartedAtTo:    startedAtTo,
+func (r *TCPRepository) tcpInsightRollupSummary(ctx context.Context, scope tcpSeriesScope) (domaintcp.InsightSummary, error) {
+	row, err := r.queries.GetTCPInsightRollupSummary(ctx, sqlc.GetTCPInsightRollupSummaryParams{
+		ProbeStorageID: scope.probeStorageID,
+		CheckStorageID: scope.checkStorageID,
+		StartedAtFrom:  scope.startedAtFrom,
+		StartedAtTo:    scope.startedAtTo,
 	})
 	if err != nil {
-		return nil, err
+		return domaintcp.InsightSummary{}, err
 	}
-	return rawInsightRows(rows), nil
+	return tcpInsightRollupSummary(row), nil
 }
 
-func (r *TCPRepository) listBucketTCPInsight(ctx context.Context, probeStorageID, checkStorageID int64, startedAtFrom, startedAtTo pgtype.Timestamptz, maxDataPoints int32) ([]domaintcp.InsightBucket, error) {
-	rows, err := r.queries.ListTCPInsightBucketRows(ctx, sqlc.ListTCPInsightBucketRowsParams{
-		StartedAtTo:    startedAtTo,
-		StartedAtFrom:  startedAtFrom,
-		MaxDataPoints:  float64(maxDataPoints),
-		ProbeStorageID: probeStorageID,
-		CheckStorageID: checkStorageID,
-	})
-	if err != nil {
-		return nil, err
+func (r *TCPRepository) listTCPSeriesByKey(ctx context.Context, key string, mode domaintcp.SeriesReadMode, scope tcpSeriesScope) ([]domaintcp.SeriesPoint, error) {
+	switch key {
+	case "connect_avg":
+		return r.listTCPConnectAvgSeries(ctx, mode, scope)
+	case "connect_min":
+		return r.listTCPConnectMinSeries(ctx, mode, scope)
+	case "connect_max":
+		return r.listTCPConnectMaxSeries(ctx, mode, scope)
+	case "failure_percent":
+		return r.listTCPFailurePercentSeries(ctx, mode, scope)
+	default:
+		return nil, errors.New("unsupported tcp series")
 	}
-	return bucketInsightRows(rows), nil
 }
 
-func rawInsightRows(rows []sqlc.ListTCPInsightRawRowsRow) []domaintcp.InsightBucket {
-	buckets := make([]domaintcp.InsightBucket, 0, len(rows))
-	for _, row := range rows {
-		buckets = append(buckets, domaintcp.InsightBucket{
-			Timestamp:       time.UnixMilli(row.BucketMs).UTC(),
-			ResultCount:     row.ResultCount,
-			DurationAvgMs:   floatPtr(row.DurationAvgMs),
-			ConnectMinMs:    row.ConnectMinMs,
-			ConnectAvgMs:    row.ConnectAvgMs,
-			ConnectMedianMs: row.ConnectMedianMs,
-			ConnectMaxMs:    row.ConnectMaxMs,
-			ConnectStddevMs: row.ConnectStddevMs,
-			SuccessRate:     floatPtr(row.SuccessRate),
-			TimeoutCount:    row.TimeoutCount,
-			ErrorCount:      row.ErrorCount,
+func (r *TCPRepository) listTCPConnectAvgSeries(ctx context.Context, mode domaintcp.SeriesReadMode, scope tcpSeriesScope) ([]domaintcp.SeriesPoint, error) {
+	switch mode {
+	case domaintcp.SeriesReadModeRaw:
+		rows, err := r.queries.ListTCPConnectAvgRawSeries(ctx, sqlc.ListTCPConnectAvgRawSeriesParams{
+			ProbeStorageID: scope.probeStorageID,
+			CheckStorageID: scope.checkStorageID,
+			StartedAtFrom:  scope.startedAtFrom,
+			StartedAtTo:    scope.startedAtTo,
 		})
-	}
-	return buckets
-}
-
-func bucketInsightRows(rows []sqlc.ListTCPInsightBucketRowsRow) []domaintcp.InsightBucket {
-	buckets := make([]domaintcp.InsightBucket, 0, len(rows))
-	for _, row := range rows {
-		buckets = append(buckets, domaintcp.InsightBucket{
-			Timestamp:       time.UnixMilli(row.BucketMs).UTC(),
-			ResultCount:     row.ResultCount,
-			DurationAvgMs:   floatPtr(row.DurationAvgMs),
-			ConnectMinMs:    floatPtrIf(row.ConnectValueCount, row.ConnectMinMs),
-			ConnectAvgMs:    floatPtrIf(row.ConnectValueCount, row.ConnectAvgMs),
-			ConnectMedianMs: floatPtrIf(row.ConnectValueCount, row.ConnectMedianMs),
-			ConnectMaxMs:    floatPtrIf(row.ConnectValueCount, row.ConnectMaxMs),
-			ConnectStddevMs: floatPtrIf(row.ConnectValueCount, row.ConnectStddevMs),
-			SuccessRate:     floatPtr(row.SuccessRate),
-			TimeoutCount:    row.TimeoutCount,
-			ErrorCount:      row.ErrorCount,
+		return connectAvgRawSeriesRows(rows), err
+	case domaintcp.SeriesReadModeBucket:
+		rows, err := r.queries.ListTCPConnectAvgBucketSeries(ctx, sqlc.ListTCPConnectAvgBucketSeriesParams{
+			StartedAtTo:    scope.startedAtTo,
+			StartedAtFrom:  scope.startedAtFrom,
+			MaxDataPoints:  float64(scope.maxDataPoints),
+			ProbeStorageID: scope.probeStorageID,
+			CheckStorageID: scope.checkStorageID,
 		})
-	}
-	return buckets
-}
-
-func tcpInsightSummary(row sqlc.GetTCPInsightSummaryRow) domaintcp.InsightSummary {
-	return domaintcp.InsightSummary{
-		TotalResults:     row.TotalResults,
-		SuccessfulCount:  row.SuccessfulCount,
-		TimeoutCount:     row.TimeoutCount,
-		ErrorCount:       row.ErrorCount,
-		AvgConnectMs:     floatPtrIf(row.ConnectValueCount, row.AvgConnectMs),
-		MedianConnectMs:  floatPtrIf(row.ConnectValueCount, row.MedianConnectMs),
-		MaxConnectMs:     floatPtrIf(row.ConnectValueCount, row.MaxConnectMs),
-		P95ConnectMs:     floatPtrIf(row.ConnectValueCount, row.P95ConnectMs),
-		P99ConnectMs:     floatPtrIf(row.ConnectValueCount, row.P99ConnectMs),
-		LatestStatus:     tcpStatusPtr(row.LatestStatus),
-		LatestStartedAt:  timeMillisPtr(row.LatestStartedAtMs),
-		LatestConnectMs:  row.LatestConnectMs,
-		LatestResolvedIP: row.LatestResolvedIp,
+		return connectAvgBucketSeriesRows(rows), err
+	case domaintcp.SeriesReadModeRollup:
+		rows, err := r.queries.ListTCPConnectAvgRollupSeries(ctx, sqlc.ListTCPConnectAvgRollupSeriesParams{
+			StartedAtTo:    scope.startedAtTo,
+			StartedAtFrom:  scope.startedAtFrom,
+			MaxDataPoints:  float64(scope.maxDataPoints),
+			ProbeStorageID: scope.probeStorageID,
+			CheckStorageID: scope.checkStorageID,
+		})
+		return connectAvgRollupSeriesRows(rows), err
+	default:
+		return nil, errors.New("unsupported tcp series read mode")
 	}
 }
 
-func floatPtr(value float64) *float64 {
-	copied := value
-	return &copied
+func (r *TCPRepository) listTCPConnectMinSeries(ctx context.Context, mode domaintcp.SeriesReadMode, scope tcpSeriesScope) ([]domaintcp.SeriesPoint, error) {
+	switch mode {
+	case domaintcp.SeriesReadModeRaw:
+		rows, err := r.queries.ListTCPConnectMinRawSeries(ctx, sqlc.ListTCPConnectMinRawSeriesParams{
+			ProbeStorageID: scope.probeStorageID,
+			CheckStorageID: scope.checkStorageID,
+			StartedAtFrom:  scope.startedAtFrom,
+			StartedAtTo:    scope.startedAtTo,
+		})
+		return connectMinRawSeriesRows(rows), err
+	case domaintcp.SeriesReadModeBucket:
+		rows, err := r.queries.ListTCPConnectMinBucketSeries(ctx, sqlc.ListTCPConnectMinBucketSeriesParams{
+			StartedAtTo:    scope.startedAtTo,
+			StartedAtFrom:  scope.startedAtFrom,
+			MaxDataPoints:  float64(scope.maxDataPoints),
+			ProbeStorageID: scope.probeStorageID,
+			CheckStorageID: scope.checkStorageID,
+		})
+		return connectMinBucketSeriesRows(rows), err
+	case domaintcp.SeriesReadModeRollup:
+		rows, err := r.queries.ListTCPConnectMinRollupSeries(ctx, sqlc.ListTCPConnectMinRollupSeriesParams{
+			StartedAtTo:    scope.startedAtTo,
+			StartedAtFrom:  scope.startedAtFrom,
+			MaxDataPoints:  float64(scope.maxDataPoints),
+			ProbeStorageID: scope.probeStorageID,
+			CheckStorageID: scope.checkStorageID,
+		})
+		return connectMinRollupSeriesRows(rows), err
+	default:
+		return nil, errors.New("unsupported tcp series read mode")
+	}
 }
 
-func floatPtrIf(count int64, value float64) *float64 {
-	if count == 0 {
-		return nil
+func (r *TCPRepository) listTCPConnectMaxSeries(ctx context.Context, mode domaintcp.SeriesReadMode, scope tcpSeriesScope) ([]domaintcp.SeriesPoint, error) {
+	switch mode {
+	case domaintcp.SeriesReadModeRaw:
+		rows, err := r.queries.ListTCPConnectMaxRawSeries(ctx, sqlc.ListTCPConnectMaxRawSeriesParams{
+			ProbeStorageID: scope.probeStorageID,
+			CheckStorageID: scope.checkStorageID,
+			StartedAtFrom:  scope.startedAtFrom,
+			StartedAtTo:    scope.startedAtTo,
+		})
+		return connectMaxRawSeriesRows(rows), err
+	case domaintcp.SeriesReadModeBucket:
+		rows, err := r.queries.ListTCPConnectMaxBucketSeries(ctx, sqlc.ListTCPConnectMaxBucketSeriesParams{
+			StartedAtTo:    scope.startedAtTo,
+			StartedAtFrom:  scope.startedAtFrom,
+			MaxDataPoints:  float64(scope.maxDataPoints),
+			ProbeStorageID: scope.probeStorageID,
+			CheckStorageID: scope.checkStorageID,
+		})
+		return connectMaxBucketSeriesRows(rows), err
+	case domaintcp.SeriesReadModeRollup:
+		rows, err := r.queries.ListTCPConnectMaxRollupSeries(ctx, sqlc.ListTCPConnectMaxRollupSeriesParams{
+			StartedAtTo:    scope.startedAtTo,
+			StartedAtFrom:  scope.startedAtFrom,
+			MaxDataPoints:  float64(scope.maxDataPoints),
+			ProbeStorageID: scope.probeStorageID,
+			CheckStorageID: scope.checkStorageID,
+		})
+		return connectMaxRollupSeriesRows(rows), err
+	default:
+		return nil, errors.New("unsupported tcp series read mode")
 	}
-	return floatPtr(value)
 }
 
-func tcpStatusPtr(value string) *domaintcp.Status {
-	if value == "" {
-		return nil
+func (r *TCPRepository) listTCPFailurePercentSeries(ctx context.Context, mode domaintcp.SeriesReadMode, scope tcpSeriesScope) ([]domaintcp.SeriesPoint, error) {
+	switch mode {
+	case domaintcp.SeriesReadModeRaw:
+		rows, err := r.queries.ListTCPFailurePercentRawSeries(ctx, sqlc.ListTCPFailurePercentRawSeriesParams{
+			ProbeStorageID: scope.probeStorageID,
+			CheckStorageID: scope.checkStorageID,
+			StartedAtFrom:  scope.startedAtFrom,
+			StartedAtTo:    scope.startedAtTo,
+		})
+		return failurePercentRawSeriesRows(rows), err
+	case domaintcp.SeriesReadModeBucket:
+		rows, err := r.queries.ListTCPFailurePercentBucketSeries(ctx, sqlc.ListTCPFailurePercentBucketSeriesParams{
+			StartedAtTo:    scope.startedAtTo,
+			StartedAtFrom:  scope.startedAtFrom,
+			MaxDataPoints:  float64(scope.maxDataPoints),
+			ProbeStorageID: scope.probeStorageID,
+			CheckStorageID: scope.checkStorageID,
+		})
+		return failurePercentBucketSeriesRows(rows), err
+	case domaintcp.SeriesReadModeRollup:
+		rows, err := r.queries.ListTCPFailurePercentRollupSeries(ctx, sqlc.ListTCPFailurePercentRollupSeriesParams{
+			StartedAtTo:    scope.startedAtTo,
+			StartedAtFrom:  scope.startedAtFrom,
+			MaxDataPoints:  float64(scope.maxDataPoints),
+			ProbeStorageID: scope.probeStorageID,
+			CheckStorageID: scope.checkStorageID,
+		})
+		return failurePercentRollupSeriesRows(rows), err
+	default:
+		return nil, errors.New("unsupported tcp series read mode")
 	}
-	status := domaintcp.Status(value)
-	return &status
-}
-
-func timeMillisPtr(value int64) *time.Time {
-	if value == 0 {
-		return nil
-	}
-	timestamp := time.UnixMilli(value).UTC()
-	return &timestamp
 }

@@ -39,7 +39,7 @@ WHERE probes.project_id = sqlc.arg(project_id)
   AND probes.id = sqlc.arg(probe_id)
   AND probes.deleted_at IS NULL;
 
--- name: CountTCPInsightPoints :one
+-- name: CountTCPResultSeriesPoints :one
 SELECT count(*)::bigint
 FROM tcp_results
 WHERE probe_id = sqlc.arg(probe_storage_id)
@@ -47,19 +47,46 @@ WHERE probe_id = sqlc.arg(probe_storage_id)
     AND started_at >= sqlc.arg(started_at_from)
     AND started_at < sqlc.arg(started_at_to);
 
--- name: ListTCPInsightRawRows :many
+-- name: ListTCPConnectAvgRawSeries :many
 SELECT
     (extract(epoch FROM started_at) * 1000)::bigint AS bucket_ms,
-    1::bigint AS result_count,
-    duration_ms::double precision AS duration_avg_ms,
-    connect_duration_ms AS connect_min_ms,
-    connect_duration_ms AS connect_avg_ms,
-    connect_duration_ms AS connect_median_ms,
-    connect_duration_ms AS connect_max_ms,
-    NULL::double precision AS connect_stddev_ms,
-    CASE WHEN status = 'successful' THEN 100.0 ELSE 0.0 END::double precision AS success_rate,
-    CASE WHEN status = 'timeout' THEN 1 ELSE 0 END::bigint AS timeout_count,
-    CASE WHEN status = 'error' THEN 1 ELSE 0 END::bigint AS error_count
+    coalesce(connect_duration_ms, 0)::double precision AS value
+FROM tcp_results
+WHERE probe_id = sqlc.arg(probe_storage_id)
+    AND check_id = sqlc.arg(check_storage_id)
+    AND started_at >= sqlc.arg(started_at_from)
+    AND started_at < sqlc.arg(started_at_to)
+    AND connect_duration_ms IS NOT NULL
+ORDER BY started_at ASC;
+
+-- name: ListTCPConnectMinRawSeries :many
+SELECT
+    (extract(epoch FROM started_at) * 1000)::bigint AS bucket_ms,
+    coalesce(connect_duration_ms, 0)::double precision AS value
+FROM tcp_results
+WHERE probe_id = sqlc.arg(probe_storage_id)
+    AND check_id = sqlc.arg(check_storage_id)
+    AND started_at >= sqlc.arg(started_at_from)
+    AND started_at < sqlc.arg(started_at_to)
+    AND connect_duration_ms IS NOT NULL
+ORDER BY started_at ASC;
+
+-- name: ListTCPConnectMaxRawSeries :many
+SELECT
+    (extract(epoch FROM started_at) * 1000)::bigint AS bucket_ms,
+    coalesce(connect_duration_ms, 0)::double precision AS value
+FROM tcp_results
+WHERE probe_id = sqlc.arg(probe_storage_id)
+    AND check_id = sqlc.arg(check_storage_id)
+    AND started_at >= sqlc.arg(started_at_from)
+    AND started_at < sqlc.arg(started_at_to)
+    AND connect_duration_ms IS NOT NULL
+ORDER BY started_at ASC;
+
+-- name: ListTCPFailurePercentRawSeries :many
+SELECT
+    (extract(epoch FROM started_at) * 1000)::bigint AS bucket_ms,
+    CASE WHEN status IN ('timeout', 'error') THEN 100.0 ELSE 0.0 END::double precision AS value
 FROM tcp_results
 WHERE probe_id = sqlc.arg(probe_storage_id)
     AND check_id = sqlc.arg(check_storage_id)
@@ -67,68 +94,229 @@ WHERE probe_id = sqlc.arg(probe_storage_id)
     AND started_at < sqlc.arg(started_at_to)
 ORDER BY started_at ASC;
 
--- name: ListTCPInsightBucketRows :many
-WITH bucketed AS (
-    SELECT
-        (extract(epoch FROM time_bucket(
-            (ceil(extract(epoch FROM (sqlc.arg(started_at_to)::timestamptz - sqlc.arg(started_at_from)::timestamptz)) / sqlc.arg(max_data_points)::double precision)::bigint * interval '1 second'),
-            started_at,
-            sqlc.arg(started_at_from)::timestamptz
-        )) * 1000)::bigint AS bucket_ms,
-        duration_ms,
-        status,
-        connect_duration_ms
-    FROM tcp_results
-    WHERE probe_id = sqlc.arg(probe_storage_id)
-        AND check_id = sqlc.arg(check_storage_id)
-        AND started_at >= sqlc.arg(started_at_from)
-        AND started_at < sqlc.arg(started_at_to)
+-- name: ListTCPConnectAvgBucketSeries :many
+WITH settings AS (
+    SELECT greatest(
+        ceil(extract(epoch FROM (sqlc.arg(started_at_to)::timestamptz - sqlc.arg(started_at_from)::timestamptz)) / sqlc.arg(max_data_points)::double precision)::bigint,
+        1
+    ) * interval '1 second' AS bucket_width
 )
 SELECT
-    bucket_ms,
-    count(*)::bigint AS result_count,
-    count(connect_duration_ms)::bigint AS connect_value_count,
-    coalesce(avg(duration_ms), 0)::double precision AS duration_avg_ms,
-    coalesce(min(connect_duration_ms), 0)::double precision AS connect_min_ms,
-    coalesce(avg(connect_duration_ms), 0)::double precision AS connect_avg_ms,
-    coalesce(percentile_cont(0.5) WITHIN GROUP (ORDER BY connect_duration_ms) FILTER (WHERE connect_duration_ms IS NOT NULL), 0)::double precision AS connect_median_ms,
-    coalesce(max(connect_duration_ms), 0)::double precision AS connect_max_ms,
-    coalesce(stddev_pop(connect_duration_ms), 0)::double precision AS connect_stddev_ms,
-    coalesce((100.0 * count(*) FILTER (WHERE status = 'successful') / NULLIF(count(*), 0)), 0)::double precision AS success_rate,
-    count(*) FILTER (WHERE status = 'timeout')::bigint AS timeout_count,
-    count(*) FILTER (WHERE status = 'error')::bigint AS error_count
-FROM bucketed
+    (extract(epoch FROM time_bucket(settings.bucket_width, started_at, sqlc.arg(started_at_from)::timestamptz)) * 1000)::bigint AS bucket_ms,
+    coalesce(avg(connect_duration_ms), 0)::double precision AS value
+FROM tcp_results, settings
+WHERE probe_id = sqlc.arg(probe_storage_id)
+    AND check_id = sqlc.arg(check_storage_id)
+    AND started_at >= sqlc.arg(started_at_from)
+    AND started_at < sqlc.arg(started_at_to)
+    AND connect_duration_ms IS NOT NULL
 GROUP BY bucket_ms
 ORDER BY bucket_ms ASC;
 
--- name: GetTCPInsightSummary :one
-WITH filtered AS (
-    SELECT *
-    FROM tcp_results
+-- name: ListTCPConnectMinBucketSeries :many
+WITH settings AS (
+    SELECT greatest(
+        ceil(extract(epoch FROM (sqlc.arg(started_at_to)::timestamptz - sqlc.arg(started_at_from)::timestamptz)) / sqlc.arg(max_data_points)::double precision)::bigint,
+        1
+    ) * interval '1 second' AS bucket_width
+)
+SELECT
+    (extract(epoch FROM time_bucket(settings.bucket_width, started_at, sqlc.arg(started_at_from)::timestamptz)) * 1000)::bigint AS bucket_ms,
+    coalesce(min(connect_duration_ms), 0)::double precision AS value
+FROM tcp_results, settings
+WHERE probe_id = sqlc.arg(probe_storage_id)
+    AND check_id = sqlc.arg(check_storage_id)
+    AND started_at >= sqlc.arg(started_at_from)
+    AND started_at < sqlc.arg(started_at_to)
+    AND connect_duration_ms IS NOT NULL
+GROUP BY bucket_ms
+ORDER BY bucket_ms ASC;
+
+-- name: ListTCPConnectMaxBucketSeries :many
+WITH settings AS (
+    SELECT greatest(
+        ceil(extract(epoch FROM (sqlc.arg(started_at_to)::timestamptz - sqlc.arg(started_at_from)::timestamptz)) / sqlc.arg(max_data_points)::double precision)::bigint,
+        1
+    ) * interval '1 second' AS bucket_width
+)
+SELECT
+    (extract(epoch FROM time_bucket(settings.bucket_width, started_at, sqlc.arg(started_at_from)::timestamptz)) * 1000)::bigint AS bucket_ms,
+    coalesce(max(connect_duration_ms), 0)::double precision AS value
+FROM tcp_results, settings
+WHERE probe_id = sqlc.arg(probe_storage_id)
+    AND check_id = sqlc.arg(check_storage_id)
+    AND started_at >= sqlc.arg(started_at_from)
+    AND started_at < sqlc.arg(started_at_to)
+    AND connect_duration_ms IS NOT NULL
+GROUP BY bucket_ms
+ORDER BY bucket_ms ASC;
+
+-- name: ListTCPFailurePercentBucketSeries :many
+WITH settings AS (
+    SELECT greatest(
+        ceil(extract(epoch FROM (sqlc.arg(started_at_to)::timestamptz - sqlc.arg(started_at_from)::timestamptz)) / sqlc.arg(max_data_points)::double precision)::bigint,
+        1
+    ) * interval '1 second' AS bucket_width
+)
+SELECT
+    (extract(epoch FROM time_bucket(settings.bucket_width, started_at, sqlc.arg(started_at_from)::timestamptz)) * 1000)::bigint AS bucket_ms,
+    coalesce(
+        100.0 * count(*) FILTER (WHERE status IN ('timeout', 'error')) / NULLIF(count(*), 0),
+        0
+    )::double precision AS value
+FROM tcp_results, settings
+WHERE probe_id = sqlc.arg(probe_storage_id)
+    AND check_id = sqlc.arg(check_storage_id)
+    AND started_at >= sqlc.arg(started_at_from)
+    AND started_at < sqlc.arg(started_at_to)
+GROUP BY bucket_ms
+ORDER BY bucket_ms ASC;
+
+-- name: ListTCPConnectAvgRollupSeries :many
+WITH settings AS (
+    SELECT greatest(
+        ceil(extract(epoch FROM (sqlc.arg(started_at_to)::timestamptz - sqlc.arg(started_at_from)::timestamptz)) / sqlc.arg(max_data_points)::double precision)::bigint,
+        60
+    ) * interval '1 second' AS bucket_width
+),
+bucketed AS (
+    SELECT
+        time_bucket(settings.bucket_width, bucket, sqlc.arg(started_at_from)::timestamptz) AS query_bucket,
+        connect_duration_sum_ms,
+        connect_duration_count
+    FROM tcp_result_rollups_1m, settings
     WHERE probe_id = sqlc.arg(probe_storage_id)
         AND check_id = sqlc.arg(check_storage_id)
-        AND started_at >= sqlc.arg(started_at_from)
-        AND started_at < sqlc.arg(started_at_to)
-),
-latest AS (
-    SELECT *
-    FROM filtered
-    ORDER BY started_at DESC
-    LIMIT 1
+        AND bucket >= sqlc.arg(started_at_from)
+        AND bucket < sqlc.arg(started_at_to)
 )
+SELECT
+    (extract(epoch FROM query_bucket) * 1000)::bigint AS bucket_ms,
+    coalesce(sum(connect_duration_sum_ms) / NULLIF(sum(connect_duration_count), 0), 0)::double precision AS value
+FROM bucketed
+GROUP BY query_bucket
+HAVING sum(connect_duration_count) > 0
+ORDER BY query_bucket ASC;
+
+-- name: ListTCPConnectMinRollupSeries :many
+WITH settings AS (
+    SELECT greatest(
+        ceil(extract(epoch FROM (sqlc.arg(started_at_to)::timestamptz - sqlc.arg(started_at_from)::timestamptz)) / sqlc.arg(max_data_points)::double precision)::bigint,
+        60
+    ) * interval '1 second' AS bucket_width
+),
+bucketed AS (
+    SELECT
+        time_bucket(settings.bucket_width, bucket, sqlc.arg(started_at_from)::timestamptz) AS query_bucket,
+        connect_duration_min_ms,
+        connect_duration_count
+    FROM tcp_result_rollups_1m, settings
+    WHERE probe_id = sqlc.arg(probe_storage_id)
+        AND check_id = sqlc.arg(check_storage_id)
+        AND bucket >= sqlc.arg(started_at_from)
+        AND bucket < sqlc.arg(started_at_to)
+)
+SELECT
+    (extract(epoch FROM query_bucket) * 1000)::bigint AS bucket_ms,
+    coalesce(min(connect_duration_min_ms), 0)::double precision AS value
+FROM bucketed
+GROUP BY query_bucket
+HAVING sum(connect_duration_count) > 0
+ORDER BY query_bucket ASC;
+
+-- name: ListTCPConnectMaxRollupSeries :many
+WITH settings AS (
+    SELECT greatest(
+        ceil(extract(epoch FROM (sqlc.arg(started_at_to)::timestamptz - sqlc.arg(started_at_from)::timestamptz)) / sqlc.arg(max_data_points)::double precision)::bigint,
+        60
+    ) * interval '1 second' AS bucket_width
+),
+bucketed AS (
+    SELECT
+        time_bucket(settings.bucket_width, bucket, sqlc.arg(started_at_from)::timestamptz) AS query_bucket,
+        connect_duration_max_ms,
+        connect_duration_count
+    FROM tcp_result_rollups_1m, settings
+    WHERE probe_id = sqlc.arg(probe_storage_id)
+        AND check_id = sqlc.arg(check_storage_id)
+        AND bucket >= sqlc.arg(started_at_from)
+        AND bucket < sqlc.arg(started_at_to)
+)
+SELECT
+    (extract(epoch FROM query_bucket) * 1000)::bigint AS bucket_ms,
+    coalesce(max(connect_duration_max_ms), 0)::double precision AS value
+FROM bucketed
+GROUP BY query_bucket
+HAVING sum(connect_duration_count) > 0
+ORDER BY query_bucket ASC;
+
+-- name: ListTCPFailurePercentRollupSeries :many
+WITH settings AS (
+    SELECT greatest(
+        ceil(extract(epoch FROM (sqlc.arg(started_at_to)::timestamptz - sqlc.arg(started_at_from)::timestamptz)) / sqlc.arg(max_data_points)::double precision)::bigint,
+        60
+    ) * interval '1 second' AS bucket_width
+),
+bucketed AS (
+    SELECT
+        time_bucket(settings.bucket_width, bucket, sqlc.arg(started_at_from)::timestamptz) AS query_bucket,
+        result_count,
+        timeout_count,
+        error_count
+    FROM tcp_result_rollups_1m, settings
+    WHERE probe_id = sqlc.arg(probe_storage_id)
+        AND check_id = sqlc.arg(check_storage_id)
+        AND bucket >= sqlc.arg(started_at_from)
+        AND bucket < sqlc.arg(started_at_to)
+)
+SELECT
+    (extract(epoch FROM query_bucket) * 1000)::bigint AS bucket_ms,
+    coalesce(
+        100.0 * (sum(timeout_count) + sum(error_count)) / NULLIF(sum(result_count), 0),
+        0
+    )::double precision AS value
+FROM bucketed
+GROUP BY query_bucket
+ORDER BY query_bucket ASC;
+
+-- name: GetTCPInsightSummary :one
 SELECT
     count(*)::bigint AS total_results,
     count(connect_duration_ms)::bigint AS connect_value_count,
-    count(*) FILTER (WHERE status = 'successful')::bigint AS successful_count,
-    count(*) FILTER (WHERE status = 'timeout')::bigint AS timeout_count,
-    count(*) FILTER (WHERE status = 'error')::bigint AS error_count,
-    coalesce(avg(connect_duration_ms), 0)::double precision AS avg_connect_ms,
-    coalesce(percentile_cont(0.5) WITHIN GROUP (ORDER BY connect_duration_ms) FILTER (WHERE connect_duration_ms IS NOT NULL), 0)::double precision AS median_connect_ms,
+    count(*)::bigint AS samples,
+    coalesce(avg(connect_duration_ms), 0)::double precision AS average_connect_ms,
     coalesce(max(connect_duration_ms), 0)::double precision AS max_connect_ms,
-    coalesce(percentile_cont(0.95) WITHIN GROUP (ORDER BY connect_duration_ms) FILTER (WHERE connect_duration_ms IS NOT NULL), 0)::double precision AS p95_connect_ms,
-    coalesce(percentile_cont(0.99) WITHIN GROUP (ORDER BY connect_duration_ms) FILTER (WHERE connect_duration_ms IS NOT NULL), 0)::double precision AS p99_connect_ms,
-    coalesce((SELECT status::text FROM latest), '')::text AS latest_status,
-    coalesce((SELECT (extract(epoch FROM started_at) * 1000)::bigint FROM latest), 0)::bigint AS latest_started_at_ms,
-    (SELECT connect_duration_ms FROM latest) AS latest_connect_ms,
-    (SELECT resolved_ip FROM latest) AS latest_resolved_ip
-FROM filtered;
+    coalesce(
+        100.0 * count(*) FILTER (WHERE status IN ('timeout', 'error')) / NULLIF(count(*), 0),
+        0
+    )::double precision AS failure_percent,
+    coalesce(
+        100.0 * count(*) FILTER (WHERE status = 'successful') / NULLIF(count(*), 0),
+        0
+    )::double precision AS success_rate
+FROM tcp_results
+WHERE probe_id = sqlc.arg(probe_storage_id)
+    AND check_id = sqlc.arg(check_storage_id)
+    AND started_at >= sqlc.arg(started_at_from)
+    AND started_at < sqlc.arg(started_at_to);
+
+-- name: GetTCPInsightRollupSummary :one
+SELECT
+    coalesce(sum(result_count), 0)::bigint AS total_results,
+    coalesce(sum(connect_duration_count), 0)::bigint AS connect_value_count,
+    coalesce(sum(result_count), 0)::bigint AS samples,
+    coalesce(sum(connect_duration_sum_ms) / NULLIF(sum(connect_duration_count), 0), 0)::double precision AS average_connect_ms,
+    coalesce(max(connect_duration_max_ms), 0)::double precision AS max_connect_ms,
+    coalesce(
+        100.0 * (sum(timeout_count) + sum(error_count)) / NULLIF(sum(result_count), 0),
+        0
+    )::double precision AS failure_percent,
+    coalesce(
+        100.0 * sum(successful_count) / NULLIF(sum(result_count), 0),
+        0
+    )::double precision AS success_rate
+FROM tcp_result_rollups_1m
+WHERE probe_id = sqlc.arg(probe_storage_id)
+    AND check_id = sqlc.arg(check_storage_id)
+    AND bucket >= sqlc.arg(started_at_from)::timestamptz
+    AND bucket < sqlc.arg(started_at_to)::timestamptz;

@@ -33,6 +33,10 @@ func (s *Service) QueryPingInsight(ctx context.Context, input QueryPingInsightIn
 	return s.pings.QueryInsight(ctx, input)
 }
 
+func (s *Service) QueryTCPSeries(ctx context.Context, input QueryTCPSeriesInput) (TCPSeriesOutput, error) {
+	return s.tcps.QuerySeries(ctx, input)
+}
+
 func (s *Service) QueryTCPInsight(ctx context.Context, input QueryTCPInsightInput) (TCPInsightOutput, error) {
 	return s.tcps.QueryInsight(ctx, input)
 }

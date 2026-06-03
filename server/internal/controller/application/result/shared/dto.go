@@ -9,6 +9,7 @@ type QueryBase struct {
 	CheckID       string
 	From          time.Time
 	To            time.Time
+	Now           time.Time
 }
 
 type QueryMetadata struct {

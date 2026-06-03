@@ -311,6 +311,7 @@ type InsightResult struct {
 }
 
 type InsightSummary struct {
+	TotalResults int64
 	AverageRttMs *float64
 	MaxRttMs     *float64
 	LossPercent  *float64

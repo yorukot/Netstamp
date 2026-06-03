@@ -230,9 +230,9 @@ type pingInsightRepositoryFake struct {
 	called bool
 }
 
-func (f *pingInsightRepositoryFake) CountPingSeriesPoints(context.Context, domainping.SeriesPointCountQuery) (int64, int64, error) {
+func (f *pingInsightRepositoryFake) CountPingSeriesPoints(context.Context, domainping.SeriesPointCountQuery) (int64, error) {
 	f.called = true
-	return 0, 0, nil
+	return 0, nil
 }
 
 func (f *pingInsightRepositoryFake) GetPingInsightSummary(context.Context, domainping.InsightSummaryQuery) (domainping.InsightSummary, error) {

@@ -2,7 +2,6 @@ package result
 
 import (
 	"context"
-	"net/netip"
 
 	appresult "github.com/yorukot/netstamp/internal/controller/application/result"
 )
@@ -43,89 +42,38 @@ type queryTCPInsightOutput struct {
 }
 
 type queryTCPInsightBody struct {
-	Buckets []tcpInsightBucketBody `json:"buckets"`
-	Summary tcpInsightSummaryBody  `json:"summary"`
-	Query   queryMetadataBody      `json:"query"`
-}
-
-type tcpInsightBucketBody struct {
-	TimestampMs     int64    `json:"timestampMs"`
-	ResultCount     int64    `json:"resultCount"`
-	DurationAvgMs   *float64 `json:"durationAvgMs,omitempty"`
-	ConnectMinMs    *float64 `json:"connectMinMs,omitempty"`
-	ConnectAvgMs    *float64 `json:"connectAvgMs,omitempty"`
-	ConnectMedianMs *float64 `json:"connectMedianMs,omitempty"`
-	ConnectMaxMs    *float64 `json:"connectMaxMs,omitempty"`
-	ConnectStddevMs *float64 `json:"connectStddevMs,omitempty"`
-	SuccessRate     *float64 `json:"successRate,omitempty"`
-	TimeoutCount    int64    `json:"timeoutCount"`
-	ErrorCount      int64    `json:"errorCount"`
+	Summary tcpInsightSummaryBody `json:"summary"`
+	Meta    queryMetadataBody     `json:"meta"`
 }
 
 type tcpInsightSummaryBody struct {
-	TotalResults      int64       `json:"totalResults"`
-	SuccessfulCount   int64       `json:"successfulCount"`
-	TimeoutCount      int64       `json:"timeoutCount"`
-	ErrorCount        int64       `json:"errorCount"`
-	AvgConnectMs      *float64    `json:"avgConnectMs,omitempty"`
-	MedianConnectMs   *float64    `json:"medianConnectMs,omitempty"`
-	MaxConnectMs      *float64    `json:"maxConnectMs,omitempty"`
-	P95ConnectMs      *float64    `json:"p95ConnectMs,omitempty"`
-	P99ConnectMs      *float64    `json:"p99ConnectMs,omitempty"`
-	LatestStatus      *string     `json:"latestStatus,omitempty"`
-	LatestStartedAtMs *int64      `json:"latestStartedAtMs,omitempty"`
-	LatestConnectMs   *float64    `json:"latestConnectMs,omitempty"`
-	LatestResolvedIP  *netip.Addr `json:"latestResolvedIp,omitempty"`
+	AverageConnectMs *float64 `json:"averageConnectMs,omitempty"`
+	MaxConnectMs     *float64 `json:"maxConnectMs,omitempty"`
+	FailurePercent   *float64 `json:"failurePercent,omitempty"`
+	SuccessRate      *float64 `json:"successRate,omitempty"`
+	Samples          int64    `json:"samples"`
 }
 
 func newQueryTCPInsightBody(output appresult.TCPInsightOutput) queryTCPInsightBody {
 	return queryTCPInsightBody{
-		Buckets: newTCPInsightBucketsBody(output.Buckets),
 		Summary: newTCPInsightSummaryBody(output.Summary),
-		Query: queryMetadataBody{
-			FromMs:        output.Query.FromMs,
-			ToMs:          output.Query.ToMs,
-			MaxDataPoints: output.Query.MaxDataPoints,
-			Resolution:    output.Query.Resolution,
-			TotalPoints:   output.Query.TotalPoints,
+		Meta: queryMetadataBody{
+			FromMs:        output.Meta.FromMs,
+			ToMs:          output.Meta.ToMs,
+			MaxDataPoints: output.Meta.MaxDataPoints,
+			Source:        output.Meta.Source,
+			Resolution:    output.Meta.Resolution,
+			TotalPoints:   output.Meta.TotalPoints,
 		},
 	}
 }
 
-func newTCPInsightBucketsBody(buckets []appresult.TCPInsightBucket) []tcpInsightBucketBody {
-	values := make([]tcpInsightBucketBody, 0, len(buckets))
-	for _, bucket := range buckets {
-		values = append(values, tcpInsightBucketBody{
-			TimestampMs:     bucket.TimestampMs,
-			ResultCount:     bucket.ResultCount,
-			DurationAvgMs:   bucket.DurationAvgMs,
-			ConnectMinMs:    bucket.ConnectMinMs,
-			ConnectAvgMs:    bucket.ConnectAvgMs,
-			ConnectMedianMs: bucket.ConnectMedianMs,
-			ConnectMaxMs:    bucket.ConnectMaxMs,
-			ConnectStddevMs: bucket.ConnectStddevMs,
-			SuccessRate:     bucket.SuccessRate,
-			TimeoutCount:    bucket.TimeoutCount,
-			ErrorCount:      bucket.ErrorCount,
-		})
-	}
-	return values
-}
-
 func newTCPInsightSummaryBody(summary appresult.TCPInsightSummary) tcpInsightSummaryBody {
 	return tcpInsightSummaryBody{
-		TotalResults:      summary.TotalResults,
-		SuccessfulCount:   summary.SuccessfulCount,
-		TimeoutCount:      summary.TimeoutCount,
-		ErrorCount:        summary.ErrorCount,
-		AvgConnectMs:      summary.AvgConnectMs,
-		MedianConnectMs:   summary.MedianConnectMs,
-		MaxConnectMs:      summary.MaxConnectMs,
-		P95ConnectMs:      summary.P95ConnectMs,
-		P99ConnectMs:      summary.P99ConnectMs,
-		LatestStatus:      summary.LatestStatus,
-		LatestStartedAtMs: summary.LatestStartedAtMs,
-		LatestConnectMs:   summary.LatestConnectMs,
-		LatestResolvedIP:  summary.LatestResolvedIP,
+		AverageConnectMs: summary.AverageConnectMs,
+		MaxConnectMs:     summary.MaxConnectMs,
+		FailurePercent:   summary.FailurePercent,
+		SuccessRate:      summary.SuccessRate,
+		Samples:          summary.Samples,
 	}
 }

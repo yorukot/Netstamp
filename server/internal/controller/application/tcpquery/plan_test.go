@@ -1,10 +1,10 @@
-package pingquery
+package tcpquery
 
 import (
 	"testing"
 	"time"
 
-	domainping "github.com/yorukot/netstamp/internal/domain/ping"
+	domaintcp "github.com/yorukot/netstamp/internal/domain/tcp"
 )
 
 func TestSelectReadPlan(t *testing.T) {
@@ -15,17 +15,17 @@ func TestSelectReadPlan(t *testing.T) {
 		rawPoints     int64
 		from          time.Time
 		maxDataPoints int32
-		want          domainping.SeriesReadPlan
+		want          domaintcp.SeriesReadPlan
 	}{
 		{
 			name:          "raw fits requested density",
 			rawPoints:     3,
 			from:          now.Add(-time.Hour),
 			maxDataPoints: 3,
-			want: domainping.SeriesReadPlan{
-				Mode:        domainping.SeriesReadModeRaw,
-				Source:      domainping.SeriesSourceRaw,
-				Resolution:  domainping.SeriesResolutionRaw,
+			want: domaintcp.SeriesReadPlan{
+				Mode:        domaintcp.SeriesReadModeRaw,
+				Source:      domaintcp.SeriesSourceRaw,
+				Resolution:  domaintcp.SeriesResolutionRaw,
 				TotalPoints: 3,
 			},
 		},
@@ -34,10 +34,10 @@ func TestSelectReadPlan(t *testing.T) {
 			rawPoints:     4,
 			from:          now.Add(-time.Hour),
 			maxDataPoints: 3,
-			want: domainping.SeriesReadPlan{
-				Mode:        domainping.SeriesReadModeBucket,
-				Source:      domainping.SeriesSourceRaw,
-				Resolution:  domainping.SeriesResolutionBucket,
+			want: domaintcp.SeriesReadPlan{
+				Mode:        domaintcp.SeriesReadModeBucket,
+				Source:      domaintcp.SeriesSourceRaw,
+				Resolution:  domaintcp.SeriesResolutionBucket,
 				TotalPoints: 4,
 			},
 		},
@@ -46,10 +46,10 @@ func TestSelectReadPlan(t *testing.T) {
 			rawPoints:     2,
 			from:          now.Add(-RawRetentionWindow - time.Millisecond),
 			maxDataPoints: 50,
-			want: domainping.SeriesReadPlan{
-				Mode:        domainping.SeriesReadModeRollup,
-				Source:      domainping.SeriesSourceAggregate,
-				Resolution:  domainping.SeriesResolutionOneMinute,
+			want: domaintcp.SeriesReadPlan{
+				Mode:        domaintcp.SeriesReadModeRollup,
+				Source:      domaintcp.SeriesSourceAggregate,
+				Resolution:  domaintcp.SeriesResolutionOneMinute,
 				TotalPoints: 2,
 			},
 		},
@@ -58,10 +58,10 @@ func TestSelectReadPlan(t *testing.T) {
 			rawPoints:     4,
 			from:          now.Add(-RawRetentionWindow),
 			maxDataPoints: 10,
-			want: domainping.SeriesReadPlan{
-				Mode:        domainping.SeriesReadModeRaw,
-				Source:      domainping.SeriesSourceRaw,
-				Resolution:  domainping.SeriesResolutionRaw,
+			want: domaintcp.SeriesReadPlan{
+				Mode:        domaintcp.SeriesReadModeRaw,
+				Source:      domaintcp.SeriesSourceRaw,
+				Resolution:  domaintcp.SeriesResolutionRaw,
 				TotalPoints: 4,
 			},
 		},
@@ -70,7 +70,7 @@ func TestSelectReadPlan(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := SelectReadPlan(tt.rawPoints, tt.from, now, tt.maxDataPoints); got != tt.want {
-				t.Fatalf("unexpected ping read plan: got %#v want %#v", got, tt.want)
+				t.Fatalf("unexpected tcp read plan: got %#v want %#v", got, tt.want)
 			}
 		})
 	}

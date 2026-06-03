@@ -8,38 +8,10 @@ package sqlc
 import (
 	"context"
 	"net/netip"
+	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 )
-
-const countPingResultRollupSeriesPoints = `-- name: CountPingResultRollupSeriesPoints :one
-SELECT coalesce(sum(result_count), 0)::bigint
-FROM ping_result_rollups_1m
-WHERE probe_id = $1
-    AND check_id = $2
-    AND bucket >= $3::timestamptz
-    AND bucket < $4::timestamptz
-`
-
-type CountPingResultRollupSeriesPointsParams struct {
-	ProbeStorageID int64              `json:"probe_storage_id"`
-	CheckStorageID int64              `json:"check_storage_id"`
-	StartedAtFrom  pgtype.Timestamptz `json:"started_at_from"`
-	StartedAtTo    pgtype.Timestamptz `json:"started_at_to"`
-}
-
-func (q *Queries) CountPingResultRollupSeriesPoints(ctx context.Context, arg CountPingResultRollupSeriesPointsParams) (int64, error) {
-	row := q.db.QueryRow(ctx, countPingResultRollupSeriesPoints,
-		arg.ProbeStorageID,
-		arg.CheckStorageID,
-		arg.StartedAtFrom,
-		arg.StartedAtTo,
-	)
-	var column_1 int64
-	err := row.Scan(&column_1)
-	return column_1, err
-}
 
 const countPingResultSeriesPoints = `-- name: CountPingResultSeriesPoints :one
 SELECT count(*)::bigint
@@ -51,10 +23,10 @@ WHERE probe_id = $1
 `
 
 type CountPingResultSeriesPointsParams struct {
-	ProbeStorageID int64              `json:"probe_storage_id"`
-	CheckStorageID int64              `json:"check_storage_id"`
-	StartedAtFrom  pgtype.Timestamptz `json:"started_at_from"`
-	StartedAtTo    pgtype.Timestamptz `json:"started_at_to"`
+	ProbeStorageID int64     `json:"probe_storage_id"`
+	CheckStorageID int64     `json:"check_storage_id"`
+	StartedAtFrom  time.Time `json:"started_at_from"`
+	StartedAtTo    time.Time `json:"started_at_to"`
 }
 
 func (q *Queries) CountPingResultSeriesPoints(ctx context.Context, arg CountPingResultSeriesPointsParams) (int64, error) {
@@ -116,25 +88,25 @@ ON CONFLICT (probe_id, check_id, started_at) DO NOTHING
 `
 
 type CreatePingResultParams struct {
-	ProbeStorageID int64              `json:"probe_storage_id"`
-	CheckStorageID int64              `json:"check_storage_id"`
-	StartedAt      pgtype.Timestamptz `json:"started_at"`
-	FinishedAt     pgtype.Timestamptz `json:"finished_at"`
-	DurationMs     int32              `json:"duration_ms"`
-	Status         PingStatus         `json:"status"`
-	SentCount      int32              `json:"sent_count"`
-	ReceivedCount  int32              `json:"received_count"`
-	LossPercent    float64            `json:"loss_percent"`
-	RttMinMs       *float64           `json:"rtt_min_ms"`
-	RttAvgMs       *float64           `json:"rtt_avg_ms"`
-	RttMedianMs    *float64           `json:"rtt_median_ms"`
-	RttMaxMs       *float64           `json:"rtt_max_ms"`
-	RttStddevMs    *float64           `json:"rtt_stddev_ms"`
-	RttSamplesMs   []float64          `json:"rtt_samples_ms"`
-	ResolvedIp     *netip.Addr        `json:"resolved_ip"`
-	IpFamily       *IpFamily          `json:"ip_family"`
-	ErrorCode      *string            `json:"error_code"`
-	ErrorMessage   *string            `json:"error_message"`
+	ProbeStorageID int64       `json:"probe_storage_id"`
+	CheckStorageID int64       `json:"check_storage_id"`
+	StartedAt      time.Time   `json:"started_at"`
+	FinishedAt     time.Time   `json:"finished_at"`
+	DurationMs     int32       `json:"duration_ms"`
+	Status         PingStatus  `json:"status"`
+	SentCount      int32       `json:"sent_count"`
+	ReceivedCount  int32       `json:"received_count"`
+	LossPercent    float64     `json:"loss_percent"`
+	RttMinMs       *float64    `json:"rtt_min_ms"`
+	RttAvgMs       *float64    `json:"rtt_avg_ms"`
+	RttMedianMs    *float64    `json:"rtt_median_ms"`
+	RttMaxMs       *float64    `json:"rtt_max_ms"`
+	RttStddevMs    *float64    `json:"rtt_stddev_ms"`
+	RttSamplesMs   []float64   `json:"rtt_samples_ms"`
+	ResolvedIp     *netip.Addr `json:"resolved_ip"`
+	IpFamily       *IpFamily   `json:"ip_family"`
+	ErrorCode      *string     `json:"error_code"`
+	ErrorMessage   *string     `json:"error_message"`
 }
 
 func (q *Queries) CreatePingResult(ctx context.Context, arg CreatePingResultParams) error {
@@ -185,10 +157,10 @@ WHERE probe_id = $1
 `
 
 type GetPingInsightRollupSummaryParams struct {
-	ProbeStorageID int64              `json:"probe_storage_id"`
-	CheckStorageID int64              `json:"check_storage_id"`
-	StartedAtFrom  pgtype.Timestamptz `json:"started_at_from"`
-	StartedAtTo    pgtype.Timestamptz `json:"started_at_to"`
+	ProbeStorageID int64     `json:"probe_storage_id"`
+	CheckStorageID int64     `json:"check_storage_id"`
+	StartedAtFrom  time.Time `json:"started_at_from"`
+	StartedAtTo    time.Time `json:"started_at_to"`
 }
 
 type GetPingInsightRollupSummaryRow struct {
@@ -245,10 +217,10 @@ WHERE probe_id = $1
 `
 
 type GetPingInsightSummaryParams struct {
-	ProbeStorageID int64              `json:"probe_storage_id"`
-	CheckStorageID int64              `json:"check_storage_id"`
-	StartedAtFrom  pgtype.Timestamptz `json:"started_at_from"`
-	StartedAtTo    pgtype.Timestamptz `json:"started_at_to"`
+	ProbeStorageID int64     `json:"probe_storage_id"`
+	CheckStorageID int64     `json:"check_storage_id"`
+	StartedAtFrom  time.Time `json:"started_at_from"`
+	StartedAtTo    time.Time `json:"started_at_to"`
 }
 
 type GetPingInsightSummaryRow struct {
@@ -305,11 +277,11 @@ ORDER BY bucket_ms ASC
 `
 
 type ListPingLatencyAvgBucketSeriesParams struct {
-	StartedAtFrom  pgtype.Timestamptz `json:"started_at_from"`
-	ProbeStorageID int64              `json:"probe_storage_id"`
-	CheckStorageID int64              `json:"check_storage_id"`
-	StartedAtTo    pgtype.Timestamptz `json:"started_at_to"`
-	MaxDataPoints  float64            `json:"max_data_points"`
+	StartedAtFrom  time.Time `json:"started_at_from"`
+	ProbeStorageID int64     `json:"probe_storage_id"`
+	CheckStorageID int64     `json:"check_storage_id"`
+	StartedAtTo    time.Time `json:"started_at_to"`
+	MaxDataPoints  float64   `json:"max_data_points"`
 }
 
 type ListPingLatencyAvgBucketSeriesRow struct {
@@ -357,10 +329,10 @@ ORDER BY started_at ASC
 `
 
 type ListPingLatencyAvgRawSeriesParams struct {
-	ProbeStorageID int64              `json:"probe_storage_id"`
-	CheckStorageID int64              `json:"check_storage_id"`
-	StartedAtFrom  pgtype.Timestamptz `json:"started_at_from"`
-	StartedAtTo    pgtype.Timestamptz `json:"started_at_to"`
+	ProbeStorageID int64     `json:"probe_storage_id"`
+	CheckStorageID int64     `json:"check_storage_id"`
+	StartedAtFrom  time.Time `json:"started_at_from"`
+	StartedAtTo    time.Time `json:"started_at_to"`
 }
 
 type ListPingLatencyAvgRawSeriesRow struct {
@@ -424,11 +396,11 @@ ORDER BY query_bucket ASC
 `
 
 type ListPingLatencyAvgRollupSeriesParams struct {
-	StartedAtTo    pgtype.Timestamptz `json:"started_at_to"`
-	StartedAtFrom  pgtype.Timestamptz `json:"started_at_from"`
-	MaxDataPoints  float64            `json:"max_data_points"`
-	ProbeStorageID int64              `json:"probe_storage_id"`
-	CheckStorageID int64              `json:"check_storage_id"`
+	StartedAtTo    time.Time `json:"started_at_to"`
+	StartedAtFrom  time.Time `json:"started_at_from"`
+	MaxDataPoints  float64   `json:"max_data_points"`
+	ProbeStorageID int64     `json:"probe_storage_id"`
+	CheckStorageID int64     `json:"check_storage_id"`
 }
 
 type ListPingLatencyAvgRollupSeriesRow struct {
@@ -486,11 +458,11 @@ ORDER BY bucket_ms ASC
 `
 
 type ListPingLatencyMaxBucketSeriesParams struct {
-	StartedAtFrom  pgtype.Timestamptz `json:"started_at_from"`
-	ProbeStorageID int64              `json:"probe_storage_id"`
-	CheckStorageID int64              `json:"check_storage_id"`
-	StartedAtTo    pgtype.Timestamptz `json:"started_at_to"`
-	MaxDataPoints  float64            `json:"max_data_points"`
+	StartedAtFrom  time.Time `json:"started_at_from"`
+	ProbeStorageID int64     `json:"probe_storage_id"`
+	CheckStorageID int64     `json:"check_storage_id"`
+	StartedAtTo    time.Time `json:"started_at_to"`
+	MaxDataPoints  float64   `json:"max_data_points"`
 }
 
 type ListPingLatencyMaxBucketSeriesRow struct {
@@ -538,10 +510,10 @@ ORDER BY started_at ASC
 `
 
 type ListPingLatencyMaxRawSeriesParams struct {
-	ProbeStorageID int64              `json:"probe_storage_id"`
-	CheckStorageID int64              `json:"check_storage_id"`
-	StartedAtFrom  pgtype.Timestamptz `json:"started_at_from"`
-	StartedAtTo    pgtype.Timestamptz `json:"started_at_to"`
+	ProbeStorageID int64     `json:"probe_storage_id"`
+	CheckStorageID int64     `json:"check_storage_id"`
+	StartedAtFrom  time.Time `json:"started_at_from"`
+	StartedAtTo    time.Time `json:"started_at_to"`
 }
 
 type ListPingLatencyMaxRawSeriesRow struct {
@@ -605,11 +577,11 @@ ORDER BY query_bucket ASC
 `
 
 type ListPingLatencyMaxRollupSeriesParams struct {
-	StartedAtTo    pgtype.Timestamptz `json:"started_at_to"`
-	StartedAtFrom  pgtype.Timestamptz `json:"started_at_from"`
-	MaxDataPoints  float64            `json:"max_data_points"`
-	ProbeStorageID int64              `json:"probe_storage_id"`
-	CheckStorageID int64              `json:"check_storage_id"`
+	StartedAtTo    time.Time `json:"started_at_to"`
+	StartedAtFrom  time.Time `json:"started_at_from"`
+	MaxDataPoints  float64   `json:"max_data_points"`
+	ProbeStorageID int64     `json:"probe_storage_id"`
+	CheckStorageID int64     `json:"check_storage_id"`
 }
 
 type ListPingLatencyMaxRollupSeriesRow struct {
@@ -667,11 +639,11 @@ ORDER BY bucket_ms ASC
 `
 
 type ListPingLatencyMinBucketSeriesParams struct {
-	StartedAtFrom  pgtype.Timestamptz `json:"started_at_from"`
-	ProbeStorageID int64              `json:"probe_storage_id"`
-	CheckStorageID int64              `json:"check_storage_id"`
-	StartedAtTo    pgtype.Timestamptz `json:"started_at_to"`
-	MaxDataPoints  float64            `json:"max_data_points"`
+	StartedAtFrom  time.Time `json:"started_at_from"`
+	ProbeStorageID int64     `json:"probe_storage_id"`
+	CheckStorageID int64     `json:"check_storage_id"`
+	StartedAtTo    time.Time `json:"started_at_to"`
+	MaxDataPoints  float64   `json:"max_data_points"`
 }
 
 type ListPingLatencyMinBucketSeriesRow struct {
@@ -719,10 +691,10 @@ ORDER BY started_at ASC
 `
 
 type ListPingLatencyMinRawSeriesParams struct {
-	ProbeStorageID int64              `json:"probe_storage_id"`
-	CheckStorageID int64              `json:"check_storage_id"`
-	StartedAtFrom  pgtype.Timestamptz `json:"started_at_from"`
-	StartedAtTo    pgtype.Timestamptz `json:"started_at_to"`
+	ProbeStorageID int64     `json:"probe_storage_id"`
+	CheckStorageID int64     `json:"check_storage_id"`
+	StartedAtFrom  time.Time `json:"started_at_from"`
+	StartedAtTo    time.Time `json:"started_at_to"`
 }
 
 type ListPingLatencyMinRawSeriesRow struct {
@@ -786,11 +758,11 @@ ORDER BY query_bucket ASC
 `
 
 type ListPingLatencyMinRollupSeriesParams struct {
-	StartedAtTo    pgtype.Timestamptz `json:"started_at_to"`
-	StartedAtFrom  pgtype.Timestamptz `json:"started_at_from"`
-	MaxDataPoints  float64            `json:"max_data_points"`
-	ProbeStorageID int64              `json:"probe_storage_id"`
-	CheckStorageID int64              `json:"check_storage_id"`
+	StartedAtTo    time.Time `json:"started_at_to"`
+	StartedAtFrom  time.Time `json:"started_at_from"`
+	MaxDataPoints  float64   `json:"max_data_points"`
+	ProbeStorageID int64     `json:"probe_storage_id"`
+	CheckStorageID int64     `json:"check_storage_id"`
 }
 
 type ListPingLatencyMinRollupSeriesRow struct {
@@ -851,11 +823,11 @@ ORDER BY bucket_ms ASC
 `
 
 type ListPingLossPercentBucketSeriesParams struct {
-	StartedAtFrom  pgtype.Timestamptz `json:"started_at_from"`
-	ProbeStorageID int64              `json:"probe_storage_id"`
-	CheckStorageID int64              `json:"check_storage_id"`
-	StartedAtTo    pgtype.Timestamptz `json:"started_at_to"`
-	MaxDataPoints  float64            `json:"max_data_points"`
+	StartedAtFrom  time.Time `json:"started_at_from"`
+	ProbeStorageID int64     `json:"probe_storage_id"`
+	CheckStorageID int64     `json:"check_storage_id"`
+	StartedAtTo    time.Time `json:"started_at_to"`
+	MaxDataPoints  float64   `json:"max_data_points"`
 }
 
 type ListPingLossPercentBucketSeriesRow struct {
@@ -902,10 +874,10 @@ ORDER BY started_at ASC
 `
 
 type ListPingLossPercentRawSeriesParams struct {
-	ProbeStorageID int64              `json:"probe_storage_id"`
-	CheckStorageID int64              `json:"check_storage_id"`
-	StartedAtFrom  pgtype.Timestamptz `json:"started_at_from"`
-	StartedAtTo    pgtype.Timestamptz `json:"started_at_to"`
+	ProbeStorageID int64     `json:"probe_storage_id"`
+	CheckStorageID int64     `json:"check_storage_id"`
+	StartedAtFrom  time.Time `json:"started_at_from"`
+	StartedAtTo    time.Time `json:"started_at_to"`
 }
 
 type ListPingLossPercentRawSeriesRow struct {
@@ -971,11 +943,11 @@ ORDER BY query_bucket ASC
 `
 
 type ListPingLossPercentRollupSeriesParams struct {
-	StartedAtTo    pgtype.Timestamptz `json:"started_at_to"`
-	StartedAtFrom  pgtype.Timestamptz `json:"started_at_from"`
-	MaxDataPoints  float64            `json:"max_data_points"`
-	ProbeStorageID int64              `json:"probe_storage_id"`
-	CheckStorageID int64              `json:"check_storage_id"`
+	StartedAtTo    time.Time `json:"started_at_to"`
+	StartedAtFrom  time.Time `json:"started_at_from"`
+	MaxDataPoints  float64   `json:"max_data_points"`
+	ProbeStorageID int64     `json:"probe_storage_id"`
+	CheckStorageID int64     `json:"check_storage_id"`
 }
 
 type ListPingLossPercentRollupSeriesRow struct {

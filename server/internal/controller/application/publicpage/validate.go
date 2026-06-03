@@ -247,7 +247,7 @@ func normalizePublicPageSlug(slug string) (string, error) {
 	return normalized, nil
 }
 
-func normalizeQueryPublicPingInsightInput(input QueryPublicPingInsightInput) (QueryPublicPingInsightInput, time.Time, time.Time, int32, error) {
+func normalizeQueryPublicPingInsightInput(input QueryPublicPingInsightInput) (QueryPublicPingInsightInput, time.Time, time.Time, time.Time, int32, error) {
 	var validation appvalidation.Collector
 	slug, err := domainpublicpage.VNSlug(input.Slug)
 	if err != nil {
@@ -268,23 +268,23 @@ func normalizeQueryPublicPingInsightInput(input QueryPublicPingInsightInput) (Qu
 	from, to, err := normalizeRange(input.FromMs, input.ToMs, now)
 	if err != nil {
 		if !validation.AddValidation(err) {
-			return QueryPublicPingInsightInput{}, time.Time{}, time.Time{}, 0, err
+			return QueryPublicPingInsightInput{}, time.Time{}, time.Time{}, time.Time{}, 0, err
 		}
 	}
 	maxDataPoints, err := normalizeMaxDataPoints(input.MaxDataPoints)
 	if err != nil {
 		if !validation.AddValidation(err) {
-			return QueryPublicPingInsightInput{}, time.Time{}, time.Time{}, 0, err
+			return QueryPublicPingInsightInput{}, time.Time{}, time.Time{}, time.Time{}, 0, err
 		}
 	}
 	if err := validation.Err(ErrInvalidInput); err != nil {
-		return QueryPublicPingInsightInput{}, time.Time{}, time.Time{}, 0, err
+		return QueryPublicPingInsightInput{}, time.Time{}, time.Time{}, time.Time{}, 0, err
 	}
 
 	input.Slug = slug
 	input.ProbeID = probeID
 	input.CheckID = checkID
-	return input, from, to, maxDataPoints, nil
+	return input, from, to, now, maxDataPoints, nil
 }
 
 func optionalSlug(value *string) (*string, error) {

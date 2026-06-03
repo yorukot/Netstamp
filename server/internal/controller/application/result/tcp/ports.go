@@ -7,5 +7,7 @@ import (
 )
 
 type InsightRepository interface {
-	ListTCPInsight(ctx context.Context, input domaintcp.InsightQuery) (domaintcp.InsightResult, error)
+	CountTCPSeriesPoints(ctx context.Context, input domaintcp.SeriesPointCountQuery) (int64, error)
+	ListTCPSeries(ctx context.Context, input domaintcp.SeriesReadQuery) (map[string]domaintcp.SeriesData, error)
+	GetTCPInsightSummary(ctx context.Context, input domaintcp.InsightSummaryQuery) (domaintcp.InsightSummary, error)
 }

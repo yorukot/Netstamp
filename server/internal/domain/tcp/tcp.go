@@ -151,55 +151,78 @@ type ResultStorageInput struct {
 	ErrorMessage      *string
 }
 
-type InsightQuery struct {
+type SeriesPointCountQuery struct {
+	ProjectID string
+	ProbeID   string
+	CheckID   string
+	From      time.Time
+	To        time.Time
+}
+
+type SeriesReadMode string
+
+const (
+	SeriesReadModeRaw    SeriesReadMode = "raw"
+	SeriesReadModeBucket SeriesReadMode = "bucket"
+	SeriesReadModeRollup SeriesReadMode = "rollup"
+)
+
+type SeriesReadPlan struct {
+	Mode        SeriesReadMode
+	Source      SeriesSource
+	Resolution  SeriesResolution
+	TotalPoints int64
+}
+
+type SeriesReadQuery struct {
 	ProjectID     string
 	ProbeID       string
 	CheckID       string
 	From          time.Time
 	To            time.Time
+	Series        []string
 	MaxDataPoints int32
+	Mode          SeriesReadMode
 }
 
-type InsightResolution string
+type SeriesResolution string
 
 const (
-	InsightResolutionRaw    InsightResolution = "raw"
-	InsightResolutionBucket InsightResolution = "bucket"
+	SeriesResolutionRaw       SeriesResolution = "raw"
+	SeriesResolutionBucket    SeriesResolution = "bucket"
+	SeriesResolutionOneMinute SeriesResolution = "1m"
 )
 
-type InsightResult struct {
-	Buckets     []InsightBucket
-	Summary     InsightSummary
-	Resolution  InsightResolution
-	TotalPoints int64
+type SeriesSource string
+
+const (
+	SeriesSourceRaw       SeriesSource = "raw"
+	SeriesSourceAggregate SeriesSource = "aggregate"
+)
+
+type SeriesData struct {
+	Points []SeriesPoint
 }
 
-type InsightBucket struct {
-	Timestamp       time.Time
-	ResultCount     int64
-	DurationAvgMs   *float64
-	ConnectMinMs    *float64
-	ConnectAvgMs    *float64
-	ConnectMedianMs *float64
-	ConnectMaxMs    *float64
-	ConnectStddevMs *float64
-	SuccessRate     *float64
-	TimeoutCount    int64
-	ErrorCount      int64
+type SeriesPoint struct {
+	Timestamp time.Time
+	Value     float64
+}
+
+type InsightSummaryQuery struct {
+	ProjectID string
+	ProbeID   string
+	CheckID   string
+	From      time.Time
+	To        time.Time
+	Source    SeriesSource
 }
 
 type InsightSummary struct {
 	TotalResults     int64
-	SuccessfulCount  int64
-	TimeoutCount     int64
-	ErrorCount       int64
-	AvgConnectMs     *float64
-	MedianConnectMs  *float64
+	AverageConnectMs *float64
 	MaxConnectMs     *float64
-	P95ConnectMs     *float64
-	P99ConnectMs     *float64
-	LatestStatus     *Status
-	LatestStartedAt  *time.Time
-	LatestConnectMs  *float64
-	LatestResolvedIP *netip.Addr
+	FailurePercent   *float64
+	SuccessRate      *float64
+	Samples          int64
 }

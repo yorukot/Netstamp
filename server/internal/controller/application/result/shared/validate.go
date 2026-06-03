@@ -54,6 +54,7 @@ func NormalizeQueryBase(currentUserID, projectRefValue, probeIDValue, checkIDVal
 		CheckID:       checkID,
 		From:          from,
 		To:            to,
+		Now:           now,
 	}, nil
 }
 

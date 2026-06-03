@@ -3,9 +3,9 @@ package pgping
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/postgres"
@@ -38,8 +38,8 @@ func (r *PingRepository) CreatePingResults(ctx context.Context, inputs []domainp
 			createErr := q.CreatePingResult(ctx, sqlc.CreatePingResultParams{
 				ProbeStorageID: input.ProbeStorageID,
 				CheckStorageID: input.CheckStorageID,
-				StartedAt:      pgtype.Timestamptz{Time: input.StartedAt.UTC(), Valid: true},
-				FinishedAt:     pgtype.Timestamptz{Time: input.FinishedAt.UTC(), Valid: true},
+				StartedAt:      input.StartedAt.UTC(),
+				FinishedAt:     input.FinishedAt.UTC(),
 				DurationMs:     input.DurationMs,
 				Status:         sqlcPingStatus(input.Status),
 				SentCount:      input.SentCount,
@@ -78,43 +78,33 @@ func storageRTTSamples(samples []float64) []float64 {
 type pingSeriesScope struct {
 	probeStorageID int64
 	checkStorageID int64
-	startedAtFrom  pgtype.Timestamptz
-	startedAtTo    pgtype.Timestamptz
+	startedAtFrom  time.Time
+	startedAtTo    time.Time
 	maxDataPoints  int32
 }
 
-func (r *PingRepository) CountPingSeriesPoints(ctx context.Context, input domainping.SeriesPointCountQuery) (int64, int64, error) {
-	ctx, span := postgres.StartDBSpan(ctx, pgpingTracer, "ping_results", "postgres.ping_results.series_count", "SELECT", "SELECT ping result point counts")
+func (r *PingRepository) CountPingSeriesPoints(ctx context.Context, input domainping.SeriesPointCountQuery) (int64, error) {
+	ctx, span := postgres.StartDBSpan(ctx, pgpingTracer, "ping_results", "postgres.ping_results.series_count", "SELECT", "SELECT ping result point count")
 	defer span.End()
 
 	probeStorageID, checkStorageID, err := r.resolvePingStorageIDs(ctx, input.ProjectID, input.ProbeID, input.CheckID)
 	if err != nil {
 		postgres.RecordDBSpanError(span, err)
-		return 0, 0, err
+		return 0, err
 	}
 
 	rawPoints, err := r.queries.CountPingResultSeriesPoints(ctx, sqlc.CountPingResultSeriesPointsParams{
 		ProbeStorageID: probeStorageID,
 		CheckStorageID: checkStorageID,
-		StartedAtFrom:  pgtype.Timestamptz{Time: input.From.UTC(), Valid: true},
-		StartedAtTo:    pgtype.Timestamptz{Time: input.To.UTC(), Valid: true},
+		StartedAtFrom:  input.From.UTC(),
+		StartedAtTo:    input.To.UTC(),
 	})
 	if err != nil {
 		postgres.RecordDBSpanError(span, err)
-		return 0, 0, err
-	}
-	rollupPoints, err := r.queries.CountPingResultRollupSeriesPoints(ctx, sqlc.CountPingResultRollupSeriesPointsParams{
-		ProbeStorageID: probeStorageID,
-		CheckStorageID: checkStorageID,
-		StartedAtFrom:  pgtype.Timestamptz{Time: input.From.UTC(), Valid: true},
-		StartedAtTo:    pgtype.Timestamptz{Time: input.To.UTC(), Valid: true},
-	})
-	if err != nil {
-		postgres.RecordDBSpanError(span, err)
-		return 0, 0, err
+		return 0, err
 	}
 
-	return rawPoints, rollupPoints, nil
+	return rawPoints, nil
 }
 
 func (r *PingRepository) ListPingSeries(ctx context.Context, input domainping.SeriesReadQuery) (map[string]domainping.SeriesData, error) {
@@ -129,8 +119,8 @@ func (r *PingRepository) ListPingSeries(ctx context.Context, input domainping.Se
 	scope := pingSeriesScope{
 		probeStorageID: probeStorageID,
 		checkStorageID: checkStorageID,
-		startedAtFrom:  pgtype.Timestamptz{Time: input.From.UTC(), Valid: true},
-		startedAtTo:    pgtype.Timestamptz{Time: input.To.UTC(), Valid: true},
+		startedAtFrom:  input.From.UTC(),
+		startedAtTo:    input.To.UTC(),
 		maxDataPoints:  input.MaxDataPoints,
 	}
 
@@ -159,8 +149,8 @@ func (r *PingRepository) GetPingInsightSummary(ctx context.Context, input domain
 	scope := pingSeriesScope{
 		probeStorageID: probeStorageID,
 		checkStorageID: checkStorageID,
-		startedAtFrom:  pgtype.Timestamptz{Time: input.From.UTC(), Valid: true},
-		startedAtTo:    pgtype.Timestamptz{Time: input.To.UTC(), Valid: true},
+		startedAtFrom:  input.From.UTC(),
+		startedAtTo:    input.To.UTC(),
 	}
 
 	switch input.Source {

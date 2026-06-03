@@ -46,7 +46,7 @@ func (s *Service) QueryInsight(ctx context.Context, input QueryInsightInput) (In
 		return InsightOutput{}, configuredErr
 	}
 
-	rawPoints, rollupPoints, err := s.series.CountPingSeriesPoints(ctx, domainping.SeriesPointCountQuery{
+	rawPoints, err := s.series.CountPingSeriesPoints(ctx, domainping.SeriesPointCountQuery{
 		ProjectID: project.ID,
 		ProbeID:   normalized.base.ProbeID,
 		CheckID:   normalized.base.CheckID,
@@ -58,7 +58,7 @@ func (s *Service) QueryInsight(ctx context.Context, input QueryInsightInput) (In
 		span.RecordError(err)
 		return InsightOutput{}, err
 	}
-	plan := pingquery.SelectReadPlan(rawPoints, rollupPoints, normalized.maxDataPoints)
+	plan := pingquery.SelectReadPlan(rawPoints, normalized.base.From, normalized.base.Now, normalized.maxDataPoints)
 
 	summary, err := s.series.GetPingInsightSummary(ctx, domainping.InsightSummaryQuery{
 		ProjectID: project.ID,
@@ -73,6 +73,10 @@ func (s *Service) QueryInsight(ctx context.Context, input QueryInsightInput) (In
 		span.RecordError(err)
 		return InsightOutput{}, err
 	}
+	totalPoints := plan.TotalPoints
+	if plan.Source == domainping.SeriesSourceAggregate || summary.TotalResults > 0 {
+		totalPoints = summary.TotalResults
+	}
 
 	return InsightOutput{
 		Summary: newInsightSummary(summary),
@@ -82,7 +86,7 @@ func (s *Service) QueryInsight(ctx context.Context, input QueryInsightInput) (In
 			MaxDataPoints: normalized.maxDataPoints,
 			Source:        string(plan.Source),
 			Resolution:    string(plan.Resolution),
-			TotalPoints:   plan.TotalPoints,
+			TotalPoints:   totalPoints,
 		},
 	}, nil
 }

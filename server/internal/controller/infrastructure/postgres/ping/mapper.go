@@ -107,6 +107,7 @@ func pingSeriesRows[T any](rows []T, values func(T) (int64, float64)) []domainpi
 
 func pingInsightSummary(row sqlc.GetPingInsightSummaryRow) domainping.InsightSummary {
 	return domainping.InsightSummary{
+		TotalResults: row.TotalResults,
 		AverageRttMs: floatPtrIf(row.RttValueCount, row.AverageRttMs),
 		MaxRttMs:     floatPtrIf(row.RttValueCount, row.MaxRttMs),
 		LossPercent:  floatPtrIf(row.TotalResults, row.LossPercent),
@@ -117,6 +118,7 @@ func pingInsightSummary(row sqlc.GetPingInsightSummaryRow) domainping.InsightSum
 
 func pingRollupInsightSummary(row sqlc.GetPingInsightRollupSummaryRow) domainping.InsightSummary {
 	return domainping.InsightSummary{
+		TotalResults: row.TotalResults,
 		AverageRttMs: floatPtrIf(row.RttValueCount, row.AverageRttMs),
 		MaxRttMs:     floatPtrIf(row.RttValueCount, row.MaxRttMs),
 		LossPercent:  floatPtrIf(row.TotalResults, row.LossPercent),

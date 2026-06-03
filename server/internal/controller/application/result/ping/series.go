@@ -48,7 +48,7 @@ func (s *Service) QuerySeries(ctx context.Context, input QuerySeriesInput) (Seri
 		return SeriesOutput{}, configuredErr
 	}
 
-	rawPoints, rollupPoints, err := s.series.CountPingSeriesPoints(ctx, domainping.SeriesPointCountQuery{
+	rawPoints, err := s.series.CountPingSeriesPoints(ctx, domainping.SeriesPointCountQuery{
 		ProjectID: project.ID,
 		ProbeID:   normalized.base.ProbeID,
 		CheckID:   normalized.base.CheckID,
@@ -60,7 +60,7 @@ func (s *Service) QuerySeries(ctx context.Context, input QuerySeriesInput) (Seri
 		span.RecordError(err)
 		return SeriesOutput{}, err
 	}
-	plan := pingquery.SelectReadPlan(rawPoints, rollupPoints, normalized.maxDataPoints)
+	plan := pingquery.SelectReadPlan(rawPoints, normalized.base.From, normalized.base.Now, normalized.maxDataPoints)
 
 	series, err := s.series.ListPingSeries(ctx, domainping.SeriesReadQuery{
 		ProjectID:     project.ID,
@@ -78,6 +78,11 @@ func (s *Service) QuerySeries(ctx context.Context, input QuerySeriesInput) (Seri
 		return SeriesOutput{}, err
 	}
 
+	totalPoints := plan.TotalPoints
+	if plan.Source == domainping.SeriesSourceAggregate {
+		totalPoints = maxSeriesPointCount(series)
+	}
+
 	return SeriesOutput{
 		Series: newSeries(series, normalized.series, normalized.base.ProbeID, normalized.base.CheckID),
 		Meta: resultshared.QueryMetadata{
@@ -86,9 +91,19 @@ func (s *Service) QuerySeries(ctx context.Context, input QuerySeriesInput) (Seri
 			MaxDataPoints: normalized.maxDataPoints,
 			Source:        string(plan.Source),
 			Resolution:    string(plan.Resolution),
-			TotalPoints:   plan.TotalPoints,
+			TotalPoints:   totalPoints,
 		},
 	}, nil
+}
+
+func maxSeriesPointCount(series map[string]domainping.SeriesData) int64 {
+	var maxCount int
+	for _, data := range series {
+		if len(data.Points) > maxCount {
+			maxCount = len(data.Points)
+		}
+	}
+	return int64(maxCount)
 }
 
 func newSeries(series map[string]domainping.SeriesData, requested []SeriesKey, probeID, checkID string) map[string]Series {

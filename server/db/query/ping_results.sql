@@ -63,14 +63,6 @@ WHERE probe_id = sqlc.arg(probe_storage_id)
     AND started_at >= sqlc.arg(started_at_from)
     AND started_at < sqlc.arg(started_at_to);
 
--- name: CountPingResultRollupSeriesPoints :one
-SELECT coalesce(sum(result_count), 0)::bigint
-FROM ping_result_rollups_1m
-WHERE probe_id = sqlc.arg(probe_storage_id)
-    AND check_id = sqlc.arg(check_storage_id)
-    AND bucket >= sqlc.arg(started_at_from)::timestamptz
-    AND bucket < sqlc.arg(started_at_to)::timestamptz;
-
 -- name: ListPingLatencyAvgRawSeries :many
 SELECT
     (extract(epoch FROM started_at) * 1000)::bigint AS bucket_ms,

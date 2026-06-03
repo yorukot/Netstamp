@@ -329,7 +329,7 @@ func (s *Service) QueryPublicPingInsight(ctx context.Context, input QueryPublicP
 	ctx, flow := s.startPublicPageFlow(ctx, "public_page.ping_insight", PublicPageActionPingInsight, "")
 	defer flow.end()
 
-	input, from, to, maxDataPoints, err := normalizeQueryPublicPingInsightInput(input)
+	input, from, to, now, maxDataPoints, err := normalizeQueryPublicPingInsightInput(input)
 	if err != nil {
 		return PublicPingInsightOutput{}, flow.businessFailure(PublicPageEventPingInsightFailure, PublicPageReasonInvalidInput, err)
 	}
@@ -346,7 +346,7 @@ func (s *Service) QueryPublicPingInsight(ctx context.Context, input QueryPublicP
 		return PublicPingInsightOutput{}, flow.technicalFailure(PublicPageEventPingInsightFailure, PublicPageReasonPingRepositoryNotConfigured, errors.New("ping repository is not configured"))
 	}
 
-	rawPoints, rollupPoints, err := s.pings.CountPingSeriesPoints(ctx, domainping.SeriesPointCountQuery{
+	rawPoints, err := s.pings.CountPingSeriesPoints(ctx, domainping.SeriesPointCountQuery{
 		ProjectID: projectID,
 		ProbeID:   input.ProbeID,
 		CheckID:   input.CheckID,
@@ -356,7 +356,7 @@ func (s *Service) QueryPublicPingInsight(ctx context.Context, input QueryPublicP
 	if err != nil {
 		return PublicPingInsightOutput{}, flow.technicalFailure(PublicPageEventPingInsightFailure, PublicPageReasonPingInsightQueryFailed, err)
 	}
-	plan := pingquery.SelectReadPlan(rawPoints, rollupPoints, maxDataPoints)
+	plan := pingquery.SelectReadPlan(rawPoints, from, now, maxDataPoints)
 
 	summary, err := s.pings.GetPingInsightSummary(ctx, domainping.InsightSummaryQuery{
 		ProjectID: projectID,
@@ -471,6 +471,10 @@ func attachChecks(folders []domainpublicpage.Folder, checks []domainpublicpage.P
 }
 
 func newPublicPingInsightOutput(summary domainping.InsightSummary, plan domainping.SeriesReadPlan, from, to time.Time, maxDataPoints int32) PublicPingInsightOutput {
+	totalPoints := plan.TotalPoints
+	if plan.Source == domainping.SeriesSourceAggregate || summary.TotalResults > 0 {
+		totalPoints = summary.TotalResults
+	}
 	return PublicPingInsightOutput{
 		Summary: newPingInsightSummary(summary),
 		Meta: QueryMetadata{
@@ -479,7 +483,7 @@ func newPublicPingInsightOutput(summary domainping.InsightSummary, plan domainpi
 			MaxDataPoints: maxDataPoints,
 			Source:        string(plan.Source),
 			Resolution:    string(plan.Resolution),
-			TotalPoints:   plan.TotalPoints,
+			TotalPoints:   totalPoints,
 		},
 	}
 }

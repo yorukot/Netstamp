@@ -9,16 +9,23 @@ import (
 )
 
 type PingSeriesKey = ping.SeriesKey
+type TCPSeriesKey = tcp.SeriesKey
 
 const (
 	PingSeriesLatencyAvg  = ping.SeriesLatencyAvg
 	PingSeriesLatencyMin  = ping.SeriesLatencyMin
 	PingSeriesLatencyMax  = ping.SeriesLatencyMax
 	PingSeriesLossPercent = ping.SeriesLossPercent
+
+	TCPSeriesConnectAvg     = tcp.SeriesConnectAvg
+	TCPSeriesConnectMin     = tcp.SeriesConnectMin
+	TCPSeriesConnectMax     = tcp.SeriesConnectMax
+	TCPSeriesFailurePercent = tcp.SeriesFailurePercent
 )
 
 type QueryPingSeriesInput = ping.QuerySeriesInput
 type QueryPingInsightInput = ping.QueryInsightInput
+type QueryTCPSeriesInput = tcp.QuerySeriesInput
 type QueryTCPInsightInput = tcp.QueryInsightInput
 type QueryTracerouteRunsInput = traceroute.QueryRunsInput
 type QueryTracerouteInsightInput = traceroute.QueryInsightInput
@@ -27,6 +34,7 @@ type QueryMeasurementsInput = measurement.QueryInput
 
 type PingSeriesOutput = ping.SeriesOutput
 type PingInsightOutput = ping.InsightOutput
+type TCPSeriesOutput = tcp.SeriesOutput
 type TCPInsightOutput = tcp.InsightOutput
 type TracerouteRunsOutput = traceroute.RunsOutput
 type TracerouteInsightOutput = traceroute.InsightOutput
@@ -43,7 +51,6 @@ type Series = ping.Series
 type SeriesLabels = ping.SeriesLabels
 type SeriesPoint = ping.SeriesPoint
 type PingInsightSummary = ping.InsightSummary
-type TCPInsightBucket = tcp.InsightBucket
 type TCPInsightSummary = tcp.InsightSummary
 type QueryMetadata = resultshared.QueryMetadata
 type TracerouteRunsQueryMetadata = traceroute.RunsQueryMetadata

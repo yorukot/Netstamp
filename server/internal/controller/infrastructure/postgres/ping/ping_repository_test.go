@@ -49,6 +49,9 @@ func TestPingRollupInsightSummaryMapsAggregateFields(t *testing.T) {
 	if got.SuccessRate == nil || *got.SuccessRate != 66.667 {
 		t.Fatalf("expected success rate from rollup summary, got %#v", got.SuccessRate)
 	}
+	if got.TotalResults != 3 {
+		t.Fatalf("expected total results from rollup summary, got %d", got.TotalResults)
+	}
 	if got.Samples != 11 {
 		t.Fatalf("expected samples from received count, got %d", got.Samples)
 	}

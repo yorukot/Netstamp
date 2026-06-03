@@ -69,6 +69,45 @@ func TestQuerySeriesUsesDefaultsAndMapsPoints(t *testing.T) {
 	}
 }
 
+func TestQuerySeriesUsesRollupPastRawRetention(t *testing.T) {
+	now := time.Date(2026, 5, 13, 12, 0, 0, 0, time.UTC)
+	from := now.Add(-72*time.Hour - time.Millisecond)
+	fromMs := from.UnixMilli()
+	toMs := now.UnixMilli()
+	repo := &recordingSeriesRepository{
+		rawPoints: 0,
+		series: map[string]domainping.SeriesData{
+			string(SeriesLatencyAvg): {
+				Points: []domainping.SeriesPoint{
+					{Timestamp: now.Add(-time.Minute), Value: 10},
+					{Timestamp: now, Value: 12},
+				},
+			},
+		},
+	}
+	service := NewService(repo, staticProjectAccess{})
+
+	output, err := service.QuerySeries(context.Background(), QuerySeriesInput{
+		CurrentUserID: testUserID,
+		ProjectRef:    "vector-ix",
+		ProbeID:       testProbeID,
+		CheckID:       testCheckID,
+		FromMs:        &fromMs,
+		ToMs:          &toMs,
+		Now:           now,
+	})
+	if err != nil {
+		t.Fatalf("expected query to succeed: %v", err)
+	}
+
+	if repo.gotSeries.Mode != domainping.SeriesReadModeRollup {
+		t.Fatalf("expected rollup read mode, got %s", repo.gotSeries.Mode)
+	}
+	if output.Meta.Resolution != string(domainping.SeriesResolutionOneMinute) || output.Meta.Source != string(domainping.SeriesSourceAggregate) || output.Meta.TotalPoints != 2 {
+		t.Fatalf("unexpected query sampling metadata: %#v", output.Meta)
+	}
+}
+
 func TestQuerySeriesRejectsInvalidSeries(t *testing.T) {
 	service := NewService(&recordingSeriesRepository{}, staticProjectAccess{})
 
@@ -135,18 +174,17 @@ func (staticProjectAccess) GetProjectForUser(_ context.Context, projectRef, user
 }
 
 type recordingSeriesRepository struct {
-	gotCount     domainping.SeriesPointCountQuery
-	gotSeries    domainping.SeriesReadQuery
-	gotSummary   domainping.InsightSummaryQuery
-	rawPoints    int64
-	rollupPoints int64
-	series       map[string]domainping.SeriesData
-	summary      domainping.InsightSummary
+	gotCount   domainping.SeriesPointCountQuery
+	gotSeries  domainping.SeriesReadQuery
+	gotSummary domainping.InsightSummaryQuery
+	rawPoints  int64
+	series     map[string]domainping.SeriesData
+	summary    domainping.InsightSummary
 }
 
-func (r *recordingSeriesRepository) CountPingSeriesPoints(_ context.Context, input domainping.SeriesPointCountQuery) (int64, int64, error) {
+func (r *recordingSeriesRepository) CountPingSeriesPoints(_ context.Context, input domainping.SeriesPointCountQuery) (int64, error) {
 	r.gotCount = input
-	return r.rawPoints, r.rollupPoints, nil
+	return r.rawPoints, nil
 }
 
 func (r *recordingSeriesRepository) ListPingSeries(_ context.Context, input domainping.SeriesReadQuery) (map[string]domainping.SeriesData, error) {
