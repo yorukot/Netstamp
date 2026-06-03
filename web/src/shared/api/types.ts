@@ -40,6 +40,11 @@ export type RegisterInput = components["schemas"]["RegisterUserRequest"];
 export type SelectorPreviewInput = components["schemas"]["SelectorPreviewRequest"];
 export type SetPublicPageFolderChecksInput = components["schemas"]["SetPublicPageFolderChecksRequest"];
 export type TcpInsightResponse = components["schemas"]["TcpInsightResponse"];
+export type TcpSeriesKey = "connect_avg" | "connect_min" | "connect_max" | "failure_percent";
+export type TcpSeriesParameter = components["parameters"]["TcpSeriesQuery.series"];
+export type TcpSeriesResponse = Omit<components["schemas"]["TcpSeriesResponse"], "series"> & {
+	series: Partial<Record<TcpSeriesKey, ApiSeries>> & Record<string, ApiSeries | undefined>;
+};
 export type TracerouteHop = components["schemas"]["TracerouteHop"];
 export type TracerouteInsightResponse = components["schemas"]["TracerouteInsightResponse"];
 export type TracerouteResult = components["schemas"]["TracerouteResult"];
@@ -86,6 +91,13 @@ export interface PingInsightFilters {
 export interface TcpInsightFilters {
 	from?: number;
 	to?: number;
+	maxDataPoints?: number;
+}
+
+export interface TcpSeriesFilters {
+	from?: number;
+	to?: number;
+	series?: TcpSeriesParameter;
 	maxDataPoints?: number;
 }
 

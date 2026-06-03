@@ -634,6 +634,23 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	"/projects/{ref}/results/tcp/series": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** Query project TCP result series */
+		get: operations["queryProjectTcpResultSeries"];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	"/projects/{ref}/results/traceroute/insight": {
 		parameters: {
 			query?: never;
@@ -2499,121 +2516,47 @@ export interface components {
 		};
 		/**
 		 * @example {
-		 *       "timestampMs": 1778666400000,
-		 *       "resultCount": 12,
-		 *       "durationAvgMs": 42,
-		 *       "connectMinMs": 10.1,
-		 *       "connectAvgMs": 12.3,
-		 *       "connectMedianMs": 12,
-		 *       "connectMaxMs": 15.6,
-		 *       "connectStddevMs": 1.7,
-		 *       "successRate": 100,
-		 *       "timeoutCount": 0,
-		 *       "errorCount": 0
-		 *     }
-		 */
-		TcpInsightBucket: {
-			/** Format: int64 */
-			timestampMs: number;
-			/** Format: int64 */
-			resultCount: number;
-			/** Format: double */
-			durationAvgMs?: number;
-			/** Format: double */
-			connectMinMs?: number;
-			/** Format: double */
-			connectAvgMs?: number;
-			/** Format: double */
-			connectMedianMs?: number;
-			/** Format: double */
-			connectMaxMs?: number;
-			/** Format: double */
-			connectStddevMs?: number;
-			/** Format: double */
-			successRate?: number;
-			/** Format: int64 */
-			timeoutCount: number;
-			/** Format: int64 */
-			errorCount: number;
-		};
-		/**
-		 * @example {
-		 *       "buckets": [
-		 *         {
-		 *           "timestampMs": 1778666400000,
-		 *           "resultCount": 12,
-		 *           "connectAvgMs": 12.3,
-		 *           "connectMinMs": 10.1,
-		 *           "connectMaxMs": 15.6,
-		 *           "successRate": 100,
-		 *           "timeoutCount": 0,
-		 *           "errorCount": 0
-		 *         }
-		 *       ],
 		 *       "summary": {
-		 *         "totalResults": 487,
-		 *         "successfulCount": 480,
-		 *         "timeoutCount": 7,
-		 *         "errorCount": 0,
-		 *         "avgConnectMs": 12.3
+		 *         "averageConnectMs": 12.3,
+		 *         "maxConnectMs": 42.5,
+		 *         "failurePercent": 1.4,
+		 *         "successRate": 98.6,
+		 *         "samples": 487
 		 *       },
-		 *       "query": {
+		 *       "meta": {
 		 *         "from": 1778662800000,
 		 *         "to": 1778749200000,
 		 *         "maxDataPoints": 600,
-		 *         "resolution": "bucket",
+		 *         "source": "aggregate",
+		 *         "resolution": "1m",
 		 *         "totalPoints": 487
 		 *       }
 		 *     }
 		 */
 		TcpInsightResponse: {
-			buckets: components["schemas"]["TcpInsightBucket"][];
 			summary: components["schemas"]["TcpInsightSummary"];
-			query: components["schemas"]["PingSeriesQueryMetadata"];
+			meta: components["schemas"]["PingSeriesQueryMetadata"];
 		};
 		/**
 		 * @example {
-		 *       "totalResults": 487,
-		 *       "successfulCount": 480,
-		 *       "timeoutCount": 7,
-		 *       "errorCount": 0,
-		 *       "avgConnectMs": 12.3,
-		 *       "medianConnectMs": 12,
+		 *       "averageConnectMs": 12.3,
 		 *       "maxConnectMs": 42.5,
-		 *       "p95ConnectMs": 18.2,
-		 *       "p99ConnectMs": 31.7,
-		 *       "latestStatus": "successful",
-		 *       "latestStartedAtMs": 1778666400000,
-		 *       "latestConnectMs": 12.3,
-		 *       "latestResolvedIp": "1.1.1.1"
+		 *       "failurePercent": 1.4,
+		 *       "successRate": 98.6,
+		 *       "samples": 487
 		 *     }
 		 */
 		TcpInsightSummary: {
-			/** Format: int64 */
-			totalResults: number;
-			/** Format: int64 */
-			successfulCount: number;
-			/** Format: int64 */
-			timeoutCount: number;
-			/** Format: int64 */
-			errorCount: number;
 			/** Format: double */
-			avgConnectMs?: number;
-			/** Format: double */
-			medianConnectMs?: number;
+			averageConnectMs?: number;
 			/** Format: double */
 			maxConnectMs?: number;
 			/** Format: double */
-			p95ConnectMs?: number;
+			failurePercent?: number;
 			/** Format: double */
-			p99ConnectMs?: number;
-			/** @enum {string} */
-			latestStatus?: "successful" | "timeout" | "error";
+			successRate?: number;
 			/** Format: int64 */
-			latestStartedAtMs?: number;
-			/** Format: double */
-			latestConnectMs?: number;
-			latestResolvedIp?: components["schemas"]["ipv4Address"] | components["schemas"]["ipv6Address"];
+			samples: number;
 		};
 		/**
 		 * @example {
@@ -2642,6 +2585,39 @@ export interface components {
 			ipFamily?: "inet" | "inet6";
 			errorCode?: string;
 			errorMessage?: string;
+		};
+		/**
+		 * @example {
+		 *       "series": {
+		 *         "connect_avg": {
+		 *           "name": "connect_avg",
+		 *           "labels": {
+		 *             "probeId": "33333333-3333-3333-3333-333333333333",
+		 *             "checkId": "44444444-4444-4444-4444-444444444444",
+		 *             "checkType": "tcp"
+		 *           },
+		 *           "unit": "ms",
+		 *           "points": [
+		 *             [
+		 *               1778666400000,
+		 *               12.3
+		 *             ]
+		 *           ]
+		 *         }
+		 *       },
+		 *       "meta": {
+		 *         "from": 1778662800000,
+		 *         "to": 1778749200000,
+		 *         "maxDataPoints": 600,
+		 *         "source": "raw",
+		 *         "resolution": "bucket",
+		 *         "totalPoints": 487
+		 *       }
+		 *     }
+		 */
+		TcpSeriesResponse: {
+			series: Record<string, never>;
+			meta: components["schemas"]["PingSeriesQueryMetadata"];
 		};
 		/**
 		 * @example {
@@ -3207,6 +3183,12 @@ export interface components {
 		"TcpInsightQuery.maxDataPoints": number;
 		"TcpInsightQuery.probeId": components["schemas"]["uuid"];
 		"TcpInsightQuery.to": number;
+		"TcpSeriesQuery.checkId": components["schemas"]["uuid"];
+		"TcpSeriesQuery.from": number;
+		"TcpSeriesQuery.maxDataPoints": number;
+		"TcpSeriesQuery.probeId": components["schemas"]["uuid"];
+		"TcpSeriesQuery.series": string;
+		"TcpSeriesQuery.to": number;
 		"TracerouteInsightQuery.checkId": components["schemas"]["uuid"];
 		"TracerouteInsightQuery.from": number;
 		"TracerouteInsightQuery.maxDataPoints": number;
@@ -6495,6 +6477,80 @@ export interface operations {
 				};
 				content: {
 					"application/json": components["schemas"]["TcpInsightResponse"];
+				};
+			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	queryProjectTcpResultSeries: {
+		parameters: {
+			query: {
+				probeId: components["parameters"]["TcpSeriesQuery.probeId"];
+				checkId: components["parameters"]["TcpSeriesQuery.checkId"];
+				from?: components["parameters"]["TcpSeriesQuery.from"];
+				to?: components["parameters"]["TcpSeriesQuery.to"];
+				series?: components["parameters"]["TcpSeriesQuery.series"];
+				maxDataPoints?: components["parameters"]["TcpSeriesQuery.maxDataPoints"];
+			};
+			header?: never;
+			path: {
+				ref: components["parameters"]["ProjectRefParam"];
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["TcpSeriesResponse"];
 				};
 			};
 			/** @description The server could not understand the request due to invalid syntax. */

@@ -1,50 +1,36 @@
-import type { TcpInsightResponse } from "@/shared/api/types";
+import type { TcpInsightResponse, TcpSeriesKey, TcpSeriesResponse } from "@/shared/api/types";
 import { formatCount, formatMs, formatPercent } from "@/shared/utils/insightFormatters";
 import type { SummaryMetric } from "@/shared/utils/insightTypes";
-import type { TcpInsightChartBucket } from "@/shared/visualizations/chartOptions";
-
-function tcpSuccessRate(summary: TcpInsightResponse["summary"] | undefined) {
-	if (!summary?.totalResults) {
-		return undefined;
-	}
-
-	return (summary.successfulCount / summary.totalResults) * 100;
-}
-
-function tcpFailureRate(summary: TcpInsightResponse["summary"] | undefined) {
-	if (!summary?.totalResults) {
-		return undefined;
-	}
-
-	return ((summary.timeoutCount + summary.errorCount) / summary.totalResults) * 100;
-}
+import type { PingSeriesPoint, TcpSeriesChartData } from "@/shared/visualizations/chartOptions";
 
 export function tcpSummaryMetrics(data: TcpInsightResponse | undefined): SummaryMetric[] {
 	const summary = data?.summary;
 
 	return [
-		{ label: "Latest", value: formatMs(summary?.latestConnectMs), detail: summary?.latestStatus || "no result" },
-		{ label: "Average", value: formatMs(summary?.avgConnectMs), detail: "connect avg" },
-		{ label: "P95", value: formatMs(summary?.p95ConnectMs), detail: "connect percentile" },
-		{ label: "P99", value: formatMs(summary?.p99ConnectMs), detail: "connect percentile" },
+		{ label: "Average", value: formatMs(summary?.averageConnectMs), detail: "connect avg" },
 		{ label: "Max", value: formatMs(summary?.maxConnectMs), detail: "connect max" },
-		{ label: "Failure", value: formatPercent(tcpFailureRate(summary)), detail: `${formatCount(summary?.timeoutCount)} timeout · ${formatCount(summary?.errorCount)} error` },
-		{ label: "Success", value: formatPercent(tcpSuccessRate(summary)), detail: `${formatCount(summary?.successfulCount)}/${formatCount(summary?.totalResults)}` },
-		{ label: "Results", value: formatCount(summary?.totalResults), detail: "connect attempts" }
+		{ label: "Failure", value: formatPercent(summary?.failurePercent), detail: "timeout + error" },
+		{ label: "Success", value: formatPercent(summary?.successRate), detail: "successful" },
+		{ label: "Samples", value: formatCount(summary?.samples), detail: "connect attempts" }
 	];
 }
 
-export function tcpChartBuckets(data: TcpInsightResponse | undefined): TcpInsightChartBucket[] {
-	return (data?.buckets ?? []).map(bucket => ({
-		timestampMs: bucket.timestampMs,
-		connectMinMs: bucket.connectMinMs,
-		connectAvgMs: bucket.connectAvgMs,
-		connectMedianMs: bucket.connectMedianMs,
-		connectMaxMs: bucket.connectMaxMs,
-		connectStddevMs: bucket.connectStddevMs,
-		successRate: bucket.successRate,
-		resultCount: bucket.resultCount,
-		timeoutCount: bucket.timeoutCount,
-		errorCount: bucket.errorCount
-	}));
+function seriesPoints(data: TcpSeriesResponse | undefined, key: TcpSeriesKey): PingSeriesPoint[] {
+	return (data?.series[key]?.points ?? []).filter((point): point is PingSeriesPoint => {
+		const [timestampMs, value] = point;
+		return Number.isFinite(timestampMs) && Number.isFinite(value);
+	});
+}
+
+export function tcpSeriesChartData(data: TcpSeriesResponse | undefined): TcpSeriesChartData {
+	return {
+		connectAvg: seriesPoints(data, "connect_avg"),
+		connectMin: seriesPoints(data, "connect_min"),
+		connectMax: seriesPoints(data, "connect_max"),
+		failurePercent: seriesPoints(data, "failure_percent")
+	};
+}
+
+export function hasTcpSeriesChartData(data: TcpSeriesChartData) {
+	return data.connectAvg.length > 0 || data.connectMin.length > 0 || data.connectMax.length > 0 || data.failurePercent.length > 0;
 }

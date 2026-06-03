@@ -25,6 +25,7 @@ import {
 	type PingInsightResponse,
 	type PingSeriesResponse,
 	type TcpInsightResponse,
+	type TcpSeriesResponse,
 	type TracerouteInsightResponse,
 	type TracerouteResult
 } from "@/shared/api/types";
@@ -448,11 +449,13 @@ function InsightPairDetail({
 	pair,
 	pingInsightData,
 	pingSeriesData,
-	tcpData,
+	tcpInsightData,
+	tcpSeriesData,
 	isPingInsightLoading,
 	isPingSeriesLoading,
 	isPingFetching,
-	isTCPLoading,
+	isTCPInsightLoading,
+	isTCPSeriesLoading,
 	isTCPFetching,
 	tracerouteInsight,
 	tracerouteRuns,
@@ -468,11 +471,13 @@ function InsightPairDetail({
 	pair: InsightPair | null;
 	pingInsightData: PingInsightResponse | undefined;
 	pingSeriesData: PingSeriesResponse | undefined;
-	tcpData: TcpInsightResponse | undefined;
+	tcpInsightData: TcpInsightResponse | undefined;
+	tcpSeriesData: TcpSeriesResponse | undefined;
 	isPingInsightLoading: boolean;
 	isPingSeriesLoading: boolean;
 	isPingFetching: boolean;
-	isTCPLoading: boolean;
+	isTCPInsightLoading: boolean;
+	isTCPSeriesLoading: boolean;
 	isTCPFetching: boolean;
 	tracerouteInsight: TracerouteInsightResponse | undefined;
 	tracerouteRuns: TracerouteResult[];
@@ -490,7 +495,18 @@ function InsightPairDetail({
 	}
 
 	if (pair.check.type === "TCP") {
-		return <TcpInsightPanel selectedProbe={pair.probe} selectedTarget={pair.check} data={tcpData} isLoading={isTCPLoading} isFetching={isTCPFetching} onSelectTimeWindow={onSelectTimeWindow} />;
+		return (
+			<TcpInsightPanel
+				selectedProbe={pair.probe}
+				selectedTarget={pair.check}
+				insightData={tcpInsightData}
+				seriesData={tcpSeriesData}
+				isInsightLoading={isTCPInsightLoading}
+				isSeriesLoading={isTCPSeriesLoading}
+				isFetching={isTCPFetching}
+				onSelectTimeWindow={onSelectTimeWindow}
+			/>
+		);
 	}
 
 	return pair.check.type === "Traceroute" ? (
@@ -610,6 +626,10 @@ export function InsightPage() {
 	});
 	const tcpInsightQuery = useQuery({
 		...projectQueries.tcpInsight(projectRef || "", exactPair?.probeId || "", exactPair?.checkId || "", resultWindowFilters),
+		enabled: Boolean(canQueryPairDetail && exactPair?.check.type === "TCP")
+	});
+	const tcpSeriesQuery = useQuery({
+		...projectQueries.tcpSeries(projectRef || "", exactPair?.probeId || "", exactPair?.checkId || "", resultWindowFilters),
 		enabled: Boolean(canQueryPairDetail && exactPair?.check.type === "TCP")
 	});
 	const tracerouteInsightQuery = useQuery({
@@ -916,12 +936,14 @@ export function InsightPage() {
 			pair={exactPair}
 			pingInsightData={pingInsightQuery.data}
 			pingSeriesData={pingSeriesQuery.data}
-			tcpData={tcpInsightQuery.data}
+			tcpInsightData={tcpInsightQuery.data}
+			tcpSeriesData={tcpSeriesQuery.data}
 			isPingInsightLoading={pingInsightQuery.isLoading}
 			isPingSeriesLoading={pingSeriesQuery.isLoading}
 			isPingFetching={pingInsightQuery.isFetching || pingSeriesQuery.isFetching}
-			isTCPLoading={tcpInsightQuery.isLoading}
-			isTCPFetching={tcpInsightQuery.isFetching}
+			isTCPInsightLoading={tcpInsightQuery.isLoading}
+			isTCPSeriesLoading={tcpSeriesQuery.isLoading}
+			isTCPFetching={tcpInsightQuery.isFetching || tcpSeriesQuery.isFetching}
 			tracerouteInsight={tracerouteInsightQuery.data}
 			tracerouteRuns={tracerouteRunsQuery.data?.runs ?? []}
 			topologyNodes={pairTopologyQuery.data?.nodes ?? []}

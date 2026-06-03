@@ -4050,6 +4050,103 @@
 				]
 			}
 		},
+		"/projects/{ref}/results/tcp/series": {
+			"get": {
+				"operationId": "queryProjectTcpResultSeries",
+				"summary": "Query project TCP result series",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					},
+					{
+						"$ref": "#/components/parameters/TcpSeriesQuery.probeId"
+					},
+					{
+						"$ref": "#/components/parameters/TcpSeriesQuery.checkId"
+					},
+					{
+						"$ref": "#/components/parameters/TcpSeriesQuery.from"
+					},
+					{
+						"$ref": "#/components/parameters/TcpSeriesQuery.to"
+					},
+					{
+						"$ref": "#/components/parameters/TcpSeriesQuery.series"
+					},
+					{
+						"$ref": "#/components/parameters/TcpSeriesQuery.maxDataPoints"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/TcpSeriesResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Results"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
 		"/projects/{ref}/results/traceroute/insight": {
 			"get": {
 				"operationId": "queryProjectTracerouteResultInsight",
@@ -5532,6 +5629,69 @@
 				"explode": false
 			},
 			"TcpInsightQuery.to": {
+				"name": "to",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "integer",
+					"format": "int64",
+					"minimum": 1
+				},
+				"explode": false
+			},
+			"TcpSeriesQuery.checkId": {
+				"name": "checkId",
+				"in": "query",
+				"required": true,
+				"schema": {
+					"$ref": "#/components/schemas/uuid"
+				},
+				"explode": false
+			},
+			"TcpSeriesQuery.from": {
+				"name": "from",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "integer",
+					"format": "int64",
+					"minimum": 1
+				},
+				"explode": false
+			},
+			"TcpSeriesQuery.maxDataPoints": {
+				"name": "maxDataPoints",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "integer",
+					"format": "int32",
+					"minimum": 1,
+					"maximum": 2000,
+					"default": 600
+				},
+				"explode": false
+			},
+			"TcpSeriesQuery.probeId": {
+				"name": "probeId",
+				"in": "query",
+				"required": true,
+				"schema": {
+					"$ref": "#/components/schemas/uuid"
+				},
+				"explode": false
+			},
+			"TcpSeriesQuery.series": {
+				"name": "series",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"default": "connect_avg,connect_min,connect_max,failure_percent"
+				},
+				"explode": false
+			},
+			"TcpSeriesQuery.to": {
 				"name": "to",
 				"in": "query",
 				"required": false,
@@ -8560,126 +8720,32 @@
 					}
 				]
 			},
-			"TcpInsightBucket": {
-				"type": "object",
-				"required": ["timestampMs", "resultCount", "timeoutCount", "errorCount"],
-				"properties": {
-					"timestampMs": {
-						"type": "integer",
-						"format": "int64",
-						"minimum": 1
-					},
-					"resultCount": {
-						"type": "integer",
-						"format": "int64",
-						"minimum": 0
-					},
-					"durationAvgMs": {
-						"type": "number",
-						"format": "double",
-						"minimum": 0
-					},
-					"connectMinMs": {
-						"type": "number",
-						"format": "double",
-						"minimum": 0
-					},
-					"connectAvgMs": {
-						"type": "number",
-						"format": "double",
-						"minimum": 0
-					},
-					"connectMedianMs": {
-						"type": "number",
-						"format": "double",
-						"minimum": 0
-					},
-					"connectMaxMs": {
-						"type": "number",
-						"format": "double",
-						"minimum": 0
-					},
-					"connectStddevMs": {
-						"type": "number",
-						"format": "double",
-						"minimum": 0
-					},
-					"successRate": {
-						"type": "number",
-						"format": "double",
-						"minimum": 0,
-						"maximum": 100
-					},
-					"timeoutCount": {
-						"type": "integer",
-						"format": "int64",
-						"minimum": 0
-					},
-					"errorCount": {
-						"type": "integer",
-						"format": "int64",
-						"minimum": 0
-					}
-				},
-				"examples": [
-					{
-						"timestampMs": 1778666400000,
-						"resultCount": 12,
-						"durationAvgMs": 42,
-						"connectMinMs": 10.1,
-						"connectAvgMs": 12.3,
-						"connectMedianMs": 12,
-						"connectMaxMs": 15.6,
-						"connectStddevMs": 1.7,
-						"successRate": 100,
-						"timeoutCount": 0,
-						"errorCount": 0
-					}
-				]
-			},
 			"TcpInsightResponse": {
 				"type": "object",
-				"required": ["buckets", "summary", "query"],
+				"required": ["summary", "meta"],
 				"properties": {
-					"buckets": {
-						"type": "array",
-						"items": {
-							"$ref": "#/components/schemas/TcpInsightBucket"
-						}
-					},
 					"summary": {
 						"$ref": "#/components/schemas/TcpInsightSummary"
 					},
-					"query": {
+					"meta": {
 						"$ref": "#/components/schemas/PingSeriesQueryMetadata"
 					}
 				},
 				"examples": [
 					{
-						"buckets": [
-							{
-								"timestampMs": 1778666400000,
-								"resultCount": 12,
-								"connectAvgMs": 12.3,
-								"connectMinMs": 10.1,
-								"connectMaxMs": 15.6,
-								"successRate": 100,
-								"timeoutCount": 0,
-								"errorCount": 0
-							}
-						],
 						"summary": {
-							"totalResults": 487,
-							"successfulCount": 480,
-							"timeoutCount": 7,
-							"errorCount": 0,
-							"avgConnectMs": 12.3
+							"averageConnectMs": 12.3,
+							"maxConnectMs": 42.5,
+							"failurePercent": 1.4,
+							"successRate": 98.6,
+							"samples": 487
 						},
-						"query": {
+						"meta": {
 							"from": 1778662800000,
 							"to": 1778749200000,
 							"maxDataPoints": 600,
-							"resolution": "bucket",
+							"source": "aggregate",
+							"resolution": "1m",
 							"totalPoints": 487
 						}
 					}
@@ -8687,34 +8753,9 @@
 			},
 			"TcpInsightSummary": {
 				"type": "object",
-				"required": ["totalResults", "successfulCount", "timeoutCount", "errorCount"],
+				"required": ["samples"],
 				"properties": {
-					"totalResults": {
-						"type": "integer",
-						"format": "int64",
-						"minimum": 0
-					},
-					"successfulCount": {
-						"type": "integer",
-						"format": "int64",
-						"minimum": 0
-					},
-					"timeoutCount": {
-						"type": "integer",
-						"format": "int64",
-						"minimum": 0
-					},
-					"errorCount": {
-						"type": "integer",
-						"format": "int64",
-						"minimum": 0
-					},
-					"avgConnectMs": {
-						"type": "number",
-						"format": "double",
-						"minimum": 0
-					},
-					"medianConnectMs": {
+					"averageConnectMs": {
 						"type": "number",
 						"format": "double",
 						"minimum": 0
@@ -8724,56 +8765,31 @@
 						"format": "double",
 						"minimum": 0
 					},
-					"p95ConnectMs": {
+					"failurePercent": {
 						"type": "number",
 						"format": "double",
-						"minimum": 0
+						"minimum": 0,
+						"maximum": 100
 					},
-					"p99ConnectMs": {
+					"successRate": {
 						"type": "number",
 						"format": "double",
-						"minimum": 0
+						"minimum": 0,
+						"maximum": 100
 					},
-					"latestStatus": {
-						"type": "string",
-						"enum": ["successful", "timeout", "error"]
-					},
-					"latestStartedAtMs": {
+					"samples": {
 						"type": "integer",
 						"format": "int64",
-						"minimum": 1
-					},
-					"latestConnectMs": {
-						"type": "number",
-						"format": "double",
 						"minimum": 0
-					},
-					"latestResolvedIp": {
-						"anyOf": [
-							{
-								"$ref": "#/components/schemas/ipv4Address"
-							},
-							{
-								"$ref": "#/components/schemas/ipv6Address"
-							}
-						]
 					}
 				},
 				"examples": [
 					{
-						"totalResults": 487,
-						"successfulCount": 480,
-						"timeoutCount": 7,
-						"errorCount": 0,
-						"avgConnectMs": 12.3,
-						"medianConnectMs": 12,
+						"averageConnectMs": 12.3,
 						"maxConnectMs": 42.5,
-						"p95ConnectMs": 18.2,
-						"p99ConnectMs": 31.7,
-						"latestStatus": "successful",
-						"latestStartedAtMs": 1778666400000,
-						"latestConnectMs": 12.3,
-						"latestResolvedIp": "1.1.1.1"
+						"failurePercent": 1.4,
+						"successRate": 98.6,
+						"samples": 487
 					}
 				]
 			},
@@ -8833,6 +8849,45 @@
 						"connectDurationMs": 42,
 						"resolvedIp": "93.184.216.34",
 						"ipFamily": "inet"
+					}
+				]
+			},
+			"TcpSeriesResponse": {
+				"type": "object",
+				"required": ["series", "meta"],
+				"properties": {
+					"series": {
+						"type": "object",
+						"unevaluatedProperties": {
+							"$ref": "#/components/schemas/Series"
+						}
+					},
+					"meta": {
+						"$ref": "#/components/schemas/PingSeriesQueryMetadata"
+					}
+				},
+				"examples": [
+					{
+						"series": {
+							"connect_avg": {
+								"name": "connect_avg",
+								"labels": {
+									"probeId": "33333333-3333-3333-3333-333333333333",
+									"checkId": "44444444-4444-4444-4444-444444444444",
+									"checkType": "tcp"
+								},
+								"unit": "ms",
+								"points": [[1778666400000, 12.3]]
+							}
+						},
+						"meta": {
+							"from": 1778662800000,
+							"to": 1778749200000,
+							"maxDataPoints": 600,
+							"source": "raw",
+							"resolution": "bucket",
+							"totalPoints": 487
+						}
 					}
 				]
 			},

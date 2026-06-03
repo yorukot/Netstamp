@@ -51,6 +51,30 @@ model PingInsightQuery {
 	maxDataPoints?: int32 = 600;
 }
 
+model TcpSeriesQuery {
+	@query
+	probeId: uuid;
+
+	@query
+	checkId: uuid;
+
+	@query
+	@minValue(1)
+	from?: int64;
+
+	@query
+	@minValue(1)
+	to?: int64;
+
+	@query
+	series?: string = "connect_avg,connect_min,connect_max,failure_percent";
+
+	@query
+	@minValue(1)
+	@maxValue(2000)
+	maxDataPoints?: int32 = 600;
+}
+
 model TcpInsightQuery {
 	@query
 	probeId: uuid;
@@ -161,6 +185,18 @@ interface ResultService {
 	@route("/ping/insight")
 	queryProjectPingResultInsight(...ProjectRefParam, ...PingInsightQuery):
 		| OkJson<PingInsightResponse>
+		| BadRequestProblem
+		| UnauthorizedProblem
+		| NotFoundProblem
+		| UnprocessableEntityProblem
+		| InternalServerProblem;
+
+	@operationId("queryProjectTcpResultSeries")
+	@summary("Query project TCP result series")
+	@get
+	@route("/tcp/series")
+	queryProjectTcpResultSeries(...ProjectRefParam, ...TcpSeriesQuery):
+		| OkJson<TcpSeriesResponse>
 		| BadRequestProblem
 		| UnauthorizedProblem
 		| NotFoundProblem

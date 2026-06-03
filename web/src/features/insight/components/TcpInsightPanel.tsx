@@ -1,10 +1,10 @@
 import type { CheckDefinition } from "@/features/checks/data/checks";
-import { tcpChartBuckets, tcpSummaryMetrics } from "@/features/insight/data/tcpInsightData";
+import { hasTcpSeriesChartData, tcpSeriesChartData, tcpSummaryMetrics } from "@/features/insight/data/tcpInsightData";
 import type { Probe } from "@/features/probes/data/probes";
-import type { TcpInsightResponse } from "@/shared/api/types";
+import type { TcpInsightResponse, TcpSeriesResponse } from "@/shared/api/types";
 import { BodyCopy } from "@/shared/components/BodyCopy";
 import { classNames } from "@/shared/utils/classNames";
-import { formatCount, formatEpochMs } from "@/shared/utils/insightFormatters";
+import { formatCount } from "@/shared/utils/insightFormatters";
 import { ChartPanel } from "@/shared/visualizations/ChartPanel";
 import { tcpInsightChartOption } from "@/shared/visualizations/chartOptions";
 import { Panel } from "@netstamp/ui";
@@ -13,13 +13,15 @@ import styles from "./PingInsightPanel.module.css";
 interface TcpInsightPanelProps {
 	selectedProbe: Probe | null;
 	selectedTarget: CheckDefinition | null;
-	data: TcpInsightResponse | undefined;
-	isLoading: boolean;
+	insightData: TcpInsightResponse | undefined;
+	seriesData: TcpSeriesResponse | undefined;
+	isInsightLoading: boolean;
+	isSeriesLoading: boolean;
 	isFetching: boolean;
 	onSelectTimeWindow: (timeWindow: { from: number; to: number }) => void;
 }
 
-export function TcpInsightPanel({ selectedProbe, selectedTarget, data, isLoading, isFetching, onSelectTimeWindow }: TcpInsightPanelProps) {
+export function TcpInsightPanel({ selectedProbe, selectedTarget, insightData, seriesData, isInsightLoading, isSeriesLoading, isFetching, onSelectTimeWindow }: TcpInsightPanelProps) {
 	if (!selectedProbe || !selectedTarget) {
 		return (
 			<Panel tone="deep" title="No TCP target selected">
@@ -28,19 +30,21 @@ export function TcpInsightPanel({ selectedProbe, selectedTarget, data, isLoading
 		);
 	}
 
-	if (isLoading && !data) {
+	if ((isInsightLoading || isSeriesLoading) && !insightData && !seriesData) {
 		return (
 			<Panel tone="deep" title="Loading TCP insight">
-				<BodyCopy>Loading TCP result buckets for this probe-target pair.</BodyCopy>
+				<BodyCopy>Loading TCP summary and series for this probe-target pair.</BodyCopy>
 			</Panel>
 		);
 	}
 
-	const buckets = tcpChartBuckets(data);
-	const metrics = tcpSummaryMetrics(data);
-	const totalPoints = data?.query.totalPoints ?? 0;
-	const hasChartData = buckets.length > 0;
-	const queryWindow = data?.query ? { from: data.query.from, to: data.query.to } : undefined;
+	const chartData = tcpSeriesChartData(seriesData);
+	const metrics = tcpSummaryMetrics(insightData);
+	const meta = seriesData?.meta ?? insightData?.meta;
+	const totalPoints = meta?.totalPoints ?? 0;
+	const hasChartData = hasTcpSeriesChartData(chartData);
+	const queryWindow = meta ? { from: meta.from, to: meta.to } : undefined;
+	const sourceLabel = [meta?.source, meta?.resolution].filter(Boolean).join(" / ") || "pending";
 
 	return (
 		<div className={styles.pingStack}>
@@ -56,14 +60,13 @@ export function TcpInsightPanel({ selectedProbe, selectedTarget, data, isLoading
 
 			<Panel tone="deep" title={`${selectedProbe.name} -> ${selectedTarget.target}`}>
 				<div className={styles.chartMeta}>
-					<span>{isFetching ? "syncing result buckets" : `${formatCount(totalPoints)} results`}</span>
-					<span>latest {formatEpochMs(data?.summary.latestStartedAtMs)}</span>
-					<span>{data?.summary.latestResolvedIp || "unresolved"}</span>
+					<span>{isFetching ? "syncing result series" : `${formatCount(totalPoints)} points`}</span>
+					<span>{sourceLabel}</span>
 				</div>
 				{hasChartData ? (
-					<ChartPanel option={tcpInsightChartOption(buckets)} height="27rem" onTimeRangeSelect={onSelectTimeWindow} timeRangeBounds={queryWindow} />
+					<ChartPanel option={tcpInsightChartOption(chartData)} height="27rem" onTimeRangeSelect={onSelectTimeWindow} timeRangeBounds={queryWindow} />
 				) : (
-					<div className={styles.emptyState}>No TCP results were recorded for this probe-target pair in the selected time range.</div>
+					<div className={styles.emptyState}>{isSeriesLoading ? "Loading TCP series." : "No TCP series points were recorded for this probe-target pair in the selected time range."}</div>
 				)}
 			</Panel>
 		</div>

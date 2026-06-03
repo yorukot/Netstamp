@@ -13,21 +13,12 @@ export interface PingSeriesChartData {
 	lossPercent: PingSeriesPoint[];
 }
 
-export interface TcpInsightChartBucket {
-	timestampMs: number;
-	connectMinMs?: number;
-	connectAvgMs?: number;
-	connectMedianMs?: number;
-	connectMaxMs?: number;
-	connectStddevMs?: number;
-	successRate?: number;
-	resultCount: number;
-	timeoutCount: number;
-	errorCount: number;
+export interface TcpSeriesChartData {
+	connectAvg: PingSeriesPoint[];
+	connectMin: PingSeriesPoint[];
+	connectMax: PingSeriesPoint[];
+	failurePercent: PingSeriesPoint[];
 }
-
-type TcpMetricKey = "connectMinMs" | "connectAvgMs" | "connectMedianMs" | "connectMaxMs" | "connectStddevMs" | "failurePercent";
-type TcpConnectMetricKey = "connectMinMs" | "connectAvgMs" | "connectMedianMs" | "connectMaxMs";
 
 interface TooltipParam {
 	seriesName?: string;
@@ -52,8 +43,6 @@ interface CustomRenderParams {
 	dataIndex: number;
 }
 
-const tcpConnectMetricKeys: TcpConnectMetricKey[] = ["connectMinMs", "connectAvgMs", "connectMedianMs", "connectMaxMs"];
-
 function timestampLabel(value: number) {
 	return new Date(value).toLocaleString([], {
 		month: "short",
@@ -69,14 +58,6 @@ function pingSeriesData(points: PingSeriesPoint[]) {
 
 function pointMap(points: PingSeriesPoint[]) {
 	return new Map(points.filter(([timestampMs, value]) => Number.isFinite(timestampMs) && Number.isFinite(value)).map(([timestampMs, value]) => [timestampMs, value]));
-}
-
-function tcpMetricData(buckets: TcpInsightChartBucket[], key: TcpMetricKey) {
-	return buckets.flatMap(bucket => {
-		const value = key === "failurePercent" ? tcpFailurePercent(bucket) : bucket[key];
-
-		return typeof value === "number" && Number.isFinite(value) ? [[bucket.timestampMs, value]] : [];
-	});
 }
 
 function pingSpreadData(data: PingSeriesChartData, key: "base" | "range") {
@@ -96,13 +77,20 @@ function pingSpreadData(data: PingSeriesChartData, key: "base" | "range") {
 	});
 }
 
-function tcpSpreadData(buckets: TcpInsightChartBucket[], key: "base" | "range") {
-	return buckets.flatMap(bucket => {
-		if (typeof bucket.connectMinMs !== "number" || typeof bucket.connectMaxMs !== "number") {
+function tcpSpreadData(data: TcpSeriesChartData, key: "base" | "range") {
+	const minByTimestamp = pointMap(data.connectMin);
+	const maxByTimestamp = pointMap(data.connectMax);
+	const timestamps = uniqueSortedTimestamps([...minByTimestamp.keys()].filter(timestamp => maxByTimestamp.has(timestamp)));
+
+	return timestamps.flatMap(timestamp => {
+		const min = minByTimestamp.get(timestamp);
+		const max = maxByTimestamp.get(timestamp);
+
+		if (typeof min !== "number" || typeof max !== "number") {
 			return [];
 		}
 
-		return [[bucket.timestampMs, key === "base" ? bucket.connectMinMs : Math.max(bucket.connectMaxMs - bucket.connectMinMs, 0)]];
+		return [[timestamp, key === "base" ? min : Math.max(max - min, 0)]];
 	});
 }
 
@@ -199,8 +187,8 @@ function pingRttAxisBounds(data: PingSeriesChartData) {
 	return { min, max };
 }
 
-function tcpConnectAxisBounds(buckets: TcpInsightChartBucket[]) {
-	const values = buckets.flatMap(bucket => tcpConnectMetricKeys.flatMap(key => finiteNumbers([bucket[key]]))).filter(value => value >= 0);
+function tcpConnectAxisBounds(data: TcpSeriesChartData) {
+	const values = [...data.connectAvg, ...data.connectMin, ...data.connectMax].flatMap(([, value]) => finiteNumbers([value])).filter(value => value >= 0);
 
 	if (!values.length) {
 		return { min: 0 };
@@ -263,32 +251,6 @@ function lossBandData(points: PingSeriesPoint[]) {
 
 		const bounds = timeBounds.get(timestampMs) ?? { from: timestampMs - 30_000, to: timestampMs + 30_000 };
 		return [[timestampMs, lossPercent, bounds.from, bounds.to]];
-	});
-}
-
-function tcpFailurePercent(bucket: TcpInsightChartBucket) {
-	if (typeof bucket.successRate === "number" && Number.isFinite(bucket.successRate)) {
-		return Math.max(0, Math.min(100, 100 - bucket.successRate));
-	}
-
-	if (!bucket.resultCount) {
-		return undefined;
-	}
-
-	return (100 * (bucket.timeoutCount + bucket.errorCount)) / bucket.resultCount;
-}
-
-function tcpFailureBandData(buckets: TcpInsightChartBucket[]) {
-	const timeBounds = timeBoundsByTimestamp(buckets.map(bucket => bucket.timestampMs));
-
-	return buckets.flatMap(bucket => {
-		const failurePercent = tcpFailurePercent(bucket);
-		if (typeof failurePercent !== "number" || !Number.isFinite(failurePercent) || failurePercent <= 5) {
-			return [];
-		}
-
-		const bounds = timeBounds.get(bucket.timestampMs) ?? { from: bucket.timestampMs - 30_000, to: bucket.timestampMs + 30_000 };
-		return [[bucket.timestampMs, failurePercent, bounds.from, bounds.to]];
 	});
 }
 
@@ -446,9 +408,9 @@ export function pingInsightChartOption(data: PingSeriesChartData): ChartOption {
 	};
 }
 
-export function tcpInsightChartOption(buckets: TcpInsightChartBucket[]): ChartOption {
-	const failureBands = tcpFailureBandData(buckets);
-	const connectAxisBounds = tcpConnectAxisBounds(buckets);
+export function tcpInsightChartOption(data: TcpSeriesChartData): ChartOption {
+	const failureBands = lossBandData(data.failurePercent);
+	const connectAxisBounds = tcpConnectAxisBounds(data);
 
 	return {
 		backgroundColor: "transparent",
@@ -463,7 +425,7 @@ export function tcpInsightChartOption(buckets: TcpInsightChartBucket[]): ChartOp
 		legend: {
 			top: 0,
 			right: 0,
-			data: ["median", "failure"],
+			data: ["avg", "failure"],
 			textStyle: { color: "#B8B3AA", fontFamily: "JetBrains Mono, monospace", fontSize: 10 },
 			itemWidth: 12,
 			itemHeight: 6
@@ -525,7 +487,7 @@ export function tcpInsightChartOption(buckets: TcpInsightChartBucket[]): ChartOp
 				name: "range base",
 				type: "line",
 				stack: "connect-spread",
-				data: tcpSpreadData(buckets, "base"),
+				data: tcpSpreadData(data, "base"),
 				showSymbol: false,
 				lineStyle: { opacity: 0 },
 				areaStyle: { opacity: 0 },
@@ -535,16 +497,16 @@ export function tcpInsightChartOption(buckets: TcpInsightChartBucket[]): ChartOp
 				name: "connect spread",
 				type: "line",
 				stack: "connect-spread",
-				data: tcpSpreadData(buckets, "range"),
+				data: tcpSpreadData(data, "range"),
 				showSymbol: false,
 				lineStyle: { opacity: 0 },
 				areaStyle: { color: "rgba(196,204,217,0.08)" },
 				silent: true
 			},
 			{
-				name: "median",
+				name: "avg",
 				type: "line",
-				data: tcpMetricData(buckets, "connectMedianMs"),
+				data: pingSeriesData(data.connectAvg),
 				showSymbol: false,
 				smooth: true,
 				lineStyle: { width: 2.25, color: "#FF7A1A", shadowBlur: 12, shadowColor: "rgba(255,122,26,0.36)" },

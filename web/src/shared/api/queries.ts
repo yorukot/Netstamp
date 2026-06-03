@@ -9,12 +9,15 @@ import type {
 	ProjectAssignmentFilters,
 	PublicPingInsightFilters,
 	TcpInsightFilters,
+	TcpSeriesFilters,
+	TcpSeriesResponse,
 	TracerouteInsightFilters,
 	TracerouteRunsFilters,
 	TracerouteTopologyFilters
 } from "./types";
 
 const defaultPingSeries = "latency_avg,latency_min,latency_max,loss_percent";
+const defaultTCPSeries = "connect_avg,connect_min,connect_max,failure_percent";
 
 export const systemQueries = {
 	root: () =>
@@ -148,6 +151,18 @@ export const projectQueries = {
 						signal
 					})
 				),
+			staleTime: 30 * 1000
+		}),
+	tcpSeries: (ref: string, probeId: string, checkId: string, filters: TcpSeriesFilters = {}) =>
+		queryOptions({
+			queryKey: apiQueryKeys.projects.tcpSeries(ref, probeId, checkId, filters),
+			queryFn: ({ signal }) =>
+				readApiData(
+					apiClient.GET("/projects/{ref}/results/tcp/series", {
+						params: { path: { ref }, query: { probeId, checkId, series: defaultTCPSeries, maxDataPoints: 600, ...filters } },
+						signal
+					})
+				) as Promise<TcpSeriesResponse>,
 			staleTime: 30 * 1000
 		}),
 	probes: (ref: string) =>

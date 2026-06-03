@@ -5,6 +5,7 @@ using Http;
 namespace Netstamp;
 
 alias PingSeriesKey = "latency_avg" | "latency_min" | "latency_max" | "loss_percent";
+alias TcpSeriesKey = "connect_avg" | "connect_min" | "connect_max" | "failure_percent";
 alias MeasurementType = "ping" | "tcp" | "traceroute";
 alias MeasurementStatus = "successful" | "timeout" | "error" | "partial";
 alias SeriesResolution = "raw" | "bucket" | "1m";
@@ -292,6 +293,22 @@ model PingSeriesResponse {
 }
 
 @example(#{
+	series: #{
+		connect_avg: #{
+			name: "connect_avg",
+			labels: #{ probeId: "33333333-3333-3333-3333-333333333333", checkId: "44444444-4444-4444-4444-444444444444", checkType: "tcp" },
+			unit: "ms",
+			points: #[#[1778666400000, 12.3]],
+		}
+	},
+	meta: #{ from: 1778662800000, to: 1778749200000, maxDataPoints: 600, source: "raw", resolution: "bucket", totalPoints: 487 },
+})
+model TcpSeriesResponse {
+	series: Record<Series>;
+	meta: PingSeriesQueryMetadata;
+}
+
+@example(#{
 	averageRttMs: 12.3,
 	maxRttMs: 42.5,
 	lossPercent: 1.4,
@@ -327,119 +344,38 @@ model PingInsightResponse {
 }
 
 @example(#{
-	timestampMs: 1778666400000,
-	resultCount: 12,
-	durationAvgMs: 42,
-	connectMinMs: 10.1,
-	connectAvgMs: 12.3,
-	connectMedianMs: 12,
-	connectMaxMs: 15.6,
-	connectStddevMs: 1.7,
-	successRate: 100,
-	timeoutCount: 0,
-	errorCount: 0,
+	averageConnectMs: 12.3,
+	maxConnectMs: 42.5,
+	failurePercent: 1.4,
+	successRate: 98.6,
+	samples: 487,
 })
-model TcpInsightBucket {
-	@minValue(1)
-	timestampMs: int64;
+model TcpInsightSummary {
+	@minValue(0)
+	averageConnectMs?: float64;
 
 	@minValue(0)
-	resultCount: int64;
+	maxConnectMs?: float64;
 
 	@minValue(0)
-	durationAvgMs?: float64;
-
-	@minValue(0)
-	connectMinMs?: float64;
-
-	@minValue(0)
-	connectAvgMs?: float64;
-
-	@minValue(0)
-	connectMedianMs?: float64;
-
-	@minValue(0)
-	connectMaxMs?: float64;
-
-	@minValue(0)
-	connectStddevMs?: float64;
+	@maxValue(100)
+	failurePercent?: float64;
 
 	@minValue(0)
 	@maxValue(100)
 	successRate?: float64;
 
 	@minValue(0)
-	timeoutCount: int64;
-
-	@minValue(0)
-	errorCount: int64;
+	samples: int64;
 }
 
 @example(#{
-	totalResults: 487,
-	successfulCount: 480,
-	timeoutCount: 7,
-	errorCount: 0,
-	avgConnectMs: 12.3,
-	medianConnectMs: 12,
-	maxConnectMs: 42.5,
-	p95ConnectMs: 18.2,
-	p99ConnectMs: 31.7,
-	latestStatus: "successful",
-	latestStartedAtMs: 1778666400000,
-	latestConnectMs: 12.3,
-	latestResolvedIp: "1.1.1.1",
-})
-model TcpInsightSummary {
-	@minValue(0)
-	totalResults: int64;
-
-	@minValue(0)
-	successfulCount: int64;
-
-	@minValue(0)
-	timeoutCount: int64;
-
-	@minValue(0)
-	errorCount: int64;
-
-	@minValue(0)
-	avgConnectMs?: float64;
-
-	@minValue(0)
-	medianConnectMs?: float64;
-
-	@minValue(0)
-	maxConnectMs?: float64;
-
-	@minValue(0)
-	p95ConnectMs?: float64;
-
-	@minValue(0)
-	p99ConnectMs?: float64;
-
-	latestStatus?: TcpStatus;
-
-	@minValue(1)
-	latestStartedAtMs?: int64;
-
-	@minValue(0)
-	latestConnectMs?: float64;
-
-	latestResolvedIp?: ipAddress;
-}
-
-@example(#{
-	buckets: #[
-		#{ timestampMs: 1778666400000, resultCount: 12, connectAvgMs: 12.3, connectMinMs: 10.1, connectMaxMs: 15.6, successRate: 100, timeoutCount: 0, errorCount: 0 }
-	],
-	summary: #{ totalResults: 487, successfulCount: 480, timeoutCount: 7, errorCount: 0, avgConnectMs: 12.3 },
-	query: #{ from: 1778662800000, to: 1778749200000, maxDataPoints: 600, resolution: "bucket", totalPoints: 487 },
+	summary: #{ averageConnectMs: 12.3, maxConnectMs: 42.5, failurePercent: 1.4, successRate: 98.6, samples: 487 },
+	meta: #{ from: 1778662800000, to: 1778749200000, maxDataPoints: 600, source: "aggregate", resolution: "1m", totalPoints: 487 },
 })
 model TcpInsightResponse {
-	buckets: TcpInsightBucket[];
 	summary: TcpInsightSummary;
-	query: PingSeriesQueryMetadata;
+	meta: PingSeriesQueryMetadata;
 }
 
 @example(#{ from: 1778662800000, to: 1778749200000, limit: 100, nextCursor: 1778666400000 })
