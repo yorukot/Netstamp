@@ -43,8 +43,8 @@ func (r *UserRepository) CreateUser(ctx context.Context, input identity.User) (i
 		ID:          row.ID.String(),
 		Email:       row.Email,
 		DisplayName: row.DisplayName,
-		CreatedAt:   row.CreatedAt.Time,
-		UpdatedAt:   row.UpdatedAt.Time,
+		CreatedAt:   row.CreatedAt,
+		UpdatedAt:   row.UpdatedAt,
 	}, nil
 }
 
@@ -164,7 +164,7 @@ func mapUser(row sqlc.User) identity.User {
 		Email:        row.Email,
 		DisplayName:  row.DisplayName,
 		PasswordHash: row.PasswordHash,
-		CreatedAt:    row.CreatedAt.Time,
-		UpdatedAt:    row.UpdatedAt.Time,
+		CreatedAt:    row.CreatedAt,
+		UpdatedAt:    row.UpdatedAt,
 	}
 }

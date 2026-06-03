@@ -35,12 +35,12 @@ func (r *TracerouteRepository) CreateTracerouteResults(ctx context.Context, inpu
 	err := r.tx.InTx(ctx, func(ctx context.Context, tx pgx.Tx) error {
 		q := r.queries.WithTx(tx)
 		for _, input := range inputs {
-			startedAt := timestamptz(input.StartedAt)
+			startedAt := input.StartedAt.UTC()
 			createErr := q.CreateTracerouteResult(ctx, sqlc.CreateTracerouteResultParams{
 				ProbeStorageID:     input.ProbeStorageID,
 				CheckStorageID:     input.CheckStorageID,
 				StartedAt:          startedAt,
-				FinishedAt:         timestamptz(input.FinishedAt),
+				FinishedAt:         input.FinishedAt.UTC(),
 				DurationMs:         input.DurationMs,
 				Status:             sqlcTracerouteStatus(input.Status),
 				ResolvedIp:         input.ResolvedIP,
@@ -122,9 +122,9 @@ func (r *TracerouteRepository) ListTracerouteRuns(ctx context.Context, input dom
 	rows, err := r.queries.ListTracerouteRunRows(ctx, sqlc.ListTracerouteRunRowsParams{
 		ProbeStorageID:  storageIDs.ProbeStorageID,
 		CheckStorageID:  storageIDs.CheckStorageID,
-		StartedAtFrom:   timestamptz(input.From),
-		StartedAtTo:     timestamptz(input.To),
-		CursorStartedAt: optionalTimestamptz(input.Cursor),
+		StartedAtFrom:   input.From.UTC(),
+		StartedAtTo:     input.To.UTC(),
+		CursorStartedAt: optionalTime(input.Cursor),
 		LimitCount:      input.Limit + 1,
 	})
 	if err != nil {
@@ -165,8 +165,8 @@ func (r *TracerouteRepository) ListTracerouteInsight(ctx context.Context, input 
 		return domaintraceroute.InsightResult{}, err
 	}
 
-	startedAtFrom := timestamptz(input.From)
-	startedAtTo := timestamptz(input.To)
+	startedAtFrom := input.From.UTC()
+	startedAtTo := input.To.UTC()
 	countParams := sqlc.CountTracerouteInsightPointsParams{
 		ProbeStorageID: storageIDs.ProbeStorageID,
 		CheckStorageID: storageIDs.CheckStorageID,
@@ -236,8 +236,8 @@ func (r *TracerouteRepository) ListTracerouteTopologyRuns(ctx context.Context, i
 		ProjectID:     projectID,
 		ProbeID:       probeID,
 		CheckID:       checkID,
-		StartedAtFrom: timestamptz(input.From),
-		StartedAtTo:   timestamptz(input.To),
+		StartedAtFrom: input.From.UTC(),
+		StartedAtTo:   input.To.UTC(),
 		LimitCount:    input.Limit,
 	})
 	if err != nil {

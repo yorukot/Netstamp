@@ -8,6 +8,7 @@ package sqlc
 import (
 	"context"
 	"net/netip"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -28,16 +29,16 @@ type CreateProbeParams struct {
 }
 
 type CreateProbeRow struct {
-	ID           uuid.UUID          `json:"id"`
-	InternalID   int64              `json:"internal_id"`
-	ProjectID    uuid.UUID          `json:"project_id"`
-	Name         string             `json:"name"`
-	Enabled      bool               `json:"enabled"`
-	Location     pgtype.Point       `json:"location"`
-	LocationName *string            `json:"location_name"`
-	CreatedAt    pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
-	DeletedAt    pgtype.Timestamptz `json:"deleted_at"`
+	ID           uuid.UUID    `json:"id"`
+	InternalID   int64        `json:"internal_id"`
+	ProjectID    uuid.UUID    `json:"project_id"`
+	Name         string       `json:"name"`
+	Enabled      bool         `json:"enabled"`
+	Location     pgtype.Point `json:"location"`
+	LocationName *string      `json:"location_name"`
+	CreatedAt    time.Time    `json:"created_at"`
+	UpdatedAt    time.Time    `json:"updated_at"`
+	DeletedAt    *time.Time   `json:"deleted_at"`
 }
 
 func (q *Queries) CreateProbe(ctx context.Context, arg CreateProbeParams) (CreateProbeRow, error) {
@@ -268,31 +269,31 @@ type GetActiveProbeRowsForProjectParams struct {
 }
 
 type GetActiveProbeRowsForProjectRow struct {
-	InternalID         int64              `json:"internal_id"`
-	ID                 uuid.UUID          `json:"id"`
-	ProjectID          uuid.UUID          `json:"project_id"`
-	Name               string             `json:"name"`
-	Enabled            bool               `json:"enabled"`
-	Location           pgtype.Point       `json:"location"`
-	LocationName       *string            `json:"location_name"`
-	CreatedAt          pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt          pgtype.Timestamptz `json:"updated_at"`
-	DeletedAt          pgtype.Timestamptz `json:"deleted_at"`
-	Status             ProbeState         `json:"status"`
-	StatusLastSeenAt   pgtype.Timestamptz `json:"status_last_seen_at"`
-	StatusAgentVersion *string            `json:"status_agent_version"`
-	StatusPublicV4     *netip.Addr        `json:"status_public_v4"`
-	StatusPublicV6     *netip.Addr        `json:"status_public_v6"`
-	StatusAs           *string            `json:"status_as"`
-	StatusAddrs        []netip.Addr       `json:"status_addrs"`
-	StatusUpdatedAt    pgtype.Timestamptz `json:"status_updated_at"`
-	LabelID            *uuid.UUID         `json:"label_id"`
-	LabelProjectID     *uuid.UUID         `json:"label_project_id"`
-	LabelKey           *string            `json:"label_key"`
-	LabelValue         *string            `json:"label_value"`
-	LabelCreatedAt     pgtype.Timestamptz `json:"label_created_at"`
-	LabelUpdatedAt     pgtype.Timestamptz `json:"label_updated_at"`
-	LabelDeletedAt     pgtype.Timestamptz `json:"label_deleted_at"`
+	InternalID         int64        `json:"internal_id"`
+	ID                 uuid.UUID    `json:"id"`
+	ProjectID          uuid.UUID    `json:"project_id"`
+	Name               string       `json:"name"`
+	Enabled            bool         `json:"enabled"`
+	Location           pgtype.Point `json:"location"`
+	LocationName       *string      `json:"location_name"`
+	CreatedAt          time.Time    `json:"created_at"`
+	UpdatedAt          time.Time    `json:"updated_at"`
+	DeletedAt          *time.Time   `json:"deleted_at"`
+	Status             ProbeState   `json:"status"`
+	StatusLastSeenAt   *time.Time   `json:"status_last_seen_at"`
+	StatusAgentVersion *string      `json:"status_agent_version"`
+	StatusPublicV4     *netip.Addr  `json:"status_public_v4"`
+	StatusPublicV6     *netip.Addr  `json:"status_public_v6"`
+	StatusAs           *string      `json:"status_as"`
+	StatusAddrs        []netip.Addr `json:"status_addrs"`
+	StatusUpdatedAt    *time.Time   `json:"status_updated_at"`
+	LabelID            *uuid.UUID   `json:"label_id"`
+	LabelProjectID     *uuid.UUID   `json:"label_project_id"`
+	LabelKey           *string      `json:"label_key"`
+	LabelValue         *string      `json:"label_value"`
+	LabelCreatedAt     *time.Time   `json:"label_created_at"`
+	LabelUpdatedAt     *time.Time   `json:"label_updated_at"`
+	LabelDeletedAt     *time.Time   `json:"label_deleted_at"`
 }
 
 func (q *Queries) GetActiveProbeRowsForProject(ctx context.Context, arg GetActiveProbeRowsForProjectParams) ([]GetActiveProbeRowsForProjectRow, error) {
@@ -685,31 +686,31 @@ ORDER BY probes.created_at DESC,
 `
 
 type ListActiveProbesForProjectRow struct {
-	InternalID         int64              `json:"internal_id"`
-	ID                 uuid.UUID          `json:"id"`
-	ProjectID          uuid.UUID          `json:"project_id"`
-	Name               string             `json:"name"`
-	Enabled            bool               `json:"enabled"`
-	Location           pgtype.Point       `json:"location"`
-	LocationName       *string            `json:"location_name"`
-	CreatedAt          pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt          pgtype.Timestamptz `json:"updated_at"`
-	DeletedAt          pgtype.Timestamptz `json:"deleted_at"`
-	Status             ProbeState         `json:"status"`
-	StatusLastSeenAt   pgtype.Timestamptz `json:"status_last_seen_at"`
-	StatusAgentVersion *string            `json:"status_agent_version"`
-	StatusPublicV4     *netip.Addr        `json:"status_public_v4"`
-	StatusPublicV6     *netip.Addr        `json:"status_public_v6"`
-	StatusAs           *string            `json:"status_as"`
-	StatusAddrs        []netip.Addr       `json:"status_addrs"`
-	StatusUpdatedAt    pgtype.Timestamptz `json:"status_updated_at"`
-	LabelID            *uuid.UUID         `json:"label_id"`
-	LabelProjectID     *uuid.UUID         `json:"label_project_id"`
-	LabelKey           *string            `json:"label_key"`
-	LabelValue         *string            `json:"label_value"`
-	LabelCreatedAt     pgtype.Timestamptz `json:"label_created_at"`
-	LabelUpdatedAt     pgtype.Timestamptz `json:"label_updated_at"`
-	LabelDeletedAt     pgtype.Timestamptz `json:"label_deleted_at"`
+	InternalID         int64        `json:"internal_id"`
+	ID                 uuid.UUID    `json:"id"`
+	ProjectID          uuid.UUID    `json:"project_id"`
+	Name               string       `json:"name"`
+	Enabled            bool         `json:"enabled"`
+	Location           pgtype.Point `json:"location"`
+	LocationName       *string      `json:"location_name"`
+	CreatedAt          time.Time    `json:"created_at"`
+	UpdatedAt          time.Time    `json:"updated_at"`
+	DeletedAt          *time.Time   `json:"deleted_at"`
+	Status             ProbeState   `json:"status"`
+	StatusLastSeenAt   *time.Time   `json:"status_last_seen_at"`
+	StatusAgentVersion *string      `json:"status_agent_version"`
+	StatusPublicV4     *netip.Addr  `json:"status_public_v4"`
+	StatusPublicV6     *netip.Addr  `json:"status_public_v6"`
+	StatusAs           *string      `json:"status_as"`
+	StatusAddrs        []netip.Addr `json:"status_addrs"`
+	StatusUpdatedAt    *time.Time   `json:"status_updated_at"`
+	LabelID            *uuid.UUID   `json:"label_id"`
+	LabelProjectID     *uuid.UUID   `json:"label_project_id"`
+	LabelKey           *string      `json:"label_key"`
+	LabelValue         *string      `json:"label_value"`
+	LabelCreatedAt     *time.Time   `json:"label_created_at"`
+	LabelUpdatedAt     *time.Time   `json:"label_updated_at"`
+	LabelDeletedAt     *time.Time   `json:"label_deleted_at"`
 }
 
 func (q *Queries) ListActiveProbesForProject(ctx context.Context, projectID uuid.UUID) ([]ListActiveProbesForProjectRow, error) {
@@ -868,16 +869,16 @@ type UpdateProbeParams struct {
 }
 
 type UpdateProbeRow struct {
-	ID           uuid.UUID          `json:"id"`
-	InternalID   int64              `json:"internal_id"`
-	ProjectID    uuid.UUID          `json:"project_id"`
-	Name         string             `json:"name"`
-	Enabled      bool               `json:"enabled"`
-	Location     pgtype.Point       `json:"location"`
-	LocationName *string            `json:"location_name"`
-	CreatedAt    pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
-	DeletedAt    pgtype.Timestamptz `json:"deleted_at"`
+	ID           uuid.UUID    `json:"id"`
+	InternalID   int64        `json:"internal_id"`
+	ProjectID    uuid.UUID    `json:"project_id"`
+	Name         string       `json:"name"`
+	Enabled      bool         `json:"enabled"`
+	Location     pgtype.Point `json:"location"`
+	LocationName *string      `json:"location_name"`
+	CreatedAt    time.Time    `json:"created_at"`
+	UpdatedAt    time.Time    `json:"updated_at"`
+	DeletedAt    *time.Time   `json:"deleted_at"`
 }
 
 func (q *Queries) UpdateProbe(ctx context.Context, arg UpdateProbeParams) (UpdateProbeRow, error) {

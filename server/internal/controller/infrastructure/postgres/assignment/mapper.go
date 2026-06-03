@@ -2,7 +2,6 @@ package pgassignment
 
 import (
 	"encoding/json"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -120,9 +119,9 @@ func mapProjectAssignments(rows []sqlc.ListProjectAssignmentsRow) []domainassign
 				Latitude:     latitude,
 				Longitude:    longitude,
 				Labels:       []domainlabel.Label{},
-				CreatedAt:    row.ProbeCreatedAt.Time,
-				UpdatedAt:    row.ProbeUpdatedAt.Time,
-				DeletedAt:    timePtr(row.ProbeDeletedAt),
+				CreatedAt:    row.ProbeCreatedAt,
+				UpdatedAt:    row.ProbeUpdatedAt,
+				DeletedAt:    row.ProbeDeletedAt,
 			},
 			Check: &domaincheck.Check{
 				ID:               row.CheckID.String(),
@@ -134,9 +133,9 @@ func mapProjectAssignments(rows []sqlc.ListProjectAssignmentsRow) []domainassign
 				Description:      row.Description,
 				IntervalSeconds:  row.IntervalSeconds,
 				Labels:           []domainlabel.Label{},
-				CreatedAt:        row.CheckCreatedAt.Time,
-				UpdatedAt:        row.CheckUpdatedAt.Time,
-				DeletedAt:        timePtr(row.CheckDeletedAt),
+				CreatedAt:        row.CheckCreatedAt,
+				UpdatedAt:        row.CheckUpdatedAt,
+				DeletedAt:        row.CheckDeletedAt,
 				PingConfig:       mapOptionalPingConfig(row.PingPacketCount, row.PingPacketSizeBytes, row.PingTimeoutMs, row.PingIpFamily),
 				TCPConfig:        mapOptionalTCPConfig(row.TcpPort, row.TcpTimeoutMs, row.TcpIpFamily),
 				TracerouteConfig: mapOptionalTracerouteConfig(row.TracerouteProtocol, row.TracerouteMaxHops, row.TracerouteTimeoutMs, row.TracerouteQueriesPerHop, row.TraceroutePacketSizeBytes, row.TraceroutePort, row.TracerouteIpFamily),
@@ -154,9 +153,9 @@ func mapLabels(rows []sqlc.Label) []domainlabel.Label {
 			ProjectID: row.ProjectID.String(),
 			Key:       row.Key,
 			Value:     row.Value,
-			CreatedAt: row.CreatedAt.Time,
-			UpdatedAt: row.UpdatedAt.Time,
-			DeletedAt: timePtr(row.DeletedAt),
+			CreatedAt: row.CreatedAt,
+			UpdatedAt: row.UpdatedAt,
+			DeletedAt: row.DeletedAt,
 		})
 	}
 
@@ -164,7 +163,7 @@ func mapLabels(rows []sqlc.Label) []domainlabel.Label {
 }
 
 func mapGetProbeLabel(row sqlc.GetActiveProbeRowsForProjectRow) (domainlabel.Label, bool) {
-	if row.LabelID == nil || row.LabelProjectID == nil || row.LabelKey == nil || row.LabelValue == nil {
+	if row.LabelID == nil || row.LabelProjectID == nil || row.LabelKey == nil || row.LabelValue == nil || row.LabelCreatedAt == nil || row.LabelUpdatedAt == nil {
 		return domainlabel.Label{}, false
 	}
 
@@ -173,14 +172,14 @@ func mapGetProbeLabel(row sqlc.GetActiveProbeRowsForProjectRow) (domainlabel.Lab
 		ProjectID: row.LabelProjectID.String(),
 		Key:       *row.LabelKey,
 		Value:     *row.LabelValue,
-		CreatedAt: row.LabelCreatedAt.Time,
-		UpdatedAt: row.LabelUpdatedAt.Time,
-		DeletedAt: timePtr(row.LabelDeletedAt),
+		CreatedAt: *row.LabelCreatedAt,
+		UpdatedAt: *row.LabelUpdatedAt,
+		DeletedAt: row.LabelDeletedAt,
 	}, true
 }
 
 func mapEnabledProbeLabel(row sqlc.ListActiveEnabledProbeLabelsForProjectRow) (domainlabel.Label, bool) {
-	if row.LabelID == nil || row.LabelProjectID == nil || row.LabelKey == nil || row.LabelValue == nil {
+	if row.LabelID == nil || row.LabelProjectID == nil || row.LabelKey == nil || row.LabelValue == nil || row.LabelCreatedAt == nil || row.LabelUpdatedAt == nil {
 		return domainlabel.Label{}, false
 	}
 
@@ -189,9 +188,9 @@ func mapEnabledProbeLabel(row sqlc.ListActiveEnabledProbeLabelsForProjectRow) (d
 		ProjectID: row.LabelProjectID.String(),
 		Key:       *row.LabelKey,
 		Value:     *row.LabelValue,
-		CreatedAt: row.LabelCreatedAt.Time,
-		UpdatedAt: row.LabelUpdatedAt.Time,
-		DeletedAt: timePtr(row.LabelDeletedAt),
+		CreatedAt: *row.LabelCreatedAt,
+		UpdatedAt: *row.LabelUpdatedAt,
+		DeletedAt: row.LabelDeletedAt,
 	}, true
 }
 
@@ -310,12 +309,4 @@ func mapIPFamily(value *sqlc.IpFamily) *domainnetwork.IPFamily {
 
 	ipFamily := domainnetwork.IPFamily(*value)
 	return &ipFamily
-}
-
-func timePtr(value pgtype.Timestamptz) *time.Time {
-	if !value.Valid {
-		return nil
-	}
-
-	return &value.Time
 }

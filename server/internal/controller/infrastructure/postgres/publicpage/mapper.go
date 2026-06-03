@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/sqlc"
 	domainpublicpage "github.com/yorukot/netstamp/internal/domain/publicpage"
@@ -18,9 +17,9 @@ func mapPage(row sqlc.PublicPage) domainpublicpage.Page {
 		Title:       row.Title,
 		Description: row.Description,
 		Enabled:     row.Enabled,
-		CreatedAt:   pgTime(row.CreatedAt),
-		UpdatedAt:   pgTime(row.UpdatedAt),
-		DeletedAt:   pgTimePtr(row.DeletedAt),
+		CreatedAt:   row.CreatedAt.UTC(),
+		UpdatedAt:   row.UpdatedAt.UTC(),
+		DeletedAt:   utcTimePtr(row.DeletedAt),
 	}
 }
 
@@ -40,8 +39,8 @@ func mapFolder(row sqlc.PublicPageFolder) domainpublicpage.Folder {
 		Name:        row.Name,
 		Description: row.Description,
 		SortOrder:   row.SortOrder,
-		CreatedAt:   pgTime(row.CreatedAt),
-		UpdatedAt:   pgTime(row.UpdatedAt),
+		CreatedAt:   row.CreatedAt.UTC(),
+		UpdatedAt:   row.UpdatedAt.UTC(),
 	}
 }
 
@@ -63,8 +62,8 @@ func mapPublishedChecks(rows []sqlc.ListPublicPageFolderChecksForProjectPageRow)
 			Description:     row.CheckDescription,
 			IntervalSeconds: row.CheckIntervalSeconds,
 			SortOrder:       row.SortOrder,
-			CreatedAt:       pgTime(row.CheckCreatedAt),
-			UpdatedAt:       pgTime(row.CheckUpdatedAt),
+			CreatedAt:       row.CheckCreatedAt.UTC(),
+			UpdatedAt:       row.CheckUpdatedAt.UTC(),
 		})
 	}
 	return checks
@@ -96,14 +95,10 @@ func uuidPtrString(value *uuid.UUID) *string {
 	return &copied
 }
 
-func pgTime(value pgtype.Timestamptz) time.Time {
-	return value.Time.UTC()
-}
-
-func pgTimePtr(value pgtype.Timestamptz) *time.Time {
-	if !value.Valid {
+func utcTimePtr(value *time.Time) *time.Time {
+	if value == nil {
 		return nil
 	}
-	copied := value.Time.UTC()
+	copied := value.UTC()
 	return &copied
 }

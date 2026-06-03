@@ -7,9 +7,9 @@ package sqlc
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const acceptPendingProjectInvite = `-- name: AcceptPendingProjectInvite :one
@@ -61,9 +61,9 @@ type AcceptPendingProjectInviteRow struct {
 	InvitedByUserID          uuid.UUID           `json:"invited_by_user_id"`
 	Role                     ProjectMemberRole   `json:"role"`
 	Status                   ProjectInviteStatus `json:"status"`
-	CreatedAt                pgtype.Timestamptz  `json:"created_at"`
-	UpdatedAt                pgtype.Timestamptz  `json:"updated_at"`
-	ResolvedAt               pgtype.Timestamptz  `json:"resolved_at"`
+	CreatedAt                time.Time           `json:"created_at"`
+	UpdatedAt                time.Time           `json:"updated_at"`
+	ResolvedAt               *time.Time          `json:"resolved_at"`
 	ProjectName              string              `json:"project_name"`
 	ProjectSlug              string              `json:"project_slug"`
 	InvitedUserEmail         string              `json:"invited_user_email"`
@@ -142,9 +142,9 @@ type CreateProjectInviteRow struct {
 	InvitedByUserID          uuid.UUID           `json:"invited_by_user_id"`
 	Role                     ProjectMemberRole   `json:"role"`
 	Status                   ProjectInviteStatus `json:"status"`
-	CreatedAt                pgtype.Timestamptz  `json:"created_at"`
-	UpdatedAt                pgtype.Timestamptz  `json:"updated_at"`
-	ResolvedAt               pgtype.Timestamptz  `json:"resolved_at"`
+	CreatedAt                time.Time           `json:"created_at"`
+	UpdatedAt                time.Time           `json:"updated_at"`
+	ResolvedAt               *time.Time          `json:"resolved_at"`
 	ProjectName              string              `json:"project_name"`
 	ProjectSlug              string              `json:"project_slug"`
 	InvitedUserEmail         string              `json:"invited_user_email"`
@@ -214,9 +214,9 @@ type ListPendingProjectInvitesRow struct {
 	InvitedByUserID          uuid.UUID           `json:"invited_by_user_id"`
 	Role                     ProjectMemberRole   `json:"role"`
 	Status                   ProjectInviteStatus `json:"status"`
-	CreatedAt                pgtype.Timestamptz  `json:"created_at"`
-	UpdatedAt                pgtype.Timestamptz  `json:"updated_at"`
-	ResolvedAt               pgtype.Timestamptz  `json:"resolved_at"`
+	CreatedAt                time.Time           `json:"created_at"`
+	UpdatedAt                time.Time           `json:"updated_at"`
+	ResolvedAt               *time.Time          `json:"resolved_at"`
 	ProjectName              string              `json:"project_name"`
 	ProjectSlug              string              `json:"project_slug"`
 	InvitedUserEmail         string              `json:"invited_user_email"`
@@ -294,9 +294,9 @@ type ListPendingProjectInvitesForUserRow struct {
 	InvitedByUserID          uuid.UUID           `json:"invited_by_user_id"`
 	Role                     ProjectMemberRole   `json:"role"`
 	Status                   ProjectInviteStatus `json:"status"`
-	CreatedAt                pgtype.Timestamptz  `json:"created_at"`
-	UpdatedAt                pgtype.Timestamptz  `json:"updated_at"`
-	ResolvedAt               pgtype.Timestamptz  `json:"resolved_at"`
+	CreatedAt                time.Time           `json:"created_at"`
+	UpdatedAt                time.Time           `json:"updated_at"`
+	ResolvedAt               *time.Time          `json:"resolved_at"`
 	ProjectName              string              `json:"project_name"`
 	ProjectSlug              string              `json:"project_slug"`
 	InvitedUserEmail         string              `json:"invited_user_email"`
@@ -390,9 +390,9 @@ type RejectPendingProjectInviteRow struct {
 	InvitedByUserID          uuid.UUID           `json:"invited_by_user_id"`
 	Role                     ProjectMemberRole   `json:"role"`
 	Status                   ProjectInviteStatus `json:"status"`
-	CreatedAt                pgtype.Timestamptz  `json:"created_at"`
-	UpdatedAt                pgtype.Timestamptz  `json:"updated_at"`
-	ResolvedAt               pgtype.Timestamptz  `json:"resolved_at"`
+	CreatedAt                time.Time           `json:"created_at"`
+	UpdatedAt                time.Time           `json:"updated_at"`
+	ResolvedAt               *time.Time          `json:"resolved_at"`
 	ProjectName              string              `json:"project_name"`
 	ProjectSlug              string              `json:"project_slug"`
 	InvitedUserEmail         string              `json:"invited_user_email"`

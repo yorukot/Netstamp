@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/postgres"
@@ -47,9 +46,9 @@ func (r *ResultRepository) ListMeasurements(ctx context.Context, input domainres
 		CheckID:         checkID,
 		MeasurementType: measurementTypeParam(input.Type),
 		Status:          input.Status,
-		StartedAtFrom:   timestamptz(input.From),
-		StartedAtTo:     timestamptz(input.To),
-		CursorStartedAt: optionalTimestamptz(input.Cursor),
+		StartedAtFrom:   input.From.UTC(),
+		StartedAtTo:     input.To.UTC(),
+		CursorStartedAt: optionalTime(input.Cursor),
 		LimitCount:      input.Limit + 1,
 	})
 	if err != nil {
@@ -79,22 +78,19 @@ func measurementTypeParam(value *domainresult.MeasurementType) *string {
 	return &output
 }
 
-func timestamptz(value time.Time) pgtype.Timestamptz {
-	return pgtype.Timestamptz{Time: value.UTC(), Valid: true}
-}
-
-func optionalTimestamptz(value *time.Time) pgtype.Timestamptz {
+func optionalTime(value *time.Time) *time.Time {
 	if value == nil {
-		return pgtype.Timestamptz{}
+		return nil
 	}
-	return timestamptz(*value)
+	copied := value.UTC()
+	return &copied
 }
 
 func mapMeasurements(rows []sqlc.ListProjectMeasurementsRow, limit int32) (domainresult.MeasurementResult, error) {
 	measurements := make([]domainresult.Measurement, 0, len(rows))
 	for index, row := range rows {
 		if int32(index) >= limit {
-			nextCursor := row.StartedAt.Time
+			nextCursor := row.StartedAt
 			return domainresult.MeasurementResult{
 				Measurements: measurements,
 				NextCursor:   &nextCursor,
@@ -102,8 +98,8 @@ func mapMeasurements(rows []sqlc.ListProjectMeasurementsRow, limit int32) (domai
 		}
 		measurements = append(measurements, domainresult.Measurement{
 			Type:         domainresult.MeasurementType(row.MeasurementType),
-			StartedAt:    row.StartedAt.Time,
-			FinishedAt:   row.FinishedAt.Time,
+			StartedAt:    row.StartedAt,
+			FinishedAt:   row.FinishedAt,
 			ProbeID:      row.ProbeID.String(),
 			CheckID:      row.CheckID.String(),
 			Status:       row.Status,

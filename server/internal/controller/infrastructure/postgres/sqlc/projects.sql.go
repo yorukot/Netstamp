@@ -7,9 +7,9 @@ package sqlc
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const countActiveProjectOwners = `-- name: CountActiveProjectOwners :one
@@ -78,14 +78,14 @@ type CreateProjectMemberParams struct {
 }
 
 type CreateProjectMemberRow struct {
-	ID              uuid.UUID          `json:"id"`
-	ProjectID       uuid.UUID          `json:"project_id"`
-	UserID          uuid.UUID          `json:"user_id"`
-	Role            ProjectMemberRole  `json:"role"`
-	CreatedAt       pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
-	UserEmail       string             `json:"user_email"`
-	UserDisplayName string             `json:"user_display_name"`
+	ID              uuid.UUID         `json:"id"`
+	ProjectID       uuid.UUID         `json:"project_id"`
+	UserID          uuid.UUID         `json:"user_id"`
+	Role            ProjectMemberRole `json:"role"`
+	CreatedAt       time.Time         `json:"created_at"`
+	UpdatedAt       time.Time         `json:"updated_at"`
+	UserEmail       string            `json:"user_email"`
+	UserDisplayName string            `json:"user_display_name"`
 }
 
 func (q *Queries) CreateProjectMember(ctx context.Context, arg CreateProjectMemberParams) (CreateProjectMemberRow, error) {
@@ -146,14 +146,14 @@ type GetActiveProjectMemberParams struct {
 }
 
 type GetActiveProjectMemberRow struct {
-	ID              uuid.UUID          `json:"id"`
-	ProjectID       uuid.UUID          `json:"project_id"`
-	UserID          uuid.UUID          `json:"user_id"`
-	Role            ProjectMemberRole  `json:"role"`
-	CreatedAt       pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
-	UserEmail       string             `json:"user_email"`
-	UserDisplayName string             `json:"user_display_name"`
+	ID              uuid.UUID         `json:"id"`
+	ProjectID       uuid.UUID         `json:"project_id"`
+	UserID          uuid.UUID         `json:"user_id"`
+	Role            ProjectMemberRole `json:"role"`
+	CreatedAt       time.Time         `json:"created_at"`
+	UpdatedAt       time.Time         `json:"updated_at"`
+	UserEmail       string            `json:"user_email"`
+	UserDisplayName string            `json:"user_display_name"`
 }
 
 func (q *Queries) GetActiveProjectMember(ctx context.Context, arg GetActiveProjectMemberParams) (GetActiveProjectMemberRow, error) {
@@ -271,14 +271,14 @@ ORDER BY project_members.created_at ASC, project_members.id ASC
 `
 
 type ListActiveProjectMembersRow struct {
-	ID              uuid.UUID          `json:"id"`
-	ProjectID       uuid.UUID          `json:"project_id"`
-	UserID          uuid.UUID          `json:"user_id"`
-	Role            ProjectMemberRole  `json:"role"`
-	CreatedAt       pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
-	UserEmail       string             `json:"user_email"`
-	UserDisplayName string             `json:"user_display_name"`
+	ID              uuid.UUID         `json:"id"`
+	ProjectID       uuid.UUID         `json:"project_id"`
+	UserID          uuid.UUID         `json:"user_id"`
+	Role            ProjectMemberRole `json:"role"`
+	CreatedAt       time.Time         `json:"created_at"`
+	UpdatedAt       time.Time         `json:"updated_at"`
+	UserEmail       string            `json:"user_email"`
+	UserDisplayName string            `json:"user_display_name"`
 }
 
 func (q *Queries) ListActiveProjectMembers(ctx context.Context, projectID uuid.UUID) ([]ListActiveProjectMembersRow, error) {
@@ -420,14 +420,14 @@ type UpdateProjectMemberRoleParams struct {
 }
 
 type UpdateProjectMemberRoleRow struct {
-	ID              uuid.UUID          `json:"id"`
-	ProjectID       uuid.UUID          `json:"project_id"`
-	UserID          uuid.UUID          `json:"user_id"`
-	Role            ProjectMemberRole  `json:"role"`
-	CreatedAt       pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
-	UserEmail       string             `json:"user_email"`
-	UserDisplayName string             `json:"user_display_name"`
+	ID              uuid.UUID         `json:"id"`
+	ProjectID       uuid.UUID         `json:"project_id"`
+	UserID          uuid.UUID         `json:"user_id"`
+	Role            ProjectMemberRole `json:"role"`
+	CreatedAt       time.Time         `json:"created_at"`
+	UpdatedAt       time.Time         `json:"updated_at"`
+	UserEmail       string            `json:"user_email"`
+	UserDisplayName string            `json:"user_display_name"`
 }
 
 func (q *Queries) UpdateProjectMemberRole(ctx context.Context, arg UpdateProjectMemberRoleParams) (UpdateProjectMemberRoleRow, error) {

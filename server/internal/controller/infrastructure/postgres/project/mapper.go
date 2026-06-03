@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/sqlc"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
@@ -16,18 +15,10 @@ func mapProject(row sqlc.Project) domainproject.Project {
 		Name:            row.Name,
 		Slug:            row.Slug,
 		CreatedByUserID: row.CreatedByUserID.String(),
-		CreatedAt:       row.CreatedAt.Time,
-		UpdatedAt:       row.UpdatedAt.Time,
-		DeletedAt:       timePtr(row.DeletedAt),
+		CreatedAt:       row.CreatedAt,
+		UpdatedAt:       row.UpdatedAt,
+		DeletedAt:       row.DeletedAt,
 	}
-}
-
-func timePtr(value pgtype.Timestamptz) *time.Time {
-	if !value.Valid {
-		return nil
-	}
-
-	return &value.Time
 }
 
 func mapListMember(row sqlc.ListActiveProjectMembersRow) domainproject.Member {
@@ -147,8 +138,8 @@ func mapMemberFields(
 	projectID uuid.UUID,
 	userID uuid.UUID,
 	role sqlc.ProjectMemberRole,
-	createdAt pgtype.Timestamptz,
-	updatedAt pgtype.Timestamptz,
+	createdAt time.Time,
+	updatedAt time.Time,
 	userEmail string,
 	userDisplayName string,
 ) domainproject.Member {
@@ -162,8 +153,8 @@ func mapMemberFields(
 			Email:       userEmail,
 			DisplayName: userDisplayName,
 		},
-		CreatedAt: createdAt.Time,
-		UpdatedAt: updatedAt.Time,
+		CreatedAt: createdAt,
+		UpdatedAt: updatedAt,
 	}
 }
 
@@ -174,9 +165,9 @@ func mapInviteFields(
 	invitedByUserID uuid.UUID,
 	role sqlc.ProjectMemberRole,
 	status sqlc.ProjectInviteStatus,
-	createdAt pgtype.Timestamptz,
-	updatedAt pgtype.Timestamptz,
-	resolvedAt pgtype.Timestamptz,
+	createdAt time.Time,
+	updatedAt time.Time,
+	resolvedAt *time.Time,
 	projectName string,
 	projectSlug string,
 	invitedUserEmail string,
@@ -206,8 +197,8 @@ func mapInviteFields(
 			Email:       invitedByUserEmail,
 			DisplayName: invitedByUserDisplayName,
 		},
-		CreatedAt:  createdAt.Time,
-		UpdatedAt:  updatedAt.Time,
-		ResolvedAt: timePtr(resolvedAt),
+		CreatedAt:  createdAt,
+		UpdatedAt:  updatedAt,
+		ResolvedAt: resolvedAt,
 	}
 }

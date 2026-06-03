@@ -8,9 +8,9 @@ package sqlc
 import (
 	"context"
 	"net/netip"
+	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const countTracerouteInsightPoints = `-- name: CountTracerouteInsightPoints :one
@@ -23,10 +23,10 @@ WHERE traceroute_results.probe_id = $1
 `
 
 type CountTracerouteInsightPointsParams struct {
-	ProbeStorageID int64              `json:"probe_storage_id"`
-	CheckStorageID int64              `json:"check_storage_id"`
-	StartedAtFrom  pgtype.Timestamptz `json:"started_at_from"`
-	StartedAtTo    pgtype.Timestamptz `json:"started_at_to"`
+	ProbeStorageID int64     `json:"probe_storage_id"`
+	CheckStorageID int64     `json:"check_storage_id"`
+	StartedAtFrom  time.Time `json:"started_at_from"`
+	StartedAtTo    time.Time `json:"started_at_to"`
 }
 
 func (q *Queries) CountTracerouteInsightPoints(ctx context.Context, arg CountTracerouteInsightPointsParams) (int64, error) {
@@ -74,18 +74,18 @@ ON CONFLICT (probe_id, check_id, started_at) DO NOTHING
 `
 
 type CreateTracerouteResultParams struct {
-	ProbeStorageID     int64              `json:"probe_storage_id"`
-	CheckStorageID     int64              `json:"check_storage_id"`
-	StartedAt          pgtype.Timestamptz `json:"started_at"`
-	FinishedAt         pgtype.Timestamptz `json:"finished_at"`
-	DurationMs         int32              `json:"duration_ms"`
-	Status             TracerouteStatus   `json:"status"`
-	ResolvedIp         *netip.Addr        `json:"resolved_ip"`
-	IpFamily           *IpFamily          `json:"ip_family"`
-	DestinationReached bool               `json:"destination_reached"`
-	HopCount           int32              `json:"hop_count"`
-	ErrorCode          *string            `json:"error_code"`
-	ErrorMessage       *string            `json:"error_message"`
+	ProbeStorageID     int64            `json:"probe_storage_id"`
+	CheckStorageID     int64            `json:"check_storage_id"`
+	StartedAt          time.Time        `json:"started_at"`
+	FinishedAt         time.Time        `json:"finished_at"`
+	DurationMs         int32            `json:"duration_ms"`
+	Status             TracerouteStatus `json:"status"`
+	ResolvedIp         *netip.Addr      `json:"resolved_ip"`
+	IpFamily           *IpFamily        `json:"ip_family"`
+	DestinationReached bool             `json:"destination_reached"`
+	HopCount           int32            `json:"hop_count"`
+	ErrorCode          *string          `json:"error_code"`
+	ErrorMessage       *string          `json:"error_message"`
 }
 
 func (q *Queries) CreateTracerouteResult(ctx context.Context, arg CreateTracerouteResultParams) error {
@@ -149,23 +149,23 @@ ON CONFLICT (probe_id, check_id, started_at, hop_index) DO NOTHING
 `
 
 type CreateTracerouteResultHopParams struct {
-	ProbeStorageID int64              `json:"probe_storage_id"`
-	CheckStorageID int64              `json:"check_storage_id"`
-	StartedAt      pgtype.Timestamptz `json:"started_at"`
-	HopIndex       int32              `json:"hop_index"`
-	Address        *netip.Addr        `json:"address"`
-	Hostname       *string            `json:"hostname"`
-	SentCount      int32              `json:"sent_count"`
-	ReceivedCount  int32              `json:"received_count"`
-	LossPercent    float64            `json:"loss_percent"`
-	RttMinMs       *float64           `json:"rtt_min_ms"`
-	RttAvgMs       *float64           `json:"rtt_avg_ms"`
-	RttMedianMs    *float64           `json:"rtt_median_ms"`
-	RttMaxMs       *float64           `json:"rtt_max_ms"`
-	RttStddevMs    *float64           `json:"rtt_stddev_ms"`
-	RttSamplesMs   []float64          `json:"rtt_samples_ms"`
-	ErrorCode      *string            `json:"error_code"`
-	ErrorMessage   *string            `json:"error_message"`
+	ProbeStorageID int64       `json:"probe_storage_id"`
+	CheckStorageID int64       `json:"check_storage_id"`
+	StartedAt      time.Time   `json:"started_at"`
+	HopIndex       int32       `json:"hop_index"`
+	Address        *netip.Addr `json:"address"`
+	Hostname       *string     `json:"hostname"`
+	SentCount      int32       `json:"sent_count"`
+	ReceivedCount  int32       `json:"received_count"`
+	LossPercent    float64     `json:"loss_percent"`
+	RttMinMs       *float64    `json:"rtt_min_ms"`
+	RttAvgMs       *float64    `json:"rtt_avg_ms"`
+	RttMedianMs    *float64    `json:"rtt_median_ms"`
+	RttMaxMs       *float64    `json:"rtt_max_ms"`
+	RttStddevMs    *float64    `json:"rtt_stddev_ms"`
+	RttSamplesMs   []float64   `json:"rtt_samples_ms"`
+	ErrorCode      *string     `json:"error_code"`
+	ErrorMessage   *string     `json:"error_message"`
 }
 
 func (q *Queries) CreateTracerouteResultHop(ctx context.Context, arg CreateTracerouteResultHopParams) error {
@@ -284,11 +284,11 @@ ORDER BY bucketed.bucket ASC
 `
 
 type ListTracerouteInsightBucketRowsParams struct {
-	StartedAtTo    pgtype.Timestamptz `json:"started_at_to"`
-	StartedAtFrom  pgtype.Timestamptz `json:"started_at_from"`
-	MaxDataPoints  float64            `json:"max_data_points"`
-	ProbeStorageID int64              `json:"probe_storage_id"`
-	CheckStorageID int64              `json:"check_storage_id"`
+	StartedAtTo    time.Time `json:"started_at_to"`
+	StartedAtFrom  time.Time `json:"started_at_from"`
+	MaxDataPoints  float64   `json:"max_data_points"`
+	ProbeStorageID int64     `json:"probe_storage_id"`
+	CheckStorageID int64     `json:"check_storage_id"`
 }
 
 type ListTracerouteInsightBucketRowsRow struct {
@@ -420,25 +420,25 @@ ORDER BY scored.started_at ASC
 `
 
 type ListTracerouteInsightRawRowsParams struct {
-	ProbeStorageID int64              `json:"probe_storage_id"`
-	CheckStorageID int64              `json:"check_storage_id"`
-	StartedAtFrom  pgtype.Timestamptz `json:"started_at_from"`
-	StartedAtTo    pgtype.Timestamptz `json:"started_at_to"`
+	ProbeStorageID int64     `json:"probe_storage_id"`
+	CheckStorageID int64     `json:"check_storage_id"`
+	StartedAtFrom  time.Time `json:"started_at_from"`
+	StartedAtTo    time.Time `json:"started_at_to"`
 }
 
 type ListTracerouteInsightRawRowsRow struct {
-	BucketMs            int64              `json:"bucket_ms"`
-	BucketFromMs        int64              `json:"bucket_from_ms"`
-	BucketToMs          int64              `json:"bucket_to_ms"`
-	RunStartedAt        pgtype.Timestamptz `json:"run_started_at"`
-	ResultCount         int64              `json:"result_count"`
-	FinalRttValueCount  int64              `json:"final_rtt_value_count"`
-	FinalRttAvgMs       float64            `json:"final_rtt_avg_ms"`
-	FinalLossValueCount int64              `json:"final_loss_value_count"`
-	FinalLossPercent    float64            `json:"final_loss_percent"`
-	HasLoss             bool               `json:"has_loss"`
-	HasRouteChange      bool               `json:"has_route_change"`
-	DestinationReached  bool               `json:"destination_reached"`
+	BucketMs            int64     `json:"bucket_ms"`
+	BucketFromMs        int64     `json:"bucket_from_ms"`
+	BucketToMs          int64     `json:"bucket_to_ms"`
+	RunStartedAt        time.Time `json:"run_started_at"`
+	ResultCount         int64     `json:"result_count"`
+	FinalRttValueCount  int64     `json:"final_rtt_value_count"`
+	FinalRttAvgMs       float64   `json:"final_rtt_avg_ms"`
+	FinalLossValueCount int64     `json:"final_loss_value_count"`
+	FinalLossPercent    float64   `json:"final_loss_percent"`
+	HasLoss             bool      `json:"has_loss"`
+	HasRouteChange      bool      `json:"has_route_change"`
+	DestinationReached  bool      `json:"destination_reached"`
 }
 
 func (q *Queries) ListTracerouteInsightRawRows(ctx context.Context, arg ListTracerouteInsightRawRowsParams) ([]ListTracerouteInsightRawRowsRow, error) {
@@ -528,39 +528,39 @@ ORDER BY selected_runs.started_at DESC, traceroute_result_hops.hop_index ASC
 `
 
 type ListTracerouteRunRowsParams struct {
-	ProbeStorageID  int64              `json:"probe_storage_id"`
-	CheckStorageID  int64              `json:"check_storage_id"`
-	StartedAtFrom   pgtype.Timestamptz `json:"started_at_from"`
-	StartedAtTo     pgtype.Timestamptz `json:"started_at_to"`
-	CursorStartedAt pgtype.Timestamptz `json:"cursor_started_at"`
-	LimitCount      int32              `json:"limit_count"`
+	ProbeStorageID  int64      `json:"probe_storage_id"`
+	CheckStorageID  int64      `json:"check_storage_id"`
+	StartedAtFrom   time.Time  `json:"started_at_from"`
+	StartedAtTo     time.Time  `json:"started_at_to"`
+	CursorStartedAt *time.Time `json:"cursor_started_at"`
+	LimitCount      int32      `json:"limit_count"`
 }
 
 type ListTracerouteRunRowsRow struct {
-	StartedAt          pgtype.Timestamptz `json:"started_at"`
-	FinishedAt         pgtype.Timestamptz `json:"finished_at"`
-	DurationMs         int32              `json:"duration_ms"`
-	Status             TracerouteStatus   `json:"status"`
-	ResolvedIp         *netip.Addr        `json:"resolved_ip"`
-	IpFamily           *IpFamily          `json:"ip_family"`
-	DestinationReached bool               `json:"destination_reached"`
-	HopCount           int32              `json:"hop_count"`
-	ErrorCode          *string            `json:"error_code"`
-	ErrorMessage       *string            `json:"error_message"`
-	HopIndex           *int32             `json:"hop_index"`
-	Address            *netip.Addr        `json:"address"`
-	Hostname           *string            `json:"hostname"`
-	SentCount          *int32             `json:"sent_count"`
-	ReceivedCount      *int32             `json:"received_count"`
-	LossPercent        *float64           `json:"loss_percent"`
-	RttMinMs           *float64           `json:"rtt_min_ms"`
-	RttAvgMs           *float64           `json:"rtt_avg_ms"`
-	RttMedianMs        *float64           `json:"rtt_median_ms"`
-	RttMaxMs           *float64           `json:"rtt_max_ms"`
-	RttStddevMs        *float64           `json:"rtt_stddev_ms"`
-	RttSamplesMs       []float64          `json:"rtt_samples_ms"`
-	HopErrorCode       *string            `json:"hop_error_code"`
-	HopErrorMessage    *string            `json:"hop_error_message"`
+	StartedAt          time.Time        `json:"started_at"`
+	FinishedAt         time.Time        `json:"finished_at"`
+	DurationMs         int32            `json:"duration_ms"`
+	Status             TracerouteStatus `json:"status"`
+	ResolvedIp         *netip.Addr      `json:"resolved_ip"`
+	IpFamily           *IpFamily        `json:"ip_family"`
+	DestinationReached bool             `json:"destination_reached"`
+	HopCount           int32            `json:"hop_count"`
+	ErrorCode          *string          `json:"error_code"`
+	ErrorMessage       *string          `json:"error_message"`
+	HopIndex           *int32           `json:"hop_index"`
+	Address            *netip.Addr      `json:"address"`
+	Hostname           *string          `json:"hostname"`
+	SentCount          *int32           `json:"sent_count"`
+	ReceivedCount      *int32           `json:"received_count"`
+	LossPercent        *float64         `json:"loss_percent"`
+	RttMinMs           *float64         `json:"rtt_min_ms"`
+	RttAvgMs           *float64         `json:"rtt_avg_ms"`
+	RttMedianMs        *float64         `json:"rtt_median_ms"`
+	RttMaxMs           *float64         `json:"rtt_max_ms"`
+	RttStddevMs        *float64         `json:"rtt_stddev_ms"`
+	RttSamplesMs       []float64        `json:"rtt_samples_ms"`
+	HopErrorCode       *string          `json:"hop_error_code"`
+	HopErrorMessage    *string          `json:"hop_error_message"`
 }
 
 func (q *Queries) ListTracerouteRunRows(ctx context.Context, arg ListTracerouteRunRowsParams) ([]ListTracerouteRunRowsRow, error) {
@@ -673,27 +673,27 @@ ORDER BY selected_runs.started_at DESC,
 `
 
 type ListTracerouteTopologyRowsParams struct {
-	ProjectID     uuid.UUID          `json:"project_id"`
-	StartedAtFrom pgtype.Timestamptz `json:"started_at_from"`
-	StartedAtTo   pgtype.Timestamptz `json:"started_at_to"`
-	ProbeID       *uuid.UUID         `json:"probe_id"`
-	CheckID       *uuid.UUID         `json:"check_id"`
-	LimitCount    int32              `json:"limit_count"`
+	ProjectID     uuid.UUID  `json:"project_id"`
+	StartedAtFrom time.Time  `json:"started_at_from"`
+	StartedAtTo   time.Time  `json:"started_at_to"`
+	ProbeID       *uuid.UUID `json:"probe_id"`
+	CheckID       *uuid.UUID `json:"check_id"`
+	LimitCount    int32      `json:"limit_count"`
 }
 
 type ListTracerouteTopologyRowsRow struct {
-	StartedAt     pgtype.Timestamptz `json:"started_at"`
-	ProbePublicID uuid.UUID          `json:"probe_public_id"`
-	ProbeName     string             `json:"probe_name"`
-	CheckPublicID uuid.UUID          `json:"check_public_id"`
-	CheckName     string             `json:"check_name"`
-	CheckTarget   string             `json:"check_target"`
-	ResolvedIp    *netip.Addr        `json:"resolved_ip"`
-	HopIndex      *int32             `json:"hop_index"`
-	Address       *netip.Addr        `json:"address"`
-	Hostname      *string            `json:"hostname"`
-	LossPercent   *float64           `json:"loss_percent"`
-	RttAvgMs      *float64           `json:"rtt_avg_ms"`
+	StartedAt     time.Time   `json:"started_at"`
+	ProbePublicID uuid.UUID   `json:"probe_public_id"`
+	ProbeName     string      `json:"probe_name"`
+	CheckPublicID uuid.UUID   `json:"check_public_id"`
+	CheckName     string      `json:"check_name"`
+	CheckTarget   string      `json:"check_target"`
+	ResolvedIp    *netip.Addr `json:"resolved_ip"`
+	HopIndex      *int32      `json:"hop_index"`
+	Address       *netip.Addr `json:"address"`
+	Hostname      *string     `json:"hostname"`
+	LossPercent   *float64    `json:"loss_percent"`
+	RttAvgMs      *float64    `json:"rtt_avg_ms"`
 }
 
 func (q *Queries) ListTracerouteTopologyRows(ctx context.Context, arg ListTracerouteTopologyRowsParams) ([]ListTracerouteTopologyRowsRow, error) {

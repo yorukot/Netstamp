@@ -96,9 +96,9 @@ func mapProbeFields(
 	enabled bool,
 	location pgtype.Point,
 	locationName *string,
-	createdAt pgtype.Timestamptz,
-	updatedAt pgtype.Timestamptz,
-	deletedAt pgtype.Timestamptz,
+	createdAt time.Time,
+	updatedAt time.Time,
+	deletedAt *time.Time,
 	status *domainprobe.Status,
 ) domainprobe.Probe {
 	latitude, longitude := coordinatesFromPoint(location)
@@ -113,9 +113,9 @@ func mapProbeFields(
 		Longitude:    longitude,
 		Labels:       []domainlabel.Label{},
 		Status:       status,
-		CreatedAt:    createdAt.Time,
-		UpdatedAt:    updatedAt.Time,
-		DeletedAt:    timePtr(deletedAt),
+		CreatedAt:    createdAt,
+		UpdatedAt:    updatedAt,
+		DeletedAt:    deletedAt,
 	}
 }
 
@@ -142,13 +142,13 @@ func mapProbeStatus(row sqlc.ProbeStatus) domainprobe.Status {
 	return domainprobe.Status{
 		ProbeID:      row.ProbeID.String(),
 		State:        domainprobe.State(row.Status),
-		LastSeenAt:   timePtr(row.LastSeenAt),
+		LastSeenAt:   row.LastSeenAt,
 		AgentVersion: row.AgentVersion,
 		PublicV4:     cloneAddr(row.PublicV4),
 		PublicV6:     cloneAddr(row.PublicV6),
 		AS:           row.As,
 		Addrs:        append([]netip.Addr(nil), row.Addrs...),
-		UpdatedAt:    row.UpdatedAt.Time,
+		UpdatedAt:    row.UpdatedAt,
 	}
 }
 
@@ -156,13 +156,13 @@ func mapListProbeStatus(row sqlc.ListActiveProbesForProjectRow) *domainprobe.Sta
 	return &domainprobe.Status{
 		ProbeID:      row.ID.String(),
 		State:        domainprobe.State(row.Status),
-		LastSeenAt:   timePtr(row.StatusLastSeenAt),
+		LastSeenAt:   row.StatusLastSeenAt,
 		AgentVersion: row.StatusAgentVersion,
 		PublicV4:     cloneAddr(row.StatusPublicV4),
 		PublicV6:     cloneAddr(row.StatusPublicV6),
 		AS:           row.StatusAs,
 		Addrs:        append([]netip.Addr(nil), row.StatusAddrs...),
-		UpdatedAt:    row.StatusUpdatedAt.Time,
+		UpdatedAt:    timeValue(row.StatusUpdatedAt),
 	}
 }
 
@@ -170,18 +170,18 @@ func mapGetProbeStatus(row sqlc.GetActiveProbeRowsForProjectRow) *domainprobe.St
 	return &domainprobe.Status{
 		ProbeID:      row.ID.String(),
 		State:        domainprobe.State(row.Status),
-		LastSeenAt:   timePtr(row.StatusLastSeenAt),
+		LastSeenAt:   row.StatusLastSeenAt,
 		AgentVersion: row.StatusAgentVersion,
 		PublicV4:     cloneAddr(row.StatusPublicV4),
 		PublicV6:     cloneAddr(row.StatusPublicV6),
 		AS:           row.StatusAs,
 		Addrs:        append([]netip.Addr(nil), row.StatusAddrs...),
-		UpdatedAt:    row.StatusUpdatedAt.Time,
+		UpdatedAt:    timeValue(row.StatusUpdatedAt),
 	}
 }
 
 func mapListProbeLabel(row sqlc.ListActiveProbesForProjectRow) (domainlabel.Label, bool) {
-	if row.LabelID == nil || row.LabelProjectID == nil || row.LabelKey == nil || row.LabelValue == nil {
+	if row.LabelID == nil || row.LabelProjectID == nil || row.LabelKey == nil || row.LabelValue == nil || row.LabelCreatedAt == nil || row.LabelUpdatedAt == nil {
 		return domainlabel.Label{}, false
 	}
 
@@ -190,14 +190,14 @@ func mapListProbeLabel(row sqlc.ListActiveProbesForProjectRow) (domainlabel.Labe
 		ProjectID: row.LabelProjectID.String(),
 		Key:       *row.LabelKey,
 		Value:     *row.LabelValue,
-		CreatedAt: row.LabelCreatedAt.Time,
-		UpdatedAt: row.LabelUpdatedAt.Time,
-		DeletedAt: timePtr(row.LabelDeletedAt),
+		CreatedAt: *row.LabelCreatedAt,
+		UpdatedAt: *row.LabelUpdatedAt,
+		DeletedAt: row.LabelDeletedAt,
 	}, true
 }
 
 func mapGetProbeLabel(row sqlc.GetActiveProbeRowsForProjectRow) (domainlabel.Label, bool) {
-	if row.LabelID == nil || row.LabelProjectID == nil || row.LabelKey == nil || row.LabelValue == nil {
+	if row.LabelID == nil || row.LabelProjectID == nil || row.LabelKey == nil || row.LabelValue == nil || row.LabelCreatedAt == nil || row.LabelUpdatedAt == nil {
 		return domainlabel.Label{}, false
 	}
 
@@ -206,9 +206,9 @@ func mapGetProbeLabel(row sqlc.GetActiveProbeRowsForProjectRow) (domainlabel.Lab
 		ProjectID: row.LabelProjectID.String(),
 		Key:       *row.LabelKey,
 		Value:     *row.LabelValue,
-		CreatedAt: row.LabelCreatedAt.Time,
-		UpdatedAt: row.LabelUpdatedAt.Time,
-		DeletedAt: timePtr(row.LabelDeletedAt),
+		CreatedAt: *row.LabelCreatedAt,
+		UpdatedAt: *row.LabelUpdatedAt,
+		DeletedAt: row.LabelDeletedAt,
 	}, true
 }
 
@@ -318,10 +318,9 @@ func cloneAddr(value *netip.Addr) *netip.Addr {
 	return &addr
 }
 
-func timePtr(value pgtype.Timestamptz) *time.Time {
-	if !value.Valid {
-		return nil
+func timeValue(value *time.Time) time.Time {
+	if value == nil {
+		return time.Time{}
 	}
-
-	return &value.Time
+	return *value
 }

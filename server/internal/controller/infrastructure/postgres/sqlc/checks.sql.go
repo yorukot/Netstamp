@@ -7,9 +7,9 @@ package sqlc
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createCheck = `-- name: CreateCheck :one
@@ -323,9 +323,9 @@ type GetActiveCheckForProjectRow struct {
 	Selector                  []byte              `json:"selector"`
 	Description               *string             `json:"description"`
 	IntervalSeconds           int32               `json:"interval_seconds"`
-	CreatedAt                 pgtype.Timestamptz  `json:"created_at"`
-	UpdatedAt                 pgtype.Timestamptz  `json:"updated_at"`
-	DeletedAt                 pgtype.Timestamptz  `json:"deleted_at"`
+	CreatedAt                 time.Time           `json:"created_at"`
+	UpdatedAt                 time.Time           `json:"updated_at"`
+	DeletedAt                 *time.Time          `json:"deleted_at"`
 	PingPacketCount           *int32              `json:"ping_packet_count"`
 	PingPacketSizeBytes       *int32              `json:"ping_packet_size_bytes"`
 	PingTimeoutMs             *int32              `json:"ping_timeout_ms"`
@@ -422,9 +422,9 @@ type ListActiveChecksForProjectRow struct {
 	Selector                  []byte              `json:"selector"`
 	Description               *string             `json:"description"`
 	IntervalSeconds           int32               `json:"interval_seconds"`
-	CreatedAt                 pgtype.Timestamptz  `json:"created_at"`
-	UpdatedAt                 pgtype.Timestamptz  `json:"updated_at"`
-	DeletedAt                 pgtype.Timestamptz  `json:"deleted_at"`
+	CreatedAt                 time.Time           `json:"created_at"`
+	UpdatedAt                 time.Time           `json:"updated_at"`
+	DeletedAt                 *time.Time          `json:"deleted_at"`
 	PingPacketCount           *int32              `json:"ping_packet_count"`
 	PingPacketSizeBytes       *int32              `json:"ping_packet_size_bytes"`
 	PingTimeoutMs             *int32              `json:"ping_timeout_ms"`
@@ -520,18 +520,18 @@ ORDER BY probes.created_at ASC,
 `
 
 type ListActiveEnabledProbeLabelsForProjectRow struct {
-	ProbeID         uuid.UUID          `json:"probe_id"`
-	ProbeInternalID int64              `json:"probe_internal_id"`
-	ProbeProjectID  uuid.UUID          `json:"probe_project_id"`
-	ProbeName       string             `json:"probe_name"`
-	ProbeEnabled    bool               `json:"probe_enabled"`
-	LabelID         *uuid.UUID         `json:"label_id"`
-	LabelProjectID  *uuid.UUID         `json:"label_project_id"`
-	LabelKey        *string            `json:"label_key"`
-	LabelValue      *string            `json:"label_value"`
-	LabelCreatedAt  pgtype.Timestamptz `json:"label_created_at"`
-	LabelUpdatedAt  pgtype.Timestamptz `json:"label_updated_at"`
-	LabelDeletedAt  pgtype.Timestamptz `json:"label_deleted_at"`
+	ProbeID         uuid.UUID  `json:"probe_id"`
+	ProbeInternalID int64      `json:"probe_internal_id"`
+	ProbeProjectID  uuid.UUID  `json:"probe_project_id"`
+	ProbeName       string     `json:"probe_name"`
+	ProbeEnabled    bool       `json:"probe_enabled"`
+	LabelID         *uuid.UUID `json:"label_id"`
+	LabelProjectID  *uuid.UUID `json:"label_project_id"`
+	LabelKey        *string    `json:"label_key"`
+	LabelValue      *string    `json:"label_value"`
+	LabelCreatedAt  *time.Time `json:"label_created_at"`
+	LabelUpdatedAt  *time.Time `json:"label_updated_at"`
+	LabelDeletedAt  *time.Time `json:"label_deleted_at"`
 }
 
 func (q *Queries) ListActiveEnabledProbeLabelsForProject(ctx context.Context, projectID uuid.UUID) ([]ListActiveEnabledProbeLabelsForProjectRow, error) {

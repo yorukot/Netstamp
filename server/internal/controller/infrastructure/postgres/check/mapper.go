@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/sqlc"
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
@@ -27,9 +26,9 @@ func mapStoredPingCheck(row sqlc.Check, config sqlc.PingCheckConfig) domaincheck
 		Description:     row.Description,
 		IntervalSeconds: row.IntervalSeconds,
 		PingConfig:      pingConfigPtr(mapPingConfig(config)),
-		CreatedAt:       row.CreatedAt.Time,
-		UpdatedAt:       row.UpdatedAt.Time,
-		DeletedAt:       timePtr(row.DeletedAt),
+		CreatedAt:       row.CreatedAt,
+		UpdatedAt:       row.UpdatedAt,
+		DeletedAt:       row.DeletedAt,
 	}
 }
 
@@ -44,9 +43,9 @@ func mapStoredTCPCheck(row sqlc.Check, config sqlc.TcpCheckConfig) domaincheck.C
 		Description:     row.Description,
 		IntervalSeconds: row.IntervalSeconds,
 		TCPConfig:       tcpConfigPtr(mapTCPConfig(config)),
-		CreatedAt:       row.CreatedAt.Time,
-		UpdatedAt:       row.UpdatedAt.Time,
-		DeletedAt:       timePtr(row.DeletedAt),
+		CreatedAt:       row.CreatedAt,
+		UpdatedAt:       row.UpdatedAt,
+		DeletedAt:       row.DeletedAt,
 	}
 }
 
@@ -61,9 +60,9 @@ func mapStoredTracerouteCheck(row sqlc.Check, config sqlc.TracerouteCheckConfig)
 		Description:      row.Description,
 		IntervalSeconds:  row.IntervalSeconds,
 		TracerouteConfig: tracerouteConfigPtr(mapTracerouteConfig(config)),
-		CreatedAt:        row.CreatedAt.Time,
-		UpdatedAt:        row.UpdatedAt.Time,
-		DeletedAt:        timePtr(row.DeletedAt),
+		CreatedAt:        row.CreatedAt,
+		UpdatedAt:        row.UpdatedAt,
+		DeletedAt:        row.DeletedAt,
 	}
 }
 
@@ -150,9 +149,9 @@ func mapSelectedCheck(
 	traceroutePacketSizeBytes *int32,
 	traceroutePort *int32,
 	tracerouteIPFamily *sqlc.IpFamily,
-	createdAt pgtype.Timestamptz,
-	updatedAt pgtype.Timestamptz,
-	deletedAt pgtype.Timestamptz,
+	createdAt time.Time,
+	updatedAt time.Time,
+	deletedAt *time.Time,
 ) domaincheck.Check {
 	check := domaincheck.Check{
 		ID:              id.String(),
@@ -163,9 +162,9 @@ func mapSelectedCheck(
 		Selector:        cloneRawMessage(selector),
 		Description:     description,
 		IntervalSeconds: intervalSeconds,
-		CreatedAt:       createdAt.Time,
-		UpdatedAt:       updatedAt.Time,
-		DeletedAt:       timePtr(deletedAt),
+		CreatedAt:       createdAt,
+		UpdatedAt:       updatedAt,
+		DeletedAt:       deletedAt,
 	}
 	check.PingConfig = mapOptionalPingConfig(pingPacketCount, pingPacketSizeBytes, pingTimeoutMs, pingIPFamily)
 	check.TCPConfig = mapOptionalTCPConfig(tcpPort, tcpTimeoutMs, tcpIPFamily)
@@ -306,9 +305,9 @@ func mapLabels(rows []sqlc.Label) []domainlabel.Label {
 			ProjectID: row.ProjectID.String(),
 			Key:       row.Key,
 			Value:     row.Value,
-			CreatedAt: row.CreatedAt.Time,
-			UpdatedAt: row.UpdatedAt.Time,
-			DeletedAt: timePtr(row.DeletedAt),
+			CreatedAt: row.CreatedAt,
+			UpdatedAt: row.UpdatedAt,
+			DeletedAt: row.DeletedAt,
 		})
 	}
 
@@ -321,12 +320,4 @@ func cloneRawMessage(value []byte) json.RawMessage {
 	}
 
 	return append(json.RawMessage(nil), value...)
-}
-
-func timePtr(value pgtype.Timestamptz) *time.Time {
-	if !value.Valid {
-		return nil
-	}
-
-	return &value.Time
 }

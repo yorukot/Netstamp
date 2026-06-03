@@ -7,9 +7,9 @@ package sqlc
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const listProjectMeasurements = `-- name: ListProjectMeasurements :many
@@ -144,30 +144,30 @@ LIMIT $4
 `
 
 type ListProjectMeasurementsParams struct {
-	MeasurementType *string            `json:"measurement_type"`
-	Status          *string            `json:"status"`
-	CursorStartedAt pgtype.Timestamptz `json:"cursor_started_at"`
-	LimitCount      int32              `json:"limit_count"`
-	ProjectID       uuid.UUID          `json:"project_id"`
-	StartedAtFrom   pgtype.Timestamptz `json:"started_at_from"`
-	StartedAtTo     pgtype.Timestamptz `json:"started_at_to"`
-	ProbeID         *uuid.UUID         `json:"probe_id"`
-	CheckID         *uuid.UUID         `json:"check_id"`
+	MeasurementType *string    `json:"measurement_type"`
+	Status          *string    `json:"status"`
+	CursorStartedAt *time.Time `json:"cursor_started_at"`
+	LimitCount      int32      `json:"limit_count"`
+	ProjectID       uuid.UUID  `json:"project_id"`
+	StartedAtFrom   time.Time  `json:"started_at_from"`
+	StartedAtTo     time.Time  `json:"started_at_to"`
+	ProbeID         *uuid.UUID `json:"probe_id"`
+	CheckID         *uuid.UUID `json:"check_id"`
 }
 
 type ListProjectMeasurementsRow struct {
-	MeasurementType string             `json:"measurement_type"`
-	StartedAt       pgtype.Timestamptz `json:"started_at"`
-	FinishedAt      pgtype.Timestamptz `json:"finished_at"`
-	DurationMs      int32              `json:"duration_ms"`
-	Status          string             `json:"status"`
-	ProbeID         uuid.UUID          `json:"probe_id"`
-	CheckID         uuid.UUID          `json:"check_id"`
-	LatencyMs       *float64           `json:"latency_ms"`
-	LossPercent     float64            `json:"loss_percent"`
-	Metadata        string             `json:"metadata"`
-	ErrorCode       *string            `json:"error_code"`
-	ErrorMessage    *string            `json:"error_message"`
+	MeasurementType string    `json:"measurement_type"`
+	StartedAt       time.Time `json:"started_at"`
+	FinishedAt      time.Time `json:"finished_at"`
+	DurationMs      int32     `json:"duration_ms"`
+	Status          string    `json:"status"`
+	ProbeID         uuid.UUID `json:"probe_id"`
+	CheckID         uuid.UUID `json:"check_id"`
+	LatencyMs       *float64  `json:"latency_ms"`
+	LossPercent     float64   `json:"loss_percent"`
+	Metadata        string    `json:"metadata"`
+	ErrorCode       *string   `json:"error_code"`
+	ErrorMessage    *string   `json:"error_message"`
 }
 
 func (q *Queries) ListProjectMeasurements(ctx context.Context, arg ListProjectMeasurementsParams) ([]ListProjectMeasurementsRow, error) {

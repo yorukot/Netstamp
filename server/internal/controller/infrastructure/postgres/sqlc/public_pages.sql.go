@@ -7,9 +7,9 @@ package sqlc
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createPublicPage = `-- name: CreatePublicPage :one
@@ -266,15 +266,15 @@ type ListPublicPageFolderChecksForProjectPageParams struct {
 }
 
 type ListPublicPageFolderChecksForProjectPageRow struct {
-	PublicPageID         uuid.UUID          `json:"public_page_id"`
-	FolderID             uuid.UUID          `json:"folder_id"`
-	CheckID              uuid.UUID          `json:"check_id"`
-	SortOrder            int32              `json:"sort_order"`
-	CheckName            string             `json:"check_name"`
-	CheckDescription     *string            `json:"check_description"`
-	CheckIntervalSeconds int32              `json:"check_interval_seconds"`
-	CheckCreatedAt       pgtype.Timestamptz `json:"check_created_at"`
-	CheckUpdatedAt       pgtype.Timestamptz `json:"check_updated_at"`
+	PublicPageID         uuid.UUID `json:"public_page_id"`
+	FolderID             uuid.UUID `json:"folder_id"`
+	CheckID              uuid.UUID `json:"check_id"`
+	SortOrder            int32     `json:"sort_order"`
+	CheckName            string    `json:"check_name"`
+	CheckDescription     *string   `json:"check_description"`
+	CheckIntervalSeconds int32     `json:"check_interval_seconds"`
+	CheckCreatedAt       time.Time `json:"check_created_at"`
+	CheckUpdatedAt       time.Time `json:"check_updated_at"`
 }
 
 func (q *Queries) ListPublicPageFolderChecksForProjectPage(ctx context.Context, arg ListPublicPageFolderChecksForProjectPageParams) ([]ListPublicPageFolderChecksForProjectPageRow, error) {

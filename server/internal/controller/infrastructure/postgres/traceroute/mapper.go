@@ -3,8 +3,6 @@ package pgtraceroute
 import (
 	"time"
 
-	"github.com/jackc/pgx/v5/pgtype"
-
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/sqlc"
 	domainnetwork "github.com/yorukot/netstamp/internal/domain/network"
 	domaintraceroute "github.com/yorukot/netstamp/internal/domain/traceroute"
@@ -32,16 +30,12 @@ func mapIPFamily(value *sqlc.IpFamily) *domainnetwork.IPFamily {
 	return &ipFamily
 }
 
-func timestamptz(value time.Time) pgtype.Timestamptz {
-	return pgtype.Timestamptz{Time: value.UTC(), Valid: true}
-}
-
-func optionalTimestamptz(value *time.Time) pgtype.Timestamptz {
+func optionalTime(value *time.Time) *time.Time {
 	if value == nil {
-		return pgtype.Timestamptz{}
+		return nil
 	}
-
-	return timestamptz(*value)
+	copied := value.UTC()
+	return &copied
 }
 
 func storageRTTSamples(samples []float64) []float64 {
@@ -53,7 +47,7 @@ func mapRunRows(rows []sqlc.ListTracerouteRunRowsRow, limit int32) domaintracero
 	runIndex := make(map[time.Time]int)
 	runs := make([]domaintraceroute.Run, 0)
 	for _, row := range rows {
-		startedAt := row.StartedAt.Time.UTC()
+		startedAt := row.StartedAt.UTC()
 		index, ok := runIndex[startedAt]
 		if !ok {
 			if len(runs) >= limitCount+1 {
@@ -63,7 +57,7 @@ func mapRunRows(rows []sqlc.ListTracerouteRunRowsRow, limit int32) domaintracero
 			runIndex[startedAt] = index
 			runs = append(runs, domaintraceroute.Run{
 				StartedAt:          startedAt,
-				FinishedAt:         row.FinishedAt.Time.UTC(),
+				FinishedAt:         row.FinishedAt.UTC(),
 				DurationMs:         row.DurationMs,
 				Status:             domaintraceroute.Status(row.Status),
 				ResolvedIP:         row.ResolvedIp,
@@ -103,7 +97,7 @@ func mapTopologyRows(rows []sqlc.ListTracerouteTopologyRowsRow) domaintraceroute
 	runIndex := make(map[runKey]int)
 	runs := make([]domaintraceroute.TopologyRun, 0)
 	for _, row := range rows {
-		startedAt := row.StartedAt.Time.UTC()
+		startedAt := row.StartedAt.UTC()
 		probeID := row.ProbePublicID.String()
 		checkID := row.CheckPublicID.String()
 		key := runKey{startedAt: startedAt, probeID: probeID, checkID: checkID}
@@ -139,7 +133,7 @@ func mapTopologyRows(rows []sqlc.ListTracerouteTopologyRowsRow) domaintraceroute
 func mapRawInsightRows(rows []sqlc.ListTracerouteInsightRawRowsRow) []domaintraceroute.InsightPoint {
 	values := make([]domaintraceroute.InsightPoint, 0, len(rows))
 	for _, row := range rows {
-		runStartedAt := row.RunStartedAt.Time.UTC()
+		runStartedAt := row.RunStartedAt.UTC()
 		values = append(values, domaintraceroute.InsightPoint{
 			Timestamp:          time.UnixMilli(row.BucketMs).UTC(),
 			BucketFrom:         time.UnixMilli(row.BucketFromMs).UTC(),

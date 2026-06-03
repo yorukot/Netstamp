@@ -7,6 +7,7 @@ package sqlc
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -95,9 +96,9 @@ type ListProjectAssignmentsRow struct {
 	ProbeEnabled              bool                `json:"probe_enabled"`
 	ProbeLocation             pgtype.Point        `json:"probe_location"`
 	ProbeLocationName         *string             `json:"probe_location_name"`
-	ProbeCreatedAt            pgtype.Timestamptz  `json:"probe_created_at"`
-	ProbeUpdatedAt            pgtype.Timestamptz  `json:"probe_updated_at"`
-	ProbeDeletedAt            pgtype.Timestamptz  `json:"probe_deleted_at"`
+	ProbeCreatedAt            time.Time           `json:"probe_created_at"`
+	ProbeUpdatedAt            time.Time           `json:"probe_updated_at"`
+	ProbeDeletedAt            *time.Time          `json:"probe_deleted_at"`
 	CheckInternalID           int64               `json:"check_internal_id"`
 	CheckVersion              string              `json:"check_version"`
 	SelectorVersion           string              `json:"selector_version"`
@@ -107,9 +108,9 @@ type ListProjectAssignmentsRow struct {
 	Selector                  []byte              `json:"selector"`
 	Description               *string             `json:"description"`
 	IntervalSeconds           int32               `json:"interval_seconds"`
-	CheckCreatedAt            pgtype.Timestamptz  `json:"check_created_at"`
-	CheckUpdatedAt            pgtype.Timestamptz  `json:"check_updated_at"`
-	CheckDeletedAt            pgtype.Timestamptz  `json:"check_deleted_at"`
+	CheckCreatedAt            time.Time           `json:"check_created_at"`
+	CheckUpdatedAt            time.Time           `json:"check_updated_at"`
+	CheckDeletedAt            *time.Time          `json:"check_deleted_at"`
 	PingPacketCount           *int32              `json:"ping_packet_count"`
 	PingPacketSizeBytes       *int32              `json:"ping_packet_size_bytes"`
 	PingTimeoutMs             *int32              `json:"ping_timeout_ms"`
