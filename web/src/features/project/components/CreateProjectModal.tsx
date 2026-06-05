@@ -12,6 +12,7 @@ import styles from "./CreateProjectModal.module.css";
 
 interface CreateProjectModalProps {
 	onClose: () => void;
+	onCreatedProject?: (projectRef: string) => void;
 }
 
 interface ProjectListCache {
@@ -29,7 +30,7 @@ function slugifyProjectName(name: string) {
 		.slice(0, maxProjectSlugLength);
 }
 
-export function CreateProjectModal({ onClose }: CreateProjectModalProps) {
+export function CreateProjectModal({ onClose, onCreatedProject }: CreateProjectModalProps) {
 	const titleId = useId();
 	const descriptionId = useId();
 	const queryClient = useQueryClient();
@@ -101,6 +102,7 @@ export function CreateProjectModal({ onClose }: CreateProjectModalProps) {
 				projects: [data.project, ...(current?.projects ?? []).filter(project => project.id !== data.project.id)]
 			}));
 			setSelectedProjectRef(createdProjectRef);
+			onCreatedProject?.(createdProjectRef);
 			pushToast({
 				title: "Project created",
 				message: `${data.project.name} is now selected.`,

@@ -98,7 +98,7 @@ export function SettingsPage() {
 					message: `Switched to ${data.invite.project.name}.`,
 					tone: "success"
 				});
-				navigate(pathForRoute("dashboard"));
+				navigate(pathForRoute("dashboard", { projectRef }));
 			}
 		});
 	}

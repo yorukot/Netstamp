@@ -1,16 +1,17 @@
 import { useSession } from "@/features/auth/session/SessionContext";
 import { SessionProvider } from "@/features/auth/session/SessionProvider";
 import { AppShell } from "@/layouts/AppShell";
+import { projectQueries } from "@/shared/api/queries";
 import { queryClient } from "@/shared/api/queryClient";
-import { CurrentProjectProvider } from "@/shared/api/useCurrentProject";
+import { CurrentProjectProvider, useCurrentProject, useProjectSelection } from "@/shared/api/useCurrentProject";
 import { ConfirmProvider } from "@/shared/components/ConfirmProvider";
 import { ToastProvider } from "@/shared/components/ToastProvider";
 import { TrackingConsentBanner } from "@/shared/tracking/TrackingConsentBanner";
-import { QueryClientProvider } from "@tanstack/react-query";
-import { lazy, Suspense, type ReactNode } from "react";
-import { createBrowserRouter, Outlet, Navigate as RouterNavigate, RouterProvider, useLocation, useNavigate } from "react-router-dom";
-import { pathForRoute } from "./routePaths";
-import type { AppRoute, Navigate } from "./routeTypes";
+import { QueryClientProvider, useQuery } from "@tanstack/react-query";
+import { lazy, Suspense, useEffect, type ReactNode } from "react";
+import { createBrowserRouter, Outlet, Navigate as RouterNavigate, RouterProvider, useLocation, useNavigate, useParams } from "react-router-dom";
+import { pathForProbeDetail, pathForPublicPageDetail, pathForRoute, projectRoutePath } from "./routePaths";
+import type { Navigate, ProjectAppRoute } from "./routeTypes";
 
 const AuthPage = lazy(() => import("@/features/auth/components/AuthPage").then(module => ({ default: module.AuthPage })));
 const OnboardingPage = lazy(() => import("@/features/auth/components/OnboardingPage").then(module => ({ default: module.OnboardingPage })));
@@ -26,18 +27,14 @@ const PublicPagesPage = lazy(() => import("@/features/public-pages/components/Pu
 const SettingsPage = lazy(() => import("@/features/settings/components/SettingsPage").then(module => ({ default: module.SettingsPage })));
 const ProjectPage = lazy(() => import("@/features/project/components/ProjectPage").then(module => ({ default: module.ProjectPage })));
 
-function appRoutePath(route: AppRoute) {
-	return pathForRoute(route).slice(1);
-}
-
 function lazyRoute(element: ReactNode) {
 	return <Suspense fallback={null}>{element}</Suspense>;
 }
 
-function useRouteNavigate(): Navigate {
+function useRouteNavigate(defaultProjectRef?: string | null): Navigate {
 	const navigate = useNavigate();
 
-	return route => navigate(pathForRoute(route));
+	return (route, options) => navigate(pathForRoute(route, { projectRef: options?.projectRef ?? defaultProjectRef }));
 }
 
 interface AuthRouteProps {
@@ -66,7 +63,8 @@ function OnboardingRoute() {
 }
 
 function DashboardRoute() {
-	const navigate = useRouteNavigate();
+	const { projectRef } = useCurrentProject();
+	const navigate = useRouteNavigate(projectRef);
 
 	return lazyRoute(<DashboardPage navigate={navigate} />);
 }
@@ -84,6 +82,89 @@ function ProtectedAppShell() {
 	}
 
 	return <AppShell />;
+}
+
+function DefaultProjectRedirect({ route = "dashboard" }: { route?: ProjectAppRoute }) {
+	const { projectRef, projectsQuery } = useCurrentProject();
+
+	if (projectsQuery.isPending) {
+		return null;
+	}
+
+	if (!projectRef) {
+		return <RouterNavigate to={pathForRoute("onboarding")} replace />;
+	}
+
+	return <RouterNavigate to={pathForRoute(route, { projectRef })} replace />;
+}
+
+function LegacyProbeDetailRedirect() {
+	const { probeId = "" } = useParams();
+	const { projectRef, projectsQuery } = useCurrentProject();
+
+	if (projectsQuery.isPending) {
+		return null;
+	}
+
+	if (!projectRef) {
+		return <RouterNavigate to={pathForRoute("onboarding")} replace />;
+	}
+
+	return <RouterNavigate to={probeId ? pathForProbeDetail(projectRef, probeId) : pathForRoute("probes", { projectRef })} replace />;
+}
+
+function LegacyPublicPageDetailRedirect() {
+	const { pageId = "" } = useParams();
+	const { projectRef, projectsQuery } = useCurrentProject();
+
+	if (projectsQuery.isPending) {
+		return null;
+	}
+
+	if (!projectRef) {
+		return <RouterNavigate to={pathForRoute("onboarding")} replace />;
+	}
+
+	return <RouterNavigate to={pageId ? pathForPublicPageDetail(projectRef, pageId) : pathForRoute("publicPages", { projectRef })} replace />;
+}
+
+function ProjectRouteBoundary() {
+	const { projectRef = "" } = useParams();
+	const { selectedProjectRef, setSelectedProjectRef } = useProjectSelection();
+	const projectsQuery = useQuery(projectQueries.list());
+	const projects = projectsQuery.data?.projects ?? [];
+	const matchedProject = projects.find(project => project.slug === projectRef || project.id === projectRef);
+
+	useEffect(() => {
+		if (projectRef && selectedProjectRef !== projectRef) {
+			setSelectedProjectRef(projectRef);
+		}
+	}, [projectRef, selectedProjectRef, setSelectedProjectRef]);
+
+	if (!projectRef) {
+		return <DefaultProjectRedirect />;
+	}
+
+	if (projectsQuery.isPending) {
+		return null;
+	}
+
+	if (projectsQuery.isSuccess && !matchedProject) {
+		const fallbackProject = projects[0];
+		const fallbackProjectRef = fallbackProject?.slug || fallbackProject?.id || "";
+
+		if (!fallbackProjectRef) {
+			return <RouterNavigate to={pathForRoute("onboarding")} replace />;
+		}
+
+		return <RouterNavigate to={pathForRoute("dashboard", { projectRef: fallbackProjectRef })} replace />;
+	}
+
+	if (selectedProjectRef !== projectRef) {
+		return null;
+	}
+
+	return <Outlet />;
 }
 
 function RouteFrame() {
@@ -107,19 +188,50 @@ const router = createBrowserRouter([
 			{
 				element: <ProtectedAppShell />,
 				children: [
-					{ path: appRoutePath("dashboard"), element: <DashboardRoute /> },
+					{ path: "dashboard", element: <DefaultProjectRedirect route="dashboard" /> },
 					{
-						path: appRoutePath("probes"),
-						element: lazyRoute(<ProbesPage />),
-						children: [{ path: "new", element: lazyRoute(<NewProbeDrawer />) }]
+						path: "probes",
+						children: [
+							{ index: true, element: <DefaultProjectRedirect route="probes" /> },
+							{ path: "new", element: <DefaultProjectRedirect route="newProbe" /> },
+							{ path: ":probeId", element: <LegacyProbeDetailRedirect /> }
+						]
 					},
-					{ path: appRoutePath("labels"), element: lazyRoute(<LabelsPage />) },
-					{ path: appRoutePath("checks"), element: lazyRoute(<ChecksPage />) },
-					{ path: appRoutePath("insight"), element: lazyRoute(<InsightPage />) },
-					{ path: appRoutePath("publicPages"), element: lazyRoute(<PublicPagesPage />) },
-					{ path: "public-pages/:pageId", element: lazyRoute(<PublicPageDetailPage />) },
-					{ path: appRoutePath("project"), element: lazyRoute(<ProjectPage />) },
-					{ path: appRoutePath("settings"), element: lazyRoute(<SettingsPage />) }
+					{ path: "labels", element: <DefaultProjectRedirect route="labels" /> },
+					{ path: "checks", element: <DefaultProjectRedirect route="checks" /> },
+					{ path: "insight", element: <DefaultProjectRedirect route="insight" /> },
+					{
+						path: "public-pages",
+						children: [
+							{ index: true, element: <DefaultProjectRedirect route="publicPages" /> },
+							{ path: ":pageId", element: <LegacyPublicPageDetailRedirect /> }
+						]
+					},
+					{ path: "project", element: <DefaultProjectRedirect route="project" /> },
+					{ path: "projects", element: <DefaultProjectRedirect route="dashboard" /> },
+					{
+						path: "projects/:projectRef",
+						element: <ProjectRouteBoundary />,
+						children: [
+							{ index: true, element: <RouterNavigate to={projectRoutePath("dashboard")} replace /> },
+							{ path: projectRoutePath("dashboard"), element: <DashboardRoute /> },
+							{
+								path: projectRoutePath("probes"),
+								element: lazyRoute(<ProbesPage />),
+								children: [
+									{ path: "new", element: lazyRoute(<NewProbeDrawer />) },
+									{ path: ":probeId", element: null }
+								]
+							},
+							{ path: projectRoutePath("labels"), element: lazyRoute(<LabelsPage />) },
+							{ path: projectRoutePath("checks"), element: lazyRoute(<ChecksPage />) },
+							{ path: projectRoutePath("insight"), element: lazyRoute(<InsightPage />) },
+							{ path: projectRoutePath("publicPages"), element: lazyRoute(<PublicPagesPage />) },
+							{ path: `${projectRoutePath("publicPages")}/:pageId`, element: lazyRoute(<PublicPageDetailPage />) },
+							{ path: projectRoutePath("project"), element: lazyRoute(<ProjectPage />) }
+						]
+					},
+					{ path: "settings", element: lazyRoute(<SettingsPage />) }
 				]
 			},
 			{ path: "*", element: <RouterNavigate to={pathForRoute("login")} replace /> }

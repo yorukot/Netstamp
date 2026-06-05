@@ -3,6 +3,7 @@ import { type Navigate } from "@/routes/routeTypes";
 import { ApiError } from "@/shared/api/client";
 import { createProjectInvite as createProjectInviteRequest, createProject as createProjectRequest } from "@/shared/api/mutations";
 import { apiQueryKeys } from "@/shared/api/queryKeys";
+import { useProjectSelection } from "@/shared/api/useCurrentProject";
 import { pushErrorToast } from "@/shared/toast/toastStore";
 import { classNames } from "@/shared/utils/classNames";
 import { Button, Input, PageShell } from "@netstamp/ui";
@@ -62,11 +63,13 @@ function isProjectSlugConflict(error: unknown) {
 export function OnboardingPage({ navigate }: OnboardingPageProps) {
 	const { session, loading, submitting } = useAuth();
 	const queryClient = useQueryClient();
+	const { setSelectedProjectRef } = useProjectSelection();
 	const [activeStep, setActiveStep] = useState(0);
 	const [typedText, setTypedText] = useState("");
 	const [projectName, setProjectName] = useState("");
 	const [invites, setInvites] = useState([""]);
 	const [createdProject, setCreatedProject] = useState("");
+	const [createdProjectRef, setCreatedProjectRef] = useState("");
 	const [creatingProject, setCreatingProject] = useState(false);
 	const projectInputRef = useRef<HTMLInputElement | null>(null);
 	const inviteRefs = useRef<Array<HTMLInputElement | null>>([]);
@@ -221,7 +224,9 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 					}
 
 					await queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.list() });
+					setSelectedProjectRef(projectRef);
 					setCreatedProject(normalizedProjectName);
+					setCreatedProjectRef(projectRef);
 					return;
 				} catch (error) {
 					if (!isProjectSlugConflict(error)) {
@@ -262,7 +267,7 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 						<div className={styles.successView} aria-live="polite">
 							<ScriptLine prompt="success" text={`Project ${createdProject} created.`} />
 							<p>Nice, let's bring {createdProject} online. Next we will open the probe fleet and start the new probe wizard.</p>
-							<Button variant="plain" className={styles.tuiButton} type="button" onClick={() => navigate("newProbe")}>
+							<Button variant="plain" className={styles.tuiButton} type="button" onClick={() => navigate("newProbe", { projectRef: createdProjectRef })}>
 								[ open probe fleet / create probe ]
 							</Button>
 						</div>

@@ -52,14 +52,16 @@ export function useCurrentProject() {
 	const { selectedProjectRef, setSelectedProjectRef } = useProjectSelection();
 	const projectsQuery = useQuery(projectQueries.list());
 	const projects = projectsQuery.data?.projects ?? [];
-	const listProject = projects.find(item => item.slug === selectedProjectRef || item.id === selectedProjectRef) ?? projects[0] ?? null;
-	const listProjectRef = listProject?.slug || listProject?.id || null;
+	const selectedProject = projects.find(item => item.slug === selectedProjectRef || item.id === selectedProjectRef) ?? null;
+	const listProject = selectedProject ?? projects[0] ?? null;
+	const selectedProjectRefFallback = selectedProjectRef && (projectsQuery.isPending || projectsQuery.isError) ? selectedProjectRef : "";
+	const listProjectRef = selectedProject?.slug || selectedProject?.id || selectedProjectRefFallback || listProject?.slug || listProject?.id || null;
 	const projectDetailQuery = useQuery({
 		...projectQueries.detail(listProjectRef || ""),
 		enabled: Boolean(listProjectRef)
 	});
-	const project = projectDetailQuery.data?.project ?? listProject;
-	const projectRef = project?.slug || project?.id || null;
+	const project = projectDetailQuery.data?.project ?? selectedProject ?? listProject;
+	const projectRef = project?.slug || project?.id || listProjectRef;
 
 	return {
 		project,

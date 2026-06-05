@@ -1,5 +1,6 @@
 import { useSession } from "@/features/auth/session/SessionContext";
 import { isValidPublicPageSlug, PUBLIC_PAGE_SLUG_HELPER, sanitizePublicPageSlug } from "@/features/public-pages/publicPageSlug";
+import { pathForPublicPageDetail } from "@/routes/routePaths";
 import { useCreateProjectPublicPageMutation } from "@/shared/api/mutations";
 import { projectQueries } from "@/shared/api/queries";
 import type { ApiPublicPage } from "@/shared/api/types";
@@ -101,7 +102,7 @@ export function PublicPagesPage() {
 				onSuccess: data => {
 					setCreateDraft(emptyCreateDraft());
 					pushToast({ title: "Public page created", message: `/s/${data.publicPage.slug} is ready for folders.`, tone: "success" });
-					navigate(`/public-pages/${data.publicPage.id}`);
+					navigate(pathForPublicPageDetail(projectRef, data.publicPage.id));
 				}
 			}
 		);
@@ -129,7 +130,7 @@ export function PublicPagesPage() {
 							rows={pageRows}
 							density="compact"
 							minWidth="42rem"
-							onRowClick={row => navigate(`/public-pages/${row.id}`)}
+							onRowClick={row => navigate(pathForPublicPageDetail(projectRef, row.id))}
 							getRowKey={row => row.id}
 							getRowAriaLabel={row => `Edit public page ${row.title}`}
 							emptyLabel={pagesQuery.isLoading ? "Loading public pages" : "No public pages"}

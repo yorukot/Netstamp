@@ -131,12 +131,12 @@ export function NewProbeDrawer() {
 			}
 
 			setClosing(true);
-			closeTimeoutRef.current = window.setTimeout(() => navigate(pathForRoute("probes")), drawerCloseDurationMs);
+			closeTimeoutRef.current = window.setTimeout(() => navigate(pathForRoute("probes", { projectRef })), drawerCloseDurationMs);
 		}
 
 		window.addEventListener("keydown", handleKeyDown);
 		return () => window.removeEventListener("keydown", handleKeyDown);
-	}, [closing, navigate]);
+	}, [closing, navigate, projectRef]);
 
 	function closeDrawer() {
 		if (closing || closeTimeoutRef.current) {
@@ -144,7 +144,7 @@ export function NewProbeDrawer() {
 		}
 
 		setClosing(true);
-		closeTimeoutRef.current = window.setTimeout(() => navigate(pathForRoute("probes")), drawerCloseDurationMs);
+		closeTimeoutRef.current = window.setTimeout(() => navigate(pathForRoute("probes", { projectRef })), drawerCloseDurationMs);
 	}
 
 	function clearResolvedCoordinates() {

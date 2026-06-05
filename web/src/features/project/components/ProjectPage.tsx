@@ -1,4 +1,5 @@
 import { useSession } from "@/features/auth/session/SessionContext";
+import { pathForRoute } from "@/routes/routePaths";
 import { useCreateProjectInviteMutation, useDeleteProjectMutation, useRemoveProjectMemberMutation, useUpdateProjectMemberRoleMutation, useUpdateProjectMutation } from "@/shared/api/mutations";
 import { projectQueries } from "@/shared/api/queries";
 import type { ApiProjectInvite, ProjectMemberRole } from "@/shared/api/types";
@@ -10,6 +11,7 @@ import { pushToast } from "@/shared/toast/toastStore";
 import { Badge, Button, DataTable, Panel, SelectField, Surface, TextField, type DataColumn } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import styles from "./ProjectPage.module.css";
 import { RoleSelect } from "./RoleSelect";
 
@@ -91,6 +93,7 @@ export function ProjectPage() {
 	const { project, projectRef, setSelectedProjectRef } = useCurrentProject();
 	const { session } = useSession();
 	const confirm = useConfirm();
+	const navigate = useNavigate();
 	const updateProjectMutation = useUpdateProjectMutation(projectRef);
 	const createInviteMutation = useCreateProjectInviteMutation(projectRef);
 	const removeMemberMutation = useRemoveProjectMemberMutation(projectRef);
@@ -170,6 +173,7 @@ export function ProjectPage() {
 		deleteProjectMutation.mutate(undefined, {
 			onSuccess: () => {
 				setSelectedProjectRef("");
+				navigate(pathForRoute("dashboard"));
 			}
 		});
 	}
@@ -193,6 +197,7 @@ export function ProjectPage() {
 		removeMemberMutation.mutate(currentUserId, {
 			onSuccess: () => {
 				setSelectedProjectRef("");
+				navigate(pathForRoute("dashboard"));
 			}
 		});
 	}
@@ -293,7 +298,12 @@ export function ProjectPage() {
 						updateProjectMutation.mutate(
 							{ name: activeProjectName, slug: activeProjectSlug },
 							{
-								onSuccess: data => setProjectDraft({ projectId: data.project.id, name: null, slug: null })
+								onSuccess: data => {
+									const nextProjectRef = data.project.slug || data.project.id;
+									setProjectDraft({ projectId: data.project.id, name: null, slug: null });
+									setSelectedProjectRef(nextProjectRef);
+									navigate(pathForRoute("project", { projectRef: nextProjectRef }), { replace: true });
+								}
 							}
 						)
 					}

@@ -1,5 +1,6 @@
 import { useSession } from "@/features/auth/session/SessionContext";
 import { isValidPublicPageSlug } from "@/features/public-pages/publicPageSlug";
+import { pathForRoute } from "@/routes/routePaths";
 import {
 	useCreateProjectPublicPageFolderMutation,
 	useDeleteProjectPublicPageFolderMutation,
@@ -208,7 +209,7 @@ export function PublicPageDetailPage() {
 		deletePageMutation.mutate(page.id, {
 			onSuccess: () => {
 				pushToast({ title: "Public page deleted", message: `/s/${page.slug} was removed.`, tone: "success" });
-				navigate("/public-pages");
+				navigate(pathForRoute("publicPages", { projectRef }));
 			}
 		});
 	}
@@ -313,7 +314,7 @@ export function PublicPageDetailPage() {
 	return (
 		<PageStack>
 			<ScreenHeader
-				backLink={{ to: "/public-pages", label: "back to public pages" }}
+				backLink={{ to: pathForRoute("publicPages", { projectRef }), label: "back to public pages" }}
 				title={selectedPage ? selectedPage.title : "Public Page"}
 				actions={
 					<div className={styles.actionCluster}>

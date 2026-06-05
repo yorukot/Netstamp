@@ -7,11 +7,12 @@ import type { ProbeView } from "./types";
 
 interface ProbePageHeaderProps {
 	view: ProbeView;
+	projectRef?: string | null;
 	onViewChange: (view: ProbeView) => void;
 	overlay?: boolean;
 }
 
-export function ProbePageHeader({ view, onViewChange, overlay = false }: ProbePageHeaderProps) {
+export function ProbePageHeader({ view, projectRef, onViewChange, overlay = false }: ProbePageHeaderProps) {
 	return (
 		<header className={classNames(styles.header, overlay && styles.overlay)}>
 			<div className={styles.titleArea}>
@@ -27,7 +28,7 @@ export function ProbePageHeader({ view, onViewChange, overlay = false }: ProbePa
 			</div>
 			<div className={styles.primaryActions}>
 				<Button asChild>
-					<Link to={pathForRoute("newProbe")}>New probe</Link>
+					<Link to={pathForRoute("newProbe", { projectRef })}>New probe</Link>
 				</Button>
 			</div>
 		</header>

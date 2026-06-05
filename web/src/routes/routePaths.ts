@@ -1,10 +1,13 @@
-import type { Route } from "./routeTypes";
+import type { AppRoute, NavigateOptions, ProjectAppRoute, PublicRoute, Route } from "./routeTypes";
 
-export const routePaths = {
+export const publicRoutePaths = {
 	landing: "/",
 	login: "/login",
 	register: "/register",
-	onboarding: "/onboarding",
+	onboarding: "/onboarding"
+} satisfies Record<PublicRoute, string>;
+
+export const legacyAppRoutePaths = {
 	dashboard: "/dashboard",
 	probes: "/probes",
 	newProbe: "/probes/new",
@@ -14,8 +17,81 @@ export const routePaths = {
 	publicPages: "/public-pages",
 	project: "/project",
 	settings: "/settings"
+} satisfies Record<AppRoute, string>;
+
+export const projectRouteSegments = {
+	dashboard: "dashboard",
+	probes: "probes",
+	newProbe: "probes/new",
+	labels: "labels",
+	insight: "insight",
+	checks: "checks",
+	publicPages: "public-pages",
+	project: "project"
+} satisfies Record<ProjectAppRoute, string>;
+
+export const routePaths = {
+	...publicRoutePaths,
+	...legacyAppRoutePaths
 } satisfies Record<Route, string>;
 
-export function pathForRoute(route: Route) {
-	return routePaths[route];
+function hasOwnKey<T extends object>(value: T, key: PropertyKey): key is keyof T {
+	return Object.prototype.hasOwnProperty.call(value, key);
+}
+
+function encodePathParam(value: string) {
+	return encodeURIComponent(value);
+}
+
+function projectBasePath(projectRef: string) {
+	return `/projects/${encodePathParam(projectRef)}`;
+}
+
+export function isProjectAppRoute(route: Route): route is ProjectAppRoute {
+	return hasOwnKey(projectRouteSegments, route);
+}
+
+export function projectRoutePath(route: ProjectAppRoute) {
+	return projectRouteSegments[route];
+}
+
+export function pathForRoute(route: Route, options: NavigateOptions = {}) {
+	if (hasOwnKey(publicRoutePaths, route)) {
+		return publicRoutePaths[route];
+	}
+
+	if (isProjectAppRoute(route) && options.projectRef) {
+		return `${projectBasePath(options.projectRef)}/${projectRouteSegments[route]}`;
+	}
+
+	return legacyAppRoutePaths[route];
+}
+
+export function pathForProbeDetail(projectRef: string | null | undefined, probeId: string) {
+	if (!projectRef) {
+		return `/probes/${encodePathParam(probeId)}`;
+	}
+
+	return `${projectBasePath(projectRef)}/probes/${encodePathParam(probeId)}`;
+}
+
+export function pathForPublicPageDetail(projectRef: string | null | undefined, pageId: string) {
+	if (!projectRef) {
+		return `/public-pages/${encodePathParam(pageId)}`;
+	}
+
+	return `${projectBasePath(projectRef)}/public-pages/${encodePathParam(pageId)}`;
+}
+
+export function pathForProjectSwitch(pathname: string, projectRef: string) {
+	const match = /^\/projects\/[^/]+(?:\/([^/]+))?/.exec(pathname);
+
+	if (!match) {
+		return null;
+	}
+
+	const segment = match[1] || projectRouteSegments.dashboard;
+	const route = (Object.entries(projectRouteSegments).find(([, routeSegment]) => routeSegment.split("/")[0] === segment)?.[0] ?? "dashboard") as ProjectAppRoute;
+
+	return pathForRoute(route, { projectRef });
 }
