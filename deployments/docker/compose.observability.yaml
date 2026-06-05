@@ -51,6 +51,51 @@ services:
     labels:
       - netstamp.logs=enabled
 
+  postgres-exporter-init:
+    image: ${POSTGRES_CLIENT_IMAGE:-postgres:16-alpine}
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: ${DATABASE_PASSWORD:?set DATABASE_PASSWORD}
+      POSTGRES_EXPORTER_PASSWORD: ${POSTGRES_EXPORTER_PASSWORD:?set POSTGRES_EXPORTER_PASSWORD}
+    command:
+      - sh
+      - -ec
+      - |
+        psql -h postgres -U netstamp -d netstamp -v ON_ERROR_STOP=1 -v exporter_password="$${POSTGRES_EXPORTER_PASSWORD}" <<'SQL'
+        SELECT format('CREATE ROLE postgres_exporter LOGIN PASSWORD %L', :'exporter_password')
+        WHERE NOT EXISTS (
+          SELECT 1
+          FROM pg_roles
+          WHERE rolname = 'postgres_exporter'
+        );
+        \gexec
+        ALTER ROLE postgres_exporter WITH LOGIN PASSWORD :'exporter_password';
+        GRANT pg_monitor TO postgres_exporter;
+        GRANT CONNECT ON DATABASE netstamp TO postgres_exporter;
+        SQL
+    labels:
+      - netstamp.logs=enabled
+
+  postgres-exporter:
+    image: ${POSTGRES_EXPORTER_IMAGE:-prometheuscommunity/postgres-exporter:v0.17.1}
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      postgres-exporter-init:
+        condition: service_completed_successfully
+    environment:
+      DATA_SOURCE_URI: postgres:5432/netstamp?sslmode=disable
+      DATA_SOURCE_USER: postgres_exporter
+      DATA_SOURCE_PASS: ${POSTGRES_EXPORTER_PASSWORD:?set POSTGRES_EXPORTER_PASSWORD}
+    expose:
+      - "9187"
+    labels:
+      - netstamp.logs=enabled
+
   migrate:
     image: netstamp-controller:${NETSTAMP_IMAGE_TAG:-local}
     build: *backend-build

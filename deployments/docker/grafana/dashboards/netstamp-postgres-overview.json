@@ -1,0 +1,1300 @@
+{
+	"annotations": {
+		"list": [
+			{
+				"builtIn": 1,
+				"datasource": {
+					"type": "grafana",
+					"uid": "-- Grafana --"
+				},
+				"enable": true,
+				"hide": true,
+				"iconColor": "rgba(0, 211, 255, 1)",
+				"name": "Annotations & Alerts",
+				"type": "dashboard"
+			}
+		]
+	},
+	"editable": true,
+	"fiscalYearStartMonth": 0,
+	"graphTooltip": 0,
+	"id": null,
+	"links": [],
+	"liveNow": false,
+	"panels": [
+		{
+			"datasource": {
+				"type": "prometheus",
+				"uid": "victoria-metrics"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"color": {
+						"mode": "thresholds"
+					},
+					"mappings": [
+						{
+							"options": {
+								"0": {
+									"color": "red",
+									"text": "Down"
+								},
+								"1": {
+									"color": "green",
+									"text": "Up"
+								}
+							},
+							"type": "value"
+						}
+					],
+					"thresholds": {
+						"mode": "absolute",
+						"steps": [
+							{
+								"color": "red",
+								"value": null
+							},
+							{
+								"color": "green",
+								"value": 1
+							}
+						]
+					},
+					"unit": "none"
+				},
+				"overrides": []
+			},
+			"gridPos": {
+				"h": 4,
+				"w": 6,
+				"x": 0,
+				"y": 0
+			},
+			"id": 1,
+			"options": {
+				"colorMode": "background",
+				"graphMode": "none",
+				"justifyMode": "center",
+				"orientation": "auto",
+				"reduceOptions": {
+					"calcs": ["lastNotNull"],
+					"fields": "",
+					"values": false
+				},
+				"textMode": "auto",
+				"wideLayout": true
+			},
+			"pluginVersion": "13.0.0",
+			"targets": [
+				{
+					"datasource": {
+						"type": "prometheus",
+						"uid": "victoria-metrics"
+					},
+					"editorMode": "code",
+					"expr": "max(pg_up{job=\"postgres\"})",
+					"instant": false,
+					"legendFormat": "scrape",
+					"range": true,
+					"refId": "A"
+				}
+			],
+			"title": "PostgreSQL Scrape",
+			"type": "stat"
+		},
+		{
+			"datasource": {
+				"type": "prometheus",
+				"uid": "victoria-metrics"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"color": {
+						"mode": "palette-classic"
+					},
+					"decimals": 0,
+					"unit": "short"
+				},
+				"overrides": []
+			},
+			"gridPos": {
+				"h": 4,
+				"w": 6,
+				"x": 6,
+				"y": 0
+			},
+			"id": 2,
+			"options": {
+				"colorMode": "value",
+				"graphMode": "area",
+				"justifyMode": "auto",
+				"orientation": "auto",
+				"reduceOptions": {
+					"calcs": ["lastNotNull"],
+					"fields": "",
+					"values": false
+				},
+				"textMode": "auto",
+				"wideLayout": true
+			},
+			"pluginVersion": "13.0.0",
+			"targets": [
+				{
+					"datasource": {
+						"type": "prometheus",
+						"uid": "victoria-metrics"
+					},
+					"editorMode": "code",
+					"expr": "max(pg_stat_database_numbackends{job=\"postgres\",datname=\"$database\"})",
+					"instant": false,
+					"legendFormat": "connections",
+					"range": true,
+					"refId": "A"
+				}
+			],
+			"title": "Connections",
+			"type": "stat"
+		},
+		{
+			"datasource": {
+				"type": "prometheus",
+				"uid": "victoria-metrics"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"color": {
+						"mode": "palette-classic"
+					},
+					"decimals": 2,
+					"unit": "bytes"
+				},
+				"overrides": []
+			},
+			"gridPos": {
+				"h": 4,
+				"w": 6,
+				"x": 12,
+				"y": 0
+			},
+			"id": 3,
+			"options": {
+				"colorMode": "value",
+				"graphMode": "area",
+				"justifyMode": "auto",
+				"orientation": "auto",
+				"reduceOptions": {
+					"calcs": ["lastNotNull"],
+					"fields": "",
+					"values": false
+				},
+				"textMode": "auto",
+				"wideLayout": true
+			},
+			"pluginVersion": "13.0.0",
+			"targets": [
+				{
+					"datasource": {
+						"type": "prometheus",
+						"uid": "victoria-metrics"
+					},
+					"editorMode": "code",
+					"expr": "max(pg_database_size_bytes{job=\"postgres\",datname=\"$database\"})",
+					"instant": false,
+					"legendFormat": "database size",
+					"range": true,
+					"refId": "A"
+				}
+			],
+			"title": "Database Size",
+			"type": "stat"
+		},
+		{
+			"datasource": {
+				"type": "prometheus",
+				"uid": "victoria-metrics"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"color": {
+						"mode": "thresholds"
+					},
+					"thresholds": {
+						"mode": "absolute",
+						"steps": [
+							{
+								"color": "green",
+								"value": null
+							},
+							{
+								"color": "yellow",
+								"value": 1
+							},
+							{
+								"color": "red",
+								"value": 5
+							}
+						]
+					},
+					"unit": "short"
+				},
+				"overrides": []
+			},
+			"gridPos": {
+				"h": 4,
+				"w": 6,
+				"x": 18,
+				"y": 0
+			},
+			"id": 4,
+			"options": {
+				"colorMode": "value",
+				"graphMode": "area",
+				"justifyMode": "auto",
+				"orientation": "auto",
+				"reduceOptions": {
+					"calcs": ["lastNotNull"],
+					"fields": "",
+					"values": false
+				},
+				"textMode": "auto",
+				"wideLayout": true
+			},
+			"pluginVersion": "13.0.0",
+			"targets": [
+				{
+					"datasource": {
+						"type": "prometheus",
+						"uid": "victoria-metrics"
+					},
+					"editorMode": "code",
+					"expr": "sum(increase(pg_stat_database_deadlocks{job=\"postgres\",datname=\"$database\"}[$__range])) or vector(0)",
+					"instant": false,
+					"legendFormat": "deadlocks",
+					"range": true,
+					"refId": "A"
+				}
+			],
+			"title": "Deadlocks",
+			"type": "stat"
+		},
+		{
+			"datasource": {
+				"type": "prometheus",
+				"uid": "victoria-metrics"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"color": {
+						"mode": "palette-classic"
+					},
+					"decimals": 0,
+					"unit": "short"
+				},
+				"overrides": []
+			},
+			"gridPos": {
+				"h": 8,
+				"w": 12,
+				"x": 0,
+				"y": 4
+			},
+			"id": 5,
+			"options": {
+				"legend": {
+					"calcs": ["lastNotNull"],
+					"displayMode": "list",
+					"placement": "bottom",
+					"showLegend": true
+				},
+				"tooltip": {
+					"mode": "single",
+					"sort": "none"
+				}
+			},
+			"pluginVersion": "13.0.0",
+			"targets": [
+				{
+					"datasource": {
+						"type": "prometheus",
+						"uid": "victoria-metrics"
+					},
+					"editorMode": "code",
+					"expr": "sum by (datname) (pg_stat_database_numbackends{job=\"postgres\"})",
+					"instant": false,
+					"legendFormat": "{{datname}}",
+					"range": true,
+					"refId": "A"
+				}
+			],
+			"title": "Connections By Database",
+			"type": "timeseries"
+		},
+		{
+			"datasource": {
+				"type": "prometheus",
+				"uid": "victoria-metrics"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"color": {
+						"mode": "palette-classic"
+					},
+					"decimals": 2,
+					"unit": "ops"
+				},
+				"overrides": []
+			},
+			"gridPos": {
+				"h": 8,
+				"w": 12,
+				"x": 12,
+				"y": 4
+			},
+			"id": 6,
+			"options": {
+				"legend": {
+					"calcs": ["lastNotNull"],
+					"displayMode": "list",
+					"placement": "bottom",
+					"showLegend": true
+				},
+				"tooltip": {
+					"mode": "single",
+					"sort": "none"
+				}
+			},
+			"pluginVersion": "13.0.0",
+			"targets": [
+				{
+					"datasource": {
+						"type": "prometheus",
+						"uid": "victoria-metrics"
+					},
+					"editorMode": "code",
+					"expr": "sum(rate(pg_stat_database_xact_commit{job=\"postgres\",datname=\"$database\"}[$__rate_interval]))",
+					"instant": false,
+					"legendFormat": "commits",
+					"range": true,
+					"refId": "A"
+				},
+				{
+					"datasource": {
+						"type": "prometheus",
+						"uid": "victoria-metrics"
+					},
+					"editorMode": "code",
+					"expr": "sum(rate(pg_stat_database_xact_rollback{job=\"postgres\",datname=\"$database\"}[$__rate_interval]))",
+					"instant": false,
+					"legendFormat": "rollbacks",
+					"range": true,
+					"refId": "B"
+				}
+			],
+			"title": "Transactions",
+			"type": "timeseries"
+		},
+		{
+			"datasource": {
+				"type": "prometheus",
+				"uid": "victoria-metrics"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"color": {
+						"mode": "palette-classic"
+					},
+					"decimals": 2,
+					"unit": "percentunit"
+				},
+				"overrides": []
+			},
+			"gridPos": {
+				"h": 8,
+				"w": 12,
+				"x": 0,
+				"y": 12
+			},
+			"id": 7,
+			"options": {
+				"legend": {
+					"calcs": ["lastNotNull"],
+					"displayMode": "list",
+					"placement": "bottom",
+					"showLegend": true
+				},
+				"tooltip": {
+					"mode": "single",
+					"sort": "none"
+				}
+			},
+			"pluginVersion": "13.0.0",
+			"targets": [
+				{
+					"datasource": {
+						"type": "prometheus",
+						"uid": "victoria-metrics"
+					},
+					"editorMode": "code",
+					"expr": "sum(rate(pg_stat_database_blks_hit{job=\"postgres\",datname=\"$database\"}[$__rate_interval])) / clamp_min(sum(rate(pg_stat_database_blks_hit{job=\"postgres\",datname=\"$database\"}[$__rate_interval])) + sum(rate(pg_stat_database_blks_read{job=\"postgres\",datname=\"$database\"}[$__rate_interval])), 1)",
+					"instant": false,
+					"legendFormat": "cache hit ratio",
+					"range": true,
+					"refId": "A"
+				}
+			],
+			"title": "Cache Hit Ratio",
+			"type": "timeseries"
+		},
+		{
+			"datasource": {
+				"type": "prometheus",
+				"uid": "victoria-metrics"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"color": {
+						"mode": "palette-classic"
+					},
+					"decimals": 0,
+					"unit": "short"
+				},
+				"overrides": []
+			},
+			"gridPos": {
+				"h": 8,
+				"w": 12,
+				"x": 12,
+				"y": 12
+			},
+			"id": 8,
+			"options": {
+				"legend": {
+					"calcs": ["lastNotNull"],
+					"displayMode": "list",
+					"placement": "bottom",
+					"showLegend": true
+				},
+				"tooltip": {
+					"mode": "single",
+					"sort": "none"
+				}
+			},
+			"pluginVersion": "13.0.0",
+			"targets": [
+				{
+					"datasource": {
+						"type": "prometheus",
+						"uid": "victoria-metrics"
+					},
+					"editorMode": "code",
+					"expr": "sum by (mode) (pg_locks_count{job=\"postgres\",datname=\"$database\"})",
+					"instant": false,
+					"legendFormat": "{{mode}}",
+					"range": true,
+					"refId": "A"
+				}
+			],
+			"title": "Locks",
+			"type": "timeseries"
+		},
+		{
+			"datasource": {
+				"type": "prometheus",
+				"uid": "victoria-metrics"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"color": {
+						"mode": "palette-classic"
+					},
+					"decimals": 2,
+					"unit": "ops"
+				},
+				"overrides": []
+			},
+			"gridPos": {
+				"h": 8,
+				"w": 24,
+				"x": 0,
+				"y": 20
+			},
+			"id": 9,
+			"options": {
+				"legend": {
+					"calcs": ["lastNotNull"],
+					"displayMode": "list",
+					"placement": "bottom",
+					"showLegend": true
+				},
+				"tooltip": {
+					"mode": "single",
+					"sort": "none"
+				}
+			},
+			"pluginVersion": "13.0.0",
+			"targets": [
+				{
+					"datasource": {
+						"type": "prometheus",
+						"uid": "victoria-metrics"
+					},
+					"editorMode": "code",
+					"expr": "sum(rate(pg_stat_database_tup_inserted{job=\"postgres\",datname=\"$database\"}[$__rate_interval]))",
+					"instant": false,
+					"legendFormat": "inserted",
+					"range": true,
+					"refId": "A"
+				},
+				{
+					"datasource": {
+						"type": "prometheus",
+						"uid": "victoria-metrics"
+					},
+					"editorMode": "code",
+					"expr": "sum(rate(pg_stat_database_tup_updated{job=\"postgres\",datname=\"$database\"}[$__rate_interval]))",
+					"instant": false,
+					"legendFormat": "updated",
+					"range": true,
+					"refId": "B"
+				},
+				{
+					"datasource": {
+						"type": "prometheus",
+						"uid": "victoria-metrics"
+					},
+					"editorMode": "code",
+					"expr": "sum(rate(pg_stat_database_tup_deleted{job=\"postgres\",datname=\"$database\"}[$__rate_interval]))",
+					"instant": false,
+					"legendFormat": "deleted",
+					"range": true,
+					"refId": "C"
+				}
+			],
+			"title": "Tuple Changes",
+			"type": "timeseries"
+		},
+		{
+			"datasource": {
+				"type": "prometheus",
+				"uid": "victoria-metrics"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"color": {
+						"mode": "palette-classic"
+					},
+					"decimals": 0,
+					"unit": "s"
+				},
+				"overrides": []
+			},
+			"gridPos": {
+				"h": 4,
+				"w": 6,
+				"x": 0,
+				"y": 28
+			},
+			"id": 10,
+			"options": {
+				"colorMode": "value",
+				"graphMode": "area",
+				"justifyMode": "auto",
+				"orientation": "auto",
+				"reduceOptions": {
+					"calcs": ["lastNotNull"],
+					"fields": "",
+					"values": false
+				},
+				"textMode": "auto",
+				"wideLayout": true
+			},
+			"pluginVersion": "13.0.0",
+			"targets": [
+				{
+					"datasource": {
+						"type": "prometheus",
+						"uid": "victoria-metrics"
+					},
+					"editorMode": "code",
+					"expr": "max(time() - pg_postmaster_start_time_seconds{job=\"postgres\"})",
+					"instant": false,
+					"legendFormat": "uptime",
+					"range": true,
+					"refId": "A"
+				}
+			],
+			"title": "Postmaster Uptime",
+			"type": "stat"
+		},
+		{
+			"datasource": {
+				"type": "prometheus",
+				"uid": "victoria-metrics"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"color": {
+						"mode": "palette-classic"
+					},
+					"decimals": 0,
+					"unit": "short"
+				},
+				"overrides": []
+			},
+			"gridPos": {
+				"h": 4,
+				"w": 6,
+				"x": 6,
+				"y": 28
+			},
+			"id": 11,
+			"options": {
+				"colorMode": "value",
+				"graphMode": "area",
+				"justifyMode": "auto",
+				"orientation": "auto",
+				"reduceOptions": {
+					"calcs": ["lastNotNull"],
+					"fields": "",
+					"values": false
+				},
+				"textMode": "auto",
+				"wideLayout": true
+			},
+			"pluginVersion": "13.0.0",
+			"targets": [
+				{
+					"datasource": {
+						"type": "prometheus",
+						"uid": "victoria-metrics"
+					},
+					"editorMode": "code",
+					"expr": "max(pg_settings_max_connections{job=\"postgres\"})",
+					"instant": false,
+					"legendFormat": "max connections",
+					"range": true,
+					"refId": "A"
+				}
+			],
+			"title": "Max Connections",
+			"type": "stat"
+		},
+		{
+			"datasource": {
+				"type": "prometheus",
+				"uid": "victoria-metrics"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"color": {
+						"mode": "thresholds"
+					},
+					"decimals": 2,
+					"thresholds": {
+						"mode": "absolute",
+						"steps": [
+							{
+								"color": "green",
+								"value": null
+							},
+							{
+								"color": "yellow",
+								"value": 70
+							},
+							{
+								"color": "red",
+								"value": 85
+							}
+						]
+					},
+					"unit": "percent"
+				},
+				"overrides": []
+			},
+			"gridPos": {
+				"h": 4,
+				"w": 6,
+				"x": 12,
+				"y": 28
+			},
+			"id": 12,
+			"options": {
+				"colorMode": "value",
+				"graphMode": "area",
+				"justifyMode": "auto",
+				"orientation": "auto",
+				"reduceOptions": {
+					"calcs": ["lastNotNull"],
+					"fields": "",
+					"values": false
+				},
+				"textMode": "auto",
+				"wideLayout": true
+			},
+			"pluginVersion": "13.0.0",
+			"targets": [
+				{
+					"datasource": {
+						"type": "prometheus",
+						"uid": "victoria-metrics"
+					},
+					"editorMode": "code",
+					"expr": "100 * max(pg_stat_database_numbackends{job=\"postgres\",datname=\"$database\"}) / max(pg_settings_max_connections{job=\"postgres\"})",
+					"instant": false,
+					"legendFormat": "connection utilization",
+					"range": true,
+					"refId": "A"
+				}
+			],
+			"title": "Connection Utilization",
+			"type": "stat"
+		},
+		{
+			"datasource": {
+				"type": "prometheus",
+				"uid": "victoria-metrics"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"color": {
+						"mode": "thresholds"
+					},
+					"decimals": 3,
+					"thresholds": {
+						"mode": "absolute",
+						"steps": [
+							{
+								"color": "green",
+								"value": null
+							},
+							{
+								"color": "yellow",
+								"value": 1
+							},
+							{
+								"color": "red",
+								"value": 5
+							}
+						]
+					},
+					"unit": "s"
+				},
+				"overrides": []
+			},
+			"gridPos": {
+				"h": 4,
+				"w": 6,
+				"x": 18,
+				"y": 28
+			},
+			"id": 13,
+			"options": {
+				"colorMode": "value",
+				"graphMode": "area",
+				"justifyMode": "auto",
+				"orientation": "auto",
+				"reduceOptions": {
+					"calcs": ["lastNotNull"],
+					"fields": "",
+					"values": false
+				},
+				"textMode": "auto",
+				"wideLayout": true
+			},
+			"pluginVersion": "13.0.0",
+			"targets": [
+				{
+					"datasource": {
+						"type": "prometheus",
+						"uid": "victoria-metrics"
+					},
+					"editorMode": "code",
+					"expr": "max(scrape_duration_seconds{job=\"postgres\"})",
+					"instant": false,
+					"legendFormat": "scrape duration",
+					"range": true,
+					"refId": "A"
+				}
+			],
+			"title": "Scrape Duration",
+			"type": "stat"
+		},
+		{
+			"datasource": {
+				"type": "prometheus",
+				"uid": "victoria-metrics"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"color": {
+						"mode": "palette-classic"
+					},
+					"decimals": 0,
+					"unit": "short"
+				},
+				"overrides": []
+			},
+			"gridPos": {
+				"h": 8,
+				"w": 12,
+				"x": 0,
+				"y": 32
+			},
+			"id": 14,
+			"options": {
+				"legend": {
+					"calcs": ["lastNotNull"],
+					"displayMode": "list",
+					"placement": "bottom",
+					"showLegend": true
+				},
+				"tooltip": {
+					"mode": "single",
+					"sort": "none"
+				}
+			},
+			"pluginVersion": "13.0.0",
+			"targets": [
+				{
+					"datasource": {
+						"type": "prometheus",
+						"uid": "victoria-metrics"
+					},
+					"editorMode": "code",
+					"expr": "sum by (state) (pg_stat_activity_count{job=\"postgres\",datname=\"$database\"})",
+					"instant": false,
+					"legendFormat": "{{state}}",
+					"range": true,
+					"refId": "A"
+				}
+			],
+			"title": "Connections By State",
+			"type": "timeseries"
+		},
+		{
+			"datasource": {
+				"type": "prometheus",
+				"uid": "victoria-metrics"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"color": {
+						"mode": "palette-classic"
+					},
+					"decimals": 2,
+					"unit": "Bps"
+				},
+				"overrides": []
+			},
+			"gridPos": {
+				"h": 8,
+				"w": 12,
+				"x": 12,
+				"y": 32
+			},
+			"id": 15,
+			"options": {
+				"legend": {
+					"calcs": ["lastNotNull"],
+					"displayMode": "list",
+					"placement": "bottom",
+					"showLegend": true
+				},
+				"tooltip": {
+					"mode": "single",
+					"sort": "none"
+				}
+			},
+			"pluginVersion": "13.0.0",
+			"targets": [
+				{
+					"datasource": {
+						"type": "prometheus",
+						"uid": "victoria-metrics"
+					},
+					"editorMode": "code",
+					"expr": "sum(rate(pg_stat_database_temp_bytes{job=\"postgres\",datname=\"$database\"}[$__rate_interval]))",
+					"instant": false,
+					"legendFormat": "temp bytes",
+					"range": true,
+					"refId": "A"
+				}
+			],
+			"title": "Temporary Data",
+			"type": "timeseries"
+		},
+		{
+			"datasource": {
+				"type": "prometheus",
+				"uid": "victoria-metrics"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"color": {
+						"mode": "palette-classic"
+					},
+					"decimals": 2,
+					"unit": "ops"
+				},
+				"overrides": []
+			},
+			"gridPos": {
+				"h": 8,
+				"w": 12,
+				"x": 0,
+				"y": 40
+			},
+			"id": 16,
+			"options": {
+				"legend": {
+					"calcs": ["lastNotNull"],
+					"displayMode": "list",
+					"placement": "bottom",
+					"showLegend": true
+				},
+				"tooltip": {
+					"mode": "single",
+					"sort": "none"
+				}
+			},
+			"pluginVersion": "13.0.0",
+			"targets": [
+				{
+					"datasource": {
+						"type": "prometheus",
+						"uid": "victoria-metrics"
+					},
+					"editorMode": "code",
+					"expr": "rate(pg_stat_bgwriter_checkpoints_timed{job=\"postgres\"}[$__rate_interval])",
+					"instant": false,
+					"legendFormat": "timed",
+					"range": true,
+					"refId": "A"
+				},
+				{
+					"datasource": {
+						"type": "prometheus",
+						"uid": "victoria-metrics"
+					},
+					"editorMode": "code",
+					"expr": "rate(pg_stat_bgwriter_checkpoints_req{job=\"postgres\"}[$__rate_interval])",
+					"instant": false,
+					"legendFormat": "requested",
+					"range": true,
+					"refId": "B"
+				}
+			],
+			"title": "Checkpoints",
+			"type": "timeseries"
+		},
+		{
+			"datasource": {
+				"type": "prometheus",
+				"uid": "victoria-metrics"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"color": {
+						"mode": "palette-classic"
+					},
+					"decimals": 2,
+					"unit": "ops"
+				},
+				"overrides": []
+			},
+			"gridPos": {
+				"h": 8,
+				"w": 12,
+				"x": 12,
+				"y": 40
+			},
+			"id": 17,
+			"options": {
+				"legend": {
+					"calcs": ["lastNotNull"],
+					"displayMode": "list",
+					"placement": "bottom",
+					"showLegend": true
+				},
+				"tooltip": {
+					"mode": "single",
+					"sort": "none"
+				}
+			},
+			"pluginVersion": "13.0.0",
+			"targets": [
+				{
+					"datasource": {
+						"type": "prometheus",
+						"uid": "victoria-metrics"
+					},
+					"editorMode": "code",
+					"expr": "rate(pg_stat_bgwriter_buffers_checkpoint{job=\"postgres\"}[$__rate_interval])",
+					"instant": false,
+					"legendFormat": "checkpoint",
+					"range": true,
+					"refId": "A"
+				},
+				{
+					"datasource": {
+						"type": "prometheus",
+						"uid": "victoria-metrics"
+					},
+					"editorMode": "code",
+					"expr": "rate(pg_stat_bgwriter_buffers_clean{job=\"postgres\"}[$__rate_interval])",
+					"instant": false,
+					"legendFormat": "clean",
+					"range": true,
+					"refId": "B"
+				},
+				{
+					"datasource": {
+						"type": "prometheus",
+						"uid": "victoria-metrics"
+					},
+					"editorMode": "code",
+					"expr": "rate(pg_stat_bgwriter_buffers_backend{job=\"postgres\"}[$__rate_interval])",
+					"instant": false,
+					"legendFormat": "backend",
+					"range": true,
+					"refId": "C"
+				},
+				{
+					"datasource": {
+						"type": "prometheus",
+						"uid": "victoria-metrics"
+					},
+					"editorMode": "code",
+					"expr": "rate(pg_stat_bgwriter_buffers_alloc{job=\"postgres\"}[$__rate_interval])",
+					"instant": false,
+					"legendFormat": "alloc",
+					"range": true,
+					"refId": "D"
+				}
+			],
+			"title": "Bgwriter Buffers",
+			"type": "timeseries"
+		},
+		{
+			"datasource": {
+				"type": "prometheus",
+				"uid": "victoria-metrics"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"color": {
+						"mode": "palette-classic"
+					},
+					"decimals": 2,
+					"unit": "bytes"
+				},
+				"overrides": []
+			},
+			"gridPos": {
+				"h": 8,
+				"w": 12,
+				"x": 0,
+				"y": 48
+			},
+			"id": 18,
+			"options": {
+				"legend": {
+					"calcs": ["lastNotNull"],
+					"displayMode": "list",
+					"placement": "bottom",
+					"showLegend": true
+				},
+				"tooltip": {
+					"mode": "single",
+					"sort": "none"
+				}
+			},
+			"pluginVersion": "13.0.0",
+			"targets": [
+				{
+					"datasource": {
+						"type": "prometheus",
+						"uid": "victoria-metrics"
+					},
+					"editorMode": "code",
+					"expr": "topk(10, pg_database_size_bytes{job=\"postgres\"})",
+					"instant": false,
+					"legendFormat": "{{datname}}",
+					"range": true,
+					"refId": "A"
+				}
+			],
+			"title": "Database Size By Database",
+			"type": "timeseries"
+		},
+		{
+			"datasource": {
+				"type": "prometheus",
+				"uid": "victoria-metrics"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"color": {
+						"mode": "palette-classic"
+					},
+					"decimals": 2,
+					"unit": "ops"
+				},
+				"overrides": []
+			},
+			"gridPos": {
+				"h": 8,
+				"w": 12,
+				"x": 12,
+				"y": 48
+			},
+			"id": 19,
+			"options": {
+				"legend": {
+					"calcs": ["lastNotNull"],
+					"displayMode": "list",
+					"placement": "bottom",
+					"showLegend": true
+				},
+				"tooltip": {
+					"mode": "single",
+					"sort": "none"
+				}
+			},
+			"pluginVersion": "13.0.0",
+			"targets": [
+				{
+					"datasource": {
+						"type": "prometheus",
+						"uid": "victoria-metrics"
+					},
+					"editorMode": "code",
+					"expr": "rate(pg_stat_database_deadlocks{job=\"postgres\",datname=\"$database\"}[$__rate_interval])",
+					"instant": false,
+					"legendFormat": "deadlocks",
+					"range": true,
+					"refId": "A"
+				},
+				{
+					"datasource": {
+						"type": "prometheus",
+						"uid": "victoria-metrics"
+					},
+					"editorMode": "code",
+					"expr": "rate(pg_stat_database_conflicts{job=\"postgres\",datname=\"$database\"}[$__rate_interval])",
+					"instant": false,
+					"legendFormat": "conflicts",
+					"range": true,
+					"refId": "B"
+				}
+			],
+			"title": "Deadlocks And Conflicts",
+			"type": "timeseries"
+		},
+		{
+			"datasource": {
+				"type": "prometheus",
+				"uid": "victoria-metrics"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"color": {
+						"mode": "palette-classic"
+					},
+					"decimals": 2,
+					"unit": "ops"
+				},
+				"overrides": []
+			},
+			"gridPos": {
+				"h": 8,
+				"w": 24,
+				"x": 0,
+				"y": 56
+			},
+			"id": 20,
+			"options": {
+				"legend": {
+					"calcs": ["lastNotNull"],
+					"displayMode": "list",
+					"placement": "bottom",
+					"showLegend": true
+				},
+				"tooltip": {
+					"mode": "single",
+					"sort": "none"
+				}
+			},
+			"pluginVersion": "13.0.0",
+			"targets": [
+				{
+					"datasource": {
+						"type": "prometheus",
+						"uid": "victoria-metrics"
+					},
+					"editorMode": "code",
+					"expr": "sum(rate(pg_stat_database_tup_returned{job=\"postgres\",datname=\"$database\"}[$__rate_interval]))",
+					"instant": false,
+					"legendFormat": "returned",
+					"range": true,
+					"refId": "A"
+				},
+				{
+					"datasource": {
+						"type": "prometheus",
+						"uid": "victoria-metrics"
+					},
+					"editorMode": "code",
+					"expr": "sum(rate(pg_stat_database_tup_fetched{job=\"postgres\",datname=\"$database\"}[$__rate_interval]))",
+					"instant": false,
+					"legendFormat": "fetched",
+					"range": true,
+					"refId": "B"
+				}
+			],
+			"title": "Tuple Read Activity",
+			"type": "timeseries"
+		}
+	],
+	"refresh": "30s",
+	"schemaVersion": 42,
+	"tags": ["netstamp", "postgresql"],
+	"templating": {
+		"list": [
+			{
+				"current": {
+					"selected": true,
+					"text": "netstamp",
+					"value": "netstamp"
+				},
+				"datasource": {
+					"type": "prometheus",
+					"uid": "victoria-metrics"
+				},
+				"definition": "label_values(pg_stat_database_numbackends{job=\"postgres\"}, datname)",
+				"hide": 0,
+				"includeAll": false,
+				"label": "Database",
+				"multi": false,
+				"name": "database",
+				"options": [],
+				"query": "label_values(pg_stat_database_numbackends{job=\"postgres\"}, datname)",
+				"refresh": 1,
+				"regex": "",
+				"skipUrlSync": false,
+				"sort": 1,
+				"type": "query"
+			}
+		]
+	},
+	"time": {
+		"from": "now-6h",
+		"to": "now"
+	},
+	"timepicker": {},
+	"timezone": "browser",
+	"title": "Netstamp PostgreSQL Overview",
+	"uid": "netstamp-postgres-overview",
+	"version": 1,
+	"weekStart": ""
+}

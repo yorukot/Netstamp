@@ -215,7 +215,7 @@ Keep public error detail conservative. Not-found conditions for inaccessible pro
 
 Secrets and runtime settings come from environment variables or `.env`; defaults and validation live in `internal/controller/config/config.go`. Never commit real `.env` files, JWT secrets, database passwords, trace endpoints with credentials, or production pseudonym keys.
 
-The observability compose setup requires `LOG_PSEUDONYM_KEY`, `DATABASE_PASSWORD`, `AUTH_JWT_SECRET`, and `GF_SECURITY_ADMIN_PASSWORD`. Passwords are hashed with Argon2id using `AUTH_ARGON2ID_*` settings. JWT session cookies use HS256 with `AUTH_JWT_SECRET` and `AUTH_ACCESS_TOKEN_TTL`. Configuration fields for login rate limits exist, but no rate-limiting middleware is currently wired.
+The observability compose setup requires `LOG_PSEUDONYM_KEY`, `DATABASE_PASSWORD`, `POSTGRES_EXPORTER_PASSWORD`, `AUTH_JWT_SECRET`, and `GF_SECURITY_ADMIN_PASSWORD`. Passwords are hashed with Argon2id using `AUTH_ARGON2ID_*` settings. JWT session cookies use HS256 with `AUTH_JWT_SECRET` and `AUTH_ACCESS_TOKEN_TTL`. Configuration fields for login rate limits exist, but no rate-limiting middleware is currently wired.
 
 ## Database & Persistence
 
@@ -227,7 +227,7 @@ Add schema changes as timestamped Goose migrations under `db/migrations/`, follo
 
 ## External Integrations
 
-Current backend integrations are PostgreSQL/TimescaleDB, optional OTLP trace export to VictoriaTraces, and Prometheus-compatible metrics scraped by VictoriaMetrics, as shown in `deployments/docker/compose.backend.dev.yaml` and `compose.observability.yaml`. Docker observability also includes VictoriaLogs with Vector container log collection. No third-party API SDKs, queues, email services, payment providers, or object storage clients are currently implemented.
+Current backend integrations are PostgreSQL/TimescaleDB, optional OTLP trace export to VictoriaTraces, and Prometheus-compatible metrics scraped by VictoriaMetrics, as shown in `deployments/docker/compose.backend.dev.yaml` and `compose.observability.yaml`. Docker observability also includes VictoriaLogs with Vector container log collection and PostgreSQL metrics via `postgres_exporter`. No third-party API SDKs, queues, email services, payment providers, or object storage clients are currently implemented.
 
 ## Commit & Pull Request Guidelines
 

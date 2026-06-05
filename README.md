@@ -346,6 +346,7 @@ Common controller settings:
 | `DATABASE_NAME`                      | PostgreSQL database                             | `netstamp`                          |
 | `DATABASE_SSLMODE`                   | PostgreSQL SSL mode                             | `disable`                           |
 | `TIMESCALEDB_IMAGE`                  | Compose image for PostgreSQL/TimescaleDB        | `timescale/timescaledb:latest-pg16` |
+| `POSTGRES_EXPORTER_PASSWORD`         | PostgreSQL exporter role password               | none, required for observability    |
 | `AUTH_JWT_SECRET`                    | JWT signing secret                              | local development value             |
 | `AUTH_ACCESS_TOKEN_TTL`              | JWT session cookie lifetime                     | `12h`                               |
 | `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` | Optional OTLP traces endpoint                   | empty                               |
@@ -458,7 +459,7 @@ Default local endpoints:
 - VictoriaTraces: `http://localhost:10428`
 - Grafana: `http://127.0.0.1:3000`
 
-Grafana provisions the `Netstamp Controller Status` dashboard on startup and uses it as the default home dashboard. For the local stack, sign in with `admin` / `admin` unless `GF_SECURITY_ADMIN_USER` or `GF_SECURITY_ADMIN_PASSWORD` is overridden.
+Grafana provisions the `Netstamp Controller Status` and `Netstamp PostgreSQL Overview` dashboards on startup, using the controller status dashboard as the default home dashboard. For the local stack, sign in with `admin` / `admin` unless `GF_SECURITY_ADMIN_USER` or `GF_SECURITY_ADMIN_PASSWORD` is overridden.
 
 The backend writes structured Zap logs and records application events for auth, projects, labels, checks, probes, and probe runtime workflows.
 
@@ -481,6 +482,7 @@ docker compose -f deployments/docker/compose.yaml up -d --build
 Required production environment values include:
 
 - `DATABASE_PASSWORD`
+- `POSTGRES_EXPORTER_PASSWORD` when running the observability stack
 - `AUTH_JWT_SECRET`
 - `LOG_PSEUDONYM_KEY`
 - `GF_SECURITY_ADMIN_PASSWORD` when running the observability stack
