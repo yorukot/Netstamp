@@ -227,7 +227,7 @@ Add schema changes as timestamped Goose migrations under `db/migrations/`, follo
 
 ## External Integrations
 
-Current backend integrations are PostgreSQL/TimescaleDB, optional OTLP trace export to VictoriaTraces, and Prometheus-compatible metrics scraped by VictoriaMetrics, as shown in `deployments/docker/compose.backend.dev.yaml` and `compose.observability.yaml`. Docker observability also includes VictoriaLogs with Vector container log collection and PostgreSQL metrics via `postgres_exporter`. No third-party API SDKs, queues, email services, payment providers, or object storage clients are currently implemented.
+Current backend integrations are PostgreSQL/TimescaleDB, optional OTLP trace export to VictoriaTraces, and Prometheus-compatible metrics scraped by VictoriaMetrics, as shown in `deployments/docker/compose.backend.dev.yaml` and `compose.observability.yaml`. Docker observability also includes VictoriaLogs with Vector container log collection and PostgreSQL metrics via `postgres_exporter`; the observability stack mounts `deployments/docker/postgres-exporter/queries.yaml` to backfill dashboard-specific activity-state metrics. No third-party API SDKs, queues, email services, payment providers, or object storage clients are currently implemented.
 
 ## Commit & Pull Request Guidelines
 
