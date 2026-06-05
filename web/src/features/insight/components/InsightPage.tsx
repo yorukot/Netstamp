@@ -33,7 +33,7 @@ import {
 	relativeRangeForTimeWindow as relativeRangeForWindow,
 	timeWindowForRelativeRange as timeWindowForRange
 } from "@/shared/utils/timeRanges";
-import { Button, Panel, type BadgeTone } from "@netstamp/ui";
+import { Button, Panel, SelectField, type BadgeTone } from "@netstamp/ui";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -856,11 +856,13 @@ export function InsightPage() {
 						onRefresh={refreshInsight}
 						onRefreshChange={updateRefresh}
 					/>
-					<SegmentedControl
+					<SelectField
 						label="Type"
 						value={checkType}
 						options={checkTypeOptions}
-						onChange={nextType => {
+						onChange={event => {
+							const nextType = event.currentTarget.value as InsightCheckTypeFilter;
+
 							updateSearchParams(next => {
 								next.set("type", nextType);
 								next.delete("runStartedAt");
