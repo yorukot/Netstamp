@@ -1,7 +1,8 @@
 import { formatInterval, mapApiChecks } from "@/features/checks/api/checkAdapters";
 import { type CheckDefinition } from "@/features/checks/data/checks";
 import { GroupTopologyPanel } from "@/features/insight/components/GroupTopologyPanel";
-import { FocusChip, InsightTimeControl, SegmentedControl } from "@/features/insight/components/InsightControls";
+import { AssignmentMultiSelect, FocusChip, InsightTimeControl, ScopeSelect, SegmentedControl, type AssignmentSelectOption } from "@/features/insight/components/InsightControls";
+import { MultiSeriesInsightPanel } from "@/features/insight/components/MultiSeriesInsightPanel";
 import { PingInsightPanel } from "@/features/insight/components/PingInsightPanel";
 import { TcpInsightPanel } from "@/features/insight/components/TcpInsightPanel";
 import { TracerouteInsightPanel } from "@/features/insight/components/TracerouteInsightPanel";
@@ -19,16 +20,7 @@ import { mapApiProbes } from "@/features/probes/api/probeAdapters";
 import { type Probe, type ProbeStatus } from "@/features/probes/data/probes";
 import { projectQueries } from "@/shared/api/queries";
 import { apiQueryKeys } from "@/shared/api/queryKeys";
-import {
-	type ApiLatestResult,
-	type ApiProjectAssignment,
-	type PingInsightResponse,
-	type PingSeriesResponse,
-	type TcpInsightResponse,
-	type TcpSeriesResponse,
-	type TracerouteInsightResponse,
-	type TracerouteResult
-} from "@/shared/api/types";
+import { type ApiLatestResult, type ApiProjectAssignment, type PingInsightResponse, type PingSeriesResponse, type TcpInsightResponse, type TcpSeriesResponse } from "@/shared/api/types";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { BodyCopy } from "@/shared/components/BodyCopy";
 import { FilterGrid } from "@/shared/components/FilterGrid";
@@ -41,8 +33,7 @@ import {
 	relativeRangeForTimeWindow as relativeRangeForWindow,
 	timeWindowForRelativeRange as timeWindowForRange
 } from "@/shared/utils/timeRanges";
-import { type RouteTopologyEdge, type RouteTopologyNode } from "@/shared/visualizations/RouteTopologyMap";
-import { Badge, Button, DataTable, Panel, TextField, type BadgeTone, type DataColumn } from "@netstamp/ui";
+import { Button, Panel, type BadgeTone } from "@netstamp/ui";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -76,23 +67,6 @@ type GroupStatus = {
 interface LatestSummary {
 	latestStartedAtMs: number | null;
 	status: GroupStatus;
-}
-
-interface InsightGroupRow {
-	key: string;
-	id: string;
-	groupBy: InsightGroupBy;
-	label: string;
-	secondary: string;
-	pairs: InsightPair[];
-	pairCount: number;
-	probeCount: number;
-	checkCount: number;
-	pingCount: number;
-	tcpCount: number;
-	tracerouteCount: number;
-	summary: LatestSummary;
-	searchText: string;
 }
 
 function isInsightTimeMode(value: string | null): value is InsightTimeMode {
@@ -129,6 +103,7 @@ function parseInsightUrlState(searchParams: URLSearchParams, now: number): Parse
 	const timeMode: InsightTimeMode = hasValidTimeMode ? rawTimeMode : legacyRelativeRange ? "relative" : hasValidTimeWindow ? "absolute" : "relative";
 	const timeRange: InsightRelativeRange = hasValidTimeRange ? rawTimeRange : (legacyRelativeRange ?? "24h");
 	const timeWindow = timeMode === "relative" ? timeWindowForRange(timeRange, now) : hasValidTimeWindow ? { from, to } : timeWindowForRange("24h", now);
+	const assignmentKeys = Array.from(new Set(searchParams.getAll("assignment").filter(value => value.includes(":"))));
 
 	return {
 		checkType: hasValidCheckType ? rawCheckType : "all",
@@ -143,6 +118,7 @@ function parseInsightUrlState(searchParams: URLSearchParams, now: number): Parse
 		hasValidTimeWindow: timeMode === "relative" || hasValidTimeWindow,
 		refresh: hasValidRefresh ? rawRefresh : "off",
 		hasValidRefresh,
+		assignmentKeys,
 		probeId: searchParams.get("probeId") || "",
 		checkId: searchParams.get("checkId") || "",
 		runStartedAt: searchParams.get("runStartedAt") || ""
@@ -304,107 +280,75 @@ function groupLatestResultsForPairs(results: ApiLatestResult[], pairs: InsightPa
 	return results.filter(result => pairKeys.has(pairKey(result.probeId, result.checkId)));
 }
 
-function buildSearchText(pairs: InsightPair[], label: string, secondary: string) {
-	return [
-		label,
-		secondary,
-		...pairs.flatMap(pair => [pair.probe.name, pair.probe.location, pair.probe.asn, pair.probe.provider, pair.check.name, pair.check.target, pair.check.description, ...pair.probe.labelTokens])
-	]
-		.join(" ")
-		.toLowerCase();
-}
-
-function buildInsightGroups(pairs: InsightPair[], latestResults: ApiLatestResult[], groupBy: InsightGroupBy): InsightGroupRow[] {
-	const grouped = new Map<string, InsightPair[]>();
-
-	for (const pair of pairs) {
-		const id = groupBy === "check" ? pair.checkId : pair.probeId;
-		grouped.set(id, [...(grouped.get(id) ?? []), pair]);
-	}
-
-	return [...grouped.entries()]
-		.map(([id, groupPairs]) => {
-			const firstPair = groupPairs[0];
-			const groupLatestResults = groupLatestResultsForPairs(latestResults, groupPairs);
-			const probeCount = new Set(groupPairs.map(pair => pair.probeId)).size;
-			const checkCount = new Set(groupPairs.map(pair => pair.checkId)).size;
-			const pingCount = groupPairs.filter(pair => pair.check.type === "Ping").length;
-			const tcpCount = groupPairs.filter(pair => pair.check.type === "TCP").length;
-			const tracerouteCount = groupPairs.filter(pair => pair.check.type === "Traceroute").length;
-			const label = groupBy === "check" ? firstPair.check.target : firstPair.probe.name;
-			const secondary =
-				groupBy === "check" ? `${firstPair.check.name} · ${firstPair.check.type} · ${formatCount(probeCount)} probes` : `${firstPair.probe.location} · ${formatCount(checkCount)} checks`;
-
-			return {
-				key: `${groupBy}:${id}`,
-				id,
-				groupBy,
-				label,
-				secondary,
-				pairs: groupPairs,
-				pairCount: groupPairs.length,
-				probeCount,
-				checkCount,
-				pingCount,
-				tcpCount,
-				tracerouteCount,
-				summary: summarizeLatestResults(groupLatestResults),
-				searchText: buildSearchText(groupPairs, label, secondary)
-			};
-		})
-		.sort((a, b) => {
-			if (a.summary.status.rank !== b.summary.status.rank) {
-				return a.summary.status.rank - b.summary.status.rank;
-			}
-
-			if (a.summary.latestStartedAtMs !== b.summary.latestStartedAtMs) {
-				return (b.summary.latestStartedAtMs ?? 0) - (a.summary.latestStartedAtMs ?? 0);
-			}
-
-			return a.label.localeCompare(b.label);
-		});
-}
-
 function scopePairs(pairs: InsightPair[], checkType: InsightCheckTypeFilter, probeId: string, checkId: string) {
 	return pairs.filter(pair => matchesCheckType(pair, checkType) && (!probeId || pair.probeId === probeId) && (!checkId || pair.checkId === checkId));
 }
 
-function pairLatestResult(pair: InsightPair, latestResults: ApiLatestResult[]) {
-	const latest = latestResults.find(result => result.probeId === pair.probeId && result.checkId === pair.checkId);
+function assignmentLabel(pair: InsightPair, groupBy: InsightGroupBy) {
+	return groupBy === "check" ? `${pair.check.target} / ${pair.probe.name}` : `${pair.probe.name} / ${pair.check.target}`;
+}
 
-	if (!latest) {
-		return { status: "No data", time: "-" };
-	}
+function assignmentMeta(pair: InsightPair, groupBy: InsightGroupBy) {
+	return groupBy === "check" ? `${pair.check.name} · ${pair.check.type} · ${pair.probe.location}` : `${pair.probe.location} · ${pair.check.name} · ${pair.check.type}`;
+}
+
+function assignmentSelectOption(pair: InsightPair, groupBy: InsightGroupBy): AssignmentSelectOption {
+	const label = assignmentLabel(pair, groupBy);
+	const meta = assignmentMeta(pair, groupBy);
+	const searchText = normalizeSearch(
+		[label, meta, pair.probe.name, pair.probe.location, pair.probe.asn, pair.probe.provider, pair.check.name, pair.check.target, pair.check.description, ...pair.probe.labelTokens].join(" ")
+	);
 
 	return {
-		status: latest.latestStatus,
-		time: new Date(latest.latestStartedAt).toLocaleString(undefined, { month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit" })
+		value: pair.key,
+		label,
+		meta,
+		searchText
 	};
 }
 
-function statusTone(status: string): BadgeTone {
-	if (status === "successful" || status === "Reporting") {
-		return "success";
+function uniqueProbeOptions(pairs: InsightPair[]): AssignmentSelectOption[] {
+	const counts = new Map<string, number>();
+	const options = new Map<string, AssignmentSelectOption>();
+
+	for (const pair of pairs) {
+		counts.set(pair.probeId, (counts.get(pair.probeId) ?? 0) + 1);
+		options.set(pair.probeId, {
+			value: pair.probeId,
+			label: pair.probe.name,
+			meta: pair.probe.location,
+			searchText: normalizeSearch([pair.probe.name, pair.probe.location, pair.probe.asn, pair.probe.provider, ...pair.probe.labelTokens].join(" "))
+		});
 	}
 
-	if (status === "timeout" || status === "error" || status.includes("failing")) {
-		return "critical";
-	}
-
-	if (status === "partial" || status === "No data") {
-		return "warning";
-	}
-
-	return "neutral";
+	return [...options.values()]
+		.map(option => ({
+			...option,
+			meta: `${option.meta} · ${formatCount(counts.get(option.value) ?? 0)} assignments`
+		}))
+		.sort((a, b) => a.label.localeCompare(b.label));
 }
 
-function GroupTitle({ row }: { row: InsightGroupRow }) {
-	return (
-		<div className={styles.rowTitle}>
-			<strong>{row.label}</strong>
-			<span>{row.secondary}</span>
-		</div>
-	);
+function uniqueCheckOptions(pairs: InsightPair[]): AssignmentSelectOption[] {
+	const counts = new Map<string, number>();
+	const options = new Map<string, AssignmentSelectOption>();
+
+	for (const pair of pairs) {
+		counts.set(pair.checkId, (counts.get(pair.checkId) ?? 0) + 1);
+		options.set(pair.checkId, {
+			value: pair.checkId,
+			label: pair.check.target,
+			meta: `${pair.check.name} · ${pair.check.type}`,
+			searchText: normalizeSearch([pair.check.name, pair.check.target, pair.check.description, pair.check.type].join(" "))
+		});
+	}
+
+	return [...options.values()]
+		.map(option => ({
+			...option,
+			meta: `${option.meta} · ${formatCount(counts.get(option.value) ?? 0)} assignments`
+		}))
+		.sort((a, b) => a.label.localeCompare(b.label));
 }
 
 function InsightPairDetail({
@@ -419,15 +363,6 @@ function InsightPairDetail({
 	isTCPInsightLoading,
 	isTCPSeriesLoading,
 	isTCPFetching,
-	tracerouteInsight,
-	tracerouteRuns,
-	topologyNodes,
-	topologyEdges,
-	isTracerouteInsightLoading,
-	isRunsLoading,
-	isTopologyLoading,
-	selectedRunStartedAt,
-	onSelectRun,
 	onSelectTimeWindow
 }: {
 	pair: InsightPair | null;
@@ -441,18 +376,13 @@ function InsightPairDetail({
 	isTCPInsightLoading: boolean;
 	isTCPSeriesLoading: boolean;
 	isTCPFetching: boolean;
-	tracerouteInsight: TracerouteInsightResponse | undefined;
-	tracerouteRuns: TracerouteResult[];
-	topologyNodes: RouteTopologyNode[];
-	topologyEdges: RouteTopologyEdge[];
-	isTracerouteInsightLoading: boolean;
-	isRunsLoading: boolean;
-	isTopologyLoading: boolean;
-	selectedRunStartedAt: string;
-	onSelectRun: (startedAt: string) => void;
 	onSelectTimeWindow: (timeWindow: TimeWindow) => void;
 }) {
 	if (!pair) {
+		return null;
+	}
+
+	if (pair.check.type === "Traceroute") {
 		return null;
 	}
 
@@ -471,22 +401,7 @@ function InsightPairDetail({
 		);
 	}
 
-	return pair.check.type === "Traceroute" ? (
-		<TracerouteInsightPanel
-			selectedProbe={pair.probe}
-			selectedTarget={pair.check}
-			insight={tracerouteInsight}
-			runs={tracerouteRuns}
-			topologyNodes={topologyNodes}
-			topologyEdges={topologyEdges}
-			isInsightLoading={isTracerouteInsightLoading}
-			isRunsLoading={isRunsLoading}
-			isTopologyLoading={isTopologyLoading}
-			selectedRunStartedAt={selectedRunStartedAt}
-			onSelectRun={onSelectRun}
-			onSelectTimeWindow={onSelectTimeWindow}
-		/>
-	) : (
+	return (
 		<PingInsightPanel
 			selectedProbe={pair.probe}
 			selectedTarget={pair.check}
@@ -504,7 +419,6 @@ export function InsightPage() {
 	const { projectRef } = useCurrentProject();
 	const queryClient = useQueryClient();
 	const [searchParams, setSearchParams] = useSearchParams();
-	const [search, setSearch] = useState("");
 	const [nowMs, setNowMs] = useState(() => Date.now());
 	const searchParamString = searchParams.toString();
 	const urlState = useMemo(() => parseInsightUrlState(new URLSearchParams(searchParamString), nowMs), [nowMs, searchParamString]);
@@ -528,53 +442,81 @@ export function InsightPage() {
 	const assignments = useMemo(() => assignmentsQuery.data ?? [], [assignmentsQuery.data]);
 	const pairs = useMemo(() => buildInsightPairs(assignments, probes, checks), [assignments, checks, probes]);
 	const isSelectionLoading = Boolean(projectRef) && (assignmentsQuery.isLoading || probesQuery.isLoading || checksQuery.isLoading);
+	const pairsByKey = useMemo(() => new Map(pairs.map(pair => [pair.key, pair])), [pairs]);
 	const knownProbeIds = useMemo(() => new Set(pairs.map(pair => pair.probeId)), [pairs]);
 	const knownCheckIds = useMemo(() => new Set(pairs.map(pair => pair.checkId)), [pairs]);
-	const hasProbeFocus = Boolean(urlState.probeId);
-	const hasCheckFocus = Boolean(urlState.checkId);
-	const hasInvalidProbeFocus = hasProbeFocus && !isSelectionLoading && !knownProbeIds.has(urlState.probeId);
-	const hasInvalidCheckFocus = hasCheckFocus && !isSelectionLoading && !knownCheckIds.has(urlState.checkId);
-	const hasInvalidFocus = hasInvalidProbeFocus || hasInvalidCheckFocus;
-	const activeProbeId = hasInvalidProbeFocus ? "" : urlState.probeId;
-	const activeCheckId = hasInvalidCheckFocus ? "" : urlState.checkId;
 	const timeWindow = urlState.timeWindow;
 	const timeMode = urlState.timeMode;
 	const timeRange = urlState.timeRange;
 	const refresh = urlState.refresh;
 	const checkType = urlState.checkType;
 	const groupBy = urlState.groupBy;
+	const hasAssignmentSelection = urlState.assignmentKeys.length > 0;
+	const hasProbeFocus = Boolean(urlState.probeId);
+	const hasCheckFocus = Boolean(urlState.checkId);
+	const hasInvalidProbeFocus = hasProbeFocus && !isSelectionLoading && !knownProbeIds.has(urlState.probeId);
+	const hasInvalidCheckFocus = hasCheckFocus && !isSelectionLoading && !knownCheckIds.has(urlState.checkId);
+	const requestedAssignmentKeys = useMemo(
+		() => (hasAssignmentSelection ? urlState.assignmentKeys : urlState.probeId && urlState.checkId ? [pairKey(urlState.probeId, urlState.checkId)] : []),
+		[hasAssignmentSelection, urlState.assignmentKeys, urlState.checkId, urlState.probeId]
+	);
+	const unknownAssignmentKeys = requestedAssignmentKeys.filter(key => !pairsByKey.has(key));
+	const hasInvalidAssignmentFocus = requestedAssignmentKeys.length > 0 && !isSelectionLoading && unknownAssignmentKeys.length > 0;
+	const hasInvalidFocus = hasInvalidProbeFocus || hasInvalidCheckFocus || hasInvalidAssignmentFocus;
+	const activeProbeId = hasInvalidProbeFocus ? "" : urlState.probeId;
+	const activeCheckId = hasInvalidCheckFocus ? "" : urlState.checkId;
 	const resultWindowFilters = useMemo(() => ({ from: timeWindow.from, to: timeWindow.to }), [timeWindow.from, timeWindow.to]);
-	const scopedPairs = useMemo(() => (hasInvalidFocus ? [] : scopePairs(pairs, checkType, activeProbeId, activeCheckId)), [activeCheckId, activeProbeId, checkType, hasInvalidFocus, pairs]);
-	const exactPair = activeProbeId && activeCheckId && scopedPairs.length === 1 ? scopedPairs[0] : null;
-	const selectedProbe = activeProbeId ? scopedPairs.find(pair => pair.probeId === activeProbeId)?.probe || probes.find(probe => probe.id === activeProbeId) || null : null;
-	const selectedCheck = activeCheckId ? scopedPairs.find(pair => pair.checkId === activeCheckId)?.check || checks.find(check => check.id === activeCheckId) || null : null;
+	const typeFilteredPairs = useMemo(() => pairs.filter(pair => matchesCheckType(pair, checkType)), [checkType, pairs]);
+	const selectedPairKeys = useMemo(
+		() =>
+			requestedAssignmentKeys.filter(key => {
+				const pair = pairsByKey.get(key);
+				return pair ? matchesCheckType(pair, checkType) && (!activeProbeId || pair.probeId === activeProbeId) && (!activeCheckId || pair.checkId === activeCheckId) : false;
+			}),
+		[activeCheckId, activeProbeId, checkType, pairsByKey, requestedAssignmentKeys]
+	);
+	const selectedPairs = useMemo(() => selectedPairKeys.map(key => pairsByKey.get(key)).filter((pair): pair is InsightPair => Boolean(pair)), [pairsByKey, selectedPairKeys]);
+	const legacyScopedPairs = useMemo(() => (hasInvalidFocus ? [] : scopePairs(pairs, checkType, activeProbeId, activeCheckId)), [activeCheckId, activeProbeId, checkType, hasInvalidFocus, pairs]);
+	const hasResultScope = selectedPairKeys.length > 0 || Boolean(activeProbeId || activeCheckId);
+	const scopedPairs = useMemo(() => (hasResultScope ? (selectedPairs.length ? selectedPairs : legacyScopedPairs) : []), [hasResultScope, legacyScopedPairs, selectedPairs]);
+	const exactPair = selectedPairs.length === 1 ? selectedPairs[0] : activeProbeId && activeCheckId && scopedPairs.length === 1 ? scopedPairs[0] : null;
+	const selectedProbe = exactPair?.probe ?? (activeProbeId ? scopedPairs.find(pair => pair.probeId === activeProbeId)?.probe || probes.find(probe => probe.id === activeProbeId) || null : null);
+	const selectedCheck = exactPair?.check ?? (activeCheckId ? scopedPairs.find(pair => pair.checkId === activeCheckId)?.check || checks.find(check => check.id === activeCheckId) || null : null);
+	const scopeOptions = useMemo(() => (groupBy === "check" ? uniqueCheckOptions(typeFilteredPairs) : uniqueProbeOptions(typeFilteredPairs)), [groupBy, typeFilteredPairs]);
+	const assignmentOptions = useMemo(() => legacyScopedPairs.map(pair => assignmentSelectOption(pair, groupBy)), [groupBy, legacyScopedPairs]);
 	const latestResultFilters = useMemo(
 		() => ({
 			...(checkType === "all" ? {} : { type: checkType }),
-			...(activeProbeId ? { probeId: activeProbeId } : {}),
-			...(activeCheckId ? { checkId: activeCheckId } : {})
+			...(exactPair ? { probeId: exactPair.probeId, checkId: exactPair.checkId } : activeProbeId ? { probeId: activeProbeId } : {}),
+			...(exactPair || !activeCheckId ? {} : { checkId: activeCheckId })
 		}),
-		[activeCheckId, activeProbeId, checkType]
+		[activeCheckId, activeProbeId, checkType, exactPair]
 	);
 	const latestResultsQuery = useQuery({
 		...projectQueries.latestResults(projectRef || "", latestResultFilters),
-		enabled: Boolean(projectRef && !isSelectionLoading && !hasInvalidFocus)
+		enabled: Boolean(projectRef && hasResultScope && !isSelectionLoading && !hasInvalidFocus)
 	});
 	const latestResults = useMemo(() => latestResultsQuery.data?.results ?? [], [latestResultsQuery.data?.results]);
-	const groups = useMemo(() => buildInsightGroups(scopedPairs, latestResults, groupBy), [groupBy, latestResults, scopedPairs]);
-	const searchTerm = normalizeSearch(search);
-	const visibleGroups = useMemo(() => (searchTerm ? groups.filter(group => group.searchText.includes(searchTerm)) : groups), [groups, searchTerm]);
-	const selectedRunStartedAt = exactPair?.check.type === "Traceroute" ? urlState.runStartedAt : "";
+	const scopedLatestResults = useMemo(() => groupLatestResultsForPairs(latestResults, scopedPairs), [latestResults, scopedPairs]);
+	const scopeSummary = useMemo(() => summarizeLatestResults(scopedLatestResults), [scopedLatestResults]);
+	const scopedProbeCount = useMemo(() => new Set(scopedPairs.map(pair => pair.probeId)).size, [scopedPairs]);
+	const scopedCheckCount = useMemo(() => new Set(scopedPairs.map(pair => pair.checkId)).size, [scopedPairs]);
 	const canQueryPairDetail = Boolean(projectRef && exactPair);
-	const canQueryTracerouteGroup = Boolean(projectRef && !exactPair && scopedPairs.some(pair => pair.check.type === "Traceroute") && !hasInvalidFocus);
+	const canQueryTracerouteDetail = Boolean(canQueryPairDetail && exactPair?.check.type === "Traceroute");
+	const topologyProbeId = activeProbeId;
+	const topologyCheckId = activeCheckId;
+	const topologyProbe = topologyProbeId ? legacyScopedPairs.find(pair => pair.probeId === topologyProbeId)?.probe || probes.find(probe => probe.id === topologyProbeId) || null : null;
+	const topologyCheck = topologyCheckId ? legacyScopedPairs.find(pair => pair.checkId === topologyCheckId)?.check || checks.find(check => check.id === topologyCheckId) || null : null;
+	const hasTopologyScope = Boolean(topologyProbeId || topologyCheckId);
+	const canQueryTracerouteGroup = Boolean(projectRef && hasResultScope && hasTopologyScope && scopedPairs.some(pair => pair.check.type === "Traceroute") && !hasInvalidFocus);
 	const tracerouteTopologyFilters = useMemo(
 		() => ({
-			...(activeProbeId ? { probeId: activeProbeId } : {}),
-			...(activeCheckId ? { checkId: activeCheckId } : {}),
+			...(topologyProbeId ? { probeId: topologyProbeId } : {}),
+			...(topologyCheckId ? { checkId: topologyCheckId } : {}),
 			...resultWindowFilters,
 			limit: 100
 		}),
-		[activeCheckId, activeProbeId, resultWindowFilters]
+		[resultWindowFilters, topologyCheckId, topologyProbeId]
 	);
 	const pingInsightQuery = useQuery({
 		...projectQueries.pingInsight(projectRef || "", exactPair?.probeId || "", exactPair?.checkId || "", resultWindowFilters),
@@ -594,75 +536,16 @@ export function InsightPage() {
 	});
 	const tracerouteInsightQuery = useQuery({
 		...projectQueries.tracerouteInsight(projectRef || "", exactPair?.probeId || "", exactPair?.checkId || "", resultWindowFilters),
-		enabled: Boolean(canQueryPairDetail && exactPair?.check.type === "Traceroute")
+		enabled: canQueryTracerouteDetail
 	});
 	const tracerouteRunsQuery = useQuery({
 		...projectQueries.tracerouteRuns(projectRef || "", exactPair?.probeId || "", exactPair?.checkId || "", { ...resultWindowFilters, limit: 200 }),
-		enabled: Boolean(canQueryPairDetail && exactPair?.check.type === "Traceroute")
-	});
-	const pairTopologyQuery = useQuery({
-		...projectQueries.tracerouteTopology(projectRef || "", {
-			probeId: exactPair?.probeId,
-			checkId: exactPair?.checkId,
-			...resultWindowFilters,
-			limit: 100
-		}),
-		enabled: Boolean(canQueryPairDetail && exactPair?.check.type === "Traceroute")
+		enabled: canQueryTracerouteDetail
 	});
 	const groupTopologyQuery = useQuery({
 		...projectQueries.tracerouteTopology(projectRef || "", tracerouteTopologyFilters),
 		enabled: canQueryTracerouteGroup
 	});
-	const groupColumns: DataColumn<InsightGroupRow>[] = [
-		{ key: "scope", label: groupBy === "check" ? "Check" : "Probe", render: row => <GroupTitle row={row} /> },
-		{
-			key: "status",
-			label: "Status",
-			render: row => <Badge tone={row.summary.status.tone}>{row.summary.status.label}</Badge>
-		},
-		{ key: "coverage", label: "Coverage", render: row => `${formatCount(row.probeCount)} probes · ${formatCount(row.checkCount)} checks` },
-		{ key: "latest", label: "Last seen", render: row => formatEpochMs(row.summary.latestStartedAtMs) }
-	];
-	const pairColumns: DataColumn<InsightPair>[] = [
-		{
-			key: "probe",
-			label: "Probe",
-			render: pair => (
-				<div className={styles.rowTitle}>
-					<strong>{pair.probe.name}</strong>
-					<span>{pair.probe.location}</span>
-				</div>
-			)
-		},
-		{
-			key: "check",
-			label: "Check",
-			render: pair => (
-				<div className={styles.rowTitle}>
-					<strong>{pair.check.target}</strong>
-					<span>{pair.check.name}</span>
-				</div>
-			)
-		},
-		{ key: "type", label: "Type", render: pair => <Badge tone="accent">{pair.check.type}</Badge> },
-		{ key: "interval", label: "Interval", render: pair => pair.check.interval },
-		{
-			key: "latest",
-			label: "Latest",
-			render: pair => {
-				const latest = pairLatestResult(pair, latestResults);
-
-				return (
-					<div className={styles.rowTitle}>
-						<strong>
-							<Badge tone={statusTone(latest.status)}>{latest.status}</Badge>
-						</strong>
-						<span>{latest.time}</span>
-					</div>
-				);
-			}
-		}
-	];
 	useEffect(() => {
 		if (!projectRef) {
 			return;
@@ -711,6 +594,15 @@ export function InsightPage() {
 		deleteParam("mode");
 		deleteParam("view");
 
+		if (urlState.assignmentKeys.length) {
+			const normalizedAssignmentKeys = Array.from(new Set(urlState.assignmentKeys));
+			if (next.getAll("assignment").join("\u0000") !== normalizedAssignmentKeys.join("\u0000")) {
+				next.delete("assignment");
+				normalizedAssignmentKeys.forEach(key => next.append("assignment", key));
+				changed = true;
+			}
+		}
+
 		if (!exactPair || exactPair.check.type !== "Traceroute") {
 			deleteParam("runStartedAt");
 		}
@@ -730,6 +622,7 @@ export function InsightPage() {
 		timeRange,
 		timeWindow.from,
 		timeWindow.to,
+		urlState.assignmentKeys,
 		urlState.hasValidCheckType,
 		urlState.hasValidGroupBy,
 		urlState.hasValidRefresh,
@@ -810,38 +703,39 @@ export function InsightPage() {
 		});
 	}
 
-	function selectGroup(row: InsightGroupRow) {
+	function writeAssignmentParams(next: URLSearchParams, keys: string[]) {
+		next.delete("assignment");
+		keys.forEach(key => next.append("assignment", key));
+	}
+
+	function selectAssignments(keys: string[]) {
 		updateSearchParams(next => {
-			if (row.groupBy === "check") {
-				if (activeCheckId === row.id) {
-					next.delete("checkId");
-				} else {
-					next.set("checkId", row.id);
-				}
-			} else {
-				if (activeProbeId === row.id) {
-					next.delete("probeId");
-				} else {
-					next.set("probeId", row.id);
-				}
-			}
+			writeAssignmentParams(next, keys);
 			next.delete("runStartedAt");
 		});
 	}
 
-	function selectPair(pair: InsightPair) {
+	function selectGroupScope(value: string) {
 		updateSearchParams(next => {
-			if (exactPair?.key === pair.key) {
-				if (groupBy === "check") {
-					next.delete("probeId");
+			next.delete("assignment");
+			next.delete("runStartedAt");
+
+			if (groupBy === "check") {
+				next.delete("probeId");
+				if (value) {
+					next.set("checkId", value);
 				} else {
 					next.delete("checkId");
 				}
-			} else {
-				next.set("probeId", pair.probeId);
-				next.set("checkId", pair.checkId);
+				return;
 			}
-			next.delete("runStartedAt");
+
+			next.delete("checkId");
+			if (value) {
+				next.set("probeId", value);
+			} else {
+				next.delete("probeId");
+			}
 		});
 	}
 
@@ -860,32 +754,36 @@ export function InsightPage() {
 	}
 
 	function resetScope() {
-		setSearch("");
 		updateSearchParams(next => {
 			next.set("type", "all");
 			next.set("groupBy", "check");
+			next.delete("assignment");
 			next.delete("probeId");
 			next.delete("checkId");
 			next.delete("runStartedAt");
 		});
 	}
 
-	const scopeTitle = exactPair
-		? `${exactPair.probe.name} -> ${exactPair.check.target}`
-		: selectedProbe && selectedCheck
-			? "No active assignment"
-			: selectedProbe
-				? selectedProbe.name
-				: selectedCheck
-					? selectedCheck.target
-					: "Project scope";
-	const groupTopologyTitle = selectedProbe
-		? `${selectedProbe.name} route graph`
-		: selectedCheck
-			? `${selectedCheck.target} route graph`
-			: checkType === "traceroute"
-				? "Traceroute route graph"
-				: "Project route graph";
+	const scopeTitle =
+		selectedPairs.length > 1
+			? `${formatCount(selectedPairs.length)} selected assignments`
+			: exactPair
+				? `${exactPair.probe.name} -> ${exactPair.check.target}`
+				: selectedProbe && selectedCheck
+					? "No active assignment"
+					: selectedProbe
+						? selectedProbe.name
+						: selectedCheck
+							? selectedCheck.target
+							: "Select scope";
+	const groupTopologyTitle =
+		topologyProbe && topologyCheck
+			? `${topologyProbe.name} -> ${topologyCheck.target} route graph`
+			: topologyProbe
+				? `${topologyProbe.name} route graph`
+				: topologyCheck
+					? `${topologyCheck.target} route graph`
+					: "Selected route graph";
 	const pairDetail = (
 		<InsightPairDetail
 			pair={exactPair}
@@ -899,22 +797,39 @@ export function InsightPage() {
 			isTCPInsightLoading={tcpInsightQuery.isLoading}
 			isTCPSeriesLoading={tcpSeriesQuery.isLoading}
 			isTCPFetching={tcpInsightQuery.isFetching || tcpSeriesQuery.isFetching}
-			tracerouteInsight={tracerouteInsightQuery.data}
-			tracerouteRuns={tracerouteRunsQuery.data?.runs ?? []}
-			topologyNodes={pairTopologyQuery.data?.nodes ?? []}
-			topologyEdges={pairTopologyQuery.data?.edges ?? []}
-			isTracerouteInsightLoading={tracerouteInsightQuery.isLoading}
-			isRunsLoading={tracerouteRunsQuery.isLoading}
-			isTopologyLoading={pairTopologyQuery.isLoading}
-			selectedRunStartedAt={selectedRunStartedAt}
-			onSelectRun={startedAt =>
-				updateSearchParams(next => {
-					next.set("runStartedAt", startedAt);
-				})
-			}
 			onSelectTimeWindow={applyAbsoluteWindow}
 		/>
 	);
+	const tracerouteDetail =
+		exactPair?.check.type === "Traceroute" ? (
+			<TracerouteInsightPanel
+				selectedProbe={exactPair.probe}
+				selectedTarget={exactPair.check}
+				insight={tracerouteInsightQuery.data}
+				runs={tracerouteRunsQuery.data?.runs ?? []}
+				topologyNodes={[]}
+				topologyEdges={[]}
+				isInsightLoading={tracerouteInsightQuery.isLoading}
+				isRunsLoading={tracerouteRunsQuery.isLoading}
+				isTopologyLoading={false}
+				selectedRunStartedAt={urlState.runStartedAt}
+				showTopology={false}
+				onSelectRun={startedAt =>
+					updateSearchParams(next => {
+						next.set("runStartedAt", startedAt);
+					})
+				}
+				onSelectTimeWindow={applyAbsoluteWindow}
+			/>
+		) : null;
+	const detailPanels =
+		selectedPairs.length > 1 ? (
+			<MultiSeriesInsightPanel projectRef={projectRef} pairs={selectedPairs} filters={resultWindowFilters} onSelectTimeWindow={applyAbsoluteWindow} />
+		) : exactPair?.check.type === "Traceroute" ? (
+			tracerouteDetail
+		) : (
+			pairDetail
+		);
 
 	return (
 		<PageStack>
@@ -949,6 +864,13 @@ export function InsightPage() {
 							updateSearchParams(next => {
 								next.set("type", nextType);
 								next.delete("runStartedAt");
+								if (selectedPairKeys.length) {
+									const nextKeys = selectedPairKeys.filter(key => {
+										const pair = pairsByKey.get(key);
+										return pair ? matchesCheckType(pair, nextType) : false;
+									});
+									writeAssignmentParams(next, nextKeys);
+								}
 								if (nextType !== "all" && selectedCheck && checkTypeFilterFromCheck(selectedCheck) !== nextType) {
 									next.delete("checkId");
 								}
@@ -962,13 +884,47 @@ export function InsightPage() {
 						onChange={nextGroupBy => {
 							updateSearchParams(next => {
 								next.set("groupBy", nextGroupBy);
+								next.delete("assignment");
+								next.delete("runStartedAt");
+								if (nextGroupBy === "check") {
+									next.delete("probeId");
+								} else {
+									next.delete("checkId");
+								}
 							});
 						}}
 					/>
-					<TextField label="Search" placeholder="check, probe, target, label, location" value={search} onChange={event => setSearch(event.currentTarget.value)} />
 				</FilterGrid>
+				<div className={styles.scopeSelectorRow}>
+					<ScopeSelect
+						label={groupBy === "check" ? "Check" : "Probe"}
+						placeholder={groupBy === "check" ? "Select check" : "Select probe"}
+						options={scopeOptions}
+						value={groupBy === "check" ? activeCheckId : activeProbeId}
+						disabled={isSelectionLoading || !pairs.length}
+						onChange={selectGroupScope}
+					/>
+				</div>
+				<div className={styles.assignmentSelectorRow}>
+					<AssignmentMultiSelect
+						label="Assignments"
+						placeholder="Type probe, check, target, label, or location"
+						options={assignmentOptions}
+						selectedValues={selectedPairKeys}
+						disabled={isSelectionLoading || !pairs.length}
+						onChange={selectAssignments}
+					/>
+				</div>
 				<div className={styles.focusChips} aria-label="Active Insight scope">
-					{hasProbeFocus ? (
+					{hasInvalidAssignmentFocus ? (
+						<FocusChip
+							label="Assignment"
+							value={unknownAssignmentKeys.length === 1 ? `Unknown assignment ${unknownAssignmentKeys[0]}` : `${formatCount(unknownAssignmentKeys.length)} unknown assignments`}
+							invalid
+							onClear={() => selectAssignments([])}
+						/>
+					) : null}
+					{hasInvalidProbeFocus ? (
 						<FocusChip
 							label="Probe"
 							value={hasInvalidProbeFocus ? `Unknown probe ${urlState.probeId}` : selectedProbe?.name || urlState.probeId}
@@ -976,7 +932,7 @@ export function InsightPage() {
 							onClear={clearProbeFocus}
 						/>
 					) : null}
-					{hasCheckFocus ? (
+					{hasInvalidCheckFocus ? (
 						<FocusChip
 							label="Check"
 							value={hasInvalidCheckFocus ? `Unknown check ${urlState.checkId}` : selectedCheck?.target || urlState.checkId}
@@ -984,7 +940,11 @@ export function InsightPage() {
 							onClear={clearCheckFocus}
 						/>
 					) : null}
-					{!hasProbeFocus && !hasCheckFocus ? <span className={styles.scopeHint}>All active assignments in this project are included.</span> : null}
+					{!hasResultScope && !hasInvalidFocus ? <span className={styles.scopeHint}>Select a check, probe, or assignment to inspect results.</span> : null}
+					{!selectedPairKeys.length && (activeProbeId || activeCheckId) && !hasInvalidFocus ? (
+						<span className={styles.scopeHint}>{formatCount(legacyScopedPairs.length)} assignments available in this scope.</span>
+					) : null}
+					{selectedPairKeys.length ? <span className={styles.scopeHint}>{formatCount(selectedPairKeys.length)} assignments selected.</span> : null}
 				</div>
 			</Panel>
 
@@ -1000,45 +960,38 @@ export function InsightPage() {
 				<Panel tone="deep" title="The shared scope is no longer valid">
 					<BodyCopy>Clear the unknown probe or check chip to return to active assignments.</BodyCopy>
 				</Panel>
-			) : (
+			) : !hasResultScope ? null : (
 				<>
-					<Panel tone="glass" title={groupBy === "check" ? `${formatCount(visibleGroups.length)} checks` : `${formatCount(visibleGroups.length)} probes`}>
-						<DataTable
-							columns={groupColumns}
-							rows={visibleGroups}
-							density="compact"
-							minWidth="58rem"
-							maxHeight="28rem"
-							ariaLabel="Insight grouped scope"
-							getRowKey={row => row.key}
-							getRowAriaLabel={row => `Focus ${row.label}`}
-							selectedKey={selectedCheck && groupBy === "check" ? `check:${selectedCheck.id}` : selectedProbe && groupBy === "probe" ? `probe:${selectedProbe.id}` : undefined}
-							onRowClick={selectGroup}
-							emptyLabel={searchTerm ? "No groups match the current search." : "No assignments match the current scope."}
-						/>
-					</Panel>
-
-					<Panel tone="glass" title={exactPair ? "Selected assignment" : `${formatCount(scopedPairs.length)} assignments in scope`}>
-						<DataTable
-							columns={pairColumns}
-							rows={scopedPairs}
-							density="compact"
-							minWidth="52rem"
-							maxHeight="24rem"
-							ariaLabel="Insight assignments"
-							getRowKey={row => row.key}
-							getRowAriaLabel={row => `Open ${row.probe.name} to ${row.check.target}`}
-							selectedKey={exactPair?.key}
-							onRowClick={selectPair}
-							emptyLabel="No assignments match the current scope."
-						/>
+					<Panel tone="glass" title={selectedPairKeys.length ? `${formatCount(selectedPairKeys.length)} selected assignments` : `${formatCount(scopedPairs.length)} assignments in scope`}>
+						<div className={styles.scopeSummaryGrid}>
+							<div className={styles.scopeSummaryCell}>
+								<span>Assignments</span>
+								<strong>{formatCount(scopedPairs.length)}</strong>
+								<small>{selectedPairKeys.length ? "selected" : "in scope"}</small>
+							</div>
+							<div className={styles.scopeSummaryCell}>
+								<span>Probes</span>
+								<strong>{formatCount(scopedProbeCount)}</strong>
+								<small>{groupBy === "probe" ? "primary grouping" : "covered"}</small>
+							</div>
+							<div className={styles.scopeSummaryCell}>
+								<span>Checks</span>
+								<strong>{formatCount(scopedCheckCount)}</strong>
+								<small>{groupBy === "check" ? "primary grouping" : "covered"}</small>
+							</div>
+							<div className={styles.scopeSummaryCell}>
+								<span>Status</span>
+								<strong>{latestResultsQuery.isFetching ? "Syncing" : scopeSummary.status.label}</strong>
+								<small>{formatEpochMs(scopeSummary.latestStartedAtMs)}</small>
+							</div>
+						</div>
 					</Panel>
 
 					{canQueryTracerouteGroup ? (
 						<GroupTopologyPanel title={groupTopologyTitle} nodes={groupTopologyQuery.data?.nodes ?? []} edges={groupTopologyQuery.data?.edges ?? []} isLoading={groupTopologyQuery.isLoading} />
 					) : null}
 
-					{pairDetail}
+					{detailPanels}
 				</>
 			)}
 		</PageStack>

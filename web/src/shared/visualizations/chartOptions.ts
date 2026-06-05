@@ -20,6 +20,13 @@ export interface TcpSeriesChartData {
 	failurePercent: PingSeriesPoint[];
 }
 
+export interface InsightMultiSeriesLine {
+	id: string;
+	name: string;
+	color: string;
+	points: PingSeriesPoint[];
+}
+
 interface TooltipParam {
 	seriesName?: string;
 	value?: unknown;
@@ -158,6 +165,25 @@ function tcpTooltipFormatter(params: unknown) {
 	return lines.join("<br />");
 }
 
+function multiSeriesTooltipFormatter(unit: string) {
+	return (params: unknown) => {
+		const items = (Array.isArray(params) ? params : [params]) as TooltipParam[];
+		const timestamp = Array.isArray(items[0]?.value) && typeof items[0].value[0] === "number" ? items[0].value[0] : null;
+		const lines = timestamp ? [`<strong>${timestampLabel(timestamp)}</strong>`] : [];
+
+		for (const item of items) {
+			const parsed = tooltipValue(item.value);
+			if (!parsed) {
+				continue;
+			}
+
+			lines.push(`${item.marker || ""}${item.seriesName}: ${parsed.metric.toFixed(1)}${unit}`);
+		}
+
+		return lines.join("<br />");
+	};
+}
+
 function finiteNumbers(values: Array<number | undefined>) {
 	return values.filter((value): value is number => typeof value === "number" && Number.isFinite(value));
 }
@@ -189,6 +215,23 @@ function pingRttAxisBounds(data: PingSeriesChartData) {
 
 function tcpConnectAxisBounds(data: TcpSeriesChartData) {
 	const values = [...data.connectAvg, ...data.connectMin, ...data.connectMax].flatMap(([, value]) => finiteNumbers([value])).filter(value => value >= 0);
+
+	if (!values.length) {
+		return { min: 0 };
+	}
+
+	const minValue = Math.min(...values);
+	const maxValue = Math.max(...values);
+	const span = Math.max(maxValue - minValue, maxValue * 0.08, 1);
+	const padding = Math.max(span * 0.12, 0.5);
+	const min = minValue <= 1 ? 0 : Math.max(0, roundAxisFloor(minValue - padding));
+	const max = Math.max(min + 1, roundAxisCeil(maxValue + padding));
+
+	return { min, max };
+}
+
+function lineAxisBounds(lines: InsightMultiSeriesLine[]) {
+	const values = lines.flatMap(line => line.points.map(([, value]) => value)).filter(value => Number.isFinite(value) && value >= 0);
 
 	if (!values.length) {
 		return { min: 0 };
@@ -270,6 +313,73 @@ function lossBandColor(lossPercent: number) {
 	return "rgba(255, 122, 26, 0.18)";
 }
 
+const dataZoomToolbox = {
+	show: true,
+	left: -1000,
+	top: -1000,
+	itemSize: 0,
+	itemGap: 0,
+	feature: {
+		dataZoom: {
+			show: true,
+			xAxisIndex: [0],
+			yAxisIndex: false,
+			filterMode: "none",
+			brushStyle: {
+				color: "rgba(255, 122, 26, 0.16)",
+				borderColor: "rgba(255, 122, 26, 0.76)",
+				borderWidth: 1
+			}
+		}
+	}
+};
+
+function multiSeriesChartOption(lines: InsightMultiSeriesLine[], axisName: string, unit: string): ChartOption {
+	return {
+		backgroundColor: "transparent",
+		color: lines.map(line => line.color),
+		tooltip: {
+			trigger: "axis",
+			backgroundColor: "rgba(2,3,4,0.96)",
+			borderColor: "rgba(255,122,26,0.34)",
+			textStyle: { color: "#FFF7EC", fontFamily: "JetBrains Mono, monospace", fontSize: 11 },
+			formatter: multiSeriesTooltipFormatter(unit)
+		},
+		grid: { top: 18, right: 44, bottom: 30, left: 48 },
+		toolbox: dataZoomToolbox,
+		xAxis: {
+			type: "time",
+			axisLabel: {
+				...axisLabel,
+				formatter: (value: number) => timestampLabel(value)
+			},
+			axisLine: { lineStyle: { color: "rgba(148,163,184,0.16)" } },
+			axisTick: { show: false }
+		},
+		yAxis: [
+			{
+				type: "value",
+				name: axisName,
+				nameTextStyle: { color: "#77736B", fontFamily: "JetBrains Mono, monospace", fontSize: 10 },
+				axisLabel,
+				splitLine,
+				axisLine: { show: false },
+				axisTick: { show: false },
+				...lineAxisBounds(lines)
+			}
+		],
+		series: lines.map(line => ({
+			name: line.name,
+			type: "line",
+			data: pingSeriesData(line.points),
+			showSymbol: false,
+			smooth: true,
+			lineStyle: { width: 2, color: line.color, shadowBlur: 8, shadowColor: `${line.color}55` },
+			z: 8
+		}))
+	};
+}
+
 function lossBandRenderItem(params: CustomRenderParams, api: CustomRenderApi) {
 	const lossPercent = Number(api.value(1));
 	const timeStartMs = Number(api.value(2));
@@ -297,6 +407,20 @@ function lossBandRenderItem(params: CustomRenderParams, api: CustomRenderApi) {
 			fill: lossBandColor(lossPercent)
 		}
 	};
+}
+
+export const insightSeriesPalette = ["#FF7A1A", "#FFF7EC", "#C4CCD9", "#30D158", "#FF9F0A", "#FF453A", "#FFD6A6", "#B8B3AA", "#D98B4A", "#D4D0C8"];
+
+export function insightSeriesColor(index: number) {
+	return insightSeriesPalette[index % insightSeriesPalette.length];
+}
+
+export function multiPingInsightChartOption(lines: InsightMultiSeriesLine[]): ChartOption {
+	return multiSeriesChartOption(lines, "RTT ms", "ms");
+}
+
+export function multiTcpInsightChartOption(lines: InsightMultiSeriesLine[]): ChartOption {
+	return multiSeriesChartOption(lines, "connect ms", "ms");
 }
 
 export function pingInsightChartOption(data: PingSeriesChartData): ChartOption {

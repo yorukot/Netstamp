@@ -115,6 +115,202 @@
 	outline: none;
 }
 
+.assignmentField {
+	display: grid;
+	gap: 0.45rem;
+	min-width: 0;
+}
+
+.assignmentControl {
+	--ns-frame-cut: var(--ns-cut-sm);
+	--ns-frame-color: var(--ns-border);
+	display: flex;
+	gap: 0.35rem;
+	align-items: center;
+	width: 100%;
+	min-width: 0;
+	min-height: 2.75rem;
+	padding: 0.35rem 0.45rem;
+	overflow: hidden;
+	background: #05070a;
+	box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.8);
+	cursor: text;
+}
+
+.assignmentControl[data-open="true"],
+.assignmentControl:focus-within {
+	--ns-frame-color: var(--ns-accent-active);
+	outline: 2px solid var(--ns-accent-active);
+	outline-offset: 2px;
+}
+
+.assignmentControl[data-disabled="true"] {
+	cursor: not-allowed;
+	opacity: 0.62;
+}
+
+.assignmentControl input {
+	flex: 1 1 7rem;
+	min-width: 5rem;
+	height: 1.8rem;
+	color: var(--ns-text);
+	background: transparent;
+	border: 0;
+	font-family: var(--ns-font-mono);
+	font-size: 0.8125rem;
+	font-weight: 800;
+	outline: none;
+}
+
+.assignmentControl input::placeholder {
+	color: var(--ns-text-low);
+	opacity: 1;
+}
+
+.assignmentToken,
+.assignmentOverflow {
+	display: inline-flex;
+	flex: 0 1 auto;
+	gap: 0.35rem;
+	align-items: center;
+	max-width: min(13rem, 35%);
+	min-width: 0;
+	padding: 0.35rem 0.45rem;
+	color: var(--ns-text);
+	background: rgba(255, 122, 26, 0.13);
+	border: 1px solid rgba(255, 122, 26, 0.32);
+	clip-path: polygon(var(--ns-cut-xs) 0, 100% 0, 100% calc(100% - var(--ns-cut-xs)), calc(100% - var(--ns-cut-xs)) 100%, 0 100%, 0 var(--ns-cut-xs));
+	font-family: var(--ns-font-mono);
+	font-size: 0.6875rem;
+	font-weight: 900;
+	line-height: 1;
+	text-transform: uppercase;
+}
+
+.assignmentToken span {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.assignmentToken button,
+.assignmentClear {
+	color: var(--ns-accent-hover);
+	background: transparent;
+	border: 0;
+	font-family: var(--ns-font-mono);
+	font-size: 0.6875rem;
+	font-weight: 900;
+	text-transform: uppercase;
+	cursor: pointer;
+}
+
+.assignmentToken button {
+	padding: 0;
+	line-height: 1;
+}
+
+.assignmentToken button:hover,
+.assignmentToken button:focus-visible,
+.assignmentClear:hover,
+.assignmentClear:focus-visible {
+	color: var(--ns-text);
+	outline: none;
+}
+
+.assignmentOverflow {
+	flex: 0 0 auto;
+	color: var(--ns-text-muted);
+	background: rgba(196, 204, 217, 0.08);
+	border-color: var(--ns-border-faint);
+}
+
+.assignmentClear {
+	flex: 0 0 auto;
+	padding: 0.35rem 0.45rem;
+}
+
+.assignmentPopover {
+	--ns-frame-cut: var(--ns-cut-md);
+	--ns-frame-color: var(--ns-border-strong);
+	position: fixed;
+	z-index: 1000;
+	display: grid;
+	gap: 0.25rem;
+	overflow: auto;
+	padding: 0.35rem;
+	background: linear-gradient(rgba(255, 122, 26, 0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 122, 26, 0.035) 1px, transparent 1px), var(--ns-glass-dark);
+	background-size:
+		1rem 1rem,
+		1rem 1rem,
+		100% 100%;
+	box-shadow: var(--ns-shadow-md);
+}
+
+.assignmentOption {
+	display: grid;
+	gap: 0.2rem;
+	width: 100%;
+	min-height: 2.75rem;
+	padding: 0.55rem 0.65rem;
+	color: var(--ns-text-subtle);
+	background: transparent;
+	border: 1px solid transparent;
+	font-family: var(--ns-font-mono);
+	text-align: left;
+	cursor: pointer;
+}
+
+.assignmentOption strong,
+.assignmentOption span {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.assignmentOption strong {
+	color: var(--ns-text);
+	font-size: 0.8125rem;
+	font-weight: 900;
+}
+
+.assignmentOption span,
+.assignmentEmpty {
+	color: var(--ns-text-low);
+	font-size: 0.6875rem;
+	font-weight: 800;
+}
+
+.assignmentOption:hover,
+.assignmentOption:focus-visible,
+.assignmentOption[data-active="true"] {
+	color: var(--ns-text);
+	background: rgba(255, 122, 26, 0.12);
+	border-color: rgba(255, 122, 26, 0.3);
+	outline: none;
+}
+
+.assignmentOption[data-selected="true"] {
+	background: rgba(255, 122, 26, 0.18);
+	border-color: rgba(255, 122, 26, 0.5);
+}
+
+.assignmentOption[data-selected="true"]::after {
+	color: var(--ns-accent-hover);
+	content: "selected";
+	font-size: 0.625rem;
+	font-weight: 900;
+	text-transform: uppercase;
+}
+
+.assignmentEmpty {
+	padding: 0.85rem;
+	font-family: var(--ns-font-mono);
+	text-align: center;
+}
+
 .timeControlRoot {
 	position: relative;
 	display: grid;
@@ -273,5 +469,13 @@
 	.timePresetGrid,
 	.absoluteGrid {
 		grid-template-columns: 1fr;
+	}
+
+	.assignmentControl {
+		flex-wrap: wrap;
+	}
+
+	.assignmentToken {
+		max-width: calc(50% - 0.25rem);
 	}
 }

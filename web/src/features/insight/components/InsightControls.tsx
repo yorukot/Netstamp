@@ -3,7 +3,7 @@ import type { InsightRefreshInterval, InsightRelativeRange, InsightTimeMode, Tim
 import { classNames } from "@/shared/utils/classNames";
 import { relativeTimeOptions, relativeTimeRangeDurations } from "@/shared/utils/timeRanges";
 import { Button, SelectField, TextField } from "@netstamp/ui";
-import { useEffect, useId, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
 import { createPortal } from "react-dom";
 import styles from "./InsightControls.module.css";
 
@@ -57,6 +57,25 @@ function timePopoverStyle(anchor: HTMLElement | null): CSSProperties | undefined
 	};
 }
 
+function compactPopoverStyle(anchor: HTMLElement | null): CSSProperties | undefined {
+	if (!anchor || typeof window === "undefined") {
+		return undefined;
+	}
+
+	const rect = anchor.getBoundingClientRect();
+	const gap = 8;
+	const availableWidth = Math.max(280, window.innerWidth - gap * 2);
+	const width = Math.min(Math.max(rect.width, 520), availableWidth);
+	const left = Math.min(Math.max(gap, rect.left), window.innerWidth - width - gap);
+	const spaceBelow = window.innerHeight - rect.bottom - gap;
+	const spaceAbove = rect.top - gap;
+	const openAbove = spaceBelow < 260 && spaceAbove > spaceBelow;
+	const maxHeight = Math.min(360, Math.max(180, openAbove ? spaceAbove : spaceBelow));
+	const top = openAbove ? Math.max(gap, rect.top - gap - maxHeight) : Math.min(rect.bottom + gap, window.innerHeight - gap - maxHeight);
+
+	return { left, maxHeight, top, width };
+}
+
 export function SegmentedControl<TValue extends string>({
 	label,
 	value,
@@ -98,6 +117,456 @@ export function FocusChip({ label, value, invalid, onClear }: { label: string; v
 			<button type="button" onClick={onClear}>
 				Clear
 			</button>
+		</div>
+	);
+}
+
+export interface AssignmentSelectOption {
+	value: string;
+	label: string;
+	meta: string;
+	searchText: string;
+}
+
+export function ScopeSelect({
+	label,
+	placeholder,
+	options,
+	value,
+	disabled,
+	onChange
+}: {
+	label: string;
+	placeholder: string;
+	options: AssignmentSelectOption[];
+	value: string;
+	disabled?: boolean;
+	onChange: (value: string) => void;
+}) {
+	const listboxId = useId();
+	const inputId = useId();
+	const [open, setOpen] = useState(false);
+	const [query, setQuery] = useState("");
+	const [activeIndex, setActiveIndex] = useState(0);
+	const [popoverStyle, setPopoverStyle] = useState<CSSProperties>();
+	const rootRef = useRef<HTMLDivElement>(null);
+	const popoverRef = useRef<HTMLDivElement>(null);
+	const inputRef = useRef<HTMLInputElement>(null);
+	const optionsByValue = useMemo(() => new Map(options.map(option => [option.value, option])), [options]);
+	const selectedOption = value ? optionsByValue.get(value) : undefined;
+	const normalizedQuery = query.trim().toLowerCase();
+	const filteredOptions = useMemo(() => {
+		const matches = normalizedQuery ? options.filter(option => option.searchText.includes(normalizedQuery)) : options;
+
+		return matches.slice(0, 50);
+	}, [normalizedQuery, options]);
+
+	function openPopover() {
+		if (disabled) {
+			return;
+		}
+
+		setPopoverStyle(compactPopoverStyle(rootRef.current));
+		setOpen(true);
+	}
+
+	function commitValue(nextValue: string) {
+		onChange(nextValue);
+		setQuery("");
+		setActiveIndex(0);
+		setOpen(false);
+		inputRef.current?.focus();
+	}
+
+	function clearValue() {
+		onChange("");
+		setQuery("");
+		inputRef.current?.focus();
+	}
+
+	function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+		if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+			event.preventDefault();
+			openPopover();
+			setActiveIndex(current => {
+				const total = filteredOptions.length;
+				if (!total) {
+					return 0;
+				}
+
+				const offset = event.key === "ArrowDown" ? 1 : -1;
+				return (current + offset + total) % total;
+			});
+			return;
+		}
+
+		if (event.key === "Enter") {
+			const activeOption = filteredOptions[activeIndex];
+			if (!activeOption) {
+				return;
+			}
+
+			event.preventDefault();
+			commitValue(activeOption.value);
+			return;
+		}
+
+		if (event.key === "Escape") {
+			setOpen(false);
+			return;
+		}
+
+		if (event.key === "Backspace" && !query && value) {
+			event.preventDefault();
+			clearValue();
+		}
+	}
+
+	useEffect(() => {
+		if (!open) {
+			return;
+		}
+
+		function updatePosition() {
+			setPopoverStyle(compactPopoverStyle(rootRef.current));
+		}
+
+		function handlePointerDown(event: PointerEvent) {
+			const target = event.target as Node;
+
+			if (rootRef.current?.contains(target) || popoverRef.current?.contains(target)) {
+				return;
+			}
+
+			setOpen(false);
+		}
+
+		window.addEventListener("resize", updatePosition);
+		window.addEventListener("scroll", updatePosition, true);
+		window.addEventListener("pointerdown", handlePointerDown);
+
+		return () => {
+			window.removeEventListener("resize", updatePosition);
+			window.removeEventListener("scroll", updatePosition, true);
+			window.removeEventListener("pointerdown", handlePointerDown);
+		};
+	}, [open]);
+
+	const popover =
+		open && popoverStyle && typeof document !== "undefined"
+			? createPortal(
+					<div ref={popoverRef} id={listboxId} className={classNames("ns-cut-frame", "ns-scrollbar", styles.assignmentPopover)} style={popoverStyle} role="listbox">
+						{filteredOptions.length ? (
+							filteredOptions.map((option, index) => {
+								const selected = option.value === value;
+								const active = index === activeIndex;
+
+								return (
+									<button
+										type="button"
+										role="option"
+										aria-selected={selected}
+										className={styles.assignmentOption}
+										data-active={active || undefined}
+										data-selected={selected || undefined}
+										onMouseDown={event => event.preventDefault()}
+										onMouseEnter={() => setActiveIndex(index)}
+										onClick={() => commitValue(option.value)}
+										key={option.value}
+									>
+										<strong>{option.label}</strong>
+										<span>{option.meta}</span>
+									</button>
+								);
+							})
+						) : (
+							<div className={styles.assignmentEmpty}>No {label.toLowerCase()} match this search.</div>
+						)}
+					</div>,
+					document.body
+				)
+			: null;
+
+	return (
+		<div className={styles.assignmentField}>
+			<label className={styles.segmentLabel} htmlFor={inputId}>
+				{label}
+			</label>
+			<div ref={rootRef} className={classNames("ns-cut-frame", styles.assignmentControl)} data-open={open || undefined} data-disabled={disabled || undefined} onClick={() => inputRef.current?.focus()}>
+				{selectedOption ? (
+					<span className={styles.assignmentToken}>
+						<span>{selectedOption.label}</span>
+					</span>
+				) : null}
+				<input
+					ref={inputRef}
+					id={inputId}
+					value={query}
+					disabled={disabled}
+					placeholder={selectedOption ? "Filter or change selection" : placeholder}
+					role="combobox"
+					aria-expanded={open}
+					aria-controls={open ? listboxId : undefined}
+					aria-autocomplete="list"
+					autoComplete="off"
+					onFocus={openPopover}
+					onChange={event => {
+						setQuery(event.currentTarget.value);
+						setActiveIndex(0);
+						openPopover();
+					}}
+					onKeyDown={handleKeyDown}
+				/>
+				{value ? (
+					<button
+						type="button"
+						className={styles.assignmentClear}
+						aria-label={`Clear ${label}`}
+						onMouseDown={event => event.preventDefault()}
+						onClick={event => {
+							event.stopPropagation();
+							clearValue();
+						}}
+					>
+						Clear
+					</button>
+				) : null}
+			</div>
+			{popover}
+		</div>
+	);
+}
+
+export function AssignmentMultiSelect({
+	label,
+	placeholder,
+	options,
+	selectedValues,
+	disabled,
+	onChange
+}: {
+	label: string;
+	placeholder: string;
+	options: AssignmentSelectOption[];
+	selectedValues: string[];
+	disabled?: boolean;
+	onChange: (values: string[]) => void;
+}) {
+	const listboxId = useId();
+	const inputId = useId();
+	const [open, setOpen] = useState(false);
+	const [query, setQuery] = useState("");
+	const [activeIndex, setActiveIndex] = useState(0);
+	const [popoverStyle, setPopoverStyle] = useState<CSSProperties>();
+	const rootRef = useRef<HTMLDivElement>(null);
+	const popoverRef = useRef<HTMLDivElement>(null);
+	const inputRef = useRef<HTMLInputElement>(null);
+	const selectedSet = useMemo(() => new Set(selectedValues), [selectedValues]);
+	const optionsByValue = useMemo(() => new Map(options.map(option => [option.value, option])), [options]);
+	const selectedOptions = selectedValues.map(value => optionsByValue.get(value)).filter((option): option is AssignmentSelectOption => Boolean(option));
+	const normalizedQuery = query.trim().toLowerCase();
+	const filteredOptions = useMemo(() => {
+		const matches = normalizedQuery ? options.filter(option => option.searchText.includes(normalizedQuery)) : options;
+
+		return matches.slice(0, 50);
+	}, [normalizedQuery, options]);
+	const selectedSummary = selectedOptions.length ? `${selectedOptions.length} assignments selected` : "";
+
+	function openPopover() {
+		if (disabled) {
+			return;
+		}
+
+		setPopoverStyle(compactPopoverStyle(rootRef.current));
+		setOpen(true);
+	}
+
+	function toggleValue(value: string) {
+		if (selectedSet.has(value)) {
+			onChange(selectedValues.filter(selectedValue => selectedValue !== value));
+			return;
+		}
+
+		onChange([...selectedValues, value]);
+	}
+
+	function clearValue(value: string) {
+		onChange(selectedValues.filter(selectedValue => selectedValue !== value));
+	}
+
+	function clearAll() {
+		setQuery("");
+		onChange([]);
+		inputRef.current?.focus();
+	}
+
+	function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+		if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+			event.preventDefault();
+			openPopover();
+			setActiveIndex(current => {
+				const total = filteredOptions.length;
+				if (!total) {
+					return 0;
+				}
+
+				const offset = event.key === "ArrowDown" ? 1 : -1;
+				return (current + offset + total) % total;
+			});
+			return;
+		}
+
+		if (event.key === "Enter") {
+			const activeOption = filteredOptions[activeIndex];
+			if (!activeOption) {
+				return;
+			}
+
+			event.preventDefault();
+			toggleValue(activeOption.value);
+			setQuery("");
+			setActiveIndex(0);
+			openPopover();
+			return;
+		}
+
+		if (event.key === "Escape") {
+			setOpen(false);
+			return;
+		}
+
+		if (event.key === "Backspace" && !query && selectedValues.length) {
+			event.preventDefault();
+			onChange(selectedValues.slice(0, -1));
+		}
+	}
+
+	useEffect(() => {
+		if (!open) {
+			return;
+		}
+
+		function updatePosition() {
+			setPopoverStyle(compactPopoverStyle(rootRef.current));
+		}
+
+		function handlePointerDown(event: PointerEvent) {
+			const target = event.target as Node;
+
+			if (rootRef.current?.contains(target) || popoverRef.current?.contains(target)) {
+				return;
+			}
+
+			setOpen(false);
+		}
+
+		window.addEventListener("resize", updatePosition);
+		window.addEventListener("scroll", updatePosition, true);
+		window.addEventListener("pointerdown", handlePointerDown);
+
+		return () => {
+			window.removeEventListener("resize", updatePosition);
+			window.removeEventListener("scroll", updatePosition, true);
+			window.removeEventListener("pointerdown", handlePointerDown);
+		};
+	}, [open]);
+
+	const popover =
+		open && popoverStyle && typeof document !== "undefined"
+			? createPortal(
+					<div ref={popoverRef} id={listboxId} className={classNames("ns-cut-frame", "ns-scrollbar", styles.assignmentPopover)} style={popoverStyle} role="listbox" aria-multiselectable="true">
+						{filteredOptions.length ? (
+							filteredOptions.map((option, index) => {
+								const selected = selectedSet.has(option.value);
+								const active = index === activeIndex;
+
+								return (
+									<button
+										type="button"
+										role="option"
+										aria-selected={selected}
+										className={styles.assignmentOption}
+										data-active={active || undefined}
+										data-selected={selected || undefined}
+										onMouseDown={event => event.preventDefault()}
+										onMouseEnter={() => setActiveIndex(index)}
+										onClick={() => {
+											toggleValue(option.value);
+											inputRef.current?.focus();
+										}}
+										key={option.value}
+									>
+										<strong>{option.label}</strong>
+										<span>{option.meta}</span>
+									</button>
+								);
+							})
+						) : (
+							<div className={styles.assignmentEmpty}>No assignments match this search.</div>
+						)}
+					</div>,
+					document.body
+				)
+			: null;
+
+	return (
+		<div className={styles.assignmentField}>
+			<label className={styles.segmentLabel} htmlFor={inputId}>
+				{label}
+			</label>
+			<div ref={rootRef} className={classNames("ns-cut-frame", styles.assignmentControl)} data-open={open || undefined} data-disabled={disabled || undefined} onClick={() => inputRef.current?.focus()}>
+				{selectedOptions.slice(0, 2).map(option => (
+					<span className={styles.assignmentToken} key={option.value}>
+						<span>{option.label}</span>
+						<button
+							type="button"
+							aria-label={`Remove ${option.label}`}
+							onMouseDown={event => event.preventDefault()}
+							onClick={event => {
+								event.stopPropagation();
+								clearValue(option.value);
+							}}
+						>
+							x
+						</button>
+					</span>
+				))}
+				{selectedOptions.length > 2 ? <span className={styles.assignmentOverflow}>+{selectedOptions.length - 2}</span> : null}
+				<input
+					ref={inputRef}
+					id={inputId}
+					value={query}
+					disabled={disabled}
+					placeholder={selectedOptions.length ? selectedSummary : placeholder}
+					role="combobox"
+					aria-expanded={open}
+					aria-controls={open ? listboxId : undefined}
+					aria-autocomplete="list"
+					autoComplete="off"
+					onFocus={openPopover}
+					onChange={event => {
+						setQuery(event.currentTarget.value);
+						setActiveIndex(0);
+						openPopover();
+					}}
+					onKeyDown={handleKeyDown}
+				/>
+				{selectedValues.length ? (
+					<button
+						type="button"
+						className={styles.assignmentClear}
+						aria-label="Clear assignment selection"
+						onMouseDown={event => event.preventDefault()}
+						onClick={event => {
+							event.stopPropagation();
+							clearAll();
+						}}
+					>
+						Clear
+					</button>
+				) : null}
+			</div>
+			{popover}
 		</div>
 	);
 }

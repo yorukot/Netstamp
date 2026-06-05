@@ -1,9 +1,14 @@
 .scopeBar {
-	--ns-filter-grid-template: minmax(30rem, 1.45fr) minmax(15rem, 0.8fr) minmax(13rem, 0.7fr) minmax(18rem, 1fr);
+	--ns-filter-grid-template: minmax(30rem, 1.45fr) minmax(15rem, 0.8fr) minmax(13rem, 0.7fr);
 }
 
 .scopeTimeControl {
 	min-width: 0;
+}
+
+.scopeSelectorRow,
+.assignmentSelectorRow {
+	margin-top: 1rem;
 }
 
 .focusChips {
@@ -22,30 +27,48 @@
 	line-height: 1.45;
 }
 
-.rowTitle {
+.scopeSummaryGrid {
 	display: grid;
-	gap: 0.2rem;
-	min-width: 0;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 0.75rem;
 }
 
-.rowTitle strong {
-	min-width: 0;
-	color: var(--ns-text);
-	font-family: var(--ns-font-mono);
-	font-size: 0.8125rem;
-	font-weight: 800;
-	line-height: 1.35;
-	overflow-wrap: anywhere;
+.scopeSummaryCell {
+	--ns-frame-color: rgba(196, 204, 217, 0.18);
+	--ns-frame-cut: var(--ns-cut-sm);
+	display: grid;
+	gap: 0.35rem;
+	align-content: start;
+	min-height: 6.25rem;
+	padding: 0.875rem;
+	background: #04070b;
+	border: 1px solid var(--ns-frame-color);
+	clip-path: polygon(var(--ns-frame-cut) 0, 100% 0, 100% calc(100% - var(--ns-frame-cut)), calc(100% - var(--ns-frame-cut)) 100%, 0 100%, 0 var(--ns-frame-cut));
 }
 
-.rowTitle span {
-	min-width: 0;
+.scopeSummaryCell span,
+.scopeSummaryCell small {
 	color: var(--ns-text-low);
 	font-family: var(--ns-font-mono);
 	font-size: 0.6875rem;
-	font-weight: 700;
-	line-height: 1.35;
+	font-weight: 800;
+	text-transform: uppercase;
+}
+
+.scopeSummaryCell strong {
+	min-width: 0;
+	color: var(--ns-text);
+	font-family: var(--ns-font-display);
+	font-size: clamp(1.25rem, 2.1vw, 1.85rem);
+	line-height: 1;
 	overflow-wrap: anywhere;
+}
+
+.scopeSummaryCell small {
+	color: var(--ns-text-subtle);
+	font-size: 0.75rem;
+	line-height: 1.35;
+	text-transform: none;
 }
 
 @media (max-width: 72rem) {
@@ -56,10 +79,18 @@
 	.scopeTimeControl {
 		grid-column: 1 / -1;
 	}
+
+	.scopeSummaryGrid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
 }
 
 @media (max-width: 44rem) {
 	.scopeBar {
 		--ns-filter-grid-template: 1fr;
+	}
+
+	.scopeSummaryGrid {
+		grid-template-columns: 1fr;
 	}
 }

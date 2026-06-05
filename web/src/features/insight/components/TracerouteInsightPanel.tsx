@@ -48,6 +48,7 @@ interface TracerouteInsightPanelProps {
 	isRunsLoading: boolean;
 	isTopologyLoading: boolean;
 	selectedRunStartedAt: string;
+	showTopology?: boolean;
 	onSelectRun: (startedAt: string) => void;
 	onSelectTimeWindow: (timeWindow: TimeWindow) => void;
 }
@@ -63,6 +64,7 @@ export function TracerouteInsightPanel({
 	isRunsLoading,
 	isTopologyLoading,
 	selectedRunStartedAt,
+	showTopology = true,
 	onSelectRun,
 	onSelectTimeWindow
 }: TracerouteInsightPanelProps) {
@@ -143,13 +145,15 @@ export function TracerouteInsightPanel({
 				</div>
 			</Panel>
 
-			<Panel tone="deep" title="Aggregated route graph">
-				{hasTopology ? (
-					<RouteTopologyMap nodes={topologyNodes} edges={topologyEdges} />
-				) : (
-					<BodyCopy>{isTopologyLoading ? "Loading topology for this route." : "Topology data is unavailable for the selected filters; hop rows still show the latest run."}</BodyCopy>
-				)}
-			</Panel>
+			{showTopology ? (
+				<Panel tone="deep" title="Aggregated route graph">
+					{hasTopology ? (
+						<RouteTopologyMap nodes={topologyNodes} edges={topologyEdges} />
+					) : (
+						<BodyCopy>{isTopologyLoading ? "Loading topology for this route." : "Topology data is unavailable for the selected filters; hop rows still show the latest run."}</BodyCopy>
+					)}
+				</Panel>
+			) : null}
 		</div>
 	);
 }
