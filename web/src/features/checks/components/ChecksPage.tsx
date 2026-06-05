@@ -32,7 +32,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { CheckConfigFields } from "./CheckConfigFields";
 import styles from "./ChecksPage.module.css";
-import { displayProbeSelection } from "./checksPageData";
+import { displayProbeSelection, groupChecksByTarget } from "./checksPageData";
 
 const checkColumns: DataColumn<CheckDefinition>[] = [
 	{ key: "name", label: "Check name" },
@@ -304,7 +304,7 @@ export function ChecksPage() {
 		...projectQueries.checks(projectRef || ""),
 		enabled: Boolean(projectRef)
 	});
-	const checkRows = mapApiChecksWithAssignments(checksQuery.data?.checks, assignmentsQuery.data);
+	const checkRows = groupChecksByTarget(mapApiChecksWithAssignments(checksQuery.data?.checks, assignmentsQuery.data));
 	const probes = probesQuery.data || [];
 	const [selectedId, setSelectedId] = useState("");
 	const [checkName, setCheckName] = useState("");
