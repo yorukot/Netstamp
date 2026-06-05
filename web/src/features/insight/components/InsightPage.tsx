@@ -284,17 +284,17 @@ function scopePairs(pairs: InsightPair[], checkType: InsightCheckTypeFilter, pro
 	return pairs.filter(pair => matchesCheckType(pair, checkType) && (!probeId || pair.probeId === probeId) && (!checkId || pair.checkId === checkId));
 }
 
-function assignmentLabel(pair: InsightPair, groupBy: InsightGroupBy) {
-	return groupBy === "check" ? `${pair.check.target} / ${pair.probe.name}` : `${pair.probe.name} / ${pair.check.target}`;
+function assignmentLabel(pair: InsightPair) {
+	return `${pair.check.name} / ${pair.probe.name} / ${pair.check.target}`;
 }
 
-function assignmentMeta(pair: InsightPair, groupBy: InsightGroupBy) {
-	return groupBy === "check" ? `${pair.check.name} · ${pair.check.type} · ${pair.probe.location}` : `${pair.probe.location} · ${pair.check.name} · ${pair.check.type}`;
+function assignmentMeta(pair: InsightPair) {
+	return `${pair.check.type} · ${pair.probe.location}`;
 }
 
-function assignmentSelectOption(pair: InsightPair, groupBy: InsightGroupBy): AssignmentSelectOption {
-	const label = assignmentLabel(pair, groupBy);
-	const meta = assignmentMeta(pair, groupBy);
+function assignmentSelectOption(pair: InsightPair): AssignmentSelectOption {
+	const label = assignmentLabel(pair);
+	const meta = assignmentMeta(pair);
 	const searchText = normalizeSearch(
 		[label, meta, pair.probe.name, pair.probe.location, pair.probe.asn, pair.probe.provider, pair.check.name, pair.check.target, pair.check.description, ...pair.probe.labelTokens].join(" ")
 	);
@@ -483,7 +483,7 @@ export function InsightPage() {
 	const selectedProbe = exactPair?.probe ?? (activeProbeId ? scopedPairs.find(pair => pair.probeId === activeProbeId)?.probe || probes.find(probe => probe.id === activeProbeId) || null : null);
 	const selectedCheck = exactPair?.check ?? (activeCheckId ? scopedPairs.find(pair => pair.checkId === activeCheckId)?.check || checks.find(check => check.id === activeCheckId) || null : null);
 	const scopeOptions = useMemo(() => (groupBy === "check" ? uniqueCheckOptions(typeFilteredPairs) : uniqueProbeOptions(typeFilteredPairs)), [groupBy, typeFilteredPairs]);
-	const assignmentOptions = useMemo(() => legacyScopedPairs.map(pair => assignmentSelectOption(pair, groupBy)), [groupBy, legacyScopedPairs]);
+	const assignmentOptions = useMemo(() => legacyScopedPairs.map(pair => assignmentSelectOption(pair)), [legacyScopedPairs]);
 	const latestResultFilters = useMemo(
 		() => ({
 			...(checkType === "all" ? {} : { type: checkType }),
