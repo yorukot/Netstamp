@@ -1,4 +1,5 @@
 import type { CreateProjectInput, LoginInput, RegisterInput, UserResponse } from "@/shared/api/types";
+import { createGravatarUrl } from "@/shared/utils/gravatar";
 
 export type AuthCredentials = LoginInput;
 export type RegisterPayload = RegisterInput;
@@ -21,7 +22,7 @@ export interface SessionSnapshot {
 	project?: ProjectDraft & { role: string };
 }
 
-export function mapApiUser(user: UserResponse, options: { onboardingRequired?: boolean } = {}): SessionUser {
+export async function mapApiUser(user: UserResponse, options: { onboardingRequired?: boolean } = {}): Promise<SessionUser> {
 	const email = user.email || "";
 	const displayName = user.displayName || email.split("@")[0] || "Netstamp user";
 
@@ -31,14 +32,14 @@ export function mapApiUser(user: UserResponse, options: { onboardingRequired?: b
 		username: email.split("@")[0] || displayName,
 		email,
 		role: "Admin",
-		gravatarUrl: `https://www.gravatar.com/avatar/?d=identicon&size=160`,
+		gravatarUrl: await createGravatarUrl(email),
 		onboardingRequired: options.onboardingRequired
 	};
 }
 
-export function createSessionSnapshot(user: UserResponse, options: { onboardingRequired?: boolean } = {}): SessionSnapshot {
+export async function createSessionSnapshot(user: UserResponse, options: { onboardingRequired?: boolean } = {}): Promise<SessionSnapshot> {
 	return {
-		user: mapApiUser(user, options),
+		user: await mapApiUser(user, options),
 		controller: "connected"
 	};
 }
