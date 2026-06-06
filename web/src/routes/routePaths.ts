@@ -15,6 +15,7 @@ export const legacyAppRoutePaths = {
 	insight: "/insight",
 	checks: "/checks",
 	publicPages: "/public-pages",
+	members: "/members",
 	project: "/project",
 	settings: "/settings"
 } satisfies Record<AppRoute, string>;
@@ -27,6 +28,7 @@ export const projectRouteSegments = {
 	insight: "insight",
 	checks: "checks",
 	publicPages: "public-pages",
+	members: "members",
 	project: "project"
 } satisfies Record<ProjectAppRoute, string>;
 
@@ -73,6 +75,22 @@ export function pathForProbeDetail(projectRef: string | null | undefined, probeI
 	}
 
 	return `${projectBasePath(projectRef)}/probes/${encodePathParam(probeId)}`;
+}
+
+export function pathForLabelDetail(projectRef: string | null | undefined, labelId: string) {
+	if (!projectRef) {
+		return `/labels/${encodePathParam(labelId)}`;
+	}
+
+	return `${projectBasePath(projectRef)}/labels/${encodePathParam(labelId)}`;
+}
+
+export function pathForCheckDetail(projectRef: string | null | undefined, checkId: string) {
+	if (!projectRef) {
+		return `/checks/${encodePathParam(checkId)}`;
+	}
+
+	return `${projectBasePath(projectRef)}/checks/${encodePathParam(checkId)}`;
 }
 
 export function pathForPublicPageDetail(projectRef: string | null | undefined, pageId: string) {

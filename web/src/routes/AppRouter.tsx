@@ -10,7 +10,7 @@ import { TrackingConsentBanner } from "@/shared/tracking/TrackingConsentBanner";
 import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { lazy, Suspense, useEffect, type ReactNode } from "react";
 import { createBrowserRouter, Outlet, Navigate as RouterNavigate, RouterProvider, useLocation, useNavigate, useParams } from "react-router-dom";
-import { pathForProbeDetail, pathForPublicPageDetail, pathForRoute, projectRoutePath } from "./routePaths";
+import { pathForCheckDetail, pathForLabelDetail, pathForProbeDetail, pathForPublicPageDetail, pathForRoute, projectRoutePath } from "./routePaths";
 import type { Navigate, ProjectAppRoute } from "./routeTypes";
 
 const AuthPage = lazy(() => import("@/features/auth/components/AuthPage").then(module => ({ default: module.AuthPage })));
@@ -19,6 +19,7 @@ const ChecksPage = lazy(() => import("@/features/checks/components/ChecksPage").
 const DashboardPage = lazy(() => import("@/features/dashboard/components/DashboardPage").then(module => ({ default: module.DashboardPage })));
 const InsightPage = lazy(() => import("@/features/insight/components/InsightPage").then(module => ({ default: module.InsightPage })));
 const LabelsPage = lazy(() => import("@/features/labels/components/LabelsPage").then(module => ({ default: module.LabelsPage })));
+const MembersPage = lazy(() => import("@/features/project/components/MembersPage").then(module => ({ default: module.MembersPage })));
 const NewProbeDrawer = lazy(() => import("@/features/probes/components/NewProbeDrawer").then(module => ({ default: module.NewProbeDrawer })));
 const ProbesPage = lazy(() => import("@/features/probes/components/ProbesPage").then(module => ({ default: module.ProbesPage })));
 const PublicPage = lazy(() => import("@/features/public-page/components/PublicPage").then(module => ({ default: module.PublicPage })));
@@ -113,6 +114,36 @@ function LegacyProbeDetailRedirect() {
 	return <RouterNavigate to={probeId ? pathForProbeDetail(projectRef, probeId) : pathForRoute("probes", { projectRef })} replace />;
 }
 
+function LegacyLabelDetailRedirect() {
+	const { labelId = "" } = useParams();
+	const { projectRef, projectsQuery } = useCurrentProject();
+
+	if (projectsQuery.isPending) {
+		return null;
+	}
+
+	if (!projectRef) {
+		return <RouterNavigate to={pathForRoute("onboarding")} replace />;
+	}
+
+	return <RouterNavigate to={labelId ? pathForLabelDetail(projectRef, labelId) : pathForRoute("labels", { projectRef })} replace />;
+}
+
+function LegacyCheckDetailRedirect() {
+	const { checkId = "" } = useParams();
+	const { projectRef, projectsQuery } = useCurrentProject();
+
+	if (projectsQuery.isPending) {
+		return null;
+	}
+
+	if (!projectRef) {
+		return <RouterNavigate to={pathForRoute("onboarding")} replace />;
+	}
+
+	return <RouterNavigate to={checkId ? pathForCheckDetail(projectRef, checkId) : pathForRoute("checks", { projectRef })} replace />;
+}
+
 function LegacyPublicPageDetailRedirect() {
 	const { pageId = "" } = useParams();
 	const { projectRef, projectsQuery } = useCurrentProject();
@@ -197,8 +228,20 @@ const router = createBrowserRouter([
 							{ path: ":probeId", element: <LegacyProbeDetailRedirect /> }
 						]
 					},
-					{ path: "labels", element: <DefaultProjectRedirect route="labels" /> },
-					{ path: "checks", element: <DefaultProjectRedirect route="checks" /> },
+					{
+						path: "labels",
+						children: [
+							{ index: true, element: <DefaultProjectRedirect route="labels" /> },
+							{ path: ":labelId", element: <LegacyLabelDetailRedirect /> }
+						]
+					},
+					{
+						path: "checks",
+						children: [
+							{ index: true, element: <DefaultProjectRedirect route="checks" /> },
+							{ path: ":checkId", element: <LegacyCheckDetailRedirect /> }
+						]
+					},
 					{ path: "insight", element: <DefaultProjectRedirect route="insight" /> },
 					{
 						path: "public-pages",
@@ -207,6 +250,7 @@ const router = createBrowserRouter([
 							{ path: ":pageId", element: <LegacyPublicPageDetailRedirect /> }
 						]
 					},
+					{ path: "members", element: <DefaultProjectRedirect route="members" /> },
 					{ path: "project", element: <DefaultProjectRedirect route="project" /> },
 					{ path: "projects", element: <DefaultProjectRedirect route="dashboard" /> },
 					{
@@ -224,10 +268,13 @@ const router = createBrowserRouter([
 								]
 							},
 							{ path: projectRoutePath("labels"), element: lazyRoute(<LabelsPage />) },
+							{ path: `${projectRoutePath("labels")}/:labelId`, element: lazyRoute(<LabelsPage />) },
 							{ path: projectRoutePath("checks"), element: lazyRoute(<ChecksPage />) },
+							{ path: `${projectRoutePath("checks")}/:checkId`, element: lazyRoute(<ChecksPage />) },
 							{ path: projectRoutePath("insight"), element: lazyRoute(<InsightPage />) },
 							{ path: projectRoutePath("publicPages"), element: lazyRoute(<PublicPagesPage />) },
 							{ path: `${projectRoutePath("publicPages")}/:pageId`, element: lazyRoute(<PublicPageDetailPage />) },
+							{ path: projectRoutePath("members"), element: lazyRoute(<MembersPage />) },
 							{ path: projectRoutePath("project"), element: lazyRoute(<ProjectPage />) }
 						]
 					},

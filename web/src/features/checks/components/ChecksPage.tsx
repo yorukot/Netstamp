@@ -15,6 +15,7 @@ import {
 } from "@/features/checks/data/checkConfig";
 import { type CheckDefinition, type CheckType } from "@/features/checks/data/checks";
 import { mapApiProbes } from "@/features/probes/api/probeAdapters";
+import { pathForCheckDetail, pathForRoute } from "@/routes/routePaths";
 import { useCreateProjectCheckMutation, useDeleteProjectCheckMutation, usePreviewProjectSelectorMutation, useUpdateProjectCheckMutation } from "@/shared/api/mutations";
 import { projectQueries } from "@/shared/api/queries";
 import type { ApiLabel, ApiSelector, CreateCheckInput } from "@/shared/api/types";
@@ -29,7 +30,8 @@ import { pushErrorToast } from "@/shared/toast/toastStore";
 import { classNames } from "@/shared/utils/classNames";
 import { Badge, Button, Checkbox, DataTable, FieldLabel, Panel, SelectField, TextAreaField, TextField, type DataColumn } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { CheckConfigFields } from "./CheckConfigFields";
 import styles from "./ChecksPage.module.css";
 import { displayProbeSelection, groupChecksByTarget } from "./checksPageData";
@@ -281,6 +283,8 @@ function probeMatchesSelector(probeLabelTokens: string[], state: SelectorState) 
 
 export function ChecksPage() {
 	const { projectRef } = useCurrentProject();
+	const { checkId = "" } = useParams();
+	const navigate = useNavigate();
 	const confirm = useConfirm();
 	const createCheckMutation = useCreateProjectCheckMutation(projectRef);
 	const updateCheckMutation = useUpdateProjectCheckMutation(projectRef);
@@ -306,7 +310,8 @@ export function ChecksPage() {
 	});
 	const checkRows = groupChecksByTarget(mapApiChecksWithAssignments(checksQuery.data?.checks, assignmentsQuery.data));
 	const probes = probesQuery.data || [];
-	const [selectedId, setSelectedId] = useState("");
+	const [editorMode, setEditorMode] = useState<"idle" | "create">("idle");
+	const [draftCheckId, setDraftCheckId] = useState("");
 	const [checkName, setCheckName] = useState("");
 	const [target, setTarget] = useState("");
 	const [checkType, setCheckType] = useState<CheckType>("Ping");
@@ -316,8 +321,9 @@ export function ChecksPage() {
 	const [pingConfig, setPingConfig] = useState<PingConfigFormState>(defaultPingConfigFormState);
 	const [tcpConfig, setTCPConfig] = useState<TCPConfigFormState>(defaultTCPConfigFormState);
 	const [tracerouteConfig, setTracerouteConfig] = useState<TracerouteConfigFormState>(defaultTracerouteConfigFormState);
-	const isCreating = selectedId === "__new__";
-	const selectedListCheck = checkRows.find(check => check.id === selectedId) || null;
+	const isCreating = editorMode === "create";
+	const selectedId = isCreating ? "__new__" : checkId;
+	const selectedListCheck = isCreating ? null : checkRows.find(check => check.id === checkId) || null;
 	const selectedListApiCheck = checksQuery.data?.checks.find(check => check.id === selectedListCheck?.id) || null;
 	const checkDetailQuery = useQuery({
 		...projectQueries.checkDetail(projectRef || "", selectedListCheck?.id || ""),
@@ -326,20 +332,23 @@ export function ChecksPage() {
 	const selectedApiCheck = isCreating ? null : checkDetailQuery.data?.check || selectedListApiCheck;
 	const selectedAssignmentCount = (assignmentsQuery.data ?? []).filter(assignment => assignment.checkId === selectedListCheck?.id).length;
 	const selectedCheck = isCreating ? null : selectedApiCheck ? mapApiCheck(selectedApiCheck, selectedAssignmentCount) : selectedListCheck;
-	const activeCheckName = isCreating || selectedId ? checkName : selectedCheck?.name || "";
-	const activeTarget = isCreating || selectedId ? target : selectedCheck?.target || "";
-	const activeCheckType = isCreating || selectedId ? checkType : selectedCheck?.type || checkType;
-	const activeInterval = isCreating || selectedId ? interval : selectedCheck?.interval || "30s";
-	const activePingConfig = selectedId || isCreating ? pingConfig : pingConfigFormStateFromApi(selectedApiCheck);
-	const activeTCPConfig = selectedId || isCreating ? tcpConfig : tcpConfigFormStateFromApi(selectedApiCheck);
-	const activeTracerouteConfig = selectedId || isCreating ? tracerouteConfig : tracerouteConfigFormStateFromApi(selectedApiCheck);
+	const hasSelectedDraft = Boolean(selectedCheck && draftCheckId === selectedCheck.id);
+	const activeCheckName = isCreating || hasSelectedDraft ? checkName : selectedCheck?.name || "";
+	const activeTarget = isCreating || hasSelectedDraft ? target : selectedCheck?.target || "";
+	const activeCheckType = isCreating || hasSelectedDraft ? checkType : selectedCheck?.type || checkType;
+	const activeInterval = isCreating || hasSelectedDraft ? interval : selectedCheck?.interval || "30s";
+	const activePingConfig = isCreating || hasSelectedDraft ? pingConfig : pingConfigFormStateFromApi(selectedApiCheck);
+	const activeTCPConfig = isCreating || hasSelectedDraft ? tcpConfig : tcpConfigFormStateFromApi(selectedApiCheck);
+	const activeTracerouteConfig = isCreating || hasSelectedDraft ? tracerouteConfig : tracerouteConfigFormStateFromApi(selectedApiCheck);
+	const activeSelectorState = isCreating || hasSelectedDraft ? selectorState : selectorStateFromApi(selectedApiCheck?.selector);
 	const assignedProbeNames = (assignmentsQuery.data ?? [])
 		.filter(assignment => assignment.checkId === selectedListCheck?.id)
 		.map(assignment => assignment.probe?.name || probes.find(probe => probe.id === assignment.probeId)?.name || assignment.probeId);
-	const locallyMatchedProbeNames = selectorState.mode === "advanced" ? assignedProbeNames : probes.filter(probe => probeMatchesSelector(probe.labelTokens, selectorState)).map(probe => probe.name);
-	const activeSelectedProbes = selectedProbes.length ? selectedProbes : locallyMatchedProbeNames;
+	const locallyMatchedProbeNames =
+		activeSelectorState.mode === "advanced" ? assignedProbeNames : probes.filter(probe => probeMatchesSelector(probe.labelTokens, activeSelectorState)).map(probe => probe.name);
+	const activeSelectedProbes = (isCreating || hasSelectedDraft) && selectedProbes.length ? selectedProbes : locallyMatchedProbeNames;
 	const selectorOptions = selectorLabelOptions(labelsQuery.data?.labels ?? []);
-	const selectorKeys = selectorKeyOptions(selectorOptions, selectorState.rules);
+	const selectorKeys = selectorKeyOptions(selectorOptions, activeSelectorState.rules);
 	const saveCheckMutation = isCreating ? createCheckMutation : updateCheckMutation;
 	const isEditorOpen = isCreating || Boolean(selectedCheck);
 
@@ -353,50 +362,58 @@ export function ChecksPage() {
 		setPingConfig(defaultPingConfigFormState);
 		setTCPConfig(defaultTCPConfigFormState);
 		setTracerouteConfig(defaultTracerouteConfigFormState);
+		setDraftCheckId("");
 	}
 
 	function closeEditor() {
-		setSelectedId("");
+		setEditorMode("idle");
 		resetEditorState();
+		navigate(pathForRoute("checks", { projectRef }));
 	}
 
 	function startNewCheck() {
-		setSelectedId("__new__");
+		navigate(pathForRoute("checks", { projectRef }));
+		setEditorMode("create");
 		resetEditorState();
+		setDraftCheckId("__new__");
 		setSelectedProbes(probes.map(probe => probe.name));
 	}
 
-	function selectCheck(check: CheckDefinition) {
-		const apiCheck = checksQuery.data?.checks.find(item => item.id === check.id);
-		const nextSelectorState = selectorStateFromApi(apiCheck?.selector);
-
-		setSelectedId(check.id);
+	function loadCheckDraft(check: CheckDefinition, apiCheck = selectedApiCheck) {
+		setDraftCheckId(check.id);
 		setCheckName(check.name);
 		setTarget(check.target);
 		setCheckType(check.type);
 		setInterval(check.interval);
 		setSelectedProbes([]);
-		setSelectorState(nextSelectorState);
+		setSelectorState(selectorStateFromApi(apiCheck?.selector));
 		setPingConfig(pingConfigFormStateFromApi(apiCheck));
 		setTCPConfig(tcpConfigFormStateFromApi(apiCheck));
 		setTracerouteConfig(tracerouteConfigFormStateFromApi(apiCheck));
 	}
 
-	function prepareSelectedCheckEdit() {
-		if (isCreating || selectedId || !selectedCheck) {
+	function selectCheck(check: CheckDefinition) {
+		const apiCheck = checksQuery.data?.checks.find(item => item.id === check.id);
+
+		setEditorMode("idle");
+		loadCheckDraft(check, apiCheck);
+		navigate(pathForCheckDetail(projectRef, check.id));
+	}
+
+	useEffect(() => {
+		if (!projectRef || !checkId || checksQuery.isPending || checksQuery.isError || checkRows.some(check => check.id === checkId)) {
 			return;
 		}
 
-		setSelectedId(selectedCheck.id);
-		setCheckName(selectedCheck.name);
-		setTarget(selectedCheck.target);
-		setCheckType(selectedCheck.type);
-		setInterval(selectedCheck.interval);
-		setSelectedProbes([]);
-		setSelectorState(selectorStateFromApi(selectedApiCheck?.selector));
-		setPingConfig(pingConfigFormStateFromApi(selectedApiCheck));
-		setTCPConfig(tcpConfigFormStateFromApi(selectedApiCheck));
-		setTracerouteConfig(tracerouteConfigFormStateFromApi(selectedApiCheck));
+		navigate(pathForRoute("checks", { projectRef }), { replace: true });
+	}, [checkId, checkRows, checksQuery.isError, checksQuery.isPending, navigate, projectRef]);
+
+	function prepareSelectedCheckEdit() {
+		if (isCreating || !selectedCheck || hasSelectedDraft) {
+			return;
+		}
+
+		loadCheckDraft(selectedCheck, selectedApiCheck);
 	}
 
 	function updatePingConfig(patch: Partial<PingConfigFormState>) {
@@ -414,44 +431,75 @@ export function ChecksPage() {
 		setTracerouteConfig(current => ({ ...current, ...patch }));
 	}
 
+	function selectorDraftBase(current: SelectorState) {
+		return isCreating || hasSelectedDraft ? current : activeSelectorState;
+	}
+
 	function setSelectorMode(mode: SelectorMode) {
+		prepareSelectedCheckEdit();
 		setSelectedProbes([]);
-		setSelectorState(current => ({
-			mode,
-			rules: mode === "all-probes" ? [] : current.rules.length ? current.rules : mode === "advanced" ? current.rules : [createSelectorRule(selectorOptions)],
-			advancedText:
-				mode === "advanced" ? current.advancedText || JSON.stringify(buildSelector({ ...current, mode: current.mode === "advanced" ? "all-probes" : current.mode }), null, 2) : current.advancedText
-		}));
+		setSelectorState(current => {
+			const base = selectorDraftBase(current);
+
+			return {
+				mode,
+				rules: mode === "all-probes" ? [] : base.rules.length ? base.rules : mode === "advanced" ? base.rules : [createSelectorRule(selectorOptions)],
+				advancedText:
+					mode === "advanced"
+						? base.advancedText ||
+							JSON.stringify(
+								buildSelector({
+									...base,
+									mode: base.mode === "advanced" ? "all-probes" : base.mode
+								}),
+								null,
+								2
+							)
+						: base.advancedText
+			};
+		});
 	}
 
 	function addSelectorRule() {
+		prepareSelectedCheckEdit();
 		setSelectedProbes([]);
-		setSelectorState(current => ({
-			...current,
-			mode: current.mode === "all-probes" || current.mode === "advanced" ? "all" : current.mode,
-			rules: [...current.rules, createSelectorRule(selectorOptions)]
-		}));
+		setSelectorState(current => {
+			const base = selectorDraftBase(current);
+
+			return {
+				...base,
+				mode: base.mode === "all-probes" || base.mode === "advanced" ? "all" : base.mode,
+				rules: [...base.rules, createSelectorRule(selectorOptions)]
+			};
+		});
 	}
 
 	function removeSelectorRule(ruleId: string) {
+		prepareSelectedCheckEdit();
 		setSelectedProbes([]);
 		setSelectorState(current => {
-			const rules = current.rules.filter(rule => rule.id !== ruleId);
+			const base = selectorDraftBase(current);
+			const rules = base.rules.filter(rule => rule.id !== ruleId);
 			return {
-				...current,
-				mode: rules.length ? current.mode : "all-probes",
+				...base,
+				mode: rules.length ? base.mode : "all-probes",
 				rules
 			};
 		});
 	}
 
 	function updateSelectorRule(ruleId: string, patch: Partial<SelectorRule>) {
+		prepareSelectedCheckEdit();
 		setSelectedProbes([]);
-		setSelectorState(current => ({
-			...current,
-			mode: current.mode === "all-probes" || current.mode === "advanced" ? "all" : current.mode,
-			rules: current.rules.map(rule => (rule.id === ruleId ? { ...rule, ...patch } : rule))
-		}));
+		setSelectorState(current => {
+			const base = selectorDraftBase(current);
+
+			return {
+				...base,
+				mode: base.mode === "all-probes" || base.mode === "advanced" ? "all" : base.mode,
+				rules: base.rules.map(rule => (rule.id === ruleId ? { ...rule, ...patch } : rule))
+			};
+		});
 	}
 
 	function updateSelectorRuleKey(ruleId: string, key: string) {
@@ -460,15 +508,17 @@ export function ChecksPage() {
 	}
 
 	function updateAdvancedSelectorText(value: string) {
+		prepareSelectedCheckEdit();
 		setSelectedProbes([]);
-		setSelectorState(current => ({ ...current, mode: "advanced", advancedText: value }));
+		setSelectorState(current => ({ ...selectorDraftBase(current), mode: "advanced", advancedText: value }));
 	}
 
 	function previewSelector() {
 		let selector: ApiSelector;
 
 		try {
-			selector = buildSelector(selectorState);
+			prepareSelectedCheckEdit();
+			selector = buildSelector(activeSelectorState);
 		} catch (error) {
 			pushErrorToast(error instanceof Error ? error.message : "Selector JSON is invalid.");
 			return;
@@ -512,7 +562,7 @@ export function ChecksPage() {
 		let selector: ApiSelector;
 
 		try {
-			selector = buildSelector(selectorState);
+			selector = buildSelector(activeSelectorState);
 		} catch (error) {
 			pushErrorToast(error instanceof Error ? error.message : "Selector JSON is invalid.");
 			return;
@@ -536,7 +586,8 @@ export function ChecksPage() {
 
 		const options = {
 			onSuccess: (data: Awaited<ReturnType<typeof createCheckMutation.mutateAsync>>) => {
-				setSelectedId(data.check.id);
+				setEditorMode("idle");
+				setDraftCheckId(data.check.id);
 				setCheckName(data.check.name);
 				setTarget(data.check.target);
 				setCheckType(checkTypeFromApi(data.check.type));
@@ -546,6 +597,7 @@ export function ChecksPage() {
 				setPingConfig(pingConfigFormStateFromApi(data.check));
 				setTCPConfig(tcpConfigFormStateFromApi(data.check));
 				setTracerouteConfig(tracerouteConfigFormStateFromApi(data.check));
+				navigate(pathForCheckDetail(projectRef, data.check.id));
 			}
 		};
 
@@ -585,8 +637,24 @@ export function ChecksPage() {
 					<Panel className={styles.stickyCheckPanel} tone="glass" title={isCreating ? "New check" : selectedCheck?.name} actions={<CloseButton ariaLabel="Close check editor" onClick={closeEditor} />}>
 						<div className={classNames("ns-scrollbar", styles.checkEditorStack)}>
 							<div className={styles.checkEditForm}>
-								<TextField label="Check name" value={activeCheckName} disabled={!selectedCheck && !isCreating} onChange={event => setCheckName(event.currentTarget.value)} />
-								<TextField label="Target" value={activeTarget} disabled={!selectedCheck && !isCreating} onChange={event => setTarget(event.currentTarget.value)} />
+								<TextField
+									label="Check name"
+									value={activeCheckName}
+									disabled={!selectedCheck && !isCreating}
+									onChange={event => {
+										prepareSelectedCheckEdit();
+										setCheckName(event.currentTarget.value);
+									}}
+								/>
+								<TextField
+									label="Target"
+									value={activeTarget}
+									disabled={!selectedCheck && !isCreating}
+									onChange={event => {
+										prepareSelectedCheckEdit();
+										setTarget(event.currentTarget.value);
+									}}
+								/>
 								<SelectField
 									label="Check type"
 									value={activeCheckType}
@@ -598,7 +666,14 @@ export function ChecksPage() {
 										{ value: "Traceroute", label: "Traceroute" }
 									]}
 								/>
-								<TextField label="Interval" value={activeInterval} onChange={event => setInterval(event.currentTarget.value)} />
+								<TextField
+									label="Interval"
+									value={activeInterval}
+									onChange={event => {
+										prepareSelectedCheckEdit();
+										setInterval(event.currentTarget.value);
+									}}
+								/>
 							</div>
 
 							<CheckConfigFields
@@ -615,13 +690,19 @@ export function ChecksPage() {
 							<div className={styles.probeMultiSelect}>
 								<FieldLabel>Probe selector</FieldLabel>
 								<div className={styles.selectorBuilder}>
-									<SelectField label="Match mode" value={selectorState.mode} onChange={event => setSelectorMode(event.currentTarget.value as SelectorMode)} options={selectorModeOptions} />
-									{selectorState.mode === "advanced" ? (
-										<TextAreaField label="Selector JSON" rows={8} value={selectorState.advancedText} onChange={event => updateAdvancedSelectorText(event.currentTarget.value)} spellCheck={false} />
+									<SelectField label="Match mode" value={activeSelectorState.mode} onChange={event => setSelectorMode(event.currentTarget.value as SelectorMode)} options={selectorModeOptions} />
+									{activeSelectorState.mode === "advanced" ? (
+										<TextAreaField
+											label="Selector JSON"
+											rows={8}
+											value={activeSelectorState.advancedText}
+											onChange={event => updateAdvancedSelectorText(event.currentTarget.value)}
+											spellCheck={false}
+										/>
 									) : null}
-									{selectorState.mode !== "all-probes" && selectorState.mode !== "advanced" ? (
+									{activeSelectorState.mode !== "all-probes" && activeSelectorState.mode !== "advanced" ? (
 										<div className={styles.selectorRuleList}>
-											{selectorState.rules.map((rule, index) => {
+											{activeSelectorState.rules.map((rule, index) => {
 												const valuesForKey = selectorValuesForKey(selectorOptions, rule.key);
 
 												return (
@@ -660,8 +741,8 @@ export function ChecksPage() {
 											})}
 										</div>
 									) : null}
-									{selectorState.mode === "all-probes" ? <p className={styles.selectorNotice}>Matches every active probe.</p> : null}
-									{selectorState.mode !== "advanced" ? (
+									{activeSelectorState.mode === "all-probes" ? <p className={styles.selectorNotice}>Matches every active probe.</p> : null}
+									{activeSelectorState.mode !== "advanced" ? (
 										<ActionRow>
 											<Button type="button" variant="secondary" disabled={!selectorOptions.length} onClick={addSelectorRule}>
 												Add rule

@@ -1,3 +1,4 @@
+import { pathForLabelDetail, pathForRoute } from "@/routes/routePaths";
 import { useDeleteProjectLabelMutation, useSaveProjectLabelMutation } from "@/shared/api/mutations";
 import { projectQueries } from "@/shared/api/queries";
 import type { ApiCheck, ApiLabel, ApiProbe } from "@/shared/api/types";
@@ -12,7 +13,8 @@ import { classNames } from "@/shared/utils/classNames";
 import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
 import { Badge, Button, DataTable, Panel, SelectField, TextField, type DataColumn } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import styles from "./LabelsPage.module.css";
 
 interface LabelUsage {
@@ -32,7 +34,7 @@ interface LabelRow {
 	checkNames: string[];
 }
 
-type LabelEditorMode = "idle" | "create" | "edit";
+type LabelEditorMode = "idle" | "create";
 
 const emptyLabels: ApiLabel[] = [];
 const emptyProbes: ApiProbe[] = [];
@@ -88,6 +90,8 @@ function usageNames(names: string[]) {
 
 export function LabelsPage() {
 	const { projectRef } = useCurrentProject();
+	const { labelId = "" } = useParams();
+	const navigate = useNavigate();
 	const confirm = useConfirm();
 	const saveLabelMutation = useSaveProjectLabelMutation(projectRef);
 	const deleteLabelMutation = useDeleteProjectLabelMutation(projectRef);
@@ -106,8 +110,8 @@ export function LabelsPage() {
 	const labels = labelsQuery.data?.labels ?? emptyLabels;
 	const probes = probesQuery.data?.probes ?? emptyProbes;
 	const checks = checksQuery.data?.checks ?? emptyChecks;
-	const [selectedLabelId, setSelectedLabelId] = useState("");
 	const [editorMode, setEditorMode] = useState<LabelEditorMode>("idle");
+	const [draftLabelId, setDraftLabelId] = useState("");
 	const [draftKey, setDraftKey] = useState("");
 	const [draftValue, setDraftValue] = useState("");
 	const [search, setSearch] = useState("");
@@ -145,13 +149,18 @@ export function LabelsPage() {
 			return matchesKey && matchesSearch;
 		});
 	}, [keyFilter, rows, search]);
-	const selectedLabel = labels.find(label => label.id === selectedLabelId) ?? null;
-	const selectedRow = rows.find(row => row.id === selectedLabelId) ?? null;
+	const selectedLabel = labels.find(label => label.id === labelId) ?? null;
+	const selectedRow = rows.find(row => row.id === labelId) ?? null;
 	const isCreating = editorMode === "create";
-	const isEditing = editorMode === "edit" && Boolean(selectedLabel);
+	const isEditing = !isCreating && Boolean(selectedLabel);
 	const isEditorOpen = isCreating || isEditing;
+	const hasSelectedDraft = Boolean(selectedLabel && draftLabelId === selectedLabel.id);
+	const activeDraftKey = isCreating || hasSelectedDraft ? draftKey : (selectedLabel?.key ?? "");
+	const activeDraftValue = isCreating || hasSelectedDraft ? draftValue : (selectedLabel?.value ?? "");
 	const mutationError = saveLabelMutation.error ?? deleteLabelMutation.error;
-	const canSave = Boolean(projectRef && draftKey.trim() && draftValue.trim() && (!selectedLabel || selectedLabel.key !== draftKey.trim() || selectedLabel.value !== draftValue.trim()));
+	const canSave = Boolean(
+		projectRef && activeDraftKey.trim() && activeDraftValue.trim() && (!selectedLabel || selectedLabel.key !== activeDraftKey.trim() || selectedLabel.value !== activeDraftValue.trim())
+	);
 	const emptyLabel = projectRef ? (labelsQuery.isLoading ? "Loading labels" : "No labels match this view") : "Select a project to manage labels";
 	const columns: DataColumn<LabelRow>[] = [
 		{
@@ -204,31 +213,60 @@ export function LabelsPage() {
 		}
 	];
 
+	useEffect(() => {
+		if (!projectRef || !labelId || labelsQuery.isPending || labelsQuery.isError || selectedLabel) {
+			return;
+		}
+
+		navigate(pathForRoute("labels", { projectRef }), { replace: true });
+	}, [labelId, labelsQuery.isError, labelsQuery.isPending, navigate, projectRef, selectedLabel]);
+
+	function prepareSelectedLabelEdit() {
+		if (isCreating || !selectedLabel || hasSelectedDraft) {
+			return;
+		}
+
+		setDraftLabelId(selectedLabel.id);
+		setDraftKey(selectedLabel.key);
+		setDraftValue(selectedLabel.value);
+	}
+
+	function updateDraftKey(value: string) {
+		prepareSelectedLabelEdit();
+		setDraftKey(value);
+	}
+
+	function updateDraftValue(value: string) {
+		prepareSelectedLabelEdit();
+		setDraftValue(value);
+	}
+
 	function selectLabel(row: LabelRow) {
-		setSelectedLabelId(row.id);
-		setEditorMode("edit");
-		setDraftKey(row.key);
-		setDraftValue(row.value);
+		setEditorMode("idle");
+		setDraftLabelId("");
 		saveLabelMutation.reset();
 		deleteLabelMutation.reset();
+		navigate(pathForLabelDetail(projectRef, row.id));
 	}
 
 	function startNewLabel() {
-		setSelectedLabelId("");
 		setEditorMode("create");
+		setDraftLabelId("__new__");
 		setDraftKey("");
 		setDraftValue("");
 		saveLabelMutation.reset();
 		deleteLabelMutation.reset();
+		navigate(pathForRoute("labels", { projectRef }));
 	}
 
 	function closeEditor() {
-		setSelectedLabelId("");
 		setEditorMode("idle");
+		setDraftLabelId("");
 		setDraftKey("");
 		setDraftValue("");
 		saveLabelMutation.reset();
 		deleteLabelMutation.reset();
+		navigate(pathForRoute("labels", { projectRef }));
 	}
 
 	function saveLabel() {
@@ -240,16 +278,17 @@ export function LabelsPage() {
 			{
 				labelId: selectedLabel?.id,
 				body: {
-					key: draftKey.trim(),
-					value: draftValue.trim()
+					key: activeDraftKey.trim(),
+					value: activeDraftValue.trim()
 				}
 			},
 			{
 				onSuccess: data => {
-					setSelectedLabelId(data.label.id);
-					setEditorMode("edit");
+					setEditorMode("idle");
+					setDraftLabelId(data.label.id);
 					setDraftKey(data.label.key);
 					setDraftValue(data.label.value);
+					navigate(pathForLabelDetail(projectRef, data.label.id));
 				}
 			}
 		);
@@ -269,7 +308,7 @@ export function LabelsPage() {
 
 		deleteLabelMutation.mutate(row.id, {
 			onSuccess: () => {
-				if (selectedLabelId === row.id) {
+				if (labelId === row.id) {
 					closeEditor();
 				}
 			}
@@ -292,8 +331,8 @@ export function LabelsPage() {
 							columns={columns}
 							rows={filteredRows}
 							getRowKey={row => row.id}
-							getRowAriaLabel={row => `Edit label ${row.token}`}
-							selectedKey={selectedLabelId}
+							getRowAriaLabel={row => `Open label ${row.token}`}
+							selectedKey={isCreating ? undefined : labelId}
 							onRowClick={selectLabel}
 							emptyLabel={emptyLabel}
 						/>
@@ -304,8 +343,8 @@ export function LabelsPage() {
 					<Panel className={styles.editorPanel} tone="glass" title={isEditing ? selectedRow?.token : "New label"} actions={<CloseButton ariaLabel="Close label editor" onClick={closeEditor} />}>
 						<div className={styles.editorStack}>
 							<div className={styles.editorForm}>
-								<TextField label="Key" placeholder="region" value={draftKey} disabled={!projectRef} onChange={event => setDraftKey(event.currentTarget.value)} />
-								<TextField label="Value" placeholder="tokyo" value={draftValue} disabled={!projectRef} onChange={event => setDraftValue(event.currentTarget.value)} />
+								<TextField label="Key" placeholder="region" value={activeDraftKey} disabled={!projectRef} onChange={event => updateDraftKey(event.currentTarget.value)} />
+								<TextField label="Value" placeholder="tokyo" value={activeDraftValue} disabled={!projectRef} onChange={event => updateDraftValue(event.currentTarget.value)} />
 							</div>
 
 							{mutationError ? <p className={classNames("ns-cut-frame", styles.errorNotice)}>{requestErrorMessage(mutationError, "Label operation failed.")}</p> : null}
