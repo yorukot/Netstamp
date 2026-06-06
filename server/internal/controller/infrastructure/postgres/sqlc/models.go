@@ -475,14 +475,6 @@ type PingResultRollups1m struct {
 	RttMaxMs        float64     `json:"rtt_max_ms"`
 }
 
-type PingRttSampleObservation struct {
-	ProbeID     int64     `json:"probe_id"`
-	CheckID     int64     `json:"check_id"`
-	StartedAt   time.Time `json:"started_at"`
-	SampleIndex int32     `json:"sample_index"`
-	RttSampleMs float64   `json:"rtt_sample_ms"`
-}
-
 type Probe struct {
 	ID           uuid.UUID    `json:"id"`
 	InternalID   int64        `json:"internal_id"`

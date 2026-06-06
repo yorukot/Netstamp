@@ -10,6 +10,7 @@ import (
 
 	domainassignment "github.com/yorukot/netstamp/internal/domain/assignment"
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
+	domainnetwork "github.com/yorukot/netstamp/internal/domain/network"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
 	domaintcp "github.com/yorukot/netstamp/internal/domain/tcp"
@@ -115,7 +116,6 @@ func TestHeartbeatUpdatesOnlineStatus(t *testing.T) {
 	recorder := &recordingProbeRuntimeEventRecorder{}
 	service := NewService(probes, &fakePingResultRepository{}, &fakeTracerouteResultRepository{}, fakeSecretVerifier{valid: true}, recorder)
 	agentVersion := "netstamp-probe/0.1.0"
-	as := "AS15169 Google LLC"
 
 	output, err := service.Heartbeat(context.Background(), RuntimeStatusInput{
 		RuntimeAuthInput: RuntimeAuthInput{
@@ -123,7 +123,6 @@ func TestHeartbeatUpdatesOnlineStatus(t *testing.T) {
 			Credential: "plain-secret",
 		},
 		AgentVersion: &agentVersion,
-		AS:           &as,
 	})
 	if err != nil {
 		t.Fatalf("expected heartbeat to succeed: %v", err)
@@ -140,8 +139,80 @@ func TestHeartbeatUpdatesOnlineStatus(t *testing.T) {
 	if probes.gotStatus.AgentVersion == nil || *probes.gotStatus.AgentVersion != agentVersion {
 		t.Fatalf("expected agent version, got %#v", probes.gotStatus.AgentVersion)
 	}
-	if probes.gotStatus.AS == nil || *probes.gotStatus.AS != as {
-		t.Fatalf("expected AS, got %#v", probes.gotStatus.AS)
+	assertNoProbeRuntimeEvents(t, recorder)
+}
+
+func TestUpdateIPFamilyCapabilitiesSetsReportedFamiliesAndClearsMissingFamilies(t *testing.T) {
+	probes := &fakeProbeRepository{}
+	recorder := &recordingProbeRuntimeEventRecorder{}
+	service := NewService(probes, &fakePingResultRepository{}, &fakeTracerouteResultRepository{}, fakeSecretVerifier{valid: true}, recorder)
+	observedIP := netip.MustParseAddr("203.0.113.10")
+
+	output, err := service.UpdateIPFamilyCapabilities(context.Background(), IPFamilyCapabilitiesInput{
+		RuntimeAuthInput: RuntimeAuthInput{
+			ProbeID:    testProbeID,
+			Credential: "plain-secret",
+		},
+		BodyPresent: true,
+		ObservedIP:  &observedIP,
+		Families:    []string{string(domainnetwork.IPFamilyInet)},
+	})
+	if err != nil {
+		t.Fatalf("expected capability update to succeed: %v", err)
+	}
+	if output.ServerTime.IsZero() {
+		t.Fatal("expected server time")
+	}
+	if len(probes.gotCapabilities) != 1 {
+		t.Fatalf("expected one capability update, got %#v", probes.gotCapabilities)
+	}
+	if got := probes.gotCapabilities[0]; got.ProbeID != testProbeID || !got.UpdateV4 || !got.UpdateV6 || got.PublicV4 == nil || *got.PublicV4 != observedIP || got.PublicV6 != nil {
+		t.Fatalf("unexpected capability update: %#v", got)
+	}
+	assertNoProbeRuntimeEvents(t, recorder)
+}
+
+func TestUpdateIPFamilyCapabilitiesInfersSupportedFamilyFromObservedIP(t *testing.T) {
+	probes := &fakeProbeRepository{}
+	recorder := &recordingProbeRuntimeEventRecorder{}
+	service := NewService(probes, &fakePingResultRepository{}, &fakeTracerouteResultRepository{}, fakeSecretVerifier{valid: true}, recorder)
+	observedIP := netip.MustParseAddr("2001:db8::10")
+
+	_, err := service.UpdateIPFamilyCapabilities(context.Background(), IPFamilyCapabilitiesInput{
+		RuntimeAuthInput: RuntimeAuthInput{
+			ProbeID:    testProbeID,
+			Credential: "plain-secret",
+		},
+		ObservedIP: &observedIP,
+	})
+	if err != nil {
+		t.Fatalf("expected capability inference to succeed: %v", err)
+	}
+	if len(probes.gotCapabilities) != 1 {
+		t.Fatalf("expected one capability update, got %#v", probes.gotCapabilities)
+	}
+	if got := probes.gotCapabilities[0]; got.ProbeID != testProbeID || got.UpdateV4 || !got.UpdateV6 || got.PublicV4 != nil || got.PublicV6 == nil || *got.PublicV6 != observedIP {
+		t.Fatalf("unexpected inferred capability: %#v", got)
+	}
+	assertNoProbeRuntimeEvents(t, recorder)
+}
+
+func TestUpdateIPFamilyCapabilitiesNoopsWhenNoBodyAndNoObservedIP(t *testing.T) {
+	probes := &fakeProbeRepository{}
+	recorder := &recordingProbeRuntimeEventRecorder{}
+	service := NewService(probes, &fakePingResultRepository{}, &fakeTracerouteResultRepository{}, fakeSecretVerifier{valid: true}, recorder)
+
+	_, err := service.UpdateIPFamilyCapabilities(context.Background(), IPFamilyCapabilitiesInput{
+		RuntimeAuthInput: RuntimeAuthInput{
+			ProbeID:    testProbeID,
+			Credential: "plain-secret",
+		},
+	})
+	if err != nil {
+		t.Fatalf("expected empty capability inference to succeed: %v", err)
+	}
+	if len(probes.gotCapabilities) != 0 {
+		t.Fatalf("expected no capability updates, got %#v", probes.gotCapabilities)
 	}
 	assertNoProbeRuntimeEvents(t, recorder)
 }
@@ -635,12 +706,13 @@ func (r *recordingProbeRuntimeEventRecorder) RecordProbeRuntimeEvent(_ context.C
 }
 
 type fakeProbeRepository struct {
-	credential    domainprobe.Credential
-	credentialErr error
-	gotStatus     domainprobe.Status
-	updateErr     error
-	assignments   []domainassignment.Assignment
-	assignmentErr error
+	credential      domainprobe.Credential
+	credentialErr   error
+	gotStatus       domainprobe.Status
+	gotCapabilities []domainprobe.IPFamilyCapabilities
+	updateErr       error
+	assignments     []domainassignment.Assignment
+	assignmentErr   error
 }
 
 func (r *fakeProbeRepository) GetActiveProbeCredential(context.Context, string) (domainprobe.Credential, error) {
@@ -664,6 +736,14 @@ func (r *fakeProbeRepository) UpdateProbeStatus(_ context.Context, input domainp
 		return domainprobe.Status{}, r.updateErr
 	}
 	return domainprobe.Status{ProbeID: input.ProbeID, State: input.State, UpdatedAt: time.Now()}, nil
+}
+
+func (r *fakeProbeRepository) UpdateProbeIPFamilyCapabilities(_ context.Context, input domainprobe.IPFamilyCapabilities) (domainprobe.Status, error) {
+	r.gotCapabilities = append(r.gotCapabilities, input)
+	if r.updateErr != nil {
+		return domainprobe.Status{}, r.updateErr
+	}
+	return domainprobe.Status{ProbeID: input.ProbeID, UpdatedAt: time.Now()}, nil
 }
 
 func (r *fakeProbeRepository) ListAssignments(context.Context, string) ([]domainassignment.Assignment, error) {

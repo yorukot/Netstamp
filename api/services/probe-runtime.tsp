@@ -29,6 +29,19 @@ interface ProbeRuntimeService {
 		| UnprocessableEntityProblem
 		| InternalServerProblem;
 
+	@operationId("updateProbeRuntimeIPFamilyCapabilities")
+	@summary("Update probe runtime IP family capabilities")
+	@put
+	@route("/ip-family-capabilities")
+	updateProbeRuntimeIPFamilyCapabilities(...ProbeIdPathParam, @body body?: RuntimeIPFamilyCapabilitiesRequest):
+		| OkJson<RuntimeIPFamilyCapabilitiesResponse>
+		| BadRequestProblem
+		| UnauthorizedProblem
+		| ForbiddenProblem
+		| NotFoundProblem
+		| UnprocessableEntityProblem
+		| InternalServerProblem;
+
 	@operationId("listProbeRuntimeAssignments")
 	@summary("List probe runtime assignments")
 	@get

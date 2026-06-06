@@ -7,6 +7,7 @@ import (
 
 	appvalidation "github.com/yorukot/netstamp/internal/controller/application/validation"
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
+	domainnetwork "github.com/yorukot/netstamp/internal/domain/network"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
 	domaintcp "github.com/yorukot/netstamp/internal/domain/tcp"
@@ -21,6 +22,7 @@ const (
 	fieldPublicV6     = "publicV6"
 	fieldAS           = "as"
 	fieldAddrs        = "addrs"
+	fieldFamilies     = "families"
 	fieldResults      = "results"
 )
 
@@ -33,6 +35,11 @@ type normalizedSubmitResultsInput struct {
 	groups   []normalizedResultGroup
 	checkIDs []string
 	accepted int
+}
+
+type normalizedIPFamilyCapabilitiesInput struct {
+	capabilities domainprobe.IPFamilyCapabilities
+	hasUpdate    bool
 }
 
 type normalizedResultGroup struct {
@@ -282,6 +289,99 @@ func normalizeRuntimeStatus(input RuntimeStatusInput, probeID string) (domainpro
 		AS:           as,
 		Addrs:        append([]netip.Addr(nil), addrs...),
 	}, nil
+}
+
+func normalizeIPFamilyCapabilities(input IPFamilyCapabilitiesInput, probeID string) (normalizedIPFamilyCapabilitiesInput, error) {
+	if !input.BodyPresent {
+		capabilities, ok := inferredIPFamilyCapabilities(probeID, input.ObservedIP)
+		if !ok {
+			return normalizedIPFamilyCapabilitiesInput{}, nil
+		}
+
+		return normalizedIPFamilyCapabilitiesInput{capabilities: capabilities, hasUpdate: true}, nil
+	}
+
+	var validation appvalidation.Collector
+	if len(input.Families) == 0 {
+		validation.Add(fieldFamilies, "must contain at least one family", input.Families)
+	}
+
+	seen := make(map[domainnetwork.IPFamily]struct{}, len(input.Families))
+	capabilities := domainprobe.IPFamilyCapabilities{
+		ProbeID:  probeID,
+		UpdateV4: true,
+		UpdateV6: true,
+	}
+	for i, familyInput := range input.Families {
+		family, err := domainnetwork.ParseIPFamily(familyInput)
+		if err != nil {
+			validation.Add(ipFamilyCapabilityField(i), `must be "inet" or "inet6"`, familyInput)
+			continue
+		}
+		if _, ok := seen[family]; ok {
+			validation.Add(ipFamilyCapabilityField(i), "must not be duplicated", familyInput)
+			continue
+		}
+		seen[family] = struct{}{}
+
+		if family == domainnetwork.IPFamilyInet {
+			capabilities.PublicV4 = observedPublicIPForFamily(input.ObservedIP, family)
+		} else {
+			capabilities.PublicV6 = observedPublicIPForFamily(input.ObservedIP, family)
+		}
+	}
+	if err := validation.Err(ErrInvalidInput); err != nil {
+		return normalizedIPFamilyCapabilitiesInput{}, err
+	}
+
+	return normalizedIPFamilyCapabilitiesInput{capabilities: capabilities, hasUpdate: true}, nil
+}
+
+func inferredIPFamilyCapabilities(probeID string, observedIP *netip.Addr) (domainprobe.IPFamilyCapabilities, bool) {
+	if observedIP == nil || !observedIP.IsValid() {
+		return domainprobe.IPFamilyCapabilities{}, false
+	}
+
+	addr := observedIP.Unmap()
+	if addr.Is4() {
+		return domainprobe.IPFamilyCapabilities{
+			ProbeID:  probeID,
+			PublicV4: &addr,
+			UpdateV4: true,
+		}, true
+	}
+
+	return domainprobe.IPFamilyCapabilities{
+		ProbeID:  probeID,
+		PublicV6: &addr,
+		UpdateV6: true,
+	}, true
+}
+
+func observedPublicIPForFamily(observedIP *netip.Addr, family domainnetwork.IPFamily) *netip.Addr {
+	if observedIP == nil || !observedIP.IsValid() {
+		return nil
+	}
+
+	addr := observedIP.Unmap()
+	switch family {
+	case domainnetwork.IPFamilyInet:
+		if !addr.Is4() {
+			return nil
+		}
+	case domainnetwork.IPFamilyInet6:
+		if !addr.Is6() {
+			return nil
+		}
+	default:
+		return nil
+	}
+
+	return &addr
+}
+
+func ipFamilyCapabilityField(index int) string {
+	return fmt.Sprintf("%s[%d]", fieldFamilies, index)
 }
 
 func invalidRuntimeField(field, message string, value any) error {

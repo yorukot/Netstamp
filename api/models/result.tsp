@@ -608,6 +608,11 @@ model RuntimeStatusRequest {
 	addrs?: ipAddress[];
 }
 
+@example(#{ families: #["inet", "inet6"] })
+model RuntimeIPFamilyCapabilitiesRequest {
+	families?: IPFamily[];
+}
+
 @example(#{
 	serverTime: utcDateTime.fromISO("2026-05-13T10:00:00Z"),
 	minimumSupportedAgentVersion: "0.1.0",
@@ -621,6 +626,11 @@ model RuntimeHelloResponse {
 
 @example(#{ serverTime: utcDateTime.fromISO("2026-05-13T10:00:00Z") })
 model RuntimeHeartbeatResponse {
+	serverTime: utcDateTime;
+}
+
+@example(#{ serverTime: utcDateTime.fromISO("2026-05-13T10:00:00Z") })
+model RuntimeIPFamilyCapabilitiesResponse {
 	serverTime: utcDateTime;
 }
 

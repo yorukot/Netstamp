@@ -807,6 +807,23 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	"/runtime/probes/{probe_id}/ip-family-capabilities": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		/** Update probe runtime IP family capabilities */
+		put: operations["updateProbeRuntimeIPFamilyCapabilities"];
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	"/runtime/probes/{probe_id}/results": {
 		parameters: {
 			query?: never;
@@ -2220,6 +2237,26 @@ export interface components {
 			serverTime: string;
 			minimumSupportedAgentVersion: string;
 			config: components["schemas"]["RuntimeConfig"];
+		};
+		/**
+		 * @example {
+		 *       "families": [
+		 *         "inet",
+		 *         "inet6"
+		 *       ]
+		 *     }
+		 */
+		RuntimeIPFamilyCapabilitiesRequest: {
+			families?: ("inet" | "inet6")[];
+		};
+		/**
+		 * @example {
+		 *       "serverTime": "2026-05-13T10:00:00Z"
+		 *     }
+		 */
+		RuntimeIPFamilyCapabilitiesResponse: {
+			/** Format: date-time */
+			serverTime: string;
 		};
 		/**
 		 * @example {
@@ -7115,6 +7152,86 @@ export interface operations {
 				};
 				content: {
 					"application/json": components["schemas"]["RuntimeHelloResponse"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is forbidden. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	updateProbeRuntimeIPFamilyCapabilities: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				probe_id: components["parameters"]["ProbeIdPathParam"];
+			};
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				"application/json": components["schemas"]["RuntimeIPFamilyCapabilitiesRequest"];
+			};
+		};
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["RuntimeIPFamilyCapabilitiesResponse"];
+				};
+			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 			/** @description Access is unauthorized. */

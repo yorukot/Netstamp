@@ -6,15 +6,21 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	appproberuntime "github.com/yorukot/netstamp/internal/controller/application/proberuntime"
+	"github.com/yorukot/netstamp/internal/controller/transport/http/clientip"
 	"github.com/yorukot/netstamp/internal/controller/transport/http/httpx"
 )
 
 type Handler struct {
-	service *appproberuntime.Service
+	service          *appproberuntime.Service
+	clientIPResolver *clientip.Resolver
 }
 
-func NewHandler(service *appproberuntime.Service) *Handler {
-	return &Handler{service: service}
+func NewHandler(service *appproberuntime.Service, clientIPResolver *clientip.Resolver) *Handler {
+	if clientIPResolver == nil {
+		clientIPResolver = clientip.NewResolver(nil)
+	}
+
+	return &Handler{service: service, clientIPResolver: clientIPResolver}
 }
 
 func (h *Handler) RegisterRoutes(api chi.Router) {
@@ -23,6 +29,7 @@ func (h *Handler) RegisterRoutes(api chi.Router) {
 
 		r.Post("/runtime/probes/{probe_id}/hello", h.handleHello)
 		r.Post("/runtime/probes/{probe_id}/heartbeat", h.handleHeartbeat)
+		r.Put("/runtime/probes/{probe_id}/ip-family-capabilities", h.handleUpdateIPFamilyCapabilities)
 		r.Get("/runtime/probes/{probe_id}/assignments", h.handleListAssignments)
 		r.Post("/runtime/probes/{probe_id}/results", h.handleSubmitResults)
 	})

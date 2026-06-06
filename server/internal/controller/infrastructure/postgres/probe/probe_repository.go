@@ -62,10 +62,32 @@ func (r *ProbeRepository) UpdateProbeStatus(ctx context.Context, input domainpro
 		ProbeID:      probeID,
 		Status:       sqlcProbeState(input.State),
 		AgentVersion: input.AgentVersion,
-		PublicV4:     input.PublicV4,
-		PublicV6:     input.PublicV6,
-		As:           input.AS,
 		Addrs:        input.Addrs,
+	})
+	if err != nil {
+		err = mapProbeLookupError(err)
+		postgres.RecordDBSpanError(span, err)
+		return domainprobe.Status{}, err
+	}
+
+	return mapProbeStatus(row), nil
+}
+
+func (r *ProbeRepository) UpdateProbeIPFamilyCapabilities(ctx context.Context, input domainprobe.IPFamilyCapabilities) (domainprobe.Status, error) {
+	ctx, span := postgres.StartDBSpan(ctx, pgprobeTracer, "probe_statuses", "postgres.probes.update_ip_family_capability", "UPDATE", "UPDATE probe IP family capability")
+	defer span.End()
+
+	probeID, err := postgres.ParseUUID(input.ProbeID, domainprobe.ErrProbeNotFound)
+	if err != nil {
+		return domainprobe.Status{}, err
+	}
+
+	row, err := r.queries.UpdateProbeIPFamilyCapabilities(ctx, sqlc.UpdateProbeIPFamilyCapabilitiesParams{
+		UpdateV4: input.UpdateV4,
+		PublicV4: input.PublicV4,
+		UpdateV6: input.UpdateV6,
+		PublicV6: input.PublicV6,
+		ProbeID:  probeID,
 	})
 	if err != nil {
 		err = mapProbeLookupError(err)

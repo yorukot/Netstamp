@@ -50,6 +50,18 @@ func TestNormalizeSubmitResultsReturnsAllFieldErrors(t *testing.T) {
 	})
 }
 
+func TestNormalizeIPFamilyCapabilitiesReturnsAllFieldErrors(t *testing.T) {
+	_, err := normalizeIPFamilyCapabilities(IPFamilyCapabilitiesInput{
+		BodyPresent: true,
+		Families:    []string{"bad", "inet", "inet"},
+	}, testProbeID)
+
+	assertValidationFields(t, err, []string{
+		"families[0]",
+		"families[2]",
+	})
+}
+
 func assertValidationFields(t *testing.T, err error, wantFields []string) {
 	t.Helper()
 

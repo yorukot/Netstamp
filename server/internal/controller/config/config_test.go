@@ -40,6 +40,9 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.HTTP.Addr != ":8080" {
 		t.Fatalf("expected default HTTP addr, got %q", cfg.HTTP.Addr)
 	}
+	if cfg.HTTP.TrustedProxies != "" {
+		t.Fatalf("expected empty trusted proxies, got %q", cfg.HTTP.TrustedProxies)
+	}
 	if cfg.HTTP.RequestTimeout != 10*time.Second {
 		t.Fatalf("expected default request timeout, got %s", cfg.HTTP.RequestTimeout)
 	}
@@ -63,6 +66,7 @@ func TestLoadFromEnvironment(t *testing.T) {
 	t.Setenv(keyLogPseudonymKey, "production-log-pseudonym-key")
 	t.Setenv(keyBackendBaseURL, "https://api.netstamp.dev")
 	t.Setenv(keyHTTPAddr, ":8181")
+	t.Setenv(keyHTTPTrustedProxies, "10.0.0.0/8,127.0.0.1")
 	t.Setenv(keyRequestTimeout, "250ms")
 	t.Setenv(keyDatabaseHost, "db.internal")
 	t.Setenv(keyDatabasePort, "15432")
@@ -98,6 +102,16 @@ func TestLoadFromEnvironment(t *testing.T) {
 	}
 	if cfg.HTTP.Addr != ":8181" {
 		t.Fatalf("expected HTTP addr override, got %q", cfg.HTTP.Addr)
+	}
+	if cfg.HTTP.TrustedProxies != "10.0.0.0/8,127.0.0.1" {
+		t.Fatalf("expected trusted proxies override, got %q", cfg.HTTP.TrustedProxies)
+	}
+	trustedProxies, err := cfg.HTTP.TrustedProxyPrefixes()
+	if err != nil {
+		t.Fatalf("parse trusted proxies: %v", err)
+	}
+	if len(trustedProxies) != 2 || trustedProxies[0].String() != "10.0.0.0/8" || trustedProxies[1].String() != "127.0.0.1/32" {
+		t.Fatalf("unexpected trusted proxy prefixes: %#v", trustedProxies)
 	}
 	if cfg.HTTP.RequestTimeout != 250*time.Millisecond {
 		t.Fatalf("expected request timeout override, got %s", cfg.HTTP.RequestTimeout)
@@ -209,6 +223,7 @@ func TestValidateReturnsErrorsForInvalidValues(t *testing.T) {
 	cfg.HTTP.ReadTimeout = 0
 	cfg.HTTP.WriteTimeout = 0
 	cfg.HTTP.IdleTimeout = 0
+	cfg.HTTP.TrustedProxies = "10.0.0.0/8,,bad"
 	cfg.Database.Host = ""
 	cfg.Database.Port = 0
 	cfg.Database.User = ""
@@ -240,6 +255,7 @@ func TestValidateReturnsErrorsForInvalidValues(t *testing.T) {
 		"HTTP_READ_TIMEOUT must be greater than 0",
 		"HTTP_WRITE_TIMEOUT must be greater than 0",
 		"HTTP_IDLE_TIMEOUT must be greater than 0",
+		"HTTP_TRUSTED_PROXIES must not contain empty entries",
 		"DATABASE_HOST must not be empty",
 		"DATABASE_USER must not be empty",
 		"DATABASE_NAME must not be empty",

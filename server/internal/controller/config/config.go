@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/netip"
 	"net/url"
 	"strconv"
 	"strings"
@@ -27,6 +28,7 @@ const (
 	keyHTTPReadTimeout       = "HTTP_READ_TIMEOUT"
 	keyHTTPWriteTimeout      = "HTTP_WRITE_TIMEOUT" //nolint:gosec // This is a timeout env key, not a credential.
 	keyHTTPIdleTimeout       = "HTTP_IDLE_TIMEOUT"
+	keyHTTPTrustedProxies    = "HTTP_TRUSTED_PROXIES"
 	keyDatabaseHost          = "DATABASE_HOST"
 	keyDatabasePort          = "DATABASE_PORT"
 	keyDatabaseUser          = "DATABASE_USER"
@@ -60,6 +62,7 @@ var defaultSettings = map[string]any{
 	keyHTTPReadTimeout:       15 * time.Second,
 	keyHTTPWriteTimeout:      15 * time.Second,
 	keyHTTPIdleTimeout:       60 * time.Second,
+	keyHTTPTrustedProxies:    "",
 	keyDatabaseHost:          "localhost",
 	keyDatabasePort:          int32(5432),
 	keyDatabaseUser:          "netstamp",
@@ -100,6 +103,7 @@ type HTTPConfig struct {
 	ReadTimeout       time.Duration `mapstructure:"HTTP_READ_TIMEOUT"`
 	WriteTimeout      time.Duration `mapstructure:"HTTP_WRITE_TIMEOUT"`
 	IdleTimeout       time.Duration `mapstructure:"HTTP_IDLE_TIMEOUT"`
+	TrustedProxies    string        `mapstructure:"HTTP_TRUSTED_PROXIES"`
 }
 
 type DatabaseConfig struct {
@@ -145,6 +149,10 @@ func (cfg DatabaseConfig) ConnectionString() string {
 	return databaseURL.String()
 }
 
+func (cfg HTTPConfig) TrustedProxyPrefixes() ([]netip.Prefix, error) {
+	return parseTrustedProxyPrefixes(cfg.TrustedProxies)
+}
+
 func Load() (Config, error) {
 	settings, err := newSettings()
 	if err != nil {
@@ -181,6 +189,7 @@ func validate(cfg Config) []error {
 	errs = append(errs, validatePositiveDuration(keyHTTPReadTimeout, cfg.HTTP.ReadTimeout)...)
 	errs = append(errs, validatePositiveDuration(keyHTTPWriteTimeout, cfg.HTTP.WriteTimeout)...)
 	errs = append(errs, validatePositiveDuration(keyHTTPIdleTimeout, cfg.HTTP.IdleTimeout)...)
+	errs = append(errs, validateTrustedProxyPrefixes(keyHTTPTrustedProxies, cfg.HTTP.TrustedProxies)...)
 
 	// Database settings
 	errs = append(errs, validateRequiredString(keyDatabaseHost, cfg.Database.Host)...)

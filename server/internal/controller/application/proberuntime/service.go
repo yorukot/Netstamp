@@ -73,6 +73,29 @@ func (s *Service) Heartbeat(ctx context.Context, input RuntimeStatusInput) (Hear
 	return HeartbeatOutput{ServerTime: time.Now().UTC()}, nil
 }
 
+func (s *Service) UpdateIPFamilyCapabilities(ctx context.Context, input IPFamilyCapabilitiesInput) (HeartbeatOutput, error) {
+	ctx, flow := s.startRuntimeFlow(ctx, "probe_runtime.ip_family_capabilities.update", ProbeRuntimeActionUpdateIPFamily)
+	defer flow.end()
+
+	credential, err := s.authenticate(ctx, flow, input.RuntimeAuthInput)
+	if err != nil {
+		return HeartbeatOutput{}, flow.authenticationFailure(ProbeRuntimeEventIPFamilyUpdateFailure, err)
+	}
+
+	normalized, err := normalizeIPFamilyCapabilities(input, credential.ProbeID)
+	if err != nil {
+		return HeartbeatOutput{}, flow.businessFailure(ProbeRuntimeEventIPFamilyUpdateFailure, ProbeRuntimeReasonInvalidInput, err)
+	}
+	if normalized.hasUpdate {
+		if _, err := s.probes.UpdateProbeIPFamilyCapabilities(ctx, normalized.capabilities); err != nil {
+			return HeartbeatOutput{}, flow.ipFamilyCapabilityUpdateFailure(ProbeRuntimeEventIPFamilyUpdateFailure, err)
+		}
+	}
+	flow.success()
+
+	return HeartbeatOutput{ServerTime: time.Now().UTC()}, nil
+}
+
 func (s *Service) ListAssignments(ctx context.Context, input RuntimeAuthInput) (ListAssignmentsOutput, error) {
 	ctx, flow := s.startRuntimeFlow(ctx, "probe_runtime.assignments.list", ProbeRuntimeActionListAssignments)
 	defer flow.end()

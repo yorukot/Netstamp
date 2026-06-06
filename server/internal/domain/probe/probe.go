@@ -174,6 +174,14 @@ type Status struct {
 	UpdatedAt    time.Time    `json:"updatedAt"`
 }
 
+type IPFamilyCapabilities struct {
+	ProbeID  string      `json:"probeId"`
+	PublicV4 *netip.Addr `json:"publicV4"`
+	PublicV6 *netip.Addr `json:"publicV6"`
+	UpdateV4 bool        `json:"updateV4"`
+	UpdateV6 bool        `json:"updateV6"`
+}
+
 func VNProbeStatus(status Status) (Status, error) {
 	probeID, err := VNProbeID(status.ProbeID)
 	if err != nil {

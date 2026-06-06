@@ -22,6 +22,13 @@ type RuntimeStatusInput struct {
 	Addrs        []netip.Addr
 }
 
+type IPFamilyCapabilitiesInput struct {
+	RuntimeAuthInput
+	BodyPresent bool
+	ObservedIP  *netip.Addr
+	Families    []string
+}
+
 type HelloOutput struct {
 	ServerTime                   time.Time
 	MinimumSupportedAgentVersion string

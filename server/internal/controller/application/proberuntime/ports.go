@@ -13,6 +13,7 @@ import (
 type ProbeRepository interface {
 	GetActiveProbeCredential(ctx context.Context, probeID string) (domainprobe.Credential, error)
 	UpdateProbeStatus(ctx context.Context, input domainprobe.Status) (domainprobe.Status, error)
+	UpdateProbeIPFamilyCapabilities(ctx context.Context, input domainprobe.IPFamilyCapabilities) (domainprobe.Status, error)
 	ListAssignments(ctx context.Context, probeID string) ([]domainassignment.Assignment, error)
 	ListActiveAssignmentsForProbeChecks(ctx context.Context, probeID string, checkIDs []string) ([]domainassignment.Assignment, error)
 }
@@ -42,6 +43,7 @@ type ProbeRuntimeEventName string
 const (
 	ProbeRuntimeEventHelloFailure           ProbeRuntimeEventName = "probe_runtime.hello.failure"
 	ProbeRuntimeEventHeartbeatFailure       ProbeRuntimeEventName = "probe_runtime.heartbeat.failure"
+	ProbeRuntimeEventIPFamilyUpdateFailure  ProbeRuntimeEventName = "probe_runtime.ip_family_capabilities.update.failure"
 	ProbeRuntimeEventListAssignmentsFailure ProbeRuntimeEventName = "probe_runtime.assignments.list.failure"
 	ProbeRuntimeEventSubmitResultsFailure   ProbeRuntimeEventName = "probe_runtime.results.submit.failure"
 )
@@ -51,6 +53,7 @@ type ProbeRuntimeEventAction string
 const (
 	ProbeRuntimeActionHello           ProbeRuntimeEventAction = "hello"
 	ProbeRuntimeActionHeartbeat       ProbeRuntimeEventAction = "heartbeat"
+	ProbeRuntimeActionUpdateIPFamily  ProbeRuntimeEventAction = "ip_family_capabilities.update"
 	ProbeRuntimeActionListAssignments ProbeRuntimeEventAction = "assignments.list"
 	ProbeRuntimeActionSubmitResults   ProbeRuntimeEventAction = "results.submit"
 )
@@ -72,6 +75,7 @@ const (
 	ProbeRuntimeReasonCredentialLookupFail  ProbeRuntimeEventReason = "credential_lookup_failed" //nolint:gosec // Event reason label, not a credential.
 	ProbeRuntimeReasonSecretVerifierMissing ProbeRuntimeEventReason = "secret_verifier_missing"  //nolint:gosec // Event reason label, not a credential.
 	ProbeRuntimeReasonStatusUpdateFailed    ProbeRuntimeEventReason = "status_update_failed"
+	ProbeRuntimeReasonIPFamilyUpdateFailed  ProbeRuntimeEventReason = "ip_family_capability_update_failed"
 	ProbeRuntimeReasonAssignmentListFailed  ProbeRuntimeEventReason = "assignment_list_failed"
 	ProbeRuntimeReasonAssignmentLookupFail  ProbeRuntimeEventReason = "assignment_lookup_failed"
 	ProbeRuntimeReasonResultWriteFailed     ProbeRuntimeEventReason = "result_write_failed"

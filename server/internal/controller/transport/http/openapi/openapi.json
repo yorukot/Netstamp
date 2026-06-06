@@ -4893,6 +4893,105 @@
 				]
 			}
 		},
+		"/runtime/probes/{probe_id}/ip-family-capabilities": {
+			"put": {
+				"operationId": "updateProbeRuntimeIPFamilyCapabilities",
+				"summary": "Update probe runtime IP family capabilities",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProbeIdPathParam"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/RuntimeIPFamilyCapabilitiesResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Probe Runtime"],
+				"requestBody": {
+					"required": false,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/RuntimeIPFamilyCapabilitiesRequest"
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"ProbeAuth": []
+					}
+				]
+			}
+		},
 		"/runtime/probes/{probe_id}/results": {
 			"post": {
 				"operationId": "submitProbeRuntimeResults",
@@ -8115,6 +8214,38 @@
 							"maxBackoffSeconds": 30,
 							"maxAttempts": 5
 						}
+					}
+				]
+			},
+			"RuntimeIPFamilyCapabilitiesRequest": {
+				"type": "object",
+				"properties": {
+					"families": {
+						"type": "array",
+						"items": {
+							"type": "string",
+							"enum": ["inet", "inet6"]
+						}
+					}
+				},
+				"examples": [
+					{
+						"families": ["inet", "inet6"]
+					}
+				]
+			},
+			"RuntimeIPFamilyCapabilitiesResponse": {
+				"type": "object",
+				"required": ["serverTime"],
+				"properties": {
+					"serverTime": {
+						"type": "string",
+						"format": "date-time"
+					}
+				},
+				"examples": [
+					{
+						"serverTime": "2026-05-13T10:00:00Z"
 					}
 				]
 			},

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/netip"
 	"net/url"
 	"strconv"
 	"strings"
@@ -134,4 +135,52 @@ func validateOptionalHTTPOrigin(key, value string) []error {
 	}
 
 	return nil
+}
+
+func validateTrustedProxyPrefixes(key, value string) []error {
+	if _, err := parseTrustedProxyPrefixes(value); err != nil {
+		return []error{fmt.Errorf("%s %w", key, err)}
+	}
+
+	return nil
+}
+
+func parseTrustedProxyPrefixes(value string) ([]netip.Prefix, error) {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return nil, nil
+	}
+
+	parts := strings.Split(trimmed, ",")
+	prefixes := make([]netip.Prefix, 0, len(parts))
+	for _, part := range parts {
+		raw := strings.TrimSpace(part)
+		if raw == "" {
+			return nil, errors.New("must not contain empty entries")
+		}
+
+		prefix, err := parseTrustedProxyPrefix(raw)
+		if err != nil {
+			return nil, fmt.Errorf("must contain valid IP addresses or CIDR prefixes: %w", err)
+		}
+		prefixes = append(prefixes, prefix)
+	}
+
+	return prefixes, nil
+}
+
+func parseTrustedProxyPrefix(value string) (netip.Prefix, error) {
+	if prefix, err := netip.ParsePrefix(value); err == nil {
+		return prefix.Masked(), nil
+	}
+
+	addr, err := netip.ParseAddr(value)
+	if err != nil {
+		return netip.Prefix{}, err
+	}
+	if addr.Is4() {
+		return netip.PrefixFrom(addr, 32), nil
+	}
+
+	return netip.PrefixFrom(addr, 128), nil
 }

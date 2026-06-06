@@ -141,6 +141,10 @@ func New(ctx context.Context) (*Application, error) {
 	probeRuntimeSvc := appproberuntime.NewServiceWithTCP(probeRepo, pingRepo, tcpRepo, tracerouteRepo, security.NewProbeSecretVerifier(), probeRuntimeEvents)
 	resultSvc := appresult.NewService(pingRepo, tcpRepo, tracerouteRepo, resultRepo, projectRepo)
 	readiness := postgres.NewReadinessCheck(dbPool)
+	trustedProxies, err := cfg.HTTP.TrustedProxyPrefixes()
+	if err != nil {
+		return nil, fmt.Errorf("parse trusted proxies: %w", err)
+	}
 
 	httpHandler := httpserver.NewRouter(httpserver.Dependencies{
 		Log:               log,
@@ -161,6 +165,7 @@ func New(ctx context.Context) (*Application, error) {
 		ReadinessCheck:    readiness,
 		RequestTimeout:    cfg.HTTP.RequestTimeout,
 		MetricsHandler:    metricsProvider.Handler(),
+		TrustedProxies:    trustedProxies,
 	})
 
 	return &Application{

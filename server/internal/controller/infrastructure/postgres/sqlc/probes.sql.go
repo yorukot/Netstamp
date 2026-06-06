@@ -906,15 +906,52 @@ func (q *Queries) UpdateProbe(ctx context.Context, arg UpdateProbeParams) (Updat
 	return i, err
 }
 
+const updateProbeIPFamilyCapabilities = `-- name: UpdateProbeIPFamilyCapabilities :one
+UPDATE probe_statuses
+SET public_v4 = CASE WHEN $1::boolean THEN $2::inet ELSE public_v4 END,
+    public_v6 = CASE WHEN $3::boolean THEN $4::inet ELSE public_v6 END,
+    updated_at = now()
+WHERE probe_id = $5
+RETURNING probe_id, status, last_seen_at, agent_version, public_v4, public_v6, "as", addrs, updated_at
+`
+
+type UpdateProbeIPFamilyCapabilitiesParams struct {
+	UpdateV4 bool        `json:"update_v4"`
+	PublicV4 *netip.Addr `json:"public_v4"`
+	UpdateV6 bool        `json:"update_v6"`
+	PublicV6 *netip.Addr `json:"public_v6"`
+	ProbeID  uuid.UUID   `json:"probe_id"`
+}
+
+func (q *Queries) UpdateProbeIPFamilyCapabilities(ctx context.Context, arg UpdateProbeIPFamilyCapabilitiesParams) (ProbeStatus, error) {
+	row := q.db.QueryRow(ctx, updateProbeIPFamilyCapabilities,
+		arg.UpdateV4,
+		arg.PublicV4,
+		arg.UpdateV6,
+		arg.PublicV6,
+		arg.ProbeID,
+	)
+	var i ProbeStatus
+	err := row.Scan(
+		&i.ProbeID,
+		&i.Status,
+		&i.LastSeenAt,
+		&i.AgentVersion,
+		&i.PublicV4,
+		&i.PublicV6,
+		&i.As,
+		&i.Addrs,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const updateProbeStatus = `-- name: UpdateProbeStatus :one
 UPDATE probe_statuses
 SET status = $2,
     last_seen_at = now(),
     agent_version = $3,
-    public_v4 = $4,
-    public_v6 = $5,
-    "as" = $6,
-    addrs = $7,
+    addrs = $4,
     updated_at = now()
 WHERE probe_id = $1
 RETURNING probe_id, status, last_seen_at, agent_version, public_v4, public_v6, "as", addrs, updated_at
@@ -924,9 +961,6 @@ type UpdateProbeStatusParams struct {
 	ProbeID      uuid.UUID    `json:"probe_id"`
 	Status       ProbeState   `json:"status"`
 	AgentVersion *string      `json:"agent_version"`
-	PublicV4     *netip.Addr  `json:"public_v4"`
-	PublicV6     *netip.Addr  `json:"public_v6"`
-	As           *string      `json:"as"`
 	Addrs        []netip.Addr `json:"addrs"`
 }
 
@@ -935,9 +969,6 @@ func (q *Queries) UpdateProbeStatus(ctx context.Context, arg UpdateProbeStatusPa
 		arg.ProbeID,
 		arg.Status,
 		arg.AgentVersion,
-		arg.PublicV4,
-		arg.PublicV6,
-		arg.As,
 		arg.Addrs,
 	)
 	var i ProbeStatus

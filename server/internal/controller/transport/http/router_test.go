@@ -38,6 +38,7 @@ type securitySchemeSnapshot struct {
 type pathItemSnapshot struct {
 	Get    *operationSnapshot `json:"get"`
 	Post   *operationSnapshot `json:"post"`
+	Put    *operationSnapshot `json:"put"`
 	Patch  *operationSnapshot `json:"patch"`
 	Delete *operationSnapshot `json:"delete"`
 }
@@ -81,6 +82,7 @@ func TestNewRouterServesOpenAPIWithoutRuntimeServices(t *testing.T) {
 	assertOpenAPIOperation(t, spec, http.MethodGet, "/projects/{ref}/results/traceroute/insight", "queryProjectTracerouteResultInsight")
 	assertOpenAPIOperation(t, spec, http.MethodPost, "/runtime/probes/{probe_id}/hello", "probeRuntimeHello")
 	assertOpenAPIOperation(t, spec, http.MethodPost, "/runtime/probes/{probe_id}/heartbeat", "probeRuntimeHeartbeat")
+	assertOpenAPIOperation(t, spec, http.MethodPut, "/runtime/probes/{probe_id}/ip-family-capabilities", "updateProbeRuntimeIPFamilyCapabilities")
 	assertOpenAPIOperation(t, spec, http.MethodGet, "/runtime/probes/{probe_id}/assignments", "listProbeRuntimeAssignments")
 	assertOpenAPIOperation(t, spec, http.MethodPost, "/runtime/probes/{probe_id}/results", "submitProbeRuntimeResults")
 	assertOpenAPIOperation(t, spec, http.MethodGet, "/install/agent.sh", "getAgentInstallerScript")
@@ -572,6 +574,8 @@ func openAPIOperationForMethod(t *testing.T, spec openAPISnapshot, method, path 
 		operation = pathItem.Get
 	case http.MethodPost:
 		operation = pathItem.Post
+	case http.MethodPut:
+		operation = pathItem.Put
 	case http.MethodPatch:
 		operation = pathItem.Patch
 	case http.MethodDelete:

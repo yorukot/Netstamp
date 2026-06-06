@@ -201,12 +201,17 @@ UPDATE probe_statuses
 SET status = $2,
     last_seen_at = now(),
     agent_version = $3,
-    public_v4 = $4,
-    public_v6 = $5,
-    "as" = $6,
-    addrs = $7,
+    addrs = $4,
     updated_at = now()
 WHERE probe_id = $1
+RETURNING probe_id, status, last_seen_at, agent_version, public_v4, public_v6, "as", addrs, updated_at;
+
+-- name: UpdateProbeIPFamilyCapabilities :one
+UPDATE probe_statuses
+SET public_v4 = CASE WHEN sqlc.arg(update_v4)::boolean THEN sqlc.narg(public_v4)::inet ELSE public_v4 END,
+    public_v6 = CASE WHEN sqlc.arg(update_v6)::boolean THEN sqlc.narg(public_v6)::inet ELSE public_v6 END,
+    updated_at = now()
+WHERE probe_id = sqlc.arg(probe_id)
 RETURNING probe_id, status, last_seen_at, agent_version, public_v4, public_v6, "as", addrs, updated_at;
 
 -- name: ListActiveAssignmentsForProbe :many

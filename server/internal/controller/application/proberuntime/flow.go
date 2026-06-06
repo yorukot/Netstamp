@@ -99,6 +99,17 @@ func (f *runtimeFlow) statusUpdateFailure(name ProbeRuntimeEventName, err error)
 	}
 }
 
+func (f *runtimeFlow) ipFamilyCapabilityUpdateFailure(name ProbeRuntimeEventName, err error) error {
+	switch {
+	case errors.Is(err, ErrInvalidInput):
+		return f.businessFailure(name, ProbeRuntimeReasonInvalidInput, err)
+	case errors.Is(err, domainprobe.ErrProbeNotFound):
+		return f.businessFailure(name, ProbeRuntimeReasonProbeNotFound, err)
+	default:
+		return f.technicalFailure(name, ProbeRuntimeReasonIPFamilyUpdateFailed, err)
+	}
+}
+
 func (f *runtimeFlow) assignmentListFailure(name ProbeRuntimeEventName, err error) error {
 	switch {
 	case errors.Is(err, domainprobe.ErrProbeNotFound):

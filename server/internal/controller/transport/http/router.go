@@ -3,6 +3,7 @@ package httpserver
 import (
 	"context"
 	"net/http"
+	"net/netip"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -20,6 +21,7 @@ import (
 	apppublicpage "github.com/yorukot/netstamp/internal/controller/application/publicpage"
 	appresult "github.com/yorukot/netstamp/internal/controller/application/result"
 	appuser "github.com/yorukot/netstamp/internal/controller/application/user"
+	"github.com/yorukot/netstamp/internal/controller/transport/http/clientip"
 	assignmenthttp "github.com/yorukot/netstamp/internal/controller/transport/http/handler/assignment"
 	authhttp "github.com/yorukot/netstamp/internal/controller/transport/http/handler/auth"
 	checkhttp "github.com/yorukot/netstamp/internal/controller/transport/http/handler/check"
@@ -56,6 +58,7 @@ type Dependencies struct {
 	RequestTimeout    time.Duration
 	MetricsHandler    http.Handler
 	AgentBinaryDir    string
+	TrustedProxies    []netip.Prefix
 }
 
 func NewRouter(dep Dependencies) http.Handler {
@@ -119,7 +122,7 @@ func registerAPIRoutes(api chi.Router, dep Dependencies) {
 	probehttp.NewHandler(dep.ProbeService, dep.AuthVerifier).RegisterRoutes(api)
 	publicpagehttp.NewHandler(dep.PublicPageService, dep.AuthVerifier).RegisterRoutes(api)
 	resulthttp.NewHandler(dep.ResultService, dep.AuthVerifier).RegisterRoutes(api)
-	proberuntimehttp.NewHandler(dep.ProbeRuntime).RegisterRoutes(api)
+	proberuntimehttp.NewHandler(dep.ProbeRuntime, clientip.NewResolver(dep.TrustedProxies)).RegisterRoutes(api)
 }
 
 func registerOpenAPIRoutes(api chi.Router, dep Dependencies) {
