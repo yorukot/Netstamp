@@ -175,26 +175,7 @@ func newQueryPingSeriesInput(r *http.Request) (*queryPingSeriesInput, error) {
 }
 
 func newQueryPingInsightInput(r *http.Request) (*queryPingInsightInput, error) {
-	from, err := httpx.QueryInt64(r, "from")
-	if err != nil {
-		return nil, err
-	}
-	to, err := httpx.QueryInt64(r, "to")
-	if err != nil {
-		return nil, err
-	}
-	maxDataPoints, err := httpx.QueryInt32(r, "maxDataPoints")
-	if err != nil {
-		return nil, err
-	}
-	return &queryPingInsightInput{
-		Ref:           httpx.Path(r, "ref"),
-		ProbeID:       httpx.QueryString(r, "probeId"),
-		CheckID:       httpx.QueryString(r, "checkId"),
-		From:          from,
-		To:            to,
-		MaxDataPoints: maxDataPoints,
-	}, nil
+	return newQueryInsightInput(r)
 }
 
 func newQueryTCPSeriesInput(r *http.Request) (*queryTCPSeriesInput, error) {
@@ -231,6 +212,10 @@ func newQueryLatestResultsInput(r *http.Request) (*queryLatestResultsInput, erro
 }
 
 func newQueryTCPInsightInput(r *http.Request) (*queryTCPInsightInput, error) {
+	return newQueryInsightInput(r)
+}
+
+func newQueryInsightInput(r *http.Request) (*queryInsightInput, error) {
 	from, err := httpx.QueryInt64(r, "from")
 	if err != nil {
 		return nil, err
@@ -243,7 +228,7 @@ func newQueryTCPInsightInput(r *http.Request) (*queryTCPInsightInput, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &queryTCPInsightInput{
+	return &queryInsightInput{
 		Ref:           httpx.Path(r, "ref"),
 		ProbeID:       httpx.QueryString(r, "probeId"),
 		CheckID:       httpx.QueryString(r, "checkId"),

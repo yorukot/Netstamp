@@ -83,6 +83,14 @@ type pingSeriesScope struct {
 	maxDataPoints  int32
 }
 
+type pingSeriesQuery func(context.Context, postgres.SeriesScope) ([]domainping.SeriesPoint, error)
+
+type pingSeriesQueries struct {
+	raw    pingSeriesQuery
+	bucket pingSeriesQuery
+	rollup pingSeriesQuery
+}
+
 func (r *PingRepository) CountPingSeriesPoints(ctx context.Context, input domainping.SeriesPointCountQuery) (int64, error) {
 	ctx, span := postgres.StartDBSpan(ctx, pgpingTracer, "ping_results", "postgres.ping_results.series_count", "SELECT", "SELECT ping result point count")
 	defer span.End()
@@ -204,147 +212,59 @@ func (r *PingRepository) resolvePingStorageIDs(ctx context.Context, projectIDVal
 }
 
 func (r *PingRepository) listPingSeriesByKey(ctx context.Context, key string, mode domainping.SeriesReadMode, scope pingSeriesScope) ([]domainping.SeriesPoint, error) {
+	queries, err := r.pingSeriesQueries(key)
+	if err != nil {
+		return nil, err
+	}
+	return listPingMetricSeries(ctx, mode, scope, queries)
+}
+
+func (r *PingRepository) pingSeriesQueries(key string) (pingSeriesQueries, error) {
 	switch key {
 	case "latency_avg":
-		return r.listPingLatencyAvgSeries(ctx, mode, scope)
+		return pingSeriesQueries{
+			raw:    postgres.NewRawSeriesQuery(r.queries.ListPingLatencyAvgRawSeries, latencyAvgRawSeriesRows),
+			bucket: postgres.NewBucketSeriesQuery(r.queries.ListPingLatencyAvgBucketSeries, latencyAvgBucketSeriesRows),
+			rollup: postgres.NewRollupSeriesQuery(r.queries.ListPingLatencyAvgRollupSeries, latencyAvgRollupSeriesRows),
+		}, nil
 	case "latency_min":
-		return r.listPingLatencyMinSeries(ctx, mode, scope)
+		return pingSeriesQueries{
+			raw:    postgres.NewRawSeriesQuery(r.queries.ListPingLatencyMinRawSeries, latencyMinRawSeriesRows),
+			bucket: postgres.NewBucketSeriesQuery(r.queries.ListPingLatencyMinBucketSeries, latencyMinBucketSeriesRows),
+			rollup: postgres.NewRollupSeriesQuery(r.queries.ListPingLatencyMinRollupSeries, latencyMinRollupSeriesRows),
+		}, nil
 	case "latency_max":
-		return r.listPingLatencyMaxSeries(ctx, mode, scope)
+		return pingSeriesQueries{
+			raw:    postgres.NewRawSeriesQuery(r.queries.ListPingLatencyMaxRawSeries, latencyMaxRawSeriesRows),
+			bucket: postgres.NewBucketSeriesQuery(r.queries.ListPingLatencyMaxBucketSeries, latencyMaxBucketSeriesRows),
+			rollup: postgres.NewRollupSeriesQuery(r.queries.ListPingLatencyMaxRollupSeries, latencyMaxRollupSeriesRows),
+		}, nil
 	case "loss_percent":
-		return r.listPingLossPercentSeries(ctx, mode, scope)
+		return pingSeriesQueries{
+			raw:    postgres.NewRawSeriesQuery(r.queries.ListPingLossPercentRawSeries, lossPercentRawSeriesRows),
+			bucket: postgres.NewBucketSeriesQuery(r.queries.ListPingLossPercentBucketSeries, lossPercentBucketSeriesRows),
+			rollup: postgres.NewRollupSeriesQuery(r.queries.ListPingLossPercentRollupSeries, lossPercentRollupSeriesRows),
+		}, nil
 	default:
-		return nil, errors.New("unsupported ping series")
+		return pingSeriesQueries{}, errors.New("unsupported ping series")
 	}
 }
 
-func (r *PingRepository) listPingLatencyAvgSeries(ctx context.Context, mode domainping.SeriesReadMode, scope pingSeriesScope) ([]domainping.SeriesPoint, error) {
-	switch mode {
-	case domainping.SeriesReadModeRaw:
-		rows, err := r.queries.ListPingLatencyAvgRawSeries(ctx, sqlc.ListPingLatencyAvgRawSeriesParams{
-			ProbeStorageID: scope.probeStorageID,
-			CheckStorageID: scope.checkStorageID,
-			StartedAtFrom:  scope.startedAtFrom,
-			StartedAtTo:    scope.startedAtTo,
-		})
-		return latencyAvgRawSeriesRows(rows), err
-	case domainping.SeriesReadModeBucket:
-		rows, err := r.queries.ListPingLatencyAvgBucketSeries(ctx, sqlc.ListPingLatencyAvgBucketSeriesParams{
-			StartedAtTo:    scope.startedAtTo,
-			StartedAtFrom:  scope.startedAtFrom,
-			MaxDataPoints:  float64(scope.maxDataPoints),
-			ProbeStorageID: scope.probeStorageID,
-			CheckStorageID: scope.checkStorageID,
-		})
-		return latencyAvgBucketSeriesRows(rows), err
-	case domainping.SeriesReadModeRollup:
-		rows, err := r.queries.ListPingLatencyAvgRollupSeries(ctx, sqlc.ListPingLatencyAvgRollupSeriesParams{
-			StartedAtTo:    scope.startedAtTo,
-			StartedAtFrom:  scope.startedAtFrom,
-			MaxDataPoints:  float64(scope.maxDataPoints),
-			ProbeStorageID: scope.probeStorageID,
-			CheckStorageID: scope.checkStorageID,
-		})
-		return latencyAvgRollupSeriesRows(rows), err
-	default:
-		return nil, errors.New("unsupported ping series read mode")
+func listPingMetricSeries(ctx context.Context, mode domainping.SeriesReadMode, scope pingSeriesScope, queries pingSeriesQueries) ([]domainping.SeriesPoint, error) {
+	queryScope := postgres.SeriesScope{
+		ProbeStorageID: scope.probeStorageID,
+		CheckStorageID: scope.checkStorageID,
+		StartedAtFrom:  scope.startedAtFrom,
+		StartedAtTo:    scope.startedAtTo,
+		MaxDataPoints:  scope.maxDataPoints,
 	}
-}
-
-func (r *PingRepository) listPingLatencyMinSeries(ctx context.Context, mode domainping.SeriesReadMode, scope pingSeriesScope) ([]domainping.SeriesPoint, error) {
 	switch mode {
 	case domainping.SeriesReadModeRaw:
-		rows, err := r.queries.ListPingLatencyMinRawSeries(ctx, sqlc.ListPingLatencyMinRawSeriesParams{
-			ProbeStorageID: scope.probeStorageID,
-			CheckStorageID: scope.checkStorageID,
-			StartedAtFrom:  scope.startedAtFrom,
-			StartedAtTo:    scope.startedAtTo,
-		})
-		return latencyMinRawSeriesRows(rows), err
+		return queries.raw(ctx, queryScope)
 	case domainping.SeriesReadModeBucket:
-		rows, err := r.queries.ListPingLatencyMinBucketSeries(ctx, sqlc.ListPingLatencyMinBucketSeriesParams{
-			StartedAtTo:    scope.startedAtTo,
-			StartedAtFrom:  scope.startedAtFrom,
-			MaxDataPoints:  float64(scope.maxDataPoints),
-			ProbeStorageID: scope.probeStorageID,
-			CheckStorageID: scope.checkStorageID,
-		})
-		return latencyMinBucketSeriesRows(rows), err
+		return queries.bucket(ctx, queryScope)
 	case domainping.SeriesReadModeRollup:
-		rows, err := r.queries.ListPingLatencyMinRollupSeries(ctx, sqlc.ListPingLatencyMinRollupSeriesParams{
-			StartedAtTo:    scope.startedAtTo,
-			StartedAtFrom:  scope.startedAtFrom,
-			MaxDataPoints:  float64(scope.maxDataPoints),
-			ProbeStorageID: scope.probeStorageID,
-			CheckStorageID: scope.checkStorageID,
-		})
-		return latencyMinRollupSeriesRows(rows), err
-	default:
-		return nil, errors.New("unsupported ping series read mode")
-	}
-}
-
-func (r *PingRepository) listPingLatencyMaxSeries(ctx context.Context, mode domainping.SeriesReadMode, scope pingSeriesScope) ([]domainping.SeriesPoint, error) {
-	switch mode {
-	case domainping.SeriesReadModeRaw:
-		rows, err := r.queries.ListPingLatencyMaxRawSeries(ctx, sqlc.ListPingLatencyMaxRawSeriesParams{
-			ProbeStorageID: scope.probeStorageID,
-			CheckStorageID: scope.checkStorageID,
-			StartedAtFrom:  scope.startedAtFrom,
-			StartedAtTo:    scope.startedAtTo,
-		})
-		return latencyMaxRawSeriesRows(rows), err
-	case domainping.SeriesReadModeBucket:
-		rows, err := r.queries.ListPingLatencyMaxBucketSeries(ctx, sqlc.ListPingLatencyMaxBucketSeriesParams{
-			StartedAtTo:    scope.startedAtTo,
-			StartedAtFrom:  scope.startedAtFrom,
-			MaxDataPoints:  float64(scope.maxDataPoints),
-			ProbeStorageID: scope.probeStorageID,
-			CheckStorageID: scope.checkStorageID,
-		})
-		return latencyMaxBucketSeriesRows(rows), err
-	case domainping.SeriesReadModeRollup:
-		rows, err := r.queries.ListPingLatencyMaxRollupSeries(ctx, sqlc.ListPingLatencyMaxRollupSeriesParams{
-			StartedAtTo:    scope.startedAtTo,
-			StartedAtFrom:  scope.startedAtFrom,
-			MaxDataPoints:  float64(scope.maxDataPoints),
-			ProbeStorageID: scope.probeStorageID,
-			CheckStorageID: scope.checkStorageID,
-		})
-		return latencyMaxRollupSeriesRows(rows), err
-	default:
-		return nil, errors.New("unsupported ping series read mode")
-	}
-}
-
-func (r *PingRepository) listPingLossPercentSeries(ctx context.Context, mode domainping.SeriesReadMode, scope pingSeriesScope) ([]domainping.SeriesPoint, error) {
-	switch mode {
-	case domainping.SeriesReadModeRaw:
-		rows, err := r.queries.ListPingLossPercentRawSeries(ctx, sqlc.ListPingLossPercentRawSeriesParams{
-			ProbeStorageID: scope.probeStorageID,
-			CheckStorageID: scope.checkStorageID,
-			StartedAtFrom:  scope.startedAtFrom,
-			StartedAtTo:    scope.startedAtTo,
-		})
-		return lossPercentRawSeriesRows(rows), err
-	case domainping.SeriesReadModeBucket:
-		rows, err := r.queries.ListPingLossPercentBucketSeries(ctx, sqlc.ListPingLossPercentBucketSeriesParams{
-			StartedAtTo:    scope.startedAtTo,
-			StartedAtFrom:  scope.startedAtFrom,
-			MaxDataPoints:  float64(scope.maxDataPoints),
-			ProbeStorageID: scope.probeStorageID,
-			CheckStorageID: scope.checkStorageID,
-		})
-		return lossPercentBucketSeriesRows(rows), err
-	case domainping.SeriesReadModeRollup:
-		rows, err := r.queries.ListPingLossPercentRollupSeries(ctx, sqlc.ListPingLossPercentRollupSeriesParams{
-			StartedAtTo:    scope.startedAtTo,
-			StartedAtFrom:  scope.startedAtFrom,
-			MaxDataPoints:  float64(scope.maxDataPoints),
-			ProbeStorageID: scope.probeStorageID,
-			CheckStorageID: scope.checkStorageID,
-		})
-		return lossPercentRollupSeriesRows(rows), err
+		return queries.rollup(ctx, queryScope)
 	default:
 		return nil, errors.New("unsupported ping series read mode")
 	}

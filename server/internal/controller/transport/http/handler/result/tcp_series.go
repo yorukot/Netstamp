@@ -49,33 +49,16 @@ type queryTCPSeriesBody struct {
 }
 
 func newQueryTCPSeriesBody(output appresult.TCPSeriesOutput) queryTCPSeriesBody {
-	series := make(map[string]seriesBody, len(output.Series))
-	for name, value := range output.Series {
-		points := make([]pointTuple, 0, len(value.Points))
-		for _, point := range value.Points {
-			points = append(points, pointTuple{float64(point.TimestampMs), point.Value})
-		}
-		series[name] = seriesBody{
-			Name: value.Name,
-			Labels: map[string]string{
-				"probeId":   value.Labels.ProbeID,
-				"checkId":   value.Labels.CheckID,
-				"checkType": value.Labels.CheckType,
-			},
-			Unit:   value.Unit,
-			Points: points,
-		}
-	}
-
 	return queryTCPSeriesBody{
-		Series: series,
-		Meta: queryMetadataBody{
-			FromMs:        output.Meta.FromMs,
-			ToMs:          output.Meta.ToMs,
-			MaxDataPoints: output.Meta.MaxDataPoints,
-			Source:        output.Meta.Source,
-			Resolution:    output.Meta.Resolution,
-			TotalPoints:   output.Meta.TotalPoints,
-		},
+		Series: newSeriesBodyMap(output.Series, newTCPSeriesBodySource, tcpSeriesPointValues),
+		Meta:   newQueryMetadataBody(output.Meta),
 	}
+}
+
+func newTCPSeriesBodySource(value appresult.TCPSeries) seriesBodySource[appresult.TCPSeriesPoint] {
+	return newSeriesBodySource(value.Name, value.Labels.ProbeID, value.Labels.CheckID, value.Labels.CheckType, value.Unit, value.Points)
+}
+
+func tcpSeriesPointValues(point appresult.TCPSeriesPoint) (int64, float64) {
+	return point.TimestampMs, point.Value
 }

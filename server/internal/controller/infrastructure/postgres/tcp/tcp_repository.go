@@ -71,6 +71,14 @@ type tcpSeriesScope struct {
 	maxDataPoints  int32
 }
 
+type tcpSeriesQuery func(context.Context, postgres.SeriesScope) ([]domaintcp.SeriesPoint, error)
+
+type tcpSeriesQueries struct {
+	raw    tcpSeriesQuery
+	bucket tcpSeriesQuery
+	rollup tcpSeriesQuery
+}
+
 func (r *TCPRepository) CountTCPSeriesPoints(ctx context.Context, input domaintcp.SeriesPointCountQuery) (int64, error) {
 	ctx, span := postgres.StartDBSpan(ctx, pgtcpTracer, "tcp_results", "postgres.tcp_results.series_count", "SELECT", "SELECT tcp result point count")
 	defer span.End()
@@ -218,147 +226,59 @@ func (r *TCPRepository) tcpInsightRollupSummary(ctx context.Context, scope tcpSe
 }
 
 func (r *TCPRepository) listTCPSeriesByKey(ctx context.Context, key string, mode domaintcp.SeriesReadMode, scope tcpSeriesScope) ([]domaintcp.SeriesPoint, error) {
+	queries, err := r.tcpSeriesQueries(key)
+	if err != nil {
+		return nil, err
+	}
+	return listTCPMetricSeries(ctx, mode, scope, queries)
+}
+
+func (r *TCPRepository) tcpSeriesQueries(key string) (tcpSeriesQueries, error) {
 	switch key {
 	case "connect_avg":
-		return r.listTCPConnectAvgSeries(ctx, mode, scope)
+		return tcpSeriesQueries{
+			raw:    postgres.NewRawSeriesQuery(r.queries.ListTCPConnectAvgRawSeries, connectAvgRawSeriesRows),
+			bucket: postgres.NewBucketSeriesQuery(r.queries.ListTCPConnectAvgBucketSeries, connectAvgBucketSeriesRows),
+			rollup: postgres.NewRollupSeriesQuery(r.queries.ListTCPConnectAvgRollupSeries, connectAvgRollupSeriesRows),
+		}, nil
 	case "connect_min":
-		return r.listTCPConnectMinSeries(ctx, mode, scope)
+		return tcpSeriesQueries{
+			raw:    postgres.NewRawSeriesQuery(r.queries.ListTCPConnectMinRawSeries, connectMinRawSeriesRows),
+			bucket: postgres.NewBucketSeriesQuery(r.queries.ListTCPConnectMinBucketSeries, connectMinBucketSeriesRows),
+			rollup: postgres.NewRollupSeriesQuery(r.queries.ListTCPConnectMinRollupSeries, connectMinRollupSeriesRows),
+		}, nil
 	case "connect_max":
-		return r.listTCPConnectMaxSeries(ctx, mode, scope)
+		return tcpSeriesQueries{
+			raw:    postgres.NewRawSeriesQuery(r.queries.ListTCPConnectMaxRawSeries, connectMaxRawSeriesRows),
+			bucket: postgres.NewBucketSeriesQuery(r.queries.ListTCPConnectMaxBucketSeries, connectMaxBucketSeriesRows),
+			rollup: postgres.NewRollupSeriesQuery(r.queries.ListTCPConnectMaxRollupSeries, connectMaxRollupSeriesRows),
+		}, nil
 	case "failure_percent":
-		return r.listTCPFailurePercentSeries(ctx, mode, scope)
+		return tcpSeriesQueries{
+			raw:    postgres.NewRawSeriesQuery(r.queries.ListTCPFailurePercentRawSeries, failurePercentRawSeriesRows),
+			bucket: postgres.NewBucketSeriesQuery(r.queries.ListTCPFailurePercentBucketSeries, failurePercentBucketSeriesRows),
+			rollup: postgres.NewRollupSeriesQuery(r.queries.ListTCPFailurePercentRollupSeries, failurePercentRollupSeriesRows),
+		}, nil
 	default:
-		return nil, errors.New("unsupported tcp series")
+		return tcpSeriesQueries{}, errors.New("unsupported tcp series")
 	}
 }
 
-func (r *TCPRepository) listTCPConnectAvgSeries(ctx context.Context, mode domaintcp.SeriesReadMode, scope tcpSeriesScope) ([]domaintcp.SeriesPoint, error) {
-	switch mode {
-	case domaintcp.SeriesReadModeRaw:
-		rows, err := r.queries.ListTCPConnectAvgRawSeries(ctx, sqlc.ListTCPConnectAvgRawSeriesParams{
-			ProbeStorageID: scope.probeStorageID,
-			CheckStorageID: scope.checkStorageID,
-			StartedAtFrom:  scope.startedAtFrom,
-			StartedAtTo:    scope.startedAtTo,
-		})
-		return connectAvgRawSeriesRows(rows), err
-	case domaintcp.SeriesReadModeBucket:
-		rows, err := r.queries.ListTCPConnectAvgBucketSeries(ctx, sqlc.ListTCPConnectAvgBucketSeriesParams{
-			StartedAtTo:    scope.startedAtTo,
-			StartedAtFrom:  scope.startedAtFrom,
-			MaxDataPoints:  float64(scope.maxDataPoints),
-			ProbeStorageID: scope.probeStorageID,
-			CheckStorageID: scope.checkStorageID,
-		})
-		return connectAvgBucketSeriesRows(rows), err
-	case domaintcp.SeriesReadModeRollup:
-		rows, err := r.queries.ListTCPConnectAvgRollupSeries(ctx, sqlc.ListTCPConnectAvgRollupSeriesParams{
-			StartedAtTo:    scope.startedAtTo,
-			StartedAtFrom:  scope.startedAtFrom,
-			MaxDataPoints:  float64(scope.maxDataPoints),
-			ProbeStorageID: scope.probeStorageID,
-			CheckStorageID: scope.checkStorageID,
-		})
-		return connectAvgRollupSeriesRows(rows), err
-	default:
-		return nil, errors.New("unsupported tcp series read mode")
+func listTCPMetricSeries(ctx context.Context, mode domaintcp.SeriesReadMode, scope tcpSeriesScope, queries tcpSeriesQueries) ([]domaintcp.SeriesPoint, error) {
+	queryScope := postgres.SeriesScope{
+		ProbeStorageID: scope.probeStorageID,
+		CheckStorageID: scope.checkStorageID,
+		StartedAtFrom:  scope.startedAtFrom,
+		StartedAtTo:    scope.startedAtTo,
+		MaxDataPoints:  scope.maxDataPoints,
 	}
-}
-
-func (r *TCPRepository) listTCPConnectMinSeries(ctx context.Context, mode domaintcp.SeriesReadMode, scope tcpSeriesScope) ([]domaintcp.SeriesPoint, error) {
 	switch mode {
 	case domaintcp.SeriesReadModeRaw:
-		rows, err := r.queries.ListTCPConnectMinRawSeries(ctx, sqlc.ListTCPConnectMinRawSeriesParams{
-			ProbeStorageID: scope.probeStorageID,
-			CheckStorageID: scope.checkStorageID,
-			StartedAtFrom:  scope.startedAtFrom,
-			StartedAtTo:    scope.startedAtTo,
-		})
-		return connectMinRawSeriesRows(rows), err
+		return queries.raw(ctx, queryScope)
 	case domaintcp.SeriesReadModeBucket:
-		rows, err := r.queries.ListTCPConnectMinBucketSeries(ctx, sqlc.ListTCPConnectMinBucketSeriesParams{
-			StartedAtTo:    scope.startedAtTo,
-			StartedAtFrom:  scope.startedAtFrom,
-			MaxDataPoints:  float64(scope.maxDataPoints),
-			ProbeStorageID: scope.probeStorageID,
-			CheckStorageID: scope.checkStorageID,
-		})
-		return connectMinBucketSeriesRows(rows), err
+		return queries.bucket(ctx, queryScope)
 	case domaintcp.SeriesReadModeRollup:
-		rows, err := r.queries.ListTCPConnectMinRollupSeries(ctx, sqlc.ListTCPConnectMinRollupSeriesParams{
-			StartedAtTo:    scope.startedAtTo,
-			StartedAtFrom:  scope.startedAtFrom,
-			MaxDataPoints:  float64(scope.maxDataPoints),
-			ProbeStorageID: scope.probeStorageID,
-			CheckStorageID: scope.checkStorageID,
-		})
-		return connectMinRollupSeriesRows(rows), err
-	default:
-		return nil, errors.New("unsupported tcp series read mode")
-	}
-}
-
-func (r *TCPRepository) listTCPConnectMaxSeries(ctx context.Context, mode domaintcp.SeriesReadMode, scope tcpSeriesScope) ([]domaintcp.SeriesPoint, error) {
-	switch mode {
-	case domaintcp.SeriesReadModeRaw:
-		rows, err := r.queries.ListTCPConnectMaxRawSeries(ctx, sqlc.ListTCPConnectMaxRawSeriesParams{
-			ProbeStorageID: scope.probeStorageID,
-			CheckStorageID: scope.checkStorageID,
-			StartedAtFrom:  scope.startedAtFrom,
-			StartedAtTo:    scope.startedAtTo,
-		})
-		return connectMaxRawSeriesRows(rows), err
-	case domaintcp.SeriesReadModeBucket:
-		rows, err := r.queries.ListTCPConnectMaxBucketSeries(ctx, sqlc.ListTCPConnectMaxBucketSeriesParams{
-			StartedAtTo:    scope.startedAtTo,
-			StartedAtFrom:  scope.startedAtFrom,
-			MaxDataPoints:  float64(scope.maxDataPoints),
-			ProbeStorageID: scope.probeStorageID,
-			CheckStorageID: scope.checkStorageID,
-		})
-		return connectMaxBucketSeriesRows(rows), err
-	case domaintcp.SeriesReadModeRollup:
-		rows, err := r.queries.ListTCPConnectMaxRollupSeries(ctx, sqlc.ListTCPConnectMaxRollupSeriesParams{
-			StartedAtTo:    scope.startedAtTo,
-			StartedAtFrom:  scope.startedAtFrom,
-			MaxDataPoints:  float64(scope.maxDataPoints),
-			ProbeStorageID: scope.probeStorageID,
-			CheckStorageID: scope.checkStorageID,
-		})
-		return connectMaxRollupSeriesRows(rows), err
-	default:
-		return nil, errors.New("unsupported tcp series read mode")
-	}
-}
-
-func (r *TCPRepository) listTCPFailurePercentSeries(ctx context.Context, mode domaintcp.SeriesReadMode, scope tcpSeriesScope) ([]domaintcp.SeriesPoint, error) {
-	switch mode {
-	case domaintcp.SeriesReadModeRaw:
-		rows, err := r.queries.ListTCPFailurePercentRawSeries(ctx, sqlc.ListTCPFailurePercentRawSeriesParams{
-			ProbeStorageID: scope.probeStorageID,
-			CheckStorageID: scope.checkStorageID,
-			StartedAtFrom:  scope.startedAtFrom,
-			StartedAtTo:    scope.startedAtTo,
-		})
-		return failurePercentRawSeriesRows(rows), err
-	case domaintcp.SeriesReadModeBucket:
-		rows, err := r.queries.ListTCPFailurePercentBucketSeries(ctx, sqlc.ListTCPFailurePercentBucketSeriesParams{
-			StartedAtTo:    scope.startedAtTo,
-			StartedAtFrom:  scope.startedAtFrom,
-			MaxDataPoints:  float64(scope.maxDataPoints),
-			ProbeStorageID: scope.probeStorageID,
-			CheckStorageID: scope.checkStorageID,
-		})
-		return failurePercentBucketSeriesRows(rows), err
-	case domaintcp.SeriesReadModeRollup:
-		rows, err := r.queries.ListTCPFailurePercentRollupSeries(ctx, sqlc.ListTCPFailurePercentRollupSeriesParams{
-			StartedAtTo:    scope.startedAtTo,
-			StartedAtFrom:  scope.startedAtFrom,
-			MaxDataPoints:  float64(scope.maxDataPoints),
-			ProbeStorageID: scope.probeStorageID,
-			CheckStorageID: scope.checkStorageID,
-		})
-		return failurePercentRollupSeriesRows(rows), err
+		return queries.rollup(ctx, queryScope)
 	default:
 		return nil, errors.New("unsupported tcp series read mode")
 	}

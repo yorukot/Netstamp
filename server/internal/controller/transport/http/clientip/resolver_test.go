@@ -55,7 +55,7 @@ func TestResolverRejectsPrivateSourceIP(t *testing.T) {
 }
 
 func requestWithRemote(remoteAddr string) *http.Request {
-	req, _ := http.NewRequest(http.MethodPut, "/runtime/probes/probe/ip-family-capabilities", nil)
+	req, _ := http.NewRequest(http.MethodPut, "/runtime/probes/probe/ip-family-capabilities", http.NoBody)
 	req.RemoteAddr = remoteAddr
 	return req
 }

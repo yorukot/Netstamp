@@ -54,6 +54,12 @@ type (
 	TracerouteInsightPoint          = traceroute.InsightPoint
 	TracerouteTopologyNode          = traceroute.TopologyNode
 	TracerouteTopologyEdge          = traceroute.TopologyEdge
+	PingSeries                      = ping.Series
+	PingSeriesLabels                = ping.SeriesLabels
+	PingSeriesPoint                 = ping.SeriesPoint
+	TCPSeries                       = tcp.Series
+	TCPSeriesLabels                 = tcp.SeriesLabels
+	TCPSeriesPoint                  = tcp.SeriesPoint
 	Series                          = ping.Series
 	SeriesLabels                    = ping.SeriesLabels
 	SeriesPoint                     = ping.SeriesPoint

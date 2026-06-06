@@ -48,54 +48,19 @@ type queryPingSeriesBody struct {
 	Meta   queryMetadataBody     `json:"meta"`
 }
 
-type seriesBody struct {
-	Name   string            `json:"name"`
-	Labels map[string]string `json:"labels"`
-	Unit   string            `json:"unit"`
-	Points []pointTuple      `json:"points"`
-}
-
-type pointTuple [2]float64
-
-type queryMetadataBody struct {
-	FromMs        int64  `json:"from"`
-	ToMs          int64  `json:"to"`
-	MaxDataPoints int32  `json:"maxDataPoints"`
-	Source        string `json:"source,omitempty"`
-	Resolution    string `json:"resolution"`
-	TotalPoints   int64  `json:"totalPoints"`
-}
-
 func newQueryPingSeriesBody(output appresult.PingSeriesOutput) queryPingSeriesBody {
-	series := make(map[string]seriesBody, len(output.Series))
-	for name, value := range output.Series {
-		points := make([]pointTuple, 0, len(value.Points))
-		for _, point := range value.Points {
-			points = append(points, pointTuple{float64(point.TimestampMs), point.Value})
-		}
-		series[name] = seriesBody{
-			Name: value.Name,
-			Labels: map[string]string{
-				"probeId":   value.Labels.ProbeID,
-				"checkId":   value.Labels.CheckID,
-				"checkType": value.Labels.CheckType,
-			},
-			Unit:   value.Unit,
-			Points: points,
-		}
-	}
-
 	return queryPingSeriesBody{
-		Series: series,
-		Meta: queryMetadataBody{
-			FromMs:        output.Meta.FromMs,
-			ToMs:          output.Meta.ToMs,
-			MaxDataPoints: output.Meta.MaxDataPoints,
-			Source:        output.Meta.Source,
-			Resolution:    output.Meta.Resolution,
-			TotalPoints:   output.Meta.TotalPoints,
-		},
+		Series: newSeriesBodyMap(output.Series, newPingSeriesBodySource, pingSeriesPointValues),
+		Meta:   newQueryMetadataBody(output.Meta),
 	}
+}
+
+func newPingSeriesBodySource(value appresult.PingSeries) seriesBodySource[appresult.PingSeriesPoint] {
+	return newSeriesBodySource(value.Name, value.Labels.ProbeID, value.Labels.CheckID, value.Labels.CheckType, value.Unit, value.Points)
+}
+
+func pingSeriesPointValues(point appresult.PingSeriesPoint) (int64, float64) {
+	return point.TimestampMs, point.Value
 }
 
 func optionalInt64(value int64) *int64 {

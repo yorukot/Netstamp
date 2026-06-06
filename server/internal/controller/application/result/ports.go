@@ -41,8 +41,8 @@ type ProjectAccess interface {
 }
 
 var (
-	_ ping.SeriesRepository     = (PingSeriesRepository)(nil)
-	_ tcp.InsightRepository     = (TCPInsightRepository)(nil)
-	_ traceroute.RunsRepository = (TracerouteRunsRepository)(nil)
-	_ latest.Repository         = (LatestRepository)(nil)
+	_ ping.SeriesRepository     = PingSeriesRepository(nil)
+	_ tcp.InsightRepository     = TCPInsightRepository(nil)
+	_ traceroute.RunsRepository = TracerouteRunsRepository(nil)
+	_ latest.Repository         = LatestRepository(nil)
 )

@@ -87,7 +87,11 @@ func (c *RuntimeClient) doWithClient(ctx context.Context, client *http.Client, m
 }
 
 func forcedNetworkClient(timeout time.Duration, network string) *http.Client {
-	transport := http.DefaultTransport.(*http.Transport).Clone() //nolint:forcetypeassert // The standard default transport is an *http.Transport.
+	defaultTransport, ok := http.DefaultTransport.(*http.Transport)
+	if !ok {
+		defaultTransport = &http.Transport{}
+	}
+	transport := defaultTransport.Clone()
 	dialer := &net.Dialer{}
 	transport.DialContext = func(ctx context.Context, _, address string) (net.Conn, error) {
 		return dialer.DialContext(ctx, network, address)

@@ -329,10 +329,11 @@ func (s *Service) QueryPublicPingInsight(ctx context.Context, input QueryPublicP
 	ctx, flow := s.startPublicPageFlow(ctx, "public_page.ping_insight", PublicPageActionPingInsight, "")
 	defer flow.end()
 
-	input, from, to, now, maxDataPoints, err := normalizeQueryPublicPingInsightInput(input)
+	normalized, err := normalizeQueryPublicPingInsightInput(input)
 	if err != nil {
 		return PublicPingInsightOutput{}, flow.businessFailure(PublicPageEventPingInsightFailure, PublicPageReasonInvalidInput, err)
 	}
+	input = normalized.input
 	flow.setPageSlug(input.Slug)
 	flow.setProbeID(input.ProbeID)
 	flow.setCheckID(input.CheckID)
@@ -350,27 +351,27 @@ func (s *Service) QueryPublicPingInsight(ctx context.Context, input QueryPublicP
 		ProjectID: projectID,
 		ProbeID:   input.ProbeID,
 		CheckID:   input.CheckID,
-		From:      from,
-		To:        to,
+		From:      normalized.from,
+		To:        normalized.to,
 	})
 	if err != nil {
 		return PublicPingInsightOutput{}, flow.technicalFailure(PublicPageEventPingInsightFailure, PublicPageReasonPingInsightQueryFailed, err)
 	}
-	plan := pingquery.SelectReadPlan(rawPoints, from, now, maxDataPoints)
+	plan := pingquery.SelectReadPlan(rawPoints, normalized.from, normalized.now, normalized.maxDataPoints)
 
 	summary, err := s.pings.GetPingInsightSummary(ctx, domainping.InsightSummaryQuery{
 		ProjectID: projectID,
 		ProbeID:   input.ProbeID,
 		CheckID:   input.CheckID,
-		From:      from,
-		To:        to,
+		From:      normalized.from,
+		To:        normalized.to,
 		Source:    plan.Source,
 	})
 	if err != nil {
 		return PublicPingInsightOutput{}, flow.technicalFailure(PublicPageEventPingInsightFailure, PublicPageReasonPingInsightQueryFailed, err)
 	}
 
-	return newPublicPingInsightOutput(summary, plan, from, to, maxDataPoints), nil
+	return newPublicPingInsightOutput(summary, plan, normalized.from, normalized.to, normalized.maxDataPoints), nil
 }
 
 func (s *Service) hydratePage(ctx context.Context, flow *publicPageFlow, page domainpublicpage.Page, event PublicPageEventName) (domainpublicpage.Page, error) {

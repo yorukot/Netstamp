@@ -1,50 +1,6 @@
 package result
 
-import (
-	"context"
-
-	appresult "github.com/yorukot/netstamp/internal/controller/application/result"
-)
-
-func (h *Handler) queryTCPInsight(ctx context.Context, input *queryTCPInsightInput) (*queryTCPInsightOutput, error) {
-	userID, err := currentUserID(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	output, err := h.service.QueryTCPInsight(ctx, appresult.QueryTCPInsightInput{
-		CurrentUserID: userID,
-		ProjectRef:    input.Ref,
-		ProbeID:       input.ProbeID,
-		CheckID:       input.CheckID,
-		FromMs:        optionalInt64(input.From),
-		ToMs:          optionalInt64(input.To),
-		MaxDataPoints: optionalInt32(input.MaxDataPoints),
-	})
-	if err != nil {
-		return nil, mapResultError(err, "query tcp insight failed")
-	}
-
-	return &queryTCPInsightOutput{Body: newQueryTCPInsightBody(output)}, nil
-}
-
-type queryTCPInsightInput struct {
-	Ref           string
-	ProbeID       string
-	CheckID       string
-	From          int64
-	To            int64
-	MaxDataPoints int32
-}
-
-type queryTCPInsightOutput struct {
-	Body queryTCPInsightBody
-}
-
-type queryTCPInsightBody struct {
-	Summary tcpInsightSummaryBody `json:"summary"`
-	Meta    queryMetadataBody     `json:"meta"`
-}
+import appresult "github.com/yorukot/netstamp/internal/controller/application/result"
 
 type tcpInsightSummaryBody struct {
 	AverageConnectMs *float64 `json:"averageConnectMs,omitempty"`
@@ -55,17 +11,7 @@ type tcpInsightSummaryBody struct {
 }
 
 func newQueryTCPInsightBody(output appresult.TCPInsightOutput) queryTCPInsightBody {
-	return queryTCPInsightBody{
-		Summary: newTCPInsightSummaryBody(output.Summary),
-		Meta: queryMetadataBody{
-			FromMs:        output.Meta.FromMs,
-			ToMs:          output.Meta.ToMs,
-			MaxDataPoints: output.Meta.MaxDataPoints,
-			Source:        output.Meta.Source,
-			Resolution:    output.Meta.Resolution,
-			TotalPoints:   output.Meta.TotalPoints,
-		},
-	}
+	return newQueryInsightBody(newTCPInsightSummaryBody(output.Summary), output.Meta)
 }
 
 func newTCPInsightSummaryBody(summary appresult.TCPInsightSummary) tcpInsightSummaryBody {
