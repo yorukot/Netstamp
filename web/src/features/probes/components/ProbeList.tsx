@@ -17,8 +17,7 @@ const statusFilterOptions: Array<{ value: "all" | ProbeStatus; label: string }> 
 ];
 const sortOptions: Array<{ value: ProbeSort; label: string }> = [
 	{ value: "heartbeat", label: "Last heartbeat" },
-	{ value: "name", label: "Probe name" },
-	{ value: "asn", label: "AS" }
+	{ value: "name", label: "Probe name" }
 ];
 
 const probeColumns: DataColumn<Probe>[] = [
@@ -26,7 +25,6 @@ const probeColumns: DataColumn<Probe>[] = [
 	{ key: "status", label: "Status", render: probe => <Badge tone={statusTones[probe.status]}>{probe.status}</Badge> },
 	{ key: "location", label: "Location" },
 	{ key: "publicIp", label: "Public IP" },
-	{ key: "asn", label: "AS" },
 	{ key: "ipFamily", label: "Support IP Family" },
 	{ key: "lastHeartbeat", label: "Last heartbeat" },
 	{

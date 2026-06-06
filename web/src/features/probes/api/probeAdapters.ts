@@ -46,18 +46,21 @@ export function mapApiProbe(probe: ApiProbe, index: number): Probe {
 
 	const coordinates = typeof probe.longitude === "number" && typeof probe.latitude === "number" ? ([probe.longitude, probe.latitude] as [number, number]) : undefined;
 	const status = probe.status;
-	const publicIp = status?.publicV4 || status?.publicV6 || status?.addrs?.[0] || "-";
-	const labelTokens = probe.labels?.map(label => `${label.key}:${label.value}`) ?? [];
-	const ipFamily = status?.publicV4 && status.publicV6 ? "IPv4 / IPv6" : status?.publicV6 ? "IPv6" : status?.publicV4 ? "IPv4" : "-";
+	const probeStatus = mapProbeStatus(probe);
+	const supportsV4 = Boolean(status?.publicV4);
+	const supportsV6 = Boolean(status?.publicV6);
+	const publicIp = status?.publicV4 || status?.publicV6 || "-";
+	const visibleLabels = probe.labels?.filter(label => label.key.toLowerCase() !== "as") ?? [];
+	const labelTokens = visibleLabels.map(label => `${label.key}:${label.value}`);
+	const ipFamily = supportsV4 && supportsV6 ? "IPv4 / IPv6" : supportsV4 ? "IPv4" : supportsV6 ? "IPv6" : "-";
 	const location = probe.locationName || coordinateSummary(probe.latitude, probe.longitude) || "-";
 
 	return {
 		id: probe.id,
 		name: probe.name,
-		status: mapProbeStatus(probe),
+		status: probeStatus,
 		location,
 		publicIp,
-		asn: status?.as || labelValue(probe, "as") || "-",
 		provider: labelValue(probe, "provider") || "Unlabeled",
 		region: location,
 		ipFamily,

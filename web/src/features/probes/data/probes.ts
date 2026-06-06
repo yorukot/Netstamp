@@ -6,7 +6,6 @@ export interface Probe {
 	status: ProbeStatus;
 	location: string;
 	publicIp: string;
-	asn: string;
 	provider: string;
 	region: string;
 	ipFamily: string;

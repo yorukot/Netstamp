@@ -1,7 +1,7 @@
 import type { CheckType } from "@/features/checks/data/checks";
 
 export type ProbeView = "grid" | "map";
-export type ProbeSort = "heartbeat" | "name" | "asn";
+export type ProbeSort = "heartbeat" | "name";
 
 export interface AssignedRow {
 	probe: string;

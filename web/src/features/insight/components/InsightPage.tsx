@@ -170,7 +170,6 @@ function fallbackProbe(assignment: ApiProjectAssignment): Probe {
 		status,
 		location,
 		publicIp: "-",
-		asn: "-",
 		provider: "Unlabeled",
 		region: location,
 		ipFamily: "-",
@@ -296,7 +295,7 @@ function assignmentSelectOption(pair: InsightPair): AssignmentSelectOption {
 	const label = assignmentLabel(pair);
 	const meta = assignmentMeta(pair);
 	const searchText = normalizeSearch(
-		[label, meta, pair.probe.name, pair.probe.location, pair.probe.asn, pair.probe.provider, pair.check.name, pair.check.target, pair.check.description, ...pair.probe.labelTokens].join(" ")
+		[label, meta, pair.probe.name, pair.probe.location, pair.probe.provider, pair.check.name, pair.check.target, pair.check.description, ...pair.probe.labelTokens].join(" ")
 	);
 
 	return {
@@ -317,7 +316,7 @@ function uniqueProbeOptions(pairs: InsightPair[]): AssignmentSelectOption[] {
 			value: pair.probeId,
 			label: pair.probe.name,
 			meta: pair.probe.location,
-			searchText: normalizeSearch([pair.probe.name, pair.probe.location, pair.probe.asn, pair.probe.provider, ...pair.probe.labelTokens].join(" "))
+			searchText: normalizeSearch([pair.probe.name, pair.probe.location, pair.probe.provider, ...pair.probe.labelTokens].join(" "))
 		});
 	}
 
