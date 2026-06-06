@@ -3,11 +3,10 @@ import { apiQueryKeys } from "@/shared/api/queryKeys";
 import type { ApiProject } from "@/shared/api/types";
 import { useProjectSelection } from "@/shared/api/useCurrentProject";
 import { pushErrorToast, pushToast } from "@/shared/toast/toastStore";
-import { Button, TextField } from "@netstamp/ui";
+import { Button, DialogContent, DialogDescription, DialogOverlay, DialogPortal, DialogRoot, DialogTitle, TextField } from "@netstamp/ui";
 import { useQueryClient } from "@tanstack/react-query";
 import type { FormEvent } from "react";
 import { useCallback, useEffect, useId, useState } from "react";
-import { createPortal } from "react-dom";
 import styles from "./CreateProjectModal.module.css";
 
 interface CreateProjectModalProps {
@@ -60,17 +59,6 @@ export function CreateProjectModal({ onClose, onCreatedProject }: CreateProjectM
 		};
 	}, []);
 
-	useEffect(() => {
-		function handleKeyDown(event: KeyboardEvent) {
-			if (event.key === "Escape") {
-				closeModal();
-			}
-		}
-
-		window.addEventListener("keydown", handleKeyDown);
-		return () => window.removeEventListener("keydown", handleKeyDown);
-	}, [closeModal]);
-
 	function updateProjectName(value: string) {
 		setProjectName(value);
 
@@ -118,47 +106,56 @@ export function CreateProjectModal({ onClose, onCreatedProject }: CreateProjectM
 		return null;
 	}
 
-	return createPortal(
-		<div className={styles.overlay} role="presentation" onMouseDown={closeModal}>
-			<div className={styles.lineTop} aria-hidden="true" />
-			<div className={styles.lineBottom} aria-hidden="true" />
-			<section
-				className={["ns-cut-frame", styles.dialog].join(" ")}
-				role="dialog"
-				aria-modal="true"
-				aria-labelledby={titleId}
-				aria-describedby={descriptionId}
-				onMouseDown={event => event.stopPropagation()}
-			>
-				<div className={styles.header}>
-					<span>Project registry</span>
-					<strong id={titleId}>Create project</strong>
-					<p id={descriptionId}>Add a workspace for probes, checks, and members.</p>
-				</div>
+	return (
+		<DialogRoot
+			open
+			onOpenChange={open => {
+				if (!open) {
+					closeModal();
+				}
+			}}
+		>
+			<DialogPortal>
+				<DialogOverlay className={styles.overlay} onMouseDown={closeModal}>
+					<div className={styles.lineTop} aria-hidden="true" />
+					<div className={styles.lineBottom} aria-hidden="true" />
+					<DialogContent asChild aria-describedby={descriptionId}>
+						<section className={["ns-cut-frame", styles.dialog].join(" ")} onMouseDown={event => event.stopPropagation()}>
+							<div className={styles.header}>
+								<span>Project registry</span>
+								<DialogTitle asChild>
+									<strong id={titleId}>Create project</strong>
+								</DialogTitle>
+								<DialogDescription asChild>
+									<p id={descriptionId}>Add a workspace for probes, checks, and members.</p>
+								</DialogDescription>
+							</div>
 
-				<form className={styles.form} onSubmit={submitProject}>
-					<TextField label="Project name" value={projectName} onChange={event => updateProjectName(event.currentTarget.value)} autoComplete="off" autoFocus required />
-					<TextField
-						label="Slug"
-						value={projectSlug}
-						onChange={event => updateProjectSlug(event.currentTarget.value)}
-						autoComplete="off"
-						maxLength={maxProjectSlugLength}
-						helper="Lowercase letters, numbers, and hyphens."
-						required
-					/>
+							<form className={styles.form} onSubmit={submitProject}>
+								<TextField label="Project name" value={projectName} onChange={event => updateProjectName(event.currentTarget.value)} autoComplete="off" autoFocus required />
+								<TextField
+									label="Slug"
+									value={projectSlug}
+									onChange={event => updateProjectSlug(event.currentTarget.value)}
+									autoComplete="off"
+									maxLength={maxProjectSlugLength}
+									helper="Lowercase letters, numbers, and hyphens."
+									required
+								/>
 
-					<div className={styles.actions}>
-						<Button type="button" variant="ghost" disabled={createProjectMutation.isPending} onClick={closeModal}>
-							Cancel
-						</Button>
-						<Button type="submit" disabled={!canCreate}>
-							{createProjectMutation.isPending ? "Creating" : "Create project"}
-						</Button>
-					</div>
-				</form>
-			</section>
-		</div>,
-		document.body
+								<div className={styles.actions}>
+									<Button type="button" variant="ghost" disabled={createProjectMutation.isPending} onClick={closeModal}>
+										Cancel
+									</Button>
+									<Button type="submit" disabled={!canCreate}>
+										{createProjectMutation.isPending ? "Creating" : "Create project"}
+									</Button>
+								</div>
+							</form>
+						</section>
+					</DialogContent>
+				</DialogOverlay>
+			</DialogPortal>
+		</DialogRoot>
 	);
 }

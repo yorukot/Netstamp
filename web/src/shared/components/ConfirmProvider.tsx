@@ -1,6 +1,5 @@
-import { Button, Input } from "@netstamp/ui";
+import { AlertDialogContent, AlertDialogDescription, AlertDialogOverlay, AlertDialogPortal, AlertDialogRoot, AlertDialogTitle, Button, Input } from "@netstamp/ui";
 import { type FormEvent, type ReactNode, useCallback, useEffect, useId, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import {
 	AlertDialogContext,
 	type AlertDialogFn,
@@ -121,19 +120,10 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
 		const previousOverflow = document.body.style.overflow;
 		document.body.style.overflow = "hidden";
 
-		function handleKeyDown(event: KeyboardEvent) {
-			if (event.key === "Escape") {
-				close(false);
-			}
-		}
-
-		window.addEventListener("keydown", handleKeyDown);
-
 		return () => {
-			window.removeEventListener("keydown", handleKeyDown);
 			document.body.style.overflow = previousOverflow;
 		};
-	}, [close, state]);
+	}, [state]);
 
 	useEffect(() => {
 		return () => {
@@ -182,72 +172,76 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
 		close(state.kind === "confirm");
 	}
 
+	function handleOpenChange(nextOpen: boolean) {
+		if (!nextOpen && state && !state.closing) {
+			cancelDialog();
+		}
+	}
+
 	const message = state?.options.message;
 	const tone = state?.options.tone ?? "default";
 	const eyebrow = state ? dialogEyebrow(state) : "";
 	const confirmLabel = state?.options.confirmLabel ?? (state?.kind === "alert" ? "OK" : "Confirm");
 
 	const dialog =
-		state && typeof document !== "undefined"
-			? createPortal(
-					<div className={styles.overlay} data-closing={state.closing} role="presentation" onMouseDown={cancelDialog}>
+		state && typeof document !== "undefined" ? (
+			<AlertDialogRoot open={Boolean(state)} onOpenChange={handleOpenChange}>
+				<AlertDialogPortal>
+					<AlertDialogOverlay className={styles.overlay} data-closing={state.closing} onMouseDown={cancelDialog}>
 						<div className={styles.axis} aria-hidden="true" />
 						<div className={styles.curtainTop} aria-hidden="true" />
 						<div className={styles.curtainBottom} aria-hidden="true" />
-						<form
-							className={["ns-cut-frame", styles.dialog].join(" ")}
-							data-tone={tone}
-							onSubmit={submitDialog}
-							role="alertdialog"
-							aria-modal="true"
-							aria-labelledby={titleId}
-							aria-describedby={message ? messageId : undefined}
-							onMouseDown={event => event.stopPropagation()}
-						>
-							<div className={styles.header}>
-								<span>{eyebrow}</span>
-								<strong id={titleId}>{state.options.title}</strong>
-							</div>
-							{message ? (
-								<p id={messageId} className={styles.message}>
-									{message}
-								</p>
-							) : null}
-							{state.kind === "prompt" ? (
-								<div className={styles.field}>
-									<label htmlFor={inputId}>{state.options.inputLabel ?? "Value"}</label>
-									<Input
-										id={inputId}
-										type={state.options.inputType ?? "text"}
-										value={state.inputValue}
-										placeholder={state.options.placeholder}
-										invalid={Boolean(state.inputError)}
-										aria-describedby={state.inputError ? inputErrorId : undefined}
-										autoFocus
-										onChange={event => updatePromptValue(event.currentTarget.value)}
-									/>
-									{state.inputError ? (
-										<p id={inputErrorId} className={styles.inputError}>
-											{state.inputError}
-										</p>
-									) : null}
+						<AlertDialogContent asChild aria-describedby={message ? messageId : undefined}>
+							<form className={["ns-cut-frame", styles.dialog].join(" ")} data-tone={tone} onSubmit={submitDialog} onMouseDown={event => event.stopPropagation()}>
+								<div className={styles.header}>
+									<span>{eyebrow}</span>
+									<AlertDialogTitle asChild>
+										<strong id={titleId}>{state.options.title}</strong>
+									</AlertDialogTitle>
 								</div>
-							) : null}
-							<div className={styles.actions}>
-								{state.kind !== "alert" ? (
-									<Button type="button" variant="ghost" onClick={cancelDialog} autoFocus={state.kind === "confirm"}>
-										{state.options.cancelLabel ?? "Cancel"}
-									</Button>
+								{message ? (
+									<AlertDialogDescription asChild>
+										<p id={messageId} className={styles.message}>
+											{message}
+										</p>
+									</AlertDialogDescription>
 								) : null}
-								<Button type="submit" variant={tone === "danger" ? "danger" : "primary"} autoFocus={state.kind === "alert"}>
-									{confirmLabel}
-								</Button>
-							</div>
-						</form>
-					</div>,
-					document.body
-				)
-			: null;
+								{state.kind === "prompt" ? (
+									<div className={styles.field}>
+										<label htmlFor={inputId}>{state.options.inputLabel ?? "Value"}</label>
+										<Input
+											id={inputId}
+											type={state.options.inputType ?? "text"}
+											value={state.inputValue}
+											placeholder={state.options.placeholder}
+											invalid={Boolean(state.inputError)}
+											aria-describedby={state.inputError ? inputErrorId : undefined}
+											autoFocus
+											onChange={event => updatePromptValue(event.currentTarget.value)}
+										/>
+										{state.inputError ? (
+											<p id={inputErrorId} className={styles.inputError}>
+												{state.inputError}
+											</p>
+										) : null}
+									</div>
+								) : null}
+								<div className={styles.actions}>
+									{state.kind !== "alert" ? (
+										<Button type="button" variant="ghost" onClick={cancelDialog} autoFocus={state.kind === "confirm"}>
+											{state.options.cancelLabel ?? "Cancel"}
+										</Button>
+									) : null}
+									<Button type="submit" variant={tone === "danger" ? "danger" : "primary"} autoFocus={state.kind === "alert"}>
+										{confirmLabel}
+									</Button>
+								</div>
+							</form>
+						</AlertDialogContent>
+					</AlertDialogOverlay>
+				</AlertDialogPortal>
+			</AlertDialogRoot>
+		) : null;
 
 	return (
 		<ConfirmContext.Provider value={confirm}>

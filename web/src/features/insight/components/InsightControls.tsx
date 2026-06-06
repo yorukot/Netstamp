@@ -2,9 +2,8 @@ import { displayInsightTimeRange } from "@/features/insight/insightTime";
 import type { InsightRefreshInterval, InsightRelativeRange, InsightTimeMode, TimeWindow } from "@/features/insight/insightTypes";
 import { classNames } from "@/shared/utils/classNames";
 import { relativeTimeOptions, relativeTimeRangeDurations } from "@/shared/utils/timeRanges";
-import { Button, SelectField, TextField } from "@netstamp/ui";
-import { useEffect, useId, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
-import { createPortal } from "react-dom";
+import { Button, PopoverAnchor, PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger, SelectField, TextField } from "@netstamp/ui";
+import { useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import styles from "./InsightControls.module.css";
 
 export type SegmentOption<TValue extends string> = {
@@ -34,46 +33,6 @@ function parseDateTimeLocal(value: string) {
 	const parsed = new Date(value).getTime();
 
 	return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
-}
-
-function timePopoverStyle(anchor: HTMLElement | null): CSSProperties | undefined {
-	if (!anchor || typeof window === "undefined") {
-		return undefined;
-	}
-
-	const rect = anchor.getBoundingClientRect();
-	const gap = 10;
-	const availableWidth = Math.max(280, window.innerWidth - gap * 2);
-	const width = Math.min(Math.max(rect.width, 460), availableWidth);
-	const left = Math.min(Math.max(gap, rect.left), window.innerWidth - width - gap);
-	const top = Math.max(gap, Math.min(rect.bottom + gap, Math.max(gap, window.innerHeight - gap - 220)));
-	const maxHeight = Math.max(180, window.innerHeight - top - gap);
-
-	return {
-		left,
-		maxHeight,
-		top,
-		width
-	};
-}
-
-function compactPopoverStyle(anchor: HTMLElement | null): CSSProperties | undefined {
-	if (!anchor || typeof window === "undefined") {
-		return undefined;
-	}
-
-	const rect = anchor.getBoundingClientRect();
-	const gap = 8;
-	const availableWidth = Math.max(280, window.innerWidth - gap * 2);
-	const width = Math.min(Math.max(rect.width, 520), availableWidth);
-	const left = Math.min(Math.max(gap, rect.left), window.innerWidth - width - gap);
-	const spaceBelow = window.innerHeight - rect.bottom - gap;
-	const spaceAbove = rect.top - gap;
-	const openAbove = spaceBelow < 260 && spaceAbove > spaceBelow;
-	const maxHeight = Math.min(360, Math.max(180, openAbove ? spaceAbove : spaceBelow));
-	const top = openAbove ? Math.max(gap, rect.top - gap - maxHeight) : Math.min(rect.bottom + gap, window.innerHeight - gap - maxHeight);
-
-	return { left, maxHeight, top, width };
 }
 
 export function SegmentedControl<TValue extends string>({
@@ -148,9 +107,6 @@ export function ScopeSelect({
 	const [open, setOpen] = useState(false);
 	const [query, setQuery] = useState("");
 	const [activeIndex, setActiveIndex] = useState(0);
-	const [popoverStyle, setPopoverStyle] = useState<CSSProperties>();
-	const rootRef = useRef<HTMLDivElement>(null);
-	const popoverRef = useRef<HTMLDivElement>(null);
 	const inputRef = useRef<HTMLInputElement>(null);
 	const optionsByValue = useMemo(() => new Map(options.map(option => [option.value, option])), [options]);
 	const selectedOption = value ? optionsByValue.get(value) : undefined;
@@ -166,7 +122,6 @@ export function ScopeSelect({
 			return;
 		}
 
-		setPopoverStyle(compactPopoverStyle(rootRef.current));
 		setOpen(true);
 	}
 
@@ -222,40 +177,65 @@ export function ScopeSelect({
 		}
 	}
 
-	useEffect(() => {
-		if (!open) {
-			return;
-		}
-
-		function updatePosition() {
-			setPopoverStyle(compactPopoverStyle(rootRef.current));
-		}
-
-		function handlePointerDown(event: PointerEvent) {
-			const target = event.target as Node;
-
-			if (rootRef.current?.contains(target) || popoverRef.current?.contains(target)) {
-				return;
-			}
-
-			setOpen(false);
-		}
-
-		window.addEventListener("resize", updatePosition);
-		window.addEventListener("scroll", updatePosition, true);
-		window.addEventListener("pointerdown", handlePointerDown);
-
-		return () => {
-			window.removeEventListener("resize", updatePosition);
-			window.removeEventListener("scroll", updatePosition, true);
-			window.removeEventListener("pointerdown", handlePointerDown);
-		};
-	}, [open]);
-
-	const popover =
-		open && popoverStyle && typeof document !== "undefined"
-			? createPortal(
-					<div ref={popoverRef} id={listboxId} className={classNames("ns-cut-frame", "ns-scrollbar", styles.assignmentPopover)} style={popoverStyle} role="listbox">
+	return (
+		<PopoverRoot open={open} onOpenChange={setOpen}>
+			<div className={styles.assignmentField}>
+				<label className={styles.segmentLabel} htmlFor={inputId}>
+					{label}
+				</label>
+				<PopoverAnchor asChild>
+					<div className={classNames("ns-cut-frame", styles.assignmentControl)} data-open={open || undefined} data-disabled={disabled || undefined} onClick={() => inputRef.current?.focus()}>
+						{selectedOption ? (
+							<span className={styles.assignmentToken}>
+								<span>{selectedOption.label}</span>
+							</span>
+						) : null}
+						<input
+							ref={inputRef}
+							id={inputId}
+							value={query}
+							disabled={disabled}
+							placeholder={selectedOption ? "Filter or change selection" : placeholder}
+							role="combobox"
+							aria-expanded={open}
+							aria-controls={open ? listboxId : undefined}
+							aria-autocomplete="list"
+							autoComplete="off"
+							onFocus={openPopover}
+							onChange={event => {
+								setQuery(event.currentTarget.value);
+								setActiveIndex(0);
+								openPopover();
+							}}
+							onKeyDown={handleKeyDown}
+						/>
+						{value ? (
+							<button
+								type="button"
+								className={styles.assignmentClear}
+								aria-label={`Clear ${label}`}
+								onMouseDown={event => event.preventDefault()}
+								onClick={event => {
+									event.stopPropagation();
+									clearValue();
+								}}
+							>
+								Clear
+							</button>
+						) : null}
+					</div>
+				</PopoverAnchor>
+				<PopoverPortal>
+					<PopoverContent
+						id={listboxId}
+						className={classNames("ns-cut-frame", "ns-scrollbar", styles.assignmentPopover)}
+						role="listbox"
+						align="start"
+						sideOffset={8}
+						collisionPadding={8}
+						onOpenAutoFocus={event => event.preventDefault()}
+						onCloseAutoFocus={event => event.preventDefault()}
+					>
 						{filteredOptions.length ? (
 							filteredOptions.map((option, index) => {
 								const selected = option.value === value;
@@ -282,58 +262,10 @@ export function ScopeSelect({
 						) : (
 							<div className={styles.assignmentEmpty}>No {label.toLowerCase()} match this search.</div>
 						)}
-					</div>,
-					document.body
-				)
-			: null;
-
-	return (
-		<div className={styles.assignmentField}>
-			<label className={styles.segmentLabel} htmlFor={inputId}>
-				{label}
-			</label>
-			<div ref={rootRef} className={classNames("ns-cut-frame", styles.assignmentControl)} data-open={open || undefined} data-disabled={disabled || undefined} onClick={() => inputRef.current?.focus()}>
-				{selectedOption ? (
-					<span className={styles.assignmentToken}>
-						<span>{selectedOption.label}</span>
-					</span>
-				) : null}
-				<input
-					ref={inputRef}
-					id={inputId}
-					value={query}
-					disabled={disabled}
-					placeholder={selectedOption ? "Filter or change selection" : placeholder}
-					role="combobox"
-					aria-expanded={open}
-					aria-controls={open ? listboxId : undefined}
-					aria-autocomplete="list"
-					autoComplete="off"
-					onFocus={openPopover}
-					onChange={event => {
-						setQuery(event.currentTarget.value);
-						setActiveIndex(0);
-						openPopover();
-					}}
-					onKeyDown={handleKeyDown}
-				/>
-				{value ? (
-					<button
-						type="button"
-						className={styles.assignmentClear}
-						aria-label={`Clear ${label}`}
-						onMouseDown={event => event.preventDefault()}
-						onClick={event => {
-							event.stopPropagation();
-							clearValue();
-						}}
-					>
-						Clear
-					</button>
-				) : null}
+					</PopoverContent>
+				</PopoverPortal>
 			</div>
-			{popover}
-		</div>
+		</PopoverRoot>
 	);
 }
 
@@ -357,9 +289,6 @@ export function AssignmentMultiSelect({
 	const [open, setOpen] = useState(false);
 	const [query, setQuery] = useState("");
 	const [activeIndex, setActiveIndex] = useState(0);
-	const [popoverStyle, setPopoverStyle] = useState<CSSProperties>();
-	const rootRef = useRef<HTMLDivElement>(null);
-	const popoverRef = useRef<HTMLDivElement>(null);
 	const inputRef = useRef<HTMLInputElement>(null);
 	const selectedSet = useMemo(() => new Set(selectedValues), [selectedValues]);
 	const optionsByValue = useMemo(() => new Map(options.map(option => [option.value, option])), [options]);
@@ -377,7 +306,6 @@ export function AssignmentMultiSelect({
 			return;
 		}
 
-		setPopoverStyle(compactPopoverStyle(rootRef.current));
 		setOpen(true);
 	}
 
@@ -441,40 +369,78 @@ export function AssignmentMultiSelect({
 		}
 	}
 
-	useEffect(() => {
-		if (!open) {
-			return;
-		}
-
-		function updatePosition() {
-			setPopoverStyle(compactPopoverStyle(rootRef.current));
-		}
-
-		function handlePointerDown(event: PointerEvent) {
-			const target = event.target as Node;
-
-			if (rootRef.current?.contains(target) || popoverRef.current?.contains(target)) {
-				return;
-			}
-
-			setOpen(false);
-		}
-
-		window.addEventListener("resize", updatePosition);
-		window.addEventListener("scroll", updatePosition, true);
-		window.addEventListener("pointerdown", handlePointerDown);
-
-		return () => {
-			window.removeEventListener("resize", updatePosition);
-			window.removeEventListener("scroll", updatePosition, true);
-			window.removeEventListener("pointerdown", handlePointerDown);
-		};
-	}, [open]);
-
-	const popover =
-		open && popoverStyle && typeof document !== "undefined"
-			? createPortal(
-					<div ref={popoverRef} id={listboxId} className={classNames("ns-cut-frame", "ns-scrollbar", styles.assignmentPopover)} style={popoverStyle} role="listbox" aria-multiselectable="true">
+	return (
+		<PopoverRoot open={open} onOpenChange={setOpen}>
+			<div className={styles.assignmentField}>
+				<label className={styles.segmentLabel} htmlFor={inputId}>
+					{label}
+				</label>
+				<PopoverAnchor asChild>
+					<div className={classNames("ns-cut-frame", styles.assignmentControl)} data-open={open || undefined} data-disabled={disabled || undefined} onClick={() => inputRef.current?.focus()}>
+						{selectedOptions.slice(0, 2).map(option => (
+							<span className={styles.assignmentToken} key={option.value}>
+								<span>{option.label}</span>
+								<button
+									type="button"
+									aria-label={`Remove ${option.label}`}
+									onMouseDown={event => event.preventDefault()}
+									onClick={event => {
+										event.stopPropagation();
+										clearValue(option.value);
+									}}
+								>
+									x
+								</button>
+							</span>
+						))}
+						{selectedOptions.length > 2 ? <span className={styles.assignmentOverflow}>+{selectedOptions.length - 2}</span> : null}
+						<input
+							ref={inputRef}
+							id={inputId}
+							value={query}
+							disabled={disabled}
+							placeholder={selectedOptions.length ? selectedSummary : placeholder}
+							role="combobox"
+							aria-expanded={open}
+							aria-controls={open ? listboxId : undefined}
+							aria-autocomplete="list"
+							autoComplete="off"
+							onFocus={openPopover}
+							onChange={event => {
+								setQuery(event.currentTarget.value);
+								setActiveIndex(0);
+								openPopover();
+							}}
+							onKeyDown={handleKeyDown}
+						/>
+						{selectedValues.length ? (
+							<button
+								type="button"
+								className={styles.assignmentClear}
+								aria-label="Clear assignment selection"
+								onMouseDown={event => event.preventDefault()}
+								onClick={event => {
+									event.stopPropagation();
+									clearAll();
+								}}
+							>
+								Clear
+							</button>
+						) : null}
+					</div>
+				</PopoverAnchor>
+				<PopoverPortal>
+					<PopoverContent
+						id={listboxId}
+						className={classNames("ns-cut-frame", "ns-scrollbar", styles.assignmentPopover)}
+						role="listbox"
+						aria-multiselectable="true"
+						align="start"
+						sideOffset={8}
+						collisionPadding={8}
+						onOpenAutoFocus={event => event.preventDefault()}
+						onCloseAutoFocus={event => event.preventDefault()}
+					>
 						{filteredOptions.length ? (
 							filteredOptions.map((option, index) => {
 								const selected = selectedSet.has(option.value);
@@ -504,70 +470,10 @@ export function AssignmentMultiSelect({
 						) : (
 							<div className={styles.assignmentEmpty}>No assignments match this search.</div>
 						)}
-					</div>,
-					document.body
-				)
-			: null;
-
-	return (
-		<div className={styles.assignmentField}>
-			<label className={styles.segmentLabel} htmlFor={inputId}>
-				{label}
-			</label>
-			<div ref={rootRef} className={classNames("ns-cut-frame", styles.assignmentControl)} data-open={open || undefined} data-disabled={disabled || undefined} onClick={() => inputRef.current?.focus()}>
-				{selectedOptions.slice(0, 2).map(option => (
-					<span className={styles.assignmentToken} key={option.value}>
-						<span>{option.label}</span>
-						<button
-							type="button"
-							aria-label={`Remove ${option.label}`}
-							onMouseDown={event => event.preventDefault()}
-							onClick={event => {
-								event.stopPropagation();
-								clearValue(option.value);
-							}}
-						>
-							x
-						</button>
-					</span>
-				))}
-				{selectedOptions.length > 2 ? <span className={styles.assignmentOverflow}>+{selectedOptions.length - 2}</span> : null}
-				<input
-					ref={inputRef}
-					id={inputId}
-					value={query}
-					disabled={disabled}
-					placeholder={selectedOptions.length ? selectedSummary : placeholder}
-					role="combobox"
-					aria-expanded={open}
-					aria-controls={open ? listboxId : undefined}
-					aria-autocomplete="list"
-					autoComplete="off"
-					onFocus={openPopover}
-					onChange={event => {
-						setQuery(event.currentTarget.value);
-						setActiveIndex(0);
-						openPopover();
-					}}
-					onKeyDown={handleKeyDown}
-				/>
-				{selectedValues.length ? (
-					<button
-						type="button"
-						className={styles.assignmentClear}
-						aria-label="Clear assignment selection"
-						onMouseDown={event => event.preventDefault()}
-						onClick={event => {
-							event.stopPropagation();
-							clearAll();
-						}}
-					>
-						Clear
-					</button>
-				) : null}
+					</PopoverContent>
+				</PopoverPortal>
 			</div>
-			{popover}
-		</div>
+		</PopoverRoot>
 	);
 }
 
@@ -593,9 +499,6 @@ export function InsightTimeControl({
 	onRefreshChange: (refresh: InsightRefreshInterval) => void;
 }) {
 	const [open, setOpen] = useState(false);
-	const [popoverStyle, setPopoverStyle] = useState<CSSProperties>();
-	const rootRef = useRef<HTMLDivElement>(null);
-	const popoverRef = useRef<HTMLDivElement>(null);
 	const timeWindowKey = `${timeWindow.from}:${timeWindow.to}`;
 	const initialAbsoluteDraft = {
 		key: timeWindowKey,
@@ -633,56 +536,30 @@ export function InsightTimeControl({
 		setOpen(false);
 	}
 
-	function togglePopover() {
-		if (open) {
-			setOpen(false);
-			return;
-		}
-
-		setPopoverStyle(timePopoverStyle(rootRef.current));
-		setOpen(true);
-	}
-
-	useEffect(() => {
-		if (!open) {
-			return;
-		}
-
-		function updatePosition() {
-			setPopoverStyle(timePopoverStyle(rootRef.current));
-		}
-
-		function handlePointerDown(event: PointerEvent) {
-			const target = event.target as Node;
-
-			if (rootRef.current?.contains(target) || popoverRef.current?.contains(target)) {
-				return;
-			}
-
-			setOpen(false);
-		}
-
-		window.addEventListener("resize", updatePosition);
-		window.addEventListener("scroll", updatePosition, true);
-		window.addEventListener("pointerdown", handlePointerDown);
-
-		return () => {
-			window.removeEventListener("resize", updatePosition);
-			window.removeEventListener("scroll", updatePosition, true);
-			window.removeEventListener("pointerdown", handlePointerDown);
-		};
-	}, [open]);
-
-	const timePopover =
-		open && popoverStyle && typeof document !== "undefined"
-			? createPortal(
-					<div
-						ref={popoverRef}
+	return (
+		<PopoverRoot open={open} onOpenChange={setOpen}>
+			<div className={classNames(styles.timeControlRoot, className)}>
+				<span className={styles.segmentLabel}>Time</span>
+				<div className={styles.timeControls}>
+					<PopoverTrigger asChild>
+						<button id={timeButtonId} type="button" className={classNames("ns-cut-frame", styles.timeTrigger)} aria-controls={`${timeButtonId}-panel`}>
+							<span>{displayInsightTimeRange(timeMode, timeRange, timeWindow)}</span>
+						</button>
+					</PopoverTrigger>
+					<Button type="button" variant="outline" size="sm" className={styles.refreshButton} onClick={onRefresh}>
+						Refresh
+					</Button>
+					<SelectField label="Refresh" value={refresh} options={refreshOptions} onChange={event => onRefreshChange(event.currentTarget.value as InsightRefreshInterval)} />
+				</div>
+				<PopoverPortal>
+					<PopoverContent
 						id={`${timeButtonId}-panel`}
 						className={classNames("ns-cut-frame", "ns-scrollbar", styles.timePopover)}
-						style={popoverStyle}
 						role="dialog"
 						aria-labelledby={timeButtonId}
+						align="start"
+						sideOffset={10}
+						collisionPadding={10}
 					>
 						<section className={styles.timeSection}>
 							<h4>Relative time</h4>
@@ -718,24 +595,9 @@ export function InsightTimeControl({
 								</Button>
 							</div>
 						</section>
-					</div>,
-					document.body
-				)
-			: null;
-
-	return (
-		<div ref={rootRef} className={classNames(styles.timeControlRoot, className)}>
-			<span className={styles.segmentLabel}>Time</span>
-			<div className={styles.timeControls}>
-				<button id={timeButtonId} type="button" className={classNames("ns-cut-frame", styles.timeTrigger)} aria-expanded={open} aria-controls={`${timeButtonId}-panel`} onClick={togglePopover}>
-					<span>{displayInsightTimeRange(timeMode, timeRange, timeWindow)}</span>
-				</button>
-				<Button type="button" variant="outline" size="sm" className={styles.refreshButton} onClick={onRefresh}>
-					Refresh
-				</Button>
-				<SelectField label="Refresh" value={refresh} options={refreshOptions} onChange={event => onRefreshChange(event.currentTarget.value as InsightRefreshInterval)} />
+					</PopoverContent>
+				</PopoverPortal>
 			</div>
-			{timePopover}
-		</div>
+		</PopoverRoot>
 	);
 }

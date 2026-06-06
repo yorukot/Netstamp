@@ -1,9 +1,9 @@
 /// <reference path="../../react-dom.d.ts" />
 
 import * as Label from "@radix-ui/react-label";
-import type { CSSProperties, ChangeEvent, ComponentPropsWithoutRef, KeyboardEvent as ReactKeyboardEvent, ReactNode } from "react";
-import { Children, Fragment, forwardRef, isValidElement, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import * as RadixSelect from "@radix-ui/react-select";
+import type { ChangeEvent, ComponentPropsWithoutRef, KeyboardEvent as ReactKeyboardEvent, ReactNode } from "react";
+import { Children, Fragment, forwardRef, isValidElement, useEffect, useId, useMemo, useRef, useState } from "react";
 import styles from "./Field.module.css";
 
 export type ControlVariant = "default" | "compact" | "bare";
@@ -45,7 +45,10 @@ interface SelectOption {
 	value: string;
 	label: ReactNode;
 	disabled?: boolean;
+	radixValue: string;
 }
+
+const emptySelectValuePrefix = "__netstamp-ui-empty-select-value-";
 
 function textFromReactNode(node: ReactNode): string {
 	return Children.toArray(node)
@@ -75,8 +78,8 @@ function valueToString(value: unknown): string | undefined {
 	return String(value);
 }
 
-function collectSelectOptions(children: ReactNode): SelectOption[] {
-	const options: SelectOption[] = [];
+function collectSelectOptions(children: ReactNode): Omit<SelectOption, "radixValue">[] {
+	const options: Omit<SelectOption, "radixValue">[] = [];
 
 	function visit(node: ReactNode) {
 		Children.forEach(node, child => {
@@ -108,6 +111,10 @@ function collectSelectOptions(children: ReactNode): SelectOption[] {
 	return options;
 }
 
+function selectOptionRadixValue(value: string, index: number) {
+	return value === "" ? `${emptySelectValuePrefix}${index}__` : value;
+}
+
 function setNativeSelectValue(select: HTMLSelectElement, value: string) {
 	const descriptor = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value");
 
@@ -117,34 +124,6 @@ function setNativeSelectValue(select: HTMLSelectElement, value: string) {
 	}
 
 	select.value = value;
-}
-
-function getSelectMenuStyle(frame: HTMLElement | null, menu?: HTMLElement | null): CSSProperties | undefined {
-	if (!frame || typeof window === "undefined") {
-		return undefined;
-	}
-
-	const rect = frame.getBoundingClientRect();
-	const gap = 8;
-	const viewportWidth = window.innerWidth;
-	const viewportHeight = window.innerHeight;
-	const width = Math.min(rect.width, viewportWidth - gap * 2);
-	const left = Math.min(Math.max(gap, rect.left), viewportWidth - width - gap);
-	const spaceBelow = viewportHeight - rect.bottom - gap;
-	const spaceAbove = rect.top - gap;
-	const preferredHeight = menu ? Math.min(288, menu.scrollHeight) : 176;
-	const openAbove = preferredHeight > spaceBelow && spaceAbove > spaceBelow;
-	const availableHeight = openAbove ? spaceAbove : spaceBelow;
-	const maxHeight = Math.min(288, Math.max(96, availableHeight));
-	const renderedHeight = menu ? Math.min(menu.scrollHeight, maxHeight) : maxHeight;
-	const top = openAbove ? Math.max(gap, rect.top - gap - renderedHeight) : Math.min(rect.bottom + gap, viewportHeight - gap - renderedHeight);
-
-	return {
-		left,
-		maxHeight,
-		top,
-		width
-	};
 }
 
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
@@ -174,24 +153,24 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
 ) {
 	const generatedId = useId();
 	const triggerId = id || generatedId;
-	const listboxId = `${triggerId}-listbox`;
 	const ariaInvalid = invalid || ariaInvalidProp === true || ariaInvalidProp === "true";
-	const options = useMemo(() => collectSelectOptions(children), [children]);
+	const options = useMemo(
+		() =>
+			collectSelectOptions(children).map((option, index) => ({
+				...option,
+				radixValue: selectOptionRadixValue(option.value, index)
+			})),
+		[children]
+	);
 	const isControlled = value !== undefined;
 	const initialValue = valueToString(value) ?? valueToString(defaultValue) ?? options[0]?.value ?? "";
 	const [internalValue, setInternalValue] = useState(initialValue);
 	const [open, setOpen] = useState(false);
-	const [activeValue, setActiveValue] = useState(initialValue);
-	const [menuStyle, setMenuStyle] = useState<CSSProperties>();
-	const rootRef = useRef<HTMLSpanElement>(null);
-	const frameRef = useRef<HTMLSpanElement>(null);
 	const selectRef = useRef<HTMLSelectElement | null>(null);
 	const triggerRef = useRef<HTMLButtonElement>(null);
-	const menuRef = useRef<HTMLDivElement>(null);
 	const selectedValue = isControlled ? (valueToString(value) ?? "") : internalValue;
 	const selectedOption = options.find(option => option.value === selectedValue);
-	const activeIndex = options.findIndex(option => option.value === activeValue);
-	const activeOptionId = open && activeIndex >= 0 ? `${listboxId}-option-${activeIndex}` : undefined;
+	const radixSelectedValue = selectedOption?.radixValue ?? "";
 	const classes = [styles.control, styles.select, styles[`${variant}Control`], className].filter(Boolean).join(" ");
 	const frameClasses = ["ns-cut-frame", styles.controlFrame, styles.selectFrame, styles[`${variant}Frame`], frameClassName].filter(Boolean).join(" ");
 	const menuClasses = [styles.selectMenu, styles[`${variant}Menu`]].filter(Boolean).join(" ");
@@ -209,58 +188,17 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
 		}
 	}
 
-	function enabledOptionFrom(value: string, offset: number) {
-		const enabledOptions = options.filter(option => !option.disabled);
-
-		if (!enabledOptions.length) {
-			return undefined;
-		}
-
-		const currentIndex = enabledOptions.findIndex(option => option.value === value);
-		const nextIndex = currentIndex === -1 ? (offset > 0 ? 0 : enabledOptions.length - 1) : (currentIndex + offset + enabledOptions.length) % enabledOptions.length;
-
-		return enabledOptions[nextIndex];
-	}
-
-	function firstEnabledOption() {
-		return options.find(option => !option.disabled);
-	}
-
-	function lastEnabledOption() {
-		for (let index = options.length - 1; index >= 0; index -= 1) {
-			if (!options[index].disabled) {
-				return options[index];
-			}
-		}
-
-		return undefined;
-	}
-
-	function openMenu() {
-		if (disabled || !options.length) {
-			return;
-		}
-
-		const selectedEnabled = options.find(option => option.value === selectedValue && !option.disabled);
-		setActiveValue((selectedEnabled ?? firstEnabledOption() ?? selectedOption ?? options[0]).value);
-		setMenuStyle(getSelectMenuStyle(frameRef.current));
-		setOpen(true);
-	}
-
-	function closeMenu() {
-		setOpen(false);
-	}
-
-	function commitValue(nextValue: string) {
-		const nextOption = options.find(option => option.value === nextValue);
+	function commitValue(nextRadixValue: string) {
+		const nextOption = options.find(option => option.radixValue === nextRadixValue);
 
 		if (!nextOption || nextOption.disabled || disabled) {
 			return;
 		}
 
+		const nextValue = nextOption.value;
+
 		if (nextValue === selectedValue) {
-			setActiveValue(nextValue);
-			closeMenu();
+			setOpen(false);
 			triggerRef.current?.focus();
 			return;
 		}
@@ -274,8 +212,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
 			setInternalValue(nextValue);
 		}
 
-		setActiveValue(nextValue);
-		closeMenu();
+		setOpen(false);
 		triggerRef.current?.focus();
 	}
 
@@ -289,64 +226,6 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
 
 	function handleTriggerKeyDown(event: ReactKeyboardEvent<HTMLButtonElement>) {
 		onKeyDown?.(event as unknown as ReactKeyboardEvent<HTMLSelectElement>);
-
-		if (event.defaultPrevented || disabled) {
-			return;
-		}
-
-		if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-			event.preventDefault();
-
-			if (!open) {
-				openMenu();
-				return;
-			}
-
-			const nextOption = enabledOptionFrom(open ? activeValue : selectedValue, event.key === "ArrowDown" ? 1 : -1);
-
-			if (nextOption) {
-				setActiveValue(nextOption.value);
-			}
-
-			return;
-		}
-
-		if (event.key === "Home" || event.key === "End") {
-			event.preventDefault();
-			const nextOption = event.key === "Home" ? firstEnabledOption() : lastEnabledOption();
-
-			if (nextOption) {
-				setActiveValue(nextOption.value);
-			}
-
-			if (!open && nextOption) {
-				setOpen(true);
-			}
-
-			return;
-		}
-
-		if (event.key === "Enter" || event.key === " ") {
-			event.preventDefault();
-
-			if (open) {
-				commitValue(activeValue);
-				return;
-			}
-
-			openMenu();
-			return;
-		}
-
-		if (event.key === "Escape" && open) {
-			event.preventDefault();
-			closeMenu();
-			return;
-		}
-
-		if (event.key === "Tab") {
-			closeMenu();
-		}
 	}
 
 	useEffect(() => {
@@ -359,7 +238,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
 
 	useEffect(() => {
 		if (disabled) {
-			closeMenu();
+			setOpen(false);
 		}
 	}, [disabled]);
 
@@ -370,70 +249,6 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
 
 		triggerRef.current?.focus();
 	}, [autoFocus, disabled]);
-
-	useLayoutEffect(() => {
-		if (!open) {
-			return;
-		}
-
-		function updateMenuPosition() {
-			const nextMenuStyle = getSelectMenuStyle(frameRef.current, menuRef.current);
-
-			if (!nextMenuStyle) {
-				return;
-			}
-
-			setMenuStyle(nextMenuStyle);
-		}
-
-		function handlePointerDown(event: PointerEvent) {
-			const target = event.target as Node;
-
-			if (rootRef.current?.contains(target) || menuRef.current?.contains(target)) {
-				return;
-			}
-
-			closeMenu();
-		}
-
-		updateMenuPosition();
-		window.addEventListener("resize", updateMenuPosition);
-		window.addEventListener("scroll", updateMenuPosition, true);
-		window.addEventListener("pointerdown", handlePointerDown);
-
-		return () => {
-			window.removeEventListener("resize", updateMenuPosition);
-			window.removeEventListener("scroll", updateMenuPosition, true);
-			window.removeEventListener("pointerdown", handlePointerDown);
-		};
-	}, [open]);
-
-	useLayoutEffect(() => {
-		const menu = menuRef.current;
-
-		if (!activeOptionId || !menu || typeof document === "undefined") {
-			return;
-		}
-
-		const activeOption = document.getElementById(activeOptionId);
-
-		if (!activeOption) {
-			return;
-		}
-
-		const optionTop = activeOption.offsetTop;
-		const optionBottom = optionTop + activeOption.offsetHeight;
-		const menuBottom = menu.scrollTop + menu.clientHeight;
-
-		if (optionTop < menu.scrollTop) {
-			menu.scrollTop = optionTop;
-			return;
-		}
-
-		if (optionBottom > menuBottom) {
-			menu.scrollTop = optionBottom - menu.clientHeight;
-		}
-	}, [activeOptionId]);
 
 	if (multiple) {
 		return (
@@ -455,88 +270,53 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
 		);
 	}
 
-	const menu =
-		open && menuStyle && typeof document !== "undefined"
-			? createPortal(
-					<div ref={menuRef} id={listboxId} className={menuClasses} style={menuStyle} role="listbox" aria-label={ariaLabel} aria-labelledby={ariaLabel ? undefined : triggerId}>
-						{options.map((option, index) => {
-							const selected = option.value === selectedValue;
-							const active = option.value === activeValue;
-
-							return (
-								<div
-									key={`${option.value}-${index}`}
-									id={`${listboxId}-option-${index}`}
-									className={styles.selectOption}
-									role="option"
-									aria-selected={selected}
-									data-active={active || undefined}
-									data-selected={selected || undefined}
-									data-disabled={option.disabled || undefined}
-									onMouseDown={event => event.preventDefault()}
-									onMouseEnter={() => {
-										if (!option.disabled) {
-											setActiveValue(option.value);
-										}
-									}}
-									onClick={() => commitValue(option.value)}
-								>
-									<span className={styles.selectOptionLabel}>{option.label}</span>
-								</div>
-							);
-						})}
-					</div>,
-					document.body
-				)
-			: null;
-
 	return (
-		<span ref={rootRef} className={styles.selectRoot}>
-			<span ref={frameRef} className={frameClasses} data-invalid={Boolean(ariaInvalid)} data-disabled={Boolean(disabled)} data-open={open}>
-				<button
-					type="button"
-					id={triggerId}
-					ref={triggerRef}
-					className={classes}
-					style={style}
-					tabIndex={tabIndex}
+		<RadixSelect.Root value={radixSelectedValue} open={open} onOpenChange={setOpen} onValueChange={commitValue} disabled={disabled}>
+			<span className={styles.selectRoot}>
+				<span className={frameClasses} data-invalid={Boolean(ariaInvalid)} data-disabled={Boolean(disabled)} data-open={open}>
+					<RadixSelect.Trigger
+						id={triggerId}
+						ref={triggerRef}
+						className={classes}
+						style={style}
+						tabIndex={tabIndex}
+						aria-invalid={booleanAria(ariaInvalid)}
+						aria-label={ariaLabel}
+						aria-labelledby={ariaLabelledBy}
+						aria-describedby={ariaDescribedBy}
+						onKeyDown={handleTriggerKeyDown}
+					>
+						<span className={styles.selectValue}>{selectedOption?.label}</span>
+					</RadixSelect.Trigger>
+				</span>
+				<select
+					ref={setSelectNode}
+					className={styles.nativeSelect}
+					aria-hidden="true"
+					tabIndex={-1}
 					disabled={disabled}
-					aria-invalid={booleanAria(ariaInvalid)}
-					aria-label={ariaLabel}
-					aria-labelledby={ariaLabelledBy}
-					aria-describedby={ariaDescribedBy}
-					aria-haspopup="listbox"
-					aria-expanded={open}
-					aria-controls={open ? listboxId : undefined}
-					aria-activedescendant={activeOptionId}
-					onClick={() => {
-						if (open) {
-							closeMenu();
-							return;
-						}
-
-						openMenu();
-					}}
-					onKeyDown={handleTriggerKeyDown}
+					defaultValue={undefined}
+					value={selectedValue}
+					onChange={handleNativeChange}
+					{...props}
 				>
-					<span className={styles.selectValue}>{selectedOption?.label}</span>
-				</button>
+					{children}
+				</select>
+				<RadixSelect.Portal>
+					<RadixSelect.Content className={menuClasses} position="popper" sideOffset={8} collisionPadding={8}>
+						<RadixSelect.Viewport className={styles.selectViewport}>
+							{options.map((option, index) => (
+								<RadixSelect.Item key={`${option.value}-${index}`} className={styles.selectOption} value={option.radixValue} disabled={option.disabled}>
+									<RadixSelect.ItemText asChild>
+										<span className={styles.selectOptionLabel}>{option.label}</span>
+									</RadixSelect.ItemText>
+								</RadixSelect.Item>
+							))}
+						</RadixSelect.Viewport>
+					</RadixSelect.Content>
+				</RadixSelect.Portal>
 			</span>
-			<select
-				ref={setSelectNode}
-				className={styles.nativeSelect}
-				aria-hidden="true"
-				tabIndex={-1}
-				disabled={disabled}
-				defaultValue={undefined}
-				value={selectedValue}
-				onChange={handleNativeChange}
-				{...props}
-			>
-				{children}
-			</select>
-			{menu}
-		</span>
+		</RadixSelect.Root>
 	);
 });
 

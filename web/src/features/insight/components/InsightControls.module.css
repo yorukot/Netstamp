@@ -234,10 +234,11 @@
 .assignmentPopover {
 	--ns-frame-cut: var(--ns-cut-md);
 	--ns-frame-color: var(--ns-border-strong);
-	position: fixed;
 	z-index: 1000;
 	display: grid;
 	gap: 0.25rem;
+	width: min(max(var(--radix-popover-trigger-width), 32.5rem), calc(100vw - 1rem));
+	max-height: min(22.5rem, var(--radix-popover-content-available-height));
 	overflow: auto;
 	padding: 0.35rem;
 	background: linear-gradient(rgba(255, 122, 26, 0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 122, 26, 0.035) 1px, transparent 1px), var(--ns-glass-dark);
@@ -377,10 +378,11 @@
 .timePopover {
 	--ns-frame-cut: var(--ns-cut-md);
 	--ns-frame-color: var(--ns-border-strong);
-	position: fixed;
 	z-index: 1000;
 	display: grid;
 	gap: 1rem;
+	width: min(max(var(--radix-popover-trigger-width), 28.75rem), calc(100vw - 1rem));
+	max-height: min(32rem, var(--radix-popover-content-available-height));
 	overflow: auto;
 	padding: 1rem;
 	background: linear-gradient(rgba(255, 122, 26, 0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 122, 26, 0.035) 1px, transparent 1px), var(--ns-glass-dark);
