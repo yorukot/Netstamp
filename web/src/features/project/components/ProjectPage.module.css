@@ -6,14 +6,6 @@
 	margin-bottom: 1rem;
 }
 
-.formGridThree {
-	display: grid;
-	grid-template-columns: repeat(3, minmax(0, 1fr));
-	gap: 1rem;
-	align-items: end;
-	margin-bottom: 1rem;
-}
-
 .dangerZoneGrid {
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -41,25 +33,8 @@
 	line-height: 1.6;
 }
 
-.stackedCell {
-	display: grid;
-	gap: 0.1875rem;
-	min-width: 0;
-}
-
-.stackedCell strong {
-	color: var(--ns-text);
-	font-size: 0.75rem;
-}
-
-.stackedCell span {
-	color: var(--ns-text-low);
-	font-size: 0.6875rem;
-}
-
 @media (max-width: 58rem) {
 	.projectInfoGrid,
-	.formGridThree,
 	.dangerZoneGrid {
 		grid-template-columns: 1fr;
 	}

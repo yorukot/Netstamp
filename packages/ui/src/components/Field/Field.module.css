@@ -225,6 +225,11 @@
 	font-size: 0.75rem;
 }
 
+.compactMenu .selectOption {
+	min-height: 2rem;
+	padding: 0.5rem 1.75rem 0.5rem 0.625rem;
+}
+
 .selectOption {
 	position: relative;
 	display: flex;

@@ -119,7 +119,7 @@ function setNativeSelectValue(select: HTMLSelectElement, value: string) {
 	select.value = value;
 }
 
-function getSelectMenuStyle(frame: HTMLElement | null): CSSProperties | undefined {
+function getSelectMenuStyle(frame: HTMLElement | null, menu?: HTMLElement | null): CSSProperties | undefined {
 	if (!frame || typeof window === "undefined") {
 		return undefined;
 	}
@@ -132,10 +132,12 @@ function getSelectMenuStyle(frame: HTMLElement | null): CSSProperties | undefine
 	const left = Math.min(Math.max(gap, rect.left), viewportWidth - width - gap);
 	const spaceBelow = viewportHeight - rect.bottom - gap;
 	const spaceAbove = rect.top - gap;
-	const openAbove = spaceBelow < 176 && spaceAbove > spaceBelow;
+	const preferredHeight = menu ? Math.min(288, menu.scrollHeight) : 176;
+	const openAbove = preferredHeight > spaceBelow && spaceAbove > spaceBelow;
 	const availableHeight = openAbove ? spaceAbove : spaceBelow;
 	const maxHeight = Math.min(288, Math.max(96, availableHeight));
-	const top = openAbove ? Math.max(gap, rect.top - gap - maxHeight) : Math.min(rect.bottom + gap, viewportHeight - gap - maxHeight);
+	const renderedHeight = menu ? Math.min(menu.scrollHeight, maxHeight) : maxHeight;
+	const top = openAbove ? Math.max(gap, rect.top - gap - renderedHeight) : Math.min(rect.bottom + gap, viewportHeight - gap - renderedHeight);
 
 	return {
 		left,
@@ -375,7 +377,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
 		}
 
 		function updateMenuPosition() {
-			const nextMenuStyle = getSelectMenuStyle(frameRef.current);
+			const nextMenuStyle = getSelectMenuStyle(frameRef.current, menuRef.current);
 
 			if (!nextMenuStyle) {
 				return;

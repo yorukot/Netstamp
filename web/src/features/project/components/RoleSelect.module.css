@@ -31,21 +31,8 @@
 	background: #080a0e;
 }
 
-.owner,
-.admin {
-	--role-color: var(--ns-accent-hover);
-	--ns-frame-color: rgba(255, 122, 26, 0.34);
-	--role-bg: rgba(255, 122, 26, 0.14);
-}
-
 .member {
 	--role-color: var(--ns-metal);
 	--ns-frame-color: var(--ns-border-faint);
 	--role-bg: rgba(168, 180, 199, 0.08);
-}
-
-.viewer {
-	--role-color: var(--ns-text-low);
-	--ns-frame-color: var(--ns-border-faint);
-	--role-bg: rgba(255, 255, 255, 0.04);
 }

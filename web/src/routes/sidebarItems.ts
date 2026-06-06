@@ -12,5 +12,6 @@ export const sidebarItems: SidebarItem[] = [
 	{ label: "Checks", route: "checks" },
 	{ label: "Insight", route: "insight" },
 	{ label: "Public Pages", route: "publicPages" },
+	{ label: "Members", route: "members" },
 	{ label: "Project", route: "project" }
 ];
