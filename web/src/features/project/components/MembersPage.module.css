@@ -22,6 +22,41 @@
 	font-size: 0.6875rem;
 }
 
+.memberCell {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	min-width: 0;
+}
+
+.memberAvatar,
+.memberAvatarFallback {
+	--ns-frame-cut: var(--ns-cut-sm);
+	width: 2.5rem;
+	height: 2.5rem;
+}
+
+.memberAvatarFallback {
+	--ns-frame-color: rgba(255, 122, 26, 0.5);
+	display: grid;
+	place-items: center;
+	flex: 0 0 auto;
+	background: rgba(255, 122, 26, 0.12);
+	color: var(--ns-accent);
+	font-family: var(--ns-font-mono);
+	font-size: 0.75rem;
+	font-weight: 800;
+}
+
+.memberName {
+	min-width: 0;
+	overflow: hidden;
+	color: var(--ns-text);
+	font-weight: 700;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
 @media (max-width: 58rem) {
 	.formGridThree {
 		grid-template-columns: 1fr;

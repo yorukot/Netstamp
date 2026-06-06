@@ -6,9 +6,10 @@ import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { pushToast } from "@/shared/toast/toastStore";
-import { Badge, Button, DataTable, Panel, SelectField, TextField, type DataColumn } from "@netstamp/ui";
+import { createGravatarUrl } from "@/shared/utils/gravatar";
+import { Badge, Button, DataTable, Panel, SelectField, SignalAvatar, TextField, type DataColumn } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import styles from "./MembersPage.module.css";
 import { RoleSelect } from "./RoleSelect";
 
@@ -17,6 +18,8 @@ interface MemberRow {
 	userId: string;
 	name: string;
 	email: string;
+	avatarUrl: string | undefined;
+	initials: string;
 	role: string;
 	lastActive: string;
 	isCurrentUser: boolean;
@@ -53,6 +56,15 @@ function roleRank(role: string) {
 		default:
 			return 4;
 	}
+}
+
+function memberInitials(name: string, email: string) {
+	const nameParts = name.trim().split(/\s+/).filter(Boolean);
+	const sourceParts = nameParts.length > 0 ? nameParts : [email.trim()];
+	const first = sourceParts[0]?.[0] ?? "?";
+	const last = sourceParts.length > 1 ? (sourceParts.at(-1)?.[0] ?? "") : (sourceParts[0]?.[1] ?? "");
+
+	return `${first}${last}`.toUpperCase();
 }
 
 function canRemoveMember(actorRole: string | undefined, memberRole: string, isCurrentUser: boolean) {
@@ -103,12 +115,14 @@ export function MembersPage() {
 	const updateMemberRoleMutation = useUpdateProjectMemberRoleMutation(projectRef);
 	const [memberEmail, setMemberEmail] = useState("");
 	const [memberRole, setMemberRole] = useState<ProjectMemberRole>("viewer");
+	const [memberAvatarUrls, setMemberAvatarUrls] = useState<Record<string, string>>({});
 	const currentUserId = session?.user.id ?? "";
 	const membersQuery = useQuery({
 		...projectQueries.members(projectRef || ""),
 		enabled: Boolean(projectRef)
 	});
-	const members = membersQuery.data?.members ?? [];
+	const rawMembers = membersQuery.data?.members;
+	const members = rawMembers ?? [];
 	const currentMember = members.find(member => member.userId === currentUserId);
 	const currentMemberRole = currentMember?.role;
 	const canManageMembers = currentMember?.role === "owner" || currentMember?.role === "admin";
@@ -116,6 +130,37 @@ export function MembersPage() {
 		...projectQueries.invites(projectRef || ""),
 		enabled: Boolean(projectRef && canManageMembers)
 	});
+
+	useEffect(() => {
+		let cancelled = false;
+		const emails = Array.from(new Set((rawMembers ?? []).map(member => member.user.email).filter(Boolean)));
+
+		if (emails.length === 0) {
+			return () => {
+				cancelled = true;
+			};
+		}
+
+		void Promise.all(
+			emails.map(async email => {
+				try {
+					return [email, await createGravatarUrl(email, 80)] as const;
+				} catch {
+					return [email, ""] as const;
+				}
+			})
+		).then(entries => {
+			if (cancelled) {
+				return;
+			}
+
+			setMemberAvatarUrls(Object.fromEntries(entries.filter(([, avatarUrl]) => avatarUrl)));
+		});
+
+		return () => {
+			cancelled = true;
+		};
+	}, [rawMembers]);
 
 	function createCurrentInvite() {
 		createInviteMutation.mutate(
@@ -139,6 +184,8 @@ export function MembersPage() {
 			userId: member.userId,
 			name: member.user.displayName,
 			email: member.user.email,
+			avatarUrl: memberAvatarUrls[member.user.email],
+			initials: memberInitials(member.user.displayName, member.user.email),
 			role: member.role,
 			lastActive: formatDateTime(member.updatedAt),
 			isCurrentUser: member.userId === currentUserId
@@ -162,7 +209,22 @@ export function MembersPage() {
 		status: invite.status
 	}));
 	const memberColumns: DataColumn<MemberRow>[] = [
-		{ key: "name", label: "User ID" },
+		{
+			key: "name",
+			label: "User ID",
+			render: row => (
+				<span className={styles.memberCell}>
+					{row.avatarUrl ? (
+						<SignalAvatar className={styles.memberAvatar} size="sm" src={row.avatarUrl} referrerPolicy="no-referrer" aria-hidden="true" />
+					) : (
+						<span className={`ns-cut-frame ${styles.memberAvatarFallback}`} aria-hidden="true">
+							{row.initials}
+						</span>
+					)}
+					<span className={styles.memberName}>{row.name}</span>
+				</span>
+			)
+		},
 		{ key: "email", label: "Account" },
 		{
 			key: "role",
