@@ -2,6 +2,7 @@ package clientip
 
 import (
 	"net/http"
+	"net/http/httptest"
 	"net/netip"
 	"testing"
 )
@@ -51,6 +52,38 @@ func TestResolverRejectsPrivateSourceIP(t *testing.T) {
 	got, ok := NewResolver(nil).PublicIP(req)
 	if ok || got != nil {
 		t.Fatalf("expected private remote to be ignored, got %#v ok=%v", got, ok)
+	}
+}
+
+func TestMiddlewareStoresForwardedIPFromTrustedProxy(t *testing.T) {
+	req := requestWithRemote("10.0.0.5:44321")
+	req.Header.Set("X-Forwarded-For", "198.51.100.20, 10.0.0.5")
+
+	var got netip.Addr
+	var ok bool
+	handler := Middleware([]netip.Prefix{netip.MustParsePrefix("10.0.0.0/8")})(http.HandlerFunc(func(_ http.ResponseWriter, req *http.Request) {
+		got, ok = FromContext(req.Context())
+	}))
+
+	handler.ServeHTTP(httptest.NewRecorder(), req)
+	if !ok || got.String() != "198.51.100.20" {
+		t.Fatalf("expected forwarded IP in context, got %q ok=%v", got.String(), ok)
+	}
+}
+
+func TestMiddlewareIgnoresForwardedIPFromUntrustedRemote(t *testing.T) {
+	req := requestWithRemote("203.0.113.10:44321")
+	req.Header.Set("X-Forwarded-For", "198.51.100.20")
+
+	var got netip.Addr
+	var ok bool
+	handler := Middleware(nil)(http.HandlerFunc(func(_ http.ResponseWriter, req *http.Request) {
+		got, ok = FromContext(req.Context())
+	}))
+
+	handler.ServeHTTP(httptest.NewRecorder(), req)
+	if !ok || got.String() != "203.0.113.10" {
+		t.Fatalf("expected direct remote IP in context, got %q ok=%v", got.String(), ok)
 	}
 }
 

@@ -77,7 +77,7 @@ func NewRouter(dep Dependencies) http.Handler {
 func newAPIRouter(dep Dependencies) http.Handler {
 	r := chi.NewRouter()
 	r.Use(chimw.RequestID)
-	r.Use(chimw.ClientIPFromRemoteAddr)
+	r.Use(clientip.Middleware(dep.TrustedProxies))
 	r.Use(chimw.StripSlashes)
 	r.Use(otelhttp.NewMiddleware("http.server",
 		otelhttp.WithSpanNameFormatter(httptracing.RequestSpanName),
@@ -122,7 +122,7 @@ func registerAPIRoutes(api chi.Router, dep Dependencies) {
 	probehttp.NewHandler(dep.ProbeService, dep.AuthVerifier).RegisterRoutes(api)
 	publicpagehttp.NewHandler(dep.PublicPageService, dep.AuthVerifier).RegisterRoutes(api)
 	resulthttp.NewHandler(dep.ResultService, dep.AuthVerifier).RegisterRoutes(api)
-	proberuntimehttp.NewHandler(dep.ProbeRuntime, clientip.NewResolver(dep.TrustedProxies)).RegisterRoutes(api)
+	proberuntimehttp.NewHandler(dep.ProbeRuntime).RegisterRoutes(api)
 }
 
 func registerOpenAPIRoutes(api chi.Router, dep Dependencies) {

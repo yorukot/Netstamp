@@ -11,6 +11,7 @@ import (
 	"time"
 
 	appproberuntime "github.com/yorukot/netstamp/internal/controller/application/proberuntime"
+	"github.com/yorukot/netstamp/internal/controller/transport/http/clientip"
 	"github.com/yorukot/netstamp/internal/controller/transport/http/httpx"
 )
 
@@ -23,7 +24,10 @@ func (h *Handler) handleUpdateIPFamilyCapabilities(w http.ResponseWriter, r *htt
 		return
 	}
 
-	observedIP, _ := h.clientIPResolver.PublicIP(r)
+	var observedIP *netip.Addr
+	if addr, ok := clientip.FromContext(r.Context()); ok {
+		observedIP = &addr
+	}
 	output, err := h.updateIPFamilyCapabilities(r.Context(), &ipFamilyCapabilitiesInput{
 		ProbeID:     httpx.Path(r, "probe_id"),
 		Body:        body,

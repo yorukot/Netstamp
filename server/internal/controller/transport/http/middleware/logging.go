@@ -10,6 +10,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/yorukot/netstamp/internal/controller/logger"
+	"github.com/yorukot/netstamp/internal/controller/transport/http/clientip"
 )
 
 func ZapRequestLogger(root *zap.Logger) func(http.Handler) http.Handler {
@@ -70,6 +71,10 @@ func ZapRequestLogger(root *zap.Logger) func(http.Handler) http.Handler {
 }
 
 func clientAddress(r *http.Request) string {
+	if addr, ok := clientip.FromContext(r.Context()); ok {
+		return addr.String()
+	}
+
 	if ip := chimw.GetClientIP(r.Context()); ip != "" {
 		return ip
 	}

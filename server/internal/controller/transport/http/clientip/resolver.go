@@ -1,11 +1,14 @@
 package clientip
 
 import (
+	"context"
 	"net"
 	"net/http"
 	"net/netip"
 	"strings"
 )
+
+type contextKey struct{}
 
 type Resolver struct {
 	trustedProxies []netip.Prefix
@@ -13,6 +16,29 @@ type Resolver struct {
 
 func NewResolver(trustedProxies []netip.Prefix) *Resolver {
 	return &Resolver{trustedProxies: append([]netip.Prefix(nil), trustedProxies...)}
+}
+
+func Middleware(trustedProxies []netip.Prefix) func(http.Handler) http.Handler {
+	resolver := NewResolver(trustedProxies)
+
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			if addr, ok := resolver.PublicIP(req); ok && addr != nil {
+				req = req.WithContext(context.WithValue(req.Context(), contextKey{}, *addr))
+			}
+
+			next.ServeHTTP(w, req)
+		})
+	}
+}
+
+func FromContext(ctx context.Context) (netip.Addr, bool) {
+	addr, ok := ctx.Value(contextKey{}).(netip.Addr)
+	if !ok || !addr.IsValid() {
+		return netip.Addr{}, false
+	}
+
+	return addr, true
 }
 
 func (r *Resolver) PublicIP(req *http.Request) (*netip.Addr, bool) {
