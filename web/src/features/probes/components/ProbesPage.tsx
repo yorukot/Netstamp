@@ -1,7 +1,6 @@
 import { mapApiChecks } from "@/features/checks/api/checkAdapters";
 import { mapApiAssignments } from "@/features/checks/api/resultAdapters";
 import { mapApiProbes } from "@/features/probes/api/probeAdapters";
-import { type ProbeStatus } from "@/features/probes/data/probes";
 import { pathForProbeDetail, pathForRoute } from "@/routes/routePaths";
 import { projectQueries } from "@/shared/api/queries";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
@@ -38,15 +37,12 @@ export function ProbesPage() {
 	});
 	const probes = probesQuery.data || [];
 	const checks = checksQuery.data || [];
-	const providerOptions = Array.from(new Set(probes.map(probe => probe.provider)));
 	const [view, setView] = useState<ProbeView>("grid");
 	const [search, setSearch] = useState("");
-	const [statusFilter, setStatusFilter] = useState<"all" | ProbeStatus>("all");
-	const [providerFilter, setProviderFilter] = useState("all");
 	const [sortKey, setSortKey] = useState<ProbeSort>("heartbeat");
 	const selectedProbe = probes.find(probe => probe.id === probeId) || null;
 	const selectedProbeId = selectedProbe?.id || "";
-	const visibleProbes = filterProbes(probes, search, statusFilter, providerFilter, sortKey);
+	const visibleProbes = filterProbes(probes, search, sortKey);
 	const assignedRows: AssignedRow[] = mapApiAssignments(assignmentsQuery.data, probes, checks);
 
 	useEffect(() => {
@@ -79,20 +75,7 @@ export function ProbesPage() {
 				<>
 					<ProbePageHeader view={view} projectRef={projectRef} onViewChange={setView} />
 					<div className={classNames(styles.gridLayout, selectedProbe && styles.gridLayoutExpanded)}>
-						<ProbeList
-							probes={visibleProbes}
-							providerOptions={providerOptions}
-							selectedId={selectedProbeId}
-							search={search}
-							statusFilter={statusFilter}
-							providerFilter={providerFilter}
-							sortKey={sortKey}
-							onSearchChange={setSearch}
-							onStatusChange={setStatusFilter}
-							onProviderChange={setProviderFilter}
-							onSortChange={setSortKey}
-							onSelect={selectProbe}
-						/>
+						<ProbeList probes={visibleProbes} selectedId={selectedProbeId} search={search} sortKey={sortKey} onSearchChange={setSearch} onSortChange={setSortKey} onSelect={selectProbe} />
 						{selectedProbe ? (
 							<div className={styles.detailColumn}>
 								<ProbeDetail key={selectedProbe.id} probe={selectedProbe} assignedRows={assignedRows} projectRef={projectRef} onClose={closeProbeDetail} onDeleted={closeProbeDetail} />
