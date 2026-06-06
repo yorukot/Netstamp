@@ -61,3 +61,15 @@ export function probeSecretUpdateCommand(input: { probeId: string; probeSecret: 
 		`sudo systemctl restart netstamp-agent`
 	].join("\n");
 }
+
+export function probeReinstallCommand() {
+	const installerUrl = installAssetUrl(installAssetPaths.agentInstaller);
+
+	return [`curl -fsSL ${shellQuote(installerUrl)} | sudo sh && \\`, `sudo systemctl restart netstamp-agent`].join("\n");
+}
+
+export function probeUpgradeCommand() {
+	const { apiVersion, controllerUrl } = controllerInstallTarget();
+
+	return [`sudo netstamp-agent update \\`, `  --url ${shellQuote(controllerUrl)} \\`, `  --api-version ${shellQuote(apiVersion)}`].join("\n");
+}

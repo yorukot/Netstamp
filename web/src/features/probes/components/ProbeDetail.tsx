@@ -9,7 +9,7 @@ import {
 	type ProbeCoordinates
 } from "@/features/probes/data/probeLocation";
 import type { Probe } from "@/features/probes/data/probes";
-import { probeSecretUpdateCommand } from "@/shared/api/installAssets";
+import { probeReinstallCommand, probeSecretUpdateCommand, probeUpgradeCommand } from "@/shared/api/installAssets";
 import { useDeleteProjectProbeMutation, useRotateProjectProbeSecretMutation, useUpdateProjectProbeMutation } from "@/shared/api/mutations";
 import { projectQueries } from "@/shared/api/queries";
 import type { ApiProbe } from "@/shared/api/types";
@@ -32,12 +32,26 @@ const assignedColumns: DataColumn<AssignedRow>[] = [
 	{ key: "latest", label: "Latest" }
 ];
 
+type ProbeServiceCommandMode = "reinstall" | "upgrade";
+
+const serviceCommandOptions: Array<{ value: ProbeServiceCommandMode; label: string }> = [
+	{ value: "reinstall", label: "Reinstall" },
+	{ value: "upgrade", label: "Upgrade" }
+];
+
 function initialLatitude(probe: Probe) {
 	return probe.coordinates ? formatCoordinate(probe.coordinates[1]) : "";
 }
 
 function initialLongitude(probe: Probe) {
 	return probe.coordinates ? formatCoordinate(probe.coordinates[0]) : "";
+}
+
+function probeServiceCommand(mode: ProbeServiceCommandMode) {
+	if (mode === "reinstall") {
+		return probeReinstallCommand();
+	}
+	return probeUpgradeCommand();
 }
 
 async function writeClipboardText(value: string) {
@@ -102,6 +116,7 @@ interface ProbeDetailContentProps {
 function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floating = false, projectRef, onClose, onDeleted }: ProbeDetailContentProps) {
 	const confirm = useConfirm();
 	const copyTimeoutRef = useRef<number | null>(null);
+	const serviceCopyTimeoutRef = useRef<number | null>(null);
 	const [probeName, setProbeName] = useState(activeProbe.name);
 	const [coordinateInputMode, setCoordinateInputMode] = useState<CoordinateInputMode>("search");
 	const [locationSearch, setLocationSearch] = useState(activeProbe.location === "-" ? "" : activeProbe.location);
@@ -112,6 +127,8 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 	const [geocodeError, setGeocodeError] = useState("");
 	const [rotatedSecret, setRotatedSecret] = useState("");
 	const [secretCommandCopied, setSecretCommandCopied] = useState(false);
+	const [serviceCommandMode, setServiceCommandMode] = useState<ProbeServiceCommandMode | null>(null);
+	const [serviceCommandCopied, setServiceCommandCopied] = useState(false);
 	const [savingProbe, setSavingProbe] = useState(false);
 	const geocodeAbortRef = useRef<AbortController | null>(null);
 	const updateProbeMutation = useUpdateProjectProbeMutation(projectRef);
@@ -120,6 +137,8 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 	const probeAssignments = assignedRows.filter(row => row.probe === activeProbe.name);
 	const detailRows = expandAssignedRows(probeAssignments);
 	const rotatedSecretCommand = rotatedSecret ? probeSecretUpdateCommand({ probeId: activeProbe.id, probeSecret: rotatedSecret }) : "";
+	const selectedServiceCommand = serviceCommandMode ? serviceCommandOptions.find(option => option.value === serviceCommandMode) : null;
+	const serviceCommand = serviceCommandMode ? probeServiceCommand(serviceCommandMode) : "";
 	const latitude = parseCoordinateInput(latitudeInput);
 	const longitude = parseCoordinateInput(longitudeInput);
 	const latitudeError = coordinateInputMode === "manual" ? coordinateInputError("Latitude", latitudeInput, -90, 90) : "";
@@ -138,6 +157,9 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 		return () => {
 			if (copyTimeoutRef.current) {
 				window.clearTimeout(copyTimeoutRef.current);
+			}
+			if (serviceCopyTimeoutRef.current) {
+				window.clearTimeout(serviceCopyTimeoutRef.current);
 			}
 			geocodeAbortRef.current?.abort();
 		};
@@ -172,6 +194,11 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 			setLatitudeInput("");
 			setLongitudeInput("");
 		}
+	}
+
+	function updateServiceCommandMode(nextMode: ProbeServiceCommandMode) {
+		setServiceCommandMode(nextMode);
+		setServiceCommandCopied(false);
 	}
 
 	async function searchLocation() {
@@ -276,6 +303,30 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 		copyTimeoutRef.current = window.setTimeout(() => {
 			setSecretCommandCopied(false);
 			copyTimeoutRef.current = null;
+		}, 1800);
+	}
+
+	async function copyServiceCommand() {
+		if (!serviceCommand) {
+			return;
+		}
+
+		try {
+			await writeClipboardText(serviceCommand);
+		} catch {
+			setServiceCommandCopied(false);
+			return;
+		}
+
+		setServiceCommandCopied(true);
+
+		if (serviceCopyTimeoutRef.current) {
+			window.clearTimeout(serviceCopyTimeoutRef.current);
+		}
+
+		serviceCopyTimeoutRef.current = window.setTimeout(() => {
+			setServiceCommandCopied(false);
+			serviceCopyTimeoutRef.current = null;
 		}, 1800);
 	}
 
@@ -396,10 +447,37 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 				>
 					{rotateSecretMutation.isPending ? "Rotating" : "Rotate secret"}
 				</Button>
+				<Button
+					type="button"
+					variant={serviceCommandMode === "reinstall" ? "secondary" : "outline"}
+					aria-pressed={serviceCommandMode === "reinstall"}
+					onClick={() => updateServiceCommandMode("reinstall")}
+				>
+					Reinstall
+				</Button>
+				<Button type="button" variant={serviceCommandMode === "upgrade" ? "secondary" : "outline"} aria-pressed={serviceCommandMode === "upgrade"} onClick={() => updateServiceCommandMode("upgrade")}>
+					Upgrade
+				</Button>
 				<Button variant="danger" disabled={!projectRef || deleteProbeMutation.isPending} onClick={() => void deleteProbe()}>
 					{deleteProbeMutation.isPending ? "Deleting" : "Delete probe"}
 				</Button>
 			</div>
+
+			{serviceCommandMode && selectedServiceCommand ? (
+				<div className={classNames("ns-cut-frame", styles.serviceCommandPanel)}>
+					<span>Probe service command</span>
+					<Terminal
+						title={`${selectedServiceCommand.label.toLowerCase()} command`}
+						meta={
+							<Button type="button" variant="ghost" size="sm" disabled={!serviceCommand} onClick={() => void copyServiceCommand()}>
+								{serviceCommandCopied ? "Copied" : "Copy to clipboard"}
+							</Button>
+						}
+					>
+						{serviceCommand}
+					</Terminal>
+				</div>
+			) : null}
 
 			{rotatedSecret ? (
 				<div className={classNames("ns-cut-frame", styles.secretPanel)}>

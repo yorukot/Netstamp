@@ -117,6 +117,15 @@
 	gap: 0.75rem;
 }
 
+.serviceCommandPanel {
+	--ns-frame-cut: var(--ns-cut-sm);
+	--ns-frame-color: rgba(255, 122, 26, 0.36);
+	display: grid;
+	gap: 0.55rem;
+	padding: 0.75rem;
+	background: rgba(255, 122, 26, 0.06);
+}
+
 .secretPanel {
 	--ns-frame-cut: var(--ns-cut-sm);
 	--ns-frame-color: rgba(97, 255, 127, 0.36);
@@ -126,6 +135,7 @@
 	background: rgba(97, 255, 127, 0.08);
 }
 
+.serviceCommandPanel > span,
 .secretPanel > span {
 	color: var(--ns-text-low);
 	font-family: var(--ns-font-mono);
