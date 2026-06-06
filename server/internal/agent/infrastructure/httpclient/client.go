@@ -7,12 +7,15 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
 	agentconfig "github.com/yorukot/netstamp/internal/agent/config"
+	domainnetwork "github.com/yorukot/netstamp/internal/domain/network"
 )
 
 type RuntimeClient struct {
@@ -21,6 +24,8 @@ type RuntimeClient struct {
 	probeID    string
 	secret     string
 	client     *http.Client
+	tcp4Client *http.Client
+	tcp6Client *http.Client
 }
 
 func New(config agentconfig.Config) *RuntimeClient {
@@ -32,11 +37,17 @@ func New(config agentconfig.Config) *RuntimeClient {
 		client: &http.Client{
 			Timeout: config.HTTPTimeout.Value,
 		},
+		tcp4Client: forcedNetworkClient(config.HTTPTimeout.Value, "tcp4"),
+		tcp6Client: forcedNetworkClient(config.HTTPTimeout.Value, "tcp6"),
 	}
 }
 
 // do is a helper function that sends an HTTP request to the runtime API and decodes the response
 func (c *RuntimeClient) do(ctx context.Context, method, operation string, input, output any) error {
+	return c.doWithClient(ctx, c.client, method, operation, input, output)
+}
+
+func (c *RuntimeClient) doWithClient(ctx context.Context, client *http.Client, method, operation string, input, output any) error {
 	var body io.Reader = http.NoBody
 	if input != nil {
 		var buf bytes.Buffer
@@ -56,7 +67,7 @@ func (c *RuntimeClient) do(ctx context.Context, method, operation string, input,
 		request.Header.Set("Content-Type", "application/json")
 	}
 
-	response, err := c.client.Do(request)
+	response, err := client.Do(request)
 	if err != nil {
 		return fmt.Errorf("runtime request failed: %w", err)
 	}
@@ -73,6 +84,19 @@ func (c *RuntimeClient) do(ctx context.Context, method, operation string, input,
 	}
 
 	return nil
+}
+
+func forcedNetworkClient(timeout time.Duration, network string) *http.Client {
+	transport := http.DefaultTransport.(*http.Transport).Clone() //nolint:forcetypeassert // The standard default transport is an *http.Transport.
+	dialer := &net.Dialer{}
+	transport.DialContext = func(ctx context.Context, _, address string) (net.Conn, error) {
+		return dialer.DialContext(ctx, network, address)
+	}
+
+	return &http.Client{
+		Timeout:   timeout,
+		Transport: transport,
+	}
 }
 
 // Hello sends a hello request to the runtime API and returns the response
@@ -93,6 +117,32 @@ func (c *RuntimeClient) Heartbeat(ctx context.Context, input HeartbeatInput) (He
 	}
 
 	return output, nil
+}
+
+func (c *RuntimeClient) ObserveIPFamilyCapability(ctx context.Context, family domainnetwork.IPFamily) (IPFamilyCapabilitiesResponse, error) {
+	var output IPFamilyCapabilitiesResponse
+	if err := c.doWithClient(ctx, c.familyClient(family), http.MethodPut, "ip-family-capabilities", nil, &output); err != nil {
+		return IPFamilyCapabilitiesResponse{}, err
+	}
+
+	return output, nil
+}
+
+func (c *RuntimeClient) UpdateIPFamilyCapabilities(ctx context.Context, input IPFamilyCapabilitiesInput) (IPFamilyCapabilitiesResponse, error) {
+	var output IPFamilyCapabilitiesResponse
+	if err := c.do(ctx, http.MethodPut, "ip-family-capabilities", input, &output); err != nil {
+		return IPFamilyCapabilitiesResponse{}, err
+	}
+
+	return output, nil
+}
+
+func (c *RuntimeClient) familyClient(family domainnetwork.IPFamily) *http.Client {
+	if family == domainnetwork.IPFamilyInet6 {
+		return c.tcp6Client
+	}
+
+	return c.tcp4Client
 }
 
 // ListAssignments sends a request to the runtime API to list assignments and returns the response

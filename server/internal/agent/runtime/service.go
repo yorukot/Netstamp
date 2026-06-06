@@ -40,6 +40,8 @@ func (s *Service) Run(ctx context.Context) error {
 	group, groupCtx := errgroup.WithContext(runtimeCtx)
 	// initialize the heartbeat loop first, send the heartbeat to the server
 	group.Go(func() error { return ignoreCanceled(s.heartbeatLoop(groupCtx)) })
+	// report IPv4/IPv6 public reachability separately from heartbeat liveness
+	group.Go(func() error { return ignoreCanceled(s.ipFamilyCapabilityLoop(groupCtx)) })
 	// pull assignments from the server periodically
 	group.Go(func() error { return ignoreCanceled(s.assignmentLoop(groupCtx)) })
 	// run the scheduler to assign work to workers

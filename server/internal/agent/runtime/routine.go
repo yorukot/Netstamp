@@ -7,6 +7,7 @@ import (
 
 	"github.com/yorukot/netstamp/internal/agent/infrastructure/httpclient"
 	"github.com/yorukot/netstamp/internal/agent/retry"
+	domainnetwork "github.com/yorukot/netstamp/internal/domain/network"
 )
 
 func (s *Service) heartbeatLoop(ctx context.Context) error {
@@ -24,6 +25,48 @@ func (s *Service) heartbeatLoop(ctx context.Context) error {
 			return err
 		}
 	}
+}
+
+func (s *Service) ipFamilyCapabilityLoop(ctx context.Context) error {
+	for {
+		if err := s.reportIPFamilyCapabilities(ctx); err != nil {
+			if errors.Is(err, httpclient.ErrAuthFailed) {
+				return err
+			}
+			s.Log.Warn("probe IP family capability report failed", "error", err)
+		}
+
+		if err := retry.WaitForDuration(ctx, s.Config.HeartbeatInterval.Value); err != nil {
+			return err
+		}
+	}
+}
+
+func (s *Service) reportIPFamilyCapabilities(ctx context.Context) error {
+	supported := make([]domainnetwork.IPFamily, 0, 2)
+	failed := 0
+	for _, family := range []domainnetwork.IPFamily{domainnetwork.IPFamilyInet, domainnetwork.IPFamilyInet6} {
+		if _, err := s.Client.ObserveIPFamilyCapability(ctx, family); err != nil {
+			if errors.Is(err, httpclient.ErrAuthFailed) {
+				return err
+			}
+
+			failed++
+			s.Log.Debug("probe IP family capability check failed", "ip_family", string(family), "error", err)
+			continue
+		}
+
+		supported = append(supported, family)
+	}
+
+	if failed == 0 || failed == 2 {
+		return nil
+	}
+
+	_, err := s.Client.UpdateIPFamilyCapabilities(ctx, httpclient.IPFamilyCapabilitiesInput{
+		Families: supported,
+	})
+	return err
 }
 
 func (s *Service) assignmentLoop(ctx context.Context) error {

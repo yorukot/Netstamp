@@ -31,6 +31,14 @@ type HeartbeatResponse struct {
 	ServerTime time.Time `json:"serverTime"`
 }
 
+type IPFamilyCapabilitiesInput struct {
+	Families []domainnetwork.IPFamily `json:"families,omitempty"`
+}
+
+type IPFamilyCapabilitiesResponse struct {
+	ServerTime time.Time `json:"serverTime"`
+}
+
 type AssignmentsResponse struct {
 	ServerTime  time.Time                     `json:"serverTime"`
 	Config      domainprobe.RuntimeConfig     `json:"config"`
