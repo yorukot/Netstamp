@@ -112,7 +112,9 @@
 .nav a {
 	--ns-frame-cut: var(--ns-cut-sm);
 	--ns-frame-color: transparent;
-	display: block;
+	display: flex;
+	align-items: center;
+	gap: 0.625rem;
 	width: 100%;
 	min-height: 2.75rem;
 	padding: 0.75rem;
@@ -131,11 +133,30 @@
 		border-color var(--ns-transition);
 }
 
+.navIcon {
+	display: block;
+	flex: 0 0 auto;
+	color: var(--ns-text-low);
+	transition: color var(--ns-transition);
+}
+
+.navLabel {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
 .nav a:hover,
 .nav a.active {
 	--ns-frame-color: var(--ns-border);
 	color: var(--ns-text);
 	background: linear-gradient(90deg, rgba(255, 122, 26, 0.14), transparent 70%), #080a0e;
+}
+
+.nav a:hover .navIcon,
+.nav a.active .navIcon {
+	color: var(--ns-accent);
 }
 
 .nav a.active {
@@ -267,10 +288,15 @@
 	}
 
 	.nav a {
+		justify-content: center;
 		min-height: 3rem;
 		padding: 0.5rem;
 		font-size: 0.625rem;
 		text-align: center;
+	}
+
+	.navLabel {
+		display: none;
 	}
 
 	.content {
@@ -300,7 +326,7 @@
 	.nav {
 		grid-column: 1 / -1;
 		grid-auto-flow: column;
-		grid-auto-columns: minmax(5.25rem, 1fr);
+		grid-auto-columns: minmax(3.25rem, 1fr);
 		overflow-x: auto;
 	}
 }

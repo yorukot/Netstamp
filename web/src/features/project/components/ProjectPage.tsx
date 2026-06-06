@@ -107,7 +107,7 @@ export function ProjectPage() {
 
 	return (
 		<PageStack>
-			<ScreenHeader title="Project" />
+			<ScreenHeader title="Settings" />
 
 			<Panel tone="glass" title="Project info">
 				<div className={styles.projectInfoGrid}>

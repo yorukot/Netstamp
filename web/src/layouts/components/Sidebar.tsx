@@ -26,11 +26,22 @@ export function Sidebar({ user, onLogout }: SidebarProps) {
 			<ProjectSwitcher />
 
 			<nav className={styles.nav} aria-label="Primary app navigation">
-				{sidebarItems.map(item => (
-					<NavLink key={item.route} to={pathForRoute(item.route, { projectRef })} className={({ isActive }) => classNames("ns-cut-frame", isActive && styles.active)}>
-						{item.label}
-					</NavLink>
-				))}
+				{sidebarItems.map(item => {
+					const ItemIcon = item.icon;
+
+					return (
+						<NavLink
+							key={item.route}
+							to={pathForRoute(item.route, { projectRef })}
+							className={({ isActive }) => classNames("ns-cut-frame", isActive && styles.active)}
+							aria-label={item.label}
+							title={item.label}
+						>
+							<ItemIcon className={styles.navIcon} size={18} weight="bold" aria-hidden="true" />
+							<span className={styles.navLabel}>{item.label}</span>
+						</NavLink>
+					);
+				})}
 			</nav>
 
 			<UserMenu user={user} onLogout={onLogout} />
