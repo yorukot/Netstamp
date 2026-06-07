@@ -1,6 +1,8 @@
 import type { Probe, ProbeStatus } from "@/features/probes/data/probes";
 import { FilterGrid } from "@/shared/components/FilterGrid";
-import { Badge, DataTable, Panel, SelectField, TextField, type BadgeTone, type DataColumn } from "@netstamp/ui";
+import { classNames } from "@/shared/utils/classNames";
+import { Badge, DataTable, Panel, PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger, SelectField, TextField, type BadgeTone, type DataColumn } from "@netstamp/ui";
+import type { MouseEvent } from "react";
 import styles from "./ProbeList.module.css";
 import type { ProbeSort } from "./types";
 
@@ -13,6 +15,61 @@ const sortOptions: Array<{ value: ProbeSort; label: string }> = [
 	{ value: "heartbeat", label: "Last heartbeat" },
 	{ value: "name", label: "Probe name" }
 ];
+const visibleLabelCount = 2;
+
+function stopRowSelection(event: MouseEvent) {
+	event.stopPropagation();
+}
+
+function ProbeLabels({ labels }: { labels: string[] }) {
+	const visibleLabels = labels.slice(0, visibleLabelCount);
+	const hiddenCount = labels.length - visibleLabels.length;
+
+	if (!labels.length) {
+		return <span className={styles.labelEmpty}>-</span>;
+	}
+
+	return (
+		<span className={styles.labelList}>
+			{visibleLabels.map(labelToken => (
+				<Badge className={styles.labelBadge} title={labelToken} key={labelToken} tone="muted" dot={false}>
+					{labelToken}
+				</Badge>
+			))}
+			{hiddenCount > 0 ? (
+				<PopoverRoot>
+					<span className={styles.labelOverflow}>
+						<PopoverTrigger asChild>
+							<button type="button" className={styles.labelOverflowButton} aria-label={`Show all ${labels.length} labels`} onClick={stopRowSelection}>
+								+{hiddenCount}
+							</button>
+						</PopoverTrigger>
+						<span className={classNames("ns-cut-frame", styles.labelHoverCard)} aria-hidden="true">
+							<ProbeLabelGrid labels={labels} />
+						</span>
+					</span>
+					<PopoverPortal>
+						<PopoverContent className={classNames("ns-cut-frame", styles.labelPopover)} align="start" side="left" sideOffset={8} collisionPadding={8} onClick={stopRowSelection}>
+							<ProbeLabelGrid labels={labels} />
+						</PopoverContent>
+					</PopoverPortal>
+				</PopoverRoot>
+			) : null}
+		</span>
+	);
+}
+
+function ProbeLabelGrid({ labels }: { labels: string[] }) {
+	return (
+		<span className={styles.labelGrid}>
+			{labels.map(labelToken => (
+				<Badge className={styles.labelBadge} title={labelToken} key={labelToken} tone="muted" dot={false}>
+					{labelToken}
+				</Badge>
+			))}
+		</span>
+	);
+}
 
 const probeColumns: DataColumn<Probe>[] = [
 	{ key: "name", label: "Probe name" },
@@ -24,15 +81,7 @@ const probeColumns: DataColumn<Probe>[] = [
 	{
 		key: "labelTokens",
 		label: "Labels",
-		render: probe => (
-			<span className={styles.labelList}>
-				{probe.labelTokens.map(labelToken => (
-					<Badge key={labelToken} tone="muted" dot={false}>
-						{labelToken}
-					</Badge>
-				))}
-			</span>
-		)
+		render: probe => <ProbeLabels labels={probe.labelTokens} />
 	},
 	{ key: "version", label: "Version" }
 ];

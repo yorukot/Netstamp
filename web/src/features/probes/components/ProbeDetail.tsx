@@ -12,14 +12,14 @@ import type { Probe } from "@/features/probes/data/probes";
 import { probeReinstallCommand, probeSecretUpdateCommand, probeUpgradeCommand } from "@/shared/api/installAssets";
 import { useDeleteProjectProbeMutation, useRotateProjectProbeSecretMutation, useUpdateProjectProbeMutation } from "@/shared/api/mutations";
 import { projectQueries } from "@/shared/api/queries";
-import type { ApiProbe } from "@/shared/api/types";
+import type { ApiLabel, ApiProbe } from "@/shared/api/types";
 import { CloseButton } from "@/shared/components/CloseButton";
 import { useConfirm } from "@/shared/components/confirmContext";
 import { pushErrorToast } from "@/shared/toast/toastStore";
 import { classNames } from "@/shared/utils/classNames";
-import { Badge, Button, DataTable, Surface, Terminal, TextField, type DataColumn } from "@netstamp/ui";
+import { Badge, Button, Checkbox, DataTable, FieldLabel, Surface, Terminal, TextField, type DataColumn } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { LocationPreviewMap } from "./LocationPreviewMap";
 import styles from "./ProbeDetail.module.css";
 import { expandAssignedRows } from "./probeUtils";
@@ -52,6 +52,14 @@ function probeServiceCommand(mode: ProbeServiceCommandMode) {
 		return probeReinstallCommand();
 	}
 	return probeUpgradeCommand();
+}
+
+function labelToken(label: Pick<ApiLabel, "key" | "value">) {
+	return `${label.key}:${label.value}`;
+}
+
+function sortLabels(left: ApiLabel, right: ApiLabel) {
+	return left.key.localeCompare(right.key) || left.value.localeCompare(right.value);
 }
 
 async function writeClipboardText(value: string) {
@@ -130,10 +138,15 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 	const [serviceCommandMode, setServiceCommandMode] = useState<ProbeServiceCommandMode | null>(null);
 	const [serviceCommandCopied, setServiceCommandCopied] = useState(false);
 	const [savingProbe, setSavingProbe] = useState(false);
+	const [selectedLabelIds, setSelectedLabelIds] = useState(() => activeApiProbe?.labels.map(label => label.id) ?? []);
 	const geocodeAbortRef = useRef<AbortController | null>(null);
 	const updateProbeMutation = useUpdateProjectProbeMutation(projectRef);
 	const deleteProbeMutation = useDeleteProjectProbeMutation(projectRef);
 	const rotateSecretMutation = useRotateProjectProbeSecretMutation(projectRef);
+	const labelsQuery = useQuery({
+		...projectQueries.labels(projectRef || ""),
+		enabled: Boolean(projectRef)
+	});
 	const probeAssignments = assignedRows.filter(row => row.probe === activeProbe.name);
 	const detailRows = expandAssignedRows(probeAssignments);
 	const rotatedSecretCommand = rotatedSecret ? probeSecretUpdateCommand({ probeId: activeProbe.id, probeSecret: rotatedSecret }) : "";
@@ -152,6 +165,19 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 	const canSearchLocation = coordinateInputMode === "search" && locationSearch.trim().length > 0 && geocodeStatus !== "searching";
 	const locationInputInvalid = coordinateInputMode === "manual" && Boolean(latitudeInput.trim() || longitudeInput.trim()) && !manualCoordinatesReady;
 	const previewLocationName = locationName.trim() || "Manual coordinates";
+	const labelOptions = useMemo(() => {
+		const labelsById = new Map<string, ApiLabel>();
+
+		for (const label of activeApiProbe?.labels ?? []) {
+			labelsById.set(label.id, label);
+		}
+		for (const label of labelsQuery.data?.labels ?? []) {
+			labelsById.set(label.id, label);
+		}
+
+		return Array.from(labelsById.values()).sort(sortLabels);
+	}, [activeApiProbe?.labels, labelsQuery.data?.labels]);
+	const selectedLabelSet = useMemo(() => new Set(selectedLabelIds), [selectedLabelIds]);
 
 	useEffect(() => {
 		return () => {
@@ -199,6 +225,16 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 	function updateServiceCommandMode(nextMode: ProbeServiceCommandMode) {
 		setServiceCommandMode(nextMode);
 		setServiceCommandCopied(false);
+	}
+
+	function toggleLabel(labelId: string, checked: boolean) {
+		setSelectedLabelIds(current => {
+			if (checked) {
+				return current.includes(labelId) ? current : [...current, labelId];
+			}
+
+			return current.filter(currentLabelId => currentLabelId !== labelId);
+		});
 	}
 
 	async function searchLocation() {
@@ -261,14 +297,11 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 
 		setSavingProbe(true);
 		try {
-			const currentLabels = activeApiProbe?.labels ?? [];
-			const labelIds = currentLabels.map(label => label.id);
-
 			const body = {
 				name: probeName.trim(),
 				...(locationName.trim() ? { locationName: locationName.trim() } : {}),
 				...(selectedCoordinates ? { latitude: selectedCoordinates.latitude, longitude: selectedCoordinates.longitude } : {}),
-				labelIds
+				labelIds: selectedLabelIds
 			};
 
 			await updateProbeMutation.mutateAsync({
@@ -342,6 +375,23 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 
 			<div className={styles.fieldGrid}>
 				<TextField className={styles.input} label="Probe name" value={probeName} onChange={event => setProbeName(event.currentTarget.value)} />
+			</div>
+
+			<div className={styles.labelEditor}>
+				<FieldLabel>Labels</FieldLabel>
+				{labelOptions.length ? (
+					<div className={styles.labelGrid}>
+						{labelOptions.map(label => (
+							<label className={classNames("ns-cut-frame", styles.labelOption)} title={labelToken(label)} key={label.id}>
+								<Checkbox checked={selectedLabelSet.has(label.id)} onChange={event => toggleLabel(label.id, event.currentTarget.checked)} />
+								<span>{label.key}</span>
+								<strong>{label.value}</strong>
+							</label>
+						))}
+					</div>
+				) : (
+					<p className={styles.labelNotice}>{labelsQuery.isLoading ? "Loading labels." : "No project labels available."}</p>
+				)}
 			</div>
 
 			<div className={styles.locationEditor}>

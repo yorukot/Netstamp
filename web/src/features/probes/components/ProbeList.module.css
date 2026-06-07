@@ -14,7 +14,90 @@
 }
 
 .labelList {
+	position: relative;
 	display: inline-flex;
-	flex-wrap: wrap;
+	flex-wrap: nowrap;
 	gap: 0.25rem;
+	align-items: center;
+	max-width: 21rem;
+	vertical-align: middle;
+	white-space: nowrap;
+}
+
+.labelEmpty {
+	color: var(--ns-text-low);
+	font-family: var(--ns-font-mono);
+}
+
+.labelBadge {
+	max-width: 8.5rem;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.labelOverflow {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+}
+
+.labelOverflowButton {
+	--ns-frame-cut: var(--ns-cut-xs);
+	--ns-frame-color: var(--ns-border-faint);
+	position: relative;
+	min-height: 1.55rem;
+	padding: 0.25rem 0.45rem;
+	border: 1px solid var(--ns-frame-color);
+	clip-path: polygon(var(--ns-frame-cut) 0, 100% 0, 100% calc(100% - var(--ns-frame-cut)), calc(100% - var(--ns-frame-cut)) 100%, 0 100%, 0 var(--ns-frame-cut));
+	color: var(--ns-text-muted);
+	background: rgba(196, 204, 217, 0.08);
+	font-family: var(--ns-font-mono);
+	font-size: 0.6875rem;
+	font-weight: 900;
+	letter-spacing: 0.08em;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.labelOverflowButton:hover,
+.labelOverflowButton:focus-visible {
+	--ns-frame-color: var(--ns-accent-border);
+	color: var(--ns-text);
+	background: rgba(255, 122, 26, 0.12);
+	outline: none;
+}
+
+.labelHoverCard,
+.labelPopover {
+	--ns-frame-cut: var(--ns-cut-sm);
+	--ns-frame-color: var(--ns-border-strong);
+	z-index: 1000;
+	width: min(24rem, calc(100vw - 1.5rem));
+	padding: 0.6rem;
+	background: linear-gradient(rgba(255, 122, 26, 0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 122, 26, 0.035) 1px, transparent 1px), var(--ns-glass-dark);
+	background-size:
+		1rem 1rem,
+		1rem 1rem,
+		100% 100%;
+	box-shadow: var(--ns-shadow-md);
+}
+
+.labelHoverCard {
+	position: absolute;
+	top: calc(100% + 0.45rem);
+	right: 0;
+	display: none;
+	pointer-events: none;
+}
+
+.labelOverflow:hover .labelHoverCard {
+	display: block;
+}
+
+.labelGrid {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.35rem;
+	max-height: 12rem;
+	overflow: auto;
 }

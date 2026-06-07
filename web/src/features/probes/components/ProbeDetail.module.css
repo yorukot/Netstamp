@@ -48,6 +48,63 @@
 	align-items: start;
 }
 
+.labelEditor {
+	display: grid;
+	gap: 0.75rem;
+	min-width: 0;
+}
+
+.labelGrid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+	gap: 0.625rem;
+}
+
+.labelOption {
+	--ns-frame-cut: var(--ns-cut-sm);
+	--ns-frame-color: var(--ns-border-faint);
+	display: grid;
+	grid-template-columns: auto minmax(0, 0.72fr) minmax(0, 1fr);
+	gap: 0.55rem;
+	align-items: center;
+	min-width: 0;
+	padding: 0.625rem;
+	background: rgba(255, 255, 255, 0.025);
+	cursor: pointer;
+}
+
+.labelOption:hover {
+	--ns-frame-color: var(--ns-accent-border);
+	background: rgba(255, 122, 26, 0.08);
+}
+
+.labelOption span,
+.labelOption strong {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-family: var(--ns-font-mono);
+	font-size: 0.75rem;
+}
+
+.labelOption span {
+	color: var(--ns-text-low);
+	font-weight: 700;
+}
+
+.labelOption strong {
+	color: var(--ns-text);
+	font-weight: 800;
+}
+
+.labelNotice {
+	margin: 0;
+	color: var(--ns-text-low);
+	font-size: 0.8125rem;
+	line-height: 1.5;
+}
+
 .locationEditor {
 	container-type: inline-size;
 	display: grid;
