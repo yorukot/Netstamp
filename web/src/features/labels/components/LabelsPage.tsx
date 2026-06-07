@@ -4,8 +4,8 @@ import { projectQueries } from "@/shared/api/queries";
 import type { ApiCheck, ApiLabel, ApiProbe } from "@/shared/api/types";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { ActionRow } from "@/shared/components/ActionRow";
-import { CloseButton } from "@/shared/components/CloseButton";
 import { useConfirm } from "@/shared/components/confirmContext";
+import { EditorDrawer } from "@/shared/components/EditorDrawer";
 import { FilterGrid } from "@/shared/components/FilterGrid";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
@@ -319,7 +319,7 @@ export function LabelsPage() {
 		<PageStack>
 			<ScreenHeader title="Labels" actions={<Button onClick={startNewLabel}>New label</Button>} />
 
-			<div className={classNames(styles.labelsGrid, !isEditorOpen && styles.labelsGridCollapsed)}>
+			<div className={styles.labelsGrid}>
 				<Panel tone="glass" title={`${rows.length} labels`}>
 					<div className={styles.listStack}>
 						<FilterGrid className={styles.filters}>
@@ -340,7 +340,7 @@ export function LabelsPage() {
 				</Panel>
 
 				{isEditorOpen ? (
-					<Panel className={styles.editorPanel} tone="glass" title={isEditing ? selectedRow?.token : "New label"} actions={<CloseButton ariaLabel="Close label editor" onClick={closeEditor} />}>
+					<EditorDrawer open title={isEditing ? selectedRow?.token || "Label" : "New label"} ariaLabel="Label editor" backLabel="back to labels" onClose={closeEditor}>
 						<div className={styles.editorStack}>
 							<div className={styles.editorForm}>
 								<TextField label="Key" placeholder="region" value={activeDraftKey} disabled={!projectRef} onChange={event => updateDraftKey(event.currentTarget.value)} />
@@ -374,7 +374,7 @@ export function LabelsPage() {
 								</div>
 							</div>
 						</div>
-					</Panel>
+					</EditorDrawer>
 				) : null}
 			</div>
 		</PageStack>

@@ -1,12 +1,8 @@
 .labelsGrid {
 	display: grid;
-	grid-template-columns: minmax(0, 1.1fr) minmax(22rem, 0.75fr);
+	grid-template-columns: minmax(0, 1fr);
 	gap: 1rem;
 	align-items: start;
-}
-
-.labelsGridCollapsed {
-	grid-template-columns: minmax(0, 1fr);
 }
 
 .listStack,
@@ -43,11 +39,6 @@
 .usageCell {
 	display: inline-flex;
 	align-items: center;
-}
-
-.editorPanel {
-	position: sticky;
-	top: 1rem;
 }
 
 .editorForm {
@@ -120,10 +111,6 @@
 @media (max-width: 78rem) {
 	.labelsGrid {
 		grid-template-columns: 1fr;
-	}
-
-	.editorPanel {
-		position: static;
 	}
 }
 

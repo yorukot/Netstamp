@@ -4,6 +4,7 @@ import { mapApiProbes } from "@/features/probes/api/probeAdapters";
 import { pathForProbeDetail, pathForRoute } from "@/routes/routePaths";
 import { projectQueries } from "@/shared/api/queries";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
+import { EditorDrawer } from "@/shared/components/EditorDrawer";
 import { NetworkMap } from "@/shared/components/NetworkMap";
 import { classNames } from "@/shared/utils/classNames";
 import { useQuery } from "@tanstack/react-query";
@@ -75,24 +76,20 @@ export function ProbesPage() {
 			{view === "grid" ? (
 				<>
 					<ProbePageHeader view={view} projectRef={projectRef} onViewChange={setView} />
-					<div className={classNames(styles.gridLayout, selectedProbe && styles.gridLayoutExpanded)}>
+					<div className={styles.gridLayout}>
 						<ProbeList probes={visibleProbes} selectedId={selectedProbeId} search={search} sortKey={sortKey} onSearchChange={setSearch} onSortChange={setSortKey} onSelect={selectProbe} />
-						{selectedProbe ? (
-							<div className={styles.detailColumn}>
-								<ProbeDetail key={selectedProbe.id} probe={selectedProbe} assignedRows={assignedRows} projectRef={projectRef} onClose={closeProbeDetail} onDeleted={closeProbeDetail} />
-							</div>
-						) : null}
 					</div>
 				</>
 			) : (
 				<div className={styles.mapView}>
 					<NetworkMap probes={probes} selectedId={selectedProbeId} onSelect={selectProbe} mode="fleet" className={styles.fullMap} />
 					<ProbePageHeader view={view} projectRef={projectRef} onViewChange={setView} overlay />
-					{selectedProbe ? (
-						<ProbeDetail key={selectedProbe.id} probe={selectedProbe} assignedRows={assignedRows} projectRef={projectRef} onClose={closeProbeDetail} onDeleted={closeProbeDetail} floating />
-					) : null}
 				</div>
 			)}
+
+			<EditorDrawer open={Boolean(selectedProbe)} title={selectedProbe?.name || "Probe"} ariaLabel="Probe detail" backLabel="back to probes" onClose={closeProbeDetail}>
+				{selectedProbe ? <ProbeDetail key={selectedProbe.id} probe={selectedProbe} assignedRows={assignedRows} projectRef={projectRef} onDeleted={closeProbeDetail} /> : null}
+			</EditorDrawer>
 
 			<Outlet />
 		</section>

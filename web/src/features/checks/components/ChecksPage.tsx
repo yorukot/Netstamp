@@ -28,14 +28,15 @@ import { projectQueries } from "@/shared/api/queries";
 import type { ApiCheck, ApiLabel, ApiSelector, CreateCheckInput } from "@/shared/api/types";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { ActionRow } from "@/shared/components/ActionRow";
-import { CloseButton } from "@/shared/components/CloseButton";
 import { useConfirm } from "@/shared/components/confirmContext";
+import { EditorDrawer } from "@/shared/components/EditorDrawer";
 import { FilterGrid } from "@/shared/components/FilterGrid";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { pushErrorToast, pushToast } from "@/shared/toast/toastStore";
 import { classNames } from "@/shared/utils/classNames";
 import { Badge, Button, Checkbox, FieldLabel, Panel, SelectField, TextAreaField, TextField } from "@netstamp/ui";
+import { Trash } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import type { RowSelectionState } from "@tanstack/react-table";
 import { useEffect, useMemo, useState } from "react";
@@ -144,12 +145,6 @@ function selectorLabelOptions(labels: ApiLabel[]): SelectorLabelOption[] {
 	}
 
 	return Array.from(options.values()).sort((a, b) => a.key.localeCompare(b.key) || a.value.localeCompare(b.value));
-}
-
-function selectorKeyOptions(options: SelectorLabelOption[], rules: SelectorRule[]) {
-	return Array.from(new Set([...options.map(option => option.key), ...rules.map(rule => rule.key.trim()).filter(Boolean)]))
-		.sort((a, b) => a.localeCompare(b))
-		.map(key => ({ value: key, label: key }));
 }
 
 function selectorValuesForKey(options: SelectorLabelOption[], key: string) {
@@ -392,7 +387,6 @@ export function ChecksPage() {
 		activeSelectorState.mode === "advanced" ? assignedProbeNames : probes.filter(probe => probeMatchesSelector(probe.labelTokens, activeSelectorState)).map(probe => probe.name);
 	const activeSelectedProbes = (isCreating || hasSelectedDraft) && selectedProbes.length ? selectedProbes : locallyMatchedProbeNames;
 	const selectorOptions = selectorLabelOptions(labelsQuery.data?.labels ?? []);
-	const selectorKeys = selectorKeyOptions(selectorOptions, activeSelectorState.rules);
 	const saveCheckMutation = isCreating ? createCheckMutation : updateCheckMutation;
 	const checkActionPending = createCheckMutation.isPending || deleteCheckMutation.isPending || batchDeleteCheckMutation.isPending;
 	const isEditorOpen = isCreating || Boolean(selectedCheck);
@@ -747,7 +741,7 @@ export function ChecksPage() {
 		<PageStack>
 			<ScreenHeader title="Checks" actions={<Button onClick={startNewCheck}>New check</Button>} />
 
-			<div className={classNames(styles.checkEditorGrid, !isEditorOpen && styles.checkEditorGridCollapsed)}>
+			<div className={styles.checkEditorGrid}>
 				<Panel tone="glass" title="Definitions">
 					<div className={styles.checkListStack}>
 						<FilterGrid className={styles.checkListFilters}>
@@ -793,7 +787,7 @@ export function ChecksPage() {
 				</Panel>
 
 				{isEditorOpen ? (
-					<Panel className={styles.stickyCheckPanel} tone="glass" title={isCreating ? "New check" : selectedCheck?.name} actions={<CloseButton ariaLabel="Close check editor" onClick={closeEditor} />}>
+					<EditorDrawer open title={isCreating ? "New check" : selectedCheck?.name || "Check"} ariaLabel="Check editor" backLabel="back to checks" onClose={closeEditor}>
 						<div className={classNames("ns-scrollbar", styles.checkEditorStack)}>
 							<div className={styles.checkEditForm}>
 								<TextField
@@ -870,12 +864,7 @@ export function ChecksPage() {
 															<Checkbox checked={rule.negated} onChange={event => updateSelectorRule(rule.id, { negated: event.currentTarget.checked })} />
 															<span>not</span>
 														</label>
-														<SelectField
-															label={`Rule ${index + 1} key`}
-															value={rule.key}
-															onChange={event => updateSelectorRuleKey(rule.id, event.currentTarget.value)}
-															options={selectorKeys.length ? selectorKeys : [{ value: "", label: "No labels" }]}
-														/>
+														<TextField label={`Rule ${index + 1} key`} value={rule.key} onChange={event => updateSelectorRuleKey(rule.id, event.currentTarget.value)} autoComplete="off" />
 														<SelectField
 															label="Operator"
 															value={rule.op}
@@ -892,8 +881,16 @@ export function ChecksPage() {
 															/>
 														) : null}
 														{rule.op === "exists" ? <div className={styles.selectorExistsValue}>any value</div> : null}
-														<Button type="button" variant="secondary" onClick={() => removeSelectorRule(rule.id)}>
-															Remove
+														<Button
+															className={classNames(styles.iconAction, styles.iconActionDanger, styles.selectorRuleRemove)}
+															type="button"
+															variant="ghost"
+															size="sm"
+															aria-label={`Remove selector rule ${index + 1}`}
+															title={`Remove selector rule ${index + 1}`}
+															onClick={() => removeSelectorRule(rule.id)}
+														>
+															<Trash size={15} weight="bold" aria-hidden="true" focusable="false" />
 														</Button>
 													</div>
 												);
@@ -903,7 +900,7 @@ export function ChecksPage() {
 									{activeSelectorState.mode === "all-probes" ? <p className={styles.selectorNotice}>Matches every active probe.</p> : null}
 									{activeSelectorState.mode !== "advanced" ? (
 										<ActionRow>
-											<Button type="button" variant="secondary" disabled={!selectorOptions.length} onClick={addSelectorRule}>
+											<Button type="button" variant="secondary" onClick={addSelectorRule}>
 												Add rule
 											</Button>
 										</ActionRow>
@@ -934,7 +931,7 @@ export function ChecksPage() {
 								</Button>
 							</ActionRow>
 						</div>
-					</Panel>
+					</EditorDrawer>
 				) : null}
 			</div>
 		</PageStack>

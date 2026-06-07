@@ -17,16 +17,6 @@
 	align-items: start;
 }
 
-.gridLayoutExpanded {
-	grid-template-columns: minmax(0, 1.05fr) minmax(24rem, 0.95fr);
-}
-
-.detailColumn {
-	position: sticky;
-	top: 1rem;
-	min-width: 0;
-}
-
 .mapView {
 	position: relative;
 	min-height: inherit;
@@ -42,16 +32,6 @@
 	min-height: 100%;
 	border: 0;
 	clip-path: none;
-}
-
-@media (max-width: 78rem) {
-	.gridLayoutExpanded {
-		grid-template-columns: 1fr;
-	}
-
-	.detailColumn {
-		position: static;
-	}
 }
 
 @media (max-width: 58rem) {
