@@ -33,6 +33,201 @@
 	--ns-filter-grid-mobile-template: 1fr;
 }
 
+.batchToolbar {
+	--ns-frame-color: rgba(255, 122, 26, 0.34);
+	--ns-frame-cut: var(--ns-cut-sm);
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.75rem;
+	align-items: center;
+	justify-content: space-between;
+	padding: 0.75rem 0.875rem;
+	background: rgba(255, 122, 26, 0.08);
+}
+
+.batchToolbar > div:first-child {
+	display: grid;
+	gap: 0.2rem;
+	min-width: min(100%, 14rem);
+}
+
+.batchToolbar strong,
+.batchToolbar span {
+	font-family: var(--ns-font-mono);
+}
+
+.batchToolbar strong {
+	color: var(--ns-text);
+	font-size: 0.8125rem;
+}
+
+.batchToolbar span {
+	color: var(--ns-text-low);
+	font-size: 0.75rem;
+}
+
+.batchToolbarActions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+}
+
+.checkTableFrame {
+	--ns-frame-color: rgba(255, 122, 26, 0.28);
+	--ns-frame-cut: var(--ns-cut-md);
+	width: 100%;
+	background: linear-gradient(rgba(255, 122, 26, 0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 122, 26, 0.04) 1px, transparent 1px), #030507;
+	background-size:
+		1rem 1rem,
+		1rem 1rem,
+		100% 100%;
+}
+
+.checkTableScroller {
+	width: 100%;
+	max-height: 42rem;
+	min-width: 0;
+	overflow: auto;
+}
+
+.checkTable {
+	width: 100%;
+	min-width: 62rem;
+	border-collapse: collapse;
+	color: var(--ns-text-muted);
+	font-family: var(--ns-font-mono);
+	font-size: 0.75rem;
+}
+
+.checkTable th {
+	position: sticky;
+	top: 0;
+	z-index: 1;
+	padding: 0.875rem 1rem;
+	border-bottom: 1px solid rgba(255, 122, 26, 0.26);
+	color: var(--ns-accent-hover);
+	background: #05070b;
+	font-size: 0.6875rem;
+	font-weight: 700;
+	letter-spacing: 0.12em;
+	text-align: left;
+	text-transform: uppercase;
+	white-space: nowrap;
+}
+
+.checkTable td {
+	padding: 0.875rem 1rem;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+	vertical-align: middle;
+	white-space: nowrap;
+}
+
+.checkTable th:first-child,
+.checkTable td:first-child {
+	width: 3rem;
+}
+
+.checkTable th:last-child,
+.checkTable td:last-child {
+	width: 9rem;
+	text-align: right;
+}
+
+.checkTableRow {
+	cursor: pointer;
+	outline: none;
+	transition:
+		background var(--ns-transition),
+		color var(--ns-transition);
+}
+
+.checkTableRow:hover,
+.checkTableRow:focus-visible {
+	color: var(--ns-text);
+	background: rgba(255, 122, 26, 0.12);
+}
+
+.checkTableRowSelected {
+	color: var(--ns-text);
+	background: rgba(255, 122, 26, 0.1);
+}
+
+.checkTable tbody tr:last-child td {
+	border-bottom: 0;
+}
+
+.tableSortButton {
+	display: inline-flex;
+	gap: 0.4rem;
+	align-items: center;
+	padding: 0;
+	border: 0;
+	color: inherit;
+	background: transparent;
+	cursor: pointer;
+	font: inherit;
+	letter-spacing: inherit;
+	text-align: inherit;
+	text-transform: inherit;
+}
+
+.tableSortButton:hover,
+.tableSortButton:focus-visible {
+	color: var(--ns-text);
+	outline: none;
+}
+
+.checkNameCell {
+	display: grid;
+	gap: 0.25rem;
+	min-width: 0;
+}
+
+.checkNameCell strong,
+.checkNameCell span {
+	display: block;
+	min-width: 0;
+	max-width: 18rem;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.checkNameCell strong {
+	color: var(--ns-text);
+	font-size: 0.8125rem;
+	font-weight: 800;
+}
+
+.checkNameCell span {
+	color: var(--ns-text-low);
+	font-size: 0.6875rem;
+}
+
+.rowActions {
+	display: inline-flex;
+	gap: 0.35rem;
+	align-items: center;
+	justify-content: flex-end;
+}
+
+.iconAction {
+	--ns-frame-color: transparent;
+	width: 2rem;
+	min-height: 2rem;
+	padding: 0;
+}
+
+.iconActionDanger {
+	color: #ffd2cc;
+}
+
+.checkTableEmpty {
+	padding: 2rem;
+	color: var(--ns-text-low);
+	text-align: center;
+}
+
 .checkEditForm,
 .probeMultiSelect {
 	display: grid;

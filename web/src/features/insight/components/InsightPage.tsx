@@ -306,12 +306,28 @@ function assignmentSelectOption(pair: InsightPair): AssignmentSelectOption {
 	};
 }
 
-function uniqueProbeOptions(pairs: InsightPair[]): AssignmentSelectOption[] {
+function uniqueProbeOptions(probes: Probe[], pairs: InsightPair[]): AssignmentSelectOption[] {
 	const counts = new Map<string, number>();
 	const options = new Map<string, AssignmentSelectOption>();
 
 	for (const pair of pairs) {
 		counts.set(pair.probeId, (counts.get(pair.probeId) ?? 0) + 1);
+	}
+
+	for (const probe of probes) {
+		options.set(probe.id, {
+			value: probe.id,
+			label: probe.name,
+			meta: probe.location,
+			searchText: normalizeSearch([probe.name, probe.location, probe.provider, ...probe.labelTokens].join(" "))
+		});
+	}
+
+	for (const pair of pairs) {
+		if (options.has(pair.probeId)) {
+			continue;
+		}
+
 		options.set(pair.probeId, {
 			value: pair.probeId,
 			label: pair.probe.name,
@@ -328,12 +344,28 @@ function uniqueProbeOptions(pairs: InsightPair[]): AssignmentSelectOption[] {
 		.sort((a, b) => a.label.localeCompare(b.label));
 }
 
-function uniqueCheckOptions(pairs: InsightPair[]): AssignmentSelectOption[] {
+function uniqueCheckOptions(checks: CheckDefinition[], pairs: InsightPair[]): AssignmentSelectOption[] {
 	const counts = new Map<string, number>();
 	const options = new Map<string, AssignmentSelectOption>();
 
 	for (const pair of pairs) {
 		counts.set(pair.checkId, (counts.get(pair.checkId) ?? 0) + 1);
+	}
+
+	for (const check of checks) {
+		options.set(check.id, {
+			value: check.id,
+			label: check.target,
+			meta: `${check.name} · ${check.type}`,
+			searchText: normalizeSearch([check.name, check.target, check.description, check.type].join(" "))
+		});
+	}
+
+	for (const pair of pairs) {
+		if (options.has(pair.checkId)) {
+			continue;
+		}
+
 		options.set(pair.checkId, {
 			value: pair.checkId,
 			label: pair.check.target,
@@ -442,8 +474,8 @@ export function InsightPage() {
 	const pairs = useMemo(() => buildInsightPairs(assignments, probes, checks), [assignments, checks, probes]);
 	const isSelectionLoading = Boolean(projectRef) && (assignmentsQuery.isLoading || probesQuery.isLoading || checksQuery.isLoading);
 	const pairsByKey = useMemo(() => new Map(pairs.map(pair => [pair.key, pair])), [pairs]);
-	const knownProbeIds = useMemo(() => new Set(pairs.map(pair => pair.probeId)), [pairs]);
-	const knownCheckIds = useMemo(() => new Set(pairs.map(pair => pair.checkId)), [pairs]);
+	const knownProbeIds = useMemo(() => new Set([...probes.map(probe => probe.id), ...pairs.map(pair => pair.probeId)]), [pairs, probes]);
+	const knownCheckIds = useMemo(() => new Set([...checks.map(check => check.id), ...pairs.map(pair => pair.checkId)]), [checks, pairs]);
 	const timeWindow = urlState.timeWindow;
 	const timeMode = urlState.timeMode;
 	const timeRange = urlState.timeRange;
@@ -466,6 +498,7 @@ export function InsightPage() {
 	const activeCheckId = hasInvalidCheckFocus ? "" : urlState.checkId;
 	const resultWindowFilters = useMemo(() => ({ from: timeWindow.from, to: timeWindow.to }), [timeWindow.from, timeWindow.to]);
 	const typeFilteredPairs = useMemo(() => pairs.filter(pair => matchesCheckType(pair, checkType)), [checkType, pairs]);
+	const typeFilteredChecks = useMemo(() => checks.filter(check => checkType === "all" || checkTypeFilterFromCheck(check) === checkType), [checkType, checks]);
 	const selectedPairKeys = useMemo(
 		() =>
 			requestedAssignmentKeys.filter(key => {
@@ -481,7 +514,10 @@ export function InsightPage() {
 	const exactPair = selectedPairs.length === 1 ? selectedPairs[0] : activeProbeId && activeCheckId && scopedPairs.length === 1 ? scopedPairs[0] : null;
 	const selectedProbe = exactPair?.probe ?? (activeProbeId ? scopedPairs.find(pair => pair.probeId === activeProbeId)?.probe || probes.find(probe => probe.id === activeProbeId) || null : null);
 	const selectedCheck = exactPair?.check ?? (activeCheckId ? scopedPairs.find(pair => pair.checkId === activeCheckId)?.check || checks.find(check => check.id === activeCheckId) || null : null);
-	const scopeOptions = useMemo(() => (groupBy === "check" ? uniqueCheckOptions(typeFilteredPairs) : uniqueProbeOptions(typeFilteredPairs)), [groupBy, typeFilteredPairs]);
+	const scopeOptions = useMemo(
+		() => (groupBy === "check" ? uniqueCheckOptions(typeFilteredChecks, typeFilteredPairs) : uniqueProbeOptions(probes, typeFilteredPairs)),
+		[groupBy, probes, typeFilteredChecks, typeFilteredPairs]
+	);
 	const assignmentOptions = useMemo(() => legacyScopedPairs.map(pair => assignmentSelectOption(pair)), [legacyScopedPairs]);
 	const latestResultFilters = useMemo(
 		() => ({
@@ -902,7 +938,7 @@ export function InsightPage() {
 						placeholder={groupBy === "check" ? "Select check" : "Select probe"}
 						options={scopeOptions}
 						value={groupBy === "check" ? activeCheckId : activeProbeId}
-						disabled={isSelectionLoading || !pairs.length}
+						disabled={isSelectionLoading || !scopeOptions.length}
 						onChange={selectGroupScope}
 					/>
 				</div>
@@ -912,7 +948,7 @@ export function InsightPage() {
 						placeholder="Type probe, check, target, label, or location"
 						options={assignmentOptions}
 						selectedValues={selectedPairKeys}
-						disabled={isSelectionLoading || !pairs.length}
+						disabled={isSelectionLoading || !assignmentOptions.length}
 						onChange={selectAssignments}
 					/>
 				</div>

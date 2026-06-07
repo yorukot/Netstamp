@@ -2,8 +2,22 @@ import { displayInsightTimeRange } from "@/features/insight/insightTime";
 import type { InsightRefreshInterval, InsightRelativeRange, InsightTimeMode, TimeWindow } from "@/features/insight/insightTypes";
 import { classNames } from "@/shared/utils/classNames";
 import { relativeTimeOptions, relativeTimeRangeDurations } from "@/shared/utils/timeRanges";
-import { Button, PopoverAnchor, PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger, SelectField, TextField } from "@netstamp/ui";
-import { useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import {
+	Button,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuPortal,
+	DropdownMenuRoot,
+	DropdownMenuTrigger,
+	PopoverAnchor,
+	PopoverContent,
+	PopoverPortal,
+	PopoverRoot,
+	PopoverTrigger,
+	SelectField,
+	TextField
+} from "@netstamp/ui";
+import { useId, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from "react";
 import styles from "./InsightControls.module.css";
 
 export type SegmentOption<TValue extends string> = {
@@ -102,12 +116,8 @@ export function ScopeSelect({
 	disabled?: boolean;
 	onChange: (value: string) => void;
 }) {
-	const listboxId = useId();
-	const inputId = useId();
 	const [open, setOpen] = useState(false);
 	const [query, setQuery] = useState("");
-	const [activeIndex, setActiveIndex] = useState(0);
-	const inputRef = useRef<HTMLInputElement>(null);
 	const optionsByValue = useMemo(() => new Map(options.map(option => [option.value, option])), [options]);
 	const selectedOption = value ? optionsByValue.get(value) : undefined;
 	const normalizedQuery = query.trim().toLowerCase();
@@ -116,156 +126,56 @@ export function ScopeSelect({
 
 		return matches.slice(0, 50);
 	}, [normalizedQuery, options]);
-
-	function openPopover() {
-		if (disabled) {
-			return;
-		}
-
-		setOpen(true);
-	}
+	const summary = selectedOption ? `${selectedOption.label} · ${selectedOption.meta}` : placeholder;
 
 	function commitValue(nextValue: string) {
 		onChange(nextValue);
-		setQuery("");
-		setActiveIndex(0);
 		setOpen(false);
-		inputRef.current?.focus();
-	}
-
-	function clearValue() {
-		onChange("");
 		setQuery("");
-		inputRef.current?.focus();
-	}
-
-	function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
-		if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-			event.preventDefault();
-			openPopover();
-			setActiveIndex(current => {
-				const total = filteredOptions.length;
-				if (!total) {
-					return 0;
-				}
-
-				const offset = event.key === "ArrowDown" ? 1 : -1;
-				return (current + offset + total) % total;
-			});
-			return;
-		}
-
-		if (event.key === "Enter") {
-			const activeOption = filteredOptions[activeIndex];
-			if (!activeOption) {
-				return;
-			}
-
-			event.preventDefault();
-			commitValue(activeOption.value);
-			return;
-		}
-
-		if (event.key === "Escape") {
-			setOpen(false);
-			return;
-		}
-
-		if (event.key === "Backspace" && !query && value) {
-			event.preventDefault();
-			clearValue();
-		}
 	}
 
 	return (
-		<PopoverRoot open={open} onOpenChange={setOpen}>
+		<DropdownMenuRoot
+			open={open}
+			onOpenChange={nextOpen => {
+				setOpen(nextOpen);
+				if (!nextOpen) {
+					setQuery("");
+				}
+			}}
+		>
 			<div className={styles.assignmentField}>
-				<label className={styles.segmentLabel} htmlFor={inputId}>
-					{label}
-				</label>
-				<PopoverAnchor asChild>
-					<div className={classNames("ns-cut-frame", styles.assignmentControl)} data-open={open || undefined} data-disabled={disabled || undefined} onClick={() => inputRef.current?.focus()}>
-						{selectedOption ? (
-							<span className={styles.assignmentToken}>
-								<span>{selectedOption.label}</span>
-							</span>
-						) : null}
-						<input
-							ref={inputRef}
-							id={inputId}
-							value={query}
-							disabled={disabled}
-							placeholder={selectedOption ? "Filter or change selection" : placeholder}
-							role="combobox"
-							aria-expanded={open}
-							aria-controls={open ? listboxId : undefined}
-							aria-autocomplete="list"
-							autoComplete="off"
-							onFocus={openPopover}
-							onChange={event => {
-								setQuery(event.currentTarget.value);
-								setActiveIndex(0);
-								openPopover();
-							}}
-							onKeyDown={handleKeyDown}
-						/>
+				<span className={styles.segmentLabel}>{label}</span>
+				<DropdownMenuTrigger asChild disabled={disabled}>
+					<button type="button" className={classNames("ns-cut-frame", styles.assignmentTrigger)} disabled={disabled}>
+						<span>{summary}</span>
+					</button>
+				</DropdownMenuTrigger>
+				<DropdownMenuPortal>
+					<DropdownMenuContent className={classNames("ns-cut-frame", "ns-scrollbar", styles.assignmentPopover)} align="start" sideOffset={8} collisionPadding={8}>
+						<div className={styles.assignmentSearch} onKeyDown={event => event.stopPropagation()}>
+							<input value={query} placeholder={`Search ${label.toLowerCase()}`} autoComplete="off" autoFocus onChange={event => setQuery(event.currentTarget.value)} />
+						</div>
 						{value ? (
-							<button
-								type="button"
-								className={styles.assignmentClear}
-								aria-label={`Clear ${label}`}
-								onMouseDown={event => event.preventDefault()}
-								onClick={event => {
-									event.stopPropagation();
-									clearValue();
-								}}
-							>
-								Clear
-							</button>
+							<DropdownMenuItem className={classNames(styles.assignmentOption, styles.assignmentActionOption)} onSelect={() => commitValue("")}>
+								<strong>Clear selection</strong>
+								<span>{selectedOption?.label ?? "Selected scope"}</span>
+							</DropdownMenuItem>
 						) : null}
-					</div>
-				</PopoverAnchor>
-				<PopoverPortal>
-					<PopoverContent
-						id={listboxId}
-						className={classNames("ns-cut-frame", "ns-scrollbar", styles.assignmentPopover)}
-						role="listbox"
-						align="start"
-						sideOffset={8}
-						collisionPadding={8}
-						onOpenAutoFocus={event => event.preventDefault()}
-						onCloseAutoFocus={event => event.preventDefault()}
-					>
 						{filteredOptions.length ? (
-							filteredOptions.map((option, index) => {
-								const selected = option.value === value;
-								const active = index === activeIndex;
-
-								return (
-									<button
-										type="button"
-										role="option"
-										aria-selected={selected}
-										className={styles.assignmentOption}
-										data-active={active || undefined}
-										data-selected={selected || undefined}
-										onMouseDown={event => event.preventDefault()}
-										onMouseEnter={() => setActiveIndex(index)}
-										onClick={() => commitValue(option.value)}
-										key={option.value}
-									>
-										<strong>{option.label}</strong>
-										<span>{option.meta}</span>
-									</button>
-								);
-							})
+							filteredOptions.map(option => (
+								<DropdownMenuItem className={styles.assignmentOption} data-state={option.value === value ? "checked" : undefined} onSelect={() => commitValue(option.value)} key={option.value}>
+									<strong>{option.label}</strong>
+									<span>{option.meta}</span>
+								</DropdownMenuItem>
+							))
 						) : (
 							<div className={styles.assignmentEmpty}>No {label.toLowerCase()} match this search.</div>
 						)}
-					</PopoverContent>
-				</PopoverPortal>
+					</DropdownMenuContent>
+				</DropdownMenuPortal>
 			</div>
-		</PopoverRoot>
+		</DropdownMenuRoot>
 	);
 }
 
@@ -284,10 +194,10 @@ export function AssignmentMultiSelect({
 	disabled?: boolean;
 	onChange: (values: string[]) => void;
 }) {
-	const listboxId = useId();
-	const inputId = useId();
 	const [open, setOpen] = useState(false);
 	const [query, setQuery] = useState("");
+	const listboxId = useId();
+	const inputId = useId();
 	const [activeIndex, setActiveIndex] = useState(0);
 	const inputRef = useRef<HTMLInputElement>(null);
 	const selectedSet = useMemo(() => new Set(selectedValues), [selectedValues]);
@@ -299,7 +209,11 @@ export function AssignmentMultiSelect({
 
 		return matches.slice(0, 50);
 	}, [normalizedQuery, options]);
-	const selectedSummary = selectedOptions.length ? `${selectedOptions.length} assignments selected` : "";
+	const selectedSummary = selectedOptions.length
+		? selectedOptions.length > 2
+			? `${selectedOptions[0]?.label}, ${selectedOptions[1]?.label}, +${selectedOptions.length - 2}`
+			: selectedOptions.map(option => option.label).join(", ")
+		: placeholder;
 
 	function openPopover() {
 		if (disabled) {
@@ -307,6 +221,24 @@ export function AssignmentMultiSelect({
 		}
 
 		setOpen(true);
+	}
+
+	function focusInputSoon() {
+		if (typeof window === "undefined") {
+			inputRef.current?.focus();
+			return;
+		}
+
+		window.requestAnimationFrame(() => inputRef.current?.focus());
+	}
+
+	function handleControlPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
+		if (event.button !== 0 || disabled || event.target instanceof HTMLButtonElement) {
+			return;
+		}
+
+		openPopover();
+		focusInputSoon();
 	}
 
 	function toggleValue(value: string) {
@@ -370,13 +302,24 @@ export function AssignmentMultiSelect({
 	}
 
 	return (
-		<PopoverRoot open={open} onOpenChange={setOpen}>
+		<PopoverRoot
+			open={open}
+			onOpenChange={nextOpen => {
+				setOpen(disabled ? false : nextOpen);
+			}}
+		>
 			<div className={styles.assignmentField}>
 				<label className={styles.segmentLabel} htmlFor={inputId}>
 					{label}
 				</label>
 				<PopoverAnchor asChild>
-					<div className={classNames("ns-cut-frame", styles.assignmentControl)} data-open={open || undefined} data-disabled={disabled || undefined} onClick={() => inputRef.current?.focus()}>
+					<div
+						className={classNames("ns-cut-frame", styles.assignmentControl)}
+						data-open={open || undefined}
+						data-disabled={disabled || undefined}
+						onPointerDownCapture={handleControlPointerDown}
+						onClick={() => inputRef.current?.focus()}
+					>
 						{selectedOptions.slice(0, 2).map(option => (
 							<span className={styles.assignmentToken} key={option.value}>
 								<span>{option.label}</span>
@@ -436,7 +379,9 @@ export function AssignmentMultiSelect({
 						role="listbox"
 						aria-multiselectable="true"
 						align="start"
+						side="bottom"
 						sideOffset={8}
+						avoidCollisions={false}
 						collisionPadding={8}
 						onOpenAutoFocus={event => event.preventDefault()}
 						onCloseAutoFocus={event => event.preventDefault()}

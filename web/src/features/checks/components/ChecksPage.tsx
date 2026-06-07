@@ -16,9 +16,16 @@ import {
 import { type CheckDefinition, type CheckType } from "@/features/checks/data/checks";
 import { mapApiProbes } from "@/features/probes/api/probeAdapters";
 import { pathForCheckDetail, pathForRoute } from "@/routes/routePaths";
-import { useCreateProjectCheckMutation, useDeleteProjectCheckMutation, usePreviewProjectSelectorMutation, useUpdateProjectCheckMutation } from "@/shared/api/mutations";
+import {
+	BatchCheckDeleteError,
+	useCreateProjectCheckMutation,
+	useDeleteProjectCheckMutation,
+	useDeleteProjectChecksMutation,
+	usePreviewProjectSelectorMutation,
+	useUpdateProjectCheckMutation
+} from "@/shared/api/mutations";
 import { projectQueries } from "@/shared/api/queries";
-import type { ApiLabel, ApiSelector, CreateCheckInput } from "@/shared/api/types";
+import type { ApiCheck, ApiLabel, ApiSelector, CreateCheckInput } from "@/shared/api/types";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { ActionRow } from "@/shared/components/ActionRow";
 import { CloseButton } from "@/shared/components/CloseButton";
@@ -26,23 +33,17 @@ import { useConfirm } from "@/shared/components/confirmContext";
 import { FilterGrid } from "@/shared/components/FilterGrid";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
-import { pushErrorToast } from "@/shared/toast/toastStore";
+import { pushErrorToast, pushToast } from "@/shared/toast/toastStore";
 import { classNames } from "@/shared/utils/classNames";
-import { Badge, Button, Checkbox, DataTable, FieldLabel, Panel, SelectField, TextAreaField, TextField, type DataColumn } from "@netstamp/ui";
+import { Badge, Button, Checkbox, FieldLabel, Panel, SelectField, TextAreaField, TextField } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import type { RowSelectionState } from "@tanstack/react-table";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { CheckConfigFields } from "./CheckConfigFields";
 import styles from "./ChecksPage.module.css";
 import { displayProbeSelection, groupChecksByTarget } from "./checksPageData";
-
-const checkColumns: DataColumn<CheckDefinition>[] = [
-	{ key: "name", label: "Check name" },
-	{ key: "type", label: "Type", render: row => <Badge tone="accent">{row.type}</Badge> },
-	{ key: "target", label: "Target" },
-	{ key: "interval", label: "Interval" },
-	{ key: "assigned", label: "Assigned probes" }
-];
+import { ChecksTable, type CheckTypeFilter } from "./ChecksTable";
 
 type SelectorMode = "all-probes" | "all" | "any" | "advanced";
 type SelectorLabelOp = NonNullable<ApiSelector["label"]>["op"];
@@ -90,6 +91,44 @@ function checkTypeFromApi(type: string): CheckType {
 		default:
 			return "Ping";
 	}
+}
+
+function copiedCheckName(name: string) {
+	const base = name.trim() || "Check";
+	const suffix = " copy";
+	const maxBaseLength = Math.max(1, 128 - suffix.length);
+
+	return `${base.slice(0, maxBaseLength)}${suffix}`;
+}
+
+function duplicateCheckInput(check: ApiCheck): CreateCheckInput {
+	const body: CreateCheckInput = {
+		intervalSeconds: check.intervalSeconds,
+		name: copiedCheckName(check.name),
+		target: check.target,
+		type: check.type
+	};
+
+	if (check.selector) {
+		body.selector = check.selector;
+	}
+	if (check.description) {
+		body.description = check.description;
+	}
+	if (check.labels.length) {
+		body.labelIds = check.labels.map(label => label.id);
+	}
+	if (check.pingConfig) {
+		body.pingConfig = { ...check.pingConfig };
+	}
+	if (check.tcpConfig) {
+		body.tcpConfig = { ...check.tcpConfig };
+	}
+	if (check.tracerouteConfig) {
+		body.tracerouteConfig = { ...check.tracerouteConfig };
+	}
+
+	return body;
 }
 
 function selectorLabelId(key: string, value: string) {
@@ -289,6 +328,7 @@ export function ChecksPage() {
 	const createCheckMutation = useCreateProjectCheckMutation(projectRef);
 	const updateCheckMutation = useUpdateProjectCheckMutation(projectRef);
 	const deleteCheckMutation = useDeleteProjectCheckMutation(projectRef);
+	const batchDeleteCheckMutation = useDeleteProjectChecksMutation(projectRef);
 	const selectorPreviewMutation = usePreviewProjectSelectorMutation(projectRef);
 	const probesQuery = useQuery({
 		...projectQueries.probes(projectRef || ""),
@@ -308,9 +348,12 @@ export function ChecksPage() {
 		...projectQueries.checks(projectRef || ""),
 		enabled: Boolean(projectRef)
 	});
-	const checkRows = groupChecksByTarget(mapApiChecksWithAssignments(checksQuery.data?.checks, assignmentsQuery.data));
+	const checkRows = useMemo(() => groupChecksByTarget(mapApiChecksWithAssignments(checksQuery.data?.checks, assignmentsQuery.data)), [assignmentsQuery.data, checksQuery.data?.checks]);
 	const probes = probesQuery.data || [];
 	const [editorMode, setEditorMode] = useState<"idle" | "create">("idle");
+	const [checkSearch, setCheckSearch] = useState("");
+	const [checkTypeFilter, setCheckTypeFilter] = useState<CheckTypeFilter>("all");
+	const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
 	const [draftCheckId, setDraftCheckId] = useState("");
 	const [checkName, setCheckName] = useState("");
 	const [target, setTarget] = useState("");
@@ -332,6 +375,7 @@ export function ChecksPage() {
 	const selectedApiCheck = isCreating ? null : checkDetailQuery.data?.check || selectedListApiCheck;
 	const selectedAssignmentCount = (assignmentsQuery.data ?? []).filter(assignment => assignment.checkId === selectedListCheck?.id).length;
 	const selectedCheck = isCreating ? null : selectedApiCheck ? mapApiCheck(selectedApiCheck, selectedAssignmentCount) : selectedListCheck;
+	const selectedCheckRows = useMemo(() => checkRows.filter(check => rowSelection[check.id]), [checkRows, rowSelection]);
 	const hasSelectedDraft = Boolean(selectedCheck && draftCheckId === selectedCheck.id);
 	const activeCheckName = isCreating || hasSelectedDraft ? checkName : selectedCheck?.name || "";
 	const activeTarget = isCreating || hasSelectedDraft ? target : selectedCheck?.target || "";
@@ -350,6 +394,7 @@ export function ChecksPage() {
 	const selectorOptions = selectorLabelOptions(labelsQuery.data?.labels ?? []);
 	const selectorKeys = selectorKeyOptions(selectorOptions, activeSelectorState.rules);
 	const saveCheckMutation = isCreating ? createCheckMutation : updateCheckMutation;
+	const checkActionPending = createCheckMutation.isPending || deleteCheckMutation.isPending || batchDeleteCheckMutation.isPending;
 	const isEditorOpen = isCreating || Boolean(selectedCheck);
 
 	function resetEditorState() {
@@ -535,13 +580,55 @@ export function ChecksPage() {
 		);
 	}
 
-	async function deleteSelectedCheck() {
-		if (!selectedCheck) {
+	function apiCheckFor(checkId: string) {
+		return checksQuery.data?.checks.find(check => check.id === checkId) || null;
+	}
+
+	function handleSavedCheck(data: { check: ApiCheck }) {
+		setEditorMode("idle");
+		setDraftCheckId(data.check.id);
+		setCheckName(data.check.name);
+		setTarget(data.check.target);
+		setCheckType(checkTypeFromApi(data.check.type));
+		setInterval(`${data.check.intervalSeconds}s`);
+		setSelectedProbes([]);
+		setSelectorState(selectorStateFromApi(data.check.selector));
+		setPingConfig(pingConfigFormStateFromApi(data.check));
+		setTCPConfig(tcpConfigFormStateFromApi(data.check));
+		setTracerouteConfig(tracerouteConfigFormStateFromApi(data.check));
+		navigate(pathForCheckDetail(projectRef, data.check.id));
+	}
+
+	function clearDeletedSelection(checkIds: string[]) {
+		setRowSelection(current => {
+			const next = { ...current };
+			for (const checkId of checkIds) {
+				delete next[checkId];
+			}
+
+			return next;
+		});
+	}
+
+	function closeEditorIfActiveDeleted(checkIds: string[]) {
+		if (selectedCheck && checkIds.includes(selectedCheck.id)) {
+			closeEditor();
+		}
+	}
+
+	function duplicateCheck(check: CheckDefinition) {
+		const apiCheck = apiCheckFor(check.id);
+		if (!apiCheck) {
+			pushErrorToast("Check details are still loading.");
 			return;
 		}
 
+		createCheckMutation.mutate(duplicateCheckInput(apiCheck), { onSuccess: handleSavedCheck });
+	}
+
+	async function deleteCheck(check: CheckDefinition) {
 		const confirmed = await confirm({
-			title: `Delete ${selectedCheck.name}?`,
+			title: `Delete ${check.name}?`,
 			message: "This removes the check definition and stops future assignments for matching probes.",
 			confirmLabel: "Delete check",
 			tone: "danger"
@@ -551,11 +638,73 @@ export function ChecksPage() {
 			return;
 		}
 
-		deleteCheckMutation.mutate(selectedCheck.id, {
+		deleteCheckMutation.mutate(check.id, {
 			onSuccess: () => {
-				closeEditor();
+				clearDeletedSelection([check.id]);
+				closeEditorIfActiveDeleted([check.id]);
 			}
 		});
+	}
+
+	async function deleteSelectedCheck() {
+		if (selectedCheck) {
+			await deleteCheck(selectedCheck);
+		}
+	}
+
+	async function deleteSelectedChecks() {
+		if (!selectedCheckRows.length) {
+			return;
+		}
+
+		const previewNames = selectedCheckRows
+			.slice(0, 4)
+			.map(check => check.name)
+			.join(", ");
+		const hiddenCount = selectedCheckRows.length - 4;
+		const confirmed = await confirm({
+			title: `Delete ${selectedCheckRows.length} checks?`,
+			message: hiddenCount > 0 ? `${previewNames}, and ${hiddenCount} more will be removed.` : `${previewNames} will be removed.`,
+			confirmLabel: "Delete checks",
+			tone: "danger"
+		});
+
+		if (!confirmed) {
+			return;
+		}
+
+		const checkIds = selectedCheckRows.map(check => check.id);
+		batchDeleteCheckMutation.mutate(checkIds, {
+			onSuccess: data => {
+				clearDeletedSelection(data.succeededIds);
+				closeEditorIfActiveDeleted(data.succeededIds);
+				pushToast({
+					message: `${data.succeededIds.length} checks removed.`,
+					title: "Checks deleted",
+					tone: "success"
+				});
+			},
+			onError: error => {
+				if (error instanceof BatchCheckDeleteError) {
+					clearDeletedSelection(error.succeededIds);
+					closeEditorIfActiveDeleted(error.succeededIds);
+					pushErrorToast(error.succeededIds.length ? `${error.succeededIds.length} checks were deleted, ${error.failedIds.length} failed.` : `${error.failedIds.length} checks failed to delete.`);
+					return;
+				}
+
+				pushErrorToast("Selected checks failed to delete.");
+			}
+		});
+	}
+
+	function selectedCheckSummary() {
+		const names = selectedCheckRows
+			.slice(0, 3)
+			.map(check => check.name)
+			.join(", ");
+		const hiddenCount = selectedCheckRows.length - 3;
+
+		return hiddenCount > 0 ? `${names}, +${hiddenCount}` : names;
 	}
 
 	function saveSelectedCheck() {
@@ -584,22 +733,7 @@ export function ChecksPage() {
 			body.pingConfig = buildPingConfigPayload(activePingConfig);
 		}
 
-		const options = {
-			onSuccess: (data: Awaited<ReturnType<typeof createCheckMutation.mutateAsync>>) => {
-				setEditorMode("idle");
-				setDraftCheckId(data.check.id);
-				setCheckName(data.check.name);
-				setTarget(data.check.target);
-				setCheckType(checkTypeFromApi(data.check.type));
-				setInterval(`${data.check.intervalSeconds}s`);
-				setSelectedProbes([]);
-				setSelectorState(selectorStateFromApi(data.check.selector));
-				setPingConfig(pingConfigFormStateFromApi(data.check));
-				setTCPConfig(tcpConfigFormStateFromApi(data.check));
-				setTracerouteConfig(tracerouteConfigFormStateFromApi(data.check));
-				navigate(pathForCheckDetail(projectRef, data.check.id));
-			}
-		};
+		const options = { onSuccess: handleSavedCheck };
 
 		if (isCreating) {
 			createCheckMutation.mutate(body, options);
@@ -617,10 +751,11 @@ export function ChecksPage() {
 				<Panel tone="glass" title="Definitions">
 					<div className={styles.checkListStack}>
 						<FilterGrid className={styles.checkListFilters}>
-							<TextField label="Search" placeholder="check name, target, description" />
+							<TextField label="Search" placeholder="check name, target, description" value={checkSearch} onChange={event => setCheckSearch(event.currentTarget.value)} />
 							<SelectField
 								label="Type"
-								defaultValue="all"
+								value={checkTypeFilter}
+								onChange={event => setCheckTypeFilter(event.currentTarget.value as CheckTypeFilter)}
 								options={[
 									{ value: "all", label: "All types" },
 									{ value: "ping", label: "Ping" },
@@ -629,7 +764,31 @@ export function ChecksPage() {
 								]}
 							/>
 						</FilterGrid>
-						<DataTable columns={checkColumns} rows={checkRows} getRowKey={row => String(row.id)} selectedKey={isCreating ? "__new__" : selectedId} onRowClick={selectCheck} />
+						{selectedCheckRows.length ? (
+							<div className={classNames("ns-cut-frame", styles.batchToolbar)}>
+								<div>
+									<strong>{selectedCheckRows.length} selected</strong>
+									<span>{selectedCheckSummary()}</span>
+								</div>
+								<div className={styles.batchToolbarActions}>
+									<Button type="button" variant="danger" size="sm" disabled={batchDeleteCheckMutation.isPending} onClick={() => void deleteSelectedChecks()}>
+										{batchDeleteCheckMutation.isPending ? "Deleting" : "Delete selected"}
+									</Button>
+								</div>
+							</div>
+						) : null}
+						<ChecksTable
+							actionDisabled={checkActionPending}
+							checks={checkRows}
+							onDeleteCheck={check => void deleteCheck(check)}
+							onDuplicateCheck={duplicateCheck}
+							onOpenCheck={selectCheck}
+							onRowSelectionChange={setRowSelection}
+							rowSelection={rowSelection}
+							search={checkSearch}
+							selectedKey={isCreating ? "__new__" : selectedId}
+							typeFilter={checkTypeFilter}
+						/>
 					</div>
 				</Panel>
 
@@ -770,7 +929,7 @@ export function ChecksPage() {
 								<Button disabled={(!selectedCheck && !isCreating) || !projectRef || !activeCheckName || !activeTarget || saveCheckMutation.isPending} onClick={saveSelectedCheck}>
 									{saveCheckMutation.isPending ? "Saving" : isCreating ? "Create check" : "Save check"}
 								</Button>
-								<Button variant="danger" disabled={!selectedCheck || deleteCheckMutation.isPending} onClick={() => void deleteSelectedCheck()}>
+								<Button variant="danger" disabled={!selectedCheck || checkActionPending} onClick={() => void deleteSelectedCheck()}>
 									{deleteCheckMutation.isPending ? "Deleting" : "Delete check"}
 								</Button>
 							</ActionRow>

@@ -121,6 +121,55 @@
 	min-width: 0;
 }
 
+.assignmentTrigger {
+	--ns-frame-cut: var(--ns-cut-sm);
+	--ns-frame-color: var(--ns-border);
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	gap: 0.75rem;
+	align-items: center;
+	width: 100%;
+	min-width: 0;
+	min-height: 2.75rem;
+	padding: 0.75rem 1rem;
+	color: var(--ns-text);
+	background: #05070a;
+	box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.8);
+	font-family: var(--ns-font-mono);
+	font-size: 0.8125rem;
+	font-weight: 800;
+	line-height: 1.1;
+	text-align: left;
+	cursor: pointer;
+}
+
+.assignmentTrigger::after {
+	width: 0.55rem;
+	height: 0.55rem;
+	border-right: 2px solid var(--ns-accent-hover);
+	border-bottom: 2px solid var(--ns-accent-hover);
+	content: "";
+	transform: rotate(45deg) translateY(-0.125rem);
+}
+
+.assignmentTrigger span {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.assignmentTrigger:hover,
+.assignmentTrigger:focus-visible {
+	--ns-frame-color: var(--ns-border-strong);
+	outline: none;
+}
+
+.assignmentTrigger:disabled {
+	cursor: not-allowed;
+	opacity: 0.62;
+}
+
 .assignmentControl {
 	--ns-frame-cut: var(--ns-cut-sm);
 	--ns-frame-color: var(--ns-border);
@@ -237,8 +286,8 @@
 	z-index: 1000;
 	display: grid;
 	gap: 0.25rem;
-	width: min(max(var(--radix-popover-trigger-width), 32.5rem), calc(100vw - 1rem));
-	max-height: min(22.5rem, var(--radix-popover-content-available-height));
+	width: min(max(var(--radix-dropdown-menu-trigger-width, var(--radix-popover-trigger-width, 32.5rem)), 32.5rem), calc(100vw - 1rem));
+	max-height: min(22.5rem, var(--radix-dropdown-menu-content-available-height, var(--radix-popover-content-available-height, 22.5rem)));
 	overflow: auto;
 	padding: 0.35rem;
 	background: linear-gradient(rgba(255, 122, 26, 0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 122, 26, 0.035) 1px, transparent 1px), var(--ns-glass-dark);
@@ -247,6 +296,34 @@
 		1rem 1rem,
 		100% 100%;
 	box-shadow: var(--ns-shadow-md);
+}
+
+.assignmentSearch {
+	padding: 0.35rem;
+}
+
+.assignmentSearch input {
+	width: 100%;
+	min-width: 0;
+	height: 2.5rem;
+	padding: 0.65rem 0.75rem;
+	color: var(--ns-text);
+	background: #05070a;
+	border: 1px solid var(--ns-border);
+	font-family: var(--ns-font-mono);
+	font-size: 0.8125rem;
+	font-weight: 800;
+	outline: none;
+}
+
+.assignmentSearch input:focus {
+	border-color: var(--ns-accent-active);
+	box-shadow: 0 0 0 2px rgba(255, 122, 26, 0.28);
+}
+
+.assignmentSearch input::placeholder {
+	color: var(--ns-text-low);
+	opacity: 1;
 }
 
 .assignmentOption {
@@ -286,24 +363,32 @@
 
 .assignmentOption:hover,
 .assignmentOption:focus-visible,
-.assignmentOption[data-active="true"] {
+.assignmentOption[data-active="true"],
+.assignmentOption[data-highlighted] {
 	color: var(--ns-text);
 	background: rgba(255, 122, 26, 0.12);
 	border-color: rgba(255, 122, 26, 0.3);
 	outline: none;
 }
 
-.assignmentOption[data-selected="true"] {
+.assignmentOption[data-selected="true"],
+.assignmentOption[data-state="checked"] {
 	background: rgba(255, 122, 26, 0.18);
 	border-color: rgba(255, 122, 26, 0.5);
 }
 
-.assignmentOption[data-selected="true"]::after {
+.assignmentOption[data-selected="true"]::after,
+.assignmentOption[data-state="checked"]::after {
 	color: var(--ns-accent-hover);
 	content: "selected";
 	font-size: 0.625rem;
 	font-weight: 900;
 	text-transform: uppercase;
+}
+
+.assignmentActionOption {
+	border-color: rgba(255, 122, 26, 0.24);
+	background: rgba(255, 122, 26, 0.08);
 }
 
 .assignmentEmpty {
