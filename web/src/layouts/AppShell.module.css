@@ -103,6 +103,26 @@
 	border-bottom: 1px solid var(--ns-border-faint);
 }
 
+.mobileDrawerUser {
+	display: none;
+}
+
+.mobileDrawerUserPanel {
+	--ns-frame-cut: var(--ns-cut-md);
+	--ns-frame-color: var(--ns-border-faint);
+	width: 100%;
+	display: grid;
+	padding: 0.875rem;
+	border: 1px solid var(--ns-frame-color);
+	color: var(--ns-text-low);
+	background: linear-gradient(135deg, rgba(255, 122, 26, 0.08) 0 1px, transparent 1px 0.75rem), #080a0e;
+	background-size:
+		0.75rem 0.75rem,
+		100% 100%;
+	font-family: var(--ns-font-mono);
+	font-size: 0.75rem;
+}
+
 .mobileDrawerNav {
 	display: grid;
 	gap: 0.5rem;
@@ -715,6 +735,11 @@
 		justify-self: end;
 	}
 
+	.mobileNavDrawerContent {
+		display: flex;
+		flex-direction: column;
+	}
+
 	.brandLogo {
 		width: 9.75rem;
 	}
@@ -743,6 +768,12 @@
 
 	.mobileDrawerProject .projectCompact {
 		display: none;
+	}
+
+	.mobileDrawerUser {
+		display: grid;
+		margin-top: auto;
+		padding-top: 1rem;
 	}
 
 	.nav {

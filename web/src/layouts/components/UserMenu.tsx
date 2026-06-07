@@ -14,6 +14,11 @@ interface UserMenuProps {
 	onLogout: () => void;
 }
 
+interface UserMenuPanelProps extends UserMenuProps {
+	className?: string;
+	onClose?: () => void;
+}
+
 export function UserMenu({ user, onLogout }: UserMenuProps) {
 	const [profileOpen, setProfileOpen] = useState(false);
 	const [avatarOpen, setAvatarOpen] = useState(false);
@@ -72,6 +77,27 @@ export function UserMenu({ user, onLogout }: UserMenuProps) {
 				</PopoverPortal>
 			</PopoverRoot>
 		</>
+	);
+}
+
+export function UserMenuPanel({ user, onLogout, className, onClose }: UserMenuPanelProps) {
+	const invitesQuery = useQuery(projectQueries.currentUserInvites());
+	const pendingInviteCount = invitesQuery.data?.invites.length ?? 0;
+	const inviteCountLabel = pendingInviteCount > 99 ? "99+" : String(pendingInviteCount);
+
+	function closePanel() {
+		onClose?.();
+	}
+
+	function logout() {
+		closePanel();
+		onLogout();
+	}
+
+	return (
+		<section className={classNames("ns-cut-frame", styles.mobileDrawerUserPanel, className)} aria-label="User menu">
+			<UserMenuContent user={user} pendingInviteCount={pendingInviteCount} inviteCountLabel={inviteCountLabel} onClose={closePanel} onLogout={logout} />
+		</section>
 	);
 }
 

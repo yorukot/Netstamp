@@ -11,7 +11,7 @@ import { CaretLeft, CaretRight, List, X } from "@phosphor-icons/react";
 import { useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { ProjectSwitcher } from "./ProjectSwitcher";
-import { UserMenu } from "./UserMenu";
+import { UserMenu, UserMenuPanel } from "./UserMenu";
 
 interface SidebarProps {
 	collapsed: boolean;
@@ -110,6 +110,9 @@ export function Sidebar({ collapsed, user, onToggleCollapsed, onLogout }: Sideba
 						);
 					})}
 				</nav>
+				<div className={styles.mobileDrawerUser}>
+					<UserMenuPanel user={user} onLogout={onLogout} onClose={closeMobileMenu} />
+				</div>
 			</EditorDrawer>
 		</aside>
 	);
