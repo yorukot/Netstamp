@@ -55,7 +55,17 @@ function AuthRoute({ mode }: AuthRouteProps) {
 }
 
 function OnboardingRoute() {
+	const { loading, session } = useSession();
+	const location = useLocation();
 	const navigate = useRouteNavigate();
+
+	if (loading) {
+		return null;
+	}
+
+	if (!session) {
+		return <RouterNavigate to={pathForRoute("login")} replace state={{ from: location }} />;
+	}
 
 	return lazyRoute(<OnboardingPage navigate={navigate} />);
 }
@@ -77,6 +87,20 @@ function ProtectedAppShell() {
 
 	if (!session) {
 		return <RouterNavigate to={pathForRoute("login")} replace state={{ from: location }} />;
+	}
+
+	return <ProjectAppShell />;
+}
+
+function ProjectAppShell() {
+	const { projectRef, projectsQuery } = useCurrentProject();
+
+	if (projectsQuery.isPending) {
+		return null;
+	}
+
+	if (projectsQuery.isSuccess && !projectRef) {
+		return <RouterNavigate to={pathForRoute("onboarding")} replace />;
 	}
 
 	return <AppShell />;
