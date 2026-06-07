@@ -11,20 +11,15 @@ import type {
 	CreateProbeInput,
 	CreateProjectInput,
 	CreateProjectInviteInput,
-	CreatePublicPageFolderInput,
-	CreatePublicPageInput,
 	LoginInput,
 	ProjectMemberRole,
 	RegisterInput,
 	SelectorPreviewInput,
-	SetPublicPageFolderChecksInput,
 	UpdateCheckInput,
 	UpdateCurrentUserInput,
 	UpdateLabelInput,
 	UpdateProbeInput,
-	UpdateProjectInput,
-	UpdatePublicPageFolderInput,
-	UpdatePublicPageInput
+	UpdateProjectInput
 } from "./types";
 
 type SaveProjectLabelVariables = { labelId?: string; body: CreateLabelInput };
@@ -77,34 +72,6 @@ export function updateProject(ref: string, body: UpdateProjectInput) {
 
 export function deleteProject(ref: string) {
 	return readEmptyApiResponse(apiClient.DELETE("/projects/{ref}", { params: { path: { ref } } }));
-}
-
-export function createProjectPublicPage(ref: string, body: CreatePublicPageInput) {
-	return readApiData(apiClient.POST("/projects/{ref}/public-pages", { params: { path: { ref } }, body }));
-}
-
-export function updateProjectPublicPage(ref: string, pageId: string, body: UpdatePublicPageInput) {
-	return readApiData(apiClient.PATCH("/projects/{ref}/public-pages/{page_id}", { params: { path: { ref, page_id: pageId } }, body }));
-}
-
-export function deleteProjectPublicPage(ref: string, pageId: string) {
-	return readEmptyApiResponse(apiClient.DELETE("/projects/{ref}/public-pages/{page_id}", { params: { path: { ref, page_id: pageId } } }));
-}
-
-export function createProjectPublicPageFolder(ref: string, pageId: string, body: CreatePublicPageFolderInput) {
-	return readApiData(apiClient.POST("/projects/{ref}/public-pages/{page_id}/folders", { params: { path: { ref, page_id: pageId } }, body }));
-}
-
-export function updateProjectPublicPageFolder(ref: string, pageId: string, folderId: string, body: UpdatePublicPageFolderInput) {
-	return readApiData(apiClient.PATCH("/projects/{ref}/public-pages/{page_id}/folders/{folder_id}", { params: { path: { ref, page_id: pageId, folder_id: folderId } }, body }));
-}
-
-export function deleteProjectPublicPageFolder(ref: string, pageId: string, folderId: string) {
-	return readEmptyApiResponse(apiClient.DELETE("/projects/{ref}/public-pages/{page_id}/folders/{folder_id}", { params: { path: { ref, page_id: pageId, folder_id: folderId } } }));
-}
-
-export function setProjectPublicPageFolderChecks(ref: string, pageId: string, folderId: string, body: SetPublicPageFolderChecksInput) {
-	return readApiData(apiClient.PUT("/projects/{ref}/public-pages/{page_id}/folders/{folder_id}/checks", { params: { path: { ref, page_id: pageId, folder_id: folderId } }, body }));
 }
 
 export function createProjectProbe(ref: string, body: CreateProbeInput) {
@@ -283,105 +250,6 @@ export function useDeleteProjectMutation(projectRef: string | null | undefined) 
 		onSuccess: () => {
 			queryClient.removeQueries({ queryKey: apiQueryKeys.projects.detail(requireProjectRef(projectRef)) });
 			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.list() });
-		}
-	});
-}
-
-export function useCreateProjectPublicPageMutation(projectRef: string | null | undefined) {
-	const queryClient = useQueryClient();
-
-	return useMutation({
-		mutationFn: (body: CreatePublicPageInput) => createProjectPublicPage(requireProjectRef(projectRef), body),
-		onSuccess: data => {
-			const ref = requireProjectRef(projectRef);
-			queryClient.setQueryData(apiQueryKeys.projects.publicPageDetail(ref, data.publicPage.id), data);
-			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.publicPages(ref) });
-		}
-	});
-}
-
-export function useUpdateProjectPublicPageMutation(projectRef: string | null | undefined) {
-	const queryClient = useQueryClient();
-
-	return useMutation({
-		mutationFn: ({ pageId, body }: { pageId: string; body: UpdatePublicPageInput }) => updateProjectPublicPage(requireProjectRef(projectRef), pageId, body),
-		onSuccess: data => {
-			const ref = requireProjectRef(projectRef);
-			queryClient.setQueryData(apiQueryKeys.projects.publicPageDetail(ref, data.publicPage.id), data);
-			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.publicPages(ref) });
-			queryClient.invalidateQueries({ queryKey: apiQueryKeys.publicPages.all });
-		}
-	});
-}
-
-export function useDeleteProjectPublicPageMutation(projectRef: string | null | undefined) {
-	const queryClient = useQueryClient();
-
-	return useMutation({
-		mutationFn: (pageId: string) => deleteProjectPublicPage(requireProjectRef(projectRef), pageId),
-		onSuccess: (_data, pageId) => {
-			const ref = requireProjectRef(projectRef);
-			queryClient.removeQueries({ queryKey: apiQueryKeys.projects.publicPageDetail(ref, pageId) });
-			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.publicPages(ref) });
-			queryClient.invalidateQueries({ queryKey: apiQueryKeys.publicPages.all });
-		}
-	});
-}
-
-export function useCreateProjectPublicPageFolderMutation(projectRef: string | null | undefined) {
-	const queryClient = useQueryClient();
-
-	return useMutation({
-		mutationFn: ({ pageId, body }: { pageId: string; body: CreatePublicPageFolderInput }) => createProjectPublicPageFolder(requireProjectRef(projectRef), pageId, body),
-		onSuccess: (_data, variables) => {
-			const ref = requireProjectRef(projectRef);
-			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.publicPageDetail(ref, variables.pageId) });
-			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.publicPages(ref) });
-			queryClient.invalidateQueries({ queryKey: apiQueryKeys.publicPages.all });
-		}
-	});
-}
-
-export function useUpdateProjectPublicPageFolderMutation(projectRef: string | null | undefined) {
-	const queryClient = useQueryClient();
-
-	return useMutation({
-		mutationFn: ({ pageId, folderId, body }: { pageId: string; folderId: string; body: UpdatePublicPageFolderInput }) =>
-			updateProjectPublicPageFolder(requireProjectRef(projectRef), pageId, folderId, body),
-		onSuccess: (_data, variables) => {
-			const ref = requireProjectRef(projectRef);
-			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.publicPageDetail(ref, variables.pageId) });
-			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.publicPages(ref) });
-			queryClient.invalidateQueries({ queryKey: apiQueryKeys.publicPages.all });
-		}
-	});
-}
-
-export function useDeleteProjectPublicPageFolderMutation(projectRef: string | null | undefined) {
-	const queryClient = useQueryClient();
-
-	return useMutation({
-		mutationFn: ({ pageId, folderId }: { pageId: string; folderId: string }) => deleteProjectPublicPageFolder(requireProjectRef(projectRef), pageId, folderId),
-		onSuccess: (_data, variables) => {
-			const ref = requireProjectRef(projectRef);
-			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.publicPageDetail(ref, variables.pageId) });
-			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.publicPages(ref) });
-			queryClient.invalidateQueries({ queryKey: apiQueryKeys.publicPages.all });
-		}
-	});
-}
-
-export function useSetProjectPublicPageFolderChecksMutation(projectRef: string | null | undefined) {
-	const queryClient = useQueryClient();
-
-	return useMutation({
-		mutationFn: ({ pageId, folderId, body }: { pageId: string; folderId: string; body: SetPublicPageFolderChecksInput }) =>
-			setProjectPublicPageFolderChecks(requireProjectRef(projectRef), pageId, folderId, body),
-		onSuccess: (_data, variables) => {
-			const ref = requireProjectRef(projectRef);
-			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.publicPageDetail(ref, variables.pageId) });
-			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.publicPages(ref) });
-			queryClient.invalidateQueries({ queryKey: apiQueryKeys.publicPages.all });
 		}
 	});
 }

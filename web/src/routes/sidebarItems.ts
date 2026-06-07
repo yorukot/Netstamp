@@ -1,4 +1,4 @@
-import { Broadcast, ChartLineUp, CheckCircle, Gauge, GearSix, GlobeHemisphereWest, Tag, UsersThree, type Icon } from "@phosphor-icons/react";
+import { Broadcast, ChartLineUp, CheckCircle, Gauge, GearSix, Tag, UsersThree, type Icon } from "@phosphor-icons/react";
 import type { AppRoute } from "./routeTypes";
 
 export interface SidebarItem {
@@ -13,7 +13,6 @@ export const sidebarItems: SidebarItem[] = [
 	{ label: "Checks", route: "checks", icon: CheckCircle },
 	{ label: "Labels", route: "labels", icon: Tag },
 	{ label: "Insight", route: "insight", icon: ChartLineUp },
-	{ label: "Public Pages", route: "publicPages", icon: GlobeHemisphereWest },
 	{ label: "Members", route: "members", icon: UsersThree },
 	{ label: "Settings", route: "project", icon: GearSix }
 ];

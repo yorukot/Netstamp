@@ -7,7 +7,6 @@ import type {
 	PingSeriesFilters,
 	PingSeriesResponse,
 	ProjectAssignmentFilters,
-	PublicPingInsightFilters,
 	TcpInsightFilters,
 	TcpSeriesFilters,
 	TcpSeriesResponse,
@@ -92,18 +91,6 @@ export const projectQueries = {
 			queryKey: apiQueryKeys.projects.invites(ref),
 			queryFn: ({ signal }) => readApiData(apiClient.GET("/projects/{ref}/invites", { params: { path: { ref } }, signal })),
 			staleTime: 60 * 1000
-		}),
-	publicPages: (ref: string) =>
-		queryOptions({
-			queryKey: apiQueryKeys.projects.publicPages(ref),
-			queryFn: ({ signal }) => readApiData(apiClient.GET("/projects/{ref}/public-pages", { params: { path: { ref } }, signal })),
-			staleTime: 60 * 1000
-		}),
-	publicPageDetail: (ref: string, pageId: string) =>
-		queryOptions({
-			queryKey: apiQueryKeys.projects.publicPageDetail(ref, pageId),
-			queryFn: ({ signal }) => readApiData(apiClient.GET("/projects/{ref}/public-pages/{page_id}", { params: { path: { ref, page_id: pageId } }, signal })),
-			staleTime: 30 * 1000
 		}),
 	currentUserInvites: () =>
 		queryOptions({
@@ -208,28 +195,6 @@ export const projectQueries = {
 				readApiData(
 					apiClient.GET("/projects/{ref}/results/traceroute/topology", {
 						params: { path: { ref }, query: { limit: 100, ...filters } },
-						signal
-					})
-				),
-			staleTime: 30 * 1000
-		})
-};
-
-export const publicPageQueries = {
-	detail: (slug: string) =>
-		queryOptions({
-			queryKey: apiQueryKeys.publicPages.detail(slug),
-			queryFn: ({ signal }) => readApiData(apiClient.GET("/public-pages/{slug}", { params: { path: { slug } }, signal })),
-			retry: false,
-			staleTime: 30 * 1000
-		}),
-	pingInsight: (slug: string, probeId: string, checkId: string, filters: PublicPingInsightFilters = {}) =>
-		queryOptions({
-			queryKey: apiQueryKeys.publicPages.pingInsight(slug, probeId, checkId, filters),
-			queryFn: ({ signal }) =>
-				readApiData(
-					apiClient.GET("/public-pages/{slug}/results/ping/insight", {
-						params: { path: { slug }, query: { probeId, checkId, maxDataPoints: 600, ...filters } },
 						signal
 					})
 				),

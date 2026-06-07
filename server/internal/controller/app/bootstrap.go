@@ -16,7 +16,6 @@ import (
 	appprobe "github.com/yorukot/netstamp/internal/controller/application/probe"
 	appproberuntime "github.com/yorukot/netstamp/internal/controller/application/proberuntime"
 	appproject "github.com/yorukot/netstamp/internal/controller/application/project"
-	apppublicpage "github.com/yorukot/netstamp/internal/controller/application/publicpage"
 	appresult "github.com/yorukot/netstamp/internal/controller/application/result"
 	appuser "github.com/yorukot/netstamp/internal/controller/application/user"
 	"github.com/yorukot/netstamp/internal/controller/config"
@@ -27,7 +26,6 @@ import (
 	pgping "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/ping"
 	pgprobe "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/probe"
 	pgproject "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/project"
-	pgpublicpage "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/publicpage"
 	pgresult "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/result"
 	pgtcp "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/tcp"
 	pgtraceroute "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/traceroute"
@@ -118,7 +116,6 @@ func New(ctx context.Context) (*Application, error) {
 	probeEvents := logger.NewProbeEventRecorder(log)
 	probeRuntimeEvents := logger.NewProbeRuntimeEventRecorder(log)
 	assignmentEvents := logger.NewAssignmentEventRecorder(log)
-	publicPageEvents := logger.NewPublicPageEventRecorder(log)
 
 	authSvc := appauth.NewService(userRepo, passwordHasher, tokenIssuer, authEvents)
 	userSvc := appuser.NewService(userRepo, passwordHasher, userEvents)
@@ -136,8 +133,6 @@ func New(ctx context.Context) (*Application, error) {
 	tcpRepo := pgtcp.NewTCPRepository(dbPool)
 	tracerouteRepo := pgtraceroute.NewTracerouteRepository(dbPool)
 	resultRepo := pgresult.NewResultRepository(dbPool)
-	publicPageRepo := pgpublicpage.NewPublicPageRepository(dbPool)
-	publicPageSvc := apppublicpage.NewService(publicPageRepo, projectRepo, pingRepo, publicPageEvents)
 	probeRuntimeSvc := appproberuntime.NewServiceWithTCP(probeRepo, pingRepo, tcpRepo, tracerouteRepo, security.NewProbeSecretVerifier(), probeRuntimeEvents)
 	resultSvc := appresult.NewService(pingRepo, tcpRepo, tracerouteRepo, resultRepo, projectRepo)
 	readiness := postgres.NewReadinessCheck(dbPool)
@@ -160,7 +155,6 @@ func New(ctx context.Context) (*Application, error) {
 		ProbeService:      probeSvc,
 		ProbeRuntime:      probeRuntimeSvc,
 		ProjectService:    projectSvc,
-		PublicPageService: publicPageSvc,
 		ResultService:     resultSvc,
 		ReadinessCheck:    readiness,
 		RequestTimeout:    cfg.HTTP.RequestTimeout,

@@ -8,18 +8,12 @@ export type ApiProbe = components["schemas"]["Probe"];
 export type ApiProject = components["schemas"]["Project"];
 export type ApiProjectAssignment = components["schemas"]["ProjectAssignment"];
 export type ApiProjectInvite = components["schemas"]["ProjectInvite"];
-export type ApiPublicPage = components["schemas"]["PublicPage"];
-export type ApiPublicPageCheck = components["schemas"]["PublicPageCheck"];
-export type ApiPublicPageFolder = components["schemas"]["PublicPageFolder"];
-export type ApiPublicPingPair = components["schemas"]["PublicPingPair"];
 export type ApiSelector = components["schemas"]["Selector"];
 export type ChangeCurrentUserEmailInput = components["schemas"]["ChangeCurrentUserEmailRequest"];
 export type ChangeCurrentUserPasswordInput = components["schemas"]["ChangeCurrentUserPasswordRequest"];
 export type CreateCheckInput = components["schemas"]["CreateCheckRequest"];
 export type CreateLabelInput = components["schemas"]["CreateLabelRequest"];
 export type CreateProbeInput = components["schemas"]["CreateProbeRequest"];
-export type CreatePublicPageFolderInput = components["schemas"]["CreatePublicPageFolderRequest"];
-export type CreatePublicPageInput = components["schemas"]["CreatePublicPageRequest"];
 export type CreateProjectInviteInput = components["schemas"]["CreateProjectInviteRequest"];
 export type CreateProjectInput = components["schemas"]["CreateProjectRequest"];
 export type LoginInput = components["schemas"]["LoginUserRequest"];
@@ -34,10 +28,8 @@ export type PingSeriesResponse = Omit<components["schemas"]["PingSeriesResponse"
 	series: Partial<Record<PingSeriesKey, ApiSeries>> & Record<string, ApiSeries | undefined>;
 };
 export type ProjectMemberRole = NonNullable<components["schemas"]["UpdateProjectMemberRoleRequest"]["role"]>;
-export type PublicPingInsightResponse = components["schemas"]["PublicPingInsightResponse"];
 export type RegisterInput = components["schemas"]["RegisterUserRequest"];
 export type SelectorPreviewInput = components["schemas"]["SelectorPreviewRequest"];
-export type SetPublicPageFolderChecksInput = components["schemas"]["SetPublicPageFolderChecksRequest"];
 export type TcpInsightResponse = components["schemas"]["TcpInsightResponse"];
 export type TcpSeriesKey = "connect_avg" | "connect_min" | "connect_max" | "failure_percent";
 export type TcpSeriesParameter = components["parameters"]["TcpSeriesQuery.series"];
@@ -54,8 +46,6 @@ export type UpdateCurrentUserInput = components["schemas"]["UpdateCurrentUserReq
 export type UpdateLabelInput = components["schemas"]["UpdateLabelRequest"];
 export type UpdateProbeInput = components["schemas"]["UpdateProbeRequest"];
 export type UpdateProjectInput = components["schemas"]["UpdateProjectRequest"];
-export type UpdatePublicPageFolderInput = components["schemas"]["UpdatePublicPageFolderRequest"];
-export type UpdatePublicPageInput = components["schemas"]["UpdatePublicPageRequest"];
 export type UserResponse = components["schemas"]["User"];
 
 export interface ProjectAssignmentFilters {
@@ -92,12 +82,6 @@ export interface TcpSeriesFilters {
 	from?: number;
 	to?: number;
 	series?: TcpSeriesParameter;
-	maxDataPoints?: number;
-}
-
-export interface PublicPingInsightFilters {
-	from?: number;
-	to?: number;
 	maxDataPoints?: number;
 }
 

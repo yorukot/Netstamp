@@ -14,7 +14,6 @@ export const legacyAppRoutePaths = {
 	labels: "/labels",
 	insight: "/insight",
 	checks: "/checks",
-	publicPages: "/public-pages",
 	members: "/members",
 	project: "/project",
 	settings: "/settings"
@@ -27,7 +26,6 @@ export const projectRouteSegments = {
 	labels: "labels",
 	insight: "insight",
 	checks: "checks",
-	publicPages: "public-pages",
 	members: "members",
 	project: "project"
 } satisfies Record<ProjectAppRoute, string>;
@@ -91,14 +89,6 @@ export function pathForCheckDetail(projectRef: string | null | undefined, checkI
 	}
 
 	return `${projectBasePath(projectRef)}/checks/${encodePathParam(checkId)}`;
-}
-
-export function pathForPublicPageDetail(projectRef: string | null | undefined, pageId: string) {
-	if (!projectRef) {
-		return `/public-pages/${encodePathParam(pageId)}`;
-	}
-
-	return `${projectBasePath(projectRef)}/public-pages/${encodePathParam(pageId)}`;
 }
 
 export function pathForProjectSwitch(pathname: string, projectRef: string) {

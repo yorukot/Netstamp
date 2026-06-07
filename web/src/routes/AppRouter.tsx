@@ -10,7 +10,7 @@ import { TrackingConsentBanner } from "@/shared/tracking/TrackingConsentBanner";
 import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { lazy, Suspense, useEffect, type ReactNode } from "react";
 import { createBrowserRouter, Outlet, Navigate as RouterNavigate, RouterProvider, useLocation, useNavigate, useParams } from "react-router-dom";
-import { pathForCheckDetail, pathForLabelDetail, pathForProbeDetail, pathForPublicPageDetail, pathForRoute, projectRoutePath } from "./routePaths";
+import { pathForCheckDetail, pathForLabelDetail, pathForProbeDetail, pathForRoute, projectRoutePath } from "./routePaths";
 import type { Navigate, ProjectAppRoute } from "./routeTypes";
 
 const AuthPage = lazy(() => import("@/features/auth/components/AuthPage").then(module => ({ default: module.AuthPage })));
@@ -22,9 +22,6 @@ const LabelsPage = lazy(() => import("@/features/labels/components/LabelsPage").
 const MembersPage = lazy(() => import("@/features/project/components/MembersPage").then(module => ({ default: module.MembersPage })));
 const NewProbeDrawer = lazy(() => import("@/features/probes/components/NewProbeDrawer").then(module => ({ default: module.NewProbeDrawer })));
 const ProbesPage = lazy(() => import("@/features/probes/components/ProbesPage").then(module => ({ default: module.ProbesPage })));
-const PublicPage = lazy(() => import("@/features/public-page/components/PublicPage").then(module => ({ default: module.PublicPage })));
-const PublicPageDetailPage = lazy(() => import("@/features/public-pages/components/PublicPageDetailPage").then(module => ({ default: module.PublicPageDetailPage })));
-const PublicPagesPage = lazy(() => import("@/features/public-pages/components/PublicPagesPage").then(module => ({ default: module.PublicPagesPage })));
 const SettingsPage = lazy(() => import("@/features/settings/components/SettingsPage").then(module => ({ default: module.SettingsPage })));
 const ProjectPage = lazy(() => import("@/features/project/components/ProjectPage").then(module => ({ default: module.ProjectPage })));
 
@@ -144,21 +141,6 @@ function LegacyCheckDetailRedirect() {
 	return <RouterNavigate to={checkId ? pathForCheckDetail(projectRef, checkId) : pathForRoute("checks", { projectRef })} replace />;
 }
 
-function LegacyPublicPageDetailRedirect() {
-	const { pageId = "" } = useParams();
-	const { projectRef, projectsQuery } = useCurrentProject();
-
-	if (projectsQuery.isPending) {
-		return null;
-	}
-
-	if (!projectRef) {
-		return <RouterNavigate to={pathForRoute("onboarding")} replace />;
-	}
-
-	return <RouterNavigate to={pageId ? pathForPublicPageDetail(projectRef, pageId) : pathForRoute("publicPages", { projectRef })} replace />;
-}
-
 function ProjectRouteBoundary() {
 	const { projectRef = "" } = useParams();
 	const { selectedProjectRef, setSelectedProjectRef } = useProjectSelection();
@@ -215,7 +197,6 @@ const router = createBrowserRouter([
 			{ path: pathForRoute("login"), element: <AuthRoute mode="login" /> },
 			{ path: pathForRoute("register"), element: <AuthRoute mode="register" /> },
 			{ path: pathForRoute("onboarding"), element: <OnboardingRoute /> },
-			{ path: "/s/:slug", element: lazyRoute(<PublicPage />) },
 			{
 				element: <ProtectedAppShell />,
 				children: [
@@ -243,13 +224,6 @@ const router = createBrowserRouter([
 						]
 					},
 					{ path: "insight", element: <DefaultProjectRedirect route="insight" /> },
-					{
-						path: "public-pages",
-						children: [
-							{ index: true, element: <DefaultProjectRedirect route="publicPages" /> },
-							{ path: ":pageId", element: <LegacyPublicPageDetailRedirect /> }
-						]
-					},
 					{ path: "members", element: <DefaultProjectRedirect route="members" /> },
 					{ path: "project", element: <DefaultProjectRedirect route="project" /> },
 					{ path: "projects", element: <DefaultProjectRedirect route="dashboard" /> },
@@ -272,8 +246,6 @@ const router = createBrowserRouter([
 							{ path: projectRoutePath("checks"), element: lazyRoute(<ChecksPage />) },
 							{ path: `${projectRoutePath("checks")}/:checkId`, element: lazyRoute(<ChecksPage />) },
 							{ path: projectRoutePath("insight"), element: lazyRoute(<InsightPage />) },
-							{ path: projectRoutePath("publicPages"), element: lazyRoute(<PublicPagesPage />) },
-							{ path: `${projectRoutePath("publicPages")}/:pageId`, element: lazyRoute(<PublicPageDetailPage />) },
 							{ path: projectRoutePath("members"), element: lazyRoute(<MembersPage />) },
 							{ path: projectRoutePath("project"), element: lazyRoute(<ProjectPage />) }
 						]

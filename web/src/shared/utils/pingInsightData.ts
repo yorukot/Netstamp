@@ -1,11 +1,9 @@
-import type { PingInsightResponse, PingSeriesKey, PingSeriesResponse, PublicPingInsightResponse } from "@/shared/api/types";
+import type { PingInsightResponse, PingSeriesKey, PingSeriesResponse } from "@/shared/api/types";
 import type { PingSeriesChartData, PingSeriesPoint } from "@/shared/visualizations/chartOptions";
 import { formatCount, formatMs, formatPercent } from "./insightFormatters";
 import type { SummaryMetric } from "./insightTypes";
 
-type PingInsightLike = PingInsightResponse | PublicPingInsightResponse;
-
-export function pingSummaryMetrics(data: PingInsightLike | undefined): SummaryMetric[] {
+export function pingSummaryMetrics(data: PingInsightResponse | undefined): SummaryMetric[] {
 	const summary = data?.summary;
 
 	return [

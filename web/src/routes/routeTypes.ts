@@ -1,4 +1,4 @@
-export type ProjectAppRoute = "dashboard" | "probes" | "newProbe" | "labels" | "insight" | "checks" | "publicPages" | "members" | "project";
+export type ProjectAppRoute = "dashboard" | "probes" | "newProbe" | "labels" | "insight" | "checks" | "members" | "project";
 export type GlobalAppRoute = "settings";
 export type AppRoute = ProjectAppRoute | GlobalAppRoute;
 export type PublicRoute = "landing" | "login" | "register" | "onboarding";
