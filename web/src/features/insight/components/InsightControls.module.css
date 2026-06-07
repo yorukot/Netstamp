@@ -143,15 +143,6 @@
 	cursor: pointer;
 }
 
-.assignmentTrigger::after {
-	width: 0.55rem;
-	height: 0.55rem;
-	border-right: 2px solid var(--ns-accent-hover);
-	border-bottom: 2px solid var(--ns-accent-hover);
-	content: "";
-	transform: rotate(45deg) translateY(-0.125rem);
-}
-
 .assignmentTrigger span {
 	min-width: 0;
 	overflow: hidden;
@@ -256,8 +247,13 @@
 }
 
 .assignmentToken button {
+	display: inline-grid;
+	flex: 0 0 auto;
+	place-items: center;
+	width: 0.875rem;
+	height: 0.875rem;
 	padding: 0;
-	line-height: 1;
+	line-height: 0;
 }
 
 .assignmentToken button:hover,
@@ -434,15 +430,6 @@
 	cursor: pointer;
 }
 
-.timeTrigger::after {
-	width: 0.55rem;
-	height: 0.55rem;
-	border-right: 2px solid var(--ns-accent-hover);
-	border-bottom: 2px solid var(--ns-accent-hover);
-	content: "";
-	transform: rotate(45deg) translateY(-0.125rem);
-}
-
 .timeTrigger span {
 	min-width: 0;
 	overflow: hidden;
@@ -565,4 +552,24 @@
 	.assignmentToken {
 		max-width: calc(50% - 0.25rem);
 	}
+}
+
+.controlIcon,
+.tokenIcon {
+	display: block;
+	flex: 0 0 auto;
+	color: var(--ns-accent-hover);
+	pointer-events: none;
+}
+
+.controlIcon {
+	align-self: center;
+	justify-self: center;
+	width: 1rem;
+	height: 1rem;
+}
+
+.tokenIcon {
+	width: 0.75rem;
+	height: 0.75rem;
 }

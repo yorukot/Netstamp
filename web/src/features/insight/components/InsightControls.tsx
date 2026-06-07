@@ -17,6 +17,7 @@ import {
 	SelectField,
 	TextField
 } from "@netstamp/ui";
+import { CaretDown, X } from "@phosphor-icons/react";
 import { useId, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from "react";
 import styles from "./InsightControls.module.css";
 
@@ -149,6 +150,7 @@ export function ScopeSelect({
 				<DropdownMenuTrigger asChild disabled={disabled}>
 					<button type="button" className={classNames("ns-cut-frame", styles.assignmentTrigger)} disabled={disabled}>
 						<span>{summary}</span>
+						<CaretDown className={styles.controlIcon} size={18} weight="bold" aria-hidden="true" focusable="false" />
 					</button>
 				</DropdownMenuTrigger>
 				<DropdownMenuPortal>
@@ -332,7 +334,7 @@ export function AssignmentMultiSelect({
 										clearValue(option.value);
 									}}
 								>
-									x
+									<X className={styles.tokenIcon} size={12} weight="bold" aria-hidden="true" focusable="false" />
 								</button>
 							</span>
 						))}
@@ -489,6 +491,7 @@ export function InsightTimeControl({
 					<PopoverTrigger asChild>
 						<button id={timeButtonId} type="button" className={classNames("ns-cut-frame", styles.timeTrigger)} aria-controls={`${timeButtonId}-panel`}>
 							<span>{displayInsightTimeRange(timeMode, timeRange, timeWindow)}</span>
+							<CaretDown className={styles.controlIcon} size={18} weight="bold" aria-hidden="true" focusable="false" />
 						</button>
 					</PopoverTrigger>
 					<Button type="button" variant="outline" size="sm" className={styles.refreshButton} onClick={onRefresh}>
