@@ -2,12 +2,21 @@ import { coordinateSummary } from "@/features/probes/data/probeLocation";
 import type { Probe, ProbeStatus } from "@/features/probes/data/probes";
 import type { ApiProbe } from "@/shared/api/types";
 
-function formatRelativeTime(value: string | null | undefined) {
+function parseTimestamp(value: string | null | undefined) {
 	if (!value) {
+		return null;
+	}
+
+	const timestamp = new Date(value).getTime();
+	return Number.isFinite(timestamp) ? timestamp : null;
+}
+
+function formatRelativeTime(timestamp: number | null) {
+	if (timestamp === null) {
 		return "never";
 	}
 
-	const elapsedSeconds = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 1000));
+	const elapsedSeconds = Math.max(0, Math.floor((Date.now() - timestamp) / 1000));
 
 	if (elapsedSeconds < 60) {
 		return `${elapsedSeconds}s ago`;
@@ -54,6 +63,7 @@ export function mapApiProbe(probe: ApiProbe, index: number): Probe {
 	const labelTokens = visibleLabels.map(label => `${label.key}:${label.value}`);
 	const ipFamily = supportsV4 && supportsV6 ? "IPv4 / IPv6" : supportsV4 ? "IPv4" : supportsV6 ? "IPv6" : "-";
 	const location = probe.locationName || coordinateSummary(probe.latitude, probe.longitude) || "-";
+	const lastHeartbeatAt = parseTimestamp(status?.lastSeenAt);
 
 	return {
 		id: probe.id,
@@ -64,7 +74,8 @@ export function mapApiProbe(probe: ApiProbe, index: number): Probe {
 		provider: labelValue(probe, "provider") || "Unlabeled",
 		region: location,
 		ipFamily,
-		lastHeartbeat: formatRelativeTime(status?.lastSeenAt),
+		lastHeartbeat: formatRelativeTime(lastHeartbeatAt),
+		lastHeartbeatAt,
 		labelTokens,
 		version: status?.agentVersion || "-",
 		uptime: "-",

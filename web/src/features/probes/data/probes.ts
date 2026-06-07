@@ -10,6 +10,7 @@ export interface Probe {
 	region: string;
 	ipFamily: string;
 	lastHeartbeat: string;
+	lastHeartbeatAt: number | null;
 	labelTokens: string[];
 	version: string;
 	uptime: string;

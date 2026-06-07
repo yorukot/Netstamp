@@ -23,6 +23,7 @@ export function ProbesPage() {
 	const probesQuery = useQuery({
 		...projectQueries.probes(projectRef || ""),
 		enabled: Boolean(projectRef),
+		refetchInterval: 2000,
 		select: data => mapApiProbes(data.probes)
 	});
 	const checksQuery = useQuery({

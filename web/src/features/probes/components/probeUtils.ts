@@ -10,10 +10,22 @@ export function filterProbes(source: Probe[], search: string, sortKey: ProbeSort
 	});
 
 	if (sortKey === "name") {
-		return filtered.sort((left, right) => left.name.localeCompare(right.name));
+		return [...filtered].sort((left, right) => left.name.localeCompare(right.name));
 	}
 
-	return filtered;
+	return [...filtered].sort((left, right) => {
+		if (left.lastHeartbeatAt === null && right.lastHeartbeatAt === null) {
+			return left.name.localeCompare(right.name);
+		}
+		if (left.lastHeartbeatAt === null) {
+			return 1;
+		}
+		if (right.lastHeartbeatAt === null) {
+			return -1;
+		}
+
+		return right.lastHeartbeatAt - left.lastHeartbeatAt || left.name.localeCompare(right.name);
+	});
 }
 
 export function expandAssignedRows(rows: AssignedRow[]) {
