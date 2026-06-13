@@ -71,6 +71,6 @@
 	.overlay {
 		position: relative;
 		padding: 1rem;
-		background: rgba(0, 0, 0, 0.74);
+		background: color-mix(in srgb, var(--ns-bg) 78%, transparent);
 	}
 }

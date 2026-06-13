@@ -65,30 +65,30 @@
 	background: var(--ns-accent);
 	color: var(--ns-text-on-accent);
 	box-shadow:
-		0 0 0 1px rgba(0, 0, 0, 0.85),
-		0 0 0 0.25rem rgba(255, 122, 26, 0.12);
+		0 0 0 1px color-mix(in srgb, var(--ns-text) 22%, transparent),
+		0 0 0 0.25rem var(--ns-accent-muted);
 }
 
 .primary:hover {
 	--ns-frame-color: var(--ns-accent-hover);
 	background: var(--ns-accent-hover);
-	color: #070503;
+	color: var(--ns-text-on-accent);
 	box-shadow:
-		0 0 0 1px rgba(0, 0, 0, 0.9),
+		0 0 0 1px color-mix(in srgb, var(--ns-text) 24%, transparent),
 		0 0 0 0.3125rem var(--ns-accent-glow);
 }
 
 .primary:active {
 	--ns-frame-color: var(--ns-accent-active);
 	background: var(--ns-accent-active);
-	color: #070503;
+	color: var(--ns-text-on-accent);
 }
 
 .secondary {
 	--ns-frame-color: var(--ns-border);
-	background: #111318;
+	background: var(--ns-surface-raised);
 	color: var(--ns-text);
-	box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.9);
+	box-shadow: 0 0 0 1px color-mix(in srgb, var(--ns-text) 18%, transparent);
 }
 
 .secondary:hover {
@@ -102,7 +102,7 @@
 
 .outline {
 	--ns-frame-color: var(--ns-border);
-	background: #07090d;
+	background: var(--ns-surface);
 	color: var(--ns-text-muted);
 }
 
@@ -124,7 +124,7 @@
 
 .ghost:hover {
 	color: var(--ns-text);
-	background: rgba(255, 122, 26, 0.12);
+	background: var(--ns-accent-muted);
 }
 
 .ghost:active {
@@ -132,18 +132,18 @@
 }
 
 .danger {
-	--ns-frame-color: rgba(255, 69, 58, 0.42);
-	background: linear-gradient(135deg, rgba(255, 69, 58, 0.22) 0 1px, transparent 1px 0.5rem), #120807;
+	--ns-frame-color: color-mix(in srgb, var(--ns-critical) 42%, transparent);
+	background: linear-gradient(135deg, color-mix(in srgb, var(--ns-critical) 22%, transparent) 0 1px, transparent 1px 0.5rem), color-mix(in srgb, var(--ns-critical) 8%, var(--ns-surface));
 	background-size:
 		0.5rem 0.5rem,
 		100% 100%;
-	color: #ffd2cc;
+	color: var(--ns-critical);
 }
 
 .danger:hover {
-	--ns-frame-color: rgba(255, 69, 58, 0.74);
-	background: rgba(255, 69, 58, 0.16);
-	box-shadow: 0 0 0 0.25rem rgba(255, 69, 58, 0.1);
+	--ns-frame-color: color-mix(in srgb, var(--ns-critical) 74%, transparent);
+	background: color-mix(in srgb, var(--ns-critical) 16%, transparent);
+	box-shadow: 0 0 0 0.25rem color-mix(in srgb, var(--ns-critical) 10%, transparent);
 }
 
 .plain {

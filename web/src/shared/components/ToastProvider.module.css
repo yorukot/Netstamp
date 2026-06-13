@@ -18,17 +18,17 @@
 	border: 1px solid color-mix(in srgb, var(--toast-color) 52%, transparent);
 	padding: 0.85rem;
 	color: var(--ns-text);
-	background: rgba(6, 8, 12, 0.94);
+	background: var(--ns-glass-dark);
 	box-shadow: var(--ns-shadow-md);
 	pointer-events: auto;
 }
 
 .toast[data-tone="critical"] {
-	--toast-color: #ff4d63;
+	--toast-color: var(--ns-critical);
 }
 
 .toast[data-tone="success"] {
-	--toast-color: #61ff7f;
+	--toast-color: var(--ns-success);
 }
 
 .toast strong {

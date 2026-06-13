@@ -37,11 +37,11 @@
 }
 
 .memberAvatarFallback {
-	--ns-frame-color: rgba(255, 122, 26, 0.5);
+	--ns-frame-color: color-mix(in srgb, var(--ns-accent) 50%, transparent);
 	display: grid;
 	place-items: center;
 	flex: 0 0 auto;
-	background: rgba(255, 122, 26, 0.12);
+	background: var(--ns-accent-muted);
 	color: var(--ns-accent);
 	font-family: var(--ns-font-mono);
 	font-size: 0.75rem;

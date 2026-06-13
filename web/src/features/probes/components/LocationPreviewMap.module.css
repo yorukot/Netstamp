@@ -1,6 +1,6 @@
 .preview {
 	--ns-frame-cut: var(--ns-cut-md);
-	--ns-frame-color: rgba(255, 122, 26, 0.34);
+	--ns-frame-color: color-mix(in srgb, var(--ns-accent) 34%, transparent);
 	display: grid;
 	gap: 0.625rem;
 	min-width: 0;
@@ -43,7 +43,7 @@
 	padding: 0.35rem 0.5rem;
 	border: 1px solid var(--ns-border-faint);
 	color: var(--ns-accent-hover);
-	background: rgba(0, 0, 0, 0.32);
+	background: var(--ns-glass-light);
 	font-family: var(--ns-font-mono);
 	font-size: 0.75rem;
 	font-weight: 800;

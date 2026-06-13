@@ -6,7 +6,7 @@
 	justify-content: flex-end;
 	overflow: hidden;
 	overscroll-behavior: none;
-	background: rgba(3, 5, 7, 0.58);
+	background: color-mix(in srgb, var(--ns-bg) 62%, transparent);
 	backdrop-filter: blur(10px);
 	animation: drawerBackdropIn 300ms ease-out;
 }
@@ -27,8 +27,8 @@
 	overscroll-behavior: contain;
 	padding: 1.25rem;
 	border-left: 1px solid var(--ns-border-faint);
-	background: linear-gradient(135deg, rgba(255, 122, 26, 0.14), transparent 28rem), #070a0f;
-	box-shadow: -2rem 0 4rem rgba(0, 0, 0, 0.42);
+	background: linear-gradient(135deg, var(--ns-accent-muted), transparent 28rem), var(--ns-surface);
+	box-shadow: -2rem 0 4rem color-mix(in srgb, var(--ns-text) 16%, transparent);
 	animation: drawerIn 180ms ease-out;
 }
 

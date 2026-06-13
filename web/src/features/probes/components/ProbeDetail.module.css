@@ -69,13 +69,13 @@
 	align-items: center;
 	min-width: 0;
 	padding: 0.625rem;
-	background: rgba(255, 255, 255, 0.025);
+	background: var(--ns-glass-light);
 	cursor: pointer;
 }
 
 .labelOption:hover {
 	--ns-frame-color: var(--ns-accent-border);
-	background: rgba(255, 122, 26, 0.08);
+	background: var(--ns-accent-muted);
 }
 
 .labelOption span,
@@ -158,7 +158,7 @@
 }
 
 .locationPreview {
-	--ns-frame-color: rgba(255, 122, 26, 0.34);
+	--ns-frame-color: color-mix(in srgb, var(--ns-accent) 34%, transparent);
 }
 
 .locationStatus {
@@ -176,20 +176,20 @@
 
 .serviceCommandPanel {
 	--ns-frame-cut: var(--ns-cut-sm);
-	--ns-frame-color: rgba(255, 122, 26, 0.36);
+	--ns-frame-color: color-mix(in srgb, var(--ns-accent) 36%, transparent);
 	display: grid;
 	gap: 0.55rem;
 	padding: 0.75rem;
-	background: rgba(255, 122, 26, 0.06);
+	background: var(--ns-accent-muted);
 }
 
 .secretPanel {
 	--ns-frame-cut: var(--ns-cut-sm);
-	--ns-frame-color: rgba(97, 255, 127, 0.36);
+	--ns-frame-color: color-mix(in srgb, var(--ns-success) 36%, transparent);
 	display: grid;
 	gap: 0.4rem;
 	padding: 0.75rem;
-	background: rgba(97, 255, 127, 0.08);
+	background: color-mix(in srgb, var(--ns-success) 8%, transparent);
 }
 
 .serviceCommandPanel > span,
@@ -220,7 +220,7 @@
 .input {
 	min-height: 2rem;
 	padding: 0.42rem 0.75rem;
-	background: #111111;
+	background: var(--ns-surface-raised);
 	font-family: var(--ns-font-mono);
 	font-size: 0.8125rem;
 	font-weight: 700;
@@ -230,7 +230,7 @@
 
 .input:disabled {
 	color: var(--ns-text-low);
-	background: #090909;
+	background: var(--ns-bg-subtle);
 	cursor: not-allowed;
 	opacity: 0.72;
 }

@@ -21,7 +21,7 @@
 	position: relative;
 	min-height: inherit;
 	overflow: hidden;
-	background: #050505;
+	background: var(--ns-surface-deep);
 }
 
 .fullMap {

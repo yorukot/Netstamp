@@ -2,9 +2,10 @@ import type { SessionUser } from "@/features/auth/services/authService";
 import styles from "@/layouts/AppShell.module.css";
 import { pathForRoute } from "@/routes/routePaths";
 import { projectQueries } from "@/shared/api/queries";
+import { useTheme } from "@/shared/theme/useTheme";
 import { classNames } from "@/shared/utils/classNames";
 import { Button, PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger, SignalAvatar } from "@netstamp/ui";
-import { EnvelopeSimple, GearSix, SignOut } from "@phosphor-icons/react";
+import { EnvelopeSimple, GearSix, MoonStars, SignOut, Sun } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link } from "react-router-dom";
@@ -114,6 +115,10 @@ function UserMenuContent({
 	onClose: () => void;
 	onLogout: () => void;
 }) {
+	const { theme, toggleTheme } = useTheme();
+	const ThemeIcon = theme === "dark" ? Sun : MoonStars;
+	const themeToggleLabel = theme === "dark" ? "Switch to light mode" : "Switch to dark mode";
+
 	return (
 		<>
 			<div className={styles.userPopoverProfile}>
@@ -136,10 +141,23 @@ function UserMenuContent({
 						<span>Settings</span>
 					</Link>
 				</Button>
-				<Button className={styles.userPopoverAction} variant="ghost" size="sm" onClick={onLogout} asChild>
+				<Button
+					className={styles.userPopoverAction}
+					variant="ghost"
+					size="sm"
+					type="button"
+					aria-label={themeToggleLabel}
+					title={themeToggleLabel}
+					aria-pressed={theme === "light"}
+					onClick={toggleTheme}
+				>
+					<ThemeIcon size={18} weight="bold" aria-hidden="true" />
+					<span>{theme === "dark" ? "Light mode" : "Dark mode"}</span>
+				</Button>
+				<Button className={classNames(styles.userPopoverAction, styles.userPopoverActionWarning)} variant="ghost" size="sm" onClick={onLogout} asChild>
 					<Link to={pathForRoute("landing")}>
 						<SignOut size={18} weight="bold" aria-hidden="true" />
-						<span>logout</span>
+						<span>Logout</span>
 					</Link>
 				</Button>
 			</div>

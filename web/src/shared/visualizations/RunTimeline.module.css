@@ -25,12 +25,12 @@
 .timelineGridLine,
 .timelineAxisLine {
 	vector-effect: non-scaling-stroke;
-	stroke: rgba(148, 163, 184, 0.14);
+	stroke: var(--ns-slate-line);
 	stroke-width: 1;
 }
 
 .timelineAxisLine {
-	stroke: rgba(255, 255, 255, 0.24);
+	stroke: var(--ns-border);
 }
 
 .timelineLine {
@@ -40,7 +40,7 @@
 	stroke-linecap: round;
 	stroke-linejoin: round;
 	stroke-width: 2.5;
-	filter: drop-shadow(0 0 10px rgba(255, 122, 26, 0.28));
+	filter: drop-shadow(0 0 10px var(--ns-accent-glow));
 }
 
 .timelineSelection {
@@ -50,7 +50,8 @@
 	left: var(--ns-selection-left);
 	z-index: 1;
 	width: var(--ns-selection-width);
-	background: linear-gradient(90deg, rgba(255, 122, 26, 0.08), rgba(255, 122, 26, 0.18)), repeating-linear-gradient(90deg, rgba(255, 247, 236, 0.18) 0 1px, transparent 1px 0.6rem);
+	background:
+		linear-gradient(90deg, var(--ns-accent-muted), var(--ns-accent-subtle)), repeating-linear-gradient(90deg, color-mix(in srgb, var(--ns-text) 18%, transparent) 0 1px, transparent 1px 0.6rem);
 	border-inline: 1px solid var(--ns-accent-hover);
 	pointer-events: none;
 }
@@ -78,8 +79,8 @@
 	width: 0.55rem;
 	height: 0.55rem;
 	background: currentcolor;
-	border: 1px solid rgba(255, 247, 236, 0.78);
-	box-shadow: 0 0 0 3px rgba(255, 122, 26, 0.14);
+	border: 1px solid var(--ns-border-strong);
+	box-shadow: 0 0 0 3px var(--ns-accent-muted);
 	transform: rotate(45deg);
 	transition:
 		width 160ms ease,
@@ -95,8 +96,8 @@
 .timelinePoint[data-changed="true"] .timelinePointCore {
 	border-color: var(--ns-warning);
 	box-shadow:
-		0 0 0 3px rgba(255, 159, 10, 0.2),
-		0 0 18px rgba(255, 159, 10, 0.24);
+		0 0 0 3px color-mix(in srgb, var(--ns-warning) 20%, transparent),
+		0 0 18px color-mix(in srgb, var(--ns-warning) 24%, transparent);
 }
 
 .timelinePoint:hover .timelinePointCore,
@@ -104,10 +105,10 @@
 .timelinePoint[data-selected="true"] .timelinePointCore {
 	width: 0.9rem;
 	height: 0.9rem;
-	background: #fff7ec;
+	background: var(--ns-text);
 	box-shadow:
-		0 0 0 4px rgba(255, 122, 26, 0.22),
-		0 0 22px rgba(255, 122, 26, 0.38);
+		0 0 0 4px var(--ns-accent-subtle),
+		0 0 22px var(--ns-accent-glow);
 }
 
 .timelinePointLabel {
@@ -192,7 +193,7 @@
 }
 
 .timelineLegend span:nth-child(4)::before {
-	background: #fff7ec;
+	background: var(--ns-text);
 }
 
 @media (max-width: 58rem) {

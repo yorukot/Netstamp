@@ -1,6 +1,6 @@
 .button {
 	--ns-frame-cut: var(--ns-cut-sm);
-	--ns-frame-color: rgba(255, 122, 26, 0.48);
+	--ns-frame-color: color-mix(in srgb, var(--ns-accent) 48%, transparent);
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
@@ -9,10 +9,10 @@
 	height: 2rem;
 	padding: 0;
 	color: var(--ns-text-muted);
-	background: linear-gradient(135deg, rgba(255, 122, 26, 0.18) 0 1px, transparent 1px 0.55rem), linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent), #080a0e;
+	background: linear-gradient(135deg, var(--ns-accent-subtle) 0 1px, transparent 1px 0.55rem), linear-gradient(180deg, var(--ns-glass-light), transparent), var(--ns-surface);
 	box-shadow:
-		0 0 0 1px rgba(0, 0, 0, 0.88),
-		0 0 1rem rgba(255, 122, 26, 0.06);
+		0 0 0 1px color-mix(in srgb, var(--ns-text) 12%, transparent),
+		0 0 1rem var(--ns-accent-muted);
 	transition:
 		color var(--ns-transition),
 		background-color var(--ns-transition),
@@ -28,10 +28,10 @@
 .button:hover {
 	--ns-frame-color: var(--ns-accent-border);
 	color: var(--ns-text);
-	background-color: rgba(255, 122, 26, 0.16);
+	background-color: var(--ns-accent-subtle);
 	box-shadow:
-		0 0 0 1px rgba(0, 0, 0, 0.9),
-		0 0 1.25rem rgba(255, 122, 26, 0.16);
+		0 0 0 1px color-mix(in srgb, var(--ns-text) 14%, transparent),
+		0 0 1.25rem var(--ns-accent-glow);
 	transform: translateY(-0.0625rem);
 }
 

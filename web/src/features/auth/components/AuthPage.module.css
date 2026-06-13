@@ -22,8 +22,13 @@
 	inset: 0;
 	z-index: 1;
 	background:
-		radial-gradient(circle at 50% 46%, rgba(1, 2, 3, 0.1), rgba(1, 2, 3, 0.68) 34rem, rgba(1, 2, 3, 0.92) 76%),
-		linear-gradient(90deg, rgba(1, 2, 3, 0.42), rgba(1, 2, 3, 0.04) 42%, rgba(1, 2, 3, 0.46));
+		radial-gradient(
+			circle at 50% 46%,
+			color-mix(in srgb, var(--ns-bg) 10%, transparent),
+			color-mix(in srgb, var(--ns-bg) 68%, transparent) 34rem,
+			color-mix(in srgb, var(--ns-bg) 92%, transparent) 76%
+		),
+		linear-gradient(90deg, color-mix(in srgb, var(--ns-bg) 42%, transparent), color-mix(in srgb, var(--ns-bg) 4%, transparent) 42%, color-mix(in srgb, var(--ns-bg) 46%, transparent));
 }
 
 .authMap {
@@ -36,7 +41,7 @@
 	max-width: none;
 	object-fit: contain;
 	opacity: 0.72;
-	filter: drop-shadow(0 1.5rem 2.75rem rgba(0, 0, 0, 0.55)) saturate(1.08);
+	filter: drop-shadow(0 1.5rem 2.75rem color-mix(in srgb, var(--ns-text) 18%, transparent)) saturate(1.08);
 	transform: translate(-50%, -52%);
 }
 
@@ -51,7 +56,7 @@
 	font-size: clamp(0.9375rem, 1.3vw, 1.125rem);
 	line-height: 1.7;
 	text-align: left;
-	text-shadow: 0 0.125rem 1rem rgba(0, 0, 0, 0.92);
+	text-shadow: 0 0.125rem 1rem color-mix(in srgb, var(--ns-bg) 92%, transparent);
 }
 
 .authCard {

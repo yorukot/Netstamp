@@ -6,7 +6,7 @@
 	justify-content: flex-end;
 	overflow: hidden;
 	overscroll-behavior: none;
-	background: rgba(3, 5, 7, 0.58);
+	background: color-mix(in srgb, var(--ns-bg) 62%, transparent);
 	backdrop-filter: blur(10px);
 	animation: drawerBackdropIn 300ms ease-out;
 }
@@ -26,8 +26,8 @@
 	overscroll-behavior: contain;
 	padding: 1.25rem;
 	border-left: 1px solid var(--ns-border-faint);
-	background: linear-gradient(135deg, rgba(255, 122, 26, 0.14), transparent 28rem), #070a0f;
-	box-shadow: -2rem 0 4rem rgba(0, 0, 0, 0.42);
+	background: linear-gradient(135deg, var(--ns-accent-muted), transparent 28rem), var(--ns-surface);
+	box-shadow: -2rem 0 4rem color-mix(in srgb, var(--ns-text) 16%, transparent);
 	animation: drawerIn 180ms ease-out;
 }
 
@@ -100,7 +100,7 @@
 	min-width: 0;
 	padding: 0.75rem;
 	color: var(--ns-text-low);
-	background: #0c0f14;
+	background: var(--ns-surface-raised);
 }
 
 .stepItem span,
@@ -121,8 +121,8 @@
 
 .stepActive {
 	--ns-frame-color: var(--ns-accent-border);
-	background: rgba(255, 122, 26, 0.12);
-	box-shadow: 0 0 1.25rem rgba(255, 122, 26, 0.12);
+	background: var(--ns-accent-muted);
+	box-shadow: 0 0 1.25rem var(--ns-accent-muted);
 }
 
 .stepActive span,
@@ -131,8 +131,8 @@
 }
 
 .stepComplete {
-	--ns-frame-color: rgba(48, 209, 88, 0.42);
-	background: rgba(48, 209, 88, 0.08);
+	--ns-frame-color: color-mix(in srgb, var(--ns-success) 42%, transparent);
+	background: color-mix(in srgb, var(--ns-success) 8%, transparent);
 }
 
 .stepComplete span,
@@ -281,7 +281,7 @@
 	--ns-frame-color: var(--ns-border-faint);
 	margin-top: 0.25rem;
 	padding: 1rem;
-	background: rgba(255, 255, 255, 0.025);
+	background: var(--ns-glass-light);
 }
 
 .tokenLine {
@@ -310,11 +310,11 @@
 
 .detectCard {
 	--ns-frame-cut: var(--ns-cut-md);
-	--ns-frame-color: rgba(255, 122, 26, 0.22);
+	--ns-frame-color: color-mix(in srgb, var(--ns-accent) 22%, transparent);
 	display: grid;
 	gap: 0.625rem;
 	padding: 1rem;
-	background: linear-gradient(135deg, rgba(255, 122, 26, 0.12), transparent 16rem), #0c0f14;
+	background: linear-gradient(135deg, var(--ns-accent-muted), transparent 16rem), var(--ns-surface-raised);
 }
 
 .detectCard strong {

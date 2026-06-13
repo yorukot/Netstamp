@@ -1,9 +1,9 @@
 .avatar {
-	--ns-frame-color: rgba(255, 255, 255, 0.34);
+	--ns-frame-color: var(--ns-border);
 	--ns-frame-cut: var(--ns-cut-sm);
 	display: block;
 	flex: 0 0 auto;
-	background: #020304;
+	background: var(--ns-surface-deep);
 }
 
 .avatar img {

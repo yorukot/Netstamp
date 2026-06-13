@@ -5,9 +5,11 @@
 	grid-template-columns: 17rem minmax(0, 1fr);
 	color: var(--ns-text);
 	background:
-		radial-gradient(circle at 16% 11rem, rgba(255, 122, 26, 0.13), transparent 22rem), radial-gradient(circle at 88% 6rem, rgba(255, 122, 26, 0.08), transparent 20rem),
-		linear-gradient(rgba(255, 122, 26, 0.09) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 122, 26, 0.09) 1px, transparent 1px),
-		linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px), var(--ns-bg);
+		radial-gradient(circle at 16% 11rem, color-mix(in srgb, var(--ns-accent) 13%, transparent), transparent 22rem),
+		radial-gradient(circle at 88% 6rem, color-mix(in srgb, var(--ns-accent) 8%, transparent), transparent 20rem),
+		linear-gradient(color-mix(in srgb, var(--ns-accent) 9%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--ns-accent) 9%, transparent) 1px, transparent 1px),
+		linear-gradient(color-mix(in srgb, var(--ns-text) 3%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--ns-text) 3%, transparent) 1px, transparent 1px),
+		var(--ns-bg);
 	background-size:
 		100% 100%,
 		100% 100%,
@@ -30,7 +32,7 @@
 	min-height: 0;
 	overflow: visible;
 	border-right: 1px solid var(--ns-border);
-	background: linear-gradient(135deg, rgba(255, 122, 26, 0.08) 0 1px, transparent 1px 0.75rem), linear-gradient(180deg, #0c0f14, #05070a);
+	background: linear-gradient(135deg, color-mix(in srgb, var(--ns-accent) 8%, transparent) 0 1px, transparent 1px 0.75rem), linear-gradient(180deg, var(--ns-surface-raised), var(--ns-bg-section));
 	background-size:
 		0.75rem 0.75rem,
 		100% 100%;
@@ -66,7 +68,7 @@
 	padding: 0;
 	border: 1px solid var(--ns-frame-color);
 	color: var(--ns-text-muted);
-	background: #080a0e;
+	background: var(--ns-surface);
 	cursor: pointer;
 	transition:
 		color var(--ns-transition),
@@ -79,13 +81,15 @@
 .mobileMenuButton[aria-expanded="true"] {
 	--ns-frame-color: var(--ns-accent-border);
 	color: var(--ns-text);
-	background: rgba(255, 122, 26, 0.12);
+	background: var(--ns-accent-muted);
 	outline: none;
 }
 
 .mobileNavDrawer {
 	width: min(24rem, 100%);
-	background: linear-gradient(135deg, rgba(255, 122, 26, 0.16), transparent 20rem), linear-gradient(135deg, rgba(255, 122, 26, 0.08) 0 1px, transparent 1px 0.75rem), #05070a;
+	background:
+		linear-gradient(135deg, var(--ns-accent-subtle), transparent 20rem), linear-gradient(135deg, color-mix(in srgb, var(--ns-accent) 8%, transparent) 0 1px, transparent 1px 0.75rem),
+		var(--ns-bg-section);
 	background-size:
 		100% 100%,
 		0.75rem 0.75rem,
@@ -115,7 +119,7 @@
 	padding: 0.875rem;
 	border: 1px solid var(--ns-frame-color);
 	color: var(--ns-text-low);
-	background: linear-gradient(135deg, rgba(255, 122, 26, 0.08) 0 1px, transparent 1px 0.75rem), #080a0e;
+	background: linear-gradient(135deg, color-mix(in srgb, var(--ns-accent) 8%, transparent) 0 1px, transparent 1px 0.75rem), var(--ns-surface);
 	background-size:
 		0.75rem 0.75rem,
 		100% 100%;
@@ -137,7 +141,7 @@
 	min-height: 3rem;
 	padding: 0.75rem;
 	color: var(--ns-text-subtle);
-	background: rgba(255, 255, 255, 0.018);
+	background: var(--ns-glass-light);
 	font-family: var(--ns-font-mono);
 	font-size: 0.8125rem;
 	font-weight: 800;
@@ -155,7 +159,7 @@
 .mobileDrawerNavLink.active {
 	--ns-frame-color: var(--ns-accent-border);
 	color: var(--ns-text);
-	background: linear-gradient(90deg, rgba(255, 122, 26, 0.18), rgba(255, 122, 26, 0.04));
+	background: linear-gradient(90deg, var(--ns-accent-subtle), color-mix(in srgb, var(--ns-accent) 4%, transparent));
 	outline: none;
 }
 
@@ -173,7 +177,7 @@
 
 .brand:hover {
 	border-color: var(--ns-border);
-	background: rgba(255, 122, 26, 0.12);
+	background: var(--ns-accent-muted);
 }
 
 .sidebarToggle {
@@ -204,7 +208,7 @@
 	min-height: 2.25rem;
 	padding: 0;
 	border: 1px solid var(--ns-frame-color);
-	background: #080a0e;
+	background: var(--ns-surface);
 	transition:
 		color var(--ns-transition),
 		background var(--ns-transition),
@@ -221,7 +225,7 @@
 .sidebarToggle:focus-visible .sidebarToggleFrame {
 	--ns-frame-color: var(--ns-accent-border);
 	color: var(--ns-text);
-	background: rgba(255, 122, 26, 0.12);
+	background: var(--ns-accent-muted);
 }
 
 .brandLogo {
@@ -267,14 +271,14 @@
 	min-height: 2.75rem;
 	padding: 0.625rem 2.375rem 0.625rem 0.75rem;
 	color: var(--ns-text);
-	background: #080a0e;
+	background: var(--ns-surface);
 	font-family: var(--ns-font-mono);
 	font-size: 0.75rem;
 }
 
 .projectControl option {
 	color: var(--ns-text);
-	background: #080a0e;
+	background: var(--ns-surface);
 }
 
 .projectCompact {
@@ -292,7 +296,7 @@
 	padding: 0;
 	border: 1px solid var(--ns-frame-color);
 	color: var(--ns-text-low);
-	background: rgba(255, 255, 255, 0.018);
+	background: var(--ns-glass-light);
 	cursor: pointer;
 	transition:
 		color var(--ns-transition),
@@ -305,7 +309,7 @@
 .projectCompactButton[data-state="open"] {
 	--ns-frame-color: var(--ns-accent-border);
 	color: var(--ns-accent);
-	background: rgba(255, 122, 26, 0.12);
+	background: var(--ns-accent-muted);
 	outline: none;
 }
 
@@ -316,7 +320,7 @@
 	width: min(18rem, calc(100vw - 1rem));
 	padding: 0.875rem;
 	color: var(--ns-text-low);
-	background: linear-gradient(135deg, rgba(255, 122, 26, 0.12) 0 1px, transparent 1px 0.75rem), var(--ns-glass-dark);
+	background: linear-gradient(135deg, color-mix(in srgb, var(--ns-accent) 12%, transparent) 0 1px, transparent 1px 0.75rem), var(--ns-glass-dark);
 	background-size:
 		0.75rem 0.75rem,
 		100% 100%;
@@ -379,7 +383,7 @@
 .nav a.active {
 	--ns-frame-color: var(--ns-border);
 	color: var(--ns-text);
-	background: linear-gradient(90deg, rgba(255, 122, 26, 0.14), transparent 70%), #080a0e;
+	background: linear-gradient(90deg, var(--ns-accent-muted), transparent 70%), var(--ns-surface);
 }
 
 .nav a:hover .navIcon,
@@ -389,10 +393,12 @@
 
 .nav a.active {
 	--ns-frame-color: var(--ns-accent-border);
-	background: linear-gradient(90deg, rgba(255, 122, 26, 0.4) 0 0.25rem, transparent 0.25rem), linear-gradient(90deg, rgba(255, 122, 26, 0.16), rgba(255, 122, 26, 0.04) 65%), #030406;
+	background:
+		linear-gradient(90deg, color-mix(in srgb, var(--ns-accent) 40%, transparent) 0 0.25rem, transparent 0.25rem),
+		linear-gradient(90deg, var(--ns-accent-subtle), color-mix(in srgb, var(--ns-accent) 4%, transparent) 65%), var(--ns-bg-section);
 	box-shadow:
-		inset 0 0 0 1px rgba(0, 0, 0, 0.82),
-		0 0 1.5rem rgba(255, 122, 26, 0.08);
+		inset 0 0 0 1px color-mix(in srgb, var(--ns-text) 12%, transparent),
+		0 0 1.5rem var(--ns-accent-muted);
 }
 
 .userCard {
@@ -403,7 +409,7 @@
 	padding: 0.875rem;
 	border: 1px solid var(--ns-frame-color);
 	color: var(--ns-text-low);
-	background: linear-gradient(135deg, rgba(255, 122, 26, 0.08) 0 1px, transparent 1px 0.75rem), #080a0e;
+	background: linear-gradient(135deg, color-mix(in srgb, var(--ns-accent) 8%, transparent) 0 1px, transparent 1px 0.75rem), var(--ns-surface);
 	background-size:
 		0.75rem 0.75rem,
 		100% 100%;
@@ -422,7 +428,7 @@
 .userCard[data-state="open"] {
 	--ns-frame-color: var(--ns-accent-border);
 	color: var(--ns-text);
-	background: linear-gradient(135deg, rgba(255, 122, 26, 0.12) 0 1px, transparent 1px 0.75rem), rgba(255, 122, 26, 0.08);
+	background: linear-gradient(135deg, color-mix(in srgb, var(--ns-accent) 12%, transparent) 0 1px, transparent 1px 0.75rem), var(--ns-accent-muted);
 	outline: none;
 }
 
@@ -466,7 +472,7 @@
 .userAvatarButton[data-state="open"] .userAvatar {
 	--ns-frame-color: var(--ns-accent-border);
 	filter: brightness(1.08);
-	box-shadow: 0 0 1.25rem rgba(255, 122, 26, 0.18);
+	box-shadow: 0 0 1.25rem var(--ns-accent-glow);
 }
 
 .userPopover {
@@ -476,7 +482,7 @@
 	width: min(18rem, calc(100vw - 1rem));
 	padding: 0.875rem;
 	color: var(--ns-text-low);
-	background: linear-gradient(135deg, rgba(255, 122, 26, 0.12) 0 1px, transparent 1px 0.75rem), var(--ns-glass-dark);
+	background: linear-gradient(135deg, color-mix(in srgb, var(--ns-accent) 12%, transparent) 0 1px, transparent 1px 0.75rem), var(--ns-glass-dark);
 	background-size:
 		0.75rem 0.75rem,
 		100% 100%;
@@ -533,6 +539,19 @@
 	flex: 0 0 auto;
 }
 
+.userPopoverActionWarning {
+	--ns-frame-color: color-mix(in srgb, var(--ns-warning) 48%, transparent);
+	color: var(--ns-warning);
+	background: color-mix(in srgb, var(--ns-warning) 10%, transparent);
+}
+
+.userPopoverActionWarning:hover,
+.userPopoverActionWarning:focus-visible {
+	--ns-frame-color: color-mix(in srgb, var(--ns-warning) 72%, transparent);
+	color: var(--ns-text-on-accent);
+	background: var(--ns-warning);
+}
+
 .inviteBadge {
 	position: absolute;
 	top: -0.375rem;
@@ -543,7 +562,7 @@
 	display: inline-grid;
 	place-items: center;
 	padding: 0 0.25rem;
-	border: 1px solid #05070a;
+	border: 1px solid var(--ns-bg-section);
 	border-radius: 999px;
 	background: var(--ns-accent);
 	color: var(--ns-text-on-accent);

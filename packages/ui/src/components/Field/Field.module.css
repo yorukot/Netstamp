@@ -37,8 +37,8 @@
 }
 
 .controlFrame[data-invalid="true"] {
-	--ns-frame-color: rgba(255, 69, 58, 0.64);
-	box-shadow: 0 0 0 0.25rem rgba(255, 69, 58, 0.08);
+	--ns-frame-color: color-mix(in srgb, var(--ns-critical) 64%, transparent);
+	box-shadow: 0 0 0 0.25rem color-mix(in srgb, var(--ns-critical) 8%, transparent);
 }
 
 .control {
@@ -47,8 +47,8 @@
 	border: 0;
 	padding: 0.75rem 0.875rem;
 	color: var(--ns-text);
-	background: #05070a;
-	box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.8);
+	background: var(--ns-surface);
+	box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ns-text) 10%, transparent);
 	font-family: var(--ns-font-sans);
 	font-size: 0.875rem;
 	outline: none;
@@ -80,7 +80,7 @@
 }
 
 .control:focus {
-	box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.8);
+	box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ns-text) 10%, transparent);
 }
 
 .bareControl:focus-visible {
@@ -89,7 +89,7 @@
 }
 
 .control[aria-invalid="true"] {
-	box-shadow: inset 0 0 0 1px rgba(255, 69, 58, 0.18);
+	box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ns-critical) 18%, transparent);
 }
 
 .area {
@@ -111,11 +111,11 @@
 .selectFrame[data-open="true"] {
 	--ns-select-arrow: var(--ns-accent-active);
 	--ns-frame-color: var(--ns-accent-active);
-	box-shadow: 0 0 0 0.25rem rgba(255, 122, 26, 0.1);
+	box-shadow: 0 0 0 0.25rem var(--ns-accent-muted);
 }
 
 .selectFrame[data-invalid="true"] {
-	--ns-select-arrow: #ffb8ad;
+	--ns-select-arrow: var(--ns-critical);
 }
 
 .selectFrame[data-disabled="true"] {
@@ -133,8 +133,8 @@
 	border-radius: 0;
 	padding-right: 2.75rem;
 	color: var(--ns-text);
-	color-scheme: dark;
-	background: #05070a;
+	color-scheme: inherit;
+	background: var(--ns-surface);
 	cursor: pointer;
 	text-align: left;
 	user-select: none;
@@ -162,7 +162,7 @@
 
 .compactControl.select {
 	padding-right: 2rem;
-	background: #101010;
+	background: var(--ns-surface-raised);
 }
 
 .compactControl.select::after {
@@ -207,8 +207,8 @@
 	padding: 0.25rem;
 	color: var(--ns-text);
 	background:
-		linear-gradient(135deg, rgba(255, 122, 26, 0.16), transparent 12rem), linear-gradient(90deg, rgba(255, 122, 26, 0.065) 0 1px, transparent 1px 0.75rem),
-		linear-gradient(180deg, rgba(255, 255, 255, 0.026), transparent 42%), #05070a;
+		linear-gradient(135deg, var(--ns-accent-subtle), transparent 12rem), linear-gradient(90deg, color-mix(in srgb, var(--ns-accent) 7%, transparent) 0 1px, transparent 1px 0.75rem),
+		linear-gradient(180deg, var(--ns-glass-light), transparent 42%), var(--ns-surface);
 	background-size:
 		100% 100%,
 		0.75rem 100%,
@@ -216,7 +216,7 @@
 		100% 100%;
 	box-shadow:
 		var(--ns-shadow-md),
-		0 0 0 0.25rem rgba(255, 122, 26, 0.08);
+		0 0 0 0.25rem var(--ns-accent-muted);
 }
 
 .selectViewport {
@@ -263,7 +263,7 @@
 	height: 0.45rem;
 	border: 1px solid var(--ns-accent-hover);
 	background: var(--ns-accent-hover);
-	box-shadow: 0 0 0.75rem rgba(255, 122, 26, 0.32);
+	box-shadow: 0 0 0.75rem var(--ns-accent-glow);
 	opacity: 0;
 	transform: rotate(45deg);
 	transition: opacity var(--ns-transition);
@@ -271,12 +271,12 @@
 
 .selectOption[data-highlighted] {
 	color: var(--ns-text);
-	background: linear-gradient(90deg, rgba(255, 122, 26, 0.2), rgba(255, 122, 26, 0.04) 70%);
+	background: linear-gradient(90deg, var(--ns-accent-subtle), color-mix(in srgb, var(--ns-accent) 4%, transparent) 70%);
 }
 
 .selectOption[data-state="checked"] {
 	color: var(--ns-accent-hover);
-	background: linear-gradient(90deg, rgba(255, 122, 26, 0.28) 0 0.1875rem, rgba(255, 122, 26, 0.12) 0, transparent 78%);
+	background: linear-gradient(90deg, color-mix(in srgb, var(--ns-accent) 28%, transparent) 0 0.1875rem, var(--ns-accent-muted) 0, transparent 78%);
 }
 
 .selectOption[data-state="checked"]::after {
@@ -311,12 +311,12 @@
 	-webkit-appearance: none;
 	color: var(--ns-accent-hover);
 	vertical-align: -0.125rem;
-	background: linear-gradient(135deg, rgba(255, 255, 255, 0.045), transparent 48%), var(--ns-surface-deep);
+	background: linear-gradient(135deg, var(--ns-glass-light), transparent 48%), var(--ns-surface-deep);
 	border: 1px solid var(--ns-border);
 	clip-path: polygon(var(--ns-cut-xs) 0, 100% 0, 100% calc(100% - var(--ns-cut-xs)), calc(100% - var(--ns-cut-xs)) 100%, 0 100%, 0 var(--ns-cut-xs));
 	box-shadow:
-		inset 0 0 0 1px rgba(0, 0, 0, 0.72),
-		0 0 0 1px rgba(0, 0, 0, 0.64);
+		inset 0 0 0 1px color-mix(in srgb, var(--ns-text) 10%, transparent),
+		0 0 0 1px color-mix(in srgb, var(--ns-text) 8%, transparent);
 	cursor: pointer;
 	outline: none;
 	transition:
@@ -340,18 +340,18 @@
 .checkbox:hover:not(:disabled) {
 	border-color: var(--ns-border-strong);
 	box-shadow:
-		inset 0 0 0 1px rgba(0, 0, 0, 0.72),
-		0 0 0 1px rgba(0, 0, 0, 0.72),
-		0 0 0.75rem rgba(255, 122, 26, 0.12);
+		inset 0 0 0 1px color-mix(in srgb, var(--ns-text) 10%, transparent),
+		0 0 0 1px color-mix(in srgb, var(--ns-text) 10%, transparent),
+		0 0 0.75rem var(--ns-accent-muted);
 }
 
 .checkbox:checked {
-	background: linear-gradient(135deg, rgba(255, 122, 26, 0.22), transparent 54%), var(--ns-surface-deep);
+	background: linear-gradient(135deg, var(--ns-accent-subtle), transparent 54%), var(--ns-surface-deep);
 	border-color: var(--ns-accent-border);
 	box-shadow:
-		inset 0 0 0 1px rgba(0, 0, 0, 0.74),
-		0 0 0 1px rgba(0, 0, 0, 0.72),
-		0 0 1rem rgba(255, 122, 26, 0.16);
+		inset 0 0 0 1px color-mix(in srgb, var(--ns-text) 10%, transparent),
+		0 0 0 1px color-mix(in srgb, var(--ns-text) 10%, transparent),
+		0 0 1rem var(--ns-accent-glow);
 }
 
 .checkbox:checked::before {
@@ -359,11 +359,11 @@
 }
 
 .checkbox[aria-invalid="true"] {
-	border-color: rgba(255, 69, 58, 0.74);
+	border-color: color-mix(in srgb, var(--ns-critical) 74%, transparent);
 	box-shadow:
-		inset 0 0 0 1px rgba(0, 0, 0, 0.74),
-		0 0 0 1px rgba(0, 0, 0, 0.72),
-		0 0 0.85rem rgba(255, 69, 58, 0.12);
+		inset 0 0 0 1px color-mix(in srgb, var(--ns-text) 10%, transparent),
+		0 0 0 1px color-mix(in srgb, var(--ns-text) 10%, transparent),
+		0 0 0.85rem color-mix(in srgb, var(--ns-critical) 12%, transparent);
 }
 
 .checkbox:disabled {
@@ -388,5 +388,5 @@
 }
 
 .error {
-	color: #ffb8ad;
+	color: var(--ns-critical);
 }

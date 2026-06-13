@@ -3,7 +3,7 @@
 	--ns-frame-color: var(--ns-border-faint);
 	position: relative;
 	min-height: 22rem;
-	background: #050505;
+	background: var(--ns-surface-deep);
 }
 
 .canvas {
@@ -16,9 +16,9 @@
 }
 
 .map :global(.maplibregl-ctrl-group) {
-	border: 1px solid rgba(255, 255, 255, 0.16);
-	background: rgba(7, 7, 7, 0.82);
-	box-shadow: 0 0 1rem rgba(0, 0, 0, 0.48);
+	border: 1px solid var(--ns-border-faint);
+	background: var(--ns-glass-dark);
+	box-shadow: 0 0 1rem color-mix(in srgb, var(--ns-text) 14%, transparent);
 }
 
 .map :global(.maplibregl-ctrl button) {
@@ -26,15 +26,19 @@
 	filter: invert(1) grayscale(1);
 }
 
+:root[data-theme="light"] .map :global(.maplibregl-ctrl button) {
+	filter: none;
+}
+
 .map :global(.maplibregl-ctrl-attrib) {
-	color: rgba(255, 255, 255, 0.48);
-	background: rgba(0, 0, 0, 0.72);
+	color: var(--ns-text-low);
+	background: var(--ns-glass-dark);
 	font-family: var(--ns-font-mono);
 	font-size: 0.5625rem;
 }
 
 .map :global(.maplibregl-ctrl-attrib a) {
-	color: rgba(255, 255, 255, 0.72);
+	color: var(--ns-text-muted);
 }
 
 .marker {
@@ -43,7 +47,7 @@
 	align-items: center;
 	border: 0;
 	padding: 0;
-	color: #fff;
+	color: var(--ns-text);
 	background: transparent;
 	cursor: default;
 	pointer-events: auto;
@@ -58,19 +62,19 @@
 	display: none;
 	margin-bottom: 6px;
 	padding: 4px 7px;
-	color: #fff;
-	background: rgba(0, 0, 0, 0.94);
-	border: 2px solid rgba(255, 255, 255, 0.96);
+	color: var(--ns-text);
+	background: var(--ns-glass-dark);
+	border: 2px solid var(--ns-border-strong);
 	border-radius: 4px;
-	box-shadow: 0 0 18px rgba(255, 106, 0, 0.55);
+	box-shadow: 0 0 18px var(--ns-accent-glow);
 	font-family: var(--ns-font-mono);
 	font-size: 10px;
 	font-weight: 900;
 	letter-spacing: 0.06em;
 	line-height: 1;
 	text-shadow:
-		0 0 4px #000,
-		0 0 10px #000;
+		0 0 4px var(--ns-bg),
+		0 0 10px var(--ns-bg);
 	text-transform: uppercase;
 	white-space: nowrap;
 }
@@ -88,10 +92,10 @@
 .markerSquare {
 	width: 11px;
 	height: 11px;
-	background: #ff6a00;
-	border: 1px solid rgba(255, 255, 255, 0.62);
-	box-shadow: 0 0 14px 4px rgba(255, 106, 0, 0.5);
-	outline: 1px solid rgba(0, 0, 0, 0.82);
+	background: var(--ns-accent);
+	border: 1px solid var(--ns-border-strong);
+	box-shadow: 0 0 14px 4px var(--ns-accent-glow);
+	outline: 1px solid color-mix(in srgb, var(--ns-bg) 82%, transparent);
 }
 
 .marker[data-mode="detail"] .markerSquare {
@@ -102,11 +106,11 @@
 .marker[data-active="true"] .markerSquare {
 	width: 14px;
 	height: 14px;
-	border: 3px solid #fff;
+	border: 3px solid var(--ns-text);
 	box-shadow:
-		0 0 0 2px rgba(255, 106, 0, 1),
-		0 0 24px 8px rgba(255, 106, 0, 0.72);
-	outline: 2px solid #000;
+		0 0 0 2px var(--ns-accent),
+		0 0 24px 8px var(--ns-accent-glow);
+	outline: 2px solid var(--ns-bg);
 }
 
 .marker[data-active="true"][data-mode="detail"] .markerSquare {

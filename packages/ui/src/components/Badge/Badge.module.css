@@ -7,7 +7,7 @@
 	border: 1px solid var(--ns-frame-color);
 	padding: 0.375rem 0.625rem;
 	color: var(--ns-text-muted);
-	background: #0d1015;
+	background: var(--ns-surface-raised);
 	font-family: var(--ns-font-mono);
 	font-size: 0.6875rem;
 	font-weight: 650;
@@ -30,30 +30,30 @@
 
 .accent {
 	color: var(--ns-accent-hover);
-	--ns-frame-color: rgba(255, 122, 26, 0.28);
-	background: rgba(255, 122, 26, 0.16);
+	--ns-frame-color: color-mix(in srgb, var(--ns-accent) 28%, transparent);
+	background: var(--ns-accent-subtle);
 }
 
 .success {
 	color: var(--ns-success);
-	--ns-frame-color: rgba(48, 209, 88, 0.28);
-	background: rgba(48, 209, 88, 0.08);
+	--ns-frame-color: color-mix(in srgb, var(--ns-success) 28%, transparent);
+	background: color-mix(in srgb, var(--ns-success) 8%, transparent);
 }
 
 .warning {
 	color: var(--ns-warning);
-	--ns-frame-color: rgba(255, 159, 10, 0.3);
-	background: rgba(255, 159, 10, 0.08);
+	--ns-frame-color: color-mix(in srgb, var(--ns-warning) 30%, transparent);
+	background: color-mix(in srgb, var(--ns-warning) 8%, transparent);
 }
 
 .critical {
 	color: var(--ns-critical);
-	--ns-frame-color: rgba(255, 69, 58, 0.34);
-	background: rgba(255, 69, 58, 0.1);
+	--ns-frame-color: color-mix(in srgb, var(--ns-critical) 34%, transparent);
+	background: color-mix(in srgb, var(--ns-critical) 10%, transparent);
 }
 
 .muted {
 	color: var(--ns-text-low);
 	--ns-frame-color: var(--ns-border-faint);
-	background: #080a0e;
+	background: var(--ns-surface);
 }

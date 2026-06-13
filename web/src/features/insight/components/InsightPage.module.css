@@ -34,14 +34,14 @@
 }
 
 .scopeSummaryCell {
-	--ns-frame-color: rgba(196, 204, 217, 0.18);
+	--ns-frame-color: var(--ns-slate-line);
 	--ns-frame-cut: var(--ns-cut-sm);
 	display: grid;
 	gap: 0.35rem;
 	align-content: start;
 	min-height: 6.25rem;
 	padding: 0.875rem;
-	background: #04070b;
+	background: var(--ns-surface-raised);
 	border: 1px solid var(--ns-frame-color);
 	clip-path: polygon(var(--ns-frame-cut) 0, 100% 0, 100% calc(100% - var(--ns-frame-cut)), calc(100% - var(--ns-frame-cut)) 100%, 0 100%, 0 var(--ns-frame-cut));
 }

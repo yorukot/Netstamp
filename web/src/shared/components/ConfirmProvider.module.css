@@ -5,7 +5,7 @@
 	display: grid;
 	place-items: center;
 	padding: 1rem;
-	background: rgba(1, 2, 3, 0);
+	background: color-mix(in srgb, var(--ns-bg) 0%, transparent);
 	isolation: isolate;
 	animation: overlayDim 420ms 130ms ease-out both;
 }
@@ -23,7 +23,7 @@
 	z-index: -1;
 	height: 1px;
 	background: linear-gradient(90deg, transparent, var(--ns-accent-border) 12%, var(--ns-accent-hover) 50%, var(--ns-accent-border) 88%, transparent);
-	box-shadow: 0 0 1.4rem rgba(255, 122, 26, 0.45);
+	box-shadow: 0 0 1.4rem var(--ns-accent-glow);
 	transform: scaleX(0);
 	transform-origin: center;
 	animation: axisDraw 180ms ease-out both;
@@ -36,7 +36,9 @@
 	right: 0;
 	z-index: -2;
 	height: 50vh;
-	background: linear-gradient(rgba(255, 122, 26, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px), rgba(0, 0, 0, 0.72);
+	background:
+		linear-gradient(color-mix(in srgb, var(--ns-accent) 10%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--ns-text) 5%, transparent) 1px, transparent 1px),
+		color-mix(in srgb, var(--ns-bg) 74%, transparent);
 	background-size:
 		2rem 2rem,
 		2rem 2rem,
@@ -49,14 +51,14 @@
 	bottom: 50%;
 	transform-origin: bottom;
 	border-bottom: 1px solid var(--ns-accent-border);
-	box-shadow: 0 0.5rem 1.8rem rgba(255, 122, 26, 0.18);
+	box-shadow: 0 0.5rem 1.8rem var(--ns-accent-glow);
 }
 
 .curtainBottom {
 	top: 50%;
 	transform-origin: top;
 	border-top: 1px solid var(--ns-accent-border);
-	box-shadow: 0 -0.5rem 1.8rem rgba(255, 122, 26, 0.18);
+	box-shadow: 0 -0.5rem 1.8rem var(--ns-accent-glow);
 }
 
 .overlay[data-closing="true"] .axis {
@@ -76,14 +78,16 @@
 	width: min(31rem, 100%);
 	padding: 1rem;
 	color: var(--ns-text);
-	background: linear-gradient(rgba(255, 122, 26, 0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 122, 26, 0.07) 1px, transparent 1px), rgba(7, 9, 13, 0.98);
+	background:
+		linear-gradient(color-mix(in srgb, var(--ns-accent) 7%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--ns-accent) 7%, transparent) 1px, transparent 1px),
+		var(--ns-glass-dark);
 	background-size:
 		1rem 1rem,
 		1rem 1rem,
 		100% 100%;
 	box-shadow:
-		0 1.5rem 4rem rgba(0, 0, 0, 0.62),
-		inset 0 0 0 1px rgba(255, 122, 26, 0.12);
+		0 1.5rem 4rem color-mix(in srgb, var(--ns-text) 18%, transparent),
+		inset 0 0 0 1px var(--ns-accent-muted);
 	opacity: 0;
 	clip-path: inset(50% 0 50% 0);
 	transform: scaleX(0.96);
@@ -92,7 +96,7 @@
 }
 
 .dialog[data-tone="danger"] {
-	--ns-frame-color: rgba(255, 69, 58, 0.62);
+	--ns-frame-color: color-mix(in srgb, var(--ns-critical) 62%, transparent);
 }
 
 .overlay[data-closing="true"] .dialog {
@@ -161,19 +165,19 @@
 
 @keyframes overlayDim {
 	from {
-		background: rgba(1, 2, 3, 0);
+		background: color-mix(in srgb, var(--ns-bg) 0%, transparent);
 	}
 	to {
-		background: rgba(1, 2, 3, 0.52);
+		background: color-mix(in srgb, var(--ns-bg) 62%, transparent);
 	}
 }
 
 @keyframes overlayClear {
 	from {
-		background: rgba(1, 2, 3, 0.52);
+		background: color-mix(in srgb, var(--ns-bg) 62%, transparent);
 	}
 	to {
-		background: rgba(1, 2, 3, 0);
+		background: color-mix(in srgb, var(--ns-bg) 0%, transparent);
 	}
 }
 

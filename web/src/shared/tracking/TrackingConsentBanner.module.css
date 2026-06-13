@@ -11,7 +11,7 @@
 	width: min(42rem, calc(100vw - 2rem));
 	padding: 1rem;
 	color: var(--ns-text);
-	background: linear-gradient(135deg, rgba(255, 122, 26, 0.14), transparent 42%), rgba(3, 5, 8, 0.98);
+	background: linear-gradient(135deg, var(--ns-accent-muted), transparent 42%), var(--ns-glass-dark);
 	box-shadow: var(--ns-shadow-md);
 }
 

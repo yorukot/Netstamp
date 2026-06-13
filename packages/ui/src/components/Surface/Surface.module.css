@@ -3,14 +3,14 @@
 	isolation: isolate;
 	box-shadow:
 		var(--ns-shadow-sm),
-		inset 0 0 0 1px rgba(255, 122, 26, 0.035);
+		inset 0 0 0 1px color-mix(in srgb, var(--ns-accent) 4%, transparent);
 }
 
 .glass {
-	--ns-frame-color: rgba(255, 122, 26, 0.34);
+	--ns-frame-color: color-mix(in srgb, var(--ns-accent) 34%, transparent);
 	background:
-		linear-gradient(135deg, rgba(255, 122, 26, 0.09), transparent 14rem), linear-gradient(180deg, rgba(255, 255, 255, 0.018), transparent 38%),
-		linear-gradient(90deg, rgba(255, 122, 26, 0.045) 0 1px, transparent 1px 0.875rem), #05070a;
+		linear-gradient(135deg, var(--ns-accent-muted), transparent 14rem), linear-gradient(180deg, var(--ns-glass-light), transparent 38%),
+		linear-gradient(90deg, color-mix(in srgb, var(--ns-accent) 5%, transparent) 0 1px, transparent 1px 0.875rem), var(--ns-surface);
 	background-size:
 		100% 100%,
 		100% 100%,
@@ -19,30 +19,32 @@
 }
 
 .matte {
-	--ns-frame-color: rgba(196, 204, 217, 0.2);
-	background: linear-gradient(180deg, rgba(255, 255, 255, 0.014), transparent 42%), linear-gradient(135deg, rgba(255, 122, 26, 0.045), transparent 16rem), #040609;
+	--ns-frame-color: var(--ns-slate-line);
+	background:
+		linear-gradient(180deg, var(--ns-glass-light), transparent 42%), linear-gradient(135deg, color-mix(in srgb, var(--ns-accent) 5%, transparent), transparent 16rem), var(--ns-surface-raised);
 	background-size: 100% 100%;
 }
 
 .deep {
-	--ns-frame-color: rgba(255, 255, 255, 0.18);
-	background: linear-gradient(180deg, rgba(255, 255, 255, 0.01), transparent), #010203;
+	--ns-frame-color: var(--ns-border-faint);
+	background: linear-gradient(180deg, var(--ns-glass-light), transparent), var(--ns-surface-deep);
 	background-size: 100% 100%;
 }
 
 .flat {
-	--ns-frame-color: rgba(196, 204, 217, 0.18);
-	background: #04070b;
+	--ns-frame-color: var(--ns-slate-line);
+	background: var(--ns-surface-raised);
 }
 
 .accent {
 	--ns-frame-color: var(--ns-accent-border);
-	background: linear-gradient(135deg, rgba(255, 122, 26, 0.18), transparent 16rem), linear-gradient(90deg, rgba(255, 122, 26, 0.055) 0 1px, transparent 1px 0.875rem), #05070a;
+	background:
+		linear-gradient(135deg, var(--ns-accent-subtle), transparent 16rem), linear-gradient(90deg, color-mix(in srgb, var(--ns-accent) 6%, transparent) 0 1px, transparent 1px 0.875rem), var(--ns-surface);
 }
 
 .danger {
-	--ns-frame-color: rgba(255, 69, 58, 0.42);
-	background: linear-gradient(135deg, rgba(255, 69, 58, 0.14), transparent 14rem), #080303;
+	--ns-frame-color: color-mix(in srgb, var(--ns-critical) 42%, transparent);
+	background: linear-gradient(135deg, color-mix(in srgb, var(--ns-critical) 14%, transparent), transparent 14rem), color-mix(in srgb, var(--ns-critical) 6%, var(--ns-surface));
 }
 
 .cutXs {

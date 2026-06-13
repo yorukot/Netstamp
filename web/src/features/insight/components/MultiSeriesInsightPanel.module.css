@@ -16,7 +16,7 @@
 .chartMeta span {
 	border: 1px solid var(--ns-border-faint);
 	padding: 0.35rem 0.5rem;
-	background: rgba(255, 255, 255, 0.02);
+	background: var(--ns-glass-light);
 }
 
 .legend {
@@ -34,7 +34,7 @@
 	align-items: center;
 	min-width: 0;
 	padding: 0.45rem 0.55rem;
-	background: rgba(255, 255, 255, 0.018);
+	background: var(--ns-glass-light);
 	border: 1px solid var(--ns-border-faint);
 	clip-path: polygon(var(--ns-frame-cut) 0, 100% 0, 100% calc(100% - var(--ns-frame-cut)), calc(100% - var(--ns-frame-cut)) 100%, 0 100%, 0 var(--ns-frame-cut));
 }

@@ -1,3 +1,4 @@
+import { useTheme } from "@/shared/theme/useTheme";
 import type { Map as MapLibreMap, Marker as MapLibreMarker, StyleSpecification } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -22,6 +23,7 @@ interface NetworkMapProps {
 const defaultCenter: [number, number] = [74, 29];
 const defaultFleetFitPadding = { top: 128, right: 96, bottom: 180, left: 96 };
 const defaultFleetMaxZoom = 4.2;
+type MapTheme = "dark" | "light";
 type MapLibreModule = typeof import("maplibre-gl");
 type MapPadding = number | { top: number; right: number; bottom: number; left: number };
 interface MarkerRecord {
@@ -30,17 +32,19 @@ interface MarkerRecord {
 	probeId: string;
 }
 
-function createCartoDarkStyle(): StyleSpecification {
+function createCartoStyle(theme: MapTheme): StyleSpecification {
+	const cartoVariant = theme === "light" ? "light_all" : "dark_all";
+
 	return {
 		version: 8,
 		sources: {
-			"carto-dark": {
+			"carto-base": {
 				type: "raster",
 				tiles: [
-					"https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
-					"https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
-					"https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
-					"https://d.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png"
+					`https://a.basemaps.cartocdn.com/${cartoVariant}/{z}/{x}/{y}.png`,
+					`https://b.basemaps.cartocdn.com/${cartoVariant}/{z}/{x}/{y}.png`,
+					`https://c.basemaps.cartocdn.com/${cartoVariant}/{z}/{x}/{y}.png`,
+					`https://d.basemaps.cartocdn.com/${cartoVariant}/{z}/{x}/{y}.png`
 				],
 				tileSize: 256,
 				attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
@@ -48,14 +52,14 @@ function createCartoDarkStyle(): StyleSpecification {
 		},
 		layers: [
 			{
-				id: "carto-dark-base",
+				id: "carto-base",
 				type: "raster",
-				source: "carto-dark",
+				source: "carto-base",
 				paint: {
 					"raster-opacity": 1,
-					"raster-brightness-min": 0.08,
-					"raster-brightness-max": 1,
-					"raster-contrast": 0.14,
+					"raster-brightness-min": theme === "light" ? 0 : 0.08,
+					"raster-brightness-max": theme === "light" ? 0.96 : 1,
+					"raster-contrast": theme === "light" ? 0.2 : 0.14,
 					"raster-saturation": 0
 				}
 			}
@@ -120,11 +124,14 @@ function fitFleetBounds(map: MapLibreMap, maplibregl: MapLibreModule, probes: Ar
 }
 
 export function NetworkMap({ probes, selectedId, onSelect, mode = "fleet", fleetFitPadding = defaultFleetFitPadding, fleetMaxZoom = defaultFleetMaxZoom, className }: NetworkMapProps) {
+	const { theme } = useTheme();
 	const mapContainerRef = useRef<HTMLDivElement | null>(null);
 	const maplibreglRef = useRef<MapLibreModule | null>(null);
 	const mapRef = useRef<MapLibreMap | null>(null);
 	const markersRef = useRef<MarkerRecord[]>([]);
 	const selectedIdRef = useRef(selectedId);
+	const themeRef = useRef(theme);
+	const appliedThemeRef = useRef<MapTheme | null>(null);
 	const [mapReady, setMapReady] = useState(false);
 	const classes = ["ns-cut-frame", styles.map, className].filter(Boolean).join(" ");
 	const positionedProbes = useMemo(() => {
@@ -138,6 +145,10 @@ export function NetworkMap({ probes, selectedId, onSelect, mode = "fleet", fleet
 	}, [mode, probes, selectedId]);
 
 	useEffect(() => {
+		themeRef.current = theme;
+	}, [theme]);
+
+	useEffect(() => {
 		let cancelled = false;
 
 		async function initializeMap() {
@@ -149,7 +160,7 @@ export function NetworkMap({ probes, selectedId, onSelect, mode = "fleet", fleet
 
 			const map = new maplibregl.Map({
 				container: mapContainerRef.current,
-				style: createCartoDarkStyle(),
+				style: createCartoStyle(themeRef.current),
 				center: defaultCenter,
 				zoom: 2.15,
 				attributionControl: { compact: true }
@@ -157,8 +168,16 @@ export function NetworkMap({ probes, selectedId, onSelect, mode = "fleet", fleet
 
 			maplibreglRef.current = maplibregl;
 			mapRef.current = map;
+			appliedThemeRef.current = themeRef.current;
 			map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right");
-			setMapReady(true);
+			map.once("load", () => {
+				if (cancelled) {
+					return;
+				}
+
+				map.resize();
+				setMapReady(true);
+			});
 		}
 
 		initializeMap();
@@ -170,8 +189,20 @@ export function NetworkMap({ probes, selectedId, onSelect, mode = "fleet", fleet
 			mapRef.current?.remove();
 			maplibreglRef.current = null;
 			mapRef.current = null;
+			appliedThemeRef.current = null;
 		};
 	}, []);
+
+	useEffect(() => {
+		const map = mapRef.current;
+
+		if (!map || !mapReady || appliedThemeRef.current === theme) {
+			return;
+		}
+
+		appliedThemeRef.current = theme;
+		map.setStyle(createCartoStyle(theme));
+	}, [mapReady, theme]);
 
 	useEffect(() => {
 		if (!mapContainerRef.current) {

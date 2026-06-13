@@ -4,8 +4,11 @@ import { pathForRoute } from "@/routes/routePaths";
 import { sidebarItems } from "@/routes/sidebarItems";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { EditorDrawer } from "@/shared/components/EditorDrawer";
+import { useTheme } from "@/shared/theme/useTheme";
 import { classNames } from "@/shared/utils/classNames";
+import netstampLogoDark from "@netstamp/brand/assets/netstamp-logo-dark.svg";
 import netstampLogo from "@netstamp/brand/assets/netstamp-logo-light.svg";
+import netstampMarkDark from "@netstamp/brand/assets/netstamp-mark-dark.svg";
 import netstampMark from "@netstamp/brand/assets/netstamp-mark-light.svg";
 import { CaretLeft, CaretRight, List, X } from "@phosphor-icons/react";
 import { useState } from "react";
@@ -22,10 +25,13 @@ interface SidebarProps {
 
 export function Sidebar({ collapsed, user, onToggleCollapsed, onLogout }: SidebarProps) {
 	const { projectRef } = useCurrentProject();
+	const { theme } = useTheme();
 	const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 	const ToggleIcon = collapsed ? CaretRight : CaretLeft;
 	const toggleLabel = collapsed ? "Expand sidebar" : "Collapse sidebar";
 	const MobileMenuIcon = mobileMenuOpen ? X : List;
+	const logo = theme === "dark" ? netstampLogo : netstampLogoDark;
+	const logoMark = theme === "dark" ? netstampMark : netstampMarkDark;
 
 	function closeMobileMenu() {
 		setMobileMenuOpen(false);
@@ -36,8 +42,8 @@ export function Sidebar({ collapsed, user, onToggleCollapsed, onLogout }: Sideba
 			<div className={classNames("ns-scrollbar", styles.sidebarScroll)}>
 				<div className={styles.brandRow}>
 					<Link className={styles.brand} to={pathForRoute("dashboard", { projectRef })} onClick={closeMobileMenu}>
-						<img className={classNames(styles.brandLogo, styles.brandLogoFull)} src={netstampLogo} alt="Netstamp" />
-						<img className={classNames(styles.brandLogo, styles.brandLogoMark)} src={netstampMark} alt="" aria-hidden="true" />
+						<img className={classNames(styles.brandLogo, styles.brandLogoFull)} src={logo} alt="Netstamp" />
+						<img className={classNames(styles.brandLogo, styles.brandLogoMark)} src={logoMark} alt="" aria-hidden="true" />
 					</Link>
 					<button
 						type="button"

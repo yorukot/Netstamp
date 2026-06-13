@@ -63,10 +63,51 @@
 	font: 16px/1.5 var(--ns-font-sans);
 	color: var(--ns-text);
 	background: var(--ns-bg);
+	color-scheme: dark;
 	font-synthesis: none;
 	text-rendering: optimizeLegibility;
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
+}
+
+:root[data-theme="light"] {
+	--ns-bg: #f4f6f8;
+	--ns-bg-section: #eaedf1;
+	--ns-bg-subtle: #eef1f5;
+	--ns-surface: #ffffff;
+	--ns-surface-raised: #f8fafc;
+	--ns-surface-deep: #dfe4ea;
+	--ns-glass-dark: rgba(255, 255, 255, 0.92);
+	--ns-glass-light: rgba(12, 16, 22, 0.035);
+
+	--ns-text: #11151b;
+	--ns-text-muted: #2b333d;
+	--ns-text-subtle: #4e5968;
+	--ns-text-low: #737d8c;
+	--ns-text-on-accent: #120904;
+
+	--ns-accent: #e85f00;
+	--ns-accent-hover: #c94f00;
+	--ns-accent-active: #a94200;
+	--ns-accent-muted: rgba(232, 95, 0, 0.1);
+	--ns-accent-subtle: rgba(232, 95, 0, 0.16);
+	--ns-accent-border: rgba(191, 78, 0, 0.58);
+	--ns-accent-glow: rgba(232, 95, 0, 0.2);
+	--ns-glass-orange: rgba(232, 95, 0, 0.14);
+
+	--ns-critical: #c4251a;
+	--ns-warning: #a95b00;
+	--ns-success: #167b38;
+	--ns-metal: #5c6878;
+	--ns-slate-line: rgba(70, 82, 98, 0.24);
+	--ns-border: rgba(17, 21, 27, 0.26);
+	--ns-border-strong: rgba(17, 21, 27, 0.44);
+	--ns-border-faint: rgba(17, 21, 27, 0.14);
+
+	--ns-shadow-sm: 0 0 0 1px rgba(17, 21, 27, 0.08), 0 1rem 2.25rem rgba(17, 21, 27, 0.12);
+	--ns-shadow-md: 0 0 0 1px rgba(17, 21, 27, 0.1), 0 1.5rem 3.5rem rgba(17, 21, 27, 0.16);
+	--ns-shadow-glow: 0 0 0 1px rgba(232, 95, 0, 0.34), 0 0 2rem rgba(232, 95, 0, 0.14);
+	color-scheme: light;
 }
 
 *,
@@ -129,12 +170,45 @@ a {
 		100% 100%;
 }
 
+:root[data-theme="light"] .ns-grid-shell {
+	background:
+		radial-gradient(circle at 16% 18%, rgba(232, 95, 0, 0.11), transparent 22rem), radial-gradient(circle at 88% 10%, rgba(92, 104, 120, 0.16), transparent 20rem),
+		linear-gradient(rgba(232, 95, 0, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(232, 95, 0, 0.1) 1px, transparent 1px), linear-gradient(rgba(17, 21, 27, 0.055) 1px, transparent 1px),
+		linear-gradient(90deg, rgba(17, 21, 27, 0.055) 1px, transparent 1px), var(--ns-bg);
+	background-size:
+		100% 100%,
+		100% 100%,
+		8rem 8rem,
+		8rem 8rem,
+		2rem 2rem,
+		2rem 2rem,
+		100% 100%;
+}
+
 .ns-grid-shell--constellation {
 	background:
 		radial-gradient(circle at 18% 24%, rgba(255, 255, 255, 0.12) 0 1px, transparent 1px), radial-gradient(circle at 82% 18%, rgba(255, 122, 26, 0.32) 0 1px, transparent 1px),
 		radial-gradient(circle at 64% 76%, rgba(255, 122, 26, 0.18) 0 1px, transparent 1px), radial-gradient(circle at 88% 10%, rgba(255, 122, 26, 0.08), transparent 22rem),
 		linear-gradient(rgba(255, 122, 26, 0.09) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 122, 26, 0.09) 1px, transparent 1px),
 		linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px), var(--ns-bg);
+	background-size:
+		22rem 22rem,
+		18rem 18rem,
+		26rem 26rem,
+		100% 100%,
+		8rem 8rem,
+		8rem 8rem,
+		2rem 2rem,
+		2rem 2rem,
+		100% 100%;
+}
+
+:root[data-theme="light"] .ns-grid-shell--constellation {
+	background:
+		radial-gradient(circle at 18% 24%, rgba(17, 21, 27, 0.18) 0 1px, transparent 1px), radial-gradient(circle at 82% 18%, rgba(232, 95, 0, 0.28) 0 1px, transparent 1px),
+		radial-gradient(circle at 64% 76%, rgba(232, 95, 0, 0.16) 0 1px, transparent 1px), radial-gradient(circle at 88% 10%, rgba(92, 104, 120, 0.16), transparent 22rem),
+		linear-gradient(rgba(232, 95, 0, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(232, 95, 0, 0.1) 1px, transparent 1px), linear-gradient(rgba(17, 21, 27, 0.055) 1px, transparent 1px),
+		linear-gradient(90deg, rgba(17, 21, 27, 0.055) 1px, transparent 1px), var(--ns-bg);
 	background-size:
 		22rem 22rem,
 		18rem 18rem,
@@ -183,7 +257,7 @@ a {
 }
 
 .ns-scrollbar {
-	scrollbar-color: var(--ns-border-strong) rgba(255, 255, 255, 0.04);
+	scrollbar-color: var(--ns-border-strong) var(--ns-glass-light);
 	scrollbar-width: thin;
 }
 
@@ -193,7 +267,7 @@ a {
 }
 
 .ns-scrollbar::-webkit-scrollbar-track {
-	background: rgba(255, 255, 255, 0.04);
+	background: var(--ns-glass-light);
 }
 
 .ns-scrollbar::-webkit-scrollbar-thumb {

@@ -10,14 +10,14 @@
 }
 
 .summaryCell {
-	--ns-frame-color: rgba(196, 204, 217, 0.18);
+	--ns-frame-color: var(--ns-slate-line);
 	--ns-frame-cut: var(--ns-cut-sm);
 	display: grid;
 	min-height: 6.5rem;
 	gap: 0.35rem;
 	align-content: start;
 	padding: 0.875rem;
-	background: #04070b;
+	background: var(--ns-surface-raised);
 	border: 1px solid var(--ns-frame-color);
 	clip-path: polygon(var(--ns-frame-cut) 0, 100% 0, 100% calc(100% - var(--ns-frame-cut)), calc(100% - var(--ns-frame-cut)) 100%, 0 100%, 0 var(--ns-frame-cut));
 }
@@ -60,7 +60,7 @@
 .chartMeta span {
 	border: 1px solid var(--ns-border-faint);
 	padding: 0.35rem 0.5rem;
-	background: rgba(255, 255, 255, 0.02);
+	background: var(--ns-glass-light);
 }
 
 .emptyState {

@@ -53,11 +53,11 @@
 
 .errorNotice {
 	--ns-frame-cut: var(--ns-cut-sm);
-	--ns-frame-color: rgba(255, 69, 58, 0.34);
+	--ns-frame-color: color-mix(in srgb, var(--ns-critical) 34%, transparent);
 	margin: 0;
 	padding: 0.75rem 0.875rem;
 	color: var(--ns-critical);
-	background: rgba(255, 69, 58, 0.08);
+	background: color-mix(in srgb, var(--ns-critical) 8%, transparent);
 	font-family: var(--ns-font-mono);
 	font-size: 0.8125rem;
 	line-height: 1.5;
@@ -77,7 +77,7 @@
 	min-width: 0;
 	padding: 0.875rem;
 	border: 1px solid var(--ns-frame-color);
-	background: rgba(255, 255, 255, 0.025);
+	background: var(--ns-glass-light);
 	clip-path: polygon(0 0, calc(100% - var(--ns-frame-cut)) 0, 100% var(--ns-frame-cut), 100% 100%, var(--ns-frame-cut) 100%, 0 calc(100% - var(--ns-frame-cut)));
 }
 

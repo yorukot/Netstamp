@@ -50,7 +50,7 @@
 	border: 1px solid var(--ns-frame-color);
 	clip-path: polygon(var(--ns-frame-cut) 0, 100% 0, 100% calc(100% - var(--ns-frame-cut)), calc(100% - var(--ns-frame-cut)) 100%, 0 100%, 0 var(--ns-frame-cut));
 	color: var(--ns-text-muted);
-	background: rgba(196, 204, 217, 0.08);
+	background: color-mix(in srgb, var(--ns-metal) 8%, transparent);
 	font-family: var(--ns-font-mono);
 	font-size: 0.6875rem;
 	font-weight: 900;
@@ -63,7 +63,7 @@
 .labelOverflowButton:focus-visible {
 	--ns-frame-color: var(--ns-accent-border);
 	color: var(--ns-text);
-	background: rgba(255, 122, 26, 0.12);
+	background: var(--ns-accent-muted);
 	outline: none;
 }
 
@@ -74,7 +74,9 @@
 	z-index: 1000;
 	width: min(24rem, calc(100vw - 1.5rem));
 	padding: 0.6rem;
-	background: linear-gradient(rgba(255, 122, 26, 0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 122, 26, 0.035) 1px, transparent 1px), var(--ns-glass-dark);
+	background:
+		linear-gradient(color-mix(in srgb, var(--ns-accent) 5%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--ns-accent) 4%, transparent) 1px, transparent 1px),
+		var(--ns-glass-dark);
 	background-size:
 		1rem 1rem,
 		1rem 1rem,

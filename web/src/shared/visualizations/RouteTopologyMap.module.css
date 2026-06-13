@@ -27,7 +27,7 @@
 	width: 0.55rem;
 	height: 0.55rem;
 	background: var(--ns-accent);
-	border: 1px solid rgba(255, 247, 236, 0.44);
+	border: 1px solid var(--ns-border);
 	border-radius: 999px;
 	content: "";
 }
@@ -60,8 +60,8 @@
 	height: var(--ns-topology-height);
 	min-height: 17.5rem;
 	background:
-		linear-gradient(rgba(255, 122, 26, 0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 122, 26, 0.035) 1px, transparent 1px),
-		radial-gradient(circle at 50% 50%, rgba(255, 122, 26, 0.08), transparent 42%);
+		linear-gradient(color-mix(in srgb, var(--ns-accent) 5%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--ns-accent) 4%, transparent) 1px, transparent 1px),
+		radial-gradient(circle at 50% 50%, var(--ns-accent-muted), transparent 42%);
 	background-size:
 		2rem 2rem,
 		2rem 2rem,
@@ -95,7 +95,7 @@
 }
 
 .topologyEdgeHit:focus-visible {
-	stroke: rgba(255, 247, 236, 0.16);
+	stroke: var(--ns-accent-subtle);
 }
 
 .topologyNode {
@@ -117,20 +117,20 @@
 
 .topologyNode:focus-visible .topologyNodeDot {
 	box-shadow:
-		0 0 0 4px rgba(255, 247, 236, 0.18),
-		0 0 18px rgba(255, 122, 26, 0.28);
+		0 0 0 4px color-mix(in srgb, var(--ns-text) 18%, transparent),
+		0 0 18px var(--ns-accent-glow);
 }
 
 .topologyNodeDot {
 	display: block;
 	width: 1.25rem;
 	height: 1.25rem;
-	background: #030507;
+	background: var(--ns-surface);
 	border: 2px solid currentcolor;
 	border-radius: 999px;
 	box-shadow:
-		0 0 0 3px rgba(255, 122, 26, 0.08),
-		0 0 14px rgba(255, 122, 26, 0.18);
+		0 0 0 3px var(--ns-accent-muted),
+		0 0 14px var(--ns-accent-glow);
 }
 
 .topologyNodeLabel {
@@ -171,10 +171,10 @@
 
 .topologyNodeprobe .topologyNodeDot {
 	background: var(--ns-metal);
-	border-color: rgba(255, 247, 236, 0.88);
+	border-color: var(--ns-border-strong);
 	box-shadow:
-		0 0 0 3px rgba(196, 204, 217, 0.12),
-		0 0 14px rgba(196, 204, 217, 0.2);
+		0 0 0 3px color-mix(in srgb, var(--ns-metal) 12%, transparent),
+		0 0 14px color-mix(in srgb, var(--ns-metal) 20%, transparent);
 }
 
 .topologyNodedestination {
@@ -182,8 +182,8 @@
 }
 
 .topologyNodedestination .topologyNodeDot {
-	background: rgba(255, 122, 26, 0.7);
-	border-color: rgba(255, 247, 236, 0.82);
+	background: color-mix(in srgb, var(--ns-accent) 70%, transparent);
+	border-color: var(--ns-border-strong);
 }
 
 .topologyNodewarning {
@@ -192,8 +192,8 @@
 
 .topologyNodewarning .topologyNodeDot {
 	box-shadow:
-		0 0 0 3px rgba(255, 159, 10, 0.14),
-		0 0 18px rgba(255, 159, 10, 0.24);
+		0 0 0 3px color-mix(in srgb, var(--ns-warning) 14%, transparent),
+		0 0 18px color-mix(in srgb, var(--ns-warning) 24%, transparent);
 }
 
 .topologyNodecritical {
@@ -202,8 +202,8 @@
 
 .topologyNodecritical .topologyNodeDot {
 	box-shadow:
-		0 0 0 3px rgba(255, 69, 58, 0.14),
-		0 0 18px rgba(255, 69, 58, 0.24);
+		0 0 0 3px color-mix(in srgb, var(--ns-critical) 14%, transparent),
+		0 0 18px color-mix(in srgb, var(--ns-critical) 24%, transparent);
 }
 
 .topologyDetail {
@@ -217,10 +217,10 @@
 	width: min(15rem, calc(100% - 1rem));
 	padding: 0.75rem;
 	border: 1px solid color-mix(in srgb, var(--ns-topology-detail-color) 62%, transparent);
-	background: linear-gradient(135deg, color-mix(in srgb, var(--ns-topology-detail-color) 14%, transparent), transparent 58%), rgba(3, 5, 7, 0.96);
+	background: linear-gradient(135deg, color-mix(in srgb, var(--ns-topology-detail-color) 14%, transparent), transparent 58%), var(--ns-glass-dark);
 	box-shadow:
-		0 0 0 1px rgba(255, 255, 255, 0.06),
-		0 1rem 2rem rgba(0, 0, 0, 0.42);
+		0 0 0 1px var(--ns-glass-light),
+		0 1rem 2rem color-mix(in srgb, var(--ns-text) 14%, transparent);
 	clip-path: polygon(var(--ns-cut-sm) 0, 100% 0, 100% calc(100% - var(--ns-cut-sm)), calc(100% - var(--ns-cut-sm)) 100%, 0 100%, 0 var(--ns-cut-sm));
 	color: var(--ns-text-muted);
 	font-family: var(--ns-font-mono);
@@ -256,7 +256,7 @@
 	align-items: baseline;
 	justify-content: space-between;
 	gap: 1rem;
-	border-top: 1px solid rgba(255, 255, 255, 0.08);
+	border-top: 1px solid var(--ns-border-faint);
 	padding-top: 0.25rem;
 }
 

@@ -1,8 +1,10 @@
 .frame {
-	--ns-frame-color: rgba(255, 122, 26, 0.28);
+	--ns-frame-color: color-mix(in srgb, var(--ns-accent) 28%, transparent);
 	--ns-frame-cut: var(--ns-cut-md);
 	width: 100%;
-	background: linear-gradient(rgba(255, 122, 26, 0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 122, 26, 0.04) 1px, transparent 1px), #030507;
+	background:
+		linear-gradient(color-mix(in srgb, var(--ns-accent) 6%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--ns-accent) 4%, transparent) 1px, transparent 1px),
+		var(--ns-bg-section);
 	background-size:
 		1rem 1rem,
 		1rem 1rem,
@@ -31,8 +33,8 @@
 	z-index: 1;
 	padding: 0.875rem 1rem;
 	color: var(--ns-accent-hover);
-	background: #05070b;
-	border-bottom: 1px solid rgba(255, 122, 26, 0.26);
+	background: var(--ns-surface-raised);
+	border-bottom: 1px solid color-mix(in srgb, var(--ns-accent) 26%, transparent);
 	font-size: 0.6875rem;
 	font-weight: 700;
 	letter-spacing: 0.12em;
@@ -43,7 +45,7 @@
 
 .table td {
 	padding: 0.875rem 1rem;
-	border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+	border-bottom: 1px solid var(--ns-border-faint);
 	white-space: nowrap;
 }
 
@@ -55,7 +57,7 @@
 
 .table tbody tr:hover {
 	color: var(--ns-text);
-	background: rgba(255, 122, 26, 0.12);
+	background: var(--ns-accent-muted);
 }
 
 .interactive {
@@ -65,7 +67,7 @@
 
 .interactive:focus-visible {
 	color: var(--ns-text);
-	background: rgba(255, 122, 26, 0.12);
+	background: var(--ns-accent-muted);
 }
 
 .table tbody tr:last-child td {
@@ -74,7 +76,7 @@
 
 .selected {
 	color: var(--ns-text);
-	background: rgba(255, 122, 26, 0.1);
+	background: var(--ns-accent-muted);
 }
 
 .empty {

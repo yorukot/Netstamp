@@ -24,7 +24,7 @@
 }
 
 .batchToolbar {
-	--ns-frame-color: rgba(255, 122, 26, 0.34);
+	--ns-frame-color: color-mix(in srgb, var(--ns-accent) 34%, transparent);
 	--ns-frame-cut: var(--ns-cut-sm);
 	display: flex;
 	flex-wrap: wrap;
@@ -32,7 +32,7 @@
 	align-items: center;
 	justify-content: space-between;
 	padding: 0.75rem 0.875rem;
-	background: rgba(255, 122, 26, 0.08);
+	background: var(--ns-accent-muted);
 }
 
 .batchToolbar > div:first-child {
@@ -63,10 +63,12 @@
 }
 
 .checkTableFrame {
-	--ns-frame-color: rgba(255, 122, 26, 0.28);
+	--ns-frame-color: color-mix(in srgb, var(--ns-accent) 28%, transparent);
 	--ns-frame-cut: var(--ns-cut-md);
 	width: 100%;
-	background: linear-gradient(rgba(255, 122, 26, 0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 122, 26, 0.04) 1px, transparent 1px), #030507;
+	background:
+		linear-gradient(color-mix(in srgb, var(--ns-accent) 6%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--ns-accent) 4%, transparent) 1px, transparent 1px),
+		var(--ns-bg-section);
 	background-size:
 		1rem 1rem,
 		1rem 1rem,
@@ -93,9 +95,9 @@
 	top: 0;
 	z-index: 1;
 	padding: 0.875rem 1rem;
-	border-bottom: 1px solid rgba(255, 122, 26, 0.26);
+	border-bottom: 1px solid color-mix(in srgb, var(--ns-accent) 26%, transparent);
 	color: var(--ns-accent-hover);
-	background: #05070b;
+	background: var(--ns-surface-raised);
 	font-size: 0.6875rem;
 	font-weight: 700;
 	letter-spacing: 0.12em;
@@ -106,7 +108,7 @@
 
 .checkTable td {
 	padding: 0.875rem 1rem;
-	border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+	border-bottom: 1px solid var(--ns-border-faint);
 	vertical-align: middle;
 	white-space: nowrap;
 }
@@ -133,12 +135,12 @@
 .checkTableRow:hover,
 .checkTableRow:focus-visible {
 	color: var(--ns-text);
-	background: rgba(255, 122, 26, 0.12);
+	background: var(--ns-accent-muted);
 }
 
 .checkTableRowSelected {
 	color: var(--ns-text);
-	background: rgba(255, 122, 26, 0.1);
+	background: var(--ns-accent-muted);
 }
 
 .checkTable tbody tr:last-child td {
@@ -208,7 +210,7 @@
 }
 
 .iconActionDanger {
-	color: #ffd2cc;
+	color: var(--ns-critical);
 }
 
 .checkTableEmpty {
@@ -240,7 +242,7 @@
 	min-height: 2.75rem;
 	padding: 0.75rem 0.875rem;
 	color: var(--ns-text);
-	background: #05070a;
+	background: var(--ns-surface);
 	font-family: var(--ns-font-mono);
 	font-size: 0.875rem;
 }
@@ -263,7 +265,7 @@
 	gap: 0.75rem;
 	align-items: end;
 	padding: 0.75rem 1rem 0.75rem 0.75rem;
-	background: rgba(255, 255, 255, 0.025);
+	background: var(--ns-glass-light);
 }
 
 .selectorNegation {
@@ -283,25 +285,25 @@
 	padding: 0.7rem 0.75rem;
 	border: 1px solid var(--ns-border-faint);
 	color: var(--ns-text-low);
-	background: rgba(255, 255, 255, 0.025);
+	background: var(--ns-glass-light);
 	font-family: var(--ns-font-mono);
 	font-size: 0.8125rem;
 }
 
 .selectorRuleRemove {
-	--ns-frame-color: rgba(255, 69, 58, 0.42);
+	--ns-frame-color: color-mix(in srgb, var(--ns-critical) 42%, transparent);
 	align-self: end;
 	justify-self: center;
 	width: 2.75rem;
 	height: 2.75rem;
 	min-height: 2.75rem;
-	color: #ffd2cc;
-	background: rgba(255, 69, 58, 0.08);
+	color: var(--ns-critical);
+	background: color-mix(in srgb, var(--ns-critical) 8%, transparent);
 }
 
 .selectorRuleRemove:hover {
-	--ns-frame-color: rgba(255, 69, 58, 0.72);
-	background: rgba(255, 69, 58, 0.14);
+	--ns-frame-color: color-mix(in srgb, var(--ns-critical) 72%, transparent);
+	background: color-mix(in srgb, var(--ns-critical) 14%, transparent);
 }
 
 .selectorOptionGrid {
@@ -319,13 +321,13 @@
 	align-items: center;
 	min-width: 0;
 	padding: 0.625rem;
-	background: rgba(255, 255, 255, 0.025);
+	background: var(--ns-glass-light);
 	cursor: pointer;
 }
 
 .selectorOption:hover {
 	--ns-frame-color: var(--ns-accent-border);
-	background: rgba(255, 122, 26, 0.08);
+	background: var(--ns-accent-muted);
 }
 
 .selectorOption span,

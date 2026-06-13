@@ -6,11 +6,11 @@
 	--ns-frame-cut: 0.875rem;
 	--ns-frame-color: var(--ns-border);
 	width: min(58rem, 100%);
-	background: #030507;
+	background: var(--ns-surface);
 	box-shadow:
-		0 0 0 1px rgba(0, 0, 0, 0.88),
-		0 1.5rem 5rem rgba(0, 0, 0, 0.62),
-		0 0 4rem rgba(255, 122, 26, 0.08);
+		0 0 0 1px color-mix(in srgb, var(--ns-text) 12%, transparent),
+		0 1.5rem 5rem color-mix(in srgb, var(--ns-text) 16%, transparent),
+		0 0 4rem var(--ns-accent-muted);
 }
 
 .consoleBar {
@@ -21,7 +21,7 @@
 	min-height: 2.625rem;
 	padding: 0 0.875rem;
 	border-bottom: 1px solid var(--ns-border-faint);
-	background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent), #090c11;
+	background: linear-gradient(180deg, var(--ns-glass-light), transparent), var(--ns-surface-raised);
 }
 
 .consoleBar span {
@@ -66,7 +66,7 @@
 .scanline {
 	position: absolute;
 	inset: 0;
-	background: repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 4px);
+	background: repeating-linear-gradient(0deg, color-mix(in srgb, var(--ns-text) 4%, transparent) 0 1px, transparent 1px 4px);
 	opacity: 0.34;
 	pointer-events: none;
 }
@@ -149,7 +149,7 @@
 }
 
 .inviteList::-webkit-scrollbar-track {
-	background: rgba(255, 255, 255, 0.04);
+	background: var(--ns-glass-light);
 }
 
 .inviteList::-webkit-scrollbar-thumb {
@@ -163,7 +163,7 @@
 .answerRow {
 	padding: 0.7rem 0.75rem;
 	border: 1px solid var(--ns-border-faint);
-	background: rgba(255, 255, 255, 0.025);
+	background: var(--ns-glass-light);
 }
 
 .answerRow input {
@@ -229,7 +229,7 @@
 	--ns-frame-color: var(--ns-accent-border);
 	border: 1px solid var(--ns-accent-border);
 	color: var(--ns-accent-hover);
-	background: rgba(255, 122, 26, 0.08);
+	background: var(--ns-accent-muted);
 	font-family: var(--ns-font-mono);
 	font-weight: 800;
 	letter-spacing: 0.08em;

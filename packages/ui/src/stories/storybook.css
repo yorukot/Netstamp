@@ -2,8 +2,9 @@
 .storybook-canvas {
 	min-height: 100svh;
 	background:
-		radial-gradient(circle at 20% 0, rgba(255, 122, 26, 0.14), transparent 24rem), radial-gradient(circle at 80% 8%, rgba(255, 255, 255, 0.08), transparent 18rem),
-		linear-gradient(rgba(255, 122, 26, 0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 122, 26, 0.07) 1px, transparent 1px), var(--ns-bg);
+		radial-gradient(circle at 20% 0, var(--ns-accent-muted), transparent 24rem), radial-gradient(circle at 80% 8%, var(--ns-glass-light), transparent 18rem),
+		linear-gradient(color-mix(in srgb, var(--ns-accent) 7%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--ns-accent) 7%, transparent) 1px, transparent 1px),
+		var(--ns-bg);
 	background-size:
 		100% 100%,
 		100% 100%,
@@ -35,7 +36,7 @@
 	gap: 1rem;
 	width: 100%;
 	border: 1px solid var(--ns-border-faint);
-	background: rgba(255, 255, 255, 0.025);
+	background: var(--ns-glass-light);
 }
 
 .storybook-hero,
@@ -47,7 +48,7 @@
 
 .storybook-hero {
 	border-color: var(--ns-accent-border);
-	background: linear-gradient(110deg, rgba(255, 122, 26, 0.14), transparent 48%), rgba(3, 5, 8, 0.88);
+	background: linear-gradient(110deg, var(--ns-accent-muted), transparent 48%), var(--ns-glass-dark);
 	box-shadow: var(--ns-shadow-md);
 }
 
@@ -57,7 +58,8 @@
 	align-items: stretch;
 	overflow: hidden;
 	padding: clamp(1.25rem, 3vw, 2rem);
-	background: linear-gradient(110deg, rgba(255, 122, 26, 0.2), transparent 52%), radial-gradient(circle at 88% 12%, rgba(255, 255, 255, 0.12), transparent 18rem), rgba(3, 5, 8, 0.9);
+	background:
+		linear-gradient(110deg, var(--ns-accent-subtle), transparent 52%), radial-gradient(circle at 88% 12%, color-mix(in srgb, var(--ns-text) 12%, transparent), transparent 18rem), var(--ns-glass-dark);
 }
 
 .storybook-hero--entrance::before {
@@ -65,9 +67,10 @@
 	inset: 0;
 	pointer-events: none;
 	content: "";
-	background: linear-gradient(rgba(255, 122, 26, 0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 122, 26, 0.08) 1px, transparent 1px);
+	background:
+		linear-gradient(color-mix(in srgb, var(--ns-accent) 8%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--ns-accent) 8%, transparent) 1px, transparent 1px);
 	background-size: 3rem 3rem;
-	mask-image: linear-gradient(90deg, black, transparent 78%);
+	mask-image: linear-gradient(90deg, var(--ns-text), transparent 78%);
 }
 
 .storybook-hero-copy,
@@ -102,8 +105,8 @@
 	justify-content: center;
 	min-height: 2.5rem;
 	padding: 0 0.95rem;
-	border: 1px solid rgba(255, 122, 26, 0.42);
-	background: rgba(255, 122, 26, 0.08);
+	border: 1px solid color-mix(in srgb, var(--ns-accent) 42%, transparent);
+	background: var(--ns-accent-muted);
 	color: var(--ns-text);
 	font-family: var(--ns-font-mono);
 	font-size: 0.72rem;
@@ -116,16 +119,16 @@
 .storybook-shortcuts a:hover,
 .storybook-shortcuts a:focus-visible {
 	border-color: var(--ns-accent);
-	background: rgba(255, 122, 26, 0.16);
+	background: var(--ns-accent-subtle);
 	color: var(--ns-accent-hover);
 }
 
 .storybook-entrance-panel {
 	align-content: start;
 	padding: clamp(0.75rem, 2vw, 1rem);
-	border: 1px solid rgba(255, 122, 26, 0.28);
-	background: rgba(0, 0, 0, 0.2);
-	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+	border: 1px solid color-mix(in srgb, var(--ns-accent) 28%, transparent);
+	background: color-mix(in srgb, var(--ns-bg) 20%, transparent);
+	box-shadow: inset 0 1px 0 var(--ns-glass-light);
 }
 
 .storybook-route-card {
@@ -133,12 +136,12 @@
 	gap: 0.35rem;
 	padding: 0.95rem;
 	border: 1px solid var(--ns-border-faint);
-	background: rgba(255, 255, 255, 0.035);
+	background: var(--ns-glass-light);
 }
 
 .storybook-route-card--active {
 	border-color: var(--ns-accent-border);
-	background: rgba(255, 122, 26, 0.12);
+	background: var(--ns-accent-muted);
 }
 
 .storybook-route-card span {
@@ -283,7 +286,7 @@
 .storybook-shell-card {
 	width: min(100% - 2rem, 36rem);
 	padding: 1.25rem;
-	background: rgba(3, 5, 8, 0.84);
+	background: var(--ns-glass-dark);
 }
 
 .storybook-shell-demo {

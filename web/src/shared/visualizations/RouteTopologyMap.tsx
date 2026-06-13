@@ -135,14 +135,14 @@ function formatCount(value: number | null | undefined) {
 
 function topologyTone(lossPercent: number | undefined, avgRttMs: number | undefined) {
 	if (typeof lossPercent === "number" && lossPercent >= 1) {
-		return "#ff453a";
+		return "var(--ns-critical)";
 	}
 
 	if (typeof avgRttMs === "number" && avgRttMs >= 100) {
-		return "#ff9f0a";
+		return "var(--ns-warning)";
 	}
 
-	return "#ff7a1a";
+	return "var(--ns-accent)";
 }
 
 function topologySeverity(lossPercent: number | undefined, avgRttMs: number | undefined): TopologySeverity {

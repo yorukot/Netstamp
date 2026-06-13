@@ -20,8 +20,8 @@
 	grid-auto-flow: column;
 	grid-auto-columns: minmax(0, 1fr);
 	min-height: 2.75rem;
-	background: #05070a;
-	box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.8);
+	background: var(--ns-surface);
+	box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ns-text) 10%, transparent);
 }
 
 .segmentControl:focus-within {
@@ -58,13 +58,13 @@
 .segmentButton:focus-visible,
 .segmentButton[data-selected="true"] {
 	color: var(--ns-text);
-	background: rgba(255, 122, 26, 0.14);
+	background: var(--ns-accent-muted);
 	outline: none;
 }
 
 .focusChip {
 	--ns-frame-cut: var(--ns-cut-sm);
-	--ns-frame-color: rgba(255, 122, 26, 0.42);
+	--ns-frame-color: color-mix(in srgb, var(--ns-accent) 42%, transparent);
 	display: grid;
 	grid-template-columns: auto minmax(4rem, auto) auto;
 	gap: 0.625rem;
@@ -72,13 +72,13 @@
 	max-width: 100%;
 	padding: 0.5rem 0.6rem;
 	color: var(--ns-text-muted);
-	background: rgba(255, 122, 26, 0.1);
+	background: var(--ns-accent-muted);
 	font-family: var(--ns-font-mono);
 }
 
 .focusChip[data-invalid="true"] {
-	--ns-frame-color: rgba(255, 69, 58, 0.56);
-	background: rgba(255, 69, 58, 0.12);
+	--ns-frame-color: color-mix(in srgb, var(--ns-critical) 56%, transparent);
+	background: color-mix(in srgb, var(--ns-critical) 12%, transparent);
 }
 
 .focusChip span {
@@ -133,8 +133,8 @@
 	min-height: 2.75rem;
 	padding: 0.75rem 1rem;
 	color: var(--ns-text);
-	background: #05070a;
-	box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.8);
+	background: var(--ns-surface);
+	box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ns-text) 10%, transparent);
 	font-family: var(--ns-font-mono);
 	font-size: 0.8125rem;
 	font-weight: 800;
@@ -172,8 +172,8 @@
 	min-height: 2.75rem;
 	padding: 0.35rem 0.45rem;
 	overflow: hidden;
-	background: #05070a;
-	box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.8);
+	background: var(--ns-surface);
+	box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ns-text) 10%, transparent);
 	cursor: text;
 }
 
@@ -217,8 +217,8 @@
 	min-width: 0;
 	padding: 0.35rem 0.45rem;
 	color: var(--ns-text);
-	background: rgba(255, 122, 26, 0.13);
-	border: 1px solid rgba(255, 122, 26, 0.32);
+	background: var(--ns-accent-muted);
+	border: 1px solid color-mix(in srgb, var(--ns-accent) 32%, transparent);
 	clip-path: polygon(var(--ns-cut-xs) 0, 100% 0, 100% calc(100% - var(--ns-cut-xs)), calc(100% - var(--ns-cut-xs)) 100%, 0 100%, 0 var(--ns-cut-xs));
 	font-family: var(--ns-font-mono);
 	font-size: 0.6875rem;
@@ -267,7 +267,7 @@
 .assignmentOverflow {
 	flex: 0 0 auto;
 	color: var(--ns-text-muted);
-	background: rgba(196, 204, 217, 0.08);
+	background: color-mix(in srgb, var(--ns-metal) 8%, transparent);
 	border-color: var(--ns-border-faint);
 }
 
@@ -286,7 +286,9 @@
 	max-height: min(22.5rem, var(--radix-dropdown-menu-content-available-height, var(--radix-popover-content-available-height, 22.5rem)));
 	overflow: auto;
 	padding: 0.35rem;
-	background: linear-gradient(rgba(255, 122, 26, 0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 122, 26, 0.035) 1px, transparent 1px), var(--ns-glass-dark);
+	background:
+		linear-gradient(color-mix(in srgb, var(--ns-accent) 5%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--ns-accent) 4%, transparent) 1px, transparent 1px),
+		var(--ns-glass-dark);
 	background-size:
 		1rem 1rem,
 		1rem 1rem,
@@ -304,7 +306,7 @@
 	height: 2.5rem;
 	padding: 0.65rem 0.75rem;
 	color: var(--ns-text);
-	background: #05070a;
+	background: var(--ns-surface);
 	border: 1px solid var(--ns-border);
 	font-family: var(--ns-font-mono);
 	font-size: 0.8125rem;
@@ -314,7 +316,7 @@
 
 .assignmentSearch input:focus {
 	border-color: var(--ns-accent-active);
-	box-shadow: 0 0 0 2px rgba(255, 122, 26, 0.28);
+	box-shadow: 0 0 0 2px var(--ns-accent-muted);
 }
 
 .assignmentSearch input::placeholder {
@@ -362,15 +364,15 @@
 .assignmentOption[data-active="true"],
 .assignmentOption[data-highlighted] {
 	color: var(--ns-text);
-	background: rgba(255, 122, 26, 0.12);
-	border-color: rgba(255, 122, 26, 0.3);
+	background: var(--ns-accent-muted);
+	border-color: color-mix(in srgb, var(--ns-accent) 30%, transparent);
 	outline: none;
 }
 
 .assignmentOption[data-selected="true"],
 .assignmentOption[data-state="checked"] {
-	background: rgba(255, 122, 26, 0.18);
-	border-color: rgba(255, 122, 26, 0.5);
+	background: var(--ns-accent-subtle);
+	border-color: color-mix(in srgb, var(--ns-accent) 50%, transparent);
 }
 
 .assignmentOption[data-selected="true"]::after,
@@ -383,8 +385,8 @@
 }
 
 .assignmentActionOption {
-	border-color: rgba(255, 122, 26, 0.24);
-	background: rgba(255, 122, 26, 0.08);
+	border-color: color-mix(in srgb, var(--ns-accent) 24%, transparent);
+	background: var(--ns-accent-muted);
 }
 
 .assignmentEmpty {
@@ -420,8 +422,8 @@
 	min-height: 2.75rem;
 	padding: 0.75rem 1rem;
 	color: var(--ns-text);
-	background: #05070a;
-	box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.8);
+	background: var(--ns-surface);
+	box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ns-text) 10%, transparent);
 	font-family: var(--ns-font-mono);
 	font-size: 0.875rem;
 	font-weight: 800;
@@ -457,7 +459,9 @@
 	max-height: min(32rem, var(--radix-popover-content-available-height));
 	overflow: auto;
 	padding: 1rem;
-	background: linear-gradient(rgba(255, 122, 26, 0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 122, 26, 0.035) 1px, transparent 1px), var(--ns-glass-dark);
+	background:
+		linear-gradient(color-mix(in srgb, var(--ns-accent) 5%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--ns-accent) 4%, transparent) 1px, transparent 1px),
+		var(--ns-glass-dark);
 	background-size:
 		1rem 1rem,
 		1rem 1rem,
@@ -503,9 +507,9 @@
 .timePreset:hover,
 .timePreset:focus-visible,
 .timePreset[data-selected="true"] {
-	--ns-frame-color: rgba(255, 122, 26, 0.5);
+	--ns-frame-color: color-mix(in srgb, var(--ns-accent) 50%, transparent);
 	color: var(--ns-text);
-	background: rgba(255, 122, 26, 0.14);
+	background: var(--ns-accent-muted);
 	outline: none;
 }
 

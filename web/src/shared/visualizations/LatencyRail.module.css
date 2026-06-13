@@ -17,14 +17,14 @@
 .railTrack {
 	position: relative;
 	height: 0.625rem;
-	background: rgba(255, 255, 255, 0.08);
+	background: var(--ns-glass-light);
 }
 
 .railTrack::before {
 	position: absolute;
 	inset: 50% 0 auto;
 	height: 1px;
-	background: rgba(196, 204, 217, 0.26);
+	background: var(--ns-slate-line);
 	content: "";
 }
 
@@ -46,7 +46,7 @@
 	width: 0.625rem;
 	height: 0.625rem;
 	background: currentcolor;
-	box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08);
+	box-shadow: 0 0 0 3px var(--ns-glass-light);
 	transform: translate(-50%, -50%);
 }
 
