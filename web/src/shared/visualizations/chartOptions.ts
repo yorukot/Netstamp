@@ -1,5 +1,5 @@
-const axisLabel = { color: "#8C877F", fontFamily: "JetBrains Mono, monospace", fontSize: 10 };
-const splitLine = { lineStyle: { color: "rgba(148,163,184,0.12)" } };
+const axisLabel = { color: "#64748B", fontFamily: "Inter, system-ui, sans-serif", fontSize: 10 };
+const splitLine = { lineStyle: { color: "rgba(148,163,184,0.18)" } };
 
 export type ChartOption = Record<string, unknown>;
 export { barChartOption, lineChartOption } from "./basicChartOptions";
@@ -299,18 +299,18 @@ function lossBandData(points: PingSeriesPoint[]) {
 
 function lossBandColor(lossPercent: number) {
 	if (lossPercent >= 50) {
-		return "rgba(255, 69, 58, 0.34)";
+		return "rgba(201, 54, 44, 0.2)";
 	}
 
 	if (lossPercent >= 20) {
-		return "rgba(255, 69, 58, 0.24)";
+		return "rgba(201, 54, 44, 0.14)";
 	}
 
 	if (lossPercent >= 5) {
-		return "rgba(255, 122, 26, 0.18)";
+		return "rgba(160, 90, 0, 0.12)";
 	}
 
-	return "rgba(255, 122, 26, 0.18)";
+	return "rgba(160, 90, 0, 0.12)";
 }
 
 const dataZoomToolbox = {
@@ -326,8 +326,8 @@ const dataZoomToolbox = {
 			yAxisIndex: false,
 			filterMode: "none",
 			brushStyle: {
-				color: "rgba(255, 122, 26, 0.16)",
-				borderColor: "rgba(255, 122, 26, 0.76)",
+				color: "rgba(37, 99, 235, 0.12)",
+				borderColor: "rgba(37, 99, 235, 0.72)",
 				borderWidth: 1
 			}
 		}
@@ -340,9 +340,9 @@ function multiSeriesChartOption(lines: InsightMultiSeriesLine[], axisName: strin
 		color: lines.map(line => line.color),
 		tooltip: {
 			trigger: "axis",
-			backgroundColor: "rgba(2,3,4,0.96)",
-			borderColor: "rgba(255,122,26,0.34)",
-			textStyle: { color: "#FFF7EC", fontFamily: "JetBrains Mono, monospace", fontSize: 11 },
+			backgroundColor: "rgba(255,255,255,0.98)",
+			borderColor: "rgba(100,116,139,0.24)",
+			textStyle: { color: "#111827", fontFamily: "Inter, system-ui, sans-serif", fontSize: 11 },
 			formatter: multiSeriesTooltipFormatter(unit)
 		},
 		grid: { top: 18, right: 44, bottom: 30, left: 48 },
@@ -360,7 +360,7 @@ function multiSeriesChartOption(lines: InsightMultiSeriesLine[], axisName: strin
 			{
 				type: "value",
 				name: axisName,
-				nameTextStyle: { color: "#77736B", fontFamily: "JetBrains Mono, monospace", fontSize: 10 },
+				nameTextStyle: { color: "#64748B", fontFamily: "Inter, system-ui, sans-serif", fontSize: 10 },
 				axisLabel,
 				splitLine,
 				axisLine: { show: false },
@@ -374,7 +374,7 @@ function multiSeriesChartOption(lines: InsightMultiSeriesLine[], axisName: strin
 			data: pingSeriesData(line.points),
 			showSymbol: false,
 			smooth: true,
-			lineStyle: { width: 2, color: line.color, shadowBlur: 8, shadowColor: `${line.color}55` },
+			lineStyle: { width: 2, color: line.color },
 			z: 8
 		}))
 	};
@@ -409,7 +409,7 @@ function lossBandRenderItem(params: CustomRenderParams, api: CustomRenderApi) {
 	};
 }
 
-export const insightSeriesPalette = ["#FF7A1A", "#FFF7EC", "#C4CCD9", "#30D158", "#FF9F0A", "#FF453A", "#FFD6A6", "#B8B3AA", "#D98B4A", "#D4D0C8"];
+export const insightSeriesPalette = ["#2563EB", "#0F766E", "#D45B18", "#7C3AED", "#168A45", "#A05A00", "#C9362C", "#64748B", "#0891B2", "#9333EA"];
 
 export function insightSeriesColor(index: number) {
 	return insightSeriesPalette[index % insightSeriesPalette.length];
@@ -429,19 +429,19 @@ export function pingInsightChartOption(data: PingSeriesChartData): ChartOption {
 
 	return {
 		backgroundColor: "transparent",
-		color: ["#FFF7EC", "#FF7A1A", "#FF453A"],
+		color: ["#2563EB", "#D45B18", "#C9362C"],
 		tooltip: {
 			trigger: "axis",
-			backgroundColor: "rgba(2,3,4,0.96)",
-			borderColor: "rgba(255,122,26,0.34)",
-			textStyle: { color: "#FFF7EC", fontFamily: "JetBrains Mono, monospace", fontSize: 11 },
+			backgroundColor: "rgba(255,255,255,0.98)",
+			borderColor: "rgba(100,116,139,0.24)",
+			textStyle: { color: "#111827", fontFamily: "Inter, system-ui, sans-serif", fontSize: 11 },
 			formatter: pingTooltipFormatter
 		},
 		legend: {
 			top: 0,
 			right: 0,
 			data: ["avg", "loss"],
-			textStyle: { color: "#B8B3AA", fontFamily: "JetBrains Mono, monospace", fontSize: 10 },
+			textStyle: { color: "#64748B", fontFamily: "Inter, system-ui, sans-serif", fontSize: 10 },
 			itemWidth: 12,
 			itemHeight: 6
 		},
@@ -460,8 +460,8 @@ export function pingInsightChartOption(data: PingSeriesChartData): ChartOption {
 					yAxisIndex: false,
 					filterMode: "none",
 					brushStyle: {
-						color: "rgba(255, 122, 26, 0.16)",
-						borderColor: "rgba(255, 122, 26, 0.76)",
+						color: "rgba(37, 99, 235, 0.12)",
+						borderColor: "rgba(37, 99, 235, 0.72)",
 						borderWidth: 1
 					}
 				}
@@ -480,7 +480,7 @@ export function pingInsightChartOption(data: PingSeriesChartData): ChartOption {
 			{
 				type: "value",
 				name: "RTT ms",
-				nameTextStyle: { color: "#77736B", fontFamily: "JetBrains Mono, monospace", fontSize: 10 },
+				nameTextStyle: { color: "#64748B", fontFamily: "Inter, system-ui, sans-serif", fontSize: 10 },
 				axisLabel,
 				splitLine,
 				axisLine: { show: false },
@@ -525,7 +525,7 @@ export function pingInsightChartOption(data: PingSeriesChartData): ChartOption {
 				data: pingSeriesData(data.latencyAvg),
 				showSymbol: false,
 				smooth: true,
-				lineStyle: { width: 2.25, color: "#FF7A1A", shadowBlur: 12, shadowColor: "rgba(255,122,26,0.36)" },
+				lineStyle: { width: 2.25, color: "#2563EB" },
 				z: 8
 			}
 		]
@@ -538,19 +538,19 @@ export function tcpInsightChartOption(data: TcpSeriesChartData): ChartOption {
 
 	return {
 		backgroundColor: "transparent",
-		color: ["#FFF7EC", "#FF7A1A", "#FF453A"],
+		color: ["#2563EB", "#D45B18", "#C9362C"],
 		tooltip: {
 			trigger: "axis",
-			backgroundColor: "rgba(2,3,4,0.96)",
-			borderColor: "rgba(255,122,26,0.34)",
-			textStyle: { color: "#FFF7EC", fontFamily: "JetBrains Mono, monospace", fontSize: 11 },
+			backgroundColor: "rgba(255,255,255,0.98)",
+			borderColor: "rgba(100,116,139,0.24)",
+			textStyle: { color: "#111827", fontFamily: "Inter, system-ui, sans-serif", fontSize: 11 },
 			formatter: tcpTooltipFormatter
 		},
 		legend: {
 			top: 0,
 			right: 0,
 			data: ["avg", "failure"],
-			textStyle: { color: "#B8B3AA", fontFamily: "JetBrains Mono, monospace", fontSize: 10 },
+			textStyle: { color: "#64748B", fontFamily: "Inter, system-ui, sans-serif", fontSize: 10 },
 			itemWidth: 12,
 			itemHeight: 6
 		},
@@ -568,8 +568,8 @@ export function tcpInsightChartOption(data: TcpSeriesChartData): ChartOption {
 					yAxisIndex: false,
 					filterMode: "none",
 					brushStyle: {
-						color: "rgba(255, 122, 26, 0.16)",
-						borderColor: "rgba(255, 122, 26, 0.76)",
+						color: "rgba(37, 99, 235, 0.12)",
+						borderColor: "rgba(37, 99, 235, 0.72)",
 						borderWidth: 1
 					}
 				}
@@ -588,7 +588,7 @@ export function tcpInsightChartOption(data: TcpSeriesChartData): ChartOption {
 			{
 				type: "value",
 				name: "connect ms",
-				nameTextStyle: { color: "#77736B", fontFamily: "JetBrains Mono, monospace", fontSize: 10 },
+				nameTextStyle: { color: "#64748B", fontFamily: "Inter, system-ui, sans-serif", fontSize: 10 },
 				axisLabel,
 				splitLine,
 				axisLine: { show: false },
@@ -633,7 +633,7 @@ export function tcpInsightChartOption(data: TcpSeriesChartData): ChartOption {
 				data: pingSeriesData(data.connectAvg),
 				showSymbol: false,
 				smooth: true,
-				lineStyle: { width: 2.25, color: "#FF7A1A", shadowBlur: 12, shadowColor: "rgba(255,122,26,0.36)" },
+				lineStyle: { width: 2.25, color: "#2563EB" },
 				z: 8
 			}
 		]

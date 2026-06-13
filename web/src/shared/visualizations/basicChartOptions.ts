@@ -1,19 +1,19 @@
 import type { ChartOption } from "./chartOptions";
 
-const axisLabel = { color: "#8C877F", fontFamily: "JetBrains Mono, monospace", fontSize: 10 };
-const splitLine = { lineStyle: { color: "rgba(148,163,184,0.12)" } };
+const axisLabel = { color: "#64748B", fontFamily: "Inter, system-ui, sans-serif", fontSize: 10 };
+const splitLine = { lineStyle: { color: "rgba(148,163,184,0.18)" } };
 
 export function lineChartOption(title: string, values: number[], secondaryValues: number[] = []): ChartOption {
 	const labels = values.map((_, index) => `${index * 10}m`);
 
 	return {
 		backgroundColor: "transparent",
-		color: ["#FF7A1A", "#94A3B8"],
+		color: ["#2563EB", "#94A3B8"],
 		tooltip: {
 			trigger: "axis",
-			backgroundColor: "rgba(10,13,18,0.92)",
-			borderColor: "rgba(255,255,255,0.14)",
-			textStyle: { color: "#F6F2EA", fontFamily: "Inter, sans-serif" }
+			backgroundColor: "rgba(255,255,255,0.98)",
+			borderColor: "rgba(100,116,139,0.24)",
+			textStyle: { color: "#111827", fontFamily: "Inter, system-ui, sans-serif" }
 		},
 		grid: { top: 22, right: 12, bottom: 24, left: 34 },
 		xAxis: { type: "category", data: labels, boundaryGap: false, axisLabel, axisLine: { lineStyle: { color: "rgba(148,163,184,0.16)" } }, axisTick: { show: false } },
@@ -25,7 +25,7 @@ export function lineChartOption(title: string, values: number[], secondaryValues
 				data: values,
 				smooth: true,
 				showSymbol: false,
-				lineStyle: { width: 3, shadowBlur: 18, shadowColor: "rgba(255,122,26,0.34)" },
+				lineStyle: { width: 2.5 },
 				areaStyle: {
 					color: {
 						type: "linear",
@@ -34,8 +34,8 @@ export function lineChartOption(title: string, values: number[], secondaryValues
 						x2: 0,
 						y2: 1,
 						colorStops: [
-							{ offset: 0, color: "rgba(255,122,26,0.28)" },
-							{ offset: 1, color: "rgba(255,122,26,0.0)" }
+							{ offset: 0, color: "rgba(37,99,235,0.18)" },
+							{ offset: 1, color: "rgba(37,99,235,0)" }
 						]
 					}
 				}
@@ -57,12 +57,12 @@ export function lineChartOption(title: string, values: number[], secondaryValues
 export function barChartOption(values: number[], name = "events"): ChartOption {
 	return {
 		backgroundColor: "transparent",
-		color: ["#FF7A1A"],
+		color: ["#D45B18"],
 		tooltip: {
 			trigger: "axis",
-			backgroundColor: "rgba(10,13,18,0.92)",
-			borderColor: "rgba(255,255,255,0.14)",
-			textStyle: { color: "#F6F2EA" }
+			backgroundColor: "rgba(255,255,255,0.98)",
+			borderColor: "rgba(100,116,139,0.24)",
+			textStyle: { color: "#111827", fontFamily: "Inter, system-ui, sans-serif" }
 		},
 		grid: { top: 22, right: 10, bottom: 22, left: 28 },
 		xAxis: { type: "category", data: values.map((_, index) => `${index + 1}`), axisLabel, axisTick: { show: false }, axisLine: { lineStyle: { color: "rgba(148,163,184,0.16)" } } },
@@ -82,8 +82,8 @@ export function barChartOption(values: number[], name = "events"): ChartOption {
 						x2: 0,
 						y2: 1,
 						colorStops: [
-							{ offset: 0, color: "#FF8F3D" },
-							{ offset: 1, color: "rgba(255,122,26,0.18)" }
+							{ offset: 0, color: "#D45B18" },
+							{ offset: 1, color: "rgba(212,91,24,0.18)" }
 						]
 					}
 				}

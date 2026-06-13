@@ -1,6 +1,6 @@
 .avatar {
 	--ns-frame-color: var(--ns-border);
-	--ns-frame-cut: var(--ns-cut-sm);
+	--ns-frame-radius: var(--ns-radius-md);
 	display: block;
 	flex: 0 0 auto;
 	background: var(--ns-surface-deep);
@@ -24,7 +24,7 @@
 }
 
 .lg {
-	--ns-frame-cut: 0.875rem;
+	--ns-frame-radius: var(--ns-radius-lg);
 	width: 5.5rem;
 	height: 5.5rem;
 }

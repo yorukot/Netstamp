@@ -52,13 +52,13 @@
 }
 
 .errorNotice {
-	--ns-frame-cut: var(--ns-cut-sm);
+	--ns-frame-radius: var(--ns-radius-md);
 	--ns-frame-color: color-mix(in srgb, var(--ns-critical) 34%, transparent);
 	margin: 0;
 	padding: 0.75rem 0.875rem;
 	color: var(--ns-critical);
 	background: color-mix(in srgb, var(--ns-critical) 8%, transparent);
-	font-family: var(--ns-font-mono);
+	font-family: var(--ns-font-sans);
 	font-size: 0.8125rem;
 	line-height: 1.5;
 }
@@ -70,31 +70,32 @@
 }
 
 .usagePanel > div {
-	--ns-frame-cut: var(--ns-cut-sm);
-	--ns-frame-color: var(--ns-border-faint);
+	--ns-frame-radius: var(--ns-radius-md);
+	--ns-frame-color: var(--ns-border);
 	display: grid;
 	gap: 0.5rem;
 	min-width: 0;
 	padding: 0.875rem;
 	border: 1px solid var(--ns-frame-color);
-	background: var(--ns-glass-light);
-	clip-path: polygon(0 0, calc(100% - var(--ns-frame-cut)) 0, 100% var(--ns-frame-cut), 100% 100%, var(--ns-frame-cut) 100%, 0 calc(100% - var(--ns-frame-cut)));
+	background: var(--ns-surface-raised);
+	border-radius: var(--ns-radius-md);
 }
 
 .usagePanel span {
 	color: var(--ns-text-low);
-	font-family: var(--ns-font-mono);
-	font-size: 0.6875rem;
-	font-weight: 800;
-	letter-spacing: 0.08em;
-	text-transform: uppercase;
+	font-family: var(--ns-font-sans);
+	font-size: 0.8125rem;
+	font-weight: 650;
+	letter-spacing: 0;
+	text-transform: none;
 }
 
 .usagePanel strong {
 	color: var(--ns-text);
-	font-family: var(--ns-font-display);
+	font-family: var(--ns-font-sans);
 	font-size: 2rem;
-	line-height: 0.9;
+	font-weight: 700;
+	line-height: 1;
 }
 
 .usagePanel p {

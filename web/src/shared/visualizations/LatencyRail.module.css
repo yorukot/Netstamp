@@ -46,7 +46,7 @@
 	width: 0.625rem;
 	height: 0.625rem;
 	background: currentcolor;
-	box-shadow: 0 0 0 3px var(--ns-glass-light);
+	box-shadow: none;
 	transform: translate(-50%, -50%);
 }
 

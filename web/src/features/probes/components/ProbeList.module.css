@@ -42,46 +42,38 @@
 }
 
 .labelOverflowButton {
-	--ns-frame-cut: var(--ns-cut-xs);
-	--ns-frame-color: var(--ns-border-faint);
+	--ns-frame-radius: var(--ns-radius-sm);
+	--ns-frame-color: var(--ns-border);
 	position: relative;
 	min-height: 1.55rem;
 	padding: 0.25rem 0.45rem;
 	border: 1px solid var(--ns-frame-color);
-	clip-path: polygon(var(--ns-frame-cut) 0, 100% 0, 100% calc(100% - var(--ns-frame-cut)), calc(100% - var(--ns-frame-cut)) 100%, 0 100%, 0 var(--ns-frame-cut));
 	color: var(--ns-text-muted);
 	background: color-mix(in srgb, var(--ns-metal) 8%, transparent);
-	font-family: var(--ns-font-mono);
-	font-size: 0.6875rem;
-	font-weight: 900;
-	letter-spacing: 0.08em;
+	font-family: var(--ns-font-sans);
+	font-size: 0.75rem;
+	font-weight: 650;
+	letter-spacing: 0;
 	line-height: 1;
 	cursor: pointer;
 }
 
 .labelOverflowButton:hover,
 .labelOverflowButton:focus-visible {
-	--ns-frame-color: var(--ns-accent-border);
+	--ns-frame-color: var(--ns-border-strong);
 	color: var(--ns-text);
-	background: var(--ns-accent-muted);
+	background: var(--ns-bg-subtle);
 	outline: none;
 }
 
 .labelHoverCard,
 .labelPopover {
-	--ns-frame-cut: var(--ns-cut-sm);
-	--ns-frame-color: var(--ns-border-strong);
+	--ns-frame-radius: var(--ns-radius-lg);
+	--ns-frame-color: var(--ns-border);
 	z-index: 1000;
 	width: min(24rem, calc(100vw - 1.5rem));
 	padding: 0.6rem;
-	background:
-		linear-gradient(color-mix(in srgb, var(--ns-accent) 5%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--ns-accent) 4%, transparent) 1px, transparent 1px),
-		var(--ns-glass-dark);
-	background-size:
-		1rem 1rem,
-		1rem 1rem,
-		100% 100%;
-	box-shadow: var(--ns-shadow-md);
+	background: var(--ns-surface);
 }
 
 .labelHoverCard {

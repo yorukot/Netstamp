@@ -10,10 +10,11 @@
 	gap: 0.75rem;
 	justify-content: flex-end;
 	color: var(--ns-text-low);
-	font-family: var(--ns-font-mono);
-	font-size: 0.6875rem;
+	font-family: var(--ns-font-sans);
+	font-size: 0.75rem;
+	font-weight: 650;
 	line-height: 1;
-	text-transform: uppercase;
+	text-transform: none;
 }
 
 .topologyLegend span {
@@ -28,7 +29,6 @@
 	height: 0.55rem;
 	background: var(--ns-accent);
 	border: 1px solid var(--ns-border);
-	border-radius: 999px;
 	content: "";
 }
 
@@ -59,13 +59,7 @@
 	width: max(100%, var(--ns-topology-width));
 	height: var(--ns-topology-height);
 	min-height: 17.5rem;
-	background:
-		linear-gradient(color-mix(in srgb, var(--ns-accent) 5%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--ns-accent) 4%, transparent) 1px, transparent 1px),
-		radial-gradient(circle at 50% 50%, var(--ns-accent-muted), transparent 42%);
-	background-size:
-		2rem 2rem,
-		2rem 2rem,
-		100% 100%;
+	background: var(--ns-surface-deep);
 }
 
 .topologySvg {
@@ -116,9 +110,7 @@
 }
 
 .topologyNode:focus-visible .topologyNodeDot {
-	box-shadow:
-		0 0 0 4px color-mix(in srgb, var(--ns-text) 18%, transparent),
-		0 0 18px var(--ns-accent-glow);
+	box-shadow: none;
 }
 
 .topologyNodeDot {
@@ -127,10 +119,7 @@
 	height: 1.25rem;
 	background: var(--ns-surface);
 	border: 2px solid currentcolor;
-	border-radius: 999px;
-	box-shadow:
-		0 0 0 3px var(--ns-accent-muted),
-		0 0 14px var(--ns-accent-glow);
+	box-shadow: none;
 }
 
 .topologyNodeLabel {
@@ -142,7 +131,7 @@
 	width: max-content;
 	max-width: 7.5rem;
 	color: var(--ns-text-low);
-	font-family: var(--ns-font-mono);
+	font-family: var(--ns-font-sans);
 	font-size: 0.6875rem;
 	line-height: 1.2;
 	text-align: center;
@@ -162,7 +151,7 @@
 .topologyNodeLabel span {
 	color: var(--ns-text-low);
 	font-size: 0.625rem;
-	text-transform: uppercase;
+	text-transform: none;
 }
 
 .topologyNodeprobe {
@@ -172,9 +161,7 @@
 .topologyNodeprobe .topologyNodeDot {
 	background: var(--ns-metal);
 	border-color: var(--ns-border-strong);
-	box-shadow:
-		0 0 0 3px color-mix(in srgb, var(--ns-metal) 12%, transparent),
-		0 0 14px color-mix(in srgb, var(--ns-metal) 20%, transparent);
+	box-shadow: none;
 }
 
 .topologyNodedestination {
@@ -191,9 +178,7 @@
 }
 
 .topologyNodewarning .topologyNodeDot {
-	box-shadow:
-		0 0 0 3px color-mix(in srgb, var(--ns-warning) 14%, transparent),
-		0 0 18px color-mix(in srgb, var(--ns-warning) 24%, transparent);
+	box-shadow: none;
 }
 
 .topologyNodecritical {
@@ -201,9 +186,7 @@
 }
 
 .topologyNodecritical .topologyNodeDot {
-	box-shadow:
-		0 0 0 3px color-mix(in srgb, var(--ns-critical) 14%, transparent),
-		0 0 18px color-mix(in srgb, var(--ns-critical) 24%, transparent);
+	box-shadow: none;
 }
 
 .topologyDetail {
@@ -217,13 +200,9 @@
 	width: min(15rem, calc(100% - 1rem));
 	padding: 0.75rem;
 	border: 1px solid color-mix(in srgb, var(--ns-topology-detail-color) 62%, transparent);
-	background: linear-gradient(135deg, color-mix(in srgb, var(--ns-topology-detail-color) 14%, transparent), transparent 58%), var(--ns-glass-dark);
-	box-shadow:
-		0 0 0 1px var(--ns-glass-light),
-		0 1rem 2rem color-mix(in srgb, var(--ns-text) 14%, transparent);
-	clip-path: polygon(var(--ns-cut-sm) 0, 100% 0, 100% calc(100% - var(--ns-cut-sm)), calc(100% - var(--ns-cut-sm)) 100%, 0 100%, 0 var(--ns-cut-sm));
+	background: var(--ns-surface);
 	color: var(--ns-text-muted);
-	font-family: var(--ns-font-mono);
+	font-family: var(--ns-font-sans);
 	font-size: 0.6875rem;
 	line-height: 1.35;
 	pointer-events: none;

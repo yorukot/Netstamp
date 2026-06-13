@@ -3,14 +3,10 @@
 }
 
 .console {
-	--ns-frame-cut: 0.875rem;
 	--ns-frame-color: var(--ns-border);
 	width: min(58rem, 100%);
 	background: var(--ns-surface);
-	box-shadow:
-		0 0 0 1px color-mix(in srgb, var(--ns-text) 12%, transparent),
-		0 1.5rem 5rem color-mix(in srgb, var(--ns-text) 16%, transparent),
-		0 0 4rem var(--ns-accent-muted);
+	box-shadow: none;
 }
 
 .consoleBar {
@@ -27,7 +23,6 @@
 .consoleBar span {
 	width: 0.625rem;
 	height: 0.625rem;
-	border-radius: 999px;
 	background: var(--ns-critical);
 }
 
@@ -225,7 +220,6 @@
 
 .tuiButton,
 .tuiMiniButton {
-	--ns-frame-cut: var(--ns-cut-xs);
 	--ns-frame-color: var(--ns-accent-border);
 	border: 1px solid var(--ns-accent-border);
 	color: var(--ns-accent-hover);

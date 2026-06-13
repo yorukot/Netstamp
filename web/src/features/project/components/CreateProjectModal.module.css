@@ -5,56 +5,24 @@
 	display: grid;
 	place-items: center;
 	padding: 1rem;
-	background: color-mix(in srgb, var(--ns-bg) 78%, transparent);
+	background: color-mix(in srgb, var(--ns-bg) 64%, transparent);
 	isolation: isolate;
 }
 
 .lineTop,
 .lineBottom {
-	position: fixed;
-	left: 0;
-	right: 0;
-	z-index: -1;
-	height: 50vh;
-	background:
-		linear-gradient(color-mix(in srgb, var(--ns-accent) 10%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--ns-text) 5%, transparent) 1px, transparent 1px),
-		color-mix(in srgb, var(--ns-bg) 74%, transparent);
-	background-size:
-		2rem 2rem,
-		2rem 2rem,
-		100% 100%;
-}
-
-.lineTop {
-	top: 0;
-	border-bottom: 1px solid var(--ns-accent-border);
-	box-shadow: 0 0.5rem 1.8rem var(--ns-accent-glow);
-}
-
-.lineBottom {
-	bottom: 0;
-	border-top: 1px solid var(--ns-accent-border);
-	box-shadow: 0 -0.5rem 1.8rem var(--ns-accent-glow);
+	display: none;
 }
 
 .dialog {
-	--ns-frame-cut: var(--ns-cut-lg);
-	--ns-frame-color: var(--ns-accent-border);
+	--ns-frame-radius: var(--ns-radius-lg);
+	--ns-frame-color: var(--ns-border);
 	display: grid;
 	gap: 1rem;
 	width: min(34rem, 100%);
 	padding: 1rem;
 	color: var(--ns-text);
-	background:
-		linear-gradient(color-mix(in srgb, var(--ns-accent) 7%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--ns-accent) 7%, transparent) 1px, transparent 1px),
-		var(--ns-glass-dark);
-	background-size:
-		1rem 1rem,
-		1rem 1rem,
-		100% 100%;
-	box-shadow:
-		0 1.5rem 4rem color-mix(in srgb, var(--ns-text) 18%, transparent),
-		inset 0 0 0 1px var(--ns-accent-muted);
+	background: var(--ns-surface);
 }
 
 .header {
@@ -63,20 +31,20 @@
 }
 
 .header > span {
-	color: var(--ns-accent);
-	font-family: var(--ns-font-mono);
-	font-size: 0.6875rem;
-	font-weight: 800;
-	letter-spacing: 0.1em;
-	text-transform: uppercase;
+	color: var(--ns-text-subtle);
+	font-family: var(--ns-font-sans);
+	font-size: 0.8125rem;
+	font-weight: 650;
+	letter-spacing: 0;
+	text-transform: none;
 }
 
 .header > strong {
 	color: var(--ns-text);
-	font-family: var(--ns-font-display);
-	font-size: clamp(1.35rem, 4vw, 2rem);
-	font-weight: 900;
-	line-height: 1;
+	font-family: var(--ns-font-sans);
+	font-size: clamp(1.25rem, 4vw, 1.5rem);
+	font-weight: 700;
+	line-height: 1.2;
 }
 
 .header > p {

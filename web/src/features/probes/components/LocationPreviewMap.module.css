@@ -1,5 +1,4 @@
 .preview {
-	--ns-frame-cut: var(--ns-cut-md);
 	--ns-frame-color: color-mix(in srgb, var(--ns-accent) 34%, transparent);
 	display: grid;
 	gap: 0.625rem;

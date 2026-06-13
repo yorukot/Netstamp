@@ -21,9 +21,10 @@
 .dangerZoneGrid h3 {
 	margin: 0;
 	color: var(--ns-text);
-	font-family: var(--ns-font-display);
+	font-family: var(--ns-font-sans);
 	font-size: 1.15rem;
-	line-height: 1;
+	font-weight: 700;
+	line-height: 1.25;
 }
 
 .warningCopy {

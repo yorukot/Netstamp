@@ -19,9 +19,11 @@
 .header h3 {
 	margin: 0;
 	color: var(--ns-text);
-	font-family: var(--ns-font-display);
+	font-family: var(--ns-font-sans);
 	font-size: 1rem;
-	font-weight: 650;
+	font-weight: 700;
+	letter-spacing: 0;
+	line-height: 1.25;
 }
 
 .actions {

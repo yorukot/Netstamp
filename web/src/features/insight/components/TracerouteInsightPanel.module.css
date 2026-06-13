@@ -25,22 +25,24 @@
 	justify-content: space-between;
 	gap: 1rem;
 	color: var(--ns-text-low);
-	font-family: var(--ns-font-mono);
-	font-size: 0.6875rem;
+	font-family: var(--ns-font-sans);
+	font-size: 0.8125rem;
+	font-weight: 650;
 	line-height: 1;
-	text-transform: uppercase;
+	text-transform: none;
 }
 
 .traceTimelineHeader span {
-	color: var(--ns-accent-hover);
-	letter-spacing: 0.18em;
+	color: var(--ns-text-subtle);
+	letter-spacing: 0;
 }
 
 .traceTimelineHeader strong {
 	color: var(--ns-text);
-	font-family: var(--ns-font-display);
+	font-family: var(--ns-font-sans);
 	font-size: 1.25rem;
-	line-height: 1;
+	font-weight: 700;
+	line-height: 1.2;
 	text-transform: none;
 }
 

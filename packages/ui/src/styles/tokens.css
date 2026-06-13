@@ -50,14 +50,14 @@
 	--ns-radius-md: 0;
 	--ns-radius-lg: 0;
 	--ns-radius-xl: 0;
-	--ns-cut-xs: 0.375rem;
-	--ns-cut-sm: 0.5rem;
-	--ns-cut-md: 0.75rem;
-	--ns-cut-lg: 1rem;
+	--ns-cut-xs: 0;
+	--ns-cut-sm: 0;
+	--ns-cut-md: 0;
+	--ns-cut-lg: 0;
 
-	--ns-shadow-sm: 0 0 0 1px rgba(0, 0, 0, 0.95), 0 1rem 2.25rem rgba(0, 0, 0, 0.72);
-	--ns-shadow-md: 0 0 0 1px rgba(0, 0, 0, 0.96), 0 1.5rem 3.5rem rgba(0, 0, 0, 0.82);
-	--ns-shadow-glow: 0 0 0 1px rgba(255, 122, 26, 0.44), 0 0 2rem rgba(255, 122, 26, 0.2);
+	--ns-shadow-sm: none;
+	--ns-shadow-md: none;
+	--ns-shadow-glow: none;
 	--ns-transition: 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
 
 	font: 16px/1.5 var(--ns-font-sans);
@@ -71,43 +71,95 @@
 }
 
 :root[data-theme="light"] {
-	--ns-bg: #f4f6f8;
-	--ns-bg-section: #eaedf1;
-	--ns-bg-subtle: #eef1f5;
+	--ns-bg: #f6f7f9;
+	--ns-bg-section: #eef1f5;
+	--ns-bg-subtle: #f2f4f7;
 	--ns-surface: #ffffff;
 	--ns-surface-raised: #f8fafc;
-	--ns-surface-deep: #dfe4ea;
-	--ns-glass-dark: rgba(255, 255, 255, 0.92);
-	--ns-glass-light: rgba(12, 16, 22, 0.035);
+	--ns-surface-deep: #e7ecf2;
+	--ns-glass-dark: rgba(255, 255, 255, 0.94);
+	--ns-glass-light: rgba(17, 24, 39, 0.035);
 
-	--ns-text: #11151b;
-	--ns-text-muted: #2b333d;
-	--ns-text-subtle: #4e5968;
-	--ns-text-low: #737d8c;
-	--ns-text-on-accent: #120904;
+	--ns-text: #111827;
+	--ns-text-muted: #374151;
+	--ns-text-subtle: #5f6b7a;
+	--ns-text-low: #7b8794;
+	--ns-text-on-accent: #ffffff;
 
-	--ns-accent: #e85f00;
-	--ns-accent-hover: #c94f00;
-	--ns-accent-active: #a94200;
-	--ns-accent-muted: rgba(232, 95, 0, 0.1);
-	--ns-accent-subtle: rgba(232, 95, 0, 0.16);
-	--ns-accent-border: rgba(191, 78, 0, 0.58);
-	--ns-accent-glow: rgba(232, 95, 0, 0.2);
-	--ns-glass-orange: rgba(232, 95, 0, 0.14);
+	--ns-accent: #d45b18;
+	--ns-accent-hover: #b94c13;
+	--ns-accent-active: #963d0f;
+	--ns-accent-muted: rgba(212, 91, 24, 0.09);
+	--ns-accent-subtle: rgba(212, 91, 24, 0.14);
+	--ns-accent-border: rgba(212, 91, 24, 0.38);
+	--ns-accent-glow: rgba(212, 91, 24, 0.16);
+	--ns-glass-orange: rgba(212, 91, 24, 0.1);
 
-	--ns-critical: #c4251a;
-	--ns-warning: #a95b00;
-	--ns-success: #167b38;
-	--ns-metal: #5c6878;
-	--ns-slate-line: rgba(70, 82, 98, 0.24);
-	--ns-border: rgba(17, 21, 27, 0.26);
-	--ns-border-strong: rgba(17, 21, 27, 0.44);
-	--ns-border-faint: rgba(17, 21, 27, 0.14);
+	--ns-critical: #c9362c;
+	--ns-warning: #a05a00;
+	--ns-success: #168a45;
+	--ns-metal: #64748b;
+	--ns-slate-line: rgba(100, 116, 139, 0.24);
+	--ns-border: #d8dee8;
+	--ns-border-strong: #aeb8c6;
+	--ns-border-faint: #e6eaf0;
 
-	--ns-shadow-sm: 0 0 0 1px rgba(17, 21, 27, 0.08), 0 1rem 2.25rem rgba(17, 21, 27, 0.12);
-	--ns-shadow-md: 0 0 0 1px rgba(17, 21, 27, 0.1), 0 1.5rem 3.5rem rgba(17, 21, 27, 0.16);
-	--ns-shadow-glow: 0 0 0 1px rgba(232, 95, 0, 0.34), 0 0 2rem rgba(232, 95, 0, 0.14);
+	--ns-radius-xs: 0;
+	--ns-radius-sm: 0;
+	--ns-radius-md: 0;
+	--ns-radius-lg: 0;
+	--ns-radius-xl: 0;
+
+	--ns-shadow-sm: none;
+	--ns-shadow-md: none;
+	--ns-shadow-glow: none;
 	color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+	--ns-bg: #0b0f14;
+	--ns-bg-section: #0f141b;
+	--ns-bg-subtle: #131922;
+	--ns-surface: #111821;
+	--ns-surface-raised: #17202b;
+	--ns-surface-deep: #070b10;
+	--ns-glass-dark: rgba(17, 24, 33, 0.94);
+	--ns-glass-light: rgba(255, 255, 255, 0.045);
+
+	--ns-text: #f8fafc;
+	--ns-text-muted: #d6dde8;
+	--ns-text-subtle: #9aa6b5;
+	--ns-text-low: #738093;
+	--ns-text-on-accent: #ffffff;
+
+	--ns-accent: #f26a21;
+	--ns-accent-hover: #ff7a2f;
+	--ns-accent-active: #d85814;
+	--ns-accent-muted: rgba(242, 106, 33, 0.12);
+	--ns-accent-subtle: rgba(242, 106, 33, 0.18);
+	--ns-accent-border: rgba(242, 106, 33, 0.42);
+	--ns-accent-glow: rgba(242, 106, 33, 0.18);
+	--ns-glass-orange: rgba(242, 106, 33, 0.14);
+
+	--ns-critical: #ff5f57;
+	--ns-warning: #e5a127;
+	--ns-success: #34c77b;
+	--ns-metal: #94a3b8;
+	--ns-slate-line: rgba(148, 163, 184, 0.24);
+	--ns-border: #293343;
+	--ns-border-strong: #465468;
+	--ns-border-faint: #202938;
+
+	--ns-radius-xs: 0;
+	--ns-radius-sm: 0;
+	--ns-radius-md: 0;
+	--ns-radius-lg: 0;
+	--ns-radius-xl: 0;
+
+	--ns-shadow-sm: none;
+	--ns-shadow-md: none;
+	--ns-shadow-glow: none;
+	color-scheme: dark;
 }
 
 *,
@@ -171,18 +223,11 @@ a {
 }
 
 :root[data-theme="light"] .ns-grid-shell {
-	background:
-		radial-gradient(circle at 16% 18%, rgba(232, 95, 0, 0.11), transparent 22rem), radial-gradient(circle at 88% 10%, rgba(92, 104, 120, 0.16), transparent 20rem),
-		linear-gradient(rgba(232, 95, 0, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(232, 95, 0, 0.1) 1px, transparent 1px), linear-gradient(rgba(17, 21, 27, 0.055) 1px, transparent 1px),
-		linear-gradient(90deg, rgba(17, 21, 27, 0.055) 1px, transparent 1px), var(--ns-bg);
-	background-size:
-		100% 100%,
-		100% 100%,
-		8rem 8rem,
-		8rem 8rem,
-		2rem 2rem,
-		2rem 2rem,
-		100% 100%;
+	background: var(--ns-bg);
+}
+
+:root[data-theme="dark"] .ns-grid-shell {
+	background: var(--ns-bg);
 }
 
 .ns-grid-shell--constellation {
@@ -204,56 +249,26 @@ a {
 }
 
 :root[data-theme="light"] .ns-grid-shell--constellation {
-	background:
-		radial-gradient(circle at 18% 24%, rgba(17, 21, 27, 0.18) 0 1px, transparent 1px), radial-gradient(circle at 82% 18%, rgba(232, 95, 0, 0.28) 0 1px, transparent 1px),
-		radial-gradient(circle at 64% 76%, rgba(232, 95, 0, 0.16) 0 1px, transparent 1px), radial-gradient(circle at 88% 10%, rgba(92, 104, 120, 0.16), transparent 22rem),
-		linear-gradient(rgba(232, 95, 0, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(232, 95, 0, 0.1) 1px, transparent 1px), linear-gradient(rgba(17, 21, 27, 0.055) 1px, transparent 1px),
-		linear-gradient(90deg, rgba(17, 21, 27, 0.055) 1px, transparent 1px), var(--ns-bg);
-	background-size:
-		22rem 22rem,
-		18rem 18rem,
-		26rem 26rem,
-		100% 100%,
-		8rem 8rem,
-		8rem 8rem,
-		2rem 2rem,
-		2rem 2rem,
-		100% 100%;
+	background: var(--ns-bg);
+}
+
+:root[data-theme="dark"] .ns-grid-shell--constellation {
+	background: var(--ns-bg);
 }
 
 .ns-cut-frame {
-	--ns-frame-cut: var(--ns-cut-md);
 	--ns-frame-color: var(--ns-border-faint);
 	--ns-frame-border-width: 1px;
 	position: relative;
 	overflow: hidden;
 	border: var(--ns-frame-border-width) solid var(--ns-frame-color);
-	clip-path: polygon(var(--ns-frame-cut) 0, 100% 0, 100% calc(100% - var(--ns-frame-cut)), calc(100% - var(--ns-frame-cut)) 100%, 0 100%, 0 var(--ns-frame-cut));
+	border-radius: var(--ns-frame-radius, var(--ns-radius-md));
+	clip-path: none;
 }
 
 .ns-cut-frame::before,
 .ns-cut-frame::after {
-	content: "";
-	position: absolute;
-	z-index: 2;
-	width: calc(var(--ns-frame-cut) * sqrt(2));
-	height: var(--ns-frame-border-width);
-	background: var(--ns-frame-color);
-	pointer-events: none;
-}
-
-.ns-cut-frame::before {
-	top: calc(var(--ns-frame-cut) - var(--ns-frame-border-width));
-	left: 0;
-	transform: rotate(-45deg);
-	transform-origin: bottom left;
-}
-
-.ns-cut-frame::after {
-	right: 0;
-	bottom: calc(var(--ns-frame-cut) - var(--ns-frame-border-width));
-	transform: rotate(-45deg);
-	transform-origin: right top;
+	display: none;
 }
 
 .ns-scrollbar {

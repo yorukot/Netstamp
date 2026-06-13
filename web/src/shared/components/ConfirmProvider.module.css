@@ -7,7 +7,7 @@
 	padding: 1rem;
 	background: color-mix(in srgb, var(--ns-bg) 0%, transparent);
 	isolation: isolate;
-	animation: overlayDim 420ms 130ms ease-out both;
+	animation: overlayDim 180ms ease-out both;
 }
 
 .overlay[data-closing="true"] {
@@ -16,49 +16,12 @@
 }
 
 .axis {
-	position: fixed;
-	top: 50%;
-	left: 0;
-	right: 0;
-	z-index: -1;
-	height: 1px;
-	background: linear-gradient(90deg, transparent, var(--ns-accent-border) 12%, var(--ns-accent-hover) 50%, var(--ns-accent-border) 88%, transparent);
-	box-shadow: 0 0 1.4rem var(--ns-accent-glow);
-	transform: scaleX(0);
-	transform-origin: center;
-	animation: axisDraw 180ms ease-out both;
+	display: none;
 }
 
 .curtainTop,
 .curtainBottom {
-	position: fixed;
-	left: 0;
-	right: 0;
-	z-index: -2;
-	height: 50vh;
-	background:
-		linear-gradient(color-mix(in srgb, var(--ns-accent) 10%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--ns-text) 5%, transparent) 1px, transparent 1px),
-		color-mix(in srgb, var(--ns-bg) 74%, transparent);
-	background-size:
-		2rem 2rem,
-		2rem 2rem,
-		100% 100%;
-	transform: scaleY(0);
-	animation: curtainExtend 320ms 150ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
-}
-
-.curtainTop {
-	bottom: 50%;
-	transform-origin: bottom;
-	border-bottom: 1px solid var(--ns-accent-border);
-	box-shadow: 0 0.5rem 1.8rem var(--ns-accent-glow);
-}
-
-.curtainBottom {
-	top: 50%;
-	transform-origin: top;
-	border-top: 1px solid var(--ns-accent-border);
-	box-shadow: 0 -0.5rem 1.8rem var(--ns-accent-glow);
+	display: none;
 }
 
 .overlay[data-closing="true"] .axis {
@@ -71,28 +34,18 @@
 }
 
 .dialog {
-	--ns-frame-cut: var(--ns-cut-lg);
-	--ns-frame-color: var(--ns-accent-border);
+	--ns-frame-radius: var(--ns-radius-lg);
+	--ns-frame-color: var(--ns-border);
 	display: grid;
 	gap: 1rem;
 	width: min(31rem, 100%);
 	padding: 1rem;
 	color: var(--ns-text);
-	background:
-		linear-gradient(color-mix(in srgb, var(--ns-accent) 7%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--ns-accent) 7%, transparent) 1px, transparent 1px),
-		var(--ns-glass-dark);
-	background-size:
-		1rem 1rem,
-		1rem 1rem,
-		100% 100%;
-	box-shadow:
-		0 1.5rem 4rem color-mix(in srgb, var(--ns-text) 18%, transparent),
-		inset 0 0 0 1px var(--ns-accent-muted);
+	background: var(--ns-surface);
 	opacity: 0;
-	clip-path: inset(50% 0 50% 0);
-	transform: scaleX(0.96);
+	transform: translateY(0.375rem) scale(0.98);
 	transform-origin: center;
-	animation: dialogUnfold 260ms 330ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+	animation: dialogUnfold 180ms 80ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
 .dialog[data-tone="danger"] {
@@ -109,20 +62,20 @@
 }
 
 .header > span {
-	color: var(--ns-accent);
-	font-family: var(--ns-font-mono);
-	font-size: 0.6875rem;
-	font-weight: 800;
-	letter-spacing: 0.1em;
-	text-transform: uppercase;
+	color: var(--ns-text-subtle);
+	font-family: var(--ns-font-sans);
+	font-size: 0.8125rem;
+	font-weight: 650;
+	letter-spacing: 0;
+	text-transform: none;
 }
 
 .header > strong {
 	color: var(--ns-text);
-	font-family: var(--ns-font-display);
-	font-size: clamp(1.35rem, 4vw, 2rem);
-	font-weight: 900;
-	line-height: 1;
+	font-family: var(--ns-font-sans);
+	font-size: clamp(1.25rem, 4vw, 1.5rem);
+	font-weight: 700;
+	line-height: 1.2;
 }
 
 .message {
@@ -139,11 +92,11 @@
 
 .field label,
 .inputError {
-	font-family: var(--ns-font-mono);
-	font-size: 0.72rem;
-	font-weight: 800;
-	letter-spacing: 0.08em;
-	text-transform: uppercase;
+	font-family: var(--ns-font-sans);
+	font-size: 0.8125rem;
+	font-weight: 650;
+	letter-spacing: 0;
+	text-transform: none;
 }
 
 .field label {
@@ -220,26 +173,22 @@
 @keyframes dialogUnfold {
 	from {
 		opacity: 0;
-		clip-path: inset(50% 0 50% 0);
-		transform: scaleX(0.96);
+		transform: translateY(0.375rem) scale(0.98);
 	}
 	to {
 		opacity: 1;
-		clip-path: inset(0);
-		transform: scaleX(1);
+		transform: translateY(0) scale(1);
 	}
 }
 
 @keyframes dialogFold {
 	from {
 		opacity: 1;
-		clip-path: inset(0);
-		transform: scaleX(1);
+		transform: translateY(0) scale(1);
 	}
 	to {
 		opacity: 0;
-		clip-path: inset(46% 0 46% 0);
-		transform: scaleX(0.97);
+		transform: translateY(0.25rem) scale(0.98);
 	}
 }
 

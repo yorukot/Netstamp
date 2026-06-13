@@ -24,15 +24,15 @@
 }
 
 .batchToolbar {
-	--ns-frame-color: color-mix(in srgb, var(--ns-accent) 34%, transparent);
-	--ns-frame-cut: var(--ns-cut-sm);
+	--ns-frame-color: var(--ns-border);
+	--ns-frame-radius: var(--ns-radius-md);
 	display: flex;
 	flex-wrap: wrap;
 	gap: 0.75rem;
 	align-items: center;
 	justify-content: space-between;
 	padding: 0.75rem 0.875rem;
-	background: var(--ns-accent-muted);
+	background: var(--ns-surface-raised);
 }
 
 .batchToolbar > div:first-child {
@@ -43,7 +43,7 @@
 
 .batchToolbar strong,
 .batchToolbar span {
-	font-family: var(--ns-font-mono);
+	font-family: var(--ns-font-sans);
 }
 
 .batchToolbar strong {
@@ -63,16 +63,11 @@
 }
 
 .checkTableFrame {
-	--ns-frame-color: color-mix(in srgb, var(--ns-accent) 28%, transparent);
-	--ns-frame-cut: var(--ns-cut-md);
+	--ns-frame-color: var(--ns-border);
+	--ns-frame-radius: var(--ns-radius-lg);
 	width: 100%;
-	background:
-		linear-gradient(color-mix(in srgb, var(--ns-accent) 6%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--ns-accent) 4%, transparent) 1px, transparent 1px),
-		var(--ns-bg-section);
-	background-size:
-		1rem 1rem,
-		1rem 1rem,
-		100% 100%;
+	background: var(--ns-surface);
+	box-shadow: none;
 }
 
 .checkTableScroller {
@@ -86,8 +81,8 @@
 	min-width: 62rem;
 	border-collapse: collapse;
 	color: var(--ns-text-muted);
-	font-family: var(--ns-font-mono);
-	font-size: 0.75rem;
+	font-family: var(--ns-font-sans);
+	font-size: 0.8125rem;
 }
 
 .checkTable th {
@@ -95,14 +90,14 @@
 	top: 0;
 	z-index: 1;
 	padding: 0.875rem 1rem;
-	border-bottom: 1px solid color-mix(in srgb, var(--ns-accent) 26%, transparent);
-	color: var(--ns-accent-hover);
+	border-bottom: 1px solid var(--ns-border);
+	color: var(--ns-text-subtle);
 	background: var(--ns-surface-raised);
-	font-size: 0.6875rem;
+	font-size: 0.75rem;
 	font-weight: 700;
-	letter-spacing: 0.12em;
+	letter-spacing: 0;
 	text-align: left;
-	text-transform: uppercase;
+	text-transform: none;
 	white-space: nowrap;
 }
 
@@ -135,7 +130,7 @@
 .checkTableRow:hover,
 .checkTableRow:focus-visible {
 	color: var(--ns-text);
-	background: var(--ns-accent-muted);
+	background: var(--ns-bg-subtle);
 }
 
 .checkTableRowSelected {
@@ -192,7 +187,7 @@
 
 .checkNameCell span {
 	color: var(--ns-text-low);
-	font-size: 0.6875rem;
+	font-size: 0.75rem;
 }
 
 .rowActions {
@@ -237,13 +232,13 @@
 }
 
 .probeSummary {
-	--ns-frame-cut: var(--ns-cut-sm);
-	--ns-frame-color: var(--ns-border-faint);
+	--ns-frame-radius: var(--ns-radius-md);
+	--ns-frame-color: var(--ns-border);
 	min-height: 2.75rem;
 	padding: 0.75rem 0.875rem;
 	color: var(--ns-text);
 	background: var(--ns-surface);
-	font-family: var(--ns-font-mono);
+	font-family: var(--ns-font-sans);
 	font-size: 0.875rem;
 }
 
@@ -258,14 +253,14 @@
 }
 
 .selectorRule {
-	--ns-frame-cut: var(--ns-cut-sm);
-	--ns-frame-color: var(--ns-border-faint);
+	--ns-frame-radius: var(--ns-radius-md);
+	--ns-frame-color: var(--ns-border);
 	display: grid;
 	grid-template-columns: auto minmax(7rem, 0.9fr) minmax(7rem, 0.8fr) minmax(8rem, 1fr) 2.75rem;
 	gap: 0.75rem;
 	align-items: end;
 	padding: 0.75rem 1rem 0.75rem 0.75rem;
-	background: var(--ns-glass-light);
+	background: var(--ns-surface-raised);
 }
 
 .selectorNegation {
@@ -274,10 +269,10 @@
 	align-items: center;
 	min-height: 2.5rem;
 	color: var(--ns-text-low);
-	font-family: var(--ns-font-mono);
-	font-size: 0.75rem;
-	font-weight: 800;
-	text-transform: uppercase;
+	font-family: var(--ns-font-sans);
+	font-size: 0.8125rem;
+	font-weight: 650;
+	text-transform: none;
 }
 
 .selectorExistsValue {
@@ -285,8 +280,8 @@
 	padding: 0.7rem 0.75rem;
 	border: 1px solid var(--ns-border-faint);
 	color: var(--ns-text-low);
-	background: var(--ns-glass-light);
-	font-family: var(--ns-font-mono);
+	background: var(--ns-surface-raised);
+	font-family: var(--ns-font-sans);
 	font-size: 0.8125rem;
 }
 
@@ -313,21 +308,21 @@
 }
 
 .selectorOption {
-	--ns-frame-cut: var(--ns-cut-sm);
-	--ns-frame-color: var(--ns-border-faint);
+	--ns-frame-radius: var(--ns-radius-md);
+	--ns-frame-color: var(--ns-border);
 	display: grid;
 	grid-template-columns: auto minmax(0, 0.72fr) minmax(0, 1fr);
 	gap: 0.55rem;
 	align-items: center;
 	min-width: 0;
 	padding: 0.625rem;
-	background: var(--ns-glass-light);
+	background: var(--ns-surface-raised);
 	cursor: pointer;
 }
 
 .selectorOption:hover {
-	--ns-frame-color: var(--ns-accent-border);
-	background: var(--ns-accent-muted);
+	--ns-frame-color: var(--ns-border-strong);
+	background: var(--ns-bg-subtle);
 }
 
 .selectorOption span,
@@ -336,8 +331,8 @@
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
-	font-family: var(--ns-font-mono);
-	font-size: 0.75rem;
+	font-family: var(--ns-font-sans);
+	font-size: 0.8125rem;
 }
 
 .selectorOption span {

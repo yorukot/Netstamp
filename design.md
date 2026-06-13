@@ -1,12 +1,12 @@
 # Netstamp Design Guidelines
 
-> Category: network observability and developer infrastructure. Current frontend: dark engineering console, orange-accented probe and route diagnostics, clipped industrial frames, monospace operational navigation, and dense technical documentation.
+> Category: network observability and developer infrastructure. Current direction: authenticated web app is a light-default B2B operations dashboard with restrained brand accents; docs, landing, and API reference may retain the darker technical storytelling system until their own redesign pass.
 
 This document is the source of truth for Netstamp frontend design across the React web app, the Astro docs site, the public landing page, the OpenAPI explorer, Storybook, and shared `@netstamp/ui` primitives.
 
 Keep new UI aligned with these files first:
 
-- `packages/ui/src/styles/tokens.css`: shared fonts, colors, shell utilities, cut-frame utility, shadows, scrollbars, and base reset.
+- `packages/ui/src/styles/tokens.css`: shared fonts, colors, shell utilities, frame utility, scrollbars, and base reset.
 - `packages/ui/src/components`: shared primitives used by both web and docs.
 - `web/src/index.css`: app root import of shared styles.
 - `web/src/layouts/AppShell.module.css`: authenticated product shell.
@@ -17,24 +17,24 @@ Keep new UI aligned with these files first:
 
 ## 1. Product Feel
 
-Netstamp should feel like a network operations console, not a generic SaaS dashboard. The design language is precise, dark, gridded, technical, and built around distributed probes, routes, checks, and controller output.
+Netstamp should feel like serious infrastructure software for repeated operational work. The authenticated app should be clear, dense, calm, and trustworthy rather than cinematic or decorative.
 
-Core traits:
+Core authenticated app traits:
 
-- Near-black operational canvas.
-- Orange as the primary brand and interaction accent.
-- Thin engineering grid lines, diagnostic overlays, and route/packet motifs.
-- Cut-corner frames for primary surfaces and controls.
-- Display typography for hero claims and screen titles.
-- Monospace typography for navigation, labels, metadata, buttons, tables, telemetry, code, and API details.
-- Sparse but dense layouts: few decorative objects, high information clarity.
+- Light, neutral workspace with white and gray surfaces.
+- Orange as a reserved brand accent for primary actions, active navigation, focus, and selected state.
+- Status colors carry semantic meaning only: healthy, warning, critical, pending, or neutral.
+- Square, flat frames; no rounded corners and no cut-corner framing in the web app.
+- Sans typography for navigation, headings, controls, tables, labels, and buttons.
+- Monospace typography only for IDs, tokens, timestamps, code, CLI commands, and machine-readable telemetry.
+- Dense layouts: few decorative objects, high information clarity.
 - Infrastructure copy that names probes, checks, routes, DNS, latency, packet loss, topology, path hash, heartbeat, and controller actions.
 
-The shared direction applies everywhere, but each surface has a different density:
+Each surface has a different density:
 
-- Public landing page: cinematic network storytelling with large display type, technical visuals, and clear deploy/GitHub actions.
-- Web app: compact operational dashboard for repeated work.
-- Docs: readable technical reference that still uses the same dark console structure.
+- Web app: compact light-default B2B dashboard for repeated work.
+- Public landing page: may remain cinematic network storytelling with large display type, technical visuals, and clear deploy/GitHub actions.
+- Docs: readable technical reference that may retain the dark console structure until a docs redesign pass.
 - OpenAPI explorer: split reference and request console, optimized for scanning methods, paths, parameters, snippets, and responses.
 
 ## 2. Tokens
@@ -84,24 +84,17 @@ Use the display face for big product statements and screen titles. Use the sans 
 - `--ns-metal`: `#c4ccd9`, neutral technical accent.
 - `--ns-slate-line`: `rgba(196, 204, 217, 0.22)`, neutral chart and divider line.
 
-Orange is the brand and interaction color. Green, yellow, and red are reserved for state meaning. Do not add blue, purple, rainbow, pastel, or glossy gradients for visual variety. The only current non-state blue appears inside OpenAPI syntax highlighting for booleans/null values; keep that usage tiny and code-specific.
+Orange is the reserved brand interaction color. Green, yellow, and red are reserved for state meaning. Blue and slate may be used for chart/data series where it improves dashboard readability. Avoid rainbow, pastel, glossy gradient, or decorative color systems.
 
-### Borders, Cuts, Shadows
+### Borders, Radius, Shadows
 
-- `--ns-border`: `rgba(255, 255, 255, 0.28)`, default frame.
-- `--ns-border-strong`: `rgba(255, 255, 255, 0.48)`, hover/active neutral frame.
-- `--ns-border-faint`: `rgba(255, 255, 255, 0.16)`, quiet dividers and nested frames.
-- `--ns-radius-*`: all `0`.
-- `--ns-cut-xs`: `0.375rem`, badges and compact labels.
-- `--ns-cut-sm`: `0.5rem`, buttons, nav items, fields, small frames.
-- `--ns-cut-md`: `0.75rem`, tables and medium cards.
-- `--ns-cut-lg`: `1rem`, panels, landing feature cards, footer blocks.
-- `--ns-shadow-sm`: dark technical elevation for small surfaces.
-- `--ns-shadow-md`: stronger elevation for modals, hero panels, and large surfaces.
-- `--ns-shadow-glow`: restrained orange focus/brand glow.
+- `--ns-border`, `--ns-border-strong`, and `--ns-border-faint`: neutral frame and divider colors.
+- `--ns-radius-*`: app values should remain `0`.
+- `--ns-cut-*`: legacy tokens only; do not use them for new cut-corner UI.
+- `--ns-shadow-sm`, `--ns-shadow-md`, and `--ns-shadow-glow`: app values should remain `none`.
 - `--ns-transition`: `180ms cubic-bezier(0.2, 0.8, 0.2, 1)`.
 
-Use cut corners instead of rounded rectangles. Small circular details are allowed only for dots, status lights, orbit visuals, and similar diagnostic marks.
+Use square frames instead of clipped, cut-corner, rounded, or pill-shaped rectangles. Avoid decorative shadows.
 
 ## 3. Page Families
 
@@ -126,7 +119,7 @@ Use the landing page for high-impact storytelling:
 - Sticky docs top nav above the page.
 - Hero with large left-side claim and a full technical network animation.
 - Primary CTA is orange fill; secondary CTA is dark/neutral.
-- Story sections use animated network/topology scenes, probe scenes, route boards, check cards, and numbered clipped feature cards.
+- Story sections use animated network/topology scenes, probe scenes, route boards, check cards, and numbered feature cards.
 - Feature cards can be large and visual, but they must remain technical and specific.
 - Final CTA/trust area should stay grounded in open source, deployability, probes, and measurable network behavior.
 
@@ -175,7 +168,7 @@ Docs must feel like Netstamp, but prioritize reading and navigation:
 - Code blocks use terminal-style top bars, dark backgrounds, and orange borders.
 - Cards, callouts, pager links, search results, and index grids use low-contrast dark surfaces with orange hover/active states.
 
-Docs are allowed to be less clipped than the app in simple prose areas, but should still avoid rounded card/pill language.
+Docs can retain the dark technical structure until a dedicated redesign, but should not introduce new cut-corner treatments.
 
 ### OpenAPI Explorer
 
@@ -302,11 +295,11 @@ Use `@netstamp/ui` primitives before adding local controls. Shared components sh
 
 ### Surface And Panel
 
-`Surface` is the base clipped container. `Panel` adds structured header, eyebrow, title, actions, and separator.
+`Surface` is the base framed container. `Panel` adds structured header, title, actions, and separator.
 
 Use tones intentionally:
 
-- `glass`: default raised section with orange frame and subtle striped depth.
+- `glass`: default raised section with neutral border.
 - `matte`: lower-contrast nested section.
 - `deep`: maps, terminals, code, diagnostics, and high-depth blocks.
 - `flat`: quiet simple surface.
@@ -321,15 +314,15 @@ Panel rules:
 
 ### Buttons
 
-Buttons live in `@netstamp/ui` and remain rectangular with cut corners.
+Buttons live in `@netstamp/ui` and use square rectangular frames.
 
-- Text is mono, uppercase, heavy weight, with `0.06em` letter spacing.
-- Primary uses orange fill and dark text.
-- Secondary uses dark surface and light text.
-- Outline uses dark surface, muted text, and orange hover.
+- Text is sans, normal case, and medium-heavy weight.
+- Primary uses orange fill and white text.
+- Secondary uses neutral raised surface and standard text.
+- Outline uses neutral surface and neutral hover.
 - Ghost is for low-priority actions.
 - Danger is only for destructive actions.
-- Hover may translate upward by `-0.0625rem`.
+- Avoid hover lift for app controls.
 - Disabled buttons use opacity and no pointer events.
 
 Button sizes:
@@ -345,29 +338,29 @@ Use icons from the existing icon system in docs or Phosphor web components where
 
 Badges can represent operational labels or state.
 
-- Use mono uppercase text.
+- Use sans, normal-case text.
 - Optional dot is square and uses current color.
 - Approved tones: `neutral`, `accent`, `success`, `warning`, `critical`, `muted`.
 - Badge color must communicate category or state, not decoration.
 
 ### Fields And Selects
 
-Fields use a clipped `controlFrame`.
+Fields use a square `controlFrame`.
 
-- Labels are mono uppercase.
-- Control background is near black.
+- Labels are sans and normal case.
+- Control background is neutral surface.
 - Focus uses `--ns-accent-active`, visible outline, and no hidden focus ring.
-- Invalid state uses red border and low red glow.
+- Invalid state uses red border and clear helper text.
 - Select arrow is CSS-generated and turns with open state.
-- Compact controls use mono and smaller sizing for dashboards/API panels.
+- Compact controls use smaller sizing for dashboards/API panels.
 
 ### Data Tables
 
-Data tables should feel like controller output.
+Data tables should feel like enterprise dashboard data surfaces.
 
-- Use monospace for headers and cells.
-- Sticky headers can use dark raised surfaces.
-- Hover and selected rows use faint orange backgrounds.
+- Use sans for headers and cells; reserve mono for technical values inside cells.
+- Sticky headers can use neutral raised surfaces.
+- Hover rows use neutral backgrounds; selected rows may use faint orange backgrounds.
 - Thin row borders with low contrast.
 - Allow horizontal scrolling for wide content.
 
@@ -376,9 +369,8 @@ Data tables should feel like controller output.
 Metric cards summarize state quickly.
 
 - Large display numeric value.
-- Mono orange label.
+- Sans muted label.
 - Optional badge for category/state.
-- Diagnostic bracket or corner detail is acceptable when restrained.
 
 ### Terminal And Code Blocks
 
@@ -392,9 +384,9 @@ Terminal blocks are command surfaces.
 
 ### Navigation
 
-Navigation is mono and uppercase.
+Navigation is sans and normal case.
 
-- App sidebar active item uses orange leading accent and orange clipped frame.
+- App sidebar active item uses orange leading accent and a neutral square frame.
 - Docs top nav uses icon plus text, with text hidden on small screens when necessary.
 - Docs sidebar groups are collapsible and show active state in orange.
 - TOC active link uses orange and a subtle orange text glow.
@@ -403,58 +395,34 @@ Navigation is mono and uppercase.
 
 Network visuals should be abstract, map-like, and diagnostic.
 
-- Nodes are square, clipped, or small dot/square based.
+- In the authenticated app, prefer simple square labels and markers.
 - Routes, packets, rails, hops, matrices, and topology lines are preferred motifs.
 - Active packets and important paths use orange.
 - Green only means online/success.
 - Scanline and route animations are acceptable when slow and subtle.
 - Three.js scenes and animated CSS visuals must respect reduced motion.
 
-## 7. Cut-Corner Frames
+## 7. Frame Utility
 
-Cut corners are a core identity element. Use the shared `.ns-cut-frame` utility whenever possible.
+The legacy `.ns-cut-frame` class name is retained for compatibility, but it now renders as a standard square frame. Do not create new cut-corner polygon frames.
 
 ### Standard Utility
 
 ```css
 .frame {
-	--ns-frame-cut: var(--ns-cut-sm);
 	--ns-frame-color: var(--ns-border);
 	--ns-frame-border-width: 1px;
 }
 ```
 
-Then apply `className="ns-cut-frame"` or the equivalent class composition.
+Then apply the square frame utility already used by the component, or compose the same border variables locally.
 
-The shared utility uses this polygon:
+When building a custom frame:
 
-```css
-clip-path: polygon(var(--ns-frame-cut) 0, 100% 0, 100% calc(100% - var(--ns-frame-cut)), calc(100% - var(--ns-frame-cut)) 100%, 0 100%, 0 var(--ns-frame-cut));
-```
-
-### Why Patches Exist
-
-A regular `border: 1px` does not draw the diagonal cut edges of a clipped rectangle. The shared `.ns-cut-frame` patches those diagonal strokes with `::before` and `::after`.
-
-```css
-.ns-cut-frame::before,
-.ns-cut-frame::after {
-	width: calc(var(--ns-frame-cut) * sqrt(2));
-	height: var(--ns-frame-border-width);
-	background: var(--ns-frame-color);
-}
-```
-
-When building a custom clipped frame:
-
-- Prefer `.ns-cut-frame`.
-- If a custom implementation is necessary, patch diagonal strokes or use a mask outline.
-- Use `--ns-frame-color` and `--ns-frame-cut`; do not hardcode repeated frame values.
-- Use `position: relative`.
-- Use `isolation: isolate` when pseudo-elements, shadows, and children overlap.
+- Existing `.ns-cut-frame` usage is acceptable for compatibility because it now renders square; do not introduce it for new components.
+- Use `--ns-frame-color` and `--ns-frame-border-width`; do not hardcode repeated frame values.
+- Avoid `clip-path` for ordinary cards, controls, tables, dialogs, and popovers.
 - Be careful with `overflow: hidden`; do not clip visible focus outlines.
-
-Never leave clipped borders visually open.
 
 ## 8. Motion
 
@@ -557,11 +525,11 @@ Accessibility is part of the visual system.
 ### CSS
 
 - Use CSS modules for component styling.
-- Use `--ns-*` tokens for colors, fonts, cuts, shadows, and transitions.
-- Use `class:list` in Astro and local `classNames` helpers in React when composing `ns-cut-frame`.
+- Use `--ns-*` tokens for colors, fonts, borders, and transitions.
+- Use `class:list` in Astro and local `classNames` helpers in React when composing frame classes.
 - Keep page sections full-width/unframed unless they are real tools, panels, repeated cards, or docs content blocks.
 - Avoid nested decorative cards.
-- Avoid new radius values for core UI.
+- Keep core UI square.
 
 ### Assets And Icons
 
@@ -574,13 +542,13 @@ Accessibility is part of the visual system.
 
 Do not add:
 
-- Large rounded cards, pill-shaped core controls, or soft consumer-app surfaces.
+- Oversized decorative cards, pill-shaped core controls, or soft consumer-app surfaces.
 - Pastel SaaS gradients, glossy blobs, heavy glassmorphism, or decorative orbs.
 - Blue/purple/rainbow brand accents.
 - Decorative emoji icons.
 - Soft lifestyle photography or stock photos.
 - Centered generic landing sections that ignore the engineering grid.
-- Heavy shadows that overpower the frame system.
+- Decorative or heavy shadows.
 - Global CSS systems outside existing `--ns-*` tokens and CSS modules.
 - Copy that sounds like a generic productivity app.
 
@@ -590,13 +558,13 @@ Before shipping frontend UI, check:
 
 - Does it use existing `--ns-*` tokens?
 - Does it use the correct font family for display, body, and operational text?
-- Are clipped frames using `.ns-cut-frame` or patched diagonal borders?
+- Are framed controls square and free of custom clipped polygons?
 - Is orange the main interactive accent?
 - Are green, yellow, and red reserved for state?
 - Does the layout follow the `1rem` grid rhythm unless a larger landing/docs rhythm is intentional?
 - Does the UI match the density of its surface: landing, app, docs, or OpenAPI?
 - Does it collapse cleanly on the relevant breakpoints?
-- Are focus states visible and not clipped?
+- Are focus states visible and not clipped by overflow?
 - Are animations disabled or reduced for `prefers-reduced-motion`?
 - Does copy name concrete network behavior instead of generic product benefits?
 - If the change affects shared conventions, should this `design.md` or an area `AGENTS.md` be updated?

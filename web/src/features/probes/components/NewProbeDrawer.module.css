@@ -25,9 +25,8 @@
 	overflow: hidden;
 	overscroll-behavior: contain;
 	padding: 1.25rem;
-	border-left: 1px solid var(--ns-border-faint);
-	background: linear-gradient(135deg, var(--ns-accent-muted), transparent 28rem), var(--ns-surface);
-	box-shadow: -2rem 0 4rem color-mix(in srgb, var(--ns-text) 16%, transparent);
+	border-left: 1px solid var(--ns-border);
+	background: var(--ns-surface);
 	animation: drawerIn 180ms ease-out;
 }
 
@@ -52,16 +51,16 @@
 	color: var(--ns-accent-hover);
 	background: transparent;
 	border: 0;
-	font-family: var(--ns-font-mono);
-	font-size: 0.75rem;
-	font-weight: 800;
-	letter-spacing: 0.08em;
+	font-family: var(--ns-font-sans);
+	font-size: 0.8125rem;
+	font-weight: 650;
+	letter-spacing: 0;
 	line-height: 1;
 	cursor: pointer;
 }
 
 .backLink::before {
-	content: "<-";
+	content: "←";
 }
 
 .backLink:hover {
@@ -71,9 +70,10 @@
 .header h2 {
 	margin: 0.75rem 0 0.5rem;
 	color: var(--ns-text);
-	font-family: var(--ns-font-display);
-	font-size: clamp(2rem, 8vw, 3.75rem);
-	line-height: 0.92;
+	font-family: var(--ns-font-sans);
+	font-size: clamp(1.5rem, 4vw, 2rem);
+	font-weight: 700;
+	line-height: 1.15;
 }
 
 .header p {
@@ -93,8 +93,8 @@
 }
 
 .stepItem {
-	--ns-frame-cut: var(--ns-cut-sm);
-	--ns-frame-color: var(--ns-border-faint);
+	--ns-frame-radius: var(--ns-radius-md);
+	--ns-frame-color: var(--ns-border);
 	display: grid;
 	gap: 0.25rem;
 	min-width: 0;
@@ -105,24 +105,24 @@
 
 .stepItem span,
 .stepItem small {
-	font-family: var(--ns-font-mono);
-	font-size: 0.625rem;
-	font-weight: 800;
-	letter-spacing: 0.1em;
-	text-transform: uppercase;
+	font-family: var(--ns-font-sans);
+	font-size: 0.75rem;
+	font-weight: 650;
+	letter-spacing: 0;
+	text-transform: none;
 }
 
 .stepItem strong {
 	color: var(--ns-text-muted);
-	font-family: var(--ns-font-display);
+	font-family: var(--ns-font-sans);
 	font-size: 1rem;
-	line-height: 1;
+	line-height: 1.2;
 }
 
 .stepActive {
 	--ns-frame-color: var(--ns-accent-border);
 	background: var(--ns-accent-muted);
-	box-shadow: 0 0 1.25rem var(--ns-accent-muted);
+	box-shadow: none;
 }
 
 .stepActive span,
@@ -185,9 +185,10 @@
 .stepCopy h3 {
 	margin: 0;
 	color: var(--ns-text);
-	font-family: var(--ns-font-display);
-	font-size: clamp(1.75rem, 5vw, 3rem);
-	line-height: 0.95;
+	font-family: var(--ns-font-sans);
+	font-size: clamp(1.25rem, 3vw, 1.5rem);
+	font-weight: 700;
+	line-height: 1.2;
 }
 
 .stepCopy p,
@@ -277,11 +278,11 @@
 }
 
 .registrationBlock {
-	--ns-frame-cut: var(--ns-cut-md);
-	--ns-frame-color: var(--ns-border-faint);
+	--ns-frame-radius: var(--ns-radius-lg);
+	--ns-frame-color: var(--ns-border);
 	margin-top: 0.25rem;
 	padding: 1rem;
-	background: var(--ns-glass-light);
+	background: var(--ns-surface-raised);
 }
 
 .tokenLine {
@@ -292,11 +293,11 @@
 
 .tokenLine span {
 	color: var(--ns-text-low);
-	font-family: var(--ns-font-mono);
-	font-size: 0.6875rem;
-	font-weight: 700;
-	letter-spacing: 0.12em;
-	text-transform: uppercase;
+	font-family: var(--ns-font-sans);
+	font-size: 0.8125rem;
+	font-weight: 650;
+	letter-spacing: 0;
+	text-transform: none;
 }
 
 .tokenLine strong {
@@ -309,19 +310,20 @@
 }
 
 .detectCard {
-	--ns-frame-cut: var(--ns-cut-md);
-	--ns-frame-color: color-mix(in srgb, var(--ns-accent) 22%, transparent);
+	--ns-frame-radius: var(--ns-radius-lg);
+	--ns-frame-color: var(--ns-border);
 	display: grid;
 	gap: 0.625rem;
 	padding: 1rem;
-	background: linear-gradient(135deg, var(--ns-accent-muted), transparent 16rem), var(--ns-surface-raised);
+	background: var(--ns-surface-raised);
 }
 
 .detectCard strong {
 	color: var(--ns-text);
-	font-family: var(--ns-font-display);
+	font-family: var(--ns-font-sans);
 	font-size: 1.25rem;
-	line-height: 1;
+	font-weight: 700;
+	line-height: 1.2;
 }
 
 @media (max-width: 34rem) {

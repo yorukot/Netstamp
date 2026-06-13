@@ -31,7 +31,6 @@
 
 .memberAvatar,
 .memberAvatarFallback {
-	--ns-frame-cut: var(--ns-cut-sm);
 	width: 2.5rem;
 	height: 2.5rem;
 }

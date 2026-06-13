@@ -1,14 +1,9 @@
 .frame {
-	--ns-frame-color: color-mix(in srgb, var(--ns-accent) 28%, transparent);
-	--ns-frame-cut: var(--ns-cut-md);
+	--ns-frame-color: var(--ns-border);
+	--ns-frame-radius: var(--ns-radius-lg);
 	width: 100%;
-	background:
-		linear-gradient(color-mix(in srgb, var(--ns-accent) 6%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--ns-accent) 4%, transparent) 1px, transparent 1px),
-		var(--ns-bg-section);
-	background-size:
-		1rem 1rem,
-		1rem 1rem,
-		100% 100%;
+	background: var(--ns-surface);
+	box-shadow: none;
 }
 
 .scroller {
@@ -23,23 +18,23 @@
 	min-width: var(--ns-data-table-min-width, 48rem);
 	border-collapse: collapse;
 	color: var(--ns-text-muted);
-	font-family: var(--ns-font-mono);
-	font-size: 0.75rem;
+	font-family: var(--ns-font-sans);
+	font-size: 0.8125rem;
 }
 
 .table th {
 	position: sticky;
 	top: 0;
 	z-index: 1;
-	padding: 0.875rem 1rem;
-	color: var(--ns-accent-hover);
+	padding: 0.75rem 1rem;
+	color: var(--ns-text-subtle);
 	background: var(--ns-surface-raised);
-	border-bottom: 1px solid color-mix(in srgb, var(--ns-accent) 26%, transparent);
-	font-size: 0.6875rem;
+	border-bottom: 1px solid var(--ns-border);
+	font-size: 0.75rem;
 	font-weight: 700;
-	letter-spacing: 0.12em;
+	letter-spacing: 0;
 	text-align: left;
-	text-transform: uppercase;
+	text-transform: none;
 	white-space: nowrap;
 }
 
@@ -57,7 +52,7 @@
 
 .table tbody tr:hover {
 	color: var(--ns-text);
-	background: var(--ns-accent-muted);
+	background: var(--ns-bg-subtle);
 }
 
 .interactive {
@@ -67,7 +62,7 @@
 
 .interactive:focus-visible {
 	color: var(--ns-text);
-	background: var(--ns-accent-muted);
+	background: var(--ns-bg-subtle);
 }
 
 .table tbody tr:last-child td {

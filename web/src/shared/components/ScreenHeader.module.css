@@ -1,9 +1,9 @@
 .header {
 	display: flex;
-	align-items: flex-end;
+	align-items: flex-start;
 	justify-content: space-between;
 	gap: 1rem;
-	margin-bottom: 1.5rem;
+	margin-bottom: 1.25rem;
 }
 
 .titleBlock {
@@ -18,16 +18,16 @@
 	gap: 0.45rem;
 	width: fit-content;
 	color: var(--ns-accent-hover);
-	font-family: var(--ns-font-mono);
-	font-size: 0.75rem;
-	font-weight: 800;
-	letter-spacing: 0.08em;
+	font-family: var(--ns-font-sans);
+	font-size: 0.8125rem;
+	font-weight: 650;
+	letter-spacing: 0;
 	line-height: 1;
 	text-decoration: none;
 }
 
 .backLink::before {
-	content: "<-";
+	content: "←";
 }
 
 .backLink:hover {
@@ -38,10 +38,11 @@
 	max-width: 60rem;
 	margin: 0;
 	color: var(--ns-text);
-	font-family: var(--ns-font-display);
-	font-size: clamp(3rem, 6vw, 5.75rem);
-	font-weight: 650;
-	line-height: 0.9;
+	font-family: var(--ns-font-sans);
+	font-size: clamp(1.875rem, 3vw, 2.5rem);
+	font-weight: 700;
+	letter-spacing: 0;
+	line-height: 1.1;
 }
 
 .actions {

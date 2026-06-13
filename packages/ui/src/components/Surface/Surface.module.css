@@ -1,34 +1,22 @@
 .surface {
 	min-width: 0;
 	isolation: isolate;
-	box-shadow:
-		var(--ns-shadow-sm),
-		inset 0 0 0 1px color-mix(in srgb, var(--ns-accent) 4%, transparent);
+	box-shadow: none;
 }
 
 .glass {
-	--ns-frame-color: color-mix(in srgb, var(--ns-accent) 34%, transparent);
-	background:
-		linear-gradient(135deg, var(--ns-accent-muted), transparent 14rem), linear-gradient(180deg, var(--ns-glass-light), transparent 38%),
-		linear-gradient(90deg, color-mix(in srgb, var(--ns-accent) 5%, transparent) 0 1px, transparent 1px 0.875rem), var(--ns-surface);
-	background-size:
-		100% 100%,
-		100% 100%,
-		0.875rem 100%,
-		100% 100%;
+	--ns-frame-color: var(--ns-border);
+	background: var(--ns-surface);
 }
 
 .matte {
-	--ns-frame-color: var(--ns-slate-line);
-	background:
-		linear-gradient(180deg, var(--ns-glass-light), transparent 42%), linear-gradient(135deg, color-mix(in srgb, var(--ns-accent) 5%, transparent), transparent 16rem), var(--ns-surface-raised);
-	background-size: 100% 100%;
+	--ns-frame-color: var(--ns-border);
+	background: var(--ns-surface-raised);
 }
 
 .deep {
 	--ns-frame-color: var(--ns-border-faint);
-	background: linear-gradient(180deg, var(--ns-glass-light), transparent), var(--ns-surface-deep);
-	background-size: 100% 100%;
+	background: var(--ns-surface-deep);
 }
 
 .flat {
@@ -38,29 +26,28 @@
 
 .accent {
 	--ns-frame-color: var(--ns-accent-border);
-	background:
-		linear-gradient(135deg, var(--ns-accent-subtle), transparent 16rem), linear-gradient(90deg, color-mix(in srgb, var(--ns-accent) 6%, transparent) 0 1px, transparent 1px 0.875rem), var(--ns-surface);
+	background: color-mix(in srgb, var(--ns-accent) 7%, var(--ns-surface));
 }
 
 .danger {
 	--ns-frame-color: color-mix(in srgb, var(--ns-critical) 42%, transparent);
-	background: linear-gradient(135deg, color-mix(in srgb, var(--ns-critical) 14%, transparent), transparent 14rem), color-mix(in srgb, var(--ns-critical) 6%, var(--ns-surface));
+	background: color-mix(in srgb, var(--ns-critical) 7%, var(--ns-surface));
 }
 
 .cutXs {
-	--ns-frame-cut: var(--ns-cut-xs);
+	--ns-frame-radius: var(--ns-radius-xs);
 }
 
 .cutSm {
-	--ns-frame-cut: var(--ns-cut-sm);
+	--ns-frame-radius: var(--ns-radius-sm);
 }
 
 .cutMd {
-	--ns-frame-cut: var(--ns-cut-md);
+	--ns-frame-radius: var(--ns-radius-md);
 }
 
 .cutLg {
-	--ns-frame-cut: var(--ns-cut-lg);
+	--ns-frame-radius: var(--ns-radius-lg);
 }
 
 .paddingNone {

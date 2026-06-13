@@ -1,6 +1,6 @@
 .button {
-	--ns-frame-cut: var(--ns-cut-sm);
-	--ns-frame-color: color-mix(in srgb, var(--ns-accent) 48%, transparent);
+	--ns-frame-radius: var(--ns-radius-sm);
+	--ns-frame-color: var(--ns-border);
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
@@ -9,15 +9,12 @@
 	height: 2rem;
 	padding: 0;
 	color: var(--ns-text-muted);
-	background: linear-gradient(135deg, var(--ns-accent-subtle) 0 1px, transparent 1px 0.55rem), linear-gradient(180deg, var(--ns-glass-light), transparent), var(--ns-surface);
-	box-shadow:
-		0 0 0 1px color-mix(in srgb, var(--ns-text) 12%, transparent),
-		0 0 1rem var(--ns-accent-muted);
+	background: var(--ns-surface);
+	box-shadow: none;
 	transition:
 		color var(--ns-transition),
 		background-color var(--ns-transition),
-		box-shadow var(--ns-transition),
-		transform var(--ns-transition);
+		box-shadow var(--ns-transition);
 }
 
 .button svg {
@@ -26,19 +23,15 @@
 }
 
 .button:hover {
-	--ns-frame-color: var(--ns-accent-border);
+	--ns-frame-color: var(--ns-border-strong);
 	color: var(--ns-text);
-	background-color: var(--ns-accent-subtle);
-	box-shadow:
-		0 0 0 1px color-mix(in srgb, var(--ns-text) 14%, transparent),
-		0 0 1.25rem var(--ns-accent-glow);
-	transform: translateY(-0.0625rem);
+	background-color: var(--ns-bg-subtle);
+	box-shadow: none;
 }
 
 .button:active {
 	color: var(--ns-text-on-accent);
 	background-color: var(--ns-accent-active);
-	transform: translateY(0);
 }
 
 .button:focus-visible {

@@ -1,6 +1,6 @@
 .header {
 	display: flex;
-	align-items: flex-end;
+	align-items: flex-start;
 	justify-content: space-between;
 	gap: 1rem;
 	min-width: 0;
@@ -15,10 +15,11 @@
 .header h1 {
 	margin: 0;
 	color: var(--ns-text);
-	font-family: var(--ns-font-display);
-	font-size: clamp(3rem, 6vw, 5.75rem);
-	font-weight: 650;
-	line-height: 0.9;
+	font-family: var(--ns-font-sans);
+	font-size: clamp(1.875rem, 3vw, 2.5rem);
+	font-weight: 700;
+	letter-spacing: 0;
+	line-height: 1.1;
 }
 
 .viewActions,
@@ -65,7 +66,7 @@
 
 @media (max-width: 38rem) {
 	.header h1 {
-		font-size: clamp(2.5rem, 18vw, 4rem);
+		font-size: clamp(1.75rem, 9vw, 2.25rem);
 	}
 
 	.overlay {

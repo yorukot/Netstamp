@@ -3,26 +3,25 @@
 	align-items: center;
 	justify-content: center;
 	gap: 0.5rem;
-	font-family: var(--ns-font-mono);
-	font-weight: 800;
-	letter-spacing: 0.06em;
+	font-family: var(--ns-font-sans);
+	font-weight: 650;
+	letter-spacing: 0;
 	line-height: 1;
 	cursor: pointer;
-	--ns-frame-cut: var(--ns-cut-sm);
+	--ns-frame-radius: var(--ns-radius-sm);
 	--ns-frame-color: transparent;
 	transition:
 		background-color var(--ns-transition),
 		border-color var(--ns-transition),
 		color var(--ns-transition),
-		box-shadow var(--ns-transition),
-		transform var(--ns-transition);
+		box-shadow var(--ns-transition);
 	text-decoration: none;
-	text-transform: uppercase;
+	text-transform: none;
 	user-select: none;
 }
 
 .btn:hover {
-	transform: translateY(-0.0625rem);
+	transform: none;
 }
 
 .btn:focus-visible {
@@ -64,18 +63,14 @@
 	--ns-frame-color: var(--ns-accent);
 	background: var(--ns-accent);
 	color: var(--ns-text-on-accent);
-	box-shadow:
-		0 0 0 1px color-mix(in srgb, var(--ns-text) 22%, transparent),
-		0 0 0 0.25rem var(--ns-accent-muted);
+	box-shadow: none;
 }
 
 .primary:hover {
 	--ns-frame-color: var(--ns-accent-hover);
 	background: var(--ns-accent-hover);
 	color: var(--ns-text-on-accent);
-	box-shadow:
-		0 0 0 1px color-mix(in srgb, var(--ns-text) 24%, transparent),
-		0 0 0 0.3125rem var(--ns-accent-glow);
+	box-shadow: none;
 }
 
 .primary:active {
@@ -88,7 +83,7 @@
 	--ns-frame-color: var(--ns-border);
 	background: var(--ns-surface-raised);
 	color: var(--ns-text);
-	box-shadow: 0 0 0 1px color-mix(in srgb, var(--ns-text) 18%, transparent);
+	box-shadow: none;
 }
 
 .secondary:hover {
@@ -107,9 +102,9 @@
 }
 
 .outline:hover {
-	--ns-frame-color: var(--ns-accent);
+	--ns-frame-color: var(--ns-border-strong);
 	color: var(--ns-text);
-	background: var(--ns-accent-muted);
+	background: var(--ns-surface-raised);
 }
 
 .outline:active {
@@ -124,7 +119,7 @@
 
 .ghost:hover {
 	color: var(--ns-text);
-	background: var(--ns-accent-muted);
+	background: var(--ns-bg-subtle);
 }
 
 .ghost:active {
@@ -133,17 +128,14 @@
 
 .danger {
 	--ns-frame-color: color-mix(in srgb, var(--ns-critical) 42%, transparent);
-	background: linear-gradient(135deg, color-mix(in srgb, var(--ns-critical) 22%, transparent) 0 1px, transparent 1px 0.5rem), color-mix(in srgb, var(--ns-critical) 8%, var(--ns-surface));
-	background-size:
-		0.5rem 0.5rem,
-		100% 100%;
+	background: color-mix(in srgb, var(--ns-critical) 8%, var(--ns-surface));
 	color: var(--ns-critical);
 }
 
 .danger:hover {
 	--ns-frame-color: color-mix(in srgb, var(--ns-critical) 74%, transparent);
 	background: color-mix(in srgb, var(--ns-critical) 16%, transparent);
-	box-shadow: 0 0 0 0.25rem color-mix(in srgb, var(--ns-critical) 10%, transparent);
+	box-shadow: none;
 }
 
 .plain {

@@ -16,10 +16,10 @@
 	gap: 0.75rem;
 	align-items: start;
 	border: 1px solid color-mix(in srgb, var(--toast-color) 52%, transparent);
+	border-radius: var(--ns-radius-lg);
 	padding: 0.85rem;
 	color: var(--ns-text);
-	background: var(--ns-glass-dark);
-	box-shadow: var(--ns-shadow-md);
+	background: var(--ns-surface);
 	pointer-events: auto;
 }
 
@@ -32,12 +32,12 @@
 }
 
 .toast strong {
-	color: var(--toast-color);
-	font-family: var(--ns-font-mono);
-	font-size: 0.78rem;
-	font-weight: 800;
-	letter-spacing: 0.08em;
-	text-transform: uppercase;
+	color: var(--ns-text);
+	font-family: var(--ns-font-sans);
+	font-size: 0.875rem;
+	font-weight: 700;
+	letter-spacing: 0;
+	text-transform: none;
 }
 
 .toast p {

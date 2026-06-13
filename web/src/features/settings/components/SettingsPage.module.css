@@ -25,8 +25,9 @@
 .profilePreview h3 {
 	margin-top: 0.75rem;
 	color: var(--ns-text);
-	font-family: var(--ns-font-display);
+	font-family: var(--ns-font-sans);
 	font-size: 1.25rem;
+	font-weight: 700;
 }
 
 .profilePreview p {

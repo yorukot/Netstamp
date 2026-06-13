@@ -1,5 +1,4 @@
 .frame {
-	--ns-frame-cut: 0.375rem;
 	--role-color: var(--ns-metal);
 	--ns-frame-color: var(--ns-border-faint);
 	--role-bg: color-mix(in srgb, var(--ns-metal) 8%, transparent);

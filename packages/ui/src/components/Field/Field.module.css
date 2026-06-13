@@ -6,16 +6,16 @@
 
 .label {
 	color: var(--ns-text-muted);
-	font-family: var(--ns-font-mono);
-	font-size: 0.6875rem;
-	font-weight: 700;
-	letter-spacing: 0.11em;
+	font-family: var(--ns-font-sans);
+	font-size: 0.8125rem;
+	font-weight: 650;
+	letter-spacing: 0;
 	line-height: 1.2;
-	text-transform: uppercase;
+	text-transform: none;
 }
 
 .controlFrame {
-	--ns-frame-cut: var(--ns-cut-sm);
+	--ns-frame-radius: var(--ns-radius-sm);
 	--ns-frame-color: var(--ns-border);
 	display: block;
 	width: 100%;
@@ -38,7 +38,7 @@
 
 .controlFrame[data-invalid="true"] {
 	--ns-frame-color: color-mix(in srgb, var(--ns-critical) 64%, transparent);
-	box-shadow: 0 0 0 0.25rem color-mix(in srgb, var(--ns-critical) 8%, transparent);
+	box-shadow: none;
 }
 
 .control {
@@ -48,7 +48,7 @@
 	padding: 0.75rem 0.875rem;
 	color: var(--ns-text);
 	background: var(--ns-surface);
-	box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ns-text) 10%, transparent);
+	box-shadow: none;
 	font-family: var(--ns-font-sans);
 	font-size: 0.875rem;
 	outline: none;
@@ -80,7 +80,7 @@
 }
 
 .control:focus {
-	box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ns-text) 10%, transparent);
+	box-shadow: none;
 }
 
 .bareControl:focus-visible {
@@ -89,7 +89,7 @@
 }
 
 .control[aria-invalid="true"] {
-	box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ns-critical) 18%, transparent);
+	box-shadow: none;
 }
 
 .area {
@@ -111,7 +111,7 @@
 .selectFrame[data-open="true"] {
 	--ns-select-arrow: var(--ns-accent-active);
 	--ns-frame-color: var(--ns-accent-active);
-	box-shadow: 0 0 0 0.25rem var(--ns-accent-muted);
+	box-shadow: none;
 }
 
 .selectFrame[data-invalid="true"] {
@@ -130,7 +130,6 @@
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	border-radius: 0;
 	padding-right: 2.75rem;
 	color: var(--ns-text);
 	color-scheme: inherit;
@@ -203,20 +202,12 @@
 	width: var(--radix-select-trigger-width);
 	max-height: min(18rem, calc(100svh - 1rem));
 	border: 1px solid var(--ns-frame-color);
+	border-radius: var(--ns-radius-md);
 	overflow: hidden;
 	padding: 0.25rem;
 	color: var(--ns-text);
-	background:
-		linear-gradient(135deg, var(--ns-accent-subtle), transparent 12rem), linear-gradient(90deg, color-mix(in srgb, var(--ns-accent) 7%, transparent) 0 1px, transparent 1px 0.75rem),
-		linear-gradient(180deg, var(--ns-glass-light), transparent 42%), var(--ns-surface);
-	background-size:
-		100% 100%,
-		0.75rem 100%,
-		100% 100%,
-		100% 100%;
-	box-shadow:
-		var(--ns-shadow-md),
-		0 0 0 0.25rem var(--ns-accent-muted);
+	background: var(--ns-surface);
+	box-shadow: none;
 }
 
 .selectViewport {
@@ -259,24 +250,25 @@
 	content: "";
 	position: absolute;
 	right: 0.75rem;
-	width: 0.45rem;
-	height: 0.45rem;
-	border: 1px solid var(--ns-accent-hover);
-	background: var(--ns-accent-hover);
-	box-shadow: 0 0 0.75rem var(--ns-accent-glow);
+	width: 0.5rem;
+	height: 0.5rem;
+	border-right: 2px solid currentColor;
+	border-bottom: 2px solid currentColor;
+	background: transparent;
+	box-shadow: none;
 	opacity: 0;
-	transform: rotate(45deg);
+	transform: rotate(45deg) translateY(-0.1rem);
 	transition: opacity var(--ns-transition);
 }
 
 .selectOption[data-highlighted] {
 	color: var(--ns-text);
-	background: linear-gradient(90deg, var(--ns-accent-subtle), color-mix(in srgb, var(--ns-accent) 4%, transparent) 70%);
+	background: var(--ns-bg-subtle);
 }
 
 .selectOption[data-state="checked"] {
-	color: var(--ns-accent-hover);
-	background: linear-gradient(90deg, color-mix(in srgb, var(--ns-accent) 28%, transparent) 0 0.1875rem, var(--ns-accent-muted) 0, transparent 78%);
+	color: var(--ns-accent-active);
+	background: var(--ns-accent-muted);
 }
 
 .selectOption[data-state="checked"]::after {
@@ -311,12 +303,10 @@
 	-webkit-appearance: none;
 	color: var(--ns-accent-hover);
 	vertical-align: -0.125rem;
-	background: linear-gradient(135deg, var(--ns-glass-light), transparent 48%), var(--ns-surface-deep);
+	background: var(--ns-surface);
 	border: 1px solid var(--ns-border);
-	clip-path: polygon(var(--ns-cut-xs) 0, 100% 0, 100% calc(100% - var(--ns-cut-xs)), calc(100% - var(--ns-cut-xs)) 100%, 0 100%, 0 var(--ns-cut-xs));
-	box-shadow:
-		inset 0 0 0 1px color-mix(in srgb, var(--ns-text) 10%, transparent),
-		0 0 0 1px color-mix(in srgb, var(--ns-text) 8%, transparent);
+	border-radius: var(--ns-radius-xs);
+	box-shadow: none;
 	cursor: pointer;
 	outline: none;
 	transition:
@@ -339,19 +329,14 @@
 
 .checkbox:hover:not(:disabled) {
 	border-color: var(--ns-border-strong);
-	box-shadow:
-		inset 0 0 0 1px color-mix(in srgb, var(--ns-text) 10%, transparent),
-		0 0 0 1px color-mix(in srgb, var(--ns-text) 10%, transparent),
-		0 0 0.75rem var(--ns-accent-muted);
+	box-shadow: none;
 }
 
 .checkbox:checked {
-	background: linear-gradient(135deg, var(--ns-accent-subtle), transparent 54%), var(--ns-surface-deep);
+	background: var(--ns-accent);
 	border-color: var(--ns-accent-border);
-	box-shadow:
-		inset 0 0 0 1px color-mix(in srgb, var(--ns-text) 10%, transparent),
-		0 0 0 1px color-mix(in srgb, var(--ns-text) 10%, transparent),
-		0 0 1rem var(--ns-accent-glow);
+	color: var(--ns-text-on-accent);
+	box-shadow: none;
 }
 
 .checkbox:checked::before {
@@ -360,10 +345,7 @@
 
 .checkbox[aria-invalid="true"] {
 	border-color: color-mix(in srgb, var(--ns-critical) 74%, transparent);
-	box-shadow:
-		inset 0 0 0 1px color-mix(in srgb, var(--ns-text) 10%, transparent),
-		0 0 0 1px color-mix(in srgb, var(--ns-text) 10%, transparent),
-		0 0 0.85rem color-mix(in srgb, var(--ns-critical) 12%, transparent);
+	box-shadow: none;
 }
 
 .checkbox:disabled {
@@ -378,7 +360,7 @@
 
 .helper,
 .error {
-	font-family: var(--ns-font-mono);
+	font-family: var(--ns-font-sans);
 	font-size: 0.75rem;
 	line-height: 1.5;
 }

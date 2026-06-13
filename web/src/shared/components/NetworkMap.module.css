@@ -1,6 +1,6 @@
 .map {
-	--ns-frame-cut: var(--ns-cut-lg);
-	--ns-frame-color: var(--ns-border-faint);
+	--ns-frame-radius: var(--ns-radius-lg);
+	--ns-frame-color: var(--ns-border);
 	position: relative;
 	min-height: 22rem;
 	background: var(--ns-surface-deep);
@@ -16,9 +16,8 @@
 }
 
 .map :global(.maplibregl-ctrl-group) {
-	border: 1px solid var(--ns-border-faint);
+	border: 1px solid var(--ns-border);
 	background: var(--ns-glass-dark);
-	box-shadow: 0 0 1rem color-mix(in srgb, var(--ns-text) 14%, transparent);
 }
 
 .map :global(.maplibregl-ctrl button) {
@@ -64,18 +63,14 @@
 	padding: 4px 7px;
 	color: var(--ns-text);
 	background: var(--ns-glass-dark);
-	border: 2px solid var(--ns-border-strong);
-	border-radius: 4px;
-	box-shadow: 0 0 18px var(--ns-accent-glow);
-	font-family: var(--ns-font-mono);
-	font-size: 10px;
-	font-weight: 900;
-	letter-spacing: 0.06em;
+	border: 1px solid var(--ns-border);
+	font-family: var(--ns-font-sans);
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0;
 	line-height: 1;
-	text-shadow:
-		0 0 4px var(--ns-bg),
-		0 0 10px var(--ns-bg);
-	text-transform: uppercase;
+	text-shadow: none;
+	text-transform: none;
 	white-space: nowrap;
 }
 
@@ -90,11 +85,10 @@
 }
 
 .markerSquare {
-	width: 11px;
-	height: 11px;
+	width: 0.75rem;
+	height: 0.75rem;
 	background: var(--ns-accent);
 	border: 1px solid var(--ns-border-strong);
-	box-shadow: 0 0 14px 4px var(--ns-accent-glow);
 	outline: 1px solid color-mix(in srgb, var(--ns-bg) 82%, transparent);
 }
 
@@ -104,12 +98,10 @@
 }
 
 .marker[data-active="true"] .markerSquare {
-	width: 14px;
-	height: 14px;
-	border: 3px solid var(--ns-text);
-	box-shadow:
-		0 0 0 2px var(--ns-accent),
-		0 0 24px 8px var(--ns-accent-glow);
+	width: 1rem;
+	height: 1rem;
+	border: 3px solid var(--ns-surface);
+	box-shadow: none;
 	outline: 2px solid var(--ns-bg);
 }
 

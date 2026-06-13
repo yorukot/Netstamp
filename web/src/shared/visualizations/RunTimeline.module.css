@@ -80,7 +80,7 @@
 	height: 0.55rem;
 	background: currentcolor;
 	border: 1px solid var(--ns-border-strong);
-	box-shadow: 0 0 0 3px var(--ns-accent-muted);
+	box-shadow: none;
 	transform: rotate(45deg);
 	transition:
 		width 160ms ease,
@@ -95,9 +95,7 @@
 
 .timelinePoint[data-changed="true"] .timelinePointCore {
 	border-color: var(--ns-warning);
-	box-shadow:
-		0 0 0 3px color-mix(in srgb, var(--ns-warning) 20%, transparent),
-		0 0 18px color-mix(in srgb, var(--ns-warning) 24%, transparent);
+	box-shadow: none;
 }
 
 .timelinePoint:hover .timelinePointCore,
@@ -106,9 +104,7 @@
 	width: 0.9rem;
 	height: 0.9rem;
 	background: var(--ns-text);
-	box-shadow:
-		0 0 0 4px var(--ns-accent-subtle),
-		0 0 22px var(--ns-accent-glow);
+	box-shadow: none;
 }
 
 .timelinePointLabel {

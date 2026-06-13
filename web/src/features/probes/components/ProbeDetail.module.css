@@ -61,7 +61,6 @@
 }
 
 .labelOption {
-	--ns-frame-cut: var(--ns-cut-sm);
 	--ns-frame-color: var(--ns-border-faint);
 	display: grid;
 	grid-template-columns: auto minmax(0, 0.72fr) minmax(0, 1fr);
@@ -175,7 +174,6 @@
 }
 
 .serviceCommandPanel {
-	--ns-frame-cut: var(--ns-cut-sm);
 	--ns-frame-color: color-mix(in srgb, var(--ns-accent) 36%, transparent);
 	display: grid;
 	gap: 0.55rem;
@@ -184,7 +182,6 @@
 }
 
 .secretPanel {
-	--ns-frame-cut: var(--ns-cut-sm);
 	--ns-frame-color: color-mix(in srgb, var(--ns-success) 36%, transparent);
 	display: grid;
 	gap: 0.4rem;

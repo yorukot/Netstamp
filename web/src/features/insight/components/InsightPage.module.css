@@ -22,7 +22,7 @@
 
 .scopeHint {
 	color: var(--ns-text-low);
-	font-family: var(--ns-font-mono);
+	font-family: var(--ns-font-sans);
 	font-size: 0.75rem;
 	line-height: 1.45;
 }
@@ -35,7 +35,6 @@
 
 .scopeSummaryCell {
 	--ns-frame-color: var(--ns-slate-line);
-	--ns-frame-cut: var(--ns-cut-sm);
 	display: grid;
 	gap: 0.35rem;
 	align-content: start;
@@ -43,24 +42,25 @@
 	padding: 0.875rem;
 	background: var(--ns-surface-raised);
 	border: 1px solid var(--ns-frame-color);
-	clip-path: polygon(var(--ns-frame-cut) 0, 100% 0, 100% calc(100% - var(--ns-frame-cut)), calc(100% - var(--ns-frame-cut)) 100%, 0 100%, 0 var(--ns-frame-cut));
+	border-radius: var(--ns-radius-md);
 }
 
 .scopeSummaryCell span,
 .scopeSummaryCell small {
 	color: var(--ns-text-low);
-	font-family: var(--ns-font-mono);
-	font-size: 0.6875rem;
-	font-weight: 800;
-	text-transform: uppercase;
+	font-family: var(--ns-font-sans);
+	font-size: 0.8125rem;
+	font-weight: 650;
+	text-transform: none;
 }
 
 .scopeSummaryCell strong {
 	min-width: 0;
 	color: var(--ns-text);
-	font-family: var(--ns-font-display);
+	font-family: var(--ns-font-sans);
 	font-size: clamp(1.25rem, 2.1vw, 1.85rem);
-	line-height: 1;
+	font-weight: 700;
+	line-height: 1.1;
 	overflow-wrap: anywhere;
 }
 

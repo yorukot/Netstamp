@@ -1,5 +1,4 @@
 .banner {
-	--ns-frame-cut: var(--ns-cut-md);
 	--ns-frame-color: var(--ns-accent-border);
 	position: fixed;
 	right: max(1rem, env(safe-area-inset-right));
@@ -12,7 +11,7 @@
 	padding: 1rem;
 	color: var(--ns-text);
 	background: linear-gradient(135deg, var(--ns-accent-muted), transparent 42%), var(--ns-glass-dark);
-	box-shadow: var(--ns-shadow-md);
+	box-shadow: none;
 }
 
 .copy {
