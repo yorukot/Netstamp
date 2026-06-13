@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"sync"
+	"time"
 
 	"github.com/yorukot/netstamp/internal/agent/scheduling"
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
@@ -40,9 +41,16 @@ type WorkerPool struct {
 	tcp        TCPExecutor
 	traceroute TracerouteExecutor
 	log        *slog.Logger
+	metrics    WorkerMetrics
 }
 
-func NewWorkerPool(maxWorkers int, queue <-chan scheduling.RunRequest, results *ResultQueue, ping PingExecutor, tcp TCPExecutor, traceroute TracerouteExecutor, log *slog.Logger) *WorkerPool {
+type WorkerMetrics interface {
+	IncActiveWorker()
+	DecActiveWorker()
+	ObserveExecutorDuration(checkType string, duration time.Duration)
+}
+
+func NewWorkerPool(maxWorkers int, queue <-chan scheduling.RunRequest, results *ResultQueue, ping PingExecutor, tcp TCPExecutor, traceroute TracerouteExecutor, log *slog.Logger, metrics WorkerMetrics) *WorkerPool {
 	return &WorkerPool{
 		maxWorkers: maxWorkers,
 		queue:      queue,
@@ -51,6 +59,7 @@ func NewWorkerPool(maxWorkers int, queue <-chan scheduling.RunRequest, results *
 		tcp:        tcp,
 		traceroute: traceroute,
 		log:        log,
+		metrics:    metrics,
 	}
 }
 
@@ -94,6 +103,8 @@ func (p *WorkerPool) runOne(ctx context.Context, workerID int, req scheduling.Ru
 			p.log.Warn("skipped ping occurrence without executor", "worker_id", workerID, "assignment_id", req.AssignmentID, "check_id", req.Check.ID)
 			return
 		}
+		done := p.startExecutor(domaincheck.TypePing)
+		defer done()
 		result := p.ping.Execute(ctx, req)
 		p.results.Enqueue(result)
 	case domaincheck.TypeTCP:
@@ -105,6 +116,8 @@ func (p *WorkerPool) runOne(ctx context.Context, workerID int, req scheduling.Ru
 			p.log.Warn("skipped tcp occurrence without executor", "worker_id", workerID, "assignment_id", req.AssignmentID, "check_id", req.Check.ID)
 			return
 		}
+		done := p.startExecutor(domaincheck.TypeTCP)
+		defer done()
 		result := p.tcp.Execute(ctx, req)
 		p.results.Enqueue(result)
 	case domaincheck.TypeTraceroute:
@@ -116,9 +129,24 @@ func (p *WorkerPool) runOne(ctx context.Context, workerID int, req scheduling.Ru
 			p.log.Warn("skipped traceroute occurrence without executor", "worker_id", workerID, "assignment_id", req.AssignmentID, "check_id", req.Check.ID)
 			return
 		}
+		done := p.startExecutor(domaincheck.TypeTraceroute)
+		defer done()
 		result := p.traceroute.Execute(ctx, req)
 		p.results.Enqueue(result)
 	default:
 		p.log.Warn("skipped unsupported check type", "worker_id", workerID, "assignment_id", req.AssignmentID, "check_id", req.Check.ID, "check_type", req.Check.Type)
+	}
+}
+
+func (p *WorkerPool) startExecutor(checkType domaincheck.Type) func() {
+	if p.metrics == nil {
+		return func() {}
+	}
+
+	p.metrics.IncActiveWorker()
+	startedAt := time.Now()
+	return func() {
+		p.metrics.DecActiveWorker()
+		p.metrics.ObserveExecutorDuration(string(checkType), time.Since(startedAt))
 	}
 }

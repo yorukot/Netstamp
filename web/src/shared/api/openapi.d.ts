@@ -1884,46 +1884,13 @@ export interface components {
 		/**
 		 * @example {
 		 *       "serverTime": "2026-05-13T10:00:00Z",
-		 *       "config": {
-		 *         "heartbeatIntervalSeconds": 30,
-		 *         "assignmentPollIntervalSeconds": 30,
-		 *         "maxConcurrentWorkers": 16,
-		 *         "initialBackoffSeconds": 1,
-		 *         "maxBackoffSeconds": 30,
-		 *         "maxAttempts": 5
-		 *       },
 		 *       "assignments": []
 		 *     }
 		 */
 		RuntimeAssignmentsResponse: {
 			/** Format: date-time */
 			serverTime: string;
-			config: components["schemas"]["RuntimeConfig"];
 			assignments: components["schemas"]["Assignment"][];
-		};
-		/**
-		 * @example {
-		 *       "heartbeatIntervalSeconds": 30,
-		 *       "assignmentPollIntervalSeconds": 30,
-		 *       "maxConcurrentWorkers": 16,
-		 *       "initialBackoffSeconds": 1,
-		 *       "maxBackoffSeconds": 30,
-		 *       "maxAttempts": 5
-		 *     }
-		 */
-		RuntimeConfig: {
-			/** Format: int32 */
-			heartbeatIntervalSeconds: number;
-			/** Format: int32 */
-			assignmentPollIntervalSeconds: number;
-			/** Format: int32 */
-			maxConcurrentWorkers: number;
-			/** Format: int32 */
-			initialBackoffSeconds: number;
-			/** Format: int32 */
-			maxBackoffSeconds: number;
-			/** Format: int32 */
-			maxAttempts: number;
 		};
 		/**
 		 * @example {
@@ -1937,22 +1904,13 @@ export interface components {
 		/**
 		 * @example {
 		 *       "serverTime": "2026-05-13T10:00:00Z",
-		 *       "minimumSupportedAgentVersion": "0.1.0",
-		 *       "config": {
-		 *         "heartbeatIntervalSeconds": 30,
-		 *         "assignmentPollIntervalSeconds": 30,
-		 *         "maxConcurrentWorkers": 16,
-		 *         "initialBackoffSeconds": 1,
-		 *         "maxBackoffSeconds": 30,
-		 *         "maxAttempts": 5
-		 *       }
+		 *       "minimumSupportedAgentVersion": "0.1.0"
 		 *     }
 		 */
 		RuntimeHelloResponse: {
 			/** Format: date-time */
 			serverTime: string;
 			minimumSupportedAgentVersion: string;
-			config: components["schemas"]["RuntimeConfig"];
 		};
 		/**
 		 * @example {

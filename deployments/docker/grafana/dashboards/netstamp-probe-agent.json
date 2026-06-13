@@ -1,0 +1,694 @@
+{
+	"annotations": {
+		"list": [
+			{
+				"builtIn": 1,
+				"datasource": {
+					"type": "grafana",
+					"uid": "-- Grafana --"
+				},
+				"enable": true,
+				"hide": true,
+				"iconColor": "rgba(0, 211, 255, 1)",
+				"name": "Annotations & Alerts",
+				"type": "dashboard"
+			}
+		]
+	},
+	"editable": true,
+	"fiscalYearStartMonth": 0,
+	"graphTooltip": 0,
+	"id": null,
+	"links": [],
+	"liveNow": false,
+	"panels": [
+		{
+			"datasource": {
+				"type": "prometheus",
+				"uid": "victoria-metrics"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"color": {
+						"mode": "thresholds"
+					},
+					"mappings": [
+						{
+							"options": {
+								"0": {
+									"color": "red",
+									"text": "Down"
+								},
+								"1": {
+									"color": "green",
+									"text": "Up"
+								}
+							},
+							"type": "value"
+						}
+					],
+					"thresholds": {
+						"mode": "absolute",
+						"steps": [
+							{
+								"color": "red",
+								"value": null
+							},
+							{
+								"color": "green",
+								"value": 1
+							}
+						]
+					},
+					"unit": "none"
+				},
+				"overrides": []
+			},
+			"gridPos": {
+				"h": 4,
+				"w": 6,
+				"x": 0,
+				"y": 0
+			},
+			"id": 1,
+			"options": {
+				"colorMode": "background",
+				"graphMode": "none",
+				"justifyMode": "center",
+				"orientation": "auto",
+				"reduceOptions": {
+					"calcs": ["lastNotNull"],
+					"fields": "",
+					"values": false
+				},
+				"textMode": "auto",
+				"wideLayout": true
+			},
+			"pluginVersion": "13.0.0",
+			"targets": [
+				{
+					"datasource": {
+						"type": "prometheus",
+						"uid": "victoria-metrics"
+					},
+					"editorMode": "code",
+					"expr": "max(up{job=\"probe-agent\",instance=~\"$Instance\"})",
+					"legendFormat": "scrape",
+					"range": true,
+					"refId": "A"
+				}
+			],
+			"title": "Probe Agent Scrape",
+			"type": "stat"
+		},
+		{
+			"datasource": {
+				"type": "prometheus",
+				"uid": "victoria-metrics"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "short"
+				},
+				"overrides": []
+			},
+			"gridPos": {
+				"h": 4,
+				"w": 6,
+				"x": 6,
+				"y": 0
+			},
+			"id": 2,
+			"options": {
+				"colorMode": "value",
+				"graphMode": "area",
+				"justifyMode": "center",
+				"orientation": "auto",
+				"reduceOptions": {
+					"calcs": ["lastNotNull"],
+					"fields": "",
+					"values": false
+				},
+				"textMode": "auto",
+				"wideLayout": true
+			},
+			"pluginVersion": "13.0.0",
+			"targets": [
+				{
+					"datasource": {
+						"type": "prometheus",
+						"uid": "victoria-metrics"
+					},
+					"editorMode": "code",
+					"expr": "sum(netstamp_probe_worker_active{job=\"probe-agent\",instance=~\"$Instance\"})",
+					"legendFormat": "active",
+					"range": true,
+					"refId": "A"
+				}
+			],
+			"title": "Active Workers",
+			"type": "stat"
+		},
+		{
+			"datasource": {
+				"type": "prometheus",
+				"uid": "victoria-metrics"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "percentunit"
+				},
+				"overrides": []
+			},
+			"gridPos": {
+				"h": 4,
+				"w": 6,
+				"x": 12,
+				"y": 0
+			},
+			"id": 3,
+			"options": {
+				"colorMode": "value",
+				"graphMode": "area",
+				"justifyMode": "center",
+				"orientation": "auto",
+				"reduceOptions": {
+					"calcs": ["lastNotNull"],
+					"fields": "",
+					"values": false
+				},
+				"textMode": "auto",
+				"wideLayout": true
+			},
+			"pluginVersion": "13.0.0",
+			"targets": [
+				{
+					"datasource": {
+						"type": "prometheus",
+						"uid": "victoria-metrics"
+					},
+					"editorMode": "code",
+					"expr": "sum(netstamp_probe_worker_queue_depth{job=\"probe-agent\",instance=~\"$Instance\"}) / clamp_min(sum(netstamp_probe_worker_queue_capacity{job=\"probe-agent\",instance=~\"$Instance\"}), 1)",
+					"legendFormat": "worker queue",
+					"range": true,
+					"refId": "A"
+				}
+			],
+			"title": "Worker Queue Usage",
+			"type": "stat"
+		},
+		{
+			"datasource": {
+				"type": "prometheus",
+				"uid": "victoria-metrics"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "percentunit"
+				},
+				"overrides": []
+			},
+			"gridPos": {
+				"h": 4,
+				"w": 6,
+				"x": 18,
+				"y": 0
+			},
+			"id": 4,
+			"options": {
+				"colorMode": "value",
+				"graphMode": "area",
+				"justifyMode": "center",
+				"orientation": "auto",
+				"reduceOptions": {
+					"calcs": ["lastNotNull"],
+					"fields": "",
+					"values": false
+				},
+				"textMode": "auto",
+				"wideLayout": true
+			},
+			"pluginVersion": "13.0.0",
+			"targets": [
+				{
+					"datasource": {
+						"type": "prometheus",
+						"uid": "victoria-metrics"
+					},
+					"editorMode": "code",
+					"expr": "sum(netstamp_probe_result_queue_depth{job=\"probe-agent\",instance=~\"$Instance\"}) / clamp_min(sum(netstamp_probe_result_queue_capacity{job=\"probe-agent\",instance=~\"$Instance\"}), 1)",
+					"legendFormat": "result queue",
+					"range": true,
+					"refId": "A"
+				}
+			],
+			"title": "Result Queue Usage",
+			"type": "stat"
+		},
+		{
+			"datasource": {
+				"type": "prometheus",
+				"uid": "victoria-metrics"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"custom": {
+						"drawStyle": "line",
+						"fillOpacity": 10,
+						"lineInterpolation": "linear",
+						"lineWidth": 1,
+						"showPoints": "never",
+						"spanNulls": false
+					},
+					"unit": "ops"
+				},
+				"overrides": []
+			},
+			"gridPos": {
+				"h": 8,
+				"w": 12,
+				"x": 0,
+				"y": 4
+			},
+			"id": 5,
+			"options": {
+				"legend": {
+					"calcs": ["lastNotNull"],
+					"displayMode": "table",
+					"placement": "bottom",
+					"showLegend": true
+				},
+				"tooltip": {
+					"mode": "multi",
+					"sort": "none"
+				}
+			},
+			"pluginVersion": "13.0.0",
+			"targets": [
+				{
+					"datasource": {
+						"type": "prometheus",
+						"uid": "victoria-metrics"
+					},
+					"editorMode": "code",
+					"expr": "sum(rate(netstamp_probe_scheduled_runs_total{job=\"probe-agent\",instance=~\"$Instance\"}[$__rate_interval]))",
+					"legendFormat": "scheduled",
+					"range": true,
+					"refId": "A"
+				},
+				{
+					"datasource": {
+						"type": "prometheus",
+						"uid": "victoria-metrics"
+					},
+					"editorMode": "code",
+					"expr": "sum by (reason) (rate(netstamp_probe_skipped_runs_total{job=\"probe-agent\",instance=~\"$Instance\"}[$__rate_interval]))",
+					"legendFormat": "skipped {{reason}}",
+					"range": true,
+					"refId": "B"
+				}
+			],
+			"title": "Scheduled vs Skipped Runs",
+			"type": "timeseries"
+		},
+		{
+			"datasource": {
+				"type": "prometheus",
+				"uid": "victoria-metrics"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"custom": {
+						"drawStyle": "line",
+						"fillOpacity": 10,
+						"lineInterpolation": "linear",
+						"lineWidth": 1,
+						"showPoints": "never",
+						"spanNulls": false
+					},
+					"unit": "ops"
+				},
+				"overrides": []
+			},
+			"gridPos": {
+				"h": 8,
+				"w": 12,
+				"x": 12,
+				"y": 4
+			},
+			"id": 6,
+			"options": {
+				"legend": {
+					"calcs": ["lastNotNull"],
+					"displayMode": "table",
+					"placement": "bottom",
+					"showLegend": true
+				},
+				"tooltip": {
+					"mode": "multi",
+					"sort": "none"
+				}
+			},
+			"pluginVersion": "13.0.0",
+			"targets": [
+				{
+					"datasource": {
+						"type": "prometheus",
+						"uid": "victoria-metrics"
+					},
+					"editorMode": "code",
+					"expr": "sum by (reason) (rate(netstamp_probe_dropped_results_total{job=\"probe-agent\",instance=~\"$Instance\"}[$__rate_interval]))",
+					"legendFormat": "{{reason}}",
+					"range": true,
+					"refId": "A"
+				}
+			],
+			"title": "Dropped Results",
+			"type": "timeseries"
+		},
+		{
+			"datasource": {
+				"type": "prometheus",
+				"uid": "victoria-metrics"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"custom": {
+						"drawStyle": "line",
+						"fillOpacity": 10,
+						"lineInterpolation": "linear",
+						"lineWidth": 1,
+						"showPoints": "never",
+						"spanNulls": false
+					},
+					"unit": "s"
+				},
+				"overrides": []
+			},
+			"gridPos": {
+				"h": 8,
+				"w": 12,
+				"x": 0,
+				"y": 12
+			},
+			"id": 7,
+			"options": {
+				"legend": {
+					"calcs": ["lastNotNull"],
+					"displayMode": "table",
+					"placement": "bottom",
+					"showLegend": true
+				},
+				"tooltip": {
+					"mode": "multi",
+					"sort": "none"
+				}
+			},
+			"pluginVersion": "13.0.0",
+			"targets": [
+				{
+					"datasource": {
+						"type": "prometheus",
+						"uid": "victoria-metrics"
+					},
+					"editorMode": "code",
+					"expr": "histogram_quantile(0.50, sum by (le, check_type) (rate(netstamp_probe_executor_duration_seconds_bucket{job=\"probe-agent\",instance=~\"$Instance\",check_type=~\"$CheckType\"}[$__rate_interval])))",
+					"legendFormat": "p50 {{check_type}}",
+					"range": true,
+					"refId": "A"
+				},
+				{
+					"datasource": {
+						"type": "prometheus",
+						"uid": "victoria-metrics"
+					},
+					"editorMode": "code",
+					"expr": "histogram_quantile(0.95, sum by (le, check_type) (rate(netstamp_probe_executor_duration_seconds_bucket{job=\"probe-agent\",instance=~\"$Instance\",check_type=~\"$CheckType\"}[$__rate_interval])))",
+					"legendFormat": "p95 {{check_type}}",
+					"range": true,
+					"refId": "B"
+				}
+			],
+			"title": "Executor Duration",
+			"type": "timeseries"
+		},
+		{
+			"datasource": {
+				"type": "prometheus",
+				"uid": "victoria-metrics"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"custom": {
+						"drawStyle": "line",
+						"fillOpacity": 10,
+						"lineInterpolation": "linear",
+						"lineWidth": 1,
+						"showPoints": "never",
+						"spanNulls": false
+					},
+					"unit": "short"
+				},
+				"overrides": []
+			},
+			"gridPos": {
+				"h": 8,
+				"w": 12,
+				"x": 12,
+				"y": 12
+			},
+			"id": 8,
+			"options": {
+				"legend": {
+					"calcs": ["lastNotNull"],
+					"displayMode": "table",
+					"placement": "bottom",
+					"showLegend": true
+				},
+				"tooltip": {
+					"mode": "multi",
+					"sort": "none"
+				}
+			},
+			"pluginVersion": "13.0.0",
+			"targets": [
+				{
+					"datasource": {
+						"type": "prometheus",
+						"uid": "victoria-metrics"
+					},
+					"editorMode": "code",
+					"expr": "sum(rate(netstamp_probe_result_submit_failures_total{job=\"probe-agent\",instance=~\"$Instance\"}[$__rate_interval]))",
+					"legendFormat": "failures",
+					"range": true,
+					"refId": "A"
+				},
+				{
+					"datasource": {
+						"type": "prometheus",
+						"uid": "victoria-metrics"
+					},
+					"editorMode": "code",
+					"expr": "sum(rate(netstamp_probe_result_submit_retries_total{job=\"probe-agent\",instance=~\"$Instance\"}[$__rate_interval]))",
+					"legendFormat": "retries",
+					"range": true,
+					"refId": "B"
+				},
+				{
+					"datasource": {
+						"type": "prometheus",
+						"uid": "victoria-metrics"
+					},
+					"editorMode": "code",
+					"expr": "histogram_quantile(0.95, sum by (le) (rate(netstamp_probe_result_submit_batch_size_bucket{job=\"probe-agent\",instance=~\"$Instance\"}[$__rate_interval])))",
+					"legendFormat": "batch size p95",
+					"range": true,
+					"refId": "C"
+				}
+			],
+			"title": "Result Submit Health",
+			"type": "timeseries"
+		},
+		{
+			"datasource": {
+				"type": "prometheus",
+				"uid": "victoria-metrics"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"custom": {
+						"drawStyle": "line",
+						"fillOpacity": 10,
+						"lineInterpolation": "linear",
+						"lineWidth": 1,
+						"showPoints": "never",
+						"spanNulls": false
+					},
+					"unit": "short"
+				},
+				"overrides": []
+			},
+			"gridPos": {
+				"h": 8,
+				"w": 12,
+				"x": 0,
+				"y": 20
+			},
+			"id": 9,
+			"options": {
+				"legend": {
+					"calcs": ["lastNotNull"],
+					"displayMode": "table",
+					"placement": "bottom",
+					"showLegend": true
+				},
+				"tooltip": {
+					"mode": "multi",
+					"sort": "none"
+				}
+			},
+			"pluginVersion": "13.0.0",
+			"targets": [
+				{
+					"datasource": {
+						"type": "prometheus",
+						"uid": "victoria-metrics"
+					},
+					"editorMode": "code",
+					"expr": "go_goroutines{job=\"probe-agent\",instance=~\"$Instance\"}",
+					"legendFormat": "goroutines",
+					"range": true,
+					"refId": "A"
+				}
+			],
+			"title": "Goroutines",
+			"type": "timeseries"
+		},
+		{
+			"datasource": {
+				"type": "prometheus",
+				"uid": "victoria-metrics"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"custom": {
+						"drawStyle": "line",
+						"fillOpacity": 10,
+						"lineInterpolation": "linear",
+						"lineWidth": 1,
+						"showPoints": "never",
+						"spanNulls": false
+					},
+					"unit": "bytes"
+				},
+				"overrides": []
+			},
+			"gridPos": {
+				"h": 8,
+				"w": 12,
+				"x": 12,
+				"y": 20
+			},
+			"id": 10,
+			"options": {
+				"legend": {
+					"calcs": ["lastNotNull"],
+					"displayMode": "table",
+					"placement": "bottom",
+					"showLegend": true
+				},
+				"tooltip": {
+					"mode": "multi",
+					"sort": "none"
+				}
+			},
+			"pluginVersion": "13.0.0",
+			"targets": [
+				{
+					"datasource": {
+						"type": "prometheus",
+						"uid": "victoria-metrics"
+					},
+					"editorMode": "code",
+					"expr": "go_memstats_heap_alloc_bytes{job=\"probe-agent\",instance=~\"$Instance\"}",
+					"legendFormat": "heap alloc",
+					"range": true,
+					"refId": "A"
+				}
+			],
+			"title": "Heap Allocation",
+			"type": "timeseries"
+		}
+	],
+	"refresh": "10s",
+	"schemaVersion": 41,
+	"tags": ["netstamp", "probe-agent"],
+	"templating": {
+		"list": [
+			{
+				"current": {
+					"selected": true,
+					"text": "All",
+					"value": ".*"
+				},
+				"datasource": {
+					"type": "prometheus",
+					"uid": "victoria-metrics"
+				},
+				"definition": "label_values(up{job=\"probe-agent\"}, instance)",
+				"hide": 0,
+				"includeAll": true,
+				"label": "Instance",
+				"multi": false,
+				"name": "Instance",
+				"options": [],
+				"query": {
+					"query": "label_values(up{job=\"probe-agent\"}, instance)",
+					"refId": "VictoriaMetricsVariableQueryEditor-VariableQuery"
+				},
+				"refresh": 1,
+				"regex": "",
+				"skipUrlSync": false,
+				"sort": 1,
+				"type": "query"
+			},
+			{
+				"current": {
+					"selected": true,
+					"text": "All",
+					"value": ".*"
+				},
+				"datasource": {
+					"type": "prometheus",
+					"uid": "victoria-metrics"
+				},
+				"definition": "label_values(netstamp_probe_executor_duration_seconds_count{job=\"probe-agent\"}, check_type)",
+				"hide": 0,
+				"includeAll": true,
+				"label": "Check Type",
+				"multi": true,
+				"name": "CheckType",
+				"options": [],
+				"query": {
+					"query": "label_values(netstamp_probe_executor_duration_seconds_count{job=\"probe-agent\"}, check_type)",
+					"refId": "VictoriaMetricsVariableQueryEditor-VariableQuery"
+				},
+				"refresh": 1,
+				"regex": "",
+				"skipUrlSync": false,
+				"sort": 1,
+				"type": "query"
+			}
+		]
+	},
+	"time": {
+		"from": "now-1h",
+		"to": "now"
+	},
+	"timepicker": {},
+	"timezone": "browser",
+	"title": "Netstamp Probe Agent",
+	"uid": "netstamp-probe-agent",
+	"version": 1,
+	"weekStart": ""
+}

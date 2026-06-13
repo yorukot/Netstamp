@@ -5,7 +5,6 @@ import (
 	"time"
 
 	domainassignment "github.com/yorukot/netstamp/internal/domain/assignment"
-	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
 )
 
 type RuntimeAuthInput struct {
@@ -32,7 +31,6 @@ type IPFamilyCapabilitiesInput struct {
 type HelloOutput struct {
 	ServerTime                   time.Time
 	MinimumSupportedAgentVersion string
-	Config                       domainprobe.RuntimeConfig
 }
 
 type HeartbeatOutput struct {
@@ -41,7 +39,6 @@ type HeartbeatOutput struct {
 
 type ListAssignmentsOutput struct {
 	ServerTime  time.Time
-	Config      domainprobe.RuntimeConfig
 	Assignments []domainassignment.Assignment
 }
 

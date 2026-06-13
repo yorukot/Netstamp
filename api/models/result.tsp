@@ -616,12 +616,10 @@ model RuntimeIPFamilyCapabilitiesRequest {
 @example(#{
 	serverTime: utcDateTime.fromISO("2026-05-13T10:00:00Z"),
 	minimumSupportedAgentVersion: "0.1.0",
-	config: #{ heartbeatIntervalSeconds: 30, assignmentPollIntervalSeconds: 30, maxConcurrentWorkers: 16, initialBackoffSeconds: 1, maxBackoffSeconds: 30, maxAttempts: 5 },
 })
 model RuntimeHelloResponse {
 	serverTime: utcDateTime;
 	minimumSupportedAgentVersion: string;
-	config: RuntimeConfig;
 }
 
 @example(#{ serverTime: utcDateTime.fromISO("2026-05-13T10:00:00Z") })
@@ -636,11 +634,9 @@ model RuntimeIPFamilyCapabilitiesResponse {
 
 @example(#{
 	serverTime: utcDateTime.fromISO("2026-05-13T10:00:00Z"),
-	config: #{ heartbeatIntervalSeconds: 30, assignmentPollIntervalSeconds: 30, maxConcurrentWorkers: 16, initialBackoffSeconds: 1, maxBackoffSeconds: 30, maxAttempts: 5 },
 	assignments: #[],
 })
 model RuntimeAssignmentsResponse {
 	serverTime: utcDateTime;
-	config: RuntimeConfig;
 	assignments: Assignment[];
 }

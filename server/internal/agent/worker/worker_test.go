@@ -23,7 +23,7 @@ func TestWorkerRunsTracerouteExecutor(t *testing.T) {
 			Status: domaintraceroute.StatusSuccessful,
 		},
 	}}
-	pool := NewWorkerPool(1, nil, queue, nil, nil, executor, discardWorkerLogger())
+	pool := NewWorkerPool(1, nil, queue, nil, nil, executor, discardWorkerLogger(), nil)
 
 	pool.runOne(context.Background(), 1, scheduling.RunRequest{
 		Check: domaincheck.Check{
@@ -53,7 +53,7 @@ func TestWorkerRunsTCPExecutor(t *testing.T) {
 			Status: domaintcp.StatusSuccessful,
 		},
 	}}
-	pool := NewWorkerPool(1, nil, queue, nil, executor, nil, discardWorkerLogger())
+	pool := NewWorkerPool(1, nil, queue, nil, executor, nil, discardWorkerLogger(), nil)
 
 	pool.runOne(context.Background(), 1, scheduling.RunRequest{
 		Check: domaincheck.Check{
@@ -70,6 +70,19 @@ func TestWorkerRunsTCPExecutor(t *testing.T) {
 	results := queue.Drain(1)
 	if len(results) != 1 || results[0].Type != domaincheck.TypeTCP || results[0].TCP.Status != domaintcp.StatusSuccessful {
 		t.Fatalf("unexpected queued result: %#v", results)
+	}
+}
+
+func TestResultQueueRecordsDrops(t *testing.T) {
+	queue := NewResultQueue(1, discardWorkerLogger())
+	metrics := &fakeResultQueueMetrics{}
+	queue.SetMetrics(metrics)
+
+	queue.Enqueue(ResultEnvelope{CheckID: "first", Type: domaincheck.TypePing})
+	queue.Enqueue(ResultEnvelope{CheckID: "second", Type: domaincheck.TypePing})
+
+	if metrics.dropped["result_queue_full"] != 1 {
+		t.Fatalf("expected result_queue_full drop to be recorded once, got %#v", metrics.dropped)
 	}
 }
 
@@ -91,6 +104,17 @@ type fakeTracerouteExecutor struct {
 func (e *fakeTracerouteExecutor) Execute(context.Context, scheduling.RunRequest) ResultEnvelope {
 	e.called++
 	return e.result
+}
+
+type fakeResultQueueMetrics struct {
+	dropped map[string]int
+}
+
+func (m *fakeResultQueueMetrics) IncDroppedResult(reason string) {
+	if m.dropped == nil {
+		m.dropped = make(map[string]int)
+	}
+	m.dropped[reason]++
 }
 
 func discardWorkerLogger() *slog.Logger {

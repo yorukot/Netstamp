@@ -455,11 +455,13 @@ docker compose -f deployments/docker/compose.backend.dev.yaml up -d victoria-tra
 Default local endpoints:
 
 - Controller metrics: `http://localhost:8080/metrics`
+- Probe agent metrics, when enabled with `NETSTAMP_PROBE_METRICS_ADDR=127.0.0.1:9091`: `http://127.0.0.1:9091/metrics`
+- Probe agent pprof, when enabled with `NETSTAMP_PROBE_PPROF_ADDR=127.0.0.1:6060`: `http://127.0.0.1:6060/debug/pprof/`
 - VictoriaMetrics: `http://127.0.0.1:8428`
 - VictoriaTraces: `http://localhost:10428`
 - Grafana: `http://127.0.0.1:3000`
 
-Grafana provisions the `Netstamp Controller Status` and `Netstamp PostgreSQL Exporter` dashboards on startup, using the controller status dashboard as the default home dashboard. The PostgreSQL dashboard is adapted from Grafana dashboard 12485 and uses the `postgres-exporter` scrape target. For the local stack, sign in with `admin` / `admin` unless `GF_SECURITY_ADMIN_USER` or `GF_SECURITY_ADMIN_PASSWORD` is overridden.
+Grafana provisions the `Netstamp Controller Status`, `Netstamp PostgreSQL Exporter`, and `Netstamp Probe Agent` dashboards on startup, using the controller status dashboard as the default home dashboard. The probe dashboard expects a VictoriaMetrics scrape job named `probe-agent`; add that scrape target for the probe hosts you want to monitor. The PostgreSQL dashboard is adapted from Grafana dashboard 12485 and uses the `postgres-exporter` scrape target. For the local stack, sign in with `admin` / `admin` unless `GF_SECURITY_ADMIN_USER` or `GF_SECURITY_ADMIN_PASSWORD` is overridden.
 
 The backend writes structured Zap logs and records application events for auth, projects, labels, checks, probes, and probe runtime workflows.
 

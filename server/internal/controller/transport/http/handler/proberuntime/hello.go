@@ -3,8 +3,6 @@ package proberuntime
 import (
 	"context"
 	"time"
-
-	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
 )
 
 func (h *Handler) hello(ctx context.Context, input *helloInput) (*helloOutput, error) {
@@ -20,7 +18,6 @@ func (h *Handler) hello(ctx context.Context, input *helloInput) (*helloOutput, e
 	return &helloOutput{Body: helloOutputBody{
 		ServerTime:                   output.ServerTime,
 		MinimumSupportedAgentVersion: output.MinimumSupportedAgentVersion,
-		Config:                       output.Config,
 	}}, nil
 }
 
@@ -33,7 +30,6 @@ type helloOutput struct {
 }
 
 type helloOutputBody struct {
-	ServerTime                   time.Time                 `json:"serverTime"`
-	MinimumSupportedAgentVersion string                    `json:"minimumSupportedAgentVersion"`
-	Config                       domainprobe.RuntimeConfig `json:"config"`
+	ServerTime                   time.Time `json:"serverTime"`
+	MinimumSupportedAgentVersion string    `json:"minimumSupportedAgentVersion"`
 }

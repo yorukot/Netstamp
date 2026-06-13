@@ -84,7 +84,7 @@ func TestHelloRecordsDisabledProbe(t *testing.T) {
 	})
 }
 
-func TestHelloReturnsRuntimeConfigWithoutUpdatingStatus(t *testing.T) {
+func TestHelloReturnsVersionWithoutUpdatingStatus(t *testing.T) {
 	probes := &fakeProbeRepository{}
 	recorder := &recordingProbeRuntimeEventRecorder{}
 	service := NewService(probes, &fakePingResultRepository{}, &fakeTracerouteResultRepository{}, fakeSecretVerifier{valid: true}, recorder)
@@ -101,9 +101,6 @@ func TestHelloReturnsRuntimeConfigWithoutUpdatingStatus(t *testing.T) {
 	}
 	if output.MinimumSupportedAgentVersion != domainprobe.DefaultMinimumSupportedAgentVersion {
 		t.Fatalf("expected minimum supported version %q, got %q", domainprobe.DefaultMinimumSupportedAgentVersion, output.MinimumSupportedAgentVersion)
-	}
-	if output.Config != domainprobe.DefaultRuntimeConfig() {
-		t.Fatalf("unexpected runtime config: %#v", output.Config)
 	}
 	if probes.gotStatus.ProbeID != "" {
 		t.Fatalf("expected hello not to update status, got %#v", probes.gotStatus)
@@ -236,9 +233,6 @@ func TestListAssignmentsAuthenticatesProbe(t *testing.T) {
 	}
 	if output.ServerTime.IsZero() {
 		t.Fatal("expected server time")
-	}
-	if output.Config != domainprobe.DefaultRuntimeConfig() {
-		t.Fatalf("unexpected runtime config: %#v", output.Config)
 	}
 	if output.Assignments[0].Check == nil || output.Assignments[0].Check.Type != domaincheck.TypePing {
 		t.Fatalf("expected domain check data on assignment, got %#v", output.Assignments[0])

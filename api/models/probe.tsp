@@ -168,27 +168,6 @@ model UpdateProbeRequest {
 	labelIds?: uuid[];
 }
 
-@example(#{ heartbeatIntervalSeconds: 30, assignmentPollIntervalSeconds: 30, maxConcurrentWorkers: 16, initialBackoffSeconds: 1, maxBackoffSeconds: 30, maxAttempts: 5 })
-model RuntimeConfig {
-	@minValue(1)
-	heartbeatIntervalSeconds: int32;
-
-	@minValue(1)
-	assignmentPollIntervalSeconds: int32;
-
-	@minValue(1)
-	maxConcurrentWorkers: int32;
-
-	@minValue(1)
-	initialBackoffSeconds: int32;
-
-	@minValue(1)
-	maxBackoffSeconds: int32;
-
-	@minValue(1)
-	maxAttempts: int32;
-}
-
 @example(#{
 	id: "77777777-7777-7777-7777-777777777777",
 	projectId: "22222222-2222-2222-2222-222222222222",

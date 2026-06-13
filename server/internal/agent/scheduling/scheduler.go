@@ -13,14 +13,21 @@ type Scheduler struct {
 	workerQueue chan<- RunRequest
 	log         *slog.Logger
 	wake        chan struct{}
+	metrics     Metrics
 }
 
-func NewScheduler(store *AssignmentStore, workerQueue chan<- RunRequest, log *slog.Logger) *Scheduler {
+type Metrics interface {
+	IncScheduledRun()
+	IncSkippedRun(reason string)
+}
+
+func NewScheduler(store *AssignmentStore, workerQueue chan<- RunRequest, log *slog.Logger, metrics Metrics) *Scheduler {
 	return &Scheduler{
 		store:       store,
 		workerQueue: workerQueue,
 		log:         log,
 		wake:        make(chan struct{}, 1),
+		metrics:     metrics,
 	}
 }
 
@@ -118,7 +125,13 @@ func (s *Scheduler) rebuildHeap(items *scheduleHeap) {
 }
 
 func (s *Scheduler) dispatchOrSkip(task TaskState, scheduledAt, now time.Time) {
+	if s.metrics != nil {
+		s.metrics.IncScheduledRun()
+	}
 	if IsTooLate(scheduledAt, now, task.Check.IntervalTime()) {
+		if s.metrics != nil {
+			s.metrics.IncSkippedRun("late")
+		}
 		s.log.Debug("skipped late occurrence", "assignment_id", task.AssignmentID, "check_id", task.Check.ID, "scheduled_at", scheduledAt, "interval", task.Check.IntervalTime())
 		return
 	}
@@ -127,6 +140,9 @@ func (s *Scheduler) dispatchOrSkip(task TaskState, scheduledAt, now time.Time) {
 	select {
 	case s.workerQueue <- request:
 	default:
+		if s.metrics != nil {
+			s.metrics.IncSkippedRun("worker_queue_full")
+		}
 		s.log.Warn("skipped occurrence because worker queue is full", "assignment_id", task.AssignmentID, "check_id", task.Check.ID, "check_type", task.Check.Type, "scheduled_at", scheduledAt)
 	}
 }

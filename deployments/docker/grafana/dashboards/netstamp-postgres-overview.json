@@ -709,7 +709,7 @@
 				"uid": "victoria-metrics"
 			},
 			"decimals": 2,
-			"description": "Size of all databases in $Instance.\n\nSource: pg_database_size()",
+			"description": "Total database storage for $Instance.\n\nSource: pg_database_size()",
 			"fieldConfig": {
 				"defaults": {
 					"custom": {}
@@ -776,7 +776,7 @@
 			"thresholds": "",
 			"timeFrom": null,
 			"timeShift": null,
-			"title": "Total database size",
+			"title": "Total storage",
 			"type": "singlestat",
 			"valueFontSize": "80%",
 			"valueMaps": [

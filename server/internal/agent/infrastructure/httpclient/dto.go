@@ -8,15 +8,13 @@ import (
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
 	domainnetwork "github.com/yorukot/netstamp/internal/domain/network"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
-	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
 	domaintcp "github.com/yorukot/netstamp/internal/domain/tcp"
 	domaintraceroute "github.com/yorukot/netstamp/internal/domain/traceroute"
 )
 
 type HelloResponse struct {
-	ServerTime                   time.Time                 `json:"serverTime"`
-	MinimumSupportedAgentVersion string                    `json:"minimumSupportedAgentVersion"`
-	Config                       domainprobe.RuntimeConfig `json:"config"`
+	ServerTime                   time.Time `json:"serverTime"`
+	MinimumSupportedAgentVersion string    `json:"minimumSupportedAgentVersion"`
 }
 
 type HeartbeatInput struct {
@@ -41,7 +39,6 @@ type IPFamilyCapabilitiesResponse struct {
 
 type AssignmentsResponse struct {
 	ServerTime  time.Time                     `json:"serverTime"`
-	Config      domainprobe.RuntimeConfig     `json:"config"`
 	Assignments []domainassignment.Assignment `json:"assignments"`
 }
 

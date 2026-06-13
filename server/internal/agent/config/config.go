@@ -14,15 +14,20 @@ import (
 )
 
 const (
-	DefaultHTTPTimeout         = 10 * time.Second
-	DefaultMaxWorkers          = 256
-	DefaultResultQueueSize     = 10000
-	DefaultResultBatchSize     = 100
-	DefaultResultFlushInterval = 5 * time.Second
-	DefaultAssignmentTTL       = 10 * time.Minute
-	DefaultShutdownTimeout     = 10 * time.Second
-	DefaultAPIVersion          = "v1"
-	DefaultLogLevel            = slog.LevelInfo
+	DefaultHTTPTimeout            = 10 * time.Second
+	DefaultMaxWorkers             = 128
+	DefaultResultQueueSize        = 10000
+	DefaultResultBatchSize        = 100
+	DefaultResultFlushInterval    = 5 * time.Second
+	DefaultAssignmentTTL          = 10 * time.Minute
+	DefaultShutdownTimeout        = 10 * time.Second
+	DefaultHeartbeatInterval      = 30 * time.Second
+	DefaultAssignmentPollInterval = 30 * time.Second
+	DefaultInitialBackoff         = time.Second
+	DefaultMaxBackoff             = 30 * time.Second
+	DefaultMaxAttempts            = 5
+	DefaultAPIVersion             = "v1"
+	DefaultLogLevel               = slog.LevelInfo
 )
 
 type Config struct {
@@ -45,6 +50,8 @@ type Config struct {
 	InitialBackoff         ConfigValue[time.Duration]
 	MaxBackoff             ConfigValue[time.Duration]
 	MaxAttempts            ConfigValue[int]
+	PprofAddr              ConfigValue[string]
+	MetricsAddr            ConfigValue[string]
 	LogLevel               slog.Level
 }
 
@@ -129,7 +136,7 @@ func LoadConfig() (Config, error) {
 
 	if cfg.HeartbeatInterval, err = envValue(
 		"NETSTAMP_PROBE_HEARTBEAT_INTERVAL",
-		time.Duration(probe.DefaultRuntimeHeartbeatIntervalSeconds)*time.Second,
+		DefaultHeartbeatInterval,
 		parseDuration,
 		positiveDuration,
 	); err != nil {
@@ -138,7 +145,7 @@ func LoadConfig() (Config, error) {
 
 	if cfg.AssignmentPollInterval, err = envValue(
 		"NETSTAMP_PROBE_ASSIGNMENT_POLL_INTERVAL",
-		time.Duration(probe.DefaultRuntimeAssignmentPollIntervalSeconds)*time.Second,
+		DefaultAssignmentPollInterval,
 		parseDuration,
 		positiveDuration,
 	); err != nil {
@@ -147,7 +154,7 @@ func LoadConfig() (Config, error) {
 
 	if cfg.InitialBackoff, err = envValue(
 		"NETSTAMP_PROBE_INITIAL_BACKOFF",
-		time.Duration(probe.DefaultRuntimeInitialBackoffSeconds)*time.Second,
+		DefaultInitialBackoff,
 		parseDuration,
 		positiveDuration,
 	); err != nil {
@@ -156,7 +163,7 @@ func LoadConfig() (Config, error) {
 
 	if cfg.MaxBackoff, err = envValue(
 		"NETSTAMP_PROBE_MAX_BACKOFF",
-		time.Duration(probe.DefaultRuntimeMaxBackoffSeconds)*time.Second,
+		DefaultMaxBackoff,
 		parseDuration,
 		positiveDuration,
 	); err != nil {
@@ -165,17 +172,14 @@ func LoadConfig() (Config, error) {
 
 	if cfg.MaxAttempts, err = envValue(
 		"NETSTAMP_PROBE_MAX_ATTEMPTS",
-		int(probe.DefaultRuntimeMaxAttempts),
+		DefaultMaxAttempts,
 		parseInt,
 		positiveInt,
 	); err != nil {
 		return Config{}, err
 	}
 
-	if cfg.LogLevel, err = parseOptionalLogLevel(
-		"NETSTAMP_PROBE_LOG_LEVEL",
-		DefaultLogLevel,
-	); err != nil {
+	if err := loadLocalOptions(&cfg); err != nil {
 		return Config{}, err
 	}
 
@@ -184,6 +188,37 @@ func LoadConfig() (Config, error) {
 	}
 
 	return cfg, nil
+}
+
+func loadLocalOptions(cfg *Config) error {
+	var err error
+
+	if cfg.PprofAddr, err = envValue(
+		"NETSTAMP_PROBE_PPROF_ADDR",
+		"",
+		parseString,
+		nil,
+	); err != nil {
+		return err
+	}
+
+	if cfg.MetricsAddr, err = envValue(
+		"NETSTAMP_PROBE_METRICS_ADDR",
+		"",
+		parseString,
+		nil,
+	); err != nil {
+		return err
+	}
+
+	if cfg.LogLevel, err = parseOptionalLogLevel(
+		"NETSTAMP_PROBE_LOG_LEVEL",
+		DefaultLogLevel,
+	); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (c Config) Validate() error {
@@ -293,6 +328,10 @@ func parseInt(raw string) (int, error) {
 	return strconv.Atoi(raw)
 }
 
+func parseString(raw string) (string, error) {
+	return strings.TrimSpace(raw), nil
+}
+
 func positiveDuration(value time.Duration) error {
 	if value <= 0 {
 		return errors.New("must be greater than zero")
@@ -344,5 +383,7 @@ func (c Config) SafeLogAttrs() []slog.Attr {
 		slog.Bool("initial_backoff_env_defined", c.InitialBackoff.Defined),
 		slog.Bool("max_backoff_env_defined", c.MaxBackoff.Defined),
 		slog.Bool("max_attempts_env_defined", c.MaxAttempts.Defined),
+		slog.Bool("pprof_enabled", c.PprofAddr.Value != ""),
+		slog.Bool("metrics_enabled", c.MetricsAddr.Value != ""),
 	}
 }

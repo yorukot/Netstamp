@@ -5,8 +5,13 @@ import (
 )
 
 type ResultQueue struct {
-	ch  chan ResultEnvelope
-	log *slog.Logger
+	ch      chan ResultEnvelope
+	log     *slog.Logger
+	metrics ResultQueueMetrics
+}
+
+type ResultQueueMetrics interface {
+	IncDroppedResult(reason string)
 }
 
 func NewResultQueue(capacity int, log *slog.Logger) *ResultQueue {
@@ -14,6 +19,10 @@ func NewResultQueue(capacity int, log *slog.Logger) *ResultQueue {
 		ch:  make(chan ResultEnvelope, capacity),
 		log: log,
 	}
+}
+
+func (q *ResultQueue) SetMetrics(metrics ResultQueueMetrics) {
+	q.metrics = metrics
 }
 
 func (q *ResultQueue) Enqueue(result ResultEnvelope) {
@@ -25,6 +34,9 @@ func (q *ResultQueue) Enqueue(result ResultEnvelope) {
 
 	select {
 	case <-q.ch:
+		if q.metrics != nil {
+			q.metrics.IncDroppedResult("result_queue_full")
+		}
 		q.log.Warn("dropped oldest result because result queue is full", "check_id", result.CheckID, "check_type", result.Type)
 	default:
 	}
@@ -32,12 +44,23 @@ func (q *ResultQueue) Enqueue(result ResultEnvelope) {
 	select {
 	case q.ch <- result:
 	default:
+		if q.metrics != nil {
+			q.metrics.IncDroppedResult("result_queue_still_full")
+		}
 		q.log.Warn("dropped result because result queue remained full", "check_id", result.CheckID, "check_type", result.Type)
 	}
 }
 
 func (q *ResultQueue) Channel() <-chan ResultEnvelope {
 	return q.ch
+}
+
+func (q *ResultQueue) Depth() int {
+	return len(q.ch)
+}
+
+func (q *ResultQueue) Capacity() int {
+	return cap(q.ch)
 }
 
 func (q *ResultQueue) Drain(maxItems int) []ResultEnvelope {

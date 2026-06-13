@@ -48,7 +48,6 @@ func (s *Service) Hello(ctx context.Context, input RuntimeAuthInput) (HelloOutpu
 	return HelloOutput{
 		ServerTime:                   time.Now().UTC(),
 		MinimumSupportedAgentVersion: domainprobe.DefaultMinimumSupportedAgentVersion,
-		Config:                       domainprobe.DefaultRuntimeConfig(),
 	}, nil
 }
 
@@ -113,7 +112,6 @@ func (s *Service) ListAssignments(ctx context.Context, input RuntimeAuthInput) (
 
 	return ListAssignmentsOutput{
 		ServerTime:  time.Now().UTC(),
-		Config:      domainprobe.DefaultRuntimeConfig(),
 		Assignments: assignments,
 	}, nil
 }

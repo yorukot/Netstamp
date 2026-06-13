@@ -6677,14 +6677,11 @@
 			},
 			"RuntimeAssignmentsResponse": {
 				"type": "object",
-				"required": ["serverTime", "config", "assignments"],
+				"required": ["serverTime", "assignments"],
 				"properties": {
 					"serverTime": {
 						"type": "string",
 						"format": "date-time"
-					},
-					"config": {
-						"$ref": "#/components/schemas/RuntimeConfig"
 					},
 					"assignments": {
 						"type": "array",
@@ -6696,61 +6693,7 @@
 				"examples": [
 					{
 						"serverTime": "2026-05-13T10:00:00Z",
-						"config": {
-							"heartbeatIntervalSeconds": 30,
-							"assignmentPollIntervalSeconds": 30,
-							"maxConcurrentWorkers": 16,
-							"initialBackoffSeconds": 1,
-							"maxBackoffSeconds": 30,
-							"maxAttempts": 5
-						},
 						"assignments": []
-					}
-				]
-			},
-			"RuntimeConfig": {
-				"type": "object",
-				"required": ["heartbeatIntervalSeconds", "assignmentPollIntervalSeconds", "maxConcurrentWorkers", "initialBackoffSeconds", "maxBackoffSeconds", "maxAttempts"],
-				"properties": {
-					"heartbeatIntervalSeconds": {
-						"type": "integer",
-						"format": "int32",
-						"minimum": 1
-					},
-					"assignmentPollIntervalSeconds": {
-						"type": "integer",
-						"format": "int32",
-						"minimum": 1
-					},
-					"maxConcurrentWorkers": {
-						"type": "integer",
-						"format": "int32",
-						"minimum": 1
-					},
-					"initialBackoffSeconds": {
-						"type": "integer",
-						"format": "int32",
-						"minimum": 1
-					},
-					"maxBackoffSeconds": {
-						"type": "integer",
-						"format": "int32",
-						"minimum": 1
-					},
-					"maxAttempts": {
-						"type": "integer",
-						"format": "int32",
-						"minimum": 1
-					}
-				},
-				"examples": [
-					{
-						"heartbeatIntervalSeconds": 30,
-						"assignmentPollIntervalSeconds": 30,
-						"maxConcurrentWorkers": 16,
-						"initialBackoffSeconds": 1,
-						"maxBackoffSeconds": 30,
-						"maxAttempts": 5
 					}
 				]
 			},
@@ -6771,7 +6714,7 @@
 			},
 			"RuntimeHelloResponse": {
 				"type": "object",
-				"required": ["serverTime", "minimumSupportedAgentVersion", "config"],
+				"required": ["serverTime", "minimumSupportedAgentVersion"],
 				"properties": {
 					"serverTime": {
 						"type": "string",
@@ -6779,23 +6722,12 @@
 					},
 					"minimumSupportedAgentVersion": {
 						"type": "string"
-					},
-					"config": {
-						"$ref": "#/components/schemas/RuntimeConfig"
 					}
 				},
 				"examples": [
 					{
 						"serverTime": "2026-05-13T10:00:00Z",
-						"minimumSupportedAgentVersion": "0.1.0",
-						"config": {
-							"heartbeatIntervalSeconds": 30,
-							"assignmentPollIntervalSeconds": 30,
-							"maxConcurrentWorkers": 16,
-							"initialBackoffSeconds": 1,
-							"maxBackoffSeconds": 30,
-							"maxAttempts": 5
-						}
+						"minimumSupportedAgentVersion": "0.1.0"
 					}
 				]
 			},

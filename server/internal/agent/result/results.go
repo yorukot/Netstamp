@@ -24,9 +24,16 @@ type Submitter struct {
 	batchSize    int
 	shutdownWait time.Duration
 	log          *slog.Logger
+	metrics      Metrics
 }
 
-func New(client httpclient.RuntimeClient, queue *agentworker.ResultQueue, localConfig agentconfig.Config, log *slog.Logger) *Submitter {
+type Metrics interface {
+	IncSubmitFailure()
+	IncSubmitRetry()
+	ObserveSubmitBatchSize(size int)
+}
+
+func New(client httpclient.RuntimeClient, queue *agentworker.ResultQueue, localConfig agentconfig.Config, log *slog.Logger, metrics Metrics) *Submitter {
 	return &Submitter{
 		client:       client,
 		queue:        queue,
@@ -35,6 +42,7 @@ func New(client httpclient.RuntimeClient, queue *agentworker.ResultQueue, localC
 		batchSize:    localConfig.ResultBatchSize.Value,
 		shutdownWait: localConfig.ShutdownTimeout.Value,
 		log:          log,
+		metrics:      metrics,
 	}
 }
 
@@ -99,9 +107,15 @@ func (s *Submitter) flush(ctx context.Context, batch []agentworker.ResultEnvelop
 	for attempt := 1; attempt <= s.config.MaxAttempts.Value; attempt++ {
 		_, err := s.client.SubmitResults(ctx, input)
 		if err == nil {
+			if s.metrics != nil {
+				s.metrics.ObserveSubmitBatchSize(len(batch))
+			}
 			return nil
 		}
 		if errors.Is(err, httpclient.ErrAuthFailed) || errors.Is(err, httpclient.ErrPermanentRuntimeAPI) {
+			if s.metrics != nil {
+				s.metrics.IncSubmitFailure()
+			}
 			return err
 		}
 		lastErr = err
@@ -110,6 +124,9 @@ func (s *Submitter) flush(ctx context.Context, batch []agentworker.ResultEnvelop
 		}
 
 		s.log.Debug("retrying result submission", "attempt", attempt, "backoff", backoff, "error", err)
+		if s.metrics != nil {
+			s.metrics.IncSubmitRetry()
+		}
 		if err := retry.WaitForDuration(ctx, backoff); err != nil {
 			return err
 		}
@@ -119,6 +136,9 @@ func (s *Submitter) flush(ctx context.Context, batch []agentworker.ResultEnvelop
 		}
 	}
 
+	if s.metrics != nil {
+		s.metrics.IncSubmitFailure()
+	}
 	return lastErr
 }
 
