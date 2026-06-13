@@ -117,6 +117,7 @@ func normalizeQueryTopologyInput(input QueryTopologyInput) (normalizedTopologyIn
 		checkID:       checkID,
 		from:          from,
 		to:            to,
+		now:           now,
 		limit:         limit,
 	}, nil
 }

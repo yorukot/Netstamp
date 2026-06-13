@@ -322,6 +322,7 @@ type RunQuery struct {
 	CheckID   string
 	From      time.Time
 	To        time.Time
+	RawCutoff time.Time
 	Limit     int32
 	Cursor    *time.Time
 }
@@ -332,6 +333,7 @@ type InsightQuery struct {
 	CheckID       string
 	From          time.Time
 	To            time.Time
+	RawCutoff     time.Time
 	MaxDataPoints int32
 }
 
@@ -348,6 +350,7 @@ type TopologyQuery struct {
 	CheckID   string
 	From      time.Time
 	To        time.Time
+	RawCutoff time.Time
 	Limit     int32
 }
 

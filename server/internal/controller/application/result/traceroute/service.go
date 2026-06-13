@@ -3,6 +3,7 @@ package traceroute
 import (
 	"context"
 	"errors"
+	"time"
 
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
@@ -10,6 +11,8 @@ import (
 	resultshared "github.com/yorukot/netstamp/internal/controller/application/result/shared"
 	domaintraceroute "github.com/yorukot/netstamp/internal/domain/traceroute"
 )
+
+const rawRetentionWindow = 3 * 24 * time.Hour
 
 type Service struct {
 	runs          RunsRepository
@@ -63,6 +66,7 @@ func (s *Service) QueryRuns(ctx context.Context, input QueryRunsInput) (RunsOutp
 		CheckID:   normalized.base.CheckID,
 		From:      normalized.base.From,
 		To:        normalized.base.To,
+		RawCutoff: rawCutoff(normalized.base.Now),
 		Limit:     normalized.limit,
 		Cursor:    normalized.cursor,
 	})
@@ -123,6 +127,7 @@ func (s *Service) QueryInsight(ctx context.Context, input QueryInsightInput) (In
 		CheckID:       normalized.base.CheckID,
 		From:          normalized.base.From,
 		To:            normalized.base.To,
+		RawCutoff:     rawCutoff(normalized.base.Now),
 		MaxDataPoints: normalized.maxDataPoints,
 	})
 	if err != nil {
@@ -183,6 +188,7 @@ func (s *Service) QueryTopology(ctx context.Context, input QueryTopologyInput) (
 		CheckID:   normalized.checkID,
 		From:      normalized.from,
 		To:        normalized.to,
+		RawCutoff: rawCutoff(normalized.now),
 		Limit:     normalized.limit,
 	})
 	if err != nil {
@@ -201,6 +207,14 @@ func (s *Service) QueryTopology(ctx context.Context, input QueryTopologyInput) (
 			Limit:  normalized.limit,
 		},
 	}, nil
+}
+
+func rawCutoff(now time.Time) time.Time {
+	now = now.UTC()
+	if now.IsZero() {
+		now = time.Now().UTC()
+	}
+	return now.Add(-rawRetentionWindow)
 }
 
 func newRuns(runs []domaintraceroute.Run) []Run {

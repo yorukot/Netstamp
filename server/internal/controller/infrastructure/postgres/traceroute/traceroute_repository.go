@@ -124,6 +124,7 @@ func (r *TracerouteRepository) ListTracerouteRuns(ctx context.Context, input dom
 		CheckStorageID:  storageIDs.CheckStorageID,
 		StartedAtFrom:   input.From.UTC(),
 		StartedAtTo:     input.To.UTC(),
+		RawCutoff:       input.RawCutoff.UTC(),
 		CursorStartedAt: optionalTime(input.Cursor),
 		LimitCount:      input.Limit + 1,
 	})
@@ -172,6 +173,7 @@ func (r *TracerouteRepository) ListTracerouteInsight(ctx context.Context, input 
 		CheckStorageID: storageIDs.CheckStorageID,
 		StartedAtFrom:  startedAtFrom,
 		StartedAtTo:    startedAtTo,
+		RawCutoff:      input.RawCutoff.UTC(),
 	}
 	totalRuns, err := r.queries.CountTracerouteInsightPoints(ctx, countParams)
 	if err != nil {
@@ -185,6 +187,7 @@ func (r *TracerouteRepository) ListTracerouteInsight(ctx context.Context, input 
 			CheckStorageID: storageIDs.CheckStorageID,
 			StartedAtFrom:  startedAtFrom,
 			StartedAtTo:    startedAtTo,
+			RawCutoff:      input.RawCutoff.UTC(),
 		})
 		if rawErr != nil {
 			postgres.RecordDBSpanError(span, rawErr)
@@ -202,6 +205,7 @@ func (r *TracerouteRepository) ListTracerouteInsight(ctx context.Context, input 
 		CheckStorageID: storageIDs.CheckStorageID,
 		StartedAtFrom:  startedAtFrom,
 		StartedAtTo:    startedAtTo,
+		RawCutoff:      input.RawCutoff.UTC(),
 		MaxDataPoints:  float64(input.MaxDataPoints),
 	})
 	if bucketErr != nil {
@@ -234,10 +238,11 @@ func (r *TracerouteRepository) ListTracerouteTopologyRuns(ctx context.Context, i
 
 	rows, err := r.queries.ListTracerouteTopologyRows(ctx, sqlc.ListTracerouteTopologyRowsParams{
 		ProjectID:     projectID,
-		ProbeID:       probeID,
-		CheckID:       checkID,
 		StartedAtFrom: input.From.UTC(),
 		StartedAtTo:   input.To.UTC(),
+		RawCutoff:     input.RawCutoff.UTC(),
+		ProbeID:       probeID,
+		CheckID:       checkID,
 		LimitCount:    input.Limit,
 	})
 	if err != nil {

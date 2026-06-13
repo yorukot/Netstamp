@@ -637,6 +637,22 @@ type TracerouteResultHop struct {
 	ErrorMessage  *string     `json:"error_message"`
 }
 
+type TracerouteSampledRuns1m struct {
+	Bucket             time.Time        `json:"bucket"`
+	ProbeID            int64            `json:"probe_id"`
+	CheckID            int64            `json:"check_id"`
+	SampledStartedAt   time.Time        `json:"sampled_started_at"`
+	FinishedAt         time.Time        `json:"finished_at"`
+	DurationMs         int32            `json:"duration_ms"`
+	Status             TracerouteStatus `json:"status"`
+	ResolvedIp         *netip.Addr      `json:"resolved_ip"`
+	IpFamily           *IpFamily        `json:"ip_family"`
+	DestinationReached bool             `json:"destination_reached"`
+	HopCount           int32            `json:"hop_count"`
+	PathSignature      *string          `json:"path_signature"`
+	Hops               []byte           `json:"hops"`
+}
+
 type User struct {
 	ID           uuid.UUID `json:"id"`
 	Email        string    `json:"email"`

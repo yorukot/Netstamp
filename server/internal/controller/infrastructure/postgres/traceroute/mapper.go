@@ -69,7 +69,7 @@ func mapRunRows(rows []sqlc.ListTracerouteRunRowsRow, limit int32) domaintracero
 				Hops:               []domaintraceroute.Hop{},
 			})
 		}
-		if row.HopIndex != nil {
+		if row.HopIndex > 0 {
 			runs[index].Hops = append(runs[index].Hops, mapHop(row))
 		}
 	}
@@ -116,12 +116,12 @@ func mapTopologyRows(rows []sqlc.ListTracerouteTopologyRowsRow) domaintraceroute
 				Hops:       []domaintraceroute.TopologyHop{},
 			})
 		}
-		if row.HopIndex != nil {
+		if row.HopIndex > 0 {
 			runs[index].Hops = append(runs[index].Hops, domaintraceroute.TopologyHop{
-				HopIndex:    derefInt32(row.HopIndex),
+				HopIndex:    row.HopIndex,
 				Address:     row.Address,
 				Hostname:    row.Hostname,
-				LossPercent: derefFloat64(row.LossPercent),
+				LossPercent: row.LossPercent,
 				RttAvgMs:    row.RttAvgMs,
 			})
 		}
@@ -170,12 +170,12 @@ func mapBucketInsightRows(rows []sqlc.ListTracerouteInsightBucketRowsRow) []doma
 
 func mapHop(row sqlc.ListTracerouteRunRowsRow) domaintraceroute.Hop {
 	return domaintraceroute.Hop{
-		HopIndex:      derefInt32(row.HopIndex),
+		HopIndex:      row.HopIndex,
 		Address:       row.Address,
 		Hostname:      row.Hostname,
-		SentCount:     derefInt32(row.SentCount),
-		ReceivedCount: derefInt32(row.ReceivedCount),
-		LossPercent:   derefFloat64(row.LossPercent),
+		SentCount:     row.SentCount,
+		ReceivedCount: row.ReceivedCount,
+		LossPercent:   row.LossPercent,
 		RttMinMs:      row.RttMinMs,
 		RttAvgMs:      row.RttAvgMs,
 		RttMedianMs:   row.RttMedianMs,
@@ -185,20 +185,6 @@ func mapHop(row sqlc.ListTracerouteRunRowsRow) domaintraceroute.Hop {
 		ErrorCode:     row.HopErrorCode,
 		ErrorMessage:  row.HopErrorMessage,
 	}
-}
-
-func derefInt32(value *int32) int32 {
-	if value == nil {
-		return 0
-	}
-	return *value
-}
-
-func derefFloat64(value *float64) float64 {
-	if value == nil {
-		return 0
-	}
-	return *value
 }
 
 func floatPtrIf(count int64, value float64) *float64 {

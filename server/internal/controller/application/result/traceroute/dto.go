@@ -166,5 +166,6 @@ type normalizedTopologyInput struct {
 	checkID       string
 	from          time.Time
 	to            time.Time
+	now           time.Time
 	limit         int32
 }
