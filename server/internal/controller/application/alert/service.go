@@ -43,8 +43,8 @@ func (s *Service) CreateRule(ctx context.Context, input CreateRuleInput) (domain
 	if err != nil {
 		return domainalert.Rule{}, err
 	}
-	if err := s.requireProjectAction(ctx, project.ID, input.CurrentUserID, domainproject.ActionManageAlerts); err != nil {
-		return domainalert.Rule{}, err
+	if actionErr := s.requireProjectAction(ctx, project.ID, input.CurrentUserID, domainproject.ActionManageAlerts); actionErr != nil {
+		return domainalert.Rule{}, actionErr
 	}
 	rule, err := normalizeCreateRule(project.ID, input)
 	if err != nil {
@@ -58,8 +58,8 @@ func (s *Service) UpdateRule(ctx context.Context, input UpdateRuleInput) (domain
 	if err != nil {
 		return domainalert.Rule{}, err
 	}
-	if err := s.requireProjectAction(ctx, project.ID, input.CurrentUserID, domainproject.ActionManageAlerts); err != nil {
-		return domainalert.Rule{}, err
+	if actionErr := s.requireProjectAction(ctx, project.ID, input.CurrentUserID, domainproject.ActionManageAlerts); actionErr != nil {
+		return domainalert.Rule{}, actionErr
 	}
 	rule, err := normalizeUpdateRule(project.ID, input)
 	if err != nil {
@@ -73,8 +73,8 @@ func (s *Service) DeleteRule(ctx context.Context, input DeleteRuleInput) error {
 	if err != nil {
 		return err
 	}
-	if err := s.requireProjectAction(ctx, project.ID, input.CurrentUserID, domainproject.ActionManageAlerts); err != nil {
-		return err
+	if actionErr := s.requireProjectAction(ctx, project.ID, input.CurrentUserID, domainproject.ActionManageAlerts); actionErr != nil {
+		return actionErr
 	}
 	return s.repo.DeleteRule(ctx, project.ID, input.RuleID)
 }
@@ -100,8 +100,8 @@ func (s *Service) CreateChannel(ctx context.Context, input CreateChannelInput) (
 	if err != nil {
 		return domainalert.NotificationChannel{}, err
 	}
-	if err := s.requireChannelWrite(ctx, project.ID, input.CurrentUserID); err != nil {
-		return domainalert.NotificationChannel{}, err
+	if actionErr := s.requireChannelWrite(ctx, project.ID, input.CurrentUserID); actionErr != nil {
+		return domainalert.NotificationChannel{}, actionErr
 	}
 	channel, err := normalizeCreateChannel(project.ID, input)
 	if err != nil {
@@ -115,8 +115,8 @@ func (s *Service) UpdateChannel(ctx context.Context, input UpdateChannelInput) (
 	if err != nil {
 		return domainalert.NotificationChannel{}, err
 	}
-	if err := s.requireChannelWrite(ctx, project.ID, input.CurrentUserID); err != nil {
-		return domainalert.NotificationChannel{}, err
+	if actionErr := s.requireChannelWrite(ctx, project.ID, input.CurrentUserID); actionErr != nil {
+		return domainalert.NotificationChannel{}, actionErr
 	}
 	channel, err := normalizeUpdateChannel(project.ID, input)
 	if err != nil {
@@ -130,8 +130,8 @@ func (s *Service) DeleteChannel(ctx context.Context, input DeleteChannelInput) e
 	if err != nil {
 		return err
 	}
-	if err := s.requireChannelWrite(ctx, project.ID, input.CurrentUserID); err != nil {
-		return err
+	if actionErr := s.requireChannelWrite(ctx, project.ID, input.CurrentUserID); actionErr != nil {
+		return actionErr
 	}
 	return s.repo.DeleteChannel(ctx, project.ID, input.ChannelID)
 }
@@ -199,15 +199,15 @@ func normalizeRule(base domainalert.Rule, name string, description *string, seve
 	var err error
 	base.Name, err = domainalert.VNRuleName(name)
 	if err != nil {
-		return domainalert.Rule{}, fmt.Errorf("%w: %v", ErrInvalidInput, err)
+		return domainalert.Rule{}, fmt.Errorf("%w: %w", ErrInvalidInput, err)
 	}
 	base.Description, err = domainalert.VNDescription(description)
 	if err != nil {
-		return domainalert.Rule{}, fmt.Errorf("%w: %v", ErrInvalidInput, err)
+		return domainalert.Rule{}, fmt.Errorf("%w: %w", ErrInvalidInput, err)
 	}
 	base.Severity, err = domainalert.VNSeverity(severity)
 	if err != nil {
-		return domainalert.Rule{}, fmt.Errorf("%w: %v", ErrInvalidInput, err)
+		return domainalert.Rule{}, fmt.Errorf("%w: %w", ErrInvalidInput, err)
 	}
 	base.CheckType, err = domaincheck.VNCheckType(checkType)
 	if err != nil || base.CheckType == domaincheck.TypeTraceroute {
@@ -215,19 +215,19 @@ func normalizeRule(base domainalert.Rule, name string, description *string, seve
 	}
 	base.Condition, err = alertcondition.Validate(condition)
 	if err != nil {
-		return domainalert.Rule{}, fmt.Errorf("%w: %v", ErrInvalidInput, err)
+		return domainalert.Rule{}, fmt.Errorf("%w: %w", ErrInvalidInput, err)
 	}
 	if !alertcondition.CompatibleWithCheckType(base.Condition.Metric, base.CheckType) {
 		return domainalert.Rule{}, fmt.Errorf("%w: condition metric is not compatible with check type", ErrInvalidInput)
 	}
 	base.ConditionJSON, err = alertcondition.CanonicalJSON(base.Condition)
 	if err != nil {
-		return domainalert.Rule{}, fmt.Errorf("%w: %v", ErrInvalidInput, err)
+		return domainalert.Rule{}, fmt.Errorf("%w: %w", ErrInvalidInput, err)
 	}
 	base.ConditionVersion = "metric_threshold.v1"
 	base.CooldownSeconds, err = domainalert.VNCooldownSeconds(cooldownSeconds)
 	if err != nil {
-		return domainalert.Rule{}, fmt.Errorf("%w: %v", ErrInvalidInput, err)
+		return domainalert.Rule{}, fmt.Errorf("%w: %w", ErrInvalidInput, err)
 	}
 	base.ProbeID = probeID
 	base.CheckID = checkID
@@ -239,7 +239,7 @@ func normalizeRule(base domainalert.Rule, name string, description *string, seve
 	}
 	base.ProbeSelector = json.RawMessage(`{}`)
 	for _, channelID := range channelIDs {
-		if _, err := uuid.Parse(channelID); err != nil {
+		if _, parseErr := uuid.Parse(channelID); parseErr != nil {
 			return domainalert.Rule{}, fmt.Errorf("%w: invalid notification channel id", ErrInvalidInput)
 		}
 	}
@@ -259,23 +259,23 @@ func normalizeChannel(base domainalert.NotificationChannel, channelID, name stri
 	var err error
 	base.ID = channelID
 	if channelID != "" {
-		if _, err := uuid.Parse(channelID); err != nil {
+		if _, parseErr := uuid.Parse(channelID); parseErr != nil {
 			return domainalert.NotificationChannel{}, fmt.Errorf("%w: invalid channel id", ErrInvalidInput)
 		}
 	}
 	base.Name, err = domainalert.VNChannelName(name)
 	if err != nil {
-		return domainalert.NotificationChannel{}, fmt.Errorf("%w: %v", ErrInvalidInput, err)
+		return domainalert.NotificationChannel{}, fmt.Errorf("%w: %w", ErrInvalidInput, err)
 	}
 	base.Type, err = domainalert.VNChannelType(channelType)
 	if err != nil {
-		return domainalert.NotificationChannel{}, fmt.Errorf("%w: %v", ErrInvalidInput, err)
+		return domainalert.NotificationChannel{}, fmt.Errorf("%w: %w", ErrInvalidInput, err)
 	}
 	base.Enabled = enabled
 	if base.Type == domainalert.ChannelTypeWebhook {
 		canonical, _, err := domainalert.VNWebhookConfig(config)
 		if err != nil {
-			return domainalert.NotificationChannel{}, fmt.Errorf("%w: %v", ErrInvalidInput, err)
+			return domainalert.NotificationChannel{}, fmt.Errorf("%w: %w", ErrInvalidInput, err)
 		}
 		base.Config = canonical
 	}

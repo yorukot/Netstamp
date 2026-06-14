@@ -89,7 +89,11 @@ func (r *Repository) CreateRule(ctx context.Context, input domainalert.Rule) (do
 	var created domainalert.Rule
 	err := r.tx.InTx(ctx, func(ctx context.Context, tx pgx.Tx) error {
 		q := r.queries.WithTx(tx)
-		row, err := q.CreateAlertRule(ctx, createRuleParams(input))
+		params, err := createRuleParams(input)
+		if err != nil {
+			return err
+		}
+		row, err := q.CreateAlertRule(ctx, params)
 		if err != nil {
 			return err
 		}
@@ -214,7 +218,11 @@ func (r *Repository) GetChannel(ctx context.Context, projectID, channelID string
 }
 
 func (r *Repository) CreateChannel(ctx context.Context, input domainalert.NotificationChannel) (domainalert.NotificationChannel, error) {
-	row, err := r.queries.CreateNotificationChannel(ctx, createChannelParams(input))
+	params, err := createChannelParams(input)
+	if err != nil {
+		return domainalert.NotificationChannel{}, err
+	}
+	row, err := r.queries.CreateNotificationChannel(ctx, params)
 	if err != nil {
 		return domainalert.NotificationChannel{}, err
 	}
@@ -434,20 +442,20 @@ func (r *Repository) ResolveIncidentAndEnqueue(ctx context.Context, incidentID s
 	err = r.tx.InTx(ctx, func(ctx context.Context, tx pgx.Tx) error {
 		q := r.queries.WithTx(tx)
 		resolvedAt := at.UTC()
-		row, err := q.ResolveActiveAlertIncident(ctx, sqlc.ResolveActiveAlertIncidentParams{
+		row, resolveErr := q.ResolveActiveAlertIncident(ctx, sqlc.ResolveActiveAlertIncidentParams{
 			ID:              id,
 			ResolvedAt:      &resolvedAt,
 			LastEvaluatedAt: at.UTC(),
 			LastSummary:     summary,
 		})
-		if err != nil {
-			return mapNoRows(err, domainalert.ErrIncidentNotFound)
+		if resolveErr != nil {
+			return mapNoRows(resolveErr, domainalert.ErrIncidentNotFound)
 		}
 		incident = mapIncident(row)
 		for _, job := range jobs {
 			job.IncidentID = incident.ID
-			if err := enqueueJob(ctx, q, job); err != nil {
-				return err
+			if enqueueErr := enqueueJob(ctx, q, job); enqueueErr != nil {
+				return enqueueErr
 			}
 		}
 		return nil
@@ -556,9 +564,15 @@ func (r *Repository) ruleChannelIDs(ctx context.Context, projectUUID, ruleUUID u
 	return values, nil
 }
 
-func createRuleParams(input domainalert.Rule) sqlc.CreateAlertRuleParams {
-	projectUUID, _ := uuid.Parse(input.ProjectID)
-	createdByUUID, _ := uuid.Parse(input.CreatedByUserID)
+func createRuleParams(input domainalert.Rule) (sqlc.CreateAlertRuleParams, error) {
+	projectUUID, err := uuid.Parse(input.ProjectID)
+	if err != nil {
+		return sqlc.CreateAlertRuleParams{}, err
+	}
+	createdByUUID, err := uuid.Parse(input.CreatedByUserID)
+	if err != nil {
+		return sqlc.CreateAlertRuleParams{}, err
+	}
 	return sqlc.CreateAlertRuleParams{
 		ProjectID:        projectUUID,
 		Name:             input.Name,
@@ -573,7 +587,7 @@ func createRuleParams(input domainalert.Rule) sqlc.CreateAlertRuleParams {
 		ConditionVersion: input.ConditionVersion,
 		CooldownSeconds:  input.CooldownSeconds,
 		CreatedByUserID:  createdByUUID,
-	}
+	}, nil
 }
 
 func updateRuleParams(input domainalert.Rule) (sqlc.UpdateAlertRuleParams, error) {
@@ -598,9 +612,15 @@ func updateRuleParams(input domainalert.Rule) (sqlc.UpdateAlertRuleParams, error
 	}, nil
 }
 
-func createChannelParams(input domainalert.NotificationChannel) sqlc.CreateNotificationChannelParams {
-	projectUUID, _ := uuid.Parse(input.ProjectID)
-	createdByUUID, _ := uuid.Parse(input.CreatedByUserID)
+func createChannelParams(input domainalert.NotificationChannel) (sqlc.CreateNotificationChannelParams, error) {
+	projectUUID, err := uuid.Parse(input.ProjectID)
+	if err != nil {
+		return sqlc.CreateNotificationChannelParams{}, err
+	}
+	createdByUUID, err := uuid.Parse(input.CreatedByUserID)
+	if err != nil {
+		return sqlc.CreateNotificationChannelParams{}, err
+	}
 	return sqlc.CreateNotificationChannelParams{
 		ProjectID:       projectUUID,
 		Name:            input.Name,
@@ -608,7 +628,7 @@ func createChannelParams(input domainalert.NotificationChannel) sqlc.CreateNotif
 		Enabled:         input.Enabled,
 		Config:          input.Config,
 		CreatedByUserID: createdByUUID,
-	}
+	}, nil
 }
 
 func updateChannelParams(input domainalert.NotificationChannel) (sqlc.UpdateNotificationChannelParams, error) {

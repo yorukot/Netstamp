@@ -90,7 +90,7 @@ func Parse(raw json.RawMessage) (Condition, error) {
 	decoder := json.NewDecoder(bytes.NewReader(raw))
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&condition); err != nil {
-		return Condition{}, fmt.Errorf("%w: %v", ErrInvalidCondition, err)
+		return Condition{}, fmt.Errorf("%w: %w", ErrInvalidCondition, err)
 	}
 	if err := decoder.Decode(&struct{}{}); err == nil {
 		return Condition{}, fmt.Errorf("%w: condition must contain a single JSON object", ErrInvalidCondition)

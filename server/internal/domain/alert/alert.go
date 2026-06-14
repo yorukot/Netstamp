@@ -185,7 +185,7 @@ func VNRuleName(name string) (string, error) {
 
 func VNDescription(description *string) (*string, error) {
 	if description == nil {
-		return nil, nil //nolint:nilnil
+		return nil, nil //nolint:nilnil // nil is the canonical value for an omitted optional description.
 	}
 	trimmed := strings.TrimSpace(*description)
 	if err := spvalidator.Required(trimmed); err != nil {

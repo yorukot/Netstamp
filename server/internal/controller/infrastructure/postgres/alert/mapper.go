@@ -12,7 +12,10 @@ import (
 )
 
 func mapRule(row sqlc.AlertRule, channelIDs []string) domainalert.Rule {
-	condition, _ := alertcondition.Parse(row.Condition)
+	condition, parseErr := alertcondition.Parse(row.Condition)
+	if parseErr != nil {
+		condition = alertcondition.Condition{}
+	}
 	return domainalert.Rule{
 		ID:                     row.ID.String(),
 		ProjectID:              row.ProjectID.String(),
@@ -128,8 +131,4 @@ func sqlcEvaluationState(value alertcondition.EvaluationState) sqlc.AlertEvaluat
 
 func sqlcChannelType(value domainalert.ChannelType) sqlc.NotificationChannelType {
 	return sqlc.NotificationChannelType(value)
-}
-
-func sqlcOutboxStatus(value domainalert.OutboxStatus) sqlc.NotificationOutboxStatus {
-	return sqlc.NotificationOutboxStatus(value)
 }

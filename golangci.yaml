@@ -9,7 +9,7 @@ run:
   tests: true
   modules-download-mode: readonly
   relative-path-mode: gomod
-  go: "1.25"
+  go: "1.26"
 
 linters:
   # Keep this explicit and stable. `all` is usually too noisy for API projects.

@@ -180,6 +180,11 @@ func evaluationSummaryJSON(rule domainalert.Rule, evaluation alertcondition.Eval
 }
 
 func notificationPayload(rule domainalert.Rule, incident domainalert.Incident, evaluation alertcondition.Evaluation, eventType string, at time.Time) (json.RawMessage, error) {
+	incidentPayload := map[string]any{
+		"id":       incident.ID,
+		"status":   incident.Status,
+		"openedAt": incident.OpenedAt,
+	}
 	payload := map[string]any{
 		"eventType": eventType,
 		"sentAt":    at.UTC(),
@@ -188,11 +193,7 @@ func notificationPayload(rule domainalert.Rule, incident domainalert.Incident, e
 			"name":     rule.Name,
 			"severity": rule.Severity,
 		},
-		"incident": map[string]any{
-			"id":       incident.ID,
-			"status":   incident.Status,
-			"openedAt": incident.OpenedAt,
-		},
+		"incident": incidentPayload,
 		"target": map[string]any{
 			"probeId":   incident.ProbeID,
 			"checkId":   incident.CheckID,
@@ -210,7 +211,7 @@ func notificationPayload(rule domainalert.Rule, incident domainalert.Incident, e
 		},
 	}
 	if incident.ResolvedAt != nil {
-		payload["incident"].(map[string]any)["resolvedAt"] = *incident.ResolvedAt
+		incidentPayload["resolvedAt"] = *incident.ResolvedAt
 	}
 	data, err := json.Marshal(payload)
 	return data, err

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -67,31 +68,31 @@ func (s *WebhookSender) SendWebhook(ctx context.Context, channel domainalert.Not
 func validateWebhookTarget(ctx context.Context, rawURL string) error {
 	parsed, err := url.Parse(rawURL)
 	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
-		return fmt.Errorf("invalid webhook URL")
+		return errors.New("invalid webhook URL")
 	}
 	if parsed.Scheme != "https" {
-		return fmt.Errorf("webhook URL must use https")
+		return errors.New("webhook URL must use https")
 	}
 	host := parsed.Hostname()
 	if host == "" {
-		return fmt.Errorf("webhook URL host is required")
+		return errors.New("webhook URL host is required")
 	}
-	if ip, err := netip.ParseAddr(host); err == nil {
+	if ip, parseErr := netip.ParseAddr(host); parseErr == nil {
 		if blockedAddr(ip) {
-			return fmt.Errorf("webhook URL points to a blocked address")
+			return errors.New("webhook URL points to a blocked address")
 		}
 		return nil
 	}
 	addrs, err := net.DefaultResolver.LookupNetIP(ctx, "ip", host)
 	if err != nil {
-		return fmt.Errorf("webhook host could not be resolved")
+		return errors.New("webhook host could not be resolved")
 	}
 	if len(addrs) == 0 {
-		return fmt.Errorf("webhook host resolved no addresses")
+		return errors.New("webhook host resolved no addresses")
 	}
 	for _, addr := range addrs {
 		if blockedAddr(addr) {
-			return fmt.Errorf("webhook host resolves to a blocked address")
+			return errors.New("webhook host resolves to a blocked address")
 		}
 	}
 	return nil

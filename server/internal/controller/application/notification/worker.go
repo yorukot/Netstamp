@@ -2,6 +2,7 @@ package notification
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	domainalert "github.com/yorukot/netstamp/internal/domain/alert"
@@ -49,6 +50,12 @@ func (w *Worker) Run(ctx context.Context) error {
 	for {
 		if err := w.RunOnce(ctx); err != nil {
 			// Keep the worker alive; individual job errors are persisted in the outbox.
+			select {
+			case <-ctx.Done():
+				return nil
+			case <-ticker.C:
+			}
+			continue
 		}
 		select {
 		case <-ctx.Done():
@@ -63,21 +70,22 @@ func (w *Worker) RunOnce(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	var errs []error
 	for _, job := range jobs {
-		w.deliver(ctx, job)
+		if err := w.deliver(ctx, job); err != nil {
+			errs = append(errs, err)
+		}
 	}
-	return nil
+	return errors.Join(errs...)
 }
 
-func (w *Worker) deliver(ctx context.Context, job domainalert.NotificationOutboxJob) {
+func (w *Worker) deliver(ctx context.Context, job domainalert.NotificationOutboxJob) error {
 	channel, err := w.repo.GetChannel(ctx, job.ProjectID, job.ChannelID)
 	if err != nil {
-		_ = w.repo.MarkOutboxRetry(ctx, job.ID, w.nextAttempt(job), "channel", "lookup_failed", "notification channel lookup failed")
-		return
+		return w.repo.MarkOutboxRetry(ctx, job.ID, w.nextAttempt(job), "channel", "lookup_failed", "notification channel lookup failed")
 	}
 	if !channel.Enabled {
-		_ = w.repo.MarkOutboxDiscarded(ctx, job.ID, "channel", "disabled", "notification channel is disabled")
-		return
+		return w.repo.MarkOutboxDiscarded(ctx, job.ID, "channel", "disabled", "notification channel is disabled")
 	}
 
 	var result DeliveryResult
@@ -90,13 +98,13 @@ func (w *Worker) deliver(ctx context.Context, job domainalert.NotificationOutbox
 
 	switch {
 	case result.Delivered:
-		_ = w.repo.MarkOutboxDelivered(ctx, job.ID, w.now())
+		return w.repo.MarkOutboxDelivered(ctx, job.ID, w.now())
 	case !result.Retryable:
-		_ = w.repo.MarkOutboxDiscarded(ctx, job.ID, result.Kind, result.Code, result.Message)
+		return w.repo.MarkOutboxDiscarded(ctx, job.ID, result.Kind, result.Code, result.Message)
 	case job.AttemptCount+1 >= job.MaxAttempts:
-		_ = w.repo.MarkOutboxFailed(ctx, job.ID, result.Kind, result.Code, result.Message)
+		return w.repo.MarkOutboxFailed(ctx, job.ID, result.Kind, result.Code, result.Message)
 	default:
-		_ = w.repo.MarkOutboxRetry(ctx, job.ID, w.nextAttempt(job), result.Kind, result.Code, result.Message)
+		return w.repo.MarkOutboxRetry(ctx, job.ID, w.nextAttempt(job), result.Kind, result.Code, result.Message)
 	}
 }
 

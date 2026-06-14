@@ -144,34 +144,9 @@ func (s *Service) SubmitResults(ctx context.Context, input SubmitResultsInput) (
 		return SubmitResultsOutput{}, flow.businessFailure(ProbeRuntimeEventSubmitResultsFailure, ProbeRuntimeReasonInvalidInput, err)
 	}
 
-	var changed []ChangedAssignmentInput
-	if len(pingResults) > 0 {
-		if s.pings == nil {
-			return SubmitResultsOutput{}, flow.resultWriteFailure(ProbeRuntimeEventSubmitResultsFailure, errPingRepositoryMissing)
-		}
-		inserted, err := s.pings.CreatePingResults(ctx, pingResults)
-		if err != nil {
-			return SubmitResultsOutput{}, flow.resultWriteFailure(ProbeRuntimeEventSubmitResultsFailure, err)
-		}
-		changed = appendChangedAssignments(changed, inserted, nil, assignments)
-	}
-	if len(tcpResults) > 0 {
-		if s.tcps == nil {
-			return SubmitResultsOutput{}, flow.resultWriteFailure(ProbeRuntimeEventSubmitResultsFailure, errTCPRepositoryMissing)
-		}
-		inserted, err := s.tcps.CreateTCPResults(ctx, tcpResults)
-		if err != nil {
-			return SubmitResultsOutput{}, flow.resultWriteFailure(ProbeRuntimeEventSubmitResultsFailure, err)
-		}
-		changed = appendChangedAssignments(changed, nil, inserted, assignments)
-	}
-	if len(tracerouteResults) > 0 {
-		if s.traceroutes == nil {
-			return SubmitResultsOutput{}, flow.resultWriteFailure(ProbeRuntimeEventSubmitResultsFailure, errTracerouteRepositoryMissing)
-		}
-		if err := s.traceroutes.CreateTracerouteResults(ctx, tracerouteResults); err != nil {
-			return SubmitResultsOutput{}, flow.resultWriteFailure(ProbeRuntimeEventSubmitResultsFailure, err)
-		}
+	changed, err := s.writeSubmittedResults(ctx, flow, assignments, pingResults, tcpResults, tracerouteResults)
+	if err != nil {
+		return SubmitResultsOutput{}, err
 	}
 	if s.alertEvaluator != nil && len(changed) > 0 {
 		if err := s.alertEvaluator.EvaluateChangedAssignments(ctx, changed); err != nil {
@@ -181,6 +156,39 @@ func (s *Service) SubmitResults(ctx context.Context, input SubmitResultsInput) (
 	flow.success()
 
 	return SubmitResultsOutput{Accepted: normalized.accepted, ServerTime: time.Now().UTC()}, nil
+}
+
+func (s *Service) writeSubmittedResults(ctx context.Context, flow *runtimeFlow, assignments []domainassignment.Assignment, pingResults []domainping.ResultStorageInput, tcpResults []domaintcp.ResultStorageInput, tracerouteResults []domaintraceroute.ResultStorageInput) ([]ChangedAssignmentInput, error) {
+	var changed []ChangedAssignmentInput
+	if len(pingResults) > 0 {
+		if s.pings == nil {
+			return nil, flow.resultWriteFailure(ProbeRuntimeEventSubmitResultsFailure, errPingRepositoryMissing)
+		}
+		inserted, err := s.pings.CreatePingResults(ctx, pingResults)
+		if err != nil {
+			return nil, flow.resultWriteFailure(ProbeRuntimeEventSubmitResultsFailure, err)
+		}
+		changed = appendChangedAssignments(changed, inserted, nil, assignments)
+	}
+	if len(tcpResults) > 0 {
+		if s.tcps == nil {
+			return nil, flow.resultWriteFailure(ProbeRuntimeEventSubmitResultsFailure, errTCPRepositoryMissing)
+		}
+		inserted, err := s.tcps.CreateTCPResults(ctx, tcpResults)
+		if err != nil {
+			return nil, flow.resultWriteFailure(ProbeRuntimeEventSubmitResultsFailure, err)
+		}
+		changed = appendChangedAssignments(changed, nil, inserted, assignments)
+	}
+	if len(tracerouteResults) > 0 {
+		if s.traceroutes == nil {
+			return nil, flow.resultWriteFailure(ProbeRuntimeEventSubmitResultsFailure, errTracerouteRepositoryMissing)
+		}
+		if err := s.traceroutes.CreateTracerouteResults(ctx, tracerouteResults); err != nil {
+			return nil, flow.resultWriteFailure(ProbeRuntimeEventSubmitResultsFailure, err)
+		}
+	}
+	return changed, nil
 }
 
 func appendChangedAssignments(changed []ChangedAssignmentInput, pingResults []domainping.ResultStorageInput, tcpResults []domaintcp.ResultStorageInput, assignments []domainassignment.Assignment) []ChangedAssignmentInput {
