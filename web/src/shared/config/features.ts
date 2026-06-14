@@ -21,3 +21,16 @@ export const appFeatures = {
 	projectCreation: booleanFeature(import.meta.env.VITE_NETSTAMP_PROJECT_CREATION_ENABLED, true),
 	userCredentialChanges: booleanFeature(import.meta.env.VITE_NETSTAMP_USER_CREDENTIAL_CHANGES_ENABLED, true)
 } as const;
+
+export const demoMode = booleanFeature(import.meta.env.VITE_NETSTAMP_DEMO_MODE, false);
+
+const demoEmail = import.meta.env.VITE_NETSTAMP_DEMO_EMAIL?.trim();
+const demoPassword = import.meta.env.VITE_NETSTAMP_DEMO_PASSWORD?.trim();
+
+export const demoCredentials =
+	demoEmail && demoPassword
+		? {
+				email: demoEmail,
+				password: demoPassword
+			}
+		: null;

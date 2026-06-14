@@ -569,6 +569,37 @@
 	padding: 2rem 1.5rem 0;
 }
 
+.contentBody {
+	display: grid;
+	gap: 1rem;
+}
+
+.demoBanner {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	border: 1px solid var(--ns-accent-border);
+	background: var(--ns-accent-muted);
+	padding: 0.75rem 1rem;
+	color: var(--ns-text);
+	font-size: 0.875rem;
+	line-height: 1.4;
+}
+
+.demoBanner strong {
+	flex: 0 0 auto;
+	font-size: 0.8125rem;
+	font-weight: 750;
+	text-transform: uppercase;
+}
+
+.demoBanner span {
+	min-width: 0;
+	color: var(--ns-text-subtle);
+	text-align: right;
+}
+
 .shellCollapsed .sidebarScroll {
 	grid-template-rows: auto auto 1fr auto;
 	padding: 0.75rem 0.375rem;
@@ -716,6 +747,15 @@
 
 	.content {
 		padding: 1.5rem 1rem 0;
+	}
+
+	.demoBanner {
+		align-items: flex-start;
+		flex-direction: column;
+	}
+
+	.demoBanner span {
+		text-align: left;
 	}
 }
 

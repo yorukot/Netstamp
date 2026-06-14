@@ -69,8 +69,11 @@ The web app has matching build-time flags that hide the disabled UI controls:
 | `VITE_NETSTAMP_REGISTRATION_ENABLED`            | Shows registration routes and links | `true`  |
 | `VITE_NETSTAMP_PROJECT_CREATION_ENABLED`        | Shows project creation controls     | `true`  |
 | `VITE_NETSTAMP_USER_CREDENTIAL_CHANGES_ENABLED` | Shows email and password forms      | `true`  |
+| `VITE_NETSTAMP_DEMO_MODE`                       | Shows demo-mode read-only UI        | `false` |
+| `VITE_NETSTAMP_DEMO_EMAIL`                      | Shows a demo login email            | empty   |
+| `VITE_NETSTAMP_DEMO_PASSWORD`                   | Shows a demo login password         | empty   |
 
-The backend runtime settings are the source of truth. The Vite flags only control the static frontend bundle built for that deployment.
+When `VITE_NETSTAMP_DEMO_MODE=true` and both demo credential values are set, the login page shows the account and a button that fills the login form. Demo mode is explicit; disabling registration alone does not enable the demo banner. The backend runtime settings are the source of truth. The Vite flags only control the static frontend bundle built for that deployment.
 
 ## Backend And API Assets
 

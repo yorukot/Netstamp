@@ -124,6 +124,36 @@
 	color: var(--ns-text-on-accent);
 }
 
+.demoCredentials {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	border: 1px solid var(--ns-border-faint);
+	background: var(--ns-glass-light);
+	padding: 0.875rem;
+}
+
+.demoCredentialText {
+	display: grid;
+	min-width: 0;
+	gap: 0.25rem;
+	color: var(--ns-text-subtle);
+	font-size: 0.8125rem;
+	line-height: 1.3;
+}
+
+.demoCredentialText strong,
+.demoCredentialText code {
+	overflow-wrap: anywhere;
+	color: var(--ns-text);
+	font: inherit;
+}
+
+.demoCredentialText code {
+	font-family: var(--ns-font-mono);
+}
+
 .modeLink {
 	align-self: center;
 	margin-top: 1.5rem;
@@ -214,5 +244,10 @@
 
 	.authVisual {
 		display: none;
+	}
+
+	.demoCredentials {
+		align-items: stretch;
+		flex-direction: column;
 	}
 }

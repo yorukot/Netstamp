@@ -14,7 +14,7 @@ import { ActionRow } from "@/shared/components/ActionRow";
 import { BodyCopy } from "@/shared/components/BodyCopy";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
-import { appFeatures } from "@/shared/config/features";
+import { appFeatures, demoMode } from "@/shared/config/features";
 import { pushToast } from "@/shared/toast/toastStore";
 import { Badge, Button, DataTable, Panel, SignalAvatar, TextField, type DataColumn } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
@@ -145,6 +145,10 @@ export function SettingsPage() {
 			key: "actions",
 			label: "Actions",
 			render: row => {
+				if (demoMode) {
+					return <Badge tone="muted">View only</Badge>;
+				}
+
 				const accepting = acceptInviteMutation.isPending && acceptInviteMutation.variables === row.id;
 				const rejecting = rejectInviteMutation.isPending && rejectInviteMutation.variables === row.id;
 
@@ -180,12 +184,16 @@ export function SettingsPage() {
 			<div className={styles.settingsGrid}>
 				<Panel tone="glass" title="Profile">
 					<form id="identity-settings" className={styles.settingsForm} onSubmit={handleIdentitySubmit}>
-						<TextField label="Display name" name="name" defaultValue={user.name} />
-						<ActionRow>
-							<Button type="submit" disabled={updateUserMutation.isPending}>
-								{updateUserMutation.isPending ? "Saving" : "Save identity"}
-							</Button>
-						</ActionRow>
+						<TextField label="Display name" name="name" defaultValue={user.name} disabled={demoMode} />
+						{demoMode ? (
+							<BodyCopy>Profile changes are disabled for demo access.</BodyCopy>
+						) : (
+							<ActionRow>
+								<Button type="submit" disabled={updateUserMutation.isPending}>
+									{updateUserMutation.isPending ? "Saving" : "Save identity"}
+								</Button>
+							</ActionRow>
+						)}
 					</form>
 				</Panel>
 

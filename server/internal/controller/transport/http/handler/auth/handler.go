@@ -17,7 +17,7 @@ type Handler struct {
 	registrationEnabled bool
 }
 
-func NewHandler(service *appauth.Service, verifier appauth.TokenVerifier, cookieSecure bool, registrationEnabled bool) *Handler {
+func NewHandler(service *appauth.Service, verifier appauth.TokenVerifier, cookieSecure, registrationEnabled bool) *Handler {
 	return &Handler{
 		service:             service,
 		verifier:            verifier,

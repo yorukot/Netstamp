@@ -2,7 +2,7 @@ import { useAuth } from "@/features/auth/hooks/useAuth";
 import { pathForRoute } from "@/routes/routePaths";
 import type { Navigate } from "@/routes/routeTypes";
 import taiwanSubmarineCablesMap from "@/shared/assets/taiwan_submarine_cables.svg?url";
-import { appFeatures } from "@/shared/config/features";
+import { appFeatures, demoCredentials, demoMode } from "@/shared/config/features";
 import { useTheme } from "@/shared/theme/useTheme";
 import { pushErrorToast } from "@/shared/toast/toastStore";
 import netstampLogoDark from "@netstamp/brand/assets/netstamp-logo-dark.svg";
@@ -31,15 +31,25 @@ export function AuthPage({ mode = "login", navigate }: AuthPageProps) {
 	const { submitting, login, register } = useAuth();
 	const { theme } = useTheme();
 	const [caption] = useState(() => AUTH_CAPTIONS[Math.floor(Math.random() * AUTH_CAPTIONS.length)]);
+	const [email, setEmail] = useState("");
+	const [password, setPassword] = useState("");
 	const heading = isRegister ? "Create your Netstamp account" : "Log in to your account";
 	const intro = isRegister ? "Create controller access and start with your first project." : "Enter your credentials to access the Netstamp console.";
 	const logo = theme === "dark" ? netstampLogo : netstampLogoDark;
+	const showDemoCredentials = demoMode && Boolean(demoCredentials);
+
+	function fillDemoCredentials() {
+		if (!demoCredentials) {
+			return;
+		}
+
+		setEmail(demoCredentials.email);
+		setPassword(demoCredentials.password);
+	}
 
 	async function handleSubmit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 		const formData = new FormData(event.currentTarget);
-		const email = String(formData.get("email") || "");
-		const password = String(formData.get("password") || "");
 		const passwordAgain = String(formData.get("passwordAgain") || "");
 		const payload = {
 			email,
@@ -102,18 +112,34 @@ export function AuthPage({ mode = "login", navigate }: AuthPageProps) {
 								label="Email"
 								name="email"
 								type="email"
+								value={email}
 								autoComplete={isRegister ? "email" : "username"}
 								helper={isRegister ? "Use the email that will own the first project." : "Use the email connected to your controller account."}
+								onChange={event => setEmail(event.currentTarget.value)}
 							/>
 							<TextField
 								label="Password"
 								name="password"
 								type="password"
+								value={password}
 								minLength={isRegister ? 8 : undefined}
 								autoComplete={isRegister ? "new-password" : "current-password"}
 								helper={isRegister ? "Choose a password for controller access." : "Enter your account password."}
+								onChange={event => setPassword(event.currentTarget.value)}
 							/>
 							{isRegister ? <TextField label="Password, again" name="passwordAgain" type="password" minLength={8} autoComplete="new-password" /> : null}
+							{!isRegister && showDemoCredentials && demoCredentials ? (
+								<div className={styles.demoCredentials} aria-label="Demo account credentials">
+									<div className={styles.demoCredentialText}>
+										<span>Demo account</span>
+										<strong>{demoCredentials.email}</strong>
+										<code>{demoCredentials.password}</code>
+									</div>
+									<Button type="button" variant="secondary" size="sm" onClick={fillDemoCredentials}>
+										Use demo account
+									</Button>
+								</div>
+							) : null}
 							<Button className={styles.submitButton} type="submit" size="lg" disabled={submitting}>
 								{submitting ? "Submitting" : isRegister ? "Create project" : "Log in"}
 							</Button>
