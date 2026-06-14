@@ -218,7 +218,7 @@ const router = createBrowserRouter([
 	{
 		element: <RouteFrame />,
 		children: [
-			{ path: pathForRoute("landing"), element: <RouterNavigate to={pathForRoute("login")} replace /> },
+			{ path: pathForRoute("landing"), element: <AuthRoute mode="login" /> },
 			{ path: pathForRoute("login"), element: <AuthRoute mode="login" /> },
 			{ path: pathForRoute("register"), element: <AuthRoute mode="register" /> },
 			{ path: pathForRoute("onboarding"), element: <OnboardingRoute /> },
