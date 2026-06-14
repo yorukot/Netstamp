@@ -27,50 +27,6 @@
 	line-height: 1.45;
 }
 
-.scopeSummaryGrid {
-	display: grid;
-	grid-template-columns: repeat(4, minmax(0, 1fr));
-	gap: 0.75rem;
-}
-
-.scopeSummaryCell {
-	--ns-frame-color: var(--ns-slate-line);
-	display: grid;
-	gap: 0.35rem;
-	align-content: start;
-	min-height: 6.25rem;
-	padding: 0.875rem;
-	background: var(--ns-surface-raised);
-	border: 1px solid var(--ns-frame-color);
-	border-radius: var(--ns-radius-md);
-}
-
-.scopeSummaryCell span,
-.scopeSummaryCell small {
-	color: var(--ns-text-low);
-	font-family: var(--ns-font-sans);
-	font-size: 0.8125rem;
-	font-weight: 650;
-	text-transform: none;
-}
-
-.scopeSummaryCell strong {
-	min-width: 0;
-	color: var(--ns-text);
-	font-family: var(--ns-font-sans);
-	font-size: clamp(1.25rem, 2.1vw, 1.85rem);
-	font-weight: 700;
-	line-height: 1.1;
-	overflow-wrap: anywhere;
-}
-
-.scopeSummaryCell small {
-	color: var(--ns-text-subtle);
-	font-size: 0.75rem;
-	line-height: 1.35;
-	text-transform: none;
-}
-
 @media (max-width: 72rem) {
 	.scopeBar {
 		--ns-filter-grid-template: repeat(2, minmax(0, 1fr));
@@ -79,18 +35,10 @@
 	.scopeTimeControl {
 		grid-column: 1 / -1;
 	}
-
-	.scopeSummaryGrid {
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-	}
 }
 
 @media (max-width: 44rem) {
 	.scopeBar {
 		--ns-filter-grid-template: 1fr;
-	}
-
-	.scopeSummaryGrid {
-		grid-template-columns: 1fr;
 	}
 }

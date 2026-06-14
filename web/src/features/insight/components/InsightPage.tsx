@@ -20,21 +20,21 @@ import { mapApiProbes } from "@/features/probes/api/probeAdapters";
 import { type Probe, type ProbeStatus } from "@/features/probes/data/probes";
 import { projectQueries } from "@/shared/api/queries";
 import { apiQueryKeys } from "@/shared/api/queryKeys";
-import { type ApiLatestResult, type ApiProjectAssignment, type PingInsightResponse, type PingSeriesResponse, type TcpInsightResponse, type TcpSeriesResponse } from "@/shared/api/types";
+import { type ApiProjectAssignment, type PingInsightResponse, type PingSeriesResponse, type TcpInsightResponse, type TcpSeriesResponse } from "@/shared/api/types";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { BodyCopy } from "@/shared/components/BodyCopy";
 import { FilterGrid } from "@/shared/components/FilterGrid";
 import { LoadingState } from "@/shared/components/LoadingState";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
-import { formatCount, formatEpochMs } from "@/shared/utils/insightFormatters";
+import { formatCount } from "@/shared/utils/insightFormatters";
 import {
 	isRelativeTimeRange as isInsightRelativeRange,
 	parseEpochMs,
 	relativeRangeForTimeWindow as relativeRangeForWindow,
 	timeWindowForRelativeRange as timeWindowForRange
 } from "@/shared/utils/timeRanges";
-import { Button, Panel, SelectField, type BadgeTone } from "@netstamp/ui";
+import { Button, Panel, SelectField } from "@netstamp/ui";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -58,17 +58,6 @@ const groupByOptions: Array<{ value: InsightGroupBy; label: string }> = [
 	{ value: "check", label: "By check" },
 	{ value: "probe", label: "By probe" }
 ];
-
-type GroupStatus = {
-	label: string;
-	tone: BadgeTone;
-	rank: number;
-};
-
-interface LatestSummary {
-	latestStartedAtMs: number | null;
-	status: GroupStatus;
-}
 
 function isInsightTimeMode(value: string | null): value is InsightTimeMode {
 	return value === "relative" || value === "absolute";
@@ -240,45 +229,6 @@ function buildInsightPairs(assignments: ApiProjectAssignment[], probes: Probe[],
 
 function normalizeSearch(value: string) {
 	return value.trim().toLowerCase();
-}
-
-function latestStartedAtMs(result: ApiLatestResult) {
-	const startedAt = new Date(result.latestStartedAt).getTime();
-	return Number.isFinite(startedAt) ? startedAt : null;
-}
-
-function summarizeLatestResults(results: ApiLatestResult[]): LatestSummary {
-	const timeout = results.filter(result => result.latestStatus === "timeout").length;
-	const error = results.filter(result => result.latestStatus === "error").length;
-	const partial = results.filter(result => result.latestStatus === "partial").length;
-	const latestStartedAt = results.reduce<number | null>((latest, result) => {
-		const next = latestStartedAtMs(result);
-		if (next === null) {
-			return latest;
-		}
-
-		return latest === null || next > latest ? next : latest;
-	}, null);
-	let status: GroupStatus = { label: "No data", tone: "warning", rank: 2 };
-
-	if (error || timeout) {
-		status = { label: `${formatCount(error + timeout)} failing`, tone: "critical", rank: 0 };
-	} else if (partial) {
-		status = { label: `${formatCount(partial)} partial`, tone: "warning", rank: 1 };
-	} else if (results.length) {
-		status = { label: "Reporting", tone: "success", rank: 3 };
-	}
-
-	return {
-		latestStartedAtMs: latestStartedAt,
-		status
-	};
-}
-
-function groupLatestResultsForPairs(results: ApiLatestResult[], pairs: InsightPair[]) {
-	const pairKeys = new Set(pairs.map(pair => pair.key));
-
-	return results.filter(result => pairKeys.has(pairKey(result.probeId, result.checkId)));
 }
 
 function scopePairs(pairs: InsightPair[], checkType: InsightCheckTypeFilter, probeId: string, checkId: string) {
@@ -521,23 +471,6 @@ export function InsightPage() {
 		[groupBy, probes, typeFilteredChecks, typeFilteredPairs]
 	);
 	const assignmentOptions = useMemo(() => legacyScopedPairs.map(pair => assignmentSelectOption(pair)), [legacyScopedPairs]);
-	const latestResultFilters = useMemo(
-		() => ({
-			...(checkType === "all" ? {} : { type: checkType }),
-			...(exactPair ? { probeId: exactPair.probeId, checkId: exactPair.checkId } : activeProbeId ? { probeId: activeProbeId } : {}),
-			...(exactPair || !activeCheckId ? {} : { checkId: activeCheckId })
-		}),
-		[activeCheckId, activeProbeId, checkType, exactPair]
-	);
-	const latestResultsQuery = useQuery({
-		...projectQueries.latestResults(projectRef || "", latestResultFilters),
-		enabled: Boolean(projectRef && hasResultScope && !isSelectionLoading && !hasInvalidFocus)
-	});
-	const latestResults = useMemo(() => latestResultsQuery.data?.results ?? [], [latestResultsQuery.data?.results]);
-	const scopedLatestResults = useMemo(() => groupLatestResultsForPairs(latestResults, scopedPairs), [latestResults, scopedPairs]);
-	const scopeSummary = useMemo(() => summarizeLatestResults(scopedLatestResults), [scopedLatestResults]);
-	const scopedProbeCount = useMemo(() => new Set(scopedPairs.map(pair => pair.probeId)).size, [scopedPairs]);
-	const scopedCheckCount = useMemo(() => new Set(scopedPairs.map(pair => pair.checkId)).size, [scopedPairs]);
 	const canQueryPairDetail = Boolean(projectRef && exactPair);
 	const canQueryTracerouteDetail = Boolean(canQueryPairDetail && exactPair?.check.type === "Traceroute");
 	const topologyProbeId = activeProbeId;
@@ -1001,31 +934,6 @@ export function InsightPage() {
 				</Panel>
 			) : !hasResultScope ? null : (
 				<>
-					<Panel tone="glass" title={selectedPairKeys.length ? `${formatCount(selectedPairKeys.length)} selected assignments` : `${formatCount(scopedPairs.length)} assignments in scope`}>
-						<div className={styles.scopeSummaryGrid}>
-							<div className={styles.scopeSummaryCell}>
-								<span>Assignments</span>
-								<strong>{formatCount(scopedPairs.length)}</strong>
-								<small>{selectedPairKeys.length ? "selected" : "in scope"}</small>
-							</div>
-							<div className={styles.scopeSummaryCell}>
-								<span>Probes</span>
-								<strong>{formatCount(scopedProbeCount)}</strong>
-								<small>{groupBy === "probe" ? "primary grouping" : "covered"}</small>
-							</div>
-							<div className={styles.scopeSummaryCell}>
-								<span>Checks</span>
-								<strong>{formatCount(scopedCheckCount)}</strong>
-								<small>{groupBy === "check" ? "primary grouping" : "covered"}</small>
-							</div>
-							<div className={styles.scopeSummaryCell}>
-								<span>Status</span>
-								<strong>{latestResultsQuery.isFetching ? "Syncing" : scopeSummary.status.label}</strong>
-								<small>{formatEpochMs(scopeSummary.latestStartedAtMs)}</small>
-							</div>
-						</div>
-					</Panel>
-
 					{canQueryTracerouteGroup ? (
 						<GroupTopologyPanel
 							title={groupTopologyTitle}
