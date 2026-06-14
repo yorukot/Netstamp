@@ -10,10 +10,13 @@ transforms:
     inputs:
       - docker
     source: |
+      if !exists(.service) && exists(."label.com.docker.compose.service") {
+        .service = ."label.com.docker.compose.service"
+      }
+
       parsed, err = parse_json(.message)
       if err == null && is_object(parsed) {
-        . = merge(., parsed)
-        .message = parsed.message ?? parsed.msg ?? .message
+        . = merge!(parsed, .)
       }
 
 sinks:
