@@ -44,6 +44,7 @@ export interface SelectProps extends ComponentPropsWithoutRef<"select"> {
 interface SelectOption {
 	value: string;
 	label: ReactNode;
+	nativeLabel: string;
 	disabled?: boolean;
 	radixValue: string;
 }
@@ -101,6 +102,7 @@ function collectSelectOptions(children: ReactNode): Omit<SelectOption, "radixVal
 			options.push({
 				value: valueToString(props.value) ?? textFromReactNode(props.children),
 				label: props.children,
+				nativeLabel: textFromReactNode(props.children),
 				disabled: props.disabled
 			});
 		});
@@ -300,7 +302,11 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
 					onChange={handleNativeChange}
 					{...props}
 				>
-					{children}
+					{options.map(option => (
+						<option key={option.radixValue} value={option.value} disabled={option.disabled}>
+							{option.nativeLabel}
+						</option>
+					))}
 				</select>
 				<RadixSelect.Portal>
 					<RadixSelect.Content className={menuClasses} position="popper" sideOffset={8} collisionPadding={8}>

@@ -4,11 +4,20 @@ import { pathForProjectSwitch } from "@/routes/routePaths";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { classNames } from "@/shared/utils/classNames";
 import { Button, PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger, Select } from "@netstamp/ui";
-import { FolderOpen } from "@phosphor-icons/react";
+import { FolderOpen, FolderPlus } from "@phosphor-icons/react";
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 const CREATE_PROJECT_VALUE = "__create_project__";
+
+function createProjectOptionLabel() {
+	return (
+		<span className={styles.projectCreateOption}>
+			<FolderPlus size={17} weight="bold" aria-hidden="true" />
+			<span>Create new project</span>
+		</span>
+	);
+}
 
 export function ProjectSwitcher() {
 	const { projectRef, projectsQuery, setSelectedProjectRef } = useCurrentProject();
@@ -54,7 +63,7 @@ export function ProjectSwitcher() {
 						) : (
 							<option value="">No project</option>
 						)}
-						<option value={CREATE_PROJECT_VALUE}>Create new project</option>
+						<option value={CREATE_PROJECT_VALUE}>{createProjectOptionLabel()}</option>
 					</Select>
 				</label>
 			</div>
@@ -80,7 +89,7 @@ export function ProjectSwitcher() {
 								) : (
 									<option value="">No project</option>
 								)}
-								<option value={CREATE_PROJECT_VALUE}>Create new project</option>
+								<option value={CREATE_PROJECT_VALUE}>{createProjectOptionLabel()}</option>
 							</Select>
 						</label>
 						<Button
@@ -93,6 +102,7 @@ export function ProjectSwitcher() {
 								setCreateModalOpen(true);
 							}}
 						>
+							<FolderPlus size={16} weight="bold" aria-hidden="true" />
 							Create new project
 						</Button>
 					</PopoverContent>

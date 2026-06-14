@@ -8,7 +8,7 @@
 }
 
 .shellCollapsed {
-	grid-template-columns: 5.75rem minmax(0, 1fr);
+	grid-template-columns: 5rem minmax(0, 1fr);
 }
 
 .sidebar {
@@ -266,6 +266,25 @@
 .projectControl option {
 	color: var(--ns-text);
 	background: var(--ns-surface);
+}
+
+.projectCreateOption {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	min-width: 0;
+}
+
+.projectCreateOption svg {
+	flex: 0 0 auto;
+	color: var(--ns-accent-active);
+}
+
+.projectCreateOption span {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .projectCompact {
@@ -552,7 +571,7 @@
 
 .shellCollapsed .sidebarScroll {
 	grid-template-rows: auto auto 1fr auto;
-	padding: 0.75rem 0.5rem;
+	padding: 0.75rem 0.375rem;
 }
 
 .shellCollapsed .brandRow {
@@ -589,8 +608,11 @@
 
 .shellCollapsed .nav a {
 	justify-content: center;
+	justify-self: center;
+	width: 2.75rem;
+	height: 2.75rem;
 	min-height: 2.75rem;
-	padding: 0.5rem;
+	padding: 0;
 	border-left-color: transparent;
 	font-size: 0.75rem;
 	text-align: center;
@@ -616,12 +638,12 @@
 
 @media (max-width: 58rem) {
 	.shell {
-		grid-template-columns: 5.75rem minmax(0, 1fr);
+		grid-template-columns: 5rem minmax(0, 1fr);
 	}
 
 	.sidebarScroll {
 		grid-template-rows: auto auto 1fr auto;
-		padding: 0.75rem 0.5rem;
+		padding: 0.75rem 0.375rem;
 	}
 
 	.brand {
@@ -674,8 +696,11 @@
 
 	.nav a {
 		justify-content: center;
+		justify-self: center;
+		width: 2.75rem;
+		height: 2.75rem;
 		min-height: 2.75rem;
-		padding: 0.5rem;
+		padding: 0;
 		border-left-color: transparent;
 		font-size: 0.75rem;
 		text-align: center;
@@ -779,6 +804,9 @@
 
 	.nav a {
 		justify-content: flex-start;
+		justify-self: stretch;
+		width: 100%;
+		height: auto;
 		min-height: 2.75rem;
 		padding: 0.625rem 0.75rem;
 		font-size: 0.875rem;
@@ -792,6 +820,9 @@
 
 	.shellCollapsed .nav a {
 		justify-content: flex-start;
+		justify-self: stretch;
+		width: 100%;
+		height: auto;
 		padding: 0.625rem 0.75rem;
 		font-size: 0.875rem;
 		text-align: left;
