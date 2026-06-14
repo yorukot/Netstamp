@@ -1,93 +1,61 @@
 <div align="center">
   <img src="./packages/brand/assets/netstamp-logo.svg" alt="Netstamp" width="360" />
 
-  <h3>Open-source network observability from probes you control.</h3>
+  <h3>Self-hosted network observability from probes you control.</h3>
 
   <p>
-    Measure latency, packet loss, routes, and probe health from real network viewpoints.
+    See latency, packet loss, routes, TCP reachability, and probe health from the networks that matter to you.
   </p>
 
   <p>
     <a href="./LICENSE"><img alt="License" src="https://img.shields.io/github/license/yorukot/netstamp?style=flat-square" /></a>
+    <img alt="Docker" src="https://img.shields.io/badge/Docker-self--hosted-2496ED?style=flat-square&logo=docker&logoColor=white" />
     <img alt="Go" src="https://img.shields.io/badge/Go-1.26-00ADD8?style=flat-square&logo=go&logoColor=white" />
     <img alt="React" src="https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=111111" />
-    <img alt="pnpm" src="https://img.shields.io/badge/pnpm-workspace-F69220?style=flat-square&logo=pnpm&logoColor=white" />
   </p>
 </div>
 
 ---
 
-## Overview
+## What is Netstamp?
 
-Netstamp is built for teams that need to know whether a service is reachable from the places that matter: home labs, edge nodes, regional servers, private infrastructure, or any machine that can run a probe.
+Netstamp is an open-source, self-hosted network monitoring app for people who need to know what the internet looks like from their own machines, regions, labs, edge nodes, and private infrastructure.
 
-The product is split into:
+Most monitoring tells you if a service is up from somebody else's cloud. Netstamp lets you place probes where your users, servers, or networks actually are, then watch reachability, latency, packet loss, routes, and probe health from those real viewpoints.
 
-| Surface           | Purpose                                                                                                          |
-| ----------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `server/`         | Go controller API, database access, migrations, probe runtime endpoints, alert evaluation, notification delivery |
-| `web/`            | React service app for dashboards, probes, checks, insights, alerts, projects, and settings                       |
-| `docs/`           | Astro public site, documentation, OpenAPI explorer, and Storybook publishing                                     |
-| `packages/ui/`    | Shared React UI components and design tokens                                                                     |
-| `packages/brand/` | Netstamp logo and brand assets                                                                                   |
+## Why self-host it?
 
-## Content
+- Your network data stays on your infrastructure.
+- Your probes can run from home labs, offices, VPS regions, edge nodes, or private networks.
+- You can monitor internal services that public SaaS checks cannot reach.
+- You get one place to compare network behavior across multiple locations.
+- You can start with Docker Compose and grow into a more serious deployment later.
 
-- [Overview](#overview)
-- [Features](#features)
-- [How It Works](#how-it-works)
-- [Self-Host Install](#self-host-install)
-- [Local Development](#local-development)
-- [Probe Agent](#probe-agent)
-- [Commands](#commands)
-- [Configuration](#configuration)
-- [OpenAPI](#openapi)
-- [Docker](#docker)
-- [Development](#development)
-- [Contributing](#contributing)
-- [License](#license)
+## What you can use it for
+
+- Check if a service is reachable from multiple real locations.
+- Compare latency and packet loss between regions, ISPs, or hosting providers.
+- Detect route changes and unstable network paths.
+- Track probe health so you know which viewpoints are still reporting.
+- Send alerts to the channels your team already watches.
+- Keep historical network measurements in PostgreSQL and TimescaleDB.
 
 ## Features
 
-- Multi-project workspaces with owner, admin, editor, and viewer roles.
-- User registration, login, JWT sessions, and project-scoped authorization.
-- Probe inventory with labels, location metadata, online status, and secret rotation.
-- Label-based check assignment through selector expressions.
-- Ping checks with packet count, packet size, timeout, and IP family settings.
-- Probe runtime API for hello, heartbeat, assignment polling, and result submission.
-- PostgreSQL plus TimescaleDB storage for relational state and time-series measurements.
-- Insight views for latency, packet loss, route behavior, and probe health.
-- Alert rules, incidents, notification channels, and test notifications.
-- Webhook, Discord, and Telegram notification channels.
-- Generated OpenAPI contract from TypeSpec.
-- Structured logs, Prometheus-compatible metrics, and optional OpenTelemetry traces.
+- Self-hosted controller with a React web app and Go API.
+- Lightweight probe agents that poll assignments and submit results.
+- Ping, TCP connect, and traceroute checks.
+- Project workspaces with roles and scoped access.
+- Label-based probe and check organization.
+- Dashboards for latency, packet loss, route behavior, and probe status.
+- Alert rules, incidents, and notification channels.
+- Webhook, Discord, and Telegram notifications.
+- Docker Compose deployment with built-in migrations.
+- Generated OpenAPI contract for integrations.
 
-## How It Works
+## Quick Start
 
-Netstamp has one controller and many probes.
-
-```text
-Browser
-  -> React web app
-  -> /api/v1/*
-  -> Go controller
-  -> PostgreSQL / TimescaleDB
-```
-
-```text
-Probe agent
-  -> authenticate with probe secret
-  -> poll assignments
-  -> run checks
-  -> submit results
-  -> controller evaluates alerts and sends notifications
-```
-
-The controller owns authentication, authorization, projects, labels, checks, probes, assignments, results, incidents, notification channels, metrics, and traces. Probe agents run near the network being measured and only need their controller URL, probe ID, and probe secret.
-
-## Self-Host Install
-
-The default self-host path uses Docker Compose with two long-running services: Netstamp and PostgreSQL/TimescaleDB. You do not need Go, Node.js, pnpm, or a reverse proxy to try it.
+Run Netstamp with Docker Compose:
 
 ```bash
 mkdir netstamp
@@ -98,273 +66,82 @@ cp example.env .env
 docker compose up -d
 ```
 
-Open:
+Open Netstamp:
 
 ```text
 http://localhost:3000
 ```
 
-Before exposing Netstamp publicly, edit `.env` and replace every `change-me` value. For a production HTTPS deployment, set `APP_ENV=production`, pin `NETSTAMP_VERSION` to a release tag instead of `latest`, and put Netstamp behind your reverse proxy of choice.
+Before exposing Netstamp publicly, edit `.env`, replace every `change-me` value, set `APP_ENV=production`, pin `NETSTAMP_VERSION` to a release tag, and put Netstamp behind HTTPS with your reverse proxy of choice.
 
-## Local Development
+## First Setup
 
-Development uses separate backend, web, and docs processes.
+After the app is running:
 
-Requirements:
+1. Create your first account.
+2. Create a project for the services or networks you want to watch.
+3. Add a probe for each network viewpoint you care about.
+4. Install or run the probe agent with its probe ID and secret.
+5. Create checks for the hosts, ports, and routes you want to monitor.
+6. Add alerts and notification channels once the first measurements are flowing.
 
-- [Node.js](https://nodejs.org/) 22.12 or newer
-- [pnpm](https://pnpm.io/) 11
-- [Go](https://go.dev/doc/install) version matching `server/go.mod`
-- [Just](https://github.com/casey/just)
-- [Docker](https://docs.docker.com/get-docker/) and Docker Compose
-- PostgreSQL with TimescaleDB for backend development
-- [Air](https://github.com/air-verse/air) for backend hot reload
-- [golangci-lint](https://golangci-lint.run/) for backend linting
+## How it works
 
-Clone the repository and install workspace dependencies.
+Netstamp has one controller and many probes.
 
-```bash
-git clone https://github.com/yorukot/netstamp.git
-cd netstamp
-pnpm install
+```text
+Your browser -> Netstamp web app -> Netstamp controller -> PostgreSQL / TimescaleDB
 ```
 
-Create local backend and probe configuration files.
-
-```bash
-cp server/.env.example server/.env
-cp server/probe.env.example server/probe.env
+```text
+Probe agent -> poll assignments -> run checks -> submit results -> alerts and dashboards
 ```
 
-Prepare a PostgreSQL/TimescaleDB database, then update the `DATABASE_*` values in `server/.env`.
+The controller stores projects, users, probes, checks, results, incidents, and notification settings. Probes run near the networks being measured and only need the controller URL, probe ID, and probe secret.
 
-Apply migrations.
+## Links
 
-```bash
-just backend-migrate-up
-```
-
-Run the controller API.
-
-```bash
-just backend-dev
-```
-
-Run the service app.
-
-```bash
-just web-dev
-```
-
-Run the documentation site.
-
-```bash
-just docs-dev
-```
-
-By default, the backend listens on `http://localhost:8080`. Vite and Astro print their local URLs when they start.
-
-## Probe Agent
-
-Create or rotate a probe in the web app to get a probe ID and secret, then place those values in `server/probe.env`.
-
-```bash
-NETSTAMP_PROBE_CONTROLLER_URL=http://localhost:8080
-NETSTAMP_PROBE_ID=<probe-id>
-NETSTAMP_PROBE_SECRET=<probe-secret>
-```
-
-Run a local probe.
-
-```bash
-just backend-probe server/probe.env
-```
-
-Install a probe agent on a Linux systemd host.
-
-```bash
-curl -fsSL https://example.com/api/v1/install/agent.sh | sudo sh
-sudo netstamp-agent service install \
-  --url https://example.com \
-  --probe-id <probe-id> \
-  --probe-secret <probe-secret>
-```
-
-Uninstall a probe agent.
-
-```bash
-curl -fsSL https://example.com/api/v1/install/uninstall-agent.sh | sudo sh
-```
-
-## Commands
-
-Use the root `Justfile` for repeatable local workflows.
-
-| Command              | Purpose                                             |
-| -------------------- | --------------------------------------------------- |
-| `just`               | List available recipes                              |
-| `pnpm install`       | Install workspace dependencies                      |
-| `just backend-dev`   | Start the Go controller with Air                    |
-| `just backend-probe` | Run the probe runtime                               |
-| `just web-dev`       | Start the React service app                         |
-| `just docs-dev`      | Start the Astro docs app                            |
-| `just storybook-dev` | Start Storybook for `@netstamp/ui`                  |
-| `just build`         | Build backend, web, docs, and API contract targets  |
-| `just lint`          | Run backend and web linting                         |
-| `just test`          | Run backend tests                                   |
-| `just backend-sqlc`  | Regenerate sqlc Go code                             |
-| `just api-openapi`   | Regenerate OpenAPI JSON and web API types           |
-| `pnpm format`        | Format JS, TS, CSS, JSON, Markdown, and Astro files |
-
-## Configuration
-
-The backend reads environment variables and optional `.env` files from the repository root or `server/`.
-
-Common controller settings:
-
-| Variable                             | Purpose                                                |
-| ------------------------------------ | ------------------------------------------------------ |
-| `APP_ENV`                            | Runtime environment name                               |
-| `API_VERSION`                        | API path version mounted at `/api/{version}`           |
-| `HTTP_ADDR`                          | Controller listen address                              |
-| `WEB_DIR`                            | Optional built frontend directory; unset runs API only |
-| `DATABASE_HOST`                      | PostgreSQL host                                        |
-| `DATABASE_PORT`                      | PostgreSQL port                                        |
-| `DATABASE_USER`                      | PostgreSQL username                                    |
-| `DATABASE_PASSWORD`                  | PostgreSQL password                                    |
-| `DATABASE_NAME`                      | PostgreSQL database                                    |
-| `DATABASE_SSLMODE`                   | PostgreSQL SSL mode                                    |
-| `AUTH_JWT_SECRET`                    | JWT signing secret                                     |
-| `ALERT_EVALUATION_ENABLED`           | Enables alert evaluation                               |
-| `NOTIFICATION_WORKER_ENABLED`        | Enables notification delivery                          |
-| `NOTIFICATION_HTTP_TIMEOUT`          | Timeout for outbound notification requests             |
-| `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` | Optional OTLP trace endpoint                           |
-
-Probe settings:
-
-| Variable                           | Purpose                             |
-| ---------------------------------- | ----------------------------------- |
-| `NETSTAMP_PROBE_CONTROLLER_URL`    | Controller origin used by the probe |
-| `NETSTAMP_PROBE_ID`                | Probe UUID                          |
-| `NETSTAMP_PROBE_SECRET`            | Plaintext probe secret              |
-| `NETSTAMP_PROBE_HTTP_TIMEOUT`      | Probe HTTP client timeout           |
-| `NETSTAMP_PROBE_MAX_WORKERS`       | Maximum concurrent check workers    |
-| `NETSTAMP_PROBE_RESULT_BATCH_SIZE` | Maximum results sent per flush      |
-| `NETSTAMP_PROBE_ASSIGNMENT_TTL`    | Local assignment cache lifetime     |
-
-Frontend and docs tracking variables use build-time public prefixes:
-
-- `VITE_NETSTAMP_*` for `web/`
-- `PUBLIC_NETSTAMP_*` for `docs/`
-
-Never commit production `.env` files, JWT secrets, database passwords, probe secrets, webhook URLs, bot tokens, or telemetry endpoints with credentials.
-
-## OpenAPI
-
-The API contract is authored in TypeSpec and emitted to OpenAPI. Regenerate it after changing HTTP routes, request bodies, response bodies, security schemes, or operation metadata.
-
-```bash
-just api-openapi
-```
-
-Generated API assets:
-
-| File                                                             | Purpose                                               |
-| ---------------------------------------------------------------- | ----------------------------------------------------- |
-| `docs/public/openapi.json`                                       | Public OpenAPI document used by the docs API explorer |
-| `server/internal/controller/transport/http/openapi/openapi.json` | Embedded backend OpenAPI artifact                     |
-| `web/src/shared/api/openapi.d.ts`                                | Generated web API types                               |
-
-The docs app serves the API explorer at `/openapi/`.
-
-## Docker
-
-Run the default self-host stack from a directory that contains `compose.yaml` and `.env`.
-
-```bash
-docker compose up -d
-```
-
-Upgrade the image after taking a database backup.
-
-```bash
-docker compose pull
-docker compose stop netstamp
-docker compose run --rm migrate
-docker compose up -d
-```
-
-Start the observability stack.
-
-```bash
-LOG_PSEUDONYM_KEY=local \
-DATABASE_PASSWORD=netstamp \
-POSTGRES_EXPORTER_PASSWORD=netstamp \
-AUTH_JWT_SECRET=local-dev-secret \
-GF_SECURITY_ADMIN_PASSWORD=admin \
-docker compose -f deployments/docker/compose.observability.yaml up --build
-```
-
-Useful local endpoints:
-
-| Surface            | URL                             |
-| ------------------ | ------------------------------- |
-| Controller metrics | `http://localhost:8080/metrics` |
-| VictoriaMetrics    | `http://127.0.0.1:8428`         |
-| VictoriaTraces     | `http://localhost:10428`        |
-| Grafana            | `http://127.0.0.1:3000`         |
-
-The default compose stack pulls `yorukot/netstamp`, runs migrations through a one-shot `migrate` service, stores database state in the `netstamp-postgres` volume, and serves the React app plus API from the Netstamp container. That self-host image is built by `deployments/docker/Dockerfile`; `server/Dockerfile` remains the backend-only image. Nginx, Caddy, Traefik, and Cloudflare Tunnel are optional reverse-proxy choices for public HTTPS deployments.
+- Docker Compose: [`deployments/docker/compose.yaml`](./deployments/docker/compose.yaml)
+- Example environment: [`deployments/docker/example.env`](./deployments/docker/example.env)
+- Documentation source: [`docs/`](./docs/)
+- API contract: [`api/`](./api/)
+- Backend: [`server/`](./server/)
+- Web app: [`web/`](./web/)
 
 ## Development
 
-Run backend tests.
+Netstamp is a pnpm workspace with a Go backend and React/Vite frontend. If you want to contribute, install dependencies with `pnpm install`, then use the root `Justfile` for local development, linting, testing, and builds.
 
 ```bash
-just backend-test
-```
-
-Run backend integration tests against an explicit PostgreSQL URL.
-
-```bash
-NETSTAMP_TEST_DATABASE_URL=postgres://netstamp:netstamp@localhost:5432/netstamp?sslmode=disable just backend-test-integration
-```
-
-Run the full validation path.
-
-```bash
-just lint
-just test
-just build
-```
-
-Development rules:
-
-- Prefer root `Justfile` commands for repeatable workflows.
-- Keep backend changes inside the existing transport, application, domain, and infrastructure layers.
-- Add database changes as Goose migrations under `server/db/migrations/`.
-- Add SQL queries under `server/db/query/`, then run `just backend-sqlc`.
-- Regenerate OpenAPI after route or contract changes.
-- Update the closest `AGENTS.md` when commands, architecture, configuration, or structure changes.
-
-## Contributing
-
-Issues, ideas, and pull requests are welcome. For larger changes, open an issue first so the implementation direction is clear.
-
-Commit subjects should use the repository style:
-
-```text
-area: concise patch summary
-```
-
-Examples:
-
-```text
-web/alerts: improve channel setup flow
-server/probe: validate assignment result windows
-docs: clarify local setup
+just
 ```
 
 ## License
 
 Netstamp is licensed under the [Apache License 2.0](./LICENSE).
+
+### Contributors
+
+**Thanks to all the contributors for making this project even greater!**
+
+<a href="https://github.com/yorukot/netstamp/graphs/contributors">
+  <img src="https://gthanks.yorukot.me/image?target=yorukot%2Fnetstamp" />
+</a>
+
+### Star History
+
+**THANKS FOR All OF YOUR STARS!** Your stars are my motivation to keep updating!
+
+<a href="https://star-history.com/#yorukot/netstamp&Timeline">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=yorukot/netstamp&type=Timeline&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=yorukot/netstamp&type=Timeline" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=yorukot/netstamp&type=Timeline" />
+ </picture>
+</a>
+
+<div align="center">
+
+## ༼ つ ◕_◕ ༽つ Please share.
+
+</div>
