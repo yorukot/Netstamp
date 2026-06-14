@@ -4,6 +4,15 @@
 	gap: 1rem;
 }
 
+.summaryContent {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.75rem;
+	align-items: flex-end;
+	justify-content: space-between;
+	min-width: 0;
+}
+
 .summaryValue {
 	display: block;
 	color: var(--ns-text);
@@ -13,18 +22,78 @@
 	line-height: 1;
 }
 
-.grid {
-	display: grid;
-	grid-template-columns: minmax(0, 1fr) minmax(20rem, 0.36fr);
-	gap: 1rem;
-	align-items: start;
+.tabs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	padding: 0.35rem;
+	border: 1px solid var(--ns-border);
+	background: var(--ns-surface);
 }
 
-.tableStack,
-.formStack,
-.form {
-	display: grid;
+.tab {
+	min-height: 2.25rem;
+	padding: 0.5rem 0.85rem;
+	border: 1px solid transparent;
+	color: var(--ns-text-subtle);
+	background: transparent;
+	font-family: var(--ns-font-sans);
+	font-size: 0.8125rem;
+	font-weight: 700;
+	letter-spacing: 0;
+	line-height: 1;
+	cursor: pointer;
+	transition:
+		color var(--ns-transition),
+		background var(--ns-transition),
+		border-color var(--ns-transition);
+}
+
+.tab:hover {
+	color: var(--ns-text);
+	background: var(--ns-surface-raised);
+}
+
+.tabActive {
+	border-color: var(--ns-accent-border);
+	color: var(--ns-accent-hover);
+	background: var(--ns-accent-muted);
+}
+
+.tableToolbar {
+	display: flex;
+	flex-wrap: wrap;
 	gap: 1rem;
+	align-items: end;
+	justify-content: space-between;
+	padding: 1rem 1rem 0.875rem;
+	border-bottom: 1px solid var(--ns-border-faint);
+}
+
+.panelActions {
+	display: grid;
+	grid-template-columns: minmax(14rem, 1fr) minmax(12rem, auto) minmax(11rem, auto);
+	gap: 0.75rem;
+	align-items: end;
+	min-width: min(48rem, 100%);
+}
+
+.channelPanelActions {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(11rem, auto));
+	gap: 0.75rem;
+	align-items: end;
+	min-width: min(24rem, 100%);
+}
+
+.singlePanelAction {
+	width: min(22rem, 100%);
+	min-width: min(18rem, 100%);
+}
+
+.tableFrame {
+	width: calc(100% - 2rem);
+	margin: 1rem;
 }
 
 .primaryCell {
@@ -66,31 +135,235 @@
 }
 
 .urlCell {
-	max-width: 22rem;
+	max-width: 24rem;
 }
 
-.twoColumns {
+.rowActions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	justify-content: flex-end;
+}
+
+.emptyAction {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.75rem;
+	align-items: center;
+	justify-content: center;
+	min-height: 7rem;
+	color: var(--ns-text-low);
+	font-family: var(--ns-font-sans);
+}
+
+.detailStack,
+.drawerForm,
+.formGrid {
+	display: grid;
+	gap: 1rem;
+}
+
+.detailHeader {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+}
+
+.detailLead {
+	margin: 0 0 1rem;
+	color: var(--ns-text);
+	font-family: var(--ns-font-sans);
+	font-size: 1rem;
+	font-weight: 700;
+	line-height: 1.4;
+}
+
+.keyValueGrid {
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
 	gap: 0.75rem;
 }
 
+.keyValue {
+	display: grid;
+	gap: 0.25rem;
+	min-width: 0;
+	padding: 0.75rem;
+	border: 1px solid var(--ns-border-faint);
+	background: var(--ns-surface-raised);
+}
+
+.keyValue span {
+	color: var(--ns-text-low);
+	font-family: var(--ns-font-sans);
+	font-size: 0.75rem;
+	font-weight: 650;
+}
+
+.keyValue strong {
+	min-width: 0;
+	overflow: hidden;
+	color: var(--ns-text);
+	font-family: var(--ns-font-mono);
+	font-size: 0.8125rem;
+	font-weight: 700;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.twoColumns,
 .threeColumns {
 	display: grid;
-	grid-template-columns: repeat(3, minmax(0, 1fr));
 	gap: 0.75rem;
 }
 
+.twoColumns {
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.threeColumns {
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.advancedTiming {
+	display: grid;
+	gap: 0.75rem;
+	padding: 0.75rem;
+	border: 1px solid var(--ns-border-faint);
+	background: var(--ns-surface-raised);
+}
+
+.advancedTiming summary {
+	color: var(--ns-text-muted);
+	font-family: var(--ns-font-sans);
+	font-size: 0.8125rem;
+	font-weight: 700;
+	cursor: pointer;
+}
+
+.advancedTiming summary + * {
+	margin-top: 0.75rem;
+}
+
+.channelTypeGrid {
+	display: grid;
+	gap: 0.75rem;
+}
+
+.channelTypeOption,
+.channelTypeSummary {
+	--ns-frame-color: var(--ns-border);
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr);
+	gap: 0.875rem;
+	align-items: center;
+	padding: 1rem;
+	color: var(--ns-text-muted);
+	background: var(--ns-surface-raised);
+	font-family: var(--ns-font-sans);
+}
+
+.channelTypeOption {
+	width: 100%;
+	text-align: left;
+	cursor: pointer;
+	transition:
+		background var(--ns-transition),
+		border-color var(--ns-transition),
+		color var(--ns-transition);
+}
+
+.channelTypeIcon {
+	color: var(--ns-accent-active);
+}
+
+.channelTypeText {
+	display: grid;
+	gap: 0.35rem;
+	min-width: 0;
+}
+
+.channelTypeText > strong {
+	color: var(--ns-text);
+	font-size: 0.9375rem;
+	font-weight: 750;
+	line-height: 1.2;
+}
+
+.channelTypeText > span {
+	color: var(--ns-text-low);
+	font-size: 0.8125rem;
+	line-height: 1.45;
+}
+
+.channelTypeOption:hover,
+.channelTypeOption:focus-visible {
+	--ns-frame-color: var(--ns-accent-border);
+	background: var(--ns-accent-muted);
+	outline: none;
+}
+
+.previewSentence {
+	padding: 0.875rem;
+	border-color: var(--ns-accent-border);
+	color: var(--ns-text-muted);
+	background: var(--ns-accent-muted);
+	font-family: var(--ns-font-sans);
+	font-size: 0.875rem;
+	line-height: 1.5;
+}
+
+.drawerActions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.75rem;
+	align-items: center;
+	justify-content: flex-end;
+}
+
 @media (max-width: 78rem) {
-	.grid {
+	.singlePanelAction,
+	.panelActions,
+	.channelPanelActions {
+		width: 100%;
 		grid-template-columns: 1fr;
+		min-width: 18rem;
+	}
+
+	.tableToolbar {
+		display: grid;
+		justify-content: stretch;
 	}
 }
 
 @media (max-width: 58rem) {
 	.summaryGrid,
 	.twoColumns,
-	.threeColumns {
+	.threeColumns,
+	.keyValueGrid {
 		grid-template-columns: 1fr;
+	}
+
+	.drawerActions {
+		justify-content: flex-start;
+	}
+
+	.tabs {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+	}
+
+	.tab {
+		min-width: 0;
+		padding-inline: 0.5rem;
+	}
+
+	.tableToolbar {
+		padding: 0.875rem;
+	}
+
+	.tableFrame {
+		width: calc(100% - 1.5rem);
+		margin: 0.75rem;
 	}
 }
