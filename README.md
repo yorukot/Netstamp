@@ -29,7 +29,7 @@ Most monitoring tells you if a service is up from somebody else's cloud. Netstam
 - Compare latency and packet loss between regions, ISPs, or hosting providers.
 - Detect route changes and unstable network paths.
 - Track probe health so you know which viewpoints are still reporting.
-- Send alerts to the channels your team already watches.
+- Send alerts to the notifications your team already watches.
 - Keep historical network measurements in PostgreSQL and TimescaleDB.
 
 ## Features
@@ -40,7 +40,7 @@ Most monitoring tells you if a service is up from somebody else's cloud. Netstam
 - Project workspaces with roles and scoped access.
 - Label-based probe and check organization.
 - Dashboards for latency, packet loss, route behavior, and probe status.
-- Alert rules, incidents, and notification channels.
+- Alert rules, incidents, and notifications.
 - Webhook, Discord, and Telegram notifications.
 - Docker Compose deployment with built-in migrations.
 - Generated OpenAPI contract for integrations.

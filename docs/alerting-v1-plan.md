@@ -56,7 +56,7 @@ metric
 - `Incident`
 - `Severity`
 - `IncidentStatus`
-- `NotificationChannel`
+- `Notification`
 - `NotificationOutboxJob`
 
 Domain validators：
@@ -65,7 +65,7 @@ Domain validators：
 - rule description
 - severity
 - condition JSON size
-- notification channel name
+- notification name
 - webhook URL
 - email recipients
 - window seconds
@@ -79,7 +79,7 @@ Authenticated user-facing alert API use cases。
 
 - Create/update/delete/list alert rules。
 - List/get/acknowledge/resolve incidents。
-- Create/update/delete/list notification channels。
+- Create/update/delete/list notifications。
 - Validate project access and project role permissions。
 - Translate domain/application errors through sentinel errors。
 - Record application events for audit-worthy actions。
@@ -87,8 +87,8 @@ Authenticated user-facing alert API use cases。
 Permission design：
 
 - 新增 project action：`write:project_alerts`。
-- `owner`、`admin`、`editor` 可建立/修改/delete rules and channels。
-- `viewer` 可讀 rules、channels、incidents，但不能修改。
+- `owner`、`admin`、`editor` 可建立/修改/delete rules and notifications。
+- `viewer` 可讀 rules、notifications、incidents，但不能修改。
 - Incident acknowledgement/resolution first version 允許 `owner/admin/editor`。
 
 ### `internal/controller/application/alerteval`
@@ -145,7 +145,7 @@ Repository responsibilities：
 
 - alert rules CRUD
 - incident state transitions
-- notification channels CRUD
+- notifications CRUD
 - outbox enqueue/claim/update
 - query metric summaries for alert evaluation
 
@@ -237,14 +237,14 @@ POST   /projects/{ref}/alerts/incidents/{incident_id}/acknowledgements
 POST   /projects/{ref}/alerts/incidents/{incident_id}/resolutions
 ```
 
-### Channel Routes
+### Notification Routes
 
 ```text
-GET    /projects/{ref}/alerts/channels
-POST   /projects/{ref}/alerts/channels
-PATCH  /projects/{ref}/alerts/channels/{channel_id}
-DELETE /projects/{ref}/alerts/channels/{channel_id}
-POST   /projects/{ref}/alerts/channels/{channel_id}/test
+GET    /projects/{ref}/alerts/notifications
+POST   /projects/{ref}/alerts/notifications
+PATCH  /projects/{ref}/alerts/notifications/{notification_id}
+DELETE /projects/{ref}/alerts/notifications/{notification_id}
+POST   /projects/{ref}/alerts/notifications/{notification_id}/test
 ```
 
 ### Create Rule Request
@@ -274,7 +274,7 @@ POST   /projects/{ref}/alerts/channels/{channel_id}/test
 			"minSamples": 3
 		}
 	},
-	"notificationChannelIds": ["77777777-7777-7777-7777-777777777777"]
+	"notificationIds": ["77777777-7777-7777-7777-777777777777"]
 }
 ```
 
@@ -447,7 +447,7 @@ Do not mix label selectors into alert condition AST. 這樣可以避免 metadata
 CREATE TYPE alert_severity AS ENUM ('info', 'warning', 'critical');
 CREATE TYPE alert_rule_status AS ENUM ('enabled', 'disabled');
 CREATE TYPE alert_incident_status AS ENUM ('open', 'acknowledged', 'resolved');
-CREATE TYPE notification_channel_type AS ENUM ('webhook', 'email');
+CREATE TYPE notification_type AS ENUM ('webhook', 'email');
 CREATE TYPE notification_outbox_status AS ENUM ('pending', 'sending', 'delivered', 'failed', 'discarded');
 ```
 
@@ -568,37 +568,37 @@ CREATE UNIQUE INDEX uq_alert_incidents_active_rule_probe_check
     WHERE status IN ('open', 'acknowledged');
 ```
 
-### `notification_channels`
+### `notifications`
 
-Stores webhook/email channel config。
+Stores webhook/email notification config。
 
 ```sql
-CREATE TABLE notification_channels (
+CREATE TABLE notifications (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     project_id uuid NOT NULL REFERENCES projects(id),
     name text NOT NULL,
-    type notification_channel_type NOT NULL,
+    type notification_type NOT NULL,
     enabled boolean NOT NULL DEFAULT true,
     config jsonb NOT NULL,
     created_by_user_id uuid NOT NULL REFERENCES users(id),
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
     deleted_at timestamptz,
-    CONSTRAINT notification_channels_name_not_empty CHECK (length(btrim(name)) > 0),
-    CONSTRAINT notification_channels_config_is_object CHECK (jsonb_typeof(config) = 'object'),
-    CONSTRAINT notification_channels_deleted_at_after_created_at CHECK (deleted_at IS NULL OR deleted_at >= created_at)
+    CONSTRAINT notifications_name_not_empty CHECK (length(btrim(name)) > 0),
+    CONSTRAINT notifications_config_is_object CHECK (jsonb_typeof(config) = 'object'),
+    CONSTRAINT notifications_deleted_at_after_created_at CHECK (deleted_at IS NULL OR deleted_at >= created_at)
 );
 ```
 
 Indexes：
 
 ```sql
-CREATE INDEX idx_notification_channels_project_active
-    ON notification_channels (project_id)
+CREATE INDEX idx_notifications_project_active
+    ON notifications (project_id)
     WHERE deleted_at IS NULL;
 
-CREATE INDEX idx_notification_channels_project_enabled_active
-    ON notification_channels (project_id, enabled)
+CREATE INDEX idx_notifications_project_enabled_active
+    ON notifications (project_id, enabled)
     WHERE deleted_at IS NULL;
 ```
 
@@ -623,7 +623,7 @@ Email：
 Security defaults：
 
 - V1 webhook has no custom secret header unless added later。
-- SMTP credentials come from env，不存在 channel config。
+- SMTP credentials come from env，不存在 notification config。
 - Do not store email provider secrets in DB。
 
 ### `alert_notifications`
@@ -634,13 +634,13 @@ Many-to-many mapping between rules and notification destinations。
 CREATE TABLE alert_notifications (
     project_id uuid NOT NULL REFERENCES projects(id),
     rule_id uuid NOT NULL REFERENCES alert_rules(id) ON DELETE CASCADE,
-    channel_id uuid NOT NULL REFERENCES notification_channels(id),
+    notification_id uuid NOT NULL REFERENCES notifications(id),
     created_at timestamptz NOT NULL DEFAULT now(),
-    PRIMARY KEY (rule_id, channel_id),
+    PRIMARY KEY (rule_id, notification_id),
     CONSTRAINT fk_alert_notifications_project_rule
         FOREIGN KEY (project_id, rule_id) REFERENCES alert_rules(project_id, id),
-    CONSTRAINT fk_alert_notifications_project_channel
-        FOREIGN KEY (project_id, channel_id) REFERENCES notification_channels(project_id, id)
+    CONSTRAINT fk_alert_notifications_project_notification
+        FOREIGN KEY (project_id, notification_id) REFERENCES notifications(project_id, id)
 );
 ```
 
@@ -654,8 +654,8 @@ CREATE TABLE notification_outbox (
     project_id uuid NOT NULL REFERENCES projects(id),
     incident_id uuid NOT NULL REFERENCES alert_incidents(id),
     rule_id uuid NOT NULL REFERENCES alert_rules(id),
-    channel_id uuid NOT NULL REFERENCES notification_channels(id),
-    channel_type notification_channel_type NOT NULL,
+    notification_id uuid NOT NULL REFERENCES notifications(id),
+    notification_type notification_type NOT NULL,
     event_type text NOT NULL,
     status notification_outbox_status NOT NULL DEFAULT 'pending',
     payload jsonb NOT NULL,
@@ -693,7 +693,7 @@ CREATE UNIQUE INDEX uq_notification_outbox_dedupe_key
 Dedupe key：
 
 ```text
-incident_id + channel_id + event_type + incident_status_transition_time
+incident_id + notification_id + event_type + incident_status_transition_time
 ```
 
 ## Evaluation Behavior
@@ -899,7 +899,7 @@ Payload shape：
 
 SMTP config from env。
 
-Channel config only stores recipients：
+Notification config only stores recipients：
 
 ```json
 {
@@ -913,7 +913,7 @@ Email V1 behavior：
 - Subject includes severity、rule name、status。
 - Body includes project、probe/check IDs、metric value、threshold、opened/resolved time。
 - No attachments。
-- No per-channel SMTP credentials。
+- No per-notification SMTP credentials。
 
 ## Configuration
 
@@ -937,7 +937,7 @@ Validation：
 - Worker interval > 0。
 - Worker batch size > 0。
 - HTTP timeout > 0。
-- If any enabled email channel exists and notification worker is enabled, SMTP config must be valid before sending email jobs。
+- If any enabled email notification exists and notification worker is enabled, SMTP config must be valid before sending email jobs。
 - Missing SMTP config should fail email delivery jobs with clear retryable/non-retryable error classification。
 
 ## Frontend
@@ -959,7 +959,7 @@ UI V1：
   - severity
   - scope
   - condition summary
-  - channels
+  - notifications
   - enabled state
 - Incident table:
   - status
@@ -977,8 +977,8 @@ UI V1：
   - enabled
   - scope fields
   - metric threshold builder
-  - channel multi-select
-- Channel editor:
+  - notification multi-select
+- Notification editor:
   - webhook URL
   - email recipients
 - Incident detail:
@@ -1098,8 +1098,8 @@ netstamp_notification_outbox_pending
 - Retries failed jobs with backoff。
 - Marks failed after max attempts。
 - Does not retry delivered jobs。
-- Dispatches by channel type。
-- Handles disabled/deleted channel safely。
+- Dispatches by notification type。
+- Handles disabled/deleted notification safely。
 
 ### Repository Tests
 
@@ -1119,15 +1119,15 @@ netstamp_notification_outbox_pending
 
 ### HTTP Handler Tests
 
-- Viewer can list rules/incidents/channels。
-- Viewer cannot create/update/delete rules/channels。
-- Owner/admin/editor can create/update/delete rules/channels。
+- Viewer can list rules/incidents/notifications。
+- Viewer cannot create/update/delete rules/notifications。
+- Owner/admin/editor can create/update/delete rules/notifications。
 - Invalid rule condition maps to `422` with field detail。
 - Invalid probe selector maps to `422`。
 - Missing project maps to `404`。
 - Missing rule maps to `404`。
 - Missing incident maps to `404`。
-- Channel test endpoint validates config and returns result。
+- Notification test endpoint validates config and returns result。
 
 ### Integration Tests
 
@@ -1144,8 +1144,8 @@ netstamp_notification_outbox_pending
 - Rule form serializes expected condition JSON。
 - Rule list renders enabled/disabled states。
 - Incident list renders open/acknowledged/resolved states。
-- Channel editor validates webhook URL。
-- Channel editor validates email recipients。
+- Notification editor validates webhook URL。
+- Notification editor validates email recipients。
 
 Validation commands：
 
