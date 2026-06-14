@@ -47,7 +47,7 @@ const (
 	keyAuthArgon2idIter               = "AUTH_ARGON2ID_ITERATIONS"
 	keyAuthArgon2idParallel           = "AUTH_ARGON2ID_PARALLELISM"
 	keyProjectCreationEnabled         = "PROJECT_CREATION_ENABLED"
-	keyUserCredentialChangesEnabled   = "USER_CREDENTIAL_CHANGES_ENABLED"
+	keyUserCredentialChangesEnabled   = "USER_CREDENTIAL_CHANGES_ENABLED" //nolint:gosec // This is an env key name, not a credential.
 	keyOTLPTracesEndpoint             = "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"
 	keyAlertEvaluationEnabled         = "ALERT_EVALUATION_ENABLED"
 	keyNotificationWorkerEnabled      = "NOTIFICATION_WORKER_ENABLED"
