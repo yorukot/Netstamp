@@ -1,85 +1,137 @@
 .authShell {
+	--auth-page-bg: var(--ns-bg);
+	--auth-pane-bg: var(--ns-surface);
+	--auth-visual-bg: var(--ns-surface-deep);
+	--auth-map-opacity: 0.88;
+	--auth-visual-overlay: linear-gradient(180deg, transparent 45%, rgba(7, 9, 13, 0.72)), linear-gradient(90deg, rgba(255, 122, 26, 0.08), transparent 34%, rgba(7, 9, 13, 0.28));
+	--auth-quote-bg: color-mix(in srgb, var(--ns-surface) 92%, transparent);
+	--auth-quote-text: var(--ns-text-muted);
+
 	position: relative;
 	isolation: isolate;
 	overflow: hidden;
 	display: grid;
-	place-items: center;
-	padding: clamp(1rem, 4vw, 3rem);
+	min-height: 100svh;
+	padding: 0;
+	color: var(--ns-text);
+	background: linear-gradient(135deg, var(--ns-accent-muted), transparent 28rem), linear-gradient(180deg, var(--ns-glass-light), transparent 36rem), var(--auth-page-bg);
 }
 
-.authVisual {
-	position: absolute;
-	inset: 0;
-	z-index: 0;
-	overflow: hidden;
-	margin: 0;
-	pointer-events: none;
+:root[data-theme="light"] .authShell {
+	--auth-page-bg: #f6f7f9;
+	--auth-pane-bg: #ffffff;
+	--auth-visual-bg: #111821;
+	--auth-map-opacity: 0.84;
+	--auth-visual-overlay: linear-gradient(180deg, transparent 45%, rgba(7, 9, 13, 0.58)), linear-gradient(90deg, rgba(212, 91, 24, 0.08), transparent 34%, rgba(7, 9, 13, 0.2));
+	--auth-quote-bg: rgba(255, 255, 255, 0.92);
+	--auth-quote-text: var(--ns-text-muted);
 }
 
-.authVisual::after {
-	content: "";
-	position: absolute;
-	inset: 0;
-	z-index: 1;
-	background:
-		radial-gradient(
-			circle at 50% 46%,
-			color-mix(in srgb, var(--ns-bg) 10%, transparent),
-			color-mix(in srgb, var(--ns-bg) 68%, transparent) 34rem,
-			color-mix(in srgb, var(--ns-bg) 92%, transparent) 76%
-		),
-		linear-gradient(90deg, color-mix(in srgb, var(--ns-bg) 42%, transparent), color-mix(in srgb, var(--ns-bg) 4%, transparent) 42%, color-mix(in srgb, var(--ns-bg) 46%, transparent));
+:root[data-theme="dark"] .authShell {
+	--auth-page-bg: var(--ns-bg);
+	--auth-pane-bg: var(--ns-bg);
+	--auth-visual-bg: var(--ns-surface-deep);
+	--auth-map-opacity: 0.9;
+	--auth-visual-overlay: linear-gradient(180deg, transparent 45%, rgba(7, 9, 13, 0.76)), linear-gradient(90deg, rgba(255, 122, 26, 0.08), transparent 34%, rgba(7, 9, 13, 0.32));
+	--auth-quote-bg: rgba(7, 9, 13, 0.88);
+	--auth-quote-text: var(--ns-text-muted);
 }
 
-.authMap {
-	position: absolute;
-	top: 50%;
-	left: 50%;
-	width: min(152vw, 120rem);
-	min-width: 74rem;
+.authLayout {
+	display: grid;
+	grid-template-columns: minmax(27rem, 41rem) minmax(0, 1fr);
+	width: 100%;
+	min-height: 100svh;
+}
+
+.authFormPane {
+	display: grid;
+	grid-template-rows: auto minmax(0, 1fr);
+	min-width: 0;
+	border-right: 1px solid var(--ns-border-faint);
+	background: linear-gradient(180deg, var(--ns-accent-muted), transparent 18rem), var(--auth-pane-bg);
+	padding: clamp(1.5rem, 3vw, 3rem);
+}
+
+.brandLink {
+	display: inline-flex;
+	align-items: center;
+	width: max-content;
+	text-decoration: none;
+}
+
+.brandLink:focus-visible {
+	outline: 2px solid var(--ns-accent);
+	outline-offset: 0.25rem;
+}
+
+.brandLogo {
+	display: block;
+	width: 9.5rem;
 	height: auto;
-	max-width: none;
-	object-fit: contain;
-	opacity: 0.72;
-	filter: drop-shadow(0 1.5rem 2.75rem color-mix(in srgb, var(--ns-text) 18%, transparent)) saturate(1.08);
-	transform: translate(-50%, -52%);
-}
-
-.authCaption {
-	position: absolute;
-	bottom: clamp(1rem, 4vw, 3rem);
-	left: clamp(1rem, 4vw, 3rem);
-	z-index: 2;
-	max-width: 43rem;
-	margin: 0;
-	color: var(--ns-text-muted);
-	font-size: clamp(0.9375rem, 1.3vw, 1.125rem);
-	line-height: 1.7;
-	text-align: left;
-	text-shadow: 0 0.125rem 1rem color-mix(in srgb, var(--ns-bg) 92%, transparent);
 }
 
 .authCard {
-	z-index: 1;
 	display: flex;
 	flex-direction: column;
 	justify-content: center;
-	width: min(100%, 31rem);
-	min-height: min(36rem, calc(100svh - 6rem));
+	width: min(100%, 28rem);
+	margin: 0 auto;
+	padding: clamp(2rem, 6vh, 4rem) 0;
+}
+
+.authHeader {
+	display: grid;
+	gap: 0.75rem;
+	margin-bottom: 2rem;
+	text-align: left;
+}
+
+.authHeader h1 {
+	margin: 0;
+	color: var(--ns-text);
+	font-family: var(--ns-font-sans);
+	font-size: clamp(2rem, 3vw, 2.75rem);
+	font-weight: 750;
+	letter-spacing: 0;
+	line-height: 1.05;
+}
+
+.authHeader p {
+	margin: 0;
+	color: var(--ns-text-subtle);
+	font-size: 1rem;
+	line-height: 1.55;
 }
 
 .form {
 	display: grid;
-	gap: 1rem;
+	gap: 1.125rem;
+}
+
+.submitButton {
+	width: 100%;
+	margin-top: 0.25rem;
+	--ns-frame-color: var(--ns-accent);
+	background: var(--ns-accent);
+	color: var(--ns-text-on-accent);
+}
+
+.submitButton:hover,
+.submitButton:active {
+	--ns-frame-color: var(--ns-accent-hover);
+	background: var(--ns-accent-hover);
+	color: var(--ns-text-on-accent);
 }
 
 .modeLink {
-	justify-self: center;
 	align-self: center;
-	margin-top: 1rem;
+	margin-top: 1.5rem;
 	padding: 0;
-	color: var(--ns-text-muted);
+	color: var(--ns-text-subtle);
 	font-size: 0.9375rem;
+	line-height: 1.4;
+	text-align: center;
 	text-decoration: underline;
 	text-underline-offset: 0.25rem;
 }
@@ -95,37 +147,72 @@
 
 .homeAction {
 	display: grid;
-	margin-top: auto;
-	padding-top: 2rem;
+	margin-top: 1rem;
 }
 
 .homeButton {
 	width: 100%;
 }
 
-@media (max-width: 56rem) {
+.authVisual {
+	position: relative;
+	min-width: 0;
+	min-height: 0;
+	overflow: hidden;
+	contain: layout paint;
+	margin: 0;
+	background: var(--auth-visual-bg);
+}
+
+.authVisual::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background: var(--auth-visual-overlay);
+	pointer-events: none;
+}
+
+.authMap {
+	display: block;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	object-position: center;
+	opacity: var(--auth-map-opacity);
+}
+
+.authQuote {
+	position: absolute;
+	left: clamp(1.25rem, 3vw, 2.5rem);
+	bottom: clamp(1.25rem, 3vw, 2.5rem);
+	z-index: 1;
+	max-width: min(35rem, calc(100% - 2.5rem));
+	margin: 0;
+	border: 1px solid var(--ns-accent-border);
+	background: var(--auth-quote-bg);
+	padding: 1rem 1.125rem;
+	color: var(--auth-quote-text);
+	font-size: 0.9375rem;
+	line-height: 1.6;
+}
+
+@media (max-width: 62rem) {
 	.authShell {
-		align-items: center;
-		padding: 1rem 1rem 8rem;
+		overflow: auto;
 	}
 
-	.authMap {
-		width: 190vw;
-		min-width: 48rem;
-		opacity: 0.48;
-		transform: translate(-48%, -52%);
+	.authLayout {
+		grid-template-columns: 1fr;
+		min-height: 100svh;
 	}
 
-	.authCaption {
-		right: 1rem;
-		bottom: 1rem;
-		left: 1rem;
-		max-width: none;
-		font-size: 0.8125rem;
-		line-height: 1.55;
+	.authFormPane {
+		min-height: 100svh;
+		border-right: 0;
+		padding: 1.25rem;
 	}
 
-	.authCard {
-		min-height: auto;
+	.authVisual {
+		display: none;
 	}
 }

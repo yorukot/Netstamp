@@ -9,7 +9,7 @@ export interface ThemeContextValue {
 }
 
 export const themeStorageKey = "netstamp:theme";
-export const defaultTheme: AppTheme = "light";
+export const defaultTheme: AppTheme = "dark";
 export const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 export function isAppTheme(value: string | null): value is AppTheme {
