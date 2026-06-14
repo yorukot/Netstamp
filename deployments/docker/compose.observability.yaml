@@ -156,7 +156,6 @@ services:
       - netstamp.logs=enabled
 
   demo:
-    profiles: ["demo"]
     image: netstamp-demo:${NETSTAMP_IMAGE_TAG:-local}
     build: *demo-build
     restart: unless-stopped

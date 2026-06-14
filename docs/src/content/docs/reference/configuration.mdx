@@ -56,10 +56,10 @@ Self-hosted demo deployments can reuse real data while blocking account growth a
 
 Set these to `false` for a public demo instance. Keep a separate normal deployment pointed at the same database if operators still need full access.
 
-The observability Docker Compose file includes a `demo` profile for this layout. It starts a locked demo controller and static web bundle against the same PostgreSQL database and observability services:
+The observability Docker Compose file starts a locked demo controller and static web bundle against the same PostgreSQL database and observability services:
 
 ```bash
-docker compose -f deployments/docker/compose.observability.yaml --profile demo up -d
+docker compose -f deployments/docker/compose.observability.yaml up -d --build
 ```
 
 The web app has matching build-time flags that hide the disabled UI controls:
