@@ -41,7 +41,7 @@ func (q *Queries) CountPingResultSeriesPoints(ctx context.Context, arg CountPing
 	return column_1, err
 }
 
-const createPingResult = `-- name: CreatePingResult :exec
+const createPingResult = `-- name: CreatePingResult :one
 INSERT INTO ping_results (
     probe_id,
     check_id,
@@ -85,6 +85,7 @@ VALUES (
     $19
 )
 ON CONFLICT (probe_id, check_id, started_at) DO NOTHING
+RETURNING true::boolean AS inserted
 `
 
 type CreatePingResultParams struct {
@@ -109,8 +110,8 @@ type CreatePingResultParams struct {
 	ErrorMessage   *string     `json:"error_message"`
 }
 
-func (q *Queries) CreatePingResult(ctx context.Context, arg CreatePingResultParams) error {
-	_, err := q.db.Exec(ctx, createPingResult,
+func (q *Queries) CreatePingResult(ctx context.Context, arg CreatePingResultParams) (bool, error) {
+	row := q.db.QueryRow(ctx, createPingResult,
 		arg.ProbeStorageID,
 		arg.CheckStorageID,
 		arg.StartedAt,
@@ -131,7 +132,9 @@ func (q *Queries) CreatePingResult(ctx context.Context, arg CreatePingResultPara
 		arg.ErrorCode,
 		arg.ErrorMessage,
 	)
-	return err
+	var inserted bool
+	err := row.Scan(&inserted)
+	return inserted, err
 }
 
 const getPingInsightRollupSummary = `-- name: GetPingInsightRollupSummary :one

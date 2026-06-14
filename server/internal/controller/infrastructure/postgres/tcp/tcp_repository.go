@@ -28,14 +28,15 @@ func NewTCPRepository(pool *pgxpool.Pool) *TCPRepository {
 	}
 }
 
-func (r *TCPRepository) CreateTCPResults(ctx context.Context, inputs []domaintcp.ResultStorageInput) error {
+func (r *TCPRepository) CreateTCPResults(ctx context.Context, inputs []domaintcp.ResultStorageInput) ([]domaintcp.ResultStorageInput, error) {
 	ctx, span := postgres.StartDBSpan(ctx, pgtcpTracer, "tcp_results", "postgres.tcp_results.create_batch", "INSERT", "INSERT tcp result batch")
 	defer span.End()
 
+	inserted := make([]domaintcp.ResultStorageInput, 0, len(inputs))
 	err := r.tx.InTx(ctx, func(ctx context.Context, tx pgx.Tx) error {
 		q := r.queries.WithTx(tx)
 		for _, input := range inputs {
-			createErr := q.CreateTCPResult(ctx, sqlc.CreateTCPResultParams{
+			_, createErr := q.CreateTCPResult(ctx, sqlc.CreateTCPResultParams{
 				ProbeStorageID:    input.ProbeStorageID,
 				CheckStorageID:    input.CheckStorageID,
 				StartedAt:         input.StartedAt.UTC(),
@@ -48,19 +49,23 @@ func (r *TCPRepository) CreateTCPResults(ctx context.Context, inputs []domaintcp
 				ErrorCode:         input.ErrorCode,
 				ErrorMessage:      input.ErrorMessage,
 			})
+			if errors.Is(createErr, pgx.ErrNoRows) {
+				continue
+			}
 			if createErr != nil {
 				return mapTCPResultWriteError(createErr)
 			}
+			inserted = append(inserted, input)
 		}
 
 		return nil
 	})
 	if err != nil {
 		postgres.RecordDBSpanError(span, err)
-		return err
+		return nil, err
 	}
 
-	return nil
+	return inserted, nil
 }
 
 type tcpSeriesScope struct {

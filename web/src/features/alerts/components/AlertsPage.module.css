@@ -1,0 +1,96 @@
+.summaryGrid {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 1rem;
+}
+
+.summaryValue {
+	display: block;
+	color: var(--ns-text);
+	font-family: var(--ns-font-sans);
+	font-size: 2rem;
+	font-weight: 750;
+	line-height: 1;
+}
+
+.grid {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(20rem, 0.36fr);
+	gap: 1rem;
+	align-items: start;
+}
+
+.tableStack,
+.formStack,
+.form {
+	display: grid;
+	gap: 1rem;
+}
+
+.primaryCell {
+	display: grid;
+	gap: 0.25rem;
+	min-width: 0;
+}
+
+.primaryCell strong {
+	min-width: 0;
+	overflow: hidden;
+	color: var(--ns-text);
+	font-size: 0.875rem;
+	font-weight: 750;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.primaryCell span {
+	min-width: 0;
+	overflow: hidden;
+	color: var(--ns-text-subtle);
+	font-family: var(--ns-font-mono);
+	font-size: 0.75rem;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.monoCell,
+.urlCell {
+	display: inline-block;
+	max-width: 18rem;
+	overflow: hidden;
+	font-family: var(--ns-font-mono);
+	font-size: 0.75rem;
+	text-overflow: ellipsis;
+	vertical-align: bottom;
+	white-space: nowrap;
+}
+
+.urlCell {
+	max-width: 22rem;
+}
+
+.twoColumns {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.75rem;
+}
+
+.threeColumns {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 0.75rem;
+}
+
+@media (max-width: 78rem) {
+	.grid {
+		grid-template-columns: 1fr;
+	}
+}
+
+@media (max-width: 58rem) {
+	.summaryGrid,
+	.twoColumns,
+	.threeColumns {
+		grid-template-columns: 1fr;
+	}
+}

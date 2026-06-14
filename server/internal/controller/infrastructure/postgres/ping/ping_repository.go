@@ -28,14 +28,15 @@ func NewPingRepository(pool *pgxpool.Pool) *PingRepository {
 	}
 }
 
-func (r *PingRepository) CreatePingResults(ctx context.Context, inputs []domainping.ResultStorageInput) error {
+func (r *PingRepository) CreatePingResults(ctx context.Context, inputs []domainping.ResultStorageInput) ([]domainping.ResultStorageInput, error) {
 	ctx, span := postgres.StartDBSpan(ctx, pgpingTracer, "ping_results", "postgres.ping_results.create_batch", "INSERT", "INSERT ping result batch")
 	defer span.End()
 
+	inserted := make([]domainping.ResultStorageInput, 0, len(inputs))
 	err := r.tx.InTx(ctx, func(ctx context.Context, tx pgx.Tx) error {
 		q := r.queries.WithTx(tx)
 		for _, input := range inputs {
-			createErr := q.CreatePingResult(ctx, sqlc.CreatePingResultParams{
+			_, createErr := q.CreatePingResult(ctx, sqlc.CreatePingResultParams{
 				ProbeStorageID: input.ProbeStorageID,
 				CheckStorageID: input.CheckStorageID,
 				StartedAt:      input.StartedAt.UTC(),
@@ -56,19 +57,23 @@ func (r *PingRepository) CreatePingResults(ctx context.Context, inputs []domainp
 				ErrorCode:      input.ErrorCode,
 				ErrorMessage:   input.ErrorMessage,
 			})
+			if errors.Is(createErr, pgx.ErrNoRows) {
+				continue
+			}
 			if createErr != nil {
 				return mapPingResultWriteError(createErr)
 			}
+			inserted = append(inserted, input)
 		}
 
 		return nil
 	})
 	if err != nil {
 		postgres.RecordDBSpanError(span, err)
-		return err
+		return nil, err
 	}
 
-	return nil
+	return inserted, nil
 }
 
 func storageRTTSamples(samples []float64) []float64 {

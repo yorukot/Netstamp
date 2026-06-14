@@ -14,6 +14,7 @@ import { pathForCheckDetail, pathForLabelDetail, pathForProbeDetail, pathForRout
 import type { Navigate, ProjectAppRoute } from "./routeTypes";
 
 const AuthPage = lazy(() => import("@/features/auth/components/AuthPage").then(module => ({ default: module.AuthPage })));
+const AlertsPage = lazy(() => import("@/features/alerts/components/AlertsPage").then(module => ({ default: module.AlertsPage })));
 const OnboardingPage = lazy(() => import("@/features/auth/components/OnboardingPage").then(module => ({ default: module.OnboardingPage })));
 const ChecksPage = lazy(() => import("@/features/checks/components/ChecksPage").then(module => ({ default: module.ChecksPage })));
 const DashboardPage = lazy(() => import("@/features/dashboard/components/DashboardPage").then(module => ({ default: module.DashboardPage })));
@@ -248,6 +249,7 @@ const router = createBrowserRouter([
 						]
 					},
 					{ path: "insight", element: <DefaultProjectRedirect route="insight" /> },
+					{ path: "alerts", element: <DefaultProjectRedirect route="alerts" /> },
 					{ path: "members", element: <DefaultProjectRedirect route="members" /> },
 					{ path: "project", element: <DefaultProjectRedirect route="project" /> },
 					{ path: "projects", element: <DefaultProjectRedirect route="dashboard" /> },
@@ -270,6 +272,7 @@ const router = createBrowserRouter([
 							{ path: projectRoutePath("checks"), element: lazyRoute(<ChecksPage />) },
 							{ path: `${projectRoutePath("checks")}/:checkId`, element: lazyRoute(<ChecksPage />) },
 							{ path: projectRoutePath("insight"), element: lazyRoute(<InsightPage />) },
+							{ path: projectRoutePath("alerts"), element: lazyRoute(<AlertsPage />) },
 							{ path: projectRoutePath("members"), element: lazyRoute(<MembersPage />) },
 							{ path: projectRoutePath("project"), element: lazyRoute(<ProjectPage />) }
 						]

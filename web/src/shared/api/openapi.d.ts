@@ -274,6 +274,114 @@ export interface paths {
 		patch: operations["updateProject"];
 		trace?: never;
 	};
+	"/projects/{ref}/alerts/channels": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** List project notification channels */
+		get: operations["listProjectNotificationChannels"];
+		put?: never;
+		/** Create project notification channel */
+		post: operations["createProjectNotificationChannel"];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	"/projects/{ref}/alerts/channels/{channel_id}": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** Get project notification channel */
+		get: operations["getProjectNotificationChannel"];
+		put?: never;
+		post?: never;
+		/** Delete project notification channel */
+		delete: operations["deleteProjectNotificationChannel"];
+		options?: never;
+		head?: never;
+		/** Update project notification channel */
+		patch: operations["updateProjectNotificationChannel"];
+		trace?: never;
+	};
+	"/projects/{ref}/alerts/incidents": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** List project alert incidents */
+		get: operations["listProjectAlertIncidents"];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	"/projects/{ref}/alerts/incidents/{incident_id}": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** Get project alert incident */
+		get: operations["getProjectAlertIncident"];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	"/projects/{ref}/alerts/rules": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** List project alert rules */
+		get: operations["listProjectAlertRules"];
+		put?: never;
+		/** Create project alert rule */
+		post: operations["createProjectAlertRule"];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	"/projects/{ref}/alerts/rules/{rule_id}": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** Get project alert rule */
+		get: operations["getProjectAlertRule"];
+		put?: never;
+		post?: never;
+		/** Delete project alert rule */
+		delete: operations["deleteProjectAlertRule"];
+		options?: never;
+		head?: never;
+		/** Update project alert rule */
+		patch: operations["updateProjectAlertRule"];
+		trace?: never;
+	};
 	"/projects/{ref}/assignments": {
 		parameters: {
 			query?: never;
@@ -793,6 +901,255 @@ export interface components {
 		};
 		/**
 		 * @example {
+		 *       "type": "metric_threshold",
+		 *       "metric": "ping.loss_percent",
+		 *       "operator": "gte",
+		 *       "threshold": 10,
+		 *       "windowSeconds": 300,
+		 *       "minSamples": 3
+		 *     }
+		 */
+		AlertCondition: {
+			/** @enum {string} */
+			type: "metric_threshold";
+			/** @enum {string} */
+			metric: "ping.loss_percent" | "ping.average_rtt_ms" | "ping.max_rtt_ms" | "ping.success_rate" | "tcp.failure_percent" | "tcp.average_connect_ms" | "tcp.max_connect_ms" | "tcp.success_rate";
+			/** @enum {string} */
+			operator: "gt" | "gte" | "lt" | "lte" | "eq";
+			/** Format: double */
+			threshold: number;
+			/** Format: int32 */
+			windowSeconds: number;
+			/** Format: int32 */
+			minSamples: number;
+		};
+		/**
+		 * @example {
+		 *       "state": "firing",
+		 *       "metric": "ping.loss_percent",
+		 *       "operator": "gte",
+		 *       "threshold": 10,
+		 *       "value": 12.5,
+		 *       "samples": 5,
+		 *       "minSamples": 3,
+		 *       "windowSeconds": 300,
+		 *       "windowStart": "2026-06-14T08:55:00Z",
+		 *       "windowEnd": "2026-06-14T09:00:00Z"
+		 *     }
+		 */
+		AlertEvaluationSummary: {
+			/** @enum {string} */
+			state: "firing" | "clear" | "insufficient_samples" | "no_data";
+			/** @enum {string} */
+			metric: "ping.loss_percent" | "ping.average_rtt_ms" | "ping.max_rtt_ms" | "ping.success_rate" | "tcp.failure_percent" | "tcp.average_connect_ms" | "tcp.max_connect_ms" | "tcp.success_rate";
+			/** @enum {string} */
+			operator?: "gt" | "gte" | "lt" | "lte" | "eq";
+			/** Format: double */
+			threshold?: number;
+			/** Format: double */
+			value?: number;
+			/** Format: int64 */
+			samples?: number;
+			/** Format: int32 */
+			minSamples?: number;
+			/** Format: int32 */
+			windowSeconds?: number;
+			/** Format: date-time */
+			windowStart?: string;
+			/** Format: date-time */
+			windowEnd?: string;
+		};
+		/**
+		 * @example {
+		 *       "id": "99999999-9999-9999-9999-999999999999",
+		 *       "ruleId": "77777777-7777-7777-7777-777777777777",
+		 *       "probeId": "33333333-3333-3333-3333-333333333333",
+		 *       "checkId": "44444444-4444-4444-4444-444444444444",
+		 *       "checkType": "ping",
+		 *       "status": "open",
+		 *       "severity": "critical",
+		 *       "lastEvaluationState": "firing",
+		 *       "openedAt": "2026-06-14T09:00:00Z",
+		 *       "lastEvaluatedAt": "2026-06-14T09:00:00Z",
+		 *       "lastTriggeredAt": "2026-06-14T09:00:00Z",
+		 *       "lastValue": 12.5,
+		 *       "lastSummary": {
+		 *         "state": "firing",
+		 *         "metric": "ping.loss_percent",
+		 *         "value": 12.5,
+		 *         "samples": 5
+		 *       },
+		 *       "suppressedNotificationCount": 0,
+		 *       "createdAt": "2026-06-14T09:00:00Z",
+		 *       "updatedAt": "2026-06-14T09:00:00Z"
+		 *     }
+		 */
+		AlertIncident: {
+			id: components["schemas"]["uuid"];
+			ruleId: components["schemas"]["uuid"];
+			probeId: components["schemas"]["uuid"];
+			checkId: components["schemas"]["uuid"];
+			/** @enum {string} */
+			checkType: "ping" | "tcp" | "traceroute";
+			/** @enum {string} */
+			status: "open" | "acknowledged" | "resolved";
+			/** @enum {string} */
+			severity: "info" | "warning" | "critical";
+			/** @enum {string} */
+			lastEvaluationState: "firing" | "clear" | "insufficient_samples" | "no_data";
+			/** Format: date-time */
+			openedAt: string;
+			/** Format: date-time */
+			resolvedAt?: string;
+			/** Format: date-time */
+			lastEvaluatedAt: string;
+			/** Format: date-time */
+			lastTriggeredAt: string;
+			/** Format: double */
+			lastValue?: number;
+			lastSummary: components["schemas"]["AlertEvaluationSummary"];
+			/** Format: date-time */
+			lastNotificationSentAt?: string;
+			/** Format: date-time */
+			nextNotificationEligibleAt?: string;
+			/** Format: int32 */
+			suppressedNotificationCount: number;
+			/** Format: date-time */
+			createdAt: string;
+			/** Format: date-time */
+			updatedAt: string;
+		};
+		/**
+		 * @example {
+		 *       "incidents": []
+		 *     }
+		 */
+		AlertIncidentListResponse: {
+			incidents: components["schemas"]["AlertIncident"][];
+		};
+		/**
+		 * @example {
+		 *       "incident": {
+		 *         "id": "99999999-9999-9999-9999-999999999999",
+		 *         "ruleId": "77777777-7777-7777-7777-777777777777",
+		 *         "probeId": "33333333-3333-3333-3333-333333333333",
+		 *         "checkId": "44444444-4444-4444-4444-444444444444",
+		 *         "checkType": "ping",
+		 *         "status": "open",
+		 *         "severity": "critical",
+		 *         "lastEvaluationState": "firing",
+		 *         "openedAt": "2026-06-14T09:00:00Z",
+		 *         "lastEvaluatedAt": "2026-06-14T09:00:00Z",
+		 *         "lastTriggeredAt": "2026-06-14T09:00:00Z",
+		 *         "lastSummary": {
+		 *           "state": "firing",
+		 *           "metric": "ping.loss_percent"
+		 *         },
+		 *         "suppressedNotificationCount": 0,
+		 *         "createdAt": "2026-06-14T09:00:00Z",
+		 *         "updatedAt": "2026-06-14T09:00:00Z"
+		 *       }
+		 *     }
+		 */
+		AlertIncidentResponse: {
+			incident: components["schemas"]["AlertIncident"];
+		};
+		/**
+		 * @example {
+		 *       "id": "77777777-7777-7777-7777-777777777777",
+		 *       "name": "API packet loss",
+		 *       "description": "Page the team when API ping loss is high.",
+		 *       "enabled": true,
+		 *       "severity": "critical",
+		 *       "scope": {
+		 *         "checkType": "ping",
+		 *         "probeId": "33333333-3333-3333-3333-333333333333",
+		 *         "checkId": "44444444-4444-4444-4444-444444444444"
+		 *       },
+		 *       "condition": {
+		 *         "type": "metric_threshold",
+		 *         "metric": "ping.loss_percent",
+		 *         "operator": "gte",
+		 *         "threshold": 10,
+		 *         "windowSeconds": 300,
+		 *         "minSamples": 3
+		 *       },
+		 *       "cooldownSeconds": 900,
+		 *       "notificationChannelIds": [
+		 *         "88888888-8888-8888-8888-888888888888"
+		 *       ],
+		 *       "createdAt": "2026-06-14T09:00:00Z",
+		 *       "updatedAt": "2026-06-14T09:00:00Z"
+		 *     }
+		 */
+		AlertRule: {
+			id: components["schemas"]["uuid"];
+			name: string;
+			description?: string;
+			enabled: boolean;
+			/** @enum {string} */
+			severity: "info" | "warning" | "critical";
+			scope: components["schemas"]["AlertRuleScope"];
+			condition: components["schemas"]["AlertCondition"];
+			/** Format: int32 */
+			cooldownSeconds: number;
+			notificationChannelIds: components["schemas"]["uuid"][];
+			/** Format: date-time */
+			createdAt: string;
+			/** Format: date-time */
+			updatedAt: string;
+		};
+		/**
+		 * @example {
+		 *       "rules": []
+		 *     }
+		 */
+		AlertRuleListResponse: {
+			rules: components["schemas"]["AlertRule"][];
+		};
+		/**
+		 * @example {
+		 *       "rule": {
+		 *         "id": "77777777-7777-7777-7777-777777777777",
+		 *         "name": "API packet loss",
+		 *         "enabled": true,
+		 *         "severity": "critical",
+		 *         "scope": {
+		 *           "checkType": "ping"
+		 *         },
+		 *         "condition": {
+		 *           "type": "metric_threshold",
+		 *           "metric": "ping.loss_percent",
+		 *           "operator": "gte",
+		 *           "threshold": 10,
+		 *           "windowSeconds": 300,
+		 *           "minSamples": 3
+		 *         },
+		 *         "cooldownSeconds": 900,
+		 *         "notificationChannelIds": [],
+		 *         "createdAt": "2026-06-14T09:00:00Z",
+		 *         "updatedAt": "2026-06-14T09:00:00Z"
+		 *       }
+		 *     }
+		 */
+		AlertRuleResponse: {
+			rule: components["schemas"]["AlertRule"];
+		};
+		/**
+		 * @example {
+		 *       "checkType": "ping",
+		 *       "probeId": "33333333-3333-3333-3333-333333333333",
+		 *       "checkId": "44444444-4444-4444-4444-444444444444"
+		 *     }
+		 */
+		AlertRuleScope: {
+			/** @enum {string} */
+			checkType: "ping" | "tcp" | "traceroute";
+			probeId?: components["schemas"]["uuid"];
+			checkId?: components["schemas"]["uuid"];
+		};
+		/**
+		 * @example {
 		 *       "id": "77777777-7777-7777-7777-777777777777",
 		 *       "projectId": "22222222-2222-2222-2222-222222222222",
 		 *       "checkVersion": "01HXYZ7K6P4E4M3F0CB1W9DYJ5",
@@ -991,6 +1348,44 @@ export interface components {
 		};
 		/**
 		 * @example {
+		 *       "name": "API packet loss",
+		 *       "description": "Page the team when API ping loss is high.",
+		 *       "enabled": true,
+		 *       "severity": "critical",
+		 *       "scope": {
+		 *         "checkType": "ping"
+		 *       },
+		 *       "condition": {
+		 *         "type": "metric_threshold",
+		 *         "metric": "ping.loss_percent",
+		 *         "operator": "gte",
+		 *         "threshold": 10,
+		 *         "windowSeconds": 300,
+		 *         "minSamples": 3
+		 *       },
+		 *       "cooldownSeconds": 900,
+		 *       "notificationChannelIds": [
+		 *         "88888888-8888-8888-8888-888888888888"
+		 *       ]
+		 *     }
+		 */
+		CreateAlertRuleRequest: {
+			name: string;
+			description?: string;
+			enabled: boolean;
+			/** @enum {string} */
+			severity: "info" | "warning" | "critical";
+			scope: components["schemas"]["AlertRuleScope"];
+			condition: components["schemas"]["AlertCondition"];
+			/**
+			 * Format: int32
+			 * @default 900
+			 */
+			cooldownSeconds: number;
+			notificationChannelIds?: components["schemas"]["uuid"][];
+		};
+		/**
+		 * @example {
 		 *       "name": "api-latency",
 		 *       "type": "ping",
 		 *       "target": "api.netstamp.io",
@@ -1037,6 +1432,23 @@ export interface components {
 		CreateLabelRequest: {
 			key: string;
 			value: string;
+		};
+		/**
+		 * @example {
+		 *       "name": "Incident webhook",
+		 *       "type": "webhook",
+		 *       "enabled": true,
+		 *       "config": {
+		 *         "url": "https://hooks.example.com/netstamp"
+		 *       }
+		 *     }
+		 */
+		CreateNotificationChannelRequest: {
+			name: string;
+			/** @enum {string} */
+			type: "webhook";
+			enabled: boolean;
+			config: components["schemas"]["WebhookChannelConfig"];
 		};
 		/**
 		 * @example {
@@ -1207,6 +1619,57 @@ export interface components {
 			 * @description Plain-text password to verify. It is never returned by the API.
 			 */
 			password: string;
+		};
+		/**
+		 * @example {
+		 *       "id": "88888888-8888-8888-8888-888888888888",
+		 *       "name": "Incident webhook",
+		 *       "type": "webhook",
+		 *       "enabled": true,
+		 *       "config": {
+		 *         "url": "https://hooks.example.com/..."
+		 *       },
+		 *       "createdAt": "2026-06-14T09:00:00Z",
+		 *       "updatedAt": "2026-06-14T09:00:00Z"
+		 *     }
+		 */
+		NotificationChannel: {
+			id: components["schemas"]["uuid"];
+			name: string;
+			/** @enum {string} */
+			type: "webhook";
+			enabled: boolean;
+			config: components["schemas"]["WebhookChannelConfig"];
+			/** Format: date-time */
+			createdAt: string;
+			/** Format: date-time */
+			updatedAt: string;
+		};
+		/**
+		 * @example {
+		 *       "channels": []
+		 *     }
+		 */
+		NotificationChannelListResponse: {
+			channels: components["schemas"]["NotificationChannel"][];
+		};
+		/**
+		 * @example {
+		 *       "channel": {
+		 *         "id": "88888888-8888-8888-8888-888888888888",
+		 *         "name": "Incident webhook",
+		 *         "type": "webhook",
+		 *         "enabled": true,
+		 *         "config": {
+		 *           "url": "https://hooks.example.com/..."
+		 *         },
+		 *         "createdAt": "2026-06-14T09:00:00Z",
+		 *         "updatedAt": "2026-06-14T09:00:00Z"
+		 *       }
+		 *     }
+		 */
+		NotificationChannelResponse: {
+			channel: components["schemas"]["NotificationChannel"];
 		};
 		/**
 		 * @example {
@@ -2659,6 +3122,45 @@ export interface components {
 			query: components["schemas"]["TracerouteTopologyQueryMetadata"];
 		};
 		/**
+		 * @description Full replacement patch for an alert rule in the current beta API.
+		 * @example {
+		 *       "name": "API packet loss",
+		 *       "description": "Page the team when API ping loss is high.",
+		 *       "enabled": true,
+		 *       "severity": "critical",
+		 *       "scope": {
+		 *         "checkType": "ping"
+		 *       },
+		 *       "condition": {
+		 *         "type": "metric_threshold",
+		 *         "metric": "ping.loss_percent",
+		 *         "operator": "gte",
+		 *         "threshold": 10,
+		 *         "windowSeconds": 300,
+		 *         "minSamples": 3
+		 *       },
+		 *       "cooldownSeconds": 900,
+		 *       "notificationChannelIds": [
+		 *         "88888888-8888-8888-8888-888888888888"
+		 *       ]
+		 *     }
+		 */
+		UpdateAlertRuleRequest: {
+			name: string;
+			description?: string;
+			enabled: boolean;
+			/** @enum {string} */
+			severity: "info" | "warning" | "critical";
+			scope: components["schemas"]["AlertRuleScope"];
+			condition: components["schemas"]["AlertCondition"];
+			/**
+			 * Format: int32
+			 * @default 900
+			 */
+			cooldownSeconds: number;
+			notificationChannelIds?: components["schemas"]["uuid"][];
+		};
+		/**
 		 * @description Patch payload. At least one field must be provided.
 		 * @example {
 		 *       "name": "api-latency",
@@ -2706,6 +3208,24 @@ export interface components {
 		UpdateLabelRequest: {
 			key?: string;
 			value?: string;
+		};
+		/**
+		 * @description Full replacement patch for a notification channel in the current beta API.
+		 * @example {
+		 *       "name": "Incident webhook",
+		 *       "type": "webhook",
+		 *       "enabled": true,
+		 *       "config": {
+		 *         "url": "https://hooks.example.com/netstamp"
+		 *       }
+		 *     }
+		 */
+		UpdateNotificationChannelRequest: {
+			name: string;
+			/** @enum {string} */
+			type: "webhook";
+			enabled: boolean;
+			config: components["schemas"]["WebhookChannelConfig"];
 		};
 		/**
 		 * @description Patch payload. At least one field must be provided.
@@ -2762,6 +3282,15 @@ export interface components {
 			/** @description Name shown in the app. */
 			displayName: string;
 		};
+		/**
+		 * @example {
+		 *       "url": "https://hooks.example.com/netstamp"
+		 *     }
+		 */
+		WebhookChannelConfig: {
+			/** Format: uri */
+			url: string;
+		};
 		/** Format: email */
 		email: string;
 		/** Format: ipv4 */
@@ -2773,11 +3302,18 @@ export interface components {
 	};
 	responses: never;
 	parameters: {
+		AlertIncidentIdPathParam: components["schemas"]["uuid"];
+		"AlertIncidentListQuery.limit": number;
+		"AlertIncidentListQuery.status": "open" | "acknowledged" | "resolved";
+		AlertRuleIdPathParam: components["schemas"]["uuid"];
+		"AlertRuleListQuery.checkType": "ping" | "tcp" | "traceroute";
+		"AlertRuleListQuery.status": "enabled" | "disabled";
 		CheckIdPathParam: components["schemas"]["uuid"];
 		LabelIdPathParam: components["schemas"]["uuid"];
 		"LatestResultsQuery.checkId": components["schemas"]["uuid"];
 		"LatestResultsQuery.probeId": components["schemas"]["uuid"];
 		"LatestResultsQuery.type": "ping" | "tcp" | "traceroute";
+		NotificationChannelIdPathParam: components["schemas"]["uuid"];
 		"PingInsightQuery.checkId": components["schemas"]["uuid"];
 		"PingInsightQuery.from": number;
 		"PingInsightQuery.maxDataPoints": number;
@@ -3637,6 +4173,835 @@ export interface operations {
 			};
 			/** @description The request conflicts with the current state of the server. */
 			409: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	listProjectNotificationChannels: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				ref: components["parameters"]["ProjectRefParam"];
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["NotificationChannelListResponse"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	createProjectNotificationChannel: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				ref: components["parameters"]["ProjectRefParam"];
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				"application/json": components["schemas"]["CreateNotificationChannelRequest"];
+			};
+		};
+		responses: {
+			/** @description The request has succeeded and a new resource has been created as a result. */
+			201: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["NotificationChannelResponse"];
+				};
+			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is forbidden. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	getProjectNotificationChannel: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				ref: components["parameters"]["ProjectRefParam"];
+				channel_id: components["parameters"]["NotificationChannelIdPathParam"];
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["NotificationChannelResponse"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	deleteProjectNotificationChannel: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				ref: components["parameters"]["ProjectRefParam"];
+				channel_id: components["parameters"]["NotificationChannelIdPathParam"];
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description There is no content to send for this request, but the headers may be useful. */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is forbidden. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	updateProjectNotificationChannel: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				ref: components["parameters"]["ProjectRefParam"];
+				channel_id: components["parameters"]["NotificationChannelIdPathParam"];
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				"application/json": components["schemas"]["UpdateNotificationChannelRequest"];
+			};
+		};
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["NotificationChannelResponse"];
+				};
+			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is forbidden. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	listProjectAlertIncidents: {
+		parameters: {
+			query?: {
+				status?: components["parameters"]["AlertIncidentListQuery.status"];
+				limit?: components["parameters"]["AlertIncidentListQuery.limit"];
+			};
+			header?: never;
+			path: {
+				ref: components["parameters"]["ProjectRefParam"];
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["AlertIncidentListResponse"];
+				};
+			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	getProjectAlertIncident: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				ref: components["parameters"]["ProjectRefParam"];
+				incident_id: components["parameters"]["AlertIncidentIdPathParam"];
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["AlertIncidentResponse"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	listProjectAlertRules: {
+		parameters: {
+			query?: {
+				status?: components["parameters"]["AlertRuleListQuery.status"];
+				checkType?: components["parameters"]["AlertRuleListQuery.checkType"];
+			};
+			header?: never;
+			path: {
+				ref: components["parameters"]["ProjectRefParam"];
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["AlertRuleListResponse"];
+				};
+			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	createProjectAlertRule: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				ref: components["parameters"]["ProjectRefParam"];
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				"application/json": components["schemas"]["CreateAlertRuleRequest"];
+			};
+		};
+		responses: {
+			/** @description The request has succeeded and a new resource has been created as a result. */
+			201: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["AlertRuleResponse"];
+				};
+			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is forbidden. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	getProjectAlertRule: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				ref: components["parameters"]["ProjectRefParam"];
+				rule_id: components["parameters"]["AlertRuleIdPathParam"];
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["AlertRuleResponse"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	deleteProjectAlertRule: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				ref: components["parameters"]["ProjectRefParam"];
+				rule_id: components["parameters"]["AlertRuleIdPathParam"];
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description There is no content to send for this request, but the headers may be useful. */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is forbidden. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	updateProjectAlertRule: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				ref: components["parameters"]["ProjectRefParam"];
+				rule_id: components["parameters"]["AlertRuleIdPathParam"];
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				"application/json": components["schemas"]["UpdateAlertRuleRequest"];
+			};
+		};
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["AlertRuleResponse"];
+				};
+			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is forbidden. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
 				headers: {
 					[name: string]: unknown;
 				};

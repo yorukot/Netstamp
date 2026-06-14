@@ -1083,7 +1083,7 @@
 					},
 					"direction": "desc",
 					"editorMode": "code",
-					"expr": "service:=\"controller\" http.response.status_code:in(${status_code:csv})",
+					"expr": "service:=\"controller\" level:in(${log_level:csv}) http.response.status_code:in(${status_code:csv})",
 					"maxLines": 1000,
 					"queryType": "instant",
 					"refId": "A"
@@ -1129,6 +1129,37 @@
 				"skipUrlSync": false,
 				"sort": 1,
 				"type": "query"
+			},
+			{
+				"allValue": "*",
+				"current": {
+					"selected": true,
+					"text": "All",
+					"value": "*"
+				},
+				"datasource": {
+					"type": "victoriametrics-logs-datasource",
+					"uid": "victoria-logs"
+				},
+				"definition": "Field values: level",
+				"description": "Filter controller logs by log level.",
+				"hide": 0,
+				"includeAll": true,
+				"label": "Log Level",
+				"multi": true,
+				"name": "log_level",
+				"options": [],
+				"query": {
+					"field": "level",
+					"limit": 20,
+					"query": "service:=\"controller\" level:in(*)",
+					"type": "fieldValue"
+				},
+				"refresh": 2,
+				"regex": "",
+				"skipUrlSync": false,
+				"sort": 1,
+				"type": "query"
 			}
 		]
 	},
@@ -1140,6 +1171,6 @@
 	"timezone": "browser",
 	"title": "Netstamp Controller Status",
 	"uid": "netstamp-controller-status",
-	"version": 2,
+	"version": 3,
 	"weekStart": ""
 }

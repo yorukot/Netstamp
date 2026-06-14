@@ -19,6 +19,11 @@ type Service struct {
 	traceroutes    TracerouteResultRepository
 	secretVerifier SecretVerifier
 	events         EventRecorder
+	alertEvaluator AlertEvaluator
+}
+
+func (s *Service) SetAlertEvaluator(evaluator AlertEvaluator) {
+	s.alertEvaluator = evaluator
 }
 
 func NewService(probes ProbeRepository, pings PingResultRepository, traceroutes TracerouteResultRepository, secretVerifier SecretVerifier, events EventRecorder) *Service {
@@ -139,21 +144,26 @@ func (s *Service) SubmitResults(ctx context.Context, input SubmitResultsInput) (
 		return SubmitResultsOutput{}, flow.businessFailure(ProbeRuntimeEventSubmitResultsFailure, ProbeRuntimeReasonInvalidInput, err)
 	}
 
+	var changed []ChangedAssignmentInput
 	if len(pingResults) > 0 {
 		if s.pings == nil {
 			return SubmitResultsOutput{}, flow.resultWriteFailure(ProbeRuntimeEventSubmitResultsFailure, errPingRepositoryMissing)
 		}
-		if err := s.pings.CreatePingResults(ctx, pingResults); err != nil {
+		inserted, err := s.pings.CreatePingResults(ctx, pingResults)
+		if err != nil {
 			return SubmitResultsOutput{}, flow.resultWriteFailure(ProbeRuntimeEventSubmitResultsFailure, err)
 		}
+		changed = appendChangedAssignments(changed, inserted, nil, assignments)
 	}
 	if len(tcpResults) > 0 {
 		if s.tcps == nil {
 			return SubmitResultsOutput{}, flow.resultWriteFailure(ProbeRuntimeEventSubmitResultsFailure, errTCPRepositoryMissing)
 		}
-		if err := s.tcps.CreateTCPResults(ctx, tcpResults); err != nil {
+		inserted, err := s.tcps.CreateTCPResults(ctx, tcpResults)
+		if err != nil {
 			return SubmitResultsOutput{}, flow.resultWriteFailure(ProbeRuntimeEventSubmitResultsFailure, err)
 		}
+		changed = appendChangedAssignments(changed, nil, inserted, assignments)
 	}
 	if len(tracerouteResults) > 0 {
 		if s.traceroutes == nil {
@@ -163,9 +173,50 @@ func (s *Service) SubmitResults(ctx context.Context, input SubmitResultsInput) (
 			return SubmitResultsOutput{}, flow.resultWriteFailure(ProbeRuntimeEventSubmitResultsFailure, err)
 		}
 	}
+	if s.alertEvaluator != nil && len(changed) > 0 {
+		if err := s.alertEvaluator.EvaluateChangedAssignments(ctx, changed); err != nil {
+			recordSpanError(flow.span, err, ProbeRuntimeReasonResultWriteFailed)
+		}
+	}
 	flow.success()
 
 	return SubmitResultsOutput{Accepted: normalized.accepted, ServerTime: time.Now().UTC()}, nil
+}
+
+func appendChangedAssignments(changed []ChangedAssignmentInput, pingResults []domainping.ResultStorageInput, tcpResults []domaintcp.ResultStorageInput, assignments []domainassignment.Assignment) []ChangedAssignmentInput {
+	seen := map[string]struct{}{}
+	for _, item := range changed {
+		seen[item.CheckType+"|"+item.ProjectID+"|"+item.ProbeID+"|"+item.CheckID] = struct{}{}
+	}
+	for _, result := range pingResults {
+		changed = appendChangedAssignmentForStorage(changed, seen, assignments, result.ProbeStorageID, result.CheckStorageID)
+	}
+	for _, result := range tcpResults {
+		changed = appendChangedAssignmentForStorage(changed, seen, assignments, result.ProbeStorageID, result.CheckStorageID)
+	}
+	return changed
+}
+
+func appendChangedAssignmentForStorage(changed []ChangedAssignmentInput, seen map[string]struct{}, assignments []domainassignment.Assignment, probeStorageID, checkStorageID int64) []ChangedAssignmentInput {
+	for _, assignment := range assignments {
+		if assignment.ProbeStorageID != probeStorageID || assignment.CheckStorageID != checkStorageID || assignment.Check == nil {
+			continue
+		}
+		key := string(assignment.Check.Type) + "|" + assignment.ProjectID + "|" + assignment.ProbeID + "|" + assignment.CheckID
+		if _, ok := seen[key]; ok {
+			return changed
+		}
+		seen[key] = struct{}{}
+		return append(changed, ChangedAssignmentInput{
+			ProjectID:      assignment.ProjectID,
+			ProbeID:        assignment.ProbeID,
+			CheckID:        assignment.CheckID,
+			CheckType:      string(assignment.Check.Type),
+			ProbeStorageID: assignment.ProbeStorageID,
+			CheckStorageID: assignment.CheckStorageID,
+		})
+	}
+	return changed
 }
 
 func collectResultWrites(normalized normalizedSubmitResultsInput, assignmentByCheckID map[string]domainassignment.Assignment) ([]domainping.ResultStorageInput, []domaintcp.ResultStorageInput, []domaintraceroute.ResultStorageInput, error) {

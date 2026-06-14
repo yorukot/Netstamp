@@ -29,6 +29,12 @@ func (a *Application) Run(ctx context.Context) error {
 		return nil
 	})
 
+	if a.Worker != nil {
+		group.Go(func() error {
+			return a.Worker.Run(groupCtx)
+		})
+	}
+
 	group.Go(func() error {
 		<-groupCtx.Done()
 		return a.shutdown(groupCtx)

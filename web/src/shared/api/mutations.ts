@@ -6,8 +6,10 @@ import type {
 	ApiProjectInvite,
 	ChangeCurrentUserEmailInput,
 	ChangeCurrentUserPasswordInput,
+	CreateAlertRuleInput,
 	CreateCheckInput,
 	CreateLabelInput,
+	CreateNotificationChannelInput,
 	CreateProbeInput,
 	CreateProjectInput,
 	CreateProjectInviteInput,
@@ -15,9 +17,11 @@ import type {
 	ProjectMemberRole,
 	RegisterInput,
 	SelectorPreviewInput,
+	UpdateAlertRuleInput,
 	UpdateCheckInput,
 	UpdateCurrentUserInput,
 	UpdateLabelInput,
+	UpdateNotificationChannelInput,
 	UpdateProbeInput,
 	UpdateProjectInput
 } from "./types";
@@ -96,6 +100,30 @@ export function updateProjectCheck(ref: string, checkId: string, body: UpdateChe
 
 export function deleteProjectCheck(ref: string, checkId: string) {
 	return readEmptyApiResponse(apiClient.DELETE("/projects/{ref}/checks/{check_id}", { params: { path: { ref, check_id: checkId } } }));
+}
+
+export function createProjectAlertRule(ref: string, body: CreateAlertRuleInput) {
+	return readApiData(apiClient.POST("/projects/{ref}/alerts/rules", { params: { path: { ref } }, body }));
+}
+
+export function updateProjectAlertRule(ref: string, ruleId: string, body: UpdateAlertRuleInput) {
+	return readApiData(apiClient.PATCH("/projects/{ref}/alerts/rules/{rule_id}", { params: { path: { ref, rule_id: ruleId } }, body }));
+}
+
+export function deleteProjectAlertRule(ref: string, ruleId: string) {
+	return readEmptyApiResponse(apiClient.DELETE("/projects/{ref}/alerts/rules/{rule_id}", { params: { path: { ref, rule_id: ruleId } } }));
+}
+
+export function createProjectNotificationChannel(ref: string, body: CreateNotificationChannelInput) {
+	return readApiData(apiClient.POST("/projects/{ref}/alerts/channels", { params: { path: { ref } }, body }));
+}
+
+export function updateProjectNotificationChannel(ref: string, channelId: string, body: UpdateNotificationChannelInput) {
+	return readApiData(apiClient.PATCH("/projects/{ref}/alerts/channels/{channel_id}", { params: { path: { ref, channel_id: channelId } }, body }));
+}
+
+export function deleteProjectNotificationChannel(ref: string, channelId: string) {
+	return readEmptyApiResponse(apiClient.DELETE("/projects/{ref}/alerts/channels/{channel_id}", { params: { path: { ref, channel_id: channelId } } }));
 }
 
 export async function deleteProjectChecks(ref: string, checkIds: string[]) {
@@ -360,6 +388,78 @@ export function useDeleteProjectChecksMutation(projectRef: string | null | undef
 			}
 			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.assignmentsRoot(ref) });
 			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.checks(ref) });
+		}
+	});
+}
+
+export function useCreateProjectAlertRuleMutation(projectRef: string | null | undefined) {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: (body: CreateAlertRuleInput) => createProjectAlertRule(requireProjectRef(projectRef), body),
+		onSuccess: () => {
+			const ref = requireProjectRef(projectRef);
+			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.alertsRoot(ref) });
+		}
+	});
+}
+
+export function useUpdateProjectAlertRuleMutation(projectRef: string | null | undefined) {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: ({ ruleId, body }: { ruleId: string; body: UpdateAlertRuleInput }) => updateProjectAlertRule(requireProjectRef(projectRef), ruleId, body),
+		onSuccess: () => {
+			const ref = requireProjectRef(projectRef);
+			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.alertsRoot(ref) });
+		}
+	});
+}
+
+export function useDeleteProjectAlertRuleMutation(projectRef: string | null | undefined) {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: (ruleId: string) => deleteProjectAlertRule(requireProjectRef(projectRef), ruleId),
+		onSuccess: () => {
+			const ref = requireProjectRef(projectRef);
+			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.alertsRoot(ref) });
+		}
+	});
+}
+
+export function useCreateProjectNotificationChannelMutation(projectRef: string | null | undefined) {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: (body: CreateNotificationChannelInput) => createProjectNotificationChannel(requireProjectRef(projectRef), body),
+		onSuccess: () => {
+			const ref = requireProjectRef(projectRef);
+			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.alertsRoot(ref) });
+		}
+	});
+}
+
+export function useUpdateProjectNotificationChannelMutation(projectRef: string | null | undefined) {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: ({ channelId, body }: { channelId: string; body: UpdateNotificationChannelInput }) => updateProjectNotificationChannel(requireProjectRef(projectRef), channelId, body),
+		onSuccess: () => {
+			const ref = requireProjectRef(projectRef);
+			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.alertsRoot(ref) });
+		}
+	});
+}
+
+export function useDeleteProjectNotificationChannelMutation(projectRef: string | null | undefined) {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: (channelId: string) => deleteProjectNotificationChannel(requireProjectRef(projectRef), channelId),
+		onSuccess: () => {
+			const ref = requireProjectRef(projectRef);
+			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.alertsRoot(ref) });
 		}
 	});
 }

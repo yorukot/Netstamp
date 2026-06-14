@@ -41,7 +41,7 @@ func (q *Queries) CountTCPResultSeriesPoints(ctx context.Context, arg CountTCPRe
 	return column_1, err
 }
 
-const createTCPResult = `-- name: CreateTCPResult :exec
+const createTCPResult = `-- name: CreateTCPResult :one
 INSERT INTO tcp_results (
     probe_id,
     check_id,
@@ -69,6 +69,7 @@ VALUES (
     $11
 )
 ON CONFLICT (probe_id, check_id, started_at) DO NOTHING
+RETURNING true::boolean AS inserted
 `
 
 type CreateTCPResultParams struct {
@@ -85,8 +86,8 @@ type CreateTCPResultParams struct {
 	ErrorMessage      *string     `json:"error_message"`
 }
 
-func (q *Queries) CreateTCPResult(ctx context.Context, arg CreateTCPResultParams) error {
-	_, err := q.db.Exec(ctx, createTCPResult,
+func (q *Queries) CreateTCPResult(ctx context.Context, arg CreateTCPResultParams) (bool, error) {
+	row := q.db.QueryRow(ctx, createTCPResult,
 		arg.ProbeStorageID,
 		arg.CheckStorageID,
 		arg.StartedAt,
@@ -99,7 +100,9 @@ func (q *Queries) CreateTCPResult(ctx context.Context, arg CreateTCPResultParams
 		arg.ErrorCode,
 		arg.ErrorMessage,
 	)
-	return err
+	var inserted bool
+	err := row.Scan(&inserted)
+	return inserted, err
 }
 
 const getTCPInsightRollupSummary = `-- name: GetTCPInsightRollupSummary :one

@@ -1,4 +1,4 @@
--- name: CreatePingResult :exec
+-- name: CreatePingResult :one
 INSERT INTO ping_results (
     probe_id,
     check_id,
@@ -41,7 +41,8 @@ VALUES (
     sqlc.narg(error_code),
     sqlc.narg(error_message)
 )
-ON CONFLICT (probe_id, check_id, started_at) DO NOTHING;
+ON CONFLICT (probe_id, check_id, started_at) DO NOTHING
+RETURNING true::boolean AS inserted;
 
 -- name: ResolvePingSeriesStorageIDs :one
 SELECT probes.internal_id AS probe_storage_id,

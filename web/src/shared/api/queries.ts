@@ -2,6 +2,8 @@ import { queryOptions } from "@tanstack/react-query";
 import { apiClient, readApiData } from "./client";
 import { apiQueryKeys } from "./queryKeys";
 import type {
+	AlertIncidentFilters,
+	AlertRuleFilters,
 	LatestResultsFilters,
 	PingInsightFilters,
 	PingSeriesFilters,
@@ -72,6 +74,24 @@ export const projectQueries = {
 		queryOptions({
 			queryKey: apiQueryKeys.projects.assignments(ref, filters),
 			queryFn: ({ signal }) => readApiData(apiClient.GET("/projects/{ref}/assignments", { params: { path: { ref }, query: filters }, signal })),
+			staleTime: 30 * 1000
+		}),
+	alertRules: (ref: string, filters: AlertRuleFilters = {}) =>
+		queryOptions({
+			queryKey: apiQueryKeys.projects.alertRules(ref, filters),
+			queryFn: ({ signal }) => readApiData(apiClient.GET("/projects/{ref}/alerts/rules", { params: { path: { ref }, query: filters }, signal })),
+			staleTime: 30 * 1000
+		}),
+	alertIncidents: (ref: string, filters: AlertIncidentFilters = {}) =>
+		queryOptions({
+			queryKey: apiQueryKeys.projects.alertIncidents(ref, filters),
+			queryFn: ({ signal }) => readApiData(apiClient.GET("/projects/{ref}/alerts/incidents", { params: { path: { ref }, query: filters }, signal })),
+			staleTime: 15 * 1000
+		}),
+	notificationChannels: (ref: string) =>
+		queryOptions({
+			queryKey: apiQueryKeys.projects.notificationChannels(ref),
+			queryFn: ({ signal }) => readApiData(apiClient.GET("/projects/{ref}/alerts/channels", { params: { path: { ref } }, signal })),
 			staleTime: 30 * 1000
 		}),
 	labels: (ref: string) =>

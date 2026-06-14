@@ -1,4 +1,4 @@
--- name: CreateTCPResult :exec
+-- name: CreateTCPResult :one
 INSERT INTO tcp_results (
     probe_id,
     check_id,
@@ -25,7 +25,8 @@ VALUES (
     sqlc.narg(error_code),
     sqlc.narg(error_message)
 )
-ON CONFLICT (probe_id, check_id, started_at) DO NOTHING;
+ON CONFLICT (probe_id, check_id, started_at) DO NOTHING
+RETURNING true::boolean AS inserted;
 
 -- name: ResolveTCPInsightStorageIDs :one
 SELECT probes.internal_id AS probe_storage_id,

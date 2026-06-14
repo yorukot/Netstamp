@@ -10,6 +10,15 @@ import (
 	domaintraceroute "github.com/yorukot/netstamp/internal/domain/traceroute"
 )
 
+type ChangedAssignmentInput struct {
+	ProjectID      string
+	ProbeID        string
+	CheckID        string
+	CheckType      string
+	ProbeStorageID int64
+	CheckStorageID int64
+}
+
 type ProbeRepository interface {
 	GetActiveProbeCredential(ctx context.Context, probeID string) (domainprobe.Credential, error)
 	UpdateProbeStatus(ctx context.Context, input domainprobe.Status) (domainprobe.Status, error)
@@ -19,11 +28,11 @@ type ProbeRepository interface {
 }
 
 type PingResultRepository interface {
-	CreatePingResults(ctx context.Context, inputs []domainping.ResultStorageInput) error
+	CreatePingResults(ctx context.Context, inputs []domainping.ResultStorageInput) ([]domainping.ResultStorageInput, error)
 }
 
 type TCPResultRepository interface {
-	CreateTCPResults(ctx context.Context, inputs []domaintcp.ResultStorageInput) error
+	CreateTCPResults(ctx context.Context, inputs []domaintcp.ResultStorageInput) ([]domaintcp.ResultStorageInput, error)
 }
 
 type TracerouteResultRepository interface {
@@ -36,6 +45,10 @@ type SecretVerifier interface {
 
 type EventRecorder interface {
 	RecordProbeRuntimeEvent(ctx context.Context, event ProbeRuntimeEvent)
+}
+
+type AlertEvaluator interface {
+	EvaluateChangedAssignments(ctx context.Context, inputs []ChangedAssignmentInput) error
 }
 
 type ProbeRuntimeEventName string

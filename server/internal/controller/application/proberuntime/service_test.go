@@ -774,9 +774,12 @@ type fakePingResultRepository struct {
 	err       error
 }
 
-func (r *fakePingResultRepository) CreatePingResults(_ context.Context, inputs []domainping.ResultStorageInput) error {
+func (r *fakePingResultRepository) CreatePingResults(_ context.Context, inputs []domainping.ResultStorageInput) ([]domainping.ResultStorageInput, error) {
 	r.gotInputs = append([]domainping.ResultStorageInput(nil), inputs...)
-	return r.err
+	if r.err != nil {
+		return nil, r.err
+	}
+	return inputs, nil
 }
 
 type fakeTCPResultRepository struct {
@@ -784,9 +787,12 @@ type fakeTCPResultRepository struct {
 	err       error
 }
 
-func (r *fakeTCPResultRepository) CreateTCPResults(_ context.Context, inputs []domaintcp.ResultStorageInput) error {
+func (r *fakeTCPResultRepository) CreateTCPResults(_ context.Context, inputs []domaintcp.ResultStorageInput) ([]domaintcp.ResultStorageInput, error) {
 	r.gotInputs = append([]domaintcp.ResultStorageInput(nil), inputs...)
-	return r.err
+	if r.err != nil {
+		return nil, r.err
+	}
+	return inputs, nil
 }
 
 type fakeTracerouteResultRepository struct {

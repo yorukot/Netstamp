@@ -14,6 +14,179 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type AlertEvaluationState string
+
+const (
+	AlertEvaluationStateFiring              AlertEvaluationState = "firing"
+	AlertEvaluationStateClear               AlertEvaluationState = "clear"
+	AlertEvaluationStateInsufficientSamples AlertEvaluationState = "insufficient_samples"
+	AlertEvaluationStateNoData              AlertEvaluationState = "no_data"
+	AlertEvaluationStateError               AlertEvaluationState = "error"
+)
+
+func (e *AlertEvaluationState) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = AlertEvaluationState(s)
+	case string:
+		*e = AlertEvaluationState(s)
+	default:
+		return fmt.Errorf("unsupported scan type for AlertEvaluationState: %T", src)
+	}
+	return nil
+}
+
+type NullAlertEvaluationState struct {
+	AlertEvaluationState AlertEvaluationState `json:"alert_evaluation_state"`
+	Valid                bool                 `json:"valid"` // Valid is true if AlertEvaluationState is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullAlertEvaluationState) Scan(value interface{}) error {
+	if value == nil {
+		ns.AlertEvaluationState, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.AlertEvaluationState.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullAlertEvaluationState) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.AlertEvaluationState), nil
+}
+
+type AlertIncidentStatus string
+
+const (
+	AlertIncidentStatusOpen         AlertIncidentStatus = "open"
+	AlertIncidentStatusAcknowledged AlertIncidentStatus = "acknowledged"
+	AlertIncidentStatusResolved     AlertIncidentStatus = "resolved"
+)
+
+func (e *AlertIncidentStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = AlertIncidentStatus(s)
+	case string:
+		*e = AlertIncidentStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for AlertIncidentStatus: %T", src)
+	}
+	return nil
+}
+
+type NullAlertIncidentStatus struct {
+	AlertIncidentStatus AlertIncidentStatus `json:"alert_incident_status"`
+	Valid               bool                `json:"valid"` // Valid is true if AlertIncidentStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullAlertIncidentStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.AlertIncidentStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.AlertIncidentStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullAlertIncidentStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.AlertIncidentStatus), nil
+}
+
+type AlertRuleStatus string
+
+const (
+	AlertRuleStatusEnabled  AlertRuleStatus = "enabled"
+	AlertRuleStatusDisabled AlertRuleStatus = "disabled"
+)
+
+func (e *AlertRuleStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = AlertRuleStatus(s)
+	case string:
+		*e = AlertRuleStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for AlertRuleStatus: %T", src)
+	}
+	return nil
+}
+
+type NullAlertRuleStatus struct {
+	AlertRuleStatus AlertRuleStatus `json:"alert_rule_status"`
+	Valid           bool            `json:"valid"` // Valid is true if AlertRuleStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullAlertRuleStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.AlertRuleStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.AlertRuleStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullAlertRuleStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.AlertRuleStatus), nil
+}
+
+type AlertSeverity string
+
+const (
+	AlertSeverityInfo     AlertSeverity = "info"
+	AlertSeverityWarning  AlertSeverity = "warning"
+	AlertSeverityCritical AlertSeverity = "critical"
+)
+
+func (e *AlertSeverity) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = AlertSeverity(s)
+	case string:
+		*e = AlertSeverity(s)
+	default:
+		return fmt.Errorf("unsupported scan type for AlertSeverity: %T", src)
+	}
+	return nil
+}
+
+type NullAlertSeverity struct {
+	AlertSeverity AlertSeverity `json:"alert_severity"`
+	Valid         bool          `json:"valid"` // Valid is true if AlertSeverity is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullAlertSeverity) Scan(value interface{}) error {
+	if value == nil {
+		ns.AlertSeverity, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.AlertSeverity.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullAlertSeverity) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.AlertSeverity), nil
+}
+
 type CheckType string
 
 const (
@@ -97,6 +270,93 @@ func (ns NullIpFamily) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.IpFamily), nil
+}
+
+type NotificationChannelType string
+
+const (
+	NotificationChannelTypeWebhook NotificationChannelType = "webhook"
+	NotificationChannelTypeEmail   NotificationChannelType = "email"
+)
+
+func (e *NotificationChannelType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = NotificationChannelType(s)
+	case string:
+		*e = NotificationChannelType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for NotificationChannelType: %T", src)
+	}
+	return nil
+}
+
+type NullNotificationChannelType struct {
+	NotificationChannelType NotificationChannelType `json:"notification_channel_type"`
+	Valid                   bool                    `json:"valid"` // Valid is true if NotificationChannelType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullNotificationChannelType) Scan(value interface{}) error {
+	if value == nil {
+		ns.NotificationChannelType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.NotificationChannelType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullNotificationChannelType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.NotificationChannelType), nil
+}
+
+type NotificationOutboxStatus string
+
+const (
+	NotificationOutboxStatusPending   NotificationOutboxStatus = "pending"
+	NotificationOutboxStatusSending   NotificationOutboxStatus = "sending"
+	NotificationOutboxStatusDelivered NotificationOutboxStatus = "delivered"
+	NotificationOutboxStatusFailed    NotificationOutboxStatus = "failed"
+	NotificationOutboxStatusDiscarded NotificationOutboxStatus = "discarded"
+)
+
+func (e *NotificationOutboxStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = NotificationOutboxStatus(s)
+	case string:
+		*e = NotificationOutboxStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for NotificationOutboxStatus: %T", src)
+	}
+	return nil
+}
+
+type NullNotificationOutboxStatus struct {
+	NotificationOutboxStatus NotificationOutboxStatus `json:"notification_outbox_status"`
+	Valid                    bool                     `json:"valid"` // Valid is true if NotificationOutboxStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullNotificationOutboxStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.NotificationOutboxStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.NotificationOutboxStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullNotificationOutboxStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.NotificationOutboxStatus), nil
 }
 
 type PingStatus string
@@ -400,6 +660,59 @@ func (ns NullTracerouteStatus) Value() (driver.Value, error) {
 	return string(ns.TracerouteStatus), nil
 }
 
+type AlertIncident struct {
+	ID                          uuid.UUID            `json:"id"`
+	ProjectID                   uuid.UUID            `json:"project_id"`
+	RuleID                      uuid.UUID            `json:"rule_id"`
+	ProbeID                     uuid.UUID            `json:"probe_id"`
+	CheckID                     uuid.UUID            `json:"check_id"`
+	CheckType                   CheckType            `json:"check_type"`
+	Status                      AlertIncidentStatus  `json:"status"`
+	Severity                    AlertSeverity        `json:"severity"`
+	LastEvaluationState         AlertEvaluationState `json:"last_evaluation_state"`
+	OpenedAt                    time.Time            `json:"opened_at"`
+	AcknowledgedAt              *time.Time           `json:"acknowledged_at"`
+	AcknowledgedByUserID        *uuid.UUID           `json:"acknowledged_by_user_id"`
+	ResolvedAt                  *time.Time           `json:"resolved_at"`
+	ResolvedByUserID            *uuid.UUID           `json:"resolved_by_user_id"`
+	LastEvaluatedAt             time.Time            `json:"last_evaluated_at"`
+	LastTriggeredAt             time.Time            `json:"last_triggered_at"`
+	LastValue                   *float64             `json:"last_value"`
+	LastSummary                 []byte               `json:"last_summary"`
+	LastNotificationSentAt      *time.Time           `json:"last_notification_sent_at"`
+	NextNotificationEligibleAt  *time.Time           `json:"next_notification_eligible_at"`
+	SuppressedNotificationCount int32                `json:"suppressed_notification_count"`
+	CreatedAt                   time.Time            `json:"created_at"`
+	UpdatedAt                   time.Time            `json:"updated_at"`
+}
+
+type AlertRule struct {
+	ID               uuid.UUID       `json:"id"`
+	ProjectID        uuid.UUID       `json:"project_id"`
+	Name             string          `json:"name"`
+	Description      *string         `json:"description"`
+	Status           AlertRuleStatus `json:"status"`
+	Severity         AlertSeverity   `json:"severity"`
+	CheckType        CheckType       `json:"check_type"`
+	ProbeID          *uuid.UUID      `json:"probe_id"`
+	CheckID          *uuid.UUID      `json:"check_id"`
+	ProbeSelector    []byte          `json:"probe_selector"`
+	Condition        []byte          `json:"condition"`
+	ConditionVersion string          `json:"condition_version"`
+	CooldownSeconds  int32           `json:"cooldown_seconds"`
+	CreatedByUserID  uuid.UUID       `json:"created_by_user_id"`
+	CreatedAt        time.Time       `json:"created_at"`
+	UpdatedAt        time.Time       `json:"updated_at"`
+	DeletedAt        *time.Time      `json:"deleted_at"`
+}
+
+type AlertRuleChannel struct {
+	ProjectID uuid.UUID `json:"project_id"`
+	RuleID    uuid.UUID `json:"rule_id"`
+	ChannelID uuid.UUID `json:"channel_id"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
 type Check struct {
 	ID              uuid.UUID  `json:"id"`
 	InternalID      int64      `json:"internal_id"`
@@ -429,6 +742,42 @@ type Label struct {
 	CreatedAt time.Time  `json:"created_at"`
 	UpdatedAt time.Time  `json:"updated_at"`
 	DeletedAt *time.Time `json:"deleted_at"`
+}
+
+type NotificationChannel struct {
+	ID              uuid.UUID               `json:"id"`
+	ProjectID       uuid.UUID               `json:"project_id"`
+	Name            string                  `json:"name"`
+	Type            NotificationChannelType `json:"type"`
+	Enabled         bool                    `json:"enabled"`
+	Config          []byte                  `json:"config"`
+	CreatedByUserID uuid.UUID               `json:"created_by_user_id"`
+	CreatedAt       time.Time               `json:"created_at"`
+	UpdatedAt       time.Time               `json:"updated_at"`
+	DeletedAt       *time.Time              `json:"deleted_at"`
+}
+
+type NotificationOutbox struct {
+	ID            uuid.UUID                `json:"id"`
+	ProjectID     uuid.UUID                `json:"project_id"`
+	IncidentID    uuid.UUID                `json:"incident_id"`
+	RuleID        uuid.UUID                `json:"rule_id"`
+	ChannelID     uuid.UUID                `json:"channel_id"`
+	ChannelType   NotificationChannelType  `json:"channel_type"`
+	EventType     string                   `json:"event_type"`
+	Status        NotificationOutboxStatus `json:"status"`
+	Payload       []byte                   `json:"payload"`
+	AttemptCount  int32                    `json:"attempt_count"`
+	MaxAttempts   int32                    `json:"max_attempts"`
+	NextAttemptAt time.Time                `json:"next_attempt_at"`
+	LastAttemptAt *time.Time               `json:"last_attempt_at"`
+	DeliveredAt   *time.Time               `json:"delivered_at"`
+	LastErrorKind *string                  `json:"last_error_kind"`
+	LastErrorCode *string                  `json:"last_error_code"`
+	LastError     *string                  `json:"last_error"`
+	DedupeKey     string                   `json:"dedupe_key"`
+	CreatedAt     time.Time                `json:"created_at"`
+	UpdatedAt     time.Time                `json:"updated_at"`
 }
 
 type PingCheckConfig struct {

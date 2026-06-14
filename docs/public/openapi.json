@@ -15,6 +15,10 @@
 			"description": "Probe-agent runtime handshake, polling, and result ingestion."
 		},
 		{
+			"name": "Alerts",
+			"description": "Project-scoped alert rules, alert incidents, and notification channels."
+		},
+		{
 			"name": "Results",
 			"description": "Authenticated result query endpoints."
 		},
@@ -1026,6 +1030,1001 @@
 					}
 				},
 				"tags": ["Projects"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/projects/{ref}/alerts/channels": {
+			"get": {
+				"operationId": "listProjectNotificationChannels",
+				"summary": "List project notification channels",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/NotificationChannelListResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Alerts"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			},
+			"post": {
+				"operationId": "createProjectNotificationChannel",
+				"summary": "Create project notification channel",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					}
+				],
+				"responses": {
+					"201": {
+						"description": "The request has succeeded and a new resource has been created as a result.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/NotificationChannelResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Alerts"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/CreateNotificationChannelRequest"
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/projects/{ref}/alerts/channels/{channel_id}": {
+			"get": {
+				"operationId": "getProjectNotificationChannel",
+				"summary": "Get project notification channel",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					},
+					{
+						"$ref": "#/components/parameters/NotificationChannelIdPathParam"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/NotificationChannelResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Alerts"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			},
+			"patch": {
+				"operationId": "updateProjectNotificationChannel",
+				"summary": "Update project notification channel",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					},
+					{
+						"$ref": "#/components/parameters/NotificationChannelIdPathParam"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/NotificationChannelResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Alerts"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/UpdateNotificationChannelRequest"
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			},
+			"delete": {
+				"operationId": "deleteProjectNotificationChannel",
+				"summary": "Delete project notification channel",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					},
+					{
+						"$ref": "#/components/parameters/NotificationChannelIdPathParam"
+					}
+				],
+				"responses": {
+					"204": {
+						"description": "There is no content to send for this request, but the headers may be useful. "
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Alerts"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/projects/{ref}/alerts/incidents": {
+			"get": {
+				"operationId": "listProjectAlertIncidents",
+				"summary": "List project alert incidents",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					},
+					{
+						"$ref": "#/components/parameters/AlertIncidentListQuery.status"
+					},
+					{
+						"$ref": "#/components/parameters/AlertIncidentListQuery.limit"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/AlertIncidentListResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Alerts"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/projects/{ref}/alerts/incidents/{incident_id}": {
+			"get": {
+				"operationId": "getProjectAlertIncident",
+				"summary": "Get project alert incident",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					},
+					{
+						"$ref": "#/components/parameters/AlertIncidentIdPathParam"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/AlertIncidentResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Alerts"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/projects/{ref}/alerts/rules": {
+			"get": {
+				"operationId": "listProjectAlertRules",
+				"summary": "List project alert rules",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					},
+					{
+						"$ref": "#/components/parameters/AlertRuleListQuery.status"
+					},
+					{
+						"$ref": "#/components/parameters/AlertRuleListQuery.checkType"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/AlertRuleListResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Alerts"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			},
+			"post": {
+				"operationId": "createProjectAlertRule",
+				"summary": "Create project alert rule",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					}
+				],
+				"responses": {
+					"201": {
+						"description": "The request has succeeded and a new resource has been created as a result.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/AlertRuleResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Alerts"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/CreateAlertRuleRequest"
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/projects/{ref}/alerts/rules/{rule_id}": {
+			"get": {
+				"operationId": "getProjectAlertRule",
+				"summary": "Get project alert rule",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					},
+					{
+						"$ref": "#/components/parameters/AlertRuleIdPathParam"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/AlertRuleResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Alerts"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			},
+			"patch": {
+				"operationId": "updateProjectAlertRule",
+				"summary": "Update project alert rule",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					},
+					{
+						"$ref": "#/components/parameters/AlertRuleIdPathParam"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/AlertRuleResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Alerts"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/UpdateAlertRuleRequest"
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			},
+			"delete": {
+				"operationId": "deleteProjectAlertRule",
+				"summary": "Delete project alert rule",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					},
+					{
+						"$ref": "#/components/parameters/AlertRuleIdPathParam"
+					}
+				],
+				"responses": {
+					"204": {
+						"description": "There is no content to send for this request, but the headers may be useful. "
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Alerts"],
 				"security": [
 					{
 						"SessionCookieAuth": []
@@ -4359,6 +5358,65 @@
 	},
 	"components": {
 		"parameters": {
+			"AlertIncidentIdPathParam": {
+				"name": "incident_id",
+				"in": "path",
+				"required": true,
+				"schema": {
+					"$ref": "#/components/schemas/uuid"
+				}
+			},
+			"AlertIncidentListQuery.limit": {
+				"name": "limit",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "integer",
+					"format": "int32",
+					"minimum": 1,
+					"maximum": 200,
+					"default": 100
+				},
+				"explode": false
+			},
+			"AlertIncidentListQuery.status": {
+				"name": "status",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"enum": ["open", "acknowledged", "resolved"]
+				},
+				"explode": false
+			},
+			"AlertRuleIdPathParam": {
+				"name": "rule_id",
+				"in": "path",
+				"required": true,
+				"schema": {
+					"$ref": "#/components/schemas/uuid"
+				}
+			},
+			"AlertRuleListQuery.checkType": {
+				"name": "checkType",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"enum": ["ping", "tcp", "traceroute"]
+				},
+				"explode": false
+			},
+			"AlertRuleListQuery.status": {
+				"name": "status",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"enum": ["enabled", "disabled"]
+				},
+				"explode": false
+			},
 			"CheckIdPathParam": {
 				"name": "check_id",
 				"in": "path",
@@ -4402,6 +5460,14 @@
 					"enum": ["ping", "tcp", "traceroute"]
 				},
 				"explode": false
+			},
+			"NotificationChannelIdPathParam": {
+				"name": "channel_id",
+				"in": "path",
+				"required": true,
+				"schema": {
+					"$ref": "#/components/schemas/uuid"
+				}
 			},
 			"PingInsightQuery.checkId": {
 				"name": "checkId",
@@ -4875,6 +5941,430 @@
 					}
 				]
 			},
+			"AlertCondition": {
+				"type": "object",
+				"required": ["type", "metric", "operator", "threshold", "windowSeconds", "minSamples"],
+				"properties": {
+					"type": {
+						"type": "string",
+						"enum": ["metric_threshold"]
+					},
+					"metric": {
+						"type": "string",
+						"enum": ["ping.loss_percent", "ping.average_rtt_ms", "ping.max_rtt_ms", "ping.success_rate", "tcp.failure_percent", "tcp.average_connect_ms", "tcp.max_connect_ms", "tcp.success_rate"]
+					},
+					"operator": {
+						"type": "string",
+						"enum": ["gt", "gte", "lt", "lte", "eq"]
+					},
+					"threshold": {
+						"type": "number",
+						"format": "double"
+					},
+					"windowSeconds": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 60,
+						"maximum": 86400
+					},
+					"minSamples": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 1,
+						"maximum": 10000
+					}
+				},
+				"examples": [
+					{
+						"type": "metric_threshold",
+						"metric": "ping.loss_percent",
+						"operator": "gte",
+						"threshold": 10,
+						"windowSeconds": 300,
+						"minSamples": 3
+					}
+				]
+			},
+			"AlertEvaluationSummary": {
+				"type": "object",
+				"required": ["state", "metric"],
+				"properties": {
+					"state": {
+						"type": "string",
+						"enum": ["firing", "clear", "insufficient_samples", "no_data"]
+					},
+					"metric": {
+						"type": "string",
+						"enum": ["ping.loss_percent", "ping.average_rtt_ms", "ping.max_rtt_ms", "ping.success_rate", "tcp.failure_percent", "tcp.average_connect_ms", "tcp.max_connect_ms", "tcp.success_rate"]
+					},
+					"operator": {
+						"type": "string",
+						"enum": ["gt", "gte", "lt", "lte", "eq"]
+					},
+					"threshold": {
+						"type": "number",
+						"format": "double"
+					},
+					"value": {
+						"type": "number",
+						"format": "double"
+					},
+					"samples": {
+						"type": "integer",
+						"format": "int64"
+					},
+					"minSamples": {
+						"type": "integer",
+						"format": "int32"
+					},
+					"windowSeconds": {
+						"type": "integer",
+						"format": "int32"
+					},
+					"windowStart": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"windowEnd": {
+						"type": "string",
+						"format": "date-time"
+					}
+				},
+				"examples": [
+					{
+						"state": "firing",
+						"metric": "ping.loss_percent",
+						"operator": "gte",
+						"threshold": 10,
+						"value": 12.5,
+						"samples": 5,
+						"minSamples": 3,
+						"windowSeconds": 300,
+						"windowStart": "2026-06-14T08:55:00Z",
+						"windowEnd": "2026-06-14T09:00:00Z"
+					}
+				]
+			},
+			"AlertIncident": {
+				"type": "object",
+				"required": [
+					"id",
+					"ruleId",
+					"probeId",
+					"checkId",
+					"checkType",
+					"status",
+					"severity",
+					"lastEvaluationState",
+					"openedAt",
+					"lastEvaluatedAt",
+					"lastTriggeredAt",
+					"lastSummary",
+					"suppressedNotificationCount",
+					"createdAt",
+					"updatedAt"
+				],
+				"properties": {
+					"id": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"ruleId": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"probeId": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"checkId": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"checkType": {
+						"type": "string",
+						"enum": ["ping", "tcp", "traceroute"]
+					},
+					"status": {
+						"type": "string",
+						"enum": ["open", "acknowledged", "resolved"]
+					},
+					"severity": {
+						"type": "string",
+						"enum": ["info", "warning", "critical"]
+					},
+					"lastEvaluationState": {
+						"type": "string",
+						"enum": ["firing", "clear", "insufficient_samples", "no_data"]
+					},
+					"openedAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"resolvedAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"lastEvaluatedAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"lastTriggeredAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"lastValue": {
+						"type": "number",
+						"format": "double"
+					},
+					"lastSummary": {
+						"$ref": "#/components/schemas/AlertEvaluationSummary"
+					},
+					"lastNotificationSentAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"nextNotificationEligibleAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"suppressedNotificationCount": {
+						"type": "integer",
+						"format": "int32"
+					},
+					"createdAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"updatedAt": {
+						"type": "string",
+						"format": "date-time"
+					}
+				},
+				"examples": [
+					{
+						"id": "99999999-9999-9999-9999-999999999999",
+						"ruleId": "77777777-7777-7777-7777-777777777777",
+						"probeId": "33333333-3333-3333-3333-333333333333",
+						"checkId": "44444444-4444-4444-4444-444444444444",
+						"checkType": "ping",
+						"status": "open",
+						"severity": "critical",
+						"lastEvaluationState": "firing",
+						"openedAt": "2026-06-14T09:00:00Z",
+						"lastEvaluatedAt": "2026-06-14T09:00:00Z",
+						"lastTriggeredAt": "2026-06-14T09:00:00Z",
+						"lastValue": 12.5,
+						"lastSummary": {
+							"state": "firing",
+							"metric": "ping.loss_percent",
+							"value": 12.5,
+							"samples": 5
+						},
+						"suppressedNotificationCount": 0,
+						"createdAt": "2026-06-14T09:00:00Z",
+						"updatedAt": "2026-06-14T09:00:00Z"
+					}
+				]
+			},
+			"AlertIncidentListResponse": {
+				"type": "object",
+				"required": ["incidents"],
+				"properties": {
+					"incidents": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/AlertIncident"
+						}
+					}
+				},
+				"examples": [
+					{
+						"incidents": []
+					}
+				]
+			},
+			"AlertIncidentResponse": {
+				"type": "object",
+				"required": ["incident"],
+				"properties": {
+					"incident": {
+						"$ref": "#/components/schemas/AlertIncident"
+					}
+				},
+				"examples": [
+					{
+						"incident": {
+							"id": "99999999-9999-9999-9999-999999999999",
+							"ruleId": "77777777-7777-7777-7777-777777777777",
+							"probeId": "33333333-3333-3333-3333-333333333333",
+							"checkId": "44444444-4444-4444-4444-444444444444",
+							"checkType": "ping",
+							"status": "open",
+							"severity": "critical",
+							"lastEvaluationState": "firing",
+							"openedAt": "2026-06-14T09:00:00Z",
+							"lastEvaluatedAt": "2026-06-14T09:00:00Z",
+							"lastTriggeredAt": "2026-06-14T09:00:00Z",
+							"lastSummary": {
+								"state": "firing",
+								"metric": "ping.loss_percent"
+							},
+							"suppressedNotificationCount": 0,
+							"createdAt": "2026-06-14T09:00:00Z",
+							"updatedAt": "2026-06-14T09:00:00Z"
+						}
+					}
+				]
+			},
+			"AlertRule": {
+				"type": "object",
+				"required": ["id", "name", "enabled", "severity", "scope", "condition", "cooldownSeconds", "notificationChannelIds", "createdAt", "updatedAt"],
+				"properties": {
+					"id": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"name": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 128
+					},
+					"description": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 1024
+					},
+					"enabled": {
+						"type": "boolean"
+					},
+					"severity": {
+						"type": "string",
+						"enum": ["info", "warning", "critical"]
+					},
+					"scope": {
+						"$ref": "#/components/schemas/AlertRuleScope"
+					},
+					"condition": {
+						"$ref": "#/components/schemas/AlertCondition"
+					},
+					"cooldownSeconds": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 60,
+						"maximum": 86400
+					},
+					"notificationChannelIds": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/uuid"
+						}
+					},
+					"createdAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"updatedAt": {
+						"type": "string",
+						"format": "date-time"
+					}
+				},
+				"examples": [
+					{
+						"id": "77777777-7777-7777-7777-777777777777",
+						"name": "API packet loss",
+						"description": "Page the team when API ping loss is high.",
+						"enabled": true,
+						"severity": "critical",
+						"scope": {
+							"checkType": "ping",
+							"probeId": "33333333-3333-3333-3333-333333333333",
+							"checkId": "44444444-4444-4444-4444-444444444444"
+						},
+						"condition": {
+							"type": "metric_threshold",
+							"metric": "ping.loss_percent",
+							"operator": "gte",
+							"threshold": 10,
+							"windowSeconds": 300,
+							"minSamples": 3
+						},
+						"cooldownSeconds": 900,
+						"notificationChannelIds": ["88888888-8888-8888-8888-888888888888"],
+						"createdAt": "2026-06-14T09:00:00Z",
+						"updatedAt": "2026-06-14T09:00:00Z"
+					}
+				]
+			},
+			"AlertRuleListResponse": {
+				"type": "object",
+				"required": ["rules"],
+				"properties": {
+					"rules": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/AlertRule"
+						}
+					}
+				},
+				"examples": [
+					{
+						"rules": []
+					}
+				]
+			},
+			"AlertRuleResponse": {
+				"type": "object",
+				"required": ["rule"],
+				"properties": {
+					"rule": {
+						"$ref": "#/components/schemas/AlertRule"
+					}
+				},
+				"examples": [
+					{
+						"rule": {
+							"id": "77777777-7777-7777-7777-777777777777",
+							"name": "API packet loss",
+							"enabled": true,
+							"severity": "critical",
+							"scope": {
+								"checkType": "ping"
+							},
+							"condition": {
+								"type": "metric_threshold",
+								"metric": "ping.loss_percent",
+								"operator": "gte",
+								"threshold": 10,
+								"windowSeconds": 300,
+								"minSamples": 3
+							},
+							"cooldownSeconds": 900,
+							"notificationChannelIds": [],
+							"createdAt": "2026-06-14T09:00:00Z",
+							"updatedAt": "2026-06-14T09:00:00Z"
+						}
+					}
+				]
+			},
+			"AlertRuleScope": {
+				"type": "object",
+				"required": ["checkType"],
+				"properties": {
+					"checkType": {
+						"type": "string",
+						"enum": ["ping", "tcp", "traceroute"]
+					},
+					"probeId": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"checkId": {
+						"$ref": "#/components/schemas/uuid"
+					}
+				},
+				"examples": [
+					{
+						"checkType": "ping",
+						"probeId": "33333333-3333-3333-3333-333333333333",
+						"checkId": "44444444-4444-4444-4444-444444444444"
+					}
+				]
+			},
 			"Assignment": {
 				"type": "object",
 				"required": ["id", "projectId", "checkVersion", "selectorVersion"],
@@ -5172,6 +6662,69 @@
 					}
 				]
 			},
+			"CreateAlertRuleRequest": {
+				"type": "object",
+				"required": ["name", "enabled", "severity", "scope", "condition"],
+				"properties": {
+					"name": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 128
+					},
+					"description": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 1024
+					},
+					"enabled": {
+						"type": "boolean"
+					},
+					"severity": {
+						"type": "string",
+						"enum": ["info", "warning", "critical"]
+					},
+					"scope": {
+						"$ref": "#/components/schemas/AlertRuleScope"
+					},
+					"condition": {
+						"$ref": "#/components/schemas/AlertCondition"
+					},
+					"cooldownSeconds": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 60,
+						"maximum": 86400,
+						"default": 900
+					},
+					"notificationChannelIds": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/uuid"
+						}
+					}
+				},
+				"examples": [
+					{
+						"name": "API packet loss",
+						"description": "Page the team when API ping loss is high.",
+						"enabled": true,
+						"severity": "critical",
+						"scope": {
+							"checkType": "ping"
+						},
+						"condition": {
+							"type": "metric_threshold",
+							"metric": "ping.loss_percent",
+							"operator": "gte",
+							"threshold": 10,
+							"windowSeconds": 300,
+							"minSamples": 3
+						},
+						"cooldownSeconds": 900,
+						"notificationChannelIds": ["88888888-8888-8888-8888-888888888888"]
+					}
+				]
+			},
 			"CreateCheckRequest": {
 				"type": "object",
 				"required": ["name", "type", "target", "intervalSeconds"],
@@ -5262,6 +6815,37 @@
 					{
 						"key": "region",
 						"value": "tokyo"
+					}
+				]
+			},
+			"CreateNotificationChannelRequest": {
+				"type": "object",
+				"required": ["name", "type", "enabled", "config"],
+				"properties": {
+					"name": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 128
+					},
+					"type": {
+						"type": "string",
+						"enum": ["webhook"]
+					},
+					"enabled": {
+						"type": "boolean"
+					},
+					"config": {
+						"$ref": "#/components/schemas/WebhookChannelConfig"
+					}
+				},
+				"examples": [
+					{
+						"name": "Incident webhook",
+						"type": "webhook",
+						"enabled": true,
+						"config": {
+							"url": "https://hooks.example.com/netstamp"
+						}
 					}
 				]
 			},
@@ -5562,6 +7146,92 @@
 					{
 						"email": "user@example.com",
 						"password": "correct-horse-battery-staple"
+					}
+				]
+			},
+			"NotificationChannel": {
+				"type": "object",
+				"required": ["id", "name", "type", "enabled", "config", "createdAt", "updatedAt"],
+				"properties": {
+					"id": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"name": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 128
+					},
+					"type": {
+						"type": "string",
+						"enum": ["webhook"]
+					},
+					"enabled": {
+						"type": "boolean"
+					},
+					"config": {
+						"$ref": "#/components/schemas/WebhookChannelConfig"
+					},
+					"createdAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"updatedAt": {
+						"type": "string",
+						"format": "date-time"
+					}
+				},
+				"examples": [
+					{
+						"id": "88888888-8888-8888-8888-888888888888",
+						"name": "Incident webhook",
+						"type": "webhook",
+						"enabled": true,
+						"config": {
+							"url": "https://hooks.example.com/..."
+						},
+						"createdAt": "2026-06-14T09:00:00Z",
+						"updatedAt": "2026-06-14T09:00:00Z"
+					}
+				]
+			},
+			"NotificationChannelListResponse": {
+				"type": "object",
+				"required": ["channels"],
+				"properties": {
+					"channels": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/NotificationChannel"
+						}
+					}
+				},
+				"examples": [
+					{
+						"channels": []
+					}
+				]
+			},
+			"NotificationChannelResponse": {
+				"type": "object",
+				"required": ["channel"],
+				"properties": {
+					"channel": {
+						"$ref": "#/components/schemas/NotificationChannel"
+					}
+				},
+				"examples": [
+					{
+						"channel": {
+							"id": "88888888-8888-8888-8888-888888888888",
+							"name": "Incident webhook",
+							"type": "webhook",
+							"enabled": true,
+							"config": {
+								"url": "https://hooks.example.com/..."
+							},
+							"createdAt": "2026-06-14T09:00:00Z",
+							"updatedAt": "2026-06-14T09:00:00Z"
+						}
 					}
 				]
 			},
@@ -8068,6 +9738,70 @@
 					}
 				]
 			},
+			"UpdateAlertRuleRequest": {
+				"type": "object",
+				"required": ["name", "enabled", "severity", "scope", "condition"],
+				"properties": {
+					"name": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 128
+					},
+					"description": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 1024
+					},
+					"enabled": {
+						"type": "boolean"
+					},
+					"severity": {
+						"type": "string",
+						"enum": ["info", "warning", "critical"]
+					},
+					"scope": {
+						"$ref": "#/components/schemas/AlertRuleScope"
+					},
+					"condition": {
+						"$ref": "#/components/schemas/AlertCondition"
+					},
+					"cooldownSeconds": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 60,
+						"maximum": 86400,
+						"default": 900
+					},
+					"notificationChannelIds": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/uuid"
+						}
+					}
+				},
+				"description": "Full replacement patch for an alert rule in the current beta API.",
+				"examples": [
+					{
+						"name": "API packet loss",
+						"description": "Page the team when API ping loss is high.",
+						"enabled": true,
+						"severity": "critical",
+						"scope": {
+							"checkType": "ping"
+						},
+						"condition": {
+							"type": "metric_threshold",
+							"metric": "ping.loss_percent",
+							"operator": "gte",
+							"threshold": 10,
+							"windowSeconds": 300,
+							"minSamples": 3
+						},
+						"cooldownSeconds": 900,
+						"notificationChannelIds": ["88888888-8888-8888-8888-888888888888"]
+					}
+				]
+			},
 			"UpdateCheckRequest": {
 				"type": "object",
 				"properties": {
@@ -8163,6 +9897,38 @@
 					{
 						"key": "metro",
 						"value": "tokyo"
+					}
+				]
+			},
+			"UpdateNotificationChannelRequest": {
+				"type": "object",
+				"required": ["name", "type", "enabled", "config"],
+				"properties": {
+					"name": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 128
+					},
+					"type": {
+						"type": "string",
+						"enum": ["webhook"]
+					},
+					"enabled": {
+						"type": "boolean"
+					},
+					"config": {
+						"$ref": "#/components/schemas/WebhookChannelConfig"
+					}
+				},
+				"description": "Full replacement patch for a notification channel in the current beta API.",
+				"examples": [
+					{
+						"name": "Incident webhook",
+						"type": "webhook",
+						"enabled": true,
+						"config": {
+							"url": "https://hooks.example.com/netstamp"
+						}
 					}
 				]
 			},
@@ -8280,6 +10046,21 @@
 						"id": "11111111-1111-1111-1111-111111111111",
 						"email": "user@example.com",
 						"displayName": "Jane Doe"
+					}
+				]
+			},
+			"WebhookChannelConfig": {
+				"type": "object",
+				"required": ["url"],
+				"properties": {
+					"url": {
+						"type": "string",
+						"format": "uri"
+					}
+				},
+				"examples": [
+					{
+						"url": "https://hooks.example.com/netstamp"
 					}
 				]
 			},

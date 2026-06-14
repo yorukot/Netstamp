@@ -11,6 +11,7 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.uber.org/zap"
 
+	appalert "github.com/yorukot/netstamp/internal/controller/application/alert"
 	appassignment "github.com/yorukot/netstamp/internal/controller/application/assignment"
 	appauth "github.com/yorukot/netstamp/internal/controller/application/auth"
 	appcheck "github.com/yorukot/netstamp/internal/controller/application/check"
@@ -21,6 +22,7 @@ import (
 	appresult "github.com/yorukot/netstamp/internal/controller/application/result"
 	appuser "github.com/yorukot/netstamp/internal/controller/application/user"
 	"github.com/yorukot/netstamp/internal/controller/transport/http/clientip"
+	alerthttp "github.com/yorukot/netstamp/internal/controller/transport/http/handler/alert"
 	assignmenthttp "github.com/yorukot/netstamp/internal/controller/transport/http/handler/assignment"
 	authhttp "github.com/yorukot/netstamp/internal/controller/transport/http/handler/auth"
 	checkhttp "github.com/yorukot/netstamp/internal/controller/transport/http/handler/check"
@@ -44,6 +46,7 @@ type Dependencies struct {
 	AuthVerifier      appauth.TokenVerifier
 	AuthCookieSecure  bool
 	UserService       *appuser.Service
+	AlertService      *appalert.Service
 	AssignmentService *appassignment.Service
 	CheckService      *appcheck.Service
 	LabelService      *applabel.Service
@@ -113,6 +116,7 @@ func registerAPIRoutes(api chi.Router, dep Dependencies) {
 	authhttp.NewHandler(dep.AuthService, dep.AuthVerifier, dep.AuthCookieSecure).RegisterRoutes(api)
 	userhttp.NewHandler(dep.UserService, dep.AuthVerifier).RegisterRoutes(api)
 	projecthttp.NewHandler(dep.ProjectService, dep.AuthVerifier).RegisterRoutes(api)
+	alerthttp.NewHandler(dep.AlertService, dep.AuthVerifier).RegisterRoutes(api)
 	assignmenthttp.NewHandler(dep.AssignmentService, dep.AuthVerifier).RegisterRoutes(api)
 	labelhttp.NewHandler(dep.LabelService, dep.AuthVerifier).RegisterRoutes(api)
 	checkhttp.NewHandler(dep.CheckService, dep.AuthVerifier).RegisterRoutes(api)

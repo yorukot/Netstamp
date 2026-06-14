@@ -1,18 +1,23 @@
 import type { components } from "./openapi";
 
 export type ApiCheck = components["schemas"]["Check"];
+export type ApiAlertIncident = components["schemas"]["AlertIncident"];
+export type ApiAlertRule = components["schemas"]["AlertRule"];
 export type ApiLabel = components["schemas"]["Label"];
 export type ApiLatestResult = components["schemas"]["LatestResult"];
 export type ApiMember = components["schemas"]["ProjectMember"];
+export type ApiNotificationChannel = components["schemas"]["NotificationChannel"];
 export type ApiProbe = components["schemas"]["Probe"];
 export type ApiProject = components["schemas"]["Project"];
 export type ApiProjectAssignment = components["schemas"]["ProjectAssignment"];
 export type ApiProjectInvite = components["schemas"]["ProjectInvite"];
 export type ApiSelector = components["schemas"]["Selector"];
+export type CreateAlertRuleInput = components["schemas"]["CreateAlertRuleRequest"];
 export type ChangeCurrentUserEmailInput = components["schemas"]["ChangeCurrentUserEmailRequest"];
 export type ChangeCurrentUserPasswordInput = components["schemas"]["ChangeCurrentUserPasswordRequest"];
 export type CreateCheckInput = components["schemas"]["CreateCheckRequest"];
 export type CreateLabelInput = components["schemas"]["CreateLabelRequest"];
+export type CreateNotificationChannelInput = components["schemas"]["CreateNotificationChannelRequest"];
 export type CreateProbeInput = components["schemas"]["CreateProbeRequest"];
 export type CreateProjectInviteInput = components["schemas"]["CreateProjectInviteRequest"];
 export type CreateProjectInput = components["schemas"]["CreateProjectRequest"];
@@ -42,8 +47,10 @@ export type TracerouteResult = components["schemas"]["TracerouteResult"];
 export type TracerouteTopologyEdge = components["schemas"]["TracerouteTopologyEdge"];
 export type TracerouteTopologyNode = components["schemas"]["TracerouteTopologyNode"];
 export type UpdateCheckInput = components["schemas"]["UpdateCheckRequest"];
+export type UpdateAlertRuleInput = components["schemas"]["UpdateAlertRuleRequest"];
 export type UpdateCurrentUserInput = components["schemas"]["UpdateCurrentUserRequest"];
 export type UpdateLabelInput = components["schemas"]["UpdateLabelRequest"];
+export type UpdateNotificationChannelInput = components["schemas"]["UpdateNotificationChannelRequest"];
 export type UpdateProbeInput = components["schemas"]["UpdateProbeRequest"];
 export type UpdateProjectInput = components["schemas"]["UpdateProjectRequest"];
 export type UserResponse = components["schemas"]["User"];
@@ -51,6 +58,16 @@ export type UserResponse = components["schemas"]["User"];
 export interface ProjectAssignmentFilters {
 	probeId?: string;
 	checkId?: string;
+}
+
+export interface AlertRuleFilters {
+	status?: "enabled" | "disabled";
+	checkType?: "ping" | "tcp" | "traceroute";
+}
+
+export interface AlertIncidentFilters {
+	status?: "open" | "acknowledged" | "resolved";
+	limit?: number;
 }
 
 export interface LatestResultsFilters {

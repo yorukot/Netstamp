@@ -9,17 +9,22 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
 
+	appalert "github.com/yorukot/netstamp/internal/controller/application/alert"
+	appalerteval "github.com/yorukot/netstamp/internal/controller/application/alerteval"
 	appassignment "github.com/yorukot/netstamp/internal/controller/application/assignment"
 	appauth "github.com/yorukot/netstamp/internal/controller/application/auth"
 	appcheck "github.com/yorukot/netstamp/internal/controller/application/check"
 	applabel "github.com/yorukot/netstamp/internal/controller/application/label"
+	appnotification "github.com/yorukot/netstamp/internal/controller/application/notification"
 	appprobe "github.com/yorukot/netstamp/internal/controller/application/probe"
 	appproberuntime "github.com/yorukot/netstamp/internal/controller/application/proberuntime"
 	appproject "github.com/yorukot/netstamp/internal/controller/application/project"
 	appresult "github.com/yorukot/netstamp/internal/controller/application/result"
 	appuser "github.com/yorukot/netstamp/internal/controller/application/user"
 	"github.com/yorukot/netstamp/internal/controller/config"
+	"github.com/yorukot/netstamp/internal/controller/infrastructure/notify"
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/postgres"
+	pgalert "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/alert"
 	pgassignment "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/assignment"
 	pgcheck "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/check"
 	pglabel "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/label"
@@ -44,6 +49,7 @@ type Application struct {
 	DBPool     *pgxpool.Pool
 	Metrics    *obmetrics.Provider
 	Tracing    *tracing.Provider
+	Worker     *appnotification.Worker
 }
 
 func New(ctx context.Context) (*Application, error) {
@@ -121,6 +127,8 @@ func New(ctx context.Context) (*Application, error) {
 	userSvc := appuser.NewService(userRepo, passwordHasher, userEvents)
 	projectRepo := pgproject.NewProjectRepository(dbPool)
 	projectSvc := appproject.NewService(projectRepo, userRepo, projectEvents)
+	alertRepo := pgalert.NewRepository(dbPool)
+	alertSvc := appalert.NewService(alertRepo, projectRepo)
 	labelRepo := pglabel.NewLabelRepository(dbPool)
 	assignmentRepo := pgassignment.NewAssignmentRepository(dbPool)
 	assignmentSvc := appassignment.NewService(assignmentRepo, projectRepo, assignmentEvents)
@@ -134,6 +142,14 @@ func New(ctx context.Context) (*Application, error) {
 	tracerouteRepo := pgtraceroute.NewTracerouteRepository(dbPool)
 	resultRepo := pgresult.NewResultRepository(dbPool)
 	probeRuntimeSvc := appproberuntime.NewServiceWithTCP(probeRepo, pingRepo, tcpRepo, tracerouteRepo, security.NewProbeSecretVerifier(), probeRuntimeEvents)
+	alertEvalSvc := appalerteval.NewService(alertRepo, cfg.Alerting.EvaluationEnabled)
+	probeRuntimeSvc.SetAlertEvaluator(alertEvalSvc)
+	notificationWorker := appnotification.NewWorker(alertRepo, notify.NewWebhookSender(cfg.Alerting.NotificationHTTPTimeout), appnotification.WorkerConfig{
+		Enabled:      cfg.Alerting.NotificationWorkerEnabled,
+		Interval:     cfg.Alerting.NotificationWorkerInterval,
+		BatchSize:    cfg.Alerting.NotificationWorkerBatchSize,
+		StaleTimeout: cfg.Alerting.NotificationWorkerStaleTimeout,
+	})
 	resultSvc := appresult.NewService(pingRepo, tcpRepo, tracerouteRepo, resultRepo, projectRepo)
 	readiness := postgres.NewReadinessCheck(dbPool)
 	trustedProxies, err := cfg.HTTP.TrustedProxyPrefixes()
@@ -149,6 +165,7 @@ func New(ctx context.Context) (*Application, error) {
 		AuthVerifier:      tokenIssuer,
 		AuthCookieSecure:  cfg.Env != "local",
 		UserService:       userSvc,
+		AlertService:      alertSvc,
 		AssignmentService: assignmentSvc,
 		CheckService:      checkSvc,
 		LabelService:      labelSvc,
@@ -169,5 +186,6 @@ func New(ctx context.Context) (*Application, error) {
 		DBPool:     dbPool,
 		Metrics:    metricsProvider,
 		Tracing:    tracingProvider,
+		Worker:     notificationWorker,
 	}, nil
 }
