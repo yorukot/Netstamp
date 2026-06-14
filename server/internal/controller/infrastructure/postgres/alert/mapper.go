@@ -66,6 +66,7 @@ func mapIncident(row sqlc.AlertIncident) domainalert.Incident {
 	}
 }
 
+//nolint:dupl // Get/List incident sqlc row types have identical columns but different generated types.
 func mapGetIncident(row sqlc.GetAlertIncidentRow) domainalert.Incident {
 	incident := mapIncident(sqlc.AlertIncident{
 		ID:                          row.ID,
@@ -92,11 +93,11 @@ func mapGetIncident(row sqlc.GetAlertIncidentRow) domainalert.Incident {
 		CreatedAt:                   row.CreatedAt,
 		UpdatedAt:                   row.UpdatedAt,
 	})
-	incident.Probe = &domainalert.IncidentProbeSummary{ID: row.ProbeID.String(), Name: row.ProbeName}
-	incident.Check = &domainalert.IncidentCheckSummary{ID: row.CheckID.String(), Name: row.CheckName, Type: domaincheck.Type(row.CheckSummaryType), Target: row.CheckTarget}
+	addIncidentSummaries(&incident, row.ProbeID, row.ProbeName, row.CheckID, row.CheckName, row.CheckSummaryType, row.CheckTarget)
 	return incident
 }
 
+//nolint:dupl // Get/List incident sqlc row types have identical columns but different generated types.
 func mapListIncident(row sqlc.ListAlertIncidentsRow) domainalert.Incident {
 	incident := mapIncident(sqlc.AlertIncident{
 		ID:                          row.ID,
@@ -123,9 +124,26 @@ func mapListIncident(row sqlc.ListAlertIncidentsRow) domainalert.Incident {
 		CreatedAt:                   row.CreatedAt,
 		UpdatedAt:                   row.UpdatedAt,
 	})
-	incident.Probe = &domainalert.IncidentProbeSummary{ID: row.ProbeID.String(), Name: row.ProbeName}
-	incident.Check = &domainalert.IncidentCheckSummary{ID: row.CheckID.String(), Name: row.CheckName, Type: domaincheck.Type(row.CheckSummaryType), Target: row.CheckTarget}
+	addIncidentSummaries(&incident, row.ProbeID, row.ProbeName, row.CheckID, row.CheckName, row.CheckSummaryType, row.CheckTarget)
 	return incident
+}
+
+func addIncidentSummaries(
+	incident *domainalert.Incident,
+	probeID uuid.UUID,
+	probeName string,
+	checkID uuid.UUID,
+	checkName string,
+	checkType sqlc.CheckType,
+	checkTarget string,
+) {
+	incident.Probe = &domainalert.IncidentProbeSummary{ID: probeID.String(), Name: probeName}
+	incident.Check = &domainalert.IncidentCheckSummary{
+		ID:     checkID.String(),
+		Name:   checkName,
+		Type:   domaincheck.Type(checkType),
+		Target: checkTarget,
+	}
 }
 
 func mapChannel(row sqlc.NotificationChannel) domainalert.NotificationChannel {
