@@ -19,7 +19,7 @@ alias AlertConditionMetric =
 	| "tcp.max_connect_ms"
 	| "tcp.success_rate";
 alias AlertConditionOperator = "gt" | "gte" | "lt" | "lte" | "eq";
-alias NotificationChannelType = "webhook";
+alias NotificationChannelType = "webhook" | "discord" | "telegram";
 
 model AlertRuleIdPathParam {
 	@path
@@ -273,6 +273,32 @@ model WebhookChannelConfig {
 	url: string;
 }
 
+@example(#{ url: "https://discord.com/api/webhooks/123/token" })
+model DiscordChannelConfig {
+	@format("uri")
+	url: string;
+}
+
+@example(#{ botToken: "123456:telegram-bot-token", chatId: "-1001234567890" })
+model TelegramChannelConfig {
+	@minLength(1)
+	botToken: string;
+
+	@minLength(1)
+	chatId: string;
+}
+
+@example(#{ chatId: "-1001234567890", botTokenConfigured: true })
+model TelegramChannelResponseConfig {
+	@minLength(1)
+	chatId: string;
+
+	botTokenConfigured: boolean;
+}
+
+alias NotificationChannelConfig = WebhookChannelConfig | DiscordChannelConfig | TelegramChannelResponseConfig;
+alias CreateNotificationChannelConfig = WebhookChannelConfig | DiscordChannelConfig | TelegramChannelConfig;
+
 @example(#{
 	id: "88888888-8888-8888-8888-888888888888",
 	name: "Incident webhook",
@@ -291,7 +317,7 @@ model NotificationChannel {
 
 	type: NotificationChannelType;
 	enabled: boolean;
-	config: WebhookChannelConfig;
+	config: NotificationChannelConfig;
 	createdAt: utcDateTime;
 	updatedAt: utcDateTime;
 }
@@ -324,8 +350,22 @@ model CreateNotificationChannelRequest {
 
 	type: NotificationChannelType;
 	enabled: boolean;
-	config: WebhookChannelConfig;
+	config: CreateNotificationChannelConfig;
 }
 
 @doc("Full replacement patch for a notification channel in the current beta API.")
 model UpdateNotificationChannelRequest is CreateNotificationChannelRequest;
+
+@example(#{ delivered: true, retryable: false, message: "Test notification delivered." })
+model NotificationChannelTestResult {
+	delivered: boolean;
+	retryable: boolean;
+	kind?: string;
+	code?: string;
+	message?: string;
+}
+
+@example(#{ result: #{ delivered: true, retryable: false, message: "Test notification delivered." } })
+model NotificationChannelTestResponse {
+	result: NotificationChannelTestResult;
+}

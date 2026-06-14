@@ -311,6 +311,23 @@ export interface paths {
 		patch: operations["updateProjectNotificationChannel"];
 		trace?: never;
 	};
+	"/projects/{ref}/alerts/channels/{channel_id}/test": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/** Send a test notification through a project notification channel */
+		post: operations["testProjectNotificationChannel"];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	"/projects/{ref}/alerts/incidents": {
 		parameters: {
 			query?: never;
@@ -1446,9 +1463,9 @@ export interface components {
 		CreateNotificationChannelRequest: {
 			name: string;
 			/** @enum {string} */
-			type: "webhook";
+			type: "webhook" | "discord" | "telegram";
 			enabled: boolean;
-			config: components["schemas"]["WebhookChannelConfig"];
+			config: components["schemas"]["WebhookChannelConfig"] | components["schemas"]["DiscordChannelConfig"] | components["schemas"]["TelegramChannelConfig"];
 		};
 		/**
 		 * @example {
@@ -1508,6 +1525,15 @@ export interface components {
 			/** @enum {boolean} */
 			authenticated: true;
 			user: components["schemas"]["User"];
+		};
+		/**
+		 * @example {
+		 *       "url": "https://discord.com/api/webhooks/123/token"
+		 *     }
+		 */
+		DiscordChannelConfig: {
+			/** Format: uri */
+			url: string;
 		};
 		/**
 		 * @example {
@@ -1637,9 +1663,9 @@ export interface components {
 			id: components["schemas"]["uuid"];
 			name: string;
 			/** @enum {string} */
-			type: "webhook";
+			type: "webhook" | "discord" | "telegram";
 			enabled: boolean;
-			config: components["schemas"]["WebhookChannelConfig"];
+			config: components["schemas"]["WebhookChannelConfig"] | components["schemas"]["DiscordChannelConfig"] | components["schemas"]["TelegramChannelResponseConfig"];
 			/** Format: date-time */
 			createdAt: string;
 			/** Format: date-time */
@@ -1670,6 +1696,32 @@ export interface components {
 		 */
 		NotificationChannelResponse: {
 			channel: components["schemas"]["NotificationChannel"];
+		};
+		/**
+		 * @example {
+		 *       "result": {
+		 *         "delivered": true,
+		 *         "retryable": false,
+		 *         "message": "Test notification delivered."
+		 *       }
+		 *     }
+		 */
+		NotificationChannelTestResponse: {
+			result: components["schemas"]["NotificationChannelTestResult"];
+		};
+		/**
+		 * @example {
+		 *       "delivered": true,
+		 *       "retryable": false,
+		 *       "message": "Test notification delivered."
+		 *     }
+		 */
+		NotificationChannelTestResult: {
+			delivered: boolean;
+			retryable: boolean;
+			kind?: string;
+			code?: string;
+			message?: string;
 		};
 		/**
 		 * @example {
@@ -2741,6 +2793,26 @@ export interface components {
 		};
 		/**
 		 * @example {
+		 *       "botToken": "123456:telegram-bot-token",
+		 *       "chatId": "-1001234567890"
+		 *     }
+		 */
+		TelegramChannelConfig: {
+			botToken: string;
+			chatId: string;
+		};
+		/**
+		 * @example {
+		 *       "chatId": "-1001234567890",
+		 *       "botTokenConfigured": true
+		 *     }
+		 */
+		TelegramChannelResponseConfig: {
+			chatId: string;
+			botTokenConfigured: boolean;
+		};
+		/**
+		 * @example {
 		 *       "protocol": "icmp",
 		 *       "maxHops": 30,
 		 *       "timeoutMs": 3000,
@@ -3223,9 +3295,9 @@ export interface components {
 		UpdateNotificationChannelRequest: {
 			name: string;
 			/** @enum {string} */
-			type: "webhook";
+			type: "webhook" | "discord" | "telegram";
 			enabled: boolean;
-			config: components["schemas"]["WebhookChannelConfig"];
+			config: components["schemas"]["WebhookChannelConfig"] | components["schemas"]["DiscordChannelConfig"] | components["schemas"]["TelegramChannelConfig"];
 		};
 		/**
 		 * @description Patch payload. At least one field must be provided.
@@ -4495,6 +4567,74 @@ export interface operations {
 				};
 				content: {
 					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is forbidden. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	testProjectNotificationChannel: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				ref: components["parameters"]["ProjectRefParam"];
+				channel_id: components["parameters"]["NotificationChannelIdPathParam"];
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["NotificationChannelTestResponse"];
 				};
 			};
 			/** @description Access is unauthorized. */

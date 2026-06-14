@@ -275,8 +275,10 @@ func (ns NullIpFamily) Value() (driver.Value, error) {
 type NotificationChannelType string
 
 const (
-	NotificationChannelTypeWebhook NotificationChannelType = "webhook"
-	NotificationChannelTypeEmail   NotificationChannelType = "email"
+	NotificationChannelTypeWebhook  NotificationChannelType = "webhook"
+	NotificationChannelTypeEmail    NotificationChannelType = "email"
+	NotificationChannelTypeDiscord  NotificationChannelType = "discord"
+	NotificationChannelTypeTelegram NotificationChannelType = "telegram"
 )
 
 func (e *NotificationChannelType) Scan(src interface{}) error {

@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"time"
 
+	appalert "github.com/yorukot/netstamp/internal/controller/application/alert"
 	domainalert "github.com/yorukot/netstamp/internal/domain/alert"
 	"github.com/yorukot/netstamp/internal/domain/alertcondition"
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
@@ -60,6 +61,19 @@ type channelResponseBody struct {
 	Config    json.RawMessage         `json:"config"`
 	CreatedAt time.Time               `json:"createdAt"`
 	UpdatedAt time.Time               `json:"updatedAt"`
+}
+
+type channelTestResponseBody struct {
+	Delivered bool   `json:"delivered"`
+	Retryable bool   `json:"retryable"`
+	Kind      string `json:"kind,omitempty"`
+	Code      string `json:"code,omitempty"`
+	Message   string `json:"message,omitempty"`
+}
+
+type telegramChannelResponseConfig struct {
+	ChatID             string `json:"chatId"`
+	BotTokenConfigured bool   `json:"botTokenConfigured"`
 }
 
 func ruleResponses(rules []domainalert.Rule) []ruleResponseBody {
@@ -143,22 +157,62 @@ func channelResponse(channel domainalert.NotificationChannel) channelResponseBod
 }
 
 func channelResponseConfig(channel domainalert.NotificationChannel) json.RawMessage {
-	if channel.Type != domainalert.ChannelTypeWebhook {
-		return channel.Config
-	}
-	var config domainalert.WebhookConfig
-	if err := json.Unmarshal(channel.Config, &config); err != nil {
+	switch channel.Type {
+	case domainalert.ChannelTypeWebhook:
+		var config domainalert.WebhookConfig
+		if err := json.Unmarshal(channel.Config, &config); err != nil {
+			return json.RawMessage(`{}`)
+		}
+		value, ok := redactedChannelURL(config.URL)
+		if !ok {
+			return json.RawMessage(`{}`)
+		}
+		return mustJSON(domainalert.WebhookConfig{URL: value})
+	case domainalert.ChannelTypeDiscord:
+		var config domainalert.DiscordConfig
+		if err := json.Unmarshal(channel.Config, &config); err != nil {
+			return json.RawMessage(`{}`)
+		}
+		value, ok := redactedChannelURL(config.URL)
+		if !ok {
+			return json.RawMessage(`{}`)
+		}
+		return mustJSON(domainalert.DiscordConfig{URL: value})
+	case domainalert.ChannelTypeTelegram:
+		var config domainalert.TelegramConfig
+		if err := json.Unmarshal(channel.Config, &config); err != nil {
+			return json.RawMessage(`{}`)
+		}
+		return mustJSON(telegramChannelResponseConfig{ChatID: config.ChatID, BotTokenConfigured: config.BotToken != ""})
+	default:
 		return json.RawMessage(`{}`)
 	}
-	parsed, err := url.Parse(config.URL)
+}
+
+func channelTestResponse(result appalert.ChannelTestResult) channelTestResponseBody {
+	return channelTestResponseBody{
+		Delivered: result.Delivered,
+		Retryable: result.Retryable,
+		Kind:      result.Kind,
+		Code:      result.Code,
+		Message:   result.Message,
+	}
+}
+
+func redactedChannelURL(rawURL string) (string, bool) {
+	parsed, err := url.Parse(rawURL)
 	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
-		return json.RawMessage(`{}`)
+		return "", false
 	}
 	parsed.User = nil
 	parsed.RawQuery = ""
 	parsed.Fragment = ""
 	parsed.Path = "/..."
-	data, err := json.Marshal(domainalert.WebhookConfig{URL: parsed.String()})
+	return parsed.String(), true
+}
+
+func mustJSON(value any) json.RawMessage {
+	data, err := json.Marshal(value)
 	if err != nil {
 		return json.RawMessage(`{}`)
 	}

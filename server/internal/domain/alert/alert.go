@@ -3,6 +3,7 @@ package alert
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/url"
 	"strings"
 	"time"
@@ -46,8 +47,10 @@ const (
 type ChannelType string
 
 const (
-	ChannelTypeWebhook ChannelType = "webhook"
-	ChannelTypeEmail   ChannelType = "email"
+	ChannelTypeWebhook  ChannelType = "webhook"
+	ChannelTypeDiscord  ChannelType = "discord"
+	ChannelTypeTelegram ChannelType = "telegram"
+	ChannelTypeEmail    ChannelType = "email"
 )
 
 type OutboxStatus string
@@ -172,6 +175,15 @@ type WebhookConfig struct {
 	URL string `json:"url"`
 }
 
+type DiscordConfig struct {
+	URL string `json:"url"`
+}
+
+type TelegramConfig struct {
+	BotToken string `json:"botToken"`
+	ChatID   string `json:"chatId"`
+}
+
 func VNRuleName(name string) (string, error) {
 	name = strings.TrimSpace(name)
 	if err := spvalidator.Required(name); err != nil {
@@ -249,6 +261,10 @@ func VNChannelType(channelType ChannelType) (ChannelType, error) {
 	switch ChannelType(strings.TrimSpace(string(channelType))) {
 	case ChannelTypeWebhook:
 		return ChannelTypeWebhook, nil
+	case ChannelTypeDiscord:
+		return ChannelTypeDiscord, nil
+	case ChannelTypeTelegram:
+		return ChannelTypeTelegram, nil
 	case ChannelTypeEmail:
 		return "", errors.New("email notification channels are not supported in beta")
 	default:
@@ -275,19 +291,131 @@ func VNWebhookConfig(raw json.RawMessage) (json.RawMessage, WebhookConfig, error
 	return canonical, config, nil
 }
 
+func VNDiscordConfig(raw json.RawMessage) (json.RawMessage, DiscordConfig, error) {
+	if len(raw) == 0 {
+		return nil, DiscordConfig{}, errors.New("discord config is required")
+	}
+	var config DiscordConfig
+	if err := json.Unmarshal(raw, &config); err != nil {
+		return nil, DiscordConfig{}, err
+	}
+	config.URL = strings.TrimSpace(config.URL)
+	if err := validateDiscordWebhookURL(config.URL); err != nil {
+		return nil, DiscordConfig{}, err
+	}
+	canonical, err := json.Marshal(config)
+	if err != nil {
+		return nil, DiscordConfig{}, err
+	}
+	return canonical, config, nil
+}
+
+func VNTelegramConfig(raw json.RawMessage) (json.RawMessage, TelegramConfig, error) {
+	if len(raw) == 0 {
+		return nil, TelegramConfig{}, errors.New("telegram config is required")
+	}
+	var config TelegramConfig
+	if err := json.Unmarshal(raw, &config); err != nil {
+		return nil, TelegramConfig{}, err
+	}
+	config.BotToken = strings.TrimSpace(config.BotToken)
+	config.ChatID = strings.TrimSpace(config.ChatID)
+	if err := validateTelegramBotToken(config.BotToken); err != nil {
+		return nil, TelegramConfig{}, err
+	}
+	if err := validateTelegramChatID(config.ChatID); err != nil {
+		return nil, TelegramConfig{}, err
+	}
+	canonical, err := json.Marshal(config)
+	if err != nil {
+		return nil, TelegramConfig{}, err
+	}
+	return canonical, config, nil
+}
+
 func validateWebhookURL(value string) error {
-	if err := spvalidator.Required(value); err != nil {
+	_, err := validateHTTPSURL(value, "webhook URL")
+	return err
+}
+
+func validateDiscordWebhookURL(value string) error {
+	parsed, err := validateHTTPSURL(value, "discord webhook URL")
+	if err != nil {
 		return err
+	}
+	host := strings.ToLower(parsed.Hostname())
+	if host != "discord.com" && host != "discordapp.com" && host != "canary.discord.com" && host != "ptb.discord.com" {
+		return errors.New("discord webhook URL must use a Discord host")
+	}
+	if !strings.HasPrefix(parsed.EscapedPath(), "/api/webhooks/") {
+		return errors.New("discord webhook URL must be a webhook execute URL")
+	}
+	return nil
+}
+
+func validateHTTPSURL(value, label string) (*url.URL, error) {
+	if err := spvalidator.Required(value); err != nil {
+		return nil, err
 	}
 	parsed, err := url.ParseRequestURI(value)
 	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
-		return errors.New("must be a valid webhook URL")
+		return nil, fmt.Errorf("must be a valid %s", label)
 	}
 	if parsed.Scheme != "https" {
-		return errors.New("webhook URL must use https")
+		return nil, fmt.Errorf("%s must use https", label)
 	}
 	if parsed.User != nil {
-		return errors.New("webhook URL must not include credentials")
+		return nil, fmt.Errorf("%s must not include credentials", label)
+	}
+	return parsed, nil
+}
+
+func validateTelegramBotToken(value string) error {
+	if err := spvalidator.Required(value); err != nil {
+		return err
+	}
+	if err := spvalidator.Max(value, 256); err != nil {
+		return err
+	}
+	botID, token, ok := strings.Cut(value, ":")
+	if !ok || botID == "" || token == "" {
+		return errors.New("telegram bot token is invalid")
+	}
+	if !digitsOnly(botID) || !validTelegramTokenSecret(token) {
+		return errors.New("telegram bot token is invalid")
 	}
 	return nil
+}
+
+func digitsOnly(value string) bool {
+	for _, char := range value {
+		if char < '0' || char > '9' {
+			return false
+		}
+	}
+	return true
+}
+
+func validTelegramTokenSecret(value string) bool {
+	for _, char := range value {
+		if !validTelegramTokenChar(char) {
+			return false
+		}
+	}
+	return true
+}
+
+func validTelegramTokenChar(char rune) bool {
+	return (char >= 'a' && char <= 'z') ||
+		(char >= 'A' && char <= 'Z') ||
+		(char >= '0' && char <= '9') ||
+		char == '_' ||
+		char == '-'
+}
+
+func validateTelegramChatID(value string) error {
+	if err := spvalidator.Required(value); err != nil {
+		return err
+	}
+	return spvalidator.Max(value, 128)
 }

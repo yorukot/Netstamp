@@ -121,6 +121,18 @@ interface AlertService {
 		| UnprocessableEntityProblem
 		| InternalServerProblem;
 
+	@operationId("testProjectNotificationChannel")
+	@summary("Send a test notification through a project notification channel")
+	@post
+	@route("/channels/{channel_id}/test")
+	testProjectNotificationChannel(...ProjectRefParam, ...NotificationChannelIdPathParam):
+		| OkJson<NotificationChannelTestResponse>
+		| UnauthorizedProblem
+		| ForbiddenProblem
+		| NotFoundProblem
+		| UnprocessableEntityProblem
+		| InternalServerProblem;
+
 	@operationId("deleteProjectNotificationChannel")
 	@summary("Delete project notification channel")
 	@delete

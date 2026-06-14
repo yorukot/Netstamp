@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -16,10 +17,11 @@ import (
 type Service struct {
 	repo          Repository
 	projectAccess ProjectAccess
+	channelTester ChannelTester
 }
 
-func NewService(repo Repository, projectAccess ProjectAccess) *Service {
-	return &Service{repo: repo, projectAccess: projectAccess}
+func NewService(repo Repository, projectAccess ProjectAccess, channelTester ChannelTester) *Service {
+	return &Service{repo: repo, projectAccess: projectAccess, channelTester: channelTester}
 }
 
 func (s *Service) ListRules(ctx context.Context, input ListRulesInput) ([]domainalert.Rule, error) {
@@ -134,6 +136,32 @@ func (s *Service) DeleteChannel(ctx context.Context, input DeleteChannelInput) e
 		return actionErr
 	}
 	return s.repo.DeleteChannel(ctx, project.ID, input.ChannelID)
+}
+
+func (s *Service) TestChannel(ctx context.Context, input TestChannelInput) (ChannelTestResult, error) {
+	project, err := s.loadProject(ctx, input.ProjectRef, input.CurrentUserID)
+	if err != nil {
+		return ChannelTestResult{}, err
+	}
+	if actionErr := s.requireChannelWrite(ctx, project.ID, input.CurrentUserID); actionErr != nil {
+		return ChannelTestResult{}, actionErr
+	}
+	channel, err := s.repo.GetChannel(ctx, project.ID, input.ChannelID)
+	if err != nil {
+		return ChannelTestResult{}, err
+	}
+	if s.channelTester == nil {
+		return ChannelTestResult{Kind: "channel", Code: "tester_unavailable", Message: "notification tester is unavailable"}, nil
+	}
+	payload, err := testNotificationPayload(channel, time.Now().UTC())
+	if err != nil {
+		return ChannelTestResult{}, err
+	}
+	result := s.channelTester.TestChannel(ctx, channel, payload)
+	if result.Delivered && result.Message == "" {
+		result.Message = "Test notification delivered."
+	}
+	return result, nil
 }
 
 func (s *Service) ListIncidents(ctx context.Context, input ListIncidentsInput) ([]domainalert.Incident, error) {
@@ -272,14 +300,48 @@ func normalizeChannel(base domainalert.NotificationChannel, channelID, name stri
 		return domainalert.NotificationChannel{}, fmt.Errorf("%w: %w", ErrInvalidInput, err)
 	}
 	base.Enabled = enabled
-	if base.Type == domainalert.ChannelTypeWebhook {
+	switch base.Type {
+	case domainalert.ChannelTypeWebhook:
 		canonical, _, err := domainalert.VNWebhookConfig(config)
+		if err != nil {
+			return domainalert.NotificationChannel{}, fmt.Errorf("%w: %w", ErrInvalidInput, err)
+		}
+		base.Config = canonical
+	case domainalert.ChannelTypeDiscord:
+		canonical, _, err := domainalert.VNDiscordConfig(config)
+		if err != nil {
+			return domainalert.NotificationChannel{}, fmt.Errorf("%w: %w", ErrInvalidInput, err)
+		}
+		base.Config = canonical
+	case domainalert.ChannelTypeTelegram:
+		canonical, _, err := domainalert.VNTelegramConfig(config)
 		if err != nil {
 			return domainalert.NotificationChannel{}, fmt.Errorf("%w: %w", ErrInvalidInput, err)
 		}
 		base.Config = canonical
 	}
 	return base, nil
+}
+
+func testNotificationPayload(channel domainalert.NotificationChannel, at time.Time) (json.RawMessage, error) {
+	data, err := json.Marshal(map[string]any{
+		"eventType": "notification.test",
+		"sentAt":    at.UTC(),
+		"channel": map[string]any{
+			"id":   channel.ID,
+			"name": channel.Name,
+			"type": channel.Type,
+		},
+		"rule": map[string]any{
+			"name":     "Netstamp test alert",
+			"severity": domainalert.SeverityInfo,
+		},
+		"summary": map[string]any{
+			"state":   "test",
+			"message": "This is a test notification from Netstamp.",
+		},
+	})
+	return data, err
 }
 
 func validateUUIDPtr(value *string) error {

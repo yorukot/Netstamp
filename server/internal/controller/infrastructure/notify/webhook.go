@@ -10,11 +10,45 @@ import (
 	"net/http"
 	"net/netip"
 	"net/url"
+	"strings"
 	"time"
 
+	appalert "github.com/yorukot/netstamp/internal/controller/application/alert"
 	appnotification "github.com/yorukot/netstamp/internal/controller/application/notification"
 	domainalert "github.com/yorukot/netstamp/internal/domain/alert"
 )
+
+const (
+	discordMessageLimit  = 2000
+	discordTitleLimit    = 256
+	discordFieldLimit    = 1024
+	telegramMessageLimit = 4096
+)
+
+type notificationPayloadView struct {
+	EventType string `json:"eventType"`
+	SentAt    string `json:"sentAt"`
+	Rule      struct {
+		Name     string `json:"name"`
+		Severity string `json:"severity"`
+	} `json:"rule"`
+	Target struct {
+		ProbeID   string `json:"probeId"`
+		CheckID   string `json:"checkId"`
+		CheckType string `json:"checkType"`
+	} `json:"target"`
+	Channel struct {
+		Name string `json:"name"`
+		Type string `json:"type"`
+	} `json:"channel"`
+	Summary map[string]any `json:"summary"`
+}
+
+type notificationField struct {
+	Name   string
+	Value  string
+	Inline bool
+}
 
 type WebhookSender struct {
 	client *http.Client
@@ -34,6 +68,30 @@ func NewWebhookSender(timeout time.Duration) *WebhookSender {
 	return sender
 }
 
+func (s *WebhookSender) SendChannel(ctx context.Context, channel domainalert.NotificationChannel, payload []byte) appnotification.DeliveryResult {
+	switch channel.Type {
+	case domainalert.ChannelTypeWebhook:
+		return s.SendWebhook(ctx, channel, payload)
+	case domainalert.ChannelTypeDiscord:
+		return s.SendDiscord(ctx, channel, payload)
+	case domainalert.ChannelTypeTelegram:
+		return s.SendTelegram(ctx, channel, payload)
+	default:
+		return permanent("channel", "unsupported_type", "unsupported notification channel type")
+	}
+}
+
+func (s *WebhookSender) TestChannel(ctx context.Context, channel domainalert.NotificationChannel, payload json.RawMessage) appalert.ChannelTestResult {
+	result := s.SendChannel(ctx, channel, payload)
+	return appalert.ChannelTestResult{
+		Delivered: result.Delivered,
+		Retryable: result.Retryable,
+		Kind:      result.Kind,
+		Code:      result.Code,
+		Message:   result.Message,
+	}
+}
+
 func (s *WebhookSender) SendWebhook(ctx context.Context, channel domainalert.NotificationChannel, payload []byte) appnotification.DeliveryResult {
 	var config domainalert.WebhookConfig
 	if err := json.Unmarshal(channel.Config, &config); err != nil {
@@ -42,16 +100,51 @@ func (s *WebhookSender) SendWebhook(ctx context.Context, channel domainalert.Not
 	if err := validateWebhookTarget(ctx, config.URL); err != nil {
 		return permanent("security", "blocked_target", err.Error())
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, config.URL, bytes.NewReader(payload))
+	return s.postJSON(ctx, config.URL, payload, "webhook")
+}
+
+func (s *WebhookSender) SendDiscord(ctx context.Context, channel domainalert.NotificationChannel, payload []byte) appnotification.DeliveryResult {
+	var config domainalert.DiscordConfig
+	if err := json.Unmarshal(channel.Config, &config); err != nil {
+		return permanent("config", "invalid_config", "invalid Discord configuration")
+	}
+	if err := validateWebhookTarget(ctx, config.URL); err != nil {
+		return permanent("security", "blocked_target", err.Error())
+	}
+	body, err := renderDiscordWebhookBody(payload)
 	if err != nil {
-		return permanent("request", "invalid_request", "invalid webhook request")
+		return permanent("request", "invalid_request", "invalid Discord request")
+	}
+	return s.postJSON(ctx, config.URL, body, "Discord webhook")
+}
+
+func (s *WebhookSender) SendTelegram(ctx context.Context, channel domainalert.NotificationChannel, payload []byte) appnotification.DeliveryResult {
+	var config domainalert.TelegramConfig
+	if err := json.Unmarshal(channel.Config, &config); err != nil {
+		return permanent("config", "invalid_config", "invalid Telegram configuration")
+	}
+	endpoint := "https://api.telegram.org/bot" + config.BotToken + "/sendMessage"
+	body, err := json.Marshal(map[string]any{
+		"chat_id": config.ChatID,
+		"text":    truncateMessage(renderNotificationText(payload), telegramMessageLimit),
+	})
+	if err != nil {
+		return permanent("request", "invalid_request", "invalid Telegram request")
+	}
+	return s.postJSON(ctx, endpoint, body, "Telegram API")
+}
+
+func (s *WebhookSender) postJSON(ctx context.Context, endpoint string, body []byte, targetName string) appnotification.DeliveryResult {
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(body))
+	if err != nil {
+		return permanent("request", "invalid_request", "invalid "+targetName+" request")
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", "netstamp-alerts/1")
 
 	resp, err := s.client.Do(req)
 	if err != nil {
-		return retryable("network", "request_failed", "webhook request failed")
+		return retryable("network", "request_failed", targetName+" request failed")
 	}
 	defer resp.Body.Close()
 
@@ -59,10 +152,147 @@ func (s *WebhookSender) SendWebhook(ctx context.Context, channel domainalert.Not
 	case resp.StatusCode >= 200 && resp.StatusCode < 300:
 		return appnotification.DeliveryResult{Delivered: true}
 	case resp.StatusCode == http.StatusTooManyRequests || resp.StatusCode == http.StatusRequestTimeout || resp.StatusCode >= 500:
-		return retryable("http", fmt.Sprintf("status_%d", resp.StatusCode), "webhook returned retryable status")
+		return retryable("http", fmt.Sprintf("status_%d", resp.StatusCode), targetName+" returned retryable status")
 	default:
-		return permanent("http", fmt.Sprintf("status_%d", resp.StatusCode), "webhook returned permanent status")
+		return permanent("http", fmt.Sprintf("status_%d", resp.StatusCode), targetName+" returned permanent status")
 	}
+}
+
+func renderDiscordWebhookBody(payload []byte) ([]byte, error) {
+	body, ok := parseNotificationPayload(payload)
+	if !ok {
+		return json.Marshal(map[string]any{
+			"username":         "Netstamp",
+			"content":          truncateMessage("Netstamp alert\n\n"+string(payload), discordMessageLimit),
+			"allowed_mentions": map[string]any{"parse": []string{}},
+		})
+	}
+
+	title := notificationTitle(body)
+	embed := map[string]any{
+		"title":  truncateMessage(title, discordTitleLimit),
+		"color":  discordColor(body),
+		"fields": discordFields(body),
+	}
+	if description := notificationDescription(body); description != "" {
+		embed["description"] = description
+	}
+	if body.SentAt != "" {
+		embed["timestamp"] = body.SentAt
+	}
+
+	return json.Marshal(map[string]any{
+		"username":         "Netstamp",
+		"embeds":           []map[string]any{embed},
+		"allowed_mentions": map[string]any{"parse": []string{}},
+	})
+}
+
+func renderNotificationText(payload []byte) string {
+	body, ok := parseNotificationPayload(payload)
+	if !ok {
+		return "Netstamp alert\n\n" + string(payload)
+	}
+
+	lines := []string{notificationTitle(body)}
+	if description := notificationDescription(body); description != "" {
+		lines = append(lines, "Message: "+description)
+	}
+	for _, field := range notificationFields(body) {
+		lines = append(lines, field.Name+": "+field.Value)
+	}
+	return strings.Join(lines, "\n")
+}
+
+func parseNotificationPayload(payload []byte) (notificationPayloadView, bool) {
+	var body notificationPayloadView
+	if err := json.Unmarshal(payload, &body); err != nil {
+		return notificationPayloadView{}, false
+	}
+	if body.Summary == nil {
+		body.Summary = map[string]any{}
+	}
+	return body, true
+}
+
+func notificationTitle(body notificationPayloadView) string {
+	if body.EventType == "notification.test" {
+		return "Netstamp test notification"
+	}
+	return "Netstamp alert"
+}
+
+func notificationDescription(body notificationPayloadView) string {
+	if message, ok := body.Summary["message"].(string); ok && message != "" {
+		return truncateMessage(message, discordFieldLimit)
+	}
+	if body.Target.CheckType != "" {
+		return strings.ToUpper(body.Target.CheckType) + " alert"
+	}
+	return ""
+}
+
+func discordFields(body notificationPayloadView) []map[string]any {
+	fields := make([]map[string]any, 0, 8)
+	for _, field := range notificationFields(body) {
+		fields = append(fields, map[string]any{
+			"name":   field.Name,
+			"value":  truncateMessage(field.Value, discordFieldLimit),
+			"inline": field.Inline,
+		})
+	}
+	return fields
+}
+
+func notificationFields(body notificationPayloadView) []notificationField {
+	fields := []notificationField{}
+	add := func(name, value string, inline bool) {
+		if value == "" {
+			return
+		}
+		fields = append(fields, notificationField{Name: name, Value: value, Inline: inline})
+	}
+
+	add("Rule", body.Rule.Name, true)
+	add("Severity", body.Rule.Severity, true)
+	add("Event", body.EventType, true)
+	add("Check", strings.ToUpper(body.Target.CheckType), true)
+	if metric, ok := body.Summary["metric"].(string); ok {
+		add("Metric", metric, true)
+	}
+	if value, ok := body.Summary["value"]; ok && value != nil {
+		add("Value", fmt.Sprintf("%v", value), true)
+	}
+	if threshold, ok := body.Summary["threshold"]; ok && threshold != nil {
+		add("Threshold", fmt.Sprintf("%v", threshold), true)
+	}
+	add("Channel", body.Channel.Name, true)
+	add("Sent", body.SentAt, false)
+	return fields
+}
+
+func discordColor(body notificationPayloadView) int {
+	if body.EventType == "notification.test" {
+		return 0x5865F2
+	}
+	switch body.Rule.Severity {
+	case string(domainalert.SeverityCritical):
+		return 0xE5484D
+	case string(domainalert.SeverityWarning):
+		return 0xF5A524
+	default:
+		return 0x30A46C
+	}
+}
+
+func truncateMessage(value string, limit int) string {
+	if len(value) <= limit {
+		return value
+	}
+	if limit <= 1 {
+		return value[:limit]
+	}
+	return value[:limit-1] + "..."
 }
 
 func validateWebhookTarget(ctx context.Context, rawURL string) error {

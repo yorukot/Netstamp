@@ -141,7 +141,7 @@ func (s *Service) enqueueNotifications(ctx context.Context, rule domainalert.Rul
 	}
 	jobs := make([]domainalert.NotificationJobInput, 0, len(channels))
 	for _, channel := range channels {
-		if channel.Type != domainalert.ChannelTypeWebhook {
+		if !supportedNotificationChannel(channel.Type) {
 			continue
 		}
 		payload, err := notificationPayload(rule, incident, evaluation, eventType, at)
@@ -160,6 +160,15 @@ func (s *Service) enqueueNotifications(ctx context.Context, rule domainalert.Rul
 		})
 	}
 	return s.repo.EnqueueNotificationJobs(ctx, jobs)
+}
+
+func supportedNotificationChannel(channelType domainalert.ChannelType) bool {
+	switch channelType {
+	case domainalert.ChannelTypeWebhook, domainalert.ChannelTypeDiscord, domainalert.ChannelTypeTelegram:
+		return true
+	default:
+		return false
+	}
 }
 
 func evaluationSummaryJSON(rule domainalert.Rule, evaluation alertcondition.Evaluation) (json.RawMessage, error) {

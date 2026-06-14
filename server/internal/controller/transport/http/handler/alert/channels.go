@@ -88,6 +88,22 @@ func (h *Handler) handleDeleteChannel(w http.ResponseWriter, r *http.Request) {
 	httpx.WriteNoContent(w)
 }
 
+func (h *Handler) handleTestChannel(w http.ResponseWriter, r *http.Request) {
+	userID, err := currentUserID(r)
+	if err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	result, err := h.service.TestChannel(
+		r.Context(),
+		appalert.TestChannelInput{
+			ProjectInput: projectInput(r, userID),
+			ChannelID:    httpx.Path(r, "channel_id"),
+		},
+	)
+	writeJSONOrProblem(w, r, http.StatusOK, map[string]any{"result": channelTestResponse(result)}, err)
+}
+
 type channelBody struct {
 	Name    string                  `json:"name"`
 	Type    domainalert.ChannelType `json:"type"`

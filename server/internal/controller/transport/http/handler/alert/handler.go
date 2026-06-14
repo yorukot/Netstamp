@@ -34,6 +34,7 @@ func (h *Handler) RegisterRoutes(api chi.Router) {
 		r.Post("/projects/{ref}/alerts/channels", h.handleCreateChannel)
 		r.Get("/projects/{ref}/alerts/channels/{channel_id}", h.handleGetChannel)
 		r.Patch("/projects/{ref}/alerts/channels/{channel_id}", h.handleUpdateChannel)
+		r.Post("/projects/{ref}/alerts/channels/{channel_id}/test", h.handleTestChannel)
 		r.Delete("/projects/{ref}/alerts/channels/{channel_id}", h.handleDeleteChannel)
 	})
 }

@@ -126,6 +126,10 @@ export function deleteProjectNotificationChannel(ref: string, channelId: string)
 	return readEmptyApiResponse(apiClient.DELETE("/projects/{ref}/alerts/channels/{channel_id}", { params: { path: { ref, channel_id: channelId } } }));
 }
 
+export function testProjectNotificationChannel(ref: string, channelId: string) {
+	return readApiData(apiClient.POST("/projects/{ref}/alerts/channels/{channel_id}/test", { params: { path: { ref, channel_id: channelId } } }));
+}
+
 export async function deleteProjectChecks(ref: string, checkIds: string[]) {
 	const results = await Promise.allSettled(
 		checkIds.map(async checkId => {
@@ -461,6 +465,12 @@ export function useDeleteProjectNotificationChannelMutation(projectRef: string |
 			const ref = requireProjectRef(projectRef);
 			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.alertsRoot(ref) });
 		}
+	});
+}
+
+export function useTestProjectNotificationChannelMutation(projectRef: string | null | undefined) {
+	return useMutation({
+		mutationFn: (channelId: string) => testProjectNotificationChannel(requireProjectRef(projectRef), channelId)
 	});
 }
 

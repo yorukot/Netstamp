@@ -122,13 +122,14 @@ func New(ctx context.Context) (*Application, error) {
 	probeEvents := logger.NewProbeEventRecorder(log)
 	probeRuntimeEvents := logger.NewProbeRuntimeEventRecorder(log)
 	assignmentEvents := logger.NewAssignmentEventRecorder(log)
+	notificationSender := notify.NewWebhookSender(cfg.Alerting.NotificationHTTPTimeout)
 
 	authSvc := appauth.NewService(userRepo, passwordHasher, tokenIssuer, authEvents)
 	userSvc := appuser.NewService(userRepo, passwordHasher, userEvents)
 	projectRepo := pgproject.NewProjectRepository(dbPool)
 	projectSvc := appproject.NewService(projectRepo, userRepo, projectEvents)
 	alertRepo := pgalert.NewRepository(dbPool)
-	alertSvc := appalert.NewService(alertRepo, projectRepo)
+	alertSvc := appalert.NewService(alertRepo, projectRepo, notificationSender)
 	labelRepo := pglabel.NewLabelRepository(dbPool)
 	assignmentRepo := pgassignment.NewAssignmentRepository(dbPool)
 	assignmentSvc := appassignment.NewService(assignmentRepo, projectRepo, assignmentEvents)
@@ -144,7 +145,7 @@ func New(ctx context.Context) (*Application, error) {
 	probeRuntimeSvc := appproberuntime.NewServiceWithTCP(probeRepo, pingRepo, tcpRepo, tracerouteRepo, security.NewProbeSecretVerifier(), probeRuntimeEvents)
 	alertEvalSvc := appalerteval.NewService(alertRepo, cfg.Alerting.EvaluationEnabled)
 	probeRuntimeSvc.SetAlertEvaluator(alertEvalSvc)
-	notificationWorker := appnotification.NewWorker(alertRepo, notify.NewWebhookSender(cfg.Alerting.NotificationHTTPTimeout), appnotification.WorkerConfig{
+	notificationWorker := appnotification.NewWorker(alertRepo, notificationSender, appnotification.WorkerConfig{
 		Enabled:      cfg.Alerting.NotificationWorkerEnabled,
 		Interval:     cfg.Alerting.NotificationWorkerInterval,
 		BatchSize:    cfg.Alerting.NotificationWorkerBatchSize,

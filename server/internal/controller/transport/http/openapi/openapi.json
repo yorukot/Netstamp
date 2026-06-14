@@ -1448,6 +1448,88 @@
 				]
 			}
 		},
+		"/projects/{ref}/alerts/channels/{channel_id}/test": {
+			"post": {
+				"operationId": "testProjectNotificationChannel",
+				"summary": "Send a test notification through a project notification channel",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					},
+					{
+						"$ref": "#/components/parameters/NotificationChannelIdPathParam"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/NotificationChannelTestResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Alerts"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
 		"/projects/{ref}/alerts/incidents": {
 			"get": {
 				"operationId": "listProjectAlertIncidents",
@@ -6829,13 +6911,23 @@
 					},
 					"type": {
 						"type": "string",
-						"enum": ["webhook"]
+						"enum": ["webhook", "discord", "telegram"]
 					},
 					"enabled": {
 						"type": "boolean"
 					},
 					"config": {
-						"$ref": "#/components/schemas/WebhookChannelConfig"
+						"anyOf": [
+							{
+								"$ref": "#/components/schemas/WebhookChannelConfig"
+							},
+							{
+								"$ref": "#/components/schemas/DiscordChannelConfig"
+							},
+							{
+								"$ref": "#/components/schemas/TelegramChannelConfig"
+							}
+						]
 					}
 				},
 				"examples": [
@@ -6959,6 +7051,21 @@
 							"email": "user@example.com",
 							"displayName": "Jane Doe"
 						}
+					}
+				]
+			},
+			"DiscordChannelConfig": {
+				"type": "object",
+				"required": ["url"],
+				"properties": {
+					"url": {
+						"type": "string",
+						"format": "uri"
+					}
+				},
+				"examples": [
+					{
+						"url": "https://discord.com/api/webhooks/123/token"
 					}
 				]
 			},
@@ -7163,13 +7270,23 @@
 					},
 					"type": {
 						"type": "string",
-						"enum": ["webhook"]
+						"enum": ["webhook", "discord", "telegram"]
 					},
 					"enabled": {
 						"type": "boolean"
 					},
 					"config": {
-						"$ref": "#/components/schemas/WebhookChannelConfig"
+						"anyOf": [
+							{
+								"$ref": "#/components/schemas/WebhookChannelConfig"
+							},
+							{
+								"$ref": "#/components/schemas/DiscordChannelConfig"
+							},
+							{
+								"$ref": "#/components/schemas/TelegramChannelResponseConfig"
+							}
+						]
 					},
 					"createdAt": {
 						"type": "string",
@@ -7232,6 +7349,52 @@
 							"createdAt": "2026-06-14T09:00:00Z",
 							"updatedAt": "2026-06-14T09:00:00Z"
 						}
+					}
+				]
+			},
+			"NotificationChannelTestResponse": {
+				"type": "object",
+				"required": ["result"],
+				"properties": {
+					"result": {
+						"$ref": "#/components/schemas/NotificationChannelTestResult"
+					}
+				},
+				"examples": [
+					{
+						"result": {
+							"delivered": true,
+							"retryable": false,
+							"message": "Test notification delivered."
+						}
+					}
+				]
+			},
+			"NotificationChannelTestResult": {
+				"type": "object",
+				"required": ["delivered", "retryable"],
+				"properties": {
+					"delivered": {
+						"type": "boolean"
+					},
+					"retryable": {
+						"type": "boolean"
+					},
+					"kind": {
+						"type": "string"
+					},
+					"code": {
+						"type": "string"
+					},
+					"message": {
+						"type": "string"
+					}
+				},
+				"examples": [
+					{
+						"delivered": true,
+						"retryable": false,
+						"message": "Test notification delivered."
 					}
 				]
 			},
@@ -9033,6 +9196,45 @@
 					}
 				]
 			},
+			"TelegramChannelConfig": {
+				"type": "object",
+				"required": ["botToken", "chatId"],
+				"properties": {
+					"botToken": {
+						"type": "string",
+						"minLength": 1
+					},
+					"chatId": {
+						"type": "string",
+						"minLength": 1
+					}
+				},
+				"examples": [
+					{
+						"botToken": "123456:telegram-bot-token",
+						"chatId": "-1001234567890"
+					}
+				]
+			},
+			"TelegramChannelResponseConfig": {
+				"type": "object",
+				"required": ["chatId", "botTokenConfigured"],
+				"properties": {
+					"chatId": {
+						"type": "string",
+						"minLength": 1
+					},
+					"botTokenConfigured": {
+						"type": "boolean"
+					}
+				},
+				"examples": [
+					{
+						"chatId": "-1001234567890",
+						"botTokenConfigured": true
+					}
+				]
+			},
 			"TracerouteConfig": {
 				"type": "object",
 				"required": ["protocol", "maxHops", "timeoutMs", "queriesPerHop", "packetSizeBytes", "port"],
@@ -9911,13 +10113,23 @@
 					},
 					"type": {
 						"type": "string",
-						"enum": ["webhook"]
+						"enum": ["webhook", "discord", "telegram"]
 					},
 					"enabled": {
 						"type": "boolean"
 					},
 					"config": {
-						"$ref": "#/components/schemas/WebhookChannelConfig"
+						"anyOf": [
+							{
+								"$ref": "#/components/schemas/WebhookChannelConfig"
+							},
+							{
+								"$ref": "#/components/schemas/DiscordChannelConfig"
+							},
+							{
+								"$ref": "#/components/schemas/TelegramChannelConfig"
+							}
+						]
 					}
 				},
 				"description": "Full replacement patch for a notification channel in the current beta API.",

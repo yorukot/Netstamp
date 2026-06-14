@@ -2,6 +2,7 @@ package alert
 
 import (
 	"context"
+	"encoding/json"
 
 	domainalert "github.com/yorukot/netstamp/internal/domain/alert"
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
@@ -26,4 +27,8 @@ type Repository interface {
 type ProjectAccess interface {
 	GetProjectForUser(ctx context.Context, projectRef, userID string) (domainproject.Project, error)
 	GetMemberRole(ctx context.Context, projectID, userID string) (domainproject.Role, error)
+}
+
+type ChannelTester interface {
+	TestChannel(ctx context.Context, channel domainalert.NotificationChannel, payload json.RawMessage) ChannelTestResult
 }

@@ -17,13 +17,13 @@ type WorkerConfig struct {
 }
 
 type Worker struct {
-	repo    Repository
-	webhook WebhookSender
-	cfg     WorkerConfig
-	now     func() time.Time
+	repo   Repository
+	sender ChannelSender
+	cfg    WorkerConfig
+	now    func() time.Time
 }
 
-func NewWorker(repo Repository, webhook WebhookSender, cfg WorkerConfig) *Worker {
+func NewWorker(repo Repository, sender ChannelSender, cfg WorkerConfig) *Worker {
 	if cfg.Interval <= 0 {
 		cfg.Interval = 5 * time.Second
 	}
@@ -36,7 +36,7 @@ func NewWorker(repo Repository, webhook WebhookSender, cfg WorkerConfig) *Worker
 	if len(cfg.RetryBackoffs) == 0 {
 		cfg.RetryBackoffs = []time.Duration{30 * time.Second, 2 * time.Minute, 5 * time.Minute, 15 * time.Minute}
 	}
-	return &Worker{repo: repo, webhook: webhook, cfg: cfg, now: func() time.Time { return time.Now().UTC() }}
+	return &Worker{repo: repo, sender: sender, cfg: cfg, now: func() time.Time { return time.Now().UTC() }}
 }
 
 func (w *Worker) Run(ctx context.Context) error {
@@ -88,12 +88,9 @@ func (w *Worker) deliver(ctx context.Context, job domainalert.NotificationOutbox
 		return w.repo.MarkOutboxDiscarded(ctx, job.ID, "channel", "disabled", "notification channel is disabled")
 	}
 
-	var result DeliveryResult
-	switch job.ChannelType {
-	case domainalert.ChannelTypeWebhook:
-		result = w.webhook.SendWebhook(ctx, channel, job.Payload)
-	default:
-		result = DeliveryResult{Retryable: false, Kind: "channel", Code: "unsupported_type", Message: "unsupported notification channel type"}
+	result := DeliveryResult{Retryable: false, Kind: "channel", Code: "sender_unavailable", Message: "notification sender is unavailable"}
+	if w.sender != nil {
+		result = w.sender.SendChannel(ctx, channel, job.Payload)
 	}
 
 	switch {

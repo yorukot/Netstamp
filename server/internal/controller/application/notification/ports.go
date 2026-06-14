@@ -16,8 +16,8 @@ type Repository interface {
 	MarkOutboxDiscarded(ctx context.Context, id, kind, code, message string) error
 }
 
-type WebhookSender interface {
-	SendWebhook(ctx context.Context, channel domainalert.NotificationChannel, payload []byte) DeliveryResult
+type ChannelSender interface {
+	SendChannel(ctx context.Context, channel domainalert.NotificationChannel, payload []byte) DeliveryResult
 }
 
 type DeliveryResult struct {

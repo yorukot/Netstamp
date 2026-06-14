@@ -90,6 +90,19 @@ type DeleteChannelInput struct {
 	ChannelID string
 }
 
+type TestChannelInput struct {
+	ProjectInput
+	ChannelID string
+}
+
+type ChannelTestResult struct {
+	Delivered bool
+	Retryable bool
+	Kind      string
+	Code      string
+	Message   string
+}
+
 type ListIncidentsInput struct {
 	ProjectInput
 	Status *domainalert.IncidentStatus
