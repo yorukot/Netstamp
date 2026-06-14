@@ -36,11 +36,11 @@
 .timelineLine {
 	fill: none;
 	vector-effect: non-scaling-stroke;
-	stroke: var(--ns-accent-hover);
+	stroke: var(--ns-success);
 	stroke-linecap: round;
 	stroke-linejoin: round;
 	stroke-width: 2.5;
-	filter: drop-shadow(0 0 10px var(--ns-accent-glow));
+	filter: none;
 }
 
 .timelineSelection {
@@ -66,7 +66,7 @@
 	height: 1.4rem;
 	place-items: center;
 	padding: 0;
-	color: var(--ns-accent-hover);
+	color: var(--ns-success);
 	background: transparent;
 	border: 0;
 	cursor: pointer;
@@ -93,8 +93,16 @@
 	color: var(--ns-critical);
 }
 
+.timelinePoint[data-tone="warning"] {
+	color: var(--ns-warning);
+}
+
+.timelinePoint[data-tone="critical"] {
+	color: var(--ns-critical);
+}
+
 .timelinePoint[data-changed="true"] .timelinePointCore {
-	border-color: var(--ns-warning);
+	border-color: var(--ns-metal);
 	box-shadow: none;
 }
 
@@ -176,19 +184,25 @@
 	display: block;
 	width: 0.5rem;
 	height: 0.5rem;
-	background: var(--ns-accent-hover);
+	background: var(--ns-success);
+	border: 1px solid transparent;
 	content: "";
 }
 
-.timelineLegend span:nth-child(2)::before {
-	background: var(--ns-critical);
-}
-
-.timelineLegend span:nth-child(3)::before {
+.timelineLegend span[data-tone="warning"]::before {
 	background: var(--ns-warning);
 }
 
-.timelineLegend span:nth-child(4)::before {
+.timelineLegend span[data-tone="critical"]::before {
+	background: var(--ns-critical);
+}
+
+.timelineLegend span[data-tone="changed"]::before {
+	background: var(--ns-surface);
+	border-color: var(--ns-metal);
+}
+
+.timelineLegend span[data-tone="selected"]::before {
 	background: var(--ns-text);
 }
 

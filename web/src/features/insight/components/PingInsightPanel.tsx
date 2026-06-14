@@ -2,6 +2,7 @@ import type { CheckDefinition } from "@/features/checks/data/checks";
 import type { Probe } from "@/features/probes/data/probes";
 import type { PingInsightResponse, PingSeriesResponse } from "@/shared/api/types";
 import { BodyCopy } from "@/shared/components/BodyCopy";
+import { LoadingState } from "@/shared/components/LoadingState";
 import { classNames } from "@/shared/utils/classNames";
 import { formatCount } from "@/shared/utils/insightFormatters";
 import { hasPingSeriesChartData, pingSeriesChartData, pingSummaryMetrics } from "@/shared/utils/pingInsightData";
@@ -30,10 +31,10 @@ export function PingInsightPanel({ selectedProbe, selectedTarget, insightData, s
 		);
 	}
 
-	if ((isInsightLoading || isSeriesLoading) && !insightData && !seriesData) {
+	if ((isInsightLoading || isSeriesLoading || isFetching) && !insightData && !seriesData) {
 		return (
 			<Panel tone="deep" title="Loading ping insight">
-				<BodyCopy>Loading ping summary and series for this probe-target pair.</BodyCopy>
+				<LoadingState label="Loading ping insight" detail="Fetching latency, loss, and sample windows for this probe-target pair." />
 			</Panel>
 		);
 	}
@@ -65,8 +66,10 @@ export function PingInsightPanel({ selectedProbe, selectedTarget, insightData, s
 				</div>
 				{hasChartData ? (
 					<ChartPanel option={pingInsightChartOption(chartData)} height="27rem" onTimeRangeSelect={onSelectTimeWindow} timeRangeBounds={queryWindow} />
+				) : isSeriesLoading || isFetching ? (
+					<LoadingState label="Loading ping series" detail="Syncing result points for the selected time range." />
 				) : (
-					<div className={styles.emptyState}>{isSeriesLoading ? "Loading ping series." : "No ping series points were recorded for this probe-target pair in the selected time range."}</div>
+					<div className={styles.emptyState}>No ping series points were recorded for this probe-target pair in the selected time range.</div>
 				)}
 			</Panel>
 		</div>

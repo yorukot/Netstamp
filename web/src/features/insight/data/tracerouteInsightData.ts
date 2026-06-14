@@ -142,6 +142,18 @@ export function runFinalRtt(run: TracerouteResult) {
 	return lastRespondingHop(run)?.rttAvgMs ?? null;
 }
 
+function runTimelineTone(value: number | null, hasLoss: boolean | undefined): RunTimelinePoint["tone"] {
+	if (hasLoss) {
+		return "critical";
+	}
+
+	if (typeof value === "number" && value >= 100) {
+		return "warning";
+	}
+
+	return "normal";
+}
+
 export function tracerouteInsightTimelinePoints(data: TracerouteInsightResponse | undefined): RunTimelinePoint[] {
 	return (data?.points ?? []).map(point => {
 		const value = point.finalRttAvgMs ?? null;
@@ -160,6 +172,7 @@ export function tracerouteInsightTimelinePoints(data: TracerouteInsightResponse 
 			ariaLabel: isRawRun
 				? `Select traceroute run ${formatTime(point.runStartedAt || labelTime)} final RTT ${formatMs(value)} loss ${formatPercent(point.finalLossPercent)}`
 				: `Narrow traceroute timeline bucket ${formatShortTime(labelTime)} final RTT ${formatMs(value)} loss ${formatPercent(point.finalLossPercent)}`,
+			tone: runTimelineTone(value, point.hasLoss),
 			hasLoss: point.hasLoss,
 			hasChange: point.hasRouteChange
 		};

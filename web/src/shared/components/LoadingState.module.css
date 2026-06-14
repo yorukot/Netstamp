@@ -1,0 +1,84 @@
+.loadingState {
+	display: grid;
+	gap: 1rem;
+	align-content: center;
+	justify-items: center;
+	min-width: 0;
+	padding: 1.25rem;
+	color: var(--ns-text-low);
+	text-align: center;
+}
+
+.loadingStatecompact {
+	min-height: 8rem;
+}
+
+.loadingStatechart {
+	min-height: 18rem;
+}
+
+.loadingCopy {
+	display: grid;
+	gap: 0.3rem;
+	max-width: 28rem;
+	font-family: var(--ns-font-sans);
+}
+
+.loadingCopy strong {
+	color: var(--ns-text);
+	font-size: 0.9375rem;
+	font-weight: 700;
+	line-height: 1.2;
+}
+
+.loadingCopy span {
+	color: var(--ns-text-low);
+	font-size: 0.8125rem;
+	line-height: 1.45;
+}
+
+.loadingRows {
+	display: grid;
+	gap: 0.45rem;
+	width: min(18rem, 80vw);
+}
+
+.loadingRows span {
+	display: block;
+	height: 0.45rem;
+	background: linear-gradient(90deg, var(--ns-border-faint), color-mix(in srgb, var(--ns-text-muted) 22%, transparent), var(--ns-border-faint));
+	background-size: 220% 100%;
+	animation: rowScan 1500ms ease-in-out infinite;
+}
+
+.loadingRows span:nth-child(2) {
+	width: 82%;
+	animation-delay: 120ms;
+}
+
+.loadingRows span:nth-child(3) {
+	width: 58%;
+	animation-delay: 240ms;
+}
+
+@keyframes rowScan {
+	0% {
+		background-position: 160% 0;
+		opacity: 0.44;
+	}
+
+	50% {
+		opacity: 0.9;
+	}
+
+	100% {
+		background-position: -60% 0;
+		opacity: 0.44;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.loadingRows span {
+		animation: none;
+	}
+}

@@ -11,6 +11,7 @@ export interface RunTimelinePoint {
 	value: number | null;
 	valueLabel: string;
 	ariaLabel: string;
+	tone?: "normal" | "warning" | "critical";
 	hasLoss?: boolean;
 	hasChange?: boolean;
 }
@@ -166,6 +167,7 @@ export function RunTimeline({ points, selectedPointId, selectedValueLabel, empty
 						"--ns-timeline-y": `${point.y}%`
 					};
 					const selected = selectedPointId === point.id;
+					const tone = point.tone || (point.hasLoss ? "critical" : "normal");
 
 					return (
 						<button
@@ -173,6 +175,7 @@ export function RunTimeline({ points, selectedPointId, selectedValueLabel, empty
 							className={styles.timelinePoint}
 							style={style}
 							data-selected={selected || undefined}
+							data-tone={tone}
 							data-loss={point.hasLoss || undefined}
 							data-changed={point.hasChange || undefined}
 							onClick={() => onSelectPoint(point)}
@@ -195,10 +198,11 @@ export function RunTimeline({ points, selectedPointId, selectedValueLabel, empty
 				</div>
 			</div>
 			<div className={styles.timelineLegend}>
-				<span>RTT line</span>
-				<span>Loss</span>
-				<span>Route change</span>
-				<span>Selected run</span>
+				<span data-tone="normal">Normal</span>
+				<span data-tone="warning">High RTT</span>
+				<span data-tone="critical">Loss</span>
+				<span data-tone="changed">Route change</span>
+				<span data-tone="selected">Selected run</span>
 			</div>
 		</div>
 	);

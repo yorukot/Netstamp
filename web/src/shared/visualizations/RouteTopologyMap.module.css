@@ -27,13 +27,17 @@
 	display: block;
 	width: 0.55rem;
 	height: 0.55rem;
-	background: var(--ns-accent);
+	background: var(--ns-success);
 	border: 1px solid var(--ns-border);
 	content: "";
 }
 
 .topologyLegend span[data-tone="agent"]::before {
 	background: var(--ns-metal);
+}
+
+.topologyLegend span[data-tone="normal"]::before {
+	background: var(--ns-success);
 }
 
 .topologyLegend span[data-tone="warning"]::before {
@@ -45,7 +49,8 @@
 }
 
 .topologyLegend span[data-tone="destination"]::before {
-	background: var(--ns-accent-hover);
+	background: var(--ns-surface);
+	border-color: var(--ns-text-muted);
 }
 
 .topologyViewport {
@@ -101,7 +106,7 @@
 	width: 7.5rem;
 	height: 1.5rem;
 	place-items: center;
-	color: var(--ns-accent);
+	color: var(--ns-success);
 	transform: translate(-50%, -50%);
 }
 
@@ -154,23 +159,17 @@
 	text-transform: none;
 }
 
-.topologyNodeprobe {
-	color: var(--ns-metal);
-}
-
-.topologyNodeprobe .topologyNodeDot {
-	background: var(--ns-metal);
-	border-color: var(--ns-border-strong);
-	box-shadow: none;
-}
-
 .topologyNodedestination {
-	color: var(--ns-accent-hover);
+	color: var(--ns-success);
 }
 
 .topologyNodedestination .topologyNodeDot {
-	background: color-mix(in srgb, var(--ns-accent) 70%, transparent);
-	border-color: var(--ns-border-strong);
+	background: color-mix(in srgb, currentcolor 55%, transparent);
+	border-color: currentcolor;
+}
+
+.topologyNodenormal {
+	color: var(--ns-success);
 }
 
 .topologyNodewarning {
@@ -189,8 +188,18 @@
 	box-shadow: none;
 }
 
+.topologyNodeprobe {
+	color: var(--ns-metal);
+}
+
+.topologyNodeprobe .topologyNodeDot {
+	background: var(--ns-metal);
+	border-color: var(--ns-border-strong);
+	box-shadow: none;
+}
+
 .topologyDetail {
-	--ns-topology-detail-color: var(--ns-accent);
+	--ns-topology-detail-color: var(--ns-success);
 	position: absolute;
 	z-index: 8;
 	top: var(--ns-topology-detail-y);
@@ -252,6 +261,10 @@
 
 .topologyDetailagent {
 	--ns-topology-detail-color: var(--ns-metal);
+}
+
+.topologyDetailnormal {
+	--ns-topology-detail-color: var(--ns-success);
 }
 
 .topologyDetailwarning {

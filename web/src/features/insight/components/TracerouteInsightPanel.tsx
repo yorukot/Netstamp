@@ -4,6 +4,7 @@ import type { HopDiagnostic, TimeWindow } from "@/features/insight/insightTypes"
 import type { Probe } from "@/features/probes/data/probes";
 import type { TracerouteInsightResponse, TracerouteResult } from "@/shared/api/types";
 import { BodyCopy } from "@/shared/components/BodyCopy";
+import { LoadingState } from "@/shared/components/LoadingState";
 import { formatMs, formatPercent } from "@/shared/utils/insightFormatters";
 import { LatencyRail } from "@/shared/visualizations/LatencyRail";
 import { RouteTopologyMap, type RouteTopologyEdge, type RouteTopologyNode } from "@/shared/visualizations/RouteTopologyMap";
@@ -74,6 +75,7 @@ export function TracerouteInsightPanel({
 	const timeRangeBounds = insight?.query ? { from: insight.query.from, to: insight.query.to } : undefined;
 	const hasTopology = topologyNodes.length > 0 && topologyEdges.length > 0;
 	const totalRuns = insight?.query.totalRuns ?? runs.length;
+	const isRouteLoading = isRunsLoading || isInsightLoading;
 
 	function handleSelectTimelinePoint(point: (typeof timelinePoints)[number]) {
 		if (point.runStartedAt) {
@@ -94,10 +96,10 @@ export function TracerouteInsightPanel({
 		);
 	}
 
-	if ((isRunsLoading || isInsightLoading) && !runs.length && !timelinePoints.length) {
+	if (isRouteLoading && !runs.length && !timelinePoints.length) {
 		return (
 			<Panel tone="deep" title="Loading route">
-				<BodyCopy>Loading traceroute runs for this probe-target pair.</BodyCopy>
+				<LoadingState label="Loading route" detail="Fetching traceroute runs, hops, and route timeline for this probe-target pair." />
 			</Panel>
 		);
 	}
@@ -137,7 +139,13 @@ export function TracerouteInsightPanel({
 							selectedPointId={selectedRun?.startedAt}
 							selectedValueLabel={selectedTimelineValueLabel(selectedRun, timelinePoints)}
 							timeRangeBounds={timeRangeBounds}
-							emptyState={<BodyCopy>No traceroute runs in this time range.</BodyCopy>}
+							emptyState={
+								isRouteLoading ? (
+									<LoadingState label="Loading traceroute timeline" detail="Building run buckets for the selected time range." size="compact" />
+								) : (
+									<BodyCopy>No traceroute runs in this time range.</BodyCopy>
+								)
+							}
 							onSelectPoint={handleSelectTimelinePoint}
 							onSelectTimeRange={onSelectTimeWindow}
 						/>
@@ -149,8 +157,10 @@ export function TracerouteInsightPanel({
 				<Panel tone="deep" title="Aggregated route graph">
 					{hasTopology ? (
 						<RouteTopologyMap nodes={topologyNodes} edges={topologyEdges} />
+					) : isTopologyLoading ? (
+						<LoadingState label="Loading topology" detail="Aggregating traceroute hops into the route graph." />
 					) : (
-						<BodyCopy>{isTopologyLoading ? "Loading topology for this route." : "Topology data is unavailable for the selected filters; hop rows still show the latest run."}</BodyCopy>
+						<BodyCopy>Topology data is unavailable for the selected filters; hop rows still show the latest run.</BodyCopy>
 					)}
 				</Panel>
 			) : null}

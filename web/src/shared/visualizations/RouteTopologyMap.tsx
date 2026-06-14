@@ -142,7 +142,7 @@ function topologyTone(lossPercent: number | undefined, avgRttMs: number | undefi
 		return "var(--ns-warning)";
 	}
 
-	return "var(--ns-accent)";
+	return "var(--ns-success)";
 }
 
 function topologySeverity(lossPercent: number | undefined, avgRttMs: number | undefined): TopologySeverity {
@@ -423,9 +423,6 @@ function topologyDetailPosition(x: number, y: number, layout: TopologyRouteLayou
 function topologyNodeDetailTone(node: TopologyRouteNode): TopologyDetailTone {
 	if (node.kind === "probe") {
 		return "agent";
-	}
-	if (node.kind === "destination") {
-		return "destination";
 	}
 	return node.severity;
 }

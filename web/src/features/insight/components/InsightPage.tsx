@@ -24,6 +24,7 @@ import { type ApiLatestResult, type ApiProjectAssignment, type PingInsightRespon
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { BodyCopy } from "@/shared/components/BodyCopy";
 import { FilterGrid } from "@/shared/components/FilterGrid";
+import { LoadingState } from "@/shared/components/LoadingState";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { formatCount, formatEpochMs } from "@/shared/utils/insightFormatters";
@@ -845,8 +846,8 @@ export function InsightPage() {
 				runs={tracerouteRunsQuery.data?.runs ?? []}
 				topologyNodes={[]}
 				topologyEdges={[]}
-				isInsightLoading={tracerouteInsightQuery.isLoading}
-				isRunsLoading={tracerouteRunsQuery.isLoading}
+				isInsightLoading={tracerouteInsightQuery.isLoading || tracerouteInsightQuery.isFetching}
+				isRunsLoading={tracerouteRunsQuery.isLoading || tracerouteRunsQuery.isFetching}
 				isTopologyLoading={false}
 				selectedRunStartedAt={urlState.runStartedAt}
 				showTopology={false}
@@ -988,7 +989,7 @@ export function InsightPage() {
 
 			{isSelectionLoading && !pairs.length ? (
 				<Panel tone="deep" title="Loading active paths">
-					<BodyCopy>Loading probe-check assignments for this project.</BodyCopy>
+					<LoadingState label="Loading active paths" detail="Fetching probe-check assignments for this project." size="compact" />
 				</Panel>
 			) : !pairs.length ? (
 				<Panel tone="deep" title="No active paths">
@@ -1026,7 +1027,12 @@ export function InsightPage() {
 					</Panel>
 
 					{canQueryTracerouteGroup ? (
-						<GroupTopologyPanel title={groupTopologyTitle} nodes={groupTopologyQuery.data?.nodes ?? []} edges={groupTopologyQuery.data?.edges ?? []} isLoading={groupTopologyQuery.isLoading} />
+						<GroupTopologyPanel
+							title={groupTopologyTitle}
+							nodes={groupTopologyQuery.data?.nodes ?? []}
+							edges={groupTopologyQuery.data?.edges ?? []}
+							isLoading={groupTopologyQuery.isLoading || groupTopologyQuery.isFetching}
+						/>
 					) : null}
 
 					{detailPanels}
