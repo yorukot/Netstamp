@@ -23,14 +23,6 @@ Netstamp is an open-source, self-hosted network monitoring app for people who ne
 
 Most monitoring tells you if a service is up from somebody else's cloud. Netstamp lets you place probes where your users, servers, or networks actually are, then watch reachability, latency, packet loss, routes, and probe health from those real viewpoints.
 
-## Why self-host it?
-
-- Your network data stays on your infrastructure.
-- Your probes can run from home labs, offices, VPS regions, edge nodes, or private networks.
-- You can monitor internal services that public SaaS checks cannot reach.
-- You get one place to compare network behavior across multiple locations.
-- You can start with Docker Compose and grow into a more serious deployment later.
-
 ## What you can use it for
 
 - Check if a service is reachable from multiple real locations.
@@ -73,48 +65,6 @@ http://localhost:3000
 ```
 
 Before exposing Netstamp publicly, edit `.env`, replace every `change-me` value, set `APP_ENV=production`, pin `NETSTAMP_VERSION` to a release tag, and put Netstamp behind HTTPS with your reverse proxy of choice.
-
-## First Setup
-
-After the app is running:
-
-1. Create your first account.
-2. Create a project for the services or networks you want to watch.
-3. Add a probe for each network viewpoint you care about.
-4. Install or run the probe agent with its probe ID and secret.
-5. Create checks for the hosts, ports, and routes you want to monitor.
-6. Add alerts and notification channels once the first measurements are flowing.
-
-## How it works
-
-Netstamp has one controller and many probes.
-
-```text
-Your browser -> Netstamp web app -> Netstamp controller -> PostgreSQL / TimescaleDB
-```
-
-```text
-Probe agent -> poll assignments -> run checks -> submit results -> alerts and dashboards
-```
-
-The controller stores projects, users, probes, checks, results, incidents, and notification settings. Probes run near the networks being measured and only need the controller URL, probe ID, and probe secret.
-
-## Links
-
-- Docker Compose: [`deployments/docker/compose.yaml`](./deployments/docker/compose.yaml)
-- Example environment: [`deployments/docker/example.env`](./deployments/docker/example.env)
-- Documentation source: [`docs/`](./docs/)
-- API contract: [`api/`](./api/)
-- Backend: [`server/`](./server/)
-- Web app: [`web/`](./web/)
-
-## Development
-
-Netstamp is a pnpm workspace with a Go backend and React/Vite frontend. If you want to contribute, install dependencies with `pnpm install`, then use the root `Justfile` for local development, linting, testing, and builds.
-
-```bash
-just
-```
 
 ## License
 
