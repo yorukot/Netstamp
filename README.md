@@ -261,11 +261,7 @@ cp server/.env.example server/.env
 cp server/probe.env.example server/probe.env
 ```
 
-Start local backend dependencies:
-
-```bash
-docker compose -f deployments/docker/compose.backend.dev.yaml up -d postgres victoria-traces victoria-metrics grafana
-```
+Prepare a PostgreSQL/TimescaleDB instance for local development, then match the `DATABASE_*` values in `server/.env`.
 
 Apply migrations:
 
@@ -410,7 +406,6 @@ just backend-test
 Run integration tests against a PostgreSQL/TimescaleDB test database:
 
 ```bash
-docker compose -f deployments/docker/compose.backend.dev.yaml up -d postgres
 NETSTAMP_TEST_DATABASE_URL=postgres://netstamp:netstamp@localhost:5432/netstamp?sslmode=disable just backend-test-integration
 ```
 
@@ -444,12 +439,17 @@ docs/public/openapi.json
 
 The docs app serves the API explorer at `/openapi/`.
 
-## Local Observability
+## Docker Observability
 
-The backend can export metrics and traces locally through the development compose stack:
+The observability compose stack runs the controller, PostgreSQL/TimescaleDB, VictoriaTraces, VictoriaMetrics, VictoriaLogs, Vector, Grafana, nginx, and migrations:
 
 ```bash
-docker compose -f deployments/docker/compose.backend.dev.yaml up -d victoria-traces victoria-metrics grafana
+LOG_PSEUDONYM_KEY=local \
+DATABASE_PASSWORD=netstamp \
+POSTGRES_EXPORTER_PASSWORD=netstamp \
+AUTH_JWT_SECRET=local-dev-secret \
+GF_SECURITY_ADMIN_PASSWORD=admin \
+docker compose -f deployments/docker/compose.observability.yaml up --build
 ```
 
 Default local endpoints:

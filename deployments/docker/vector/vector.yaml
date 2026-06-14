@@ -4,11 +4,23 @@ sources:
     include_labels:
       - netstamp.logs=enabled
 
+transforms:
+  parse_json_logs:
+    type: remap
+    inputs:
+      - docker
+    source: |
+      parsed, err = parse_json(.message)
+      if err == null && is_object(parsed) {
+        . = merge(., parsed)
+        .message = parsed.message ?? parsed.msg ?? .message
+      }
+
 sinks:
   victoria_logs:
     type: elasticsearch
     inputs:
-      - docker
+      - parse_json_logs
     endpoints:
       - http://victoria-logs:9428/insert/elasticsearch/
     mode: bulk

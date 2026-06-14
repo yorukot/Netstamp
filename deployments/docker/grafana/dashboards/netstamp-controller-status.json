@@ -1034,6 +1034,63 @@
 			],
 			"title": "5xx In Range",
 			"type": "stat"
+		},
+		{
+			"collapsed": false,
+			"gridPos": {
+				"h": 1,
+				"w": 24,
+				"x": 0,
+				"y": 23
+			},
+			"id": 14,
+			"panels": [],
+			"title": "Request Debug",
+			"type": "row"
+		},
+		{
+			"datasource": {
+				"type": "victoriametrics-logs-datasource",
+				"uid": "victoria-logs"
+			},
+			"fieldConfig": {
+				"defaults": {},
+				"overrides": []
+			},
+			"gridPos": {
+				"h": 14,
+				"w": 24,
+				"x": 0,
+				"y": 24
+			},
+			"id": 15,
+			"options": {
+				"dedupStrategy": "none",
+				"enableLogDetails": true,
+				"prettifyLogMessage": false,
+				"showCommonLabels": false,
+				"showLabels": true,
+				"showTime": true,
+				"sortOrder": "Descending",
+				"wrapLogMessage": false
+			},
+			"pluginVersion": "13.0.0",
+			"targets": [
+				{
+					"datasource": {
+						"type": "victoriametrics-logs-datasource",
+						"uid": "victoria-logs"
+					},
+					"direction": "desc",
+					"editorMode": "code",
+					"expr": "service:=\"controller\" http.response.status_code:in(${status_code:csv})",
+					"maxLines": 1000,
+					"queryType": "instant",
+					"refId": "A"
+				}
+			],
+			"title": "Controller Logs",
+			"type": "logs"
 		}
 	],
 	"preload": false,
@@ -1041,7 +1098,39 @@
 	"schemaVersion": 41,
 	"tags": ["netstamp", "controller", "status"],
 	"templating": {
-		"list": []
+		"list": [
+			{
+				"allValue": "*",
+				"current": {
+					"selected": true,
+					"text": "All",
+					"value": "*"
+				},
+				"datasource": {
+					"type": "victoriametrics-logs-datasource",
+					"uid": "victoria-logs"
+				},
+				"definition": "Field values: http.response.status_code",
+				"description": "Filter controller logs by HTTP response status code.",
+				"hide": 0,
+				"includeAll": true,
+				"label": "Status Code",
+				"multi": true,
+				"name": "status_code",
+				"options": [],
+				"query": {
+					"field": "http.response.status_code",
+					"limit": 100,
+					"query": "service:=\"controller\" http.response.status_code:in(*)",
+					"type": "fieldValue"
+				},
+				"refresh": 2,
+				"regex": "",
+				"skipUrlSync": false,
+				"sort": 1,
+				"type": "query"
+			}
+		]
 	},
 	"time": {
 		"from": "now-6h",
@@ -1051,6 +1140,6 @@
 	"timezone": "browser",
 	"title": "Netstamp Controller Status",
 	"uid": "netstamp-controller-status",
-	"version": 1,
+	"version": 2,
 	"weekStart": ""
 }

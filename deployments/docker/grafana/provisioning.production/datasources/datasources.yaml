@@ -24,3 +24,32 @@ datasources:
     url: http://victoria-logs:9428
     isDefault: false
     editable: true
+    jsonData:
+      derivedFields:
+        - name: trace_id
+          matcherType: label
+          matcherRegex: trace_id
+          datasourceUid: victoria-traces
+          url: "$${__value.raw}"
+          urlDisplayLabel: Open trace
+      logLevelRules:
+        - field: level
+          operator: equals
+          value: error
+          level: error
+          enabled: true
+        - field: level
+          operator: equals
+          value: warn
+          level: warning
+          enabled: true
+        - field: level
+          operator: equals
+          value: info
+          level: info
+          enabled: true
+        - field: level
+          operator: equals
+          value: debug
+          level: debug
+          enabled: true

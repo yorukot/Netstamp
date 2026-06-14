@@ -173,7 +173,6 @@ Commands below come from the root `Justfile`, root `package.json`, `server/.air.
 - `just backend-lint-fix`: apply safe `golangci-lint` fixes.
 - `just backend-sqlc`: regenerate sqlc code from `sqlc.yaml`.
 - `just backend-migrate-status`, `just backend-migrate-up`, `just backend-migrate-down`: run `cmd/migrate`.
-- `docker compose -f deployments/docker/compose.backend.dev.yaml up -d`: start local PostgreSQL/TimescaleDB, VictoriaTraces, VictoriaMetrics, and Grafana dependencies for a host-run backend.
 - `docker compose -f deployments/docker/compose.observability.yaml up --build`: build and run the Docker stack with PostgreSQL, VictoriaTraces, VictoriaMetrics, VictoriaLogs, Vector, Grafana, nginx, controller, migrations, and the backend image's agent install artifacts.
 
 Use `server/.env.example` as the controller env template and `server/probe.env.example` as the probe env template. `server/.gitignore` intentionally ignores `.env`, `.env.*`, `*.env`, `bin/`, `tmp/`, and `coverage.out`.
@@ -190,7 +189,7 @@ For HTTP feature packages, keep `handler.go` focused on the `Handler` type, cons
 
 Tests use Go's standard `testing` package and live beside the code as `*_test.go`, for example `internal/controller/application/auth/service_test.go` and `internal/controller/logger/auth_events_test.go`. Existing unit and handler tests use package-local fakes and zap observer cores rather than external test frameworks.
 
-Run backend tests with `just backend-test` or `cd server && go test ./...`. API E2E tests live in `internal/e2e`, are gated by the `integration` build tag, and require `NETSTAMP_TEST_DATABASE_URL` to point at a local PostgreSQL/TimescaleDB database that can create/drop temporary databases. Start local dependencies with `docker compose -f deployments/docker/compose.backend.dev.yaml up -d`, then run `NETSTAMP_TEST_DATABASE_URL=postgres://netstamp:netstamp@localhost:5432/netstamp?sslmode=disable just backend-test-integration`. The integration recipe uses verbose test output so harness and API-flow checkpoints are visible. Coverage thresholds are not currently defined. Add unit tests beside changed packages, and use E2E tests only for complete API workflows that need real HTTP, services, repositories, migrations, and database behavior.
+Run backend tests with `just backend-test` or `cd server && go test ./...`. API E2E tests live in `internal/e2e`, are gated by the `integration` build tag, and require `NETSTAMP_TEST_DATABASE_URL` to point at a local PostgreSQL/TimescaleDB database that can create/drop temporary databases. After providing that database, run `NETSTAMP_TEST_DATABASE_URL=postgres://netstamp:netstamp@localhost:5432/netstamp?sslmode=disable just backend-test-integration`. The integration recipe uses verbose test output so harness and API-flow checkpoints are visible. Coverage thresholds are not currently defined. Add unit tests beside changed packages, and use E2E tests only for complete API workflows that need real HTTP, services, repositories, migrations, and database behavior.
 
 ## Error Handling & Validation
 
@@ -226,7 +225,7 @@ Add schema changes as timestamped Goose migrations under `db/migrations/`, follo
 
 ## External Integrations
 
-Current backend integrations are PostgreSQL/TimescaleDB, optional OTLP trace export to VictoriaTraces, and Prometheus-compatible metrics scraped by VictoriaMetrics, as shown in `deployments/docker/compose.backend.dev.yaml` and `compose.observability.yaml`. Docker observability also includes VictoriaLogs with Vector container log collection, PostgreSQL metrics via `postgres_exporter`, and a probe-agent dashboard for agent metrics when a probe exposes `NETSTAMP_PROBE_METRICS_ADDR`. The observability stack mounts `deployments/docker/postgres-exporter/queries.yaml` to backfill dashboard-specific activity-state metrics. No third-party API SDKs, queues, email services, payment providers, or object storage clients are currently implemented.
+Current backend integrations are PostgreSQL/TimescaleDB, optional OTLP trace export to VictoriaTraces, Prometheus-compatible metrics scraped by VictoriaMetrics, and VictoriaLogs for Grafana log panels, as shown in `deployments/docker/compose.observability.yaml`. Docker observability also includes Vector container log collection, PostgreSQL metrics via `postgres_exporter`, and a probe-agent dashboard for agent metrics when a probe exposes `NETSTAMP_PROBE_METRICS_ADDR`. The observability stack mounts `deployments/docker/postgres-exporter/queries.yaml` to backfill dashboard-specific activity-state metrics. No third-party API SDKs, queues, email services, payment providers, or object storage clients are currently implemented.
 
 ## Commit & Pull Request Guidelines
 
