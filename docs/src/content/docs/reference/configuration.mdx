@@ -46,15 +46,14 @@ When any tracker ID is set, `regional` mode asks for consent only in configured 
 
 ## Demo Access Controls
 
-Self-hosted demo deployments can reuse real data while blocking account growth and project creation. These backend settings are enforced at runtime:
+Self-hosted demo deployments can reuse real data while blocking writes. These backend settings are enforced at runtime:
 
-| Variable                          | Purpose                                       | Default |
-| --------------------------------- | --------------------------------------------- | ------- |
-| `AUTH_REGISTRATION_ENABLED`       | Allows `POST /auth/register`                  | `true`  |
-| `PROJECT_CREATION_ENABLED`        | Allows authenticated users to create projects | `true`  |
-| `USER_CREDENTIAL_CHANGES_ENABLED` | Allows users to change email or password      | `true`  |
+| Variable                    | Purpose                                                    | Default |
+| --------------------------- | ---------------------------------------------------------- | ------- |
+| `DEMO_MODE`                 | Blocks unsafe API methods except login and logout          | `false` |
+| `AUTH_REGISTRATION_ENABLED` | Allows `POST /auth/register` when demo mode is not enabled | `true`  |
 
-Set these to `false` for a public demo instance. Keep a separate normal deployment pointed at the same database if operators still need full access.
+Set `DEMO_MODE=true` for a public demo instance. `AUTH_REGISTRATION_ENABLED=false` is still useful for clarity, but demo mode blocks registration and all other unsafe API requests before they reach feature handlers. Keep a separate normal deployment pointed at the same database if operators still need full access.
 
 The observability Docker Compose file starts a locked demo controller and static web bundle against the same PostgreSQL database and observability services:
 

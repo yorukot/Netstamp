@@ -29,6 +29,7 @@ x-backend-environment: &backend-environment
   SERVICE_NAME: controller
   APP_VERSION: ${APP_VERSION:-v1}
   API_VERSION: ${API_VERSION:-v1}
+  DEMO_MODE: ${DEMO_MODE:-false}
   LOG_LEVEL: ${LOG_LEVEL:-info}
   LOG_PSEUDONYM_KEY: ${LOG_PSEUDONYM_KEY:?set LOG_PSEUDONYM_KEY}
   BACKEND_BASE_URL: ${BACKEND_BASE_URL:-}
@@ -50,8 +51,6 @@ x-backend-environment: &backend-environment
   AUTH_ARGON2ID_MEMORY_KIB: ${AUTH_ARGON2ID_MEMORY_KIB:-65536}
   AUTH_ARGON2ID_ITERATIONS: ${AUTH_ARGON2ID_ITERATIONS:-3}
   AUTH_ARGON2ID_PARALLELISM: ${AUTH_ARGON2ID_PARALLELISM:-4}
-  PROJECT_CREATION_ENABLED: ${PROJECT_CREATION_ENABLED:-true}
-  USER_CREDENTIAL_CHANGES_ENABLED: ${USER_CREDENTIAL_CHANGES_ENABLED:-true}
 
 services:
   postgres:
@@ -169,10 +168,9 @@ services:
     environment:
       <<: *backend-environment
       SERVICE_NAME: demo-controller
+      DEMO_MODE: "true"
       BACKEND_BASE_URL: ${DEMO_BACKEND_BASE_URL:-}
       AUTH_REGISTRATION_ENABLED: "false"
-      PROJECT_CREATION_ENABLED: "false"
-      USER_CREDENTIAL_CHANGES_ENABLED: "false"
       OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://victoria-traces:10428/insert/opentelemetry/v1/traces
     expose:
       - "8080"

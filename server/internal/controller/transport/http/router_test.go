@@ -310,6 +310,75 @@ func TestNewRouterPublicRoutesBypassAuthGroups(t *testing.T) {
 	}
 }
 
+func TestNewRouterDemoModeAllowsReadAndAuthSessionRoutes(t *testing.T) {
+	dep := Dependencies{
+		APIVersion:     "v1",
+		DemoMode:       true,
+		RequestTimeout: time.Second,
+	}
+
+	for _, route := range []struct {
+		name   string
+		method string
+		path   string
+		status int
+	}{
+		{name: "health", method: http.MethodGet, path: "/api/v1/healthz", status: http.StatusOK},
+		{name: "login", method: http.MethodPost, path: "/api/v1/auth/login", status: http.StatusBadRequest},
+		{name: "logout", method: http.MethodPost, path: "/api/v1/auth/logout", status: http.StatusNoContent},
+	} {
+		t.Run(route.name, func(t *testing.T) {
+			recorder := performRouterRequest(dep, route.method, route.path)
+
+			if recorder.Code != route.status {
+				t.Fatalf("expected status %d, got %d", route.status, recorder.Code)
+			}
+		})
+	}
+}
+
+func TestNewRouterDemoModeBlocksUnsafeRequests(t *testing.T) {
+	dep := Dependencies{
+		APIVersion:     "v1",
+		DemoMode:       true,
+		RequestTimeout: time.Second,
+	}
+
+	for _, route := range []struct {
+		method string
+		path   string
+	}{
+		{method: http.MethodPost, path: "/api/v1/auth/register"},
+		{method: http.MethodPatch, path: "/api/v1/users/me"},
+		{method: http.MethodPost, path: "/api/v1/projects"},
+		{method: http.MethodDelete, path: "/api/v1/projects/vector-ix/members/user-1"},
+		{method: http.MethodPost, path: "/api/v1/runtime/probes/probe-1/results"},
+	} {
+		t.Run(route.method+" "+route.path, func(t *testing.T) {
+			recorder := performRouterRequest(dep, route.method, route.path)
+
+			if recorder.Code != http.StatusForbidden {
+				t.Fatalf("expected status 403, got %d", recorder.Code)
+			}
+			if body := recorder.Body.String(); !strings.Contains(body, `"detail":"demo is read-only"`) {
+				t.Fatalf("expected read-only problem body, got %q", body)
+			}
+		})
+	}
+}
+
+func TestNewRouterDemoModeOffKeepsUnsafeRequestsOnOriginalHandlers(t *testing.T) {
+	recorder := performRouterRequest(Dependencies{
+		APIVersion:     "v1",
+		AuthVerifier:   staticRouterTokenVerifier{},
+		RequestTimeout: time.Second,
+	}, http.MethodPost, "/api/v1/projects")
+
+	if recorder.Code != http.StatusUnauthorized {
+		t.Fatalf("expected original handler status 401, got %d", recorder.Code)
+	}
+}
+
 func TestNewRouterWritesPlainTextNotFoundForBrowsers(t *testing.T) {
 	recorder := performRouterRequestWithHeaders(Dependencies{
 		APIVersion:     "v1",

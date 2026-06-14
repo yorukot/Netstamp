@@ -12,16 +12,14 @@ import (
 )
 
 type Handler struct {
-	service                  *appuser.Service
-	verifier                 appauth.TokenVerifier
-	credentialChangesEnabled bool
+	service  *appuser.Service
+	verifier appauth.TokenVerifier
 }
 
-func NewHandler(service *appuser.Service, verifier appauth.TokenVerifier, credentialChangesEnabled bool) *Handler {
+func NewHandler(service *appuser.Service, verifier appauth.TokenVerifier) *Handler {
 	return &Handler{
-		service:                  service,
-		verifier:                 verifier,
-		credentialChangesEnabled: credentialChangesEnabled,
+		service:  service,
+		verifier: verifier,
 	}
 }
 

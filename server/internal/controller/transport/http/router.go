@@ -39,30 +39,29 @@ import (
 )
 
 type Dependencies struct {
-	Log                           *zap.Logger
-	APIVersion                    string
-	BackendBaseURL                string
-	WebDir                        string
-	AuthService                   *appauth.Service
-	AuthVerifier                  appauth.TokenVerifier
-	AuthCookieSecure              bool
-	AuthRegistrationDisabled      bool
-	UserService                   *appuser.Service
-	UserCredentialChangesDisabled bool
-	AlertService                  *appalert.Service
-	AssignmentService             *appassignment.Service
-	CheckService                  *appcheck.Service
-	LabelService                  *applabel.Service
-	ProbeService                  *appprobe.Service
-	ProbeRuntime                  *appproberuntime.Service
-	ProjectService                *appproject.Service
-	ProjectCreationDisabled       bool
-	ResultService                 *appresult.Service
-	ReadinessCheck                func(context.Context) error
-	RequestTimeout                time.Duration
-	MetricsHandler                http.Handler
-	AgentBinaryDir                string
-	TrustedProxies                []netip.Prefix
+	Log                      *zap.Logger
+	APIVersion               string
+	DemoMode                 bool
+	BackendBaseURL           string
+	WebDir                   string
+	AuthService              *appauth.Service
+	AuthVerifier             appauth.TokenVerifier
+	AuthCookieSecure         bool
+	AuthRegistrationDisabled bool
+	UserService              *appuser.Service
+	AlertService             *appalert.Service
+	AssignmentService        *appassignment.Service
+	CheckService             *appcheck.Service
+	LabelService             *applabel.Service
+	ProbeService             *appprobe.Service
+	ProbeRuntime             *appproberuntime.Service
+	ProjectService           *appproject.Service
+	ResultService            *appresult.Service
+	ReadinessCheck           func(context.Context) error
+	RequestTimeout           time.Duration
+	MetricsHandler           http.Handler
+	AgentBinaryDir           string
+	TrustedProxies           []netip.Prefix
 }
 
 func NewRouter(dep Dependencies) http.Handler {
@@ -91,7 +90,14 @@ func newAPIRouter(dep Dependencies) http.Handler {
 	r.Use(chimw.Timeout(dep.RequestTimeout))
 	r.Use(httpmiddleware.ZapRequestLogger(dep.Log))
 
-	r.Route(dep.basePath(), func(apiRouter chi.Router) {
+	basePath := dep.basePath()
+	r.Route(basePath, func(apiRouter chi.Router) {
+		if dep.DemoMode {
+			apiRouter.Use(httpmiddleware.ReadOnly(
+				basePath+"/auth/login",
+				basePath+"/auth/logout",
+			))
+		}
 		registerAPIRoutes(apiRouter, dep)
 	})
 
@@ -119,8 +125,8 @@ func registerAPIRoutes(api chi.Router, dep Dependencies) {
 	installhttp.NewHandler(dep.AgentBinaryDir, dep.BackendBaseURL, dep.basePath()).RegisterRoutes(api)
 
 	authhttp.NewHandler(dep.AuthService, dep.AuthVerifier, dep.AuthCookieSecure, !dep.AuthRegistrationDisabled).RegisterRoutes(api)
-	userhttp.NewHandler(dep.UserService, dep.AuthVerifier, !dep.UserCredentialChangesDisabled).RegisterRoutes(api)
-	projecthttp.NewHandler(dep.ProjectService, dep.AuthVerifier, !dep.ProjectCreationDisabled).RegisterRoutes(api)
+	userhttp.NewHandler(dep.UserService, dep.AuthVerifier).RegisterRoutes(api)
+	projecthttp.NewHandler(dep.ProjectService, dep.AuthVerifier).RegisterRoutes(api)
 	alerthttp.NewHandler(dep.AlertService, dep.AuthVerifier).RegisterRoutes(api)
 	assignmenthttp.NewHandler(dep.AssignmentService, dep.AuthVerifier).RegisterRoutes(api)
 	labelhttp.NewHandler(dep.LabelService, dep.AuthVerifier).RegisterRoutes(api)

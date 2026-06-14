@@ -15,6 +15,7 @@ import (
 
 const (
 	keyAppEnv                         = "APP_ENV"
+	keyDemoMode                       = "DEMO_MODE"
 	keyServiceName                    = "SERVICE_NAME"
 	keyAppVersion                     = "APP_VERSION"
 	keyAPIVersion                     = "API_VERSION"
@@ -46,8 +47,6 @@ const (
 	keyAuthArgon2idMemoryKiB          = "AUTH_ARGON2ID_MEMORY_KIB"
 	keyAuthArgon2idIter               = "AUTH_ARGON2ID_ITERATIONS"
 	keyAuthArgon2idParallel           = "AUTH_ARGON2ID_PARALLELISM"
-	keyProjectCreationEnabled         = "PROJECT_CREATION_ENABLED"
-	keyUserCredentialChangesEnabled   = "USER_CREDENTIAL_CHANGES_ENABLED" //nolint:gosec // This is an env key name, not a credential.
 	keyOTLPTracesEndpoint             = "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"
 	keyAlertEvaluationEnabled         = "ALERT_EVALUATION_ENABLED"
 	keyNotificationWorkerEnabled      = "NOTIFICATION_WORKER_ENABLED"
@@ -59,6 +58,7 @@ const (
 
 var defaultSettings = map[string]any{
 	keyAppEnv:                         "local",
+	keyDemoMode:                       false,
 	keyServiceName:                    "controller",
 	keyAppVersion:                     "0.1.0",
 	keyAPIVersion:                     "v1",
@@ -90,8 +90,6 @@ var defaultSettings = map[string]any{
 	keyAuthArgon2idMemoryKiB:          uint32(64 * 1024),
 	keyAuthArgon2idIter:               uint32(3),
 	keyAuthArgon2idParallel:           uint8(4),
-	keyProjectCreationEnabled:         true,
-	keyUserCredentialChangesEnabled:   true,
 	keyOTLPTracesEndpoint:             "",
 	keyAlertEvaluationEnabled:         true,
 	keyNotificationWorkerEnabled:      true,
@@ -103,6 +101,7 @@ var defaultSettings = map[string]any{
 
 type Config struct {
 	Env             string         `mapstructure:"APP_ENV"`
+	DemoMode        bool           `mapstructure:"DEMO_MODE"`
 	ServiceName     string         `mapstructure:"SERVICE_NAME"`
 	Version         string         `mapstructure:"APP_VERSION"`
 	APIVersion      string         `mapstructure:"API_VERSION"`
@@ -112,7 +111,6 @@ type Config struct {
 	HTTP            HTTPConfig     `mapstructure:",squash"`
 	Database        DatabaseConfig `mapstructure:",squash"`
 	Auth            AuthConfig     `mapstructure:",squash"`
-	Policy          PolicyConfig   `mapstructure:",squash"`
 	Tracing         TracingConfig  `mapstructure:",squash"`
 	Alerting        AlertingConfig `mapstructure:",squash"`
 }
@@ -149,11 +147,6 @@ type AuthConfig struct {
 	Argon2idMemoryKiB   uint32        `mapstructure:"AUTH_ARGON2ID_MEMORY_KIB"`
 	Argon2idIterations  uint32        `mapstructure:"AUTH_ARGON2ID_ITERATIONS"`
 	Argon2idParallelism uint8         `mapstructure:"AUTH_ARGON2ID_PARALLELISM"`
-}
-
-type PolicyConfig struct {
-	ProjectCreationEnabled       bool `mapstructure:"PROJECT_CREATION_ENABLED"`
-	UserCredentialChangesEnabled bool `mapstructure:"USER_CREDENTIAL_CHANGES_ENABLED"`
 }
 
 type TracingConfig struct {
