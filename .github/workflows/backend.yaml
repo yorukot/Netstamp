@@ -5,16 +5,26 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/backend.yaml"
+      - ".prettierrc"
+      - "api/**"
       - "docs/public/openapi.json"
       - "golangci.yaml"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
       - "server/**"
       - "web/src/shared/api/openapi.d.ts"
   push:
     branches: [main]
     paths:
       - ".github/workflows/backend.yaml"
+      - ".prettierrc"
+      - "api/**"
       - "docs/public/openapi.json"
       - "golangci.yaml"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
       - "server/**"
       - "web/src/shared/api/openapi.d.ts"
   workflow_dispatch:
@@ -81,12 +91,6 @@ jobs:
           node-version: "24.15.0"
           cache: "pnpm"
 
-      - name: Setup Go
-        uses: actions/setup-go@v6
-        with:
-          go-version-file: server/go.mod
-          cache-dependency-path: server/go.sum
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -94,13 +98,13 @@ jobs:
         run: |
           openapi_check_dir="$(mktemp -d)"
           api_types_check_dir="$(mktemp -d)"
+          echo "OPENAPI_CHECK_DIR=$openapi_check_dir" >> "$GITHUB_ENV"
           echo "OPENAPI_CHECK_FILE=$openapi_check_dir/openapi.json" >> "$GITHUB_ENV"
           echo "API_TYPES_CHECK_FILE=$api_types_check_dir/openapi.d.ts" >> "$GITHUB_ENV"
 
-      - name: Generate OpenAPI from backend
+      - name: Generate OpenAPI from TypeSpec
         run: |
-          cd server
-          go run ./cmd/openapi -output "$OPENAPI_CHECK_FILE"
+          pnpm --filter @netstamp/api exec tsp compile . --warn-as-error --option @typespec/openapi3.emitter-output-dir="$OPENAPI_CHECK_DIR"
 
       - name: Generate web API types
         run: pnpm --filter @netstamp/web exec openapi-typescript "$OPENAPI_CHECK_FILE" -o "$API_TYPES_CHECK_FILE"
@@ -112,6 +116,13 @@ jobs:
         run: |
           diff -u docs/public/openapi.json "$OPENAPI_CHECK_FILE" || {
             echo "Generated OpenAPI is out of date. Run 'pnpm generate:openapi' and commit docs/public/openapi.json."
+            exit 1
+          }
+
+      - name: Compare embedded backend OpenAPI
+        run: |
+          diff -u server/internal/controller/transport/http/openapi/openapi.json "$OPENAPI_CHECK_FILE" || {
+            echo "Embedded backend OpenAPI is out of date. Run 'pnpm generate:openapi' and commit server/internal/controller/transport/http/openapi/openapi.json."
             exit 1
           }
 
