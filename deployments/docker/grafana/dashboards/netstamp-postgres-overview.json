@@ -37,93 +37,108 @@
 			"type": "row"
 		},
 		{
-			"cacheTimeout": null,
-			"colorBackground": false,
-			"colorValue": false,
-			"colors": ["#299c46", "rgba(237, 129, 40, 0.89)", "#d44a3a"],
+			"aliasColors": {},
+			"bars": false,
+			"dashLength": 10,
+			"dashes": false,
 			"datasource": {
 				"type": "prometheus",
 				"uid": "victoria-metrics"
 			},
-			"description": "Source: server_version_num",
+			"decimals": 2,
+			"description": "Total database storage for $Instance.\n\nSource: pg_database_size()",
 			"fieldConfig": {
 				"defaults": {
 					"custom": {}
 				},
 				"overrides": []
 			},
-			"format": "none",
-			"gauge": {
-				"maxValue": 100,
-				"minValue": 0,
-				"show": false,
-				"thresholdLabels": false,
-				"thresholdMarkers": true
-			},
+			"fill": 1,
+			"fillGradient": 0,
 			"gridPos": {
 				"h": 3,
 				"w": 4,
 				"x": 0,
 				"y": 1
 			},
+			"hiddenSeries": false,
 			"id": 11,
-			"interval": null,
-			"links": [],
-			"mappingType": 1,
-			"mappingTypes": [
-				{
-					"name": "value to text",
-					"value": 1
-				},
-				{
-					"name": "range to text",
-					"value": 2
-				}
-			],
-			"maxDataPoints": 100,
-			"nullPointMode": "connected",
-			"nullText": null,
-			"postfix": "",
-			"postfixFontSize": "50%",
-			"prefix": "",
-			"prefixFontSize": "50%",
-			"rangeMaps": [
-				{
-					"from": "null",
-					"text": "N/A",
-					"to": "null"
-				}
-			],
-			"sparkline": {
-				"fillColor": "rgba(31, 118, 189, 0.18)",
-				"full": false,
-				"lineColor": "rgb(31, 120, 193)",
+			"interval": "",
+			"legend": {
+				"alignAsTable": false,
+				"avg": false,
+				"current": false,
+				"hideEmpty": true,
+				"hideZero": false,
+				"max": false,
+				"min": false,
+				"rightSide": false,
 				"show": false,
-				"ymax": null,
-				"ymin": null
+				"total": false,
+				"values": false
 			},
-			"tableColumn": "",
+			"lines": true,
+			"linewidth": 1,
+			"nullPointMode": "null",
+			"options": {
+				"dataLinks": []
+			},
+			"percentage": false,
+			"pointradius": 2,
+			"points": false,
+			"renderer": "flot",
+			"seriesOverrides": [],
+			"spaceLength": 10,
+			"stack": false,
+			"steppedLine": false,
 			"targets": [
 				{
-					"expr": "max(pg_settings_server_version_num{instance=\"$Instance\"})",
-					"legendFormat": "",
+					"expr": "sum(pg_database_size_bytes{instance=\"$Instance\"})",
+					"interval": "",
+					"legendFormat": "total storage",
 					"refId": "A"
 				}
 			],
-			"thresholds": "",
+			"thresholds": [],
 			"timeFrom": null,
+			"timeRegions": [],
 			"timeShift": null,
-			"title": "PostgreSQL Version",
-			"type": "singlestat",
-			"valueFontSize": "80%",
-			"valueMaps": [
+			"title": "Total storage",
+			"tooltip": {
+				"shared": true,
+				"sort": 0,
+				"value_type": "individual"
+			},
+			"type": "graph",
+			"xaxis": {
+				"buckets": null,
+				"mode": "time",
+				"name": null,
+				"show": false,
+				"values": []
+			},
+			"yaxes": [
 				{
-					"op": "=",
-					"text": "N/A",
-					"value": "null"
+					"format": "bytes",
+					"label": null,
+					"logBase": 1,
+					"max": null,
+					"min": null,
+					"show": false
+				},
+				{
+					"format": "short",
+					"label": null,
+					"logBase": 1,
+					"max": null,
+					"min": null,
+					"show": false
 				}
 			],
-			"valueName": "current"
+			"yaxis": {
+				"align": false,
+				"alignLevel": null
+			}
 		},
 		{
 			"cacheTimeout": null,
