@@ -30,11 +30,11 @@ func (h *Handler) RegisterRoutes(api chi.Router) {
 		r.Get("/projects/{ref}/alerts/incidents", h.handleListIncidents)
 		r.Get("/projects/{ref}/alerts/incidents/{incident_id}", h.handleGetIncident)
 
-		r.Get("/projects/{ref}/alerts/channels", h.handleListChannels)
-		r.Post("/projects/{ref}/alerts/channels", h.handleCreateChannel)
-		r.Get("/projects/{ref}/alerts/channels/{channel_id}", h.handleGetChannel)
-		r.Patch("/projects/{ref}/alerts/channels/{channel_id}", h.handleUpdateChannel)
-		r.Post("/projects/{ref}/alerts/channels/{channel_id}/test", h.handleTestChannel)
-		r.Delete("/projects/{ref}/alerts/channels/{channel_id}", h.handleDeleteChannel)
+		r.Get("/projects/{ref}/alerts/notifications", h.handleListNotifications)
+		r.Post("/projects/{ref}/alerts/notifications", h.handleCreateNotification)
+		r.Get("/projects/{ref}/alerts/notifications/{notification_id}", h.handleGetNotification)
+		r.Patch("/projects/{ref}/alerts/notifications/{notification_id}", h.handleUpdateNotification)
+		r.Post("/projects/{ref}/alerts/notifications/{notification_id}/test", h.handleTestNotification)
+		r.Delete("/projects/{ref}/alerts/notifications/{notification_id}", h.handleDeleteNotification)
 	})
 }

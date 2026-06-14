@@ -15,10 +15,10 @@ import (
 )
 
 var (
-	ErrInvalidInput     = errors.New("alert input invalid")
-	ErrRuleNotFound     = errors.New("alert rule not found")
-	ErrIncidentNotFound = errors.New("alert incident not found")
-	ErrChannelNotFound  = errors.New("notification channel not found")
+	ErrInvalidInput         = errors.New("alert input invalid")
+	ErrRuleNotFound         = errors.New("alert rule not found")
+	ErrIncidentNotFound     = errors.New("alert incident not found")
+	ErrNotificationNotFound = errors.New("notification not found")
 )
 
 type Severity string
@@ -44,13 +44,13 @@ const (
 	IncidentStatusResolved     IncidentStatus = "resolved"
 )
 
-type ChannelType string
+type NotificationType string
 
 const (
-	ChannelTypeWebhook  ChannelType = "webhook"
-	ChannelTypeDiscord  ChannelType = "discord"
-	ChannelTypeTelegram ChannelType = "telegram"
-	ChannelTypeEmail    ChannelType = "email"
+	NotificationTypeWebhook  NotificationType = "webhook"
+	NotificationTypeDiscord  NotificationType = "discord"
+	NotificationTypeTelegram NotificationType = "telegram"
+	NotificationTypeEmail    NotificationType = "email"
 )
 
 type OutboxStatus string
@@ -66,24 +66,24 @@ const (
 const DefaultCooldownSeconds int32 = 900
 
 type Rule struct {
-	ID                     string
-	ProjectID              string
-	Name                   string
-	Description            *string
-	Status                 RuleStatus
-	Severity               Severity
-	CheckType              domaincheck.Type
-	ProbeID                *string
-	CheckID                *string
-	ProbeSelector          json.RawMessage
-	Condition              alertcondition.Condition
-	ConditionJSON          json.RawMessage
-	ConditionVersion       string
-	CooldownSeconds        int32
-	NotificationChannelIDs []string
-	CreatedByUserID        string
-	CreatedAt              time.Time
-	UpdatedAt              time.Time
+	ID               string
+	ProjectID        string
+	Name             string
+	Description      *string
+	Status           RuleStatus
+	Severity         Severity
+	CheckType        domaincheck.Type
+	ProbeID          *string
+	CheckID          *string
+	ProbeSelector    json.RawMessage
+	Condition        alertcondition.Condition
+	ConditionJSON    json.RawMessage
+	ConditionVersion string
+	CooldownSeconds  int32
+	NotificationIDs  []string
+	CreatedByUserID  string
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
 }
 
 type Incident struct {
@@ -126,11 +126,11 @@ type IncidentCheckSummary struct {
 	Target string
 }
 
-type NotificationChannel struct {
+type Notification struct {
 	ID              string
 	ProjectID       string
 	Name            string
-	Type            ChannelType
+	Type            NotificationType
 	Enabled         bool
 	Config          json.RawMessage
 	CreatedByUserID string
@@ -139,37 +139,37 @@ type NotificationChannel struct {
 }
 
 type NotificationOutboxJob struct {
-	ID            string
-	ProjectID     string
-	IncidentID    string
-	RuleID        string
-	ChannelID     string
-	ChannelType   ChannelType
-	EventType     string
-	Status        OutboxStatus
-	Payload       json.RawMessage
-	AttemptCount  int32
-	MaxAttempts   int32
-	NextAttemptAt time.Time
-	LastAttemptAt *time.Time
-	DeliveredAt   *time.Time
-	LastErrorKind *string
-	LastErrorCode *string
-	LastError     *string
-	DedupeKey     string
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
+	ID               string
+	ProjectID        string
+	IncidentID       string
+	RuleID           string
+	NotificationID   string
+	NotificationType NotificationType
+	EventType        string
+	Status           OutboxStatus
+	Payload          json.RawMessage
+	AttemptCount     int32
+	MaxAttempts      int32
+	NextAttemptAt    time.Time
+	LastAttemptAt    *time.Time
+	DeliveredAt      *time.Time
+	LastErrorKind    *string
+	LastErrorCode    *string
+	LastError        *string
+	DedupeKey        string
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
 }
 
 type NotificationJobInput struct {
-	ProjectID   string
-	IncidentID  string
-	RuleID      string
-	ChannelID   string
-	ChannelType ChannelType
-	EventType   string
-	Payload     json.RawMessage
-	DedupeKey   string
+	ProjectID        string
+	IncidentID       string
+	RuleID           string
+	NotificationID   string
+	NotificationType NotificationType
+	EventType        string
+	Payload          json.RawMessage
+	DedupeKey        string
 }
 
 type IncidentTransitionInput struct {
@@ -262,7 +262,7 @@ func VNCooldownSeconds(value int32) (int32, error) {
 	return value, nil
 }
 
-func VNChannelName(name string) (string, error) {
+func VNNotificationName(name string) (string, error) {
 	name = strings.TrimSpace(name)
 	if err := spvalidator.Required(name); err != nil {
 		return "", err
@@ -273,18 +273,18 @@ func VNChannelName(name string) (string, error) {
 	return name, nil
 }
 
-func VNChannelType(channelType ChannelType) (ChannelType, error) {
-	switch ChannelType(strings.TrimSpace(string(channelType))) {
-	case ChannelTypeWebhook:
-		return ChannelTypeWebhook, nil
-	case ChannelTypeDiscord:
-		return ChannelTypeDiscord, nil
-	case ChannelTypeTelegram:
-		return ChannelTypeTelegram, nil
-	case ChannelTypeEmail:
-		return "", errors.New("email notification channels are not supported in beta")
+func VNNotificationType(notificationType NotificationType) (NotificationType, error) {
+	switch NotificationType(strings.TrimSpace(string(notificationType))) {
+	case NotificationTypeWebhook:
+		return NotificationTypeWebhook, nil
+	case NotificationTypeDiscord:
+		return NotificationTypeDiscord, nil
+	case NotificationTypeTelegram:
+		return NotificationTypeTelegram, nil
+	case NotificationTypeEmail:
+		return "", errors.New("email notifications are not supported in beta")
 	default:
-		return "", errors.New("invalid notification channel type")
+		return "", errors.New("invalid notification type")
 	}
 }
 

@@ -12,17 +12,17 @@ import (
 )
 
 type ruleResponseBody struct {
-	ID                     string                   `json:"id"`
-	Name                   string                   `json:"name"`
-	Description            *string                  `json:"description,omitempty"`
-	Enabled                bool                     `json:"enabled"`
-	Severity               domainalert.Severity     `json:"severity"`
-	Scope                  ruleScopeResponseBody    `json:"scope"`
-	Condition              alertcondition.Condition `json:"condition"`
-	CooldownSeconds        int32                    `json:"cooldownSeconds"`
-	NotificationChannelIDs []string                 `json:"notificationChannelIds"`
-	CreatedAt              time.Time                `json:"createdAt"`
-	UpdatedAt              time.Time                `json:"updatedAt"`
+	ID              string                   `json:"id"`
+	Name            string                   `json:"name"`
+	Description     *string                  `json:"description,omitempty"`
+	Enabled         bool                     `json:"enabled"`
+	Severity        domainalert.Severity     `json:"severity"`
+	Scope           ruleScopeResponseBody    `json:"scope"`
+	Condition       alertcondition.Condition `json:"condition"`
+	CooldownSeconds int32                    `json:"cooldownSeconds"`
+	NotificationIDs []string                 `json:"notificationIds"`
+	CreatedAt       time.Time                `json:"createdAt"`
+	UpdatedAt       time.Time                `json:"updatedAt"`
 }
 
 type ruleScopeResponseBody struct {
@@ -67,17 +67,17 @@ type incidentCheckResponseBody struct {
 	Target string           `json:"target"`
 }
 
-type channelResponseBody struct {
-	ID        string                  `json:"id"`
-	Name      string                  `json:"name"`
-	Type      domainalert.ChannelType `json:"type"`
-	Enabled   bool                    `json:"enabled"`
-	Config    json.RawMessage         `json:"config"`
-	CreatedAt time.Time               `json:"createdAt"`
-	UpdatedAt time.Time               `json:"updatedAt"`
+type notificationResponseBody struct {
+	ID        string                       `json:"id"`
+	Name      string                       `json:"name"`
+	Type      domainalert.NotificationType `json:"type"`
+	Enabled   bool                         `json:"enabled"`
+	Config    json.RawMessage              `json:"config"`
+	CreatedAt time.Time                    `json:"createdAt"`
+	UpdatedAt time.Time                    `json:"updatedAt"`
 }
 
-type channelTestResponseBody struct {
+type notificationTestResponseBody struct {
 	Delivered bool   `json:"delivered"`
 	Retryable bool   `json:"retryable"`
 	Kind      string `json:"kind,omitempty"`
@@ -85,7 +85,7 @@ type channelTestResponseBody struct {
 	Message   string `json:"message,omitempty"`
 }
 
-type telegramChannelResponseConfig struct {
+type telegramNotificationResponseConfig struct {
 	ChatID             string `json:"chatId"`
 	BotTokenConfigured bool   `json:"botTokenConfigured"`
 }
@@ -110,11 +110,11 @@ func ruleResponse(rule domainalert.Rule) ruleResponseBody {
 			ProbeID:   rule.ProbeID,
 			CheckID:   rule.CheckID,
 		},
-		Condition:              rule.Condition,
-		CooldownSeconds:        rule.CooldownSeconds,
-		NotificationChannelIDs: rule.NotificationChannelIDs,
-		CreatedAt:              rule.CreatedAt,
-		UpdatedAt:              rule.UpdatedAt,
+		Condition:       rule.Condition,
+		CooldownSeconds: rule.CooldownSeconds,
+		NotificationIDs: rule.NotificationIDs,
+		CreatedAt:       rule.CreatedAt,
+		UpdatedAt:       rule.UpdatedAt,
 	}
 }
 
@@ -166,61 +166,61 @@ func incidentCheckResponse(incident domainalert.Incident) incidentCheckResponseB
 	return incidentCheckResponseBody{ID: incident.Check.ID, Name: incident.Check.Name, Type: incident.Check.Type, Target: incident.Check.Target}
 }
 
-func channelResponses(channels []domainalert.NotificationChannel) []channelResponseBody {
-	values := make([]channelResponseBody, 0, len(channels))
-	for _, channel := range channels {
-		values = append(values, channelResponse(channel))
+func notificationResponses(notifications []domainalert.Notification) []notificationResponseBody {
+	values := make([]notificationResponseBody, 0, len(notifications))
+	for _, notification := range notifications {
+		values = append(values, notificationResponse(notification))
 	}
 	return values
 }
 
-func channelResponse(channel domainalert.NotificationChannel) channelResponseBody {
-	return channelResponseBody{
-		ID:        channel.ID,
-		Name:      channel.Name,
-		Type:      channel.Type,
-		Enabled:   channel.Enabled,
-		Config:    channelResponseConfig(channel),
-		CreatedAt: channel.CreatedAt,
-		UpdatedAt: channel.UpdatedAt,
+func notificationResponse(notification domainalert.Notification) notificationResponseBody {
+	return notificationResponseBody{
+		ID:        notification.ID,
+		Name:      notification.Name,
+		Type:      notification.Type,
+		Enabled:   notification.Enabled,
+		Config:    notificationResponseConfig(notification),
+		CreatedAt: notification.CreatedAt,
+		UpdatedAt: notification.UpdatedAt,
 	}
 }
 
-func channelResponseConfig(channel domainalert.NotificationChannel) json.RawMessage {
-	switch channel.Type {
-	case domainalert.ChannelTypeWebhook:
+func notificationResponseConfig(notification domainalert.Notification) json.RawMessage {
+	switch notification.Type {
+	case domainalert.NotificationTypeWebhook:
 		var config domainalert.WebhookConfig
-		if err := json.Unmarshal(channel.Config, &config); err != nil {
+		if err := json.Unmarshal(notification.Config, &config); err != nil {
 			return json.RawMessage(`{}`)
 		}
-		value, ok := redactedChannelURL(config.URL)
+		value, ok := redactedNotificationURL(config.URL)
 		if !ok {
 			return json.RawMessage(`{}`)
 		}
 		return mustJSON(domainalert.WebhookConfig{URL: value})
-	case domainalert.ChannelTypeDiscord:
+	case domainalert.NotificationTypeDiscord:
 		var config domainalert.DiscordConfig
-		if err := json.Unmarshal(channel.Config, &config); err != nil {
+		if err := json.Unmarshal(notification.Config, &config); err != nil {
 			return json.RawMessage(`{}`)
 		}
-		value, ok := redactedChannelURL(config.URL)
+		value, ok := redactedNotificationURL(config.URL)
 		if !ok {
 			return json.RawMessage(`{}`)
 		}
 		return mustJSON(domainalert.DiscordConfig{URL: value})
-	case domainalert.ChannelTypeTelegram:
+	case domainalert.NotificationTypeTelegram:
 		var config domainalert.TelegramConfig
-		if err := json.Unmarshal(channel.Config, &config); err != nil {
+		if err := json.Unmarshal(notification.Config, &config); err != nil {
 			return json.RawMessage(`{}`)
 		}
-		return mustJSON(telegramChannelResponseConfig{ChatID: config.ChatID, BotTokenConfigured: config.BotToken != ""})
+		return mustJSON(telegramNotificationResponseConfig{ChatID: config.ChatID, BotTokenConfigured: config.BotToken != ""})
 	default:
 		return json.RawMessage(`{}`)
 	}
 }
 
-func channelTestResponse(result appalert.ChannelTestResult) channelTestResponseBody {
-	return channelTestResponseBody{
+func notificationTestResponse(result appalert.NotificationTestResult) notificationTestResponseBody {
+	return notificationTestResponseBody{
 		Delivered: result.Delivered,
 		Retryable: result.Retryable,
 		Kind:      result.Kind,
@@ -229,7 +229,7 @@ func channelTestResponse(result appalert.ChannelTestResult) channelTestResponseB
 	}
 }
 
-func redactedChannelURL(rawURL string) (string, bool) {
+func redactedNotificationURL(rawURL string) (string, bool) {
 	parsed, err := url.Parse(rawURL)
 	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
 		return "", false

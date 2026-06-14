@@ -15,11 +15,11 @@ type Repository interface {
 	CreateRule(ctx context.Context, input domainalert.Rule) (domainalert.Rule, error)
 	UpdateRule(ctx context.Context, input domainalert.Rule) (domainalert.Rule, error)
 	DeleteRule(ctx context.Context, projectID, ruleID string) error
-	ListChannels(ctx context.Context, projectID string, channelType *domainalert.ChannelType) ([]domainalert.NotificationChannel, error)
-	GetChannel(ctx context.Context, projectID, channelID string) (domainalert.NotificationChannel, error)
-	CreateChannel(ctx context.Context, input domainalert.NotificationChannel) (domainalert.NotificationChannel, error)
-	UpdateChannel(ctx context.Context, input domainalert.NotificationChannel) (domainalert.NotificationChannel, error)
-	DeleteChannel(ctx context.Context, projectID, channelID string) error
+	ListNotifications(ctx context.Context, projectID string, notificationType *domainalert.NotificationType) ([]domainalert.Notification, error)
+	GetNotification(ctx context.Context, projectID, notificationID string) (domainalert.Notification, error)
+	CreateNotification(ctx context.Context, input domainalert.Notification) (domainalert.Notification, error)
+	UpdateNotification(ctx context.Context, input domainalert.Notification) (domainalert.Notification, error)
+	DeleteNotification(ctx context.Context, projectID, notificationID string) error
 	ListIncidents(ctx context.Context, projectID string, status *domainalert.IncidentStatus, limit int32) ([]domainalert.Incident, error)
 	GetIncident(ctx context.Context, projectID, incidentID string) (domainalert.Incident, error)
 }
@@ -29,6 +29,6 @@ type ProjectAccess interface {
 	GetMemberRole(ctx context.Context, projectID, userID string) (domainproject.Role, error)
 }
 
-type ChannelTester interface {
-	TestChannel(ctx context.Context, channel domainalert.NotificationChannel, payload json.RawMessage) ChannelTestResult
+type NotificationTester interface {
+	TestNotification(ctx context.Context, notification domainalert.Notification, payload json.RawMessage) NotificationTestResult
 }

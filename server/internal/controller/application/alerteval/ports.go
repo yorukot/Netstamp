@@ -21,7 +21,7 @@ type Repository interface {
 	UpdateIncidentTriggered(ctx context.Context, incidentID string, evaluation alertcondition.Evaluation, summary json.RawMessage, at time.Time) (domainalert.Incident, error)
 	UpdateIncidentInsufficient(ctx context.Context, incidentID string, state alertcondition.EvaluationState, summary json.RawMessage, at time.Time) (domainalert.Incident, error)
 	ResolveIncidentAndEnqueue(ctx context.Context, incidentID string, summary json.RawMessage, at time.Time, jobs []domainalert.NotificationJobInput) (domainalert.Incident, error)
-	ListEnabledChannelsForRule(ctx context.Context, projectID, ruleID string) ([]domainalert.NotificationChannel, error)
+	ListEnabledNotificationsForRule(ctx context.Context, projectID, ruleID string) ([]domainalert.Notification, error)
 }
 
 type ChangedAssignment = appproberuntime.ChangedAssignmentInput

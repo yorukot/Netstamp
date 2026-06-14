@@ -272,50 +272,6 @@ func (ns NullIpFamily) Value() (driver.Value, error) {
 	return string(ns.IpFamily), nil
 }
 
-type NotificationChannelType string
-
-const (
-	NotificationChannelTypeWebhook  NotificationChannelType = "webhook"
-	NotificationChannelTypeEmail    NotificationChannelType = "email"
-	NotificationChannelTypeDiscord  NotificationChannelType = "discord"
-	NotificationChannelTypeTelegram NotificationChannelType = "telegram"
-)
-
-func (e *NotificationChannelType) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = NotificationChannelType(s)
-	case string:
-		*e = NotificationChannelType(s)
-	default:
-		return fmt.Errorf("unsupported scan type for NotificationChannelType: %T", src)
-	}
-	return nil
-}
-
-type NullNotificationChannelType struct {
-	NotificationChannelType NotificationChannelType `json:"notification_channel_type"`
-	Valid                   bool                    `json:"valid"` // Valid is true if NotificationChannelType is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullNotificationChannelType) Scan(value interface{}) error {
-	if value == nil {
-		ns.NotificationChannelType, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.NotificationChannelType.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullNotificationChannelType) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.NotificationChannelType), nil
-}
-
 type NotificationOutboxStatus string
 
 const (
@@ -359,6 +315,50 @@ func (ns NullNotificationOutboxStatus) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.NotificationOutboxStatus), nil
+}
+
+type NotificationType string
+
+const (
+	NotificationTypeWebhook  NotificationType = "webhook"
+	NotificationTypeEmail    NotificationType = "email"
+	NotificationTypeDiscord  NotificationType = "discord"
+	NotificationTypeTelegram NotificationType = "telegram"
+)
+
+func (e *NotificationType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = NotificationType(s)
+	case string:
+		*e = NotificationType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for NotificationType: %T", src)
+	}
+	return nil
+}
+
+type NullNotificationType struct {
+	NotificationType NotificationType `json:"notification_type"`
+	Valid            bool             `json:"valid"` // Valid is true if NotificationType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullNotificationType) Scan(value interface{}) error {
+	if value == nil {
+		ns.NotificationType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.NotificationType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullNotificationType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.NotificationType), nil
 }
 
 type PingStatus string
@@ -689,10 +689,10 @@ type AlertIncident struct {
 }
 
 type AlertNotification struct {
-	ProjectID uuid.UUID `json:"project_id"`
-	RuleID    uuid.UUID `json:"rule_id"`
-	ChannelID uuid.UUID `json:"channel_id"`
-	CreatedAt time.Time `json:"created_at"`
+	ProjectID      uuid.UUID `json:"project_id"`
+	RuleID         uuid.UUID `json:"rule_id"`
+	NotificationID uuid.UUID `json:"notification_id"`
+	CreatedAt      time.Time `json:"created_at"`
 }
 
 type AlertRule struct {
@@ -746,40 +746,40 @@ type Label struct {
 	DeletedAt *time.Time `json:"deleted_at"`
 }
 
-type NotificationChannel struct {
-	ID              uuid.UUID               `json:"id"`
-	ProjectID       uuid.UUID               `json:"project_id"`
-	Name            string                  `json:"name"`
-	Type            NotificationChannelType `json:"type"`
-	Enabled         bool                    `json:"enabled"`
-	Config          []byte                  `json:"config"`
-	CreatedByUserID uuid.UUID               `json:"created_by_user_id"`
-	CreatedAt       time.Time               `json:"created_at"`
-	UpdatedAt       time.Time               `json:"updated_at"`
-	DeletedAt       *time.Time              `json:"deleted_at"`
+type Notification struct {
+	ID              uuid.UUID        `json:"id"`
+	ProjectID       uuid.UUID        `json:"project_id"`
+	Name            string           `json:"name"`
+	Type            NotificationType `json:"type"`
+	Enabled         bool             `json:"enabled"`
+	Config          []byte           `json:"config"`
+	CreatedByUserID uuid.UUID        `json:"created_by_user_id"`
+	CreatedAt       time.Time        `json:"created_at"`
+	UpdatedAt       time.Time        `json:"updated_at"`
+	DeletedAt       *time.Time       `json:"deleted_at"`
 }
 
 type NotificationOutbox struct {
-	ID            uuid.UUID                `json:"id"`
-	ProjectID     uuid.UUID                `json:"project_id"`
-	IncidentID    uuid.UUID                `json:"incident_id"`
-	RuleID        uuid.UUID                `json:"rule_id"`
-	ChannelID     uuid.UUID                `json:"channel_id"`
-	ChannelType   NotificationChannelType  `json:"channel_type"`
-	EventType     string                   `json:"event_type"`
-	Status        NotificationOutboxStatus `json:"status"`
-	Payload       []byte                   `json:"payload"`
-	AttemptCount  int32                    `json:"attempt_count"`
-	MaxAttempts   int32                    `json:"max_attempts"`
-	NextAttemptAt time.Time                `json:"next_attempt_at"`
-	LastAttemptAt *time.Time               `json:"last_attempt_at"`
-	DeliveredAt   *time.Time               `json:"delivered_at"`
-	LastErrorKind *string                  `json:"last_error_kind"`
-	LastErrorCode *string                  `json:"last_error_code"`
-	LastError     *string                  `json:"last_error"`
-	DedupeKey     string                   `json:"dedupe_key"`
-	CreatedAt     time.Time                `json:"created_at"`
-	UpdatedAt     time.Time                `json:"updated_at"`
+	ID               uuid.UUID                `json:"id"`
+	ProjectID        uuid.UUID                `json:"project_id"`
+	IncidentID       uuid.UUID                `json:"incident_id"`
+	RuleID           uuid.UUID                `json:"rule_id"`
+	NotificationID   uuid.UUID                `json:"notification_id"`
+	NotificationType NotificationType         `json:"notification_type"`
+	EventType        string                   `json:"event_type"`
+	Status           NotificationOutboxStatus `json:"status"`
+	Payload          []byte                   `json:"payload"`
+	AttemptCount     int32                    `json:"attempt_count"`
+	MaxAttempts      int32                    `json:"max_attempts"`
+	NextAttemptAt    time.Time                `json:"next_attempt_at"`
+	LastAttemptAt    *time.Time               `json:"last_attempt_at"`
+	DeliveredAt      *time.Time               `json:"delivered_at"`
+	LastErrorKind    *string                  `json:"last_error_kind"`
+	LastErrorCode    *string                  `json:"last_error_code"`
+	LastError        *string                  `json:"last_error"`
+	DedupeKey        string                   `json:"dedupe_key"`
+	CreatedAt        time.Time                `json:"created_at"`
+	UpdatedAt        time.Time                `json:"updated_at"`
 }
 
 type PingCheckConfig struct {

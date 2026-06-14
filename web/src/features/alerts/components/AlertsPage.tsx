@@ -1,22 +1,14 @@
 import {
 	useCreateProjectAlertRuleMutation,
-	useCreateProjectNotificationChannelMutation,
+	useCreateProjectNotificationMutation,
 	useDeleteProjectAlertRuleMutation,
-	useDeleteProjectNotificationChannelMutation,
-	useTestProjectNotificationChannelMutation,
+	useDeleteProjectNotificationMutation,
+	useTestProjectNotificationMutation,
 	useUpdateProjectAlertRuleMutation,
-	useUpdateProjectNotificationChannelMutation
+	useUpdateProjectNotificationMutation
 } from "@/shared/api/mutations";
 import { projectQueries } from "@/shared/api/queries";
-import type {
-	ApiAlertIncident,
-	ApiAlertRule,
-	ApiNotificationChannel,
-	CreateAlertRuleInput,
-	CreateNotificationChannelInput,
-	UpdateAlertRuleInput,
-	UpdateNotificationChannelInput
-} from "@/shared/api/types";
+import type { ApiAlertIncident, ApiAlertRule, ApiNotification, CreateAlertRuleInput, CreateNotificationInput, UpdateAlertRuleInput, UpdateNotificationInput } from "@/shared/api/types";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { EditorDrawer } from "@/shared/components/EditorDrawer";
 import { LoadingState } from "@/shared/components/LoadingState";
@@ -32,14 +24,14 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState, type FormEvent, type MouseEvent } from "react";
 import styles from "./AlertsPage.module.css";
 
-type AlertTab = "incidents" | "rules" | "channels";
+type AlertTab = "incidents" | "rules" | "notifications";
 type IncidentStatusFilter = "open" | "acknowledged" | "resolved" | "all";
 type RuleStatusFilter = "all" | "enabled" | "disabled";
 type CheckType = "ping" | "tcp";
 type RuleCheckTypeFilter = "all" | CheckType;
-type ChannelStatusFilter = "all" | "enabled" | "disabled";
-type NotificationChannelType = CreateNotificationChannelInput["type"];
-type ChannelTypeFilter = "all" | NotificationChannelType;
+type NotificationStatusFilter = "all" | "enabled" | "disabled";
+type NotificationType = CreateNotificationInput["type"];
+type NotificationTypeFilter = "all" | NotificationType;
 type AlertMetric = CreateAlertRuleInput["condition"]["metric"];
 type AlertOperator = CreateAlertRuleInput["condition"]["operator"];
 type AlertSeverity = CreateAlertRuleInput["severity"];
@@ -49,12 +41,12 @@ interface RuleEditorState {
 	rule?: ApiAlertRule;
 }
 
-interface ChannelEditorState {
+interface NotificationEditorState {
 	mode: "create" | "edit";
-	channel?: ApiNotificationChannel;
+	notification?: ApiNotification;
 }
 
-type ChannelEditorStep = "type" | "detail";
+type NotificationEditorStep = "type" | "detail";
 
 interface RuleFormState {
 	name: string;
@@ -68,32 +60,32 @@ interface RuleFormState {
 	windowSeconds: string;
 	minSamples: string;
 	cooldownSeconds: string;
-	selectedChannelId: string;
+	selectedNotificationId: string;
 }
 
-interface ChannelFormState {
+interface NotificationFormState {
 	name: string;
-	type: NotificationChannelType;
+	type: NotificationType;
 	url: string;
 	botToken: string;
 	chatId: string;
 	enabled: string;
 }
 
-interface ChannelTypeOption {
-	value: NotificationChannelType;
+interface NotificationTypeOption {
+	value: NotificationType;
 	label: string;
 	detail: string;
 }
 
 const emptyRules: ApiAlertRule[] = [];
 const emptyIncidents: ApiAlertIncident[] = [];
-const emptyChannels: ApiNotificationChannel[] = [];
+const emptyNotifications: ApiNotification[] = [];
 
 const alertTabs: Array<{ value: AlertTab; label: string }> = [
 	{ value: "incidents", label: "Incidents" },
 	{ value: "rules", label: "Rules" },
-	{ value: "channels", label: "Channels" }
+	{ value: "notifications", label: "Notifications" }
 ];
 
 const incidentStatusOptions: Array<{ value: IncidentStatusFilter; label: string }> = [
@@ -115,13 +107,13 @@ const ruleCheckTypeOptions: Array<{ value: RuleCheckTypeFilter; label: string }>
 	{ value: "tcp", label: "TCP" }
 ];
 
-const channelStatusOptions: Array<{ value: ChannelStatusFilter; label: string }> = [
+const notificationStatusOptions: Array<{ value: NotificationStatusFilter; label: string }> = [
 	{ value: "all", label: "Any status" },
 	{ value: "enabled", label: "Enabled" },
 	{ value: "disabled", label: "Disabled" }
 ];
 
-const channelFilterTypeOptions: Array<{ value: ChannelTypeFilter; label: string }> = [
+const notificationFilterTypeOptions: Array<{ value: NotificationTypeFilter; label: string }> = [
 	{ value: "all", label: "Any type" },
 	{ value: "webhook", label: "Webhook" },
 	{ value: "discord", label: "Discord" },
@@ -167,11 +159,11 @@ const enabledOptions = [
 	{ value: "false", label: "Disabled" }
 ];
 
-const webhookChannelTypeOption: ChannelTypeOption = { value: "webhook", label: "Webhook", detail: "Send raw alert JSON to any HTTPS endpoint." };
+const webhookNotificationTypeOption: NotificationTypeOption = { value: "webhook", label: "Webhook", detail: "Send raw alert JSON to any HTTPS endpoint." };
 
-const channelTypeOptions: ChannelTypeOption[] = [
-	webhookChannelTypeOption,
-	{ value: "discord", label: "Discord", detail: "Post alert summaries to a Discord channel webhook." },
+const notificationTypeOptions: NotificationTypeOption[] = [
+	webhookNotificationTypeOption,
+	{ value: "discord", label: "Discord", detail: "Post alert summaries to a Discord notification webhook." },
 	{ value: "telegram", label: "Telegram", detail: "Send alert summaries through a Telegram bot." }
 ];
 
@@ -325,7 +317,7 @@ function formatIncidentCheck(incident: ApiAlertIncident) {
 	return `${incidentCheckName(incident)} (${incident.checkType.toUpperCase()} / ${shortID(incident.checkId)})`;
 }
 
-function channelConfigString(config: ApiNotificationChannel["config"], key: string) {
+function notificationConfigString(config: ApiNotification["config"], key: string) {
 	if (config && typeof config === "object" && key in config) {
 		const value = (config as Record<string, unknown>)[key];
 		return typeof value === "string" ? value : "";
@@ -334,16 +326,16 @@ function channelConfigString(config: ApiNotificationChannel["config"], key: stri
 	return "";
 }
 
-function channelURL(channel: ApiNotificationChannel) {
-	return channelConfigString(channel.config, "url");
+function notificationURL(notification: ApiNotification) {
+	return notificationConfigString(notification.config, "url");
 }
 
-function channelChatID(channel: ApiNotificationChannel) {
-	return channelConfigString(channel.config, "chatId");
+function notificationChatID(notification: ApiNotification) {
+	return notificationConfigString(notification.config, "chatId");
 }
 
-function channelTypeLabel(channelType: string) {
-	switch (channelType) {
+function notificationTypeLabel(notificationType: string) {
+	switch (notificationType) {
 		case "webhook":
 			return "Webhook";
 		case "discord":
@@ -351,52 +343,52 @@ function channelTypeLabel(channelType: string) {
 		case "telegram":
 			return "Telegram";
 		default:
-			return channelType;
+			return notificationType;
 	}
 }
 
-function channelTypeOption(channelType: NotificationChannelType) {
-	return channelTypeOptions.find(option => option.value === channelType) ?? webhookChannelTypeOption;
+function notificationTypeOption(notificationType: NotificationType) {
+	return notificationTypeOptions.find(option => option.value === notificationType) ?? webhookNotificationTypeOption;
 }
 
-function ChannelTypeIcon({ type }: { type: NotificationChannelType }) {
+function NotificationTypeIcon({ type }: { type: NotificationType }) {
 	switch (type) {
 		case "discord":
-			return <DiscordLogo className={styles.channelTypeIcon} size={28} weight="bold" aria-hidden="true" />;
+			return <DiscordLogo className={styles.notificationTypeIcon} size={28} weight="bold" aria-hidden="true" />;
 		case "telegram":
-			return <TelegramLogo className={styles.channelTypeIcon} size={28} weight="bold" aria-hidden="true" />;
+			return <TelegramLogo className={styles.notificationTypeIcon} size={28} weight="bold" aria-hidden="true" />;
 		case "webhook":
 		default:
-			return <WebhooksLogo className={styles.channelTypeIcon} size={28} weight="bold" aria-hidden="true" />;
+			return <WebhooksLogo className={styles.notificationTypeIcon} size={28} weight="bold" aria-hidden="true" />;
 	}
 }
 
-function channelDestination(channel: ApiNotificationChannel) {
-	switch (channel.type) {
+function notificationDestination(notification: ApiNotification) {
+	switch (notification.type) {
 		case "discord":
 		case "webhook":
-			return channelURL(channel);
+			return notificationURL(notification);
 		case "telegram":
-			return channelChatID(channel) ? `chat ${channelChatID(channel)}` : "-";
+			return notificationChatID(notification) ? `chat ${notificationChatID(notification)}` : "-";
 		default:
 			return "-";
 	}
 }
 
-function channelNameByID(channels: ApiNotificationChannel[], channelID: string) {
-	return channels.find(channel => channel.id === channelID)?.name ?? shortID(channelID);
+function notificationNameByID(notifications: ApiNotification[], notificationID: string) {
+	return notifications.find(notification => notification.id === notificationID)?.name ?? shortID(notificationID);
 }
 
-function notificationLabel(rule: ApiAlertRule, channels: ApiNotificationChannel[]) {
-	if (!rule.notificationChannelIds.length) {
+function notificationLabel(rule: ApiAlertRule, notifications: ApiNotification[]) {
+	if (!rule.notificationIds.length) {
 		return "No notification";
 	}
 
-	return rule.notificationChannelIds.map(channelID => channelNameByID(channels, channelID)).join(", ");
+	return rule.notificationIds.map(notificationID => notificationNameByID(notifications, notificationID)).join(", ");
 }
 
-function rulesUsingChannel(rules: ApiAlertRule[], channelID: string) {
-	return rules.filter(rule => rule.notificationChannelIds.includes(channelID));
+function rulesUsingNotification(rules: ApiAlertRule[], notificationID: string) {
+	return rules.filter(rule => rule.notificationIds.includes(notificationID));
 }
 
 function parseInteger(value: string, fallback: number) {
@@ -432,7 +424,7 @@ function defaultRuleForm(): RuleFormState {
 		windowSeconds: "300",
 		minSamples: "3",
 		cooldownSeconds: "900",
-		selectedChannelId: ""
+		selectedNotificationId: ""
 	};
 }
 
@@ -450,11 +442,11 @@ function ruleFormFromRule(rule: ApiAlertRule): RuleFormState {
 		windowSeconds: String(rule.condition.windowSeconds),
 		minSamples: String(rule.condition.minSamples),
 		cooldownSeconds: String(rule.cooldownSeconds),
-		selectedChannelId: rule.notificationChannelIds[0] ?? ""
+		selectedNotificationId: rule.notificationIds[0] ?? ""
 	};
 }
 
-function defaultChannelForm(): ChannelFormState {
+function defaultNotificationForm(): NotificationFormState {
 	return {
 		name: "",
 		type: "webhook",
@@ -465,14 +457,14 @@ function defaultChannelForm(): ChannelFormState {
 	};
 }
 
-function channelFormFromChannel(channel: ApiNotificationChannel): ChannelFormState {
+function notificationFormFromNotification(notification: ApiNotification): NotificationFormState {
 	return {
-		name: channel.name,
-		type: channel.type,
-		url: channelURL(channel),
+		name: notification.name,
+		type: notification.type,
+		url: notificationURL(notification),
 		botToken: "",
-		chatId: channelChatID(channel),
-		enabled: String(channel.enabled)
+		chatId: notificationChatID(notification),
+		enabled: String(notification.enabled)
 	};
 }
 
@@ -494,11 +486,11 @@ function rulePayload(form: RuleFormState): CreateAlertRuleInput | UpdateAlertRul
 			minSamples: parseInteger(form.minSamples, 3)
 		},
 		cooldownSeconds: parseInteger(form.cooldownSeconds, 900),
-		notificationChannelIds: form.selectedChannelId ? [form.selectedChannelId] : []
+		notificationIds: form.selectedNotificationId ? [form.selectedNotificationId] : []
 	};
 }
 
-function channelPayload(form: ChannelFormState): CreateNotificationChannelInput | UpdateNotificationChannelInput {
+function notificationPayload(form: NotificationFormState): CreateNotificationInput | UpdateNotificationInput {
 	const config = form.type === "telegram" ? { botToken: form.botToken.trim(), chatId: form.chatId.trim() } : { url: form.url.trim() };
 
 	return {
@@ -509,7 +501,7 @@ function channelPayload(form: ChannelFormState): CreateNotificationChannelInput 
 	};
 }
 
-function channelFormReady(form: ChannelFormState) {
+function notificationFormReady(form: NotificationFormState) {
 	if (!form.name.trim()) {
 		return false;
 	}
@@ -519,12 +511,12 @@ function channelFormReady(form: ChannelFormState) {
 	return Boolean(form.url.trim());
 }
 
-function rulePreview(form: RuleFormState, channels: ApiNotificationChannel[]) {
+function rulePreview(form: RuleFormState, notifications: ApiNotification[]) {
 	const metric = metricLabel(form.metric).toLowerCase();
 	const threshold = formatThreshold(form.metric, form.threshold || "0");
-	const channel = form.selectedChannelId ? channelNameByID(channels, form.selectedChannelId) : "no channel";
+	const notification = form.selectedNotificationId ? notificationNameByID(notifications, form.selectedNotificationId) : "no notification";
 
-	return `Create a ${form.severity} incident when ${metric} ${operatorPhrases[form.operator]} ${threshold} for ${formatDuration(parseInteger(form.windowSeconds, 300))}. Notify ${channel}, then wait ${formatDuration(parseInteger(form.cooldownSeconds, 900))} before repeating.`;
+	return `Create a ${form.severity} incident when ${metric} ${operatorPhrases[form.operator]} ${threshold} for ${formatDuration(parseInteger(form.windowSeconds, 300))}. Notify ${notification}, then wait ${formatDuration(parseInteger(form.cooldownSeconds, 900))} before repeating.`;
 }
 
 function stopTableAction(event: MouseEvent<HTMLButtonElement>) {
@@ -541,20 +533,20 @@ export function AlertsPage() {
 	const createRuleMutation = useCreateProjectAlertRuleMutation(projectRef);
 	const updateRuleMutation = useUpdateProjectAlertRuleMutation(projectRef);
 	const deleteRuleMutation = useDeleteProjectAlertRuleMutation(projectRef);
-	const createChannelMutation = useCreateProjectNotificationChannelMutation(projectRef);
-	const updateChannelMutation = useUpdateProjectNotificationChannelMutation(projectRef);
-	const deleteChannelMutation = useDeleteProjectNotificationChannelMutation(projectRef);
-	const testChannelMutation = useTestProjectNotificationChannelMutation(projectRef);
+	const createNotificationMutation = useCreateProjectNotificationMutation(projectRef);
+	const updateNotificationMutation = useUpdateProjectNotificationMutation(projectRef);
+	const deleteNotificationMutation = useDeleteProjectNotificationMutation(projectRef);
+	const testNotificationMutation = useTestProjectNotificationMutation(projectRef);
 	const [activeTab, setActiveTab] = useState<AlertTab>("incidents");
 	const [incidentStatus, setIncidentStatus] = useState<IncidentStatusFilter>("open");
 	const [ruleSearch, setRuleSearch] = useState("");
 	const [ruleStatus, setRuleStatus] = useState<RuleStatusFilter>("all");
 	const [ruleCheckType, setRuleCheckType] = useState<RuleCheckTypeFilter>("all");
-	const [channelStatus, setChannelStatus] = useState<ChannelStatusFilter>("all");
-	const [channelType, setChannelType] = useState<ChannelTypeFilter>("all");
+	const [notificationStatus, setNotificationStatus] = useState<NotificationStatusFilter>("all");
+	const [notificationType, setNotificationType] = useState<NotificationTypeFilter>("all");
 	const [selectedIncident, setSelectedIncident] = useState<ApiAlertIncident | null>(null);
 	const [ruleEditor, setRuleEditor] = useState<RuleEditorState | null>(null);
-	const [channelEditor, setChannelEditor] = useState<ChannelEditorState | null>(null);
+	const [notificationEditor, setNotificationEditor] = useState<NotificationEditorState | null>(null);
 	const incidentFilters = useMemo(() => ({ limit: 100, ...(incidentStatus === "all" ? {} : { status: incidentStatus }) }), [incidentStatus]);
 	const rulesQuery = useQuery({
 		...projectQueries.alertRules(projectRef || ""),
@@ -570,14 +562,14 @@ export function AlertsPage() {
 		enabled: Boolean(projectRef),
 		refetchInterval: 30 * 1000
 	});
-	const channelsQuery = useQuery({
-		...projectQueries.notificationChannels(projectRef || ""),
+	const notificationsQuery = useQuery({
+		...projectQueries.notifications(projectRef || ""),
 		enabled: Boolean(projectRef)
 	});
 	const rules = rulesQuery.data?.rules ?? emptyRules;
 	const incidents = incidentsQuery.data?.incidents ?? emptyIncidents;
 	const openIncidents = openIncidentsQuery.data?.incidents ?? emptyIncidents;
-	const channels = channelsQuery.data?.channels ?? emptyChannels;
+	const notifications = notificationsQuery.data?.notifications ?? emptyNotifications;
 	const filteredRules = useMemo(() => {
 		const search = ruleSearch.trim().toLowerCase();
 
@@ -594,24 +586,24 @@ export function AlertsPage() {
 			if (!search) {
 				return true;
 			}
-			return [rule.name, rule.description, rule.scope.checkType, formatAlertCondition(rule.condition), notificationLabel(rule, channels)].filter(Boolean).join(" ").toLowerCase().includes(search);
+			return [rule.name, rule.description, rule.scope.checkType, formatAlertCondition(rule.condition), notificationLabel(rule, notifications)].filter(Boolean).join(" ").toLowerCase().includes(search);
 		});
-	}, [channels, ruleCheckType, ruleSearch, ruleStatus, rules]);
-	const filteredChannels = useMemo(
+	}, [notifications, ruleCheckType, ruleSearch, ruleStatus, rules]);
+	const filteredNotifications = useMemo(
 		() =>
-			channels.filter(channel => {
-				if (channelStatus === "enabled" && !channel.enabled) {
+			notifications.filter(notification => {
+				if (notificationStatus === "enabled" && !notification.enabled) {
 					return false;
 				}
-				if (channelStatus === "disabled" && channel.enabled) {
+				if (notificationStatus === "disabled" && notification.enabled) {
 					return false;
 				}
-				if (channelType !== "all" && channel.type !== channelType) {
+				if (notificationType !== "all" && notification.type !== notificationType) {
 					return false;
 				}
 				return true;
 			}),
-		[channelStatus, channelType, channels]
+		[notificationStatus, notificationType, notifications]
 	);
 	const enabledRules = rules.filter(rule => rule.enabled).length;
 	const ruleColumns: DataColumn<ApiAlertRule>[] = [
@@ -643,7 +635,7 @@ export function AlertsPage() {
 		{
 			key: "notify",
 			label: "Notify",
-			render: rule => <span className={styles.urlCell}>{notificationLabel(rule, channels)}</span>
+			render: rule => <span className={styles.urlCell}>{notificationLabel(rule, notifications)}</span>
 		},
 		{
 			key: "cooldown",
@@ -722,48 +714,48 @@ export function AlertsPage() {
 			render: incident => (incident.suppressedNotificationCount > 0 ? `${incident.suppressedNotificationCount} suppressed` : formatDateTime(incident.lastNotificationSentAt))
 		}
 	];
-	const channelColumns: DataColumn<ApiNotificationChannel>[] = [
+	const notificationColumns: DataColumn<ApiNotification>[] = [
 		{
 			key: "name",
-			label: "Channel",
-			render: channel => (
+			label: "Notification",
+			render: notification => (
 				<div className={styles.primaryCell}>
-					<strong>{channel.name}</strong>
-					<span>{channelTypeLabel(channel.type)}</span>
+					<strong>{notification.name}</strong>
+					<span>{notificationTypeLabel(notification.type)}</span>
 				</div>
 			)
 		},
 		{
 			key: "status",
 			label: "Status",
-			render: channel => <Badge tone={channel.enabled ? "success" : "muted"}>{channel.enabled ? "enabled" : "disabled"}</Badge>
+			render: notification => <Badge tone={notification.enabled ? "success" : "muted"}>{notification.enabled ? "enabled" : "disabled"}</Badge>
 		},
 		{
 			key: "url",
 			label: "Destination",
-			render: channel => (
-				<span className={styles.urlCell} title={channelDestination(channel)}>
-					{channelDestination(channel)}
+			render: notification => (
+				<span className={styles.urlCell} title={notificationDestination(notification)}>
+					{notificationDestination(notification)}
 				</span>
 			)
 		},
 		{
 			key: "usedBy",
 			label: "Used by rules",
-			render: channel => rulesUsingChannel(rules, channel.id).length
+			render: notification => rulesUsingNotification(rules, notification.id).length
 		},
 		{
 			key: "actions",
 			label: "",
-			render: channel => (
+			render: notification => (
 				<div className={styles.rowActions}>
 					<Button
 						variant="secondary"
 						size="sm"
-						disabled={testChannelMutation.isPending}
+						disabled={testNotificationMutation.isPending}
 						onClick={event => {
 							stopTableAction(event);
-							void testChannel(channel);
+							void testNotification(notification);
 						}}
 					>
 						Test
@@ -771,10 +763,10 @@ export function AlertsPage() {
 					<Button
 						variant="danger"
 						size="sm"
-						disabled={deleteChannelMutation.isPending}
+						disabled={deleteNotificationMutation.isPending}
 						onClick={event => {
 							stopTableAction(event);
-							void deleteChannel(channel);
+							void deleteNotification(notification);
 						}}
 					>
 						Delete
@@ -804,12 +796,14 @@ export function AlertsPage() {
 		}
 	}
 
-	async function deleteChannel(channel: ApiNotificationChannel) {
-		const usedBy = rulesUsingChannel(rules, channel.id).length;
+	async function deleteNotification(notification: ApiNotification) {
+		const usedBy = rulesUsingNotification(rules, notification.id).length;
 		const accepted = await confirm({
-			title: "Delete notification channel?",
-			message: usedBy ? `"${channel.name}" is used by ${usedBy} rule${usedBy === 1 ? "" : "s"}. Remove it only after moving those rules to another channel.` : `This removes "${channel.name}".`,
-			confirmLabel: "Delete channel",
+			title: "Delete notification?",
+			message: usedBy
+				? `"${notification.name}" is used by ${usedBy} rule${usedBy === 1 ? "" : "s"}. Remove it only after moving those rules to another notification.`
+				: `This removes "${notification.name}".`,
+			confirmLabel: "Delete notification",
 			tone: "danger"
 		});
 
@@ -818,21 +812,21 @@ export function AlertsPage() {
 		}
 
 		try {
-			await deleteChannelMutation.mutateAsync(channel.id);
-			pushToast({ title: "Channel deleted", message: channel.name, tone: "success" });
+			await deleteNotificationMutation.mutateAsync(notification.id);
+			pushToast({ title: "Notification deleted", message: notification.name, tone: "success" });
 		} catch (error) {
 			pushErrorToast(requestErrorMessage(error));
 		}
 	}
 
-	async function testChannel(channel: ApiNotificationChannel) {
+	async function testNotification(notification: ApiNotification) {
 		try {
-			const response = await testChannelMutation.mutateAsync(channel.id);
+			const response = await testNotificationMutation.mutateAsync(notification.id);
 			if (response.result.delivered) {
-				pushToast({ title: "Test delivered", message: channel.name, tone: "success" });
+				pushToast({ title: "Test delivered", message: notification.name, tone: "success" });
 				return;
 			}
-			pushToast({ title: "Test failed", message: response.result.message || response.result.code || channel.name, tone: "critical" });
+			pushToast({ title: "Test failed", message: response.result.message || response.result.code || notification.name, tone: "critical" });
 		} catch (error) {
 			pushErrorToast(requestErrorMessage(error));
 		}
@@ -849,7 +843,12 @@ export function AlertsPage() {
 					detail={openIncidentsQuery.isLoading ? "Loading" : openIncidents.length ? "Needs attention" : "No current incidents"}
 				/>
 				<SummaryCard label="Enabled rules" value={enabledRules} tone={enabledRules ? "success" : "muted"} detail={`${rules.length} total rules`} />
-				<SummaryCard label="Channels" value={channels.length} tone={channels.length ? "accent" : "muted"} detail={channels.length ? "Ready to notify" : "No channel configured"} />
+				<SummaryCard
+					label="Notifications"
+					value={notifications.length}
+					tone={notifications.length ? "accent" : "muted"}
+					detail={notifications.length ? "Ready to notify" : "No notification configured"}
+				/>
 			</section>
 			<nav className={styles.tabs} aria-label="Alert sections">
 				{alertTabs.map(tab => (
@@ -895,7 +894,7 @@ export function AlertsPage() {
 				<Panel className={styles.tablePanel} padded={false}>
 					<div className={styles.tableToolbar}>
 						<div className={styles.panelActions}>
-							<TextField label="Search" value={ruleSearch} onChange={event => setRuleSearch(event.currentTarget.value)} placeholder="loss, RTT, channel" />
+							<TextField label="Search" value={ruleSearch} onChange={event => setRuleSearch(event.currentTarget.value)} placeholder="loss, RTT, notification" />
 							<SelectField label="Status" value={ruleStatus} options={ruleStatusOptions} onChange={event => setRuleStatus(event.currentTarget.value as RuleStatusFilter)} />
 							<SelectField label="Type" value={ruleCheckType} options={ruleCheckTypeOptions} onChange={event => setRuleCheckType(event.currentTarget.value as RuleCheckTypeFilter)} />
 						</div>
@@ -925,34 +924,39 @@ export function AlertsPage() {
 					/>
 				</Panel>
 			) : null}
-			{activeTab === "channels" ? (
+			{activeTab === "notifications" ? (
 				<Panel className={styles.tablePanel} padded={false}>
 					<div className={styles.tableToolbar}>
-						<div className={styles.channelPanelActions}>
-							<SelectField label="Status" value={channelStatus} options={channelStatusOptions} onChange={event => setChannelStatus(event.currentTarget.value as ChannelStatusFilter)} />
-							<SelectField label="Type" value={channelType} options={channelFilterTypeOptions} onChange={event => setChannelType(event.currentTarget.value as ChannelTypeFilter)} />
+						<div className={styles.notificationPanelActions}>
+							<SelectField
+								label="Status"
+								value={notificationStatus}
+								options={notificationStatusOptions}
+								onChange={event => setNotificationStatus(event.currentTarget.value as NotificationStatusFilter)}
+							/>
+							<SelectField label="Type" value={notificationType} options={notificationFilterTypeOptions} onChange={event => setNotificationType(event.currentTarget.value as NotificationTypeFilter)} />
 						</div>
-						<Button type="button" onClick={() => setChannelEditor({ mode: "create" })}>
-							Add channel
+						<Button type="button" onClick={() => setNotificationEditor({ mode: "create" })}>
+							Add notification
 						</Button>
 					</div>
 					<DataTable
 						className={styles.tableFrame}
-						columns={channelColumns}
-						rows={filteredChannels}
+						columns={notificationColumns}
+						rows={filteredNotifications}
 						density="compact"
 						minWidth="52rem"
-						getRowKey={channel => channel.id}
-						getRowAriaLabel={channel => `Edit notification channel ${channel.name}`}
-						onRowClick={channel => setChannelEditor({ mode: "edit", channel })}
-						selectedKey={channelEditor?.channel?.id}
+						getRowKey={notification => notification.id}
+						getRowAriaLabel={notification => `Edit notification ${notification.name}`}
+						onRowClick={notification => setNotificationEditor({ mode: "edit", notification })}
+						selectedKey={notificationEditor?.notification?.id}
 						emptyLabel={
-							channelsQuery.isLoading ? (
-								tableState("Loading channels", "Fetching notification channels.")
-							) : channels.length ? (
-								"No notification channels match this view"
+							notificationsQuery.isLoading ? (
+								tableState("Loading notifications", "Fetching notifications.")
+							) : notifications.length ? (
+								"No notifications match this view"
 							) : (
-								<EmptyAction label="No notification channels yet" action="Add channel" onClick={() => setChannelEditor({ mode: "create" })} />
+								<EmptyAction label="No notifications yet" action="Add notification" onClick={() => setNotificationEditor({ mode: "create" })} />
 							)
 						}
 					/>
@@ -962,7 +966,7 @@ export function AlertsPage() {
 			{ruleEditor ? (
 				<RuleEditorDrawer
 					editor={ruleEditor}
-					channels={channels}
+					notifications={notifications}
 					isPending={createRuleMutation.isPending || updateRuleMutation.isPending}
 					onClose={() => setRuleEditor(null)}
 					onSubmit={async form => {
@@ -982,23 +986,23 @@ export function AlertsPage() {
 					}}
 				/>
 			) : null}
-			{channelEditor ? (
-				<ChannelEditorDrawer
-					editor={channelEditor}
-					isPending={createChannelMutation.isPending || updateChannelMutation.isPending}
-					onClose={() => setChannelEditor(null)}
+			{notificationEditor ? (
+				<NotificationEditorDrawer
+					editor={notificationEditor}
+					isPending={createNotificationMutation.isPending || updateNotificationMutation.isPending}
+					onClose={() => setNotificationEditor(null)}
 					onSubmit={async form => {
 						try {
-							if (channelEditor.mode === "edit" && channelEditor.channel) {
-								const body = channelPayload({ ...form, type: channelEditor.channel.type });
-								await updateChannelMutation.mutateAsync({ channelId: channelEditor.channel.id, body });
-								pushToast({ title: "Channel updated", message: body.name, tone: "success" });
+							if (notificationEditor.mode === "edit" && notificationEditor.notification) {
+								const body = notificationPayload({ ...form, type: notificationEditor.notification.type });
+								await updateNotificationMutation.mutateAsync({ notificationId: notificationEditor.notification.id, body });
+								pushToast({ title: "Notification updated", message: body.name, tone: "success" });
 							} else {
-								const body = channelPayload(form);
-								await createChannelMutation.mutateAsync(body);
-								pushToast({ title: "Channel created", message: body.name, tone: "success" });
+								const body = notificationPayload(form);
+								await createNotificationMutation.mutateAsync(body);
+								pushToast({ title: "Notification created", message: body.name, tone: "success" });
 							}
-							setChannelEditor(null);
+							setNotificationEditor(null);
 						} catch (error) {
 							pushErrorToast(requestErrorMessage(error));
 						}
@@ -1072,19 +1076,19 @@ function IncidentDetailDrawer({ incident, onClose }: { incident: ApiAlertInciden
 
 function RuleEditorDrawer({
 	editor,
-	channels,
+	notifications,
 	isPending,
 	onClose,
 	onSubmit
 }: {
 	editor: RuleEditorState;
-	channels: ApiNotificationChannel[];
+	notifications: ApiNotification[];
 	isPending: boolean;
 	onClose: () => void;
 	onSubmit: (form: RuleFormState) => Promise<void>;
 }) {
 	const [form, setForm] = useState<RuleFormState>(() => (editor.mode === "edit" && editor.rule ? ruleFormFromRule(editor.rule) : defaultRuleForm()));
-	const channelOptions = useMemo(() => [{ value: "", label: "No notification" }, ...channels.map(channel => ({ value: channel.id, label: channel.name }))], [channels]);
+	const notificationOptions = useMemo(() => [{ value: "", label: "No notification" }, ...notifications.map(notification => ({ value: notification.id, label: notification.name }))], [notifications]);
 	const title = editor.mode === "edit" ? "Edit rule" : "Create rule";
 
 	function updateForm(patch: Partial<RuleFormState>) {
@@ -1126,7 +1130,12 @@ function RuleEditorDrawer({
 					<div className={styles.formGrid}>
 						<div className={styles.twoColumns}>
 							<SelectField label="Severity" value={form.severity} options={severityOptions} onChange={event => updateForm({ severity: event.currentTarget.value as AlertSeverity })} />
-							<SelectField label="Channel" value={form.selectedChannelId} options={channelOptions} onChange={event => updateForm({ selectedChannelId: event.currentTarget.value })} />
+							<SelectField
+								label="Notification"
+								value={form.selectedNotificationId}
+								options={notificationOptions}
+								onChange={event => updateForm({ selectedNotificationId: event.currentTarget.value })}
+							/>
 						</div>
 						<details className={styles.advancedTiming}>
 							<summary>Advanced timing</summary>
@@ -1154,7 +1163,7 @@ function RuleEditorDrawer({
 						</details>
 					</div>
 				</Panel>
-				<div className={classNames("ns-cut-frame", styles.previewSentence)}>{rulePreview(form, channels)}</div>
+				<div className={classNames("ns-cut-frame", styles.previewSentence)}>{rulePreview(form, notifications)}</div>
 				<div className={styles.drawerActions}>
 					<Button type="button" variant="ghost" disabled={isPending} onClick={onClose}>
 						Cancel
@@ -1168,18 +1177,28 @@ function RuleEditorDrawer({
 	);
 }
 
-function ChannelEditorDrawer({ editor, isPending, onClose, onSubmit }: { editor: ChannelEditorState; isPending: boolean; onClose: () => void; onSubmit: (form: ChannelFormState) => Promise<void> }) {
+function NotificationEditorDrawer({
+	editor,
+	isPending,
+	onClose,
+	onSubmit
+}: {
+	editor: NotificationEditorState;
+	isPending: boolean;
+	onClose: () => void;
+	onSubmit: (form: NotificationFormState) => Promise<void>;
+}) {
 	const isEditing = editor.mode === "edit";
-	const [form, setForm] = useState<ChannelFormState>(() => (editor.mode === "edit" && editor.channel ? channelFormFromChannel(editor.channel) : defaultChannelForm()));
-	const [step, setStep] = useState<ChannelEditorStep>(isEditing ? "detail" : "type");
-	const selectedType = channelTypeOption(form.type);
-	const title = isEditing ? "Edit channel" : "Add channel";
+	const [form, setForm] = useState<NotificationFormState>(() => (editor.mode === "edit" && editor.notification ? notificationFormFromNotification(editor.notification) : defaultNotificationForm()));
+	const [step, setStep] = useState<NotificationEditorStep>(isEditing ? "detail" : "type");
+	const selectedType = notificationTypeOption(form.type);
+	const title = isEditing ? "Edit notification" : "Add notification";
 
-	function updateForm(patch: Partial<ChannelFormState>) {
+	function updateForm(patch: Partial<NotificationFormState>) {
 		setForm(current => ({ ...current, ...patch }));
 	}
 
-	function chooseType(type: NotificationChannelType) {
+	function chooseType(type: NotificationType) {
 		updateForm({ type });
 		setStep("detail");
 	}
@@ -1191,12 +1210,12 @@ function ChannelEditorDrawer({ editor, isPending, onClose, onSubmit }: { editor:
 
 	if (!isEditing && step === "type") {
 		return (
-			<EditorDrawer open title={title} ariaLabel={title} backLabel="back to channels" onClose={onClose}>
-				<div className={styles.channelTypeGrid}>
-					{channelTypeOptions.map(option => (
-						<button type="button" className={classNames("ns-cut-frame", styles.channelTypeOption)} key={option.value} onClick={() => chooseType(option.value)}>
-							<ChannelTypeIcon type={option.value} />
-							<span className={styles.channelTypeText}>
+			<EditorDrawer open title={title} ariaLabel={title} backLabel="back to notifications" onClose={onClose}>
+				<div className={styles.notificationTypeGrid}>
+					{notificationTypeOptions.map(option => (
+						<button type="button" className={classNames("ns-cut-frame", styles.notificationTypeOption)} key={option.value} onClick={() => chooseType(option.value)}>
+							<NotificationTypeIcon type={option.value} />
+							<span className={styles.notificationTypeText}>
 								<strong>{option.label}</strong>
 								<span>{option.detail}</span>
 							</span>
@@ -1208,18 +1227,18 @@ function ChannelEditorDrawer({ editor, isPending, onClose, onSubmit }: { editor:
 	}
 
 	return (
-		<EditorDrawer open title={title} ariaLabel={title} backLabel="back to channels" onClose={onClose}>
+		<EditorDrawer open title={title} ariaLabel={title} backLabel="back to notifications" onClose={onClose}>
 			<form className={styles.drawerForm} onSubmit={handleSubmit}>
-				<Panel tone="matte" title="Channel type">
-					<div className={classNames("ns-cut-frame", styles.channelTypeSummary)}>
-						<ChannelTypeIcon type={selectedType.value} />
-						<span className={styles.channelTypeText}>
+				<Panel tone="matte" title="Notification type">
+					<div className={classNames("ns-cut-frame", styles.notificationTypeSummary)}>
+						<NotificationTypeIcon type={selectedType.value} />
+						<span className={styles.notificationTypeText}>
 							<strong>{selectedType.label}</strong>
 							<span>{selectedType.detail}</span>
 						</span>
 					</div>
 				</Panel>
-				<Panel tone="matte" title={`${channelTypeLabel(form.type)} settings`}>
+				<Panel tone="matte" title={`${notificationTypeLabel(form.type)} settings`}>
 					<div className={styles.formGrid}>
 						<TextField label="Name" value={form.name} onChange={event => updateForm({ name: event.currentTarget.value })} maxLength={128} required />
 						{form.type === "telegram" ? (
@@ -1256,8 +1275,8 @@ function ChannelEditorDrawer({ editor, isPending, onClose, onSubmit }: { editor:
 					<Button type="button" variant="ghost" disabled={isPending} onClick={onClose}>
 						Cancel
 					</Button>
-					<Button type="submit" disabled={isPending || !channelFormReady(form)}>
-						{editor.mode === "edit" ? "Save channel" : "Add channel"}
+					<Button type="submit" disabled={isPending || !notificationFormReady(form)}>
+						{editor.mode === "edit" ? "Save notification" : "Add notification"}
 					</Button>
 				</div>
 			</form>

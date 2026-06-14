@@ -78,18 +78,18 @@ interface AlertService {
 	@route("/incidents/{incident_id}")
 	getProjectAlertIncident(...ProjectRefParam, ...AlertIncidentIdPathParam): OkJson<AlertIncidentResponse> | UnauthorizedProblem | NotFoundProblem | UnprocessableEntityProblem | InternalServerProblem;
 
-	@operationId("listProjectNotificationChannels")
-	@summary("List project notification channels")
+	@operationId("listProjectNotifications")
+	@summary("List project notifications")
 	@get
-	@route("/channels")
-	listProjectNotificationChannels(...ProjectRefParam): OkJson<NotificationChannelListResponse> | UnauthorizedProblem | NotFoundProblem | UnprocessableEntityProblem | InternalServerProblem;
+	@route("/notifications")
+	listProjectNotifications(...ProjectRefParam): OkJson<NotificationListResponse> | UnauthorizedProblem | NotFoundProblem | UnprocessableEntityProblem | InternalServerProblem;
 
-	@operationId("createProjectNotificationChannel")
-	@summary("Create project notification channel")
+	@operationId("createProjectNotification")
+	@summary("Create project notification")
 	@post
-	@route("/channels")
-	createProjectNotificationChannel(...ProjectRefParam, @body body: CreateNotificationChannelRequest):
-		| CreatedJson<NotificationChannelResponse>
+	@route("/notifications")
+	createProjectNotification(...ProjectRefParam, @body body: CreateNotificationRequest):
+		| CreatedJson<NotificationResponse>
 		| BadRequestProblem
 		| UnauthorizedProblem
 		| ForbiddenProblem
@@ -97,23 +97,18 @@ interface AlertService {
 		| UnprocessableEntityProblem
 		| InternalServerProblem;
 
-	@operationId("getProjectNotificationChannel")
-	@summary("Get project notification channel")
+	@operationId("getProjectNotification")
+	@summary("Get project notification")
 	@get
-	@route("/channels/{channel_id}")
-	getProjectNotificationChannel(...ProjectRefParam, ...NotificationChannelIdPathParam):
-		| OkJson<NotificationChannelResponse>
-		| UnauthorizedProblem
-		| NotFoundProblem
-		| UnprocessableEntityProblem
-		| InternalServerProblem;
+	@route("/notifications/{notification_id}")
+	getProjectNotification(...ProjectRefParam, ...NotificationIdPathParam): OkJson<NotificationResponse> | UnauthorizedProblem | NotFoundProblem | UnprocessableEntityProblem | InternalServerProblem;
 
-	@operationId("updateProjectNotificationChannel")
-	@summary("Update project notification channel")
+	@operationId("updateProjectNotification")
+	@summary("Update project notification")
 	@patch
-	@route("/channels/{channel_id}")
-	updateProjectNotificationChannel(...ProjectRefParam, ...NotificationChannelIdPathParam, @body body: UpdateNotificationChannelRequest):
-		| OkJson<NotificationChannelResponse>
+	@route("/notifications/{notification_id}")
+	updateProjectNotification(...ProjectRefParam, ...NotificationIdPathParam, @body body: UpdateNotificationRequest):
+		| OkJson<NotificationResponse>
 		| BadRequestProblem
 		| UnauthorizedProblem
 		| ForbiddenProblem
@@ -121,27 +116,21 @@ interface AlertService {
 		| UnprocessableEntityProblem
 		| InternalServerProblem;
 
-	@operationId("testProjectNotificationChannel")
-	@summary("Send a test notification through a project notification channel")
+	@operationId("testProjectNotification")
+	@summary("Send a test notification through a project notification")
 	@post
-	@route("/channels/{channel_id}/test")
-	testProjectNotificationChannel(...ProjectRefParam, ...NotificationChannelIdPathParam):
-		| OkJson<NotificationChannelTestResponse>
+	@route("/notifications/{notification_id}/test")
+	testProjectNotification(...ProjectRefParam, ...NotificationIdPathParam):
+		| OkJson<NotificationTestResponse>
 		| UnauthorizedProblem
 		| ForbiddenProblem
 		| NotFoundProblem
 		| UnprocessableEntityProblem
 		| InternalServerProblem;
 
-	@operationId("deleteProjectNotificationChannel")
-	@summary("Delete project notification channel")
+	@operationId("deleteProjectNotification")
+	@summary("Delete project notification")
 	@delete
-	@route("/channels/{channel_id}")
-	deleteProjectNotificationChannel(...ProjectRefParam, ...NotificationChannelIdPathParam):
-		| NoContent
-		| UnauthorizedProblem
-		| ForbiddenProblem
-		| NotFoundProblem
-		| UnprocessableEntityProblem
-		| InternalServerProblem;
+	@route("/notifications/{notification_id}")
+	deleteProjectNotification(...ProjectRefParam, ...NotificationIdPathParam): NoContent | UnauthorizedProblem | ForbiddenProblem | NotFoundProblem | UnprocessableEntityProblem | InternalServerProblem;
 }

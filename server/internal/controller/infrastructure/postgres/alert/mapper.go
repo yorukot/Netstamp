@@ -11,30 +11,30 @@ import (
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
 )
 
-func mapRule(row sqlc.AlertRule, channelIDs []string) domainalert.Rule {
+func mapRule(row sqlc.AlertRule, notificationIDs []string) domainalert.Rule {
 	condition, parseErr := alertcondition.Parse(row.Condition)
 	if parseErr != nil {
 		condition = alertcondition.Condition{}
 	}
 	return domainalert.Rule{
-		ID:                     row.ID.String(),
-		ProjectID:              row.ProjectID.String(),
-		Name:                   row.Name,
-		Description:            row.Description,
-		Status:                 domainalert.RuleStatus(row.Status),
-		Severity:               domainalert.Severity(row.Severity),
-		CheckType:              domaincheck.Type(row.CheckType),
-		ProbeID:                stringUUIDPtr(row.ProbeID),
-		CheckID:                stringUUIDPtr(row.CheckID),
-		ProbeSelector:          json.RawMessage(row.ProbeSelector),
-		Condition:              condition,
-		ConditionJSON:          json.RawMessage(row.Condition),
-		ConditionVersion:       row.ConditionVersion,
-		CooldownSeconds:        row.CooldownSeconds,
-		NotificationChannelIDs: channelIDs,
-		CreatedByUserID:        row.CreatedByUserID.String(),
-		CreatedAt:              row.CreatedAt,
-		UpdatedAt:              row.UpdatedAt,
+		ID:               row.ID.String(),
+		ProjectID:        row.ProjectID.String(),
+		Name:             row.Name,
+		Description:      row.Description,
+		Status:           domainalert.RuleStatus(row.Status),
+		Severity:         domainalert.Severity(row.Severity),
+		CheckType:        domaincheck.Type(row.CheckType),
+		ProbeID:          stringUUIDPtr(row.ProbeID),
+		CheckID:          stringUUIDPtr(row.CheckID),
+		ProbeSelector:    json.RawMessage(row.ProbeSelector),
+		Condition:        condition,
+		ConditionJSON:    json.RawMessage(row.Condition),
+		ConditionVersion: row.ConditionVersion,
+		CooldownSeconds:  row.CooldownSeconds,
+		NotificationIDs:  notificationIDs,
+		CreatedByUserID:  row.CreatedByUserID.String(),
+		CreatedAt:        row.CreatedAt,
+		UpdatedAt:        row.UpdatedAt,
 	}
 }
 
@@ -146,12 +146,12 @@ func addIncidentSummaries(
 	}
 }
 
-func mapChannel(row sqlc.NotificationChannel) domainalert.NotificationChannel {
-	return domainalert.NotificationChannel{
+func mapNotification(row sqlc.Notification) domainalert.Notification {
+	return domainalert.Notification{
 		ID:              row.ID.String(),
 		ProjectID:       row.ProjectID.String(),
 		Name:            row.Name,
-		Type:            domainalert.ChannelType(row.Type),
+		Type:            domainalert.NotificationType(row.Type),
 		Enabled:         row.Enabled,
 		Config:          json.RawMessage(row.Config),
 		CreatedByUserID: row.CreatedByUserID.String(),
@@ -162,26 +162,26 @@ func mapChannel(row sqlc.NotificationChannel) domainalert.NotificationChannel {
 
 func mapOutbox(row sqlc.NotificationOutbox) domainalert.NotificationOutboxJob {
 	return domainalert.NotificationOutboxJob{
-		ID:            row.ID.String(),
-		ProjectID:     row.ProjectID.String(),
-		IncidentID:    row.IncidentID.String(),
-		RuleID:        row.RuleID.String(),
-		ChannelID:     row.ChannelID.String(),
-		ChannelType:   domainalert.ChannelType(row.ChannelType),
-		EventType:     row.EventType,
-		Status:        domainalert.OutboxStatus(row.Status),
-		Payload:       json.RawMessage(row.Payload),
-		AttemptCount:  row.AttemptCount,
-		MaxAttempts:   row.MaxAttempts,
-		NextAttemptAt: row.NextAttemptAt,
-		LastAttemptAt: row.LastAttemptAt,
-		DeliveredAt:   row.DeliveredAt,
-		LastErrorKind: row.LastErrorKind,
-		LastErrorCode: row.LastErrorCode,
-		LastError:     row.LastError,
-		DedupeKey:     row.DedupeKey,
-		CreatedAt:     row.CreatedAt,
-		UpdatedAt:     row.UpdatedAt,
+		ID:               row.ID.String(),
+		ProjectID:        row.ProjectID.String(),
+		IncidentID:       row.IncidentID.String(),
+		RuleID:           row.RuleID.String(),
+		NotificationID:   row.NotificationID.String(),
+		NotificationType: domainalert.NotificationType(row.NotificationType),
+		EventType:        row.EventType,
+		Status:           domainalert.OutboxStatus(row.Status),
+		Payload:          json.RawMessage(row.Payload),
+		AttemptCount:     row.AttemptCount,
+		MaxAttempts:      row.MaxAttempts,
+		NextAttemptAt:    row.NextAttemptAt,
+		LastAttemptAt:    row.LastAttemptAt,
+		DeliveredAt:      row.DeliveredAt,
+		LastErrorKind:    row.LastErrorKind,
+		LastErrorCode:    row.LastErrorCode,
+		LastError:        row.LastError,
+		DedupeKey:        row.DedupeKey,
+		CreatedAt:        row.CreatedAt,
+		UpdatedAt:        row.UpdatedAt,
 	}
 }
 
@@ -209,6 +209,6 @@ func sqlcEvaluationState(value alertcondition.EvaluationState) sqlc.AlertEvaluat
 	return sqlc.AlertEvaluationState(value)
 }
 
-func sqlcChannelType(value domainalert.ChannelType) sqlc.NotificationChannelType {
-	return sqlc.NotificationChannelType(value)
+func sqlcNotificationType(value domainalert.NotificationType) sqlc.NotificationType {
+	return sqlc.NotificationType(value)
 }

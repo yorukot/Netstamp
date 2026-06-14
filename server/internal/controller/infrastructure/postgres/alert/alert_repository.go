@@ -58,7 +58,7 @@ func (r *Repository) ListRules(ctx context.Context, projectID string, status *do
 		postgres.RecordDBSpanError(span, err)
 		return nil, err
 	}
-	return r.mapRulesWithChannels(ctx, projectUUID, rows)
+	return r.mapRulesWithNotifications(ctx, projectUUID, rows)
 }
 
 func (r *Repository) GetRule(ctx context.Context, projectID, ruleID string) (domainalert.Rule, error) {
@@ -74,12 +74,12 @@ func (r *Repository) GetRule(ctx context.Context, projectID, ruleID string) (dom
 		postgres.RecordDBSpanError(span, err)
 		return domainalert.Rule{}, mapNoRows(err, domainalert.ErrRuleNotFound)
 	}
-	channelIDs, err := r.ruleNotificationChannelIDs(ctx, projectUUID, ruleUUID)
+	notificationIDs, err := r.ruleNotificationIDs(ctx, projectUUID, ruleUUID)
 	if err != nil {
 		postgres.RecordDBSpanError(span, err)
 		return domainalert.Rule{}, err
 	}
-	return mapRule(row, channelIDs), nil
+	return mapRule(row, notificationIDs), nil
 }
 
 func (r *Repository) CreateRule(ctx context.Context, input domainalert.Rule) (domainalert.Rule, error) {
@@ -97,20 +97,20 @@ func (r *Repository) CreateRule(ctx context.Context, input domainalert.Rule) (do
 		if err != nil {
 			return err
 		}
-		for _, channelID := range input.NotificationChannelIDs {
-			channelUUID, parseErr := postgres.ParseUUID(channelID, domainalert.ErrChannelNotFound)
+		for _, notificationID := range input.NotificationIDs {
+			notificationUUID, parseErr := postgres.ParseUUID(notificationID, domainalert.ErrNotificationNotFound)
 			if parseErr != nil {
 				return parseErr
 			}
 			if err := q.AddAlertNotification(ctx, sqlc.AddAlertNotificationParams{
-				ProjectID: row.ProjectID,
-				RuleID:    row.ID,
-				ChannelID: channelUUID,
+				ProjectID:      row.ProjectID,
+				RuleID:         row.ID,
+				NotificationID: notificationUUID,
 			}); err != nil {
 				return err
 			}
 		}
-		created = mapRule(row, input.NotificationChannelIDs)
+		created = mapRule(row, input.NotificationIDs)
 		return nil
 	})
 	if err != nil {
@@ -138,20 +138,20 @@ func (r *Repository) UpdateRule(ctx context.Context, input domainalert.Rule) (do
 		if err := q.ReplaceAlertNotifications(ctx, sqlc.ReplaceAlertNotificationsParams{ProjectID: row.ProjectID, RuleID: row.ID}); err != nil {
 			return err
 		}
-		for _, channelID := range input.NotificationChannelIDs {
-			channelUUID, parseErr := postgres.ParseUUID(channelID, domainalert.ErrChannelNotFound)
+		for _, notificationID := range input.NotificationIDs {
+			notificationUUID, parseErr := postgres.ParseUUID(notificationID, domainalert.ErrNotificationNotFound)
 			if parseErr != nil {
 				return parseErr
 			}
 			if err := q.AddAlertNotification(ctx, sqlc.AddAlertNotificationParams{
-				ProjectID: row.ProjectID,
-				RuleID:    row.ID,
-				ChannelID: channelUUID,
+				ProjectID:      row.ProjectID,
+				RuleID:         row.ID,
+				NotificationID: notificationUUID,
 			}); err != nil {
 				return err
 			}
 		}
-		updated = mapRule(row, input.NotificationChannelIDs)
+		updated = mapRule(row, input.NotificationIDs)
 		return nil
 	})
 	if err != nil {
@@ -180,78 +180,78 @@ func (r *Repository) DeleteRule(ctx context.Context, projectID, ruleID string) e
 	return nil
 }
 
-func (r *Repository) ListChannels(ctx context.Context, projectID string, channelType *domainalert.ChannelType) ([]domainalert.NotificationChannel, error) {
-	ctx, span := postgres.StartDBSpan(ctx, pgalertTracer, "notification_channels", "postgres.notification_channels.list", "SELECT", "SELECT notification channels")
+func (r *Repository) ListNotifications(ctx context.Context, projectID string, notificationType *domainalert.NotificationType) ([]domainalert.Notification, error) {
+	ctx, span := postgres.StartDBSpan(ctx, pgalertTracer, "notifications", "postgres.notifications.list", "SELECT", "SELECT notifications")
 	defer span.End()
 
 	projectUUID, err := postgres.ParseUUID(projectID, domainproject.ErrProjectNotFound)
 	if err != nil {
 		return nil, err
 	}
-	var typeParam *sqlc.NotificationChannelType
-	if channelType != nil {
-		value := sqlcChannelType(*channelType)
+	var typeParam *sqlc.NotificationType
+	if notificationType != nil {
+		value := sqlcNotificationType(*notificationType)
 		typeParam = &value
 	}
-	rows, err := r.queries.ListNotificationChannels(ctx, sqlc.ListNotificationChannelsParams{ProjectID: projectUUID, ChannelType: typeParam})
+	rows, err := r.queries.ListNotifications(ctx, sqlc.ListNotificationsParams{ProjectID: projectUUID, NotificationType: typeParam})
 	if err != nil {
 		postgres.RecordDBSpanError(span, err)
 		return nil, err
 	}
-	channels := make([]domainalert.NotificationChannel, 0, len(rows))
+	notifications := make([]domainalert.Notification, 0, len(rows))
 	for _, row := range rows {
-		channels = append(channels, mapChannel(row))
+		notifications = append(notifications, mapNotification(row))
 	}
-	return channels, nil
+	return notifications, nil
 }
 
-func (r *Repository) GetChannel(ctx context.Context, projectID, channelID string) (domainalert.NotificationChannel, error) {
-	projectUUID, channelUUID, err := parseProjectScopedID(projectID, channelID, domainalert.ErrChannelNotFound)
+func (r *Repository) GetNotification(ctx context.Context, projectID, notificationID string) (domainalert.Notification, error) {
+	projectUUID, notificationUUID, err := parseProjectScopedID(projectID, notificationID, domainalert.ErrNotificationNotFound)
 	if err != nil {
-		return domainalert.NotificationChannel{}, err
+		return domainalert.Notification{}, err
 	}
-	row, err := r.queries.GetNotificationChannel(ctx, sqlc.GetNotificationChannelParams{ProjectID: projectUUID, ID: channelUUID})
+	row, err := r.queries.GetNotification(ctx, sqlc.GetNotificationParams{ProjectID: projectUUID, ID: notificationUUID})
 	if err != nil {
-		return domainalert.NotificationChannel{}, mapNoRows(err, domainalert.ErrChannelNotFound)
+		return domainalert.Notification{}, mapNoRows(err, domainalert.ErrNotificationNotFound)
 	}
-	return mapChannel(row), nil
+	return mapNotification(row), nil
 }
 
-func (r *Repository) CreateChannel(ctx context.Context, input domainalert.NotificationChannel) (domainalert.NotificationChannel, error) {
-	params, err := createChannelParams(input)
+func (r *Repository) CreateNotification(ctx context.Context, input domainalert.Notification) (domainalert.Notification, error) {
+	params, err := createNotificationParams(input)
 	if err != nil {
-		return domainalert.NotificationChannel{}, err
+		return domainalert.Notification{}, err
 	}
-	row, err := r.queries.CreateNotificationChannel(ctx, params)
+	row, err := r.queries.CreateNotification(ctx, params)
 	if err != nil {
-		return domainalert.NotificationChannel{}, err
+		return domainalert.Notification{}, err
 	}
-	return mapChannel(row), nil
+	return mapNotification(row), nil
 }
 
-func (r *Repository) UpdateChannel(ctx context.Context, input domainalert.NotificationChannel) (domainalert.NotificationChannel, error) {
-	params, err := updateChannelParams(input)
+func (r *Repository) UpdateNotification(ctx context.Context, input domainalert.Notification) (domainalert.Notification, error) {
+	params, err := updateNotificationParams(input)
 	if err != nil {
-		return domainalert.NotificationChannel{}, err
+		return domainalert.Notification{}, err
 	}
-	row, err := r.queries.UpdateNotificationChannel(ctx, params)
+	row, err := r.queries.UpdateNotification(ctx, params)
 	if err != nil {
-		return domainalert.NotificationChannel{}, mapNoRows(err, domainalert.ErrChannelNotFound)
+		return domainalert.Notification{}, mapNoRows(err, domainalert.ErrNotificationNotFound)
 	}
-	return mapChannel(row), nil
+	return mapNotification(row), nil
 }
 
-func (r *Repository) DeleteChannel(ctx context.Context, projectID, channelID string) error {
-	projectUUID, channelUUID, err := parseProjectScopedID(projectID, channelID, domainalert.ErrChannelNotFound)
+func (r *Repository) DeleteNotification(ctx context.Context, projectID, notificationID string) error {
+	projectUUID, notificationUUID, err := parseProjectScopedID(projectID, notificationID, domainalert.ErrNotificationNotFound)
 	if err != nil {
 		return err
 	}
-	rows, err := r.queries.SoftDeleteNotificationChannel(ctx, sqlc.SoftDeleteNotificationChannelParams{ProjectID: projectUUID, ID: channelUUID})
+	rows, err := r.queries.SoftDeleteNotification(ctx, sqlc.SoftDeleteNotificationParams{ProjectID: projectUUID, ID: notificationUUID})
 	if err != nil {
 		return err
 	}
 	if rows == 0 {
-		return domainalert.ErrChannelNotFound
+		return domainalert.ErrNotificationNotFound
 	}
 	return nil
 }
@@ -306,7 +306,7 @@ func (r *Repository) ListEnabledRulesForAssignment(ctx context.Context, projectI
 	if err != nil {
 		return nil, err
 	}
-	return r.mapRulesWithChannels(ctx, projectUUID, rows)
+	return r.mapRulesWithNotifications(ctx, projectUUID, rows)
 }
 
 func (r *Repository) GetMetricSummary(ctx context.Context, metric string, probeStorageID, checkStorageID int64, from, to time.Time) (alertcondition.MetricSummary, error) {
@@ -468,20 +468,20 @@ func (r *Repository) ResolveIncidentAndEnqueue(ctx context.Context, incidentID s
 	return incident, nil
 }
 
-func (r *Repository) ListEnabledChannelsForRule(ctx context.Context, projectID, ruleID string) ([]domainalert.NotificationChannel, error) {
+func (r *Repository) ListEnabledNotificationsForRule(ctx context.Context, projectID, ruleID string) ([]domainalert.Notification, error) {
 	projectUUID, ruleUUID, err := parseProjectScopedID(projectID, ruleID, domainalert.ErrRuleNotFound)
 	if err != nil {
 		return nil, err
 	}
-	rows, err := r.queries.ListEnabledChannelsForRule(ctx, sqlc.ListEnabledChannelsForRuleParams{ProjectID: projectUUID, RuleID: ruleUUID})
+	rows, err := r.queries.ListEnabledNotificationsForRule(ctx, sqlc.ListEnabledNotificationsForRuleParams{ProjectID: projectUUID, RuleID: ruleUUID})
 	if err != nil {
 		return nil, err
 	}
-	channels := make([]domainalert.NotificationChannel, 0, len(rows))
+	notifications := make([]domainalert.Notification, 0, len(rows))
 	for _, row := range rows {
-		channels = append(channels, mapChannel(row))
+		notifications = append(notifications, mapNotification(row))
 	}
-	return channels, nil
+	return notifications, nil
 }
 
 func (r *Repository) ClaimOutbox(ctx context.Context, limit int32, staleBefore time.Time) ([]domainalert.NotificationOutboxJob, error) {
@@ -542,20 +542,20 @@ func (r *Repository) MarkOutboxDiscarded(ctx context.Context, id, kind, code, me
 	})
 }
 
-func (r *Repository) mapRulesWithChannels(ctx context.Context, projectUUID uuid.UUID, rows []sqlc.AlertRule) ([]domainalert.Rule, error) {
+func (r *Repository) mapRulesWithNotifications(ctx context.Context, projectUUID uuid.UUID, rows []sqlc.AlertRule) ([]domainalert.Rule, error) {
 	rules := make([]domainalert.Rule, 0, len(rows))
 	for _, row := range rows {
-		channelIDs, err := r.ruleNotificationChannelIDs(ctx, projectUUID, row.ID)
+		notificationIDs, err := r.ruleNotificationIDs(ctx, projectUUID, row.ID)
 		if err != nil {
 			return nil, err
 		}
-		rules = append(rules, mapRule(row, channelIDs))
+		rules = append(rules, mapRule(row, notificationIDs))
 	}
 	return rules, nil
 }
 
-func (r *Repository) ruleNotificationChannelIDs(ctx context.Context, projectUUID, ruleUUID uuid.UUID) ([]string, error) {
-	rows, err := r.queries.ListAlertNotificationChannelIDs(ctx, sqlc.ListAlertNotificationChannelIDsParams{ProjectID: projectUUID, RuleIds: []uuid.UUID{ruleUUID}})
+func (r *Repository) ruleNotificationIDs(ctx context.Context, projectUUID, ruleUUID uuid.UUID) ([]string, error) {
+	rows, err := r.queries.ListAlertNotificationIDs(ctx, sqlc.ListAlertNotificationIDsParams{ProjectID: projectUUID, RuleIds: []uuid.UUID{ruleUUID}})
 	if err != nil {
 		return nil, err
 	}
@@ -614,37 +614,37 @@ func updateRuleParams(input domainalert.Rule) (sqlc.UpdateAlertRuleParams, error
 	}, nil
 }
 
-func createChannelParams(input domainalert.NotificationChannel) (sqlc.CreateNotificationChannelParams, error) {
+func createNotificationParams(input domainalert.Notification) (sqlc.CreateNotificationParams, error) {
 	projectUUID, err := uuid.Parse(input.ProjectID)
 	if err != nil {
-		return sqlc.CreateNotificationChannelParams{}, err
+		return sqlc.CreateNotificationParams{}, err
 	}
 	createdByUUID, err := uuid.Parse(input.CreatedByUserID)
 	if err != nil {
-		return sqlc.CreateNotificationChannelParams{}, err
+		return sqlc.CreateNotificationParams{}, err
 	}
-	return sqlc.CreateNotificationChannelParams{
-		ProjectID:       projectUUID,
-		Name:            input.Name,
-		ChannelType:     sqlcChannelType(input.Type),
-		Enabled:         input.Enabled,
-		Config:          input.Config,
-		CreatedByUserID: createdByUUID,
+	return sqlc.CreateNotificationParams{
+		ProjectID:        projectUUID,
+		Name:             input.Name,
+		NotificationType: sqlcNotificationType(input.Type),
+		Enabled:          input.Enabled,
+		Config:           input.Config,
+		CreatedByUserID:  createdByUUID,
 	}, nil
 }
 
-func updateChannelParams(input domainalert.NotificationChannel) (sqlc.UpdateNotificationChannelParams, error) {
-	projectUUID, channelUUID, err := parseProjectScopedID(input.ProjectID, input.ID, domainalert.ErrChannelNotFound)
+func updateNotificationParams(input domainalert.Notification) (sqlc.UpdateNotificationParams, error) {
+	projectUUID, notificationUUID, err := parseProjectScopedID(input.ProjectID, input.ID, domainalert.ErrNotificationNotFound)
 	if err != nil {
-		return sqlc.UpdateNotificationChannelParams{}, err
+		return sqlc.UpdateNotificationParams{}, err
 	}
-	return sqlc.UpdateNotificationChannelParams{
-		ProjectID:   projectUUID,
-		ID:          channelUUID,
-		Name:        input.Name,
-		ChannelType: sqlcChannelType(input.Type),
-		Enabled:     input.Enabled,
-		Config:      input.Config,
+	return sqlc.UpdateNotificationParams{
+		ProjectID:        projectUUID,
+		ID:               notificationUUID,
+		Name:             input.Name,
+		NotificationType: sqlcNotificationType(input.Type),
+		Enabled:          input.Enabled,
+		Config:           input.Config,
 	}, nil
 }
 
@@ -684,13 +684,13 @@ func enqueueJob(ctx context.Context, q *sqlc.Queries, input domainalert.Notifica
 	if err != nil {
 		return err
 	}
-	channelUUID, err := postgres.ParseUUID(input.ChannelID, domainalert.ErrChannelNotFound)
+	notificationUUID, err := postgres.ParseUUID(input.NotificationID, domainalert.ErrNotificationNotFound)
 	if err != nil {
 		return err
 	}
 	_, err = q.EnqueueNotificationOutbox(ctx, sqlc.EnqueueNotificationOutboxParams{
-		ProjectID: projectUUID, IncidentID: incidentUUID, RuleID: ruleUUID, ChannelID: channelUUID,
-		ChannelType: sqlcChannelType(input.ChannelType), EventType: input.EventType, Payload: input.Payload, DedupeKey: input.DedupeKey,
+		ProjectID: projectUUID, IncidentID: incidentUUID, RuleID: ruleUUID, NotificationID: notificationUUID,
+		NotificationType: sqlcNotificationType(input.NotificationType), EventType: input.EventType, Payload: input.Payload, DedupeKey: input.DedupeKey,
 	})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil

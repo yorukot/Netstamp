@@ -16,7 +16,7 @@
 		},
 		{
 			"name": "Alerts",
-			"description": "Project-scoped alert rules, alert incidents, and notification channels."
+			"description": "Project-scoped alert rules, alert incidents, and notifications."
 		},
 		{
 			"name": "Results",
@@ -1037,499 +1037,6 @@
 				]
 			}
 		},
-		"/projects/{ref}/alerts/channels": {
-			"get": {
-				"operationId": "listProjectNotificationChannels",
-				"summary": "List project notification channels",
-				"parameters": [
-					{
-						"$ref": "#/components/parameters/ProjectRefParam"
-					}
-				],
-				"responses": {
-					"200": {
-						"description": "The request has succeeded.",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/NotificationChannelListResponse"
-								}
-							}
-						}
-					},
-					"401": {
-						"description": "Access is unauthorized.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"404": {
-						"description": "The server cannot find the requested resource.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"422": {
-						"description": "Client error",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"500": {
-						"description": "Server error",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					}
-				},
-				"tags": ["Alerts"],
-				"security": [
-					{
-						"SessionCookieAuth": []
-					}
-				]
-			},
-			"post": {
-				"operationId": "createProjectNotificationChannel",
-				"summary": "Create project notification channel",
-				"parameters": [
-					{
-						"$ref": "#/components/parameters/ProjectRefParam"
-					}
-				],
-				"responses": {
-					"201": {
-						"description": "The request has succeeded and a new resource has been created as a result.",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/NotificationChannelResponse"
-								}
-							}
-						}
-					},
-					"400": {
-						"description": "The server could not understand the request due to invalid syntax.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"401": {
-						"description": "Access is unauthorized.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"403": {
-						"description": "Access is forbidden.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"404": {
-						"description": "The server cannot find the requested resource.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"422": {
-						"description": "Client error",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"500": {
-						"description": "Server error",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					}
-				},
-				"tags": ["Alerts"],
-				"requestBody": {
-					"required": true,
-					"content": {
-						"application/json": {
-							"schema": {
-								"$ref": "#/components/schemas/CreateNotificationChannelRequest"
-							}
-						}
-					}
-				},
-				"security": [
-					{
-						"SessionCookieAuth": []
-					}
-				]
-			}
-		},
-		"/projects/{ref}/alerts/channels/{channel_id}": {
-			"get": {
-				"operationId": "getProjectNotificationChannel",
-				"summary": "Get project notification channel",
-				"parameters": [
-					{
-						"$ref": "#/components/parameters/ProjectRefParam"
-					},
-					{
-						"$ref": "#/components/parameters/NotificationChannelIdPathParam"
-					}
-				],
-				"responses": {
-					"200": {
-						"description": "The request has succeeded.",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/NotificationChannelResponse"
-								}
-							}
-						}
-					},
-					"401": {
-						"description": "Access is unauthorized.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"404": {
-						"description": "The server cannot find the requested resource.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"422": {
-						"description": "Client error",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"500": {
-						"description": "Server error",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					}
-				},
-				"tags": ["Alerts"],
-				"security": [
-					{
-						"SessionCookieAuth": []
-					}
-				]
-			},
-			"patch": {
-				"operationId": "updateProjectNotificationChannel",
-				"summary": "Update project notification channel",
-				"parameters": [
-					{
-						"$ref": "#/components/parameters/ProjectRefParam"
-					},
-					{
-						"$ref": "#/components/parameters/NotificationChannelIdPathParam"
-					}
-				],
-				"responses": {
-					"200": {
-						"description": "The request has succeeded.",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/NotificationChannelResponse"
-								}
-							}
-						}
-					},
-					"400": {
-						"description": "The server could not understand the request due to invalid syntax.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"401": {
-						"description": "Access is unauthorized.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"403": {
-						"description": "Access is forbidden.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"404": {
-						"description": "The server cannot find the requested resource.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"422": {
-						"description": "Client error",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"500": {
-						"description": "Server error",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					}
-				},
-				"tags": ["Alerts"],
-				"requestBody": {
-					"required": true,
-					"content": {
-						"application/json": {
-							"schema": {
-								"$ref": "#/components/schemas/UpdateNotificationChannelRequest"
-							}
-						}
-					}
-				},
-				"security": [
-					{
-						"SessionCookieAuth": []
-					}
-				]
-			},
-			"delete": {
-				"operationId": "deleteProjectNotificationChannel",
-				"summary": "Delete project notification channel",
-				"parameters": [
-					{
-						"$ref": "#/components/parameters/ProjectRefParam"
-					},
-					{
-						"$ref": "#/components/parameters/NotificationChannelIdPathParam"
-					}
-				],
-				"responses": {
-					"204": {
-						"description": "There is no content to send for this request, but the headers may be useful. "
-					},
-					"401": {
-						"description": "Access is unauthorized.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"403": {
-						"description": "Access is forbidden.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"404": {
-						"description": "The server cannot find the requested resource.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"422": {
-						"description": "Client error",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"500": {
-						"description": "Server error",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					}
-				},
-				"tags": ["Alerts"],
-				"security": [
-					{
-						"SessionCookieAuth": []
-					}
-				]
-			}
-		},
-		"/projects/{ref}/alerts/channels/{channel_id}/test": {
-			"post": {
-				"operationId": "testProjectNotificationChannel",
-				"summary": "Send a test notification through a project notification channel",
-				"parameters": [
-					{
-						"$ref": "#/components/parameters/ProjectRefParam"
-					},
-					{
-						"$ref": "#/components/parameters/NotificationChannelIdPathParam"
-					}
-				],
-				"responses": {
-					"200": {
-						"description": "The request has succeeded.",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/NotificationChannelTestResponse"
-								}
-							}
-						}
-					},
-					"401": {
-						"description": "Access is unauthorized.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"403": {
-						"description": "Access is forbidden.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"404": {
-						"description": "The server cannot find the requested resource.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"422": {
-						"description": "Client error",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"500": {
-						"description": "Server error",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					}
-				},
-				"tags": ["Alerts"],
-				"security": [
-					{
-						"SessionCookieAuth": []
-					}
-				]
-			}
-		},
 		"/projects/{ref}/alerts/incidents": {
 			"get": {
 				"operationId": "listProjectAlertIncidents",
@@ -1640,6 +1147,499 @@
 					},
 					"401": {
 						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Alerts"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/projects/{ref}/alerts/notifications": {
+			"get": {
+				"operationId": "listProjectNotifications",
+				"summary": "List project notifications",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/NotificationListResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Alerts"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			},
+			"post": {
+				"operationId": "createProjectNotification",
+				"summary": "Create project notification",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					}
+				],
+				"responses": {
+					"201": {
+						"description": "The request has succeeded and a new resource has been created as a result.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/NotificationResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Alerts"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/CreateNotificationRequest"
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/projects/{ref}/alerts/notifications/{notification_id}": {
+			"get": {
+				"operationId": "getProjectNotification",
+				"summary": "Get project notification",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					},
+					{
+						"$ref": "#/components/parameters/NotificationIdPathParam"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/NotificationResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Alerts"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			},
+			"patch": {
+				"operationId": "updateProjectNotification",
+				"summary": "Update project notification",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					},
+					{
+						"$ref": "#/components/parameters/NotificationIdPathParam"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/NotificationResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Alerts"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/UpdateNotificationRequest"
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			},
+			"delete": {
+				"operationId": "deleteProjectNotification",
+				"summary": "Delete project notification",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					},
+					{
+						"$ref": "#/components/parameters/NotificationIdPathParam"
+					}
+				],
+				"responses": {
+					"204": {
+						"description": "There is no content to send for this request, but the headers may be useful. "
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Alerts"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/projects/{ref}/alerts/notifications/{notification_id}/test": {
+			"post": {
+				"operationId": "testProjectNotification",
+				"summary": "Send a test notification through a project notification",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					},
+					{
+						"$ref": "#/components/parameters/NotificationIdPathParam"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/NotificationTestResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -5543,8 +5543,8 @@
 				},
 				"explode": false
 			},
-			"NotificationChannelIdPathParam": {
-				"name": "channel_id",
+			"NotificationIdPathParam": {
+				"name": "notification_id",
 				"in": "path",
 				"required": true,
 				"schema": {
@@ -6376,7 +6376,7 @@
 			},
 			"AlertRule": {
 				"type": "object",
-				"required": ["id", "name", "enabled", "severity", "scope", "condition", "cooldownSeconds", "notificationChannelIds", "createdAt", "updatedAt"],
+				"required": ["id", "name", "enabled", "severity", "scope", "condition", "cooldownSeconds", "notificationIds", "createdAt", "updatedAt"],
 				"properties": {
 					"id": {
 						"$ref": "#/components/schemas/uuid"
@@ -6410,7 +6410,7 @@
 						"minimum": 60,
 						"maximum": 86400
 					},
-					"notificationChannelIds": {
+					"notificationIds": {
 						"type": "array",
 						"items": {
 							"$ref": "#/components/schemas/uuid"
@@ -6446,7 +6446,7 @@
 							"minSamples": 3
 						},
 						"cooldownSeconds": 900,
-						"notificationChannelIds": ["88888888-8888-8888-8888-888888888888"],
+						"notificationIds": ["88888888-8888-8888-8888-888888888888"],
 						"createdAt": "2026-06-14T09:00:00Z",
 						"updatedAt": "2026-06-14T09:00:00Z"
 					}
@@ -6496,7 +6496,7 @@
 								"minSamples": 3
 							},
 							"cooldownSeconds": 900,
-							"notificationChannelIds": [],
+							"notificationIds": [],
 							"createdAt": "2026-06-14T09:00:00Z",
 							"updatedAt": "2026-06-14T09:00:00Z"
 						}
@@ -6857,7 +6857,7 @@
 						"maximum": 86400,
 						"default": 900
 					},
-					"notificationChannelIds": {
+					"notificationIds": {
 						"type": "array",
 						"items": {
 							"$ref": "#/components/schemas/uuid"
@@ -6882,7 +6882,7 @@
 							"minSamples": 3
 						},
 						"cooldownSeconds": 900,
-						"notificationChannelIds": ["88888888-8888-8888-8888-888888888888"]
+						"notificationIds": ["88888888-8888-8888-8888-888888888888"]
 					}
 				]
 			},
@@ -6979,7 +6979,7 @@
 					}
 				]
 			},
-			"CreateNotificationChannelRequest": {
+			"CreateNotificationRequest": {
 				"type": "object",
 				"required": ["name", "type", "enabled", "config"],
 				"properties": {
@@ -6998,13 +6998,13 @@
 					"config": {
 						"anyOf": [
 							{
-								"$ref": "#/components/schemas/WebhookChannelConfig"
+								"$ref": "#/components/schemas/WebhookNotificationConfig"
 							},
 							{
-								"$ref": "#/components/schemas/DiscordChannelConfig"
+								"$ref": "#/components/schemas/DiscordNotificationConfig"
 							},
 							{
-								"$ref": "#/components/schemas/TelegramChannelConfig"
+								"$ref": "#/components/schemas/TelegramNotificationConfig"
 							}
 						]
 					}
@@ -7133,7 +7133,7 @@
 					}
 				]
 			},
-			"DiscordChannelConfig": {
+			"DiscordNotificationConfig": {
 				"type": "object",
 				"required": ["url"],
 				"properties": {
@@ -7335,7 +7335,7 @@
 					}
 				]
 			},
-			"NotificationChannel": {
+			"Notification": {
 				"type": "object",
 				"required": ["id", "name", "type", "enabled", "config", "createdAt", "updatedAt"],
 				"properties": {
@@ -7357,13 +7357,13 @@
 					"config": {
 						"anyOf": [
 							{
-								"$ref": "#/components/schemas/WebhookChannelConfig"
+								"$ref": "#/components/schemas/WebhookNotificationConfig"
 							},
 							{
-								"$ref": "#/components/schemas/DiscordChannelConfig"
+								"$ref": "#/components/schemas/DiscordNotificationConfig"
 							},
 							{
-								"$ref": "#/components/schemas/TelegramChannelResponseConfig"
+								"$ref": "#/components/schemas/TelegramNotificationResponseConfig"
 							}
 						]
 					},
@@ -7390,34 +7390,34 @@
 					}
 				]
 			},
-			"NotificationChannelListResponse": {
+			"NotificationListResponse": {
 				"type": "object",
-				"required": ["channels"],
+				"required": ["notifications"],
 				"properties": {
-					"channels": {
+					"notifications": {
 						"type": "array",
 						"items": {
-							"$ref": "#/components/schemas/NotificationChannel"
+							"$ref": "#/components/schemas/Notification"
 						}
 					}
 				},
 				"examples": [
 					{
-						"channels": []
+						"notifications": []
 					}
 				]
 			},
-			"NotificationChannelResponse": {
+			"NotificationResponse": {
 				"type": "object",
-				"required": ["channel"],
+				"required": ["notification"],
 				"properties": {
-					"channel": {
-						"$ref": "#/components/schemas/NotificationChannel"
+					"notification": {
+						"$ref": "#/components/schemas/Notification"
 					}
 				},
 				"examples": [
 					{
-						"channel": {
+						"notification": {
 							"id": "88888888-8888-8888-8888-888888888888",
 							"name": "Incident webhook",
 							"type": "webhook",
@@ -7431,12 +7431,12 @@
 					}
 				]
 			},
-			"NotificationChannelTestResponse": {
+			"NotificationTestResponse": {
 				"type": "object",
 				"required": ["result"],
 				"properties": {
 					"result": {
-						"$ref": "#/components/schemas/NotificationChannelTestResult"
+						"$ref": "#/components/schemas/NotificationTestResult"
 					}
 				},
 				"examples": [
@@ -7449,7 +7449,7 @@
 					}
 				]
 			},
-			"NotificationChannelTestResult": {
+			"NotificationTestResult": {
 				"type": "object",
 				"required": ["delivered", "retryable"],
 				"properties": {
@@ -9275,7 +9275,7 @@
 					}
 				]
 			},
-			"TelegramChannelConfig": {
+			"TelegramNotificationConfig": {
 				"type": "object",
 				"required": ["botToken", "chatId"],
 				"properties": {
@@ -9295,7 +9295,7 @@
 					}
 				]
 			},
-			"TelegramChannelResponseConfig": {
+			"TelegramNotificationResponseConfig": {
 				"type": "object",
 				"required": ["chatId", "botTokenConfigured"],
 				"properties": {
@@ -10053,7 +10053,7 @@
 						"maximum": 86400,
 						"default": 900
 					},
-					"notificationChannelIds": {
+					"notificationIds": {
 						"type": "array",
 						"items": {
 							"$ref": "#/components/schemas/uuid"
@@ -10079,7 +10079,7 @@
 							"minSamples": 3
 						},
 						"cooldownSeconds": 900,
-						"notificationChannelIds": ["88888888-8888-8888-8888-888888888888"]
+						"notificationIds": ["88888888-8888-8888-8888-888888888888"]
 					}
 				]
 			},
@@ -10181,7 +10181,7 @@
 					}
 				]
 			},
-			"UpdateNotificationChannelRequest": {
+			"UpdateNotificationRequest": {
 				"type": "object",
 				"required": ["name", "type", "enabled", "config"],
 				"properties": {
@@ -10200,18 +10200,18 @@
 					"config": {
 						"anyOf": [
 							{
-								"$ref": "#/components/schemas/WebhookChannelConfig"
+								"$ref": "#/components/schemas/WebhookNotificationConfig"
 							},
 							{
-								"$ref": "#/components/schemas/DiscordChannelConfig"
+								"$ref": "#/components/schemas/DiscordNotificationConfig"
 							},
 							{
-								"$ref": "#/components/schemas/TelegramChannelConfig"
+								"$ref": "#/components/schemas/TelegramNotificationConfig"
 							}
 						]
 					}
 				},
-				"description": "Full replacement patch for a notification channel in the current beta API.",
+				"description": "Full replacement patch for a notification in the current beta API.",
 				"examples": [
 					{
 						"name": "Incident webhook",
@@ -10340,7 +10340,7 @@
 					}
 				]
 			},
-			"WebhookChannelConfig": {
+			"WebhookNotificationConfig": {
 				"type": "object",
 				"required": ["url"],
 				"properties": {

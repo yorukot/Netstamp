@@ -117,18 +117,18 @@ WHERE project_id = sqlc.arg(project_id)
   AND rule_id = sqlc.arg(rule_id);
 
 -- name: AddAlertNotification :exec
-INSERT INTO alert_notifications (project_id, rule_id, channel_id)
-VALUES (sqlc.arg(project_id), sqlc.arg(rule_id), sqlc.arg(channel_id))
-ON CONFLICT (rule_id, channel_id) DO NOTHING;
+INSERT INTO alert_notifications (project_id, rule_id, notification_id)
+VALUES (sqlc.arg(project_id), sqlc.arg(rule_id), sqlc.arg(notification_id))
+ON CONFLICT (rule_id, notification_id) DO NOTHING;
 
--- name: ListAlertNotificationChannelIDs :many
-SELECT channel_id
+-- name: ListAlertNotificationIDs :many
+SELECT notification_id
 FROM alert_notifications
 WHERE project_id = sqlc.arg(project_id)
   AND rule_id = ANY(sqlc.arg(rule_ids)::uuid[])
-ORDER BY created_at ASC, channel_id ASC;
+ORDER BY created_at ASC, notification_id ASC;
 
--- name: ListNotificationChannels :many
+-- name: ListNotifications :many
 SELECT id,
        project_id,
        name,
@@ -139,16 +139,16 @@ SELECT id,
        created_at,
        updated_at,
        deleted_at
-FROM notification_channels
+FROM notifications
 WHERE project_id = sqlc.arg(project_id)
   AND deleted_at IS NULL
   AND (
-      sqlc.narg(channel_type)::notification_channel_type IS NULL
-      OR type = sqlc.narg(channel_type)::notification_channel_type
+      sqlc.narg(notification_type)::notification_type IS NULL
+      OR type = sqlc.narg(notification_type)::notification_type
   )
 ORDER BY created_at DESC, id DESC;
 
--- name: GetNotificationChannel :one
+-- name: GetNotification :one
 SELECT id,
        project_id,
        name,
@@ -159,13 +159,13 @@ SELECT id,
        created_at,
        updated_at,
        deleted_at
-FROM notification_channels
+FROM notifications
 WHERE project_id = sqlc.arg(project_id)
   AND id = sqlc.arg(id)
   AND deleted_at IS NULL;
 
--- name: CreateNotificationChannel :one
-INSERT INTO notification_channels (
+-- name: CreateNotification :one
+INSERT INTO notifications (
     project_id,
     name,
     type,
@@ -176,17 +176,17 @@ INSERT INTO notification_channels (
 VALUES (
     sqlc.arg(project_id),
     sqlc.arg(name),
-    sqlc.arg(channel_type),
+    sqlc.arg(notification_type),
     sqlc.arg(enabled),
     sqlc.arg(config)::jsonb,
     sqlc.arg(created_by_user_id)
 )
 RETURNING id, project_id, name, type, enabled, config, created_by_user_id, created_at, updated_at, deleted_at;
 
--- name: UpdateNotificationChannel :one
-UPDATE notification_channels
+-- name: UpdateNotification :one
+UPDATE notifications
 SET name = sqlc.arg(name),
-    type = sqlc.arg(channel_type),
+    type = sqlc.arg(notification_type),
     enabled = sqlc.arg(enabled),
     config = sqlc.arg(config)::jsonb
 WHERE project_id = sqlc.arg(project_id)
@@ -194,8 +194,8 @@ WHERE project_id = sqlc.arg(project_id)
   AND deleted_at IS NULL
 RETURNING id, project_id, name, type, enabled, config, created_by_user_id, created_at, updated_at, deleted_at;
 
--- name: SoftDeleteNotificationChannel :execrows
-UPDATE notification_channels
+-- name: SoftDeleteNotification :execrows
+UPDATE notifications
 SET deleted_at = now(),
     enabled = false
 WHERE project_id = sqlc.arg(project_id)
@@ -513,8 +513,8 @@ INSERT INTO notification_outbox (
     project_id,
     incident_id,
     rule_id,
-    channel_id,
-    channel_type,
+    notification_id,
+    notification_type,
     event_type,
     payload,
     dedupe_key
@@ -523,8 +523,8 @@ VALUES (
     sqlc.arg(project_id),
     sqlc.arg(incident_id),
     sqlc.arg(rule_id),
-    sqlc.arg(channel_id),
-    sqlc.arg(channel_type),
+    sqlc.arg(notification_id),
+    sqlc.arg(notification_type),
     sqlc.arg(event_type),
     sqlc.arg(payload)::jsonb,
     sqlc.arg(dedupe_key)
@@ -532,26 +532,26 @@ VALUES (
 ON CONFLICT (dedupe_key) DO NOTHING
 RETURNING id;
 
--- name: ListEnabledChannelsForRule :many
-SELECT notification_channels.id,
-       notification_channels.project_id,
-       notification_channels.name,
-       notification_channels.type,
-       notification_channels.enabled,
-       notification_channels.config,
-       notification_channels.created_by_user_id,
-       notification_channels.created_at,
-       notification_channels.updated_at,
-       notification_channels.deleted_at
+-- name: ListEnabledNotificationsForRule :many
+SELECT notifications.id,
+       notifications.project_id,
+       notifications.name,
+       notifications.type,
+       notifications.enabled,
+       notifications.config,
+       notifications.created_by_user_id,
+       notifications.created_at,
+       notifications.updated_at,
+       notifications.deleted_at
 FROM alert_notifications
-JOIN notification_channels
-    ON notification_channels.project_id = alert_notifications.project_id
-    AND notification_channels.id = alert_notifications.channel_id
+JOIN notifications
+    ON notifications.project_id = alert_notifications.project_id
+    AND notifications.id = alert_notifications.notification_id
 WHERE alert_notifications.project_id = sqlc.arg(project_id)
   AND alert_notifications.rule_id = sqlc.arg(rule_id)
-  AND notification_channels.enabled = true
-  AND notification_channels.deleted_at IS NULL
-ORDER BY alert_notifications.created_at ASC, notification_channels.id ASC;
+  AND notifications.enabled = true
+  AND notifications.deleted_at IS NULL
+ORDER BY alert_notifications.created_at ASC, notifications.id ASC;
 
 -- name: RecoverStaleNotificationOutbox :execrows
 UPDATE notification_outbox
@@ -579,8 +579,8 @@ RETURNING notification_outbox.id,
           notification_outbox.project_id,
           notification_outbox.incident_id,
           notification_outbox.rule_id,
-          notification_outbox.channel_id,
-          notification_outbox.channel_type,
+          notification_outbox.notification_id,
+          notification_outbox.notification_type,
           notification_outbox.event_type,
           notification_outbox.status,
           notification_outbox.payload,

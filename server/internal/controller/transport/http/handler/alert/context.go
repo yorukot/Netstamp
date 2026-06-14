@@ -41,7 +41,7 @@ func mapAlertError(err error, fallback string) error {
 		errors.Is(err, identity.ErrUserNotFound),
 		errors.Is(err, domainalert.ErrRuleNotFound),
 		errors.Is(err, domainalert.ErrIncidentNotFound),
-		errors.Is(err, domainalert.ErrChannelNotFound):
+		errors.Is(err, domainalert.ErrNotificationNotFound):
 		return httpx.NotFound("not found")
 	case errors.Is(err, appalert.ErrForbidden):
 		return httpx.Forbidden("forbidden")

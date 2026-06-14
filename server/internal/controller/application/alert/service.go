@@ -15,13 +15,13 @@ import (
 )
 
 type Service struct {
-	repo          Repository
-	projectAccess ProjectAccess
-	channelTester ChannelTester
+	repo               Repository
+	projectAccess      ProjectAccess
+	notificationTester NotificationTester
 }
 
-func NewService(repo Repository, projectAccess ProjectAccess, channelTester ChannelTester) *Service {
-	return &Service{repo: repo, projectAccess: projectAccess, channelTester: channelTester}
+func NewService(repo Repository, projectAccess ProjectAccess, notificationTester NotificationTester) *Service {
+	return &Service{repo: repo, projectAccess: projectAccess, notificationTester: notificationTester}
 }
 
 func (s *Service) ListRules(ctx context.Context, input ListRulesInput) ([]domainalert.Rule, error) {
@@ -81,83 +81,83 @@ func (s *Service) DeleteRule(ctx context.Context, input DeleteRuleInput) error {
 	return s.repo.DeleteRule(ctx, project.ID, input.RuleID)
 }
 
-func (s *Service) ListChannels(ctx context.Context, input ListChannelsInput) ([]domainalert.NotificationChannel, error) {
+func (s *Service) ListNotifications(ctx context.Context, input ListNotificationsInput) ([]domainalert.Notification, error) {
 	project, err := s.loadProject(ctx, input.ProjectRef, input.CurrentUserID)
 	if err != nil {
 		return nil, err
 	}
-	return s.repo.ListChannels(ctx, project.ID, input.Type)
+	return s.repo.ListNotifications(ctx, project.ID, input.Type)
 }
 
-func (s *Service) GetChannel(ctx context.Context, input GetChannelInput) (domainalert.NotificationChannel, error) {
+func (s *Service) GetNotification(ctx context.Context, input GetNotificationInput) (domainalert.Notification, error) {
 	project, err := s.loadProject(ctx, input.ProjectRef, input.CurrentUserID)
 	if err != nil {
-		return domainalert.NotificationChannel{}, err
+		return domainalert.Notification{}, err
 	}
-	return s.repo.GetChannel(ctx, project.ID, input.ChannelID)
+	return s.repo.GetNotification(ctx, project.ID, input.NotificationID)
 }
 
-func (s *Service) CreateChannel(ctx context.Context, input CreateChannelInput) (domainalert.NotificationChannel, error) {
+func (s *Service) CreateNotification(ctx context.Context, input CreateNotificationInput) (domainalert.Notification, error) {
 	project, err := s.loadProject(ctx, input.ProjectRef, input.CurrentUserID)
 	if err != nil {
-		return domainalert.NotificationChannel{}, err
+		return domainalert.Notification{}, err
 	}
-	if actionErr := s.requireChannelWrite(ctx, project.ID, input.CurrentUserID); actionErr != nil {
-		return domainalert.NotificationChannel{}, actionErr
+	if actionErr := s.requireNotificationWrite(ctx, project.ID, input.CurrentUserID); actionErr != nil {
+		return domainalert.Notification{}, actionErr
 	}
-	channel, err := normalizeCreateChannel(project.ID, input)
+	notification, err := normalizeCreateNotification(project.ID, input)
 	if err != nil {
-		return domainalert.NotificationChannel{}, err
+		return domainalert.Notification{}, err
 	}
-	return s.repo.CreateChannel(ctx, channel)
+	return s.repo.CreateNotification(ctx, notification)
 }
 
-func (s *Service) UpdateChannel(ctx context.Context, input UpdateChannelInput) (domainalert.NotificationChannel, error) {
+func (s *Service) UpdateNotification(ctx context.Context, input UpdateNotificationInput) (domainalert.Notification, error) {
 	project, err := s.loadProject(ctx, input.ProjectRef, input.CurrentUserID)
 	if err != nil {
-		return domainalert.NotificationChannel{}, err
+		return domainalert.Notification{}, err
 	}
-	if actionErr := s.requireChannelWrite(ctx, project.ID, input.CurrentUserID); actionErr != nil {
-		return domainalert.NotificationChannel{}, actionErr
+	if actionErr := s.requireNotificationWrite(ctx, project.ID, input.CurrentUserID); actionErr != nil {
+		return domainalert.Notification{}, actionErr
 	}
-	channel, err := normalizeUpdateChannel(project.ID, input)
+	notification, err := normalizeUpdateNotification(project.ID, input)
 	if err != nil {
-		return domainalert.NotificationChannel{}, err
+		return domainalert.Notification{}, err
 	}
-	return s.repo.UpdateChannel(ctx, channel)
+	return s.repo.UpdateNotification(ctx, notification)
 }
 
-func (s *Service) DeleteChannel(ctx context.Context, input DeleteChannelInput) error {
+func (s *Service) DeleteNotification(ctx context.Context, input DeleteNotificationInput) error {
 	project, err := s.loadProject(ctx, input.ProjectRef, input.CurrentUserID)
 	if err != nil {
 		return err
 	}
-	if actionErr := s.requireChannelWrite(ctx, project.ID, input.CurrentUserID); actionErr != nil {
+	if actionErr := s.requireNotificationWrite(ctx, project.ID, input.CurrentUserID); actionErr != nil {
 		return actionErr
 	}
-	return s.repo.DeleteChannel(ctx, project.ID, input.ChannelID)
+	return s.repo.DeleteNotification(ctx, project.ID, input.NotificationID)
 }
 
-func (s *Service) TestChannel(ctx context.Context, input TestChannelInput) (ChannelTestResult, error) {
+func (s *Service) TestNotification(ctx context.Context, input TestNotificationInput) (NotificationTestResult, error) {
 	project, err := s.loadProject(ctx, input.ProjectRef, input.CurrentUserID)
 	if err != nil {
-		return ChannelTestResult{}, err
+		return NotificationTestResult{}, err
 	}
-	if actionErr := s.requireChannelWrite(ctx, project.ID, input.CurrentUserID); actionErr != nil {
-		return ChannelTestResult{}, actionErr
+	if actionErr := s.requireNotificationWrite(ctx, project.ID, input.CurrentUserID); actionErr != nil {
+		return NotificationTestResult{}, actionErr
 	}
-	channel, err := s.repo.GetChannel(ctx, project.ID, input.ChannelID)
+	notification, err := s.repo.GetNotification(ctx, project.ID, input.NotificationID)
 	if err != nil {
-		return ChannelTestResult{}, err
+		return NotificationTestResult{}, err
 	}
-	if s.channelTester == nil {
-		return ChannelTestResult{Kind: "channel", Code: "tester_unavailable", Message: "notification tester is unavailable"}, nil
+	if s.notificationTester == nil {
+		return NotificationTestResult{Kind: "notification", Code: "tester_unavailable", Message: "notification tester is unavailable"}, nil
 	}
-	payload, err := testNotificationPayload(channel, time.Now().UTC())
+	payload, err := testNotificationPayload(notification, time.Now().UTC())
 	if err != nil {
-		return ChannelTestResult{}, err
+		return NotificationTestResult{}, err
 	}
-	result := s.channelTester.TestChannel(ctx, channel, payload)
+	result := s.notificationTester.TestNotification(ctx, notification, payload)
 	if result.Delivered && result.Message == "" {
 		result.Message = "Test notification delivered."
 	}
@@ -195,7 +195,7 @@ func (s *Service) requireProjectAction(ctx context.Context, projectID, userID st
 	return nil
 }
 
-func (s *Service) requireChannelWrite(ctx context.Context, projectID, userID string) error {
+func (s *Service) requireNotificationWrite(ctx context.Context, projectID, userID string) error {
 	role, err := s.projectAccess.GetMemberRole(ctx, projectID, userID)
 	if err != nil {
 		return err
@@ -211,7 +211,7 @@ func normalizeCreateRule(projectID string, input CreateRuleInput) (domainalert.R
 	if input.Enabled {
 		status = domainalert.RuleStatusEnabled
 	}
-	return normalizeRule(domainalert.Rule{ProjectID: projectID, CreatedByUserID: input.CurrentUserID, Status: status}, input.Name, input.Description, input.Severity, input.CheckType, input.ProbeID, input.CheckID, input.Condition, input.CooldownSeconds, input.NotificationChannelIDs)
+	return normalizeRule(domainalert.Rule{ProjectID: projectID, CreatedByUserID: input.CurrentUserID, Status: status}, input.Name, input.Description, input.Severity, input.CheckType, input.ProbeID, input.CheckID, input.Condition, input.CooldownSeconds, input.NotificationIDs)
 }
 
 func normalizeUpdateRule(projectID string, input UpdateRuleInput) (domainalert.Rule, error) {
@@ -220,10 +220,10 @@ func normalizeUpdateRule(projectID string, input UpdateRuleInput) (domainalert.R
 		status = domainalert.RuleStatusEnabled
 	}
 	base := domainalert.Rule{ProjectID: projectID, ID: input.RuleID, CreatedByUserID: input.CurrentUserID, Status: status}
-	return normalizeRule(base, input.Name, input.Description, input.Severity, input.CheckType, input.ProbeID, input.CheckID, input.Condition, input.CooldownSeconds, input.NotificationChannelIDs)
+	return normalizeRule(base, input.Name, input.Description, input.Severity, input.CheckType, input.ProbeID, input.CheckID, input.Condition, input.CooldownSeconds, input.NotificationIDs)
 }
 
-func normalizeRule(base domainalert.Rule, name string, description *string, severity domainalert.Severity, checkType domaincheck.Type, probeID, checkID *string, condition alertcondition.Condition, cooldownSeconds int32, channelIDs []string) (domainalert.Rule, error) {
+func normalizeRule(base domainalert.Rule, name string, description *string, severity domainalert.Severity, checkType domaincheck.Type, probeID, checkID *string, condition alertcondition.Condition, cooldownSeconds int32, notificationIDs []string) (domainalert.Rule, error) {
 	var err error
 	base.Name, err = domainalert.VNRuleName(name)
 	if err != nil {
@@ -266,71 +266,71 @@ func normalizeRule(base domainalert.Rule, name string, description *string, seve
 		return domainalert.Rule{}, err
 	}
 	base.ProbeSelector = json.RawMessage(`{}`)
-	for _, channelID := range channelIDs {
-		if _, parseErr := uuid.Parse(channelID); parseErr != nil {
-			return domainalert.Rule{}, fmt.Errorf("%w: invalid notification channel id", ErrInvalidInput)
+	for _, notificationID := range notificationIDs {
+		if _, parseErr := uuid.Parse(notificationID); parseErr != nil {
+			return domainalert.Rule{}, fmt.Errorf("%w: invalid notification id", ErrInvalidInput)
 		}
 	}
-	base.NotificationChannelIDs = append([]string{}, channelIDs...)
+	base.NotificationIDs = append([]string{}, notificationIDs...)
 	return base, nil
 }
 
-func normalizeCreateChannel(projectID string, input CreateChannelInput) (domainalert.NotificationChannel, error) {
-	return normalizeChannel(domainalert.NotificationChannel{ProjectID: projectID, CreatedByUserID: input.CurrentUserID}, "", input.Name, input.Type, input.Enabled, input.Config)
+func normalizeCreateNotification(projectID string, input CreateNotificationInput) (domainalert.Notification, error) {
+	return normalizeNotification(domainalert.Notification{ProjectID: projectID, CreatedByUserID: input.CurrentUserID}, "", input.Name, input.Type, input.Enabled, input.Config)
 }
 
-func normalizeUpdateChannel(projectID string, input UpdateChannelInput) (domainalert.NotificationChannel, error) {
-	return normalizeChannel(domainalert.NotificationChannel{ProjectID: projectID, CreatedByUserID: input.CurrentUserID}, input.ChannelID, input.Name, input.Type, input.Enabled, input.Config)
+func normalizeUpdateNotification(projectID string, input UpdateNotificationInput) (domainalert.Notification, error) {
+	return normalizeNotification(domainalert.Notification{ProjectID: projectID, CreatedByUserID: input.CurrentUserID}, input.NotificationID, input.Name, input.Type, input.Enabled, input.Config)
 }
 
-func normalizeChannel(base domainalert.NotificationChannel, channelID, name string, channelType domainalert.ChannelType, enabled bool, config json.RawMessage) (domainalert.NotificationChannel, error) {
+func normalizeNotification(base domainalert.Notification, notificationID, name string, notificationType domainalert.NotificationType, enabled bool, config json.RawMessage) (domainalert.Notification, error) {
 	var err error
-	base.ID = channelID
-	if channelID != "" {
-		if _, parseErr := uuid.Parse(channelID); parseErr != nil {
-			return domainalert.NotificationChannel{}, fmt.Errorf("%w: invalid channel id", ErrInvalidInput)
+	base.ID = notificationID
+	if notificationID != "" {
+		if _, parseErr := uuid.Parse(notificationID); parseErr != nil {
+			return domainalert.Notification{}, fmt.Errorf("%w: invalid notification id", ErrInvalidInput)
 		}
 	}
-	base.Name, err = domainalert.VNChannelName(name)
+	base.Name, err = domainalert.VNNotificationName(name)
 	if err != nil {
-		return domainalert.NotificationChannel{}, fmt.Errorf("%w: %w", ErrInvalidInput, err)
+		return domainalert.Notification{}, fmt.Errorf("%w: %w", ErrInvalidInput, err)
 	}
-	base.Type, err = domainalert.VNChannelType(channelType)
+	base.Type, err = domainalert.VNNotificationType(notificationType)
 	if err != nil {
-		return domainalert.NotificationChannel{}, fmt.Errorf("%w: %w", ErrInvalidInput, err)
+		return domainalert.Notification{}, fmt.Errorf("%w: %w", ErrInvalidInput, err)
 	}
 	base.Enabled = enabled
 	switch base.Type {
-	case domainalert.ChannelTypeWebhook:
+	case domainalert.NotificationTypeWebhook:
 		canonical, _, err := domainalert.VNWebhookConfig(config)
 		if err != nil {
-			return domainalert.NotificationChannel{}, fmt.Errorf("%w: %w", ErrInvalidInput, err)
+			return domainalert.Notification{}, fmt.Errorf("%w: %w", ErrInvalidInput, err)
 		}
 		base.Config = canonical
-	case domainalert.ChannelTypeDiscord:
+	case domainalert.NotificationTypeDiscord:
 		canonical, _, err := domainalert.VNDiscordConfig(config)
 		if err != nil {
-			return domainalert.NotificationChannel{}, fmt.Errorf("%w: %w", ErrInvalidInput, err)
+			return domainalert.Notification{}, fmt.Errorf("%w: %w", ErrInvalidInput, err)
 		}
 		base.Config = canonical
-	case domainalert.ChannelTypeTelegram:
+	case domainalert.NotificationTypeTelegram:
 		canonical, _, err := domainalert.VNTelegramConfig(config)
 		if err != nil {
-			return domainalert.NotificationChannel{}, fmt.Errorf("%w: %w", ErrInvalidInput, err)
+			return domainalert.Notification{}, fmt.Errorf("%w: %w", ErrInvalidInput, err)
 		}
 		base.Config = canonical
 	}
 	return base, nil
 }
 
-func testNotificationPayload(channel domainalert.NotificationChannel, at time.Time) (json.RawMessage, error) {
+func testNotificationPayload(notification domainalert.Notification, at time.Time) (json.RawMessage, error) {
 	data, err := json.Marshal(map[string]any{
 		"eventType": "notification.test",
 		"sentAt":    at.UTC(),
-		"channel": map[string]any{
-			"id":   channel.ID,
-			"name": channel.Name,
-			"type": channel.Type,
+		"notification": map[string]any{
+			"id":   notification.ID,
+			"name": notification.Name,
+			"type": notification.Type,
 		},
 		"rule": map[string]any{
 			"name":     "Netstamp test alert",

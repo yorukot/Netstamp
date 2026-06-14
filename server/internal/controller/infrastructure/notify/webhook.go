@@ -45,10 +45,10 @@ type notificationPayloadView struct {
 			Target string `json:"target"`
 		} `json:"check"`
 	} `json:"target"`
-	Channel struct {
+	Notification struct {
 		Name string `json:"name"`
 		Type string `json:"type"`
-	} `json:"channel"`
+	} `json:"notification"`
 	Summary map[string]any `json:"summary"`
 }
 
@@ -76,22 +76,22 @@ func NewWebhookSender(timeout time.Duration) *WebhookSender {
 	return sender
 }
 
-func (s *WebhookSender) SendChannel(ctx context.Context, channel domainalert.NotificationChannel, payload []byte) appnotification.DeliveryResult {
-	switch channel.Type {
-	case domainalert.ChannelTypeWebhook:
-		return s.SendWebhook(ctx, channel, payload)
-	case domainalert.ChannelTypeDiscord:
-		return s.SendDiscord(ctx, channel, payload)
-	case domainalert.ChannelTypeTelegram:
-		return s.SendTelegram(ctx, channel, payload)
+func (s *WebhookSender) SendNotification(ctx context.Context, notification domainalert.Notification, payload []byte) appnotification.DeliveryResult {
+	switch notification.Type {
+	case domainalert.NotificationTypeWebhook:
+		return s.SendWebhook(ctx, notification, payload)
+	case domainalert.NotificationTypeDiscord:
+		return s.SendDiscord(ctx, notification, payload)
+	case domainalert.NotificationTypeTelegram:
+		return s.SendTelegram(ctx, notification, payload)
 	default:
-		return permanent("channel", "unsupported_type", "unsupported notification channel type")
+		return permanent("notification", "unsupported_type", "unsupported notification type")
 	}
 }
 
-func (s *WebhookSender) TestChannel(ctx context.Context, channel domainalert.NotificationChannel, payload json.RawMessage) appalert.ChannelTestResult {
-	result := s.SendChannel(ctx, channel, payload)
-	return appalert.ChannelTestResult{
+func (s *WebhookSender) TestNotification(ctx context.Context, notification domainalert.Notification, payload json.RawMessage) appalert.NotificationTestResult {
+	result := s.SendNotification(ctx, notification, payload)
+	return appalert.NotificationTestResult{
 		Delivered: result.Delivered,
 		Retryable: result.Retryable,
 		Kind:      result.Kind,
@@ -100,9 +100,9 @@ func (s *WebhookSender) TestChannel(ctx context.Context, channel domainalert.Not
 	}
 }
 
-func (s *WebhookSender) SendWebhook(ctx context.Context, channel domainalert.NotificationChannel, payload []byte) appnotification.DeliveryResult {
+func (s *WebhookSender) SendWebhook(ctx context.Context, notification domainalert.Notification, payload []byte) appnotification.DeliveryResult {
 	var config domainalert.WebhookConfig
-	if err := json.Unmarshal(channel.Config, &config); err != nil {
+	if err := json.Unmarshal(notification.Config, &config); err != nil {
 		return permanent("config", "invalid_config", "invalid webhook configuration")
 	}
 	if err := validateWebhookTarget(ctx, config.URL); err != nil {
@@ -111,9 +111,9 @@ func (s *WebhookSender) SendWebhook(ctx context.Context, channel domainalert.Not
 	return s.postJSON(ctx, config.URL, payload, "webhook")
 }
 
-func (s *WebhookSender) SendDiscord(ctx context.Context, channel domainalert.NotificationChannel, payload []byte) appnotification.DeliveryResult {
+func (s *WebhookSender) SendDiscord(ctx context.Context, notification domainalert.Notification, payload []byte) appnotification.DeliveryResult {
 	var config domainalert.DiscordConfig
-	if err := json.Unmarshal(channel.Config, &config); err != nil {
+	if err := json.Unmarshal(notification.Config, &config); err != nil {
 		return permanent("config", "invalid_config", "invalid Discord configuration")
 	}
 	if err := validateWebhookTarget(ctx, config.URL); err != nil {
@@ -126,9 +126,9 @@ func (s *WebhookSender) SendDiscord(ctx context.Context, channel domainalert.Not
 	return s.postJSON(ctx, config.URL, body, "Discord webhook")
 }
 
-func (s *WebhookSender) SendTelegram(ctx context.Context, channel domainalert.NotificationChannel, payload []byte) appnotification.DeliveryResult {
+func (s *WebhookSender) SendTelegram(ctx context.Context, notification domainalert.Notification, payload []byte) appnotification.DeliveryResult {
 	var config domainalert.TelegramConfig
-	if err := json.Unmarshal(channel.Config, &config); err != nil {
+	if err := json.Unmarshal(notification.Config, &config); err != nil {
 		return permanent("config", "invalid_config", "invalid Telegram configuration")
 	}
 	endpoint := "https://api.telegram.org/bot" + config.BotToken + "/sendMessage"
@@ -276,7 +276,7 @@ func notificationFields(body notificationPayloadView) []notificationField {
 	if threshold, ok := body.Summary["threshold"]; ok && threshold != nil {
 		add("Threshold", fmt.Sprintf("%v", threshold), true)
 	}
-	add("Channel", body.Channel.Name, true)
+	add("Notification", body.Notification.Name, true)
 	add("Sent", body.SentAt, false)
 	return fields
 }

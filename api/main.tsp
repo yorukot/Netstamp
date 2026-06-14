@@ -43,7 +43,7 @@ using OpenAPI;
 @tagMetadata("Assignments", #{ description: "Selector previews and effective probe-check assignments for console users." })
 @tagMetadata("Probes", #{ description: "Project-scoped probe registration and secret management." })
 @tagMetadata("Results", #{ description: "Authenticated result query endpoints." })
-@tagMetadata("Alerts", #{ description: "Project-scoped alert rules, alert incidents, and notification channels." })
+@tagMetadata("Alerts", #{ description: "Project-scoped alert rules, alert incidents, and notifications." })
 @tagMetadata("Probe Runtime", #{ description: "Probe-agent runtime handshake, polling, and result ingestion." })
 @tagMetadata("Install", #{ description: "Probe-agent install assets for Linux systemd hosts." })
 namespace Netstamp;

@@ -26,31 +26,31 @@ type GetRuleInput struct {
 
 type CreateRuleInput struct {
 	ProjectInput
-	Name                   string
-	Description            *string
-	Enabled                bool
-	Severity               domainalert.Severity
-	CheckType              domaincheck.Type
-	ProbeID                *string
-	CheckID                *string
-	Condition              alertcondition.Condition
-	CooldownSeconds        int32
-	NotificationChannelIDs []string
+	Name            string
+	Description     *string
+	Enabled         bool
+	Severity        domainalert.Severity
+	CheckType       domaincheck.Type
+	ProbeID         *string
+	CheckID         *string
+	Condition       alertcondition.Condition
+	CooldownSeconds int32
+	NotificationIDs []string
 }
 
 type UpdateRuleInput struct {
 	ProjectInput
-	RuleID                 string
-	Name                   string
-	Description            *string
-	Enabled                bool
-	Severity               domainalert.Severity
-	CheckType              domaincheck.Type
-	ProbeID                *string
-	CheckID                *string
-	Condition              alertcondition.Condition
-	CooldownSeconds        int32
-	NotificationChannelIDs []string
+	RuleID          string
+	Name            string
+	Description     *string
+	Enabled         bool
+	Severity        domainalert.Severity
+	CheckType       domaincheck.Type
+	ProbeID         *string
+	CheckID         *string
+	Condition       alertcondition.Condition
+	CooldownSeconds int32
+	NotificationIDs []string
 }
 
 type DeleteRuleInput struct {
@@ -58,44 +58,44 @@ type DeleteRuleInput struct {
 	RuleID string
 }
 
-type ListChannelsInput struct {
+type ListNotificationsInput struct {
 	ProjectInput
-	Type *domainalert.ChannelType
+	Type *domainalert.NotificationType
 }
 
-type GetChannelInput struct {
+type GetNotificationInput struct {
 	ProjectInput
-	ChannelID string
+	NotificationID string
 }
 
-type CreateChannelInput struct {
+type CreateNotificationInput struct {
 	ProjectInput
 	Name    string
-	Type    domainalert.ChannelType
+	Type    domainalert.NotificationType
 	Enabled bool
 	Config  json.RawMessage
 }
 
-type UpdateChannelInput struct {
+type UpdateNotificationInput struct {
 	ProjectInput
-	ChannelID string
-	Name      string
-	Type      domainalert.ChannelType
-	Enabled   bool
-	Config    json.RawMessage
+	NotificationID string
+	Name           string
+	Type           domainalert.NotificationType
+	Enabled        bool
+	Config         json.RawMessage
 }
 
-type DeleteChannelInput struct {
+type DeleteNotificationInput struct {
 	ProjectInput
-	ChannelID string
+	NotificationID string
 }
 
-type TestChannelInput struct {
+type TestNotificationInput struct {
 	ProjectInput
-	ChannelID string
+	NotificationID string
 }
 
-type ChannelTestResult struct {
+type NotificationTestResult struct {
 	Delivered bool
 	Retryable bool
 	Kind      string

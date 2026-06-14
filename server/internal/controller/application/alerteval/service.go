@@ -139,13 +139,13 @@ func (s *Service) inReopenCooldown(ctx context.Context, rule domainalert.Rule, i
 }
 
 func (s *Service) enqueueNotifications(ctx context.Context, rule domainalert.Rule, incident domainalert.Incident, evaluation alertcondition.Evaluation, eventType string, at time.Time) error {
-	channels, err := s.repo.ListEnabledChannelsForRule(ctx, rule.ProjectID, rule.ID)
+	notifications, err := s.repo.ListEnabledNotificationsForRule(ctx, rule.ProjectID, rule.ID)
 	if err != nil {
 		return err
 	}
-	jobs := make([]domainalert.NotificationJobInput, 0, len(channels))
-	for _, channel := range channels {
-		if !supportedNotificationChannel(channel.Type) {
+	jobs := make([]domainalert.NotificationJobInput, 0, len(notifications))
+	for _, notification := range notifications {
+		if !supportedNotification(notification.Type) {
 			continue
 		}
 		payload, err := notificationPayload(rule, incident, evaluation, eventType, at)
@@ -153,22 +153,22 @@ func (s *Service) enqueueNotifications(ctx context.Context, rule domainalert.Rul
 			return err
 		}
 		jobs = append(jobs, domainalert.NotificationJobInput{
-			ProjectID:   rule.ProjectID,
-			IncidentID:  incident.ID,
-			RuleID:      rule.ID,
-			ChannelID:   channel.ID,
-			ChannelType: channel.Type,
-			EventType:   eventType,
-			Payload:     payload,
-			DedupeKey:   fmt.Sprintf("%s:%s:%s:%s", incident.ID, channel.ID, eventType, at.UTC().Format(time.RFC3339Nano)),
+			ProjectID:        rule.ProjectID,
+			IncidentID:       incident.ID,
+			RuleID:           rule.ID,
+			NotificationID:   notification.ID,
+			NotificationType: notification.Type,
+			EventType:        eventType,
+			Payload:          payload,
+			DedupeKey:        fmt.Sprintf("%s:%s:%s:%s", incident.ID, notification.ID, eventType, at.UTC().Format(time.RFC3339Nano)),
 		})
 	}
 	return s.repo.EnqueueNotificationJobs(ctx, jobs)
 }
 
-func supportedNotificationChannel(channelType domainalert.ChannelType) bool {
-	switch channelType {
-	case domainalert.ChannelTypeWebhook, domainalert.ChannelTypeDiscord, domainalert.ChannelTypeTelegram:
+func supportedNotification(notificationType domainalert.NotificationType) bool {
+	switch notificationType {
+	case domainalert.NotificationTypeWebhook, domainalert.NotificationTypeDiscord, domainalert.NotificationTypeTelegram:
 		return true
 	default:
 		return false

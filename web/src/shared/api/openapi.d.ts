@@ -274,60 +274,6 @@ export interface paths {
 		patch: operations["updateProject"];
 		trace?: never;
 	};
-	"/projects/{ref}/alerts/channels": {
-		parameters: {
-			query?: never;
-			header?: never;
-			path?: never;
-			cookie?: never;
-		};
-		/** List project notification channels */
-		get: operations["listProjectNotificationChannels"];
-		put?: never;
-		/** Create project notification channel */
-		post: operations["createProjectNotificationChannel"];
-		delete?: never;
-		options?: never;
-		head?: never;
-		patch?: never;
-		trace?: never;
-	};
-	"/projects/{ref}/alerts/channels/{channel_id}": {
-		parameters: {
-			query?: never;
-			header?: never;
-			path?: never;
-			cookie?: never;
-		};
-		/** Get project notification channel */
-		get: operations["getProjectNotificationChannel"];
-		put?: never;
-		post?: never;
-		/** Delete project notification channel */
-		delete: operations["deleteProjectNotificationChannel"];
-		options?: never;
-		head?: never;
-		/** Update project notification channel */
-		patch: operations["updateProjectNotificationChannel"];
-		trace?: never;
-	};
-	"/projects/{ref}/alerts/channels/{channel_id}/test": {
-		parameters: {
-			query?: never;
-			header?: never;
-			path?: never;
-			cookie?: never;
-		};
-		get?: never;
-		put?: never;
-		/** Send a test notification through a project notification channel */
-		post: operations["testProjectNotificationChannel"];
-		delete?: never;
-		options?: never;
-		head?: never;
-		patch?: never;
-		trace?: never;
-	};
 	"/projects/{ref}/alerts/incidents": {
 		parameters: {
 			query?: never;
@@ -356,6 +302,60 @@ export interface paths {
 		get: operations["getProjectAlertIncident"];
 		put?: never;
 		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	"/projects/{ref}/alerts/notifications": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** List project notifications */
+		get: operations["listProjectNotifications"];
+		put?: never;
+		/** Create project notification */
+		post: operations["createProjectNotification"];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	"/projects/{ref}/alerts/notifications/{notification_id}": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** Get project notification */
+		get: operations["getProjectNotification"];
+		put?: never;
+		post?: never;
+		/** Delete project notification */
+		delete: operations["deleteProjectNotification"];
+		options?: never;
+		head?: never;
+		/** Update project notification */
+		patch: operations["updateProjectNotification"];
+		trace?: never;
+	};
+	"/projects/{ref}/alerts/notifications/{notification_id}/test": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/** Send a test notification through a project notification */
+		post: operations["testProjectNotification"];
 		delete?: never;
 		options?: never;
 		head?: never;
@@ -1139,7 +1139,7 @@ export interface components {
 		 *         "minSamples": 3
 		 *       },
 		 *       "cooldownSeconds": 900,
-		 *       "notificationChannelIds": [
+		 *       "notificationIds": [
 		 *         "88888888-8888-8888-8888-888888888888"
 		 *       ],
 		 *       "createdAt": "2026-06-14T09:00:00Z",
@@ -1157,7 +1157,7 @@ export interface components {
 			condition: components["schemas"]["AlertCondition"];
 			/** Format: int32 */
 			cooldownSeconds: number;
-			notificationChannelIds: components["schemas"]["uuid"][];
+			notificationIds: components["schemas"]["uuid"][];
 			/** Format: date-time */
 			createdAt: string;
 			/** Format: date-time */
@@ -1190,7 +1190,7 @@ export interface components {
 		 *           "minSamples": 3
 		 *         },
 		 *         "cooldownSeconds": 900,
-		 *         "notificationChannelIds": [],
+		 *         "notificationIds": [],
 		 *         "createdAt": "2026-06-14T09:00:00Z",
 		 *         "updatedAt": "2026-06-14T09:00:00Z"
 		 *       }
@@ -1428,7 +1428,7 @@ export interface components {
 		 *         "minSamples": 3
 		 *       },
 		 *       "cooldownSeconds": 900,
-		 *       "notificationChannelIds": [
+		 *       "notificationIds": [
 		 *         "88888888-8888-8888-8888-888888888888"
 		 *       ]
 		 *     }
@@ -1446,7 +1446,7 @@ export interface components {
 			 * @default 900
 			 */
 			cooldownSeconds: number;
-			notificationChannelIds?: components["schemas"]["uuid"][];
+			notificationIds?: components["schemas"]["uuid"][];
 		};
 		/**
 		 * @example {
@@ -1507,12 +1507,12 @@ export interface components {
 		 *       }
 		 *     }
 		 */
-		CreateNotificationChannelRequest: {
+		CreateNotificationRequest: {
 			name: string;
 			/** @enum {string} */
 			type: "webhook" | "discord" | "telegram";
 			enabled: boolean;
-			config: components["schemas"]["WebhookChannelConfig"] | components["schemas"]["DiscordChannelConfig"] | components["schemas"]["TelegramChannelConfig"];
+			config: components["schemas"]["WebhookNotificationConfig"] | components["schemas"]["DiscordNotificationConfig"] | components["schemas"]["TelegramNotificationConfig"];
 		};
 		/**
 		 * @example {
@@ -1578,7 +1578,7 @@ export interface components {
 		 *       "url": "https://discord.com/api/webhooks/123/token"
 		 *     }
 		 */
-		DiscordChannelConfig: {
+		DiscordNotificationConfig: {
 			/** Format: uri */
 			url: string;
 		};
@@ -1706,13 +1706,13 @@ export interface components {
 		 *       "updatedAt": "2026-06-14T09:00:00Z"
 		 *     }
 		 */
-		NotificationChannel: {
+		Notification: {
 			id: components["schemas"]["uuid"];
 			name: string;
 			/** @enum {string} */
 			type: "webhook" | "discord" | "telegram";
 			enabled: boolean;
-			config: components["schemas"]["WebhookChannelConfig"] | components["schemas"]["DiscordChannelConfig"] | components["schemas"]["TelegramChannelResponseConfig"];
+			config: components["schemas"]["WebhookNotificationConfig"] | components["schemas"]["DiscordNotificationConfig"] | components["schemas"]["TelegramNotificationResponseConfig"];
 			/** Format: date-time */
 			createdAt: string;
 			/** Format: date-time */
@@ -1720,15 +1720,15 @@ export interface components {
 		};
 		/**
 		 * @example {
-		 *       "channels": []
+		 *       "notifications": []
 		 *     }
 		 */
-		NotificationChannelListResponse: {
-			channels: components["schemas"]["NotificationChannel"][];
+		NotificationListResponse: {
+			notifications: components["schemas"]["Notification"][];
 		};
 		/**
 		 * @example {
-		 *       "channel": {
+		 *       "notification": {
 		 *         "id": "88888888-8888-8888-8888-888888888888",
 		 *         "name": "Incident webhook",
 		 *         "type": "webhook",
@@ -1741,8 +1741,8 @@ export interface components {
 		 *       }
 		 *     }
 		 */
-		NotificationChannelResponse: {
-			channel: components["schemas"]["NotificationChannel"];
+		NotificationResponse: {
+			notification: components["schemas"]["Notification"];
 		};
 		/**
 		 * @example {
@@ -1753,8 +1753,8 @@ export interface components {
 		 *       }
 		 *     }
 		 */
-		NotificationChannelTestResponse: {
-			result: components["schemas"]["NotificationChannelTestResult"];
+		NotificationTestResponse: {
+			result: components["schemas"]["NotificationTestResult"];
 		};
 		/**
 		 * @example {
@@ -1763,7 +1763,7 @@ export interface components {
 		 *       "message": "Test notification delivered."
 		 *     }
 		 */
-		NotificationChannelTestResult: {
+		NotificationTestResult: {
 			delivered: boolean;
 			retryable: boolean;
 			kind?: string;
@@ -2844,7 +2844,7 @@ export interface components {
 		 *       "chatId": "-1001234567890"
 		 *     }
 		 */
-		TelegramChannelConfig: {
+		TelegramNotificationConfig: {
 			botToken: string;
 			chatId: string;
 		};
@@ -2854,7 +2854,7 @@ export interface components {
 		 *       "botTokenConfigured": true
 		 *     }
 		 */
-		TelegramChannelResponseConfig: {
+		TelegramNotificationResponseConfig: {
 			chatId: string;
 			botTokenConfigured: boolean;
 		};
@@ -3259,7 +3259,7 @@ export interface components {
 		 *         "minSamples": 3
 		 *       },
 		 *       "cooldownSeconds": 900,
-		 *       "notificationChannelIds": [
+		 *       "notificationIds": [
 		 *         "88888888-8888-8888-8888-888888888888"
 		 *       ]
 		 *     }
@@ -3277,7 +3277,7 @@ export interface components {
 			 * @default 900
 			 */
 			cooldownSeconds: number;
-			notificationChannelIds?: components["schemas"]["uuid"][];
+			notificationIds?: components["schemas"]["uuid"][];
 		};
 		/**
 		 * @description Patch payload. At least one field must be provided.
@@ -3329,7 +3329,7 @@ export interface components {
 			value?: string;
 		};
 		/**
-		 * @description Full replacement patch for a notification channel in the current beta API.
+		 * @description Full replacement patch for a notification in the current beta API.
 		 * @example {
 		 *       "name": "Incident webhook",
 		 *       "type": "webhook",
@@ -3339,12 +3339,12 @@ export interface components {
 		 *       }
 		 *     }
 		 */
-		UpdateNotificationChannelRequest: {
+		UpdateNotificationRequest: {
 			name: string;
 			/** @enum {string} */
 			type: "webhook" | "discord" | "telegram";
 			enabled: boolean;
-			config: components["schemas"]["WebhookChannelConfig"] | components["schemas"]["DiscordChannelConfig"] | components["schemas"]["TelegramChannelConfig"];
+			config: components["schemas"]["WebhookNotificationConfig"] | components["schemas"]["DiscordNotificationConfig"] | components["schemas"]["TelegramNotificationConfig"];
 		};
 		/**
 		 * @description Patch payload. At least one field must be provided.
@@ -3406,7 +3406,7 @@ export interface components {
 		 *       "url": "https://hooks.example.com/netstamp"
 		 *     }
 		 */
-		WebhookChannelConfig: {
+		WebhookNotificationConfig: {
 			/** Format: uri */
 			url: string;
 		};
@@ -3432,7 +3432,7 @@ export interface components {
 		"LatestResultsQuery.checkId": components["schemas"]["uuid"];
 		"LatestResultsQuery.probeId": components["schemas"]["uuid"];
 		"LatestResultsQuery.type": "ping" | "tcp" | "traceroute";
-		NotificationChannelIdPathParam: components["schemas"]["uuid"];
+		NotificationIdPathParam: components["schemas"]["uuid"];
 		"PingInsightQuery.checkId": components["schemas"]["uuid"];
 		"PingInsightQuery.from": number;
 		"PingInsightQuery.maxDataPoints": number;
@@ -4319,418 +4319,6 @@ export interface operations {
 			};
 		};
 	};
-	listProjectNotificationChannels: {
-		parameters: {
-			query?: never;
-			header?: never;
-			path: {
-				ref: components["parameters"]["ProjectRefParam"];
-			};
-			cookie?: never;
-		};
-		requestBody?: never;
-		responses: {
-			/** @description The request has succeeded. */
-			200: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/json": components["schemas"]["NotificationChannelListResponse"];
-				};
-			};
-			/** @description Access is unauthorized. */
-			401: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
-			/** @description The server cannot find the requested resource. */
-			404: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
-			/** @description Client error */
-			422: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
-			/** @description Server error */
-			500: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
-		};
-	};
-	createProjectNotificationChannel: {
-		parameters: {
-			query?: never;
-			header?: never;
-			path: {
-				ref: components["parameters"]["ProjectRefParam"];
-			};
-			cookie?: never;
-		};
-		requestBody: {
-			content: {
-				"application/json": components["schemas"]["CreateNotificationChannelRequest"];
-			};
-		};
-		responses: {
-			/** @description The request has succeeded and a new resource has been created as a result. */
-			201: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/json": components["schemas"]["NotificationChannelResponse"];
-				};
-			};
-			/** @description The server could not understand the request due to invalid syntax. */
-			400: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
-			/** @description Access is unauthorized. */
-			401: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
-			/** @description Access is forbidden. */
-			403: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
-			/** @description The server cannot find the requested resource. */
-			404: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
-			/** @description Client error */
-			422: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
-			/** @description Server error */
-			500: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
-		};
-	};
-	getProjectNotificationChannel: {
-		parameters: {
-			query?: never;
-			header?: never;
-			path: {
-				ref: components["parameters"]["ProjectRefParam"];
-				channel_id: components["parameters"]["NotificationChannelIdPathParam"];
-			};
-			cookie?: never;
-		};
-		requestBody?: never;
-		responses: {
-			/** @description The request has succeeded. */
-			200: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/json": components["schemas"]["NotificationChannelResponse"];
-				};
-			};
-			/** @description Access is unauthorized. */
-			401: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
-			/** @description The server cannot find the requested resource. */
-			404: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
-			/** @description Client error */
-			422: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
-			/** @description Server error */
-			500: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
-		};
-	};
-	deleteProjectNotificationChannel: {
-		parameters: {
-			query?: never;
-			header?: never;
-			path: {
-				ref: components["parameters"]["ProjectRefParam"];
-				channel_id: components["parameters"]["NotificationChannelIdPathParam"];
-			};
-			cookie?: never;
-		};
-		requestBody?: never;
-		responses: {
-			/** @description There is no content to send for this request, but the headers may be useful. */
-			204: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content?: never;
-			};
-			/** @description Access is unauthorized. */
-			401: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
-			/** @description Access is forbidden. */
-			403: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
-			/** @description The server cannot find the requested resource. */
-			404: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
-			/** @description Client error */
-			422: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
-			/** @description Server error */
-			500: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
-		};
-	};
-	updateProjectNotificationChannel: {
-		parameters: {
-			query?: never;
-			header?: never;
-			path: {
-				ref: components["parameters"]["ProjectRefParam"];
-				channel_id: components["parameters"]["NotificationChannelIdPathParam"];
-			};
-			cookie?: never;
-		};
-		requestBody: {
-			content: {
-				"application/json": components["schemas"]["UpdateNotificationChannelRequest"];
-			};
-		};
-		responses: {
-			/** @description The request has succeeded. */
-			200: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/json": components["schemas"]["NotificationChannelResponse"];
-				};
-			};
-			/** @description The server could not understand the request due to invalid syntax. */
-			400: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
-			/** @description Access is unauthorized. */
-			401: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
-			/** @description Access is forbidden. */
-			403: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
-			/** @description The server cannot find the requested resource. */
-			404: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
-			/** @description Client error */
-			422: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
-			/** @description Server error */
-			500: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
-		};
-	};
-	testProjectNotificationChannel: {
-		parameters: {
-			query?: never;
-			header?: never;
-			path: {
-				ref: components["parameters"]["ProjectRefParam"];
-				channel_id: components["parameters"]["NotificationChannelIdPathParam"];
-			};
-			cookie?: never;
-		};
-		requestBody?: never;
-		responses: {
-			/** @description The request has succeeded. */
-			200: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/json": components["schemas"]["NotificationChannelTestResponse"];
-				};
-			};
-			/** @description Access is unauthorized. */
-			401: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
-			/** @description Access is forbidden. */
-			403: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
-			/** @description The server cannot find the requested resource. */
-			404: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
-			/** @description Client error */
-			422: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
-			/** @description Server error */
-			500: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
-		};
-	};
 	listProjectAlertIncidents: {
 		parameters: {
 			query?: {
@@ -4824,6 +4412,418 @@ export interface operations {
 			};
 			/** @description Access is unauthorized. */
 			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	listProjectNotifications: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				ref: components["parameters"]["ProjectRefParam"];
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["NotificationListResponse"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	createProjectNotification: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				ref: components["parameters"]["ProjectRefParam"];
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				"application/json": components["schemas"]["CreateNotificationRequest"];
+			};
+		};
+		responses: {
+			/** @description The request has succeeded and a new resource has been created as a result. */
+			201: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["NotificationResponse"];
+				};
+			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is forbidden. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	getProjectNotification: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				ref: components["parameters"]["ProjectRefParam"];
+				notification_id: components["parameters"]["NotificationIdPathParam"];
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["NotificationResponse"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	deleteProjectNotification: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				ref: components["parameters"]["ProjectRefParam"];
+				notification_id: components["parameters"]["NotificationIdPathParam"];
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description There is no content to send for this request, but the headers may be useful. */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is forbidden. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	updateProjectNotification: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				ref: components["parameters"]["ProjectRefParam"];
+				notification_id: components["parameters"]["NotificationIdPathParam"];
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				"application/json": components["schemas"]["UpdateNotificationRequest"];
+			};
+		};
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["NotificationResponse"];
+				};
+			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is forbidden. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	testProjectNotification: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				ref: components["parameters"]["ProjectRefParam"];
+				notification_id: components["parameters"]["NotificationIdPathParam"];
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["NotificationTestResponse"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is forbidden. */
+			403: {
 				headers: {
 					[name: string]: unknown;
 				};

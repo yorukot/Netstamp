@@ -78,7 +78,7 @@
 	min-width: min(48rem, 100%);
 }
 
-.channelPanelActions {
+.notificationPanelActions {
 	display: grid;
 	grid-template-columns: repeat(2, minmax(11rem, auto));
 	gap: 0.75rem;
@@ -245,13 +245,13 @@
 	margin-top: 0.75rem;
 }
 
-.channelTypeGrid {
+.notificationTypeGrid {
 	display: grid;
 	gap: 0.75rem;
 }
 
-.channelTypeOption,
-.channelTypeSummary {
+.notificationTypeOption,
+.notificationTypeSummary {
 	--ns-frame-color: var(--ns-border);
 	display: grid;
 	grid-template-columns: auto minmax(0, 1fr);
@@ -263,7 +263,7 @@
 	font-family: var(--ns-font-sans);
 }
 
-.channelTypeOption {
+.notificationTypeOption {
 	width: 100%;
 	text-align: left;
 	cursor: pointer;
@@ -273,31 +273,31 @@
 		color var(--ns-transition);
 }
 
-.channelTypeIcon {
+.notificationTypeIcon {
 	color: var(--ns-accent-active);
 }
 
-.channelTypeText {
+.notificationTypeText {
 	display: grid;
 	gap: 0.35rem;
 	min-width: 0;
 }
 
-.channelTypeText > strong {
+.notificationTypeText > strong {
 	color: var(--ns-text);
 	font-size: 0.9375rem;
 	font-weight: 750;
 	line-height: 1.2;
 }
 
-.channelTypeText > span {
+.notificationTypeText > span {
 	color: var(--ns-text-low);
 	font-size: 0.8125rem;
 	line-height: 1.45;
 }
 
-.channelTypeOption:hover,
-.channelTypeOption:focus-visible {
+.notificationTypeOption:hover,
+.notificationTypeOption:focus-visible {
 	--ns-frame-color: var(--ns-accent-border);
 	background: var(--ns-accent-muted);
 	outline: none;
@@ -324,7 +324,7 @@
 @media (max-width: 78rem) {
 	.singlePanelAction,
 	.panelActions,
-	.channelPanelActions {
+	.notificationPanelActions {
 		width: 100%;
 		grid-template-columns: 1fr;
 		min-width: 18rem;

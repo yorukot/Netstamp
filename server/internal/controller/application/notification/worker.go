@@ -18,12 +18,12 @@ type WorkerConfig struct {
 
 type Worker struct {
 	repo   Repository
-	sender ChannelSender
+	sender NotificationSender
 	cfg    WorkerConfig
 	now    func() time.Time
 }
 
-func NewWorker(repo Repository, sender ChannelSender, cfg WorkerConfig) *Worker {
+func NewWorker(repo Repository, sender NotificationSender, cfg WorkerConfig) *Worker {
 	if cfg.Interval <= 0 {
 		cfg.Interval = 5 * time.Second
 	}
@@ -80,17 +80,17 @@ func (w *Worker) RunOnce(ctx context.Context) error {
 }
 
 func (w *Worker) deliver(ctx context.Context, job domainalert.NotificationOutboxJob) error {
-	channel, err := w.repo.GetChannel(ctx, job.ProjectID, job.ChannelID)
+	notification, err := w.repo.GetNotification(ctx, job.ProjectID, job.NotificationID)
 	if err != nil {
-		return w.repo.MarkOutboxRetry(ctx, job.ID, w.nextAttempt(job), "channel", "lookup_failed", "notification channel lookup failed")
+		return w.repo.MarkOutboxRetry(ctx, job.ID, w.nextAttempt(job), "notification", "lookup_failed", "notification lookup failed")
 	}
-	if !channel.Enabled {
-		return w.repo.MarkOutboxDiscarded(ctx, job.ID, "channel", "disabled", "notification channel is disabled")
+	if !notification.Enabled {
+		return w.repo.MarkOutboxDiscarded(ctx, job.ID, "notification", "disabled", "notification is disabled")
 	}
 
-	result := DeliveryResult{Retryable: false, Kind: "channel", Code: "sender_unavailable", Message: "notification sender is unavailable"}
+	result := DeliveryResult{Retryable: false, Kind: "notification", Code: "sender_unavailable", Message: "notification sender is unavailable"}
 	if w.sender != nil {
-		result = w.sender.SendChannel(ctx, channel, job.Payload)
+		result = w.sender.SendNotification(ctx, notification, job.Payload)
 	}
 
 	switch {

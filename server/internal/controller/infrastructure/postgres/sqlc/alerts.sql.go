@@ -13,19 +13,19 @@ import (
 )
 
 const addAlertNotification = `-- name: AddAlertNotification :exec
-INSERT INTO alert_notifications (project_id, rule_id, channel_id)
+INSERT INTO alert_notifications (project_id, rule_id, notification_id)
 VALUES ($1, $2, $3)
-ON CONFLICT (rule_id, channel_id) DO NOTHING
+ON CONFLICT (rule_id, notification_id) DO NOTHING
 `
 
 type AddAlertNotificationParams struct {
-	ProjectID uuid.UUID `json:"project_id"`
-	RuleID    uuid.UUID `json:"rule_id"`
-	ChannelID uuid.UUID `json:"channel_id"`
+	ProjectID      uuid.UUID `json:"project_id"`
+	RuleID         uuid.UUID `json:"rule_id"`
+	NotificationID uuid.UUID `json:"notification_id"`
 }
 
 func (q *Queries) AddAlertNotification(ctx context.Context, arg AddAlertNotificationParams) error {
-	_, err := q.db.Exec(ctx, addAlertNotification, arg.ProjectID, arg.RuleID, arg.ChannelID)
+	_, err := q.db.Exec(ctx, addAlertNotification, arg.ProjectID, arg.RuleID, arg.NotificationID)
 	return err
 }
 
@@ -48,8 +48,8 @@ RETURNING notification_outbox.id,
           notification_outbox.project_id,
           notification_outbox.incident_id,
           notification_outbox.rule_id,
-          notification_outbox.channel_id,
-          notification_outbox.channel_type,
+          notification_outbox.notification_id,
+          notification_outbox.notification_type,
           notification_outbox.event_type,
           notification_outbox.status,
           notification_outbox.payload,
@@ -80,8 +80,8 @@ func (q *Queries) ClaimNotificationOutbox(ctx context.Context, limitCount int32)
 			&i.ProjectID,
 			&i.IncidentID,
 			&i.RuleID,
-			&i.ChannelID,
-			&i.ChannelType,
+			&i.NotificationID,
+			&i.NotificationType,
 			&i.EventType,
 			&i.Status,
 			&i.Payload,
@@ -298,8 +298,8 @@ func (q *Queries) CreateAlertRule(ctx context.Context, arg CreateAlertRuleParams
 	return i, err
 }
 
-const createNotificationChannel = `-- name: CreateNotificationChannel :one
-INSERT INTO notification_channels (
+const createNotification = `-- name: CreateNotification :one
+INSERT INTO notifications (
     project_id,
     name,
     type,
@@ -318,25 +318,25 @@ VALUES (
 RETURNING id, project_id, name, type, enabled, config, created_by_user_id, created_at, updated_at, deleted_at
 `
 
-type CreateNotificationChannelParams struct {
-	ProjectID       uuid.UUID               `json:"project_id"`
-	Name            string                  `json:"name"`
-	ChannelType     NotificationChannelType `json:"channel_type"`
-	Enabled         bool                    `json:"enabled"`
-	Config          []byte                  `json:"config"`
-	CreatedByUserID uuid.UUID               `json:"created_by_user_id"`
+type CreateNotificationParams struct {
+	ProjectID        uuid.UUID        `json:"project_id"`
+	Name             string           `json:"name"`
+	NotificationType NotificationType `json:"notification_type"`
+	Enabled          bool             `json:"enabled"`
+	Config           []byte           `json:"config"`
+	CreatedByUserID  uuid.UUID        `json:"created_by_user_id"`
 }
 
-func (q *Queries) CreateNotificationChannel(ctx context.Context, arg CreateNotificationChannelParams) (NotificationChannel, error) {
-	row := q.db.QueryRow(ctx, createNotificationChannel,
+func (q *Queries) CreateNotification(ctx context.Context, arg CreateNotificationParams) (Notification, error) {
+	row := q.db.QueryRow(ctx, createNotification,
 		arg.ProjectID,
 		arg.Name,
-		arg.ChannelType,
+		arg.NotificationType,
 		arg.Enabled,
 		arg.Config,
 		arg.CreatedByUserID,
 	)
-	var i NotificationChannel
+	var i Notification
 	err := row.Scan(
 		&i.ID,
 		&i.ProjectID,
@@ -357,8 +357,8 @@ INSERT INTO notification_outbox (
     project_id,
     incident_id,
     rule_id,
-    channel_id,
-    channel_type,
+    notification_id,
+    notification_type,
     event_type,
     payload,
     dedupe_key
@@ -378,14 +378,14 @@ RETURNING id
 `
 
 type EnqueueNotificationOutboxParams struct {
-	ProjectID   uuid.UUID               `json:"project_id"`
-	IncidentID  uuid.UUID               `json:"incident_id"`
-	RuleID      uuid.UUID               `json:"rule_id"`
-	ChannelID   uuid.UUID               `json:"channel_id"`
-	ChannelType NotificationChannelType `json:"channel_type"`
-	EventType   string                  `json:"event_type"`
-	Payload     []byte                  `json:"payload"`
-	DedupeKey   string                  `json:"dedupe_key"`
+	ProjectID        uuid.UUID        `json:"project_id"`
+	IncidentID       uuid.UUID        `json:"incident_id"`
+	RuleID           uuid.UUID        `json:"rule_id"`
+	NotificationID   uuid.UUID        `json:"notification_id"`
+	NotificationType NotificationType `json:"notification_type"`
+	EventType        string           `json:"event_type"`
+	Payload          []byte           `json:"payload"`
+	DedupeKey        string           `json:"dedupe_key"`
 }
 
 func (q *Queries) EnqueueNotificationOutbox(ctx context.Context, arg EnqueueNotificationOutboxParams) (uuid.UUID, error) {
@@ -393,8 +393,8 @@ func (q *Queries) EnqueueNotificationOutbox(ctx context.Context, arg EnqueueNoti
 		arg.ProjectID,
 		arg.IncidentID,
 		arg.RuleID,
-		arg.ChannelID,
-		arg.ChannelType,
+		arg.NotificationID,
+		arg.NotificationType,
 		arg.EventType,
 		arg.Payload,
 		arg.DedupeKey,
@@ -636,7 +636,7 @@ func (q *Queries) GetAlertRule(ctx context.Context, arg GetAlertRuleParams) (Ale
 	return i, err
 }
 
-const getNotificationChannel = `-- name: GetNotificationChannel :one
+const getNotification = `-- name: GetNotification :one
 SELECT id,
        project_id,
        name,
@@ -647,20 +647,20 @@ SELECT id,
        created_at,
        updated_at,
        deleted_at
-FROM notification_channels
+FROM notifications
 WHERE project_id = $1
   AND id = $2
   AND deleted_at IS NULL
 `
 
-type GetNotificationChannelParams struct {
+type GetNotificationParams struct {
 	ProjectID uuid.UUID `json:"project_id"`
 	ID        uuid.UUID `json:"id"`
 }
 
-func (q *Queries) GetNotificationChannel(ctx context.Context, arg GetNotificationChannelParams) (NotificationChannel, error) {
-	row := q.db.QueryRow(ctx, getNotificationChannel, arg.ProjectID, arg.ID)
-	var i NotificationChannel
+func (q *Queries) GetNotification(ctx context.Context, arg GetNotificationParams) (Notification, error) {
+	row := q.db.QueryRow(ctx, getNotification, arg.ProjectID, arg.ID)
+	var i Notification
 	err := row.Scan(
 		&i.ID,
 		&i.ProjectID,
@@ -1009,32 +1009,32 @@ func (q *Queries) ListAlertIncidents(ctx context.Context, arg ListAlertIncidents
 	return items, nil
 }
 
-const listAlertNotificationChannelIDs = `-- name: ListAlertNotificationChannelIDs :many
-SELECT channel_id
+const listAlertNotificationIDs = `-- name: ListAlertNotificationIDs :many
+SELECT notification_id
 FROM alert_notifications
 WHERE project_id = $1
   AND rule_id = ANY($2::uuid[])
-ORDER BY created_at ASC, channel_id ASC
+ORDER BY created_at ASC, notification_id ASC
 `
 
-type ListAlertNotificationChannelIDsParams struct {
+type ListAlertNotificationIDsParams struct {
 	ProjectID uuid.UUID   `json:"project_id"`
 	RuleIds   []uuid.UUID `json:"rule_ids"`
 }
 
-func (q *Queries) ListAlertNotificationChannelIDs(ctx context.Context, arg ListAlertNotificationChannelIDsParams) ([]uuid.UUID, error) {
-	rows, err := q.db.Query(ctx, listAlertNotificationChannelIDs, arg.ProjectID, arg.RuleIds)
+func (q *Queries) ListAlertNotificationIDs(ctx context.Context, arg ListAlertNotificationIDsParams) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, listAlertNotificationIDs, arg.ProjectID, arg.RuleIds)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	var items []uuid.UUID
 	for rows.Next() {
-		var channel_id uuid.UUID
-		if err := rows.Scan(&channel_id); err != nil {
+		var notification_id uuid.UUID
+		if err := rows.Scan(&notification_id); err != nil {
 			return nil, err
 		}
-		items = append(items, channel_id)
+		items = append(items, notification_id)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -1196,42 +1196,42 @@ func (q *Queries) ListEnabledAlertRulesForAssignment(ctx context.Context, arg Li
 	return items, nil
 }
 
-const listEnabledChannelsForRule = `-- name: ListEnabledChannelsForRule :many
-SELECT notification_channels.id,
-       notification_channels.project_id,
-       notification_channels.name,
-       notification_channels.type,
-       notification_channels.enabled,
-       notification_channels.config,
-       notification_channels.created_by_user_id,
-       notification_channels.created_at,
-       notification_channels.updated_at,
-       notification_channels.deleted_at
+const listEnabledNotificationsForRule = `-- name: ListEnabledNotificationsForRule :many
+SELECT notifications.id,
+       notifications.project_id,
+       notifications.name,
+       notifications.type,
+       notifications.enabled,
+       notifications.config,
+       notifications.created_by_user_id,
+       notifications.created_at,
+       notifications.updated_at,
+       notifications.deleted_at
 FROM alert_notifications
-JOIN notification_channels
-    ON notification_channels.project_id = alert_notifications.project_id
-    AND notification_channels.id = alert_notifications.channel_id
+JOIN notifications
+    ON notifications.project_id = alert_notifications.project_id
+    AND notifications.id = alert_notifications.notification_id
 WHERE alert_notifications.project_id = $1
   AND alert_notifications.rule_id = $2
-  AND notification_channels.enabled = true
-  AND notification_channels.deleted_at IS NULL
-ORDER BY alert_notifications.created_at ASC, notification_channels.id ASC
+  AND notifications.enabled = true
+  AND notifications.deleted_at IS NULL
+ORDER BY alert_notifications.created_at ASC, notifications.id ASC
 `
 
-type ListEnabledChannelsForRuleParams struct {
+type ListEnabledNotificationsForRuleParams struct {
 	ProjectID uuid.UUID `json:"project_id"`
 	RuleID    uuid.UUID `json:"rule_id"`
 }
 
-func (q *Queries) ListEnabledChannelsForRule(ctx context.Context, arg ListEnabledChannelsForRuleParams) ([]NotificationChannel, error) {
-	rows, err := q.db.Query(ctx, listEnabledChannelsForRule, arg.ProjectID, arg.RuleID)
+func (q *Queries) ListEnabledNotificationsForRule(ctx context.Context, arg ListEnabledNotificationsForRuleParams) ([]Notification, error) {
+	rows, err := q.db.Query(ctx, listEnabledNotificationsForRule, arg.ProjectID, arg.RuleID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []NotificationChannel
+	var items []Notification
 	for rows.Next() {
-		var i NotificationChannel
+		var i Notification
 		if err := rows.Scan(
 			&i.ID,
 			&i.ProjectID,
@@ -1254,7 +1254,7 @@ func (q *Queries) ListEnabledChannelsForRule(ctx context.Context, arg ListEnable
 	return items, nil
 }
 
-const listNotificationChannels = `-- name: ListNotificationChannels :many
+const listNotifications = `-- name: ListNotifications :many
 SELECT id,
        project_id,
        name,
@@ -1265,30 +1265,30 @@ SELECT id,
        created_at,
        updated_at,
        deleted_at
-FROM notification_channels
+FROM notifications
 WHERE project_id = $1
   AND deleted_at IS NULL
   AND (
-      $2::notification_channel_type IS NULL
-      OR type = $2::notification_channel_type
+      $2::notification_type IS NULL
+      OR type = $2::notification_type
   )
 ORDER BY created_at DESC, id DESC
 `
 
-type ListNotificationChannelsParams struct {
-	ProjectID   uuid.UUID                `json:"project_id"`
-	ChannelType *NotificationChannelType `json:"channel_type"`
+type ListNotificationsParams struct {
+	ProjectID        uuid.UUID         `json:"project_id"`
+	NotificationType *NotificationType `json:"notification_type"`
 }
 
-func (q *Queries) ListNotificationChannels(ctx context.Context, arg ListNotificationChannelsParams) ([]NotificationChannel, error) {
-	rows, err := q.db.Query(ctx, listNotificationChannels, arg.ProjectID, arg.ChannelType)
+func (q *Queries) ListNotifications(ctx context.Context, arg ListNotificationsParams) ([]Notification, error) {
+	rows, err := q.db.Query(ctx, listNotifications, arg.ProjectID, arg.NotificationType)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []NotificationChannel
+	var items []Notification
 	for rows.Next() {
-		var i NotificationChannel
+		var i Notification
 		if err := rows.Scan(
 			&i.ID,
 			&i.ProjectID,
@@ -1525,8 +1525,8 @@ func (q *Queries) SoftDeleteAlertRule(ctx context.Context, arg SoftDeleteAlertRu
 	return result.RowsAffected(), nil
 }
 
-const softDeleteNotificationChannel = `-- name: SoftDeleteNotificationChannel :execrows
-UPDATE notification_channels
+const softDeleteNotification = `-- name: SoftDeleteNotification :execrows
+UPDATE notifications
 SET deleted_at = now(),
     enabled = false
 WHERE project_id = $1
@@ -1534,13 +1534,13 @@ WHERE project_id = $1
   AND deleted_at IS NULL
 `
 
-type SoftDeleteNotificationChannelParams struct {
+type SoftDeleteNotificationParams struct {
 	ProjectID uuid.UUID `json:"project_id"`
 	ID        uuid.UUID `json:"id"`
 }
 
-func (q *Queries) SoftDeleteNotificationChannel(ctx context.Context, arg SoftDeleteNotificationChannelParams) (int64, error) {
-	result, err := q.db.Exec(ctx, softDeleteNotificationChannel, arg.ProjectID, arg.ID)
+func (q *Queries) SoftDeleteNotification(ctx context.Context, arg SoftDeleteNotificationParams) (int64, error) {
+	result, err := q.db.Exec(ctx, softDeleteNotification, arg.ProjectID, arg.ID)
 	if err != nil {
 		return 0, err
 	}
@@ -1749,8 +1749,8 @@ func (q *Queries) UpdateAlertRule(ctx context.Context, arg UpdateAlertRuleParams
 	return i, err
 }
 
-const updateNotificationChannel = `-- name: UpdateNotificationChannel :one
-UPDATE notification_channels
+const updateNotification = `-- name: UpdateNotification :one
+UPDATE notifications
 SET name = $1,
     type = $2,
     enabled = $3,
@@ -1761,25 +1761,25 @@ WHERE project_id = $5
 RETURNING id, project_id, name, type, enabled, config, created_by_user_id, created_at, updated_at, deleted_at
 `
 
-type UpdateNotificationChannelParams struct {
-	Name        string                  `json:"name"`
-	ChannelType NotificationChannelType `json:"channel_type"`
-	Enabled     bool                    `json:"enabled"`
-	Config      []byte                  `json:"config"`
-	ProjectID   uuid.UUID               `json:"project_id"`
-	ID          uuid.UUID               `json:"id"`
+type UpdateNotificationParams struct {
+	Name             string           `json:"name"`
+	NotificationType NotificationType `json:"notification_type"`
+	Enabled          bool             `json:"enabled"`
+	Config           []byte           `json:"config"`
+	ProjectID        uuid.UUID        `json:"project_id"`
+	ID               uuid.UUID        `json:"id"`
 }
 
-func (q *Queries) UpdateNotificationChannel(ctx context.Context, arg UpdateNotificationChannelParams) (NotificationChannel, error) {
-	row := q.db.QueryRow(ctx, updateNotificationChannel,
+func (q *Queries) UpdateNotification(ctx context.Context, arg UpdateNotificationParams) (Notification, error) {
+	row := q.db.QueryRow(ctx, updateNotification,
 		arg.Name,
-		arg.ChannelType,
+		arg.NotificationType,
 		arg.Enabled,
 		arg.Config,
 		arg.ProjectID,
 		arg.ID,
 	)
-	var i NotificationChannel
+	var i Notification
 	err := row.Scan(
 		&i.ID,
 		&i.ProjectID,

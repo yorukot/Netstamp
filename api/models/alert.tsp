@@ -19,7 +19,7 @@ alias AlertConditionMetric =
 	| "tcp.max_connect_ms"
 	| "tcp.success_rate";
 alias AlertConditionOperator = "gt" | "gte" | "lt" | "lte" | "eq";
-alias NotificationChannelType = "webhook" | "discord" | "telegram";
+alias NotificationType = "webhook" | "discord" | "telegram";
 
 model AlertRuleIdPathParam {
 	@path
@@ -31,9 +31,9 @@ model AlertIncidentIdPathParam {
 	incident_id: uuid;
 }
 
-model NotificationChannelIdPathParam {
+model NotificationIdPathParam {
 	@path
-	channel_id: uuid;
+	notification_id: uuid;
 }
 
 @example(#{ status: "enabled", checkType: "ping" })
@@ -88,7 +88,7 @@ model AlertCondition {
 	scope: #{ checkType: "ping", probeId: "33333333-3333-3333-3333-333333333333", checkId: "44444444-4444-4444-4444-444444444444" },
 	condition: #{ type: "metric_threshold", metric: "ping.loss_percent", operator: "gte", threshold: 10, windowSeconds: 300, minSamples: 3 },
 	cooldownSeconds: 900,
-	notificationChannelIds: #["88888888-8888-8888-8888-888888888888"],
+	notificationIds: #["88888888-8888-8888-8888-888888888888"],
 	createdAt: utcDateTime.fromISO("2026-06-14T09:00:00Z"),
 	updatedAt: utcDateTime.fromISO("2026-06-14T09:00:00Z"),
 })
@@ -112,7 +112,7 @@ model AlertRule {
 	@maxValue(86400)
 	cooldownSeconds: int32;
 
-	notificationChannelIds: uuid[];
+	notificationIds: uuid[];
 	createdAt: utcDateTime;
 	updatedAt: utcDateTime;
 }
@@ -126,7 +126,7 @@ model AlertRule {
 		scope: #{ checkType: "ping" },
 		condition: #{ type: "metric_threshold", metric: "ping.loss_percent", operator: "gte", threshold: 10, windowSeconds: 300, minSamples: 3 },
 		cooldownSeconds: 900,
-		notificationChannelIds: #[],
+		notificationIds: #[],
 		createdAt: utcDateTime.fromISO("2026-06-14T09:00:00Z"),
 		updatedAt: utcDateTime.fromISO("2026-06-14T09:00:00Z"),
 	},
@@ -148,7 +148,7 @@ model AlertRuleListResponse {
 	scope: #{ checkType: "ping" },
 	condition: #{ type: "metric_threshold", metric: "ping.loss_percent", operator: "gte", threshold: 10, windowSeconds: 300, minSamples: 3 },
 	cooldownSeconds: 900,
-	notificationChannelIds: #["88888888-8888-8888-8888-888888888888"],
+	notificationIds: #["88888888-8888-8888-8888-888888888888"],
 })
 model CreateAlertRuleRequest {
 	@minLength(1)
@@ -168,7 +168,7 @@ model CreateAlertRuleRequest {
 	@maxValue(86400)
 	cooldownSeconds?: int32 = 900;
 
-	notificationChannelIds?: uuid[];
+	notificationIds?: uuid[];
 }
 
 @doc("Full replacement patch for an alert rule in the current beta API.")
@@ -298,19 +298,19 @@ model AlertIncidentListResponse {
 }
 
 @example(#{ url: "https://hooks.example.com/netstamp" })
-model WebhookChannelConfig {
+model WebhookNotificationConfig {
 	@format("uri")
 	url: string;
 }
 
 @example(#{ url: "https://discord.com/api/webhooks/123/token" })
-model DiscordChannelConfig {
+model DiscordNotificationConfig {
 	@format("uri")
 	url: string;
 }
 
 @example(#{ botToken: "123456:telegram-bot-token", chatId: "-1001234567890" })
-model TelegramChannelConfig {
+model TelegramNotificationConfig {
 	@minLength(1)
 	botToken: string;
 
@@ -319,15 +319,15 @@ model TelegramChannelConfig {
 }
 
 @example(#{ chatId: "-1001234567890", botTokenConfigured: true })
-model TelegramChannelResponseConfig {
+model TelegramNotificationResponseConfig {
 	@minLength(1)
 	chatId: string;
 
 	botTokenConfigured: boolean;
 }
 
-alias NotificationChannelConfig = WebhookChannelConfig | DiscordChannelConfig | TelegramChannelResponseConfig;
-alias CreateNotificationChannelConfig = WebhookChannelConfig | DiscordChannelConfig | TelegramChannelConfig;
+alias NotificationConfig = WebhookNotificationConfig | DiscordNotificationConfig | TelegramNotificationResponseConfig;
+alias CreateNotificationConfig = WebhookNotificationConfig | DiscordNotificationConfig | TelegramNotificationConfig;
 
 @example(#{
 	id: "88888888-8888-8888-8888-888888888888",
@@ -338,22 +338,22 @@ alias CreateNotificationChannelConfig = WebhookChannelConfig | DiscordChannelCon
 	createdAt: utcDateTime.fromISO("2026-06-14T09:00:00Z"),
 	updatedAt: utcDateTime.fromISO("2026-06-14T09:00:00Z"),
 })
-model NotificationChannel {
+model Notification {
 	id: uuid;
 
 	@minLength(1)
 	@maxLength(128)
 	name: string;
 
-	type: NotificationChannelType;
+	type: NotificationType;
 	enabled: boolean;
-	config: NotificationChannelConfig;
+	config: NotificationConfig;
 	createdAt: utcDateTime;
 	updatedAt: utcDateTime;
 }
 
 @example(#{
-	channel: #{
+	notification: #{
 		id: "88888888-8888-8888-8888-888888888888",
 		name: "Incident webhook",
 		type: "webhook",
@@ -363,31 +363,31 @@ model NotificationChannel {
 		updatedAt: utcDateTime.fromISO("2026-06-14T09:00:00Z"),
 	},
 })
-model NotificationChannelResponse {
-	channel: NotificationChannel;
+model NotificationResponse {
+	notification: Notification;
 }
 
-@example(#{ channels: #[] })
-model NotificationChannelListResponse {
-	channels: NotificationChannel[];
+@example(#{ notifications: #[] })
+model NotificationListResponse {
+	notifications: Notification[];
 }
 
 @example(#{ name: "Incident webhook", type: "webhook", enabled: true, config: #{ url: "https://hooks.example.com/netstamp" } })
-model CreateNotificationChannelRequest {
+model CreateNotificationRequest {
 	@minLength(1)
 	@maxLength(128)
 	name: string;
 
-	type: NotificationChannelType;
+	type: NotificationType;
 	enabled: boolean;
-	config: CreateNotificationChannelConfig;
+	config: CreateNotificationConfig;
 }
 
-@doc("Full replacement patch for a notification channel in the current beta API.")
-model UpdateNotificationChannelRequest is CreateNotificationChannelRequest;
+@doc("Full replacement patch for a notification in the current beta API.")
+model UpdateNotificationRequest is CreateNotificationRequest;
 
 @example(#{ delivered: true, retryable: false, message: "Test notification delivered." })
-model NotificationChannelTestResult {
+model NotificationTestResult {
 	delivered: boolean;
 	retryable: boolean;
 	kind?: string;
@@ -396,6 +396,6 @@ model NotificationChannelTestResult {
 }
 
 @example(#{ result: #{ delivered: true, retryable: false, message: "Test notification delivered." } })
-model NotificationChannelTestResponse {
-	result: NotificationChannelTestResult;
+model NotificationTestResponse {
+	result: NotificationTestResult;
 }
