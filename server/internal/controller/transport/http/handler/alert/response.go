@@ -36,6 +36,8 @@ type incidentResponseBody struct {
 	RuleID                      string                         `json:"ruleId"`
 	ProbeID                     string                         `json:"probeId"`
 	CheckID                     string                         `json:"checkId"`
+	Probe                       incidentProbeResponseBody      `json:"probe"`
+	Check                       incidentCheckResponseBody      `json:"check"`
 	CheckType                   domaincheck.Type               `json:"checkType"`
 	Status                      domainalert.IncidentStatus     `json:"status"`
 	Severity                    domainalert.Severity           `json:"severity"`
@@ -51,6 +53,18 @@ type incidentResponseBody struct {
 	SuppressedNotificationCount int32                          `json:"suppressedNotificationCount"`
 	CreatedAt                   time.Time                      `json:"createdAt"`
 	UpdatedAt                   time.Time                      `json:"updatedAt"`
+}
+
+type incidentProbeResponseBody struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+type incidentCheckResponseBody struct {
+	ID     string           `json:"id"`
+	Name   string           `json:"name"`
+	Type   domaincheck.Type `json:"type"`
+	Target string           `json:"target"`
 }
 
 type channelResponseBody struct {
@@ -118,6 +132,8 @@ func incidentResponse(incident domainalert.Incident) incidentResponseBody {
 		RuleID:                      incident.RuleID,
 		ProbeID:                     incident.ProbeID,
 		CheckID:                     incident.CheckID,
+		Probe:                       incidentProbeResponse(incident),
+		Check:                       incidentCheckResponse(incident),
 		CheckType:                   incident.CheckType,
 		Status:                      incident.Status,
 		Severity:                    incident.Severity,
@@ -134,6 +150,20 @@ func incidentResponse(incident domainalert.Incident) incidentResponseBody {
 		CreatedAt:                   incident.CreatedAt,
 		UpdatedAt:                   incident.UpdatedAt,
 	}
+}
+
+func incidentProbeResponse(incident domainalert.Incident) incidentProbeResponseBody {
+	if incident.Probe == nil {
+		return incidentProbeResponseBody{ID: incident.ProbeID, Name: incident.ProbeID}
+	}
+	return incidentProbeResponseBody{ID: incident.Probe.ID, Name: incident.Probe.Name}
+}
+
+func incidentCheckResponse(incident domainalert.Incident) incidentCheckResponseBody {
+	if incident.Check == nil {
+		return incidentCheckResponseBody{ID: incident.CheckID, Name: incident.CheckID, Type: incident.CheckType, Target: incident.CheckID}
+	}
+	return incidentCheckResponseBody{ID: incident.Check.ID, Name: incident.Check.Name, Type: incident.Check.Type, Target: incident.Check.Target}
 }
 
 func channelResponses(channels []domainalert.NotificationChannel) []channelResponseBody {

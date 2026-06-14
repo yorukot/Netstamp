@@ -301,8 +301,28 @@ function formatRuleScope(rule: ApiAlertRule) {
 	return parts.join(" / ");
 }
 
-function formatIncidentTarget(incident: ApiAlertIncident) {
-	return `${incident.checkType.toUpperCase()} / ${shortID(incident.probeId)} / ${shortID(incident.checkId)}`;
+function incidentProbeName(incident: ApiAlertIncident) {
+	return incident.probe?.name || shortID(incident.probeId);
+}
+
+function incidentCheckName(incident: ApiAlertIncident) {
+	return incident.check?.name || shortID(incident.checkId);
+}
+
+function incidentCheckTarget(incident: ApiAlertIncident) {
+	return incident.check?.target || shortID(incident.checkId);
+}
+
+function incidentTargetTitle(incident: ApiAlertIncident) {
+	return `Probe ${incident.probeId} / Check ${incident.checkId}`;
+}
+
+function formatIncidentProbe(incident: ApiAlertIncident) {
+	return `${incidentProbeName(incident)} (${shortID(incident.probeId)})`;
+}
+
+function formatIncidentCheck(incident: ApiAlertIncident) {
+	return `${incidentCheckName(incident)} (${incident.checkType.toUpperCase()} / ${shortID(incident.checkId)})`;
 }
 
 function channelConfigString(config: ApiNotificationChannel["config"], key: string) {
@@ -664,9 +684,9 @@ export function AlertsPage() {
 			label: "Target",
 			render: incident => (
 				<div className={styles.primaryCell}>
-					<strong>{incident.checkType.toUpperCase()}</strong>
-					<span>
-						{shortID(incident.probeId)} / {shortID(incident.checkId)}
+					<strong title={incidentTargetTitle(incident)}>{incidentCheckName(incident)}</strong>
+					<span title={incidentTargetTitle(incident)}>
+						{incidentProbeName(incident)} / {incident.checkType.toUpperCase()} / {incidentCheckTarget(incident)}
 					</span>
 				</div>
 			)
@@ -1022,7 +1042,9 @@ function IncidentDetailDrawer({ incident, onClose }: { incident: ApiAlertInciden
 				<Panel tone="matte" title="What happened">
 					<p className={styles.detailLead}>{formatIncidentReason(incident)}</p>
 					<div className={styles.keyValueGrid}>
-						<KeyValue label="Target" value={formatIncidentTarget(incident)} />
+						<KeyValue label="Probe" value={formatIncidentProbe(incident)} />
+						<KeyValue label="Check" value={formatIncidentCheck(incident)} />
+						<KeyValue label="Target" value={incidentCheckTarget(incident)} />
 						<KeyValue label="State" value={incident.lastEvaluationState} />
 						<KeyValue label="Value" value={typeof incident.lastValue === "number" ? formatThreshold(incident.lastSummary.metric, Number(incident.lastValue.toFixed(2))) : "-"} />
 						<KeyValue label="Rule" value={shortID(incident.ruleId)} />

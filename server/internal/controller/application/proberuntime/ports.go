@@ -13,8 +13,11 @@ import (
 type ChangedAssignmentInput struct {
 	ProjectID      string
 	ProbeID        string
+	ProbeName      string
 	CheckID        string
+	CheckName      string
 	CheckType      string
+	CheckTarget    string
 	ProbeStorageID int64
 	CheckStorageID int64
 }

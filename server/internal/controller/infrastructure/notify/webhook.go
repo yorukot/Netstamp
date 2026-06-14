@@ -36,6 +36,14 @@ type notificationPayloadView struct {
 		ProbeID   string `json:"probeId"`
 		CheckID   string `json:"checkId"`
 		CheckType string `json:"checkType"`
+		Probe     struct {
+			Name string `json:"name"`
+		} `json:"probe"`
+		Check struct {
+			Name   string `json:"name"`
+			Type   string `json:"type"`
+			Target string `json:"target"`
+		} `json:"check"`
 	} `json:"target"`
 	Channel struct {
 		Name string `json:"name"`
@@ -256,7 +264,9 @@ func notificationFields(body notificationPayloadView) []notificationField {
 	add("Rule", body.Rule.Name, true)
 	add("Severity", body.Rule.Severity, true)
 	add("Event", body.EventType, true)
-	add("Check", strings.ToUpper(body.Target.CheckType), true)
+	add("Probe", targetProbeLabel(body), true)
+	add("Check", targetCheckLabel(body), true)
+	add("Target", body.Target.Check.Target, true)
 	if metric, ok := body.Summary["metric"].(string); ok {
 		add("Metric", metric, true)
 	}
@@ -269,6 +279,28 @@ func notificationFields(body notificationPayloadView) []notificationField {
 	add("Channel", body.Channel.Name, true)
 	add("Sent", body.SentAt, false)
 	return fields
+}
+
+func targetProbeLabel(body notificationPayloadView) string {
+	if body.Target.Probe.Name != "" {
+		return body.Target.Probe.Name
+	}
+	return body.Target.ProbeID
+}
+
+func targetCheckLabel(body notificationPayloadView) string {
+	name := body.Target.Check.Name
+	if name == "" {
+		name = body.Target.CheckID
+	}
+	checkType := body.Target.Check.Type
+	if checkType == "" {
+		checkType = body.Target.CheckType
+	}
+	if checkType == "" {
+		return name
+	}
+	return name + " (" + strings.ToUpper(checkType) + ")"
 }
 
 func discordColor(body notificationPayloadView) int {

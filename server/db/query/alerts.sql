@@ -111,19 +111,19 @@ WHERE project_id = sqlc.arg(project_id)
   AND id = sqlc.arg(id)
   AND deleted_at IS NULL;
 
--- name: ReplaceAlertRuleChannels :exec
-DELETE FROM alert_rule_channels
+-- name: ReplaceAlertNotifications :exec
+DELETE FROM alert_notifications
 WHERE project_id = sqlc.arg(project_id)
   AND rule_id = sqlc.arg(rule_id);
 
--- name: AddAlertRuleChannel :exec
-INSERT INTO alert_rule_channels (project_id, rule_id, channel_id)
+-- name: AddAlertNotification :exec
+INSERT INTO alert_notifications (project_id, rule_id, channel_id)
 VALUES (sqlc.arg(project_id), sqlc.arg(rule_id), sqlc.arg(channel_id))
 ON CONFLICT (rule_id, channel_id) DO NOTHING;
 
--- name: ListAlertRuleChannelIDs :many
+-- name: ListAlertNotificationChannelIDs :many
 SELECT channel_id
-FROM alert_rule_channels
+FROM alert_notifications
 WHERE project_id = sqlc.arg(project_id)
   AND rule_id = ANY(sqlc.arg(rule_ids)::uuid[])
 ORDER BY created_at ASC, channel_id ASC;
@@ -203,77 +203,97 @@ WHERE project_id = sqlc.arg(project_id)
   AND deleted_at IS NULL;
 
 -- name: ListAlertIncidents :many
-SELECT id,
-       project_id,
-       rule_id,
-       probe_id,
-       check_id,
-       check_type,
-       status,
-       severity,
-       last_evaluation_state,
-       opened_at,
-       acknowledged_at,
-       acknowledged_by_user_id,
-       resolved_at,
-       resolved_by_user_id,
-       last_evaluated_at,
-       last_triggered_at,
-       last_value,
-       last_summary,
-       last_notification_sent_at,
-       next_notification_eligible_at,
-       suppressed_notification_count,
-       created_at,
-       updated_at
+SELECT alert_incidents.id,
+       alert_incidents.project_id,
+       alert_incidents.rule_id,
+       alert_incidents.probe_id,
+       alert_incidents.check_id,
+       alert_incidents.check_type,
+       alert_incidents.status,
+       alert_incidents.severity,
+       alert_incidents.last_evaluation_state,
+       alert_incidents.opened_at,
+       alert_incidents.acknowledged_at,
+       alert_incidents.acknowledged_by_user_id,
+       alert_incidents.resolved_at,
+       alert_incidents.resolved_by_user_id,
+       alert_incidents.last_evaluated_at,
+       alert_incidents.last_triggered_at,
+       alert_incidents.last_value,
+       alert_incidents.last_summary,
+       alert_incidents.last_notification_sent_at,
+       alert_incidents.next_notification_eligible_at,
+       alert_incidents.suppressed_notification_count,
+       alert_incidents.created_at,
+       alert_incidents.updated_at,
+       probes.name AS probe_name,
+       checks.name AS check_name,
+       checks.check_type AS check_summary_type,
+       checks.target AS check_target
 FROM alert_incidents
-WHERE project_id = sqlc.arg(project_id)
+JOIN probes
+  ON probes.project_id = alert_incidents.project_id
+ AND probes.id = alert_incidents.probe_id
+JOIN checks
+  ON checks.project_id = alert_incidents.project_id
+ AND checks.id = alert_incidents.check_id
+WHERE alert_incidents.project_id = sqlc.arg(project_id)
   AND (
       sqlc.narg(status)::alert_incident_status IS NULL
-      OR status = sqlc.narg(status)::alert_incident_status
+      OR alert_incidents.status = sqlc.narg(status)::alert_incident_status
   )
   AND (
       sqlc.narg(rule_id)::uuid IS NULL
-      OR rule_id = sqlc.narg(rule_id)::uuid
+      OR alert_incidents.rule_id = sqlc.narg(rule_id)::uuid
   )
   AND (
       sqlc.narg(probe_id)::uuid IS NULL
-      OR probe_id = sqlc.narg(probe_id)::uuid
+      OR alert_incidents.probe_id = sqlc.narg(probe_id)::uuid
   )
   AND (
       sqlc.narg(check_id)::uuid IS NULL
-      OR check_id = sqlc.narg(check_id)::uuid
+      OR alert_incidents.check_id = sqlc.narg(check_id)::uuid
   )
-ORDER BY opened_at DESC, id DESC
+ORDER BY alert_incidents.opened_at DESC, alert_incidents.id DESC
 LIMIT sqlc.arg(limit_count);
 
 -- name: GetAlertIncident :one
-SELECT id,
-       project_id,
-       rule_id,
-       probe_id,
-       check_id,
-       check_type,
-       status,
-       severity,
-       last_evaluation_state,
-       opened_at,
-       acknowledged_at,
-       acknowledged_by_user_id,
-       resolved_at,
-       resolved_by_user_id,
-       last_evaluated_at,
-       last_triggered_at,
-       last_value,
-       last_summary,
-       last_notification_sent_at,
-       next_notification_eligible_at,
-       suppressed_notification_count,
-       created_at,
-       updated_at
+SELECT alert_incidents.id,
+       alert_incidents.project_id,
+       alert_incidents.rule_id,
+       alert_incidents.probe_id,
+       alert_incidents.check_id,
+       alert_incidents.check_type,
+       alert_incidents.status,
+       alert_incidents.severity,
+       alert_incidents.last_evaluation_state,
+       alert_incidents.opened_at,
+       alert_incidents.acknowledged_at,
+       alert_incidents.acknowledged_by_user_id,
+       alert_incidents.resolved_at,
+       alert_incidents.resolved_by_user_id,
+       alert_incidents.last_evaluated_at,
+       alert_incidents.last_triggered_at,
+       alert_incidents.last_value,
+       alert_incidents.last_summary,
+       alert_incidents.last_notification_sent_at,
+       alert_incidents.next_notification_eligible_at,
+       alert_incidents.suppressed_notification_count,
+       alert_incidents.created_at,
+       alert_incidents.updated_at,
+       probes.name AS probe_name,
+       checks.name AS check_name,
+       checks.check_type AS check_summary_type,
+       checks.target AS check_target
 FROM alert_incidents
-WHERE project_id = sqlc.arg(project_id)
-  AND id = sqlc.arg(id);
+JOIN probes
+  ON probes.project_id = alert_incidents.project_id
+ AND probes.id = alert_incidents.probe_id
+JOIN checks
+  ON checks.project_id = alert_incidents.project_id
+ AND checks.id = alert_incidents.check_id
+WHERE alert_incidents.project_id = sqlc.arg(project_id)
+  AND alert_incidents.id = sqlc.arg(id);
 
 -- name: ListEnabledAlertRulesForAssignment :many
 SELECT alert_rules.id,
@@ -523,15 +543,15 @@ SELECT notification_channels.id,
        notification_channels.created_at,
        notification_channels.updated_at,
        notification_channels.deleted_at
-FROM alert_rule_channels
+FROM alert_notifications
 JOIN notification_channels
-    ON notification_channels.project_id = alert_rule_channels.project_id
-    AND notification_channels.id = alert_rule_channels.channel_id
-WHERE alert_rule_channels.project_id = sqlc.arg(project_id)
-  AND alert_rule_channels.rule_id = sqlc.arg(rule_id)
+    ON notification_channels.project_id = alert_notifications.project_id
+    AND notification_channels.id = alert_notifications.channel_id
+WHERE alert_notifications.project_id = sqlc.arg(project_id)
+  AND alert_notifications.rule_id = sqlc.arg(rule_id)
   AND notification_channels.enabled = true
   AND notification_channels.deleted_at IS NULL
-ORDER BY alert_rule_channels.created_at ASC, notification_channels.id ASC;
+ORDER BY alert_notifications.created_at ASC, notification_channels.id ASC;
 
 -- name: RecoverStaleNotificationOutbox :execrows
 UPDATE notification_outbox

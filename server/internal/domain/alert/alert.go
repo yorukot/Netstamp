@@ -92,6 +92,8 @@ type Incident struct {
 	RuleID                      string
 	ProbeID                     string
 	CheckID                     string
+	Probe                       *IncidentProbeSummary
+	Check                       *IncidentCheckSummary
 	CheckType                   domaincheck.Type
 	Status                      IncidentStatus
 	Severity                    Severity
@@ -110,6 +112,18 @@ type Incident struct {
 	SuppressedNotificationCount int32
 	CreatedAt                   time.Time
 	UpdatedAt                   time.Time
+}
+
+type IncidentProbeSummary struct {
+	ID   string
+	Name string
+}
+
+type IncidentCheckSummary struct {
+	ID     string
+	Name   string
+	Type   domaincheck.Type
+	Target string
 }
 
 type NotificationChannel struct {
@@ -162,6 +176,8 @@ type IncidentTransitionInput struct {
 	Rule                       Rule
 	ProbeID                    string
 	CheckID                    string
+	Probe                      *IncidentProbeSummary
+	Check                      *IncidentCheckSummary
 	CheckType                  domaincheck.Type
 	Evaluation                 alertcondition.Evaluation
 	Summary                    json.RawMessage

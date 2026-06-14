@@ -214,12 +214,19 @@ func appendChangedAssignmentForStorage(changed []ChangedAssignmentInput, seen ma
 		if _, ok := seen[key]; ok {
 			return changed
 		}
+		probeName := ""
+		if assignment.Probe != nil {
+			probeName = assignment.Probe.Name
+		}
 		seen[key] = struct{}{}
 		return append(changed, ChangedAssignmentInput{
 			ProjectID:      assignment.ProjectID,
 			ProbeID:        assignment.ProbeID,
+			ProbeName:      probeName,
 			CheckID:        assignment.CheckID,
+			CheckName:      assignment.Check.Name,
 			CheckType:      string(assignment.Check.Type),
+			CheckTarget:    assignment.Check.Target,
 			ProbeStorageID: assignment.ProbeStorageID,
 			CheckStorageID: assignment.CheckStorageID,
 		})

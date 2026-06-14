@@ -982,6 +982,16 @@ export interface components {
 		 *       "ruleId": "77777777-7777-7777-7777-777777777777",
 		 *       "probeId": "33333333-3333-3333-3333-333333333333",
 		 *       "checkId": "44444444-4444-4444-4444-444444444444",
+		 *       "probe": {
+		 *         "id": "33333333-3333-3333-3333-333333333333",
+		 *         "name": "tokyo-vps-1"
+		 *       },
+		 *       "check": {
+		 *         "id": "44444444-4444-4444-4444-444444444444",
+		 *         "name": "api-latency",
+		 *         "type": "ping",
+		 *         "target": "api.netstamp.io"
+		 *       },
 		 *       "checkType": "ping",
 		 *       "status": "open",
 		 *       "severity": "critical",
@@ -1006,6 +1016,8 @@ export interface components {
 			ruleId: components["schemas"]["uuid"];
 			probeId: components["schemas"]["uuid"];
 			checkId: components["schemas"]["uuid"];
+			probe: components["schemas"]["AlertIncidentProbeSummary"];
+			check: components["schemas"]["AlertIncidentCheckSummary"];
 			/** @enum {string} */
 			checkType: "ping" | "tcp" | "traceroute";
 			/** @enum {string} */
@@ -1038,6 +1050,21 @@ export interface components {
 		};
 		/**
 		 * @example {
+		 *       "id": "44444444-4444-4444-4444-444444444444",
+		 *       "name": "api-latency",
+		 *       "type": "ping",
+		 *       "target": "api.netstamp.io"
+		 *     }
+		 */
+		AlertIncidentCheckSummary: {
+			id: components["schemas"]["uuid"];
+			name: string;
+			/** @enum {string} */
+			type: "ping" | "tcp" | "traceroute";
+			target: string;
+		};
+		/**
+		 * @example {
 		 *       "incidents": []
 		 *     }
 		 */
@@ -1046,11 +1073,31 @@ export interface components {
 		};
 		/**
 		 * @example {
+		 *       "id": "33333333-3333-3333-3333-333333333333",
+		 *       "name": "tokyo-vps-1"
+		 *     }
+		 */
+		AlertIncidentProbeSummary: {
+			id: components["schemas"]["uuid"];
+			name: string;
+		};
+		/**
+		 * @example {
 		 *       "incident": {
 		 *         "id": "99999999-9999-9999-9999-999999999999",
 		 *         "ruleId": "77777777-7777-7777-7777-777777777777",
 		 *         "probeId": "33333333-3333-3333-3333-333333333333",
 		 *         "checkId": "44444444-4444-4444-4444-444444444444",
+		 *         "probe": {
+		 *           "id": "33333333-3333-3333-3333-333333333333",
+		 *           "name": "tokyo-vps-1"
+		 *         },
+		 *         "check": {
+		 *           "id": "44444444-4444-4444-4444-444444444444",
+		 *           "name": "api-latency",
+		 *           "type": "ping",
+		 *           "target": "api.netstamp.io"
+		 *         },
 		 *         "checkType": "ping",
 		 *         "status": "open",
 		 *         "severity": "critical",

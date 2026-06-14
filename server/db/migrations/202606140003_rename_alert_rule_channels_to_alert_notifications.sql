@@ -1,0 +1,13 @@
+-- +goose Up
+ALTER TABLE alert_rule_channels RENAME TO alert_notifications;
+ALTER TABLE alert_notifications RENAME CONSTRAINT alert_rule_channels_pkey TO alert_notifications_pkey;
+ALTER TABLE alert_notifications RENAME CONSTRAINT alert_rule_channels_project_id_fkey TO alert_notifications_project_id_fkey;
+ALTER TABLE alert_notifications RENAME CONSTRAINT fk_alert_rule_channels_project_rule TO fk_alert_notifications_project_rule;
+ALTER TABLE alert_notifications RENAME CONSTRAINT fk_alert_rule_channels_project_channel TO fk_alert_notifications_project_channel;
+
+-- +goose Down
+ALTER TABLE alert_notifications RENAME CONSTRAINT fk_alert_notifications_project_channel TO fk_alert_rule_channels_project_channel;
+ALTER TABLE alert_notifications RENAME CONSTRAINT fk_alert_notifications_project_rule TO fk_alert_rule_channels_project_rule;
+ALTER TABLE alert_notifications RENAME CONSTRAINT alert_notifications_project_id_fkey TO alert_rule_channels_project_id_fkey;
+ALTER TABLE alert_notifications RENAME CONSTRAINT alert_notifications_pkey TO alert_rule_channels_pkey;
+ALTER TABLE alert_notifications RENAME TO alert_rule_channels;

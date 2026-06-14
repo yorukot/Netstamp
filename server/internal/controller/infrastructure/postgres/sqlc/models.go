@@ -688,6 +688,13 @@ type AlertIncident struct {
 	UpdatedAt                   time.Time            `json:"updated_at"`
 }
 
+type AlertNotification struct {
+	ProjectID uuid.UUID `json:"project_id"`
+	RuleID    uuid.UUID `json:"rule_id"`
+	ChannelID uuid.UUID `json:"channel_id"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
 type AlertRule struct {
 	ID               uuid.UUID       `json:"id"`
 	ProjectID        uuid.UUID       `json:"project_id"`
@@ -706,13 +713,6 @@ type AlertRule struct {
 	CreatedAt        time.Time       `json:"created_at"`
 	UpdatedAt        time.Time       `json:"updated_at"`
 	DeletedAt        *time.Time      `json:"deleted_at"`
-}
-
-type AlertRuleChannel struct {
-	ProjectID uuid.UUID `json:"project_id"`
-	RuleID    uuid.UUID `json:"rule_id"`
-	ChannelID uuid.UUID `json:"channel_id"`
-	CreatedAt time.Time `json:"created_at"`
 }
 
 type Check struct {

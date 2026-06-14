@@ -12,20 +12,20 @@ import (
 	"github.com/google/uuid"
 )
 
-const addAlertRuleChannel = `-- name: AddAlertRuleChannel :exec
-INSERT INTO alert_rule_channels (project_id, rule_id, channel_id)
+const addAlertNotification = `-- name: AddAlertNotification :exec
+INSERT INTO alert_notifications (project_id, rule_id, channel_id)
 VALUES ($1, $2, $3)
 ON CONFLICT (rule_id, channel_id) DO NOTHING
 `
 
-type AddAlertRuleChannelParams struct {
+type AddAlertNotificationParams struct {
 	ProjectID uuid.UUID `json:"project_id"`
 	RuleID    uuid.UUID `json:"rule_id"`
 	ChannelID uuid.UUID `json:"channel_id"`
 }
 
-func (q *Queries) AddAlertRuleChannel(ctx context.Context, arg AddAlertRuleChannelParams) error {
-	_, err := q.db.Exec(ctx, addAlertRuleChannel, arg.ProjectID, arg.RuleID, arg.ChannelID)
+func (q *Queries) AddAlertNotification(ctx context.Context, arg AddAlertNotificationParams) error {
+	_, err := q.db.Exec(ctx, addAlertNotification, arg.ProjectID, arg.RuleID, arg.ChannelID)
 	return err
 }
 
@@ -474,32 +474,42 @@ func (q *Queries) GetActiveAlertIncident(ctx context.Context, arg GetActiveAlert
 }
 
 const getAlertIncident = `-- name: GetAlertIncident :one
-SELECT id,
-       project_id,
-       rule_id,
-       probe_id,
-       check_id,
-       check_type,
-       status,
-       severity,
-       last_evaluation_state,
-       opened_at,
-       acknowledged_at,
-       acknowledged_by_user_id,
-       resolved_at,
-       resolved_by_user_id,
-       last_evaluated_at,
-       last_triggered_at,
-       last_value,
-       last_summary,
-       last_notification_sent_at,
-       next_notification_eligible_at,
-       suppressed_notification_count,
-       created_at,
-       updated_at
+SELECT alert_incidents.id,
+       alert_incidents.project_id,
+       alert_incidents.rule_id,
+       alert_incidents.probe_id,
+       alert_incidents.check_id,
+       alert_incidents.check_type,
+       alert_incidents.status,
+       alert_incidents.severity,
+       alert_incidents.last_evaluation_state,
+       alert_incidents.opened_at,
+       alert_incidents.acknowledged_at,
+       alert_incidents.acknowledged_by_user_id,
+       alert_incidents.resolved_at,
+       alert_incidents.resolved_by_user_id,
+       alert_incidents.last_evaluated_at,
+       alert_incidents.last_triggered_at,
+       alert_incidents.last_value,
+       alert_incidents.last_summary,
+       alert_incidents.last_notification_sent_at,
+       alert_incidents.next_notification_eligible_at,
+       alert_incidents.suppressed_notification_count,
+       alert_incidents.created_at,
+       alert_incidents.updated_at,
+       probes.name AS probe_name,
+       checks.name AS check_name,
+       checks.check_type AS check_summary_type,
+       checks.target AS check_target
 FROM alert_incidents
-WHERE project_id = $1
-  AND id = $2
+JOIN probes
+  ON probes.project_id = alert_incidents.project_id
+ AND probes.id = alert_incidents.probe_id
+JOIN checks
+  ON checks.project_id = alert_incidents.project_id
+ AND checks.id = alert_incidents.check_id
+WHERE alert_incidents.project_id = $1
+  AND alert_incidents.id = $2
 `
 
 type GetAlertIncidentParams struct {
@@ -507,9 +517,39 @@ type GetAlertIncidentParams struct {
 	ID        uuid.UUID `json:"id"`
 }
 
-func (q *Queries) GetAlertIncident(ctx context.Context, arg GetAlertIncidentParams) (AlertIncident, error) {
+type GetAlertIncidentRow struct {
+	ID                          uuid.UUID            `json:"id"`
+	ProjectID                   uuid.UUID            `json:"project_id"`
+	RuleID                      uuid.UUID            `json:"rule_id"`
+	ProbeID                     uuid.UUID            `json:"probe_id"`
+	CheckID                     uuid.UUID            `json:"check_id"`
+	CheckType                   CheckType            `json:"check_type"`
+	Status                      AlertIncidentStatus  `json:"status"`
+	Severity                    AlertSeverity        `json:"severity"`
+	LastEvaluationState         AlertEvaluationState `json:"last_evaluation_state"`
+	OpenedAt                    time.Time            `json:"opened_at"`
+	AcknowledgedAt              *time.Time           `json:"acknowledged_at"`
+	AcknowledgedByUserID        *uuid.UUID           `json:"acknowledged_by_user_id"`
+	ResolvedAt                  *time.Time           `json:"resolved_at"`
+	ResolvedByUserID            *uuid.UUID           `json:"resolved_by_user_id"`
+	LastEvaluatedAt             time.Time            `json:"last_evaluated_at"`
+	LastTriggeredAt             time.Time            `json:"last_triggered_at"`
+	LastValue                   *float64             `json:"last_value"`
+	LastSummary                 []byte               `json:"last_summary"`
+	LastNotificationSentAt      *time.Time           `json:"last_notification_sent_at"`
+	NextNotificationEligibleAt  *time.Time           `json:"next_notification_eligible_at"`
+	SuppressedNotificationCount int32                `json:"suppressed_notification_count"`
+	CreatedAt                   time.Time            `json:"created_at"`
+	UpdatedAt                   time.Time            `json:"updated_at"`
+	ProbeName                   string               `json:"probe_name"`
+	CheckName                   string               `json:"check_name"`
+	CheckSummaryType            CheckType            `json:"check_summary_type"`
+	CheckTarget                 string               `json:"check_target"`
+}
+
+func (q *Queries) GetAlertIncident(ctx context.Context, arg GetAlertIncidentParams) (GetAlertIncidentRow, error) {
 	row := q.db.QueryRow(ctx, getAlertIncident, arg.ProjectID, arg.ID)
-	var i AlertIncident
+	var i GetAlertIncidentRow
 	err := row.Scan(
 		&i.ID,
 		&i.ProjectID,
@@ -534,6 +574,10 @@ func (q *Queries) GetAlertIncident(ctx context.Context, arg GetAlertIncidentPara
 		&i.SuppressedNotificationCount,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.ProbeName,
+		&i.CheckName,
+		&i.CheckSummaryType,
+		&i.CheckTarget,
 	)
 	return i, err
 }
@@ -816,48 +860,58 @@ func (q *Queries) IncrementAlertIncidentSuppressedNotifications(ctx context.Cont
 }
 
 const listAlertIncidents = `-- name: ListAlertIncidents :many
-SELECT id,
-       project_id,
-       rule_id,
-       probe_id,
-       check_id,
-       check_type,
-       status,
-       severity,
-       last_evaluation_state,
-       opened_at,
-       acknowledged_at,
-       acknowledged_by_user_id,
-       resolved_at,
-       resolved_by_user_id,
-       last_evaluated_at,
-       last_triggered_at,
-       last_value,
-       last_summary,
-       last_notification_sent_at,
-       next_notification_eligible_at,
-       suppressed_notification_count,
-       created_at,
-       updated_at
+SELECT alert_incidents.id,
+       alert_incidents.project_id,
+       alert_incidents.rule_id,
+       alert_incidents.probe_id,
+       alert_incidents.check_id,
+       alert_incidents.check_type,
+       alert_incidents.status,
+       alert_incidents.severity,
+       alert_incidents.last_evaluation_state,
+       alert_incidents.opened_at,
+       alert_incidents.acknowledged_at,
+       alert_incidents.acknowledged_by_user_id,
+       alert_incidents.resolved_at,
+       alert_incidents.resolved_by_user_id,
+       alert_incidents.last_evaluated_at,
+       alert_incidents.last_triggered_at,
+       alert_incidents.last_value,
+       alert_incidents.last_summary,
+       alert_incidents.last_notification_sent_at,
+       alert_incidents.next_notification_eligible_at,
+       alert_incidents.suppressed_notification_count,
+       alert_incidents.created_at,
+       alert_incidents.updated_at,
+       probes.name AS probe_name,
+       checks.name AS check_name,
+       checks.check_type AS check_summary_type,
+       checks.target AS check_target
 FROM alert_incidents
-WHERE project_id = $1
+JOIN probes
+  ON probes.project_id = alert_incidents.project_id
+ AND probes.id = alert_incidents.probe_id
+JOIN checks
+  ON checks.project_id = alert_incidents.project_id
+ AND checks.id = alert_incidents.check_id
+WHERE alert_incidents.project_id = $1
   AND (
       $2::alert_incident_status IS NULL
-      OR status = $2::alert_incident_status
+      OR alert_incidents.status = $2::alert_incident_status
   )
   AND (
       $3::uuid IS NULL
-      OR rule_id = $3::uuid
+      OR alert_incidents.rule_id = $3::uuid
   )
   AND (
       $4::uuid IS NULL
-      OR probe_id = $4::uuid
+      OR alert_incidents.probe_id = $4::uuid
   )
   AND (
       $5::uuid IS NULL
-      OR check_id = $5::uuid
+      OR alert_incidents.check_id = $5::uuid
   )
-ORDER BY opened_at DESC, id DESC
+ORDER BY alert_incidents.opened_at DESC, alert_incidents.id DESC
 LIMIT $6
 `
 
@@ -870,7 +924,37 @@ type ListAlertIncidentsParams struct {
 	LimitCount int32                `json:"limit_count"`
 }
 
-func (q *Queries) ListAlertIncidents(ctx context.Context, arg ListAlertIncidentsParams) ([]AlertIncident, error) {
+type ListAlertIncidentsRow struct {
+	ID                          uuid.UUID            `json:"id"`
+	ProjectID                   uuid.UUID            `json:"project_id"`
+	RuleID                      uuid.UUID            `json:"rule_id"`
+	ProbeID                     uuid.UUID            `json:"probe_id"`
+	CheckID                     uuid.UUID            `json:"check_id"`
+	CheckType                   CheckType            `json:"check_type"`
+	Status                      AlertIncidentStatus  `json:"status"`
+	Severity                    AlertSeverity        `json:"severity"`
+	LastEvaluationState         AlertEvaluationState `json:"last_evaluation_state"`
+	OpenedAt                    time.Time            `json:"opened_at"`
+	AcknowledgedAt              *time.Time           `json:"acknowledged_at"`
+	AcknowledgedByUserID        *uuid.UUID           `json:"acknowledged_by_user_id"`
+	ResolvedAt                  *time.Time           `json:"resolved_at"`
+	ResolvedByUserID            *uuid.UUID           `json:"resolved_by_user_id"`
+	LastEvaluatedAt             time.Time            `json:"last_evaluated_at"`
+	LastTriggeredAt             time.Time            `json:"last_triggered_at"`
+	LastValue                   *float64             `json:"last_value"`
+	LastSummary                 []byte               `json:"last_summary"`
+	LastNotificationSentAt      *time.Time           `json:"last_notification_sent_at"`
+	NextNotificationEligibleAt  *time.Time           `json:"next_notification_eligible_at"`
+	SuppressedNotificationCount int32                `json:"suppressed_notification_count"`
+	CreatedAt                   time.Time            `json:"created_at"`
+	UpdatedAt                   time.Time            `json:"updated_at"`
+	ProbeName                   string               `json:"probe_name"`
+	CheckName                   string               `json:"check_name"`
+	CheckSummaryType            CheckType            `json:"check_summary_type"`
+	CheckTarget                 string               `json:"check_target"`
+}
+
+func (q *Queries) ListAlertIncidents(ctx context.Context, arg ListAlertIncidentsParams) ([]ListAlertIncidentsRow, error) {
 	rows, err := q.db.Query(ctx, listAlertIncidents,
 		arg.ProjectID,
 		arg.Status,
@@ -883,9 +967,9 @@ func (q *Queries) ListAlertIncidents(ctx context.Context, arg ListAlertIncidents
 		return nil, err
 	}
 	defer rows.Close()
-	var items []AlertIncident
+	var items []ListAlertIncidentsRow
 	for rows.Next() {
-		var i AlertIncident
+		var i ListAlertIncidentsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.ProjectID,
@@ -910,6 +994,10 @@ func (q *Queries) ListAlertIncidents(ctx context.Context, arg ListAlertIncidents
 			&i.SuppressedNotificationCount,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.ProbeName,
+			&i.CheckName,
+			&i.CheckSummaryType,
+			&i.CheckTarget,
 		); err != nil {
 			return nil, err
 		}
@@ -921,21 +1009,21 @@ func (q *Queries) ListAlertIncidents(ctx context.Context, arg ListAlertIncidents
 	return items, nil
 }
 
-const listAlertRuleChannelIDs = `-- name: ListAlertRuleChannelIDs :many
+const listAlertNotificationChannelIDs = `-- name: ListAlertNotificationChannelIDs :many
 SELECT channel_id
-FROM alert_rule_channels
+FROM alert_notifications
 WHERE project_id = $1
   AND rule_id = ANY($2::uuid[])
 ORDER BY created_at ASC, channel_id ASC
 `
 
-type ListAlertRuleChannelIDsParams struct {
+type ListAlertNotificationChannelIDsParams struct {
 	ProjectID uuid.UUID   `json:"project_id"`
 	RuleIds   []uuid.UUID `json:"rule_ids"`
 }
 
-func (q *Queries) ListAlertRuleChannelIDs(ctx context.Context, arg ListAlertRuleChannelIDsParams) ([]uuid.UUID, error) {
-	rows, err := q.db.Query(ctx, listAlertRuleChannelIDs, arg.ProjectID, arg.RuleIds)
+func (q *Queries) ListAlertNotificationChannelIDs(ctx context.Context, arg ListAlertNotificationChannelIDsParams) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, listAlertNotificationChannelIDs, arg.ProjectID, arg.RuleIds)
 	if err != nil {
 		return nil, err
 	}
@@ -1119,15 +1207,15 @@ SELECT notification_channels.id,
        notification_channels.created_at,
        notification_channels.updated_at,
        notification_channels.deleted_at
-FROM alert_rule_channels
+FROM alert_notifications
 JOIN notification_channels
-    ON notification_channels.project_id = alert_rule_channels.project_id
-    AND notification_channels.id = alert_rule_channels.channel_id
-WHERE alert_rule_channels.project_id = $1
-  AND alert_rule_channels.rule_id = $2
+    ON notification_channels.project_id = alert_notifications.project_id
+    AND notification_channels.id = alert_notifications.channel_id
+WHERE alert_notifications.project_id = $1
+  AND alert_notifications.rule_id = $2
   AND notification_channels.enabled = true
   AND notification_channels.deleted_at IS NULL
-ORDER BY alert_rule_channels.created_at ASC, notification_channels.id ASC
+ORDER BY alert_notifications.created_at ASC, notification_channels.id ASC
 `
 
 type ListEnabledChannelsForRuleParams struct {
@@ -1343,19 +1431,19 @@ func (q *Queries) RecoverStaleNotificationOutbox(ctx context.Context, staleBefor
 	return result.RowsAffected(), nil
 }
 
-const replaceAlertRuleChannels = `-- name: ReplaceAlertRuleChannels :exec
-DELETE FROM alert_rule_channels
+const replaceAlertNotifications = `-- name: ReplaceAlertNotifications :exec
+DELETE FROM alert_notifications
 WHERE project_id = $1
   AND rule_id = $2
 `
 
-type ReplaceAlertRuleChannelsParams struct {
+type ReplaceAlertNotificationsParams struct {
 	ProjectID uuid.UUID `json:"project_id"`
 	RuleID    uuid.UUID `json:"rule_id"`
 }
 
-func (q *Queries) ReplaceAlertRuleChannels(ctx context.Context, arg ReplaceAlertRuleChannelsParams) error {
-	_, err := q.db.Exec(ctx, replaceAlertRuleChannels, arg.ProjectID, arg.RuleID)
+func (q *Queries) ReplaceAlertNotifications(ctx context.Context, arg ReplaceAlertNotificationsParams) error {
+	_, err := q.db.Exec(ctx, replaceAlertNotifications, arg.ProjectID, arg.RuleID)
 	return err
 }
 

@@ -199,11 +199,37 @@ model AlertEvaluationSummary {
 	windowEnd?: utcDateTime;
 }
 
+@example(#{ id: "33333333-3333-3333-3333-333333333333", name: "tokyo-vps-1" })
+model AlertIncidentProbeSummary {
+	id: uuid;
+
+	@minLength(1)
+	@maxLength(128)
+	name: string;
+}
+
+@example(#{ id: "44444444-4444-4444-4444-444444444444", name: "api-latency", type: "ping", target: "api.netstamp.io" })
+model AlertIncidentCheckSummary {
+	id: uuid;
+
+	@minLength(1)
+	@maxLength(128)
+	name: string;
+
+	type: CheckType;
+
+	@minLength(1)
+	@maxLength(128)
+	target: string;
+}
+
 @example(#{
 	id: "99999999-9999-9999-9999-999999999999",
 	ruleId: "77777777-7777-7777-7777-777777777777",
 	probeId: "33333333-3333-3333-3333-333333333333",
 	checkId: "44444444-4444-4444-4444-444444444444",
+	probe: #{ id: "33333333-3333-3333-3333-333333333333", name: "tokyo-vps-1" },
+	check: #{ id: "44444444-4444-4444-4444-444444444444", name: "api-latency", type: "ping", target: "api.netstamp.io" },
 	checkType: "ping",
 	status: "open",
 	severity: "critical",
@@ -222,6 +248,8 @@ model AlertIncident {
 	ruleId: uuid;
 	probeId: uuid;
 	checkId: uuid;
+	probe: AlertIncidentProbeSummary;
+	check: AlertIncidentCheckSummary;
 	checkType: CheckType;
 	status: AlertIncidentStatus;
 	severity: AlertSeverity;
@@ -245,6 +273,8 @@ model AlertIncident {
 		ruleId: "77777777-7777-7777-7777-777777777777",
 		probeId: "33333333-3333-3333-3333-333333333333",
 		checkId: "44444444-4444-4444-4444-444444444444",
+		probe: #{ id: "33333333-3333-3333-3333-333333333333", name: "tokyo-vps-1" },
+		check: #{ id: "44444444-4444-4444-4444-444444444444", name: "api-latency", type: "ping", target: "api.netstamp.io" },
 		checkType: "ping",
 		status: "open",
 		severity: "critical",

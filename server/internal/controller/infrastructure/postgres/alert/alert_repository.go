@@ -74,7 +74,7 @@ func (r *Repository) GetRule(ctx context.Context, projectID, ruleID string) (dom
 		postgres.RecordDBSpanError(span, err)
 		return domainalert.Rule{}, mapNoRows(err, domainalert.ErrRuleNotFound)
 	}
-	channelIDs, err := r.ruleChannelIDs(ctx, projectUUID, ruleUUID)
+	channelIDs, err := r.ruleNotificationChannelIDs(ctx, projectUUID, ruleUUID)
 	if err != nil {
 		postgres.RecordDBSpanError(span, err)
 		return domainalert.Rule{}, err
@@ -102,7 +102,7 @@ func (r *Repository) CreateRule(ctx context.Context, input domainalert.Rule) (do
 			if parseErr != nil {
 				return parseErr
 			}
-			if err := q.AddAlertRuleChannel(ctx, sqlc.AddAlertRuleChannelParams{
+			if err := q.AddAlertNotification(ctx, sqlc.AddAlertNotificationParams{
 				ProjectID: row.ProjectID,
 				RuleID:    row.ID,
 				ChannelID: channelUUID,
@@ -135,7 +135,7 @@ func (r *Repository) UpdateRule(ctx context.Context, input domainalert.Rule) (do
 		if err != nil {
 			return mapNoRows(err, domainalert.ErrRuleNotFound)
 		}
-		if err := q.ReplaceAlertRuleChannels(ctx, sqlc.ReplaceAlertRuleChannelsParams{ProjectID: row.ProjectID, RuleID: row.ID}); err != nil {
+		if err := q.ReplaceAlertNotifications(ctx, sqlc.ReplaceAlertNotificationsParams{ProjectID: row.ProjectID, RuleID: row.ID}); err != nil {
 			return err
 		}
 		for _, channelID := range input.NotificationChannelIDs {
@@ -143,7 +143,7 @@ func (r *Repository) UpdateRule(ctx context.Context, input domainalert.Rule) (do
 			if parseErr != nil {
 				return parseErr
 			}
-			if err := q.AddAlertRuleChannel(ctx, sqlc.AddAlertRuleChannelParams{
+			if err := q.AddAlertNotification(ctx, sqlc.AddAlertNotificationParams{
 				ProjectID: row.ProjectID,
 				RuleID:    row.ID,
 				ChannelID: channelUUID,
@@ -275,7 +275,7 @@ func (r *Repository) ListIncidents(ctx context.Context, projectID string, status
 	}
 	incidents := make([]domainalert.Incident, 0, len(rows))
 	for _, row := range rows {
-		incidents = append(incidents, mapIncident(row))
+		incidents = append(incidents, mapListIncident(row))
 	}
 	return incidents, nil
 }
@@ -289,7 +289,7 @@ func (r *Repository) GetIncident(ctx context.Context, projectID, incidentID stri
 	if err != nil {
 		return domainalert.Incident{}, mapNoRows(err, domainalert.ErrIncidentNotFound)
 	}
-	return mapIncident(row), nil
+	return mapGetIncident(row), nil
 }
 
 func (r *Repository) ListEnabledRulesForAssignment(ctx context.Context, projectID, probeID, checkID string, checkType domaincheck.Type) ([]domainalert.Rule, error) {
@@ -375,6 +375,8 @@ func (r *Repository) CreateIncidentAndEnqueue(ctx context.Context, input domaina
 			return mapNoRows(err, domainalert.ErrIncidentNotFound)
 		}
 		incident = mapIncident(row)
+		incident.Probe = input.Probe
+		incident.Check = input.Check
 		for _, job := range input.Jobs {
 			job.IncidentID = incident.ID
 			if err := enqueueJob(ctx, q, job); err != nil {
@@ -543,7 +545,7 @@ func (r *Repository) MarkOutboxDiscarded(ctx context.Context, id, kind, code, me
 func (r *Repository) mapRulesWithChannels(ctx context.Context, projectUUID uuid.UUID, rows []sqlc.AlertRule) ([]domainalert.Rule, error) {
 	rules := make([]domainalert.Rule, 0, len(rows))
 	for _, row := range rows {
-		channelIDs, err := r.ruleChannelIDs(ctx, projectUUID, row.ID)
+		channelIDs, err := r.ruleNotificationChannelIDs(ctx, projectUUID, row.ID)
 		if err != nil {
 			return nil, err
 		}
@@ -552,8 +554,8 @@ func (r *Repository) mapRulesWithChannels(ctx context.Context, projectUUID uuid.
 	return rules, nil
 }
 
-func (r *Repository) ruleChannelIDs(ctx context.Context, projectUUID, ruleUUID uuid.UUID) ([]string, error) {
-	rows, err := r.queries.ListAlertRuleChannelIDs(ctx, sqlc.ListAlertRuleChannelIDsParams{ProjectID: projectUUID, RuleIds: []uuid.UUID{ruleUUID}})
+func (r *Repository) ruleNotificationChannelIDs(ctx context.Context, projectUUID, ruleUUID uuid.UUID) ([]string, error) {
+	rows, err := r.queries.ListAlertNotificationChannelIDs(ctx, sqlc.ListAlertNotificationChannelIDsParams{ProjectID: projectUUID, RuleIds: []uuid.UUID{ruleUUID}})
 	if err != nil {
 		return nil, err
 	}

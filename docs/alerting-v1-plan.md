@@ -626,20 +626,20 @@ Security defaults：
 - SMTP credentials come from env，不存在 channel config。
 - Do not store email provider secrets in DB。
 
-### `alert_rule_channels`
+### `alert_notifications`
 
-Many-to-many mapping between rules and channels。
+Many-to-many mapping between rules and notification destinations。
 
 ```sql
-CREATE TABLE alert_rule_channels (
+CREATE TABLE alert_notifications (
     project_id uuid NOT NULL REFERENCES projects(id),
     rule_id uuid NOT NULL REFERENCES alert_rules(id) ON DELETE CASCADE,
     channel_id uuid NOT NULL REFERENCES notification_channels(id),
     created_at timestamptz NOT NULL DEFAULT now(),
     PRIMARY KEY (rule_id, channel_id),
-    CONSTRAINT fk_alert_rule_channels_project_rule
+    CONSTRAINT fk_alert_notifications_project_rule
         FOREIGN KEY (project_id, rule_id) REFERENCES alert_rules(project_id, id),
-    CONSTRAINT fk_alert_rule_channels_project_channel
+    CONSTRAINT fk_alert_notifications_project_channel
         FOREIGN KEY (project_id, channel_id) REFERENCES notification_channels(project_id, id)
 );
 ```

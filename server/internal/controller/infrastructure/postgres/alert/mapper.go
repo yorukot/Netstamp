@@ -66,6 +66,68 @@ func mapIncident(row sqlc.AlertIncident) domainalert.Incident {
 	}
 }
 
+func mapGetIncident(row sqlc.GetAlertIncidentRow) domainalert.Incident {
+	incident := mapIncident(sqlc.AlertIncident{
+		ID:                          row.ID,
+		ProjectID:                   row.ProjectID,
+		RuleID:                      row.RuleID,
+		ProbeID:                     row.ProbeID,
+		CheckID:                     row.CheckID,
+		CheckType:                   row.CheckType,
+		Status:                      row.Status,
+		Severity:                    row.Severity,
+		LastEvaluationState:         row.LastEvaluationState,
+		OpenedAt:                    row.OpenedAt,
+		AcknowledgedAt:              row.AcknowledgedAt,
+		AcknowledgedByUserID:        row.AcknowledgedByUserID,
+		ResolvedAt:                  row.ResolvedAt,
+		ResolvedByUserID:            row.ResolvedByUserID,
+		LastEvaluatedAt:             row.LastEvaluatedAt,
+		LastTriggeredAt:             row.LastTriggeredAt,
+		LastValue:                   row.LastValue,
+		LastSummary:                 row.LastSummary,
+		LastNotificationSentAt:      row.LastNotificationSentAt,
+		NextNotificationEligibleAt:  row.NextNotificationEligibleAt,
+		SuppressedNotificationCount: row.SuppressedNotificationCount,
+		CreatedAt:                   row.CreatedAt,
+		UpdatedAt:                   row.UpdatedAt,
+	})
+	incident.Probe = &domainalert.IncidentProbeSummary{ID: row.ProbeID.String(), Name: row.ProbeName}
+	incident.Check = &domainalert.IncidentCheckSummary{ID: row.CheckID.String(), Name: row.CheckName, Type: domaincheck.Type(row.CheckSummaryType), Target: row.CheckTarget}
+	return incident
+}
+
+func mapListIncident(row sqlc.ListAlertIncidentsRow) domainalert.Incident {
+	incident := mapIncident(sqlc.AlertIncident{
+		ID:                          row.ID,
+		ProjectID:                   row.ProjectID,
+		RuleID:                      row.RuleID,
+		ProbeID:                     row.ProbeID,
+		CheckID:                     row.CheckID,
+		CheckType:                   row.CheckType,
+		Status:                      row.Status,
+		Severity:                    row.Severity,
+		LastEvaluationState:         row.LastEvaluationState,
+		OpenedAt:                    row.OpenedAt,
+		AcknowledgedAt:              row.AcknowledgedAt,
+		AcknowledgedByUserID:        row.AcknowledgedByUserID,
+		ResolvedAt:                  row.ResolvedAt,
+		ResolvedByUserID:            row.ResolvedByUserID,
+		LastEvaluatedAt:             row.LastEvaluatedAt,
+		LastTriggeredAt:             row.LastTriggeredAt,
+		LastValue:                   row.LastValue,
+		LastSummary:                 row.LastSummary,
+		LastNotificationSentAt:      row.LastNotificationSentAt,
+		NextNotificationEligibleAt:  row.NextNotificationEligibleAt,
+		SuppressedNotificationCount: row.SuppressedNotificationCount,
+		CreatedAt:                   row.CreatedAt,
+		UpdatedAt:                   row.UpdatedAt,
+	})
+	incident.Probe = &domainalert.IncidentProbeSummary{ID: row.ProbeID.String(), Name: row.ProbeName}
+	incident.Check = &domainalert.IncidentCheckSummary{ID: row.CheckID.String(), Name: row.CheckName, Type: domaincheck.Type(row.CheckSummaryType), Target: row.CheckTarget}
+	return incident
+}
+
 func mapChannel(row sqlc.NotificationChannel) domainalert.NotificationChannel {
 	return domainalert.NotificationChannel{
 		ID:              row.ID.String(),

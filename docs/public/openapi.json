@@ -6134,6 +6134,8 @@
 					"ruleId",
 					"probeId",
 					"checkId",
+					"probe",
+					"check",
 					"checkType",
 					"status",
 					"severity",
@@ -6158,6 +6160,12 @@
 					},
 					"checkId": {
 						"$ref": "#/components/schemas/uuid"
+					},
+					"probe": {
+						"$ref": "#/components/schemas/AlertIncidentProbeSummary"
+					},
+					"check": {
+						"$ref": "#/components/schemas/AlertIncidentCheckSummary"
 					},
 					"checkType": {
 						"type": "string",
@@ -6225,6 +6233,16 @@
 						"ruleId": "77777777-7777-7777-7777-777777777777",
 						"probeId": "33333333-3333-3333-3333-333333333333",
 						"checkId": "44444444-4444-4444-4444-444444444444",
+						"probe": {
+							"id": "33333333-3333-3333-3333-333333333333",
+							"name": "tokyo-vps-1"
+						},
+						"check": {
+							"id": "44444444-4444-4444-4444-444444444444",
+							"name": "api-latency",
+							"type": "ping",
+							"target": "api.netstamp.io"
+						},
 						"checkType": "ping",
 						"status": "open",
 						"severity": "critical",
@@ -6245,6 +6263,37 @@
 					}
 				]
 			},
+			"AlertIncidentCheckSummary": {
+				"type": "object",
+				"required": ["id", "name", "type", "target"],
+				"properties": {
+					"id": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"name": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 128
+					},
+					"type": {
+						"type": "string",
+						"enum": ["ping", "tcp", "traceroute"]
+					},
+					"target": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 128
+					}
+				},
+				"examples": [
+					{
+						"id": "44444444-4444-4444-4444-444444444444",
+						"name": "api-latency",
+						"type": "ping",
+						"target": "api.netstamp.io"
+					}
+				]
+			},
 			"AlertIncidentListResponse": {
 				"type": "object",
 				"required": ["incidents"],
@@ -6259,6 +6308,26 @@
 				"examples": [
 					{
 						"incidents": []
+					}
+				]
+			},
+			"AlertIncidentProbeSummary": {
+				"type": "object",
+				"required": ["id", "name"],
+				"properties": {
+					"id": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"name": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 128
+					}
+				},
+				"examples": [
+					{
+						"id": "33333333-3333-3333-3333-333333333333",
+						"name": "tokyo-vps-1"
 					}
 				]
 			},
@@ -6277,6 +6346,16 @@
 							"ruleId": "77777777-7777-7777-7777-777777777777",
 							"probeId": "33333333-3333-3333-3333-333333333333",
 							"checkId": "44444444-4444-4444-4444-444444444444",
+							"probe": {
+								"id": "33333333-3333-3333-3333-333333333333",
+								"name": "tokyo-vps-1"
+							},
+							"check": {
+								"id": "44444444-4444-4444-4444-444444444444",
+								"name": "api-latency",
+								"type": "ping",
+								"target": "api.netstamp.io"
+							},
 							"checkType": "ping",
 							"status": "open",
 							"severity": "critical",

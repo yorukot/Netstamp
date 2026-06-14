@@ -98,6 +98,8 @@ func (s *Service) evaluateRule(ctx context.Context, input appproberuntime.Change
 			Rule:                       rule,
 			ProbeID:                    input.ProbeID,
 			CheckID:                    input.CheckID,
+			Probe:                      incidentProbeSummary(input),
+			Check:                      incidentCheckSummary(input),
 			CheckType:                  domaincheck.Type(input.CheckType),
 			Evaluation:                 evaluation,
 			Summary:                    summaryJSON,
@@ -108,6 +110,7 @@ func (s *Service) evaluateRule(ctx context.Context, input appproberuntime.Change
 		if err != nil {
 			return err
 		}
+		incident = incidentWithAssignmentContext(incident, input)
 		return s.enqueueNotifications(ctx, rule, incident, evaluation, EventIncidentOpened, now)
 	case alertcondition.EvaluationStateClear:
 		if hasActive {
@@ -115,6 +118,7 @@ func (s *Service) evaluateRule(ctx context.Context, input appproberuntime.Change
 			if err != nil {
 				return err
 			}
+			incident = incidentWithAssignmentContext(incident, input)
 			return s.enqueueNotifications(ctx, rule, incident, evaluation, EventIncidentResolved, now)
 		}
 	case alertcondition.EvaluationStateInsufficientSamples, alertcondition.EvaluationStateNoData:
@@ -194,6 +198,19 @@ func notificationPayload(rule domainalert.Rule, incident domainalert.Incident, e
 		"status":   incident.Status,
 		"openedAt": incident.OpenedAt,
 	}
+	probePayload := map[string]any{"id": incident.ProbeID}
+	if incident.Probe != nil {
+		probePayload["name"] = incident.Probe.Name
+	}
+	checkPayload := map[string]any{
+		"id":   incident.CheckID,
+		"type": incident.CheckType,
+	}
+	if incident.Check != nil {
+		checkPayload["name"] = incident.Check.Name
+		checkPayload["target"] = incident.Check.Target
+		checkPayload["type"] = incident.Check.Type
+	}
 	payload := map[string]any{
 		"eventType": eventType,
 		"sentAt":    at.UTC(),
@@ -207,6 +224,8 @@ func notificationPayload(rule domainalert.Rule, incident domainalert.Incident, e
 			"probeId":   incident.ProbeID,
 			"checkId":   incident.CheckID,
 			"checkType": incident.CheckType,
+			"probe":     probePayload,
+			"check":     checkPayload,
 		},
 		"summary": map[string]any{
 			"state":         evaluation.State,
@@ -224,6 +243,30 @@ func notificationPayload(rule domainalert.Rule, incident domainalert.Incident, e
 	}
 	data, err := json.Marshal(payload)
 	return data, err
+}
+
+func incidentProbeSummary(input appproberuntime.ChangedAssignmentInput) *domainalert.IncidentProbeSummary {
+	if input.ProbeName == "" {
+		return nil
+	}
+	return &domainalert.IncidentProbeSummary{ID: input.ProbeID, Name: input.ProbeName}
+}
+
+func incidentCheckSummary(input appproberuntime.ChangedAssignmentInput) *domainalert.IncidentCheckSummary {
+	if input.CheckName == "" && input.CheckTarget == "" {
+		return nil
+	}
+	return &domainalert.IncidentCheckSummary{ID: input.CheckID, Name: input.CheckName, Type: domaincheck.Type(input.CheckType), Target: input.CheckTarget}
+}
+
+func incidentWithAssignmentContext(incident domainalert.Incident, input appproberuntime.ChangedAssignmentInput) domainalert.Incident {
+	if incident.Probe == nil {
+		incident.Probe = incidentProbeSummary(input)
+	}
+	if incident.Check == nil {
+		incident.Check = incidentCheckSummary(input)
+	}
+	return incident
 }
 
 func ptrTime(value time.Time) *time.Time {
