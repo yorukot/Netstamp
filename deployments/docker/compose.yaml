@@ -1,36 +1,35 @@
-x-backend-build: &backend-build
-  context: ../..
-  dockerfile: server/Dockerfile
-
-x-nginx-build: &nginx-build
-  context: ../..
-  dockerfile: deployments/docker/nginx.Dockerfile
-
-x-backend-environment: &backend-environment
-  APP_ENV: production
+x-netstamp-environment: &netstamp-environment
+  APP_ENV: ${APP_ENV:-local}
   SERVICE_NAME: controller
-  APP_VERSION: ${APP_VERSION:-v1}
+  APP_VERSION: ${NETSTAMP_VERSION:-latest}
   API_VERSION: ${API_VERSION:-v1}
   LOG_LEVEL: ${LOG_LEVEL:-info}
-  LOG_PSEUDONYM_KEY: ${LOG_PSEUDONYM_KEY:?set LOG_PSEUDONYM_KEY}
+  LOG_PSEUDONYM_KEY: ${LOG_PSEUDONYM_KEY:-change-me}
   BACKEND_BASE_URL: ${BACKEND_BASE_URL:-}
   HTTP_ADDR: :8080
   HTTP_TRUSTED_PROXIES: ${HTTP_TRUSTED_PROXIES:-}
   DATABASE_HOST: postgres
   DATABASE_PORT: 5432
   DATABASE_USER: netstamp
-  DATABASE_PASSWORD: ${DATABASE_PASSWORD:?set DATABASE_PASSWORD}
+  DATABASE_PASSWORD: ${DATABASE_PASSWORD:-netstamp}
   DATABASE_NAME: netstamp
   DATABASE_SSLMODE: disable
   DB_MAX_CONNS: ${DB_MAX_CONNS:-10}
   DB_MIN_CONNS: ${DB_MIN_CONNS:-0}
   DB_MAX_CONN_LIFETIME: ${DB_MAX_CONN_LIFETIME:-1h}
   DB_MAX_CONN_IDLE_TIME: ${DB_MAX_CONN_IDLE_TIME:-30m}
-  AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:?set AUTH_JWT_SECRET}
+  AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:-change-me}
   AUTH_ACCESS_TOKEN_TTL: ${AUTH_ACCESS_TOKEN_TTL:-12h}
   AUTH_ARGON2ID_MEMORY_KIB: ${AUTH_ARGON2ID_MEMORY_KIB:-65536}
   AUTH_ARGON2ID_ITERATIONS: ${AUTH_ARGON2ID_ITERATIONS:-3}
   AUTH_ARGON2ID_PARALLELISM: ${AUTH_ARGON2ID_PARALLELISM:-4}
+  ALERT_EVALUATION_ENABLED: ${ALERT_EVALUATION_ENABLED:-true}
+  NOTIFICATION_WORKER_ENABLED: ${NOTIFICATION_WORKER_ENABLED:-true}
+  NOTIFICATION_WORKER_INTERVAL: ${NOTIFICATION_WORKER_INTERVAL:-5s}
+  NOTIFICATION_WORKER_BATCH_SIZE: ${NOTIFICATION_WORKER_BATCH_SIZE:-25}
+  NOTIFICATION_WORKER_STALE_TIMEOUT: ${NOTIFICATION_WORKER_STALE_TIMEOUT:-1m}
+  NOTIFICATION_HTTP_TIMEOUT: ${NOTIFICATION_HTTP_TIMEOUT:-10s}
+  OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: ${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:-}
 
 services:
   postgres:
@@ -39,7 +38,7 @@ services:
     environment:
       POSTGRES_DB: netstamp
       POSTGRES_USER: netstamp
-      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:?set DATABASE_PASSWORD}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-netstamp}
     volumes:
       - netstamp-postgres:/var/lib/postgresql/data
     healthcheck:
@@ -49,38 +48,26 @@ services:
       retries: 10
 
   migrate:
-    image: netstamp-controller:${NETSTAMP_IMAGE_TAG:-local}
-    build: *backend-build
+    image: ${NETSTAMP_IMAGE:-yorukot/netstamp}:${NETSTAMP_VERSION:-latest}
     restart: "no"
     depends_on:
       postgres:
         condition: service_healthy
-    environment: *backend-environment
+    environment: *netstamp-environment
     entrypoint: ["/app/migrate"]
     command: ["-command", "up", "-dir", "/app/db/migrations"]
 
-  controller:
-    image: netstamp-controller:${NETSTAMP_IMAGE_TAG:-local}
-    build: *backend-build
+  netstamp:
+    image: ${NETSTAMP_IMAGE:-yorukot/netstamp}:${NETSTAMP_VERSION:-latest}
     restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
-    environment: *backend-environment
-    expose:
-      - "8080"
-
-  nginx:
-    image: netstamp-web:${NETSTAMP_IMAGE_TAG:-local}
-    build: *nginx-build
-    restart: unless-stopped
-    depends_on:
-      controller:
-        condition: service_started
+    environment: *netstamp-environment
     ports:
-      - "80"
+      - "${NETSTAMP_PORT:-3000}:8080"
 
 volumes:
   netstamp-postgres:

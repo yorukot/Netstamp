@@ -36,8 +36,8 @@ The product is split into:
 - [Overview](#overview)
 - [Features](#features)
 - [How It Works](#how-it-works)
-- [Installation](#installation)
-- [Start Netstamp](#start-netstamp)
+- [Self-Host Install](#self-host-install)
+- [Local Development](#local-development)
 - [Probe Agent](#probe-agent)
 - [Commands](#commands)
 - [Configuration](#configuration)
@@ -85,9 +85,32 @@ Probe agent
 
 The controller owns authentication, authorization, projects, labels, checks, probes, assignments, results, incidents, notification channels, metrics, and traces. Probe agents run near the network being measured and only need their controller URL, probe ID, and probe secret.
 
-## Installation
+## Self-Host Install
 
-### Requirements
+The default self-host path uses Docker Compose with two long-running services: Netstamp and PostgreSQL/TimescaleDB. You do not need Go, Node.js, pnpm, or a reverse proxy to try it.
+
+```bash
+mkdir netstamp
+cd netstamp
+curl -O https://raw.githubusercontent.com/yorukot/netstamp/main/deployments/docker/compose.yaml
+curl -O https://raw.githubusercontent.com/yorukot/netstamp/main/deployments/docker/example.env
+cp example.env .env
+docker compose up -d
+```
+
+Open:
+
+```text
+http://localhost:3000
+```
+
+Before exposing Netstamp publicly, edit `.env` and replace every `change-me` value. For a production HTTPS deployment, set `APP_ENV=production`, pin `NETSTAMP_VERSION` to a release tag instead of `latest`, and put Netstamp behind your reverse proxy of choice.
+
+## Local Development
+
+Development uses separate backend, web, and docs processes.
+
+Requirements:
 
 - [Node.js](https://nodejs.org/) 22.12 or newer
 - [pnpm](https://pnpm.io/) 11
@@ -120,8 +143,6 @@ Apply migrations.
 ```bash
 just backend-migrate-up
 ```
-
-## Start Netstamp
 
 Run the controller API.
 
@@ -201,22 +222,23 @@ The backend reads environment variables and optional `.env` files from the repos
 
 Common controller settings:
 
-| Variable                             | Purpose                                      |
-| ------------------------------------ | -------------------------------------------- |
-| `APP_ENV`                            | Runtime environment name                     |
-| `API_VERSION`                        | API path version mounted at `/api/{version}` |
-| `HTTP_ADDR`                          | Controller listen address                    |
-| `DATABASE_HOST`                      | PostgreSQL host                              |
-| `DATABASE_PORT`                      | PostgreSQL port                              |
-| `DATABASE_USER`                      | PostgreSQL username                          |
-| `DATABASE_PASSWORD`                  | PostgreSQL password                          |
-| `DATABASE_NAME`                      | PostgreSQL database                          |
-| `DATABASE_SSLMODE`                   | PostgreSQL SSL mode                          |
-| `AUTH_JWT_SECRET`                    | JWT signing secret                           |
-| `ALERT_EVALUATION_ENABLED`           | Enables alert evaluation                     |
-| `NOTIFICATION_WORKER_ENABLED`        | Enables notification delivery                |
-| `NOTIFICATION_HTTP_TIMEOUT`          | Timeout for outbound notification requests   |
-| `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` | Optional OTLP trace endpoint                 |
+| Variable                             | Purpose                                                |
+| ------------------------------------ | ------------------------------------------------------ |
+| `APP_ENV`                            | Runtime environment name                               |
+| `API_VERSION`                        | API path version mounted at `/api/{version}`           |
+| `HTTP_ADDR`                          | Controller listen address                              |
+| `WEB_DIR`                            | Optional built frontend directory; unset runs API only |
+| `DATABASE_HOST`                      | PostgreSQL host                                        |
+| `DATABASE_PORT`                      | PostgreSQL port                                        |
+| `DATABASE_USER`                      | PostgreSQL username                                    |
+| `DATABASE_PASSWORD`                  | PostgreSQL password                                    |
+| `DATABASE_NAME`                      | PostgreSQL database                                    |
+| `DATABASE_SSLMODE`                   | PostgreSQL SSL mode                                    |
+| `AUTH_JWT_SECRET`                    | JWT signing secret                                     |
+| `ALERT_EVALUATION_ENABLED`           | Enables alert evaluation                               |
+| `NOTIFICATION_WORKER_ENABLED`        | Enables notification delivery                          |
+| `NOTIFICATION_HTTP_TIMEOUT`          | Timeout for outbound notification requests             |
+| `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` | Optional OTLP trace endpoint                           |
 
 Probe settings:
 
@@ -257,10 +279,19 @@ The docs app serves the API explorer at `/openapi/`.
 
 ## Docker
 
-Start the production-style stack.
+Run the default self-host stack from a directory that contains `compose.yaml` and `.env`.
 
 ```bash
-docker compose -f deployments/docker/compose.yaml up -d --build
+docker compose up -d
+```
+
+Upgrade the image after taking a database backup.
+
+```bash
+docker compose pull
+docker compose stop netstamp
+docker compose run --rm migrate
+docker compose up -d
 ```
 
 Start the observability stack.
@@ -283,7 +314,7 @@ Useful local endpoints:
 | VictoriaTraces     | `http://localhost:10428`        |
 | Grafana            | `http://127.0.0.1:3000`         |
 
-The production compose stack builds the controller image, runs migrations, serves Linux probe install assets, runs TimescaleDB, and serves web/docs surfaces through Nginx.
+The default compose stack pulls `yorukot/netstamp`, runs migrations through a one-shot `migrate` service, stores database state in the `netstamp-postgres` volume, and serves the React app plus API from the Netstamp container. That self-host image is built by `deployments/docker/Dockerfile`; `server/Dockerfile` remains the backend-only image. Nginx, Caddy, Traefik, and Cloudflare Tunnel are optional reverse-proxy choices for public HTTPS deployments.
 
 ## Development
 

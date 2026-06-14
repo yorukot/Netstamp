@@ -31,7 +31,20 @@ pnpm generate:openapi
 
 The docs surface owns `/`, `/docs/*`, `/openapi/`, and `/storybook/`. The service app owns product routes such as `/login`, `/register`, and authenticated dashboard paths.
 
-:::note Keep deployment docs focused on route ownership and generated artifacts. Runtime service deployment details should stay near backend and infrastructure configuration. :::
+:::note The public docs site and self-host runtime are separate deploy targets. GitHub Pages serves the docs build, while Docker Compose serves the product app and API. :::
+
+## Self-Host Runtime
+
+The default self-host runtime is `deployments/docker/compose.yaml`. It pulls the `yorukot/netstamp` app image, runs PostgreSQL/TimescaleDB, applies migrations through a one-shot service, and serves the React app plus `/api/v1/*` from the Netstamp container.
+
+```bash
+curl -O https://raw.githubusercontent.com/yorukot/netstamp/main/deployments/docker/compose.yaml
+curl -O https://raw.githubusercontent.com/yorukot/netstamp/main/deployments/docker/example.env
+cp example.env .env
+docker compose up -d
+```
+
+Use an external reverse proxy for public HTTPS deployments.
 
 ## Verification
 
