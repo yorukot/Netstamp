@@ -9,6 +9,7 @@ This guide applies to `server/`, the Go backend for the Netstamp workspace. The 
 - `cmd/migrate/main.go`: Goose migration CLI for `status`, `up`, and `down`.
 - `internal/controller/app/`: composition root and lifecycle. `bootstrap.go` wires config, logging, tracing, PostgreSQL, auth, and HTTP. `lifecycle.go` starts and gracefully stops the HTTP listener.
 - `internal/controller/transport/http/`: chi HTTP routing, local HTTP helpers, auth, project, label, probe management, result query, probe runtime, system health routes, and middleware.
+- `internal/controller/transport/http/frontend.go`: optional static React app serving enabled by `WEB_DIR`; the self-host Docker image defaults this to `/app/web`.
 - `internal/agent/cli/` and `internal/agent/service/`: Cobra-based probe agent CLI and Linux/systemd service management. `service install` writes probe env and systemd unit files; `update` downloads and replaces the installed Linux agent binary; the runtime still starts through `run` or no arguments.
 - `internal/controller/transport/http/handler/install/`: unauthenticated Linux probe install assets. It serves the thin binary installer script, uninstaller wrapper, and the Linux amd64/arm64 agent binaries built into the backend image.
 - `internal/controller/application/auth/`, `internal/controller/application/project/`, `internal/controller/application/label/`, `internal/controller/application/check/`, `internal/controller/application/probe/`, `internal/controller/application/result/{latest,ping,tcp,traceroute,shared}/`, `internal/controller/application/proberuntime/`, `internal/controller/application/pingquery/`, and `internal/controller/application/tcpquery/`: controller use cases, ports, DTOs, errors, shared query policy, and feature orchestration. `internal/controller/application/result/` itself is a thin compatibility facade for HTTP wiring.
@@ -21,13 +22,13 @@ This guide applies to `server/`, the Go backend for the Netstamp workspace. The 
 - `db/migrations/`: Goose SQL migrations. `db/query/`: sqlc query files. Generated sqlc Go files live in `internal/controller/infrastructure/postgres/sqlc/`.
 - `tmp/` and `bin/`: local build artifacts; do not edit them as source.
 
-No backend public asset directory is currently defined.
+The backend can serve a built frontend directory when `WEB_DIR` is set. In the self-host Docker image built by `deployments/docker/Dockerfile`, this defaults to `/app/web`; `server/Dockerfile` remains backend-only, and local backend development leaves `WEB_DIR` unset so Vite owns the web app.
 
 ## System Architecture Overview
 
 The backend is a single Go service with one listener: HTTP on `HTTP_ADDR`. `internal/controller/app.New` loads validated configuration, creates a zap logger, initializes OpenTelemetry, opens a pgx pool, builds application services, and creates the HTTP server. `internal/controller/app.Run` starts the server and coordinates graceful shutdown with `errgroup`.
 
-HTTP uses chi middleware and standard handlers under `/api/{version}`. `internal/controller/app/bootstrap.go` passes `cfg.APIVersion` (`API_VERSION`) into the router. The published OpenAPI contract is authored in `api/` with TypeSpec, emitted to `docs/public/openapi.json`, and copied into `internal/controller/transport/http/openapi/openapi.json` for runtime serving. Scalar API docs are always exposed at `/api/{version}/docs`, and the embedded schema is always exposed at `/api/{version}/openapi.json`. System routes are `/` and `/healthz`. Install routes are `/install/agent.sh`, `/install/uninstall-agent.sh`, `/install/netstamp-agent-linux-amd64`, and `/install/netstamp-agent-linux-arm64`; they are unauthenticated and install only the agent binary, while probe ID and plaintext secret are supplied later to `netstamp-agent service install`. Auth routes are `/auth/register`, `/auth/login`, and `/auth/me`; `/auth/me`, project routes, project label routes, project check routes, project probe creation, and project-scoped result routes are protected by the session auth middleware in `internal/controller/transport/http/middleware`. Probe runtime routes live under `/runtime/probes/{probe_id}/*` and use `Authorization: Probe <secret>` with the probe's one-time plaintext secret, not user JWT auth.
+HTTP uses chi middleware and standard handlers under `/api/{version}`. `internal/controller/app/bootstrap.go` passes `cfg.APIVersion` (`API_VERSION`) into the router. The published OpenAPI contract is authored in `api/` with TypeSpec, emitted to `docs/public/openapi.json`, and copied into `internal/controller/transport/http/openapi/openapi.json` for runtime serving. Scalar API docs are always exposed at `/api/{version}/docs`, and the embedded schema is always exposed at `/api/{version}/openapi.json`. API system routes are `/` and `/healthz` under the versioned API prefix; when `WEB_DIR` is set, top-level `/healthz` is also routed to API health, and non-API browser routes fall back to the React `index.html`. Install routes are `/install/agent.sh`, `/install/uninstall-agent.sh`, `/install/netstamp-agent-linux-amd64`, and `/install/netstamp-agent-linux-arm64`; they are unauthenticated and install only the agent binary, while probe ID and plaintext secret are supplied later to `netstamp-agent service install`. Auth routes are `/auth/register`, `/auth/login`, and `/auth/me`; `/auth/me`, project routes, project label routes, project check routes, project probe creation, and project-scoped result routes are protected by the session auth middleware in `internal/controller/transport/http/middleware`. Probe runtime routes live under `/runtime/probes/{probe_id}/*` and use `Authorization: Probe <secret>` with the probe's one-time plaintext secret, not user JWT auth.
 
 The current auth request flow is:
 
@@ -173,7 +174,8 @@ Commands below come from the root `Justfile`, root `package.json`, `server/.air.
 - `just backend-lint-fix`: apply safe `golangci-lint` fixes.
 - `just backend-sqlc`: regenerate sqlc code from `sqlc.yaml`.
 - `just backend-migrate-status`, `just backend-migrate-up`, `just backend-migrate-down`: run `cmd/migrate`.
-- `docker compose -f deployments/docker/compose.observability.yaml up --build`: build and run the Docker stack with PostgreSQL, VictoriaTraces, VictoriaMetrics, VictoriaLogs, Vector, Grafana, nginx, controller, migrations, and the backend image's agent install artifacts.
+- `docker compose -f deployments/docker/compose.yaml up -d`: run the self-host stack from Docker Hub with PostgreSQL, one-shot migrations, and the Netstamp app serving both frontend and API.
+- `docker compose -f deployments/docker/compose.observability.yaml up --build`: build and run the observability Docker stack with PostgreSQL, VictoriaTraces, VictoriaMetrics, VictoriaLogs, Vector, Grafana, nginx, controller, migrations, and the backend image's agent install artifacts.
 
 Use `server/.env.example` as the controller env template and `server/probe.env.example` as the probe env template. `server/.gitignore` intentionally ignores `.env`, `.env.*`, `*.env`, `bin/`, `tmp/`, and `coverage.out`.
 
@@ -211,7 +213,7 @@ Keep public error detail conservative. Not-found conditions for inaccessible pro
 
 ## Security & Configuration Tips
 
-Secrets and runtime settings come from environment variables or `.env`; defaults and validation live in `internal/controller/config/config.go`. Never commit real `.env` files, JWT secrets, database passwords, trace endpoints with credentials, or production pseudonym keys.
+Secrets and runtime settings come from environment variables or `.env`; defaults and validation live in `internal/controller/config/config.go`. `WEB_DIR` is optional and should point at built frontend static files only in packaged/self-host deployments. Never commit real `.env` files, JWT secrets, database passwords, trace endpoints with credentials, or production pseudonym keys.
 
 The observability compose setup requires `LOG_PSEUDONYM_KEY`, `DATABASE_PASSWORD`, `POSTGRES_EXPORTER_PASSWORD`, `AUTH_JWT_SECRET`, and `GF_SECURITY_ADMIN_PASSWORD`. Passwords are hashed with Argon2id using `AUTH_ARGON2ID_*` settings. JWT session cookies use HS256 with `AUTH_JWT_SECRET` and `AUTH_ACCESS_TOKEN_TTL`. Configuration fields for login rate limits exist, but no rate-limiting middleware is currently wired.
 

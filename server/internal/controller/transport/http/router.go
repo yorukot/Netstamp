@@ -42,6 +42,7 @@ type Dependencies struct {
 	Log               *zap.Logger
 	APIVersion        string
 	BackendBaseURL    string
+	WebDir            string
 	AuthService       *appauth.Service
 	AuthVerifier      appauth.TokenVerifier
 	AuthCookieSecure  bool
@@ -67,11 +68,12 @@ func NewRouter(dep Dependencies) http.Handler {
 	}
 
 	apiRouter := newAPIRouter(dep)
+	handler := routeFrontend(apiRouter, dep)
 	if dep.MetricsHandler == nil {
-		return apiRouter
+		return handler
 	}
 
-	return routeMetrics(apiRouter, dep.MetricsHandler)
+	return routeMetrics(handler, dep.MetricsHandler)
 }
 
 func newAPIRouter(dep Dependencies) http.Handler {
@@ -111,7 +113,7 @@ func registerAPIRoutes(api chi.Router, dep Dependencies) {
 	registerSystemRoutes(api, dep.ReadinessCheck)
 	registerOpenAPIRoutes(api, dep)
 
-	installhttp.NewHandler(dep.AgentBinaryDir).RegisterRoutes(api)
+	installhttp.NewHandler(dep.AgentBinaryDir, dep.BackendBaseURL, dep.basePath()).RegisterRoutes(api)
 
 	authhttp.NewHandler(dep.AuthService, dep.AuthVerifier, dep.AuthCookieSecure).RegisterRoutes(api)
 	userhttp.NewHandler(dep.UserService, dep.AuthVerifier).RegisterRoutes(api)

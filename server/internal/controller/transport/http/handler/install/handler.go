@@ -3,9 +3,12 @@ package install
 import (
 	"embed"
 	"errors"
+	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 
@@ -30,14 +33,20 @@ var installerFiles embed.FS
 
 type Handler struct {
 	agentBinaryDir string
+	backendBaseURL string
+	apiBasePath    string
 }
 
-func NewHandler(agentBinaryDir string) *Handler {
+func NewHandler(agentBinaryDir, backendBaseURL, apiBasePath string) *Handler {
 	if agentBinaryDir == "" {
 		agentBinaryDir = DefaultAgentBinaryDir
 	}
 
-	return &Handler{agentBinaryDir: agentBinaryDir}
+	return &Handler{
+		agentBinaryDir: agentBinaryDir,
+		backendBaseURL: strings.TrimRight(backendBaseURL, "/"),
+		apiBasePath:    "/" + strings.Trim(strings.TrimSpace(apiBasePath), "/"),
+	}
 }
 
 func (h *Handler) RegisterRoutes(api chi.Router) {
@@ -67,13 +76,77 @@ func (h *Handler) writeScript(
 		httpx.WriteProblem(w, r, httpx.InternalServerError(unavailableDetail))
 		return
 	}
+	if name == "agent.sh" {
+		data = h.renderAgentScript(r, data)
+	}
 
 	w.Header().Set("Content-Type", "text/x-shellscript; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.WriteHeader(http.StatusOK)
+	// #nosec G705 -- agent.sh is an embedded script; reflected origin values are sanitized before replacement.
 	if _, err := w.Write(data); err != nil {
 		return
 	}
+}
+
+func (h *Handler) renderAgentScript(r *http.Request, data []byte) []byte {
+	controllerURL := h.controllerURL(r)
+	binaryBaseURL := controllerURL + h.apiBasePath + "/install"
+
+	body := string(data)
+	body = strings.ReplaceAll(body, "__NETSTAMP_CONTROLLER_URL__", controllerURL)
+	body = strings.ReplaceAll(body, "__NETSTAMP_AGENT_BINARY_BASE_URL__", binaryBaseURL)
+	return []byte(body)
+}
+
+func (h *Handler) controllerURL(r *http.Request) string {
+	if h.backendBaseURL != "" {
+		return h.backendBaseURL
+	}
+
+	scheme := forwardedHeaderValue(r.Header.Get("X-Forwarded-Proto"))
+	if scheme != "http" && scheme != "https" {
+		if r.TLS != nil {
+			scheme = "https"
+		} else {
+			scheme = "http"
+		}
+	}
+
+	host := forwardedHeaderValue(r.Header.Get("X-Forwarded-Host"))
+	if host == "" {
+		host = r.Host
+	}
+	host = sanitizeHost(host)
+	if host == "" {
+		host = "localhost"
+	}
+
+	return (&url.URL{Scheme: scheme, Host: host}).String()
+}
+
+func forwardedHeaderValue(value string) string {
+	if value == "" {
+		return ""
+	}
+	first, _, _ := strings.Cut(value, ",")
+	return strings.TrimSpace(first)
+}
+
+func sanitizeHost(value string) string {
+	host := strings.TrimSpace(value)
+	if host == "" || strings.ContainsAny(host, "\r\n\t \"'`<>\\") {
+		return ""
+	}
+
+	if hostname, port, err := net.SplitHostPort(host); err == nil {
+		if hostname == "" || port == "" {
+			return ""
+		}
+		return net.JoinHostPort(hostname, port)
+	}
+
+	return host
 }
 
 func (h *Handler) handleAgentBinary(asset agentBinaryAsset) http.HandlerFunc {

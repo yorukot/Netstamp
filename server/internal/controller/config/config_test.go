@@ -40,6 +40,9 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.HTTP.Addr != ":8080" {
 		t.Fatalf("expected default HTTP addr, got %q", cfg.HTTP.Addr)
 	}
+	if cfg.HTTP.WebDir != "" {
+		t.Fatalf("expected empty web dir, got %q", cfg.HTTP.WebDir)
+	}
 	if cfg.HTTP.TrustedProxies != "" {
 		t.Fatalf("expected empty trusted proxies, got %q", cfg.HTTP.TrustedProxies)
 	}
@@ -66,6 +69,7 @@ func TestLoadFromEnvironment(t *testing.T) {
 	t.Setenv(keyLogPseudonymKey, "production-log-pseudonym-key")
 	t.Setenv(keyBackendBaseURL, "https://api.netstamp.dev")
 	t.Setenv(keyHTTPAddr, ":8181")
+	t.Setenv(keyWebDir, "/app/web")
 	t.Setenv(keyHTTPTrustedProxies, "10.0.0.0/8,127.0.0.1")
 	t.Setenv(keyRequestTimeout, "250ms")
 	t.Setenv(keyDatabaseHost, "db.internal")
@@ -102,6 +106,9 @@ func TestLoadFromEnvironment(t *testing.T) {
 	}
 	if cfg.HTTP.Addr != ":8181" {
 		t.Fatalf("expected HTTP addr override, got %q", cfg.HTTP.Addr)
+	}
+	if cfg.HTTP.WebDir != "/app/web" {
+		t.Fatalf("expected web dir override, got %q", cfg.HTTP.WebDir)
 	}
 	if cfg.HTTP.TrustedProxies != "10.0.0.0/8,127.0.0.1" {
 		t.Fatalf("expected trusted proxies override, got %q", cfg.HTTP.TrustedProxies)

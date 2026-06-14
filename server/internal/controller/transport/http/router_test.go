@@ -347,9 +347,11 @@ func TestNewRouterWritesProblemNotFoundForAPIClients(t *testing.T) {
 }
 
 func TestNewRouterServesMetricsOutsideVersionedAPI(t *testing.T) {
+	webDir := writeTestWebDir(t)
 	router := NewRouter(Dependencies{
 		APIVersion:     "v1",
 		RequestTimeout: time.Second,
+		WebDir:         webDir,
 		MetricsHandler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if requestID := chimw.GetReqID(r.Context()); requestID != "" {
 				t.Errorf("expected metrics to bypass request ID middleware, got %q", requestID)
@@ -374,6 +376,107 @@ func TestNewRouterServesMetricsOutsideVersionedAPI(t *testing.T) {
 	}
 }
 
+func TestNewRouterServesFrontendSPAWhenWebDirIsConfigured(t *testing.T) {
+	webDir := writeTestWebDir(t)
+
+	for _, route := range []string{"/", "/login", "/dashboard"} {
+		t.Run(route, func(t *testing.T) {
+			recorder := performRouterRequest(Dependencies{
+				APIVersion:     "v1",
+				RequestTimeout: time.Second,
+				WebDir:         webDir,
+			}, http.MethodGet, route)
+
+			if recorder.Code != http.StatusOK {
+				t.Fatalf("expected frontend route status 200, got %d", recorder.Code)
+			}
+			if got := recorder.Header().Get("Content-Type"); !strings.HasPrefix(got, "text/html") {
+				t.Fatalf("expected frontend content type, got %q", got)
+			}
+			if body := recorder.Body.String(); !strings.Contains(body, "netstamp app shell") {
+				t.Fatalf("expected frontend index body, got %q", body)
+			}
+		})
+	}
+}
+
+func TestNewRouterServesFrontendAssetsWithImmutableCache(t *testing.T) {
+	webDir := writeTestWebDir(t)
+
+	recorder := performRouterRequest(Dependencies{
+		APIVersion:     "v1",
+		RequestTimeout: time.Second,
+		WebDir:         webDir,
+	}, http.MethodGet, "/assets/app.js")
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected asset status 200, got %d", recorder.Code)
+	}
+	if got := recorder.Header().Get("Cache-Control"); got != immutableAssetCache {
+		t.Fatalf("expected immutable asset cache header, got %q", got)
+	}
+	if body := recorder.Body.String(); body != "console.log('netstamp');" {
+		t.Fatalf("expected asset body, got %q", body)
+	}
+}
+
+func TestNewRouterDoesNotFallbackMissingAssetsToFrontendIndex(t *testing.T) {
+	webDir := writeTestWebDir(t)
+
+	recorder := performRouterRequest(Dependencies{
+		APIVersion:     "v1",
+		RequestTimeout: time.Second,
+		WebDir:         webDir,
+	}, http.MethodGet, "/assets/missing.js")
+
+	if recorder.Code != http.StatusNotFound {
+		t.Fatalf("expected missing asset status 404, got %d", recorder.Code)
+	}
+	if body := recorder.Body.String(); strings.Contains(body, "netstamp app shell") {
+		t.Fatalf("expected missing asset not to serve frontend index, got %q", body)
+	}
+	if got := recorder.Header().Get("Cache-Control"); got != "" {
+		t.Fatalf("expected missing asset not to set cache header, got %q", got)
+	}
+}
+
+func TestNewRouterKeepsAPIAndHealthOutsideFrontendFallback(t *testing.T) {
+	webDir := writeTestWebDir(t)
+
+	for _, route := range []string{"/api/v1/healthz", "/healthz"} {
+		t.Run(route, func(t *testing.T) {
+			recorder := performRouterRequest(Dependencies{
+				APIVersion:     "v1",
+				RequestTimeout: time.Second,
+				WebDir:         webDir,
+			}, http.MethodGet, route)
+
+			if recorder.Code != http.StatusOK {
+				t.Fatalf("expected health route status 200, got %d", recorder.Code)
+			}
+			if got := recorder.Header().Get("Content-Type"); got != "application/json" {
+				t.Fatalf("expected health content type, got %q", got)
+			}
+			if body := recorder.Body.String(); !strings.Contains(body, `"status":"ok"`) {
+				t.Fatalf("expected health body, got %q", body)
+			}
+		})
+	}
+
+	recorder := performRouterRequest(Dependencies{
+		APIVersion:     "v1",
+		RequestTimeout: time.Second,
+		WebDir:         webDir,
+	}, http.MethodGet, "/api/v1/missing")
+
+	if recorder.Code != http.StatusNotFound {
+		t.Fatalf("expected missing API route status 404, got %d", recorder.Code)
+	}
+	if got := recorder.Header().Get("Content-Type"); got != "application/problem+json" {
+		t.Fatalf("expected missing API content type, got %q", got)
+	}
+}
+
 func TestNewRouterServesAgentInstallerScript(t *testing.T) {
 	recorder := performRouterRequest(Dependencies{
 		APIVersion:     "v1",
@@ -391,8 +494,8 @@ func TestNewRouterServesAgentInstallerScript(t *testing.T) {
 		"#!/bin/sh",
 		"binary_filename=netstamp-agent-linux-amd64",
 		"binary_filename=netstamp-agent-linux-arm64",
-		`binary_url="https://netstamp.dev/api/v1/install/${binary_filename}"`,
-		`controller_url="https://netstamp.dev"`,
+		`binary_url="http://example.com/api/v1/install/${binary_filename}"`,
+		`controller_url="http://example.com"`,
 		"sudo netstamp-agent service install --url",
 		"linux/amd64 and linux/arm64",
 	} {
@@ -409,6 +512,27 @@ func TestNewRouterServesAgentInstallerScript(t *testing.T) {
 	} {
 		if strings.Contains(body, notWant) {
 			t.Fatalf("expected thin install script body not to contain %q", notWant)
+		}
+	}
+}
+
+func TestNewRouterServesAgentInstallerScriptWithBackendBaseURL(t *testing.T) {
+	recorder := performRouterRequest(Dependencies{
+		APIVersion:     "v1",
+		BackendBaseURL: "https://netstamp.example.com",
+		RequestTimeout: time.Second,
+	}, http.MethodGet, "/api/v1/install/agent.sh")
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected install script status 200, got %d", recorder.Code)
+	}
+	body := recorder.Body.String()
+	for _, want := range []string{
+		`binary_url="https://netstamp.example.com/api/v1/install/${binary_filename}"`,
+		`controller_url="https://netstamp.example.com"`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("expected install script body to contain %q", want)
 		}
 	}
 }
@@ -531,6 +655,24 @@ func performRouterRequestWithHeaders(dep Dependencies, method, path string, head
 	}
 	router.ServeHTTP(recorder, request)
 	return recorder
+}
+
+func writeTestWebDir(t *testing.T) string {
+	t.Helper()
+
+	webDir := t.TempDir()
+	assetDir := filepath.Join(webDir, "assets")
+	if err := os.MkdirAll(assetDir, 0o755); err != nil {
+		t.Fatalf("create asset dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(webDir, "index.html"), []byte("<!doctype html><title>netstamp app shell</title>"), 0o644); err != nil {
+		t.Fatalf("write index: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(assetDir, "app.js"), []byte("console.log('netstamp');"), 0o644); err != nil {
+		t.Fatalf("write asset: %v", err)
+	}
+
+	return webDir
 }
 
 type staticRouterTokenVerifier struct{}

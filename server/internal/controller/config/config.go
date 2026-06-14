@@ -23,6 +23,7 @@ const (
 	keyShutdownTimeout                = "SHUTDOWN_TIMEOUT"
 	keyBackendBaseURL                 = "BACKEND_BASE_URL"
 	keyHTTPAddr                       = "HTTP_ADDR"
+	keyWebDir                         = "WEB_DIR"
 	keyRequestTimeout                 = "REQUEST_TIMEOUT"
 	keyHTTPReadHeaderTimeout          = "HTTP_READ_HEADER_TIMEOUT"
 	keyHTTPReadTimeout                = "HTTP_READ_TIMEOUT"
@@ -63,6 +64,7 @@ var defaultSettings = map[string]any{
 	keyShutdownTimeout:                10 * time.Second,
 	keyBackendBaseURL:                 "",
 	keyHTTPAddr:                       ":8080",
+	keyWebDir:                         "",
 	keyRequestTimeout:                 10 * time.Second,
 	keyHTTPReadHeaderTimeout:          5 * time.Second,
 	keyHTTPReadTimeout:                15 * time.Second,
@@ -111,6 +113,7 @@ type Config struct {
 type HTTPConfig struct {
 	BackendBaseURL    string        `mapstructure:"BACKEND_BASE_URL"`
 	Addr              string        `mapstructure:"HTTP_ADDR"`
+	WebDir            string        `mapstructure:"WEB_DIR"`
 	RequestTimeout    time.Duration `mapstructure:"REQUEST_TIMEOUT"`
 	ReadHeaderTimeout time.Duration `mapstructure:"HTTP_READ_HEADER_TIMEOUT"`
 	ReadTimeout       time.Duration `mapstructure:"HTTP_READ_TIMEOUT"`

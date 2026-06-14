@@ -162,6 +162,7 @@ func New(ctx context.Context) (*Application, error) {
 		Log:               log,
 		APIVersion:        cfg.APIVersion,
 		BackendBaseURL:    cfg.HTTP.BackendBaseURL,
+		WebDir:            cfg.HTTP.WebDir,
 		AuthService:       authSvc,
 		AuthVerifier:      tokenIssuer,
 		AuthCookieSecure:  cfg.Env != "local",

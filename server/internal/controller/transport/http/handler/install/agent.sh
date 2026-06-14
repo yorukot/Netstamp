@@ -2,7 +2,7 @@
 set -eu
 
 install_path=/usr/local/bin/netstamp-agent
-controller_url="https://netstamp.dev"
+controller_url="__NETSTAMP_CONTROLLER_URL__"
 
 usage() {
 	cat <<'EOF'
@@ -67,7 +67,7 @@ aarch64 | arm64)
 	;;
 esac
 
-binary_url="https://netstamp.dev/api/v1/install/${binary_filename}"
+binary_url="__NETSTAMP_AGENT_BINARY_BASE_URL__/${binary_filename}"
 
 tmp_dir=$(mktemp -d)
 trap 'rm -rf "$tmp_dir"' EXIT HUP INT TERM
