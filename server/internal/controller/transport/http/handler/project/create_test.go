@@ -31,7 +31,7 @@ func TestCreateProjectReturnsConflictProblemForSlugConflict(t *testing.T) {
 			Subject: projectHandlerTestUserID,
 			Email:   "user@example.com",
 		},
-	}).RegisterRoutes(router)
+	}, true).RegisterRoutes(router)
 
 	req := httptest.NewRequest(http.MethodPost, "/projects", strings.NewReader(`{"name":"Project","slug":"project"}`))
 	req.Header.Set("Content-Type", "application/json")
@@ -55,6 +55,34 @@ func TestCreateProjectReturnsConflictProblemForSlugConflict(t *testing.T) {
 	}
 	if body.Detail != "project slug already exists" {
 		t.Fatalf("expected slug conflict detail, got %q", body.Detail)
+	}
+}
+
+func TestCreateProjectReturnsForbiddenWhenProjectCreationDisabled(t *testing.T) {
+	router := chi.NewRouter()
+	NewHandler(nil, &projectHandlerTokenVerifier{
+		claims: identity.AccessTokenClaims{
+			Subject: projectHandlerTestUserID,
+			Email:   "user@example.com",
+		},
+	}, false).RegisterRoutes(router)
+
+	req := httptest.NewRequest(http.MethodPost, "/projects", strings.NewReader(`{"name":"Project","slug":"project"}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Cookie", "netstamp_session=valid-token")
+	res := httptest.NewRecorder()
+	router.ServeHTTP(res, req)
+
+	if res.Code != http.StatusForbidden {
+		t.Fatalf("expected status 403, got %d", res.Code)
+	}
+
+	var body httpx.ProblemDetails
+	if err := json.NewDecoder(res.Body).Decode(&body); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if body.Detail != "project creation is disabled" {
+		t.Fatalf("expected disabled project creation detail, got %q", body.Detail)
 	}
 }
 

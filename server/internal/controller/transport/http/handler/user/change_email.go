@@ -4,9 +4,14 @@ import (
 	"context"
 
 	appuser "github.com/yorukot/netstamp/internal/controller/application/user"
+	"github.com/yorukot/netstamp/internal/controller/transport/http/httpx"
 )
 
 func (h *Handler) changeCurrentUserEmail(ctx context.Context, input *changeCurrentUserEmailInput) (*userOutput, error) {
+	if !h.credentialChangesEnabled {
+		return nil, httpx.Forbidden("credential changes are disabled")
+	}
+
 	currentUserID, err := currentUserID(ctx)
 	if err != nil {
 		return nil, err

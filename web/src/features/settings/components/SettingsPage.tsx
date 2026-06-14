@@ -14,6 +14,7 @@ import { ActionRow } from "@/shared/components/ActionRow";
 import { BodyCopy } from "@/shared/components/BodyCopy";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
+import { appFeatures } from "@/shared/config/features";
 import { pushToast } from "@/shared/toast/toastStore";
 import { Badge, Button, DataTable, Panel, SignalAvatar, TextField, type DataColumn } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
@@ -67,6 +68,10 @@ export function SettingsPage() {
 
 	function handleEmailSubmit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
+		if (!appFeatures.userCredentialChanges) {
+			return;
+		}
+
 		changeEmailMutation.mutate({
 			newEmail: formValue(event.currentTarget, "new-email"),
 			password: formValue(event.currentTarget, "email-password")
@@ -75,6 +80,10 @@ export function SettingsPage() {
 
 	function handlePasswordSubmit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
+		if (!appFeatures.userCredentialChanges) {
+			return;
+		}
+
 		const newPassword = formValue(event.currentTarget, "new-password");
 
 		if (newPassword !== formValue(event.currentTarget, "confirm-password")) {
@@ -192,33 +201,35 @@ export function SettingsPage() {
 				</Panel>
 			</div>
 
-			<div className={styles.settingsGrid}>
-				<Panel tone="glass" title="Change email">
-					<form className={styles.settingsForm} onSubmit={handleEmailSubmit}>
-						<TextField label="Current email" name="current-email" type="email" defaultValue={user.email} />
-						<TextField label="New email" name="new-email" type="email" placeholder="operator@example.com" />
-						<TextField label="Confirm password" name="email-password" type="password" autoComplete="current-password" />
-						<ActionRow>
-							<Button type="submit" disabled={changeEmailMutation.isPending}>
-								{changeEmailMutation.isPending ? "Updating" : "Update email"}
-							</Button>
-						</ActionRow>
-					</form>
-				</Panel>
+			{appFeatures.userCredentialChanges ? (
+				<div className={styles.settingsGrid}>
+					<Panel tone="glass" title="Change email">
+						<form className={styles.settingsForm} onSubmit={handleEmailSubmit}>
+							<TextField label="Current email" name="current-email" type="email" defaultValue={user.email} />
+							<TextField label="New email" name="new-email" type="email" placeholder="operator@example.com" />
+							<TextField label="Confirm password" name="email-password" type="password" autoComplete="current-password" />
+							<ActionRow>
+								<Button type="submit" disabled={changeEmailMutation.isPending}>
+									{changeEmailMutation.isPending ? "Updating" : "Update email"}
+								</Button>
+							</ActionRow>
+						</form>
+					</Panel>
 
-				<Panel tone="glass" title="Change password">
-					<form className={styles.settingsForm} onSubmit={handlePasswordSubmit}>
-						<TextField label="Current password" name="current-password" type="password" autoComplete="current-password" />
-						<TextField label="New password" name="new-password" type="password" autoComplete="new-password" />
-						<TextField label="Confirm new password" name="confirm-password" type="password" autoComplete="new-password" helper="Use at least 12 characters for production accounts." />
-						<ActionRow>
-							<Button type="submit" disabled={changePasswordMutation.isPending}>
-								{changePasswordMutation.isPending ? "Changing" : "Change password"}
-							</Button>
-						</ActionRow>
-					</form>
-				</Panel>
-			</div>
+					<Panel tone="glass" title="Change password">
+						<form className={styles.settingsForm} onSubmit={handlePasswordSubmit}>
+							<TextField label="Current password" name="current-password" type="password" autoComplete="current-password" />
+							<TextField label="New password" name="new-password" type="password" autoComplete="new-password" />
+							<TextField label="Confirm new password" name="confirm-password" type="password" autoComplete="new-password" helper="Use at least 12 characters for production accounts." />
+							<ActionRow>
+								<Button type="submit" disabled={changePasswordMutation.isPending}>
+									{changePasswordMutation.isPending ? "Changing" : "Change password"}
+								</Button>
+							</ActionRow>
+						</form>
+					</Panel>
+				</div>
+			) : null}
 		</PageStack>
 	);
 }

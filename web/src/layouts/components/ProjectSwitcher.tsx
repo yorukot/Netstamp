@@ -2,6 +2,7 @@ import { CreateProjectModal } from "@/features/project/components/CreateProjectM
 import styles from "@/layouts/AppShell.module.css";
 import { pathForProjectSwitch } from "@/routes/routePaths";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
+import { appFeatures } from "@/shared/config/features";
 import { classNames } from "@/shared/utils/classNames";
 import { Button, PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger, Select } from "@netstamp/ui";
 import { FolderOpen, FolderPlus } from "@phosphor-icons/react";
@@ -38,6 +39,10 @@ export function ProjectSwitcher() {
 
 	function selectProject(value: string) {
 		if (value === CREATE_PROJECT_VALUE) {
+			if (!appFeatures.projectCreation) {
+				return;
+			}
+
 			setCompactOpen(false);
 			setCreateModalOpen(true);
 			return;
@@ -63,7 +68,7 @@ export function ProjectSwitcher() {
 						) : (
 							<option value="">No project</option>
 						)}
-						<option value={CREATE_PROJECT_VALUE}>{createProjectOptionLabel()}</option>
+						{appFeatures.projectCreation ? <option value={CREATE_PROJECT_VALUE}>{createProjectOptionLabel()}</option> : null}
 					</Select>
 				</label>
 			</div>
@@ -89,26 +94,28 @@ export function ProjectSwitcher() {
 								) : (
 									<option value="">No project</option>
 								)}
-								<option value={CREATE_PROJECT_VALUE}>{createProjectOptionLabel()}</option>
+								{appFeatures.projectCreation ? <option value={CREATE_PROJECT_VALUE}>{createProjectOptionLabel()}</option> : null}
 							</Select>
 						</label>
-						<Button
-							className={styles.projectPopoverCreate}
-							type="button"
-							variant="ghost"
-							size="sm"
-							onClick={() => {
-								setCompactOpen(false);
-								setCreateModalOpen(true);
-							}}
-						>
-							<FolderPlus size={16} weight="bold" aria-hidden="true" />
-							Create new project
-						</Button>
+						{appFeatures.projectCreation ? (
+							<Button
+								className={styles.projectPopoverCreate}
+								type="button"
+								variant="ghost"
+								size="sm"
+								onClick={() => {
+									setCompactOpen(false);
+									setCreateModalOpen(true);
+								}}
+							>
+								<FolderPlus size={16} weight="bold" aria-hidden="true" />
+								Create new project
+							</Button>
+						) : null}
 					</PopoverContent>
 				</PopoverPortal>
 			</PopoverRoot>
-			{createModalOpen ? <CreateProjectModal onClose={() => setCreateModalOpen(false)} onCreatedProject={navigateAfterProjectChange} /> : null}
+			{createModalOpen && appFeatures.projectCreation ? <CreateProjectModal onClose={() => setCreateModalOpen(false)} onCreatedProject={navigateAfterProjectChange} /> : null}
 		</>
 	);
 }

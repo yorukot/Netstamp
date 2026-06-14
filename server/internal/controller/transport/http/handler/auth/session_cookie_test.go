@@ -11,12 +11,13 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	appauth "github.com/yorukot/netstamp/internal/controller/application/auth"
+	"github.com/yorukot/netstamp/internal/controller/transport/http/httpx"
 	"github.com/yorukot/netstamp/internal/domain/identity"
 )
 
 func TestLoginSetsSessionCookieAndReturnsUserOnly(t *testing.T) {
 	router := chi.NewRouter()
-	NewHandler(newAuthTestService(), nil, true).RegisterRoutes(router)
+	NewHandler(newAuthTestService(), nil, true, true).RegisterRoutes(router)
 
 	res := performJSONRequest(router, http.MethodPost, "/auth/login", `{"email":"user@example.com","password":"correct-horse-battery-staple"}`)
 
@@ -29,7 +30,7 @@ func TestLoginSetsSessionCookieAndReturnsUserOnly(t *testing.T) {
 
 func TestRegisterSetsSessionCookieAndReturnsUserOnly(t *testing.T) {
 	router := chi.NewRouter()
-	NewHandler(newAuthTestService(), nil, false).RegisterRoutes(router)
+	NewHandler(newAuthTestService(), nil, false, true).RegisterRoutes(router)
 
 	res := performJSONRequest(router, http.MethodPost, "/auth/register", `{"email":"new@example.com","displayName":"New User","password":"correct-horse-battery-staple"}`)
 
@@ -40,9 +41,28 @@ func TestRegisterSetsSessionCookieAndReturnsUserOnly(t *testing.T) {
 	assertAuthBodyHasOnlyUser(t, res)
 }
 
+func TestRegisterReturnsForbiddenWhenRegistrationDisabled(t *testing.T) {
+	router := chi.NewRouter()
+	NewHandler(newAuthTestService(), nil, false, false).RegisterRoutes(router)
+
+	res := performJSONRequest(router, http.MethodPost, "/auth/register", `{"email":"new@example.com","displayName":"New User","password":"correct-horse-battery-staple"}`)
+
+	if res.Code != http.StatusForbidden {
+		t.Fatalf("expected status 403, got %d", res.Code)
+	}
+
+	var body httpx.ProblemDetails
+	if err := json.NewDecoder(res.Body).Decode(&body); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if body.Detail != "registration is disabled" {
+		t.Fatalf("expected disabled registration detail, got %q", body.Detail)
+	}
+}
+
 func TestLogoutExpiresSessionCookie(t *testing.T) {
 	router := chi.NewRouter()
-	NewHandler(nil, nil, true).RegisterRoutes(router)
+	NewHandler(nil, nil, true, true).RegisterRoutes(router)
 
 	res := performJSONRequest(router, http.MethodPost, "/auth/logout", "")
 

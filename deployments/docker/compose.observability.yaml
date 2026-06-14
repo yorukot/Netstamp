@@ -5,6 +5,18 @@ x-backend-build: &backend-build
 x-nginx-build: &nginx-build
   context: ../..
   dockerfile: deployments/docker/nginx.Dockerfile
+  args:
+    VITE_NETSTAMP_REGISTRATION_ENABLED: ${VITE_NETSTAMP_REGISTRATION_ENABLED:-true}
+    VITE_NETSTAMP_PROJECT_CREATION_ENABLED: ${VITE_NETSTAMP_PROJECT_CREATION_ENABLED:-true}
+    VITE_NETSTAMP_USER_CREDENTIAL_CHANGES_ENABLED: ${VITE_NETSTAMP_USER_CREDENTIAL_CHANGES_ENABLED:-true}
+
+x-demo-build: &demo-build
+  context: ../..
+  dockerfile: deployments/docker/Dockerfile
+  args:
+    VITE_NETSTAMP_REGISTRATION_ENABLED: "false"
+    VITE_NETSTAMP_PROJECT_CREATION_ENABLED: "false"
+    VITE_NETSTAMP_USER_CREDENTIAL_CHANGES_ENABLED: "false"
 
 x-backend-environment: &backend-environment
   APP_ENV: production
@@ -28,9 +40,12 @@ x-backend-environment: &backend-environment
   DB_MAX_CONN_IDLE_TIME: ${DB_MAX_CONN_IDLE_TIME:-30m}
   AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:?set AUTH_JWT_SECRET}
   AUTH_ACCESS_TOKEN_TTL: ${AUTH_ACCESS_TOKEN_TTL:-12h}
+  AUTH_REGISTRATION_ENABLED: ${AUTH_REGISTRATION_ENABLED:-true}
   AUTH_ARGON2ID_MEMORY_KIB: ${AUTH_ARGON2ID_MEMORY_KIB:-65536}
   AUTH_ARGON2ID_ITERATIONS: ${AUTH_ARGON2ID_ITERATIONS:-3}
   AUTH_ARGON2ID_PARALLELISM: ${AUTH_ARGON2ID_PARALLELISM:-4}
+  PROJECT_CREATION_ENABLED: ${PROJECT_CREATION_ENABLED:-true}
+  USER_CREDENTIAL_CHANGES_ENABLED: ${USER_CREDENTIAL_CHANGES_ENABLED:-true}
 
 services:
   postgres:
@@ -133,6 +148,34 @@ services:
       - "8080"
     labels:
       - netstamp.logs=enabled
+
+  demo:
+    profiles: ["demo"]
+    image: netstamp-demo:${NETSTAMP_IMAGE_TAG:-local}
+    build: *demo-build
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+      victoria-traces:
+        condition: service_started
+    environment:
+      <<: *backend-environment
+      SERVICE_NAME: demo-controller
+      BACKEND_BASE_URL: ${DEMO_BACKEND_BASE_URL:-}
+      AUTH_REGISTRATION_ENABLED: "false"
+      PROJECT_CREATION_ENABLED: "false"
+      USER_CREDENTIAL_CHANGES_ENABLED: "false"
+      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://victoria-traces:10428/insert/opentelemetry/v1/traces
+    expose:
+      - "8080"
+    labels:
+      - netstamp.logs=enabled
+    networks:
+      - dokploy-network
+      - default
 
   nginx:
     image: netstamp-web:${NETSTAMP_IMAGE_TAG:-local}

@@ -11,16 +11,18 @@ import (
 )
 
 type Handler struct {
-	service      *appauth.Service
-	verifier     appauth.TokenVerifier
-	cookieSecure bool
+	service             *appauth.Service
+	verifier            appauth.TokenVerifier
+	cookieSecure        bool
+	registrationEnabled bool
 }
 
-func NewHandler(service *appauth.Service, verifier appauth.TokenVerifier, cookieSecure bool) *Handler {
+func NewHandler(service *appauth.Service, verifier appauth.TokenVerifier, cookieSecure bool, registrationEnabled bool) *Handler {
 	return &Handler{
-		service:      service,
-		verifier:     verifier,
-		cookieSecure: cookieSecure,
+		service:             service,
+		verifier:            verifier,
+		cookieSecure:        cookieSecure,
+		registrationEnabled: registrationEnabled,
 	}
 }
 

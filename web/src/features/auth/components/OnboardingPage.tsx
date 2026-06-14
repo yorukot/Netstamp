@@ -4,6 +4,7 @@ import { ApiError } from "@/shared/api/client";
 import { createProjectInvite as createProjectInviteRequest, createProject as createProjectRequest } from "@/shared/api/mutations";
 import { apiQueryKeys } from "@/shared/api/queryKeys";
 import { useProjectSelection } from "@/shared/api/useCurrentProject";
+import { appFeatures } from "@/shared/config/features";
 import { pushErrorToast } from "@/shared/toast/toastStore";
 import { classNames } from "@/shared/utils/classNames";
 import { Button, Input, PageShell } from "@netstamp/ui";
@@ -61,7 +62,7 @@ function isProjectSlugConflict(error: unknown) {
 }
 
 export function OnboardingPage({ navigate }: OnboardingPageProps) {
-	const { session, loading, submitting } = useAuth();
+	const { session, loading, submitting, logout } = useAuth();
 	const queryClient = useQueryClient();
 	const { setSelectedProjectRef } = useProjectSelection();
 	const [activeStep, setActiveStep] = useState(0);
@@ -245,6 +246,35 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 
 	if (loading) {
 		return null;
+	}
+
+	if (!appFeatures.projectCreation) {
+		return (
+			<PageShell variant="constellation" center className={styles.shell}>
+				<Helmet>
+					<title>No Project Access - Netstamp</title>
+				</Helmet>
+
+				<section className={classNames("ns-cut-frame", styles.console)} aria-label="Project access console">
+					<div className={styles.consoleBar}>
+						<span aria-hidden="true" />
+						<span aria-hidden="true" />
+						<span aria-hidden="true" />
+						<strong>yoru://project-access</strong>
+					</div>
+					<div className={styles.consoleBody}>
+						<div className={styles.scanline} aria-hidden="true" />
+						<div className={styles.successView}>
+							<ScriptLine prompt="access" text="No projects are assigned to this account." />
+							<p>Use an invited demo account or ask an operator for project access.</p>
+							<Button variant="plain" className={styles.tuiButton} type="button" onClick={logout}>
+								[ log out ]
+							</Button>
+						</div>
+					</div>
+				</section>
+			</PageShell>
+		);
 	}
 
 	return (

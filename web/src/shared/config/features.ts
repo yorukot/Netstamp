@@ -1,0 +1,23 @@
+function booleanFeature(value: string | undefined, defaultValue: boolean) {
+	const normalized = value?.trim().toLowerCase();
+
+	if (!normalized) {
+		return defaultValue;
+	}
+
+	if (["1", "true", "yes", "on"].includes(normalized)) {
+		return true;
+	}
+
+	if (["0", "false", "no", "off"].includes(normalized)) {
+		return false;
+	}
+
+	return defaultValue;
+}
+
+export const appFeatures = {
+	registration: booleanFeature(import.meta.env.VITE_NETSTAMP_REGISTRATION_ENABLED, true),
+	projectCreation: booleanFeature(import.meta.env.VITE_NETSTAMP_PROJECT_CREATION_ENABLED, true),
+	userCredentialChanges: booleanFeature(import.meta.env.VITE_NETSTAMP_USER_CREDENTIAL_CHANGES_ENABLED, true)
+} as const;

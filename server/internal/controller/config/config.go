@@ -42,9 +42,12 @@ const (
 	keyDBMaxConnIdleTime              = "DB_MAX_CONN_IDLE_TIME"
 	keyAuthJWTSecret                  = "AUTH_JWT_SECRET"       //nolint:gosec // This is the env key name, not the secret value.
 	keyAuthAccessTokenTTL             = "AUTH_ACCESS_TOKEN_TTL" //nolint:gosec // This is a token TTL env key, not a credential.
+	keyAuthRegistrationEnabled        = "AUTH_REGISTRATION_ENABLED"
 	keyAuthArgon2idMemoryKiB          = "AUTH_ARGON2ID_MEMORY_KIB"
 	keyAuthArgon2idIter               = "AUTH_ARGON2ID_ITERATIONS"
 	keyAuthArgon2idParallel           = "AUTH_ARGON2ID_PARALLELISM"
+	keyProjectCreationEnabled         = "PROJECT_CREATION_ENABLED"
+	keyUserCredentialChangesEnabled   = "USER_CREDENTIAL_CHANGES_ENABLED"
 	keyOTLPTracesEndpoint             = "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"
 	keyAlertEvaluationEnabled         = "ALERT_EVALUATION_ENABLED"
 	keyNotificationWorkerEnabled      = "NOTIFICATION_WORKER_ENABLED"
@@ -83,9 +86,12 @@ var defaultSettings = map[string]any{
 	keyDBMaxConnIdleTime:              30 * time.Minute,
 	keyAuthJWTSecret:                  "local-development-jwt-secret-change-before-production",
 	keyAuthAccessTokenTTL:             12 * time.Hour,
+	keyAuthRegistrationEnabled:        true,
 	keyAuthArgon2idMemoryKiB:          uint32(64 * 1024),
 	keyAuthArgon2idIter:               uint32(3),
 	keyAuthArgon2idParallel:           uint8(4),
+	keyProjectCreationEnabled:         true,
+	keyUserCredentialChangesEnabled:   true,
 	keyOTLPTracesEndpoint:             "",
 	keyAlertEvaluationEnabled:         true,
 	keyNotificationWorkerEnabled:      true,
@@ -106,6 +112,7 @@ type Config struct {
 	HTTP            HTTPConfig     `mapstructure:",squash"`
 	Database        DatabaseConfig `mapstructure:",squash"`
 	Auth            AuthConfig     `mapstructure:",squash"`
+	Policy          PolicyConfig   `mapstructure:",squash"`
 	Tracing         TracingConfig  `mapstructure:",squash"`
 	Alerting        AlertingConfig `mapstructure:",squash"`
 }
@@ -138,9 +145,15 @@ type DatabaseConfig struct {
 type AuthConfig struct {
 	JWTSecret           string        `mapstructure:"AUTH_JWT_SECRET"`
 	AccessTokenTTL      time.Duration `mapstructure:"AUTH_ACCESS_TOKEN_TTL"`
+	RegistrationEnabled bool          `mapstructure:"AUTH_REGISTRATION_ENABLED"`
 	Argon2idMemoryKiB   uint32        `mapstructure:"AUTH_ARGON2ID_MEMORY_KIB"`
 	Argon2idIterations  uint32        `mapstructure:"AUTH_ARGON2ID_ITERATIONS"`
 	Argon2idParallelism uint8         `mapstructure:"AUTH_ARGON2ID_PARALLELISM"`
+}
+
+type PolicyConfig struct {
+	ProjectCreationEnabled       bool `mapstructure:"PROJECT_CREATION_ENABLED"`
+	UserCredentialChangesEnabled bool `mapstructure:"USER_CREDENTIAL_CHANGES_ENABLED"`
 }
 
 type TracingConfig struct {

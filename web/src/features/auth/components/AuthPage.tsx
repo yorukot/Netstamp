@@ -2,6 +2,7 @@ import { useAuth } from "@/features/auth/hooks/useAuth";
 import { pathForRoute } from "@/routes/routePaths";
 import type { Navigate } from "@/routes/routeTypes";
 import taiwanSubmarineCablesMap from "@/shared/assets/taiwan_submarine_cables.svg?url";
+import { appFeatures } from "@/shared/config/features";
 import { useTheme } from "@/shared/theme/useTheme";
 import { pushErrorToast } from "@/shared/toast/toastStore";
 import netstampLogoDark from "@netstamp/brand/assets/netstamp-logo-dark.svg";
@@ -117,9 +118,11 @@ export function AuthPage({ mode = "login", navigate }: AuthPageProps) {
 								{submitting ? "Submitting" : isRegister ? "Create project" : "Log in"}
 							</Button>
 						</form>
-						<Link className={styles.modeLink} to={pathForRoute(isRegister ? "login" : "register")}>
-							{isRegister ? "Already have an account? Log in" : "Do not have an account? Sign up"}
-						</Link>
+						{isRegister || appFeatures.registration ? (
+							<Link className={styles.modeLink} to={pathForRoute(isRegister ? "login" : "register")}>
+								{isRegister ? "Already have an account? Log in" : "Do not have an account? Sign up"}
+							</Link>
+						) : null}
 						<div className={styles.homeAction}>
 							<Button className={styles.homeButton} variant="secondary" size="lg" asChild>
 								<a href="/">Go to home</a>

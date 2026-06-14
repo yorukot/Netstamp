@@ -44,6 +44,34 @@ The web app and docs site can load optional browser trackers at build time. Use 
 
 When any tracker ID is set, `regional` mode asks for consent only in configured countries. If the visitor country cannot be resolved, the banner is shown before trackers load. Country resolution checks `window.NETSTAMP_VISITOR_COUNTRY`, `<html data-netstamp-country>`, `<meta name="netstamp-visitor-country">`, then Cloudflare `/cdn-cgi/trace`.
 
+## Demo Access Controls
+
+Self-hosted demo deployments can reuse real data while blocking account growth and project creation. These backend settings are enforced at runtime:
+
+| Variable                          | Purpose                                       | Default |
+| --------------------------------- | --------------------------------------------- | ------- |
+| `AUTH_REGISTRATION_ENABLED`       | Allows `POST /auth/register`                  | `true`  |
+| `PROJECT_CREATION_ENABLED`        | Allows authenticated users to create projects | `true`  |
+| `USER_CREDENTIAL_CHANGES_ENABLED` | Allows users to change email or password      | `true`  |
+
+Set these to `false` for a public demo instance. Keep a separate normal deployment pointed at the same database if operators still need full access.
+
+The observability Docker Compose file includes a `demo` profile for this layout. It starts a locked demo controller and static web bundle against the same PostgreSQL database and observability services:
+
+```bash
+docker compose -f deployments/docker/compose.observability.yaml --profile demo up -d
+```
+
+The web app has matching build-time flags that hide the disabled UI controls:
+
+| Variable                                        | Purpose                             | Default |
+| ----------------------------------------------- | ----------------------------------- | ------- |
+| `VITE_NETSTAMP_REGISTRATION_ENABLED`            | Shows registration routes and links | `true`  |
+| `VITE_NETSTAMP_PROJECT_CREATION_ENABLED`        | Shows project creation controls     | `true`  |
+| `VITE_NETSTAMP_USER_CREDENTIAL_CHANGES_ENABLED` | Shows email and password forms      | `true`  |
+
+The backend runtime settings are the source of truth. The Vite flags only control the static frontend bundle built for that deployment.
+
 ## Backend And API Assets
 
 Backend source lives in `server/`. The docs API explorer reads `docs/public/openapi.json`, which should be regenerated from the TypeSpec contract when API behavior changes. Non-production backend environments also expose Scalar docs at `/api/v1/docs`; production does not register that runtime docs route or `/api/v1/openapi.json`.

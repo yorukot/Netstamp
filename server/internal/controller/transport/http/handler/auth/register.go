@@ -11,6 +11,10 @@ import (
 )
 
 func (h *Handler) register(ctx context.Context, input *registerInput) (*registerOutput, error) {
+	if !h.registrationEnabled {
+		return nil, httpx.Forbidden("registration is disabled")
+	}
+
 	result, err := h.service.Register(ctx, appauth.RegisterInput{
 		Email:       input.Body.Email,
 		DisplayName: input.Body.DisplayName,

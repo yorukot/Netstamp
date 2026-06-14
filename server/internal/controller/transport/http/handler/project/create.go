@@ -4,9 +4,14 @@ import (
 	"context"
 
 	appproject "github.com/yorukot/netstamp/internal/controller/application/project"
+	"github.com/yorukot/netstamp/internal/controller/transport/http/httpx"
 )
 
 func (h *Handler) createProject(ctx context.Context, input *createProjectInput) (*projectOutput, error) {
+	if !h.creationEnabled {
+		return nil, httpx.Forbidden("project creation is disabled")
+	}
+
 	currentUserID, err := currentUserID(ctx)
 	if err != nil {
 		return nil, err

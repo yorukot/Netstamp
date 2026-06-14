@@ -58,6 +58,15 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.Database.ConnectionString() != testDatabaseConnectionString {
 		t.Fatalf("expected connection string, got %q", cfg.Database.ConnectionString())
 	}
+	if !cfg.Auth.RegistrationEnabled {
+		t.Fatal("expected registration to be enabled by default")
+	}
+	if !cfg.Policy.ProjectCreationEnabled {
+		t.Fatal("expected project creation to be enabled by default")
+	}
+	if !cfg.Policy.UserCredentialChangesEnabled {
+		t.Fatal("expected user credential changes to be enabled by default")
+	}
 }
 
 func TestLoadFromEnvironment(t *testing.T) {
@@ -79,6 +88,9 @@ func TestLoadFromEnvironment(t *testing.T) {
 	t.Setenv(keyDatabaseName, "netstamp_prod")
 	t.Setenv(keyDatabaseSSLMode, "require")
 	t.Setenv(keyDBMaxConns, "12")
+	t.Setenv(keyAuthRegistrationEnabled, "false")
+	t.Setenv(keyProjectCreationEnabled, "false")
+	t.Setenv(keyUserCredentialChangesEnabled, "false")
 	t.Setenv(keyOTLPTracesEndpoint, "http://victoria-traces:10428/insert/opentelemetry/v1/traces")
 
 	cfg, err := Load()
@@ -140,6 +152,15 @@ func TestLoadFromEnvironment(t *testing.T) {
 	}
 	if cfg.Database.MaxConns != 12 {
 		t.Fatalf("expected DB max conns override, got %d", cfg.Database.MaxConns)
+	}
+	if cfg.Auth.RegistrationEnabled {
+		t.Fatal("expected registration to be disabled from environment")
+	}
+	if cfg.Policy.ProjectCreationEnabled {
+		t.Fatal("expected project creation to be disabled from environment")
+	}
+	if cfg.Policy.UserCredentialChangesEnabled {
+		t.Fatal("expected user credential changes to be disabled from environment")
 	}
 	if cfg.Tracing.OTLPTracesEndpoint != "http://victoria-traces:10428/insert/opentelemetry/v1/traces" {
 		t.Fatalf("expected OTLP traces endpoint override, got %q", cfg.Tracing.OTLPTracesEndpoint)
@@ -370,9 +391,14 @@ func validConfig() Config {
 		Auth: AuthConfig{
 			JWTSecret:           "local-development-jwt-secret-change-before-production",
 			AccessTokenTTL:      12 * time.Hour,
+			RegistrationEnabled: true,
 			Argon2idMemoryKiB:   64 * 1024,
 			Argon2idIterations:  3,
 			Argon2idParallelism: 4,
+		},
+		Policy: PolicyConfig{
+			ProjectCreationEnabled:       true,
+			UserCredentialChangesEnabled: true,
 		},
 		Tracing: TracingConfig{},
 	}

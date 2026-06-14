@@ -6,6 +6,7 @@ import { queryClient } from "@/shared/api/queryClient";
 import { CurrentProjectProvider, useCurrentProject, useProjectSelection } from "@/shared/api/useCurrentProject";
 import { ConfirmProvider } from "@/shared/components/ConfirmProvider";
 import { ToastProvider } from "@/shared/components/ToastProvider";
+import { appFeatures } from "@/shared/config/features";
 import { TrackingConsentBanner } from "@/shared/tracking/TrackingConsentBanner";
 import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { lazy, Suspense, useEffect, type ReactNode } from "react";
@@ -50,6 +51,10 @@ function AuthRoute({ mode }: AuthRouteProps) {
 
 	if (session) {
 		return <RouterNavigate to={pathForRoute("dashboard")} replace />;
+	}
+
+	if (mode === "register" && !appFeatures.registration) {
+		return <RouterNavigate to={pathForRoute("login")} replace />;
 	}
 
 	return lazyRoute(<AuthPage mode={mode} navigate={navigate} />);
