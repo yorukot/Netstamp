@@ -225,6 +225,7 @@ func mapAssignment(row sqlc.ListActiveAssignmentsForProbeRow) domainassignment.A
 		Check: &domaincheck.Check{
 			ID:              row.CheckID.String(),
 			ProjectID:       row.ProjectID.String(),
+			Name:            row.CheckName,
 			Type:            domaincheck.Type(row.CheckType),
 			Target:          row.Target,
 			IntervalSeconds: row.IntervalSeconds,
@@ -244,7 +245,13 @@ func mapAssignment(row sqlc.ListActiveAssignmentsForProbeRow) domainassignment.A
 }
 
 func mapAssignmentForProbeChecks(row sqlc.ListActiveAssignmentsForProbeChecksRow) domainassignment.Assignment {
-	return mapAssignment(sqlc.ListActiveAssignmentsForProbeRow(row))
+	assignment := mapAssignment(sqlc.ListActiveAssignmentsForProbeRow(row))
+	assignment.Probe = &domainprobe.Probe{
+		ID:        row.ProbeID.String(),
+		ProjectID: row.ProjectID.String(),
+		Name:      row.ProbeName,
+	}
+	return assignment
 }
 
 func mapOptionalPingConfig(packetCount, packetSizeBytes, timeoutMs *int32, ipFamily *sqlc.IpFamily) *domainping.Config {

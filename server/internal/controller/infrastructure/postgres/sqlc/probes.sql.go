@@ -347,6 +347,8 @@ SELECT probe_check_assignments.id AS assignment_id,
        probe_check_assignments.project_id,
        probe_check_assignments.probe_id,
        probe_check_assignments.check_id,
+       probes.name AS probe_name,
+       checks.name AS check_name,
        probes.internal_id AS probe_internal_id,
        checks.internal_id AS check_internal_id,
        probe_check_assignments.check_version,
@@ -392,6 +394,8 @@ type ListActiveAssignmentsForProbeRow struct {
 	ProjectID                 uuid.UUID           `json:"project_id"`
 	ProbeID                   uuid.UUID           `json:"probe_id"`
 	CheckID                   uuid.UUID           `json:"check_id"`
+	ProbeName                 string              `json:"probe_name"`
+	CheckName                 string              `json:"check_name"`
 	ProbeInternalID           int64               `json:"probe_internal_id"`
 	CheckInternalID           int64               `json:"check_internal_id"`
 	CheckVersion              string              `json:"check_version"`
@@ -429,6 +433,8 @@ func (q *Queries) ListActiveAssignmentsForProbe(ctx context.Context, probeID uui
 			&i.ProjectID,
 			&i.ProbeID,
 			&i.CheckID,
+			&i.ProbeName,
+			&i.CheckName,
 			&i.ProbeInternalID,
 			&i.CheckInternalID,
 			&i.CheckVersion,
@@ -466,6 +472,8 @@ SELECT probe_check_assignments.id AS assignment_id,
        probe_check_assignments.project_id,
        probe_check_assignments.probe_id,
        probe_check_assignments.check_id,
+       probes.name AS probe_name,
+       checks.name AS check_name,
        probes.internal_id AS probe_internal_id,
        checks.internal_id AS check_internal_id,
        probe_check_assignments.check_version,
@@ -517,6 +525,8 @@ type ListActiveAssignmentsForProbeChecksRow struct {
 	ProjectID                 uuid.UUID           `json:"project_id"`
 	ProbeID                   uuid.UUID           `json:"probe_id"`
 	CheckID                   uuid.UUID           `json:"check_id"`
+	ProbeName                 string              `json:"probe_name"`
+	CheckName                 string              `json:"check_name"`
 	ProbeInternalID           int64               `json:"probe_internal_id"`
 	CheckInternalID           int64               `json:"check_internal_id"`
 	CheckVersion              string              `json:"check_version"`
@@ -554,6 +564,8 @@ func (q *Queries) ListActiveAssignmentsForProbeChecks(ctx context.Context, arg L
 			&i.ProjectID,
 			&i.ProbeID,
 			&i.CheckID,
+			&i.ProbeName,
+			&i.CheckName,
 			&i.ProbeInternalID,
 			&i.CheckInternalID,
 			&i.CheckVersion,
