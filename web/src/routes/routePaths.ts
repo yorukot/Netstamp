@@ -93,6 +93,14 @@ export function pathForCheckDetail(projectRef: string | null | undefined, checkI
 	return `${projectBasePath(projectRef)}/checks/${encodePathParam(checkId)}`;
 }
 
+export function pathForAlertIncidentDetail(projectRef: string | null | undefined, incidentId: string) {
+	if (!projectRef) {
+		return `/alerts/incident/${encodePathParam(incidentId)}`;
+	}
+
+	return `${projectBasePath(projectRef)}/alerts/incident/${encodePathParam(incidentId)}`;
+}
+
 export function pathForProjectSwitch(pathname: string, projectRef: string) {
 	const match = /^\/projects\/[^/]+(?:\/([^/]+))?/.exec(pathname);
 

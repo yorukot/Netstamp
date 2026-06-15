@@ -17,6 +17,7 @@ export const apiQueryKeys = {
 		alertsRoot: (ref: string) => [...apiQueryKeys.projects.detail(ref), "alerts"] as const,
 		alertRules: (ref: string, filters: object = {}) => [...apiQueryKeys.projects.alertsRoot(ref), "rules", filters] as const,
 		alertIncidents: (ref: string, filters: object = {}) => [...apiQueryKeys.projects.alertsRoot(ref), "incidents", filters] as const,
+		alertIncidentDetail: (ref: string, incidentId: string) => [...apiQueryKeys.projects.alertsRoot(ref), "incident", incidentId] as const,
 		notifications: (ref: string) => [...apiQueryKeys.projects.alertsRoot(ref), "notifications"] as const,
 		checks: (ref: string) => [...apiQueryKeys.projects.detail(ref), "checks"] as const,
 		checkDetail: (ref: string, checkId: string) => [...apiQueryKeys.projects.checks(ref), checkId] as const,

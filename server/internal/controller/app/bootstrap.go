@@ -143,7 +143,7 @@ func New(ctx context.Context) (*Application, error) {
 	tracerouteRepo := pgtraceroute.NewTracerouteRepository(dbPool)
 	resultRepo := pgresult.NewResultRepository(dbPool)
 	probeRuntimeSvc := appproberuntime.NewServiceWithTCP(probeRepo, pingRepo, tcpRepo, tracerouteRepo, security.NewProbeSecretVerifier(), probeRuntimeEvents)
-	alertEvalSvc := appalerteval.NewService(alertRepo, cfg.Alerting.EvaluationEnabled)
+	alertEvalSvc := appalerteval.NewService(alertRepo, cfg.Alerting.EvaluationEnabled, cfg.HTTP.BackendBaseURL)
 	probeRuntimeSvc.SetAlertEvaluator(alertEvalSvc)
 	notificationWorker := appnotification.NewWorker(alertRepo, notificationSender, appnotification.WorkerConfig{
 		Enabled:      cfg.Alerting.NotificationWorkerEnabled,

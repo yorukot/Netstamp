@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
+	"strings"
 	"time"
 
 	appproberuntime "github.com/yorukot/netstamp/internal/controller/application/proberuntime"
@@ -19,13 +21,19 @@ const (
 )
 
 type Service struct {
-	repo    Repository
-	enabled bool
-	now     func() time.Time
+	repo           Repository
+	enabled        bool
+	backendBaseURL string
+	now            func() time.Time
 }
 
-func NewService(repo Repository, enabled bool) *Service {
-	return &Service{repo: repo, enabled: enabled, now: func() time.Time { return time.Now().UTC() }}
+func NewService(repo Repository, enabled bool, backendBaseURL string) *Service {
+	return &Service{
+		repo:           repo,
+		enabled:        enabled,
+		backendBaseURL: strings.TrimRight(strings.TrimSpace(backendBaseURL), "/"),
+		now:            func() time.Time { return time.Now().UTC() },
+	}
 }
 
 func (s *Service) EvaluateChangedAssignments(ctx context.Context, inputs []appproberuntime.ChangedAssignmentInput) error {
@@ -148,7 +156,7 @@ func (s *Service) enqueueNotifications(ctx context.Context, rule domainalert.Rul
 		if !supportedNotification(notification.Type) {
 			continue
 		}
-		payload, err := notificationPayload(rule, incident, evaluation, eventType, at)
+		payload, err := notificationPayload(rule, incident, notification, evaluation, eventType, at, s.backendBaseURL)
 		if err != nil {
 			return err
 		}
@@ -192,7 +200,7 @@ func evaluationSummaryJSON(rule domainalert.Rule, evaluation alertcondition.Eval
 	return data, err
 }
 
-func notificationPayload(rule domainalert.Rule, incident domainalert.Incident, evaluation alertcondition.Evaluation, eventType string, at time.Time) (json.RawMessage, error) {
+func notificationPayload(rule domainalert.Rule, incident domainalert.Incident, notification domainalert.Notification, evaluation alertcondition.Evaluation, eventType string, at time.Time, backendBaseURL string) (json.RawMessage, error) {
 	incidentPayload := map[string]any{
 		"id":       incident.ID,
 		"status":   incident.Status,
@@ -227,6 +235,11 @@ func notificationPayload(rule domainalert.Rule, incident domainalert.Incident, e
 			"probe":     probePayload,
 			"check":     checkPayload,
 		},
+		"notification": map[string]any{
+			"id":   notification.ID,
+			"name": notification.Name,
+			"type": notification.Type,
+		},
 		"summary": map[string]any{
 			"state":         evaluation.State,
 			"metric":        rule.Condition.Metric,
@@ -241,8 +254,19 @@ func notificationPayload(rule domainalert.Rule, incident domainalert.Incident, e
 	if incident.ResolvedAt != nil {
 		incidentPayload["resolvedAt"] = *incident.ResolvedAt
 	}
+	if incidentURL := alertIncidentURL(backendBaseURL, incident.ProjectID, incident.ID); incidentURL != "" {
+		payload["links"] = map[string]any{"incident": incidentURL}
+	}
 	data, err := json.Marshal(payload)
 	return data, err
+}
+
+func alertIncidentURL(backendBaseURL, projectID, incidentID string) string {
+	backendBaseURL = strings.TrimRight(strings.TrimSpace(backendBaseURL), "/")
+	if backendBaseURL == "" || projectID == "" || incidentID == "" {
+		return ""
+	}
+	return backendBaseURL + "/projects/" + url.PathEscape(projectID) + "/alerts/incident/" + url.PathEscape(incidentID)
 }
 
 func incidentProbeSummary(input appproberuntime.ChangedAssignmentInput) *domainalert.IncidentProbeSummary {

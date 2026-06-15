@@ -278,6 +278,7 @@ const router = createBrowserRouter([
 							{ path: `${projectRoutePath("checks")}/:checkId`, element: lazyRoute(<ChecksPage />) },
 							{ path: projectRoutePath("insight"), element: lazyRoute(<InsightPage />) },
 							{ path: projectRoutePath("alerts"), element: lazyRoute(<AlertsPage />) },
+							{ path: `${projectRoutePath("alerts")}/incident/:incidentId`, element: lazyRoute(<AlertsPage />) },
 							{ path: projectRoutePath("members"), element: lazyRoute(<MembersPage />) },
 							{ path: projectRoutePath("project"), element: lazyRoute(<ProjectPage />) }
 						]

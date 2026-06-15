@@ -1,3 +1,4 @@
+import { pathForAlertIncidentDetail, pathForRoute } from "@/routes/routePaths";
 import {
 	useCreateProjectAlertRuleMutation,
 	useCreateProjectNotificationMutation,
@@ -22,6 +23,7 @@ import { Badge, Button, DataTable, Panel, SelectField, TextAreaField, TextField,
 import { DiscordLogo, TelegramLogo, WebhooksLogo } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState, type FormEvent, type MouseEvent } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import styles from "./AlertsPage.module.css";
 
 type AlertTab = "incidents" | "rules" | "notifications";
@@ -529,6 +531,8 @@ function tableState(label: string, detail: string) {
 
 export function AlertsPage() {
 	const confirm = useConfirm();
+	const navigate = useNavigate();
+	const { incidentId = "" } = useParams();
 	const { projectRef } = useCurrentProject();
 	const createRuleMutation = useCreateProjectAlertRuleMutation(projectRef);
 	const updateRuleMutation = useUpdateProjectAlertRuleMutation(projectRef);
@@ -544,7 +548,6 @@ export function AlertsPage() {
 	const [ruleCheckType, setRuleCheckType] = useState<RuleCheckTypeFilter>("all");
 	const [notificationStatus, setNotificationStatus] = useState<NotificationStatusFilter>("all");
 	const [notificationType, setNotificationType] = useState<NotificationTypeFilter>("all");
-	const [selectedIncident, setSelectedIncident] = useState<ApiAlertIncident | null>(null);
 	const [ruleEditor, setRuleEditor] = useState<RuleEditorState | null>(null);
 	const [notificationEditor, setNotificationEditor] = useState<NotificationEditorState | null>(null);
 	const incidentFilters = useMemo(() => ({ limit: 100, ...(incidentStatus === "all" ? {} : { status: incidentStatus }) }), [incidentStatus]);
@@ -562,6 +565,11 @@ export function AlertsPage() {
 		enabled: Boolean(projectRef),
 		refetchInterval: 30 * 1000
 	});
+	const incidentDetailQuery = useQuery({
+		...projectQueries.alertIncidentDetail(projectRef || "", incidentId),
+		enabled: Boolean(projectRef && incidentId),
+		refetchInterval: 30 * 1000
+	});
 	const notificationsQuery = useQuery({
 		...projectQueries.notifications(projectRef || ""),
 		enabled: Boolean(projectRef)
@@ -570,6 +578,8 @@ export function AlertsPage() {
 	const incidents = incidentsQuery.data?.incidents ?? emptyIncidents;
 	const openIncidents = openIncidentsQuery.data?.incidents ?? emptyIncidents;
 	const notifications = notificationsQuery.data?.notifications ?? emptyNotifications;
+	const selectedIncident = incidentDetailQuery.data?.incident ?? incidents.find(incident => incident.id === incidentId) ?? null;
+	const visibleTab = incidentId ? "incidents" : activeTab;
 	const filteredRules = useMemo(() => {
 		const search = ruleSearch.trim().toLowerCase();
 
@@ -776,6 +786,14 @@ export function AlertsPage() {
 		}
 	];
 
+	function selectIncident(incident: ApiAlertIncident) {
+		navigate(pathForAlertIncidentDetail(projectRef, incident.id));
+	}
+
+	function closeIncidentDetail() {
+		navigate(pathForRoute("alerts", { projectRef }));
+	}
+
 	async function deleteRule(rule: ApiAlertRule) {
 		const accepted = await confirm({
 			title: "Delete alert rule?",
@@ -854,8 +872,8 @@ export function AlertsPage() {
 				{alertTabs.map(tab => (
 					<button
 						type="button"
-						className={classNames(styles.tab, activeTab === tab.value && styles.tabActive)}
-						aria-pressed={activeTab === tab.value}
+						className={classNames(styles.tab, visibleTab === tab.value && styles.tabActive)}
+						aria-pressed={visibleTab === tab.value}
 						key={tab.value}
 						onClick={() => setActiveTab(tab.value)}
 					>
@@ -863,7 +881,7 @@ export function AlertsPage() {
 					</button>
 				))}
 			</nav>
-			{activeTab === "incidents" ? (
+			{visibleTab === "incidents" ? (
 				<Panel className={styles.tablePanel} padded={false}>
 					<div className={styles.tableToolbar}>
 						<div className={styles.singlePanelAction}>
@@ -878,8 +896,8 @@ export function AlertsPage() {
 						minWidth="58rem"
 						getRowKey={incident => incident.id}
 						getRowAriaLabel={incident => `Open incident ${shortID(incident.id)}`}
-						onRowClick={setSelectedIncident}
-						selectedKey={selectedIncident?.id}
+						onRowClick={selectIncident}
+						selectedKey={incidentId || undefined}
 						emptyLabel={
 							incidentsQuery.isLoading
 								? tableState("Loading incidents", "Fetching current alert incidents for this project.")
@@ -890,7 +908,7 @@ export function AlertsPage() {
 					/>
 				</Panel>
 			) : null}
-			{activeTab === "rules" ? (
+			{visibleTab === "rules" ? (
 				<Panel className={styles.tablePanel} padded={false}>
 					<div className={styles.tableToolbar}>
 						<div className={styles.panelActions}>
@@ -924,7 +942,7 @@ export function AlertsPage() {
 					/>
 				</Panel>
 			) : null}
-			{activeTab === "notifications" ? (
+			{visibleTab === "notifications" ? (
 				<Panel className={styles.tablePanel} padded={false}>
 					<div className={styles.tableToolbar}>
 						<div className={styles.notificationPanelActions}>
@@ -962,7 +980,14 @@ export function AlertsPage() {
 					/>
 				</Panel>
 			) : null}
-			{selectedIncident ? <IncidentDetailDrawer incident={selectedIncident} onClose={() => setSelectedIncident(null)} /> : null}
+			{incidentId ? (
+				<IncidentDetailDrawer
+					incident={selectedIncident}
+					isLoading={!selectedIncident && incidentDetailQuery.isPending}
+					error={selectedIncident ? null : incidentDetailQuery.error}
+					onClose={closeIncidentDetail}
+				/>
+			) : null}
 			{ruleEditor ? (
 				<RuleEditorDrawer
 					editor={ruleEditor}
@@ -1035,41 +1060,45 @@ function EmptyAction({ label, action, onClick }: { label: string; action: string
 	);
 }
 
-function IncidentDetailDrawer({ incident, onClose }: { incident: ApiAlertIncident; onClose: () => void }) {
+function IncidentDetailDrawer({ incident, isLoading, error, onClose }: { incident: ApiAlertIncident | null; isLoading: boolean; error: unknown; onClose: () => void }) {
 	return (
 		<EditorDrawer open title="Incident detail" ariaLabel="Incident detail" backLabel="back to incidents" onClose={onClose}>
-			<div className={styles.detailStack}>
-				<div className={styles.detailHeader}>
-					<Badge tone={incidentTone(incident.status)}>{incident.status}</Badge>
-					<Badge tone={severityTone(incident.severity)}>{incident.severity}</Badge>
+			{incident ? (
+				<div className={styles.detailStack}>
+					<div className={styles.detailHeader}>
+						<Badge tone={incidentTone(incident.status)}>{incident.status}</Badge>
+						<Badge tone={severityTone(incident.severity)}>{incident.severity}</Badge>
+					</div>
+					<Panel tone="matte" title="What happened">
+						<p className={styles.detailLead}>{formatIncidentReason(incident)}</p>
+						<div className={styles.keyValueGrid}>
+							<KeyValue label="Probe" value={formatIncidentProbe(incident)} />
+							<KeyValue label="Check" value={formatIncidentCheck(incident)} />
+							<KeyValue label="Target" value={incidentCheckTarget(incident)} />
+							<KeyValue label="State" value={incident.lastEvaluationState} />
+							<KeyValue label="Value" value={typeof incident.lastValue === "number" ? formatThreshold(incident.lastSummary.metric, Number(incident.lastValue.toFixed(2))) : "-"} />
+							<KeyValue label="Rule" value={shortID(incident.ruleId)} />
+						</div>
+					</Panel>
+					<Panel tone="matte" title="Timeline">
+						<div className={styles.keyValueGrid}>
+							<KeyValue label="Opened" value={formatDateTime(incident.openedAt)} />
+							<KeyValue label="Resolved" value={formatDateTime(incident.resolvedAt)} />
+							<KeyValue label="Last checked" value={formatDateTime(incident.lastEvaluatedAt)} />
+							<KeyValue label="Last triggered" value={formatDateTime(incident.lastTriggeredAt)} />
+						</div>
+					</Panel>
+					<Panel tone="matte" title="Notifications">
+						<div className={styles.keyValueGrid}>
+							<KeyValue label="Last sent" value={formatDateTime(incident.lastNotificationSentAt)} />
+							<KeyValue label="Next eligible" value={formatDateTime(incident.nextNotificationEligibleAt)} />
+							<KeyValue label="Suppressed" value={String(incident.suppressedNotificationCount)} />
+						</div>
+					</Panel>
 				</div>
-				<Panel tone="matte" title="What happened">
-					<p className={styles.detailLead}>{formatIncidentReason(incident)}</p>
-					<div className={styles.keyValueGrid}>
-						<KeyValue label="Probe" value={formatIncidentProbe(incident)} />
-						<KeyValue label="Check" value={formatIncidentCheck(incident)} />
-						<KeyValue label="Target" value={incidentCheckTarget(incident)} />
-						<KeyValue label="State" value={incident.lastEvaluationState} />
-						<KeyValue label="Value" value={typeof incident.lastValue === "number" ? formatThreshold(incident.lastSummary.metric, Number(incident.lastValue.toFixed(2))) : "-"} />
-						<KeyValue label="Rule" value={shortID(incident.ruleId)} />
-					</div>
-				</Panel>
-				<Panel tone="matte" title="Timeline">
-					<div className={styles.keyValueGrid}>
-						<KeyValue label="Opened" value={formatDateTime(incident.openedAt)} />
-						<KeyValue label="Resolved" value={formatDateTime(incident.resolvedAt)} />
-						<KeyValue label="Last checked" value={formatDateTime(incident.lastEvaluatedAt)} />
-						<KeyValue label="Last triggered" value={formatDateTime(incident.lastTriggeredAt)} />
-					</div>
-				</Panel>
-				<Panel tone="matte" title="Notifications">
-					<div className={styles.keyValueGrid}>
-						<KeyValue label="Last sent" value={formatDateTime(incident.lastNotificationSentAt)} />
-						<KeyValue label="Next eligible" value={formatDateTime(incident.nextNotificationEligibleAt)} />
-						<KeyValue label="Suppressed" value={String(incident.suppressedNotificationCount)} />
-					</div>
-				</Panel>
-			</div>
+			) : (
+				<LoadingState label={isLoading ? "Loading incident" : "Incident unavailable"} detail={error ? requestErrorMessage(error) : "Fetching incident detail for this project."} size="compact" />
+			)}
 		</EditorDrawer>
 	);
 }

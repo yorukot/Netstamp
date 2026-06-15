@@ -88,6 +88,12 @@ export const projectQueries = {
 			queryFn: ({ signal }) => readApiData(apiClient.GET("/projects/{ref}/alerts/incidents", { params: { path: { ref }, query: filters }, signal })),
 			staleTime: 15 * 1000
 		}),
+	alertIncidentDetail: (ref: string, incidentId: string) =>
+		queryOptions({
+			queryKey: apiQueryKeys.projects.alertIncidentDetail(ref, incidentId),
+			queryFn: ({ signal }) => readApiData(apiClient.GET("/projects/{ref}/alerts/incidents/{incident_id}", { params: { path: { ref, incident_id: incidentId } }, signal })),
+			staleTime: 15 * 1000
+		}),
 	notifications: (ref: string) =>
 		queryOptions({
 			queryKey: apiQueryKeys.projects.notifications(ref),
