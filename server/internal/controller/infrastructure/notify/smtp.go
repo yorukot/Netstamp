@@ -72,8 +72,8 @@ func (s *WebhookSender) SendEmail(ctx context.Context, notification domainalert.
 }
 
 func (s *SMTPSender) Send(ctx context.Context, config domainalert.EmailConfig, payload []byte) appnotification.DeliveryResult {
-	message, err := renderEmailMessage(payload, s.cfg.From, config.To, s.now())
-	if err != nil {
+	message, renderErr := renderEmailMessage(payload, s.cfg.From, config.To, s.now())
+	if renderErr != nil {
 		return permanent("request", "invalid_request", "invalid email request")
 	}
 
@@ -89,12 +89,12 @@ func (s *SMTPSender) Send(ctx context.Context, config domainalert.EmailConfig, p
 	if result := s.authenticate(client); deliveryFailed(result) {
 		return result
 	}
-	if err := client.Mail(s.cfg.From); err != nil {
-		return smtpDeliveryResult(err, "mail_from_failed", "SMTP sender was rejected")
+	if mailErr := client.Mail(s.cfg.From); mailErr != nil {
+		return smtpDeliveryResult(mailErr, "mail_from_failed", "SMTP sender was rejected")
 	}
 	for _, recipient := range config.To {
-		if err := client.Rcpt(recipient); err != nil {
-			return smtpDeliveryResult(err, "recipient_rejected", "SMTP recipient was rejected")
+		if recipientErr := client.Rcpt(recipient); recipientErr != nil {
+			return smtpDeliveryResult(recipientErr, "recipient_rejected", "SMTP recipient was rejected")
 		}
 	}
 	writer, err := client.Data()
@@ -121,16 +121,17 @@ func (s *SMTPSender) newClient(ctx context.Context) (*smtp.Client, error) {
 	var conn net.Conn
 	var err error
 	if s.cfg.TLSMode == "implicit" {
-		conn, err = tls.DialWithDialer(&dialer, "tcp", address, s.tlsConfig())
+		tlsDialer := tls.Dialer{NetDialer: &dialer, Config: s.tlsConfig()}
+		conn, err = tlsDialer.DialContext(ctx, "tcp", address)
 	} else {
 		conn, err = dialer.DialContext(ctx, "tcp", address)
 	}
 	if err != nil {
 		return nil, err
 	}
-	if err := conn.SetDeadline(time.Now().Add(s.cfg.Timeout)); err != nil {
+	if deadlineErr := conn.SetDeadline(time.Now().Add(s.cfg.Timeout)); deadlineErr != nil {
 		_ = conn.Close()
-		return nil, err
+		return nil, deadlineErr
 	}
 
 	client, err := smtp.NewClient(conn, s.cfg.Host)
