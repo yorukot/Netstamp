@@ -165,13 +165,13 @@ func TestNewRouterOpenAPIUsesRelativeServerURLWhenBackendBaseURLUnset(t *testing
 func TestNewRouterOpenAPIUsesBackendBaseURLServerURL(t *testing.T) {
 	spec := getOpenAPI(t, Dependencies{
 		APIVersion:     "v1",
-		BackendBaseURL: "https://api.netstamp.dev/",
+		BackendBaseURL: "https://app.netstamp.dev/",
 	})
 
 	if len(spec.Servers) != 1 {
 		t.Fatalf("expected one server, got %d", len(spec.Servers))
 	}
-	if spec.Servers[0].URL != "https://api.netstamp.dev/api/v1" {
+	if spec.Servers[0].URL != "https://app.netstamp.dev/api/v1" {
 		t.Fatalf("expected absolute server URL, got %q", spec.Servers[0].URL)
 	}
 }

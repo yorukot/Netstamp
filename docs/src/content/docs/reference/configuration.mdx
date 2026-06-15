@@ -76,13 +76,13 @@ When `VITE_NETSTAMP_DEMO_MODE=true` and both demo credential values are set, the
 
 ## Observability Host
 
-The observability compose stack serves Grafana behind the dashboard host at `/grafana/`.
+The observability compose stack serves Grafana on its own host.
 
-| Variable           | Purpose                                     | Default                                   |
-| ------------------ | ------------------------------------------- | ----------------------------------------- |
-| `BACKEND_BASE_URL` | Public controller origin for generated URLs | `https://dashboard.netstamp.dev`          |
-| `GRAFANA_DOMAIN`   | Grafana public domain                       | `dashboard.netstamp.dev`                  |
-| `GRAFANA_ROOT_URL` | Grafana public root URL                     | `https://dashboard.netstamp.dev/grafana/` |
+| Variable           | Purpose                                     | Default                         |
+| ------------------ | ------------------------------------------- | ------------------------------- |
+| `BACKEND_BASE_URL` | Public controller origin for generated URLs | `https://app.netstamp.dev`      |
+| `GRAFANA_DOMAIN`   | Grafana public domain                       | `grafana.netstamp.dev`          |
+| `GRAFANA_ROOT_URL` | Grafana public root URL                     | `https://grafana.netstamp.dev/` |
 
 ## Backend And API Assets
 

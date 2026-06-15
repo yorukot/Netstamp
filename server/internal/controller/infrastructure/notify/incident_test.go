@@ -24,7 +24,7 @@ const (
 		}
 	},
 	"links": {
-		"incident": "https://netstamp.dev/projects/demo/alerts/incident/22222222-2222-4222-8222-222222222222"
+		"incident": "https://app.netstamp.dev/projects/demo/alerts/incident/22222222-2222-4222-8222-222222222222"
 	},
 	"summary": {
 		"metric": "ping.loss_percent",
@@ -32,7 +32,7 @@ const (
 		"threshold": 10
 	}
 }`
-	renderedIncidentURL = "https://netstamp.dev/projects/demo/alerts/incident/22222222-2222-4222-8222-222222222222"
+	renderedIncidentURL = "https://app.netstamp.dev/projects/demo/alerts/incident/22222222-2222-4222-8222-222222222222"
 )
 
 func TestParseIncidentNotificationPayload(t *testing.T) {

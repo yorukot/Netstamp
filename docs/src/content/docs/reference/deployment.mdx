@@ -29,9 +29,9 @@ pnpm generate:openapi
 
 ## Route Ownership
 
-The public host owns `/`, `/docs/*`, `/openapi/`, and `/storybook/` through GitHub Pages. The dashboard host owns product routes such as `/login`, `/register`, and authenticated dashboard paths, while `/api/*` on that host is proxied to the Go controller. Observability deployments also serve Grafana from `/grafana/` on the dashboard host.
+The public host owns `/`, `/docs/*`, `/openapi/`, and `/storybook/` through GitHub Pages. The app host owns product routes such as `/login`, `/register`, and authenticated dashboard paths, while `/api/*` on that host is proxied to the Go controller. Observability deployments can map Grafana directly to `grafana.netstamp.dev`.
 
-:::note The public docs site and dashboard runtime are separate deploy targets. GitHub Pages serves the Astro static build for `netstamp.dev`; the bundled nginx image serves only `dashboard.netstamp.dev`, proxies `/api/*`, and hands `/grafana/*` to Grafana when the observability stack is running. :::
+:::note The public docs site, app runtime, and Grafana runtime are separate deploy targets. GitHub Pages serves the Astro static build for `netstamp.dev`; the bundled nginx image only serves `app.netstamp.dev` for the React app and API. :::
 
 ## Self-Host Runtime
 

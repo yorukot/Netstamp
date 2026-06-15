@@ -86,7 +86,7 @@ func TestLoadFromEnvironment(t *testing.T) {
 	t.Setenv(keyAppVersion, "0.2.0")
 	t.Setenv(keyAPIVersion, "v2")
 	t.Setenv(keyLogPseudonymKey, "production-log-pseudonym-key")
-	t.Setenv(keyBackendBaseURL, "https://api.netstamp.dev")
+	t.Setenv(keyBackendBaseURL, "https://app.netstamp.dev")
 	t.Setenv(keyHTTPAddr, ":8181")
 	t.Setenv(keyWebDir, "/app/web")
 	t.Setenv(keyHTTPTrustedProxies, "10.0.0.0/8,127.0.0.1")
@@ -131,7 +131,7 @@ func TestLoadFromEnvironment(t *testing.T) {
 	if cfg.LogPseudonymKey != "production-log-pseudonym-key" {
 		t.Fatalf("expected log pseudonym key override, got %q", cfg.LogPseudonymKey)
 	}
-	if cfg.HTTP.BackendBaseURL != "https://api.netstamp.dev" {
+	if cfg.HTTP.BackendBaseURL != "https://app.netstamp.dev" {
 		t.Fatalf("expected backend base URL override, got %q", cfg.HTTP.BackendBaseURL)
 	}
 	if cfg.HTTP.Addr != ":8181" {
@@ -250,7 +250,7 @@ func TestLoadFromDotEnv(t *testing.T) {
 func TestLoadReturnsValidationErrors(t *testing.T) {
 	clearConfigEnv(t)
 	t.Setenv(keyRequestTimeout, "not-a-duration")
-	t.Setenv(keyBackendBaseURL, "https://api.netstamp.dev/api")
+	t.Setenv(keyBackendBaseURL, "https://app.netstamp.dev/api")
 	t.Setenv(keyDatabaseHost, " ")
 	t.Setenv(keyDBMaxConns, "-1")
 
@@ -280,7 +280,7 @@ func TestValidateReturnsErrorsForInvalidValues(t *testing.T) {
 	cfg.LogLevel = "verbose"
 	cfg.LogPseudonymKey = ""
 	cfg.ShutdownTimeout = 0
-	cfg.HTTP.BackendBaseURL = "https://api.netstamp.dev/api"
+	cfg.HTTP.BackendBaseURL = "https://app.netstamp.dev/api"
 	cfg.HTTP.Addr = "localhost"
 	cfg.HTTP.RequestTimeout = -time.Second
 	cfg.HTTP.ReadHeaderTimeout = 0
@@ -356,14 +356,14 @@ func TestValidateOptionalHTTPOrigin(t *testing.T) {
 	}{
 		{name: "empty", value: ""},
 		{name: "http origin", value: "http://localhost:8080"},
-		{name: "https origin", value: "https://api.netstamp.dev"},
-		{name: "trailing slash", value: "https://api.netstamp.dev/"},
-		{name: "missing scheme", value: "api.netstamp.dev", wantError: "BACKEND_BASE_URL must be a valid HTTP origin"},
-		{name: "unsupported scheme", value: "ftp://api.netstamp.dev", wantError: "BACKEND_BASE_URL must use http or https"},
-		{name: "path", value: "https://api.netstamp.dev/api", wantError: "BACKEND_BASE_URL must be an origin without path, query, fragment, or credentials"},
-		{name: "query", value: "https://api.netstamp.dev?preview=true", wantError: "BACKEND_BASE_URL must be an origin without path, query, fragment, or credentials"},
-		{name: "fragment", value: "https://api.netstamp.dev#api", wantError: "BACKEND_BASE_URL must be an origin without path, query, fragment, or credentials"},
-		{name: "credentials", value: "https://user:pass@api.netstamp.dev", wantError: "BACKEND_BASE_URL must be an origin without path, query, fragment, or credentials"},
+		{name: "https origin", value: "https://app.netstamp.dev"},
+		{name: "trailing slash", value: "https://app.netstamp.dev/"},
+		{name: "missing scheme", value: "app.netstamp.dev", wantError: "BACKEND_BASE_URL must be a valid HTTP origin"},
+		{name: "unsupported scheme", value: "ftp://app.netstamp.dev", wantError: "BACKEND_BASE_URL must use http or https"},
+		{name: "path", value: "https://app.netstamp.dev/api", wantError: "BACKEND_BASE_URL must be an origin without path, query, fragment, or credentials"},
+		{name: "query", value: "https://app.netstamp.dev?preview=true", wantError: "BACKEND_BASE_URL must be an origin without path, query, fragment, or credentials"},
+		{name: "fragment", value: "https://app.netstamp.dev#api", wantError: "BACKEND_BASE_URL must be an origin without path, query, fragment, or credentials"},
+		{name: "credentials", value: "https://user:pass@app.netstamp.dev", wantError: "BACKEND_BASE_URL must be an origin without path, query, fragment, or credentials"},
 	}
 
 	for _, tt := range tests {

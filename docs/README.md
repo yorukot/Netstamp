@@ -14,7 +14,7 @@ Run from the repository root:
 
 ## Public App Links
 
-The public site links to the dashboard app through `PUBLIC_NETSTAMP_APP_BASE_URL`, which defaults to `https://dashboard.netstamp.dev`.
+The public site links to the app through `PUBLIC_NETSTAMP_APP_BASE_URL`, which defaults to `https://app.netstamp.dev`.
 
 ## Structure
 

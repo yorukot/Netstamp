@@ -51,7 +51,7 @@ func TestNotificationPayloadIncludesReadableTargetAndIncidentLink(t *testing.T) 
 		},
 	}
 
-	payload, err := notificationPayload(rule, incident, notification, evaluation, EventIncidentOpened, at, "https://netstamp.dev/")
+	payload, err := notificationPayload(rule, incident, notification, evaluation, EventIncidentOpened, at, "https://app.netstamp.dev/")
 	if err != nil {
 		t.Fatalf("notificationPayload returned error: %v", err)
 	}
@@ -93,7 +93,7 @@ func TestNotificationPayloadIncludesReadableTargetAndIncidentLink(t *testing.T) 
 	if body.Notification.Name != "Discord ops" || body.Notification.Type != string(domainalert.NotificationTypeDiscord) {
 		t.Fatalf("expected notification summary in payload, got %#v", body.Notification)
 	}
-	expectedURL := "https://netstamp.dev/projects/11111111-1111-4111-8111-111111111111/alerts/incident/22222222-2222-4222-8222-222222222222"
+	expectedURL := "https://app.netstamp.dev/projects/11111111-1111-4111-8111-111111111111/alerts/incident/22222222-2222-4222-8222-222222222222"
 	if body.Links.Incident != expectedURL {
 		t.Fatalf("expected incident link %q, got %q", expectedURL, body.Links.Incident)
 	}
