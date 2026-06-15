@@ -19,7 +19,7 @@ alias AlertConditionMetric =
 	| "tcp.max_connect_ms"
 	| "tcp.success_rate";
 alias AlertConditionOperator = "gt" | "gte" | "lt" | "lte" | "eq";
-alias NotificationType = "webhook" | "discord" | "telegram";
+alias NotificationType = "webhook" | "slack" | "discord" | "telegram" | "email";
 
 model AlertRuleIdPathParam {
 	@path
@@ -303,6 +303,12 @@ model WebhookNotificationConfig {
 	url: string;
 }
 
+@example(#{ url: "https://hooks.slack.com/services/T000/B000/token" })
+model SlackNotificationConfig {
+	@format("uri")
+	url: string;
+}
+
 @example(#{ url: "https://discord.com/api/webhooks/123/token" })
 model DiscordNotificationConfig {
 	@format("uri")
@@ -326,8 +332,24 @@ model TelegramNotificationResponseConfig {
 	botTokenConfigured: boolean;
 }
 
-alias NotificationConfig = WebhookNotificationConfig | DiscordNotificationConfig | TelegramNotificationResponseConfig;
-alias CreateNotificationConfig = WebhookNotificationConfig | DiscordNotificationConfig | TelegramNotificationConfig;
+@example(#{ to: #["ops@example.com", "sre@example.com"] })
+model EmailNotificationConfig {
+	@minItems(1)
+	@maxItems(50)
+	to: email[];
+}
+
+@example(#{ to: #["ops@example.com"], smtpConfigured: true })
+model EmailNotificationResponseConfig {
+	@minItems(1)
+	@maxItems(50)
+	to: email[];
+
+	smtpConfigured: boolean;
+}
+
+alias NotificationConfig = WebhookNotificationConfig | SlackNotificationConfig | DiscordNotificationConfig | TelegramNotificationResponseConfig | EmailNotificationResponseConfig;
+alias CreateNotificationConfig = WebhookNotificationConfig | SlackNotificationConfig | DiscordNotificationConfig | TelegramNotificationConfig | EmailNotificationConfig;
 
 @example(#{
 	id: "88888888-8888-8888-8888-888888888888",

@@ -1510,9 +1510,14 @@ export interface components {
 		CreateNotificationRequest: {
 			name: string;
 			/** @enum {string} */
-			type: "webhook" | "discord" | "telegram";
+			type: "webhook" | "slack" | "discord" | "telegram" | "email";
 			enabled: boolean;
-			config: components["schemas"]["WebhookNotificationConfig"] | components["schemas"]["DiscordNotificationConfig"] | components["schemas"]["TelegramNotificationConfig"];
+			config:
+				| components["schemas"]["WebhookNotificationConfig"]
+				| components["schemas"]["SlackNotificationConfig"]
+				| components["schemas"]["DiscordNotificationConfig"]
+				| components["schemas"]["TelegramNotificationConfig"]
+				| components["schemas"]["EmailNotificationConfig"];
 		};
 		/**
 		 * @example {
@@ -1581,6 +1586,29 @@ export interface components {
 		DiscordNotificationConfig: {
 			/** Format: uri */
 			url: string;
+		};
+		/**
+		 * @example {
+		 *       "to": [
+		 *         "ops@example.com",
+		 *         "sre@example.com"
+		 *       ]
+		 *     }
+		 */
+		EmailNotificationConfig: {
+			to: components["schemas"]["email"][];
+		};
+		/**
+		 * @example {
+		 *       "to": [
+		 *         "ops@example.com"
+		 *       ],
+		 *       "smtpConfigured": true
+		 *     }
+		 */
+		EmailNotificationResponseConfig: {
+			to: components["schemas"]["email"][];
+			smtpConfigured: boolean;
 		};
 		/**
 		 * @example {
@@ -1710,9 +1738,14 @@ export interface components {
 			id: components["schemas"]["uuid"];
 			name: string;
 			/** @enum {string} */
-			type: "webhook" | "discord" | "telegram";
+			type: "webhook" | "slack" | "discord" | "telegram" | "email";
 			enabled: boolean;
-			config: components["schemas"]["WebhookNotificationConfig"] | components["schemas"]["DiscordNotificationConfig"] | components["schemas"]["TelegramNotificationResponseConfig"];
+			config:
+				| components["schemas"]["WebhookNotificationConfig"]
+				| components["schemas"]["SlackNotificationConfig"]
+				| components["schemas"]["DiscordNotificationConfig"]
+				| components["schemas"]["TelegramNotificationResponseConfig"]
+				| components["schemas"]["EmailNotificationResponseConfig"];
 			/** Format: date-time */
 			createdAt: string;
 			/** Format: date-time */
@@ -2669,6 +2702,15 @@ export interface components {
 		};
 		/**
 		 * @example {
+		 *       "url": "https://hooks.slack.com/services/T000/B000/token"
+		 *     }
+		 */
+		SlackNotificationConfig: {
+			/** Format: uri */
+			url: string;
+		};
+		/**
+		 * @example {
 		 *       "results": [
 		 *         {
 		 *           "checkId": "44444444-4444-4444-4444-444444444444",
@@ -3342,9 +3384,14 @@ export interface components {
 		UpdateNotificationRequest: {
 			name: string;
 			/** @enum {string} */
-			type: "webhook" | "discord" | "telegram";
+			type: "webhook" | "slack" | "discord" | "telegram" | "email";
 			enabled: boolean;
-			config: components["schemas"]["WebhookNotificationConfig"] | components["schemas"]["DiscordNotificationConfig"] | components["schemas"]["TelegramNotificationConfig"];
+			config:
+				| components["schemas"]["WebhookNotificationConfig"]
+				| components["schemas"]["SlackNotificationConfig"]
+				| components["schemas"]["DiscordNotificationConfig"]
+				| components["schemas"]["TelegramNotificationConfig"]
+				| components["schemas"]["EmailNotificationConfig"];
 		};
 		/**
 		 * @description Patch payload. At least one field must be provided.

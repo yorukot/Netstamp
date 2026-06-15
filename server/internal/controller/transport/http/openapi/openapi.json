@@ -6990,7 +6990,7 @@
 					},
 					"type": {
 						"type": "string",
-						"enum": ["webhook", "discord", "telegram"]
+						"enum": ["webhook", "slack", "discord", "telegram", "email"]
 					},
 					"enabled": {
 						"type": "boolean"
@@ -7001,10 +7001,16 @@
 								"$ref": "#/components/schemas/WebhookNotificationConfig"
 							},
 							{
+								"$ref": "#/components/schemas/SlackNotificationConfig"
+							},
+							{
 								"$ref": "#/components/schemas/DiscordNotificationConfig"
 							},
 							{
 								"$ref": "#/components/schemas/TelegramNotificationConfig"
+							},
+							{
+								"$ref": "#/components/schemas/EmailNotificationConfig"
 							}
 						]
 					}
@@ -7145,6 +7151,48 @@
 				"examples": [
 					{
 						"url": "https://discord.com/api/webhooks/123/token"
+					}
+				]
+			},
+			"EmailNotificationConfig": {
+				"type": "object",
+				"required": ["to"],
+				"properties": {
+					"to": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/email"
+						},
+						"minItems": 1,
+						"maxItems": 50
+					}
+				},
+				"examples": [
+					{
+						"to": ["ops@example.com", "sre@example.com"]
+					}
+				]
+			},
+			"EmailNotificationResponseConfig": {
+				"type": "object",
+				"required": ["to", "smtpConfigured"],
+				"properties": {
+					"to": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/email"
+						},
+						"minItems": 1,
+						"maxItems": 50
+					},
+					"smtpConfigured": {
+						"type": "boolean"
+					}
+				},
+				"examples": [
+					{
+						"to": ["ops@example.com"],
+						"smtpConfigured": true
 					}
 				]
 			},
@@ -7349,7 +7397,7 @@
 					},
 					"type": {
 						"type": "string",
-						"enum": ["webhook", "discord", "telegram"]
+						"enum": ["webhook", "slack", "discord", "telegram", "email"]
 					},
 					"enabled": {
 						"type": "boolean"
@@ -7360,10 +7408,16 @@
 								"$ref": "#/components/schemas/WebhookNotificationConfig"
 							},
 							{
+								"$ref": "#/components/schemas/SlackNotificationConfig"
+							},
+							{
 								"$ref": "#/components/schemas/DiscordNotificationConfig"
 							},
 							{
 								"$ref": "#/components/schemas/TelegramNotificationResponseConfig"
+							},
+							{
+								"$ref": "#/components/schemas/EmailNotificationResponseConfig"
 							}
 						]
 					},
@@ -8993,6 +9047,21 @@
 					}
 				]
 			},
+			"SlackNotificationConfig": {
+				"type": "object",
+				"required": ["url"],
+				"properties": {
+					"url": {
+						"type": "string",
+						"format": "uri"
+					}
+				},
+				"examples": [
+					{
+						"url": "https://hooks.slack.com/services/T000/B000/token"
+					}
+				]
+			},
 			"SubmitResultsRequest": {
 				"type": "object",
 				"required": ["results"],
@@ -10192,7 +10261,7 @@
 					},
 					"type": {
 						"type": "string",
-						"enum": ["webhook", "discord", "telegram"]
+						"enum": ["webhook", "slack", "discord", "telegram", "email"]
 					},
 					"enabled": {
 						"type": "boolean"
@@ -10203,10 +10272,16 @@
 								"$ref": "#/components/schemas/WebhookNotificationConfig"
 							},
 							{
+								"$ref": "#/components/schemas/SlackNotificationConfig"
+							},
+							{
 								"$ref": "#/components/schemas/DiscordNotificationConfig"
 							},
 							{
 								"$ref": "#/components/schemas/TelegramNotificationConfig"
+							},
+							{
+								"$ref": "#/components/schemas/EmailNotificationConfig"
 							}
 						]
 					}
