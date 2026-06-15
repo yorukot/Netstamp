@@ -7,6 +7,7 @@ import { CurrentProjectProvider, useCurrentProject, useProjectSelection } from "
 import { ConfirmProvider } from "@/shared/components/ConfirmProvider";
 import { ToastProvider } from "@/shared/components/ToastProvider";
 import { appFeatures } from "@/shared/config/features";
+import { docsUrl } from "@/shared/config/publicLinks";
 import { TrackingConsentBanner } from "@/shared/tracking/TrackingConsentBanner";
 import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { lazy, Suspense, useEffect, type ReactNode } from "react";
@@ -16,6 +17,7 @@ import type { Navigate, ProjectAppRoute } from "./routeTypes";
 
 const AuthPage = lazy(() => import("@/features/auth/components/AuthPage").then(module => ({ default: module.AuthPage })));
 const AlertsPage = lazy(() => import("@/features/alerts/components/AlertsPage").then(module => ({ default: module.AlertsPage })));
+const HomePage = lazy(() => import("@/features/home/components/HomePage").then(module => ({ default: module.HomePage })));
 const OnboardingPage = lazy(() => import("@/features/auth/components/OnboardingPage").then(module => ({ default: module.OnboardingPage })));
 const ChecksPage = lazy(() => import("@/features/checks/components/ChecksPage").then(module => ({ default: module.ChecksPage })));
 const DashboardPage = lazy(() => import("@/features/dashboard/components/DashboardPage").then(module => ({ default: module.DashboardPage })));
@@ -219,11 +221,33 @@ function RouteFrame() {
 	);
 }
 
+function PublicDocsRedirect({ basePath }: { basePath: "/docs/" | "/storybook/" }) {
+	const location = useLocation();
+	const params = useParams();
+	const wildcard = params["*"] ?? "";
+	const targetPath = wildcard ? `${basePath}${wildcard}` : basePath;
+	const target = `${docsUrl(targetPath)}${location.search}${location.hash}`;
+
+	useEffect(() => {
+		window.location.replace(target);
+	}, [target]);
+
+	return (
+		<div style={{ minHeight: "100svh", display: "grid", placeItems: "center", padding: "1rem" }}>
+			<a href={target}>Open Netstamp docs</a>
+		</div>
+	);
+}
+
 const router = createBrowserRouter([
 	{
 		element: <RouteFrame />,
 		children: [
-			{ path: pathForRoute("landing"), element: <AuthRoute mode="login" /> },
+			{ path: pathForRoute("landing"), element: lazyRoute(<HomePage />) },
+			{ path: "docs", element: <PublicDocsRedirect basePath="/docs/" /> },
+			{ path: "docs/*", element: <PublicDocsRedirect basePath="/docs/" /> },
+			{ path: "storybook", element: <PublicDocsRedirect basePath="/storybook/" /> },
+			{ path: "storybook/*", element: <PublicDocsRedirect basePath="/storybook/" /> },
 			{ path: pathForRoute("login"), element: <AuthRoute mode="login" /> },
 			{ path: pathForRoute("register"), element: <AuthRoute mode="register" /> },
 			{ path: pathForRoute("onboarding"), element: <OnboardingRoute /> },

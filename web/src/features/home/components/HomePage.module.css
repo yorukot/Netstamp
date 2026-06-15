@@ -1,0 +1,986 @@
+.home {
+	--ns-bg: #f6f7f9;
+	--ns-bg-section: #eef1f5;
+	--ns-bg-subtle: #f2f4f7;
+	--ns-surface: #ffffff;
+	--ns-surface-raised: #f8fafc;
+	--ns-surface-deep: #e7ecf2;
+	--ns-glass-dark: rgba(255, 255, 255, 0.94);
+	--ns-glass-light: rgba(17, 24, 39, 0.035);
+	--ns-text: #111827;
+	--ns-text-muted: #374151;
+	--ns-text-subtle: #5f6b7a;
+	--ns-text-low: #7b8794;
+	--ns-text-on-accent: #ffffff;
+	--ns-accent: #d45b18;
+	--ns-accent-hover: #b94c13;
+	--ns-accent-active: #963d0f;
+	--ns-accent-muted: rgba(212, 91, 24, 0.09);
+	--ns-accent-subtle: rgba(212, 91, 24, 0.14);
+	--ns-accent-border: rgba(212, 91, 24, 0.38);
+	--ns-accent-glow: rgba(212, 91, 24, 0.16);
+	--ns-success: #168a45;
+	--ns-metal: #64748b;
+	--ns-border: #d8dee8;
+	--ns-border-strong: #aeb8c6;
+	--ns-border-faint: #e6eaf0;
+
+	min-height: 100svh;
+	overflow: clip;
+	color: var(--ns-text);
+	background:
+		radial-gradient(circle at 78% 4%, rgba(212, 91, 24, 0.14), transparent 30rem), radial-gradient(circle at 8% 30%, rgba(100, 116, 139, 0.12), transparent 24rem),
+		linear-gradient(rgba(212, 91, 24, 0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(212, 91, 24, 0.08) 1px, transparent 1px), var(--ns-bg);
+	background-size:
+		100% 100%,
+		100% 100%,
+		6rem 6rem,
+		6rem 6rem,
+		100% 100%;
+}
+
+.nav {
+	position: sticky;
+	top: 0;
+	z-index: 40;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	min-height: 4.5rem;
+	padding: 0 1.5rem;
+	border-bottom: 1px solid var(--ns-border);
+	background: rgba(255, 255, 255, 0.92);
+	backdrop-filter: blur(0.9rem);
+}
+
+.brand {
+	display: inline-flex;
+	align-items: center;
+	text-decoration: none;
+}
+
+.brand img {
+	display: block;
+	width: clamp(9rem, 15vw, 11.25rem);
+	height: auto;
+}
+
+.navLinks,
+.navActions {
+	display: flex;
+	align-items: center;
+	gap: 0.35rem;
+}
+
+.navLinks a {
+	display: inline-flex;
+	align-items: center;
+	min-height: 2.5rem;
+	padding: 0.6rem 0.75rem;
+	border: 1px solid transparent;
+	color: var(--ns-text-subtle);
+	font-size: 0.875rem;
+	font-weight: 650;
+	text-decoration: none;
+	transition:
+		background var(--ns-transition),
+		border-color var(--ns-transition),
+		color var(--ns-transition);
+}
+
+.navLinks a:hover,
+.navLinks a:focus-visible {
+	border-color: var(--ns-border);
+	color: var(--ns-text);
+	background: var(--ns-bg-subtle);
+}
+
+.brand:focus-visible,
+.navLinks a:focus-visible {
+	outline: 2px solid var(--ns-accent-active);
+	outline-offset: 0.2rem;
+}
+
+.hero,
+.proofBand,
+.buyerSection,
+.productSection,
+.signalSection,
+.mapSection,
+.finalCta {
+	position: relative;
+	z-index: 1;
+}
+
+.hero {
+	display: grid;
+	grid-template-columns: minmax(0, 0.9fr) minmax(31rem, 1.1fr);
+	align-items: center;
+	gap: clamp(2rem, 4vw, 5rem);
+	min-height: calc(100svh - 4.5rem);
+	padding: clamp(4rem, 7vw, 7rem) 2rem 4rem;
+}
+
+.heroCopy,
+.productCopy,
+.mapCopy,
+.sectionHeader,
+.finalCta {
+	display: grid;
+	gap: 1rem;
+}
+
+.heroCopy h1,
+.sectionHeader h2,
+.productCopy h2,
+.mapCopy h2,
+.finalCta h2 {
+	margin: 0;
+	color: var(--ns-text);
+	font-family: var(--ns-font-sans);
+	font-weight: 750;
+	letter-spacing: 0;
+	text-wrap: balance;
+}
+
+.heroCopy h1 {
+	max-width: 12ch;
+	font-size: clamp(3.25rem, 7vw, 6.8rem);
+	line-height: 0.9;
+}
+
+.sectionHeader h2,
+.productCopy h2,
+.mapCopy h2,
+.finalCta h2 {
+	font-size: clamp(2rem, 4vw, 4rem);
+	line-height: 1;
+}
+
+.heroCopy p,
+.sectionHeader p,
+.buyerCard p,
+.productCopy > p,
+.workflowStep p,
+.mapCopy p,
+.finalCta p {
+	margin: 0;
+	color: var(--ns-text-muted);
+	font-size: clamp(1rem, 1.35vw, 1.18rem);
+	line-height: 1.65;
+}
+
+.heroCopy p {
+	max-width: 46rem;
+	font-size: clamp(1.1rem, 1.7vw, 1.35rem);
+}
+
+.eyebrow {
+	width: fit-content;
+	padding: 0.42rem 0.6rem;
+	border: 1px solid var(--ns-accent-border);
+	color: var(--ns-accent-active);
+	background: var(--ns-accent-muted);
+	font-size: 0.8125rem;
+	font-weight: 750;
+	line-height: 1.2;
+}
+
+.heroActions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.75rem;
+	padding-top: 0.5rem;
+}
+
+.heroActions a {
+	text-decoration: none;
+}
+
+.heroProof {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	padding-top: 0.5rem;
+	color: var(--ns-text-subtle);
+	font-size: 0.8125rem;
+	font-weight: 650;
+}
+
+.heroProof span {
+	padding: 0.45rem 0.65rem;
+	border: 1px solid var(--ns-border-faint);
+	background: rgba(255, 255, 255, 0.64);
+}
+
+.heroVisual {
+	position: relative;
+	display: grid;
+	place-items: center;
+	min-height: clamp(32rem, 52vw, 48rem);
+	isolation: isolate;
+}
+
+.heroVisual::before {
+	content: "";
+	position: absolute;
+	inset: 7% 3% 4%;
+	z-index: -1;
+	border: 1px solid var(--ns-border-faint);
+	background: radial-gradient(circle at 48% 42%, rgba(212, 91, 24, 0.22), transparent 18rem), linear-gradient(110deg, rgba(255, 255, 255, 0.84), rgba(255, 255, 255, 0.18));
+}
+
+.orbitScene {
+	position: relative;
+	width: min(39rem, 75vw);
+	aspect-ratio: 1;
+	transform: rotateX(58deg) rotateZ(-19deg);
+	transform-style: preserve-3d;
+	animation: orbitTilt 12s ease-in-out infinite;
+}
+
+.orbitScene::before {
+	content: "";
+	position: absolute;
+	inset: -4%;
+	background:
+		linear-gradient(90deg, transparent, rgba(212, 91, 24, 0.22), transparent) 50% 50% / 100% 1px no-repeat,
+		linear-gradient(0deg, transparent, rgba(212, 91, 24, 0.16), transparent) 50% 50% / 1px 100% no-repeat,
+		repeating-linear-gradient(90deg, transparent 0 3.4rem, rgba(100, 116, 139, 0.12) 3.4rem 3.45rem),
+		repeating-linear-gradient(0deg, transparent 0 3.4rem, rgba(100, 116, 139, 0.12) 3.4rem 3.45rem);
+	mask-image: radial-gradient(ellipse at center, #000 0 48%, transparent 74%);
+}
+
+.orbitCore {
+	position: absolute;
+	inset: 14%;
+	border: 1px solid rgba(212, 91, 24, 0.38);
+	background:
+		radial-gradient(circle at 38% 32%, rgba(255, 255, 255, 0.8), transparent 0.28rem), radial-gradient(circle at 62% 46%, rgba(212, 91, 24, 0.5), transparent 0.32rem),
+		repeating-radial-gradient(circle, rgba(212, 91, 24, 0.16) 0 1px, transparent 1px 2.6rem), repeating-linear-gradient(90deg, rgba(212, 91, 24, 0.13) 0 1px, transparent 1px 3.1rem),
+		repeating-linear-gradient(0deg, rgba(100, 116, 139, 0.14) 0 1px, transparent 1px 3.4rem), var(--ns-surface);
+	box-shadow: inset 0 0 4rem rgba(212, 91, 24, 0.08);
+}
+
+.orbitA,
+.orbitB,
+.orbitC {
+	position: absolute;
+	inset: 8%;
+	border: 1px solid rgba(212, 91, 24, 0.34);
+	transform-style: preserve-3d;
+	animation: orbitSpin 9s linear infinite;
+}
+
+.orbitB {
+	inset: 16% 5%;
+	border-color: rgba(100, 116, 139, 0.24);
+	animation-duration: 12s;
+	animation-direction: reverse;
+}
+
+.orbitC {
+	inset: 5% 18%;
+	border-color: rgba(212, 91, 24, 0.24);
+	animation-duration: 15s;
+}
+
+.orbitNode {
+	position: absolute;
+	left: var(--x);
+	top: var(--y);
+	z-index: 2;
+	display: inline-grid;
+	place-items: center;
+	min-width: 2.5rem;
+	height: 1.35rem;
+	padding: 0 0.42rem;
+	border: 1px solid var(--ns-accent-border);
+	background: var(--ns-surface);
+	color: var(--ns-accent-active);
+	font-size: 0.62rem;
+	font-weight: 850;
+	transform: translate(-50%, -50%) rotateZ(19deg) rotateX(-58deg);
+	animation: nodeBlink 3.4s ease-in-out infinite;
+}
+
+.packetOne,
+.packetTwo {
+	position: absolute;
+	z-index: 3;
+	width: 0.62rem;
+	height: 0.62rem;
+	background: var(--ns-accent);
+	box-shadow:
+		0 0 0 0.25rem rgba(212, 91, 24, 0.12),
+		0 0 1.3rem rgba(212, 91, 24, 0.48);
+	transform: translate(-50%, -50%);
+}
+
+.packetOne {
+	animation: packetRouteOne 3.7s linear infinite;
+}
+
+.packetTwo {
+	animation: packetRouteTwo 4.4s linear infinite 0.7s;
+}
+
+.dashboardMock {
+	position: absolute;
+	right: 0;
+	bottom: 6%;
+	z-index: 4;
+	display: grid;
+	gap: 1rem;
+	width: min(34rem, 82%);
+	padding: 1rem;
+	border-color: var(--ns-border);
+	background: rgba(255, 255, 255, 0.9);
+	backdrop-filter: blur(0.8rem);
+}
+
+.mockHeader {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 1rem;
+}
+
+.mockHeader div {
+	display: grid;
+	gap: 0.2rem;
+}
+
+.mockHeader span,
+.mockMetric span,
+.proofMetric span,
+.cardTopline span,
+.routeMetrics span,
+.checkCard small,
+.productVisualOverlay span {
+	color: var(--ns-text-subtle);
+	font-size: 0.75rem;
+	font-weight: 650;
+	line-height: 1.35;
+}
+
+.mockHeader strong {
+	color: var(--ns-text);
+	font-size: 1.1rem;
+	font-weight: 750;
+}
+
+.liveBadge {
+	border: 1px solid color-mix(in srgb, var(--ns-success) 34%, transparent);
+	color: var(--ns-success) !important;
+	background: color-mix(in srgb, var(--ns-success) 8%, var(--ns-surface));
+	padding: 0.35rem 0.5rem;
+}
+
+.mockMetrics,
+.checkGrid,
+.routeMetrics {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 0.5rem;
+}
+
+.mockMetric,
+.proofMetric,
+.checkCard {
+	display: grid;
+	gap: 0.35rem;
+	padding: 0.8rem;
+	border: 1px solid var(--ns-border-faint);
+	background: var(--ns-surface-raised);
+}
+
+.mockMetric strong,
+.proofMetric strong {
+	color: var(--ns-text);
+	font-size: clamp(1.45rem, 2.6vw, 2rem);
+	font-weight: 760;
+	line-height: 1;
+}
+
+.mockMap {
+	position: relative;
+	min-height: 13rem;
+	overflow: hidden;
+	border: 1px solid var(--ns-border-faint);
+	background:
+		radial-gradient(circle at 18% 64%, rgba(22, 138, 69, 0.16), transparent 8rem), radial-gradient(circle at 66% 32%, rgba(212, 91, 24, 0.16), transparent 9rem),
+		linear-gradient(rgba(100, 116, 139, 0.16) 1px, transparent 1px), linear-gradient(90deg, rgba(100, 116, 139, 0.16) 1px, transparent 1px), #eef2f7;
+	background-size:
+		100% 100%,
+		100% 100%,
+		2rem 2rem,
+		2rem 2rem,
+		100% 100%;
+}
+
+.mockRoute {
+	position: absolute;
+	inset: 18% 8%;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.mockRoute::before,
+.routeRail::before {
+	content: "";
+	position: absolute;
+	left: 1.3rem;
+	right: 1.3rem;
+	top: 50%;
+	height: 2px;
+	background: linear-gradient(90deg, transparent, var(--ns-accent), rgba(212, 91, 24, 0.32), transparent);
+}
+
+.mockRoute::after,
+.routeRail::after {
+	content: "";
+	position: absolute;
+	left: 1.3rem;
+	right: 1.3rem;
+	top: 50%;
+	height: 2px;
+	background: linear-gradient(90deg, rgba(212, 91, 24, 0), var(--ns-accent), rgba(212, 91, 24, 0));
+	transform: scaleX(0);
+	transform-origin: left;
+	animation: routeTrace 5.4s ease-in-out infinite;
+}
+
+.mockRoute span,
+.routeNode {
+	position: relative;
+	z-index: 1;
+	display: grid;
+	place-items: center;
+	width: clamp(2.5rem, 5vw, 3.4rem);
+	height: clamp(2.5rem, 5vw, 3.4rem);
+	border: 1px solid var(--ns-accent-border);
+	background: var(--ns-surface-raised);
+	color: var(--ns-accent-active);
+	font-size: 0.7rem;
+	font-weight: 850;
+}
+
+.proofBand {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 1rem;
+	padding: 0 2rem 4rem;
+}
+
+.proofMetric {
+	min-height: 8.25rem;
+}
+
+.buyerSection,
+.productSection,
+.signalSection,
+.mapSection,
+.finalCta {
+	padding: clamp(4rem, 8vw, 7rem) 2rem;
+	border-top: 1px solid var(--ns-border-faint);
+}
+
+.sectionHeader {
+	max-width: 58rem;
+	margin-bottom: 1.5rem;
+}
+
+.buyerGrid {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 1rem;
+}
+
+.buyerCard,
+.signalCard {
+	display: grid;
+	align-content: start;
+	gap: 0.9rem;
+	border-color: var(--ns-border);
+	background: var(--ns-surface);
+	padding: 1.25rem;
+}
+
+.buyerCard {
+	min-height: 17rem;
+}
+
+.buyerCard > span {
+	width: fit-content;
+	padding: 0.4rem 0.55rem;
+	border: 1px solid var(--ns-accent-border);
+	color: var(--ns-accent-active);
+	background: var(--ns-accent-muted);
+	font-size: 0.78rem;
+	font-weight: 750;
+}
+
+.buyerCard h3,
+.workflowStep h3,
+.signalCard h3 {
+	margin: 0;
+	color: var(--ns-text);
+	font-size: clamp(1.25rem, 2vw, 1.75rem);
+	font-weight: 750;
+	line-height: 1.12;
+}
+
+.productSection,
+.mapSection {
+	display: grid;
+	grid-template-columns: minmax(0, 0.9fr) minmax(28rem, 1.1fr);
+	align-items: center;
+	gap: clamp(2rem, 5vw, 5rem);
+}
+
+.productSection {
+	background: linear-gradient(180deg, transparent, rgba(212, 91, 24, 0.05));
+}
+
+.workflowList {
+	display: grid;
+	gap: 0.75rem;
+	padding-top: 0.75rem;
+}
+
+.workflowStep {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr);
+	gap: 0.9rem;
+	padding: 1rem;
+	border: 1px solid var(--ns-border-faint);
+	background: rgba(255, 255, 255, 0.62);
+}
+
+.workflowStep > strong {
+	display: grid;
+	place-items: center;
+	width: 2.4rem;
+	height: 2.4rem;
+	color: var(--ns-text-on-accent);
+	background: var(--ns-accent);
+	font-size: 0.8rem;
+}
+
+.workflowStep div {
+	display: grid;
+	gap: 0.3rem;
+}
+
+.productVisual {
+	position: relative;
+	min-height: clamp(28rem, 46vw, 39rem);
+	overflow: hidden;
+	border-color: var(--ns-border);
+	background:
+		radial-gradient(circle at 50% 50%, rgba(212, 91, 24, 0.18), transparent 16rem), linear-gradient(rgba(100, 116, 139, 0.12) 1px, transparent 1px),
+		linear-gradient(90deg, rgba(100, 116, 139, 0.12) 1px, transparent 1px), var(--ns-surface);
+	background-size:
+		100% 100%,
+		2.5rem 2.5rem,
+		2.5rem 2.5rem,
+		100% 100%;
+}
+
+.probeScene {
+	position: absolute;
+	inset: 0;
+	display: grid;
+	place-items: center;
+}
+
+.probeHub,
+.probeNode {
+	position: absolute;
+	display: block;
+	border: 1px solid var(--ns-accent-border);
+	background: var(--ns-surface);
+}
+
+.probeHub {
+	width: 4rem;
+	height: 4rem;
+	background: var(--ns-accent);
+	box-shadow: 0 0 0 0.7rem var(--ns-accent-muted);
+}
+
+.probeNode {
+	--angle: calc(var(--i) * 36deg);
+	width: 1rem;
+	height: 1rem;
+	transform: rotate(var(--angle)) translateX(clamp(6rem, 16vw, 12rem));
+	animation: probePulse 2.8s ease-in-out infinite;
+}
+
+.probeNode::before {
+	content: "";
+	position: absolute;
+	top: 50%;
+	right: 100%;
+	width: clamp(6rem, 16vw, 12rem);
+	height: 1px;
+	background: var(--ns-accent-border);
+	transform: translateY(-50%);
+	transform-origin: right;
+}
+
+.productVisualOverlay {
+	position: absolute;
+	left: 1rem;
+	bottom: 1rem;
+	z-index: 3;
+	display: grid;
+	gap: 0.2rem;
+	padding: 0.85rem 1rem;
+	border: 1px solid var(--ns-border);
+	background: rgba(255, 255, 255, 0.88);
+	backdrop-filter: blur(0.7rem);
+}
+
+.productVisualOverlay strong {
+	color: var(--ns-text);
+	font-size: 1.15rem;
+}
+
+.signalGrid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 1rem;
+}
+
+.signalCard {
+	min-height: 24rem;
+}
+
+.cardTopline {
+	display: flex;
+	align-items: center;
+	gap: 0.65rem;
+	color: var(--ns-accent-active);
+}
+
+.cardTopline span {
+	font-weight: 760;
+}
+
+.checkGrid {
+	padding-top: 0.25rem;
+}
+
+.checkCard strong {
+	color: var(--ns-text);
+	font-size: 1rem;
+}
+
+.checkCard span {
+	color: var(--ns-accent-active);
+	font-size: 0.95rem;
+	font-weight: 750;
+}
+
+.routeBoard {
+	display: grid;
+	gap: 1rem;
+	padding-top: 0.5rem;
+}
+
+.routeRail {
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	min-height: 7rem;
+}
+
+.routeMetrics span {
+	padding: 0.7rem;
+	border: 1px solid var(--ns-border-faint);
+	background: var(--ns-bg-subtle);
+	color: var(--ns-text-muted);
+	font-weight: 700;
+}
+
+.mapFrame {
+	position: relative;
+	min-height: clamp(24rem, 44vw, 38rem);
+	overflow: hidden;
+	border: 1px solid var(--ns-border);
+	background: var(--ns-surface);
+}
+
+.mapFrame::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background: radial-gradient(circle at 62% 50%, transparent 0 42%, rgba(246, 247, 249, 0.72) 76%), linear-gradient(90deg, rgba(246, 247, 249, 0.2), rgba(246, 247, 249, 0));
+}
+
+.mapFrame img {
+	display: block;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	opacity: 0.82;
+	filter: saturate(1.1) contrast(1.06);
+}
+
+.finalCta {
+	place-items: center;
+	min-height: 38rem;
+	overflow: hidden;
+	background: radial-gradient(circle at 50% 52%, rgba(212, 91, 24, 0.18), transparent 22rem), linear-gradient(180deg, rgba(255, 255, 255, 0), rgba(212, 91, 24, 0.06));
+	text-align: center;
+}
+
+.finalCta p {
+	max-width: 42rem;
+}
+
+.finalChecks {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 0.75rem;
+	margin: 0;
+	padding: 0.5rem 0 0;
+	list-style: none;
+}
+
+.finalChecks li {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.45rem;
+	color: var(--ns-text-subtle);
+	font-size: 0.875rem;
+	font-weight: 650;
+}
+
+.finalChecks svg {
+	color: var(--ns-success);
+}
+
+.footer {
+	background: var(--ns-bg);
+}
+
+@keyframes orbitTilt {
+	0%,
+	100% {
+		transform: rotateX(58deg) rotateZ(-19deg) translateY(0);
+	}
+
+	50% {
+		transform: rotateX(61deg) rotateZ(-14deg) translateY(-0.75rem);
+	}
+}
+
+@keyframes orbitSpin {
+	from {
+		transform: rotateZ(0deg) rotateX(70deg);
+	}
+
+	to {
+		transform: rotateZ(360deg) rotateX(70deg);
+	}
+}
+
+@keyframes nodeBlink {
+	0%,
+	100% {
+		opacity: 0.72;
+	}
+
+	50% {
+		opacity: 1;
+	}
+}
+
+@keyframes routeTrace {
+	0%,
+	12% {
+		opacity: 0;
+		transform: scaleX(0);
+	}
+
+	24%,
+	72% {
+		opacity: 1;
+	}
+
+	86%,
+	100% {
+		opacity: 0;
+		transform: scaleX(1);
+	}
+}
+
+@keyframes packetRouteOne {
+	0% {
+		left: 8%;
+		top: 38%;
+		opacity: 0;
+	}
+
+	10%,
+	88% {
+		opacity: 1;
+	}
+
+	42% {
+		left: 43%;
+		top: 8%;
+	}
+
+	100% {
+		left: 92%;
+		top: 64%;
+		opacity: 0;
+	}
+}
+
+@keyframes packetRouteTwo {
+	0% {
+		left: 7%;
+		top: 66%;
+		opacity: 0;
+	}
+
+	12%,
+	86% {
+		opacity: 1;
+	}
+
+	50% {
+		left: 43%;
+		top: 8%;
+	}
+
+	100% {
+		left: 90%;
+		top: 27%;
+		opacity: 0;
+	}
+}
+
+@keyframes probePulse {
+	0%,
+	100% {
+		opacity: 0.58;
+	}
+
+	50% {
+		opacity: 1;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.orbitScene,
+	.orbitA,
+	.orbitB,
+	.orbitC,
+	.orbitNode,
+	.packetOne,
+	.packetTwo,
+	.mockRoute::after,
+	.routeRail::after,
+	.probeNode {
+		animation: none;
+	}
+}
+
+@media (max-width: 78rem) {
+	.hero,
+	.productSection,
+	.mapSection {
+		grid-template-columns: 1fr;
+		min-height: auto;
+	}
+
+	.heroCopy h1 {
+		max-width: 14ch;
+	}
+
+	.heroVisual {
+		min-height: 34rem;
+	}
+
+	.proofBand,
+	.buyerGrid,
+	.signalGrid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+@media (max-width: 56rem) {
+	.nav {
+		align-items: stretch;
+		flex-direction: column;
+		padding: 1rem;
+	}
+
+	.navLinks,
+	.navActions {
+		width: 100%;
+		flex-wrap: wrap;
+	}
+
+	.navActions > * {
+		flex: 1 1 9rem;
+	}
+
+	.hero,
+	.proofBand,
+	.buyerSection,
+	.productSection,
+	.signalSection,
+	.mapSection,
+	.finalCta {
+		padding-right: 1rem;
+		padding-left: 1rem;
+	}
+
+	.hero {
+		padding-top: 3rem;
+		gap: 1.5rem;
+	}
+
+	.heroCopy h1 {
+		font-size: clamp(2.5rem, 13vw, 4.25rem);
+	}
+
+	.heroVisual {
+		min-height: 28rem;
+		margin-inline: -1rem;
+	}
+
+	.dashboardMock {
+		right: 1rem;
+		width: calc(100% - 2rem);
+	}
+
+	.proofBand,
+	.buyerGrid,
+	.signalGrid,
+	.mockMetrics,
+	.checkGrid,
+	.routeMetrics {
+		grid-template-columns: 1fr;
+	}
+
+	.productVisual,
+	.mapFrame {
+		min-height: 22rem;
+	}
+
+	.routeRail {
+		min-height: 5rem;
+	}
+}
