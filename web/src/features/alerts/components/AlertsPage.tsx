@@ -20,7 +20,7 @@ import { pushErrorToast, pushToast } from "@/shared/toast/toastStore";
 import { classNames } from "@/shared/utils/classNames";
 import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
 import { Badge, Button, DataTable, Panel, SelectField, TextAreaField, TextField, type BadgeTone, type DataColumn } from "@netstamp/ui";
-import { DiscordLogo, TelegramLogo, WebhooksLogo } from "@phosphor-icons/react";
+import { DiscordLogo, EnvelopeSimple, SlackLogo, TelegramLogo, WebhooksLogo } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState, type FormEvent, type MouseEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -71,6 +71,7 @@ interface NotificationFormState {
 	url: string;
 	botToken: string;
 	chatId: string;
+	emailTo: string;
 	enabled: string;
 }
 
@@ -118,8 +119,10 @@ const notificationStatusOptions: Array<{ value: NotificationStatusFilter; label:
 const notificationFilterTypeOptions: Array<{ value: NotificationTypeFilter; label: string }> = [
 	{ value: "all", label: "Any type" },
 	{ value: "webhook", label: "Webhook" },
+	{ value: "slack", label: "Slack" },
 	{ value: "discord", label: "Discord" },
-	{ value: "telegram", label: "Telegram" }
+	{ value: "telegram", label: "Telegram" },
+	{ value: "email", label: "Email" }
 ];
 
 const checkTypeOptions: Array<{ value: CheckType; label: string }> = [
@@ -165,8 +168,10 @@ const webhookNotificationTypeOption: NotificationTypeOption = { value: "webhook"
 
 const notificationTypeOptions: NotificationTypeOption[] = [
 	webhookNotificationTypeOption,
+	{ value: "slack", label: "Slack", detail: "Post alert summaries to a Slack incoming webhook." },
 	{ value: "discord", label: "Discord", detail: "Post alert summaries to a Discord notification webhook." },
-	{ value: "telegram", label: "Telegram", detail: "Send alert summaries through a Telegram bot." }
+	{ value: "telegram", label: "Telegram", detail: "Send alert summaries through a Telegram bot." },
+	{ value: "email", label: "Email", detail: "Send alert summaries to one or more email recipients." }
 ];
 
 const operatorSymbols: Record<AlertOperator, string> = {
@@ -328,6 +333,15 @@ function notificationConfigString(config: ApiNotification["config"], key: string
 	return "";
 }
 
+function notificationConfigStringArray(config: ApiNotification["config"], key: string) {
+	if (config && typeof config === "object" && key in config) {
+		const value = (config as Record<string, unknown>)[key];
+		return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+	}
+
+	return [];
+}
+
 function notificationURL(notification: ApiNotification) {
 	return notificationConfigString(notification.config, "url");
 }
@@ -336,14 +350,22 @@ function notificationChatID(notification: ApiNotification) {
 	return notificationConfigString(notification.config, "chatId");
 }
 
+function notificationEmails(notification: ApiNotification) {
+	return notificationConfigStringArray(notification.config, "to");
+}
+
 function notificationTypeLabel(notificationType: string) {
 	switch (notificationType) {
 		case "webhook":
 			return "Webhook";
+		case "slack":
+			return "Slack";
 		case "discord":
 			return "Discord";
 		case "telegram":
 			return "Telegram";
+		case "email":
+			return "Email";
 		default:
 			return notificationType;
 	}
@@ -353,12 +375,38 @@ function notificationTypeOption(notificationType: NotificationType) {
 	return notificationTypeOptions.find(option => option.value === notificationType) ?? webhookNotificationTypeOption;
 }
 
+function notificationWebhookURLLabel(notificationType: NotificationType) {
+	switch (notificationType) {
+		case "slack":
+			return "Slack webhook URL";
+		case "discord":
+			return "Discord webhook URL";
+		default:
+			return "Webhook URL";
+	}
+}
+
+function notificationWebhookURLPlaceholder(notificationType: NotificationType) {
+	switch (notificationType) {
+		case "slack":
+			return "https://hooks.slack.com/services/...";
+		case "discord":
+			return "https://discord.com/api/webhooks/...";
+		default:
+			return "https://hooks.example.com/netstamp";
+	}
+}
+
 function NotificationTypeIcon({ type }: { type: NotificationType }) {
 	switch (type) {
+		case "slack":
+			return <SlackLogo className={styles.notificationTypeIcon} size={28} weight="bold" aria-hidden="true" />;
 		case "discord":
 			return <DiscordLogo className={styles.notificationTypeIcon} size={28} weight="bold" aria-hidden="true" />;
 		case "telegram":
 			return <TelegramLogo className={styles.notificationTypeIcon} size={28} weight="bold" aria-hidden="true" />;
+		case "email":
+			return <EnvelopeSimple className={styles.notificationTypeIcon} size={28} weight="bold" aria-hidden="true" />;
 		case "webhook":
 		default:
 			return <WebhooksLogo className={styles.notificationTypeIcon} size={28} weight="bold" aria-hidden="true" />;
@@ -367,11 +415,14 @@ function NotificationTypeIcon({ type }: { type: NotificationType }) {
 
 function notificationDestination(notification: ApiNotification) {
 	switch (notification.type) {
+		case "slack":
 		case "discord":
 		case "webhook":
 			return notificationURL(notification);
 		case "telegram":
 			return notificationChatID(notification) ? `chat ${notificationChatID(notification)}` : "-";
+		case "email":
+			return notificationEmails(notification).join(", ") || "-";
 		default:
 			return "-";
 	}
@@ -455,6 +506,7 @@ function defaultNotificationForm(): NotificationFormState {
 		url: "",
 		botToken: "",
 		chatId: "",
+		emailTo: "",
 		enabled: "true"
 	};
 }
@@ -466,6 +518,7 @@ function notificationFormFromNotification(notification: ApiNotification): Notifi
 		url: notificationURL(notification),
 		botToken: "",
 		chatId: notificationChatID(notification),
+		emailTo: notificationEmails(notification).join(", "),
 		enabled: String(notification.enabled)
 	};
 }
@@ -493,7 +546,8 @@ function rulePayload(form: RuleFormState): CreateAlertRuleInput | UpdateAlertRul
 }
 
 function notificationPayload(form: NotificationFormState): CreateNotificationInput | UpdateNotificationInput {
-	const config = form.type === "telegram" ? { botToken: form.botToken.trim(), chatId: form.chatId.trim() } : { url: form.url.trim() };
+	const config =
+		form.type === "telegram" ? { botToken: form.botToken.trim(), chatId: form.chatId.trim() } : form.type === "email" ? { to: notificationEmailRecipients(form.emailTo) } : { url: form.url.trim() };
 
 	return {
 		name: form.name.trim(),
@@ -510,7 +564,17 @@ function notificationFormReady(form: NotificationFormState) {
 	if (form.type === "telegram") {
 		return Boolean(form.botToken.trim() && form.chatId.trim());
 	}
+	if (form.type === "email") {
+		return notificationEmailRecipients(form.emailTo).length > 0;
+	}
 	return Boolean(form.url.trim());
+}
+
+function notificationEmailRecipients(value: string) {
+	return value
+		.split(/[\n,;]+/)
+		.map(item => item.trim())
+		.filter(Boolean);
 }
 
 function rulePreview(form: RuleFormState, notifications: ApiNotification[]) {
@@ -1282,13 +1346,22 @@ function NotificationEditorDrawer({
 								/>
 								<TextField label="Chat ID" value={form.chatId} onChange={event => updateForm({ chatId: event.currentTarget.value })} placeholder="-1001234567890" required />
 							</>
+						) : form.type === "email" ? (
+							<TextAreaField
+								label="Recipients"
+								value={form.emailTo}
+								onChange={event => updateForm({ emailTo: event.currentTarget.value })}
+								placeholder="ops@example.com, sre@example.com"
+								rows={4}
+								required
+							/>
 						) : (
 							<TextField
-								label={form.type === "discord" ? "Discord webhook URL" : "Webhook URL"}
+								label={notificationWebhookURLLabel(form.type)}
 								value={form.url}
 								onChange={event => updateForm({ url: event.currentTarget.value })}
 								inputMode="url"
-								placeholder={form.type === "discord" ? "https://discord.com/api/webhooks/..." : "https://hooks.example.com/netstamp"}
+								placeholder={notificationWebhookURLPlaceholder(form.type)}
 								required
 							/>
 						)}
