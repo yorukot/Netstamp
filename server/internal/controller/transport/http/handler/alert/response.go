@@ -90,6 +90,11 @@ type telegramNotificationResponseConfig struct {
 	BotTokenConfigured bool   `json:"botTokenConfigured"`
 }
 
+type emailNotificationResponseConfig struct {
+	To             []string `json:"to"`
+	SMTPConfigured bool     `json:"smtpConfigured"`
+}
+
 func ruleResponses(rules []domainalert.Rule) []ruleResponseBody {
 	values := make([]ruleResponseBody, 0, len(rules))
 	for _, rule := range rules {
@@ -166,27 +171,27 @@ func incidentCheckResponse(incident domainalert.Incident) incidentCheckResponseB
 	return incidentCheckResponseBody{ID: incident.Check.ID, Name: incident.Check.Name, Type: incident.Check.Type, Target: incident.Check.Target}
 }
 
-func notificationResponses(notifications []domainalert.Notification) []notificationResponseBody {
+func notificationResponses(notifications []domainalert.Notification, emailSMTPConfigured bool) []notificationResponseBody {
 	values := make([]notificationResponseBody, 0, len(notifications))
 	for _, notification := range notifications {
-		values = append(values, notificationResponse(notification))
+		values = append(values, notificationResponse(notification, emailSMTPConfigured))
 	}
 	return values
 }
 
-func notificationResponse(notification domainalert.Notification) notificationResponseBody {
+func notificationResponse(notification domainalert.Notification, emailSMTPConfigured bool) notificationResponseBody {
 	return notificationResponseBody{
 		ID:        notification.ID,
 		Name:      notification.Name,
 		Type:      notification.Type,
 		Enabled:   notification.Enabled,
-		Config:    notificationResponseConfig(notification),
+		Config:    notificationResponseConfig(notification, emailSMTPConfigured),
 		CreatedAt: notification.CreatedAt,
 		UpdatedAt: notification.UpdatedAt,
 	}
 }
 
-func notificationResponseConfig(notification domainalert.Notification) json.RawMessage {
+func notificationResponseConfig(notification domainalert.Notification, emailSMTPConfigured bool) json.RawMessage {
 	switch notification.Type {
 	case domainalert.NotificationTypeWebhook:
 		var config domainalert.WebhookConfig
@@ -198,6 +203,16 @@ func notificationResponseConfig(notification domainalert.Notification) json.RawM
 			return json.RawMessage(`{}`)
 		}
 		return mustJSON(domainalert.WebhookConfig{URL: value})
+	case domainalert.NotificationTypeSlack:
+		var config domainalert.SlackConfig
+		if err := json.Unmarshal(notification.Config, &config); err != nil {
+			return json.RawMessage(`{}`)
+		}
+		value, ok := redactedNotificationURL(config.URL)
+		if !ok {
+			return json.RawMessage(`{}`)
+		}
+		return mustJSON(domainalert.SlackConfig{URL: value})
 	case domainalert.NotificationTypeDiscord:
 		var config domainalert.DiscordConfig
 		if err := json.Unmarshal(notification.Config, &config); err != nil {
@@ -214,6 +229,12 @@ func notificationResponseConfig(notification domainalert.Notification) json.RawM
 			return json.RawMessage(`{}`)
 		}
 		return mustJSON(telegramNotificationResponseConfig{ChatID: config.ChatID, BotTokenConfigured: config.BotToken != ""})
+	case domainalert.NotificationTypeEmail:
+		var config domainalert.EmailConfig
+		if err := json.Unmarshal(notification.Config, &config); err != nil {
+			return json.RawMessage(`{}`)
+		}
+		return mustJSON(emailNotificationResponseConfig{To: config.To, SMTPConfigured: emailSMTPConfigured})
 	default:
 		return json.RawMessage(`{}`)
 	}

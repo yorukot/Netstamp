@@ -122,7 +122,15 @@ func New(ctx context.Context) (*Application, error) {
 	probeEvents := logger.NewProbeEventRecorder(log)
 	probeRuntimeEvents := logger.NewProbeRuntimeEventRecorder(log)
 	assignmentEvents := logger.NewAssignmentEventRecorder(log)
-	notificationSender := notify.NewWebhookSender(cfg.Alerting.NotificationHTTPTimeout)
+	notificationSender := notify.NewSender(cfg.Alerting.NotificationHTTPTimeout, notify.SMTPConfig{
+		Host:     cfg.Alerting.SMTP.Host,
+		Port:     cfg.Alerting.SMTP.Port,
+		Username: cfg.Alerting.SMTP.Username,
+		Password: cfg.Alerting.SMTP.Password,
+		From:     cfg.Alerting.SMTP.From,
+		TLSMode:  cfg.Alerting.SMTP.TLSMode,
+		Timeout:  cfg.Alerting.SMTP.Timeout,
+	})
 
 	authSvc := appauth.NewService(userRepo, passwordHasher, tokenIssuer, authEvents)
 	userSvc := appuser.NewService(userRepo, passwordHasher, userEvents)
@@ -170,6 +178,7 @@ func New(ctx context.Context) (*Application, error) {
 		AuthRegistrationDisabled: !cfg.Auth.RegistrationEnabled,
 		UserService:              userSvc,
 		AlertService:             alertSvc,
+		AlertEmailSMTPConfigured: notificationSender.EmailConfigured(),
 		AssignmentService:        assignmentSvc,
 		CheckService:             checkSvc,
 		LabelService:             labelSvc,

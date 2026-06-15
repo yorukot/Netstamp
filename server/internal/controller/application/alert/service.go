@@ -307,6 +307,12 @@ func normalizeNotification(base domainalert.Notification, notificationID, name s
 			return domainalert.Notification{}, fmt.Errorf("%w: %w", ErrInvalidInput, err)
 		}
 		base.Config = canonical
+	case domainalert.NotificationTypeSlack:
+		canonical, _, err := domainalert.VNSlackConfig(config)
+		if err != nil {
+			return domainalert.Notification{}, fmt.Errorf("%w: %w", ErrInvalidInput, err)
+		}
+		base.Config = canonical
 	case domainalert.NotificationTypeDiscord:
 		canonical, _, err := domainalert.VNDiscordConfig(config)
 		if err != nil {
@@ -315,6 +321,12 @@ func normalizeNotification(base domainalert.Notification, notificationID, name s
 		base.Config = canonical
 	case domainalert.NotificationTypeTelegram:
 		canonical, _, err := domainalert.VNTelegramConfig(config)
+		if err != nil {
+			return domainalert.Notification{}, fmt.Errorf("%w: %w", ErrInvalidInput, err)
+		}
+		base.Config = canonical
+	case domainalert.NotificationTypeEmail:
+		canonical, _, err := domainalert.VNEmailConfig(config)
 		if err != nil {
 			return domainalert.Notification{}, fmt.Errorf("%w: %w", ErrInvalidInput, err)
 		}

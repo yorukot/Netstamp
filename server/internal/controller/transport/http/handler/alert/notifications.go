@@ -19,7 +19,7 @@ func (h *Handler) handleListNotifications(w http.ResponseWriter, r *http.Request
 		r.Context(),
 		appalert.ListNotificationsInput{ProjectInput: projectInput(r, userID)},
 	)
-	writeJSONOrProblem(w, r, http.StatusOK, map[string]any{"notifications": notificationResponses(notifications)}, err)
+	writeJSONOrProblem(w, r, http.StatusOK, map[string]any{"notifications": notificationResponses(notifications, h.emailSMTPConfigured)}, err)
 }
 
 func (h *Handler) handleCreateNotification(w http.ResponseWriter, r *http.Request) {
@@ -34,7 +34,7 @@ func (h *Handler) handleCreateNotification(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	notification, err := h.service.CreateNotification(r.Context(), body.createInput(projectInput(r, userID)))
-	writeJSONOrProblem(w, r, http.StatusCreated, map[string]any{"notification": notificationResponse(notification)}, err)
+	writeJSONOrProblem(w, r, http.StatusCreated, map[string]any{"notification": notificationResponse(notification, h.emailSMTPConfigured)}, err)
 }
 
 func (h *Handler) handleGetNotification(w http.ResponseWriter, r *http.Request) {
@@ -50,7 +50,7 @@ func (h *Handler) handleGetNotification(w http.ResponseWriter, r *http.Request) 
 			NotificationID: httpx.Path(r, "notification_id"),
 		},
 	)
-	writeJSONOrProblem(w, r, http.StatusOK, map[string]any{"notification": notificationResponse(notification)}, err)
+	writeJSONOrProblem(w, r, http.StatusOK, map[string]any{"notification": notificationResponse(notification, h.emailSMTPConfigured)}, err)
 }
 
 func (h *Handler) handleUpdateNotification(w http.ResponseWriter, r *http.Request) {
@@ -65,7 +65,7 @@ func (h *Handler) handleUpdateNotification(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	notification, err := h.service.UpdateNotification(r.Context(), body.updateInput(projectInput(r, userID), httpx.Path(r, "notification_id")))
-	writeJSONOrProblem(w, r, http.StatusOK, map[string]any{"notification": notificationResponse(notification)}, err)
+	writeJSONOrProblem(w, r, http.StatusOK, map[string]any{"notification": notificationResponse(notification, h.emailSMTPConfigured)}, err)
 }
 
 func (h *Handler) handleDeleteNotification(w http.ResponseWriter, r *http.Request) {

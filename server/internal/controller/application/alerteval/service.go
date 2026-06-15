@@ -176,7 +176,7 @@ func (s *Service) enqueueNotifications(ctx context.Context, rule domainalert.Rul
 
 func supportedNotification(notificationType domainalert.NotificationType) bool {
 	switch notificationType {
-	case domainalert.NotificationTypeWebhook, domainalert.NotificationTypeDiscord, domainalert.NotificationTypeTelegram:
+	case domainalert.NotificationTypeWebhook, domainalert.NotificationTypeSlack, domainalert.NotificationTypeDiscord, domainalert.NotificationTypeTelegram, domainalert.NotificationTypeEmail:
 		return true
 	default:
 		return false

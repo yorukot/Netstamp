@@ -54,6 +54,13 @@ const (
 	keyNotificationWorkerBatchSize    = "NOTIFICATION_WORKER_BATCH_SIZE"
 	keyNotificationWorkerStaleTimeout = "NOTIFICATION_WORKER_STALE_TIMEOUT"
 	keyNotificationHTTPTimeout        = "NOTIFICATION_HTTP_TIMEOUT"
+	keySMTPHost                       = "SMTP_HOST"
+	keySMTPPort                       = "SMTP_PORT"
+	keySMTPUsername                   = "SMTP_USERNAME"
+	keySMTPPassword                   = "SMTP_PASSWORD"
+	keySMTPFrom                       = "SMTP_FROM"
+	keySMTPTLSMode                    = "SMTP_TLS_MODE"
+	keySMTPTimeout                    = "SMTP_TIMEOUT"
 )
 
 var defaultSettings = map[string]any{
@@ -97,6 +104,13 @@ var defaultSettings = map[string]any{
 	keyNotificationWorkerBatchSize:    int32(25),
 	keyNotificationWorkerStaleTimeout: time.Minute,
 	keyNotificationHTTPTimeout:        10 * time.Second,
+	keySMTPHost:                       "",
+	keySMTPPort:                       int32(587),
+	keySMTPUsername:                   "",
+	keySMTPPassword:                   "",
+	keySMTPFrom:                       "",
+	keySMTPTLSMode:                    "starttls",
+	keySMTPTimeout:                    10 * time.Second,
 }
 
 type Config struct {
@@ -160,6 +174,21 @@ type AlertingConfig struct {
 	NotificationWorkerBatchSize    int32         `mapstructure:"NOTIFICATION_WORKER_BATCH_SIZE"`
 	NotificationWorkerStaleTimeout time.Duration `mapstructure:"NOTIFICATION_WORKER_STALE_TIMEOUT"`
 	NotificationHTTPTimeout        time.Duration `mapstructure:"NOTIFICATION_HTTP_TIMEOUT"`
+	SMTP                           SMTPConfig    `mapstructure:",squash"`
+}
+
+type SMTPConfig struct {
+	Host     string        `mapstructure:"SMTP_HOST"`
+	Port     int32         `mapstructure:"SMTP_PORT"`
+	Username string        `mapstructure:"SMTP_USERNAME"`
+	Password string        `mapstructure:"SMTP_PASSWORD"`
+	From     string        `mapstructure:"SMTP_FROM"`
+	TLSMode  string        `mapstructure:"SMTP_TLS_MODE"`
+	Timeout  time.Duration `mapstructure:"SMTP_TIMEOUT"`
+}
+
+func (cfg SMTPConfig) Configured() bool {
+	return strings.TrimSpace(cfg.Host) != "" && strings.TrimSpace(cfg.From) != ""
 }
 
 func (cfg DatabaseConfig) ConnectionString() string {
@@ -258,6 +287,7 @@ func validate(cfg Config) []error {
 	errs = append(errs, validatePositiveDuration(keyNotificationWorkerInterval, cfg.Alerting.NotificationWorkerInterval)...)
 	errs = append(errs, validatePositiveDuration(keyNotificationWorkerStaleTimeout, cfg.Alerting.NotificationWorkerStaleTimeout)...)
 	errs = append(errs, validatePositiveDuration(keyNotificationHTTPTimeout, cfg.Alerting.NotificationHTTPTimeout)...)
+	errs = append(errs, validateSMTPConfig(cfg.Alerting.SMTP)...)
 	if cfg.Alerting.NotificationWorkerBatchSize <= 0 {
 		errs = append(errs, errors.New("NOTIFICATION_WORKER_BATCH_SIZE must be greater than 0"))
 	}

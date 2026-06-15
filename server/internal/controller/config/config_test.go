@@ -64,6 +64,18 @@ func TestLoadDefaults(t *testing.T) {
 	if !cfg.Auth.RegistrationEnabled {
 		t.Fatal("expected registration to be enabled by default")
 	}
+	if cfg.Alerting.SMTP.Configured() {
+		t.Fatal("expected SMTP to be unconfigured by default")
+	}
+	if cfg.Alerting.SMTP.Port != 587 {
+		t.Fatalf("expected default SMTP port, got %d", cfg.Alerting.SMTP.Port)
+	}
+	if cfg.Alerting.SMTP.TLSMode != "starttls" {
+		t.Fatalf("expected default SMTP TLS mode, got %q", cfg.Alerting.SMTP.TLSMode)
+	}
+	if cfg.Alerting.SMTP.Timeout != 10*time.Second {
+		t.Fatalf("expected default SMTP timeout, got %s", cfg.Alerting.SMTP.Timeout)
+	}
 }
 
 func TestLoadFromEnvironment(t *testing.T) {
@@ -88,6 +100,13 @@ func TestLoadFromEnvironment(t *testing.T) {
 	t.Setenv(keyDBMaxConns, "12")
 	t.Setenv(keyAuthRegistrationEnabled, "false")
 	t.Setenv(keyOTLPTracesEndpoint, "http://victoria-traces:10428/insert/opentelemetry/v1/traces")
+	t.Setenv(keySMTPHost, "smtp.example.com")
+	t.Setenv(keySMTPPort, "465")
+	t.Setenv(keySMTPUsername, "netstamp")
+	t.Setenv(keySMTPPassword, "secret")
+	t.Setenv(keySMTPFrom, "alerts@example.com")
+	t.Setenv(keySMTPTLSMode, "implicit")
+	t.Setenv(keySMTPTimeout, "3s")
 
 	cfg, err := Load()
 	if err != nil {
@@ -157,6 +176,30 @@ func TestLoadFromEnvironment(t *testing.T) {
 	}
 	if cfg.Tracing.OTLPTracesEndpoint != "http://victoria-traces:10428/insert/opentelemetry/v1/traces" {
 		t.Fatalf("expected OTLP traces endpoint override, got %q", cfg.Tracing.OTLPTracesEndpoint)
+	}
+	if !cfg.Alerting.SMTP.Configured() {
+		t.Fatal("expected SMTP to be configured from environment")
+	}
+	if cfg.Alerting.SMTP.Host != "smtp.example.com" {
+		t.Fatalf("expected SMTP host override, got %q", cfg.Alerting.SMTP.Host)
+	}
+	if cfg.Alerting.SMTP.Port != 465 {
+		t.Fatalf("expected SMTP port override, got %d", cfg.Alerting.SMTP.Port)
+	}
+	if cfg.Alerting.SMTP.Username != "netstamp" {
+		t.Fatalf("expected SMTP username override, got %q", cfg.Alerting.SMTP.Username)
+	}
+	if cfg.Alerting.SMTP.Password != "secret" {
+		t.Fatal("expected SMTP password override")
+	}
+	if cfg.Alerting.SMTP.From != "alerts@example.com" {
+		t.Fatalf("expected SMTP from override, got %q", cfg.Alerting.SMTP.From)
+	}
+	if cfg.Alerting.SMTP.TLSMode != "implicit" {
+		t.Fatalf("expected SMTP TLS mode override, got %q", cfg.Alerting.SMTP.TLSMode)
+	}
+	if cfg.Alerting.SMTP.Timeout != 3*time.Second {
+		t.Fatalf("expected SMTP timeout override, got %s", cfg.Alerting.SMTP.Timeout)
 	}
 }
 
@@ -255,6 +298,11 @@ func TestValidateReturnsErrorsForInvalidValues(t *testing.T) {
 	cfg.Database.MaxConnLifetime = 0
 	cfg.Database.MaxConnIdleTime = -time.Second
 	cfg.Tracing.OTLPTracesEndpoint = "victoria-traces:10428"
+	cfg.Alerting.SMTP.Port = 0
+	cfg.Alerting.SMTP.Timeout = 0
+	cfg.Alerting.SMTP.TLSMode = "ssl"
+	cfg.Alerting.SMTP.Username = "netstamp"
+	cfg.Alerting.SMTP.From = "alerts"
 
 	err := errors.Join(validate(cfg)...)
 	if err == nil {
@@ -287,6 +335,12 @@ func TestValidateReturnsErrorsForInvalidValues(t *testing.T) {
 		"DB_MAX_CONN_LIFETIME must be greater than 0",
 		"DB_MAX_CONN_IDLE_TIME must be greater than 0",
 		"OTEL_EXPORTER_OTLP_TRACES_ENDPOINT must be a valid HTTP URL",
+		"SMTP_PORT must be between 1 and 65535",
+		"SMTP_TIMEOUT must be greater than 0",
+		"SMTP_TLS_MODE must be one of starttls, implicit, or none",
+		"SMTP_HOST must not be empty",
+		"SMTP_FROM must be a valid email address",
+		"SMTP_USERNAME and SMTP_PASSWORD must be set together",
 	} {
 		if !strings.Contains(message, want) {
 			t.Fatalf("expected error to contain %q, got %q", want, message)
@@ -390,6 +444,19 @@ func validConfig() Config {
 			Argon2idParallelism: 4,
 		},
 		Tracing: TracingConfig{},
+		Alerting: AlertingConfig{
+			EvaluationEnabled:              true,
+			NotificationWorkerEnabled:      true,
+			NotificationWorkerInterval:     5 * time.Second,
+			NotificationWorkerBatchSize:    25,
+			NotificationWorkerStaleTimeout: time.Minute,
+			NotificationHTTPTimeout:        10 * time.Second,
+			SMTP: SMTPConfig{
+				Port:    587,
+				TLSMode: "starttls",
+				Timeout: 10 * time.Second,
+			},
+		},
 	}
 }
 

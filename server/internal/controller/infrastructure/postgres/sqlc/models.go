@@ -324,6 +324,7 @@ const (
 	NotificationTypeEmail    NotificationType = "email"
 	NotificationTypeDiscord  NotificationType = "discord"
 	NotificationTypeTelegram NotificationType = "telegram"
+	NotificationTypeSlack    NotificationType = "slack"
 )
 
 func (e *NotificationType) Scan(src interface{}) error {

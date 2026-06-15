@@ -9,12 +9,13 @@ import (
 )
 
 type Handler struct {
-	service  *appalert.Service
-	verifier appauth.TokenVerifier
+	service             *appalert.Service
+	verifier            appauth.TokenVerifier
+	emailSMTPConfigured bool
 }
 
-func NewHandler(service *appalert.Service, verifier appauth.TokenVerifier) *Handler {
-	return &Handler{service: service, verifier: verifier}
+func NewHandler(service *appalert.Service, verifier appauth.TokenVerifier, emailSMTPConfigured bool) *Handler {
+	return &Handler{service: service, verifier: verifier, emailSMTPConfigured: emailSMTPConfigured}
 }
 
 func (h *Handler) RegisterRoutes(api chi.Router) {

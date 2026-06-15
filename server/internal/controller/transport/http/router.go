@@ -50,6 +50,7 @@ type Dependencies struct {
 	AuthRegistrationDisabled bool
 	UserService              *appuser.Service
 	AlertService             *appalert.Service
+	AlertEmailSMTPConfigured bool
 	AssignmentService        *appassignment.Service
 	CheckService             *appcheck.Service
 	LabelService             *applabel.Service
@@ -127,7 +128,7 @@ func registerAPIRoutes(api chi.Router, dep Dependencies) {
 	authhttp.NewHandler(dep.AuthService, dep.AuthVerifier, dep.AuthCookieSecure, !dep.AuthRegistrationDisabled).RegisterRoutes(api)
 	userhttp.NewHandler(dep.UserService, dep.AuthVerifier).RegisterRoutes(api)
 	projecthttp.NewHandler(dep.ProjectService, dep.AuthVerifier).RegisterRoutes(api)
-	alerthttp.NewHandler(dep.AlertService, dep.AuthVerifier).RegisterRoutes(api)
+	alerthttp.NewHandler(dep.AlertService, dep.AuthVerifier, dep.AlertEmailSMTPConfigured).RegisterRoutes(api)
 	assignmenthttp.NewHandler(dep.AssignmentService, dep.AuthVerifier).RegisterRoutes(api)
 	labelhttp.NewHandler(dep.LabelService, dep.AuthVerifier).RegisterRoutes(api)
 	checkhttp.NewHandler(dep.CheckService, dep.AuthVerifier).RegisterRoutes(api)

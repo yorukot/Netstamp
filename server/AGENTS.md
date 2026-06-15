@@ -38,7 +38,7 @@ Probe runtime requests follow the same layer boundaries:
 
 `HTTP request -> chi route -> internal/controller/transport/http/proberuntime handler -> internal/controller/application/proberuntime.Service -> internal/controller/infrastructure/postgres/{probe,ping,tcp,traceroute} repositories -> sqlc.Queries -> PostgreSQL`
 
-No GraphQL, message queues, controller-side background workers, controller-side scheduled jobs, email, payment, object-storage integrations, or functional DNS/HTTP probe executors are currently defined. The controller supports ping, TCP connect, and traceroute check definitions, assignment payloads, runtime result ingestion, result queries, and typed result persistence. The standalone probe agent executes ping, TCP connect, and traceroute checks through the shared scheduler, worker pool, result queue, and runtime result submitter.
+No GraphQL, message queues, controller-side scheduled jobs, payment, object-storage integrations, or functional DNS/HTTP probe executors are currently defined. The controller supports ping, TCP connect, and traceroute check definitions, assignment payloads, runtime result ingestion, result queries, typed result persistence, alert incident evaluation, and a notification outbox worker for webhook, Slack incoming webhook, Discord, Telegram, and SMTP email deliveries. The standalone probe agent executes ping, TCP connect, and traceroute checks through the shared scheduler, worker pool, result queue, and runtime result submitter.
 
 ## Layer Responsibilities
 
@@ -227,7 +227,7 @@ Add schema changes as timestamped Goose migrations under `db/migrations/`, follo
 
 ## External Integrations
 
-Current backend integrations are PostgreSQL/TimescaleDB, optional OTLP trace export to VictoriaTraces, Prometheus-compatible metrics scraped by VictoriaMetrics, and VictoriaLogs for Grafana log panels, as shown in `deployments/docker/compose.observability.yaml`. Docker observability also includes Vector container log collection, PostgreSQL metrics via `postgres_exporter`, and a probe-agent dashboard for agent metrics when a probe exposes `NETSTAMP_PROBE_METRICS_ADDR`. The observability stack mounts `deployments/docker/postgres-exporter/queries.yaml` to backfill dashboard-specific activity-state metrics. No third-party API SDKs, queues, email services, payment providers, or object storage clients are currently implemented.
+Current backend integrations are PostgreSQL/TimescaleDB, optional OTLP trace export to VictoriaTraces, Prometheus-compatible metrics scraped by VictoriaMetrics, VictoriaLogs for Grafana log panels, outbound HTTPS alert notifications, and optional SMTP email delivery when `SMTP_*` settings are configured. Docker observability also includes Vector container log collection, PostgreSQL metrics via `postgres_exporter`, and a probe-agent dashboard for agent metrics when a probe exposes `NETSTAMP_PROBE_METRICS_ADDR`. The observability stack mounts `deployments/docker/postgres-exporter/queries.yaml` to backfill dashboard-specific activity-state metrics. No third-party API SDKs, message queues, payment providers, or object storage clients are currently implemented.
 
 ## Commit & Pull Request Guidelines
 

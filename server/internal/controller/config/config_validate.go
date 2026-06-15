@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/mail"
 	"net/netip"
 	"net/url"
 	"strconv"
@@ -91,6 +92,13 @@ func validateDatabasePort(value int32) []error {
 	return nil
 }
 
+func validatePort(key string, value int32) []error {
+	if value < 1 || value > 65535 {
+		return []error{fmt.Errorf("%s must be between 1 and 65535", key)}
+	}
+	return nil
+}
+
 func validateDatabaseSSLMode(value string) []error {
 	switch strings.TrimSpace(value) {
 	case "disable", "allow", "prefer", "require", "verify-ca", "verify-full":
@@ -143,6 +151,52 @@ func validateTrustedProxyPrefixes(key, value string) []error {
 	}
 
 	return nil
+}
+
+func validateSMTPConfig(cfg SMTPConfig) []error {
+	var errs []error
+	errs = append(errs, validatePort(keySMTPPort, cfg.Port)...)
+	errs = append(errs, validatePositiveDuration(keySMTPTimeout, cfg.Timeout)...)
+	errs = append(errs, validateSMTPTLSMode(cfg.TLSMode)...)
+
+	if !smtpConfigPartiallySet(cfg) {
+		return errs
+	}
+
+	errs = append(errs, validateRequiredString(keySMTPHost, cfg.Host)...)
+	errs = append(errs, validateSMTPFrom(cfg.From)...)
+	if (strings.TrimSpace(cfg.Username) == "") != (cfg.Password == "") {
+		errs = append(errs, errors.New("SMTP_USERNAME and SMTP_PASSWORD must be set together"))
+	}
+	return errs
+}
+
+func smtpConfigPartiallySet(cfg SMTPConfig) bool {
+	return strings.TrimSpace(cfg.Host) != "" ||
+		strings.TrimSpace(cfg.Username) != "" ||
+		cfg.Password != "" ||
+		strings.TrimSpace(cfg.From) != ""
+}
+
+func validateSMTPFrom(value string) []error {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return []error{errors.New("SMTP_FROM must not be empty")}
+	}
+	address, err := mail.ParseAddress(trimmed)
+	if err != nil || address.Address != trimmed || address.Name != "" {
+		return []error{errors.New("SMTP_FROM must be a valid email address")}
+	}
+	return nil
+}
+
+func validateSMTPTLSMode(value string) []error {
+	switch strings.TrimSpace(value) {
+	case "starttls", "implicit", "none":
+		return nil
+	default:
+		return []error{errors.New("SMTP_TLS_MODE must be one of starttls, implicit, or none")}
+	}
 }
 
 func parseTrustedProxyPrefixes(value string) ([]netip.Prefix, error) {

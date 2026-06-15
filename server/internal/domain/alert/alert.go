@@ -48,6 +48,7 @@ type NotificationType string
 
 const (
 	NotificationTypeWebhook  NotificationType = "webhook"
+	NotificationTypeSlack    NotificationType = "slack"
 	NotificationTypeDiscord  NotificationType = "discord"
 	NotificationTypeTelegram NotificationType = "telegram"
 	NotificationTypeEmail    NotificationType = "email"
@@ -191,6 +192,10 @@ type WebhookConfig struct {
 	URL string `json:"url"`
 }
 
+type SlackConfig struct {
+	URL string `json:"url"`
+}
+
 type DiscordConfig struct {
 	URL string `json:"url"`
 }
@@ -198,6 +203,10 @@ type DiscordConfig struct {
 type TelegramConfig struct {
 	BotToken string `json:"botToken"`
 	ChatID   string `json:"chatId"`
+}
+
+type EmailConfig struct {
+	To []string `json:"to"`
 }
 
 func VNRuleName(name string) (string, error) {
@@ -277,12 +286,14 @@ func VNNotificationType(notificationType NotificationType) (NotificationType, er
 	switch NotificationType(strings.TrimSpace(string(notificationType))) {
 	case NotificationTypeWebhook:
 		return NotificationTypeWebhook, nil
+	case NotificationTypeSlack:
+		return NotificationTypeSlack, nil
 	case NotificationTypeDiscord:
 		return NotificationTypeDiscord, nil
 	case NotificationTypeTelegram:
 		return NotificationTypeTelegram, nil
 	case NotificationTypeEmail:
-		return "", errors.New("email notifications are not supported in beta")
+		return NotificationTypeEmail, nil
 	default:
 		return "", errors.New("invalid notification type")
 	}
@@ -303,6 +314,25 @@ func VNWebhookConfig(raw json.RawMessage) (json.RawMessage, WebhookConfig, error
 	canonical, err := json.Marshal(config)
 	if err != nil {
 		return nil, WebhookConfig{}, err
+	}
+	return canonical, config, nil
+}
+
+func VNSlackConfig(raw json.RawMessage) (json.RawMessage, SlackConfig, error) {
+	if len(raw) == 0 {
+		return nil, SlackConfig{}, errors.New("slack config is required")
+	}
+	var config SlackConfig
+	if err := json.Unmarshal(raw, &config); err != nil {
+		return nil, SlackConfig{}, err
+	}
+	config.URL = strings.TrimSpace(config.URL)
+	if err := validateSlackWebhookURL(config.URL); err != nil {
+		return nil, SlackConfig{}, err
+	}
+	canonical, err := json.Marshal(config)
+	if err != nil {
+		return nil, SlackConfig{}, err
 	}
 	return canonical, config, nil
 }
@@ -349,9 +379,44 @@ func VNTelegramConfig(raw json.RawMessage) (json.RawMessage, TelegramConfig, err
 	return canonical, config, nil
 }
 
+func VNEmailConfig(raw json.RawMessage) (json.RawMessage, EmailConfig, error) {
+	if len(raw) == 0 {
+		return nil, EmailConfig{}, errors.New("email config is required")
+	}
+	var config EmailConfig
+	if err := json.Unmarshal(raw, &config); err != nil {
+		return nil, EmailConfig{}, err
+	}
+	recipients, err := validateEmailRecipients(config.To)
+	if err != nil {
+		return nil, EmailConfig{}, err
+	}
+	config.To = recipients
+	canonical, err := json.Marshal(config)
+	if err != nil {
+		return nil, EmailConfig{}, err
+	}
+	return canonical, config, nil
+}
+
 func validateWebhookURL(value string) error {
 	_, err := validateHTTPSURL(value, "webhook URL")
 	return err
+}
+
+func validateSlackWebhookURL(value string) error {
+	parsed, err := validateHTTPSURL(value, "slack webhook URL")
+	if err != nil {
+		return err
+	}
+	host := strings.ToLower(parsed.Hostname())
+	if host != "hooks.slack.com" && host != "hooks.slack-gov.com" {
+		return errors.New("slack webhook URL must use a Slack webhook host")
+	}
+	if !strings.HasPrefix(parsed.EscapedPath(), "/services/") {
+		return errors.New("slack webhook URL must be an incoming webhook URL")
+	}
+	return nil
 }
 
 func validateDiscordWebhookURL(value string) error {
@@ -434,4 +499,41 @@ func validateTelegramChatID(value string) error {
 		return err
 	}
 	return spvalidator.Max(value, 128)
+}
+
+func validateEmailRecipients(values []string) ([]string, error) {
+	if len(values) == 0 {
+		return nil, errors.New("email recipient is required")
+	}
+	if len(values) > 50 {
+		return nil, errors.New("email recipient list must contain 50 or fewer addresses")
+	}
+	seen := make(map[string]struct{}, len(values))
+	recipients := make([]string, 0, len(values))
+	for _, value := range values {
+		recipient, err := validateEmailRecipient(value)
+		if err != nil {
+			return nil, err
+		}
+		if _, ok := seen[recipient]; ok {
+			continue
+		}
+		seen[recipient] = struct{}{}
+		recipients = append(recipients, recipient)
+	}
+	if len(recipients) == 0 {
+		return nil, errors.New("email recipient is required")
+	}
+	return recipients, nil
+}
+
+func validateEmailRecipient(value string) (string, error) {
+	recipient := strings.ToLower(strings.TrimSpace(value))
+	if err := spvalidator.Email(recipient); err != nil {
+		return "", err
+	}
+	if err := spvalidator.Max(recipient, 254); err != nil {
+		return "", err
+	}
+	return recipient, nil
 }
