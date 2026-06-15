@@ -1,6 +1,7 @@
 import { Badge, Button, GlobalFooter } from "@netstamp/ui";
 import { lazy, Suspense, useEffect, useRef } from "react";
 import taiwanSubmarineCablesMap from "../../assets/taiwan_submarine_cables.svg?url";
+import { appUrl } from "../../lib/publicUrls";
 import { GlobalNetworkAnimation } from "./GlobalNetworkAnimation";
 import styles from "./LandingPage.module.css";
 
@@ -27,7 +28,7 @@ function classNames(...classes: Array<string | false | null | undefined>) {
 	return classes.filter(Boolean).join(" ");
 }
 
-export function LandingPage({ appHref = "/register" }: LandingPageProps) {
+export function LandingPage({ appHref = appUrl("/register") }: LandingPageProps) {
 	const landingRef = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {

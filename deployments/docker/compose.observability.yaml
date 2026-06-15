@@ -32,7 +32,7 @@ x-backend-environment: &backend-environment
   DEMO_MODE: ${DEMO_MODE:-false}
   LOG_LEVEL: ${LOG_LEVEL:-info}
   LOG_PSEUDONYM_KEY: ${LOG_PSEUDONYM_KEY:?set LOG_PSEUDONYM_KEY}
-  BACKEND_BASE_URL: ${BACKEND_BASE_URL:-}
+  BACKEND_BASE_URL: ${BACKEND_BASE_URL:-https://dashboard.netstamp.dev}
   HTTP_ADDR: :8080
   HTTP_TRUSTED_PROXIES: ${HTTP_TRUSTED_PROXIES:-}
   DATABASE_HOST: postgres
@@ -259,6 +259,9 @@ services:
       GF_SECURITY_ADMIN_PASSWORD: ${GF_SECURITY_ADMIN_PASSWORD:?set GF_SECURITY_ADMIN_PASSWORD}
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_INSTALL_PLUGINS: ${GF_INSTALL_PLUGINS:-victoriametrics-logs-datasource}
+      GF_SERVER_DOMAIN: ${GRAFANA_DOMAIN:-dashboard.netstamp.dev}
+      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-https://dashboard.netstamp.dev/grafana/}
+      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
       GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/netstamp-controller-status.json
     expose:
       - "3000"

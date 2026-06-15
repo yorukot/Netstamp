@@ -2,7 +2,6 @@
 
 interface ImportMetaEnv {
 	readonly VITE_NETSTAMP_API_BASE_URL?: string;
-	readonly VITE_NETSTAMP_DOCS_BASE_URL?: string;
 	readonly VITE_NETSTAMP_API_PROXY_TARGET?: string;
 	readonly VITE_NETSTAMP_REGISTRATION_ENABLED?: string;
 	readonly VITE_NETSTAMP_PROJECT_CREATION_ENABLED?: string;

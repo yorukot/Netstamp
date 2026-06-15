@@ -12,6 +12,10 @@ Run from the repository root:
 - `pnpm --filter @netstamp/docs preview`: preview the built docs output.
 - `pnpm --filter @netstamp/ui storybook`: run Storybook locally for shared UI components.
 
+## Public App Links
+
+The public site links to the dashboard app through `PUBLIC_NETSTAMP_APP_BASE_URL`, which defaults to `https://dashboard.netstamp.dev`.
+
 ## Structure
 
 - `src/pages/index.astro`: public landing page shell.

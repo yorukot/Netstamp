@@ -1,5 +1,6 @@
 ---
 import netstampLogo from "@netstamp/brand/assets/netstamp-logo-light.svg?url";
+import { appUrl } from "../../lib/publicUrls";
 import Icon from "../icons/Icon.astro";
 
 const pathname = Astro.url.pathname;
@@ -33,6 +34,6 @@ const isComponents = pathname.startsWith("/storybook") || pathname.startsWith("/
 			<Icon name="github" size={16} />
 			<span>GitHub</span>
 		</a>
-		<a href="/login" class="siteNavSignIn ns-cut-frame">Sign in</a>
+		<a href={appUrl("/login")} class="siteNavSignIn ns-cut-frame">Sign in</a>
 	</div>
 </nav>

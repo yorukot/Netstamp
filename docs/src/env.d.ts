@@ -4,6 +4,7 @@ import type { HTMLAttributes } from "react";
 
 declare global {
 	interface ImportMetaEnv {
+		readonly PUBLIC_NETSTAMP_APP_BASE_URL?: string;
 		readonly PUBLIC_NETSTAMP_GA_MEASUREMENT_ID?: string;
 		readonly PUBLIC_NETSTAMP_GOOGLE_TAG_ID?: string;
 		readonly PUBLIC_NETSTAMP_CLARITY_PROJECT_ID?: string;

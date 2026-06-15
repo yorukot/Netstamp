@@ -74,6 +74,16 @@ The web app has matching build-time flags that hide the disabled UI controls:
 
 When `VITE_NETSTAMP_DEMO_MODE=true` and both demo credential values are set, the login page shows the account and a button that fills the login form. Demo mode is explicit; disabling registration alone does not enable the demo banner. The backend runtime settings are the source of truth. The Vite flags only control the static frontend bundle built for that deployment.
 
+## Observability Host
+
+The observability compose stack serves Grafana behind the dashboard host at `/grafana/`.
+
+| Variable           | Purpose                                     | Default                                   |
+| ------------------ | ------------------------------------------- | ----------------------------------------- |
+| `BACKEND_BASE_URL` | Public controller origin for generated URLs | `https://dashboard.netstamp.dev`          |
+| `GRAFANA_DOMAIN`   | Grafana public domain                       | `dashboard.netstamp.dev`                  |
+| `GRAFANA_ROOT_URL` | Grafana public root URL                     | `https://dashboard.netstamp.dev/grafana/` |
+
 ## Backend And API Assets
 
 Backend source lives in `server/`. The docs API explorer reads `docs/public/openapi.json`, which should be regenerated from the TypeSpec contract when API behavior changes. Non-production backend environments also expose Scalar docs at `/api/v1/docs`; production does not register that runtime docs route or `/api/v1/openapi.json`.

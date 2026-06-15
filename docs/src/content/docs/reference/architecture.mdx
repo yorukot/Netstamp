@@ -9,9 +9,9 @@ head:
 
 ## Surfaces
 
-`docs/` is the public website and documentation surface. It uses Astro and ships static assets for GitHub Pages. The landing page is rendered as a React island only because it reuses interactive visual components.
+`docs/` is the public website and documentation surface. It uses Astro and ships static assets for the primary public host, such as `netstamp.dev`. The landing page is rendered as a React island only because it reuses interactive visual components.
 
-`web/` is the service itself. It uses React Router and now redirects `/` to `/login`, keeping product authentication separate from the public site.
+`web/` is the dashboard service itself. It uses React Router on the dashboard host, such as `dashboard.netstamp.dev`, and keeps product authentication separate from the public site.
 
 `packages/ui/` contains reusable React primitives and shared design tokens. Cross-surface UI like `GlobalFooter` belongs there.
 
@@ -20,11 +20,11 @@ head:
 The backend exposes HTTP routes under `/api/{version}` with chi. The public API contract is authored in TypeSpec, emitted to OpenAPI, and served by the backend for the docs API explorer.
 
 ```text
-Browser -> web/ React app -> /api/v1/* -> chi -> application service -> PostgreSQL/TimescaleDB
+Browser -> dashboard host -> web/ React app -> /api/v1/* -> chi -> application service -> PostgreSQL/TimescaleDB
 ```
 
 :::warning Do not import `web/src` from `docs/`. Shared React code should move into `packages/ui`, while docs-only Astro components should stay in `docs/src`. :::
 
 ## Routing
 
-The docs site owns `/`, `/docs/*`, `/openapi/`, and `/storybook/`. The service app owns `/login`, `/register`, and authenticated routes like `/dashboard`, `/probes`, and `/settings`.
+The public host owns `/`, `/docs/*`, `/openapi/`, and `/storybook/` through the Astro static build served by GitHub Pages. The dashboard host owns the React app routes such as `/login`, `/register`, `/dashboard`, `/projects/*`, `/probes`, and `/settings`; `/api/*` on that host is proxied to the Go controller.
