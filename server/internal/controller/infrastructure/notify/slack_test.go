@@ -63,7 +63,8 @@ func slackFieldText(blocks []struct {
 	Fields []struct {
 		Text string `json:"text"`
 	} `json:"fields"`
-}) string {
+},
+) string {
 	var values []string
 	for _, block := range blocks {
 		for _, field := range block.Fields {

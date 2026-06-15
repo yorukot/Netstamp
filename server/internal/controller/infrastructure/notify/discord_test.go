@@ -66,7 +66,8 @@ func TestRenderDiscordWebhookBodyFallsBackForNonIncidentPayload(t *testing.T) {
 func fieldValue(fields []struct {
 	Name  string `json:"name"`
 	Value string `json:"value"`
-}, name string) string {
+}, name string,
+) string {
 	for _, field := range fields {
 		if field.Name == name {
 			return field.Value
