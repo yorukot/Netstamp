@@ -260,7 +260,6 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 						<strong>yoru://project-access</strong>
 					</div>
 					<div className={styles.consoleBody}>
-						<div className={styles.scanline} aria-hidden="true" />
 						<div className={styles.successView}>
 							<ScriptLine prompt="access" text="No projects are assigned to this account." />
 							<p>Use an invited demo account or ask an operator for project access.</p>
@@ -288,8 +287,6 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 					<strong>yoru://first-contact</strong>
 				</div>
 				<div className={styles.consoleBody}>
-					<div className={styles.scanline} aria-hidden="true" />
-
 					{createdProject ? (
 						<div className={styles.successView} aria-live="polite">
 							<ScriptLine prompt="success" text={`Project ${createdProject} created.`} />
