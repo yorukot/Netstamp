@@ -409,7 +409,7 @@ function lossBandRenderItem(params: CustomRenderParams, api: CustomRenderApi) {
 	};
 }
 
-export const insightSeriesPalette = ["#2563EB", "#0F766E", "#D45B18", "#7C3AED", "#168A45", "#A05A00", "#C9362C", "#64748B", "#0891B2", "#9333EA"];
+export const insightSeriesPalette = ["#2563EB", "#0891B2", "#0F766E", "#64748B", "#94A3B8", "#1D4ED8", "#0EA5E9", "#475569", "#38BDF8", "#334155"];
 
 export function insightSeriesColor(index: number) {
 	return insightSeriesPalette[index % insightSeriesPalette.length];
@@ -429,7 +429,7 @@ export function pingInsightChartOption(data: PingSeriesChartData): ChartOption {
 
 	return {
 		backgroundColor: "transparent",
-		color: ["#2563EB", "#D45B18", "#C9362C"],
+		color: ["#2563EB", "#A05A00", "#C9362C"],
 		tooltip: {
 			trigger: "axis",
 			backgroundColor: "rgba(255,255,255,0.98)",
@@ -538,7 +538,7 @@ export function tcpInsightChartOption(data: TcpSeriesChartData): ChartOption {
 
 	return {
 		backgroundColor: "transparent",
-		color: ["#2563EB", "#D45B18", "#C9362C"],
+		color: ["#2563EB", "#A05A00", "#C9362C"],
 		tooltip: {
 			trigger: "axis",
 			backgroundColor: "rgba(255,255,255,0.98)",

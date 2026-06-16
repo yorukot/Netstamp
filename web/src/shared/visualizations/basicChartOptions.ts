@@ -27,17 +27,7 @@ export function lineChartOption(title: string, values: number[], secondaryValues
 				showSymbol: false,
 				lineStyle: { width: 2.5 },
 				areaStyle: {
-					color: {
-						type: "linear",
-						x: 0,
-						y: 0,
-						x2: 0,
-						y2: 1,
-						colorStops: [
-							{ offset: 0, color: "rgba(37,99,235,0.18)" },
-							{ offset: 1, color: "rgba(37,99,235,0)" }
-						]
-					}
+					color: "rgba(37,99,235,0.12)"
 				}
 			},
 			secondaryValues.length
@@ -57,7 +47,7 @@ export function lineChartOption(title: string, values: number[], secondaryValues
 export function barChartOption(values: number[], name = "events"): ChartOption {
 	return {
 		backgroundColor: "transparent",
-		color: ["#D45B18"],
+		color: ["#2563EB"],
 		tooltip: {
 			trigger: "axis",
 			backgroundColor: "rgba(255,255,255,0.98)",
@@ -75,17 +65,7 @@ export function barChartOption(values: number[], name = "events"): ChartOption {
 				barWidth: "42%",
 				itemStyle: {
 					borderRadius: [6, 6, 0, 0],
-					color: {
-						type: "linear",
-						x: 0,
-						y: 0,
-						x2: 0,
-						y2: 1,
-						colorStops: [
-							{ offset: 0, color: "#D45B18" },
-							{ offset: 1, color: "rgba(212,91,24,0.18)" }
-						]
-					}
+					color: "#2563EB"
 				}
 			}
 		]

@@ -40,7 +40,7 @@
 .storybook-hero {
 	border-color: var(--ns-accent-border);
 	background: var(--ns-surface);
-	box-shadow: var(--ns-shadow-md);
+	box-shadow: none;
 }
 
 .storybook-hero--entrance {
@@ -111,7 +111,7 @@
 	padding: clamp(0.75rem, 2vw, 1rem);
 	border: 1px solid color-mix(in srgb, var(--ns-accent) 28%, transparent);
 	background: color-mix(in srgb, var(--ns-bg) 20%, transparent);
-	box-shadow: inset 0 1px 0 var(--ns-glass-light);
+	box-shadow: none;
 }
 
 .storybook-route-card {
