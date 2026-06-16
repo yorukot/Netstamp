@@ -354,10 +354,14 @@
 	inset: 0;
 	padding: 0;
 	border: 0;
-	background: color-mix(in srgb, var(--ns-bg) 74%, transparent);
+	background: rgba(23, 32, 51, 0.18);
 	backdrop-filter: blur(0.5rem);
 	cursor: default;
 	appearance: none;
+}
+
+:root[data-theme="dark"] .docsSearchScrim {
+	background: rgba(8, 17, 29, 0.4);
 }
 
 .docsSearchPanel {

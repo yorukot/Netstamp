@@ -48,7 +48,7 @@ const schemaGraph = createSchemaGraph({ title, description, pageUrl: canonicalUr
 		<script is:inline>
 			(() => {
 				const storageKey = "netstamp:theme";
-				const fallbackTheme = window.matchMedia?.("(prefers-color-scheme: light)").matches ? "light" : "dark";
+				const fallbackTheme = "light";
 
 				try {
 					const storedTheme = window.localStorage.getItem(storageKey);

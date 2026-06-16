@@ -80,19 +80,20 @@
 }
 
 .secondary {
-	--ns-frame-color: var(--ns-border);
-	background: var(--ns-surface-raised);
-	color: var(--ns-text);
+	--ns-frame-color: var(--ns-secondary-border);
+	background: var(--ns-secondary-muted);
+	color: var(--ns-secondary-active);
 	box-shadow: none;
 }
 
 .secondary:hover {
-	--ns-frame-color: var(--ns-border-strong);
-	background: var(--ns-bg-subtle);
+	--ns-frame-color: var(--ns-secondary);
+	color: var(--ns-secondary-hover);
+	background: var(--ns-secondary-subtle);
 }
 
 .secondary:active {
-	background: var(--ns-border);
+	background: var(--ns-secondary-subtle);
 }
 
 .outline {
