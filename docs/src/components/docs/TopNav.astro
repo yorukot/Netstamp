@@ -1,6 +1,7 @@
 ---
 import netstampLogoDark from "@netstamp/brand/assets/netstamp-logo-dark.svg?url";
 import netstampLogoLight from "@netstamp/brand/assets/netstamp-logo-light.svg?url";
+import { Button } from "@netstamp/ui";
 import { appUrl } from "../../lib/publicUrls";
 import Icon from "../icons/Icon.astro";
 
@@ -36,10 +37,150 @@ const isComponents = pathname.startsWith("/storybook") || pathname.startsWith("/
 			<Icon name="github" size={16} />
 			<span>GitHub</span>
 		</a>
-		<button class="siteThemeToggle" type="button" data-theme-toggle aria-label="Switch color mode" title="Switch color mode">
+		<Button className="siteThemeToggle" variant="outline" size="sm" type="button" data-theme-toggle aria-label="Switch color mode" title="Switch color mode">
 			<ph-sun class="themeIcon themeIconSun" size="16" weight="bold" aria-hidden="true"></ph-sun>
 			<ph-moon-stars class="themeIcon themeIconMoon" size="16" weight="bold" aria-hidden="true"></ph-moon-stars>
-		</button>
-		<a href={appUrl("/login")} class="siteNavSignIn ns-frame">Sign in</a>
+		</Button>
+		<Button className="siteNavSignIn" size="sm" asChild>
+			<a href={appUrl("/login")}>Sign in</a>
+		</Button>
 	</div>
 </nav>
+
+<style>
+	.siteNav {
+		position: sticky;
+		top: 0;
+		z-index: 40;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1rem;
+		min-height: 4.5rem;
+		padding: 0 1.5rem;
+		border-bottom: 1px solid var(--ns-border);
+		background: var(--ns-surface);
+		backdrop-filter: blur(1rem);
+	}
+
+	.siteBrand {
+		display: inline-flex;
+		align-items: center;
+		color: var(--ns-text);
+		text-decoration: none;
+	}
+
+	.siteBrandLogo {
+		display: block;
+		width: clamp(9rem, 15vw, 11.25rem);
+		height: auto;
+	}
+
+	.siteBrandLogoDark {
+		display: none;
+	}
+
+	:global(:root[data-theme="light"]) .siteBrandLogoLight {
+		display: none;
+	}
+
+	:global(:root[data-theme="light"]) .siteBrandLogoDark {
+		display: block;
+	}
+
+	.siteNavPrimary,
+	.siteNavActions {
+		display: flex;
+		align-items: center;
+		gap: clamp(1rem, 3vw, 2rem);
+	}
+
+	.siteNavLinks {
+		display: flex;
+		align-items: center;
+		gap: 1.5rem;
+	}
+
+	.siteNavActions {
+		gap: 0.75rem;
+	}
+
+	.siteNavLink {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.45rem;
+		color: var(--ns-text-subtle);
+		font-family: var(--ns-font-mono);
+		font-size: 0.75rem;
+		font-weight: 800;
+		letter-spacing: 0.09em;
+		text-decoration: none;
+		text-transform: uppercase;
+		transition: color var(--ns-transition);
+	}
+
+	.siteNavLink:hover,
+	.siteNavLink.active {
+		color: var(--ns-accent-hover);
+	}
+
+	.siteBrand:focus-visible,
+	.siteNavLink:focus-visible,
+	:global(.siteThemeToggle:focus-visible),
+	:global(.siteNavSignIn:focus-visible) {
+		outline: var(--ns-focus-outline);
+		outline-offset: 0.25rem;
+	}
+
+	.siteNavActions .siteNavLink,
+	:global(.siteNavSignIn),
+	:global(.siteThemeToggle) {
+		min-width: 6.75rem;
+		justify-content: center;
+	}
+
+	:global(.siteThemeToggle) {
+		width: 2.25rem;
+		min-width: 2.25rem;
+		min-height: 2.25rem;
+		padding: 0;
+	}
+
+	.themeIconMoon,
+	:global(:root[data-theme="light"]) .themeIconSun {
+		display: none;
+	}
+
+	:global(:root[data-theme="light"]) .themeIconMoon {
+		display: block;
+	}
+
+	@media (max-width: 48rem) {
+		.siteNav {
+			padding: 0 1rem;
+		}
+
+		.siteNavLinks {
+			gap: 0.5rem;
+		}
+
+		.siteNavPrimary {
+			gap: 0.75rem;
+		}
+
+		:global(.siteNavSignIn) {
+			min-width: 5rem;
+			min-height: 2rem;
+			padding: 0.45rem 0.625rem;
+			font-size: 0.6875rem;
+		}
+
+		.siteNavActions .siteNavLink {
+			min-width: 2.25rem;
+		}
+
+		.siteNavLink span {
+			display: none;
+		}
+	}
+</style>
