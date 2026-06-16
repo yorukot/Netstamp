@@ -43,7 +43,7 @@ export function UserMenu({ user, onLogout }: UserMenuProps) {
 		<>
 			<PopoverRoot open={profileOpen} onOpenChange={setProfileOpen}>
 				<PopoverTrigger asChild>
-					<button type="button" className={classNames("ns-cut-frame", styles.userCard)} aria-label={`Open user menu for ${user.name}`} title={user.name}>
+					<button type="button" className={styles.userCard} aria-label={`Open user menu for ${user.name}`} title={user.name}>
 						<div className={styles.userProfile}>
 							<SignalAvatar size="sm" src={user.gravatarUrl} referrerPolicy="no-referrer" aria-hidden="true" />
 							<div className={styles.userMeta}>
@@ -55,7 +55,7 @@ export function UserMenu({ user, onLogout }: UserMenuProps) {
 				</PopoverTrigger>
 
 				<PopoverPortal>
-					<PopoverContent className={classNames("ns-cut-frame", styles.userPopover)} align="start" side="right" sideOffset={10} collisionPadding={8}>
+					<PopoverContent className={styles.userPopover} align="start" side="right" sideOffset={10} collisionPadding={8}>
 						{content}
 					</PopoverContent>
 				</PopoverPortal>
@@ -72,7 +72,7 @@ export function UserMenu({ user, onLogout }: UserMenuProps) {
 				</div>
 
 				<PopoverPortal>
-					<PopoverContent className={classNames("ns-cut-frame", styles.userPopover)} align="end" side="right" sideOffset={10} collisionPadding={8}>
+					<PopoverContent className={styles.userPopover} align="end" side="right" sideOffset={10} collisionPadding={8}>
 						{content}
 					</PopoverContent>
 				</PopoverPortal>
@@ -96,7 +96,7 @@ export function UserMenuPanel({ user, onLogout, className, onClose }: UserMenuPa
 	}
 
 	return (
-		<section className={classNames("ns-cut-frame", styles.mobileDrawerUserPanel, className)} aria-label="User menu">
+		<section className={classNames(styles.mobileDrawerUserPanel, className)} aria-label="User menu">
 			<UserMenuContent user={user} pendingInviteCount={pendingInviteCount} inviteCountLabel={inviteCountLabel} onClose={closePanel} onLogout={logout} />
 		</section>
 	);

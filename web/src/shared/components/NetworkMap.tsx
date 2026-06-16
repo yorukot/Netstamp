@@ -133,7 +133,7 @@ export function NetworkMap({ probes, selectedId, onSelect, mode = "fleet", fleet
 	const themeRef = useRef(theme);
 	const appliedThemeRef = useRef<MapTheme | null>(null);
 	const [mapReady, setMapReady] = useState(false);
-	const classes = ["ns-cut-frame", styles.map, className].filter(Boolean).join(" ");
+	const classes = [styles.map, className].filter(Boolean).join(" ");
 	const positionedProbes = useMemo(() => {
 		const probesWithCoordinates = probes.filter(hasCoordinates);
 

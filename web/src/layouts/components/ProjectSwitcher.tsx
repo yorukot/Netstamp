@@ -3,7 +3,6 @@ import styles from "@/layouts/AppShell.module.css";
 import { pathForProjectSwitch } from "@/routes/routePaths";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { appFeatures } from "@/shared/config/features";
-import { classNames } from "@/shared/utils/classNames";
 import { Button, PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger, Select } from "@netstamp/ui";
 import { FolderOpen, FolderPlus } from "@phosphor-icons/react";
 import { useState } from "react";
@@ -75,13 +74,13 @@ export function ProjectSwitcher() {
 			<PopoverRoot open={compactOpen} onOpenChange={setCompactOpen}>
 				<div className={styles.projectCompact}>
 					<PopoverTrigger asChild>
-						<button type="button" className={classNames("ns-cut-frame", styles.projectCompactButton)} aria-label="Select project">
+						<button type="button" className={styles.projectCompactButton} aria-label="Select project">
 							<FolderOpen size={18} weight="bold" aria-hidden="true" />
 						</button>
 					</PopoverTrigger>
 				</div>
 				<PopoverPortal>
-					<PopoverContent className={classNames("ns-cut-frame", styles.projectPopover)} align="center" side="right" sideOffset={10} collisionPadding={8}>
+					<PopoverContent className={styles.projectPopover} align="center" side="right" sideOffset={10} collisionPadding={8}>
 						<label className={styles.projectSelectField}>
 							<span>project</span>
 							<Select variant="compact" frameClassName={styles.projectFrame} className={styles.projectControl} value={projectRef || ""} onChange={event => selectProject(event.currentTarget.value)}>

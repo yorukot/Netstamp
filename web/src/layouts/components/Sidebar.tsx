@@ -47,7 +47,7 @@ export function Sidebar({ collapsed, user, onToggleCollapsed, onLogout }: Sideba
 					</Link>
 					<button
 						type="button"
-						className={classNames("ns-cut-frame", styles.mobileMenuButton)}
+						className={styles.mobileMenuButton}
 						aria-label={mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
 						aria-expanded={mobileMenuOpen}
 						onClick={() => setMobileMenuOpen(open => !open)}
@@ -66,7 +66,7 @@ export function Sidebar({ collapsed, user, onToggleCollapsed, onLogout }: Sideba
 							<NavLink
 								key={item.route}
 								to={pathForRoute(item.route, { projectRef })}
-								className={({ isActive }) => classNames("ns-cut-frame", isActive && styles.active)}
+								className={({ isActive }) => classNames(isActive && styles.active)}
 								aria-label={item.label}
 								title={item.label}
 								onClick={closeMobileMenu}
@@ -82,7 +82,7 @@ export function Sidebar({ collapsed, user, onToggleCollapsed, onLogout }: Sideba
 			</div>
 
 			<button type="button" className={styles.sidebarToggle} aria-label={toggleLabel} onClick={onToggleCollapsed}>
-				<span className={classNames("ns-cut-frame", styles.sidebarToggleFrame)}>
+				<span className={styles.sidebarToggleFrame}>
 					<ToggleIcon size={16} weight="bold" aria-hidden="true" />
 				</span>
 			</button>
@@ -107,7 +107,7 @@ export function Sidebar({ collapsed, user, onToggleCollapsed, onLogout }: Sideba
 							<NavLink
 								key={item.route}
 								to={pathForRoute(item.route, { projectRef })}
-								className={({ isActive }) => classNames("ns-cut-frame", styles.mobileDrawerNavLink, isActive && styles.active)}
+								className={({ isActive }) => classNames(styles.mobileDrawerNavLink, isActive && styles.active)}
 								onClick={closeMobileMenu}
 							>
 								<ItemIcon className={styles.navIcon} size={20} weight="bold" aria-hidden="true" />

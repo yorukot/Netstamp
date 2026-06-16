@@ -192,7 +192,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
 						<div className={styles.curtainTop} aria-hidden="true" />
 						<div className={styles.curtainBottom} aria-hidden="true" />
 						<AlertDialogContent asChild aria-describedby={message ? messageId : undefined}>
-							<form className={["ns-cut-frame", styles.dialog].join(" ")} data-tone={tone} onSubmit={submitDialog} onMouseDown={event => event.stopPropagation()}>
+							<form className={styles.dialog} data-tone={tone} onSubmit={submitDialog} onMouseDown={event => event.stopPropagation()}>
 								<div className={styles.header}>
 									<span>{eyebrow}</span>
 									<AlertDialogTitle asChild>

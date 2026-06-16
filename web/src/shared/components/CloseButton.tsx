@@ -7,7 +7,7 @@ interface CloseButtonProps extends Omit<ComponentPropsWithoutRef<"button">, "chi
 }
 
 export function CloseButton({ ariaLabel = "Close panel", className, title, type = "button", ...props }: CloseButtonProps) {
-	const classes = ["ns-cut-frame", styles.button, className].filter(Boolean).join(" ");
+	const classes = [styles.button, className].filter(Boolean).join(" ");
 
 	return (
 		<button type={type} className={classes} aria-label={ariaLabel} title={title ?? ariaLabel} {...props}>

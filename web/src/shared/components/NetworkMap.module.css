@@ -3,6 +3,8 @@
 	--ns-frame-color: var(--ns-border);
 	position: relative;
 	min-height: 22rem;
+	overflow: hidden;
+	border: 1px solid var(--ns-frame-color);
 	background: var(--ns-surface-deep);
 }
 

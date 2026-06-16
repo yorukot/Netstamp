@@ -8,6 +8,7 @@
 	width: 2rem;
 	height: 2rem;
 	padding: 0;
+	border: 1px solid var(--ns-frame-color);
 	color: var(--ns-text-muted);
 	background: var(--ns-surface);
 	box-shadow: none;
