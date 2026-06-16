@@ -1,33 +1,53 @@
 ---
 import { docsSearchIndex } from "../../data/docs";
+import { Button, Input, Panel } from "@netstamp/ui";
 import Icon from "../icons/Icon.astro";
 
 const dataJson = JSON.stringify(docsSearchIndex);
 ---
 
 <div class="docsSearch" data-docs-search data-search-index={dataJson}>
-	<button class="docsSearchTrigger" type="button" data-search-open aria-label="Search documentation" aria-haspopup="dialog" aria-expanded="false" aria-controls="docs-search-dialog">
+	<Button
+		className="docsSearchTrigger"
+		variant="outline"
+		size="sm"
+		type="button"
+		data-search-open
+		aria-label="Search documentation"
+		aria-haspopup="dialog"
+		aria-expanded="false"
+		aria-controls="docs-search-dialog"
+	>
 		<span class="docsSearchTriggerLabel">
 			<Icon name="search" size={16} />
 			<span>Search</span>
 		</span>
 		<span class="docsSearchShortcut">Cmd K</span>
-	</button>
+	</Button>
 
 	<div class="docsSearchOverlay" id="docs-search-dialog" data-search-dialog hidden>
-		<button class="docsSearchScrim" type="button" aria-label="Close search" data-search-close></button>
-		<div class="docsSearchPanel" role="dialog" aria-modal="true" aria-labelledby="docs-search-title">
+		<Button className="docsSearchScrim" variant="plain" type="button" aria-label="Close search" data-search-close />
+		<Panel as="div" tone="glass" padded={false} className="docsSearchPanel" role="dialog" aria-modal="true" aria-labelledby="docs-search-title">
 			<header class="docsSearchHeader">
 				<div class="docsSearchTitle" id="docs-search-title">
 					<Icon name="search" size={16} />
 					<span>Search docs</span>
 				</div>
-				<button class="docsSearchClose" type="button" data-search-close>Close</button>
+				<Button className="docsSearchClose" variant="ghost" size="sm" type="button" data-search-close>Close</Button>
 			</header>
 			<label class="docsSearchInputLabel" for="docs-search-input">Search query</label>
-			<input id="docs-search-input" type="search" autocomplete="off" placeholder="Search documentation" aria-controls="docs-search-results" data-search-input />
+			<Input
+				id="docs-search-input"
+				type="search"
+				autocomplete="off"
+				placeholder="Search documentation"
+				aria-controls="docs-search-results"
+				data-search-input
+				frameClassName="docsSearchInputFrame"
+				className="docsSearchInput"
+			/>
 			<div class="docsSearchResults" id="docs-search-results" role="listbox" aria-label="Search results" data-search-results hidden></div>
-		</div>
+		</Panel>
 	</div>
 </div>
 
@@ -246,3 +266,275 @@ const dataJson = JSON.stringify(docsSearchIndex);
 	initDocsSearch();
 	document.addEventListener("astro:page-load", initDocsSearch);
 </script>
+
+<style>
+	.docsSearch {
+		display: grid;
+	}
+
+	:global(.docsSearchOpen) {
+		overflow: hidden;
+	}
+
+	:global(.docsSearchOpen .docsSidebar) {
+		z-index: 90;
+	}
+
+	:global(.docsSearchTrigger) {
+		width: 100%;
+		justify-content: space-between;
+		flex-wrap: nowrap;
+		overflow: hidden;
+		gap: 0.75rem;
+		padding: 0.4rem 0.625rem;
+		font-family: var(--ns-font-mono);
+		font-size: 0.72rem;
+		font-weight: 800;
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+	}
+
+	:global(.docsSearchTrigger:hover) {
+		--ns-frame-color: var(--ns-accent-border);
+		background: color-mix(in srgb, var(--ns-accent) 8%, transparent);
+	}
+
+	:global(.docsSearchTriggerLabel) {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.45rem;
+		min-width: 0;
+		flex: 1;
+		overflow: hidden;
+	}
+
+	:global(.docsSearchShortcut) {
+		padding: 0.25rem 0.4rem;
+		color: var(--ns-text-low);
+		border: 1px solid var(--ns-border-faint);
+		font-size: 0.62rem;
+		letter-spacing: 0.08em;
+		flex-shrink: 0;
+		white-space: nowrap;
+	}
+
+	.docsSearchInputLabel {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip: rect(0 0 0 0);
+		clip-path: inset(50%);
+		white-space: nowrap;
+	}
+
+	.docsSearchOverlay[hidden],
+	:global(.docsSearchResults[hidden]) {
+		display: none !important;
+	}
+
+	.docsSearchOverlay {
+		position: fixed;
+		inset: 0;
+		z-index: 80;
+		display: grid;
+		place-items: start center;
+		padding: clamp(5rem, 12vh, 8rem) 1rem 1rem;
+		opacity: 0;
+	}
+
+	.docsSearchOverlay[data-state="open"] {
+		opacity: 1;
+		animation: docsSearchOverlayIn 240ms ease both;
+	}
+
+	.docsSearchOverlay[data-state="closing"] {
+		animation: docsSearchOverlayOut 240ms ease forwards;
+	}
+
+	:global(.docsSearchScrim) {
+		position: absolute;
+		inset: 0;
+		padding: 0;
+		border: 0;
+		background: var(--ns-overlay-scrim);
+		backdrop-filter: blur(0.5rem);
+		cursor: default;
+		appearance: none;
+	}
+
+	:global(.docsSearchPanel) {
+		position: relative;
+		z-index: 1;
+		display: grid;
+		gap: 1rem;
+		width: min(42rem, calc(100vw - 2rem));
+		padding: 1rem;
+	}
+
+	.docsSearchOverlay[data-state="open"] :global(.docsSearchPanel) {
+		animation: docsSearchPanelIn 280ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+	}
+
+	.docsSearchOverlay[data-state="closing"] :global(.docsSearchPanel) {
+		animation: docsSearchPanelOut 240ms ease forwards;
+	}
+
+	.docsSearchHeader {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1rem;
+	}
+
+	.docsSearchTitle {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.45rem;
+		color: var(--ns-text);
+		font-family: var(--ns-font-mono);
+		font-size: 0.78rem;
+		font-weight: 900;
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+	}
+
+	:global(.docsSearchClose) {
+		font-family: var(--ns-font-mono);
+		font-size: 0.65rem;
+		font-weight: 800;
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+	}
+
+	:global(.docsSearchInputFrame) {
+		--ns-frame-color: var(--ns-border-faint);
+	}
+
+	:global(.docsSearchInput) {
+		min-height: 4.5rem;
+		background: var(--ns-surface-raised);
+		font-family: var(--ns-font-mono);
+		font-size: clamp(1rem, 2vw, 1.25rem);
+	}
+
+	:global(.docsSearchResults) {
+		display: grid;
+		gap: 0.35rem;
+		max-height: min(24rem, 48vh);
+		overflow: auto;
+	}
+
+	:global(.docsSearchResult),
+	:global(.docsSearchEmpty) {
+		display: grid;
+		gap: 0.2rem;
+		padding: 0.75rem;
+		color: var(--ns-text-muted);
+		border: 1px solid transparent;
+		text-decoration: none;
+	}
+
+	:global(.docsSearchResult:hover),
+	:global(.docsSearchResult:focus-visible) {
+		border-color: var(--ns-accent-border);
+		background: color-mix(in srgb, var(--ns-accent) 10%, transparent);
+	}
+
+	:global(.docsSearchResult strong) {
+		color: var(--ns-text);
+		font-family: var(--ns-font-mono);
+		font-size: 0.78rem;
+		text-transform: uppercase;
+	}
+
+	:global(.docsSearchResult span),
+	:global(.docsSearchEmpty) {
+		font-size: 0.8rem;
+		line-height: 1.4;
+	}
+
+	:global(.docsSearchTrigger:focus-visible),
+	:global(.docsSearchClose:focus-visible),
+	:global(.docsSearchInputFrame:focus-within),
+	:global(.docsSearchResult:focus-visible) {
+		outline: var(--ns-focus-outline);
+		outline-offset: 0.25rem;
+	}
+
+	:global(.docsShell.sidebarFolded .docsSearchTrigger) {
+		width: 100%;
+		min-width: 0;
+		align-items: center;
+		justify-content: center;
+		padding-inline: 0;
+	}
+
+	:global(.docsShell.sidebarFolded .docsSearchTriggerLabel) {
+		flex: 0 0 auto;
+		justify-content: center;
+	}
+
+	:global(.docsShell.sidebarFolded .docsSearchTriggerLabel span),
+	:global(.docsShell.sidebarFolded .docsSearchShortcut) {
+		display: none;
+	}
+
+	@media (max-width: 68rem) {
+		:global(.docsShell.sidebarFolded .docsSearchTrigger) {
+			justify-content: flex-start;
+		}
+
+		:global(.docsShell.sidebarFolded .docsSearchTriggerLabel span) {
+			display: inline;
+		}
+
+		:global(.docsShell.sidebarFolded .docsSearchShortcut) {
+			display: inline-block;
+		}
+	}
+
+	@keyframes docsSearchOverlayIn {
+		from {
+			opacity: 0;
+		}
+
+		to {
+			opacity: 1;
+		}
+	}
+
+	@keyframes docsSearchOverlayOut {
+		from {
+			opacity: 1;
+		}
+
+		to {
+			opacity: 0;
+		}
+	}
+
+	@keyframes docsSearchPanelIn {
+		from {
+			opacity: 0;
+			transform: translateY(-0.75rem) scale(0.96);
+		}
+
+		to {
+			opacity: 1;
+			transform: translateY(0) scale(1);
+		}
+	}
+
+	@keyframes docsSearchPanelOut {
+		from {
+			opacity: 1;
+			transform: translateY(0) scale(1);
+		}
+
+		to {
+			opacity: 0;
+			transform: translateY(-0.5rem) scale(0.97);
+		}
+	}
+</style>

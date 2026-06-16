@@ -20,6 +20,7 @@
 	--ns-surface-deep: #e7eef6;
 	--ns-glass-dark: rgba(255, 255, 255, 0.94);
 	--ns-glass-light: rgba(23, 32, 51, 0.035);
+	--ns-overlay-scrim: rgba(23, 32, 51, 0.18);
 
 	--ns-text: #172033;
 	--ns-text-muted: #405168;
@@ -95,6 +96,7 @@
 	--ns-surface-deep: #e7eef6;
 	--ns-glass-dark: rgba(255, 255, 255, 0.94);
 	--ns-glass-light: rgba(23, 32, 51, 0.035);
+	--ns-overlay-scrim: rgba(23, 32, 51, 0.18);
 
 	--ns-text: #172033;
 	--ns-text-muted: #405168;
@@ -155,6 +157,7 @@
 	--ns-surface-deep: #08111d;
 	--ns-glass-dark: rgba(21, 31, 46, 0.94);
 	--ns-glass-light: rgba(255, 255, 255, 0.045);
+	--ns-overlay-scrim: rgba(8, 17, 29, 0.4);
 
 	--ns-text: #f8fafc;
 	--ns-text-muted: #d6dde8;

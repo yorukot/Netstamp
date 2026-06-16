@@ -3,11 +3,7 @@
 .docsSidebarFold:focus-visible,
 .docPagerLink:focus-visible,
 .editLink:focus-visible,
-.docsToc a:focus-visible,
-.docsSearchTrigger:focus-visible,
-.docsSearchClose:focus-visible,
-.docsSearchPanel input:focus-visible,
-.docsSearchResult:focus-visible {
+.docsToc a:focus-visible {
 	outline: var(--ns-focus-outline);
 	outline-offset: 0.25rem;
 }
@@ -81,10 +77,6 @@
 	flex: 0 0 auto;
 }
 
-.docsSearch {
-	display: grid;
-}
-
 .docsTocTitle,
 .docEyebrow,
 .docsNavGroup h2 {
@@ -97,215 +89,6 @@
 	font-weight: 800;
 	letter-spacing: 0.12em;
 	text-transform: uppercase;
-}
-
-.docsSearchOpen {
-	overflow: hidden;
-}
-
-.docsSearchOpen .docsSidebar {
-	z-index: 90;
-}
-
-.docsSearchTrigger {
-	width: 100%;
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	flex-wrap: nowrap;
-	overflow: hidden;
-	gap: 0.75rem;
-	padding: 0.4rem 0.625rem;
-	color: var(--ns-text-subtle);
-	background: var(--ns-surface);
-	border: 1px solid var(--ns-border-faint);
-	font-family: var(--ns-font-mono);
-	font-size: 0.72rem;
-	font-weight: 800;
-	letter-spacing: 0.1em;
-	text-transform: uppercase;
-	cursor: pointer;
-	transition:
-		border-color var(--ns-transition),
-		background var(--ns-transition),
-		color var(--ns-transition);
-	appearance: none;
-}
-
-.docsSearchTrigger:hover {
-	color: var(--ns-text);
-	border-color: var(--ns-accent-border);
-	background: color-mix(in srgb, var(--ns-accent) 8%, transparent);
-}
-
-.docsSearchTriggerLabel {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.45rem;
-	min-width: 0;
-	flex: 1;
-	overflow: hidden;
-}
-
-.docsSearchTitle {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.45rem;
-}
-
-.docsSearchInputLabel {
-	position: absolute;
-	width: 1px;
-	height: 1px;
-	overflow: hidden;
-	clip: rect(0 0 0 0);
-	clip-path: inset(50%);
-	white-space: nowrap;
-}
-
-.docsSearchShortcut {
-	padding: 0.25rem 0.4rem;
-	color: var(--ns-text-low);
-	border: 1px solid var(--ns-border-faint);
-	font-size: 0.62rem;
-	letter-spacing: 0.08em;
-	flex-shrink: 0;
-	white-space: nowrap;
-}
-
-.docsSearchOverlay[hidden],
-.docsSearchResults[hidden] {
-	display: none !important;
-}
-
-.docsSearchOverlay {
-	position: fixed;
-	inset: 0;
-	z-index: 80;
-	display: grid;
-	place-items: start center;
-	padding: clamp(5rem, 12vh, 8rem) 1rem 1rem;
-	opacity: 0;
-}
-
-.docsSearchOverlay[data-state="open"] {
-	opacity: 1;
-	animation: docsSearchOverlayIn 240ms ease both;
-}
-
-.docsSearchOverlay[data-state="closing"] {
-	animation: docsSearchOverlayOut 240ms ease forwards;
-}
-
-.docsSearchScrim {
-	position: absolute;
-	inset: 0;
-	padding: 0;
-	border: 0;
-	background: rgba(23, 32, 51, 0.18);
-	backdrop-filter: blur(0.5rem);
-	cursor: default;
-	appearance: none;
-}
-
-:root[data-theme="dark"] .docsSearchScrim {
-	background: rgba(8, 17, 29, 0.4);
-}
-
-.docsSearchPanel {
-	position: relative;
-	z-index: 1;
-	display: grid;
-	gap: 1rem;
-	width: min(42rem, calc(100vw - 2rem));
-	padding: 1rem;
-	border: 1px solid var(--ns-accent-border);
-	background: var(--ns-surface);
-	box-shadow: none;
-}
-
-.docsSearchOverlay[data-state="open"] .docsSearchPanel {
-	animation: docsSearchPanelIn 280ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
-}
-
-.docsSearchOverlay[data-state="closing"] .docsSearchPanel {
-	animation: docsSearchPanelOut 240ms ease forwards;
-}
-
-.docsSearchHeader {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 1rem;
-}
-
-.docsSearchTitle {
-	color: var(--ns-text);
-	font-family: var(--ns-font-mono);
-	font-size: 0.78rem;
-	font-weight: 900;
-	letter-spacing: 0.1em;
-	text-transform: uppercase;
-}
-
-.docsSearchClose {
-	padding: 0.35rem 0.5rem;
-	color: var(--ns-text-low);
-	background: transparent;
-	border: 1px solid var(--ns-border-faint);
-	font-family: var(--ns-font-mono);
-	font-size: 0.65rem;
-	font-weight: 800;
-	letter-spacing: 0.1em;
-	text-transform: uppercase;
-	cursor: pointer;
-	appearance: none;
-}
-
-.docsSearchPanel input {
-	width: 100%;
-	padding: 1rem;
-	color: var(--ns-text);
-	background: var(--ns-surface-raised);
-	border: 1px solid var(--ns-border-faint);
-	font-family: var(--ns-font-mono);
-	font-size: clamp(1rem, 2vw, 1.25rem);
-}
-
-.docsSearchResults {
-	display: grid;
-	gap: 0.35rem;
-	max-height: min(24rem, 48vh);
-	overflow: auto;
-}
-
-.docsSearchResult,
-.docsSearchEmpty {
-	display: grid;
-	gap: 0.2rem;
-	padding: 0.75rem;
-	color: var(--ns-text-muted);
-	border: 1px solid transparent;
-	text-decoration: none;
-}
-
-.docsSearchResult:hover,
-.docsSearchResult:focus-visible {
-	border-color: var(--ns-accent-border);
-	background: color-mix(in srgb, var(--ns-accent) 10%, transparent);
-}
-
-.docsSearchResult strong {
-	color: var(--ns-text);
-	font-family: var(--ns-font-mono);
-	font-size: 0.78rem;
-	text-transform: uppercase;
-}
-
-.docsSearchResult span,
-.docsSearchEmpty {
-	font-size: 0.8rem;
-	line-height: 1.4;
 }
 
 .docsNavTree {
@@ -413,7 +196,6 @@
 	grid-template-columns: 1fr;
 }
 
-.docsShell.sidebarFolded .docsSearchTrigger,
 .docsShell.sidebarFolded .docsSidebarFold,
 .docsShell.sidebarFolded .docsNavItem,
 .docsShell.sidebarFolded .docsNavGroupToggle {
@@ -423,7 +205,6 @@
 	justify-content: center;
 }
 
-.docsShell.sidebarFolded .docsSearchTrigger,
 .docsShell.sidebarFolded .docsSidebarFold {
 	padding-inline: 0;
 }
@@ -433,14 +214,11 @@
 	padding-inline: 0;
 }
 
-.docsShell.sidebarFolded .docsSearchTriggerLabel,
 .docsShell.sidebarFolded .docsNavGroupTitle {
 	flex: 0 0 auto;
 	justify-content: center;
 }
 
-.docsShell.sidebarFolded .docsSearchTriggerLabel span,
-.docsShell.sidebarFolded .docsSearchShortcut,
 .docsShell.sidebarFolded .docsSidebarFold span,
 .docsShell.sidebarFolded .docsNavGroupTitle span,
 .docsShell.sidebarFolded .docsNavGroupToggle > .icon:last-child,
@@ -867,7 +645,6 @@
 		grid-template-columns: minmax(0, 1fr) auto;
 	}
 
-	.docsShell.sidebarFolded .docsSearchTrigger,
 	.docsShell.sidebarFolded .docsSidebarFold,
 	.docsShell.sidebarFolded .docsNavItem,
 	.docsShell.sidebarFolded .docsNavGroupToggle,
@@ -875,65 +652,16 @@
 		justify-content: flex-start;
 	}
 
-	.docsShell.sidebarFolded .docsSearchTriggerLabel span,
 	.docsShell.sidebarFolded .docsSidebarFold span,
 	.docsShell.sidebarFolded .docsNavGroupTitle span,
 	.docsShell.sidebarFolded .docsNavGroupToggle > .icon:last-child,
 	.docsShell.sidebarFolded .docsNavItem span {
 		display: inline;
 	}
-
-	.docsShell.sidebarFolded .docsSearchShortcut {
-		display: inline-block;
-	}
 }
 
 @media (max-width: 48rem) {
 	.docHero {
 		padding: 1.5rem;
-	}
-}
-
-@keyframes docsSearchOverlayIn {
-	from {
-		opacity: 0;
-	}
-
-	to {
-		opacity: 1;
-	}
-}
-
-@keyframes docsSearchOverlayOut {
-	from {
-		opacity: 1;
-	}
-
-	to {
-		opacity: 0;
-	}
-}
-
-@keyframes docsSearchPanelIn {
-	from {
-		opacity: 0;
-		transform: translateY(-0.75rem) scale(0.96);
-	}
-
-	to {
-		opacity: 1;
-		transform: translateY(0) scale(1);
-	}
-}
-
-@keyframes docsSearchPanelOut {
-	from {
-		opacity: 1;
-		transform: translateY(0) scale(1);
-	}
-
-	to {
-		opacity: 0;
-		transform: translateY(-0.5rem) scale(0.97);
 	}
 }
