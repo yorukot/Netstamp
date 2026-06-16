@@ -1,32 +1,12 @@
 .landing {
-	--ns-bg: #f6f7f9;
-	--ns-bg-section: #eef1f5;
-	--ns-bg-subtle: #f2f4f7;
-	--ns-surface: #ffffff;
-	--ns-surface-raised: #f8fafc;
-	--ns-surface-deep: #e7ecf2;
-	--ns-glass-dark: rgba(255, 255, 255, 0.94);
-	--ns-glass-light: rgba(17, 24, 39, 0.035);
-	--ns-text: #111827;
-	--ns-text-muted: #374151;
-	--ns-text-subtle: #5f6b7a;
-	--ns-text-low: #7b8794;
-	--ns-text-on-accent: #ffffff;
-	--ns-accent: #2563eb;
-	--ns-accent-hover: #1d4ed8;
-	--ns-accent-active: #1e40af;
-	--ns-accent-muted: rgba(37, 99, 235, 0.09);
-	--ns-accent-subtle: rgba(37, 99, 235, 0.14);
-	--ns-accent-border: rgba(37, 99, 235, 0.36);
-	--ns-accent-glow: rgba(37, 99, 235, 0.16);
-	--ns-glass-accent: rgba(37, 99, 235, 0.1);
-	--ns-border: #d8dee8;
-	--ns-border-strong: #aeb8c6;
-	--ns-border-faint: #e6eaf0;
 	min-height: 100svh;
 	overflow: clip;
 	color: var(--ns-text);
 	background: var(--ns-bg);
+}
+
+.landing main {
+	display: grid;
 }
 
 .hero,
@@ -40,19 +20,20 @@
 
 .hero {
 	display: grid;
-	grid-template-columns: minmax(26rem, 0.9fr) minmax(30rem, 1.1fr);
-	align-items: center;
-	gap: clamp(2rem, 4vw, 3rem);
-	min-height: calc(100svh - 4.5rem);
-	padding: clamp(4rem, 7vw, 6rem) clamp(1rem, 4vw, 4rem) clamp(2rem, 4vw, 3rem);
+	grid-template-columns: minmax(24rem, 0.72fr) minmax(32rem, 1.28fr);
+	align-items: start;
+	gap: clamp(1.5rem, 3vw, 2.5rem);
+	min-height: calc(100svh - 8rem);
+	padding: clamp(2.5rem, 5vw, 4.5rem) clamp(1rem, 4vw, 3rem) clamp(1.5rem, 3vw, 2.5rem);
 	border-bottom: 1px solid var(--ns-border);
 }
 
 .heroCopy {
 	display: grid;
 	align-content: center;
-	gap: 1.25rem;
+	gap: 1rem;
 	min-width: 0;
+	padding-top: 0.5rem;
 }
 
 .heroCopy h1,
@@ -67,9 +48,9 @@
 }
 
 .heroCopy h1 {
-	max-width: 13ch;
-	font-size: 4.75rem;
-	line-height: 0.96;
+	max-width: 14ch;
+	font-size: clamp(3rem, 5vw, 4.5rem);
+	line-height: 0.98;
 }
 
 .heroCopy p,
@@ -84,7 +65,7 @@
 }
 
 .heroCopy p {
-	max-width: 35rem;
+	max-width: 34rem;
 }
 
 .heroActions,
@@ -102,19 +83,16 @@
 
 .productShot {
 	position: relative;
+	align-self: start;
 	margin: 0;
 	min-width: 0;
 	border: 1px solid var(--ns-border);
 	background: var(--ns-surface);
-	box-shadow: 0 1.5rem 4rem rgba(17, 24, 39, 0.08);
+	box-shadow: none;
 }
 
 .productShot::before {
-	content: "";
-	position: absolute;
-	inset: 0;
-	pointer-events: none;
-	border: 1px solid rgba(255, 255, 255, 0.72);
+	content: none;
 }
 
 .productShot img {
@@ -123,14 +101,15 @@
 	height: auto;
 	aspect-ratio: 3 / 2;
 	object-fit: cover;
+	object-position: top left;
 }
 
 .telemetryStrip {
 	display: grid;
 	grid-template-columns: repeat(4, minmax(0, 1fr));
 	gap: 1px;
-	width: min(88rem, calc(100% - 2rem));
-	margin: -1.75rem auto 0;
+	width: min(92rem, calc(100% - 2rem));
+	margin: 0 auto;
 	border: 1px solid var(--ns-border);
 	background: var(--ns-border);
 }
@@ -161,8 +140,8 @@
 
 .productBand {
 	display: grid;
-	gap: 2rem;
-	padding: clamp(4rem, 8vw, 7rem) clamp(1rem, 4vw, 4rem);
+	gap: 1.5rem;
+	padding: clamp(3rem, 6vw, 5rem) clamp(1rem, 4vw, 3rem);
 }
 
 .sectionHeader {
@@ -174,9 +153,9 @@
 .sectionHeader h2,
 .routeCopy h2,
 .ctaBand h2 {
-	max-width: 12ch;
-	font-size: 3.5rem;
-	line-height: 1;
+	max-width: 14ch;
+	font-size: clamp(2.4rem, 4vw, 3.5rem);
+	line-height: 1.02;
 }
 
 .sectionHeader p {
@@ -193,7 +172,7 @@
 	display: grid;
 	align-content: start;
 	gap: 1rem;
-	min-height: 20rem;
+	min-height: 17rem;
 	padding: 1.25rem;
 	border: 1px solid var(--ns-border);
 	background: var(--ns-surface);
@@ -250,7 +229,7 @@
 	grid-template-columns: minmax(18rem, 0.78fr) minmax(26rem, 1.22fr);
 	gap: clamp(2rem, 5vw, 4rem);
 	align-items: center;
-	padding: clamp(4rem, 8vw, 7rem) clamp(1rem, 4vw, 4rem);
+	padding: clamp(3rem, 6vw, 5rem) clamp(1rem, 4vw, 3rem);
 	border-top: 1px solid var(--ns-border);
 	border-bottom: 1px solid var(--ns-border);
 	background: var(--ns-surface-raised);
@@ -325,7 +304,8 @@
 	grid-template-columns: minmax(0, 1fr) auto;
 	gap: 2rem;
 	align-items: end;
-	padding: clamp(4rem, 8vw, 7rem) clamp(1rem, 4vw, 4rem);
+	padding: clamp(3rem, 6vw, 5rem) clamp(1rem, 4vw, 3rem);
+	border-top: 1px solid var(--ns-border);
 }
 
 .ctaBand > div:first-child {

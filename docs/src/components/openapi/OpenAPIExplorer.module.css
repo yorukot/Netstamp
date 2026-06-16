@@ -155,7 +155,7 @@
 	gap: 0.75rem;
 	padding: 0.75rem;
 	border: 1px solid var(--ns-border-faint);
-	background: rgba(255, 255, 255, 0.035);
+	background: var(--ns-surface);
 }
 
 .downloadLink span,
@@ -476,7 +476,7 @@
 	gap: 0.65rem;
 	padding: 0.75rem;
 	border: 1px solid var(--ns-border-faint);
-	background: rgba(255, 255, 255, 0.025);
+	background: var(--ns-surface);
 }
 
 .responseSchemaHeader {
@@ -539,7 +539,7 @@
 .snippetHeader {
 	padding: 0.8rem 1rem;
 	border-bottom: 1px solid var(--ns-border-faint);
-	background: rgba(255, 255, 255, 0.035);
+	background: var(--ns-surface-raised);
 }
 
 .snippetPanel pre,
@@ -548,7 +548,7 @@
 	margin: 0;
 	overflow: auto;
 	color: var(--ns-text-muted);
-	background: #010203;
+	background: var(--ns-surface-deep);
 	font-family: var(--ns-font-mono);
 	font-size: 0.78rem;
 	line-height: 1.6;
@@ -592,7 +592,7 @@
 
 .syntaxBoolean,
 .syntaxNull {
-	color: #8fd3ff;
+	color: var(--ns-accent-hover);
 }
 
 .syntaxPunctuation {
@@ -625,7 +625,7 @@
 
 .console {
 	padding: 1rem;
-	background: rgba(5, 7, 11, 0.72);
+	background: var(--ns-surface);
 	backdrop-filter: blur(0.75rem);
 }
 
@@ -655,7 +655,7 @@
 	resize: vertical;
 	padding: 0.85rem;
 	color: var(--ns-text);
-	background: #020304;
+	background: var(--ns-surface-deep);
 	border: 1px solid var(--ns-border-faint);
 	font-family: var(--ns-font-mono);
 	font-size: 0.82rem;
@@ -677,7 +677,7 @@
 	padding: 1rem;
 	color: var(--ns-text-low);
 	border: 1px solid var(--ns-border-faint);
-	background: rgba(255, 255, 255, 0.035);
+	background: var(--ns-surface);
 	font-size: 0.9rem;
 }
 

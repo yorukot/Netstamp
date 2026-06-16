@@ -9,7 +9,7 @@
 	min-height: 4.5rem;
 	padding: 0 1.5rem;
 	border-bottom: 1px solid var(--ns-border);
-	background: rgba(5, 7, 11, 0.94);
+	background: var(--ns-surface);
 	backdrop-filter: blur(1rem);
 }
 
@@ -90,9 +90,7 @@
 	padding: 0.55rem 0.875rem;
 	color: var(--ns-text-on-accent);
 	background: var(--ns-accent);
-	box-shadow:
-		0 0 0 1px rgba(0, 0, 0, 0.85),
-		0 0 0 0.25rem color-mix(in srgb, var(--ns-accent) 12%, transparent);
+	box-shadow: none;
 	font-family: var(--ns-font-mono);
 	font-size: 0.75rem;
 	font-weight: 800;
@@ -102,18 +100,15 @@
 	text-transform: uppercase;
 	transition:
 		background var(--ns-transition),
-		box-shadow var(--ns-transition),
 		color var(--ns-transition),
 		transform var(--ns-transition);
 }
 
 .siteNavSignIn:hover {
 	--ns-frame-color: var(--ns-accent-hover);
-	color: #070503;
+	color: var(--ns-text-on-accent);
 	background: var(--ns-accent-hover);
-	box-shadow:
-		0 0 0 1px rgba(0, 0, 0, 0.9),
-		0 0 0 0.3125rem var(--ns-accent-glow);
+	box-shadow: none;
 	transform: translateY(-0.0625rem);
 }
 
@@ -212,7 +207,7 @@
 	min-width: 2.9rem;
 	padding: 0.4rem 0.625rem;
 	color: var(--ns-text-subtle);
-	background: rgba(255, 255, 255, 0.04);
+	background: var(--ns-surface);
 	border: 1px solid var(--ns-border-faint);
 	font-family: var(--ns-font-mono);
 	font-size: 0.68rem;
@@ -274,7 +269,7 @@
 	gap: 0.75rem;
 	padding: 0.4rem 0.625rem;
 	color: var(--ns-text-subtle);
-	background: rgba(255, 255, 255, 0.04);
+	background: var(--ns-surface);
 	border: 1px solid var(--ns-border-faint);
 	font-family: var(--ns-font-mono);
 	font-size: 0.72rem;
@@ -359,7 +354,7 @@
 	inset: 0;
 	padding: 0;
 	border: 0;
-	background: rgba(1, 2, 4, 0.74);
+	background: color-mix(in srgb, var(--ns-bg) 74%, transparent);
 	backdrop-filter: blur(0.5rem);
 	cursor: default;
 	appearance: none;
@@ -374,7 +369,7 @@
 	padding: 1rem;
 	border: 1px solid var(--ns-accent-border);
 	background: var(--ns-surface);
-	box-shadow: var(--ns-shadow-md);
+	box-shadow: none;
 }
 
 .docsSearchOverlay[data-state="open"] .docsSearchPanel {
@@ -419,7 +414,7 @@
 	width: 100%;
 	padding: 1rem;
 	color: var(--ns-text);
-	background: rgba(255, 255, 255, 0.05);
+	background: var(--ns-surface-raised);
 	border: 1px solid var(--ns-border-faint);
 	font-family: var(--ns-font-mono);
 	font-size: clamp(1rem, 2vw, 1.25rem);
@@ -497,7 +492,7 @@
 .docsNavGroupToggle:hover {
 	color: var(--ns-text-subtle);
 	border-color: var(--ns-border-faint);
-	background: rgba(255, 255, 255, 0.035);
+	background: var(--ns-bg-subtle);
 }
 
 .docsNavGroupTitle {
@@ -619,7 +614,7 @@
 	padding: clamp(2rem, 5vw, 4rem);
 	border: 1px solid var(--ns-accent-border);
 	background: var(--ns-surface);
-	box-shadow: var(--ns-shadow-md);
+	box-shadow: none;
 }
 
 .docHero h1 {
@@ -680,7 +675,7 @@
 	padding: 1rem;
 	color: var(--ns-text-subtle);
 	border: 1px solid var(--ns-border-faint);
-	background: rgba(255, 255, 255, 0.035);
+	background: var(--ns-surface);
 	text-decoration: none;
 	transition:
 		border-color var(--ns-transition),
@@ -703,8 +698,8 @@
 
 .docPagerLink.disabled {
 	color: var(--ns-text-low);
-	border-color: rgba(255, 255, 255, 0.055);
-	background: rgba(255, 255, 255, 0.02);
+	border-color: var(--ns-border-faint);
+	background: var(--ns-bg-subtle);
 	transform: none;
 }
 
@@ -788,13 +783,10 @@
 .docProse > .astro-code {
 	position: relative;
 	padding: 2.5rem 1.25rem 1.125rem !important;
-	background-color: #030507 !important;
+	background-color: var(--ns-surface-deep) !important;
 	overflow-x: auto !important;
 	border: 1px solid color-mix(in srgb, var(--ns-accent) 22%, transparent);
-	box-shadow:
-		0 0 0 1px rgba(0, 0, 0, 0.88),
-		0 1.5rem 3rem rgba(0, 0, 0, 0.5),
-		0 0 2.5rem color-mix(in srgb, var(--ns-accent) 5%, transparent);
+	box-shadow: none;
 }
 
 .docProse > pre::before,
@@ -805,8 +797,8 @@
 	left: 0;
 	right: 0;
 	height: 2.25rem;
-	background: #090c11;
-	border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+	background: var(--ns-surface-raised);
+	border-bottom: 1px solid var(--ns-border-faint);
 }
 
 .docProse blockquote {
@@ -845,7 +837,7 @@
 	gap: 0.6rem;
 	padding: 1rem;
 	border: 1px solid var(--ns-border-faint);
-	background: rgba(255, 255, 255, 0.035);
+	background: var(--ns-surface);
 }
 
 .calloutTitle {
@@ -870,22 +862,22 @@
 }
 
 .callout-note {
-	border-color: rgba(196, 204, 217, 0.26);
+	border-color: color-mix(in srgb, var(--ns-metal) 32%, transparent);
 }
 
 .callout-tip {
-	border-color: rgba(48, 209, 88, 0.42);
-	background: rgba(48, 209, 88, 0.06);
+	border-color: color-mix(in srgb, var(--ns-success) 42%, transparent);
+	background: color-mix(in srgb, var(--ns-success) 6%, var(--ns-surface));
 }
 
 .callout-warning {
-	border-color: rgba(255, 159, 10, 0.52);
-	background: rgba(255, 159, 10, 0.07);
+	border-color: color-mix(in srgb, var(--ns-warning) 52%, transparent);
+	background: color-mix(in srgb, var(--ns-warning) 7%, var(--ns-surface));
 }
 
 .callout-caution {
-	border-color: rgba(255, 69, 58, 0.46);
-	background: rgba(255, 69, 58, 0.07);
+	border-color: color-mix(in srgb, var(--ns-critical) 46%, transparent);
+	background: color-mix(in srgb, var(--ns-critical) 7%, var(--ns-surface));
 }
 
 .docsTocInner {
@@ -917,7 +909,7 @@
 }
 
 .docsToc a.active {
-	text-shadow: 0 0 1rem color-mix(in srgb, var(--ns-accent) 35%, transparent);
+	text-shadow: none;
 }
 
 .docsToc a.sub {
@@ -937,7 +929,7 @@
 	padding: 1rem;
 	color: var(--ns-text-muted);
 	border: 1px solid var(--ns-border-faint);
-	background: rgba(255, 255, 255, 0.035);
+	background: var(--ns-surface);
 	text-decoration: none;
 }
 

@@ -93,7 +93,7 @@ const trackerConfigJson = JSON.stringify(trackerConfig).replace(/</g, "\\u003c")
 		padding: 1rem;
 		color: var(--ns-text);
 		background: var(--ns-surface);
-		box-shadow: var(--ns-shadow-md);
+		box-shadow: none;
 	}
 
 	.trackingConsent[hidden] {
@@ -138,7 +138,7 @@ const trackerConfigJson = JSON.stringify(trackerConfig).replace(/</g, "\\u003c")
 		min-height: 2rem;
 		padding: 0.375rem 0.75rem;
 		color: var(--ns-text-muted);
-		background: #111318;
+		background: var(--ns-surface-raised);
 		border: 0;
 		font-family: var(--ns-font-mono);
 		font-size: 0.75rem;
