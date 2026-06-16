@@ -603,23 +603,23 @@
 	color: var(--ns-text);
 }
 
-.snippetPanel button {
+.snippetAction {
+	--ns-frame-color: transparent;
 	width: 100%;
 	padding: 0.75rem 1rem;
 	color: var(--ns-accent-hover);
 	background: color-mix(in srgb, var(--ns-accent) 8%, transparent);
-	border: 0;
 	border-top: 1px solid var(--ns-accent-border);
 	font-family: var(--ns-font-mono);
 	font-size: 0.7rem;
 	font-weight: 900;
 	letter-spacing: 0.1em;
+	justify-content: flex-start;
 	text-align: left;
 	text-transform: uppercase;
-	cursor: pointer;
 }
 
-.snippetPanel button:hover {
+.snippetAction:hover {
 	background: color-mix(in srgb, var(--ns-accent) 14%, transparent);
 }
 

@@ -882,9 +882,9 @@ export default function OpenAPIExplorer({ specUrl }: OpenAPIExplorerProps) {
 												<pre>
 													<SyntaxCode code={curlCommand(operation, baseUrl, operation.path, requestBodyExample(operation, spec))} language="shell" />
 												</pre>
-												<button type="button" onClick={() => selectOperation(operation)}>
+												<Button type="button" variant="plain" size="md" className={styles.snippetAction} onClick={() => selectOperation(operation)}>
 													Load in console
-												</button>
+												</Button>
 											</Panel>
 										</article>
 									);
