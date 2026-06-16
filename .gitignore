@@ -19,3 +19,10 @@ dist/
 docs/public/storybook
 
 spec-docs
+
+# Local planning files
+todo.md
+TODO.md
+*todo*.md
+*Todo*.md
+*TODO*.md
