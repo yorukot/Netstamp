@@ -104,15 +104,15 @@
 	object-position: top left;
 }
 
-.dashboardShotDark {
+.productShot .dashboardShotDark {
 	display: none;
 }
 
-:global(:root[data-theme="dark"]) .dashboardShotLight {
+:global(:root[data-theme="dark"]) .productShot .dashboardShotLight {
 	display: none;
 }
 
-:global(:root[data-theme="dark"]) .dashboardShotDark {
+:global(:root[data-theme="dark"]) .productShot .dashboardShotDark {
 	display: block;
 }
 
