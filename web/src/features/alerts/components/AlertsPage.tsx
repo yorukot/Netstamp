@@ -29,7 +29,7 @@ import styles from "./AlertsPage.module.css";
 type AlertTab = "incidents" | "rules" | "notifications";
 type IncidentStatusFilter = "open" | "acknowledged" | "resolved" | "all";
 type RuleStatusFilter = "all" | "enabled" | "disabled";
-type CheckType = "ping" | "tcp";
+type CheckType = CreateAlertRuleInput["scope"]["checkType"];
 type RuleCheckTypeFilter = "all" | CheckType;
 type NotificationStatusFilter = "all" | "enabled" | "disabled";
 type NotificationType = CreateNotificationInput["type"];
@@ -56,13 +56,15 @@ interface RuleFormState {
 	enabled: string;
 	severity: AlertSeverity;
 	checkType: CheckType;
+	probeId: string;
+	checkId: string;
 	metric: AlertMetric;
 	operator: AlertOperator;
 	threshold: string;
 	windowSeconds: string;
 	minSamples: string;
 	cooldownSeconds: string;
-	selectedNotificationId: string;
+	selectedNotificationIds: string[];
 }
 
 interface NotificationFormState {
@@ -107,7 +109,8 @@ const ruleStatusOptions: Array<{ value: RuleStatusFilter; label: string }> = [
 const ruleCheckTypeOptions: Array<{ value: RuleCheckTypeFilter; label: string }> = [
 	{ value: "all", label: "Any type" },
 	{ value: "ping", label: "Ping" },
-	{ value: "tcp", label: "TCP" }
+	{ value: "tcp", label: "TCP" },
+	{ value: "traceroute", label: "Traceroute" }
 ];
 
 const notificationStatusOptions: Array<{ value: NotificationStatusFilter; label: string }> = [
@@ -127,7 +130,8 @@ const notificationFilterTypeOptions: Array<{ value: NotificationTypeFilter; labe
 
 const checkTypeOptions: Array<{ value: CheckType; label: string }> = [
 	{ value: "ping", label: "Ping" },
-	{ value: "tcp", label: "TCP" }
+	{ value: "tcp", label: "TCP" },
+	{ value: "traceroute", label: "Traceroute" }
 ];
 
 const metricOptions: Record<CheckType, Array<{ value: AlertMetric; label: string; unit?: string }>> = {
@@ -142,7 +146,8 @@ const metricOptions: Record<CheckType, Array<{ value: AlertMetric; label: string
 		{ value: "tcp.average_connect_ms", label: "TCP average connect", unit: "ms" },
 		{ value: "tcp.max_connect_ms", label: "TCP max connect", unit: "ms" },
 		{ value: "tcp.success_rate", label: "TCP success rate", unit: "%" }
-	]
+	],
+	traceroute: []
 };
 
 const severityOptions: Array<{ value: AlertSeverity; label: string }> = [
@@ -460,8 +465,14 @@ function metricForCheckType(nextCheckType: CheckType) {
 	return metricOptions[nextCheckType][0]?.value ?? "ping.loss_percent";
 }
 
-function editableCheckType(checkType: string): CheckType {
-	return checkType === "tcp" ? "tcp" : "ping";
+function metricOptionsForForm(form: RuleFormState) {
+	const options = metricOptions[form.checkType];
+
+	if (options.length) {
+		return options;
+	}
+
+	return [{ value: form.metric, label: metricLabel(form.metric), unit: metricUnit(form.metric) }];
 }
 
 function defaultRuleForm(): RuleFormState {
@@ -471,31 +482,35 @@ function defaultRuleForm(): RuleFormState {
 		enabled: "true",
 		severity: "critical",
 		checkType: "ping",
+		probeId: "",
+		checkId: "",
 		metric: "ping.loss_percent",
 		operator: "gte",
 		threshold: "10",
 		windowSeconds: "300",
 		minSamples: "3",
 		cooldownSeconds: "900",
-		selectedNotificationId: ""
+		selectedNotificationIds: []
 	};
 }
 
 function ruleFormFromRule(rule: ApiAlertRule): RuleFormState {
-	const checkType = editableCheckType(rule.scope.checkType);
+	const checkType = rule.scope.checkType;
 	return {
 		name: rule.name,
 		description: rule.description ?? "",
 		enabled: String(rule.enabled),
 		severity: rule.severity,
 		checkType,
+		probeId: rule.scope.probeId ?? "",
+		checkId: rule.scope.checkId ?? "",
 		metric: metricOptions[checkType].some(option => option.value === rule.condition.metric) ? rule.condition.metric : metricForCheckType(checkType),
 		operator: rule.condition.operator,
 		threshold: String(rule.condition.threshold),
 		windowSeconds: String(rule.condition.windowSeconds),
 		minSamples: String(rule.condition.minSamples),
 		cooldownSeconds: String(rule.cooldownSeconds),
-		selectedNotificationId: rule.notificationIds[0] ?? ""
+		selectedNotificationIds: rule.notificationIds
 	};
 }
 
@@ -525,13 +540,19 @@ function notificationFormFromNotification(notification: ApiNotification): Notifi
 
 function rulePayload(form: RuleFormState): CreateAlertRuleInput | UpdateAlertRuleInput {
 	const description = form.description.trim();
+	const probeId = form.probeId.trim();
+	const checkId = form.checkId.trim();
 
 	return {
 		name: form.name.trim(),
 		description: description || undefined,
 		enabled: form.enabled === "true",
 		severity: form.severity,
-		scope: { checkType: form.checkType },
+		scope: {
+			checkType: form.checkType,
+			...(probeId ? { probeId } : {}),
+			...(checkId ? { checkId } : {})
+		},
 		condition: {
 			type: "metric_threshold",
 			metric: form.metric,
@@ -541,7 +562,7 @@ function rulePayload(form: RuleFormState): CreateAlertRuleInput | UpdateAlertRul
 			minSamples: parseInteger(form.minSamples, 3)
 		},
 		cooldownSeconds: parseInteger(form.cooldownSeconds, 900),
-		notificationIds: form.selectedNotificationId ? [form.selectedNotificationId] : []
+		notificationIds: form.selectedNotificationIds
 	};
 }
 
@@ -580,7 +601,7 @@ function notificationEmailRecipients(value: string) {
 function rulePreview(form: RuleFormState, notifications: ApiNotification[]) {
 	const metric = metricLabel(form.metric).toLowerCase();
 	const threshold = formatThreshold(form.metric, form.threshold || "0");
-	const notification = form.selectedNotificationId ? notificationNameByID(notifications, form.selectedNotificationId) : "no notification";
+	const notification = form.selectedNotificationIds.length ? form.selectedNotificationIds.map(notificationID => notificationNameByID(notifications, notificationID)).join(", ") : "no notification";
 
 	return `Create a ${form.severity} incident when ${metric} ${operatorPhrases[form.operator]} ${threshold} for ${formatDuration(parseInteger(form.windowSeconds, 300))}. Notify ${notification}, then wait ${formatDuration(parseInteger(form.cooldownSeconds, 900))} before repeating.`;
 }
@@ -1181,7 +1202,7 @@ function RuleEditorDrawer({
 	onSubmit: (form: RuleFormState) => Promise<void>;
 }) {
 	const [form, setForm] = useState<RuleFormState>(() => (editor.mode === "edit" && editor.rule ? ruleFormFromRule(editor.rule) : defaultRuleForm()));
-	const notificationOptions = useMemo(() => [{ value: "", label: "No notification" }, ...notifications.map(notification => ({ value: notification.id, label: notification.name }))], [notifications]);
+	const metricSelectOptions = useMemo(() => metricOptionsForForm(form), [form]);
 	const title = editor.mode === "edit" ? "Edit rule" : "Create rule";
 
 	function updateForm(patch: Partial<RuleFormState>) {
@@ -1189,7 +1210,14 @@ function RuleEditorDrawer({
 	}
 
 	function handleCheckTypeChange(nextCheckType: CheckType) {
-		updateForm({ checkType: nextCheckType, metric: metricForCheckType(nextCheckType) });
+		const nextMetric = metricOptions[nextCheckType].some(option => option.value === form.metric) ? form.metric : metricForCheckType(nextCheckType);
+		updateForm({ checkType: nextCheckType, metric: nextMetric });
+	}
+
+	function toggleNotification(notificationID: string, checked: boolean) {
+		updateForm({
+			selectedNotificationIds: checked ? [...form.selectedNotificationIds, notificationID] : form.selectedNotificationIds.filter(selectedNotificationID => selectedNotificationID !== notificationID)
+		});
 	}
 
 	async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -1208,11 +1236,15 @@ function RuleEditorDrawer({
 							<SelectField label="Status" value={form.enabled} options={enabledOptions} onChange={event => updateForm({ enabled: event.currentTarget.value })} />
 							<SelectField label="Check type" value={form.checkType} options={checkTypeOptions} onChange={event => handleCheckTypeChange(event.currentTarget.value as CheckType)} />
 						</div>
+						<div className={styles.twoColumns}>
+							<TextField label="Probe ID" value={form.probeId} onChange={event => updateForm({ probeId: event.currentTarget.value })} placeholder="Optional probe UUID" />
+							<TextField label="Check ID" value={form.checkId} onChange={event => updateForm({ checkId: event.currentTarget.value })} placeholder="Optional check UUID" />
+						</div>
 					</div>
 				</Panel>
 				<Panel tone="matte" title="Condition">
 					<div className={styles.formGrid}>
-						<SelectField label="Metric" value={form.metric} options={metricOptions[form.checkType]} onChange={event => updateForm({ metric: event.currentTarget.value as AlertMetric })} />
+						<SelectField label="Metric" value={form.metric} options={metricSelectOptions} onChange={event => updateForm({ metric: event.currentTarget.value as AlertMetric })} />
 						<div className={styles.twoColumns}>
 							<SelectField label="Operator" value={form.operator} options={operatorOptions} onChange={event => updateForm({ operator: event.currentTarget.value as AlertOperator })} />
 							<TextField label="Threshold" value={form.threshold} onChange={event => updateForm({ threshold: event.currentTarget.value })} inputMode="decimal" required />
@@ -1223,12 +1255,19 @@ function RuleEditorDrawer({
 					<div className={styles.formGrid}>
 						<div className={styles.twoColumns}>
 							<SelectField label="Severity" value={form.severity} options={severityOptions} onChange={event => updateForm({ severity: event.currentTarget.value as AlertSeverity })} />
-							<SelectField
-								label="Notification"
-								value={form.selectedNotificationId}
-								options={notificationOptions}
-								onChange={event => updateForm({ selectedNotificationId: event.currentTarget.value })}
-							/>
+							<div className={styles.notificationPicker} aria-label="Notification targets">
+								<span className={styles.notificationPickerLabel}>Notifications</span>
+								{notifications.length ? (
+									notifications.map(notification => (
+										<label className={styles.notificationPickerOption} key={notification.id}>
+											<input type="checkbox" checked={form.selectedNotificationIds.includes(notification.id)} onChange={event => toggleNotification(notification.id, event.currentTarget.checked)} />
+											<span>{notification.name}</span>
+										</label>
+									))
+								) : (
+									<span className={styles.notificationPickerEmpty}>No notifications configured</span>
+								)}
+							</div>
 						</div>
 						<details className={styles.advancedTiming}>
 							<summary>Advanced timing</summary>
