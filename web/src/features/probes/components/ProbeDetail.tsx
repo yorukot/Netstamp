@@ -17,7 +17,7 @@ import { CloseButton } from "@/shared/components/CloseButton";
 import { useConfirm } from "@/shared/components/confirmContext";
 import { pushErrorToast } from "@/shared/toast/toastStore";
 import { classNames } from "@/shared/utils/classNames";
-import { Badge, Button, Checkbox, DataTable, FieldLabel, Surface, Terminal, TextField, type DataColumn } from "@netstamp/ui";
+import { Badge, Button, Checkbox, DataTable, FieldLabel, SegmentedControl, Surface, Terminal, TextField, type DataColumn } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { LocationPreviewMap } from "./LocationPreviewMap";
@@ -37,6 +37,11 @@ type ProbeServiceCommandMode = "reinstall" | "upgrade";
 const serviceCommandOptions: Array<{ value: ProbeServiceCommandMode; label: string }> = [
 	{ value: "reinstall", label: "Reinstall" },
 	{ value: "upgrade", label: "Upgrade" }
+];
+
+const coordinateModeOptions: Array<{ value: CoordinateInputMode; label: string }> = [
+	{ value: "search", label: "Search name" },
+	{ value: "manual", label: "Manual coordinates" }
 ];
 
 function initialLatitude(probe: Probe) {
@@ -364,7 +369,7 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 	}
 
 	return (
-		<Surface as="section" tone="matte" cut="lg" padding="lg" className={classNames(styles.card, floating && styles.floating)} aria-label="Probe detail">
+		<Surface as="section" tone="matte" frameSize="lg" padding="lg" className={classNames(styles.card, floating && styles.floating)} aria-label="Probe detail">
 			<div className={styles.header}>
 				<strong>
 					{activeProbe.name}
@@ -395,26 +400,14 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 			</div>
 
 			<div className={styles.locationEditor}>
-				<div className={styles.locationMode} role="group" aria-label="Coordinate input mode">
-					<Button
-						type="button"
-						variant={coordinateInputMode === "search" ? "secondary" : "ghost"}
-						size="sm"
-						aria-pressed={coordinateInputMode === "search"}
-						onClick={() => updateCoordinateInputMode("search")}
-					>
-						Search name
-					</Button>
-					<Button
-						type="button"
-						variant={coordinateInputMode === "manual" ? "secondary" : "ghost"}
-						size="sm"
-						aria-pressed={coordinateInputMode === "manual"}
-						onClick={() => updateCoordinateInputMode("manual")}
-					>
-						Manual coordinates
-					</Button>
-				</div>
+				<SegmentedControl
+					className={styles.locationMode}
+					size="sm"
+					ariaLabel="Coordinate input mode"
+					value={coordinateInputMode}
+					options={coordinateModeOptions}
+					onValueChange={nextMode => updateCoordinateInputMode(nextMode as CoordinateInputMode)}
+				/>
 
 				<div className={styles.locationBody}>
 					<div className={styles.locationControls}>
@@ -497,17 +490,13 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 				>
 					{rotateSecretMutation.isPending ? "Rotating" : "Rotate secret"}
 				</Button>
-				<Button
-					type="button"
-					variant={serviceCommandMode === "reinstall" ? "secondary" : "outline"}
-					aria-pressed={serviceCommandMode === "reinstall"}
-					onClick={() => updateServiceCommandMode("reinstall")}
-				>
-					Reinstall
-				</Button>
-				<Button type="button" variant={serviceCommandMode === "upgrade" ? "secondary" : "outline"} aria-pressed={serviceCommandMode === "upgrade"} onClick={() => updateServiceCommandMode("upgrade")}>
-					Upgrade
-				</Button>
+				<SegmentedControl
+					className={styles.serviceCommandMode}
+					ariaLabel="Probe service command"
+					value={serviceCommandMode ?? ""}
+					options={serviceCommandOptions}
+					onValueChange={nextMode => updateServiceCommandMode(nextMode as ProbeServiceCommandMode)}
+				/>
 				<Button variant="danger" disabled={!projectRef || deleteProbeMutation.isPending} onClick={() => void deleteProbe()}>
 					{deleteProbeMutation.isPending ? "Deleting" : "Delete probe"}
 				</Button>
@@ -519,7 +508,16 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 					<Terminal
 						title={`${selectedServiceCommand.label.toLowerCase()} command`}
 						meta={
-							<Button type="button" variant="ghost" size="sm" disabled={!serviceCommand} onClick={() => void copyServiceCommand()}>
+							<Button
+								type="button"
+								variant="ghost"
+								size="sm"
+								disabled={!serviceCommand}
+								aria-label={serviceCommandCopied ? "Service command copied" : "Copy service command to clipboard"}
+								title={serviceCommandCopied ? "Service command copied" : "Copy service command to clipboard"}
+								aria-live="polite"
+								onClick={() => void copyServiceCommand()}
+							>
 								{serviceCommandCopied ? "Copied" : "Copy to clipboard"}
 							</Button>
 						}
@@ -537,7 +535,16 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 					<Terminal
 						title="update command"
 						meta={
-							<Button type="button" variant="ghost" size="sm" disabled={!rotatedSecretCommand} onClick={() => void copyRotatedSecretCommand()}>
+							<Button
+								type="button"
+								variant="ghost"
+								size="sm"
+								disabled={!rotatedSecretCommand}
+								aria-label={secretCommandCopied ? "Secret update command copied" : "Copy secret update command to clipboard"}
+								title={secretCommandCopied ? "Secret update command copied" : "Copy secret update command to clipboard"}
+								aria-live="polite"
+								onClick={() => void copyRotatedSecretCommand()}
+							>
 								{secretCommandCopied ? "Copied" : "Copy to clipboard"}
 							</Button>
 						}

@@ -63,7 +63,11 @@
 	--ns-frame-color: var(--ns-border-strong);
 	color: var(--ns-text);
 	background: var(--ns-bg-subtle);
-	outline: none;
+}
+
+.labelOverflowButton:focus-visible {
+	outline: var(--ns-focus-outline);
+	outline-offset: var(--ns-focus-outline-offset);
 }
 
 .labelHoverCard,

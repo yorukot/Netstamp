@@ -1,7 +1,8 @@
+import { formatProbeHeartbeat } from "@/features/probes/api/probeAdapters";
 import type { Probe, ProbeStatus } from "@/features/probes/data/probes";
 import { FilterGrid } from "@/shared/components/FilterGrid";
 import { Badge, DataTable, Panel, PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger, SelectField, TextField, type BadgeTone, type DataColumn } from "@netstamp/ui";
-import type { MouseEvent } from "react";
+import { useEffect, useState, type MouseEvent } from "react";
 import styles from "./ProbeList.module.css";
 import type { ProbeSort } from "./types";
 
@@ -70,13 +71,24 @@ function ProbeLabelGrid({ labels }: { labels: string[] }) {
 	);
 }
 
+function HeartbeatValue({ timestamp }: { timestamp: number | null }) {
+	const [now, setNow] = useState(() => Date.now());
+
+	useEffect(() => {
+		const interval = window.setInterval(() => setNow(Date.now()), 30 * 1000);
+		return () => window.clearInterval(interval);
+	}, []);
+
+	return <span title={timestamp ? new Date(timestamp).toLocaleString() : "No heartbeat recorded"}>{formatProbeHeartbeat(timestamp, now)}</span>;
+}
+
 const probeColumns: DataColumn<Probe>[] = [
 	{ key: "name", label: "Probe name" },
 	{ key: "status", label: "Status", render: probe => <Badge tone={statusTones[probe.status]}>{probe.status}</Badge> },
 	{ key: "location", label: "Location" },
 	{ key: "publicIp", label: "Public IP" },
 	{ key: "ipFamily", label: "Support IP Family" },
-	{ key: "lastHeartbeat", label: "Last heartbeat" },
+	{ key: "lastHeartbeat", label: "Last heartbeat", render: probe => <HeartbeatValue timestamp={probe.lastHeartbeatAt} /> },
 	{
 		key: "labelTokens",
 		label: "Labels",

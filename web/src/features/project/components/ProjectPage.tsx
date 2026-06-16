@@ -136,14 +136,14 @@ export function ProjectPage() {
 
 			<Panel tone="deep" title="Dangerous project actions">
 				<div className={styles.dangerZoneGrid}>
-					<Surface as="article" tone="danger" cut="md" padding="md">
+					<Surface as="article" tone="danger" frameSize="md" padding="md">
 						<h3>Delete project</h3>
 						<p className={styles.warningCopy}>Delete this project, disable future assignments, and revoke all probe registration tokens.</p>
 						<Button variant="danger" disabled={!projectRef || deleteProjectMutation.isPending} onClick={() => void deleteCurrentProject()}>
 							{deleteProjectMutation.isPending ? "Deleting" : "Delete project"}
 						</Button>
 					</Surface>
-					<Surface as="article" tone="danger" cut="md" padding="md">
+					<Surface as="article" tone="danger" frameSize="md" padding="md">
 						<h3>Leave project</h3>
 						<p className={styles.warningCopy}>
 							{isCurrentOwner ? "Owners cannot leave a project while they hold the owner role." : "Leave this project and remove your access to its probes, checks, alerts, and measurements."}

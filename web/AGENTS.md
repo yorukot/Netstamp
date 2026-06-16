@@ -9,6 +9,7 @@
 - Put shared utilities, mock data, and data helpers in `web/src/shared/utils`.
 - Use `@netstamp/ui` for reusable primitives before adding app-local controls.
 - Use `@` aliases for imports to avoid relative paths and improve readability.
+- Keep `web/src/shared/components` scoped to authenticated app layout, workflow, and provider helpers. Move cross-surface controls, form primitives, tables, panels, drawers, tabs, segmented controls, and action buttons to `@netstamp/ui`.
 
 ## Styling
 

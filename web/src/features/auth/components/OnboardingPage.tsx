@@ -1,13 +1,11 @@
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { type Navigate } from "@/routes/routeTypes";
 import { ApiError } from "@/shared/api/client";
-import { createProjectInvite as createProjectInviteRequest, createProject as createProjectRequest } from "@/shared/api/mutations";
-import { apiQueryKeys } from "@/shared/api/queryKeys";
+import { useCreateProjectInviteForRefMutation, useCreateProjectMutation } from "@/shared/api/mutations";
 import { useProjectSelection } from "@/shared/api/useCurrentProject";
 import { appFeatures } from "@/shared/config/features";
 import { pushErrorToast } from "@/shared/toast/toastStore";
 import { Button, Input, PageShell } from "@netstamp/ui";
-import { useQueryClient } from "@tanstack/react-query";
 import type { FormEvent, KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
@@ -62,7 +60,8 @@ function isProjectSlugConflict(error: unknown) {
 
 export function OnboardingPage({ navigate }: OnboardingPageProps) {
 	const { session, loading, submitting, logout } = useAuth();
-	const queryClient = useQueryClient();
+	const createProjectMutation = useCreateProjectMutation();
+	const createInviteMutation = useCreateProjectInviteForRefMutation();
 	const { setSelectedProjectRef } = useProjectSelection();
 	const [activeStep, setActiveStep] = useState(0);
 	const [typedText, setTypedText] = useState("");
@@ -207,7 +206,7 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 		try {
 			for (let attempt = 0; attempt < maxSlugAttempts; attempt += 1) {
 				try {
-					const data = await createProjectRequest({
+					const data = await createProjectMutation.mutateAsync({
 						name: normalizedProjectName,
 						slug: projectSlugCandidate(baseSlug, attempt)
 					});
@@ -215,7 +214,7 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 					const inviteEmails = normalizedInviteEmails();
 
 					if (inviteEmails.length) {
-						const inviteResults = await Promise.allSettled(inviteEmails.map(email => createProjectInviteRequest(projectRef, { email, role: "viewer" })));
+						const inviteResults = await Promise.allSettled(inviteEmails.map(email => createInviteMutation.mutateAsync({ projectRef, body: { email, role: "viewer" } })));
 						const failedInviteCount = inviteResults.filter(result => result.status === "rejected").length;
 
 						if (failedInviteCount) {
@@ -223,7 +222,6 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 						}
 					}
 
-					await queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.list() });
 					setSelectedProjectRef(projectRef);
 					setCreatedProject(normalizedProjectName);
 					setCreatedProjectRef(projectRef);
@@ -317,6 +315,7 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 											variant="bare"
 											ref={projectInputRef}
 											name="project"
+											type="text"
 											value={projectName}
 											placeholder="Yoru Labs"
 											onChange={event => setProjectName(event.currentTarget.value)}
@@ -352,6 +351,7 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 															}}
 															name={`invite-${index}`}
 															type="email"
+															autoComplete="email"
 															value={invite}
 															placeholder="member@example.com"
 															onChange={event => updateInvite(index, event.currentTarget.value)}

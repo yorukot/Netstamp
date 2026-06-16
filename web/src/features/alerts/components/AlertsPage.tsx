@@ -22,7 +22,7 @@ import { Badge, Button, DataTable, Panel, SelectField, Tabs, TextAreaField, Text
 import { DiscordLogo, EnvelopeSimple, SlackLogo, TelegramLogo, WebhooksLogo } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState, type FormEvent, type MouseEvent } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import styles from "./AlertsPage.module.css";
 
 type AlertTab = "incidents" | "rules" | "notifications";
@@ -665,10 +665,19 @@ function tableState(label: string, detail: string) {
 	return <LoadingState label={label} detail={detail} size="compact" />;
 }
 
+function optionValue<TValue extends string>(value: string | null, options: Array<{ value: TValue }>, fallback: TValue): TValue {
+	return options.some(option => option.value === value) ? (value as TValue) : fallback;
+}
+
+function pathWithSearch(path: string, search: string) {
+	return search ? `${path}?${search}` : path;
+}
+
 export function AlertsPage() {
 	const confirm = useConfirm();
 	const navigate = useNavigate();
 	const { incidentId = "" } = useParams();
+	const [searchParams, setSearchParams] = useSearchParams();
 	const { projectRef } = useCurrentProject();
 	const createRuleMutation = useCreateProjectAlertRuleMutation(projectRef);
 	const updateRuleMutation = useUpdateProjectAlertRuleMutation(projectRef);
@@ -677,13 +686,14 @@ export function AlertsPage() {
 	const updateNotificationMutation = useUpdateProjectNotificationMutation(projectRef);
 	const deleteNotificationMutation = useDeleteProjectNotificationMutation(projectRef);
 	const testNotificationMutation = useTestProjectNotificationMutation(projectRef);
-	const [activeTab, setActiveTab] = useState<AlertTab>("incidents");
-	const [incidentStatus, setIncidentStatus] = useState<IncidentStatusFilter>("open");
-	const [ruleSearch, setRuleSearch] = useState("");
-	const [ruleStatus, setRuleStatus] = useState<RuleStatusFilter>("all");
-	const [ruleCheckType, setRuleCheckType] = useState<RuleCheckTypeFilter>("all");
-	const [notificationStatus, setNotificationStatus] = useState<NotificationStatusFilter>("all");
-	const [notificationType, setNotificationType] = useState<NotificationTypeFilter>("all");
+	const searchParamString = searchParams.toString();
+	const activeTab = optionValue(searchParams.get("tab"), alertTabs, "incidents");
+	const incidentStatus = optionValue(searchParams.get("incidentStatus"), incidentStatusOptions, "open");
+	const ruleSearch = searchParams.get("ruleSearch") ?? "";
+	const ruleStatus = optionValue(searchParams.get("ruleStatus"), ruleStatusOptions, "all");
+	const ruleCheckType = optionValue(searchParams.get("ruleType"), ruleCheckTypeOptions, "all");
+	const notificationStatus = optionValue(searchParams.get("notificationStatus"), notificationStatusOptions, "all");
+	const notificationType = optionValue(searchParams.get("notificationType"), notificationFilterTypeOptions, "all");
 	const [ruleEditor, setRuleEditor] = useState<RuleEditorState | null>(null);
 	const [notificationEditor, setNotificationEditor] = useState<NotificationEditorState | null>(null);
 	const incidentFilters = useMemo(() => ({ limit: 100, ...(incidentStatus === "all" ? {} : { status: incidentStatus }) }), [incidentStatus]);
@@ -923,11 +933,40 @@ export function AlertsPage() {
 	];
 
 	function selectIncident(incident: ApiAlertIncident) {
-		navigate(pathForAlertIncidentDetail(projectRef, incident.id));
+		navigate(pathWithSearch(pathForAlertIncidentDetail(projectRef, incident.id), searchParamString));
 	}
 
 	function closeIncidentDetail() {
-		navigate(pathForRoute("alerts", { projectRef }));
+		navigate(pathWithSearch(pathForRoute("alerts", { projectRef }), searchParamString));
+	}
+
+	function updateAlertSearchParam(key: string, value: string, fallback: string) {
+		const next = new URLSearchParams(searchParamString);
+
+		if (value === fallback || !value.trim()) {
+			next.delete(key);
+		} else {
+			next.set(key, value);
+		}
+
+		setSearchParams(next, { replace: true });
+	}
+
+	function changeAlertTab(value: AlertTab) {
+		const next = new URLSearchParams(searchParamString);
+
+		if (value === "incidents") {
+			next.delete("tab");
+		} else {
+			next.set("tab", value);
+		}
+
+		if (incidentId) {
+			navigate(pathWithSearch(pathForRoute("alerts", { projectRef }), next.toString()));
+			return;
+		}
+
+		setSearchParams(next);
 	}
 
 	async function deleteRule(rule: ApiAlertRule) {
@@ -1004,12 +1043,12 @@ export function AlertsPage() {
 					detail={notifications.length ? "Ready to notify" : "No notification configured"}
 				/>
 			</section>
-			<Tabs tabs={alertTabs} value={visibleTab} ariaLabel="Alert sections" onValueChange={value => setActiveTab(value as AlertTab)} />
+			<Tabs tabs={alertTabs} value={visibleTab} ariaLabel="Alert sections" onValueChange={value => changeAlertTab(value as AlertTab)} />
 			{visibleTab === "incidents" ? (
 				<Panel className={styles.tablePanel} padded={false}>
 					<div className={styles.tableToolbar}>
 						<div className={styles.singlePanelAction}>
-							<SelectField label="Status" value={incidentStatus} options={incidentStatusOptions} onChange={event => setIncidentStatus(event.currentTarget.value as IncidentStatusFilter)} />
+							<SelectField label="Status" value={incidentStatus} options={incidentStatusOptions} onChange={event => updateAlertSearchParam("incidentStatus", event.currentTarget.value, "open")} />
 						</div>
 					</div>
 					<DataTable
@@ -1036,9 +1075,9 @@ export function AlertsPage() {
 				<Panel className={styles.tablePanel} padded={false}>
 					<div className={styles.tableToolbar}>
 						<div className={styles.panelActions}>
-							<TextField label="Search" value={ruleSearch} onChange={event => setRuleSearch(event.currentTarget.value)} placeholder="loss, RTT, notification" />
-							<SelectField label="Status" value={ruleStatus} options={ruleStatusOptions} onChange={event => setRuleStatus(event.currentTarget.value as RuleStatusFilter)} />
-							<SelectField label="Type" value={ruleCheckType} options={ruleCheckTypeOptions} onChange={event => setRuleCheckType(event.currentTarget.value as RuleCheckTypeFilter)} />
+							<TextField label="Search" value={ruleSearch} onChange={event => updateAlertSearchParam("ruleSearch", event.currentTarget.value, "")} placeholder="loss, RTT, notification" />
+							<SelectField label="Status" value={ruleStatus} options={ruleStatusOptions} onChange={event => updateAlertSearchParam("ruleStatus", event.currentTarget.value, "all")} />
+							<SelectField label="Type" value={ruleCheckType} options={ruleCheckTypeOptions} onChange={event => updateAlertSearchParam("ruleType", event.currentTarget.value, "all")} />
 						</div>
 						<Button type="button" onClick={() => setRuleEditor({ mode: "create" })}>
 							Create rule
@@ -1074,9 +1113,14 @@ export function AlertsPage() {
 								label="Status"
 								value={notificationStatus}
 								options={notificationStatusOptions}
-								onChange={event => setNotificationStatus(event.currentTarget.value as NotificationStatusFilter)}
+								onChange={event => updateAlertSearchParam("notificationStatus", event.currentTarget.value, "all")}
 							/>
-							<SelectField label="Type" value={notificationType} options={notificationFilterTypeOptions} onChange={event => setNotificationType(event.currentTarget.value as NotificationTypeFilter)} />
+							<SelectField
+								label="Type"
+								value={notificationType}
+								options={notificationFilterTypeOptions}
+								onChange={event => updateAlertSearchParam("notificationType", event.currentTarget.value, "all")}
+							/>
 						</div>
 						<Button type="button" onClick={() => setNotificationEditor({ mode: "create" })}>
 							Add notification
@@ -1448,9 +1492,19 @@ function NotificationEditorDrawer({
 									onChange={event => updateForm({ botToken: event.currentTarget.value })}
 									placeholder="123456:telegram-bot-token"
 									autoComplete="off"
+									spellCheck={false}
 									required
 								/>
-								<TextField label="Chat ID" value={form.chatId} onChange={event => updateForm({ chatId: event.currentTarget.value })} placeholder="-1001234567890" required />
+								<TextField
+									label="Chat ID"
+									value={form.chatId}
+									onChange={event => updateForm({ chatId: event.currentTarget.value })}
+									placeholder="-1001234567890"
+									inputMode="numeric"
+									autoComplete="off"
+									spellCheck={false}
+									required
+								/>
 							</>
 						) : form.type === "email" ? (
 							<TextAreaField
@@ -1458,6 +1512,8 @@ function NotificationEditorDrawer({
 								value={form.emailTo}
 								onChange={event => updateForm({ emailTo: event.currentTarget.value })}
 								placeholder="ops@example.com, sre@example.com"
+								autoComplete="email"
+								spellCheck={false}
 								rows={4}
 								required
 							/>
@@ -1467,6 +1523,9 @@ function NotificationEditorDrawer({
 								value={form.url}
 								onChange={event => updateForm({ url: event.currentTarget.value })}
 								inputMode="url"
+								type="url"
+								autoComplete="url"
+								spellCheck={false}
 								placeholder={notificationWebhookURLPlaceholder(form.type)}
 								required
 							/>

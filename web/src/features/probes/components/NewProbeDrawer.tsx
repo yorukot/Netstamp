@@ -14,7 +14,7 @@ import { projectQueries } from "@/shared/api/queries";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { EditorDrawer } from "@/shared/components/EditorDrawer";
 import { classNames } from "@/shared/utils/classNames";
-import { Badge, Button, Terminal, TextField } from "@netstamp/ui";
+import { Badge, Button, SegmentedControl, Terminal, TextField } from "@netstamp/ui";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
@@ -25,6 +25,11 @@ import { ProbeWizardTimeline } from "./ProbeWizardTimeline";
 const createProbeSteps = [
 	{ number: "01", title: "Name", copy: "Probe identity" },
 	{ number: "02", title: "Install", copy: "Run command" }
+];
+
+const coordinateModeOptions: Array<{ value: CoordinateInputMode; label: string }> = [
+	{ value: "search", label: "Search name" },
+	{ value: "manual", label: "Manual coordinates" }
 ];
 
 async function writeClipboardText(value: string) {
@@ -263,28 +268,14 @@ export function NewProbeDrawer() {
 
 						<TextField label="Probe name" value={probeName} placeholder="taipei-home-01" required disabled={currentStep !== 0} onChange={event => updateProbeName(event.currentTarget.value)} />
 
-						<div className={styles.locationMode} role="group" aria-label="Coordinate input mode">
-							<Button
-								type="button"
-								variant={coordinateInputMode === "search" ? "secondary" : "ghost"}
-								size="sm"
-								aria-pressed={coordinateInputMode === "search"}
-								disabled={currentStep !== 0}
-								onClick={() => updateCoordinateInputMode("search")}
-							>
-								Search name
-							</Button>
-							<Button
-								type="button"
-								variant={coordinateInputMode === "manual" ? "secondary" : "ghost"}
-								size="sm"
-								aria-pressed={coordinateInputMode === "manual"}
-								disabled={currentStep !== 0}
-								onClick={() => updateCoordinateInputMode("manual")}
-							>
-								Manual coordinates
-							</Button>
-						</div>
+						<SegmentedControl
+							className={styles.locationMode}
+							size="sm"
+							ariaLabel="Coordinate input mode"
+							value={coordinateInputMode}
+							options={coordinateModeOptions.map(option => ({ ...option, disabled: currentStep !== 0 }))}
+							onValueChange={nextMode => updateCoordinateInputMode(nextMode as CoordinateInputMode)}
+						/>
 
 						{coordinateInputMode === "search" ? (
 							<div className={styles.locationSearch}>
@@ -362,7 +353,17 @@ export function NewProbeDrawer() {
 								title="install command"
 								className={styles.installCommand}
 								meta={
-									<Button type="button" variant="ghost" size="sm" className={styles.copyCommandButton} disabled={!installCommand} onClick={() => void copyInstallCommand()}>
+									<Button
+										type="button"
+										variant="ghost"
+										size="sm"
+										className={styles.copyCommandButton}
+										disabled={!installCommand}
+										aria-label={installCommandCopied ? "Install command copied" : "Copy install command to clipboard"}
+										title={installCommandCopied ? "Install command copied" : "Copy install command to clipboard"}
+										aria-live="polite"
+										onClick={() => void copyInstallCommand()}
+									>
 										{installCommandCopied ? "Copied" : "Copy"}
 									</Button>
 								}

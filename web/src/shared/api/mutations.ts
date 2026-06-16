@@ -55,6 +55,18 @@ function projectCacheRef(project: { id: string; slug?: string }) {
 	return project.slug || project.id;
 }
 
+function cacheCreatedProject(queryClient: ReturnType<typeof useQueryClient>, data: Awaited<ReturnType<typeof createProject>>) {
+	queryClient.setQueryData(apiQueryKeys.projects.detail(projectCacheRef(data.project)), data);
+	queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.list() });
+}
+
+function cacheCreatedProjectInvite(queryClient: ReturnType<typeof useQueryClient>, ref: string, data: Awaited<ReturnType<typeof createProjectInvite>>) {
+	queryClient.setQueryData<ProjectInvitesCache | undefined>(apiQueryKeys.projects.invites(ref), current =>
+		current ? { ...current, invites: [data.invite, ...current.invites.filter(invite => invite.id !== data.invite.id)] } : current
+	);
+	queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.invites(ref) });
+}
+
 function requireWritableAccess() {
 	if (demoMode) {
 		throw new ApiError("Demo mode is read-only.", 403);
@@ -290,10 +302,7 @@ export function useCreateProjectMutation() {
 
 	return useMutation({
 		mutationFn: createProject,
-		onSuccess: data => {
-			queryClient.setQueryData(apiQueryKeys.projects.detail(projectCacheRef(data.project)), data);
-			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.list() });
-		}
+		onSuccess: data => cacheCreatedProject(queryClient, data)
 	});
 }
 
@@ -552,11 +561,17 @@ export function useCreateProjectInviteMutation(projectRef: string | null | undef
 		mutationFn: (body: CreateProjectInviteInput) => createProjectInvite(requireProjectRef(projectRef), body),
 		onSuccess: data => {
 			const ref = requireProjectRef(projectRef);
-			queryClient.setQueryData<ProjectInvitesCache | undefined>(apiQueryKeys.projects.invites(ref), current =>
-				current ? { ...current, invites: [data.invite, ...current.invites.filter(invite => invite.id !== data.invite.id)] } : current
-			);
-			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.invites(ref) });
+			cacheCreatedProjectInvite(queryClient, ref, data);
 		}
+	});
+}
+
+export function useCreateProjectInviteForRefMutation() {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: ({ projectRef, body }: { projectRef: string; body: CreateProjectInviteInput }) => createProjectInvite(projectRef, body),
+		onSuccess: (data, variables) => cacheCreatedProjectInvite(queryClient, variables.projectRef, data)
 	});
 }
 

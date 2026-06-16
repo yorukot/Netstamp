@@ -125,14 +125,11 @@
 	min-width: 0;
 }
 
-.locationMode {
+.locationMode,
+.serviceCommandMode {
 	display: flex;
 	flex-wrap: wrap;
 	gap: 0.5rem;
-}
-
-.locationMode button[aria-pressed="true"] {
-	--ns-frame-color: var(--ns-accent-border);
 }
 
 .locationSearch {

@@ -11,12 +11,12 @@ function parseTimestamp(value: string | null | undefined) {
 	return Number.isFinite(timestamp) ? timestamp : null;
 }
 
-function formatRelativeTime(timestamp: number | null) {
+export function formatProbeHeartbeat(timestamp: number | null, now = Date.now()) {
 	if (timestamp === null) {
 		return "never";
 	}
 
-	const elapsedSeconds = Math.max(0, Math.floor((Date.now() - timestamp) / 1000));
+	const elapsedSeconds = Math.max(0, Math.floor((now - timestamp) / 1000));
 
 	if (elapsedSeconds < 60) {
 		return `${elapsedSeconds}s ago`;
@@ -74,7 +74,7 @@ export function mapApiProbe(probe: ApiProbe, index: number): Probe {
 		provider: labelValue(probe, "provider") || "Unlabeled",
 		region: location,
 		ipFamily,
-		lastHeartbeat: formatRelativeTime(lastHeartbeatAt),
+		lastHeartbeat: formatProbeHeartbeat(lastHeartbeatAt),
 		lastHeartbeatAt,
 		labelTokens,
 		version: status?.agentVersion || "-",

@@ -1,6 +1,6 @@
 import { pathForRoute } from "@/routes/routePaths";
 import { classNames } from "@/shared/utils/classNames";
-import { Button } from "@netstamp/ui";
+import { Button, SegmentedControl } from "@netstamp/ui";
 import { Link } from "react-router-dom";
 import styles from "./ProbePageHeader.module.css";
 import type { ProbeView } from "./types";
@@ -17,14 +17,17 @@ export function ProbePageHeader({ view, projectRef, onViewChange, overlay = fals
 		<header className={classNames(styles.header, overlay && styles.overlay)}>
 			<div className={styles.titleArea}>
 				<h1>Probe</h1>
-				<div className={styles.viewActions} role="group" aria-label="Probe view">
-					<Button type="button" size="sm" variant={view === "grid" ? "secondary" : "ghost"} onClick={() => onViewChange("grid")}>
-						Grid View
-					</Button>
-					<Button type="button" size="sm" variant={view === "map" ? "secondary" : "ghost"} onClick={() => onViewChange("map")}>
-						Map View
-					</Button>
-				</div>
+				<SegmentedControl
+					className={styles.viewActions}
+					size="sm"
+					ariaLabel="Probe view"
+					value={view}
+					options={[
+						{ value: "grid", label: "Grid View" },
+						{ value: "map", label: "Map View" }
+					]}
+					onValueChange={nextView => onViewChange(nextView as ProbeView)}
+				/>
 			</div>
 			<div className={styles.primaryActions}>
 				<Button asChild>
