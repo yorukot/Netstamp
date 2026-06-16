@@ -82,6 +82,18 @@ interface NotificationTypeOption {
 	detail: string;
 }
 
+interface NumericFieldValidation {
+	value: number;
+	error: string;
+}
+
+interface RuleNumberValidation {
+	threshold: NumericFieldValidation;
+	windowSeconds: NumericFieldValidation;
+	minSamples: NumericFieldValidation;
+	cooldownSeconds: NumericFieldValidation;
+}
+
 const emptyRules: ApiAlertRule[] = [];
 const emptyIncidents: ApiAlertIncident[] = [];
 const emptyNotifications: ApiNotification[] = [];
@@ -448,18 +460,6 @@ function rulesUsingNotification(rules: ApiAlertRule[], notificationID: string) {
 	return rules.filter(rule => rule.notificationIds.includes(notificationID));
 }
 
-function parseInteger(value: string, fallback: number) {
-	const parsed = Number.parseInt(value, 10);
-
-	return Number.isFinite(parsed) ? parsed : fallback;
-}
-
-function parseFloatValue(value: string, fallback: number) {
-	const parsed = Number.parseFloat(value);
-
-	return Number.isFinite(parsed) ? parsed : fallback;
-}
-
 function metricForCheckType(nextCheckType: CheckType) {
 	return metricOptions[nextCheckType][0]?.value;
 }
@@ -542,10 +542,57 @@ function notificationFormFromNotification(notification: ApiNotification): Notifi
 	};
 }
 
+function validateNumericField(label: string, value: string, options: { integer?: boolean; min?: number; max?: number } = {}): NumericFieldValidation {
+	const trimmed = value.trim();
+
+	if (!trimmed) {
+		return { value: Number.NaN, error: `${label} is required.` };
+	}
+
+	const parsed = Number(trimmed);
+
+	if (!Number.isFinite(parsed)) {
+		return { value: Number.NaN, error: `${label} must be a number.` };
+	}
+
+	if (options.integer && !Number.isInteger(parsed)) {
+		return { value: parsed, error: `${label} must be a whole number.` };
+	}
+
+	if (typeof options.min === "number" && parsed < options.min) {
+		return { value: parsed, error: `${label} must be at least ${options.min}.` };
+	}
+
+	if (typeof options.max === "number" && parsed > options.max) {
+		return { value: parsed, error: `${label} must be at most ${options.max}.` };
+	}
+
+	return { value: parsed, error: "" };
+}
+
+function validateRuleNumbers(form: RuleFormState): RuleNumberValidation {
+	return {
+		threshold: validateNumericField("Threshold", form.threshold, { min: 0 }),
+		windowSeconds: validateNumericField("Window seconds", form.windowSeconds, { integer: true, min: 60, max: 86400 }),
+		minSamples: validateNumericField("Min samples", form.minSamples, { integer: true, min: 1, max: 10000 }),
+		cooldownSeconds: validateNumericField("Cooldown", form.cooldownSeconds, { integer: true, min: 60, max: 86400 })
+	};
+}
+
+function ruleNumberError(validation: RuleNumberValidation) {
+	return validation.threshold.error || validation.windowSeconds.error || validation.minSamples.error || validation.cooldownSeconds.error;
+}
+
 function rulePayload(form: RuleFormState): CreateAlertRuleInput | UpdateAlertRuleInput {
 	const description = form.description.trim();
 	const probeId = form.probeId.trim();
 	const checkId = form.checkId.trim();
+	const numbers = validateRuleNumbers(form);
+	const numberError = ruleNumberError(numbers);
+
+	if (numberError) {
+		throw new Error(numberError);
+	}
 
 	return {
 		name: form.name.trim(),
@@ -561,11 +608,11 @@ function rulePayload(form: RuleFormState): CreateAlertRuleInput | UpdateAlertRul
 			type: "metric_threshold",
 			metric: form.metric,
 			operator: form.operator,
-			threshold: parseFloatValue(form.threshold, 0),
-			windowSeconds: parseInteger(form.windowSeconds, 300),
-			minSamples: parseInteger(form.minSamples, 3)
+			threshold: numbers.threshold.value,
+			windowSeconds: numbers.windowSeconds.value,
+			minSamples: numbers.minSamples.value
 		},
-		cooldownSeconds: parseInteger(form.cooldownSeconds, 900),
+		cooldownSeconds: numbers.cooldownSeconds.value,
 		notificationIds: form.selectedNotificationIds
 	};
 }
@@ -602,12 +649,12 @@ function notificationEmailRecipients(value: string) {
 		.filter(Boolean);
 }
 
-function rulePreview(form: RuleFormState, notifications: ApiNotification[]) {
+function rulePreview(form: RuleFormState, notifications: ApiNotification[], numbers: RuleNumberValidation) {
 	const metric = metricLabel(form.metric).toLowerCase();
 	const threshold = formatThreshold(form.metric, form.threshold || "0");
 	const notification = form.selectedNotificationIds.length ? form.selectedNotificationIds.map(notificationID => notificationNameByID(notifications, notificationID)).join(", ") : "no notification";
 
-	return `Create a ${form.severity} incident when ${metric} ${operatorPhrases[form.operator]} ${threshold} for ${formatDuration(parseInteger(form.windowSeconds, 300))}. Notify ${notification}, then wait ${formatDuration(parseInteger(form.cooldownSeconds, 900))} before repeating.`;
+	return `Create a ${form.severity} incident when ${metric} ${operatorPhrases[form.operator]} ${threshold} for ${formatDuration(numbers.windowSeconds.value)}. Notify ${notification}, then wait ${formatDuration(numbers.cooldownSeconds.value)} before repeating.`;
 }
 
 function stopTableAction(event: MouseEvent<HTMLButtonElement>) {
@@ -1072,8 +1119,8 @@ export function AlertsPage() {
 					isPending={createRuleMutation.isPending || updateRuleMutation.isPending}
 					onClose={() => setRuleEditor(null)}
 					onSubmit={async form => {
-						const body = rulePayload(form);
 						try {
+							const body = rulePayload(form);
 							if (ruleEditor.mode === "edit" && ruleEditor.rule) {
 								await updateRuleMutation.mutateAsync({ ruleId: ruleEditor.rule.id, body });
 								pushToast({ title: "Rule updated", message: body.name, tone: "success" });
@@ -1197,6 +1244,8 @@ function RuleEditorDrawer({
 	const metricSelectOptions = useMemo(() => metricOptionsForForm(form), [form]);
 	const title = editor.mode === "edit" ? "Edit rule" : "Create rule";
 	const checkTypeSupported = supportsAlertMetrics(form.checkType);
+	const numberValidation = validateRuleNumbers(form);
+	const numberError = ruleNumberError(numberValidation);
 
 	function updateForm(patch: Partial<RuleFormState>) {
 		setForm(current => ({ ...current, ...patch }));
@@ -1215,7 +1264,7 @@ function RuleEditorDrawer({
 
 	async function handleSubmit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
-		if (!checkTypeSupported) {
+		if (!checkTypeSupported || numberError) {
 			return;
 		}
 		await onSubmit(form);
@@ -1244,7 +1293,14 @@ function RuleEditorDrawer({
 							<SelectField label="Metric" value={form.metric} options={metricSelectOptions} onChange={event => updateForm({ metric: event.currentTarget.value as AlertMetric })} />
 							<div className={styles.twoColumns}>
 								<SelectField label="Operator" value={form.operator} options={operatorOptions} onChange={event => updateForm({ operator: event.currentTarget.value as AlertOperator })} />
-								<TextField label="Threshold" value={form.threshold} onChange={event => updateForm({ threshold: event.currentTarget.value })} inputMode="decimal" required />
+								<TextField
+									label="Threshold"
+									value={form.threshold}
+									onChange={event => updateForm({ threshold: event.currentTarget.value })}
+									inputMode="decimal"
+									error={numberValidation.threshold.error || undefined}
+									required
+								/>
 							</div>
 						</div>
 					) : (
@@ -1279,9 +1335,19 @@ function RuleEditorDrawer({
 									inputMode="numeric"
 									min={60}
 									max={86400}
+									error={numberValidation.windowSeconds.error || undefined}
 									required
 								/>
-								<TextField label="Min samples" value={form.minSamples} onChange={event => updateForm({ minSamples: event.currentTarget.value })} inputMode="numeric" min={1} max={10000} required />
+								<TextField
+									label="Min samples"
+									value={form.minSamples}
+									onChange={event => updateForm({ minSamples: event.currentTarget.value })}
+									inputMode="numeric"
+									min={1}
+									max={10000}
+									error={numberValidation.minSamples.error || undefined}
+									required
+								/>
 								<TextField
 									label="Cooldown"
 									value={form.cooldownSeconds}
@@ -1289,18 +1355,19 @@ function RuleEditorDrawer({
 									inputMode="numeric"
 									min={60}
 									max={86400}
+									error={numberValidation.cooldownSeconds.error || undefined}
 									required
 								/>
 							</div>
 						</details>
 					</div>
 				</Panel>
-				{checkTypeSupported ? <div className={styles.previewSentence}>{rulePreview(form, notifications)}</div> : null}
+				{checkTypeSupported && !numberError ? <div className={styles.previewSentence}>{rulePreview(form, notifications, numberValidation)}</div> : null}
 				<div className={styles.drawerActions}>
 					<Button type="button" variant="ghost" disabled={isPending} onClick={onClose}>
 						Cancel
 					</Button>
-					<Button type="submit" disabled={isPending || !form.name.trim() || !checkTypeSupported}>
+					<Button type="submit" disabled={isPending || !form.name.trim() || !checkTypeSupported || Boolean(numberError)}>
 						{editor.mode === "edit" ? "Save rule" : "Create rule"}
 					</Button>
 				</div>
