@@ -217,7 +217,7 @@ export function MembersPage() {
 					{row.avatarUrl ? (
 						<SignalAvatar className={styles.memberAvatar} size="sm" src={row.avatarUrl} referrerPolicy="no-referrer" aria-hidden="true" />
 					) : (
-						<span className={`ns-cut-frame ${styles.memberAvatarFallback}`} aria-hidden="true">
+						<span className={styles.memberAvatarFallback} aria-hidden="true">
 							{row.initials}
 						</span>
 					)}

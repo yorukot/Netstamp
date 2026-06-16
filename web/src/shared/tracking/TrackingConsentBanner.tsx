@@ -84,7 +84,7 @@ export function TrackingConsentBanner() {
 	}
 
 	return (
-		<section className={`ns-cut-frame ${styles.banner}`} aria-label="Analytics consent">
+		<section className={styles.banner} aria-label="Analytics consent">
 			<div className={styles.copy}>
 				<strong>Analytics consent</strong>
 				<p>Netstamp can load optional analytics to understand product and docs usage. Declining keeps those trackers disabled in this browser.</p>

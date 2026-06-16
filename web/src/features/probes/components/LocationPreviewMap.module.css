@@ -9,10 +9,6 @@
 	min-height: 13.5rem;
 }
 
-.preview :global(.ns-cut-frame) {
-	min-height: 13.5rem;
-}
-
 .meta {
 	display: grid;
 	gap: 0.35rem;

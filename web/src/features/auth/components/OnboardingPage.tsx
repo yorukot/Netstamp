@@ -6,7 +6,6 @@ import { apiQueryKeys } from "@/shared/api/queryKeys";
 import { useProjectSelection } from "@/shared/api/useCurrentProject";
 import { appFeatures } from "@/shared/config/features";
 import { pushErrorToast } from "@/shared/toast/toastStore";
-import { classNames } from "@/shared/utils/classNames";
 import { Button, Input, PageShell } from "@netstamp/ui";
 import { useQueryClient } from "@tanstack/react-query";
 import type { FormEvent, KeyboardEvent as ReactKeyboardEvent } from "react";
@@ -255,7 +254,7 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 					<title>No Project Access - Netstamp</title>
 				</Helmet>
 
-				<section className={classNames("ns-cut-frame", styles.console)} aria-label="Project access console">
+				<section className={styles.console} aria-label="Project access console">
 					<div className={styles.consoleBar}>
 						<span aria-hidden="true" />
 						<span aria-hidden="true" />
@@ -283,7 +282,7 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 				<title>Create Project - Netstamp</title>
 			</Helmet>
 
-			<section className={classNames("ns-cut-frame", styles.console)} aria-label="First contact onboarding console">
+			<section className={styles.console} aria-label="First contact onboarding console">
 				<div className={styles.consoleBar}>
 					<span aria-hidden="true" />
 					<span aria-hidden="true" />

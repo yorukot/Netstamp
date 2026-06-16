@@ -4,7 +4,6 @@ import type { Probe } from "@/features/probes/data/probes";
 import type { TcpInsightResponse, TcpSeriesResponse } from "@/shared/api/types";
 import { BodyCopy } from "@/shared/components/BodyCopy";
 import { LoadingState } from "@/shared/components/LoadingState";
-import { classNames } from "@/shared/utils/classNames";
 import { formatCount } from "@/shared/utils/insightFormatters";
 import { ChartPanel } from "@/shared/visualizations/ChartPanel";
 import { tcpInsightChartOption } from "@/shared/visualizations/chartOptions";
@@ -51,7 +50,7 @@ export function TcpInsightPanel({ selectedProbe, selectedTarget, insightData, se
 		<div className={styles.pingStack}>
 			<div className={styles.summaryGrid}>
 				{metrics.map(metric => (
-					<div className={classNames("ns-cut-frame", styles.summaryCell)} key={metric.label}>
+					<div className={styles.summaryCell} key={metric.label}>
 						<span>{metric.label}</span>
 						<strong>{metric.value}</strong>
 						<small>{metric.detail}</small>

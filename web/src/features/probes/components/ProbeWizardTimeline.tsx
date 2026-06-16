@@ -16,7 +16,7 @@ export function ProbeWizardTimeline({ steps, currentStep }: ProbeWizardTimelineP
 	return (
 		<ol className={styles.stepTimeline} aria-label="Create probe progress">
 			{steps.map((step, index) => (
-				<li className={classNames("ns-cut-frame", styles.stepItem, index === currentStep && styles.stepActive, index < currentStep && styles.stepComplete)} key={step.number}>
+				<li className={classNames(styles.stepItem, index === currentStep && styles.stepActive, index < currentStep && styles.stepComplete)} key={step.number}>
 					<span>{step.number}</span>
 					<strong>{step.title}</strong>
 					<small>{step.copy}</small>

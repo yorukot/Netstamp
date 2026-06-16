@@ -2,21 +2,7 @@ import { displayInsightTimeRange } from "@/features/insight/insightTime";
 import type { InsightRefreshInterval, InsightRelativeRange, InsightTimeMode, TimeWindow } from "@/features/insight/insightTypes";
 import { classNames } from "@/shared/utils/classNames";
 import { relativeTimeOptions, relativeTimeRangeDurations } from "@/shared/utils/timeRanges";
-import {
-	Button,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuPortal,
-	DropdownMenuRoot,
-	DropdownMenuTrigger,
-	PopoverAnchor,
-	PopoverContent,
-	PopoverPortal,
-	PopoverRoot,
-	PopoverTrigger,
-	SelectField,
-	TextField
-} from "@netstamp/ui";
+import { Button, PopoverAnchor, PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger, SearchableSelect, SelectField, TextField, SegmentedControl as UiSegmentedControl } from "@netstamp/ui";
 import { CaretDown, X } from "@phosphor-icons/react";
 import { useId, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from "react";
 import styles from "./InsightControls.module.css";
@@ -64,28 +50,14 @@ export function SegmentedControl<TValue extends string>({
 	return (
 		<div className={styles.segmentField}>
 			<span className={styles.segmentLabel}>{label}</span>
-			<div className={classNames("ns-cut-frame", styles.segmentControl)} role="radiogroup" aria-label={label}>
-				{options.map(option => (
-					<button
-						type="button"
-						role="radio"
-						aria-checked={value === option.value}
-						className={styles.segmentButton}
-						data-selected={value === option.value || undefined}
-						onClick={() => onChange(option.value)}
-						key={option.value}
-					>
-						{option.label}
-					</button>
-				))}
-			</div>
+			<UiSegmentedControl ariaLabel={label} options={options} value={value} onValueChange={nextValue => onChange(nextValue as TValue)} />
 		</div>
 	);
 }
 
 export function FocusChip({ label, value, invalid, onClear }: { label: string; value: string; invalid?: boolean; onClear: () => void }) {
 	return (
-		<div className={classNames("ns-cut-frame", styles.focusChip)} data-invalid={invalid || undefined}>
+		<div className={styles.focusChip} data-invalid={invalid || undefined}>
 			<span>{label}</span>
 			<strong>{value}</strong>
 			<button type="button" onClick={onClear}>
@@ -117,67 +89,31 @@ export function ScopeSelect({
 	disabled?: boolean;
 	onChange: (value: string) => void;
 }) {
-	const [open, setOpen] = useState(false);
-	const [query, setQuery] = useState("");
-	const optionsByValue = useMemo(() => new Map(options.map(option => [option.value, option])), [options]);
-	const selectedOption = value ? optionsByValue.get(value) : undefined;
-	const normalizedQuery = query.trim().toLowerCase();
-	const filteredOptions = useMemo(() => {
-		const matches = normalizedQuery ? options.filter(option => option.searchText.includes(normalizedQuery)) : options;
-
-		return matches.slice(0, 50);
-	}, [normalizedQuery, options]);
-	const summary = selectedOption ? `${selectedOption.label} · ${selectedOption.meta}` : placeholder;
-
-	function commitValue(nextValue: string) {
-		onChange(nextValue);
-		setOpen(false);
-		setQuery("");
-	}
+	const searchableOptions = useMemo(
+		() =>
+			options.map(option => ({
+				value: option.value,
+				label: option.label,
+				description: option.meta,
+				searchText: option.searchText
+			})),
+		[options]
+	);
 
 	return (
-		<DropdownMenuRoot
-			open={open}
-			onOpenChange={nextOpen => {
-				setOpen(nextOpen);
-				if (!nextOpen) {
-					setQuery("");
-				}
-			}}
-		>
-			<div className={styles.assignmentField}>
-				<span className={styles.segmentLabel}>{label}</span>
-				<DropdownMenuTrigger asChild disabled={disabled}>
-					<button type="button" className={classNames("ns-cut-frame", styles.assignmentTrigger)} disabled={disabled}>
-						<span>{summary}</span>
-						<CaretDown className={styles.controlIcon} size={18} weight="bold" aria-hidden="true" focusable="false" />
-					</button>
-				</DropdownMenuTrigger>
-				<DropdownMenuPortal>
-					<DropdownMenuContent className={classNames("ns-cut-frame", "ns-scrollbar", styles.assignmentPopover)} align="start" sideOffset={8} collisionPadding={8}>
-						<div className={styles.assignmentSearch} onKeyDown={event => event.stopPropagation()}>
-							<input value={query} placeholder={`Search ${label.toLowerCase()}`} autoComplete="off" autoFocus onChange={event => setQuery(event.currentTarget.value)} />
-						</div>
-						{value ? (
-							<DropdownMenuItem className={classNames(styles.assignmentOption, styles.assignmentActionOption)} onSelect={() => commitValue("")}>
-								<strong>Clear selection</strong>
-								<span>{selectedOption?.label ?? "Selected scope"}</span>
-							</DropdownMenuItem>
-						) : null}
-						{filteredOptions.length ? (
-							filteredOptions.map(option => (
-								<DropdownMenuItem className={styles.assignmentOption} data-state={option.value === value ? "checked" : undefined} onSelect={() => commitValue(option.value)} key={option.value}>
-									<strong>{option.label}</strong>
-									<span>{option.meta}</span>
-								</DropdownMenuItem>
-							))
-						) : (
-							<div className={styles.assignmentEmpty}>No {label.toLowerCase()} match this search.</div>
-						)}
-					</DropdownMenuContent>
-				</DropdownMenuPortal>
-			</div>
-		</DropdownMenuRoot>
+		<div className={styles.assignmentField}>
+			<span className={styles.segmentLabel}>{label}</span>
+			<SearchableSelect
+				aria-label={label}
+				options={searchableOptions}
+				value={value}
+				placeholder={placeholder}
+				searchPlaceholder={`Search ${label.toLowerCase()}`}
+				emptyLabel={`No ${label.toLowerCase()} match this search.`}
+				disabled={disabled}
+				onValueChange={onChange}
+			/>
+		</div>
 	);
 }
 
@@ -316,7 +252,7 @@ export function AssignmentMultiSelect({
 				</label>
 				<PopoverAnchor asChild>
 					<div
-						className={classNames("ns-cut-frame", styles.assignmentControl)}
+						className={styles.assignmentControl}
 						data-open={open || undefined}
 						data-disabled={disabled || undefined}
 						onPointerDownCapture={handleControlPointerDown}
@@ -377,7 +313,7 @@ export function AssignmentMultiSelect({
 				<PopoverPortal>
 					<PopoverContent
 						id={listboxId}
-						className={classNames("ns-cut-frame", "ns-scrollbar", styles.assignmentPopover)}
+						className={classNames("ns-scrollbar", styles.assignmentPopover)}
 						role="listbox"
 						aria-multiselectable="true"
 						align="start"
@@ -489,7 +425,7 @@ export function InsightTimeControl({
 				<span className={styles.segmentLabel}>Time</span>
 				<div className={styles.timeControls}>
 					<PopoverTrigger asChild>
-						<button id={timeButtonId} type="button" className={classNames("ns-cut-frame", styles.timeTrigger)} aria-controls={`${timeButtonId}-panel`}>
+						<button id={timeButtonId} type="button" className={styles.timeTrigger} aria-controls={`${timeButtonId}-panel`}>
 							<span>{displayInsightTimeRange(timeMode, timeRange, timeWindow)}</span>
 							<CaretDown className={styles.controlIcon} size={18} weight="bold" aria-hidden="true" focusable="false" />
 						</button>
@@ -502,7 +438,7 @@ export function InsightTimeControl({
 				<PopoverPortal>
 					<PopoverContent
 						id={`${timeButtonId}-panel`}
-						className={classNames("ns-cut-frame", "ns-scrollbar", styles.timePopover)}
+						className={classNames("ns-scrollbar", styles.timePopover)}
 						role="dialog"
 						aria-labelledby={timeButtonId}
 						align="start"
@@ -515,7 +451,7 @@ export function InsightTimeControl({
 								{timeOptions.map(option => (
 									<button
 										type="button"
-										className={classNames("ns-cut-frame", styles.timePreset)}
+										className={styles.timePreset}
 										data-selected={timeMode === "relative" && timeRange === option.value}
 										onClick={() => {
 											onApplyRelative(option.value);

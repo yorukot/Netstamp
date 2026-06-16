@@ -73,6 +73,7 @@
 	z-index: 1000;
 	width: min(24rem, calc(100vw - 1.5rem));
 	padding: 0.6rem;
+	border: 1px solid var(--ns-frame-color);
 	background: var(--ns-surface);
 }
 

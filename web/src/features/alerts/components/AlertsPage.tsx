@@ -17,9 +17,8 @@ import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { useConfirm } from "@/shared/components/confirmContext";
 import { pushErrorToast, pushToast } from "@/shared/toast/toastStore";
-import { classNames } from "@/shared/utils/classNames";
 import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
-import { Badge, Button, DataTable, Panel, SelectField, TextAreaField, TextField, type BadgeTone, type DataColumn } from "@netstamp/ui";
+import { Badge, Button, DataTable, Panel, SelectField, Tabs, TextAreaField, TextField, type BadgeTone, type DataColumn } from "@netstamp/ui";
 import { DiscordLogo, EnvelopeSimple, SlackLogo, TelegramLogo, WebhooksLogo } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState, type FormEvent, type MouseEvent } from "react";
@@ -953,19 +952,7 @@ export function AlertsPage() {
 					detail={notifications.length ? "Ready to notify" : "No notification configured"}
 				/>
 			</section>
-			<nav className={styles.tabs} aria-label="Alert sections">
-				{alertTabs.map(tab => (
-					<button
-						type="button"
-						className={classNames(styles.tab, visibleTab === tab.value && styles.tabActive)}
-						aria-pressed={visibleTab === tab.value}
-						key={tab.value}
-						onClick={() => setActiveTab(tab.value)}
-					>
-						{tab.label}
-					</button>
-				))}
-			</nav>
+			<Tabs tabs={alertTabs} value={visibleTab} ariaLabel="Alert sections" onValueChange={value => setActiveTab(value as AlertTab)} />
 			{visibleTab === "incidents" ? (
 				<Panel className={styles.tablePanel} padded={false}>
 					<div className={styles.tableToolbar}>
@@ -1295,7 +1282,7 @@ function RuleEditorDrawer({
 						</details>
 					</div>
 				</Panel>
-				<div className={classNames("ns-cut-frame", styles.previewSentence)}>{rulePreview(form, notifications)}</div>
+				<div className={styles.previewSentence}>{rulePreview(form, notifications)}</div>
 				<div className={styles.drawerActions}>
 					<Button type="button" variant="ghost" disabled={isPending} onClick={onClose}>
 						Cancel
@@ -1345,7 +1332,7 @@ function NotificationEditorDrawer({
 			<EditorDrawer open title={title} ariaLabel={title} backLabel="back to notifications" onClose={onClose}>
 				<div className={styles.notificationTypeGrid}>
 					{notificationTypeOptions.map(option => (
-						<button type="button" className={classNames("ns-cut-frame", styles.notificationTypeOption)} key={option.value} onClick={() => chooseType(option.value)}>
+						<button type="button" className={styles.notificationTypeOption} key={option.value} onClick={() => chooseType(option.value)}>
 							<NotificationTypeIcon type={option.value} />
 							<span className={styles.notificationTypeText}>
 								<strong>{option.label}</strong>
@@ -1362,7 +1349,7 @@ function NotificationEditorDrawer({
 		<EditorDrawer open title={title} ariaLabel={title} backLabel="back to notifications" onClose={onClose}>
 			<form className={styles.drawerForm} onSubmit={handleSubmit}>
 				<Panel tone="matte" title="Notification type">
-					<div className={classNames("ns-cut-frame", styles.notificationTypeSummary)}>
+					<div className={styles.notificationTypeSummary}>
 						<NotificationTypeIcon type={selectedType.value} />
 						<span className={styles.notificationTypeText}>
 							<strong>{selectedType.label}</strong>

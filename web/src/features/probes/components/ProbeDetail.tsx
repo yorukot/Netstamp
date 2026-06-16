@@ -382,7 +382,7 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 				{labelOptions.length ? (
 					<div className={styles.labelGrid}>
 						{labelOptions.map(label => (
-							<label className={classNames("ns-cut-frame", styles.labelOption)} title={labelToken(label)} key={label.id}>
+							<label className={styles.labelOption} title={labelToken(label)} key={label.id}>
 								<Checkbox checked={selectedLabelSet.has(label.id)} onChange={event => toggleLabel(label.id, event.currentTarget.checked)} />
 								<span>{label.key}</span>
 								<strong>{label.value}</strong>
@@ -514,7 +514,7 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 			</div>
 
 			{serviceCommandMode && selectedServiceCommand ? (
-				<div className={classNames("ns-cut-frame", styles.serviceCommandPanel)}>
+				<div className={styles.serviceCommandPanel}>
 					<span>Probe service command</span>
 					<Terminal
 						title={`${selectedServiceCommand.label.toLowerCase()} command`}
@@ -530,7 +530,7 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 			) : null}
 
 			{rotatedSecret ? (
-				<div className={classNames("ns-cut-frame", styles.secretPanel)}>
+				<div className={styles.secretPanel}>
 					<span>New probe secret</span>
 					<code>{rotatedSecret}</code>
 					<p>Rewrite the systemd service environment with the rotated credential.</p>

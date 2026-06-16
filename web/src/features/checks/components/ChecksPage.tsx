@@ -759,7 +759,7 @@ export function ChecksPage() {
 							/>
 						</FilterGrid>
 						{selectedCheckRows.length ? (
-							<div className={classNames("ns-cut-frame", styles.batchToolbar)}>
+							<div className={styles.batchToolbar}>
 								<div>
 									<strong>{selectedCheckRows.length} selected</strong>
 									<span>{selectedCheckSummary()}</span>
@@ -859,7 +859,7 @@ export function ChecksPage() {
 												const valuesForKey = selectorValuesForKey(selectorOptions, rule.key);
 
 												return (
-													<div className={classNames("ns-cut-frame", styles.selectorRule)} key={rule.id}>
+													<div className={styles.selectorRule} key={rule.id}>
 														<label className={styles.selectorNegation}>
 															<Checkbox checked={rule.negated} onChange={event => updateSelectorRule(rule.id, { negated: event.currentTarget.checked })} />
 															<span>not</span>
@@ -912,7 +912,7 @@ export function ChecksPage() {
 									</Button>
 									<Badge tone="accent">{activeSelectedProbes.length} matched</Badge>
 								</ActionRow>
-								<div className={classNames("ns-cut-frame", styles.probeSummary)}>{displayProbeSelection(activeSelectedProbes)}</div>
+								<div className={styles.probeSummary}>{displayProbeSelection(activeSelectedProbes)}</div>
 								<div className={styles.capabilityPills}>
 									{activeSelectedProbes.map(probe => (
 										<Badge key={probe} tone="muted">

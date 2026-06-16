@@ -68,6 +68,7 @@
 	align-items: center;
 	min-width: 0;
 	padding: 0.625rem;
+	border: 1px solid var(--ns-frame-color);
 	background: var(--ns-glass-light);
 	cursor: pointer;
 }
@@ -178,6 +179,7 @@
 	display: grid;
 	gap: 0.55rem;
 	padding: 0.75rem;
+	border: 1px solid var(--ns-frame-color);
 	background: var(--ns-accent-muted);
 }
 
@@ -186,6 +188,7 @@
 	display: grid;
 	gap: 0.4rem;
 	padding: 0.75rem;
+	border: 1px solid var(--ns-frame-color);
 	background: color-mix(in srgb, var(--ns-success) 8%, transparent);
 }
 

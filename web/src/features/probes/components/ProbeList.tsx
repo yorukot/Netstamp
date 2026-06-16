@@ -1,6 +1,5 @@
 import type { Probe, ProbeStatus } from "@/features/probes/data/probes";
 import { FilterGrid } from "@/shared/components/FilterGrid";
-import { classNames } from "@/shared/utils/classNames";
 import { Badge, DataTable, Panel, PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger, SelectField, TextField, type BadgeTone, type DataColumn } from "@netstamp/ui";
 import type { MouseEvent } from "react";
 import styles from "./ProbeList.module.css";
@@ -44,12 +43,12 @@ function ProbeLabels({ labels }: { labels: string[] }) {
 								+{hiddenCount}
 							</button>
 						</PopoverTrigger>
-						<span className={classNames("ns-cut-frame", styles.labelHoverCard)} aria-hidden="true">
+						<span className={styles.labelHoverCard} aria-hidden="true">
 							<ProbeLabelGrid labels={labels} />
 						</span>
 					</span>
 					<PopoverPortal>
-						<PopoverContent className={classNames("ns-cut-frame", styles.labelPopover)} align="start" side="left" sideOffset={8} collisionPadding={8} onClick={stopRowSelection}>
+						<PopoverContent className={styles.labelPopover} align="start" side="left" sideOffset={8} collisionPadding={8} onClick={stopRowSelection}>
 							<ProbeLabelGrid labels={labels} />
 						</PopoverContent>
 					</PopoverPortal>

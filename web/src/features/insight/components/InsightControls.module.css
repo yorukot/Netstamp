@@ -13,54 +13,6 @@
 	text-transform: uppercase;
 }
 
-.segmentControl {
-	--ns-frame-color: var(--ns-border);
-	display: grid;
-	grid-auto-flow: column;
-	grid-auto-columns: minmax(0, 1fr);
-	min-height: 2.75rem;
-	background: var(--ns-surface);
-	box-shadow: none;
-}
-
-.segmentControl:focus-within {
-	--ns-frame-color: var(--ns-accent-active);
-	outline: 2px solid var(--ns-accent-active);
-	outline-offset: 2px;
-}
-
-.segmentButton {
-	display: inline-grid;
-	place-items: center;
-	min-width: 0;
-	padding: 0.7rem 0.55rem;
-	color: var(--ns-text-subtle);
-	background: transparent;
-	border: 0;
-	border-right: 1px solid var(--ns-border-faint);
-	font-family: var(--ns-font-mono);
-	font-size: 0.6875rem;
-	font-weight: 800;
-	line-height: 1.1;
-	text-transform: uppercase;
-	cursor: pointer;
-	transition:
-		background var(--ns-transition),
-		color var(--ns-transition);
-}
-
-.segmentButton:last-child {
-	border-right: 0;
-}
-
-.segmentButton:hover,
-.segmentButton:focus-visible,
-.segmentButton[data-selected="true"] {
-	color: var(--ns-text);
-	background: var(--ns-accent-muted);
-	outline: none;
-}
-
 .focusChip {
 	--ns-frame-color: color-mix(in srgb, var(--ns-accent) 42%, transparent);
 	display: grid;
@@ -69,6 +21,7 @@
 	align-items: center;
 	max-width: 100%;
 	padding: 0.5rem 0.6rem;
+	border: 1px solid var(--ns-frame-color);
 	color: var(--ns-text-muted);
 	background: var(--ns-accent-muted);
 	font-family: var(--ns-font-mono);
@@ -119,45 +72,6 @@
 	min-width: 0;
 }
 
-.assignmentTrigger {
-	--ns-frame-color: var(--ns-border);
-	display: grid;
-	grid-template-columns: minmax(0, 1fr) auto;
-	gap: 0.75rem;
-	align-items: center;
-	width: 100%;
-	min-width: 0;
-	min-height: 2.75rem;
-	padding: 0.75rem 1rem;
-	color: var(--ns-text);
-	background: var(--ns-surface);
-	box-shadow: none;
-	font-family: var(--ns-font-mono);
-	font-size: 0.8125rem;
-	font-weight: 800;
-	line-height: 1.1;
-	text-align: left;
-	cursor: pointer;
-}
-
-.assignmentTrigger span {
-	min-width: 0;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-.assignmentTrigger:hover,
-.assignmentTrigger:focus-visible {
-	--ns-frame-color: var(--ns-border-strong);
-	outline: none;
-}
-
-.assignmentTrigger:disabled {
-	cursor: not-allowed;
-	opacity: 0.62;
-}
-
 .assignmentControl {
 	--ns-frame-color: var(--ns-border);
 	display: flex;
@@ -168,6 +82,7 @@
 	min-height: 2.75rem;
 	padding: 0.35rem 0.45rem;
 	overflow: hidden;
+	border: 1px solid var(--ns-frame-color);
 	background: var(--ns-surface);
 	box-shadow: none;
 	cursor: text;
@@ -281,6 +196,7 @@
 	max-height: min(22.5rem, var(--radix-dropdown-menu-content-available-height, var(--radix-popover-content-available-height, 22.5rem)));
 	overflow: auto;
 	padding: 0.35rem;
+	border: 1px solid var(--ns-frame-color);
 	background:
 		linear-gradient(color-mix(in srgb, var(--ns-accent) 5%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--ns-accent) 4%, transparent) 1px, transparent 1px),
 		var(--ns-glass-dark);
@@ -289,34 +205,6 @@
 		1rem 1rem,
 		100% 100%;
 	box-shadow: none;
-}
-
-.assignmentSearch {
-	padding: 0.35rem;
-}
-
-.assignmentSearch input {
-	width: 100%;
-	min-width: 0;
-	height: 2.5rem;
-	padding: 0.65rem 0.75rem;
-	color: var(--ns-text);
-	background: var(--ns-surface);
-	border: 1px solid var(--ns-border);
-	font-family: var(--ns-font-mono);
-	font-size: 0.8125rem;
-	font-weight: 800;
-	outline: none;
-}
-
-.assignmentSearch input:focus {
-	border-color: var(--ns-accent-active);
-	box-shadow: none;
-}
-
-.assignmentSearch input::placeholder {
-	color: var(--ns-text-low);
-	opacity: 1;
 }
 
 .assignmentOption {
@@ -379,11 +267,6 @@
 	text-transform: uppercase;
 }
 
-.assignmentActionOption {
-	border-color: color-mix(in srgb, var(--ns-accent) 24%, transparent);
-	background: var(--ns-accent-muted);
-}
-
 .assignmentEmpty {
 	padding: 0.85rem;
 	font-family: var(--ns-font-mono);
@@ -415,6 +298,7 @@
 	min-width: 0;
 	min-height: 2.75rem;
 	padding: 0.75rem 1rem;
+	border: 1px solid var(--ns-frame-color);
 	color: var(--ns-text);
 	background: var(--ns-surface);
 	box-shadow: none;
@@ -452,6 +336,7 @@
 	max-height: min(32rem, var(--radix-popover-content-available-height));
 	overflow: auto;
 	padding: 1rem;
+	border: 1px solid var(--ns-frame-color);
 	background:
 		linear-gradient(color-mix(in srgb, var(--ns-accent) 5%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--ns-accent) 4%, transparent) 1px, transparent 1px),
 		var(--ns-glass-dark);
@@ -488,6 +373,7 @@
 	--ns-frame-color: var(--ns-border-faint);
 	min-height: 2.5rem;
 	padding: 0.55rem 0.7rem;
+	border: 1px solid var(--ns-frame-color);
 	color: var(--ns-text-subtle);
 	background: var(--ns-surface-deep);
 	font-family: var(--ns-font-mono);
@@ -581,8 +467,6 @@
 	text-transform: none;
 }
 
-.segmentControl,
-.assignmentTrigger,
 .assignmentControl,
 .timeTrigger,
 .timePreset,
@@ -591,10 +475,7 @@
 	box-shadow: none;
 }
 
-.segmentButton,
-.assignmentTrigger,
 .assignmentControl input,
-.assignmentSearch input,
 .assignmentOption,
 .assignmentEmpty,
 .timeTrigger,
@@ -609,16 +490,6 @@
 	font-weight: 600;
 	letter-spacing: 0;
 	text-transform: none;
-}
-
-.segmentButton:hover,
-.segmentButton:focus-visible {
-	background: var(--ns-bg-subtle);
-}
-
-.segmentButton[data-selected="true"] {
-	color: var(--ns-text);
-	background: var(--ns-accent-muted);
 }
 
 .focusChip {
@@ -645,10 +516,6 @@
 	--ns-frame-color: var(--ns-border);
 	background: var(--ns-surface);
 	box-shadow: none;
-}
-
-.assignmentSearch input {
-	border-radius: var(--ns-radius-sm);
 }
 
 .assignmentOption:hover,

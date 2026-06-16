@@ -170,7 +170,7 @@ export function ChecksTable({ actionDisabled, checks, onDeleteCheck, onDuplicate
 	});
 
 	return (
-		<div className={classNames("ns-cut-frame", styles.checkTableFrame)}>
+		<div className={styles.checkTableFrame}>
 			<div className={classNames("ns-scrollbar", styles.checkTableScroller)}>
 				<table className={styles.checkTable} aria-label="Project checks">
 					<thead>

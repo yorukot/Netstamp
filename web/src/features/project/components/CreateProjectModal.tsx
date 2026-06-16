@@ -120,7 +120,7 @@ export function CreateProjectModal({ onClose, onCreatedProject }: CreateProjectM
 					<div className={styles.lineTop} aria-hidden="true" />
 					<div className={styles.lineBottom} aria-hidden="true" />
 					<DialogContent asChild aria-describedby={descriptionId}>
-						<section className={["ns-cut-frame", styles.dialog].join(" ")} onMouseDown={event => event.stopPropagation()}>
+						<section className={styles.dialog} onMouseDown={event => event.stopPropagation()}>
 							<div className={styles.header}>
 								<span>Project registry</span>
 								<DialogTitle asChild>

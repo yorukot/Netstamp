@@ -9,7 +9,6 @@ import { EditorDrawer } from "@/shared/components/EditorDrawer";
 import { FilterGrid } from "@/shared/components/FilterGrid";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
-import { classNames } from "@/shared/utils/classNames";
 import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
 import { Badge, Button, DataTable, Panel, SelectField, TextField, type DataColumn } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
@@ -347,7 +346,7 @@ export function LabelsPage() {
 								<TextField label="Value" placeholder="tokyo" value={activeDraftValue} disabled={!projectRef} onChange={event => updateDraftValue(event.currentTarget.value)} />
 							</div>
 
-							{mutationError ? <p className={classNames("ns-cut-frame", styles.errorNotice)}>{requestErrorMessage(mutationError, "Label operation failed.")}</p> : null}
+							{mutationError ? <p className={styles.errorNotice}>{requestErrorMessage(mutationError, "Label operation failed.")}</p> : null}
 
 							<ActionRow className={styles.editorActions}>
 								<Button disabled={!canSave || saveLabelMutation.isPending} onClick={saveLabel}>

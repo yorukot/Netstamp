@@ -32,6 +32,7 @@
 	align-items: center;
 	justify-content: space-between;
 	padding: 0.75rem 0.875rem;
+	border: 1px solid var(--ns-frame-color);
 	background: var(--ns-surface-raised);
 }
 
@@ -66,6 +67,7 @@
 	--ns-frame-color: var(--ns-border);
 	--ns-frame-radius: var(--ns-radius-lg);
 	width: 100%;
+	border: 1px solid var(--ns-frame-color);
 	background: var(--ns-surface);
 	box-shadow: none;
 }
@@ -236,6 +238,7 @@
 	--ns-frame-color: var(--ns-border);
 	min-height: 2.75rem;
 	padding: 0.75rem 0.875rem;
+	border: 1px solid var(--ns-frame-color);
 	color: var(--ns-text);
 	background: var(--ns-surface);
 	font-family: var(--ns-font-sans);
@@ -260,6 +263,7 @@
 	gap: 0.75rem;
 	align-items: end;
 	padding: 0.75rem 1rem 0.75rem 0.75rem;
+	border: 1px solid var(--ns-frame-color);
 	background: var(--ns-surface-raised);
 }
 

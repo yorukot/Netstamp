@@ -5,6 +5,7 @@
 .console {
 	--ns-frame-color: var(--ns-border);
 	width: min(58rem, 100%);
+	border: 1px solid var(--ns-frame-color);
 	background: var(--ns-surface);
 	box-shadow: none;
 }
