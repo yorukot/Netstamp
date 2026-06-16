@@ -175,15 +175,6 @@
 	outline-offset: 0.25rem;
 }
 
-.homeAction {
-	display: grid;
-	margin-top: 1rem;
-}
-
-.homeButton {
-	width: 100%;
-}
-
 .authVisual {
 	position: relative;
 	min-width: 0;

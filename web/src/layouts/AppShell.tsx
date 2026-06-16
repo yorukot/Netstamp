@@ -44,7 +44,7 @@ export function AppShell() {
 					{demoMode ? (
 						<div className={styles.demoBanner} role="status">
 							<strong>Demo mode</strong>
-							<span>Read-only access. Changes are disabled; you can only view project data.</span>
+							<span>Read-only access. Mutating requests are blocked; you can only view project data.</span>
 						</div>
 					) : null}
 					<Outlet />

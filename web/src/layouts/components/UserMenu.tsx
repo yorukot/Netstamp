@@ -155,7 +155,7 @@ function UserMenuContent({
 					<span>{theme === "dark" ? "Light mode" : "Dark mode"}</span>
 				</Button>
 				<Button className={classNames(styles.userPopoverAction, styles.userPopoverActionWarning)} variant="ghost" size="sm" onClick={onLogout} asChild>
-					<Link to={pathForRoute("landing")}>
+					<Link to={pathForRoute("login")}>
 						<SignOut size={18} weight="bold" aria-hidden="true" />
 						<span>Logout</span>
 					</Link>

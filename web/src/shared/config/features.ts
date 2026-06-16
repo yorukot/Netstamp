@@ -16,13 +16,14 @@ function booleanFeature(value: string | undefined, defaultValue: boolean) {
 	return defaultValue;
 }
 
-export const appFeatures = {
-	registration: booleanFeature(import.meta.env.VITE_NETSTAMP_REGISTRATION_ENABLED, true),
-	projectCreation: booleanFeature(import.meta.env.VITE_NETSTAMP_PROJECT_CREATION_ENABLED, true),
-	userCredentialChanges: booleanFeature(import.meta.env.VITE_NETSTAMP_USER_CREDENTIAL_CHANGES_ENABLED, true)
-} as const;
-
 export const demoMode = booleanFeature(import.meta.env.VITE_NETSTAMP_DEMO_MODE, false);
+export const readOnlyMode = demoMode;
+
+export const appFeatures = {
+	registration: !readOnlyMode && booleanFeature(import.meta.env.VITE_NETSTAMP_REGISTRATION_ENABLED, true),
+	projectCreation: !readOnlyMode && booleanFeature(import.meta.env.VITE_NETSTAMP_PROJECT_CREATION_ENABLED, true),
+	userCredentialChanges: !readOnlyMode && booleanFeature(import.meta.env.VITE_NETSTAMP_USER_CREDENTIAL_CHANGES_ENABLED, true)
+} as const;
 
 const demoEmail = import.meta.env.VITE_NETSTAMP_DEMO_EMAIL?.trim();
 const demoPassword = import.meta.env.VITE_NETSTAMP_DEMO_PASSWORD?.trim();

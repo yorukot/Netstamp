@@ -96,9 +96,9 @@ export function AuthPage({ mode = "login", navigate }: AuthPageProps) {
 
 			<div className={styles.authLayout}>
 				<section className={styles.authFormPane} aria-labelledby="auth-title">
-					<a className={styles.brandLink} href="/" aria-label="Netstamp home">
+					<Link className={styles.brandLink} to={pathForRoute("login")} aria-label="Netstamp login">
 						<img className={styles.brandLogo} src={logo} alt="Netstamp" />
-					</a>
+					</Link>
 
 					<div className={styles.authCard}>
 						<div className={styles.authHeader}>
@@ -149,11 +149,6 @@ export function AuthPage({ mode = "login", navigate }: AuthPageProps) {
 								{isRegister ? "Already have an account? Log in" : "Do not have an account? Sign up"}
 							</Link>
 						) : null}
-						<div className={styles.homeAction}>
-							<Button className={styles.homeButton} variant="secondary" size="lg" asChild>
-								<a href="/">Go to home</a>
-							</Button>
-						</div>
 					</div>
 				</section>
 

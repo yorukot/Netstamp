@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { demoMode } from "../config/features";
 import { ApiError, apiClient, readApiData, readEmptyApiResponse } from "./client";
 import { apiQueryKeys } from "./queryKeys";
 import type {
@@ -54,6 +55,12 @@ function projectCacheRef(project: { id: string; slug?: string }) {
 	return project.slug || project.id;
 }
 
+function requireWritableAccess() {
+	if (demoMode) {
+		throw new ApiError("Demo mode is read-only.", 403);
+	}
+}
+
 export function loginUser(body: LoginInput) {
 	return readApiData(apiClient.POST("/auth/login", { body }));
 }
@@ -63,74 +70,92 @@ export function logoutUser() {
 }
 
 export function registerUser(body: RegisterInput) {
+	requireWritableAccess();
 	return readApiData(apiClient.POST("/auth/register", { body }));
 }
 
 export function createProject(body: CreateProjectInput) {
+	requireWritableAccess();
 	return readApiData(apiClient.POST("/projects", { body }));
 }
 
 export function updateProject(ref: string, body: UpdateProjectInput) {
+	requireWritableAccess();
 	return readApiData(apiClient.PATCH("/projects/{ref}", { params: { path: { ref } }, body }));
 }
 
 export function deleteProject(ref: string) {
+	requireWritableAccess();
 	return readEmptyApiResponse(apiClient.DELETE("/projects/{ref}", { params: { path: { ref } } }));
 }
 
 export function createProjectProbe(ref: string, body: CreateProbeInput) {
+	requireWritableAccess();
 	return readApiData(apiClient.POST("/projects/{ref}/probes", { params: { path: { ref } }, body }));
 }
 
 export function updateProjectProbe(ref: string, probeId: string, body: UpdateProbeInput) {
+	requireWritableAccess();
 	return readApiData(apiClient.PATCH("/projects/{ref}/probes/{probe_id}", { params: { path: { ref, probe_id: probeId } }, body }));
 }
 
 export function deleteProjectProbe(ref: string, probeId: string) {
+	requireWritableAccess();
 	return readEmptyApiResponse(apiClient.DELETE("/projects/{ref}/probes/{probe_id}", { params: { path: { ref, probe_id: probeId } } }));
 }
 
 export function createProjectCheck(ref: string, body: CreateCheckInput) {
+	requireWritableAccess();
 	return readApiData(apiClient.POST("/projects/{ref}/checks", { params: { path: { ref } }, body }));
 }
 
 export function updateProjectCheck(ref: string, checkId: string, body: UpdateCheckInput) {
+	requireWritableAccess();
 	return readApiData(apiClient.PATCH("/projects/{ref}/checks/{check_id}", { params: { path: { ref, check_id: checkId } }, body }));
 }
 
 export function deleteProjectCheck(ref: string, checkId: string) {
+	requireWritableAccess();
 	return readEmptyApiResponse(apiClient.DELETE("/projects/{ref}/checks/{check_id}", { params: { path: { ref, check_id: checkId } } }));
 }
 
 export function createProjectAlertRule(ref: string, body: CreateAlertRuleInput) {
+	requireWritableAccess();
 	return readApiData(apiClient.POST("/projects/{ref}/alerts/rules", { params: { path: { ref } }, body }));
 }
 
 export function updateProjectAlertRule(ref: string, ruleId: string, body: UpdateAlertRuleInput) {
+	requireWritableAccess();
 	return readApiData(apiClient.PATCH("/projects/{ref}/alerts/rules/{rule_id}", { params: { path: { ref, rule_id: ruleId } }, body }));
 }
 
 export function deleteProjectAlertRule(ref: string, ruleId: string) {
+	requireWritableAccess();
 	return readEmptyApiResponse(apiClient.DELETE("/projects/{ref}/alerts/rules/{rule_id}", { params: { path: { ref, rule_id: ruleId } } }));
 }
 
 export function createProjectNotification(ref: string, body: CreateNotificationInput) {
+	requireWritableAccess();
 	return readApiData(apiClient.POST("/projects/{ref}/alerts/notifications", { params: { path: { ref } }, body }));
 }
 
 export function updateProjectNotification(ref: string, notificationId: string, body: UpdateNotificationInput) {
+	requireWritableAccess();
 	return readApiData(apiClient.PATCH("/projects/{ref}/alerts/notifications/{notification_id}", { params: { path: { ref, notification_id: notificationId } }, body }));
 }
 
 export function deleteProjectNotification(ref: string, notificationId: string) {
+	requireWritableAccess();
 	return readEmptyApiResponse(apiClient.DELETE("/projects/{ref}/alerts/notifications/{notification_id}", { params: { path: { ref, notification_id: notificationId } } }));
 }
 
 export function testProjectNotification(ref: string, notificationId: string) {
+	requireWritableAccess();
 	return readApiData(apiClient.POST("/projects/{ref}/alerts/notifications/{notification_id}/test", { params: { path: { ref, notification_id: notificationId } } }));
 }
 
 export async function deleteProjectChecks(ref: string, checkIds: string[]) {
+	requireWritableAccess();
 	const results = await Promise.allSettled(
 		checkIds.map(async checkId => {
 			await deleteProjectCheck(ref, checkId);
@@ -161,38 +186,47 @@ export async function deleteProjectChecks(ref: string, checkIds: string[]) {
 }
 
 export function createProjectLabel(ref: string, body: CreateLabelInput) {
+	requireWritableAccess();
 	return readApiData(apiClient.POST("/projects/{ref}/labels", { params: { path: { ref } }, body }));
 }
 
 export function updateProjectLabel(ref: string, labelId: string, body: UpdateLabelInput) {
+	requireWritableAccess();
 	return readApiData(apiClient.PATCH("/projects/{ref}/labels/{label_id}", { params: { path: { ref, label_id: labelId } }, body }));
 }
 
 export function deleteProjectLabel(ref: string, labelId: string) {
+	requireWritableAccess();
 	return readEmptyApiResponse(apiClient.DELETE("/projects/{ref}/labels/{label_id}", { params: { path: { ref, label_id: labelId } } }));
 }
 
 export function createProjectInvite(ref: string, body: CreateProjectInviteInput) {
+	requireWritableAccess();
 	return readApiData(apiClient.POST("/projects/{ref}/invites", { params: { path: { ref } }, body }));
 }
 
 export function removeProjectMember(ref: string, userId: string) {
+	requireWritableAccess();
 	return readEmptyApiResponse(apiClient.DELETE("/projects/{ref}/members/{user_id}", { params: { path: { ref, user_id: userId } } }));
 }
 
 export function updateProjectMemberRole(ref: string, userId: string, role: ProjectMemberRole) {
+	requireWritableAccess();
 	return readApiData(apiClient.PATCH("/projects/{ref}/members/{user_id}", { params: { path: { ref, user_id: userId } }, body: { role } }));
 }
 
 export function acceptProjectInvite(inviteId: string) {
+	requireWritableAccess();
 	return readApiData(apiClient.POST("/me/project-invites/{invite_id}/accept", { params: { path: { invite_id: inviteId } } }));
 }
 
 export function rejectProjectInvite(inviteId: string) {
+	requireWritableAccess();
 	return readApiData(apiClient.POST("/me/project-invites/{invite_id}/reject", { params: { path: { invite_id: inviteId } } }));
 }
 
 export function rotateProjectProbeSecret(ref: string, probeId: string) {
+	requireWritableAccess();
 	return readApiData(apiClient.POST("/projects/{ref}/probes/{probe_id}/secret-rotations", { params: { path: { ref, probe_id: probeId } } }));
 }
 
@@ -201,14 +235,17 @@ export function previewProjectSelector(ref: string, body: SelectorPreviewInput) 
 }
 
 export function updateCurrentUser(body: UpdateCurrentUserInput) {
+	requireWritableAccess();
 	return readApiData(apiClient.PATCH("/users/me", { body }));
 }
 
 export function changeCurrentUserEmail(body: ChangeCurrentUserEmailInput) {
+	requireWritableAccess();
 	return readApiData(apiClient.POST("/users/me/email-change", { body }));
 }
 
 export function changeCurrentUserPassword(body: ChangeCurrentUserPasswordInput) {
+	requireWritableAccess();
 	return readEmptyApiResponse(apiClient.POST("/users/me/password-change", { body }));
 }
 
