@@ -1,0 +1,71 @@
+.group {
+	display: inline-flex;
+	align-items: center;
+	max-width: 100%;
+	min-width: 0;
+	padding: 0.1875rem;
+	border: 1px solid var(--ns-border);
+	background: var(--ns-surface);
+}
+
+.option {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 0;
+	border: 1px solid transparent;
+	color: var(--ns-text-subtle);
+	background: transparent;
+	font-family: var(--ns-font-sans);
+	font-weight: 650;
+	letter-spacing: 0;
+	line-height: 1;
+	text-align: center;
+	text-transform: none;
+	cursor: pointer;
+	transition:
+		background var(--ns-transition),
+		border-color var(--ns-transition),
+		color var(--ns-transition);
+}
+
+.option:hover:not(:disabled) {
+	border-color: var(--ns-border);
+	color: var(--ns-text);
+	background: var(--ns-bg-subtle);
+}
+
+.option:focus-visible {
+	outline: 2px solid var(--ns-accent-active);
+	outline-offset: 2px;
+}
+
+.option[data-active="true"] {
+	border-color: var(--ns-accent-border);
+	color: var(--ns-text);
+	background: var(--ns-accent-muted);
+}
+
+.option:disabled {
+	cursor: not-allowed;
+	opacity: 0.48;
+}
+
+.option span {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.sm .option {
+	min-height: 1.75rem;
+	padding: 0.35rem 0.625rem;
+	font-size: 0.75rem;
+}
+
+.md .option {
+	min-height: 2.25rem;
+	padding: 0.525rem 0.8125rem;
+	font-size: 0.8125rem;
+}

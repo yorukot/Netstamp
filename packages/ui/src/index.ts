@@ -67,6 +67,8 @@ export type {
 	PopoverRootProps,
 	PopoverTriggerProps
 } from "./components/Dialog/Dialog";
+export { Drawer } from "./components/Drawer/Drawer";
+export type { DrawerProps, DrawerSide, DrawerSize } from "./components/Drawer/Drawer";
 export { Checkbox, FieldLabel, Input, Select, SelectField, TextAreaField, TextField } from "./components/Field/Field";
 export type { CheckboxProps, ControlVariant, FieldLabelProps, InputProps, SelectFieldProps, SelectProps, TextAreaFieldProps, TextFieldProps } from "./components/Field/Field";
 export { GlobalFooter } from "./components/GlobalFooter/GlobalFooter";
@@ -77,9 +79,15 @@ export { PageShell } from "./components/PageShell/PageShell";
 export type { PageShellProps, PageShellVariant } from "./components/PageShell/PageShell";
 export { Panel } from "./components/Panel/Panel";
 export type { PanelProps, PanelTone } from "./components/Panel/Panel";
+export { SearchableSelect } from "./components/SearchableSelect/SearchableSelect";
+export type { SearchableSelectOption, SearchableSelectProps, SearchableSelectSize } from "./components/SearchableSelect/SearchableSelect";
+export { SegmentedControl } from "./components/SegmentedControl/SegmentedControl";
+export type { SegmentedControlOption, SegmentedControlProps, SegmentedControlSize } from "./components/SegmentedControl/SegmentedControl";
 export { SignalAvatar } from "./components/SignalAvatar/SignalAvatar";
 export type { SignalAvatarProps, SignalAvatarSize } from "./components/SignalAvatar/SignalAvatar";
 export { Surface } from "./components/Surface/Surface";
 export type { SurfaceCut, SurfacePadding, SurfaceProps, SurfaceTone } from "./components/Surface/Surface";
+export { Tabs } from "./components/Tabs/Tabs";
+export type { TabItem, TabsProps, TabsSize } from "./components/Tabs/Tabs";
 export { Terminal } from "./components/Terminal/Terminal";
 export type { TerminalProps } from "./components/Terminal/Terminal";
