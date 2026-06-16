@@ -11,7 +11,8 @@ Keep new UI aligned with these files first:
 - `web/src/index.css`: app root import of shared styles.
 - `web/src/layouts/AppShell.module.css`: authenticated product shell.
 - `web/src/shared/components`: product page layout helpers.
-- `docs/src/styles/docs.css`: documentation shell, doc prose, cards, search, and navigation.
+- `docs/src/layouts/DocLayout.astro`: documentation shell, prose, pager, callout, card, and TOC ownership.
+- `docs/src/components/docs`: top navigation and search controls with colocated scoped styles.
 - `docs/src/components/landing/LandingPage.module.css`: public landing page with dashboard-aligned product screenshots and telemetry panels.
 - `docs/src/components/openapi/OpenAPIExplorer.module.css`: API reference and request console.
 
@@ -62,6 +63,7 @@ Use the display face for big product statements and screen titles. Use the sans 
 - `--ns-surface-deep`: `#e7eef6`, deep light terminal/map/code surface.
 - `--ns-glass-dark`: `rgba(255, 255, 255, 0.94)`, sticky light glass.
 - `--ns-glass-light`: `rgba(23, 32, 51, 0.035)`, faint light overlay.
+- `--ns-overlay-scrim`: tokenized modal and search overlay scrim.
 
 ### Text
 
@@ -166,7 +168,14 @@ Keep product pages scan-friendly:
 
 ### Documentation Site
 
-Current implementation lives under `docs/src/styles/docs.css` and `docs/src/layouts/DocLayout.astro`.
+Current implementation lives under `docs/src/layouts/DocLayout.astro`, `docs/src/components/docs`, and page-specific React components under `docs/src/components`.
+
+Docs styling should stay colocated with the component that owns the markup:
+
+- `DocLayout.astro` owns the docs shell, left nav, TOC, hero, prose, pager, callouts, and MDX content classes.
+- `TopNav.astro`, `SearchBox.astro`, and `TrackingConsent.astro` own their local Astro scoped styles.
+- `LandingPage.module.css` and `OpenAPIExplorer.module.css` own their React component-local layouts.
+- Shared controls, framed surfaces, fields, badges, and buttons should come from `@netstamp/ui`; docs should not recreate those primitive styles.
 
 Docs must feel like Netstamp, but prioritize reading and navigation:
 
