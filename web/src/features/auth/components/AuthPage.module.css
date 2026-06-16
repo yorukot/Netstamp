@@ -3,7 +3,7 @@
 	--auth-pane-bg: var(--ns-surface);
 	--auth-visual-bg: var(--ns-surface-deep);
 	--auth-map-opacity: 0.88;
-	--auth-visual-overlay: linear-gradient(180deg, transparent 45%, rgba(7, 9, 13, 0.72)), linear-gradient(90deg, rgba(255, 122, 26, 0.08), transparent 34%, rgba(7, 9, 13, 0.28));
+	--auth-visual-overlay: color-mix(in srgb, var(--ns-surface-deep) 18%, transparent);
 	--auth-quote-bg: color-mix(in srgb, var(--ns-surface) 92%, transparent);
 	--auth-quote-text: var(--ns-text-muted);
 
@@ -14,7 +14,7 @@
 	min-height: 100svh;
 	padding: 0;
 	color: var(--ns-text);
-	background: linear-gradient(135deg, var(--ns-accent-muted), transparent 28rem), linear-gradient(180deg, var(--ns-glass-light), transparent 36rem), var(--auth-page-bg);
+	background: var(--auth-page-bg);
 }
 
 :root[data-theme="light"] .authShell {
@@ -22,7 +22,7 @@
 	--auth-pane-bg: #ffffff;
 	--auth-visual-bg: #111821;
 	--auth-map-opacity: 0.84;
-	--auth-visual-overlay: linear-gradient(180deg, transparent 45%, rgba(7, 9, 13, 0.58)), linear-gradient(90deg, rgba(212, 91, 24, 0.08), transparent 34%, rgba(7, 9, 13, 0.2));
+	--auth-visual-overlay: rgba(7, 9, 13, 0.18);
 	--auth-quote-bg: rgba(255, 255, 255, 0.92);
 	--auth-quote-text: var(--ns-text-muted);
 }
@@ -32,7 +32,7 @@
 	--auth-pane-bg: var(--ns-bg);
 	--auth-visual-bg: var(--ns-surface-deep);
 	--auth-map-opacity: 0.9;
-	--auth-visual-overlay: linear-gradient(180deg, transparent 45%, rgba(7, 9, 13, 0.76)), linear-gradient(90deg, rgba(255, 122, 26, 0.08), transparent 34%, rgba(7, 9, 13, 0.32));
+	--auth-visual-overlay: rgba(7, 9, 13, 0.24);
 	--auth-quote-bg: rgba(7, 9, 13, 0.88);
 	--auth-quote-text: var(--ns-text-muted);
 }
@@ -49,7 +49,7 @@
 	grid-template-rows: auto minmax(0, 1fr);
 	min-width: 0;
 	border-right: 1px solid var(--ns-border-faint);
-	background: linear-gradient(180deg, var(--ns-accent-muted), transparent 18rem), var(--auth-pane-bg);
+	background: var(--auth-pane-bg);
 	padding: clamp(1.5rem, 3vw, 3rem);
 }
 

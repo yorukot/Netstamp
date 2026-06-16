@@ -61,21 +61,21 @@
 
 .primary {
 	--ns-frame-color: var(--ns-accent);
-	background: linear-gradient(180deg, color-mix(in srgb, var(--ns-accent-hover) 70%, var(--ns-accent)), var(--ns-accent));
+	background: var(--ns-accent);
 	color: var(--ns-text-on-accent);
 	box-shadow: none;
 }
 
 .primary:hover {
 	--ns-frame-color: var(--ns-accent-hover);
-	background: linear-gradient(180deg, var(--ns-accent-hover), color-mix(in srgb, var(--ns-accent-hover) 72%, var(--ns-accent)));
+	background: var(--ns-accent-hover);
 	color: var(--ns-text-on-accent);
 	box-shadow: none;
 }
 
 .primary:active {
 	--ns-frame-color: var(--ns-accent-active);
-	background: linear-gradient(180deg, var(--ns-accent), var(--ns-accent-active));
+	background: var(--ns-accent-active);
 	color: var(--ns-text-on-accent);
 }
 

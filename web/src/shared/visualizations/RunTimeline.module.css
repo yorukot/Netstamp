@@ -50,8 +50,7 @@
 	left: var(--ns-selection-left);
 	z-index: 1;
 	width: var(--ns-selection-width);
-	background:
-		linear-gradient(90deg, var(--ns-accent-muted), var(--ns-accent-subtle)), repeating-linear-gradient(90deg, color-mix(in srgb, var(--ns-text) 18%, transparent) 0 1px, transparent 1px 0.6rem);
+	background: var(--ns-accent-muted);
 	border-inline: 1px solid var(--ns-accent-hover);
 	pointer-events: none;
 }

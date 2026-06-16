@@ -1,16 +1,7 @@
 .storybook-page,
 .storybook-canvas {
 	min-height: 100svh;
-	background:
-		radial-gradient(circle at 20% 0, var(--ns-accent-muted), transparent 24rem), radial-gradient(circle at 80% 8%, var(--ns-glass-light), transparent 18rem),
-		linear-gradient(color-mix(in srgb, var(--ns-accent) 7%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--ns-accent) 7%, transparent) 1px, transparent 1px),
-		var(--ns-bg);
-	background-size:
-		100% 100%,
-		100% 100%,
-		6rem 6rem,
-		6rem 6rem,
-		100% 100%;
+	background: var(--ns-bg);
 }
 
 .storybook-page {
@@ -48,7 +39,7 @@
 
 .storybook-hero {
 	border-color: var(--ns-accent-border);
-	background: linear-gradient(110deg, var(--ns-accent-muted), transparent 48%), var(--ns-glass-dark);
+	background: var(--ns-surface);
 	box-shadow: var(--ns-shadow-md);
 }
 
@@ -58,19 +49,11 @@
 	align-items: stretch;
 	overflow: hidden;
 	padding: clamp(1.25rem, 3vw, 2rem);
-	background:
-		linear-gradient(110deg, var(--ns-accent-subtle), transparent 52%), radial-gradient(circle at 88% 12%, color-mix(in srgb, var(--ns-text) 12%, transparent), transparent 18rem), var(--ns-glass-dark);
+	background: var(--ns-surface);
 }
 
 .storybook-hero--entrance::before {
-	position: absolute;
-	inset: 0;
-	pointer-events: none;
-	content: "";
-	background:
-		linear-gradient(color-mix(in srgb, var(--ns-accent) 8%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--ns-accent) 8%, transparent) 1px, transparent 1px);
-	background-size: 3rem 3rem;
-	mask-image: linear-gradient(90deg, var(--ns-text), transparent 78%);
+	content: none;
 }
 
 .storybook-hero-copy,

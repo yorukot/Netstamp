@@ -26,13 +26,7 @@
 	min-height: 100svh;
 	overflow: clip;
 	color: var(--ns-text);
-	background:
-		linear-gradient(color-mix(in srgb, var(--ns-accent) 7%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--ns-accent) 7%, transparent) 1px, transparent 1px),
-		var(--ns-bg);
-	background-size:
-		6rem 6rem,
-		6rem 6rem,
-		100% 100%;
+	background: var(--ns-bg);
 }
 
 .hero,
@@ -259,13 +253,7 @@
 	padding: clamp(4rem, 8vw, 7rem) clamp(1rem, 4vw, 4rem);
 	border-top: 1px solid var(--ns-border);
 	border-bottom: 1px solid var(--ns-border);
-	background:
-		linear-gradient(color-mix(in srgb, var(--ns-accent) 8%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--ns-accent) 8%, transparent) 1px, transparent 1px),
-		var(--ns-surface-raised);
-	background-size:
-		4rem 4rem,
-		4rem 4rem,
-		100% 100%;
+	background: var(--ns-surface-raised);
 }
 
 .routeCopy {
@@ -297,7 +285,7 @@
 	right: 2rem;
 	top: 50%;
 	height: 2px;
-	background: linear-gradient(90deg, var(--ns-accent), var(--ns-metal));
+	background: var(--ns-accent);
 }
 
 .routeNode {

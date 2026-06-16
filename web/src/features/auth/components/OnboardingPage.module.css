@@ -18,7 +18,7 @@
 	min-height: 2.625rem;
 	padding: 0 0.875rem;
 	border-bottom: 1px solid var(--ns-border-faint);
-	background: linear-gradient(180deg, var(--ns-glass-light), transparent), var(--ns-surface-raised);
+	background: var(--ns-surface-raised);
 }
 
 .consoleBar span {
@@ -60,11 +60,7 @@
 }
 
 .scanline {
-	position: absolute;
-	inset: 0;
-	background: repeating-linear-gradient(0deg, color-mix(in srgb, var(--ns-text) 4%, transparent) 0 1px, transparent 1px 4px);
-	opacity: 0.34;
-	pointer-events: none;
+	display: none;
 }
 
 .scriptLog,

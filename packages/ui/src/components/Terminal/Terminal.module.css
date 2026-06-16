@@ -3,13 +3,7 @@
 	display: grid;
 	grid-template-rows: auto minmax(0, auto);
 	min-width: 0;
-	background:
-		linear-gradient(color-mix(in srgb, var(--ns-accent) 8%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--ns-accent) 8%, transparent) 1px, transparent 1px),
-		var(--ns-surface-deep);
-	background-size:
-		1rem 1rem,
-		1rem 1rem,
-		100% 100%;
+	background: var(--ns-surface-deep);
 	box-shadow: none;
 }
 

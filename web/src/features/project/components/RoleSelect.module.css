@@ -2,10 +2,24 @@
 	--role-color: var(--ns-metal);
 	--ns-frame-color: var(--ns-border-faint);
 	--role-bg: color-mix(in srgb, var(--ns-metal) 8%, transparent);
+	position: relative;
 	display: inline-grid;
 	width: max-content;
 	min-width: 7.5rem;
 	background: var(--role-bg);
+}
+
+.frame::after {
+	content: "";
+	position: absolute;
+	top: 50%;
+	right: 0.75rem;
+	width: 0.46rem;
+	height: 0.46rem;
+	border: solid var(--role-color);
+	border-width: 0 1.5px 1.5px 0;
+	pointer-events: none;
+	transform: translateY(-65%) rotate(45deg);
 }
 
 .select {
@@ -13,9 +27,7 @@
 	border: 0;
 	padding: 0.375rem 1.75rem 0.375rem 0.625rem;
 	color: var(--role-color);
-	background:
-		linear-gradient(45deg, transparent 50%, var(--role-color) 50%) calc(100% - 0.95rem) 50% / 0.35rem 0.35rem no-repeat,
-		linear-gradient(135deg, var(--role-color) 50%, transparent 50%) calc(100% - 0.72rem) 50% / 0.35rem 0.35rem no-repeat;
+	background: transparent;
 	font-family: var(--ns-font-mono);
 	font-size: 0.75rem;
 	font-weight: 800;
@@ -23,6 +35,10 @@
 	text-transform: uppercase;
 	outline: none;
 	appearance: none;
+}
+
+.select::after {
+	display: none;
 }
 
 .select option {

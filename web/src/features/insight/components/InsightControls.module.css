@@ -197,13 +197,7 @@
 	overflow: auto;
 	padding: 0.35rem;
 	border: 1px solid var(--ns-frame-color);
-	background:
-		linear-gradient(color-mix(in srgb, var(--ns-accent) 5%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--ns-accent) 4%, transparent) 1px, transparent 1px),
-		var(--ns-glass-dark);
-	background-size:
-		1rem 1rem,
-		1rem 1rem,
-		100% 100%;
+	background: var(--ns-surface);
 	box-shadow: none;
 }
 
@@ -337,13 +331,7 @@
 	overflow: auto;
 	padding: 1rem;
 	border: 1px solid var(--ns-frame-color);
-	background:
-		linear-gradient(color-mix(in srgb, var(--ns-accent) 5%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--ns-accent) 4%, transparent) 1px, transparent 1px),
-		var(--ns-glass-dark);
-	background-size:
-		1rem 1rem,
-		1rem 1rem,
-		100% 100%;
+	background: var(--ns-surface);
 	box-shadow: none;
 }
 

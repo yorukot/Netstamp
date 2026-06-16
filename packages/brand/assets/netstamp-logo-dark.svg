@@ -1,7 +1,7 @@
 <svg width="260" height="64" viewBox="0 0 260 64" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title">
 	<title id="title">Netstamp</title>
 	<path d="M32 4L60 32L32 60L4 32L32 4Z" fill="#0b0f16"/>
-	<path d="M32 8L56 32L32 56L8 32L32 8Z" fill="#ff7a1a"/>
+	<path d="M32 8L56 32L32 56L8 32L32 8Z" fill="#2563eb"/>
 	<path d="M20 35L30 25L40 31L47 22" stroke="#0b0f16" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
 	<circle cx="20" cy="35" r="4" fill="#0b0f16"/>
 	<circle cx="30" cy="25" r="4" fill="#0b0f16"/>

@@ -46,9 +46,8 @@
 .loadingRows span {
 	display: block;
 	height: 0.45rem;
-	background: linear-gradient(90deg, var(--ns-border-faint), color-mix(in srgb, var(--ns-text-muted) 22%, transparent), var(--ns-border-faint));
-	background-size: 220% 100%;
-	animation: rowScan 1500ms ease-in-out infinite;
+	background: var(--ns-border-faint);
+	animation: rowPulse 1500ms ease-in-out infinite;
 }
 
 .loadingRows span:nth-child(2) {
@@ -61,9 +60,8 @@
 	animation-delay: 240ms;
 }
 
-@keyframes rowScan {
+@keyframes rowPulse {
 	0% {
-		background-position: 160% 0;
 		opacity: 0.44;
 	}
 
@@ -72,7 +70,6 @@
 	}
 
 	100% {
-		background-position: -60% 0;
 		opacity: 0.44;
 	}
 }

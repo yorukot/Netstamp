@@ -2,16 +2,7 @@
 	display: grid;
 	grid-template-columns: minmax(16rem, 18rem) minmax(0, 1fr) minmax(21rem, 25rem);
 	min-height: calc(100svh - 4.5rem);
-	background:
-		radial-gradient(circle at 16% 0, color-mix(in srgb, var(--ns-accent) 12%, transparent), transparent 24rem), radial-gradient(circle at 88% 8%, rgba(255, 255, 255, 0.07), transparent 18rem),
-		linear-gradient(color-mix(in srgb, var(--ns-accent) 5%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--ns-accent) 5%, transparent) 1px, transparent 1px),
-		var(--ns-bg);
-	background-size:
-		100% 100%,
-		100% 100%,
-		6rem 6rem,
-		6rem 6rem,
-		100% 100%;
+	background: var(--ns-bg);
 }
 
 .sidebar,
@@ -29,7 +20,7 @@
 	gap: 1rem;
 	padding: 1rem;
 	border-right: 1px solid var(--ns-border);
-	background: rgba(5, 7, 11, 0.88);
+	background: var(--ns-surface);
 	backdrop-filter: blur(0.75rem);
 }
 

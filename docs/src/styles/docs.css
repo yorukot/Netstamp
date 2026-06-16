@@ -175,16 +175,7 @@
 	gap: 2rem;
 	min-height: calc(100svh - 4.5rem);
 	padding: 2rem;
-	background:
-		radial-gradient(circle at 12% 0, color-mix(in srgb, var(--ns-accent) 14%, transparent), transparent 24rem), radial-gradient(circle at 86% 8%, rgba(255, 255, 255, 0.08), transparent 18rem),
-		linear-gradient(color-mix(in srgb, var(--ns-accent) 7%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--ns-accent) 7%, transparent) 1px, transparent 1px),
-		var(--ns-bg);
-	background-size:
-		100% 100%,
-		100% 100%,
-		6rem 6rem,
-		6rem 6rem,
-		100% 100%;
+	background: var(--ns-bg);
 	transition:
 		grid-template-columns var(--ns-transition),
 		gap var(--ns-transition);
@@ -382,7 +373,7 @@
 	width: min(42rem, calc(100vw - 2rem));
 	padding: 1rem;
 	border: 1px solid var(--ns-accent-border);
-	background: linear-gradient(135deg, color-mix(in srgb, var(--ns-accent) 13%, transparent), transparent 38%), rgba(3, 5, 8, 0.98);
+	background: var(--ns-surface);
 	box-shadow: var(--ns-shadow-md);
 }
 
@@ -627,7 +618,7 @@
 	gap: 1rem;
 	padding: clamp(2rem, 5vw, 4rem);
 	border: 1px solid var(--ns-accent-border);
-	background: linear-gradient(110deg, color-mix(in srgb, var(--ns-accent) 14%, transparent), transparent 48%), rgba(3, 5, 8, 0.88);
+	background: var(--ns-surface);
 	box-shadow: var(--ns-shadow-md);
 }
 
@@ -814,9 +805,7 @@
 	left: 0;
 	right: 0;
 	height: 2.25rem;
-	background:
-		radial-gradient(circle 0.3125rem at 0.9rem 50%, #ff453a 100%, transparent 100%), radial-gradient(circle 0.3125rem at 1.8rem 50%, #ff9f0a 100%, transparent 100%),
-		radial-gradient(circle 0.3125rem at 2.7rem 50%, #30d158 100%, transparent 100%), linear-gradient(180deg, rgba(255, 255, 255, 0.055) 0%, transparent 100%), #090c11;
+	background: #090c11;
 	border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
@@ -842,16 +831,7 @@
 	display: grid;
 	place-items: start center;
 	min-height: calc(100svh - 4.5rem);
-	background:
-		radial-gradient(circle at 20% 0, color-mix(in srgb, var(--ns-accent) 14%, transparent), transparent 24rem), radial-gradient(circle at 80% 8%, rgba(255, 255, 255, 0.08), transparent 18rem),
-		linear-gradient(color-mix(in srgb, var(--ns-accent) 7%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--ns-accent) 7%, transparent) 1px, transparent 1px),
-		var(--ns-bg);
-	background-size:
-		100% 100%,
-		100% 100%,
-		6rem 6rem,
-		6rem 6rem,
-		100% 100%;
+	background: var(--ns-bg);
 	padding: 2rem 0;
 }
 

@@ -11,7 +11,7 @@
 	padding: 1rem;
 	border: 1px solid var(--ns-frame-color);
 	color: var(--ns-text);
-	background: linear-gradient(135deg, var(--ns-accent-muted), transparent 42%), var(--ns-glass-dark);
+	background: var(--ns-surface);
 	box-shadow: none;
 }
 
