@@ -104,6 +104,18 @@
 	object-position: top left;
 }
 
+.dashboardShotDark {
+	display: none;
+}
+
+:global(:root[data-theme="dark"]) .dashboardShotLight {
+	display: none;
+}
+
+:global(:root[data-theme="dark"]) .dashboardShotDark {
+	display: block;
+}
+
 .telemetryStrip {
 	display: grid;
 	grid-template-columns: repeat(4, minmax(0, 1fr));

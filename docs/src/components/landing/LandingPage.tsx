@@ -1,6 +1,6 @@
 import { Badge, Button, GlobalFooter } from "@netstamp/ui";
-import dashboardDesktop from "../../assets/homepage-dashboard-desktop.svg?url";
-import dashboardMobile from "../../assets/homepage-dashboard-mobile.svg?url";
+import dashboardDark from "../../assets/homepage-dashboard-dark.png?url";
+import dashboardLight from "../../assets/homepage-dashboard-light.png?url";
 import { appUrl } from "../../lib/publicUrls";
 import styles from "./LandingPage.module.css";
 
@@ -87,11 +87,9 @@ export function LandingPage({ appHref = appUrl("/register") }: LandingPageProps)
 						</div>
 					</div>
 
-					<figure className={styles.productShot}>
-						<picture>
-							<source media="(max-width: 48rem)" srcSet={dashboardMobile} width="720" height="960" />
-							<img src={dashboardDesktop} alt="Netstamp dashboard showing probe fleet metrics, route topology, and alert state" width="1440" height="960" loading="eager" decoding="async" />
-						</picture>
+					<figure className={styles.productShot} role="img" aria-label="Netstamp dashboard showing probe fleet metrics, route topology, and alert state">
+						<img className={styles.dashboardShotLight} src={dashboardLight} alt="" width="1440" height="960" loading="eager" decoding="async" aria-hidden="true" />
+						<img className={styles.dashboardShotDark} src={dashboardDark} alt="" width="1440" height="960" loading="eager" decoding="async" aria-hidden="true" />
 					</figure>
 				</section>
 
