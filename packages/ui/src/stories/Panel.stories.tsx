@@ -42,7 +42,7 @@ export const WithActions: Story = {
 		<div className="storybook-canvas">
 			<div className="storybook-demo">
 				<Panel title="Incident queue" actions={<Button size="sm">Acknowledge</Button>}>
-					<p>Keep primary actions visible while preserving the cut-frame panel treatment.</p>
+					<p>Keep primary actions visible while preserving the square dashboard panel treatment.</p>
 				</Panel>
 			</div>
 		</div>

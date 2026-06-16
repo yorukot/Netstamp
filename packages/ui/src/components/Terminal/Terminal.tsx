@@ -10,7 +10,7 @@ export function Terminal({ title = "controller shell", meta, className, children
 	const classes = [styles.terminal, className].filter(Boolean).join(" ");
 
 	return (
-		<div className={["ns-cut-frame", styles.shell].join(" ")}>
+		<div className={["ns-frame", styles.shell].join(" ")}>
 			<div className={styles.bar}>
 				<span aria-hidden="true" />
 				<span aria-hidden="true" />

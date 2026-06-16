@@ -2,8 +2,8 @@
 
 import * as Label from "@radix-ui/react-label";
 import * as RadixSelect from "@radix-ui/react-select";
-import type { ChangeEvent, ComponentPropsWithoutRef, KeyboardEvent as ReactKeyboardEvent, ReactNode } from "react";
-import { Children, Fragment, forwardRef, isValidElement, useEffect, useId, useMemo, useRef, useState } from "react";
+import type { ChangeEvent, ComponentPropsWithoutRef, ReactElement, KeyboardEvent as ReactKeyboardEvent, ReactNode } from "react";
+import { Children, Fragment, cloneElement, forwardRef, isValidElement, useEffect, useId, useMemo, useRef, useState } from "react";
 import styles from "./Field.module.css";
 
 export type ControlVariant = "default" | "compact" | "bare";
@@ -26,7 +26,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input({ v
 		return <input ref={ref} className={classes} aria-invalid={booleanAria(ariaInvalid)} {...props} />;
 	}
 
-	const frameClasses = ["ns-cut-frame", styles.controlFrame, styles[`${variant}Frame`], frameClassName].filter(Boolean).join(" ");
+	const frameClasses = ["ns-frame", styles.controlFrame, styles[`${variant}Frame`], frameClassName].filter(Boolean).join(" ");
 
 	return (
 		<span className={frameClasses} data-invalid={Boolean(ariaInvalid)}>
@@ -174,7 +174,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
 	const selectedOption = options.find(option => option.value === selectedValue);
 	const radixSelectedValue = selectedOption?.radixValue ?? "";
 	const classes = [styles.control, styles.select, styles[`${variant}Control`], className].filter(Boolean).join(" ");
-	const frameClasses = ["ns-cut-frame", styles.controlFrame, styles.selectFrame, styles[`${variant}Frame`], frameClassName].filter(Boolean).join(" ");
+	const frameClasses = ["ns-frame", styles.controlFrame, styles.selectFrame, styles[`${variant}Frame`], frameClassName].filter(Boolean).join(" ");
 	const menuClasses = [styles.selectMenu, styles[`${variant}Menu`]].filter(Boolean).join(" ");
 
 	function setSelectNode(node: HTMLSelectElement | null) {
@@ -352,14 +352,38 @@ interface FieldShellProps {
 }
 
 function FieldShell({ id, label, helper, error, children }: FieldShellProps) {
+	const helperId = helper && !error ? `${id}-helper` : undefined;
+	const errorId = error ? `${id}-error` : undefined;
+
 	return (
 		<div className={styles.field}>
 			<Label.Root className={styles.label} htmlFor={id}>
 				{label}
 			</Label.Root>
-			{children}
-			{error ? <span className={styles.error}>{error}</span> : null}
-			{helper && !error ? <span className={styles.helper}>{helper}</span> : null}
+			{isValidElement(children)
+				? Children.map(children, child => {
+						if (!isValidElement(child)) {
+							return child;
+						}
+
+						const describedChild = child as ReactElement<{ "aria-describedby"?: string }>;
+						const childProps = describedChild.props;
+						return cloneElement(describedChild, {
+							...describedChild.props,
+							"aria-describedby": [childProps["aria-describedby"], errorId, helperId].filter(Boolean).join(" ") || undefined
+						});
+					})
+				: children}
+			{error ? (
+				<span className={styles.error} id={errorId}>
+					{error}
+				</span>
+			) : null}
+			{helper && !error ? (
+				<span className={styles.helper} id={helperId}>
+					{helper}
+				</span>
+			) : null}
 		</div>
 	);
 }
@@ -394,7 +418,7 @@ export function TextAreaField({ label, helper, error, className, ...props }: Tex
 
 	return (
 		<FieldShell id={id} label={label} helper={helper} error={error}>
-			<span className={["ns-cut-frame", styles.controlFrame].join(" ")} data-invalid={Boolean(error)}>
+			<span className={["ns-frame", styles.controlFrame].join(" ")} data-invalid={Boolean(error)}>
 				<textarea id={id} className={classes} aria-invalid={Boolean(error)} {...props} />
 			</span>
 		</FieldShell>

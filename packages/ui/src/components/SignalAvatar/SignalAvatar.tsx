@@ -11,7 +11,7 @@ export interface SignalAvatarProps extends ComponentPropsWithoutRef<"span"> {
 }
 
 export function SignalAvatar({ src, alt = "", size = "md", referrerPolicy, className, ...props }: SignalAvatarProps) {
-	const classes = ["ns-cut-frame", styles.avatar, styles[size], className].filter(Boolean).join(" ");
+	const classes = ["ns-frame", styles.avatar, styles[size], className].filter(Boolean).join(" ");
 
 	return (
 		<span className={classes} {...props}>

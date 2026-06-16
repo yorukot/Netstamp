@@ -14,7 +14,7 @@ export interface ButtonProps extends ComponentPropsWithoutRef<"button"> {
 
 export function Button({ variant = "primary", size = "md", asChild = false, className, ...props }: ButtonProps) {
 	const Comp = asChild ? Slot : "button";
-	const classes = ["ns-cut-frame", styles.btn, styles[variant], styles[size], className].filter(Boolean).join(" ");
+	const classes = ["ns-frame", styles.btn, styles[variant], styles[size], className].filter(Boolean).join(" ");
 
 	return <Comp className={classes} {...props} />;
 }

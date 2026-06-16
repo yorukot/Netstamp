@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { Badge, DataTable, type DataColumn, type DataTableProps } from "../index";
+import { Badge, Button, DataTable, type DataColumn, type DataTableProps } from "../index";
 
 interface ProbeRow {
 	id: string;
@@ -24,15 +24,16 @@ const statusTone: Record<ProbeRow["status"], "critical" | "success" | "warning">
 };
 
 const columns: DataColumn<ProbeRow>[] = [
-	{ key: "probe", label: "Probe" },
-	{ key: "region", label: "Region" },
+	{ key: "probe", label: "Probe", sortable: true },
+	{ key: "region", label: "Region", sortable: true },
 	{
 		key: "status",
 		label: "Status",
+		sortable: true,
 		render: row => <Badge tone={statusTone[row.status]}>{row.status}</Badge>
 	},
-	{ key: "latency", label: "Latency" },
-	{ key: "loss", label: "Loss" }
+	{ key: "latency", label: "Latency", sortable: true, sortValue: row => Number.parseFloat(row.latency) },
+	{ key: "loss", label: "Loss", sortable: true, sortValue: row => Number.parseFloat(row.loss) }
 ];
 
 const meta = {
@@ -52,6 +53,8 @@ const meta = {
 		getRowAriaLabel: { control: false },
 		getRowKey: { control: false },
 		onRowClick: { control: false },
+		onSelectedRowKeysChange: { control: false },
+		onSortChange: { control: false },
 		rows: { control: false },
 		selectedKey: { control: "text" },
 		style: { control: false }
@@ -81,8 +84,27 @@ export const Compact: Story = {
 
 export const Interactive: Story = {
 	args: {
+		batchActions: (
+			<Button size="sm" variant="danger">
+				Delete selected
+			</Button>
+		),
+		batchLabel: (
+			<>
+				<strong>1 selected</strong>
+				<span>tpe-lab-02</span>
+			</>
+		),
 		getRowAriaLabel: row => `Open ${row.probe}`,
 		onRowClick: () => undefined,
+		onSelectedRowKeysChange: () => undefined,
+		rowActions: row => (
+			<Button size="sm" variant="secondary">
+				Open {row.probe}
+			</Button>
+		),
+		selectable: true,
+		selectedRowKeys: ["tpe"],
 		selectedKey: "tpe"
 	}
 };

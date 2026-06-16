@@ -41,6 +41,9 @@ function nextEnabledOption(options: SegmentedControlOption[], value: string, dir
 export function SegmentedControl({ options, value, ariaLabel, onValueChange, size = "md", className, ...props }: SegmentedControlProps) {
 	const optionRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 	const classes = [styles.group, styles[size], className].filter(Boolean).join(" ");
+	const enabled = enabledOptions(options);
+	const hasActiveOption = enabled.some(option => option.value === value);
+	const fallbackTabValue = enabled[0]?.value;
 
 	function selectOption(option: SegmentedControlOption | undefined) {
 		if (!option || option.disabled) {
@@ -81,6 +84,7 @@ export function SegmentedControl({ options, value, ariaLabel, onValueChange, siz
 		<div className={classes} role="radiogroup" aria-label={ariaLabel} onKeyDown={handleKeyDown} {...props}>
 			{options.map(option => {
 				const active = option.value === value;
+				const tabbable = active || (!hasActiveOption && option.value === fallbackTabValue);
 
 				return (
 					<button
@@ -92,7 +96,7 @@ export function SegmentedControl({ options, value, ariaLabel, onValueChange, siz
 						className={styles.option}
 						role="radio"
 						aria-checked={active}
-						tabIndex={active ? 0 : -1}
+						tabIndex={tabbable ? 0 : -1}
 						disabled={option.disabled}
 						data-active={active || undefined}
 						onClick={() => selectOption(option)}

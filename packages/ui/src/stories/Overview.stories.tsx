@@ -135,7 +135,7 @@ export const Overview: Story = {
 				<div className="storybook-card-grid">
 					<MetricCard label="p95 latency" value="42ms" detail="healthy" tone="success" />
 					<MetricCard label="packet loss" value="0.08%" detail="watch" tone="warning" />
-					<Surface tone="accent" cut="lg" padding="lg">
+					<Surface tone="accent" frameSize="lg" padding="lg">
 						<strong>Accent surface</strong>
 						<p>Used for high-intensity blocks and landing page visual anchors.</p>
 					</Surface>

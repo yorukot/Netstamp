@@ -16,8 +16,8 @@
 
 .frame:focus-within {
 	border-color: var(--ns-accent-active);
-	outline: 2px solid var(--ns-accent-active);
-	outline-offset: 2px;
+	outline: var(--ns-focus-outline);
+	outline-offset: var(--ns-focus-outline-offset);
 }
 
 .frame[data-invalid="true"] {
@@ -132,8 +132,8 @@
 
 .search:focus-within {
 	border-color: var(--ns-accent-active);
-	outline: 2px solid var(--ns-accent-active);
-	outline-offset: 2px;
+	outline: var(--ns-focus-outline);
+	outline-offset: var(--ns-focus-outline-offset);
 }
 
 .search input {

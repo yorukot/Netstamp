@@ -4,7 +4,7 @@ export type { BadgeProps, BadgeTone } from "./components/Badge/Badge";
 export { Button } from "./components/Button/Button";
 export type { ButtonProps, ButtonSize, ButtonVariant } from "./components/Button/Button";
 export { DataTable } from "./components/DataTable/DataTable";
-export type { DataColumn, DataTableProps } from "./components/DataTable/DataTable";
+export type { DataColumn, DataTableProps, DataTableSortDirection, DataTableSortState } from "./components/DataTable/DataTable";
 export {
 	AlertDialogAction,
 	AlertDialogCancel,
@@ -86,7 +86,7 @@ export type { SegmentedControlOption, SegmentedControlProps, SegmentedControlSiz
 export { SignalAvatar } from "./components/SignalAvatar/SignalAvatar";
 export type { SignalAvatarProps, SignalAvatarSize } from "./components/SignalAvatar/SignalAvatar";
 export { Surface } from "./components/Surface/Surface";
-export type { SurfaceCut, SurfacePadding, SurfaceProps, SurfaceTone } from "./components/Surface/Surface";
+export type { SurfaceFrameSize, SurfacePadding, SurfaceProps, SurfaceTone } from "./components/Surface/Surface";
 export { Tabs } from "./components/Tabs/Tabs";
 export type { TabItem, TabsProps, TabsSize } from "./components/Tabs/Tabs";
 export { Terminal } from "./components/Terminal/Terminal";

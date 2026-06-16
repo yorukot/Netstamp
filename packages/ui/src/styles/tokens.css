@@ -59,6 +59,8 @@
 	--ns-shadow-sm: none;
 	--ns-shadow-md: none;
 	--ns-shadow-glow: none;
+	--ns-focus-outline: 2px solid var(--ns-accent-active);
+	--ns-focus-outline-offset: 2px;
 	--ns-transition: 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
 
 	font: 16px/1.5 var(--ns-font-sans);
@@ -262,6 +264,7 @@ a {
 	background: var(--ns-bg);
 }
 
+.ns-frame,
 .ns-cut-frame {
 	--ns-frame-color: var(--ns-border-faint);
 	--ns-frame-border-width: 1px;
@@ -272,6 +275,8 @@ a {
 	clip-path: none;
 }
 
+.ns-frame::before,
+.ns-frame::after,
 .ns-cut-frame::before,
 .ns-cut-frame::after {
 	display: none;

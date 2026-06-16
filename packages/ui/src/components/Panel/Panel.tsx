@@ -16,7 +16,7 @@ export function Panel({ as: Comp = "section", tone = "glass", title, actions, pa
 	const classes = [styles.panel, className].filter(Boolean).join(" ");
 
 	return (
-		<Surface as={Comp} tone={tone} cut="lg" padding={padded ? "md" : "none"} className={classes} {...props}>
+		<Surface as={Comp} tone={tone} frameSize="lg" padding={padded ? "md" : "none"} className={classes} {...props}>
 			{title || actions ? (
 				<div className={styles.header}>
 					<div className={styles.copy}>{title ? <h3>{title}</h3> : null}</div>

@@ -34,19 +34,19 @@
 	background: color-mix(in srgb, var(--ns-critical) 7%, var(--ns-surface));
 }
 
-.cutXs {
+.frameXs {
 	--ns-frame-radius: var(--ns-radius-xs);
 }
 
-.cutSm {
+.frameSm {
 	--ns-frame-radius: var(--ns-radius-sm);
 }
 
-.cutMd {
+.frameMd {
 	--ns-frame-radius: var(--ns-radius-md);
 }
 
-.cutLg {
+.frameLg {
 	--ns-frame-radius: var(--ns-radius-lg);
 }
 

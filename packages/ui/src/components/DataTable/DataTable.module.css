@@ -6,6 +6,44 @@
 	box-shadow: none;
 }
 
+.batchBar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	padding: 0.75rem 1rem;
+	border-bottom: 1px solid var(--ns-border-faint);
+	background: var(--ns-surface-raised);
+}
+
+.batchLabel {
+	display: grid;
+	gap: 0.15rem;
+	min-width: 0;
+	color: var(--ns-text);
+	font-family: var(--ns-font-sans);
+	font-size: 0.8125rem;
+	font-weight: 650;
+	line-height: 1.35;
+}
+
+.batchLabel span {
+	min-width: 0;
+	overflow: hidden;
+	color: var(--ns-text-low);
+	font-size: 0.75rem;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.batchActions {
+	display: flex;
+	flex: 0 0 auto;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 0.5rem;
+}
+
 .scroller {
 	width: 100%;
 	max-height: var(--ns-data-table-max-height, none);
@@ -38,6 +76,46 @@
 	white-space: nowrap;
 }
 
+.sortButton {
+	display: inline-flex;
+	align-items: center;
+	justify-content: flex-start;
+	gap: 0.45rem;
+	width: 100%;
+	min-width: 0;
+	border: 0;
+	padding: 0;
+	color: inherit;
+	background: transparent;
+	font: inherit;
+	letter-spacing: inherit;
+	line-height: inherit;
+	text-align: inherit;
+	text-transform: inherit;
+	cursor: pointer;
+}
+
+.sortButton span:first-child {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.sortIndicator {
+	flex: 0 0 auto;
+	color: var(--ns-text-low);
+	font-size: 0.625rem;
+	font-weight: 700;
+	letter-spacing: 0;
+	text-transform: none;
+}
+
+.sortButton:focus-visible {
+	outline: var(--ns-focus-outline);
+	outline-offset: var(--ns-focus-outline-offset);
+}
+
 .table td {
 	padding: 0.875rem 1rem;
 	border-bottom: 1px solid var(--ns-border-faint);
@@ -57,12 +135,13 @@
 
 .interactive {
 	cursor: pointer;
-	outline: none;
 }
 
 .interactive:focus-visible {
 	color: var(--ns-text);
 	background: var(--ns-bg-subtle);
+	outline: var(--ns-focus-outline);
+	outline-offset: -2px;
 }
 
 .table tbody tr:last-child td {
@@ -72,6 +151,27 @@
 .selected {
 	color: var(--ns-text);
 	background: var(--ns-accent-muted);
+}
+
+.selectionHeader,
+.selectionCell {
+	width: 2.75rem;
+	text-align: center;
+}
+
+.selectionCell,
+.actionsCell {
+	cursor: default;
+}
+
+.actionsHeader,
+.actionsCell {
+	width: 1%;
+	text-align: right;
+}
+
+.actionsCell > * {
+	display: inline-flex;
 }
 
 .empty {
@@ -91,4 +191,15 @@
 
 .compact .table th {
 	font-size: 0.625rem;
+}
+
+@media (max-width: 42rem) {
+	.batchBar {
+		align-items: stretch;
+		flex-direction: column;
+	}
+
+	.batchActions {
+		justify-content: flex-start;
+	}
 }

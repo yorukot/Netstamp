@@ -15,7 +15,7 @@ export function MetricCard({ label, value, detail, tone = "accent", className }:
 	const classes = [styles.card, className].filter(Boolean).join(" ");
 
 	return (
-		<Surface as="article" tone="glass" cut="lg" padding="md" className={classes}>
+		<Surface as="article" tone="glass" frameSize="lg" padding="md" className={classes}>
 			<span className={styles.label}>{label}</span>
 			<strong>{value}</strong>
 			{detail ? <Badge tone={tone}>{detail}</Badge> : null}

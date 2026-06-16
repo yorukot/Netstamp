@@ -27,8 +27,8 @@
 
 .controlFrame:focus-within {
 	--ns-frame-color: var(--ns-accent-active);
-	outline: 2px solid var(--ns-accent-active);
-	outline-offset: 2px;
+	outline: var(--ns-focus-outline);
+	outline-offset: var(--ns-focus-outline-offset);
 	box-shadow: none;
 }
 
@@ -84,7 +84,7 @@
 }
 
 .bareControl:focus-visible {
-	outline: 2px solid var(--ns-accent-active);
+	outline: var(--ns-focus-outline);
 	outline-offset: 0.15rem;
 }
 
@@ -354,8 +354,8 @@
 }
 
 .checkbox:focus-visible {
-	outline: 2px solid var(--ns-accent-active);
-	outline-offset: 2px;
+	outline: var(--ns-focus-outline);
+	outline-offset: var(--ns-focus-outline-offset);
 }
 
 .helper,

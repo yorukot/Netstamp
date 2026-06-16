@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { Surface, type SurfaceCut, type SurfacePadding, type SurfaceProps, type SurfaceTone } from "../index";
+import { Surface, type SurfaceFrameSize, type SurfacePadding, type SurfaceProps, type SurfaceTone } from "../index";
 
 const tones: SurfaceTone[] = ["glass", "matte", "deep", "flat", "accent", "danger"];
-const cuts: SurfaceCut[] = ["xs", "sm", "md", "lg"];
+const frameSizes: SurfaceFrameSize[] = ["xs", "sm", "md", "lg"];
 const paddings: SurfacePadding[] = ["none", "sm", "md", "lg"];
 
 const meta = {
@@ -12,10 +12,10 @@ const meta = {
 		children: (
 			<>
 				<strong>Surface content</strong>
-				<p>Base primitive for cut-frame blocks, cards, and panels.</p>
+				<p>Base primitive for square dashboard frames, cards, and panels.</p>
 			</>
 		),
-		cut: "md",
+		frameSize: "md",
 		padding: "md",
 		tone: "glass"
 	},
@@ -23,7 +23,7 @@ const meta = {
 		as: { control: false },
 		children: { control: false },
 		className: { control: false },
-		cut: { control: "inline-radio", options: cuts },
+		frameSize: { control: "inline-radio", options: frameSizes },
 		padding: { control: "inline-radio", options: paddings },
 		tone: { control: "select", options: tones }
 	},
@@ -49,7 +49,7 @@ export const Tones: Story = {
 		<div className="storybook-canvas">
 			<div className="storybook-grid">
 				{tones.map(tone => (
-					<Surface key={tone} tone={tone} cut="lg" padding="md">
+					<Surface key={tone} tone={tone} frameSize="lg" padding="md">
 						<strong>{tone}</strong>
 						<p>Surface tone sample.</p>
 					</Surface>
@@ -59,13 +59,13 @@ export const Tones: Story = {
 	)
 };
 
-export const Cuts: Story = {
+export const FrameSizes: Story = {
 	render: () => (
 		<div className="storybook-canvas">
 			<div className="storybook-grid storybook-grid--compact">
-				{cuts.map(cut => (
-					<Surface key={cut} cut={cut} padding="md">
-						<strong>{cut}</strong>
+				{frameSizes.map(frameSize => (
+					<Surface key={frameSize} frameSize={frameSize} padding="md">
+						<strong>{frameSize}</strong>
 					</Surface>
 				))}
 			</div>
