@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="960" viewBox="0 0 720 960" role="img" aria-labelledby="title desc">
+	<title id="title">Netstamp mobile dashboard screenshot mock</title>
+	<desc id="desc">A compact Netstamp dashboard view with fleet status, latency chart, alerts, and route activity.</desc>
+	<rect width="720" height="960" fill="#f6f7f9"/>
+	<rect x="28" y="28" width="664" height="904" fill="#ffffff" stroke="#d8dee8"/>
+	<rect x="56" y="64" width="148" height="20" fill="#111827"/>
+	<rect x="516" y="58" width="120" height="34" fill="#2563eb"/>
+	<rect x="56" y="124" width="420" height="36" fill="#111827"/>
+	<rect x="56" y="180" width="292" height="16" fill="#5f6b7a"/>
+	<g>
+		<rect x="56" y="244" width="284" height="116" fill="#ffffff" stroke="#d8dee8"/>
+		<rect x="80" y="268" width="118" height="15" fill="#5f6b7a"/>
+		<rect x="80" y="302" width="84" height="38" fill="#111827"/>
+		<rect x="238" y="310" width="58" height="20" fill="#168a45"/>
+		<rect x="380" y="244" width="284" height="116" fill="#ffffff" stroke="#d8dee8"/>
+		<rect x="404" y="268" width="118" height="15" fill="#5f6b7a"/>
+		<rect x="404" y="302" width="84" height="38" fill="#111827"/>
+		<rect x="562" y="310" width="58" height="20" fill="#2563eb"/>
+	</g>
+	<rect x="56" y="396" width="608" height="240" fill="#ffffff" stroke="#d8dee8"/>
+	<rect x="80" y="424" width="160" height="18" fill="#111827"/>
+	<polyline points="88,568 164,528 240,544 316,482 392,498 468,456 548,488 632,432" fill="none" stroke="#2563eb" stroke-width="5"/>
+	<polyline points="88,600 164,586 240,570 316,584 392,552 468,574 548,546 632,560" fill="none" stroke="#64748b" stroke-width="3"/>
+	<rect x="56" y="672" width="608" height="104" fill="#ffffff" stroke="#d8dee8"/>
+	<rect x="80" y="704" width="136" height="16" fill="#111827"/>
+	<rect x="80" y="742" width="146" height="14" fill="#374151"/>
+	<rect x="272" y="742" width="94" height="14" fill="#b42318"/>
+	<rect x="424" y="742" width="156" height="14" fill="#5f6b7a"/>
+	<rect x="56" y="808" width="608" height="80" fill="#ffffff" stroke="#d8dee8"/>
+	<circle cx="98" cy="848" r="14" fill="#2563eb"/>
+	<path d="M98 848 L216 830 L326 858 L456 826 L606 850" fill="none" stroke="#2563eb" stroke-width="3"/>
+	<circle cx="216" cy="830" r="10" fill="#168a45"/>
+	<circle cx="326" cy="858" r="10" fill="#b42318"/>
+	<circle cx="456" cy="826" r="10" fill="#64748b"/>
+	<circle cx="606" cy="850" r="10" fill="#168a45"/>
+</svg>

@@ -17,14 +17,14 @@ const trackersEnabled = hasEnabledTrackers(trackerConfig);
 const trackerConfigJson = JSON.stringify(trackerConfig).replace(/</g, "\\u003c");
 ---
 
-<section class="trackingConsent ns-cut-frame" data-netstamp-tracking-consent data-netstamp-trackers-enabled={trackersEnabled ? "true" : "false"} hidden aria-label="Analytics consent">
+<section class="trackingConsent ns-frame" data-netstamp-tracking-consent data-netstamp-trackers-enabled={trackersEnabled ? "true" : "false"} hidden aria-label="Analytics consent">
 	<div class="trackingConsentCopy">
 		<strong>Analytics consent</strong>
 		<p>Netstamp can load optional analytics to understand product and docs usage. Declining keeps those trackers disabled in this browser.</p>
 	</div>
 	<div class="trackingConsentActions">
-		<button class="ns-cut-frame" type="button" data-netstamp-consent-decline>Decline</button>
-		<button class="ns-cut-frame" type="button" data-netstamp-consent-accept>Accept</button>
+		<button class="ns-frame" type="button" data-netstamp-consent-decline>Decline</button>
+		<button class="ns-frame" type="button" data-netstamp-consent-accept>Accept</button>
 	</div>
 </section>
 <script type="application/json" id="netstamp-tracking-config" set:html={trackerConfigJson} />
@@ -81,7 +81,6 @@ const trackerConfigJson = JSON.stringify(trackerConfig).replace(/</g, "\\u003c")
 </script>
 <style>
 	.trackingConsent {
-		--ns-frame-cut: var(--ns-cut-md);
 		--ns-frame-color: var(--ns-accent-border);
 		position: fixed;
 		right: max(1rem, env(safe-area-inset-right));
@@ -93,7 +92,7 @@ const trackerConfigJson = JSON.stringify(trackerConfig).replace(/</g, "\\u003c")
 		width: min(42rem, calc(100vw - 2rem));
 		padding: 1rem;
 		color: var(--ns-text);
-		background: linear-gradient(135deg, rgba(255, 122, 26, 0.14), transparent 42%), rgba(3, 5, 8, 0.98);
+		background: linear-gradient(135deg, var(--ns-accent-muted), transparent 42%), rgba(3, 5, 8, 0.98);
 		box-shadow: var(--ns-shadow-md);
 	}
 
@@ -132,7 +131,6 @@ const trackerConfigJson = JSON.stringify(trackerConfig).replace(/</g, "\\u003c")
 	}
 
 	.trackingConsentActions button {
-		--ns-frame-cut: var(--ns-cut-sm);
 		--ns-frame-color: var(--ns-border);
 		display: inline-flex;
 		align-items: center;

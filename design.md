@@ -1,6 +1,6 @@
 # Netstamp Design Guidelines
 
-> Category: network observability and developer infrastructure. Current direction: authenticated web app is a light-default B2B operations dashboard with restrained brand accents; docs, landing, and API reference may retain the darker technical storytelling system until their own redesign pass.
+> Category: network observability and developer infrastructure. Current direction: authenticated web app and public homepage are light-default B2B product surfaces with restrained blue/cyan brand accents; docs and API reference may retain the darker technical reference system until their own redesign pass.
 
 This document is the source of truth for Netstamp frontend design across the React web app, the Astro docs site, the public landing page, the OpenAPI explorer, Storybook, and shared `@netstamp/ui` primitives.
 
@@ -33,7 +33,7 @@ Core authenticated app traits:
 Each surface has a different density:
 
 - Web app: compact light-default B2B dashboard for repeated work.
-- Public landing page: may remain cinematic network storytelling with large display type, technical visuals, and clear deploy/GitHub actions.
+- Public landing page: professional blue dashboard product homepage with product UI screenshots, compact telemetry, and clear deploy/GitHub actions.
 - Docs: readable technical reference that may retain the dark console structure until a docs redesign pass.
 - OpenAPI explorer: split reference and request console, optimized for scanning methods, paths, parameters, snippets, and responses.
 
@@ -110,18 +110,18 @@ Most full-page surfaces use layered dark grids:
 
 Use `.ns-grid-shell` or `.ns-grid-shell--constellation` when a full app surface can use the shared utility. Otherwise match the same layered background locally.
 
-### Public Landing Page
+### Public Homepage
 
 Current implementation lives in `docs/src/components/landing`.
 
-Use the landing page for high-impact storytelling:
+Use the homepage to show Netstamp as a real product:
 
-- Full-height dark grid canvas.
+- Light-default dashboard canvas with blue/cyan product accent.
 - Sticky docs top nav above the page.
-- Hero with large left-side claim and a full technical network animation.
+- Hero with Netstamp/product category headline, concise offer copy, and a product dashboard screenshot or product UI composition.
 - Primary CTA is blue/cyan fill; secondary CTA is dark/neutral.
-- Story sections use animated network/topology scenes, probe scenes, route boards, check cards, and numbered feature cards.
-- Feature cards can be large and visual, but they must remain technical and specific.
+- Product sections cover Fleet, Checks, Insight, Alerts, API/automation, and Open Source.
+- Technical decoration should be subtle: grid lines, telemetry chips, route paths, status indicators, and screenshot callouts.
 - Final CTA/trust area should stay grounded in open source, deployability, probes, and measurable network behavior.
 
 Landing copy should be short, concrete, and infrastructure-oriented:
@@ -131,7 +131,7 @@ Landing copy should be short, concrete, and infrastructure-oriented:
 - "Measure latency, packet loss, DNS, and routes."
 - "Your traffic has a story. Netstamp shows the path."
 
-Do not turn the landing page into a centered generic marketing template. Avoid stock photography, lifestyle imagery, decorative blobs, or abstract SaaS gradients.
+Do not turn the homepage into a centered generic marketing template. Avoid stock photography, lifestyle imagery, decorative blobs, abstract SaaS gradients, orange-first styling, or cinematic scenes that hide the product.
 
 ### Web App
 

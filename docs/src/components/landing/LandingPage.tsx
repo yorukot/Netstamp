@@ -1,24 +1,56 @@
 import { Badge, Button, GlobalFooter } from "@netstamp/ui";
-import { lazy, Suspense, useEffect, useRef } from "react";
-import taiwanSubmarineCablesMap from "../../assets/taiwan_submarine_cables.svg?url";
+import dashboardDesktop from "../../assets/homepage-dashboard-desktop.svg?url";
+import dashboardMobile from "../../assets/homepage-dashboard-mobile.svg?url";
 import { appUrl } from "../../lib/publicUrls";
-import { GlobalNetworkAnimation } from "./GlobalNetworkAnimation";
 import styles from "./LandingPage.module.css";
-
-const NetworkScene = lazy(() => import("./NetworkScene").then(module => ({ default: module.NetworkScene })));
-const ProbeScene = lazy(() => import("./ProbeScene").then(module => ({ default: module.ProbeScene })));
 
 const githubUrl = "https://github.com/yorukot/netstamp";
 
-const checkCards = [
-	{ name: "Ping", metric: "p95 42ms", detail: "ICMP / TCP probes" },
-	{ name: "DNS", metric: "NOERROR", detail: "resolver + authority" },
-	{ name: "Traceroute", metric: "14 hops", detail: "route hash diff" }
+const productStats = [
+	{ label: "Probe fleet", value: "18 online" },
+	{ label: "Latency p95", value: "42ms" },
+	{ label: "Packet loss", value: "0.08%" },
+	{ label: "Route diff", value: "2 changed" }
 ];
 
-const routeHops = ["AMS", "FRA", "IXP", "NYC", "SFO"];
-
-const routeSignals = ["See latency.", "See packet loss.", "See DNS failures.", "See path changes.", "See where traffic takes the long way around."];
+const productSections = [
+	{
+		kicker: "Fleet",
+		title: "Probes you control",
+		copy: "Install probes on VPS nodes, lab hosts, edge machines, or internal networks. Netstamp shows where each agent is running, when it last checked in, and what it can measure.",
+		points: ["Heartbeat status", "Location and labels", "IPv4 / IPv6 capability"]
+	},
+	{
+		kicker: "Checks",
+		title: "Latency, loss, DNS, and routes",
+		copy: "Define repeatable checks once and assign them by labels. The controller schedules probe work and stores results for operational review.",
+		points: ["Ping and TCP checks", "Traceroute runs", "Probe selectors"]
+	},
+	{
+		kicker: "Insight",
+		title: "Route intelligence for real paths",
+		copy: "Compare probe and check pairs over time. Detect route hash changes, latency shifts, packet loss, and topology movement before users report symptoms.",
+		points: ["Scope by probe or check", "Time range URLs", "Route topology views"]
+	},
+	{
+		kicker: "Alerts",
+		title: "Incidents routed to operators",
+		copy: "Create threshold rules for measurable network behavior and send notifications to the tools your operators already watch.",
+		points: ["Metric thresholds", "Cooldown windows", "Webhook and chat targets"]
+	},
+	{
+		kicker: "API",
+		title: "Automation without mystery",
+		copy: "Use the generated OpenAPI contract to inspect controller routes, build scripts, and keep integrations aligned with backend behavior.",
+		points: ["Generated contract", "Request console", "Typed web client"]
+	},
+	{
+		kicker: "Open Source",
+		title: "Deploy it where trust matters",
+		copy: "Netstamp is built in the open so teams, researchers, and communities can inspect how measurements are collected and represented.",
+		points: ["Self-hosted controller", "Portable probes", "Public docs"]
+	}
+];
 
 interface LandingPageProps {
 	appHref?: string;
@@ -29,282 +61,125 @@ function classNames(...classes: Array<string | false | null | undefined>) {
 }
 
 export function LandingPage({ appHref = appUrl("/register") }: LandingPageProps) {
-	const landingRef = useRef<HTMLDivElement>(null);
-
-	useEffect(() => {
-		const image = new Image();
-		image.decoding = "async";
-		image.src = taiwanSubmarineCablesMap;
-		if (image.decode) void image.decode().catch(() => undefined);
-	}, []);
-
-	useEffect(() => {
-		const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-		if (reduced) return;
-
-		let cancelled = false;
-		let cleanupAnimation = () => {};
-
-		async function setupScrollAnimations() {
-			const [{ gsap }, { ScrollTrigger }] = await Promise.all([import("gsap"), import("gsap/ScrollTrigger")]);
-			if (cancelled) return;
-
-			gsap.registerPlugin(ScrollTrigger);
-
-			const ctx = gsap.context(() => {
-				gsap.from("[data-gs='story']", {
-					opacity: 0,
-					y: 48,
-					duration: 1.0,
-					ease: "power3.out",
-					scrollTrigger: {
-						trigger: "[data-gs='story']",
-						start: "top 80%"
-					}
-				});
-
-				gsap.from("[data-gs='feature-label']", {
-					opacity: 0,
-					y: -10,
-					duration: 0.65,
-					ease: "power2.out",
-					scrollTrigger: {
-						trigger: "[data-gs='feature-label']",
-						start: "top 82%"
-					}
-				});
-
-				const cards = gsap.utils.toArray<Element>("[data-gs='feature-card']");
-				if (cards.length) {
-					gsap.from(cards, {
-						opacity: 0,
-						y: 64,
-						duration: 0.8,
-						ease: "power3.out",
-						stagger: 0.14,
-						scrollTrigger: {
-							trigger: cards[0],
-							start: "top 80%"
-						}
-					});
-				}
-
-				gsap.from("[data-gs='trust']", {
-					opacity: 0,
-					y: 48,
-					duration: 1.0,
-					ease: "power3.out",
-					scrollTrigger: {
-						trigger: "[data-gs='trust']",
-						start: "top 80%"
-					}
-				});
-			}, landingRef);
-
-			cleanupAnimation = () => ctx.revert();
-		}
-
-		void setupScrollAnimations();
-
-		return () => {
-			cancelled = true;
-			cleanupAnimation();
-		};
-	}, []);
-
 	return (
-		<div ref={landingRef} className={styles.landing}>
+		<div className={styles.landing}>
 			<main>
-				{/* Hero — unchanged */}
 				<section className={styles.hero}>
-					<GlobalNetworkAnimation />
-
 					<div className={styles.heroCopy}>
-						<h1>
-							See the network.
-							<span>Before it fails you.</span>
-						</h1>
-						<p>Open-source network observability from probes you control.</p>
-						<p>Measure latency, packet loss, DNS, and routes.</p>
-
+						<Badge tone="accent" dot={false}>
+							Open-source network observability
+						</Badge>
+						<h1>Netstamp network observability</h1>
+						<p>Probes you control measure latency, packet loss, DNS, and routes from the networks that matter to you.</p>
 						<div className={styles.heroActions}>
 							<Button size="xl" asChild>
 								<a href={appHref}>
 									<ph-rocket-launch size={20} weight="bold" aria-hidden="true" />
-									Deploy Your Probe
+									Deploy a probe
 								</a>
 							</Button>
 							<Button size="xl" variant="secondary" asChild>
 								<a href={githubUrl} target="_blank" rel="noreferrer">
 									<ph-github-logo size={20} weight="bold" aria-hidden="true" />
-									View on GitHub
+									View GitHub
 								</a>
 							</Button>
 						</div>
 					</div>
+
+					<figure className={styles.productShot}>
+						<picture>
+							<source media="(max-width: 48rem)" srcSet={dashboardMobile} width="720" height="960" />
+							<img src={dashboardDesktop} alt="Netstamp dashboard showing probe fleet metrics, route topology, and alert state" width="1440" height="960" loading="eager" decoding="async" />
+						</picture>
+					</figure>
 				</section>
 
-				{/* Story Section — redesigned with Three.js */}
-				<section data-gs="story" className={styles.storySection}>
-					<div className={styles.storyCopy}>
-						<Badge tone="neutral">Path intelligence</Badge>
-						<h2>
-							Your traffic has a story.
-							<br />
-							Netstamp shows the path.
-						</h2>
-						<p>Traffic does not move through magic.</p>
-						<p>It crosses cables, providers, exchanges, policies, failures, and cost decisions.</p>
-						<p>Netstamp helps communities, operators, and builders understand the real paths their traffic takes.</p>
-					</div>
-					<div className={styles.storyViz}>
-						<Suspense fallback={null}>
-							<NetworkScene />
-						</Suspense>
-						<div className={styles.storyVizLabel} aria-hidden="true">
-							<span className={styles.storyVizDot} />
-							<span>live network topology</span>
+				<section className={styles.telemetryStrip} aria-label="Product telemetry snapshot">
+					{productStats.map(stat => (
+						<div className={styles.telemetryItem} key={stat.label}>
+							<span>{stat.label}</span>
+							<strong>{stat.value}</strong>
 						</div>
-					</div>
+					))}
 				</section>
 
-				{/* Feature Stack — redesigned */}
-				<section className={styles.featureStack}>
-					<div className={styles.featureHeader}>
-						<p data-gs="feature-label" className={styles.featureLabel}>
-							What Netstamp measures
-						</p>
-						<div className={styles.featureHeaderRule} aria-hidden="true" />
+				<section className={styles.productBand}>
+					<div className={styles.sectionHeader}>
+						<Badge tone="neutral" dot={false}>
+							Product surface
+						</Badge>
+						<h2>Designed for repeated network operations.</h2>
+						<p>Netstamp keeps the interface close to the work: fleet state, check definitions, result insight, alert routing, and API automation.</p>
 					</div>
 
-					<article data-gs="feature-card" className={classNames("ns-cut-frame", styles.featureCard, styles.probeFeatureCard)}>
-						<div className={styles.featureCardMain}>
-							<div className={classNames("ns-cut-frame", styles.cardIcon)} aria-hidden="true">
-								<ph-globe-hemisphere-west size={24} weight="duotone" />
-							</div>
-							<h2>Probes everywhere.</h2>
-							<p>Install Netstamp probes on VPS nodes, servers, internal hosts, edge locations, classrooms, labs, or community networks.</p>
-							<p>Each probe measures the Internet from its own point of view.</p>
-						</div>
-						<div className={styles.probeSceneCol} aria-hidden="true">
-							<Suspense fallback={null}>
-								<ProbeScene />
-							</Suspense>
-						</div>
-						<span className={styles.featureBadge} aria-hidden="true">
-							01
-						</span>
-					</article>
-
-					<article data-gs="feature-card" className={classNames("ns-cut-frame", styles.featureCard)}>
-						<div className={styles.featureCardTopline}>
-							<div className={classNames("ns-cut-frame", styles.cardIcon)} aria-hidden="true">
-								<ph-pulse size={24} weight="duotone" />
-							</div>
-							<span>scheduler / result stream</span>
-						</div>
-						<h2>Checks that matter.</h2>
-						<p>Simple tools. Structured results. Historical visibility.</p>
-						<div className={styles.checkGrid}>
-							{checkCards.map(check => (
-								<div className={classNames("ns-cut-frame", styles.checkCard)} key={check.name}>
-									<div className={styles.checkCardHeader}>
-										<strong>{check.name}</strong>
-										<span>{check.metric}</span>
-									</div>
-									<div className={styles.checkPacketRail} aria-hidden="true">
-										<i />
-										<i />
-										<i />
-										<i />
-									</div>
-									<small>{check.detail}</small>
+					<div className={styles.productGrid}>
+						{productSections.map(section => (
+							<article className={styles.productCard} key={section.kicker}>
+								<div className={styles.cardHeader}>
+									<span>{section.kicker}</span>
+									<i aria-hidden="true" />
 								</div>
-							))}
-						</div>
-						<div className={styles.checkTelemetry} aria-hidden="true">
-							<span>interval 30s</span>
-							<span>timeout 3s</span>
-							<span>retention 30d</span>
-						</div>
-						<span className={styles.featureBadge} aria-hidden="true">
-							02
-						</span>
-					</article>
-
-					<article data-gs="feature-card" className={classNames("ns-cut-frame", styles.featureCard)}>
-						<div className={styles.featureCardTopline}>
-							<div className={classNames("ns-cut-frame", styles.cardIcon)} aria-hidden="true">
-								<ph-network size={24} weight="duotone" />
-							</div>
-							<span>path hash / hop timeline</span>
-						</div>
-						<h2>Routes you can compare.</h2>
-						<div className={styles.routeBoard} aria-hidden="true">
-							<div className={styles.routeRail}>
-								{routeHops.map(hop => (
-									<span className={styles.routeNode} key={hop}>
-										<span className={styles.routeNodeLabel}>{hop}</span>
-									</span>
-								))}
-							</div>
-							<div className={styles.routeMetrics}>
-								<span>delta +18ms</span>
-								<span>hash changed</span>
-								<span>hop 9 reroute</span>
-							</div>
-						</div>
-						<ul className={styles.signalList}>
-							{routeSignals.map(signal => (
-								<li key={signal}>
-									<ph-check-circle size={16} weight="fill" aria-hidden="true" />
-									<span>{signal}</span>
-								</li>
-							))}
-						</ul>
-						<span className={styles.featureBadge} aria-hidden="true">
-							03
-						</span>
-					</article>
+								<h3>{section.title}</h3>
+								<p>{section.copy}</p>
+								<ul>
+									{section.points.map(point => (
+										<li key={point}>{point}</li>
+									))}
+								</ul>
+							</article>
+						))}
+					</div>
 				</section>
 
-				{/* Trust / CTA Section — redesigned */}
-				<section data-gs="trust" className={styles.trustSection}>
-					<div className={styles.trustInner}>
-						<div className={styles.trustLeft}>
-							<Badge tone="accent">Open source</Badge>
-							<h2>
-								Open source.
-								<br />
-								Because trust needs visibility.
-							</h2>
-							<p>Netstamp is built in the open — for operators, researchers, students, communities, and anyone who wants to understand how the Internet actually behaves.</p>
-							<p>Gives communities a way to measure, prove, and discuss what is happening.</p>
-							<div className={styles.ctaActions}>
-								<Button size="xl" asChild>
-									<a href={appHref}>
-										<ph-rocket-launch size={20} weight="bold" aria-hidden="true" />
-										Deploy Your Probe
-									</a>
-								</Button>
-								<Button size="xl" variant="outline" asChild>
-									<a href={githubUrl} target="_blank" rel="noreferrer">
-										<ph-arrow-up-right size={20} weight="bold" aria-hidden="true" />
-										View the source
-									</a>
-								</Button>
-							</div>
+				<section className={styles.routeBand}>
+					<div className={styles.routeCopy}>
+						<Badge tone="accent" dot={false}>
+							Route intelligence
+						</Badge>
+						<h2>See when the path changes.</h2>
+						<p>Traceroute runs become route timelines and topology views. Operators can compare the path hash, hop changes, and latency movement across probe locations.</p>
+					</div>
+					<div className={styles.routePanel} aria-hidden="true">
+						<div className={styles.routeRail}>
+							{["TPE", "IXP", "NRT", "SJC", "SFO"].map((hop, index) => (
+								<span className={classNames(styles.routeNode, index === 2 && styles.routeNodeActive)} key={hop}>
+									{hop}
+								</span>
+							))}
 						</div>
+						<div className={styles.routeRows}>
+							<span>path hash changed</span>
+							<span>hop 3 provider shift</span>
+							<span>p95 +18ms</span>
+						</div>
+					</div>
+				</section>
 
-						<div className={styles.trustRight}>
-							<div className={styles.trustMapBackdrop}>
-								<img className={styles.trustMapImage} src={taiwanSubmarineCablesMap} alt="Map of Taiwan submarine cable routes" loading="eager" fetchPriority="low" decoding="async" />
-							</div>
-						</div>
+				<section className={styles.ctaBand}>
+					<div>
+						<Badge tone="neutral" dot={false}>
+							Self-hosted controller
+						</Badge>
+						<h2>Run measurements from networks you own.</h2>
+						<p>Deploy Netstamp, register probes, and start collecting measurable evidence about the paths your traffic actually takes.</p>
+					</div>
+					<div className={styles.ctaActions}>
+						<Button size="xl" asChild>
+							<a href={appHref}>
+								<ph-rocket-launch size={20} weight="bold" aria-hidden="true" />
+								Deploy a probe
+							</a>
+						</Button>
+						<Button size="xl" variant="outline" asChild>
+							<a href="/docs/">
+								<ph-book-open size={20} weight="bold" aria-hidden="true" />
+								Read docs
+							</a>
+						</Button>
 					</div>
 				</section>
 			</main>
-
 			<GlobalFooter />
 		</div>
 	);
