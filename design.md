@@ -1,6 +1,6 @@
 # Netstamp Design Guidelines
 
-> Category: network observability and developer infrastructure. Current direction: authenticated web app, public homepage, docs, Storybook, and API reference all align to the dashboard surface system: light-default B2B product UI, matching dark mode, restrained blue/cyan brand accents, square frames, flat panels, no gradients, and no grid or decorative background patterns.
+> Category: network observability and developer infrastructure. Current direction: authenticated web app, public homepage, docs, Storybook, and API reference all align to the dashboard surface system: light-default B2B product UI, matching dark mode, orange primary accents, pale blue backgrounds and secondary accents, square frames, flat panels, no gradients, and no grid or decorative background patterns.
 
 This document is the source of truth for Netstamp frontend design across the React web app, the Astro docs site, the public landing page, the OpenAPI explorer, Storybook, and shared `@netstamp/ui` primitives.
 
@@ -21,9 +21,10 @@ Netstamp should feel like serious infrastructure software for repeated operation
 
 Core authenticated app traits:
 
-- Light, neutral workspace with white and gray surfaces.
+- Light, pale-blue workspace with white and quiet blue-gray surfaces.
 - Dark mode must use the same dashboard structure, density, and token roles rather than a separate console-only visual system.
-- Blue/cyan as the reserved brand accent for primary actions, active navigation, focus, and selected state.
+- Orange is the reserved primary brand color for primary actions, active navigation, focus, selected state, and first chart series.
+- Blue is the background family and secondary color for secondary actions, supporting data, links, and low-emphasis highlights.
 - Status colors carry semantic meaning only: healthy, warning, critical, pending, or neutral.
 - Square, flat frames; no rounded corners and no cut-corner framing in the web app.
 - Sans typography for navigation, headings, controls, tables, labels, and buttons.
@@ -53,40 +54,48 @@ Use the display face for big product statements and screen titles. Use the sans 
 
 ### Backgrounds And Surfaces
 
-- `--ns-bg`: `#010203`, main page canvas.
-- `--ns-bg-section`: `#030507`, major section background.
-- `--ns-bg-subtle`: `#05080c`, subtle elevated area.
-- `--ns-surface`: `#07090d`, base panel surface.
-- `--ns-surface-raised`: `#0c1016`, stronger raised surface.
-- `--ns-surface-deep`: `#020304`, deep terminal/map/code surface.
-- `--ns-glass-dark`: `rgba(3, 5, 8, 0.94)`, sticky dark glass.
-- `--ns-glass-light`: `rgba(255, 255, 255, 0.012)`, faint overlay.
+- `--ns-bg`: `#f3f7fb`, main light page canvas.
+- `--ns-bg-section`: `#eaf1f8`, major light section background.
+- `--ns-bg-subtle`: `#eef4fa`, subtle light elevated area.
+- `--ns-surface`: `#ffffff`, base light panel surface.
+- `--ns-surface-raised`: `#f8fbff`, stronger light raised surface.
+- `--ns-surface-deep`: `#e7eef6`, deep light terminal/map/code surface.
+- `--ns-glass-dark`: `rgba(255, 255, 255, 0.94)`, sticky light glass.
+- `--ns-glass-light`: `rgba(23, 32, 51, 0.035)`, faint light overlay.
 
 ### Text
 
-- `--ns-text`: `#fff7ec`, primary text.
-- `--ns-text-muted`: `#ddd4c8`, body and secondary text.
-- `--ns-text-subtle`: `#b8b3aa`, supporting copy and inactive controls.
-- `--ns-text-low`: `#77736b`, metadata and low-priority labels.
+- `--ns-text`: `#172033`, primary text.
+- `--ns-text-muted`: `#405168`, body and secondary text.
+- `--ns-text-subtle`: `#657389`, supporting copy and inactive controls.
+- `--ns-text-low`: `#8793a3`, metadata and low-priority labels.
 - `--ns-text-on-accent`: high-contrast text on accent controls.
 
-### Accent And State
+### Primary, Secondary, And State
 
-- `--ns-accent`: blue/cyan brand action color.
-- `--ns-accent-hover`: brighter blue/cyan hover and highlight color.
-- `--ns-accent-active`: pressed/focused blue color.
-- `--ns-accent-muted`: low-opacity selected/hover fill.
-- `--ns-accent-subtle`: stronger selected fill.
-- `--ns-accent-border`: active frame color.
-- `--ns-accent-glow`: restrained blue/cyan glow.
-- `--ns-glass-accent`: low-opacity blue/cyan glass overlay.
+- `--ns-primary`: orange brand action color.
+- `--ns-primary-hover`: darker or brighter orange hover and highlight color.
+- `--ns-primary-active`: pressed/focused orange color.
+- `--ns-primary-muted`: low-opacity primary selected/hover fill.
+- `--ns-primary-subtle`: stronger primary selected fill.
+- `--ns-primary-border`: active primary frame color.
+- `--ns-secondary`: blue secondary action, link, and supporting data color.
+- `--ns-secondary-hover`: stronger secondary hover color.
+- `--ns-secondary-active`: pressed/focused secondary color.
+- `--ns-secondary-muted`: low-opacity secondary selected/hover fill.
+- `--ns-secondary-subtle`: stronger secondary selected fill.
+- `--ns-secondary-border`: secondary frame color.
+- `--ns-accent`: compatibility alias for `--ns-primary`; prefer `--ns-primary` in new code when the role is primary.
+- `--ns-accent-hover`, `--ns-accent-active`, `--ns-accent-muted`, `--ns-accent-subtle`, and `--ns-accent-border`: compatibility aliases for primary interaction states.
+- `--ns-accent-glow`: legacy compatibility value only; do not use it to add visible glow effects.
+- `--ns-glass-accent`: low-opacity orange glass overlay.
 - `--ns-critical`: `#ff453a`, destructive/error/failed.
 - `--ns-warning`: `#ff9f0a`, warning/waiting/degraded/pending.
 - `--ns-success`: `#30d158`, healthy/online/success.
 - `--ns-metal`: `#c4ccd9`, neutral technical accent.
 - `--ns-slate-line`: `rgba(196, 204, 217, 0.22)`, neutral chart and divider line.
 
-Blue/cyan is the reserved brand interaction color. Green, amber, and red are reserved for state meaning. Slate may be used for chart/data series where it improves dashboard readability. Avoid rainbow, pastel, purple, orange-first, glossy gradient, or decorative color systems.
+Orange is the primary brand interaction color. Blue is secondary and supports the pale dashboard background system. Green, amber, and red are reserved for state meaning. Slate may be used for chart/data series where it improves dashboard readability. Avoid rainbow, pastel, purple, blue-first, glossy gradient, or decorative color systems.
 
 ### Borders, Radius, Shadows
 
@@ -117,10 +126,10 @@ Current implementation lives in `docs/src/components/landing`.
 
 Use the homepage to show Netstamp as a real product:
 
-- Light-default dashboard canvas with matching dark mode and blue/cyan product accent.
+- Light-default dashboard canvas with matching dark mode, orange primary accent, and blue secondary/background color.
 - Sticky docs top nav above the page.
 - Hero with Netstamp/product category headline, concise offer copy, and a real product dashboard screenshot.
-- Primary CTA is blue/cyan fill; secondary CTA is dark/neutral.
+- Primary CTA is orange fill; secondary CTA uses the blue secondary treatment or a neutral outline depending on hierarchy.
 - Product sections cover Fleet, Checks, Insight, Alerts, API/automation, and Open Source.
 - Product context should come from real UI screenshots, telemetry chips, route paths, status indicators, and compact panels, not decorative backgrounds.
 - Final CTA/trust area should stay grounded in open source, deployability, probes, and measurable network behavior.
@@ -132,7 +141,7 @@ Landing copy should be short, concrete, and infrastructure-oriented:
 - "Measure latency, packet loss, DNS, and routes."
 - "Your traffic has a story. Netstamp shows the path."
 
-Do not turn the homepage into a centered generic marketing template. Avoid stock photography, lifestyle imagery, decorative blobs, abstract SaaS gradients, grid backgrounds, orange-first styling, or cinematic scenes that hide the product.
+Do not turn the homepage into a centered generic marketing template. Avoid stock photography, lifestyle imagery, decorative blobs, abstract SaaS gradients, grid backgrounds, blue-first styling, or cinematic scenes that hide the product.
 
 ### Web App
 
@@ -165,7 +174,7 @@ Docs must feel like Netstamp, but prioritize reading and navigation:
 - Three-column desktop shell: left docs navigation, central content, right table of contents.
 - Left nav can fold to icon-only on wide layouts.
 - Below about `68rem`, collapse to one column with sidebar, content, and TOC stacked.
-- Doc hero is a framed blue-accent panel with compact display title and body summary.
+- Doc hero is a framed orange-accent panel with compact display title and body summary.
 - Prose uses generous line-height and clear heading spacing.
 - Code blocks use token deep surfaces, simple top bars, and accent borders.
 - Cards, callouts, pager links, search results, and index grids use dashboard token surfaces with accent hover/active states.
@@ -319,8 +328,8 @@ Panel rules:
 Buttons live in `@netstamp/ui` and use square rectangular frames.
 
 - Text is sans, normal case, and medium-heavy weight.
-- Primary uses blue/cyan fill and high-contrast text from `--ns-text-on-accent`.
-- Secondary uses neutral raised surface and standard text.
+- Primary uses orange fill and high-contrast text from `--ns-text-on-accent`.
+- Secondary uses blue muted fill and blue secondary text.
 - Outline uses neutral surface and neutral hover.
 - Ghost is for low-priority actions.
 - Danger is only for destructive actions.
@@ -380,7 +389,7 @@ Terminal blocks are command surfaces.
 
 - Deep black background.
 - Monospace text.
-- Blue/cyan accent or faint white frame.
+- Orange primary accent, blue secondary accent, or faint neutral frame.
 - Optional top bar or compact status markers for prose code blocks.
 - Snippets and response previews should scroll rather than wrap into unreadable layouts, except API response previews may use `pre-wrap` when readability is better.
 
@@ -388,7 +397,7 @@ Terminal blocks are command surfaces.
 
 Navigation is sans and normal case.
 
-- App sidebar active item uses blue/cyan leading accent and a neutral square frame.
+- App sidebar active item uses orange leading accent and a neutral square frame.
 - Docs top nav uses icon plus text, with text hidden on small screens when necessary.
 - Docs sidebar groups are collapsible and show active state in the shared accent color.
 - TOC active link uses the shared accent color without glow.
@@ -399,7 +408,7 @@ Network visuals should be abstract, map-like, and diagnostic.
 
 - In the authenticated app, prefer simple square labels and markers.
 - Routes, packets, rails, hops, matrices, and topology lines are preferred motifs.
-- Active packets and important paths use blue/cyan.
+- Active packets and important paths use orange for the primary highlighted path; use blue for secondary paths.
 - Green only means online/success.
 - Route animations are acceptable when slow, subtle, and useful for the diagnostic state.
 - Three.js scenes and animated CSS visuals must respect reduced motion.
@@ -458,8 +467,8 @@ Avoid springy, playful, elastic, large parallax, or attention-seeking motion.
 
 Charts, maps, route boards, and telemetry widgets should look embedded in the console.
 
-- Primary series: `--ns-accent`, `#2563eb`, or `#38bdf8`.
-- Secondary/baseline series: `--ns-metal`, `--ns-slate-line`, or low-opacity white.
+- Primary series: `--ns-primary`, `--ns-accent`, `#ea6a1a`, or dark-mode `#fb923c`.
+- Secondary/baseline series: `--ns-secondary`, `--ns-metal`, `--ns-slate-line`, or low-opacity neutral.
 - Success state: `--ns-success`.
 - Warning state: `--ns-warning`.
 - Critical state: `--ns-critical`.
@@ -563,7 +572,7 @@ Before shipping frontend UI, check:
 - Are backgrounds plain token colors, with no gradients, grids, glows, or decorative patterns?
 - Does it use the correct font family for display, body, and operational text?
 - Are framed controls square and free of custom clipped polygons?
-- Is blue/cyan the main interactive accent?
+- Is orange the main interactive accent, with blue reserved for secondary/background roles?
 - Are green, amber, and red reserved for state?
 - Does the layout follow the established spacing rhythm unless a larger landing/docs rhythm is intentional?
 - Does the UI match the density of its surface: landing, app, docs, or OpenAPI?
