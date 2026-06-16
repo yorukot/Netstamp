@@ -149,6 +149,10 @@ function collectOperations(spec: OpenAPISpec): OperationItem[] {
 	return operations;
 }
 
+function isOpenAPISpec(value: unknown): value is OpenAPISpec {
+	return Boolean(value && typeof value === "object" && !Array.isArray(value) && "paths" in value);
+}
+
 function groupOperations(operations: OperationItem[]): OperationGroup[] {
 	const groups = new Map<string, OperationItem[]>();
 
@@ -211,6 +215,39 @@ function requestBodyExample(operation: OperationItem | undefined, spec: OpenAPIS
 
 	const schemaValue = valueFromSchema(json.schema, spec);
 	return schemaValue === undefined ? "" : JSON.stringify(schemaValue, null, 2);
+}
+
+function operationFromUrl(operations: OperationItem[]) {
+	if (typeof window === "undefined") {
+		return "";
+	}
+
+	const params = new URLSearchParams(window.location.search);
+	const operationKey = params.get("operation");
+	const hash = window.location.hash.replace(/^#/, "");
+	const hashOperation = operations.find(operation => operationAnchor(operation) === hash);
+
+	return operationKey && operations.some(operation => operation.key === operationKey) ? operationKey : (hashOperation?.key ?? "");
+}
+
+function searchFromUrl() {
+	if (typeof window === "undefined") {
+		return "";
+	}
+
+	return new URLSearchParams(window.location.search).get("q") ?? "";
+}
+
+function setUrlState(update: (params: URLSearchParams) => void, hash?: string) {
+	if (typeof window === "undefined") {
+		return;
+	}
+
+	const params = new URLSearchParams(window.location.search);
+	update(params);
+	const query = params.toString();
+	const nextUrl = `${window.location.pathname}${query ? `?${query}` : ""}${hash ? `#${hash}` : window.location.hash}`;
+	window.history.replaceState(null, "", nextUrl);
 }
 
 function serverUrl(spec: OpenAPISpec) {
@@ -446,11 +483,11 @@ export default function OpenAPIExplorer({ specUrl }: OpenAPIExplorerProps) {
 	const [baseUrl, setBaseUrl] = useState("/api/v1");
 	const [requestPath, setRequestPath] = useState("");
 	const [body, setBody] = useState("");
+	const [bodyError, setBodyError] = useState("");
 	const [response, setResponse] = useState("");
 	const [sending, setSending] = useState(false);
-	const [searchQuery, setSearchQuery] = useState("");
-	const [openSidebarGroups, setOpenSidebarGroups] = useState<Set<string>>(() => new Set());
-	const [openContentGroups, setOpenContentGroups] = useState<Set<string>>(() => new Set());
+	const [searchQuery, setSearchQuery] = useState(() => searchFromUrl());
+	const [openGroups, setOpenGroups] = useState<Set<string>>(() => new Set());
 	const [loadError, setLoadError] = useState("");
 	const deferredSearchQuery = useDeferredValue(searchQuery);
 
@@ -458,17 +495,36 @@ export default function OpenAPIExplorer({ specUrl }: OpenAPIExplorerProps) {
 		let cancelled = false;
 
 		fetch(specUrl)
-			.then(result => result.json())
+			.then(async result => {
+				if (!result.ok) {
+					throw new Error(`OpenAPI spec returned ${result.status} ${result.statusText}. Check that ${specUrl} exists and is publicly served.`);
+				}
+
+				let parsed: unknown;
+				try {
+					parsed = await result.json();
+				} catch (error) {
+					throw new Error(`OpenAPI spec is not valid JSON. ${error instanceof Error ? error.message : String(error)}`);
+				}
+
+				if (!isOpenAPISpec(parsed)) {
+					throw new Error("OpenAPI spec is missing a paths object.");
+				}
+
+				return parsed;
+			})
 			.then((nextSpec: OpenAPISpec) => {
 				if (cancelled) return;
 
 				const nextOperations = collectOperations(nextSpec);
-				const firstOperation = nextOperations[0]?.key ?? "";
+				const firstOperation = operationFromUrl(nextOperations) || nextOperations[0]?.key || "";
 				setSpec(nextSpec);
 				setOperations(nextOperations);
 				setBaseUrl(serverUrl(nextSpec));
 				setSelectedKey(firstOperation);
 				setActiveKey(firstOperation);
+				const selectedOperation = nextOperations.find(operation => operation.key === firstOperation);
+				setOpenGroups(selectedOperation ? new Set([selectedOperation.tag]) : new Set());
 			})
 			.catch(error => {
 				if (!cancelled) setLoadError(`Failed to load OpenAPI spec: ${error instanceof Error ? error.message : String(error)}`);
@@ -484,6 +540,7 @@ export default function OpenAPIExplorer({ specUrl }: OpenAPIExplorerProps) {
 	const normalizedQuery = deferredSearchQuery.trim().toLowerCase();
 	const filteredOperations = normalizedQuery ? operations.filter(operation => operationSearchText(operation).includes(normalizedQuery)) : operations;
 	const filteredGroups = groupOperations(filteredOperations);
+	const visibleGroups = normalizedQuery ? filteredGroups : groups;
 	const selectedFields = requestFields(selected, spec);
 	const selectedResponses = responseEntries(selected);
 	const selectedCurl = curlCommand(selected, baseUrl, requestPath, body);
@@ -491,8 +548,19 @@ export default function OpenAPIExplorer({ specUrl }: OpenAPIExplorerProps) {
 	useEffect(() => {
 		setRequestPath(selected?.path ?? "");
 		setBody(requestBodyExample(selected, spec));
+		setBodyError("");
 		setResponse("");
 	}, [selectedKey, spec]);
+
+	useEffect(() => {
+		setUrlState(params => {
+			if (searchQuery.trim()) {
+				params.set("q", searchQuery.trim());
+			} else {
+				params.delete("q");
+			}
+		});
+	}, [searchQuery]);
 
 	useEffect(() => {
 		if (!operations.length) return;
@@ -546,18 +614,17 @@ export default function OpenAPIExplorer({ specUrl }: OpenAPIExplorerProps) {
 		return next;
 	}
 
-	function setSidebarGroupOpen(tag: string, open: boolean) {
-		setOpenSidebarGroups(previous => groupSetWith(previous, tag, open));
-	}
-
-	function setContentGroupOpen(tag: string, open: boolean) {
-		setOpenContentGroups(previous => groupSetWith(previous, tag, open));
+	function setGroupOpen(tag: string, open: boolean) {
+		setOpenGroups(previous => groupSetWith(previous, tag, open));
 	}
 
 	function selectOperation(operation: OperationItem) {
 		setSelectedKey(operation.key);
 		setActiveKey(operation.key);
-		setContentGroupOpen(operation.tag, true);
+		setGroupOpen(operation.tag, true);
+		setUrlState(params => {
+			params.set("operation", operation.key);
+		}, operationAnchor(operation));
 	}
 
 	function jumpToOperation(operation: OperationItem) {
@@ -565,7 +632,6 @@ export default function OpenAPIExplorer({ specUrl }: OpenAPIExplorerProps) {
 
 		requestAnimationFrame(() => {
 			document.getElementById(operationAnchor(operation))?.scrollIntoView({ block: "start" });
-			window.history.replaceState(null, "", `#${operationAnchor(operation)}`);
 		});
 	}
 
@@ -574,14 +640,29 @@ export default function OpenAPIExplorer({ specUrl }: OpenAPIExplorerProps) {
 
 		setSending(true);
 		setResponse("");
+		setBodyError("");
 
 		try {
 			const headers: Record<string, string> = { Accept: "application/json" };
 
 			const init: RequestInit = { method: methodLabels[selected.method], headers, credentials: "include" };
 			if (body.trim() && selected.method !== "get") {
+				try {
+					JSON.parse(body);
+				} catch (error) {
+					const message = `JSON body is invalid: ${error instanceof Error ? error.message : String(error)}`;
+					setBodyError(message);
+					setResponse(message);
+					return;
+				}
+
 				headers["Content-Type"] = "application/json";
 				init.body = body;
+			} else if (selected.requestBody?.required && selected.method !== "get") {
+				const message = "JSON body is required for this operation.";
+				setBodyError(message);
+				setResponse(message);
+				return;
 			}
 
 			const result = await fetch(requestUrl(baseUrl, requestPath), init);
@@ -612,7 +693,7 @@ export default function OpenAPIExplorer({ specUrl }: OpenAPIExplorerProps) {
 
 				<label className={styles.sidebarSearch}>
 					<FieldLabel>Search</FieldLabel>
-					<Input variant="compact" value={searchQuery} onChange={event => setSearchQuery(event.currentTarget.value)} placeholder="Find endpoint" />
+					<Input variant="compact" type="search" value={searchQuery} onChange={event => setSearchQuery(event.currentTarget.value)} placeholder="Find endpoint" autoComplete="off" spellCheck={false} />
 				</label>
 
 				<nav className={styles.sidebarNav}>
@@ -623,9 +704,9 @@ export default function OpenAPIExplorer({ specUrl }: OpenAPIExplorerProps) {
 						<details
 							className={styles.navGroup}
 							key={group.tag}
-							open={normalizedQuery ? true : openSidebarGroups.has(group.tag)}
+							open={normalizedQuery ? true : openGroups.has(group.tag)}
 							onToggle={event => {
-								if (!normalizedQuery) setSidebarGroupOpen(group.tag, event.currentTarget.open);
+								if (!normalizedQuery) setGroupOpen(group.tag, event.currentTarget.open);
 							}}
 						>
 							<summary className={styles.navGroupSummary}>
@@ -677,7 +758,7 @@ export default function OpenAPIExplorer({ specUrl }: OpenAPIExplorerProps) {
 					</div>
 
 					<Panel title="Server" tone="deep" className={styles.serverPanel}>
-						<Input value={baseUrl} onChange={event => setBaseUrl(event.currentTarget.value)} aria-label="API server URL" />
+						<Input value={baseUrl} type="url" inputMode="url" onChange={event => setBaseUrl(event.currentTarget.value)} aria-label="API server URL" autoComplete="url" spellCheck={false} />
 						<p>Used by the sticky request console. Point it at a local or deployed backend before testing.</p>
 					</Panel>
 				</section>
@@ -688,14 +769,14 @@ export default function OpenAPIExplorer({ specUrl }: OpenAPIExplorerProps) {
 					</Panel>
 				) : null}
 
-				{groups.map(group => (
+				{visibleGroups.map(group => (
 					<details
 						className={styles.tagSection}
 						id={tagAnchor(group.tag)}
 						key={group.tag}
-						open={normalizedQuery ? true : openContentGroups.has(group.tag)}
+						open={normalizedQuery ? true : openGroups.has(group.tag)}
 						onToggle={event => {
-							if (!normalizedQuery) setContentGroupOpen(group.tag, event.currentTarget.open);
+							if (!normalizedQuery) setGroupOpen(group.tag, event.currentTarget.open);
 						}}
 					>
 						<summary className={styles.tagSummary}>
@@ -819,18 +900,33 @@ export default function OpenAPIExplorer({ specUrl }: OpenAPIExplorerProps) {
 					<div className={styles.formGrid}>
 						<label>
 							<FieldLabel>Server</FieldLabel>
-							<Input value={baseUrl} onChange={event => setBaseUrl(event.currentTarget.value)} />
+							<Input value={baseUrl} type="url" inputMode="url" onChange={event => setBaseUrl(event.currentTarget.value)} autoComplete="url" spellCheck={false} />
 						</label>
 						<label>
 							<FieldLabel>Path</FieldLabel>
-							<Input value={requestPath} onChange={event => setRequestPath(event.currentTarget.value)} />
+							<Input value={requestPath} autoComplete="off" spellCheck={false} onChange={event => setRequestPath(event.currentTarget.value)} />
 						</label>
 					</div>
 
 					{requestContent(selected) ? (
 						<label className={styles.bodyField}>
 							<FieldLabel>JSON body</FieldLabel>
-							<textarea value={body} onChange={event => setBody(event.currentTarget.value)} spellCheck={false} />
+							<textarea
+								value={body}
+								name="openapi-json-body"
+								aria-invalid={bodyError ? true : undefined}
+								aria-describedby={bodyError ? "openapi-body-error" : undefined}
+								onChange={event => {
+									setBody(event.currentTarget.value);
+									setBodyError("");
+								}}
+								spellCheck={false}
+							/>
+							{bodyError ? (
+								<span className={styles.fieldError} id="openapi-body-error">
+									{bodyError}
+								</span>
+							) : null}
 						</label>
 					) : (
 						<div className={styles.emptyBody}>No JSON request body for this operation.</div>

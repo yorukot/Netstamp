@@ -6,9 +6,10 @@ const dataJson = JSON.stringify(docsSearchIndex);
 ---
 
 <div class="docsSearch" data-docs-search data-search-index={dataJson}>
-	<button class="docsSearchTrigger" type="button" data-search-open aria-haspopup="dialog" aria-controls="docs-search-dialog">
+	<button class="docsSearchTrigger" type="button" data-search-open aria-label="Search documentation" aria-haspopup="dialog" aria-expanded="false" aria-controls="docs-search-dialog">
 		<span class="docsSearchTriggerLabel">
 			<Icon name="search" size={16} />
+			<span>Search</span>
 		</span>
 		<span class="docsSearchShortcut">Cmd K</span>
 	</button>
@@ -23,8 +24,9 @@ const dataJson = JSON.stringify(docsSearchIndex);
 				</div>
 				<button class="docsSearchClose" type="button" data-search-close>Close</button>
 			</header>
-			<input id="docs-search-input" type="search" autocomplete="off" placeholder="Search documentation" data-search-input />
-			<div class="docsSearchResults" data-search-results hidden></div>
+			<label class="docsSearchInputLabel" for="docs-search-input">Search query</label>
+			<input id="docs-search-input" type="search" autocomplete="off" placeholder="Search documentation" aria-controls="docs-search-results" data-search-input />
+			<div class="docsSearchResults" id="docs-search-results" role="listbox" aria-label="Search results" data-search-results hidden></div>
 		</div>
 	</div>
 </div>
@@ -54,17 +56,33 @@ const dataJson = JSON.stringify(docsSearchIndex);
 
 		let restoreFocusTo: Element | null = null;
 		let closeTimer: number | undefined;
+		let activeResultIndex = -1;
 
 		function clearResults() {
 			if (!results) return;
 
+			activeResultIndex = -1;
 			results.replaceChildren();
 			(results as HTMLElement).hidden = true;
+		}
+
+		function resultLinks() {
+			return Array.from(results?.querySelectorAll("[data-search-result]") ?? []).filter((element): element is HTMLAnchorElement => element instanceof HTMLAnchorElement);
+		}
+
+		function focusResult(index: number) {
+			const links = resultLinks();
+
+			if (!links.length) return;
+
+			activeResultIndex = (index + links.length) % links.length;
+			links[activeResultIndex]?.focus();
 		}
 
 		function openSearch() {
 			if (!dialog || !input) return;
 			const dialogEl = dialog as HTMLElement;
+			const triggerEl = trigger as HTMLButtonElement | null;
 
 			if (!dialogEl.hidden && dialogEl.dataset.state === "open") return;
 
@@ -76,6 +94,7 @@ const dataJson = JSON.stringify(docsSearchIndex);
 			restoreFocusTo = document.activeElement;
 			dialogEl.hidden = false;
 			dialogEl.dataset.state = "open";
+			triggerEl?.setAttribute("aria-expanded", "true");
 			document.documentElement.classList.add("docsSearchOpen");
 			(input as HTMLInputElement).value = "";
 			clearResults();
@@ -85,10 +104,12 @@ const dataJson = JSON.stringify(docsSearchIndex);
 		function closeSearch() {
 			if (!dialog || !input) return;
 			const dialogEl = dialog as HTMLElement;
+			const triggerEl = trigger as HTMLButtonElement | null;
 
 			if (dialogEl.hidden || dialogEl.dataset.state === "closing") return;
 
 			dialogEl.dataset.state = "closing";
+			triggerEl?.setAttribute("aria-expanded", "false");
 			(input as HTMLInputElement).value = "";
 			clearResults();
 
@@ -112,6 +133,7 @@ const dataJson = JSON.stringify(docsSearchIndex);
 			if (!matches.length) {
 				const empty = document.createElement("div");
 				empty.className = "docsSearchEmpty";
+				empty.setAttribute("role", "status");
 				empty.textContent = "No matches";
 				results.append(empty);
 				(results as HTMLElement).hidden = false;
@@ -126,6 +148,8 @@ const dataJson = JSON.stringify(docsSearchIndex);
 
 				link.className = "docsSearchResult";
 				link.href = entry.href;
+				link.setAttribute("role", "option");
+				link.setAttribute("data-search-result", "");
 				title.textContent = entry.title;
 				description.textContent = entry.description;
 				link.append(title, description);
@@ -150,6 +174,43 @@ const dataJson = JSON.stringify(docsSearchIndex);
 			renderResults(matches);
 		}
 
+		function handleSearchKeydown(event: KeyboardEvent) {
+			if (event.key === "ArrowDown") {
+				event.preventDefault();
+				focusResult(0);
+				return;
+			}
+
+			if (event.key === "Escape") {
+				event.preventDefault();
+				closeSearch();
+			}
+		}
+
+		function handleResultsKeydown(event: KeyboardEvent) {
+			if (event.key === "ArrowDown") {
+				event.preventDefault();
+				focusResult(activeResultIndex + 1);
+				return;
+			}
+
+			if (event.key === "ArrowUp") {
+				event.preventDefault();
+				if (activeResultIndex <= 0) {
+					(input as HTMLElement | null)?.focus();
+					activeResultIndex = -1;
+					return;
+				}
+				focusResult(activeResultIndex - 1);
+				return;
+			}
+
+			if (event.key === "Escape") {
+				event.preventDefault();
+				closeSearch();
+			}
+		}
+
 		function handleKeydown(event: KeyboardEvent) {
 			if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
 				event.preventDefault();
@@ -165,6 +226,8 @@ const dataJson = JSON.stringify(docsSearchIndex);
 		trigger?.addEventListener("click", openSearch);
 		closeButtons.forEach(button => button.addEventListener("click", closeSearch));
 		input?.addEventListener("input", handleInput);
+		input?.addEventListener("keydown", handleSearchKeydown);
+		results?.addEventListener("keydown", handleResultsKeydown);
 		document.addEventListener("keydown", handleKeydown);
 
 		cleanupSearch = () => {
@@ -172,6 +235,8 @@ const dataJson = JSON.stringify(docsSearchIndex);
 			trigger?.removeEventListener("click", openSearch);
 			closeButtons.forEach(button => button.removeEventListener("click", closeSearch));
 			input?.removeEventListener("input", handleInput);
+			input?.removeEventListener("keydown", handleSearchKeydown);
+			results?.removeEventListener("keydown", handleResultsKeydown);
 			document.removeEventListener("keydown", handleKeydown);
 			document.documentElement.classList.remove("docsSearchOpen");
 			cleanupSearch = () => {};

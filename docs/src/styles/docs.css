@@ -69,7 +69,6 @@
 }
 
 .siteNavSignIn {
-	--ns-frame-cut: var(--ns-cut-sm);
 	--ns-frame-color: var(--ns-accent);
 	display: inline-flex;
 	align-items: center;
@@ -80,7 +79,7 @@
 	background: var(--ns-accent);
 	box-shadow:
 		0 0 0 1px rgba(0, 0, 0, 0.85),
-		0 0 0 0.25rem rgba(255, 122, 26, 0.12);
+		0 0 0 0.25rem color-mix(in srgb, var(--ns-accent) 12%, transparent);
 	font-family: var(--ns-font-mono);
 	font-size: 0.75rem;
 	font-weight: 800;
@@ -118,7 +117,7 @@
 .docsSearchClose:focus-visible,
 .docsSearchPanel input:focus-visible,
 .docsSearchResult:focus-visible {
-	outline: 2px solid var(--ns-accent);
+	outline: var(--ns-focus-outline);
 	outline-offset: 0.25rem;
 }
 
@@ -129,8 +128,9 @@
 	min-height: calc(100svh - 4.5rem);
 	padding: 2rem;
 	background:
-		radial-gradient(circle at 12% 0, rgba(255, 122, 26, 0.14), transparent 24rem), radial-gradient(circle at 86% 8%, rgba(255, 255, 255, 0.08), transparent 18rem),
-		linear-gradient(rgba(255, 122, 26, 0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 122, 26, 0.07) 1px, transparent 1px), var(--ns-bg);
+		radial-gradient(circle at 12% 0, color-mix(in srgb, var(--ns-accent) 14%, transparent), transparent 24rem), radial-gradient(circle at 86% 8%, rgba(255, 255, 255, 0.08), transparent 18rem),
+		linear-gradient(color-mix(in srgb, var(--ns-accent) 7%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--ns-accent) 7%, transparent) 1px, transparent 1px),
+		var(--ns-bg);
 	background-size:
 		100% 100%,
 		100% 100%,
@@ -192,7 +192,7 @@
 .docsSidebarFold[aria-pressed="true"] {
 	color: var(--ns-text);
 	border-color: var(--ns-accent-border);
-	background: rgba(255, 122, 26, 0.08);
+	background: color-mix(in srgb, var(--ns-accent) 8%, transparent);
 }
 
 .icon {
@@ -253,7 +253,7 @@
 .docsSearchTrigger:hover {
 	color: var(--ns-text);
 	border-color: var(--ns-accent-border);
-	background: rgba(255, 122, 26, 0.08);
+	background: color-mix(in srgb, var(--ns-accent) 8%, transparent);
 }
 
 .docsSearchTriggerLabel {
@@ -269,6 +269,16 @@
 	display: inline-flex;
 	align-items: center;
 	gap: 0.45rem;
+}
+
+.docsSearchInputLabel {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	clip-path: inset(50%);
+	white-space: nowrap;
 }
 
 .docsSearchShortcut {
@@ -324,7 +334,7 @@
 	width: min(42rem, calc(100vw - 2rem));
 	padding: 1rem;
 	border: 1px solid var(--ns-accent-border);
-	background: linear-gradient(135deg, rgba(255, 122, 26, 0.13), transparent 38%), rgba(3, 5, 8, 0.98);
+	background: linear-gradient(135deg, color-mix(in srgb, var(--ns-accent) 13%, transparent), transparent 38%), rgba(3, 5, 8, 0.98);
 	box-shadow: var(--ns-shadow-md);
 }
 
@@ -396,7 +406,7 @@
 .docsSearchResult:hover,
 .docsSearchResult:focus-visible {
 	border-color: var(--ns-accent-border);
-	background: rgba(255, 122, 26, 0.1);
+	background: color-mix(in srgb, var(--ns-accent) 10%, transparent);
 }
 
 .docsSearchResult strong {
@@ -510,7 +520,7 @@
 .docsNavItem.active {
 	color: var(--ns-text);
 	border-color: var(--ns-accent-border);
-	background: rgba(255, 122, 26, 0.08);
+	background: color-mix(in srgb, var(--ns-accent) 8%, transparent);
 }
 
 .docsShell.sidebarFolded .docsSidebarHeader {
@@ -569,7 +579,7 @@
 	gap: 1rem;
 	padding: clamp(2rem, 5vw, 4rem);
 	border: 1px solid var(--ns-accent-border);
-	background: linear-gradient(110deg, rgba(255, 122, 26, 0.14), transparent 48%), rgba(3, 5, 8, 0.88);
+	background: linear-gradient(110deg, color-mix(in srgb, var(--ns-accent) 14%, transparent), transparent 48%), rgba(3, 5, 8, 0.88);
 	box-shadow: var(--ns-shadow-md);
 }
 
@@ -648,7 +658,7 @@
 .docPagerLink:hover {
 	color: var(--ns-text);
 	border-color: var(--ns-accent-border);
-	background: rgba(255, 122, 26, 0.08);
+	background: color-mix(in srgb, var(--ns-accent) 8%, transparent);
 	transform: translateY(-1px);
 }
 
@@ -730,7 +740,7 @@
 .docProse code:not(pre code) {
 	padding: 0.1rem 0.28rem;
 	color: var(--ns-accent-hover);
-	background: rgba(255, 122, 26, 0.1);
+	background: color-mix(in srgb, var(--ns-accent) 10%, transparent);
 	font-family: var(--ns-font-mono);
 	font-size: 0.9em;
 }
@@ -741,11 +751,11 @@
 	padding: 2.5rem 1.25rem 1.125rem !important;
 	background-color: #030507 !important;
 	overflow-x: auto !important;
-	border: 1px solid rgba(255, 122, 26, 0.22);
+	border: 1px solid color-mix(in srgb, var(--ns-accent) 22%, transparent);
 	box-shadow:
 		0 0 0 1px rgba(0, 0, 0, 0.88),
 		0 1.5rem 3rem rgba(0, 0, 0, 0.5),
-		0 0 2.5rem rgba(255, 122, 26, 0.05);
+		0 0 2.5rem color-mix(in srgb, var(--ns-accent) 5%, transparent);
 }
 
 .docProse > pre::before,
@@ -768,7 +778,7 @@
 	margin: 0;
 	padding: 1rem;
 	border: 1px solid var(--ns-accent-border);
-	background: rgba(255, 122, 26, 0.07);
+	background: color-mix(in srgb, var(--ns-accent) 7%, transparent);
 }
 
 .docProse blockquote strong {
@@ -785,8 +795,9 @@
 	place-items: start center;
 	min-height: calc(100svh - 4.5rem);
 	background:
-		radial-gradient(circle at 20% 0, rgba(255, 122, 26, 0.14), transparent 24rem), radial-gradient(circle at 80% 8%, rgba(255, 255, 255, 0.08), transparent 18rem),
-		linear-gradient(rgba(255, 122, 26, 0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 122, 26, 0.07) 1px, transparent 1px), var(--ns-bg);
+		radial-gradient(circle at 20% 0, color-mix(in srgb, var(--ns-accent) 14%, transparent), transparent 24rem), radial-gradient(circle at 80% 8%, rgba(255, 255, 255, 0.08), transparent 18rem),
+		linear-gradient(color-mix(in srgb, var(--ns-accent) 7%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--ns-accent) 7%, transparent) 1px, transparent 1px),
+		var(--ns-bg);
 	background-size:
 		100% 100%,
 		100% 100%,
@@ -878,7 +889,7 @@
 }
 
 .docsToc a.active {
-	text-shadow: 0 0 1rem rgba(255, 122, 26, 0.35);
+	text-shadow: 0 0 1rem color-mix(in srgb, var(--ns-accent) 35%, transparent);
 }
 
 .docsToc a.sub {
@@ -910,7 +921,7 @@
 	height: 2rem;
 	color: var(--ns-accent-hover);
 	border: 1px solid var(--ns-accent-border);
-	background: rgba(255, 122, 26, 0.08);
+	background: color-mix(in srgb, var(--ns-accent) 8%, transparent);
 }
 
 .docCardMeta {
@@ -924,7 +935,7 @@
 
 .docCard:hover {
 	border-color: var(--ns-accent-border);
-	background: rgba(255, 122, 26, 0.08);
+	background: color-mix(in srgb, var(--ns-accent) 8%, transparent);
 }
 
 .docCard strong {

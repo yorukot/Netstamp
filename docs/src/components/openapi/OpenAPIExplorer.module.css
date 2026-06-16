@@ -3,8 +3,9 @@
 	grid-template-columns: minmax(16rem, 18rem) minmax(0, 1fr) minmax(21rem, 25rem);
 	min-height: calc(100svh - 4.5rem);
 	background:
-		radial-gradient(circle at 16% 0, rgba(255, 122, 26, 0.12), transparent 24rem), radial-gradient(circle at 88% 8%, rgba(255, 255, 255, 0.07), transparent 18rem),
-		linear-gradient(rgba(255, 122, 26, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 122, 26, 0.05) 1px, transparent 1px), var(--ns-bg);
+		radial-gradient(circle at 16% 0, color-mix(in srgb, var(--ns-accent) 12%, transparent), transparent 24rem), radial-gradient(circle at 88% 8%, rgba(255, 255, 255, 0.07), transparent 18rem),
+		linear-gradient(color-mix(in srgb, var(--ns-accent) 5%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--ns-accent) 5%, transparent) 1px, transparent 1px),
+		var(--ns-bg);
 	background-size:
 		100% 100%,
 		100% 100%,
@@ -153,7 +154,7 @@
 .activeNavOperation {
 	color: var(--ns-text);
 	border-color: var(--ns-accent-border);
-	background: rgba(255, 122, 26, 0.08);
+	background: color-mix(in srgb, var(--ns-accent) 8%, transparent);
 }
 
 .downloadLink {
@@ -279,7 +280,7 @@
 .tagSummary:hover,
 .tagSection[open] > .tagSummary {
 	border-color: var(--ns-accent-border);
-	background: rgba(255, 122, 26, 0.07);
+	background: color-mix(in srgb, var(--ns-accent) 7%, transparent);
 }
 
 .tagSummary > span:not(.folderToggle) {
@@ -321,7 +322,7 @@
 
 .operationsPanel a:hover {
 	color: var(--ns-text);
-	background: rgba(255, 122, 26, 0.08);
+	background: color-mix(in srgb, var(--ns-accent) 8%, transparent);
 }
 
 .operationsPanel code,
@@ -615,7 +616,7 @@
 	width: 100%;
 	padding: 0.75rem 1rem;
 	color: var(--ns-accent-hover);
-	background: rgba(255, 122, 26, 0.08);
+	background: color-mix(in srgb, var(--ns-accent) 8%, transparent);
 	border: 0;
 	border-top: 1px solid var(--ns-accent-border);
 	font-family: var(--ns-font-mono);
@@ -628,7 +629,7 @@
 }
 
 .snippetPanel button:hover {
-	background: rgba(255, 122, 26, 0.14);
+	background: color-mix(in srgb, var(--ns-accent) 14%, transparent);
 }
 
 .console {
@@ -668,6 +669,17 @@
 	font-family: var(--ns-font-mono);
 	font-size: 0.82rem;
 	line-height: 1.55;
+}
+
+.bodyField textarea[aria-invalid="true"] {
+	border-color: color-mix(in srgb, var(--ns-critical) 68%, transparent);
+}
+
+.fieldError {
+	color: var(--ns-critical);
+	font-family: var(--ns-font-sans);
+	font-size: 0.75rem;
+	line-height: 1.45;
 }
 
 .emptyBody {
