@@ -29,6 +29,21 @@ export interface TCPConfigFormState {
 	ipFamily: IPFamilyFormValue;
 }
 
+export interface NumericConfigValidation {
+	value: number;
+	error: string;
+}
+
+export type PingConfigValidation = Record<keyof Pick<PingConfigFormState, "packetCount" | "packetSizeBytes" | "timeoutMs">, NumericConfigValidation>;
+export type TCPConfigValidation = Record<keyof Pick<TCPConfigFormState, "port" | "timeoutMs">, NumericConfigValidation>;
+export type TracerouteConfigValidation = Record<keyof Pick<TracerouteConfigFormState, "maxHops" | "timeoutMs" | "queriesPerHop" | "packetSizeBytes" | "port">, NumericConfigValidation>;
+
+export interface CheckConfigValidation {
+	ping: PingConfigValidation;
+	tcp: TCPConfigValidation;
+	traceroute: TracerouteConfigValidation;
+}
+
 export const defaultPingConfigFormState: PingConfigFormState = {
 	packetCount: "4",
 	packetSizeBytes: "56",
@@ -52,11 +67,61 @@ export const defaultTCPConfigFormState: TCPConfigFormState = {
 	ipFamily: ""
 };
 
-function parseIntOrDefault(value: string, fallback: string) {
-	const parsed = Number.parseInt(value, 10);
-	const defaultValue = Number.parseInt(fallback, 10);
+function validateIntegerField(label: string, value: string, options: { min: number; max?: number }): NumericConfigValidation {
+	const trimmed = value.trim();
 
-	return Number.isFinite(parsed) ? parsed : defaultValue;
+	if (!trimmed) {
+		return { value: Number.NaN, error: `${label} is required.` };
+	}
+
+	if (!/^\d+$/.test(trimmed)) {
+		return { value: Number.NaN, error: `${label} must be a whole number.` };
+	}
+
+	const parsed = Number.parseInt(trimmed, 10);
+
+	if (!Number.isFinite(parsed)) {
+		return { value: Number.NaN, error: `${label} must be a number.` };
+	}
+
+	if (parsed < options.min) {
+		return { value: parsed, error: `${label} must be at least ${options.min}.` };
+	}
+
+	if (typeof options.max === "number" && parsed > options.max) {
+		return { value: parsed, error: `${label} must be at most ${options.max}.` };
+	}
+
+	return { value: parsed, error: "" };
+}
+
+export function validatePingConfig(state: PingConfigFormState): PingConfigValidation {
+	return {
+		packetCount: validateIntegerField("Packet count", state.packetCount, { min: 1, max: 10000 }),
+		packetSizeBytes: validateIntegerField("Packet size bytes", state.packetSizeBytes, { min: 1, max: 65507 }),
+		timeoutMs: validateIntegerField("Timeout ms", state.timeoutMs, { min: 1, max: 60000 })
+	};
+}
+
+export function validateTCPConfig(state: TCPConfigFormState): TCPConfigValidation {
+	return {
+		port: validateIntegerField("Port", state.port, { min: 1, max: 65535 }),
+		timeoutMs: validateIntegerField("Timeout ms", state.timeoutMs, { min: 1, max: 60000 })
+	};
+}
+
+export function validateTracerouteConfig(state: TracerouteConfigFormState): TracerouteConfigValidation {
+	return {
+		maxHops: validateIntegerField("Max hops", state.maxHops, { min: 1, max: 64 }),
+		timeoutMs: validateIntegerField("Timeout ms", state.timeoutMs, { min: 1, max: 60000 }),
+		queriesPerHop: validateIntegerField("Queries per hop", state.queriesPerHop, { min: 1, max: 10 }),
+		packetSizeBytes: validateIntegerField("Packet size bytes", state.packetSizeBytes, { min: 1, max: 65507 }),
+		port: validateIntegerField("Port", state.port, { min: 1, max: 65535 })
+	};
+}
+
+export function firstConfigValidationError(validation: Record<string, NumericConfigValidation>) {
+	return Object.values(validation).find(field => field.error)?.error ?? "";
 }
 
 export function pingConfigFormStateFromApi(check: Pick<ApiCheck, "pingConfig"> | null | undefined): PingConfigFormState {
@@ -95,10 +160,17 @@ export function tracerouteConfigFormStateFromApi(check: Pick<ApiCheck, "tracerou
 }
 
 export function buildPingConfigPayload(state: PingConfigFormState): PingConfigPayload {
+	const validation = validatePingConfig(state);
+	const validationError = firstConfigValidationError(validation);
+
+	if (validationError) {
+		throw new Error(validationError);
+	}
+
 	const config: PingConfigPayload = {
-		packetCount: parseIntOrDefault(state.packetCount, defaultPingConfigFormState.packetCount),
-		packetSizeBytes: parseIntOrDefault(state.packetSizeBytes, defaultPingConfigFormState.packetSizeBytes),
-		timeoutMs: parseIntOrDefault(state.timeoutMs, defaultPingConfigFormState.timeoutMs)
+		packetCount: validation.packetCount.value,
+		packetSizeBytes: validation.packetSizeBytes.value,
+		timeoutMs: validation.timeoutMs.value
 	};
 
 	if (state.ipFamily) {
@@ -109,9 +181,16 @@ export function buildPingConfigPayload(state: PingConfigFormState): PingConfigPa
 }
 
 export function buildTCPConfigPayload(state: TCPConfigFormState): TCPConfigPayload {
+	const validation = validateTCPConfig(state);
+	const validationError = firstConfigValidationError(validation);
+
+	if (validationError) {
+		throw new Error(validationError);
+	}
+
 	const config: TCPConfigPayload = {
-		port: parseIntOrDefault(state.port, defaultTCPConfigFormState.port),
-		timeoutMs: parseIntOrDefault(state.timeoutMs, defaultTCPConfigFormState.timeoutMs)
+		port: validation.port.value,
+		timeoutMs: validation.timeoutMs.value
 	};
 
 	if (state.ipFamily) {
@@ -122,16 +201,23 @@ export function buildTCPConfigPayload(state: TCPConfigFormState): TCPConfigPaylo
 }
 
 export function buildTracerouteConfigPayload(state: TracerouteConfigFormState): TracerouteConfigPayload {
+	const validation = validateTracerouteConfig(state);
+	const validationError = firstConfigValidationError(state.protocol === "udp" ? validation : { ...validation, port: { value: 1, error: "" } });
+
+	if (validationError) {
+		throw new Error(validationError);
+	}
+
 	const config: TracerouteConfigPayload = {
 		protocol: state.protocol,
-		maxHops: parseIntOrDefault(state.maxHops, defaultTracerouteConfigFormState.maxHops),
-		timeoutMs: parseIntOrDefault(state.timeoutMs, defaultTracerouteConfigFormState.timeoutMs),
-		queriesPerHop: parseIntOrDefault(state.queriesPerHop, defaultTracerouteConfigFormState.queriesPerHop),
-		packetSizeBytes: parseIntOrDefault(state.packetSizeBytes, defaultTracerouteConfigFormState.packetSizeBytes)
+		maxHops: validation.maxHops.value,
+		timeoutMs: validation.timeoutMs.value,
+		queriesPerHop: validation.queriesPerHop.value,
+		packetSizeBytes: validation.packetSizeBytes.value
 	};
 
 	if (state.protocol === "udp") {
-		config.port = parseIntOrDefault(state.port, defaultTracerouteConfigFormState.port);
+		config.port = validation.port.value;
 	}
 
 	if (state.ipFamily) {

@@ -17,9 +17,44 @@ export function formatInterval(seconds: number) {
 	return `${seconds}s`;
 }
 
+export interface IntervalValidation {
+	value: number;
+	error: string;
+}
+
+export function validateIntervalSeconds(value: string): IntervalValidation {
+	const trimmed = value.trim();
+	const normalized = trimmed.endsWith("s") ? trimmed.slice(0, -1) : trimmed;
+
+	if (!normalized) {
+		return { value: Number.NaN, error: "Interval is required." };
+	}
+
+	if (!/^\d+$/.test(normalized)) {
+		return { value: Number.NaN, error: "Interval must be whole seconds, for example 30s." };
+	}
+
+	const parsed = Number.parseInt(normalized, 10);
+
+	if (!Number.isFinite(parsed) || parsed < 1) {
+		return { value: parsed, error: "Interval must be at least 1 second." };
+	}
+
+	if (parsed > 86400) {
+		return { value: parsed, error: "Interval must be at most 86400 seconds." };
+	}
+
+	return { value: parsed, error: "" };
+}
+
 export function parseIntervalSeconds(value: string) {
-	const parsed = Number.parseInt(value, 10);
-	return Number.isFinite(parsed) && parsed > 0 ? parsed : 30;
+	const validation = validateIntervalSeconds(value);
+
+	if (validation.error) {
+		throw new Error(validation.error);
+	}
+
+	return validation.value;
 }
 
 export function mapApiCheck(check: ApiCheck, assigned = 0): CheckDefinition {

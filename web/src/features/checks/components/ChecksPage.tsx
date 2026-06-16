@@ -1,4 +1,4 @@
-import { mapApiCheck, mapApiChecksWithAssignments, parseIntervalSeconds } from "@/features/checks/api/checkAdapters";
+import { mapApiCheck, mapApiChecksWithAssignments, parseIntervalSeconds, validateIntervalSeconds } from "@/features/checks/api/checkAdapters";
 import {
 	buildPingConfigPayload,
 	buildTCPConfigPayload,
@@ -6,9 +6,13 @@ import {
 	defaultPingConfigFormState,
 	defaultTCPConfigFormState,
 	defaultTracerouteConfigFormState,
+	firstConfigValidationError,
 	pingConfigFormStateFromApi,
 	tcpConfigFormStateFromApi,
 	tracerouteConfigFormStateFromApi,
+	validatePingConfig,
+	validateTCPConfig,
+	validateTracerouteConfig,
 	type PingConfigFormState,
 	type TCPConfigFormState,
 	type TracerouteConfigFormState
@@ -31,6 +35,7 @@ import { ActionRow } from "@/shared/components/ActionRow";
 import { useConfirm } from "@/shared/components/confirmContext";
 import { EditorDrawer } from "@/shared/components/EditorDrawer";
 import { FilterGrid } from "@/shared/components/FilterGrid";
+import { IconButton } from "@/shared/components/IconButton";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { pushErrorToast, pushToast } from "@/shared/toast/toastStore";
@@ -38,13 +43,12 @@ import { classNames } from "@/shared/utils/classNames";
 import { Badge, Button, Checkbox, FieldLabel, Panel, SelectField, TextAreaField, TextField } from "@netstamp/ui";
 import { Trash } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
-import type { RowSelectionState } from "@tanstack/react-table";
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { CheckConfigFields } from "./CheckConfigFields";
 import styles from "./ChecksPage.module.css";
 import { displayProbeSelection, groupChecksByTarget } from "./checksPageData";
-import { ChecksTable, type CheckTypeFilter } from "./ChecksTable";
+import { ChecksTable, type CheckRowSelectionState, type CheckTypeFilter } from "./ChecksTable";
 
 type SelectorMode = "all-probes" | "all" | "any" | "advanced";
 type SelectorLabelOp = NonNullable<ApiSelector["label"]>["op"];
@@ -82,6 +86,14 @@ const selectorOpOptions: Array<{ value: SelectorLabelOp; label: string }> = [
 	{ value: "in", label: "in values" },
 	{ value: "exists", label: "exists" }
 ];
+
+function isCheckTypeFilter(value: string | null): value is CheckTypeFilter {
+	return value === "all" || value === "ping" || value === "tcp" || value === "traceroute";
+}
+
+function pathWithSearch(path: string, search: string) {
+	return search ? `${path}?${search}` : path;
+}
 
 function checkTypeFromApi(type: string): CheckType {
 	switch (type) {
@@ -318,6 +330,7 @@ function probeMatchesSelector(probeLabelTokens: string[], state: SelectorState) 
 export function ChecksPage() {
 	const { projectRef } = useCurrentProject();
 	const { checkId = "" } = useParams();
+	const [searchParams, setSearchParams] = useSearchParams();
 	const navigate = useNavigate();
 	const confirm = useConfirm();
 	const createCheckMutation = useCreateProjectCheckMutation(projectRef);
@@ -346,9 +359,11 @@ export function ChecksPage() {
 	const checkRows = useMemo(() => groupChecksByTarget(mapApiChecksWithAssignments(checksQuery.data?.checks, assignmentsQuery.data)), [assignmentsQuery.data, checksQuery.data?.checks]);
 	const probes = probesQuery.data || [];
 	const [editorMode, setEditorMode] = useState<"idle" | "create">("idle");
-	const [checkSearch, setCheckSearch] = useState("");
-	const [checkTypeFilter, setCheckTypeFilter] = useState<CheckTypeFilter>("all");
-	const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+	const searchParamString = searchParams.toString();
+	const checkSearch = searchParams.get("q") ?? "";
+	const rawCheckTypeFilter = searchParams.get("type");
+	const checkTypeFilter: CheckTypeFilter = isCheckTypeFilter(rawCheckTypeFilter) ? rawCheckTypeFilter : "all";
+	const [rowSelection, setRowSelection] = useState<CheckRowSelectionState>({});
 	const [draftCheckId, setDraftCheckId] = useState("");
 	const [checkName, setCheckName] = useState("");
 	const [target, setTarget] = useState("");
@@ -379,6 +394,17 @@ export function ChecksPage() {
 	const activePingConfig = isCreating || hasSelectedDraft ? pingConfig : pingConfigFormStateFromApi(selectedApiCheck);
 	const activeTCPConfig = isCreating || hasSelectedDraft ? tcpConfig : tcpConfigFormStateFromApi(selectedApiCheck);
 	const activeTracerouteConfig = isCreating || hasSelectedDraft ? tracerouteConfig : tracerouteConfigFormStateFromApi(selectedApiCheck);
+	const activeIntervalValidation = validateIntervalSeconds(activeInterval);
+	const activePingValidation = validatePingConfig(activePingConfig);
+	const activeTCPValidation = validateTCPConfig(activeTCPConfig);
+	const activeTracerouteValidation = validateTracerouteConfig(activeTracerouteConfig);
+	const activeConfigError =
+		activeCheckType === "Traceroute"
+			? firstConfigValidationError(activeTracerouteConfig.protocol === "udp" ? activeTracerouteValidation : { ...activeTracerouteValidation, port: { value: 1, error: "" } })
+			: activeCheckType === "TCP"
+				? firstConfigValidationError(activeTCPValidation)
+				: firstConfigValidationError(activePingValidation);
+	const activeFormError = activeIntervalValidation.error || activeConfigError;
 	const activeSelectorState = isCreating || hasSelectedDraft ? selectorState : selectorStateFromApi(selectedApiCheck?.selector);
 	const assignedProbeNames = (assignmentsQuery.data ?? [])
 		.filter(assignment => assignment.checkId === selectedListCheck?.id)
@@ -407,11 +433,11 @@ export function ChecksPage() {
 	function closeEditor() {
 		setEditorMode("idle");
 		resetEditorState();
-		navigate(pathForRoute("checks", { projectRef }));
+		navigate(pathWithSearch(pathForRoute("checks", { projectRef }), searchParamString));
 	}
 
 	function startNewCheck() {
-		navigate(pathForRoute("checks", { projectRef }));
+		navigate(pathWithSearch(pathForRoute("checks", { projectRef }), searchParamString));
 		setEditorMode("create");
 		resetEditorState();
 		setDraftCheckId("__new__");
@@ -436,7 +462,7 @@ export function ChecksPage() {
 
 		setEditorMode("idle");
 		loadCheckDraft(check, apiCheck);
-		navigate(pathForCheckDetail(projectRef, check.id));
+		navigate(pathWithSearch(pathForCheckDetail(projectRef, check.id), searchParamString));
 	}
 
 	useEffect(() => {
@@ -444,8 +470,8 @@ export function ChecksPage() {
 			return;
 		}
 
-		navigate(pathForRoute("checks", { projectRef }), { replace: true });
-	}, [checkId, checkRows, checksQuery.isError, checksQuery.isPending, navigate, projectRef]);
+		navigate(pathWithSearch(pathForRoute("checks", { projectRef }), searchParamString), { replace: true });
+	}, [checkId, checkRows, checksQuery.isError, checksQuery.isPending, navigate, projectRef, searchParamString]);
 
 	function prepareSelectedCheckEdit() {
 		if (isCreating || !selectedCheck || hasSelectedDraft) {
@@ -590,7 +616,7 @@ export function ChecksPage() {
 		setPingConfig(pingConfigFormStateFromApi(data.check));
 		setTCPConfig(tcpConfigFormStateFromApi(data.check));
 		setTracerouteConfig(tracerouteConfigFormStateFromApi(data.check));
-		navigate(pathForCheckDetail(projectRef, data.check.id));
+		navigate(pathWithSearch(pathForCheckDetail(projectRef, data.check.id), searchParamString));
 	}
 
 	function clearDeletedSelection(checkIds: string[]) {
@@ -701,30 +727,53 @@ export function ChecksPage() {
 		return hiddenCount > 0 ? `${names}, +${hiddenCount}` : names;
 	}
 
+	function updateCheckSearchParam(key: "q" | "type", value: string) {
+		const next = new URLSearchParams(searchParamString);
+
+		if ((key === "q" && !value.trim()) || (key === "type" && value === "all")) {
+			next.delete(key);
+		} else {
+			next.set(key, value);
+		}
+
+		setSearchParams(next, { replace: true });
+	}
+
 	function saveSelectedCheck() {
 		let selector: ApiSelector;
 
 		try {
+			if (activeFormError) {
+				throw new Error(activeFormError);
+			}
+
 			selector = buildSelector(activeSelectorState);
 		} catch (error) {
-			pushErrorToast(error instanceof Error ? error.message : "Selector JSON is invalid.");
+			pushErrorToast(error instanceof Error ? error.message : "Check form is invalid.");
 			return;
 		}
 
 		const type = activeCheckType === "Traceroute" ? "traceroute" : activeCheckType === "TCP" ? "tcp" : "ping";
-		const body: CreateCheckInput = {
-			intervalSeconds: parseIntervalSeconds(activeInterval),
-			name: activeCheckName,
-			selector,
-			target: activeTarget,
-			type
-		};
-		if (type === "traceroute") {
-			body.tracerouteConfig = buildTracerouteConfigPayload(activeTracerouteConfig);
-		} else if (type === "tcp") {
-			body.tcpConfig = buildTCPConfigPayload(activeTCPConfig);
-		} else {
-			body.pingConfig = buildPingConfigPayload(activePingConfig);
+		let body: CreateCheckInput;
+
+		try {
+			body = {
+				intervalSeconds: parseIntervalSeconds(activeInterval),
+				name: activeCheckName,
+				selector,
+				target: activeTarget,
+				type
+			};
+			if (type === "traceroute") {
+				body.tracerouteConfig = buildTracerouteConfigPayload(activeTracerouteConfig);
+			} else if (type === "tcp") {
+				body.tcpConfig = buildTCPConfigPayload(activeTCPConfig);
+			} else {
+				body.pingConfig = buildPingConfigPayload(activePingConfig);
+			}
+		} catch (error) {
+			pushErrorToast(error instanceof Error ? error.message : "Check form is invalid.");
+			return;
 		}
 
 		const options = { onSuccess: handleSavedCheck };
@@ -745,11 +794,11 @@ export function ChecksPage() {
 				<Panel tone="glass" title="Definitions">
 					<div className={styles.checkListStack}>
 						<FilterGrid className={styles.checkListFilters}>
-							<TextField label="Search" placeholder="check name, target, description" value={checkSearch} onChange={event => setCheckSearch(event.currentTarget.value)} />
+							<TextField label="Search" placeholder="check name, target, description" value={checkSearch} onChange={event => updateCheckSearchParam("q", event.currentTarget.value)} />
 							<SelectField
 								label="Type"
 								value={checkTypeFilter}
-								onChange={event => setCheckTypeFilter(event.currentTarget.value as CheckTypeFilter)}
+								onChange={event => updateCheckSearchParam("type", event.currentTarget.value)}
 								options={[
 									{ value: "all", label: "All types" },
 									{ value: "ping", label: "Ping" },
@@ -758,29 +807,25 @@ export function ChecksPage() {
 								]}
 							/>
 						</FilterGrid>
-						{selectedCheckRows.length ? (
-							<div className={styles.batchToolbar}>
-								<div>
-									<strong>{selectedCheckRows.length} selected</strong>
-									<span>{selectedCheckSummary()}</span>
-								</div>
-								<div className={styles.batchToolbarActions}>
-									<Button type="button" variant="danger" size="sm" disabled={batchDeleteCheckMutation.isPending} onClick={() => void deleteSelectedChecks()}>
-										{batchDeleteCheckMutation.isPending ? "Deleting" : "Delete selected"}
-									</Button>
-								</div>
-							</div>
-						) : null}
 						<ChecksTable
 							actionDisabled={checkActionPending}
+							batchDeleteDisabled={!selectedCheckRows.length}
+							batchDeletePending={batchDeleteCheckMutation.isPending}
 							checks={checkRows}
 							onDeleteCheck={check => void deleteCheck(check)}
+							onDeleteSelectedChecks={() => void deleteSelectedChecks()}
 							onDuplicateCheck={duplicateCheck}
 							onOpenCheck={selectCheck}
 							onRowSelectionChange={setRowSelection}
 							rowSelection={rowSelection}
 							search={checkSearch}
 							selectedKey={isCreating ? "__new__" : selectedId}
+							selectedSummary={
+								<>
+									<strong>{selectedCheckRows.length} selected</strong>
+									<span>{selectedCheckSummary()}</span>
+								</>
+							}
 							typeFilter={checkTypeFilter}
 						/>
 					</div>
@@ -822,6 +867,9 @@ export function ChecksPage() {
 								<TextField
 									label="Interval"
 									value={activeInterval}
+									inputMode="numeric"
+									helper="Whole seconds, for example 30s."
+									error={activeIntervalValidation.error || undefined}
 									onChange={event => {
 										prepareSelectedCheckEdit();
 										setInterval(event.currentTarget.value);
@@ -833,8 +881,11 @@ export function ChecksPage() {
 								checkType={activeCheckType}
 								disabled={!selectedCheck && !isCreating}
 								pingConfig={activePingConfig}
+								pingValidation={activePingValidation}
 								tcpConfig={activeTCPConfig}
+								tcpValidation={activeTCPValidation}
 								tracerouteConfig={activeTracerouteConfig}
+								tracerouteValidation={activeTracerouteValidation}
 								onPingConfigChange={updatePingConfig}
 								onTCPConfigChange={updateTCPConfig}
 								onTracerouteConfigChange={updateTracerouteConfig}
@@ -881,17 +932,14 @@ export function ChecksPage() {
 															/>
 														) : null}
 														{rule.op === "exists" ? <div className={styles.selectorExistsValue}>any value</div> : null}
-														<Button
+														<IconButton
 															className={classNames(styles.iconAction, styles.iconActionDanger, styles.selectorRuleRemove)}
-															type="button"
-															variant="ghost"
-															size="sm"
 															aria-label={`Remove selector rule ${index + 1}`}
-															title={`Remove selector rule ${index + 1}`}
+															danger
 															onClick={() => removeSelectorRule(rule.id)}
 														>
 															<Trash size={15} weight="bold" aria-hidden="true" focusable="false" />
-														</Button>
+														</IconButton>
 													</div>
 												);
 											})}
@@ -923,7 +971,10 @@ export function ChecksPage() {
 							</div>
 
 							<ActionRow>
-								<Button disabled={(!selectedCheck && !isCreating) || !projectRef || !activeCheckName || !activeTarget || saveCheckMutation.isPending} onClick={saveSelectedCheck}>
+								<Button
+									disabled={(!selectedCheck && !isCreating) || !projectRef || !activeCheckName || !activeTarget || Boolean(activeFormError) || saveCheckMutation.isPending}
+									onClick={saveSelectedCheck}
+								>
 									{saveCheckMutation.isPending ? "Saving" : isCreating ? "Create check" : "Save check"}
 								</Button>
 								<Button variant="danger" disabled={!selectedCheck || checkActionPending} onClick={() => void deleteSelectedCheck()}>

@@ -1,0 +1,22 @@
+.button {
+	--ns-frame-color: transparent;
+	width: 2rem;
+	min-width: 2rem;
+	padding: 0;
+}
+
+.sm {
+	width: 2rem;
+	min-width: 2rem;
+	min-height: 2rem;
+}
+
+.md {
+	width: 2.5rem;
+	min-width: 2.5rem;
+	min-height: 2.5rem;
+}
+
+.danger {
+	color: var(--ns-critical);
+}
