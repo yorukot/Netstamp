@@ -20,7 +20,7 @@ just build
 
 ## Docs Settings
 
-The docs app lives in `docs/`. Astro configuration is in `docs/astro.config.mjs`, while shared docs styles live in `docs/src/styles/docs.css`.
+The docs app lives in `docs/`. Astro configuration is in `docs/astro.config.mjs`, while shell and prose styles are colocated in `docs/src/layouts/DocLayout.astro` and component styles stay with the component that owns the markup.
 
 Documentation pages are MDX files under `docs/src/content/docs/`. The left sidebar and search index scan those files automatically from their frontmatter.
 

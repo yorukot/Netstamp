@@ -4,6 +4,7 @@ import SearchBox from "../components/docs/SearchBox.astro";
 import { docsNav, docsPages, githubBaseUrl } from "../data/docs";
 import { absoluteUrl, createBreadcrumbSchema, createTechArticleSchema, resolveSiteUrl, type HeadEntry } from "../lib/seo";
 import BaseLayout from "./BaseLayout.astro";
+import { Button, Surface } from "@netstamp/ui";
 
 interface Heading {
 	depth: 2 | 3;
@@ -72,18 +73,20 @@ const navGroups = docsNav.map(group => ({
 		<aside class="docsSidebar" aria-label="Documentation navigation">
 			<div class="docsSidebarHeader">
 				<SearchBox />
-				<button class="docsSidebarFold" type="button" data-docs-sidebar-toggle aria-label="Fold documentation sidebar" aria-pressed="false" title="Fold sidebar">
+				<Button className="docsSidebarFold" variant="outline" size="sm" type="button" data-docs-sidebar-toggle aria-label="Fold documentation sidebar" aria-pressed="false" title="Fold sidebar">
 					<Icon name="sidebar" size={18} />
 					<span data-sidebar-toggle-label>Fold</span>
-				</button>
+				</Button>
 			</div>
 			<nav class="docsNavTree">
 				{
 					navGroups.map(group => (
 						<section class:list={["docsNavGroup", group.active && "active", !group.active && "collapsed"]} data-docs-nav-group>
 							<h2 class="docsNavGroupHeading">
-								<button
-									class="docsNavGroupToggle"
+								<Button
+									className="docsNavGroupToggle"
+									variant="plain"
+									size="sm"
 									type="button"
 									aria-expanded={group.active ? "true" : "false"}
 									aria-controls={`docs-nav-group-${group.id}`}
@@ -95,7 +98,7 @@ const navGroups = docsNav.map(group => ({
 										<span>{group.title}</span>
 									</span>
 									<Icon name="caret" size={12} />
-								</button>
+								</Button>
 							</h2>
 							<div class="docsNavGroupItems" id={`docs-nav-group-${group.id}`} aria-hidden={group.active ? "false" : "true"}>
 								<div class="docsNavGroupItemsInner">
@@ -114,10 +117,10 @@ const navGroups = docsNav.map(group => ({
 		</aside>
 
 		<main id="content" class="docContent">
-			<header class="docHero">
+			<Surface as="header" tone="accent" frameSize="lg" padding="lg" className="docHero">
 				<h1>{title}</h1>
 				<p>{description}</p>
-			</header>
+			</Surface>
 			<article class="docProse">
 				<slot />
 			</article>
@@ -125,47 +128,49 @@ const navGroups = docsNav.map(group => ({
 				<nav class="docPager" aria-label="Documentation pagination">
 					{
 						previousPage ? (
-							<a class="docPagerLink previous" href={previousPage.href}>
+							<Surface as="a" tone="glass" padding="sm" className="docPagerLink previous" href={previousPage.href}>
 								<Icon name="arrowLeft" size={18} />
 								<span>
 									<small>Previous</small>
 									<strong>{previousPage.title}</strong>
 								</span>
-							</a>
+							</Surface>
 						) : (
-							<span class="docPagerLink previous disabled" aria-disabled="true">
+							<Surface as="span" tone="flat" padding="sm" className="docPagerLink previous disabled" aria-disabled="true">
 								<Icon name="arrowLeft" size={18} />
 								<span>
 									<small>Previous</small>
 									<strong>No previous page</strong>
 								</span>
-							</span>
+							</Surface>
 						)
 					}
 					{
 						nextPage ? (
-							<a class="docPagerLink next" href={nextPage.href}>
+							<Surface as="a" tone="glass" padding="sm" className="docPagerLink next" href={nextPage.href}>
 								<span>
 									<small>Next</small>
 									<strong>{nextPage.title}</strong>
 								</span>
 								<Icon name="arrowRight" size={18} />
-							</a>
+							</Surface>
 						) : (
-							<span class="docPagerLink next disabled" aria-disabled="true">
+							<Surface as="span" tone="flat" padding="sm" className="docPagerLink next disabled" aria-disabled="true">
 								<span>
 									<small>Next</small>
 									<strong>No next page</strong>
 								</span>
 								<Icon name="arrowRight" size={18} />
-							</span>
+							</Surface>
 						)
 					}
 				</nav>
-				<a class="editLink" href={editUrl} target="_blank" rel="noreferrer">
-					<Icon name="edit" size={16} />
-					Edit on GitHub
-				</a>
+				<Button className="editLink" variant="ghost" size="sm" asChild>
+					<a href={editUrl} target="_blank" rel="noreferrer">
+						<Icon name="edit" size={16} />
+						Edit on GitHub
+					</a>
+				</Button>
 			</footer>
 		</main>
 
@@ -337,4 +342,618 @@ const navGroups = docsNav.map(group => ({
 		initDocLayout();
 		document.addEventListener("astro:page-load", initDocLayout);
 	</script>
+
+	<style>
+		.docsNavItem:focus-visible,
+		.docsToc a:focus-visible,
+		:global(.docsNavGroupToggle:focus-visible),
+		:global(.docsSidebarFold:focus-visible),
+		:global(.docPagerLink:focus-visible),
+		:global(.editLink:focus-visible) {
+			outline: var(--ns-focus-outline);
+			outline-offset: 0.25rem;
+		}
+
+		.docsShell {
+			display: grid;
+			grid-template-columns: minmax(15rem, 18rem) minmax(0, 1fr) minmax(12rem, 16rem);
+			gap: 2rem;
+			min-height: calc(100svh - 4.5rem);
+			padding: 2rem;
+			background: var(--ns-bg);
+			transition:
+				grid-template-columns var(--ns-transition),
+				gap var(--ns-transition);
+		}
+
+		.docsShell.sidebarFolded {
+			grid-template-columns: minmax(4.25rem, 4.75rem) minmax(0, 1fr) minmax(12rem, 16rem);
+			gap: 1.5rem;
+		}
+
+		.docsSidebar,
+		.docsTocInner {
+			position: sticky;
+			top: 6rem;
+			align-self: start;
+		}
+
+		.docsSidebar {
+			display: grid;
+			gap: 1rem;
+		}
+
+		.docsSidebarHeader {
+			display: grid;
+			grid-template-columns: minmax(0, 1fr) auto;
+			gap: 0.5rem;
+		}
+
+		:global(.docsSidebarFold) {
+			min-width: 2.9rem;
+			gap: 0.45rem;
+			padding: 0.4rem 0.625rem;
+			font-family: var(--ns-font-mono);
+			font-size: 0.68rem;
+			font-weight: 800;
+			letter-spacing: 0.1em;
+			text-transform: uppercase;
+		}
+
+		:global(.docsSidebarFold:hover),
+		:global(.docsSidebarFold[aria-pressed="true"]) {
+			--ns-frame-color: var(--ns-accent-border);
+			color: var(--ns-text);
+			background: color-mix(in srgb, var(--ns-accent) 8%, transparent);
+		}
+
+		:global(.icon) {
+			flex: 0 0 auto;
+		}
+
+		.docsTocTitle,
+		.docsNavGroup h2 {
+			display: inline-flex;
+			align-items: center;
+			gap: 0.45rem;
+			color: var(--ns-text-low);
+			font-family: var(--ns-font-mono);
+			font-size: 0.68rem;
+			font-weight: 800;
+			letter-spacing: 0.12em;
+			text-transform: uppercase;
+		}
+
+		.docsNavTree {
+			display: grid;
+			gap: 0.5rem;
+		}
+
+		.docsNavGroup {
+			display: grid;
+			gap: 0.25rem;
+		}
+
+		.docsNavGroupHeading {
+			margin: 0;
+		}
+
+		:global(.docsNavGroupToggle) {
+			width: 100%;
+			justify-content: space-between;
+			gap: 0.5rem;
+			padding: 0.35rem 0.25rem;
+			color: var(--ns-text-low);
+			border: 1px solid transparent;
+		}
+
+		:global(.docsNavGroupToggle:hover) {
+			color: var(--ns-text-subtle);
+			border-color: var(--ns-border-faint);
+			background: var(--ns-bg-subtle);
+		}
+
+		:global(.docsNavGroupTitle) {
+			display: inline-flex;
+			align-items: center;
+			gap: 0.45rem;
+		}
+
+		.docsNavGroup.active :global(.docsNavGroupToggle) {
+			color: var(--ns-accent-hover);
+		}
+
+		:global(.docsNavGroupToggle > .icon:last-child) {
+			transform: rotate(180deg);
+			transition: transform var(--ns-transition);
+		}
+
+		.docsNavGroup.collapsed :global(.docsNavGroupToggle > .icon:last-child) {
+			transform: rotate(0deg);
+		}
+
+		.docsNavGroupItems {
+			display: grid;
+			grid-template-rows: 1fr;
+			opacity: 1;
+			overflow: hidden;
+			transition:
+				grid-template-rows 180ms ease,
+				opacity 160ms ease;
+		}
+
+		.docsNavGroup.collapsed .docsNavGroupItems {
+			grid-template-rows: 0fr;
+			opacity: 0;
+		}
+
+		.docsNavGroupItemsInner {
+			display: grid;
+			gap: 0.35rem;
+			min-height: 0;
+			overflow: hidden;
+		}
+
+		.docsNavItem {
+			display: flex;
+			align-items: center;
+			gap: 0.625rem;
+			padding: 0.4rem 0.625rem;
+			color: var(--ns-text-subtle);
+			border: 1px solid transparent;
+			text-decoration: none;
+			transition:
+				border-color var(--ns-transition),
+				background var(--ns-transition),
+				color var(--ns-transition);
+		}
+
+		.docsNavItem:hover,
+		.docsNavItem.active {
+			color: var(--ns-text);
+			border-color: var(--ns-accent-border);
+			background: color-mix(in srgb, var(--ns-accent) 8%, transparent);
+		}
+
+		.docsShell.sidebarFolded .docsSidebarHeader {
+			grid-template-columns: 1fr;
+		}
+
+		.docsShell.sidebarFolded .docsNavItem,
+		.docsShell.sidebarFolded :global(.docsSidebarFold),
+		.docsShell.sidebarFolded :global(.docsNavGroupToggle) {
+			width: 100%;
+			min-width: 0;
+			align-items: center;
+			justify-content: center;
+		}
+
+		.docsShell.sidebarFolded :global(.docsSidebarFold) {
+			padding-inline: 0;
+		}
+
+		.docsShell.sidebarFolded .docsNavItem,
+		.docsShell.sidebarFolded :global(.docsNavGroupToggle) {
+			padding-inline: 0;
+		}
+
+		.docsShell.sidebarFolded :global(.docsNavGroupTitle) {
+			flex: 0 0 auto;
+			justify-content: center;
+		}
+
+		.docsShell.sidebarFolded .docsNavItem span,
+		.docsShell.sidebarFolded :global(.docsSidebarFold span),
+		.docsShell.sidebarFolded :global(.docsNavGroupTitle span),
+		.docsShell.sidebarFolded :global(.docsNavGroupToggle > .icon:last-child) {
+			display: none;
+		}
+
+		.docsShell.sidebarFolded .docsNavTree {
+			gap: 0.75rem;
+		}
+
+		.docsShell.sidebarFolded .docsNavGroup {
+			gap: 0.4rem;
+		}
+
+		.docContent {
+			min-width: 0;
+		}
+
+		:global(.docHero) {
+			display: grid;
+			gap: 1rem;
+			padding: clamp(2rem, 5vw, 4rem);
+		}
+
+		:global(.docHero h1) {
+			max-width: 18ch;
+			margin: 0;
+			font-family: var(--ns-font-display);
+			font-size: clamp(1.4rem, 2.5vw, 2rem);
+			font-weight: 750;
+			letter-spacing: 0;
+			line-height: 1.05;
+		}
+
+		:global(.docHero p) {
+			max-width: 58ch;
+			margin: 0;
+			color: var(--ns-text-muted);
+			font-size: clamp(1rem, 1.4vw, 1.2rem);
+			line-height: 1.65;
+		}
+
+		:global(.editLink) {
+			width: fit-content;
+			font-family: var(--ns-font-mono);
+			font-size: 0.75rem;
+			font-weight: 800;
+			letter-spacing: 0.08em;
+			text-transform: uppercase;
+		}
+
+		.docProse {
+			display: grid;
+			gap: 1.5rem;
+			padding: clamp(1.5rem, 4vw, 3rem) clamp(0rem, 2vw, 1rem) clamp(2rem, 4vw, 3rem);
+		}
+
+		.docFooter {
+			display: grid;
+			gap: 1rem;
+			padding: 0 clamp(0rem, 2vw, 1rem) 5rem;
+		}
+
+		.docPager {
+			display: grid;
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+			gap: 1rem;
+		}
+
+		:global(.docPagerLink) {
+			display: flex;
+			align-items: center;
+			gap: 0.75rem;
+			min-height: 5rem;
+			color: var(--ns-text-subtle);
+			text-decoration: none;
+			transition:
+				border-color var(--ns-transition),
+				background var(--ns-transition),
+				color var(--ns-transition),
+				transform var(--ns-transition);
+		}
+
+		:global(.docPagerLink.next) {
+			justify-content: flex-end;
+			text-align: right;
+		}
+
+		:global(.docPagerLink:hover) {
+			--ns-frame-color: var(--ns-accent-border);
+			color: var(--ns-text);
+			background: color-mix(in srgb, var(--ns-accent) 8%, transparent);
+			transform: translateY(-1px);
+		}
+
+		:global(.docPagerLink.disabled) {
+			color: var(--ns-text-low);
+			transform: none;
+		}
+
+		:global(.docPagerLink span) {
+			display: grid;
+			gap: 0.25rem;
+			min-width: 0;
+		}
+
+		:global(.docPagerLink small) {
+			color: var(--ns-text-low);
+			font-family: var(--ns-font-mono);
+			font-size: 0.68rem;
+			font-weight: 800;
+			letter-spacing: 0.12em;
+			text-transform: uppercase;
+		}
+
+		:global(.docPagerLink strong) {
+			overflow: hidden;
+			color: inherit;
+			font-family: var(--ns-font-mono);
+			font-size: 0.86rem;
+			letter-spacing: 0.04em;
+			text-overflow: ellipsis;
+			text-transform: uppercase;
+			white-space: nowrap;
+		}
+
+		:global(.docProse h2),
+		:global(.docProse h3) {
+			scroll-margin-top: 6rem;
+			margin: 0;
+			color: var(--ns-text);
+			font-family: var(--ns-font-display);
+			letter-spacing: 0;
+		}
+
+		:global(.docProse h2) {
+			font-size: clamp(1.6rem, 3vw, 2.6rem);
+			line-height: 1;
+		}
+
+		:global(.docProse h3) {
+			font-size: clamp(1.2rem, 2vw, 1.6rem);
+		}
+
+		:global(.docProse p),
+		:global(.docProse li) {
+			color: var(--ns-text-muted);
+			font-size: 1rem;
+			line-height: 1.75;
+		}
+
+		:global(.docProse p),
+		:global(.docProse ul),
+		:global(.docProse ol) {
+			margin: 0;
+		}
+
+		:global(.docProse ul),
+		:global(.docProse ol) {
+			display: grid;
+			gap: 0.45rem;
+			padding-left: 1.2rem;
+		}
+
+		:global(.docProse a) {
+			color: var(--ns-accent-hover);
+		}
+
+		:global(.docProse code:not(pre code)) {
+			padding: 0.1rem 0.28rem;
+			color: var(--ns-accent-hover);
+			background: color-mix(in srgb, var(--ns-accent) 10%, transparent);
+			font-family: var(--ns-font-mono);
+			font-size: 0.9em;
+		}
+
+		:global(.docProse > pre),
+		:global(.docProse > .astro-code) {
+			position: relative;
+			padding: 2.5rem 1.25rem 1.125rem !important;
+			background-color: var(--ns-surface-deep) !important;
+			overflow-x: auto !important;
+			border: 1px solid color-mix(in srgb, var(--ns-accent) 22%, transparent);
+			box-shadow: none;
+		}
+
+		:global(.docProse > pre::before),
+		:global(.docProse > .astro-code::before) {
+			content: "";
+			position: absolute;
+			top: 0;
+			left: 0;
+			right: 0;
+			height: 2.25rem;
+			background: var(--ns-surface-raised);
+			border-bottom: 1px solid var(--ns-border-faint);
+		}
+
+		:global(.docProse blockquote) {
+			display: grid;
+			gap: 0.5rem;
+			margin: 0;
+			padding: 1rem;
+			border: 1px solid var(--ns-accent-border);
+			background: color-mix(in srgb, var(--ns-accent) 7%, transparent);
+		}
+
+		:global(.docProse blockquote strong) {
+			color: var(--ns-accent-hover);
+			font-family: var(--ns-font-mono);
+			font-size: 0.75rem;
+			font-weight: 900;
+			letter-spacing: 0.1em;
+			text-transform: uppercase;
+		}
+
+		:global(.callout) {
+			display: grid;
+			gap: 0.6rem;
+			padding: 1rem;
+			border: 1px solid var(--ns-border-faint);
+			background: var(--ns-surface);
+		}
+
+		:global(.calloutTitle) {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			font-family: var(--ns-font-mono);
+			font-size: 0.75rem;
+			font-weight: 900;
+			letter-spacing: 0.1em;
+			text-transform: uppercase;
+		}
+
+		:global(.calloutTitle [data-callout-icon]) {
+			flex: 0 0 auto;
+			color: currentcolor;
+		}
+
+		:global(.calloutBody) {
+			display: grid;
+			gap: 0.5rem;
+		}
+
+		:global(.callout-note) {
+			border-color: color-mix(in srgb, var(--ns-metal) 32%, transparent);
+		}
+
+		:global(.callout-tip) {
+			border-color: color-mix(in srgb, var(--ns-success) 42%, transparent);
+			background: color-mix(in srgb, var(--ns-success) 6%, var(--ns-surface));
+		}
+
+		:global(.callout-warning) {
+			border-color: color-mix(in srgb, var(--ns-warning) 52%, transparent);
+			background: color-mix(in srgb, var(--ns-warning) 7%, var(--ns-surface));
+		}
+
+		:global(.callout-caution) {
+			border-color: color-mix(in srgb, var(--ns-critical) 46%, transparent);
+			background: color-mix(in srgb, var(--ns-critical) 7%, var(--ns-surface));
+		}
+
+		.docsTocInner {
+			display: grid;
+			gap: 0.8rem;
+			padding-left: 1rem;
+			border-left: 1px solid var(--ns-border-faint);
+		}
+
+		.docsToc nav {
+			display: grid;
+			gap: 0.45rem;
+		}
+
+		.docsToc a,
+		.docsToc p {
+			color: var(--ns-text-low);
+			font-family: var(--ns-font-mono);
+			font-size: 0.75rem;
+			font-weight: 700;
+			line-height: 1.4;
+			text-decoration: none;
+			transition: color var(--ns-transition);
+		}
+
+		.docsToc a:hover,
+		.docsToc a.active {
+			color: var(--ns-accent-hover);
+		}
+
+		.docsToc a.sub {
+			padding-left: 0.75rem;
+		}
+
+		:global(.cardGrid),
+		:global(.docIndexGrid) {
+			display: grid;
+			grid-template-columns: repeat(3, minmax(0, 1fr));
+			gap: 1rem;
+		}
+
+		:global(.docCard) {
+			display: grid;
+			gap: 0.75rem;
+			padding: 1rem;
+			color: var(--ns-text-muted);
+			border: 1px solid var(--ns-border-faint);
+			background: var(--ns-surface);
+			text-decoration: none;
+		}
+
+		:global(.docCardIcon) {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			width: 2rem;
+			height: 2rem;
+			color: var(--ns-accent-hover);
+			border: 1px solid var(--ns-accent-border);
+			background: color-mix(in srgb, var(--ns-accent) 8%, transparent);
+		}
+
+		:global(.docCardMeta) {
+			color: var(--ns-text-low);
+			font-family: var(--ns-font-mono);
+			font-size: 0.68rem;
+			font-weight: 800;
+			letter-spacing: 0.1em;
+			text-transform: uppercase;
+		}
+
+		:global(.docCard:hover) {
+			border-color: var(--ns-accent-border);
+			background: color-mix(in srgb, var(--ns-accent) 8%, transparent);
+		}
+
+		:global(.docCard strong) {
+			color: var(--ns-text);
+			font-family: var(--ns-font-mono);
+			font-size: 0.82rem;
+			letter-spacing: 0.08em;
+			text-transform: uppercase;
+		}
+
+		@media (max-width: 68rem) {
+			.docsShell {
+				grid-template-columns: 1fr;
+				gap: 1rem;
+				padding: 1rem;
+			}
+
+			.docsSidebar,
+			.docsTocInner {
+				position: static;
+			}
+
+			.docsToc {
+				order: 2;
+			}
+
+			.docContent {
+				order: 1;
+			}
+
+			.docsSidebar {
+				order: 0;
+			}
+
+			:global(.cardGrid),
+			:global(.docIndexGrid) {
+				grid-template-columns: 1fr;
+			}
+
+			.docPager {
+				grid-template-columns: 1fr;
+			}
+
+			:global(.docPagerLink.next) {
+				text-align: left;
+			}
+
+			.docsShell.sidebarFolded {
+				grid-template-columns: 1fr;
+				gap: 1rem;
+			}
+
+			.docsShell.sidebarFolded .docsSidebarHeader {
+				grid-template-columns: minmax(0, 1fr) auto;
+			}
+
+			.docsShell.sidebarFolded .docsNavItem,
+			.docsShell.sidebarFolded :global(.docsSidebarFold),
+			.docsShell.sidebarFolded :global(.docsNavGroupToggle),
+			.docsShell.sidebarFolded :global(.docsNavGroupTitle) {
+				justify-content: flex-start;
+			}
+
+			.docsShell.sidebarFolded .docsNavItem span,
+			.docsShell.sidebarFolded :global(.docsSidebarFold span),
+			.docsShell.sidebarFolded :global(.docsNavGroupTitle span),
+			.docsShell.sidebarFolded :global(.docsNavGroupToggle > .icon:last-child) {
+				display: inline;
+			}
+		}
+
+		@media (max-width: 48rem) {
+			:global(.docHero) {
+				padding: 1.5rem;
+			}
+		}
+	</style>
 </BaseLayout>
