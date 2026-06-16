@@ -1,6 +1,6 @@
 # Netstamp Design Guidelines
 
-> Category: network observability and developer infrastructure. Current direction: authenticated web app and public homepage are light-default B2B product surfaces with restrained blue/cyan brand accents; docs and API reference may retain the darker technical reference system until their own redesign pass.
+> Category: network observability and developer infrastructure. Current direction: authenticated web app, public homepage, docs, Storybook, and API reference all align to the dashboard surface system: light-default B2B product UI, matching dark mode, restrained blue/cyan brand accents, square frames, flat panels, no gradients, and no grid or decorative background patterns.
 
 This document is the source of truth for Netstamp frontend design across the React web app, the Astro docs site, the public landing page, the OpenAPI explorer, Storybook, and shared `@netstamp/ui` primitives.
 
@@ -12,7 +12,7 @@ Keep new UI aligned with these files first:
 - `web/src/layouts/AppShell.module.css`: authenticated product shell.
 - `web/src/shared/components`: product page layout helpers.
 - `docs/src/styles/docs.css`: documentation shell, doc prose, cards, search, and navigation.
-- `docs/src/components/landing/LandingPage.module.css`: public landing page and animated network storytelling.
+- `docs/src/components/landing/LandingPage.module.css`: public landing page with dashboard-aligned product screenshots and telemetry panels.
 - `docs/src/components/openapi/OpenAPIExplorer.module.css`: API reference and request console.
 
 ## 1. Product Feel
@@ -22,20 +22,22 @@ Netstamp should feel like serious infrastructure software for repeated operation
 Core authenticated app traits:
 
 - Light, neutral workspace with white and gray surfaces.
+- Dark mode must use the same dashboard structure, density, and token roles rather than a separate console-only visual system.
 - Blue/cyan as the reserved brand accent for primary actions, active navigation, focus, and selected state.
 - Status colors carry semantic meaning only: healthy, warning, critical, pending, or neutral.
 - Square, flat frames; no rounded corners and no cut-corner framing in the web app.
 - Sans typography for navigation, headings, controls, tables, labels, and buttons.
 - Monospace typography only for IDs, tokens, timestamps, code, CLI commands, and machine-readable telemetry.
 - Dense layouts: few decorative objects, high information clarity.
+- Plain token backgrounds only; do not use CSS gradients, SVG gradients, ECharts gradient color stops, glow filters, scanline overlays, or grid/background patterns.
 - Infrastructure copy that names probes, checks, routes, DNS, latency, packet loss, topology, path hash, heartbeat, and controller actions.
 
 Each surface has a different density:
 
-- Web app: compact light-default B2B dashboard for repeated work.
-- Public landing page: professional blue dashboard product homepage with product UI screenshots, compact telemetry, and clear deploy/GitHub actions.
-- Docs: readable technical reference that may retain the dark console structure until a docs redesign pass.
-- OpenAPI explorer: split reference and request console, optimized for scanning methods, paths, parameters, snippets, and responses.
+- Web app: compact light-default B2B dashboard for repeated work, with matching dark mode.
+- Public landing page: dashboard-aligned product homepage with real dashboard screenshots, compact telemetry, and clear deploy/GitHub actions.
+- Docs: readable technical reference using the same dashboard surfaces, navigation density, and color mode behavior.
+- OpenAPI explorer: dashboard-aligned split reference and request console, optimized for scanning methods, paths, parameters, snippets, and responses.
 
 ## 2. Tokens
 
@@ -78,14 +80,13 @@ Use the display face for big product statements and screen titles. Use the sans 
 - `--ns-accent-border`: active frame color.
 - `--ns-accent-glow`: restrained blue/cyan glow.
 - `--ns-glass-accent`: low-opacity blue/cyan glass overlay.
-- `--ns-glass-orange`: legacy alias for `--ns-glass-accent`; do not use for new UI.
 - `--ns-critical`: `#ff453a`, destructive/error/failed.
 - `--ns-warning`: `#ff9f0a`, warning/waiting/degraded/pending.
 - `--ns-success`: `#30d158`, healthy/online/success.
 - `--ns-metal`: `#c4ccd9`, neutral technical accent.
 - `--ns-slate-line`: `rgba(196, 204, 217, 0.22)`, neutral chart and divider line.
 
-Blue/cyan is the reserved brand interaction color. Green, amber, and red are reserved for state meaning. Slate may be used for chart/data series where it improves dashboard readability. Avoid rainbow, pastel, glossy gradient, or decorative color systems.
+Blue/cyan is the reserved brand interaction color. Green, amber, and red are reserved for state meaning. Slate may be used for chart/data series where it improves dashboard readability. Avoid rainbow, pastel, purple, orange-first, glossy gradient, or decorative color systems.
 
 ### Borders, Radius, Shadows
 
@@ -95,20 +96,20 @@ Blue/cyan is the reserved brand interaction color. Green, amber, and red are res
 - `--ns-shadow-sm`, `--ns-shadow-md`, and `--ns-shadow-glow`: app values should remain `none`.
 - `--ns-transition`: `180ms cubic-bezier(0.2, 0.8, 0.2, 1)`.
 
-Use square frames instead of clipped, cut-corner, rounded, or pill-shaped rectangles. Avoid decorative shadows.
+Use square frames instead of clipped, cut-corner, rounded, or pill-shaped rectangles. Avoid decorative shadows, glows, and inset lighting effects.
 
 ## 3. Page Families
 
 ### Shared App And Site Canvas
 
-Most full-page surfaces use layered dark grids:
+Full-page surfaces use plain token backgrounds:
 
-- Large accent grid around `6rem-8rem`, low opacity.
-- Fine white grid around `2rem`, very low opacity.
-- Optional radial blue/cyan glow near areas of attention.
-- Optional diagonal micro-pattern on panels, sidebars, maps, user cards, and landing sections.
+- Page canvas: `var(--ns-bg)`.
+- App, docs, and landing panels: `var(--ns-surface)`.
+- Raised rows, sidebars, code bars, and tool headers: `var(--ns-surface-raised)`.
+- Deep code, map, terminal, or response blocks: `var(--ns-surface-deep)`.
 
-Use `.ns-grid-shell` or `.ns-grid-shell--constellation` when a full app surface can use the shared utility. Otherwise match the same layered background locally.
+Do not add gradient washes, radial glows, dot fields, scanlines, diagonal micro-patterns, or grid backgrounds. Existing `.ns-grid-shell` and `.ns-grid-shell--constellation` are compatibility names only and must render as plain token backgrounds.
 
 ### Public Homepage
 
@@ -116,12 +117,12 @@ Current implementation lives in `docs/src/components/landing`.
 
 Use the homepage to show Netstamp as a real product:
 
-- Light-default dashboard canvas with blue/cyan product accent.
+- Light-default dashboard canvas with matching dark mode and blue/cyan product accent.
 - Sticky docs top nav above the page.
-- Hero with Netstamp/product category headline, concise offer copy, and a product dashboard screenshot or product UI composition.
+- Hero with Netstamp/product category headline, concise offer copy, and a real product dashboard screenshot.
 - Primary CTA is blue/cyan fill; secondary CTA is dark/neutral.
 - Product sections cover Fleet, Checks, Insight, Alerts, API/automation, and Open Source.
-- Technical decoration should be subtle: grid lines, telemetry chips, route paths, status indicators, and screenshot callouts.
+- Product context should come from real UI screenshots, telemetry chips, route paths, status indicators, and compact panels, not decorative backgrounds.
 - Final CTA/trust area should stay grounded in open source, deployability, probes, and measurable network behavior.
 
 Landing copy should be short, concrete, and infrastructure-oriented:
@@ -131,7 +132,7 @@ Landing copy should be short, concrete, and infrastructure-oriented:
 - "Measure latency, packet loss, DNS, and routes."
 - "Your traffic has a story. Netstamp shows the path."
 
-Do not turn the homepage into a centered generic marketing template. Avoid stock photography, lifestyle imagery, decorative blobs, abstract SaaS gradients, orange-first styling, or cinematic scenes that hide the product.
+Do not turn the homepage into a centered generic marketing template. Avoid stock photography, lifestyle imagery, decorative blobs, abstract SaaS gradients, grid backgrounds, orange-first styling, or cinematic scenes that hide the product.
 
 ### Web App
 
@@ -160,16 +161,16 @@ Current implementation lives under `docs/src/styles/docs.css` and `docs/src/layo
 
 Docs must feel like Netstamp, but prioritize reading and navigation:
 
-- Sticky top nav with brand, docs/storybook/API links, GitHub, and app/deploy action.
+- Sticky top nav with brand, docs/storybook/API links, GitHub, color mode toggle, and app/deploy action.
 - Three-column desktop shell: left docs navigation, central content, right table of contents.
 - Left nav can fold to icon-only on wide layouts.
 - Below about `68rem`, collapse to one column with sidebar, content, and TOC stacked.
 - Doc hero is a framed blue-accent panel with compact display title and body summary.
 - Prose uses generous line-height and clear heading spacing.
-- Code blocks use terminal-style top bars, dark backgrounds, and accent borders.
-- Cards, callouts, pager links, search results, and index grids use low-contrast dark surfaces with accent hover/active states.
+- Code blocks use token deep surfaces, simple top bars, and accent borders.
+- Cards, callouts, pager links, search results, and index grids use dashboard token surfaces with accent hover/active states.
 
-Docs can retain the dark technical structure until a dedicated redesign, but should not introduce new cut-corner treatments.
+Docs must follow the dashboard surface system and color mode behavior. Do not reintroduce a separate dark-only docs theme or cut-corner treatments.
 
 ### OpenAPI Explorer
 
@@ -183,8 +184,8 @@ The API explorer is denser than standard docs:
 - Method labels use state colors: GET green, POST amber, PUT/PATCH yellow, DELETE red.
 - Endpoint rows use monospace method and path with active accent frame.
 - Operation articles pair explanatory content with snippets and structured field/response rows.
-- Console uses sticky dark glass, form controls, body textarea, cURL preview, and response panel.
-- Snippets and response previews use monospace, deep black backgrounds, and horizontal/vertical scrolling when needed.
+- Console uses sticky token surfaces, form controls, body textarea, cURL preview, and response panel.
+- Snippets and response previews use monospace, deep token backgrounds, and horizontal/vertical scrolling when needed.
 
 Do not make the API explorer airy or editorial. It should feel like a controller plus reference manual.
 
@@ -257,7 +258,7 @@ Default layout rhythm:
 - Grid gap: `1rem`.
 - Panel padding: `0.875rem`, `1.25rem`, or `1.35rem`.
 - Docs shell gap: `2rem` desktop, `1rem` mobile.
-- Landing section padding can be larger, usually `clamp()` based, but must leave visual continuity with the grid.
+- Landing section padding can be larger, usually `clamp()` based, but must keep continuity with the dashboard panel rhythm.
 
 Prefer CSS Grid for page structure and Flexbox for button rows, metadata rows, and compact horizontal controls.
 
@@ -285,7 +286,7 @@ Use:
 
 Match density to context:
 
-- Landing: broad, visual, high contrast.
+- Landing: dashboard-aligned, product-led, moderately broad, screenshot-forward.
 - Web app: compact, operational, panel-based.
 - Docs prose: readable, less dense.
 - OpenAPI: very dense, with sticky navigation and console tools.
@@ -300,7 +301,7 @@ Use `@netstamp/ui` primitives before adding local controls. Shared components sh
 
 Use tones intentionally:
 
-- `glass`: default raised section with neutral border.
+- `glass`: legacy tone name; render it as a flat dashboard surface with neutral border.
 - `matte`: lower-contrast nested section.
 - `deep`: maps, terminals, code, diagnostics, and high-depth blocks.
 - `flat`: quiet simple surface.
@@ -380,7 +381,7 @@ Terminal blocks are command surfaces.
 - Deep black background.
 - Monospace text.
 - Blue/cyan accent or faint white frame.
-- Optional top bar with three status dots for prose code blocks.
+- Optional top bar or compact status markers for prose code blocks.
 - Snippets and response previews should scroll rather than wrap into unreadable layouts, except API response previews may use `pre-wrap` when readability is better.
 
 ### Navigation
@@ -390,7 +391,7 @@ Navigation is sans and normal case.
 - App sidebar active item uses blue/cyan leading accent and a neutral square frame.
 - Docs top nav uses icon plus text, with text hidden on small screens when necessary.
 - Docs sidebar groups are collapsible and show active state in the shared accent color.
-- TOC active link uses the shared accent color and a subtle accent text glow.
+- TOC active link uses the shared accent color without glow.
 
 ### Network Visuals
 
@@ -400,7 +401,7 @@ Network visuals should be abstract, map-like, and diagnostic.
 - Routes, packets, rails, hops, matrices, and topology lines are preferred motifs.
 - Active packets and important paths use blue/cyan.
 - Green only means online/success.
-- Scanline and route animations are acceptable when slow and subtle.
+- Route animations are acceptable when slow, subtle, and useful for the diagnostic state.
 - Three.js scenes and animated CSS visuals must respect reduced motion.
 
 ## 7. Frame Utility
@@ -434,8 +435,8 @@ Use:
 - `--ns-transition` for most UI state changes.
 - `translateY(-0.0625rem)` for small hover lift.
 - `180ms-280ms` for drawer/search/modal entry and exit.
-- Slow scanlines, orbit movement, node blinking, packet routing, and topology reveals on landing visuals.
-- GSAP/Three.js only where the page needs browser effects, currently the landing page.
+- Slow node blinking, packet routing, and topology reveals on functional network visuals.
+- GSAP/Three.js only for functional browser effects; do not use them for decorative backgrounds.
 
 Always support reduced motion:
 
@@ -466,7 +467,7 @@ Charts, maps, route boards, and telemetry widgets should look embedded in the co
 - Tooltip border: faint white or accent when active.
 - Axis labels: muted mono, around `10px`.
 - Grid lines: very low contrast.
-- Area fills: fade to transparent.
+- Area fills: flat low-opacity color only; do not use gradient color stops.
 
 Do not use multicolor chart palettes unless every color maps to a meaningful operational state.
 
@@ -536,7 +537,7 @@ Accessibility is part of the visual system.
 
 - Use `@netstamp/brand` assets for brand marks and favicon.
 - Docs currently use Phosphor web components and `docs/src/components/icons/Icon.astro`.
-- Use actual product/network visuals or generated technical scenes for landing visuals.
+- Use actual product screenshots and product/network visuals for landing visuals; generated scenes are secondary.
 - Do not add stock-like atmospheric imagery when a diagnostic visual would communicate better.
 
 ## 13. Anti-Patterns
@@ -544,11 +545,11 @@ Accessibility is part of the visual system.
 Do not add:
 
 - Oversized decorative cards, pill-shaped core controls, or soft consumer-app surfaces.
-- Pastel SaaS gradients, glossy blobs, heavy glassmorphism, or decorative orbs.
+- Pastel SaaS gradients, glossy blobs, heavy glassmorphism, decorative orbs, grid backgrounds, radial glows, scanline overlays, SVG/CSS/ECharts gradients, or non-product hero decoration.
 - Purple/rainbow/non-token brand accents.
 - Decorative emoji icons.
 - Soft lifestyle photography or stock photos.
-- Centered generic landing sections that ignore the engineering grid.
+- Centered generic landing sections that ignore the dashboard panel rhythm.
 - Decorative or heavy shadows.
 - Global CSS systems outside existing `--ns-*` tokens and CSS modules.
 - Copy that sounds like a generic productivity app.
@@ -558,11 +559,13 @@ Do not add:
 Before shipping frontend UI, check:
 
 - Does it use existing `--ns-*` tokens?
+- Does it align with the dashboard surface system in both light and dark mode?
+- Are backgrounds plain token colors, with no gradients, grids, glows, or decorative patterns?
 - Does it use the correct font family for display, body, and operational text?
 - Are framed controls square and free of custom clipped polygons?
 - Is blue/cyan the main interactive accent?
 - Are green, amber, and red reserved for state?
-- Does the layout follow the `1rem` grid rhythm unless a larger landing/docs rhythm is intentional?
+- Does the layout follow the established spacing rhythm unless a larger landing/docs rhythm is intentional?
 - Does the UI match the density of its surface: landing, app, docs, or OpenAPI?
 - Does it collapse cleanly on the relevant breakpoints?
 - Are focus states visible and not clipped by overflow?
