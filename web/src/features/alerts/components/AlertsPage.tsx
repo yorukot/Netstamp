@@ -127,10 +127,10 @@ const notificationFilterTypeOptions: Array<{ value: NotificationTypeFilter; labe
 	{ value: "email", label: "Email" }
 ];
 
-const checkTypeOptions: Array<{ value: CheckType; label: string }> = [
+const checkTypeOptions: Array<{ value: CheckType; label: string; disabled?: boolean }> = [
 	{ value: "ping", label: "Ping" },
 	{ value: "tcp", label: "TCP" },
-	{ value: "traceroute", label: "Traceroute" }
+	{ value: "traceroute", label: "Traceroute (alerts not available)", disabled: true }
 ];
 
 const metricOptions: Record<CheckType, Array<{ value: AlertMetric; label: string; unit?: string }>> = {
@@ -461,7 +461,11 @@ function parseFloatValue(value: string, fallback: number) {
 }
 
 function metricForCheckType(nextCheckType: CheckType) {
-	return metricOptions[nextCheckType][0]?.value ?? "ping.loss_percent";
+	return metricOptions[nextCheckType][0]?.value;
+}
+
+function supportsAlertMetrics(checkType: CheckType) {
+	return metricOptions[checkType].length > 0;
 }
 
 function metricOptionsForForm(form: RuleFormState) {
@@ -495,6 +499,7 @@ function defaultRuleForm(): RuleFormState {
 
 function ruleFormFromRule(rule: ApiAlertRule): RuleFormState {
 	const checkType = rule.scope.checkType;
+	const hasCompatibleMetric = metricOptions[checkType].some(option => option.value === rule.condition.metric);
 	return {
 		name: rule.name,
 		description: rule.description ?? "",
@@ -503,7 +508,7 @@ function ruleFormFromRule(rule: ApiAlertRule): RuleFormState {
 		checkType,
 		probeId: rule.scope.probeId ?? "",
 		checkId: rule.scope.checkId ?? "",
-		metric: metricOptions[checkType].some(option => option.value === rule.condition.metric) ? rule.condition.metric : metricForCheckType(checkType),
+		metric: hasCompatibleMetric ? rule.condition.metric : (metricForCheckType(checkType) ?? rule.condition.metric),
 		operator: rule.condition.operator,
 		threshold: String(rule.condition.threshold),
 		windowSeconds: String(rule.condition.windowSeconds),
@@ -1191,13 +1196,14 @@ function RuleEditorDrawer({
 	const [form, setForm] = useState<RuleFormState>(() => (editor.mode === "edit" && editor.rule ? ruleFormFromRule(editor.rule) : defaultRuleForm()));
 	const metricSelectOptions = useMemo(() => metricOptionsForForm(form), [form]);
 	const title = editor.mode === "edit" ? "Edit rule" : "Create rule";
+	const checkTypeSupported = supportsAlertMetrics(form.checkType);
 
 	function updateForm(patch: Partial<RuleFormState>) {
 		setForm(current => ({ ...current, ...patch }));
 	}
 
 	function handleCheckTypeChange(nextCheckType: CheckType) {
-		const nextMetric = metricOptions[nextCheckType].some(option => option.value === form.metric) ? form.metric : metricForCheckType(nextCheckType);
+		const nextMetric = metricOptions[nextCheckType].some(option => option.value === form.metric) ? form.metric : (metricForCheckType(nextCheckType) ?? form.metric);
 		updateForm({ checkType: nextCheckType, metric: nextMetric });
 	}
 
@@ -1209,6 +1215,9 @@ function RuleEditorDrawer({
 
 	async function handleSubmit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
+		if (!checkTypeSupported) {
+			return;
+		}
 		await onSubmit(form);
 	}
 
@@ -1230,13 +1239,17 @@ function RuleEditorDrawer({
 					</div>
 				</Panel>
 				<Panel tone="matte" title="Condition">
-					<div className={styles.formGrid}>
-						<SelectField label="Metric" value={form.metric} options={metricSelectOptions} onChange={event => updateForm({ metric: event.currentTarget.value as AlertMetric })} />
-						<div className={styles.twoColumns}>
-							<SelectField label="Operator" value={form.operator} options={operatorOptions} onChange={event => updateForm({ operator: event.currentTarget.value as AlertOperator })} />
-							<TextField label="Threshold" value={form.threshold} onChange={event => updateForm({ threshold: event.currentTarget.value })} inputMode="decimal" required />
+					{checkTypeSupported ? (
+						<div className={styles.formGrid}>
+							<SelectField label="Metric" value={form.metric} options={metricSelectOptions} onChange={event => updateForm({ metric: event.currentTarget.value as AlertMetric })} />
+							<div className={styles.twoColumns}>
+								<SelectField label="Operator" value={form.operator} options={operatorOptions} onChange={event => updateForm({ operator: event.currentTarget.value as AlertOperator })} />
+								<TextField label="Threshold" value={form.threshold} onChange={event => updateForm({ threshold: event.currentTarget.value })} inputMode="decimal" required />
+							</div>
 						</div>
-					</div>
+					) : (
+						<p className={styles.unsupportedNotice}>Traceroute alert rules are not available yet because the controller API only exposes alert metrics for ping and TCP checks.</p>
+					)}
 				</Panel>
 				<Panel tone="matte" title="Notify">
 					<div className={styles.formGrid}>
@@ -1282,12 +1295,12 @@ function RuleEditorDrawer({
 						</details>
 					</div>
 				</Panel>
-				<div className={styles.previewSentence}>{rulePreview(form, notifications)}</div>
+				{checkTypeSupported ? <div className={styles.previewSentence}>{rulePreview(form, notifications)}</div> : null}
 				<div className={styles.drawerActions}>
 					<Button type="button" variant="ghost" disabled={isPending} onClick={onClose}>
 						Cancel
 					</Button>
-					<Button type="submit" disabled={isPending || !form.name.trim()}>
+					<Button type="submit" disabled={isPending || !form.name.trim() || !checkTypeSupported}>
 						{editor.mode === "edit" ? "Save rule" : "Create rule"}
 					</Button>
 				</div>

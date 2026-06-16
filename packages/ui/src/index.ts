@@ -70,7 +70,7 @@ export type {
 export { Drawer } from "./components/Drawer/Drawer";
 export type { DrawerProps, DrawerSide, DrawerSize } from "./components/Drawer/Drawer";
 export { Checkbox, FieldLabel, Input, Select, SelectField, TextAreaField, TextField } from "./components/Field/Field";
-export type { CheckboxProps, ControlVariant, FieldLabelProps, InputProps, SelectFieldProps, SelectProps, TextAreaFieldProps, TextFieldProps } from "./components/Field/Field";
+export type { CheckboxProps, ControlVariant, FieldLabelProps, InputProps, SelectFieldOption, SelectFieldProps, SelectProps, TextAreaFieldProps, TextFieldProps } from "./components/Field/Field";
 export { GlobalFooter } from "./components/GlobalFooter/GlobalFooter";
 export type { GlobalFooterProps } from "./components/GlobalFooter/GlobalFooter";
 export { MetricCard } from "./components/MetricCard/MetricCard";

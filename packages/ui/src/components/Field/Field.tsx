@@ -401,11 +401,17 @@ export function TextAreaField({ label, helper, error, className, ...props }: Tex
 	);
 }
 
+export interface SelectFieldOption {
+	value: string;
+	label: string;
+	disabled?: boolean;
+}
+
 export interface SelectFieldProps extends ComponentPropsWithoutRef<"select"> {
 	label: ReactNode;
 	helper?: ReactNode;
 	error?: ReactNode;
-	options: Array<{ value: string; label: string }>;
+	options: SelectFieldOption[];
 }
 
 export function SelectField({ label, helper, error, options, className, ...props }: SelectFieldProps) {
@@ -416,7 +422,7 @@ export function SelectField({ label, helper, error, options, className, ...props
 		<FieldShell id={id} label={label} helper={helper} error={error}>
 			<Select id={id} className={className} invalid={Boolean(error)} {...props}>
 				{options.map(option => (
-					<option key={option.value} value={option.value}>
+					<option key={option.value} value={option.value} disabled={option.disabled}>
 						{option.label}
 					</option>
 				))}
