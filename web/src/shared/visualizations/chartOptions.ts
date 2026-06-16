@@ -1,5 +1,10 @@
 const axisLabel = { color: "#64748B", fontFamily: "Inter, system-ui, sans-serif", fontSize: 10 };
 const splitLine = { lineStyle: { color: "rgba(148,163,184,0.18)" } };
+const chartPrimary = "#EA6A1A";
+const chartPrimaryBrush = "rgba(234, 106, 26, 0.12)";
+const chartPrimaryBrushBorder = "rgba(234, 106, 26, 0.72)";
+const chartSecondary = "#2563EB";
+const chartWarning = "#B7791F";
 
 export type ChartOption = Record<string, unknown>;
 export { barChartOption, lineChartOption } from "./basicChartOptions";
@@ -307,10 +312,10 @@ function lossBandColor(lossPercent: number) {
 	}
 
 	if (lossPercent >= 5) {
-		return "rgba(160, 90, 0, 0.12)";
+		return "rgba(183, 121, 31, 0.12)";
 	}
 
-	return "rgba(160, 90, 0, 0.12)";
+	return "rgba(183, 121, 31, 0.12)";
 }
 
 const dataZoomToolbox = {
@@ -326,8 +331,8 @@ const dataZoomToolbox = {
 			yAxisIndex: false,
 			filterMode: "none",
 			brushStyle: {
-				color: "rgba(37, 99, 235, 0.12)",
-				borderColor: "rgba(37, 99, 235, 0.72)",
+				color: chartPrimaryBrush,
+				borderColor: chartPrimaryBrushBorder,
 				borderWidth: 1
 			}
 		}
@@ -409,7 +414,7 @@ function lossBandRenderItem(params: CustomRenderParams, api: CustomRenderApi) {
 	};
 }
 
-export const insightSeriesPalette = ["#2563EB", "#0891B2", "#0F766E", "#64748B", "#94A3B8", "#1D4ED8", "#0EA5E9", "#475569", "#38BDF8", "#334155"];
+export const insightSeriesPalette = [chartPrimary, chartSecondary, "#0891B2", "#0F766E", "#64748B", "#94A3B8", "#1D4ED8", "#0EA5E9", "#475569", "#334155"];
 
 export function insightSeriesColor(index: number) {
 	return insightSeriesPalette[index % insightSeriesPalette.length];
@@ -429,7 +434,7 @@ export function pingInsightChartOption(data: PingSeriesChartData): ChartOption {
 
 	return {
 		backgroundColor: "transparent",
-		color: ["#2563EB", "#A05A00", "#C9362C"],
+		color: [chartPrimary, chartWarning, "#C9362C"],
 		tooltip: {
 			trigger: "axis",
 			backgroundColor: "rgba(255,255,255,0.98)",
@@ -460,8 +465,8 @@ export function pingInsightChartOption(data: PingSeriesChartData): ChartOption {
 					yAxisIndex: false,
 					filterMode: "none",
 					brushStyle: {
-						color: "rgba(37, 99, 235, 0.12)",
-						borderColor: "rgba(37, 99, 235, 0.72)",
+						color: chartPrimaryBrush,
+						borderColor: chartPrimaryBrushBorder,
 						borderWidth: 1
 					}
 				}
@@ -525,7 +530,7 @@ export function pingInsightChartOption(data: PingSeriesChartData): ChartOption {
 				data: pingSeriesData(data.latencyAvg),
 				showSymbol: false,
 				smooth: true,
-				lineStyle: { width: 2.25, color: "#2563EB" },
+				lineStyle: { width: 2.25, color: chartPrimary },
 				z: 8
 			}
 		]
@@ -538,7 +543,7 @@ export function tcpInsightChartOption(data: TcpSeriesChartData): ChartOption {
 
 	return {
 		backgroundColor: "transparent",
-		color: ["#2563EB", "#A05A00", "#C9362C"],
+		color: [chartPrimary, chartWarning, "#C9362C"],
 		tooltip: {
 			trigger: "axis",
 			backgroundColor: "rgba(255,255,255,0.98)",
@@ -568,8 +573,8 @@ export function tcpInsightChartOption(data: TcpSeriesChartData): ChartOption {
 					yAxisIndex: false,
 					filterMode: "none",
 					brushStyle: {
-						color: "rgba(37, 99, 235, 0.12)",
-						borderColor: "rgba(37, 99, 235, 0.72)",
+						color: chartPrimaryBrush,
+						borderColor: chartPrimaryBrushBorder,
 						borderWidth: 1
 					}
 				}
@@ -633,7 +638,7 @@ export function tcpInsightChartOption(data: TcpSeriesChartData): ChartOption {
 				data: pingSeriesData(data.connectAvg),
 				showSymbol: false,
 				smooth: true,
-				lineStyle: { width: 2.25, color: "#2563EB" },
+				lineStyle: { width: 2.25, color: chartPrimary },
 				z: 8
 			}
 		]

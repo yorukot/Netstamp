@@ -2,13 +2,16 @@ import type { ChartOption } from "./chartOptions";
 
 const axisLabel = { color: "#64748B", fontFamily: "Inter, system-ui, sans-serif", fontSize: 10 };
 const splitLine = { lineStyle: { color: "rgba(148,163,184,0.18)" } };
+const chartPrimary = "#EA6A1A";
+const chartPrimaryFill = "rgba(234,106,26,0.12)";
+const chartSecondary = "#2563EB";
 
 export function lineChartOption(title: string, values: number[], secondaryValues: number[] = []): ChartOption {
 	const labels = values.map((_, index) => `${index * 10}m`);
 
 	return {
 		backgroundColor: "transparent",
-		color: ["#2563EB", "#94A3B8"],
+		color: [chartPrimary, chartSecondary],
 		tooltip: {
 			trigger: "axis",
 			backgroundColor: "rgba(255,255,255,0.98)",
@@ -27,7 +30,7 @@ export function lineChartOption(title: string, values: number[], secondaryValues
 				showSymbol: false,
 				lineStyle: { width: 2.5 },
 				areaStyle: {
-					color: "rgba(37,99,235,0.12)"
+					color: chartPrimaryFill
 				}
 			},
 			secondaryValues.length
@@ -47,7 +50,7 @@ export function lineChartOption(title: string, values: number[], secondaryValues
 export function barChartOption(values: number[], name = "events"): ChartOption {
 	return {
 		backgroundColor: "transparent",
-		color: ["#2563EB"],
+		color: [chartPrimary],
 		tooltip: {
 			trigger: "axis",
 			backgroundColor: "rgba(255,255,255,0.98)",
@@ -65,7 +68,7 @@ export function barChartOption(values: number[], name = "events"): ChartOption {
 				barWidth: "42%",
 				itemStyle: {
 					borderRadius: [6, 6, 0, 0],
-					color: "#2563EB"
+					color: chartPrimary
 				}
 			}
 		]
