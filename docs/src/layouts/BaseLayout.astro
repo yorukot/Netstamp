@@ -45,6 +45,19 @@ const schemaGraph = createSchemaGraph({ title, description, pageUrl: canonicalUr
 		<link rel="icon" type="image/svg+xml" href={faviconUrl} />
 		<meta name="viewport" content="width=device-width" />
 		<meta name="generator" content={Astro.generator} />
+		<script is:inline>
+			(() => {
+				const storageKey = "netstamp:theme";
+				const fallbackTheme = window.matchMedia?.("(prefers-color-scheme: light)").matches ? "light" : "dark";
+
+				try {
+					const storedTheme = window.localStorage.getItem(storageKey);
+					document.documentElement.dataset.theme = storedTheme === "light" || storedTheme === "dark" ? storedTheme : fallbackTheme;
+				} catch {
+					document.documentElement.dataset.theme = fallbackTheme;
+				}
+			})();
+		</script>
 		<title>{title}</title>
 		{
 			seoHead.map(entry => {
@@ -85,6 +98,7 @@ const schemaGraph = createSchemaGraph({ title, description, pageUrl: canonicalUr
 			import "@phosphor-icons/webcomponents/PhListBullets";
 			import "@phosphor-icons/webcomponents/PhMagnifyingGlass";
 			import "@phosphor-icons/webcomponents/PhMapTrifold";
+			import "@phosphor-icons/webcomponents/PhMoonStars";
 			import "@phosphor-icons/webcomponents/PhNetwork";
 			import "@phosphor-icons/webcomponents/PhNote";
 			import "@phosphor-icons/webcomponents/PhPencilSimple";
@@ -93,6 +107,7 @@ const schemaGraph = createSchemaGraph({ title, description, pageUrl: canonicalUr
 			import "@phosphor-icons/webcomponents/PhRocketLaunch";
 			import "@phosphor-icons/webcomponents/PhShieldCheck";
 			import "@phosphor-icons/webcomponents/PhSidebarSimple";
+			import "@phosphor-icons/webcomponents/PhSun";
 			import "@phosphor-icons/webcomponents/PhTerminalWindow";
 			import "@phosphor-icons/webcomponents/PhUsers";
 			import "@phosphor-icons/webcomponents/PhWarning";
@@ -101,5 +116,56 @@ const schemaGraph = createSchemaGraph({ title, description, pageUrl: canonicalUr
 		{nav ? <TopNav /> : null}
 		<slot />
 		<TrackingConsent />
+		<script>
+			const themeStorageKey = "netstamp:theme";
+			let cleanupDocsTheme = () => {};
+
+			function readDocsTheme() {
+				const theme = document.documentElement.dataset.theme;
+				return theme === "light" || theme === "dark" ? theme : "dark";
+			}
+
+			function writeDocsTheme(theme: "light" | "dark") {
+				document.documentElement.dataset.theme = theme;
+
+				try {
+					window.localStorage.setItem(themeStorageKey, theme);
+				} catch {
+					// Persistence can be unavailable; keep the current page state usable.
+				}
+			}
+
+			function initDocsTheme() {
+				cleanupDocsTheme();
+
+				const themeToggle = document.querySelector("[data-theme-toggle]");
+				if (!themeToggle) return;
+
+				function syncThemeToggle() {
+					const theme = readDocsTheme();
+					const nextTheme = theme === "dark" ? "light" : "dark";
+					const label = nextTheme === "light" ? "Switch to light mode" : "Switch to dark mode";
+
+					themeToggle.setAttribute("aria-label", label);
+					themeToggle.setAttribute("title", label);
+					themeToggle.setAttribute("aria-pressed", String(theme === "light"));
+				}
+
+				const handleThemeToggle = () => {
+					writeDocsTheme(readDocsTheme() === "dark" ? "light" : "dark");
+					syncThemeToggle();
+				};
+
+				syncThemeToggle();
+				themeToggle.addEventListener("click", handleThemeToggle);
+				cleanupDocsTheme = () => {
+					themeToggle.removeEventListener("click", handleThemeToggle);
+					cleanupDocsTheme = () => {};
+				};
+			}
+
+			initDocsTheme();
+			document.addEventListener("astro:page-load", initDocsTheme);
+		</script>
 	</body>
 </html>

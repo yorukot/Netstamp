@@ -1,5 +1,6 @@
 ---
-import netstampLogo from "@netstamp/brand/assets/netstamp-logo-light.svg?url";
+import netstampLogoDark from "@netstamp/brand/assets/netstamp-logo-dark.svg?url";
+import netstampLogoLight from "@netstamp/brand/assets/netstamp-logo-light.svg?url";
 import { appUrl } from "../../lib/publicUrls";
 import Icon from "../icons/Icon.astro";
 
@@ -12,7 +13,8 @@ const isComponents = pathname.startsWith("/storybook") || pathname.startsWith("/
 <nav class="siteNav" aria-label="Primary navigation">
 	<div class="siteNavPrimary">
 		<a class="siteBrand" href="/" aria-label="Netstamp home">
-			<img src={netstampLogo} alt="Netstamp" />
+			<img class="siteBrandLogo siteBrandLogoLight" src={netstampLogoLight} alt="Netstamp" />
+			<img class="siteBrandLogo siteBrandLogoDark" src={netstampLogoDark} alt="" aria-hidden="true" />
 		</a>
 		<div class="siteNavLinks" aria-label="Docs sections">
 			<a href="/docs/" class:list={["siteNavLink", isDocs && "active"]}>
@@ -34,6 +36,10 @@ const isComponents = pathname.startsWith("/storybook") || pathname.startsWith("/
 			<Icon name="github" size={16} />
 			<span>GitHub</span>
 		</a>
+		<button class="siteThemeToggle" type="button" data-theme-toggle aria-label="Switch color mode" title="Switch color mode">
+			<ph-sun class="themeIcon themeIconSun" size="16" weight="bold" aria-hidden="true"></ph-sun>
+			<ph-moon-stars class="themeIcon themeIconMoon" size="16" weight="bold" aria-hidden="true"></ph-moon-stars>
+		</button>
 		<a href={appUrl("/login")} class="siteNavSignIn ns-frame">Sign in</a>
 	</div>
 </nav>
