@@ -25,16 +25,17 @@
 	--ns-text-muted: #ddd4c8;
 	--ns-text-subtle: #b8b3aa;
 	--ns-text-low: #77736b;
-	--ns-text-on-accent: #0b0704;
+	--ns-text-on-accent: #ffffff;
 
-	--ns-accent: #ff7a1a;
-	--ns-accent-hover: #ff9a3d;
-	--ns-accent-active: #ff5f00;
-	--ns-accent-muted: rgba(255, 122, 26, 0.16);
-	--ns-accent-subtle: rgba(255, 122, 26, 0.22);
-	--ns-accent-border: rgba(255, 122, 26, 0.66);
-	--ns-accent-glow: rgba(255, 122, 26, 0.3);
-	--ns-glass-orange: rgba(255, 122, 26, 0.22);
+	--ns-accent: #2f6fed;
+	--ns-accent-hover: #4f9cff;
+	--ns-accent-active: #1f55d8;
+	--ns-accent-muted: rgba(47, 111, 237, 0.16);
+	--ns-accent-subtle: rgba(47, 111, 237, 0.22);
+	--ns-accent-border: rgba(79, 156, 255, 0.56);
+	--ns-accent-glow: rgba(47, 111, 237, 0.24);
+	--ns-glass-accent: rgba(47, 111, 237, 0.18);
+	--ns-glass-orange: var(--ns-glass-accent);
 
 	--ns-critical: #ff453a;
 	--ns-warning: #ff9f0a;
@@ -86,14 +87,15 @@
 	--ns-text-low: #7b8794;
 	--ns-text-on-accent: #ffffff;
 
-	--ns-accent: #d45b18;
-	--ns-accent-hover: #b94c13;
-	--ns-accent-active: #963d0f;
-	--ns-accent-muted: rgba(212, 91, 24, 0.09);
-	--ns-accent-subtle: rgba(212, 91, 24, 0.14);
-	--ns-accent-border: rgba(212, 91, 24, 0.38);
-	--ns-accent-glow: rgba(212, 91, 24, 0.16);
-	--ns-glass-orange: rgba(212, 91, 24, 0.1);
+	--ns-accent: #2563eb;
+	--ns-accent-hover: #1d4ed8;
+	--ns-accent-active: #1e40af;
+	--ns-accent-muted: rgba(37, 99, 235, 0.09);
+	--ns-accent-subtle: rgba(37, 99, 235, 0.14);
+	--ns-accent-border: rgba(37, 99, 235, 0.36);
+	--ns-accent-glow: rgba(37, 99, 235, 0.16);
+	--ns-glass-accent: rgba(37, 99, 235, 0.1);
+	--ns-glass-orange: var(--ns-glass-accent);
 
 	--ns-critical: #c9362c;
 	--ns-warning: #a05a00;
@@ -130,16 +132,17 @@
 	--ns-text-muted: #d6dde8;
 	--ns-text-subtle: #9aa6b5;
 	--ns-text-low: #738093;
-	--ns-text-on-accent: #ffffff;
+	--ns-text-on-accent: #06101a;
 
-	--ns-accent: #f26a21;
-	--ns-accent-hover: #ff7a2f;
-	--ns-accent-active: #d85814;
-	--ns-accent-muted: rgba(242, 106, 33, 0.12);
-	--ns-accent-subtle: rgba(242, 106, 33, 0.18);
-	--ns-accent-border: rgba(242, 106, 33, 0.42);
-	--ns-accent-glow: rgba(242, 106, 33, 0.18);
-	--ns-glass-orange: rgba(242, 106, 33, 0.14);
+	--ns-accent: #38bdf8;
+	--ns-accent-hover: #7dd3fc;
+	--ns-accent-active: #0ea5e9;
+	--ns-accent-muted: rgba(56, 189, 248, 0.12);
+	--ns-accent-subtle: rgba(56, 189, 248, 0.18);
+	--ns-accent-border: rgba(56, 189, 248, 0.42);
+	--ns-accent-glow: rgba(56, 189, 248, 0.16);
+	--ns-glass-accent: rgba(56, 189, 248, 0.14);
+	--ns-glass-orange: var(--ns-glass-accent);
 
 	--ns-critical: #ff5f57;
 	--ns-warning: #e5a127;
@@ -209,8 +212,9 @@ a {
 	min-height: 100svh;
 	color: var(--ns-text);
 	background:
-		radial-gradient(circle at 16% 18%, rgba(255, 122, 26, 0.13), transparent 22rem), radial-gradient(circle at 88% 10%, rgba(255, 122, 26, 0.08), transparent 20rem),
-		linear-gradient(rgba(255, 122, 26, 0.09) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 122, 26, 0.09) 1px, transparent 1px),
+		radial-gradient(circle at 16% 18%, color-mix(in srgb, var(--ns-accent) 13%, transparent), transparent 22rem),
+		radial-gradient(circle at 88% 10%, color-mix(in srgb, var(--ns-accent) 8%, transparent), transparent 20rem),
+		linear-gradient(color-mix(in srgb, var(--ns-accent) 9%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--ns-accent) 9%, transparent) 1px, transparent 1px),
 		linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px), var(--ns-bg);
 	background-size:
 		100% 100%,
@@ -232,9 +236,11 @@ a {
 
 .ns-grid-shell--constellation {
 	background:
-		radial-gradient(circle at 18% 24%, rgba(255, 255, 255, 0.12) 0 1px, transparent 1px), radial-gradient(circle at 82% 18%, rgba(255, 122, 26, 0.32) 0 1px, transparent 1px),
-		radial-gradient(circle at 64% 76%, rgba(255, 122, 26, 0.18) 0 1px, transparent 1px), radial-gradient(circle at 88% 10%, rgba(255, 122, 26, 0.08), transparent 22rem),
-		linear-gradient(rgba(255, 122, 26, 0.09) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 122, 26, 0.09) 1px, transparent 1px),
+		radial-gradient(circle at 18% 24%, rgba(255, 255, 255, 0.12) 0 1px, transparent 1px),
+		radial-gradient(circle at 82% 18%, color-mix(in srgb, var(--ns-accent) 32%, transparent) 0 1px, transparent 1px),
+		radial-gradient(circle at 64% 76%, color-mix(in srgb, var(--ns-accent) 18%, transparent) 0 1px, transparent 1px),
+		radial-gradient(circle at 88% 10%, color-mix(in srgb, var(--ns-accent) 8%, transparent), transparent 22rem),
+		linear-gradient(color-mix(in srgb, var(--ns-accent) 9%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--ns-accent) 9%, transparent) 1px, transparent 1px),
 		linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px), var(--ns-bg);
 	background-size:
 		22rem 22rem,

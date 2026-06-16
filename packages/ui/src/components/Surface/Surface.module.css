@@ -26,7 +26,7 @@
 
 .accent {
 	--ns-frame-color: var(--ns-accent-border);
-	background: color-mix(in srgb, var(--ns-accent) 7%, var(--ns-surface));
+	background: linear-gradient(135deg, var(--ns-glass-accent), transparent 58%), color-mix(in srgb, var(--ns-accent) 6%, var(--ns-surface));
 }
 
 .danger {

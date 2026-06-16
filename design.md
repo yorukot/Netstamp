@@ -22,7 +22,7 @@ Netstamp should feel like serious infrastructure software for repeated operation
 Core authenticated app traits:
 
 - Light, neutral workspace with white and gray surfaces.
-- Orange as a reserved brand accent for primary actions, active navigation, focus, and selected state.
+- Blue/cyan as the reserved brand accent for primary actions, active navigation, focus, and selected state.
 - Status colors carry semantic meaning only: healthy, warning, critical, pending, or neutral.
 - Square, flat frames; no rounded corners and no cut-corner framing in the web app.
 - Sans typography for navigation, headings, controls, tables, labels, and buttons.
@@ -66,25 +66,26 @@ Use the display face for big product statements and screen titles. Use the sans 
 - `--ns-text-muted`: `#ddd4c8`, body and secondary text.
 - `--ns-text-subtle`: `#b8b3aa`, supporting copy and inactive controls.
 - `--ns-text-low`: `#77736b`, metadata and low-priority labels.
-- `--ns-text-on-accent`: `#0b0704`, text on orange controls.
+- `--ns-text-on-accent`: high-contrast text on accent controls.
 
 ### Accent And State
 
-- `--ns-accent`: `#ff7a1a`, primary CTA and active brand color.
-- `--ns-accent-hover`: `#ff9a3d`, hover and highlighted orange.
-- `--ns-accent-active`: `#ff5f00`, pressed/focused orange.
-- `--ns-accent-muted`: `rgba(255, 122, 26, 0.16)`, selected/hover fill.
-- `--ns-accent-subtle`: `rgba(255, 122, 26, 0.22)`, stronger selected fill.
-- `--ns-accent-border`: `rgba(255, 122, 26, 0.66)`, active frame color.
-- `--ns-accent-glow`: `rgba(255, 122, 26, 0.3)`, restrained orange glow.
-- `--ns-glass-orange`: `rgba(255, 122, 26, 0.22)`, orange glass overlay.
+- `--ns-accent`: blue/cyan brand action color.
+- `--ns-accent-hover`: brighter blue/cyan hover and highlight color.
+- `--ns-accent-active`: pressed/focused blue color.
+- `--ns-accent-muted`: low-opacity selected/hover fill.
+- `--ns-accent-subtle`: stronger selected fill.
+- `--ns-accent-border`: active frame color.
+- `--ns-accent-glow`: restrained blue/cyan glow.
+- `--ns-glass-accent`: low-opacity blue/cyan glass overlay.
+- `--ns-glass-orange`: legacy alias for `--ns-glass-accent`; do not use for new UI.
 - `--ns-critical`: `#ff453a`, destructive/error/failed.
 - `--ns-warning`: `#ff9f0a`, warning/waiting/degraded/pending.
 - `--ns-success`: `#30d158`, healthy/online/success.
 - `--ns-metal`: `#c4ccd9`, neutral technical accent.
 - `--ns-slate-line`: `rgba(196, 204, 217, 0.22)`, neutral chart and divider line.
 
-Orange is the reserved brand interaction color. Green, yellow, and red are reserved for state meaning. Blue and slate may be used for chart/data series where it improves dashboard readability. Avoid rainbow, pastel, glossy gradient, or decorative color systems.
+Blue/cyan is the reserved brand interaction color. Green, amber, and red are reserved for state meaning. Slate may be used for chart/data series where it improves dashboard readability. Avoid rainbow, pastel, glossy gradient, or decorative color systems.
 
 ### Borders, Radius, Shadows
 
@@ -102,9 +103,9 @@ Use square frames instead of clipped, cut-corner, rounded, or pill-shaped rectan
 
 Most full-page surfaces use layered dark grids:
 
-- Large orange grid around `6rem-8rem`, low opacity.
+- Large accent grid around `6rem-8rem`, low opacity.
 - Fine white grid around `2rem`, very low opacity.
-- Optional radial orange glow near areas of attention.
+- Optional radial blue/cyan glow near areas of attention.
 - Optional diagonal micro-pattern on panels, sidebars, maps, user cards, and landing sections.
 
 Use `.ns-grid-shell` or `.ns-grid-shell--constellation` when a full app surface can use the shared utility. Otherwise match the same layered background locally.
@@ -118,7 +119,7 @@ Use the landing page for high-impact storytelling:
 - Full-height dark grid canvas.
 - Sticky docs top nav above the page.
 - Hero with large left-side claim and a full technical network animation.
-- Primary CTA is orange fill; secondary CTA is dark/neutral.
+- Primary CTA is blue/cyan fill; secondary CTA is dark/neutral.
 - Story sections use animated network/topology scenes, probe scenes, route boards, check cards, and numbered feature cards.
 - Feature cards can be large and visual, but they must remain technical and specific.
 - Final CTA/trust area should stay grounded in open source, deployability, probes, and measurable network behavior.
@@ -163,10 +164,10 @@ Docs must feel like Netstamp, but prioritize reading and navigation:
 - Three-column desktop shell: left docs navigation, central content, right table of contents.
 - Left nav can fold to icon-only on wide layouts.
 - Below about `68rem`, collapse to one column with sidebar, content, and TOC stacked.
-- Doc hero is a framed orange-accent panel with compact display title and body summary.
+- Doc hero is a framed blue-accent panel with compact display title and body summary.
 - Prose uses generous line-height and clear heading spacing.
-- Code blocks use terminal-style top bars, dark backgrounds, and orange borders.
-- Cards, callouts, pager links, search results, and index grids use low-contrast dark surfaces with orange hover/active states.
+- Code blocks use terminal-style top bars, dark backgrounds, and accent borders.
+- Cards, callouts, pager links, search results, and index grids use low-contrast dark surfaces with accent hover/active states.
 
 Docs can retain the dark technical structure until a dedicated redesign, but should not introduce new cut-corner treatments.
 
@@ -179,8 +180,8 @@ The API explorer is denser than standard docs:
 - Desktop shell has three columns: endpoint sidebar, reference content, sticky request console.
 - Below about `86rem`, console drops below content.
 - Below about `64rem`, sidebar/content/console collapse to one column.
-- Method labels use state colors: GET green, POST orange, PUT/PATCH yellow, DELETE red.
-- Endpoint rows use monospace method and path with active orange frame.
+- Method labels use state colors: GET green, POST amber, PUT/PATCH yellow, DELETE red.
+- Endpoint rows use monospace method and path with active accent frame.
 - Operation articles pair explanatory content with snippets and structured field/response rows.
 - Console uses sticky dark glass, form controls, body textarea, cURL preview, and response panel.
 - Snippets and response previews use monospace, deep black backgrounds, and horizontal/vertical scrolling when needed.
@@ -317,7 +318,7 @@ Panel rules:
 Buttons live in `@netstamp/ui` and use square rectangular frames.
 
 - Text is sans, normal case, and medium-heavy weight.
-- Primary uses orange fill and white text.
+- Primary uses blue/cyan fill and high-contrast text from `--ns-text-on-accent`.
 - Secondary uses neutral raised surface and standard text.
 - Outline uses neutral surface and neutral hover.
 - Ghost is for low-priority actions.
@@ -360,7 +361,7 @@ Data tables should feel like enterprise dashboard data surfaces.
 
 - Use sans for headers and cells; reserve mono for technical values inside cells.
 - Sticky headers can use neutral raised surfaces.
-- Hover rows use neutral backgrounds; selected rows may use faint orange backgrounds.
+- Hover rows use neutral backgrounds; selected rows may use faint accent backgrounds.
 - Thin row borders with low contrast.
 - Allow horizontal scrolling for wide content.
 
@@ -378,7 +379,7 @@ Terminal blocks are command surfaces.
 
 - Deep black background.
 - Monospace text.
-- Orange or faint white frame.
+- Blue/cyan accent or faint white frame.
 - Optional top bar with three status dots for prose code blocks.
 - Snippets and response previews should scroll rather than wrap into unreadable layouts, except API response previews may use `pre-wrap` when readability is better.
 
@@ -386,10 +387,10 @@ Terminal blocks are command surfaces.
 
 Navigation is sans and normal case.
 
-- App sidebar active item uses orange leading accent and a neutral square frame.
+- App sidebar active item uses blue/cyan leading accent and a neutral square frame.
 - Docs top nav uses icon plus text, with text hidden on small screens when necessary.
-- Docs sidebar groups are collapsible and show active state in orange.
-- TOC active link uses orange and a subtle orange text glow.
+- Docs sidebar groups are collapsible and show active state in the shared accent color.
+- TOC active link uses the shared accent color and a subtle accent text glow.
 
 ### Network Visuals
 
@@ -397,7 +398,7 @@ Network visuals should be abstract, map-like, and diagnostic.
 
 - In the authenticated app, prefer simple square labels and markers.
 - Routes, packets, rails, hops, matrices, and topology lines are preferred motifs.
-- Active packets and important paths use orange.
+- Active packets and important paths use blue/cyan.
 - Green only means online/success.
 - Scanline and route animations are acceptable when slow and subtle.
 - Three.js scenes and animated CSS visuals must respect reduced motion.
@@ -456,13 +457,13 @@ Avoid springy, playful, elastic, large parallax, or attention-seeking motion.
 
 Charts, maps, route boards, and telemetry widgets should look embedded in the console.
 
-- Primary series: `--ns-accent`, `#ff7a1a`, or `#ff8f3d`.
+- Primary series: `--ns-accent`, `#2563eb`, or `#38bdf8`.
 - Secondary/baseline series: `--ns-metal`, `--ns-slate-line`, or low-opacity white.
 - Success state: `--ns-success`.
 - Warning state: `--ns-warning`.
 - Critical state: `--ns-critical`.
 - Tooltip background: near black, around `rgba(10, 13, 18, 0.92)`.
-- Tooltip border: faint white or orange when active.
+- Tooltip border: faint white or accent when active.
 - Axis labels: muted mono, around `10px`.
 - Grid lines: very low contrast.
 - Area fills: fade to transparent.
@@ -544,7 +545,7 @@ Do not add:
 
 - Oversized decorative cards, pill-shaped core controls, or soft consumer-app surfaces.
 - Pastel SaaS gradients, glossy blobs, heavy glassmorphism, or decorative orbs.
-- Blue/purple/rainbow brand accents.
+- Purple/rainbow/non-token brand accents.
 - Decorative emoji icons.
 - Soft lifestyle photography or stock photos.
 - Centered generic landing sections that ignore the engineering grid.
@@ -559,8 +560,8 @@ Before shipping frontend UI, check:
 - Does it use existing `--ns-*` tokens?
 - Does it use the correct font family for display, body, and operational text?
 - Are framed controls square and free of custom clipped polygons?
-- Is orange the main interactive accent?
-- Are green, yellow, and red reserved for state?
+- Is blue/cyan the main interactive accent?
+- Are green, amber, and red reserved for state?
 - Does the layout follow the `1rem` grid rhythm unless a larger landing/docs rhythm is intentional?
 - Does the UI match the density of its surface: landing, app, docs, or OpenAPI?
 - Does it collapse cleanly on the relevant breakpoints?
