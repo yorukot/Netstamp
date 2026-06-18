@@ -57,6 +57,7 @@ This checklist tracks the cleanup pass for `web/` and `docs/`. Complete items in
 
 ## Validation
 
+- [x] Make `@netstamp/ui` CSS copying resilient to repeated frontend builds.
 - [x] Run `pnpm --filter @netstamp/web typecheck`.
 - [x] Run `pnpm --filter @netstamp/web lint`.
 - [x] Run `pnpm --filter @netstamp/docs build`.

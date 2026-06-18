@@ -1,4 +1,4 @@
-import { cp, mkdir, readdir } from "node:fs/promises";
+import { copyFile, mkdir, readdir } from "node:fs/promises";
 import { dirname, extname, join, relative } from "node:path";
 
 const sourceRoot = new URL("../src/", import.meta.url);
@@ -28,7 +28,7 @@ async function copyCssFiles(directoryUrl) {
 			const relativePath = relative(sourceRoot.pathname, sourcePath);
 			const outputPath = join(outputRoot.pathname, relativePath);
 			await mkdir(dirname(outputPath), { recursive: true });
-			await cp(sourcePath, outputPath);
+			await copyFile(sourcePath, outputPath);
 		})
 	);
 }
