@@ -10,13 +10,11 @@ import {
 import { projectQueries } from "@/shared/api/queries";
 import type { ApiProjectInvite } from "@/shared/api/types";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
-import { ActionRow } from "@/shared/components/ActionRow";
-import { BodyCopy } from "@/shared/components/BodyCopy";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { appFeatures, demoMode } from "@/shared/config/features";
 import { pushToast } from "@/shared/toast/toastStore";
-import { Badge, Button, DataTable, Panel, SignalAvatar, TextField, type DataColumn } from "@netstamp/ui";
+import { ActionRow, Badge, BodyCopy, Button, DataTable, Panel, SignalAvatar, TextField, type DataColumn } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
 import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";

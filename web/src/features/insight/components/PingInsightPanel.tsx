@@ -1,13 +1,11 @@
 import type { CheckDefinition } from "@/features/checks/data/checks";
 import type { Probe } from "@/features/probes/data/probes";
 import type { PingInsightResponse, PingSeriesResponse } from "@/shared/api/types";
-import { BodyCopy } from "@/shared/components/BodyCopy";
-import { LoadingState } from "@/shared/components/LoadingState";
 import { formatCount } from "@/shared/utils/insightFormatters";
 import { hasPingSeriesChartData, pingSeriesChartData, pingSummaryMetrics } from "@/shared/utils/pingInsightData";
 import { ChartPanel } from "@/shared/visualizations/ChartPanel";
 import { pingInsightChartOption } from "@/shared/visualizations/chartOptions";
-import { Panel } from "@netstamp/ui";
+import { BodyCopy, LoadingState, Panel } from "@netstamp/ui";
 import styles from "./PingInsightPanel.module.css";
 
 interface PingInsightPanelProps {

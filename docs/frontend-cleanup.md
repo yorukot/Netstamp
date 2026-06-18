@@ -28,9 +28,9 @@ This checklist tracks the cleanup pass for `web/` and `docs/`. Complete items in
 
 ## Shared UI Boundary
 
-- [ ] Promote reusable primitives currently in `web/src/shared/components` to `@netstamp/ui` where they are not app-workflow specific.
-- [ ] Leave authenticated app workflow/provider helpers in `web/src/shared/components`.
-- [ ] Add package exports and Storybook coverage for promoted primitives where appropriate.
+- [x] Promote reusable primitives currently in `web/src/shared/components` to `@netstamp/ui` where they are not app-workflow specific.
+- [x] Leave authenticated app workflow/provider helpers in `web/src/shared/components`.
+- [x] Add package exports and Storybook coverage for promoted primitives where appropriate.
 
 ## Styling
 

@@ -1,9 +1,8 @@
-import { Button, type ButtonProps } from "@netstamp/ui";
 import type { ReactNode } from "react";
-import { classNames } from "../utils/classNames";
+import { Button, type ButtonProps } from "../Button/Button";
 import styles from "./IconButton.module.css";
 
-interface IconButtonProps extends Omit<ButtonProps, "children" | "size"> {
+export interface IconButtonProps extends Omit<ButtonProps, "children" | "size"> {
 	children: ReactNode;
 	"aria-label": string;
 	danger?: boolean;
@@ -14,7 +13,7 @@ export function IconButton({ children, className, danger, size = "sm", title, ty
 	const label = props["aria-label"];
 
 	return (
-		<Button className={classNames(styles.button, styles[size], danger && styles.danger, className)} type={type} variant={variant} size="sm" title={title ?? label} {...props}>
+		<Button className={[styles.button, styles[size], danger && styles.danger, className].filter(Boolean).join(" ")} type={type} variant={variant} size="sm" title={title ?? label} {...props}>
 			{children}
 		</Button>
 	);

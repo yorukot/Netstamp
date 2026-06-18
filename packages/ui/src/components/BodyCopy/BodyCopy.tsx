@@ -6,7 +6,7 @@ interface BodyCopyOwnProps {
 	className?: string;
 }
 
-type BodyCopyProps<T extends ElementType = "p"> = BodyCopyOwnProps & Omit<ComponentPropsWithoutRef<T>, keyof BodyCopyOwnProps>;
+export type BodyCopyProps<T extends ElementType = "p"> = BodyCopyOwnProps & Omit<ComponentPropsWithoutRef<T>, keyof BodyCopyOwnProps>;
 
 export function BodyCopy<T extends ElementType = "p">({ as, className, ...props }: BodyCopyProps<T>) {
 	const Comp = as || "p";

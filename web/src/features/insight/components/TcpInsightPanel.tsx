@@ -2,12 +2,10 @@ import type { CheckDefinition } from "@/features/checks/data/checks";
 import { hasTcpSeriesChartData, tcpSeriesChartData, tcpSummaryMetrics } from "@/features/insight/data/tcpInsightData";
 import type { Probe } from "@/features/probes/data/probes";
 import type { TcpInsightResponse, TcpSeriesResponse } from "@/shared/api/types";
-import { BodyCopy } from "@/shared/components/BodyCopy";
-import { LoadingState } from "@/shared/components/LoadingState";
 import { formatCount } from "@/shared/utils/insightFormatters";
 import { ChartPanel } from "@/shared/visualizations/ChartPanel";
 import { tcpInsightChartOption } from "@/shared/visualizations/chartOptions";
-import { Panel } from "@netstamp/ui";
+import { BodyCopy, LoadingState, Panel } from "@netstamp/ui";
 import styles from "./PingInsightPanel.module.css";
 
 interface TcpInsightPanelProps {

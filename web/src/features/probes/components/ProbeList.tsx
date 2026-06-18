@@ -1,7 +1,6 @@
 import { formatProbeHeartbeat } from "@/features/probes/api/probeAdapters";
 import type { Probe, ProbeStatus } from "@/features/probes/data/probes";
-import { FilterGrid } from "@/shared/components/FilterGrid";
-import { Badge, DataTable, Panel, PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger, SelectField, TextField, type BadgeTone, type DataColumn } from "@netstamp/ui";
+import { Badge, DataTable, FilterGrid, Panel, PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger, SelectField, TextField, type BadgeTone, type DataColumn } from "@netstamp/ui";
 import { useEffect, useState, type MouseEvent } from "react";
 import styles from "./ProbeList.module.css";
 import type { ProbeSort } from "./types";

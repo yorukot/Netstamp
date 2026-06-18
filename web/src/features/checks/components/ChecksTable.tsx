@@ -1,7 +1,6 @@
 import type { CheckDefinition } from "@/features/checks/data/checks";
-import { IconButton } from "@/shared/components/IconButton";
 import { classNames } from "@/shared/utils/classNames";
-import { Badge, Button, DataTable, type DataColumn } from "@netstamp/ui";
+import { Badge, Button, DataTable, IconButton, type DataColumn } from "@netstamp/ui";
 import { Copy, PencilSimple, Trash } from "@phosphor-icons/react";
 import { useMemo, type MouseEvent, type ReactNode } from "react";
 import styles from "./ChecksPage.module.css";

@@ -2,12 +2,11 @@ import { hasTcpSeriesChartData, tcpSeriesChartData } from "@/features/insight/da
 import type { InsightPair, TimeWindow } from "@/features/insight/insightTypes";
 import { projectQueries } from "@/shared/api/queries";
 import type { PingSeriesResponse, TcpSeriesResponse } from "@/shared/api/types";
-import { LoadingState } from "@/shared/components/LoadingState";
 import { formatCount } from "@/shared/utils/insightFormatters";
 import { hasPingSeriesChartData, pingSeriesChartData } from "@/shared/utils/pingInsightData";
 import { ChartPanel } from "@/shared/visualizations/ChartPanel";
 import { insightSeriesColor, multiPingInsightChartOption, multiTcpInsightChartOption, type InsightMultiSeriesLine } from "@/shared/visualizations/chartOptions";
-import { Panel } from "@netstamp/ui";
+import { LoadingState, Panel } from "@netstamp/ui";
 import { useQueries } from "@tanstack/react-query";
 import styles from "./MultiSeriesInsightPanel.module.css";
 

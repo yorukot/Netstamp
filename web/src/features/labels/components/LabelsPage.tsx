@@ -3,14 +3,12 @@ import { useDeleteProjectLabelMutation, useSaveProjectLabelMutation } from "@/sh
 import { projectQueries } from "@/shared/api/queries";
 import type { ApiCheck, ApiLabel, ApiProbe } from "@/shared/api/types";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
-import { ActionRow } from "@/shared/components/ActionRow";
 import { useConfirm } from "@/shared/components/confirmContext";
 import { EditorDrawer } from "@/shared/components/EditorDrawer";
-import { FilterGrid } from "@/shared/components/FilterGrid";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
-import { Badge, Button, DataTable, Panel, SelectField, TextField, type DataColumn } from "@netstamp/ui";
+import { ActionRow, Badge, Button, DataTable, FilterGrid, Panel, SelectField, TextField, type DataColumn } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";

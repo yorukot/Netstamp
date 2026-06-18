@@ -1,7 +1,6 @@
-import { classNames } from "@/shared/utils/classNames";
 import styles from "./LoadingState.module.css";
 
-interface LoadingStateProps {
+export interface LoadingStateProps {
 	label: string;
 	detail?: string;
 	className?: string;
@@ -10,7 +9,7 @@ interface LoadingStateProps {
 
 export function LoadingState({ label, detail, className, size = "chart" }: LoadingStateProps) {
 	return (
-		<div className={classNames(styles.loadingState, styles[`loadingState${size}`], className)} role="status" aria-live="polite">
+		<div className={[styles.loadingState, styles[`loadingState${size}`], className].filter(Boolean).join(" ")} role="status" aria-live="polite">
 			<div className={styles.loadingCopy}>
 				<strong>{label}</strong>
 				{detail ? <span>{detail}</span> : null}

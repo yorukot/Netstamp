@@ -3,13 +3,11 @@ import { buildHopDiagnostics, selectedTimelineValueLabel, tracerouteInsightTimel
 import type { HopDiagnostic, TimeWindow } from "@/features/insight/insightTypes";
 import type { Probe } from "@/features/probes/data/probes";
 import type { TracerouteInsightResponse, TracerouteResult } from "@/shared/api/types";
-import { BodyCopy } from "@/shared/components/BodyCopy";
-import { LoadingState } from "@/shared/components/LoadingState";
 import { formatMs, formatPercent } from "@/shared/utils/insightFormatters";
 import { LatencyRail } from "@/shared/visualizations/LatencyRail";
 import { RouteTopologyMap, type RouteTopologyEdge, type RouteTopologyNode } from "@/shared/visualizations/RouteTopologyMap";
 import { RunTimeline } from "@/shared/visualizations/RunTimeline";
-import { Badge, DataTable, Panel, type DataColumn } from "@netstamp/ui";
+import { Badge, BodyCopy, DataTable, LoadingState, Panel, type DataColumn } from "@netstamp/ui";
 import styles from "./TracerouteInsightPanel.module.css";
 
 function hopColumns(maxRtt: number): DataColumn<HopDiagnostic>[] {

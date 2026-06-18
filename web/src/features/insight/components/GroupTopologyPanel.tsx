@@ -1,7 +1,5 @@
-import { BodyCopy } from "@/shared/components/BodyCopy";
-import { LoadingState } from "@/shared/components/LoadingState";
 import { RouteTopologyMap, type RouteTopologyEdge, type RouteTopologyNode } from "@/shared/visualizations/RouteTopologyMap";
-import { Panel } from "@netstamp/ui";
+import { BodyCopy, LoadingState, Panel } from "@netstamp/ui";
 
 interface GroupTopologyPanelProps {
 	title: string;

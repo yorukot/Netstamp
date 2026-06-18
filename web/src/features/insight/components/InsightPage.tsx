@@ -22,9 +22,6 @@ import { projectQueries } from "@/shared/api/queries";
 import { apiQueryKeys } from "@/shared/api/queryKeys";
 import { type ApiProjectAssignment, type PingInsightResponse, type PingSeriesResponse, type TcpInsightResponse, type TcpSeriesResponse } from "@/shared/api/types";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
-import { BodyCopy } from "@/shared/components/BodyCopy";
-import { FilterGrid } from "@/shared/components/FilterGrid";
-import { LoadingState } from "@/shared/components/LoadingState";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { formatCount } from "@/shared/utils/insightFormatters";
@@ -34,7 +31,7 @@ import {
 	relativeRangeForTimeWindow as relativeRangeForWindow,
 	timeWindowForRelativeRange as timeWindowForRange
 } from "@/shared/utils/timeRanges";
-import { Button, Panel, SelectField } from "@netstamp/ui";
+import { BodyCopy, Button, FilterGrid, LoadingState, Panel, SelectField } from "@netstamp/ui";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";

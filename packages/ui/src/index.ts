@@ -1,6 +1,10 @@
 // Components
+export { ActionRow } from "./components/ActionRow/ActionRow";
+export type { ActionRowProps } from "./components/ActionRow/ActionRow";
 export { Badge } from "./components/Badge/Badge";
 export type { BadgeProps, BadgeTone } from "./components/Badge/Badge";
+export { BodyCopy } from "./components/BodyCopy/BodyCopy";
+export type { BodyCopyProps } from "./components/BodyCopy/BodyCopy";
 export { Button } from "./components/Button/Button";
 export type { ButtonProps, ButtonSize, ButtonVariant } from "./components/Button/Button";
 export { DataTable } from "./components/DataTable/DataTable";
@@ -71,8 +75,14 @@ export { Drawer } from "./components/Drawer/Drawer";
 export type { DrawerProps, DrawerSide, DrawerSize } from "./components/Drawer/Drawer";
 export { Checkbox, FieldLabel, Input, Select, SelectField, TextAreaField, TextField } from "./components/Field/Field";
 export type { CheckboxProps, ControlVariant, FieldLabelProps, InputProps, SelectFieldOption, SelectFieldProps, SelectProps, TextAreaFieldProps, TextFieldProps } from "./components/Field/Field";
+export { FilterGrid } from "./components/FilterGrid/FilterGrid";
+export type { FilterGridProps } from "./components/FilterGrid/FilterGrid";
 export { GlobalFooter } from "./components/GlobalFooter/GlobalFooter";
 export type { GlobalFooterProps } from "./components/GlobalFooter/GlobalFooter";
+export { IconButton } from "./components/IconButton/IconButton";
+export type { IconButtonProps } from "./components/IconButton/IconButton";
+export { LoadingState } from "./components/LoadingState/LoadingState";
+export type { LoadingStateProps } from "./components/LoadingState/LoadingState";
 export { MetricCard } from "./components/MetricCard/MetricCard";
 export type { MetricCardProps } from "./components/MetricCard/MetricCard";
 export { PageShell } from "./components/PageShell/PageShell";
