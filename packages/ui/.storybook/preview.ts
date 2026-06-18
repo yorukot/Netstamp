@@ -1,16 +1,44 @@
-import type { Preview } from "@storybook/react-vite";
+import type { Decorator, Preview } from "@storybook/react-vite";
 import { MINIMAL_VIEWPORTS } from "storybook/viewport";
 import "../src/stories/storybook.css";
 import "../src/styles/tokens.css";
 
+const withTheme: Decorator = (Story, context) => {
+	const theme = context.globals.colorMode === "dark" ? "dark" : "light";
+
+	if (typeof document !== "undefined") {
+		document.documentElement.dataset.theme = theme;
+	}
+
+	return Story();
+};
+
 const preview: Preview = {
+	globalTypes: {
+		colorMode: {
+			defaultValue: "light",
+			description: "Switch Netstamp design tokens between light and dark mode.",
+			name: "Theme",
+			toolbar: {
+				dynamicTitle: true,
+				icon: "contrast",
+				items: [
+					{ title: "Light", value: "light" },
+					{ title: "Dark", value: "dark" }
+				],
+				title: "Theme"
+			}
+		}
+	},
+	decorators: [withTheme],
 	parameters: {
 		backgrounds: {
-			default: "netstamp",
+			default: "light",
 			options: {
-				netstamp: { name: "Netstamp", value: "#010203" },
-				panel: { name: "Panel", value: "#05070a" },
-				light: { name: "Light", value: "#f6f0e8" }
+				light: { name: "Light canvas", value: "#f3f7fb" },
+				lightPanel: { name: "Light panel", value: "#ffffff" },
+				dark: { name: "Dark canvas", value: "#0d1624" },
+				darkPanel: { name: "Dark panel", value: "#151f2e" }
 			}
 		},
 		controls: {
