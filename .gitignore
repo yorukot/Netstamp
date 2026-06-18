@@ -17,6 +17,7 @@ dist/
 .env
 
 docs/public/storybook
+storybook-static/
 
 spec-docs
 
