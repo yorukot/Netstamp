@@ -51,9 +51,9 @@ This checklist tracks the cleanup pass for `web/` and `docs/`. Complete items in
 
 ## Housekeeping
 
-- [ ] Remove duplicated frontend assets shared between web and docs.
-- [ ] Remove empty frontend directories.
-- [ ] Keep generated and ignored build outputs out of commits.
+- [x] Remove duplicated frontend assets shared between web and docs.
+- [x] Remove empty frontend directories.
+- [x] Keep generated and ignored build outputs out of commits.
 
 ## Validation
 
