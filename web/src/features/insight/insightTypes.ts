@@ -23,6 +23,13 @@ export interface InsightPair {
 	check: CheckDefinition;
 }
 
+export interface AssignmentSelectOption {
+	value: string;
+	label: string;
+	meta: string;
+	searchText: string;
+}
+
 export interface HopDiagnostic {
 	id: string;
 	hopIndex: number;

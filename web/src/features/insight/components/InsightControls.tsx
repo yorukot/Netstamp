@@ -1,5 +1,5 @@
 import { displayInsightTimeRange } from "@/features/insight/insightTime";
-import type { InsightRefreshInterval, InsightRelativeRange, InsightTimeMode, TimeWindow } from "@/features/insight/insightTypes";
+import type { AssignmentSelectOption, InsightRefreshInterval, InsightRelativeRange, InsightTimeMode, TimeWindow } from "@/features/insight/insightTypes";
 import { classNames } from "@/shared/utils/classNames";
 import { relativeTimeOptions, relativeTimeRangeDurations } from "@/shared/utils/timeRanges";
 import { Button, PopoverAnchor, PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger, SearchableSelect, SelectField, TextField, SegmentedControl as UiSegmentedControl } from "@netstamp/ui";
@@ -65,13 +65,6 @@ export function FocusChip({ label, value, invalid, onClear }: { label: string; v
 			</button>
 		</div>
 	);
-}
-
-export interface AssignmentSelectOption {
-	value: string;
-	label: string;
-	meta: string;
-	searchText: string;
 }
 
 export function ScopeSelect({

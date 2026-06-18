@@ -29,7 +29,7 @@ import {
 	useUpdateProjectCheckMutation
 } from "@/shared/api/mutations";
 import { projectQueries } from "@/shared/api/queries";
-import type { ApiCheck, ApiLabel, ApiSelector, CreateCheckInput } from "@/shared/api/types";
+import type { ApiCheck, ApiSelector, CreateCheckInput } from "@/shared/api/types";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { useConfirm } from "@/shared/components/confirmContext";
 import { EditorDrawer } from "@/shared/components/EditorDrawer";
@@ -43,286 +43,24 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { CheckConfigFields } from "./CheckConfigFields";
+import { checkTypeFromApi, duplicateCheckInput, isCheckTypeFilter, pathWithSearch } from "./checkPageHelpers";
 import styles from "./ChecksPage.module.css";
 import { displayProbeSelection, groupChecksByTarget } from "./checksPageData";
 import { ChecksTable, type CheckRowSelectionState, type CheckTypeFilter } from "./ChecksTable";
-
-type SelectorMode = "all-probes" | "all" | "any" | "advanced";
-type SelectorLabelOp = NonNullable<ApiSelector["label"]>["op"];
-
-interface SelectorState {
-	mode: SelectorMode;
-	rules: SelectorRule[];
-	advancedText: string;
-}
-
-interface SelectorLabelOption {
-	id: string;
-	key: string;
-	value: string;
-}
-
-interface SelectorRule {
-	id: string;
-	key: string;
-	op: SelectorLabelOp;
-	value: string;
-	values: string;
-	negated: boolean;
-}
-
-const selectorModeOptions: Array<{ value: SelectorMode; label: string }> = [
-	{ value: "all-probes", label: "All probes" },
-	{ value: "all", label: "Match all labels" },
-	{ value: "any", label: "Match any label" },
-	{ value: "advanced", label: "Advanced JSON" }
-];
-
-const selectorOpOptions: Array<{ value: SelectorLabelOp; label: string }> = [
-	{ value: "eq", label: "equals" },
-	{ value: "in", label: "in values" },
-	{ value: "exists", label: "exists" }
-];
-
-function isCheckTypeFilter(value: string | null): value is CheckTypeFilter {
-	return value === "all" || value === "ping" || value === "tcp" || value === "traceroute";
-}
-
-function pathWithSearch(path: string, search: string) {
-	return search ? `${path}?${search}` : path;
-}
-
-function checkTypeFromApi(type: string): CheckType {
-	switch (type) {
-		case "tcp":
-			return "TCP";
-		case "traceroute":
-			return "Traceroute";
-		default:
-			return "Ping";
-	}
-}
-
-function copiedCheckName(name: string) {
-	const base = name.trim() || "Check";
-	const suffix = " copy";
-	const maxBaseLength = Math.max(1, 128 - suffix.length);
-
-	return `${base.slice(0, maxBaseLength)}${suffix}`;
-}
-
-function duplicateCheckInput(check: ApiCheck): CreateCheckInput {
-	const body: CreateCheckInput = {
-		intervalSeconds: check.intervalSeconds,
-		name: copiedCheckName(check.name),
-		target: check.target,
-		type: check.type
-	};
-
-	if (check.selector) {
-		body.selector = check.selector;
-	}
-	if (check.description) {
-		body.description = check.description;
-	}
-	if (check.labels.length) {
-		body.labelIds = check.labels.map(label => label.id);
-	}
-	if (check.pingConfig) {
-		body.pingConfig = { ...check.pingConfig };
-	}
-	if (check.tcpConfig) {
-		body.tcpConfig = { ...check.tcpConfig };
-	}
-	if (check.tracerouteConfig) {
-		body.tracerouteConfig = { ...check.tracerouteConfig };
-	}
-
-	return body;
-}
-
-function selectorLabelId(key: string, value: string) {
-	return `${key}\u0000${value}`;
-}
-
-function selectorLabelOptions(labels: ApiLabel[]): SelectorLabelOption[] {
-	const options = new Map<string, SelectorLabelOption>();
-
-	for (const label of labels) {
-		const id = selectorLabelId(label.key, label.value);
-		options.set(id, { id, key: label.key, value: label.value });
-	}
-
-	return Array.from(options.values()).sort((a, b) => a.key.localeCompare(b.key) || a.value.localeCompare(b.value));
-}
-
-function selectorValuesForKey(options: SelectorLabelOption[], key: string) {
-	return options.filter(option => option.key === key).map(option => option.value);
-}
-
-function createSelectorRule(options: SelectorLabelOption[], seed?: Partial<SelectorRule>): SelectorRule {
-	const firstOption = options[0];
-	return {
-		id: globalThis.crypto.randomUUID(),
-		key: seed?.key ?? firstOption?.key ?? "",
-		op: seed?.op ?? "eq",
-		value: seed?.value ?? firstOption?.value ?? "",
-		values: seed?.values ?? firstOption?.value ?? "",
-		negated: seed?.negated ?? false
-	};
-}
-
-function splitSelectorValues(value: string) {
-	return Array.from(
-		new Set(
-			value
-				.split(",")
-				.map(item => item.trim())
-				.filter(Boolean)
-		)
-	);
-}
-
-function selectorRuleLabel(rule: SelectorRule): NonNullable<ApiSelector["label"]> | null {
-	const key = rule.key.trim();
-	if (!key) {
-		return null;
-	}
-
-	if (rule.op === "exists") {
-		return { key, op: "exists" };
-	}
-
-	if (rule.op === "in") {
-		const values = splitSelectorValues(rule.values);
-		return values.length ? { key, op: "in", values } : null;
-	}
-
-	const value = rule.value.trim();
-	return value ? { key, op: "eq", value } : null;
-}
-
-function selectorRuleNode(rule: SelectorRule): ApiSelector | null {
-	const label = selectorRuleLabel(rule);
-	if (!label) {
-		return null;
-	}
-
-	const node: ApiSelector = { label };
-	return rule.negated ? { not: node } : node;
-}
-
-function parseAdvancedSelector(value: string): ApiSelector {
-	const trimmed = value.trim();
-	if (!trimmed) {
-		return {};
-	}
-
-	const parsed: unknown = JSON.parse(trimmed);
-	if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-		throw new Error("Selector JSON must be an object.");
-	}
-
-	return parsed as ApiSelector;
-}
-
-function buildSelector(state: SelectorState): ApiSelector {
-	if (state.mode === "advanced") {
-		return parseAdvancedSelector(state.advancedText);
-	}
-
-	if (state.mode === "all-probes") {
-		return {};
-	}
-
-	const children = state.rules.map(selectorRuleNode).filter((selector): selector is ApiSelector => Boolean(selector));
-	if (!children.length) {
-		return {};
-	}
-
-	if (children.length === 1) {
-		return children[0];
-	}
-
-	return state.mode === "any" ? { any: children } : { all: children };
-}
-
-function isEmptySelector(selector: ApiSelector | null | undefined) {
-	return !selector || Object.keys(selector).length === 0;
-}
-
-function selectorRuleFromNode(selector: ApiSelector | null | undefined): SelectorRule | null {
-	const negated = Boolean(selector?.not);
-	const node = negated ? selector?.not : selector;
-	const label = node?.label;
-
-	if (!label) {
-		return null;
-	}
-
-	if (label.op === "exists") {
-		return createSelectorRule([], { key: label.key, op: "exists", negated });
-	}
-
-	if (label.op === "in" && label.values?.length) {
-		return createSelectorRule([], { key: label.key, op: "in", values: label.values.join(", "), negated });
-	}
-
-	if (label.op === "eq" && label.value) {
-		return createSelectorRule([], { key: label.key, op: "eq", value: label.value, values: label.value, negated });
-	}
-
-	return null;
-}
-
-function selectorStateFromApi(selector: ApiSelector | null | undefined): SelectorState {
-	if (isEmptySelector(selector)) {
-		return { mode: "all-probes", rules: [], advancedText: "" };
-	}
-
-	const directRule = selectorRuleFromNode(selector);
-	if (directRule) {
-		return { mode: "all", rules: [directRule], advancedText: "" };
-	}
-
-	for (const mode of ["all", "any"] as const) {
-		const children = selector?.[mode];
-		if (!children?.length) {
-			continue;
-		}
-
-		const rules = children.map(selectorRuleFromNode);
-		if (rules.every((rule): rule is SelectorRule => Boolean(rule))) {
-			return { mode, rules, advancedText: "" };
-		}
-	}
-
-	return { mode: "advanced", rules: [], advancedText: JSON.stringify(selector, null, 2) };
-}
-
-function probeMatchesSelector(probeLabelTokens: string[], state: SelectorState) {
-	if (state.mode === "all-probes") {
-		return true;
-	}
-
-	if (state.mode === "advanced") {
-		return false;
-	}
-
-	const matches = state.rules.map(rule => {
-		const key = rule.key.trim();
-		const matched =
-			rule.op === "exists"
-				? probeLabelTokens.some(labelToken => labelToken.startsWith(`${key}:`))
-				: rule.op === "in"
-					? splitSelectorValues(rule.values).some(value => probeLabelTokens.includes(`${key}:${value}`))
-					: probeLabelTokens.includes(`${key}:${rule.value.trim()}`);
-
-		return rule.negated ? !matched : matched;
-	});
-
-	return state.mode === "any" ? matches.some(Boolean) : matches.every(Boolean);
-}
+import {
+	buildSelector,
+	createSelectorRule,
+	probeMatchesSelector,
+	selectorLabelOptions,
+	selectorModeOptions,
+	selectorOpOptions,
+	selectorStateFromApi,
+	selectorValuesForKey,
+	type SelectorLabelOp,
+	type SelectorMode,
+	type SelectorRule,
+	type SelectorState
+} from "./selectorState";
 
 export function ChecksPage() {
 	const { projectRef } = useCurrentProject();
