@@ -22,9 +22,9 @@ This checklist tracks the cleanup pass for `web/` and `docs/`. Complete items in
 
 ## Routing
 
-- [ ] Split route guards and legacy redirects out of `AppRouter`.
-- [ ] Keep the top-level router file focused on providers and route table wiring.
-- [ ] Rename ambiguous route keys so project settings and account settings are distinct.
+- [x] Split route guards and legacy redirects out of `AppRouter`.
+- [x] Keep the top-level router file focused on providers and route table wiring.
+- [x] Rename ambiguous route keys so project settings and account settings are distinct.
 
 ## Shared UI Boundary
 

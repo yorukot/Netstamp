@@ -15,5 +15,5 @@ export const sidebarItems: SidebarItem[] = [
 	{ label: "Labels", route: "labels", icon: Tag },
 	{ label: "Insight", route: "insight", icon: ChartLineUp },
 	{ label: "Members", route: "members", icon: UsersThree },
-	{ label: "Settings", route: "project", icon: GearSix }
+	{ label: "Settings", route: "projectSettings", icon: GearSix }
 ];

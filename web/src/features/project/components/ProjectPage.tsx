@@ -124,7 +124,7 @@ export function ProjectPage() {
 									const nextProjectRef = data.project.slug || data.project.id;
 									setProjectDraft({ projectId: data.project.id, name: null, slug: null });
 									setSelectedProjectRef(nextProjectRef);
-									navigate(pathForRoute("project", { projectRef: nextProjectRef }), { replace: true });
+									navigate(pathForRoute("projectSettings", { projectRef: nextProjectRef }), { replace: true });
 								}
 							}
 						)

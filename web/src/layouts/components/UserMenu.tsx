@@ -130,13 +130,13 @@ function UserMenuContent({
 			</div>
 			<div className={styles.userPopoverActions}>
 				<Button className={styles.userPopoverAction} variant="ghost" size="sm" aria-label={`${pendingInviteCount} pending project invites`} title="Project invitations" onClick={onClose} asChild>
-					<Link to={pathForRoute("settings")}>
+					<Link to={pathForRoute("accountSettings")}>
 						<EnvelopeSimple size={18} weight="bold" aria-hidden="true" />
 						<span>Invites {pendingInviteCount > 0 ? `(${inviteCountLabel})` : ""}</span>
 					</Link>
 				</Button>
 				<Button className={styles.userPopoverAction} variant="ghost" size="sm" onClick={onClose} asChild>
-					<Link to={pathForRoute("settings")}>
+					<Link to={pathForRoute("accountSettings")}>
 						<GearSix size={18} weight="bold" aria-hidden="true" />
 						<span>Settings</span>
 					</Link>
