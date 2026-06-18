@@ -1,0 +1,157 @@
+.root {
+	display: block;
+	min-width: 0;
+}
+
+.projectSelect {
+	display: grid;
+	gap: 0.5rem;
+}
+
+.projectSelectField {
+	display: grid;
+	gap: 0.45rem;
+}
+
+.projectSelectField > span:first-child {
+	color: var(--ns-text-subtle);
+	font-family: var(--ns-font-sans);
+	font-size: 0.75rem;
+	font-weight: 650;
+	letter-spacing: 0;
+	text-transform: none;
+}
+
+.projectFrame {
+	--ns-frame-radius: var(--ns-radius-md);
+	--ns-frame-color: var(--ns-border);
+	display: block;
+}
+
+.projectFrame:hover,
+.projectFrame:focus-within {
+	--ns-frame-color: var(--ns-border-strong);
+}
+
+.projectControl {
+	min-height: 2.5rem;
+	padding: 0.5rem 2.25rem 0.5rem 0.75rem;
+	color: var(--ns-text);
+	background: var(--ns-surface-raised);
+	font-family: var(--ns-font-sans);
+	font-size: 0.875rem;
+}
+
+.projectControl option {
+	color: var(--ns-text);
+	background: var(--ns-surface);
+}
+
+.projectCreateOption {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	min-width: 0;
+}
+
+.projectCreateOption svg {
+	flex: 0 0 auto;
+	color: var(--ns-accent-active);
+}
+
+.projectCreateOption span {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.projectCompact {
+	display: none;
+	justify-self: center;
+}
+
+.projectCompactButton {
+	--ns-frame-radius: var(--ns-radius-md);
+	--ns-frame-color: var(--ns-border);
+	display: inline-grid;
+	place-items: center;
+	width: 2.75rem;
+	min-height: 2.75rem;
+	padding: 0;
+	border: 1px solid var(--ns-frame-color);
+	color: var(--ns-text-subtle);
+	background: var(--ns-surface);
+	cursor: pointer;
+	transition:
+		color var(--ns-transition),
+		background var(--ns-transition),
+		border-color var(--ns-transition);
+}
+
+.projectCompactButton:hover,
+.projectCompactButton:focus-visible,
+.projectCompactButton[data-state="open"] {
+	--ns-frame-color: var(--ns-border-strong);
+	color: var(--ns-text);
+	background: var(--ns-bg-subtle);
+	outline: none;
+}
+
+.projectPopover {
+	--ns-frame-radius: var(--ns-radius-lg);
+	--ns-frame-color: var(--ns-border);
+	z-index: 1000;
+	width: min(18rem, calc(100vw - 1rem));
+	padding: 0.875rem;
+	border: 1px solid var(--ns-frame-color);
+	color: var(--ns-text-subtle);
+	background: var(--ns-surface);
+	font-family: var(--ns-font-sans);
+	font-size: 0.8125rem;
+}
+
+.projectPopoverCreate {
+	justify-content: flex-start;
+	width: 100%;
+	margin-top: 0.75rem;
+}
+
+.collapsed .projectSelect {
+	display: none;
+}
+
+.collapsed .projectCompact {
+	display: inline-grid;
+}
+
+@media (max-width: 58rem) {
+	.root:not(.drawer) .projectSelect {
+		display: none;
+	}
+
+	.root:not(.drawer) .projectCompact {
+		display: inline-grid;
+	}
+
+	.projectFrame :is(select, button) {
+		min-height: 2.5rem;
+		padding: 0.5rem;
+		font-size: 0.75rem;
+	}
+}
+
+@media (max-width: 38rem) {
+	.root:not(.drawer) .projectSelect,
+	.root:not(.drawer) .projectCompact {
+		display: none;
+	}
+
+	.drawer .projectSelect {
+		display: grid;
+	}
+
+	.drawer .projectCompact {
+		display: none;
+	}
+}

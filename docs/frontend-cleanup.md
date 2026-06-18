@@ -34,8 +34,8 @@ This checklist tracks the cleanup pass for `web/` and `docs/`. Complete items in
 
 ## Styling
 
-- [ ] Split `AppShell.module.css` so Sidebar, ProjectSwitcher, and UserMenu styles live with their components.
-- [ ] Keep one CSS module per component or route section.
+- [x] Split `AppShell.module.css` so Sidebar, ProjectSwitcher, and UserMenu styles live with their components.
+- [x] Keep one CSS module per component or route section.
 
 ## Large Pages
 

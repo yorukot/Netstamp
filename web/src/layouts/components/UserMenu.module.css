@@ -1,0 +1,205 @@
+.userPopover {
+	--ns-frame-radius: var(--ns-radius-lg);
+	--ns-frame-color: var(--ns-border);
+	z-index: 1000;
+	width: min(18rem, calc(100vw - 1rem));
+	padding: 0.875rem;
+	border: 1px solid var(--ns-frame-color);
+	color: var(--ns-text-subtle);
+	background: var(--ns-surface);
+	font-family: var(--ns-font-sans);
+	font-size: 0.8125rem;
+}
+
+.mobileDrawerUserPanel {
+	--ns-frame-radius: var(--ns-radius-lg);
+	--ns-frame-color: var(--ns-border);
+	width: 100%;
+	display: grid;
+	padding: 0.875rem;
+	border: 1px solid var(--ns-frame-color);
+	color: var(--ns-text-subtle);
+	background: var(--ns-surface);
+	font-family: var(--ns-font-sans);
+	font-size: 0.8125rem;
+}
+
+.userCard {
+	--ns-frame-radius: var(--ns-radius-lg);
+	--ns-frame-color: var(--ns-border);
+	width: 100%;
+	display: grid;
+	padding: 0.75rem;
+	border: 1px solid var(--ns-frame-color);
+	color: var(--ns-text-subtle);
+	background: var(--ns-surface-raised);
+	cursor: pointer;
+	font-family: var(--ns-font-sans);
+	font-size: 0.8125rem;
+	text-align: left;
+	transition:
+		background var(--ns-transition),
+		border-color var(--ns-transition),
+		color var(--ns-transition);
+}
+
+.userCard:hover,
+.userCard:focus-visible,
+.userCard[data-state="open"] {
+	--ns-frame-color: var(--ns-border-strong);
+	color: var(--ns-text);
+	background: var(--ns-bg-subtle);
+	outline: none;
+}
+
+.userProfile,
+.userPopoverProfile {
+	display: flex;
+	gap: 0.75rem;
+	align-items: center;
+	min-width: 0;
+}
+
+.userMenu {
+	position: relative;
+	display: none;
+	justify-self: start;
+}
+
+.userAvatarButton {
+	position: relative;
+	display: inline-grid;
+	place-items: center;
+	padding: 0;
+	border: 0;
+	color: var(--ns-text);
+	background: transparent;
+	cursor: pointer;
+	line-height: 0;
+}
+
+.userAvatarButton:focus-visible {
+	outline: 2px solid var(--ns-accent-active);
+	outline-offset: 0.25rem;
+}
+
+.userAvatar {
+	transition:
+		box-shadow var(--ns-transition),
+		filter var(--ns-transition);
+}
+
+.userAvatarButton:hover .userAvatar,
+.userAvatarButton[data-state="open"] .userAvatar {
+	--ns-frame-color: var(--ns-border-strong);
+	filter: brightness(1.04);
+	box-shadow: none;
+}
+
+.userPopoverProfile {
+	padding-bottom: 0.75rem;
+	border-bottom: 1px solid var(--ns-border-faint);
+}
+
+.userMeta {
+	display: grid;
+	gap: 0.125rem;
+	min-width: 0;
+}
+
+.userMeta strong,
+.userMeta span {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.userMeta strong {
+	color: var(--ns-text);
+	font-size: 0.875rem;
+	font-weight: 650;
+}
+
+.userMeta span {
+	color: var(--ns-text-low);
+	font-size: 0.75rem;
+	text-transform: none;
+}
+
+.userPopoverActions {
+	display: grid;
+	gap: 0.25rem;
+	padding-top: 0.75rem;
+}
+
+.userPopoverAction {
+	justify-content: flex-start;
+	width: 100%;
+}
+
+.userPopoverAction svg {
+	display: block;
+	flex: 0 0 auto;
+}
+
+.userPopoverActionWarning {
+	--ns-frame-color: color-mix(in srgb, var(--ns-warning) 34%, transparent);
+	color: var(--ns-warning);
+	background: color-mix(in srgb, var(--ns-warning) 8%, var(--ns-surface));
+}
+
+.userPopoverActionWarning:hover,
+.userPopoverActionWarning:focus-visible {
+	--ns-frame-color: color-mix(in srgb, var(--ns-warning) 48%, transparent);
+	color: var(--ns-warning);
+	background: color-mix(in srgb, var(--ns-warning) 12%, var(--ns-surface));
+}
+
+.inviteBadge {
+	position: absolute;
+	top: -0.375rem;
+	right: -0.375rem;
+	z-index: 3;
+	min-width: 1rem;
+	height: 1rem;
+	display: inline-grid;
+	place-items: center;
+	padding: 0 0.25rem;
+	border: 1px solid var(--ns-surface);
+	background: var(--ns-accent);
+	color: var(--ns-text-on-accent);
+	font-size: 0.625rem;
+	font-weight: 800;
+	line-height: 1;
+	letter-spacing: 0;
+	pointer-events: none;
+}
+
+.userMenuCollapsed {
+	display: inline-flex;
+	justify-self: center;
+	margin-bottom: 2rem;
+}
+
+.userCardCollapsed {
+	display: none;
+}
+
+@media (max-width: 58rem) {
+	.userMenu {
+		display: inline-flex;
+		justify-self: center;
+		margin-bottom: 2rem;
+	}
+
+	.userCard {
+		display: none;
+	}
+}
+
+@media (max-width: 38rem) {
+	.userMenu {
+		display: none;
+	}
+}

@@ -1,5 +1,4 @@
 import type { SessionUser } from "@/features/auth/services/authService";
-import styles from "@/layouts/AppShell.module.css";
 import { pathForRoute } from "@/routes/routePaths";
 import { sidebarItems } from "@/routes/sidebarItems";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
@@ -14,6 +13,7 @@ import { CaretLeft, CaretRight, List, X } from "@phosphor-icons/react";
 import { useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { ProjectSwitcher } from "./ProjectSwitcher";
+import styles from "./Sidebar.module.css";
 import { UserMenu, UserMenuPanel } from "./UserMenu";
 
 interface SidebarProps {
@@ -38,7 +38,7 @@ export function Sidebar({ collapsed, user, onToggleCollapsed, onLogout }: Sideba
 	}
 
 	return (
-		<aside className={styles.sidebar}>
+		<aside className={classNames(styles.sidebar, collapsed && styles.collapsed)}>
 			<div className={classNames("ns-scrollbar", styles.sidebarScroll)}>
 				<div className={styles.brandRow}>
 					<Link className={styles.brand} to={pathForRoute("dashboard", { projectRef })} onClick={closeMobileMenu}>
@@ -56,7 +56,7 @@ export function Sidebar({ collapsed, user, onToggleCollapsed, onLogout }: Sideba
 					</button>
 				</div>
 
-				<ProjectSwitcher />
+				<ProjectSwitcher collapsed={collapsed} />
 
 				<nav className={styles.nav} aria-label="Primary app navigation">
 					{sidebarItems.map(item => {
@@ -78,7 +78,7 @@ export function Sidebar({ collapsed, user, onToggleCollapsed, onLogout }: Sideba
 					})}
 				</nav>
 
-				<UserMenu user={user} onLogout={onLogout} />
+				<UserMenu user={user} collapsed={collapsed} onLogout={onLogout} />
 			</div>
 
 			<button type="button" className={styles.sidebarToggle} aria-label={toggleLabel} onClick={onToggleCollapsed}>
@@ -97,7 +97,7 @@ export function Sidebar({ collapsed, user, onToggleCollapsed, onLogout }: Sideba
 				onClose={closeMobileMenu}
 			>
 				<div className={styles.mobileDrawerProject}>
-					<ProjectSwitcher />
+					<ProjectSwitcher variant="drawer" />
 				</div>
 				<nav className={styles.mobileDrawerNav} aria-label="Primary app navigation">
 					{sidebarItems.map(item => {

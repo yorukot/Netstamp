@@ -1,5 +1,4 @@
 import type { SessionUser } from "@/features/auth/services/authService";
-import styles from "@/layouts/AppShell.module.css";
 import { pathForRoute } from "@/routes/routePaths";
 import { projectQueries } from "@/shared/api/queries";
 import { useTheme } from "@/shared/theme/useTheme";
@@ -9,8 +8,10 @@ import { EnvelopeSimple, GearSix, MoonStars, SignOut, Sun } from "@phosphor-icon
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import styles from "./UserMenu.module.css";
 
 interface UserMenuProps {
+	collapsed?: boolean;
 	user: SessionUser;
 	onLogout: () => void;
 }
@@ -20,7 +21,7 @@ interface UserMenuPanelProps extends UserMenuProps {
 	onClose?: () => void;
 }
 
-export function UserMenu({ user, onLogout }: UserMenuProps) {
+export function UserMenu({ user, collapsed = false, onLogout }: UserMenuProps) {
 	const [profileOpen, setProfileOpen] = useState(false);
 	const [avatarOpen, setAvatarOpen] = useState(false);
 	const invitesQuery = useQuery(projectQueries.currentUserInvites());
@@ -43,7 +44,7 @@ export function UserMenu({ user, onLogout }: UserMenuProps) {
 		<>
 			<PopoverRoot open={profileOpen} onOpenChange={setProfileOpen}>
 				<PopoverTrigger asChild>
-					<button type="button" className={styles.userCard} aria-label={`Open user menu for ${user.name}`} title={user.name}>
+					<button type="button" className={classNames(styles.userCard, collapsed && styles.userCardCollapsed)} aria-label={`Open user menu for ${user.name}`} title={user.name}>
 						<div className={styles.userProfile}>
 							<SignalAvatar size="sm" src={user.gravatarUrl} referrerPolicy="no-referrer" aria-hidden="true" />
 							<div className={styles.userMeta}>
@@ -62,7 +63,7 @@ export function UserMenu({ user, onLogout }: UserMenuProps) {
 			</PopoverRoot>
 
 			<PopoverRoot open={avatarOpen} onOpenChange={setAvatarOpen}>
-				<div className={styles.userMenu}>
+				<div className={classNames(styles.userMenu, collapsed && styles.userMenuCollapsed)}>
 					<PopoverTrigger asChild>
 						<button type="button" className={styles.userAvatarButton} aria-label={`Open user menu for ${user.name}`} title={user.name}>
 							<SignalAvatar className={styles.userAvatar} size="sm" src={user.gravatarUrl} referrerPolicy="no-referrer" aria-hidden="true" />
