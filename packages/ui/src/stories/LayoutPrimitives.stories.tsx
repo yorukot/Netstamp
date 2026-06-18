@@ -1,4 +1,3 @@
-import { MagnifyingGlass, Trash } from "@phosphor-icons/react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { ActionRow, BodyCopy, Button, FilterGrid, IconButton, Input, LoadingState, Select } from "../index";
 
@@ -21,7 +20,7 @@ export const Overview: Story = {
 					<option value="active">Active</option>
 				</Select>
 				<Button variant="secondary">
-					<MagnifyingGlass size={16} weight="bold" aria-hidden="true" />
+					<span aria-hidden="true">/</span>
 					Apply
 				</Button>
 			</FilterGrid>
@@ -29,7 +28,7 @@ export const Overview: Story = {
 				<Button>Save</Button>
 				<Button variant="ghost">Cancel</Button>
 				<IconButton aria-label="Delete" danger>
-					<Trash size={16} weight="bold" aria-hidden="true" />
+					<span aria-hidden="true">x</span>
 				</IconButton>
 			</ActionRow>
 			<LoadingState size="compact" label="Loading panel" detail="Fetching the latest probe data." />
