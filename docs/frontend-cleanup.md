@@ -39,7 +39,7 @@ This checklist tracks the cleanup pass for `web/` and `docs/`. Complete items in
 
 ## Large Pages
 
-- [ ] Split Alerts page table/form/drawer logic into smaller feature modules.
+- [x] Split Alerts page table/form/drawer logic into smaller feature modules.
 - [x] Split Checks page editor and selector logic into smaller feature modules or hooks.
 - [x] Split Insight URL state and scope derivation into smaller feature modules or hooks.
 
