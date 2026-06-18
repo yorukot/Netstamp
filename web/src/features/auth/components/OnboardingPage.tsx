@@ -60,8 +60,8 @@ function isProjectSlugConflict(error: unknown) {
 
 export function OnboardingPage({ navigate }: OnboardingPageProps) {
 	const { session, loading, submitting, logout } = useAuth();
-	const createProjectMutation = useCreateProjectMutation();
-	const createInviteMutation = useCreateProjectInviteForRefMutation();
+	const createProjectMutation = useCreateProjectMutation({ suppressGlobalErrorToast: true });
+	const createInviteMutation = useCreateProjectInviteForRefMutation({ suppressGlobalErrorToast: true });
 	const { setSelectedProjectRef } = useProjectSelection();
 	const [activeStep, setActiveStep] = useState(0);
 	const [typedText, setTypedText] = useState("");

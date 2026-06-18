@@ -33,7 +33,7 @@ export function CreateProjectModal({ onClose, onCreatedProject }: CreateProjectM
 	const titleId = useId();
 	const descriptionId = useId();
 	const queryClient = useQueryClient();
-	const createProjectMutation = useCreateProjectMutation();
+	const createProjectMutation = useCreateProjectMutation({ suppressGlobalErrorToast: true });
 	const { setSelectedProjectRef } = useProjectSelection();
 	const [projectName, setProjectName] = useState("");
 	const [projectSlug, setProjectSlug] = useState("");

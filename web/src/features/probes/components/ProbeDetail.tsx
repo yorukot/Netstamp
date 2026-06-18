@@ -145,7 +145,7 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 	const [savingProbe, setSavingProbe] = useState(false);
 	const [selectedLabelIds, setSelectedLabelIds] = useState(() => activeApiProbe?.labels.map(label => label.id) ?? []);
 	const geocodeAbortRef = useRef<AbortController | null>(null);
-	const updateProbeMutation = useUpdateProjectProbeMutation(projectRef);
+	const updateProbeMutation = useUpdateProjectProbeMutation(projectRef, { suppressGlobalErrorToast: true });
 	const deleteProbeMutation = useDeleteProjectProbeMutation(projectRef);
 	const rotateSecretMutation = useRotateProjectProbeSecretMutation(projectRef);
 	const labelsQuery = useQuery({

@@ -336,7 +336,7 @@ export function ChecksPage() {
 	const createCheckMutation = useCreateProjectCheckMutation(projectRef);
 	const updateCheckMutation = useUpdateProjectCheckMutation(projectRef);
 	const deleteCheckMutation = useDeleteProjectCheckMutation(projectRef);
-	const batchDeleteCheckMutation = useDeleteProjectChecksMutation(projectRef);
+	const batchDeleteCheckMutation = useDeleteProjectChecksMutation(projectRef, { suppressGlobalErrorToast: true });
 	const selectorPreviewMutation = usePreviewProjectSelectorMutation(projectRef);
 	const probesQuery = useQuery({
 		...projectQueries.probes(projectRef || ""),

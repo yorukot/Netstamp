@@ -31,7 +31,15 @@ type SaveProjectLabelVariables = { labelId?: string; body: CreateLabelInput };
 type ProjectMembersCache = { members: ApiMember[] };
 type ProjectInvitesCache = { invites: ApiProjectInvite[] };
 
+export interface AppMutationOptions {
+	suppressGlobalErrorToast?: boolean;
+}
+
 const localErrorToastMeta = { suppressGlobalErrorToast: true } as const;
+
+function mutationToastOptions(options?: AppMutationOptions) {
+	return options?.suppressGlobalErrorToast ? { meta: localErrorToastMeta } : {};
+}
 
 export class BatchCheckDeleteError extends Error {
 	readonly failedIds: string[];
@@ -299,11 +307,11 @@ export function useLogoutMutation() {
 	});
 }
 
-export function useCreateProjectMutation() {
+export function useCreateProjectMutation(options?: AppMutationOptions) {
 	const queryClient = useQueryClient();
 
 	return useMutation({
-		meta: localErrorToastMeta,
+		...mutationToastOptions(options),
 		mutationFn: createProject,
 		onSuccess: data => cacheCreatedProject(queryClient, data)
 	});
@@ -348,11 +356,11 @@ export function useCreateProjectProbeMutation(projectRef: string | null | undefi
 	});
 }
 
-export function useUpdateProjectProbeMutation(projectRef: string | null | undefined) {
+export function useUpdateProjectProbeMutation(projectRef: string | null | undefined, options?: AppMutationOptions) {
 	const queryClient = useQueryClient();
 
 	return useMutation({
-		meta: localErrorToastMeta,
+		...mutationToastOptions(options),
 		mutationFn: ({ probeId, body }: { probeId: string; body: UpdateProbeInput }) => updateProjectProbe(requireProjectRef(projectRef), probeId, body),
 		onSuccess: data => {
 			const ref = requireProjectRef(projectRef);
@@ -429,11 +437,11 @@ export function useDeleteProjectCheckMutation(projectRef: string | null | undefi
 	});
 }
 
-export function useDeleteProjectChecksMutation(projectRef: string | null | undefined) {
+export function useDeleteProjectChecksMutation(projectRef: string | null | undefined, options?: AppMutationOptions) {
 	const queryClient = useQueryClient();
 
 	return useMutation({
-		meta: localErrorToastMeta,
+		...mutationToastOptions(options),
 		mutationFn: (checkIds: string[]) => deleteProjectChecks(requireProjectRef(projectRef), checkIds),
 		onSettled: (_data, error, checkIds) => {
 			const ref = requireProjectRef(projectRef);
@@ -447,11 +455,11 @@ export function useDeleteProjectChecksMutation(projectRef: string | null | undef
 	});
 }
 
-export function useCreateProjectAlertRuleMutation(projectRef: string | null | undefined) {
+export function useCreateProjectAlertRuleMutation(projectRef: string | null | undefined, options?: AppMutationOptions) {
 	const queryClient = useQueryClient();
 
 	return useMutation({
-		meta: localErrorToastMeta,
+		...mutationToastOptions(options),
 		mutationFn: (body: CreateAlertRuleInput) => createProjectAlertRule(requireProjectRef(projectRef), body),
 		onSuccess: () => {
 			const ref = requireProjectRef(projectRef);
@@ -460,11 +468,11 @@ export function useCreateProjectAlertRuleMutation(projectRef: string | null | un
 	});
 }
 
-export function useUpdateProjectAlertRuleMutation(projectRef: string | null | undefined) {
+export function useUpdateProjectAlertRuleMutation(projectRef: string | null | undefined, options?: AppMutationOptions) {
 	const queryClient = useQueryClient();
 
 	return useMutation({
-		meta: localErrorToastMeta,
+		...mutationToastOptions(options),
 		mutationFn: ({ ruleId, body }: { ruleId: string; body: UpdateAlertRuleInput }) => updateProjectAlertRule(requireProjectRef(projectRef), ruleId, body),
 		onSuccess: () => {
 			const ref = requireProjectRef(projectRef);
@@ -473,11 +481,11 @@ export function useUpdateProjectAlertRuleMutation(projectRef: string | null | un
 	});
 }
 
-export function useDeleteProjectAlertRuleMutation(projectRef: string | null | undefined) {
+export function useDeleteProjectAlertRuleMutation(projectRef: string | null | undefined, options?: AppMutationOptions) {
 	const queryClient = useQueryClient();
 
 	return useMutation({
-		meta: localErrorToastMeta,
+		...mutationToastOptions(options),
 		mutationFn: (ruleId: string) => deleteProjectAlertRule(requireProjectRef(projectRef), ruleId),
 		onSuccess: () => {
 			const ref = requireProjectRef(projectRef);
@@ -486,11 +494,11 @@ export function useDeleteProjectAlertRuleMutation(projectRef: string | null | un
 	});
 }
 
-export function useCreateProjectNotificationMutation(projectRef: string | null | undefined) {
+export function useCreateProjectNotificationMutation(projectRef: string | null | undefined, options?: AppMutationOptions) {
 	const queryClient = useQueryClient();
 
 	return useMutation({
-		meta: localErrorToastMeta,
+		...mutationToastOptions(options),
 		mutationFn: (body: CreateNotificationInput) => createProjectNotification(requireProjectRef(projectRef), body),
 		onSuccess: () => {
 			const ref = requireProjectRef(projectRef);
@@ -499,11 +507,11 @@ export function useCreateProjectNotificationMutation(projectRef: string | null |
 	});
 }
 
-export function useUpdateProjectNotificationMutation(projectRef: string | null | undefined) {
+export function useUpdateProjectNotificationMutation(projectRef: string | null | undefined, options?: AppMutationOptions) {
 	const queryClient = useQueryClient();
 
 	return useMutation({
-		meta: localErrorToastMeta,
+		...mutationToastOptions(options),
 		mutationFn: ({ notificationId, body }: { notificationId: string; body: UpdateNotificationInput }) => updateProjectNotification(requireProjectRef(projectRef), notificationId, body),
 		onSuccess: () => {
 			const ref = requireProjectRef(projectRef);
@@ -512,11 +520,11 @@ export function useUpdateProjectNotificationMutation(projectRef: string | null |
 	});
 }
 
-export function useDeleteProjectNotificationMutation(projectRef: string | null | undefined) {
+export function useDeleteProjectNotificationMutation(projectRef: string | null | undefined, options?: AppMutationOptions) {
 	const queryClient = useQueryClient();
 
 	return useMutation({
-		meta: localErrorToastMeta,
+		...mutationToastOptions(options),
 		mutationFn: (notificationId: string) => deleteProjectNotification(requireProjectRef(projectRef), notificationId),
 		onSuccess: () => {
 			const ref = requireProjectRef(projectRef);
@@ -525,9 +533,9 @@ export function useDeleteProjectNotificationMutation(projectRef: string | null |
 	});
 }
 
-export function useTestProjectNotificationMutation(projectRef: string | null | undefined) {
+export function useTestProjectNotificationMutation(projectRef: string | null | undefined, options?: AppMutationOptions) {
 	return useMutation({
-		meta: localErrorToastMeta,
+		...mutationToastOptions(options),
 		mutationFn: (notificationId: string) => testProjectNotification(requireProjectRef(projectRef), notificationId)
 	});
 }
@@ -578,11 +586,11 @@ export function useCreateProjectInviteMutation(projectRef: string | null | undef
 	});
 }
 
-export function useCreateProjectInviteForRefMutation() {
+export function useCreateProjectInviteForRefMutation(options?: AppMutationOptions) {
 	const queryClient = useQueryClient();
 
 	return useMutation({
-		meta: localErrorToastMeta,
+		...mutationToastOptions(options),
 		mutationFn: ({ projectRef, body }: { projectRef: string; body: CreateProjectInviteInput }) => createProjectInvite(projectRef, body),
 		onSuccess: (data, variables) => cacheCreatedProjectInvite(queryClient, variables.projectRef, data)
 	});
