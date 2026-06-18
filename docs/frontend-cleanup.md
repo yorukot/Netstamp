@@ -4,8 +4,8 @@ This checklist tracks the cleanup pass for `web/` and `docs/`. Complete items in
 
 ## Error Handling
 
-- [ ] Remove duplicate mutation error toasts by making global React Query error reporting opt-in or locally suppressible.
-- [ ] Keep page-level success/error messages only where the page adds useful context.
+- [x] Remove duplicate mutation error toasts by making global React Query error reporting opt-in or locally suppressible.
+- [x] Keep page-level success/error messages only where the page adds useful context.
 
 ## Domain Boundaries
 
