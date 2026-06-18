@@ -11,7 +11,7 @@ This checklist tracks the cleanup pass for `web/` and `docs/`. Complete items in
 
 - [x] Move cross-feature view/domain models shared by probes, checks, dashboard, and insight out of feature component folders.
 - [x] Remove feature API adapters that import types from another feature's component directory.
-- [ ] Keep feature-only UI state colocated with its route feature.
+- [x] Keep feature-only UI state colocated with its route feature.
 
 ## API Layer
 
@@ -57,6 +57,6 @@ This checklist tracks the cleanup pass for `web/` and `docs/`. Complete items in
 
 ## Validation
 
-- [ ] Run `pnpm --filter @netstamp/web typecheck`.
-- [ ] Run `pnpm --filter @netstamp/web lint`.
-- [ ] Run `pnpm --filter @netstamp/docs build`.
+- [x] Run `pnpm --filter @netstamp/web typecheck`.
+- [x] Run `pnpm --filter @netstamp/web lint`.
+- [x] Run `pnpm --filter @netstamp/docs build`.
