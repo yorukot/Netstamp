@@ -75,96 +75,13 @@ const schemaGraph = createSchemaGraph({ title, description, pageUrl: canonicalUr
 	</head>
 	<body class={bodyClass}>
 		<script>
-			import "@phosphor-icons/webcomponents/PhArrowLeft";
-			import "@phosphor-icons/webcomponents/PhArrowRight";
-			import "@phosphor-icons/webcomponents/PhArrowUpRight";
-			import "@phosphor-icons/webcomponents/PhBookOpen";
-			import "@phosphor-icons/webcomponents/PhCaretDown";
-			import "@phosphor-icons/webcomponents/PhCheckCircle";
-			import "@phosphor-icons/webcomponents/PhCode";
-			import "@phosphor-icons/webcomponents/PhCompass";
-			import "@phosphor-icons/webcomponents/PhCube";
-			import "@phosphor-icons/webcomponents/PhDatabase";
-			import "@phosphor-icons/webcomponents/PhFolderOpen";
-			import "@phosphor-icons/webcomponents/PhGitBranch";
-			import "@phosphor-icons/webcomponents/PhGithubLogo";
-			import "@phosphor-icons/webcomponents/PhGlobeHemisphereWest";
-			import "@phosphor-icons/webcomponents/PhHardDrives";
-			import "@phosphor-icons/webcomponents/PhHouse";
-			import "@phosphor-icons/webcomponents/PhKey";
-			import "@phosphor-icons/webcomponents/PhLightbulb";
-			import "@phosphor-icons/webcomponents/PhLightning";
-			import "@phosphor-icons/webcomponents/PhListBullets";
-			import "@phosphor-icons/webcomponents/PhMagnifyingGlass";
-			import "@phosphor-icons/webcomponents/PhMapTrifold";
-			import "@phosphor-icons/webcomponents/PhMoonStars";
-			import "@phosphor-icons/webcomponents/PhNetwork";
-			import "@phosphor-icons/webcomponents/PhNote";
-			import "@phosphor-icons/webcomponents/PhPencilSimple";
-			import "@phosphor-icons/webcomponents/PhPlugs";
-			import "@phosphor-icons/webcomponents/PhPulse";
-			import "@phosphor-icons/webcomponents/PhRocketLaunch";
-			import "@phosphor-icons/webcomponents/PhShieldCheck";
-			import "@phosphor-icons/webcomponents/PhSidebarSimple";
-			import "@phosphor-icons/webcomponents/PhSun";
-			import "@phosphor-icons/webcomponents/PhTerminalWindow";
-			import "@phosphor-icons/webcomponents/PhUsers";
-			import "@phosphor-icons/webcomponents/PhWarning";
-			import "@phosphor-icons/webcomponents/PhWrench";
+			import "../scripts/registerIcons";
 		</script>
 		{nav ? <TopNav /> : null}
 		<slot />
 		<TrackingConsent />
 		<script>
-			const themeStorageKey = "netstamp:theme";
-			let cleanupDocsTheme = () => {};
-
-			function readDocsTheme() {
-				const theme = document.documentElement.dataset.theme;
-				return theme === "light" || theme === "dark" ? theme : "light";
-			}
-
-			function writeDocsTheme(theme: "light" | "dark") {
-				document.documentElement.dataset.theme = theme;
-
-				try {
-					window.localStorage.setItem(themeStorageKey, theme);
-				} catch {
-					// Persistence can be unavailable; keep the current page state usable.
-				}
-			}
-
-			function initDocsTheme() {
-				cleanupDocsTheme();
-
-				const themeToggle = document.querySelector("[data-theme-toggle]");
-				if (!themeToggle) return;
-
-				function syncThemeToggle() {
-					const theme = readDocsTheme();
-					const nextTheme = theme === "dark" ? "light" : "dark";
-					const label = nextTheme === "light" ? "Switch to light mode" : "Switch to dark mode";
-
-					themeToggle.setAttribute("aria-label", label);
-					themeToggle.setAttribute("title", label);
-					themeToggle.setAttribute("aria-pressed", String(theme === "light"));
-				}
-
-				const handleThemeToggle = () => {
-					writeDocsTheme(readDocsTheme() === "dark" ? "light" : "dark");
-					syncThemeToggle();
-				};
-
-				syncThemeToggle();
-				themeToggle.addEventListener("click", handleThemeToggle);
-				cleanupDocsTheme = () => {
-					themeToggle.removeEventListener("click", handleThemeToggle);
-					cleanupDocsTheme = () => {};
-				};
-			}
-
-			initDocsTheme();
-			document.addEventListener("astro:page-load", initDocsTheme);
+			import "../scripts/docsTheme";
 		</script>
 	</body>
 </html>

@@ -45,9 +45,9 @@ This checklist tracks the cleanup pass for `web/` and `docs/`. Complete items in
 
 ## Docs
 
-- [ ] Extract docs layout inline browser behavior into reusable scripts.
-- [ ] Extract docs search inline browser behavior into reusable scripts.
-- [ ] Keep Astro components focused on markup and data injection.
+- [x] Extract docs layout inline browser behavior into reusable scripts.
+- [x] Extract docs search inline browser behavior into reusable scripts.
+- [x] Keep Astro components focused on markup and data injection.
 
 ## Housekeeping
 
