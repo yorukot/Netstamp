@@ -6,6 +6,7 @@ import { projectQueries } from "@/shared/api/queries";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { EditorDrawer } from "@/shared/components/EditorDrawer";
 import { NetworkMap } from "@/shared/components/NetworkMap";
+import type { AssignedRow } from "@/shared/domain/assignments";
 import { classNames } from "@/shared/utils/classNames";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
@@ -15,7 +16,7 @@ import { ProbeList } from "./ProbeList";
 import { ProbePageHeader } from "./ProbePageHeader";
 import styles from "./ProbesPage.module.css";
 import { filterProbes } from "./probeUtils";
-import type { AssignedRow, ProbeSort, ProbeView } from "./types";
+import type { ProbeSort, ProbeView } from "./types";
 
 export function ProbesPage() {
 	const { projectRef } = useCurrentProject();

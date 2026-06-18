@@ -9,8 +9,8 @@ This checklist tracks the cleanup pass for `web/` and `docs/`. Complete items in
 
 ## Domain Boundaries
 
-- [ ] Move cross-feature view/domain models shared by probes, checks, dashboard, and insight out of feature component folders.
-- [ ] Remove feature API adapters that import types from another feature's component directory.
+- [x] Move cross-feature view/domain models shared by probes, checks, dashboard, and insight out of feature component folders.
+- [x] Remove feature API adapters that import types from another feature's component directory.
 - [ ] Keep feature-only UI state colocated with its route feature.
 
 ## API Layer

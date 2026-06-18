@@ -1,7 +1,7 @@
 import type { CheckDefinition } from "@/features/checks/data/checks";
-import type { AssignedRow } from "@/features/probes/components/types";
 import type { Probe } from "@/features/probes/data/probes";
 import type { ApiProjectAssignment } from "@/shared/api/types";
+import type { AssignedRow } from "@/shared/domain/assignments";
 import { formatInterval } from "./checkAdapters";
 
 function namesById<TItem extends { id: string; name: string }>(items: TItem[]) {

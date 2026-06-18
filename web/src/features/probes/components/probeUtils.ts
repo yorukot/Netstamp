@@ -1,5 +1,6 @@
 import type { Probe } from "@/features/probes/data/probes";
-import type { AssignedRow, ProbeSort } from "./types";
+import type { AssignedRow } from "@/shared/domain/assignments";
+import type { ProbeSort } from "./types";
 
 export function filterProbes(source: Probe[], search: string, sortKey: ProbeSort) {
 	const term = search.trim().toLowerCase();

@@ -1,4 +1,6 @@
-export type CheckType = "Ping" | "TCP" | "Traceroute";
+import type { CheckType } from "@/shared/domain/checks";
+
+export type { CheckType };
 
 export interface CheckDefinition {
 	id: string;

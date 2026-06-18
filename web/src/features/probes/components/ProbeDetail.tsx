@@ -15,6 +15,7 @@ import { projectQueries } from "@/shared/api/queries";
 import type { ApiLabel, ApiProbe } from "@/shared/api/types";
 import { CloseButton } from "@/shared/components/CloseButton";
 import { useConfirm } from "@/shared/components/confirmContext";
+import type { AssignedRow } from "@/shared/domain/assignments";
 import { pushErrorToast } from "@/shared/toast/toastStore";
 import { classNames } from "@/shared/utils/classNames";
 import { Badge, Button, Checkbox, DataTable, FieldLabel, SegmentedControl, Surface, Terminal, TextField, type DataColumn } from "@netstamp/ui";
@@ -23,7 +24,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { LocationPreviewMap } from "./LocationPreviewMap";
 import styles from "./ProbeDetail.module.css";
 import { expandAssignedRows } from "./probeUtils";
-import type { AssignedRow } from "./types";
 
 const assignedColumns: DataColumn<AssignedRow>[] = [
 	{ key: "check", label: "Assigned check" },
