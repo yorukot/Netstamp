@@ -1,6 +1,6 @@
 import { queryOptions } from "@tanstack/react-query";
-import { apiClient, readApiData } from "./client";
-import { apiQueryKeys } from "./queryKeys";
+import { apiClient, readApiData } from "../client";
+import { apiQueryKeys } from "../queryKeys";
 import type {
 	AlertIncidentFilters,
 	AlertRuleFilters,
@@ -15,35 +15,10 @@ import type {
 	TracerouteInsightFilters,
 	TracerouteRunsFilters,
 	TracerouteTopologyFilters
-} from "./types";
+} from "../types";
 
 const defaultPingSeries = "latency_avg,latency_min,latency_max,loss_percent";
 const defaultTCPSeries = "connect_avg,connect_min,connect_max,failure_percent";
-
-export const systemQueries = {
-	root: () =>
-		queryOptions({
-			queryKey: apiQueryKeys.system.root(),
-			queryFn: ({ signal }) => readApiData(apiClient.GET("/", { signal })),
-			staleTime: 5 * 60 * 1000
-		}),
-	health: () =>
-		queryOptions({
-			queryKey: apiQueryKeys.system.health(),
-			queryFn: ({ signal }) => readApiData(apiClient.GET("/healthz", { signal })),
-			staleTime: 30 * 1000
-		})
-};
-
-export const authQueries = {
-	me: () =>
-		queryOptions({
-			queryKey: apiQueryKeys.auth.me(),
-			queryFn: ({ signal }) => readApiData(apiClient.GET("/auth/me", { signal })),
-			retry: false,
-			staleTime: 5 * 60 * 1000
-		})
-};
 
 export const projectQueries = {
 	list: () =>

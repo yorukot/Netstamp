@@ -15,9 +15,9 @@ This checklist tracks the cleanup pass for `web/` and `docs/`. Complete items in
 
 ## API Layer
 
-- [ ] Split the monolithic shared query registry by domain.
+- [x] Split the monolithic shared query registry by domain.
 - [ ] Split the monolithic shared mutation registry by domain.
-- [ ] Keep query keys and low-level OpenAPI client helpers shared.
+- [x] Keep query keys and low-level OpenAPI client helpers shared.
 - [ ] Preserve existing cache invalidation behavior while splitting.
 
 ## Routing
