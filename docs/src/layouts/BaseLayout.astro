@@ -121,7 +121,7 @@ const schemaGraph = createSchemaGraph({ title, description, pageUrl: canonicalUr
 
 			function readDocsTheme() {
 				const theme = document.documentElement.dataset.theme;
-				return theme === "light" || theme === "dark" ? theme : "dark";
+				return theme === "light" || theme === "dark" ? theme : "light";
 			}
 
 			function writeDocsTheme(theme: "light" | "dark") {
