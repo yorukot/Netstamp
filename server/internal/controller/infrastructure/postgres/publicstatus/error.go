@@ -12,7 +12,7 @@ import (
 	domainpublic "github.com/yorukot/netstamp/internal/domain/publicstatus"
 )
 
-func mapNoRows(err error, notFound error) error {
+func mapNoRows(err, notFound error) error {
 	if errors.Is(err, pgx.ErrNoRows) {
 		return notFound
 	}

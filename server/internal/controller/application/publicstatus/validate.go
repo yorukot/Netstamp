@@ -83,7 +83,7 @@ func normalizeUpdateElementInput(projectID, pageID string, input UpdateElementIn
 	return normalizeElement(element, input.ParentElementID, input.Kind, input.CheckID, input.Title, input.Description, input.SortOrder, input.ChartMode, input.ChartRange)
 }
 
-func normalizeElement(element domainpublic.Element, parentElementID *string, kind domainpublic.ElementKind, checkID *string, title, description *string, sortOrder int32, chartMode domainpublic.ChartMode, chartRange *domainpublic.ChartRange) (domainpublic.Element, error) {
+func normalizeElement(element domainpublic.Element, parentElementID *string, kind domainpublic.ElementKind, checkID, title, description *string, sortOrder int32, chartMode domainpublic.ChartMode, chartRange *domainpublic.ChartRange) (domainpublic.Element, error) {
 	var collector appvalidation.Collector
 	var err error
 

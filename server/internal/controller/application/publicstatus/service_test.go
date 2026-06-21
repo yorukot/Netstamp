@@ -240,7 +240,7 @@ func testPage(now time.Time) domainpublic.Page {
 	}
 }
 
-func testAssignment(checkID string, status string, startedAt time.Time) domainpublic.Assignment {
+func testAssignment(checkID, status string, startedAt time.Time) domainpublic.Assignment {
 	return domainpublic.Assignment{
 		CheckID:         checkID,
 		CheckType:       domaincheck.TypePing,
