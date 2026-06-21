@@ -534,6 +534,134 @@ func (ns NullProjectMemberRole) Value() (driver.Value, error) {
 	return string(ns.ProjectMemberRole), nil
 }
 
+type PublicStatusChartMode string
+
+const (
+	PublicStatusChartModeInherit PublicStatusChartMode = "inherit"
+	PublicStatusChartModeOff     PublicStatusChartMode = "off"
+	PublicStatusChartModeCompact PublicStatusChartMode = "compact"
+)
+
+func (e *PublicStatusChartMode) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = PublicStatusChartMode(s)
+	case string:
+		*e = PublicStatusChartMode(s)
+	default:
+		return fmt.Errorf("unsupported scan type for PublicStatusChartMode: %T", src)
+	}
+	return nil
+}
+
+type NullPublicStatusChartMode struct {
+	PublicStatusChartMode PublicStatusChartMode `json:"public_status_chart_mode"`
+	Valid                 bool                  `json:"valid"` // Valid is true if PublicStatusChartMode is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullPublicStatusChartMode) Scan(value interface{}) error {
+	if value == nil {
+		ns.PublicStatusChartMode, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.PublicStatusChartMode.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullPublicStatusChartMode) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.PublicStatusChartMode), nil
+}
+
+type PublicStatusChartRange string
+
+const (
+	PublicStatusChartRange24h PublicStatusChartRange = "24h"
+	PublicStatusChartRange7d  PublicStatusChartRange = "7d"
+	PublicStatusChartRange30d PublicStatusChartRange = "30d"
+)
+
+func (e *PublicStatusChartRange) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = PublicStatusChartRange(s)
+	case string:
+		*e = PublicStatusChartRange(s)
+	default:
+		return fmt.Errorf("unsupported scan type for PublicStatusChartRange: %T", src)
+	}
+	return nil
+}
+
+type NullPublicStatusChartRange struct {
+	PublicStatusChartRange PublicStatusChartRange `json:"public_status_chart_range"`
+	Valid                  bool                   `json:"valid"` // Valid is true if PublicStatusChartRange is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullPublicStatusChartRange) Scan(value interface{}) error {
+	if value == nil {
+		ns.PublicStatusChartRange, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.PublicStatusChartRange.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullPublicStatusChartRange) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.PublicStatusChartRange), nil
+}
+
+type PublicStatusElementKind string
+
+const (
+	PublicStatusElementKindFolder PublicStatusElementKind = "folder"
+	PublicStatusElementKindCheck  PublicStatusElementKind = "check"
+)
+
+func (e *PublicStatusElementKind) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = PublicStatusElementKind(s)
+	case string:
+		*e = PublicStatusElementKind(s)
+	default:
+		return fmt.Errorf("unsupported scan type for PublicStatusElementKind: %T", src)
+	}
+	return nil
+}
+
+type NullPublicStatusElementKind struct {
+	PublicStatusElementKind PublicStatusElementKind `json:"public_status_element_kind"`
+	Valid                   bool                    `json:"valid"` // Valid is true if PublicStatusElementKind is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullPublicStatusElementKind) Scan(value interface{}) error {
+	if value == nil {
+		ns.PublicStatusElementKind, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.PublicStatusElementKind.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullPublicStatusElementKind) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.PublicStatusElementKind), nil
+}
+
 type TcpStatus string
 
 const (
@@ -906,6 +1034,37 @@ type ProjectMember struct {
 	Role      ProjectMemberRole `json:"role"`
 	CreatedAt time.Time         `json:"created_at"`
 	UpdatedAt time.Time         `json:"updated_at"`
+}
+
+type PublicStatusPage struct {
+	ID                uuid.UUID              `json:"id"`
+	ProjectID         uuid.UUID              `json:"project_id"`
+	Slug              string                 `json:"slug"`
+	Title             string                 `json:"title"`
+	Description       *string                `json:"description"`
+	Enabled           bool                   `json:"enabled"`
+	DefaultChartMode  PublicStatusChartMode  `json:"default_chart_mode"`
+	DefaultChartRange PublicStatusChartRange `json:"default_chart_range"`
+	CreatedByUserID   uuid.UUID              `json:"created_by_user_id"`
+	CreatedAt         time.Time              `json:"created_at"`
+	UpdatedAt         time.Time              `json:"updated_at"`
+	DeletedAt         *time.Time             `json:"deleted_at"`
+}
+
+type PublicStatusPageElement struct {
+	ID              uuid.UUID               `json:"id"`
+	PublicPageID    uuid.UUID               `json:"public_page_id"`
+	ProjectID       uuid.UUID               `json:"project_id"`
+	ParentElementID *uuid.UUID              `json:"parent_element_id"`
+	Kind            PublicStatusElementKind `json:"kind"`
+	CheckID         *uuid.UUID              `json:"check_id"`
+	Title           *string                 `json:"title"`
+	Description     *string                 `json:"description"`
+	SortOrder       int32                   `json:"sort_order"`
+	ChartMode       PublicStatusChartMode   `json:"chart_mode"`
+	ChartRange      *PublicStatusChartRange `json:"chart_range"`
+	CreatedAt       time.Time               `json:"created_at"`
+	UpdatedAt       time.Time               `json:"updated_at"`
 }
 
 type TcpCheckConfig struct {
