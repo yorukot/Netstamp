@@ -19,6 +19,7 @@ import (
 	appprobe "github.com/yorukot/netstamp/internal/controller/application/probe"
 	appproberuntime "github.com/yorukot/netstamp/internal/controller/application/proberuntime"
 	appproject "github.com/yorukot/netstamp/internal/controller/application/project"
+	apppublicstatus "github.com/yorukot/netstamp/internal/controller/application/publicstatus"
 	appresult "github.com/yorukot/netstamp/internal/controller/application/result"
 	appuser "github.com/yorukot/netstamp/internal/controller/application/user"
 	"github.com/yorukot/netstamp/internal/controller/transport/http/clientip"
@@ -31,6 +32,7 @@ import (
 	probehttp "github.com/yorukot/netstamp/internal/controller/transport/http/handler/probe"
 	proberuntimehttp "github.com/yorukot/netstamp/internal/controller/transport/http/handler/proberuntime"
 	projecthttp "github.com/yorukot/netstamp/internal/controller/transport/http/handler/project"
+	publicstatushttp "github.com/yorukot/netstamp/internal/controller/transport/http/handler/publicstatus"
 	resulthttp "github.com/yorukot/netstamp/internal/controller/transport/http/handler/result"
 	userhttp "github.com/yorukot/netstamp/internal/controller/transport/http/handler/user"
 	httpmiddleware "github.com/yorukot/netstamp/internal/controller/transport/http/middleware"
@@ -57,6 +59,7 @@ type Dependencies struct {
 	ProbeService             *appprobe.Service
 	ProbeRuntime             *appproberuntime.Service
 	ProjectService           *appproject.Service
+	PublicStatusService      *apppublicstatus.Service
 	ResultService            *appresult.Service
 	ReadinessCheck           func(context.Context) error
 	RequestTimeout           time.Duration
@@ -133,6 +136,7 @@ func registerAPIRoutes(api chi.Router, dep Dependencies) {
 	labelhttp.NewHandler(dep.LabelService, dep.AuthVerifier).RegisterRoutes(api)
 	checkhttp.NewHandler(dep.CheckService, dep.AuthVerifier).RegisterRoutes(api)
 	probehttp.NewHandler(dep.ProbeService, dep.AuthVerifier).RegisterRoutes(api)
+	publicstatushttp.NewHandler(dep.PublicStatusService, dep.AuthVerifier).RegisterRoutes(api)
 	resulthttp.NewHandler(dep.ResultService, dep.AuthVerifier).RegisterRoutes(api)
 	proberuntimehttp.NewHandler(dep.ProbeRuntime).RegisterRoutes(api)
 }

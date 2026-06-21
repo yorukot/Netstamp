@@ -19,6 +19,7 @@ import (
 	appprobe "github.com/yorukot/netstamp/internal/controller/application/probe"
 	appproberuntime "github.com/yorukot/netstamp/internal/controller/application/proberuntime"
 	appproject "github.com/yorukot/netstamp/internal/controller/application/project"
+	apppublicstatus "github.com/yorukot/netstamp/internal/controller/application/publicstatus"
 	appresult "github.com/yorukot/netstamp/internal/controller/application/result"
 	appuser "github.com/yorukot/netstamp/internal/controller/application/user"
 	"github.com/yorukot/netstamp/internal/controller/config"
@@ -31,6 +32,7 @@ import (
 	pgping "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/ping"
 	pgprobe "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/probe"
 	pgproject "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/project"
+	pgpublicstatus "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/publicstatus"
 	pgresult "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/result"
 	pgtcp "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/tcp"
 	pgtraceroute "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/traceroute"
@@ -150,6 +152,8 @@ func New(ctx context.Context) (*Application, error) {
 	tcpRepo := pgtcp.NewTCPRepository(dbPool)
 	tracerouteRepo := pgtraceroute.NewTracerouteRepository(dbPool)
 	resultRepo := pgresult.NewResultRepository(dbPool)
+	publicStatusRepo := pgpublicstatus.NewRepository(dbPool)
+	publicStatusSvc := apppublicstatus.NewService(publicStatusRepo, projectRepo, pingRepo, tcpRepo)
 	probeRuntimeSvc := appproberuntime.NewServiceWithTCP(probeRepo, pingRepo, tcpRepo, tracerouteRepo, security.NewProbeSecretVerifier(), probeRuntimeEvents)
 	alertEvalSvc := appalerteval.NewService(alertRepo, cfg.Alerting.EvaluationEnabled, cfg.HTTP.BackendBaseURL)
 	probeRuntimeSvc.SetAlertEvaluator(alertEvalSvc)
@@ -185,6 +189,7 @@ func New(ctx context.Context) (*Application, error) {
 		ProbeService:             probeSvc,
 		ProbeRuntime:             probeRuntimeSvc,
 		ProjectService:           projectSvc,
+		PublicStatusService:      publicStatusSvc,
 		ResultService:            resultSvc,
 		ReadinessCheck:           readiness,
 		RequestTimeout:           cfg.HTTP.RequestTimeout,
