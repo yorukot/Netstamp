@@ -758,6 +758,95 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	"/projects/{ref}/status-pages": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** List project public status pages */
+		get: operations["listProjectPublicStatusPages"];
+		put?: never;
+		/** Create project public status page */
+		post: operations["createProjectPublicStatusPage"];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	"/projects/{ref}/status-pages/{page_id}": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** Get project public status page */
+		get: operations["getProjectPublicStatusPage"];
+		put?: never;
+		post?: never;
+		/** Delete project public status page */
+		delete: operations["deleteProjectPublicStatusPage"];
+		options?: never;
+		head?: never;
+		/** Update project public status page */
+		patch: operations["updateProjectPublicStatusPage"];
+		trace?: never;
+	};
+	"/projects/{ref}/status-pages/{page_id}/elements": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/** Create public status page element */
+		post: operations["createProjectPublicStatusElement"];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	"/projects/{ref}/status-pages/{page_id}/elements/{element_id}": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		post?: never;
+		/** Delete public status page element */
+		delete: operations["deleteProjectPublicStatusElement"];
+		options?: never;
+		head?: never;
+		/** Update public status page element */
+		patch: operations["updateProjectPublicStatusElement"];
+		trace?: never;
+	};
+	"/public/status-pages/{slug}": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** Get public status page */
+		get: operations["getPublicStatusPage"];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	"/runtime/probes/{probe_id}/assignments": {
 		parameters: {
 			query?: never;
@@ -1562,6 +1651,40 @@ export interface components {
 		CreateProjectRequest: {
 			name: string;
 			slug: string;
+		};
+		CreatePublicStatusElementRequest: {
+			parentElementId?: components["schemas"]["uuid"];
+			/** @enum {string} */
+			kind: "folder" | "check";
+			checkId?: components["schemas"]["uuid"];
+			title?: string;
+			description?: string;
+			/** Format: int32 */
+			sortOrder: number;
+			/**
+			 * @default inherit
+			 * @enum {string}
+			 */
+			chartMode: "inherit" | "off" | "compact";
+			/** @enum {string} */
+			chartRange?: "24h" | "7d" | "30d";
+		};
+		CreatePublicStatusPageRequest: {
+			slug: string;
+			title: string;
+			description?: string;
+			/** @default true */
+			enabled: boolean;
+			/**
+			 * @default off
+			 * @enum {string}
+			 */
+			defaultChartMode: "off" | "compact";
+			/**
+			 * @default 24h
+			 * @enum {string}
+			 */
+			defaultChartRange: "24h" | "7d" | "30d";
 		};
 		/**
 		 * @example {
@@ -2457,6 +2580,154 @@ export interface components {
 		 */
 		ProjectResponse: {
 			project: components["schemas"]["Project"];
+		};
+		PublicStatusChart: {
+			/** @enum {string} */
+			range: "24h" | "7d" | "30d";
+			series: components["schemas"]["Series"][];
+		};
+		PublicStatusElement: {
+			id: components["schemas"]["uuid"];
+			publicPageId: components["schemas"]["uuid"];
+			parentElementId?: components["schemas"]["uuid"];
+			/** @enum {string} */
+			kind: "folder" | "check";
+			checkId?: components["schemas"]["uuid"];
+			title?: string;
+			description?: string;
+			/** Format: int32 */
+			sortOrder: number;
+			/** @enum {string} */
+			chartMode: "inherit" | "off" | "compact";
+			/** @enum {string} */
+			chartRange?: "24h" | "7d" | "30d";
+			checkName?: string;
+			/** @enum {string} */
+			checkType?: "ping" | "tcp" | "traceroute";
+			checkTarget?: string;
+			/** Format: int32 */
+			checkIntervalSeconds?: number;
+			/** Format: date-time */
+			createdAt: string;
+			/** Format: date-time */
+			updatedAt: string;
+		};
+		PublicStatusElementResponse: {
+			element: components["schemas"]["PublicStatusElement"];
+		};
+		PublicStatusIncident: {
+			id: components["schemas"]["uuid"];
+			checkId: components["schemas"]["uuid"];
+			checkTitle: string;
+			/** @enum {string} */
+			status: "open" | "acknowledged" | "resolved";
+			/** @enum {string} */
+			severity: "info" | "warning" | "critical";
+			/** Format: date-time */
+			openedAt: string;
+			/** Format: date-time */
+			resolvedAt?: string;
+			/** Format: date-time */
+			lastTriggeredAt: string;
+			summary?: components["schemas"]["PublicStatusIncidentSummary"];
+		};
+		PublicStatusIncidentSummary: {
+			metric?: string;
+			/** Format: double */
+			value?: number;
+			/** Format: double */
+			threshold?: number;
+			/** Format: int32 */
+			windowSeconds?: number;
+		};
+		PublicStatusIncidents: {
+			active: components["schemas"]["PublicStatusIncident"][];
+			recentResolved: components["schemas"]["PublicStatusIncident"][];
+		};
+		PublicStatusMetrics: {
+			/** Format: double */
+			latencyAvgMs?: number;
+			/** Format: double */
+			lossPercent?: number;
+			/** Format: double */
+			connectAvgMs?: number;
+			/** Format: double */
+			failurePercent?: number;
+		};
+		PublicStatusPage: {
+			id: components["schemas"]["uuid"];
+			projectId: components["schemas"]["uuid"];
+			slug: string;
+			title: string;
+			description?: string;
+			enabled: boolean;
+			/** @enum {string} */
+			defaultChartMode: "off" | "compact";
+			/** @enum {string} */
+			defaultChartRange: "24h" | "7d" | "30d";
+			/** Format: date-time */
+			createdAt: string;
+			/** Format: date-time */
+			updatedAt: string;
+		};
+		PublicStatusPageDetailResponse: {
+			page: components["schemas"]["PublicStatusPage"];
+			elements: components["schemas"]["PublicStatusElement"][];
+		};
+		PublicStatusPageListResponse: {
+			pages: components["schemas"]["PublicStatusPage"][];
+		};
+		PublicStatusPageResponse: {
+			page: components["schemas"]["PublicStatusPage"];
+		};
+		PublicStatusPageSummary: {
+			id: components["schemas"]["uuid"];
+			slug: string;
+			title: string;
+			description?: string;
+			/** @enum {string} */
+			status: "operational" | "degraded" | "down" | "unknown";
+			/** @enum {string} */
+			defaultChartMode: "off" | "compact";
+			/** @enum {string} */
+			defaultChartRange: "24h" | "7d" | "30d";
+			/** Format: date-time */
+			updatedAt: string;
+		};
+		PublicStatusPublicElement: {
+			id: components["schemas"]["uuid"];
+			/** @enum {string} */
+			kind: "folder" | "check";
+			checkId?: components["schemas"]["uuid"];
+			title: string;
+			description?: string;
+			/** @enum {string} */
+			type?: "ping" | "tcp" | "traceroute";
+			target?: string;
+			/** @enum {string} */
+			status: "operational" | "degraded" | "down" | "unknown";
+			/** Format: date-time */
+			latestStartedAt?: string;
+			/** @enum {string} */
+			latestStatus?: "successful" | "timeout" | "error" | "partial";
+			/** Format: int32 */
+			assignmentCount?: number;
+			/** Format: int32 */
+			successfulAssignments?: number;
+			/** Format: int32 */
+			failingAssignments?: number;
+			/** Format: int32 */
+			staleAssignments?: number;
+			metrics?: components["schemas"]["PublicStatusMetrics"];
+			chart?: components["schemas"]["PublicStatusChart"];
+			children?: components["schemas"]["PublicStatusPublicElement"][];
+		};
+		PublicStatusPublicResponse: {
+			page: components["schemas"]["PublicStatusPageSummary"];
+			elements: components["schemas"]["PublicStatusPublicElement"][];
+			incidents: components["schemas"]["PublicStatusIncidents"];
+			/** Format: date-time */
+			generatedAt: string;
 		};
 		/**
 		 * @example {
@@ -3433,6 +3704,42 @@ export interface components {
 			name?: string;
 			slug?: string;
 		};
+		/** @description Full replacement patch for a public status page element. */
+		UpdatePublicStatusElementRequest: {
+			parentElementId?: components["schemas"]["uuid"];
+			/** @enum {string} */
+			kind: "folder" | "check";
+			checkId?: components["schemas"]["uuid"];
+			title?: string;
+			description?: string;
+			/** Format: int32 */
+			sortOrder: number;
+			/**
+			 * @default inherit
+			 * @enum {string}
+			 */
+			chartMode: "inherit" | "off" | "compact";
+			/** @enum {string} */
+			chartRange?: "24h" | "7d" | "30d";
+		};
+		/** @description Full replacement patch for public status page settings. */
+		UpdatePublicStatusPageRequest: {
+			slug: string;
+			title: string;
+			description?: string;
+			/** @default true */
+			enabled: boolean;
+			/**
+			 * @default off
+			 * @enum {string}
+			 */
+			defaultChartMode: "off" | "compact";
+			/**
+			 * @default 24h
+			 * @enum {string}
+			 */
+			defaultChartRange: "24h" | "7d" | "30d";
+		};
 		/**
 		 * @example {
 		 *       "id": "11111111-1111-1111-1111-111111111111",
@@ -3496,6 +3803,11 @@ export interface components {
 		"ProjectAssignmentQuery.probeId": components["schemas"]["uuid"];
 		ProjectInviteIdPathParam: components["schemas"]["uuid"];
 		ProjectRefParam: string;
+		PublicStatusElementIdPathParam: components["schemas"]["uuid"];
+		PublicStatusPageIdPathParam: components["schemas"]["uuid"];
+		"PublicStatusQuery.includeCharts": boolean;
+		"PublicStatusQuery.range": "24h" | "7d" | "30d";
+		PublicStatusSlugPathParam: string;
 		"TcpInsightQuery.checkId": components["schemas"]["uuid"];
 		"TcpInsightQuery.from": number;
 		"TcpInsightQuery.maxDataPoints": number;
@@ -7382,6 +7694,659 @@ export interface operations {
 			};
 			/** @description Access is unauthorized. */
 			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	listProjectPublicStatusPages: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				ref: components["parameters"]["ProjectRefParam"];
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["PublicStatusPageListResponse"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	createProjectPublicStatusPage: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				ref: components["parameters"]["ProjectRefParam"];
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				"application/json": components["schemas"]["CreatePublicStatusPageRequest"];
+			};
+		};
+		responses: {
+			/** @description The request has succeeded and a new resource has been created as a result. */
+			201: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["PublicStatusPageResponse"];
+				};
+			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is forbidden. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The request conflicts with the current state of the server. */
+			409: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	getProjectPublicStatusPage: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				ref: components["parameters"]["ProjectRefParam"];
+				page_id: components["parameters"]["PublicStatusPageIdPathParam"];
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["PublicStatusPageDetailResponse"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	deleteProjectPublicStatusPage: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				ref: components["parameters"]["ProjectRefParam"];
+				page_id: components["parameters"]["PublicStatusPageIdPathParam"];
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description There is no content to send for this request, but the headers may be useful. */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is forbidden. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	updateProjectPublicStatusPage: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				ref: components["parameters"]["ProjectRefParam"];
+				page_id: components["parameters"]["PublicStatusPageIdPathParam"];
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				"application/json": components["schemas"]["UpdatePublicStatusPageRequest"];
+			};
+		};
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["PublicStatusPageResponse"];
+				};
+			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is forbidden. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The request conflicts with the current state of the server. */
+			409: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	createProjectPublicStatusElement: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				ref: components["parameters"]["ProjectRefParam"];
+				page_id: components["parameters"]["PublicStatusPageIdPathParam"];
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				"application/json": components["schemas"]["CreatePublicStatusElementRequest"];
+			};
+		};
+		responses: {
+			/** @description The request has succeeded and a new resource has been created as a result. */
+			201: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["PublicStatusElementResponse"];
+				};
+			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is forbidden. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	deleteProjectPublicStatusElement: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				ref: components["parameters"]["ProjectRefParam"];
+				page_id: components["parameters"]["PublicStatusPageIdPathParam"];
+				element_id: components["parameters"]["PublicStatusElementIdPathParam"];
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description There is no content to send for this request, but the headers may be useful. */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is forbidden. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	updateProjectPublicStatusElement: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				ref: components["parameters"]["ProjectRefParam"];
+				page_id: components["parameters"]["PublicStatusPageIdPathParam"];
+				element_id: components["parameters"]["PublicStatusElementIdPathParam"];
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				"application/json": components["schemas"]["UpdatePublicStatusElementRequest"];
+			};
+		};
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["PublicStatusElementResponse"];
+				};
+			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is forbidden. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	getPublicStatusPage: {
+		parameters: {
+			query?: {
+				includeCharts?: components["parameters"]["PublicStatusQuery.includeCharts"];
+				range?: components["parameters"]["PublicStatusQuery.range"];
+			};
+			header?: never;
+			path: {
+				slug: components["parameters"]["PublicStatusSlugPathParam"];
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["PublicStatusPublicResponse"];
+				};
+			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
 				headers: {
 					[name: string]: unknown;
 				};

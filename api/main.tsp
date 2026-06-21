@@ -11,6 +11,7 @@ import "./models/probe.tsp";
 import "./models/assignment.tsp";
 import "./models/result.tsp";
 import "./models/alert.tsp";
+import "./models/public-status.tsp";
 
 import "./services/system.tsp";
 import "./services/auth.tsp";
@@ -22,6 +23,7 @@ import "./services/assignments.tsp";
 import "./services/probes.tsp";
 import "./services/results.tsp";
 import "./services/alerts.tsp";
+import "./services/public-status.tsp";
 import "./services/probe-runtime.tsp";
 import "./services/install.tsp";
 
@@ -44,6 +46,7 @@ using OpenAPI;
 @tagMetadata("Probes", #{ description: "Project-scoped probe registration and secret management." })
 @tagMetadata("Results", #{ description: "Authenticated result query endpoints." })
 @tagMetadata("Alerts", #{ description: "Project-scoped alert rules, alert incidents, and notifications." })
+@tagMetadata("Public Status Pages", #{ description: "Public, shareable project status pages and their ordered elements." })
 @tagMetadata("Probe Runtime", #{ description: "Probe-agent runtime handshake, polling, and result ingestion." })
 @tagMetadata("Install", #{ description: "Probe-agent install assets for Linux systemd hosts." })
 namespace Netstamp;

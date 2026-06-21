@@ -15,6 +15,10 @@
 			"description": "Probe-agent runtime handshake, polling, and result ingestion."
 		},
 		{
+			"name": "Public Status Pages",
+			"description": "Public, shareable project status pages and their ordered elements."
+		},
+		{
 			"name": "Alerts",
 			"description": "Project-scoped alert rules, alert incidents, and notifications."
 		},
@@ -4751,6 +4755,790 @@
 				]
 			}
 		},
+		"/projects/{ref}/status-pages": {
+			"get": {
+				"operationId": "listProjectPublicStatusPages",
+				"summary": "List project public status pages",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/PublicStatusPageListResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Public Status Pages"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			},
+			"post": {
+				"operationId": "createProjectPublicStatusPage",
+				"summary": "Create project public status page",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					}
+				],
+				"responses": {
+					"201": {
+						"description": "The request has succeeded and a new resource has been created as a result.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/PublicStatusPageResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "The request conflicts with the current state of the server.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Public Status Pages"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/CreatePublicStatusPageRequest"
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/projects/{ref}/status-pages/{page_id}": {
+			"get": {
+				"operationId": "getProjectPublicStatusPage",
+				"summary": "Get project public status page",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					},
+					{
+						"$ref": "#/components/parameters/PublicStatusPageIdPathParam"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/PublicStatusPageDetailResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Public Status Pages"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			},
+			"patch": {
+				"operationId": "updateProjectPublicStatusPage",
+				"summary": "Update project public status page",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					},
+					{
+						"$ref": "#/components/parameters/PublicStatusPageIdPathParam"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/PublicStatusPageResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "The request conflicts with the current state of the server.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Public Status Pages"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/UpdatePublicStatusPageRequest"
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			},
+			"delete": {
+				"operationId": "deleteProjectPublicStatusPage",
+				"summary": "Delete project public status page",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					},
+					{
+						"$ref": "#/components/parameters/PublicStatusPageIdPathParam"
+					}
+				],
+				"responses": {
+					"204": {
+						"description": "There is no content to send for this request, but the headers may be useful. "
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Public Status Pages"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/projects/{ref}/status-pages/{page_id}/elements": {
+			"post": {
+				"operationId": "createProjectPublicStatusElement",
+				"summary": "Create public status page element",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					},
+					{
+						"$ref": "#/components/parameters/PublicStatusPageIdPathParam"
+					}
+				],
+				"responses": {
+					"201": {
+						"description": "The request has succeeded and a new resource has been created as a result.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/PublicStatusElementResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Public Status Pages"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/CreatePublicStatusElementRequest"
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/projects/{ref}/status-pages/{page_id}/elements/{element_id}": {
+			"patch": {
+				"operationId": "updateProjectPublicStatusElement",
+				"summary": "Update public status page element",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					},
+					{
+						"$ref": "#/components/parameters/PublicStatusPageIdPathParam"
+					},
+					{
+						"$ref": "#/components/parameters/PublicStatusElementIdPathParam"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/PublicStatusElementResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Public Status Pages"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/UpdatePublicStatusElementRequest"
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			},
+			"delete": {
+				"operationId": "deleteProjectPublicStatusElement",
+				"summary": "Delete public status page element",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					},
+					{
+						"$ref": "#/components/parameters/PublicStatusPageIdPathParam"
+					},
+					{
+						"$ref": "#/components/parameters/PublicStatusElementIdPathParam"
+					}
+				],
+				"responses": {
+					"204": {
+						"description": "There is no content to send for this request, but the headers may be useful. "
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Public Status Pages"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/public/status-pages/{slug}": {
+			"get": {
+				"operationId": "getPublicStatusPage",
+				"summary": "Get public status page",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/PublicStatusSlugPathParam"
+					},
+					{
+						"$ref": "#/components/parameters/PublicStatusQuery.includeCharts"
+					},
+					{
+						"$ref": "#/components/parameters/PublicStatusQuery.range"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/PublicStatusPublicResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Public Status Pages"]
+			}
+		},
 		"/runtime/probes/{probe_id}/assignments": {
 			"get": {
 				"operationId": "listProbeRuntimeAssignments",
@@ -5703,6 +6491,53 @@
 			},
 			"ProjectRefParam": {
 				"name": "ref",
+				"in": "path",
+				"required": true,
+				"schema": {
+					"type": "string",
+					"pattern": "^[a-z0-9-]+$",
+					"minLength": 1,
+					"maxLength": 64
+				}
+			},
+			"PublicStatusElementIdPathParam": {
+				"name": "element_id",
+				"in": "path",
+				"required": true,
+				"schema": {
+					"$ref": "#/components/schemas/uuid"
+				}
+			},
+			"PublicStatusPageIdPathParam": {
+				"name": "page_id",
+				"in": "path",
+				"required": true,
+				"schema": {
+					"$ref": "#/components/schemas/uuid"
+				}
+			},
+			"PublicStatusQuery.includeCharts": {
+				"name": "includeCharts",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "boolean",
+					"default": true
+				},
+				"explode": false
+			},
+			"PublicStatusQuery.range": {
+				"name": "range",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"enum": ["24h", "7d", "30d"]
+				},
+				"explode": false
+			},
+			"PublicStatusSlugPathParam": {
+				"name": "slug",
 				"in": "path",
 				"required": true,
 				"schema": {
@@ -7115,6 +7950,82 @@
 						"slug": "engineering"
 					}
 				]
+			},
+			"CreatePublicStatusElementRequest": {
+				"type": "object",
+				"required": ["kind", "sortOrder"],
+				"properties": {
+					"parentElementId": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"kind": {
+						"type": "string",
+						"enum": ["folder", "check"]
+					},
+					"checkId": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"title": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 1024
+					},
+					"description": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 1024
+					},
+					"sortOrder": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 0
+					},
+					"chartMode": {
+						"type": "string",
+						"enum": ["inherit", "off", "compact"],
+						"default": "inherit"
+					},
+					"chartRange": {
+						"type": "string",
+						"enum": ["24h", "7d", "30d"]
+					}
+				}
+			},
+			"CreatePublicStatusPageRequest": {
+				"type": "object",
+				"required": ["slug", "title"],
+				"properties": {
+					"slug": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 64,
+						"pattern": "^[a-z0-9-]+$"
+					},
+					"title": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 128
+					},
+					"description": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 1024
+					},
+					"enabled": {
+						"type": "boolean",
+						"default": true
+					},
+					"defaultChartMode": {
+						"type": "string",
+						"enum": ["off", "compact"],
+						"default": "off"
+					},
+					"defaultChartRange": {
+						"type": "string",
+						"enum": ["24h", "7d", "30d"],
+						"default": "24h"
+					}
+				}
 			},
 			"CurrentUserResponse": {
 				"type": "object",
@@ -8606,6 +9517,423 @@
 						}
 					}
 				]
+			},
+			"PublicStatusChart": {
+				"type": "object",
+				"required": ["range", "series"],
+				"properties": {
+					"range": {
+						"type": "string",
+						"enum": ["24h", "7d", "30d"]
+					},
+					"series": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/Series"
+						}
+					}
+				}
+			},
+			"PublicStatusElement": {
+				"type": "object",
+				"required": ["id", "publicPageId", "kind", "sortOrder", "chartMode", "createdAt", "updatedAt"],
+				"properties": {
+					"id": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"publicPageId": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"parentElementId": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"kind": {
+						"type": "string",
+						"enum": ["folder", "check"]
+					},
+					"checkId": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"title": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 1024
+					},
+					"description": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 1024
+					},
+					"sortOrder": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 0
+					},
+					"chartMode": {
+						"type": "string",
+						"enum": ["inherit", "off", "compact"]
+					},
+					"chartRange": {
+						"type": "string",
+						"enum": ["24h", "7d", "30d"]
+					},
+					"checkName": {
+						"type": "string"
+					},
+					"checkType": {
+						"type": "string",
+						"enum": ["ping", "tcp", "traceroute"]
+					},
+					"checkTarget": {
+						"type": "string"
+					},
+					"checkIntervalSeconds": {
+						"type": "integer",
+						"format": "int32"
+					},
+					"createdAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"updatedAt": {
+						"type": "string",
+						"format": "date-time"
+					}
+				}
+			},
+			"PublicStatusElementResponse": {
+				"type": "object",
+				"required": ["element"],
+				"properties": {
+					"element": {
+						"$ref": "#/components/schemas/PublicStatusElement"
+					}
+				}
+			},
+			"PublicStatusIncident": {
+				"type": "object",
+				"required": ["id", "checkId", "checkTitle", "status", "severity", "openedAt", "lastTriggeredAt"],
+				"properties": {
+					"id": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"checkId": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"checkTitle": {
+						"type": "string"
+					},
+					"status": {
+						"type": "string",
+						"enum": ["open", "acknowledged", "resolved"]
+					},
+					"severity": {
+						"type": "string",
+						"enum": ["info", "warning", "critical"]
+					},
+					"openedAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"resolvedAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"lastTriggeredAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"summary": {
+						"$ref": "#/components/schemas/PublicStatusIncidentSummary"
+					}
+				}
+			},
+			"PublicStatusIncidentSummary": {
+				"type": "object",
+				"properties": {
+					"metric": {
+						"type": "string"
+					},
+					"value": {
+						"type": "number",
+						"format": "double"
+					},
+					"threshold": {
+						"type": "number",
+						"format": "double"
+					},
+					"windowSeconds": {
+						"type": "integer",
+						"format": "int32"
+					}
+				}
+			},
+			"PublicStatusIncidents": {
+				"type": "object",
+				"required": ["active", "recentResolved"],
+				"properties": {
+					"active": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/PublicStatusIncident"
+						}
+					},
+					"recentResolved": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/PublicStatusIncident"
+						}
+					}
+				}
+			},
+			"PublicStatusMetrics": {
+				"type": "object",
+				"properties": {
+					"latencyAvgMs": {
+						"type": "number",
+						"format": "double",
+						"minimum": 0
+					},
+					"lossPercent": {
+						"type": "number",
+						"format": "double",
+						"minimum": 0,
+						"maximum": 100
+					},
+					"connectAvgMs": {
+						"type": "number",
+						"format": "double",
+						"minimum": 0
+					},
+					"failurePercent": {
+						"type": "number",
+						"format": "double",
+						"minimum": 0,
+						"maximum": 100
+					}
+				}
+			},
+			"PublicStatusPage": {
+				"type": "object",
+				"required": ["id", "projectId", "slug", "title", "enabled", "defaultChartMode", "defaultChartRange", "createdAt", "updatedAt"],
+				"properties": {
+					"id": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"projectId": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"slug": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 64,
+						"pattern": "^[a-z0-9-]+$"
+					},
+					"title": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 128
+					},
+					"description": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 1024
+					},
+					"enabled": {
+						"type": "boolean"
+					},
+					"defaultChartMode": {
+						"type": "string",
+						"enum": ["off", "compact"]
+					},
+					"defaultChartRange": {
+						"type": "string",
+						"enum": ["24h", "7d", "30d"]
+					},
+					"createdAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"updatedAt": {
+						"type": "string",
+						"format": "date-time"
+					}
+				}
+			},
+			"PublicStatusPageDetailResponse": {
+				"type": "object",
+				"required": ["page", "elements"],
+				"properties": {
+					"page": {
+						"$ref": "#/components/schemas/PublicStatusPage"
+					},
+					"elements": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/PublicStatusElement"
+						}
+					}
+				}
+			},
+			"PublicStatusPageListResponse": {
+				"type": "object",
+				"required": ["pages"],
+				"properties": {
+					"pages": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/PublicStatusPage"
+						}
+					}
+				}
+			},
+			"PublicStatusPageResponse": {
+				"type": "object",
+				"required": ["page"],
+				"properties": {
+					"page": {
+						"$ref": "#/components/schemas/PublicStatusPage"
+					}
+				}
+			},
+			"PublicStatusPageSummary": {
+				"type": "object",
+				"required": ["id", "slug", "title", "status", "defaultChartMode", "defaultChartRange", "updatedAt"],
+				"properties": {
+					"id": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"slug": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 64,
+						"pattern": "^[a-z0-9-]+$"
+					},
+					"title": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 128
+					},
+					"description": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 1024
+					},
+					"status": {
+						"type": "string",
+						"enum": ["operational", "degraded", "down", "unknown"]
+					},
+					"defaultChartMode": {
+						"type": "string",
+						"enum": ["off", "compact"]
+					},
+					"defaultChartRange": {
+						"type": "string",
+						"enum": ["24h", "7d", "30d"]
+					},
+					"updatedAt": {
+						"type": "string",
+						"format": "date-time"
+					}
+				}
+			},
+			"PublicStatusPublicElement": {
+				"type": "object",
+				"required": ["id", "kind", "title", "status"],
+				"properties": {
+					"id": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"kind": {
+						"type": "string",
+						"enum": ["folder", "check"]
+					},
+					"checkId": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"title": {
+						"type": "string",
+						"minLength": 1
+					},
+					"description": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 1024
+					},
+					"type": {
+						"type": "string",
+						"enum": ["ping", "tcp", "traceroute"]
+					},
+					"target": {
+						"type": "string"
+					},
+					"status": {
+						"type": "string",
+						"enum": ["operational", "degraded", "down", "unknown"]
+					},
+					"latestStartedAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"latestStatus": {
+						"type": "string",
+						"enum": ["successful", "timeout", "error", "partial"]
+					},
+					"assignmentCount": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 0
+					},
+					"successfulAssignments": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 0
+					},
+					"failingAssignments": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 0
+					},
+					"staleAssignments": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 0
+					},
+					"metrics": {
+						"$ref": "#/components/schemas/PublicStatusMetrics"
+					},
+					"chart": {
+						"$ref": "#/components/schemas/PublicStatusChart"
+					},
+					"children": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/PublicStatusPublicElement"
+						}
+					}
+				}
+			},
+			"PublicStatusPublicResponse": {
+				"type": "object",
+				"required": ["page", "elements", "incidents", "generatedAt"],
+				"properties": {
+					"page": {
+						"$ref": "#/components/schemas/PublicStatusPageSummary"
+					},
+					"elements": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/PublicStatusPublicElement"
+						}
+					},
+					"incidents": {
+						"$ref": "#/components/schemas/PublicStatusIncidents"
+					},
+					"generatedAt": {
+						"type": "string",
+						"format": "date-time"
+					}
+				}
 			},
 			"RegisterUserRequest": {
 				"type": "object",
@@ -10379,6 +11707,84 @@
 						"slug": "platform-engineering"
 					}
 				]
+			},
+			"UpdatePublicStatusElementRequest": {
+				"type": "object",
+				"required": ["kind", "sortOrder"],
+				"properties": {
+					"parentElementId": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"kind": {
+						"type": "string",
+						"enum": ["folder", "check"]
+					},
+					"checkId": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"title": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 1024
+					},
+					"description": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 1024
+					},
+					"sortOrder": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 0
+					},
+					"chartMode": {
+						"type": "string",
+						"enum": ["inherit", "off", "compact"],
+						"default": "inherit"
+					},
+					"chartRange": {
+						"type": "string",
+						"enum": ["24h", "7d", "30d"]
+					}
+				},
+				"description": "Full replacement patch for a public status page element."
+			},
+			"UpdatePublicStatusPageRequest": {
+				"type": "object",
+				"required": ["slug", "title"],
+				"properties": {
+					"slug": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 64,
+						"pattern": "^[a-z0-9-]+$"
+					},
+					"title": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 128
+					},
+					"description": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 1024
+					},
+					"enabled": {
+						"type": "boolean",
+						"default": true
+					},
+					"defaultChartMode": {
+						"type": "string",
+						"enum": ["off", "compact"],
+						"default": "off"
+					},
+					"defaultChartRange": {
+						"type": "string",
+						"enum": ["24h", "7d", "30d"],
+						"default": "24h"
+					}
+				},
+				"description": "Full replacement patch for public status page settings."
 			},
 			"User": {
 				"type": "object",
