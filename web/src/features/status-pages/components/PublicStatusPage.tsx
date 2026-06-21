@@ -61,7 +61,7 @@ export function PublicStatusPage() {
 					</div>
 				</header>
 
-				<IncidentSection active={data.incidents.active} resolved={data.incidents.recentResolved} />
+				<IncidentSection incidents={data.incidents.active} />
 
 				<section className={styles.elements} aria-label="Status checks">
 					{data.elements.length ? data.elements.map(element => <PublicElement key={element.id} element={element} />) : <div className={styles.empty}>No public status checks are configured.</div>}
@@ -71,31 +71,20 @@ export function PublicStatusPage() {
 	);
 }
 
-function IncidentSection({ active, resolved }: { active: PublicIncident[]; resolved: PublicIncident[] }) {
-	if (!active.length && !resolved.length) {
+function IncidentSection({ incidents }: { incidents: PublicIncident[] }) {
+	if (!incidents.length) {
 		return null;
 	}
 
 	return (
 		<section className={styles.incidents} aria-label="Incidents">
-			{active.length ? (
-				<Panel tone="deep" title="Active incidents">
-					<div className={styles.incidentList}>
-						{active.map(incident => (
-							<IncidentRow key={incident.id} incident={incident} />
-						))}
-					</div>
-				</Panel>
-			) : null}
-			{resolved.length ? (
-				<Panel tone="glass" title="Recent resolved incidents">
-					<div className={styles.incidentList}>
-						{resolved.slice(0, 5).map(incident => (
-							<IncidentRow key={incident.id} incident={incident} />
-						))}
-					</div>
-				</Panel>
-			) : null}
+			<Panel tone="deep" title="Open incidents">
+				<div className={styles.incidentList}>
+					{incidents.map(incident => (
+						<IncidentRow key={incident.id} incident={incident} />
+					))}
+				</div>
+			</Panel>
 		</section>
 	);
 }
