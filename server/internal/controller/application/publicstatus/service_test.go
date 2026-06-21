@@ -8,10 +8,8 @@ import (
 
 	appvalidation "github.com/yorukot/netstamp/internal/controller/application/validation"
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
-	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 	domainpublic "github.com/yorukot/netstamp/internal/domain/publicstatus"
-	domaintcp "github.com/yorukot/netstamp/internal/domain/tcp"
 )
 
 const (
@@ -335,26 +333,6 @@ func (a fakeProjectAccess) GetProjectForUser(context.Context, string, string) (d
 
 func (a fakeProjectAccess) GetMemberRole(context.Context, string, string) (domainproject.Role, error) {
 	return a.role, nil
-}
-
-type unusedPingSeriesRepository struct{}
-
-func (unusedPingSeriesRepository) CountPingSeriesPoints(context.Context, domainping.SeriesPointCountQuery) (int64, error) {
-	return 0, nil
-}
-
-func (unusedPingSeriesRepository) ListPingSeries(context.Context, domainping.SeriesReadQuery) (map[string]domainping.SeriesData, error) {
-	return nil, nil
-}
-
-type unusedTCPSeriesRepository struct{}
-
-func (unusedTCPSeriesRepository) CountTCPSeriesPoints(context.Context, domaintcp.SeriesPointCountQuery) (int64, error) {
-	return 0, nil
-}
-
-func (unusedTCPSeriesRepository) ListTCPSeries(context.Context, domaintcp.SeriesReadQuery) (map[string]domaintcp.SeriesData, error) {
-	return nil, nil
 }
 
 func ptr[T any](value T) *T {

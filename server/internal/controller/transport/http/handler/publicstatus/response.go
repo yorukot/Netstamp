@@ -331,7 +331,14 @@ func publicIncidentSummary(incident domainpublic.Incident) *incidentSummary {
 		WindowSeconds *int32   `json:"windowSeconds"`
 	}
 	if len(incident.LastSummary) > 0 {
-		_ = json.Unmarshal(incident.LastSummary, &raw)
+		if err := json.Unmarshal(incident.LastSummary, &raw); err != nil {
+			raw = struct {
+				Metric        *string  `json:"metric"`
+				Value         *float64 `json:"value"`
+				Threshold     *float64 `json:"threshold"`
+				WindowSeconds *int32   `json:"windowSeconds"`
+			}{}
+		}
 	}
 	if raw.Value == nil {
 		raw.Value = incident.LastValue

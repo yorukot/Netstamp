@@ -59,11 +59,8 @@ func (s *Service) GetPage(ctx context.Context, input GetPageInput) (PageDetail, 
 }
 
 func (s *Service) CreatePage(ctx context.Context, input CreatePageInput) (domainpublic.Page, error) {
-	project, err := s.loadProject(ctx, input.ProjectRef, input.CurrentUserID)
+	project, err := s.loadWritableProject(ctx, input.ProjectRef, input.CurrentUserID)
 	if err != nil {
-		return domainpublic.Page{}, err
-	}
-	if err := s.requireProjectWrite(ctx, project.ID, input.CurrentUserID); err != nil {
 		return domainpublic.Page{}, err
 	}
 	page, err := normalizeCreatePageInput(project.ID, input)
@@ -74,11 +71,8 @@ func (s *Service) CreatePage(ctx context.Context, input CreatePageInput) (domain
 }
 
 func (s *Service) UpdatePage(ctx context.Context, input UpdatePageInput) (domainpublic.Page, error) {
-	project, err := s.loadProject(ctx, input.ProjectRef, input.CurrentUserID)
+	project, err := s.loadWritableProject(ctx, input.ProjectRef, input.CurrentUserID)
 	if err != nil {
-		return domainpublic.Page{}, err
-	}
-	if err := s.requireProjectWrite(ctx, project.ID, input.CurrentUserID); err != nil {
 		return domainpublic.Page{}, err
 	}
 	page, err := normalizeUpdatePageInput(project.ID, input)
@@ -89,11 +83,8 @@ func (s *Service) UpdatePage(ctx context.Context, input UpdatePageInput) (domain
 }
 
 func (s *Service) DeletePage(ctx context.Context, input DeletePageInput) error {
-	project, err := s.loadProject(ctx, input.ProjectRef, input.CurrentUserID)
+	project, err := s.loadWritableProject(ctx, input.ProjectRef, input.CurrentUserID)
 	if err != nil {
-		return err
-	}
-	if err := s.requireProjectWrite(ctx, project.ID, input.CurrentUserID); err != nil {
 		return err
 	}
 	pageID, err := domainpublic.VNPageID(input.PageID)
@@ -104,47 +95,20 @@ func (s *Service) DeletePage(ctx context.Context, input DeletePageInput) error {
 }
 
 func (s *Service) CreateElement(ctx context.Context, input CreateElementInput) (domainpublic.Element, error) {
-	project, err := s.loadProject(ctx, input.ProjectRef, input.CurrentUserID)
-	if err != nil {
-		return domainpublic.Element{}, err
-	}
-	if err := s.requireProjectWrite(ctx, project.ID, input.CurrentUserID); err != nil {
-		return domainpublic.Element{}, err
-	}
-	element, err := normalizeCreateElementInput(project.ID, input.PageID, input)
-	if err != nil {
-		return domainpublic.Element{}, err
-	}
-	if err := s.validateElementReferences(ctx, element); err != nil {
-		return domainpublic.Element{}, err
-	}
-	return s.repo.CreateElement(ctx, element)
+	return s.saveElement(ctx, input.ProjectRef, input.CurrentUserID, func(projectID string) (domainpublic.Element, error) {
+		return normalizeCreateElementInput(projectID, input.PageID, input)
+	}, s.repo.CreateElement)
 }
 
 func (s *Service) UpdateElement(ctx context.Context, input UpdateElementInput) (domainpublic.Element, error) {
-	project, err := s.loadProject(ctx, input.ProjectRef, input.CurrentUserID)
-	if err != nil {
-		return domainpublic.Element{}, err
-	}
-	if err := s.requireProjectWrite(ctx, project.ID, input.CurrentUserID); err != nil {
-		return domainpublic.Element{}, err
-	}
-	element, err := normalizeUpdateElementInput(project.ID, input.PageID, input)
-	if err != nil {
-		return domainpublic.Element{}, err
-	}
-	if err := s.validateElementReferences(ctx, element); err != nil {
-		return domainpublic.Element{}, err
-	}
-	return s.repo.UpdateElement(ctx, element)
+	return s.saveElement(ctx, input.ProjectRef, input.CurrentUserID, func(projectID string) (domainpublic.Element, error) {
+		return normalizeUpdateElementInput(projectID, input.PageID, input)
+	}, s.repo.UpdateElement)
 }
 
 func (s *Service) DeleteElement(ctx context.Context, input DeleteElementInput) error {
-	project, err := s.loadProject(ctx, input.ProjectRef, input.CurrentUserID)
+	project, err := s.loadWritableProject(ctx, input.ProjectRef, input.CurrentUserID)
 	if err != nil {
-		return err
-	}
-	if err := s.requireProjectWrite(ctx, project.ID, input.CurrentUserID); err != nil {
 		return err
 	}
 	pageID, err := domainpublic.VNPageID(input.PageID)
@@ -230,6 +194,18 @@ func (s *Service) loadProject(ctx context.Context, projectRef, userID string) (d
 	return s.projectAccess.GetProjectForUser(ctx, projectRef, userID)
 }
 
+func (s *Service) loadWritableProject(ctx context.Context, projectRef, userID string) (domainproject.Project, error) {
+	project, err := s.loadProject(ctx, projectRef, userID)
+	if err != nil {
+		return domainproject.Project{}, err
+	}
+	err = s.requireProjectWrite(ctx, project.ID, userID)
+	if err != nil {
+		return domainproject.Project{}, err
+	}
+	return project, nil
+}
+
 func (s *Service) requireProjectWrite(ctx context.Context, projectID, userID string) error {
 	role, err := s.projectAccess.GetMemberRole(ctx, projectID, userID)
 	if err != nil {
@@ -239,6 +215,28 @@ func (s *Service) requireProjectWrite(ctx context.Context, projectID, userID str
 		return ErrForbidden
 	}
 	return nil
+}
+
+func (s *Service) saveElement(
+	ctx context.Context,
+	projectRef string,
+	userID string,
+	normalize func(projectID string) (domainpublic.Element, error),
+	save func(context.Context, domainpublic.Element) (domainpublic.Element, error),
+) (domainpublic.Element, error) {
+	project, err := s.loadWritableProject(ctx, projectRef, userID)
+	if err != nil {
+		return domainpublic.Element{}, err
+	}
+	element, err := normalize(project.ID)
+	if err != nil {
+		return domainpublic.Element{}, err
+	}
+	err = s.validateElementReferences(ctx, element)
+	if err != nil {
+		return domainpublic.Element{}, err
+	}
+	return save(ctx, element)
 }
 
 func groupAssignments(assignments []domainpublic.Assignment) map[string][]domainpublic.Assignment {
@@ -393,56 +391,84 @@ type statusSummary struct {
 	metrics               *domainpublic.Metrics
 }
 
-func checkStatusSummary(assignments []domainpublic.Assignment, activeSeverity string, now time.Time) statusSummary {
-	summary := statusSummary{assignmentCount: int32(len(assignments))}
-	if len(assignments) == 0 {
-		summary.status = domainpublic.StatusUnknown
-		return summary
-	}
+const maxStatusSummaryCount int32 = 1<<31 - 1
 
+func checkStatusSummary(assignments []domainpublic.Assignment, activeSeverity string, now time.Time) statusSummary {
+	summary := statusSummary{}
 	var nonStale int32
 	var partial bool
 	metric := metricAccumulator{}
+
 	for _, assignment := range assignments {
-		if assignment.LatestStatus == "" || assignment.LatestStartedAt.Before(now.Add(-time.Duration(assignment.IntervalSeconds)*3*time.Second)) {
-			summary.staleAssignments++
+		summary.assignmentCount = incrementStatusCount(summary.assignmentCount)
+		if isStaleAssignment(assignment, now) {
+			summary.staleAssignments = incrementStatusCount(summary.staleAssignments)
 			continue
 		}
-		nonStale++
-		if summary.latestStartedAt == nil || assignment.LatestStartedAt.After(*summary.latestStartedAt) {
-			startedAt := assignment.LatestStartedAt
-			status := assignment.LatestStatus
-			summary.latestStartedAt = &startedAt
-			summary.latestStatus = &status
-		}
+		nonStale = incrementStatusCount(nonStale)
+		summary.recordLatest(assignment)
+		partial = summary.recordOutcome(assignment.LatestStatus) || partial
 		metric.add(assignment)
-		switch assignment.LatestStatus {
-		case "successful":
-			summary.successfulAssignments++
-		case "partial":
-			partial = true
-			summary.failingAssignments++
-		default:
-			summary.failingAssignments++
-		}
+	}
+
+	if summary.assignmentCount == 0 {
+		summary.status = domainpublic.StatusUnknown
+		return summary
 	}
 	summary.metrics = metric.metrics()
+	summary.status = statusFromSummary(activeSeverity, nonStale, summary.failingAssignments, partial)
+	return summary
+}
 
+func incrementStatusCount(value int32) int32 {
+	if value == maxStatusSummaryCount {
+		return value
+	}
+	return value + 1
+}
+
+func isStaleAssignment(assignment domainpublic.Assignment, now time.Time) bool {
+	if assignment.LatestStatus == "" {
+		return true
+	}
+	staleBefore := now.Add(-time.Duration(assignment.IntervalSeconds) * 3 * time.Second)
+	return assignment.LatestStartedAt.Before(staleBefore)
+}
+
+func (s *statusSummary) recordLatest(assignment domainpublic.Assignment) {
+	if s.latestStartedAt != nil && !assignment.LatestStartedAt.After(*s.latestStartedAt) {
+		return
+	}
+	startedAt := assignment.LatestStartedAt
+	status := assignment.LatestStatus
+	s.latestStartedAt = &startedAt
+	s.latestStatus = &status
+}
+
+func (s *statusSummary) recordOutcome(latestStatus string) bool {
+	if latestStatus == "successful" {
+		s.successfulAssignments = incrementStatusCount(s.successfulAssignments)
+		return false
+	}
+	s.failingAssignments = incrementStatusCount(s.failingAssignments)
+	return latestStatus == "partial"
+}
+
+func statusFromSummary(activeSeverity string, nonStale, failingAssignments int32, partial bool) domainpublic.Status {
 	switch {
 	case activeSeverity == "critical":
-		summary.status = domainpublic.StatusDown
+		return domainpublic.StatusDown
 	case activeSeverity == "warning" || activeSeverity == "info":
-		summary.status = domainpublic.StatusDegraded
+		return domainpublic.StatusDegraded
 	case nonStale == 0:
-		summary.status = domainpublic.StatusUnknown
-	case summary.failingAssignments == 0:
-		summary.status = domainpublic.StatusOperational
-	case summary.failingAssignments == nonStale && !partial:
-		summary.status = domainpublic.StatusDown
+		return domainpublic.StatusUnknown
+	case failingAssignments == 0:
+		return domainpublic.StatusOperational
+	case failingAssignments == nonStale && !partial:
+		return domainpublic.StatusDown
 	default:
-		summary.status = domainpublic.StatusDegraded
+		return domainpublic.StatusDegraded
 	}
-	return summary
 }
 
 type metricAccumulator struct {
@@ -548,29 +574,86 @@ func chartFrom(now time.Time, chartRange domainpublic.ChartRange) time.Time {
 	}
 }
 
+type chartSeriesScope struct {
+	projectID string
+	probeID   string
+	checkID   string
+	from      time.Time
+	to        time.Time
+	probeName string
+}
+
 func (s *Service) pingChartSeries(ctx context.Context, projectID string, assignment domainpublic.Assignment, checkID string, from, to time.Time) []domainpublic.Series {
 	if s.pings == nil {
 		return nil
 	}
-	rawPoints, err := s.pings.CountPingSeriesPoints(ctx, domainping.SeriesPointCountQuery{ProjectID: projectID, ProbeID: assignment.ProbeID, CheckID: checkID, From: from, To: to})
+	scope := newChartSeriesScope(projectID, assignment, checkID, from, to)
+	reader := pingChartReader{repo: s.pings}
+	return readChartSeries(ctx, scope, reader.count, reader.list, reader.series)
+}
+
+func (s *Service) tcpChartSeries(ctx context.Context, projectID string, assignment domainpublic.Assignment, checkID string, from, to time.Time) []domainpublic.Series {
+	if s.tcps == nil {
+		return nil
+	}
+	scope := newChartSeriesScope(projectID, assignment, checkID, from, to)
+	reader := tcpChartReader{repo: s.tcps}
+	return readChartSeries(ctx, scope, reader.count, reader.list, reader.series)
+}
+
+func newChartSeriesScope(projectID string, assignment domainpublic.Assignment, checkID string, from, to time.Time) chartSeriesScope {
+	return chartSeriesScope{
+		projectID: projectID,
+		probeID:   assignment.ProbeID,
+		checkID:   checkID,
+		from:      from,
+		to:        to,
+		probeName: assignment.ProbeName,
+	}
+}
+
+func readChartSeries[D any](
+	ctx context.Context,
+	scope chartSeriesScope,
+	count func(context.Context, chartSeriesScope) (int64, error),
+	list func(context.Context, chartSeriesScope, int64) (map[string]D, error),
+	series func(map[string]D, chartSeriesScope) []domainpublic.Series,
+) []domainpublic.Series {
+	rawPoints, err := count(ctx, scope)
 	if err != nil {
 		return nil
 	}
-	plan := pingquery.SelectReadPlan(rawPoints, from, to, publicMaxDataPoints)
-	values, err := s.pings.ListPingSeries(ctx, domainping.SeriesReadQuery{
-		ProjectID:     projectID,
-		ProbeID:       assignment.ProbeID,
-		CheckID:       checkID,
-		From:          from,
-		To:            to,
+	values, err := list(ctx, scope, rawPoints)
+	if err != nil {
+		return nil
+	}
+	return series(values, scope)
+}
+
+type pingChartReader struct {
+	repo PingSeriesRepository
+}
+
+func (r pingChartReader) count(ctx context.Context, scope chartSeriesScope) (int64, error) {
+	return r.repo.CountPingSeriesPoints(ctx, domainping.SeriesPointCountQuery{ProjectID: scope.projectID, ProbeID: scope.probeID, CheckID: scope.checkID, From: scope.from, To: scope.to})
+}
+
+func (r pingChartReader) list(ctx context.Context, scope chartSeriesScope, rawPoints int64) (map[string]domainping.SeriesData, error) {
+	plan := pingquery.SelectReadPlan(rawPoints, scope.from, scope.to, publicMaxDataPoints)
+	return r.repo.ListPingSeries(ctx, domainping.SeriesReadQuery{
+		ProjectID:     scope.projectID,
+		ProbeID:       scope.probeID,
+		CheckID:       scope.checkID,
+		From:          scope.from,
+		To:            scope.to,
 		Series:        []string{"latency_avg", "latency_min", "latency_max", "loss_percent"},
 		MaxDataPoints: publicMaxDataPoints,
 		Mode:          plan.Mode,
 	})
-	if err != nil {
-		return nil
-	}
-	return pingDomainSeries(values, assignment.ProbeName, checkID, map[string]string{
+}
+
+func (r pingChartReader) series(values map[string]domainping.SeriesData, scope chartSeriesScope) []domainpublic.Series {
+	return pingDomainSeries(values, scope.probeName, scope.checkID, map[string]string{
 		"latency_avg":  "ms",
 		"latency_min":  "ms",
 		"latency_max":  "ms",
@@ -578,29 +661,30 @@ func (s *Service) pingChartSeries(ctx context.Context, projectID string, assignm
 	})
 }
 
-func (s *Service) tcpChartSeries(ctx context.Context, projectID string, assignment domainpublic.Assignment, checkID string, from, to time.Time) []domainpublic.Series {
-	if s.tcps == nil {
-		return nil
-	}
-	rawPoints, err := s.tcps.CountTCPSeriesPoints(ctx, domaintcp.SeriesPointCountQuery{ProjectID: projectID, ProbeID: assignment.ProbeID, CheckID: checkID, From: from, To: to})
-	if err != nil {
-		return nil
-	}
-	plan := tcpquery.SelectReadPlan(rawPoints, from, to, publicMaxDataPoints)
-	values, err := s.tcps.ListTCPSeries(ctx, domaintcp.SeriesReadQuery{
-		ProjectID:     projectID,
-		ProbeID:       assignment.ProbeID,
-		CheckID:       checkID,
-		From:          from,
-		To:            to,
+type tcpChartReader struct {
+	repo TCPSeriesRepository
+}
+
+func (r tcpChartReader) count(ctx context.Context, scope chartSeriesScope) (int64, error) {
+	return r.repo.CountTCPSeriesPoints(ctx, domaintcp.SeriesPointCountQuery{ProjectID: scope.projectID, ProbeID: scope.probeID, CheckID: scope.checkID, From: scope.from, To: scope.to})
+}
+
+func (r tcpChartReader) list(ctx context.Context, scope chartSeriesScope, rawPoints int64) (map[string]domaintcp.SeriesData, error) {
+	plan := tcpquery.SelectReadPlan(rawPoints, scope.from, scope.to, publicMaxDataPoints)
+	return r.repo.ListTCPSeries(ctx, domaintcp.SeriesReadQuery{
+		ProjectID:     scope.projectID,
+		ProbeID:       scope.probeID,
+		CheckID:       scope.checkID,
+		From:          scope.from,
+		To:            scope.to,
 		Series:        []string{"connect_avg", "connect_min", "connect_max", "failure_percent"},
 		MaxDataPoints: publicMaxDataPoints,
 		Mode:          plan.Mode,
 	})
-	if err != nil {
-		return nil
-	}
-	return tcpDomainSeries(values, assignment.ProbeName, checkID, map[string]string{
+}
+
+func (r tcpChartReader) series(values map[string]domaintcp.SeriesData, scope chartSeriesScope) []domainpublic.Series {
+	return tcpDomainSeries(values, scope.probeName, scope.checkID, map[string]string{
 		"connect_avg":     "ms",
 		"connect_min":     "ms",
 		"connect_max":     "ms",
