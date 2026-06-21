@@ -1,6 +1,6 @@
 import { createBrowserRouter, Navigate as RouterNavigate } from "react-router-dom";
 import { AuthRoute, DashboardRoute, OnboardingRoute, ProjectRouteBoundary, ProtectedAppShell } from "./guards";
-import { AlertsPage, ChecksPage, InsightPage, LabelsPage, MembersPage, NewProbeDrawer, ProbesPage, ProjectPage, SettingsPage } from "./lazyRoutes";
+import { AlertsPage, ChecksPage, InsightPage, LabelsPage, MembersPage, NewProbeDrawer, ProbesPage, ProjectPage, PublicStatusPage, SettingsPage, StatusPagesPage } from "./lazyRoutes";
 import { DefaultProjectRedirect, LegacyCheckDetailRedirect, LegacyLabelDetailRedirect, LegacyProbeDetailRedirect } from "./redirects";
 import { RouteFrame } from "./RouteFrame";
 import { pathForRoute, projectRoutePath } from "./routePaths";
@@ -13,6 +13,7 @@ export const router = createBrowserRouter([
 			{ path: pathForRoute("landing"), element: <RouterNavigate to={pathForRoute("dashboard")} replace /> },
 			{ path: pathForRoute("login"), element: <AuthRoute mode="login" /> },
 			{ path: pathForRoute("register"), element: <AuthRoute mode="register" /> },
+			{ path: "status/:slug", element: lazyRoute(<PublicStatusPage />) },
 			{ path: pathForRoute("onboarding"), element: <OnboardingRoute /> },
 			{
 				element: <ProtectedAppShell />,
@@ -42,6 +43,7 @@ export const router = createBrowserRouter([
 					},
 					{ path: "insight", element: <DefaultProjectRedirect route="insight" /> },
 					{ path: "alerts", element: <DefaultProjectRedirect route="alerts" /> },
+					{ path: "status-pages", element: <DefaultProjectRedirect route="statusPages" /> },
 					{ path: "members", element: <DefaultProjectRedirect route="members" /> },
 					{ path: "project", element: <DefaultProjectRedirect route="projectSettings" /> },
 					{ path: "projects", element: <DefaultProjectRedirect route="dashboard" /> },
@@ -66,6 +68,7 @@ export const router = createBrowserRouter([
 							{ path: projectRoutePath("insight"), element: lazyRoute(<InsightPage />) },
 							{ path: projectRoutePath("alerts"), element: lazyRoute(<AlertsPage />) },
 							{ path: `${projectRoutePath("alerts")}/incident/:incidentId`, element: lazyRoute(<AlertsPage />) },
+							{ path: projectRoutePath("statusPages"), element: lazyRoute(<StatusPagesPage />) },
 							{ path: projectRoutePath("members"), element: lazyRoute(<MembersPage />) },
 							{ path: projectRoutePath("projectSettings"), element: lazyRoute(<ProjectPage />) }
 						]

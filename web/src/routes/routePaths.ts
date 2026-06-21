@@ -15,6 +15,7 @@ export const legacyAppRoutePaths = {
 	insight: "/insight",
 	checks: "/checks",
 	alerts: "/alerts",
+	statusPages: "/status-pages",
 	members: "/members",
 	projectSettings: "/project",
 	accountSettings: "/settings"
@@ -28,6 +29,7 @@ export const projectRouteSegments = {
 	insight: "insight",
 	checks: "checks",
 	alerts: "alerts",
+	statusPages: "status-pages",
 	members: "members",
 	projectSettings: "project"
 } satisfies Record<ProjectAppRoute, string>;

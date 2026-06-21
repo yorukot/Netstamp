@@ -12,3 +12,5 @@ export const NewProbeDrawer = lazy(() => import("@/features/probes/components/Ne
 export const ProbesPage = lazy(() => import("@/features/probes/components/ProbesPage").then(module => ({ default: module.ProbesPage })));
 export const SettingsPage = lazy(() => import("@/features/settings/components/SettingsPage").then(module => ({ default: module.SettingsPage })));
 export const ProjectPage = lazy(() => import("@/features/project/components/ProjectPage").then(module => ({ default: module.ProjectPage })));
+export const PublicStatusPage = lazy(() => import("@/features/status-pages/components/PublicStatusPage").then(module => ({ default: module.PublicStatusPage })));
+export const StatusPagesPage = lazy(() => import("@/features/status-pages/components/StatusPagesPage").then(module => ({ default: module.StatusPagesPage })));

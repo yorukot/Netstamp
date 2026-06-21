@@ -1,0 +1,237 @@
+.page {
+	min-height: 100vh;
+	background: var(--ns-bg);
+	color: var(--ns-text);
+	padding: 2.5rem 1.25rem;
+}
+
+.shell {
+	width: min(68rem, 100%);
+	margin: 0 auto;
+	display: grid;
+	gap: 1rem;
+}
+
+.header {
+	border: 1px solid var(--ns-border);
+	background: var(--ns-surface);
+	padding: 1.25rem;
+	display: grid;
+	gap: 1.25rem;
+}
+
+.brand {
+	color: var(--ns-text-subtle);
+	font: 0.78rem/1 var(--ns-font-mono);
+	text-transform: uppercase;
+	letter-spacing: 0;
+}
+
+.headerGrid {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	gap: 1rem;
+	align-items: end;
+}
+
+.headerCopy {
+	display: grid;
+	gap: 0.65rem;
+}
+
+.headerCopy h1 {
+	margin: 0;
+	font: 2.4rem/1.05 var(--ns-font-display);
+}
+
+.headerCopy p,
+.folderHeader p,
+.checkCopy p,
+.muted {
+	margin: 0;
+	color: var(--ns-text-muted);
+	line-height: 1.55;
+}
+
+.generated {
+	display: grid;
+	gap: 0.25rem;
+	min-width: 10rem;
+	border: 1px solid var(--ns-border);
+	background: var(--ns-surface-raised);
+	padding: 0.75rem;
+	font-family: var(--ns-font-mono);
+}
+
+.generated span {
+	color: var(--ns-text-subtle);
+	font-size: 0.72rem;
+	text-transform: uppercase;
+}
+
+.generated strong {
+	font-size: 0.86rem;
+}
+
+.incidents {
+	display: grid;
+	gap: 1rem;
+}
+
+.incidentList {
+	display: grid;
+	gap: 0.65rem;
+}
+
+.incidentRow {
+	display: flex;
+	justify-content: space-between;
+	gap: 1rem;
+	border: 1px solid var(--ns-border);
+	background: var(--ns-surface);
+	padding: 0.75rem;
+}
+
+.incidentTitle {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.incidentMeta,
+.checkMeta,
+.assignmentStats {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.45rem 0.8rem;
+	color: var(--ns-text-subtle);
+	font: 0.78rem/1.4 var(--ns-font-mono);
+}
+
+.incidentSummary {
+	display: grid;
+	justify-items: end;
+	gap: 0.2rem;
+	font-family: var(--ns-font-mono);
+}
+
+.incidentSummary span {
+	color: var(--ns-text-subtle);
+	font-size: 0.72rem;
+}
+
+.elements {
+	display: grid;
+	gap: 1rem;
+}
+
+.empty {
+	border: 1px solid var(--ns-border);
+	background: var(--ns-surface);
+	color: var(--ns-text-muted);
+	padding: 1rem;
+}
+
+.folder,
+.check {
+	border: 1px solid var(--ns-border);
+	background: var(--ns-surface);
+}
+
+.folderHeader {
+	display: flex;
+	justify-content: space-between;
+	gap: 1rem;
+	border-bottom: 1px solid var(--ns-border);
+	background: var(--ns-surface-raised);
+	padding: 1rem;
+}
+
+.folderHeader h2,
+.checkTitle h3 {
+	margin: 0;
+}
+
+.folderChildren {
+	display: grid;
+	gap: 0.75rem;
+	padding: 0.75rem;
+}
+
+.check {
+	display: grid;
+	gap: 0.85rem;
+	padding: 1rem;
+}
+
+.checkMain {
+	display: flex;
+	justify-content: space-between;
+	gap: 1rem;
+}
+
+.checkCopy,
+.checkTitle {
+	display: grid;
+	gap: 0.45rem;
+}
+
+.checkTitle {
+	grid-template-columns: auto minmax(0, 1fr);
+	align-items: center;
+}
+
+.metrics {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 0.6rem;
+}
+
+.metric {
+	border: 1px solid var(--ns-border);
+	background: var(--ns-surface-raised);
+	padding: 0.65rem;
+	display: grid;
+	gap: 0.25rem;
+}
+
+.metric span {
+	color: var(--ns-text-subtle);
+	font: 0.72rem/1 var(--ns-font-mono);
+	text-transform: uppercase;
+}
+
+.metric strong {
+	font: 1rem/1 var(--ns-font-mono);
+}
+
+.chart {
+	border-top: 1px solid var(--ns-border);
+	padding-top: 0.75rem;
+}
+
+@media (max-width: 46rem) {
+	.page {
+		padding: 1rem;
+	}
+
+	.headerGrid,
+	.checkMain,
+	.folderHeader,
+	.incidentRow {
+		grid-template-columns: 1fr;
+		display: grid;
+	}
+
+	.headerCopy h1 {
+		font-size: 1.8rem;
+	}
+
+	.metrics {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	.incidentSummary {
+		justify-items: start;
+	}
+}

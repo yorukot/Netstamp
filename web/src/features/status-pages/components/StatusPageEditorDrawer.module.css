@@ -1,0 +1,20 @@
+.form {
+	display: grid;
+	gap: 1rem;
+}
+
+.formError {
+	border: 1px solid color-mix(in srgb, var(--ns-critical) 42%, var(--ns-border));
+	background: color-mix(in srgb, var(--ns-critical) 8%, var(--ns-surface));
+	color: var(--ns-critical);
+	padding: 0.75rem;
+	font: 0.85rem/1.4 var(--ns-font-sans);
+}
+
+.checkboxRow {
+	display: flex;
+	align-items: center;
+	gap: 0.65rem;
+	color: var(--ns-text);
+	font: 0.9rem/1.4 var(--ns-font-sans);
+}

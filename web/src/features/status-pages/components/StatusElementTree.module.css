@@ -1,0 +1,92 @@
+.tree {
+	display: grid;
+	gap: 0.75rem;
+}
+
+.empty {
+	border: 1px solid var(--ns-border);
+	background: var(--ns-surface-raised);
+	color: var(--ns-text-muted);
+	padding: 1rem;
+}
+
+.node {
+	display: grid;
+	gap: 0.6rem;
+}
+
+.nodeMain {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 1rem;
+	border: 1px solid var(--ns-border);
+	background: var(--ns-surface);
+	padding: 0.85rem;
+}
+
+.node[data-kind="folder"] > .nodeMain {
+	background: var(--ns-surface-raised);
+	border-color: var(--ns-secondary-border);
+}
+
+.nodeCopy {
+	display: grid;
+	gap: 0.35rem;
+	min-width: 0;
+}
+
+.nodeTitle {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	min-width: 0;
+}
+
+.nodeTitle strong {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.nodeMeta {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.45rem 0.75rem;
+	color: var(--ns-text-subtle);
+	font: 0.78rem/1.4 var(--ns-font-mono);
+}
+
+.nodeActions {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	gap: 0.4rem;
+}
+
+.nodeActions svg {
+	width: 1rem;
+	height: 1rem;
+}
+
+.children {
+	display: grid;
+	gap: 0.55rem;
+	margin-left: 1.25rem;
+	padding-left: 0.85rem;
+	border-left: 1px solid var(--ns-border);
+}
+
+@media (max-width: 42rem) {
+	.nodeMain {
+		display: grid;
+	}
+
+	.nodeActions {
+		justify-content: flex-start;
+	}
+
+	.children {
+		margin-left: 0;
+	}
+}
