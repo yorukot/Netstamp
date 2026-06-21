@@ -2,7 +2,6 @@
 import netstampLogoDark from "@netstamp/brand/assets/netstamp-logo-dark.svg?url";
 import netstampLogoLight from "@netstamp/brand/assets/netstamp-logo-light.svg?url";
 import { Button } from "@netstamp/ui";
-import { appUrl } from "../../lib/publicUrls";
 import Icon from "../icons/Icon.astro";
 
 const pathname = Astro.url.pathname;
@@ -41,8 +40,8 @@ const isComponents = pathname.startsWith("/storybook") || pathname.startsWith("/
 			<ph-sun class="themeIcon themeIconSun" size="16" weight="bold" aria-hidden="true"></ph-sun>
 			<ph-moon-stars class="themeIcon themeIconMoon" size="16" weight="bold" aria-hidden="true"></ph-moon-stars>
 		</Button>
-		<Button className="siteNavSignIn" size="sm" asChild>
-			<a href={appUrl("/login")}>Sign in</a>
+		<Button className="siteNavDemo" size="sm" asChild>
+			<a href="https://demo.netstamp.dev">DEMO</a>
 		</Button>
 	</div>
 </nav>
@@ -127,13 +126,13 @@ const isComponents = pathname.startsWith("/storybook") || pathname.startsWith("/
 	.siteBrand:focus-visible,
 	.siteNavLink:focus-visible,
 	:global(.siteThemeToggle:focus-visible),
-	:global(.siteNavSignIn:focus-visible) {
+	:global(.siteNavDemo:focus-visible) {
 		outline: var(--ns-focus-outline);
 		outline-offset: 0.25rem;
 	}
 
 	.siteNavActions .siteNavLink,
-	:global(.siteNavSignIn),
+	:global(.siteNavDemo),
 	:global(.siteThemeToggle) {
 		min-width: 6.75rem;
 		justify-content: center;
@@ -168,7 +167,7 @@ const isComponents = pathname.startsWith("/storybook") || pathname.startsWith("/
 			gap: 0.75rem;
 		}
 
-		:global(.siteNavSignIn) {
+		:global(.siteNavDemo) {
 			min-width: 5rem;
 			min-height: 2rem;
 			padding: 0.45rem 0.625rem;
