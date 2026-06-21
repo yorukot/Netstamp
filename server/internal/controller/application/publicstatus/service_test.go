@@ -43,7 +43,7 @@ func TestGetPublicPageRendersOrderedElementsAndRollsUpStatus(t *testing.T) {
 				ID:           rootCheckID,
 				PublicPageID: testPageID,
 				ProjectID:    testProjectID,
-				Kind:         domainpublic.ElementKindCheck,
+				Kind:         domainpublic.ElementKindAssignmentGroup,
 				CheckID:      &rootCheckID,
 				CheckName:    ptr("Landing page"),
 				CheckType:    &checkType,
@@ -57,7 +57,7 @@ func TestGetPublicPageRendersOrderedElementsAndRollsUpStatus(t *testing.T) {
 				PublicPageID:    testPageID,
 				ProjectID:       testProjectID,
 				ParentElementID: &folderID,
-				Kind:            domainpublic.ElementKindCheck,
+				Kind:            domainpublic.ElementKindAssignmentGroup,
 				CheckID:         &childCheckID,
 				CheckName:       ptr("API"),
 				CheckType:       &checkType,
@@ -121,7 +121,7 @@ func TestGetPublicPageCriticalIncidentOverridesSuccessfulAssignments(t *testing.
 				ID:           checkID,
 				PublicPageID: testPageID,
 				ProjectID:    testProjectID,
-				Kind:         domainpublic.ElementKindCheck,
+				Kind:         domainpublic.ElementKindAssignmentGroup,
 				CheckID:      &checkID,
 				CheckName:    ptr("API"),
 				CheckType:    &checkType,
@@ -202,14 +202,15 @@ func TestUpdateElementRejectsKindChange(t *testing.T) {
 	service := NewService(repo, fakeProjectAccess{role: domainproject.RoleAdmin}, nil, nil)
 
 	_, err := service.UpdateElement(context.Background(), UpdateElementInput{
-		CurrentUserID: testUserID,
-		ProjectRef:    "main",
-		PageID:        testPageID,
-		ElementID:     elementID,
-		Kind:          domainpublic.ElementKindCheck,
-		CheckID:       &checkID,
-		SortOrder:     1,
-		ChartMode:     domainpublic.ChartModeInherit,
+		CurrentUserID:           testUserID,
+		ProjectRef:              "main",
+		PageID:                  testPageID,
+		ElementID:               elementID,
+		Kind:                    domainpublic.ElementKindAssignmentGroup,
+		CheckID:                 &checkID,
+		AssignmentSelectionMode: domainpublic.AssignmentSelectionModeAllCheck,
+		SortOrder:               1,
+		ChartMode:               domainpublic.ChartModeInherit,
 	})
 	if !errors.Is(err, ErrInvalidInput) {
 		t.Fatalf("UpdateElement error = %v, want ErrInvalidInput", err)
@@ -240,8 +241,12 @@ func testPage(now time.Time) domainpublic.Page {
 
 func testAssignment(checkID, status string, startedAt time.Time) domainpublic.Assignment {
 	return domainpublic.Assignment{
+		ElementID:       checkID,
+		AssignmentID:    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
 		CheckID:         checkID,
+		CheckName:       "API",
 		CheckType:       domaincheck.TypePing,
+		CheckTarget:     "example.com",
 		IntervalSeconds: 60,
 		ProbeID:         "99999999-9999-9999-9999-999999999999",
 		ProbeName:       "Tokyo",
@@ -313,6 +318,14 @@ func (r *fakePublicStatusRepository) UpdateElement(_ context.Context, input doma
 
 func (r *fakePublicStatusRepository) DeleteElement(context.Context, string, string, string) error {
 	return nil
+}
+
+func (r *fakePublicStatusRepository) HasAssignableCheck(context.Context, string, string) (bool, error) {
+	return true, nil
+}
+
+func (r *fakePublicStatusRepository) CountAssignableAssignments(_ context.Context, _ string, assignmentIDs []string) (int64, error) {
+	return int64(len(assignmentIDs)), nil
 }
 
 func (r *fakePublicStatusRepository) ListAssignments(context.Context, string) ([]domainpublic.Assignment, error) {

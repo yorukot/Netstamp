@@ -159,8 +159,15 @@ function compareElements(a: Pick<ApiPublicStatusElement, "sortOrder" | "createdA
 }
 
 function seriesDisplayName(series: ApiSeries) {
+	const checkName = series.labels.checkName;
 	const probeName = series.labels.probeName;
-	return probeName ? `${series.name} / ${probeName}` : series.name;
+	if (checkName && probeName) {
+		return `${checkName} / ${probeName}`;
+	}
+	if (probeName) {
+		return `${series.name} / ${probeName}`;
+	}
+	return checkName || series.name;
 }
 
 function seriesPoints(series: ApiSeries) {

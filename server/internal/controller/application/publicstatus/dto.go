@@ -47,32 +47,36 @@ type DeletePageInput struct {
 }
 
 type CreateElementInput struct {
-	CurrentUserID   string
-	ProjectRef      string
-	PageID          string
-	ParentElementID *string
-	Kind            domainpublic.ElementKind
-	CheckID         *string
-	Title           *string
-	Description     *string
-	SortOrder       int32
-	ChartMode       domainpublic.ChartMode
-	ChartRange      *domainpublic.ChartRange
+	CurrentUserID           string
+	ProjectRef              string
+	PageID                  string
+	ParentElementID         *string
+	Kind                    domainpublic.ElementKind
+	CheckID                 *string
+	AssignmentSelectionMode domainpublic.AssignmentSelectionMode
+	AssignmentIDs           []string
+	Title                   *string
+	Description             *string
+	SortOrder               int32
+	ChartMode               domainpublic.ChartMode
+	ChartRange              *domainpublic.ChartRange
 }
 
 type UpdateElementInput struct {
-	CurrentUserID   string
-	ProjectRef      string
-	PageID          string
-	ElementID       string
-	ParentElementID *string
-	Kind            domainpublic.ElementKind
-	CheckID         *string
-	Title           *string
-	Description     *string
-	SortOrder       int32
-	ChartMode       domainpublic.ChartMode
-	ChartRange      *domainpublic.ChartRange
+	CurrentUserID           string
+	ProjectRef              string
+	PageID                  string
+	ElementID               string
+	ParentElementID         *string
+	Kind                    domainpublic.ElementKind
+	CheckID                 *string
+	AssignmentSelectionMode domainpublic.AssignmentSelectionMode
+	AssignmentIDs           []string
+	Title                   *string
+	Description             *string
+	SortOrder               int32
+	ChartMode               domainpublic.ChartMode
+	ChartRange              *domainpublic.ChartRange
 }
 
 type DeleteElementInput struct {

@@ -7,7 +7,8 @@ namespace Netstamp;
 alias PublicStatusChartMode = "inherit" | "off" | "compact";
 alias PublicStatusPageChartMode = "off" | "compact";
 alias PublicStatusChartRange = "24h" | "7d" | "30d";
-alias PublicStatusElementKind = "folder" | "check";
+alias PublicStatusElementKind = "folder" | "assignment_group";
+alias PublicStatusAssignmentSelectionMode = "all_check" | "selected_assignments";
 alias PublicStatusState = "operational" | "degraded" | "down" | "unknown";
 alias PublicIncidentStatus = "open" | "acknowledged" | "resolved";
 
@@ -81,6 +82,8 @@ model PublicStatusElement {
 	parentElementId?: uuid;
 	kind: PublicStatusElementKind;
 	checkId?: uuid;
+	assignmentSelectionMode?: PublicStatusAssignmentSelectionMode;
+	assignmentIds: uuid[];
 
 	@minLength(1)
 	@maxLength(1024)
@@ -117,6 +120,20 @@ model PublicStatusMetrics {
 	@minValue(0)
 	@maxValue(100)
 	failurePercent?: float64;
+}
+
+model PublicStatusPublicAssignment {
+	assignmentId: uuid;
+	checkId: uuid;
+	checkTitle: string;
+	type: CheckType;
+	target: string;
+	probeId: uuid;
+	probeName: string;
+	probeLocationName?: string;
+	latestStartedAt?: utcDateTime;
+	latestStatus?: LatestResultStatus;
+	metrics?: PublicStatusMetrics;
 }
 
 model PublicStatusChart {
@@ -156,6 +173,7 @@ model PublicStatusPublicElement {
 
 	metrics?: PublicStatusMetrics;
 	chart?: PublicStatusChart;
+	assignments?: PublicStatusPublicAssignment[];
 	children?: PublicStatusPublicElement[];
 }
 
@@ -233,6 +251,8 @@ model CreatePublicStatusElementRequest {
 	parentElementId?: uuid;
 	kind: PublicStatusElementKind;
 	checkId?: uuid;
+	assignmentSelectionMode?: PublicStatusAssignmentSelectionMode;
+	assignmentIds?: uuid[];
 
 	@minLength(1)
 	@maxLength(1024)

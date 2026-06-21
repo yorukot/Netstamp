@@ -22,22 +22,24 @@ type pageBody struct {
 }
 
 type elementBody struct {
-	ID                   string                   `json:"id"`
-	PublicPageID         string                   `json:"publicPageId"`
-	ParentElementID      *string                  `json:"parentElementId,omitempty"`
-	Kind                 domainpublic.ElementKind `json:"kind"`
-	CheckID              *string                  `json:"checkId,omitempty"`
-	Title                *string                  `json:"title,omitempty"`
-	Description          *string                  `json:"description,omitempty"`
-	SortOrder            int32                    `json:"sortOrder"`
-	ChartMode            domainpublic.ChartMode   `json:"chartMode"`
-	ChartRange           *domainpublic.ChartRange `json:"chartRange,omitempty"`
-	CheckName            *string                  `json:"checkName,omitempty"`
-	CheckType            any                      `json:"checkType,omitempty"`
-	CheckTarget          *string                  `json:"checkTarget,omitempty"`
-	CheckIntervalSeconds *int32                   `json:"checkIntervalSeconds,omitempty"`
-	CreatedAt            time.Time                `json:"createdAt"`
-	UpdatedAt            time.Time                `json:"updatedAt"`
+	ID                      string                                `json:"id"`
+	PublicPageID            string                                `json:"publicPageId"`
+	ParentElementID         *string                               `json:"parentElementId,omitempty"`
+	Kind                    domainpublic.ElementKind              `json:"kind"`
+	CheckID                 *string                               `json:"checkId,omitempty"`
+	AssignmentSelectionMode *domainpublic.AssignmentSelectionMode `json:"assignmentSelectionMode,omitempty"`
+	AssignmentIDs           []string                              `json:"assignmentIds"`
+	Title                   *string                               `json:"title,omitempty"`
+	Description             *string                               `json:"description,omitempty"`
+	SortOrder               int32                                 `json:"sortOrder"`
+	ChartMode               domainpublic.ChartMode                `json:"chartMode"`
+	ChartRange              *domainpublic.ChartRange              `json:"chartRange,omitempty"`
+	CheckName               *string                               `json:"checkName,omitempty"`
+	CheckType               any                                   `json:"checkType,omitempty"`
+	CheckTarget             *string                               `json:"checkTarget,omitempty"`
+	CheckIntervalSeconds    *int32                                `json:"checkIntervalSeconds,omitempty"`
+	CreatedAt               time.Time                             `json:"createdAt"`
+	UpdatedAt               time.Time                             `json:"updatedAt"`
 }
 
 type pageResponseBody struct {
@@ -92,6 +94,7 @@ type publicElementBody struct {
 	StaleAssignments      int32                    `json:"staleAssignments,omitempty"`
 	Metrics               *metricsBody             `json:"metrics,omitempty"`
 	Chart                 *chartBody               `json:"chart,omitempty"`
+	Assignments           []publicAssignmentBody   `json:"assignments,omitempty"`
 	Children              []publicElementBody      `json:"children,omitempty"`
 }
 
@@ -100,6 +103,20 @@ type metricsBody struct {
 	LossPercent    *float64 `json:"lossPercent,omitempty"`
 	ConnectAvgMs   *float64 `json:"connectAvgMs,omitempty"`
 	FailurePercent *float64 `json:"failurePercent,omitempty"`
+}
+
+type publicAssignmentBody struct {
+	AssignmentID      string       `json:"assignmentId"`
+	CheckID           string       `json:"checkId"`
+	CheckTitle        string       `json:"checkTitle"`
+	Type              any          `json:"type"`
+	Target            string       `json:"target"`
+	ProbeID           string       `json:"probeId"`
+	ProbeName         string       `json:"probeName"`
+	ProbeLocationName *string      `json:"probeLocationName,omitempty"`
+	LatestStartedAt   *time.Time   `json:"latestStartedAt,omitempty"`
+	LatestStatus      *string      `json:"latestStatus,omitempty"`
+	Metrics           *metricsBody `json:"metrics,omitempty"`
 }
 
 type chartBody struct {
@@ -160,21 +177,23 @@ func newPageBody(page domainpublic.Page, includeProjectID bool) pageBody {
 
 func newElementBody(element domainpublic.Element) elementBody {
 	body := elementBody{
-		ID:                   element.ID,
-		PublicPageID:         element.PublicPageID,
-		ParentElementID:      element.ParentElementID,
-		Kind:                 element.Kind,
-		CheckID:              element.CheckID,
-		Title:                element.Title,
-		Description:          element.Description,
-		SortOrder:            element.SortOrder,
-		ChartMode:            element.ChartMode,
-		ChartRange:           element.ChartRange,
-		CheckName:            element.CheckName,
-		CheckTarget:          element.CheckTarget,
-		CheckIntervalSeconds: element.CheckIntervalSeconds,
-		CreatedAt:            element.CreatedAt,
-		UpdatedAt:            element.UpdatedAt,
+		ID:                      element.ID,
+		PublicPageID:            element.PublicPageID,
+		ParentElementID:         element.ParentElementID,
+		Kind:                    element.Kind,
+		CheckID:                 element.CheckID,
+		AssignmentSelectionMode: element.AssignmentSelectionMode,
+		AssignmentIDs:           append([]string{}, element.AssignmentIDs...),
+		Title:                   element.Title,
+		Description:             element.Description,
+		SortOrder:               element.SortOrder,
+		ChartMode:               element.ChartMode,
+		ChartRange:              element.ChartRange,
+		CheckName:               element.CheckName,
+		CheckTarget:             element.CheckTarget,
+		CheckIntervalSeconds:    element.CheckIntervalSeconds,
+		CreatedAt:               element.CreatedAt,
+		UpdatedAt:               element.UpdatedAt,
 	}
 	if element.CheckType != nil {
 		body.CheckType = *element.CheckType
@@ -231,18 +250,11 @@ func newPublicElementBodies(elements []domainpublic.RenderedElement) []publicEle
 }
 
 func newPublicElementBody(element domainpublic.RenderedElement) publicElementBody {
-	title := ""
-	switch {
-	case element.Title != nil:
-		title = *element.Title
-	case element.CheckName != nil:
-		title = *element.CheckName
-	}
 	body := publicElementBody{
 		ID:                    element.ID,
 		Kind:                  element.Kind,
 		CheckID:               element.CheckID,
-		Title:                 title,
+		Title:                 publicElementTitle(element),
 		Description:           elementDescription(element),
 		Target:                element.CheckTarget,
 		Status:                element.Status,
@@ -254,6 +266,7 @@ func newPublicElementBody(element domainpublic.RenderedElement) publicElementBod
 		StaleAssignments:      element.StaleAssignments,
 		Metrics:               newMetricsBody(element.Metrics),
 		Chart:                 newChartBody(element.Chart),
+		Assignments:           newPublicAssignmentBodies(element.Assignments),
 		Children:              newPublicElementBodies(element.Children),
 	}
 	if element.CheckType != nil {
@@ -262,11 +275,72 @@ func newPublicElementBody(element domainpublic.RenderedElement) publicElementBod
 	return body
 }
 
+func publicElementTitle(element domainpublic.RenderedElement) string {
+	if element.Title != nil {
+		return *element.Title
+	}
+	if element.CheckName != nil {
+		return *element.CheckName
+	}
+	if len(element.Assignments) == 1 {
+		return element.Assignments[0].CheckName
+	}
+	if element.Kind == domainpublic.ElementKindFolder {
+		return "Untitled folder"
+	}
+	return "Assignment group"
+}
+
 func elementDescription(element domainpublic.RenderedElement) *string {
 	if element.Description != nil {
 		return element.Description
 	}
 	return element.CheckDescription
+}
+
+func newPublicAssignmentBodies(assignments []domainpublic.Assignment) []publicAssignmentBody {
+	values := make([]publicAssignmentBody, 0, len(assignments))
+	for _, assignment := range assignments {
+		latestStartedAt, latestStatus := latestAssignmentFields(assignment)
+		values = append(values, publicAssignmentBody{
+			AssignmentID:      assignment.AssignmentID,
+			CheckID:           assignment.CheckID,
+			CheckTitle:        assignment.CheckName,
+			Type:              assignment.CheckType,
+			Target:            assignment.CheckTarget,
+			ProbeID:           assignment.ProbeID,
+			ProbeName:         assignment.ProbeName,
+			ProbeLocationName: assignment.ProbeLocationName,
+			LatestStartedAt:   latestStartedAt,
+			LatestStatus:      latestStatus,
+			Metrics:           assignmentMetricsBody(assignment),
+		})
+	}
+	return values
+}
+
+func latestAssignmentFields(assignment domainpublic.Assignment) (*time.Time, *string) {
+	if assignment.LatestStatus == "" {
+		return nil, nil
+	}
+	startedAt := assignment.LatestStartedAt
+	status := assignment.LatestStatus
+	return &startedAt, &status
+}
+
+func assignmentMetricsBody(assignment domainpublic.Assignment) *metricsBody {
+	if assignment.LatestStatus == "" {
+		return nil
+	}
+	switch assignment.CheckType {
+	case "ping":
+		lossPercent := assignment.LossPercent
+		return &metricsBody{LatencyAvgMs: assignment.LatencyAvgMs, LossPercent: &lossPercent}
+	case "tcp":
+		return &metricsBody{ConnectAvgMs: assignment.ConnectAvgMs, FailurePercent: assignment.FailurePercent}
+	default:
+		return nil
+	}
 }
 
 func newMetricsBody(metrics *domainpublic.Metrics) *metricsBody {

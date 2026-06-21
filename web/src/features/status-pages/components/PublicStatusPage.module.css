@@ -205,6 +205,57 @@
 	font: 1rem/1 var(--ns-font-mono);
 }
 
+.publicAssignmentRows {
+	display: grid;
+	border-top: 1px solid var(--ns-border);
+}
+
+.publicAssignmentRow {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	gap: 1rem;
+	align-items: center;
+	padding: 0.75rem 0;
+	border-bottom: 1px solid var(--ns-border);
+}
+
+.publicAssignmentRow:last-child {
+	border-bottom: 0;
+	padding-bottom: 0;
+}
+
+.publicAssignmentCopy {
+	display: grid;
+	gap: 0.25rem;
+	min-width: 0;
+}
+
+.publicAssignmentCopy strong,
+.publicAssignmentCopy span {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.publicAssignmentCopy span,
+.publicAssignmentMetrics {
+	color: var(--ns-text-subtle);
+	font: 0.78rem/1.4 var(--ns-font-mono);
+}
+
+.publicAssignmentStatus {
+	display: grid;
+	justify-items: end;
+	gap: 0.35rem;
+}
+
+.publicAssignmentMetrics {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	gap: 0.35rem 0.75rem;
+}
+
 .chart {
 	border-top: 1px solid var(--ns-border);
 	padding-top: 0.75rem;
@@ -218,7 +269,8 @@
 	.headerGrid,
 	.checkMain,
 	.folderHeader,
-	.incidentRow {
+	.incidentRow,
+	.publicAssignmentRow {
 		grid-template-columns: 1fr;
 		display: grid;
 	}
@@ -233,5 +285,13 @@
 
 	.incidentSummary {
 		justify-items: start;
+	}
+
+	.publicAssignmentStatus {
+		justify-items: start;
+	}
+
+	.publicAssignmentMetrics {
+		justify-content: flex-start;
 	}
 }

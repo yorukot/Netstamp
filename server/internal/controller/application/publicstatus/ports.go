@@ -22,6 +22,8 @@ type Repository interface {
 	CreateElement(ctx context.Context, input domainpublic.Element) (domainpublic.Element, error)
 	UpdateElement(ctx context.Context, input domainpublic.Element) (domainpublic.Element, error)
 	DeleteElement(ctx context.Context, projectID, pageID, elementID string) error
+	HasAssignableCheck(ctx context.Context, projectID, checkID string) (bool, error)
+	CountAssignableAssignments(ctx context.Context, projectID string, assignmentIDs []string) (int64, error)
 
 	ListAssignments(ctx context.Context, pageID string) ([]domainpublic.Assignment, error)
 	ListIncidents(ctx context.Context, pageID string, limit int32) ([]domainpublic.Incident, error)

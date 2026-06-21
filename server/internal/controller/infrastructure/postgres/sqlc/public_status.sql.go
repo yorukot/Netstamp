@@ -12,6 +12,31 @@ import (
 	"github.com/google/uuid"
 )
 
+const countPublicStatusAssignableAssignments = `-- name: CountPublicStatusAssignableAssignments :one
+SELECT count(DISTINCT probe_check_assignments.id)::bigint
+FROM probe_check_assignments
+JOIN checks
+  ON checks.project_id = probe_check_assignments.project_id
+ AND checks.id = probe_check_assignments.check_id
+ AND checks.deleted_at IS NULL
+ AND checks.check_type IN ('ping', 'tcp')
+WHERE probe_check_assignments.project_id = $1
+  AND probe_check_assignments.deleted_at IS NULL
+  AND probe_check_assignments.id = ANY($2::uuid[])
+`
+
+type CountPublicStatusAssignableAssignmentsParams struct {
+	ProjectID     uuid.UUID   `json:"project_id"`
+	AssignmentIds []uuid.UUID `json:"assignment_ids"`
+}
+
+func (q *Queries) CountPublicStatusAssignableAssignments(ctx context.Context, arg CountPublicStatusAssignableAssignmentsParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countPublicStatusAssignableAssignments, arg.ProjectID, arg.AssignmentIds)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const createPublicStatusPage = `-- name: CreatePublicStatusPage :one
 INSERT INTO public_status_pages (
     project_id,
@@ -83,6 +108,7 @@ INSERT INTO public_status_page_elements (
     parent_element_id,
     kind,
     check_id,
+    assignment_selection_mode,
     title,
     description,
     sort_order,
@@ -99,38 +125,58 @@ VALUES (
     $7,
     $8,
     $9,
-    $10
+    $10,
+    $11
 )
-RETURNING id, public_page_id, project_id, parent_element_id, kind, check_id, title, description, sort_order, chart_mode, chart_range, created_at, updated_at
+RETURNING id, public_page_id, project_id, parent_element_id, kind, check_id, assignment_selection_mode, title, description, sort_order, chart_mode, chart_range, created_at, updated_at
 `
 
 type CreatePublicStatusPageElementParams struct {
-	PublicPageID    uuid.UUID               `json:"public_page_id"`
-	ProjectID       uuid.UUID               `json:"project_id"`
-	ParentElementID *uuid.UUID              `json:"parent_element_id"`
-	Kind            PublicStatusElementKind `json:"kind"`
-	CheckID         *uuid.UUID              `json:"check_id"`
-	Title           *string                 `json:"title"`
-	Description     *string                 `json:"description"`
-	SortOrder       int32                   `json:"sort_order"`
-	ChartMode       PublicStatusChartMode   `json:"chart_mode"`
-	ChartRange      *PublicStatusChartRange `json:"chart_range"`
+	PublicPageID            uuid.UUID                            `json:"public_page_id"`
+	ProjectID               uuid.UUID                            `json:"project_id"`
+	ParentElementID         *uuid.UUID                           `json:"parent_element_id"`
+	Kind                    PublicStatusElementKind              `json:"kind"`
+	CheckID                 *uuid.UUID                           `json:"check_id"`
+	AssignmentSelectionMode *PublicStatusAssignmentSelectionMode `json:"assignment_selection_mode"`
+	Title                   *string                              `json:"title"`
+	Description             *string                              `json:"description"`
+	SortOrder               int32                                `json:"sort_order"`
+	ChartMode               PublicStatusChartMode                `json:"chart_mode"`
+	ChartRange              *PublicStatusChartRange              `json:"chart_range"`
 }
 
-func (q *Queries) CreatePublicStatusPageElement(ctx context.Context, arg CreatePublicStatusPageElementParams) (PublicStatusPageElement, error) {
+type CreatePublicStatusPageElementRow struct {
+	ID                      uuid.UUID                            `json:"id"`
+	PublicPageID            uuid.UUID                            `json:"public_page_id"`
+	ProjectID               uuid.UUID                            `json:"project_id"`
+	ParentElementID         *uuid.UUID                           `json:"parent_element_id"`
+	Kind                    PublicStatusElementKind              `json:"kind"`
+	CheckID                 *uuid.UUID                           `json:"check_id"`
+	AssignmentSelectionMode *PublicStatusAssignmentSelectionMode `json:"assignment_selection_mode"`
+	Title                   *string                              `json:"title"`
+	Description             *string                              `json:"description"`
+	SortOrder               int32                                `json:"sort_order"`
+	ChartMode               PublicStatusChartMode                `json:"chart_mode"`
+	ChartRange              *PublicStatusChartRange              `json:"chart_range"`
+	CreatedAt               time.Time                            `json:"created_at"`
+	UpdatedAt               time.Time                            `json:"updated_at"`
+}
+
+func (q *Queries) CreatePublicStatusPageElement(ctx context.Context, arg CreatePublicStatusPageElementParams) (CreatePublicStatusPageElementRow, error) {
 	row := q.db.QueryRow(ctx, createPublicStatusPageElement,
 		arg.PublicPageID,
 		arg.ProjectID,
 		arg.ParentElementID,
 		arg.Kind,
 		arg.CheckID,
+		arg.AssignmentSelectionMode,
 		arg.Title,
 		arg.Description,
 		arg.SortOrder,
 		arg.ChartMode,
 		arg.ChartRange,
 	)
-	var i PublicStatusPageElement
+	var i CreatePublicStatusPageElementRow
 	err := row.Scan(
 		&i.ID,
 		&i.PublicPageID,
@@ -138,6 +184,7 @@ func (q *Queries) CreatePublicStatusPageElement(ctx context.Context, arg CreateP
 		&i.ParentElementID,
 		&i.Kind,
 		&i.CheckID,
+		&i.AssignmentSelectionMode,
 		&i.Title,
 		&i.Description,
 		&i.SortOrder,
@@ -168,6 +215,49 @@ func (q *Queries) DeletePublicStatusPageElement(ctx context.Context, arg DeleteP
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const deletePublicStatusPageElementAssignments = `-- name: DeletePublicStatusPageElementAssignments :exec
+DELETE FROM public_status_page_element_assignments
+WHERE public_page_id = $1
+  AND element_id = $2
+`
+
+type DeletePublicStatusPageElementAssignmentsParams struct {
+	PublicPageID uuid.UUID `json:"public_page_id"`
+	ElementID    uuid.UUID `json:"element_id"`
+}
+
+func (q *Queries) DeletePublicStatusPageElementAssignments(ctx context.Context, arg DeletePublicStatusPageElementAssignmentsParams) error {
+	_, err := q.db.Exec(ctx, deletePublicStatusPageElementAssignments, arg.PublicPageID, arg.ElementID)
+	return err
+}
+
+const getPublicStatusAssignableCheck = `-- name: GetPublicStatusAssignableCheck :one
+SELECT id,
+       check_type
+FROM checks
+WHERE project_id = $1
+  AND id = $2
+  AND deleted_at IS NULL
+  AND check_type IN ('ping', 'tcp')
+`
+
+type GetPublicStatusAssignableCheckParams struct {
+	ProjectID uuid.UUID `json:"project_id"`
+	CheckID   uuid.UUID `json:"check_id"`
+}
+
+type GetPublicStatusAssignableCheckRow struct {
+	ID        uuid.UUID `json:"id"`
+	CheckType CheckType `json:"check_type"`
+}
+
+func (q *Queries) GetPublicStatusAssignableCheck(ctx context.Context, arg GetPublicStatusAssignableCheckParams) (GetPublicStatusAssignableCheckRow, error) {
+	row := q.db.QueryRow(ctx, getPublicStatusAssignableCheck, arg.ProjectID, arg.CheckID)
+	var i GetPublicStatusAssignableCheckRow
+	err := row.Scan(&i.ID, &i.CheckType)
+	return i, err
 }
 
 const getPublicStatusPage = `-- name: GetPublicStatusPage :one
@@ -260,6 +350,7 @@ SELECT id,
        parent_element_id,
        kind,
        check_id,
+       assignment_selection_mode,
        title,
        description,
        sort_order,
@@ -279,9 +370,26 @@ type GetPublicStatusPageElementParams struct {
 	ID           uuid.UUID `json:"id"`
 }
 
-func (q *Queries) GetPublicStatusPageElement(ctx context.Context, arg GetPublicStatusPageElementParams) (PublicStatusPageElement, error) {
+type GetPublicStatusPageElementRow struct {
+	ID                      uuid.UUID                            `json:"id"`
+	PublicPageID            uuid.UUID                            `json:"public_page_id"`
+	ProjectID               uuid.UUID                            `json:"project_id"`
+	ParentElementID         *uuid.UUID                           `json:"parent_element_id"`
+	Kind                    PublicStatusElementKind              `json:"kind"`
+	CheckID                 *uuid.UUID                           `json:"check_id"`
+	AssignmentSelectionMode *PublicStatusAssignmentSelectionMode `json:"assignment_selection_mode"`
+	Title                   *string                              `json:"title"`
+	Description             *string                              `json:"description"`
+	SortOrder               int32                                `json:"sort_order"`
+	ChartMode               PublicStatusChartMode                `json:"chart_mode"`
+	ChartRange              *PublicStatusChartRange              `json:"chart_range"`
+	CreatedAt               time.Time                            `json:"created_at"`
+	UpdatedAt               time.Time                            `json:"updated_at"`
+}
+
+func (q *Queries) GetPublicStatusPageElement(ctx context.Context, arg GetPublicStatusPageElementParams) (GetPublicStatusPageElementRow, error) {
 	row := q.db.QueryRow(ctx, getPublicStatusPageElement, arg.PublicPageID, arg.ProjectID, arg.ID)
-	var i PublicStatusPageElement
+	var i GetPublicStatusPageElementRow
 	err := row.Scan(
 		&i.ID,
 		&i.PublicPageID,
@@ -289,6 +397,7 @@ func (q *Queries) GetPublicStatusPageElement(ctx context.Context, arg GetPublicS
 		&i.ParentElementID,
 		&i.Kind,
 		&i.CheckID,
+		&i.AssignmentSelectionMode,
 		&i.Title,
 		&i.Description,
 		&i.SortOrder,
@@ -300,16 +409,100 @@ func (q *Queries) GetPublicStatusPageElement(ctx context.Context, arg GetPublicS
 	return i, err
 }
 
-const listPublicStatusAssignments = `-- name: ListPublicStatusAssignments :many
-WITH page_checks AS (
-    SELECT DISTINCT project_id, check_id
-    FROM public_status_page_elements
-    WHERE public_page_id = $1
-      AND kind = 'check'
-      AND check_id IS NOT NULL
+const insertPublicStatusPageElementAssignments = `-- name: InsertPublicStatusPageElementAssignments :execrows
+INSERT INTO public_status_page_element_assignments (
+    element_id,
+    public_page_id,
+    project_id,
+    assignment_id,
+    sort_order
 )
-SELECT checks.id AS check_id,
+SELECT $1,
+       $2,
+       $3,
+       probe_check_assignments.id,
+       (selected.ordinality::integer - 1)
+FROM unnest($4::uuid[]) WITH ORDINALITY AS selected(assignment_id, ordinality)
+JOIN probe_check_assignments
+  ON probe_check_assignments.id = selected.assignment_id
+ AND probe_check_assignments.project_id = $3
+ AND probe_check_assignments.deleted_at IS NULL
+JOIN checks
+  ON checks.project_id = probe_check_assignments.project_id
+ AND checks.id = probe_check_assignments.check_id
+ AND checks.deleted_at IS NULL
+ AND checks.check_type IN ('ping', 'tcp')
+`
+
+type InsertPublicStatusPageElementAssignmentsParams struct {
+	ElementID     uuid.UUID   `json:"element_id"`
+	PublicPageID  uuid.UUID   `json:"public_page_id"`
+	ProjectID     uuid.UUID   `json:"project_id"`
+	AssignmentIds []uuid.UUID `json:"assignment_ids"`
+}
+
+func (q *Queries) InsertPublicStatusPageElementAssignments(ctx context.Context, arg InsertPublicStatusPageElementAssignmentsParams) (int64, error) {
+	result, err := q.db.Exec(ctx, insertPublicStatusPageElementAssignments,
+		arg.ElementID,
+		arg.PublicPageID,
+		arg.ProjectID,
+		arg.AssignmentIds,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const listPublicStatusAssignments = `-- name: ListPublicStatusAssignments :many
+WITH element_assignments AS (
+    SELECT public_status_page_elements.id AS element_id,
+           probe_check_assignments.id AS assignment_id,
+           probe_check_assignments.project_id,
+           probe_check_assignments.probe_id,
+           probe_check_assignments.check_id
+    FROM public_status_page_elements
+    JOIN probe_check_assignments
+      ON public_status_page_elements.assignment_selection_mode = 'all_check'
+     AND probe_check_assignments.project_id = public_status_page_elements.project_id
+     AND probe_check_assignments.check_id = public_status_page_elements.check_id
+     AND probe_check_assignments.deleted_at IS NULL
+    JOIN checks
+      ON checks.project_id = probe_check_assignments.project_id
+     AND checks.id = probe_check_assignments.check_id
+     AND checks.deleted_at IS NULL
+     AND checks.check_type IN ('ping', 'tcp')
+    WHERE public_status_page_elements.public_page_id = $1
+      AND public_status_page_elements.kind = 'assignment_group'
+    UNION ALL
+    SELECT public_status_page_elements.id AS element_id,
+           probe_check_assignments.id AS assignment_id,
+           probe_check_assignments.project_id,
+           probe_check_assignments.probe_id,
+           probe_check_assignments.check_id
+    FROM public_status_page_elements
+    JOIN public_status_page_element_assignments
+      ON public_status_page_element_assignments.public_page_id = public_status_page_elements.public_page_id
+     AND public_status_page_element_assignments.element_id = public_status_page_elements.id
+    JOIN probe_check_assignments
+      ON probe_check_assignments.id = public_status_page_element_assignments.assignment_id
+     AND probe_check_assignments.project_id = public_status_page_elements.project_id
+     AND probe_check_assignments.deleted_at IS NULL
+    JOIN checks
+      ON checks.project_id = probe_check_assignments.project_id
+     AND checks.id = probe_check_assignments.check_id
+     AND checks.deleted_at IS NULL
+     AND checks.check_type IN ('ping', 'tcp')
+    WHERE public_status_page_elements.public_page_id = $1
+      AND public_status_page_elements.kind = 'assignment_group'
+      AND public_status_page_elements.assignment_selection_mode = 'selected_assignments'
+)
+SELECT element_assignments.element_id,
+       element_assignments.assignment_id,
+       checks.id AS check_id,
+       checks.name AS check_name,
        checks.check_type,
+       checks.target AS check_target,
        checks.interval_seconds,
        probes.id AS probe_id,
        probes.name AS probe_name,
@@ -320,18 +513,14 @@ SELECT checks.id AS check_id,
        COALESCE(latest.loss_percent, 0::double precision) AS loss_percent,
        latest.connect_avg_ms,
        latest.failure_percent
-FROM page_checks
-JOIN probe_check_assignments
-  ON probe_check_assignments.project_id = page_checks.project_id
- AND probe_check_assignments.check_id = page_checks.check_id
- AND probe_check_assignments.deleted_at IS NULL
+FROM element_assignments
 JOIN probes
-  ON probes.project_id = probe_check_assignments.project_id
- AND probes.id = probe_check_assignments.probe_id
+  ON probes.project_id = element_assignments.project_id
+ AND probes.id = element_assignments.probe_id
  AND probes.deleted_at IS NULL
 JOIN checks
-  ON checks.project_id = probe_check_assignments.project_id
- AND checks.id = probe_check_assignments.check_id
+  ON checks.project_id = element_assignments.project_id
+ AND checks.id = element_assignments.check_id
  AND checks.deleted_at IS NULL
 LEFT JOIN LATERAL (
     (
@@ -363,28 +552,20 @@ LEFT JOIN LATERAL (
         ORDER BY tcp_results.started_at DESC
         LIMIT 1
     )
-    UNION ALL
-    (
-        SELECT traceroute_results.started_at,
-               traceroute_results.status::text AS status,
-               NULL::double precision AS latency_avg_ms,
-               NULL::double precision AS loss_percent,
-               NULL::double precision AS connect_avg_ms,
-               NULL::double precision AS failure_percent
-        FROM traceroute_results
-        WHERE checks.check_type = 'traceroute'
-          AND traceroute_results.probe_id = probes.internal_id
-          AND traceroute_results.check_id = checks.internal_id
-        ORDER BY traceroute_results.started_at DESC
-        LIMIT 1
-    )
 ) latest ON TRUE
-ORDER BY checks.id ASC, probes.name ASC, probes.id ASC
+ORDER BY element_assignments.element_id ASC,
+         probes.name ASC,
+         checks.name ASC,
+         element_assignments.assignment_id ASC
 `
 
 type ListPublicStatusAssignmentsRow struct {
+	ElementID         uuid.UUID `json:"element_id"`
+	AssignmentID      uuid.UUID `json:"assignment_id"`
 	CheckID           uuid.UUID `json:"check_id"`
+	CheckName         string    `json:"check_name"`
 	CheckType         CheckType `json:"check_type"`
+	CheckTarget       string    `json:"check_target"`
 	IntervalSeconds   int32     `json:"interval_seconds"`
 	ProbeID           uuid.UUID `json:"probe_id"`
 	ProbeName         string    `json:"probe_name"`
@@ -407,8 +588,12 @@ func (q *Queries) ListPublicStatusAssignments(ctx context.Context, publicPageID 
 	for rows.Next() {
 		var i ListPublicStatusAssignmentsRow
 		if err := rows.Scan(
+			&i.ElementID,
+			&i.AssignmentID,
 			&i.CheckID,
+			&i.CheckName,
 			&i.CheckType,
+			&i.CheckTarget,
 			&i.IntervalSeconds,
 			&i.ProbeID,
 			&i.ProbeName,
@@ -431,12 +616,49 @@ func (q *Queries) ListPublicStatusAssignments(ctx context.Context, publicPageID 
 }
 
 const listPublicStatusIncidents = `-- name: ListPublicStatusIncidents :many
-WITH page_checks AS (
-    SELECT DISTINCT project_id, check_id
+WITH element_assignments AS (
+    SELECT probe_check_assignments.project_id,
+           probe_check_assignments.probe_id,
+           probe_check_assignments.check_id
     FROM public_status_page_elements
-    WHERE public_page_id = $2
-      AND kind = 'check'
-      AND check_id IS NOT NULL
+    JOIN probe_check_assignments
+      ON public_status_page_elements.assignment_selection_mode = 'all_check'
+     AND probe_check_assignments.project_id = public_status_page_elements.project_id
+     AND probe_check_assignments.check_id = public_status_page_elements.check_id
+     AND probe_check_assignments.deleted_at IS NULL
+    JOIN checks
+      ON checks.project_id = probe_check_assignments.project_id
+     AND checks.id = probe_check_assignments.check_id
+     AND checks.deleted_at IS NULL
+     AND checks.check_type IN ('ping', 'tcp')
+    WHERE public_status_page_elements.public_page_id = $2
+      AND public_status_page_elements.kind = 'assignment_group'
+    UNION ALL
+    SELECT probe_check_assignments.project_id,
+           probe_check_assignments.probe_id,
+           probe_check_assignments.check_id
+    FROM public_status_page_elements
+    JOIN public_status_page_element_assignments
+      ON public_status_page_element_assignments.public_page_id = public_status_page_elements.public_page_id
+     AND public_status_page_element_assignments.element_id = public_status_page_elements.id
+    JOIN probe_check_assignments
+      ON probe_check_assignments.id = public_status_page_element_assignments.assignment_id
+     AND probe_check_assignments.project_id = public_status_page_elements.project_id
+     AND probe_check_assignments.deleted_at IS NULL
+    JOIN checks
+      ON checks.project_id = probe_check_assignments.project_id
+     AND checks.id = probe_check_assignments.check_id
+     AND checks.deleted_at IS NULL
+     AND checks.check_type IN ('ping', 'tcp')
+    WHERE public_status_page_elements.public_page_id = $2
+      AND public_status_page_elements.kind = 'assignment_group'
+      AND public_status_page_elements.assignment_selection_mode = 'selected_assignments'
+),
+page_scope AS (
+    SELECT DISTINCT project_id,
+           probe_id,
+           check_id
+    FROM element_assignments
 )
 SELECT alert_incidents.id,
        alert_incidents.project_id,
@@ -454,13 +676,20 @@ SELECT alert_incidents.id,
        alert_incidents.last_summary,
        checks.name AS check_name
 FROM alert_incidents
-JOIN page_checks
-  ON page_checks.project_id = alert_incidents.project_id
- AND page_checks.check_id = alert_incidents.check_id
 JOIN checks
   ON checks.project_id = alert_incidents.project_id
  AND checks.id = alert_incidents.check_id
 WHERE alert_incidents.status IN ('open', 'acknowledged', 'resolved')
+  AND EXISTS (
+      SELECT 1
+      FROM page_scope
+      WHERE page_scope.project_id = alert_incidents.project_id
+        AND page_scope.check_id = alert_incidents.check_id
+        AND (
+            alert_incidents.probe_id IS NULL
+            OR page_scope.probe_id = alert_incidents.probe_id
+        )
+  )
 ORDER BY CASE WHEN alert_incidents.status IN ('open', 'acknowledged') THEN 0 ELSE 1 END,
          alert_incidents.opened_at DESC,
          alert_incidents.id DESC
@@ -526,6 +755,41 @@ func (q *Queries) ListPublicStatusIncidents(ctx context.Context, arg ListPublicS
 	return items, nil
 }
 
+const listPublicStatusPageElementAssignmentIDs = `-- name: ListPublicStatusPageElementAssignmentIDs :many
+SELECT element_id,
+       assignment_id
+FROM public_status_page_element_assignments
+WHERE public_page_id = $1
+ORDER BY element_id ASC,
+         sort_order ASC,
+         assignment_id ASC
+`
+
+type ListPublicStatusPageElementAssignmentIDsRow struct {
+	ElementID    uuid.UUID `json:"element_id"`
+	AssignmentID uuid.UUID `json:"assignment_id"`
+}
+
+func (q *Queries) ListPublicStatusPageElementAssignmentIDs(ctx context.Context, publicPageID uuid.UUID) ([]ListPublicStatusPageElementAssignmentIDsRow, error) {
+	rows, err := q.db.Query(ctx, listPublicStatusPageElementAssignmentIDs, publicPageID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListPublicStatusPageElementAssignmentIDsRow
+	for rows.Next() {
+		var i ListPublicStatusPageElementAssignmentIDsRow
+		if err := rows.Scan(&i.ElementID, &i.AssignmentID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listPublicStatusPageElements = `-- name: ListPublicStatusPageElements :many
 SELECT public_status_page_elements.id,
        public_status_page_elements.public_page_id,
@@ -533,6 +797,7 @@ SELECT public_status_page_elements.id,
        public_status_page_elements.parent_element_id,
        public_status_page_elements.kind,
        public_status_page_elements.check_id,
+       public_status_page_elements.assignment_selection_mode,
        public_status_page_elements.title,
        public_status_page_elements.description,
        public_status_page_elements.sort_order,
@@ -553,6 +818,7 @@ LEFT JOIN checks
 WHERE public_status_page_elements.public_page_id = $1
   AND (
       public_status_page_elements.kind = 'folder'
+      OR public_status_page_elements.assignment_selection_mode = 'selected_assignments'
       OR checks.id IS NOT NULL
   )
 ORDER BY public_status_page_elements.parent_element_id NULLS FIRST,
@@ -562,24 +828,25 @@ ORDER BY public_status_page_elements.parent_element_id NULLS FIRST,
 `
 
 type ListPublicStatusPageElementsRow struct {
-	ID                   uuid.UUID               `json:"id"`
-	PublicPageID         uuid.UUID               `json:"public_page_id"`
-	ProjectID            uuid.UUID               `json:"project_id"`
-	ParentElementID      *uuid.UUID              `json:"parent_element_id"`
-	Kind                 PublicStatusElementKind `json:"kind"`
-	CheckID              *uuid.UUID              `json:"check_id"`
-	Title                *string                 `json:"title"`
-	Description          *string                 `json:"description"`
-	SortOrder            int32                   `json:"sort_order"`
-	ChartMode            PublicStatusChartMode   `json:"chart_mode"`
-	ChartRange           *PublicStatusChartRange `json:"chart_range"`
-	CreatedAt            time.Time               `json:"created_at"`
-	UpdatedAt            time.Time               `json:"updated_at"`
-	CheckName            *string                 `json:"check_name"`
-	CheckType            *CheckType              `json:"check_type"`
-	CheckTarget          *string                 `json:"check_target"`
-	CheckDescription     *string                 `json:"check_description"`
-	CheckIntervalSeconds *int32                  `json:"check_interval_seconds"`
+	ID                      uuid.UUID                            `json:"id"`
+	PublicPageID            uuid.UUID                            `json:"public_page_id"`
+	ProjectID               uuid.UUID                            `json:"project_id"`
+	ParentElementID         *uuid.UUID                           `json:"parent_element_id"`
+	Kind                    PublicStatusElementKind              `json:"kind"`
+	CheckID                 *uuid.UUID                           `json:"check_id"`
+	AssignmentSelectionMode *PublicStatusAssignmentSelectionMode `json:"assignment_selection_mode"`
+	Title                   *string                              `json:"title"`
+	Description             *string                              `json:"description"`
+	SortOrder               int32                                `json:"sort_order"`
+	ChartMode               PublicStatusChartMode                `json:"chart_mode"`
+	ChartRange              *PublicStatusChartRange              `json:"chart_range"`
+	CreatedAt               time.Time                            `json:"created_at"`
+	UpdatedAt               time.Time                            `json:"updated_at"`
+	CheckName               *string                              `json:"check_name"`
+	CheckType               *CheckType                           `json:"check_type"`
+	CheckTarget             *string                              `json:"check_target"`
+	CheckDescription        *string                              `json:"check_description"`
+	CheckIntervalSeconds    *int32                               `json:"check_interval_seconds"`
 }
 
 func (q *Queries) ListPublicStatusPageElements(ctx context.Context, publicPageID uuid.UUID) ([]ListPublicStatusPageElementsRow, error) {
@@ -598,6 +865,7 @@ func (q *Queries) ListPublicStatusPageElements(ctx context.Context, publicPageID
 			&i.ParentElementID,
 			&i.Kind,
 			&i.CheckID,
+			&i.AssignmentSelectionMode,
 			&i.Title,
 			&i.Description,
 			&i.SortOrder,
@@ -754,36 +1022,56 @@ UPDATE public_status_page_elements
 SET parent_element_id = $1,
     kind = $2,
     check_id = $3,
-    title = $4,
-    description = $5,
-    sort_order = $6,
-    chart_mode = $7,
-    chart_range = $8
-WHERE public_page_id = $9
-  AND project_id = $10
-  AND id = $11
-RETURNING id, public_page_id, project_id, parent_element_id, kind, check_id, title, description, sort_order, chart_mode, chart_range, created_at, updated_at
+    assignment_selection_mode = $4,
+    title = $5,
+    description = $6,
+    sort_order = $7,
+    chart_mode = $8,
+    chart_range = $9
+WHERE public_page_id = $10
+  AND project_id = $11
+  AND id = $12
+RETURNING id, public_page_id, project_id, parent_element_id, kind, check_id, assignment_selection_mode, title, description, sort_order, chart_mode, chart_range, created_at, updated_at
 `
 
 type UpdatePublicStatusPageElementParams struct {
-	ParentElementID *uuid.UUID              `json:"parent_element_id"`
-	Kind            PublicStatusElementKind `json:"kind"`
-	CheckID         *uuid.UUID              `json:"check_id"`
-	Title           *string                 `json:"title"`
-	Description     *string                 `json:"description"`
-	SortOrder       int32                   `json:"sort_order"`
-	ChartMode       PublicStatusChartMode   `json:"chart_mode"`
-	ChartRange      *PublicStatusChartRange `json:"chart_range"`
-	PublicPageID    uuid.UUID               `json:"public_page_id"`
-	ProjectID       uuid.UUID               `json:"project_id"`
-	ID              uuid.UUID               `json:"id"`
+	ParentElementID         *uuid.UUID                           `json:"parent_element_id"`
+	Kind                    PublicStatusElementKind              `json:"kind"`
+	CheckID                 *uuid.UUID                           `json:"check_id"`
+	AssignmentSelectionMode *PublicStatusAssignmentSelectionMode `json:"assignment_selection_mode"`
+	Title                   *string                              `json:"title"`
+	Description             *string                              `json:"description"`
+	SortOrder               int32                                `json:"sort_order"`
+	ChartMode               PublicStatusChartMode                `json:"chart_mode"`
+	ChartRange              *PublicStatusChartRange              `json:"chart_range"`
+	PublicPageID            uuid.UUID                            `json:"public_page_id"`
+	ProjectID               uuid.UUID                            `json:"project_id"`
+	ID                      uuid.UUID                            `json:"id"`
 }
 
-func (q *Queries) UpdatePublicStatusPageElement(ctx context.Context, arg UpdatePublicStatusPageElementParams) (PublicStatusPageElement, error) {
+type UpdatePublicStatusPageElementRow struct {
+	ID                      uuid.UUID                            `json:"id"`
+	PublicPageID            uuid.UUID                            `json:"public_page_id"`
+	ProjectID               uuid.UUID                            `json:"project_id"`
+	ParentElementID         *uuid.UUID                           `json:"parent_element_id"`
+	Kind                    PublicStatusElementKind              `json:"kind"`
+	CheckID                 *uuid.UUID                           `json:"check_id"`
+	AssignmentSelectionMode *PublicStatusAssignmentSelectionMode `json:"assignment_selection_mode"`
+	Title                   *string                              `json:"title"`
+	Description             *string                              `json:"description"`
+	SortOrder               int32                                `json:"sort_order"`
+	ChartMode               PublicStatusChartMode                `json:"chart_mode"`
+	ChartRange              *PublicStatusChartRange              `json:"chart_range"`
+	CreatedAt               time.Time                            `json:"created_at"`
+	UpdatedAt               time.Time                            `json:"updated_at"`
+}
+
+func (q *Queries) UpdatePublicStatusPageElement(ctx context.Context, arg UpdatePublicStatusPageElementParams) (UpdatePublicStatusPageElementRow, error) {
 	row := q.db.QueryRow(ctx, updatePublicStatusPageElement,
 		arg.ParentElementID,
 		arg.Kind,
 		arg.CheckID,
+		arg.AssignmentSelectionMode,
 		arg.Title,
 		arg.Description,
 		arg.SortOrder,
@@ -793,7 +1081,7 @@ func (q *Queries) UpdatePublicStatusPageElement(ctx context.Context, arg UpdateP
 		arg.ProjectID,
 		arg.ID,
 	)
-	var i PublicStatusPageElement
+	var i UpdatePublicStatusPageElementRow
 	err := row.Scan(
 		&i.ID,
 		&i.PublicPageID,
@@ -801,6 +1089,7 @@ func (q *Queries) UpdatePublicStatusPageElement(ctx context.Context, arg UpdateP
 		&i.ParentElementID,
 		&i.Kind,
 		&i.CheckID,
+		&i.AssignmentSelectionMode,
 		&i.Title,
 		&i.Description,
 		&i.SortOrder,

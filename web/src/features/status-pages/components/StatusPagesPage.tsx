@@ -85,13 +85,13 @@ export function StatusPagesPage() {
 		...projectQueries.statusPageDetail(projectRef || "", selectedPage?.id || ""),
 		enabled: Boolean(projectRef && selectedPage?.id)
 	});
-	const checksQuery = useQuery({
-		...projectQueries.checks(projectRef || ""),
+	const assignmentsQuery = useQuery({
+		...projectQueries.assignments(projectRef || ""),
 		enabled: Boolean(projectRef)
 	});
 	const elements = detailQuery.data?.elements ?? emptyElements;
 	const elementTree = useMemo(() => buildElementTree(elements), [elements]);
-	const checks = checksQuery.data?.checks ?? [];
+	const assignments = assignmentsQuery.data?.assignments ?? [];
 	const createPageMutation = useCreatePublicStatusPageMutation(projectRef);
 	const updatePageMutation = useUpdatePublicStatusPageMutation(projectRef);
 	const deletePageMutation = useDeletePublicStatusPageMutation(projectRef);
@@ -185,7 +185,7 @@ export function StatusPagesPage() {
 		}
 		const confirmed = await confirm({
 			title: "Delete element?",
-			message: element.kind === "folder" ? "Folder children will be removed with the folder." : "This check will no longer appear on the public page.",
+			message: element.kind === "folder" ? "Folder children will be removed with the folder." : "This assignment group will no longer appear on the public page.",
 			confirmLabel: "Delete",
 			tone: "danger"
 		});
@@ -290,7 +290,7 @@ export function StatusPagesPage() {
 				open={Boolean(elementEditor)}
 				element={elementEditor?.mode === "edit" ? elementEditor.element : null}
 				elements={elements}
-				checks={checks}
+				assignments={assignments}
 				saving={savingElement}
 				onClose={() => setElementEditor(null)}
 				onSubmit={handleElementSubmit}

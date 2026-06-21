@@ -7960,10 +7960,20 @@
 					},
 					"kind": {
 						"type": "string",
-						"enum": ["folder", "check"]
+						"enum": ["folder", "assignment_group"]
 					},
 					"checkId": {
 						"$ref": "#/components/schemas/uuid"
+					},
+					"assignmentSelectionMode": {
+						"type": "string",
+						"enum": ["all_check", "selected_assignments"]
+					},
+					"assignmentIds": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/uuid"
+						}
 					},
 					"title": {
 						"type": "string",
@@ -9536,7 +9546,7 @@
 			},
 			"PublicStatusElement": {
 				"type": "object",
-				"required": ["id", "publicPageId", "kind", "sortOrder", "chartMode", "createdAt", "updatedAt"],
+				"required": ["id", "publicPageId", "kind", "assignmentIds", "sortOrder", "chartMode", "createdAt", "updatedAt"],
 				"properties": {
 					"id": {
 						"$ref": "#/components/schemas/uuid"
@@ -9549,10 +9559,20 @@
 					},
 					"kind": {
 						"type": "string",
-						"enum": ["folder", "check"]
+						"enum": ["folder", "assignment_group"]
 					},
 					"checkId": {
 						"$ref": "#/components/schemas/uuid"
+					},
+					"assignmentSelectionMode": {
+						"type": "string",
+						"enum": ["all_check", "selected_assignments"]
+					},
+					"assignmentIds": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/uuid"
+						}
 					},
 					"title": {
 						"type": "string",
@@ -9837,6 +9857,48 @@
 					}
 				}
 			},
+			"PublicStatusPublicAssignment": {
+				"type": "object",
+				"required": ["assignmentId", "checkId", "checkTitle", "type", "target", "probeId", "probeName"],
+				"properties": {
+					"assignmentId": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"checkId": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"checkTitle": {
+						"type": "string"
+					},
+					"type": {
+						"type": "string",
+						"enum": ["ping", "tcp", "traceroute"]
+					},
+					"target": {
+						"type": "string"
+					},
+					"probeId": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"probeName": {
+						"type": "string"
+					},
+					"probeLocationName": {
+						"type": "string"
+					},
+					"latestStartedAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"latestStatus": {
+						"type": "string",
+						"enum": ["successful", "timeout", "error", "partial"]
+					},
+					"metrics": {
+						"$ref": "#/components/schemas/PublicStatusMetrics"
+					}
+				}
+			},
 			"PublicStatusPublicElement": {
 				"type": "object",
 				"required": ["id", "kind", "title", "status"],
@@ -9846,7 +9908,7 @@
 					},
 					"kind": {
 						"type": "string",
-						"enum": ["folder", "check"]
+						"enum": ["folder", "assignment_group"]
 					},
 					"checkId": {
 						"$ref": "#/components/schemas/uuid"
@@ -9904,6 +9966,12 @@
 					},
 					"chart": {
 						"$ref": "#/components/schemas/PublicStatusChart"
+					},
+					"assignments": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/PublicStatusPublicAssignment"
+						}
 					},
 					"children": {
 						"type": "array",
@@ -11717,10 +11785,20 @@
 					},
 					"kind": {
 						"type": "string",
-						"enum": ["folder", "check"]
+						"enum": ["folder", "assignment_group"]
 					},
 					"checkId": {
 						"$ref": "#/components/schemas/uuid"
+					},
+					"assignmentSelectionMode": {
+						"type": "string",
+						"enum": ["all_check", "selected_assignments"]
+					},
+					"assignmentIds": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/uuid"
+						}
 					},
 					"title": {
 						"type": "string",

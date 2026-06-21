@@ -2,6 +2,7 @@ package pgpublicstatus
 
 import (
 	"context"
+	"errors"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -13,11 +14,12 @@ import (
 )
 
 type Repository struct {
+	pool    *pgxpool.Pool
 	queries *sqlc.Queries
 }
 
 func NewRepository(pool *pgxpool.Pool) *Repository {
-	return &Repository{queries: sqlc.New(pool)}
+	return &Repository{pool: pool, queries: sqlc.New(pool)}
 }
 
 func (r *Repository) ListPages(ctx context.Context, projectIDValue string) ([]domainpublic.Page, error) {
@@ -152,6 +154,9 @@ func (r *Repository) ListElements(ctx context.Context, pageIDValue string) ([]do
 	for _, row := range rows {
 		elements = append(elements, mapListElement(row))
 	}
+	if err := r.attachElementAssignmentIDs(ctx, pageID, elements); err != nil {
+		return nil, err
+	}
 	return elements, nil
 }
 
@@ -168,7 +173,12 @@ func (r *Repository) GetElement(ctx context.Context, projectIDValue, pageIDValue
 	if err != nil {
 		return domainpublic.Element{}, mapNoRows(err, domainpublic.ErrElementNotFound)
 	}
-	return mapElement(row), nil
+	element := mapElement(row)
+	elements := []domainpublic.Element{element}
+	if err := r.attachElementAssignmentIDs(ctx, pageID, elements); err != nil {
+		return domainpublic.Element{}, err
+	}
+	return elements[0], nil
 }
 
 func (r *Repository) CreateElement(ctx context.Context, input domainpublic.Element) (domainpublic.Element, error) {
@@ -176,22 +186,38 @@ func (r *Repository) CreateElement(ctx context.Context, input domainpublic.Eleme
 	if err != nil {
 		return domainpublic.Element{}, err
 	}
-	row, err := r.queries.CreatePublicStatusPageElement(ctx, sqlc.CreatePublicStatusPageElementParams{
-		PublicPageID:    pageID,
-		ProjectID:       projectID,
-		ParentElementID: optionalUUID(input.ParentElementID, domainpublic.ErrElementNotFound),
-		Kind:            sqlcElementKind(input.Kind),
-		CheckID:         optionalUUID(input.CheckID, domainpublic.ErrInvalidInput),
-		Title:           input.Title,
-		Description:     input.Description,
-		SortOrder:       input.SortOrder,
-		ChartMode:       sqlcChartMode(input.ChartMode),
-		ChartRange:      sqlcOptionalChartRange(input.ChartRange),
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return domainpublic.Element{}, err
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck // Rollback is a no-op after commit.
+	queries := r.queries.WithTx(tx)
+
+	row, err := queries.CreatePublicStatusPageElement(ctx, sqlc.CreatePublicStatusPageElementParams{
+		PublicPageID:            pageID,
+		ProjectID:               projectID,
+		ParentElementID:         optionalUUID(input.ParentElementID, domainpublic.ErrElementNotFound),
+		Kind:                    sqlcElementKind(input.Kind),
+		CheckID:                 optionalUUID(input.CheckID, domainpublic.ErrInvalidInput),
+		AssignmentSelectionMode: sqlcAssignmentSelectionMode(input.AssignmentSelectionMode),
+		Title:                   input.Title,
+		Description:             input.Description,
+		SortOrder:               input.SortOrder,
+		ChartMode:               sqlcChartMode(input.ChartMode),
+		ChartRange:              sqlcOptionalChartRange(input.ChartRange),
 	})
 	if err != nil {
 		return domainpublic.Element{}, mapPublicStatusWriteError(err)
 	}
-	return mapElement(row), nil
+	element := mapCreatedElement(row)
+	element.AssignmentIDs = append([]string{}, input.AssignmentIDs...)
+	if err := r.replaceElementAssignmentIDs(ctx, queries, projectID, pageID, row.ID, input.AssignmentIDs); err != nil {
+		return domainpublic.Element{}, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return domainpublic.Element{}, err
+	}
+	return element, nil
 }
 
 func (r *Repository) UpdateElement(ctx context.Context, input domainpublic.Element) (domainpublic.Element, error) {
@@ -199,23 +225,39 @@ func (r *Repository) UpdateElement(ctx context.Context, input domainpublic.Eleme
 	if err != nil {
 		return domainpublic.Element{}, err
 	}
-	row, err := r.queries.UpdatePublicStatusPageElement(ctx, sqlc.UpdatePublicStatusPageElementParams{
-		PublicPageID:    pageID,
-		ProjectID:       projectID,
-		ID:              elementID,
-		ParentElementID: optionalUUID(input.ParentElementID, domainpublic.ErrElementNotFound),
-		Kind:            sqlcElementKind(input.Kind),
-		CheckID:         optionalUUID(input.CheckID, domainpublic.ErrInvalidInput),
-		Title:           input.Title,
-		Description:     input.Description,
-		SortOrder:       input.SortOrder,
-		ChartMode:       sqlcChartMode(input.ChartMode),
-		ChartRange:      sqlcOptionalChartRange(input.ChartRange),
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return domainpublic.Element{}, err
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck // Rollback is a no-op after commit.
+	queries := r.queries.WithTx(tx)
+
+	row, err := queries.UpdatePublicStatusPageElement(ctx, sqlc.UpdatePublicStatusPageElementParams{
+		PublicPageID:            pageID,
+		ProjectID:               projectID,
+		ID:                      elementID,
+		ParentElementID:         optionalUUID(input.ParentElementID, domainpublic.ErrElementNotFound),
+		Kind:                    sqlcElementKind(input.Kind),
+		CheckID:                 optionalUUID(input.CheckID, domainpublic.ErrInvalidInput),
+		AssignmentSelectionMode: sqlcAssignmentSelectionMode(input.AssignmentSelectionMode),
+		Title:                   input.Title,
+		Description:             input.Description,
+		SortOrder:               input.SortOrder,
+		ChartMode:               sqlcChartMode(input.ChartMode),
+		ChartRange:              sqlcOptionalChartRange(input.ChartRange),
 	})
 	if err != nil {
 		return domainpublic.Element{}, mapPublicStatusWriteError(mapNoRows(err, domainpublic.ErrElementNotFound))
 	}
-	return mapElement(row), nil
+	element := mapUpdatedElement(row)
+	element.AssignmentIDs = append([]string{}, input.AssignmentIDs...)
+	if err := r.replaceElementAssignmentIDs(ctx, queries, projectID, pageID, elementID, input.AssignmentIDs); err != nil {
+		return domainpublic.Element{}, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return domainpublic.Element{}, err
+	}
+	return element, nil
 }
 
 func (r *Repository) DeleteElement(ctx context.Context, projectIDValue, pageIDValue, elementIDValue string) error {
@@ -233,6 +275,38 @@ func (r *Repository) DeleteElement(ctx context.Context, projectIDValue, pageIDVa
 	return nil
 }
 
+func (r *Repository) HasAssignableCheck(ctx context.Context, projectIDValue, checkIDValue string) (bool, error) {
+	projectID, err := postgres.ParseUUID(projectIDValue, domainproject.ErrProjectNotFound)
+	if err != nil {
+		return false, err
+	}
+	checkID, err := postgres.ParseUUID(checkIDValue, domainpublic.ErrInvalidInput)
+	if err != nil {
+		return false, err
+	}
+	_, err = r.queries.GetPublicStatusAssignableCheck(ctx, sqlc.GetPublicStatusAssignableCheckParams{ProjectID: projectID, CheckID: checkID})
+	if err != nil {
+		mapped := mapNoRows(err, domainpublic.ErrElementNotFound)
+		if errors.Is(mapped, domainpublic.ErrElementNotFound) {
+			return false, nil
+		}
+		return false, mapped
+	}
+	return true, nil
+}
+
+func (r *Repository) CountAssignableAssignments(ctx context.Context, projectIDValue string, assignmentIDValues []string) (int64, error) {
+	projectID, err := postgres.ParseUUID(projectIDValue, domainproject.ErrProjectNotFound)
+	if err != nil {
+		return 0, err
+	}
+	assignmentIDs, err := parseUUIDList(assignmentIDValues, domainpublic.ErrInvalidInput)
+	if err != nil {
+		return 0, err
+	}
+	return r.queries.CountPublicStatusAssignableAssignments(ctx, sqlc.CountPublicStatusAssignableAssignmentsParams{ProjectID: projectID, AssignmentIds: assignmentIDs})
+}
+
 func (r *Repository) ListAssignments(ctx context.Context, pageIDValue string) ([]domainpublic.Assignment, error) {
 	pageID, err := postgres.ParseUUID(pageIDValue, domainpublic.ErrPageNotFound)
 	if err != nil {
@@ -247,6 +321,51 @@ func (r *Repository) ListAssignments(ctx context.Context, pageIDValue string) ([
 		assignments = append(assignments, mapAssignment(row))
 	}
 	return assignments, nil
+}
+
+func (r *Repository) attachElementAssignmentIDs(ctx context.Context, pageID uuid.UUID, elements []domainpublic.Element) error {
+	if len(elements) == 0 {
+		return nil
+	}
+	rows, err := r.queries.ListPublicStatusPageElementAssignmentIDs(ctx, pageID)
+	if err != nil {
+		return err
+	}
+	byElementID := make(map[string][]string)
+	for _, row := range rows {
+		elementID := row.ElementID.String()
+		byElementID[elementID] = append(byElementID[elementID], row.AssignmentID.String())
+	}
+	for index := range elements {
+		elements[index].AssignmentIDs = byElementID[elements[index].ID]
+	}
+	return nil
+}
+
+func (r *Repository) replaceElementAssignmentIDs(ctx context.Context, queries *sqlc.Queries, projectID, pageID, elementID uuid.UUID, assignmentIDValues []string) error {
+	if err := queries.DeletePublicStatusPageElementAssignments(ctx, sqlc.DeletePublicStatusPageElementAssignmentsParams{PublicPageID: pageID, ElementID: elementID}); err != nil {
+		return err
+	}
+	if len(assignmentIDValues) == 0 {
+		return nil
+	}
+	assignmentIDs, err := parseUUIDList(assignmentIDValues, domainpublic.ErrInvalidInput)
+	if err != nil {
+		return err
+	}
+	rows, err := queries.InsertPublicStatusPageElementAssignments(ctx, sqlc.InsertPublicStatusPageElementAssignmentsParams{
+		ElementID:     elementID,
+		PublicPageID:  pageID,
+		ProjectID:     projectID,
+		AssignmentIds: assignmentIDs,
+	})
+	if err != nil {
+		return mapPublicStatusWriteError(err)
+	}
+	if rows != int64(len(assignmentIDs)) {
+		return domainpublic.ErrInvalidInput
+	}
+	return nil
 }
 
 func (r *Repository) ListIncidents(ctx context.Context, pageIDValue string, limit int32) ([]domainpublic.Incident, error) {
@@ -278,6 +397,18 @@ func parseProjectAndPageIDs(projectIDValue, pageIDValue string) (uuid.UUID, uuid
 		return uuid.Nil, uuid.Nil, err
 	}
 	return projectID, pageID, nil
+}
+
+func parseUUIDList(values []string, fallback error) ([]uuid.UUID, error) {
+	output := make([]uuid.UUID, 0, len(values))
+	for _, value := range values {
+		parsed, err := postgres.ParseUUID(value, fallback)
+		if err != nil {
+			return nil, err
+		}
+		output = append(output, parsed)
+	}
+	return output, nil
 }
 
 func parseElementScopeIDs(projectIDValue, pageIDValue, elementIDValue string) (uuid.UUID, uuid.UUID, uuid.UUID, error) {

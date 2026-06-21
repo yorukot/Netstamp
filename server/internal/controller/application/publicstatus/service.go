@@ -149,10 +149,10 @@ func (s *Service) GetPublicPage(ctx context.Context, input PublicPageInput) (dom
 	}
 
 	activeIncidents, resolvedIncidents := splitIncidents(incidents)
-	assignmentsByCheck := groupAssignments(assignments)
-	activeSeverityByCheck := activeIncidentSeverity(activeIncidents)
+	assignmentsByElement := groupAssignmentsByElement(assignments)
+	activeSeverityByElement := activeIncidentSeverityByElement(activeIncidents, assignmentsByElement)
 	chartRangeOverride := input.Range
-	root := s.renderElements(ctx, page, elements, assignmentsByCheck, activeSeverityByCheck, now, input.IncludeCharts, chartRangeOverride)
+	root := s.renderElements(ctx, page, elements, assignmentsByElement, activeSeverityByElement, now, input.IncludeCharts, chartRangeOverride)
 	status := rollupStatus(root)
 
 	return domainpublic.RenderedPage{
@@ -184,6 +184,11 @@ func (s *Service) validateElementReferences(ctx context.Context, element domainp
 			return err
 		}
 		if err := validateParent(parent, element.ID); err != nil {
+			return err
+		}
+	}
+	if element.Kind == domainpublic.ElementKindAssignmentGroup {
+		if err := s.validateAssignmentGroupScope(ctx, element); err != nil {
 			return err
 		}
 	}
@@ -239,10 +244,38 @@ func (s *Service) saveElement(
 	return save(ctx, element)
 }
 
-func groupAssignments(assignments []domainpublic.Assignment) map[string][]domainpublic.Assignment {
+func (s *Service) validateAssignmentGroupScope(ctx context.Context, element domainpublic.Element) error {
+	if element.AssignmentSelectionMode == nil {
+		return invalidField("assignmentSelectionMode", "must be provided for assignment groups", nil)
+	}
+	switch *element.AssignmentSelectionMode {
+	case domainpublic.AssignmentSelectionModeAllCheck:
+		if element.CheckID == nil {
+			return invalidField("checkId", "must be provided for all-check assignment groups", nil)
+		}
+		ok, err := s.repo.HasAssignableCheck(ctx, element.ProjectID, *element.CheckID)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			return invalidField("checkId", "check must be an active ping or tcp check", *element.CheckID)
+		}
+	case domainpublic.AssignmentSelectionModeSelectedAssignments:
+		count, err := s.repo.CountAssignableAssignments(ctx, element.ProjectID, element.AssignmentIDs)
+		if err != nil {
+			return err
+		}
+		if count != int64(len(element.AssignmentIDs)) {
+			return invalidField("assignmentIds", "assignments must be active ping or tcp assignments in this project", element.AssignmentIDs)
+		}
+	}
+	return nil
+}
+
+func groupAssignmentsByElement(assignments []domainpublic.Assignment) map[string][]domainpublic.Assignment {
 	values := make(map[string][]domainpublic.Assignment)
 	for _, assignment := range assignments {
-		values[assignment.CheckID] = append(values[assignment.CheckID], assignment)
+		values[assignment.ElementID] = append(values[assignment.ElementID], assignment)
 	}
 	return values
 }
@@ -261,26 +294,43 @@ func splitIncidents(incidents []domainpublic.Incident) ([]domainpublic.Incident,
 	return active, resolved
 }
 
-func activeIncidentSeverity(incidents []domainpublic.Incident) map[string]string {
+func activeIncidentSeverityByElement(incidents []domainpublic.Incident, assignmentsByElement map[string][]domainpublic.Assignment) map[string]string {
 	values := make(map[string]string)
-	for _, incident := range incidents {
-		if incident.Severity == "critical" {
-			values[incident.CheckID] = incident.Severity
-			continue
-		}
-		if _, exists := values[incident.CheckID]; !exists {
-			values[incident.CheckID] = incident.Severity
+	for elementID, assignments := range assignmentsByElement {
+		for _, incident := range incidents {
+			if !incidentMatchesAssignments(incident, assignments) {
+				continue
+			}
+			if incident.Severity == "critical" {
+				values[elementID] = incident.Severity
+				break
+			}
+			if _, exists := values[elementID]; !exists {
+				values[elementID] = incident.Severity
+			}
 		}
 	}
 	return values
+}
+
+func incidentMatchesAssignments(incident domainpublic.Incident, assignments []domainpublic.Assignment) bool {
+	for _, assignment := range assignments {
+		if assignment.CheckID != incident.CheckID {
+			continue
+		}
+		if incident.ProbeID == nil || *incident.ProbeID == assignment.ProbeID {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *Service) renderElements(
 	ctx context.Context,
 	page domainpublic.Page,
 	elements []domainpublic.Element,
-	assignmentsByCheck map[string][]domainpublic.Assignment,
-	activeSeverityByCheck map[string]string,
+	assignmentsByElement map[string][]domainpublic.Assignment,
+	activeSeverityByElement map[string]string,
 	now time.Time,
 	includeCharts bool,
 	chartRangeOverride *domainpublic.ChartRange,
@@ -295,7 +345,7 @@ func (s *Service) renderElements(
 		childrenByParent[*element.ParentElementID] = append(childrenByParent[*element.ParentElementID], element)
 	}
 	sortElements(root)
-	return s.renderElementList(ctx, page, root, childrenByParent, assignmentsByCheck, activeSeverityByCheck, now, includeCharts, chartRangeOverride, page.DefaultChartMode, page.DefaultChartRange)
+	return s.renderElementList(ctx, page, root, childrenByParent, assignmentsByElement, activeSeverityByElement, now, includeCharts, chartRangeOverride, page.DefaultChartMode, page.DefaultChartRange)
 }
 
 func (s *Service) renderElementList(
@@ -303,8 +353,8 @@ func (s *Service) renderElementList(
 	page domainpublic.Page,
 	elements []domainpublic.Element,
 	childrenByParent map[string][]domainpublic.Element,
-	assignmentsByCheck map[string][]domainpublic.Assignment,
-	activeSeverityByCheck map[string]string,
+	assignmentsByElement map[string][]domainpublic.Assignment,
+	activeSeverityByElement map[string]string,
 	now time.Time,
 	includeCharts bool,
 	chartRangeOverride *domainpublic.ChartRange,
@@ -326,14 +376,14 @@ func (s *Service) renderElementList(
 		if element.Kind == domainpublic.ElementKindFolder {
 			children := childrenByParent[element.ID]
 			sortElements(children)
-			item.Children = s.renderElementList(ctx, page, children, childrenByParent, assignmentsByCheck, activeSeverityByCheck, now, includeCharts, chartRangeOverride, mode, chartRange)
+			item.Children = s.renderElementList(ctx, page, children, childrenByParent, assignmentsByElement, activeSeverityByElement, now, includeCharts, chartRangeOverride, mode, chartRange)
 			item.Status = rollupStatus(item.Children)
 			rendered = append(rendered, item)
 			continue
 		}
-		if element.CheckID != nil {
-			checkAssignments := assignmentsByCheck[*element.CheckID]
-			summary := checkStatusSummary(checkAssignments, activeSeverityByCheck[*element.CheckID], now)
+		if element.Kind == domainpublic.ElementKindAssignmentGroup {
+			elementAssignments := assignmentsByElement[element.ID]
+			summary := checkStatusSummary(elementAssignments, activeSeverityByElement[element.ID], now)
 			item.Status = summary.status
 			item.LatestStartedAt = summary.latestStartedAt
 			item.LatestStatus = summary.latestStatus
@@ -342,8 +392,9 @@ func (s *Service) renderElementList(
 			item.FailingAssignments = summary.failingAssignments
 			item.StaleAssignments = summary.staleAssignments
 			item.Metrics = summary.metrics
+			item.Assignments = elementAssignments
 			if includeCharts && mode == domainpublic.ChartModeCompact {
-				item.Chart = s.chartForElement(ctx, page, element, checkAssignments, chartRange, now)
+				item.Chart = s.chartForElement(ctx, page, elementAssignments, chartRange, now)
 			}
 		}
 		if item.Status == "" {
@@ -543,18 +594,15 @@ func rollupStatus(elements []domainpublic.RenderedElement) domainpublic.Status {
 	return status
 }
 
-func (s *Service) chartForElement(ctx context.Context, page domainpublic.Page, element domainpublic.Element, assignments []domainpublic.Assignment, chartRange domainpublic.ChartRange, now time.Time) *domainpublic.Chart {
-	if element.CheckType == nil || element.CheckID == nil {
-		return nil
-	}
+func (s *Service) chartForElement(ctx context.Context, page domainpublic.Page, assignments []domainpublic.Assignment, chartRange domainpublic.ChartRange, now time.Time) *domainpublic.Chart {
 	from := chartFrom(now, chartRange)
 	var series []domainpublic.Series
 	for _, assignment := range assignments {
-		switch *element.CheckType {
+		switch assignment.CheckType {
 		case domaincheck.TypePing:
-			series = append(series, s.pingChartSeries(ctx, page.ProjectID, assignment, *element.CheckID, from, now)...)
+			series = append(series, s.pingChartSeries(ctx, page.ProjectID, assignment, assignment.CheckID, from, now)...)
 		case domaincheck.TypeTCP:
-			series = append(series, s.tcpChartSeries(ctx, page.ProjectID, assignment, *element.CheckID, from, now)...)
+			series = append(series, s.tcpChartSeries(ctx, page.ProjectID, assignment, assignment.CheckID, from, now)...)
 		}
 	}
 	if len(series) == 0 {
@@ -578,6 +626,7 @@ type chartSeriesScope struct {
 	projectID string
 	probeID   string
 	checkID   string
+	checkName string
 	from      time.Time
 	to        time.Time
 	probeName string
@@ -606,6 +655,7 @@ func newChartSeriesScope(projectID string, assignment domainpublic.Assignment, c
 		projectID: projectID,
 		probeID:   assignment.ProbeID,
 		checkID:   checkID,
+		checkName: assignment.CheckName,
 		from:      from,
 		to:        to,
 		probeName: assignment.ProbeName,
@@ -646,18 +696,15 @@ func (r pingChartReader) list(ctx context.Context, scope chartSeriesScope, rawPo
 		CheckID:       scope.checkID,
 		From:          scope.from,
 		To:            scope.to,
-		Series:        []string{"latency_avg", "latency_min", "latency_max", "loss_percent"},
+		Series:        []string{"latency_avg"},
 		MaxDataPoints: publicMaxDataPoints,
 		Mode:          plan.Mode,
 	})
 }
 
 func (r pingChartReader) series(values map[string]domainping.SeriesData, scope chartSeriesScope) []domainpublic.Series {
-	return pingDomainSeries(values, scope.probeName, scope.checkID, map[string]string{
-		"latency_avg":  "ms",
-		"latency_min":  "ms",
-		"latency_max":  "ms",
-		"loss_percent": "percent",
+	return pingDomainSeries(values, scope.probeName, scope.checkName, scope.checkID, map[string]string{
+		"latency_avg": "ms",
 	})
 }
 
@@ -677,22 +724,19 @@ func (r tcpChartReader) list(ctx context.Context, scope chartSeriesScope, rawPoi
 		CheckID:       scope.checkID,
 		From:          scope.from,
 		To:            scope.to,
-		Series:        []string{"connect_avg", "connect_min", "connect_max", "failure_percent"},
+		Series:        []string{"connect_avg"},
 		MaxDataPoints: publicMaxDataPoints,
 		Mode:          plan.Mode,
 	})
 }
 
 func (r tcpChartReader) series(values map[string]domaintcp.SeriesData, scope chartSeriesScope) []domainpublic.Series {
-	return tcpDomainSeries(values, scope.probeName, scope.checkID, map[string]string{
-		"connect_avg":     "ms",
-		"connect_min":     "ms",
-		"connect_max":     "ms",
-		"failure_percent": "percent",
+	return tcpDomainSeries(values, scope.probeName, scope.checkName, scope.checkID, map[string]string{
+		"connect_avg": "ms",
 	})
 }
 
-func pingDomainSeries(values map[string]domainping.SeriesData, probeName, checkID string, units map[string]string) []domainpublic.Series {
+func pingDomainSeries(values map[string]domainping.SeriesData, probeName, checkName, checkID string, units map[string]string) []domainpublic.Series {
 	keys := make([]string, 0, len(values))
 	for key := range values {
 		keys = append(keys, key)
@@ -704,6 +748,7 @@ func pingDomainSeries(values map[string]domainping.SeriesData, probeName, checkI
 			Name: key,
 			Labels: map[string]string{
 				"checkId":   checkID,
+				"checkName": checkName,
 				"checkType": "ping",
 				"probeName": probeName,
 			},
@@ -714,7 +759,7 @@ func pingDomainSeries(values map[string]domainping.SeriesData, probeName, checkI
 	return series
 }
 
-func tcpDomainSeries(values map[string]domaintcp.SeriesData, probeName, checkID string, units map[string]string) []domainpublic.Series {
+func tcpDomainSeries(values map[string]domaintcp.SeriesData, probeName, checkName, checkID string, units map[string]string) []domainpublic.Series {
 	keys := make([]string, 0, len(values))
 	for key := range values {
 		keys = append(keys, key)
@@ -726,6 +771,7 @@ func tcpDomainSeries(values map[string]domaintcp.SeriesData, probeName, checkID 
 			Name: key,
 			Labels: map[string]string{
 				"checkId":   checkID,
+				"checkName": checkName,
 				"checkType": "tcp",
 				"probeName": probeName,
 			},

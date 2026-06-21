@@ -3,12 +3,13 @@ import { ApiError } from "@/shared/api/client";
 import { publicStatusQueries } from "@/shared/api/queries";
 import type { ApiPublicStatusPublicElement, ApiPublicStatusPublicResponse } from "@/shared/api/types";
 import { ChartPanel } from "@/shared/visualizations/ChartPanel";
-import { Badge, LoadingState, Panel } from "@netstamp/ui";
+import { Badge, LoadingState, Panel, type BadgeTone } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
 import styles from "./PublicStatusPage.module.css";
 
 type PublicIncident = ApiPublicStatusPublicResponse["incidents"]["active"][number];
+type PublicAssignment = NonNullable<ApiPublicStatusPublicElement["assignments"]>[number];
 
 export function PublicStatusPage() {
 	const { slug = "" } = useParams();
@@ -64,7 +65,7 @@ export function PublicStatusPage() {
 				<IncidentSection incidents={data.incidents.active} />
 
 				<section className={styles.elements} aria-label="Status checks">
-					{data.elements.length ? data.elements.map(element => <PublicElement key={element.id} element={element} />) : <div className={styles.empty}>No public status checks are configured.</div>}
+					{data.elements.length ? data.elements.map(element => <PublicElement key={element.id} element={element} />) : <div className={styles.empty}>No public status elements are configured.</div>}
 				</section>
 			</div>
 		</main>
@@ -142,7 +143,7 @@ function PublicElement({ element }: { element: ApiPublicStatusPublicElement }) {
 						<h3>{element.title}</h3>
 					</div>
 					<div className={styles.checkMeta}>
-						<span>{checkTypeLabel(element.type)}</span>
+						{element.type ? <span>{checkTypeLabel(element.type)}</span> : <span>{element.assignmentCount ?? element.assignments?.length ?? 0} assignments</span>}
 						{element.target ? <span>{element.target}</span> : null}
 						{element.latestStartedAt ? <span>Latest {formatDateTime(element.latestStartedAt)}</span> : null}
 					</div>
@@ -155,8 +156,87 @@ function PublicElement({ element }: { element: ApiPublicStatusPublicElement }) {
 				</div>
 			</div>
 			<Metrics element={element} />
+			<AssignmentRows assignments={element.assignments ?? []} />
 			{element.chart?.series.length ? <ChartPanel className={styles.chart} option={publicStatusChartOption(element)} height="12rem" /> : null}
 		</article>
+	);
+}
+
+function AssignmentRows({ assignments }: { assignments: PublicAssignment[] }) {
+	if (!assignments.length) {
+		return null;
+	}
+
+	return (
+		<div className={styles.publicAssignmentRows}>
+			{assignments.map(assignment => (
+				<div key={assignment.assignmentId} className={styles.publicAssignmentRow}>
+					<div className={styles.publicAssignmentCopy}>
+						<strong>{assignment.checkTitle}</strong>
+						<span>
+							{checkTypeLabel(assignment.type)} / {assignment.target} / {assignment.probeName}
+						</span>
+						{assignment.latestStartedAt ? <span>Latest {formatDateTime(assignment.latestStartedAt)}</span> : null}
+					</div>
+					<div className={styles.publicAssignmentStatus}>
+						<Badge tone={latestStatusTone(assignment.latestStatus)}>{latestStatusLabel(assignment.latestStatus)}</Badge>
+						<AssignmentMetrics assignment={assignment} />
+					</div>
+				</div>
+			))}
+		</div>
+	);
+}
+
+function latestStatusTone(status: string | undefined): BadgeTone {
+	switch (status) {
+		case "successful":
+			return "success";
+		case "partial":
+			return "warning";
+		case "timeout":
+		case "error":
+			return "critical";
+		default:
+			return "neutral";
+	}
+}
+
+function latestStatusLabel(status: string | undefined) {
+	switch (status) {
+		case "successful":
+			return "Ok";
+		case "partial":
+			return "Partial";
+		case "timeout":
+			return "Timeout";
+		case "error":
+			return "Error";
+		default:
+			return "No result";
+	}
+}
+
+function AssignmentMetrics({ assignment }: { assignment: PublicAssignment }) {
+	const metrics =
+		assignment.type === "ping"
+			? [
+					{ label: "Latency", value: formatMetric(assignment.metrics?.latencyAvgMs, "ms") },
+					{ label: "Loss", value: formatMetric(assignment.metrics?.lossPercent, "%") }
+				]
+			: [
+					{ label: "Connect", value: formatMetric(assignment.metrics?.connectAvgMs, "ms") },
+					{ label: "Failure", value: formatMetric(assignment.metrics?.failurePercent, "%") }
+				];
+
+	return (
+		<div className={styles.publicAssignmentMetrics}>
+			{metrics.map(metric => (
+				<span key={metric.label}>
+					{metric.label} {metric.value}
+				</span>
+			))}
+		</div>
 	);
 }
 

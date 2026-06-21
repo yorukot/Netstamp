@@ -10,3 +10,74 @@
 	padding: 0.75rem;
 	font: 0.85rem/1.4 var(--ns-font-sans);
 }
+
+.assignmentPicker {
+	display: grid;
+	gap: 0.75rem;
+}
+
+.assignmentFilters {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 0.75rem;
+}
+
+.assignmentPickerHeader {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem;
+	color: var(--ns-text-subtle);
+	font: 0.78rem/1.4 var(--ns-font-mono);
+}
+
+.assignmentList {
+	display: grid;
+	gap: 0.45rem;
+	max-height: 18rem;
+	overflow: auto;
+	border: 1px solid var(--ns-border);
+	background: var(--ns-surface);
+	padding: 0.5rem;
+}
+
+.assignmentRow {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr);
+	gap: 0.65rem;
+	align-items: start;
+	border: 1px solid var(--ns-border);
+	background: var(--ns-surface-raised);
+	padding: 0.65rem;
+	cursor: pointer;
+}
+
+.assignmentCopy {
+	display: grid;
+	gap: 0.25rem;
+	min-width: 0;
+}
+
+.assignmentCopy strong,
+.assignmentCopy span {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.assignmentCopy span {
+	color: var(--ns-text-subtle);
+	font: 0.78rem/1.4 var(--ns-font-mono);
+}
+
+.assignmentEmpty {
+	color: var(--ns-text-muted);
+	padding: 0.75rem;
+	font: 0.85rem/1.4 var(--ns-font-sans);
+}
+
+@media (max-width: 44rem) {
+	.assignmentFilters {
+		grid-template-columns: 1fr;
+	}
+}

@@ -103,6 +103,7 @@ SELECT public_status_page_elements.id,
        public_status_page_elements.parent_element_id,
        public_status_page_elements.kind,
        public_status_page_elements.check_id,
+       public_status_page_elements.assignment_selection_mode,
        public_status_page_elements.title,
        public_status_page_elements.description,
        public_status_page_elements.sort_order,
@@ -123,6 +124,7 @@ LEFT JOIN checks
 WHERE public_status_page_elements.public_page_id = sqlc.arg(public_page_id)
   AND (
       public_status_page_elements.kind = 'folder'
+      OR public_status_page_elements.assignment_selection_mode = 'selected_assignments'
       OR checks.id IS NOT NULL
   )
 ORDER BY public_status_page_elements.parent_element_id NULLS FIRST,
@@ -137,6 +139,7 @@ SELECT id,
        parent_element_id,
        kind,
        check_id,
+       assignment_selection_mode,
        title,
        description,
        sort_order,
@@ -156,6 +159,7 @@ INSERT INTO public_status_page_elements (
     parent_element_id,
     kind,
     check_id,
+    assignment_selection_mode,
     title,
     description,
     sort_order,
@@ -168,19 +172,21 @@ VALUES (
     sqlc.narg(parent_element_id),
     sqlc.arg(kind),
     sqlc.narg(check_id),
+    sqlc.narg(assignment_selection_mode),
     sqlc.narg(title),
     sqlc.narg(description),
     sqlc.arg(sort_order),
     sqlc.arg(chart_mode),
     sqlc.narg(chart_range)
 )
-RETURNING id, public_page_id, project_id, parent_element_id, kind, check_id, title, description, sort_order, chart_mode, chart_range, created_at, updated_at;
+RETURNING id, public_page_id, project_id, parent_element_id, kind, check_id, assignment_selection_mode, title, description, sort_order, chart_mode, chart_range, created_at, updated_at;
 
 -- name: UpdatePublicStatusPageElement :one
 UPDATE public_status_page_elements
 SET parent_element_id = sqlc.narg(parent_element_id),
     kind = sqlc.arg(kind),
     check_id = sqlc.narg(check_id),
+    assignment_selection_mode = sqlc.narg(assignment_selection_mode),
     title = sqlc.narg(title),
     description = sqlc.narg(description),
     sort_order = sqlc.arg(sort_order),
@@ -189,7 +195,66 @@ SET parent_element_id = sqlc.narg(parent_element_id),
 WHERE public_page_id = sqlc.arg(public_page_id)
   AND project_id = sqlc.arg(project_id)
   AND id = sqlc.arg(id)
-RETURNING id, public_page_id, project_id, parent_element_id, kind, check_id, title, description, sort_order, chart_mode, chart_range, created_at, updated_at;
+RETURNING id, public_page_id, project_id, parent_element_id, kind, check_id, assignment_selection_mode, title, description, sort_order, chart_mode, chart_range, created_at, updated_at;
+
+-- name: ListPublicStatusPageElementAssignmentIDs :many
+SELECT element_id,
+       assignment_id
+FROM public_status_page_element_assignments
+WHERE public_page_id = sqlc.arg(public_page_id)
+ORDER BY element_id ASC,
+         sort_order ASC,
+         assignment_id ASC;
+
+-- name: DeletePublicStatusPageElementAssignments :exec
+DELETE FROM public_status_page_element_assignments
+WHERE public_page_id = sqlc.arg(public_page_id)
+  AND element_id = sqlc.arg(element_id);
+
+-- name: InsertPublicStatusPageElementAssignments :execrows
+INSERT INTO public_status_page_element_assignments (
+    element_id,
+    public_page_id,
+    project_id,
+    assignment_id,
+    sort_order
+)
+SELECT sqlc.arg(element_id),
+       sqlc.arg(public_page_id),
+       sqlc.arg(project_id),
+       probe_check_assignments.id,
+       (selected.ordinality::integer - 1)
+FROM unnest(sqlc.arg(assignment_ids)::uuid[]) WITH ORDINALITY AS selected(assignment_id, ordinality)
+JOIN probe_check_assignments
+  ON probe_check_assignments.id = selected.assignment_id
+ AND probe_check_assignments.project_id = sqlc.arg(project_id)
+ AND probe_check_assignments.deleted_at IS NULL
+JOIN checks
+  ON checks.project_id = probe_check_assignments.project_id
+ AND checks.id = probe_check_assignments.check_id
+ AND checks.deleted_at IS NULL
+ AND checks.check_type IN ('ping', 'tcp');
+
+-- name: GetPublicStatusAssignableCheck :one
+SELECT id,
+       check_type
+FROM checks
+WHERE project_id = sqlc.arg(project_id)
+  AND id = sqlc.arg(check_id)
+  AND deleted_at IS NULL
+  AND check_type IN ('ping', 'tcp');
+
+-- name: CountPublicStatusAssignableAssignments :one
+SELECT count(DISTINCT probe_check_assignments.id)::bigint
+FROM probe_check_assignments
+JOIN checks
+  ON checks.project_id = probe_check_assignments.project_id
+ AND checks.id = probe_check_assignments.check_id
+ AND checks.deleted_at IS NULL
+ AND checks.check_type IN ('ping', 'tcp')
+WHERE probe_check_assignments.project_id = sqlc.arg(project_id)
+  AND probe_check_assignments.deleted_at IS NULL
+  AND probe_check_assignments.id = ANY(sqlc.arg(assignment_ids)::uuid[]);
 
 -- name: DeletePublicStatusPageElement :execrows
 DELETE FROM public_status_page_elements
@@ -198,15 +263,54 @@ WHERE public_page_id = sqlc.arg(public_page_id)
   AND id = sqlc.arg(id);
 
 -- name: ListPublicStatusAssignments :many
-WITH page_checks AS (
-    SELECT DISTINCT project_id, check_id
+WITH element_assignments AS (
+    SELECT public_status_page_elements.id AS element_id,
+           probe_check_assignments.id AS assignment_id,
+           probe_check_assignments.project_id,
+           probe_check_assignments.probe_id,
+           probe_check_assignments.check_id
     FROM public_status_page_elements
-    WHERE public_page_id = sqlc.arg(public_page_id)
-      AND kind = 'check'
-      AND check_id IS NOT NULL
+    JOIN probe_check_assignments
+      ON public_status_page_elements.assignment_selection_mode = 'all_check'
+     AND probe_check_assignments.project_id = public_status_page_elements.project_id
+     AND probe_check_assignments.check_id = public_status_page_elements.check_id
+     AND probe_check_assignments.deleted_at IS NULL
+    JOIN checks
+      ON checks.project_id = probe_check_assignments.project_id
+     AND checks.id = probe_check_assignments.check_id
+     AND checks.deleted_at IS NULL
+     AND checks.check_type IN ('ping', 'tcp')
+    WHERE public_status_page_elements.public_page_id = sqlc.arg(public_page_id)
+      AND public_status_page_elements.kind = 'assignment_group'
+    UNION ALL
+    SELECT public_status_page_elements.id AS element_id,
+           probe_check_assignments.id AS assignment_id,
+           probe_check_assignments.project_id,
+           probe_check_assignments.probe_id,
+           probe_check_assignments.check_id
+    FROM public_status_page_elements
+    JOIN public_status_page_element_assignments
+      ON public_status_page_element_assignments.public_page_id = public_status_page_elements.public_page_id
+     AND public_status_page_element_assignments.element_id = public_status_page_elements.id
+    JOIN probe_check_assignments
+      ON probe_check_assignments.id = public_status_page_element_assignments.assignment_id
+     AND probe_check_assignments.project_id = public_status_page_elements.project_id
+     AND probe_check_assignments.deleted_at IS NULL
+    JOIN checks
+      ON checks.project_id = probe_check_assignments.project_id
+     AND checks.id = probe_check_assignments.check_id
+     AND checks.deleted_at IS NULL
+     AND checks.check_type IN ('ping', 'tcp')
+    WHERE public_status_page_elements.public_page_id = sqlc.arg(public_page_id)
+      AND public_status_page_elements.kind = 'assignment_group'
+      AND public_status_page_elements.assignment_selection_mode = 'selected_assignments'
 )
-SELECT checks.id AS check_id,
+SELECT element_assignments.element_id,
+       element_assignments.assignment_id,
+       checks.id AS check_id,
+       checks.name AS check_name,
        checks.check_type,
+       checks.target AS check_target,
        checks.interval_seconds,
        probes.id AS probe_id,
        probes.name AS probe_name,
@@ -217,18 +321,14 @@ SELECT checks.id AS check_id,
        COALESCE(latest.loss_percent, 0::double precision) AS loss_percent,
        latest.connect_avg_ms,
        latest.failure_percent
-FROM page_checks
-JOIN probe_check_assignments
-  ON probe_check_assignments.project_id = page_checks.project_id
- AND probe_check_assignments.check_id = page_checks.check_id
- AND probe_check_assignments.deleted_at IS NULL
+FROM element_assignments
 JOIN probes
-  ON probes.project_id = probe_check_assignments.project_id
- AND probes.id = probe_check_assignments.probe_id
+  ON probes.project_id = element_assignments.project_id
+ AND probes.id = element_assignments.probe_id
  AND probes.deleted_at IS NULL
 JOIN checks
-  ON checks.project_id = probe_check_assignments.project_id
- AND checks.id = probe_check_assignments.check_id
+  ON checks.project_id = element_assignments.project_id
+ AND checks.id = element_assignments.check_id
  AND checks.deleted_at IS NULL
 LEFT JOIN LATERAL (
     (
@@ -260,31 +360,56 @@ LEFT JOIN LATERAL (
         ORDER BY tcp_results.started_at DESC
         LIMIT 1
     )
-    UNION ALL
-    (
-        SELECT traceroute_results.started_at,
-               traceroute_results.status::text AS status,
-               NULL::double precision AS latency_avg_ms,
-               NULL::double precision AS loss_percent,
-               NULL::double precision AS connect_avg_ms,
-               NULL::double precision AS failure_percent
-        FROM traceroute_results
-        WHERE checks.check_type = 'traceroute'
-          AND traceroute_results.probe_id = probes.internal_id
-          AND traceroute_results.check_id = checks.internal_id
-        ORDER BY traceroute_results.started_at DESC
-        LIMIT 1
-    )
 ) latest ON TRUE
-ORDER BY checks.id ASC, probes.name ASC, probes.id ASC;
+ORDER BY element_assignments.element_id ASC,
+         probes.name ASC,
+         checks.name ASC,
+         element_assignments.assignment_id ASC;
 
 -- name: ListPublicStatusIncidents :many
-WITH page_checks AS (
-    SELECT DISTINCT project_id, check_id
+WITH element_assignments AS (
+    SELECT probe_check_assignments.project_id,
+           probe_check_assignments.probe_id,
+           probe_check_assignments.check_id
     FROM public_status_page_elements
-    WHERE public_page_id = sqlc.arg(public_page_id)
-      AND kind = 'check'
-      AND check_id IS NOT NULL
+    JOIN probe_check_assignments
+      ON public_status_page_elements.assignment_selection_mode = 'all_check'
+     AND probe_check_assignments.project_id = public_status_page_elements.project_id
+     AND probe_check_assignments.check_id = public_status_page_elements.check_id
+     AND probe_check_assignments.deleted_at IS NULL
+    JOIN checks
+      ON checks.project_id = probe_check_assignments.project_id
+     AND checks.id = probe_check_assignments.check_id
+     AND checks.deleted_at IS NULL
+     AND checks.check_type IN ('ping', 'tcp')
+    WHERE public_status_page_elements.public_page_id = sqlc.arg(public_page_id)
+      AND public_status_page_elements.kind = 'assignment_group'
+    UNION ALL
+    SELECT probe_check_assignments.project_id,
+           probe_check_assignments.probe_id,
+           probe_check_assignments.check_id
+    FROM public_status_page_elements
+    JOIN public_status_page_element_assignments
+      ON public_status_page_element_assignments.public_page_id = public_status_page_elements.public_page_id
+     AND public_status_page_element_assignments.element_id = public_status_page_elements.id
+    JOIN probe_check_assignments
+      ON probe_check_assignments.id = public_status_page_element_assignments.assignment_id
+     AND probe_check_assignments.project_id = public_status_page_elements.project_id
+     AND probe_check_assignments.deleted_at IS NULL
+    JOIN checks
+      ON checks.project_id = probe_check_assignments.project_id
+     AND checks.id = probe_check_assignments.check_id
+     AND checks.deleted_at IS NULL
+     AND checks.check_type IN ('ping', 'tcp')
+    WHERE public_status_page_elements.public_page_id = sqlc.arg(public_page_id)
+      AND public_status_page_elements.kind = 'assignment_group'
+      AND public_status_page_elements.assignment_selection_mode = 'selected_assignments'
+),
+page_scope AS (
+    SELECT DISTINCT project_id,
+           probe_id,
+           check_id
+    FROM element_assignments
 )
 SELECT alert_incidents.id,
        alert_incidents.project_id,
@@ -302,13 +427,20 @@ SELECT alert_incidents.id,
        alert_incidents.last_summary,
        checks.name AS check_name
 FROM alert_incidents
-JOIN page_checks
-  ON page_checks.project_id = alert_incidents.project_id
- AND page_checks.check_id = alert_incidents.check_id
 JOIN checks
   ON checks.project_id = alert_incidents.project_id
  AND checks.id = alert_incidents.check_id
 WHERE alert_incidents.status IN ('open', 'acknowledged', 'resolved')
+  AND EXISTS (
+      SELECT 1
+      FROM page_scope
+      WHERE page_scope.project_id = alert_incidents.project_id
+        AND page_scope.check_id = alert_incidents.check_id
+        AND (
+            alert_incidents.probe_id IS NULL
+            OR page_scope.probe_id = alert_incidents.probe_id
+        )
+  )
 ORDER BY CASE WHEN alert_incidents.status IN ('open', 'acknowledged') THEN 0 ELSE 1 END,
          alert_incidents.opened_at DESC,
          alert_incidents.id DESC

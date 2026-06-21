@@ -12,14 +12,16 @@ type pageInputBody struct {
 }
 
 type elementInputBody struct {
-	ParentElementID *string                  `json:"parentElementId"`
-	Kind            domainpublic.ElementKind `json:"kind"`
-	CheckID         *string                  `json:"checkId"`
-	Title           *string                  `json:"title"`
-	Description     *string                  `json:"description"`
-	SortOrder       int32                    `json:"sortOrder"`
-	ChartMode       domainpublic.ChartMode   `json:"chartMode"`
-	ChartRange      *domainpublic.ChartRange `json:"chartRange"`
+	ParentElementID         *string                              `json:"parentElementId"`
+	Kind                    domainpublic.ElementKind             `json:"kind"`
+	CheckID                 *string                              `json:"checkId"`
+	AssignmentSelectionMode domainpublic.AssignmentSelectionMode `json:"assignmentSelectionMode"`
+	AssignmentIDs           []string                             `json:"assignmentIds"`
+	Title                   *string                              `json:"title"`
+	Description             *string                              `json:"description"`
+	SortOrder               int32                                `json:"sortOrder"`
+	ChartMode               domainpublic.ChartMode               `json:"chartMode"`
+	ChartRange              *domainpublic.ChartRange             `json:"chartRange"`
 }
 
 func defaultBool(value *bool, fallback bool) bool {

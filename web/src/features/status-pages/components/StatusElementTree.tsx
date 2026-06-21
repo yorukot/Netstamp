@@ -32,7 +32,13 @@ interface ElementNodeProps {
 
 function ElementNode({ node, onEdit, onDelete }: ElementNodeProps) {
 	const isFolder = node.kind === "folder";
-	const title = node.title || node.checkName || "Untitled element";
+	const title = node.title || node.checkName || (isFolder ? "Untitled folder" : "Assignment group");
+	const scopeLabel =
+		node.kind === "assignment_group" && node.assignmentSelectionMode === "selected_assignments"
+			? `${node.assignmentIds.length} selected`
+			: node.kind === "assignment_group" && node.checkName
+				? `${checkTypeLabel(node.checkType)} / ${node.checkName}`
+				: null;
 
 	return (
 		<div className={styles.node} data-kind={node.kind}>
@@ -40,10 +46,11 @@ function ElementNode({ node, onEdit, onDelete }: ElementNodeProps) {
 				<div className={styles.nodeCopy}>
 					<div className={styles.nodeTitle}>
 						<strong>{title}</strong>
-						<Badge tone={isFolder ? "accent" : "neutral"}>{isFolder ? "Folder" : checkTypeLabel(node.checkType)}</Badge>
+						<Badge tone={isFolder ? "accent" : "neutral"}>{isFolder ? "Folder" : "Assignment group"}</Badge>
 					</div>
 					<div className={styles.nodeMeta}>
 						<span>Order {node.sortOrder}</span>
+						{scopeLabel ? <span>{scopeLabel}</span> : null}
 						{node.checkTarget ? <span>{node.checkTarget}</span> : null}
 						<span>{chartModeLabel(node.chartMode)}</span>
 						{node.chartRange ? <span>{chartRangeLabel(node.chartRange)}</span> : null}

@@ -63,7 +63,7 @@ func normalizeCreateElementInput(projectID, pageID string, input CreateElementIn
 		ProjectID:    projectID,
 		PublicPageID: pageID,
 	}
-	return normalizeElement(element, input.ParentElementID, input.Kind, input.CheckID, input.Title, input.Description, input.SortOrder, input.ChartMode, input.ChartRange)
+	return normalizeElement(element, input.ParentElementID, input.Kind, input.CheckID, input.AssignmentSelectionMode, input.AssignmentIDs, input.Title, input.Description, input.SortOrder, input.ChartMode, input.ChartRange)
 }
 
 func normalizeUpdateElementInput(projectID, pageID string, input UpdateElementInput) (domainpublic.Element, error) {
@@ -80,10 +80,22 @@ func normalizeUpdateElementInput(projectID, pageID string, input UpdateElementIn
 		ProjectID:    projectID,
 		PublicPageID: pageID,
 	}
-	return normalizeElement(element, input.ParentElementID, input.Kind, input.CheckID, input.Title, input.Description, input.SortOrder, input.ChartMode, input.ChartRange)
+	return normalizeElement(element, input.ParentElementID, input.Kind, input.CheckID, input.AssignmentSelectionMode, input.AssignmentIDs, input.Title, input.Description, input.SortOrder, input.ChartMode, input.ChartRange)
 }
 
-func normalizeElement(element domainpublic.Element, parentElementID *string, kind domainpublic.ElementKind, checkID, title, description *string, sortOrder int32, chartMode domainpublic.ChartMode, chartRange *domainpublic.ChartRange) (domainpublic.Element, error) {
+func normalizeElement(
+	element domainpublic.Element,
+	parentElementID *string,
+	kind domainpublic.ElementKind,
+	checkID *string,
+	selectionMode domainpublic.AssignmentSelectionMode,
+	assignmentIDs []string,
+	title *string,
+	description *string,
+	sortOrder int32,
+	chartMode domainpublic.ChartMode,
+	chartRange *domainpublic.ChartRange,
+) (domainpublic.Element, error) {
 	var collector appvalidation.Collector
 	var err error
 
@@ -96,6 +108,7 @@ func normalizeElement(element domainpublic.Element, parentElementID *string, kin
 	}
 	element.Kind, err = domainpublic.VNElementKind(kind)
 	collector.AddError("kind", err, kind)
+	element.AssignmentIDs = normalizeAssignmentIDs(&collector, assignmentIDs)
 	element.Title, err = domainpublic.VNDescription(title)
 	collector.AddError("title", err, title)
 	element.Description, err = domainpublic.VNDescription(description)
@@ -111,30 +124,80 @@ func normalizeElement(element domainpublic.Element, parentElementID *string, kin
 			element.ChartRange = &normalizedRange
 		}
 	}
-	if kind == domainpublic.ElementKindCheck {
-		if checkID == nil {
-			collector.Add("checkId", "must be provided for check elements", nil)
-		} else {
-			normalizedCheckID, checkErr := domaincheck.VNCheckID(*checkID)
-			collector.AddError("checkId", checkErr, *checkID)
-			if checkErr == nil {
-				element.CheckID = &normalizedCheckID
-			}
-		}
-	}
 	if kind == domainpublic.ElementKindFolder {
 		if checkID != nil {
 			collector.Add("checkId", "must be omitted for folder elements", *checkID)
 		}
+		if selectionMode != "" {
+			collector.Add("assignmentSelectionMode", "must be omitted for folder elements", selectionMode)
+		}
+		if len(assignmentIDs) > 0 {
+			collector.Add("assignmentIds", "must be omitted for folder elements", assignmentIDs)
+		}
 		if parentElementID != nil {
 			collector.Add("parentElementId", "folder elements must be placed at the root", *parentElementID)
 		}
+	}
+	if kind == domainpublic.ElementKindAssignmentGroup {
+		mode := selectionMode
+		if mode == "" {
+			mode = domainpublic.AssignmentSelectionModeAllCheck
+		}
+		normalizedMode, modeErr := domainpublic.VNAssignmentSelectionMode(mode)
+		collector.AddError("assignmentSelectionMode", modeErr, selectionMode)
+		if modeErr == nil {
+			element.AssignmentSelectionMode = &normalizedMode
+		}
+		normalizeAssignmentGroupScope(&collector, &element, checkID, normalizedMode)
 	}
 
 	if err := collector.Err(ErrInvalidInput); err != nil {
 		return domainpublic.Element{}, err
 	}
 	return element, nil
+}
+
+func normalizeAssignmentIDs(collector *appvalidation.Collector, assignmentIDs []string) []string {
+	seen := make(map[string]struct{}, len(assignmentIDs))
+	normalized := make([]string, 0, len(assignmentIDs))
+	for _, assignmentID := range assignmentIDs {
+		value, err := domainpublic.VNAssignmentID(assignmentID)
+		collector.AddError("assignmentIds", err, assignmentID)
+		if err != nil {
+			continue
+		}
+		if _, exists := seen[value]; exists {
+			continue
+		}
+		seen[value] = struct{}{}
+		normalized = append(normalized, value)
+	}
+	return normalized
+}
+
+func normalizeAssignmentGroupScope(collector *appvalidation.Collector, element *domainpublic.Element, checkID *string, mode domainpublic.AssignmentSelectionMode) {
+	switch mode {
+	case domainpublic.AssignmentSelectionModeAllCheck:
+		if checkID == nil {
+			collector.Add("checkId", "must be provided for all-check assignment groups", nil)
+			return
+		}
+		normalizedCheckID, checkErr := domaincheck.VNCheckID(*checkID)
+		collector.AddError("checkId", checkErr, *checkID)
+		if checkErr == nil {
+			element.CheckID = &normalizedCheckID
+		}
+		if len(element.AssignmentIDs) > 0 {
+			collector.Add("assignmentIds", "must be omitted for all-check assignment groups", element.AssignmentIDs)
+		}
+	case domainpublic.AssignmentSelectionModeSelectedAssignments:
+		if checkID != nil {
+			collector.Add("checkId", "must be omitted for selected-assignment groups", *checkID)
+		}
+		if len(element.AssignmentIDs) == 0 {
+			collector.Add("assignmentIds", "must include at least one assignment", nil)
+		}
+	}
 }
 
 func validateParent(parent domainpublic.Element, elementID string) error {

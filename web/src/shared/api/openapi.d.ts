@@ -1655,8 +1655,11 @@ export interface components {
 		CreatePublicStatusElementRequest: {
 			parentElementId?: components["schemas"]["uuid"];
 			/** @enum {string} */
-			kind: "folder" | "check";
+			kind: "folder" | "assignment_group";
 			checkId?: components["schemas"]["uuid"];
+			/** @enum {string} */
+			assignmentSelectionMode?: "all_check" | "selected_assignments";
+			assignmentIds?: components["schemas"]["uuid"][];
 			title?: string;
 			description?: string;
 			/** Format: int32 */
@@ -2591,8 +2594,11 @@ export interface components {
 			publicPageId: components["schemas"]["uuid"];
 			parentElementId?: components["schemas"]["uuid"];
 			/** @enum {string} */
-			kind: "folder" | "check";
+			kind: "folder" | "assignment_group";
 			checkId?: components["schemas"]["uuid"];
+			/** @enum {string} */
+			assignmentSelectionMode?: "all_check" | "selected_assignments";
+			assignmentIds: components["schemas"]["uuid"][];
 			title?: string;
 			description?: string;
 			/** Format: int32 */
@@ -2694,10 +2700,26 @@ export interface components {
 			/** Format: date-time */
 			updatedAt: string;
 		};
+		PublicStatusPublicAssignment: {
+			assignmentId: components["schemas"]["uuid"];
+			checkId: components["schemas"]["uuid"];
+			checkTitle: string;
+			/** @enum {string} */
+			type: "ping" | "tcp" | "traceroute";
+			target: string;
+			probeId: components["schemas"]["uuid"];
+			probeName: string;
+			probeLocationName?: string;
+			/** Format: date-time */
+			latestStartedAt?: string;
+			/** @enum {string} */
+			latestStatus?: "successful" | "timeout" | "error" | "partial";
+			metrics?: components["schemas"]["PublicStatusMetrics"];
+		};
 		PublicStatusPublicElement: {
 			id: components["schemas"]["uuid"];
 			/** @enum {string} */
-			kind: "folder" | "check";
+			kind: "folder" | "assignment_group";
 			checkId?: components["schemas"]["uuid"];
 			title: string;
 			description?: string;
@@ -2720,6 +2742,7 @@ export interface components {
 			staleAssignments?: number;
 			metrics?: components["schemas"]["PublicStatusMetrics"];
 			chart?: components["schemas"]["PublicStatusChart"];
+			assignments?: components["schemas"]["PublicStatusPublicAssignment"][];
 			children?: components["schemas"]["PublicStatusPublicElement"][];
 		};
 		PublicStatusPublicResponse: {
@@ -3708,8 +3731,11 @@ export interface components {
 		UpdatePublicStatusElementRequest: {
 			parentElementId?: components["schemas"]["uuid"];
 			/** @enum {string} */
-			kind: "folder" | "check";
+			kind: "folder" | "assignment_group";
 			checkId?: components["schemas"]["uuid"];
+			/** @enum {string} */
+			assignmentSelectionMode?: "all_check" | "selected_assignments";
+			assignmentIds?: components["schemas"]["uuid"][];
 			title?: string;
 			description?: string;
 			/** Format: int32 */

@@ -19,17 +19,19 @@ func (h *Handler) handleCreateElement(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	element, err := h.service.CreateElement(r.Context(), apppublic.CreateElementInput{
-		CurrentUserID:   userID,
-		ProjectRef:      httpx.Path(r, "ref"),
-		PageID:          httpx.Path(r, "page_id"),
-		ParentElementID: body.ParentElementID,
-		Kind:            body.Kind,
-		CheckID:         body.CheckID,
-		Title:           body.Title,
-		Description:     body.Description,
-		SortOrder:       body.SortOrder,
-		ChartMode:       defaultElementChartMode(body.ChartMode),
-		ChartRange:      body.ChartRange,
+		CurrentUserID:           userID,
+		ProjectRef:              httpx.Path(r, "ref"),
+		PageID:                  httpx.Path(r, "page_id"),
+		ParentElementID:         body.ParentElementID,
+		Kind:                    body.Kind,
+		CheckID:                 body.CheckID,
+		AssignmentSelectionMode: body.AssignmentSelectionMode,
+		AssignmentIDs:           body.AssignmentIDs,
+		Title:                   body.Title,
+		Description:             body.Description,
+		SortOrder:               body.SortOrder,
+		ChartMode:               defaultElementChartMode(body.ChartMode),
+		ChartRange:              body.ChartRange,
 	})
 	if err != nil {
 		httpx.WriteProblem(w, r, mapPublicStatusError(err, "create public status page element failed"))
@@ -50,18 +52,20 @@ func (h *Handler) handleUpdateElement(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	element, err := h.service.UpdateElement(r.Context(), apppublic.UpdateElementInput{
-		CurrentUserID:   userID,
-		ProjectRef:      httpx.Path(r, "ref"),
-		PageID:          httpx.Path(r, "page_id"),
-		ElementID:       httpx.Path(r, "element_id"),
-		ParentElementID: body.ParentElementID,
-		Kind:            body.Kind,
-		CheckID:         body.CheckID,
-		Title:           body.Title,
-		Description:     body.Description,
-		SortOrder:       body.SortOrder,
-		ChartMode:       defaultElementChartMode(body.ChartMode),
-		ChartRange:      body.ChartRange,
+		CurrentUserID:           userID,
+		ProjectRef:              httpx.Path(r, "ref"),
+		PageID:                  httpx.Path(r, "page_id"),
+		ElementID:               httpx.Path(r, "element_id"),
+		ParentElementID:         body.ParentElementID,
+		Kind:                    body.Kind,
+		CheckID:                 body.CheckID,
+		AssignmentSelectionMode: body.AssignmentSelectionMode,
+		AssignmentIDs:           body.AssignmentIDs,
+		Title:                   body.Title,
+		Description:             body.Description,
+		SortOrder:               body.SortOrder,
+		ChartMode:               defaultElementChartMode(body.ChartMode),
+		ChartRange:              body.ChartRange,
 	})
 	if err != nil {
 		httpx.WriteProblem(w, r, mapPublicStatusError(err, "update public status page element failed"))

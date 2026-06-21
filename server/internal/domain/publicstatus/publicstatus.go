@@ -37,8 +37,15 @@ const (
 type ElementKind string
 
 const (
-	ElementKindFolder ElementKind = "folder"
-	ElementKindCheck  ElementKind = "check"
+	ElementKindFolder          ElementKind = "folder"
+	ElementKindAssignmentGroup ElementKind = "assignment_group"
+)
+
+type AssignmentSelectionMode string
+
+const (
+	AssignmentSelectionModeAllCheck            AssignmentSelectionMode = "all_check"
+	AssignmentSelectionModeSelectedAssignments AssignmentSelectionMode = "selected_assignments"
 )
 
 type Status string
@@ -66,29 +73,35 @@ type Page struct {
 }
 
 type Element struct {
-	ID                   string
-	PublicPageID         string
-	ProjectID            string
-	ParentElementID      *string
-	Kind                 ElementKind
-	CheckID              *string
-	Title                *string
-	Description          *string
-	SortOrder            int32
-	ChartMode            ChartMode
-	ChartRange           *ChartRange
-	CreatedAt            time.Time
-	UpdatedAt            time.Time
-	CheckName            *string
-	CheckType            *domaincheck.Type
-	CheckTarget          *string
-	CheckDescription     *string
-	CheckIntervalSeconds *int32
+	ID                      string
+	PublicPageID            string
+	ProjectID               string
+	ParentElementID         *string
+	Kind                    ElementKind
+	CheckID                 *string
+	AssignmentSelectionMode *AssignmentSelectionMode
+	AssignmentIDs           []string
+	Title                   *string
+	Description             *string
+	SortOrder               int32
+	ChartMode               ChartMode
+	ChartRange              *ChartRange
+	CreatedAt               time.Time
+	UpdatedAt               time.Time
+	CheckName               *string
+	CheckType               *domaincheck.Type
+	CheckTarget             *string
+	CheckDescription        *string
+	CheckIntervalSeconds    *int32
 }
 
 type Assignment struct {
+	ElementID         string
+	AssignmentID      string
 	CheckID           string
+	CheckName         string
 	CheckType         domaincheck.Type
+	CheckTarget       string
 	IntervalSeconds   int32
 	ProbeID           string
 	ProbeName         string
@@ -105,6 +118,7 @@ type Incident struct {
 	ID              string
 	CheckID         string
 	CheckName       string
+	ProbeID         *string
 	Status          string
 	Severity        string
 	OpenedAt        time.Time
@@ -137,6 +151,7 @@ type RenderedElement struct {
 	StaleAssignments      int32
 	Metrics               *Metrics
 	Chart                 *Chart
+	Assignments           []Assignment
 }
 
 type Metrics struct {
@@ -169,6 +184,10 @@ func VNPageID(pageID string) (string, error) {
 
 func VNElementID(elementID string) (string, error) {
 	return vnUUID(elementID)
+}
+
+func VNAssignmentID(assignmentID string) (string, error) {
+	return vnUUID(assignmentID)
 }
 
 func VNSlug(slug string) (string, error) {
@@ -236,10 +255,20 @@ func VNChartRange(chartRange ChartRange) (ChartRange, error) {
 func VNElementKind(kind ElementKind) (ElementKind, error) {
 	kind = ElementKind(strings.TrimSpace(string(kind)))
 	switch kind {
-	case ElementKindFolder, ElementKindCheck:
+	case ElementKindFolder, ElementKindAssignmentGroup:
 		return kind, nil
 	default:
 		return "", errors.New("invalid element kind")
+	}
+}
+
+func VNAssignmentSelectionMode(mode AssignmentSelectionMode) (AssignmentSelectionMode, error) {
+	mode = AssignmentSelectionMode(strings.TrimSpace(string(mode)))
+	switch mode {
+	case AssignmentSelectionModeAllCheck, AssignmentSelectionModeSelectedAssignments:
+		return mode, nil
+	default:
+		return "", errors.New("invalid assignment selection mode")
 	}
 }
 
