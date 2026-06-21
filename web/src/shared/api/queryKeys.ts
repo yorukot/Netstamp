@@ -8,6 +8,11 @@ export const apiQueryKeys = {
 		all: ["auth"] as const,
 		me: () => [...apiQueryKeys.auth.all, "me"] as const
 	},
+	publicStatus: {
+		all: ["public-status"] as const,
+		detailRoot: (slug: string) => [...apiQueryKeys.publicStatus.all, "detail", slug] as const,
+		detail: (slug: string, filters: object = {}) => [...apiQueryKeys.publicStatus.detailRoot(slug), filters] as const
+	},
 	projects: {
 		all: ["projects"] as const,
 		list: () => [...apiQueryKeys.projects.all, "list"] as const,
@@ -19,6 +24,9 @@ export const apiQueryKeys = {
 		alertIncidents: (ref: string, filters: object = {}) => [...apiQueryKeys.projects.alertsRoot(ref), "incidents", filters] as const,
 		alertIncidentDetail: (ref: string, incidentId: string) => [...apiQueryKeys.projects.alertsRoot(ref), "incident", incidentId] as const,
 		notifications: (ref: string) => [...apiQueryKeys.projects.alertsRoot(ref), "notifications"] as const,
+		statusPagesRoot: (ref: string) => [...apiQueryKeys.projects.detail(ref), "status-pages"] as const,
+		statusPages: (ref: string) => [...apiQueryKeys.projects.statusPagesRoot(ref), "list"] as const,
+		statusPageDetail: (ref: string, pageId: string) => [...apiQueryKeys.projects.statusPagesRoot(ref), "detail", pageId] as const,
 		checks: (ref: string) => [...apiQueryKeys.projects.detail(ref), "checks"] as const,
 		checkDetail: (ref: string, checkId: string) => [...apiQueryKeys.projects.checks(ref), checkId] as const,
 		labels: (ref: string) => [...apiQueryKeys.projects.detail(ref), "labels"] as const,

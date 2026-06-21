@@ -7,3 +7,4 @@ export * from "./members";
 export * from "./probes";
 export * from "./projects";
 export type { AppMutationOptions } from "./shared";
+export * from "./statusPages";

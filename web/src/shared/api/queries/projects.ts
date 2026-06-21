@@ -9,6 +9,7 @@ import type {
 	PingSeriesFilters,
 	PingSeriesResponse,
 	ProjectAssignmentFilters,
+	PublicStatusFilters,
 	TcpInsightFilters,
 	TcpSeriesFilters,
 	TcpSeriesResponse,
@@ -73,6 +74,18 @@ export const projectQueries = {
 		queryOptions({
 			queryKey: apiQueryKeys.projects.notifications(ref),
 			queryFn: ({ signal }) => readApiData(apiClient.GET("/projects/{ref}/alerts/notifications", { params: { path: { ref } }, signal })),
+			staleTime: 30 * 1000
+		}),
+	statusPages: (ref: string) =>
+		queryOptions({
+			queryKey: apiQueryKeys.projects.statusPages(ref),
+			queryFn: ({ signal }) => readApiData(apiClient.GET("/projects/{ref}/status-pages", { params: { path: { ref } }, signal })),
+			staleTime: 30 * 1000
+		}),
+	statusPageDetail: (ref: string, pageId: string) =>
+		queryOptions({
+			queryKey: apiQueryKeys.projects.statusPageDetail(ref, pageId),
+			queryFn: ({ signal }) => readApiData(apiClient.GET("/projects/{ref}/status-pages/{page_id}", { params: { path: { ref, page_id: pageId } }, signal })),
 			staleTime: 30 * 1000
 		}),
 	labels: (ref: string) =>
@@ -199,6 +212,22 @@ export const projectQueries = {
 						signal
 					})
 				),
+			staleTime: 30 * 1000
+		})
+};
+
+export const publicStatusQueries = {
+	detail: (slug: string, filters: PublicStatusFilters = {}) =>
+		queryOptions({
+			queryKey: apiQueryKeys.publicStatus.detail(slug, filters),
+			queryFn: ({ signal }) =>
+				readApiData(
+					apiClient.GET("/public/status-pages/{slug}", {
+						params: { path: { slug }, query: filters },
+						signal
+					})
+				),
+			retry: false,
 			staleTime: 30 * 1000
 		})
 };

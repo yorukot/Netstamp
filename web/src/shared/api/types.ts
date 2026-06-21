@@ -11,6 +11,17 @@ export type ApiProbe = components["schemas"]["Probe"];
 export type ApiProject = components["schemas"]["Project"];
 export type ApiProjectAssignment = components["schemas"]["ProjectAssignment"];
 export type ApiProjectInvite = components["schemas"]["ProjectInvite"];
+export type ApiPublicStatusElement = components["schemas"]["PublicStatusElement"];
+export type ApiPublicStatusPage = components["schemas"]["PublicStatusPage"];
+export type ApiPublicStatusPublicElement = Omit<components["schemas"]["PublicStatusPublicElement"], "chart" | "children"> & {
+	chart?: Omit<components["schemas"]["PublicStatusChart"], "series"> & {
+		series: ApiSeries[];
+	};
+	children?: ApiPublicStatusPublicElement[];
+};
+export type ApiPublicStatusPublicResponse = Omit<components["schemas"]["PublicStatusPublicResponse"], "elements"> & {
+	elements: ApiPublicStatusPublicElement[];
+};
 export type ApiSelector = components["schemas"]["Selector"];
 export type CreateAlertRuleInput = components["schemas"]["CreateAlertRuleRequest"];
 export type ChangeCurrentUserEmailInput = components["schemas"]["ChangeCurrentUserEmailRequest"];
@@ -21,6 +32,8 @@ export type CreateNotificationInput = components["schemas"]["CreateNotificationR
 export type CreateProbeInput = components["schemas"]["CreateProbeRequest"];
 export type CreateProjectInviteInput = components["schemas"]["CreateProjectInviteRequest"];
 export type CreateProjectInput = components["schemas"]["CreateProjectRequest"];
+export type CreatePublicStatusElementInput = components["schemas"]["CreatePublicStatusElementRequest"];
+export type CreatePublicStatusPageInput = components["schemas"]["CreatePublicStatusPageRequest"];
 export type LoginInput = components["schemas"]["LoginUserRequest"];
 export type LatestResultType = components["parameters"]["LatestResultsQuery.type"];
 export type PingInsightResponse = components["schemas"]["PingInsightResponse"];
@@ -53,7 +66,15 @@ export type UpdateLabelInput = components["schemas"]["UpdateLabelRequest"];
 export type UpdateNotificationInput = components["schemas"]["UpdateNotificationRequest"];
 export type UpdateProbeInput = components["schemas"]["UpdateProbeRequest"];
 export type UpdateProjectInput = components["schemas"]["UpdateProjectRequest"];
+export type UpdatePublicStatusElementInput = components["schemas"]["UpdatePublicStatusElementRequest"];
+export type UpdatePublicStatusPageInput = components["schemas"]["UpdatePublicStatusPageRequest"];
 export type UserResponse = components["schemas"]["User"];
+
+export type PublicStatusChartMode = ApiPublicStatusPage["defaultChartMode"];
+export type PublicStatusChartRange = ApiPublicStatusPage["defaultChartRange"];
+export type PublicStatusElementChartMode = ApiPublicStatusElement["chartMode"];
+export type PublicStatusElementKind = ApiPublicStatusElement["kind"];
+export type PublicStatusState = components["schemas"]["PublicStatusPageSummary"]["status"];
 
 export interface ProjectAssignmentFilters {
 	probeId?: string;
@@ -121,4 +142,9 @@ export interface TracerouteTopologyFilters {
 	from?: number;
 	to?: number;
 	limit?: number;
+}
+
+export interface PublicStatusFilters {
+	includeCharts?: boolean;
+	range?: PublicStatusChartRange;
 }
