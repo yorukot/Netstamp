@@ -1,0 +1,669 @@
+package publicstatus
+
+import (
+	"context"
+	"sort"
+	"time"
+
+	"github.com/yorukot/netstamp/internal/controller/application/pingquery"
+	"github.com/yorukot/netstamp/internal/controller/application/tcpquery"
+	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
+	domainping "github.com/yorukot/netstamp/internal/domain/ping"
+	domainproject "github.com/yorukot/netstamp/internal/domain/project"
+	domainpublic "github.com/yorukot/netstamp/internal/domain/publicstatus"
+	domaintcp "github.com/yorukot/netstamp/internal/domain/tcp"
+)
+
+const (
+	defaultIncidentLimit int32 = 50
+	publicMaxDataPoints  int32 = 600
+)
+
+type Service struct {
+	repo          Repository
+	projectAccess ProjectAccess
+	pings         PingSeriesRepository
+	tcps          TCPSeriesRepository
+}
+
+func NewService(repo Repository, projectAccess ProjectAccess, pings PingSeriesRepository, tcps TCPSeriesRepository) *Service {
+	return &Service{repo: repo, projectAccess: projectAccess, pings: pings, tcps: tcps}
+}
+
+func (s *Service) ListPages(ctx context.Context, input ListPagesInput) ([]domainpublic.Page, error) {
+	project, err := s.loadProject(ctx, input.ProjectRef, input.CurrentUserID)
+	if err != nil {
+		return nil, err
+	}
+	return s.repo.ListPages(ctx, project.ID)
+}
+
+func (s *Service) GetPage(ctx context.Context, input GetPageInput) (PageDetail, error) {
+	project, err := s.loadProject(ctx, input.ProjectRef, input.CurrentUserID)
+	if err != nil {
+		return PageDetail{}, err
+	}
+	pageID, err := domainpublic.VNPageID(input.PageID)
+	if err != nil {
+		return PageDetail{}, invalidField("pageId", err.Error(), input.PageID)
+	}
+	page, err := s.repo.GetPage(ctx, project.ID, pageID)
+	if err != nil {
+		return PageDetail{}, err
+	}
+	elements, err := s.repo.ListElements(ctx, page.ID)
+	if err != nil {
+		return PageDetail{}, err
+	}
+	return PageDetail{Page: page, Elements: elements}, nil
+}
+
+func (s *Service) CreatePage(ctx context.Context, input CreatePageInput) (domainpublic.Page, error) {
+	project, err := s.loadProject(ctx, input.ProjectRef, input.CurrentUserID)
+	if err != nil {
+		return domainpublic.Page{}, err
+	}
+	if err := s.requireProjectWrite(ctx, project.ID, input.CurrentUserID); err != nil {
+		return domainpublic.Page{}, err
+	}
+	page, err := normalizeCreatePageInput(project.ID, input)
+	if err != nil {
+		return domainpublic.Page{}, err
+	}
+	return s.repo.CreatePage(ctx, page)
+}
+
+func (s *Service) UpdatePage(ctx context.Context, input UpdatePageInput) (domainpublic.Page, error) {
+	project, err := s.loadProject(ctx, input.ProjectRef, input.CurrentUserID)
+	if err != nil {
+		return domainpublic.Page{}, err
+	}
+	if err := s.requireProjectWrite(ctx, project.ID, input.CurrentUserID); err != nil {
+		return domainpublic.Page{}, err
+	}
+	page, err := normalizeUpdatePageInput(project.ID, input)
+	if err != nil {
+		return domainpublic.Page{}, err
+	}
+	return s.repo.UpdatePage(ctx, page)
+}
+
+func (s *Service) DeletePage(ctx context.Context, input DeletePageInput) error {
+	project, err := s.loadProject(ctx, input.ProjectRef, input.CurrentUserID)
+	if err != nil {
+		return err
+	}
+	if err := s.requireProjectWrite(ctx, project.ID, input.CurrentUserID); err != nil {
+		return err
+	}
+	pageID, err := domainpublic.VNPageID(input.PageID)
+	if err != nil {
+		return invalidField("pageId", err.Error(), input.PageID)
+	}
+	return s.repo.DeletePage(ctx, project.ID, pageID)
+}
+
+func (s *Service) CreateElement(ctx context.Context, input CreateElementInput) (domainpublic.Element, error) {
+	project, err := s.loadProject(ctx, input.ProjectRef, input.CurrentUserID)
+	if err != nil {
+		return domainpublic.Element{}, err
+	}
+	if err := s.requireProjectWrite(ctx, project.ID, input.CurrentUserID); err != nil {
+		return domainpublic.Element{}, err
+	}
+	element, err := normalizeCreateElementInput(project.ID, input.PageID, input)
+	if err != nil {
+		return domainpublic.Element{}, err
+	}
+	if err := s.validateElementReferences(ctx, element); err != nil {
+		return domainpublic.Element{}, err
+	}
+	return s.repo.CreateElement(ctx, element)
+}
+
+func (s *Service) UpdateElement(ctx context.Context, input UpdateElementInput) (domainpublic.Element, error) {
+	project, err := s.loadProject(ctx, input.ProjectRef, input.CurrentUserID)
+	if err != nil {
+		return domainpublic.Element{}, err
+	}
+	if err := s.requireProjectWrite(ctx, project.ID, input.CurrentUserID); err != nil {
+		return domainpublic.Element{}, err
+	}
+	element, err := normalizeUpdateElementInput(project.ID, input.PageID, input)
+	if err != nil {
+		return domainpublic.Element{}, err
+	}
+	if err := s.validateElementReferences(ctx, element); err != nil {
+		return domainpublic.Element{}, err
+	}
+	return s.repo.UpdateElement(ctx, element)
+}
+
+func (s *Service) DeleteElement(ctx context.Context, input DeleteElementInput) error {
+	project, err := s.loadProject(ctx, input.ProjectRef, input.CurrentUserID)
+	if err != nil {
+		return err
+	}
+	if err := s.requireProjectWrite(ctx, project.ID, input.CurrentUserID); err != nil {
+		return err
+	}
+	pageID, err := domainpublic.VNPageID(input.PageID)
+	if err != nil {
+		return invalidField("pageId", err.Error(), input.PageID)
+	}
+	elementID, err := domainpublic.VNElementID(input.ElementID)
+	if err != nil {
+		return invalidField("elementId", err.Error(), input.ElementID)
+	}
+	return s.repo.DeleteElement(ctx, project.ID, pageID, elementID)
+}
+
+func (s *Service) GetPublicPage(ctx context.Context, input PublicPageInput) (domainpublic.RenderedPage, error) {
+	slug, err := domainpublic.VNSlug(input.Slug)
+	if err != nil {
+		return domainpublic.RenderedPage{}, invalidField("slug", err.Error(), input.Slug)
+	}
+	now := input.Now.UTC()
+	if now.IsZero() {
+		now = time.Now().UTC()
+	}
+	page, err := s.repo.GetPageBySlug(ctx, slug)
+	if err != nil {
+		return domainpublic.RenderedPage{}, err
+	}
+	elements, err := s.repo.ListElements(ctx, page.ID)
+	if err != nil {
+		return domainpublic.RenderedPage{}, err
+	}
+	assignments, err := s.repo.ListAssignments(ctx, page.ID)
+	if err != nil {
+		return domainpublic.RenderedPage{}, err
+	}
+	incidents, err := s.repo.ListIncidents(ctx, page.ID, defaultIncidentLimit)
+	if err != nil {
+		return domainpublic.RenderedPage{}, err
+	}
+
+	activeIncidents, resolvedIncidents := splitIncidents(incidents)
+	assignmentsByCheck := groupAssignments(assignments)
+	activeSeverityByCheck := activeIncidentSeverity(activeIncidents)
+	chartRangeOverride := input.Range
+	root := s.renderElements(ctx, page, elements, assignmentsByCheck, activeSeverityByCheck, now, input.IncludeCharts, chartRangeOverride)
+	status := rollupStatus(root)
+
+	return domainpublic.RenderedPage{
+		Page:              page,
+		Status:            status,
+		Elements:          root,
+		ActiveIncidents:   activeIncidents,
+		ResolvedIncidents: resolvedIncidents,
+		GeneratedAt:       now,
+	}, nil
+}
+
+func (s *Service) validateElementReferences(ctx context.Context, element domainpublic.Element) error {
+	if _, err := s.repo.GetPage(ctx, element.ProjectID, element.PublicPageID); err != nil {
+		return err
+	}
+	if element.ID != "" {
+		current, err := s.repo.GetElement(ctx, element.ProjectID, element.PublicPageID, element.ID)
+		if err != nil {
+			return err
+		}
+		if current.Kind != element.Kind {
+			return invalidField("kind", "element kind cannot be changed", element.Kind)
+		}
+	}
+	if element.ParentElementID != nil {
+		parent, err := s.repo.GetElement(ctx, element.ProjectID, element.PublicPageID, *element.ParentElementID)
+		if err != nil {
+			return err
+		}
+		if err := validateParent(parent, element.ID); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *Service) loadProject(ctx context.Context, projectRef, userID string) (domainproject.Project, error) {
+	return s.projectAccess.GetProjectForUser(ctx, projectRef, userID)
+}
+
+func (s *Service) requireProjectWrite(ctx context.Context, projectID, userID string) error {
+	role, err := s.projectAccess.GetMemberRole(ctx, projectID, userID)
+	if err != nil {
+		return err
+	}
+	if !domainproject.Can(role, domainproject.ActionUpdateProject) {
+		return ErrForbidden
+	}
+	return nil
+}
+
+func groupAssignments(assignments []domainpublic.Assignment) map[string][]domainpublic.Assignment {
+	values := make(map[string][]domainpublic.Assignment)
+	for _, assignment := range assignments {
+		values[assignment.CheckID] = append(values[assignment.CheckID], assignment)
+	}
+	return values
+}
+
+func splitIncidents(incidents []domainpublic.Incident) ([]domainpublic.Incident, []domainpublic.Incident) {
+	active := make([]domainpublic.Incident, 0)
+	resolved := make([]domainpublic.Incident, 0)
+	for _, incident := range incidents {
+		switch incident.Status {
+		case "open", "acknowledged":
+			active = append(active, incident)
+		case "resolved":
+			resolved = append(resolved, incident)
+		}
+	}
+	return active, resolved
+}
+
+func activeIncidentSeverity(incidents []domainpublic.Incident) map[string]string {
+	values := make(map[string]string)
+	for _, incident := range incidents {
+		if incident.Severity == "critical" {
+			values[incident.CheckID] = incident.Severity
+			continue
+		}
+		if _, exists := values[incident.CheckID]; !exists {
+			values[incident.CheckID] = incident.Severity
+		}
+	}
+	return values
+}
+
+func (s *Service) renderElements(
+	ctx context.Context,
+	page domainpublic.Page,
+	elements []domainpublic.Element,
+	assignmentsByCheck map[string][]domainpublic.Assignment,
+	activeSeverityByCheck map[string]string,
+	now time.Time,
+	includeCharts bool,
+	chartRangeOverride *domainpublic.ChartRange,
+) []domainpublic.RenderedElement {
+	childrenByParent := make(map[string][]domainpublic.Element)
+	root := make([]domainpublic.Element, 0)
+	for _, element := range elements {
+		if element.ParentElementID == nil {
+			root = append(root, element)
+			continue
+		}
+		childrenByParent[*element.ParentElementID] = append(childrenByParent[*element.ParentElementID], element)
+	}
+	sortElements(root)
+	return s.renderElementList(ctx, page, root, childrenByParent, assignmentsByCheck, activeSeverityByCheck, now, includeCharts, chartRangeOverride, page.DefaultChartMode, page.DefaultChartRange)
+}
+
+func (s *Service) renderElementList(
+	ctx context.Context,
+	page domainpublic.Page,
+	elements []domainpublic.Element,
+	childrenByParent map[string][]domainpublic.Element,
+	assignmentsByCheck map[string][]domainpublic.Assignment,
+	activeSeverityByCheck map[string]string,
+	now time.Time,
+	includeCharts bool,
+	chartRangeOverride *domainpublic.ChartRange,
+	parentChartMode domainpublic.ChartMode,
+	parentChartRange domainpublic.ChartRange,
+) []domainpublic.RenderedElement {
+	rendered := make([]domainpublic.RenderedElement, 0, len(elements))
+	for _, element := range elements {
+		mode := resolveChartMode(parentChartMode, element.ChartMode)
+		chartRange := resolveChartRange(parentChartRange, element.ChartRange)
+		if chartRangeOverride != nil {
+			chartRange = *chartRangeOverride
+		}
+		item := domainpublic.RenderedElement{
+			Element:            element,
+			ResolvedChartMode:  mode,
+			ResolvedChartRange: chartRange,
+		}
+		if element.Kind == domainpublic.ElementKindFolder {
+			children := childrenByParent[element.ID]
+			sortElements(children)
+			item.Children = s.renderElementList(ctx, page, children, childrenByParent, assignmentsByCheck, activeSeverityByCheck, now, includeCharts, chartRangeOverride, mode, chartRange)
+			item.Status = rollupStatus(item.Children)
+			rendered = append(rendered, item)
+			continue
+		}
+		if element.CheckID != nil {
+			checkAssignments := assignmentsByCheck[*element.CheckID]
+			summary := checkStatusSummary(checkAssignments, activeSeverityByCheck[*element.CheckID], now)
+			item.Status = summary.status
+			item.LatestStartedAt = summary.latestStartedAt
+			item.LatestStatus = summary.latestStatus
+			item.AssignmentCount = summary.assignmentCount
+			item.SuccessfulAssignments = summary.successfulAssignments
+			item.FailingAssignments = summary.failingAssignments
+			item.StaleAssignments = summary.staleAssignments
+			item.Metrics = summary.metrics
+			if includeCharts && mode == domainpublic.ChartModeCompact {
+				item.Chart = s.chartForElement(ctx, page, element, checkAssignments, chartRange, now)
+			}
+		}
+		if item.Status == "" {
+			item.Status = domainpublic.StatusUnknown
+		}
+		rendered = append(rendered, item)
+	}
+	return rendered
+}
+
+func sortElements(elements []domainpublic.Element) {
+	sort.SliceStable(elements, func(i, j int) bool {
+		if elements[i].SortOrder != elements[j].SortOrder {
+			return elements[i].SortOrder < elements[j].SortOrder
+		}
+		if !elements[i].CreatedAt.Equal(elements[j].CreatedAt) {
+			return elements[i].CreatedAt.Before(elements[j].CreatedAt)
+		}
+		return elements[i].ID < elements[j].ID
+	})
+}
+
+func resolveChartMode(parentMode, currentMode domainpublic.ChartMode) domainpublic.ChartMode {
+	if currentMode == domainpublic.ChartModeInherit {
+		return parentMode
+	}
+	return currentMode
+}
+
+func resolveChartRange(parentRange domainpublic.ChartRange, currentRange *domainpublic.ChartRange) domainpublic.ChartRange {
+	if currentRange == nil {
+		return parentRange
+	}
+	return *currentRange
+}
+
+type statusSummary struct {
+	status                domainpublic.Status
+	latestStartedAt       *time.Time
+	latestStatus          *string
+	assignmentCount       int32
+	successfulAssignments int32
+	failingAssignments    int32
+	staleAssignments      int32
+	metrics               *domainpublic.Metrics
+}
+
+func checkStatusSummary(assignments []domainpublic.Assignment, activeSeverity string, now time.Time) statusSummary {
+	summary := statusSummary{assignmentCount: int32(len(assignments))}
+	if len(assignments) == 0 {
+		summary.status = domainpublic.StatusUnknown
+		return summary
+	}
+
+	var nonStale int32
+	var partial bool
+	metric := metricAccumulator{}
+	for _, assignment := range assignments {
+		if assignment.LatestStatus == "" || assignment.LatestStartedAt.Before(now.Add(-time.Duration(assignment.IntervalSeconds)*3*time.Second)) {
+			summary.staleAssignments++
+			continue
+		}
+		nonStale++
+		if summary.latestStartedAt == nil || assignment.LatestStartedAt.After(*summary.latestStartedAt) {
+			startedAt := assignment.LatestStartedAt
+			status := assignment.LatestStatus
+			summary.latestStartedAt = &startedAt
+			summary.latestStatus = &status
+		}
+		metric.add(assignment)
+		switch assignment.LatestStatus {
+		case "successful":
+			summary.successfulAssignments++
+		case "partial":
+			partial = true
+			summary.failingAssignments++
+		default:
+			summary.failingAssignments++
+		}
+	}
+	summary.metrics = metric.metrics()
+
+	switch {
+	case activeSeverity == "critical":
+		summary.status = domainpublic.StatusDown
+	case activeSeverity == "warning" || activeSeverity == "info":
+		summary.status = domainpublic.StatusDegraded
+	case nonStale == 0:
+		summary.status = domainpublic.StatusUnknown
+	case summary.failingAssignments == 0:
+		summary.status = domainpublic.StatusOperational
+	case summary.failingAssignments == nonStale && !partial:
+		summary.status = domainpublic.StatusDown
+	default:
+		summary.status = domainpublic.StatusDegraded
+	}
+	return summary
+}
+
+type metricAccumulator struct {
+	latencySum float64
+	latencyN   int
+	lossSum    float64
+	lossN      int
+	connectSum float64
+	connectN   int
+	failureSum float64
+	failureN   int
+}
+
+func (m *metricAccumulator) add(assignment domainpublic.Assignment) {
+	if assignment.LatencyAvgMs != nil {
+		m.latencySum += *assignment.LatencyAvgMs
+		m.latencyN++
+	}
+	m.lossSum += assignment.LossPercent
+	m.lossN++
+	if assignment.ConnectAvgMs != nil {
+		m.connectSum += *assignment.ConnectAvgMs
+		m.connectN++
+	}
+	if assignment.FailurePercent != nil {
+		m.failureSum += *assignment.FailurePercent
+		m.failureN++
+	}
+}
+
+func (m metricAccumulator) metrics() *domainpublic.Metrics {
+	metrics := domainpublic.Metrics{
+		LatencyAvgMs:   average(m.latencySum, m.latencyN),
+		LossPercent:    average(m.lossSum, m.lossN),
+		ConnectAvgMs:   average(m.connectSum, m.connectN),
+		FailurePercent: average(m.failureSum, m.failureN),
+	}
+	if metrics.LatencyAvgMs == nil && metrics.LossPercent == nil && metrics.ConnectAvgMs == nil && metrics.FailurePercent == nil {
+		return nil
+	}
+	return &metrics
+}
+
+func average(sum float64, count int) *float64 {
+	if count == 0 {
+		return nil
+	}
+	value := sum / float64(count)
+	return &value
+}
+
+func rollupStatus(elements []domainpublic.RenderedElement) domainpublic.Status {
+	if len(elements) == 0 {
+		return domainpublic.StatusUnknown
+	}
+	allUnknown := true
+	status := domainpublic.StatusOperational
+	for _, element := range elements {
+		if element.Status == domainpublic.StatusDown {
+			return domainpublic.StatusDown
+		}
+		if element.Status != domainpublic.StatusUnknown {
+			allUnknown = false
+		}
+		if element.Status == domainpublic.StatusDegraded {
+			status = domainpublic.StatusDegraded
+		}
+	}
+	if allUnknown {
+		return domainpublic.StatusUnknown
+	}
+	return status
+}
+
+func (s *Service) chartForElement(ctx context.Context, page domainpublic.Page, element domainpublic.Element, assignments []domainpublic.Assignment, chartRange domainpublic.ChartRange, now time.Time) *domainpublic.Chart {
+	if element.CheckType == nil || element.CheckID == nil {
+		return nil
+	}
+	from := chartFrom(now, chartRange)
+	var series []domainpublic.Series
+	for _, assignment := range assignments {
+		switch *element.CheckType {
+		case domaincheck.TypePing:
+			series = append(series, s.pingChartSeries(ctx, page.ProjectID, assignment, *element.CheckID, from, now)...)
+		case domaincheck.TypeTCP:
+			series = append(series, s.tcpChartSeries(ctx, page.ProjectID, assignment, *element.CheckID, from, now)...)
+		}
+	}
+	if len(series) == 0 {
+		return nil
+	}
+	return &domainpublic.Chart{Range: chartRange, Series: series}
+}
+
+func chartFrom(now time.Time, chartRange domainpublic.ChartRange) time.Time {
+	switch chartRange {
+	case domainpublic.ChartRange30d:
+		return now.Add(-30 * 24 * time.Hour)
+	case domainpublic.ChartRange7d:
+		return now.Add(-7 * 24 * time.Hour)
+	default:
+		return now.Add(-24 * time.Hour)
+	}
+}
+
+func (s *Service) pingChartSeries(ctx context.Context, projectID string, assignment domainpublic.Assignment, checkID string, from, to time.Time) []domainpublic.Series {
+	if s.pings == nil {
+		return nil
+	}
+	rawPoints, err := s.pings.CountPingSeriesPoints(ctx, domainping.SeriesPointCountQuery{ProjectID: projectID, ProbeID: assignment.ProbeID, CheckID: checkID, From: from, To: to})
+	if err != nil {
+		return nil
+	}
+	plan := pingquery.SelectReadPlan(rawPoints, from, to, publicMaxDataPoints)
+	values, err := s.pings.ListPingSeries(ctx, domainping.SeriesReadQuery{
+		ProjectID:     projectID,
+		ProbeID:       assignment.ProbeID,
+		CheckID:       checkID,
+		From:          from,
+		To:            to,
+		Series:        []string{"latency_avg", "latency_min", "latency_max", "loss_percent"},
+		MaxDataPoints: publicMaxDataPoints,
+		Mode:          plan.Mode,
+	})
+	if err != nil {
+		return nil
+	}
+	return pingDomainSeries(values, assignment.ProbeName, checkID, map[string]string{
+		"latency_avg":  "ms",
+		"latency_min":  "ms",
+		"latency_max":  "ms",
+		"loss_percent": "percent",
+	})
+}
+
+func (s *Service) tcpChartSeries(ctx context.Context, projectID string, assignment domainpublic.Assignment, checkID string, from, to time.Time) []domainpublic.Series {
+	if s.tcps == nil {
+		return nil
+	}
+	rawPoints, err := s.tcps.CountTCPSeriesPoints(ctx, domaintcp.SeriesPointCountQuery{ProjectID: projectID, ProbeID: assignment.ProbeID, CheckID: checkID, From: from, To: to})
+	if err != nil {
+		return nil
+	}
+	plan := tcpquery.SelectReadPlan(rawPoints, from, to, publicMaxDataPoints)
+	values, err := s.tcps.ListTCPSeries(ctx, domaintcp.SeriesReadQuery{
+		ProjectID:     projectID,
+		ProbeID:       assignment.ProbeID,
+		CheckID:       checkID,
+		From:          from,
+		To:            to,
+		Series:        []string{"connect_avg", "connect_min", "connect_max", "failure_percent"},
+		MaxDataPoints: publicMaxDataPoints,
+		Mode:          plan.Mode,
+	})
+	if err != nil {
+		return nil
+	}
+	return tcpDomainSeries(values, assignment.ProbeName, checkID, map[string]string{
+		"connect_avg":     "ms",
+		"connect_min":     "ms",
+		"connect_max":     "ms",
+		"failure_percent": "percent",
+	})
+}
+
+func pingDomainSeries(values map[string]domainping.SeriesData, probeName, checkID string, units map[string]string) []domainpublic.Series {
+	keys := make([]string, 0, len(values))
+	for key := range values {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	series := make([]domainpublic.Series, 0, len(keys))
+	for _, key := range keys {
+		series = append(series, domainpublic.Series{
+			Name: key,
+			Labels: map[string]string{
+				"checkId":   checkID,
+				"checkType": "ping",
+				"probeName": probeName,
+			},
+			Unit:   units[key],
+			Points: pingSeriesPoints(values[key].Points),
+		})
+	}
+	return series
+}
+
+func tcpDomainSeries(values map[string]domaintcp.SeriesData, probeName, checkID string, units map[string]string) []domainpublic.Series {
+	keys := make([]string, 0, len(values))
+	for key := range values {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	series := make([]domainpublic.Series, 0, len(keys))
+	for _, key := range keys {
+		series = append(series, domainpublic.Series{
+			Name: key,
+			Labels: map[string]string{
+				"checkId":   checkID,
+				"checkType": "tcp",
+				"probeName": probeName,
+			},
+			Unit:   units[key],
+			Points: tcpSeriesPoints(values[key].Points),
+		})
+	}
+	return series
+}
+
+func pingSeriesPoints(points []domainping.SeriesPoint) []domainpublic.SeriesPoint {
+	values := make([]domainpublic.SeriesPoint, 0, len(points))
+	for _, point := range points {
+		values = append(values, domainpublic.SeriesPoint{TimestampMs: point.Timestamp.UTC().UnixMilli(), Value: point.Value})
+	}
+	return values
+}
+
+func tcpSeriesPoints(points []domaintcp.SeriesPoint) []domainpublic.SeriesPoint {
+	values := make([]domainpublic.SeriesPoint, 0, len(points))
+	for _, point := range points {
+		values = append(values, domainpublic.SeriesPoint{TimestampMs: point.Timestamp.UTC().UnixMilli(), Value: point.Value})
+	}
+	return values
+}
