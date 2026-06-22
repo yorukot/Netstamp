@@ -190,39 +190,13 @@ type resultGroupKey struct {
 }
 
 func pingResultBody(result domainping.Result) httpclient.PingResultBody {
-	return httpclient.PingResultBody{
-		StartedAt:     result.StartedAt,
-		FinishedAt:    result.FinishedAt,
-		DurationMs:    result.DurationMs,
-		Status:        result.Status,
-		SentCount:     result.SentCount,
-		ReceivedCount: result.ReceivedCount,
-		LossPercent:   result.LossPercent,
-		RttMinMs:      result.RttMinMs,
-		RttAvgMs:      result.RttAvgMs,
-		RttMedianMs:   result.RttMedianMs,
-		RttMaxMs:      result.RttMaxMs,
-		RttStddevMs:   result.RttStddevMs,
-		RttSamplesMs:  append([]float64(nil), result.RttSamplesMs...),
-		ResolvedIP:    result.ResolvedIP,
-		IPFamily:      result.IPFamily,
-		ErrorCode:     result.ErrorCode,
-		ErrorMessage:  result.ErrorMessage,
-	}
+	body := httpclient.PingResultBody(result)
+	body.RttSamplesMs = append([]float64(nil), result.RttSamplesMs...)
+	return body
 }
 
 func tcpResultBody(result domaintcp.Result) httpclient.TCPResultBody {
-	return httpclient.TCPResultBody{
-		StartedAt:         result.StartedAt,
-		FinishedAt:        result.FinishedAt,
-		DurationMs:        result.DurationMs,
-		Status:            result.Status,
-		ConnectDurationMs: result.ConnectDurationMs,
-		ResolvedIP:        result.ResolvedIP,
-		IPFamily:          result.IPFamily,
-		ErrorCode:         result.ErrorCode,
-		ErrorMessage:      result.ErrorMessage,
-	}
+	return httpclient.TCPResultBody(result)
 }
 
 func tracerouteResultBody(result domaintraceroute.Result) httpclient.TracerouteResultBody {
@@ -242,24 +216,11 @@ func tracerouteResultBody(result domaintraceroute.Result) httpclient.TracerouteR
 }
 
 func tracerouteHopBodies(hops []domaintraceroute.HopResult) []httpclient.TracerouteHopBody {
-	values := make([]httpclient.TracerouteHopBody, 0, len(hops))
-	for _, hop := range hops {
-		values = append(values, httpclient.TracerouteHopBody{
-			HopIndex:      hop.HopIndex,
-			Address:       hop.Address,
-			Hostname:      hop.Hostname,
-			SentCount:     hop.SentCount,
-			ReceivedCount: hop.ReceivedCount,
-			LossPercent:   hop.LossPercent,
-			RttMinMs:      hop.RttMinMs,
-			RttAvgMs:      hop.RttAvgMs,
-			RttMedianMs:   hop.RttMedianMs,
-			RttMaxMs:      hop.RttMaxMs,
-			RttStddevMs:   hop.RttStddevMs,
-			RttSamplesMs:  append([]float64(nil), hop.RttSamplesMs...),
-			ErrorCode:     hop.ErrorCode,
-			ErrorMessage:  hop.ErrorMessage,
-		})
+	values := make([]httpclient.TracerouteHopBody, len(hops))
+	for i, hop := range hops {
+		body := httpclient.TracerouteHopBody(hop)
+		body.RttSamplesMs = append([]float64(nil), hop.RttSamplesMs...)
+		values[i] = body
 	}
 	return values
 }
