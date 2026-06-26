@@ -343,7 +343,7 @@ Terminal blocks represent commands, snippets, logs, and responses.
 
 Navigation is quiet and precise.
 
-- Public homepage/docs navigation follows the Sui-style structure: a floating top bar over the page, not a sticky or fixed full-width strip. Logo stays on the left, primary nav buttons sit centered, and the right CTA is `Login`.
+- Public homepage/docs navigation follows the Sui-style structure: a fixed floating top bar over the page, not a sticky header and not a full-width strip attached to the viewport edge. Logo stays on the left, primary nav buttons sit centered, and the right CTA is `Login`.
 - Public floating nav background is `--ns-chrome-bg` (`#131518`) with `--ns-chrome-text` (`#ffffff`).
 - Authenticated web app navigation stays on the left, but the sidebar itself is a floating rail inside the app canvas rather than a full-height wall attached to the viewport edge.
 - Active items use orange leading marker or frame.
