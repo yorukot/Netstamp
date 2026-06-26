@@ -49,7 +49,7 @@ Use `--ns-*` tokens from `packages/ui/src/styles/tokens.css`. Do not create new 
 ### Typography Tokens
 
 - `--ns-font-sans`: `"TASAOrbiter", "TASA Orbiter", sans-serif`.
-- `--ns-font-display`: `"Arial Black", "TASAExplorer", "TASA Explorer", sans-serif`.
+- `--ns-font-display`: `"TASAExplorer", "TASA Explorer", sans-serif`.
 - `--ns-font-mono`: `"JetBrainsMono", "JetBrains Mono", monospace`.
 
 Usage:
@@ -343,7 +343,8 @@ Terminal blocks represent commands, snippets, logs, and responses.
 
 Navigation is quiet and precise.
 
-- Public homepage/docs navigation follows the Sui-style structure: a fixed floating top bar over the page, not a sticky header and not a full-width strip attached to the viewport edge. Logo stays on the left, primary nav buttons sit centered, and the right CTA is `Login`.
+- Public homepage/docs navigation follows the Sui-style structure: a fixed floating top bar over the page, not a sticky header and not a full-width strip attached to the viewport edge. Logo stays on the left, primary nav text links sit centered, and the right CTA is `Login`.
+- Public nav text links are plain text, not buttons: no border, no hover background, `#ffffff` text, `400` font weight, and hover/active changes text color only.
 - Public floating nav background is `--ns-chrome-bg` (`#131518`) with `--ns-chrome-text` (`#ffffff`).
 - Authenticated web app navigation stays on the left, but the sidebar itself is a floating rail inside the app canvas rather than a full-height wall attached to the viewport edge.
 - Active items use orange leading marker or frame.
