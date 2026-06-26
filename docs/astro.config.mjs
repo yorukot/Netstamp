@@ -1,4 +1,5 @@
 // @ts-check
+import { unified } from "@astrojs/markdown-remark";
 import mdx from "@astrojs/mdx";
 import react from "@astrojs/react";
 import { defineConfig } from "astro/config";
@@ -151,5 +152,8 @@ function remarkTerminalCodeBlocks() {
 export default defineConfig({
 	site,
 	output: "static",
-	integrations: [react(), mdx({ remarkPlugins: [remarkDirective, remarkCallouts, remarkTerminalCodeBlocks] })]
+	markdown: {
+		processor: unified({ remarkPlugins: [remarkDirective, remarkCallouts, remarkTerminalCodeBlocks] })
+	},
+	integrations: [react(), mdx()]
 });
