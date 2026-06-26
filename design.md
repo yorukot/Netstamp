@@ -15,7 +15,7 @@ Primary implementation files:
 - `docs/src/layouts/DocLayout.astro`: documentation shell, prose, doc hero, callouts, cards, pager, and TOC.
 - `docs/src/components/docs`: top navigation, search, and docs-local controls.
 - `docs/src/components/landing`: public homepage.
-- `docs/src/components/openapi`: API reference and request console.
+- `docs/src/pages/openapi.astro`: Scalar-powered API reference and request console, themed through Netstamp tokens.
 
 ## 1. Design Thesis
 
@@ -226,13 +226,14 @@ Docs should feel like a design-system/spec site for Netstamp.
 
 ### OpenAPI Explorer
 
-The API explorer is a dense controller and reference manual.
+The API explorer is a dense controller and reference manual. The public `/openapi/` page should use `@scalar/astro` rather than a repo-local OpenAPI parser/request console, with Scalar customization mapped back to `--ns-*` tokens.
 
-- Three-column desktop layout: endpoint sidebar, operation reference, sticky request console.
+- Desktop layout: endpoint sidebar, operation reference, and Scalar API client/request panel when available.
 - Method labels are stateful and legible.
 - Paths and examples use mono.
 - Parameter, body, and response details use compact structured rows.
-- Request console uses tokenized fields, cURL preview, and response panel.
+- Request console uses Scalar's API client with tokenized fields, cURL preview, and response panel.
+- Scalar theme overrides must use Netstamp fonts, square frames, flat surfaces, orange primary accents, blue secondary links/data, and matching light/dark token colors.
 - It should feel like part of the same docs system, not a separate app.
 
 ### Storybook
@@ -382,8 +383,7 @@ Breakpoints:
 - Web app sidebar collapses around `58rem`.
 - Web app single-column shell below `38rem`.
 - Docs sidebars collapse below about `68rem`.
-- API explorer console drops below content below about `86rem`.
-- API explorer becomes one column below about `64rem`.
+- API explorer follows Scalar responsive behavior, with Netstamp page chrome keeping the reference clear below fixed top navigation on desktop and mobile.
 
 Rules:
 

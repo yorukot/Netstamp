@@ -1,5 +1,5 @@
 ---
-import OpenAPIExplorer from "../components/openapi/OpenAPIExplorer";
+import { ScalarComponent } from "@scalar/astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { absoluteUrl, createApiReferenceSchema, createBreadcrumbSchema, resolveSiteUrl } from "../lib/seo";
 
@@ -14,10 +14,243 @@ const schema = [
 	]),
 	createApiReferenceSchema(siteUrl, pageUrl, title, description)
 ];
+const scalarApiReferenceVersion = "1.62.0";
+const scalarCustomCss = String.raw`
+.scalar-app,
+.scalar-api-reference,
+.scalar-api-references-standalone-mobile,
+.references-layout,
+.light-mode,
+.dark-mode {
+	--scalar-font: var(--ns-font-sans);
+	--scalar-font-code: var(--ns-font-mono);
+	--scalar-font-normal: 400;
+	--scalar-font-medium: 650;
+	--scalar-font-bold: 800;
+	--scalar-background-1: var(--ns-bg);
+	--scalar-background-2: var(--ns-surface);
+	--scalar-background-3: var(--ns-bg-subtle);
+	--scalar-background-4: var(--ns-surface-deep);
+	--scalar-background-card: var(--ns-surface);
+	--scalar-background-accent: var(--ns-primary-muted);
+	--scalar-background-alert: var(--ns-secondary-muted);
+	--scalar-background-danger: color-mix(in srgb, var(--ns-critical) 11%, transparent);
+	--scalar-color-1: var(--ns-text);
+	--scalar-color-2: var(--ns-text-muted);
+	--scalar-color-3: var(--ns-text-subtle);
+	--scalar-color-disabled: var(--ns-text-low);
+	--scalar-color-accent: var(--ns-primary);
+	--scalar-color-alert: var(--ns-secondary);
+	--scalar-color-danger: var(--ns-critical);
+	--scalar-color-green: var(--ns-success);
+	--scalar-color-yellow: var(--ns-warning);
+	--scalar-color-orange: var(--ns-primary);
+	--scalar-color-red: var(--ns-critical);
+	--scalar-color-blue: var(--ns-secondary);
+	--scalar-color-purple: var(--ns-metal);
+	--scalar-border-color: var(--ns-border);
+	--scalar-border-width: 1px;
+	--scalar-radius: 0;
+	--scalar-radius-lg: 0;
+	--scalar-radius-xl: 0;
+	--scalar-shadow-1: none;
+	--scalar-shadow-2: none;
+	--scalar-button-1: var(--ns-primary);
+	--scalar-button-1-hover: var(--ns-primary-hover);
+	--scalar-button-1-color: var(--ns-text-on-accent);
+	--scalar-link-color: var(--ns-secondary);
+	--scalar-link-color-hover: var(--ns-secondary-hover);
+	--scalar-link-color-visited: var(--ns-secondary-active);
+	--scalar-text-decoration: none;
+	--scalar-text-decoration-hover: none;
+	--scalar-scrollbar-color: var(--ns-border-strong);
+	--scalar-scrollbar-color-active: var(--ns-primary);
+	--scalar-header-background-1: var(--ns-bg);
+	--scalar-header-background-2: var(--ns-surface);
+	--scalar-header-border-color: var(--ns-border);
+	--scalar-header-color-1: var(--ns-text);
+	--scalar-header-color-2: var(--ns-text-subtle);
+	--scalar-header-height: 0px;
+	--scalar-custom-header-height: 5.75rem;
+	--scalar-sidebar-background-1: var(--ns-bg-subtle);
+	--scalar-sidebar-border-color: var(--ns-border);
+	--scalar-sidebar-color-1: var(--ns-text);
+	--scalar-sidebar-color-2: var(--ns-text-subtle);
+	--scalar-sidebar-color-active: var(--ns-primary);
+	--scalar-sidebar-item-active-background: var(--ns-primary-muted);
+	--scalar-sidebar-item-hover-background: var(--ns-glass-light);
+	--scalar-sidebar-item-hover-color: var(--ns-text);
+	--scalar-sidebar-search-background: var(--ns-surface);
+	--scalar-sidebar-search-border-color: var(--ns-border);
+	--scalar-sidebar-search-color: var(--ns-text);
+	--scalar-sidebar-sticky-offset: 5.75rem;
+	--scalar-tooltip-background: var(--ns-chrome-bg);
+	--scalar-tooltip-color: var(--ns-chrome-text);
+}
+
+.scalar-app {
+	min-height: calc(100svh - 5.75rem);
+	color: var(--ns-text);
+	background: var(--ns-bg);
+	font-family: var(--ns-font-sans);
+}
+
+.scalar-app *,
+.scalar-app *::before,
+.scalar-app *::after {
+	border-radius: 0 !important;
+	box-shadow: none !important;
+}
+
+.scalar-app .references-layout,
+.scalar-app .scalar-api-reference,
+.scalar-app .scalar-container {
+	background: var(--ns-bg);
+}
+
+.scalar-app .references-sidebar {
+	border-right: 1px solid var(--ns-border);
+	background: var(--ns-bg-subtle);
+}
+
+.scalar-app .section-flare {
+	display: none;
+}
+
+.scalar-app.z-overlay {
+	display: none !important;
+}
+
+.scalar-app .scalar-card,
+.scalar-app .request-card,
+.scalar-app .request-body,
+.scalar-app .section-accordion-content-card {
+	border: 1px solid var(--ns-border);
+	background: var(--ns-surface);
+}
+
+.scalar-app .scalar-code-block,
+.scalar-app pre,
+.scalar-app code {
+	font-family: var(--ns-font-mono);
+}
+
+.scalar-app .scalar-code-block,
+.scalar-app pre {
+	background: var(--ns-surface-deep);
+}
+
+.scalar-app .open-api-client-button,
+.scalar-app .show-api-client-button {
+	border: 1px solid var(--ns-primary-border);
+	color: var(--ns-text-on-accent);
+	background: var(--ns-primary);
+	font-weight: 750;
+}
+
+.scalar-app .open-api-client-button:hover,
+.scalar-app .show-api-client-button:hover {
+	border-color: var(--ns-primary-hover);
+	background: var(--ns-primary-hover);
+}
+
+.scalar-app a:focus-visible,
+.scalar-app button:focus-visible,
+.scalar-app input:focus-visible,
+.scalar-app textarea:focus-visible,
+.scalar-app select:focus-visible {
+	outline: var(--ns-focus-outline);
+	outline-offset: var(--ns-focus-outline-offset);
+}
+
+@media (max-width: 48rem) {
+	.scalar-app,
+	.scalar-app .references-layout {
+		min-height: calc(100svh - 7rem);
+	}
+}
+`;
+const scalarConfiguration = {
+	cdn: `https://cdn.jsdelivr.net/npm/@scalar/api-reference@${scalarApiReferenceVersion}`,
+	pageTitle: title,
+	title: "Netstamp API",
+	slug: "netstamp",
+	url: "/openapi.json",
+	layout: "modern",
+	theme: "none",
+	withDefaultFonts: false,
+	hideClientButton: true,
+	hideDarkModeToggle: true,
+	showDeveloperTools: "never",
+	telemetry: false,
+	documentDownloadType: "json",
+	operationTitleSource: "summary",
+	modelsSectionLabel: "Schemas",
+	defaultOpenFirstTag: true,
+	defaultHttpClient: {
+		targetKey: "shell",
+		clientKey: "curl"
+	},
+	agent: {
+		disabled: true
+	},
+	mcp: {
+		disabled: true
+	},
+	customCss: scalarCustomCss
+} as const;
 ---
 
 <BaseLayout title={title} description={description} canonicalPath="/openapi/" schema={schema}>
 	<main class="openapiPage">
-		<OpenAPIExplorer client:load specUrl="/openapi.json" />
+		<div class="scalarReferenceMount">
+			<ScalarComponent renderMode="client" configuration={scalarConfiguration} />
+		</div>
 	</main>
 </BaseLayout>
+
+<style>
+	.openapiPage {
+		min-height: 100svh;
+		padding-top: 5.75rem;
+		color: var(--ns-text);
+		background: var(--ns-bg);
+	}
+
+	.scalarReferenceMount {
+		min-height: calc(100svh - 5.75rem);
+		border-top: 1px solid var(--ns-border-faint);
+		background: var(--ns-bg);
+	}
+
+	.scalarReferenceMount :global([data-scalar-client]) {
+		min-height: calc(100svh - 5.75rem);
+		background: var(--ns-bg);
+	}
+
+	.scalarReferenceMount :global([data-scalar-client]:empty) {
+		display: grid;
+		place-items: center;
+		color: var(--ns-text-subtle);
+	}
+
+	.scalarReferenceMount :global([data-scalar-client]:empty)::before {
+		content: "Loading API reference";
+		font-family: var(--ns-font-mono);
+		font-size: 0.75rem;
+		font-weight: 800;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+	}
+
+	@media (max-width: 48rem) {
+		.openapiPage {
+			padding-top: 7rem;
+		}
+
+		.scalarReferenceMount,
+		.scalarReferenceMount :global([data-scalar-client]) {
+			min-height: calc(100svh - 7rem);
+		}
+	}
+</style>

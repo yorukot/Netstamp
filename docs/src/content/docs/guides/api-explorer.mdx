@@ -17,11 +17,11 @@ pnpm generate:openapi
 
 ## Use The Explorer
 
-Open [`/openapi/`](/openapi/) from the docs nav. The page loads the generated contract and groups operations by the tags defined in TypeSpec.
+Open [`/openapi/`](/openapi/) from the docs nav. The public page renders the generated contract with Scalar and groups operations by the tags defined in TypeSpec.
 
 Use it to verify request bodies, response schemas, and route paths before writing additional guides.
 
-Backend non-production environments also expose Scalar API docs at `/api/v1/docs`. That page loads `/api/v1/openapi.json` from the same controller process. Production does not register either backend runtime docs route.
+Backend non-production environments also expose runtime Scalar API docs at `/api/v1/docs`. That page loads `/api/v1/openapi.json` from the same controller process. Production does not register either backend runtime docs route.
 
 ## Authenticated Routes
 
