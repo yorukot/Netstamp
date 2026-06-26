@@ -1,4 +1,4 @@
-import { Badge, Button, FieldLabel, Input, Panel, TextAreaField } from "@netstamp/ui";
+import { Badge, Button, FieldLabel, Input, TextAreaField } from "@netstamp/ui";
 import { useDeferredValue, useEffect, useState } from "react";
 import styles from "./OpenAPIExplorer.module.css";
 
@@ -757,16 +757,18 @@ export default function OpenAPIExplorer({ specUrl }: OpenAPIExplorerProps) {
 						</a>
 					</div>
 
-					<Panel title="Server" tone="deep" className={styles.serverPanel}>
+					<section className={styles.serverPanel} aria-labelledby="api-server-title">
+						<h2 id="api-server-title">Server</h2>
 						<Input value={baseUrl} type="url" inputMode="url" onChange={event => setBaseUrl(event.currentTarget.value)} aria-label="API server URL" autoComplete="url" spellCheck={false} />
 						<p>Used by the sticky request console. Point it at a local or deployed backend before testing.</p>
-					</Panel>
+					</section>
 				</section>
 
 				{loadError ? (
-					<Panel title="Spec load failed" tone="deep" className={styles.errorPanel}>
+					<section className={styles.errorPanel} aria-live="polite">
+						<h2>Spec load failed</h2>
 						<p>{loadError}</p>
-					</Panel>
+					</section>
 				) : null}
 
 				{visibleGroups.map(group => (
@@ -787,13 +789,11 @@ export default function OpenAPIExplorer({ specUrl }: OpenAPIExplorerProps) {
 									{group.operations.length} operation{group.operations.length === 1 ? "" : "s"} in this API area.
 								</p>
 							</span>
-							<Badge tone="muted" dot={false}>
-								Folder
-							</Badge>
 						</summary>
 
 						<div className={styles.sectionBody}>
-							<Panel title="Operations" tone="deep" padded={false} className={styles.operationsPanel}>
+							<nav className={styles.operationsPanel} aria-label={`${group.tag} operations`}>
+								<h3 className={styles.operationsTitle}>Operations</h3>
 								{group.operations.map(operation => (
 									<a
 										href={`#${operationAnchor(operation)}`}
@@ -809,7 +809,7 @@ export default function OpenAPIExplorer({ specUrl }: OpenAPIExplorerProps) {
 										<code>{operation.path}</code>
 									</a>
 								))}
-							</Panel>
+							</nav>
 
 							<div className={styles.operationStack}>
 								{group.operations.map(operation => {
@@ -872,7 +872,7 @@ export default function OpenAPIExplorer({ specUrl }: OpenAPIExplorerProps) {
 												</div>
 											</div>
 
-											<Panel tone="deep" padded={false} className={styles.snippetPanel}>
+											<aside className={styles.snippetPanel} aria-label={`${methodLabels[operation.method]} ${operation.path} cURL example`}>
 												<div className={styles.snippetHeader}>
 													<span className={styles.method} data-method={operation.method}>
 														{methodLabels[operation.method]}
@@ -885,7 +885,7 @@ export default function OpenAPIExplorer({ specUrl }: OpenAPIExplorerProps) {
 												<Button type="button" variant="plain" size="md" className={styles.snippetAction} onClick={() => selectOperation(operation)}>
 													Load in console
 												</Button>
-											</Panel>
+											</aside>
 										</article>
 									);
 								})}
@@ -896,7 +896,15 @@ export default function OpenAPIExplorer({ specUrl }: OpenAPIExplorerProps) {
 			</main>
 
 			<aside className={styles.console} aria-label="Request console">
-				<Panel title="Request Console" tone="deep" className={styles.consolePanel}>
+				<section className={styles.consolePanel} aria-labelledby="request-console-title">
+					<div className={styles.consoleHeader}>
+						<h2 id="request-console-title">Request Console</h2>
+						{selected ? (
+							<span className={styles.method} data-method={selected.method}>
+								{methodLabels[selected.method]}
+							</span>
+						) : null}
+					</div>
 					<div className={styles.formGrid}>
 						<label>
 							<FieldLabel>Server</FieldLabel>
@@ -958,7 +966,7 @@ export default function OpenAPIExplorer({ specUrl }: OpenAPIExplorerProps) {
 					<pre className={styles.response} aria-live="polite">
 						<SyntaxCode code={response || "Response will appear here."} language="response" />
 					</pre>
-				</Panel>
+				</section>
 			</aside>
 		</div>
 	);
