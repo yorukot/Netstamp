@@ -34,7 +34,7 @@ The target visual language is "spec-docs":
 
 Core traits:
 
-- Light default, with matching dark mode.
+- Dark default, with matching light mode.
 - Warm orange primary color, tuned for Netstamp rather than inherited unchanged from another brand.
 - Neutral ink, graphite, white, and restrained cool gray foundations. Public chrome uses the Sui-style black-green tone `#131518`.
 - Square or nearly-square frames. Core controls use zero radius.

@@ -1,0 +1,569 @@
+---
+
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Netstamp — Trace every path.</title>
+		<meta name="robots" content="noindex" />
+		<link rel="preconnect" href="https://rsms.me/" />
+	</head>
+	<body>
+		<canvas id="ns-canvas" aria-hidden="true"></canvas>
+
+		<main class="hero">
+			<div class="vignette" aria-hidden="true"></div>
+			<div class="hero-content">
+				<h1>
+					<span class="line1">Trace every path.</span>
+					<span class="line2">Before it breaks.</span>
+				</h1>
+				<p class="sub">Open-source network observability from probes you control.</p>
+				<div class="cta-row">
+					<a href="/docs" class="btn btn-primary">Read the docs</a>
+					<a href="https://github.com/netstamp/netstamp" class="btn btn-outline">View on GitHub</a>
+				</div>
+			</div>
+		</main>
+
+		<script is:inline>
+			(function () {
+				/* ── Config ───────────────────────────────────────────── */
+				var CFG = {
+					bgColor: "#0a0a0f",
+					regularColor: [255, 255, 255],
+					probeColor: [249, 115, 22] /* #f97316 */,
+					probeCount: 20,
+					regularCount: 180,
+					connectionDist: 120,
+					mouseDist: 150,
+					mouseAttract: 0.012,
+					probeRadius: 3,
+					regularRadius: 1.5,
+					probePulseSpeed: 0.04,
+					routeEventInterval: 2800 /* ms between route events */,
+					routeEventDuration: 900 /* ms per hop travel */,
+					routeEventColor: [249, 115, 22],
+					reducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+				};
+
+				var canvas = document.getElementById("ns-canvas");
+				var ctx = canvas.getContext("2d");
+				var W = 0,
+					H = 0;
+				var mouse = { x: -9999, y: -9999 };
+				var particles = [];
+				var routeEvents = []; /* active travelling pulses */
+				var lastRouteEvent = 0;
+				var raf = null;
+
+				/* ── Resize ───────────────────────────────────────────── */
+				function resize() {
+					W = canvas.width = window.innerWidth;
+					H = canvas.height = window.innerHeight;
+				}
+				window.addEventListener("resize", resize);
+				resize();
+
+				/* ── Particle factory ─────────────────────────────────── */
+				function makeParticle(isProbe) {
+					var speed = isProbe ? 0.25 + Math.random() * 0.35 : 0.08 + Math.random() * 0.18;
+					var angle = Math.random() * Math.PI * 2;
+					return {
+						x: Math.random() * W,
+						y: Math.random() * H,
+						vx: Math.cos(angle) * speed,
+						vy: Math.sin(angle) * speed,
+						isProbe: isProbe,
+						r: isProbe ? CFG.probeRadius : CFG.regularRadius,
+						phase: Math.random() * Math.PI * 2 /* pulse phase */
+					};
+				}
+
+				function initParticles() {
+					particles = [];
+					for (var i = 0; i < CFG.probeCount; i++) particles.push(makeParticle(true));
+					for (var j = 0; j < CFG.regularCount; j++) particles.push(makeParticle(false));
+				}
+				initParticles();
+
+				/* ── Route-event helpers ──────────────────────────────── */
+				/**
+				 * Find a short node-hop path between two probe nodes using a greedy
+				 * nearest-neighbour walk (good enough for visual effect).
+				 */
+				function buildPath(src, dst) {
+					var path = [src];
+					var visited = new Set([src]);
+					var current = src;
+					var maxHops = 12;
+
+					while (current !== dst && path.length <= maxHops) {
+						var best = null;
+						var bestScore = Infinity;
+						for (var i = 0; i < particles.length; i++) {
+							if (visited.has(i)) continue;
+							var dx = particles[i].x - particles[current].x;
+							var dy = particles[i].y - particles[current].y;
+							var distToCurrent = Math.sqrt(dx * dx + dy * dy);
+							if (distToCurrent > CFG.connectionDist * 2.5) continue;
+							/* score: favour nodes closer to dst */
+							var ex = particles[dst].x - particles[i].x;
+							var ey = particles[dst].y - particles[i].y;
+							var distToDst = Math.sqrt(ex * ex + ey * ey);
+							if (distToDst < bestScore) {
+								bestScore = distToDst;
+								best = i;
+							}
+						}
+						if (best === null) break;
+						visited.add(best);
+						path.push(best);
+						current = best;
+					}
+					if (current !== dst) path.push(dst);
+					return path;
+				}
+
+				function spawnRouteEvent() {
+					/* pick two distinct probe nodes */
+					var probeIndices = [];
+					for (var i = 0; i < particles.length; i++) {
+						if (particles[i].isProbe) probeIndices.push(i);
+					}
+					if (probeIndices.length < 2) return;
+					var ai = Math.floor(Math.random() * probeIndices.length);
+					var bi;
+					do {
+						bi = Math.floor(Math.random() * probeIndices.length);
+					} while (bi === ai);
+					var src = probeIndices[ai];
+					var dst = probeIndices[bi];
+					var path = buildPath(src, dst);
+					routeEvents.push({
+						path: path,
+						t: 0 /* 0–1 progress across the entire path */
+					});
+				}
+
+				/* ── Mouse ────────────────────────────────────────────── */
+				window.addEventListener("mousemove", function (e) {
+					mouse.x = e.clientX;
+					mouse.y = e.clientY;
+				});
+				window.addEventListener("mouseleave", function () {
+					mouse.x = -9999;
+					mouse.y = -9999;
+				});
+				window.addEventListener(
+					"touchmove",
+					function (e) {
+						if (e.touches.length) {
+							mouse.x = e.touches[0].clientX;
+							mouse.y = e.touches[0].clientY;
+						}
+					},
+					{ passive: true }
+				);
+				window.addEventListener("touchend", function () {
+					mouse.x = -9999;
+					mouse.y = -9999;
+				});
+
+				/* ── Update ───────────────────────────────────────────── */
+				function update(ts) {
+					for (var i = 0; i < particles.length; i++) {
+						var p = particles[i];
+
+						/* Mouse attraction */
+						var mdx = mouse.x - p.x;
+						var mdy = mouse.y - p.y;
+						var mdist = Math.sqrt(mdx * mdx + mdy * mdy);
+						if (mdist < CFG.mouseDist && mdist > 0.5) {
+							var mf = (1 - mdist / CFG.mouseDist) * CFG.mouseAttract;
+							p.vx += (mdx / mdist) * mf;
+							p.vy += (mdy / mdist) * mf;
+						}
+
+						/* Speed cap */
+						var speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+						var maxSpeed = p.isProbe ? 0.7 : 0.35;
+						if (speed > maxSpeed) {
+							p.vx = (p.vx / speed) * maxSpeed;
+							p.vy = (p.vy / speed) * maxSpeed;
+						}
+
+						p.x += p.vx;
+						p.y += p.vy;
+
+						/* Wrap */
+						if (p.x < -10) p.x = W + 10;
+						else if (p.x > W + 10) p.x = -10;
+						if (p.y < -10) p.y = H + 10;
+						else if (p.y > H + 10) p.y = -10;
+
+						/* Pulse phase */
+						p.phase += CFG.probePulseSpeed;
+					}
+
+					/* Route events */
+					var dt = 0.016; /* approx 60fps normalisation */
+					for (var j = routeEvents.length - 1; j >= 0; j--) {
+						routeEvents[j].t += dt * (1000 / CFG.routeEventDuration);
+						if (routeEvents[j].t >= 1) routeEvents.splice(j, 1);
+					}
+
+					/* Spawn new route event */
+					if (ts - lastRouteEvent > CFG.routeEventInterval) {
+						lastRouteEvent = ts;
+						spawnRouteEvent();
+					}
+				}
+
+				/* ── Draw ─────────────────────────────────────────────── */
+				function draw() {
+					ctx.clearRect(0, 0, W, H);
+
+					/* Background */
+					ctx.fillStyle = CFG.bgColor;
+					ctx.fillRect(0, 0, W, H);
+
+					var rC = CFG.regularColor;
+					var pC = CFG.probeColor;
+
+					/* Connections */
+					for (var i = 0; i < particles.length; i++) {
+						var a = particles[i];
+						for (var j = i + 1; j < particles.length; j++) {
+							var b = particles[j];
+							var dx = a.x - b.x;
+							var dy = a.y - b.y;
+							var dist = Math.sqrt(dx * dx + dy * dy);
+							if (dist > CFG.connectionDist) continue;
+							var alpha = (1 - dist / CFG.connectionDist) * 0.45;
+							var isOrange = a.isProbe || b.isProbe;
+							if (isOrange) {
+								ctx.strokeStyle = "rgba(" + pC[0] + "," + pC[1] + "," + pC[2] + "," + alpha * 0.85 + ")";
+							} else {
+								ctx.strokeStyle = "rgba(" + rC[0] + "," + rC[1] + "," + rC[2] + "," + alpha * 0.35 + ")";
+							}
+							ctx.lineWidth = isOrange ? 0.75 : 0.5;
+							ctx.beginPath();
+							ctx.moveTo(a.x, a.y);
+							ctx.lineTo(b.x, b.y);
+							ctx.stroke();
+						}
+
+						/* Mouse connections */
+						var mdx = mouse.x - a.x;
+						var mdy = mouse.y - a.y;
+						var mdist = Math.sqrt(mdx * mdx + mdy * mdy);
+						if (mdist < CFG.mouseDist) {
+							var malpha = (1 - mdist / CFG.mouseDist) * 0.55;
+							ctx.strokeStyle = "rgba(255,255,255," + malpha + ")";
+							ctx.lineWidth = 0.6;
+							ctx.beginPath();
+							ctx.moveTo(a.x, a.y);
+							ctx.lineTo(mouse.x, mouse.y);
+							ctx.stroke();
+						}
+					}
+
+					/* Route event pulses */
+					for (var k = 0; k < routeEvents.length; k++) {
+						var ev = routeEvents[k];
+						var pathLen = ev.path.length - 1;
+						if (pathLen < 1) continue;
+						/* which segment are we on? */
+						var globalT = ev.t * pathLen;
+						var segIdx = Math.min(Math.floor(globalT), pathLen - 1);
+						var segT = globalT - segIdx;
+						var nodeA = particles[ev.path[segIdx]];
+						var nodeB = particles[ev.path[segIdx + 1]];
+						if (!nodeA || !nodeB) continue;
+						var px = nodeA.x + (nodeB.x - nodeA.x) * segT;
+						var py = nodeA.y + (nodeB.y - nodeA.y) * segT;
+						/* glow dot */
+						var grd = ctx.createRadialGradient(px, py, 0, px, py, 8);
+						grd.addColorStop(0, "rgba(255,200,120,0.95)");
+						grd.addColorStop(0.3, "rgba(" + pC[0] + "," + pC[1] + "," + pC[2] + ",0.7)");
+						grd.addColorStop(1, "rgba(" + pC[0] + "," + pC[1] + "," + pC[2] + ",0)");
+						ctx.beginPath();
+						ctx.arc(px, py, 8, 0, Math.PI * 2);
+						ctx.fillStyle = grd;
+						ctx.fill();
+						/* bright center */
+						ctx.beginPath();
+						ctx.arc(px, py, 2, 0, Math.PI * 2);
+						ctx.fillStyle = "rgba(255,240,200,1)";
+						ctx.fill();
+					}
+
+					/* Nodes */
+					for (var n = 0; n < particles.length; n++) {
+						var p = particles[n];
+						if (p.isProbe) {
+							/* Outer glow */
+							var pulseR = p.r + 2.5 + Math.sin(p.phase) * 1.5;
+							var glow = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, pulseR * 3.5);
+							glow.addColorStop(0, "rgba(" + pC[0] + "," + pC[1] + "," + pC[2] + ",0.22)");
+							glow.addColorStop(1, "rgba(" + pC[0] + "," + pC[1] + "," + pC[2] + ",0)");
+							ctx.beginPath();
+							ctx.arc(p.x, p.y, pulseR * 3.5, 0, Math.PI * 2);
+							ctx.fillStyle = glow;
+							ctx.fill();
+							/* Solid dot */
+							ctx.beginPath();
+							ctx.arc(p.x, p.y, p.r + Math.sin(p.phase) * 0.6, 0, Math.PI * 2);
+							ctx.fillStyle = "rgb(" + pC[0] + "," + pC[1] + "," + pC[2] + ")";
+							ctx.fill();
+						} else {
+							ctx.beginPath();
+							ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+							ctx.fillStyle = "rgba(255,255,255,0.72)";
+							ctx.fill();
+						}
+					}
+
+					/* Cursor node */
+					if (mouse.x > 0) {
+						var cr = ctx.createRadialGradient(mouse.x, mouse.y, 0, mouse.x, mouse.y, 14);
+						cr.addColorStop(0, "rgba(255,255,255,0.25)");
+						cr.addColorStop(1, "rgba(255,255,255,0)");
+						ctx.beginPath();
+						ctx.arc(mouse.x, mouse.y, 14, 0, Math.PI * 2);
+						ctx.fillStyle = cr;
+						ctx.fill();
+						ctx.beginPath();
+						ctx.arc(mouse.x, mouse.y, 2.5, 0, Math.PI * 2);
+						ctx.fillStyle = "rgba(255,255,255,0.9)";
+						ctx.fill();
+					}
+				}
+
+				/* ── Reduced-motion static snapshot ───────────────────── */
+				function drawStatic() {
+					ctx.fillStyle = CFG.bgColor;
+					ctx.fillRect(0, 0, W, H);
+					var rC = CFG.regularColor;
+					var pC = CFG.probeColor;
+					for (var i = 0; i < particles.length; i++) {
+						var a = particles[i];
+						for (var j = i + 1; j < particles.length; j++) {
+							var b = particles[j];
+							var dx = a.x - b.x;
+							var dy = a.y - b.y;
+							var dist = Math.sqrt(dx * dx + dy * dy);
+							if (dist > CFG.connectionDist) continue;
+							var alpha = (1 - dist / CFG.connectionDist) * 0.3;
+							var isOrange = a.isProbe || b.isProbe;
+							ctx.strokeStyle = isOrange ? "rgba(" + pC[0] + "," + pC[1] + "," + pC[2] + "," + alpha + ")" : "rgba(255,255,255," + alpha * 0.4 + ")";
+							ctx.lineWidth = 0.5;
+							ctx.beginPath();
+							ctx.moveTo(a.x, a.y);
+							ctx.lineTo(b.x, b.y);
+							ctx.stroke();
+						}
+					}
+					for (var n = 0; n < particles.length; n++) {
+						var p = particles[n];
+						ctx.beginPath();
+						ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+						ctx.fillStyle = p.isProbe ? "rgb(" + pC[0] + "," + pC[1] + "," + pC[2] + ")" : "rgba(255,255,255,0.65)";
+						ctx.fill();
+					}
+				}
+
+				/* ── Loop ─────────────────────────────────────────────── */
+				function loop(ts) {
+					update(ts);
+					draw();
+					raf = requestAnimationFrame(loop);
+				}
+
+				if (CFG.reducedMotion) {
+					drawStatic();
+				} else {
+					raf = requestAnimationFrame(loop);
+				}
+			})();
+		</script>
+
+		<style>
+			*,
+			*::before,
+			*::after {
+				box-sizing: border-box;
+				margin: 0;
+				padding: 0;
+			}
+
+			html,
+			body {
+				width: 100%;
+				height: 100%;
+				overflow: hidden;
+				background: #0a0a0f;
+			}
+
+			#ns-canvas {
+				position: fixed;
+				inset: 0;
+				display: block;
+				width: 100%;
+				height: 100%;
+			}
+
+			/* ── Hero ────────────────────────────────── */
+			.hero {
+				position: fixed;
+				inset: 0;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				pointer-events: none;
+			}
+
+			/* Radial vignette behind text */
+			.vignette {
+				position: absolute;
+				inset: 0;
+				background: radial-gradient(ellipse 60% 55% at 50% 50%, rgba(10, 10, 15, 0.82) 0%, rgba(10, 10, 15, 0.55) 45%, transparent 100%);
+			}
+
+			.hero-content {
+				position: relative;
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				text-align: center;
+				gap: 1.5rem;
+				padding: 2rem;
+				pointer-events: auto;
+			}
+
+			/* ── Heading ─────────────────────────────── */
+			h1 {
+				display: flex;
+				flex-direction: column;
+				gap: 0.05em;
+				font-family: "TASAExplorer", "TASA Explorer", "Inter", system-ui, sans-serif;
+				font-size: clamp(3.5rem, 10vw, 9rem);
+				font-weight: 200;
+				line-height: 1;
+				letter-spacing: -0.03em;
+				color: #ffffff;
+			}
+
+			.line1 {
+				display: block;
+			}
+
+			.line2 {
+				display: block;
+				color: rgba(255, 255, 255, 0.88);
+			}
+
+			/* ── Subheadline ──────────────────────────── */
+			.sub {
+				font-family: "TASAOrbiter", "TASA Orbiter", "Inter", system-ui, sans-serif;
+				font-size: clamp(0.95rem, 2vw, 1.2rem);
+				font-weight: 400;
+				color: rgba(255, 255, 255, 0.5);
+				max-width: 540px;
+				line-height: 1.55;
+				letter-spacing: 0.01em;
+			}
+
+			/* ── CTA buttons ──────────────────────────── */
+			.cta-row {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 0.75rem;
+				justify-content: center;
+				margin-top: 0.5rem;
+			}
+
+			.btn {
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				min-height: 2.75rem;
+				padding: 0 1.5rem;
+				font-family: "TASAOrbiter", "TASA Orbiter", "Inter", system-ui, sans-serif;
+				font-size: 0.9rem;
+				font-weight: 500;
+				letter-spacing: 0.01em;
+				text-decoration: none;
+				cursor: pointer;
+				transition:
+					background 140ms ease,
+					color 140ms ease,
+					border-color 140ms ease;
+				border-radius: 0;
+				border: 1px solid transparent;
+			}
+
+			.btn:focus-visible {
+				outline: 2px solid #f97316;
+				outline-offset: 2px;
+			}
+
+			.btn-primary {
+				background: #f97316;
+				color: #090b10;
+				border-color: #f97316;
+			}
+
+			.btn-primary:hover {
+				background: #fb923c;
+				border-color: #fb923c;
+			}
+
+			.btn-primary:active {
+				background: #ea6a1a;
+				border-color: #ea6a1a;
+			}
+
+			.btn-outline {
+				background: transparent;
+				color: rgba(255, 255, 255, 0.82);
+				border-color: rgba(255, 255, 255, 0.22);
+			}
+
+			.btn-outline:hover {
+				color: #ffffff;
+				border-color: rgba(255, 255, 255, 0.5);
+				background: rgba(255, 255, 255, 0.06);
+			}
+
+			.btn-outline:active {
+				background: rgba(255, 255, 255, 0.1);
+			}
+
+			/* ── Reduced motion ───────────────────────── */
+			@media (prefers-reduced-motion: reduce) {
+				.btn {
+					transition: none;
+				}
+			}
+
+			/* ── Narrow mobile ────────────────────────── */
+			@media (max-width: 480px) {
+				.cta-row {
+					flex-direction: column;
+					align-items: stretch;
+					width: 100%;
+					max-width: 280px;
+				}
+
+				.btn {
+					width: 100%;
+				}
+			}
+		</style>
+	</body>
+</html>
