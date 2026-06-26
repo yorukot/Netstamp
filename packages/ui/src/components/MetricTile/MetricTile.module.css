@@ -1,12 +1,9 @@
-.card {
+.tile {
 	display: grid;
+	gap: 0.65rem;
 	align-content: start;
-	gap: 0.75rem;
-	min-height: 8rem;
-}
-
-.corner {
-	display: none;
+	min-width: 0;
+	min-height: 7rem;
 }
 
 .header {
@@ -20,12 +17,11 @@
 .label,
 .trend {
 	min-width: 0;
-	color: var(--ns-text-subtle);
+	color: var(--ns-text-low);
 	font-family: var(--ns-font-sans);
-	font-size: 0.8125rem;
-	font-weight: 650;
-	letter-spacing: 0;
-	text-transform: none;
+	font-size: 0.75rem;
+	font-weight: 700;
+	line-height: 1.2;
 }
 
 .label {
@@ -40,11 +36,13 @@
 }
 
 .value {
+	min-width: 0;
+	overflow-wrap: anywhere;
 	color: var(--ns-text);
-	font-family: var(--ns-font-sans);
-	font-size: clamp(1.9rem, 3vw, 2.5rem);
-	font-weight: 700;
-	line-height: 1;
+	font-family: var(--ns-font-display);
+	font-size: clamp(1.75rem, 3vw, 2.5rem);
+	font-weight: 900;
+	line-height: 0.95;
 }
 
 .description {

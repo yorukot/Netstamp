@@ -41,9 +41,9 @@
 }
 
 .option[data-active="true"] {
-	border-color: var(--ns-accent-border);
+	border-color: var(--ns-primary-border);
 	color: var(--ns-text);
-	background: var(--ns-accent-muted);
+	background: var(--ns-primary-muted);
 }
 
 .option:disabled {

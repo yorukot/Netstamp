@@ -60,22 +60,22 @@
 }
 
 .primary {
-	--ns-frame-color: var(--ns-accent);
-	background: var(--ns-accent);
+	--ns-frame-color: var(--ns-primary);
+	background: var(--ns-primary);
 	color: var(--ns-text-on-accent);
 	box-shadow: none;
 }
 
 .primary:hover {
-	--ns-frame-color: var(--ns-accent-hover);
-	background: var(--ns-accent-hover);
+	--ns-frame-color: var(--ns-primary-hover);
+	background: var(--ns-primary-hover);
 	color: var(--ns-text-on-accent);
 	box-shadow: none;
 }
 
 .primary:active {
-	--ns-frame-color: var(--ns-accent-active);
-	background: var(--ns-accent-active);
+	--ns-frame-color: var(--ns-primary-active);
+	background: var(--ns-primary-active);
 	color: var(--ns-text-on-accent);
 }
 
@@ -109,7 +109,7 @@
 }
 
 .outline:active {
-	background: var(--ns-accent-subtle);
+	background: var(--ns-primary-subtle);
 }
 
 .ghost {

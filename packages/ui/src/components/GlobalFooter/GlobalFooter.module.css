@@ -26,11 +26,11 @@
 }
 
 .footerBottom a:hover {
-	color: var(--ns-accent-hover);
+	color: var(--ns-primary-hover);
 }
 
 .footerBottom a:focus-visible {
-	outline: 2px solid var(--ns-accent);
+	outline: 2px solid var(--ns-primary);
 	outline-offset: 0.25rem;
 }
 

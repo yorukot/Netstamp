@@ -1,0 +1,59 @@
+.label {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35rem;
+	width: fit-content;
+	max-width: 100%;
+	min-width: 0;
+	color: var(--ns-text-low);
+	font-family: var(--ns-font-mono);
+	font-weight: 800;
+	letter-spacing: 0.08em;
+	line-height: 1.15;
+	text-transform: uppercase;
+}
+
+.label::before {
+	content: "";
+	display: block;
+	flex: 0 0 auto;
+	width: 0.45rem;
+	height: 0.45rem;
+	background: currentcolor;
+}
+
+.sm {
+	font-size: 0.6875rem;
+}
+
+.md {
+	font-size: 0.75rem;
+}
+
+.neutral {
+	color: var(--ns-metal);
+}
+
+.primary {
+	color: var(--ns-primary-hover);
+}
+
+.secondary {
+	color: var(--ns-secondary-hover);
+}
+
+.success {
+	color: var(--ns-success);
+}
+
+.warning {
+	color: var(--ns-warning);
+}
+
+.critical {
+	color: var(--ns-critical);
+}
+
+.muted {
+	color: var(--ns-text-low);
+}

@@ -7,6 +7,8 @@ export { BodyCopy } from "./components/BodyCopy/BodyCopy";
 export type { BodyCopyProps } from "./components/BodyCopy/BodyCopy";
 export { Button } from "./components/Button/Button";
 export type { ButtonProps, ButtonSize, ButtonVariant } from "./components/Button/Button";
+export { CodePreview } from "./components/CodePreview/CodePreview";
+export type { CodePreviewProps } from "./components/CodePreview/CodePreview";
 export { DataTable } from "./components/DataTable/DataTable";
 export type { DataColumn, DataTableProps, DataTableSortDirection, DataTableSortState } from "./components/DataTable/DataTable";
 export {
@@ -71,6 +73,8 @@ export type {
 	PopoverRootProps,
 	PopoverTriggerProps
 } from "./components/Dialog/Dialog";
+export { DisclosureToggle } from "./components/DisclosureToggle/DisclosureToggle";
+export type { DisclosureToggleProps, DisclosureToggleSize } from "./components/DisclosureToggle/DisclosureToggle";
 export { Drawer } from "./components/Drawer/Drawer";
 export type { DrawerProps, DrawerSide, DrawerSize } from "./components/Drawer/Drawer";
 export { Checkbox, FieldLabel, Input, Select, SelectField, TextAreaField, TextField } from "./components/Field/Field";
@@ -81,10 +85,14 @@ export { GlobalFooter } from "./components/GlobalFooter/GlobalFooter";
 export type { GlobalFooterProps } from "./components/GlobalFooter/GlobalFooter";
 export { IconButton } from "./components/IconButton/IconButton";
 export type { IconButtonProps } from "./components/IconButton/IconButton";
+export { KeyValueRow } from "./components/KeyValueRow/KeyValueRow";
+export type { KeyValueRowProps, KeyValueRowTone } from "./components/KeyValueRow/KeyValueRow";
 export { LoadingState } from "./components/LoadingState/LoadingState";
 export type { LoadingStateProps } from "./components/LoadingState/LoadingState";
 export { MetricCard } from "./components/MetricCard/MetricCard";
 export type { MetricCardProps } from "./components/MetricCard/MetricCard";
+export { MetricTile } from "./components/MetricTile/MetricTile";
+export type { MetricTileProps } from "./components/MetricTile/MetricTile";
 export { PageShell } from "./components/PageShell/PageShell";
 export type { PageShellProps, PageShellVariant } from "./components/PageShell/PageShell";
 export { Panel } from "./components/Panel/Panel";
@@ -93,8 +101,14 @@ export { SearchableSelect } from "./components/SearchableSelect/SearchableSelect
 export type { SearchableSelectOption, SearchableSelectProps, SearchableSelectSize } from "./components/SearchableSelect/SearchableSelect";
 export { SegmentedControl } from "./components/SegmentedControl/SegmentedControl";
 export type { SegmentedControlOption, SegmentedControlProps, SegmentedControlSize } from "./components/SegmentedControl/SegmentedControl";
+export { SelectableRow } from "./components/SelectableRow/SelectableRow";
+export type { SelectableRowDensity, SelectableRowProps, SelectableRowTone } from "./components/SelectableRow/SelectableRow";
 export { SignalAvatar } from "./components/SignalAvatar/SignalAvatar";
 export type { SignalAvatarProps, SignalAvatarSize } from "./components/SignalAvatar/SignalAvatar";
+export { SpecCard } from "./components/SpecCard/SpecCard";
+export type { SpecCardProps, SpecCardTone } from "./components/SpecCard/SpecCard";
+export { SpecLabel } from "./components/SpecLabel/SpecLabel";
+export type { SpecLabelProps, SpecLabelSize, SpecLabelTone } from "./components/SpecLabel/SpecLabel";
 export { Surface } from "./components/Surface/Surface";
 export type { SurfaceFrameSize, SurfacePadding, SurfaceProps, SurfaceTone } from "./components/Surface/Surface";
 export { Tabs } from "./components/Tabs/Tabs";

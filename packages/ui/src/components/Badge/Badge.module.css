@@ -29,9 +29,9 @@
 }
 
 .accent {
-	color: var(--ns-accent-hover);
-	--ns-frame-color: color-mix(in srgb, var(--ns-accent) 28%, transparent);
-	background: var(--ns-accent-subtle);
+	color: var(--ns-primary-hover);
+	--ns-frame-color: color-mix(in srgb, var(--ns-primary) 28%, transparent);
+	background: var(--ns-primary-subtle);
 }
 
 .success {

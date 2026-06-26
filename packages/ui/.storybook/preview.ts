@@ -35,10 +35,10 @@ const preview: Preview = {
 		backgrounds: {
 			default: "light",
 			options: {
-				light: { name: "Light canvas", value: "#f3f7fb" },
+				light: { name: "Light canvas", value: "#f6f8fb" },
 				lightPanel: { name: "Light panel", value: "#ffffff" },
-				dark: { name: "Dark canvas", value: "#0d1624" },
-				darkPanel: { name: "Dark panel", value: "#151f2e" }
+				dark: { name: "Dark canvas", value: "#0d1520" },
+				darkPanel: { name: "Dark panel", value: "#151f2d" }
 			}
 		},
 		controls: {
@@ -51,7 +51,7 @@ const preview: Preview = {
 		layout: "fullscreen",
 		options: {
 			storySort: {
-				order: ["Overview", "Components", "Forms"]
+				order: ["Overview", "Foundations", "Components", "Forms", "Patterns"]
 			}
 		},
 		viewport: {

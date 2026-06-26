@@ -1,0 +1,139 @@
+.row {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr) auto auto;
+	gap: 0.75rem;
+	align-items: center;
+	width: 100%;
+	min-width: 0;
+	border: 1px solid transparent;
+	color: var(--ns-text-muted);
+	background: transparent;
+	font: inherit;
+	text-align: left;
+	text-decoration: none;
+	cursor: pointer;
+	transition:
+		background-color var(--ns-transition),
+		border-color var(--ns-transition),
+		color var(--ns-transition);
+}
+
+.row:hover:not(.disabled) {
+	border-color: var(--ns-border);
+	color: var(--ns-text);
+	background: var(--ns-bg-subtle);
+}
+
+.row:focus-visible {
+	outline: var(--ns-focus-outline);
+	outline-offset: var(--ns-focus-outline-offset);
+}
+
+.normal {
+	min-height: 3rem;
+	padding: 0.75rem;
+}
+
+.compact {
+	min-height: 2.25rem;
+	padding: 0.5rem 0.625rem;
+}
+
+.leading,
+.trailing,
+.meta {
+	display: inline-flex;
+	align-items: center;
+	min-width: 0;
+}
+
+.leading {
+	justify-content: center;
+	color: var(--ns-text-low);
+}
+
+.copy {
+	display: grid;
+	gap: 0.2rem;
+	min-width: 0;
+}
+
+.title,
+.description,
+.meta {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.title {
+	color: inherit;
+	font-family: var(--ns-font-sans);
+	font-size: 0.875rem;
+	font-weight: 700;
+	line-height: 1.2;
+}
+
+.compact .title {
+	font-size: 0.8125rem;
+}
+
+.description {
+	color: var(--ns-text-low);
+	font-family: var(--ns-font-sans);
+	font-size: 0.75rem;
+	line-height: 1.35;
+}
+
+.meta {
+	color: var(--ns-text-low);
+	font-family: var(--ns-font-mono);
+	font-size: 0.6875rem;
+	font-weight: 800;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+}
+
+.active.primary,
+.primary:active {
+	border-color: var(--ns-primary-border);
+	color: var(--ns-text);
+	background: var(--ns-primary-muted);
+}
+
+.active.secondary,
+.secondary:active {
+	border-color: var(--ns-secondary-border);
+	color: var(--ns-text);
+	background: var(--ns-secondary-muted);
+}
+
+.active.neutral,
+.neutral:active {
+	border-color: var(--ns-border-strong);
+	color: var(--ns-text);
+	background: var(--ns-surface-raised);
+}
+
+.active.danger,
+.danger:active {
+	border-color: color-mix(in srgb, var(--ns-critical) 46%, transparent);
+	color: var(--ns-critical);
+	background: color-mix(in srgb, var(--ns-critical) 8%, transparent);
+}
+
+.disabled {
+	cursor: not-allowed;
+	opacity: 0.5;
+}
+
+@media (max-width: 36rem) {
+	.row {
+		grid-template-columns: auto minmax(0, 1fr) auto;
+	}
+
+	.meta {
+		display: none;
+	}
+}

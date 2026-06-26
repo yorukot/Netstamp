@@ -1,23 +1,20 @@
-import type { ReactNode } from "react";
+import type { ComponentPropsWithoutRef, ReactNode } from "react";
 import { Badge, type BadgeTone } from "../Badge/Badge";
 import { Surface } from "../Surface/Surface";
-import styles from "./MetricCard.module.css";
+import styles from "./MetricTile.module.css";
 
-export interface MetricCardProps {
+export interface MetricTileProps extends ComponentPropsWithoutRef<"article"> {
 	label: ReactNode;
 	value: ReactNode;
 	detail?: ReactNode;
 	description?: ReactNode;
-	trend?: ReactNode;
 	tone?: BadgeTone;
-	className?: string;
+	trend?: ReactNode;
 }
 
-export function MetricCard({ label, value, detail, description, trend, tone = "accent", className }: MetricCardProps) {
-	const classes = [styles.card, className].filter(Boolean).join(" ");
-
+export function MetricTile({ label, value, detail, description, tone = "neutral", trend, className, ...props }: MetricTileProps) {
 	return (
-		<Surface as="article" tone="glass" frameSize="lg" padding="md" className={classes}>
+		<Surface as="article" tone="glass" frameSize="lg" padding="sm" className={[styles.tile, className].filter(Boolean).join(" ")} {...props}>
 			<div className={styles.header}>
 				<span className={styles.label}>{label}</span>
 				{trend ? <span className={styles.trend}>{trend}</span> : null}
@@ -25,7 +22,6 @@ export function MetricCard({ label, value, detail, description, trend, tone = "a
 			<strong className={styles.value}>{value}</strong>
 			{description ? <span className={styles.description}>{description}</span> : null}
 			{detail ? <Badge tone={tone}>{detail}</Badge> : null}
-			<span className={styles.corner} aria-hidden="true" />
 		</Surface>
 	);
 }

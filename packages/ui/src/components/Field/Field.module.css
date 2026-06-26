@@ -26,7 +26,7 @@
 }
 
 .controlFrame:focus-within {
-	--ns-frame-color: var(--ns-accent-active);
+	--ns-frame-color: var(--ns-primary-active);
 	outline: var(--ns-focus-outline);
 	outline-offset: var(--ns-focus-outline-offset);
 	box-shadow: none;
@@ -109,8 +109,8 @@
 }
 
 .selectFrame[data-open="true"] {
-	--ns-select-arrow: var(--ns-accent-active);
-	--ns-frame-color: var(--ns-accent-active);
+	--ns-select-arrow: var(--ns-primary-active);
+	--ns-frame-color: var(--ns-primary-active);
 	box-shadow: none;
 }
 
@@ -146,7 +146,7 @@
 	right: 1rem;
 	width: 0.46rem;
 	height: 0.46rem;
-	border: solid var(--ns-select-arrow, var(--ns-accent-hover));
+	border: solid var(--ns-select-arrow, var(--ns-primary-hover));
 	border-width: 0 1.5px 1.5px 0;
 	transform: translateY(-65%) rotate(45deg);
 	transition:
@@ -196,7 +196,7 @@
 }
 
 .selectMenu {
-	--ns-frame-color: var(--ns-accent-border);
+	--ns-frame-color: var(--ns-primary-border);
 	position: fixed;
 	z-index: 1000;
 	width: var(--radix-select-trigger-width);
@@ -267,8 +267,8 @@
 }
 
 .selectOption[data-state="checked"] {
-	color: var(--ns-accent-active);
-	background: var(--ns-accent-muted);
+	color: var(--ns-primary-active);
+	background: var(--ns-primary-muted);
 }
 
 .selectOption[data-state="checked"]::after {
@@ -301,7 +301,7 @@
 	place-content: center;
 	appearance: none;
 	-webkit-appearance: none;
-	color: var(--ns-accent-hover);
+	color: var(--ns-primary-hover);
 	vertical-align: -0.125rem;
 	background: var(--ns-surface);
 	border: 1px solid var(--ns-border);
@@ -333,8 +333,8 @@
 }
 
 .checkbox:checked {
-	background: var(--ns-accent);
-	border-color: var(--ns-accent-border);
+	background: var(--ns-primary);
+	border-color: var(--ns-primary-border);
 	color: var(--ns-text-on-accent);
 	box-shadow: none;
 }

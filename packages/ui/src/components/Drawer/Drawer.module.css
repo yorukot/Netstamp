@@ -2,8 +2,7 @@
 	position: fixed;
 	inset: 0;
 	z-index: 50;
-	background: color-mix(in srgb, var(--ns-bg) 62%, transparent);
-	backdrop-filter: blur(10px);
+	background: var(--ns-overlay-scrim);
 }
 
 .overlay[data-state="open"] {
@@ -97,7 +96,7 @@
 	width: fit-content;
 	padding: 0;
 	border: 0;
-	color: var(--ns-accent-hover);
+	color: var(--ns-primary-hover);
 	background: transparent;
 	font-family: var(--ns-font-sans);
 	font-size: 0.8125rem;
@@ -114,7 +113,7 @@
 
 .backButton:hover,
 .backButton:focus-visible {
-	color: var(--ns-accent);
+	color: var(--ns-primary);
 	outline: none;
 }
 

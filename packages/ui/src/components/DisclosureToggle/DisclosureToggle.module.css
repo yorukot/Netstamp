@@ -1,0 +1,67 @@
+.toggle {
+	position: relative;
+	display: inline-grid;
+	flex: 0 0 auto;
+	place-items: center;
+	border: 1px solid var(--ns-border);
+	color: var(--ns-text-subtle);
+	background: var(--ns-surface);
+	cursor: pointer;
+	transition:
+		background-color var(--ns-transition),
+		border-color var(--ns-transition),
+		color var(--ns-transition);
+}
+
+.toggle:hover {
+	border-color: var(--ns-primary-border);
+	color: var(--ns-primary-hover);
+	background: var(--ns-primary-muted);
+}
+
+.toggle:focus-visible {
+	outline: var(--ns-focus-outline);
+	outline-offset: var(--ns-focus-outline-offset);
+}
+
+.toggle:disabled {
+	cursor: not-allowed;
+	opacity: 0.48;
+}
+
+.sm {
+	width: 1.75rem;
+	height: 1.75rem;
+}
+
+.md {
+	width: 2.25rem;
+	height: 2.25rem;
+}
+
+.toggle span,
+.toggle span::after {
+	display: block;
+	width: 0.7rem;
+	height: 1.5px;
+	background: currentcolor;
+	content: "";
+}
+
+.toggle span::after {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%) rotate(90deg);
+	transition: opacity var(--ns-transition);
+}
+
+.open {
+	border-color: var(--ns-primary-border);
+	color: var(--ns-primary-active);
+	background: var(--ns-primary-muted);
+}
+
+.open span::after {
+	opacity: 0;
+}

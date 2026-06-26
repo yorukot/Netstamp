@@ -1,0 +1,70 @@
+.row {
+	display: grid;
+	grid-template-columns: minmax(7rem, 0.45fr) minmax(0, 1fr) auto;
+	gap: 0.75rem;
+	align-items: baseline;
+	min-width: 0;
+	padding: 0.75rem 0;
+	border-bottom: 1px solid var(--ns-border-faint);
+	color: var(--ns-text-muted);
+}
+
+.row:last-child {
+	border-bottom: 0;
+}
+
+.label,
+.meta {
+	min-width: 0;
+	overflow: hidden;
+	color: var(--ns-text-low);
+	font-family: var(--ns-font-mono);
+	font-size: 0.6875rem;
+	font-weight: 800;
+	letter-spacing: 0.08em;
+	text-overflow: ellipsis;
+	text-transform: uppercase;
+	white-space: nowrap;
+}
+
+.value {
+	min-width: 0;
+	overflow-wrap: anywhere;
+	color: var(--ns-text);
+	font-family: var(--ns-font-sans);
+	font-size: 0.875rem;
+	font-weight: 700;
+	line-height: 1.35;
+}
+
+.primary .meta,
+.primary .value {
+	color: var(--ns-primary-hover);
+}
+
+.secondary .meta,
+.secondary .value {
+	color: var(--ns-secondary-hover);
+}
+
+.success .meta,
+.success .value {
+	color: var(--ns-success);
+}
+
+.warning .meta,
+.warning .value {
+	color: var(--ns-warning);
+}
+
+.critical .meta,
+.critical .value {
+	color: var(--ns-critical);
+}
+
+@media (max-width: 40rem) {
+	.row {
+		grid-template-columns: 1fr;
+		gap: 0.35rem;
+	}
+}

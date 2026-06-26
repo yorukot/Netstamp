@@ -1,4 +1,6 @@
 .panel {
+	display: grid;
+	gap: 1rem;
 	min-width: 0;
 }
 
@@ -7,7 +9,7 @@
 	align-items: flex-start;
 	justify-content: space-between;
 	gap: 1rem;
-	padding-bottom: 1rem;
+	padding-bottom: 0.25rem;
 }
 
 .copy {
@@ -21,9 +23,37 @@
 	color: var(--ns-text);
 	font-family: var(--ns-font-sans);
 	font-size: 1rem;
-	font-weight: 700;
+	font-weight: 750;
 	letter-spacing: 0;
 	line-height: 1.25;
+}
+
+.eyebrow {
+	color: var(--ns-text-low);
+	font-family: var(--ns-font-mono);
+	font-size: 0.6875rem;
+	font-weight: 800;
+	letter-spacing: 0.08em;
+	line-height: 1.15;
+	text-transform: uppercase;
+}
+
+.header p {
+	max-width: 42rem;
+	margin: 0;
+	color: var(--ns-text-muted);
+	font-size: 0.875rem;
+	line-height: 1.55;
+}
+
+.body {
+	min-width: 0;
+}
+
+.body > :where(p) {
+	margin: 0;
+	color: var(--ns-text-muted);
+	line-height: 1.6;
 }
 
 .actions {
@@ -34,6 +64,18 @@
 	flex-wrap: wrap;
 }
 
+.footer {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem;
+	padding-top: 1rem;
+	border-top: 1px solid var(--ns-border-faint);
+	color: var(--ns-text-low);
+	font-size: 0.8125rem;
+}
+
 @media (max-width: 48rem) {
 	.header {
 		display: grid;
@@ -41,5 +83,9 @@
 
 	.actions {
 		justify-content: flex-start;
+	}
+
+	.footer {
+		display: grid;
 	}
 }

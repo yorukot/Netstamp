@@ -46,7 +46,7 @@
 
 .bar em {
 	margin-left: auto;
-	color: var(--ns-accent-hover);
+	color: var(--ns-primary-hover);
 	font-style: normal;
 }
 

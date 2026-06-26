@@ -150,7 +150,7 @@
 
 .selected {
 	color: var(--ns-text);
-	background: var(--ns-accent-muted);
+	background: var(--ns-primary-muted);
 }
 
 .selectionHeader,

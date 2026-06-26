@@ -25,8 +25,8 @@
 }
 
 .accent {
-	--ns-frame-color: var(--ns-accent-border);
-	background: color-mix(in srgb, var(--ns-accent) 6%, var(--ns-surface));
+	--ns-frame-color: var(--ns-primary-border);
+	background: color-mix(in srgb, var(--ns-primary) 6%, var(--ns-surface));
 }
 
 .danger {
