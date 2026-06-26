@@ -36,10 +36,17 @@ function initDocLayout() {
 		});
 	}
 
+	function plainTextFromElement(selector: string) {
+		const element = document.querySelector(selector);
+		if (!(element instanceof HTMLElement)) return "";
+
+		return (element.innerText || element.textContent || "").replace(/\n{3,}/g, "\n\n").trim();
+	}
+
 	function pagePlainText() {
-		const title = document.querySelector(".docHeader h1")?.textContent?.trim() ?? document.title;
-		const summary = document.querySelector(".docHeader p")?.textContent?.trim() ?? "";
-		const body = (document.querySelector(".docProse") as HTMLElement | null)?.innerText.trim() ?? "";
+		const title = plainTextFromElement(".docHeader h1") || document.title;
+		const summary = plainTextFromElement(".docHeader p");
+		const body = plainTextFromElement(".docProse");
 
 		return [`# ${title}`, summary, body].filter(Boolean).join("\n\n");
 	}
@@ -82,6 +89,38 @@ function initDocLayout() {
 		textarea.remove();
 	}
 
+	function openPlainTextDocument(text: string) {
+		const title = `${plainTextFromElement(".docHeader h1") || document.title} Markdown`;
+		const openedWindow = window.open("", "_blank");
+
+		if (openedWindow) {
+			openedWindow.opener = null;
+			openedWindow.document.title = title;
+			openedWindow.document.body.replaceChildren();
+			openedWindow.document.head.replaceChildren();
+
+			const meta = openedWindow.document.createElement("meta");
+			meta.setAttribute("charset", "utf-8");
+			openedWindow.document.head.append(meta);
+
+			const style = openedWindow.document.createElement("style");
+			style.textContent =
+				"body{margin:0;padding:2rem;background:#f8fafc;color:#172033;font:16px/1.65 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;}pre{margin:0;white-space:pre-wrap;word-break:break-word;}";
+			openedWindow.document.head.append(style);
+
+			const pre = openedWindow.document.createElement("pre");
+			pre.textContent = text || "No page content was available.";
+			openedWindow.document.body.append(pre);
+			openedWindow.focus();
+			return;
+		}
+
+		const blob = new Blob([text || "No page content was available."], { type: "text/plain;charset=utf-8" });
+		const url = URL.createObjectURL(blob);
+		window.open(url, "_blank", "noopener,noreferrer");
+		window.setTimeout(() => URL.revokeObjectURL(url), 60000);
+	}
+
 	if (pageActions && pageActionsToggle && pageActionsMenu) {
 		const handlePageActionsToggle = () => {
 			const willOpen = pageActionsToggle.getAttribute("aria-expanded") !== "true";
@@ -110,10 +149,7 @@ function initDocLayout() {
 			setPageActionsOpen(false);
 		};
 		const handleViewMarkdown = () => {
-			const blob = new Blob([pagePlainText()], { type: "text/plain;charset=utf-8" });
-			const url = URL.createObjectURL(blob);
-			window.open(url, "_blank", "noopener,noreferrer");
-			window.setTimeout(() => URL.revokeObjectURL(url), 60000);
+			openPlainTextDocument(pagePlainText());
 			setPageActionsOpen(false);
 		};
 

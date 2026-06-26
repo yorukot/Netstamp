@@ -316,6 +316,7 @@ const visibleBreadcrumbs =
 			position: fixed;
 			top: var(--docs-sticky-top);
 			width: min(14rem, 16vw);
+			max-width: calc(100vw - 2rem);
 			overflow: visible;
 		}
 
@@ -754,6 +755,7 @@ const visibleBreadcrumbs =
 			position: relative;
 			display: grid;
 			justify-items: start;
+			max-width: 100%;
 		}
 
 		:global(.docsPageActionsToggle) {
@@ -773,6 +775,13 @@ const visibleBreadcrumbs =
 			text-transform: none;
 		}
 
+		:global(.docsPageActionsToggle [data-docs-action-label]) {
+			min-width: 0;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+		}
+
 		:global(.docsPageActionsToggle:hover),
 		:global(.docsPageActionsToggle[aria-expanded="true"]) {
 			--ns-frame-color: transparent;
@@ -789,14 +798,16 @@ const visibleBreadcrumbs =
 		}
 
 		.docsPageActionsMenu {
-			position: absolute;
-			top: calc(100% + 0.45rem);
-			right: 0;
+			position: fixed;
+			top: calc(var(--docs-sticky-top) + 2.2rem);
+			right: clamp(1rem, 4vw, 3rem);
 			z-index: 20;
 			display: grid;
 			width: min(17.5rem, calc(100vw - 2rem));
+			max-height: calc(100svh - var(--docs-sticky-top) - 3.25rem);
 			padding: 0.25rem;
-			overflow: hidden;
+			overflow-x: clip;
+			overflow-y: auto;
 			border: 1px solid color-mix(in srgb, var(--ns-border) 78%, transparent);
 			border-radius: var(--ns-radius-sm);
 			background: color-mix(in srgb, var(--ns-surface) 92%, var(--ns-bg-subtle));
@@ -999,17 +1010,18 @@ const visibleBreadcrumbs =
 			}
 
 			.docsPageActions {
-				justify-items: start;
+				justify-items: stretch;
 			}
 
 			:global(.docsPageActionsToggle) {
-				width: auto;
-				justify-content: flex-start;
+				width: 100%;
+				justify-content: space-between;
 			}
 
 			.docsPageActionsMenu {
 				position: static;
-				width: min(17.5rem, 100%);
+				width: 100%;
+				max-height: none;
 				margin-top: 0.45rem;
 			}
 
