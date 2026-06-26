@@ -77,6 +77,10 @@ const navGroups = docsNav.map(group => ({
 		depth: Math.max(0, item.href.split("/").filter(Boolean).length - 2)
 	}))
 }));
+const externalLinks = [
+	{ title: "OpenAPI", href: "/openapi/" },
+	{ title: "Storybook", href: "/storybook/", reload: true }
+];
 const currentGroup = navGroups.find(group => group.active);
 const visibleBreadcrumbs =
 	pathname === "/docs/"
@@ -118,6 +122,19 @@ const visibleBreadcrumbs =
 						</section>
 					))
 				}
+				<section class="docsNavSection docsExternalLinks" aria-labelledby="docs-nav-section-external">
+					<h2 class="docsNavSectionTitle" id="docs-nav-section-external">External links</h2>
+					<div class="docsNavSectionItems">
+						{
+							externalLinks.map(link => (
+								<a href={link.href} class="docsExternalLink" data-astro-reload={link.reload ? true : undefined}>
+									<span>{link.title}</span>
+									<Icon name="arrowUpRight" size={13} />
+								</a>
+							))
+						}
+					</div>
+				</section>
 			</nav>
 		</aside>
 
@@ -284,6 +301,7 @@ const visibleBreadcrumbs =
 		}
 
 		.docsNavItem:focus-visible,
+		.docsExternalLink:focus-visible,
 		.docBreadcrumb a:focus-visible,
 		.docPagerLink:focus-visible,
 		.docsToc a:focus-visible,
@@ -418,6 +436,40 @@ const visibleBreadcrumbs =
 
 		.docsNavItem span {
 			display: block;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+		}
+
+		.docsExternalLinks {
+			padding-top: 0.25rem;
+			border-top: 1px solid var(--ns-border-faint);
+		}
+
+		.docsExternalLink {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: 0.75rem;
+			padding: 0.42rem 0.5rem 0.42rem 0.55rem;
+			color: var(--ns-text-subtle);
+			border-left: 2px solid transparent;
+			font-size: 0.9rem;
+			line-height: 1.35;
+			text-decoration: none;
+			transition:
+				background var(--ns-transition),
+				color var(--ns-transition);
+		}
+
+		.docsExternalLink:hover,
+		.docsExternalLink:focus-visible {
+			color: var(--ns-primary-hover);
+			background: var(--ns-primary-muted);
+		}
+
+		.docsExternalLink span {
+			min-width: 0;
 			overflow: hidden;
 			text-overflow: ellipsis;
 			white-space: nowrap;

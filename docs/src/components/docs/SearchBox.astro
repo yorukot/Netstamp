@@ -167,6 +167,10 @@ const dataJson = JSON.stringify(docsSearchIndex);
 		display: grid;
 		gap: 1rem;
 		width: min(42rem, calc(100vw - 2rem));
+		max-height: calc(100svh - 2rem);
+		min-width: 0;
+		box-sizing: border-box;
+		overflow: hidden;
 		padding: 1rem;
 		background: color-mix(in srgb, var(--ns-surface) 92%, var(--ns-bg-subtle));
 	}
@@ -208,11 +212,21 @@ const dataJson = JSON.stringify(docsSearchIndex);
 
 	:global(.docsSearchInputFrame) {
 		--ns-frame-color: transparent;
+		width: 100%;
+		min-width: 0;
+		box-sizing: border-box;
 		background: var(--ns-bg-subtle);
+	}
+
+	:global(.docsSearchInputFrame:focus-within) {
+		outline-offset: -2px;
 	}
 
 	:global(.docsSearchInput) {
 		min-height: 3.25rem;
+		width: 100%;
+		min-width: 0;
+		box-sizing: border-box;
 		background: transparent;
 		font-family: var(--ns-font-sans);
 		font-size: 1rem;
@@ -222,14 +236,20 @@ const dataJson = JSON.stringify(docsSearchIndex);
 	:global(.docsSearchResults) {
 		display: grid;
 		gap: 0.35rem;
-		max-height: min(24rem, 48vh);
+		width: 100%;
+		min-width: 0;
+		max-height: min(24rem, calc(100svh - 14rem));
 		overflow: auto;
+		overflow-x: hidden;
+		scrollbar-gutter: stable;
 	}
 
 	:global(.docsSearchResult),
 	:global(.docsSearchEmpty) {
 		display: grid;
 		gap: 0.25rem;
+		min-width: 0;
+		box-sizing: border-box;
 		padding: 0.75rem 0.875rem;
 		color: var(--ns-text-muted);
 		border-left: 2px solid transparent;
