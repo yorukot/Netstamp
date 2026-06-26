@@ -39,24 +39,6 @@ const columns: DataColumn<ProbeRow>[] = [
 	{ key: "latency", label: "Latency" }
 ];
 
-const entranceCards = [
-	{
-		label: "01",
-		title: "Scan the language",
-		description: "Start with surfaces, type scale, accent states, and operational rhythm."
-	},
-	{
-		label: "02",
-		title: "Jump to specimens",
-		description: "Open focused stories when a component needs controls, variants, or edge states."
-	},
-	{
-		label: "03",
-		title: "Assemble flows",
-		description: "Use the overview as a quick storyboard for forms, telemetry, tables, and shell framing."
-	}
-] as const;
-
 const storyShortcuts = [
 	{ label: "Buttons", href: "./?path=/story/components-button--playground" },
 	{ label: "Surfaces", href: "./?path=/story/components-surface--playground" },
@@ -81,10 +63,13 @@ export const Overview: Story = {
 				<div className="storybook-hero-copy">
 					<img src={netstampLogo} alt="Netstamp" className="storybook-logo" />
 					<p className="storybook-kicker">Netstamp UI storyboard</p>
-					<h1>Enter the component system.</h1>
-					<span className="storybook-hero-lede">
-						A guided overview for the shared React primitives in @netstamp/ui. Start here to read the visual language, then jump into focused stories for controls and variants.
-					</span>
+					<h1>Shared UI, in one pass.</h1>
+					<span className="storybook-hero-lede">A compact map of the @netstamp/ui primitives used across the app, docs, API explorer, and Storybook.</span>
+					<ul className="storybook-hero-points">
+						<li>Token roles: orange primary actions, blue reference data, semantic health states.</li>
+						<li>Surface rules: square frames, flat panels, no decorative gradients or shadows.</li>
+						<li>Core patterns: controls, forms, telemetry cards, tables, terminals, and shell framing.</li>
+					</ul>
 					<nav className="storybook-shortcuts" aria-label="Story shortcuts">
 						{storyShortcuts.map(shortcut => (
 							<a key={shortcut.label} href={shortcut.href} target="_top">
@@ -92,20 +77,6 @@ export const Overview: Story = {
 							</a>
 						))}
 					</nav>
-				</div>
-				<div className="storybook-entrance-panel" aria-label="Storyboard orientation">
-					<div className="storybook-route-card storybook-route-card--active">
-						<span>Default route</span>
-						<strong>Overview</strong>
-						<small>Start with the whole system before inspecting individual stories.</small>
-					</div>
-					{entranceCards.map(card => (
-						<div key={card.label} className="storybook-route-card">
-							<span>{card.label}</span>
-							<strong>{card.title}</strong>
-							<small>{card.description}</small>
-						</div>
-					))}
 				</div>
 			</header>
 

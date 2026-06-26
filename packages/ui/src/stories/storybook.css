@@ -45,7 +45,7 @@
 
 .storybook-hero--entrance {
 	position: relative;
-	grid-template-columns: minmax(0, 1.05fr) minmax(18rem, 0.65fr);
+	grid-template-columns: 1fr;
 	align-items: stretch;
 	overflow: hidden;
 	padding: clamp(1.25rem, 3vw, 2rem);
@@ -56,8 +56,7 @@
 	content: none;
 }
 
-.storybook-hero-copy,
-.storybook-entrance-panel {
+.storybook-hero-copy {
 	position: relative;
 	z-index: 1;
 	display: grid;
@@ -73,6 +72,34 @@
 .storybook-hero-lede {
 	max-width: 43rem;
 	font-size: clamp(1rem, 1.4vw, 1.2rem);
+}
+
+.storybook-hero-points {
+	display: grid;
+	gap: 0.65rem;
+	max-width: 45rem;
+	margin: 0;
+	padding: 0;
+	color: var(--ns-text-muted);
+	list-style: none;
+}
+
+.storybook-hero-points li {
+	position: relative;
+	padding-left: 1rem;
+	line-height: 1.5;
+}
+
+.storybook-hero-points li::before {
+	position: absolute;
+	top: 0.68em;
+	left: 0;
+	width: 0.35rem;
+	height: 0.35rem;
+	border: 1px solid var(--ns-primary);
+	background: var(--ns-primary-muted);
+	content: "";
+	transform: translateY(-50%);
 }
 
 .storybook-shortcuts {
@@ -104,49 +131,6 @@
 	border-color: var(--ns-primary);
 	background: var(--ns-primary-subtle);
 	color: var(--ns-primary-hover);
-}
-
-.storybook-entrance-panel {
-	align-content: start;
-	padding: clamp(0.75rem, 2vw, 1rem);
-	border: 1px solid color-mix(in srgb, var(--ns-primary) 28%, transparent);
-	background: color-mix(in srgb, var(--ns-bg) 20%, transparent);
-	box-shadow: none;
-}
-
-.storybook-route-card {
-	display: grid;
-	gap: 0.35rem;
-	padding: 0.95rem;
-	border: 1px solid var(--ns-border-faint);
-	background: var(--ns-glass-light);
-}
-
-.storybook-route-card--active {
-	border-color: var(--ns-primary-border);
-	background: var(--ns-primary-muted);
-}
-
-.storybook-route-card span {
-	color: var(--ns-primary-hover);
-	font-family: var(--ns-font-mono);
-	font-size: 0.66rem;
-	font-weight: 900;
-	letter-spacing: 0.14em;
-	text-transform: uppercase;
-}
-
-.storybook-route-card strong {
-	font-family: var(--ns-font-display);
-	font-size: clamp(1.1rem, 2vw, 1.6rem);
-	line-height: 1;
-	letter-spacing: 0;
-}
-
-.storybook-route-card small {
-	color: var(--ns-text-muted);
-	font-size: 0.86rem;
-	line-height: 1.5;
 }
 
 .storybook-logo {
