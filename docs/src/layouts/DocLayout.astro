@@ -4,7 +4,7 @@ import SearchBox from "../components/docs/SearchBox.astro";
 import { docsNav, docsPages, githubBaseUrl } from "../data/docs";
 import { absoluteUrl, createBreadcrumbSchema, createTechArticleSchema, resolveSiteUrl, type HeadEntry } from "../lib/seo";
 import BaseLayout from "./BaseLayout.astro";
-import { Button, Surface } from "@netstamp/ui";
+import { Badge, Button, Surface } from "@netstamp/ui";
 
 interface Heading {
 	depth: 2 | 3;
@@ -118,6 +118,10 @@ const navGroups = docsNav.map(group => ({
 
 		<main id="content" class="docContent">
 			<Surface as="header" tone="accent" frameSize="lg" padding="lg" className="docHero">
+				<div class="docHeroMeta">
+					<Badge tone="accent" dot={false}>{currentPage?.section ?? "Docs"}</Badge>
+					<span>{pathname}</span>
+				</div>
 				<h1>{title}</h1>
 				<p>{description}</p>
 			</Surface>
@@ -419,18 +423,38 @@ const navGroups = docsNav.map(group => ({
 
 		:global(.docHero) {
 			display: grid;
-			gap: 1rem;
+			gap: 0.875rem;
 			padding: clamp(2rem, 5vw, 4rem);
+		}
+
+		.docHeroMeta {
+			display: flex;
+			flex-wrap: wrap;
+			align-items: center;
+			gap: 0.65rem;
+			min-width: 0;
+		}
+
+		.docHeroMeta span {
+			min-width: 0;
+			overflow: hidden;
+			color: var(--ns-text-low);
+			font-family: var(--ns-font-mono);
+			font-size: 0.75rem;
+			font-weight: 800;
+			letter-spacing: 0.06em;
+			text-overflow: ellipsis;
+			white-space: nowrap;
 		}
 
 		:global(.docHero h1) {
 			max-width: 18ch;
 			margin: 0;
 			font-family: var(--ns-font-display);
-			font-size: clamp(1.4rem, 2.5vw, 2rem);
-			font-weight: 750;
+			font-size: clamp(1.8rem, 3vw, 2.65rem);
+			font-weight: 900;
 			letter-spacing: 0;
-			line-height: 1.05;
+			line-height: 0.98;
 		}
 
 		:global(.docHero p) {
@@ -646,6 +670,7 @@ const navGroups = docsNav.map(group => ({
 
 		:global(.callout-note) {
 			border-color: color-mix(in srgb, var(--ns-metal) 32%, transparent);
+			background: var(--ns-surface-raised);
 		}
 
 		:global(.callout-tip) {
@@ -703,6 +728,7 @@ const navGroups = docsNav.map(group => ({
 		}
 
 		:global(.docCard) {
+			position: relative;
 			display: grid;
 			gap: 0.75rem;
 			padding: 1rem;
@@ -710,6 +736,17 @@ const navGroups = docsNav.map(group => ({
 			border: 1px solid var(--ns-border-faint);
 			background: var(--ns-surface);
 			text-decoration: none;
+		}
+
+		:global(.docCard::before) {
+			position: absolute;
+			top: 0;
+			left: 0;
+			width: 0.2rem;
+			height: 100%;
+			background: transparent;
+			content: "";
+			transition: background var(--ns-transition);
 		}
 
 		:global(.docCardIcon) {
@@ -735,6 +772,10 @@ const navGroups = docsNav.map(group => ({
 		:global(.docCard:hover) {
 			border-color: var(--ns-primary-border);
 			background: var(--ns-primary-muted);
+		}
+
+		:global(.docCard:hover::before) {
+			background: var(--ns-primary);
 		}
 
 		:global(.docCard strong) {
