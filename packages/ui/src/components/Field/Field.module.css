@@ -26,7 +26,7 @@
 }
 
 .controlFrame:focus-within {
-	--ns-frame-color: var(--ns-primary-active);
+	--ns-frame-color: transparent;
 	outline: var(--ns-focus-outline);
 	outline-offset: var(--ns-focus-outline-offset);
 	box-shadow: none;
@@ -354,6 +354,7 @@
 }
 
 .checkbox:focus-visible {
+	border-color: transparent;
 	outline: var(--ns-focus-outline);
 	outline-offset: var(--ns-focus-outline-offset);
 }

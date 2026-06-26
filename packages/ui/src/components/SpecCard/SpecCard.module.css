@@ -13,6 +13,7 @@
 }
 
 .card:focus-visible {
+	--ns-frame-color: transparent;
 	outline: var(--ns-focus-outline);
 	outline-offset: var(--ns-focus-outline-offset);
 }

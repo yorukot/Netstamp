@@ -83,8 +83,8 @@ const dataJson = JSON.stringify(docsSearchIndex);
 	}
 
 	:global(.docsSearchTrigger:hover) {
-		--ns-frame-color: var(--ns-accent-border);
-		background: color-mix(in srgb, var(--ns-accent) 8%, transparent);
+		--ns-frame-color: var(--ns-primary-border);
+		background: var(--ns-primary-muted);
 	}
 
 	:global(.docsSearchTriggerLabel) {
@@ -146,7 +146,6 @@ const dataJson = JSON.stringify(docsSearchIndex);
 		padding: 0;
 		border: 0;
 		background: var(--ns-overlay-scrim);
-		backdrop-filter: blur(0.5rem);
 		cursor: default;
 		appearance: none;
 	}
@@ -225,8 +224,8 @@ const dataJson = JSON.stringify(docsSearchIndex);
 
 	:global(.docsSearchResult:hover),
 	:global(.docsSearchResult:focus-visible) {
-		border-color: var(--ns-accent-border);
-		background: color-mix(in srgb, var(--ns-accent) 10%, transparent);
+		border-color: var(--ns-primary-border);
+		background: var(--ns-primary-muted);
 	}
 
 	:global(.docsSearchResult strong) {
@@ -244,7 +243,6 @@ const dataJson = JSON.stringify(docsSearchIndex);
 
 	:global(.docsSearchTrigger:focus-visible),
 	:global(.docsSearchClose:focus-visible),
-	:global(.docsSearchInputFrame:focus-within),
 	:global(.docsSearchResult:focus-visible) {
 		outline: var(--ns-focus-outline);
 		outline-offset: 0.25rem;

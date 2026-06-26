@@ -204,8 +204,6 @@ const navGroups = docsNav.map(group => ({
 	<style>
 		.docsNavItem:focus-visible,
 		.docsToc a:focus-visible,
-		:global(.docsNavGroupToggle:focus-visible),
-		:global(.docsSidebarFold:focus-visible),
 		:global(.docPagerLink:focus-visible),
 		:global(.editLink:focus-visible) {
 			outline: var(--ns-focus-outline);
@@ -260,9 +258,9 @@ const navGroups = docsNav.map(group => ({
 
 		:global(.docsSidebarFold:hover),
 		:global(.docsSidebarFold[aria-pressed="true"]) {
-			--ns-frame-color: var(--ns-accent-border);
+			--ns-frame-color: var(--ns-primary-border);
 			color: var(--ns-text);
-			background: color-mix(in srgb, var(--ns-accent) 8%, transparent);
+			background: var(--ns-primary-muted);
 		}
 
 		:global(.icon) {
@@ -318,7 +316,7 @@ const navGroups = docsNav.map(group => ({
 		}
 
 		.docsNavGroup.active :global(.docsNavGroupToggle) {
-			color: var(--ns-accent-hover);
+			color: var(--ns-primary-hover);
 		}
 
 		:global(.docsNavGroupToggle > .icon:last-child) {
@@ -369,8 +367,8 @@ const navGroups = docsNav.map(group => ({
 		.docsNavItem:hover,
 		.docsNavItem.active {
 			color: var(--ns-text);
-			border-color: var(--ns-accent-border);
-			background: color-mix(in srgb, var(--ns-accent) 8%, transparent);
+			border-color: var(--ns-primary-border);
+			background: var(--ns-primary-muted);
 		}
 
 		.docsShell.sidebarFolded .docsSidebarHeader {
@@ -490,9 +488,9 @@ const navGroups = docsNav.map(group => ({
 		}
 
 		:global(.docPagerLink:hover) {
-			--ns-frame-color: var(--ns-accent-border);
+			--ns-frame-color: var(--ns-primary-border);
 			color: var(--ns-text);
-			background: color-mix(in srgb, var(--ns-accent) 8%, transparent);
+			background: var(--ns-primary-muted);
 			transform: translateY(-1px);
 		}
 
@@ -566,13 +564,13 @@ const navGroups = docsNav.map(group => ({
 		}
 
 		:global(.docProse a) {
-			color: var(--ns-accent-hover);
+			color: var(--ns-primary-hover);
 		}
 
 		:global(.docProse code:not(pre code)) {
 			padding: 0.1rem 0.28rem;
-			color: var(--ns-accent-hover);
-			background: color-mix(in srgb, var(--ns-accent) 10%, transparent);
+			color: var(--ns-primary-hover);
+			background: var(--ns-primary-muted);
 			font-family: var(--ns-font-mono);
 			font-size: 0.9em;
 		}
@@ -583,7 +581,7 @@ const navGroups = docsNav.map(group => ({
 			padding: 2.5rem 1.25rem 1.125rem !important;
 			background-color: var(--ns-surface-deep) !important;
 			overflow-x: auto !important;
-			border: 1px solid color-mix(in srgb, var(--ns-accent) 22%, transparent);
+			border: 1px solid var(--ns-primary-border);
 			box-shadow: none;
 		}
 
@@ -604,12 +602,12 @@ const navGroups = docsNav.map(group => ({
 			gap: 0.5rem;
 			margin: 0;
 			padding: 1rem;
-			border: 1px solid var(--ns-accent-border);
-			background: color-mix(in srgb, var(--ns-accent) 7%, transparent);
+			border: 1px solid var(--ns-primary-border);
+			background: var(--ns-primary-muted);
 		}
 
 		:global(.docProse blockquote strong) {
-			color: var(--ns-accent-hover);
+			color: var(--ns-primary-hover);
 			font-family: var(--ns-font-mono);
 			font-size: 0.75rem;
 			font-weight: 900;
@@ -690,7 +688,7 @@ const navGroups = docsNav.map(group => ({
 
 		.docsToc a:hover,
 		.docsToc a.active {
-			color: var(--ns-accent-hover);
+			color: var(--ns-primary-hover);
 		}
 
 		.docsToc a.sub {
@@ -720,9 +718,9 @@ const navGroups = docsNav.map(group => ({
 			justify-content: center;
 			width: 2rem;
 			height: 2rem;
-			color: var(--ns-accent-hover);
-			border: 1px solid var(--ns-accent-border);
-			background: color-mix(in srgb, var(--ns-accent) 8%, transparent);
+			color: var(--ns-primary-hover);
+			border: 1px solid var(--ns-primary-border);
+			background: var(--ns-primary-muted);
 		}
 
 		:global(.docCardMeta) {
@@ -735,8 +733,8 @@ const navGroups = docsNav.map(group => ({
 		}
 
 		:global(.docCard:hover) {
-			border-color: var(--ns-accent-border);
-			background: color-mix(in srgb, var(--ns-accent) 8%, transparent);
+			border-color: var(--ns-primary-border);
+			background: var(--ns-primary-muted);
 		}
 
 		:global(.docCard strong) {

@@ -58,8 +58,7 @@ const isComponents = pathname.startsWith("/storybook") || pathname.startsWith("/
 		min-height: 4.5rem;
 		padding: 0 1.5rem;
 		border-bottom: 1px solid var(--ns-border);
-		background: var(--ns-surface);
-		backdrop-filter: blur(1rem);
+		background: var(--ns-glass-dark);
 	}
 
 	.siteBrand {
@@ -120,13 +119,11 @@ const isComponents = pathname.startsWith("/storybook") || pathname.startsWith("/
 
 	.siteNavLink:hover,
 	.siteNavLink.active {
-		color: var(--ns-accent-hover);
+		color: var(--ns-primary-hover);
 	}
 
 	.siteBrand:focus-visible,
-	.siteNavLink:focus-visible,
-	:global(.siteThemeToggle:focus-visible),
-	:global(.siteNavDemo:focus-visible) {
+	.siteNavLink:focus-visible {
 		outline: var(--ns-focus-outline);
 		outline-offset: 0.25rem;
 	}
