@@ -50,8 +50,8 @@
 	left: var(--ns-selection-left);
 	z-index: 1;
 	width: var(--ns-selection-width);
-	background: var(--ns-accent-muted);
-	border-inline: 1px solid var(--ns-accent-hover);
+	background: var(--ns-primary-muted);
+	border-inline: 1px solid var(--ns-primary-hover);
 	pointer-events: none;
 }
 

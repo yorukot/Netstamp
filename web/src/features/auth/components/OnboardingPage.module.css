@@ -37,7 +37,7 @@
 
 .consoleBar strong {
 	margin-left: 0.25rem;
-	color: var(--ns-accent-hover);
+	color: var(--ns-primary-hover);
 	font-family: var(--ns-font-mono);
 	font-size: 0.75rem;
 	font-weight: 700;
@@ -85,7 +85,7 @@
 
 .scriptPrompt,
 .answerPrompt {
-	color: var(--ns-accent-hover);
+	color: var(--ns-primary-hover);
 	font-size: 0.75rem;
 	font-weight: 800;
 	letter-spacing: 0.1em;
@@ -110,7 +110,7 @@
 	width: 0.65ch;
 	height: 1em;
 	margin-left: 0.08rem;
-	background: var(--ns-accent-hover);
+	background: var(--ns-primary-hover);
 	vertical-align: -0.12em;
 	animation: cursorBlink 0.78s step-end infinite;
 }
@@ -145,7 +145,7 @@
 }
 
 .inviteList::-webkit-scrollbar-thumb:hover {
-	background: var(--ns-accent-border);
+	background: var(--ns-primary-border);
 }
 
 .answerRow {
@@ -159,7 +159,7 @@
 	border: 0;
 	outline: 0;
 	color: var(--ns-text);
-	caret-color: var(--ns-accent-hover);
+	caret-color: var(--ns-primary-hover);
 	background: transparent;
 	font: inherit;
 }
@@ -173,8 +173,8 @@
 }
 
 .answerRow:focus-within {
-	border-color: var(--ns-accent-active);
-	outline: 2px solid var(--ns-accent-active);
+	border-color: transparent;
+	outline: var(--ns-focus-outline);
 	outline-offset: 2px;
 	box-shadow: none;
 }
@@ -213,10 +213,10 @@
 
 .tuiButton,
 .tuiMiniButton {
-	--ns-frame-color: var(--ns-accent-border);
-	border: 1px solid var(--ns-accent-border);
-	color: var(--ns-accent-hover);
-	background: var(--ns-accent-muted);
+	--ns-frame-color: var(--ns-primary-border);
+	border: 1px solid var(--ns-primary-border);
+	color: var(--ns-primary-hover);
+	background: var(--ns-primary-muted);
 	font-family: var(--ns-font-mono);
 	font-weight: 800;
 	letter-spacing: 0.08em;
@@ -239,7 +239,14 @@
 .tuiButton:hover,
 .tuiMiniButton:hover {
 	color: var(--ns-text-on-accent);
-	background: var(--ns-accent-hover);
+	background: var(--ns-primary-hover);
+}
+
+.tuiButton:focus-visible,
+.tuiMiniButton:focus-visible {
+	border-color: transparent;
+	outline: var(--ns-focus-outline);
+	outline-offset: var(--ns-focus-outline-offset);
 }
 
 .tuiButton:disabled {

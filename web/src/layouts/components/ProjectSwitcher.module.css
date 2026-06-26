@@ -33,6 +33,12 @@
 	--ns-frame-color: var(--ns-border-strong);
 }
 
+.projectFrame:focus-within {
+	--ns-frame-color: transparent;
+	outline: var(--ns-focus-outline);
+	outline-offset: var(--ns-focus-outline-offset);
+}
+
 .projectControl {
 	min-height: 2.5rem;
 	padding: 0.5rem 2.25rem 0.5rem 0.75rem;
@@ -56,7 +62,7 @@
 
 .projectCreateOption svg {
 	flex: 0 0 auto;
-	color: var(--ns-accent-active);
+	color: var(--ns-primary-active);
 }
 
 .projectCreateOption span {
@@ -90,12 +96,18 @@
 }
 
 .projectCompactButton:hover,
-.projectCompactButton:focus-visible,
 .projectCompactButton[data-state="open"] {
 	--ns-frame-color: var(--ns-border-strong);
 	color: var(--ns-text);
 	background: var(--ns-bg-subtle);
-	outline: none;
+}
+
+.projectCompactButton:focus-visible {
+	--ns-frame-color: transparent;
+	color: var(--ns-text);
+	background: var(--ns-bg-subtle);
+	outline: var(--ns-focus-outline);
+	outline-offset: var(--ns-focus-outline-offset);
 }
 
 .projectPopover {

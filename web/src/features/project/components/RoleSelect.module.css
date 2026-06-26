@@ -22,6 +22,12 @@
 	transform: translateY(-65%) rotate(45deg);
 }
 
+.frame:focus-within {
+	--ns-frame-color: transparent;
+	outline: var(--ns-focus-outline);
+	outline-offset: var(--ns-focus-outline-offset);
+}
+
 .select {
 	min-height: 2rem;
 	border: 0;

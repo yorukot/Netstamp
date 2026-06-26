@@ -236,7 +236,7 @@
 }
 
 .notificationPickerOption input {
-	accent-color: var(--ns-accent);
+	accent-color: var(--ns-primary);
 }
 
 .notificationPickerEmpty {
@@ -289,7 +289,7 @@
 }
 
 .notificationTypeIcon {
-	color: var(--ns-accent-active);
+	color: var(--ns-primary-active);
 }
 
 .notificationTypeText {
@@ -311,18 +311,23 @@
 	line-height: 1.45;
 }
 
-.notificationTypeOption:hover,
+.notificationTypeOption:hover {
+	--ns-frame-color: var(--ns-primary-border);
+	background: var(--ns-primary-muted);
+}
+
 .notificationTypeOption:focus-visible {
-	--ns-frame-color: var(--ns-accent-border);
-	background: var(--ns-accent-muted);
-	outline: none;
+	--ns-frame-color: transparent;
+	background: var(--ns-primary-muted);
+	outline: var(--ns-focus-outline);
+	outline-offset: var(--ns-focus-outline-offset);
 }
 
 .previewSentence {
 	padding: 0.875rem;
-	border: 1px solid var(--ns-accent-border);
+	border: 1px solid var(--ns-primary-border);
 	color: var(--ns-text-muted);
-	background: var(--ns-accent-muted);
+	background: var(--ns-primary-muted);
 	font-family: var(--ns-font-sans);
 	font-size: 0.875rem;
 	line-height: 1.5;

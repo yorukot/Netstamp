@@ -50,14 +50,14 @@
 }
 
 .stepActive {
-	--ns-frame-color: var(--ns-accent-border);
-	background: var(--ns-accent-muted);
+	--ns-frame-color: var(--ns-primary-border);
+	background: var(--ns-primary-muted);
 	box-shadow: none;
 }
 
 .stepActive span,
 .stepActive strong {
-	color: var(--ns-accent-hover);
+	color: var(--ns-primary-hover);
 }
 
 .stepComplete {
@@ -224,7 +224,7 @@
 }
 
 .tokenLine strong {
-	color: var(--ns-accent-hover);
+	color: var(--ns-primary-hover);
 	font-family: var(--ns-font-mono);
 	font-size: 0.95rem;
 	font-weight: 800;

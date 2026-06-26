@@ -1,5 +1,5 @@
 .banner {
-	--ns-frame-color: var(--ns-accent-border);
+	--ns-frame-color: var(--ns-primary-border);
 	position: fixed;
 	right: max(1rem, env(safe-area-inset-right));
 	bottom: max(1rem, env(safe-area-inset-bottom));

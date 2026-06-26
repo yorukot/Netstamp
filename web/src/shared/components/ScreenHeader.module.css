@@ -17,7 +17,7 @@
 	align-items: center;
 	gap: 0.45rem;
 	width: fit-content;
-	color: var(--ns-accent-hover);
+	color: var(--ns-primary-hover);
 	font-family: var(--ns-font-sans);
 	font-size: 0.8125rem;
 	font-weight: 650;
@@ -31,7 +31,7 @@
 }
 
 .backLink:hover {
-	color: var(--ns-accent);
+	color: var(--ns-primary);
 }
 
 .header h1 {

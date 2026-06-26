@@ -14,7 +14,7 @@
 }
 
 .focusChip {
-	--ns-frame-color: color-mix(in srgb, var(--ns-accent) 42%, transparent);
+	--ns-frame-color: color-mix(in srgb, var(--ns-primary) 42%, transparent);
 	display: grid;
 	grid-template-columns: auto minmax(4rem, auto) auto;
 	gap: 0.625rem;
@@ -23,7 +23,7 @@
 	padding: 0.5rem 0.6rem;
 	border: 1px solid var(--ns-frame-color);
 	color: var(--ns-text-muted);
-	background: var(--ns-accent-muted);
+	background: var(--ns-primary-muted);
 	font-family: var(--ns-font-mono);
 }
 
@@ -50,7 +50,7 @@
 }
 
 .focusChip button {
-	color: var(--ns-accent-hover);
+	color: var(--ns-primary-hover);
 	background: transparent;
 	border: 0;
 	font-family: var(--ns-font-mono);
@@ -60,10 +60,14 @@
 	cursor: pointer;
 }
 
-.focusChip button:hover,
+.focusChip button:hover {
+	color: var(--ns-text);
+}
+
 .focusChip button:focus-visible {
 	color: var(--ns-text);
-	outline: none;
+	outline: var(--ns-focus-outline);
+	outline-offset: 0.15rem;
 }
 
 .assignmentField {
@@ -88,10 +92,13 @@
 	cursor: text;
 }
 
-.assignmentControl[data-open="true"],
+.assignmentControl[data-open="true"] {
+	--ns-frame-color: var(--ns-primary-border);
+}
+
 .assignmentControl:focus-within {
-	--ns-frame-color: var(--ns-accent-active);
-	outline: 2px solid var(--ns-accent-active);
+	--ns-frame-color: transparent;
+	outline: var(--ns-focus-outline);
 	outline-offset: 2px;
 }
 
@@ -128,8 +135,8 @@
 	min-width: 0;
 	padding: 0.35rem 0.45rem;
 	color: var(--ns-text);
-	background: var(--ns-accent-muted);
-	border: 1px solid color-mix(in srgb, var(--ns-accent) 32%, transparent);
+	background: var(--ns-primary-muted);
+	border: 1px solid color-mix(in srgb, var(--ns-primary) 32%, transparent);
 	border-radius: var(--ns-radius-sm);
 	font-family: var(--ns-font-mono);
 	font-size: 0.6875rem;
@@ -147,7 +154,7 @@
 
 .assignmentToken button,
 .assignmentClear {
-	color: var(--ns-accent-hover);
+	color: var(--ns-primary-hover);
 	background: transparent;
 	border: 0;
 	font-family: var(--ns-font-mono);
@@ -168,11 +175,15 @@
 }
 
 .assignmentToken button:hover,
+.assignmentClear:hover {
+	color: var(--ns-text);
+}
+
 .assignmentToken button:focus-visible,
-.assignmentClear:hover,
 .assignmentClear:focus-visible {
 	color: var(--ns-text);
-	outline: none;
+	outline: var(--ns-focus-outline);
+	outline-offset: 0.15rem;
 }
 
 .assignmentOverflow {
@@ -237,24 +248,30 @@
 }
 
 .assignmentOption:hover,
-.assignmentOption:focus-visible,
 .assignmentOption[data-active="true"],
 .assignmentOption[data-highlighted] {
 	color: var(--ns-text);
-	background: var(--ns-accent-muted);
-	border-color: color-mix(in srgb, var(--ns-accent) 30%, transparent);
-	outline: none;
+	background: var(--ns-primary-muted);
+	border-color: color-mix(in srgb, var(--ns-primary) 30%, transparent);
+}
+
+.assignmentOption:focus-visible {
+	color: var(--ns-text);
+	background: var(--ns-primary-muted);
+	border-color: transparent;
+	outline: var(--ns-focus-outline);
+	outline-offset: var(--ns-focus-outline-offset);
 }
 
 .assignmentOption[data-selected="true"],
 .assignmentOption[data-state="checked"] {
-	background: var(--ns-accent-subtle);
-	border-color: color-mix(in srgb, var(--ns-accent) 50%, transparent);
+	background: var(--ns-primary-subtle);
+	border-color: color-mix(in srgb, var(--ns-primary) 50%, transparent);
 }
 
 .assignmentOption[data-selected="true"]::after,
 .assignmentOption[data-state="checked"]::after {
-	color: var(--ns-accent-hover);
+	color: var(--ns-primary-hover);
 	content: "selected";
 	font-size: 0.625rem;
 	font-weight: 900;
@@ -311,10 +328,14 @@
 	white-space: nowrap;
 }
 
-.timeTrigger:hover,
-.timeTrigger:focus-visible {
+.timeTrigger:hover {
 	--ns-frame-color: var(--ns-border-strong);
-	outline: none;
+}
+
+.timeTrigger:focus-visible {
+	--ns-frame-color: transparent;
+	outline: var(--ns-focus-outline);
+	outline-offset: var(--ns-focus-outline-offset);
 }
 
 .refreshButton {
@@ -371,12 +392,18 @@
 }
 
 .timePreset:hover,
-.timePreset:focus-visible,
 .timePreset[data-selected="true"] {
-	--ns-frame-color: color-mix(in srgb, var(--ns-accent) 50%, transparent);
+	--ns-frame-color: color-mix(in srgb, var(--ns-primary) 50%, transparent);
 	color: var(--ns-text);
-	background: var(--ns-accent-muted);
-	outline: none;
+	background: var(--ns-primary-muted);
+}
+
+.timePreset:focus-visible {
+	--ns-frame-color: transparent;
+	color: var(--ns-text);
+	background: var(--ns-primary-muted);
+	outline: var(--ns-focus-outline);
+	outline-offset: var(--ns-focus-outline-offset);
 }
 
 .absoluteGrid {
@@ -428,7 +455,7 @@
 .tokenIcon {
 	display: block;
 	flex: 0 0 auto;
-	color: var(--ns-accent-hover);
+	color: var(--ns-primary-hover);
 	pointer-events: none;
 }
 
@@ -507,22 +534,32 @@
 }
 
 .assignmentOption:hover,
-.assignmentOption:focus-visible,
 .assignmentOption[data-active="true"],
 .assignmentOption[data-highlighted] {
 	background: var(--ns-bg-subtle);
 	border-color: var(--ns-border);
 }
 
+.assignmentOption:focus-visible {
+	background: var(--ns-bg-subtle);
+	border-color: transparent;
+	outline: var(--ns-focus-outline);
+	outline-offset: var(--ns-focus-outline-offset);
+}
+
 .assignmentOption[data-selected="true"],
 .assignmentOption[data-state="checked"] {
-	background: var(--ns-accent-muted);
-	border-color: var(--ns-accent-border);
+	background: var(--ns-primary-muted);
+	border-color: var(--ns-primary-border);
+}
+
+.assignmentOption:focus-visible:is([data-selected="true"], [data-state="checked"]) {
+	border-color: transparent;
 }
 
 .assignmentOption[data-selected="true"]::after,
 .assignmentOption[data-state="checked"]::after {
-	color: var(--ns-accent-active);
+	color: var(--ns-primary-active);
 	text-transform: none;
 }
 

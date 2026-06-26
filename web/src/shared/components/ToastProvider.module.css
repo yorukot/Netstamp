@@ -10,7 +10,7 @@
 }
 
 .toast {
-	--toast-color: var(--ns-accent);
+	--toast-color: var(--ns-primary);
 	display: grid;
 	grid-template-columns: minmax(0, 1fr) auto;
 	gap: 0.75rem;

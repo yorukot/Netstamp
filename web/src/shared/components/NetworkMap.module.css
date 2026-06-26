@@ -89,7 +89,7 @@
 .markerSquare {
 	width: 0.75rem;
 	height: 0.75rem;
-	background: var(--ns-accent);
+	background: var(--ns-primary);
 	border: 1px solid var(--ns-border-strong);
 	outline: 1px solid color-mix(in srgb, var(--ns-bg) 82%, transparent);
 }
@@ -102,8 +102,7 @@
 .marker[data-active="true"] .markerSquare {
 	width: 1rem;
 	height: 1rem;
-	border: 3px solid var(--ns-surface);
-	box-shadow: none;
+	border-color: transparent;
 	outline: 2px solid var(--ns-bg);
 }
 

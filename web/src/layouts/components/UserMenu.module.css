@@ -44,12 +44,18 @@
 }
 
 .userCard:hover,
-.userCard:focus-visible,
 .userCard[data-state="open"] {
 	--ns-frame-color: var(--ns-border-strong);
 	color: var(--ns-text);
 	background: var(--ns-bg-subtle);
-	outline: none;
+}
+
+.userCard:focus-visible {
+	--ns-frame-color: transparent;
+	color: var(--ns-text);
+	background: var(--ns-bg-subtle);
+	outline: var(--ns-focus-outline);
+	outline-offset: var(--ns-focus-outline-offset);
 }
 
 .userProfile,
@@ -79,7 +85,7 @@
 }
 
 .userAvatarButton:focus-visible {
-	outline: 2px solid var(--ns-accent-active);
+	outline: var(--ns-focus-outline);
 	outline-offset: 0.25rem;
 }
 
@@ -167,7 +173,7 @@
 	place-items: center;
 	padding: 0 0.25rem;
 	border: 1px solid var(--ns-surface);
-	background: var(--ns-accent);
+	background: var(--ns-primary);
 	color: var(--ns-text-on-accent);
 	font-size: 0.625rem;
 	font-weight: 800;

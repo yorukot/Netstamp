@@ -36,13 +36,13 @@
 }
 
 .memberAvatarFallback {
-	--ns-frame-color: color-mix(in srgb, var(--ns-accent) 50%, transparent);
+	--ns-frame-color: color-mix(in srgb, var(--ns-primary) 50%, transparent);
 	display: grid;
 	place-items: center;
 	flex: 0 0 auto;
 	border: 1px solid var(--ns-frame-color);
-	background: var(--ns-accent-muted);
-	color: var(--ns-accent);
+	background: var(--ns-primary-muted);
+	color: var(--ns-primary);
 	font-family: var(--ns-font-mono);
 	font-size: 0.75rem;
 	font-weight: 800;

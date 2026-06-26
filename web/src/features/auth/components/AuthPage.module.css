@@ -20,9 +20,9 @@
 :root[data-theme="light"] .authShell {
 	--auth-page-bg: #f6f7f9;
 	--auth-pane-bg: #ffffff;
-	--auth-visual-bg: #111821;
+	--auth-visual-bg: #0b0b0b;
 	--auth-map-opacity: 0.84;
-	--auth-visual-overlay: rgba(7, 9, 13, 0.18);
+	--auth-visual-overlay: rgba(0, 0, 0, 0.18);
 	--auth-quote-bg: rgba(255, 255, 255, 0.92);
 	--auth-quote-text: var(--ns-text-muted);
 }
@@ -32,8 +32,8 @@
 	--auth-pane-bg: var(--ns-bg);
 	--auth-visual-bg: var(--ns-surface-deep);
 	--auth-map-opacity: 0.9;
-	--auth-visual-overlay: rgba(7, 9, 13, 0.24);
-	--auth-quote-bg: rgba(7, 9, 13, 0.88);
+	--auth-visual-overlay: rgba(0, 0, 0, 0.24);
+	--auth-quote-bg: rgba(11, 11, 11, 0.88);
 	--auth-quote-text: var(--ns-text-muted);
 }
 
@@ -61,7 +61,7 @@
 }
 
 .brandLink:focus-visible {
-	outline: 2px solid var(--ns-accent);
+	outline: var(--ns-focus-outline);
 	outline-offset: 0.25rem;
 }
 
@@ -112,15 +112,15 @@
 .submitButton {
 	width: 100%;
 	margin-top: 0.25rem;
-	--ns-frame-color: var(--ns-accent);
-	background: var(--ns-accent);
+	--ns-frame-color: var(--ns-primary);
+	background: var(--ns-primary);
 	color: var(--ns-text-on-accent);
 }
 
 .submitButton:hover,
 .submitButton:active {
-	--ns-frame-color: var(--ns-accent-hover);
-	background: var(--ns-accent-hover);
+	--ns-frame-color: var(--ns-primary-hover);
+	background: var(--ns-primary-hover);
 	color: var(--ns-text-on-accent);
 }
 
@@ -171,7 +171,7 @@
 }
 
 .modeLink:focus-visible {
-	outline: 2px solid var(--ns-accent);
+	outline: var(--ns-focus-outline);
 	outline-offset: 0.25rem;
 }
 
@@ -209,7 +209,7 @@
 	z-index: 1;
 	max-width: min(35rem, calc(100% - 2.5rem));
 	margin: 0;
-	border: 1px solid var(--ns-accent-border);
+	border: 1px solid var(--ns-primary-border);
 	background: var(--auth-quote-bg);
 	padding: 1rem 1.125rem;
 	color: var(--auth-quote-text);

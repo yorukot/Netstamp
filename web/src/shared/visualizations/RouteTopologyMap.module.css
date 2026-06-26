@@ -94,7 +94,7 @@
 }
 
 .topologyEdgeHit:focus-visible {
-	stroke: var(--ns-accent-subtle);
+	stroke: var(--ns-primary-subtle);
 }
 
 .topologyNode {
@@ -115,7 +115,9 @@
 }
 
 .topologyNode:focus-visible .topologyNodeDot {
-	box-shadow: none;
+	border-color: transparent;
+	outline: var(--ns-focus-outline);
+	outline-offset: 0.15rem;
 }
 
 .topologyNodeDot {
@@ -276,5 +278,5 @@
 }
 
 .topologyDetaildestination {
-	--ns-topology-detail-color: var(--ns-accent-hover);
+	--ns-topology-detail-color: var(--ns-primary-hover);
 }
