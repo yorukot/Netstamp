@@ -2,18 +2,18 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { CodePreview, KeyValueRow, SpecLabel, Surface } from "../index";
 
 const lightTokens = [
-	["Canvas", "--ns-bg", "#f6f8fb"],
+	["Canvas", "--ns-bg", "#f3f7fb"],
 	["Surface", "--ns-surface", "#ffffff"],
-	["Raised", "--ns-surface-raised", "#fbfcfe"],
-	["Deep", "--ns-surface-deep", "#e7edf5"],
-	["Text", "--ns-text", "#111827"],
-	["Muted text", "--ns-text-muted", "#3f4b5f"],
-	["Primary orange", "--ns-primary", "#e65f1a"],
-	["Secondary blue", "--ns-secondary", "#2867b2"],
+	["Raised", "--ns-surface-raised", "#f8fbff"],
+	["Deep", "--ns-surface-deep", "#e0e7e9"],
+	["Text", "--ns-text", "#172033"],
+	["Muted text", "--ns-text-muted", "#405168"],
+	["Primary orange", "--ns-primary", "#ea6a1a"],
+	["Secondary blue", "--ns-secondary", "#2563eb"],
 	["Success", "--ns-success", "#168a45"],
 	["Warning", "--ns-warning", "#b7791f"],
 	["Critical", "--ns-critical", "#c9362c"],
-	["Border", "--ns-border", "#d7dee8"]
+	["Border", "--ns-border", "#d8e1ec"]
 ] as const;
 
 const typeRows = [

@@ -35,10 +35,10 @@ const preview: Preview = {
 		backgrounds: {
 			default: "light",
 			options: {
-				light: { name: "Light canvas", value: "#f6f8fb" },
+				light: { name: "Light canvas", value: "#f3f7fb" },
 				lightPanel: { name: "Light panel", value: "#ffffff" },
-				dark: { name: "Dark canvas", value: "#0d1520" },
-				darkPanel: { name: "Dark panel", value: "#151f2d" }
+				dark: { name: "Dark canvas", value: "#0b0b0b" },
+				darkPanel: { name: "Dark panel", value: "#111111" }
 			}
 		},
 		controls: {
