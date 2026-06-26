@@ -218,8 +218,8 @@ const navGroups = docsNav.map(group => ({
 			display: grid;
 			grid-template-columns: minmax(15rem, 18rem) minmax(0, 1fr) minmax(12rem, 16rem);
 			gap: 2rem;
-			min-height: calc(100svh - 4.5rem);
-			padding: 2rem;
+			min-height: 100svh;
+			padding: 7rem 2rem 2rem;
 			background: var(--ns-bg);
 			transition:
 				grid-template-columns var(--ns-transition),
@@ -234,7 +234,7 @@ const navGroups = docsNav.map(group => ({
 		.docsSidebar,
 		.docsTocInner {
 			position: sticky;
-			top: 6rem;
+			top: 1.5rem;
 			align-self: start;
 		}
 
@@ -790,7 +790,7 @@ const navGroups = docsNav.map(group => ({
 			.docsShell {
 				grid-template-columns: 1fr;
 				gap: 1rem;
-				padding: 1rem;
+				padding: 7rem 1rem 1rem;
 			}
 
 			.docsSidebar,
@@ -848,6 +848,10 @@ const navGroups = docsNav.map(group => ({
 		}
 
 		@media (max-width: 48rem) {
+			.docsShell {
+				padding-top: 8.75rem;
+			}
+
 			:global(.docHero) {
 				padding: 1.5rem;
 			}

@@ -12,15 +12,20 @@
 	--ns-font-display: "Arial Black", "TASAExplorer", "TASA Explorer", sans-serif;
 	--ns-font-mono: "JetBrainsMono", "JetBrains Mono", monospace;
 
-	--ns-bg: #f3f7fb;
-	--ns-bg-section: #e4ebf3;
-	--ns-bg-subtle: #eef4fa;
+	--ns-bg: #f4f5f7;
+	--ns-bg-section: #ffffff;
+	--ns-bg-subtle: #edeff3;
 	--ns-surface: #ffffff;
-	--ns-surface-raised: #f8fbff;
-	--ns-surface-deep: #e0e7e9;
-	--ns-glass-dark: rgba(255, 255, 255, 0.94);
-	--ns-glass-light: rgba(23, 32, 51, 0.035);
-	--ns-overlay-scrim: rgba(23, 32, 51, 0.18);
+	--ns-surface-raised: #ffffff;
+	--ns-surface-deep: #e8ebef;
+	--ns-glass-dark: rgba(19, 21, 24, 0.96);
+	--ns-glass-light: rgba(19, 21, 24, 0.04);
+	--ns-overlay-scrim: rgba(19, 21, 24, 0.18);
+	--ns-chrome-bg: #131518;
+	--ns-chrome-text: #ffffff;
+	--ns-chrome-text-muted: rgba(255, 255, 255, 0.72);
+	--ns-chrome-border: rgba(255, 255, 255, 0.14);
+	--ns-chrome-hover: rgba(255, 255, 255, 0.1);
 
 	--ns-text: #172033;
 	--ns-text-muted: #405168;
@@ -56,9 +61,9 @@
 	--ns-success: #168a45;
 	--ns-metal: #64748b;
 	--ns-slate-line: rgba(100, 116, 139, 0.24);
-	--ns-border: #d8e1ec;
-	--ns-border-strong: #aab6c6;
-	--ns-border-faint: #e4ebf3;
+	--ns-border: #d7dbe2;
+	--ns-border-strong: #9fa7b5;
+	--ns-border-faint: #e7e9ee;
 
 	--ns-radius-xs: 0;
 	--ns-radius-sm: 0;
@@ -88,15 +93,20 @@
 }
 
 :root[data-theme="light"] {
-	--ns-bg: #f3f7fb;
-	--ns-bg-section: #e4ebf3;
-	--ns-bg-subtle: #eef4fa;
+	--ns-bg: #f4f5f7;
+	--ns-bg-section: #ffffff;
+	--ns-bg-subtle: #edeff3;
 	--ns-surface: #ffffff;
-	--ns-surface-raised: #f8fbff;
-	--ns-surface-deep: #e0e7e9;
-	--ns-glass-dark: rgba(255, 255, 255, 0.94);
-	--ns-glass-light: rgba(23, 32, 51, 0.035);
-	--ns-overlay-scrim: rgba(23, 32, 51, 0.18);
+	--ns-surface-raised: #ffffff;
+	--ns-surface-deep: #e8ebef;
+	--ns-glass-dark: rgba(19, 21, 24, 0.96);
+	--ns-glass-light: rgba(19, 21, 24, 0.04);
+	--ns-overlay-scrim: rgba(19, 21, 24, 0.18);
+	--ns-chrome-bg: #131518;
+	--ns-chrome-text: #ffffff;
+	--ns-chrome-text-muted: rgba(255, 255, 255, 0.72);
+	--ns-chrome-border: rgba(255, 255, 255, 0.14);
+	--ns-chrome-hover: rgba(255, 255, 255, 0.1);
 
 	--ns-text: #172033;
 	--ns-text-muted: #405168;
@@ -132,9 +142,9 @@
 	--ns-success: #168a45;
 	--ns-metal: #64748b;
 	--ns-slate-line: rgba(100, 116, 139, 0.24);
-	--ns-border: #d8e1ec;
-	--ns-border-strong: #aab6c6;
-	--ns-border-faint: #e4ebf3;
+	--ns-border: #d7dbe2;
+	--ns-border-strong: #9fa7b5;
+	--ns-border-faint: #e7e9ee;
 
 	--ns-radius-xs: 0;
 	--ns-radius-sm: 0;
@@ -149,15 +159,20 @@
 }
 
 :root[data-theme="dark"] {
-	--ns-bg: #0b0b0b;
-	--ns-bg-section: #101010;
-	--ns-bg-subtle: #181818;
-	--ns-surface: #111111;
-	--ns-surface-raised: #1b1b1b;
-	--ns-surface-deep: #050505;
-	--ns-glass-dark: rgba(17, 17, 17, 0.94);
+	--ns-bg: #000000;
+	--ns-bg-section: #000000;
+	--ns-bg-subtle: #131518;
+	--ns-surface: #070707;
+	--ns-surface-raised: #131518;
+	--ns-surface-deep: #000000;
+	--ns-glass-dark: rgba(19, 21, 24, 0.96);
 	--ns-glass-light: rgba(255, 255, 255, 0.045);
 	--ns-overlay-scrim: rgba(0, 0, 0, 0.56);
+	--ns-chrome-bg: #131518;
+	--ns-chrome-text: #ffffff;
+	--ns-chrome-text-muted: rgba(255, 255, 255, 0.72);
+	--ns-chrome-border: rgba(255, 255, 255, 0.14);
+	--ns-chrome-hover: rgba(255, 255, 255, 0.1);
 
 	--ns-text: #f8fafc;
 	--ns-text-muted: #d8dce8;
@@ -193,9 +208,9 @@
 	--ns-success: #34c77b;
 	--ns-metal: #c4ccd9;
 	--ns-slate-line: rgba(196, 204, 217, 0.22);
-	--ns-border: #2a2a2a;
-	--ns-border-strong: #404040;
-	--ns-border-faint: #1b1b1b;
+	--ns-border: #2d3035;
+	--ns-border-strong: #4a4f58;
+	--ns-border-faint: #1b1d21;
 
 	--ns-radius-xs: 0;
 	--ns-radius-sm: 0;

@@ -36,7 +36,7 @@ Core traits:
 
 - Light default, with matching dark mode.
 - Warm orange primary color, tuned for Netstamp rather than inherited unchanged from another brand.
-- Neutral ink, graphite, white, cool gray, and pale blue foundations.
+- Neutral ink, graphite, white, and restrained cool gray foundations. Public chrome uses the Sui-style black-green tone `#131518`.
 - Square or nearly-square frames. Core controls use zero radius.
 - Minimal shadows. If depth is needed, use borders, surface contrast, and spatial grouping first.
 - Gradients are not part of the product UI. Use flat token colors.
@@ -62,17 +62,22 @@ Do not use display-size type inside compact cards, sidebars, tables, nav, or con
 
 ### Light Theme Color Targets
 
-These values follow the current light dashboard reference image and brand orange assets. `tokens.css` must match these values.
+These values follow the corrected Sui-reference direction and brand orange assets. `tokens.css` must match these values.
 
-- `--ns-bg`: `#f3f7fb`, page canvas.
-- `--ns-bg-section`: `#e4ebf3`, broad docs and landing bands.
-- `--ns-bg-subtle`: `#eef4fa`, nested quiet surface.
+- `--ns-bg`: `#f4f5f7`, page canvas and public body background.
+- `--ns-bg-section`: `#ffffff`, broad docs and landing bands.
+- `--ns-bg-subtle`: `#edeff3`, nested quiet surface.
 - `--ns-surface`: `#ffffff`, primary panels and cards.
-- `--ns-surface-raised`: `#f8fbff`, toolbars, sticky controls, raised rows.
-- `--ns-surface-deep`: `#e0e7e9`, code, topology, maps, consoles, response previews.
-- `--ns-glass-dark`: `rgba(255, 255, 255, 0.94)`, sticky light chrome.
-- `--ns-glass-light`: `rgba(23, 32, 51, 0.035)`, faint overlay.
-- `--ns-overlay-scrim`: `rgba(23, 32, 51, 0.18)`, modal/search scrim.
+- `--ns-surface-raised`: `#ffffff`, toolbars, controls, raised rows.
+- `--ns-surface-deep`: `#e8ebef`, code, topology, maps, consoles, response previews.
+- `--ns-glass-dark`: `rgba(19, 21, 24, 0.96)`, dark floating chrome.
+- `--ns-glass-light`: `rgba(19, 21, 24, 0.04)`, faint overlay.
+- `--ns-overlay-scrim`: `rgba(19, 21, 24, 0.18)`, modal/search scrim.
+- `--ns-chrome-bg`: `#131518`, public floating nav and dark chrome.
+- `--ns-chrome-text`: `#ffffff`, text on public floating nav.
+- `--ns-chrome-text-muted`: `rgba(255, 255, 255, 0.72)`, secondary chrome text.
+- `--ns-chrome-border`: `rgba(255, 255, 255, 0.14)`, dark chrome frame.
+- `--ns-chrome-hover`: `rgba(255, 255, 255, 0.1)`, dark chrome hover fill.
 - `--ns-text`: `#172033`, primary text.
 - `--ns-text-muted`: `#405168`, body and secondary text.
 - `--ns-text-subtle`: `#657389`, supporting text.
@@ -95,23 +100,28 @@ These values follow the current light dashboard reference image and brand orange
 - `--ns-success`: `#168a45`, healthy/online/success.
 - `--ns-metal`: `#64748b`, neutral technical accent.
 - `--ns-slate-line`: `rgba(100, 116, 139, 0.24)`, chart and divider line.
-- `--ns-border`: `#d8e1ec`, default frame.
-- `--ns-border-strong`: `#aab6c6`, strong frame.
-- `--ns-border-faint`: `#e4ebf3`, subtle divider.
+- `--ns-border`: `#d7dbe2`, default frame.
+- `--ns-border-strong`: `#9fa7b5`, strong frame.
+- `--ns-border-faint`: `#e7e9ee`, subtle divider.
 
 ### Dark Theme Color Targets
 
 Dark mode is the same product system on a black canvas. Do not use blue-black as the default background; blue is reserved for secondary actions, links, and data.
 
-- `--ns-bg`: `#0b0b0b`.
-- `--ns-bg-section`: `#101010`.
-- `--ns-bg-subtle`: `#181818`.
-- `--ns-surface`: `#111111`.
-- `--ns-surface-raised`: `#1b1b1b`.
-- `--ns-surface-deep`: `#050505`.
-- `--ns-glass-dark`: `rgba(17, 17, 17, 0.94)`.
+- `--ns-bg`: `#000000`.
+- `--ns-bg-section`: `#000000`.
+- `--ns-bg-subtle`: `#131518`.
+- `--ns-surface`: `#070707`.
+- `--ns-surface-raised`: `#131518`.
+- `--ns-surface-deep`: `#000000`.
+- `--ns-glass-dark`: `rgba(19, 21, 24, 0.96)`.
 - `--ns-glass-light`: `rgba(255, 255, 255, 0.045)`.
 - `--ns-overlay-scrim`: `rgba(0, 0, 0, 0.56)`.
+- `--ns-chrome-bg`: `#131518`.
+- `--ns-chrome-text`: `#ffffff`.
+- `--ns-chrome-text-muted`: `rgba(255, 255, 255, 0.72)`.
+- `--ns-chrome-border`: `rgba(255, 255, 255, 0.14)`.
+- `--ns-chrome-hover`: `rgba(255, 255, 255, 0.1)`.
 - `--ns-text`: `#f8fafc`.
 - `--ns-text-muted`: `#d8dce8`.
 - `--ns-text-subtle`: `#98a8b4`.
@@ -134,9 +144,9 @@ Dark mode is the same product system on a black canvas. Do not use blue-black as
 - `--ns-success`: `#34c77b`.
 - `--ns-metal`: `#c4ccd9`.
 - `--ns-slate-line`: `rgba(196, 204, 217, 0.22)`.
-- `--ns-border`: `#2a2a2a`.
-- `--ns-border-strong`: `#404040`.
-- `--ns-border-faint`: `#1b1b1b`.
+- `--ns-border`: `#2d3035`.
+- `--ns-border-strong`: `#4a4f58`.
+- `--ns-border-faint`: `#1b1d21`.
 
 ### Reference Palette Evidence
 
@@ -147,7 +157,7 @@ Reference palette extraction is based on the local image and SVG assets currentl
 - Brand SVG literals: `#090b10`, `#0b0f16`, `#11151d`, `#ea6a1a`, `#fb923c`, `#fff7ed`, `#f8fafc`.
 - Network map SVG literals: `#2563eb`, `#38bdf8`, `#77736b`, `#c4ccd9`.
 
-Implementation decision: dark mode uses the black and gray family from the dark references (`#0b0b0b`, `#101010`, `#181818`, `#1b1b1b`, `#2a2a2a`) as the default canvas and surface system. The blue-black colors present in the old screenshot (`#0d1624`, `#151f2e`, `#1b283a`) are not default background tokens.
+Implementation decision: public body uses `#f4f5f7` in light mode and `#000000` in dark mode. Public floating navigation and dark chrome use `#131518` with white text. The blue-black colors present in the old screenshot (`#0d1624`, `#151f2e`, `#1b283a`) are not default background tokens.
 
 ### Compatibility Aliases
 
@@ -333,6 +343,9 @@ Terminal blocks represent commands, snippets, logs, and responses.
 
 Navigation is quiet and precise.
 
+- Public homepage/docs navigation follows the Sui-style structure: a floating top bar over the page, not a sticky or fixed full-width strip. Logo stays on the left, primary nav buttons sit centered, and the right CTA is `Login`.
+- Public floating nav background is `--ns-chrome-bg` (`#131518`) with `--ns-chrome-text` (`#ffffff`).
+- Authenticated web app navigation stays on the left, but the sidebar itself is a floating rail inside the app canvas rather than a full-height wall attached to the viewport edge.
 - Active items use orange leading marker or frame.
 - Secondary links use blue only when they are real links or secondary actions.
 - Collapsed icon-only nav must keep accessible labels.

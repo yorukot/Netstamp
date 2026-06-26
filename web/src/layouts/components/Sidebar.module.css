@@ -1,11 +1,12 @@
 .sidebar {
 	position: sticky;
-	top: 0;
+	top: 1rem;
 	z-index: 20;
-	height: 100svh;
+	height: calc(100svh - 2rem);
 	min-height: 0;
+	margin: 1rem 0 1rem 1rem;
 	overflow: visible;
-	border-right: 1px solid var(--ns-border);
+	border: 1px solid var(--ns-border);
 	background: var(--ns-surface);
 }
 
@@ -170,21 +171,22 @@
 
 .sidebarToggle {
 	position: absolute;
-	top: 0;
-	right: -1rem;
+	top: 50%;
+	right: -1.0625rem;
 	z-index: 30;
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	width: 2rem;
-	height: 100%;
+	height: 3rem;
 	padding: 0;
 	border: 0;
 	color: var(--ns-text-low);
 	background: transparent;
 	cursor: pointer;
-	opacity: 0;
-	transition: opacity var(--ns-transition);
+	opacity: 1;
+	transform: translateY(-50%);
+	transition: color var(--ns-transition);
 }
 
 .sidebarToggleFrame {
@@ -338,13 +340,15 @@
 	height: 2.75rem;
 	min-height: 2.75rem;
 	padding: 0;
+	border-left-width: 1px;
 	border-left-color: transparent;
 	font-size: 0.75rem;
 	text-align: center;
 }
 
 .collapsed .nav a.active {
-	border-left-color: var(--ns-primary);
+	--ns-frame-color: var(--ns-primary-border);
+	border-left-color: transparent;
 }
 
 .collapsed .navLabel {
@@ -355,6 +359,12 @@
 	.sidebarScroll {
 		grid-template-rows: auto auto 1fr auto;
 		padding: 0.75rem 0.375rem;
+	}
+
+	.sidebar {
+		top: 0.75rem;
+		height: calc(100svh - 1.5rem);
+		margin: 0.75rem 0 0.75rem 0.75rem;
 	}
 
 	.brand {
@@ -388,13 +398,15 @@
 		height: 2.75rem;
 		min-height: 2.75rem;
 		padding: 0;
+		border-left-width: 1px;
 		border-left-color: transparent;
 		font-size: 0.75rem;
 		text-align: center;
 	}
 
 	.nav a.active {
-		border-left-color: var(--ns-primary);
+		--ns-frame-color: var(--ns-primary-border);
+		border-left-color: transparent;
 	}
 
 	.navLabel {
@@ -404,10 +416,11 @@
 
 @media (max-width: 38rem) {
 	.sidebar {
-		position: relative;
+		position: sticky;
+		top: 0.75rem;
 		height: auto;
-		border-right: 0;
-		border-bottom: 1px solid var(--ns-border);
+		margin: 0.75rem;
+		border: 1px solid var(--ns-border);
 	}
 
 	.sidebarScroll {

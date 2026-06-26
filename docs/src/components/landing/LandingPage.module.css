@@ -23,9 +23,11 @@
 	grid-template-columns: minmax(23rem, 0.64fr) minmax(34rem, 1fr);
 	gap: clamp(1.25rem, 3vw, 2rem);
 	align-items: start;
-	min-height: calc(100svh - 7rem);
-	padding: clamp(2rem, 5vw, 4.5rem) clamp(1rem, 4vw, 3rem) clamp(1.25rem, 3vw, 2rem);
-	border-bottom: 1px solid var(--ns-border);
+	min-height: 100svh;
+	padding: 7.5rem clamp(1rem, 4vw, 3rem) clamp(1.25rem, 3vw, 2rem);
+	border-bottom: 0;
+	color: var(--ns-chrome-text);
+	background: var(--ns-chrome-bg);
 }
 
 .heroCopy {
@@ -47,6 +49,7 @@
 }
 
 .heroCopy h1 {
+	color: var(--ns-chrome-text);
 	max-width: 13ch;
 	font-size: clamp(3rem, 5vw, 5.25rem);
 	line-height: 0.95;
@@ -63,6 +66,7 @@
 }
 
 .heroCopy p {
+	color: var(--ns-chrome-text-muted);
 	max-width: 34rem;
 }
 
@@ -90,7 +94,7 @@
 	min-width: 0;
 	margin: 0;
 	overflow: hidden;
-	border: 1px solid var(--ns-border);
+	border: 1px solid var(--ns-chrome-border);
 	background: var(--ns-surface);
 }
 
@@ -322,7 +326,7 @@
 	.hero {
 		align-content: start;
 		min-height: auto;
-		padding-top: 2rem;
+		padding-top: 8.75rem;
 		padding-bottom: 1rem;
 	}
 

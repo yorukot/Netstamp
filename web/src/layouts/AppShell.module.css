@@ -2,13 +2,14 @@
 	min-height: 100vh;
 	min-height: 100svh;
 	display: grid;
-	grid-template-columns: 17rem minmax(0, 1fr);
+	grid-template-columns: 18.5rem minmax(0, 1fr);
+	align-items: start;
 	color: var(--ns-text);
 	background: var(--ns-bg);
 }
 
 .shellCollapsed {
-	grid-template-columns: 5rem minmax(0, 1fr);
+	grid-template-columns: 6.75rem minmax(0, 1fr);
 }
 
 .content {
@@ -18,7 +19,7 @@
 	flex-direction: column;
 	justify-content: space-between;
 	gap: 2rem;
-	padding: 2rem 1.5rem 0;
+	padding: 1rem 1.5rem 0 0.25rem;
 }
 
 .contentBody {
@@ -54,11 +55,11 @@
 
 @media (max-width: 58rem) {
 	.shell {
-		grid-template-columns: 5rem minmax(0, 1fr);
+		grid-template-columns: 6.5rem minmax(0, 1fr);
 	}
 
 	.content {
-		padding: 1.5rem 1rem 0;
+		padding: 0.75rem 1rem 0 0;
 	}
 
 	.demoBanner {
@@ -74,5 +75,9 @@
 @media (max-width: 38rem) {
 	.shell {
 		grid-template-columns: 1fr;
+	}
+
+	.content {
+		padding: 0 0.75rem;
 	}
 }

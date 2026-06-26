@@ -1,16 +1,17 @@
 .referenceShell {
 	display: grid;
 	grid-template-columns: minmax(16rem, 18rem) minmax(0, 1fr) minmax(21rem, 25rem);
-	min-height: calc(100svh - 4.5rem);
+	min-height: 100svh;
+	padding-top: 7rem;
 	background: var(--ns-bg);
 }
 
 .sidebar,
 .console {
 	position: sticky;
-	top: 4.5rem;
+	top: 1.5rem;
 	align-self: start;
-	height: calc(100svh - 4.5rem);
+	height: calc(100svh - 3rem);
 	overflow: auto;
 }
 
@@ -180,8 +181,8 @@
 
 .hero {
 	display: grid;
-	grid-template-columns: minmax(0, 1fr) minmax(18rem, 25rem);
-	gap: clamp(2rem, 5vw, 4rem);
+	grid-template-columns: minmax(0, 1fr) minmax(14rem, 18rem);
+	gap: clamp(1.25rem, 3vw, 2rem);
 	align-items: center;
 	min-height: 26rem;
 }
@@ -212,8 +213,8 @@
 }
 
 .hero h1 {
-	max-width: 12ch;
-	font-size: clamp(2.5rem, 7vw, 4.5rem);
+	max-width: 10ch;
+	font-size: clamp(2.5rem, 4vw, 3.5rem);
 	line-height: 0.9;
 }
 
@@ -244,6 +245,7 @@
 
 .serverPanel {
 	display: grid;
+	align-self: center;
 	gap: 1rem;
 }
 

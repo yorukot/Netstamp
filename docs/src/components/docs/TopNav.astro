@@ -1,125 +1,126 @@
 ---
-import netstampLogoDark from "@netstamp/brand/assets/netstamp-logo-dark.svg?url";
 import netstampLogoLight from "@netstamp/brand/assets/netstamp-logo-light.svg?url";
 import { Button } from "@netstamp/ui";
+import { appUrl } from "../../lib/publicUrls";
 import Icon from "../icons/Icon.astro";
 
 const pathname = Astro.url.pathname;
 const isDocs = pathname.startsWith("/docs");
 const isOpenAPI = pathname.startsWith("/openapi");
 const isComponents = pathname.startsWith("/storybook") || pathname.startsWith("/components");
+const loginHref = appUrl("/login");
 ---
 
 <nav class="siteNav" aria-label="Primary navigation">
 	<div class="siteNavPrimary">
 		<a class="siteBrand" href="/" aria-label="Netstamp home">
 			<img class="siteBrandLogo siteBrandLogoLight" src={netstampLogoLight} alt="Netstamp" />
-			<img class="siteBrandLogo siteBrandLogoDark" src={netstampLogoDark} alt="" aria-hidden="true" />
 		</a>
-		<div class="siteNavLinks" aria-label="Docs sections">
-			<a href="/docs/" class:list={["siteNavLink", isDocs && "active"]}>
-				<Icon name="book" size={16} />
-				<span>Docs</span>
-			</a>
-			<a href="/openapi/" class:list={["siteNavLink", isOpenAPI && "active"]}>
-				<Icon name="server" size={16} />
-				<span>OpenAPI</span>
-			</a>
-			<a href="/storybook/" class:list={["siteNavLink", isComponents && "active"]} data-astro-reload>
-				<Icon name="cube" size={16} />
-				<span>Storybook</span>
-			</a>
-		</div>
 	</div>
-	<div class="siteNavActions">
+	<div class="siteNavLinks" aria-label="Docs sections">
+		<a href="/docs/" class:list={["siteNavLink", isDocs && "active"]}>
+			<Icon name="book" size={16} />
+			<span>Docs</span>
+		</a>
+		<a href="/openapi/" class:list={["siteNavLink", isOpenAPI && "active"]}>
+			<Icon name="server" size={16} />
+			<span>OpenAPI</span>
+		</a>
+		<a href="/storybook/" class:list={["siteNavLink", isComponents && "active"]} data-astro-reload>
+			<Icon name="cube" size={16} />
+			<span>Storybook</span>
+		</a>
 		<a href="https://github.com/yorukot/netstamp" class="siteNavLink" target="_blank" rel="noreferrer">
 			<Icon name="github" size={16} />
 			<span>GitHub</span>
 		</a>
+	</div>
+	<div class="siteNavActions">
 		<Button className="siteThemeToggle" variant="outline" size="sm" type="button" data-theme-toggle aria-label="Switch color mode" title="Switch color mode">
 			<ph-sun class="themeIcon themeIconSun" size="16" weight="bold" aria-hidden="true"></ph-sun>
 			<ph-moon-stars class="themeIcon themeIconMoon" size="16" weight="bold" aria-hidden="true"></ph-moon-stars>
 		</Button>
-		<Button className="siteNavDemo" size="sm" asChild>
-			<a href="https://demo.netstamp.dev">DEMO</a>
-		</Button>
+		<a class="siteNavLogin" href={loginHref}>Login</a>
 	</div>
 </nav>
 
 <style>
 	.siteNav {
-		position: sticky;
-		top: 0;
+		position: absolute;
+		top: 1rem;
+		right: clamp(1rem, 4vw, 3rem);
+		left: clamp(1rem, 4vw, 3rem);
 		z-index: 40;
-		display: flex;
+		display: grid;
+		grid-template-columns: auto minmax(0, 1fr) auto;
 		align-items: center;
-		justify-content: space-between;
+		justify-content: stretch;
 		gap: 1rem;
-		min-height: 4.5rem;
-		padding: 0 1.5rem;
-		border-bottom: 1px solid var(--ns-border);
-		background: var(--ns-glass-dark);
+		min-height: 4rem;
+		padding: 0.625rem 0.75rem 0.625rem 1rem;
+		border: 1px solid var(--ns-chrome-border);
+		color: var(--ns-chrome-text);
+		background: var(--ns-chrome-bg);
 	}
 
 	.siteBrand {
 		display: inline-flex;
 		align-items: center;
-		color: var(--ns-text);
+		color: var(--ns-chrome-text);
 		text-decoration: none;
 	}
 
 	.siteBrandLogo {
 		display: block;
-		width: clamp(9rem, 15vw, 11.25rem);
+		width: 10.25rem;
 		height: auto;
-	}
-
-	.siteBrandLogoDark {
-		display: none;
-	}
-
-	:global(:root[data-theme="light"]) .siteBrandLogoLight {
-		display: none;
-	}
-
-	:global(:root[data-theme="light"]) .siteBrandLogoDark {
-		display: block;
 	}
 
 	.siteNavPrimary,
 	.siteNavActions {
 		display: flex;
 		align-items: center;
-		gap: clamp(1rem, 3vw, 2rem);
+		gap: 0.75rem;
 	}
 
 	.siteNavLinks {
 		display: flex;
 		align-items: center;
-		gap: 1.5rem;
+		justify-self: center;
+		gap: 0.25rem;
+		min-width: 0;
 	}
 
 	.siteNavActions {
 		gap: 0.75rem;
+		justify-self: end;
 	}
 
 	.siteNavLink {
 		display: inline-flex;
 		align-items: center;
 		gap: 0.45rem;
-		color: var(--ns-text-subtle);
-		font-family: var(--ns-font-mono);
-		font-size: 0.75rem;
-		font-weight: 800;
-		letter-spacing: 0.09em;
+		min-height: 2.35rem;
+		padding: 0.5rem 0.75rem;
+		border: 1px solid transparent;
+		color: var(--ns-chrome-text-muted);
+		font-family: var(--ns-font-sans);
+		font-size: 0.875rem;
+		font-weight: 650;
+		letter-spacing: 0;
 		text-decoration: none;
-		text-transform: uppercase;
-		transition: color var(--ns-transition);
+		text-transform: none;
+		transition:
+			background var(--ns-transition),
+			border-color var(--ns-transition),
+			color var(--ns-transition);
 	}
 
 	.siteNavLink:hover,
 	.siteNavLink.active {
-		color: var(--ns-primary-hover);
+		border-color: var(--ns-chrome-border);
+		color: var(--ns-chrome-text);
+		background: var(--ns-chrome-hover);
 	}
 
 	.siteBrand:focus-visible,
@@ -128,18 +129,69 @@ const isComponents = pathname.startsWith("/storybook") || pathname.startsWith("/
 		outline-offset: 0.25rem;
 	}
 
-	.siteNavActions .siteNavLink,
-	:global(.siteNavDemo),
+	.siteNavLogin,
 	:global(.siteThemeToggle) {
-		min-width: 6.75rem;
 		justify-content: center;
 	}
 
 	:global(.siteThemeToggle) {
+		--ns-frame-color: var(--ns-chrome-border);
 		width: 2.25rem;
 		min-width: 2.25rem;
 		min-height: 2.25rem;
 		padding: 0;
+		color: var(--ns-chrome-text);
+		background: transparent;
+	}
+
+	:global(.siteThemeToggle:hover) {
+		--ns-frame-color: var(--ns-chrome-border);
+		color: var(--ns-chrome-text);
+		background: var(--ns-chrome-hover);
+	}
+
+	.siteNavLogin {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		min-width: 5.75rem;
+		min-height: 2.25rem;
+		padding: 0.45rem 0.85rem;
+		border: 1px solid #ffffff;
+		color: var(--ns-chrome-bg);
+		background: #ffffff;
+		font-family: var(--ns-font-sans);
+		font-size: 0.875rem;
+		font-weight: 750;
+		line-height: 1;
+		text-decoration: none !important;
+		text-decoration-line: none;
+		text-transform: none;
+		transition:
+			background var(--ns-transition),
+			border-color var(--ns-transition),
+			color var(--ns-transition);
+	}
+
+	.siteNavLogin:link,
+	.siteNavLogin:visited,
+	.siteNavLogin:hover,
+	.siteNavLogin:active,
+	.siteNavLogin:focus-visible {
+		text-decoration: none !important;
+		text-decoration-line: none;
+	}
+
+	.siteNavLogin:hover,
+	.siteNavLogin:active {
+		border-color: #f4f5f7;
+		color: var(--ns-chrome-bg);
+		background: #f4f5f7;
+	}
+
+	.siteNavLogin:focus-visible {
+		outline: var(--ns-focus-outline);
+		outline-offset: 0.25rem;
 	}
 
 	.themeIconMoon,
@@ -153,29 +205,47 @@ const isComponents = pathname.startsWith("/storybook") || pathname.startsWith("/
 
 	@media (max-width: 48rem) {
 		.siteNav {
-			padding: 0 1rem;
+			top: 0.75rem;
+			right: 0.75rem;
+			left: 0.75rem;
+			grid-template-columns: auto auto;
+			min-height: 3.5rem;
+			padding: 0.5rem 0.625rem;
 		}
 
 		.siteNavLinks {
-			gap: 0.5rem;
+			grid-column: 1 / -1;
+			order: 3;
+			width: 100%;
+			justify-content: space-between;
+			padding-top: 0.25rem;
 		}
 
 		.siteNavPrimary {
 			gap: 0.75rem;
 		}
 
-		:global(.siteNavDemo) {
-			min-width: 5rem;
+		.siteNavLogin {
+			min-width: 4.5rem;
 			min-height: 2rem;
 			padding: 0.45rem 0.625rem;
-			font-size: 0.6875rem;
+			font-size: 0.75rem;
+		}
+	}
+
+	@media (max-width: 34rem) {
+		.siteBrandLogo {
+			width: 8.75rem;
 		}
 
-		.siteNavActions .siteNavLink {
-			min-width: 2.25rem;
+		.siteNavLink {
+			gap: 0.25rem;
+			padding-inline: 0.4rem;
+			font-size: 0.75rem;
 		}
 
-		.siteNavLink span {
+		.siteNavLink svg,
+		.siteNavLink :global(.icon) {
 			display: none;
 		}
 	}
