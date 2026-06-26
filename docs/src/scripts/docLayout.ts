@@ -44,8 +44,8 @@ function initDocLayout() {
 	}
 
 	function pagePlainText() {
-		const title = plainTextFromElement(".docHeader h1") || document.title;
-		const summary = plainTextFromElement(".docHeader p");
+		const title = plainTextFromElement(".docTitle") || document.title;
+		const summary = plainTextFromElement(".docDescription");
 		const body = plainTextFromElement(".docProse");
 
 		return [`# ${title}`, summary, body].filter(Boolean).join("\n\n");
@@ -90,7 +90,7 @@ function initDocLayout() {
 	}
 
 	function openPlainTextDocument(text: string) {
-		const title = `${plainTextFromElement(".docHeader h1") || document.title} Markdown`;
+		const title = `${plainTextFromElement(".docTitle") || document.title} Markdown`;
 		const openedWindow = window.open("", "_blank");
 
 		if (openedWindow) {

@@ -95,16 +95,14 @@ const visibleBreadcrumbs =
 <BaseLayout title={browserTitle} description={description} head={extraHead} canonicalPath={pathname} ogType="article" schema={schema}>
 	<div class="docsShell" data-docs-shell>
 		<aside class="docsSidebar" aria-label="Documentation navigation">
-			<div class="docsSidebarHeader">
-				<SearchBox />
-				<Button className="docsMobileNavToggle" variant="outline" size="sm" type="button" data-docs-mobile-nav-toggle aria-expanded="false" aria-controls="docs-nav-tree">
-					<span>
-						<Icon name="toc" size={16} />
-						Navigation
-					</span>
-					<Icon name="caret" size={12} />
-				</Button>
-			</div>
+			<SearchBox />
+			<Button className="docsMobileNavToggle" variant="outline" size="sm" type="button" data-docs-mobile-nav-toggle aria-expanded="false" aria-controls="docs-nav-tree">
+				<span>
+					<Icon name="toc" size={16} />
+					Navigation
+				</span>
+				<Icon name="caret" size={12} />
+			</Button>
 			<nav class="docsNavTree" id="docs-nav-tree" data-docs-nav-panel data-state="closed">
 				{
 					navGroups.map(group => (
@@ -112,61 +110,55 @@ const visibleBreadcrumbs =
 							<h2 class="docsNavSectionTitle" id={`docs-nav-section-${group.id}`}>
 								{group.title}
 							</h2>
-							<div class="docsNavSectionItems">
-								{group.items.map(item => (
-									<a href={item.href} class:list={["docsNavItem", item.active && "active"]} aria-current={item.active ? "page" : undefined} title={item.title} style={`--nav-depth: ${item.depth};`}>
-										<span>{item.title}</span>
-									</a>
-								))}
-							</div>
+							{group.items.map(item => (
+								<a href={item.href} class:list={["docsNavItem", item.active && "active"]} aria-current={item.active ? "page" : undefined} title={item.title} style={`--nav-depth: ${item.depth};`}>
+									<span>{item.title}</span>
+								</a>
+							))}
 						</section>
 					))
 				}
 				<section class="docsNavSection docsExternalLinks" aria-labelledby="docs-nav-section-external">
 					<h2 class="docsNavSectionTitle" id="docs-nav-section-external">External links</h2>
-					<div class="docsNavSectionItems">
-						{
-							externalLinks.map(link => (
-								<a href={link.href} class="docsExternalLink" data-astro-reload={link.reload ? true : undefined}>
-									<span>{link.title}</span>
-									<Icon name="arrowUpRight" size={13} />
-								</a>
-							))
-						}
-					</div>
+					{
+						externalLinks.map(link => (
+							<a href={link.href} class="docsExternalLink" data-astro-reload={link.reload ? true : undefined}>
+								<span>{link.title}</span>
+								<Icon name="arrowUpRight" size={13} />
+							</a>
+						))
+					}
 				</section>
 			</nav>
 		</aside>
 
 		<main id="content" class="docContent">
-			<header class="docHeader">
-				<nav class="docBreadcrumb" aria-label="Breadcrumb">
-					<ol>
-						{
-							visibleBreadcrumbs.map((item, index) => (
-								<li>
-									{item.current ? (
-										<span aria-current="page" title={item.name}>
-											{item.icon ? <Icon name={item.icon} size={14} /> : item.name}
-										</span>
-									) : (
-										<a href={item.href} title={item.name} aria-label={item.icon ? item.name : undefined}>
-											{item.icon ? <Icon name={item.icon} size={14} /> : item.name}
-										</a>
-									)}
-									{index < visibleBreadcrumbs.length - 1 && (
-										<span class="docBreadcrumbSeparator" aria-hidden="true">
-											<Icon name="caretRight" size={12} />
-										</span>
-									)}
-								</li>
-							))
-						}
-					</ol>
-				</nav>
-				<h1>{title}</h1>
-				<p>{description}</p>
-			</header>
+			<nav class="docBreadcrumb" aria-label="Breadcrumb">
+				<ol>
+					{
+						visibleBreadcrumbs.map((item, index) => (
+							<li>
+								{item.current ? (
+									<span aria-current="page" title={item.name}>
+										{item.icon ? <Icon name={item.icon} size={14} /> : item.name}
+									</span>
+								) : (
+									<a href={item.href} title={item.name} aria-label={item.icon ? item.name : undefined}>
+										{item.icon ? <Icon name={item.icon} size={14} /> : item.name}
+									</a>
+								)}
+								{index < visibleBreadcrumbs.length - 1 && (
+									<span class="docBreadcrumbSeparator" aria-hidden="true">
+										<Icon name="caretRight" size={12} />
+									</span>
+								)}
+							</li>
+						))
+					}
+				</ol>
+			</nav>
+			<h1 class="docTitle">{title}</h1>
+			<p class="docDescription">{description}</p>
 			<article class="docProse">
 				<slot />
 			</article>
@@ -338,11 +330,6 @@ const visibleBreadcrumbs =
 			overflow: visible;
 		}
 
-		.docsSidebarHeader {
-			display: grid;
-			gap: 0.75rem;
-		}
-
 		:global(.docsMobileNavToggle) {
 			--ns-frame-color: transparent;
 			display: none;
@@ -384,6 +371,7 @@ const visibleBreadcrumbs =
 			display: inline-flex;
 			align-items: center;
 			gap: 0.45rem;
+			margin: 0 0 0.325rem;
 			color: var(--ns-text-low);
 			font-family: var(--ns-font-mono);
 			font-size: 0.68rem;
@@ -398,11 +386,6 @@ const visibleBreadcrumbs =
 		}
 
 		.docsNavSection {
-			display: grid;
-			gap: 0.45rem;
-		}
-
-		.docsNavSectionItems {
 			display: grid;
 			gap: 0.125rem;
 		}
@@ -477,19 +460,11 @@ const visibleBreadcrumbs =
 
 		.docContent {
 			min-width: 0;
-			display: grid;
-			gap: 1.75rem;
 			align-self: start;
 		}
 
-		.docHeader {
-			display: grid;
-			gap: 0.875rem;
-			padding: 0.25rem 0 0.5rem;
-		}
-
 		.docBreadcrumb {
-			margin-bottom: 0.45rem;
+			margin: 0.25rem 0 1.325rem;
 		}
 
 		.docBreadcrumb ol {
@@ -536,9 +511,9 @@ const visibleBreadcrumbs =
 			opacity: 0.8;
 		}
 
-		.docHeader h1 {
+		.docTitle {
 			max-width: 20ch;
-			margin: 0;
+			margin: 0 0 0.875rem;
 			font-family: var(--ns-font-display);
 			font-size: clamp(2.1rem, 4vw, 3.25rem);
 			font-weight: 850;
@@ -546,9 +521,9 @@ const visibleBreadcrumbs =
 			line-height: 1.02;
 		}
 
-		.docHeader p {
+		.docDescription {
 			max-width: 58ch;
-			margin: 0;
+			margin: 0 0 2.25rem;
 			color: var(--ns-text-muted);
 			font-size: 1.06rem;
 			line-height: 1.72;
@@ -583,6 +558,7 @@ const visibleBreadcrumbs =
 		.docProse {
 			display: grid;
 			gap: 1.35rem;
+			margin: 0 0 1.75rem;
 			padding: 0 0 0.5rem;
 		}
 

@@ -29,10 +29,10 @@ const dataJson = JSON.stringify(docsSearchIndex);
 		<Button className="docsSearchScrim" variant="plain" type="button" aria-label="Close search" data-search-close />
 		<Panel as="div" tone="glass" padded={false} className="docsSearchPanel" role="dialog" aria-modal="true" aria-labelledby="docs-search-title">
 			<header class="docsSearchHeader">
-				<div class="docsSearchTitle" id="docs-search-title">
+				<h2 class="docsSearchTitle" id="docs-search-title">
 					<Icon name="search" size={16} />
 					<span>Search docs</span>
-				</div>
+				</h2>
 				<Button className="docsSearchClose" variant="ghost" size="sm" type="button" data-search-close>Close</Button>
 			</header>
 			<label class="docsSearchInputLabel" for="docs-search-input">Search query</label>
@@ -194,6 +194,7 @@ const dataJson = JSON.stringify(docsSearchIndex);
 		display: inline-flex;
 		align-items: center;
 		gap: 0.45rem;
+		margin: 0;
 		color: var(--ns-text);
 		font-family: var(--ns-font-mono);
 		font-size: 0.78rem;
