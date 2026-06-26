@@ -1,14 +1,44 @@
-import Fuse from "fuse.js";
-
 interface SearchEntry {
 	title: string;
 	description: string;
-	keywords?: string[];
+	keywords?: string | string[];
 	content?: string;
 	href: string;
 }
 
 let cleanupSearch = () => {};
+
+function normalized(value: string) {
+	return value.toLocaleLowerCase().replace(/\s+/g, " ").trim();
+}
+
+function keywordsText(keywords: SearchEntry["keywords"]) {
+	return Array.isArray(keywords) ? keywords.join(" ") : (keywords ?? "");
+}
+
+function scoreSearchEntry(entry: SearchEntry, query: string) {
+	const title = normalized(entry.title);
+	const description = normalized(entry.description);
+	const keywords = normalized(keywordsText(entry.keywords));
+	const content = normalized(entry.content ?? "");
+	const href = normalized(entry.href);
+	const terms = normalized(query).split(" ").filter(Boolean);
+
+	if (!terms.length) return 0;
+
+	let score = 0;
+	for (const term of terms) {
+		if (title === term) score += 120;
+		if (title.startsWith(term)) score += 80;
+		if (title.includes(term)) score += 60;
+		if (keywords.includes(term)) score += 36;
+		if (href.includes(term)) score += 28;
+		if (description.includes(term)) score += 20;
+		if (content.includes(term)) score += 8;
+	}
+
+	return score;
+}
 
 function initDocsSearch() {
 	cleanupSearch();
@@ -22,11 +52,6 @@ function initDocsSearch() {
 	const results = root.querySelector("[data-search-results]");
 	const closeButtons = root.querySelectorAll("[data-search-close]");
 	const entries = JSON.parse(root.dataset.searchIndex ?? "[]") as SearchEntry[];
-	const fuse = new Fuse(entries, {
-		keys: ["title", "description", "keywords", "content"],
-		threshold: 0.35,
-		minMatchCharLength: 2
-	});
 
 	let restoreFocusTo: Element | null = null;
 	let closeTimer: number | undefined;
@@ -141,9 +166,11 @@ function initDocsSearch() {
 			return;
 		}
 
-		const matches = fuse
-			.search(query)
-			.map(result => result.item)
+		const matches = entries
+			.map(entry => ({ entry, score: scoreSearchEntry(entry, query) }))
+			.filter(result => result.score > 0)
+			.sort((left, right) => right.score - left.score || left.entry.title.localeCompare(right.entry.title))
+			.map(result => result.entry)
 			.slice(0, 6);
 		renderResults(matches);
 	}

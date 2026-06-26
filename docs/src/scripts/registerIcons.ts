@@ -3,6 +3,7 @@ import "@phosphor-icons/webcomponents/PhArrowRight";
 import "@phosphor-icons/webcomponents/PhArrowUpRight";
 import "@phosphor-icons/webcomponents/PhBookOpen";
 import "@phosphor-icons/webcomponents/PhCaretDown";
+import "@phosphor-icons/webcomponents/PhCaretRight";
 import "@phosphor-icons/webcomponents/PhCheckCircle";
 import "@phosphor-icons/webcomponents/PhCode";
 import "@phosphor-icons/webcomponents/PhCompass";

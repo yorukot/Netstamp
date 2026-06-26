@@ -73,12 +73,12 @@ const navGroups = docsNav.map(group => ({
 const currentGroup = navGroups.find(group => group.active);
 const visibleBreadcrumbs =
 	pathname === "/docs/"
-		? [{ name: "Docs", href: "/docs/", current: true }]
+		? [{ name: "Docs home", href: "/docs/", current: true, icon: "home" as const }]
 		: [
-				{ name: "Docs", href: "/docs/", current: false },
+				{ name: "Docs home", href: "/docs/", current: false, icon: "home" as const },
 				currentGroup ? { name: currentGroup.title, href: currentGroup.items[0]?.href ?? "/docs/", current: false } : undefined,
 				{ name: title, href: pathname, current: true }
-			].filter((item): item is { name: string; href: string; current: boolean } => Boolean(item));
+			].filter((item): item is { name: string; href: string; current: boolean; icon?: "home" } => Boolean(item));
 ---
 
 <BaseLayout title={browserTitle} description={description} head={extraHead} canonicalPath={pathname} ogType="article" schema={schema}>
@@ -121,8 +121,20 @@ const visibleBreadcrumbs =
 						{
 							visibleBreadcrumbs.map((item, index) => (
 								<li>
-									{item.current ? <span aria-current="page">{item.name}</span> : <a href={item.href}>{item.name}</a>}
-									{index < visibleBreadcrumbs.length - 1 && <Icon name="caret" size={11} />}
+									{item.current ? (
+										<span aria-current="page" title={item.name}>
+											{item.icon ? <Icon name={item.icon} size={14} /> : item.name}
+										</span>
+									) : (
+										<a href={item.href} title={item.name} aria-label={item.icon ? item.name : undefined}>
+											{item.icon ? <Icon name={item.icon} size={14} /> : item.name}
+										</a>
+									)}
+									{index < visibleBreadcrumbs.length - 1 && (
+										<span class="docBreadcrumbSeparator" aria-hidden="true">
+											<Icon name="caretRight" size={12} weight="bold" />
+										</span>
+									)}
 								</li>
 							))
 						}
@@ -387,6 +399,8 @@ const visibleBreadcrumbs =
 
 		.docBreadcrumb a,
 		.docBreadcrumb span {
+			display: inline-flex;
+			align-items: center;
 			min-width: 0;
 			overflow: hidden;
 			color: var(--ns-text-low);
@@ -403,6 +417,11 @@ const visibleBreadcrumbs =
 		.docBreadcrumb a:hover,
 		.docBreadcrumb span {
 			color: var(--ns-primary-hover);
+		}
+
+		.docBreadcrumb .docBreadcrumbSeparator {
+			color: var(--ns-text-low);
+			opacity: 0.8;
 		}
 
 		.docHeader h1 {

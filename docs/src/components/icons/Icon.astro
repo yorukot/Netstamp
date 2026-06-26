@@ -1,7 +1,7 @@
 ---
 import type { DocIcon } from "../../data/docs";
 
-type IconName = DocIcon | "arrowLeft" | "arrowRight" | "caret" | "edit" | "folder" | "github" | "home" | "note" | "search" | "sidebar" | "tip" | "toc" | "warning";
+type IconName = DocIcon | "arrowLeft" | "arrowRight" | "caret" | "caretRight" | "edit" | "folder" | "github" | "home" | "note" | "search" | "sidebar" | "tip" | "toc" | "warning";
 type IconWeight = "thin" | "light" | "regular" | "bold" | "fill" | "duotone";
 
 interface Props {
@@ -21,6 +21,7 @@ const iconTags: Record<IconName, string> = {
 	bolt: "ph-lightning",
 	book: "ph-book-open",
 	caret: "ph-caret-down",
+	caretRight: "ph-caret-right",
 	code: "ph-code",
 	compass: "ph-compass",
 	cube: "ph-cube",

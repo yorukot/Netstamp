@@ -217,6 +217,8 @@ Docs should feel like a design-system/spec site for Netstamp.
 - Docs left navigation is a normal documentation directory: section labels with page links and optional nested page links. It is not a folder-button UI on desktop.
 - Desktop docs navigation stays expanded. Mobile docs navigation may collapse behind a single menu control.
 - Docs page header is in normal document flow: breadcrumb navigation, page title, and summary. Do not wrap it in a large framed hero panel, and do not display the pathname as if it were page metadata.
+- Docs breadcrumbs start with a house icon and use right-pointing separators.
+- Docs search uses a subtle light input-like trigger in the left navigation. Search overlays may use token scrim plus subtle backdrop blur, but the panel must remain readable without relying on blur alone.
 - Prose: readable line length, strong heading rhythm, precise callouts.
 - Code blocks: deep token surface, simple bar, copy-friendly spacing.
 - Index pages: spec cards, not marketing cards.
