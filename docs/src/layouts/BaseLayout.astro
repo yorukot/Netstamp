@@ -47,13 +47,18 @@ const schemaGraph = createSchemaGraph({ title, description, pageUrl: canonicalUr
 		<script is:inline>
 			(() => {
 				const storageKey = "netstamp:theme";
-				const fallbackTheme = "light";
+				const isTheme = theme => theme === "light" || theme === "dark";
+				const systemTheme = () => (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
 
 				try {
 					const storedTheme = window.localStorage.getItem(storageKey);
-					document.documentElement.dataset.theme = storedTheme === "light" || storedTheme === "dark" ? storedTheme : fallbackTheme;
+					const theme = isTheme(storedTheme) ? storedTheme : systemTheme();
+					document.documentElement.classList.toggle("dark", theme === "dark");
+					document.documentElement.dataset.theme = theme;
 				} catch {
-					document.documentElement.dataset.theme = fallbackTheme;
+					const theme = systemTheme();
+					document.documentElement.classList.toggle("dark", theme === "dark");
+					document.documentElement.dataset.theme = theme;
 				}
 			})();
 		</script>
