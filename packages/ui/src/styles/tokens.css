@@ -9,7 +9,7 @@
 
 :root {
 	--ns-font-sans: "TASAOrbiter", "TASA Orbiter", sans-serif;
-	--ns-font-display: "Arial Black", "TASAExplorer", "TASA Explorer", sans-serif;
+	--ns-font-display: "TASAExplorer", "TASA Explorer", sans-serif;
 	--ns-font-mono: "JetBrainsMono", "JetBrains Mono", monospace;
 
 	--ns-bg: #f4f5f7;
