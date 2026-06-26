@@ -154,6 +154,10 @@ const visibleBreadcrumbs =
 				<slot />
 			</article>
 			<footer class="docFooter">
+				<a class="editLink" href={editUrl} target="_blank" rel="noreferrer">
+					<Icon name="edit" size={16} />
+					Edit on GitHub
+				</a>
 				<nav class="docPager" aria-label="Documentation pagination">
 					{
 						previousPage ? (
@@ -194,12 +198,6 @@ const visibleBreadcrumbs =
 						)
 					}
 				</nav>
-				<Button className="editLink" variant="ghost" size="sm" asChild>
-					<a href={editUrl} target="_blank" rel="noreferrer">
-						<Icon name="edit" size={16} />
-						Edit on GitHub
-					</a>
-				</Button>
 			</footer>
 		</main>
 
@@ -437,6 +435,10 @@ const visibleBreadcrumbs =
 			padding: 0.25rem 0 0.5rem;
 		}
 
+		.docBreadcrumb {
+			margin-bottom: 0.45rem;
+		}
+
 		.docBreadcrumb ol {
 			display: flex;
 			flex-wrap: wrap;
@@ -500,12 +502,28 @@ const visibleBreadcrumbs =
 		}
 
 		:global(.editLink) {
+			--ns-frame-color: transparent;
+			display: inline-flex;
+			align-items: center;
+			gap: 0.45rem;
 			width: fit-content;
+			padding: 0;
+			color: var(--ns-primary-hover);
+			background: transparent;
 			font-family: var(--ns-font-mono);
 			font-size: 0.75rem;
 			font-weight: 800;
 			letter-spacing: 0.08em;
+			text-decoration: none;
 			text-transform: uppercase;
+		}
+
+		:global(.editLink:hover) {
+			--ns-frame-color: transparent;
+			color: var(--ns-primary-active);
+			background: transparent;
+			text-decoration: underline;
+			text-underline-offset: 0.18em;
 		}
 
 		.docProse {
@@ -531,11 +549,12 @@ const visibleBreadcrumbs =
 			align-items: center;
 			gap: 0.75rem;
 			min-height: 4.5rem;
-			padding: 0.9rem 0;
+			padding: 0.9rem;
 			color: var(--ns-text-subtle);
-			border-top: 1px solid var(--ns-border-faint);
+			border: 1px solid color-mix(in srgb, var(--ns-border-faint) 72%, transparent);
 			text-decoration: none;
 			transition:
+				border-color var(--ns-transition),
 				color var(--ns-transition),
 				transform var(--ns-transition);
 		}
@@ -546,6 +565,7 @@ const visibleBreadcrumbs =
 		}
 
 		.docPagerLink:hover {
+			border-color: var(--ns-primary-border);
 			color: var(--ns-primary-hover);
 			transform: translateY(-1px);
 		}
