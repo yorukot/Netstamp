@@ -213,8 +213,10 @@ Avoid generic SaaS copy such as "unlock potential", "beautifully simple", "super
 Docs should feel like a design-system/spec site for Netstamp.
 
 - Top nav: brand, docs, API, Storybook, GitHub, deploy/app actions, color mode.
-- Desktop docs shell: left navigation, central prose, right TOC.
-- Docs hero: compact framed panel with title, summary, metadata, and optional links.
+- Desktop docs shell: fixed-height sticky left navigation, central prose, right TOC.
+- Docs left navigation is a normal documentation directory: section labels with page links and optional nested page links. It is not a folder-button UI on desktop.
+- Desktop docs navigation stays expanded. Mobile docs navigation may collapse behind a single menu control.
+- Docs page header is in normal document flow: breadcrumb navigation, page title, and summary. Do not wrap it in a large framed hero panel, and do not display the pathname as if it were page metadata.
 - Prose: readable line length, strong heading rhythm, precise callouts.
 - Code blocks: deep token surface, simple bar, copy-friendly spacing.
 - Index pages: spec cards, not marketing cards.
@@ -350,6 +352,7 @@ Navigation is quiet and precise.
 - Active items use orange leading marker or frame.
 - Secondary links use blue only when they are real links or secondary actions.
 - Collapsed icon-only nav must keep accessible labels.
+- Docs sidebar active page state uses an orange leading marker or quiet orange background. Desktop docs sections do not collapse.
 - Docs TOC active state uses orange text or frame, not glow.
 
 ### Overlays

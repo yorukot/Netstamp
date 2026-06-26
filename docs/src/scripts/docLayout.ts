@@ -1,68 +1,34 @@
-const sidebarStorageKey = "netstamp:docs-sidebar-folded";
 let cleanupDocLayout = () => {};
-
-function readSidebarState() {
-	try {
-		return localStorage.getItem(sidebarStorageKey) === "true";
-	} catch {
-		return false;
-	}
-}
-
-function writeSidebarState(folded: boolean) {
-	try {
-		localStorage.setItem(sidebarStorageKey, String(folded));
-	} catch {
-		// Storage can be unavailable in private contexts; the in-page state still works.
-	}
-}
 
 function initDocLayout() {
 	cleanupDocLayout();
 
-	const sidebarShell = document.querySelector("[data-docs-shell]");
-	if (!sidebarShell) return;
-
 	const cleanupTasks: Array<() => void> = [];
-	const sidebarToggle = document.querySelector("[data-docs-sidebar-toggle]");
-	const sidebarToggleLabel = sidebarToggle?.querySelector("[data-sidebar-toggle-label]");
+	const mobileNavToggle = document.querySelector("[data-docs-mobile-nav-toggle]");
+	const mobileNavPanel = document.querySelector("[data-docs-nav-panel]");
 
-	function setSidebarFolded(folded: boolean) {
-		sidebarShell.classList.toggle("sidebarFolded", folded);
-		sidebarToggle?.setAttribute("aria-pressed", String(folded));
-		sidebarToggle?.setAttribute("aria-label", folded ? "Expand documentation sidebar" : "Fold documentation sidebar");
-		sidebarToggle?.setAttribute("title", folded ? "Expand sidebar" : "Fold sidebar");
-		if (sidebarToggleLabel) sidebarToggleLabel.textContent = folded ? "Expand" : "Fold";
-		writeSidebarState(folded);
+	function setMobileNavExpanded(expanded: boolean) {
+		mobileNavToggle?.setAttribute("aria-expanded", String(expanded));
+		mobileNavPanel?.setAttribute("data-state", expanded ? "open" : "closed");
 	}
 
-	if (sidebarToggle) {
-		const handleSidebarToggle = () => {
-			setSidebarFolded(!sidebarShell.classList.contains("sidebarFolded"));
+	if (mobileNavToggle && mobileNavPanel) {
+		const handleMobileNavToggle = () => {
+			setMobileNavExpanded(mobileNavToggle.getAttribute("aria-expanded") !== "true");
+		};
+		const handleMobileNavLinkClick = (event: Event) => {
+			if (event.target instanceof Element && event.target.closest("a")) {
+				setMobileNavExpanded(false);
+			}
 		};
 
-		setSidebarFolded(readSidebarState());
-		sidebarToggle.addEventListener("click", handleSidebarToggle);
-		cleanupTasks.push(() => sidebarToggle.removeEventListener("click", handleSidebarToggle));
-	}
-
-	for (const group of document.querySelectorAll("[data-docs-nav-group]")) {
-		const toggle = group.querySelector("[data-docs-nav-group-toggle]");
-		if (!toggle) continue;
-
-		const itemsId = toggle.getAttribute("aria-controls");
-		const items = itemsId ? document.getElementById(itemsId) : null;
-		const handleGroupToggle = () => {
-			const expanded = toggle.getAttribute("aria-expanded") === "true";
-			const nextExpanded = !expanded;
-
-			toggle.setAttribute("aria-expanded", String(nextExpanded));
-			group.classList.toggle("collapsed", !nextExpanded);
-			items?.setAttribute("aria-hidden", String(!nextExpanded));
-		};
-
-		toggle.addEventListener("click", handleGroupToggle);
-		cleanupTasks.push(() => toggle.removeEventListener("click", handleGroupToggle));
+		setMobileNavExpanded(false);
+		mobileNavToggle.addEventListener("click", handleMobileNavToggle);
+		mobileNavPanel.addEventListener("click", handleMobileNavLinkClick);
+		cleanupTasks.push(() => {
+			mobileNavToggle.removeEventListener("click", handleMobileNavToggle);
+			mobileNavPanel.removeEventListener("click", handleMobileNavLinkClick);
+		});
 	}
 
 	const toc = document.querySelector("[data-docs-toc]");

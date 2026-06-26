@@ -4,7 +4,7 @@ import SearchBox from "../components/docs/SearchBox.astro";
 import { docsNav, docsPages, githubBaseUrl } from "../data/docs";
 import { absoluteUrl, createBreadcrumbSchema, createTechArticleSchema, resolveSiteUrl, type HeadEntry } from "../lib/seo";
 import BaseLayout from "./BaseLayout.astro";
-import { Badge, Button, Surface } from "@netstamp/ui";
+import { Button } from "@netstamp/ui";
 
 interface Heading {
 	depth: 2 | 3;
@@ -64,8 +64,21 @@ const navGroups = docsNav.map(group => ({
 	...group,
 	id: group.title.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
 	active: group.items.some(item => isActiveNavItem(item.href)),
-	items: group.items.map(item => ({ ...item, active: isActiveNavItem(item.href) }))
+	items: group.items.map(item => ({
+		...item,
+		active: isActiveNavItem(item.href),
+		depth: Math.max(0, item.href.split("/").filter(Boolean).length - 2)
+	}))
 }));
+const currentGroup = navGroups.find(group => group.active);
+const visibleBreadcrumbs =
+	pathname === "/docs/"
+		? [{ name: "Docs", href: "/docs/", current: true }]
+		: [
+				{ name: "Docs", href: "/docs/", current: false },
+				currentGroup ? { name: currentGroup.title, href: currentGroup.items[0]?.href ?? "/docs/", current: false } : undefined,
+				{ name: title, href: pathname, current: true }
+			].filter((item): item is { name: string; href: string; current: boolean } => Boolean(item));
 ---
 
 <BaseLayout title={browserTitle} description={description} head={extraHead} canonicalPath={pathname} ogType="article" schema={schema}>
@@ -73,42 +86,27 @@ const navGroups = docsNav.map(group => ({
 		<aside class="docsSidebar" aria-label="Documentation navigation">
 			<div class="docsSidebarHeader">
 				<SearchBox />
-				<Button className="docsSidebarFold" variant="outline" size="sm" type="button" data-docs-sidebar-toggle aria-label="Fold documentation sidebar" aria-pressed="false" title="Fold sidebar">
-					<Icon name="sidebar" size={18} />
-					<span data-sidebar-toggle-label>Fold</span>
+				<Button className="docsMobileNavToggle" variant="outline" size="sm" type="button" data-docs-mobile-nav-toggle aria-expanded="false" aria-controls="docs-nav-tree">
+					<span>
+						<Icon name="toc" size={16} />
+						Navigation
+					</span>
+					<Icon name="caret" size={12} />
 				</Button>
 			</div>
-			<nav class="docsNavTree">
+			<nav class="docsNavTree" id="docs-nav-tree" data-docs-nav-panel data-state="closed">
 				{
 					navGroups.map(group => (
-						<section class:list={["docsNavGroup", group.active && "active", !group.active && "collapsed"]} data-docs-nav-group>
-							<h2 class="docsNavGroupHeading">
-								<Button
-									className="docsNavGroupToggle"
-									variant="plain"
-									size="sm"
-									type="button"
-									aria-expanded={group.active ? "true" : "false"}
-									aria-controls={`docs-nav-group-${group.id}`}
-									data-docs-nav-group-toggle
-									title={group.title}
-								>
-									<span class="docsNavGroupTitle">
-										<Icon name="folder" size={14} />
-										<span>{group.title}</span>
-									</span>
-									<Icon name="caret" size={12} />
-								</Button>
+						<section class:list={["docsNavSection", group.active && "active"]} aria-labelledby={`docs-nav-section-${group.id}`}>
+							<h2 class="docsNavSectionTitle" id={`docs-nav-section-${group.id}`}>
+								{group.title}
 							</h2>
-							<div class="docsNavGroupItems" id={`docs-nav-group-${group.id}`} aria-hidden={group.active ? "false" : "true"}>
-								<div class="docsNavGroupItemsInner">
-									{group.items.map(item => (
-										<a href={item.href} class:list={["docsNavItem", item.active && "active"]} aria-current={item.active ? "page" : undefined} title={item.title}>
-											<Icon name={item.icon} size={18} />
-											<span>{item.title}</span>
-										</a>
-									))}
-								</div>
+							<div class="docsNavSectionItems">
+								{group.items.map(item => (
+									<a href={item.href} class:list={["docsNavItem", item.active && "active"]} aria-current={item.active ? "page" : undefined} title={item.title} style={`--nav-depth: ${item.depth};`}>
+										<span>{item.title}</span>
+									</a>
+								))}
 							</div>
 						</section>
 					))
@@ -117,14 +115,22 @@ const navGroups = docsNav.map(group => ({
 		</aside>
 
 		<main id="content" class="docContent">
-			<Surface as="header" tone="accent" frameSize="lg" padding="lg" className="docHero">
-				<div class="docHeroMeta">
-					<Badge tone="accent" dot={false}>{currentPage?.section ?? "Docs"}</Badge>
-					<span>{pathname}</span>
-				</div>
+			<header class="docHeader">
+				<nav class="docBreadcrumb" aria-label="Breadcrumb">
+					<ol>
+						{
+							visibleBreadcrumbs.map((item, index) => (
+								<li>
+									{item.current ? <span aria-current="page">{item.name}</span> : <a href={item.href}>{item.name}</a>}
+									{index < visibleBreadcrumbs.length - 1 && <Icon name="caret" size={11} />}
+								</li>
+							))
+						}
+					</ol>
+				</nav>
 				<h1>{title}</h1>
 				<p>{description}</p>
-			</Surface>
+			</header>
 			<article class="docProse">
 				<slot />
 			</article>
@@ -132,40 +138,40 @@ const navGroups = docsNav.map(group => ({
 				<nav class="docPager" aria-label="Documentation pagination">
 					{
 						previousPage ? (
-							<Surface as="a" tone="glass" padding="sm" className="docPagerLink previous" href={previousPage.href}>
+							<a class="docPagerLink previous" href={previousPage.href}>
 								<Icon name="arrowLeft" size={18} />
 								<span>
 									<small>Previous</small>
 									<strong>{previousPage.title}</strong>
 								</span>
-							</Surface>
+							</a>
 						) : (
-							<Surface as="span" tone="flat" padding="sm" className="docPagerLink previous disabled" aria-disabled="true">
+							<span class="docPagerLink previous disabled" aria-disabled="true">
 								<Icon name="arrowLeft" size={18} />
 								<span>
 									<small>Previous</small>
 									<strong>No previous page</strong>
 								</span>
-							</Surface>
+							</span>
 						)
 					}
 					{
 						nextPage ? (
-							<Surface as="a" tone="glass" padding="sm" className="docPagerLink next" href={nextPage.href}>
+							<a class="docPagerLink next" href={nextPage.href}>
 								<span>
 									<small>Next</small>
 									<strong>{nextPage.title}</strong>
 								</span>
 								<Icon name="arrowRight" size={18} />
-							</Surface>
+							</a>
 						) : (
-							<Surface as="span" tone="flat" padding="sm" className="docPagerLink next disabled" aria-disabled="true">
+							<span class="docPagerLink next disabled" aria-disabled="true">
 								<span>
 									<small>Next</small>
 									<strong>No next page</strong>
 								</span>
 								<Icon name="arrowRight" size={18} />
-							</Surface>
+							</span>
 						)
 					}
 				</nav>
@@ -206,53 +212,59 @@ const navGroups = docsNav.map(group => ({
 	</script>
 
 	<style>
+		.docsShell {
+			--docs-sticky-top: 6.25rem;
+			display: grid;
+			grid-template-columns: minmax(13rem, 15.5rem) minmax(0, 46rem) minmax(11rem, 14rem);
+			justify-content: center;
+			align-items: start;
+			column-gap: clamp(1.5rem, 3vw, 3rem);
+			min-height: 100svh;
+			padding: 7.25rem clamp(1.25rem, 4vw, 3rem) 3rem;
+			color: var(--ns-text);
+			background: var(--ns-bg);
+		}
+
 		.docsNavItem:focus-visible,
+		.docBreadcrumb a:focus-visible,
+		.docPagerLink:focus-visible,
 		.docsToc a:focus-visible,
-		:global(.docPagerLink:focus-visible),
+		:global(.docsMobileNavToggle:focus-visible),
 		:global(.editLink:focus-visible) {
 			outline: var(--ns-focus-outline);
 			outline-offset: 0.25rem;
 		}
 
-		.docsShell {
-			display: grid;
-			grid-template-columns: minmax(15rem, 18rem) minmax(0, 1fr) minmax(12rem, 16rem);
-			gap: 2rem;
-			min-height: 100svh;
-			padding: 7rem 2rem 2rem;
-			background: var(--ns-bg);
-			transition:
-				grid-template-columns var(--ns-transition),
-				gap var(--ns-transition);
-		}
-
-		.docsShell.sidebarFolded {
-			grid-template-columns: minmax(4.25rem, 4.75rem) minmax(0, 1fr) minmax(12rem, 16rem);
-			gap: 1.5rem;
-		}
-
 		.docsSidebar,
 		.docsTocInner {
 			position: sticky;
-			top: 1.5rem;
+			top: var(--docs-sticky-top);
 			align-self: start;
+			max-height: calc(100svh - var(--docs-sticky-top) - 1.5rem);
+			overflow: auto;
+			scrollbar-gutter: stable;
 		}
 
 		.docsSidebar {
 			display: grid;
 			gap: 1rem;
+			padding-bottom: 1rem;
 		}
 
 		.docsSidebarHeader {
 			display: grid;
-			grid-template-columns: minmax(0, 1fr) auto;
-			gap: 0.5rem;
+			gap: 0.75rem;
 		}
 
-		:global(.docsSidebarFold) {
-			min-width: 2.9rem;
-			gap: 0.45rem;
-			padding: 0.4rem 0.625rem;
+		:global(.docsMobileNavToggle) {
+			--ns-frame-color: transparent;
+			display: none;
+			width: 100%;
+			justify-content: space-between;
+			gap: 0.75rem;
+			padding: 0.55rem 0.7rem;
+			color: var(--ns-text-muted);
+			background: var(--ns-bg-subtle);
 			font-family: var(--ns-font-mono);
 			font-size: 0.68rem;
 			font-weight: 800;
@@ -260,11 +272,21 @@ const navGroups = docsNav.map(group => ({
 			text-transform: uppercase;
 		}
 
-		:global(.docsSidebarFold:hover),
-		:global(.docsSidebarFold[aria-pressed="true"]) {
-			--ns-frame-color: var(--ns-primary-border);
+		:global(.docsMobileNavToggle span) {
+			display: inline-flex;
+			align-items: center;
+			gap: 0.45rem;
+		}
+
+		:global(.docsMobileNavToggle:hover),
+		:global(.docsMobileNavToggle[aria-expanded="true"]) {
+			--ns-frame-color: transparent;
 			color: var(--ns-text);
 			background: var(--ns-primary-muted);
+		}
+
+		:global(.docsMobileNavToggle[aria-expanded="true"] > .icon:last-child) {
+			transform: rotate(180deg);
 		}
 
 		:global(.icon) {
@@ -272,7 +294,7 @@ const navGroups = docsNav.map(group => ({
 		}
 
 		.docsTocTitle,
-		.docsNavGroup h2 {
+		.docsNavSectionTitle {
 			display: inline-flex;
 			align-items: center;
 			gap: 0.45rem;
@@ -286,81 +308,27 @@ const navGroups = docsNav.map(group => ({
 
 		.docsNavTree {
 			display: grid;
-			gap: 0.5rem;
+			gap: 1.25rem;
 		}
 
-		.docsNavGroup {
+		.docsNavSection {
 			display: grid;
-			gap: 0.25rem;
-		}
-
-		.docsNavGroupHeading {
-			margin: 0;
-		}
-
-		:global(.docsNavGroupToggle) {
-			width: 100%;
-			justify-content: space-between;
-			gap: 0.5rem;
-			padding: 0.35rem 0.25rem;
-			color: var(--ns-text-low);
-			border: 1px solid transparent;
-		}
-
-		:global(.docsNavGroupToggle:hover) {
-			color: var(--ns-text-subtle);
-			border-color: var(--ns-border-faint);
-			background: var(--ns-bg-subtle);
-		}
-
-		:global(.docsNavGroupTitle) {
-			display: inline-flex;
-			align-items: center;
 			gap: 0.45rem;
 		}
 
-		.docsNavGroup.active :global(.docsNavGroupToggle) {
-			color: var(--ns-primary-hover);
-		}
-
-		:global(.docsNavGroupToggle > .icon:last-child) {
-			transform: rotate(180deg);
-			transition: transform var(--ns-transition);
-		}
-
-		.docsNavGroup.collapsed :global(.docsNavGroupToggle > .icon:last-child) {
-			transform: rotate(0deg);
-		}
-
-		.docsNavGroupItems {
+		.docsNavSectionItems {
 			display: grid;
-			grid-template-rows: 1fr;
-			opacity: 1;
-			overflow: hidden;
-			transition:
-				grid-template-rows 180ms ease,
-				opacity 160ms ease;
-		}
-
-		.docsNavGroup.collapsed .docsNavGroupItems {
-			grid-template-rows: 0fr;
-			opacity: 0;
-		}
-
-		.docsNavGroupItemsInner {
-			display: grid;
-			gap: 0.35rem;
-			min-height: 0;
-			overflow: hidden;
+			gap: 0.125rem;
 		}
 
 		.docsNavItem {
-			display: flex;
-			align-items: center;
-			gap: 0.625rem;
-			padding: 0.4rem 0.625rem;
+			position: relative;
+			display: block;
+			padding: 0.42rem 0.5rem 0.42rem calc(0.55rem + (var(--nav-depth, 0) * 0.8rem));
 			color: var(--ns-text-subtle);
-			border: 1px solid transparent;
+			border-left: 2px solid transparent;
+			font-size: 0.9rem;
+			line-height: 1.35;
 			text-decoration: none;
 			transition:
 				border-color var(--ns-transition),
@@ -370,99 +338,89 @@ const navGroups = docsNav.map(group => ({
 
 		.docsNavItem:hover,
 		.docsNavItem.active {
-			color: var(--ns-text);
-			border-color: var(--ns-primary-border);
+			color: var(--ns-primary-hover);
 			background: var(--ns-primary-muted);
 		}
 
-		.docsShell.sidebarFolded .docsSidebarHeader {
-			grid-template-columns: 1fr;
+		.docsNavItem.active {
+			border-left-color: var(--ns-primary);
+			color: var(--ns-text);
+			font-weight: 700;
 		}
 
-		.docsShell.sidebarFolded .docsNavItem,
-		.docsShell.sidebarFolded :global(.docsSidebarFold),
-		.docsShell.sidebarFolded :global(.docsNavGroupToggle) {
-			width: 100%;
-			min-width: 0;
-			align-items: center;
-			justify-content: center;
-		}
-
-		.docsShell.sidebarFolded :global(.docsSidebarFold) {
-			padding-inline: 0;
-		}
-
-		.docsShell.sidebarFolded .docsNavItem,
-		.docsShell.sidebarFolded :global(.docsNavGroupToggle) {
-			padding-inline: 0;
-		}
-
-		.docsShell.sidebarFolded :global(.docsNavGroupTitle) {
-			flex: 0 0 auto;
-			justify-content: center;
-		}
-
-		.docsShell.sidebarFolded .docsNavItem span,
-		.docsShell.sidebarFolded :global(.docsSidebarFold span),
-		.docsShell.sidebarFolded :global(.docsNavGroupTitle span),
-		.docsShell.sidebarFolded :global(.docsNavGroupToggle > .icon:last-child) {
-			display: none;
-		}
-
-		.docsShell.sidebarFolded .docsNavTree {
-			gap: 0.75rem;
-		}
-
-		.docsShell.sidebarFolded .docsNavGroup {
-			gap: 0.4rem;
-		}
-
-		.docContent {
-			min-width: 0;
-		}
-
-		:global(.docHero) {
-			display: grid;
-			gap: 0.875rem;
-			padding: clamp(2rem, 5vw, 4rem);
-		}
-
-		.docHeroMeta {
-			display: flex;
-			flex-wrap: wrap;
-			align-items: center;
-			gap: 0.65rem;
-			min-width: 0;
-		}
-
-		.docHeroMeta span {
-			min-width: 0;
+		.docsNavItem span {
+			display: block;
 			overflow: hidden;
-			color: var(--ns-text-low);
-			font-family: var(--ns-font-mono);
-			font-size: 0.75rem;
-			font-weight: 800;
-			letter-spacing: 0.06em;
 			text-overflow: ellipsis;
 			white-space: nowrap;
 		}
 
-		:global(.docHero h1) {
-			max-width: 18ch;
-			margin: 0;
-			font-family: var(--ns-font-display);
-			font-size: clamp(1.8rem, 3vw, 2.65rem);
-			font-weight: 900;
-			letter-spacing: 0;
-			line-height: 0.98;
+		.docContent {
+			min-width: 0;
+			display: grid;
+			gap: 1.75rem;
+			align-self: start;
 		}
 
-		:global(.docHero p) {
+		.docHeader {
+			display: grid;
+			gap: 0.875rem;
+			padding: 0.25rem 0 0.5rem;
+		}
+
+		.docBreadcrumb ol {
+			display: flex;
+			flex-wrap: wrap;
+			align-items: center;
+			gap: 0.35rem;
+			margin: 0;
+			padding: 0;
+			list-style: none;
+		}
+
+		.docBreadcrumb li {
+			display: inline-flex;
+			align-items: center;
+			gap: 0.35rem;
+			min-width: 0;
+		}
+
+		.docBreadcrumb a,
+		.docBreadcrumb span {
+			min-width: 0;
+			overflow: hidden;
+			color: var(--ns-text-low);
+			font-family: var(--ns-font-mono);
+			font-size: 0.72rem;
+			font-weight: 800;
+			letter-spacing: 0.09em;
+			text-decoration: none;
+			text-overflow: ellipsis;
+			text-transform: uppercase;
+			white-space: nowrap;
+		}
+
+		.docBreadcrumb a:hover,
+		.docBreadcrumb span {
+			color: var(--ns-primary-hover);
+		}
+
+		.docHeader h1 {
+			max-width: 20ch;
+			margin: 0;
+			font-family: var(--ns-font-display);
+			font-size: clamp(2.1rem, 4vw, 3.25rem);
+			font-weight: 850;
+			letter-spacing: 0;
+			line-height: 1.02;
+		}
+
+		.docHeader p {
 			max-width: 58ch;
 			margin: 0;
 			color: var(--ns-text-muted);
-			font-size: clamp(1rem, 1.4vw, 1.2rem);
-			line-height: 1.65;
+			font-size: 1.06rem;
+			line-height: 1.72;
 		}
 
 		:global(.editLink) {
@@ -476,14 +434,14 @@ const navGroups = docsNav.map(group => ({
 
 		.docProse {
 			display: grid;
-			gap: 1.5rem;
-			padding: clamp(1.5rem, 4vw, 3rem) clamp(0rem, 2vw, 1rem) clamp(2rem, 4vw, 3rem);
+			gap: 1.35rem;
+			padding: 0 0 0.5rem;
 		}
 
 		.docFooter {
 			display: grid;
 			gap: 1rem;
-			padding: 0 clamp(0rem, 2vw, 1rem) 5rem;
+			padding: 0 0 5rem;
 		}
 
 		.docPager {
@@ -492,44 +450,42 @@ const navGroups = docsNav.map(group => ({
 			gap: 1rem;
 		}
 
-		:global(.docPagerLink) {
+		.docPagerLink {
 			display: flex;
 			align-items: center;
 			gap: 0.75rem;
-			min-height: 5rem;
+			min-height: 4.5rem;
+			padding: 0.9rem 0;
 			color: var(--ns-text-subtle);
+			border-top: 1px solid var(--ns-border-faint);
 			text-decoration: none;
 			transition:
-				border-color var(--ns-transition),
-				background var(--ns-transition),
 				color var(--ns-transition),
 				transform var(--ns-transition);
 		}
 
-		:global(.docPagerLink.next) {
+		.docPagerLink.next {
 			justify-content: flex-end;
 			text-align: right;
 		}
 
-		:global(.docPagerLink:hover) {
-			--ns-frame-color: var(--ns-primary-border);
-			color: var(--ns-text);
-			background: var(--ns-primary-muted);
+		.docPagerLink:hover {
+			color: var(--ns-primary-hover);
 			transform: translateY(-1px);
 		}
 
-		:global(.docPagerLink.disabled) {
+		.docPagerLink.disabled {
 			color: var(--ns-text-low);
 			transform: none;
 		}
 
-		:global(.docPagerLink span) {
+		.docPagerLink span {
 			display: grid;
 			gap: 0.25rem;
 			min-width: 0;
 		}
 
-		:global(.docPagerLink small) {
+		.docPagerLink small {
 			color: var(--ns-text-low);
 			font-family: var(--ns-font-mono);
 			font-size: 0.68rem;
@@ -538,7 +494,7 @@ const navGroups = docsNav.map(group => ({
 			text-transform: uppercase;
 		}
 
-		:global(.docPagerLink strong) {
+		.docPagerLink strong {
 			overflow: hidden;
 			color: inherit;
 			font-family: var(--ns-font-mono);
@@ -559,12 +515,12 @@ const navGroups = docsNav.map(group => ({
 		}
 
 		:global(.docProse h2) {
-			font-size: clamp(1.6rem, 3vw, 2.6rem);
-			line-height: 1;
+			font-size: clamp(1.55rem, 3vw, 2.25rem);
+			line-height: 1.08;
 		}
 
 		:global(.docProse h3) {
-			font-size: clamp(1.2rem, 2vw, 1.6rem);
+			font-size: clamp(1.15rem, 2vw, 1.45rem);
 		}
 
 		:global(.docProse p),
@@ -605,7 +561,7 @@ const navGroups = docsNav.map(group => ({
 			padding: 2.5rem 1.25rem 1.125rem !important;
 			background-color: var(--ns-surface-deep) !important;
 			overflow-x: auto !important;
-			border: 1px solid var(--ns-primary-border);
+			border: 1px solid var(--ns-border);
 			box-shadow: none;
 		}
 
@@ -626,7 +582,8 @@ const navGroups = docsNav.map(group => ({
 			gap: 0.5rem;
 			margin: 0;
 			padding: 1rem;
-			border: 1px solid var(--ns-primary-border);
+			border: 0;
+			border-left: 2px solid var(--ns-primary);
 			background: var(--ns-primary-muted);
 		}
 
@@ -643,7 +600,8 @@ const navGroups = docsNav.map(group => ({
 			display: grid;
 			gap: 0.6rem;
 			padding: 1rem;
-			border: 1px solid var(--ns-border-faint);
+			border: 0;
+			border-left: 2px solid var(--ns-border);
 			background: var(--ns-surface);
 		}
 
@@ -669,22 +627,22 @@ const navGroups = docsNav.map(group => ({
 		}
 
 		:global(.callout-note) {
-			border-color: color-mix(in srgb, var(--ns-metal) 32%, transparent);
+			border-left-color: var(--ns-metal);
 			background: var(--ns-surface-raised);
 		}
 
 		:global(.callout-tip) {
-			border-color: color-mix(in srgb, var(--ns-success) 42%, transparent);
+			border-left-color: var(--ns-success);
 			background: color-mix(in srgb, var(--ns-success) 6%, var(--ns-surface));
 		}
 
 		:global(.callout-warning) {
-			border-color: color-mix(in srgb, var(--ns-warning) 52%, transparent);
+			border-left-color: var(--ns-warning);
 			background: color-mix(in srgb, var(--ns-warning) 7%, var(--ns-surface));
 		}
 
 		:global(.callout-caution) {
-			border-color: color-mix(in srgb, var(--ns-critical) 46%, transparent);
+			border-left-color: var(--ns-critical);
 			background: color-mix(in srgb, var(--ns-critical) 7%, var(--ns-surface));
 		}
 
@@ -733,7 +691,6 @@ const navGroups = docsNav.map(group => ({
 			gap: 0.75rem;
 			padding: 1rem;
 			color: var(--ns-text-muted);
-			border: 1px solid var(--ns-border-faint);
 			background: var(--ns-surface);
 			text-decoration: none;
 		}
@@ -756,7 +713,6 @@ const navGroups = docsNav.map(group => ({
 			width: 2rem;
 			height: 2rem;
 			color: var(--ns-primary-hover);
-			border: 1px solid var(--ns-primary-border);
 			background: var(--ns-primary-muted);
 		}
 
@@ -770,7 +726,6 @@ const navGroups = docsNav.map(group => ({
 		}
 
 		:global(.docCard:hover) {
-			border-color: var(--ns-primary-border);
 			background: var(--ns-primary-muted);
 		}
 
@@ -789,13 +744,15 @@ const navGroups = docsNav.map(group => ({
 		@media (max-width: 68rem) {
 			.docsShell {
 				grid-template-columns: 1fr;
-				gap: 1rem;
+				gap: 1.5rem;
 				padding: 7rem 1rem 1rem;
 			}
 
 			.docsSidebar,
 			.docsTocInner {
 				position: static;
+				max-height: none;
+				overflow: visible;
 			}
 
 			.docsToc {
@@ -810,6 +767,21 @@ const navGroups = docsNav.map(group => ({
 				order: 0;
 			}
 
+			:global(.docsMobileNavToggle) {
+				display: inline-flex;
+			}
+
+			.docsNavTree[data-state="closed"] {
+				display: none;
+			}
+
+			.docsNavTree[data-state="open"] {
+				display: grid;
+				max-height: 42svh;
+				overflow: auto;
+				padding-bottom: 0.25rem;
+			}
+
 			:global(.cardGrid),
 			:global(.docIndexGrid) {
 				grid-template-columns: 1fr;
@@ -819,41 +791,14 @@ const navGroups = docsNav.map(group => ({
 				grid-template-columns: 1fr;
 			}
 
-			:global(.docPagerLink.next) {
+			.docPagerLink.next {
 				text-align: left;
-			}
-
-			.docsShell.sidebarFolded {
-				grid-template-columns: 1fr;
-				gap: 1rem;
-			}
-
-			.docsShell.sidebarFolded .docsSidebarHeader {
-				grid-template-columns: minmax(0, 1fr) auto;
-			}
-
-			.docsShell.sidebarFolded .docsNavItem,
-			.docsShell.sidebarFolded :global(.docsSidebarFold),
-			.docsShell.sidebarFolded :global(.docsNavGroupToggle),
-			.docsShell.sidebarFolded :global(.docsNavGroupTitle) {
-				justify-content: flex-start;
-			}
-
-			.docsShell.sidebarFolded .docsNavItem span,
-			.docsShell.sidebarFolded :global(.docsSidebarFold span),
-			.docsShell.sidebarFolded :global(.docsNavGroupTitle span),
-			.docsShell.sidebarFolded :global(.docsNavGroupToggle > .icon:last-child) {
-				display: inline;
 			}
 		}
 
 		@media (max-width: 48rem) {
 			.docsShell {
 				padding-top: 8.75rem;
-			}
-
-			:global(.docHero) {
-				padding: 1.5rem;
 			}
 		}
 	</style>
