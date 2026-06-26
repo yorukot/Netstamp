@@ -21,7 +21,6 @@
 	padding: 1rem;
 	border-right: 1px solid var(--ns-border);
 	background: var(--ns-surface);
-	backdrop-filter: blur(0.75rem);
 }
 
 .sidebarHeader {
@@ -66,7 +65,7 @@
 .overviewLink:hover,
 .navGroupSummary:hover,
 .downloadLink:hover {
-	color: var(--ns-accent-hover);
+	color: var(--ns-primary-hover);
 }
 
 .navGroup {
@@ -107,8 +106,8 @@
 	place-items: center;
 	width: 1.05rem;
 	height: 1.05rem;
-	color: var(--ns-accent-hover);
-	border: 1px solid var(--ns-accent-border);
+	color: var(--ns-primary-hover);
+	border: 1px solid var(--ns-primary-border);
 	font-family: var(--ns-font-mono);
 	font-size: 0.7rem;
 	font-weight: 900;
@@ -144,8 +143,8 @@
 .navOperation:hover,
 .activeNavOperation {
 	color: var(--ns-text);
-	border-color: var(--ns-accent-border);
-	background: color-mix(in srgb, var(--ns-accent) 8%, transparent);
+	border-color: var(--ns-primary-border);
+	background: var(--ns-primary-muted);
 }
 
 .downloadLink {
@@ -208,8 +207,8 @@
 	margin: 0;
 	color: var(--ns-text);
 	font-family: var(--ns-font-display);
-	font-weight: 750;
-	letter-spacing: -0.04em;
+	font-weight: 900;
+	letter-spacing: 0;
 }
 
 .hero h1 {
@@ -270,8 +269,8 @@
 
 .tagSummary:hover,
 .tagSection[open] > .tagSummary {
-	border-color: var(--ns-accent-border);
-	background: color-mix(in srgb, var(--ns-accent) 7%, transparent);
+	border-color: var(--ns-primary-border);
+	background: var(--ns-primary-muted);
 }
 
 .tagSummary > span:not(.folderToggle) {
@@ -313,7 +312,7 @@
 
 .operationsPanel a:hover {
 	color: var(--ns-text);
-	background: color-mix(in srgb, var(--ns-accent) 8%, transparent);
+	background: var(--ns-primary-muted);
 }
 
 .operationsPanel code,
@@ -342,7 +341,7 @@
 }
 
 .activeOperationArticle {
-	border-top-color: var(--ns-accent-border);
+	border-top-color: var(--ns-primary-border);
 }
 
 .operationCopy {
@@ -397,7 +396,7 @@
 .fieldRow code,
 .responseSchemaHeader code,
 .responseField code {
-	color: var(--ns-accent-hover);
+	color: var(--ns-primary-hover);
 	font-family: var(--ns-font-mono);
 	font-size: 0.82rem;
 }
@@ -449,8 +448,8 @@
 	place-items: center;
 	width: 0.95rem;
 	height: 0.95rem;
-	color: var(--ns-accent-hover);
-	border: 1px solid var(--ns-accent-border);
+	color: var(--ns-primary-hover);
+	border: 1px solid var(--ns-primary-border);
 	font-family: var(--ns-font-mono);
 	font-size: 0.62rem;
 	font-weight: 900;
@@ -514,7 +513,7 @@
 }
 
 .method[data-method="post"] {
-	color: var(--ns-accent-hover);
+	color: var(--ns-primary-hover);
 }
 
 .method[data-method="put"],
@@ -574,11 +573,11 @@
 
 .syntaxCommand,
 .syntaxJsonKey {
-	color: var(--ns-accent-hover);
+	color: var(--ns-primary-hover);
 }
 
 .syntaxHttpMethod {
-	color: var(--ns-accent);
+	color: var(--ns-primary);
 }
 
 .syntaxOption,
@@ -592,7 +591,7 @@
 
 .syntaxBoolean,
 .syntaxNull {
-	color: var(--ns-accent-hover);
+	color: var(--ns-primary-hover);
 }
 
 .syntaxPunctuation {
@@ -607,9 +606,9 @@
 	--ns-frame-color: transparent;
 	width: 100%;
 	padding: 0.75rem 1rem;
-	color: var(--ns-accent-hover);
-	background: color-mix(in srgb, var(--ns-accent) 8%, transparent);
-	border-top: 1px solid var(--ns-accent-border);
+	color: var(--ns-primary-hover);
+	background: var(--ns-primary-muted);
+	border-top: 1px solid var(--ns-primary-border);
 	font-family: var(--ns-font-mono);
 	font-size: 0.7rem;
 	font-weight: 900;
@@ -620,13 +619,12 @@
 }
 
 .snippetAction:hover {
-	background: color-mix(in srgb, var(--ns-accent) 14%, transparent);
+	background: var(--ns-primary-subtle);
 }
 
 .console {
 	padding: 1rem;
 	background: var(--ns-surface);
-	backdrop-filter: blur(0.75rem);
 }
 
 .consolePanel {
@@ -650,27 +648,17 @@
 	grid-column: 1 / -1;
 }
 
-.bodyField textarea {
+.bodyField :global(.ns-frame) {
+	--ns-frame-color: var(--ns-border-faint);
+}
+
+.bodyTextArea {
 	min-height: 10rem;
 	resize: vertical;
-	padding: 0.85rem;
-	color: var(--ns-text);
 	background: var(--ns-surface-deep);
-	border: 1px solid var(--ns-border-faint);
 	font-family: var(--ns-font-mono);
 	font-size: 0.82rem;
 	line-height: 1.55;
-}
-
-.bodyField textarea[aria-invalid="true"] {
-	border-color: color-mix(in srgb, var(--ns-critical) 68%, transparent);
-}
-
-.fieldError {
-	color: var(--ns-critical);
-	font-family: var(--ns-font-sans);
-	font-size: 0.75rem;
-	line-height: 1.45;
 }
 
 .emptyBody {

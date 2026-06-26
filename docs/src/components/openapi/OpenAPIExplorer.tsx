@@ -1,4 +1,4 @@
-import { Badge, Button, FieldLabel, Input, Panel } from "@netstamp/ui";
+import { Badge, Button, FieldLabel, Input, Panel, TextAreaField } from "@netstamp/ui";
 import { useDeferredValue, useEffect, useState } from "react";
 import styles from "./OpenAPIExplorer.module.css";
 
@@ -909,25 +909,20 @@ export default function OpenAPIExplorer({ specUrl }: OpenAPIExplorerProps) {
 					</div>
 
 					{requestContent(selected) ? (
-						<label className={styles.bodyField}>
-							<FieldLabel>JSON body</FieldLabel>
-							<textarea
+						<div className={styles.bodyField}>
+							<TextAreaField
+								label="JSON body"
 								value={body}
 								name="openapi-json-body"
-								aria-invalid={bodyError ? true : undefined}
-								aria-describedby={bodyError ? "openapi-body-error" : undefined}
+								error={bodyError || undefined}
 								onChange={event => {
 									setBody(event.currentTarget.value);
 									setBodyError("");
 								}}
 								spellCheck={false}
+								className={styles.bodyTextArea}
 							/>
-							{bodyError ? (
-								<span className={styles.fieldError} id="openapi-body-error">
-									{bodyError}
-								</span>
-							) : null}
-						</label>
+						</div>
 					) : (
 						<div className={styles.emptyBody}>No JSON request body for this operation.</div>
 					)}
