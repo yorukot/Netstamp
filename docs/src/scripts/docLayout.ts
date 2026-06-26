@@ -52,10 +52,11 @@ function initDocLayout() {
 	function flashActionLabel(element: Element | null, label: string) {
 		if (!(element instanceof HTMLElement)) return;
 
-		const original = element.textContent ?? "";
-		element.textContent = label;
+		const labelTarget = element.querySelector<HTMLElement>("[data-docs-action-label]") ?? element;
+		const original = labelTarget.textContent ?? "";
+		labelTarget.textContent = label;
 		window.setTimeout(() => {
-			element.textContent = original;
+			labelTarget.textContent = original;
 		}, 1400);
 	}
 
@@ -105,7 +106,7 @@ function initDocLayout() {
 		};
 		const handleCopyPage = async () => {
 			await copyText(pagePlainText());
-			flashActionLabel(copyPageButton, "Copied");
+			flashActionLabel(pageActionsToggle, "Copied");
 			setPageActionsOpen(false);
 		};
 		const handleViewMarkdown = () => {
