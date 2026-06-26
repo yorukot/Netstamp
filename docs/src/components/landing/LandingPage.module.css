@@ -20,20 +20,19 @@
 
 .hero {
 	display: grid;
-	grid-template-columns: minmax(24rem, 0.72fr) minmax(32rem, 1.28fr);
+	grid-template-columns: minmax(23rem, 0.64fr) minmax(34rem, 1fr);
+	gap: clamp(1.25rem, 3vw, 2rem);
 	align-items: start;
-	gap: clamp(1.5rem, 3vw, 2.5rem);
-	min-height: calc(100svh - 8rem);
-	padding: clamp(2.5rem, 5vw, 4.5rem) clamp(1rem, 4vw, 3rem) clamp(1.5rem, 3vw, 2.5rem);
+	min-height: calc(100svh - 7rem);
+	padding: clamp(2rem, 5vw, 4.5rem) clamp(1rem, 4vw, 3rem) clamp(1.25rem, 3vw, 2rem);
 	border-bottom: 1px solid var(--ns-border);
 }
 
 .heroCopy {
 	display: grid;
-	align-content: center;
+	align-content: start;
 	gap: 1rem;
 	min-width: 0;
-	padding-top: 0.5rem;
 }
 
 .heroCopy h1,
@@ -43,24 +42,23 @@
 	margin: 0;
 	color: var(--ns-text);
 	font-family: var(--ns-font-display);
-	font-weight: 750;
+	font-weight: 900;
 	letter-spacing: 0;
 }
 
 .heroCopy h1 {
-	max-width: 14ch;
-	font-size: clamp(3rem, 5vw, 4.5rem);
-	line-height: 0.98;
+	max-width: 13ch;
+	font-size: clamp(3rem, 5vw, 5.25rem);
+	line-height: 0.95;
 }
 
 .heroCopy p,
 .sectionHeader p,
-.productCard p,
 .routeCopy p,
 .ctaBand p {
 	margin: 0;
 	color: var(--ns-text-muted);
-	font-size: 1.125rem;
+	font-size: 1.0625rem;
 	line-height: 1.65;
 }
 
@@ -81,18 +79,29 @@
 	text-decoration: none;
 }
 
-.productShot {
-	position: relative;
-	align-self: start;
-	margin: 0;
-	min-width: 0;
-	border: 1px solid var(--ns-border);
-	background: var(--ns-surface);
-	box-shadow: none;
+.heroSpec {
+	margin-top: 0.25rem;
 }
 
-.productShot::before {
-	content: none;
+.productShot {
+	position: relative;
+	display: grid;
+	align-self: start;
+	min-width: 0;
+	margin: 0;
+	overflow: hidden;
+	border: 1px solid var(--ns-border);
+	background: var(--ns-surface);
+}
+
+.shotHeader {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	padding: 0.75rem 0.875rem;
+	border-bottom: 1px solid var(--ns-border-faint);
+	background: var(--ns-surface-raised);
 }
 
 .productShot img {
@@ -120,34 +129,15 @@
 	display: grid;
 	grid-template-columns: repeat(4, minmax(0, 1fr));
 	gap: 1px;
-	width: min(92rem, calc(100% - 2rem));
+	width: min(94rem, calc(100% - 2rem));
 	margin: 0 auto;
 	border: 1px solid var(--ns-border);
 	background: var(--ns-border);
 }
 
-.telemetryItem {
-	display: grid;
-	gap: 0.35rem;
-	padding: 1rem;
-	background: var(--ns-surface);
-}
-
-.telemetryItem span,
-.cardHeader span,
-.routeRows span {
-	color: var(--ns-text-low);
-	font-family: var(--ns-font-mono);
-	font-size: 0.72rem;
-	font-weight: 800;
-	letter-spacing: 0.08em;
-	text-transform: uppercase;
-}
-
-.telemetryItem strong {
-	color: var(--ns-text);
-	font-size: 1.75rem;
-	line-height: 1;
+.telemetryStrip > * {
+	min-height: 8rem;
+	border: 0;
 }
 
 .productBand {
@@ -159,19 +149,19 @@
 .sectionHeader {
 	display: grid;
 	gap: 1rem;
-	max-width: 55rem;
+	max-width: 56rem;
 }
 
 .sectionHeader h2,
 .routeCopy h2,
 .ctaBand h2 {
 	max-width: 14ch;
-	font-size: clamp(2.4rem, 4vw, 3.5rem);
-	line-height: 1.02;
+	font-size: clamp(2.35rem, 4vw, 4rem);
+	line-height: 1;
 }
 
 .sectionHeader p {
-	max-width: 46rem;
+	max-width: 48rem;
 }
 
 .productGrid {
@@ -180,65 +170,35 @@
 	gap: 1rem;
 }
 
-.productCard {
+.pointList {
 	display: grid;
-	align-content: start;
-	gap: 1rem;
-	min-height: 17rem;
-	padding: 1.25rem;
-	border: 1px solid var(--ns-border);
-	background: var(--ns-surface);
-}
-
-.cardHeader {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 1rem;
-}
-
-.cardHeader i {
-	display: block;
-	width: 2rem;
-	height: 0.25rem;
-	background: var(--ns-accent);
-}
-
-.productCard h3 {
+	gap: 0.45rem;
 	margin: 0;
-	color: var(--ns-text);
-	font-size: 1.5rem;
-	line-height: 1.15;
-}
-
-.productCard ul {
-	display: grid;
-	gap: 0.5rem;
-	margin: auto 0 0;
 	padding: 0;
 	list-style: none;
 }
 
-.productCard li {
+.pointList li {
 	display: flex;
 	align-items: center;
 	gap: 0.5rem;
+	min-width: 0;
 	color: var(--ns-text-muted);
-	font-size: 0.9rem;
+	font-size: 0.875rem;
 	line-height: 1.35;
 }
 
-.productCard li::before {
+.pointList li::before {
 	content: "";
 	flex: 0 0 auto;
 	width: 0.45rem;
 	height: 0.45rem;
-	background: var(--ns-accent);
+	background: var(--ns-primary);
 }
 
 .routeBand {
 	display: grid;
-	grid-template-columns: minmax(18rem, 0.78fr) minmax(26rem, 1.22fr);
+	grid-template-columns: minmax(18rem, 0.72fr) minmax(28rem, 1fr);
 	gap: clamp(2rem, 5vw, 4rem);
 	align-items: center;
 	padding: clamp(3rem, 6vw, 5rem) clamp(1rem, 4vw, 3rem);
@@ -247,15 +207,22 @@
 	background: var(--ns-surface-raised);
 }
 
-.routeCopy {
-	display: grid;
-	gap: 1rem;
-}
-
+.routeCopy,
 .routePanel {
 	display: grid;
 	gap: 1rem;
-	padding: clamp(1rem, 3vw, 2rem);
+	min-width: 0;
+}
+
+.routeFacts {
+	display: grid;
+	gap: 0;
+	margin-top: 0.25rem;
+	border-top: 1px solid var(--ns-border-faint);
+}
+
+.routePanel {
+	padding: clamp(1rem, 3vw, 1.5rem);
 	border: 1px solid var(--ns-border);
 	background: var(--ns-surface);
 }
@@ -270,13 +237,13 @@
 }
 
 .routeRail::before {
-	content: "";
 	position: absolute;
-	left: 2rem;
-	right: 2rem;
 	top: 50%;
+	right: 2rem;
+	left: 2rem;
 	height: 2px;
-	background: var(--ns-accent);
+	background: var(--ns-primary);
+	content: "";
 }
 
 .routeNode {
@@ -286,7 +253,7 @@
 	place-items: center;
 	width: clamp(3rem, 7vw, 4.5rem);
 	aspect-ratio: 1;
-	border: 1px solid var(--ns-accent-border);
+	border: 1px solid var(--ns-primary-border);
 	color: var(--ns-text);
 	background: var(--ns-surface);
 	font-family: var(--ns-font-mono);
@@ -296,19 +263,7 @@
 
 .routeNodeActive {
 	color: var(--ns-text-on-accent);
-	background: var(--ns-accent);
-}
-
-.routeRows {
-	display: grid;
-	grid-template-columns: repeat(3, minmax(0, 1fr));
-	gap: 0.75rem;
-}
-
-.routeRows span {
-	padding: 0.75rem;
-	border: 1px solid var(--ns-border);
-	background: var(--ns-surface-raised);
+	background: var(--ns-primary);
 }
 
 .ctaBand {
@@ -377,7 +332,6 @@
 
 	.heroCopy p,
 	.sectionHeader p,
-	.productCard p,
 	.routeCopy p,
 	.ctaBand p {
 		font-size: 1rem;
@@ -397,18 +351,13 @@
 	}
 
 	.telemetryStrip,
-	.productGrid,
-	.routeRows {
+	.productGrid {
 		grid-template-columns: 1fr;
 	}
 
 	.telemetryStrip {
-		margin-top: 0;
 		width: calc(100% - 2rem);
-	}
-
-	.productCard {
-		min-height: auto;
+		margin-top: 0;
 	}
 
 	.routeRail {
@@ -416,8 +365,8 @@
 	}
 
 	.routeRail::before {
-		left: 1rem;
 		right: 1rem;
+		left: 1rem;
 	}
 
 	.routeNode {

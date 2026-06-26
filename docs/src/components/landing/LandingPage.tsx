@@ -1,4 +1,4 @@
-import { Badge, Button, GlobalFooter } from "@netstamp/ui";
+import { Badge, Button, CodePreview, GlobalFooter, KeyValueRow, MetricTile, SpecCard, SpecLabel, Surface } from "@netstamp/ui";
 import dashboardDark from "../../assets/homepage-dashboard-dark.png?url";
 import dashboardLight from "../../assets/homepage-dashboard-light.png?url";
 import { appUrl } from "../../lib/publicUrls";
@@ -7,17 +7,17 @@ import styles from "./LandingPage.module.css";
 const githubUrl = "https://github.com/yorukot/netstamp";
 
 const productStats = [
-	{ label: "Probe fleet", value: "18 online" },
-	{ label: "Latency p95", value: "42ms" },
-	{ label: "Packet loss", value: "0.08%" },
-	{ label: "Route diff", value: "2 changed" }
-];
+	{ label: "Probe fleet", value: "18", detail: "online", tone: "success" },
+	{ label: "Latency p95", value: "42ms", detail: "healthy", tone: "success" },
+	{ label: "Packet loss", value: "0.08%", detail: "watch", tone: "warning" },
+	{ label: "Route diff", value: "2", detail: "changed", tone: "accent" }
+] as const;
 
 const productSections = [
 	{
 		kicker: "Fleet",
 		title: "Probes you control",
-		copy: "Install probes on VPS nodes, lab hosts, edge machines, or internal networks. Netstamp shows where each agent is running, when it last checked in, and what it can measure.",
+		copy: "Install probes on VPS nodes, lab hosts, edge machines, or internal networks. Track heartbeat freshness, labels, and capability from one controller.",
 		points: ["Heartbeat status", "Location and labels", "IPv4 / IPv6 capability"]
 	},
 	{
@@ -29,7 +29,7 @@ const productSections = [
 	{
 		kicker: "Insight",
 		title: "Route intelligence for real paths",
-		copy: "Compare probe and check pairs over time. Detect route hash changes, latency shifts, packet loss, and topology movement before users report symptoms.",
+		copy: "Compare probe and check pairs over time. Detect route hash changes, latency shifts, packet loss, and topology movement before symptoms reach users.",
 		points: ["Scope by probe or check", "Time range URLs", "Route topology views"]
 	},
 	{
@@ -50,7 +50,9 @@ const productSections = [
 		copy: "Netstamp is built in the open so teams, researchers, and communities can inspect how measurements are collected and represented.",
 		points: ["Self-hosted controller", "Portable probes", "Public docs"]
 	}
-];
+] as const;
+
+const routeHops = ["TPE", "IXP", "NRT", "SJC", "SFO"] as const;
 
 interface LandingPageProps {
 	appHref?: string;
@@ -66,9 +68,7 @@ export function LandingPage({ appHref = appUrl("/register") }: LandingPageProps)
 			<main>
 				<section className={styles.hero}>
 					<div className={styles.heroCopy}>
-						<Badge tone="accent" dot={false}>
-							Open-source network observability
-						</Badge>
+						<SpecLabel tone="primary">Open-source network observability</SpecLabel>
 						<h1>Netstamp network observability</h1>
 						<p>Probes you control measure latency, packet loss, DNS, and routes from the networks that matter to you.</p>
 						<div className={styles.heroActions}>
@@ -85,9 +85,18 @@ export function LandingPage({ appHref = appUrl("/register") }: LandingPageProps)
 								</a>
 							</Button>
 						</div>
+						<Surface tone="glass" frameSize="lg" padding="md" className={styles.heroSpec}>
+							<KeyValueRow label="Controller" value="self-hosted" meta="Go API" tone="primary" />
+							<KeyValueRow label="Probe work" value="ping, tcp, dns, traceroute" meta="scheduled" />
+							<KeyValueRow label="Evidence" value="latency, loss, route hash, heartbeat" meta="stored" />
+						</Surface>
 					</div>
 
-					<figure className={styles.productShot} role="img" aria-label="Netstamp dashboard showing probe fleet metrics, route topology, and alert state">
+					<figure className={styles.productShot} aria-label="Netstamp dashboard showing probe fleet metrics, route topology, and alert state">
+						<div className={styles.shotHeader}>
+							<SpecLabel>Product snapshot</SpecLabel>
+							<Badge tone="success">live dashboard</Badge>
+						</div>
 						<img className={styles.dashboardShotLight} src={dashboardLight} alt="" width="1440" height="960" loading="eager" decoding="async" aria-hidden="true" />
 						<img className={styles.dashboardShotDark} src={dashboardDark} alt="" width="1440" height="960" loading="eager" decoding="async" aria-hidden="true" />
 					</figure>
@@ -95,70 +104,60 @@ export function LandingPage({ appHref = appUrl("/register") }: LandingPageProps)
 
 				<section className={styles.telemetryStrip} aria-label="Product telemetry snapshot">
 					{productStats.map(stat => (
-						<div className={styles.telemetryItem} key={stat.label}>
-							<span>{stat.label}</span>
-							<strong>{stat.value}</strong>
-						</div>
+						<MetricTile key={stat.label} label={stat.label} value={stat.value} detail={stat.detail} tone={stat.tone} />
 					))}
 				</section>
 
 				<section className={styles.productBand}>
 					<div className={styles.sectionHeader}>
-						<Badge tone="neutral" dot={false}>
-							Product surface
-						</Badge>
+						<SpecLabel tone="secondary">Product surface</SpecLabel>
 						<h2>Designed for repeated network operations.</h2>
-						<p>Netstamp keeps the interface close to the work: fleet state, check definitions, result insight, alert routing, and API automation.</p>
+						<p>Netstamp keeps the interface close to the work: fleet state, check definitions, result insight, alert routing, status pages, and API automation.</p>
 					</div>
 
 					<div className={styles.productGrid}>
 						{productSections.map(section => (
-							<article className={styles.productCard} key={section.kicker}>
-								<div className={styles.cardHeader}>
-									<span>{section.kicker}</span>
-									<i aria-hidden="true" />
-								</div>
-								<h3>{section.title}</h3>
-								<p>{section.copy}</p>
-								<ul>
+							<SpecCard key={section.kicker} eyebrow={section.kicker} title={section.title} description={section.copy} active={section.kicker === "Fleet"}>
+								<ul className={styles.pointList}>
 									{section.points.map(point => (
 										<li key={point}>{point}</li>
 									))}
 								</ul>
-							</article>
+							</SpecCard>
 						))}
 					</div>
 				</section>
 
 				<section className={styles.routeBand}>
 					<div className={styles.routeCopy}>
-						<Badge tone="accent" dot={false}>
-							Route intelligence
-						</Badge>
+						<SpecLabel tone="primary">Route intelligence</SpecLabel>
 						<h2>See when the path changes.</h2>
 						<p>Traceroute runs become route timelines and topology views. Operators can compare the path hash, hop changes, and latency movement across probe locations.</p>
+						<div className={styles.routeFacts}>
+							<KeyValueRow label="Path hash" value="b94c.22f9.changed" meta="diff" tone="warning" />
+							<KeyValueRow label="Hop shift" value="provider changed at hop 3" meta="NRT" />
+							<KeyValueRow label="Latency" value="+18ms p95" meta="watch" tone="primary" />
+						</div>
 					</div>
-					<div className={styles.routePanel} aria-hidden="true">
-						<div className={styles.routeRail}>
-							{["TPE", "IXP", "NRT", "SJC", "SFO"].map((hop, index) => (
+					<div className={styles.routePanel}>
+						<div className={styles.routeRail} aria-label="Example route from Taipei to San Francisco">
+							{routeHops.map((hop, index) => (
 								<span className={classNames(styles.routeNode, index === 2 && styles.routeNodeActive)} key={hop}>
 									{hop}
 								</span>
 							))}
 						</div>
-						<div className={styles.routeRows}>
-							<span>path hash changed</span>
-							<span>hop 3 provider shift</span>
-							<span>p95 +18ms</span>
-						</div>
+						<CodePreview title="route diff" meta="trace">
+							{`hop 03 changed: 203.69.35.1 -> 203.69.35.9
+p95 latency +18ms
+path hash b94c.22f9.changed`}
+						</CodePreview>
 					</div>
 				</section>
 
 				<section className={styles.ctaBand}>
 					<div>
-						<Badge tone="neutral" dot={false}>
-							Self-hosted controller
-						</Badge>
+						<SpecLabel tone="secondary">Self-hosted controller</SpecLabel>
 						<h2>Run measurements from networks you own.</h2>
 						<p>Deploy Netstamp, register probes, and start collecting measurable evidence about the paths your traffic actually takes.</p>
 					</div>
