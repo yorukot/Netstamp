@@ -43,6 +43,27 @@ model LoginUserRequest {
 	password: string;
 }
 
+@example(#{ email: "user@example.com" })
+model CreatePasswordResetRequest {
+	@doc("Email address for the account that should receive a password reset link.")
+	email: email;
+}
+
+@example(#{ token: "YNo5Uoj64VqK5jCht8h17GO8sHJIY0ScDNef7X99w7k", newPassword: "correct-horse-battery-staple" })
+model ConfirmPasswordResetRequest {
+	@secret
+	@minLength(1)
+	@maxLength(512)
+	@doc("One-time reset token from the password reset email.")
+	token: string;
+
+	@secret
+	@minLength(8)
+	@maxLength(128)
+	@doc("New password. It is stored only as an Argon2id hash.")
+	newPassword: string;
+}
+
 @example(#{ user: #{ id: "11111111-1111-1111-1111-111111111111", email: "user@example.com", displayName: "Jane Doe" } })
 model AuthUserResponse {
 	user: User;

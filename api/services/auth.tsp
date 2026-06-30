@@ -23,6 +23,20 @@ interface AuthService {
 	@route("/login")
 	loginUser(@body body: LoginUserRequest): SessionOkJson<AuthUserResponse> | BadRequestProblem | UnauthorizedProblem | InternalServerProblem;
 
+	@operationId("createPasswordReset")
+	@summary("Create password reset")
+	@doc("Create a password reset request for an account email. The response does not reveal whether the email exists.")
+	@post
+	@route("/password-resets")
+	createPasswordReset(@body body: CreatePasswordResetRequest): Accepted | BadRequestProblem | UnprocessableEntityProblem | TooManyRequestsProblem | ServiceUnavailableProblem | InternalServerProblem;
+
+	@operationId("confirmPasswordReset")
+	@summary("Confirm password reset")
+	@doc("Consume a one-time password reset token and replace the account password.")
+	@patch
+	@route("/password-resets")
+	confirmPasswordReset(@body body: ConfirmPasswordResetRequest): NoContent | BadRequestProblem | UnauthorizedProblem | UnprocessableEntityProblem | ServiceUnavailableProblem | InternalServerProblem;
+
 	@operationId("logoutUser")
 	@summary("Logout user")
 	@doc("Clear the HTTP-only session cookie.")

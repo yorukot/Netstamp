@@ -225,6 +225,152 @@
 				]
 			}
 		},
+		"/auth/password-resets": {
+			"post": {
+				"operationId": "createPasswordReset",
+				"summary": "Create password reset",
+				"description": "Create a password reset request for an account email. The response does not reveal whether the email exists.",
+				"parameters": [],
+				"responses": {
+					"202": {
+						"description": "The request has been accepted for processing, but processing has not yet completed."
+					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"429": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"503": {
+						"description": "Service unavailable.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Auth"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/CreatePasswordResetRequest"
+							}
+						}
+					}
+				}
+			},
+			"patch": {
+				"operationId": "confirmPasswordReset",
+				"summary": "Confirm password reset",
+				"description": "Consume a one-time password reset token and replace the account password.",
+				"parameters": [],
+				"responses": {
+					"204": {
+						"description": "There is no content to send for this request, but the headers may be useful. "
+					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"503": {
+						"description": "Service unavailable.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Auth"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/ConfirmPasswordResetRequest"
+							}
+						}
+					}
+				}
+			}
+		},
 		"/auth/register": {
 			"post": {
 				"operationId": "registerUser",
@@ -7658,6 +7804,32 @@
 					}
 				]
 			},
+			"ConfirmPasswordResetRequest": {
+				"type": "object",
+				"required": ["token", "newPassword"],
+				"properties": {
+					"token": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 512,
+						"format": "password",
+						"description": "One-time reset token from the password reset email."
+					},
+					"newPassword": {
+						"type": "string",
+						"minLength": 8,
+						"maxLength": 128,
+						"format": "password",
+						"description": "New password. It is stored only as an Argon2id hash."
+					}
+				},
+				"examples": [
+					{
+						"token": "YNo5Uoj64VqK5jCht8h17GO8sHJIY0ScDNef7X99w7k",
+						"newPassword": "correct-horse-battery-staple"
+					}
+				]
+			},
 			"CreateAlertRuleRequest": {
 				"type": "object",
 				"required": ["name", "enabled", "severity", "scope", "condition"],
@@ -7858,6 +8030,25 @@
 						"config": {
 							"url": "https://hooks.example.com/netstamp"
 						}
+					}
+				]
+			},
+			"CreatePasswordResetRequest": {
+				"type": "object",
+				"required": ["email"],
+				"properties": {
+					"email": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/email"
+							}
+						],
+						"description": "Email address for the account that should receive a password reset link."
+					}
+				},
+				"examples": [
+					{
+						"email": "user@example.com"
 					}
 				]
 			},

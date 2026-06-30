@@ -98,6 +98,10 @@ model CreatedJson<T> {
 	...Body<T>;
 }
 
+model Accepted {
+	...Response<202>;
+}
+
 model NoContent {
 	...NoContentResponse;
 }
@@ -149,6 +153,11 @@ model NotFoundProblem {
 
 model ConflictProblem {
 	...ConflictResponse;
+	...ProblemJson;
+}
+
+model TooManyRequestsProblem {
+	...Response<429>;
 	...ProblemJson;
 }
 

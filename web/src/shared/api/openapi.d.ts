@@ -81,6 +81,30 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	"/auth/password-resets": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * Create password reset
+		 * @description Create a password reset request for an account email. The response does not reveal whether the email exists.
+		 */
+		post: operations["createPasswordReset"];
+		delete?: never;
+		options?: never;
+		head?: never;
+		/**
+		 * Confirm password reset
+		 * @description Consume a one-time password reset token and replace the account password.
+		 */
+		patch: operations["confirmPasswordReset"];
+		trace?: never;
+	};
 	"/auth/register": {
 		parameters: {
 			query?: never;
@@ -1501,6 +1525,24 @@ export interface components {
 		};
 		/**
 		 * @example {
+		 *       "token": "YNo5Uoj64VqK5jCht8h17GO8sHJIY0ScDNef7X99w7k",
+		 *       "newPassword": "correct-horse-battery-staple"
+		 *     }
+		 */
+		ConfirmPasswordResetRequest: {
+			/**
+			 * Format: password
+			 * @description One-time reset token from the password reset email.
+			 */
+			token: string;
+			/**
+			 * Format: password
+			 * @description New password. It is stored only as an Argon2id hash.
+			 */
+			newPassword: string;
+		};
+		/**
+		 * @example {
 		 *       "name": "API packet loss",
 		 *       "description": "Page the team when API ping loss is high.",
 		 *       "enabled": true,
@@ -1607,6 +1649,15 @@ export interface components {
 				| components["schemas"]["DiscordNotificationConfig"]
 				| components["schemas"]["TelegramNotificationConfig"]
 				| components["schemas"]["EmailNotificationConfig"];
+		};
+		/**
+		 * @example {
+		 *       "email": "user@example.com"
+		 *     }
+		 */
+		CreatePasswordResetRequest: {
+			/** @description Email address for the account that should receive a password reset link. */
+			email: components["schemas"]["email"];
 		};
 		/**
 		 * @example {
@@ -3989,6 +4040,140 @@ export interface operations {
 			};
 			/** @description Server error */
 			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	createPasswordReset: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				"application/json": components["schemas"]["CreatePasswordResetRequest"];
+			};
+		};
+		responses: {
+			/** @description The request has been accepted for processing, but processing has not yet completed. */
+			202: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			429: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Service unavailable. */
+			503: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	confirmPasswordReset: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				"application/json": components["schemas"]["ConfirmPasswordResetRequest"];
+			};
+		};
+		responses: {
+			/** @description There is no content to send for this request, but the headers may be useful. */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Service unavailable. */
+			503: {
 				headers: {
 					[name: string]: unknown;
 				};
