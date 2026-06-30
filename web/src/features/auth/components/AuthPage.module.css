@@ -109,6 +109,29 @@
 	gap: 1.125rem;
 }
 
+.passwordFieldGroup {
+	display: grid;
+	gap: 0.625rem;
+}
+
+.inlineLink {
+	justify-self: start;
+	color: var(--ns-text-subtle);
+	font-size: 0.875rem;
+	line-height: 1.4;
+	text-decoration: underline;
+	text-underline-offset: 0.25rem;
+}
+
+.inlineLink:hover {
+	color: var(--ns-text);
+}
+
+.inlineLink:focus-visible {
+	outline: var(--ns-focus-outline);
+	outline-offset: 0.25rem;
+}
+
 .submitButton {
 	width: 100%;
 	margin-top: 0.25rem;
@@ -164,6 +187,15 @@
 	text-align: center;
 	text-decoration: underline;
 	text-underline-offset: 0.25rem;
+}
+
+.notice {
+	border: 1px solid var(--ns-border-faint);
+	background: var(--ns-glass-light);
+	padding: 1rem;
+	color: var(--ns-text-muted);
+	font-size: 0.9375rem;
+	line-height: 1.55;
 }
 
 .modeLink:hover {

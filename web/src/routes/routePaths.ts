@@ -4,6 +4,8 @@ export const publicRoutePaths = {
 	landing: "/",
 	login: "/login",
 	register: "/register",
+	forgotPassword: "/forgot-password",
+	resetPassword: "/reset-password",
 	onboarding: "/onboarding"
 } satisfies Record<PublicRoute, string>;
 
