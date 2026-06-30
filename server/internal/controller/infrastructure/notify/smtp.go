@@ -74,8 +74,8 @@ func (s *SMTPSender) Configured() bool {
 	return strings.TrimSpace(s.cfg.Host) != "" && strings.TrimSpace(s.cfg.From) != ""
 }
 
-func NewAlertEmailSender(smtp *SMTPSender) *AlertEmailSender {
-	return &AlertEmailSender{smtp: smtp}
+func NewAlertEmailSender(sender *SMTPSender) *AlertEmailSender {
+	return &AlertEmailSender{smtp: sender}
 }
 
 func (s *AlertEmailSender) Configured() bool {

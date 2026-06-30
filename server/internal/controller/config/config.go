@@ -45,7 +45,7 @@ const (
 	keyAuthJWTSecret                  = "AUTH_JWT_SECRET"       //nolint:gosec // This is the env key name, not the secret value.
 	keyAuthAccessTokenTTL             = "AUTH_ACCESS_TOKEN_TTL" //nolint:gosec // This is a token TTL env key, not a credential.
 	keyAuthRegistrationEnabled        = "AUTH_REGISTRATION_ENABLED"
-	keyAuthPasswordResetTokenTTL      = "AUTH_PASSWORD_RESET_TOKEN_TTL" //nolint:gosec // This is a token TTL env key, not a credential.
+	keyAuthPasswordResetTokenTTL      = "AUTH_PASSWORD_RESET_TOKEN_TTL"
 	keyAuthPasswordResetRateWindow    = "AUTH_PASSWORD_RESET_RATE_LIMIT_WINDOW"
 	keyAuthPasswordResetIPLimit       = "AUTH_PASSWORD_RESET_IP_LIMIT"
 	keyAuthPasswordResetEmailLimit    = "AUTH_PASSWORD_RESET_EMAIL_LIMIT"

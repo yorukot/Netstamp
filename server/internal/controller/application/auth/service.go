@@ -133,21 +133,21 @@ func (s *Service) RequestPasswordReset(ctx context.Context, input RequestPasswor
 		return nil
 	}
 	if err != nil {
-		_ = flow.technicalFailure(AuthEventResetRequestFailure, AuthReasonUserLookupFailed, err)
+		flow.recordTechnicalFailure(AuthEventResetRequestFailure, AuthReasonUserLookupFailed, err)
 		return nil
 	}
 	flow.setUser(user)
 
 	rawToken, err := s.resetTokens.Generate(ctx)
 	if err != nil {
-		_ = flow.technicalFailure(AuthEventResetRequestFailure, AuthReasonResetTokenGenerateFail, err)
+		flow.recordTechnicalFailure(AuthEventResetRequestFailure, AuthReasonResetTokenGenerateFail, err)
 		return nil
 	}
 
 	now := s.now()
 	expiresAt := now.Add(s.resetConfig.TokenTTL)
 	if err := s.resets.InvalidateActivePasswordResetTokens(ctx, user.ID, now); err != nil {
-		_ = flow.technicalFailure(AuthEventResetRequestFailure, AuthReasonResetTokenCreateFail, err)
+		flow.recordTechnicalFailure(AuthEventResetRequestFailure, AuthReasonResetTokenCreateFail, err)
 		return nil
 	}
 	if _, err := s.resets.CreatePasswordResetToken(ctx, identity.PasswordResetToken{
@@ -155,7 +155,7 @@ func (s *Service) RequestPasswordReset(ctx context.Context, input RequestPasswor
 		TokenHash: s.resetTokens.Hash(rawToken),
 		ExpiresAt: expiresAt,
 	}); err != nil {
-		_ = flow.technicalFailure(AuthEventResetRequestFailure, AuthReasonResetTokenCreateFail, err)
+		flow.recordTechnicalFailure(AuthEventResetRequestFailure, AuthReasonResetTokenCreateFail, err)
 		return nil
 	}
 
@@ -165,7 +165,7 @@ func (s *Service) RequestPasswordReset(ctx context.Context, input RequestPasswor
 		ResetURL:    passwordResetURL(input.ResetBaseURL, rawToken),
 		ExpiresAt:   expiresAt,
 	}); err != nil {
-		_ = flow.technicalFailure(AuthEventResetRequestFailure, AuthReasonResetMailerFailed, err)
+		flow.recordTechnicalFailure(AuthEventResetRequestFailure, AuthReasonResetMailerFailed, err)
 		return nil
 	}
 

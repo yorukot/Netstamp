@@ -61,12 +61,16 @@ func (f *authFlow) businessFailure(name AuthEventName, reason AuthEventReason, r
 }
 
 func (f *authFlow) technicalFailure(name AuthEventName, reason AuthEventReason, err error) error {
+	f.recordTechnicalFailure(name, reason, err)
+	return err
+}
+
+func (f *authFlow) recordTechnicalFailure(name AuthEventName, reason AuthEventReason, err error) {
 	f.span.SetAttributes(attrAuthOutcome.String(string(AuthOutcomeFailure)))
 	markSpanTechnicalFailure(f.span, reason)
 	if f.service.events != nil {
 		f.service.events.RecordAuthEvent(f.ctx, f.authEvent(name, AuthOutcomeFailure, reason, err))
 	}
-	return err
 }
 
 func (f *authFlow) authEvent(name AuthEventName, outcome AuthEventOutcome, reason AuthEventReason, err error) AuthEvent {
