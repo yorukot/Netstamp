@@ -534,48 +534,6 @@ func (ns NullProjectMemberRole) Value() (driver.Value, error) {
 	return string(ns.ProjectMemberRole), nil
 }
 
-type PublicStatusAssignmentSelectionMode string
-
-const (
-	PublicStatusAssignmentSelectionModeAllCheck            PublicStatusAssignmentSelectionMode = "all_check"
-	PublicStatusAssignmentSelectionModeSelectedAssignments PublicStatusAssignmentSelectionMode = "selected_assignments"
-)
-
-func (e *PublicStatusAssignmentSelectionMode) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = PublicStatusAssignmentSelectionMode(s)
-	case string:
-		*e = PublicStatusAssignmentSelectionMode(s)
-	default:
-		return fmt.Errorf("unsupported scan type for PublicStatusAssignmentSelectionMode: %T", src)
-	}
-	return nil
-}
-
-type NullPublicStatusAssignmentSelectionMode struct {
-	PublicStatusAssignmentSelectionMode PublicStatusAssignmentSelectionMode `json:"public_status_assignment_selection_mode"`
-	Valid                               bool                                `json:"valid"` // Valid is true if PublicStatusAssignmentSelectionMode is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullPublicStatusAssignmentSelectionMode) Scan(value interface{}) error {
-	if value == nil {
-		ns.PublicStatusAssignmentSelectionMode, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.PublicStatusAssignmentSelectionMode.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullPublicStatusAssignmentSelectionMode) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.PublicStatusAssignmentSelectionMode), nil
-}
-
 type PublicStatusChartMode string
 
 const (
@@ -954,6 +912,15 @@ type NotificationOutbox struct {
 	UpdatedAt        time.Time                `json:"updated_at"`
 }
 
+type PasswordResetToken struct {
+	ID        uuid.UUID  `json:"id"`
+	UserID    uuid.UUID  `json:"user_id"`
+	TokenHash string     `json:"token_hash"`
+	ExpiresAt time.Time  `json:"expires_at"`
+	UsedAt    *time.Time `json:"used_at"`
+	CreatedAt time.Time  `json:"created_at"`
+}
+
 type PingCheckConfig struct {
 	CheckID         uuid.UUID `json:"check_id"`
 	PacketCount     int32     `json:"packet_count"`
@@ -1095,20 +1062,20 @@ type PublicStatusPage struct {
 }
 
 type PublicStatusPageElement struct {
-	ID                      uuid.UUID                            `json:"id"`
-	PublicPageID            uuid.UUID                            `json:"public_page_id"`
-	ProjectID               uuid.UUID                            `json:"project_id"`
-	ParentElementID         *uuid.UUID                           `json:"parent_element_id"`
-	Kind                    PublicStatusElementKind              `json:"kind"`
-	CheckID                 *uuid.UUID                           `json:"check_id"`
-	Title                   *string                              `json:"title"`
-	Description             *string                              `json:"description"`
-	SortOrder               int32                                `json:"sort_order"`
-	ChartMode               PublicStatusChartMode                `json:"chart_mode"`
-	ChartRange              *PublicStatusChartRange              `json:"chart_range"`
-	CreatedAt               time.Time                            `json:"created_at"`
-	UpdatedAt               time.Time                            `json:"updated_at"`
-	AssignmentSelectionMode *PublicStatusAssignmentSelectionMode `json:"assignment_selection_mode"`
+	ID                      uuid.UUID               `json:"id"`
+	PublicPageID            uuid.UUID               `json:"public_page_id"`
+	ProjectID               uuid.UUID               `json:"project_id"`
+	ParentElementID         *uuid.UUID              `json:"parent_element_id"`
+	Kind                    PublicStatusElementKind `json:"kind"`
+	CheckID                 *uuid.UUID              `json:"check_id"`
+	Title                   *string                 `json:"title"`
+	Description             *string                 `json:"description"`
+	SortOrder               int32                   `json:"sort_order"`
+	ChartMode               PublicStatusChartMode   `json:"chart_mode"`
+	ChartRange              *PublicStatusChartRange `json:"chart_range"`
+	CreatedAt               time.Time               `json:"created_at"`
+	UpdatedAt               time.Time               `json:"updated_at"`
+	AssignmentSelectionMode interface{}             `json:"assignment_selection_mode"`
 }
 
 type PublicStatusPageElementAssignment struct {
