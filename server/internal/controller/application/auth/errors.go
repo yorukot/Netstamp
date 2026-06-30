@@ -11,4 +11,6 @@ var (
 	ErrInvalidInput       = errors.New("auth input invalid")
 	ErrCredentialsInvalid = errors.New("credentials invalid")
 	ErrAccessTokenInvalid = errors.New("access token invalid")
+	ErrResetTokenInvalid  = errors.New("password reset token invalid")
+	ErrResetUnavailable   = errors.New("password reset unavailable")
 )

@@ -43,6 +43,9 @@ func (f *authFlow) setUser(user identity.User) {
 
 func (f *authFlow) success(name AuthEventName) {
 	f.span.SetAttributes(attrAuthOutcome.String(string(AuthOutcomeSuccess)))
+	if f.service.events == nil {
+		return
+	}
 	f.service.events.RecordAuthEvent(f.ctx, f.authEvent(name, AuthOutcomeSuccess, "", nil))
 }
 
@@ -51,14 +54,18 @@ func (f *authFlow) businessFailure(name AuthEventName, reason AuthEventReason, r
 		attrAuthOutcome.String(string(AuthOutcomeFailure)),
 		attrAuthFailureReason.String(string(reason)),
 	)
-	f.service.events.RecordAuthEvent(f.ctx, f.authEvent(name, AuthOutcomeFailure, reason, nil))
+	if f.service.events != nil {
+		f.service.events.RecordAuthEvent(f.ctx, f.authEvent(name, AuthOutcomeFailure, reason, nil))
+	}
 	return returnErr
 }
 
 func (f *authFlow) technicalFailure(name AuthEventName, reason AuthEventReason, err error) error {
 	f.span.SetAttributes(attrAuthOutcome.String(string(AuthOutcomeFailure)))
 	markSpanTechnicalFailure(f.span, reason)
-	f.service.events.RecordAuthEvent(f.ctx, f.authEvent(name, AuthOutcomeFailure, reason, err))
+	if f.service.events != nil {
+		f.service.events.RecordAuthEvent(f.ctx, f.authEvent(name, AuthOutcomeFailure, reason, err))
+	}
 	return err
 }
 
