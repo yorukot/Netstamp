@@ -1,6 +1,7 @@
 package pgpublicstatus
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -46,7 +47,7 @@ func newElement(
 	parentElementID *uuid.UUID,
 	kind sqlc.PublicStatusElementKind,
 	checkID *uuid.UUID,
-	assignmentSelectionMode *sqlc.PublicStatusAssignmentSelectionMode,
+	assignmentSelectionMode interface{},
 	title *string,
 	description *string,
 	sortOrder int32,
@@ -151,12 +152,11 @@ func sqlcElementKind(value domainpublic.ElementKind) sqlc.PublicStatusElementKin
 	return sqlc.PublicStatusElementKind(value)
 }
 
-func sqlcAssignmentSelectionMode(value *domainpublic.AssignmentSelectionMode) *sqlc.PublicStatusAssignmentSelectionMode {
+func sqlcAssignmentSelectionMode(value *domainpublic.AssignmentSelectionMode) interface{} {
 	if value == nil {
 		return nil
 	}
-	output := sqlc.PublicStatusAssignmentSelectionMode(*value)
-	return &output
+	return string(*value)
 }
 
 func chartRange(value *sqlc.PublicStatusChartRange) *domainpublic.ChartRange {
@@ -175,11 +175,20 @@ func sqlcOptionalChartRange(value *domainpublic.ChartRange) *sqlc.PublicStatusCh
 	return &output
 }
 
-func assignmentSelectionModeValue(value *sqlc.PublicStatusAssignmentSelectionMode) *domainpublic.AssignmentSelectionMode {
+func assignmentSelectionModeValue(value interface{}) *domainpublic.AssignmentSelectionMode {
 	if value == nil {
 		return nil
 	}
-	output := domainpublic.AssignmentSelectionMode(*value)
+	var raw string
+	switch typed := value.(type) {
+	case string:
+		raw = typed
+	case []byte:
+		raw = string(typed)
+	default:
+		raw = fmt.Sprint(typed)
+	}
+	output := domainpublic.AssignmentSelectionMode(raw)
 	return &output
 }
 

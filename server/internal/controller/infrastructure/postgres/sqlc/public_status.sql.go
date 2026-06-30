@@ -132,34 +132,34 @@ RETURNING id, public_page_id, project_id, parent_element_id, kind, check_id, ass
 `
 
 type CreatePublicStatusPageElementParams struct {
-	PublicPageID            uuid.UUID                            `json:"public_page_id"`
-	ProjectID               uuid.UUID                            `json:"project_id"`
-	ParentElementID         *uuid.UUID                           `json:"parent_element_id"`
-	Kind                    PublicStatusElementKind              `json:"kind"`
-	CheckID                 *uuid.UUID                           `json:"check_id"`
-	AssignmentSelectionMode *PublicStatusAssignmentSelectionMode `json:"assignment_selection_mode"`
-	Title                   *string                              `json:"title"`
-	Description             *string                              `json:"description"`
-	SortOrder               int32                                `json:"sort_order"`
-	ChartMode               PublicStatusChartMode                `json:"chart_mode"`
-	ChartRange              *PublicStatusChartRange              `json:"chart_range"`
+	PublicPageID            uuid.UUID               `json:"public_page_id"`
+	ProjectID               uuid.UUID               `json:"project_id"`
+	ParentElementID         *uuid.UUID              `json:"parent_element_id"`
+	Kind                    PublicStatusElementKind `json:"kind"`
+	CheckID                 *uuid.UUID              `json:"check_id"`
+	AssignmentSelectionMode interface{}             `json:"assignment_selection_mode"`
+	Title                   *string                 `json:"title"`
+	Description             *string                 `json:"description"`
+	SortOrder               int32                   `json:"sort_order"`
+	ChartMode               PublicStatusChartMode   `json:"chart_mode"`
+	ChartRange              *PublicStatusChartRange `json:"chart_range"`
 }
 
 type CreatePublicStatusPageElementRow struct {
-	ID                      uuid.UUID                            `json:"id"`
-	PublicPageID            uuid.UUID                            `json:"public_page_id"`
-	ProjectID               uuid.UUID                            `json:"project_id"`
-	ParentElementID         *uuid.UUID                           `json:"parent_element_id"`
-	Kind                    PublicStatusElementKind              `json:"kind"`
-	CheckID                 *uuid.UUID                           `json:"check_id"`
-	AssignmentSelectionMode *PublicStatusAssignmentSelectionMode `json:"assignment_selection_mode"`
-	Title                   *string                              `json:"title"`
-	Description             *string                              `json:"description"`
-	SortOrder               int32                                `json:"sort_order"`
-	ChartMode               PublicStatusChartMode                `json:"chart_mode"`
-	ChartRange              *PublicStatusChartRange              `json:"chart_range"`
-	CreatedAt               time.Time                            `json:"created_at"`
-	UpdatedAt               time.Time                            `json:"updated_at"`
+	ID                      uuid.UUID               `json:"id"`
+	PublicPageID            uuid.UUID               `json:"public_page_id"`
+	ProjectID               uuid.UUID               `json:"project_id"`
+	ParentElementID         *uuid.UUID              `json:"parent_element_id"`
+	Kind                    PublicStatusElementKind `json:"kind"`
+	CheckID                 *uuid.UUID              `json:"check_id"`
+	AssignmentSelectionMode interface{}             `json:"assignment_selection_mode"`
+	Title                   *string                 `json:"title"`
+	Description             *string                 `json:"description"`
+	SortOrder               int32                   `json:"sort_order"`
+	ChartMode               PublicStatusChartMode   `json:"chart_mode"`
+	ChartRange              *PublicStatusChartRange `json:"chart_range"`
+	CreatedAt               time.Time               `json:"created_at"`
+	UpdatedAt               time.Time               `json:"updated_at"`
 }
 
 func (q *Queries) CreatePublicStatusPageElement(ctx context.Context, arg CreatePublicStatusPageElementParams) (CreatePublicStatusPageElementRow, error) {
@@ -371,20 +371,20 @@ type GetPublicStatusPageElementParams struct {
 }
 
 type GetPublicStatusPageElementRow struct {
-	ID                      uuid.UUID                            `json:"id"`
-	PublicPageID            uuid.UUID                            `json:"public_page_id"`
-	ProjectID               uuid.UUID                            `json:"project_id"`
-	ParentElementID         *uuid.UUID                           `json:"parent_element_id"`
-	Kind                    PublicStatusElementKind              `json:"kind"`
-	CheckID                 *uuid.UUID                           `json:"check_id"`
-	AssignmentSelectionMode *PublicStatusAssignmentSelectionMode `json:"assignment_selection_mode"`
-	Title                   *string                              `json:"title"`
-	Description             *string                              `json:"description"`
-	SortOrder               int32                                `json:"sort_order"`
-	ChartMode               PublicStatusChartMode                `json:"chart_mode"`
-	ChartRange              *PublicStatusChartRange              `json:"chart_range"`
-	CreatedAt               time.Time                            `json:"created_at"`
-	UpdatedAt               time.Time                            `json:"updated_at"`
+	ID                      uuid.UUID               `json:"id"`
+	PublicPageID            uuid.UUID               `json:"public_page_id"`
+	ProjectID               uuid.UUID               `json:"project_id"`
+	ParentElementID         *uuid.UUID              `json:"parent_element_id"`
+	Kind                    PublicStatusElementKind `json:"kind"`
+	CheckID                 *uuid.UUID              `json:"check_id"`
+	AssignmentSelectionMode interface{}             `json:"assignment_selection_mode"`
+	Title                   *string                 `json:"title"`
+	Description             *string                 `json:"description"`
+	SortOrder               int32                   `json:"sort_order"`
+	ChartMode               PublicStatusChartMode   `json:"chart_mode"`
+	ChartRange              *PublicStatusChartRange `json:"chart_range"`
+	CreatedAt               time.Time               `json:"created_at"`
+	UpdatedAt               time.Time               `json:"updated_at"`
 }
 
 func (q *Queries) GetPublicStatusPageElement(ctx context.Context, arg GetPublicStatusPageElementParams) (GetPublicStatusPageElementRow, error) {
@@ -828,25 +828,25 @@ ORDER BY public_status_page_elements.parent_element_id NULLS FIRST,
 `
 
 type ListPublicStatusPageElementsRow struct {
-	ID                      uuid.UUID                            `json:"id"`
-	PublicPageID            uuid.UUID                            `json:"public_page_id"`
-	ProjectID               uuid.UUID                            `json:"project_id"`
-	ParentElementID         *uuid.UUID                           `json:"parent_element_id"`
-	Kind                    PublicStatusElementKind              `json:"kind"`
-	CheckID                 *uuid.UUID                           `json:"check_id"`
-	AssignmentSelectionMode *PublicStatusAssignmentSelectionMode `json:"assignment_selection_mode"`
-	Title                   *string                              `json:"title"`
-	Description             *string                              `json:"description"`
-	SortOrder               int32                                `json:"sort_order"`
-	ChartMode               PublicStatusChartMode                `json:"chart_mode"`
-	ChartRange              *PublicStatusChartRange              `json:"chart_range"`
-	CreatedAt               time.Time                            `json:"created_at"`
-	UpdatedAt               time.Time                            `json:"updated_at"`
-	CheckName               *string                              `json:"check_name"`
-	CheckType               *CheckType                           `json:"check_type"`
-	CheckTarget             *string                              `json:"check_target"`
-	CheckDescription        *string                              `json:"check_description"`
-	CheckIntervalSeconds    *int32                               `json:"check_interval_seconds"`
+	ID                      uuid.UUID               `json:"id"`
+	PublicPageID            uuid.UUID               `json:"public_page_id"`
+	ProjectID               uuid.UUID               `json:"project_id"`
+	ParentElementID         *uuid.UUID              `json:"parent_element_id"`
+	Kind                    PublicStatusElementKind `json:"kind"`
+	CheckID                 *uuid.UUID              `json:"check_id"`
+	AssignmentSelectionMode interface{}             `json:"assignment_selection_mode"`
+	Title                   *string                 `json:"title"`
+	Description             *string                 `json:"description"`
+	SortOrder               int32                   `json:"sort_order"`
+	ChartMode               PublicStatusChartMode   `json:"chart_mode"`
+	ChartRange              *PublicStatusChartRange `json:"chart_range"`
+	CreatedAt               time.Time               `json:"created_at"`
+	UpdatedAt               time.Time               `json:"updated_at"`
+	CheckName               *string                 `json:"check_name"`
+	CheckType               *CheckType              `json:"check_type"`
+	CheckTarget             *string                 `json:"check_target"`
+	CheckDescription        *string                 `json:"check_description"`
+	CheckIntervalSeconds    *int32                  `json:"check_interval_seconds"`
 }
 
 func (q *Queries) ListPublicStatusPageElements(ctx context.Context, publicPageID uuid.UUID) ([]ListPublicStatusPageElementsRow, error) {
@@ -1035,35 +1035,35 @@ RETURNING id, public_page_id, project_id, parent_element_id, kind, check_id, ass
 `
 
 type UpdatePublicStatusPageElementParams struct {
-	ParentElementID         *uuid.UUID                           `json:"parent_element_id"`
-	Kind                    PublicStatusElementKind              `json:"kind"`
-	CheckID                 *uuid.UUID                           `json:"check_id"`
-	AssignmentSelectionMode *PublicStatusAssignmentSelectionMode `json:"assignment_selection_mode"`
-	Title                   *string                              `json:"title"`
-	Description             *string                              `json:"description"`
-	SortOrder               int32                                `json:"sort_order"`
-	ChartMode               PublicStatusChartMode                `json:"chart_mode"`
-	ChartRange              *PublicStatusChartRange              `json:"chart_range"`
-	PublicPageID            uuid.UUID                            `json:"public_page_id"`
-	ProjectID               uuid.UUID                            `json:"project_id"`
-	ID                      uuid.UUID                            `json:"id"`
+	ParentElementID         *uuid.UUID              `json:"parent_element_id"`
+	Kind                    PublicStatusElementKind `json:"kind"`
+	CheckID                 *uuid.UUID              `json:"check_id"`
+	AssignmentSelectionMode interface{}             `json:"assignment_selection_mode"`
+	Title                   *string                 `json:"title"`
+	Description             *string                 `json:"description"`
+	SortOrder               int32                   `json:"sort_order"`
+	ChartMode               PublicStatusChartMode   `json:"chart_mode"`
+	ChartRange              *PublicStatusChartRange `json:"chart_range"`
+	PublicPageID            uuid.UUID               `json:"public_page_id"`
+	ProjectID               uuid.UUID               `json:"project_id"`
+	ID                      uuid.UUID               `json:"id"`
 }
 
 type UpdatePublicStatusPageElementRow struct {
-	ID                      uuid.UUID                            `json:"id"`
-	PublicPageID            uuid.UUID                            `json:"public_page_id"`
-	ProjectID               uuid.UUID                            `json:"project_id"`
-	ParentElementID         *uuid.UUID                           `json:"parent_element_id"`
-	Kind                    PublicStatusElementKind              `json:"kind"`
-	CheckID                 *uuid.UUID                           `json:"check_id"`
-	AssignmentSelectionMode *PublicStatusAssignmentSelectionMode `json:"assignment_selection_mode"`
-	Title                   *string                              `json:"title"`
-	Description             *string                              `json:"description"`
-	SortOrder               int32                                `json:"sort_order"`
-	ChartMode               PublicStatusChartMode                `json:"chart_mode"`
-	ChartRange              *PublicStatusChartRange              `json:"chart_range"`
-	CreatedAt               time.Time                            `json:"created_at"`
-	UpdatedAt               time.Time                            `json:"updated_at"`
+	ID                      uuid.UUID               `json:"id"`
+	PublicPageID            uuid.UUID               `json:"public_page_id"`
+	ProjectID               uuid.UUID               `json:"project_id"`
+	ParentElementID         *uuid.UUID              `json:"parent_element_id"`
+	Kind                    PublicStatusElementKind `json:"kind"`
+	CheckID                 *uuid.UUID              `json:"check_id"`
+	AssignmentSelectionMode interface{}             `json:"assignment_selection_mode"`
+	Title                   *string                 `json:"title"`
+	Description             *string                 `json:"description"`
+	SortOrder               int32                   `json:"sort_order"`
+	ChartMode               PublicStatusChartMode   `json:"chart_mode"`
+	ChartRange              *PublicStatusChartRange `json:"chart_range"`
+	CreatedAt               time.Time               `json:"created_at"`
+	UpdatedAt               time.Time               `json:"updated_at"`
 }
 
 func (q *Queries) UpdatePublicStatusPageElement(ctx context.Context, arg UpdatePublicStatusPageElementParams) (UpdatePublicStatusPageElementRow, error) {
