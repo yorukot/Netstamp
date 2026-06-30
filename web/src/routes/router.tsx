@@ -1,5 +1,5 @@
 import { createBrowserRouter, Navigate as RouterNavigate } from "react-router-dom";
-import { AuthRoute, DashboardRoute, OnboardingRoute, ProjectRouteBoundary, ProtectedAppShell } from "./guards";
+import { AuthRoute, DashboardRoute, OnboardingRoute, PasswordResetRoute, ProjectRouteBoundary, ProtectedAppShell } from "./guards";
 import { AlertsPage, ChecksPage, InsightPage, LabelsPage, MembersPage, NewProbeDrawer, ProbesPage, ProjectPage, PublicStatusPage, SettingsPage, StatusPagesPage } from "./lazyRoutes";
 import { DefaultProjectRedirect, LegacyCheckDetailRedirect, LegacyLabelDetailRedirect, LegacyProbeDetailRedirect } from "./redirects";
 import { RouteFrame } from "./RouteFrame";
@@ -13,6 +13,8 @@ export const router = createBrowserRouter([
 			{ path: pathForRoute("landing"), element: <RouterNavigate to={pathForRoute("dashboard")} replace /> },
 			{ path: pathForRoute("login"), element: <AuthRoute mode="login" /> },
 			{ path: pathForRoute("register"), element: <AuthRoute mode="register" /> },
+			{ path: pathForRoute("forgotPassword"), element: <PasswordResetRoute mode="forgot" /> },
+			{ path: pathForRoute("resetPassword"), element: <PasswordResetRoute mode="reset" /> },
 			{ path: "status/:slug", element: lazyRoute(<PublicStatusPage />) },
 			{ path: pathForRoute("onboarding"), element: <OnboardingRoute /> },
 			{
