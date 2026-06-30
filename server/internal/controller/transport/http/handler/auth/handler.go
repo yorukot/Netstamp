@@ -15,6 +15,8 @@ type Handler struct {
 	verifier            appauth.TokenVerifier
 	cookieSecure        bool
 	registrationEnabled bool
+	publicWebBaseURL    string
+	resetLimiter        *PasswordResetRateLimiter
 }
 
 func NewHandler(service *appauth.Service, verifier appauth.TokenVerifier, cookieSecure, registrationEnabled bool) *Handler {
@@ -26,15 +28,53 @@ func NewHandler(service *appauth.Service, verifier appauth.TokenVerifier, cookie
 	}
 }
 
+func (h *Handler) ConfigurePasswordReset(publicWebBaseURL string, limiter *PasswordResetRateLimiter) *Handler {
+	h.publicWebBaseURL = publicWebBaseURL
+	h.resetLimiter = limiter
+	return h
+}
+
 func (h *Handler) RegisterRoutes(api chi.Router) {
 	api.Post("/auth/register", h.handleRegister)
 	api.Post("/auth/login", h.handleLogin)
 	api.Post("/auth/logout", h.handleLogout)
+	api.Post("/auth/password-resets", h.handleRequestPasswordReset)
+	api.Patch("/auth/password-resets", h.handleConfirmPasswordReset)
 	api.Group(func(r chi.Router) {
 		r.Use(httpmiddleware.RequireAuth(h.verifier))
 
 		r.Get("/auth/me", h.handleMe)
 	})
+}
+
+func (h *Handler) handleRequestPasswordReset(w http.ResponseWriter, r *http.Request) {
+	var body requestPasswordResetInputBody
+	if err := httpx.DecodeJSON(r, &body); err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	if h.resetLimiter != nil && !h.resetLimiter.Allow(r.Context(), resetLimiterClientKey(r), body.Email) {
+		httpx.WriteProblem(w, r, httpx.NewError(http.StatusTooManyRequests, "too many password reset requests"))
+		return
+	}
+	if err := h.requestPasswordReset(r.Context(), r, &requestPasswordResetInput{Body: body}); err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusAccepted)
+}
+
+func (h *Handler) handleConfirmPasswordReset(w http.ResponseWriter, r *http.Request) {
+	var body confirmPasswordResetInputBody
+	if err := httpx.DecodeJSON(r, &body); err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	if err := h.confirmPasswordReset(r.Context(), &confirmPasswordResetInput{Body: body}); err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	httpx.WriteNoContent(w)
 }
 
 func (h *Handler) handleRegister(w http.ResponseWriter, r *http.Request) {

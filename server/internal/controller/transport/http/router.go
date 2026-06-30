@@ -41,31 +41,35 @@ import (
 )
 
 type Dependencies struct {
-	Log                      *zap.Logger
-	APIVersion               string
-	DemoMode                 bool
-	BackendBaseURL           string
-	WebDir                   string
-	AuthService              *appauth.Service
-	AuthVerifier             appauth.TokenVerifier
-	AuthCookieSecure         bool
-	AuthRegistrationDisabled bool
-	UserService              *appuser.Service
-	AlertService             *appalert.Service
-	AlertEmailSMTPConfigured bool
-	AssignmentService        *appassignment.Service
-	CheckService             *appcheck.Service
-	LabelService             *applabel.Service
-	ProbeService             *appprobe.Service
-	ProbeRuntime             *appproberuntime.Service
-	ProjectService           *appproject.Service
-	PublicStatusService      *apppublicstatus.Service
-	ResultService            *appresult.Service
-	ReadinessCheck           func(context.Context) error
-	RequestTimeout           time.Duration
-	MetricsHandler           http.Handler
-	AgentBinaryDir           string
-	TrustedProxies           []netip.Prefix
+	Log                         *zap.Logger
+	APIVersion                  string
+	DemoMode                    bool
+	BackendBaseURL              string
+	PublicWebBaseURL            string
+	WebDir                      string
+	AuthService                 *appauth.Service
+	AuthVerifier                appauth.TokenVerifier
+	AuthCookieSecure            bool
+	AuthRegistrationDisabled    bool
+	AuthPasswordResetRateWindow time.Duration
+	AuthPasswordResetIPLimit    int32
+	AuthPasswordResetEmailLimit int32
+	UserService                 *appuser.Service
+	AlertService                *appalert.Service
+	AlertEmailSMTPConfigured    bool
+	AssignmentService           *appassignment.Service
+	CheckService                *appcheck.Service
+	LabelService                *applabel.Service
+	ProbeService                *appprobe.Service
+	ProbeRuntime                *appproberuntime.Service
+	ProjectService              *appproject.Service
+	PublicStatusService         *apppublicstatus.Service
+	ResultService               *appresult.Service
+	ReadinessCheck              func(context.Context) error
+	RequestTimeout              time.Duration
+	MetricsHandler              http.Handler
+	AgentBinaryDir              string
+	TrustedProxies              []netip.Prefix
 }
 
 func NewRouter(dep Dependencies) http.Handler {
@@ -128,7 +132,13 @@ func registerAPIRoutes(api chi.Router, dep Dependencies) {
 
 	installhttp.NewHandler(dep.AgentBinaryDir, dep.BackendBaseURL, dep.basePath()).RegisterRoutes(api)
 
-	authhttp.NewHandler(dep.AuthService, dep.AuthVerifier, dep.AuthCookieSecure, !dep.AuthRegistrationDisabled).RegisterRoutes(api)
+	authhttp.NewHandler(dep.AuthService, dep.AuthVerifier, dep.AuthCookieSecure, !dep.AuthRegistrationDisabled).
+		ConfigurePasswordReset(dep.PublicWebBaseURL, authhttp.NewPasswordResetRateLimiter(authhttp.PasswordResetRateLimitConfig{
+			Window:     dep.AuthPasswordResetRateWindow,
+			IPLimit:    dep.AuthPasswordResetIPLimit,
+			EmailLimit: dep.AuthPasswordResetEmailLimit,
+		})).
+		RegisterRoutes(api)
 	userhttp.NewHandler(dep.UserService, dep.AuthVerifier).RegisterRoutes(api)
 	projecthttp.NewHandler(dep.ProjectService, dep.AuthVerifier).RegisterRoutes(api)
 	alerthttp.NewHandler(dep.AlertService, dep.AuthVerifier, dep.AlertEmailSMTPConfigured).RegisterRoutes(api)
