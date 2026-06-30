@@ -23,6 +23,7 @@ const (
 	keyLogPseudonymKey                = "LOG_PSEUDONYM_KEY"
 	keyShutdownTimeout                = "SHUTDOWN_TIMEOUT"
 	keyBackendBaseURL                 = "BACKEND_BASE_URL"
+	keyPublicWebBaseURL               = "PUBLIC_WEB_BASE_URL"
 	keyHTTPAddr                       = "HTTP_ADDR"
 	keyWebDir                         = "WEB_DIR"
 	keyRequestTimeout                 = "REQUEST_TIMEOUT"
@@ -44,6 +45,10 @@ const (
 	keyAuthJWTSecret                  = "AUTH_JWT_SECRET"       //nolint:gosec // This is the env key name, not the secret value.
 	keyAuthAccessTokenTTL             = "AUTH_ACCESS_TOKEN_TTL" //nolint:gosec // This is a token TTL env key, not a credential.
 	keyAuthRegistrationEnabled        = "AUTH_REGISTRATION_ENABLED"
+	keyAuthPasswordResetTokenTTL      = "AUTH_PASSWORD_RESET_TOKEN_TTL" //nolint:gosec // This is a token TTL env key, not a credential.
+	keyAuthPasswordResetRateWindow    = "AUTH_PASSWORD_RESET_RATE_LIMIT_WINDOW"
+	keyAuthPasswordResetIPLimit       = "AUTH_PASSWORD_RESET_IP_LIMIT"
+	keyAuthPasswordResetEmailLimit    = "AUTH_PASSWORD_RESET_EMAIL_LIMIT"
 	keyAuthArgon2idMemoryKiB          = "AUTH_ARGON2ID_MEMORY_KIB"
 	keyAuthArgon2idIter               = "AUTH_ARGON2ID_ITERATIONS"
 	keyAuthArgon2idParallel           = "AUTH_ARGON2ID_PARALLELISM"
@@ -73,6 +78,7 @@ var defaultSettings = map[string]any{
 	keyLogPseudonymKey:                "local-development-log-pseudonym-key-change-before-production",
 	keyShutdownTimeout:                10 * time.Second,
 	keyBackendBaseURL:                 "",
+	keyPublicWebBaseURL:               "",
 	keyHTTPAddr:                       ":8080",
 	keyWebDir:                         "",
 	keyRequestTimeout:                 10 * time.Second,
@@ -94,6 +100,10 @@ var defaultSettings = map[string]any{
 	keyAuthJWTSecret:                  "local-development-jwt-secret-change-before-production",
 	keyAuthAccessTokenTTL:             12 * time.Hour,
 	keyAuthRegistrationEnabled:        true,
+	keyAuthPasswordResetTokenTTL:      30 * time.Minute,
+	keyAuthPasswordResetRateWindow:    time.Hour,
+	keyAuthPasswordResetIPLimit:       int32(10),
+	keyAuthPasswordResetEmailLimit:    int32(3),
 	keyAuthArgon2idMemoryKiB:          uint32(64 * 1024),
 	keyAuthArgon2idIter:               uint32(3),
 	keyAuthArgon2idParallel:           uint8(4),
@@ -131,6 +141,7 @@ type Config struct {
 
 type HTTPConfig struct {
 	BackendBaseURL    string        `mapstructure:"BACKEND_BASE_URL"`
+	PublicWebBaseURL  string        `mapstructure:"PUBLIC_WEB_BASE_URL"`
 	Addr              string        `mapstructure:"HTTP_ADDR"`
 	WebDir            string        `mapstructure:"WEB_DIR"`
 	RequestTimeout    time.Duration `mapstructure:"REQUEST_TIMEOUT"`
@@ -155,12 +166,16 @@ type DatabaseConfig struct {
 }
 
 type AuthConfig struct {
-	JWTSecret           string        `mapstructure:"AUTH_JWT_SECRET"`
-	AccessTokenTTL      time.Duration `mapstructure:"AUTH_ACCESS_TOKEN_TTL"`
-	RegistrationEnabled bool          `mapstructure:"AUTH_REGISTRATION_ENABLED"`
-	Argon2idMemoryKiB   uint32        `mapstructure:"AUTH_ARGON2ID_MEMORY_KIB"`
-	Argon2idIterations  uint32        `mapstructure:"AUTH_ARGON2ID_ITERATIONS"`
-	Argon2idParallelism uint8         `mapstructure:"AUTH_ARGON2ID_PARALLELISM"`
+	JWTSecret               string        `mapstructure:"AUTH_JWT_SECRET"`
+	AccessTokenTTL          time.Duration `mapstructure:"AUTH_ACCESS_TOKEN_TTL"`
+	RegistrationEnabled     bool          `mapstructure:"AUTH_REGISTRATION_ENABLED"`
+	PasswordResetTokenTTL   time.Duration `mapstructure:"AUTH_PASSWORD_RESET_TOKEN_TTL"`
+	PasswordResetRateWindow time.Duration `mapstructure:"AUTH_PASSWORD_RESET_RATE_LIMIT_WINDOW"`
+	PasswordResetIPLimit    int32         `mapstructure:"AUTH_PASSWORD_RESET_IP_LIMIT"`
+	PasswordResetEmailLimit int32         `mapstructure:"AUTH_PASSWORD_RESET_EMAIL_LIMIT"`
+	Argon2idMemoryKiB       uint32        `mapstructure:"AUTH_ARGON2ID_MEMORY_KIB"`
+	Argon2idIterations      uint32        `mapstructure:"AUTH_ARGON2ID_ITERATIONS"`
+	Argon2idParallelism     uint8         `mapstructure:"AUTH_ARGON2ID_PARALLELISM"`
 }
 
 type TracingConfig struct {
@@ -243,6 +258,7 @@ func validate(cfg Config) []error {
 
 	// HTTP settings
 	errs = append(errs, validateOptionalHTTPOrigin(keyBackendBaseURL, cfg.HTTP.BackendBaseURL)...)
+	errs = append(errs, validateOptionalHTTPOrigin(keyPublicWebBaseURL, cfg.HTTP.PublicWebBaseURL)...)
 	errs = append(errs, validateListenAddr(keyHTTPAddr, cfg.HTTP.Addr)...)
 	errs = append(errs, validatePositiveDuration(keyRequestTimeout, cfg.HTTP.RequestTimeout)...)
 	errs = append(errs, validatePositiveDuration(keyHTTPReadHeaderTimeout, cfg.HTTP.ReadHeaderTimeout)...)
@@ -276,6 +292,14 @@ func validate(cfg Config) []error {
 	// Auth settings
 	errs = append(errs, validateRequiredString(keyAuthJWTSecret, cfg.Auth.JWTSecret)...)
 	errs = append(errs, validatePositiveDuration(keyAuthAccessTokenTTL, cfg.Auth.AccessTokenTTL)...)
+	errs = append(errs, validatePositiveDuration(keyAuthPasswordResetTokenTTL, cfg.Auth.PasswordResetTokenTTL)...)
+	errs = append(errs, validatePositiveDuration(keyAuthPasswordResetRateWindow, cfg.Auth.PasswordResetRateWindow)...)
+	if cfg.Auth.PasswordResetIPLimit <= 0 {
+		errs = append(errs, errors.New("AUTH_PASSWORD_RESET_IP_LIMIT must be greater than 0"))
+	}
+	if cfg.Auth.PasswordResetEmailLimit <= 0 {
+		errs = append(errs, errors.New("AUTH_PASSWORD_RESET_EMAIL_LIMIT must be greater than 0"))
+	}
 	errs = append(errs, validatePositiveUint32(keyAuthArgon2idMemoryKiB, cfg.Auth.Argon2idMemoryKiB)...)
 	errs = append(errs, validatePositiveUint32(keyAuthArgon2idIter, cfg.Auth.Argon2idIterations)...)
 	errs = append(errs, validatePositiveUint8(keyAuthArgon2idParallel, cfg.Auth.Argon2idParallelism)...)
