@@ -14,7 +14,15 @@ const (
 	discordFieldLimit   = 1024
 )
 
-func (s *WebhookSender) SendDiscord(ctx context.Context, notification domainalert.Notification, payload []byte) appnotification.DeliveryResult {
+type DiscordSender struct {
+	poster *JSONPoster
+}
+
+func NewDiscordSender(poster *JSONPoster) *DiscordSender {
+	return &DiscordSender{poster: poster}
+}
+
+func (s *DiscordSender) Send(ctx context.Context, notification domainalert.Notification, payload []byte) appnotification.DeliveryResult {
 	var config domainalert.DiscordConfig
 	if err := json.Unmarshal(notification.Config, &config); err != nil {
 		return permanent("config", "invalid_config", "invalid Discord configuration")
@@ -26,7 +34,7 @@ func (s *WebhookSender) SendDiscord(ctx context.Context, notification domainaler
 	if err != nil {
 		return permanent("request", "invalid_request", "invalid Discord request")
 	}
-	return s.postJSON(ctx, config.URL, body, "Discord webhook")
+	return s.poster.PostJSON(ctx, config.URL, body, "Discord webhook")
 }
 
 func renderDiscordWebhookBody(payload []byte) ([]byte, error) {

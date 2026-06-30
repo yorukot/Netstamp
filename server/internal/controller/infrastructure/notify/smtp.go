@@ -16,6 +16,7 @@ import (
 
 	appnotification "github.com/yorukot/netstamp/internal/controller/application/notification"
 	domainalert "github.com/yorukot/netstamp/internal/domain/alert"
+	"github.com/yorukot/netstamp/internal/domain/identity"
 )
 
 const (
@@ -36,6 +37,20 @@ type SMTPConfig struct {
 type SMTPSender struct {
 	cfg SMTPConfig
 	now func() time.Time
+}
+
+type EmailMessage struct {
+	To      []string
+	Subject string
+	Body    string
+}
+
+type AlertEmailSender struct {
+	smtp *SMTPSender
+}
+
+type PasswordResetMailer struct {
+	smtp *SMTPSender
 }
 
 func NewSMTPSender(cfg SMTPConfig) *SMTPSender {
@@ -59,7 +74,15 @@ func (s *SMTPSender) Configured() bool {
 	return strings.TrimSpace(s.cfg.Host) != "" && strings.TrimSpace(s.cfg.From) != ""
 }
 
-func (s *WebhookSender) SendEmail(ctx context.Context, notification domainalert.Notification, payload []byte) appnotification.DeliveryResult {
+func NewAlertEmailSender(smtp *SMTPSender) *AlertEmailSender {
+	return &AlertEmailSender{smtp: smtp}
+}
+
+func (s *AlertEmailSender) Configured() bool {
+	return s.smtp != nil && s.smtp.Configured()
+}
+
+func (s *AlertEmailSender) Send(ctx context.Context, notification domainalert.Notification, payload []byte) appnotification.DeliveryResult {
 	if s.smtp == nil || !s.smtp.Configured() {
 		return permanent("config", "smtp_unconfigured", "SMTP notifications are not configured")
 	}
@@ -68,15 +91,56 @@ func (s *WebhookSender) SendEmail(ctx context.Context, notification domainalert.
 	if err != nil {
 		return permanent("config", "invalid_config", "invalid email configuration")
 	}
-	return s.smtp.Send(ctx, config, payload)
+	return s.smtp.SendAlert(ctx, config, payload)
 }
 
-func (s *SMTPSender) Send(ctx context.Context, config domainalert.EmailConfig, payload []byte) appnotification.DeliveryResult {
+func NewPasswordResetMailer(cfg SMTPConfig) *PasswordResetMailer {
+	return &PasswordResetMailer{smtp: NewSMTPSender(cfg)}
+}
+
+func (m *PasswordResetMailer) SendPasswordReset(ctx context.Context, input identity.PasswordResetEmail) error {
+	if m == nil || m.smtp == nil || !m.smtp.Configured() {
+		return errors.New("SMTP is not configured")
+	}
+
+	result := m.smtp.SendMessage(ctx, EmailMessage{
+		To:      []string{input.To},
+		Subject: "Reset your Netstamp password",
+		Body:    renderPasswordResetBody(input),
+	})
+	if deliveryFailed(result) {
+		return errors.New(result.Message)
+	}
+
+	return nil
+}
+
+func (s *SMTPSender) SendAlert(ctx context.Context, config domainalert.EmailConfig, payload []byte) appnotification.DeliveryResult {
 	message, renderErr := renderEmailMessage(payload, s.cfg.From, config.To, s.now())
 	if renderErr != nil {
 		return permanent("request", "invalid_request", "invalid email request")
 	}
 
+	return s.sendRaw(ctx, config.To, message)
+}
+
+func (s *SMTPSender) SendMessage(ctx context.Context, message EmailMessage) appnotification.DeliveryResult {
+	if !s.Configured() {
+		return permanent("config", "smtp_unconfigured", "SMTP is not configured")
+	}
+	if len(message.To) == 0 || strings.TrimSpace(message.Subject) == "" || strings.TrimSpace(message.Body) == "" {
+		return permanent("request", "invalid_request", "invalid email request")
+	}
+
+	rawMessage, renderErr := renderPlainEmailMessage(message, s.cfg.From, s.now())
+	if renderErr != nil {
+		return permanent("request", "invalid_request", "invalid email request")
+	}
+
+	return s.sendRaw(ctx, message.To, rawMessage)
+}
+
+func (s *SMTPSender) sendRaw(ctx context.Context, recipients []string, message []byte) appnotification.DeliveryResult {
 	client, err := s.newClient(ctx)
 	if err != nil {
 		return retryable("network", "connect_failed", "SMTP connection failed")
@@ -92,7 +156,7 @@ func (s *SMTPSender) Send(ctx context.Context, config domainalert.EmailConfig, p
 	if mailErr := client.Mail(s.cfg.From); mailErr != nil {
 		return smtpDeliveryResult(mailErr, "mail_from_failed", "SMTP sender was rejected")
 	}
-	for _, recipient := range config.To {
+	for _, recipient := range recipients {
 		if recipientErr := client.Rcpt(recipient); recipientErr != nil {
 			return smtpDeliveryResult(recipientErr, "recipient_rejected", "SMTP recipient was rejected")
 		}
@@ -185,17 +249,21 @@ func (s *SMTPSender) tlsConfig() *tls.Config {
 
 func renderEmailMessage(payload []byte, from string, to []string, at time.Time) ([]byte, error) {
 	subject, body := renderEmailContent(payload)
+	return renderPlainEmailMessage(EmailMessage{To: to, Subject: subject, Body: body}, from, at)
+}
+
+func renderPlainEmailMessage(input EmailMessage, from string, at time.Time) ([]byte, error) {
 	headers := []string{
 		"From: " + formatEmailSender(from),
-		"To: " + formatEmailRecipients(to),
-		"Subject: " + mime.QEncoding.Encode("utf-8", truncateMessage(subject, emailSubjectLimit)),
+		"To: " + formatEmailRecipients(input.To),
+		"Subject: " + mime.QEncoding.Encode("utf-8", truncateMessage(input.Subject, emailSubjectLimit)),
 		"Date: " + at.UTC().Format(time.RFC1123Z),
 		"MIME-Version: 1.0",
 		"Content-Type: text/plain; charset=UTF-8",
 		"Content-Transfer-Encoding: 8bit",
 	}
 
-	message := strings.Join(headers, "\r\n") + "\r\n\r\n" + truncateMessage(body, emailBodyLimit) + "\r\n"
+	message := strings.Join(headers, "\r\n") + "\r\n\r\n" + truncateMessage(input.Body, emailBodyLimit) + "\r\n"
 	return []byte(message), nil
 }
 
@@ -232,6 +300,26 @@ func formatEmailRecipients(values []string) string {
 func formatEmailSender(from string) string {
 	address := mail.Address{Name: "Netstamp", Address: from}
 	return address.String()
+}
+
+func renderPasswordResetBody(input identity.PasswordResetEmail) string {
+	name := strings.TrimSpace(input.DisplayName)
+	if name == "" {
+		name = "Netstamp user"
+	}
+
+	lines := []string{
+		"Hello " + name + ",",
+		"",
+		"We received a request to reset the password for your Netstamp account.",
+		"",
+		input.ResetURL,
+		"",
+		"This link expires at " + input.ExpiresAt.UTC().Format(time.RFC3339) + ".",
+		"If you did not request this change, you can ignore this email.",
+	}
+
+	return strings.Join(lines, "\n")
 }
 
 func smtpDeliveryResult(err error, fallbackCode, message string) appnotification.DeliveryResult {

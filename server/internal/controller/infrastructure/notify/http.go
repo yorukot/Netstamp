@@ -5,11 +5,31 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	appnotification "github.com/yorukot/netstamp/internal/controller/application/notification"
 )
 
-func (s *WebhookSender) postJSON(ctx context.Context, endpoint string, body []byte, targetName string) appnotification.DeliveryResult {
+type JSONPoster struct {
+	client *http.Client
+}
+
+func NewJSONPoster(timeout time.Duration) *JSONPoster {
+	if timeout <= 0 {
+		timeout = 10 * time.Second
+	}
+
+	return &JSONPoster{
+		client: &http.Client{
+			Timeout: timeout,
+			CheckRedirect: func(req *http.Request, _ []*http.Request) error {
+				return validateWebhookTarget(req.Context(), req.URL.String())
+			},
+		},
+	}
+}
+
+func (p *JSONPoster) PostJSON(ctx context.Context, endpoint string, body []byte, targetName string) appnotification.DeliveryResult {
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(body))
 	if err != nil {
 		return permanent("request", "invalid_request", "invalid "+targetName+" request")
@@ -17,7 +37,7 @@ func (s *WebhookSender) postJSON(ctx context.Context, endpoint string, body []by
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", "netstamp-alerts/1")
 
-	resp, err := s.client.Do(req)
+	resp, err := p.client.Do(req)
 	if err != nil {
 		return retryable("network", "request_failed", targetName+" request failed")
 	}

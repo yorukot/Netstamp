@@ -14,7 +14,15 @@ const (
 	slackFieldLimit = 2000
 )
 
-func (s *WebhookSender) SendSlack(ctx context.Context, notification domainalert.Notification, payload []byte) appnotification.DeliveryResult {
+type SlackSender struct {
+	poster *JSONPoster
+}
+
+func NewSlackSender(poster *JSONPoster) *SlackSender {
+	return &SlackSender{poster: poster}
+}
+
+func (s *SlackSender) Send(ctx context.Context, notification domainalert.Notification, payload []byte) appnotification.DeliveryResult {
 	var config domainalert.SlackConfig
 	if err := json.Unmarshal(notification.Config, &config); err != nil {
 		return permanent("config", "invalid_config", "invalid Slack configuration")
@@ -26,7 +34,7 @@ func (s *WebhookSender) SendSlack(ctx context.Context, notification domainalert.
 	if err != nil {
 		return permanent("request", "invalid_request", "invalid Slack request")
 	}
-	return s.postJSON(ctx, config.URL, body, "Slack webhook")
+	return s.poster.PostJSON(ctx, config.URL, body, "Slack webhook")
 }
 
 func renderSlackWebhookBody(payload []byte) ([]byte, error) {

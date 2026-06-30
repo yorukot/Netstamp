@@ -11,7 +11,15 @@ import (
 
 const telegramMessageLimit = 4096
 
-func (s *WebhookSender) SendTelegram(ctx context.Context, notification domainalert.Notification, payload []byte) appnotification.DeliveryResult {
+type TelegramSender struct {
+	poster *JSONPoster
+}
+
+func NewTelegramSender(poster *JSONPoster) *TelegramSender {
+	return &TelegramSender{poster: poster}
+}
+
+func (s *TelegramSender) Send(ctx context.Context, notification domainalert.Notification, payload []byte) appnotification.DeliveryResult {
 	var config domainalert.TelegramConfig
 	if err := json.Unmarshal(notification.Config, &config); err != nil {
 		return permanent("config", "invalid_config", "invalid Telegram configuration")
@@ -24,7 +32,7 @@ func (s *WebhookSender) SendTelegram(ctx context.Context, notification domainale
 	if err != nil {
 		return permanent("request", "invalid_request", "invalid Telegram request")
 	}
-	return s.postJSON(ctx, endpoint, body, "Telegram API")
+	return s.poster.PostJSON(ctx, endpoint, body, "Telegram API")
 }
 
 func renderTelegramMessage(payload []byte) string {
