@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -16,10 +17,14 @@ import (
 
 type UserRepository struct {
 	queries *sqlc.Queries
+	tx      *postgres.Transactor
 }
 
 func NewUserRepository(pool *pgxpool.Pool) *UserRepository {
-	return &UserRepository{queries: sqlc.New(pool)}
+	return &UserRepository{
+		queries: sqlc.New(pool),
+		tx:      postgres.NewTransactor(pool),
+	}
 }
 
 func (r *UserRepository) CreateUser(ctx context.Context, input identity.User) (identity.User, error) {
@@ -147,6 +152,98 @@ func (r *UserRepository) UpdateUserPasswordHash(ctx context.Context, input ident
 	return mapUser(row), nil
 }
 
+func (r *UserRepository) CreatePasswordResetToken(ctx context.Context, input identity.PasswordResetToken) (identity.PasswordResetToken, error) {
+	ctx, span := postgres.StartUserDBSpan(ctx, pguserTracer, "postgres.password_reset_tokens.insert", "INSERT", "INSERT password reset token")
+	defer span.End()
+
+	userID, err := postgres.ParseUUID(input.UserID, identity.ErrUserNotFound)
+	if err != nil {
+		return identity.PasswordResetToken{}, err
+	}
+
+	row, err := r.queries.CreatePasswordResetToken(ctx, sqlc.CreatePasswordResetTokenParams{
+		UserID:    userID,
+		TokenHash: input.TokenHash,
+		ExpiresAt: input.ExpiresAt,
+	})
+	if err != nil {
+		postgres.RecordDBSpanError(span, err)
+		return identity.PasswordResetToken{}, err
+	}
+
+	return mapPasswordResetToken(row), nil
+}
+
+func (r *UserRepository) InvalidateActivePasswordResetTokens(ctx context.Context, userIDValue string, usedAt time.Time) error {
+	ctx, span := postgres.StartUserDBSpan(ctx, pguserTracer, "postgres.password_reset_tokens.invalidate_active", "UPDATE", "UPDATE active password reset tokens")
+	defer span.End()
+
+	userID, err := postgres.ParseUUID(userIDValue, identity.ErrUserNotFound)
+	if err != nil {
+		return err
+	}
+
+	if err := r.queries.InvalidateActivePasswordResetTokens(ctx, sqlc.InvalidateActivePasswordResetTokensParams{
+		UserID: userID,
+		UsedAt: &usedAt,
+	}); err != nil {
+		postgres.RecordDBSpanError(span, err)
+		return err
+	}
+
+	return nil
+}
+
+func (r *UserRepository) ResetPasswordWithToken(ctx context.Context, tokenHash, passwordHash string, usedAt time.Time) (identity.User, error) {
+	ctx, span := postgres.StartUserDBSpan(ctx, pguserTracer, "postgres.password_reset_tokens.consume", "UPDATE", "UPDATE password from reset token")
+	defer span.End()
+
+	var user identity.User
+	err := r.tx.InTx(ctx, func(ctx context.Context, tx pgx.Tx) error {
+		q := r.queries.WithTx(tx)
+
+		token, err := q.GetActivePasswordResetTokenByHash(ctx, sqlc.GetActivePasswordResetTokenByHashParams{
+			TokenHash: tokenHash,
+			NowAt:     usedAt,
+		})
+		if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return identity.ErrResetTokenNotFound
+			}
+			return err
+		}
+
+		row, err := q.UpdateUserPasswordHash(ctx, sqlc.UpdateUserPasswordHashParams{
+			ID:           token.UserID,
+			PasswordHash: passwordHash,
+		})
+		if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return identity.ErrUserNotFound
+			}
+			return err
+		}
+
+		if err := q.MarkPasswordResetTokenUsed(ctx, sqlc.MarkPasswordResetTokenUsedParams{
+			ID:     token.ID,
+			UsedAt: &usedAt,
+		}); err != nil {
+			return err
+		}
+
+		user = mapUser(row)
+		return nil
+	})
+	if err != nil {
+		if !errors.Is(err, identity.ErrResetTokenNotFound) && !errors.Is(err, identity.ErrUserNotFound) {
+			postgres.RecordDBSpanError(span, err)
+		}
+		return identity.User{}, err
+	}
+
+	return user, nil
+}
+
 func (r *UserRepository) mapUpdateError(span trace.Span, err error) error {
 	if errors.Is(err, pgx.ErrNoRows) {
 		return identity.ErrUserNotFound
@@ -166,5 +263,16 @@ func mapUser(row sqlc.User) identity.User {
 		PasswordHash: row.PasswordHash,
 		CreatedAt:    row.CreatedAt,
 		UpdatedAt:    row.UpdatedAt,
+	}
+}
+
+func mapPasswordResetToken(row sqlc.PasswordResetToken) identity.PasswordResetToken {
+	return identity.PasswordResetToken{
+		ID:        row.ID.String(),
+		UserID:    row.UserID.String(),
+		TokenHash: row.TokenHash,
+		ExpiresAt: row.ExpiresAt,
+		UsedAt:    row.UsedAt,
+		CreatedAt: row.CreatedAt,
 	}
 }
