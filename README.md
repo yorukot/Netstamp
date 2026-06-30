@@ -17,33 +17,34 @@
 
 ---
 
-## What is Netstamp?
+Netstamp is an open-source, self-hosted network observability app for people who need to understand what the internet looks like from their own machines, regions, labs, edge nodes, private infrastructure, and real user-facing networks.
 
-Netstamp is an open-source, self-hosted network monitoring app for people who need to know what the internet looks like from their own machines, regions, labs, edge nodes, and private infrastructure.
-
-Most monitoring tells you if a service is up from somebody else's cloud. Netstamp lets you place probes where your users, servers, or networks actually are, then watch reachability, latency, packet loss, routes, and probe health from those real viewpoints.
+Most monitoring platforms tell you whether a service is up from somebody else's cloud. Netstamp lets you place probes where your users, servers, and networks actually are, then observe reachability, latency, packet loss, routes, uptime, certificates, probe health, and incidents from those real viewpoints.
 
 ## What you can use it for
 
-- Check if a service is reachable from multiple real locations.
-- Compare latency and packet loss between regions, ISPs, or hosting providers.
-- Detect route changes and unstable network paths.
-- Track probe health so you know which viewpoints are still reporting.
-- Send alerts to the notifications your team already watches.
-- Keep historical network measurements in PostgreSQL and TimescaleDB.
+- Monitor services from the networks, regions, ISPs, labs, and edge nodes you actually care about.
+- Compare latency, packet loss, reachability, and route behavior across real-world viewpoints.
+- Detect unstable paths, broken routes, degraded probes, failing checks, expired certificates, and abnormal network conditions.
+- Understand whether an issue is global, regional, provider-specific, probe-specific, or target-specific.
+- Build dashboards that summarize network health, probe status, check results, incidents, and historical trends.
+- Send alerts to the notification channels your team already uses.
+- Organize monitoring across projects, teams, probes, labels, dashboards, and scoped permissions.
+- Keep historical measurements in PostgreSQL and TimescaleDB for debugging, reporting, and long-term visibility.
+- Use APIs, API keys, OpenAPI, and integrations to connect Netstamp with your own tools and workflows.
 
 ## Features
 
-- Self-hosted controller with a React web app and Go API.
-- Lightweight probe agents that poll assignments and submit results.
-- Ping, TCP connect, and traceroute checks.
-- Project workspaces with roles and scoped access.
-- Label-based probe and check organization.
-- Dashboards for latency, packet loss, route behavior, and probe status.
-- Alert rules, incidents, and notifications.
-- Webhook, Discord, and Telegram notifications.
-- Docker Compose deployment with built-in migrations.
-- Generated OpenAPI contract for integrations.
+- Self-hosted controller with lightweight probes that run from your own machines, regions, labs, edge nodes, and private networks.
+- Real-world network checks including ping, TCP, traceroute, uptime, API payload, and TLS/SSL certificate monitoring.
+- Visibility into reachability, latency, packet loss, route behavior, probe health, incidents, and historical trends.
+- Project-based collaboration with users, invitations, roles, scoped permissions, and API keys.
+- Flexible probe and check organization with labels, locations, assignment groups, and capability-aware targeting.
+- Dashboards for network health, probe status, check results, incidents, charts, and public status views.
+- Alert rules and incident tracking for degraded services, unstable routes, failed checks, and abnormal metrics.
+- Notification integrations for Webhook, Discord, Telegram, Slack, LINE Bot, and Email.
+- Result analysis by probe, target, check, and latest measurement.
+- OpenAPI, health checks, metrics, root administration tools, and production-ready deployment documentation.
 
 ## Quick Start
 
