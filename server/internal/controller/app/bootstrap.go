@@ -124,7 +124,7 @@ func New(ctx context.Context) (*Application, error) {
 	probeEvents := logger.NewProbeEventRecorder(log)
 	probeRuntimeEvents := logger.NewProbeRuntimeEventRecorder(log)
 	assignmentEvents := logger.NewAssignmentEventRecorder(log)
-	notificationSender := notify.NewSender(cfg.Alerting.NotificationHTTPTimeout, notify.SMTPConfig{
+	smtpConfig := notify.SMTPConfig{
 		Host:     cfg.Alerting.SMTP.Host,
 		Port:     cfg.Alerting.SMTP.Port,
 		Username: cfg.Alerting.SMTP.Username,
@@ -132,9 +132,13 @@ func New(ctx context.Context) (*Application, error) {
 		From:     cfg.Alerting.SMTP.From,
 		TLSMode:  cfg.Alerting.SMTP.TLSMode,
 		Timeout:  cfg.Alerting.SMTP.Timeout,
-	})
+	}
+	notificationSender := notify.NewSender(cfg.Alerting.NotificationHTTPTimeout, smtpConfig)
 
 	authSvc := appauth.NewService(userRepo, passwordHasher, tokenIssuer, authEvents)
+	authSvc.ConfigurePasswordReset(userRepo, security.NewPasswordResetTokenManager(), notify.NewPasswordResetMailer(smtpConfig), appauth.PasswordResetConfig{
+		TokenTTL: cfg.Auth.PasswordResetTokenTTL,
+	})
 	userSvc := appuser.NewService(userRepo, passwordHasher, userEvents)
 	projectRepo := pgproject.NewProjectRepository(dbPool)
 	projectSvc := appproject.NewService(projectRepo, userRepo, projectEvents)
@@ -171,30 +175,34 @@ func New(ctx context.Context) (*Application, error) {
 	}
 
 	httpHandler := httpserver.NewRouter(httpserver.Dependencies{
-		Log:                      log,
-		APIVersion:               cfg.APIVersion,
-		DemoMode:                 cfg.DemoMode,
-		BackendBaseURL:           cfg.HTTP.BackendBaseURL,
-		WebDir:                   cfg.HTTP.WebDir,
-		AuthService:              authSvc,
-		AuthVerifier:             tokenIssuer,
-		AuthCookieSecure:         cfg.Env != "local",
-		AuthRegistrationDisabled: !cfg.Auth.RegistrationEnabled,
-		UserService:              userSvc,
-		AlertService:             alertSvc,
-		AlertEmailSMTPConfigured: notificationSender.EmailConfigured(),
-		AssignmentService:        assignmentSvc,
-		CheckService:             checkSvc,
-		LabelService:             labelSvc,
-		ProbeService:             probeSvc,
-		ProbeRuntime:             probeRuntimeSvc,
-		ProjectService:           projectSvc,
-		PublicStatusService:      publicStatusSvc,
-		ResultService:            resultSvc,
-		ReadinessCheck:           readiness,
-		RequestTimeout:           cfg.HTTP.RequestTimeout,
-		MetricsHandler:           metricsProvider.Handler(),
-		TrustedProxies:           trustedProxies,
+		Log:                         log,
+		APIVersion:                  cfg.APIVersion,
+		DemoMode:                    cfg.DemoMode,
+		BackendBaseURL:              cfg.HTTP.BackendBaseURL,
+		PublicWebBaseURL:            cfg.HTTP.PublicWebBaseURL,
+		WebDir:                      cfg.HTTP.WebDir,
+		AuthService:                 authSvc,
+		AuthVerifier:                tokenIssuer,
+		AuthCookieSecure:            cfg.Env != "local",
+		AuthRegistrationDisabled:    !cfg.Auth.RegistrationEnabled,
+		AuthPasswordResetRateWindow: cfg.Auth.PasswordResetRateWindow,
+		AuthPasswordResetIPLimit:    cfg.Auth.PasswordResetIPLimit,
+		AuthPasswordResetEmailLimit: cfg.Auth.PasswordResetEmailLimit,
+		UserService:                 userSvc,
+		AlertService:                alertSvc,
+		AlertEmailSMTPConfigured:    notificationSender.EmailConfigured(),
+		AssignmentService:           assignmentSvc,
+		CheckService:                checkSvc,
+		LabelService:                labelSvc,
+		ProbeService:                probeSvc,
+		ProbeRuntime:                probeRuntimeSvc,
+		ProjectService:              projectSvc,
+		PublicStatusService:         publicStatusSvc,
+		ResultService:               resultSvc,
+		ReadinessCheck:              readiness,
+		RequestTimeout:              cfg.HTTP.RequestTimeout,
+		MetricsHandler:              metricsProvider.Handler(),
+		TrustedProxies:              trustedProxies,
 	})
 
 	return &Application{
