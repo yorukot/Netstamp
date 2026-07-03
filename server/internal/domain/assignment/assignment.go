@@ -2,7 +2,9 @@ package assignment
 
 import (
 	"errors"
+	"fmt"
 	"strings"
+	"time"
 
 	"github.com/yorukot/spvalidator"
 
@@ -11,6 +13,56 @@ import (
 )
 
 var ErrInvalidInput = errors.New("assignment input invalid")
+
+const DefaultRefreshJobMaxAttempts int32 = 5
+
+type RefreshTargetType string
+
+const (
+	RefreshTargetProject RefreshTargetType = "project"
+	RefreshTargetProbe   RefreshTargetType = "probe"
+	RefreshTargetCheck   RefreshTargetType = "check"
+	RefreshTargetLabel   RefreshTargetType = "label"
+)
+
+type RefreshJobStatus string
+
+const (
+	RefreshJobStatusPending   RefreshJobStatus = "pending"
+	RefreshJobStatusRunning   RefreshJobStatus = "running"
+	RefreshJobStatusSucceeded RefreshJobStatus = "succeeded"
+	RefreshJobStatusFailed    RefreshJobStatus = "failed"
+	RefreshJobStatusDiscarded RefreshJobStatus = "discarded"
+)
+
+type RefreshTarget struct {
+	ProjectID string
+	Type      RefreshTargetType
+	TargetID  string
+}
+
+func (target RefreshTarget) DedupeKey() string {
+	return fmt.Sprintf("%s:%s:%s", target.ProjectID, target.Type, target.TargetID)
+}
+
+type RefreshJob struct {
+	ID            string
+	ProjectID     string
+	TargetType    RefreshTargetType
+	TargetID      string
+	Status        RefreshJobStatus
+	AttemptCount  int32
+	MaxAttempts   int32
+	NextAttemptAt time.Time
+	LastAttemptAt *time.Time
+	CompletedAt   *time.Time
+	LastErrorKind *string
+	LastErrorCode *string
+	LastError     *string
+	DedupeKey     string
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+}
 
 type Assignment struct {
 	ID              string       `json:"id"`

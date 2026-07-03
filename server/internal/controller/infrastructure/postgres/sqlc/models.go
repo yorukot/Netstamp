@@ -187,6 +187,95 @@ func (ns NullAlertSeverity) Value() (driver.Value, error) {
 	return string(ns.AlertSeverity), nil
 }
 
+type AssignmentRefreshJobStatus string
+
+const (
+	AssignmentRefreshJobStatusPending   AssignmentRefreshJobStatus = "pending"
+	AssignmentRefreshJobStatusRunning   AssignmentRefreshJobStatus = "running"
+	AssignmentRefreshJobStatusSucceeded AssignmentRefreshJobStatus = "succeeded"
+	AssignmentRefreshJobStatusFailed    AssignmentRefreshJobStatus = "failed"
+	AssignmentRefreshJobStatusDiscarded AssignmentRefreshJobStatus = "discarded"
+)
+
+func (e *AssignmentRefreshJobStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = AssignmentRefreshJobStatus(s)
+	case string:
+		*e = AssignmentRefreshJobStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for AssignmentRefreshJobStatus: %T", src)
+	}
+	return nil
+}
+
+type NullAssignmentRefreshJobStatus struct {
+	AssignmentRefreshJobStatus AssignmentRefreshJobStatus `json:"assignment_refresh_job_status"`
+	Valid                      bool                       `json:"valid"` // Valid is true if AssignmentRefreshJobStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullAssignmentRefreshJobStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.AssignmentRefreshJobStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.AssignmentRefreshJobStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullAssignmentRefreshJobStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.AssignmentRefreshJobStatus), nil
+}
+
+type AssignmentRefreshTargetType string
+
+const (
+	AssignmentRefreshTargetTypeProject AssignmentRefreshTargetType = "project"
+	AssignmentRefreshTargetTypeProbe   AssignmentRefreshTargetType = "probe"
+	AssignmentRefreshTargetTypeCheck   AssignmentRefreshTargetType = "check"
+	AssignmentRefreshTargetTypeLabel   AssignmentRefreshTargetType = "label"
+)
+
+func (e *AssignmentRefreshTargetType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = AssignmentRefreshTargetType(s)
+	case string:
+		*e = AssignmentRefreshTargetType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for AssignmentRefreshTargetType: %T", src)
+	}
+	return nil
+}
+
+type NullAssignmentRefreshTargetType struct {
+	AssignmentRefreshTargetType AssignmentRefreshTargetType `json:"assignment_refresh_target_type"`
+	Valid                       bool                        `json:"valid"` // Valid is true if AssignmentRefreshTargetType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullAssignmentRefreshTargetType) Scan(value interface{}) error {
+	if value == nil {
+		ns.AssignmentRefreshTargetType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.AssignmentRefreshTargetType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullAssignmentRefreshTargetType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.AssignmentRefreshTargetType), nil
+}
+
 type CheckType string
 
 const (
@@ -843,6 +932,25 @@ type AlertRule struct {
 	CreatedAt        time.Time       `json:"created_at"`
 	UpdatedAt        time.Time       `json:"updated_at"`
 	DeletedAt        *time.Time      `json:"deleted_at"`
+}
+
+type AssignmentRefreshJob struct {
+	ID            uuid.UUID                   `json:"id"`
+	ProjectID     uuid.UUID                   `json:"project_id"`
+	TargetType    AssignmentRefreshTargetType `json:"target_type"`
+	TargetID      uuid.UUID                   `json:"target_id"`
+	Status        AssignmentRefreshJobStatus  `json:"status"`
+	AttemptCount  int32                       `json:"attempt_count"`
+	MaxAttempts   int32                       `json:"max_attempts"`
+	NextAttemptAt time.Time                   `json:"next_attempt_at"`
+	LastAttemptAt *time.Time                  `json:"last_attempt_at"`
+	CompletedAt   *time.Time                  `json:"completed_at"`
+	LastErrorKind *string                     `json:"last_error_kind"`
+	LastErrorCode *string                     `json:"last_error_code"`
+	LastError     *string                     `json:"last_error"`
+	DedupeKey     string                      `json:"dedupe_key"`
+	CreatedAt     time.Time                   `json:"created_at"`
+	UpdatedAt     time.Time                   `json:"updated_at"`
 }
 
 type Check struct {

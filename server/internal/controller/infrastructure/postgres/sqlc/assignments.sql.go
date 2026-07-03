@@ -13,6 +13,145 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const claimAssignmentRefreshJobs = `-- name: ClaimAssignmentRefreshJobs :many
+WITH selected AS (
+    SELECT id
+    FROM assignment_refresh_jobs
+    WHERE status = 'pending'
+      AND next_attempt_at <= now()
+      AND attempt_count < max_attempts
+    ORDER BY next_attempt_at ASC, created_at ASC
+    LIMIT $1
+    FOR UPDATE SKIP LOCKED
+)
+UPDATE assignment_refresh_jobs
+SET status = 'running',
+    last_attempt_at = now()
+FROM selected
+WHERE assignment_refresh_jobs.id = selected.id
+RETURNING assignment_refresh_jobs.id,
+          assignment_refresh_jobs.project_id,
+          assignment_refresh_jobs.target_type,
+          assignment_refresh_jobs.target_id,
+          assignment_refresh_jobs.status,
+          assignment_refresh_jobs.attempt_count,
+          assignment_refresh_jobs.max_attempts,
+          assignment_refresh_jobs.next_attempt_at,
+          assignment_refresh_jobs.last_attempt_at,
+          assignment_refresh_jobs.completed_at,
+          assignment_refresh_jobs.last_error_kind,
+          assignment_refresh_jobs.last_error_code,
+          assignment_refresh_jobs.last_error,
+          assignment_refresh_jobs.dedupe_key,
+          assignment_refresh_jobs.created_at,
+          assignment_refresh_jobs.updated_at
+`
+
+func (q *Queries) ClaimAssignmentRefreshJobs(ctx context.Context, limitCount int32) ([]AssignmentRefreshJob, error) {
+	rows, err := q.db.Query(ctx, claimAssignmentRefreshJobs, limitCount)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []AssignmentRefreshJob
+	for rows.Next() {
+		var i AssignmentRefreshJob
+		if err := rows.Scan(
+			&i.ID,
+			&i.ProjectID,
+			&i.TargetType,
+			&i.TargetID,
+			&i.Status,
+			&i.AttemptCount,
+			&i.MaxAttempts,
+			&i.NextAttemptAt,
+			&i.LastAttemptAt,
+			&i.CompletedAt,
+			&i.LastErrorKind,
+			&i.LastErrorCode,
+			&i.LastError,
+			&i.DedupeKey,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const enqueueAssignmentRefreshJob = `-- name: EnqueueAssignmentRefreshJob :one
+INSERT INTO assignment_refresh_jobs (
+    project_id,
+    target_type,
+    target_id,
+    dedupe_key,
+    max_attempts
+)
+VALUES (
+    $1,
+    $2,
+    $3,
+    $4,
+    $5
+)
+ON CONFLICT (dedupe_key) DO UPDATE
+SET project_id = EXCLUDED.project_id,
+    target_type = EXCLUDED.target_type,
+    target_id = EXCLUDED.target_id,
+    status = CASE
+        WHEN assignment_refresh_jobs.status = 'running' THEN assignment_refresh_jobs.status
+        ELSE 'pending'
+    END,
+    max_attempts = EXCLUDED.max_attempts,
+    next_attempt_at = CASE
+        WHEN assignment_refresh_jobs.status = 'running' THEN assignment_refresh_jobs.next_attempt_at
+        ELSE now()
+    END,
+    completed_at = CASE
+        WHEN assignment_refresh_jobs.status = 'running' THEN assignment_refresh_jobs.completed_at
+        ELSE NULL
+    END,
+    last_error_kind = CASE
+        WHEN assignment_refresh_jobs.status = 'running' THEN assignment_refresh_jobs.last_error_kind
+        ELSE NULL
+    END,
+    last_error_code = CASE
+        WHEN assignment_refresh_jobs.status = 'running' THEN assignment_refresh_jobs.last_error_code
+        ELSE NULL
+    END,
+    last_error = CASE
+        WHEN assignment_refresh_jobs.status = 'running' THEN assignment_refresh_jobs.last_error
+        ELSE NULL
+    END
+RETURNING id
+`
+
+type EnqueueAssignmentRefreshJobParams struct {
+	ProjectID   uuid.UUID                   `json:"project_id"`
+	TargetType  AssignmentRefreshTargetType `json:"target_type"`
+	TargetID    uuid.UUID                   `json:"target_id"`
+	DedupeKey   string                      `json:"dedupe_key"`
+	MaxAttempts int32                       `json:"max_attempts"`
+}
+
+func (q *Queries) EnqueueAssignmentRefreshJob(ctx context.Context, arg EnqueueAssignmentRefreshJobParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, enqueueAssignmentRefreshJob,
+		arg.ProjectID,
+		arg.TargetType,
+		arg.TargetID,
+		arg.DedupeKey,
+		arg.MaxAttempts,
+	)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
 const listProjectAssignments = `-- name: ListProjectAssignments :many
 SELECT probe_check_assignments.id AS assignment_id,
        probe_check_assignments.project_id,
@@ -184,4 +323,126 @@ func (q *Queries) ListProjectAssignments(ctx context.Context, arg ListProjectAss
 		return nil, err
 	}
 	return items, nil
+}
+
+const markAssignmentRefreshJobDiscarded = `-- name: MarkAssignmentRefreshJobDiscarded :exec
+UPDATE assignment_refresh_jobs
+SET status = 'discarded',
+    attempt_count = attempt_count + 1,
+    completed_at = now(),
+    last_error_kind = $1,
+    last_error_code = $2,
+    last_error = $3
+WHERE id = $4
+`
+
+type MarkAssignmentRefreshJobDiscardedParams struct {
+	LastErrorKind *string   `json:"last_error_kind"`
+	LastErrorCode *string   `json:"last_error_code"`
+	LastError     *string   `json:"last_error"`
+	ID            uuid.UUID `json:"id"`
+}
+
+func (q *Queries) MarkAssignmentRefreshJobDiscarded(ctx context.Context, arg MarkAssignmentRefreshJobDiscardedParams) error {
+	_, err := q.db.Exec(ctx, markAssignmentRefreshJobDiscarded,
+		arg.LastErrorKind,
+		arg.LastErrorCode,
+		arg.LastError,
+		arg.ID,
+	)
+	return err
+}
+
+const markAssignmentRefreshJobFailed = `-- name: MarkAssignmentRefreshJobFailed :exec
+UPDATE assignment_refresh_jobs
+SET status = 'failed',
+    attempt_count = attempt_count + 1,
+    completed_at = now(),
+    last_error_kind = $1,
+    last_error_code = $2,
+    last_error = $3
+WHERE id = $4
+`
+
+type MarkAssignmentRefreshJobFailedParams struct {
+	LastErrorKind *string   `json:"last_error_kind"`
+	LastErrorCode *string   `json:"last_error_code"`
+	LastError     *string   `json:"last_error"`
+	ID            uuid.UUID `json:"id"`
+}
+
+func (q *Queries) MarkAssignmentRefreshJobFailed(ctx context.Context, arg MarkAssignmentRefreshJobFailedParams) error {
+	_, err := q.db.Exec(ctx, markAssignmentRefreshJobFailed,
+		arg.LastErrorKind,
+		arg.LastErrorCode,
+		arg.LastError,
+		arg.ID,
+	)
+	return err
+}
+
+const markAssignmentRefreshJobRetry = `-- name: MarkAssignmentRefreshJobRetry :exec
+UPDATE assignment_refresh_jobs
+SET status = 'pending',
+    attempt_count = attempt_count + 1,
+    next_attempt_at = $1,
+    last_error_kind = $2,
+    last_error_code = $3,
+    last_error = $4
+WHERE id = $5
+`
+
+type MarkAssignmentRefreshJobRetryParams struct {
+	NextAttemptAt time.Time `json:"next_attempt_at"`
+	LastErrorKind *string   `json:"last_error_kind"`
+	LastErrorCode *string   `json:"last_error_code"`
+	LastError     *string   `json:"last_error"`
+	ID            uuid.UUID `json:"id"`
+}
+
+func (q *Queries) MarkAssignmentRefreshJobRetry(ctx context.Context, arg MarkAssignmentRefreshJobRetryParams) error {
+	_, err := q.db.Exec(ctx, markAssignmentRefreshJobRetry,
+		arg.NextAttemptAt,
+		arg.LastErrorKind,
+		arg.LastErrorCode,
+		arg.LastError,
+		arg.ID,
+	)
+	return err
+}
+
+const markAssignmentRefreshJobSucceeded = `-- name: MarkAssignmentRefreshJobSucceeded :exec
+UPDATE assignment_refresh_jobs
+SET status = 'succeeded',
+    completed_at = $1,
+    last_error_kind = NULL,
+    last_error_code = NULL,
+    last_error = NULL
+WHERE id = $2
+`
+
+type MarkAssignmentRefreshJobSucceededParams struct {
+	CompletedAt *time.Time `json:"completed_at"`
+	ID          uuid.UUID  `json:"id"`
+}
+
+func (q *Queries) MarkAssignmentRefreshJobSucceeded(ctx context.Context, arg MarkAssignmentRefreshJobSucceededParams) error {
+	_, err := q.db.Exec(ctx, markAssignmentRefreshJobSucceeded, arg.CompletedAt, arg.ID)
+	return err
+}
+
+const recoverStaleAssignmentRefreshJobs = `-- name: RecoverStaleAssignmentRefreshJobs :execrows
+UPDATE assignment_refresh_jobs
+SET status = 'pending',
+    next_attempt_at = now()
+WHERE status = 'running'
+  AND last_attempt_at < $1
+`
+
+func (q *Queries) RecoverStaleAssignmentRefreshJobs(ctx context.Context, staleBefore *time.Time) (int64, error) {
+	result, err := q.db.Exec(ctx, recoverStaleAssignmentRefreshJobs, staleBefore)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
