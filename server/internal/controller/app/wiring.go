@@ -99,6 +99,7 @@ func buildDBPool(ctx context.Context, cfg config.Config) (*pgxpool.Pool, error) 
 }
 
 func buildControllerServices(cfg config.Config, log *zap.Logger, dbPool *pgxpool.Pool) controllerServices {
+	dbTx := postgres.NewTransactor(dbPool)
 	userRepo := pguser.NewUserRepository(dbPool)
 	projectRepo := pgproject.NewProjectRepository(dbPool)
 	alertRepo := pgalert.NewRepository(dbPool)
@@ -138,20 +139,20 @@ func buildControllerServices(cfg config.Config, log *zap.Logger, dbPool *pgxpool
 	}
 	notificationSender := notify.NewSender(cfg.Alerting.NotificationHTTPTimeout, smtpConfig)
 
-	authSvc := appauth.NewService(userRepo, passwordHasher, tokenIssuer, authEvents)
+	authSvc := appauth.NewService(userRepo, passwordHasher, tokenIssuer, authEvents, dbTx)
 	authSvc.ConfigurePasswordReset(userRepo, security.NewPasswordResetTokenManager(), notify.NewPasswordResetMailer(smtpConfig), appauth.PasswordResetConfig{
 		TokenTTL: cfg.Auth.PasswordResetTokenTTL,
 	})
 	userSvc := appuser.NewService(userRepo, passwordHasher, userEvents)
 	projectSvc := appproject.NewService(projectRepo, userRepo, projectEvents)
 	alertSvc := appalert.NewService(alertRepo, projectRepo, notificationSender)
-	assignmentSvc := appassignment.NewService(assignmentRepo, projectRepo, assignmentEvents)
-	labelSvc := applabel.NewService(labelRepo, projectRepo, labelEvents, assignmentSvc)
-	checkSvc := appcheck.NewService(checkRepo, projectRepo, labelRepo, assignmentSvc, checkEvents)
-	probeSvc := appprobe.NewService(probeRepo, projectRepo, labelRepo, assignmentSvc, security.NewProbeSecretGenerator(), probeEvents)
+	assignmentSvc := appassignment.NewService(assignmentRepo, projectRepo, assignmentEvents, dbTx)
+	labelSvc := applabel.NewService(labelRepo, projectRepo, labelEvents, assignmentSvc, dbTx)
+	checkSvc := appcheck.NewService(checkRepo, projectRepo, labelRepo, assignmentSvc, checkEvents, dbTx)
+	probeSvc := appprobe.NewService(probeRepo, projectRepo, labelRepo, assignmentSvc, security.NewProbeSecretGenerator(), probeEvents, dbTx)
 	publicStatusSvc := apppublicstatus.NewService(publicStatusRepo, projectRepo, pingRepo, tcpRepo)
 	probeRuntimeSvc := appproberuntime.NewServiceWithTCP(probeRepo, pingRepo, tcpRepo, tracerouteRepo, security.NewProbeSecretVerifier(), probeRuntimeEvents)
-	alertEvalSvc := appalerteval.NewService(alertRepo, cfg.Alerting.EvaluationEnabled, cfg.HTTP.BackendBaseURL)
+	alertEvalSvc := appalerteval.NewService(alertRepo, cfg.Alerting.EvaluationEnabled, cfg.HTTP.BackendBaseURL, dbTx)
 	probeRuntimeSvc.SetAlertEvaluator(alertEvalSvc)
 	resultSvc := appresult.NewService(pingRepo, tcpRepo, tracerouteRepo, resultRepo, projectRepo)
 	assignmentWorker := appassignment.NewWorker(assignmentRepo, appassignment.WorkerConfig{
@@ -159,7 +160,7 @@ func buildControllerServices(cfg config.Config, log *zap.Logger, dbPool *pgxpool
 		Interval:     cfg.AssignmentRefresh.WorkerInterval,
 		BatchSize:    cfg.AssignmentRefresh.WorkerBatchSize,
 		StaleTimeout: cfg.AssignmentRefresh.WorkerStaleTimeout,
-	})
+	}, appassignment.NewWorkerRefreshRunner(assignmentSvc))
 	notificationWorker := appnotification.NewWorker(alertRepo, notificationSender, appnotification.WorkerConfig{
 		Enabled:      cfg.Alerting.NotificationWorkerEnabled,
 		Interval:     cfg.Alerting.NotificationWorkerInterval,

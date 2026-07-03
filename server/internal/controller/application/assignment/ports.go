@@ -4,11 +4,14 @@ import (
 	"context"
 	"time"
 
+	apptx "github.com/yorukot/netstamp/internal/controller/application/tx"
 	domainassignment "github.com/yorukot/netstamp/internal/domain/assignment"
-	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
-	domainselector "github.com/yorukot/netstamp/internal/domain/selector"
 )
+
+type ProbeAssignmentCandidate = domainassignment.ProbeAssignmentCandidate
+type CheckAssignmentCandidate = domainassignment.CheckAssignmentCandidate
+type AssignmentWrite = domainassignment.AssignmentWrite
 
 type Repository interface {
 	EnqueueRefreshJob(ctx context.Context, target domainassignment.RefreshTarget, maxAttempts int32) error
@@ -17,15 +20,23 @@ type Repository interface {
 	MarkRefreshJobRetry(ctx context.Context, id string, nextAttemptAt time.Time, kind, code, message string) error
 	MarkRefreshJobFailed(ctx context.Context, id, kind, code, message string) error
 	MarkRefreshJobDiscarded(ctx context.Context, id, kind, code, message string) error
-	RefreshProbeCheckAssignmentsForProject(ctx context.Context, projectID string) error
-	RefreshProbeCheckAssignmentsForProbe(ctx context.Context, projectID, probeID string) error
-	RefreshProbeCheckAssignmentsForCheck(ctx context.Context, projectID, checkID string) error
-	RefreshProbeCheckAssignmentsForLabel(ctx context.Context, projectID, labelID string) error
+
+	ListProbeRefreshCandidatesForProject(ctx context.Context, projectID string) ([]ProbeAssignmentCandidate, error)
+	GetProbeRefreshCandidate(ctx context.Context, projectID, probeID string) (ProbeAssignmentCandidate, error)
+	ListProbeRefreshCandidatesForLabel(ctx context.Context, projectID, labelID string) ([]ProbeAssignmentCandidate, error)
+	ListCheckRefreshCandidatesForProject(ctx context.Context, projectID string) ([]CheckAssignmentCandidate, error)
+	GetCheckRefreshCandidate(ctx context.Context, projectID, checkID string) (CheckAssignmentCandidate, error)
+	ListSelectorPreviewCandidates(ctx context.Context, projectID string) ([]ProbeAssignmentCandidate, error)
+
+	UpsertProbeCheckAssignment(ctx context.Context, input AssignmentWrite) error
+	DeleteStaleAssignmentsForProbe(ctx context.Context, projectID, probeID string, keepCheckIDs []string) error
+	DeleteStaleAssignmentsForCheck(ctx context.Context, projectID, checkID, checkVersion, selectorVersion string, keepProbeIDs []string) error
 	DeleteProbeCheckAssignmentsForProbe(ctx context.Context, projectID, probeID string) error
 	DeleteProbeCheckAssignmentsForCheck(ctx context.Context, projectID, checkID string) error
-	ListSelectorPreviewProbes(ctx context.Context, projectID string, selector domainselector.Selector) ([]domainprobe.Probe, error)
 	ListProjectAssignments(ctx context.Context, input domainassignment.Query) ([]domainassignment.Assignment, error)
 }
+
+type Transactor = apptx.Transactor
 
 type ProjectAccess interface {
 	GetProjectForUser(ctx context.Context, projectRef, userID string) (domainproject.Project, error)

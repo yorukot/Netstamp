@@ -9,7 +9,6 @@ import (
 	domainassignment "github.com/yorukot/netstamp/internal/domain/assignment"
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
 	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
-	domainselector "github.com/yorukot/netstamp/internal/domain/selector"
 )
 
 const testRefreshJobID = "55555555-5555-5555-5555-555555555555"
@@ -138,7 +137,7 @@ func TestDisabledAssignmentWorkerWaitsForContextAndReturnsNil(t *testing.T) {
 	}
 }
 
-func newTestWorker(repo Repository, now time.Time) *Worker {
+func newTestWorker(repo *workerRepository, now time.Time) *Worker {
 	worker := NewWorker(repo, WorkerConfig{
 		Enabled:       true,
 		Interval:      time.Hour,
@@ -280,12 +279,4 @@ func (r *workerRepository) DeleteProbeCheckAssignmentsForCheck(_ context.Context
 	r.projectID = projectID
 	r.checkID = checkID
 	return r.deleteErr
-}
-
-func (r *workerRepository) ListSelectorPreviewProbes(_ context.Context, _ string, _ domainselector.Selector) ([]domainprobe.Probe, error) {
-	return nil, nil
-}
-
-func (r *workerRepository) ListProjectAssignments(_ context.Context, _ domainassignment.Query) ([]domainassignment.Assignment, error) {
-	return nil, nil
 }

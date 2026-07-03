@@ -15,158 +15,159 @@ import (
 	domainlabel "github.com/yorukot/netstamp/internal/domain/label"
 	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
-	domainselector "github.com/yorukot/netstamp/internal/domain/selector"
 )
 
 type AssignmentRepository struct {
 	queries *sqlc.Queries
-	tx      *postgres.Transactor
 }
 
 func NewAssignmentRepository(pool *pgxpool.Pool) *AssignmentRepository {
 	return &AssignmentRepository{
 		queries: sqlc.New(pool),
-		tx:      postgres.NewTransactor(pool),
 	}
 }
 
-func (r *AssignmentRepository) RefreshProbeCheckAssignmentsForProject(ctx context.Context, projectIDValue string) error {
-	ctx, span := postgres.StartDBSpan(ctx, pgassignmentTracer, "probe_check_assignments", "postgres.assignments.refresh_for_project", "UPDATE", "REFRESH probe check assignments for project")
+func (r *AssignmentRepository) ListProbeRefreshCandidatesForProject(ctx context.Context, projectIDValue string) ([]domainassignment.ProbeAssignmentCandidate, error) {
+	ctx, span := postgres.StartDBSpan(ctx, pgassignmentTracer, "probes", "postgres.assignments.list_probe_refresh_candidates_for_project", "SELECT", "SELECT probe refresh candidates for project")
 	defer span.End()
 
 	projectID, err := postgres.ParseUUID(projectIDValue, domainproject.ErrProjectNotFound)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	err = r.tx.InTx(ctx, func(ctx context.Context, tx pgx.Tx) error {
-		q := r.queries.WithTx(tx)
-
-		rows, queryErr := q.ListActiveProbesForProject(ctx, projectID)
-		if queryErr != nil {
-			return queryErr
-		}
-		for _, probe := range activeProbeLabelsFromProjectRows(rows) {
-			if refreshErr := r.refreshProbeCheckAssignmentsForProbe(ctx, q, projectID, probe); refreshErr != nil {
-				return refreshErr
-			}
-		}
-
-		return nil
-	})
+	rows, err := postgres.Queries(ctx, r.queries).ListActiveProbesForProject(ctx, projectID)
 	if err != nil {
 		postgres.RecordDBSpanError(span, err)
-		return err
+		return nil, err
 	}
 
-	return nil
+	return probeCandidatesFromActive(activeProbeLabelsFromProjectRows(rows)), nil
 }
 
-func (r *AssignmentRepository) RefreshProbeCheckAssignmentsForProbe(ctx context.Context, projectIDValue, probeIDValue string) error {
-	ctx, span := postgres.StartDBSpan(ctx, pgassignmentTracer, "probe_check_assignments", "postgres.assignments.refresh_for_probe", "UPDATE", "REFRESH probe check assignments for probe")
+func (r *AssignmentRepository) GetProbeRefreshCandidate(ctx context.Context, projectIDValue, probeIDValue string) (domainassignment.ProbeAssignmentCandidate, error) {
+	ctx, span := postgres.StartDBSpan(ctx, pgassignmentTracer, "probes", "postgres.assignments.get_probe_refresh_candidate", "SELECT", "SELECT probe refresh candidate")
 	defer span.End()
 
 	projectID, probeID, err := parseProjectAndProbeIDs(projectIDValue, probeIDValue)
 	if err != nil {
-		return err
+		return domainassignment.ProbeAssignmentCandidate{}, err
 	}
 
-	err = r.tx.InTx(ctx, func(ctx context.Context, tx pgx.Tx) error {
-		q := r.queries.WithTx(tx)
-
-		rows, queryErr := q.GetActiveProbeRowsForProject(ctx, sqlc.GetActiveProbeRowsForProjectParams{
-			ProjectID: projectID,
-			ID:        probeID,
-		})
-		if queryErr != nil {
-			return queryErr
-		}
-		probe, ok := activeProbeFromRows(rows)
-		if !ok {
-			return domainprobe.ErrProbeNotFound
-		}
-
-		return r.refreshProbeCheckAssignmentsForProbe(ctx, q, projectID, probe)
+	rows, err := postgres.Queries(ctx, r.queries).GetActiveProbeRowsForProject(ctx, sqlc.GetActiveProbeRowsForProjectParams{
+		ProjectID: projectID,
+		ID:        probeID,
 	})
 	if err != nil {
 		postgres.RecordDBSpanError(span, err)
-		return err
+		return domainassignment.ProbeAssignmentCandidate{}, err
+	}
+	probe, ok := activeProbeFromRows(rows)
+	if !ok {
+		return domainassignment.ProbeAssignmentCandidate{}, domainprobe.ErrProbeNotFound
 	}
 
-	return nil
+	return probeCandidateFromActive(probe), nil
 }
 
-func (r *AssignmentRepository) RefreshProbeCheckAssignmentsForCheck(ctx context.Context, projectIDValue, checkIDValue string) error {
-	ctx, span := postgres.StartDBSpan(ctx, pgassignmentTracer, "probe_check_assignments", "postgres.assignments.refresh_for_check", "UPDATE", "REFRESH probe check assignments for check")
-	defer span.End()
-
-	projectID, checkID, err := parseProjectAndCheckIDs(projectIDValue, checkIDValue)
-	if err != nil {
-		return err
-	}
-
-	err = r.tx.InTx(ctx, func(ctx context.Context, tx pgx.Tx) error {
-		q := r.queries.WithTx(tx)
-
-		row, queryErr := q.GetActiveCheckForProject(ctx, sqlc.GetActiveCheckForProjectParams{
-			ProjectID: projectID,
-			ID:        checkID,
-		})
-		if errors.Is(queryErr, pgx.ErrNoRows) {
-			return domaincheck.ErrCheckNotFound
-		}
-		if queryErr != nil {
-			return queryErr
-		}
-
-		return r.refreshProbeCheckAssignmentsForCheck(ctx, q, row)
-	})
-	if err != nil {
-		postgres.RecordDBSpanError(span, err)
-		return err
-	}
-
-	return nil
-}
-
-func (r *AssignmentRepository) RefreshProbeCheckAssignmentsForLabel(ctx context.Context, projectIDValue, labelIDValue string) error {
-	ctx, span := postgres.StartDBSpan(ctx, pgassignmentTracer, "probe_check_assignments", "postgres.assignments.refresh_for_label", "UPDATE", "REFRESH probe check assignments for label")
+func (r *AssignmentRepository) ListProbeRefreshCandidatesForLabel(ctx context.Context, projectIDValue, labelIDValue string) ([]domainassignment.ProbeAssignmentCandidate, error) {
+	ctx, span := postgres.StartDBSpan(ctx, pgassignmentTracer, "probes", "postgres.assignments.list_probe_refresh_candidates_for_label", "SELECT", "SELECT probe refresh candidates for label")
 	defer span.End()
 
 	projectID, labelID, err := parseProjectAndLabelIDs(projectIDValue, labelIDValue)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	err = r.tx.InTx(ctx, func(ctx context.Context, tx pgx.Tx) error {
-		q := r.queries.WithTx(tx)
-
-		targets, queryErr := q.ListProbeRefreshTargetsForLabel(ctx, sqlc.ListProbeRefreshTargetsForLabelParams{
-			ProjectID: projectID,
-			LabelID:   labelID,
-		})
-		if queryErr != nil {
-			return queryErr
-		}
-
-		for _, target := range targets {
-			probe := activeProbeLabels{
-				probeID: target.ID,
-				enabled: target.Enabled,
-			}
-			if refreshErr := r.refreshProbeCheckAssignmentsForProbe(ctx, q, projectID, probe); refreshErr != nil {
-				return refreshErr
-			}
-		}
-
-		return nil
+	q := postgres.Queries(ctx, r.queries)
+	targets, err := q.ListProbeRefreshTargetsForLabel(ctx, sqlc.ListProbeRefreshTargetsForLabelParams{
+		ProjectID: projectID,
+		LabelID:   labelID,
 	})
 	if err != nil {
 		postgres.RecordDBSpanError(span, err)
-		return err
+		return nil, err
 	}
 
-	return nil
+	probes := make([]domainassignment.ProbeAssignmentCandidate, 0, len(targets))
+	for _, target := range targets {
+		labelRows, err := q.ListActiveLabelsForProbe(ctx, sqlc.ListActiveLabelsForProbeParams{
+			ProjectID: projectID,
+			ProbeID:   target.ID,
+		})
+		if err != nil {
+			postgres.RecordDBSpanError(span, err)
+			return nil, err
+		}
+		probes = append(probes, domainassignment.ProbeAssignmentCandidate{
+			ProbeID:   target.ID.String(),
+			ProjectID: projectID.String(),
+			Enabled:   target.Enabled,
+			Labels:    mapLabels(labelRows),
+		})
+	}
+
+	return probes, nil
+}
+
+func (r *AssignmentRepository) ListCheckRefreshCandidatesForProject(ctx context.Context, projectIDValue string) ([]domainassignment.CheckAssignmentCandidate, error) {
+	ctx, span := postgres.StartDBSpan(ctx, pgassignmentTracer, "checks", "postgres.assignments.list_check_refresh_candidates_for_project", "SELECT", "SELECT check refresh candidates for project")
+	defer span.End()
+
+	projectID, err := postgres.ParseUUID(projectIDValue, domainproject.ErrProjectNotFound)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := postgres.Queries(ctx, r.queries).ListActiveChecksForProject(ctx, projectID)
+	if err != nil {
+		postgres.RecordDBSpanError(span, err)
+		return nil, err
+	}
+
+	return listCheckCandidates(rows)
+}
+
+func (r *AssignmentRepository) GetCheckRefreshCandidate(ctx context.Context, projectIDValue, checkIDValue string) (domainassignment.CheckAssignmentCandidate, error) {
+	ctx, span := postgres.StartDBSpan(ctx, pgassignmentTracer, "checks", "postgres.assignments.get_check_refresh_candidate", "SELECT", "SELECT check refresh candidate")
+	defer span.End()
+
+	projectID, checkID, err := parseProjectAndCheckIDs(projectIDValue, checkIDValue)
+	if err != nil {
+		return domainassignment.CheckAssignmentCandidate{}, err
+	}
+
+	row, err := postgres.Queries(ctx, r.queries).GetActiveCheckForProject(ctx, sqlc.GetActiveCheckForProjectParams{
+		ProjectID: projectID,
+		ID:        checkID,
+	})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return domainassignment.CheckAssignmentCandidate{}, domaincheck.ErrCheckNotFound
+	}
+	if err != nil {
+		postgres.RecordDBSpanError(span, err)
+		return domainassignment.CheckAssignmentCandidate{}, err
+	}
+
+	return checkCandidate(row)
+}
+
+func (r *AssignmentRepository) ListSelectorPreviewCandidates(ctx context.Context, projectIDValue string) ([]domainassignment.ProbeAssignmentCandidate, error) {
+	ctx, span := postgres.StartDBSpan(ctx, pgassignmentTracer, "probes", "postgres.assignments.selector_preview_candidates", "SELECT", "SELECT selector preview candidates")
+	defer span.End()
+
+	projectID, err := postgres.ParseUUID(projectIDValue, domainproject.ErrProjectNotFound)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := postgres.Queries(ctx, r.queries).ListActiveEnabledProbeLabelsForProject(ctx, projectID)
+	if err != nil {
+		postgres.RecordDBSpanError(span, err)
+		return nil, err
+	}
+
+	return probeCandidatesFromActive(activeProbeLabelsFromRows(rows)), nil
 }
 
 func (r *AssignmentRepository) DeleteProbeCheckAssignmentsForProbe(ctx context.Context, projectIDValue, probeIDValue string) error {
@@ -178,7 +179,7 @@ func (r *AssignmentRepository) DeleteProbeCheckAssignmentsForProbe(ctx context.C
 		return err
 	}
 
-	if err := r.queries.DeleteProbeCheckAssignmentsForProbe(ctx, sqlc.DeleteProbeCheckAssignmentsForProbeParams{
+	if err := postgres.Queries(ctx, r.queries).DeleteProbeCheckAssignmentsForProbe(ctx, sqlc.DeleteProbeCheckAssignmentsForProbeParams{
 		ProjectID: projectID,
 		ProbeID:   probeID,
 	}); err != nil {
@@ -198,7 +199,7 @@ func (r *AssignmentRepository) DeleteProbeCheckAssignmentsForCheck(ctx context.C
 		return err
 	}
 
-	if err := r.queries.DeleteProbeCheckAssignmentsForCheck(ctx, sqlc.DeleteProbeCheckAssignmentsForCheckParams{
+	if err := postgres.Queries(ctx, r.queries).DeleteProbeCheckAssignmentsForCheck(ctx, sqlc.DeleteProbeCheckAssignmentsForCheckParams{
 		ProjectID: projectID,
 		CheckID:   checkID,
 	}); err != nil {
@@ -209,22 +210,79 @@ func (r *AssignmentRepository) DeleteProbeCheckAssignmentsForCheck(ctx context.C
 	return nil
 }
 
-func (r *AssignmentRepository) ListSelectorPreviewProbes(ctx context.Context, projectIDValue string, selector domainselector.Selector) ([]domainprobe.Probe, error) {
-	ctx, span := postgres.StartDBSpan(ctx, pgassignmentTracer, "probes", "postgres.assignments.selector_preview", "SELECT", "SELECT probes matching selector")
+func (r *AssignmentRepository) UpsertProbeCheckAssignment(ctx context.Context, input domainassignment.AssignmentWrite) error {
+	ctx, span := postgres.StartDBSpan(ctx, pgassignmentTracer, "probe_check_assignments", "postgres.assignments.upsert", "INSERT", "UPSERT probe check assignment")
 	defer span.End()
 
-	projectID, err := postgres.ParseUUID(projectIDValue, domainproject.ErrProjectNotFound)
+	projectID, probeID, checkID, err := parseAssignmentWriteIDs(input.ProjectID, input.ProbeID, input.CheckID)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	rows, err := r.queries.ListActiveEnabledProbeLabelsForProject(ctx, projectID)
-	if err != nil {
+	if err := postgres.Queries(ctx, r.queries).UpsertProbeCheckAssignment(ctx, sqlc.UpsertProbeCheckAssignmentParams{
+		ProjectID:       projectID,
+		ProbeID:         probeID,
+		CheckID:         checkID,
+		CheckVersion:    input.CheckVersion,
+		SelectorVersion: input.SelectorVersion,
+	}); err != nil {
 		postgres.RecordDBSpanError(span, err)
-		return nil, err
+		return mapAssignmentWriteError(err)
 	}
 
-	return matchingPreviewProbes(selector, activeProbeLabelsFromRows(rows)), nil
+	return nil
+}
+
+func (r *AssignmentRepository) DeleteStaleAssignmentsForProbe(ctx context.Context, projectIDValue, probeIDValue string, keepCheckIDValues []string) error {
+	ctx, span := postgres.StartDBSpan(ctx, pgassignmentTracer, "probe_check_assignments", "postgres.assignments.delete_stale_for_probe", "DELETE", "DELETE stale probe check assignments for probe")
+	defer span.End()
+
+	projectID, probeID, err := parseProjectAndProbeIDs(projectIDValue, probeIDValue)
+	if err != nil {
+		return err
+	}
+	keepCheckIDs, err := parseUUIDList(keepCheckIDValues, domaincheck.ErrInvalidInput)
+	if err != nil {
+		return err
+	}
+
+	if err := postgres.Queries(ctx, r.queries).DeleteStaleProbeCheckAssignmentsForProbe(ctx, sqlc.DeleteStaleProbeCheckAssignmentsForProbeParams{
+		ProjectID: projectID,
+		ProbeID:   probeID,
+		CheckIds:  keepCheckIDs,
+	}); err != nil {
+		postgres.RecordDBSpanError(span, err)
+		return err
+	}
+
+	return nil
+}
+
+func (r *AssignmentRepository) DeleteStaleAssignmentsForCheck(ctx context.Context, projectIDValue, checkIDValue, checkVersion, selectorVersion string, keepProbeIDValues []string) error {
+	ctx, span := postgres.StartDBSpan(ctx, pgassignmentTracer, "probe_check_assignments", "postgres.assignments.delete_stale_for_check", "DELETE", "DELETE stale probe check assignments for check")
+	defer span.End()
+
+	projectID, checkID, err := parseProjectAndCheckIDs(projectIDValue, checkIDValue)
+	if err != nil {
+		return err
+	}
+	keepProbeIDs, err := parseUUIDList(keepProbeIDValues, domainprobe.ErrInvalidInput)
+	if err != nil {
+		return err
+	}
+
+	if err := postgres.Queries(ctx, r.queries).DeleteStaleProbeCheckAssignments(ctx, sqlc.DeleteStaleProbeCheckAssignmentsParams{
+		ProjectID:       projectID,
+		CheckID:         checkID,
+		CheckVersion:    checkVersion,
+		SelectorVersion: selectorVersion,
+		ProbeIds:        keepProbeIDs,
+	}); err != nil {
+		postgres.RecordDBSpanError(span, err)
+		return err
+	}
+
+	return nil
 }
 
 func (r *AssignmentRepository) ListProjectAssignments(ctx context.Context, input domainassignment.Query) ([]domainassignment.Assignment, error) {
@@ -244,7 +302,7 @@ func (r *AssignmentRepository) ListProjectAssignments(ctx context.Context, input
 		return nil, err
 	}
 
-	rows, err := r.queries.ListProjectAssignments(ctx, sqlc.ListProjectAssignmentsParams{
+	rows, err := postgres.Queries(ctx, r.queries).ListProjectAssignments(ctx, sqlc.ListProjectAssignmentsParams{
 		ProjectID: projectID,
 		ProbeID:   probeID,
 		CheckID:   checkID,
@@ -255,91 +313,6 @@ func (r *AssignmentRepository) ListProjectAssignments(ctx context.Context, input
 	}
 
 	return mapProjectAssignments(rows), nil
-}
-
-func (r *AssignmentRepository) refreshProbeCheckAssignmentsForProbe(ctx context.Context, queries *sqlc.Queries, projectID uuid.UUID, probe activeProbeLabels) error {
-	if !probe.enabled {
-		return queries.DeleteProbeCheckAssignmentsForProbe(ctx, sqlc.DeleteProbeCheckAssignmentsForProbeParams{
-			ProjectID: projectID,
-			ProbeID:   probe.probeID,
-		})
-	}
-
-	if probe.labels == nil {
-		labelRows, err := queries.ListActiveLabelsForProbe(ctx, sqlc.ListActiveLabelsForProbeParams{
-			ProjectID: projectID,
-			ProbeID:   probe.probeID,
-		})
-		if err != nil {
-			return err
-		}
-		probe.labels = mapLabels(labelRows)
-	}
-
-	checkRows, err := queries.ListActiveChecksForProject(ctx, projectID)
-	if err != nil {
-		return err
-	}
-
-	matchedCheckIDs := make([]uuid.UUID, 0, len(checkRows))
-	for _, row := range checkRows {
-		selector, selectorRaw, err := listCheckSelector(row)
-		if err != nil {
-			return err
-		}
-		if !selector.Matches(probe.labels) {
-			continue
-		}
-		matchedCheckIDs = append(matchedCheckIDs, row.ID)
-		if err := queries.UpsertProbeCheckAssignment(ctx, sqlc.UpsertProbeCheckAssignmentParams{
-			ProjectID:       projectID,
-			ProbeID:         probe.probeID,
-			CheckID:         row.ID,
-			CheckVersion:    listCheckVersion(row),
-			SelectorVersion: domaincheck.SelectorVersion(selectorRaw),
-		}); err != nil {
-			return mapAssignmentWriteError(err)
-		}
-	}
-
-	return queries.DeleteStaleProbeCheckAssignmentsForProbe(ctx, sqlc.DeleteStaleProbeCheckAssignmentsForProbeParams{
-		ProjectID: projectID,
-		ProbeID:   probe.probeID,
-		CheckIds:  matchedCheckIDs,
-	})
-}
-
-func (r *AssignmentRepository) refreshProbeCheckAssignmentsForCheck(ctx context.Context, queries *sqlc.Queries, check sqlc.GetActiveCheckForProjectRow) error {
-	selector, selectorRaw, err := checkSelector(check)
-	if err != nil {
-		return err
-	}
-
-	probeRows, err := queries.ListActiveEnabledProbeLabelsForProject(ctx, check.ProjectID)
-	if err != nil {
-		return err
-	}
-
-	matchedProbeIDs := matchingProbeIDs(selector, activeProbeLabelsFromRows(probeRows))
-	for _, probeID := range matchedProbeIDs {
-		if err := queries.UpsertProbeCheckAssignment(ctx, sqlc.UpsertProbeCheckAssignmentParams{
-			ProjectID:       check.ProjectID,
-			ProbeID:         probeID,
-			CheckID:         check.ID,
-			CheckVersion:    checkVersion(check),
-			SelectorVersion: domaincheck.SelectorVersion(selectorRaw),
-		}); err != nil {
-			return mapAssignmentWriteError(err)
-		}
-	}
-
-	return queries.DeleteStaleProbeCheckAssignments(ctx, sqlc.DeleteStaleProbeCheckAssignmentsParams{
-		ProjectID:       check.ProjectID,
-		CheckID:         check.ID,
-		CheckVersion:    checkVersion(check),
-		SelectorVersion: domaincheck.SelectorVersion(selectorRaw),
-		ProbeIds:        matchedProbeIDs,
-	})
 }
 
 func parseProjectAndProbeIDs(projectIDValue, probeIDValue string) (uuid.UUID, uuid.UUID, error) {
@@ -379,6 +352,31 @@ func parseProjectAndLabelIDs(projectIDValue, labelIDValue string) (uuid.UUID, uu
 	}
 
 	return projectID, labelID, nil
+}
+
+func parseAssignmentWriteIDs(projectIDValue, probeIDValue, checkIDValue string) (uuid.UUID, uuid.UUID, uuid.UUID, error) {
+	projectID, probeID, err := parseProjectAndProbeIDs(projectIDValue, probeIDValue)
+	if err != nil {
+		return uuid.Nil, uuid.Nil, uuid.Nil, err
+	}
+	checkID, err := postgres.ParseUUID(checkIDValue, domaincheck.ErrCheckNotFound)
+	if err != nil {
+		return uuid.Nil, uuid.Nil, uuid.Nil, err
+	}
+
+	return projectID, probeID, checkID, nil
+}
+
+func parseUUIDList(values []string, invalidErr error) ([]uuid.UUID, error) {
+	ids := make([]uuid.UUID, 0, len(values))
+	for _, value := range values {
+		id, err := postgres.ParseUUID(value, invalidErr)
+		if err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, nil
 }
 
 func optionalUUID(value string, invalidErr error) (*uuid.UUID, error) {

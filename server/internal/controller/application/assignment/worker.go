@@ -21,12 +21,30 @@ type WorkerConfig struct {
 }
 
 type Worker struct {
-	repo Repository
-	cfg  WorkerConfig
-	now  func() time.Time
+	repo      RefreshJobRepository
+	refresher RefreshRunner
+	cfg       WorkerConfig
+	now       func() time.Time
 }
 
-func NewWorker(repo Repository, cfg WorkerConfig) *Worker {
+type RefreshJobRepository interface {
+	ClaimRefreshJobs(ctx context.Context, limit int32, staleBefore time.Time) ([]domainassignment.RefreshJob, error)
+	MarkRefreshJobSucceeded(ctx context.Context, id string, at time.Time) error
+	MarkRefreshJobRetry(ctx context.Context, id string, nextAttemptAt time.Time, kind, code, message string) error
+	MarkRefreshJobFailed(ctx context.Context, id, kind, code, message string) error
+	MarkRefreshJobDiscarded(ctx context.Context, id, kind, code, message string) error
+}
+
+type RefreshRunner interface {
+	RefreshProbeCheckAssignmentsForProject(ctx context.Context, projectID string) error
+	RefreshProbeCheckAssignmentsForProbe(ctx context.Context, projectID, probeID string) error
+	RefreshProbeCheckAssignmentsForCheck(ctx context.Context, projectID, checkID string) error
+	RefreshProbeCheckAssignmentsForLabel(ctx context.Context, projectID, labelID string) error
+	DeleteProbeCheckAssignmentsForProbe(ctx context.Context, projectID, probeID string) error
+	DeleteProbeCheckAssignmentsForCheck(ctx context.Context, projectID, checkID string) error
+}
+
+func NewWorker(repo RefreshJobRepository, cfg WorkerConfig, refreshers ...RefreshRunner) *Worker {
 	if cfg.Interval <= 0 {
 		cfg.Interval = 5 * time.Second
 	}
@@ -39,7 +57,17 @@ func NewWorker(repo Repository, cfg WorkerConfig) *Worker {
 	if len(cfg.RetryBackoffs) == 0 {
 		cfg.RetryBackoffs = []time.Duration{30 * time.Second, 2 * time.Minute, 5 * time.Minute, 15 * time.Minute}
 	}
-	return &Worker{repo: repo, cfg: cfg, now: func() time.Time { return time.Now().UTC() }}
+	var refresher RefreshRunner
+	if len(refreshers) > 0 {
+		if service, ok := refreshers[0].(*Service); ok {
+			refresher = NewWorkerRefreshRunner(service)
+		} else {
+			refresher = refreshers[0]
+		}
+	} else if runner, ok := repo.(RefreshRunner); ok {
+		refresher = runner
+	}
+	return &Worker{repo: repo, refresher: refresher, cfg: cfg, now: func() time.Time { return time.Now().UTC() }}
 }
 
 func (w *Worker) Run(ctx context.Context) error {
@@ -98,27 +126,31 @@ func (w *Worker) process(ctx context.Context, job domainassignment.RefreshJob) e
 }
 
 func (w *Worker) refreshTarget(ctx context.Context, job domainassignment.RefreshJob) error {
+	if w.refresher == nil {
+		return domainassignment.ErrInvalidInput
+	}
+
 	switch job.TargetType {
 	case domainassignment.RefreshTargetProject:
-		return w.repo.RefreshProbeCheckAssignmentsForProject(ctx, job.ProjectID)
+		return w.refresher.RefreshProbeCheckAssignmentsForProject(ctx, job.ProjectID)
 	case domainassignment.RefreshTargetProbe:
-		err := w.repo.RefreshProbeCheckAssignmentsForProbe(ctx, job.ProjectID, job.TargetID)
+		err := w.refresher.RefreshProbeCheckAssignmentsForProbe(ctx, job.ProjectID, job.TargetID)
 		if errors.Is(err, domainprobe.ErrProbeNotFound) {
-			if cleanupErr := w.repo.DeleteProbeCheckAssignmentsForProbe(ctx, job.ProjectID, job.TargetID); cleanupErr != nil {
+			if cleanupErr := w.refresher.DeleteProbeCheckAssignmentsForProbe(ctx, job.ProjectID, job.TargetID); cleanupErr != nil {
 				return cleanupErr
 			}
 		}
 		return err
 	case domainassignment.RefreshTargetCheck:
-		err := w.repo.RefreshProbeCheckAssignmentsForCheck(ctx, job.ProjectID, job.TargetID)
+		err := w.refresher.RefreshProbeCheckAssignmentsForCheck(ctx, job.ProjectID, job.TargetID)
 		if errors.Is(err, domaincheck.ErrCheckNotFound) {
-			if cleanupErr := w.repo.DeleteProbeCheckAssignmentsForCheck(ctx, job.ProjectID, job.TargetID); cleanupErr != nil {
+			if cleanupErr := w.refresher.DeleteProbeCheckAssignmentsForCheck(ctx, job.ProjectID, job.TargetID); cleanupErr != nil {
 				return cleanupErr
 			}
 		}
 		return err
 	case domainassignment.RefreshTargetLabel:
-		return w.repo.RefreshProbeCheckAssignmentsForLabel(ctx, job.ProjectID, job.TargetID)
+		return w.refresher.RefreshProbeCheckAssignmentsForLabel(ctx, job.ProjectID, job.TargetID)
 	default:
 		return domainassignment.ErrInvalidInput
 	}

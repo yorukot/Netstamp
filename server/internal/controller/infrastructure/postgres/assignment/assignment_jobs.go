@@ -33,7 +33,7 @@ func (r *AssignmentRepository) EnqueueRefreshJob(ctx context.Context, target dom
 		TargetID:  targetID.String(),
 	}
 
-	_, err = r.queries.EnqueueAssignmentRefreshJob(ctx, sqlc.EnqueueAssignmentRefreshJobParams{
+	_, err = postgres.Queries(ctx, r.queries).EnqueueAssignmentRefreshJob(ctx, sqlc.EnqueueAssignmentRefreshJobParams{
 		ProjectID:   projectID,
 		TargetType:  targetType,
 		TargetID:    targetID,
@@ -53,11 +53,12 @@ func (r *AssignmentRepository) ClaimRefreshJobs(ctx context.Context, limit int32
 	defer span.End()
 
 	stale := staleBefore.UTC()
-	if _, err := r.queries.RecoverStaleAssignmentRefreshJobs(ctx, &stale); err != nil {
+	q := postgres.Queries(ctx, r.queries)
+	if _, err := q.RecoverStaleAssignmentRefreshJobs(ctx, &stale); err != nil {
 		postgres.RecordDBSpanError(span, err)
 		return nil, err
 	}
-	rows, err := r.queries.ClaimAssignmentRefreshJobs(ctx, limit)
+	rows, err := q.ClaimAssignmentRefreshJobs(ctx, limit)
 	if err != nil {
 		postgres.RecordDBSpanError(span, err)
 		return nil, err
@@ -76,7 +77,7 @@ func (r *AssignmentRepository) MarkRefreshJobSucceeded(ctx context.Context, id s
 		return err
 	}
 	completedAt := at.UTC()
-	return r.queries.MarkAssignmentRefreshJobSucceeded(ctx, sqlc.MarkAssignmentRefreshJobSucceededParams{
+	return postgres.Queries(ctx, r.queries).MarkAssignmentRefreshJobSucceeded(ctx, sqlc.MarkAssignmentRefreshJobSucceededParams{
 		ID:          uuidValue,
 		CompletedAt: &completedAt,
 	})
@@ -88,7 +89,7 @@ func (r *AssignmentRepository) MarkRefreshJobRetry(ctx context.Context, id strin
 		return err
 	}
 	kindPtr, codePtr, messagePtr := &kind, &code, &message
-	return r.queries.MarkAssignmentRefreshJobRetry(ctx, sqlc.MarkAssignmentRefreshJobRetryParams{
+	return postgres.Queries(ctx, r.queries).MarkAssignmentRefreshJobRetry(ctx, sqlc.MarkAssignmentRefreshJobRetryParams{
 		ID:            uuidValue,
 		NextAttemptAt: nextAttemptAt.UTC(),
 		LastErrorKind: kindPtr,
@@ -103,7 +104,7 @@ func (r *AssignmentRepository) MarkRefreshJobFailed(ctx context.Context, id, kin
 		return err
 	}
 	kindPtr, codePtr, messagePtr := &kind, &code, &message
-	return r.queries.MarkAssignmentRefreshJobFailed(ctx, sqlc.MarkAssignmentRefreshJobFailedParams{
+	return postgres.Queries(ctx, r.queries).MarkAssignmentRefreshJobFailed(ctx, sqlc.MarkAssignmentRefreshJobFailedParams{
 		ID:            uuidValue,
 		LastErrorKind: kindPtr,
 		LastErrorCode: codePtr,
@@ -117,7 +118,7 @@ func (r *AssignmentRepository) MarkRefreshJobDiscarded(ctx context.Context, id, 
 		return err
 	}
 	kindPtr, codePtr, messagePtr := &kind, &code, &message
-	return r.queries.MarkAssignmentRefreshJobDiscarded(ctx, sqlc.MarkAssignmentRefreshJobDiscardedParams{
+	return postgres.Queries(ctx, r.queries).MarkAssignmentRefreshJobDiscarded(ctx, sqlc.MarkAssignmentRefreshJobDiscardedParams{
 		ID:            uuidValue,
 		LastErrorKind: kindPtr,
 		LastErrorCode: codePtr,

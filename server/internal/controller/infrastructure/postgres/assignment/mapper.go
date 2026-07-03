@@ -92,6 +92,94 @@ func activeProbeLabelsFromProjectRows(rows []sqlc.ListActiveProbesForProjectRow)
 	return probes
 }
 
+func probeCandidatesFromActive(probes []activeProbeLabels) []domainassignment.ProbeAssignmentCandidate {
+	candidates := make([]domainassignment.ProbeAssignmentCandidate, 0, len(probes))
+	for _, probe := range probes {
+		candidates = append(candidates, probeCandidateFromActive(probe))
+	}
+	return candidates
+}
+
+func probeCandidateFromActive(probe activeProbeLabels) domainassignment.ProbeAssignmentCandidate {
+	return domainassignment.ProbeAssignmentCandidate{
+		ProbeID:   probe.probeID.String(),
+		ProjectID: probe.projectID.String(),
+		Name:      probe.name,
+		Enabled:   probe.enabled,
+		Labels:    append([]domainlabel.Label(nil), probe.labels...),
+	}
+}
+
+func listCheckCandidates(rows []sqlc.ListActiveChecksForProjectRow) ([]domainassignment.CheckAssignmentCandidate, error) {
+	candidates := make([]domainassignment.CheckAssignmentCandidate, 0, len(rows))
+	for _, row := range rows {
+		selector, selectorRaw, err := listCheckSelector(row)
+		if err != nil {
+			return nil, err
+		}
+		check := listCheck(row)
+		candidates = append(candidates, domainassignment.CheckAssignmentCandidate{
+			Check:           check,
+			Selector:        selector,
+			SelectorVersion: domaincheck.SelectorVersion(selectorRaw),
+			CheckVersion:    check.Hash(),
+		})
+	}
+	return candidates, nil
+}
+
+func checkCandidate(row sqlc.GetActiveCheckForProjectRow) (domainassignment.CheckAssignmentCandidate, error) {
+	selector, selectorRaw, err := checkSelector(row)
+	if err != nil {
+		return domainassignment.CheckAssignmentCandidate{}, err
+	}
+	check := getCheck(row)
+	return domainassignment.CheckAssignmentCandidate{
+		Check:           check,
+		Selector:        selector,
+		SelectorVersion: domaincheck.SelectorVersion(selectorRaw),
+		CheckVersion:    check.Hash(),
+	}, nil
+}
+
+func listCheck(row sqlc.ListActiveChecksForProjectRow) domaincheck.Check {
+	return domaincheck.Check{
+		ID:               row.ID.String(),
+		ProjectID:        row.ProjectID.String(),
+		Name:             row.Name,
+		Type:             domaincheck.Type(row.CheckType),
+		Target:           row.Target,
+		Selector:         cloneRawMessage(row.Selector),
+		Description:      row.Description,
+		IntervalSeconds:  row.IntervalSeconds,
+		CreatedAt:        row.CreatedAt,
+		UpdatedAt:        row.UpdatedAt,
+		DeletedAt:        row.DeletedAt,
+		PingConfig:       mapOptionalPingConfig(row.PingPacketCount, row.PingPacketSizeBytes, row.PingTimeoutMs, row.PingIpFamily),
+		TCPConfig:        mapOptionalTCPConfig(row.TcpPort, row.TcpTimeoutMs, row.TcpIpFamily),
+		TracerouteConfig: mapOptionalTracerouteConfig(row.TracerouteProtocol, row.TracerouteMaxHops, row.TracerouteTimeoutMs, row.TracerouteQueriesPerHop, row.TraceroutePacketSizeBytes, row.TraceroutePort, row.TracerouteIpFamily),
+	}
+}
+
+func getCheck(row sqlc.GetActiveCheckForProjectRow) domaincheck.Check {
+	return domaincheck.Check{
+		ID:               row.ID.String(),
+		ProjectID:        row.ProjectID.String(),
+		Name:             row.Name,
+		Type:             domaincheck.Type(row.CheckType),
+		Target:           row.Target,
+		Selector:         cloneRawMessage(row.Selector),
+		Description:      row.Description,
+		IntervalSeconds:  row.IntervalSeconds,
+		CreatedAt:        row.CreatedAt,
+		UpdatedAt:        row.UpdatedAt,
+		DeletedAt:        row.DeletedAt,
+		PingConfig:       mapOptionalPingConfig(row.PingPacketCount, row.PingPacketSizeBytes, row.PingTimeoutMs, row.PingIpFamily),
+		TCPConfig:        mapOptionalTCPConfig(row.TcpPort, row.TcpTimeoutMs, row.TcpIpFamily),
+		TracerouteConfig: mapOptionalTracerouteConfig(row.TracerouteProtocol, row.TracerouteMaxHops, row.TracerouteTimeoutMs, row.TracerouteQueriesPerHop, row.TraceroutePacketSizeBytes, row.TraceroutePort, row.TracerouteIpFamily),
+	}
+}
+
 func matchingProbeIDs(selector domainselector.Selector, probes []activeProbeLabels) []uuid.UUID {
 	probeIDs := make([]uuid.UUID, 0, len(probes))
 	for _, probe := range probes {

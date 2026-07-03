@@ -7,7 +7,7 @@ import (
 	"time"
 
 	domainassignment "github.com/yorukot/netstamp/internal/domain/assignment"
-	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
+	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
 	domainselector "github.com/yorukot/netstamp/internal/domain/selector"
 )
 
@@ -161,6 +161,25 @@ func TestRefreshRecordsEnqueueFailureBeforeSyncRefresh(t *testing.T) {
 	assertLastEvent(t, events, AssignmentEventRefreshLabelFailure, AssignmentOutcomeFailure, AssignmentReasonRefreshFailed)
 }
 
+func TestWorkerRefreshRunnerDoesNotEnqueueRefreshJob(t *testing.T) {
+	repo := &recordingRepository{}
+	events := &recordingEventRecorder{}
+	service := NewService(repo, nil, events)
+	runner := NewWorkerRefreshRunner(service)
+
+	if err := runner.RefreshProbeCheckAssignmentsForProbe(context.Background(), testProjectID, testProbeID); err != nil {
+		t.Fatalf("expected refresh to succeed: %v", err)
+	}
+
+	if repo.method != "refresh_probe" || repo.projectID != testProjectID || repo.probeID != testProbeID {
+		t.Fatalf("unexpected repository call: %#v", repo)
+	}
+	if len(repo.enqueued) != 0 {
+		t.Fatalf("expected worker runner not to enqueue refresh jobs, got %#v", repo.enqueued)
+	}
+	assertLastEvent(t, events, AssignmentEventRefreshProbeSuccess, AssignmentOutcomeSuccess, "")
+}
+
 func assertLastEvent(t *testing.T, recorder *recordingEventRecorder, name AssignmentEventName, outcome AssignmentEventOutcome, reason AssignmentEventReason) {
 	t.Helper()
 
@@ -225,30 +244,68 @@ func (r *recordingRepository) MarkRefreshJobDiscarded(_ context.Context, _, _, _
 	return nil
 }
 
-func (r *recordingRepository) RefreshProbeCheckAssignmentsForProbe(_ context.Context, projectID, probeID string) error {
+func (r *recordingRepository) ListProbeRefreshCandidatesForProject(_ context.Context, projectID string) ([]ProbeAssignmentCandidate, error) {
+	r.method = "refresh_project"
+	r.projectID = projectID
+	return nil, r.err
+}
+
+func (r *recordingRepository) GetProbeRefreshCandidate(_ context.Context, projectID, probeID string) (ProbeAssignmentCandidate, error) {
 	r.method = "refresh_probe"
+	r.projectID = projectID
+	r.probeID = probeID
+	return ProbeAssignmentCandidate{ProjectID: projectID, ProbeID: probeID, Enabled: true}, r.err
+}
+
+func (r *recordingRepository) ListProbeRefreshCandidatesForLabel(_ context.Context, projectID, labelID string) ([]ProbeAssignmentCandidate, error) {
+	r.method = "refresh_label"
+	r.projectID = projectID
+	r.labelID = labelID
+	return nil, r.err
+}
+
+func (r *recordingRepository) ListCheckRefreshCandidatesForProject(_ context.Context, projectID string) ([]CheckAssignmentCandidate, error) {
+	r.projectID = projectID
+	return nil, nil
+}
+
+func (r *recordingRepository) GetCheckRefreshCandidate(_ context.Context, projectID, checkID string) (CheckAssignmentCandidate, error) {
+	r.method = "refresh_check"
+	r.projectID = projectID
+	r.checkID = checkID
+	selector, err := domainselector.Parse(nil)
+	if err != nil {
+		return CheckAssignmentCandidate{}, err
+	}
+	return CheckAssignmentCandidate{
+		Check:           domaincheck.Check{ProjectID: projectID, ID: checkID},
+		Selector:        selector,
+		SelectorVersion: "selector-version",
+		CheckVersion:    "check-version",
+	}, r.err
+}
+
+func (r *recordingRepository) ListSelectorPreviewCandidates(_ context.Context, projectID string) ([]ProbeAssignmentCandidate, error) {
+	if r.method == "" {
+		r.method = "preview"
+	}
+	r.projectID = projectID
+	return nil, r.err
+}
+
+func (r *recordingRepository) UpsertProbeCheckAssignment(_ context.Context, _ AssignmentWrite) error {
+	return r.err
+}
+
+func (r *recordingRepository) DeleteStaleAssignmentsForProbe(_ context.Context, projectID, probeID string, _ []string) error {
 	r.projectID = projectID
 	r.probeID = probeID
 	return r.err
 }
 
-func (r *recordingRepository) RefreshProbeCheckAssignmentsForProject(_ context.Context, projectID string) error {
-	r.method = "refresh_project"
-	r.projectID = projectID
-	return r.err
-}
-
-func (r *recordingRepository) RefreshProbeCheckAssignmentsForCheck(_ context.Context, projectID, checkID string) error {
-	r.method = "refresh_check"
+func (r *recordingRepository) DeleteStaleAssignmentsForCheck(_ context.Context, projectID, checkID, _, _ string, _ []string) error {
 	r.projectID = projectID
 	r.checkID = checkID
-	return r.err
-}
-
-func (r *recordingRepository) RefreshProbeCheckAssignmentsForLabel(_ context.Context, projectID, labelID string) error {
-	r.method = "refresh_label"
-	r.projectID = projectID
-	r.labelID = labelID
 	return r.err
 }
 
@@ -264,12 +321,6 @@ func (r *recordingRepository) DeleteProbeCheckAssignmentsForCheck(_ context.Cont
 	r.projectID = projectID
 	r.checkID = checkID
 	return r.err
-}
-
-func (r *recordingRepository) ListSelectorPreviewProbes(_ context.Context, projectID string, _ domainselector.Selector) ([]domainprobe.Probe, error) {
-	r.method = "preview"
-	r.projectID = projectID
-	return nil, r.err
 }
 
 func (r *recordingRepository) ListProjectAssignments(_ context.Context, input domainassignment.Query) ([]domainassignment.Assignment, error) {
