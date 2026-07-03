@@ -3,6 +3,7 @@ package publicstatus
 import (
 	"context"
 	"sort"
+	"sync"
 	"time"
 
 	"github.com/yorukot/netstamp/internal/controller/application/pingquery"
@@ -15,8 +16,10 @@ import (
 )
 
 const (
-	defaultIncidentLimit int32 = 50
-	publicMaxDataPoints  int32 = 600
+	defaultIncidentLimit     int32 = 50
+	publicIncidentCacheLimit int32 = 200
+	publicMaxDataPoints      int32 = 600
+	publicSnapshotTTL              = 30 * time.Second
 )
 
 type Service struct {
@@ -24,10 +27,63 @@ type Service struct {
 	projectAccess ProjectAccess
 	pings         PingSeriesRepository
 	tcps          TCPSeriesRepository
+	snapshots     *publicSnapshotCache
 }
 
 func NewService(repo Repository, projectAccess ProjectAccess, pings PingSeriesRepository, tcps TCPSeriesRepository) *Service {
-	return &Service{repo: repo, projectAccess: projectAccess, pings: pings, tcps: tcps}
+	return &Service{repo: repo, projectAccess: projectAccess, pings: pings, tcps: tcps, snapshots: newPublicSnapshotCache(publicSnapshotTTL)}
+}
+
+type publicSnapshot struct {
+	page        domainpublic.Page
+	status      domainpublic.Status
+	elements    []domainpublic.RenderedElement
+	incidents   []domainpublic.Incident
+	generatedAt time.Time
+}
+
+type publicSnapshotCache struct {
+	mu      sync.Mutex
+	ttl     time.Duration
+	entries map[string]publicSnapshotCacheEntry
+}
+
+type publicSnapshotCacheEntry struct {
+	snapshot  publicSnapshot
+	expiresAt time.Time
+}
+
+func newPublicSnapshotCache(ttl time.Duration) *publicSnapshotCache {
+	return &publicSnapshotCache{ttl: ttl, entries: make(map[string]publicSnapshotCacheEntry)}
+}
+
+func (c *publicSnapshotCache) get(slug string, now time.Time) (publicSnapshot, bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	entry, ok := c.entries[slug]
+	if !ok {
+		return publicSnapshot{}, false
+	}
+	if !now.Before(entry.expiresAt) {
+		delete(c.entries, slug)
+		return publicSnapshot{}, false
+	}
+	return entry.snapshot, true
+}
+
+func (c *publicSnapshotCache) set(slug string, snapshot publicSnapshot) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.entries[slug] = publicSnapshotCacheEntry{
+		snapshot:  snapshot,
+		expiresAt: snapshot.generatedAt.Add(c.ttl),
+	}
+}
+
+func (c *publicSnapshotCache) clear() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.entries = make(map[string]publicSnapshotCacheEntry)
 }
 
 func (s *Service) ListPages(ctx context.Context, input ListPagesInput) ([]domainpublic.Page, error) {
@@ -67,7 +123,12 @@ func (s *Service) CreatePage(ctx context.Context, input CreatePageInput) (domain
 	if err != nil {
 		return domainpublic.Page{}, err
 	}
-	return s.repo.CreatePage(ctx, page)
+	created, err := s.repo.CreatePage(ctx, page)
+	if err != nil {
+		return domainpublic.Page{}, err
+	}
+	s.clearPublicSnapshots()
+	return created, nil
 }
 
 func (s *Service) UpdatePage(ctx context.Context, input UpdatePageInput) (domainpublic.Page, error) {
@@ -79,7 +140,12 @@ func (s *Service) UpdatePage(ctx context.Context, input UpdatePageInput) (domain
 	if err != nil {
 		return domainpublic.Page{}, err
 	}
-	return s.repo.UpdatePage(ctx, page)
+	updated, err := s.repo.UpdatePage(ctx, page)
+	if err != nil {
+		return domainpublic.Page{}, err
+	}
+	s.clearPublicSnapshots()
+	return updated, nil
 }
 
 func (s *Service) DeletePage(ctx context.Context, input DeletePageInput) error {
@@ -91,7 +157,11 @@ func (s *Service) DeletePage(ctx context.Context, input DeletePageInput) error {
 	if err != nil {
 		return invalidField("pageId", err.Error(), input.PageID)
 	}
-	return s.repo.DeletePage(ctx, project.ID, pageID)
+	if err := s.repo.DeletePage(ctx, project.ID, pageID); err != nil {
+		return err
+	}
+	s.clearPublicSnapshots()
+	return nil
 }
 
 func (s *Service) CreateElement(ctx context.Context, input CreateElementInput) (domainpublic.Element, error) {
@@ -119,47 +189,39 @@ func (s *Service) DeleteElement(ctx context.Context, input DeleteElementInput) e
 	if err != nil {
 		return invalidField("elementId", err.Error(), input.ElementID)
 	}
-	return s.repo.DeleteElement(ctx, project.ID, pageID, elementID)
+	if err := s.repo.DeleteElement(ctx, project.ID, pageID, elementID); err != nil {
+		return err
+	}
+	s.clearPublicSnapshots()
+	return nil
 }
 
 func (s *Service) GetPublicSummary(ctx context.Context, input PublicSummaryInput) (PublicSummary, error) {
 	now := publicNow(input.Now)
-	page, err := s.loadPublicPage(ctx, input.Slug)
+	snapshot, err := s.publicSnapshot(ctx, input.Slug, now)
 	if err != nil {
 		return PublicSummary{}, err
 	}
-	root, _, _, err := s.renderPublicPageData(ctx, page, now, false, nil)
-	if err != nil {
-		return PublicSummary{}, err
-	}
-	return PublicSummary{Page: page, Status: rollupStatus(root), GeneratedAt: now}, nil
+	return PublicSummary{Page: snapshot.page, Status: snapshot.status, GeneratedAt: snapshot.generatedAt}, nil
 }
 
 func (s *Service) GetPublicElements(ctx context.Context, input PublicElementsInput) (PublicElements, error) {
 	now := publicNow(input.Now)
-	page, err := s.loadPublicPage(ctx, input.Slug)
+	snapshot, err := s.publicSnapshot(ctx, input.Slug, now)
 	if err != nil {
 		return PublicElements{}, err
 	}
-	root, _, _, err := s.renderPublicPageData(ctx, page, now, false, nil)
-	if err != nil {
-		return PublicElements{}, err
-	}
-	return PublicElements{Elements: root, GeneratedAt: now}, nil
+	return PublicElements{Elements: snapshot.elements, GeneratedAt: snapshot.generatedAt}, nil
 }
 
 func (s *Service) GetPublicIncidents(ctx context.Context, input PublicIncidentsInput) (PublicIncidents, error) {
 	now := publicNow(input.Now)
-	page, err := s.loadPublicPage(ctx, input.Slug)
+	snapshot, err := s.publicSnapshot(ctx, input.Slug, now)
 	if err != nil {
 		return PublicIncidents{}, err
 	}
-	incidents, err := s.repo.ListIncidents(ctx, page.ID, input.Limit)
-	if err != nil {
-		return PublicIncidents{}, err
-	}
-	activeIncidents, resolvedIncidents := splitIncidents(incidents)
-	return PublicIncidents{ActiveIncidents: activeIncidents, ResolvedIncidents: resolvedIncidents, GeneratedAt: now}, nil
+	activeIncidents, resolvedIncidents := splitIncidents(limitedIncidents(snapshot.incidents, input.Limit))
+	return PublicIncidents{ActiveIncidents: activeIncidents, ResolvedIncidents: resolvedIncidents, GeneratedAt: snapshot.generatedAt}, nil
 }
 
 func (s *Service) GetPublicElementChart(ctx context.Context, input PublicElementChartInput) (PublicElementChart, error) {
@@ -202,39 +264,86 @@ func publicNow(value time.Time) time.Time {
 	return value.UTC()
 }
 
-func (s *Service) loadPublicPage(ctx context.Context, rawSlug string) (domainpublic.Page, error) {
+func validatePublicSlug(rawSlug string) (string, error) {
 	slug, err := domainpublic.VNSlug(rawSlug)
 	if err != nil {
-		return domainpublic.Page{}, invalidField("slug", err.Error(), rawSlug)
+		return "", invalidField("slug", err.Error(), rawSlug)
+	}
+	return slug, nil
+}
+
+func (s *Service) loadPublicPage(ctx context.Context, rawSlug string) (domainpublic.Page, error) {
+	slug, err := validatePublicSlug(rawSlug)
+	if err != nil {
+		return domainpublic.Page{}, err
 	}
 	return s.repo.GetPageBySlug(ctx, slug)
 }
 
-func (s *Service) renderPublicPageData(
-	ctx context.Context,
-	page domainpublic.Page,
-	now time.Time,
-	includeCharts bool,
-	chartRangeOverride *domainpublic.ChartRange,
-) ([]domainpublic.RenderedElement, []domainpublic.Incident, []domainpublic.Incident, error) {
+func (s *Service) publicSnapshot(ctx context.Context, rawSlug string, now time.Time) (publicSnapshot, error) {
+	slug, err := validatePublicSlug(rawSlug)
+	if err != nil {
+		return publicSnapshot{}, err
+	}
+	if s.snapshots != nil {
+		if snapshot, ok := s.snapshots.get(slug, now); ok {
+			return snapshot, nil
+		}
+	}
+	page, err := s.repo.GetPageBySlug(ctx, slug)
+	if err != nil {
+		return publicSnapshot{}, err
+	}
+	snapshot, err := s.buildPublicSnapshot(ctx, page, now)
+	if err != nil {
+		return publicSnapshot{}, err
+	}
+	if s.snapshots != nil {
+		s.snapshots.set(slug, snapshot)
+	}
+	return snapshot, nil
+}
+
+func (s *Service) buildPublicSnapshot(ctx context.Context, page domainpublic.Page, now time.Time) (publicSnapshot, error) {
 	elements, err := s.repo.ListElements(ctx, page.ID)
 	if err != nil {
-		return nil, nil, nil, err
+		return publicSnapshot{}, err
 	}
 	assignments, err := s.repo.ListAssignments(ctx, page.ID)
 	if err != nil {
-		return nil, nil, nil, err
+		return publicSnapshot{}, err
 	}
-	incidents, err := s.repo.ListIncidents(ctx, page.ID, defaultIncidentLimit)
+	incidents, err := s.repo.ListIncidents(ctx, page.ID, publicIncidentCacheLimit)
 	if err != nil {
-		return nil, nil, nil, err
+		return publicSnapshot{}, err
 	}
 
-	activeIncidents, resolvedIncidents := splitIncidents(incidents)
+	activeIncidents, _ := splitIncidents(incidents)
 	assignmentsByElement := groupAssignmentsByElement(assignments)
 	activeSeverityByElement := activeIncidentSeverityByElement(activeIncidents, assignmentsByElement)
-	root := s.renderElements(ctx, page, elements, assignmentsByElement, activeSeverityByElement, now, includeCharts, chartRangeOverride)
-	return root, activeIncidents, resolvedIncidents, nil
+	root := s.renderElements(ctx, page, elements, assignmentsByElement, activeSeverityByElement, now, false, nil)
+	return publicSnapshot{
+		page:        page,
+		status:      rollupStatus(root),
+		elements:    root,
+		incidents:   incidents,
+		generatedAt: now,
+	}, nil
+}
+
+func limitedIncidents(incidents []domainpublic.Incident, limit int32) []domainpublic.Incident {
+	limit = normalizeIncidentLimit(limit)
+	if int32(len(incidents)) <= limit {
+		return incidents
+	}
+	return incidents[:limit]
+}
+
+func normalizeIncidentLimit(limit int32) int32 {
+	if limit <= 0 || limit > publicIncidentCacheLimit {
+		return defaultIncidentLimit
+	}
+	return limit
 }
 
 func findPublicElement(elements []domainpublic.Element, elementID string) (domainpublic.Element, bool) {
@@ -347,7 +456,18 @@ func (s *Service) saveElement(
 	if err != nil {
 		return domainpublic.Element{}, err
 	}
-	return save(ctx, element)
+	saved, err := save(ctx, element)
+	if err != nil {
+		return domainpublic.Element{}, err
+	}
+	s.clearPublicSnapshots()
+	return saved, nil
+}
+
+func (s *Service) clearPublicSnapshots() {
+	if s.snapshots != nil {
+		s.snapshots.clear()
+	}
 }
 
 func (s *Service) validateAssignmentGroupScope(ctx context.Context, element domainpublic.Element) error {

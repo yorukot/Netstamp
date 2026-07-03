@@ -188,6 +188,69 @@ func TestPublicSummaryElementsAndIncidentsRespectCriticalIncident(t *testing.T) 
 	}
 }
 
+func TestPublicSnapshotReusesCurrentStatusAcrossSplitEndpoints(t *testing.T) {
+	now := time.Date(2026, 6, 21, 12, 0, 0, 0, time.UTC)
+	checkID := "44444444-4444-4444-4444-444444444444"
+	checkType := domaincheck.TypePing
+
+	repo := &fakePublicStatusRepository{
+		page: testPage(now),
+		elements: []domainpublic.Element{
+			{
+				ID:           checkID,
+				PublicPageID: testPageID,
+				ProjectID:    testProjectID,
+				Kind:         domainpublic.ElementKindAssignmentGroup,
+				CheckID:      &checkID,
+				CheckName:    ptr("API"),
+				CheckType:    &checkType,
+				SortOrder:    1,
+				ChartMode:    domainpublic.ChartModeInherit,
+				CreatedAt:    now.Add(-time.Minute),
+				UpdatedAt:    now.Add(-time.Minute),
+			},
+		},
+		assignments: []domainpublic.Assignment{
+			testAssignment(checkID, "successful", now.Add(-30*time.Second)),
+		},
+		incidents: []domainpublic.Incident{
+			{
+				ID:              "77777777-7777-7777-7777-777777777777",
+				CheckID:         checkID,
+				CheckName:       "API",
+				Status:          "resolved",
+				Severity:        "warning",
+				OpenedAt:        now.Add(-2 * time.Hour),
+				LastTriggeredAt: now.Add(-time.Hour),
+			},
+		},
+	}
+	service := NewService(repo, nil, nil, nil)
+
+	if _, err := service.GetPublicSummary(context.Background(), PublicSummaryInput{Slug: "main", Now: now}); err != nil {
+		t.Fatalf("GetPublicSummary returned error: %v", err)
+	}
+	if _, err := service.GetPublicElements(context.Background(), PublicElementsInput{Slug: "main", Now: now.Add(time.Second)}); err != nil {
+		t.Fatalf("GetPublicElements returned error: %v", err)
+	}
+	if _, err := service.GetPublicIncidents(context.Background(), PublicIncidentsInput{Slug: "main", Now: now.Add(2 * time.Second)}); err != nil {
+		t.Fatalf("GetPublicIncidents returned error: %v", err)
+	}
+
+	if repo.getPageBySlugCalls != 1 {
+		t.Fatalf("GetPageBySlug calls = %d, want 1", repo.getPageBySlugCalls)
+	}
+	if repo.listElementsCalls != 1 {
+		t.Fatalf("ListElements calls = %d, want 1", repo.listElementsCalls)
+	}
+	if repo.listAssignmentsCalls != 1 {
+		t.Fatalf("ListAssignments calls = %d, want 1", repo.listAssignmentsCalls)
+	}
+	if repo.listIncidentsCalls != 1 {
+		t.Fatalf("ListIncidents calls = %d, want 1", repo.listIncidentsCalls)
+	}
+}
+
 func TestGetPublicElementsDoesNotReadChartSeries(t *testing.T) {
 	now := time.Date(2026, 6, 21, 12, 0, 0, 0, time.UTC)
 	checkID := "44444444-4444-4444-4444-444444444444"
@@ -433,11 +496,15 @@ func testAssignment(checkID, status string, startedAt time.Time) domainpublic.As
 }
 
 type fakePublicStatusRepository struct {
-	page           domainpublic.Page
-	elements       []domainpublic.Element
-	assignments    []domainpublic.Assignment
-	incidents      []domainpublic.Incident
-	updatedElement *domainpublic.Element
+	page                 domainpublic.Page
+	elements             []domainpublic.Element
+	assignments          []domainpublic.Assignment
+	incidents            []domainpublic.Incident
+	getPageBySlugCalls   int
+	listElementsCalls    int
+	listAssignmentsCalls int
+	listIncidentsCalls   int
+	updatedElement       *domainpublic.Element
 }
 
 func (r *fakePublicStatusRepository) ListPages(context.Context, string) ([]domainpublic.Page, error) {
@@ -452,6 +519,7 @@ func (r *fakePublicStatusRepository) GetPage(_ context.Context, projectID, pageI
 }
 
 func (r *fakePublicStatusRepository) GetPageBySlug(_ context.Context, slug string) (domainpublic.Page, error) {
+	r.getPageBySlugCalls++
 	if r.page.Slug == slug && r.page.Enabled {
 		return r.page, nil
 	}
@@ -471,6 +539,7 @@ func (r *fakePublicStatusRepository) DeletePage(context.Context, string, string)
 }
 
 func (r *fakePublicStatusRepository) ListElements(context.Context, string) ([]domainpublic.Element, error) {
+	r.listElementsCalls++
 	return append([]domainpublic.Element{}, r.elements...), nil
 }
 
@@ -505,10 +574,12 @@ func (r *fakePublicStatusRepository) CountAssignableAssignments(_ context.Contex
 }
 
 func (r *fakePublicStatusRepository) ListAssignments(context.Context, string) ([]domainpublic.Assignment, error) {
+	r.listAssignmentsCalls++
 	return append([]domainpublic.Assignment{}, r.assignments...), nil
 }
 
 func (r *fakePublicStatusRepository) ListIncidents(context.Context, string, int32) ([]domainpublic.Incident, error) {
+	r.listIncidentsCalls++
 	return append([]domainpublic.Incident{}, r.incidents...), nil
 }
 
