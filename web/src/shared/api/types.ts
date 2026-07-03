@@ -19,9 +19,6 @@ export type ApiPublicStatusPublicElement = Omit<components["schemas"]["PublicSta
 	};
 	children?: ApiPublicStatusPublicElement[];
 };
-export type ApiPublicStatusPublicResponse = Omit<components["schemas"]["PublicStatusPublicResponse"], "elements"> & {
-	elements: ApiPublicStatusPublicElement[];
-};
 export type ApiPublicStatusSummaryResponse = components["schemas"]["PublicStatusSummaryResponse"];
 export type ApiPublicStatusElementsResponse = Omit<components["schemas"]["PublicStatusElementsResponse"], "elements"> & {
 	elements: ApiPublicStatusPublicElement[];
@@ -154,11 +151,6 @@ export interface TracerouteTopologyFilters {
 	from?: number;
 	to?: number;
 	limit?: number;
-}
-
-export interface PublicStatusFilters {
-	includeCharts?: boolean;
-	range?: PublicStatusChartRange;
 }
 
 export interface PublicStatusIncidentsFilters {

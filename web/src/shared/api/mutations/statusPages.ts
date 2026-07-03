@@ -49,7 +49,7 @@ export function useCreatePublicStatusPageMutation(projectRef: string | null | un
 			const ref = requireProjectRef(projectRef);
 			queryClient.setQueryData(apiQueryKeys.projects.statusPageDetail(ref, data.page.id), { page: data.page, elements: [] });
 			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.statusPagesRoot(ref) });
-			queryClient.invalidateQueries({ queryKey: apiQueryKeys.publicStatus.detailRoot(data.page.slug) });
+			queryClient.invalidateQueries({ queryKey: apiQueryKeys.publicStatus.pageRoot(data.page.slug) });
 		}
 	});
 }
@@ -64,9 +64,9 @@ export function useUpdatePublicStatusPageMutation(projectRef: string | null | un
 			const ref = requireProjectRef(projectRef);
 			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.statusPagesRoot(ref) });
 			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.statusPageDetail(ref, data.page.id) });
-			queryClient.invalidateQueries({ queryKey: apiQueryKeys.publicStatus.detailRoot(data.page.slug) });
+			queryClient.invalidateQueries({ queryKey: apiQueryKeys.publicStatus.pageRoot(data.page.slug) });
 			if (variables.previousSlug && variables.previousSlug !== data.page.slug) {
-				queryClient.invalidateQueries({ queryKey: apiQueryKeys.publicStatus.detailRoot(variables.previousSlug) });
+				queryClient.invalidateQueries({ queryKey: apiQueryKeys.publicStatus.pageRoot(variables.previousSlug) });
 			}
 		}
 	});
@@ -83,7 +83,7 @@ export function useDeletePublicStatusPageMutation(projectRef: string | null | un
 			queryClient.removeQueries({ queryKey: apiQueryKeys.projects.statusPageDetail(ref, variables.pageId) });
 			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.statusPagesRoot(ref) });
 			if (variables.slug) {
-				queryClient.invalidateQueries({ queryKey: apiQueryKeys.publicStatus.detailRoot(variables.slug) });
+				queryClient.invalidateQueries({ queryKey: apiQueryKeys.publicStatus.pageRoot(variables.slug) });
 			}
 		}
 	});

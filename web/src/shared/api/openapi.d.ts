@@ -854,23 +854,6 @@ export interface paths {
 		patch: operations["updateProjectPublicStatusElement"];
 		trace?: never;
 	};
-	"/public/status-pages/{slug}": {
-		parameters: {
-			query?: never;
-			header?: never;
-			path?: never;
-			cookie?: never;
-		};
-		/** Get public status page */
-		get: operations["getPublicStatusPage"];
-		put?: never;
-		post?: never;
-		delete?: never;
-		options?: never;
-		head?: never;
-		patch?: never;
-		trace?: never;
-	};
 	"/public/status-pages/{slug}/elements": {
 		parameters: {
 			query?: never;
@@ -2883,13 +2866,6 @@ export interface components {
 			assignments?: components["schemas"]["PublicStatusPublicAssignment"][];
 			children?: components["schemas"]["PublicStatusPublicElement"][];
 		};
-		PublicStatusPublicResponse: {
-			page: components["schemas"]["PublicStatusPageSummary"];
-			elements: components["schemas"]["PublicStatusPublicElement"][];
-			incidents: components["schemas"]["PublicStatusIncidents"];
-			/** Format: date-time */
-			generatedAt: string;
-		};
 		PublicStatusSummaryResponse: {
 			page: components["schemas"]["PublicStatusPageSummary"];
 			/** Format: date-time */
@@ -3976,8 +3952,6 @@ export interface components {
 		PublicStatusElementIdPathParam: components["schemas"]["uuid"];
 		PublicStatusIncidentsQuery: number;
 		PublicStatusPageIdPathParam: components["schemas"]["uuid"];
-		"PublicStatusQuery.includeCharts": boolean;
-		"PublicStatusQuery.range": "24h" | "7d" | "30d";
 		PublicStatusSlugPathParam: string;
 		"TcpInsightQuery.checkId": components["schemas"]["uuid"];
 		"TcpInsightQuery.from": number;
@@ -8591,67 +8565,6 @@ export interface operations {
 			};
 			/** @description Access is forbidden. */
 			403: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
-			/** @description The server cannot find the requested resource. */
-			404: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
-			/** @description Client error */
-			422: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
-			/** @description Server error */
-			500: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
-		};
-	};
-	getPublicStatusPage: {
-		parameters: {
-			query?: {
-				includeCharts?: components["parameters"]["PublicStatusQuery.includeCharts"];
-				range?: components["parameters"]["PublicStatusQuery.range"];
-			};
-			header?: never;
-			path: {
-				slug: components["parameters"]["PublicStatusSlugPathParam"];
-			};
-			cookie?: never;
-		};
-		requestBody?: never;
-		responses: {
-			/** @description The request has succeeded. */
-			200: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/json": components["schemas"]["PublicStatusPublicResponse"];
-				};
-			};
-			/** @description The server could not understand the request due to invalid syntax. */
-			400: {
 				headers: {
 					[name: string]: unknown;
 				};

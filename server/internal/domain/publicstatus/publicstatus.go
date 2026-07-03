@@ -128,15 +128,6 @@ type Incident struct {
 	LastSummary     []byte
 }
 
-type RenderedPage struct {
-	Page              Page
-	Status            Status
-	Elements          []RenderedElement
-	ActiveIncidents   []Incident
-	ResolvedIncidents []Incident
-	GeneratedAt       time.Time
-}
-
 type RenderedElement struct {
 	Element
 	Status                Status

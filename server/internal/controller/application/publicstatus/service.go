@@ -122,27 +122,6 @@ func (s *Service) DeleteElement(ctx context.Context, input DeleteElementInput) e
 	return s.repo.DeleteElement(ctx, project.ID, pageID, elementID)
 }
 
-func (s *Service) GetPublicPage(ctx context.Context, input PublicPageInput) (domainpublic.RenderedPage, error) {
-	now := publicNow(input.Now)
-	page, err := s.loadPublicPage(ctx, input.Slug)
-	if err != nil {
-		return domainpublic.RenderedPage{}, err
-	}
-	root, activeIncidents, resolvedIncidents, err := s.renderPublicPageData(ctx, page, now, input.IncludeCharts, input.Range)
-	if err != nil {
-		return domainpublic.RenderedPage{}, err
-	}
-
-	return domainpublic.RenderedPage{
-		Page:              page,
-		Status:            rollupStatus(root),
-		Elements:          root,
-		ActiveIncidents:   activeIncidents,
-		ResolvedIncidents: resolvedIncidents,
-		GeneratedAt:       now,
-	}, nil
-}
-
 func (s *Service) GetPublicSummary(ctx context.Context, input PublicSummaryInput) (PublicSummary, error) {
 	now := publicNow(input.Now)
 	page, err := s.loadPublicPage(ctx, input.Slug)

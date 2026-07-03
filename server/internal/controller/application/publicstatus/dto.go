@@ -86,13 +86,6 @@ type DeleteElementInput struct {
 	ElementID     string
 }
 
-type PublicPageInput struct {
-	Slug          string
-	IncludeCharts bool
-	Range         *domainpublic.ChartRange
-	Now           time.Time
-}
-
 type PublicSummaryInput struct {
 	Slug string
 	Now  time.Time

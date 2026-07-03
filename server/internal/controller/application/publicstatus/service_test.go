@@ -20,7 +20,7 @@ const (
 	testPageID    = "33333333-3333-3333-3333-333333333333"
 )
 
-func TestGetPublicPageRendersOrderedElementsAndRollsUpStatus(t *testing.T) {
+func TestPublicSummaryAndElementsRenderOrderedElementsAndRollUpStatus(t *testing.T) {
 	now := time.Date(2026, 6, 21, 12, 0, 0, 0, time.UTC)
 	rootCheckID := "44444444-4444-4444-4444-444444444444"
 	folderID := "55555555-5555-5555-5555-555555555555"
@@ -75,28 +75,29 @@ func TestGetPublicPageRendersOrderedElementsAndRollsUpStatus(t *testing.T) {
 		},
 	}
 
-	rendered, err := NewService(repo, nil, nil, nil).GetPublicPage(context.Background(), PublicPageInput{
-		Slug:          "main",
-		IncludeCharts: false,
-		Now:           now,
-	})
+	service := NewService(repo, nil, nil, nil)
+	summary, err := service.GetPublicSummary(context.Background(), PublicSummaryInput{Slug: "main", Now: now})
 	if err != nil {
-		t.Fatalf("GetPublicPage returned error: %v", err)
+		t.Fatalf("GetPublicSummary returned error: %v", err)
+	}
+	elements, err := service.GetPublicElements(context.Background(), PublicElementsInput{Slug: "main", Now: now})
+	if err != nil {
+		t.Fatalf("GetPublicElements returned error: %v", err)
 	}
 
-	if rendered.Status != domainpublic.StatusDown {
-		t.Fatalf("status = %q, want %q", rendered.Status, domainpublic.StatusDown)
+	if summary.Status != domainpublic.StatusDown {
+		t.Fatalf("status = %q, want %q", summary.Status, domainpublic.StatusDown)
 	}
-	if len(rendered.Elements) != 2 {
-		t.Fatalf("root element count = %d, want 2", len(rendered.Elements))
+	if len(elements.Elements) != 2 {
+		t.Fatalf("root element count = %d, want 2", len(elements.Elements))
 	}
-	if rendered.Elements[0].ID != rootCheckID {
-		t.Fatalf("first root element = %q, want root check %q", rendered.Elements[0].ID, rootCheckID)
+	if elements.Elements[0].ID != rootCheckID {
+		t.Fatalf("first root element = %q, want root check %q", elements.Elements[0].ID, rootCheckID)
 	}
-	if rendered.Elements[0].Status != domainpublic.StatusOperational {
-		t.Fatalf("root check status = %q, want %q", rendered.Elements[0].Status, domainpublic.StatusOperational)
+	if elements.Elements[0].Status != domainpublic.StatusOperational {
+		t.Fatalf("root check status = %q, want %q", elements.Elements[0].Status, domainpublic.StatusOperational)
 	}
-	folder := rendered.Elements[1]
+	folder := elements.Elements[1]
 	if folder.ID != folderID {
 		t.Fatalf("second root element = %q, want folder %q", folder.ID, folderID)
 	}
@@ -108,7 +109,7 @@ func TestGetPublicPageRendersOrderedElementsAndRollsUpStatus(t *testing.T) {
 	}
 }
 
-func TestGetPublicPageCriticalIncidentOverridesSuccessfulAssignments(t *testing.T) {
+func TestPublicSummaryElementsAndIncidentsRespectCriticalIncident(t *testing.T) {
 	now := time.Date(2026, 6, 21, 12, 0, 0, 0, time.UTC)
 	checkID := "44444444-4444-4444-4444-444444444444"
 	incidentID := "77777777-7777-7777-7777-777777777777"
@@ -159,26 +160,31 @@ func TestGetPublicPageCriticalIncidentOverridesSuccessfulAssignments(t *testing.
 		},
 	}
 
-	rendered, err := NewService(repo, nil, nil, nil).GetPublicPage(context.Background(), PublicPageInput{
-		Slug:          "main",
-		IncludeCharts: false,
-		Now:           now,
-	})
+	service := NewService(repo, nil, nil, nil)
+	summary, err := service.GetPublicSummary(context.Background(), PublicSummaryInput{Slug: "main", Now: now})
 	if err != nil {
-		t.Fatalf("GetPublicPage returned error: %v", err)
+		t.Fatalf("GetPublicSummary returned error: %v", err)
+	}
+	elements, err := service.GetPublicElements(context.Background(), PublicElementsInput{Slug: "main", Now: now})
+	if err != nil {
+		t.Fatalf("GetPublicElements returned error: %v", err)
+	}
+	incidents, err := service.GetPublicIncidents(context.Background(), PublicIncidentsInput{Slug: "main", Now: now})
+	if err != nil {
+		t.Fatalf("GetPublicIncidents returned error: %v", err)
 	}
 
-	if rendered.Status != domainpublic.StatusDown {
-		t.Fatalf("status = %q, want %q", rendered.Status, domainpublic.StatusDown)
+	if summary.Status != domainpublic.StatusDown {
+		t.Fatalf("status = %q, want %q", summary.Status, domainpublic.StatusDown)
 	}
-	if rendered.Elements[0].Status != domainpublic.StatusDown {
-		t.Fatalf("element status = %q, want %q", rendered.Elements[0].Status, domainpublic.StatusDown)
+	if elements.Elements[0].Status != domainpublic.StatusDown {
+		t.Fatalf("element status = %q, want %q", elements.Elements[0].Status, domainpublic.StatusDown)
 	}
-	if len(rendered.ActiveIncidents) != 1 || rendered.ActiveIncidents[0].ID != incidentID {
-		t.Fatalf("active incidents = %#v, want only %q", rendered.ActiveIncidents, incidentID)
+	if len(incidents.ActiveIncidents) != 1 || incidents.ActiveIncidents[0].ID != incidentID {
+		t.Fatalf("active incidents = %#v, want only %q", incidents.ActiveIncidents, incidentID)
 	}
-	if len(rendered.ResolvedIncidents) != 1 || rendered.ResolvedIncidents[0].ID != resolvedIncidentID {
-		t.Fatalf("resolved incidents = %#v, want only %q", rendered.ResolvedIncidents, resolvedIncidentID)
+	if len(incidents.ResolvedIncidents) != 1 || incidents.ResolvedIncidents[0].ID != resolvedIncidentID {
+		t.Fatalf("resolved incidents = %#v, want only %q", incidents.ResolvedIncidents, resolvedIncidentID)
 	}
 }
 

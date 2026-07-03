@@ -5615,76 +5615,6 @@
 				]
 			}
 		},
-		"/public/status-pages/{slug}": {
-			"get": {
-				"operationId": "getPublicStatusPage",
-				"summary": "Get public status page",
-				"parameters": [
-					{
-						"$ref": "#/components/parameters/PublicStatusSlugPathParam"
-					},
-					{
-						"$ref": "#/components/parameters/PublicStatusQuery.includeCharts"
-					},
-					{
-						"$ref": "#/components/parameters/PublicStatusQuery.range"
-					}
-				],
-				"responses": {
-					"200": {
-						"description": "The request has succeeded.",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/PublicStatusPublicResponse"
-								}
-							}
-						}
-					},
-					"400": {
-						"description": "The server could not understand the request due to invalid syntax.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"404": {
-						"description": "The server cannot find the requested resource.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"422": {
-						"description": "Client error",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"500": {
-						"description": "Server error",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					}
-				},
-				"tags": ["Public Status Pages"]
-			}
-		},
 		"/public/status-pages/{slug}/elements": {
 			"get": {
 				"operationId": "getPublicStatusElements",
@@ -6948,26 +6878,6 @@
 				"schema": {
 					"$ref": "#/components/schemas/uuid"
 				}
-			},
-			"PublicStatusQuery.includeCharts": {
-				"name": "includeCharts",
-				"in": "query",
-				"required": false,
-				"schema": {
-					"type": "boolean",
-					"default": true
-				},
-				"explode": false
-			},
-			"PublicStatusQuery.range": {
-				"name": "range",
-				"in": "query",
-				"required": false,
-				"schema": {
-					"type": "string",
-					"enum": ["24h", "7d", "30d"]
-				},
-				"explode": false
 			},
 			"PublicStatusSlugPathParam": {
 				"name": "slug",
@@ -10506,28 +10416,6 @@
 						"items": {
 							"$ref": "#/components/schemas/PublicStatusPublicElement"
 						}
-					}
-				}
-			},
-			"PublicStatusPublicResponse": {
-				"type": "object",
-				"required": ["page", "elements", "incidents", "generatedAt"],
-				"properties": {
-					"page": {
-						"$ref": "#/components/schemas/PublicStatusPageSummary"
-					},
-					"elements": {
-						"type": "array",
-						"items": {
-							"$ref": "#/components/schemas/PublicStatusPublicElement"
-						}
-					},
-					"incidents": {
-						"$ref": "#/components/schemas/PublicStatusIncidents"
-					},
-					"generatedAt": {
-						"type": "string",
-						"format": "date-time"
 					}
 				}
 			},

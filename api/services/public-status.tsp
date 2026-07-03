@@ -107,17 +107,6 @@ interface ProjectPublicStatusPageService {
 @tag("Public Status Pages")
 @route("/public/status-pages")
 interface PublicStatusPageService {
-	@operationId("getPublicStatusPage")
-	@summary("Get public status page")
-	@get
-	@route("/{slug}")
-	getPublicStatusPage(...PublicStatusSlugPathParam, ...PublicStatusQuery):
-		| OkJson<PublicStatusPublicResponse>
-		| BadRequestProblem
-		| NotFoundProblem
-		| UnprocessableEntityProblem
-		| InternalServerProblem;
-
 	@operationId("getPublicStatusSummary")
 	@summary("Get public status page summary")
 	@get

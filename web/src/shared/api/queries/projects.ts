@@ -10,7 +10,6 @@ import type {
 	PingSeriesResponse,
 	ProjectAssignmentFilters,
 	PublicStatusChartFilters,
-	PublicStatusFilters,
 	PublicStatusIncidentsFilters,
 	TcpInsightFilters,
 	TcpSeriesFilters,
@@ -219,19 +218,6 @@ export const projectQueries = {
 };
 
 export const publicStatusQueries = {
-	detail: (slug: string, filters: PublicStatusFilters = {}) =>
-		queryOptions({
-			queryKey: apiQueryKeys.publicStatus.detail(slug, filters),
-			queryFn: ({ signal }) =>
-				readApiData(
-					apiClient.GET("/public/status-pages/{slug}", {
-						params: { path: { slug }, query: filters },
-						signal
-					})
-				),
-			retry: false,
-			staleTime: 30 * 1000
-		}),
 	summary: (slug: string) =>
 		queryOptions({
 			queryKey: apiQueryKeys.publicStatus.summary(slug),

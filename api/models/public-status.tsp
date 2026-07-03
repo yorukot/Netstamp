@@ -220,13 +220,6 @@ model PublicStatusElementResponse {
 	element: PublicStatusElement;
 }
 
-model PublicStatusPublicResponse {
-	page: PublicStatusPageSummary;
-	elements: PublicStatusPublicElement[];
-	incidents: PublicStatusIncidents;
-	generatedAt: utcDateTime;
-}
-
 model PublicStatusSummaryResponse {
 	page: PublicStatusPageSummary;
 	generatedAt: utcDateTime;
@@ -293,14 +286,6 @@ model CreatePublicStatusElementRequest {
 
 @doc("Full replacement patch for a public status page element.")
 model UpdatePublicStatusElementRequest is CreatePublicStatusElementRequest;
-
-model PublicStatusQuery {
-	@query
-	includeCharts?: boolean = true;
-
-	@query
-	range?: PublicStatusChartRange;
-}
 
 model PublicStatusIncidentsQuery {
 	@query

@@ -59,13 +59,6 @@ type elementResponseBody struct {
 	Element elementBody `json:"element"`
 }
 
-type publicStatusPageResponseBody struct {
-	Page        publicPageBody      `json:"page"`
-	Elements    []publicElementBody `json:"elements"`
-	Incidents   publicIncidentsBody `json:"incidents"`
-	GeneratedAt time.Time           `json:"generatedAt"`
-}
-
 type publicStatusSummaryResponseBody struct {
 	Page        publicPageBody `json:"page"`
 	GeneratedAt time.Time      `json:"generatedAt"`
@@ -240,18 +233,6 @@ func newPageDetailResponse(detail apppublic.PageDetail) pageDetailResponseBody {
 		body.Elements = append(body.Elements, newElementBody(element))
 	}
 	return body
-}
-
-func newPublicStatusPageResponse(rendered domainpublic.RenderedPage) publicStatusPageResponseBody {
-	return publicStatusPageResponseBody{
-		Page:     newPublicPageBody(rendered.Page, rendered.Status),
-		Elements: newPublicElementBodies(rendered.Elements),
-		Incidents: publicIncidentsBody{
-			Active:         newIncidentBodies(rendered.ActiveIncidents),
-			RecentResolved: newIncidentBodies(rendered.ResolvedIncidents),
-		},
-		GeneratedAt: rendered.GeneratedAt,
-	}
 }
 
 func newPublicStatusSummaryResponse(summary apppublic.PublicSummary) publicStatusSummaryResponseBody {
