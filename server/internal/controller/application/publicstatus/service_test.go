@@ -358,6 +358,12 @@ func TestGetPublicElementChartReturnsOnlyTargetElementSeries(t *testing.T) {
 	if pings.countCalls != 1 || pings.listCalls != 1 {
 		t.Fatalf("chart series calls = count %d list %d, want 1 each", pings.countCalls, pings.listCalls)
 	}
+	if repo.listAssignmentsCalls != 0 {
+		t.Fatalf("ListAssignments calls = %d, want 0", repo.listAssignmentsCalls)
+	}
+	if repo.listElementAssignmentsCalls != 1 {
+		t.Fatalf("ListElementAssignments calls = %d, want 1", repo.listElementAssignmentsCalls)
+	}
 	if pings.lastList.CheckID != targetID {
 		t.Fatalf("chart query check ID = %q, want target %q", pings.lastList.CheckID, targetID)
 	}
@@ -496,15 +502,16 @@ func testAssignment(checkID, status string, startedAt time.Time) domainpublic.As
 }
 
 type fakePublicStatusRepository struct {
-	page                 domainpublic.Page
-	elements             []domainpublic.Element
-	assignments          []domainpublic.Assignment
-	incidents            []domainpublic.Incident
-	getPageBySlugCalls   int
-	listElementsCalls    int
-	listAssignmentsCalls int
-	listIncidentsCalls   int
-	updatedElement       *domainpublic.Element
+	page                        domainpublic.Page
+	elements                    []domainpublic.Element
+	assignments                 []domainpublic.Assignment
+	incidents                   []domainpublic.Incident
+	getPageBySlugCalls          int
+	listElementsCalls           int
+	listAssignmentsCalls        int
+	listElementAssignmentsCalls int
+	listIncidentsCalls          int
+	updatedElement              *domainpublic.Element
 }
 
 func (r *fakePublicStatusRepository) ListPages(context.Context, string) ([]domainpublic.Page, error) {
@@ -576,6 +583,17 @@ func (r *fakePublicStatusRepository) CountAssignableAssignments(_ context.Contex
 func (r *fakePublicStatusRepository) ListAssignments(context.Context, string) ([]domainpublic.Assignment, error) {
 	r.listAssignmentsCalls++
 	return append([]domainpublic.Assignment{}, r.assignments...), nil
+}
+
+func (r *fakePublicStatusRepository) ListElementAssignments(_ context.Context, _ string, elementID string) ([]domainpublic.Assignment, error) {
+	r.listElementAssignmentsCalls++
+	assignments := make([]domainpublic.Assignment, 0)
+	for _, assignment := range r.assignments {
+		if assignment.ElementID == elementID {
+			assignments = append(assignments, assignment)
+		}
+	}
+	return assignments, nil
 }
 
 func (r *fakePublicStatusRepository) ListIncidents(context.Context, string, int32) ([]domainpublic.Incident, error) {

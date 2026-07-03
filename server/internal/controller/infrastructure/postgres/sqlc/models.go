@@ -1169,6 +1169,15 @@ type PublicStatusPage struct {
 	DeletedAt         *time.Time             `json:"deleted_at"`
 }
 
+type PublicStatusPageAssignmentScope struct {
+	PublicPageID uuid.UUID `json:"public_page_id"`
+	ElementID    uuid.UUID `json:"element_id"`
+	AssignmentID uuid.UUID `json:"assignment_id"`
+	ProjectID    uuid.UUID `json:"project_id"`
+	ProbeID      uuid.UUID `json:"probe_id"`
+	CheckID      uuid.UUID `json:"check_id"`
+}
+
 type PublicStatusPageElement struct {
 	ID                      uuid.UUID               `json:"id"`
 	PublicPageID            uuid.UUID               `json:"public_page_id"`

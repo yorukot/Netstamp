@@ -323,6 +323,29 @@ func (r *Repository) ListAssignments(ctx context.Context, pageIDValue string) ([
 	return assignments, nil
 }
 
+func (r *Repository) ListElementAssignments(ctx context.Context, pageIDValue, elementIDValue string) ([]domainpublic.Assignment, error) {
+	pageID, err := postgres.ParseUUID(pageIDValue, domainpublic.ErrPageNotFound)
+	if err != nil {
+		return nil, err
+	}
+	elementID, err := postgres.ParseUUID(elementIDValue, domainpublic.ErrElementNotFound)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := r.queries.ListPublicStatusElementAssignments(ctx, sqlc.ListPublicStatusElementAssignmentsParams{
+		PublicPageID: pageID,
+		ElementID:    elementID,
+	})
+	if err != nil {
+		return nil, err
+	}
+	assignments := make([]domainpublic.Assignment, 0, len(rows))
+	for _, row := range rows {
+		assignments = append(assignments, mapElementAssignment(row))
+	}
+	return assignments, nil
+}
+
 func (r *Repository) attachElementAssignmentIDs(ctx context.Context, pageID uuid.UUID, elements []domainpublic.Element) error {
 	if len(elements) == 0 {
 		return nil

@@ -103,23 +103,82 @@ func mapListElement(row sqlc.ListPublicStatusPageElementsRow) domainpublic.Eleme
 }
 
 func mapAssignment(row sqlc.ListPublicStatusAssignmentsRow) domainpublic.Assignment {
+	return mapAssignmentFields(
+		row.ElementID,
+		row.AssignmentID,
+		row.CheckID,
+		row.CheckName,
+		row.CheckType,
+		row.CheckTarget,
+		row.IntervalSeconds,
+		row.ProbeID,
+		row.ProbeName,
+		row.ProbeLocationName,
+		row.LatestStartedAt,
+		row.LatestStatus,
+		row.LatencyAvgMs,
+		row.LossPercent,
+		row.ConnectAvgMs,
+		row.FailurePercent,
+	)
+}
+
+func mapElementAssignment(row sqlc.ListPublicStatusElementAssignmentsRow) domainpublic.Assignment {
+	return mapAssignmentFields(
+		row.ElementID,
+		row.AssignmentID,
+		row.CheckID,
+		row.CheckName,
+		row.CheckType,
+		row.CheckTarget,
+		row.IntervalSeconds,
+		row.ProbeID,
+		row.ProbeName,
+		row.ProbeLocationName,
+		row.LatestStartedAt,
+		row.LatestStatus,
+		row.LatencyAvgMs,
+		row.LossPercent,
+		row.ConnectAvgMs,
+		row.FailurePercent,
+	)
+}
+
+func mapAssignmentFields(
+	elementID uuid.UUID,
+	assignmentID uuid.UUID,
+	checkID uuid.UUID,
+	checkName string,
+	checkType sqlc.CheckType,
+	checkTarget string,
+	intervalSeconds int32,
+	probeID uuid.UUID,
+	probeName string,
+	probeLocationName *string,
+	latestStartedAt time.Time,
+	latestStatus string,
+	latencyAvgMs *float64,
+	lossPercent float64,
+	connectAvgMs *float64,
+	failurePercent *float64,
+) domainpublic.Assignment {
 	return domainpublic.Assignment{
-		ElementID:         row.ElementID.String(),
-		AssignmentID:      row.AssignmentID.String(),
-		CheckID:           row.CheckID.String(),
-		CheckName:         row.CheckName,
-		CheckType:         domaincheck.Type(row.CheckType),
-		CheckTarget:       row.CheckTarget,
-		IntervalSeconds:   row.IntervalSeconds,
-		ProbeID:           row.ProbeID.String(),
-		ProbeName:         row.ProbeName,
-		ProbeLocationName: row.ProbeLocationName,
-		LatestStartedAt:   row.LatestStartedAt,
-		LatestStatus:      row.LatestStatus,
-		LatencyAvgMs:      row.LatencyAvgMs,
-		LossPercent:       row.LossPercent,
-		ConnectAvgMs:      row.ConnectAvgMs,
-		FailurePercent:    row.FailurePercent,
+		ElementID:         elementID.String(),
+		AssignmentID:      assignmentID.String(),
+		CheckID:           checkID.String(),
+		CheckName:         checkName,
+		CheckType:         domaincheck.Type(checkType),
+		CheckTarget:       checkTarget,
+		IntervalSeconds:   intervalSeconds,
+		ProbeID:           probeID.String(),
+		ProbeName:         probeName,
+		ProbeLocationName: probeLocationName,
+		LatestStartedAt:   latestStartedAt,
+		LatestStatus:      latestStatus,
+		LatencyAvgMs:      latencyAvgMs,
+		LossPercent:       lossPercent,
+		ConnectAvgMs:      connectAvgMs,
+		FailurePercent:    failurePercent,
 	}
 }
 

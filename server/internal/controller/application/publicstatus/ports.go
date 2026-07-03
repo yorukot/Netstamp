@@ -26,6 +26,7 @@ type Repository interface {
 	CountAssignableAssignments(ctx context.Context, projectID string, assignmentIDs []string) (int64, error)
 
 	ListAssignments(ctx context.Context, pageID string) ([]domainpublic.Assignment, error)
+	ListElementAssignments(ctx context.Context, pageID, elementID string) ([]domainpublic.Assignment, error)
 	ListIncidents(ctx context.Context, pageID string, limit int32) ([]domainpublic.Incident, error)
 }
 

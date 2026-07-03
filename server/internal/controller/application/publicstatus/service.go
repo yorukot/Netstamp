@@ -249,11 +249,11 @@ func (s *Service) GetPublicElementChart(ctx context.Context, input PublicElement
 	if element.Kind != domainpublic.ElementKindAssignmentGroup || mode != domainpublic.ChartModeCompact {
 		return PublicElementChart{GeneratedAt: now}, nil
 	}
-	assignments, err := s.repo.ListAssignments(ctx, page.ID)
+	assignments, err := s.repo.ListElementAssignments(ctx, page.ID, element.ID)
 	if err != nil {
 		return PublicElementChart{}, err
 	}
-	chart := s.chartForElement(ctx, page, groupAssignmentsByElement(assignments)[element.ID], chartRange, now)
+	chart := s.chartForElement(ctx, page, assignments, chartRange, now)
 	return PublicElementChart{Chart: chart, GeneratedAt: now}, nil
 }
 
