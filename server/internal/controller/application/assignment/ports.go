@@ -9,9 +9,11 @@ import (
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 )
 
-type ProbeAssignmentCandidate = domainassignment.ProbeAssignmentCandidate
-type CheckAssignmentCandidate = domainassignment.CheckAssignmentCandidate
-type AssignmentWrite = domainassignment.AssignmentWrite
+type (
+	ProbeAssignmentCandidate = domainassignment.ProbeAssignmentCandidate
+	CheckAssignmentCandidate = domainassignment.CheckAssignmentCandidate
+	AssignmentWrite          = domainassignment.AssignmentWrite
+)
 
 type Repository interface {
 	EnqueueRefreshJob(ctx context.Context, target domainassignment.RefreshTarget, maxAttempts int32) error
