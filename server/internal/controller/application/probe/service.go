@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	apptx "github.com/yorukot/netstamp/internal/controller/application/tx"
 	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 )
@@ -14,16 +15,23 @@ type Service struct {
 	labelAccess         LabelAccess
 	assignmentRefresher AssignmentRefresher
 	secretGenerator     SecretGenerator
+	tx                  apptx.Transactor
 	events              EventRecorder
 }
 
-func NewService(repo Repository, projectAccess ProjectAccess, labelAccess LabelAccess, assignmentRefresher AssignmentRefresher, secretGenerator SecretGenerator, events EventRecorder) *Service {
+func NewService(repo Repository, projectAccess ProjectAccess, labelAccess LabelAccess, assignmentRefresher AssignmentRefresher, secretGenerator SecretGenerator, events EventRecorder, transactors ...apptx.Transactor) *Service {
+	tx := apptx.Transactor(apptx.NoopTransactor{})
+	if len(transactors) > 0 && transactors[0] != nil {
+		tx = transactors[0]
+	}
+
 	return &Service{
 		repo:                repo,
 		projectAccess:       projectAccess,
 		labelAccess:         labelAccess,
 		assignmentRefresher: assignmentRefresher,
 		secretGenerator:     secretGenerator,
+		tx:                  tx,
 		events:              events,
 	}
 }
@@ -69,22 +77,34 @@ func (s *Service) CreateProbe(ctx context.Context, input CreateProbeInput) (Crea
 		return CreateProbeOutput{}, flow.technicalFailure(ProbeEventCreateFailure, ProbeReasonSecretGenerateFailed, err)
 	}
 
-	probe, err := s.repo.CreateProbe(ctx, domainprobe.Probe{
-		ProjectID:    project.ID,
-		Name:         input.Name,
-		Enabled:      *input.Enabled,
-		LocationName: input.LocationName,
-		Latitude:     input.Latitude,
-		Longitude:    input.Longitude,
-		Labels:       labels,
-	}, secretHash)
+	var probe domainprobe.Probe
+	writeStage := "create"
+	err = s.tx.WithinTx(ctx, func(ctx context.Context) error {
+		created, err := s.repo.CreateProbe(ctx, domainprobe.Probe{
+			ProjectID:    project.ID,
+			Name:         input.Name,
+			Enabled:      *input.Enabled,
+			LocationName: input.LocationName,
+			Latitude:     input.Latitude,
+			Longitude:    input.Longitude,
+			Labels:       labels,
+		}, secretHash)
+		if err != nil {
+			return err
+		}
+		flow.setProbeID(created.ID)
+		created.Labels = labels
+		writeStage = "assignment"
+		if err := s.assignmentRefresher.RefreshProbeCheckAssignmentsForProbe(ctx, project.ID, created.ID); err != nil {
+			return err
+		}
+		probe = created
+		return nil
+	})
 	if err != nil {
-		return CreateProbeOutput{}, flow.createFailure(err)
-	}
-	flow.setProbeID(probe.ID)
-	probe.Labels = labels
-
-	if err := s.assignmentRefresher.RefreshProbeCheckAssignmentsForProbe(ctx, project.ID, probe.ID); err != nil {
+		if writeStage == "create" {
+			return CreateProbeOutput{}, flow.createFailure(err)
+		}
 		return CreateProbeOutput{}, flow.assignmentRefreshFailure(ProbeEventCreateFailure, err)
 	}
 
@@ -186,15 +206,28 @@ func (s *Service) UpdateProbe(ctx context.Context, input UpdateProbeInput) (doma
 		return domainprobe.Probe{}, flow.updateFailure(err)
 	}
 
-	updated, err := s.repo.UpdateProbe(ctx, syncProbe)
-	if err != nil {
-		return domainprobe.Probe{}, flow.updateFailure(err)
-	}
+	var updated domainprobe.Probe
+	writeStage := "update"
+	err = s.tx.WithinTx(ctx, func(ctx context.Context) error {
+		var err error
+		updated, err = s.repo.UpdateProbe(ctx, syncProbe)
+		if err != nil {
+			return err
+		}
 
-	if refreshAssignments {
-		if err := s.assignmentRefresher.RefreshProbeCheckAssignmentsForProbe(ctx, project.ID, updated.ID); err != nil {
+		if refreshAssignments {
+			writeStage = "assignment"
+			if err := s.assignmentRefresher.RefreshProbeCheckAssignmentsForProbe(ctx, project.ID, updated.ID); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		if writeStage == "assignment" {
 			return domainprobe.Probe{}, flow.assignmentRefreshFailure(ProbeEventUpdateFailure, err)
 		}
+		return domainprobe.Probe{}, flow.updateFailure(err)
 	}
 
 	flow.success(ProbeEventUpdateSuccess)
@@ -251,10 +284,17 @@ func (s *Service) DeleteProbe(ctx context.Context, input TargetProbeInput) error
 		return actionErr
 	}
 
-	if err := s.repo.SoftDeleteProbe(ctx, project.ID, input.ProbeID); err != nil {
-		return flow.deleteFailure(err)
-	}
-	if err := s.assignmentRefresher.DeleteProbeCheckAssignmentsForProbe(ctx, project.ID, input.ProbeID); err != nil {
+	deleteStage := "delete"
+	if err := s.tx.WithinTx(ctx, func(ctx context.Context) error {
+		if err := s.repo.SoftDeleteProbe(ctx, project.ID, input.ProbeID); err != nil {
+			return err
+		}
+		deleteStage = "assignment"
+		return s.assignmentRefresher.DeleteProbeCheckAssignmentsForProbe(ctx, project.ID, input.ProbeID)
+	}); err != nil {
+		if deleteStage == "delete" {
+			return flow.deleteFailure(err)
+		}
 		return flow.assignmentDeleteFailure(ProbeEventDeleteFailure, err)
 	}
 	flow.success(ProbeEventDeleteSuccess)

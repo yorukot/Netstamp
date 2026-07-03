@@ -15,7 +15,6 @@ import (
 	domainlabel "github.com/yorukot/netstamp/internal/domain/label"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
-	domainselector "github.com/yorukot/netstamp/internal/domain/selector"
 	domaintcp "github.com/yorukot/netstamp/internal/domain/tcp"
 	domaintraceroute "github.com/yorukot/netstamp/internal/domain/traceroute"
 )
@@ -104,9 +103,6 @@ func (r *CheckRepository) CreateCheck(ctx context.Context, input domaincheck.Che
 	if err != nil {
 		return domaincheck.Check{}, err
 	}
-	if _, parseErr := domainselector.Parse(input.Selector); parseErr != nil {
-		return domaincheck.Check{}, domaincheck.ErrInvalidInput
-	}
 	var created domaincheck.Check
 	err = r.tx.InTx(ctx, func(ctx context.Context, tx pgx.Tx) error {
 		q := r.queries.WithTx(tx)
@@ -161,9 +157,6 @@ func (r *CheckRepository) UpdateCheck(ctx context.Context, input domaincheck.Che
 	labelIDs, err := pglabel.ParseLabelIDs(labelIDValues)
 	if err != nil {
 		return domaincheck.Check{}, err
-	}
-	if _, parseErr := domainselector.Parse(input.Selector); parseErr != nil {
-		return domaincheck.Check{}, domaincheck.ErrInvalidInput
 	}
 	var updated domaincheck.Check
 	err = r.tx.InTx(ctx, func(ctx context.Context, tx pgx.Tx) error {
@@ -233,7 +226,7 @@ func (r *CheckRepository) SoftDeleteCheck(ctx context.Context, projectIDValue, c
 		return err
 	}
 
-	_, err = r.queries.SoftDeleteCheck(ctx, sqlc.SoftDeleteCheckParams{
+	_, err = postgres.Queries(ctx, r.queries).SoftDeleteCheck(ctx, sqlc.SoftDeleteCheckParams{
 		ProjectID: projectID,
 		ID:        checkID,
 	})
@@ -278,8 +271,7 @@ func (r *CheckRepository) writeCheckConfig(ctx context.Context, q *sqlc.Queries,
 
 func (r *CheckRepository) writePingCheckConfig(ctx context.Context, q *sqlc.Queries, row sqlc.Check, config *domainping.Config, mode checkConfigWriteMode) (domaincheck.Check, error) {
 	if config == nil {
-		defaultConfig := domainping.DefaultConfig()
-		config = &defaultConfig
+		return domaincheck.Check{}, domaincheck.ErrInvalidInput
 	}
 
 	switch mode {
@@ -314,8 +306,7 @@ func (r *CheckRepository) writePingCheckConfig(ctx context.Context, q *sqlc.Quer
 
 func (r *CheckRepository) writeTCPCheckConfig(ctx context.Context, q *sqlc.Queries, row sqlc.Check, config *domaintcp.Config, mode checkConfigWriteMode) (domaincheck.Check, error) {
 	if config == nil {
-		defaultConfig := domaintcp.DefaultConfig()
-		config = &defaultConfig
+		return domaincheck.Check{}, domaincheck.ErrInvalidInput
 	}
 
 	switch mode {
@@ -348,8 +339,7 @@ func (r *CheckRepository) writeTCPCheckConfig(ctx context.Context, q *sqlc.Queri
 
 func (r *CheckRepository) writeTracerouteCheckConfig(ctx context.Context, q *sqlc.Queries, row sqlc.Check, config *domaintraceroute.Config, mode checkConfigWriteMode) (domaincheck.Check, error) {
 	if config == nil {
-		defaultConfig := domaintraceroute.DefaultConfig()
-		config = &defaultConfig
+		return domaincheck.Check{}, domaincheck.ErrInvalidInput
 	}
 
 	switch mode {

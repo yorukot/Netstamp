@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	apptx "github.com/yorukot/netstamp/internal/controller/application/tx"
 	"github.com/yorukot/netstamp/internal/domain/identity"
 	domainlabel "github.com/yorukot/netstamp/internal/domain/label"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
@@ -14,14 +15,21 @@ type Service struct {
 	projectAccess       ProjectAccess
 	events              EventRecorder
 	assignmentRefresher AssignmentRefresher
+	tx                  apptx.Transactor
 }
 
-func NewService(repo Repository, projectAccess ProjectAccess, events EventRecorder, assignmentRefresher AssignmentRefresher) *Service {
+func NewService(repo Repository, projectAccess ProjectAccess, events EventRecorder, assignmentRefresher AssignmentRefresher, transactors ...apptx.Transactor) *Service {
+	tx := apptx.Transactor(apptx.NoopTransactor{})
+	if len(transactors) > 0 && transactors[0] != nil {
+		tx = transactors[0]
+	}
+
 	return &Service{
 		repo:                repo,
 		projectAccess:       projectAccess,
 		events:              events,
 		assignmentRefresher: assignmentRefresher,
+		tx:                  tx,
 	}
 }
 
@@ -111,16 +119,26 @@ func (s *Service) UpdateLabel(ctx context.Context, input UpdateLabelInput) (doma
 		value = *input.Value
 	}
 
-	label, err := s.repo.UpdateLabel(ctx, domainlabel.Label{
-		ProjectID: project.ID,
-		ID:        input.LabelID,
-		Key:       key,
-		Value:     value,
+	var label domainlabel.Label
+	writeStage := "update"
+	err = s.tx.WithinTx(ctx, func(ctx context.Context) error {
+		var err error
+		label, err = s.repo.UpdateLabel(ctx, domainlabel.Label{
+			ProjectID: project.ID,
+			ID:        input.LabelID,
+			Key:       key,
+			Value:     value,
+		})
+		if err != nil {
+			return err
+		}
+		writeStage = "assignment"
+		return s.assignmentRefresher.RefreshProbeCheckAssignmentsForLabel(ctx, project.ID, label.ID)
 	})
 	if err != nil {
-		return domainlabel.Label{}, flow.writeFailure(LabelEventUpdateFailure, LabelReasonLabelUpdateFailed, err)
-	}
-	if err := s.assignmentRefresher.RefreshProbeCheckAssignmentsForLabel(ctx, project.ID, label.ID); err != nil {
+		if writeStage == "update" {
+			return domainlabel.Label{}, flow.writeFailure(LabelEventUpdateFailure, LabelReasonLabelUpdateFailed, err)
+		}
 		return domainlabel.Label{}, flow.technicalFailure(LabelEventUpdateFailure, LabelReasonAssignmentRefreshFailed, err)
 	}
 
@@ -149,10 +167,17 @@ func (s *Service) DeleteLabel(ctx context.Context, input DeleteLabelInput) error
 		return err
 	}
 
-	if err := s.repo.SoftDeleteLabel(ctx, project.ID, input.LabelID); err != nil {
-		return flow.writeFailure(LabelEventDeleteFailure, LabelReasonLabelDeleteFailed, err)
-	}
-	if err := s.assignmentRefresher.RefreshProbeCheckAssignmentsForLabel(ctx, project.ID, input.LabelID); err != nil {
+	deleteStage := "delete"
+	if err := s.tx.WithinTx(ctx, func(ctx context.Context) error {
+		if err := s.repo.SoftDeleteLabel(ctx, project.ID, input.LabelID); err != nil {
+			return err
+		}
+		deleteStage = "assignment"
+		return s.assignmentRefresher.RefreshProbeCheckAssignmentsForLabel(ctx, project.ID, input.LabelID)
+	}); err != nil {
+		if deleteStage == "delete" {
+			return flow.writeFailure(LabelEventDeleteFailure, LabelReasonLabelDeleteFailed, err)
+		}
 		return flow.technicalFailure(LabelEventDeleteFailure, LabelReasonAssignmentRefreshFailed, err)
 	}
 

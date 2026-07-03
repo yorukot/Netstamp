@@ -3,6 +3,7 @@ package check
 import (
 	"context"
 
+	apptx "github.com/yorukot/netstamp/internal/controller/application/tx"
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
 	domainlabel "github.com/yorukot/netstamp/internal/domain/label"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
@@ -16,15 +17,22 @@ type Service struct {
 	projectAccess       ProjectAccess
 	labelAccess         LabelAccess
 	assignmentRefresher AssignmentRefresher
+	tx                  apptx.Transactor
 	events              EventRecorder
 }
 
-func NewService(repo Repository, projectAccess ProjectAccess, labelAccess LabelAccess, assignmentRefresher AssignmentRefresher, events EventRecorder) *Service {
+func NewService(repo Repository, projectAccess ProjectAccess, labelAccess LabelAccess, assignmentRefresher AssignmentRefresher, events EventRecorder, transactors ...apptx.Transactor) *Service {
+	tx := apptx.Transactor(apptx.NoopTransactor{})
+	if len(transactors) > 0 && transactors[0] != nil {
+		tx = transactors[0]
+	}
+
 	return &Service{
 		repo:                repo,
 		projectAccess:       projectAccess,
 		labelAccess:         labelAccess,
 		assignmentRefresher: assignmentRefresher,
+		tx:                  tx,
 		events:              events,
 	}
 }
@@ -112,13 +120,26 @@ func (s *Service) CreateCheck(ctx context.Context, input CreateCheckInput) (doma
 		TCPConfig:        normalized.tcpConfig,
 		TracerouteConfig: normalized.tracerouteConfig,
 	}
-	check, err := s.repo.CreateCheck(ctx, checkInput, normalized.labelIDs)
+	var check domaincheck.Check
+	writeStage := "create"
+	err = s.tx.WithinTx(ctx, func(ctx context.Context) error {
+		created, err := s.repo.CreateCheck(ctx, checkInput, normalized.labelIDs)
+		if err != nil {
+			return err
+		}
+		created.Labels = labels
+		flow.setCheckID(created.ID)
+		writeStage = "assignment"
+		if err := s.assignmentRefresher.RefreshProbeCheckAssignmentsForCheck(ctx, project.ID, created.ID); err != nil {
+			return err
+		}
+		check = created
+		return nil
+	})
 	if err != nil {
-		return domaincheck.Check{}, flow.writeFailure(CheckEventCreateFailure, CheckReasonCheckCreateFailed, err)
-	}
-	check.Labels = labels
-	flow.setCheckID(check.ID)
-	if err := s.assignmentRefresher.RefreshProbeCheckAssignmentsForCheck(ctx, project.ID, check.ID); err != nil {
+		if writeStage == "create" {
+			return domaincheck.Check{}, flow.writeFailure(CheckEventCreateFailure, CheckReasonCheckCreateFailed, err)
+		}
 		return domaincheck.Check{}, flow.assignmentRefreshFailure(CheckEventCreateFailure, err)
 	}
 	flow.success(CheckEventCreateSuccess)
@@ -161,14 +182,27 @@ func (s *Service) UpdateCheck(ctx context.Context, input UpdateCheckInput) (doma
 		return domaincheck.Check{}, flow.businessFailure(CheckEventUpdateFailure, CheckReasonInvalidInput, err)
 	}
 
-	check, err := s.repo.UpdateCheck(ctx, updated, normalized.replaceLabels, labelIDs)
+	var check domaincheck.Check
+	writeStage := "update"
+	err = s.tx.WithinTx(ctx, func(ctx context.Context) error {
+		var err error
+		check, err = s.repo.UpdateCheck(ctx, updated, normalized.replaceLabels, labelIDs)
+		if err != nil {
+			return err
+		}
+		if normalized.replaceLabels {
+			check.Labels = resolvedLabels
+		}
+		writeStage = "assignment"
+		if err := s.assignmentRefresher.RefreshProbeCheckAssignmentsForCheck(ctx, project.ID, check.ID); err != nil {
+			return err
+		}
+		return nil
+	})
 	if err != nil {
-		return domaincheck.Check{}, flow.writeFailure(CheckEventUpdateFailure, CheckReasonCheckUpdateFailed, err)
-	}
-	if normalized.replaceLabels {
-		check.Labels = resolvedLabels
-	}
-	if err := s.assignmentRefresher.RefreshProbeCheckAssignmentsForCheck(ctx, project.ID, check.ID); err != nil {
+		if writeStage == "update" {
+			return domaincheck.Check{}, flow.writeFailure(CheckEventUpdateFailure, CheckReasonCheckUpdateFailed, err)
+		}
 		return domaincheck.Check{}, flow.assignmentRefreshFailure(CheckEventUpdateFailure, err)
 	}
 	flow.success(CheckEventUpdateSuccess)
@@ -363,10 +397,17 @@ func (s *Service) DeleteCheck(ctx context.Context, input GetCheckInput) error {
 		return err
 	}
 
-	if err := s.repo.SoftDeleteCheck(ctx, project.ID, input.CheckID); err != nil {
-		return flow.writeFailure(CheckEventDeleteFailure, CheckReasonCheckDeleteFailed, err)
-	}
-	if err := s.assignmentRefresher.DeleteProbeCheckAssignmentsForCheck(ctx, project.ID, input.CheckID); err != nil {
+	deleteStage := "delete"
+	if err := s.tx.WithinTx(ctx, func(ctx context.Context) error {
+		if err := s.repo.SoftDeleteCheck(ctx, project.ID, input.CheckID); err != nil {
+			return err
+		}
+		deleteStage = "assignment"
+		return s.assignmentRefresher.DeleteProbeCheckAssignmentsForCheck(ctx, project.ID, input.CheckID)
+	}); err != nil {
+		if deleteStage == "delete" {
+			return flow.writeFailure(CheckEventDeleteFailure, CheckReasonCheckDeleteFailed, err)
+		}
 		return flow.assignmentDeleteFailure(CheckEventDeleteFailure, err)
 	}
 	flow.success(CheckEventDeleteSuccess)

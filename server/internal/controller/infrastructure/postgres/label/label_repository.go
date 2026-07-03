@@ -31,7 +31,7 @@ func (r *LabelRepository) ListLabels(ctx context.Context, projectIDValue string)
 		return nil, err
 	}
 
-	rows, err := r.queries.ListActiveLabelsForProject(ctx, projectID)
+	rows, err := postgres.Queries(ctx, r.queries).ListActiveLabelsForProject(ctx, projectID)
 	if err != nil {
 		postgres.RecordDBSpanError(span, err)
 		return nil, err
@@ -49,7 +49,7 @@ func (r *LabelRepository) GetLabel(ctx context.Context, projectIDValue, labelIDV
 		return domainlabel.Label{}, err
 	}
 
-	row, err := r.queries.GetActiveLabelForProject(ctx, sqlc.GetActiveLabelForProjectParams{
+	row, err := postgres.Queries(ctx, r.queries).GetActiveLabelForProject(ctx, sqlc.GetActiveLabelForProjectParams{
 		ProjectID: projectID,
 		ID:        labelID,
 	})
@@ -73,7 +73,7 @@ func (r *LabelRepository) CreateLabel(ctx context.Context, input domainlabel.Lab
 		return domainlabel.Label{}, err
 	}
 
-	row, err := r.queries.CreateLabel(ctx, sqlc.CreateLabelParams{
+	row, err := postgres.Queries(ctx, r.queries).CreateLabel(ctx, sqlc.CreateLabelParams{
 		ProjectID: projectID,
 		Key:       input.Key,
 		Value:     input.Value,
@@ -98,7 +98,7 @@ func (r *LabelRepository) UpdateLabel(ctx context.Context, input domainlabel.Lab
 		return domainlabel.Label{}, err
 	}
 
-	row, err := r.queries.UpdateLabel(ctx, sqlc.UpdateLabelParams{
+	row, err := postgres.Queries(ctx, r.queries).UpdateLabel(ctx, sqlc.UpdateLabelParams{
 		ProjectID: projectID,
 		ID:        labelID,
 		Key:       input.Key,
@@ -127,7 +127,7 @@ func (r *LabelRepository) SoftDeleteLabel(ctx context.Context, projectIDValue, l
 		return err
 	}
 
-	if _, err := r.queries.SoftDeleteLabel(ctx, sqlc.SoftDeleteLabelParams{
+	if _, err := postgres.Queries(ctx, r.queries).SoftDeleteLabel(ctx, sqlc.SoftDeleteLabelParams{
 		ProjectID: projectID,
 		ID:        labelID,
 	}); err != nil {
@@ -157,7 +157,7 @@ func (r *LabelRepository) GetActiveLabelsByIDsForProject(ctx context.Context, pr
 		return []domainlabel.Label{}, nil
 	}
 
-	rows, err := r.queries.GetActiveLabelsByIDsForProject(ctx, sqlc.GetActiveLabelsByIDsForProjectParams{
+	rows, err := postgres.Queries(ctx, r.queries).GetActiveLabelsByIDsForProject(ctx, sqlc.GetActiveLabelsByIDsForProjectParams{
 		ProjectID: projectID,
 		LabelIds:  labelIDs,
 	})

@@ -350,7 +350,7 @@ func (r *ProbeRepository) SoftDeleteProbe(ctx context.Context, projectIDValue, p
 		return err
 	}
 
-	_, err = r.queries.SoftDeleteProbe(ctx, sqlc.SoftDeleteProbeParams{
+	_, err = postgres.Queries(ctx, r.queries).SoftDeleteProbe(ctx, sqlc.SoftDeleteProbeParams{
 		ProjectID: projectID,
 		ID:        probeID,
 	})
@@ -374,7 +374,7 @@ func (r *ProbeRepository) RotateProbeSecret(ctx context.Context, input domainpro
 		return err
 	}
 
-	if _, err := r.queries.RotateProbeCredential(ctx, sqlc.RotateProbeCredentialParams{
+	if _, err := postgres.Queries(ctx, r.queries).RotateProbeCredential(ctx, sqlc.RotateProbeCredentialParams{
 		ProjectID:  projectID,
 		ID:         probeID,
 		SecretHash: secretHash,
