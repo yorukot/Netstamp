@@ -16,8 +16,9 @@ import (
 )
 
 const (
-	defaultIncidentLimit     int32 = 50
+	defaultIncidentLimit           = 50
 	publicIncidentCacheLimit int32 = 200
+	dailyStatusDayCount            = 30
 	publicMaxDataPoints      int32 = 600
 	publicSnapshotTTL              = 30 * time.Second
 )
@@ -360,18 +361,18 @@ func (s *Service) buildPublicSnapshot(ctx context.Context, page domainpublic.Pag
 }
 
 func limitedIncidents(incidents []domainpublic.Incident, limit int32) []domainpublic.Incident {
-	limit = normalizeIncidentLimit(limit)
-	if int32(len(incidents)) <= limit {
+	limitCount := normalizeIncidentLimit(limit)
+	if len(incidents) <= limitCount {
 		return incidents
 	}
-	return incidents[:limit]
+	return incidents[:limitCount]
 }
 
-func normalizeIncidentLimit(limit int32) int32 {
+func normalizeIncidentLimit(limit int32) int {
 	if limit <= 0 || limit > publicIncidentCacheLimit {
 		return defaultIncidentLimit
 	}
-	return limit
+	return int(limit)
 }
 
 func findPublicElement(elements []domainpublic.Element, elementID string) (domainpublic.Element, bool) {
@@ -600,9 +601,9 @@ func incidentMatchesAssignments(incident domainpublic.Incident, assignments []do
 }
 
 func incidentBasedDailyStatus(assignments []domainpublic.Assignment, incidents []domainpublic.Incident, now time.Time) []domainpublic.DailyStatusDay {
-	start := dayStartUTC(now).AddDate(0, 0, -29)
-	days := make([]domainpublic.DailyStatusDay, 0, 30)
-	for i := 0; i < 30; i++ {
+	start := dayStartUTC(now).AddDate(0, 0, -(dailyStatusDayCount - 1))
+	days := make([]domainpublic.DailyStatusDay, 0, dailyStatusDayCount)
+	for i := range dailyStatusDayCount {
 		dayStart := start.AddDate(0, 0, i)
 		dayEnd := dayStart.AddDate(0, 0, 1)
 		day := domainpublic.DailyStatusDay{

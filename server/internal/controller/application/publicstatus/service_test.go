@@ -11,7 +11,6 @@ import (
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 	domainpublic "github.com/yorukot/netstamp/internal/domain/publicstatus"
-	domaintcp "github.com/yorukot/netstamp/internal/domain/tcp"
 )
 
 const (
@@ -821,16 +820,6 @@ func (r *fakePingSeriesRepository) ListPingSeries(_ context.Context, input domai
 			Points: []domainping.SeriesPoint{{Timestamp: pointTime, Value: 12.5}},
 		},
 	}, nil
-}
-
-type fakeTCPSeriesRepository struct{}
-
-func (r fakeTCPSeriesRepository) CountTCPSeriesPoints(context.Context, domaintcp.SeriesPointCountQuery) (int64, error) {
-	return 0, nil
-}
-
-func (r fakeTCPSeriesRepository) ListTCPSeries(context.Context, domaintcp.SeriesReadQuery) (map[string]domaintcp.SeriesData, error) {
-	return nil, nil
 }
 
 func ptr[T any](value T) *T {

@@ -33,7 +33,6 @@ func (a *Application) Run(ctx context.Context) error {
 		if worker == nil {
 			continue
 		}
-		worker := worker
 		group.Go(func() error {
 			return worker.Run(groupCtx)
 		})
