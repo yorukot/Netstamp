@@ -767,7 +767,7 @@ func (r *fakePublicStatusRepository) ListAssignments(context.Context, string) ([
 	return append([]domainpublic.Assignment{}, r.assignments...), nil
 }
 
-func (r *fakePublicStatusRepository) ListElementAssignments(_ context.Context, _ string, elementID string) ([]domainpublic.Assignment, error) {
+func (r *fakePublicStatusRepository) ListElementAssignments(_ context.Context, _, elementID string) ([]domainpublic.Assignment, error) {
 	r.listElementAssignmentsCalls++
 	assignments := make([]domainpublic.Assignment, 0)
 	for _, assignment := range r.assignments {
