@@ -362,7 +362,7 @@ func (r *Repository) GetRecentResolvedIncident(ctx context.Context, ruleID, prob
 	return mapIncident(row), nil
 }
 
-func (r *Repository) CreateIncidentAndEnqueue(ctx context.Context, input domainalert.IncidentTransitionInput) (domainalert.Incident, error) {
+func (r *Repository) CreateIncident(ctx context.Context, input domainalert.IncidentTransitionInput) (domainalert.Incident, error) {
 	var incident domainalert.Incident
 	err := r.tx.InTx(ctx, func(ctx context.Context, tx pgx.Tx) error {
 		q := r.queries.WithTx(tx)
@@ -377,12 +377,6 @@ func (r *Repository) CreateIncidentAndEnqueue(ctx context.Context, input domaina
 		incident = mapIncident(row)
 		incident.Probe = input.Probe
 		incident.Check = input.Check
-		for _, job := range input.Jobs {
-			job.IncidentID = incident.ID
-			if err := enqueueJob(ctx, q, job); err != nil {
-				return err
-			}
-		}
 		return nil
 	})
 	if err != nil {
@@ -392,8 +386,9 @@ func (r *Repository) CreateIncidentAndEnqueue(ctx context.Context, input domaina
 }
 
 func (r *Repository) EnqueueNotificationJobs(ctx context.Context, jobs []domainalert.NotificationJobInput) error {
+	q := postgres.Queries(ctx, r.queries)
 	for _, job := range jobs {
-		if err := enqueueJob(ctx, r.queries, job); err != nil {
+		if err := enqueueJob(ctx, q, job); err != nil {
 			return err
 		}
 	}
@@ -435,7 +430,7 @@ func (r *Repository) UpdateIncidentInsufficient(ctx context.Context, incidentID 
 	return mapIncident(row), nil
 }
 
-func (r *Repository) ResolveIncidentAndEnqueue(ctx context.Context, incidentID string, summary json.RawMessage, at time.Time, jobs []domainalert.NotificationJobInput) (domainalert.Incident, error) {
+func (r *Repository) ResolveIncident(ctx context.Context, incidentID string, summary json.RawMessage, at time.Time) (domainalert.Incident, error) {
 	id, err := postgres.ParseUUID(incidentID, domainalert.ErrIncidentNotFound)
 	if err != nil {
 		return domainalert.Incident{}, err
@@ -454,12 +449,6 @@ func (r *Repository) ResolveIncidentAndEnqueue(ctx context.Context, incidentID s
 			return mapNoRows(resolveErr, domainalert.ErrIncidentNotFound)
 		}
 		incident = mapIncident(row)
-		for _, job := range jobs {
-			job.IncidentID = incident.ID
-			if enqueueErr := enqueueJob(ctx, q, job); enqueueErr != nil {
-				return enqueueErr
-			}
-		}
 		return nil
 	})
 	if err != nil {
@@ -473,7 +462,7 @@ func (r *Repository) ListEnabledNotificationsForRule(ctx context.Context, projec
 	if err != nil {
 		return nil, err
 	}
-	rows, err := r.queries.ListEnabledNotificationsForRule(ctx, sqlc.ListEnabledNotificationsForRuleParams{ProjectID: projectUUID, RuleID: ruleUUID})
+	rows, err := postgres.Queries(ctx, r.queries).ListEnabledNotificationsForRule(ctx, sqlc.ListEnabledNotificationsForRuleParams{ProjectID: projectUUID, RuleID: ruleUUID})
 	if err != nil {
 		return nil, err
 	}

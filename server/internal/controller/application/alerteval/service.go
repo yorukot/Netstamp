@@ -10,6 +10,7 @@ import (
 	"time"
 
 	appproberuntime "github.com/yorukot/netstamp/internal/controller/application/proberuntime"
+	apptx "github.com/yorukot/netstamp/internal/controller/application/tx"
 	domainalert "github.com/yorukot/netstamp/internal/domain/alert"
 	"github.com/yorukot/netstamp/internal/domain/alertcondition"
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
@@ -24,14 +25,21 @@ type Service struct {
 	repo           Repository
 	enabled        bool
 	backendBaseURL string
+	tx             Transactor
 	now            func() time.Time
 }
 
-func NewService(repo Repository, enabled bool, backendBaseURL string) *Service {
+func NewService(repo Repository, enabled bool, backendBaseURL string, transactors ...Transactor) *Service {
+	tx := Transactor(apptx.NoopTransactor{})
+	if len(transactors) > 0 && transactors[0] != nil {
+		tx = transactors[0]
+	}
+
 	return &Service{
 		repo:           repo,
 		enabled:        enabled,
 		backendBaseURL: strings.TrimRight(strings.TrimSpace(backendBaseURL), "/"),
+		tx:             tx,
 		now:            func() time.Time { return time.Now().UTC() },
 	}
 }
@@ -102,32 +110,43 @@ func (s *Service) evaluateRule(ctx context.Context, input appproberuntime.Change
 		if s.inReopenCooldown(ctx, rule, input, now) {
 			return nil
 		}
-		incident, err := s.repo.CreateIncidentAndEnqueue(ctx, domainalert.IncidentTransitionInput{
-			Rule:                       rule,
-			ProbeID:                    input.ProbeID,
-			CheckID:                    input.CheckID,
-			Probe:                      incidentProbeSummary(input),
-			Check:                      incidentCheckSummary(input),
-			CheckType:                  domaincheck.Type(input.CheckType),
-			Evaluation:                 evaluation,
-			Summary:                    summaryJSON,
-			At:                         now,
-			LastNotificationSentAt:     &now,
-			NextNotificationEligibleAt: ptrTime(now.Add(time.Duration(rule.CooldownSeconds) * time.Second)),
+		err := s.tx.WithinTx(ctx, func(ctx context.Context) error {
+			created, err := s.repo.CreateIncident(ctx, domainalert.IncidentTransitionInput{
+				Rule:                       rule,
+				ProbeID:                    input.ProbeID,
+				CheckID:                    input.CheckID,
+				Probe:                      incidentProbeSummary(input),
+				Check:                      incidentCheckSummary(input),
+				CheckType:                  domaincheck.Type(input.CheckType),
+				Evaluation:                 evaluation,
+				Summary:                    summaryJSON,
+				At:                         now,
+				LastNotificationSentAt:     &now,
+				NextNotificationEligibleAt: ptrTime(now.Add(time.Duration(rule.CooldownSeconds) * time.Second)),
+			})
+			if err != nil {
+				return err
+			}
+			created = incidentWithAssignmentContext(created, input)
+			if err := s.enqueueNotifications(ctx, rule, created, evaluation, EventIncidentOpened, now); err != nil {
+				return err
+			}
+			return nil
 		})
 		if err != nil {
 			return err
 		}
-		incident = incidentWithAssignmentContext(incident, input)
-		return s.enqueueNotifications(ctx, rule, incident, evaluation, EventIncidentOpened, now)
+		return nil
 	case alertcondition.EvaluationStateClear:
 		if hasActive {
-			incident, err := s.repo.ResolveIncidentAndEnqueue(ctx, active.ID, summaryJSON, now, nil)
-			if err != nil {
-				return err
-			}
-			incident = incidentWithAssignmentContext(incident, input)
-			return s.enqueueNotifications(ctx, rule, incident, evaluation, EventIncidentResolved, now)
+			return s.tx.WithinTx(ctx, func(ctx context.Context) error {
+				incident, err := s.repo.ResolveIncident(ctx, active.ID, summaryJSON, now)
+				if err != nil {
+					return err
+				}
+				incident = incidentWithAssignmentContext(incident, input)
+				return s.enqueueNotifications(ctx, rule, incident, evaluation, EventIncidentResolved, now)
+			})
 		}
 	case alertcondition.EvaluationStateInsufficientSamples, alertcondition.EvaluationStateNoData:
 		if hasActive {
