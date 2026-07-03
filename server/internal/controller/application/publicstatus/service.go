@@ -123,46 +123,173 @@ func (s *Service) DeleteElement(ctx context.Context, input DeleteElementInput) e
 }
 
 func (s *Service) GetPublicPage(ctx context.Context, input PublicPageInput) (domainpublic.RenderedPage, error) {
-	slug, err := domainpublic.VNSlug(input.Slug)
-	if err != nil {
-		return domainpublic.RenderedPage{}, invalidField("slug", err.Error(), input.Slug)
-	}
-	now := input.Now.UTC()
-	if now.IsZero() {
-		now = time.Now().UTC()
-	}
-	page, err := s.repo.GetPageBySlug(ctx, slug)
+	now := publicNow(input.Now)
+	page, err := s.loadPublicPage(ctx, input.Slug)
 	if err != nil {
 		return domainpublic.RenderedPage{}, err
 	}
-	elements, err := s.repo.ListElements(ctx, page.ID)
+	root, activeIncidents, resolvedIncidents, err := s.renderPublicPageData(ctx, page, now, input.IncludeCharts, input.Range)
 	if err != nil {
 		return domainpublic.RenderedPage{}, err
 	}
-	assignments, err := s.repo.ListAssignments(ctx, page.ID)
-	if err != nil {
-		return domainpublic.RenderedPage{}, err
-	}
-	incidents, err := s.repo.ListIncidents(ctx, page.ID, defaultIncidentLimit)
-	if err != nil {
-		return domainpublic.RenderedPage{}, err
-	}
-
-	activeIncidents, resolvedIncidents := splitIncidents(incidents)
-	assignmentsByElement := groupAssignmentsByElement(assignments)
-	activeSeverityByElement := activeIncidentSeverityByElement(activeIncidents, assignmentsByElement)
-	chartRangeOverride := input.Range
-	root := s.renderElements(ctx, page, elements, assignmentsByElement, activeSeverityByElement, now, input.IncludeCharts, chartRangeOverride)
-	status := rollupStatus(root)
 
 	return domainpublic.RenderedPage{
 		Page:              page,
-		Status:            status,
+		Status:            rollupStatus(root),
 		Elements:          root,
 		ActiveIncidents:   activeIncidents,
 		ResolvedIncidents: resolvedIncidents,
 		GeneratedAt:       now,
 	}, nil
+}
+
+func (s *Service) GetPublicSummary(ctx context.Context, input PublicSummaryInput) (PublicSummary, error) {
+	now := publicNow(input.Now)
+	page, err := s.loadPublicPage(ctx, input.Slug)
+	if err != nil {
+		return PublicSummary{}, err
+	}
+	root, _, _, err := s.renderPublicPageData(ctx, page, now, false, nil)
+	if err != nil {
+		return PublicSummary{}, err
+	}
+	return PublicSummary{Page: page, Status: rollupStatus(root), GeneratedAt: now}, nil
+}
+
+func (s *Service) GetPublicElements(ctx context.Context, input PublicElementsInput) (PublicElements, error) {
+	now := publicNow(input.Now)
+	page, err := s.loadPublicPage(ctx, input.Slug)
+	if err != nil {
+		return PublicElements{}, err
+	}
+	root, _, _, err := s.renderPublicPageData(ctx, page, now, false, nil)
+	if err != nil {
+		return PublicElements{}, err
+	}
+	return PublicElements{Elements: root, GeneratedAt: now}, nil
+}
+
+func (s *Service) GetPublicIncidents(ctx context.Context, input PublicIncidentsInput) (PublicIncidents, error) {
+	now := publicNow(input.Now)
+	page, err := s.loadPublicPage(ctx, input.Slug)
+	if err != nil {
+		return PublicIncidents{}, err
+	}
+	incidents, err := s.repo.ListIncidents(ctx, page.ID, input.Limit)
+	if err != nil {
+		return PublicIncidents{}, err
+	}
+	activeIncidents, resolvedIncidents := splitIncidents(incidents)
+	return PublicIncidents{ActiveIncidents: activeIncidents, ResolvedIncidents: resolvedIncidents, GeneratedAt: now}, nil
+}
+
+func (s *Service) GetPublicElementChart(ctx context.Context, input PublicElementChartInput) (PublicElementChart, error) {
+	now := publicNow(input.Now)
+	page, err := s.loadPublicPage(ctx, input.Slug)
+	if err != nil {
+		return PublicElementChart{}, err
+	}
+	elementID, err := domainpublic.VNElementID(input.ElementID)
+	if err != nil {
+		return PublicElementChart{}, invalidField("elementId", err.Error(), input.ElementID)
+	}
+	elements, err := s.repo.ListElements(ctx, page.ID)
+	if err != nil {
+		return PublicElementChart{}, err
+	}
+	element, ok := findPublicElement(elements, elementID)
+	if !ok {
+		return PublicElementChart{}, domainpublic.ErrElementNotFound
+	}
+	mode, chartRange := resolvedElementChartSettings(page, elements, element)
+	if input.Range != nil {
+		chartRange = *input.Range
+	}
+	if element.Kind != domainpublic.ElementKindAssignmentGroup || mode != domainpublic.ChartModeCompact {
+		return PublicElementChart{GeneratedAt: now}, nil
+	}
+	assignments, err := s.repo.ListAssignments(ctx, page.ID)
+	if err != nil {
+		return PublicElementChart{}, err
+	}
+	chart := s.chartForElement(ctx, page, groupAssignmentsByElement(assignments)[element.ID], chartRange, now)
+	return PublicElementChart{Chart: chart, GeneratedAt: now}, nil
+}
+
+func publicNow(value time.Time) time.Time {
+	if value.IsZero() {
+		return time.Now().UTC()
+	}
+	return value.UTC()
+}
+
+func (s *Service) loadPublicPage(ctx context.Context, rawSlug string) (domainpublic.Page, error) {
+	slug, err := domainpublic.VNSlug(rawSlug)
+	if err != nil {
+		return domainpublic.Page{}, invalidField("slug", err.Error(), rawSlug)
+	}
+	return s.repo.GetPageBySlug(ctx, slug)
+}
+
+func (s *Service) renderPublicPageData(
+	ctx context.Context,
+	page domainpublic.Page,
+	now time.Time,
+	includeCharts bool,
+	chartRangeOverride *domainpublic.ChartRange,
+) ([]domainpublic.RenderedElement, []domainpublic.Incident, []domainpublic.Incident, error) {
+	elements, err := s.repo.ListElements(ctx, page.ID)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	assignments, err := s.repo.ListAssignments(ctx, page.ID)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	incidents, err := s.repo.ListIncidents(ctx, page.ID, defaultIncidentLimit)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	activeIncidents, resolvedIncidents := splitIncidents(incidents)
+	assignmentsByElement := groupAssignmentsByElement(assignments)
+	activeSeverityByElement := activeIncidentSeverityByElement(activeIncidents, assignmentsByElement)
+	root := s.renderElements(ctx, page, elements, assignmentsByElement, activeSeverityByElement, now, includeCharts, chartRangeOverride)
+	return root, activeIncidents, resolvedIncidents, nil
+}
+
+func findPublicElement(elements []domainpublic.Element, elementID string) (domainpublic.Element, bool) {
+	for _, element := range elements {
+		if element.ID == elementID {
+			return element, true
+		}
+	}
+	return domainpublic.Element{}, false
+}
+
+func resolvedElementChartSettings(page domainpublic.Page, elements []domainpublic.Element, target domainpublic.Element) (domainpublic.ChartMode, domainpublic.ChartRange) {
+	byID := make(map[string]domainpublic.Element, len(elements))
+	for _, element := range elements {
+		byID[element.ID] = element
+	}
+
+	path := []domainpublic.Element{target}
+	for parentID := target.ParentElementID; parentID != nil; {
+		parent, ok := byID[*parentID]
+		if !ok {
+			break
+		}
+		path = append(path, parent)
+		parentID = parent.ParentElementID
+	}
+
+	mode := page.DefaultChartMode
+	chartRange := page.DefaultChartRange
+	for i := len(path) - 1; i >= 0; i-- {
+		mode = resolveChartMode(mode, path[i].ChartMode)
+		chartRange = resolveChartRange(chartRange, path[i].ChartRange)
+	}
+	return mode, chartRange
 }
 
 func (s *Service) validateElementReferences(ctx context.Context, element domainpublic.Element) error {

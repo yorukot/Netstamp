@@ -93,6 +93,51 @@ type PublicPageInput struct {
 	Now           time.Time
 }
 
+type PublicSummaryInput struct {
+	Slug string
+	Now  time.Time
+}
+
+type PublicElementsInput struct {
+	Slug string
+	Now  time.Time
+}
+
+type PublicIncidentsInput struct {
+	Slug  string
+	Limit int32
+	Now   time.Time
+}
+
+type PublicElementChartInput struct {
+	Slug      string
+	ElementID string
+	Range     *domainpublic.ChartRange
+	Now       time.Time
+}
+
+type PublicSummary struct {
+	Page        domainpublic.Page
+	Status      domainpublic.Status
+	GeneratedAt time.Time
+}
+
+type PublicElements struct {
+	Elements    []domainpublic.RenderedElement
+	GeneratedAt time.Time
+}
+
+type PublicIncidents struct {
+	ActiveIncidents   []domainpublic.Incident
+	ResolvedIncidents []domainpublic.Incident
+	GeneratedAt       time.Time
+}
+
+type PublicElementChart struct {
+	Chart       *domainpublic.Chart
+	GeneratedAt time.Time
+}
+
 type PageDetail struct {
 	Page     domainpublic.Page
 	Elements []domainpublic.Element

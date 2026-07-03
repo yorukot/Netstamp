@@ -66,6 +66,26 @@ type publicStatusPageResponseBody struct {
 	GeneratedAt time.Time           `json:"generatedAt"`
 }
 
+type publicStatusSummaryResponseBody struct {
+	Page        publicPageBody `json:"page"`
+	GeneratedAt time.Time      `json:"generatedAt"`
+}
+
+type publicStatusElementsResponseBody struct {
+	Elements    []publicElementBody `json:"elements"`
+	GeneratedAt time.Time           `json:"generatedAt"`
+}
+
+type publicStatusIncidentsResponseBody struct {
+	Incidents   publicIncidentsBody `json:"incidents"`
+	GeneratedAt time.Time           `json:"generatedAt"`
+}
+
+type publicStatusElementChartResponseBody struct {
+	Chart       *chartBody `json:"chart,omitempty"`
+	GeneratedAt time.Time  `json:"generatedAt"`
+}
+
 type publicPageBody struct {
 	ID                string                  `json:"id"`
 	Slug              string                  `json:"slug"`
@@ -88,6 +108,8 @@ type publicElementBody struct {
 	Status                domainpublic.Status      `json:"status"`
 	LatestStartedAt       *time.Time               `json:"latestStartedAt,omitempty"`
 	LatestStatus          *string                  `json:"latestStatus,omitempty"`
+	ChartMode             domainpublic.ChartMode   `json:"chartMode,omitempty"`
+	ChartRange            domainpublic.ChartRange  `json:"chartRange,omitempty"`
 	AssignmentCount       int32                    `json:"assignmentCount,omitempty"`
 	SuccessfulAssignments int32                    `json:"successfulAssignments,omitempty"`
 	FailingAssignments    int32                    `json:"failingAssignments,omitempty"`
@@ -222,22 +244,57 @@ func newPageDetailResponse(detail apppublic.PageDetail) pageDetailResponseBody {
 
 func newPublicStatusPageResponse(rendered domainpublic.RenderedPage) publicStatusPageResponseBody {
 	return publicStatusPageResponseBody{
-		Page: publicPageBody{
-			ID:                rendered.Page.ID,
-			Slug:              rendered.Page.Slug,
-			Title:             rendered.Page.Title,
-			Description:       rendered.Page.Description,
-			Status:            rendered.Status,
-			DefaultChartMode:  rendered.Page.DefaultChartMode,
-			DefaultChartRange: rendered.Page.DefaultChartRange,
-			UpdatedAt:         rendered.Page.UpdatedAt,
-		},
+		Page:     newPublicPageBody(rendered.Page, rendered.Status),
 		Elements: newPublicElementBodies(rendered.Elements),
 		Incidents: publicIncidentsBody{
 			Active:         newIncidentBodies(rendered.ActiveIncidents),
 			RecentResolved: newIncidentBodies(rendered.ResolvedIncidents),
 		},
 		GeneratedAt: rendered.GeneratedAt,
+	}
+}
+
+func newPublicStatusSummaryResponse(summary apppublic.PublicSummary) publicStatusSummaryResponseBody {
+	return publicStatusSummaryResponseBody{
+		Page:        newPublicPageBody(summary.Page, summary.Status),
+		GeneratedAt: summary.GeneratedAt,
+	}
+}
+
+func newPublicStatusElementsResponse(elements apppublic.PublicElements) publicStatusElementsResponseBody {
+	return publicStatusElementsResponseBody{
+		Elements:    newPublicElementBodies(elements.Elements),
+		GeneratedAt: elements.GeneratedAt,
+	}
+}
+
+func newPublicStatusIncidentsResponse(incidents apppublic.PublicIncidents) publicStatusIncidentsResponseBody {
+	return publicStatusIncidentsResponseBody{
+		Incidents: publicIncidentsBody{
+			Active:         newIncidentBodies(incidents.ActiveIncidents),
+			RecentResolved: newIncidentBodies(incidents.ResolvedIncidents),
+		},
+		GeneratedAt: incidents.GeneratedAt,
+	}
+}
+
+func newPublicStatusElementChartResponse(chart apppublic.PublicElementChart) publicStatusElementChartResponseBody {
+	return publicStatusElementChartResponseBody{
+		Chart:       newChartBody(chart.Chart),
+		GeneratedAt: chart.GeneratedAt,
+	}
+}
+
+func newPublicPageBody(page domainpublic.Page, status domainpublic.Status) publicPageBody {
+	return publicPageBody{
+		ID:                page.ID,
+		Slug:              page.Slug,
+		Title:             page.Title,
+		Description:       page.Description,
+		Status:            status,
+		DefaultChartMode:  page.DefaultChartMode,
+		DefaultChartRange: page.DefaultChartRange,
+		UpdatedAt:         page.UpdatedAt,
 	}
 }
 
@@ -260,6 +317,8 @@ func newPublicElementBody(element domainpublic.RenderedElement) publicElementBod
 		Status:                element.Status,
 		LatestStartedAt:       element.LatestStartedAt,
 		LatestStatus:          element.LatestStatus,
+		ChartMode:             element.ResolvedChartMode,
+		ChartRange:            element.ResolvedChartRange,
 		AssignmentCount:       element.AssignmentCount,
 		SuccessfulAssignments: element.SuccessfulAssignments,
 		FailingAssignments:    element.FailingAssignments,

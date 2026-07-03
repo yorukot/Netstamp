@@ -8,8 +8,10 @@ import (
 
 	appvalidation "github.com/yorukot/netstamp/internal/controller/application/validation"
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
+	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 	domainpublic "github.com/yorukot/netstamp/internal/domain/publicstatus"
+	domaintcp "github.com/yorukot/netstamp/internal/domain/tcp"
 )
 
 const (
@@ -180,6 +182,174 @@ func TestGetPublicPageCriticalIncidentOverridesSuccessfulAssignments(t *testing.
 	}
 }
 
+func TestGetPublicElementsDoesNotReadChartSeries(t *testing.T) {
+	now := time.Date(2026, 6, 21, 12, 0, 0, 0, time.UTC)
+	checkID := "44444444-4444-4444-4444-444444444444"
+	checkType := domaincheck.TypePing
+	page := testPage(now)
+	page.DefaultChartMode = domainpublic.ChartModeCompact
+
+	repo := &fakePublicStatusRepository{
+		page: page,
+		elements: []domainpublic.Element{
+			{
+				ID:           checkID,
+				PublicPageID: testPageID,
+				ProjectID:    testProjectID,
+				Kind:         domainpublic.ElementKindAssignmentGroup,
+				CheckID:      &checkID,
+				CheckName:    ptr("API"),
+				CheckType:    &checkType,
+				SortOrder:    1,
+				ChartMode:    domainpublic.ChartModeInherit,
+				CreatedAt:    now.Add(-time.Minute),
+				UpdatedAt:    now.Add(-time.Minute),
+			},
+		},
+		assignments: []domainpublic.Assignment{
+			testAssignment(checkID, "successful", now.Add(-30*time.Second)),
+		},
+	}
+	pings := &fakePingSeriesRepository{}
+
+	elements, err := NewService(repo, nil, pings, nil).GetPublicElements(context.Background(), PublicElementsInput{
+		Slug: "main",
+		Now:  now,
+	})
+	if err != nil {
+		t.Fatalf("GetPublicElements returned error: %v", err)
+	}
+	if pings.countCalls != 0 || pings.listCalls != 0 {
+		t.Fatalf("chart series was queried for elements endpoint: count=%d list=%d", pings.countCalls, pings.listCalls)
+	}
+	if len(elements.Elements) != 1 {
+		t.Fatalf("element count = %d, want 1", len(elements.Elements))
+	}
+	if elements.Elements[0].Chart != nil {
+		t.Fatalf("elements endpoint returned embedded chart: %#v", elements.Elements[0].Chart)
+	}
+}
+
+func TestGetPublicElementChartReturnsOnlyTargetElementSeries(t *testing.T) {
+	now := time.Date(2026, 6, 21, 12, 0, 0, 0, time.UTC)
+	targetID := "44444444-4444-4444-4444-444444444444"
+	otherID := "55555555-5555-5555-5555-555555555555"
+	checkType := domaincheck.TypePing
+	page := testPage(now)
+	page.DefaultChartMode = domainpublic.ChartModeCompact
+	page.DefaultChartRange = domainpublic.ChartRange7d
+	chartRange := domainpublic.ChartRange30d
+
+	repo := &fakePublicStatusRepository{
+		page: page,
+		elements: []domainpublic.Element{
+			{
+				ID:           targetID,
+				PublicPageID: testPageID,
+				ProjectID:    testProjectID,
+				Kind:         domainpublic.ElementKindAssignmentGroup,
+				CheckID:      &targetID,
+				CheckName:    ptr("API"),
+				CheckType:    &checkType,
+				SortOrder:    1,
+				ChartMode:    domainpublic.ChartModeInherit,
+				CreatedAt:    now.Add(-time.Minute),
+				UpdatedAt:    now.Add(-time.Minute),
+			},
+			{
+				ID:           otherID,
+				PublicPageID: testPageID,
+				ProjectID:    testProjectID,
+				Kind:         domainpublic.ElementKindAssignmentGroup,
+				CheckID:      &otherID,
+				CheckName:    ptr("Worker"),
+				CheckType:    &checkType,
+				SortOrder:    2,
+				ChartMode:    domainpublic.ChartModeInherit,
+				CreatedAt:    now.Add(-time.Minute),
+				UpdatedAt:    now.Add(-time.Minute),
+			},
+		},
+		assignments: []domainpublic.Assignment{
+			testAssignment(targetID, "successful", now.Add(-30*time.Second)),
+			testAssignment(otherID, "successful", now.Add(-30*time.Second)),
+		},
+	}
+	pings := &fakePingSeriesRepository{pointTime: now.Add(-5 * time.Minute)}
+
+	result, err := NewService(repo, nil, pings, nil).GetPublicElementChart(context.Background(), PublicElementChartInput{
+		Slug:      "main",
+		ElementID: targetID,
+		Range:     &chartRange,
+		Now:       now,
+	})
+	if err != nil {
+		t.Fatalf("GetPublicElementChart returned error: %v", err)
+	}
+	if pings.countCalls != 1 || pings.listCalls != 1 {
+		t.Fatalf("chart series calls = count %d list %d, want 1 each", pings.countCalls, pings.listCalls)
+	}
+	if pings.lastList.CheckID != targetID {
+		t.Fatalf("chart query check ID = %q, want target %q", pings.lastList.CheckID, targetID)
+	}
+	if result.Chart == nil {
+		t.Fatalf("chart = nil, want data")
+	}
+	if result.Chart.Range != domainpublic.ChartRange30d {
+		t.Fatalf("chart range = %q, want 30d", result.Chart.Range)
+	}
+	if len(result.Chart.Series) != 1 {
+		t.Fatalf("series count = %d, want 1", len(result.Chart.Series))
+	}
+	if got := result.Chart.Series[0].Labels["checkId"]; got != targetID {
+		t.Fatalf("series check label = %q, want target %q", got, targetID)
+	}
+}
+
+func TestGetPublicElementChartSkipsChartWhenModeOff(t *testing.T) {
+	now := time.Date(2026, 6, 21, 12, 0, 0, 0, time.UTC)
+	checkID := "44444444-4444-4444-4444-444444444444"
+	checkType := domaincheck.TypePing
+
+	repo := &fakePublicStatusRepository{
+		page: testPage(now),
+		elements: []domainpublic.Element{
+			{
+				ID:           checkID,
+				PublicPageID: testPageID,
+				ProjectID:    testProjectID,
+				Kind:         domainpublic.ElementKindAssignmentGroup,
+				CheckID:      &checkID,
+				CheckName:    ptr("API"),
+				CheckType:    &checkType,
+				SortOrder:    1,
+				ChartMode:    domainpublic.ChartModeInherit,
+				CreatedAt:    now.Add(-time.Minute),
+				UpdatedAt:    now.Add(-time.Minute),
+			},
+		},
+		assignments: []domainpublic.Assignment{
+			testAssignment(checkID, "successful", now.Add(-30*time.Second)),
+		},
+	}
+	pings := &fakePingSeriesRepository{}
+
+	result, err := NewService(repo, nil, pings, nil).GetPublicElementChart(context.Background(), PublicElementChartInput{
+		Slug:      "main",
+		ElementID: checkID,
+		Now:       now,
+	})
+	if err != nil {
+		t.Fatalf("GetPublicElementChart returned error: %v", err)
+	}
+	if result.Chart != nil {
+		t.Fatalf("chart = %#v, want nil", result.Chart)
+	}
+	if pings.countCalls != 0 || pings.listCalls != 0 {
+		t.Fatalf("chart series was queried for off chart: count=%d list=%d", pings.countCalls, pings.listCalls)
+	}
+}
+
 func TestUpdateElementRejectsKindChange(t *testing.T) {
 	now := time.Date(2026, 6, 21, 12, 0, 0, 0, time.UTC)
 	elementID := "55555555-5555-5555-5555-555555555555"
@@ -346,6 +516,44 @@ func (a fakeProjectAccess) GetProjectForUser(context.Context, string, string) (d
 
 func (a fakeProjectAccess) GetMemberRole(context.Context, string, string) (domainproject.Role, error) {
 	return a.role, nil
+}
+
+type fakePingSeriesRepository struct {
+	countCalls int
+	listCalls  int
+	lastCount  domainping.SeriesPointCountQuery
+	lastList   domainping.SeriesReadQuery
+	pointTime  time.Time
+}
+
+func (r *fakePingSeriesRepository) CountPingSeriesPoints(_ context.Context, input domainping.SeriesPointCountQuery) (int64, error) {
+	r.countCalls++
+	r.lastCount = input
+	return 1, nil
+}
+
+func (r *fakePingSeriesRepository) ListPingSeries(_ context.Context, input domainping.SeriesReadQuery) (map[string]domainping.SeriesData, error) {
+	r.listCalls++
+	r.lastList = input
+	pointTime := r.pointTime
+	if pointTime.IsZero() {
+		pointTime = input.To
+	}
+	return map[string]domainping.SeriesData{
+		"latency_avg": {
+			Points: []domainping.SeriesPoint{{Timestamp: pointTime, Value: 12.5}},
+		},
+	}, nil
+}
+
+type fakeTCPSeriesRepository struct{}
+
+func (r fakeTCPSeriesRepository) CountTCPSeriesPoints(context.Context, domaintcp.SeriesPointCountQuery) (int64, error) {
+	return 0, nil
+}
+
+func (r fakeTCPSeriesRepository) ListTCPSeries(context.Context, domaintcp.SeriesReadQuery) (map[string]domaintcp.SeriesData, error) {
+	return nil, nil
 }
 
 func ptr[T any](value T) *T {

@@ -57,7 +57,13 @@ interface ProjectPublicStatusPageService {
 	@summary("Delete project public status page")
 	@delete
 	@route("/{page_id}")
-	deleteProjectPublicStatusPage(...ProjectRefParam, ...PublicStatusPageIdPathParam): NoContent | UnauthorizedProblem | ForbiddenProblem | NotFoundProblem | UnprocessableEntityProblem | InternalServerProblem;
+	deleteProjectPublicStatusPage(...ProjectRefParam, ...PublicStatusPageIdPathParam):
+		| NoContent
+		| UnauthorizedProblem
+		| ForbiddenProblem
+		| NotFoundProblem
+		| UnprocessableEntityProblem
+		| InternalServerProblem;
 
 	@operationId("createProjectPublicStatusElement")
 	@summary("Create public status page element")
@@ -89,7 +95,13 @@ interface ProjectPublicStatusPageService {
 	@summary("Delete public status page element")
 	@delete
 	@route("/{page_id}/elements/{element_id}")
-	deleteProjectPublicStatusElement(...ProjectRefParam, ...PublicStatusPageIdPathParam, ...PublicStatusElementIdPathParam): NoContent | UnauthorizedProblem | ForbiddenProblem | NotFoundProblem | UnprocessableEntityProblem | InternalServerProblem;
+	deleteProjectPublicStatusElement(...ProjectRefParam, ...PublicStatusPageIdPathParam, ...PublicStatusElementIdPathParam):
+		| NoContent
+		| UnauthorizedProblem
+		| ForbiddenProblem
+		| NotFoundProblem
+		| UnprocessableEntityProblem
+		| InternalServerProblem;
 }
 
 @tag("Public Status Pages")
@@ -101,6 +113,40 @@ interface PublicStatusPageService {
 	@route("/{slug}")
 	getPublicStatusPage(...PublicStatusSlugPathParam, ...PublicStatusQuery):
 		| OkJson<PublicStatusPublicResponse>
+		| BadRequestProblem
+		| NotFoundProblem
+		| UnprocessableEntityProblem
+		| InternalServerProblem;
+
+	@operationId("getPublicStatusSummary")
+	@summary("Get public status page summary")
+	@get
+	@route("/{slug}/summary")
+	getPublicStatusSummary(...PublicStatusSlugPathParam): OkJson<PublicStatusSummaryResponse> | BadRequestProblem | NotFoundProblem | UnprocessableEntityProblem | InternalServerProblem;
+
+	@operationId("getPublicStatusElements")
+	@summary("Get public status page elements")
+	@get
+	@route("/{slug}/elements")
+	getPublicStatusElements(...PublicStatusSlugPathParam): OkJson<PublicStatusElementsResponse> | BadRequestProblem | NotFoundProblem | UnprocessableEntityProblem | InternalServerProblem;
+
+	@operationId("getPublicStatusIncidents")
+	@summary("Get public status page incidents")
+	@get
+	@route("/{slug}/incidents")
+	getPublicStatusIncidents(...PublicStatusSlugPathParam, ...PublicStatusIncidentsQuery):
+		| OkJson<PublicStatusIncidentsResponse>
+		| BadRequestProblem
+		| NotFoundProblem
+		| UnprocessableEntityProblem
+		| InternalServerProblem;
+
+	@operationId("getPublicStatusElementChart")
+	@summary("Get public status page element chart")
+	@get
+	@route("/{slug}/elements/{element_id}/chart")
+	getPublicStatusElementChart(...PublicStatusSlugPathParam, ...PublicStatusElementIdPathParam, ...PublicStatusChartQuery):
+		| OkJson<PublicStatusElementChartResponse>
 		| BadRequestProblem
 		| NotFoundProblem
 		| UnprocessableEntityProblem

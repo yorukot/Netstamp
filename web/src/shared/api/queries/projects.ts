@@ -9,7 +9,9 @@ import type {
 	PingSeriesFilters,
 	PingSeriesResponse,
 	ProjectAssignmentFilters,
+	PublicStatusChartFilters,
 	PublicStatusFilters,
+	PublicStatusIncidentsFilters,
 	TcpInsightFilters,
 	TcpSeriesFilters,
 	TcpSeriesResponse,
@@ -224,6 +226,46 @@ export const publicStatusQueries = {
 				readApiData(
 					apiClient.GET("/public/status-pages/{slug}", {
 						params: { path: { slug }, query: filters },
+						signal
+					})
+				),
+			retry: false,
+			staleTime: 30 * 1000
+		}),
+	summary: (slug: string) =>
+		queryOptions({
+			queryKey: apiQueryKeys.publicStatus.summary(slug),
+			queryFn: ({ signal }) => readApiData(apiClient.GET("/public/status-pages/{slug}/summary", { params: { path: { slug } }, signal })),
+			retry: false,
+			staleTime: 30 * 1000
+		}),
+	elements: (slug: string) =>
+		queryOptions({
+			queryKey: apiQueryKeys.publicStatus.elements(slug),
+			queryFn: ({ signal }) => readApiData(apiClient.GET("/public/status-pages/{slug}/elements", { params: { path: { slug } }, signal })),
+			retry: false,
+			staleTime: 30 * 1000
+		}),
+	incidents: (slug: string, filters: PublicStatusIncidentsFilters = {}) =>
+		queryOptions({
+			queryKey: apiQueryKeys.publicStatus.incidents(slug, filters),
+			queryFn: ({ signal }) =>
+				readApiData(
+					apiClient.GET("/public/status-pages/{slug}/incidents", {
+						params: { path: { slug }, query: filters },
+						signal
+					})
+				),
+			retry: false,
+			staleTime: 30 * 1000
+		}),
+	elementChart: (slug: string, elementId: string, filters: PublicStatusChartFilters = {}) =>
+		queryOptions({
+			queryKey: apiQueryKeys.publicStatus.elementChart(slug, elementId, filters),
+			queryFn: ({ signal }) =>
+				readApiData(
+					apiClient.GET("/public/status-pages/{slug}/elements/{element_id}/chart", {
+						params: { path: { slug, element_id: elementId }, query: filters },
 						signal
 					})
 				),

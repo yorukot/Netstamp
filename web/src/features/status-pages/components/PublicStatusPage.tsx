@@ -1,25 +1,42 @@
 import { checkTypeLabel, formatDateTime, formatMetric, publicStatusChartOption, severityTone, statusLabel, statusTone } from "@/features/status-pages/api/statusPageAdapters";
 import { ApiError } from "@/shared/api/client";
 import { publicStatusQueries } from "@/shared/api/queries";
-import type { ApiPublicStatusPublicElement, ApiPublicStatusPublicResponse } from "@/shared/api/types";
+import type {
+	ApiPublicStatusElementChartResponse,
+	ApiPublicStatusElementsResponse,
+	ApiPublicStatusIncidentsResponse,
+	ApiPublicStatusPublicElement,
+	ApiPublicStatusSummaryResponse
+} from "@/shared/api/types";
 import { ChartPanel } from "@/shared/visualizations/ChartPanel";
 import { Badge, LoadingState, Panel, type BadgeTone } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import styles from "./PublicStatusPage.module.css";
 
-type PublicIncident = ApiPublicStatusPublicResponse["incidents"]["active"][number];
+type PublicIncident = ApiPublicStatusIncidentsResponse["incidents"]["active"][number];
 type PublicAssignment = NonNullable<ApiPublicStatusPublicElement["assignments"]>[number];
 
 export function PublicStatusPage() {
 	const { slug = "" } = useParams();
-	const statusQuery = useQuery({
-		...publicStatusQueries.detail(slug, { includeCharts: true }),
+	const summaryQuery = useQuery({
+		...publicStatusQueries.summary(slug),
 		enabled: Boolean(slug),
-		select: data => data as ApiPublicStatusPublicResponse
+		select: data => data as ApiPublicStatusSummaryResponse
+	});
+	const elementsQuery = useQuery({
+		...publicStatusQueries.elements(slug),
+		enabled: Boolean(slug),
+		select: data => data as ApiPublicStatusElementsResponse
+	});
+	const incidentsQuery = useQuery({
+		...publicStatusQueries.incidents(slug),
+		enabled: Boolean(slug),
+		select: data => data as ApiPublicStatusIncidentsResponse
 	});
 
-	if (statusQuery.isPending) {
+	if (summaryQuery.isPending) {
 		return (
 			<main className={styles.page}>
 				<div className={styles.shell}>
@@ -29,8 +46,8 @@ export function PublicStatusPage() {
 		);
 	}
 
-	if (statusQuery.error) {
-		const notFound = statusQuery.error instanceof ApiError && statusQuery.error.status === 404;
+	if (summaryQuery.error || !summaryQuery.data) {
+		const notFound = summaryQuery.error instanceof ApiError && summaryQuery.error.status === 404;
 		return (
 			<main className={styles.page}>
 				<div className={styles.shell}>
@@ -42,7 +59,7 @@ export function PublicStatusPage() {
 		);
 	}
 
-	const data = statusQuery.data;
+	const summary = summaryQuery.data;
 
 	return (
 		<main className={styles.page}>
@@ -51,28 +68,45 @@ export function PublicStatusPage() {
 					<div className={styles.brand}>Netstamp Status</div>
 					<div className={styles.headerGrid}>
 						<div className={styles.headerCopy}>
-							<Badge tone={statusTone(data.page.status)}>{statusLabel(data.page.status)}</Badge>
-							<h1>{data.page.title}</h1>
-							{data.page.description ? <p>{data.page.description}</p> : null}
+							<Badge tone={statusTone(summary.page.status)}>{statusLabel(summary.page.status)}</Badge>
+							<h1>{summary.page.title}</h1>
+							{summary.page.description ? <p>{summary.page.description}</p> : null}
 						</div>
 						<div className={styles.generated}>
 							<span>Generated</span>
-							<strong>{formatDateTime(data.generatedAt)}</strong>
+							<strong>{formatDateTime(summary.generatedAt)}</strong>
 						</div>
 					</div>
 				</header>
 
-				<IncidentSection incidents={data.incidents.active} />
-
-				<section className={styles.elements} aria-label="Status checks">
-					{data.elements.length ? data.elements.map(element => <PublicElement key={element.id} element={element} />) : <div className={styles.empty}>No public status elements are configured.</div>}
-				</section>
+				<IncidentSection incidents={incidentsQuery.data?.incidents.active ?? []} isLoading={incidentsQuery.isPending} hasError={Boolean(incidentsQuery.error)} />
+				<ElementSection slug={slug} elements={elementsQuery.data?.elements ?? []} isLoading={elementsQuery.isPending} hasError={Boolean(elementsQuery.error)} />
 			</div>
 		</main>
 	);
 }
 
-function IncidentSection({ incidents }: { incidents: PublicIncident[] }) {
+function IncidentSection({ incidents, isLoading, hasError }: { incidents: PublicIncident[]; isLoading: boolean; hasError: boolean }) {
+	if (isLoading) {
+		return (
+			<section className={styles.incidents} aria-label="Incidents">
+				<Panel tone="deep" title="Open incidents">
+					<LoadingState label="Loading incidents" detail="Fetching active public incidents." />
+				</Panel>
+			</section>
+		);
+	}
+
+	if (hasError) {
+		return (
+			<section className={styles.incidents} aria-label="Incidents">
+				<Panel tone="deep" title="Open incidents">
+					<p className={styles.muted}>Incidents are unavailable right now.</p>
+				</Panel>
+			</section>
+		);
+	}
+
 	if (!incidents.length) {
 		return null;
 	}
@@ -114,7 +148,33 @@ function IncidentRow({ incident }: { incident: PublicIncident }) {
 	);
 }
 
-function PublicElement({ element }: { element: ApiPublicStatusPublicElement }) {
+function ElementSection({ slug, elements, isLoading, hasError }: { slug: string; elements: ApiPublicStatusPublicElement[]; isLoading: boolean; hasError: boolean }) {
+	if (isLoading) {
+		return (
+			<section className={styles.elements} aria-label="Status checks">
+				<LoadingState label="Loading status checks" detail="Fetching current public check status." />
+			</section>
+		);
+	}
+
+	if (hasError) {
+		return (
+			<section className={styles.elements} aria-label="Status checks">
+				<Panel tone="deep" title="Status checks unavailable">
+					<p className={styles.muted}>The current status checks could not be loaded.</p>
+				</Panel>
+			</section>
+		);
+	}
+
+	return (
+		<section className={styles.elements} aria-label="Status checks">
+			{elements.length ? elements.map(element => <PublicElement key={element.id} slug={slug} element={element} />) : <div className={styles.empty}>No public status elements are configured.</div>}
+		</section>
+	);
+}
+
+function PublicElement({ slug, element }: { slug: string; element: ApiPublicStatusPublicElement }) {
 	if (element.kind === "folder") {
 		return (
 			<div className={styles.folder}>
@@ -127,7 +187,7 @@ function PublicElement({ element }: { element: ApiPublicStatusPublicElement }) {
 				</div>
 				<div className={styles.folderChildren}>
 					{element.children?.map(child => (
-						<PublicElement key={child.id} element={child} />
+						<PublicElement key={child.id} slug={slug} element={child} />
 					))}
 				</div>
 			</div>
@@ -158,8 +218,53 @@ function PublicElement({ element }: { element: ApiPublicStatusPublicElement }) {
 			<Metrics element={element} />
 			<AssignmentRows assignments={element.assignments ?? []} />
 			{element.chart?.series.length ? <ChartPanel className={styles.chart} option={publicStatusChartOption(element)} height="12rem" /> : null}
+			{!element.chart?.series.length && element.chartMode === "compact" ? <LazyPublicElementChart slug={slug} element={element} /> : null}
 		</article>
 	);
+}
+
+function LazyPublicElementChart({ slug, element }: { slug: string; element: ApiPublicStatusPublicElement }) {
+	const { ref, inView } = useInView<HTMLDivElement>("200px");
+	const filters = element.chartRange ? { range: element.chartRange } : {};
+	const chartQuery = useQuery({
+		...publicStatusQueries.elementChart(slug, element.id, filters),
+		enabled: Boolean(slug) && inView,
+		select: data => data as ApiPublicStatusElementChartResponse
+	});
+	const chart = chartQuery.data?.chart;
+
+	return (
+		<div ref={ref} className={styles.chartSlot}>
+			{chartQuery.isPending || (chartQuery.isFetching && !chartQuery.data) ? <div className={styles.chartPlaceholder}>Loading chart</div> : null}
+			{chartQuery.error ? <div className={styles.chartPlaceholder}>Chart unavailable</div> : null}
+			{chart?.series.length ? <ChartPanel className={styles.chart} option={publicStatusChartOption({ ...element, chart })} height="12rem" /> : null}
+		</div>
+	);
+}
+
+function useInView<T extends Element>(rootMargin: string) {
+	const ref = useRef<T | null>(null);
+	const [inView, setInView] = useState(() => typeof IntersectionObserver === "undefined");
+
+	useEffect(() => {
+		const node = ref.current;
+		if (!node || inView || typeof IntersectionObserver === "undefined") {
+			return;
+		}
+		const observer = new IntersectionObserver(
+			entries => {
+				if (entries.some(entry => entry.isIntersecting)) {
+					setInView(true);
+					observer.disconnect();
+				}
+			},
+			{ rootMargin }
+		);
+		observer.observe(node);
+		return () => observer.disconnect();
+	}, [inView, rootMargin]);
+
+	return { ref, inView };
 }
 
 function AssignmentRows({ assignments }: { assignments: PublicAssignment[] }) {

@@ -22,6 +22,16 @@ export type ApiPublicStatusPublicElement = Omit<components["schemas"]["PublicSta
 export type ApiPublicStatusPublicResponse = Omit<components["schemas"]["PublicStatusPublicResponse"], "elements"> & {
 	elements: ApiPublicStatusPublicElement[];
 };
+export type ApiPublicStatusSummaryResponse = components["schemas"]["PublicStatusSummaryResponse"];
+export type ApiPublicStatusElementsResponse = Omit<components["schemas"]["PublicStatusElementsResponse"], "elements"> & {
+	elements: ApiPublicStatusPublicElement[];
+};
+export type ApiPublicStatusIncidentsResponse = components["schemas"]["PublicStatusIncidentsResponse"];
+export type ApiPublicStatusElementChartResponse = Omit<components["schemas"]["PublicStatusElementChartResponse"], "chart"> & {
+	chart?: Omit<components["schemas"]["PublicStatusChart"], "series"> & {
+		series: ApiSeries[];
+	};
+};
 export type ApiSelector = components["schemas"]["Selector"];
 export type CreateAlertRuleInput = components["schemas"]["CreateAlertRuleRequest"];
 export type ChangeCurrentUserEmailInput = components["schemas"]["ChangeCurrentUserEmailRequest"];
@@ -148,5 +158,13 @@ export interface TracerouteTopologyFilters {
 
 export interface PublicStatusFilters {
 	includeCharts?: boolean;
+	range?: PublicStatusChartRange;
+}
+
+export interface PublicStatusIncidentsFilters {
+	limit?: number;
+}
+
+export interface PublicStatusChartFilters {
 	range?: PublicStatusChartRange;
 }

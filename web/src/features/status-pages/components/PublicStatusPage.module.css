@@ -261,6 +261,20 @@
 	padding-top: 0.75rem;
 }
 
+.chartSlot {
+	min-width: 0;
+}
+
+.chartPlaceholder {
+	border-top: 1px solid var(--ns-border);
+	min-height: 12rem;
+	padding-top: 0.75rem;
+	display: grid;
+	place-items: center;
+	color: var(--ns-text-subtle);
+	font: 0.78rem/1.4 var(--ns-font-mono);
+}
+
 @media (max-width: 46rem) {
 	.page {
 		padding: 1rem;

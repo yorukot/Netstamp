@@ -18,6 +18,10 @@ func NewHandler(service *apppublic.Service, verifier appauth.TokenVerifier) *Han
 }
 
 func (h *Handler) RegisterRoutes(api chi.Router) {
+	api.Get("/public/status-pages/{slug}/summary", h.handleGetPublicStatusSummary)
+	api.Get("/public/status-pages/{slug}/elements", h.handleGetPublicStatusElements)
+	api.Get("/public/status-pages/{slug}/incidents", h.handleGetPublicStatusIncidents)
+	api.Get("/public/status-pages/{slug}/elements/{element_id}/chart", h.handleGetPublicStatusElementChart)
 	api.Get("/public/status-pages/{slug}", h.handleGetPublicStatusPage)
 
 	api.Group(func(r chi.Router) {

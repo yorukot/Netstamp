@@ -158,6 +158,8 @@ model PublicStatusPublicElement {
 	status: PublicStatusState;
 	latestStartedAt?: utcDateTime;
 	latestStatus?: LatestResultStatus;
+	chartMode?: PublicStatusPageChartMode;
+	chartRange?: PublicStatusChartRange;
 
 	@minValue(0)
 	assignmentCount?: int32;
@@ -225,6 +227,26 @@ model PublicStatusPublicResponse {
 	generatedAt: utcDateTime;
 }
 
+model PublicStatusSummaryResponse {
+	page: PublicStatusPageSummary;
+	generatedAt: utcDateTime;
+}
+
+model PublicStatusElementsResponse {
+	elements: PublicStatusPublicElement[];
+	generatedAt: utcDateTime;
+}
+
+model PublicStatusIncidentsResponse {
+	incidents: PublicStatusIncidents;
+	generatedAt: utcDateTime;
+}
+
+model PublicStatusElementChartResponse {
+	chart?: PublicStatusChart;
+	generatedAt: utcDateTime;
+}
+
 model CreatePublicStatusPageRequest {
 	@minLength(1)
 	@maxLength(64)
@@ -276,6 +298,18 @@ model PublicStatusQuery {
 	@query
 	includeCharts?: boolean = true;
 
+	@query
+	range?: PublicStatusChartRange;
+}
+
+model PublicStatusIncidentsQuery {
+	@query
+	@minValue(1)
+	@maxValue(200)
+	limit?: int32;
+}
+
+model PublicStatusChartQuery {
 	@query
 	range?: PublicStatusChartRange;
 }

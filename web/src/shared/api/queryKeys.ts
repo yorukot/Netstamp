@@ -11,7 +11,11 @@ export const apiQueryKeys = {
 	publicStatus: {
 		all: ["public-status"] as const,
 		detailRoot: (slug: string) => [...apiQueryKeys.publicStatus.all, "detail", slug] as const,
-		detail: (slug: string, filters: object = {}) => [...apiQueryKeys.publicStatus.detailRoot(slug), filters] as const
+		detail: (slug: string, filters: object = {}) => [...apiQueryKeys.publicStatus.detailRoot(slug), filters] as const,
+		summary: (slug: string) => [...apiQueryKeys.publicStatus.all, "summary", slug] as const,
+		elements: (slug: string) => [...apiQueryKeys.publicStatus.all, "elements", slug] as const,
+		incidents: (slug: string, filters: object = {}) => [...apiQueryKeys.publicStatus.all, "incidents", slug, filters] as const,
+		elementChart: (slug: string, elementId: string, filters: object = {}) => [...apiQueryKeys.publicStatus.all, "element-chart", slug, elementId, filters] as const
 	},
 	projects: {
 		all: ["projects"] as const,
