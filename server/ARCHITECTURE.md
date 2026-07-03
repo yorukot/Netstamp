@@ -36,4 +36,4 @@ Keep request/response DTO details in transport packages. Keep SQL and pgx/sqlc d
 
 ## Async Consistency
 
-Use workers and reconcilers for side effects that can be retried safely, such as notification delivery and assignment refresh. Synchronous refresh may remain for low-latency API behavior, but durable background repair should exist for cross-feature derived state that can become stale after partial failures.
+Use workers and reconcilers for side effects that can be retried safely, such as notification delivery and assignment refresh. Assignment refresh writes `assignment_refresh_jobs` before the synchronous refresh/delete path so the worker can repair derived probe-check assignment state after partial failures. Synchronous refresh may remain for low-latency API behavior, but durable background repair should exist for cross-feature derived state that can become stale after partial failures.

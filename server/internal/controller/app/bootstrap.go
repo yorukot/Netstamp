@@ -8,7 +8,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
 
-	appnotification "github.com/yorukot/netstamp/internal/controller/application/notification"
 	"github.com/yorukot/netstamp/internal/controller/config"
 	"github.com/yorukot/netstamp/internal/controller/logger"
 	httpserver "github.com/yorukot/netstamp/internal/controller/transport/http"
@@ -23,7 +22,11 @@ type Application struct {
 	DBPool     *pgxpool.Pool
 	Metrics    *obmetrics.Provider
 	Tracing    *tracing.Provider
-	Worker     *appnotification.Worker
+	Workers    []backgroundWorker
+}
+
+type backgroundWorker interface {
+	Run(context.Context) error
 }
 
 func New(ctx context.Context) (*Application, error) {
@@ -61,7 +64,7 @@ func New(ctx context.Context) (*Application, error) {
 		DBPool:     dbPool,
 		Metrics:    metricsProvider,
 		Tracing:    tracingProvider,
-		Worker:     services.notificationWorker,
+		Workers:    services.backgroundWorkers,
 	}, nil
 }
 

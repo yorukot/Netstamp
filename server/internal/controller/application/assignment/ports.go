@@ -2,6 +2,7 @@ package assignment
 
 import (
 	"context"
+	"time"
 
 	domainassignment "github.com/yorukot/netstamp/internal/domain/assignment"
 	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
@@ -10,6 +11,12 @@ import (
 )
 
 type Repository interface {
+	EnqueueRefreshJob(ctx context.Context, target domainassignment.RefreshTarget, maxAttempts int32) error
+	ClaimRefreshJobs(ctx context.Context, limit int32, staleBefore time.Time) ([]domainassignment.RefreshJob, error)
+	MarkRefreshJobSucceeded(ctx context.Context, id string, at time.Time) error
+	MarkRefreshJobRetry(ctx context.Context, id string, nextAttemptAt time.Time, kind, code, message string) error
+	MarkRefreshJobFailed(ctx context.Context, id, kind, code, message string) error
+	MarkRefreshJobDiscarded(ctx context.Context, id, kind, code, message string) error
 	RefreshProbeCheckAssignmentsForProject(ctx context.Context, projectID string) error
 	RefreshProbeCheckAssignmentsForProbe(ctx context.Context, projectID, probeID string) error
 	RefreshProbeCheckAssignmentsForCheck(ctx context.Context, projectID, checkID string) error

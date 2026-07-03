@@ -40,7 +40,7 @@ Probe runtime requests follow the same layer boundaries:
 
 `HTTP request -> chi route -> internal/controller/transport/http/proberuntime handler -> internal/controller/application/proberuntime.Service -> internal/controller/infrastructure/postgres/{probe,ping,tcp,traceroute} repositories -> sqlc.Queries -> PostgreSQL`
 
-No GraphQL, message queues, controller-side scheduled jobs, payment, object-storage integrations, or functional DNS/HTTP probe executors are currently defined. The controller supports ping, TCP connect, and traceroute check definitions, assignment payloads, runtime result ingestion, result queries, typed result persistence, alert incident evaluation, and a notification outbox worker for webhook, Slack incoming webhook, Discord, Telegram, and SMTP email deliveries. The standalone probe agent executes ping, TCP connect, and traceroute checks through the shared scheduler, worker pool, result queue, and runtime result submitter.
+No GraphQL, external message queues, payment, object-storage integrations, or functional DNS/HTTP probe executors are currently defined. The controller supports ping, TCP connect, and traceroute check definitions, assignment payloads, runtime result ingestion, result queries, typed result persistence, alert incident evaluation, a DB-backed assignment refresh worker, and a notification outbox worker for webhook, Slack incoming webhook, Discord, Telegram, and SMTP email deliveries. The standalone probe agent executes ping, TCP connect, and traceroute checks through the shared scheduler, worker pool, result queue, and runtime result submitter.
 
 ## Layer Responsibilities
 
@@ -61,7 +61,7 @@ Keep feature services independent: an application service should not call anothe
 
 Repository packages should stay aligned with the data/capability they own. If two features need the same persistence capability, prefer reusing the existing repository through an application port or extracting a small infrastructure helper over copying sqlc calls into a second repository package. For example, a probe use case that needs to resolve a project for the current user should depend on a project-access port implemented by the project repository, while the probe repository remains focused on probe persistence.
 
-Assignment matching, synchronization, and cleanup are application orchestration responsibilities. Feature repositories should not refresh or delete cross-feature assignment rows inside their own transactions; expose focused persistence capabilities and let the assignment service or application port coordinate assignment state after successful feature mutations.
+Assignment matching, synchronization, and cleanup are application orchestration responsibilities. Feature repositories should not refresh or delete cross-feature assignment rows inside their own transactions; expose focused persistence capabilities and let the assignment service or application port coordinate assignment state after successful feature mutations. Assignment refresh uses `assignment_refresh_jobs` as a DB-backed retry table while keeping synchronous refresh for low-latency API behavior.
 
 Project-scoped permission decisions should use the project domain policy rather than package-local role predicates. Application services remain responsible for use-case-specific invariants, event reasons, and error mapping.
 
@@ -215,7 +215,7 @@ Keep public error detail conservative. Not-found conditions for inaccessible pro
 
 ## Security & Configuration Tips
 
-Secrets and runtime settings come from environment variables or `.env`; defaults and validation live in `internal/controller/config/config.go`. `WEB_DIR` is optional and should point at built frontend static files only in packaged/self-host deployments. Never commit real `.env` files, JWT secrets, database passwords, trace endpoints with credentials, or production pseudonym keys.
+Secrets and runtime settings come from environment variables or `.env`; defaults and validation live in `internal/controller/config/config.go`. Assignment refresh worker behavior is controlled by `ASSIGNMENT_REFRESH_WORKER_ENABLED`, `ASSIGNMENT_REFRESH_WORKER_INTERVAL`, `ASSIGNMENT_REFRESH_WORKER_BATCH_SIZE`, and `ASSIGNMENT_REFRESH_WORKER_STALE_TIMEOUT`. `WEB_DIR` is optional and should point at built frontend static files only in packaged/self-host deployments. Never commit real `.env` files, JWT secrets, database passwords, trace endpoints with credentials, or production pseudonym keys.
 
 The observability compose setup requires `LOG_PSEUDONYM_KEY`, `DATABASE_PASSWORD`, `POSTGRES_EXPORTER_PASSWORD`, `AUTH_JWT_SECRET`, and `GF_SECURITY_ADMIN_PASSWORD`. Passwords are hashed with Argon2id using `AUTH_ARGON2ID_*` settings. JWT session cookies use HS256 with `AUTH_JWT_SECRET` and `AUTH_ACCESS_TOKEN_TTL`. Password reset links use `PUBLIC_WEB_BASE_URL` when set, otherwise the request origin, and reset request throttling is controlled by `AUTH_PASSWORD_RESET_RATE_LIMIT_WINDOW`, `AUTH_PASSWORD_RESET_IP_LIMIT`, and `AUTH_PASSWORD_RESET_EMAIL_LIMIT`.
 

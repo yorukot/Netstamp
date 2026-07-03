@@ -29,9 +29,13 @@ func (a *Application) Run(ctx context.Context) error {
 		return nil
 	})
 
-	if a.Worker != nil {
+	for _, worker := range a.Workers {
+		if worker == nil {
+			continue
+		}
+		worker := worker
 		group.Go(func() error {
-			return a.Worker.Run(groupCtx)
+			return worker.Run(groupCtx)
 		})
 	}
 

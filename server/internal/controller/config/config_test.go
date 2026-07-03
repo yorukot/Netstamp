@@ -67,6 +67,18 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.Alerting.SMTP.Configured() {
 		t.Fatal("expected SMTP to be unconfigured by default")
 	}
+	if !cfg.AssignmentRefresh.WorkerEnabled {
+		t.Fatal("expected assignment refresh worker to be enabled by default")
+	}
+	if cfg.AssignmentRefresh.WorkerInterval != 5*time.Second {
+		t.Fatalf("expected default assignment refresh worker interval, got %s", cfg.AssignmentRefresh.WorkerInterval)
+	}
+	if cfg.AssignmentRefresh.WorkerBatchSize != 25 {
+		t.Fatalf("expected default assignment refresh worker batch size, got %d", cfg.AssignmentRefresh.WorkerBatchSize)
+	}
+	if cfg.AssignmentRefresh.WorkerStaleTimeout != time.Minute {
+		t.Fatalf("expected default assignment refresh stale timeout, got %s", cfg.AssignmentRefresh.WorkerStaleTimeout)
+	}
 	if cfg.Alerting.SMTP.Port != 587 {
 		t.Fatalf("expected default SMTP port, got %d", cfg.Alerting.SMTP.Port)
 	}
@@ -100,6 +112,10 @@ func TestLoadFromEnvironment(t *testing.T) {
 	t.Setenv(keyDBMaxConns, "12")
 	t.Setenv(keyAuthRegistrationEnabled, "false")
 	t.Setenv(keyOTLPTracesEndpoint, "http://victoria-traces:10428/insert/opentelemetry/v1/traces")
+	t.Setenv(keyAssignmentRefreshWorkerEnabled, "false")
+	t.Setenv(keyAssignmentRefreshWorkerInterval, "7s")
+	t.Setenv(keyAssignmentRefreshWorkerBatchSize, "9")
+	t.Setenv(keyAssignmentRefreshWorkerStaleTimeout, "2m")
 	t.Setenv(keySMTPHost, "smtp.example.com")
 	t.Setenv(keySMTPPort, "465")
 	t.Setenv(keySMTPUsername, "netstamp")
@@ -176,6 +192,18 @@ func TestLoadFromEnvironment(t *testing.T) {
 	}
 	if cfg.Tracing.OTLPTracesEndpoint != "http://victoria-traces:10428/insert/opentelemetry/v1/traces" {
 		t.Fatalf("expected OTLP traces endpoint override, got %q", cfg.Tracing.OTLPTracesEndpoint)
+	}
+	if cfg.AssignmentRefresh.WorkerEnabled {
+		t.Fatal("expected assignment refresh worker to be disabled from environment")
+	}
+	if cfg.AssignmentRefresh.WorkerInterval != 7*time.Second {
+		t.Fatalf("expected assignment refresh worker interval override, got %s", cfg.AssignmentRefresh.WorkerInterval)
+	}
+	if cfg.AssignmentRefresh.WorkerBatchSize != 9 {
+		t.Fatalf("expected assignment refresh worker batch size override, got %d", cfg.AssignmentRefresh.WorkerBatchSize)
+	}
+	if cfg.AssignmentRefresh.WorkerStaleTimeout != 2*time.Minute {
+		t.Fatalf("expected assignment refresh worker stale timeout override, got %s", cfg.AssignmentRefresh.WorkerStaleTimeout)
 	}
 	if !cfg.Alerting.SMTP.Configured() {
 		t.Fatal("expected SMTP to be configured from environment")
@@ -298,6 +326,9 @@ func TestValidateReturnsErrorsForInvalidValues(t *testing.T) {
 	cfg.Database.MaxConnLifetime = 0
 	cfg.Database.MaxConnIdleTime = -time.Second
 	cfg.Tracing.OTLPTracesEndpoint = "victoria-traces:10428"
+	cfg.AssignmentRefresh.WorkerInterval = 0
+	cfg.AssignmentRefresh.WorkerBatchSize = 0
+	cfg.AssignmentRefresh.WorkerStaleTimeout = -time.Second
 	cfg.Alerting.SMTP.Port = 0
 	cfg.Alerting.SMTP.Timeout = 0
 	cfg.Alerting.SMTP.TLSMode = "ssl"
@@ -335,6 +366,9 @@ func TestValidateReturnsErrorsForInvalidValues(t *testing.T) {
 		"DB_MAX_CONN_LIFETIME must be greater than 0",
 		"DB_MAX_CONN_IDLE_TIME must be greater than 0",
 		"OTEL_EXPORTER_OTLP_TRACES_ENDPOINT must be a valid HTTP URL",
+		"ASSIGNMENT_REFRESH_WORKER_INTERVAL must be greater than 0",
+		"ASSIGNMENT_REFRESH_WORKER_STALE_TIMEOUT must be greater than 0",
+		"ASSIGNMENT_REFRESH_WORKER_BATCH_SIZE must be greater than 0",
 		"SMTP_PORT must be between 1 and 65535",
 		"SMTP_TIMEOUT must be greater than 0",
 		"SMTP_TLS_MODE must be one of starttls, implicit, or none",
@@ -444,6 +478,12 @@ func validConfig() Config {
 			Argon2idParallelism: 4,
 		},
 		Tracing: TracingConfig{},
+		AssignmentRefresh: AssignmentRefreshConfig{
+			WorkerEnabled:      true,
+			WorkerInterval:     5 * time.Second,
+			WorkerBatchSize:    25,
+			WorkerStaleTimeout: time.Minute,
+		},
 		Alerting: AlertingConfig{
 			EvaluationEnabled:              true,
 			NotificationWorkerEnabled:      true,

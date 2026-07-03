@@ -32,6 +32,13 @@ func (s *Service) RefreshProbeCheckAssignmentsForProject(ctx context.Context, pr
 	}
 	flow.setProjectID(projectID)
 
+	if err := s.enqueueRefreshJob(ctx, domainassignment.RefreshTarget{
+		ProjectID: projectID,
+		Type:      domainassignment.RefreshTargetProject,
+		TargetID:  projectID,
+	}); err != nil {
+		return flow.refreshFailure(AssignmentEventRefreshProjectFailure, err)
+	}
 	if err := s.repo.RefreshProbeCheckAssignmentsForProject(ctx, projectID); err != nil {
 		return flow.refreshFailure(AssignmentEventRefreshProjectFailure, err)
 	}
@@ -51,6 +58,13 @@ func (s *Service) RefreshProbeCheckAssignmentsForProbe(ctx context.Context, proj
 	flow.setProjectID(projectID)
 	flow.setProbeID(probeID)
 
+	if err := s.enqueueRefreshJob(ctx, domainassignment.RefreshTarget{
+		ProjectID: projectID,
+		Type:      domainassignment.RefreshTargetProbe,
+		TargetID:  probeID,
+	}); err != nil {
+		return flow.refreshFailure(AssignmentEventRefreshProbeFailure, err)
+	}
 	if err := s.repo.RefreshProbeCheckAssignmentsForProbe(ctx, projectID, probeID); err != nil {
 		return flow.refreshFailure(AssignmentEventRefreshProbeFailure, err)
 	}
@@ -70,6 +84,13 @@ func (s *Service) RefreshProbeCheckAssignmentsForCheck(ctx context.Context, proj
 	flow.setProjectID(projectID)
 	flow.setCheckID(checkID)
 
+	if err := s.enqueueRefreshJob(ctx, domainassignment.RefreshTarget{
+		ProjectID: projectID,
+		Type:      domainassignment.RefreshTargetCheck,
+		TargetID:  checkID,
+	}); err != nil {
+		return flow.refreshFailure(AssignmentEventRefreshCheckFailure, err)
+	}
 	if err := s.repo.RefreshProbeCheckAssignmentsForCheck(ctx, projectID, checkID); err != nil {
 		return flow.refreshFailure(AssignmentEventRefreshCheckFailure, err)
 	}
@@ -89,6 +110,13 @@ func (s *Service) RefreshProbeCheckAssignmentsForLabel(ctx context.Context, proj
 	flow.setProjectID(projectID)
 	flow.setLabelID(labelID)
 
+	if err := s.enqueueRefreshJob(ctx, domainassignment.RefreshTarget{
+		ProjectID: projectID,
+		Type:      domainassignment.RefreshTargetLabel,
+		TargetID:  labelID,
+	}); err != nil {
+		return flow.refreshFailure(AssignmentEventRefreshLabelFailure, err)
+	}
 	if err := s.repo.RefreshProbeCheckAssignmentsForLabel(ctx, projectID, labelID); err != nil {
 		return flow.refreshFailure(AssignmentEventRefreshLabelFailure, err)
 	}
@@ -108,6 +136,13 @@ func (s *Service) DeleteProbeCheckAssignmentsForProbe(ctx context.Context, proje
 	flow.setProjectID(projectID)
 	flow.setProbeID(probeID)
 
+	if err := s.enqueueRefreshJob(ctx, domainassignment.RefreshTarget{
+		ProjectID: projectID,
+		Type:      domainassignment.RefreshTargetProbe,
+		TargetID:  probeID,
+	}); err != nil {
+		return flow.deleteFailure(AssignmentEventDeleteProbeFailure, err)
+	}
 	if err := s.repo.DeleteProbeCheckAssignmentsForProbe(ctx, projectID, probeID); err != nil {
 		return flow.deleteFailure(AssignmentEventDeleteProbeFailure, err)
 	}
@@ -127,6 +162,13 @@ func (s *Service) DeleteProbeCheckAssignmentsForCheck(ctx context.Context, proje
 	flow.setProjectID(projectID)
 	flow.setCheckID(checkID)
 
+	if err := s.enqueueRefreshJob(ctx, domainassignment.RefreshTarget{
+		ProjectID: projectID,
+		Type:      domainassignment.RefreshTargetCheck,
+		TargetID:  checkID,
+	}); err != nil {
+		return flow.deleteFailure(AssignmentEventDeleteCheckFailure, err)
+	}
 	if err := s.repo.DeleteProbeCheckAssignmentsForCheck(ctx, projectID, checkID); err != nil {
 		return flow.deleteFailure(AssignmentEventDeleteCheckFailure, err)
 	}
@@ -201,4 +243,8 @@ func matchedProbeCount(probes []domainprobe.Probe) int32 {
 	}
 	//nolint:gosec // len(probes) is bounded above before narrowing to the OpenAPI int32 field.
 	return int32(len(probes))
+}
+
+func (s *Service) enqueueRefreshJob(ctx context.Context, target domainassignment.RefreshTarget) error {
+	return s.repo.EnqueueRefreshJob(ctx, target, domainassignment.DefaultRefreshJobMaxAttempts)
 }

@@ -14,129 +14,138 @@ import (
 )
 
 const (
-	keyAppEnv                         = "APP_ENV"
-	keyDemoMode                       = "DEMO_MODE"
-	keyServiceName                    = "SERVICE_NAME"
-	keyAppVersion                     = "APP_VERSION"
-	keyAPIVersion                     = "API_VERSION"
-	keyLogLevel                       = "LOG_LEVEL"
-	keyLogPseudonymKey                = "LOG_PSEUDONYM_KEY"
-	keyShutdownTimeout                = "SHUTDOWN_TIMEOUT"
-	keyBackendBaseURL                 = "BACKEND_BASE_URL"
-	keyPublicWebBaseURL               = "PUBLIC_WEB_BASE_URL"
-	keyHTTPAddr                       = "HTTP_ADDR"
-	keyWebDir                         = "WEB_DIR"
-	keyRequestTimeout                 = "REQUEST_TIMEOUT"
-	keyHTTPReadHeaderTimeout          = "HTTP_READ_HEADER_TIMEOUT"
-	keyHTTPReadTimeout                = "HTTP_READ_TIMEOUT"
-	keyHTTPWriteTimeout               = "HTTP_WRITE_TIMEOUT" //nolint:gosec // This is a timeout env key, not a credential.
-	keyHTTPIdleTimeout                = "HTTP_IDLE_TIMEOUT"
-	keyHTTPTrustedProxies             = "HTTP_TRUSTED_PROXIES"
-	keyDatabaseHost                   = "DATABASE_HOST"
-	keyDatabasePort                   = "DATABASE_PORT"
-	keyDatabaseUser                   = "DATABASE_USER"
-	keyDatabasePassword               = "DATABASE_PASSWORD"
-	keyDatabaseName                   = "DATABASE_NAME"
-	keyDatabaseSSLMode                = "DATABASE_SSLMODE"
-	keyDBMaxConns                     = "DB_MAX_CONNS"
-	keyDBMinConns                     = "DB_MIN_CONNS"
-	keyDBMaxConnLifetime              = "DB_MAX_CONN_LIFETIME"
-	keyDBMaxConnIdleTime              = "DB_MAX_CONN_IDLE_TIME"
-	keyAuthJWTSecret                  = "AUTH_JWT_SECRET"       //nolint:gosec // This is the env key name, not the secret value.
-	keyAuthAccessTokenTTL             = "AUTH_ACCESS_TOKEN_TTL" //nolint:gosec // This is a token TTL env key, not a credential.
-	keyAuthRegistrationEnabled        = "AUTH_REGISTRATION_ENABLED"
-	keyAuthPasswordResetTokenTTL      = "AUTH_PASSWORD_RESET_TOKEN_TTL"
-	keyAuthPasswordResetRateWindow    = "AUTH_PASSWORD_RESET_RATE_LIMIT_WINDOW"
-	keyAuthPasswordResetIPLimit       = "AUTH_PASSWORD_RESET_IP_LIMIT"
-	keyAuthPasswordResetEmailLimit    = "AUTH_PASSWORD_RESET_EMAIL_LIMIT"
-	keyAuthArgon2idMemoryKiB          = "AUTH_ARGON2ID_MEMORY_KIB"
-	keyAuthArgon2idIter               = "AUTH_ARGON2ID_ITERATIONS"
-	keyAuthArgon2idParallel           = "AUTH_ARGON2ID_PARALLELISM"
-	keyOTLPTracesEndpoint             = "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"
-	keyAlertEvaluationEnabled         = "ALERT_EVALUATION_ENABLED"
-	keyNotificationWorkerEnabled      = "NOTIFICATION_WORKER_ENABLED"
-	keyNotificationWorkerInterval     = "NOTIFICATION_WORKER_INTERVAL"
-	keyNotificationWorkerBatchSize    = "NOTIFICATION_WORKER_BATCH_SIZE"
-	keyNotificationWorkerStaleTimeout = "NOTIFICATION_WORKER_STALE_TIMEOUT"
-	keyNotificationHTTPTimeout        = "NOTIFICATION_HTTP_TIMEOUT"
-	keySMTPHost                       = "SMTP_HOST"
-	keySMTPPort                       = "SMTP_PORT"
-	keySMTPUsername                   = "SMTP_USERNAME"
-	keySMTPPassword                   = "SMTP_PASSWORD"
-	keySMTPFrom                       = "SMTP_FROM"
-	keySMTPTLSMode                    = "SMTP_TLS_MODE"
-	keySMTPTimeout                    = "SMTP_TIMEOUT"
+	keyAppEnv                              = "APP_ENV"
+	keyDemoMode                            = "DEMO_MODE"
+	keyServiceName                         = "SERVICE_NAME"
+	keyAppVersion                          = "APP_VERSION"
+	keyAPIVersion                          = "API_VERSION"
+	keyLogLevel                            = "LOG_LEVEL"
+	keyLogPseudonymKey                     = "LOG_PSEUDONYM_KEY"
+	keyShutdownTimeout                     = "SHUTDOWN_TIMEOUT"
+	keyBackendBaseURL                      = "BACKEND_BASE_URL"
+	keyPublicWebBaseURL                    = "PUBLIC_WEB_BASE_URL"
+	keyHTTPAddr                            = "HTTP_ADDR"
+	keyWebDir                              = "WEB_DIR"
+	keyRequestTimeout                      = "REQUEST_TIMEOUT"
+	keyHTTPReadHeaderTimeout               = "HTTP_READ_HEADER_TIMEOUT"
+	keyHTTPReadTimeout                     = "HTTP_READ_TIMEOUT"
+	keyHTTPWriteTimeout                    = "HTTP_WRITE_TIMEOUT" //nolint:gosec // This is a timeout env key, not a credential.
+	keyHTTPIdleTimeout                     = "HTTP_IDLE_TIMEOUT"
+	keyHTTPTrustedProxies                  = "HTTP_TRUSTED_PROXIES"
+	keyDatabaseHost                        = "DATABASE_HOST"
+	keyDatabasePort                        = "DATABASE_PORT"
+	keyDatabaseUser                        = "DATABASE_USER"
+	keyDatabasePassword                    = "DATABASE_PASSWORD"
+	keyDatabaseName                        = "DATABASE_NAME"
+	keyDatabaseSSLMode                     = "DATABASE_SSLMODE"
+	keyDBMaxConns                          = "DB_MAX_CONNS"
+	keyDBMinConns                          = "DB_MIN_CONNS"
+	keyDBMaxConnLifetime                   = "DB_MAX_CONN_LIFETIME"
+	keyDBMaxConnIdleTime                   = "DB_MAX_CONN_IDLE_TIME"
+	keyAuthJWTSecret                       = "AUTH_JWT_SECRET"       //nolint:gosec // This is the env key name, not the secret value.
+	keyAuthAccessTokenTTL                  = "AUTH_ACCESS_TOKEN_TTL" //nolint:gosec // This is a token TTL env key, not a credential.
+	keyAuthRegistrationEnabled             = "AUTH_REGISTRATION_ENABLED"
+	keyAuthPasswordResetTokenTTL           = "AUTH_PASSWORD_RESET_TOKEN_TTL"
+	keyAuthPasswordResetRateWindow         = "AUTH_PASSWORD_RESET_RATE_LIMIT_WINDOW"
+	keyAuthPasswordResetIPLimit            = "AUTH_PASSWORD_RESET_IP_LIMIT"
+	keyAuthPasswordResetEmailLimit         = "AUTH_PASSWORD_RESET_EMAIL_LIMIT"
+	keyAuthArgon2idMemoryKiB               = "AUTH_ARGON2ID_MEMORY_KIB"
+	keyAuthArgon2idIter                    = "AUTH_ARGON2ID_ITERATIONS"
+	keyAuthArgon2idParallel                = "AUTH_ARGON2ID_PARALLELISM"
+	keyOTLPTracesEndpoint                  = "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"
+	keyAlertEvaluationEnabled              = "ALERT_EVALUATION_ENABLED"
+	keyAssignmentRefreshWorkerEnabled      = "ASSIGNMENT_REFRESH_WORKER_ENABLED"
+	keyAssignmentRefreshWorkerInterval     = "ASSIGNMENT_REFRESH_WORKER_INTERVAL"
+	keyAssignmentRefreshWorkerBatchSize    = "ASSIGNMENT_REFRESH_WORKER_BATCH_SIZE"
+	keyAssignmentRefreshWorkerStaleTimeout = "ASSIGNMENT_REFRESH_WORKER_STALE_TIMEOUT"
+	keyNotificationWorkerEnabled           = "NOTIFICATION_WORKER_ENABLED"
+	keyNotificationWorkerInterval          = "NOTIFICATION_WORKER_INTERVAL"
+	keyNotificationWorkerBatchSize         = "NOTIFICATION_WORKER_BATCH_SIZE"
+	keyNotificationWorkerStaleTimeout      = "NOTIFICATION_WORKER_STALE_TIMEOUT"
+	keyNotificationHTTPTimeout             = "NOTIFICATION_HTTP_TIMEOUT"
+	keySMTPHost                            = "SMTP_HOST"
+	keySMTPPort                            = "SMTP_PORT"
+	keySMTPUsername                        = "SMTP_USERNAME"
+	keySMTPPassword                        = "SMTP_PASSWORD"
+	keySMTPFrom                            = "SMTP_FROM"
+	keySMTPTLSMode                         = "SMTP_TLS_MODE"
+	keySMTPTimeout                         = "SMTP_TIMEOUT"
 )
 
 var defaultSettings = map[string]any{
-	keyAppEnv:                         "local",
-	keyDemoMode:                       false,
-	keyServiceName:                    "controller",
-	keyAppVersion:                     "0.1.0",
-	keyAPIVersion:                     "v1",
-	keyLogLevel:                       "info",
-	keyLogPseudonymKey:                "local-development-log-pseudonym-key-change-before-production",
-	keyShutdownTimeout:                10 * time.Second,
-	keyBackendBaseURL:                 "",
-	keyPublicWebBaseURL:               "",
-	keyHTTPAddr:                       ":8080",
-	keyWebDir:                         "",
-	keyRequestTimeout:                 10 * time.Second,
-	keyHTTPReadHeaderTimeout:          5 * time.Second,
-	keyHTTPReadTimeout:                15 * time.Second,
-	keyHTTPWriteTimeout:               15 * time.Second,
-	keyHTTPIdleTimeout:                60 * time.Second,
-	keyHTTPTrustedProxies:             "",
-	keyDatabaseHost:                   "localhost",
-	keyDatabasePort:                   int32(5432),
-	keyDatabaseUser:                   "netstamp",
-	keyDatabasePassword:               "netstamp",
-	keyDatabaseName:                   "netstamp",
-	keyDatabaseSSLMode:                "disable",
-	keyDBMaxConns:                     int32(10),
-	keyDBMinConns:                     int32(0),
-	keyDBMaxConnLifetime:              time.Hour,
-	keyDBMaxConnIdleTime:              30 * time.Minute,
-	keyAuthJWTSecret:                  "local-development-jwt-secret-change-before-production",
-	keyAuthAccessTokenTTL:             12 * time.Hour,
-	keyAuthRegistrationEnabled:        true,
-	keyAuthPasswordResetTokenTTL:      30 * time.Minute,
-	keyAuthPasswordResetRateWindow:    time.Hour,
-	keyAuthPasswordResetIPLimit:       int32(10),
-	keyAuthPasswordResetEmailLimit:    int32(3),
-	keyAuthArgon2idMemoryKiB:          uint32(64 * 1024),
-	keyAuthArgon2idIter:               uint32(3),
-	keyAuthArgon2idParallel:           uint8(4),
-	keyOTLPTracesEndpoint:             "",
-	keyAlertEvaluationEnabled:         true,
-	keyNotificationWorkerEnabled:      true,
-	keyNotificationWorkerInterval:     5 * time.Second,
-	keyNotificationWorkerBatchSize:    int32(25),
-	keyNotificationWorkerStaleTimeout: time.Minute,
-	keyNotificationHTTPTimeout:        10 * time.Second,
-	keySMTPHost:                       "",
-	keySMTPPort:                       int32(587),
-	keySMTPUsername:                   "",
-	keySMTPPassword:                   "",
-	keySMTPFrom:                       "",
-	keySMTPTLSMode:                    "starttls",
-	keySMTPTimeout:                    10 * time.Second,
+	keyAppEnv:                              "local",
+	keyDemoMode:                            false,
+	keyServiceName:                         "controller",
+	keyAppVersion:                          "0.1.0",
+	keyAPIVersion:                          "v1",
+	keyLogLevel:                            "info",
+	keyLogPseudonymKey:                     "local-development-log-pseudonym-key-change-before-production",
+	keyShutdownTimeout:                     10 * time.Second,
+	keyBackendBaseURL:                      "",
+	keyPublicWebBaseURL:                    "",
+	keyHTTPAddr:                            ":8080",
+	keyWebDir:                              "",
+	keyRequestTimeout:                      10 * time.Second,
+	keyHTTPReadHeaderTimeout:               5 * time.Second,
+	keyHTTPReadTimeout:                     15 * time.Second,
+	keyHTTPWriteTimeout:                    15 * time.Second,
+	keyHTTPIdleTimeout:                     60 * time.Second,
+	keyHTTPTrustedProxies:                  "",
+	keyDatabaseHost:                        "localhost",
+	keyDatabasePort:                        int32(5432),
+	keyDatabaseUser:                        "netstamp",
+	keyDatabasePassword:                    "netstamp",
+	keyDatabaseName:                        "netstamp",
+	keyDatabaseSSLMode:                     "disable",
+	keyDBMaxConns:                          int32(10),
+	keyDBMinConns:                          int32(0),
+	keyDBMaxConnLifetime:                   time.Hour,
+	keyDBMaxConnIdleTime:                   30 * time.Minute,
+	keyAuthJWTSecret:                       "local-development-jwt-secret-change-before-production",
+	keyAuthAccessTokenTTL:                  12 * time.Hour,
+	keyAuthRegistrationEnabled:             true,
+	keyAuthPasswordResetTokenTTL:           30 * time.Minute,
+	keyAuthPasswordResetRateWindow:         time.Hour,
+	keyAuthPasswordResetIPLimit:            int32(10),
+	keyAuthPasswordResetEmailLimit:         int32(3),
+	keyAuthArgon2idMemoryKiB:               uint32(64 * 1024),
+	keyAuthArgon2idIter:                    uint32(3),
+	keyAuthArgon2idParallel:                uint8(4),
+	keyOTLPTracesEndpoint:                  "",
+	keyAlertEvaluationEnabled:              true,
+	keyAssignmentRefreshWorkerEnabled:      true,
+	keyAssignmentRefreshWorkerInterval:     5 * time.Second,
+	keyAssignmentRefreshWorkerBatchSize:    int32(25),
+	keyAssignmentRefreshWorkerStaleTimeout: time.Minute,
+	keyNotificationWorkerEnabled:           true,
+	keyNotificationWorkerInterval:          5 * time.Second,
+	keyNotificationWorkerBatchSize:         int32(25),
+	keyNotificationWorkerStaleTimeout:      time.Minute,
+	keyNotificationHTTPTimeout:             10 * time.Second,
+	keySMTPHost:                            "",
+	keySMTPPort:                            int32(587),
+	keySMTPUsername:                        "",
+	keySMTPPassword:                        "",
+	keySMTPFrom:                            "",
+	keySMTPTLSMode:                         "starttls",
+	keySMTPTimeout:                         10 * time.Second,
 }
 
 type Config struct {
-	Env             string         `mapstructure:"APP_ENV"`
-	DemoMode        bool           `mapstructure:"DEMO_MODE"`
-	ServiceName     string         `mapstructure:"SERVICE_NAME"`
-	Version         string         `mapstructure:"APP_VERSION"`
-	APIVersion      string         `mapstructure:"API_VERSION"`
-	LogLevel        string         `mapstructure:"LOG_LEVEL"`
-	LogPseudonymKey string         `mapstructure:"LOG_PSEUDONYM_KEY"`
-	ShutdownTimeout time.Duration  `mapstructure:"SHUTDOWN_TIMEOUT"`
-	HTTP            HTTPConfig     `mapstructure:",squash"`
-	Database        DatabaseConfig `mapstructure:",squash"`
-	Auth            AuthConfig     `mapstructure:",squash"`
-	Tracing         TracingConfig  `mapstructure:",squash"`
-	Alerting        AlertingConfig `mapstructure:",squash"`
+	Env               string                  `mapstructure:"APP_ENV"`
+	DemoMode          bool                    `mapstructure:"DEMO_MODE"`
+	ServiceName       string                  `mapstructure:"SERVICE_NAME"`
+	Version           string                  `mapstructure:"APP_VERSION"`
+	APIVersion        string                  `mapstructure:"API_VERSION"`
+	LogLevel          string                  `mapstructure:"LOG_LEVEL"`
+	LogPseudonymKey   string                  `mapstructure:"LOG_PSEUDONYM_KEY"`
+	ShutdownTimeout   time.Duration           `mapstructure:"SHUTDOWN_TIMEOUT"`
+	HTTP              HTTPConfig              `mapstructure:",squash"`
+	Database          DatabaseConfig          `mapstructure:",squash"`
+	Auth              AuthConfig              `mapstructure:",squash"`
+	Tracing           TracingConfig           `mapstructure:",squash"`
+	Alerting          AlertingConfig          `mapstructure:",squash"`
+	AssignmentRefresh AssignmentRefreshConfig `mapstructure:",squash"`
 }
 
 type HTTPConfig struct {
@@ -190,6 +199,13 @@ type AlertingConfig struct {
 	NotificationWorkerStaleTimeout time.Duration `mapstructure:"NOTIFICATION_WORKER_STALE_TIMEOUT"`
 	NotificationHTTPTimeout        time.Duration `mapstructure:"NOTIFICATION_HTTP_TIMEOUT"`
 	SMTP                           SMTPConfig    `mapstructure:",squash"`
+}
+
+type AssignmentRefreshConfig struct {
+	WorkerEnabled      bool          `mapstructure:"ASSIGNMENT_REFRESH_WORKER_ENABLED"`
+	WorkerInterval     time.Duration `mapstructure:"ASSIGNMENT_REFRESH_WORKER_INTERVAL"`
+	WorkerBatchSize    int32         `mapstructure:"ASSIGNMENT_REFRESH_WORKER_BATCH_SIZE"`
+	WorkerStaleTimeout time.Duration `mapstructure:"ASSIGNMENT_REFRESH_WORKER_STALE_TIMEOUT"`
 }
 
 type SMTPConfig struct {
@@ -307,7 +323,12 @@ func validate(cfg Config) []error {
 	// Tracing settings
 	errs = append(errs, validateOptionalHTTPURL(keyOTLPTracesEndpoint, cfg.Tracing.OTLPTracesEndpoint)...)
 
-	// Alerting settings
+	// Worker and alerting settings
+	errs = append(errs, validatePositiveDuration(keyAssignmentRefreshWorkerInterval, cfg.AssignmentRefresh.WorkerInterval)...)
+	errs = append(errs, validatePositiveDuration(keyAssignmentRefreshWorkerStaleTimeout, cfg.AssignmentRefresh.WorkerStaleTimeout)...)
+	if cfg.AssignmentRefresh.WorkerBatchSize <= 0 {
+		errs = append(errs, errors.New("ASSIGNMENT_REFRESH_WORKER_BATCH_SIZE must be greater than 0"))
+	}
 	errs = append(errs, validatePositiveDuration(keyNotificationWorkerInterval, cfg.Alerting.NotificationWorkerInterval)...)
 	errs = append(errs, validatePositiveDuration(keyNotificationWorkerStaleTimeout, cfg.Alerting.NotificationWorkerStaleTimeout)...)
 	errs = append(errs, validatePositiveDuration(keyNotificationHTTPTimeout, cfg.Alerting.NotificationHTTPTimeout)...)

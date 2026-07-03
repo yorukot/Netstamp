@@ -58,7 +58,7 @@ type controllerServices struct {
 	projectService           *appproject.Service
 	publicStatusService      *apppublicstatus.Service
 	resultService            *appresult.Service
-	notificationWorker       *appnotification.Worker
+	backgroundWorkers        []backgroundWorker
 }
 
 func buildObservability(ctx context.Context, cfg config.Config, log *zap.Logger) (*obmetrics.Provider, *tracing.Provider, error) {
@@ -154,6 +154,12 @@ func buildControllerServices(cfg config.Config, log *zap.Logger, dbPool *pgxpool
 	alertEvalSvc := appalerteval.NewService(alertRepo, cfg.Alerting.EvaluationEnabled, cfg.HTTP.BackendBaseURL)
 	probeRuntimeSvc.SetAlertEvaluator(alertEvalSvc)
 	resultSvc := appresult.NewService(pingRepo, tcpRepo, tracerouteRepo, resultRepo, projectRepo)
+	assignmentWorker := appassignment.NewWorker(assignmentRepo, appassignment.WorkerConfig{
+		Enabled:      cfg.AssignmentRefresh.WorkerEnabled,
+		Interval:     cfg.AssignmentRefresh.WorkerInterval,
+		BatchSize:    cfg.AssignmentRefresh.WorkerBatchSize,
+		StaleTimeout: cfg.AssignmentRefresh.WorkerStaleTimeout,
+	})
 	notificationWorker := appnotification.NewWorker(alertRepo, notificationSender, appnotification.WorkerConfig{
 		Enabled:      cfg.Alerting.NotificationWorkerEnabled,
 		Interval:     cfg.Alerting.NotificationWorkerInterval,
@@ -175,7 +181,7 @@ func buildControllerServices(cfg config.Config, log *zap.Logger, dbPool *pgxpool
 		projectService:           projectSvc,
 		publicStatusService:      publicStatusSvc,
 		resultService:            resultSvc,
-		notificationWorker:       notificationWorker,
+		backgroundWorkers:        []backgroundWorker{assignmentWorker, notificationWorker},
 	}
 }
 
