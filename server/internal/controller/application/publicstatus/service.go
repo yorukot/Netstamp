@@ -257,6 +257,34 @@ func (s *Service) GetPublicElementChart(ctx context.Context, input PublicElement
 	return PublicElementChart{Chart: chart, GeneratedAt: now}, nil
 }
 
+func (s *Service) GetPublicElementDailyStatus(ctx context.Context, input PublicElementDailyStatusInput) (PublicElementDailyStatus, error) {
+	now := publicNow(input.Now)
+	chartRange := domainpublic.ChartRange30d
+	if input.Range != nil {
+		if *input.Range != domainpublic.ChartRange30d {
+			return PublicElementDailyStatus{}, invalidField("range", "must be 30d", *input.Range)
+		}
+		chartRange = *input.Range
+	}
+	elementID, err := domainpublic.VNElementID(input.ElementID)
+	if err != nil {
+		return PublicElementDailyStatus{}, invalidField("elementId", err.Error(), input.ElementID)
+	}
+	snapshot, err := s.publicSnapshot(ctx, input.Slug, now)
+	if err != nil {
+		return PublicElementDailyStatus{}, err
+	}
+	element, ok := findRenderedElement(snapshot.elements, elementID)
+	if !ok {
+		return PublicElementDailyStatus{}, domainpublic.ErrElementNotFound
+	}
+	return PublicElementDailyStatus{
+		Range:       chartRange,
+		Days:        incidentBasedDailyStatus(collectRenderedAssignments(element), snapshot.incidents, now),
+		GeneratedAt: snapshot.generatedAt,
+	}, nil
+}
+
 func publicNow(value time.Time) time.Time {
 	if value.IsZero() {
 		return time.Now().UTC()
@@ -353,6 +381,26 @@ func findPublicElement(elements []domainpublic.Element, elementID string) (domai
 		}
 	}
 	return domainpublic.Element{}, false
+}
+
+func findRenderedElement(elements []domainpublic.RenderedElement, elementID string) (domainpublic.RenderedElement, bool) {
+	for _, element := range elements {
+		if element.ID == elementID {
+			return element, true
+		}
+		if child, ok := findRenderedElement(element.Children, elementID); ok {
+			return child, true
+		}
+	}
+	return domainpublic.RenderedElement{}, false
+}
+
+func collectRenderedAssignments(element domainpublic.RenderedElement) []domainpublic.Assignment {
+	assignments := append([]domainpublic.Assignment{}, element.Assignments...)
+	for _, child := range element.Children {
+		assignments = append(assignments, collectRenderedAssignments(child)...)
+	}
+	return assignments
 }
 
 func resolvedElementChartSettings(page domainpublic.Page, elements []domainpublic.Element, target domainpublic.Element) (domainpublic.ChartMode, domainpublic.ChartRange) {
@@ -549,6 +597,78 @@ func incidentMatchesAssignments(incident domainpublic.Incident, assignments []do
 		}
 	}
 	return false
+}
+
+func incidentBasedDailyStatus(assignments []domainpublic.Assignment, incidents []domainpublic.Incident, now time.Time) []domainpublic.DailyStatusDay {
+	start := dayStartUTC(now).AddDate(0, 0, -29)
+	days := make([]domainpublic.DailyStatusDay, 0, 30)
+	for i := 0; i < 30; i++ {
+		dayStart := start.AddDate(0, 0, i)
+		dayEnd := dayStart.AddDate(0, 0, 1)
+		day := domainpublic.DailyStatusDay{
+			Date:   dayStart,
+			Status: domainpublic.StatusOperational,
+		}
+		if len(assignments) == 0 {
+			day.Status = domainpublic.StatusUnknown
+			days = append(days, day)
+			continue
+		}
+		for _, incident := range incidents {
+			if !incidentMatchesAssignments(incident, assignments) || !incidentOverlapsDay(incident, dayStart, dayEnd, now) {
+				continue
+			}
+			day.IncidentCount++
+			day.Severity = highestIncidentSeverity(day.Severity, incident.Severity)
+		}
+		day.Status = dailyStatusFromSeverity(day.Severity)
+		days = append(days, day)
+	}
+	return days
+}
+
+func dayStartUTC(value time.Time) time.Time {
+	value = value.UTC()
+	return time.Date(value.Year(), value.Month(), value.Day(), 0, 0, 0, 0, time.UTC)
+}
+
+func incidentOverlapsDay(incident domainpublic.Incident, dayStart, dayEnd, now time.Time) bool {
+	incidentEnd := now
+	if incident.ResolvedAt != nil {
+		incidentEnd = *incident.ResolvedAt
+	}
+	return incident.OpenedAt.Before(dayEnd) && incidentEnd.After(dayStart)
+}
+
+func highestIncidentSeverity(current *string, next string) *string {
+	if current == nil || incidentSeverityRank(next) > incidentSeverityRank(*current) {
+		value := next
+		return &value
+	}
+	return current
+}
+
+func incidentSeverityRank(severity string) int {
+	switch severity {
+	case "critical":
+		return 3
+	case "warning":
+		return 2
+	case "info":
+		return 1
+	default:
+		return 0
+	}
+}
+
+func dailyStatusFromSeverity(severity *string) domainpublic.Status {
+	if severity == nil {
+		return domainpublic.StatusOperational
+	}
+	if *severity == "critical" {
+		return domainpublic.StatusDown
+	}
+	return domainpublic.StatusDegraded
 }
 
 func (s *Service) renderElements(

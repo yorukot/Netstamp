@@ -425,6 +425,188 @@ func TestGetPublicElementChartSkipsChartWhenModeOff(t *testing.T) {
 	}
 }
 
+func TestGetPublicElementDailyStatusMarksIncidentDays(t *testing.T) {
+	now := time.Date(2026, 6, 21, 12, 0, 0, 0, time.UTC)
+	checkID := "44444444-4444-4444-4444-444444444444"
+	checkType := domaincheck.TypePing
+	resolvedAt := time.Date(2026, 6, 20, 3, 0, 0, 0, time.UTC)
+
+	repo := &fakePublicStatusRepository{
+		page: testPage(now),
+		elements: []domainpublic.Element{
+			{
+				ID:           checkID,
+				PublicPageID: testPageID,
+				ProjectID:    testProjectID,
+				Kind:         domainpublic.ElementKindAssignmentGroup,
+				CheckID:      &checkID,
+				CheckName:    ptr("API"),
+				CheckType:    &checkType,
+				SortOrder:    1,
+				ChartMode:    domainpublic.ChartModeInherit,
+				CreatedAt:    now.Add(-time.Minute),
+				UpdatedAt:    now.Add(-time.Minute),
+			},
+		},
+		assignments: []domainpublic.Assignment{
+			testAssignment(checkID, "successful", now.Add(-30*time.Second)),
+		},
+		incidents: []domainpublic.Incident{
+			{
+				ID:              "77777777-7777-7777-7777-777777777777",
+				CheckID:         checkID,
+				CheckName:       "API",
+				Status:          "resolved",
+				Severity:        "critical",
+				OpenedAt:        time.Date(2026, 6, 19, 22, 0, 0, 0, time.UTC),
+				ResolvedAt:      &resolvedAt,
+				LastTriggeredAt: resolvedAt,
+			},
+		},
+	}
+
+	result, err := NewService(repo, nil, nil, nil).GetPublicElementDailyStatus(context.Background(), PublicElementDailyStatusInput{
+		Slug:      "main",
+		ElementID: checkID,
+		Now:       now,
+	})
+	if err != nil {
+		t.Fatalf("GetPublicElementDailyStatus returned error: %v", err)
+	}
+	if result.Range != domainpublic.ChartRange30d {
+		t.Fatalf("range = %q, want %q", result.Range, domainpublic.ChartRange30d)
+	}
+	if len(result.Days) != 30 {
+		t.Fatalf("day count = %d, want 30", len(result.Days))
+	}
+	if got := result.Days[0].Date; !got.Equal(time.Date(2026, 5, 23, 0, 0, 0, 0, time.UTC)) {
+		t.Fatalf("first day = %s, want 2026-05-23", got)
+	}
+	if got := result.Days[29].Date; !got.Equal(time.Date(2026, 6, 21, 0, 0, 0, 0, time.UTC)) {
+		t.Fatalf("last day = %s, want 2026-06-21", got)
+	}
+	for _, index := range []int{27, 28} {
+		day := result.Days[index]
+		if day.Status != domainpublic.StatusDown {
+			t.Fatalf("day %s status = %q, want %q", day.Date, day.Status, domainpublic.StatusDown)
+		}
+		if day.IncidentCount != 1 {
+			t.Fatalf("day %s incident count = %d, want 1", day.Date, day.IncidentCount)
+		}
+		if day.Severity == nil || *day.Severity != "critical" {
+			t.Fatalf("day %s severity = %v, want critical", day.Date, day.Severity)
+		}
+	}
+	if result.Days[29].Status != domainpublic.StatusOperational {
+		t.Fatalf("today status = %q, want %q", result.Days[29].Status, domainpublic.StatusOperational)
+	}
+}
+
+func TestGetPublicElementDailyStatusCollectsFolderAssignments(t *testing.T) {
+	now := time.Date(2026, 6, 21, 12, 0, 0, 0, time.UTC)
+	folderID := "44444444-4444-4444-4444-444444444444"
+	checkID := "55555555-5555-5555-5555-555555555555"
+	checkType := domaincheck.TypeTCP
+
+	repo := &fakePublicStatusRepository{
+		page: testPage(now),
+		elements: []domainpublic.Element{
+			{
+				ID:           folderID,
+				PublicPageID: testPageID,
+				ProjectID:    testProjectID,
+				Kind:         domainpublic.ElementKindFolder,
+				Title:        ptr("Core"),
+				SortOrder:    1,
+				ChartMode:    domainpublic.ChartModeInherit,
+				CreatedAt:    now.Add(-2 * time.Minute),
+				UpdatedAt:    now.Add(-2 * time.Minute),
+			},
+			{
+				ID:              checkID,
+				PublicPageID:    testPageID,
+				ProjectID:       testProjectID,
+				ParentElementID: &folderID,
+				Kind:            domainpublic.ElementKindAssignmentGroup,
+				CheckID:         &checkID,
+				CheckName:       ptr("API"),
+				CheckType:       &checkType,
+				SortOrder:       1,
+				ChartMode:       domainpublic.ChartModeInherit,
+				CreatedAt:       now.Add(-time.Minute),
+				UpdatedAt:       now.Add(-time.Minute),
+			},
+		},
+		assignments: []domainpublic.Assignment{
+			testAssignment(checkID, "successful", now.Add(-30*time.Second)),
+		},
+		incidents: []domainpublic.Incident{
+			{
+				ID:              "77777777-7777-7777-7777-777777777777",
+				CheckID:         checkID,
+				CheckName:       "API",
+				Status:          "open",
+				Severity:        "warning",
+				OpenedAt:        now.Add(-time.Hour),
+				LastTriggeredAt: now.Add(-30 * time.Minute),
+			},
+		},
+	}
+
+	result, err := NewService(repo, nil, nil, nil).GetPublicElementDailyStatus(context.Background(), PublicElementDailyStatusInput{
+		Slug:      "main",
+		ElementID: folderID,
+		Now:       now,
+	})
+	if err != nil {
+		t.Fatalf("GetPublicElementDailyStatus returned error: %v", err)
+	}
+	today := result.Days[len(result.Days)-1]
+	if today.Status != domainpublic.StatusDegraded {
+		t.Fatalf("folder today status = %q, want %q", today.Status, domainpublic.StatusDegraded)
+	}
+	if today.IncidentCount != 1 {
+		t.Fatalf("folder today incident count = %d, want 1", today.IncidentCount)
+	}
+}
+
+func TestGetPublicElementDailyStatusRejectsUnsupportedRange(t *testing.T) {
+	now := time.Date(2026, 6, 21, 12, 0, 0, 0, time.UTC)
+	checkID := "44444444-4444-4444-4444-444444444444"
+	checkType := domaincheck.TypePing
+	chartRange := domainpublic.ChartRange7d
+
+	repo := &fakePublicStatusRepository{
+		page: testPage(now),
+		elements: []domainpublic.Element{
+			{
+				ID:           checkID,
+				PublicPageID: testPageID,
+				ProjectID:    testProjectID,
+				Kind:         domainpublic.ElementKindAssignmentGroup,
+				CheckID:      &checkID,
+				CheckName:    ptr("API"),
+				CheckType:    &checkType,
+				SortOrder:    1,
+				ChartMode:    domainpublic.ChartModeInherit,
+			},
+		},
+	}
+	_, err := NewService(repo, nil, nil, nil).GetPublicElementDailyStatus(context.Background(), PublicElementDailyStatusInput{
+		Slug:      "main",
+		ElementID: checkID,
+		Range:     &chartRange,
+		Now:       now,
+	})
+	if !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("GetPublicElementDailyStatus error = %v, want ErrInvalidInput", err)
+	}
+	fields, ok := appvalidation.FieldErrors(err)
+	if !ok || len(fields) != 1 || fields[0].Field != "range" {
+		t.Fatalf("validation fields = %#v, want range error", fields)
+	}
+}
+
 func TestUpdateElementRejectsKindChange(t *testing.T) {
 	now := time.Date(2026, 6, 21, 12, 0, 0, 0, time.UTC)
 	elementID := "55555555-5555-5555-5555-555555555555"

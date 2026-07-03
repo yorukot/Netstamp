@@ -65,6 +65,24 @@ func (h *Handler) handleGetPublicStatusElementChart(w http.ResponseWriter, r *ht
 	httpx.WriteJSON(w, http.StatusOK, newPublicStatusElementChartResponse(chart))
 }
 
+func (h *Handler) handleGetPublicStatusElementDailyStatus(w http.ResponseWriter, r *http.Request) {
+	dailyStatusRange, err := queryDailyStatusRange(r)
+	if err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	dailyStatus, err := h.service.GetPublicElementDailyStatus(r.Context(), apppublic.PublicElementDailyStatusInput{
+		Slug:      httpx.Path(r, "slug"),
+		ElementID: httpx.Path(r, "element_id"),
+		Range:     dailyStatusRange,
+	})
+	if err != nil {
+		httpx.WriteProblem(w, r, mapPublicStatusError(err, "get public status element daily status failed"))
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, newPublicStatusElementDailyStatusResponse(dailyStatus))
+}
+
 func queryChartRange(r *http.Request) (*domainpublic.ChartRange, error) {
 	value := httpx.QueryString(r, "range")
 	if value == "" {
@@ -76,4 +94,16 @@ func queryChartRange(r *http.Request) (*domainpublic.ChartRange, error) {
 		return nil, httpx.BadRequest("invalid query parameter range")
 	}
 	return &normalized, nil
+}
+
+func queryDailyStatusRange(r *http.Request) (*domainpublic.ChartRange, error) {
+	value := httpx.QueryString(r, "range")
+	if value == "" {
+		return nil, nil //nolint:nilnil // Nil means use the only supported daily status range.
+	}
+	if value != string(domainpublic.ChartRange30d) {
+		return nil, httpx.BadRequest("invalid query parameter range")
+	}
+	dailyStatusRange := domainpublic.ChartRange30d
+	return &dailyStatusRange, nil
 }

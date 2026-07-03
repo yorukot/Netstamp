@@ -14,7 +14,8 @@ export const apiQueryKeys = {
 		summary: (slug: string) => [...apiQueryKeys.publicStatus.pageRoot(slug), "summary"] as const,
 		elements: (slug: string) => [...apiQueryKeys.publicStatus.pageRoot(slug), "elements"] as const,
 		incidents: (slug: string, filters: object = {}) => [...apiQueryKeys.publicStatus.pageRoot(slug), "incidents", filters] as const,
-		elementChart: (slug: string, elementId: string, filters: object = {}) => [...apiQueryKeys.publicStatus.pageRoot(slug), "element-chart", elementId, filters] as const
+		elementChart: (slug: string, elementId: string, filters: object = {}) => [...apiQueryKeys.publicStatus.pageRoot(slug), "element-chart", elementId, filters] as const,
+		elementDailyStatus: (slug: string, elementId: string, filters: object = {}) => [...apiQueryKeys.publicStatus.pageRoot(slug), "element-daily-status", elementId, filters] as const
 	},
 	projects: {
 		all: ["projects"] as const,

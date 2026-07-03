@@ -5749,6 +5749,76 @@
 				"tags": ["Public Status Pages"]
 			}
 		},
+		"/public/status-pages/{slug}/elements/{element_id}/daily-status": {
+			"get": {
+				"operationId": "getPublicStatusElementDailyStatus",
+				"summary": "Get public status page element daily status",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/PublicStatusSlugPathParam"
+					},
+					{
+						"$ref": "#/components/parameters/PublicStatusElementIdPathParam"
+					},
+					{
+						"$ref": "#/components/parameters/PublicStatusDailyStatusQuery"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/PublicStatusElementDailyStatusResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Public Status Pages"]
+			}
+		},
 		"/public/status-pages/{slug}/incidents": {
 			"get": {
 				"operationId": "getPublicStatusIncidents",
@@ -6848,6 +6918,16 @@
 				"schema": {
 					"type": "string",
 					"enum": ["24h", "7d", "30d"]
+				},
+				"explode": false
+			},
+			"PublicStatusDailyStatusQuery": {
+				"name": "range",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"enum": ["30d"]
 				},
 				"explode": false
 			},
@@ -9932,6 +10012,29 @@
 					}
 				}
 			},
+			"PublicStatusDailyStatusDay": {
+				"type": "object",
+				"required": ["date", "status", "incidentCount"],
+				"properties": {
+					"date": {
+						"type": "string",
+						"format": "date"
+					},
+					"status": {
+						"type": "string",
+						"enum": ["operational", "degraded", "down", "unknown"]
+					},
+					"incidentCount": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 0
+					},
+					"severity": {
+						"type": "string",
+						"enum": ["info", "warning", "critical"]
+					}
+				}
+			},
 			"PublicStatusElement": {
 				"type": "object",
 				"required": ["id", "publicPageId", "kind", "assignmentIds", "sortOrder", "chartMode", "createdAt", "updatedAt"],
@@ -10015,6 +10118,26 @@
 				"properties": {
 					"chart": {
 						"$ref": "#/components/schemas/PublicStatusChart"
+					},
+					"generatedAt": {
+						"type": "string",
+						"format": "date-time"
+					}
+				}
+			},
+			"PublicStatusElementDailyStatusResponse": {
+				"type": "object",
+				"required": ["range", "days", "generatedAt"],
+				"properties": {
+					"range": {
+						"type": "string",
+						"enum": ["30d"]
+					},
+					"days": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/PublicStatusDailyStatusDay"
+						}
 					},
 					"generatedAt": {
 						"type": "string",

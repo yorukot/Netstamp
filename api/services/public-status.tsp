@@ -140,4 +140,15 @@ interface PublicStatusPageService {
 		| NotFoundProblem
 		| UnprocessableEntityProblem
 		| InternalServerProblem;
+
+	@operationId("getPublicStatusElementDailyStatus")
+	@summary("Get public status page element daily status")
+	@get
+	@route("/{slug}/elements/{element_id}/daily-status")
+	getPublicStatusElementDailyStatus(...PublicStatusSlugPathParam, ...PublicStatusElementIdPathParam, ...PublicStatusDailyStatusQuery):
+		| OkJson<PublicStatusElementDailyStatusResponse>
+		| BadRequestProblem
+		| NotFoundProblem
+		| UnprocessableEntityProblem
+		| InternalServerProblem;
 }

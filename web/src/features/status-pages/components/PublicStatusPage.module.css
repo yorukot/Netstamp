@@ -210,6 +210,59 @@
 	border-top: 1px solid var(--ns-border);
 }
 
+.dailyStatus {
+	display: grid;
+	gap: 0.35rem;
+	border-top: 1px solid var(--ns-border);
+	padding-top: 0.75rem;
+	min-width: 0;
+}
+
+.dailyStatusBars {
+	display: grid;
+	grid-template-columns: repeat(30, minmax(0, 1fr));
+	gap: 0.2rem;
+	min-height: 2.5rem;
+}
+
+.dailyStatusBar {
+	display: block;
+	min-width: 0;
+	height: 2.5rem;
+	border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.dailyStatusBarOperational {
+	background: #20bf6b;
+}
+
+.dailyStatusBarDegraded {
+	background: #f0b429;
+}
+
+.dailyStatusBarDown {
+	background: #df3f40;
+}
+
+.dailyStatusBarUnknown {
+	background: #94a3b8;
+}
+
+.dailyStatusMeta {
+	display: flex;
+	justify-content: space-between;
+	color: var(--ns-text-subtle);
+	font: 0.72rem/1.4 var(--ns-font-mono);
+}
+
+.dailyStatusPlaceholder {
+	min-height: 2.5rem;
+	display: grid;
+	place-items: center;
+	color: var(--ns-text-subtle);
+	font: 0.78rem/1.4 var(--ns-font-mono);
+}
+
 .publicAssignmentRow {
 	display: grid;
 	grid-template-columns: minmax(0, 1fr) auto;

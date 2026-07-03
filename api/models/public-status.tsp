@@ -7,6 +7,7 @@ namespace Netstamp;
 alias PublicStatusChartMode = "inherit" | "off" | "compact";
 alias PublicStatusPageChartMode = "off" | "compact";
 alias PublicStatusChartRange = "24h" | "7d" | "30d";
+alias PublicStatusDailyStatusRange = "30d";
 alias PublicStatusElementKind = "folder" | "assignment_group";
 alias PublicStatusAssignmentSelectionMode = "all_check" | "selected_assignments";
 alias PublicStatusState = "operational" | "degraded" | "down" | "unknown";
@@ -240,6 +241,24 @@ model PublicStatusElementChartResponse {
 	generatedAt: utcDateTime;
 }
 
+model PublicStatusDailyStatusDay {
+	@format("date")
+	date: string;
+
+	status: PublicStatusState;
+
+	@minValue(0)
+	incidentCount: int32;
+
+	severity?: AlertSeverity;
+}
+
+model PublicStatusElementDailyStatusResponse {
+	range: PublicStatusDailyStatusRange;
+	days: PublicStatusDailyStatusDay[];
+	generatedAt: utcDateTime;
+}
+
 model CreatePublicStatusPageRequest {
 	@minLength(1)
 	@maxLength(64)
@@ -297,4 +316,9 @@ model PublicStatusIncidentsQuery {
 model PublicStatusChartQuery {
 	@query
 	range?: PublicStatusChartRange;
+}
+
+model PublicStatusDailyStatusQuery {
+	@query
+	range?: PublicStatusDailyStatusRange;
 }

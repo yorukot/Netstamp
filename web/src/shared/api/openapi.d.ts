@@ -888,6 +888,23 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	"/public/status-pages/{slug}/elements/{element_id}/daily-status": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** Get public status page element daily status */
+		get: operations["getPublicStatusElementDailyStatus"];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	"/public/status-pages/{slug}/incidents": {
 		parameters: {
 			query?: never;
@@ -2691,6 +2708,16 @@ export interface components {
 			range: "24h" | "7d" | "30d";
 			series: components["schemas"]["Series"][];
 		};
+		PublicStatusDailyStatusDay: {
+			/** Format: date */
+			date: string;
+			/** @enum {string} */
+			status: "operational" | "degraded" | "down" | "unknown";
+			/** Format: int32 */
+			incidentCount: number;
+			/** @enum {string} */
+			severity?: "info" | "warning" | "critical";
+		};
 		PublicStatusElement: {
 			id: components["schemas"]["uuid"];
 			publicPageId: components["schemas"]["uuid"];
@@ -2722,6 +2749,13 @@ export interface components {
 		};
 		PublicStatusElementChartResponse: {
 			chart?: components["schemas"]["PublicStatusChart"];
+			/** Format: date-time */
+			generatedAt: string;
+		};
+		PublicStatusElementDailyStatusResponse: {
+			/** @enum {string} */
+			range: "30d";
+			days: components["schemas"]["PublicStatusDailyStatusDay"][];
 			/** Format: date-time */
 			generatedAt: string;
 		};
@@ -3949,6 +3983,7 @@ export interface components {
 		ProjectInviteIdPathParam: components["schemas"]["uuid"];
 		ProjectRefParam: string;
 		PublicStatusChartQuery: "24h" | "7d" | "30d";
+		PublicStatusDailyStatusQuery: "30d";
 		PublicStatusElementIdPathParam: components["schemas"]["uuid"];
 		PublicStatusIncidentsQuery: number;
 		PublicStatusPageIdPathParam: components["schemas"]["uuid"];
@@ -8680,6 +8715,67 @@ export interface operations {
 				};
 				content: {
 					"application/json": components["schemas"]["PublicStatusElementChartResponse"];
+				};
+			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	getPublicStatusElementDailyStatus: {
+		parameters: {
+			query?: {
+				range?: components["parameters"]["PublicStatusDailyStatusQuery"];
+			};
+			header?: never;
+			path: {
+				slug: components["parameters"]["PublicStatusSlugPathParam"];
+				element_id: components["parameters"]["PublicStatusElementIdPathParam"];
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["PublicStatusElementDailyStatusResponse"];
 				};
 			};
 			/** @description The server could not understand the request due to invalid syntax. */

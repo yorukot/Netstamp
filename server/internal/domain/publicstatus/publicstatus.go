@@ -157,6 +157,13 @@ type Chart struct {
 	Series []Series
 }
 
+type DailyStatusDay struct {
+	Date          time.Time
+	Status        Status
+	IncidentCount int32
+	Severity      *string
+}
+
 type Series struct {
 	Name   string
 	Labels map[string]string

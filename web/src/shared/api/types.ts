@@ -29,6 +29,7 @@ export type ApiPublicStatusElementChartResponse = Omit<components["schemas"]["Pu
 		series: ApiSeries[];
 	};
 };
+export type ApiPublicStatusElementDailyStatusResponse = components["schemas"]["PublicStatusElementDailyStatusResponse"];
 export type ApiSelector = components["schemas"]["Selector"];
 export type CreateAlertRuleInput = components["schemas"]["CreateAlertRuleRequest"];
 export type ChangeCurrentUserEmailInput = components["schemas"]["ChangeCurrentUserEmailRequest"];
@@ -159,4 +160,8 @@ export interface PublicStatusIncidentsFilters {
 
 export interface PublicStatusChartFilters {
 	range?: PublicStatusChartRange;
+}
+
+export interface PublicStatusDailyStatusFilters {
+	range?: components["parameters"]["PublicStatusDailyStatusQuery"];
 }

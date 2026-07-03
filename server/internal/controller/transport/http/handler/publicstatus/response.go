@@ -79,6 +79,19 @@ type publicStatusElementChartResponseBody struct {
 	GeneratedAt time.Time  `json:"generatedAt"`
 }
 
+type publicStatusElementDailyStatusResponseBody struct {
+	Range       domainpublic.ChartRange `json:"range"`
+	Days        []dailyStatusDayBody    `json:"days"`
+	GeneratedAt time.Time               `json:"generatedAt"`
+}
+
+type dailyStatusDayBody struct {
+	Date          string              `json:"date"`
+	Status        domainpublic.Status `json:"status"`
+	IncidentCount int32               `json:"incidentCount"`
+	Severity      *string             `json:"severity,omitempty"`
+}
+
 type publicPageBody struct {
 	ID                string                  `json:"id"`
 	Slug              string                  `json:"slug"`
@@ -264,6 +277,23 @@ func newPublicStatusElementChartResponse(chart apppublic.PublicElementChart) pub
 		Chart:       newChartBody(chart.Chart),
 		GeneratedAt: chart.GeneratedAt,
 	}
+}
+
+func newPublicStatusElementDailyStatusResponse(dailyStatus apppublic.PublicElementDailyStatus) publicStatusElementDailyStatusResponseBody {
+	body := publicStatusElementDailyStatusResponseBody{
+		Range:       dailyStatus.Range,
+		Days:        make([]dailyStatusDayBody, 0, len(dailyStatus.Days)),
+		GeneratedAt: dailyStatus.GeneratedAt,
+	}
+	for _, day := range dailyStatus.Days {
+		body.Days = append(body.Days, dailyStatusDayBody{
+			Date:          day.Date.Format("2006-01-02"),
+			Status:        day.Status,
+			IncidentCount: day.IncidentCount,
+			Severity:      day.Severity,
+		})
+	}
+	return body
 }
 
 func newPublicPageBody(page domainpublic.Page, status domainpublic.Status) publicPageBody {

@@ -3,6 +3,7 @@ import { ApiError } from "@/shared/api/client";
 import { publicStatusQueries } from "@/shared/api/queries";
 import type {
 	ApiPublicStatusElementChartResponse,
+	ApiPublicStatusElementDailyStatusResponse,
 	ApiPublicStatusElementsResponse,
 	ApiPublicStatusIncidentsResponse,
 	ApiPublicStatusPublicElement,
@@ -17,6 +18,7 @@ import styles from "./PublicStatusPage.module.css";
 
 type PublicIncident = ApiPublicStatusIncidentsResponse["incidents"]["active"][number];
 type PublicAssignment = NonNullable<ApiPublicStatusPublicElement["assignments"]>[number];
+type DailyStatusDay = ApiPublicStatusElementDailyStatusResponse["days"][number];
 
 export function PublicStatusPage() {
 	const { slug = "" } = useParams();
@@ -216,10 +218,42 @@ function PublicElement({ slug, element }: { slug: string; element: ApiPublicStat
 				</div>
 			</div>
 			<Metrics element={element} />
+			<LazyPublicElementDailyStatus slug={slug} element={element} />
 			<AssignmentRows assignments={element.assignments ?? []} />
 			{element.chart?.series.length ? <ChartPanel className={styles.chart} option={publicStatusChartOption(element)} height="12rem" /> : null}
 			{!element.chart?.series.length && element.chartMode === "compact" ? <LazyPublicElementChart slug={slug} element={element} /> : null}
 		</article>
+	);
+}
+
+function LazyPublicElementDailyStatus({ slug, element }: { slug: string; element: ApiPublicStatusPublicElement }) {
+	const { ref, inView } = useInView<HTMLDivElement>("200px");
+	const filters = { range: "30d" as const };
+	const dailyStatusQuery = useQuery({
+		...publicStatusQueries.elementDailyStatus(slug, element.id, filters),
+		enabled: Boolean(slug) && inView,
+		select: data => data as ApiPublicStatusElementDailyStatusResponse
+	});
+	const days = dailyStatusQuery.data?.days ?? [];
+
+	return (
+		<div ref={ref} className={styles.dailyStatus}>
+			{dailyStatusQuery.isPending || (dailyStatusQuery.isFetching && !dailyStatusQuery.data) ? <div className={styles.dailyStatusPlaceholder}>Loading 30 days</div> : null}
+			{dailyStatusQuery.error ? <div className={styles.dailyStatusPlaceholder}>Daily status unavailable</div> : null}
+			{days.length ? (
+				<>
+					<div className={styles.dailyStatusBars} aria-label={`${element.title} 30 day status`}>
+						{days.map(day => (
+							<span key={day.date} className={`${styles.dailyStatusBar} ${dailyStatusBarClass(day.status)}`} title={dailyStatusTitle(day)} />
+						))}
+					</div>
+					<div className={styles.dailyStatusMeta}>
+						<span>{formatDateLabel(days[0]?.date)}</span>
+						<span>{formatDateLabel(days[days.length - 1]?.date)}</span>
+					</div>
+				</>
+			) : null}
+		</div>
 	);
 }
 
@@ -265,6 +299,35 @@ function useInView<T extends Element>(rootMargin: string) {
 	}, [inView, rootMargin]);
 
 	return { ref, inView };
+}
+
+function dailyStatusBarClass(status: DailyStatusDay["status"]) {
+	switch (status) {
+		case "operational":
+			return styles.dailyStatusBarOperational;
+		case "degraded":
+			return styles.dailyStatusBarDegraded;
+		case "down":
+			return styles.dailyStatusBarDown;
+		default:
+			return styles.dailyStatusBarUnknown;
+	}
+}
+
+function dailyStatusTitle(day: DailyStatusDay) {
+	const incidentText = day.incidentCount === 1 ? "1 incident" : `${day.incidentCount} incidents`;
+	return `${formatDateLabel(day.date)} / ${statusLabel(day.status)} / ${incidentText}`;
+}
+
+function formatDateLabel(value: string | undefined) {
+	if (!value) {
+		return "-";
+	}
+	const date = new Date(`${value}T00:00:00Z`);
+	if (Number.isNaN(date.getTime())) {
+		return value;
+	}
+	return date.toLocaleDateString([], { month: "short", day: "2-digit", timeZone: "UTC" });
 }
 
 function AssignmentRows({ assignments }: { assignments: PublicAssignment[] }) {

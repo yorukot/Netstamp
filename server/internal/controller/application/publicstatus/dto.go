@@ -109,6 +109,13 @@ type PublicElementChartInput struct {
 	Now       time.Time
 }
 
+type PublicElementDailyStatusInput struct {
+	Slug      string
+	ElementID string
+	Range     *domainpublic.ChartRange
+	Now       time.Time
+}
+
 type PublicSummary struct {
 	Page        domainpublic.Page
 	Status      domainpublic.Status
@@ -128,6 +135,12 @@ type PublicIncidents struct {
 
 type PublicElementChart struct {
 	Chart       *domainpublic.Chart
+	GeneratedAt time.Time
+}
+
+type PublicElementDailyStatus struct {
+	Range       domainpublic.ChartRange
+	Days        []domainpublic.DailyStatusDay
 	GeneratedAt time.Time
 }
 
