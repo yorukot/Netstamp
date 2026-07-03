@@ -69,6 +69,29 @@ func activeProbeLabelsFromRows(rows []sqlc.ListActiveEnabledProbeLabelsForProjec
 	return probes
 }
 
+func activeProbeLabelsFromProjectRows(rows []sqlc.ListActiveProbesForProjectRow) []activeProbeLabels {
+	probeIndex := make(map[uuid.UUID]int)
+	probes := make([]activeProbeLabels, 0)
+	for _, row := range rows {
+		index, ok := probeIndex[row.ID]
+		if !ok {
+			index = len(probes)
+			probeIndex[row.ID] = index
+			probes = append(probes, activeProbeLabels{
+				probeID:   row.ID,
+				projectID: row.ProjectID,
+				name:      row.Name,
+				enabled:   row.Enabled,
+			})
+		}
+		if label, ok := mapListProbeLabel(row); ok {
+			probes[index].labels = append(probes[index].labels, label)
+		}
+	}
+
+	return probes
+}
+
 func matchingProbeIDs(selector domainselector.Selector, probes []activeProbeLabels) []uuid.UUID {
 	probeIDs := make([]uuid.UUID, 0, len(probes))
 	for _, probe := range probes {
@@ -179,6 +202,22 @@ func mapGetProbeLabel(row sqlc.GetActiveProbeRowsForProjectRow) (domainlabel.Lab
 }
 
 func mapEnabledProbeLabel(row sqlc.ListActiveEnabledProbeLabelsForProjectRow) (domainlabel.Label, bool) {
+	if row.LabelID == nil || row.LabelProjectID == nil || row.LabelKey == nil || row.LabelValue == nil || row.LabelCreatedAt == nil || row.LabelUpdatedAt == nil {
+		return domainlabel.Label{}, false
+	}
+
+	return domainlabel.Label{
+		ID:        row.LabelID.String(),
+		ProjectID: row.LabelProjectID.String(),
+		Key:       *row.LabelKey,
+		Value:     *row.LabelValue,
+		CreatedAt: *row.LabelCreatedAt,
+		UpdatedAt: *row.LabelUpdatedAt,
+		DeletedAt: row.LabelDeletedAt,
+	}, true
+}
+
+func mapListProbeLabel(row sqlc.ListActiveProbesForProjectRow) (domainlabel.Label, bool) {
 	if row.LabelID == nil || row.LabelProjectID == nil || row.LabelKey == nil || row.LabelValue == nil || row.LabelCreatedAt == nil || row.LabelUpdatedAt == nil {
 		return domainlabel.Label{}, false
 	}

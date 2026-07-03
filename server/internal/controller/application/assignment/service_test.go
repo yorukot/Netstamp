@@ -32,6 +32,21 @@ func TestRefreshProbeCheckAssignmentsForProbeCallsRepository(t *testing.T) {
 	assertLastEvent(t, events, AssignmentEventRefreshProbeSuccess, AssignmentOutcomeSuccess, "")
 }
 
+func TestRefreshProbeCheckAssignmentsForProjectCallsRepository(t *testing.T) {
+	repo := &recordingRepository{}
+	events := &recordingEventRecorder{}
+	service := NewService(repo, nil, events)
+
+	if err := service.RefreshProbeCheckAssignmentsForProject(context.Background(), testProjectID); err != nil {
+		t.Fatalf("expected refresh to succeed: %v", err)
+	}
+
+	if repo.method != "refresh_project" || repo.projectID != testProjectID {
+		t.Fatalf("unexpected repository call: %#v", repo)
+	}
+	assertLastEvent(t, events, AssignmentEventRefreshProjectSuccess, AssignmentOutcomeSuccess, "")
+}
+
 func TestRefreshProbeCheckAssignmentsForCheckCallsRepository(t *testing.T) {
 	repo := &recordingRepository{}
 	events := &recordingEventRecorder{}
@@ -145,6 +160,12 @@ func (r *recordingRepository) RefreshProbeCheckAssignmentsForProbe(_ context.Con
 	r.method = "refresh_probe"
 	r.projectID = projectID
 	r.probeID = probeID
+	return r.err
+}
+
+func (r *recordingRepository) RefreshProbeCheckAssignmentsForProject(_ context.Context, projectID string) error {
+	r.method = "refresh_project"
+	r.projectID = projectID
 	return r.err
 }
 

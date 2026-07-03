@@ -3,12 +3,14 @@ package service
 import (
 	"context"
 	"errors"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
+	"syscall"
 	"testing"
 )
 
@@ -126,6 +128,7 @@ func TestManagerInstallRejectsMissingBinary(t *testing.T) {
 
 func TestManagerUpdateDownloadsBinaryAndRestartsInstalledService(t *testing.T) {
 	ctx := context.Background()
+	requireHTTPTestServer(t)
 	dir := t.TempDir()
 	paths := testPaths(dir)
 	if err := os.MkdirAll(paths.SystemdRuntimeDir, 0o755); err != nil {
@@ -184,8 +187,22 @@ func TestManagerUpdateDownloadsBinaryAndRestartsInstalledService(t *testing.T) {
 	}
 }
 
+func requireHTTPTestServer(t *testing.T) {
+	t.Helper()
+
+	listener, err := net.Listen("tcp6", "[::1]:0")
+	if err != nil {
+		if errors.Is(err, syscall.EPERM) {
+			t.Skipf("httptest listener unavailable in this environment: %v", err)
+		}
+		return
+	}
+	_ = listener.Close()
+}
+
 func TestManagerUpdateUsesManagedEnvControllerURL(t *testing.T) {
 	ctx := context.Background()
+	requireHTTPTestServer(t)
 	dir := t.TempDir()
 	paths := testPaths(dir)
 	writeTestFile(t, paths.InstallPath, 0o755)
@@ -231,6 +248,7 @@ func TestManagerUpdateUsesManagedEnvControllerURL(t *testing.T) {
 
 func TestManagerUpdatePreservesBinaryWhenDownloadFails(t *testing.T) {
 	ctx := context.Background()
+	requireHTTPTestServer(t)
 	dir := t.TempDir()
 	paths := testPaths(dir)
 	writeTestFile(t, paths.InstallPath, 0o755)

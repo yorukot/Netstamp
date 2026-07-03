@@ -9,6 +9,15 @@ import (
 	domainselector "github.com/yorukot/netstamp/internal/domain/selector"
 )
 
+func normalizeProjectTarget(projectID string) (string, error) {
+	projectID, err := domainassignment.VNProjectID(projectID)
+	if err != nil {
+		return "", appvalidation.New(ErrInvalidInput, "projectId", err.Error(), projectID)
+	}
+
+	return projectID, nil
+}
+
 func normalizeProbeTarget(projectID, probeID string) (string, string, error) {
 	var validation appvalidation.Collector
 

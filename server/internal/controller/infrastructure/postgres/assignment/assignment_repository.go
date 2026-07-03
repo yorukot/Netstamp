@@ -30,6 +30,38 @@ func NewAssignmentRepository(pool *pgxpool.Pool) *AssignmentRepository {
 	}
 }
 
+func (r *AssignmentRepository) RefreshProbeCheckAssignmentsForProject(ctx context.Context, projectIDValue string) error {
+	ctx, span := postgres.StartDBSpan(ctx, pgassignmentTracer, "probe_check_assignments", "postgres.assignments.refresh_for_project", "UPDATE", "REFRESH probe check assignments for project")
+	defer span.End()
+
+	projectID, err := postgres.ParseUUID(projectIDValue, domainproject.ErrProjectNotFound)
+	if err != nil {
+		return err
+	}
+
+	err = r.tx.InTx(ctx, func(ctx context.Context, tx pgx.Tx) error {
+		q := r.queries.WithTx(tx)
+
+		rows, queryErr := q.ListActiveProbesForProject(ctx, projectID)
+		if queryErr != nil {
+			return queryErr
+		}
+		for _, probe := range activeProbeLabelsFromProjectRows(rows) {
+			if refreshErr := r.refreshProbeCheckAssignmentsForProbe(ctx, q, projectID, probe); refreshErr != nil {
+				return refreshErr
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		postgres.RecordDBSpanError(span, err)
+		return err
+	}
+
+	return nil
+}
+
 func (r *AssignmentRepository) RefreshProbeCheckAssignmentsForProbe(ctx context.Context, projectIDValue, probeIDValue string) error {
 	ctx, span := postgres.StartDBSpan(ctx, pgassignmentTracer, "probe_check_assignments", "postgres.assignments.refresh_for_probe", "UPDATE", "REFRESH probe check assignments for probe")
 	defer span.End()

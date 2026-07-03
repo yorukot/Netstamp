@@ -22,6 +22,24 @@ func NewService(repo Repository, projectAccess ProjectAccess, events EventRecord
 	}
 }
 
+func (s *Service) RefreshProbeCheckAssignmentsForProject(ctx context.Context, projectID string) error {
+	ctx, flow := s.startAssignmentFlow(ctx, "assignment.project.refresh", AssignmentActionRefreshProject)
+	defer flow.end()
+
+	projectID, err := normalizeProjectTarget(projectID)
+	if err != nil {
+		return flow.businessFailure(AssignmentEventRefreshProjectFailure, AssignmentReasonInvalidInput, err)
+	}
+	flow.setProjectID(projectID)
+
+	if err := s.repo.RefreshProbeCheckAssignmentsForProject(ctx, projectID); err != nil {
+		return flow.refreshFailure(AssignmentEventRefreshProjectFailure, err)
+	}
+	flow.success(AssignmentEventRefreshProjectSuccess)
+
+	return nil
+}
+
 func (s *Service) RefreshProbeCheckAssignmentsForProbe(ctx context.Context, projectID, probeID string) error {
 	ctx, flow := s.startAssignmentFlow(ctx, "assignment.probe.refresh", AssignmentActionRefreshProbe)
 	defer flow.end()

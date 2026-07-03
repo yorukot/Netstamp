@@ -2,7 +2,9 @@ package executor
 
 import (
 	"context"
+	"errors"
 	"net"
+	"syscall"
 	"testing"
 	"time"
 
@@ -15,6 +17,9 @@ import (
 func TestTCPExecutorConnectsToLocalListener(t *testing.T) {
 	listener, err := net.Listen("tcp4", "127.0.0.1:0")
 	if err != nil {
+		if errors.Is(err, syscall.EPERM) {
+			t.Skipf("local tcp listener unavailable in this environment: %v", err)
+		}
 		t.Fatalf("listen: %v", err)
 	}
 	defer listener.Close()

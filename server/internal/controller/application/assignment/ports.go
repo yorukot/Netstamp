@@ -10,6 +10,7 @@ import (
 )
 
 type Repository interface {
+	RefreshProbeCheckAssignmentsForProject(ctx context.Context, projectID string) error
 	RefreshProbeCheckAssignmentsForProbe(ctx context.Context, projectID, probeID string) error
 	RefreshProbeCheckAssignmentsForCheck(ctx context.Context, projectID, checkID string) error
 	RefreshProbeCheckAssignmentsForLabel(ctx context.Context, projectID, labelID string) error
@@ -30,30 +31,33 @@ type EventRecorder interface {
 type AssignmentEventName string
 
 const (
-	AssignmentEventRefreshProbeSuccess AssignmentEventName = "assignment.probe.refresh.success"
-	AssignmentEventRefreshProbeFailure AssignmentEventName = "assignment.probe.refresh.failure"
-	AssignmentEventRefreshCheckSuccess AssignmentEventName = "assignment.check.refresh.success"
-	AssignmentEventRefreshCheckFailure AssignmentEventName = "assignment.check.refresh.failure"
-	AssignmentEventRefreshLabelSuccess AssignmentEventName = "assignment.label.refresh.success"
-	AssignmentEventRefreshLabelFailure AssignmentEventName = "assignment.label.refresh.failure"
-	AssignmentEventDeleteProbeSuccess  AssignmentEventName = "assignment.probe.delete.success"
-	AssignmentEventDeleteProbeFailure  AssignmentEventName = "assignment.probe.delete.failure"
-	AssignmentEventDeleteCheckSuccess  AssignmentEventName = "assignment.check.delete.success"
-	AssignmentEventDeleteCheckFailure  AssignmentEventName = "assignment.check.delete.failure"
-	AssignmentEventPreviewFailure      AssignmentEventName = "assignment.selector_preview.failure"
-	AssignmentEventListFailure         AssignmentEventName = "assignment.list.failure"
+	AssignmentEventRefreshProjectSuccess AssignmentEventName = "assignment.project.refresh.success"
+	AssignmentEventRefreshProjectFailure AssignmentEventName = "assignment.project.refresh.failure"
+	AssignmentEventRefreshProbeSuccess   AssignmentEventName = "assignment.probe.refresh.success"
+	AssignmentEventRefreshProbeFailure   AssignmentEventName = "assignment.probe.refresh.failure"
+	AssignmentEventRefreshCheckSuccess   AssignmentEventName = "assignment.check.refresh.success"
+	AssignmentEventRefreshCheckFailure   AssignmentEventName = "assignment.check.refresh.failure"
+	AssignmentEventRefreshLabelSuccess   AssignmentEventName = "assignment.label.refresh.success"
+	AssignmentEventRefreshLabelFailure   AssignmentEventName = "assignment.label.refresh.failure"
+	AssignmentEventDeleteProbeSuccess    AssignmentEventName = "assignment.probe.delete.success"
+	AssignmentEventDeleteProbeFailure    AssignmentEventName = "assignment.probe.delete.failure"
+	AssignmentEventDeleteCheckSuccess    AssignmentEventName = "assignment.check.delete.success"
+	AssignmentEventDeleteCheckFailure    AssignmentEventName = "assignment.check.delete.failure"
+	AssignmentEventPreviewFailure        AssignmentEventName = "assignment.selector_preview.failure"
+	AssignmentEventListFailure           AssignmentEventName = "assignment.list.failure"
 )
 
 type AssignmentEventAction string
 
 const (
-	AssignmentActionRefreshProbe AssignmentEventAction = "probe.refresh"
-	AssignmentActionRefreshCheck AssignmentEventAction = "check.refresh"
-	AssignmentActionRefreshLabel AssignmentEventAction = "label.refresh"
-	AssignmentActionDeleteProbe  AssignmentEventAction = "probe.delete"
-	AssignmentActionDeleteCheck  AssignmentEventAction = "check.delete"
-	AssignmentActionPreview      AssignmentEventAction = "selector_preview"
-	AssignmentActionList         AssignmentEventAction = "list"
+	AssignmentActionRefreshProject AssignmentEventAction = "project.refresh"
+	AssignmentActionRefreshProbe   AssignmentEventAction = "probe.refresh"
+	AssignmentActionRefreshCheck   AssignmentEventAction = "check.refresh"
+	AssignmentActionRefreshLabel   AssignmentEventAction = "label.refresh"
+	AssignmentActionDeleteProbe    AssignmentEventAction = "probe.delete"
+	AssignmentActionDeleteCheck    AssignmentEventAction = "check.delete"
+	AssignmentActionPreview        AssignmentEventAction = "selector_preview"
+	AssignmentActionList           AssignmentEventAction = "list"
 )
 
 type AssignmentEventOutcome string
