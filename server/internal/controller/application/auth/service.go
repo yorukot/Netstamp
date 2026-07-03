@@ -205,19 +205,19 @@ func (s *Service) ConfirmPasswordReset(ctx context.Context, input ConfirmPasswor
 	now := s.now()
 	var user identity.User
 	err = s.tx.WithinTx(ctx, func(ctx context.Context) error {
-		token, err := s.resets.GetActivePasswordResetTokenByHash(ctx, s.resetTokens.Hash(input.Token), now)
-		if err != nil {
-			return err
+		token, tokenErr := s.resets.GetActivePasswordResetTokenByHash(ctx, s.resetTokens.Hash(input.Token), now)
+		if tokenErr != nil {
+			return tokenErr
 		}
-		updated, err := s.users.UpdateUserPasswordHash(ctx, identity.User{
+		updated, updateErr := s.users.UpdateUserPasswordHash(ctx, identity.User{
 			ID:           token.UserID,
 			PasswordHash: passwordHash,
 		})
-		if err != nil {
-			return err
+		if updateErr != nil {
+			return updateErr
 		}
-		if err := s.resets.MarkPasswordResetTokenUsed(ctx, token.ID, now); err != nil {
-			return err
+		if markErr := s.resets.MarkPasswordResetTokenUsed(ctx, token.ID, now); markErr != nil {
+			return markErr
 		}
 		user = updated
 		return nil

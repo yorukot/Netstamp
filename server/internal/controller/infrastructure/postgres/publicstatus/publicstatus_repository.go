@@ -189,11 +189,11 @@ func (r *Repository) CreateElement(ctx context.Context, input domainpublic.Eleme
 	if err != nil {
 		return domainpublic.Element{}, err
 	}
-	parentElementID, err := optionalUUID(input.ParentElementID, domainpublic.ErrElementNotFound)
+	parentElementID, hasParentElementID, err := optionalUUID(input.ParentElementID, domainpublic.ErrElementNotFound)
 	if err != nil {
 		return domainpublic.Element{}, err
 	}
-	checkID, err := optionalUUID(input.CheckID, domainpublic.ErrInvalidInput)
+	checkID, hasCheckID, err := optionalUUID(input.CheckID, domainpublic.ErrInvalidInput)
 	if err != nil {
 		return domainpublic.Element{}, err
 	}
@@ -204,9 +204,9 @@ func (r *Repository) CreateElement(ctx context.Context, input domainpublic.Eleme
 		row, createErr := queries.CreatePublicStatusPageElement(ctx, sqlc.CreatePublicStatusPageElementParams{
 			PublicPageID:            pageID,
 			ProjectID:               projectID,
-			ParentElementID:         parentElementID,
+			ParentElementID:         optionalUUIDPtr(parentElementID, hasParentElementID),
 			Kind:                    sqlcElementKind(input.Kind),
-			CheckID:                 checkID,
+			CheckID:                 optionalUUIDPtr(checkID, hasCheckID),
 			AssignmentSelectionMode: sqlcAssignmentSelectionMode(input.AssignmentSelectionMode),
 			Title:                   input.Title,
 			Description:             input.Description,
@@ -236,11 +236,11 @@ func (r *Repository) UpdateElement(ctx context.Context, input domainpublic.Eleme
 	if err != nil {
 		return domainpublic.Element{}, err
 	}
-	parentElementID, err := optionalUUID(input.ParentElementID, domainpublic.ErrElementNotFound)
+	parentElementID, hasParentElementID, err := optionalUUID(input.ParentElementID, domainpublic.ErrElementNotFound)
 	if err != nil {
 		return domainpublic.Element{}, err
 	}
-	checkID, err := optionalUUID(input.CheckID, domainpublic.ErrInvalidInput)
+	checkID, hasCheckID, err := optionalUUID(input.CheckID, domainpublic.ErrInvalidInput)
 	if err != nil {
 		return domainpublic.Element{}, err
 	}
@@ -252,9 +252,9 @@ func (r *Repository) UpdateElement(ctx context.Context, input domainpublic.Eleme
 			PublicPageID:            pageID,
 			ProjectID:               projectID,
 			ID:                      elementID,
-			ParentElementID:         parentElementID,
+			ParentElementID:         optionalUUIDPtr(parentElementID, hasParentElementID),
 			Kind:                    sqlcElementKind(input.Kind),
-			CheckID:                 checkID,
+			CheckID:                 optionalUUIDPtr(checkID, hasCheckID),
 			AssignmentSelectionMode: sqlcAssignmentSelectionMode(input.AssignmentSelectionMode),
 			Title:                   input.Title,
 			Description:             input.Description,
@@ -465,13 +465,20 @@ func parseElementScopeIDs(projectIDValue, pageIDValue, elementIDValue string) (u
 	return projectID, pageID, elementID, nil
 }
 
-func optionalUUID(value *string, invalidErr error) (*uuid.UUID, error) {
+func optionalUUID(value *string, invalidErr error) (uuid.UUID, bool, error) {
 	if value == nil {
-		return nil, nil
+		return uuid.Nil, false, nil
 	}
 	id, err := postgres.ParseUUID(*value, invalidErr)
 	if err != nil {
-		return nil, err
+		return uuid.Nil, false, err
 	}
-	return &id, nil
+	return id, true, nil
+}
+
+func optionalUUIDPtr(value uuid.UUID, ok bool) *uuid.UUID {
+	if !ok {
+		return nil
+	}
+	return &value
 }

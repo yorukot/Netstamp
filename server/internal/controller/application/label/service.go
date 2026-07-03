@@ -122,16 +122,16 @@ func (s *Service) UpdateLabel(ctx context.Context, input UpdateLabelInput) (doma
 	var label domainlabel.Label
 	writeStage := "update"
 	err = s.tx.WithinTx(ctx, func(ctx context.Context) error {
-		var err error
-		label, err = s.repo.UpdateLabel(ctx, domainlabel.Label{
+		updated, updateErr := s.repo.UpdateLabel(ctx, domainlabel.Label{
 			ProjectID: project.ID,
 			ID:        input.LabelID,
 			Key:       key,
 			Value:     value,
 		})
-		if err != nil {
-			return err
+		if updateErr != nil {
+			return updateErr
 		}
+		label = updated
 		writeStage = "assignment"
 		return s.assignmentRefresher.RefreshProbeCheckAssignmentsForLabel(ctx, project.ID, label.ID)
 	})

@@ -123,41 +123,20 @@ func (s *Service) RefreshProbeCheckAssignmentsForProbe(ctx context.Context, proj
 }
 
 func (s *Service) refreshProbeCheckAssignmentsForProbe(ctx context.Context, projectID, probeID string, enqueue bool) error {
-	ctx, flow := s.startAssignmentFlow(ctx, "assignment.probe.refresh", AssignmentActionRefreshProbe)
-	defer flow.end()
-
-	projectID, probeID, err := normalizeProbeTarget(projectID, probeID)
-	if err != nil {
-		return flow.businessFailure(AssignmentEventRefreshProbeFailure, AssignmentReasonInvalidInput, err)
-	}
-	flow.setProjectID(projectID)
-	flow.setProbeID(probeID)
-
-	if enqueue {
-		if err := s.enqueueRefreshJob(ctx, domainassignment.RefreshTarget{
-			ProjectID: projectID,
-			Type:      domainassignment.RefreshTargetProbe,
-			TargetID:  probeID,
-		}); err != nil {
-			return flow.refreshFailure(AssignmentEventRefreshProbeFailure, err)
-		}
-	}
-	if err := s.tx.WithinTx(ctx, func(ctx context.Context) error {
-		probe, err := s.repo.GetProbeRefreshCandidate(ctx, projectID, probeID)
-		if err != nil {
-			return err
-		}
-		checks, err := s.repo.ListCheckRefreshCandidatesForProject(ctx, projectID)
-		if err != nil {
-			return err
-		}
-		return s.refreshProbeCandidate(ctx, probe, checks)
-	}); err != nil {
-		return flow.refreshFailure(AssignmentEventRefreshProbeFailure, err)
-	}
-	flow.success(AssignmentEventRefreshProbeSuccess)
-
-	return nil
+	return s.runAssignmentTargetOperation(ctx, projectID, probeID, enqueue, assignmentTargetOperation{
+		assignmentTargetConfig: probeRefreshConfig,
+		run: func(ctx context.Context, projectID, probeID string) error {
+			probe, err := s.repo.GetProbeRefreshCandidate(ctx, projectID, probeID)
+			if err != nil {
+				return err
+			}
+			checks, err := s.repo.ListCheckRefreshCandidatesForProject(ctx, projectID)
+			if err != nil {
+				return err
+			}
+			return s.refreshProbeCandidate(ctx, probe, checks)
+		},
+	})
 }
 
 func (s *Service) RefreshProbeCheckAssignmentsForCheck(ctx context.Context, projectID, checkID string) error {
@@ -165,41 +144,20 @@ func (s *Service) RefreshProbeCheckAssignmentsForCheck(ctx context.Context, proj
 }
 
 func (s *Service) refreshProbeCheckAssignmentsForCheck(ctx context.Context, projectID, checkID string, enqueue bool) error {
-	ctx, flow := s.startAssignmentFlow(ctx, "assignment.check.refresh", AssignmentActionRefreshCheck)
-	defer flow.end()
-
-	projectID, checkID, err := normalizeCheckTarget(projectID, checkID)
-	if err != nil {
-		return flow.businessFailure(AssignmentEventRefreshCheckFailure, AssignmentReasonInvalidInput, err)
-	}
-	flow.setProjectID(projectID)
-	flow.setCheckID(checkID)
-
-	if enqueue {
-		if err := s.enqueueRefreshJob(ctx, domainassignment.RefreshTarget{
-			ProjectID: projectID,
-			Type:      domainassignment.RefreshTargetCheck,
-			TargetID:  checkID,
-		}); err != nil {
-			return flow.refreshFailure(AssignmentEventRefreshCheckFailure, err)
-		}
-	}
-	if err := s.tx.WithinTx(ctx, func(ctx context.Context) error {
-		check, err := s.repo.GetCheckRefreshCandidate(ctx, projectID, checkID)
-		if err != nil {
-			return err
-		}
-		probes, err := s.repo.ListSelectorPreviewCandidates(ctx, projectID)
-		if err != nil {
-			return err
-		}
-		return s.refreshCheckCandidate(ctx, check, probes)
-	}); err != nil {
-		return flow.refreshFailure(AssignmentEventRefreshCheckFailure, err)
-	}
-	flow.success(AssignmentEventRefreshCheckSuccess)
-
-	return nil
+	return s.runAssignmentTargetOperation(ctx, projectID, checkID, enqueue, assignmentTargetOperation{
+		assignmentTargetConfig: checkRefreshConfig,
+		run: func(ctx context.Context, projectID, checkID string) error {
+			check, err := s.repo.GetCheckRefreshCandidate(ctx, projectID, checkID)
+			if err != nil {
+				return err
+			}
+			probes, err := s.repo.ListSelectorPreviewCandidates(ctx, projectID)
+			if err != nil {
+				return err
+			}
+			return s.refreshCheckCandidate(ctx, check, probes)
+		},
+	})
 }
 
 func (s *Service) RefreshProbeCheckAssignmentsForLabel(ctx context.Context, projectID, labelID string) error {
@@ -254,33 +212,10 @@ func (s *Service) DeleteProbeCheckAssignmentsForProbe(ctx context.Context, proje
 }
 
 func (s *Service) deleteProbeCheckAssignmentsForProbe(ctx context.Context, projectID, probeID string, enqueue bool) error {
-	ctx, flow := s.startAssignmentFlow(ctx, "assignment.probe.delete", AssignmentActionDeleteProbe)
-	defer flow.end()
-
-	projectID, probeID, err := normalizeProbeTarget(projectID, probeID)
-	if err != nil {
-		return flow.businessFailure(AssignmentEventDeleteProbeFailure, AssignmentReasonInvalidInput, err)
-	}
-	flow.setProjectID(projectID)
-	flow.setProbeID(probeID)
-
-	if enqueue {
-		if err := s.enqueueRefreshJob(ctx, domainassignment.RefreshTarget{
-			ProjectID: projectID,
-			Type:      domainassignment.RefreshTargetProbe,
-			TargetID:  probeID,
-		}); err != nil {
-			return flow.deleteFailure(AssignmentEventDeleteProbeFailure, err)
-		}
-	}
-	if err := s.tx.WithinTx(ctx, func(ctx context.Context) error {
-		return s.repo.DeleteProbeCheckAssignmentsForProbe(ctx, projectID, probeID)
-	}); err != nil {
-		return flow.deleteFailure(AssignmentEventDeleteProbeFailure, err)
-	}
-	flow.success(AssignmentEventDeleteProbeSuccess)
-
-	return nil
+	return s.runAssignmentTargetOperation(ctx, projectID, probeID, enqueue, assignmentTargetOperation{
+		assignmentTargetConfig: probeDeleteConfig,
+		run:                    s.repo.DeleteProbeCheckAssignmentsForProbe,
+	})
 }
 
 func (s *Service) DeleteProbeCheckAssignmentsForCheck(ctx context.Context, projectID, checkID string) error {
@@ -288,31 +223,97 @@ func (s *Service) DeleteProbeCheckAssignmentsForCheck(ctx context.Context, proje
 }
 
 func (s *Service) deleteProbeCheckAssignmentsForCheck(ctx context.Context, projectID, checkID string, enqueue bool) error {
-	ctx, flow := s.startAssignmentFlow(ctx, "assignment.check.delete", AssignmentActionDeleteCheck)
+	return s.runAssignmentTargetOperation(ctx, projectID, checkID, enqueue, assignmentTargetOperation{
+		assignmentTargetConfig: checkDeleteConfig,
+		run:                    s.repo.DeleteProbeCheckAssignmentsForCheck,
+	})
+}
+
+type assignmentTargetOperation struct {
+	assignmentTargetConfig
+	run func(context.Context, string, string) error
+}
+
+type assignmentTargetConfig struct {
+	spanName     string
+	action       AssignmentEventAction
+	targetType   domainassignment.RefreshTargetType
+	successEvent AssignmentEventName
+	failureEvent AssignmentEventName
+	normalize    func(string, string) (string, string, error)
+	setTarget    func(*assignmentFlow, string)
+	mapFailure   func(*assignmentFlow, AssignmentEventName, error) error
+}
+
+var (
+	probeRefreshConfig = assignmentTargetConfig{
+		spanName:     "assignment.probe.refresh",
+		action:       AssignmentActionRefreshProbe,
+		targetType:   domainassignment.RefreshTargetProbe,
+		successEvent: AssignmentEventRefreshProbeSuccess,
+		failureEvent: AssignmentEventRefreshProbeFailure,
+		normalize:    normalizeProbeTarget,
+		setTarget:    (*assignmentFlow).setProbeID,
+		mapFailure:   (*assignmentFlow).refreshFailure,
+	}
+	checkRefreshConfig = assignmentTargetConfig{
+		spanName:     "assignment.check.refresh",
+		action:       AssignmentActionRefreshCheck,
+		targetType:   domainassignment.RefreshTargetCheck,
+		successEvent: AssignmentEventRefreshCheckSuccess,
+		failureEvent: AssignmentEventRefreshCheckFailure,
+		normalize:    normalizeCheckTarget,
+		setTarget:    (*assignmentFlow).setCheckID,
+		mapFailure:   (*assignmentFlow).refreshFailure,
+	}
+	probeDeleteConfig = assignmentTargetConfig{
+		spanName:     "assignment.probe.delete",
+		action:       AssignmentActionDeleteProbe,
+		targetType:   domainassignment.RefreshTargetProbe,
+		successEvent: AssignmentEventDeleteProbeSuccess,
+		failureEvent: AssignmentEventDeleteProbeFailure,
+		normalize:    normalizeProbeTarget,
+		setTarget:    (*assignmentFlow).setProbeID,
+		mapFailure:   (*assignmentFlow).deleteFailure,
+	}
+	checkDeleteConfig = assignmentTargetConfig{
+		spanName:     "assignment.check.delete",
+		action:       AssignmentActionDeleteCheck,
+		targetType:   domainassignment.RefreshTargetCheck,
+		successEvent: AssignmentEventDeleteCheckSuccess,
+		failureEvent: AssignmentEventDeleteCheckFailure,
+		normalize:    normalizeCheckTarget,
+		setTarget:    (*assignmentFlow).setCheckID,
+		mapFailure:   (*assignmentFlow).deleteFailure,
+	}
+)
+
+func (s *Service) runAssignmentTargetOperation(ctx context.Context, projectID, targetID string, enqueue bool, op assignmentTargetOperation) error {
+	ctx, flow := s.startAssignmentFlow(ctx, op.spanName, op.action)
 	defer flow.end()
 
-	projectID, checkID, err := normalizeCheckTarget(projectID, checkID)
+	projectID, targetID, err := op.normalize(projectID, targetID)
 	if err != nil {
-		return flow.businessFailure(AssignmentEventDeleteCheckFailure, AssignmentReasonInvalidInput, err)
+		return flow.businessFailure(op.failureEvent, AssignmentReasonInvalidInput, err)
 	}
 	flow.setProjectID(projectID)
-	flow.setCheckID(checkID)
+	op.setTarget(flow, targetID)
 
 	if enqueue {
 		if err := s.enqueueRefreshJob(ctx, domainassignment.RefreshTarget{
 			ProjectID: projectID,
-			Type:      domainassignment.RefreshTargetCheck,
-			TargetID:  checkID,
+			Type:      op.targetType,
+			TargetID:  targetID,
 		}); err != nil {
-			return flow.deleteFailure(AssignmentEventDeleteCheckFailure, err)
+			return op.mapFailure(flow, op.failureEvent, err)
 		}
 	}
 	if err := s.tx.WithinTx(ctx, func(ctx context.Context) error {
-		return s.repo.DeleteProbeCheckAssignmentsForCheck(ctx, projectID, checkID)
+		return op.run(ctx, projectID, targetID)
 	}); err != nil {
-		return flow.deleteFailure(AssignmentEventDeleteCheckFailure, err)
+		return op.mapFailure(flow, op.failureEvent, err)
 	}
-	flow.success(AssignmentEventDeleteCheckSuccess)
+	flow.success(op.successEvent)
 
 	return nil
 }

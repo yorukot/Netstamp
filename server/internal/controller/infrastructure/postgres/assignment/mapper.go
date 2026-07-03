@@ -2,6 +2,7 @@ package pgassignment
 
 import (
 	"encoding/json"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -142,41 +143,79 @@ func checkCandidate(row sqlc.GetActiveCheckForProjectRow) (domainassignment.Chec
 	}, nil
 }
 
+//nolint:dupl // sqlc generates distinct row types with the same check columns.
 func listCheck(row sqlc.ListActiveChecksForProjectRow) domaincheck.Check {
-	return domaincheck.Check{
-		ID:               row.ID.String(),
-		ProjectID:        row.ProjectID.String(),
-		Name:             row.Name,
-		Type:             domaincheck.Type(row.CheckType),
-		Target:           row.Target,
-		Selector:         cloneRawMessage(row.Selector),
-		Description:      row.Description,
-		IntervalSeconds:  row.IntervalSeconds,
-		CreatedAt:        row.CreatedAt,
-		UpdatedAt:        row.UpdatedAt,
-		DeletedAt:        row.DeletedAt,
-		PingConfig:       mapOptionalPingConfig(row.PingPacketCount, row.PingPacketSizeBytes, row.PingTimeoutMs, row.PingIpFamily),
-		TCPConfig:        mapOptionalTCPConfig(row.TcpPort, row.TcpTimeoutMs, row.TcpIpFamily),
-		TracerouteConfig: mapOptionalTracerouteConfig(row.TracerouteProtocol, row.TracerouteMaxHops, row.TracerouteTimeoutMs, row.TracerouteQueriesPerHop, row.TraceroutePacketSizeBytes, row.TraceroutePort, row.TracerouteIpFamily),
-	}
+	return newCheck(row.ID, row.ProjectID, row.Name, row.CheckType, row.Target, row.Selector, row.Description, row.IntervalSeconds, row.CreatedAt, row.UpdatedAt, row.DeletedAt, checkConfigs{
+		pingPacketCount:         row.PingPacketCount,
+		pingPacketSizeBytes:     row.PingPacketSizeBytes,
+		pingTimeoutMs:           row.PingTimeoutMs,
+		pingIPFamily:            row.PingIpFamily,
+		tcpPort:                 row.TcpPort,
+		tcpTimeoutMs:            row.TcpTimeoutMs,
+		tcpIPFamily:             row.TcpIpFamily,
+		tracerouteProtocol:      row.TracerouteProtocol,
+		tracerouteMaxHops:       row.TracerouteMaxHops,
+		tracerouteTimeoutMs:     row.TracerouteTimeoutMs,
+		tracerouteQueriesPerHop: row.TracerouteQueriesPerHop,
+		traceroutePacketSize:    row.TraceroutePacketSizeBytes,
+		traceroutePort:          row.TraceroutePort,
+		tracerouteIPFamily:      row.TracerouteIpFamily,
+	})
 }
 
+//nolint:dupl // sqlc generates distinct row types with the same check columns.
 func getCheck(row sqlc.GetActiveCheckForProjectRow) domaincheck.Check {
+	return newCheck(row.ID, row.ProjectID, row.Name, row.CheckType, row.Target, row.Selector, row.Description, row.IntervalSeconds, row.CreatedAt, row.UpdatedAt, row.DeletedAt, checkConfigs{
+		pingPacketCount:         row.PingPacketCount,
+		pingPacketSizeBytes:     row.PingPacketSizeBytes,
+		pingTimeoutMs:           row.PingTimeoutMs,
+		pingIPFamily:            row.PingIpFamily,
+		tcpPort:                 row.TcpPort,
+		tcpTimeoutMs:            row.TcpTimeoutMs,
+		tcpIPFamily:             row.TcpIpFamily,
+		tracerouteProtocol:      row.TracerouteProtocol,
+		tracerouteMaxHops:       row.TracerouteMaxHops,
+		tracerouteTimeoutMs:     row.TracerouteTimeoutMs,
+		tracerouteQueriesPerHop: row.TracerouteQueriesPerHop,
+		traceroutePacketSize:    row.TraceroutePacketSizeBytes,
+		traceroutePort:          row.TraceroutePort,
+		tracerouteIPFamily:      row.TracerouteIpFamily,
+	})
+}
+
+type checkConfigs struct {
+	pingPacketCount         *int32
+	pingPacketSizeBytes     *int32
+	pingTimeoutMs           *int32
+	pingIPFamily            *sqlc.IpFamily
+	tcpPort                 *int32
+	tcpTimeoutMs            *int32
+	tcpIPFamily             *sqlc.IpFamily
+	tracerouteProtocol      *sqlc.TracerouteProtocol
+	tracerouteMaxHops       *int32
+	tracerouteTimeoutMs     *int32
+	tracerouteQueriesPerHop *int32
+	traceroutePacketSize    *int32
+	traceroutePort          *int32
+	tracerouteIPFamily      *sqlc.IpFamily
+}
+
+func newCheck(id, projectID uuid.UUID, name string, checkType sqlc.CheckType, target string, selector []byte, description *string, intervalSeconds int32, createdAt, updatedAt time.Time, deletedAt *time.Time, configs checkConfigs) domaincheck.Check {
 	return domaincheck.Check{
-		ID:               row.ID.String(),
-		ProjectID:        row.ProjectID.String(),
-		Name:             row.Name,
-		Type:             domaincheck.Type(row.CheckType),
-		Target:           row.Target,
-		Selector:         cloneRawMessage(row.Selector),
-		Description:      row.Description,
-		IntervalSeconds:  row.IntervalSeconds,
-		CreatedAt:        row.CreatedAt,
-		UpdatedAt:        row.UpdatedAt,
-		DeletedAt:        row.DeletedAt,
-		PingConfig:       mapOptionalPingConfig(row.PingPacketCount, row.PingPacketSizeBytes, row.PingTimeoutMs, row.PingIpFamily),
-		TCPConfig:        mapOptionalTCPConfig(row.TcpPort, row.TcpTimeoutMs, row.TcpIpFamily),
-		TracerouteConfig: mapOptionalTracerouteConfig(row.TracerouteProtocol, row.TracerouteMaxHops, row.TracerouteTimeoutMs, row.TracerouteQueriesPerHop, row.TraceroutePacketSizeBytes, row.TraceroutePort, row.TracerouteIpFamily),
+		ID:               id.String(),
+		ProjectID:        projectID.String(),
+		Name:             name,
+		Type:             domaincheck.Type(checkType),
+		Target:           target,
+		Selector:         cloneRawMessage(selector),
+		Description:      description,
+		IntervalSeconds:  intervalSeconds,
+		CreatedAt:        createdAt,
+		UpdatedAt:        updatedAt,
+		DeletedAt:        deletedAt,
+		PingConfig:       mapOptionalPingConfig(configs.pingPacketCount, configs.pingPacketSizeBytes, configs.pingTimeoutMs, configs.pingIPFamily),
+		TCPConfig:        mapOptionalTCPConfig(configs.tcpPort, configs.tcpTimeoutMs, configs.tcpIPFamily),
+		TracerouteConfig: mapOptionalTracerouteConfig(configs.tracerouteProtocol, configs.tracerouteMaxHops, configs.tracerouteTimeoutMs, configs.tracerouteQueriesPerHop, configs.traceroutePacketSize, configs.traceroutePort, configs.tracerouteIPFamily),
 	}
 }
 
@@ -189,23 +228,6 @@ func matchingProbeIDs(selector domainselector.Selector, probes []activeProbeLabe
 	}
 
 	return probeIDs
-}
-
-func matchingPreviewProbes(selector domainselector.Selector, probes []activeProbeLabels) []domainprobe.Probe {
-	matches := make([]domainprobe.Probe, 0, len(probes))
-	for _, probe := range probes {
-		if !probe.enabled || !selector.Matches(probe.labels) {
-			continue
-		}
-		matches = append(matches, domainprobe.Probe{
-			ID:        probe.probeID.String(),
-			ProjectID: probe.projectID.String(),
-			Name:      probe.name,
-			Enabled:   probe.enabled,
-			Labels:    append([]domainlabel.Label(nil), probe.labels...),
-		})
-	}
-	return matches
 }
 
 func mapProjectAssignments(rows []sqlc.ListProjectAssignmentsRow) []domainassignment.Assignment {
@@ -341,17 +363,6 @@ func listCheckSelector(row sqlc.ListActiveChecksForProjectRow) (domainselector.S
 	return selector, raw, nil
 }
 
-func checkVersion(row sqlc.GetActiveCheckForProjectRow) string {
-	return domaincheck.Check{
-		Type:             domaincheck.Type(row.CheckType),
-		Target:           row.Target,
-		IntervalSeconds:  row.IntervalSeconds,
-		PingConfig:       mapOptionalPingConfig(row.PingPacketCount, row.PingPacketSizeBytes, row.PingTimeoutMs, row.PingIpFamily),
-		TCPConfig:        mapOptionalTCPConfig(row.TcpPort, row.TcpTimeoutMs, row.TcpIpFamily),
-		TracerouteConfig: mapOptionalTracerouteConfig(row.TracerouteProtocol, row.TracerouteMaxHops, row.TracerouteTimeoutMs, row.TracerouteQueriesPerHop, row.TraceroutePacketSizeBytes, row.TraceroutePort, row.TracerouteIpFamily),
-	}.Hash()
-}
-
 func cloneRawMessage(value []byte) json.RawMessage {
 	if value == nil {
 		return nil
@@ -367,17 +378,6 @@ func coordinatesFromPoint(point pgtype.Point) (*float64, *float64) {
 	lon := point.P.X
 	lat := point.P.Y
 	return &lat, &lon
-}
-
-func listCheckVersion(row sqlc.ListActiveChecksForProjectRow) string {
-	return domaincheck.Check{
-		Type:             domaincheck.Type(row.CheckType),
-		Target:           row.Target,
-		IntervalSeconds:  row.IntervalSeconds,
-		PingConfig:       mapOptionalPingConfig(row.PingPacketCount, row.PingPacketSizeBytes, row.PingTimeoutMs, row.PingIpFamily),
-		TCPConfig:        mapOptionalTCPConfig(row.TcpPort, row.TcpTimeoutMs, row.TcpIpFamily),
-		TracerouteConfig: mapOptionalTracerouteConfig(row.TracerouteProtocol, row.TracerouteMaxHops, row.TracerouteTimeoutMs, row.TracerouteQueriesPerHop, row.TraceroutePacketSizeBytes, row.TraceroutePort, row.TracerouteIpFamily),
-	}.Hash()
 }
 
 func mapOptionalPingConfig(packetCount, packetSizeBytes, timeoutMs *int32, ipFamily *sqlc.IpFamily) *domainping.Config {

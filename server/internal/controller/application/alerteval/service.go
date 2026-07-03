@@ -99,62 +99,68 @@ func (s *Service) evaluateRule(ctx context.Context, input appproberuntime.Change
 	if activeErr != nil && !errors.Is(activeErr, domainalert.ErrIncidentNotFound) {
 		return activeErr
 	}
-	hasActive := activeErr == nil
 
 	switch evaluation.State {
 	case alertcondition.EvaluationStateFiring:
-		if hasActive {
-			_, err := s.repo.UpdateIncidentTriggered(ctx, active.ID, evaluation, summaryJSON, now)
-			return err
-		}
-		if s.inReopenCooldown(ctx, rule, input, now) {
-			return nil
-		}
-		err := s.tx.WithinTx(ctx, func(ctx context.Context) error {
-			created, err := s.repo.CreateIncident(ctx, domainalert.IncidentTransitionInput{
-				Rule:                       rule,
-				ProbeID:                    input.ProbeID,
-				CheckID:                    input.CheckID,
-				Probe:                      incidentProbeSummary(input),
-				Check:                      incidentCheckSummary(input),
-				CheckType:                  domaincheck.Type(input.CheckType),
-				Evaluation:                 evaluation,
-				Summary:                    summaryJSON,
-				At:                         now,
-				LastNotificationSentAt:     &now,
-				NextNotificationEligibleAt: ptrTime(now.Add(time.Duration(rule.CooldownSeconds) * time.Second)),
-			})
-			if err != nil {
-				return err
-			}
-			created = incidentWithAssignmentContext(created, input)
-			if err := s.enqueueNotifications(ctx, rule, created, evaluation, EventIncidentOpened, now); err != nil {
-				return err
-			}
-			return nil
+		return s.handleFiringEvaluation(ctx, input, rule, evaluation, summaryJSON, active, activeErr == nil, now)
+	case alertcondition.EvaluationStateClear:
+		return s.handleClearEvaluation(ctx, input, rule, evaluation, summaryJSON, active, activeErr == nil, now)
+	case alertcondition.EvaluationStateInsufficientSamples, alertcondition.EvaluationStateNoData:
+		return s.handleInsufficientEvaluation(ctx, active, activeErr == nil, evaluation, summaryJSON, now)
+	}
+	return nil
+}
+
+func (s *Service) handleFiringEvaluation(ctx context.Context, input appproberuntime.ChangedAssignmentInput, rule domainalert.Rule, evaluation alertcondition.Evaluation, summaryJSON []byte, active domainalert.Incident, hasActive bool, now time.Time) error {
+	if hasActive {
+		_, err := s.repo.UpdateIncidentTriggered(ctx, active.ID, evaluation, summaryJSON, now)
+		return err
+	}
+	if s.inReopenCooldown(ctx, rule, input, now) {
+		return nil
+	}
+	return s.tx.WithinTx(ctx, func(ctx context.Context) error {
+		created, err := s.repo.CreateIncident(ctx, domainalert.IncidentTransitionInput{
+			Rule:                       rule,
+			ProbeID:                    input.ProbeID,
+			CheckID:                    input.CheckID,
+			Probe:                      incidentProbeSummary(input),
+			Check:                      incidentCheckSummary(input),
+			CheckType:                  domaincheck.Type(input.CheckType),
+			Evaluation:                 evaluation,
+			Summary:                    summaryJSON,
+			At:                         now,
+			LastNotificationSentAt:     &now,
+			NextNotificationEligibleAt: ptrTime(now.Add(time.Duration(rule.CooldownSeconds) * time.Second)),
 		})
 		if err != nil {
 			return err
 		}
+		created = incidentWithAssignmentContext(created, input)
+		return s.enqueueNotifications(ctx, rule, created, evaluation, EventIncidentOpened, now)
+	})
+}
+
+func (s *Service) handleClearEvaluation(ctx context.Context, input appproberuntime.ChangedAssignmentInput, rule domainalert.Rule, evaluation alertcondition.Evaluation, summaryJSON []byte, active domainalert.Incident, hasActive bool, now time.Time) error {
+	if !hasActive {
 		return nil
-	case alertcondition.EvaluationStateClear:
-		if hasActive {
-			return s.tx.WithinTx(ctx, func(ctx context.Context) error {
-				incident, err := s.repo.ResolveIncident(ctx, active.ID, summaryJSON, now)
-				if err != nil {
-					return err
-				}
-				incident = incidentWithAssignmentContext(incident, input)
-				return s.enqueueNotifications(ctx, rule, incident, evaluation, EventIncidentResolved, now)
-			})
-		}
-	case alertcondition.EvaluationStateInsufficientSamples, alertcondition.EvaluationStateNoData:
-		if hasActive {
-			_, err := s.repo.UpdateIncidentInsufficient(ctx, active.ID, evaluation.State, summaryJSON, now)
+	}
+	return s.tx.WithinTx(ctx, func(ctx context.Context) error {
+		incident, err := s.repo.ResolveIncident(ctx, active.ID, summaryJSON, now)
+		if err != nil {
 			return err
 		}
+		incident = incidentWithAssignmentContext(incident, input)
+		return s.enqueueNotifications(ctx, rule, incident, evaluation, EventIncidentResolved, now)
+	})
+}
+
+func (s *Service) handleInsufficientEvaluation(ctx context.Context, active domainalert.Incident, hasActive bool, evaluation alertcondition.Evaluation, summaryJSON []byte, now time.Time) error {
+	if !hasActive {
+		return nil
 	}
-	return nil
+	_, err := s.repo.UpdateIncidentInsufficient(ctx, active.ID, evaluation.State, summaryJSON, now)
+	return err
 }
 
 func (s *Service) inReopenCooldown(ctx context.Context, rule domainalert.Rule, input appproberuntime.ChangedAssignmentInput, now time.Time) bool {

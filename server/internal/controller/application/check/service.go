@@ -123,15 +123,15 @@ func (s *Service) CreateCheck(ctx context.Context, input CreateCheckInput) (doma
 	var check domaincheck.Check
 	writeStage := "create"
 	err = s.tx.WithinTx(ctx, func(ctx context.Context) error {
-		created, err := s.repo.CreateCheck(ctx, checkInput, normalized.labelIDs)
-		if err != nil {
-			return err
+		created, createErr := s.repo.CreateCheck(ctx, checkInput, normalized.labelIDs)
+		if createErr != nil {
+			return createErr
 		}
 		created.Labels = labels
 		flow.setCheckID(created.ID)
 		writeStage = "assignment"
-		if err := s.assignmentRefresher.RefreshProbeCheckAssignmentsForCheck(ctx, project.ID, created.ID); err != nil {
-			return err
+		if refreshErr := s.assignmentRefresher.RefreshProbeCheckAssignmentsForCheck(ctx, project.ID, created.ID); refreshErr != nil {
+			return refreshErr
 		}
 		check = created
 		return nil
@@ -185,19 +185,16 @@ func (s *Service) UpdateCheck(ctx context.Context, input UpdateCheckInput) (doma
 	var check domaincheck.Check
 	writeStage := "update"
 	err = s.tx.WithinTx(ctx, func(ctx context.Context) error {
-		var err error
-		check, err = s.repo.UpdateCheck(ctx, updated, normalized.replaceLabels, labelIDs)
-		if err != nil {
-			return err
+		updatedCheck, updateErr := s.repo.UpdateCheck(ctx, updated, normalized.replaceLabels, labelIDs)
+		if updateErr != nil {
+			return updateErr
 		}
+		check = updatedCheck
 		if normalized.replaceLabels {
 			check.Labels = resolvedLabels
 		}
 		writeStage = "assignment"
-		if err := s.assignmentRefresher.RefreshProbeCheckAssignmentsForCheck(ctx, project.ID, check.ID); err != nil {
-			return err
-		}
-		return nil
+		return s.assignmentRefresher.RefreshProbeCheckAssignmentsForCheck(ctx, project.ID, check.ID)
 	})
 	if err != nil {
 		if writeStage == "update" {

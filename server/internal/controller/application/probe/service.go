@@ -80,7 +80,7 @@ func (s *Service) CreateProbe(ctx context.Context, input CreateProbeInput) (Crea
 	var probe domainprobe.Probe
 	writeStage := "create"
 	err = s.tx.WithinTx(ctx, func(ctx context.Context) error {
-		created, err := s.repo.CreateProbe(ctx, domainprobe.Probe{
+		created, createErr := s.repo.CreateProbe(ctx, domainprobe.Probe{
 			ProjectID:    project.ID,
 			Name:         input.Name,
 			Enabled:      *input.Enabled,
@@ -89,14 +89,14 @@ func (s *Service) CreateProbe(ctx context.Context, input CreateProbeInput) (Crea
 			Longitude:    input.Longitude,
 			Labels:       labels,
 		}, secretHash)
-		if err != nil {
-			return err
+		if createErr != nil {
+			return createErr
 		}
 		flow.setProbeID(created.ID)
 		created.Labels = labels
 		writeStage = "assignment"
-		if err := s.assignmentRefresher.RefreshProbeCheckAssignmentsForProbe(ctx, project.ID, created.ID); err != nil {
-			return err
+		if refreshErr := s.assignmentRefresher.RefreshProbeCheckAssignmentsForProbe(ctx, project.ID, created.ID); refreshErr != nil {
+			return refreshErr
 		}
 		probe = created
 		return nil
@@ -209,17 +209,15 @@ func (s *Service) UpdateProbe(ctx context.Context, input UpdateProbeInput) (doma
 	var updated domainprobe.Probe
 	writeStage := "update"
 	err = s.tx.WithinTx(ctx, func(ctx context.Context) error {
-		var err error
-		updated, err = s.repo.UpdateProbe(ctx, syncProbe)
-		if err != nil {
-			return err
+		updatedProbe, updateErr := s.repo.UpdateProbe(ctx, syncProbe)
+		if updateErr != nil {
+			return updateErr
 		}
+		updated = updatedProbe
 
 		if refreshAssignments {
 			writeStage = "assignment"
-			if err := s.assignmentRefresher.RefreshProbeCheckAssignmentsForProbe(ctx, project.ID, updated.ID); err != nil {
-				return err
-			}
+			return s.assignmentRefresher.RefreshProbeCheckAssignmentsForProbe(ctx, project.ID, updated.ID)
 		}
 		return nil
 	})
