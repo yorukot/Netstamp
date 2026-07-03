@@ -19,6 +19,8 @@ This guide applies to `server/`, the Go backend for the Netstamp workspace. The 
 - `internal/agent/infrastructure/`: probe agent outbound integrations, including the controller runtime HTTP client, raw ICMP ping executor, and local network status discovery.
 - `internal/controller/infrastructure/`: PostgreSQL repositories and pool helpers, JWT issuing, Argon2id password hashing, and probe secret generation/verification.
 - `internal/controller/logger/`: controller zap logging helpers and application event recording. `internal/platform/normalize/` and `internal/platform/observability/` are shared helpers that do not depend on controller features.
+- `internal/architecture/`: architecture-boundary tests that enforce backend import direction. Update these when the intended architecture changes, not to bypass an individual feature.
+- `ARCHITECTURE.md`: concise backend architecture note for the modular monolith, dependency rules, use-case service pattern, and async consistency guidance.
 - `db/migrations/`: Goose SQL migrations. `db/query/`: sqlc query files. Generated sqlc Go files live in `internal/controller/infrastructure/postgres/sqlc/`.
 - `tmp/` and `bin/`: local build artifacts; do not edit them as source.
 
