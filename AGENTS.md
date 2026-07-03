@@ -7,7 +7,7 @@ Netstamp is a pnpm workspace with a Go backend and React/Vite frontend. Use this
 - Backend, database, migrations, logging, or API work: read `server/AGENTS.md`.
 - API contract or OpenAPI generation work: read `api/AGENTS.md`.
 - Web app, shared UI package, client styling, or browser behavior work: read `web/AGENTS.md`.
-- Visual design, layout, product UI, or styling direction work: read `design.md`.
+- Visual design, layout, product UI, or styling direction work: read `DESIGN.md`.
 - Full icon list at `icons.txt`
 
 Only proceed from root guidance when the task is clearly limited to workspace metadata, documentation, deployment files, or cross-project maintenance.

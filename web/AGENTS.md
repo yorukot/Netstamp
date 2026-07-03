@@ -16,7 +16,7 @@
 - Prefer one CSS module per component or route section.
 - Avoid shared catch-all page stylesheets; extract repeated patterns into shared components instead.
 - Follow the existing dark, technical console visual language unless the task explicitly targets a new surface.
-- When the visual system is being updated, follow `design.md` as the source of truth. The current target is a light-default, spec-docs/product design system with restrained orange primary accents, precise square frames, minimal shadows, no decorative gradients, and matching dark mode.
+- When the visual system is being updated, follow `DESIGN.md` as the source of truth. The current target is a light-default, spec-docs/product design system with restrained orange primary accents, precise square frames, minimal shadows, no decorative gradients, and matching dark mode.
 
 ## Commands
 
