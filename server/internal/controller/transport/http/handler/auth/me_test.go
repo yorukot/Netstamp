@@ -74,3 +74,7 @@ func (r *staticUserRepository) GetUserByEmail(context.Context, string) (identity
 func (r *staticUserRepository) GetUserByID(context.Context, string) (identity.User, error) {
 	return r.user, nil
 }
+
+func (r *staticUserRepository) UpdateUserPasswordHash(context.Context, identity.User) (identity.User, error) {
+	return r.user, nil
+}

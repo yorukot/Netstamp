@@ -97,8 +97,9 @@ func TestConfirmPasswordResetHashesPasswordAndConsumesToken(t *testing.T) {
 	if resets.consumedTokenHash != "hash:raw-token" {
 		t.Fatalf("expected hashed token, got %q", resets.consumedTokenHash)
 	}
-	if resets.consumedPasswordHash != "hashed:correct-horse-battery-staple" {
-		t.Fatalf("expected hashed password, got %q", resets.consumedPasswordHash)
+	users := service.users.(*passwordResetUserRepo)
+	if users.updatedPasswordHash != "hashed:correct-horse-battery-staple" {
+		t.Fatalf("expected hashed password, got %q", users.updatedPasswordHash)
 	}
 }
 
@@ -124,8 +125,9 @@ func newPasswordResetTestService(users *passwordResetUserRepo, resets *passwordR
 }
 
 type passwordResetUserRepo struct {
-	user identity.User
-	err  error
+	user                identity.User
+	err                 error
+	updatedPasswordHash string
 }
 
 func (r *passwordResetUserRepo) CreateUser(context.Context, identity.User) (identity.User, error) {
@@ -140,12 +142,21 @@ func (r *passwordResetUserRepo) GetUserByEmail(context.Context, string) (identit
 	return r.user, r.err
 }
 
+func (r *passwordResetUserRepo) UpdateUserPasswordHash(_ context.Context, input identity.User) (identity.User, error) {
+	r.updatedPasswordHash = input.PasswordHash
+	if r.err != nil {
+		return identity.User{}, r.err
+	}
+	r.user.PasswordHash = input.PasswordHash
+	return r.user, nil
+}
+
 type passwordResetRepo struct {
-	created              []identity.PasswordResetToken
-	resetUser            identity.User
-	resetErr             error
-	consumedTokenHash    string
-	consumedPasswordHash string
+	created           []identity.PasswordResetToken
+	resetUser         identity.User
+	resetErr          error
+	consumedTokenHash string
+	usedTokenID       string
 }
 
 func (r *passwordResetRepo) CreatePasswordResetToken(_ context.Context, input identity.PasswordResetToken) (identity.PasswordResetToken, error) {
@@ -158,13 +169,21 @@ func (r *passwordResetRepo) InvalidateActivePasswordResetTokens(context.Context,
 	return nil
 }
 
-func (r *passwordResetRepo) ResetPasswordWithToken(_ context.Context, tokenHash, passwordHash string, _ time.Time) (identity.User, error) {
+func (r *passwordResetRepo) GetActivePasswordResetTokenByHash(_ context.Context, tokenHash string, _ time.Time) (identity.PasswordResetToken, error) {
 	r.consumedTokenHash = tokenHash
-	r.consumedPasswordHash = passwordHash
 	if r.resetErr != nil {
-		return identity.User{}, r.resetErr
+		return identity.PasswordResetToken{}, r.resetErr
 	}
-	return r.resetUser, nil
+	return identity.PasswordResetToken{
+		ID:        "22222222-2222-2222-2222-222222222222",
+		UserID:    r.resetUser.ID,
+		TokenHash: tokenHash,
+	}, nil
+}
+
+func (r *passwordResetRepo) MarkPasswordResetTokenUsed(_ context.Context, tokenID string, _ time.Time) error {
+	r.usedTokenID = tokenID
+	return nil
 }
 
 type passwordResetTokenManager struct{}

@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"time"
 
+	apptx "github.com/yorukot/netstamp/internal/controller/application/tx"
 	"github.com/yorukot/netstamp/internal/domain/identity"
 )
 
@@ -18,16 +19,23 @@ type Service struct {
 	resetTokens PasswordResetTokenManager
 	resetMailer PasswordResetMailer
 	resetConfig PasswordResetConfig
+	tx          apptx.Transactor
 	now         func() time.Time
 }
 
-func NewService(users UserRepository, hasher PasswordHasher, tokens TokenIssuer, events SecurityEventRecorder) *Service {
+func NewService(users UserRepository, hasher PasswordHasher, tokens TokenIssuer, events SecurityEventRecorder, transactors ...apptx.Transactor) *Service {
+	tx := apptx.Transactor(apptx.NoopTransactor{})
+	if len(transactors) > 0 && transactors[0] != nil {
+		tx = transactors[0]
+	}
+
 	return &Service{
 		users:       users,
 		hasher:      hasher,
 		tokens:      tokens,
 		events:      events,
 		resetConfig: PasswordResetConfig{TokenTTL: 30 * time.Minute},
+		tx:          tx,
 		now:         func() time.Time { return time.Now().UTC() },
 	}
 }
@@ -146,14 +154,16 @@ func (s *Service) RequestPasswordReset(ctx context.Context, input RequestPasswor
 
 	now := s.now()
 	expiresAt := now.Add(s.resetConfig.TokenTTL)
-	if err := s.resets.InvalidateActivePasswordResetTokens(ctx, user.ID, now); err != nil {
-		flow.recordTechnicalFailure(AuthEventResetRequestFailure, AuthReasonResetTokenCreateFail, err)
-		return nil
-	}
-	if _, err := s.resets.CreatePasswordResetToken(ctx, identity.PasswordResetToken{
-		UserID:    user.ID,
-		TokenHash: s.resetTokens.Hash(rawToken),
-		ExpiresAt: expiresAt,
+	if err := s.tx.WithinTx(ctx, func(ctx context.Context) error {
+		if err := s.resets.InvalidateActivePasswordResetTokens(ctx, user.ID, now); err != nil {
+			return err
+		}
+		_, err := s.resets.CreatePasswordResetToken(ctx, identity.PasswordResetToken{
+			UserID:    user.ID,
+			TokenHash: s.resetTokens.Hash(rawToken),
+			ExpiresAt: expiresAt,
+		})
+		return err
 	}); err != nil {
 		flow.recordTechnicalFailure(AuthEventResetRequestFailure, AuthReasonResetTokenCreateFail, err)
 		return nil
@@ -192,7 +202,26 @@ func (s *Service) ConfirmPasswordReset(ctx context.Context, input ConfirmPasswor
 		return flow.technicalFailure(AuthEventResetConfirmFailure, AuthReasonPasswordHashFailed, err)
 	}
 
-	user, err := s.resets.ResetPasswordWithToken(ctx, s.resetTokens.Hash(input.Token), passwordHash, s.now())
+	now := s.now()
+	var user identity.User
+	err = s.tx.WithinTx(ctx, func(ctx context.Context) error {
+		token, err := s.resets.GetActivePasswordResetTokenByHash(ctx, s.resetTokens.Hash(input.Token), now)
+		if err != nil {
+			return err
+		}
+		updated, err := s.users.UpdateUserPasswordHash(ctx, identity.User{
+			ID:           token.UserID,
+			PasswordHash: passwordHash,
+		})
+		if err != nil {
+			return err
+		}
+		if err := s.resets.MarkPasswordResetTokenUsed(ctx, token.ID, now); err != nil {
+			return err
+		}
+		user = updated
+		return nil
+	})
 	if errors.Is(err, identity.ErrResetTokenNotFound) {
 		return flow.businessFailure(AuthEventResetConfirmFailure, AuthReasonResetTokenInvalid, ErrResetTokenInvalid)
 	}

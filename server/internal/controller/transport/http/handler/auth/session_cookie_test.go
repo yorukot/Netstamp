@@ -175,6 +175,10 @@ func (r *authTestUserRepository) GetUserByID(context.Context, string) (identity.
 	return r.user, nil
 }
 
+func (r *authTestUserRepository) UpdateUserPasswordHash(context.Context, identity.User) (identity.User, error) {
+	return r.user, nil
+}
+
 type authTestPasswordHasher struct{}
 
 func (authTestPasswordHasher) Hash(context.Context, string) (string, error) {

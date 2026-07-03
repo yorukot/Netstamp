@@ -11,12 +11,14 @@ type UserRepository interface {
 	CreateUser(ctx context.Context, input identity.User) (identity.User, error)
 	GetUserByID(ctx context.Context, userID string) (identity.User, error)
 	GetUserByEmail(ctx context.Context, email string) (identity.User, error)
+	UpdateUserPasswordHash(ctx context.Context, input identity.User) (identity.User, error)
 }
 
 type PasswordResetRepository interface {
 	CreatePasswordResetToken(ctx context.Context, input identity.PasswordResetToken) (identity.PasswordResetToken, error)
 	InvalidateActivePasswordResetTokens(ctx context.Context, userID string, usedAt time.Time) error
-	ResetPasswordWithToken(ctx context.Context, tokenHash, passwordHash string, usedAt time.Time) (identity.User, error)
+	GetActivePasswordResetTokenByHash(ctx context.Context, tokenHash string, now time.Time) (identity.PasswordResetToken, error)
+	MarkPasswordResetTokenUsed(ctx context.Context, tokenID string, usedAt time.Time) error
 }
 
 type PasswordHasher interface {

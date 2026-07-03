@@ -17,13 +17,11 @@ import (
 
 type UserRepository struct {
 	queries *sqlc.Queries
-	tx      *postgres.Transactor
 }
 
 func NewUserRepository(pool *pgxpool.Pool) *UserRepository {
 	return &UserRepository{
 		queries: sqlc.New(pool),
-		tx:      postgres.NewTransactor(pool),
 	}
 }
 
@@ -31,7 +29,7 @@ func (r *UserRepository) CreateUser(ctx context.Context, input identity.User) (i
 	ctx, span := postgres.StartUserDBSpan(ctx, pguserTracer, "postgres.users.insert", "INSERT", "INSERT users")
 	defer span.End()
 
-	row, err := r.queries.CreateUser(ctx, sqlc.CreateUserParams{
+	row, err := postgres.Queries(ctx, r.queries).CreateUser(ctx, sqlc.CreateUserParams{
 		Email:        input.Email,
 		DisplayName:  input.DisplayName,
 		PasswordHash: input.PasswordHash,
@@ -62,7 +60,7 @@ func (r *UserRepository) GetUserByID(ctx context.Context, userIDValue string) (i
 		return identity.User{}, err
 	}
 
-	row, err := r.queries.GetUserByID(ctx, userID)
+	row, err := postgres.Queries(ctx, r.queries).GetUserByID(ctx, userID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return identity.User{}, identity.ErrUserNotFound
@@ -79,7 +77,7 @@ func (r *UserRepository) GetUserByEmail(ctx context.Context, email string) (iden
 	ctx, span := postgres.StartUserDBSpan(ctx, pguserTracer, "postgres.users.select_by_email", "SELECT", "SELECT users by email")
 	defer span.End()
 
-	row, err := r.queries.GetUserByEmail(ctx, email)
+	row, err := postgres.Queries(ctx, r.queries).GetUserByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return identity.User{}, identity.ErrUserNotFound
@@ -101,7 +99,7 @@ func (r *UserRepository) UpdateUserDisplayName(ctx context.Context, input identi
 		return identity.User{}, err
 	}
 
-	row, err := r.queries.UpdateUserDisplayName(ctx, sqlc.UpdateUserDisplayNameParams{
+	row, err := postgres.Queries(ctx, r.queries).UpdateUserDisplayName(ctx, sqlc.UpdateUserDisplayNameParams{
 		ID:          userID,
 		DisplayName: input.DisplayName,
 	})
@@ -121,7 +119,7 @@ func (r *UserRepository) UpdateUserEmail(ctx context.Context, input identity.Use
 		return identity.User{}, err
 	}
 
-	row, err := r.queries.UpdateUserEmail(ctx, sqlc.UpdateUserEmailParams{
+	row, err := postgres.Queries(ctx, r.queries).UpdateUserEmail(ctx, sqlc.UpdateUserEmailParams{
 		ID:    userID,
 		Email: input.Email,
 	})
@@ -141,7 +139,7 @@ func (r *UserRepository) UpdateUserPasswordHash(ctx context.Context, input ident
 		return identity.User{}, err
 	}
 
-	row, err := r.queries.UpdateUserPasswordHash(ctx, sqlc.UpdateUserPasswordHashParams{
+	row, err := postgres.Queries(ctx, r.queries).UpdateUserPasswordHash(ctx, sqlc.UpdateUserPasswordHashParams{
 		ID:           userID,
 		PasswordHash: input.PasswordHash,
 	})
@@ -161,7 +159,7 @@ func (r *UserRepository) CreatePasswordResetToken(ctx context.Context, input ide
 		return identity.PasswordResetToken{}, err
 	}
 
-	row, err := r.queries.CreatePasswordResetToken(ctx, sqlc.CreatePasswordResetTokenParams{
+	row, err := postgres.Queries(ctx, r.queries).CreatePasswordResetToken(ctx, sqlc.CreatePasswordResetTokenParams{
 		UserID:    userID,
 		TokenHash: input.TokenHash,
 		ExpiresAt: input.ExpiresAt,
@@ -183,7 +181,7 @@ func (r *UserRepository) InvalidateActivePasswordResetTokens(ctx context.Context
 		return err
 	}
 
-	if err := r.queries.InvalidateActivePasswordResetTokens(ctx, sqlc.InvalidateActivePasswordResetTokensParams{
+	if err := postgres.Queries(ctx, r.queries).InvalidateActivePasswordResetTokens(ctx, sqlc.InvalidateActivePasswordResetTokensParams{
 		UserID: userID,
 		UsedAt: &usedAt,
 	}); err != nil {
@@ -194,54 +192,43 @@ func (r *UserRepository) InvalidateActivePasswordResetTokens(ctx context.Context
 	return nil
 }
 
-func (r *UserRepository) ResetPasswordWithToken(ctx context.Context, tokenHash, passwordHash string, usedAt time.Time) (identity.User, error) {
-	ctx, span := postgres.StartUserDBSpan(ctx, pguserTracer, "postgres.password_reset_tokens.consume", "UPDATE", "UPDATE password from reset token")
+func (r *UserRepository) GetActivePasswordResetTokenByHash(ctx context.Context, tokenHash string, now time.Time) (identity.PasswordResetToken, error) {
+	ctx, span := postgres.StartUserDBSpan(ctx, pguserTracer, "postgres.password_reset_tokens.select_active", "SELECT", "SELECT active password reset token")
 	defer span.End()
 
-	var user identity.User
-	err := r.tx.InTx(ctx, func(ctx context.Context, tx pgx.Tx) error {
-		q := r.queries.WithTx(tx)
-
-		token, err := q.GetActivePasswordResetTokenByHash(ctx, sqlc.GetActivePasswordResetTokenByHashParams{
-			TokenHash: tokenHash,
-			NowAt:     usedAt,
-		})
-		if err != nil {
-			if errors.Is(err, pgx.ErrNoRows) {
-				return identity.ErrResetTokenNotFound
-			}
-			return err
-		}
-
-		row, err := q.UpdateUserPasswordHash(ctx, sqlc.UpdateUserPasswordHashParams{
-			ID:           token.UserID,
-			PasswordHash: passwordHash,
-		})
-		if err != nil {
-			if errors.Is(err, pgx.ErrNoRows) {
-				return identity.ErrUserNotFound
-			}
-			return err
-		}
-
-		if err := q.MarkPasswordResetTokenUsed(ctx, sqlc.MarkPasswordResetTokenUsedParams{
-			ID:     token.ID,
-			UsedAt: &usedAt,
-		}); err != nil {
-			return err
-		}
-
-		user = mapUser(row)
-		return nil
+	token, err := postgres.Queries(ctx, r.queries).GetActivePasswordResetTokenByHash(ctx, sqlc.GetActivePasswordResetTokenByHashParams{
+		TokenHash: tokenHash,
+		NowAt:     now,
 	})
 	if err != nil {
-		if !errors.Is(err, identity.ErrResetTokenNotFound) && !errors.Is(err, identity.ErrUserNotFound) {
-			postgres.RecordDBSpanError(span, err)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return identity.PasswordResetToken{}, identity.ErrResetTokenNotFound
 		}
-		return identity.User{}, err
+		postgres.RecordDBSpanError(span, err)
+		return identity.PasswordResetToken{}, err
 	}
 
-	return user, nil
+	return mapPasswordResetToken(token), nil
+}
+
+func (r *UserRepository) MarkPasswordResetTokenUsed(ctx context.Context, tokenIDValue string, usedAt time.Time) error {
+	ctx, span := postgres.StartUserDBSpan(ctx, pguserTracer, "postgres.password_reset_tokens.mark_used", "UPDATE", "UPDATE password reset token used")
+	defer span.End()
+
+	tokenID, err := postgres.ParseUUID(tokenIDValue, identity.ErrResetTokenNotFound)
+	if err != nil {
+		return err
+	}
+
+	if err := postgres.Queries(ctx, r.queries).MarkPasswordResetTokenUsed(ctx, sqlc.MarkPasswordResetTokenUsedParams{
+		ID:     tokenID,
+		UsedAt: &usedAt,
+	}); err != nil {
+		postgres.RecordDBSpanError(span, err)
+		return err
+	}
+
+	return nil
 }
 
 func (r *UserRepository) mapUpdateError(span trace.Span, err error) error {
