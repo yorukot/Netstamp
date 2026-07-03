@@ -14,12 +14,15 @@ import (
 )
 
 type Repository struct {
-	pool    *pgxpool.Pool
 	queries *sqlc.Queries
+	tx      *postgres.Transactor
 }
 
 func NewRepository(pool *pgxpool.Pool) *Repository {
-	return &Repository{pool: pool, queries: sqlc.New(pool)}
+	return &Repository{
+		queries: sqlc.New(pool),
+		tx:      postgres.NewTransactor(pool),
+	}
 }
 
 func (r *Repository) ListPages(ctx context.Context, projectIDValue string) ([]domainpublic.Page, error) {
@@ -186,35 +189,43 @@ func (r *Repository) CreateElement(ctx context.Context, input domainpublic.Eleme
 	if err != nil {
 		return domainpublic.Element{}, err
 	}
-	tx, err := r.pool.Begin(ctx)
+	parentElementID, err := optionalUUID(input.ParentElementID, domainpublic.ErrElementNotFound)
 	if err != nil {
 		return domainpublic.Element{}, err
 	}
-	defer tx.Rollback(ctx) //nolint:errcheck // Rollback is a no-op after commit.
-	queries := r.queries.WithTx(tx)
+	checkID, err := optionalUUID(input.CheckID, domainpublic.ErrInvalidInput)
+	if err != nil {
+		return domainpublic.Element{}, err
+	}
 
-	row, err := queries.CreatePublicStatusPageElement(ctx, sqlc.CreatePublicStatusPageElementParams{
-		PublicPageID:            pageID,
-		ProjectID:               projectID,
-		ParentElementID:         optionalUUID(input.ParentElementID, domainpublic.ErrElementNotFound),
-		Kind:                    sqlcElementKind(input.Kind),
-		CheckID:                 optionalUUID(input.CheckID, domainpublic.ErrInvalidInput),
-		AssignmentSelectionMode: sqlcAssignmentSelectionMode(input.AssignmentSelectionMode),
-		Title:                   input.Title,
-		Description:             input.Description,
-		SortOrder:               input.SortOrder,
-		ChartMode:               sqlcChartMode(input.ChartMode),
-		ChartRange:              sqlcOptionalChartRange(input.ChartRange),
+	var element domainpublic.Element
+	err = r.tx.WithinTx(ctx, func(ctx context.Context) error {
+		queries := postgres.Queries(ctx, r.queries)
+		row, createErr := queries.CreatePublicStatusPageElement(ctx, sqlc.CreatePublicStatusPageElementParams{
+			PublicPageID:            pageID,
+			ProjectID:               projectID,
+			ParentElementID:         parentElementID,
+			Kind:                    sqlcElementKind(input.Kind),
+			CheckID:                 checkID,
+			AssignmentSelectionMode: sqlcAssignmentSelectionMode(input.AssignmentSelectionMode),
+			Title:                   input.Title,
+			Description:             input.Description,
+			SortOrder:               input.SortOrder,
+			ChartMode:               sqlcChartMode(input.ChartMode),
+			ChartRange:              sqlcOptionalChartRange(input.ChartRange),
+		})
+		if createErr != nil {
+			return mapPublicStatusWriteError(createErr)
+		}
+		created := mapCreatedElement(row)
+		created.AssignmentIDs = append([]string{}, input.AssignmentIDs...)
+		if replaceErr := r.replaceElementAssignmentIDs(ctx, queries, projectID, pageID, row.ID, input.AssignmentIDs); replaceErr != nil {
+			return replaceErr
+		}
+		element = created
+		return nil
 	})
 	if err != nil {
-		return domainpublic.Element{}, mapPublicStatusWriteError(err)
-	}
-	element := mapCreatedElement(row)
-	element.AssignmentIDs = append([]string{}, input.AssignmentIDs...)
-	if err := r.replaceElementAssignmentIDs(ctx, queries, projectID, pageID, row.ID, input.AssignmentIDs); err != nil {
-		return domainpublic.Element{}, err
-	}
-	if err := tx.Commit(ctx); err != nil {
 		return domainpublic.Element{}, err
 	}
 	return element, nil
@@ -225,36 +236,44 @@ func (r *Repository) UpdateElement(ctx context.Context, input domainpublic.Eleme
 	if err != nil {
 		return domainpublic.Element{}, err
 	}
-	tx, err := r.pool.Begin(ctx)
+	parentElementID, err := optionalUUID(input.ParentElementID, domainpublic.ErrElementNotFound)
 	if err != nil {
 		return domainpublic.Element{}, err
 	}
-	defer tx.Rollback(ctx) //nolint:errcheck // Rollback is a no-op after commit.
-	queries := r.queries.WithTx(tx)
+	checkID, err := optionalUUID(input.CheckID, domainpublic.ErrInvalidInput)
+	if err != nil {
+		return domainpublic.Element{}, err
+	}
 
-	row, err := queries.UpdatePublicStatusPageElement(ctx, sqlc.UpdatePublicStatusPageElementParams{
-		PublicPageID:            pageID,
-		ProjectID:               projectID,
-		ID:                      elementID,
-		ParentElementID:         optionalUUID(input.ParentElementID, domainpublic.ErrElementNotFound),
-		Kind:                    sqlcElementKind(input.Kind),
-		CheckID:                 optionalUUID(input.CheckID, domainpublic.ErrInvalidInput),
-		AssignmentSelectionMode: sqlcAssignmentSelectionMode(input.AssignmentSelectionMode),
-		Title:                   input.Title,
-		Description:             input.Description,
-		SortOrder:               input.SortOrder,
-		ChartMode:               sqlcChartMode(input.ChartMode),
-		ChartRange:              sqlcOptionalChartRange(input.ChartRange),
+	var element domainpublic.Element
+	err = r.tx.WithinTx(ctx, func(ctx context.Context) error {
+		queries := postgres.Queries(ctx, r.queries)
+		row, updateErr := queries.UpdatePublicStatusPageElement(ctx, sqlc.UpdatePublicStatusPageElementParams{
+			PublicPageID:            pageID,
+			ProjectID:               projectID,
+			ID:                      elementID,
+			ParentElementID:         parentElementID,
+			Kind:                    sqlcElementKind(input.Kind),
+			CheckID:                 checkID,
+			AssignmentSelectionMode: sqlcAssignmentSelectionMode(input.AssignmentSelectionMode),
+			Title:                   input.Title,
+			Description:             input.Description,
+			SortOrder:               input.SortOrder,
+			ChartMode:               sqlcChartMode(input.ChartMode),
+			ChartRange:              sqlcOptionalChartRange(input.ChartRange),
+		})
+		if updateErr != nil {
+			return mapPublicStatusWriteError(mapNoRows(updateErr, domainpublic.ErrElementNotFound))
+		}
+		updated := mapUpdatedElement(row)
+		updated.AssignmentIDs = append([]string{}, input.AssignmentIDs...)
+		if replaceErr := r.replaceElementAssignmentIDs(ctx, queries, projectID, pageID, elementID, input.AssignmentIDs); replaceErr != nil {
+			return replaceErr
+		}
+		element = updated
+		return nil
 	})
 	if err != nil {
-		return domainpublic.Element{}, mapPublicStatusWriteError(mapNoRows(err, domainpublic.ErrElementNotFound))
-	}
-	element := mapUpdatedElement(row)
-	element.AssignmentIDs = append([]string{}, input.AssignmentIDs...)
-	if err := r.replaceElementAssignmentIDs(ctx, queries, projectID, pageID, elementID, input.AssignmentIDs); err != nil {
-		return domainpublic.Element{}, err
-	}
-	if err := tx.Commit(ctx); err != nil {
 		return domainpublic.Element{}, err
 	}
 	return element, nil
@@ -446,13 +465,13 @@ func parseElementScopeIDs(projectIDValue, pageIDValue, elementIDValue string) (u
 	return projectID, pageID, elementID, nil
 }
 
-func optionalUUID(value *string, invalidErr error) *uuid.UUID {
+func optionalUUID(value *string, invalidErr error) (*uuid.UUID, error) {
 	if value == nil {
-		return nil
+		return nil, nil
 	}
 	id, err := postgres.ParseUUID(*value, invalidErr)
 	if err != nil {
-		return nil
+		return nil, err
 	}
-	return &id
+	return &id, nil
 }
