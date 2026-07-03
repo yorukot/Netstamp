@@ -6,38 +6,10 @@ import (
 	"net/http"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
 
-	appalert "github.com/yorukot/netstamp/internal/controller/application/alert"
-	appalerteval "github.com/yorukot/netstamp/internal/controller/application/alerteval"
-	appassignment "github.com/yorukot/netstamp/internal/controller/application/assignment"
-	appauth "github.com/yorukot/netstamp/internal/controller/application/auth"
-	appcheck "github.com/yorukot/netstamp/internal/controller/application/check"
-	applabel "github.com/yorukot/netstamp/internal/controller/application/label"
 	appnotification "github.com/yorukot/netstamp/internal/controller/application/notification"
-	appprobe "github.com/yorukot/netstamp/internal/controller/application/probe"
-	appproberuntime "github.com/yorukot/netstamp/internal/controller/application/proberuntime"
-	appproject "github.com/yorukot/netstamp/internal/controller/application/project"
-	apppublicstatus "github.com/yorukot/netstamp/internal/controller/application/publicstatus"
-	appresult "github.com/yorukot/netstamp/internal/controller/application/result"
-	appuser "github.com/yorukot/netstamp/internal/controller/application/user"
 	"github.com/yorukot/netstamp/internal/controller/config"
-	"github.com/yorukot/netstamp/internal/controller/infrastructure/notify"
-	"github.com/yorukot/netstamp/internal/controller/infrastructure/postgres"
-	pgalert "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/alert"
-	pgassignment "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/assignment"
-	pgcheck "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/check"
-	pglabel "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/label"
-	pgping "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/ping"
-	pgprobe "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/probe"
-	pgproject "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/project"
-	pgpublicstatus "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/publicstatus"
-	pgresult "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/result"
-	pgtcp "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/tcp"
-	pgtraceroute "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/traceroute"
-	pguser "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/user"
-	"github.com/yorukot/netstamp/internal/controller/infrastructure/security"
 	"github.com/yorukot/netstamp/internal/controller/logger"
 	httpserver "github.com/yorukot/netstamp/internal/controller/transport/http"
 	obmetrics "github.com/yorukot/netstamp/internal/platform/observability/metrics"
@@ -61,7 +33,40 @@ func New(ctx context.Context) (*Application, error) {
 		return nil, fmt.Errorf("load config: %w", err)
 	}
 
-	// Creating logger before database connection to ensure we can log any errors that occur during startup
+	log, err := buildLogger(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	metricsProvider, tracingProvider, err := buildObservability(ctx, cfg, log)
+	if err != nil {
+		return nil, err
+	}
+
+	dbPool, err := buildDBPool(ctx, cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	services := buildControllerServices(cfg, log, dbPool)
+	httpHandler, err := buildHTTPHandler(cfg, log, dbPool, metricsProvider, services)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Application{
+		Config:     cfg,
+		Log:        log,
+		HTTPServer: httpserver.NewServer(cfg.HTTP, httpHandler),
+		DBPool:     dbPool,
+		Metrics:    metricsProvider,
+		Tracing:    tracingProvider,
+		Worker:     services.notificationWorker,
+	}, nil
+}
+
+func buildLogger(cfg config.Config) (*zap.Logger, error) {
+	// Creating logger before database connection ensures startup failures are visible.
 	log, _, err := logger.New(logger.Config{
 		Env:     cfg.Env,
 		Service: cfg.ServiceName,
@@ -71,147 +76,5 @@ func New(ctx context.Context) (*Application, error) {
 	if err != nil {
 		return nil, fmt.Errorf("create logger: %w", err)
 	}
-
-	// Setup
-	otel.SetErrorHandler(otel.ErrorHandlerFunc(func(err error) {
-		log.Warn("otel_error", zap.Error(err))
-	}))
-
-	metricsProvider, err := obmetrics.NewProvider(obmetrics.Config{
-		Env:            cfg.Env,
-		ServiceName:    cfg.ServiceName,
-		ServiceVersion: cfg.Version,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("create metrics provider: %w", err)
-	}
-
-	tracingProvider, err := tracing.NewProvider(ctx, tracing.Config{
-		Env:                cfg.Env,
-		ServiceName:        cfg.ServiceName,
-		ServiceVersion:     cfg.Version,
-		OTLPTracesEndpoint: cfg.Tracing.OTLPTracesEndpoint,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("create tracing provider: %w", err)
-	}
-
-	// Open database connection pool.
-	dbPool, err := postgres.NewPool(ctx, postgres.PoolConfig{
-		ConnectionString: cfg.Database.ConnectionString(),
-		MaxConns:         cfg.Database.MaxConns,
-		MinConns:         cfg.Database.MinConns,
-		MaxConnLifetime:  cfg.Database.MaxConnLifetime,
-		MaxConnIdleTime:  cfg.Database.MaxConnIdleTime,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	// Initialize application services and handlers
-	userRepo := pguser.NewUserRepository(dbPool)
-	passwordHasher := security.NewArgon2idPasswordHasher(security.Argon2idConfig{
-		MemoryKiB:   cfg.Auth.Argon2idMemoryKiB,
-		Iterations:  cfg.Auth.Argon2idIterations,
-		Parallelism: cfg.Auth.Argon2idParallelism,
-	})
-	tokenIssuer := security.NewJWTIssuer(cfg.Auth.JWTSecret, cfg.Auth.AccessTokenTTL)
-	authEvents := logger.NewAuthEventRecorder(log, cfg.LogPseudonymKey)
-	userEvents := logger.NewUserEventRecorder(log, cfg.LogPseudonymKey)
-	projectEvents := logger.NewProjectEventRecorder(log)
-	labelEvents := logger.NewLabelEventRecorder(log)
-	checkEvents := logger.NewCheckEventRecorder(log)
-	probeEvents := logger.NewProbeEventRecorder(log)
-	probeRuntimeEvents := logger.NewProbeRuntimeEventRecorder(log)
-	assignmentEvents := logger.NewAssignmentEventRecorder(log)
-	smtpConfig := notify.SMTPConfig{
-		Host:     cfg.Alerting.SMTP.Host,
-		Port:     cfg.Alerting.SMTP.Port,
-		Username: cfg.Alerting.SMTP.Username,
-		Password: cfg.Alerting.SMTP.Password,
-		From:     cfg.Alerting.SMTP.From,
-		TLSMode:  cfg.Alerting.SMTP.TLSMode,
-		Timeout:  cfg.Alerting.SMTP.Timeout,
-	}
-	notificationSender := notify.NewSender(cfg.Alerting.NotificationHTTPTimeout, smtpConfig)
-
-	authSvc := appauth.NewService(userRepo, passwordHasher, tokenIssuer, authEvents)
-	authSvc.ConfigurePasswordReset(userRepo, security.NewPasswordResetTokenManager(), notify.NewPasswordResetMailer(smtpConfig), appauth.PasswordResetConfig{
-		TokenTTL: cfg.Auth.PasswordResetTokenTTL,
-	})
-	userSvc := appuser.NewService(userRepo, passwordHasher, userEvents)
-	projectRepo := pgproject.NewProjectRepository(dbPool)
-	projectSvc := appproject.NewService(projectRepo, userRepo, projectEvents)
-	alertRepo := pgalert.NewRepository(dbPool)
-	alertSvc := appalert.NewService(alertRepo, projectRepo, notificationSender)
-	labelRepo := pglabel.NewLabelRepository(dbPool)
-	assignmentRepo := pgassignment.NewAssignmentRepository(dbPool)
-	assignmentSvc := appassignment.NewService(assignmentRepo, projectRepo, assignmentEvents)
-	probeRepo := pgprobe.NewProbeRepository(dbPool)
-	labelSvc := applabel.NewService(labelRepo, projectRepo, labelEvents, assignmentSvc)
-	checkRepo := pgcheck.NewCheckRepository(dbPool)
-	checkSvc := appcheck.NewService(checkRepo, projectRepo, labelRepo, assignmentSvc, checkEvents)
-	probeSvc := appprobe.NewService(probeRepo, projectRepo, labelRepo, assignmentSvc, security.NewProbeSecretGenerator(), probeEvents)
-	pingRepo := pgping.NewPingRepository(dbPool)
-	tcpRepo := pgtcp.NewTCPRepository(dbPool)
-	tracerouteRepo := pgtraceroute.NewTracerouteRepository(dbPool)
-	resultRepo := pgresult.NewResultRepository(dbPool)
-	publicStatusRepo := pgpublicstatus.NewRepository(dbPool)
-	publicStatusSvc := apppublicstatus.NewService(publicStatusRepo, projectRepo, pingRepo, tcpRepo)
-	probeRuntimeSvc := appproberuntime.NewServiceWithTCP(probeRepo, pingRepo, tcpRepo, tracerouteRepo, security.NewProbeSecretVerifier(), probeRuntimeEvents)
-	alertEvalSvc := appalerteval.NewService(alertRepo, cfg.Alerting.EvaluationEnabled, cfg.HTTP.BackendBaseURL)
-	probeRuntimeSvc.SetAlertEvaluator(alertEvalSvc)
-	notificationWorker := appnotification.NewWorker(alertRepo, notificationSender, appnotification.WorkerConfig{
-		Enabled:      cfg.Alerting.NotificationWorkerEnabled,
-		Interval:     cfg.Alerting.NotificationWorkerInterval,
-		BatchSize:    cfg.Alerting.NotificationWorkerBatchSize,
-		StaleTimeout: cfg.Alerting.NotificationWorkerStaleTimeout,
-	})
-	resultSvc := appresult.NewService(pingRepo, tcpRepo, tracerouteRepo, resultRepo, projectRepo)
-	readiness := postgres.NewReadinessCheck(dbPool)
-	trustedProxies, err := cfg.HTTP.TrustedProxyPrefixes()
-	if err != nil {
-		return nil, fmt.Errorf("parse trusted proxies: %w", err)
-	}
-
-	httpHandler := httpserver.NewRouter(httpserver.Dependencies{
-		Log:                         log,
-		APIVersion:                  cfg.APIVersion,
-		DemoMode:                    cfg.DemoMode,
-		BackendBaseURL:              cfg.HTTP.BackendBaseURL,
-		PublicWebBaseURL:            cfg.HTTP.PublicWebBaseURL,
-		WebDir:                      cfg.HTTP.WebDir,
-		AuthService:                 authSvc,
-		AuthVerifier:                tokenIssuer,
-		AuthCookieSecure:            cfg.Env != "local",
-		AuthRegistrationDisabled:    !cfg.Auth.RegistrationEnabled,
-		AuthPasswordResetRateWindow: cfg.Auth.PasswordResetRateWindow,
-		AuthPasswordResetIPLimit:    cfg.Auth.PasswordResetIPLimit,
-		AuthPasswordResetEmailLimit: cfg.Auth.PasswordResetEmailLimit,
-		UserService:                 userSvc,
-		AlertService:                alertSvc,
-		AlertEmailSMTPConfigured:    notificationSender.EmailConfigured(),
-		AssignmentService:           assignmentSvc,
-		CheckService:                checkSvc,
-		LabelService:                labelSvc,
-		ProbeService:                probeSvc,
-		ProbeRuntime:                probeRuntimeSvc,
-		ProjectService:              projectSvc,
-		PublicStatusService:         publicStatusSvc,
-		ResultService:               resultSvc,
-		ReadinessCheck:              readiness,
-		RequestTimeout:              cfg.HTTP.RequestTimeout,
-		MetricsHandler:              metricsProvider.Handler(),
-		TrustedProxies:              trustedProxies,
-	})
-
-	return &Application{
-		Config:     cfg,
-		Log:        log,
-		HTTPServer: httpserver.NewServer(cfg.HTTP, httpHandler),
-		DBPool:     dbPool,
-		Metrics:    metricsProvider,
-		Tracing:    tracingProvider,
-		Worker:     notificationWorker,
-	}, nil
+	return log, nil
 }
