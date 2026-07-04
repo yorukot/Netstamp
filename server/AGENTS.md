@@ -53,6 +53,24 @@ No GraphQL, external message queues, payment, object-storage integrations, or fu
 - Agent runtime (`internal/agent/runtime`, `internal/agent/scheduling`, `internal/agent/worker`): keep probe process orchestration, scheduling state, worker queues, and result submission independent of concrete HTTP or ping libraries. Agent infrastructure packages implement runtime/worker ports and may import external libraries such as `x/net` ICMP helpers.
 - Agent runtime config: heartbeat, assignment polling, retry timing, worker count, result buffering, and observability endpoints are local probe-agent settings only. The controller does not send runtime tuning config in `hello` or assignment responses. Configure probes with `NETSTAMP_PROBE_*` environment variables such as `NETSTAMP_PROBE_HEARTBEAT_INTERVAL`, `NETSTAMP_PROBE_ASSIGNMENT_POLL_INTERVAL`, `NETSTAMP_PROBE_INITIAL_BACKOFF`, `NETSTAMP_PROBE_MAX_BACKOFF`, `NETSTAMP_PROBE_MAX_ATTEMPTS`, `NETSTAMP_PROBE_METRICS_ADDR`, and `NETSTAMP_PROBE_PPROF_ADDR`.
 
+## Application Package Taxonomy
+
+Classify an application package before adding files or copying another package's shape. The expected structure depends on the package type:
+
+- Command features handle state changes, authorization, and use-case-specific business errors. They must keep service orchestration, DTOs, ports, errors, validation, tracing, and flow helpers explicit with `service.go`, `dto.go`, `ports.go`, `errors.go`, `validate.go`, `trace.go`, and `flow.go`.
+- Query features handle reads, aggregation, and time-series query policy. They should keep DTOs, ports, validation, errors where needed, and tracing explicit, but should not add an empty `flow.go` unless they also own command-style failure semantics.
+- Orchestrators and workers coordinate background or cross-feature work. They should use `service.go` or `worker.go`, focused ports, and tracing/error conventions appropriate to the workflow rather than pretending to be HTTP-facing features.
+- Shared application support packages provide application-layer helpers or policy. They should be named by purpose and do not need `service.go`, `dto.go`, `trace.go`, or `flow.go`.
+
+`flow.go` is mandatory for command features. It should centralize span lifecycle, normalized identifiers, success/failure outcome handling, business-versus-technical failure classification, sentinel error mapping, and application event recording when the package has an event recorder. Do not add placeholder flow, trace, error, or DTO files to query or shared-support packages just to make directories look identical.
+
+Current package classification:
+
+- Command features: `auth`, `project`, `label`, `check`, `probe`, `proberuntime`, `assignment`, `user`, `alert`, and the mutating public status page/element use cases in `publicstatus`.
+- Query features: `result/latest`, `result/ping`, `result/tcp`, `result/traceroute`, and the public read use cases in `publicstatus`.
+- Orchestrators and workers: `alerteval`, `notification`, and assignment refresh worker behavior.
+- Shared application support: `validation`, `tx`, `pingquery`, `tcpquery`, `result/shared`, and the thin `result` compatibility facade.
+
 ## Cross-Feature Repository Reuse
 
 When one application feature needs data or access checks that are already owned by another feature, define a narrow capability port in the consuming application package and wire an existing repository or dedicated adapter into it from `internal/controller/app/bootstrap.go`. Do not duplicate SQL, UUID/slug parsing, membership checks, or repository methods just because the consuming feature has its own repository.
@@ -185,7 +203,7 @@ Use `server/.env.example` as the controller env template and `server/probe.env.e
 
 Go files use tabs and `gofmt` per root `.editorconfig`. `golangci.yaml` enables gofumpt, goimports, and gci formatting with local imports grouped under `github.com/yorukot/netstamp`. Keep package names short and lowercase, matching existing packages such as `auth`, `postgres`, and `httpserver`.
 
-Follow existing feature file names: `service.go`, `validate.go`, `ports.go`, `errors.go`, `trace.go`, `handler.go`, `register.go`, `login.go`, and `*_test.go`. Keep application service input validation, normalization, constants, and field-level validation errors in `validate.go` when a feature has enough validation logic to make `service.go` hard to scan. Export only types needed across packages. Use sentinel errors named `Err...` and compare with `errors.Is`.
+Follow existing feature file names: `service.go`, `validate.go`, `ports.go`, `errors.go`, `trace.go`, `flow.go`, `handler.go`, `register.go`, `login.go`, and `*_test.go`. Keep application service input validation, normalization, constants, and field-level validation errors in `validate.go` when a feature has enough validation logic to make `service.go` hard to scan. Export only types needed across packages. Use sentinel errors named `Err...` and compare with `errors.Is`.
 
 For HTTP feature packages, keep `handler.go` focused on the `Handler` type, constructor, chi route registration, and thin binding/writing wrappers. Put application-facing operation methods and their request/response DTOs in separate operation files, matching `internal/controller/transport/http/auth` patterns such as `register.go`, `login.go`, and `me.go`. Put response DTOs and mappers in `response.go` only when they are shared by multiple operation files. Do not concentrate all endpoint handler logic and DTOs in one large `handler.go`.
 

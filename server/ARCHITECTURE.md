@@ -13,6 +13,17 @@ Netstamp backend is a modular monolith. Keep one deployable controller service a
 
 This is a pragmatic hexagonal architecture: application packages define the ports they need, infrastructure packages implement them, and the app composition root connects the two.
 
+## Application Package Taxonomy
+
+Application packages are not all the same shape. Classify each package before adding or reorganizing files:
+
+- Command features handle state changes, authorization, and use-case-specific business errors. They must keep service orchestration, DTOs, ports, errors, validation, tracing, and command flow helpers explicit with `service.go`, `dto.go`, `ports.go`, `errors.go`, `validate.go`, `trace.go`, and `flow.go`.
+- Query features handle reads, aggregation, and time-series query policy. They should keep DTOs, ports, validation, errors where needed, and tracing explicit, but should not add an empty `flow.go` unless they also own command-style failure semantics.
+- Orchestrators and workers coordinate background or cross-feature work. They should use `service.go` or `worker.go`, focused ports, and tracing/error conventions appropriate to the workflow rather than pretending to be HTTP-facing features.
+- Shared application support packages provide application-layer helpers or policy. They should be named by purpose and do not need `service.go`, `dto.go`, `trace.go`, or `flow.go`.
+
+`flow.go` is mandatory for command features. It should centralize span lifecycle, normalized identifiers, success/failure outcome handling, business-versus-technical failure classification, sentinel error mapping, and application event recording when the package has an event recorder.
+
 ## Dependency Rules
 
 - Domain packages must not import controller, agent, platform, or command packages.
