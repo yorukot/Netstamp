@@ -74,7 +74,7 @@ func TestPublicSummaryAndElementsRenderOrderedElementsAndRollUpStatus(t *testing
 		},
 	}
 
-	service := NewService(repo, nil, nil, nil)
+	service := NewService(repo, nil, nil, nil, nil)
 	summary, err := service.GetPublicSummary(context.Background(), PublicSummaryInput{Slug: "main", Now: now})
 	if err != nil {
 		t.Fatalf("GetPublicSummary returned error: %v", err)
@@ -159,7 +159,7 @@ func TestPublicSummaryElementsAndIncidentsRespectCriticalIncident(t *testing.T) 
 		},
 	}
 
-	service := NewService(repo, nil, nil, nil)
+	service := NewService(repo, nil, nil, nil, nil)
 	summary, err := service.GetPublicSummary(context.Background(), PublicSummaryInput{Slug: "main", Now: now})
 	if err != nil {
 		t.Fatalf("GetPublicSummary returned error: %v", err)
@@ -224,7 +224,7 @@ func TestPublicSnapshotReusesCurrentStatusAcrossSplitEndpoints(t *testing.T) {
 			},
 		},
 	}
-	service := NewService(repo, nil, nil, nil)
+	service := NewService(repo, nil, nil, nil, nil)
 
 	if _, err := service.GetPublicSummary(context.Background(), PublicSummaryInput{Slug: "main", Now: now}); err != nil {
 		t.Fatalf("GetPublicSummary returned error: %v", err)
@@ -280,7 +280,7 @@ func TestGetPublicElementsDoesNotReadChartSeries(t *testing.T) {
 	}
 	pings := &fakePingSeriesRepository{}
 
-	elements, err := NewService(repo, nil, pings, nil).GetPublicElements(context.Background(), PublicElementsInput{
+	elements, err := NewService(repo, nil, nil, pings, nil).GetPublicElements(context.Background(), PublicElementsInput{
 		Slug: "main",
 		Now:  now,
 	})
@@ -345,7 +345,7 @@ func TestGetPublicElementChartReturnsOnlyTargetElementSeries(t *testing.T) {
 	}
 	pings := &fakePingSeriesRepository{pointTime: now.Add(-5 * time.Minute)}
 
-	result, err := NewService(repo, nil, pings, nil).GetPublicElementChart(context.Background(), PublicElementChartInput{
+	result, err := NewService(repo, nil, nil, pings, nil).GetPublicElementChart(context.Background(), PublicElementChartInput{
 		Slug:      "main",
 		ElementID: targetID,
 		Range:     &chartRange,
@@ -408,7 +408,7 @@ func TestGetPublicElementChartSkipsChartWhenModeOff(t *testing.T) {
 	}
 	pings := &fakePingSeriesRepository{}
 
-	result, err := NewService(repo, nil, pings, nil).GetPublicElementChart(context.Background(), PublicElementChartInput{
+	result, err := NewService(repo, nil, nil, pings, nil).GetPublicElementChart(context.Background(), PublicElementChartInput{
 		Slug:      "main",
 		ElementID: checkID,
 		Now:       now,
@@ -464,7 +464,7 @@ func TestGetPublicElementDailyStatusMarksIncidentDays(t *testing.T) {
 		},
 	}
 
-	result, err := NewService(repo, nil, nil, nil).GetPublicElementDailyStatus(context.Background(), PublicElementDailyStatusInput{
+	result, err := NewService(repo, nil, nil, nil, nil).GetPublicElementDailyStatus(context.Background(), PublicElementDailyStatusInput{
 		Slug:      "main",
 		ElementID: checkID,
 		Now:       now,
@@ -552,7 +552,7 @@ func TestGetPublicElementDailyStatusCollectsFolderAssignments(t *testing.T) {
 		},
 	}
 
-	result, err := NewService(repo, nil, nil, nil).GetPublicElementDailyStatus(context.Background(), PublicElementDailyStatusInput{
+	result, err := NewService(repo, nil, nil, nil, nil).GetPublicElementDailyStatus(context.Background(), PublicElementDailyStatusInput{
 		Slug:      "main",
 		ElementID: folderID,
 		Now:       now,
@@ -591,7 +591,7 @@ func TestGetPublicElementDailyStatusRejectsUnsupportedRange(t *testing.T) {
 			},
 		},
 	}
-	_, err := NewService(repo, nil, nil, nil).GetPublicElementDailyStatus(context.Background(), PublicElementDailyStatusInput{
+	_, err := NewService(repo, nil, nil, nil, nil).GetPublicElementDailyStatus(context.Background(), PublicElementDailyStatusInput{
 		Slug:      "main",
 		ElementID: checkID,
 		Range:     &chartRange,
@@ -625,7 +625,7 @@ func TestUpdateElementRejectsKindChange(t *testing.T) {
 			},
 		},
 	}
-	service := NewService(repo, fakeProjectAccess{role: domainproject.RoleAdmin}, nil, nil)
+	service := NewService(repo, fakeProjectAccess{role: domainproject.RoleAdmin}, nil, nil, nil)
 
 	_, err := service.UpdateElement(context.Background(), UpdateElementInput{
 		CurrentUserID:           testUserID,

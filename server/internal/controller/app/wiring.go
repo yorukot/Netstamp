@@ -151,6 +151,7 @@ func buildControllerServices(cfg config.Config, log *zap.Logger, dbPool *pgxpool
 	probeEvents := logger.NewProbeEventRecorder(log)
 	probeRuntimeEvents := logger.NewProbeRuntimeEventRecorder(log)
 	assignmentEvents := logger.NewAssignmentEventRecorder(log)
+	publicStatusEvents := logger.NewPublicStatusEventRecorder(log)
 
 	secretCipher, err := security.NewSecretCipher(cfg.SettingsSecretKey)
 	if err != nil {
@@ -189,7 +190,7 @@ func buildControllerServices(cfg config.Config, log *zap.Logger, dbPool *pgxpool
 	labelSvc := applabel.NewService(labelRepo, projectRepo, labelEvents, assignmentSvc, dbTx)
 	checkSvc := appcheck.NewService(checkRepo, projectRepo, labelRepo, assignmentSvc, checkEvents, dbTx)
 	probeSvc := appprobe.NewService(probeRepo, projectRepo, labelRepo, assignmentSvc, security.NewProbeSecretGenerator(), probeEvents, dbTx)
-	publicStatusSvc := apppublicstatus.NewService(publicStatusRepo, projectRepo, pingRepo, tcpRepo)
+	publicStatusSvc := apppublicstatus.NewService(publicStatusRepo, projectRepo, publicStatusEvents, pingRepo, tcpRepo)
 	probeRuntimeSvc := appproberuntime.NewServiceWithTCP(probeRepo, pingRepo, tcpRepo, tracerouteRepo, security.NewProbeSecretVerifier(), probeRuntimeEvents)
 	alertEvalSvc := appalerteval.NewService(alertRepo, cfg.Alerting.EvaluationEnabled, cfg.HTTP.BackendBaseURL, dbTx)
 	alertEvalSvc.ConfigureBackendBaseURLProvider(adminSvc)

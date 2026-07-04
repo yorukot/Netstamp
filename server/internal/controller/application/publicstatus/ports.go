@@ -35,6 +35,10 @@ type ProjectAccess interface {
 	GetMemberRole(ctx context.Context, projectID, userID string) (domainproject.Role, error)
 }
 
+type EventRecorder interface {
+	RecordPublicStatusEvent(ctx context.Context, event PublicStatusEvent)
+}
+
 type PingSeriesRepository interface {
 	CountPingSeriesPoints(ctx context.Context, input domainping.SeriesPointCountQuery) (int64, error)
 	ListPingSeries(ctx context.Context, input domainping.SeriesReadQuery) (map[string]domainping.SeriesData, error)
@@ -82,3 +86,34 @@ const (
 	PublicStatusReasonElementUpdateFailed PublicStatusReason = "element_update_failed"
 	PublicStatusReasonElementDeleteFailed PublicStatusReason = "element_delete_failed"
 )
+
+type PublicStatusEventName string
+
+const (
+	PublicStatusEventCreatePageSuccess    PublicStatusEventName = "public_status.page.create.success"
+	PublicStatusEventCreatePageFailure    PublicStatusEventName = "public_status.page.create.failure"
+	PublicStatusEventUpdatePageSuccess    PublicStatusEventName = "public_status.page.update.success"
+	PublicStatusEventUpdatePageFailure    PublicStatusEventName = "public_status.page.update.failure"
+	PublicStatusEventDeletePageSuccess    PublicStatusEventName = "public_status.page.delete.success"
+	PublicStatusEventDeletePageFailure    PublicStatusEventName = "public_status.page.delete.failure"
+	PublicStatusEventCreateElementSuccess PublicStatusEventName = "public_status.element.create.success"
+	PublicStatusEventCreateElementFailure PublicStatusEventName = "public_status.element.create.failure"
+	PublicStatusEventUpdateElementSuccess PublicStatusEventName = "public_status.element.update.success"
+	PublicStatusEventUpdateElementFailure PublicStatusEventName = "public_status.element.update.failure"
+	PublicStatusEventDeleteElementSuccess PublicStatusEventName = "public_status.element.delete.success"
+	PublicStatusEventDeleteElementFailure PublicStatusEventName = "public_status.element.delete.failure"
+)
+
+type PublicStatusEvent struct {
+	Name        PublicStatusEventName
+	Action      PublicStatusAction
+	Outcome     PublicStatusOutcome
+	Reason      PublicStatusReason
+	ActorUserID string
+	ProjectID   string
+	ProjectRef  string
+	ProjectSlug string
+	PageID      string
+	ElementID   string
+	Err         error
+}
