@@ -44,3 +44,41 @@ type TCPSeriesRepository interface {
 	CountTCPSeriesPoints(ctx context.Context, input domaintcp.SeriesPointCountQuery) (int64, error)
 	ListTCPSeries(ctx context.Context, input domaintcp.SeriesReadQuery) (map[string]domaintcp.SeriesData, error)
 }
+
+type PublicStatusAction string
+
+const (
+	PublicStatusActionCreatePage    PublicStatusAction = "page.create"
+	PublicStatusActionUpdatePage    PublicStatusAction = "page.update"
+	PublicStatusActionDeletePage    PublicStatusAction = "page.delete"
+	PublicStatusActionCreateElement PublicStatusAction = "element.create"
+	PublicStatusActionUpdateElement PublicStatusAction = "element.update"
+	PublicStatusActionDeleteElement PublicStatusAction = "element.delete"
+)
+
+type PublicStatusOutcome string
+
+const (
+	PublicStatusOutcomeSuccess PublicStatusOutcome = "success"
+	PublicStatusOutcomeFailure PublicStatusOutcome = "failure"
+)
+
+type PublicStatusReason string
+
+const (
+	PublicStatusReasonInvalidInput        PublicStatusReason = "invalid_input"
+	PublicStatusReasonForbidden           PublicStatusReason = "forbidden"
+	PublicStatusReasonProjectNotFound     PublicStatusReason = "project_not_found"
+	PublicStatusReasonUserNotFound        PublicStatusReason = "user_not_found"
+	PublicStatusReasonPageNotFound        PublicStatusReason = "page_not_found"
+	PublicStatusReasonElementNotFound     PublicStatusReason = "element_not_found"
+	PublicStatusReasonSlugAlreadyExists   PublicStatusReason = "slug_already_exists"
+	PublicStatusReasonProjectLookupFailed PublicStatusReason = "project_lookup_failed"
+	PublicStatusReasonRoleLookupFailed    PublicStatusReason = "role_lookup_failed"
+	PublicStatusReasonPageCreateFailed    PublicStatusReason = "page_create_failed"
+	PublicStatusReasonPageUpdateFailed    PublicStatusReason = "page_update_failed"
+	PublicStatusReasonPageDeleteFailed    PublicStatusReason = "page_delete_failed"
+	PublicStatusReasonElementCreateFailed PublicStatusReason = "element_create_failed"
+	PublicStatusReasonElementUpdateFailed PublicStatusReason = "element_update_failed"
+	PublicStatusReasonElementDeleteFailed PublicStatusReason = "element_delete_failed"
+)
