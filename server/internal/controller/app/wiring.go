@@ -146,6 +146,7 @@ func buildControllerServices(cfg config.Config, log *zap.Logger, dbPool *pgxpool
 	authEvents := logger.NewAuthEventRecorder(log, cfg.LogPseudonymKey)
 	userEvents := logger.NewUserEventRecorder(log, cfg.LogPseudonymKey)
 	projectEvents := logger.NewProjectEventRecorder(log)
+	alertEvents := logger.NewAlertEventRecorder(log)
 	labelEvents := logger.NewLabelEventRecorder(log)
 	checkEvents := logger.NewCheckEventRecorder(log)
 	probeEvents := logger.NewProbeEventRecorder(log)
@@ -185,7 +186,7 @@ func buildControllerServices(cfg config.Config, log *zap.Logger, dbPool *pgxpool
 
 	userSvc := appuser.NewService(userRepo, passwordHasher, userEvents)
 	projectSvc := appproject.NewService(projectRepo, userRepo, projectEvents)
-	alertSvc := appalert.NewService(alertRepo, projectRepo, notificationSender)
+	alertSvc := appalert.NewService(alertRepo, projectRepo, alertEvents, notificationSender)
 	assignmentSvc := appassignment.NewService(assignmentRepo, projectRepo, assignmentEvents, dbTx)
 	labelSvc := applabel.NewService(labelRepo, projectRepo, labelEvents, assignmentSvc, dbTx)
 	checkSvc := appcheck.NewService(checkRepo, projectRepo, labelRepo, assignmentSvc, checkEvents, dbTx)

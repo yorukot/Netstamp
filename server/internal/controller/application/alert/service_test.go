@@ -78,7 +78,7 @@ func TestServiceReadMethodsUseProjectAccess(t *testing.T) {
 
 			repo := &fakeAlertRepository{}
 			access := &fakeAlertProjectAccess{role: domainproject.RoleViewer}
-			service := NewService(repo, access, nil)
+			service := NewService(repo, access, nil, nil)
 
 			if err := tt.run(service); err != nil {
 				t.Fatalf("read method returned error: %v", err)
@@ -132,7 +132,7 @@ func TestServiceRuleWritesRequireManageAlertPermission(t *testing.T) {
 
 			repo := &fakeAlertRepository{}
 			access := &fakeAlertProjectAccess{role: domainproject.RoleViewer}
-			service := NewService(repo, access, nil)
+			service := NewService(repo, access, nil, nil)
 
 			err := tt.run(service)
 			if !errors.Is(err, ErrForbidden) {
@@ -153,7 +153,7 @@ func TestServiceRuleWriteAllowsEditorManageAlertPermission(t *testing.T) {
 
 	repo := &fakeAlertRepository{}
 	access := &fakeAlertProjectAccess{role: domainproject.RoleEditor}
-	service := NewService(repo, access, nil)
+	service := NewService(repo, access, nil, nil)
 
 	_, err := service.CreateRule(context.Background(), validCreateRuleInput())
 	if err != nil {
@@ -236,7 +236,7 @@ func TestServiceNotificationWritesOwnerAdminOnly(t *testing.T) {
 
 			repo := &fakeAlertRepository{}
 			access := &fakeAlertProjectAccess{role: tt.role}
-			service := NewService(repo, access, nil)
+			service := NewService(repo, access, nil, nil)
 
 			err := tt.run(service)
 			if !errors.Is(err, tt.want) {
@@ -254,7 +254,7 @@ func TestServiceCreateRuleRejectsUnsupportedTracerouteCheckType(t *testing.T) {
 
 	repo := &fakeAlertRepository{}
 	access := &fakeAlertProjectAccess{role: domainproject.RoleAdmin}
-	service := NewService(repo, access, nil)
+	service := NewService(repo, access, nil, nil)
 	input := validCreateRuleInput()
 	input.CheckType = domaincheck.TypeTraceroute
 
@@ -281,7 +281,7 @@ func TestServiceTestNotificationUnavailableReturnsStructuredResult(t *testing.T)
 		},
 	}
 	access := &fakeAlertProjectAccess{role: domainproject.RoleAdmin}
-	service := NewService(repo, access, nil)
+	service := NewService(repo, access, nil, nil)
 
 	result, err := service.TestNotification(context.Background(), TestNotificationInput{
 		ProjectInput:   testProjectInput(),

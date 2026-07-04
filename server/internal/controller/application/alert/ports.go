@@ -33,6 +33,10 @@ type NotificationTester interface {
 	TestNotification(ctx context.Context, notification domainalert.Notification, payload json.RawMessage) NotificationTestResult
 }
 
+type EventRecorder interface {
+	RecordAlertEvent(ctx context.Context, event AlertEvent)
+}
+
 type AlertAction string
 
 const (
@@ -85,3 +89,36 @@ const (
 	AlertReasonIncidentListFailed            AlertReason = "incident_list_failed"
 	AlertReasonIncidentLookupFailed          AlertReason = "incident_lookup_failed"
 )
+
+type AlertEventName string
+
+const (
+	AlertEventCreateRuleSuccess         AlertEventName = "alert.rule.create.success"
+	AlertEventCreateRuleFailure         AlertEventName = "alert.rule.create.failure"
+	AlertEventUpdateRuleSuccess         AlertEventName = "alert.rule.update.success"
+	AlertEventUpdateRuleFailure         AlertEventName = "alert.rule.update.failure"
+	AlertEventDeleteRuleSuccess         AlertEventName = "alert.rule.delete.success"
+	AlertEventDeleteRuleFailure         AlertEventName = "alert.rule.delete.failure"
+	AlertEventCreateNotificationSuccess AlertEventName = "alert.notification.create.success"
+	AlertEventCreateNotificationFailure AlertEventName = "alert.notification.create.failure"
+	AlertEventUpdateNotificationSuccess AlertEventName = "alert.notification.update.success"
+	AlertEventUpdateNotificationFailure AlertEventName = "alert.notification.update.failure"
+	AlertEventDeleteNotificationSuccess AlertEventName = "alert.notification.delete.success"
+	AlertEventDeleteNotificationFailure AlertEventName = "alert.notification.delete.failure"
+	AlertEventTestNotificationSuccess   AlertEventName = "alert.notification.test.success"
+	AlertEventTestNotificationFailure   AlertEventName = "alert.notification.test.failure"
+)
+
+type AlertEvent struct {
+	Name           AlertEventName
+	Action         AlertAction
+	Outcome        AlertOutcome
+	Reason         AlertReason
+	ActorUserID    string
+	ProjectID      string
+	ProjectRef     string
+	ProjectSlug    string
+	RuleID         string
+	NotificationID string
+	Err            error
+}

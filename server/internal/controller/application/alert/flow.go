@@ -81,6 +81,7 @@ func (f *alertFlow) setNotificationID(notificationID string) {
 
 func (f *alertFlow) success() {
 	f.span.SetAttributes(attrAlertOutcome.String(string(AlertOutcomeSuccess)))
+	f.record(AlertOutcomeSuccess, "", nil)
 }
 
 func (f *alertFlow) businessFailure(reason AlertReason, returnErr error) error {
@@ -88,6 +89,7 @@ func (f *alertFlow) businessFailure(reason AlertReason, returnErr error) error {
 		attrAlertOutcome.String(string(AlertOutcomeFailure)),
 		attrAlertFailureReason.String(string(reason)),
 	)
+	f.record(AlertOutcomeFailure, reason, nil)
 	return returnErr
 }
 
@@ -96,11 +98,13 @@ func (f *alertFlow) businessResult(reason AlertReason) {
 		attrAlertOutcome.String(string(AlertOutcomeFailure)),
 		attrAlertFailureReason.String(string(reason)),
 	)
+	f.record(AlertOutcomeFailure, reason, nil)
 }
 
 func (f *alertFlow) technicalFailure(reason AlertReason, err error) error {
 	f.span.SetAttributes(attrAlertOutcome.String(string(AlertOutcomeFailure)))
 	recordSpanError(f.span, err, reason)
+	f.record(AlertOutcomeFailure, reason, err)
 	return err
 }
 
@@ -157,4 +161,65 @@ func recordAlertQueryFailure(span trace.Span, reason AlertReason, err error) err
 	)
 	recordSpanError(span, err, reason)
 	return err
+}
+
+func (f *alertFlow) record(outcome AlertOutcome, reason AlertReason, err error) {
+	if f.service.events == nil {
+		return
+	}
+	f.service.events.RecordAlertEvent(f.ctx, AlertEvent{
+		Name:           alertEventName(f.action, outcome),
+		Action:         f.action,
+		Outcome:        outcome,
+		Reason:         reason,
+		ActorUserID:    f.actorUserID,
+		ProjectID:      f.projectID,
+		ProjectRef:     f.projectRef,
+		ProjectSlug:    f.projectSlug,
+		RuleID:         f.ruleID,
+		NotificationID: f.notificationID,
+		Err:            err,
+	})
+}
+
+func alertEventName(action AlertAction, outcome AlertOutcome) AlertEventName {
+	switch action {
+	case AlertActionCreateRule:
+		if outcome == AlertOutcomeSuccess {
+			return AlertEventCreateRuleSuccess
+		}
+		return AlertEventCreateRuleFailure
+	case AlertActionUpdateRule:
+		if outcome == AlertOutcomeSuccess {
+			return AlertEventUpdateRuleSuccess
+		}
+		return AlertEventUpdateRuleFailure
+	case AlertActionDeleteRule:
+		if outcome == AlertOutcomeSuccess {
+			return AlertEventDeleteRuleSuccess
+		}
+		return AlertEventDeleteRuleFailure
+	case AlertActionCreateNotification:
+		if outcome == AlertOutcomeSuccess {
+			return AlertEventCreateNotificationSuccess
+		}
+		return AlertEventCreateNotificationFailure
+	case AlertActionUpdateNotification:
+		if outcome == AlertOutcomeSuccess {
+			return AlertEventUpdateNotificationSuccess
+		}
+		return AlertEventUpdateNotificationFailure
+	case AlertActionDeleteNotification:
+		if outcome == AlertOutcomeSuccess {
+			return AlertEventDeleteNotificationSuccess
+		}
+		return AlertEventDeleteNotificationFailure
+	case AlertActionTestNotification:
+		if outcome == AlertOutcomeSuccess {
+			return AlertEventTestNotificationSuccess
+		}
+		return AlertEventTestNotificationFailure
+	default:
+		return AlertEventName("alert.unknown." + string(outcome))
+	}
 }
