@@ -24,6 +24,13 @@ Application packages are not all the same shape. Classify each package before ad
 
 `flow.go` is mandatory for command features. It should centralize span lifecycle, normalized identifiers, success/failure outcome handling, business-versus-technical failure classification, sentinel error mapping, and application event recording when the package has an event recorder.
 
+Current controller application classification:
+
+- Command features: `auth`, `project`, `label`, `check`, `probe`, `proberuntime`, `assignment`, `user`, `alert`, and the mutating page/element use cases in `publicstatus`.
+- Query features: `result/latest`, `result/ping`, `result/tcp`, `result/traceroute`, and public read use cases in `publicstatus`.
+- Orchestrators and workers: `alerteval`, `notification`, and assignment refresh worker behavior.
+- Shared application support: `validation`, `tx`, `pingquery`, `tcpquery`, `result/shared`, and the thin `result` compatibility facade.
+
 ## Dependency Rules
 
 - Domain packages must not import controller, agent, platform, or command packages.
