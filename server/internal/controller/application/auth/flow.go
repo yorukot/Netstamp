@@ -67,7 +67,7 @@ func (f *authFlow) technicalFailure(name AuthEventName, reason AuthEventReason, 
 
 func (f *authFlow) recordTechnicalFailure(name AuthEventName, reason AuthEventReason, err error) {
 	f.span.SetAttributes(attrAuthOutcome.String(string(AuthOutcomeFailure)))
-	markSpanTechnicalFailure(f.span, reason)
+	recordSpanError(f.span, err, reason)
 	if f.service.events != nil {
 		f.service.events.RecordAuthEvent(f.ctx, f.authEvent(name, AuthOutcomeFailure, reason, err))
 	}
