@@ -6,7 +6,7 @@ import { useCreateEmailVerificationMutation } from "@/shared/api/mutations";
 import { appFeatures, demoCredentials, demoMode } from "@/shared/config/features";
 import { pushErrorToast, pushToast } from "@/shared/toast/toastStore";
 import { Button, TextField } from "@netstamp/ui";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { AuthLayout } from "./AuthLayout";
 import styles from "./AuthPage.module.css";
@@ -14,6 +14,10 @@ import styles from "./AuthPage.module.css";
 interface AuthPageProps {
 	mode?: "login" | "register";
 	navigate: Navigate;
+}
+
+function preloadForgotPasswordPage() {
+	void import("./ForgotPasswordPage");
 }
 
 export function AuthPage({ mode = "login", navigate }: AuthPageProps) {
@@ -25,6 +29,12 @@ export function AuthPage({ mode = "login", navigate }: AuthPageProps) {
 	const [verificationEmail, setVerificationEmail] = useState("");
 	const heading = isRegister ? "Sign Up" : "Login";
 	const showDemoCredentials = demoMode && Boolean(demoCredentials);
+
+	useEffect(() => {
+		if (!isRegister) {
+			preloadForgotPasswordPage();
+		}
+	}, [isRegister]);
 
 	function fillDemoCredentials() {
 		if (!demoCredentials) {
@@ -132,7 +142,7 @@ export function AuthPage({ mode = "login", navigate }: AuthPageProps) {
 						onChange={event => setPassword(event.currentTarget.value)}
 					/>
 					{!isRegister ? (
-						<Link className={styles.inlineLink} to={pathForRoute("forgotPassword")}>
+						<Link className={styles.inlineLink} to={pathForRoute("forgotPassword")} onFocus={preloadForgotPasswordPage} onPointerEnter={preloadForgotPasswordPage}>
 							Forgot password?
 						</Link>
 					) : null}

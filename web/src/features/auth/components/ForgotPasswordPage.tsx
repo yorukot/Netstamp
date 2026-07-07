@@ -24,20 +24,12 @@ export function ForgotPasswordPage() {
 	}
 
 	return (
-		<AuthLayout title="Reset your password" description="Enter your account email and Netstamp will send a reset link if the account exists." helmetTitle="Reset password">
+		<AuthLayout title="Forgot Password" helmetTitle="Forgot Password">
 			{submitted ? (
 				<div className={styles.notice}>If an account exists for that email, reset instructions have been sent.</div>
 			) : (
 				<form className={styles.form} onSubmit={handleSubmit}>
-					<TextField
-						label="Email"
-						name="email"
-						type="email"
-						value={email}
-						autoComplete="username"
-						helper="Use the email connected to your controller account."
-						onChange={event => setEmail(event.currentTarget.value)}
-					/>
+					<TextField label="Email" name="email" type="email" value={email} autoComplete="username" onChange={event => setEmail(event.currentTarget.value)} />
 					<Button className={styles.submitButton} type="submit" size="lg" disabled={createReset.isPending}>
 						{createReset.isPending ? "Sending" : "Send reset link"}
 					</Button>
