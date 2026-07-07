@@ -15,6 +15,7 @@ interface NetworkMapProps {
 	selectedId: string;
 	onSelect?: (probeId: string) => void;
 	mode?: "fleet" | "detail";
+	theme?: MapTheme;
 	fleetFitPadding?: MapPadding;
 	fleetMaxZoom?: number;
 	className?: string;
@@ -123,14 +124,24 @@ function fitFleetBounds(map: MapLibreMap, maplibregl: MapLibreModule, probes: Ar
 	});
 }
 
-export function NetworkMap({ probes, selectedId, onSelect, mode = "fleet", fleetFitPadding = defaultFleetFitPadding, fleetMaxZoom = defaultFleetMaxZoom, className }: NetworkMapProps) {
-	const { theme } = useTheme();
+export function NetworkMap({
+	probes,
+	selectedId,
+	onSelect,
+	mode = "fleet",
+	theme: themeOverride,
+	fleetFitPadding = defaultFleetFitPadding,
+	fleetMaxZoom = defaultFleetMaxZoom,
+	className
+}: NetworkMapProps) {
+	const { theme: appTheme } = useTheme();
+	const mapTheme = themeOverride ?? appTheme;
 	const mapContainerRef = useRef<HTMLDivElement | null>(null);
 	const maplibreglRef = useRef<MapLibreModule | null>(null);
 	const mapRef = useRef<MapLibreMap | null>(null);
 	const markersRef = useRef<MarkerRecord[]>([]);
 	const selectedIdRef = useRef(selectedId);
-	const themeRef = useRef(theme);
+	const themeRef = useRef(mapTheme);
 	const appliedThemeRef = useRef<MapTheme | null>(null);
 	const [mapReady, setMapReady] = useState(false);
 	const classes = [styles.map, className].filter(Boolean).join(" ");
@@ -145,8 +156,8 @@ export function NetworkMap({ probes, selectedId, onSelect, mode = "fleet", fleet
 	}, [mode, probes, selectedId]);
 
 	useEffect(() => {
-		themeRef.current = theme;
-	}, [theme]);
+		themeRef.current = mapTheme;
+	}, [mapTheme]);
 
 	useEffect(() => {
 		let cancelled = false;
@@ -196,13 +207,13 @@ export function NetworkMap({ probes, selectedId, onSelect, mode = "fleet", fleet
 	useEffect(() => {
 		const map = mapRef.current;
 
-		if (!map || !mapReady || appliedThemeRef.current === theme) {
+		if (!map || !mapReady || appliedThemeRef.current === mapTheme) {
 			return;
 		}
 
-		appliedThemeRef.current = theme;
-		map.setStyle(createCartoStyle(theme));
-	}, [mapReady, theme]);
+		appliedThemeRef.current = mapTheme;
+		map.setStyle(createCartoStyle(mapTheme));
+	}, [mapReady, mapTheme]);
 
 	useEffect(() => {
 		if (!mapContainerRef.current) {

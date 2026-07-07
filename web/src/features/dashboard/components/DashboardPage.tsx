@@ -5,8 +5,9 @@ import { projectQueries } from "@/shared/api/queries";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { NetworkMap } from "@/shared/components/NetworkMap";
 import { PageStack } from "@/shared/components/PageStack";
-import { ScreenHeader } from "@/shared/components/ScreenHeader";
-import { Button, MetricCard } from "@netstamp/ui";
+import { classNames } from "@/shared/utils/classNames";
+import { Button } from "@netstamp/ui";
+import { Plus } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import styles from "./DashboardPage.module.css";
@@ -17,6 +18,14 @@ interface DashboardPageProps {
 
 const dashboardFleetFitPadding = { top: 44, right: 48, bottom: 56, left: 48 };
 const dashboardFleetMaxZoom = 5.4;
+
+function percentage(part: number, total: number) {
+	if (!total) {
+		return "0%";
+	}
+
+	return `${Math.round((part / total) * 100)}%`;
+}
 
 export function DashboardPage({ navigate }: DashboardPageProps) {
 	const { projectRef } = useCurrentProject();
@@ -34,28 +43,133 @@ export function DashboardPage({ navigate }: DashboardPageProps) {
 	});
 	const checks = checksQuery.data ?? [];
 	const onlineProbes = probes.filter(probe => probe.status === "Online").length;
+	const offlineProbes = probes.filter(probe => probe.status === "Offline").length;
+	const drainingProbes = probes.filter(probe => probe.status === "Draining").length;
 	const activeChecks = checks.length;
 	const positionedProbes = probes.filter(probe => probe.coordinates);
 	const activeProbeId = positionedProbes.some(probe => probe.id === selectedProbeId) ? selectedProbeId : (positionedProbes[0]?.id ?? "");
+	const activeProbe = probes.find(probe => probe.id === activeProbeId) ?? positionedProbes[0] ?? probes[0] ?? null;
+	const visibleProbes = probes.slice(0, 6);
+	const visibleChecks = checks.slice(0, 6);
+	const syncing = probesQuery.isPending || checksQuery.isPending;
+	const checkTypeSummary = Array.from(
+		checks.reduce((summary, check) => {
+			summary.set(check.type, (summary.get(check.type) ?? 0) + 1);
+			return summary;
+		}, new Map<string, number>())
+	);
+	const metrics = [
+		{ label: "Probes Online", value: `${onlineProbes}/${probes.length}`, meta: `${offlineProbes} offline` },
+		{ label: "Map Coverage", value: percentage(positionedProbes.length, probes.length), meta: `${positionedProbes.length} located` },
+		{ label: "Active Checks", value: String(activeChecks), meta: checkTypeSummary.map(([type, count]) => `${count} ${type}`).join(" / ") || "none" },
+		{ label: "Draining", value: String(drainingProbes), meta: "maintenance" }
+	];
 
 	return (
 		<PageStack className={styles.dashboard}>
-			<ScreenHeader title="Dashboard" actions={<Button onClick={() => navigate("newProbe")}>New Probe</Button>} />
+			<header className={styles.dashboardHeader}>
+				<div className={styles.titleBlock}>
+					<span className={styles.kicker}>netstamp / {projectRef || "project"}</span>
+					<h1>Dashboard</h1>
+				</div>
 
-			<div className={styles.metrics}>
-				<MetricCard className={styles.metric} label="Probes Online" value={`${onlineProbes}/${probes.length}`} />
-				<MetricCard className={styles.metric} label="Active Checks" value={String(activeChecks)} />
+				<div className={styles.headerActions}>
+					<span className={styles.syncState}>{syncing ? "syncing" : "live"}</span>
+					<Button className={styles.newProbeButton} onClick={() => navigate("newProbe")}>
+						<Plus size={17} weight="bold" aria-hidden="true" />
+						New Probe
+					</Button>
+				</div>
+			</header>
+
+			<div className={styles.sections}>
+				<section className={classNames(styles.section, styles.overviewSection)} aria-labelledby="dashboard-fleet-title">
+					<header className={styles.sectionHeader}>
+						<span>01</span>
+						<h2 id="dashboard-fleet-title">Fleet</h2>
+					</header>
+					<div className={classNames(styles.content, styles.metricsContent)}>
+						{metrics.map(metric => (
+							<article className={styles.metricTile} key={metric.label}>
+								<span>{metric.label}</span>
+								<strong>{metric.value}</strong>
+								<small>{metric.meta}</small>
+							</article>
+						))}
+					</div>
+				</section>
+
+				<section className={classNames(styles.section, styles.mapSection)} aria-labelledby="dashboard-map-title">
+					<header className={styles.sectionHeader}>
+						<span>02</span>
+						<h2 id="dashboard-map-title">Network Map</h2>
+					</header>
+					<div className={classNames(styles.content, styles.mapContent)}>
+						<NetworkMap
+							probes={probes}
+							selectedId={activeProbeId}
+							onSelect={setSelectedProbeId}
+							mode="fleet"
+							theme="dark"
+							fleetFitPadding={dashboardFleetFitPadding}
+							fleetMaxZoom={dashboardFleetMaxZoom}
+							className={styles.worldMap}
+						/>
+						<div className={styles.mapReadout}>
+							<span>selected probe</span>
+							<strong>{activeProbe?.name ?? "No probe"}</strong>
+							<small>{activeProbe?.location ?? "coordinates unavailable"}</small>
+						</div>
+					</div>
+				</section>
+
+				<section className={classNames(styles.section, styles.registrySection)} aria-labelledby="dashboard-registry-title">
+					<header className={styles.sectionHeader}>
+						<span>03</span>
+						<h2 id="dashboard-registry-title">Probe Registry</h2>
+					</header>
+					<div className={classNames(styles.content, styles.listContent)}>
+						{visibleProbes.length ? (
+							<ul className={styles.entityList}>
+								{visibleProbes.map(probe => (
+									<li key={probe.id}>
+										<div>
+											<strong>{probe.name}</strong>
+											<span>{probe.location}</span>
+										</div>
+										<span className={classNames(styles.status, probe.status === "Online" && styles.statusOnline, probe.status === "Offline" && styles.statusOffline)}>{probe.status}</span>
+									</li>
+								))}
+							</ul>
+						) : (
+							<div className={styles.emptyState}>No probes registered.</div>
+						)}
+					</div>
+				</section>
+
+				<section className={classNames(styles.section, styles.checksSection)} aria-labelledby="dashboard-checks-title">
+					<header className={styles.sectionHeader}>
+						<span>04</span>
+						<h2 id="dashboard-checks-title">Checks Ledger</h2>
+					</header>
+					<div className={classNames(styles.content, styles.tableContent)}>
+						{visibleChecks.length ? (
+							<div className={styles.checkRows}>
+								{visibleChecks.map(check => (
+									<div className={styles.checkRow} key={check.id}>
+										<strong>{check.name}</strong>
+										<span>{check.type}</span>
+										<span>{check.target}</span>
+										<span>{check.interval}</span>
+									</div>
+								))}
+							</div>
+						) : (
+							<div className={styles.emptyState}>No checks configured.</div>
+						)}
+					</div>
+				</section>
 			</div>
-
-			<NetworkMap
-				probes={probes}
-				selectedId={activeProbeId}
-				onSelect={setSelectedProbeId}
-				mode="fleet"
-				fleetFitPadding={dashboardFleetFitPadding}
-				fleetMaxZoom={dashboardFleetMaxZoom}
-				className={styles.worldMap}
-			/>
 		</PageStack>
 	);
 }
