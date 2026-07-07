@@ -1,6 +1,6 @@
 import type { ChartOption } from "./chartOptions";
+import { chartAxisLabel, chartTooltipTextStyle } from "./chartTheme";
 
-const axisLabel = { color: "#64748B", fontFamily: "Inter, system-ui, sans-serif", fontSize: 10 };
 const splitLine = { lineStyle: { color: "rgba(148,163,184,0.18)" } };
 const chartPrimary = "#EA6A1A";
 const chartPrimaryFill = "rgba(234,106,26,0.12)";
@@ -16,11 +16,11 @@ export function lineChartOption(title: string, values: number[], secondaryValues
 			trigger: "axis",
 			backgroundColor: "rgba(255,255,255,0.98)",
 			borderColor: "rgba(100,116,139,0.24)",
-			textStyle: { color: "#111827", fontFamily: "Inter, system-ui, sans-serif" }
+			textStyle: chartTooltipTextStyle()
 		},
 		grid: { top: 22, right: 12, bottom: 24, left: 34 },
-		xAxis: { type: "category", data: labels, boundaryGap: false, axisLabel, axisLine: { lineStyle: { color: "rgba(148,163,184,0.16)" } }, axisTick: { show: false } },
-		yAxis: { type: "value", axisLabel, splitLine, axisLine: { show: false }, axisTick: { show: false } },
+		xAxis: { type: "category", data: labels, boundaryGap: false, axisLabel: chartAxisLabel(), axisLine: { lineStyle: { color: "rgba(148,163,184,0.16)" } }, axisTick: { show: false } },
+		yAxis: { type: "value", axisLabel: chartAxisLabel(), splitLine, axisLine: { show: false }, axisTick: { show: false } },
 		series: [
 			{
 				name: title,
@@ -55,11 +55,11 @@ export function barChartOption(values: number[], name = "events"): ChartOption {
 			trigger: "axis",
 			backgroundColor: "rgba(255,255,255,0.98)",
 			borderColor: "rgba(100,116,139,0.24)",
-			textStyle: { color: "#111827", fontFamily: "Inter, system-ui, sans-serif" }
+			textStyle: chartTooltipTextStyle()
 		},
 		grid: { top: 22, right: 10, bottom: 22, left: 28 },
-		xAxis: { type: "category", data: values.map((_, index) => `${index + 1}`), axisLabel, axisTick: { show: false }, axisLine: { lineStyle: { color: "rgba(148,163,184,0.16)" } } },
-		yAxis: { type: "value", axisLabel, splitLine, axisTick: { show: false }, axisLine: { show: false } },
+		xAxis: { type: "category", data: values.map((_, index) => `${index + 1}`), axisLabel: chartAxisLabel(), axisTick: { show: false }, axisLine: { lineStyle: { color: "rgba(148,163,184,0.16)" } } },
+		yAxis: { type: "value", axisLabel: chartAxisLabel(), splitLine, axisTick: { show: false }, axisLine: { show: false } },
 		series: [
 			{
 				name,

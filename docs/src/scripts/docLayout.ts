@@ -103,9 +103,9 @@ function initDocLayout() {
 			meta.setAttribute("charset", "utf-8");
 			openedWindow.document.head.append(meta);
 
+			const monoFont = getComputedStyle(document.documentElement).getPropertyValue("--ns-font-mono").trim() || "monospace";
 			const style = openedWindow.document.createElement("style");
-			style.textContent =
-				"body{margin:0;padding:2rem;background:#f8fafc;color:#172033;font:16px/1.65 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;}pre{margin:0;white-space:pre-wrap;word-break:break-word;}";
+			style.textContent = `body{margin:0;padding:2rem;background:#f8fafc;color:#172033;font:16px/1.65 ${monoFont};}pre{margin:0;white-space:pre-wrap;word-break:break-word;}`;
 			openedWindow.document.head.append(style);
 
 			const pre = openedWindow.document.createElement("pre");

@@ -1,4 +1,5 @@
-const axisLabel = { color: "#64748B", fontFamily: "Inter, system-ui, sans-serif", fontSize: 10 };
+import { chartAxisLabel, chartMutedTextStyle, chartTooltipTextStyle } from "./chartTheme";
+
 const splitLine = { lineStyle: { color: "rgba(148,163,184,0.18)" } };
 const chartPrimary = "#EA6A1A";
 const chartPrimaryBrush = "rgba(234, 106, 26, 0.12)";
@@ -347,7 +348,7 @@ function multiSeriesChartOption(lines: InsightMultiSeriesLine[], axisName: strin
 			trigger: "axis",
 			backgroundColor: "rgba(255,255,255,0.98)",
 			borderColor: "rgba(100,116,139,0.24)",
-			textStyle: { color: "#111827", fontFamily: "Inter, system-ui, sans-serif", fontSize: 11 },
+			textStyle: chartTooltipTextStyle(11),
 			formatter: multiSeriesTooltipFormatter(unit)
 		},
 		grid: { top: 18, right: 44, bottom: 30, left: 48 },
@@ -355,7 +356,7 @@ function multiSeriesChartOption(lines: InsightMultiSeriesLine[], axisName: strin
 		xAxis: {
 			type: "time",
 			axisLabel: {
-				...axisLabel,
+				...chartAxisLabel(),
 				formatter: (value: number) => timestampLabel(value)
 			},
 			axisLine: { lineStyle: { color: "rgba(148,163,184,0.16)" } },
@@ -365,8 +366,8 @@ function multiSeriesChartOption(lines: InsightMultiSeriesLine[], axisName: strin
 			{
 				type: "value",
 				name: axisName,
-				nameTextStyle: { color: "#64748B", fontFamily: "Inter, system-ui, sans-serif", fontSize: 10 },
-				axisLabel,
+				nameTextStyle: chartMutedTextStyle(),
+				axisLabel: chartAxisLabel(),
 				splitLine,
 				axisLine: { show: false },
 				axisTick: { show: false },
@@ -439,14 +440,14 @@ export function pingInsightChartOption(data: PingSeriesChartData): ChartOption {
 			trigger: "axis",
 			backgroundColor: "rgba(255,255,255,0.98)",
 			borderColor: "rgba(100,116,139,0.24)",
-			textStyle: { color: "#111827", fontFamily: "Inter, system-ui, sans-serif", fontSize: 11 },
+			textStyle: chartTooltipTextStyle(11),
 			formatter: pingTooltipFormatter
 		},
 		legend: {
 			top: 0,
 			right: 0,
 			data: ["avg", "loss"],
-			textStyle: { color: "#64748B", fontFamily: "Inter, system-ui, sans-serif", fontSize: 10 },
+			textStyle: chartMutedTextStyle(),
 			itemWidth: 12,
 			itemHeight: 6
 		},
@@ -475,7 +476,7 @@ export function pingInsightChartOption(data: PingSeriesChartData): ChartOption {
 		xAxis: {
 			type: "time",
 			axisLabel: {
-				...axisLabel,
+				...chartAxisLabel(),
 				formatter: (value: number) => timestampLabel(value)
 			},
 			axisLine: { lineStyle: { color: "rgba(148,163,184,0.16)" } },
@@ -485,8 +486,8 @@ export function pingInsightChartOption(data: PingSeriesChartData): ChartOption {
 			{
 				type: "value",
 				name: "RTT ms",
-				nameTextStyle: { color: "#64748B", fontFamily: "Inter, system-ui, sans-serif", fontSize: 10 },
-				axisLabel,
+				nameTextStyle: chartMutedTextStyle(),
+				axisLabel: chartAxisLabel(),
 				splitLine,
 				axisLine: { show: false },
 				axisTick: { show: false },
@@ -548,14 +549,14 @@ export function tcpInsightChartOption(data: TcpSeriesChartData): ChartOption {
 			trigger: "axis",
 			backgroundColor: "rgba(255,255,255,0.98)",
 			borderColor: "rgba(100,116,139,0.24)",
-			textStyle: { color: "#111827", fontFamily: "Inter, system-ui, sans-serif", fontSize: 11 },
+			textStyle: chartTooltipTextStyle(11),
 			formatter: tcpTooltipFormatter
 		},
 		legend: {
 			top: 0,
 			right: 0,
 			data: ["avg", "failure"],
-			textStyle: { color: "#64748B", fontFamily: "Inter, system-ui, sans-serif", fontSize: 10 },
+			textStyle: chartMutedTextStyle(),
 			itemWidth: 12,
 			itemHeight: 6
 		},
@@ -583,7 +584,7 @@ export function tcpInsightChartOption(data: TcpSeriesChartData): ChartOption {
 		xAxis: {
 			type: "time",
 			axisLabel: {
-				...axisLabel,
+				...chartAxisLabel(),
 				formatter: (value: number) => timestampLabel(value)
 			},
 			axisLine: { lineStyle: { color: "rgba(148,163,184,0.16)" } },
@@ -593,8 +594,8 @@ export function tcpInsightChartOption(data: TcpSeriesChartData): ChartOption {
 			{
 				type: "value",
 				name: "connect ms",
-				nameTextStyle: { color: "#64748B", fontFamily: "Inter, system-ui, sans-serif", fontSize: 10 },
-				axisLabel,
+				nameTextStyle: chartMutedTextStyle(),
+				axisLabel: chartAxisLabel(),
 				splitLine,
 				axisLine: { show: false },
 				axisTick: { show: false },
