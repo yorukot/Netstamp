@@ -19,8 +19,7 @@ export function AuthPage({ mode = "login", navigate }: AuthPageProps) {
 	const { submitting, login, register } = useAuth();
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
-	const heading = isRegister ? "Create your Netstamp account" : "Log in to your account";
-	const intro = isRegister ? "Create controller access and start with your first project." : "Enter your credentials to access the Netstamp console.";
+	const heading = isRegister ? "Sign Up" : "Login";
 	const showDemoCredentials = demoMode && Boolean(demoCredentials);
 
 	function fillDemoCredentials() {
@@ -73,18 +72,10 @@ export function AuthPage({ mode = "login", navigate }: AuthPageProps) {
 	}
 
 	return (
-		<AuthLayout title={heading} description={intro} helmetTitle={isRegister ? "Sign up" : "Log in"}>
+		<AuthLayout title={heading} helmetTitle={isRegister ? "Sign Up" : "Login"}>
 			<form className={styles.form} onSubmit={handleSubmit}>
 				{isRegister ? <TextField label="Display Name" name="displayName" type="text" autoComplete="name" /> : null}
-				<TextField
-					label="Email"
-					name="email"
-					type="email"
-					value={email}
-					autoComplete={isRegister ? "email" : "username"}
-					helper={isRegister ? "Use the email that will own the first project." : "Use the email connected to your controller account."}
-					onChange={event => setEmail(event.currentTarget.value)}
-				/>
+				<TextField label="Email" name="email" type="email" value={email} autoComplete={isRegister ? "email" : "username"} onChange={event => setEmail(event.currentTarget.value)} />
 				<div className={styles.passwordFieldGroup}>
 					<TextField
 						label="Password"
@@ -93,7 +84,6 @@ export function AuthPage({ mode = "login", navigate }: AuthPageProps) {
 						value={password}
 						minLength={isRegister ? 8 : undefined}
 						autoComplete={isRegister ? "new-password" : "current-password"}
-						helper={isRegister ? "Choose a password for controller access." : "Enter your account password."}
 						onChange={event => setPassword(event.currentTarget.value)}
 					/>
 					{!isRegister ? (
@@ -116,12 +106,12 @@ export function AuthPage({ mode = "login", navigate }: AuthPageProps) {
 					</div>
 				) : null}
 				<Button className={styles.submitButton} type="submit" size="lg" disabled={submitting}>
-					{submitting ? "Submitting" : isRegister ? "Create project" : "Log in"}
+					{submitting ? "Submitting" : isRegister ? "Create Account" : "Log in"}
 				</Button>
 			</form>
 			{isRegister || appFeatures.registration ? (
 				<Link className={styles.modeLink} to={pathForRoute(isRegister ? "login" : "register")}>
-					{isRegister ? "Already have an account? Log in" : "Do not have an account? Sign up"}
+					{isRegister ? "Login" : "Sign Up"}
 				</Link>
 			) : null}
 		</AuthLayout>

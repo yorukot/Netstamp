@@ -1,11 +1,14 @@
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { type Navigate } from "@/routes/routeTypes";
 import { ApiError } from "@/shared/api/client";
-import { useCreateProjectInviteForRefMutation, useCreateProjectMutation } from "@/shared/api/mutations";
+import { useAcceptProjectInviteMutation, useCreateProjectInviteForRefMutation, useCreateProjectMutation } from "@/shared/api/mutations";
+import { projectQueries } from "@/shared/api/queries";
+import type { ApiProjectInvite } from "@/shared/api/types";
 import { useProjectSelection } from "@/shared/api/useCurrentProject";
 import { appFeatures } from "@/shared/config/features";
 import { pushErrorToast } from "@/shared/toast/toastStore";
 import { Button, Input, PageShell } from "@netstamp/ui";
+import { useQuery } from "@tanstack/react-query";
 import type { FormEvent, KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
@@ -58,29 +61,70 @@ function isProjectSlugConflict(error: unknown) {
 	return error instanceof ApiError && error.status === 409 && /project slug already exists/i.test(error.message);
 }
 
+function projectRefFromInvite(invite: ApiProjectInvite) {
+	return invite.project.slug || invite.project.id;
+}
+
+function roleLabel(role: string) {
+	return role.charAt(0).toUpperCase() + role.slice(1);
+}
+
+function inviteSummary(invites: ApiProjectInvite[]) {
+	if (invites.length === 1) {
+		const invite = invites[0];
+		return `You have pending ${roleLabel(invite.role)} access to ${invite.project.name}.`;
+	}
+
+	return `You have ${invites.length} pending project invites.`;
+}
+
+function shouldCreateProjectFromDecision(value: string) {
+	const normalized = value.trim().toLowerCase();
+
+	if (normalized === "" || normalized === "y" || normalized === "yes") {
+		return true;
+	}
+
+	if (normalized === "n" || normalized === "no") {
+		return false;
+	}
+
+	return null;
+}
+
 export function OnboardingPage({ navigate }: OnboardingPageProps) {
 	const { session, loading, submitting, logout } = useAuth();
 	const createProjectMutation = useCreateProjectMutation({ suppressGlobalErrorToast: true });
 	const createInviteMutation = useCreateProjectInviteForRefMutation({ suppressGlobalErrorToast: true });
+	const acceptInviteMutation = useAcceptProjectInviteMutation();
+	const pendingInvitesQuery = useQuery(projectQueries.currentUserInvites());
 	const { setSelectedProjectRef } = useProjectSelection();
 	const [activeStep, setActiveStep] = useState(0);
 	const [typedText, setTypedText] = useState("");
+	const [createProjectDecision, setCreateProjectDecision] = useState("");
 	const [projectName, setProjectName] = useState("");
 	const [invites, setInvites] = useState([""]);
+	const [acceptedInviteProject, setAcceptedInviteProject] = useState<{ name: string; ref: string } | null>(null);
 	const [createdProject, setCreatedProject] = useState("");
 	const [createdProjectRef, setCreatedProjectRef] = useState("");
 	const [creatingProject, setCreatingProject] = useState(false);
+	const [resolvingInvites, setResolvingInvites] = useState(false);
+	const decisionInputRef = useRef<HTMLInputElement | null>(null);
 	const projectInputRef = useRef<HTMLInputElement | null>(null);
 	const inviteRefs = useRef<Array<HTMLInputElement | null>>([]);
 	const displayName = session?.user.name.trim() || "there";
+	const pendingInvites = pendingInvitesQuery.data?.invites ?? [];
+	const shouldAskCreateProject = pendingInvites.length > 0 && !acceptedInviteProject;
+	const projectFlowReady = appFeatures.projectCreation && !pendingInvitesQuery.isPending && !shouldAskCreateProject;
+	const acceptingInvites = resolvingInvites || acceptInviteMutation.isPending;
 	const scriptSteps = useMemo<ScriptStep[]>(
 		() => [
 			{ prompt: "netstamp", text: `Nice to meet you, ${displayName}`, autoAdvanceAfter: 180 },
-			{ prompt: "netstamp", text: "Let's create our first project!", autoAdvanceAfter: 760 },
+			{ prompt: "netstamp", text: acceptedInviteProject ? "Let's create a new project too." : "Let's create your first project.", autoAdvanceAfter: 760 },
 			{ prompt: "project", text: "How should we call your project?" },
 			{ prompt: "members", text: "Invite project members?" }
 		],
-		[displayName]
+		[acceptedInviteProject, displayName]
 	);
 
 	const activeScript = scriptSteps[activeStep];
@@ -88,7 +132,7 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 	const membersPromptReady = activeStep > 3 || (activeStep === 3 && typedText.length === scriptSteps[3].text.length);
 
 	useEffect(() => {
-		if (!activeScript || loading) {
+		if (!activeScript || loading || !projectFlowReady) {
 			return undefined;
 		}
 
@@ -110,25 +154,34 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 		}
 
 		return undefined;
-	}, [activeScript, loading, scriptSteps.length, typedText]);
+	}, [activeScript, loading, projectFlowReady, scriptSteps.length, typedText]);
 
 	useEffect(() => {
-		if (!projectPromptReady || activeStep !== 2) {
+		if (!shouldAskCreateProject) {
+			return undefined;
+		}
+
+		const frame = window.requestAnimationFrame(() => decisionInputRef.current?.focus());
+		return () => window.cancelAnimationFrame(frame);
+	}, [shouldAskCreateProject]);
+
+	useEffect(() => {
+		if (!projectFlowReady || !projectPromptReady || activeStep !== 2) {
 			return undefined;
 		}
 
 		const frame = window.requestAnimationFrame(() => projectInputRef.current?.focus());
 		return () => window.cancelAnimationFrame(frame);
-	}, [activeStep, projectPromptReady]);
+	}, [activeStep, projectFlowReady, projectPromptReady]);
 
 	useEffect(() => {
-		if (!membersPromptReady || activeStep !== 3) {
+		if (!projectFlowReady || !membersPromptReady || activeStep !== 3) {
 			return undefined;
 		}
 
 		const frame = window.requestAnimationFrame(() => inviteRefs.current[0]?.focus());
 		return () => window.cancelAnimationFrame(frame);
-	}, [activeStep, membersPromptReady]);
+	}, [activeStep, membersPromptReady, projectFlowReady]);
 
 	function focusInvite(index: number) {
 		window.requestAnimationFrame(() => inviteRefs.current[index]?.focus());
@@ -192,6 +245,65 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 		return Array.from(new Set(invites.map(invite => invite.trim()).filter(Boolean)));
 	}
 
+	async function acceptPendingInvites() {
+		setResolvingInvites(true);
+
+		try {
+			const inviteResults = await Promise.allSettled(pendingInvites.map(invite => acceptInviteMutation.mutateAsync(invite.id)));
+			const acceptedInvites = inviteResults.flatMap(result => (result.status === "fulfilled" ? [result.value.invite] : []));
+			const failedInviteCount = inviteResults.length - acceptedInvites.length;
+
+			if (failedInviteCount) {
+				pushErrorToast(`${failedInviteCount} project invite${failedInviteCount === 1 ? "" : "s"} could not be accepted.`);
+			}
+
+			const acceptedInvite = acceptedInvites[0];
+
+			if (!acceptedInvite) {
+				throw new Error("Project invite could not be accepted.");
+			}
+
+			const projectRef = projectRefFromInvite(acceptedInvite);
+			const project = {
+				name: acceptedInvite.project.name,
+				ref: projectRef
+			};
+
+			setSelectedProjectRef(projectRef);
+			setAcceptedInviteProject(project);
+
+			return project;
+		} finally {
+			setResolvingInvites(false);
+		}
+	}
+
+	async function handleCreateProjectDecisionSubmit(event: FormEvent<HTMLFormElement>) {
+		event.preventDefault();
+
+		const shouldCreateProject = shouldCreateProjectFromDecision(createProjectDecision);
+
+		if (shouldCreateProject === null) {
+			pushErrorToast("Answer y or n.");
+			return;
+		}
+
+		try {
+			const project = await acceptPendingInvites();
+
+			if (!shouldCreateProject || !appFeatures.projectCreation) {
+				navigate("dashboard", { projectRef: project.ref });
+				return;
+			}
+
+			setCreateProjectDecision("");
+			setActiveStep(0);
+			setTypedText("");
+		} catch (error) {
+			pushErrorToast(error instanceof Error ? error.message : "Project invite could not be accepted.");
+		}
+	}
+
 	async function handleSubmit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 
@@ -241,11 +353,11 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 		}
 	}
 
-	if (loading) {
+	if (loading || pendingInvitesQuery.isPending) {
 		return null;
 	}
 
-	if (!appFeatures.projectCreation) {
+	if (!appFeatures.projectCreation && !shouldAskCreateProject) {
 		return (
 			<PageShell variant="constellation" center className={styles.shell}>
 				<Helmet>
@@ -276,7 +388,7 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 	return (
 		<PageShell variant="constellation" center className={styles.shell}>
 			<Helmet>
-				<title>Create Project - Netstamp</title>
+				<title>{shouldAskCreateProject ? "Welcome" : "Create Project"} - Netstamp</title>
 			</Helmet>
 
 			<section className={styles.console} aria-label="First contact onboarding console">
@@ -287,7 +399,37 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 					<strong>yoru://first-contact</strong>
 				</div>
 				<div className={styles.consoleBody}>
-					{createdProject ? (
+					{shouldAskCreateProject ? (
+						<>
+							<div className={styles.scriptLog}>
+								<ScriptLine prompt="netstamp" text={`Nice to meet you, ${displayName}`} />
+								<ScriptLine prompt="invite" text={inviteSummary(pendingInvites)} />
+								<ScriptLine prompt="project" text={appFeatures.projectCreation ? "Create a project? [Y/n]" : "Open invited project? [Y/n]"} />
+							</div>
+
+							<form className={styles.tuiForm} onSubmit={handleCreateProjectDecisionSubmit}>
+								<label className={styles.answerRow}>
+									<span className={styles.answerPrompt}>answer</span>
+									<Input
+										variant="bare"
+										ref={decisionInputRef}
+										name="create-project"
+										type="text"
+										value={createProjectDecision}
+										placeholder="Y"
+										onChange={event => setCreateProjectDecision(event.currentTarget.value)}
+										autoComplete="off"
+										disabled={acceptingInvites}
+									/>
+									<small>Press Enter for yes. Type n to use invited project access only.</small>
+								</label>
+
+								<Button variant="plain" className={styles.tuiButton} type="submit" disabled={acceptingInvites}>
+									{acceptingInvites ? "[ accepting invites... ]" : "[ continue ]"}
+								</Button>
+							</form>
+						</>
+					) : createdProject ? (
 						<div className={styles.successView} aria-live="polite">
 							<ScriptLine prompt="success" text={`Project ${createdProject} created.`} />
 							<p>Nice, let's bring {createdProject} online. Next we will open the probe fleet and start the new probe wizard.</p>
