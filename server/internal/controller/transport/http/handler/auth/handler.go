@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	appadmin "github.com/yorukot/netstamp/internal/controller/application/admin"
 	appauth "github.com/yorukot/netstamp/internal/controller/application/auth"
 	"github.com/yorukot/netstamp/internal/controller/transport/http/httpx"
 	httpmiddleware "github.com/yorukot/netstamp/internal/controller/transport/http/middleware"
@@ -13,16 +14,18 @@ import (
 type Handler struct {
 	service             *appauth.Service
 	verifier            appauth.TokenVerifier
+	settings            *appadmin.Service
 	cookieSecure        bool
 	registrationEnabled bool
 	publicWebBaseURL    string
 	resetLimiter        *PasswordResetRateLimiter
 }
 
-func NewHandler(service *appauth.Service, verifier appauth.TokenVerifier, cookieSecure, registrationEnabled bool) *Handler {
+func NewHandler(service *appauth.Service, verifier appauth.TokenVerifier, settings *appadmin.Service, cookieSecure, registrationEnabled bool) *Handler {
 	return &Handler{
 		service:             service,
 		verifier:            verifier,
+		settings:            settings,
 		cookieSecure:        cookieSecure,
 		registrationEnabled: registrationEnabled,
 	}

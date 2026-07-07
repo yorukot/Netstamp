@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.opentelemetry.io/otel/trace"
@@ -42,13 +43,7 @@ func (r *UserRepository) CreateUser(ctx context.Context, input identity.User) (i
 		return identity.User{}, err
 	}
 
-	return identity.User{
-		ID:          row.ID.String(),
-		Email:       row.Email,
-		DisplayName: row.DisplayName,
-		CreatedAt:   row.CreatedAt,
-		UpdatedAt:   row.UpdatedAt,
-	}, nil
+	return mapCreateUser(row), nil
 }
 
 func (r *UserRepository) GetUserByID(ctx context.Context, userIDValue string) (identity.User, error) {
@@ -70,7 +65,7 @@ func (r *UserRepository) GetUserByID(ctx context.Context, userIDValue string) (i
 		return identity.User{}, err
 	}
 
-	return mapUser(row), nil
+	return mapGetUserByID(row), nil
 }
 
 func (r *UserRepository) GetUserByEmail(ctx context.Context, email string) (identity.User, error) {
@@ -87,7 +82,7 @@ func (r *UserRepository) GetUserByEmail(ctx context.Context, email string) (iden
 		return identity.User{}, err
 	}
 
-	return mapUser(row), nil
+	return mapGetUserByEmail(row), nil
 }
 
 func (r *UserRepository) UpdateUserDisplayName(ctx context.Context, input identity.User) (identity.User, error) {
@@ -107,7 +102,7 @@ func (r *UserRepository) UpdateUserDisplayName(ctx context.Context, input identi
 		return identity.User{}, r.mapUpdateError(span, err)
 	}
 
-	return mapUser(row), nil
+	return mapUpdateUserDisplayName(row), nil
 }
 
 func (r *UserRepository) UpdateUserEmail(ctx context.Context, input identity.User) (identity.User, error) {
@@ -127,7 +122,7 @@ func (r *UserRepository) UpdateUserEmail(ctx context.Context, input identity.Use
 		return identity.User{}, r.mapUpdateError(span, err)
 	}
 
-	return mapUser(row), nil
+	return mapUpdateUserEmail(row), nil
 }
 
 func (r *UserRepository) UpdateUserPasswordHash(ctx context.Context, input identity.User) (identity.User, error) {
@@ -147,7 +142,7 @@ func (r *UserRepository) UpdateUserPasswordHash(ctx context.Context, input ident
 		return identity.User{}, r.mapUpdateError(span, err)
 	}
 
-	return mapUser(row), nil
+	return mapUpdateUserPasswordHash(row), nil
 }
 
 func (r *UserRepository) CreatePasswordResetToken(ctx context.Context, input identity.PasswordResetToken) (identity.PasswordResetToken, error) {
@@ -242,14 +237,39 @@ func (r *UserRepository) mapUpdateError(span trace.Span, err error) error {
 	return err
 }
 
-func mapUser(row sqlc.User) identity.User {
+func mapCreateUser(row sqlc.CreateUserRow) identity.User {
+	return mapUserFields(row.ID, row.Email, row.PasswordHash, row.DisplayName, row.IsSystemAdmin, row.CreatedAt, row.UpdatedAt)
+}
+
+func mapGetUserByID(row sqlc.GetUserByIDRow) identity.User {
+	return mapUserFields(row.ID, row.Email, row.PasswordHash, row.DisplayName, row.IsSystemAdmin, row.CreatedAt, row.UpdatedAt)
+}
+
+func mapGetUserByEmail(row sqlc.GetUserByEmailRow) identity.User {
+	return mapUserFields(row.ID, row.Email, row.PasswordHash, row.DisplayName, row.IsSystemAdmin, row.CreatedAt, row.UpdatedAt)
+}
+
+func mapUpdateUserDisplayName(row sqlc.UpdateUserDisplayNameRow) identity.User {
+	return mapUserFields(row.ID, row.Email, row.PasswordHash, row.DisplayName, row.IsSystemAdmin, row.CreatedAt, row.UpdatedAt)
+}
+
+func mapUpdateUserEmail(row sqlc.UpdateUserEmailRow) identity.User {
+	return mapUserFields(row.ID, row.Email, row.PasswordHash, row.DisplayName, row.IsSystemAdmin, row.CreatedAt, row.UpdatedAt)
+}
+
+func mapUpdateUserPasswordHash(row sqlc.UpdateUserPasswordHashRow) identity.User {
+	return mapUserFields(row.ID, row.Email, row.PasswordHash, row.DisplayName, row.IsSystemAdmin, row.CreatedAt, row.UpdatedAt)
+}
+
+func mapUserFields(id uuid.UUID, email, passwordHash, displayName string, isSystemAdmin bool, createdAt, updatedAt time.Time) identity.User {
 	return identity.User{
-		ID:           row.ID.String(),
-		Email:        row.Email,
-		DisplayName:  row.DisplayName,
-		PasswordHash: row.PasswordHash,
-		CreatedAt:    row.CreatedAt,
-		UpdatedAt:    row.UpdatedAt,
+		ID:            id.String(),
+		Email:         email,
+		DisplayName:   displayName,
+		PasswordHash:  passwordHash,
+		IsSystemAdmin: isSystemAdmin,
+		CreatedAt:     createdAt,
+		UpdatedAt:     updatedAt,
 	}
 }
 

@@ -12,6 +12,7 @@ import (
 
 type Service struct {
 	users       UserRepository
+	systemAdmin SystemAdminRepository
 	hasher      PasswordHasher
 	tokens      TokenIssuer
 	events      SecurityEventRecorder
@@ -50,6 +51,10 @@ func (s *Service) ConfigurePasswordReset(resets PasswordResetRepository, tokens 
 	s.resetConfig = cfg
 }
 
+func (s *Service) ConfigureSystemAdmin(repo SystemAdminRepository) {
+	s.systemAdmin = repo
+}
+
 // Register is the service entry for the register action
 func (s *Service) Register(ctx context.Context, input RegisterInput) (AuthAccessResult, error) {
 	ctx, flow := s.startAuthFlow(ctx, "auth.register", AuthActionRegister, input.Email)
@@ -65,10 +70,25 @@ func (s *Service) Register(ctx context.Context, input RegisterInput) (AuthAccess
 		return AuthAccessResult{}, flow.technicalFailure(AuthEventRegisterFailure, AuthReasonPasswordHashFailed, err)
 	}
 
-	user, err := s.createUser(ctx, identity.User{
-		Email:        input.Email,
-		DisplayName:  input.DisplayName,
-		PasswordHash: passwordHash,
+	var user identity.User
+	err = s.tx.WithinTx(ctx, func(ctx context.Context) error {
+		created, createErr := s.createUser(ctx, identity.User{
+			Email:        input.Email,
+			DisplayName:  input.DisplayName,
+			PasswordHash: passwordHash,
+		})
+		if createErr != nil {
+			return createErr
+		}
+		if s.systemAdmin != nil {
+			granted, grantErr := s.systemAdmin.GrantFirstSystemAdminIfNone(ctx, created.ID)
+			if grantErr != nil {
+				return grantErr
+			}
+			created.IsSystemAdmin = granted
+		}
+		user = created
+		return nil
 	})
 	if errors.Is(err, identity.ErrEmailAlreadyExists) {
 		return AuthAccessResult{}, flow.businessFailure(AuthEventRegisterFailure, AuthReasonEmailAlreadyExists, err)
@@ -254,11 +274,12 @@ func (s *Service) issueAccessResult(ctx context.Context, user identity.User) (Au
 	}
 
 	return AuthAccessResult{
-		UserID:      user.ID,
-		Email:       user.Email,
-		DisplayName: user.DisplayName,
-		AccessToken: token.Value,
-		ExpiresIn:   token.ExpiresIn,
+		UserID:        user.ID,
+		Email:         user.Email,
+		DisplayName:   user.DisplayName,
+		IsSystemAdmin: user.IsSystemAdmin,
+		AccessToken:   token.Value,
+		ExpiresIn:     token.ExpiresIn,
 	}, nil
 }
 

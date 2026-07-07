@@ -59,6 +59,12 @@ func (h *Handler) confirmPasswordReset(ctx context.Context, input *confirmPasswo
 }
 
 func (h *Handler) resetBaseURL(r *http.Request) string {
+	if h.settings != nil {
+		settings, err := h.settings.EffectiveSettings(r.Context())
+		if err == nil && strings.TrimSpace(settings.PublicWebBaseURL) != "" {
+			return strings.TrimRight(strings.TrimSpace(settings.PublicWebBaseURL), "/")
+		}
+	}
 	if strings.TrimSpace(h.publicWebBaseURL) != "" {
 		return strings.TrimRight(strings.TrimSpace(h.publicWebBaseURL), "/")
 	}

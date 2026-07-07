@@ -1,0 +1,54 @@
+.form {
+	display: grid;
+	gap: 1rem;
+}
+
+.grid {
+	display: grid;
+	grid-template-columns: minmax(18rem, 0.75fr) minmax(0, 1.25fr);
+	gap: 1rem;
+}
+
+.fieldStack {
+	display: grid;
+	gap: 1rem;
+}
+
+.smtpGrid {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 1rem;
+	margin-bottom: 1rem;
+}
+
+.checkboxRow {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr);
+	gap: 0.75rem;
+	align-items: start;
+	color: var(--ns-text);
+}
+
+.checkboxRow strong,
+.checkboxRow small {
+	display: block;
+}
+
+.checkboxRow strong {
+	font-size: 0.95rem;
+	font-weight: 700;
+}
+
+.checkboxRow small {
+	margin-top: 0.25rem;
+	color: var(--ns-text-subtle);
+	font-size: 0.8rem;
+	line-height: 1.45;
+}
+
+@media (max-width: 78rem) {
+	.grid,
+	.smtpGrid {
+		grid-template-columns: 1fr;
+	}
+}

@@ -1,0 +1,12 @@
+import { queryOptions } from "@tanstack/react-query";
+import { apiClient, readApiData } from "../client";
+import { apiQueryKeys } from "../queryKeys";
+
+export const adminQueries = {
+	settings: () =>
+		queryOptions({
+			queryKey: apiQueryKeys.admin.settings(),
+			queryFn: ({ signal }) => readApiData(apiClient.GET("/admin/settings", { signal })),
+			staleTime: 30 * 1000
+		})
+};

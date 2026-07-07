@@ -21,6 +21,7 @@ const (
 	keyAPIVersion                          = "API_VERSION"
 	keyLogLevel                            = "LOG_LEVEL"
 	keyLogPseudonymKey                     = "LOG_PSEUDONYM_KEY"
+	keySystemSettingsEncryptionKey         = "SYSTEM_SETTINGS_ENCRYPTION_KEY"
 	keyShutdownTimeout                     = "SHUTDOWN_TIMEOUT"
 	keyBackendBaseURL                      = "BACKEND_BASE_URL"
 	keyPublicWebBaseURL                    = "PUBLIC_WEB_BASE_URL"
@@ -80,6 +81,7 @@ var defaultSettings = map[string]any{
 	keyAPIVersion:                          "v1",
 	keyLogLevel:                            "info",
 	keyLogPseudonymKey:                     "local-development-log-pseudonym-key-change-before-production",
+	keySystemSettingsEncryptionKey:         "local-development-system-settings-encryption-key-change-before-production",
 	keyShutdownTimeout:                     10 * time.Second,
 	keyBackendBaseURL:                      "",
 	keyPublicWebBaseURL:                    "",
@@ -139,6 +141,7 @@ type Config struct {
 	APIVersion        string                  `mapstructure:"API_VERSION"`
 	LogLevel          string                  `mapstructure:"LOG_LEVEL"`
 	LogPseudonymKey   string                  `mapstructure:"LOG_PSEUDONYM_KEY"`
+	SettingsSecretKey string                  `mapstructure:"SYSTEM_SETTINGS_ENCRYPTION_KEY"`
 	ShutdownTimeout   time.Duration           `mapstructure:"SHUTDOWN_TIMEOUT"`
 	HTTP              HTTPConfig              `mapstructure:",squash"`
 	Database          DatabaseConfig          `mapstructure:",squash"`
@@ -270,6 +273,7 @@ func validate(cfg Config) []error {
 	errs = append(errs, validateAPIVersion(cfg.APIVersion)...)
 	errs = append(errs, validateLogLevel(cfg.LogLevel)...)
 	errs = append(errs, validateRequiredString(keyLogPseudonymKey, cfg.LogPseudonymKey)...)
+	errs = append(errs, validateRequiredString(keySystemSettingsEncryptionKey, cfg.SettingsSecretKey)...)
 	errs = append(errs, validatePositiveDuration(keyShutdownTimeout, cfg.ShutdownTimeout)...)
 
 	// HTTP settings

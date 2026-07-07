@@ -37,6 +37,9 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.LogPseudonymKey != "local-development-log-pseudonym-key-change-before-production" {
 		t.Fatalf("expected default log pseudonym key, got %q", cfg.LogPseudonymKey)
 	}
+	if cfg.SettingsSecretKey != "local-development-system-settings-encryption-key-change-before-production" {
+		t.Fatalf("expected default system settings secret key, got %q", cfg.SettingsSecretKey)
+	}
 	if cfg.HTTP.BackendBaseURL != "" {
 		t.Fatalf("expected empty backend base URL, got %q", cfg.HTTP.BackendBaseURL)
 	}
@@ -98,6 +101,7 @@ func TestLoadFromEnvironment(t *testing.T) {
 	t.Setenv(keyAppVersion, "0.2.0")
 	t.Setenv(keyAPIVersion, "v2")
 	t.Setenv(keyLogPseudonymKey, "production-log-pseudonym-key")
+	t.Setenv(keySystemSettingsEncryptionKey, "production-system-settings-key")
 	t.Setenv(keyBackendBaseURL, "https://app.netstamp.dev")
 	t.Setenv(keyHTTPAddr, ":8181")
 	t.Setenv(keyWebDir, "/app/web")
@@ -146,6 +150,9 @@ func TestLoadFromEnvironment(t *testing.T) {
 	}
 	if cfg.LogPseudonymKey != "production-log-pseudonym-key" {
 		t.Fatalf("expected log pseudonym key override, got %q", cfg.LogPseudonymKey)
+	}
+	if cfg.SettingsSecretKey != "production-system-settings-key" {
+		t.Fatalf("expected system settings secret key override, got %q", cfg.SettingsSecretKey)
 	}
 	if cfg.HTTP.BackendBaseURL != "https://app.netstamp.dev" {
 		t.Fatalf("expected backend base URL override, got %q", cfg.HTTP.BackendBaseURL)
@@ -307,6 +314,7 @@ func TestValidateReturnsErrorsForInvalidValues(t *testing.T) {
 	cfg.Version = "\t"
 	cfg.LogLevel = "verbose"
 	cfg.LogPseudonymKey = ""
+	cfg.SettingsSecretKey = ""
 	cfg.ShutdownTimeout = 0
 	cfg.HTTP.BackendBaseURL = "https://app.netstamp.dev/api"
 	cfg.HTTP.Addr = "localhost"
@@ -347,6 +355,7 @@ func TestValidateReturnsErrorsForInvalidValues(t *testing.T) {
 		"APP_VERSION must not be empty",
 		"LOG_LEVEL must be one of debug, info, warn, error, dpanic, panic, or fatal",
 		"LOG_PSEUDONYM_KEY must not be empty",
+		"SYSTEM_SETTINGS_ENCRYPTION_KEY must not be empty",
 		"SHUTDOWN_TIMEOUT must be greater than 0",
 		"BACKEND_BASE_URL must be an origin without path, query, fragment, or credentials",
 		"HTTP_ADDR must be a host:port address",
@@ -442,13 +451,14 @@ func TestLoadReturnsUnknownDotEnvKeyErrors(t *testing.T) {
 
 func validConfig() Config {
 	return Config{
-		Env:             "local",
-		ServiceName:     "controller",
-		Version:         "0.1.0",
-		APIVersion:      "v1",
-		LogLevel:        "info",
-		LogPseudonymKey: "local-development-log-pseudonym-key-change-before-production",
-		ShutdownTimeout: 10 * time.Second,
+		Env:               "local",
+		ServiceName:       "controller",
+		Version:           "0.1.0",
+		APIVersion:        "v1",
+		LogLevel:          "info",
+		LogPseudonymKey:   "local-development-log-pseudonym-key-change-before-production",
+		SettingsSecretKey: "local-development-system-settings-encryption-key-change-before-production",
+		ShutdownTimeout:   10 * time.Second,
 		HTTP: HTTPConfig{
 			Addr:              ":8080",
 			RequestTimeout:    10 * time.Second,

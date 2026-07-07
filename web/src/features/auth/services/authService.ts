@@ -12,6 +12,7 @@ export interface SessionUser {
 	username: string;
 	email: string;
 	role: string;
+	isSystemAdmin: boolean;
 	gravatarUrl: string;
 	onboardingRequired?: boolean;
 }
@@ -31,7 +32,8 @@ export async function mapApiUser(user: UserResponse, options: { onboardingRequir
 		name: displayName,
 		username: email.split("@")[0] || displayName,
 		email,
-		role: "Admin",
+		role: user.isSystemAdmin ? "Global admin" : "User",
+		isSystemAdmin: Boolean(user.isSystemAdmin),
 		gravatarUrl: await createGravatarUrl(email),
 		onboardingRequired: options.onboardingRequired
 	};

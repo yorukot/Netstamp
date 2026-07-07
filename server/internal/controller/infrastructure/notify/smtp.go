@@ -34,9 +34,18 @@ type SMTPConfig struct {
 	Timeout  time.Duration
 }
 
+type SMTPConfigProvider interface {
+	SMTPConfig(ctx context.Context) (SMTPConfig, error)
+}
+
 type SMTPSender struct {
 	cfg SMTPConfig
 	now func() time.Time
+}
+
+type DynamicSMTPSender struct {
+	provider SMTPConfigProvider
+	now      func() time.Time
 }
 
 type EmailMessage struct {
@@ -46,11 +55,13 @@ type EmailMessage struct {
 }
 
 type AlertEmailSender struct {
-	smtp *SMTPSender
+	smtp    *SMTPSender
+	dynamic *DynamicSMTPSender
 }
 
 type PasswordResetMailer struct {
-	smtp *SMTPSender
+	smtp    *SMTPSender
+	dynamic *DynamicSMTPSender
 }
 
 func NewSMTPSender(cfg SMTPConfig) *SMTPSender {
@@ -70,6 +81,14 @@ func NewSMTPSender(cfg SMTPConfig) *SMTPSender {
 	return &SMTPSender{cfg: cfg, now: func() time.Time { return time.Now().UTC() }}
 }
 
+func newUnconfiguredSMTPSender() *SMTPSender {
+	return NewSMTPSender(SMTPConfig{})
+}
+
+func NewDynamicSMTPSender(provider SMTPConfigProvider) *DynamicSMTPSender {
+	return &DynamicSMTPSender{provider: provider, now: func() time.Time { return time.Now().UTC() }}
+}
+
 func (s *SMTPSender) Configured() bool {
 	return strings.TrimSpace(s.cfg.Host) != "" && strings.TrimSpace(s.cfg.From) != ""
 }
@@ -78,12 +97,23 @@ func NewAlertEmailSender(sender *SMTPSender) *AlertEmailSender {
 	return &AlertEmailSender{smtp: sender}
 }
 
+func NewDynamicAlertEmailSender(sender *DynamicSMTPSender) *AlertEmailSender {
+	return &AlertEmailSender{smtp: nil, dynamic: sender}
+}
+
 func (s *AlertEmailSender) Configured() bool {
-	return s.smtp != nil && s.smtp.Configured()
+	if s.smtp != nil {
+		return s.smtp.Configured()
+	}
+	return s.dynamic != nil
 }
 
 func (s *AlertEmailSender) Send(ctx context.Context, notification domainalert.Notification, payload []byte) appnotification.DeliveryResult {
-	if s.smtp == nil || !s.smtp.Configured() {
+	smtpSender, err := s.sender(ctx)
+	if err != nil {
+		return retryable("config", "smtp_lookup_failed", "SMTP configuration lookup failed")
+	}
+	if smtpSender == nil || !smtpSender.Configured() {
 		return permanent("config", "smtp_unconfigured", "SMTP notifications are not configured")
 	}
 
@@ -91,19 +121,27 @@ func (s *AlertEmailSender) Send(ctx context.Context, notification domainalert.No
 	if err != nil {
 		return permanent("config", "invalid_config", "invalid email configuration")
 	}
-	return s.smtp.SendAlert(ctx, config, payload)
+	return smtpSender.SendAlert(ctx, config, payload)
 }
 
 func NewPasswordResetMailer(cfg SMTPConfig) *PasswordResetMailer {
 	return &PasswordResetMailer{smtp: NewSMTPSender(cfg)}
 }
 
+func NewDynamicPasswordResetMailer(provider SMTPConfigProvider) *PasswordResetMailer {
+	return &PasswordResetMailer{dynamic: NewDynamicSMTPSender(provider)}
+}
+
 func (m *PasswordResetMailer) SendPasswordReset(ctx context.Context, input identity.PasswordResetEmail) error {
-	if m == nil || m.smtp == nil || !m.smtp.Configured() {
+	smtpSender, err := m.sender(ctx)
+	if err != nil {
+		return errors.New("SMTP configuration lookup failed")
+	}
+	if smtpSender == nil || !smtpSender.Configured() {
 		return errors.New("SMTP is not configured")
 	}
 
-	result := m.smtp.SendMessage(ctx, EmailMessage{
+	result := smtpSender.SendMessage(ctx, EmailMessage{
 		To:      []string{input.To},
 		Subject: "Reset your Netstamp password",
 		Body:    renderPasswordResetBody(input),
@@ -113,6 +151,45 @@ func (m *PasswordResetMailer) SendPasswordReset(ctx context.Context, input ident
 	}
 
 	return nil
+}
+
+func (s *AlertEmailSender) sender(ctx context.Context) (*SMTPSender, error) {
+	if s == nil {
+		return newUnconfiguredSMTPSender(), nil
+	}
+	if s.smtp != nil {
+		return s.smtp, nil
+	}
+	if s.dynamic == nil {
+		return newUnconfiguredSMTPSender(), nil
+	}
+	return s.dynamic.Sender(ctx)
+}
+
+func (m *PasswordResetMailer) sender(ctx context.Context) (*SMTPSender, error) {
+	if m == nil {
+		return newUnconfiguredSMTPSender(), nil
+	}
+	if m.smtp != nil {
+		return m.smtp, nil
+	}
+	if m.dynamic == nil {
+		return newUnconfiguredSMTPSender(), nil
+	}
+	return m.dynamic.Sender(ctx)
+}
+
+func (s *DynamicSMTPSender) Sender(ctx context.Context) (*SMTPSender, error) {
+	if s == nil || s.provider == nil {
+		return newUnconfiguredSMTPSender(), nil
+	}
+	cfg, err := s.provider.SMTPConfig(ctx)
+	if err != nil {
+		return nil, err
+	}
+	sender := NewSMTPSender(cfg)
+	sender.now = s.now
+	return sender, nil
 }
 
 func (s *SMTPSender) SendAlert(ctx context.Context, config domainalert.EmailConfig, payload []byte) appnotification.DeliveryResult {

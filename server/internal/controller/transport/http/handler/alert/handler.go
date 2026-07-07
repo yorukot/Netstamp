@@ -1,6 +1,8 @@
 package alert
 
 import (
+	"context"
+
 	"github.com/go-chi/chi/v5"
 
 	appalert "github.com/yorukot/netstamp/internal/controller/application/alert"
@@ -9,13 +11,21 @@ import (
 )
 
 type Handler struct {
-	service             *appalert.Service
-	verifier            appauth.TokenVerifier
-	emailSMTPConfigured bool
+	service      *appalert.Service
+	verifier     appauth.TokenVerifier
+	smtpSettings SMTPStatusProvider
 }
 
-func NewHandler(service *appalert.Service, verifier appauth.TokenVerifier, emailSMTPConfigured bool) *Handler {
-	return &Handler{service: service, verifier: verifier, emailSMTPConfigured: emailSMTPConfigured}
+type SMTPStatusProvider interface {
+	SMTPConfigured(ctx context.Context) bool
+}
+
+func NewHandler(service *appalert.Service, verifier appauth.TokenVerifier, smtpSettings SMTPStatusProvider) *Handler {
+	return &Handler{service: service, verifier: verifier, smtpSettings: smtpSettings}
+}
+
+func (h *Handler) emailSMTPConfigured(ctx context.Context) bool {
+	return h.smtpSettings != nil && h.smtpSettings.SMTPConfigured(ctx)
 }
 
 func (h *Handler) RegisterRoutes(api chi.Router) {

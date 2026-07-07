@@ -32,6 +32,7 @@ export function Sidebar({ collapsed, user, onToggleCollapsed, onLogout }: Sideba
 	const MobileMenuIcon = mobileMenuOpen ? X : List;
 	const logo = theme === "dark" ? netstampLogo : netstampLogoDark;
 	const logoMark = theme === "dark" ? netstampMark : netstampMarkDark;
+	const visibleSidebarItems = sidebarItems.filter(item => !item.systemAdminOnly || user.isSystemAdmin);
 
 	function closeMobileMenu() {
 		setMobileMenuOpen(false);
@@ -59,7 +60,7 @@ export function Sidebar({ collapsed, user, onToggleCollapsed, onLogout }: Sideba
 				<ProjectSwitcher collapsed={collapsed} />
 
 				<nav className={styles.nav} aria-label="Primary app navigation">
-					{sidebarItems.map(item => {
+					{visibleSidebarItems.map(item => {
 						const ItemIcon = item.icon;
 
 						return (
@@ -100,7 +101,7 @@ export function Sidebar({ collapsed, user, onToggleCollapsed, onLogout }: Sideba
 					<ProjectSwitcher variant="drawer" />
 				</div>
 				<nav className={styles.mobileDrawerNav} aria-label="Primary app navigation">
-					{sidebarItems.map(item => {
+					{visibleSidebarItems.map(item => {
 						const ItemIcon = item.icon;
 
 						return (

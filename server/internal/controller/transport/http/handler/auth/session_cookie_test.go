@@ -17,7 +17,7 @@ import (
 
 func TestLoginSetsSessionCookieAndReturnsUserOnly(t *testing.T) {
 	router := chi.NewRouter()
-	NewHandler(newAuthTestService(), nil, true, true).RegisterRoutes(router)
+	NewHandler(newAuthTestService(), nil, nil, true, true).RegisterRoutes(router)
 
 	res := performJSONRequest(router, http.MethodPost, "/auth/login", `{"email":"user@example.com","password":"correct-horse-battery-staple"}`)
 
@@ -30,7 +30,7 @@ func TestLoginSetsSessionCookieAndReturnsUserOnly(t *testing.T) {
 
 func TestRegisterSetsSessionCookieAndReturnsUserOnly(t *testing.T) {
 	router := chi.NewRouter()
-	NewHandler(newAuthTestService(), nil, false, true).RegisterRoutes(router)
+	NewHandler(newAuthTestService(), nil, nil, false, true).RegisterRoutes(router)
 
 	res := performJSONRequest(router, http.MethodPost, "/auth/register", `{"email":"new@example.com","displayName":"New User","password":"correct-horse-battery-staple"}`)
 
@@ -43,7 +43,7 @@ func TestRegisterSetsSessionCookieAndReturnsUserOnly(t *testing.T) {
 
 func TestRegisterReturnsForbiddenWhenRegistrationDisabled(t *testing.T) {
 	router := chi.NewRouter()
-	NewHandler(newAuthTestService(), nil, false, false).RegisterRoutes(router)
+	NewHandler(newAuthTestService(), nil, nil, false, false).RegisterRoutes(router)
 
 	res := performJSONRequest(router, http.MethodPost, "/auth/register", `{"email":"new@example.com","displayName":"New User","password":"correct-horse-battery-staple"}`)
 
@@ -62,7 +62,7 @@ func TestRegisterReturnsForbiddenWhenRegistrationDisabled(t *testing.T) {
 
 func TestLogoutExpiresSessionCookie(t *testing.T) {
 	router := chi.NewRouter()
-	NewHandler(nil, nil, true, true).RegisterRoutes(router)
+	NewHandler(nil, nil, nil, true, true).RegisterRoutes(router)
 
 	res := performJSONRequest(router, http.MethodPost, "/auth/logout", "")
 

@@ -752,6 +752,47 @@ func (ns NullPublicStatusElementKind) Value() (driver.Value, error) {
 	return string(ns.PublicStatusElementKind), nil
 }
 
+type SystemRole string
+
+const (
+	SystemRoleAdmin SystemRole = "admin"
+)
+
+func (e *SystemRole) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = SystemRole(s)
+	case string:
+		*e = SystemRole(s)
+	default:
+		return fmt.Errorf("unsupported scan type for SystemRole: %T", src)
+	}
+	return nil
+}
+
+type NullSystemRole struct {
+	SystemRole SystemRole `json:"system_role"`
+	Valid      bool       `json:"valid"` // Valid is true if SystemRole is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullSystemRole) Scan(value interface{}) error {
+	if value == nil {
+		ns.SystemRole, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.SystemRole.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullSystemRole) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.SystemRole), nil
+}
+
 type TcpStatus string
 
 const (
@@ -1202,6 +1243,31 @@ type PublicStatusPageElementAssignment struct {
 	AssignmentID uuid.UUID `json:"assignment_id"`
 	SortOrder    int32     `json:"sort_order"`
 	CreatedAt    time.Time `json:"created_at"`
+}
+
+type SystemSetting struct {
+	Key                 string     `json:"key"`
+	Value               []byte     `json:"value"`
+	EncryptedValue      []byte     `json:"encrypted_value"`
+	EncryptedValueNonce []byte     `json:"encrypted_value_nonce"`
+	Secret              bool       `json:"secret"`
+	UpdatedByUserID     *uuid.UUID `json:"updated_by_user_id"`
+	CreatedAt           time.Time  `json:"created_at"`
+	UpdatedAt           time.Time  `json:"updated_at"`
+}
+
+type SystemSettingAuditEvent struct {
+	ID              uuid.UUID  `json:"id"`
+	Key             string     `json:"key"`
+	Action          string     `json:"action"`
+	UpdatedByUserID *uuid.UUID `json:"updated_by_user_id"`
+	CreatedAt       time.Time  `json:"created_at"`
+}
+
+type SystemUserRole struct {
+	UserID    uuid.UUID  `json:"user_id"`
+	Role      SystemRole `json:"role"`
+	CreatedAt time.Time  `json:"created_at"`
 }
 
 type TcpCheckConfig struct {

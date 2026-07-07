@@ -14,7 +14,7 @@ export function SessionProvider({ children }: SessionProviderProps) {
 	const meQuery = useQuery(authQueries.me());
 	const rawUser = meQuery.data?.user;
 	const sessionQuery = useQuery({
-		queryKey: [...apiQueryKeys.auth.me(), "session", rawUser?.id, rawUser?.email, rawUser?.displayName],
+		queryKey: [...apiQueryKeys.auth.me(), "session", rawUser?.id, rawUser?.email, rawUser?.displayName, rawUser?.isSystemAdmin],
 		queryFn: () => {
 			if (!rawUser) {
 				throw new Error("Cannot create a session without a user.");

@@ -11,7 +11,15 @@ import (
 )
 
 func (h *Handler) register(ctx context.Context, input *registerInput) (*registerOutput, error) {
-	if !h.registrationEnabled {
+	registrationEnabled := h.registrationEnabled
+	if h.settings != nil {
+		settings, err := h.settings.EffectiveSettings(ctx)
+		if err != nil {
+			return nil, httpx.InternalServerError("register user failed")
+		}
+		registrationEnabled = settings.RegistrationEnabled
+	}
+	if !registrationEnabled {
 		return nil, httpx.Forbidden("registration is disabled")
 	}
 
@@ -35,9 +43,10 @@ func (h *Handler) register(ctx context.Context, input *registerInput) (*register
 		SetCookie: newSessionCookie(result.AccessToken, result.ExpiresIn, h.cookieSecure),
 		Body: registerOutputBody{
 			User: userResponse{
-				ID:          result.UserID,
-				Email:       result.Email,
-				DisplayName: result.DisplayName,
+				ID:            result.UserID,
+				Email:         result.Email,
+				DisplayName:   result.DisplayName,
+				IsSystemAdmin: result.IsSystemAdmin,
 			},
 		},
 	}, nil

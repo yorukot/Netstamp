@@ -15,7 +15,7 @@ import (
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (email, password_hash, display_name)
 VALUES ($1, $2, $3)
-RETURNING id, email, display_name, created_at, updated_at
+RETURNING id, email, password_hash, display_name, false::boolean AS is_system_admin, created_at, updated_at
 `
 
 type CreateUserParams struct {
@@ -25,11 +25,13 @@ type CreateUserParams struct {
 }
 
 type CreateUserRow struct {
-	ID          uuid.UUID `json:"id"`
-	Email       string    `json:"email"`
-	DisplayName string    `json:"display_name"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID            uuid.UUID `json:"id"`
+	Email         string    `json:"email"`
+	PasswordHash  string    `json:"password_hash"`
+	DisplayName   string    `json:"display_name"`
+	IsSystemAdmin bool      `json:"is_system_admin"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error) {
@@ -38,7 +40,9 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateU
 	err := row.Scan(
 		&i.ID,
 		&i.Email,
+		&i.PasswordHash,
 		&i.DisplayName,
+		&i.IsSystemAdmin,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -46,19 +50,41 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateU
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, password_hash, display_name, created_at, updated_at
+SELECT id,
+       email,
+       password_hash,
+       display_name,
+       EXISTS (
+           SELECT 1
+           FROM system_user_roles
+           WHERE system_user_roles.user_id = users.id
+             AND system_user_roles.role = 'admin'
+       ) AS is_system_admin,
+       created_at,
+       updated_at
 FROM users
 WHERE email = $1
 `
 
-func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
+type GetUserByEmailRow struct {
+	ID            uuid.UUID `json:"id"`
+	Email         string    `json:"email"`
+	PasswordHash  string    `json:"password_hash"`
+	DisplayName   string    `json:"display_name"`
+	IsSystemAdmin bool      `json:"is_system_admin"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
+}
+
+func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEmailRow, error) {
 	row := q.db.QueryRow(ctx, getUserByEmail, email)
-	var i User
+	var i GetUserByEmailRow
 	err := row.Scan(
 		&i.ID,
 		&i.Email,
 		&i.PasswordHash,
 		&i.DisplayName,
+		&i.IsSystemAdmin,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -66,19 +92,41 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, email, password_hash, display_name, created_at, updated_at
+SELECT id,
+       email,
+       password_hash,
+       display_name,
+       EXISTS (
+           SELECT 1
+           FROM system_user_roles
+           WHERE system_user_roles.user_id = users.id
+             AND system_user_roles.role = 'admin'
+       ) AS is_system_admin,
+       created_at,
+       updated_at
 FROM users
 WHERE id = $1
 `
 
-func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
+type GetUserByIDRow struct {
+	ID            uuid.UUID `json:"id"`
+	Email         string    `json:"email"`
+	PasswordHash  string    `json:"password_hash"`
+	DisplayName   string    `json:"display_name"`
+	IsSystemAdmin bool      `json:"is_system_admin"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
+}
+
+func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (GetUserByIDRow, error) {
 	row := q.db.QueryRow(ctx, getUserByID, id)
-	var i User
+	var i GetUserByIDRow
 	err := row.Scan(
 		&i.ID,
 		&i.Email,
 		&i.PasswordHash,
 		&i.DisplayName,
+		&i.IsSystemAdmin,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -89,7 +137,18 @@ const updateUserDisplayName = `-- name: UpdateUserDisplayName :one
 UPDATE users
 SET display_name = $2
 WHERE id = $1
-RETURNING id, email, password_hash, display_name, created_at, updated_at
+RETURNING id,
+          email,
+          password_hash,
+          display_name,
+          EXISTS (
+              SELECT 1
+              FROM system_user_roles
+              WHERE system_user_roles.user_id = users.id
+                AND system_user_roles.role = 'admin'
+          ) AS is_system_admin,
+          created_at,
+          updated_at
 `
 
 type UpdateUserDisplayNameParams struct {
@@ -97,14 +156,25 @@ type UpdateUserDisplayNameParams struct {
 	DisplayName string    `json:"display_name"`
 }
 
-func (q *Queries) UpdateUserDisplayName(ctx context.Context, arg UpdateUserDisplayNameParams) (User, error) {
+type UpdateUserDisplayNameRow struct {
+	ID            uuid.UUID `json:"id"`
+	Email         string    `json:"email"`
+	PasswordHash  string    `json:"password_hash"`
+	DisplayName   string    `json:"display_name"`
+	IsSystemAdmin bool      `json:"is_system_admin"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
+}
+
+func (q *Queries) UpdateUserDisplayName(ctx context.Context, arg UpdateUserDisplayNameParams) (UpdateUserDisplayNameRow, error) {
 	row := q.db.QueryRow(ctx, updateUserDisplayName, arg.ID, arg.DisplayName)
-	var i User
+	var i UpdateUserDisplayNameRow
 	err := row.Scan(
 		&i.ID,
 		&i.Email,
 		&i.PasswordHash,
 		&i.DisplayName,
+		&i.IsSystemAdmin,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -115,7 +185,18 @@ const updateUserEmail = `-- name: UpdateUserEmail :one
 UPDATE users
 SET email = $2
 WHERE id = $1
-RETURNING id, email, password_hash, display_name, created_at, updated_at
+RETURNING id,
+          email,
+          password_hash,
+          display_name,
+          EXISTS (
+              SELECT 1
+              FROM system_user_roles
+              WHERE system_user_roles.user_id = users.id
+                AND system_user_roles.role = 'admin'
+          ) AS is_system_admin,
+          created_at,
+          updated_at
 `
 
 type UpdateUserEmailParams struct {
@@ -123,14 +204,25 @@ type UpdateUserEmailParams struct {
 	Email string    `json:"email"`
 }
 
-func (q *Queries) UpdateUserEmail(ctx context.Context, arg UpdateUserEmailParams) (User, error) {
+type UpdateUserEmailRow struct {
+	ID            uuid.UUID `json:"id"`
+	Email         string    `json:"email"`
+	PasswordHash  string    `json:"password_hash"`
+	DisplayName   string    `json:"display_name"`
+	IsSystemAdmin bool      `json:"is_system_admin"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
+}
+
+func (q *Queries) UpdateUserEmail(ctx context.Context, arg UpdateUserEmailParams) (UpdateUserEmailRow, error) {
 	row := q.db.QueryRow(ctx, updateUserEmail, arg.ID, arg.Email)
-	var i User
+	var i UpdateUserEmailRow
 	err := row.Scan(
 		&i.ID,
 		&i.Email,
 		&i.PasswordHash,
 		&i.DisplayName,
+		&i.IsSystemAdmin,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -141,7 +233,18 @@ const updateUserPasswordHash = `-- name: UpdateUserPasswordHash :one
 UPDATE users
 SET password_hash = $2
 WHERE id = $1
-RETURNING id, email, password_hash, display_name, created_at, updated_at
+RETURNING id,
+          email,
+          password_hash,
+          display_name,
+          EXISTS (
+              SELECT 1
+              FROM system_user_roles
+              WHERE system_user_roles.user_id = users.id
+                AND system_user_roles.role = 'admin'
+          ) AS is_system_admin,
+          created_at,
+          updated_at
 `
 
 type UpdateUserPasswordHashParams struct {
@@ -149,14 +252,25 @@ type UpdateUserPasswordHashParams struct {
 	PasswordHash string    `json:"password_hash"`
 }
 
-func (q *Queries) UpdateUserPasswordHash(ctx context.Context, arg UpdateUserPasswordHashParams) (User, error) {
+type UpdateUserPasswordHashRow struct {
+	ID            uuid.UUID `json:"id"`
+	Email         string    `json:"email"`
+	PasswordHash  string    `json:"password_hash"`
+	DisplayName   string    `json:"display_name"`
+	IsSystemAdmin bool      `json:"is_system_admin"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
+}
+
+func (q *Queries) UpdateUserPasswordHash(ctx context.Context, arg UpdateUserPasswordHashParams) (UpdateUserPasswordHashRow, error) {
 	row := q.db.QueryRow(ctx, updateUserPasswordHash, arg.ID, arg.PasswordHash)
-	var i User
+	var i UpdateUserPasswordHashRow
 	err := row.Scan(
 		&i.ID,
 		&i.Email,
 		&i.PasswordHash,
 		&i.DisplayName,
+		&i.IsSystemAdmin,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)

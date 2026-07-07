@@ -3,6 +3,7 @@ import type { components } from "./openapi";
 export type ApiCheck = components["schemas"]["Check"];
 export type ApiAlertIncident = components["schemas"]["AlertIncident"];
 export type ApiAlertRule = components["schemas"]["AlertRule"];
+export type ApiAdminSettings = components["schemas"]["AdminSettings"];
 export type ApiLabel = components["schemas"]["Label"];
 export type ApiLatestResult = components["schemas"]["LatestResult"];
 export type ApiMember = components["schemas"]["ProjectMember"];
@@ -71,6 +72,7 @@ export type TracerouteTopologyEdge = components["schemas"]["TracerouteTopologyEd
 export type TracerouteTopologyNode = components["schemas"]["TracerouteTopologyNode"];
 export type UpdateCheckInput = components["schemas"]["UpdateCheckRequest"];
 export type UpdateAlertRuleInput = components["schemas"]["UpdateAlertRuleRequest"];
+export type UpdateAdminSettingsInput = components["schemas"]["UpdateAdminSettingsRequest"];
 export type UpdateCurrentUserInput = components["schemas"]["UpdateCurrentUserRequest"];
 export type UpdateLabelInput = components["schemas"]["UpdateLabelRequest"];
 export type UpdateNotificationInput = components["schemas"]["UpdateNotificationRequest"];

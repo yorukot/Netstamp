@@ -1,10 +1,11 @@
-import { BellRinging, Broadcast, ChartLineUp, CheckCircle, Gauge, GearSix, Globe, Tag, UsersThree, type Icon } from "@phosphor-icons/react";
+import { BellRinging, Broadcast, ChartLineUp, CheckCircle, Gauge, GearSix, Globe, ShieldCheck, Tag, UsersThree, type Icon } from "@phosphor-icons/react";
 import type { AppRoute } from "./routeTypes";
 
 export interface SidebarItem {
 	label: string;
 	route: AppRoute;
 	icon: Icon;
+	systemAdminOnly?: boolean;
 }
 
 export const sidebarItems: SidebarItem[] = [
@@ -16,5 +17,6 @@ export const sidebarItems: SidebarItem[] = [
 	{ label: "Labels", route: "labels", icon: Tag },
 	{ label: "Insight", route: "insight", icon: ChartLineUp },
 	{ label: "Members", route: "members", icon: UsersThree },
-	{ label: "Settings", route: "projectSettings", icon: GearSix }
+	{ label: "Settings", route: "projectSettings", icon: GearSix },
+	{ label: "Admin", route: "adminSettings", icon: ShieldCheck, systemAdminOnly: true }
 ];

@@ -20,7 +20,8 @@ export const legacyAppRoutePaths = {
 	statusPages: "/status-pages",
 	members: "/members",
 	projectSettings: "/project",
-	accountSettings: "/settings"
+	accountSettings: "/settings",
+	adminSettings: "/admin"
 } satisfies Record<AppRoute, string>;
 
 export const projectRouteSegments = {

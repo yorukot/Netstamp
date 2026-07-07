@@ -25,7 +25,7 @@ func TestMeReturnsAuthenticatedUser(t *testing.T) {
 			Subject: user.ID,
 			Email:   user.Email,
 		},
-	}, false, true).RegisterRoutes(router)
+	}, nil, false, true).RegisterRoutes(router)
 
 	req := httptest.NewRequest(http.MethodGet, "/auth/me", http.NoBody)
 	req.Header.Set("Cookie", "netstamp_session=valid-token")

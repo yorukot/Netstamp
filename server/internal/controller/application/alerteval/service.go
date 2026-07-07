@@ -22,11 +22,16 @@ const (
 )
 
 type Service struct {
-	repo           Repository
-	enabled        bool
-	backendBaseURL string
-	tx             Transactor
-	now            func() time.Time
+	repo                   Repository
+	enabled                bool
+	backendBaseURL         string
+	backendBaseURLProvider BackendBaseURLProvider
+	tx                     Transactor
+	now                    func() time.Time
+}
+
+type BackendBaseURLProvider interface {
+	BackendBaseURL(ctx context.Context) (string, error)
 }
 
 func NewService(repo Repository, enabled bool, backendBaseURL string, transactors ...Transactor) *Service {
@@ -42,6 +47,10 @@ func NewService(repo Repository, enabled bool, backendBaseURL string, transactor
 		tx:             tx,
 		now:            func() time.Time { return time.Now().UTC() },
 	}
+}
+
+func (s *Service) ConfigureBackendBaseURLProvider(provider BackendBaseURLProvider) {
+	s.backendBaseURLProvider = provider
 }
 
 func (s *Service) EvaluateChangedAssignments(ctx context.Context, inputs []appproberuntime.ChangedAssignmentInput) error {
@@ -177,11 +186,12 @@ func (s *Service) enqueueNotifications(ctx context.Context, rule domainalert.Rul
 		return err
 	}
 	jobs := make([]domainalert.NotificationJobInput, 0, len(notifications))
+	backendBaseURL := s.effectiveBackendBaseURL(ctx)
 	for _, notification := range notifications {
 		if !supportedNotification(notification.Type) {
 			continue
 		}
-		payload, err := notificationPayload(rule, incident, notification, evaluation, eventType, at, s.backendBaseURL)
+		payload, err := notificationPayload(rule, incident, notification, evaluation, eventType, at, backendBaseURL)
 		if err != nil {
 			return err
 		}
@@ -197,6 +207,21 @@ func (s *Service) enqueueNotifications(ctx context.Context, rule domainalert.Rul
 		})
 	}
 	return s.repo.EnqueueNotificationJobs(ctx, jobs)
+}
+
+func (s *Service) effectiveBackendBaseURL(ctx context.Context) string {
+	if s.backendBaseURLProvider == nil {
+		return s.backendBaseURL
+	}
+	value, err := s.backendBaseURLProvider.BackendBaseURL(ctx)
+	if err != nil {
+		return s.backendBaseURL
+	}
+	value = strings.TrimRight(strings.TrimSpace(value), "/")
+	if value == "" {
+		return s.backendBaseURL
+	}
+	return value
 }
 
 func supportedNotification(notificationType domainalert.NotificationType) bool {

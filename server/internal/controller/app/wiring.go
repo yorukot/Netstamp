@@ -4,11 +4,13 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
 
+	appadmin "github.com/yorukot/netstamp/internal/controller/application/admin"
 	appalert "github.com/yorukot/netstamp/internal/controller/application/alert"
 	appalerteval "github.com/yorukot/netstamp/internal/controller/application/alerteval"
 	appassignment "github.com/yorukot/netstamp/internal/controller/application/assignment"
@@ -34,6 +36,7 @@ import (
 	pgproject "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/project"
 	pgpublicstatus "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/publicstatus"
 	pgresult "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/result"
+	pgsystem "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/system"
 	pgtcp "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/tcp"
 	pgtraceroute "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/traceroute"
 	pguser "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/user"
@@ -45,20 +48,20 @@ import (
 )
 
 type controllerServices struct {
-	authService              *appauth.Service
-	authVerifier             appauth.TokenVerifier
-	userService              *appuser.Service
-	alertService             *appalert.Service
-	alertEmailSMTPConfigured bool
-	assignmentService        *appassignment.Service
-	checkService             *appcheck.Service
-	labelService             *applabel.Service
-	probeService             *appprobe.Service
-	probeRuntimeService      *appproberuntime.Service
-	projectService           *appproject.Service
-	publicStatusService      *apppublicstatus.Service
-	resultService            *appresult.Service
-	backgroundWorkers        []backgroundWorker
+	authService         *appauth.Service
+	authVerifier        appauth.TokenVerifier
+	adminService        *appadmin.Service
+	userService         *appuser.Service
+	alertService        *appalert.Service
+	assignmentService   *appassignment.Service
+	checkService        *appcheck.Service
+	labelService        *applabel.Service
+	probeService        *appprobe.Service
+	probeRuntimeService *appproberuntime.Service
+	projectService      *appproject.Service
+	publicStatusService *apppublicstatus.Service
+	resultService       *appresult.Service
+	backgroundWorkers   []backgroundWorker
 }
 
 func buildObservability(ctx context.Context, cfg config.Config, log *zap.Logger) (*obmetrics.Provider, *tracing.Provider, error) {
@@ -98,9 +101,30 @@ func buildDBPool(ctx context.Context, cfg config.Config) (*pgxpool.Pool, error) 
 	})
 }
 
-func buildControllerServices(cfg config.Config, log *zap.Logger, dbPool *pgxpool.Pool) controllerServices {
+type adminSMTPProvider struct {
+	service *appadmin.Service
+}
+
+func (p adminSMTPProvider) SMTPConfig(ctx context.Context) (notify.SMTPConfig, error) {
+	settings, err := p.service.EffectiveSMTP(ctx)
+	if err != nil {
+		return notify.SMTPConfig{}, err
+	}
+	return notify.SMTPConfig{
+		Host:     settings.Host,
+		Port:     settings.Port,
+		Username: settings.Username,
+		Password: settings.Password,
+		From:     settings.From,
+		TLSMode:  settings.TLSMode,
+		Timeout:  time.Duration(settings.TimeoutSeconds) * time.Second,
+	}, nil
+}
+
+func buildControllerServices(cfg config.Config, log *zap.Logger, dbPool *pgxpool.Pool) (controllerServices, error) {
 	dbTx := postgres.NewTransactor(dbPool)
 	userRepo := pguser.NewUserRepository(dbPool)
+	systemRepo := pgsystem.NewRepository(dbPool)
 	projectRepo := pgproject.NewProjectRepository(dbPool)
 	alertRepo := pgalert.NewRepository(dbPool)
 	labelRepo := pglabel.NewLabelRepository(dbPool)
@@ -128,21 +152,33 @@ func buildControllerServices(cfg config.Config, log *zap.Logger, dbPool *pgxpool
 	probeRuntimeEvents := logger.NewProbeRuntimeEventRecorder(log)
 	assignmentEvents := logger.NewAssignmentEventRecorder(log)
 
-	smtpConfig := notify.SMTPConfig{
-		Host:     cfg.Alerting.SMTP.Host,
-		Port:     cfg.Alerting.SMTP.Port,
-		Username: cfg.Alerting.SMTP.Username,
-		Password: cfg.Alerting.SMTP.Password,
-		From:     cfg.Alerting.SMTP.From,
-		TLSMode:  cfg.Alerting.SMTP.TLSMode,
-		Timeout:  cfg.Alerting.SMTP.Timeout,
+	secretCipher, err := security.NewSecretCipher(cfg.SettingsSecretKey)
+	if err != nil {
+		return controllerServices{}, fmt.Errorf("create system settings cipher: %w", err)
 	}
-	notificationSender := notify.NewSender(cfg.Alerting.NotificationHTTPTimeout, smtpConfig)
+	adminSvc := appadmin.NewService(systemRepo, secretCipher, appadmin.Defaults{
+		RegistrationEnabled: cfg.Auth.RegistrationEnabled,
+		BackendBaseURL:      cfg.HTTP.BackendBaseURL,
+		PublicWebBaseURL:    cfg.HTTP.PublicWebBaseURL,
+		SMTP: appadmin.SMTPSettings{
+			Host:           cfg.Alerting.SMTP.Host,
+			Port:           cfg.Alerting.SMTP.Port,
+			Username:       cfg.Alerting.SMTP.Username,
+			Password:       cfg.Alerting.SMTP.Password,
+			From:           cfg.Alerting.SMTP.From,
+			TLSMode:        cfg.Alerting.SMTP.TLSMode,
+			TimeoutSeconds: appadmin.DurationSeconds(cfg.Alerting.SMTP.Timeout),
+		},
+	})
+	smtpProvider := adminSMTPProvider{service: adminSvc}
+	notificationSender := notify.NewDynamicSender(cfg.Alerting.NotificationHTTPTimeout, smtpProvider)
 
 	authSvc := appauth.NewService(userRepo, passwordHasher, tokenIssuer, authEvents, dbTx)
-	authSvc.ConfigurePasswordReset(userRepo, security.NewPasswordResetTokenManager(), notify.NewPasswordResetMailer(smtpConfig), appauth.PasswordResetConfig{
+	authSvc.ConfigureSystemAdmin(systemRepo)
+	authSvc.ConfigurePasswordReset(userRepo, security.NewPasswordResetTokenManager(), notify.NewDynamicPasswordResetMailer(smtpProvider), appauth.PasswordResetConfig{
 		TokenTTL: cfg.Auth.PasswordResetTokenTTL,
 	})
+
 	userSvc := appuser.NewService(userRepo, passwordHasher, userEvents)
 	projectSvc := appproject.NewService(projectRepo, userRepo, projectEvents)
 	alertSvc := appalert.NewService(alertRepo, projectRepo, notificationSender)
@@ -153,6 +189,7 @@ func buildControllerServices(cfg config.Config, log *zap.Logger, dbPool *pgxpool
 	publicStatusSvc := apppublicstatus.NewService(publicStatusRepo, projectRepo, pingRepo, tcpRepo)
 	probeRuntimeSvc := appproberuntime.NewServiceWithTCP(probeRepo, pingRepo, tcpRepo, tracerouteRepo, security.NewProbeSecretVerifier(), probeRuntimeEvents)
 	alertEvalSvc := appalerteval.NewService(alertRepo, cfg.Alerting.EvaluationEnabled, cfg.HTTP.BackendBaseURL, dbTx)
+	alertEvalSvc.ConfigureBackendBaseURLProvider(adminSvc)
 	probeRuntimeSvc.SetAlertEvaluator(alertEvalSvc)
 	resultSvc := appresult.NewService(pingRepo, tcpRepo, tracerouteRepo, resultRepo, projectRepo)
 	assignmentWorker := appassignment.NewWorker(assignmentRepo, appassignment.WorkerConfig{
@@ -169,21 +206,21 @@ func buildControllerServices(cfg config.Config, log *zap.Logger, dbPool *pgxpool
 	})
 
 	return controllerServices{
-		authService:              authSvc,
-		authVerifier:             tokenIssuer,
-		userService:              userSvc,
-		alertService:             alertSvc,
-		alertEmailSMTPConfigured: notificationSender.EmailConfigured(),
-		assignmentService:        assignmentSvc,
-		checkService:             checkSvc,
-		labelService:             labelSvc,
-		probeService:             probeSvc,
-		probeRuntimeService:      probeRuntimeSvc,
-		projectService:           projectSvc,
-		publicStatusService:      publicStatusSvc,
-		resultService:            resultSvc,
-		backgroundWorkers:        []backgroundWorker{assignmentWorker, notificationWorker},
-	}
+		authService:         authSvc,
+		authVerifier:        tokenIssuer,
+		adminService:        adminSvc,
+		userService:         userSvc,
+		alertService:        alertSvc,
+		assignmentService:   assignmentSvc,
+		checkService:        checkSvc,
+		labelService:        labelSvc,
+		probeService:        probeSvc,
+		probeRuntimeService: probeRuntimeSvc,
+		projectService:      projectSvc,
+		publicStatusService: publicStatusSvc,
+		resultService:       resultSvc,
+		backgroundWorkers:   []backgroundWorker{assignmentWorker, notificationWorker},
+	}, nil
 }
 
 func buildHTTPHandler(cfg config.Config, log *zap.Logger, dbPool *pgxpool.Pool, metricsProvider *obmetrics.Provider, services controllerServices) (http.Handler, error) {
@@ -201,6 +238,7 @@ func buildHTTPHandler(cfg config.Config, log *zap.Logger, dbPool *pgxpool.Pool, 
 		WebDir:                      cfg.HTTP.WebDir,
 		AuthService:                 services.authService,
 		AuthVerifier:                services.authVerifier,
+		AdminService:                services.adminService,
 		AuthCookieSecure:            cfg.Env != "local",
 		AuthRegistrationDisabled:    !cfg.Auth.RegistrationEnabled,
 		AuthPasswordResetRateWindow: cfg.Auth.PasswordResetRateWindow,
@@ -208,7 +246,6 @@ func buildHTTPHandler(cfg config.Config, log *zap.Logger, dbPool *pgxpool.Pool, 
 		AuthPasswordResetEmailLimit: cfg.Auth.PasswordResetEmailLimit,
 		UserService:                 services.userService,
 		AlertService:                services.alertService,
-		AlertEmailSMTPConfigured:    services.alertEmailSMTPConfigured,
 		AssignmentService:           services.assignmentService,
 		CheckService:                services.checkService,
 		LabelService:                services.labelService,

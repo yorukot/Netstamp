@@ -14,6 +14,10 @@ type UserRepository interface {
 	UpdateUserPasswordHash(ctx context.Context, input identity.User) (identity.User, error)
 }
 
+type SystemAdminRepository interface {
+	GrantFirstSystemAdminIfNone(ctx context.Context, userID string) (bool, error)
+}
+
 type PasswordResetRepository interface {
 	CreatePasswordResetToken(ctx context.Context, input identity.PasswordResetToken) (identity.PasswordResetToken, error)
 	InvalidateActivePasswordResetTokens(ctx context.Context, userID string, usedAt time.Time) error

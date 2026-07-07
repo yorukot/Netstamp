@@ -1,6 +1,7 @@
 import { lazy } from "react";
 
 export const AuthPage = lazy(() => import("@/features/auth/components/AuthPage").then(module => ({ default: module.AuthPage })));
+export const AdminPage = lazy(() => import("@/features/admin/components/AdminPage").then(module => ({ default: module.AdminPage })));
 export const ForgotPasswordPage = lazy(() => import("@/features/auth/components/ForgotPasswordPage").then(module => ({ default: module.ForgotPasswordPage })));
 export const AlertsPage = lazy(() => import("@/features/alerts/components/AlertsPage").then(module => ({ default: module.AlertsPage })));
 export const OnboardingPage = lazy(() => import("@/features/auth/components/OnboardingPage").then(module => ({ default: module.OnboardingPage })));

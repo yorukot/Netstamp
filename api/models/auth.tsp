@@ -1,6 +1,6 @@
 namespace Netstamp;
 
-@example(#{ id: "11111111-1111-1111-1111-111111111111", email: "user@example.com", displayName: "Jane Doe" })
+@example(#{ id: "11111111-1111-1111-1111-111111111111", email: "user@example.com", displayName: "Jane Doe", isSystemAdmin: true })
 model User {
 	@doc("User UUID.")
 	id: uuid;
@@ -12,6 +12,9 @@ model User {
 	@maxLength(64)
 	@doc("Name shown in the app.")
 	displayName: string;
+
+	@doc("Whether the user has instance-level administrator access.")
+	isSystemAdmin: boolean;
 }
 
 @example(#{ email: "user@example.com", displayName: "Jane Doe", password: "correct-horse-battery-staple" })
@@ -64,12 +67,12 @@ model ConfirmPasswordResetRequest {
 	newPassword: string;
 }
 
-@example(#{ user: #{ id: "11111111-1111-1111-1111-111111111111", email: "user@example.com", displayName: "Jane Doe" } })
+@example(#{ user: #{ id: "11111111-1111-1111-1111-111111111111", email: "user@example.com", displayName: "Jane Doe", isSystemAdmin: true } })
 model AuthUserResponse {
 	user: User;
 }
 
-@example(#{ authenticated: true, user: #{ id: "11111111-1111-1111-1111-111111111111", email: "user@example.com", displayName: "Jane Doe" } })
+@example(#{ authenticated: true, user: #{ id: "11111111-1111-1111-1111-111111111111", email: "user@example.com", displayName: "Jane Doe", isSystemAdmin: true } })
 model CurrentUserResponse {
 	authenticated: true;
 	user: User;

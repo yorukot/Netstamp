@@ -63,6 +63,10 @@
 			"description": "User registration, login, logout, and current-session access."
 		},
 		{
+			"name": "Admin",
+			"description": "Instance-level administrator settings and bootstrap state."
+		},
+		{
 			"name": "System",
 			"description": "Controller status and readiness endpoints."
 		}
@@ -86,6 +90,146 @@
 					}
 				},
 				"tags": ["System"]
+			}
+		},
+		"/admin/settings": {
+			"get": {
+				"operationId": "getAdminSettings",
+				"summary": "Get admin settings",
+				"description": "Return instance-level settings visible to global administrators. Secret values are redacted.",
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/AdminSettingsResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Admin"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			},
+			"patch": {
+				"operationId": "updateAdminSettings",
+				"summary": "Update admin settings",
+				"description": "Update instance-level settings. Only global administrators can call this operation. SMTP passwords are write-only.",
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/AdminSettingsResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Admin"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/UpdateAdminSettingsRequest"
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
 			}
 		},
 		"/auth/login": {
@@ -7281,6 +7425,141 @@
 					}
 				]
 			},
+			"AdminSMTPSettings": {
+				"type": "object",
+				"required": ["host", "port", "username", "passwordSet", "from", "tlsMode", "timeoutSeconds", "configured"],
+				"properties": {
+					"host": {
+						"type": "string",
+						"description": "SMTP server hostname. Empty means email delivery is disabled unless an environment fallback is still active."
+					},
+					"port": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 1,
+						"maximum": 65535
+					},
+					"username": {
+						"type": "string",
+						"description": "SMTP username. Empty means no SMTP AUTH."
+					},
+					"passwordSet": {
+						"type": "boolean",
+						"description": "Whether a password is configured. The password value is never returned."
+					},
+					"from": {
+						"type": "string",
+						"description": "Envelope sender email address."
+					},
+					"tlsMode": {
+						"type": "string",
+						"enum": ["starttls", "implicit", "none"]
+					},
+					"timeoutSeconds": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 1
+					},
+					"configured": {
+						"type": "boolean",
+						"description": "Whether Netstamp has enough SMTP settings to attempt email delivery."
+					}
+				},
+				"examples": [
+					{
+						"host": "smtp.example.com",
+						"port": 587,
+						"username": "netstamp",
+						"passwordSet": true,
+						"from": "alerts@example.com",
+						"tlsMode": "starttls",
+						"timeoutSeconds": 10,
+						"configured": true
+					}
+				]
+			},
+			"AdminSMTPSettingsPatch": {
+				"type": "object",
+				"properties": {
+					"host": {
+						"type": "string"
+					},
+					"port": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 1,
+						"maximum": 65535
+					},
+					"username": {
+						"type": "string"
+					},
+					"password": {
+						"type": "string",
+						"format": "password",
+						"description": "New SMTP password. Omit to keep the stored password unchanged."
+					},
+					"clearPassword": {
+						"type": "boolean",
+						"description": "Clear the stored SMTP password and override any environment fallback with no password."
+					},
+					"from": {
+						"type": "string"
+					},
+					"tlsMode": {
+						"type": "string",
+						"enum": ["starttls", "implicit", "none"]
+					},
+					"timeoutSeconds": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 1
+					}
+				}
+			},
+			"AdminSettings": {
+				"type": "object",
+				"required": ["registrationEnabled", "backendBaseUrl", "publicWebBaseUrl", "smtp"],
+				"properties": {
+					"registrationEnabled": {
+						"type": "boolean"
+					},
+					"backendBaseUrl": {
+						"type": "string"
+					},
+					"publicWebBaseUrl": {
+						"type": "string"
+					},
+					"smtp": {
+						"$ref": "#/components/schemas/AdminSMTPSettings"
+					}
+				},
+				"examples": [
+					{
+						"registrationEnabled": true,
+						"backendBaseUrl": "https://app.netstamp.dev",
+						"publicWebBaseUrl": "https://app.netstamp.dev",
+						"smtp": {
+							"host": "smtp.example.com",
+							"port": 587,
+							"username": "netstamp",
+							"passwordSet": true,
+							"from": "alerts@example.com",
+							"tlsMode": "starttls",
+							"timeoutSeconds": 10,
+							"configured": true
+						}
+					}
+				]
+			},
+			"AdminSettingsResponse": {
+				"type": "object",
+				"required": ["settings"],
+				"properties": {
+					"settings": {
+						"$ref": "#/components/schemas/AdminSettings"
+					}
+				}
+			},
 			"AlertCondition": {
 				"type": "object",
 				"required": ["type", "metric", "operator", "threshold", "windowSeconds", "minSamples"],
@@ -7845,7 +8124,8 @@
 						"user": {
 							"id": "11111111-1111-1111-1111-111111111111",
 							"email": "user@example.com",
-							"displayName": "Jane Doe"
+							"displayName": "Jane Doe",
+							"isSystemAdmin": true
 						}
 					}
 				]
@@ -8523,7 +8803,8 @@
 						"user": {
 							"id": "11111111-1111-1111-1111-111111111111",
 							"email": "user@example.com",
-							"displayName": "Jane Doe"
+							"displayName": "Jane Doe",
+							"isSystemAdmin": true
 						}
 					}
 				]
@@ -12036,6 +12317,38 @@
 					}
 				]
 			},
+			"UpdateAdminSettingsRequest": {
+				"type": "object",
+				"properties": {
+					"registrationEnabled": {
+						"type": "boolean"
+					},
+					"backendBaseUrl": {
+						"type": "string"
+					},
+					"publicWebBaseUrl": {
+						"type": "string"
+					},
+					"smtp": {
+						"$ref": "#/components/schemas/AdminSMTPSettingsPatch"
+					}
+				},
+				"examples": [
+					{
+						"registrationEnabled": false,
+						"backendBaseUrl": "https://app.netstamp.dev",
+						"publicWebBaseUrl": "https://app.netstamp.dev",
+						"smtp": {
+							"host": "smtp.example.com",
+							"port": 587,
+							"username": "netstamp",
+							"from": "alerts@example.com",
+							"tlsMode": "starttls",
+							"timeoutSeconds": 10
+						}
+					}
+				]
+			},
 			"UpdateAlertRuleRequest": {
 				"type": "object",
 				"required": ["name", "enabled", "severity", "scope", "condition"],
@@ -12418,7 +12731,7 @@
 			},
 			"User": {
 				"type": "object",
-				"required": ["id", "email", "displayName"],
+				"required": ["id", "email", "displayName", "isSystemAdmin"],
 				"properties": {
 					"id": {
 						"allOf": [
@@ -12441,13 +12754,18 @@
 						"minLength": 1,
 						"maxLength": 64,
 						"description": "Name shown in the app."
+					},
+					"isSystemAdmin": {
+						"type": "boolean",
+						"description": "Whether the user has instance-level administrator access."
 					}
 				},
 				"examples": [
 					{
 						"id": "11111111-1111-1111-1111-111111111111",
 						"email": "user@example.com",
-						"displayName": "Jane Doe"
+						"displayName": "Jane Doe",
+						"isSystemAdmin": true
 					}
 				]
 			},

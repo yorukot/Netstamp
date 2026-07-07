@@ -1,6 +1,7 @@
 package install
 
 import (
+	"context"
 	"embed"
 	"errors"
 	"net"
@@ -32,21 +33,30 @@ var agentBinaryAssets = []agentBinaryAsset{
 var installerFiles embed.FS
 
 type Handler struct {
-	agentBinaryDir string
-	backendBaseURL string
-	apiBasePath    string
+	agentBinaryDir         string
+	backendBaseURL         string
+	backendBaseURLProvider BackendBaseURLProvider
+	apiBasePath            string
 }
 
-func NewHandler(agentBinaryDir, backendBaseURL, apiBasePath string) *Handler {
+type BackendBaseURLProvider interface {
+	BackendBaseURL(ctx context.Context) (string, error)
+}
+
+func NewHandler(agentBinaryDir, backendBaseURL, apiBasePath string, providers ...BackendBaseURLProvider) *Handler {
 	if agentBinaryDir == "" {
 		agentBinaryDir = DefaultAgentBinaryDir
 	}
 
-	return &Handler{
+	handler := &Handler{
 		agentBinaryDir: agentBinaryDir,
 		backendBaseURL: strings.TrimRight(backendBaseURL, "/"),
 		apiBasePath:    "/" + strings.Trim(strings.TrimSpace(apiBasePath), "/"),
 	}
+	if len(providers) > 0 {
+		handler.backendBaseURLProvider = providers[0]
+	}
+	return handler
 }
 
 func (h *Handler) RegisterRoutes(api chi.Router) {
@@ -100,6 +110,14 @@ func (h *Handler) renderAgentScript(r *http.Request, data []byte) []byte {
 }
 
 func (h *Handler) controllerURL(r *http.Request) string {
+	if h.backendBaseURLProvider != nil {
+		if backendBaseURL, err := h.backendBaseURLProvider.BackendBaseURL(r.Context()); err == nil {
+			backendBaseURL = strings.TrimRight(strings.TrimSpace(backendBaseURL), "/")
+			if backendBaseURL != "" {
+				return backendBaseURL
+			}
+		}
+	}
 	if h.backendBaseURL != "" {
 		return h.backendBaseURL
 	}

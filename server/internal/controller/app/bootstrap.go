@@ -51,7 +51,10 @@ func New(ctx context.Context) (*Application, error) {
 		return nil, err
 	}
 
-	services := buildControllerServices(cfg, log, dbPool)
+	services, err := buildControllerServices(cfg, log, dbPool)
+	if err != nil {
+		return nil, err
+	}
 	httpHandler, err := buildHTTPHandler(cfg, log, dbPool, metricsProvider, services)
 	if err != nil {
 		return nil, err

@@ -35,6 +35,19 @@ func NewSender(timeout time.Duration, smtpConfig SMTPConfig) *NotificationDispat
 	}
 }
 
+func NewDynamicSender(timeout time.Duration, smtpProvider SMTPConfigProvider) *NotificationDispatcher {
+	poster := NewJSONPoster(timeout)
+	smtp := NewDynamicSMTPSender(smtpProvider)
+
+	return &NotificationDispatcher{
+		webhook:  NewWebhookNotificationSender(poster),
+		slack:    NewSlackSender(poster),
+		discord:  NewDiscordSender(poster),
+		telegram: NewTelegramSender(poster),
+		email:    NewDynamicAlertEmailSender(smtp),
+	}
+}
+
 func (d *NotificationDispatcher) SendNotification(ctx context.Context, notification domainalert.Notification, payload []byte) appnotification.DeliveryResult {
 	switch notification.Type {
 	case domainalert.NotificationTypeWebhook:

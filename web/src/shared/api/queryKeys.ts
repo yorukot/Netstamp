@@ -8,6 +8,10 @@ export const apiQueryKeys = {
 		all: ["auth"] as const,
 		me: () => [...apiQueryKeys.auth.all, "me"] as const
 	},
+	admin: {
+		all: ["admin"] as const,
+		settings: () => [...apiQueryKeys.admin.all, "settings"] as const
+	},
 	publicStatus: {
 		all: ["public-status"] as const,
 		pageRoot: (slug: string) => [...apiQueryKeys.publicStatus.all, "page", slug] as const,

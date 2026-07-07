@@ -21,6 +21,30 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	"/admin/settings": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Get admin settings
+		 * @description Return instance-level settings visible to global administrators. Secret values are redacted.
+		 */
+		get: operations["getAdminSettings"];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		/**
+		 * Update admin settings
+		 * @description Update instance-level settings. Only global administrators can call this operation. SMTP passwords are write-only.
+		 */
+		patch: operations["updateAdminSettings"];
+		trace?: never;
+	};
 	"/auth/login": {
 		parameters: {
 			query?: never;
@@ -1099,6 +1123,80 @@ export interface components {
 		};
 		/**
 		 * @example {
+		 *       "host": "smtp.example.com",
+		 *       "port": 587,
+		 *       "username": "netstamp",
+		 *       "passwordSet": true,
+		 *       "from": "alerts@example.com",
+		 *       "tlsMode": "starttls",
+		 *       "timeoutSeconds": 10,
+		 *       "configured": true
+		 *     }
+		 */
+		AdminSMTPSettings: {
+			/** @description SMTP server hostname. Empty means email delivery is disabled unless an environment fallback is still active. */
+			host: string;
+			/** Format: int32 */
+			port: number;
+			/** @description SMTP username. Empty means no SMTP AUTH. */
+			username: string;
+			/** @description Whether a password is configured. The password value is never returned. */
+			passwordSet: boolean;
+			/** @description Envelope sender email address. */
+			from: string;
+			/** @enum {string} */
+			tlsMode: "starttls" | "implicit" | "none";
+			/** Format: int32 */
+			timeoutSeconds: number;
+			/** @description Whether Netstamp has enough SMTP settings to attempt email delivery. */
+			configured: boolean;
+		};
+		AdminSMTPSettingsPatch: {
+			host?: string;
+			/** Format: int32 */
+			port?: number;
+			username?: string;
+			/**
+			 * Format: password
+			 * @description New SMTP password. Omit to keep the stored password unchanged.
+			 */
+			password?: string;
+			/** @description Clear the stored SMTP password and override any environment fallback with no password. */
+			clearPassword?: boolean;
+			from?: string;
+			/** @enum {string} */
+			tlsMode?: "starttls" | "implicit" | "none";
+			/** Format: int32 */
+			timeoutSeconds?: number;
+		};
+		/**
+		 * @example {
+		 *       "registrationEnabled": true,
+		 *       "backendBaseUrl": "https://app.netstamp.dev",
+		 *       "publicWebBaseUrl": "https://app.netstamp.dev",
+		 *       "smtp": {
+		 *         "host": "smtp.example.com",
+		 *         "port": 587,
+		 *         "username": "netstamp",
+		 *         "passwordSet": true,
+		 *         "from": "alerts@example.com",
+		 *         "tlsMode": "starttls",
+		 *         "timeoutSeconds": 10,
+		 *         "configured": true
+		 *       }
+		 *     }
+		 */
+		AdminSettings: {
+			registrationEnabled: boolean;
+			backendBaseUrl: string;
+			publicWebBaseUrl: string;
+			smtp: components["schemas"]["AdminSMTPSettings"];
+		};
+		AdminSettingsResponse: {
+			settings: components["schemas"]["AdminSettings"];
+		};
+		/**
+		 * @example {
 		 *       "type": "metric_threshold",
 		 *       "metric": "ping.loss_percent",
 		 *       "operator": "gte",
@@ -1430,7 +1528,8 @@ export interface components {
 		 *       "user": {
 		 *         "id": "11111111-1111-1111-1111-111111111111",
 		 *         "email": "user@example.com",
-		 *         "displayName": "Jane Doe"
+		 *         "displayName": "Jane Doe",
+		 *         "isSystemAdmin": true
 		 *       }
 		 *     }
 		 */
@@ -1814,7 +1913,8 @@ export interface components {
 		 *       "user": {
 		 *         "id": "11111111-1111-1111-1111-111111111111",
 		 *         "email": "user@example.com",
-		 *         "displayName": "Jane Doe"
+		 *         "displayName": "Jane Doe",
+		 *         "isSystemAdmin": true
 		 *       }
 		 *     }
 		 */
@@ -3730,6 +3830,27 @@ export interface components {
 			query: components["schemas"]["TracerouteTopologyQueryMetadata"];
 		};
 		/**
+		 * @example {
+		 *       "registrationEnabled": false,
+		 *       "backendBaseUrl": "https://app.netstamp.dev",
+		 *       "publicWebBaseUrl": "https://app.netstamp.dev",
+		 *       "smtp": {
+		 *         "host": "smtp.example.com",
+		 *         "port": 587,
+		 *         "username": "netstamp",
+		 *         "from": "alerts@example.com",
+		 *         "tlsMode": "starttls",
+		 *         "timeoutSeconds": 10
+		 *       }
+		 *     }
+		 */
+		UpdateAdminSettingsRequest: {
+			registrationEnabled?: boolean;
+			backendBaseUrl?: string;
+			publicWebBaseUrl?: string;
+			smtp?: components["schemas"]["AdminSMTPSettingsPatch"];
+		};
+		/**
 		 * @description Full replacement patch for an alert rule in the current beta API.
 		 * @example {
 		 *       "name": "API packet loss",
@@ -3923,7 +4044,8 @@ export interface components {
 		 * @example {
 		 *       "id": "11111111-1111-1111-1111-111111111111",
 		 *       "email": "user@example.com",
-		 *       "displayName": "Jane Doe"
+		 *       "displayName": "Jane Doe",
+		 *       "isSystemAdmin": true
 		 *     }
 		 */
 		User: {
@@ -3933,6 +4055,8 @@ export interface components {
 			email: components["schemas"]["email"];
 			/** @description Name shown in the app. */
 			displayName: string;
+			/** @description Whether the user has instance-level administrator access. */
+			isSystemAdmin: boolean;
 		};
 		/**
 		 * @example {
@@ -4039,6 +4163,122 @@ export interface operations {
 				};
 				content: {
 					"application/json": components["schemas"]["APIStatusResponse"];
+				};
+			};
+		};
+	};
+	getAdminSettings: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["AdminSettingsResponse"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is forbidden. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	updateAdminSettings: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				"application/json": components["schemas"]["UpdateAdminSettingsRequest"];
+			};
+		};
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["AdminSettingsResponse"];
+				};
+			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is forbidden. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};

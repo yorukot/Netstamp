@@ -27,9 +27,10 @@ func (h *Handler) login(ctx context.Context, input *loginInput) (*loginOutput, e
 		SetCookie: newSessionCookie(result.AccessToken, result.ExpiresIn, h.cookieSecure),
 		Body: loginOutputBody{
 			User: userResponse{
-				ID:          result.UserID,
-				Email:       result.Email,
-				DisplayName: result.DisplayName,
+				ID:            result.UserID,
+				Email:         result.Email,
+				DisplayName:   result.DisplayName,
+				IsSystemAdmin: result.IsSystemAdmin,
 			},
 		},
 	}, nil

@@ -28,9 +28,10 @@ type PasswordResetConfig struct {
 }
 
 type AuthAccessResult struct {
-	UserID      string
-	Email       string
-	DisplayName string
-	AccessToken string
-	ExpiresIn   int
+	UserID        string
+	Email         string
+	DisplayName   string
+	IsSystemAdmin bool
+	AccessToken   string
+	ExpiresIn     int
 }
