@@ -3,25 +3,6 @@
 	<svg class="cta-network" viewBox="0 0 1200 520" aria-hidden="true">
 		<path class="route route-dim" d="M82 360 C214 126 360 406 498 226 S790 88 1110 238"></path>
 		<path class="route route-hot" d="M82 360 C214 126 360 406 498 226 S790 88 1110 238"></path>
-		<g class="node-cloud">
-			<circle cx="82" cy="360" r="7"></circle>
-			<circle cx="184" cy="198" r="5"></circle>
-			<circle cx="322" cy="330" r="5"></circle>
-			<circle cx="498" cy="226" r="8"></circle>
-			<circle cx="658" cy="158" r="5"></circle>
-			<circle cx="812" cy="108" r="6"></circle>
-			<circle cx="962" cy="172" r="5"></circle>
-			<circle cx="1110" cy="238" r="10"></circle>
-		</g>
-		<g class="node-field">
-			<circle cx="138" cy="438" r="3"></circle>
-			<circle cx="238" cy="86" r="3"></circle>
-			<circle cx="436" cy="396" r="3"></circle>
-			<circle cx="586" cy="92" r="3"></circle>
-			<circle cx="728" cy="314" r="3"></circle>
-			<circle cx="884" cy="398" r="3"></circle>
-			<circle cx="1032" cy="92" r="3"></circle>
-		</g>
 	</svg>
 	<div class="cta-row">
 		<a href="/docs/guides/getting-started/" class="btn btn-primary">Get Started</a>
@@ -34,7 +15,7 @@
 		position: relative;
 		display: grid;
 		place-items: center;
-		gap: 1.35rem;
+		gap: 0.75rem;
 		min-height: 68svh;
 		padding: 4.5rem 1rem;
 		overflow: hidden;
@@ -67,10 +48,10 @@
 		margin: 0;
 		color: #ffffff;
 		font-family: "TASAExplorer", "TASA Explorer", "Inter", system-ui, sans-serif;
-		font-size: clamp(2.6rem, 5.4vw, 5.4rem);
+		font-size: 2.5rem;
 		font-weight: 300;
 		letter-spacing: 0;
-		line-height: 0.96;
+		line-height: 1.05;
 		text-align: center;
 	}
 
@@ -93,46 +74,9 @@
 		transition: stroke-dashoffset 120ms linear;
 	}
 
-	circle {
-		fill: rgba(255, 255, 255, 0.72);
-	}
-
-	.node-cloud circle {
-		fill: #ffffff;
-		stroke: var(--home-orange-hot);
-		stroke-width: 2;
-		transform-box: fill-box;
-		transform-origin: center;
-		animation: gather 2200ms ease-in-out infinite alternate;
-	}
-
-	.node-cloud circle:nth-child(2n) {
-		animation-delay: -620ms;
-	}
-
-	.node-cloud circle:nth-child(3n) {
-		animation-delay: -1120ms;
-	}
-
-	.node-field circle {
-		fill: rgba(255, 255, 255, 0.25);
-	}
-
 	.final-cta :global(.cta-row) {
 		position: relative;
 		z-index: 2;
-	}
-
-	@keyframes gather {
-		from {
-			transform: translate(0, 0) scale(0.86);
-			opacity: 0.54;
-		}
-
-		to {
-			transform: translate(0, 0) scale(1.08);
-			opacity: 1;
-		}
 	}
 
 	@media (max-width: 38rem) {
