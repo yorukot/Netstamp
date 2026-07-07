@@ -8,8 +8,10 @@ import (
 
 	appadmin "github.com/yorukot/netstamp/internal/controller/application/admin"
 	appauth "github.com/yorukot/netstamp/internal/controller/application/auth"
+	appvalidation "github.com/yorukot/netstamp/internal/controller/application/validation"
 	"github.com/yorukot/netstamp/internal/controller/transport/http/httpx"
 	httpmiddleware "github.com/yorukot/netstamp/internal/controller/transport/http/middleware"
+	"github.com/yorukot/netstamp/internal/domain/identity"
 )
 
 type Handler struct {
@@ -25,6 +27,9 @@ func (h *Handler) RegisterRoutes(api chi.Router) {
 	api.Group(func(r chi.Router) {
 		r.Use(httpmiddleware.RequireAuth(h.verifier))
 
+		r.Get("/admin/system-admins", h.handleListSystemAdmins)
+		r.Post("/admin/system-admins", h.handleGrantSystemAdmin)
+		r.Delete("/admin/system-admins/{user_id}", h.handleRevokeSystemAdmin)
 		r.Get("/admin/settings", h.handleGetSettings)
 		r.Patch("/admin/settings", h.handleUpdateSettings)
 	})
@@ -83,9 +88,46 @@ func mapAdminError(err error, fallback string) error {
 	switch {
 	case errors.Is(err, appadmin.ErrForbidden):
 		return httpx.Forbidden("system administrator access is required")
+	case errors.Is(err, identity.ErrUserNotFound), errors.Is(err, appadmin.ErrSystemAdminNotFound):
+		return httpx.NotFound("system administrator not found")
+	case errors.Is(err, appadmin.ErrLastSystemAdmin):
+		return httpx.Conflict("system must keep at least one administrator")
+	case errors.Is(err, appadmin.ErrSelfSystemAdminRemoval):
+		return httpx.Conflict("system administrator cannot remove self")
 	case errors.Is(err, appadmin.ErrInvalidInput):
-		return httpx.UnprocessableEntity("invalid admin settings")
+		return invalidAdminInputError(err)
 	default:
 		return httpx.InternalServerError(fallback)
+	}
+}
+
+func invalidAdminInputError(err error) error {
+	fieldErrors, ok := appvalidation.FieldErrors(err)
+	if !ok {
+		return httpx.UnprocessableEntity("invalid admin input")
+	}
+
+	details := make([]httpx.ErrorDetail, 0, len(fieldErrors))
+	for _, fieldErr := range fieldErrors {
+		details = append(details, httpx.ErrorDetail{
+			Message:  fieldErr.Message,
+			Location: adminErrorLocation(fieldErr.Field),
+			Value:    fieldErr.Value,
+		})
+	}
+
+	return httpx.UnprocessableEntity("invalid admin input", details...)
+}
+
+func adminErrorLocation(field string) string {
+	switch field {
+	case "userId":
+		return "path.user_id"
+	case "email":
+		return "body.email"
+	case "currentUserId":
+		return "session.user.id"
+	default:
+		return "body." + field
 	}
 }

@@ -10,7 +10,8 @@ export const apiQueryKeys = {
 	},
 	admin: {
 		all: ["admin"] as const,
-		settings: () => [...apiQueryKeys.admin.all, "settings"] as const
+		settings: () => [...apiQueryKeys.admin.all, "settings"] as const,
+		systemAdmins: () => [...apiQueryKeys.admin.all, "system-admins"] as const
 	},
 	publicStatus: {
 		all: ["public-status"] as const,

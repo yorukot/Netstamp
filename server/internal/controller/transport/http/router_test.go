@@ -62,6 +62,11 @@ func TestNewRouterServesOpenAPIWithoutRuntimeServices(t *testing.T) {
 	assertOpenAPIOperation(t, spec, http.MethodPatch, "/users/me", "updateCurrentUser")
 	assertOpenAPIOperation(t, spec, http.MethodPost, "/users/me/email-change", "changeCurrentUserEmail")
 	assertOpenAPIOperation(t, spec, http.MethodPost, "/users/me/password-change", "changeCurrentUserPassword")
+	assertOpenAPIOperation(t, spec, http.MethodGet, "/admin/system-admins", "listSystemAdmins")
+	assertOpenAPIOperation(t, spec, http.MethodPost, "/admin/system-admins", "grantSystemAdmin")
+	assertOpenAPIOperation(t, spec, http.MethodDelete, "/admin/system-admins/{user_id}", "revokeSystemAdmin")
+	assertOpenAPIOperation(t, spec, http.MethodGet, "/admin/settings", "getAdminSettings")
+	assertOpenAPIOperation(t, spec, http.MethodPatch, "/admin/settings", "updateAdminSettings")
 	assertOpenAPISessionCookieAuth(t, spec)
 	assertOpenAPIProbeAuth(t, spec)
 	assertOpenAPIOperation(t, spec, http.MethodPost, "/projects", "createProject")
@@ -221,6 +226,11 @@ func TestNewRouterProtectedRoutesRequireSessionCookie(t *testing.T) {
 		{method: http.MethodPatch, path: "/api/v1/users/me"},
 		{method: http.MethodPost, path: "/api/v1/users/me/email-change"},
 		{method: http.MethodPost, path: "/api/v1/users/me/password-change"},
+		{method: http.MethodGet, path: "/api/v1/admin/system-admins"},
+		{method: http.MethodPost, path: "/api/v1/admin/system-admins"},
+		{method: http.MethodDelete, path: "/api/v1/admin/system-admins/user-1"},
+		{method: http.MethodGet, path: "/api/v1/admin/settings"},
+		{method: http.MethodPatch, path: "/api/v1/admin/settings"},
 		{method: http.MethodPost, path: "/api/v1/projects/vector-ix/selector-previews"},
 		{method: http.MethodGet, path: "/api/v1/projects/vector-ix/assignments"},
 		{method: http.MethodGet, path: "/api/v1/projects/vector-ix/labels"},

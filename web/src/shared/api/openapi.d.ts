@@ -45,6 +45,50 @@ export interface paths {
 		patch: operations["updateAdminSettings"];
 		trace?: never;
 	};
+	"/admin/system-admins": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * List system administrators
+		 * @description Return users with instance-level administrator access. This does not include project membership or project permissions.
+		 */
+		get: operations["listSystemAdmins"];
+		put?: never;
+		/**
+		 * Grant system administrator
+		 * @description Grant instance-level administrator access to an existing user by email. This does not add the user to any project.
+		 */
+		post: operations["grantSystemAdmin"];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	"/admin/system-admins/{user_id}": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		post?: never;
+		/**
+		 * Revoke system administrator
+		 * @description Revoke instance-level administrator access from a user. The current administrator cannot revoke themselves, and the system must keep at least one administrator.
+		 */
+		delete: operations["revokeSystemAdmin"];
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	"/auth/email-verifications": {
 		parameters: {
 			query?: never;
@@ -2006,6 +2050,15 @@ export interface components {
 		};
 		/**
 		 * @example {
+		 *       "email": "admin@example.com"
+		 *     }
+		 */
+		GrantSystemAdminRequest: {
+			/** @description Existing user email to grant instance-level administrator access. */
+			email: components["schemas"]["email"];
+		};
+		/**
+		 * @example {
 		 *       "status": "ok"
 		 *     }
 		 */
@@ -3352,6 +3405,60 @@ export interface components {
 		};
 		/**
 		 * @example {
+		 *       "admin": {
+		 *         "id": "11111111-1111-1111-1111-111111111111",
+		 *         "email": "admin@example.com",
+		 *         "displayName": "Jane Operator",
+		 *         "emailVerified": true,
+		 *         "grantedAt": "2026-07-08T12:00:00Z"
+		 *       }
+		 *     }
+		 */
+		SystemAdminResponse: {
+			admin: components["schemas"]["SystemAdminUser"];
+		};
+		/**
+		 * @example {
+		 *       "id": "11111111-1111-1111-1111-111111111111",
+		 *       "email": "admin@example.com",
+		 *       "displayName": "Jane Operator",
+		 *       "emailVerified": true,
+		 *       "grantedAt": "2026-07-08T12:00:00Z"
+		 *     }
+		 */
+		SystemAdminUser: {
+			/** @description User UUID. */
+			id: components["schemas"]["uuid"];
+			/** @description Normalized email address used to sign in. */
+			email: components["schemas"]["email"];
+			/** @description Name shown in the app. */
+			displayName: string;
+			/** @description Whether the sign-in email address has been verified. */
+			emailVerified: boolean;
+			/**
+			 * Format: date-time
+			 * @description When the user received instance-level administrator access.
+			 */
+			grantedAt: string;
+		};
+		/**
+		 * @example {
+		 *       "admins": [
+		 *         {
+		 *           "id": "11111111-1111-1111-1111-111111111111",
+		 *           "email": "admin@example.com",
+		 *           "displayName": "Jane Operator",
+		 *           "emailVerified": true,
+		 *           "grantedAt": "2026-07-08T12:00:00Z"
+		 *         }
+		 *       ]
+		 *     }
+		 */
+		SystemAdminsResponse: {
+			admins: components["schemas"]["SystemAdminUser"][];
+		};
+		/**
+		 * @example {
 		 *       "port": 443,
 		 *       "timeoutMs": 3000,
 		 *       "ipFamily": "inet"
@@ -4328,6 +4435,196 @@ export interface operations {
 			};
 			/** @description Client error */
 			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	listSystemAdmins: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["SystemAdminsResponse"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is forbidden. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	grantSystemAdmin: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				"application/json": components["schemas"]["GrantSystemAdminRequest"];
+			};
+		};
+		responses: {
+			/** @description The request has succeeded and a new resource has been created as a result. */
+			201: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["SystemAdminResponse"];
+				};
+			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is forbidden. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	revokeSystemAdmin: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				user_id: components["parameters"]["UserIdPathParam"];
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description There is no content to send for this request, but the headers may be useful. */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is forbidden. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The request conflicts with the current state of the server. */
+			409: {
 				headers: {
 					[name: string]: unknown;
 				};

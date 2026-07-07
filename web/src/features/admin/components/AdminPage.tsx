@@ -1,12 +1,13 @@
 import { useSession } from "@/features/auth/session/SessionContext";
-import { useUpdateAdminSettingsMutation } from "@/shared/api/mutations";
+import { useGrantSystemAdminMutation, useRevokeSystemAdminMutation, useUpdateAdminSettingsMutation } from "@/shared/api/mutations";
 import { adminQueries } from "@/shared/api/queries";
-import type { ApiAdminSettings } from "@/shared/api/types";
+import type { ApiAdminSettings, ApiSystemAdminUser } from "@/shared/api/types";
+import { useConfirm } from "@/shared/components/confirmContext";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { pushToast } from "@/shared/toast/toastStore";
 import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
-import { ActionRow, Badge, BodyCopy, Button, Checkbox, LoadingState, Panel, SelectField, TextField } from "@netstamp/ui";
+import { ActionRow, Badge, BodyCopy, Button, Checkbox, DataTable, LoadingState, Panel, SelectField, TextField, type DataColumn } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
 import type { FormEvent } from "react";
 import { useMemo, useState } from "react";
@@ -64,10 +65,25 @@ function numberValue(value: string, fallback: number) {
 	return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function formatTimestamp(value: string) {
+	const date = new Date(value);
+	if (Number.isNaN(date.valueOf())) {
+		return value;
+	}
+	return new Intl.DateTimeFormat(undefined, {
+		dateStyle: "medium",
+		timeStyle: "short"
+	}).format(date);
+}
+
 export function AdminPage() {
 	const { session } = useSession();
+	const confirm = useConfirm();
 	const settingsQuery = useQuery({ ...adminQueries.settings(), enabled: Boolean(session?.user.isSystemAdmin) });
+	const adminsQuery = useQuery({ ...adminQueries.systemAdmins(), enabled: Boolean(session?.user.isSystemAdmin) });
 	const updateSettingsMutation = useUpdateAdminSettingsMutation();
+	const grantSystemAdminMutation = useGrantSystemAdminMutation();
+	const revokeSystemAdminMutation = useRevokeSystemAdminMutation();
 	const loadedSettings = settingsQuery.data?.settings;
 	const serverForm = useMemo(() => {
 		if (!loadedSettings) {
@@ -76,7 +92,9 @@ export function AdminPage() {
 		return formFromSettings(loadedSettings);
 	}, [loadedSettings]);
 	const [editedForm, setEditedForm] = useState<AdminFormState | null>(null);
+	const [grantEmail, setGrantEmail] = useState("");
 	const form = editedForm ?? serverForm;
+	const adminRows = adminsQuery.data?.admins ?? [];
 
 	const smtpPasswordLabel = useMemo(() => {
 		if (!settingsQuery.data?.settings.smtp.passwordSet) {
@@ -84,6 +102,37 @@ export function AdminPage() {
 		}
 		return "A password is stored. Leave blank to keep it unchanged.";
 	}, [settingsQuery.data?.settings.smtp.passwordSet]);
+	const systemAdminColumns = useMemo<DataColumn<ApiSystemAdminUser>[]>(
+		() => [
+			{
+				key: "user",
+				label: "User",
+				render: admin => (
+					<span className={styles.adminCell}>
+						<strong className={styles.adminName}>{admin.displayName}</strong>
+						<span className={styles.adminMeta}>{admin.email}</span>
+					</span>
+				),
+				sortable: true,
+				sortValue: admin => admin.email
+			},
+			{
+				key: "email",
+				label: "Email",
+				render: admin => <Badge tone={admin.emailVerified ? "success" : "warning"}>{admin.emailVerified ? "Verified" : "Unverified"}</Badge>,
+				sortable: true,
+				sortValue: admin => (admin.emailVerified ? 1 : 0)
+			},
+			{
+				key: "grantedAt",
+				label: "Granted",
+				render: admin => <span className={styles.adminMeta}>{formatTimestamp(admin.grantedAt)}</span>,
+				sortable: true,
+				sortValue: admin => admin.grantedAt
+			}
+		],
+		[]
+	);
 
 	if (!session) {
 		return null;
@@ -135,9 +184,80 @@ export function AdminPage() {
 		);
 	}
 
+	function handleGrantSystemAdmin(event: FormEvent<HTMLFormElement>) {
+		event.preventDefault();
+		grantSystemAdminMutation.mutate(
+			{ email: grantEmail },
+			{
+				onSuccess: data => {
+					setGrantEmail("");
+					pushToast({ title: "System admin granted", message: `${data.admin.email} can now manage instance settings.`, tone: "success" });
+				},
+				onError: error => {
+					pushToast({ title: "Grant failed", message: requestErrorMessage(error, "Could not grant system admin access."), tone: "critical" });
+				}
+			}
+		);
+	}
+
+	async function handleRevokeSystemAdmin(admin: ApiSystemAdminUser) {
+		const accepted = await confirm({
+			title: "Revoke system admin",
+			message: `${admin.email} will lose access to instance-level admin settings. Project memberships are not changed.`,
+			confirmLabel: "Revoke",
+			tone: "danger"
+		});
+		if (!accepted) {
+			return;
+		}
+
+		revokeSystemAdminMutation.mutate(admin.id, {
+			onSuccess: () => {
+				pushToast({ title: "System admin revoked", message: `${admin.email} no longer has instance admin access.`, tone: "success" });
+			},
+			onError: error => {
+				pushToast({ title: "Revoke failed", message: requestErrorMessage(error, "Could not revoke system admin access."), tone: "critical" });
+			}
+		});
+	}
+
 	return (
 		<PageStack>
 			<ScreenHeader title="Admin" actions={settingsQuery.data?.settings.smtp.configured ? <Badge tone="success">SMTP configured</Badge> : <Badge tone="warning">SMTP disabled</Badge>} />
+
+			<Panel tone="glass" title="System administrators" summary="System admin access manages instance settings and other system admins. It does not grant project membership or project permissions.">
+				<form className={styles.grantForm} onSubmit={handleGrantSystemAdmin}>
+					<TextField label="User email" type="email" value={grantEmail} placeholder="admin@example.com" onChange={event => setGrantEmail(event.currentTarget.value)} />
+					<Button type="submit" disabled={!grantEmail.trim() || grantSystemAdminMutation.isPending}>
+						{grantSystemAdminMutation.isPending ? "Granting" : "Grant system admin"}
+					</Button>
+				</form>
+
+				{adminsQuery.isLoading ? (
+					<LoadingState label="Loading system admins" />
+				) : adminsQuery.isError ? (
+					<BodyCopy>{requestErrorMessage(adminsQuery.error, "Could not load system admins.")}</BodyCopy>
+				) : (
+					<DataTable<ApiSystemAdminUser>
+						ariaLabel="System administrators"
+						columns={systemAdminColumns}
+						rows={adminRows}
+						density="compact"
+						minWidth="44rem"
+						emptyLabel="No system administrators"
+						getRowKey={admin => admin.id}
+						rowActions={admin => {
+							const isSelf = admin.id === session.user.id;
+							const isLastAdmin = adminRows.length <= 1;
+							return (
+								<Button type="button" size="sm" variant="danger" disabled={isSelf || isLastAdmin || revokeSystemAdminMutation.isPending} onClick={() => handleRevokeSystemAdmin(admin)}>
+									Revoke
+								</Button>
+							);
+						}}
+					/>
+				)}
+			</Panel>
 
 			{settingsQuery.isLoading ? (
 				<LoadingState label="Loading admin settings" />

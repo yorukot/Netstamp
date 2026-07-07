@@ -3,8 +3,10 @@ package pgsystem
 import (
 	"context"
 	"encoding/json"
+	"errors"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/postgres"
@@ -27,6 +29,45 @@ func (r *Repository) IsSystemAdmin(ctx context.Context, userIDValue string) (boo
 		return false, err
 	}
 	return postgres.Queries(ctx, r.queries).IsSystemAdmin(ctx, userID)
+}
+
+func (r *Repository) ListSystemAdmins(ctx context.Context) ([]domainsystem.AdminUser, error) {
+	rows, err := postgres.Queries(ctx, r.queries).ListSystemAdmins(ctx)
+	if err != nil {
+		return nil, err
+	}
+	admins := make([]domainsystem.AdminUser, 0, len(rows))
+	for _, row := range rows {
+		admins = append(admins, mapListSystemAdmin(row))
+	}
+	return admins, nil
+}
+
+func (r *Repository) GrantSystemAdminByEmail(ctx context.Context, email string) (domainsystem.AdminUser, error) {
+	row, err := postgres.Queries(ctx, r.queries).GrantSystemAdminByEmail(ctx, email)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domainsystem.AdminUser{}, identity.ErrUserNotFound
+		}
+		return domainsystem.AdminUser{}, err
+	}
+	return mapGrantedSystemAdmin(row), nil
+}
+
+func (r *Repository) RevokeSystemAdminIfNotLast(ctx context.Context, userIDValue string) (domainsystem.AdminRevokeResult, error) {
+	userID, err := postgres.ParseUUID(userIDValue, identity.ErrUserNotFound)
+	if err != nil {
+		return domainsystem.AdminRevokeResult{}, err
+	}
+	row, err := postgres.Queries(ctx, r.queries).RevokeSystemAdminIfNotLast(ctx, userID)
+	if err != nil {
+		return domainsystem.AdminRevokeResult{}, err
+	}
+	return domainsystem.AdminRevokeResult{
+		AdminCount:     row.AdminCount,
+		TargetWasAdmin: row.TargetWasAdmin,
+		Revoked:        row.Revoked,
+	}, nil
 }
 
 func (r *Repository) GrantFirstSystemAdminIfNone(ctx context.Context, userIDValue string) (bool, error) {
@@ -87,6 +128,30 @@ func (r *Repository) CreateSystemSettingAuditEvent(ctx context.Context, key, act
 		Action:          action,
 		UpdatedByUserID: updatedByUserID,
 	})
+}
+
+func mapListSystemAdmin(row sqlc.ListSystemAdminsRow) domainsystem.AdminUser {
+	return domainsystem.AdminUser{
+		ID:              row.ID.String(),
+		Email:           row.Email,
+		DisplayName:     row.DisplayName,
+		EmailVerifiedAt: row.EmailVerifiedAt,
+		CreatedAt:       row.CreatedAt,
+		UpdatedAt:       row.UpdatedAt,
+		GrantedAt:       row.GrantedAt,
+	}
+}
+
+func mapGrantedSystemAdmin(row sqlc.GrantSystemAdminByEmailRow) domainsystem.AdminUser {
+	return domainsystem.AdminUser{
+		ID:              row.ID.String(),
+		Email:           row.Email,
+		DisplayName:     row.DisplayName,
+		EmailVerifiedAt: row.EmailVerifiedAt,
+		CreatedAt:       row.CreatedAt,
+		UpdatedAt:       row.UpdatedAt,
+		GrantedAt:       row.GrantedAt,
+	}
 }
 
 func mapSetting(row sqlc.SystemSetting) domainsystem.Setting {

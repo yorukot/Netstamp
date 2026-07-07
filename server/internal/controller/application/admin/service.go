@@ -34,6 +34,63 @@ func (s *Service) GetSettings(ctx context.Context, input GetSettingsInput) (Sett
 	return s.EffectiveSettings(ctx)
 }
 
+func (s *Service) ListSystemAdmins(ctx context.Context, input ListSystemAdminsInput) ([]SystemAdmin, error) {
+	if err := s.requireSystemAdmin(ctx, input.CurrentUserID); err != nil {
+		return nil, err
+	}
+	return s.repo.ListSystemAdmins(ctx)
+}
+
+func (s *Service) GrantSystemAdmin(ctx context.Context, input GrantSystemAdminInput) (SystemAdmin, error) {
+	input, err := normalizeGrantSystemAdminInput(input)
+	if err != nil {
+		return SystemAdmin{}, err
+	}
+	if requireErr := s.requireSystemAdmin(ctx, input.CurrentUserID); requireErr != nil {
+		return SystemAdmin{}, requireErr
+	}
+
+	admin, err := s.repo.GrantSystemAdminByEmail(ctx, input.Email)
+	if err != nil {
+		return SystemAdmin{}, err
+	}
+	if err := s.repo.CreateSystemSettingAuditEvent(ctx, systemAdminAuditKey(admin), auditActionGrantSystemAdmin, &input.CurrentUserID); err != nil {
+		return SystemAdmin{}, err
+	}
+
+	return admin, nil
+}
+
+func (s *Service) RevokeSystemAdmin(ctx context.Context, input RevokeSystemAdminInput) error {
+	input, err := normalizeRevokeSystemAdminInput(input)
+	if err != nil {
+		return err
+	}
+	if requireErr := s.requireSystemAdmin(ctx, input.CurrentUserID); requireErr != nil {
+		return requireErr
+	}
+	if input.CurrentUserID == input.UserID {
+		return ErrSelfSystemAdminRemoval
+	}
+
+	result, err := s.repo.RevokeSystemAdminIfNotLast(ctx, input.UserID)
+	if err != nil {
+		return err
+	}
+	if !result.TargetWasAdmin {
+		return ErrSystemAdminNotFound
+	}
+	if !result.Revoked && result.AdminCount <= 1 {
+		return ErrLastSystemAdmin
+	}
+	if !result.Revoked {
+		return ErrSystemAdminNotFound
+	}
+
+	admin := SystemAdmin{ID: input.UserID}
+	return s.repo.CreateSystemSettingAuditEvent(ctx, systemAdminAuditKey(admin), auditActionRevokeSystemAdmin, &input.CurrentUserID)
+}
+
 func (s *Service) UpdateSettings(ctx context.Context, input UpdateSettingsInput) (Settings, error) {
 	if err := s.requireSystemAdmin(ctx, input.CurrentUserID); err != nil {
 		return Settings{}, err

@@ -7,6 +7,7 @@ package sqlc
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -53,6 +54,63 @@ func (q *Queries) GrantFirstSystemAdminIfNone(ctx context.Context, userID uuid.U
 	return granted, err
 }
 
+const grantSystemAdminByEmail = `-- name: GrantSystemAdminByEmail :one
+WITH target AS (
+    SELECT id,
+           email,
+           display_name,
+           email_verified_at,
+           created_at,
+           updated_at
+    FROM users
+    WHERE email = $1
+),
+upserted AS (
+    INSERT INTO system_user_roles (user_id, role)
+    SELECT id, 'admin'
+    FROM target
+    ON CONFLICT (user_id) DO UPDATE
+    SET role = EXCLUDED.role
+    RETURNING user_id
+)
+SELECT target.id,
+       target.email,
+       target.display_name,
+       target.email_verified_at,
+       target.created_at,
+       target.updated_at,
+       system_user_roles.created_at AS granted_at
+FROM target
+JOIN upserted ON upserted.user_id = target.id
+JOIN system_user_roles ON system_user_roles.user_id = target.id
+WHERE system_user_roles.role = 'admin'
+`
+
+type GrantSystemAdminByEmailRow struct {
+	ID              uuid.UUID  `json:"id"`
+	Email           string     `json:"email"`
+	DisplayName     string     `json:"display_name"`
+	EmailVerifiedAt *time.Time `json:"email_verified_at"`
+	CreatedAt       time.Time  `json:"created_at"`
+	UpdatedAt       time.Time  `json:"updated_at"`
+	GrantedAt       time.Time  `json:"granted_at"`
+}
+
+func (q *Queries) GrantSystemAdminByEmail(ctx context.Context, email string) (GrantSystemAdminByEmailRow, error) {
+	row := q.db.QueryRow(ctx, grantSystemAdminByEmail, email)
+	var i GrantSystemAdminByEmailRow
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.DisplayName,
+		&i.EmailVerifiedAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.GrantedAt,
+	)
+	return i, err
+}
+
 const isSystemAdmin = `-- name: IsSystemAdmin :one
 SELECT EXISTS (
     SELECT 1
@@ -67,6 +125,58 @@ func (q *Queries) IsSystemAdmin(ctx context.Context, userID uuid.UUID) (bool, er
 	var is_system_admin bool
 	err := row.Scan(&is_system_admin)
 	return is_system_admin, err
+}
+
+const listSystemAdmins = `-- name: ListSystemAdmins :many
+SELECT users.id,
+       users.email,
+       users.display_name,
+       users.email_verified_at,
+       users.created_at,
+       users.updated_at,
+       system_user_roles.created_at AS granted_at
+FROM system_user_roles
+JOIN users ON users.id = system_user_roles.user_id
+WHERE system_user_roles.role = 'admin'
+ORDER BY system_user_roles.created_at ASC, users.email ASC
+`
+
+type ListSystemAdminsRow struct {
+	ID              uuid.UUID  `json:"id"`
+	Email           string     `json:"email"`
+	DisplayName     string     `json:"display_name"`
+	EmailVerifiedAt *time.Time `json:"email_verified_at"`
+	CreatedAt       time.Time  `json:"created_at"`
+	UpdatedAt       time.Time  `json:"updated_at"`
+	GrantedAt       time.Time  `json:"granted_at"`
+}
+
+func (q *Queries) ListSystemAdmins(ctx context.Context) ([]ListSystemAdminsRow, error) {
+	rows, err := q.db.Query(ctx, listSystemAdmins)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListSystemAdminsRow
+	for rows.Next() {
+		var i ListSystemAdminsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Email,
+			&i.DisplayName,
+			&i.EmailVerifiedAt,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.GrantedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listSystemSettings = `-- name: ListSystemSettings :many
@@ -109,6 +219,46 @@ func (q *Queries) ListSystemSettings(ctx context.Context) ([]SystemSetting, erro
 		return nil, err
 	}
 	return items, nil
+}
+
+const revokeSystemAdminIfNotLast = `-- name: RevokeSystemAdminIfNotLast :one
+WITH lock AS (
+    SELECT pg_advisory_xact_lock(hashtextextended('netstamp.system_admin.manage', 0))
+),
+admin_count AS (
+    SELECT count(*)::bigint AS total
+    FROM system_user_roles, lock
+    WHERE role = 'admin'
+),
+target AS (
+    SELECT system_user_roles.user_id
+    FROM system_user_roles, lock
+    WHERE system_user_roles.user_id = $1
+      AND system_user_roles.role = 'admin'
+),
+deleted AS (
+    DELETE FROM system_user_roles
+    WHERE system_user_roles.user_id = $1
+      AND system_user_roles.role = 'admin'
+      AND (SELECT total FROM admin_count) > 1
+    RETURNING user_id
+)
+SELECT (SELECT total FROM admin_count) AS admin_count,
+       EXISTS (SELECT 1 FROM target) AS target_was_admin,
+       EXISTS (SELECT 1 FROM deleted) AS revoked
+`
+
+type RevokeSystemAdminIfNotLastRow struct {
+	AdminCount     int64 `json:"admin_count"`
+	TargetWasAdmin bool  `json:"target_was_admin"`
+	Revoked        bool  `json:"revoked"`
+}
+
+func (q *Queries) RevokeSystemAdminIfNotLast(ctx context.Context, userID uuid.UUID) (RevokeSystemAdminIfNotLastRow, error) {
+	row := q.db.QueryRow(ctx, revokeSystemAdminIfNotLast, userID)
+	var i RevokeSystemAdminIfNotLastRow
+	err := row.Scan(&i.AdminCount, &i.TargetWasAdmin, &i.Revoked)
+	return i, err
 }
 
 const upsertSystemSetting = `-- name: UpsertSystemSetting :one

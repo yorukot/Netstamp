@@ -7,6 +7,10 @@ import (
 	"net/mail"
 	"net/url"
 	"strings"
+
+	appvalidation "github.com/yorukot/netstamp/internal/controller/application/validation"
+	"github.com/yorukot/netstamp/internal/domain/identity"
+	domainsystem "github.com/yorukot/netstamp/internal/domain/system"
 )
 
 const (
@@ -22,7 +26,9 @@ const (
 	keySMTPTLSMode               = "smtp.tls_mode"
 	keySMTPTimeoutSeconds        = "smtp.timeout_seconds"
 
-	auditActionUpdate = "update"
+	auditActionGrantSystemAdmin  = "grant_system_admin"
+	auditActionRevokeSystemAdmin = "revoke_system_admin"
+	auditActionUpdate            = "update"
 )
 
 func validateSettings(settings Settings) error {
@@ -116,6 +122,36 @@ func smtpPartiallyConfigured(settings SMTPSettings) bool {
 
 func smtpDeliveryConfigured(settings SMTPSettings) bool {
 	return strings.TrimSpace(settings.Host) != "" && strings.TrimSpace(settings.From) != ""
+}
+
+func normalizeGrantSystemAdminInput(input GrantSystemAdminInput) (GrantSystemAdminInput, error) {
+	currentUserID, currentUserErr := identity.VNUserID(input.CurrentUserID)
+	email, emailErr := identity.VNUserEmail(input.Email)
+	if currentUserErr == nil && emailErr == nil {
+		return GrantSystemAdminInput{CurrentUserID: currentUserID, Email: email}, nil
+	}
+
+	collector := appvalidation.Collector{}
+	collector.AddError("currentUserId", currentUserErr, input.CurrentUserID)
+	collector.AddError("email", emailErr, input.Email)
+	return GrantSystemAdminInput{}, collector.Err(ErrInvalidInput)
+}
+
+func normalizeRevokeSystemAdminInput(input RevokeSystemAdminInput) (RevokeSystemAdminInput, error) {
+	currentUserID, currentUserErr := identity.VNUserID(input.CurrentUserID)
+	userID, userErr := identity.VNUserID(input.UserID)
+	if currentUserErr == nil && userErr == nil {
+		return RevokeSystemAdminInput{CurrentUserID: currentUserID, UserID: userID}, nil
+	}
+
+	collector := appvalidation.Collector{}
+	collector.AddError("currentUserId", currentUserErr, input.CurrentUserID)
+	collector.AddError("userId", userErr, input.UserID)
+	return RevokeSystemAdminInput{}, collector.Err(ErrInvalidInput)
+}
+
+func systemAdminAuditKey(admin domainsystem.AdminUser) string {
+	return "system_admin:" + admin.ID
 }
 
 func validateSMTPFrom(value string) error {

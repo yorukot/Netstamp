@@ -8,5 +8,11 @@ export const adminQueries = {
 			queryKey: apiQueryKeys.admin.settings(),
 			queryFn: ({ signal }) => readApiData(apiClient.GET("/admin/settings", { signal })),
 			staleTime: 30 * 1000
+		}),
+	systemAdmins: () =>
+		queryOptions({
+			queryKey: apiQueryKeys.admin.systemAdmins(),
+			queryFn: ({ signal }) => readApiData(apiClient.GET("/admin/system-admins", { signal })),
+			staleTime: 30 * 1000
 		})
 };

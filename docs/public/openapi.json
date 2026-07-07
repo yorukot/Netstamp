@@ -232,6 +232,229 @@
 				]
 			}
 		},
+		"/admin/system-admins": {
+			"get": {
+				"operationId": "listSystemAdmins",
+				"summary": "List system administrators",
+				"description": "Return users with instance-level administrator access. This does not include project membership or project permissions.",
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/SystemAdminsResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Admin"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			},
+			"post": {
+				"operationId": "grantSystemAdmin",
+				"summary": "Grant system administrator",
+				"description": "Grant instance-level administrator access to an existing user by email. This does not add the user to any project.",
+				"parameters": [],
+				"responses": {
+					"201": {
+						"description": "The request has succeeded and a new resource has been created as a result.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/SystemAdminResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Admin"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/GrantSystemAdminRequest"
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/admin/system-admins/{user_id}": {
+			"delete": {
+				"operationId": "revokeSystemAdmin",
+				"summary": "Revoke system administrator",
+				"description": "Revoke instance-level administrator access from a user. The current administrator cannot revoke themselves, and the system must keep at least one administrator.",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/UserIdPathParam"
+					}
+				],
+				"responses": {
+					"204": {
+						"description": "There is no content to send for this request, but the headers may be useful. "
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "The request conflicts with the current state of the server.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Admin"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
 		"/auth/email-verifications": {
 			"post": {
 				"operationId": "createEmailVerification",
@@ -9085,6 +9308,25 @@
 					}
 				]
 			},
+			"GrantSystemAdminRequest": {
+				"type": "object",
+				"required": ["email"],
+				"properties": {
+					"email": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/email"
+							}
+						],
+						"description": "Existing user email to grant instance-level administrator access."
+					}
+				},
+				"examples": [
+					{
+						"email": "admin@example.com"
+					}
+				]
+			},
 			"HealthResponse": {
 				"type": "object",
 				"required": ["status"],
@@ -11578,6 +11820,97 @@
 					{
 						"accepted": 1,
 						"serverTime": "2026-05-13T10:00:02Z"
+					}
+				]
+			},
+			"SystemAdminResponse": {
+				"type": "object",
+				"required": ["admin"],
+				"properties": {
+					"admin": {
+						"$ref": "#/components/schemas/SystemAdminUser"
+					}
+				},
+				"examples": [
+					{
+						"admin": {
+							"id": "11111111-1111-1111-1111-111111111111",
+							"email": "admin@example.com",
+							"displayName": "Jane Operator",
+							"emailVerified": true,
+							"grantedAt": "2026-07-08T12:00:00Z"
+						}
+					}
+				]
+			},
+			"SystemAdminUser": {
+				"type": "object",
+				"required": ["id", "email", "displayName", "emailVerified", "grantedAt"],
+				"properties": {
+					"id": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/uuid"
+							}
+						],
+						"description": "User UUID."
+					},
+					"email": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/email"
+							}
+						],
+						"description": "Normalized email address used to sign in."
+					},
+					"displayName": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 64,
+						"description": "Name shown in the app."
+					},
+					"emailVerified": {
+						"type": "boolean",
+						"description": "Whether the sign-in email address has been verified."
+					},
+					"grantedAt": {
+						"type": "string",
+						"format": "date-time",
+						"description": "When the user received instance-level administrator access."
+					}
+				},
+				"examples": [
+					{
+						"id": "11111111-1111-1111-1111-111111111111",
+						"email": "admin@example.com",
+						"displayName": "Jane Operator",
+						"emailVerified": true,
+						"grantedAt": "2026-07-08T12:00:00Z"
+					}
+				]
+			},
+			"SystemAdminsResponse": {
+				"type": "object",
+				"required": ["admins"],
+				"properties": {
+					"admins": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/SystemAdminUser"
+						}
+					}
+				},
+				"examples": [
+					{
+						"admins": [
+							{
+								"id": "11111111-1111-1111-1111-111111111111",
+								"email": "admin@example.com",
+								"displayName": "Jane Operator",
+								"emailVerified": true,
+								"grantedAt": "2026-07-08T12:00:00Z"
+							}
+						]
 					}
 				]
 			},

@@ -3,6 +3,48 @@ namespace Netstamp;
 alias SMTPTLSMode = "starttls" | "implicit" | "none";
 
 @example(#{
+	id: "11111111-1111-1111-1111-111111111111",
+	email: "admin@example.com",
+	displayName: "Jane Operator",
+	emailVerified: true,
+	grantedAt: utcDateTime.fromISO("2026-07-08T12:00:00Z")
+})
+model SystemAdminUser {
+	@doc("User UUID.")
+	id: uuid;
+
+	@doc("Normalized email address used to sign in.")
+	email: email;
+
+	@minLength(1)
+	@maxLength(64)
+	@doc("Name shown in the app.")
+	displayName: string;
+
+	@doc("Whether the sign-in email address has been verified.")
+	emailVerified: boolean;
+
+	@doc("When the user received instance-level administrator access.")
+	grantedAt: utcDateTime;
+}
+
+@example(#{ email: "admin@example.com" })
+model GrantSystemAdminRequest {
+	@doc("Existing user email to grant instance-level administrator access.")
+	email: email;
+}
+
+@example(#{ admin: #{ id: "11111111-1111-1111-1111-111111111111", email: "admin@example.com", displayName: "Jane Operator", emailVerified: true, grantedAt: utcDateTime.fromISO("2026-07-08T12:00:00Z") } })
+model SystemAdminResponse {
+	admin: SystemAdminUser;
+}
+
+@example(#{ admins: #[#{ id: "11111111-1111-1111-1111-111111111111", email: "admin@example.com", displayName: "Jane Operator", emailVerified: true, grantedAt: utcDateTime.fromISO("2026-07-08T12:00:00Z") }] })
+model SystemAdminsResponse {
+	admins: SystemAdminUser[];
+}
+
+@example(#{
 	host: "smtp.example.com",
 	port: 587,
 	username: "netstamp",

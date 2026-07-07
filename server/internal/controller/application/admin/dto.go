@@ -29,8 +29,26 @@ type Defaults struct {
 	SMTP                      SMTPSettings
 }
 
+type SystemAdmin = domainsystem.AdminUser
+
+type SystemAdminRevokeResult = domainsystem.AdminRevokeResult
+
 type GetSettingsInput struct {
 	CurrentUserID string
+}
+
+type ListSystemAdminsInput struct {
+	CurrentUserID string
+}
+
+type GrantSystemAdminInput struct {
+	CurrentUserID string
+	Email         string
+}
+
+type RevokeSystemAdminInput struct {
+	CurrentUserID string
+	UserID        string
 }
 
 type UpdateSettingsInput struct {

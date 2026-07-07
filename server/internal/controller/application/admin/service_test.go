@@ -5,6 +5,12 @@ import (
 	"errors"
 	"slices"
 	"testing"
+	"time"
+)
+
+const (
+	testAdminUserID  = "11111111-1111-1111-1111-111111111111"
+	testTargetUserID = "22222222-2222-2222-2222-222222222222"
 )
 
 func TestGetSettingsRequiresSystemAdmin(t *testing.T) {
@@ -129,14 +135,132 @@ func TestUpdateSettingsRequiresSMTPWhenEmailVerificationRequired(t *testing.T) {
 	}
 }
 
+func TestGrantSystemAdminStoresAuditEvent(t *testing.T) {
+	grantedAt := time.Date(2026, 7, 8, 12, 0, 0, 0, time.UTC)
+	repo := &fakeAdminRepository{
+		admins: map[string]bool{testAdminUserID: true},
+		systemAdminByEmail: map[string]SystemAdmin{
+			"operator@example.com": {
+				ID:          testTargetUserID,
+				Email:       "operator@example.com",
+				DisplayName: "Operator",
+				GrantedAt:   grantedAt,
+			},
+		},
+	}
+	svc := NewService(repo, fakeSecretCipher{}, Defaults{})
+
+	admin, err := svc.GrantSystemAdmin(context.Background(), GrantSystemAdminInput{
+		CurrentUserID: testAdminUserID,
+		Email:         " OPERATOR@example.com ",
+	})
+	if err != nil {
+		t.Fatalf("grant system admin: %v", err)
+	}
+
+	if admin.ID != testTargetUserID {
+		t.Fatalf("expected granted admin %q, got %q", testTargetUserID, admin.ID)
+	}
+	if repo.grantedEmail != "operator@example.com" {
+		t.Fatalf("expected normalized grant email, got %q", repo.grantedEmail)
+	}
+	if !slices.Contains(repo.auditKeys, "system_admin:"+testTargetUserID) {
+		t.Fatalf("expected system admin audit key, got %#v", repo.auditKeys)
+	}
+	if !slices.Contains(repo.auditActions, auditActionGrantSystemAdmin) {
+		t.Fatalf("expected grant audit action, got %#v", repo.auditActions)
+	}
+}
+
+func TestRevokeSystemAdminRejectsSelfRemoval(t *testing.T) {
+	repo := &fakeAdminRepository{admins: map[string]bool{testAdminUserID: true}}
+	svc := NewService(repo, fakeSecretCipher{}, Defaults{})
+
+	err := svc.RevokeSystemAdmin(context.Background(), RevokeSystemAdminInput{
+		CurrentUserID: testAdminUserID,
+		UserID:        testAdminUserID,
+	})
+	if !errors.Is(err, ErrSelfSystemAdminRemoval) {
+		t.Fatalf("expected self-removal error, got %v", err)
+	}
+	if repo.revokedUserID != "" {
+		t.Fatalf("expected no revoke call, got %q", repo.revokedUserID)
+	}
+}
+
+func TestRevokeSystemAdminRejectsLastAdmin(t *testing.T) {
+	repo := &fakeAdminRepository{
+		admins:       map[string]bool{testAdminUserID: true},
+		revokeResult: SystemAdminRevokeResult{AdminCount: 1, TargetWasAdmin: true, Revoked: false},
+	}
+	svc := NewService(repo, fakeSecretCipher{}, Defaults{})
+
+	err := svc.RevokeSystemAdmin(context.Background(), RevokeSystemAdminInput{
+		CurrentUserID: testAdminUserID,
+		UserID:        testTargetUserID,
+	})
+	if !errors.Is(err, ErrLastSystemAdmin) {
+		t.Fatalf("expected last-admin error, got %v", err)
+	}
+}
+
+func TestRevokeSystemAdminStoresAuditEvent(t *testing.T) {
+	repo := &fakeAdminRepository{
+		admins:       map[string]bool{testAdminUserID: true},
+		revokeResult: SystemAdminRevokeResult{AdminCount: 2, TargetWasAdmin: true, Revoked: true},
+	}
+	svc := NewService(repo, fakeSecretCipher{}, Defaults{})
+
+	err := svc.RevokeSystemAdmin(context.Background(), RevokeSystemAdminInput{
+		CurrentUserID: testAdminUserID,
+		UserID:        testTargetUserID,
+	})
+	if err != nil {
+		t.Fatalf("revoke system admin: %v", err)
+	}
+	if repo.revokedUserID != testTargetUserID {
+		t.Fatalf("expected revoked user %q, got %q", testTargetUserID, repo.revokedUserID)
+	}
+	if !slices.Contains(repo.auditKeys, "system_admin:"+testTargetUserID) {
+		t.Fatalf("expected system admin audit key, got %#v", repo.auditKeys)
+	}
+	if !slices.Contains(repo.auditActions, auditActionRevokeSystemAdmin) {
+		t.Fatalf("expected revoke audit action, got %#v", repo.auditActions)
+	}
+}
+
 type fakeAdminRepository struct {
-	admins    map[string]bool
-	settings  map[string]StoredSetting
-	auditKeys []string
+	admins             map[string]bool
+	settings           map[string]StoredSetting
+	systemAdmins       []SystemAdmin
+	systemAdminByEmail map[string]SystemAdmin
+	revokeResult       SystemAdminRevokeResult
+	grantedEmail       string
+	revokedUserID      string
+	auditActions       []string
+	auditKeys          []string
 }
 
 func (r *fakeAdminRepository) IsSystemAdmin(_ context.Context, userID string) (bool, error) {
 	return r.admins[userID], nil
+}
+
+func (r *fakeAdminRepository) ListSystemAdmins(context.Context) ([]SystemAdmin, error) {
+	return append([]SystemAdmin(nil), r.systemAdmins...), nil
+}
+
+func (r *fakeAdminRepository) GrantSystemAdminByEmail(_ context.Context, email string) (SystemAdmin, error) {
+	r.grantedEmail = email
+	admin, ok := r.systemAdminByEmail[email]
+	if !ok {
+		return SystemAdmin{}, errors.New("not found")
+	}
+	return admin, nil
+}
+
+func (r *fakeAdminRepository) RevokeSystemAdminIfNotLast(_ context.Context, userID string) (SystemAdminRevokeResult, error) {
+	r.revokedUserID = userID
+	return r.revokeResult, nil
 }
 
 func (r *fakeAdminRepository) ListSystemSettings(context.Context) ([]StoredSetting, error) {
@@ -155,8 +279,9 @@ func (r *fakeAdminRepository) UpsertSystemSetting(_ context.Context, setting Sto
 	return setting, nil
 }
 
-func (r *fakeAdminRepository) CreateSystemSettingAuditEvent(_ context.Context, key, _ string, _ *string) error {
+func (r *fakeAdminRepository) CreateSystemSettingAuditEvent(_ context.Context, key, action string, _ *string) error {
 	r.auditKeys = append(r.auditKeys, key)
+	r.auditActions = append(r.auditActions, action)
 	return nil
 }
 
