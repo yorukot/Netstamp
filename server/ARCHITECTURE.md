@@ -55,3 +55,13 @@ Keep request/response DTO details in transport packages. Keep SQL and pgx/sqlc d
 ## Async Consistency
 
 Use workers and reconcilers for side effects that can be retried safely, such as notification delivery and assignment refresh. Assignment refresh writes `assignment_refresh_jobs` before the synchronous refresh/delete path so the worker can repair derived probe-check assignment state after partial failures. Synchronous refresh may remain for low-latency API behavior, but durable background repair should exist for cross-feature derived state that can become stale after partial failures.
+
+## Error Observability Rules
+
+Technical failures must be traceable through either application events or explicit worker/request logs, and through OpenTelemetry spans:
+
+- Command features should route technical failures through `flow.go` helpers that call `span.RecordError`, set error status and failure reason attributes, and record an application event when the feature has an event recorder.
+- Query features should create spans and mark technical failures with `span.RecordError` plus a feature-specific failure reason. High-volume public reads should usually avoid application event logs unless they represent audit-worthy state changes.
+- Orchestrators such as alert evaluation should own their own spans, failure reasons, and failure events because their errors are not accurately represented by the caller's command feature.
+- Workers that intentionally keep running after a failed iteration must log the swallowed error with worker name, operation, and error fields before retrying later.
+- HTTP request logging is a transport fallback for status, route, request id, duration, and trace correlation. It should not be the only source of technical error detail for application or background workflows.
