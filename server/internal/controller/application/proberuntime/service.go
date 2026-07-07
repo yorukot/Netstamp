@@ -150,7 +150,7 @@ func (s *Service) SubmitResults(ctx context.Context, input SubmitResultsInput) (
 	}
 	if s.alertEvaluator != nil && len(changed) > 0 {
 		if err := s.alertEvaluator.EvaluateChangedAssignments(ctx, changed); err != nil {
-			recordSpanError(flow.span, err, ProbeRuntimeReasonResultWriteFailed)
+			recordSpanError(flow.span, err, ProbeRuntimeReasonAlertEvaluationFailed)
 		}
 	}
 	flow.success()

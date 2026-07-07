@@ -28,3 +28,58 @@ type Repository interface {
 type Transactor = apptx.Transactor
 
 type ChangedAssignment = appproberuntime.ChangedAssignmentInput
+
+type EventRecorder interface {
+	RecordAlertEvalEvent(ctx context.Context, event AlertEvalEvent)
+}
+
+type AlertEvalEventName string
+
+const (
+	AlertEvalEventAssignmentEvaluateFailure AlertEvalEventName = "alert_eval.assignment.evaluate.failure"
+	AlertEvalEventRuleEvaluateFailure       AlertEvalEventName = "alert_eval.rule.evaluate.failure"
+	AlertEvalEventNotificationEnqueueFail   AlertEvalEventName = "alert_eval.notification.enqueue.failure"
+)
+
+type AlertEvalAction string
+
+const (
+	AlertEvalActionEvaluateAssignment AlertEvalAction = "assignment.evaluate"
+	AlertEvalActionEvaluateRule       AlertEvalAction = "rule.evaluate"
+)
+
+type AlertEvalOutcome string
+
+const (
+	AlertEvalOutcomeSuccess AlertEvalOutcome = "success"
+	AlertEvalOutcomeFailure AlertEvalOutcome = "failure"
+)
+
+type AlertEvalReason string
+
+const (
+	AlertEvalReasonInvalidCheckType         AlertEvalReason = "invalid_check_type"
+	AlertEvalReasonRuleListFailed           AlertEvalReason = "rule_list_failed"
+	AlertEvalReasonRuleEvaluateFailed       AlertEvalReason = "rule_evaluate_failed"
+	AlertEvalReasonMetricSummaryFailed      AlertEvalReason = "metric_summary_failed"
+	AlertEvalReasonEvaluationSummaryFailed  AlertEvalReason = "evaluation_summary_failed"
+	AlertEvalReasonIncidentLookupFailed     AlertEvalReason = "incident_lookup_failed"
+	AlertEvalReasonIncidentTransitionFailed AlertEvalReason = "incident_transition_failed"
+	AlertEvalReasonNotificationListFailed   AlertEvalReason = "notification_list_failed"
+	AlertEvalReasonNotificationPayloadFail  AlertEvalReason = "notification_payload_failed"
+	AlertEvalReasonNotificationEnqueueFail  AlertEvalReason = "notification_enqueue_failed"
+)
+
+type AlertEvalEvent struct {
+	Name       AlertEvalEventName
+	Action     AlertEvalAction
+	Outcome    AlertEvalOutcome
+	Reason     AlertEvalReason
+	ProjectID  string
+	ProbeID    string
+	CheckID    string
+	CheckType  string
+	RuleID     string
+	IncidentID string
+	Err        error
+}

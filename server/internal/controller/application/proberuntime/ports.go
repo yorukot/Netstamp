@@ -95,6 +95,7 @@ const (
 	ProbeRuntimeReasonAssignmentListFailed  ProbeRuntimeEventReason = "assignment_list_failed"
 	ProbeRuntimeReasonAssignmentLookupFail  ProbeRuntimeEventReason = "assignment_lookup_failed"
 	ProbeRuntimeReasonResultWriteFailed     ProbeRuntimeEventReason = "result_write_failed"
+	ProbeRuntimeReasonAlertEvaluationFailed ProbeRuntimeEventReason = "alert_evaluation_failed"
 )
 
 type ProbeRuntimeEvent struct {

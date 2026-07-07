@@ -25,6 +25,7 @@ type Service struct {
 	repo                   Repository
 	enabled                bool
 	backendBaseURL         string
+	events                 EventRecorder
 	backendBaseURLProvider BackendBaseURLProvider
 	tx                     Transactor
 	now                    func() time.Time
@@ -35,6 +36,10 @@ type BackendBaseURLProvider interface {
 }
 
 func NewService(repo Repository, enabled bool, backendBaseURL string, transactors ...Transactor) *Service {
+	return NewServiceWithEvents(repo, enabled, backendBaseURL, nil, transactors...)
+}
+
+func NewServiceWithEvents(repo Repository, enabled bool, backendBaseURL string, events EventRecorder, transactors ...Transactor) *Service {
 	tx := Transactor(apptx.NoopTransactor{})
 	if len(transactors) > 0 && transactors[0] != nil {
 		tx = transactors[0]
@@ -44,6 +49,7 @@ func NewService(repo Repository, enabled bool, backendBaseURL string, transactor
 		repo:           repo,
 		enabled:        enabled,
 		backendBaseURL: strings.TrimRight(strings.TrimSpace(backendBaseURL), "/"),
+		events:         events,
 		tx:             tx,
 		now:            func() time.Time { return time.Now().UTC() },
 	}
@@ -67,16 +73,20 @@ func (s *Service) EvaluateChangedAssignments(ctx context.Context, inputs []apppr
 }
 
 func (s *Service) evaluateAssignment(ctx context.Context, input appproberuntime.ChangedAssignmentInput) error {
+	ctx, flow := s.startAssignmentFlow(ctx, input)
+	defer flow.end()
+
 	checkType, err := domaincheck.VNCheckType(domaincheck.Type(input.CheckType))
 	if err != nil {
-		return err
+		return flow.failure(AlertEvalEventAssignmentEvaluateFailure, AlertEvalReasonInvalidCheckType, err)
 	}
 	if checkType != domaincheck.TypePing && checkType != domaincheck.TypeTCP {
+		flow.success()
 		return nil
 	}
 	rules, err := s.repo.ListEnabledRulesForAssignment(ctx, input.ProjectID, input.ProbeID, input.CheckID, checkType)
 	if err != nil {
-		return err
+		return flow.failure(AlertEvalEventAssignmentEvaluateFailure, AlertEvalReasonRuleListFailed, err)
 	}
 	var errs []error
 	for _, rule := range rules {
@@ -84,48 +94,69 @@ func (s *Service) evaluateAssignment(ctx context.Context, input appproberuntime.
 			errs = append(errs, err)
 		}
 	}
-	return errors.Join(errs...)
+	if err := errors.Join(errs...); err != nil {
+		return flow.failure(AlertEvalEventAssignmentEvaluateFailure, AlertEvalReasonRuleEvaluateFailed, err)
+	}
+	flow.success()
+	return nil
 }
 
 func (s *Service) evaluateRule(ctx context.Context, input appproberuntime.ChangedAssignmentInput, rule domainalert.Rule) error {
+	ctx, flow := s.startRuleFlow(ctx, input, rule)
+	defer flow.end()
+
 	now := s.now()
 	requirement := rule.Condition.Requirement()
 	windowEnd := now
 	windowStart := windowEnd.Add(-time.Duration(requirement.WindowSeconds) * time.Second)
 	summary, err := s.repo.GetMetricSummary(ctx, requirement.Metric, input.ProbeStorageID, input.CheckStorageID, windowStart, windowEnd)
 	if err != nil {
-		return err
+		return flow.failure(AlertEvalEventRuleEvaluateFailure, AlertEvalReasonMetricSummaryFailed, err)
 	}
 	summary.MinSamples = requirement.MinSamples
 	summary.WindowSeconds = requirement.WindowSeconds
 	evaluation := rule.Condition.Evaluate(summary)
 	summaryJSON, err := evaluationSummaryJSON(rule, evaluation)
 	if err != nil {
-		return err
+		return flow.failure(AlertEvalEventRuleEvaluateFailure, AlertEvalReasonEvaluationSummaryFailed, err)
 	}
 
 	active, activeErr := s.repo.GetActiveIncident(ctx, rule.ID, input.ProbeID, input.CheckID)
 	if activeErr != nil && !errors.Is(activeErr, domainalert.ErrIncidentNotFound) {
-		return activeErr
+		return flow.failure(AlertEvalEventRuleEvaluateFailure, AlertEvalReasonIncidentLookupFailed, activeErr)
+	}
+	if activeErr == nil {
+		flow.setIncidentID(active.ID)
 	}
 
 	switch evaluation.State {
 	case alertcondition.EvaluationStateFiring:
-		return s.handleFiringEvaluation(ctx, input, rule, evaluation, summaryJSON, active, activeErr == nil, now)
+		if err := s.handleFiringEvaluation(ctx, flow, input, rule, evaluation, summaryJSON, active, activeErr == nil, now); err != nil {
+			return err
+		}
 	case alertcondition.EvaluationStateClear:
-		return s.handleClearEvaluation(ctx, input, rule, evaluation, summaryJSON, active, activeErr == nil, now)
+		if err := s.handleClearEvaluation(ctx, flow, input, rule, evaluation, summaryJSON, active, activeErr == nil, now); err != nil {
+			return err
+		}
 	case alertcondition.EvaluationStateInsufficientSamples, alertcondition.EvaluationStateNoData:
-		return s.handleInsufficientEvaluation(ctx, active, activeErr == nil, evaluation, summaryJSON, now)
+		if err := s.handleInsufficientEvaluation(ctx, flow, active, activeErr == nil, evaluation, summaryJSON, now); err != nil {
+			return err
+		}
 	}
+	flow.success()
 	return nil
 }
 
-func (s *Service) handleFiringEvaluation(ctx context.Context, input appproberuntime.ChangedAssignmentInput, rule domainalert.Rule, evaluation alertcondition.Evaluation, summaryJSON []byte, active domainalert.Incident, hasActive bool, now time.Time) error {
+func (s *Service) handleFiringEvaluation(ctx context.Context, flow *alertEvalFlow, input appproberuntime.ChangedAssignmentInput, rule domainalert.Rule, evaluation alertcondition.Evaluation, summaryJSON []byte, active domainalert.Incident, hasActive bool, now time.Time) error {
 	if hasActive {
-		_, err := s.repo.UpdateIncidentTriggered(ctx, active.ID, evaluation, summaryJSON, now)
-		return err
+		incident, err := s.repo.UpdateIncidentTriggered(ctx, active.ID, evaluation, summaryJSON, now)
+		if err != nil {
+			return flow.failure(AlertEvalEventRuleEvaluateFailure, AlertEvalReasonIncidentTransitionFailed, err)
+		}
+		flow.setIncidentID(incident.ID)
+		return nil
 	}
-	if s.inReopenCooldown(ctx, rule, input, now) {
+	if s.inReopenCooldown(ctx, flow, rule, input, now) {
 		return nil
 	}
 	return s.tx.WithinTx(ctx, func(ctx context.Context) error {
@@ -143,47 +174,56 @@ func (s *Service) handleFiringEvaluation(ctx context.Context, input appproberunt
 			NextNotificationEligibleAt: ptrTime(now.Add(time.Duration(rule.CooldownSeconds) * time.Second)),
 		})
 		if err != nil {
-			return err
+			return flow.failure(AlertEvalEventRuleEvaluateFailure, AlertEvalReasonIncidentTransitionFailed, err)
 		}
 		created = incidentWithAssignmentContext(created, input)
-		return s.enqueueNotifications(ctx, rule, created, evaluation, EventIncidentOpened, now)
+		flow.setIncidentID(created.ID)
+		return s.enqueueNotifications(ctx, flow, rule, created, evaluation, EventIncidentOpened, now)
 	})
 }
 
-func (s *Service) handleClearEvaluation(ctx context.Context, input appproberuntime.ChangedAssignmentInput, rule domainalert.Rule, evaluation alertcondition.Evaluation, summaryJSON []byte, active domainalert.Incident, hasActive bool, now time.Time) error {
+func (s *Service) handleClearEvaluation(ctx context.Context, flow *alertEvalFlow, input appproberuntime.ChangedAssignmentInput, rule domainalert.Rule, evaluation alertcondition.Evaluation, summaryJSON []byte, active domainalert.Incident, hasActive bool, now time.Time) error {
 	if !hasActive {
 		return nil
 	}
 	return s.tx.WithinTx(ctx, func(ctx context.Context) error {
 		incident, err := s.repo.ResolveIncident(ctx, active.ID, summaryJSON, now)
 		if err != nil {
-			return err
+			return flow.failure(AlertEvalEventRuleEvaluateFailure, AlertEvalReasonIncidentTransitionFailed, err)
 		}
 		incident = incidentWithAssignmentContext(incident, input)
-		return s.enqueueNotifications(ctx, rule, incident, evaluation, EventIncidentResolved, now)
+		flow.setIncidentID(incident.ID)
+		return s.enqueueNotifications(ctx, flow, rule, incident, evaluation, EventIncidentResolved, now)
 	})
 }
 
-func (s *Service) handleInsufficientEvaluation(ctx context.Context, active domainalert.Incident, hasActive bool, evaluation alertcondition.Evaluation, summaryJSON []byte, now time.Time) error {
+func (s *Service) handleInsufficientEvaluation(ctx context.Context, flow *alertEvalFlow, active domainalert.Incident, hasActive bool, evaluation alertcondition.Evaluation, summaryJSON []byte, now time.Time) error {
 	if !hasActive {
 		return nil
 	}
-	_, err := s.repo.UpdateIncidentInsufficient(ctx, active.ID, evaluation.State, summaryJSON, now)
-	return err
+	incident, err := s.repo.UpdateIncidentInsufficient(ctx, active.ID, evaluation.State, summaryJSON, now)
+	if err != nil {
+		return flow.failure(AlertEvalEventRuleEvaluateFailure, AlertEvalReasonIncidentTransitionFailed, err)
+	}
+	flow.setIncidentID(incident.ID)
+	return nil
 }
 
-func (s *Service) inReopenCooldown(ctx context.Context, rule domainalert.Rule, input appproberuntime.ChangedAssignmentInput, now time.Time) bool {
+func (s *Service) inReopenCooldown(ctx context.Context, flow *alertEvalFlow, rule domainalert.Rule, input appproberuntime.ChangedAssignmentInput, now time.Time) bool {
 	if rule.CooldownSeconds <= 0 {
 		return false
 	}
 	_, err := s.repo.GetRecentResolvedIncident(ctx, rule.ID, input.ProbeID, input.CheckID, now.Add(-time.Duration(rule.CooldownSeconds)*time.Second))
+	if err != nil && !errors.Is(err, domainalert.ErrIncidentNotFound) {
+		flow.recordFailure(AlertEvalEventRuleEvaluateFailure, AlertEvalReasonIncidentLookupFailed, err)
+	}
 	return err == nil
 }
 
-func (s *Service) enqueueNotifications(ctx context.Context, rule domainalert.Rule, incident domainalert.Incident, evaluation alertcondition.Evaluation, eventType string, at time.Time) error {
+func (s *Service) enqueueNotifications(ctx context.Context, flow *alertEvalFlow, rule domainalert.Rule, incident domainalert.Incident, evaluation alertcondition.Evaluation, eventType string, at time.Time) error {
 	notifications, err := s.repo.ListEnabledNotificationsForRule(ctx, rule.ProjectID, rule.ID)
 	if err != nil {
-		return err
+		return flow.failure(AlertEvalEventNotificationEnqueueFail, AlertEvalReasonNotificationListFailed, err)
 	}
 	jobs := make([]domainalert.NotificationJobInput, 0, len(notifications))
 	backendBaseURL := s.effectiveBackendBaseURL(ctx)
@@ -193,7 +233,7 @@ func (s *Service) enqueueNotifications(ctx context.Context, rule domainalert.Rul
 		}
 		payload, err := notificationPayload(rule, incident, notification, evaluation, eventType, at, backendBaseURL)
 		if err != nil {
-			return err
+			return flow.failure(AlertEvalEventNotificationEnqueueFail, AlertEvalReasonNotificationPayloadFail, err)
 		}
 		jobs = append(jobs, domainalert.NotificationJobInput{
 			ProjectID:        rule.ProjectID,
@@ -206,7 +246,10 @@ func (s *Service) enqueueNotifications(ctx context.Context, rule domainalert.Rul
 			DedupeKey:        fmt.Sprintf("%s:%s:%s:%s", incident.ID, notification.ID, eventType, at.UTC().Format(time.RFC3339Nano)),
 		})
 	}
-	return s.repo.EnqueueNotificationJobs(ctx, jobs)
+	if err := s.repo.EnqueueNotificationJobs(ctx, jobs); err != nil {
+		return flow.failure(AlertEvalEventNotificationEnqueueFail, AlertEvalReasonNotificationEnqueueFail, err)
+	}
+	return nil
 }
 
 func (s *Service) effectiveBackendBaseURL(ctx context.Context) string {
