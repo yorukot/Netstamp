@@ -646,7 +646,7 @@ function initCable(root, cleanupTasks) {
 	function applyBreakMotion(time) {
 		if (!breakMotion || !leftSegment || !rightSegment) return;
 
-		const breakDelay = 720;
+		const breakDelay = 0;
 		const breakDuration = 1900;
 		const rawProgress = reduceMotion ? 1 : clampNumber((time - breakMotion.startedAt - breakDelay) / breakDuration, 0, 1);
 		const progress = easeOutCubic(rawProgress);

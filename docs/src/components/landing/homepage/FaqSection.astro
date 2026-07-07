@@ -43,11 +43,80 @@ const faqs = [
 						<span>{faq.question}</span>
 						<span class="faq-toggle" aria-hidden="true" />
 					</summary>
-					<p>{faq.answer}</p>
+					<div class="faq-answer">
+						<div>
+							<p>{faq.answer}</p>
+						</div>
+					</div>
 				</details>
 			))
 		}
 	</div>
+
+	<script>
+		const animationKey = Symbol.for("netstamp.faqAnimation");
+
+		function animateFaqDetails(root: ParentNode = document) {
+			const details = root.querySelectorAll<HTMLDetailsElement>(".faq-item");
+			for (const detail of details) {
+				if (detail.dataset.faqBound === "true") continue;
+				const summary = detail.querySelector("summary");
+				const answer = detail.querySelector<HTMLElement>(".faq-answer");
+				if (!summary || !answer) continue;
+
+				detail.dataset.faqBound = "true";
+				summary.addEventListener("click", event => {
+					event.preventDefault();
+					const animation = (detail as HTMLDetailsElement & { [animationKey]?: Animation })[animationKey];
+					animation?.cancel();
+
+					if (detail.open) {
+						const startHeight = answer.offsetHeight;
+						const closing = answer.animate(
+							[
+								{ height: `${startHeight}px`, opacity: 1 },
+								{ height: "0px", opacity: 0 }
+							],
+							{
+								duration: 260,
+								easing: "cubic-bezier(0.2, 0.8, 0.2, 1)"
+							}
+						);
+						(detail as HTMLDetailsElement & { [animationKey]?: Animation })[animationKey] = closing;
+						closing.onfinish = () => {
+							detail.open = false;
+							answer.style.height = "";
+							answer.style.opacity = "";
+							(detail as HTMLDetailsElement & { [animationKey]?: Animation })[animationKey] = undefined;
+						};
+						return;
+					}
+
+					detail.open = true;
+					const endHeight = answer.scrollHeight;
+					const opening = answer.animate(
+						[
+							{ height: "0px", opacity: 0 },
+							{ height: `${endHeight}px`, opacity: 1 }
+						],
+						{
+							duration: 320,
+							easing: "cubic-bezier(0.2, 0.8, 0.2, 1)"
+						}
+					);
+					(detail as HTMLDetailsElement & { [animationKey]?: Animation })[animationKey] = opening;
+					opening.onfinish = () => {
+						answer.style.height = "";
+						answer.style.opacity = "";
+						(detail as HTMLDetailsElement & { [animationKey]?: Animation })[animationKey] = undefined;
+					};
+				});
+			}
+		}
+
+		document.addEventListener("astro:page-load", () => animateFaqDetails());
+		animateFaqDetails();
+	</script>
 </section>
 
 <style>
@@ -61,7 +130,7 @@ const faqs = [
 		max-width: 78rem;
 		margin: 0 auto 2.5rem;
 		font-family: "TASAExplorer", "TASA Explorer", "Inter", system-ui, sans-serif;
-		font-size: 4.6rem;
+		font-size: 2.65rem;
 		font-weight: 300;
 		letter-spacing: 0;
 		line-height: 1;
@@ -70,20 +139,26 @@ const faqs = [
 	.faq-list {
 		max-width: 78rem;
 		margin: 0 auto;
-		border-top: 2px dotted #a8b2c2;
+		background-image: linear-gradient(90deg, #a1a7b2 0 2px, transparent 2px 12px);
+		background-repeat: repeat-x;
+		background-position: left top;
+		background-size: 12px 2px;
 	}
 
 	.faq-item {
-		border-bottom: 2px dotted #a8b2c2;
+		background-image: linear-gradient(90deg, #a1a7b2 0 2px, transparent 2px 12px);
+		background-repeat: repeat-x;
+		background-position: left bottom;
+		background-size: 12px 2px;
 	}
 
 	summary {
 		display: grid;
 		grid-template-columns: minmax(0, 1fr) auto;
 		align-items: center;
-		gap: 1.5rem;
-		min-height: 7rem;
-		padding: 1.4rem 0;
+		gap: 2.25rem;
+		min-height: 8.5rem;
+		padding: 2.15rem 0;
 		cursor: pointer;
 		list-style: none;
 	}
@@ -107,6 +182,7 @@ const faqs = [
 		width: 4rem;
 		height: 4rem;
 		background: var(--home-orange-hot);
+		transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
 	}
 
 	.faq-toggle::before,
@@ -120,16 +196,23 @@ const faqs = [
 
 	.faq-toggle::after {
 		transform: rotate(90deg);
-		transition: transform 160ms ease;
 	}
 
-	.faq-item[open] .faq-toggle::after {
-		transform: rotate(0deg);
+	.faq-item[open] .faq-toggle {
+		transform: rotate(45deg);
 	}
 
-	p {
+	.faq-answer {
+		overflow: hidden;
+	}
+
+	.faq-answer > div {
+		padding-bottom: 2.35rem;
+	}
+
+	.faq-answer p {
 		max-width: 58rem;
-		margin: -0.5rem 0 2rem;
+		margin: -0.65rem 0 0;
 		color: #405168;
 		font-size: 1.05rem;
 		line-height: 1.65;
@@ -137,7 +220,7 @@ const faqs = [
 
 	@media (min-width: 86rem) {
 		h2 {
-			font-size: 5.6rem;
+			font-size: 3.35rem;
 		}
 
 		summary > span:first-child {
@@ -147,12 +230,13 @@ const faqs = [
 
 	@media (max-width: 52rem) {
 		h2 {
-			font-size: 3.2rem;
+			font-size: 2.65rem;
 		}
 
 		summary {
-			min-height: 5.5rem;
-			gap: 1rem;
+			min-height: 6.5rem;
+			gap: 1.25rem;
+			padding: 1.6rem 0;
 		}
 
 		summary > span:first-child {
@@ -177,6 +261,10 @@ const faqs = [
 		.faq-toggle {
 			width: 2.75rem;
 			height: 2.75rem;
+		}
+
+		.faq-answer > div {
+			padding-bottom: 1.75rem;
 		}
 	}
 </style>

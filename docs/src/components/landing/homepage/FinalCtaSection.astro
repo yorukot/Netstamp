@@ -1,5 +1,5 @@
 <section id="final-cta" class="final-cta" data-scroll-progress="cta" aria-label="Get started with Netstamp">
-	<span class="sr-only">Get started with Netstamp</span>
+	<h2>Start observing from the networks you control.</h2>
 	<svg class="cta-network" viewBox="0 0 1200 520" aria-hidden="true">
 		<path class="route route-dim" d="M82 360 C214 126 360 406 498 226 S790 88 1110 238"></path>
 		<path class="route route-hot" d="M82 360 C214 126 360 406 498 226 S790 88 1110 238"></path>
@@ -34,8 +34,9 @@
 		position: relative;
 		display: grid;
 		place-items: center;
-		min-height: 88svh;
-		padding: 7rem 1rem;
+		gap: 1.35rem;
+		min-height: 68svh;
+		padding: 4.5rem 1rem;
 		overflow: hidden;
 		isolation: isolate;
 		background: #000000;
@@ -57,6 +58,20 @@
 		height: auto;
 		transform: translate(-50%, -50%);
 		opacity: 0.92;
+	}
+
+	h2 {
+		position: relative;
+		z-index: 2;
+		max-width: 13ch;
+		margin: 0;
+		color: #ffffff;
+		font-family: "TASAExplorer", "TASA Explorer", "Inter", system-ui, sans-serif;
+		font-size: clamp(2.6rem, 5.4vw, 5.4rem);
+		font-weight: 300;
+		letter-spacing: 0;
+		line-height: 0.96;
+		text-align: center;
 	}
 
 	.route {
@@ -122,8 +137,8 @@
 
 	@media (max-width: 38rem) {
 		.final-cta {
-			min-height: 72svh;
-			padding: 5rem 1rem;
+			min-height: 62svh;
+			padding: 3.5rem 1rem;
 		}
 
 		.cta-network {

@@ -1,4 +1,5 @@
 ---
+import { GlobalFooter } from "@netstamp/ui";
 import FaqSection from "./homepage/FaqSection.astro";
 import FinalCtaSection from "./homepage/FinalCtaSection.astro";
 import HeroSection from "./homepage/HeroSection.astro";
@@ -16,6 +17,7 @@ import ScrollFlowSection from "./homepage/ScrollFlowSection.astro";
 		<FinalCtaSection />
 		<FaqSection />
 	</main>
+	<GlobalFooter className="homepageFooter" />
 
 	<script>
 		import "../../scripts/homepageRedesign";
@@ -51,6 +53,16 @@ import ScrollFlowSection from "./homepage/ScrollFlowSection.astro";
 			--home-orange-soft: #fff1e7;
 			--home-green: #168a45;
 			--home-red: #c9362c;
+			--ns-bg: #f4f5f7;
+			--ns-bg-section: #ffffff;
+			--ns-bg-subtle: #edeff3;
+			--ns-surface: #ffffff;
+			--ns-text: #172033;
+			--ns-text-muted: #405168;
+			--ns-text-low: #8793a3;
+			--ns-primary: #ea6a1a;
+			--ns-primary-hover: #d85a0f;
+			--ns-border-faint: #e7e9ee;
 			overflow: clip;
 			color: var(--home-ink);
 			background: var(--home-white);
@@ -68,6 +80,10 @@ import ScrollFlowSection from "./homepage/ScrollFlowSection.astro";
 
 		.homepage main {
 			overflow: clip;
+		}
+
+		.homepage .homepageFooter {
+			background: var(--home-white);
 		}
 
 		.homepage section[id] {

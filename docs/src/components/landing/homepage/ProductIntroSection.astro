@@ -3,23 +3,23 @@
 		Netstamp is an open-source, self-hosted network observability app helps measuring
 		<span class="intro-mark" data-intro-highlight>
 			<span class="intro-mark-base">latency</span>
-			<span class="intro-mark-fill" aria-hidden="true"><span class="intro-icon"><ph-pulse size="44" weight="bold"></ph-pulse></span><span>latency</span></span>
+			<span class="intro-mark-fill" aria-hidden="true"><span class="intro-icon"><ph-pulse weight="regular"></ph-pulse></span><span>latency</span></span>
 		</span>,
 		<span class="intro-mark" data-intro-highlight>
 			<span class="intro-mark-base">packet loss</span>
-			<span class="intro-mark-fill" aria-hidden="true"><span class="intro-icon"><ph-warning size="44" weight="bold"></ph-warning></span><span>packet loss</span></span>
+			<span class="intro-mark-fill" aria-hidden="true"><span class="intro-icon"><ph-warning weight="regular"></ph-warning></span><span>packet loss</span></span>
 		</span>,
 		<span class="intro-mark" data-intro-highlight>
 			<span class="intro-mark-base">routes</span>
-			<span class="intro-mark-fill" aria-hidden="true"><span class="intro-icon"><ph-git-branch size="44" weight="bold"></ph-git-branch></span><span>routes</span></span>
+			<span class="intro-mark-fill" aria-hidden="true"><span class="intro-icon"><ph-git-branch weight="regular"></ph-git-branch></span><span>routes</span></span>
 		</span>,
 		<span class="intro-mark" data-intro-highlight>
 			<span class="intro-mark-base">uptime</span>
-			<span class="intro-mark-fill" aria-hidden="true"><span class="intro-icon"><ph-check-circle size="44" weight="bold"></ph-check-circle></span><span>uptime</span></span>
+			<span class="intro-mark-fill" aria-hidden="true"><span class="intro-icon"><ph-check-circle weight="regular"></ph-check-circle></span><span>uptime</span></span>
 		</span>,
 		<span class="intro-mark" data-intro-highlight>
 			<span class="intro-mark-base">certificates</span>
-			<span class="intro-mark-fill" aria-hidden="true"><span class="intro-icon"><ph-shield-check size="44" weight="bold"></ph-shield-check></span><span>certificates</span></span>
+			<span class="intro-mark-fill" aria-hidden="true"><span class="intro-icon"><ph-shield-check weight="regular"></ph-shield-check></span><span>certificates</span></span>
 		</span>, and incidents from the viewpoints that matter.
 	</p>
 </section>
@@ -28,8 +28,7 @@
 	.intro {
 		display: grid;
 		align-items: center;
-		min-height: 112svh;
-		padding: 9rem clamp(1rem, 5vw, 5rem);
+		padding: 0 clamp(1rem, 5vw, 5rem) 14svh;
 		background: #ffffff;
 		color: #000000;
 	}
@@ -38,18 +37,18 @@
 		max-width: 108rem;
 		margin: 0 auto;
 		font-family: "TASAExplorer", "TASA Explorer", "Inter", system-ui, sans-serif;
-		font-size: 3.15rem;
+		font-size: 3rem;
 		font-weight: 300;
 		letter-spacing: 0;
-		line-height: 1.05;
+		line-height: 1.03;
 	}
 
 	.intro-mark {
 		--highlight-clip: 0%;
+		--intro-highlight-height: 1em;
 		position: relative;
-		display: inline-flex;
-		align-items: baseline;
-		vertical-align: baseline;
+		display: inline-block;
+		vertical-align: -0.17em;
 		white-space: nowrap;
 	}
 
@@ -57,8 +56,10 @@
 	.intro-mark-fill {
 		display: inline-flex;
 		align-items: center;
-		gap: 0.13em;
-		padding: 0.02em 0.16em 0.08em 0.08em;
+		gap: 0;
+		padding: 0;
+		height: var(--intro-highlight-height);
+		line-height: 1;
 	}
 
 	.intro-mark-base {
@@ -69,15 +70,14 @@
 		content: "";
 		display: block;
 		flex: 0 0 auto;
-		width: 0.82em;
-		height: 0.82em;
+		width: var(--intro-highlight-height);
+		height: var(--intro-highlight-height);
 	}
 
 	.intro-mark-fill {
 		position: absolute;
 		inset: 0;
 		overflow: hidden;
-		background: #000000;
 		color: #ffffff;
 		clip-path: inset(0 var(--highlight-clip) 0 0);
 		will-change: clip-path;
@@ -87,10 +87,18 @@
 		display: grid;
 		flex: 0 0 auto;
 		place-items: center;
-		width: 0.82em;
-		height: 0.82em;
+		width: var(--intro-highlight-height);
+		height: var(--intro-highlight-height);
 		color: #ffffff;
 		background: var(--home-orange-hot);
+	}
+
+	.intro-mark-fill > span:last-child {
+		display: inline-flex;
+		align-items: center;
+		height: var(--intro-highlight-height);
+		background: #000000;
+		line-height: 1;
 	}
 
 	.intro-icon :global(.icon),
@@ -99,36 +107,32 @@
 	.intro-icon :global(ph-git-branch),
 	.intro-icon :global(ph-check-circle),
 	.intro-icon :global(ph-shield-check) {
-		width: 0.48em;
-		height: 0.48em;
+		width: 0.55em;
+		height: 0.55em;
 	}
 
 	@media (min-width: 48rem) {
 		.intro-copy {
-			font-size: 5.15rem;
+			font-size: 4.4rem;
+			line-height: 1.04;
 		}
 	}
 
 	@media (min-width: 76rem) {
 		.intro-copy {
-			font-size: 7.15rem;
+			font-size: 5.45rem;
 		}
 	}
 
 	@media (min-width: 96rem) {
 		.intro-copy {
-			font-size: 8.25rem;
+			font-size: 6.25rem;
 		}
 	}
 
 	@media (max-width: 38rem) {
-		.intro {
-			min-height: auto;
-			padding: 6rem 1rem;
-		}
-
 		.intro-copy {
-			font-size: 2.72rem;
+			font-size: 2.65rem;
 			line-height: 1.08;
 		}
 	}
