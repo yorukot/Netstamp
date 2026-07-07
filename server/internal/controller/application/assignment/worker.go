@@ -5,6 +5,8 @@ import (
 	"errors"
 	"time"
 
+	"go.uber.org/zap"
+
 	domainassignment "github.com/yorukot/netstamp/internal/domain/assignment"
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
 	domainlabel "github.com/yorukot/netstamp/internal/domain/label"
@@ -18,6 +20,7 @@ type WorkerConfig struct {
 	BatchSize     int32
 	StaleTimeout  time.Duration
 	RetryBackoffs []time.Duration
+	Log           *zap.Logger
 }
 
 type Worker struct {
@@ -25,6 +28,7 @@ type Worker struct {
 	refresher RefreshRunner
 	cfg       WorkerConfig
 	now       func() time.Time
+	log       *zap.Logger
 }
 
 type RefreshJobRepository interface {
@@ -57,6 +61,10 @@ func NewWorker(repo RefreshJobRepository, cfg WorkerConfig, refreshers ...Refres
 	if len(cfg.RetryBackoffs) == 0 {
 		cfg.RetryBackoffs = []time.Duration{30 * time.Second, 2 * time.Minute, 5 * time.Minute, 15 * time.Minute}
 	}
+	log := cfg.Log
+	if log == nil {
+		log = zap.NewNop()
+	}
 	var refresher RefreshRunner
 	if len(refreshers) > 0 {
 		if service, ok := refreshers[0].(*Service); ok {
@@ -67,7 +75,7 @@ func NewWorker(repo RefreshJobRepository, cfg WorkerConfig, refreshers ...Refres
 	} else if runner, ok := repo.(RefreshRunner); ok {
 		refresher = runner
 	}
-	return &Worker{repo: repo, refresher: refresher, cfg: cfg, now: func() time.Time { return time.Now().UTC() }}
+	return &Worker{repo: repo, refresher: refresher, cfg: cfg, now: func() time.Time { return time.Now().UTC() }, log: log}
 }
 
 func (w *Worker) Run(ctx context.Context) error {
@@ -80,6 +88,11 @@ func (w *Worker) Run(ctx context.Context) error {
 
 	for {
 		if err := w.RunOnce(ctx); err != nil {
+			w.log.Error("background_worker_run_failed",
+				zap.String("worker.name", "assignment_refresh"),
+				zap.String("worker.operation", "run_once"),
+				zap.Error(err),
+			)
 			// Keep the worker alive; individual job errors are persisted in the job table.
 			select {
 			case <-ctx.Done():

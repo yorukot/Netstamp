@@ -5,6 +5,8 @@ import (
 	"errors"
 	"time"
 
+	"go.uber.org/zap"
+
 	domainalert "github.com/yorukot/netstamp/internal/domain/alert"
 )
 
@@ -14,6 +16,7 @@ type WorkerConfig struct {
 	BatchSize     int32
 	StaleTimeout  time.Duration
 	RetryBackoffs []time.Duration
+	Log           *zap.Logger
 }
 
 type Worker struct {
@@ -21,6 +24,7 @@ type Worker struct {
 	sender NotificationSender
 	cfg    WorkerConfig
 	now    func() time.Time
+	log    *zap.Logger
 }
 
 func NewWorker(repo Repository, sender NotificationSender, cfg WorkerConfig) *Worker {
@@ -36,7 +40,11 @@ func NewWorker(repo Repository, sender NotificationSender, cfg WorkerConfig) *Wo
 	if len(cfg.RetryBackoffs) == 0 {
 		cfg.RetryBackoffs = []time.Duration{30 * time.Second, 2 * time.Minute, 5 * time.Minute, 15 * time.Minute}
 	}
-	return &Worker{repo: repo, sender: sender, cfg: cfg, now: func() time.Time { return time.Now().UTC() }}
+	log := cfg.Log
+	if log == nil {
+		log = zap.NewNop()
+	}
+	return &Worker{repo: repo, sender: sender, cfg: cfg, now: func() time.Time { return time.Now().UTC() }, log: log}
 }
 
 func (w *Worker) Run(ctx context.Context) error {
@@ -49,6 +57,11 @@ func (w *Worker) Run(ctx context.Context) error {
 
 	for {
 		if err := w.RunOnce(ctx); err != nil {
+			w.log.Error("background_worker_run_failed",
+				zap.String("worker.name", "notification_outbox"),
+				zap.String("worker.operation", "run_once"),
+				zap.Error(err),
+			)
 			// Keep the worker alive; individual job errors are persisted in the outbox.
 			select {
 			case <-ctx.Done():

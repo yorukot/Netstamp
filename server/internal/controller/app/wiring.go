@@ -202,12 +202,14 @@ func buildControllerServices(cfg config.Config, log *zap.Logger, dbPool *pgxpool
 		Interval:     cfg.AssignmentRefresh.WorkerInterval,
 		BatchSize:    cfg.AssignmentRefresh.WorkerBatchSize,
 		StaleTimeout: cfg.AssignmentRefresh.WorkerStaleTimeout,
+		Log:          log,
 	}, appassignment.NewWorkerRefreshRunner(assignmentSvc))
 	notificationWorker := appnotification.NewWorker(alertRepo, notificationSender, appnotification.WorkerConfig{
 		Enabled:      cfg.Alerting.NotificationWorkerEnabled,
 		Interval:     cfg.Alerting.NotificationWorkerInterval,
 		BatchSize:    cfg.Alerting.NotificationWorkerBatchSize,
 		StaleTimeout: cfg.Alerting.NotificationWorkerStaleTimeout,
+		Log:          log,
 	})
 
 	return controllerServices{

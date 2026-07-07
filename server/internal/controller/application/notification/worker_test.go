@@ -6,6 +6,9 @@ import (
 	"testing"
 	"time"
 
+	"go.uber.org/zap"
+	"go.uber.org/zap/zaptest/observer"
+
 	domainalert "github.com/yorukot/netstamp/internal/domain/alert"
 )
 
@@ -149,6 +152,34 @@ func TestDisabledWorkerWaitsForContextAndReturnsNil(t *testing.T) {
 	}
 }
 
+func TestNotificationWorkerLogsRunOnceErrors(t *testing.T) {
+	core, logs := observer.New(zap.ErrorLevel)
+	worker := NewWorker(&recordingRepository{claimErr: errors.New("claim failed")}, nil, WorkerConfig{
+		Enabled:  true,
+		Interval: time.Hour,
+		Log:      zap.New(core),
+	})
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	done := make(chan error, 1)
+
+	go func() {
+		done <- worker.Run(ctx)
+	}()
+
+	waitForObservedLog(t, logs, "notification_outbox")
+	cancel()
+
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("expected worker to keep run errors internal, got %v", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("expected worker to stop after context cancellation")
+	}
+}
+
 func newTestWorker(repo Repository, sender NotificationSender, now time.Time) *Worker {
 	worker := NewWorker(repo, sender, WorkerConfig{
 		Enabled:       true,
@@ -196,6 +227,26 @@ func assertResultDetails(t *testing.T, repo *recordingRepository, kind, code, me
 
 	if repo.kind != kind || repo.code != code || repo.message != message {
 		t.Fatalf("unexpected result details: kind=%q code=%q message=%q", repo.kind, repo.code, repo.message)
+	}
+}
+
+func waitForObservedLog(t *testing.T, logs *observer.ObservedLogs, workerName string) {
+	t.Helper()
+
+	deadline := time.After(time.Second)
+	tick := time.NewTicker(time.Millisecond)
+	defer tick.Stop()
+	for {
+		for _, entry := range logs.All() {
+			if entry.Message == "background_worker_run_failed" && entry.ContextMap()["worker.name"] == workerName {
+				return
+			}
+		}
+		select {
+		case <-deadline:
+			t.Fatalf("expected background worker error log for %q, got %#v", workerName, logs.All())
+		case <-tick.C:
+		}
 	}
 }
 
