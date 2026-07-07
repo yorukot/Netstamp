@@ -1,0 +1,135 @@
+<section id="product-intro" class="intro" data-scroll-progress="intro" aria-label="Netstamp product introduction">
+	<p class="intro-copy">
+		Netstamp is an open-source, self-hosted network observability app helps measuring
+		<span class="intro-mark" data-intro-highlight>
+			<span class="intro-mark-base">latency</span>
+			<span class="intro-mark-fill" aria-hidden="true"><span class="intro-icon"><ph-pulse size="44" weight="bold"></ph-pulse></span><span>latency</span></span>
+		</span>,
+		<span class="intro-mark" data-intro-highlight>
+			<span class="intro-mark-base">packet loss</span>
+			<span class="intro-mark-fill" aria-hidden="true"><span class="intro-icon"><ph-warning size="44" weight="bold"></ph-warning></span><span>packet loss</span></span>
+		</span>,
+		<span class="intro-mark" data-intro-highlight>
+			<span class="intro-mark-base">routes</span>
+			<span class="intro-mark-fill" aria-hidden="true"><span class="intro-icon"><ph-git-branch size="44" weight="bold"></ph-git-branch></span><span>routes</span></span>
+		</span>,
+		<span class="intro-mark" data-intro-highlight>
+			<span class="intro-mark-base">uptime</span>
+			<span class="intro-mark-fill" aria-hidden="true"><span class="intro-icon"><ph-check-circle size="44" weight="bold"></ph-check-circle></span><span>uptime</span></span>
+		</span>,
+		<span class="intro-mark" data-intro-highlight>
+			<span class="intro-mark-base">certificates</span>
+			<span class="intro-mark-fill" aria-hidden="true"><span class="intro-icon"><ph-shield-check size="44" weight="bold"></ph-shield-check></span><span>certificates</span></span>
+		</span>, and incidents from the viewpoints that matter.
+	</p>
+</section>
+
+<style>
+	.intro {
+		display: grid;
+		align-items: center;
+		min-height: 112svh;
+		padding: 9rem clamp(1rem, 5vw, 5rem);
+		background: #ffffff;
+		color: #000000;
+	}
+
+	.intro-copy {
+		max-width: 108rem;
+		margin: 0 auto;
+		font-family: "TASAExplorer", "TASA Explorer", "Inter", system-ui, sans-serif;
+		font-size: 3.15rem;
+		font-weight: 300;
+		letter-spacing: 0;
+		line-height: 1.05;
+	}
+
+	.intro-mark {
+		--highlight-clip: 0%;
+		position: relative;
+		display: inline-flex;
+		align-items: baseline;
+		vertical-align: baseline;
+		white-space: nowrap;
+	}
+
+	.intro-mark-base,
+	.intro-mark-fill {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.13em;
+		padding: 0.02em 0.16em 0.08em 0.08em;
+	}
+
+	.intro-mark-base {
+		color: #000000;
+	}
+
+	.intro-mark-base::before {
+		content: "";
+		display: block;
+		flex: 0 0 auto;
+		width: 0.82em;
+		height: 0.82em;
+	}
+
+	.intro-mark-fill {
+		position: absolute;
+		inset: 0;
+		overflow: hidden;
+		background: #000000;
+		color: #ffffff;
+		clip-path: inset(0 var(--highlight-clip) 0 0);
+		will-change: clip-path;
+	}
+
+	.intro-icon {
+		display: grid;
+		flex: 0 0 auto;
+		place-items: center;
+		width: 0.82em;
+		height: 0.82em;
+		color: #ffffff;
+		background: var(--home-orange-hot);
+	}
+
+	.intro-icon :global(.icon),
+	.intro-icon :global(ph-pulse),
+	.intro-icon :global(ph-warning),
+	.intro-icon :global(ph-git-branch),
+	.intro-icon :global(ph-check-circle),
+	.intro-icon :global(ph-shield-check) {
+		width: 0.48em;
+		height: 0.48em;
+	}
+
+	@media (min-width: 48rem) {
+		.intro-copy {
+			font-size: 5.15rem;
+		}
+	}
+
+	@media (min-width: 76rem) {
+		.intro-copy {
+			font-size: 7.15rem;
+		}
+	}
+
+	@media (min-width: 96rem) {
+		.intro-copy {
+			font-size: 8.25rem;
+		}
+	}
+
+	@media (max-width: 38rem) {
+		.intro {
+			min-height: auto;
+			padding: 6rem 1rem;
+		}
+
+		.intro-copy {
+			font-size: 2.72rem;
+			line-height: 1.08;
+		}
+	}
+</style>

@@ -1,18 +1,182 @@
-<section class="faq section-light" aria-labelledby="faq-title">
-	<div class="section-intro">
-		<p class="section-kicker"><span class="marker"></span> FAQ</p>
-		<h2 id="faq-title">Questions before you deploy.</h2>
-	</div>
-	<div class="faq-grid">
-		<details open><summary>What is Netstamp?</summary><p>Netstamp is open-source, self-hosted network observability from probes you control.</p></details>
-		<details>
-			<summary>How is this different from normal uptime monitoring?</summary><p>Normal uptime monitoring checks from someone else's cloud. Netstamp measures from the networks you choose.</p>
-		</details>
-		<details><summary>What checks does Netstamp support?</summary><p>HTTP uptime, DNS, ping, TCP connect, and traceroute checks from controlled probes.</p></details>
-		<details><summary>Can I publish a public status page?</summary><p>Yes. Netstamp can turn assignment groups, measurements, and incidents into public operational state.</p></details>
-		<details><summary>Can I automate it with an API?</summary><p>Yes. The controller exposes a generated OpenAPI contract for integrations and request-console workflows.</p></details>
-		<details>
-			<summary>What do I need to self-host it?</summary><p>A controller deployment, PostgreSQL/TimescaleDB-backed history, and probe agents installed where you need viewpoints.</p>
-		</details>
+---
+const faqs = [
+	{
+		question: "Is Netstamp just another uptime monitor?",
+		answer:
+			"No. Uptime is only one layer. Netstamp combines real-world probes, ping, TCP reachability, traceroute, HTTP uptime, TLS certificate checks, packet loss, latency, probe health, incidents, dashboards, and historical measurements so you can understand how a service behaves from different networks."
+	},
+	{
+		question: "Why do I need probes I control?",
+		answer:
+			"Because third-party cloud checks cannot see every network that matters to you. A service may be reachable from a public monitoring region but degraded from your office, lab, ISP, edge node, private network, or user-facing environment. Netstamp gives you visibility from those real viewpoints."
+	},
+	{
+		question: "Can I self-host Netstamp?",
+		answer:
+			"Yes. Netstamp is open-source and designed for self-hosted deployments with a controller, lightweight probes, PostgreSQL, TimescaleDB, health checks, metrics, OpenAPI, and production deployment documentation."
+	},
+	{
+		question: "What can Netstamp monitor?",
+		answer:
+			"Netstamp supports real-world network checks such as ping, TCP, traceroute, HTTP uptime, API payload checks, and TLS/SSL certificate monitoring. It also tracks probe health, latest measurements, incidents, dashboards, and historical trends."
+	},
+	{
+		question: "Who is Netstamp for?",
+		answer:
+			"Netstamp is for developers, infrastructure teams, homelab users, SREs, network operators, researchers, and teams that need to observe services from machines, regions, ISPs, labs, edge nodes, private infrastructure, or real user-facing networks they control."
+	},
+	{
+		question: "How does Netstamp help with debugging?",
+		answer:
+			"Netstamp helps you separate global outages from regional, provider-specific, probe-specific, target-specific, and route-specific problems. Historical measurements make it easier to see what changed, where it changed, and when it started."
+	}
+];
+---
+
+<section id="faq" class="faq" aria-labelledby="faq-title">
+	<h2 id="faq-title">FAQ</h2>
+	<div class="faq-list">
+		{
+			faqs.map((faq, index) => (
+				<details class="faq-item" open={index === 0}>
+					<summary>
+						<span>{faq.question}</span>
+						<span class="faq-toggle" aria-hidden="true" />
+					</summary>
+					<p>{faq.answer}</p>
+				</details>
+			))
+		}
 	</div>
 </section>
+
+<style>
+	.faq {
+		padding: 7.5rem clamp(1rem, 4vw, 4rem) 8rem;
+		background: #f5f6f8;
+		color: #000000;
+	}
+
+	h2 {
+		max-width: 78rem;
+		margin: 0 auto 2.5rem;
+		font-family: "TASAExplorer", "TASA Explorer", "Inter", system-ui, sans-serif;
+		font-size: 4.6rem;
+		font-weight: 300;
+		letter-spacing: 0;
+		line-height: 1;
+	}
+
+	.faq-list {
+		max-width: 78rem;
+		margin: 0 auto;
+		border-top: 2px dotted #a8b2c2;
+	}
+
+	.faq-item {
+		border-bottom: 2px dotted #a8b2c2;
+	}
+
+	summary {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto;
+		align-items: center;
+		gap: 1.5rem;
+		min-height: 7rem;
+		padding: 1.4rem 0;
+		cursor: pointer;
+		list-style: none;
+	}
+
+	summary::-webkit-details-marker {
+		display: none;
+	}
+
+	summary > span:first-child {
+		font-family: "TASAExplorer", "TASA Explorer", "Inter", system-ui, sans-serif;
+		font-size: 3.1rem;
+		font-weight: 300;
+		letter-spacing: 0;
+		line-height: 1.05;
+	}
+
+	.faq-toggle {
+		position: relative;
+		display: grid;
+		place-items: center;
+		width: 4rem;
+		height: 4rem;
+		background: var(--home-orange-hot);
+	}
+
+	.faq-toggle::before,
+	.faq-toggle::after {
+		content: "";
+		position: absolute;
+		width: 1.65rem;
+		height: 0.18rem;
+		background: #ffffff;
+	}
+
+	.faq-toggle::after {
+		transform: rotate(90deg);
+		transition: transform 160ms ease;
+	}
+
+	.faq-item[open] .faq-toggle::after {
+		transform: rotate(0deg);
+	}
+
+	p {
+		max-width: 58rem;
+		margin: -0.5rem 0 2rem;
+		color: #405168;
+		font-size: 1.05rem;
+		line-height: 1.65;
+	}
+
+	@media (min-width: 86rem) {
+		h2 {
+			font-size: 5.6rem;
+		}
+
+		summary > span:first-child {
+			font-size: 4.1rem;
+		}
+	}
+
+	@media (max-width: 52rem) {
+		h2 {
+			font-size: 3.2rem;
+		}
+
+		summary {
+			min-height: 5.5rem;
+			gap: 1rem;
+		}
+
+		summary > span:first-child {
+			font-size: 2.1rem;
+		}
+
+		.faq-toggle {
+			width: 3.25rem;
+			height: 3.25rem;
+		}
+	}
+
+	@media (max-width: 36rem) {
+		.faq {
+			padding: 5.5rem 1rem 6rem;
+		}
+
+		summary > span:first-child {
+			font-size: 1.7rem;
+		}
+
+		.faq-toggle {
+			width: 2.75rem;
+			height: 2.75rem;
+		}
+	}
+</style>

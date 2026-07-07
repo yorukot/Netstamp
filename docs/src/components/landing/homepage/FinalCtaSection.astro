@@ -1,8 +1,133 @@
-<section class="final-cta section-dark" aria-labelledby="final-title">
-	<p class="section-kicker dark"><span class="marker"></span> Run measurements from networks you own</p>
-	<h2 id="final-title">Deploy the controller, register probes, and start collecting evidence about the paths your traffic actually takes.</h2>
+<section id="final-cta" class="final-cta" data-scroll-progress="cta" aria-label="Get started with Netstamp">
+	<span class="sr-only">Get started with Netstamp</span>
+	<svg class="cta-network" viewBox="0 0 1200 520" aria-hidden="true">
+		<path class="route route-dim" d="M82 360 C214 126 360 406 498 226 S790 88 1110 238"></path>
+		<path class="route route-hot" d="M82 360 C214 126 360 406 498 226 S790 88 1110 238"></path>
+		<g class="node-cloud">
+			<circle cx="82" cy="360" r="7"></circle>
+			<circle cx="184" cy="198" r="5"></circle>
+			<circle cx="322" cy="330" r="5"></circle>
+			<circle cx="498" cy="226" r="8"></circle>
+			<circle cx="658" cy="158" r="5"></circle>
+			<circle cx="812" cy="108" r="6"></circle>
+			<circle cx="962" cy="172" r="5"></circle>
+			<circle cx="1110" cy="238" r="10"></circle>
+		</g>
+		<g class="node-field">
+			<circle cx="138" cy="438" r="3"></circle>
+			<circle cx="238" cy="86" r="3"></circle>
+			<circle cx="436" cy="396" r="3"></circle>
+			<circle cx="586" cy="92" r="3"></circle>
+			<circle cx="728" cy="314" r="3"></circle>
+			<circle cx="884" cy="398" r="3"></circle>
+			<circle cx="1032" cy="92" r="3"></circle>
+		</g>
+	</svg>
 	<div class="cta-row">
-		<a href="/docs/guides/getting-started/" class="btn btn-primary">Deploy Netstamp</a>
-		<a href="/docs/" class="btn btn-outline">Read the docs</a>
+		<a href="/docs/guides/getting-started/" class="btn btn-primary">Get Started</a>
+		<a href="https://github.com/yorukot/netstamp" class="btn btn-outline" target="_blank" rel="noreferrer">View on GitHub</a>
 	</div>
 </section>
+
+<style>
+	.final-cta {
+		position: relative;
+		display: grid;
+		place-items: center;
+		min-height: 88svh;
+		padding: 7rem 1rem;
+		overflow: hidden;
+		isolation: isolate;
+		background: #000000;
+	}
+
+	.final-cta::before {
+		content: "";
+		position: absolute;
+		inset: 0;
+		z-index: -2;
+		background: linear-gradient(180deg, rgba(0, 0, 0, 0), rgba(234, 106, 26, 0.08) 62%, rgba(0, 0, 0, 0)), #000000;
+	}
+
+	.cta-network {
+		position: absolute;
+		inset: 50% auto auto 50%;
+		z-index: -1;
+		width: min(104rem, 132vw);
+		height: auto;
+		transform: translate(-50%, -50%);
+		opacity: 0.92;
+	}
+
+	.route {
+		fill: none;
+		stroke-linecap: square;
+		stroke-width: 3;
+		vector-effect: non-scaling-stroke;
+	}
+
+	.route-dim {
+		stroke: rgba(255, 255, 255, 0.14);
+	}
+
+	.route-hot {
+		stroke: var(--home-orange-hot);
+		stroke-dasharray: 1100;
+		stroke-dashoffset: var(--route-offset, 0);
+		filter: drop-shadow(0 0 12px rgba(249, 115, 22, 0.75));
+		transition: stroke-dashoffset 120ms linear;
+	}
+
+	circle {
+		fill: rgba(255, 255, 255, 0.72);
+	}
+
+	.node-cloud circle {
+		fill: #ffffff;
+		stroke: var(--home-orange-hot);
+		stroke-width: 2;
+		transform-box: fill-box;
+		transform-origin: center;
+		animation: gather 2200ms ease-in-out infinite alternate;
+	}
+
+	.node-cloud circle:nth-child(2n) {
+		animation-delay: -620ms;
+	}
+
+	.node-cloud circle:nth-child(3n) {
+		animation-delay: -1120ms;
+	}
+
+	.node-field circle {
+		fill: rgba(255, 255, 255, 0.25);
+	}
+
+	.final-cta :global(.cta-row) {
+		position: relative;
+		z-index: 2;
+	}
+
+	@keyframes gather {
+		from {
+			transform: translate(0, 0) scale(0.86);
+			opacity: 0.54;
+		}
+
+		to {
+			transform: translate(0, 0) scale(1.08);
+			opacity: 1;
+		}
+	}
+
+	@media (max-width: 38rem) {
+		.final-cta {
+			min-height: 72svh;
+			padding: 5rem 1rem;
+		}
+
+		.cta-network {
+			width: 210vw;
+		}
+	}
+</style>

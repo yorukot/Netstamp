@@ -24,7 +24,7 @@ function initHomepage() {
 	const cleanupTasks = [];
 	initRouteField(root, cleanupTasks);
 	initCable(root, cleanupTasks);
-	initEvidenceHover(root, cleanupTasks);
+	initHomepageScrollEffects(root, cleanupTasks);
 
 	window[cleanupKey] = () => {
 		while (cleanupTasks.length) {
@@ -818,32 +818,65 @@ function initCable(root, cleanupTasks) {
 	});
 }
 
-function initEvidenceHover(root, cleanupTasks) {
-	const service = root.querySelector(".service-target");
-	const serviceTitle = service?.querySelector("p");
-	const serviceStatus = service?.querySelector("strong");
-	const serviceMeta = service?.querySelector("span");
-	const evidenceButtons = root.querySelectorAll("[data-panel]");
+function initHomepageScrollEffects(root, cleanupTasks) {
 	const controller = new AbortController();
+	const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+	const progressSections = Array.from(root.querySelectorAll("[data-scroll-progress]")).filter(element => element instanceof HTMLElement);
+	const introHighlights = Array.from(root.querySelectorAll("[data-intro-highlight]")).filter(element => element instanceof HTMLElement);
+	const flowCards = Array.from(root.querySelectorAll("[data-flow-card]")).filter(element => element instanceof HTMLElement);
+	let raf = null;
 
-	if (!(serviceTitle instanceof HTMLElement) || !(serviceStatus instanceof HTMLElement) || !(serviceMeta instanceof HTMLElement)) return;
-
-	for (const button of evidenceButtons) {
-		button.addEventListener(
-			"pointerenter",
-			() => {
-				const [title, status, meta] = button.getAttribute("data-panel")?.split("|") ?? [];
-				if (!title || !status || !meta) return;
-
-				serviceTitle.textContent = title;
-				serviceStatus.textContent = status;
-				serviceMeta.textContent = meta;
-			},
-			{ signal: controller.signal }
-		);
+	function elementProgress(element, startRatio = 0.82, endRatio = 0.22) {
+		const rect = element.getBoundingClientRect();
+		const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 1;
+		const start = viewportHeight * startRatio;
+		const end = viewportHeight * endRatio;
+		const travel = start - end + rect.height * 0.3;
+		return clampNumber((start - rect.top) / travel, 0, 1);
 	}
 
-	cleanupTasks.push(() => controller.abort());
+	function update() {
+		for (const section of progressSections) {
+			const progress = reduceMotion ? 1 : elementProgress(section);
+			section.style.setProperty("--section-progress", progress.toFixed(4));
+			section.style.setProperty("--section-progress-percent", `${(progress * 100).toFixed(2)}%`);
+			if (section.dataset.scrollProgress === "cta") {
+				section.style.setProperty("--route-offset", ((1 - progress) * 1100).toFixed(2));
+			}
+		}
+
+		const introSection = root.querySelector('[data-scroll-progress="intro"]');
+		const introProgress = introSection instanceof HTMLElement ? (reduceMotion ? 1 : elementProgress(introSection, 0.78, 0.2)) : 1;
+		for (let index = 0; index < introHighlights.length; index++) {
+			const localProgress = reduceMotion ? 1 : clampNumber((introProgress - index * 0.075) / 0.54, 0, 1);
+			introHighlights[index].style.setProperty("--highlight-clip", `${((1 - localProgress) * 100).toFixed(2)}%`);
+		}
+
+		for (const card of flowCards) {
+			const cardProgress = reduceMotion ? 1 : elementProgress(card, 0.78, 0.38);
+			card.style.setProperty("--card-progress", cardProgress.toFixed(4));
+			card.style.setProperty("--card-height", `${(16 * cardProgress).toFixed(2)}rem`);
+			card.style.setProperty("--card-shift", `${((1 - cardProgress) * -0.8).toFixed(2)}rem`);
+			card.classList.toggle("is-open", cardProgress > 0.42);
+		}
+	}
+
+	function scheduleUpdate() {
+		if (raf !== null) return;
+		raf = window.requestAnimationFrame(() => {
+			raf = null;
+			update();
+		});
+	}
+
+	window.addEventListener("scroll", scheduleUpdate, { passive: true, signal: controller.signal });
+	window.addEventListener("resize", scheduleUpdate, { signal: controller.signal });
+	update();
+
+	cleanupTasks.push(() => {
+		controller.abort();
+		if (raf !== null) window.cancelAnimationFrame(raf);
+	});
 }
 
 if (!window[eventsBoundKey]) {
