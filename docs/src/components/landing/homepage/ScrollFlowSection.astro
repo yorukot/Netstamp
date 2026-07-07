@@ -115,6 +115,8 @@ const steps = [
 	}
 
 	.flow-list {
+		--flow-connector-y: 2.75rem;
+		--flow-dot-size: 1.05rem;
 		position: relative;
 		display: grid;
 		gap: 5.5rem;
@@ -168,9 +170,9 @@ const steps = [
 		z-index: 2;
 		grid-column: 2;
 		justify-self: center;
-		width: 1.05rem;
-		height: 1.05rem;
-		margin-top: 4.25rem;
+		width: var(--flow-dot-size);
+		height: var(--flow-dot-size);
+		margin-top: calc(var(--flow-connector-y) - var(--flow-dot-size) / 2);
 		border: 2px solid #ffffff;
 		background: #ffffff;
 		box-shadow: 0 0 0 0.45rem #000000;
@@ -195,7 +197,7 @@ const steps = [
 	.flow-card::before {
 		content: "";
 		position: absolute;
-		top: 4.25rem;
+		top: var(--flow-connector-y);
 		width: 4.5rem;
 		height: 1px;
 		background: var(--home-line-dark);
@@ -341,7 +343,6 @@ const steps = [
 
 		.flow-step::before {
 			grid-column: 1;
-			margin-top: 3.3rem;
 		}
 
 		.flow-card,
