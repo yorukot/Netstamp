@@ -25,6 +25,14 @@ type PasswordResetRepository interface {
 	MarkPasswordResetTokenUsed(ctx context.Context, tokenID string, usedAt time.Time) error
 }
 
+type EmailVerificationRepository interface {
+	CreateEmailVerificationToken(ctx context.Context, input identity.EmailVerificationToken) (identity.EmailVerificationToken, error)
+	InvalidateActiveEmailVerificationTokens(ctx context.Context, userID string, usedAt time.Time) error
+	GetActiveEmailVerificationTokenByHash(ctx context.Context, tokenHash string, now time.Time) (identity.EmailVerificationToken, error)
+	MarkEmailVerificationTokenUsed(ctx context.Context, tokenID string, usedAt time.Time) error
+	MarkUserEmailVerified(ctx context.Context, userID string, verifiedAt time.Time) (identity.User, error)
+}
+
 type PasswordHasher interface {
 	Hash(ctx context.Context, password string) (string, error)
 	Compare(ctx context.Context, password, passwordHash string) error
@@ -43,8 +51,17 @@ type PasswordResetTokenManager interface {
 	Hash(value string) string
 }
 
+type EmailVerificationTokenManager interface {
+	Generate(ctx context.Context) (string, error)
+	Hash(value string) string
+}
+
 type PasswordResetMailer interface {
 	SendPasswordReset(ctx context.Context, input identity.PasswordResetEmail) error
+}
+
+type EmailVerificationMailer interface {
+	SendEmailVerification(ctx context.Context, input identity.EmailVerificationEmail) error
 }
 
 // SecurityEventRecorder records security-relevant auth events.
@@ -55,24 +72,30 @@ type SecurityEventRecorder interface {
 type AuthEventName string
 
 const (
-	AuthEventRegisterSuccess     AuthEventName = "auth.register.success"
-	AuthEventRegisterFailure     AuthEventName = "auth.register.failure"
-	AuthEventLoginSuccess        AuthEventName = "auth.login.success"
-	AuthEventLoginFailure        AuthEventName = "auth.login.failure"
-	AuthEventTokenIssueFailure   AuthEventName = "auth.token.issue.failure" //nolint:gosec // Event names are not credentials.
-	AuthEventResetRequestSuccess AuthEventName = "auth.password_reset.request.success"
-	AuthEventResetRequestFailure AuthEventName = "auth.password_reset.request.failure"
-	AuthEventResetConfirmSuccess AuthEventName = "auth.password_reset.confirm.success"
-	AuthEventResetConfirmFailure AuthEventName = "auth.password_reset.confirm.failure"
+	AuthEventRegisterSuccess                 AuthEventName = "auth.register.success"
+	AuthEventRegisterFailure                 AuthEventName = "auth.register.failure"
+	AuthEventLoginSuccess                    AuthEventName = "auth.login.success"
+	AuthEventLoginFailure                    AuthEventName = "auth.login.failure"
+	AuthEventTokenIssueFailure               AuthEventName = "auth.token.issue.failure" //nolint:gosec // Event names are not credentials.
+	AuthEventResetRequestSuccess             AuthEventName = "auth.password_reset.request.success"
+	AuthEventResetRequestFailure             AuthEventName = "auth.password_reset.request.failure"
+	AuthEventResetConfirmSuccess             AuthEventName = "auth.password_reset.confirm.success"
+	AuthEventResetConfirmFailure             AuthEventName = "auth.password_reset.confirm.failure"
+	AuthEventEmailVerificationRequestSuccess AuthEventName = "auth.email_verification.request.success"
+	AuthEventEmailVerificationRequestFailure AuthEventName = "auth.email_verification.request.failure"
+	AuthEventEmailVerificationConfirmSuccess AuthEventName = "auth.email_verification.confirm.success"
+	AuthEventEmailVerificationConfirmFailure AuthEventName = "auth.email_verification.confirm.failure"
 )
 
 type AuthEventAction string
 
 const (
-	AuthActionRegister     AuthEventAction = "register"
-	AuthActionLogin        AuthEventAction = "login"
-	AuthActionResetRequest AuthEventAction = "password_reset.request"
-	AuthActionResetConfirm AuthEventAction = "password_reset.confirm"
+	AuthActionRegister                 AuthEventAction = "register"
+	AuthActionLogin                    AuthEventAction = "login"
+	AuthActionResetRequest             AuthEventAction = "password_reset.request"
+	AuthActionResetConfirm             AuthEventAction = "password_reset.confirm"
+	AuthActionEmailVerificationRequest AuthEventAction = "email_verification.request"
+	AuthActionEmailVerificationConfirm AuthEventAction = "email_verification.confirm"
 )
 
 type AuthEventOutcome string
@@ -85,19 +108,26 @@ const (
 type AuthEventReason string
 
 const (
-	AuthReasonCredentialsInvalid     AuthEventReason = "credentials_invalid"
-	AuthReasonEmailAlreadyExists     AuthEventReason = "email_already_exists"
-	AuthReasonInvalidInput           AuthEventReason = "invalid_input"
-	AuthReasonPasswordHashFailed     AuthEventReason = "password_hash_failed"
-	AuthReasonResetMailerFailed      AuthEventReason = "password_reset_mail_failed"
-	AuthReasonResetTokenCreateFail   AuthEventReason = "password_reset_token_create_failed"
-	AuthReasonResetTokenGenerateFail AuthEventReason = "password_reset_token_generate_failed"
-	AuthReasonResetTokenInvalid      AuthEventReason = "password_reset_token_invalid"
-	AuthReasonResetUnavailable       AuthEventReason = "password_reset_unavailable"
-	AuthReasonPasswordResetFailed    AuthEventReason = "password_reset_failed"
-	AuthReasonUserCreateFailed       AuthEventReason = "user_create_failed"
-	AuthReasonUserLookupFailed       AuthEventReason = "user_lookup_failed"
-	AuthReasonAccessTokenIssueFail   AuthEventReason = "access_token_issue_failed"
+	AuthReasonCredentialsInvalid                 AuthEventReason = "credentials_invalid"
+	AuthReasonEmailAlreadyExists                 AuthEventReason = "email_already_exists"
+	AuthReasonInvalidInput                       AuthEventReason = "invalid_input"
+	AuthReasonPasswordHashFailed                 AuthEventReason = "password_hash_failed"
+	AuthReasonResetMailerFailed                  AuthEventReason = "password_reset_mail_failed"
+	AuthReasonResetTokenCreateFail               AuthEventReason = "password_reset_token_create_failed"
+	AuthReasonResetTokenGenerateFail             AuthEventReason = "password_reset_token_generate_failed"
+	AuthReasonResetTokenInvalid                  AuthEventReason = "password_reset_token_invalid"
+	AuthReasonResetUnavailable                   AuthEventReason = "password_reset_unavailable"
+	AuthReasonPasswordResetFailed                AuthEventReason = "password_reset_failed"
+	AuthReasonEmailVerificationRequired          AuthEventReason = "email_verification_required"
+	AuthReasonEmailVerificationUnavailable       AuthEventReason = "email_verification_unavailable"
+	AuthReasonEmailVerificationTokenCreateFail   AuthEventReason = "email_verification_token_create_failed"   //nolint:gosec // Event reason names are not credentials.
+	AuthReasonEmailVerificationTokenGenerateFail AuthEventReason = "email_verification_token_generate_failed" //nolint:gosec // Event reason names are not credentials.
+	AuthReasonEmailVerificationTokenInvalid      AuthEventReason = "email_verification_token_invalid"         //nolint:gosec // Event reason names are not credentials.
+	AuthReasonEmailVerificationMailerFailed      AuthEventReason = "email_verification_mail_failed"
+	AuthReasonEmailVerificationFailed            AuthEventReason = "email_verification_failed"
+	AuthReasonUserCreateFailed                   AuthEventReason = "user_create_failed"
+	AuthReasonUserLookupFailed                   AuthEventReason = "user_lookup_failed"
+	AuthReasonAccessTokenIssueFail               AuthEventReason = "access_token_issue_failed"
 )
 
 type AuthEvent struct {

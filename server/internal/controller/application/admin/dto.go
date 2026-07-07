@@ -3,10 +3,11 @@ package admin
 import domainsystem "github.com/yorukot/netstamp/internal/domain/system"
 
 type Settings struct {
-	RegistrationEnabled bool
-	BackendBaseURL      string
-	PublicWebBaseURL    string
-	SMTP                SMTPSettings
+	RegistrationEnabled       bool
+	EmailVerificationRequired bool
+	BackendBaseURL            string
+	PublicWebBaseURL          string
+	SMTP                      SMTPSettings
 }
 
 type SMTPSettings struct {
@@ -21,10 +22,11 @@ type SMTPSettings struct {
 }
 
 type Defaults struct {
-	RegistrationEnabled bool
-	BackendBaseURL      string
-	PublicWebBaseURL    string
-	SMTP                SMTPSettings
+	RegistrationEnabled       bool
+	EmailVerificationRequired bool
+	BackendBaseURL            string
+	PublicWebBaseURL          string
+	SMTP                      SMTPSettings
 }
 
 type GetSettingsInput struct {
@@ -32,11 +34,12 @@ type GetSettingsInput struct {
 }
 
 type UpdateSettingsInput struct {
-	CurrentUserID       string
-	RegistrationEnabled *bool
-	BackendBaseURL      *string
-	PublicWebBaseURL    *string
-	SMTP                UpdateSMTPSettingsInput
+	CurrentUserID             string
+	RegistrationEnabled       *bool
+	EmailVerificationRequired *bool
+	BackendBaseURL            *string
+	PublicWebBaseURL          *string
+	SMTP                      UpdateSMTPSettingsInput
 }
 
 type UpdateSMTPSettingsInput struct {

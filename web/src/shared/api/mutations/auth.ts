@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient, readApiData, readEmptyApiResponse } from "../client";
 import { apiQueryKeys } from "../queryKeys";
-import type { ConfirmPasswordResetInput, CreatePasswordResetInput, LoginInput, RegisterInput } from "../types";
+import type { ConfirmEmailVerificationInput, ConfirmPasswordResetInput, CreateEmailVerificationInput, CreatePasswordResetInput, LoginInput, RegisterInput } from "../types";
 import { requireWritableAccess } from "./shared";
 
 export function loginUser(body: LoginInput) {
@@ -27,6 +27,16 @@ export function confirmPasswordReset(body: ConfirmPasswordResetInput) {
 	return readEmptyApiResponse(apiClient.PATCH("/auth/password-resets", { body }));
 }
 
+export function createEmailVerification(body: CreateEmailVerificationInput) {
+	requireWritableAccess();
+	return readEmptyApiResponse(apiClient.POST("/auth/email-verifications", { body }));
+}
+
+export function confirmEmailVerification(body: ConfirmEmailVerificationInput) {
+	requireWritableAccess();
+	return readEmptyApiResponse(apiClient.PATCH("/auth/email-verifications", { body }));
+}
+
 export function useLoginMutation() {
 	const queryClient = useQueryClient();
 
@@ -45,8 +55,10 @@ export function useRegisterMutation() {
 	return useMutation({
 		mutationFn: registerUser,
 		onSuccess: data => {
-			queryClient.setQueryData(apiQueryKeys.auth.me(), { authenticated: true, user: data.user });
-			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.all });
+			if ("user" in data) {
+				queryClient.setQueryData(apiQueryKeys.auth.me(), { authenticated: true, user: data.user });
+				queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.all });
+			}
 		}
 	});
 }
@@ -60,6 +72,18 @@ export function useCreatePasswordResetMutation() {
 export function useConfirmPasswordResetMutation() {
 	return useMutation({
 		mutationFn: confirmPasswordReset
+	});
+}
+
+export function useCreateEmailVerificationMutation() {
+	return useMutation({
+		mutationFn: createEmailVerification
+	});
+}
+
+export function useConfirmEmailVerificationMutation() {
+	return useMutation({
+		mutationFn: confirmEmailVerification
 	});
 }
 

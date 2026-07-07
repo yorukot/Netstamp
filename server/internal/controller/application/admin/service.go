@@ -67,10 +67,11 @@ func (s *Service) UpdateSettings(ctx context.Context, input UpdateSettingsInput)
 
 func (s *Service) EffectiveSettings(ctx context.Context) (Settings, error) {
 	settings := Settings{
-		RegistrationEnabled: s.defaults.RegistrationEnabled,
-		BackendBaseURL:      s.defaults.BackendBaseURL,
-		PublicWebBaseURL:    s.defaults.PublicWebBaseURL,
-		SMTP:                s.defaults.SMTP,
+		RegistrationEnabled:       s.defaults.RegistrationEnabled,
+		EmailVerificationRequired: s.defaults.EmailVerificationRequired,
+		BackendBaseURL:            s.defaults.BackendBaseURL,
+		PublicWebBaseURL:          s.defaults.PublicWebBaseURL,
+		SMTP:                      s.defaults.SMTP,
 	}
 	values, err := s.storedSettings(ctx)
 	if err != nil {
@@ -78,6 +79,7 @@ func (s *Service) EffectiveSettings(ctx context.Context) (Settings, error) {
 	}
 
 	applyBool(values, keyRegistrationEnabled, &settings.RegistrationEnabled)
+	applyBool(values, keyEmailVerificationRequired, &settings.EmailVerificationRequired)
 	applyString(values, keyBackendBaseURL, &settings.BackendBaseURL)
 	applyString(values, keyPublicWebBaseURL, &settings.PublicWebBaseURL)
 	applyString(values, keySMTPHost, &settings.SMTP.Host)
@@ -166,6 +168,10 @@ func applyUpdate(settings Settings, input UpdateSettingsInput) (Settings, map[st
 	if input.RegistrationEnabled != nil {
 		settings.RegistrationEnabled = *input.RegistrationEnabled
 		changed[keyRegistrationEnabled] = settings.RegistrationEnabled
+	}
+	if input.EmailVerificationRequired != nil {
+		settings.EmailVerificationRequired = *input.EmailVerificationRequired
+		changed[keyEmailVerificationRequired] = settings.EmailVerificationRequired
 	}
 	if value := trimStringPointer(input.BackendBaseURL); value != nil {
 		settings.BackendBaseURL = *value

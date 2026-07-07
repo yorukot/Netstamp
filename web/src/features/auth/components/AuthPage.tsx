@@ -1,8 +1,10 @@
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { pathForRoute } from "@/routes/routePaths";
 import type { Navigate } from "@/routes/routeTypes";
+import { ApiError } from "@/shared/api/client";
+import { useCreateEmailVerificationMutation } from "@/shared/api/mutations";
 import { appFeatures, demoCredentials, demoMode } from "@/shared/config/features";
-import { pushErrorToast } from "@/shared/toast/toastStore";
+import { pushErrorToast, pushToast } from "@/shared/toast/toastStore";
 import { Button, TextField } from "@netstamp/ui";
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
@@ -17,8 +19,10 @@ interface AuthPageProps {
 export function AuthPage({ mode = "login", navigate }: AuthPageProps) {
 	const isRegister = mode === "register";
 	const { submitting, login, register } = useAuth();
+	const createEmailVerification = useCreateEmailVerificationMutation();
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
+	const [verificationEmail, setVerificationEmail] = useState("");
 	const heading = isRegister ? "Sign Up" : "Login";
 	const showDemoCredentials = demoMode && Boolean(demoCredentials);
 
@@ -52,10 +56,19 @@ export function AuthPage({ mode = "login", navigate }: AuthPageProps) {
 			}
 
 			try {
-				await register({
+				const result = await register({
 					...payload,
 					displayName: String(formData.get("displayName") || "")
 				});
+				if (result.emailVerificationRequired) {
+					pushToast({
+						title: "Verify your email",
+						message: "We sent a verification link before you can log in.",
+						tone: "success"
+					});
+					navigate("login");
+					return;
+				}
 				navigate("onboarding");
 			} catch {
 				return;
@@ -66,6 +79,28 @@ export function AuthPage({ mode = "login", navigate }: AuthPageProps) {
 		try {
 			await login(payload);
 			navigate("dashboard");
+		} catch (error) {
+			if (error instanceof ApiError && error.status === 403) {
+				setVerificationEmail(email);
+			}
+			return;
+		}
+	}
+
+	async function handleResendVerification() {
+		const targetEmail = verificationEmail || email;
+		if (!targetEmail) {
+			pushErrorToast("Email is required.");
+			return;
+		}
+
+		try {
+			await createEmailVerification.mutateAsync({ email: targetEmail });
+			pushToast({
+				title: "Verification email sent",
+				message: "Check your inbox for the latest verification link.",
+				tone: "success"
+			});
 		} catch {
 			return;
 		}
@@ -75,7 +110,17 @@ export function AuthPage({ mode = "login", navigate }: AuthPageProps) {
 		<AuthLayout title={heading} helmetTitle={isRegister ? "Sign Up" : "Login"}>
 			<form className={styles.form} onSubmit={handleSubmit}>
 				{isRegister ? <TextField label="Display Name" name="displayName" type="text" autoComplete="name" /> : null}
-				<TextField label="Email" name="email" type="email" value={email} autoComplete={isRegister ? "email" : "username"} onChange={event => setEmail(event.currentTarget.value)} />
+				<TextField
+					label="Email"
+					name="email"
+					type="email"
+					value={email}
+					autoComplete={isRegister ? "email" : "username"}
+					onChange={event => {
+						setEmail(event.currentTarget.value);
+						setVerificationEmail("");
+					}}
+				/>
 				<div className={styles.passwordFieldGroup}>
 					<TextField
 						label="Password"
@@ -108,6 +153,14 @@ export function AuthPage({ mode = "login", navigate }: AuthPageProps) {
 				<Button className={styles.submitButton} type="submit" size="lg" disabled={submitting}>
 					{submitting ? "Submitting" : isRegister ? "Create Account" : "Log in"}
 				</Button>
+				{!isRegister && verificationEmail ? (
+					<div className={styles.notice}>
+						<div>Email verification is required for {verificationEmail}.</div>
+						<Button type="button" variant="secondary" size="sm" disabled={createEmailVerification.isPending} onClick={handleResendVerification}>
+							{createEmailVerification.isPending ? "Sending" : "Resend verification email"}
+						</Button>
+					</div>
+				) : null}
 			</form>
 			{isRegister || appFeatures.registration ? (
 				<Link className={styles.modeLink} to={pathForRoute(isRegister ? "login" : "register")}>

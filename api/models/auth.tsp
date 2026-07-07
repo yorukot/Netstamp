@@ -1,6 +1,6 @@
 namespace Netstamp;
 
-@example(#{ id: "11111111-1111-1111-1111-111111111111", email: "user@example.com", displayName: "Jane Doe", isSystemAdmin: true })
+@example(#{ id: "11111111-1111-1111-1111-111111111111", email: "user@example.com", displayName: "Jane Doe", emailVerified: true, isSystemAdmin: true })
 model User {
 	@doc("User UUID.")
 	id: uuid;
@@ -12,6 +12,9 @@ model User {
 	@maxLength(64)
 	@doc("Name shown in the app.")
 	displayName: string;
+
+	@doc("Whether the sign-in email address has been verified.")
+	emailVerified: boolean;
 
 	@doc("Whether the user has instance-level administrator access.")
 	isSystemAdmin: boolean;
@@ -67,12 +70,32 @@ model ConfirmPasswordResetRequest {
 	newPassword: string;
 }
 
-@example(#{ user: #{ id: "11111111-1111-1111-1111-111111111111", email: "user@example.com", displayName: "Jane Doe", isSystemAdmin: true } })
+@example(#{ email: "user@example.com" })
+model CreateEmailVerificationRequest {
+	@doc("Email address for the account that should receive a new verification link.")
+	email: email;
+}
+
+@example(#{ token: "YNo5Uoj64VqK5jCht8h17GO8sHJIY0ScDNef7X99w7k" })
+model ConfirmEmailVerificationRequest {
+	@secret
+	@minLength(1)
+	@maxLength(512)
+	@doc("One-time verification token from the email verification message.")
+	token: string;
+}
+
+@example(#{ emailVerificationRequired: true })
+model RegisterEmailVerificationRequiredResponse {
+	emailVerificationRequired: true;
+}
+
+@example(#{ user: #{ id: "11111111-1111-1111-1111-111111111111", email: "user@example.com", displayName: "Jane Doe", emailVerified: true, isSystemAdmin: true } })
 model AuthUserResponse {
 	user: User;
 }
 
-@example(#{ authenticated: true, user: #{ id: "11111111-1111-1111-1111-111111111111", email: "user@example.com", displayName: "Jane Doe", isSystemAdmin: true } })
+@example(#{ authenticated: true, user: #{ id: "11111111-1111-1111-1111-111111111111", email: "user@example.com", displayName: "Jane Doe", emailVerified: true, isSystemAdmin: true } })
 model CurrentUserResponse {
 	authenticated: true;
 	user: User;

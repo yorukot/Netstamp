@@ -184,6 +184,8 @@
 }
 
 .notice {
+	display: grid;
+	gap: 0.75rem;
 	border: 1px solid var(--ns-border-faint);
 	background: var(--ns-glass-light);
 	padding: 1rem;

@@ -11,17 +11,21 @@ import (
 )
 
 type Service struct {
-	users       UserRepository
-	systemAdmin SystemAdminRepository
-	hasher      PasswordHasher
-	tokens      TokenIssuer
-	events      SecurityEventRecorder
-	resets      PasswordResetRepository
-	resetTokens PasswordResetTokenManager
-	resetMailer PasswordResetMailer
-	resetConfig PasswordResetConfig
-	tx          apptx.Transactor
-	now         func() time.Time
+	users                   UserRepository
+	systemAdmin             SystemAdminRepository
+	hasher                  PasswordHasher
+	tokens                  TokenIssuer
+	events                  SecurityEventRecorder
+	resets                  PasswordResetRepository
+	resetTokens             PasswordResetTokenManager
+	resetMailer             PasswordResetMailer
+	resetConfig             PasswordResetConfig
+	emailVerifications      EmailVerificationRepository
+	emailVerificationTokens EmailVerificationTokenManager
+	emailVerificationMailer EmailVerificationMailer
+	emailVerificationConfig EmailVerificationConfig
+	tx                      apptx.Transactor
+	now                     func() time.Time
 }
 
 func NewService(users UserRepository, hasher PasswordHasher, tokens TokenIssuer, events SecurityEventRecorder, transactors ...apptx.Transactor) *Service {
@@ -31,13 +35,14 @@ func NewService(users UserRepository, hasher PasswordHasher, tokens TokenIssuer,
 	}
 
 	return &Service{
-		users:       users,
-		hasher:      hasher,
-		tokens:      tokens,
-		events:      events,
-		resetConfig: PasswordResetConfig{TokenTTL: 30 * time.Minute},
-		tx:          tx,
-		now:         func() time.Time { return time.Now().UTC() },
+		users:                   users,
+		hasher:                  hasher,
+		tokens:                  tokens,
+		events:                  events,
+		resetConfig:             PasswordResetConfig{TokenTTL: 30 * time.Minute},
+		emailVerificationConfig: EmailVerificationConfig{TokenTTL: 24 * time.Hour},
+		tx:                      tx,
+		now:                     func() time.Time { return time.Now().UTC() },
 	}
 }
 
@@ -55,6 +60,16 @@ func (s *Service) ConfigureSystemAdmin(repo SystemAdminRepository) {
 	s.systemAdmin = repo
 }
 
+func (s *Service) ConfigureEmailVerification(verifications EmailVerificationRepository, tokens EmailVerificationTokenManager, mailer EmailVerificationMailer, cfg EmailVerificationConfig) {
+	s.emailVerifications = verifications
+	s.emailVerificationTokens = tokens
+	s.emailVerificationMailer = mailer
+	if cfg.TokenTTL <= 0 {
+		cfg.TokenTTL = 24 * time.Hour
+	}
+	s.emailVerificationConfig = cfg
+}
+
 // Register is the service entry for the register action
 func (s *Service) Register(ctx context.Context, input RegisterInput) (AuthAccessResult, error) {
 	ctx, flow := s.startAuthFlow(ctx, "auth.register", AuthActionRegister, input.Email)
@@ -70,33 +85,32 @@ func (s *Service) Register(ctx context.Context, input RegisterInput) (AuthAccess
 		return AuthAccessResult{}, flow.technicalFailure(AuthEventRegisterFailure, AuthReasonPasswordHashFailed, err)
 	}
 
-	var user identity.User
-	err = s.tx.WithinTx(ctx, func(ctx context.Context) error {
-		created, createErr := s.createUser(ctx, identity.User{
-			Email:        input.Email,
-			DisplayName:  input.DisplayName,
-			PasswordHash: passwordHash,
-		})
-		if createErr != nil {
-			return createErr
-		}
-		if s.systemAdmin != nil {
-			granted, grantErr := s.systemAdmin.GrantFirstSystemAdminIfNone(ctx, created.ID)
-			if grantErr != nil {
-				return grantErr
-			}
-			created.IsSystemAdmin = granted
-		}
-		user = created
-		return nil
-	})
+	now := s.now()
+	created, err := s.createRegisteredUser(ctx, input, passwordHash, now)
 	if errors.Is(err, identity.ErrEmailAlreadyExists) {
 		return AuthAccessResult{}, flow.businessFailure(AuthEventRegisterFailure, AuthReasonEmailAlreadyExists, err)
 	}
 	if err != nil {
 		return AuthAccessResult{}, flow.technicalFailure(AuthEventRegisterFailure, AuthReasonUserCreateFailed, err)
 	}
+	user := created.user
 	flow.setUser(user)
+
+	if input.RequireEmailVerification && user.EmailVerifiedAt == nil {
+		sendErr := s.sendEmailVerification(ctx, user, input.EmailVerificationBaseURL, created.rawEmailVerificationToken, now.Add(s.emailVerificationConfig.TokenTTL))
+		if sendErr != nil {
+			flow.recordTechnicalFailure(AuthEventRegisterFailure, AuthReasonEmailVerificationMailerFailed, sendErr)
+		}
+		flow.success(AuthEventRegisterSuccess)
+		return AuthAccessResult{
+			UserID:                    user.ID,
+			Email:                     user.Email,
+			DisplayName:               user.DisplayName,
+			EmailVerified:             false,
+			IsSystemAdmin:             user.IsSystemAdmin,
+			EmailVerificationRequired: true,
+		}, nil
+	}
 
 	result, err := s.issueAccessResult(ctx, user)
 	if err != nil {
@@ -106,6 +120,77 @@ func (s *Service) Register(ctx context.Context, input RegisterInput) (AuthAccess
 	flow.success(AuthEventRegisterSuccess)
 
 	return result, nil
+}
+
+type registeredUser struct {
+	user                      identity.User
+	rawEmailVerificationToken string
+}
+
+func (s *Service) createRegisteredUser(ctx context.Context, input RegisterInput, passwordHash string, now time.Time) (registeredUser, error) {
+	var result registeredUser
+	err := s.tx.WithinTx(ctx, func(ctx context.Context) error {
+		created, err := s.createUser(ctx, identity.User{
+			Email:           input.Email,
+			DisplayName:     input.DisplayName,
+			PasswordHash:    passwordHash,
+			EmailVerifiedAt: initialEmailVerifiedAt(input.RequireEmailVerification, now),
+		})
+		if err != nil {
+			return err
+		}
+
+		created, err = s.applyFirstSystemAdminGrant(ctx, created, now)
+		if err != nil {
+			return err
+		}
+
+		rawToken, err := s.maybeCreateRegistrationEmailVerificationToken(ctx, input, created, now)
+		if err != nil {
+			return err
+		}
+		result = registeredUser{
+			user:                      created,
+			rawEmailVerificationToken: rawToken,
+		}
+		return nil
+	})
+	return result, err
+}
+
+func initialEmailVerifiedAt(requireEmailVerification bool, now time.Time) *time.Time {
+	if requireEmailVerification {
+		return nil
+	}
+	return &now
+}
+
+func (s *Service) applyFirstSystemAdminGrant(ctx context.Context, user identity.User, now time.Time) (identity.User, error) {
+	if s.systemAdmin == nil {
+		return user, nil
+	}
+	granted, err := s.systemAdmin.GrantFirstSystemAdminIfNone(ctx, user.ID)
+	if err != nil {
+		return identity.User{}, err
+	}
+	user.IsSystemAdmin = granted
+	if !granted || user.EmailVerifiedAt != nil {
+		return user, nil
+	}
+
+	verified, err := s.markUserEmailVerified(ctx, user.ID, now)
+	if err != nil {
+		return identity.User{}, err
+	}
+	verified.IsSystemAdmin = true
+	return verified, nil
+}
+
+func (s *Service) maybeCreateRegistrationEmailVerificationToken(ctx context.Context, input RegisterInput, user identity.User, now time.Time) (string, error) {
+	if !input.RequireEmailVerification || user.EmailVerifiedAt != nil {
+		return "", nil
+	}
+	return s.createEmailVerificationToken(ctx, user.ID, now)
 }
 
 // Login is the enrty for the login action
@@ -130,6 +215,9 @@ func (s *Service) Login(ctx context.Context, input LoginInput) (AuthAccessResult
 	err = s.comparePassword(ctx, input.Password, user.PasswordHash)
 	if err != nil {
 		return AuthAccessResult{}, flow.businessFailure(AuthEventLoginFailure, AuthReasonCredentialsInvalid, ErrCredentialsInvalid)
+	}
+	if input.RequireEmailVerification && user.EmailVerifiedAt == nil {
+		return AuthAccessResult{}, flow.businessFailure(AuthEventLoginFailure, AuthReasonEmailVerificationRequired, ErrEmailVerificationRequired)
 	}
 
 	result, err := s.issueAccessResult(ctx, user)
@@ -254,10 +342,98 @@ func (s *Service) ConfirmPasswordReset(ctx context.Context, input ConfirmPasswor
 	return nil
 }
 
+func (s *Service) RequestEmailVerification(ctx context.Context, input RequestEmailVerificationInput) error {
+	ctx, flow := s.startAuthFlow(ctx, "auth.email_verification.request", AuthActionEmailVerificationRequest, input.Email)
+	defer flow.end()
+
+	input, err := normalizeRequestEmailVerificationInput(input)
+	if err != nil {
+		return flow.businessFailure(AuthEventEmailVerificationRequestFailure, AuthReasonInvalidInput, err)
+	}
+	if s.emailVerifications == nil || s.emailVerificationTokens == nil || s.emailVerificationMailer == nil {
+		return flow.businessFailure(AuthEventEmailVerificationRequestFailure, AuthReasonEmailVerificationUnavailable, ErrEmailVerificationUnavailable)
+	}
+
+	user, err := s.getUserByEmail(ctx, input.Email)
+	if errors.Is(err, identity.ErrUserNotFound) {
+		flow.success(AuthEventEmailVerificationRequestSuccess)
+		return nil
+	}
+	if err != nil {
+		flow.recordTechnicalFailure(AuthEventEmailVerificationRequestFailure, AuthReasonUserLookupFailed, err)
+		return nil
+	}
+	flow.setUser(user)
+	if user.EmailVerifiedAt != nil {
+		flow.success(AuthEventEmailVerificationRequestSuccess)
+		return nil
+	}
+
+	now := s.now()
+	rawToken, err := s.createEmailVerificationToken(ctx, user.ID, now)
+	if err != nil {
+		flow.recordTechnicalFailure(AuthEventEmailVerificationRequestFailure, AuthReasonEmailVerificationTokenCreateFail, err)
+		return nil
+	}
+	if err := s.sendEmailVerification(ctx, user, input.EmailVerificationBaseURL, rawToken, now.Add(s.emailVerificationConfig.TokenTTL)); err != nil {
+		flow.recordTechnicalFailure(AuthEventEmailVerificationRequestFailure, AuthReasonEmailVerificationMailerFailed, err)
+		return nil
+	}
+
+	flow.success(AuthEventEmailVerificationRequestSuccess)
+	return nil
+}
+
+func (s *Service) ConfirmEmailVerification(ctx context.Context, input ConfirmEmailVerificationInput) error {
+	ctx, flow := s.startAuthFlow(ctx, "auth.email_verification.confirm", AuthActionEmailVerificationConfirm, "")
+	defer flow.end()
+
+	input, err := normalizeConfirmEmailVerificationInput(input)
+	if err != nil {
+		return flow.businessFailure(AuthEventEmailVerificationConfirmFailure, AuthReasonInvalidInput, err)
+	}
+	if s.emailVerifications == nil || s.emailVerificationTokens == nil {
+		return flow.businessFailure(AuthEventEmailVerificationConfirmFailure, AuthReasonEmailVerificationUnavailable, ErrEmailVerificationUnavailable)
+	}
+
+	now := s.now()
+	var user identity.User
+	err = s.tx.WithinTx(ctx, func(ctx context.Context) error {
+		token, tokenErr := s.emailVerifications.GetActiveEmailVerificationTokenByHash(ctx, s.emailVerificationTokens.Hash(input.Token), now)
+		if tokenErr != nil {
+			return tokenErr
+		}
+		verified, verifyErr := s.emailVerifications.MarkUserEmailVerified(ctx, token.UserID, now)
+		if verifyErr != nil {
+			return verifyErr
+		}
+		if markErr := s.emailVerifications.MarkEmailVerificationTokenUsed(ctx, token.ID, now); markErr != nil {
+			return markErr
+		}
+		user = verified
+		return nil
+	})
+	if errors.Is(err, identity.ErrEmailVerificationTokenNotFound) {
+		return flow.businessFailure(AuthEventEmailVerificationConfirmFailure, AuthReasonEmailVerificationTokenInvalid, ErrEmailVerificationTokenInvalid)
+	}
+	if err != nil {
+		return flow.technicalFailure(AuthEventEmailVerificationConfirmFailure, AuthReasonEmailVerificationFailed, err)
+	}
+	flow.setUser(user)
+	flow.success(AuthEventEmailVerificationConfirmSuccess)
+	return nil
+}
+
 func passwordResetURL(baseURL, token string) string {
 	values := url.Values{}
 	values.Set("token", token)
 	return baseURL + "/reset-password?" + values.Encode()
+}
+
+func emailVerificationURL(baseURL, token string) string {
+	values := url.Values{}
+	values.Set("token", token)
+	return baseURL + "/verify-email?" + values.Encode()
 }
 
 func (s *Service) issueAccessResult(ctx context.Context, user identity.User) (AuthAccessResult, error) {
@@ -277,6 +453,7 @@ func (s *Service) issueAccessResult(ctx context.Context, user identity.User) (Au
 		UserID:        user.ID,
 		Email:         user.Email,
 		DisplayName:   user.DisplayName,
+		EmailVerified: user.EmailVerifiedAt != nil,
 		IsSystemAdmin: user.IsSystemAdmin,
 		AccessToken:   token.Value,
 		ExpiresIn:     token.ExpiresIn,
@@ -316,6 +493,51 @@ func (s *Service) createUser(ctx context.Context, input identity.User) (identity
 	}
 
 	return user, nil
+}
+
+func (s *Service) createEmailVerificationToken(ctx context.Context, userID string, now time.Time) (string, error) {
+	if s.emailVerifications == nil || s.emailVerificationTokens == nil {
+		return "", ErrEmailVerificationUnavailable
+	}
+	rawToken, err := s.emailVerificationTokens.Generate(ctx)
+	if err != nil {
+		return "", err
+	}
+	invalidateErr := s.emailVerifications.InvalidateActiveEmailVerificationTokens(ctx, userID, now)
+	if invalidateErr != nil {
+		return "", invalidateErr
+	}
+	_, err = s.emailVerifications.CreateEmailVerificationToken(ctx, identity.EmailVerificationToken{
+		UserID:    userID,
+		TokenHash: s.emailVerificationTokens.Hash(rawToken),
+		ExpiresAt: now.Add(s.emailVerificationConfig.TokenTTL),
+	})
+	if err != nil {
+		return "", err
+	}
+	return rawToken, nil
+}
+
+func (s *Service) sendEmailVerification(ctx context.Context, user identity.User, baseURL, rawToken string, expiresAt time.Time) error {
+	if s.emailVerificationMailer == nil {
+		return ErrEmailVerificationUnavailable
+	}
+	if baseURL == "" || rawToken == "" {
+		return ErrEmailVerificationUnavailable
+	}
+	return s.emailVerificationMailer.SendEmailVerification(ctx, identity.EmailVerificationEmail{
+		To:              user.Email,
+		DisplayName:     user.DisplayName,
+		VerificationURL: emailVerificationURL(baseURL, rawToken),
+		ExpiresAt:       expiresAt,
+	})
+}
+
+func (s *Service) markUserEmailVerified(ctx context.Context, userID string, verifiedAt time.Time) (identity.User, error) {
+	if s.emailVerifications == nil {
+		return identity.User{}, ErrEmailVerificationUnavailable
+	}
+	return s.emailVerifications.MarkUserEmailVerified(ctx, userID, verifiedAt)
 }
 
 func (s *Service) getUserByEmail(ctx context.Context, email string) (identity.User, error) {

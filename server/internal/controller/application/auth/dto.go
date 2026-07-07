@@ -3,14 +3,17 @@ package auth
 import "time"
 
 type RegisterInput struct {
-	Email       string
-	DisplayName string
-	Password    string
+	Email                    string
+	DisplayName              string
+	Password                 string
+	RequireEmailVerification bool
+	EmailVerificationBaseURL string
 }
 
 type LoginInput struct {
-	Email    string
-	Password string
+	Email                    string
+	Password                 string
+	RequireEmailVerification bool
 }
 
 type RequestPasswordResetInput struct {
@@ -23,15 +26,30 @@ type ConfirmPasswordResetInput struct {
 	NewPassword string
 }
 
+type RequestEmailVerificationInput struct {
+	Email                    string
+	EmailVerificationBaseURL string
+}
+
+type ConfirmEmailVerificationInput struct {
+	Token string
+}
+
 type PasswordResetConfig struct {
 	TokenTTL time.Duration
 }
 
+type EmailVerificationConfig struct {
+	TokenTTL time.Duration
+}
+
 type AuthAccessResult struct {
-	UserID        string
-	Email         string
-	DisplayName   string
-	IsSystemAdmin bool
-	AccessToken   string
-	ExpiresIn     int
+	UserID                    string
+	Email                     string
+	DisplayName               string
+	EmailVerified             bool
+	IsSystemAdmin             bool
+	EmailVerificationRequired bool
+	AccessToken               string
+	ExpiresIn                 int
 }

@@ -11,17 +11,17 @@ namespace Netstamp;
 interface AuthService {
 	@operationId("registerUser")
 	@summary("Register user")
-	@doc("Create a user account with a normalized email address, display name, and password. On success, sets an HTTP-only session cookie for immediate API access.")
+	@doc("Create a user account with a normalized email address, display name, and password. When email verification is disabled, sets an HTTP-only session cookie for immediate API access. When email verification is required, sends a verification email and returns 202 without a session cookie.")
 	@post
 	@route("/register")
-	registerUser(@body body: RegisterUserRequest): SessionCreatedJson<AuthUserResponse> | BadRequestProblem | UnprocessableEntityProblem | ConflictProblem | InternalServerProblem;
+	registerUser(@body body: RegisterUserRequest): SessionCreatedJson<AuthUserResponse> | AcceptedJson<RegisterEmailVerificationRequiredResponse> | BadRequestProblem | UnprocessableEntityProblem | ConflictProblem | ServiceUnavailableProblem | InternalServerProblem;
 
 	@operationId("loginUser")
 	@summary("Login user")
-	@doc("Verify an email and password pair, then set an HTTP-only session cookie for the authenticated user. Invalid credentials always return the same unauthorized response.")
+	@doc("Verify an email and password pair, then set an HTTP-only session cookie for the authenticated user. Invalid credentials always return the same unauthorized response. Unverified accounts return forbidden when email verification is required.")
 	@post
 	@route("/login")
-	loginUser(@body body: LoginUserRequest): SessionOkJson<AuthUserResponse> | BadRequestProblem | UnauthorizedProblem | InternalServerProblem;
+	loginUser(@body body: LoginUserRequest): SessionOkJson<AuthUserResponse> | BadRequestProblem | UnauthorizedProblem | ForbiddenProblem | InternalServerProblem;
 
 	@operationId("createPasswordReset")
 	@summary("Create password reset")
@@ -36,6 +36,20 @@ interface AuthService {
 	@patch
 	@route("/password-resets")
 	confirmPasswordReset(@body body: ConfirmPasswordResetRequest): NoContent | BadRequestProblem | UnauthorizedProblem | UnprocessableEntityProblem | ServiceUnavailableProblem | InternalServerProblem;
+
+	@operationId("createEmailVerification")
+	@summary("Create email verification")
+	@doc("Create or resend an email verification link. The response does not reveal whether the email exists.")
+	@post
+	@route("/email-verifications")
+	createEmailVerification(@body body: CreateEmailVerificationRequest): Accepted | BadRequestProblem | UnprocessableEntityProblem | TooManyRequestsProblem | ServiceUnavailableProblem | InternalServerProblem;
+
+	@operationId("confirmEmailVerification")
+	@summary("Confirm email verification")
+	@doc("Consume a one-time email verification token and mark the account email as verified.")
+	@patch
+	@route("/email-verifications")
+	confirmEmailVerification(@body body: ConfirmEmailVerificationRequest): NoContent | BadRequestProblem | UnauthorizedProblem | UnprocessableEntityProblem | ServiceUnavailableProblem | InternalServerProblem;
 
 	@operationId("logoutUser")
 	@summary("Logout user")

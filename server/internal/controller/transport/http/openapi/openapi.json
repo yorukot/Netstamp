@@ -232,11 +232,157 @@
 				]
 			}
 		},
+		"/auth/email-verifications": {
+			"post": {
+				"operationId": "createEmailVerification",
+				"summary": "Create email verification",
+				"description": "Create or resend an email verification link. The response does not reveal whether the email exists.",
+				"parameters": [],
+				"responses": {
+					"202": {
+						"description": "The request has been accepted for processing, but processing has not yet completed."
+					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"429": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"503": {
+						"description": "Service unavailable.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Auth"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/CreateEmailVerificationRequest"
+							}
+						}
+					}
+				}
+			},
+			"patch": {
+				"operationId": "confirmEmailVerification",
+				"summary": "Confirm email verification",
+				"description": "Consume a one-time email verification token and mark the account email as verified.",
+				"parameters": [],
+				"responses": {
+					"204": {
+						"description": "There is no content to send for this request, but the headers may be useful. "
+					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"503": {
+						"description": "Service unavailable.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Auth"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/ConfirmEmailVerificationRequest"
+							}
+						}
+					}
+				}
+			}
+		},
 		"/auth/login": {
 			"post": {
 				"operationId": "loginUser",
 				"summary": "Login user",
-				"description": "Verify an email and password pair, then set an HTTP-only session cookie for the authenticated user. Invalid credentials always return the same unauthorized response.",
+				"description": "Verify an email and password pair, then set an HTTP-only session cookie for the authenticated user. Invalid credentials always return the same unauthorized response. Unverified accounts return forbidden when email verification is required.",
 				"parameters": [],
 				"responses": {
 					"200": {
@@ -269,6 +415,16 @@
 					},
 					"401": {
 						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -519,7 +675,7 @@
 			"post": {
 				"operationId": "registerUser",
 				"summary": "Register user",
-				"description": "Create a user account with a normalized email address, display name, and password. On success, sets an HTTP-only session cookie for immediate API access.",
+				"description": "Create a user account with a normalized email address, display name, and password. When email verification is disabled, sets an HTTP-only session cookie for immediate API access. When email verification is required, sends a verification email and returns 202 without a session cookie.",
 				"parameters": [],
 				"responses": {
 					"201": {
@@ -536,6 +692,16 @@
 							"application/json": {
 								"schema": {
 									"$ref": "#/components/schemas/AuthUserResponse"
+								}
+							}
+						}
+					},
+					"202": {
+						"description": "The request has been accepted for processing, but processing has not yet completed.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/RegisterEmailVerificationRequiredResponse"
 								}
 							}
 						}
@@ -572,6 +738,16 @@
 					},
 					"500": {
 						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"503": {
+						"description": "Service unavailable.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -7518,9 +7694,12 @@
 			},
 			"AdminSettings": {
 				"type": "object",
-				"required": ["registrationEnabled", "backendBaseUrl", "publicWebBaseUrl", "smtp"],
+				"required": ["registrationEnabled", "emailVerificationRequired", "backendBaseUrl", "publicWebBaseUrl", "smtp"],
 				"properties": {
 					"registrationEnabled": {
+						"type": "boolean"
+					},
+					"emailVerificationRequired": {
 						"type": "boolean"
 					},
 					"backendBaseUrl": {
@@ -7536,6 +7715,7 @@
 				"examples": [
 					{
 						"registrationEnabled": true,
+						"emailVerificationRequired": false,
 						"backendBaseUrl": "https://app.netstamp.dev",
 						"publicWebBaseUrl": "https://app.netstamp.dev",
 						"smtp": {
@@ -8125,6 +8305,7 @@
 							"id": "11111111-1111-1111-1111-111111111111",
 							"email": "user@example.com",
 							"displayName": "Jane Doe",
+							"emailVerified": true,
 							"isSystemAdmin": true
 						}
 					}
@@ -8361,6 +8542,24 @@
 					}
 				]
 			},
+			"ConfirmEmailVerificationRequest": {
+				"type": "object",
+				"required": ["token"],
+				"properties": {
+					"token": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 512,
+						"format": "password",
+						"description": "One-time verification token from the email verification message."
+					}
+				},
+				"examples": [
+					{
+						"token": "YNo5Uoj64VqK5jCht8h17GO8sHJIY0ScDNef7X99w7k"
+					}
+				]
+			},
 			"ConfirmPasswordResetRequest": {
 				"type": "object",
 				"required": ["token", "newPassword"],
@@ -8518,6 +8717,25 @@
 							"timeoutMs": 3000,
 							"ipFamily": "inet"
 						}
+					}
+				]
+			},
+			"CreateEmailVerificationRequest": {
+				"type": "object",
+				"required": ["email"],
+				"properties": {
+					"email": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/email"
+							}
+						],
+						"description": "Email address for the account that should receive a new verification link."
+					}
+				},
+				"examples": [
+					{
+						"email": "user@example.com"
 					}
 				]
 			},
@@ -8804,6 +9022,7 @@
 							"id": "11111111-1111-1111-1111-111111111111",
 							"email": "user@example.com",
 							"displayName": "Jane Doe",
+							"emailVerified": true,
 							"isSystemAdmin": true
 						}
 					}
@@ -10836,6 +11055,21 @@
 					}
 				}
 			},
+			"RegisterEmailVerificationRequiredResponse": {
+				"type": "object",
+				"required": ["emailVerificationRequired"],
+				"properties": {
+					"emailVerificationRequired": {
+						"type": "boolean",
+						"enum": [true]
+					}
+				},
+				"examples": [
+					{
+						"emailVerificationRequired": true
+					}
+				]
+			},
 			"RegisterUserRequest": {
 				"type": "object",
 				"required": ["email", "displayName", "password"],
@@ -12323,6 +12557,9 @@
 					"registrationEnabled": {
 						"type": "boolean"
 					},
+					"emailVerificationRequired": {
+						"type": "boolean"
+					},
 					"backendBaseUrl": {
 						"type": "string"
 					},
@@ -12336,6 +12573,7 @@
 				"examples": [
 					{
 						"registrationEnabled": false,
+						"emailVerificationRequired": true,
 						"backendBaseUrl": "https://app.netstamp.dev",
 						"publicWebBaseUrl": "https://app.netstamp.dev",
 						"smtp": {
@@ -12731,7 +12969,7 @@
 			},
 			"User": {
 				"type": "object",
-				"required": ["id", "email", "displayName", "isSystemAdmin"],
+				"required": ["id", "email", "displayName", "emailVerified", "isSystemAdmin"],
 				"properties": {
 					"id": {
 						"allOf": [
@@ -12755,6 +12993,10 @@
 						"maxLength": 64,
 						"description": "Name shown in the app."
 					},
+					"emailVerified": {
+						"type": "boolean",
+						"description": "Whether the sign-in email address has been verified."
+					},
 					"isSystemAdmin": {
 						"type": "boolean",
 						"description": "Whether the user has instance-level administrator access."
@@ -12765,6 +13007,7 @@
 						"id": "11111111-1111-1111-1111-111111111111",
 						"email": "user@example.com",
 						"displayName": "Jane Doe",
+						"emailVerified": true,
 						"isSystemAdmin": true
 					}
 				]

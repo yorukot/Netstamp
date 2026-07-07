@@ -153,6 +153,27 @@ func (m *PasswordResetMailer) SendPasswordReset(ctx context.Context, input ident
 	return nil
 }
 
+func (m *PasswordResetMailer) SendEmailVerification(ctx context.Context, input identity.EmailVerificationEmail) error {
+	smtpSender, err := m.sender(ctx)
+	if err != nil {
+		return errors.New("SMTP configuration lookup failed")
+	}
+	if smtpSender == nil || !smtpSender.Configured() {
+		return errors.New("SMTP is not configured")
+	}
+
+	result := smtpSender.SendMessage(ctx, EmailMessage{
+		To:      []string{input.To},
+		Subject: "Verify your Netstamp email",
+		Body:    renderEmailVerificationBody(input),
+	})
+	if deliveryFailed(result) {
+		return errors.New(result.Message)
+	}
+
+	return nil
+}
+
 func (s *AlertEmailSender) sender(ctx context.Context) (*SMTPSender, error) {
 	if s == nil {
 		return newUnconfiguredSMTPSender(), nil
@@ -394,6 +415,26 @@ func renderPasswordResetBody(input identity.PasswordResetEmail) string {
 		"",
 		"This link expires at " + input.ExpiresAt.UTC().Format(time.RFC3339) + ".",
 		"If you did not request this change, you can ignore this email.",
+	}
+
+	return strings.Join(lines, "\n")
+}
+
+func renderEmailVerificationBody(input identity.EmailVerificationEmail) string {
+	name := strings.TrimSpace(input.DisplayName)
+	if name == "" {
+		name = "Netstamp user"
+	}
+
+	lines := []string{
+		"Hello " + name + ",",
+		"",
+		"Verify this email address to finish setting up your Netstamp account.",
+		"",
+		input.VerificationURL,
+		"",
+		"This link expires at " + input.ExpiresAt.UTC().Format(time.RFC3339) + ".",
+		"If you did not request this account, you can ignore this email.",
 	}
 
 	return strings.Join(lines, "\n")

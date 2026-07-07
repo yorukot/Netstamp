@@ -8,13 +8,14 @@ import (
 )
 
 type User struct {
-	ID            string    `json:"id"`
-	Email         string    `json:"email"`
-	DisplayName   string    `json:"displayName"`
-	PasswordHash  string    `json:"-"`
-	IsSystemAdmin bool      `json:"isSystemAdmin"`
-	CreatedAt     time.Time `json:"createdAt"`
-	UpdatedAt     time.Time `json:"updatedAt"`
+	ID              string     `json:"id"`
+	Email           string     `json:"email"`
+	DisplayName     string     `json:"displayName"`
+	PasswordHash    string     `json:"-"`
+	EmailVerifiedAt *time.Time `json:"emailVerifiedAt,omitempty"`
+	IsSystemAdmin   bool       `json:"isSystemAdmin"`
+	CreatedAt       time.Time  `json:"createdAt"`
+	UpdatedAt       time.Time  `json:"updatedAt"`
 }
 
 func VNUserID(id string) (string, error) {

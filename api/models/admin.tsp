@@ -40,6 +40,7 @@ model AdminSMTPSettings {
 
 @example(#{
 	registrationEnabled: true,
+	emailVerificationRequired: false,
 	backendBaseUrl: "https://app.netstamp.dev",
 	publicWebBaseUrl: "https://app.netstamp.dev",
 	smtp: #{
@@ -55,6 +56,7 @@ model AdminSMTPSettings {
 })
 model AdminSettings {
 	registrationEnabled: boolean;
+	emailVerificationRequired: boolean;
 	backendBaseUrl: string;
 	publicWebBaseUrl: string;
 	smtp: AdminSMTPSettings;
@@ -85,12 +87,14 @@ model AdminSMTPSettingsPatch {
 
 @example(#{
 	registrationEnabled: false,
+	emailVerificationRequired: true,
 	backendBaseUrl: "https://app.netstamp.dev",
 	publicWebBaseUrl: "https://app.netstamp.dev",
 	smtp: #{ host: "smtp.example.com", port: 587, username: "netstamp", from: "alerts@example.com", tlsMode: "starttls", timeoutSeconds: 10 }
 })
 model UpdateAdminSettingsRequest {
 	registrationEnabled?: boolean;
+	emailVerificationRequired?: boolean;
 	backendBaseUrl?: string;
 	publicWebBaseUrl?: string;
 	smtp?: AdminSMTPSettingsPatch;

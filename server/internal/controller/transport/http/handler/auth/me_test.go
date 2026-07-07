@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 
@@ -15,10 +16,12 @@ import (
 
 func TestMeReturnsAuthenticatedUser(t *testing.T) {
 	router := chi.NewRouter()
+	verifiedAt := time.Now().UTC()
 	user := identity.User{
-		ID:          "11111111-1111-1111-1111-111111111111",
-		Email:       "user@example.com",
-		DisplayName: "User",
+		ID:              "11111111-1111-1111-1111-111111111111",
+		Email:           "user@example.com",
+		DisplayName:     "User",
+		EmailVerifiedAt: &verifiedAt,
 	}
 	NewHandler(appauth.NewService(&staticUserRepository{user: user}, nil, nil, nil), &staticTokenVerifier{
 		claims: identity.AccessTokenClaims{
@@ -48,6 +51,9 @@ func TestMeReturnsAuthenticatedUser(t *testing.T) {
 	}
 	if body.User.Email != "user@example.com" {
 		t.Fatalf("expected user email, got %q", body.User.Email)
+	}
+	if !body.User.EmailVerified {
+		t.Fatal("expected verified user")
 	}
 }
 

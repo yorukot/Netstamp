@@ -12,10 +12,13 @@ export interface SessionUser {
 	username: string;
 	email: string;
 	role: string;
+	emailVerified: boolean;
 	isSystemAdmin: boolean;
 	gravatarUrl: string;
 	onboardingRequired?: boolean;
 }
+
+export type RegisterResult = { user: SessionUser; emailVerificationRequired?: false } | { user: null; emailVerificationRequired: true };
 
 export interface SessionSnapshot {
 	user: SessionUser;
@@ -33,6 +36,7 @@ export async function mapApiUser(user: UserResponse, options: { onboardingRequir
 		username: email.split("@")[0] || displayName,
 		email,
 		role: user.isSystemAdmin ? "Global admin" : "User",
+		emailVerified: Boolean(user.emailVerified),
 		isSystemAdmin: Boolean(user.isSystemAdmin),
 		gravatarUrl: await createGravatarUrl(email),
 		onboardingRequired: options.onboardingRequired

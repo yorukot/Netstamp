@@ -10,16 +10,17 @@ import (
 )
 
 const (
-	keyRegistrationEnabled = "auth.registration_enabled"
-	keyBackendBaseURL      = "http.backend_base_url"
-	keyPublicWebBaseURL    = "http.public_web_base_url"
-	keySMTPHost            = "smtp.host"
-	keySMTPPort            = "smtp.port"
-	keySMTPUsername        = "smtp.username"
-	keySMTPPassword        = "smtp.password"
-	keySMTPFrom            = "smtp.from"
-	keySMTPTLSMode         = "smtp.tls_mode"
-	keySMTPTimeoutSeconds  = "smtp.timeout_seconds"
+	keyRegistrationEnabled       = "auth.registration_enabled"
+	keyEmailVerificationRequired = "auth.email_verification_required"
+	keyBackendBaseURL            = "http.backend_base_url"
+	keyPublicWebBaseURL          = "http.public_web_base_url"
+	keySMTPHost                  = "smtp.host"
+	keySMTPPort                  = "smtp.port"
+	keySMTPUsername              = "smtp.username"
+	keySMTPPassword              = "smtp.password"
+	keySMTPFrom                  = "smtp.from"
+	keySMTPTLSMode               = "smtp.tls_mode"
+	keySMTPTimeoutSeconds        = "smtp.timeout_seconds"
 
 	auditActionUpdate = "update"
 )
@@ -34,6 +35,9 @@ func validateSettings(settings Settings) error {
 	}
 	if err := validateSMTP(settings.SMTP); err != nil {
 		errs = append(errs, err)
+	}
+	if settings.EmailVerificationRequired && !smtpDeliveryConfigured(settings.SMTP) {
+		errs = append(errs, errors.New("emailVerificationRequired requires smtp.host and smtp.from"))
 	}
 	if len(errs) > 0 {
 		return errors.Join(append([]error{ErrInvalidInput}, errs...)...)
@@ -108,6 +112,10 @@ func smtpPartiallyConfigured(settings SMTPSettings) bool {
 		strings.TrimSpace(settings.Username) != "" ||
 		settings.Password != "" ||
 		strings.TrimSpace(settings.From) != ""
+}
+
+func smtpDeliveryConfigured(settings SMTPSettings) bool {
+	return strings.TrimSpace(settings.Host) != "" && strings.TrimSpace(settings.From) != ""
 }
 
 func validateSMTPFrom(value string) error {

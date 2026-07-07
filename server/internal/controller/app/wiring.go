@@ -178,6 +178,9 @@ func buildControllerServices(cfg config.Config, log *zap.Logger, dbPool *pgxpool
 	authSvc.ConfigurePasswordReset(userRepo, security.NewPasswordResetTokenManager(), notify.NewDynamicPasswordResetMailer(smtpProvider), appauth.PasswordResetConfig{
 		TokenTTL: cfg.Auth.PasswordResetTokenTTL,
 	})
+	authSvc.ConfigureEmailVerification(userRepo, security.NewPasswordResetTokenManager(), notify.NewDynamicPasswordResetMailer(smtpProvider), appauth.EmailVerificationConfig{
+		TokenTTL: 24 * time.Hour,
+	})
 
 	userSvc := appuser.NewService(userRepo, passwordHasher, userEvents)
 	projectSvc := appproject.NewService(projectRepo, userRepo, projectEvents)

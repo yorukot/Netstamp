@@ -10,23 +10,27 @@ import (
 	"github.com/yorukot/netstamp/internal/domain/identity"
 )
 
-func (h *Handler) register(ctx context.Context, input *registerInput) (*registerOutput, error) {
+func (h *Handler) register(ctx context.Context, r *http.Request, input *registerInput) (*registerOutput, error) {
 	registrationEnabled := h.registrationEnabled
+	emailVerificationRequired := false
 	if h.settings != nil {
 		settings, err := h.settings.EffectiveSettings(ctx)
 		if err != nil {
 			return nil, httpx.InternalServerError("register user failed")
 		}
 		registrationEnabled = settings.RegistrationEnabled
+		emailVerificationRequired = settings.EmailVerificationRequired
 	}
 	if !registrationEnabled {
 		return nil, httpx.Forbidden("registration is disabled")
 	}
 
 	result, err := h.service.Register(ctx, appauth.RegisterInput{
-		Email:       input.Body.Email,
-		DisplayName: input.Body.DisplayName,
-		Password:    input.Body.Password,
+		Email:                    input.Body.Email,
+		DisplayName:              input.Body.DisplayName,
+		Password:                 input.Body.Password,
+		RequireEmailVerification: emailVerificationRequired,
+		EmailVerificationBaseURL: h.resetBaseURL(r),
 	})
 	if err != nil {
 		switch {
@@ -34,22 +38,39 @@ func (h *Handler) register(ctx context.Context, input *registerInput) (*register
 			return nil, invalidAuthInputError(err)
 		case errors.Is(err, identity.ErrEmailAlreadyExists):
 			return nil, httpx.Conflict("email already exists")
+		case errors.Is(err, appauth.ErrEmailVerificationUnavailable):
+			return nil, httpx.ServiceUnavailable("email verification is unavailable")
 		default:
 			return nil, httpx.InternalServerError("register user failed")
 		}
 	}
 
+	if result.EmailVerificationRequired {
+		return &registerOutput{
+			Status: http.StatusAccepted,
+			Body: registerEmailVerificationRequiredOutputBody{
+				EmailVerificationRequired: true,
+			},
+		}, nil
+	}
+
 	return &registerOutput{
-		SetCookie: newSessionCookie(result.AccessToken, result.ExpiresIn, h.cookieSecure),
+		Status:    http.StatusCreated,
+		SetCookie: sessionCookiePtr(newSessionCookie(result.AccessToken, result.ExpiresIn, h.cookieSecure)),
 		Body: registerOutputBody{
 			User: userResponse{
 				ID:            result.UserID,
 				Email:         result.Email,
 				DisplayName:   result.DisplayName,
+				EmailVerified: result.EmailVerified,
 				IsSystemAdmin: result.IsSystemAdmin,
 			},
 		},
 	}, nil
+}
+
+func sessionCookiePtr(cookie http.Cookie) *http.Cookie {
+	return &cookie
 }
 
 type registerInput struct {
@@ -57,8 +78,9 @@ type registerInput struct {
 }
 
 type registerOutput struct {
-	SetCookie http.Cookie
-	Body      registerOutputBody
+	Status    int
+	SetCookie *http.Cookie
+	Body      any
 }
 
 type registerInputBody struct {
@@ -69,4 +91,8 @@ type registerInputBody struct {
 
 type registerOutputBody struct {
 	User userResponse `json:"user"`
+}
+
+type registerEmailVerificationRequiredOutputBody struct {
+	EmailVerificationRequired bool `json:"emailVerificationRequired"`
 }

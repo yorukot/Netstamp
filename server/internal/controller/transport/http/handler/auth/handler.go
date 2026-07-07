@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -43,6 +44,8 @@ func (h *Handler) RegisterRoutes(api chi.Router) {
 	api.Post("/auth/logout", h.handleLogout)
 	api.Post("/auth/password-resets", h.handleRequestPasswordReset)
 	api.Patch("/auth/password-resets", h.handleConfirmPasswordReset)
+	api.Post("/auth/email-verifications", h.handleRequestEmailVerification)
+	api.Patch("/auth/email-verifications", h.handleConfirmEmailVerification)
 	api.Group(func(r chi.Router) {
 		r.Use(httpmiddleware.RequireAuth(h.verifier))
 
@@ -56,15 +59,9 @@ func (h *Handler) handleRequestPasswordReset(w http.ResponseWriter, r *http.Requ
 		httpx.WriteProblem(w, r, err)
 		return
 	}
-	if h.resetLimiter != nil && !h.resetLimiter.Allow(r.Context(), resetLimiterClientKey(r), body.Email) {
-		httpx.WriteProblem(w, r, httpx.NewError(http.StatusTooManyRequests, "too many password reset requests"))
-		return
-	}
-	if err := h.requestPasswordReset(r.Context(), r, &requestPasswordResetInput{Body: body}); err != nil {
-		httpx.WriteProblem(w, r, err)
-		return
-	}
-	w.WriteHeader(http.StatusAccepted)
+	h.handleAcceptedEmailAction(w, r, body.Email, "too many password reset requests", func(ctx context.Context) error {
+		return h.requestPasswordReset(ctx, r, &requestPasswordResetInput{Body: body})
+	})
 }
 
 func (h *Handler) handleConfirmPasswordReset(w http.ResponseWriter, r *http.Request) {
@@ -86,13 +83,15 @@ func (h *Handler) handleRegister(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteProblem(w, r, err)
 		return
 	}
-	output, err := h.register(r.Context(), &registerInput{Body: body})
+	output, err := h.register(r.Context(), r, &registerInput{Body: body})
 	if err != nil {
 		httpx.WriteProblem(w, r, err)
 		return
 	}
-	http.SetCookie(w, &output.SetCookie)
-	httpx.WriteJSON(w, http.StatusCreated, output.Body)
+	if output.SetCookie != nil {
+		http.SetCookie(w, output.SetCookie)
+	}
+	httpx.WriteJSON(w, output.Status, output.Body)
 }
 
 func (h *Handler) handleLogin(w http.ResponseWriter, r *http.Request) {
@@ -127,4 +126,40 @@ func (h *Handler) handleMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpx.WriteJSON(w, http.StatusOK, output.Body)
+}
+
+func (h *Handler) handleRequestEmailVerification(w http.ResponseWriter, r *http.Request) {
+	var body requestEmailVerificationInputBody
+	if err := httpx.DecodeJSON(r, &body); err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	h.handleAcceptedEmailAction(w, r, body.Email, "too many email verification requests", func(ctx context.Context) error {
+		return h.requestEmailVerification(ctx, r, &requestEmailVerificationInput{Body: body})
+	})
+}
+
+func (h *Handler) handleConfirmEmailVerification(w http.ResponseWriter, r *http.Request) {
+	var body confirmEmailVerificationInputBody
+	if err := httpx.DecodeJSON(r, &body); err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	if err := h.confirmEmailVerification(r.Context(), &confirmEmailVerificationInput{Body: body}); err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	httpx.WriteNoContent(w)
+}
+
+func (h *Handler) handleAcceptedEmailAction(w http.ResponseWriter, r *http.Request, email, rateLimitDetail string, action func(context.Context) error) {
+	if h.resetLimiter != nil && !h.resetLimiter.Allow(r.Context(), resetLimiterClientKey(r), email) {
+		httpx.WriteProblem(w, r, httpx.NewError(http.StatusTooManyRequests, rateLimitDetail))
+		return
+	}
+	if err := action(r.Context()); err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusAccepted)
 }

@@ -6,6 +6,7 @@ export const publicRoutePaths = {
 	register: "/register",
 	forgotPassword: "/forgot-password",
 	resetPassword: "/reset-password",
+	verifyEmail: "/verify-email",
 	onboarding: "/onboarding"
 } satisfies Record<PublicRoute, string>;
 

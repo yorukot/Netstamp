@@ -14,7 +14,7 @@ export function SessionProvider({ children }: SessionProviderProps) {
 	const meQuery = useQuery(authQueries.me());
 	const rawUser = meQuery.data?.user;
 	const sessionQuery = useQuery({
-		queryKey: [...apiQueryKeys.auth.me(), "session", rawUser?.id, rawUser?.email, rawUser?.displayName, rawUser?.isSystemAdmin],
+		queryKey: [...apiQueryKeys.auth.me(), "session", rawUser?.id, rawUser?.email, rawUser?.displayName, rawUser?.emailVerified, rawUser?.isSystemAdmin],
 		queryFn: () => {
 			if (!rawUser) {
 				throw new Error("Cannot create a session without a user.");
@@ -40,7 +40,11 @@ export function SessionProvider({ children }: SessionProviderProps) {
 
 	async function register(payload: RegisterPayload) {
 		const result = await registerMutation.mutateAsync(payload);
-		return mapApiUser(result.user, { onboardingRequired: true });
+		if (!("user" in result)) {
+			return { user: null, emailVerificationRequired: true as const };
+		}
+
+		return { user: await mapApiUser(result.user, { onboardingRequired: true }) };
 	}
 
 	async function createProject(payload: ProjectDraft) {

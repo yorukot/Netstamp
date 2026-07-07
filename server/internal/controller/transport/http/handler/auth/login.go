@@ -10,14 +10,26 @@ import (
 )
 
 func (h *Handler) login(ctx context.Context, input *loginInput) (*loginOutput, error) {
+	emailVerificationRequired := false
+	if h.settings != nil {
+		settings, err := h.settings.EffectiveSettings(ctx)
+		if err != nil {
+			return nil, httpx.InternalServerError("login failed")
+		}
+		emailVerificationRequired = settings.EmailVerificationRequired
+	}
+
 	result, err := h.service.Login(ctx, appauth.LoginInput{
-		Email:    input.Body.Email,
-		Password: input.Body.Password,
+		Email:                    input.Body.Email,
+		Password:                 input.Body.Password,
+		RequireEmailVerification: emailVerificationRequired,
 	})
 	if err != nil {
 		switch {
 		case errors.Is(err, appauth.ErrCredentialsInvalid), errors.Is(err, appauth.ErrInvalidInput):
 			return nil, httpx.Unauthorized("invalid email or password")
+		case errors.Is(err, appauth.ErrEmailVerificationRequired):
+			return nil, httpx.Forbidden("email verification is required")
 		default:
 			return nil, httpx.InternalServerError("login failed")
 		}
@@ -30,6 +42,7 @@ func (h *Handler) login(ctx context.Context, input *loginInput) (*loginOutput, e
 				ID:            result.UserID,
 				Email:         result.Email,
 				DisplayName:   result.DisplayName,
+				EmailVerified: result.EmailVerified,
 				IsSystemAdmin: result.IsSystemAdmin,
 			},
 		},

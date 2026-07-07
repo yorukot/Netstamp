@@ -102,6 +102,11 @@ model Accepted {
 	...Response<202>;
 }
 
+model AcceptedJson<T> {
+	...Response<202>;
+	...Body<T>;
+}
+
 model NoContent {
 	...NoContentResponse;
 }

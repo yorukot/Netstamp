@@ -3,10 +3,11 @@ package admin
 import appadmin "github.com/yorukot/netstamp/internal/controller/application/admin"
 
 type settingsBody struct {
-	RegistrationEnabled *bool     `json:"registrationEnabled,omitempty"`
-	BackendBaseURL      *string   `json:"backendBaseUrl,omitempty"`
-	PublicWebBaseURL    *string   `json:"publicWebBaseUrl,omitempty"`
-	SMTP                *smtpBody `json:"smtp,omitempty"`
+	RegistrationEnabled       *bool     `json:"registrationEnabled,omitempty"`
+	EmailVerificationRequired *bool     `json:"emailVerificationRequired,omitempty"`
+	BackendBaseURL            *string   `json:"backendBaseUrl,omitempty"`
+	PublicWebBaseURL          *string   `json:"publicWebBaseUrl,omitempty"`
+	SMTP                      *smtpBody `json:"smtp,omitempty"`
 }
 
 type smtpBody struct {
@@ -21,10 +22,11 @@ type smtpBody struct {
 }
 
 type settingsResponseBody struct {
-	RegistrationEnabled bool             `json:"registrationEnabled"`
-	BackendBaseURL      string           `json:"backendBaseUrl"`
-	PublicWebBaseURL    string           `json:"publicWebBaseUrl"`
-	SMTP                smtpResponseBody `json:"smtp"`
+	RegistrationEnabled       bool             `json:"registrationEnabled"`
+	EmailVerificationRequired bool             `json:"emailVerificationRequired"`
+	BackendBaseURL            string           `json:"backendBaseUrl"`
+	PublicWebBaseURL          string           `json:"publicWebBaseUrl"`
+	SMTP                      smtpResponseBody `json:"smtp"`
 }
 
 type smtpResponseBody struct {
@@ -40,10 +42,11 @@ type smtpResponseBody struct {
 
 func (b settingsBody) updateInput(userID string) appadmin.UpdateSettingsInput {
 	input := appadmin.UpdateSettingsInput{
-		CurrentUserID:       userID,
-		RegistrationEnabled: b.RegistrationEnabled,
-		BackendBaseURL:      b.BackendBaseURL,
-		PublicWebBaseURL:    b.PublicWebBaseURL,
+		CurrentUserID:             userID,
+		RegistrationEnabled:       b.RegistrationEnabled,
+		EmailVerificationRequired: b.EmailVerificationRequired,
+		BackendBaseURL:            b.BackendBaseURL,
+		PublicWebBaseURL:          b.PublicWebBaseURL,
 	}
 	if b.SMTP != nil {
 		input.SMTP = appadmin.UpdateSMTPSettingsInput{
@@ -62,9 +65,10 @@ func (b settingsBody) updateInput(userID string) appadmin.UpdateSettingsInput {
 
 func settingsResponse(settings appadmin.Settings) settingsResponseBody {
 	return settingsResponseBody{
-		RegistrationEnabled: settings.RegistrationEnabled,
-		BackendBaseURL:      settings.BackendBaseURL,
-		PublicWebBaseURL:    settings.PublicWebBaseURL,
+		RegistrationEnabled:       settings.RegistrationEnabled,
+		EmailVerificationRequired: settings.EmailVerificationRequired,
+		BackendBaseURL:            settings.BackendBaseURL,
+		PublicWebBaseURL:          settings.PublicWebBaseURL,
 		SMTP: smtpResponseBody{
 			Host:           settings.SMTP.Host,
 			Port:           settings.SMTP.Port,

@@ -27,10 +27,24 @@ func normalizeRegisterInput(input RegisterInput) (RegisterInput, error) {
 		return RegisterInput{}, err
 	}
 
+	emailVerificationBaseURL := strings.TrimRight(strings.TrimSpace(input.EmailVerificationBaseURL), "/")
+	if input.RequireEmailVerification {
+		normalizedBaseURL, err := normalizeResetBaseURL(input.EmailVerificationBaseURL)
+		if err != nil {
+			validation.AddError("emailVerificationBaseUrl", err, input.EmailVerificationBaseURL)
+		}
+		if err := validation.Err(ErrInvalidInput); err != nil {
+			return RegisterInput{}, err
+		}
+		emailVerificationBaseURL = normalizedBaseURL
+	}
+
 	return RegisterInput{
-		DisplayName: displayName,
-		Password:    password,
-		Email:       email,
+		DisplayName:              displayName,
+		Password:                 password,
+		Email:                    email,
+		RequireEmailVerification: input.RequireEmailVerification,
+		EmailVerificationBaseURL: emailVerificationBaseURL,
 	}, nil
 }
 
@@ -50,8 +64,9 @@ func normalizeLoginInput(input LoginInput) (LoginInput, error) {
 	}
 
 	return LoginInput{
-		Email:    email,
-		Password: password,
+		Email:                    email,
+		Password:                 password,
+		RequireEmailVerification: input.RequireEmailVerification,
 	}, nil
 }
 
@@ -98,6 +113,44 @@ func normalizeConfirmPasswordResetInput(input ConfirmPasswordResetInput) (Confir
 		Token:       token,
 		NewPassword: newPassword,
 	}, nil
+}
+
+func normalizeRequestEmailVerificationInput(input RequestEmailVerificationInput) (RequestEmailVerificationInput, error) {
+	var validation appvalidation.Collector
+
+	email, err := identity.VNUserEmail(input.Email)
+	if err != nil {
+		validation.AddError("email", err, input.Email)
+	}
+	baseURL, err := normalizeResetBaseURL(input.EmailVerificationBaseURL)
+	if err != nil {
+		validation.AddError("emailVerificationBaseUrl", err, input.EmailVerificationBaseURL)
+	}
+	if err := validation.Err(ErrInvalidInput); err != nil {
+		return RequestEmailVerificationInput{}, err
+	}
+
+	return RequestEmailVerificationInput{
+		Email:                    email,
+		EmailVerificationBaseURL: baseURL,
+	}, nil
+}
+
+func normalizeConfirmEmailVerificationInput(input ConfirmEmailVerificationInput) (ConfirmEmailVerificationInput, error) {
+	var validation appvalidation.Collector
+
+	token := strings.TrimSpace(input.Token)
+	if token == "" {
+		validation.Add("token", "must not be empty", nil)
+	}
+	if len(token) > 512 {
+		validation.Add("token", "must be 512 characters or less", nil)
+	}
+	if err := validation.Err(ErrInvalidInput); err != nil {
+		return ConfirmEmailVerificationInput{}, err
+	}
+
+	return ConfirmEmailVerificationInput{Token: token}, nil
 }
 
 func normalizeResetBaseURL(value string) (string, error) {

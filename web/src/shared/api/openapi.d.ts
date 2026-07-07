@@ -45,6 +45,30 @@ export interface paths {
 		patch: operations["updateAdminSettings"];
 		trace?: never;
 	};
+	"/auth/email-verifications": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * Create email verification
+		 * @description Create or resend an email verification link. The response does not reveal whether the email exists.
+		 */
+		post: operations["createEmailVerification"];
+		delete?: never;
+		options?: never;
+		head?: never;
+		/**
+		 * Confirm email verification
+		 * @description Consume a one-time email verification token and mark the account email as verified.
+		 */
+		patch: operations["confirmEmailVerification"];
+		trace?: never;
+	};
 	"/auth/login": {
 		parameters: {
 			query?: never;
@@ -56,7 +80,7 @@ export interface paths {
 		put?: never;
 		/**
 		 * Login user
-		 * @description Verify an email and password pair, then set an HTTP-only session cookie for the authenticated user. Invalid credentials always return the same unauthorized response.
+		 * @description Verify an email and password pair, then set an HTTP-only session cookie for the authenticated user. Invalid credentials always return the same unauthorized response. Unverified accounts return forbidden when email verification is required.
 		 */
 		post: operations["loginUser"];
 		delete?: never;
@@ -140,7 +164,7 @@ export interface paths {
 		put?: never;
 		/**
 		 * Register user
-		 * @description Create a user account with a normalized email address, display name, and password. On success, sets an HTTP-only session cookie for immediate API access.
+		 * @description Create a user account with a normalized email address, display name, and password. When email verification is disabled, sets an HTTP-only session cookie for immediate API access. When email verification is required, sends a verification email and returns 202 without a session cookie.
 		 */
 		post: operations["registerUser"];
 		delete?: never;
@@ -1172,6 +1196,7 @@ export interface components {
 		/**
 		 * @example {
 		 *       "registrationEnabled": true,
+		 *       "emailVerificationRequired": false,
 		 *       "backendBaseUrl": "https://app.netstamp.dev",
 		 *       "publicWebBaseUrl": "https://app.netstamp.dev",
 		 *       "smtp": {
@@ -1188,6 +1213,7 @@ export interface components {
 		 */
 		AdminSettings: {
 			registrationEnabled: boolean;
+			emailVerificationRequired: boolean;
 			backendBaseUrl: string;
 			publicWebBaseUrl: string;
 			smtp: components["schemas"]["AdminSMTPSettings"];
@@ -1529,6 +1555,7 @@ export interface components {
 		 *         "id": "11111111-1111-1111-1111-111111111111",
 		 *         "email": "user@example.com",
 		 *         "displayName": "Jane Doe",
+		 *         "emailVerified": true,
 		 *         "isSystemAdmin": true
 		 *       }
 		 *     }
@@ -1692,6 +1719,18 @@ export interface components {
 		};
 		/**
 		 * @example {
+		 *       "token": "YNo5Uoj64VqK5jCht8h17GO8sHJIY0ScDNef7X99w7k"
+		 *     }
+		 */
+		ConfirmEmailVerificationRequest: {
+			/**
+			 * Format: password
+			 * @description One-time verification token from the email verification message.
+			 */
+			token: string;
+		};
+		/**
+		 * @example {
 		 *       "token": "YNo5Uoj64VqK5jCht8h17GO8sHJIY0ScDNef7X99w7k",
 		 *       "newPassword": "correct-horse-battery-staple"
 		 *     }
@@ -1784,6 +1823,15 @@ export interface components {
 			pingConfig?: components["schemas"]["PingConfigPatch"];
 			tcpConfig?: components["schemas"]["TcpConfigPatch"];
 			tracerouteConfig?: components["schemas"]["TracerouteConfigPatch"];
+		};
+		/**
+		 * @example {
+		 *       "email": "user@example.com"
+		 *     }
+		 */
+		CreateEmailVerificationRequest: {
+			/** @description Email address for the account that should receive a new verification link. */
+			email: components["schemas"]["email"];
 		};
 		/**
 		 * @example {
@@ -1914,6 +1962,7 @@ export interface components {
 		 *         "id": "11111111-1111-1111-1111-111111111111",
 		 *         "email": "user@example.com",
 		 *         "displayName": "Jane Doe",
+		 *         "emailVerified": true,
 		 *         "isSystemAdmin": true
 		 *       }
 		 *     }
@@ -3007,6 +3056,15 @@ export interface components {
 		};
 		/**
 		 * @example {
+		 *       "emailVerificationRequired": true
+		 *     }
+		 */
+		RegisterEmailVerificationRequiredResponse: {
+			/** @enum {boolean} */
+			emailVerificationRequired: true;
+		};
+		/**
+		 * @example {
 		 *       "email": "user@example.com",
 		 *       "displayName": "Jane Doe",
 		 *       "password": "correct-horse-battery-staple"
@@ -3832,6 +3890,7 @@ export interface components {
 		/**
 		 * @example {
 		 *       "registrationEnabled": false,
+		 *       "emailVerificationRequired": true,
 		 *       "backendBaseUrl": "https://app.netstamp.dev",
 		 *       "publicWebBaseUrl": "https://app.netstamp.dev",
 		 *       "smtp": {
@@ -3846,6 +3905,7 @@ export interface components {
 		 */
 		UpdateAdminSettingsRequest: {
 			registrationEnabled?: boolean;
+			emailVerificationRequired?: boolean;
 			backendBaseUrl?: string;
 			publicWebBaseUrl?: string;
 			smtp?: components["schemas"]["AdminSMTPSettingsPatch"];
@@ -4045,6 +4105,7 @@ export interface components {
 		 *       "id": "11111111-1111-1111-1111-111111111111",
 		 *       "email": "user@example.com",
 		 *       "displayName": "Jane Doe",
+		 *       "emailVerified": true,
 		 *       "isSystemAdmin": true
 		 *     }
 		 */
@@ -4055,6 +4116,8 @@ export interface components {
 			email: components["schemas"]["email"];
 			/** @description Name shown in the app. */
 			displayName: string;
+			/** @description Whether the sign-in email address has been verified. */
+			emailVerified: boolean;
 			/** @description Whether the user has instance-level administrator access. */
 			isSystemAdmin: boolean;
 		};
@@ -4283,6 +4346,140 @@ export interface operations {
 			};
 		};
 	};
+	createEmailVerification: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				"application/json": components["schemas"]["CreateEmailVerificationRequest"];
+			};
+		};
+		responses: {
+			/** @description The request has been accepted for processing, but processing has not yet completed. */
+			202: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			429: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Service unavailable. */
+			503: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	confirmEmailVerification: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				"application/json": components["schemas"]["ConfirmEmailVerificationRequest"];
+			};
+		};
+		responses: {
+			/** @description There is no content to send for this request, but the headers may be useful. */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Service unavailable. */
+			503: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
 	loginUser: {
 		parameters: {
 			query?: never;
@@ -4317,6 +4514,15 @@ export interface operations {
 			};
 			/** @description Access is unauthorized. */
 			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is forbidden. */
+			403: {
 				headers: {
 					[name: string]: unknown;
 				};
@@ -4549,6 +4755,15 @@ export interface operations {
 					"application/json": components["schemas"]["AuthUserResponse"];
 				};
 			};
+			/** @description The request has been accepted for processing, but processing has not yet completed. */
+			202: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["RegisterEmailVerificationRequiredResponse"];
+				};
+			};
 			/** @description The server could not understand the request due to invalid syntax. */
 			400: {
 				headers: {
@@ -4578,6 +4793,15 @@ export interface operations {
 			};
 			/** @description Server error */
 			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Service unavailable. */
+			503: {
 				headers: {
 					[name: string]: unknown;
 				};

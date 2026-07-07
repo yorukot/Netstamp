@@ -27,6 +27,7 @@ func (h *Handler) me(ctx context.Context, _ *meInput) (*meOutput, error) {
 				ID:            user.ID,
 				Email:         user.Email,
 				DisplayName:   user.DisplayName,
+				EmailVerified: user.EmailVerifiedAt != nil,
 				IsSystemAdmin: user.IsSystemAdmin,
 			},
 		},

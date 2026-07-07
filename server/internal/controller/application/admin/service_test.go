@@ -112,6 +112,23 @@ func TestEffectiveSettingsReturnsErrorWhenSecretCannotDecrypt(t *testing.T) {
 	}
 }
 
+func TestUpdateSettingsRequiresSMTPWhenEmailVerificationRequired(t *testing.T) {
+	repo := &fakeAdminRepository{
+		admins:   map[string]bool{"admin-1": true},
+		settings: map[string]StoredSetting{},
+	}
+	svc := NewService(repo, fakeSecretCipher{}, Defaults{RegistrationEnabled: true})
+	emailVerificationRequired := true
+
+	_, err := svc.UpdateSettings(context.Background(), UpdateSettingsInput{
+		CurrentUserID:             "admin-1",
+		EmailVerificationRequired: &emailVerificationRequired,
+	})
+	if !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("expected invalid input error, got %v", err)
+	}
+}
+
 type fakeAdminRepository struct {
 	admins    map[string]bool
 	settings  map[string]StoredSetting

@@ -6,7 +6,7 @@ import { appFeatures } from "@/shared/config/features";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { Outlet, Navigate as RouterNavigate, useLocation, useParams } from "react-router-dom";
-import { AuthPage, DashboardPage, ForgotPasswordPage, OnboardingPage, ResetPasswordPage } from "./lazyRoutes";
+import { AuthPage, DashboardPage, ForgotPasswordPage, OnboardingPage, ResetPasswordPage, VerifyEmailPage } from "./lazyRoutes";
 import { useRouteNavigate } from "./navigation";
 import { DefaultProjectRedirect } from "./redirects";
 import { pathForRoute } from "./routePaths";
@@ -48,6 +48,21 @@ export function PasswordResetRoute({ mode }: { mode: "forgot" | "reset" }) {
 	}
 
 	return mode === "forgot" ? lazyRoute(<ForgotPasswordPage />) : lazyRoute(<ResetPasswordPage navigate={navigate} />);
+}
+
+export function EmailVerificationRoute() {
+	const { loading, session } = useSession();
+	const navigate = useRouteNavigate();
+
+	if (loading) {
+		return null;
+	}
+
+	if (session) {
+		return <RouterNavigate to={pathForRoute("dashboard")} replace />;
+	}
+
+	return lazyRoute(<VerifyEmailPage navigate={navigate} />);
 }
 
 export function OnboardingRoute() {

@@ -1015,6 +1015,15 @@ type CheckLabel struct {
 	LabelID   uuid.UUID `json:"label_id"`
 }
 
+type EmailVerificationToken struct {
+	ID        uuid.UUID  `json:"id"`
+	UserID    uuid.UUID  `json:"user_id"`
+	TokenHash string     `json:"token_hash"`
+	ExpiresAt time.Time  `json:"expires_at"`
+	UsedAt    *time.Time `json:"used_at"`
+	CreatedAt time.Time  `json:"created_at"`
+}
+
 type Label struct {
 	ID        uuid.UUID  `json:"id"`
 	ProjectID uuid.UUID  `json:"project_id"`
@@ -1368,10 +1377,11 @@ type TracerouteSampledRuns1m struct {
 }
 
 type User struct {
-	ID           uuid.UUID `json:"id"`
-	Email        string    `json:"email"`
-	PasswordHash string    `json:"password_hash"`
-	DisplayName  string    `json:"display_name"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
+	ID              uuid.UUID  `json:"id"`
+	Email           string     `json:"email"`
+	PasswordHash    string     `json:"password_hash"`
+	DisplayName     string     `json:"display_name"`
+	CreatedAt       time.Time  `json:"created_at"`
+	UpdatedAt       time.Time  `json:"updated_at"`
+	EmailVerifiedAt *time.Time `json:"email_verified_at"`
 }

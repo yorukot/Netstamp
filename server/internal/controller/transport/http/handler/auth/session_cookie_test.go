@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 
@@ -149,11 +150,13 @@ func assertAuthBodyHasOnlyUser(t *testing.T, res *httptest.ResponseRecorder) {
 }
 
 func newAuthTestService() *appauth.Service {
+	verifiedAt := time.Now().UTC()
 	user := identity.User{
-		ID:           "11111111-1111-1111-1111-111111111111",
-		Email:        "user@example.com",
-		DisplayName:  "User",
-		PasswordHash: "hashed-password",
+		ID:              "11111111-1111-1111-1111-111111111111",
+		Email:           "user@example.com",
+		DisplayName:     "User",
+		PasswordHash:    "hashed-password",
+		EmailVerifiedAt: &verifiedAt,
 	}
 	return appauth.NewService(&authTestUserRepository{user: user}, authTestPasswordHasher{}, authTestTokenIssuer{}, authTestEvents{})
 }

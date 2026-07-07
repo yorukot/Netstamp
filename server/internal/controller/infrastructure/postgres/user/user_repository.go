@@ -31,9 +31,10 @@ func (r *UserRepository) CreateUser(ctx context.Context, input identity.User) (i
 	defer span.End()
 
 	row, err := postgres.Queries(ctx, r.queries).CreateUser(ctx, sqlc.CreateUserParams{
-		Email:        input.Email,
-		DisplayName:  input.DisplayName,
-		PasswordHash: input.PasswordHash,
+		Email:           input.Email,
+		DisplayName:     input.DisplayName,
+		PasswordHash:    input.PasswordHash,
+		EmailVerifiedAt: input.EmailVerifiedAt,
 	})
 	if err != nil {
 		if postgres.IsUniqueViolation(err, "uq_users_email") {
@@ -145,6 +146,7 @@ func (r *UserRepository) UpdateUserPasswordHash(ctx context.Context, input ident
 	return mapUpdateUserPasswordHash(row), nil
 }
 
+//nolint:dupl // Password reset and email verification tokens intentionally keep parallel repository flows.
 func (r *UserRepository) CreatePasswordResetToken(ctx context.Context, input identity.PasswordResetToken) (identity.PasswordResetToken, error) {
 	ctx, span := postgres.StartUserDBSpan(ctx, pguserTracer, "postgres.password_reset_tokens.insert", "INSERT", "INSERT password reset token")
 	defer span.End()
@@ -226,6 +228,108 @@ func (r *UserRepository) MarkPasswordResetTokenUsed(ctx context.Context, tokenID
 	return nil
 }
 
+//nolint:dupl // Password reset and email verification tokens intentionally keep parallel repository flows.
+func (r *UserRepository) CreateEmailVerificationToken(ctx context.Context, input identity.EmailVerificationToken) (identity.EmailVerificationToken, error) {
+	ctx, span := postgres.StartUserDBSpan(ctx, pguserTracer, "postgres.email_verification_tokens.insert", "INSERT", "INSERT email verification token")
+	defer span.End()
+
+	userID, err := postgres.ParseUUID(input.UserID, identity.ErrUserNotFound)
+	if err != nil {
+		return identity.EmailVerificationToken{}, err
+	}
+
+	row, err := postgres.Queries(ctx, r.queries).CreateEmailVerificationToken(ctx, sqlc.CreateEmailVerificationTokenParams{
+		UserID:    userID,
+		TokenHash: input.TokenHash,
+		ExpiresAt: input.ExpiresAt,
+	})
+	if err != nil {
+		postgres.RecordDBSpanError(span, err)
+		return identity.EmailVerificationToken{}, err
+	}
+
+	return mapEmailVerificationToken(row), nil
+}
+
+func (r *UserRepository) InvalidateActiveEmailVerificationTokens(ctx context.Context, userIDValue string, usedAt time.Time) error {
+	ctx, span := postgres.StartUserDBSpan(ctx, pguserTracer, "postgres.email_verification_tokens.invalidate_active", "UPDATE", "UPDATE active email verification tokens")
+	defer span.End()
+
+	userID, err := postgres.ParseUUID(userIDValue, identity.ErrUserNotFound)
+	if err != nil {
+		return err
+	}
+
+	if err := postgres.Queries(ctx, r.queries).InvalidateActiveEmailVerificationTokens(ctx, sqlc.InvalidateActiveEmailVerificationTokensParams{
+		UserID: userID,
+		UsedAt: &usedAt,
+	}); err != nil {
+		postgres.RecordDBSpanError(span, err)
+		return err
+	}
+
+	return nil
+}
+
+func (r *UserRepository) GetActiveEmailVerificationTokenByHash(ctx context.Context, tokenHash string, now time.Time) (identity.EmailVerificationToken, error) {
+	ctx, span := postgres.StartUserDBSpan(ctx, pguserTracer, "postgres.email_verification_tokens.select_active", "SELECT", "SELECT active email verification token")
+	defer span.End()
+
+	token, err := postgres.Queries(ctx, r.queries).GetActiveEmailVerificationTokenByHash(ctx, sqlc.GetActiveEmailVerificationTokenByHashParams{
+		TokenHash: tokenHash,
+		NowAt:     now,
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return identity.EmailVerificationToken{}, identity.ErrEmailVerificationTokenNotFound
+		}
+		postgres.RecordDBSpanError(span, err)
+		return identity.EmailVerificationToken{}, err
+	}
+
+	return mapEmailVerificationToken(token), nil
+}
+
+func (r *UserRepository) MarkEmailVerificationTokenUsed(ctx context.Context, tokenIDValue string, usedAt time.Time) error {
+	ctx, span := postgres.StartUserDBSpan(ctx, pguserTracer, "postgres.email_verification_tokens.mark_used", "UPDATE", "UPDATE email verification token used")
+	defer span.End()
+
+	tokenID, err := postgres.ParseUUID(tokenIDValue, identity.ErrEmailVerificationTokenNotFound)
+	if err != nil {
+		return err
+	}
+
+	if err := postgres.Queries(ctx, r.queries).MarkEmailVerificationTokenUsed(ctx, sqlc.MarkEmailVerificationTokenUsedParams{
+		ID:     tokenID,
+		UsedAt: &usedAt,
+	}); err != nil {
+		postgres.RecordDBSpanError(span, err)
+		return err
+	}
+
+	return nil
+}
+
+func (r *UserRepository) MarkUserEmailVerified(ctx context.Context, userIDValue string, verifiedAt time.Time) (identity.User, error) {
+	ctx, span := postgres.StartUserDBSpan(ctx, pguserTracer, "postgres.users.mark_email_verified", "UPDATE", "UPDATE users email verified")
+	defer span.End()
+
+	userID, err := postgres.ParseUUID(userIDValue, identity.ErrUserNotFound)
+	if err != nil {
+		return identity.User{}, err
+	}
+
+	row, err := postgres.Queries(ctx, r.queries).MarkUserEmailVerified(ctx, sqlc.MarkUserEmailVerifiedParams{
+		ID:         userID,
+		VerifiedAt: &verifiedAt,
+	})
+	if err != nil {
+		return identity.User{}, r.mapUpdateError(span, err)
+	}
+
+	return mapMarkUserEmailVerified(row), nil
+}
+
 func (r *UserRepository) mapUpdateError(span trace.Span, err error) error {
 	if errors.Is(err, pgx.ErrNoRows) {
 		return identity.ErrUserNotFound
@@ -238,43 +342,59 @@ func (r *UserRepository) mapUpdateError(span trace.Span, err error) error {
 }
 
 func mapCreateUser(row sqlc.CreateUserRow) identity.User {
-	return mapUserFields(row.ID, row.Email, row.PasswordHash, row.DisplayName, row.IsSystemAdmin, row.CreatedAt, row.UpdatedAt)
+	return mapUserFields(row.ID, row.Email, row.PasswordHash, row.DisplayName, row.EmailVerifiedAt, row.IsSystemAdmin, row.CreatedAt, row.UpdatedAt)
 }
 
 func mapGetUserByID(row sqlc.GetUserByIDRow) identity.User {
-	return mapUserFields(row.ID, row.Email, row.PasswordHash, row.DisplayName, row.IsSystemAdmin, row.CreatedAt, row.UpdatedAt)
+	return mapUserFields(row.ID, row.Email, row.PasswordHash, row.DisplayName, row.EmailVerifiedAt, row.IsSystemAdmin, row.CreatedAt, row.UpdatedAt)
 }
 
 func mapGetUserByEmail(row sqlc.GetUserByEmailRow) identity.User {
-	return mapUserFields(row.ID, row.Email, row.PasswordHash, row.DisplayName, row.IsSystemAdmin, row.CreatedAt, row.UpdatedAt)
+	return mapUserFields(row.ID, row.Email, row.PasswordHash, row.DisplayName, row.EmailVerifiedAt, row.IsSystemAdmin, row.CreatedAt, row.UpdatedAt)
 }
 
 func mapUpdateUserDisplayName(row sqlc.UpdateUserDisplayNameRow) identity.User {
-	return mapUserFields(row.ID, row.Email, row.PasswordHash, row.DisplayName, row.IsSystemAdmin, row.CreatedAt, row.UpdatedAt)
+	return mapUserFields(row.ID, row.Email, row.PasswordHash, row.DisplayName, row.EmailVerifiedAt, row.IsSystemAdmin, row.CreatedAt, row.UpdatedAt)
 }
 
 func mapUpdateUserEmail(row sqlc.UpdateUserEmailRow) identity.User {
-	return mapUserFields(row.ID, row.Email, row.PasswordHash, row.DisplayName, row.IsSystemAdmin, row.CreatedAt, row.UpdatedAt)
+	return mapUserFields(row.ID, row.Email, row.PasswordHash, row.DisplayName, row.EmailVerifiedAt, row.IsSystemAdmin, row.CreatedAt, row.UpdatedAt)
 }
 
 func mapUpdateUserPasswordHash(row sqlc.UpdateUserPasswordHashRow) identity.User {
-	return mapUserFields(row.ID, row.Email, row.PasswordHash, row.DisplayName, row.IsSystemAdmin, row.CreatedAt, row.UpdatedAt)
+	return mapUserFields(row.ID, row.Email, row.PasswordHash, row.DisplayName, row.EmailVerifiedAt, row.IsSystemAdmin, row.CreatedAt, row.UpdatedAt)
 }
 
-func mapUserFields(id uuid.UUID, email, passwordHash, displayName string, isSystemAdmin bool, createdAt, updatedAt time.Time) identity.User {
+func mapMarkUserEmailVerified(row sqlc.MarkUserEmailVerifiedRow) identity.User {
+	return mapUserFields(row.ID, row.Email, row.PasswordHash, row.DisplayName, row.EmailVerifiedAt, row.IsSystemAdmin, row.CreatedAt, row.UpdatedAt)
+}
+
+func mapUserFields(id uuid.UUID, email, passwordHash, displayName string, emailVerifiedAt *time.Time, isSystemAdmin bool, createdAt, updatedAt time.Time) identity.User {
 	return identity.User{
-		ID:            id.String(),
-		Email:         email,
-		DisplayName:   displayName,
-		PasswordHash:  passwordHash,
-		IsSystemAdmin: isSystemAdmin,
-		CreatedAt:     createdAt,
-		UpdatedAt:     updatedAt,
+		ID:              id.String(),
+		Email:           email,
+		DisplayName:     displayName,
+		PasswordHash:    passwordHash,
+		EmailVerifiedAt: emailVerifiedAt,
+		IsSystemAdmin:   isSystemAdmin,
+		CreatedAt:       createdAt,
+		UpdatedAt:       updatedAt,
 	}
 }
 
 func mapPasswordResetToken(row sqlc.PasswordResetToken) identity.PasswordResetToken {
 	return identity.PasswordResetToken{
+		ID:        row.ID.String(),
+		UserID:    row.UserID.String(),
+		TokenHash: row.TokenHash,
+		ExpiresAt: row.ExpiresAt,
+		UsedAt:    row.UsedAt,
+		CreatedAt: row.CreatedAt,
+	}
+}
+
+func mapEmailVerificationToken(row sqlc.EmailVerificationToken) identity.EmailVerificationToken {
+	return identity.EmailVerificationToken{
 		ID:        row.ID.String(),
 		UserID:    row.UserID.String(),
 		TokenHash: row.TokenHash,

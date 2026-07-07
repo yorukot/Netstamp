@@ -14,6 +14,7 @@ import styles from "./AdminPage.module.css";
 
 interface AdminFormState {
 	registrationEnabled: boolean;
+	emailVerificationRequired: boolean;
 	backendBaseUrl: string;
 	publicWebBaseUrl: string;
 	smtpHost: string;
@@ -28,6 +29,7 @@ interface AdminFormState {
 
 const defaultForm: AdminFormState = {
 	registrationEnabled: true,
+	emailVerificationRequired: false,
 	backendBaseUrl: "",
 	publicWebBaseUrl: "",
 	smtpHost: "",
@@ -43,6 +45,7 @@ const defaultForm: AdminFormState = {
 function formFromSettings(settings: ApiAdminSettings): AdminFormState {
 	return {
 		registrationEnabled: settings.registrationEnabled,
+		emailVerificationRequired: settings.emailVerificationRequired,
 		backendBaseUrl: settings.backendBaseUrl,
 		publicWebBaseUrl: settings.publicWebBaseUrl,
 		smtpHost: settings.smtp.host,
@@ -106,6 +109,7 @@ export function AdminPage() {
 		updateSettingsMutation.mutate(
 			{
 				registrationEnabled: form.registrationEnabled,
+				emailVerificationRequired: form.emailVerificationRequired,
 				backendBaseUrl: form.backendBaseUrl,
 				publicWebBaseUrl: form.publicWebBaseUrl,
 				smtp: {
@@ -152,6 +156,13 @@ export function AdminPage() {
 									<small>Disable this after bootstrap if accounts should be invite-only or operator-managed.</small>
 								</span>
 							</label>
+							<label className={styles.checkboxRow}>
+								<Checkbox checked={form.emailVerificationRequired} onChange={event => update("emailVerificationRequired", event.currentTarget.checked)} />
+								<span>
+									<strong>Require email verification</strong>
+									<small>New non-admin registrations must confirm email before login. The first bootstrap admin is not blocked.</small>
+								</span>
+							</label>
 						</Panel>
 
 						<Panel tone="glass" title="Public origins">
@@ -161,7 +172,7 @@ export function AdminPage() {
 									label="Public web base URL"
 									value={form.publicWebBaseUrl}
 									placeholder="https://app.netstamp.dev"
-									helper="Password reset links use this origin when set."
+									helper="Password reset and email verification links use this origin when set."
 									onChange={event => update("publicWebBaseUrl", event.currentTarget.value)}
 								/>
 							</div>
