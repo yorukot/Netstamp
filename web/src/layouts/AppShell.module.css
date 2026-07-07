@@ -1,11 +1,34 @@
 .shell {
+	--ns-bg: #000000;
+	--ns-bg-section: #000000;
+	--ns-bg-subtle: #131518;
+	--ns-surface: #131518;
+	--ns-surface-raised: #131518;
+	--ns-surface-deep: #00080f;
+	--ns-glass-dark: rgba(19, 21, 24, 0.96);
+	--ns-glass-light: rgba(255, 255, 255, 0.045);
+	--ns-text: #ffffff;
+	--ns-text-muted: rgba(255, 255, 255, 0.76);
+	--ns-text-subtle: rgba(255, 255, 255, 0.58);
+	--ns-text-low: rgba(255, 255, 255, 0.38);
+	--ns-text-on-accent: #000000;
+	--ns-border: #ffffff1a;
+	--ns-border-strong: #4b515b;
+	--ns-border-faint: #ffffff1a;
+	--ns-primary: #fb923c;
+	--ns-primary-hover: #fdba74;
+	--ns-primary-active: #f97316;
+	--ns-primary-muted: rgba(251, 146, 60, 0.13);
+	--ns-primary-subtle: rgba(251, 146, 60, 0.2);
+	--ns-primary-border: rgba(251, 146, 60, 0.44);
+
 	min-height: 100vh;
 	min-height: 100svh;
 	display: grid;
-	grid-template-columns: 18.5rem minmax(0, 1fr);
+	grid-template-columns: 15rem minmax(0, 1fr);
 	align-items: start;
 	color: var(--ns-text);
-	background: var(--ns-bg);
+	background: #000000;
 }
 
 .shellCollapsed {
@@ -19,10 +42,12 @@
 	flex-direction: column;
 	justify-content: space-between;
 	gap: 2rem;
-	padding: 1rem 1.5rem 0 0.25rem;
+	padding: 2rem;
 }
 
 .contentBody {
+	width: min(100%, 120rem);
+	margin: 0 auto;
 	display: grid;
 	gap: 1rem;
 }
