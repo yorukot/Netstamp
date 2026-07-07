@@ -113,6 +113,39 @@ const scalarCustomCss = String.raw`
 	background: var(--ns-bg-subtle);
 }
 
+.scalar-app .t-doc__sidebar > div:first-child {
+	position: sticky;
+	top: 0;
+	z-index: 3;
+	background: var(--ns-bg-subtle);
+}
+
+.scalar-app .t-doc__sidebar > div:first-child::after {
+	content: "";
+	position: absolute;
+	top: 100%;
+	right: 0;
+	left: 0;
+	height: 1.5rem;
+	pointer-events: none;
+	background: linear-gradient(to bottom, var(--ns-bg-subtle) 0%, color-mix(in srgb, var(--ns-bg-subtle) 72%, transparent) 42%, transparent 100%);
+}
+
+.scalar-app .t-doc__sidebar .darklight-reference {
+	min-height: 3.5rem;
+	padding-top: 1rem;
+}
+
+.scalar-app .section-header:has(> h1.section-header-label) {
+	margin-top: 0.45rem;
+	margin-bottom: 1rem;
+}
+
+.scalar-app h1.section-header-label {
+	font-size: clamp(2rem, 2.6vw, 2.8rem);
+	line-height: 1.03;
+}
+
 .scalar-app .section-flare {
 	display: none;
 }
