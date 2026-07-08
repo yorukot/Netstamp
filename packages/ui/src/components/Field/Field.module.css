@@ -28,9 +28,7 @@
 .controlFrame:has(.control:focus-visible),
 .controlFrame:has(.select:focus-visible),
 .controlFrame:has(.checkbox:focus-visible) {
-	--ns-frame-color: transparent;
-	outline: var(--ns-focus-outline);
-	outline-offset: var(--ns-focus-outline-offset);
+	--ns-frame-color: var(--ns-focus-ring);
 	box-shadow: none;
 }
 

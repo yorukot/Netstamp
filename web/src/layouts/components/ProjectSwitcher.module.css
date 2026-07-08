@@ -37,15 +37,11 @@
 .projectFrame:has(.projectControl:focus-visible) {
 	--ns-frame-color: transparent;
 	--ns-select-arrow: var(--project-menu-text);
-	outline: var(--ns-focus-outline);
-	outline-offset: var(--ns-focus-outline-offset);
 }
 
 .projectFrame[data-open="true"] {
 	--ns-frame-color: transparent;
 	--ns-select-arrow: var(--project-menu-text);
-	outline: 2px solid transparent;
-	outline-offset: var(--ns-focus-outline-offset);
 }
 
 .projectControl {

@@ -98,9 +98,7 @@
 
 .assignmentControl:has(input:focus-visible),
 .assignmentControl:has(button:focus-visible) {
-	--ns-frame-color: transparent;
-	outline: var(--ns-focus-outline);
-	outline-offset: var(--ns-focus-outline-offset);
+	--ns-frame-color: var(--ns-focus-ring);
 }
 
 .assignmentControl[data-disabled="true"] {
@@ -341,9 +339,7 @@
 }
 
 .timeTrigger:focus-visible {
-	--ns-frame-color: transparent;
-	outline: var(--ns-focus-outline);
-	outline-offset: var(--ns-focus-outline-offset);
+	--ns-frame-color: var(--ns-focus-ring);
 }
 
 .refreshButton {

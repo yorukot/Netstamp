@@ -15,9 +15,7 @@
 }
 
 .frame:has(.trigger:focus-visible) {
-	border-color: transparent;
-	outline: var(--ns-focus-outline);
-	outline-offset: var(--ns-focus-outline-offset);
+	border-color: var(--ns-focus-ring);
 }
 
 .frame[data-invalid="true"] {
@@ -131,9 +129,7 @@
 }
 
 .search:has(input:focus-visible) {
-	border-color: transparent;
-	outline: var(--ns-focus-outline);
-	outline-offset: var(--ns-focus-outline-offset);
+	border-color: var(--ns-focus-ring);
 }
 
 .search input {
