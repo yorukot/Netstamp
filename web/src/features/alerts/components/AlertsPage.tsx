@@ -670,7 +670,7 @@ function SummaryCard({ label, value, tone, detail }: { label: string; value: num
 
 function IncidentDetailDrawer({ incident, isLoading, error, onClose }: { incident: ApiAlertIncident | null; isLoading: boolean; error: unknown; onClose: () => void }) {
 	return (
-		<EditorDrawer open title="Incident detail" ariaLabel="Incident detail" backLabel="back to incidents" onClose={onClose}>
+		<EditorDrawer open title="Incident detail" ariaLabel="Incident detail" onClose={onClose}>
 			{incident ? (
 				<div className={styles.detailStack}>
 					<div className={styles.detailHeader}>
@@ -755,7 +755,7 @@ function RuleEditorDrawer({
 	}
 
 	return (
-		<EditorDrawer open title={title} ariaLabel={title} backLabel="back to rules" onClose={onClose}>
+		<EditorDrawer open title={title} ariaLabel={title} onClose={onClose}>
 			<form className={styles.drawerForm} onSubmit={handleSubmit}>
 				<Panel tone="matte" title="Target">
 					<div className={styles.formGrid}>
@@ -893,7 +893,7 @@ function NotificationEditorDrawer({
 
 	if (!isEditing && step === "type") {
 		return (
-			<EditorDrawer open title={title} ariaLabel={title} backLabel="back to notifications" onClose={onClose}>
+			<EditorDrawer open title={title} ariaLabel={title} onClose={onClose}>
 				<div className={styles.notificationTypeGrid}>
 					{notificationTypeOptions.map(option => (
 						<SelectableRow
@@ -911,7 +911,7 @@ function NotificationEditorDrawer({
 	}
 
 	return (
-		<EditorDrawer open title={title} ariaLabel={title} backLabel="back to notifications" onClose={onClose}>
+		<EditorDrawer open title={title} ariaLabel={title} onClose={onClose}>
 			<form className={styles.drawerForm} onSubmit={handleSubmit}>
 				<Panel tone="matte" title="Notification type">
 					<SelectableRow as="div" leading={<NotificationTypeIcon type={selectedType.value} />} title={selectedType.label} description={selectedType.detail} />

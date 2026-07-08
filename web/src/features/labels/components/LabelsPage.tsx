@@ -337,7 +337,7 @@ export function LabelsPage() {
 				</Panel>
 
 				{isEditorOpen ? (
-					<EditorDrawer open title={isEditing ? selectedRow?.token || "Label" : "New label"} ariaLabel="Label editor" backLabel="back to labels" onClose={closeEditor}>
+					<EditorDrawer open title={isEditing ? selectedRow?.token || "Label" : "New label"} ariaLabel="Label editor" onClose={closeEditor}>
 						<div className={styles.editorStack}>
 							<div className={styles.editorForm}>
 								<TextField label="Key" placeholder="region" value={activeDraftKey} disabled={!projectRef} onChange={event => updateDraftKey(event.currentTarget.value)} />

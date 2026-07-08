@@ -252,7 +252,7 @@ export function NewProbeDrawer() {
 	}
 
 	return (
-		<EditorDrawer open title="Create probe" ariaLabel="New probe wizard" backLabel="back to probes" contentClassName={styles.drawerContent} onClose={closeDrawer}>
+		<EditorDrawer open title="Create probe" ariaLabel="New probe wizard" contentClassName={styles.drawerContent} onClose={closeDrawer}>
 			<p className={styles.drawerIntro}>Name the probe, install it on a host, then wait for the controller to receive its first heartbeat.</p>
 
 			<ProbeWizardTimeline steps={createProbeSteps} currentStep={currentStep} />

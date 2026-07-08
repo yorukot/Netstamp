@@ -181,6 +181,10 @@ body {
 	background: var(--ns-bg);
 }
 
+h2 {
+	font-weight: 600;
+}
+
 button,
 input,
 select,

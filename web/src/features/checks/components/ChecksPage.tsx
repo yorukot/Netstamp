@@ -567,7 +567,7 @@ export function ChecksPage() {
 				</Panel>
 
 				{isEditorOpen ? (
-					<EditorDrawer open title={isCreating ? "New check" : selectedCheck?.name || "Check"} ariaLabel="Check editor" backLabel="back to checks" onClose={closeEditor}>
+					<EditorDrawer open title={isCreating ? "New check" : selectedCheck?.name || "Check"} ariaLabel="Check editor" onClose={closeEditor}>
 						<div className={classNames("ns-scrollbar", styles.checkEditorStack)}>
 							<div className={styles.checkEditForm}>
 								<TextField

@@ -88,7 +88,7 @@ export function ProbesPage() {
 				</div>
 			)}
 
-			<EditorDrawer open={Boolean(selectedProbe)} title={selectedProbe?.name || "Probe"} ariaLabel="Probe detail" backLabel="back to probes" onClose={closeProbeDetail}>
+			<EditorDrawer open={Boolean(selectedProbe)} title={selectedProbe?.name || "Probe"} ariaLabel="Probe detail" onClose={closeProbeDetail}>
 				{selectedProbe ? <ProbeDetail key={selectedProbe.id} probe={selectedProbe} assignedRows={assignedRows} projectRef={projectRef} onDeleted={closeProbeDetail} /> : null}
 			</EditorDrawer>
 

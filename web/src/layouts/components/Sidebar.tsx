@@ -85,7 +85,6 @@ export function Sidebar({ collapsed, user, onToggleCollapsed, onLogout }: Sideba
 				open={mobileMenuOpen}
 				title="Menu"
 				ariaLabel="Primary navigation menu"
-				backLabel="close"
 				className={styles.mobileNavDrawer}
 				contentClassName={styles.mobileNavDrawerContent}
 				onClose={closeMobileMenu}

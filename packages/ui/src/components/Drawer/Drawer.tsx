@@ -12,7 +12,6 @@ export interface DrawerProps extends Omit<ComponentPropsWithoutRef<typeof Dialog
 	children: ReactNode;
 	description?: ReactNode;
 	actions?: ReactNode;
-	backLabel?: ReactNode;
 	closeLabel?: string;
 	side?: DrawerSide;
 	size?: DrawerSize;
@@ -28,21 +27,7 @@ function CloseIcon() {
 	);
 }
 
-export function Drawer({
-	open,
-	title,
-	description,
-	actions,
-	backLabel = "back",
-	closeLabel = "Close",
-	children,
-	side = "right",
-	size = "md",
-	className,
-	contentClassName,
-	onOpenChange,
-	...props
-}: DrawerProps) {
+export function Drawer({ open, title, description, actions, closeLabel = "Close", children, side = "right", size = "md", className, contentClassName, onOpenChange, ...props }: DrawerProps) {
 	return (
 		<DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
 			<DialogPrimitive.Portal>
@@ -50,7 +35,6 @@ export function Drawer({
 				<DialogPrimitive.Content className={[styles.drawer, className].filter(Boolean).join(" ")} data-side={side} data-size={size} {...props}>
 					<header className={styles.header}>
 						<div className={styles.copy}>
-							<DialogPrimitive.Close className={styles.backButton}>{backLabel}</DialogPrimitive.Close>
 							<DialogPrimitive.Title className={styles.title}>{title}</DialogPrimitive.Title>
 							{description ? <DialogPrimitive.Description className={styles.description}>{description}</DialogPrimitive.Description> : null}
 						</div>

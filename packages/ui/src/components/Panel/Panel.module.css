@@ -59,7 +59,6 @@
 	color: var(--ns-text);
 	font-family: var(--ns-font-display);
 	font-size: clamp(1.35rem, 2vw, 1.75rem);
-	font-weight: 600;
 	letter-spacing: 0;
 	line-height: 1.05;
 }

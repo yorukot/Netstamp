@@ -96,38 +96,6 @@
 	min-width: 0;
 }
 
-.backButton {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.5rem;
-	width: fit-content;
-	padding: 0;
-	border: 0;
-	color: var(--ns-primary-hover);
-	background: transparent;
-	font-family: var(--ns-font-sans);
-	font-size: 0.8125rem;
-	font-weight: 650;
-	letter-spacing: 0;
-	line-height: 1;
-	text-transform: none;
-	cursor: pointer;
-}
-
-.backButton::before {
-	content: "<";
-}
-
-.backButton:hover,
-.backButton:focus-visible {
-	color: var(--ns-primary);
-}
-
-.backButton:focus-visible {
-	outline: var(--ns-focus-outline);
-	outline-offset: var(--ns-focus-outline-offset);
-}
-
 .title {
 	margin: 0;
 	overflow: hidden;
