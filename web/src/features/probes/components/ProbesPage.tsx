@@ -83,7 +83,7 @@ export function ProbesPage() {
 				</>
 			) : (
 				<div className={styles.mapView}>
-					<NetworkMap probes={probes} selectedId={selectedProbeId} onSelect={selectProbe} mode="fleet" className={styles.fullMap} />
+					<NetworkMap probes={probes} selectedId={selectedProbeId} onSelect={selectProbe} mode="fleet" isLoading={probesQuery.isPending} loadingLabel="Loading probes" className={styles.fullMap} />
 					<ProbePageHeader view={view} projectRef={projectRef} onViewChange={setView} overlay />
 				</div>
 			)}

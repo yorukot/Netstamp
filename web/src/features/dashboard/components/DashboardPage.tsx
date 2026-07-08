@@ -81,6 +81,8 @@ export function DashboardPage() {
 						theme="dark"
 						fleetFitPadding={dashboardFleetFitPadding}
 						fleetMaxZoom={dashboardFleetMaxZoom}
+						isLoading={probesQuery.isPending}
+						loadingLabel="Loading probes"
 						className={styles.worldMap}
 					/>
 					<div className={styles.mapReadout}>

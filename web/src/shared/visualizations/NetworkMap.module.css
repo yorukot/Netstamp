@@ -13,9 +13,36 @@
 	inset: 0;
 }
 
+.loadingOverlay {
+	position: absolute;
+	inset: 0;
+	z-index: 4;
+	display: grid;
+	place-items: center;
+	background: color-mix(in srgb, var(--ns-surface-deep) 68%, transparent);
+	pointer-events: none;
+}
+
+.loadingFrame {
+	display: grid;
+	place-items: center;
+	width: 3.5rem;
+	height: 3.5rem;
+	border: 1px solid var(--ns-border-faint);
+	background: var(--ns-glass-dark);
+}
+
 .map :global(.maplibregl-canvas:focus-visible) {
 	outline: var(--ns-focus-outline);
 	outline-offset: calc(-1 * var(--ns-focus-outline-offset));
+}
+
+.map :global(.maplibregl-marker) {
+	z-index: 2;
+}
+
+.map :global(.maplibregl-marker[data-active="true"]) {
+	z-index: 3;
 }
 
 .map :global(.maplibregl-ctrl-group) {

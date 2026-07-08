@@ -1,4 +1,5 @@
 import { useTheme } from "@/shared/theme/useTheme";
+import { Spinner } from "@netstamp/ui";
 import type { Map as MapLibreMap, Marker as MapLibreMarker, StyleSpecification } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -18,6 +19,8 @@ interface NetworkMapProps {
 	theme?: MapTheme;
 	fleetFitPadding?: MapPadding;
 	fleetMaxZoom?: number;
+	isLoading?: boolean;
+	loadingLabel?: string;
 	className?: string;
 }
 
@@ -72,21 +75,34 @@ function setMarkerActive(element: HTMLElement, active: boolean) {
 	element.dataset.active = String(active);
 }
 
-function createMarkerElement(probe: NetworkMapMarker, mode: "fleet" | "detail", onSelect?: (probeId: string) => void) {
+function updateMarkerElement(element: HTMLButtonElement, probe: NetworkMapMarker, mode: "fleet" | "detail", clickable: boolean) {
+	element.dataset.mode = mode;
+	element.dataset.clickable = String(clickable);
+	element.setAttribute("aria-label", `Select probe ${probe.name}`);
+
+	const label = element.querySelector<HTMLElement>("[data-marker-label]");
+
+	if (label) {
+		label.textContent = probe.name;
+	}
+}
+
+function createMarkerElement(probe: NetworkMapMarker, mode: "fleet" | "detail", clickable: boolean, onSelect: (probeId: string) => void) {
 	const markerEl = document.createElement("button");
 	markerEl.type = "button";
 	markerEl.className = styles.marker;
-	markerEl.dataset.mode = mode;
-	markerEl.dataset.clickable = String(Boolean(onSelect));
-	markerEl.setAttribute("aria-label", `Select probe ${probe.name}`);
 
 	markerEl.addEventListener("click", event => {
 		event.stopPropagation();
-		onSelect?.(probe.id);
+
+		if (markerEl.dataset.clickable === "true") {
+			onSelect(probe.id);
+		}
 	});
 
 	const labelEl = document.createElement("div");
 	labelEl.className = styles.markerLabel;
+	labelEl.dataset.markerLabel = "";
 	labelEl.textContent = probe.name;
 
 	const squareEl = document.createElement("div");
@@ -94,6 +110,7 @@ function createMarkerElement(probe: NetworkMapMarker, mode: "fleet" | "detail", 
 
 	markerEl.appendChild(labelEl);
 	markerEl.appendChild(squareEl);
+	updateMarkerElement(markerEl, probe, mode, clickable);
 
 	return markerEl;
 }
@@ -132,6 +149,8 @@ export function NetworkMap({
 	theme: themeOverride,
 	fleetFitPadding = defaultFleetFitPadding,
 	fleetMaxZoom = defaultFleetMaxZoom,
+	isLoading = false,
+	loadingLabel = "Loading map",
 	className
 }: NetworkMapProps) {
 	const { theme: appTheme } = useTheme();
@@ -141,10 +160,13 @@ export function NetworkMap({
 	const mapRef = useRef<MapLibreMap | null>(null);
 	const markersRef = useRef<MarkerRecord[]>([]);
 	const selectedIdRef = useRef(selectedId);
+	const onSelectRef = useRef(onSelect);
 	const themeRef = useRef(mapTheme);
 	const appliedThemeRef = useRef<MapTheme | null>(null);
 	const [mapReady, setMapReady] = useState(false);
 	const classes = [styles.map, className].filter(Boolean).join(" ");
+	const markerClickable = Boolean(onSelect);
+	const showLoadingOverlay = isLoading || !mapReady;
 	const positionedProbes = useMemo(() => {
 		const probesWithCoordinates = probes.filter(hasCoordinates);
 
@@ -158,6 +180,10 @@ export function NetworkMap({
 	useEffect(() => {
 		themeRef.current = mapTheme;
 	}, [mapTheme]);
+
+	useEffect(() => {
+		onSelectRef.current = onSelect;
+	}, [onSelect]);
 
 	useEffect(() => {
 		let cancelled = false;
@@ -227,7 +253,7 @@ export function NetworkMap({
 
 			map?.resize();
 
-			if (!map || !maplibregl || !mapReady || mode !== "fleet" || positionedProbes.length === 0 || !map.loaded()) {
+			if (!map || !maplibregl || !mapReady || mode !== "fleet" || positionedProbes.length === 0) {
 				return;
 			}
 
@@ -272,9 +298,21 @@ export function NetworkMap({
 		const activeMaplibregl = maplibregl;
 
 		function renderMarkers() {
-			clearMarkers(markersRef.current);
-			markersRef.current = positionedProbes.map(probe => {
-				const element = createMarkerElement(probe, mode, onSelect);
+			activeMap.resize();
+
+			const existingMarkers = new Map(markersRef.current.map(record => [record.probeId, record]));
+			const nextMarkers = positionedProbes.map(probe => {
+				const existing = existingMarkers.get(probe.id);
+
+				if (existing) {
+					updateMarkerElement(existing.element, probe, mode, markerClickable);
+					setMarkerActive(existing.element, probe.id === selectedIdRef.current);
+					existing.marker.setLngLat(probe.coordinates);
+					existingMarkers.delete(probe.id);
+					return existing;
+				}
+
+				const element = createMarkerElement(probe, mode, markerClickable, probeId => onSelectRef.current?.(probeId));
 				setMarkerActive(element, probe.id === selectedIdRef.current);
 
 				const marker = new activeMaplibregl.Marker({
@@ -286,20 +324,13 @@ export function NetworkMap({
 
 				return { marker, element, probeId: probe.id };
 			});
+
+			clearMarkers([...existingMarkers.values()]);
+			markersRef.current = nextMarkers;
 		}
 
-		if (activeMap.loaded()) {
-			renderMarkers();
-		} else {
-			activeMap.once("load", renderMarkers);
-		}
-
-		return () => {
-			activeMap.off("load", renderMarkers);
-			clearMarkers(markersRef.current);
-			markersRef.current = [];
-		};
-	}, [mapReady, mode, onSelect, positionedProbes]);
+		renderMarkers();
+	}, [mapReady, markerClickable, mode, positionedProbes]);
 
 	useEffect(() => {
 		const map = mapRef.current;
@@ -327,14 +358,10 @@ export function NetworkMap({
 			});
 		}
 
-		if (activeMap.loaded()) {
-			focusSelectedProbe();
-		} else {
-			activeMap.once("load", focusSelectedProbe);
-		}
+		focusSelectedProbe();
 
 		return () => {
-			activeMap.off("load", focusSelectedProbe);
+			activeMap.stop();
 		};
 	}, [mapReady, mode, positionedProbes, selectedId]);
 
@@ -353,20 +380,23 @@ export function NetworkMap({
 			fitFleetBounds(activeMap, activeMaplibregl, positionedProbes, fleetFitPadding, fleetMaxZoom);
 		}
 
-		if (activeMap.loaded()) {
-			focusFleetBounds();
-		} else {
-			activeMap.once("load", focusFleetBounds);
-		}
+		focusFleetBounds();
 
 		return () => {
-			activeMap.off("load", focusFleetBounds);
+			activeMap.stop();
 		};
 	}, [fleetFitPadding, fleetMaxZoom, mapReady, mode, positionedProbes]);
 
 	return (
 		<div className={classes}>
 			<div ref={mapContainerRef} className={styles.canvas} />
+			{showLoadingOverlay ? (
+				<div className={styles.loadingOverlay}>
+					<div className={styles.loadingFrame}>
+						<Spinner label={loadingLabel} size="lg" />
+					</div>
+				</div>
+			) : null}
 		</div>
 	);
 }
