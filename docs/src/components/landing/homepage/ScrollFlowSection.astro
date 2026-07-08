@@ -1,0 +1,380 @@
+---
+const steps = [
+	{
+		number: "01",
+		title: "Bind your machines",
+		visual: "machines"
+	},
+	{
+		number: "02",
+		title: "Define assignments",
+		visual: "assignments"
+	},
+	{
+		number: "03",
+		title: "View Insights",
+		visual: "insights"
+	},
+	{
+		number: "04",
+		title: "Get notified before users notice",
+		visual: "incidents"
+	}
+];
+---
+
+<section id="scroll-flow" class="flow" data-scroll-progress="flow" aria-labelledby="flow-title">
+	<h2 id="flow-title">From real probes to real incidents.</h2>
+	<ol class="flow-list">
+		{
+			steps.map(step => (
+				<li class="flow-step">
+					<article class="flow-card" data-flow-card>
+						<header>
+							<span>{step.number}</span>
+							<h3>{step.title}</h3>
+						</header>
+						<div class:list={["flow-visual", `flow-visual-${step.visual}`]} aria-hidden="true">
+							<svg viewBox="0 0 420 220" role="img">
+								{step.visual === "machines" && (
+									<>
+										<path class="wire dim" d="M88 122 H178 L210 78 L242 122 H332" />
+										<path class="wire hot" d="M88 122 H178 L210 78" />
+										<rect x="48" y="92" width="56" height="60" />
+										<rect x="182" y="44" width="56" height="60" />
+										<rect x="316" y="92" width="56" height="60" />
+										<circle cx="76" cy="122" r="8" />
+										<circle cx="210" cy="74" r="8" />
+										<circle cx="344" cy="122" r="8" />
+									</>
+								)}
+								{step.visual === "assignments" && (
+									<>
+										<path class="wire dim" d="M70 56 H350 M70 110 H350 M70 164 H350" />
+										<path class="wire hot" d="M88 56 C136 56 136 164 184 164 S232 110 278 110" />
+										<rect x="42" y="38" width="58" height="36" />
+										<rect x="42" y="92" width="58" height="36" />
+										<rect x="42" y="146" width="58" height="36" />
+										<rect x="286" y="38" width="72" height="36" />
+										<rect x="286" y="92" width="72" height="36" />
+										<rect x="286" y="146" width="72" height="36" />
+									</>
+								)}
+								{step.visual === "insights" && (
+									<>
+										<path class="wire dim" d="M56 166 H364 M56 124 H364 M56 82 H364" />
+										<path class="wire hot" d="M64 152 L118 140 L174 94 L226 112 L282 64 L352 78" />
+										<circle cx="118" cy="140" r="7" />
+										<circle cx="174" cy="94" r="7" />
+										<circle cx="226" cy="112" r="7" />
+										<circle cx="282" cy="64" r="7" />
+										<rect x="58" y="44" width="52" height="132" />
+										<rect x="122" y="116" width="52" height="60" />
+										<rect x="186" y="92" width="52" height="84" />
+										<rect x="250" y="66" width="52" height="110" />
+									</>
+								)}
+								{step.visual === "incidents" && (
+									<>
+										<path class="wire dim" d="M52 138 C96 70 142 72 184 126 S278 178 360 72" />
+										<path class="wire hot" d="M52 138 C96 70 142 72 184 126 S278 178 360 72" />
+										<circle cx="52" cy="138" r="8" />
+										<circle cx="184" cy="126" r="8" />
+										<circle cx="360" cy="72" r="8" />
+										<path class="alert" d="M210 48 L252 124 H168 Z" />
+										<path class="alert-mark" d="M210 74 V101 M210 112 V116" />
+									</>
+								)}
+							</svg>
+						</div>
+					</article>
+				</li>
+			))
+		}
+	</ol>
+</section>
+
+<style>
+	.flow {
+		position: relative;
+		padding: 6rem clamp(1rem, 4vw, 4rem);
+		overflow: hidden;
+		color: var(--ns-chrome-text);
+		background: var(--ns-bg);
+	}
+
+	h2 {
+		max-width: 78rem;
+		margin: 0 auto 5rem;
+		font-family: var(--ns-font-display);
+		font-size: 3.8rem;
+		font-weight: 300;
+		letter-spacing: 0;
+		line-height: 0.98;
+		text-align: center;
+	}
+
+	.flow-list {
+		--flow-connector-y: 2.75rem;
+		--flow-dot-size: 1.05rem;
+		position: relative;
+		display: grid;
+		gap: 5.5rem;
+		max-width: 70rem;
+		margin: 0 auto;
+		padding: 0;
+		list-style: none;
+	}
+
+	.flow-list::before,
+	.flow-list::after {
+		content: "";
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		left: 50%;
+		width: 0.1875rem;
+		border-radius: 999rem;
+		transform: translateX(-50%);
+	}
+
+	.flow-list::before {
+		background: linear-gradient(
+			to bottom,
+			color-mix(in srgb, var(--ns-chrome-text) 32%, transparent),
+			color-mix(in srgb, var(--ns-primary-active) 16%, transparent) 45%,
+			color-mix(in srgb, var(--ns-chrome-text) 24%, transparent)
+		);
+		box-shadow:
+			0 0 0.75rem color-mix(in srgb, var(--ns-chrome-text) 20%, transparent),
+			0 0 2.125rem color-mix(in srgb, var(--ns-primary-active) 14%, transparent);
+		mask-image: linear-gradient(to bottom, transparent 0, var(--ns-bg) 6%, var(--ns-bg) 68%, transparent 100%);
+		-webkit-mask-image: linear-gradient(to bottom, transparent 0, var(--ns-bg) 6%, var(--ns-bg) 68%, transparent 100%);
+	}
+
+	.flow-list::after {
+		bottom: auto;
+		height: var(--section-progress-percent, 0%);
+		background: linear-gradient(to bottom, color-mix(in srgb, var(--ns-primary-hover) 92%, transparent), color-mix(in srgb, var(--ns-primary-active) 62%, transparent));
+		box-shadow:
+			0 0 0.875rem color-mix(in srgb, var(--ns-primary-active) 72%, transparent),
+			0 0 2.25rem color-mix(in srgb, var(--ns-primary-active) 24%, transparent);
+		mask-image: linear-gradient(to bottom, transparent 0, var(--ns-bg) 5%, var(--ns-bg) 58%, transparent 100%);
+		-webkit-mask-image: linear-gradient(to bottom, transparent 0, var(--ns-bg) 5%, var(--ns-bg) 58%, transparent 100%);
+	}
+
+	.flow-step {
+		position: relative;
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) 4.5rem minmax(0, 1fr);
+		align-items: start;
+	}
+
+	.flow-step::before {
+		content: "";
+		z-index: 2;
+		grid-column: 2;
+		justify-self: center;
+		width: var(--flow-dot-size);
+		height: var(--flow-dot-size);
+		margin-top: calc(var(--flow-connector-y) - var(--flow-dot-size) / 2);
+		border: 2px solid var(--ns-chrome-text);
+		background: var(--ns-chrome-text);
+		box-shadow: 0 0 0 0.45rem var(--ns-bg);
+	}
+
+	.flow-card {
+		--card-progress: 0;
+		position: relative;
+		grid-column: 3;
+		border: 1px solid var(--ns-border-strong);
+		background: var(--ns-surface-raised);
+		color: var(--ns-chrome-text);
+		transition:
+			border-color 180ms ease,
+			transform 180ms ease;
+	}
+
+	.flow-step:nth-child(even) .flow-card {
+		grid-column: 1;
+	}
+
+	.flow-card::before {
+		content: "";
+		position: absolute;
+		top: var(--flow-connector-y);
+		width: 4.5rem;
+		height: 1px;
+		background: var(--ns-border-strong);
+	}
+
+	.flow-step:nth-child(odd) .flow-card::before {
+		right: 100%;
+	}
+
+	.flow-step:nth-child(even) .flow-card::before {
+		left: 100%;
+	}
+
+	.flow-card.is-open {
+		border-color: color-mix(in srgb, var(--ns-primary-active) 72%, transparent);
+		transform: translateY(-0.35rem);
+	}
+
+	header {
+		display: grid;
+		grid-template-columns: 4rem minmax(0, 1fr);
+		align-items: center;
+		min-height: 5.5rem;
+		border-bottom: 1px solid var(--ns-border-strong);
+	}
+
+	header > span {
+		display: grid;
+		align-self: stretch;
+		place-items: center;
+		border-right: 1px solid var(--ns-border-strong);
+		color: var(--ns-chrome-text);
+		font-family: var(--ns-font-mono);
+		font-size: 1rem;
+	}
+
+	h3 {
+		margin: 0;
+		padding: 0 1.25rem;
+		font-family: var(--ns-font-mono);
+		font-size: 1rem;
+		font-weight: 700;
+		letter-spacing: 0;
+		text-transform: uppercase;
+	}
+
+	.flow-visual {
+		display: grid;
+		place-items: center;
+		height: var(--card-height, 0rem);
+		min-height: 0;
+		overflow: hidden;
+		opacity: var(--card-progress);
+		transform: translateY(var(--card-shift, -0.8rem));
+	}
+
+	svg {
+		width: min(100%, 26rem);
+		height: auto;
+		padding: 1.5rem;
+	}
+
+	rect,
+	circle,
+	.alert {
+		fill: var(--ns-surface-raised);
+		stroke: var(--ns-text-low);
+		stroke-width: 2;
+		vector-effect: non-scaling-stroke;
+	}
+
+	circle {
+		fill: var(--ns-primary-active);
+		stroke: var(--ns-chrome-text);
+	}
+
+	.wire {
+		fill: none;
+		stroke-width: 3;
+		stroke-linecap: square;
+		stroke-linejoin: miter;
+		vector-effect: non-scaling-stroke;
+	}
+
+	.wire.dim {
+		stroke: var(--ns-border-strong);
+	}
+
+	.wire.hot {
+		stroke: var(--ns-primary-active);
+		stroke-dasharray: 16 10;
+		animation: flowDash 1600ms linear infinite;
+		filter: drop-shadow(0 0 0.5rem color-mix(in srgb, var(--ns-primary-active) 75%, transparent));
+	}
+
+	.alert {
+		fill: color-mix(in srgb, var(--ns-primary-active) 14%, transparent);
+		stroke: var(--ns-primary-active);
+	}
+
+	.alert-mark {
+		fill: none;
+		stroke: var(--ns-chrome-text);
+		stroke-linecap: square;
+		stroke-width: 5;
+	}
+
+	@keyframes flowDash {
+		to {
+			stroke-dashoffset: -26;
+		}
+	}
+
+	@media (min-width: 86rem) {
+		h2 {
+			font-size: 5.3rem;
+		}
+	}
+
+	@media (max-width: 56rem) {
+		.flow {
+			padding: 6rem 1rem 7rem;
+		}
+
+		h2 {
+			margin-bottom: 4.5rem;
+			font-size: 2.7rem;
+			text-align: left;
+		}
+
+		.flow-list {
+			gap: 3rem;
+		}
+
+		.flow-list::before,
+		.flow-list::after {
+			left: 1.1rem;
+		}
+
+		.flow-step {
+			grid-template-columns: 2.2rem minmax(0, 1fr);
+		}
+
+		.flow-step::before {
+			grid-column: 1;
+		}
+
+		.flow-card,
+		.flow-step:nth-child(even) .flow-card {
+			grid-column: 2;
+		}
+
+		.flow-card::before,
+		.flow-step:nth-child(even) .flow-card::before {
+			right: 100%;
+			left: auto;
+			width: 2.2rem;
+		}
+	}
+
+	@media (max-width: 38rem) {
+		h2 {
+			font-size: 2.35rem;
+		}
+
+		header {
+			grid-template-columns: 3.35rem minmax(0, 1fr);
+		}
+
+		h3 {
+			padding: 0 0.9rem;
+			font-size: 0.82rem;
+		}
+	}
+</style>

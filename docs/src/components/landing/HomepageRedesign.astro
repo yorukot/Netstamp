@@ -1,0 +1,168 @@
+---
+import { GlobalFooter } from "@netstamp/ui";
+import FaqSection from "./homepage/FaqSection.astro";
+import FinalCtaSection from "./homepage/FinalCtaSection.astro";
+import HeroSection from "./homepage/HeroSection.astro";
+import ProductIntroSection from "./homepage/ProductIntroSection.astro";
+import ProductShowcaseSection from "./homepage/ProductShowcaseSection.astro";
+import ScrollFlowSection from "./homepage/ScrollFlowSection.astro";
+---
+
+<div class="homepage" data-homepage>
+	<main>
+		<HeroSection />
+		<ProductIntroSection />
+		<ScrollFlowSection />
+		<ProductShowcaseSection />
+		<FinalCtaSection />
+		<FaqSection />
+	</main>
+	<GlobalFooter className="homepageFooter" />
+
+	<script>
+		import "../../scripts/homepageRedesign";
+	</script>
+
+	<style is:global>
+		html {
+			scroll-behavior: smooth;
+		}
+
+		.homepage,
+		.homepage *,
+		.homepage *::before,
+		.homepage *::after {
+			box-sizing: border-box;
+		}
+
+		.homepage {
+			overflow: clip;
+			color: var(--ns-bg);
+			background: var(--ns-chrome-text);
+			font-family: var(--ns-font-sans);
+		}
+
+		body:has(.homepage) {
+			background: var(--ns-chrome-text);
+		}
+
+		body:has(.homepage) .trackingConsent,
+		body:has(.homepage) .siteThemeToggle {
+			display: none !important;
+		}
+
+		.homepage main {
+			overflow: clip;
+		}
+
+		.homepage .homepageFooter {
+			background: var(--ns-chrome-text);
+		}
+
+		.homepage section[id] {
+			scroll-margin-top: 6.5rem;
+		}
+
+		.homepage a {
+			color: inherit;
+		}
+
+		.homepage .btn {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			min-height: 2.75rem;
+			padding: 0 1.35rem;
+			border: 1px solid transparent;
+			border-radius: 0;
+			font-family: var(--ns-font-sans);
+			font-size: 0.9rem;
+			font-weight: 700;
+			letter-spacing: 0;
+			line-height: 1;
+			text-decoration: none;
+			transition:
+				background 160ms ease,
+				border-color 160ms ease,
+				color 160ms ease,
+				transform 160ms ease;
+		}
+
+		.homepage .btn:hover {
+			transform: translateY(-0.0625rem);
+		}
+
+		.homepage .btn:focus-visible,
+		.homepage summary:focus-visible {
+			outline: 2px solid var(--ns-primary);
+			outline-offset: 4px;
+		}
+
+		.homepage .btn-primary {
+			border-color: var(--ns-primary);
+			color: var(--ns-chrome-text);
+			background: var(--ns-primary);
+		}
+
+		.homepage .btn-primary:hover {
+			border-color: var(--ns-primary-active);
+			background: var(--ns-primary-active);
+		}
+
+		.homepage .btn-outline {
+			border-color: color-mix(in srgb, var(--ns-chrome-text) 42%, transparent);
+			color: var(--ns-chrome-text);
+			background: color-mix(in srgb, var(--ns-chrome-text) 4%, transparent);
+		}
+
+		.homepage .btn-outline:hover {
+			border-color: color-mix(in srgb, var(--ns-chrome-text) 72%, transparent);
+			background: color-mix(in srgb, var(--ns-chrome-text) 12%, transparent);
+		}
+
+		.homepage .cta-row {
+			display: flex;
+			flex-wrap: wrap;
+			justify-content: center;
+			gap: 0.75rem;
+		}
+
+		.homepage .sr-only {
+			position: absolute;
+			width: 1px;
+			height: 1px;
+			padding: 0;
+			margin: 0;
+			overflow: hidden;
+			clip: rect(0, 0, 0, 0);
+			white-space: nowrap;
+			border: 0;
+		}
+
+		@media (max-width: 38rem) {
+			.homepage .btn {
+				width: 100%;
+				min-height: 3rem;
+			}
+
+			.homepage .cta-row {
+				width: 100%;
+			}
+		}
+
+		@media (prefers-reduced-motion: reduce) {
+			html {
+				scroll-behavior: auto;
+			}
+
+			.homepage *,
+			.homepage *::before,
+			.homepage *::after {
+				animation-duration: 0.001ms !important;
+				animation-iteration-count: 1 !important;
+				scroll-behavior: auto !important;
+				transition-duration: 0.001ms !important;
+			}
+		}
+	</style>
+</div>

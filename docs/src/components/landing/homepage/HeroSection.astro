@@ -1,0 +1,142 @@
+<section class="hero" aria-labelledby="homepage-title">
+	<canvas id="ns-canvas" aria-hidden="true"></canvas>
+	<canvas id="ns-cable-canvas" aria-hidden="true"></canvas>
+
+	<div class="vignette" aria-hidden="true"></div>
+	<div class="hero-content">
+		<h1 id="homepage-title">
+			<span class="line1">Trace every path.</span>
+			<span class="line2">Before it breaks.</span>
+		</h1>
+		<p class="sub">Open-source network observability from probes you control.</p>
+		<div class="cta-row">
+			<a href="/docs/guides/getting-started/" class="btn btn-primary">Get Started</a>
+			<a href="https://github.com/yorukot/netstamp" class="btn btn-outline" target="_blank" rel="noreferrer">View on GitHub</a>
+		</div>
+	</div>
+	<div class="hero-horizon" aria-hidden="true"></div>
+</section>
+
+<style>
+	.hero {
+		position: relative;
+		display: grid;
+		place-items: center;
+		min-height: 108svh;
+		padding: 8rem 1rem 18svh;
+		overflow: hidden;
+		isolation: isolate;
+		color: var(--ns-chrome-text);
+		background: var(--ns-surface-deep);
+	}
+
+	#ns-canvas,
+	#ns-cable-canvas {
+		position: absolute;
+		inset: 0;
+		display: block;
+		width: 100%;
+		height: 100%;
+		pointer-events: none;
+	}
+
+	#ns-canvas {
+		z-index: 0;
+	}
+
+	#ns-cable-canvas {
+		z-index: 1;
+	}
+
+	.vignette {
+		position: absolute;
+		z-index: 2;
+		inset: 0;
+		background:
+			linear-gradient(180deg, color-mix(in srgb, var(--ns-bg) 80%, transparent), transparent 28%, transparent 70%, color-mix(in srgb, var(--ns-primary) 14%, transparent)),
+			radial-gradient(ellipse 58% 48% at 50% 50%, color-mix(in srgb, var(--ns-surface-deep) 88%, transparent), color-mix(in srgb, var(--ns-surface-deep) 40%, transparent) 54%, transparent 100%);
+	}
+
+	.hero-horizon {
+		position: absolute;
+		z-index: 2;
+		right: -8vw;
+		bottom: -6svh;
+		left: -8vw;
+		height: 22svh;
+		background: var(--ns-chrome-text);
+		transform: rotate(-2deg);
+		transform-origin: center;
+	}
+
+	.hero-content {
+		position: relative;
+		z-index: 4;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 1.5rem;
+		padding: 2rem;
+		text-align: center;
+		pointer-events: auto;
+	}
+
+	h1 {
+		display: flex;
+		flex-direction: column;
+		gap: 0.05em;
+		margin: 0;
+		color: var(--ns-chrome-text);
+		font-family: var(--ns-font-display);
+		font-size: clamp(3rem, 7.2vw, 7.6rem);
+		font-weight: 200;
+		letter-spacing: -0.03em;
+		line-height: 1;
+	}
+
+	.line1,
+	.line2 {
+		display: block;
+	}
+
+	.line2 {
+		color: color-mix(in srgb, var(--ns-chrome-text) 88%, transparent);
+	}
+
+	.sub {
+		max-width: 33.75rem;
+		margin: 0;
+		color: color-mix(in srgb, var(--ns-chrome-text) 50%, transparent);
+		font-family: var(--ns-font-sans);
+		font-size: 1rem;
+		font-weight: 400;
+		letter-spacing: 0;
+		line-height: 1.55;
+	}
+
+	.hero :global(.cta-row) {
+		margin-top: 0.5rem;
+	}
+
+	@media (min-width: 48rem) {
+		.sub {
+			font-size: 1.15rem;
+		}
+	}
+
+	@media (max-width: 38rem) {
+		.hero {
+			min-height: 102svh;
+			padding: 7rem 1rem 14svh;
+		}
+
+		.hero-content {
+			width: 100%;
+			padding: 1rem;
+		}
+
+		h1 {
+			font-size: 3.2rem;
+		}
+	}
+</style>

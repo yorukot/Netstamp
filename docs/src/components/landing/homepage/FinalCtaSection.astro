@@ -1,0 +1,108 @@
+<section id="final-cta" class="final-cta" data-scroll-progress="cta" aria-label="Get started with Netstamp">
+	<h2>Start observing from the networks you control.</h2>
+	<svg class="cta-network" viewBox="0 0 1200 520" aria-hidden="true">
+		<path class="route route-dim" d="M82 360 C214 126 360 406 498 226 S790 88 1110 238"></path>
+		<path class="route route-hot" d="M82 360 C214 126 360 406 498 226 S790 88 1110 238"></path>
+	</svg>
+	<div class="cta-row">
+		<a href="/docs/guides/getting-started/" class="btn btn-primary">Get Started</a>
+		<a href="https://github.com/yorukot/netstamp" class="btn btn-outline" target="_blank" rel="noreferrer">View on GitHub</a>
+	</div>
+</section>
+
+<style>
+	.final-cta {
+		position: relative;
+		display: grid;
+		place-items: center;
+		gap: 0.75rem;
+		min-height: 68svh;
+		padding: 4.5rem 1rem;
+		overflow: hidden;
+		isolation: isolate;
+		background: var(--ns-bg);
+	}
+
+	.final-cta::before {
+		content: "";
+		position: absolute;
+		inset: 0;
+		z-index: -2;
+		background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--ns-primary) 8%, transparent) 62%, transparent), var(--ns-bg);
+	}
+
+	.cta-network {
+		position: absolute;
+		inset: 50% auto auto 50%;
+		z-index: -1;
+		width: min(104rem, 132vw);
+		height: auto;
+		transform: translate(-50%, -50%);
+		opacity: 0.92;
+	}
+
+	h2 {
+		position: relative;
+		z-index: 2;
+		max-width: 13ch;
+		margin: 0;
+		color: var(--ns-chrome-text);
+		font-family: var(--ns-font-display);
+		font-size: 3.8rem;
+		font-weight: 300;
+		letter-spacing: 0;
+		line-height: 1.05;
+		text-align: center;
+	}
+
+	.route {
+		fill: none;
+		stroke-linecap: square;
+		stroke-width: 3;
+		vector-effect: non-scaling-stroke;
+	}
+
+	.route-dim {
+		stroke: color-mix(in srgb, var(--ns-chrome-text) 14%, transparent);
+	}
+
+	.route-hot {
+		stroke: var(--ns-primary-active);
+		stroke-dasharray: 1100;
+		stroke-dashoffset: var(--route-offset, 0);
+		filter: drop-shadow(0 0 0.75rem color-mix(in srgb, var(--ns-primary-active) 75%, transparent));
+		transition: stroke-dashoffset 120ms linear;
+	}
+
+	.final-cta :global(.cta-row) {
+		position: relative;
+		z-index: 2;
+	}
+
+	@media (min-width: 86rem) {
+		h2 {
+			font-size: 5.3rem;
+		}
+	}
+
+	@media (max-width: 56rem) {
+		h2 {
+			font-size: 2.7rem;
+		}
+	}
+
+	@media (max-width: 38rem) {
+		.final-cta {
+			min-height: 62svh;
+			padding: 3.5rem 1rem;
+		}
+
+		.cta-network {
+			width: 210vw;
+		}
+
+		h2 {
+			font-size: 2.35rem;
+		}
+	}
+</style>

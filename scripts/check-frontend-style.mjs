@@ -13,6 +13,7 @@ const pxPattern = /-?\d+(?:\.\d+)?px\b/g;
 const rawColorAllowlist = new Map([
 	["docs/src/lib/seo.ts", "browser theme-color metadata requires a concrete color"],
 	["docs/src/scripts/docLayout.ts", "detached plain-text popup cannot inherit app CSS variables"],
+	["docs/src/scripts/homepageRedesign.js", "canvas and WebGL scene colors require concrete computed strings"],
 	["packages/ui/src/stories/Foundations.stories.tsx", "token specimen documents exact token values"],
 	["packages/ui/.storybook/preview.ts", "Storybook background swatches document exact token values"],
 	["web/src/shared/visualizations/chartTheme.ts", "canvas and SSR chart fallbacks require computed color strings"]
