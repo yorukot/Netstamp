@@ -21,11 +21,9 @@ interface UserMenuPanelProps extends UserMenuProps {
 
 export function UserMenu({ user, collapsed = false, onLogout }: UserMenuProps) {
 	const [profileOpen, setProfileOpen] = useState(false);
-	const [avatarOpen, setAvatarOpen] = useState(false);
 
 	function closeMenus() {
 		setProfileOpen(false);
-		setAvatarOpen(false);
 	}
 
 	function logout() {
@@ -36,43 +34,25 @@ export function UserMenu({ user, collapsed = false, onLogout }: UserMenuProps) {
 	const content = <UserMenuContent onClose={closeMenus} onLogout={logout} />;
 
 	return (
-		<>
-			<PopoverRoot open={profileOpen} onOpenChange={setProfileOpen}>
-				<PopoverTrigger asChild>
-					<button type="button" className={classNames(styles.userCard, collapsed && styles.userCardCollapsed)} aria-label={`Open user menu for ${user.name}`} title={user.name}>
-						<div className={styles.userProfile}>
-							<SignalAvatar size="sm" src={user.gravatarUrl} referrerPolicy="no-referrer" aria-hidden="true" />
-							<div className={styles.userMeta}>
-								<strong>{user.name}</strong>
-								<span>{user.role}</span>
-							</div>
+		<PopoverRoot open={profileOpen} onOpenChange={setProfileOpen}>
+			<PopoverTrigger asChild>
+				<button type="button" className={classNames(styles.userCard, collapsed && styles.userCardCollapsed)} aria-label={`Open user menu for ${user.name}`} title={user.name}>
+					<div className={styles.userProfile}>
+						<SignalAvatar className={styles.userAvatar} size="sm" src={user.gravatarUrl} referrerPolicy="no-referrer" aria-hidden="true" />
+						<div className={styles.userMeta}>
+							<strong>{user.name}</strong>
+							<span>{user.role}</span>
 						</div>
-					</button>
-				</PopoverTrigger>
+					</div>
+				</button>
+			</PopoverTrigger>
 
-				<PopoverPortal>
-					<PopoverContent className={styles.userPopover} align="start" side="top" sideOffset={10} collisionPadding={8}>
-						{content}
-					</PopoverContent>
-				</PopoverPortal>
-			</PopoverRoot>
-
-			<PopoverRoot open={avatarOpen} onOpenChange={setAvatarOpen}>
-				<div className={classNames(styles.userMenu, collapsed && styles.userMenuCollapsed)}>
-					<PopoverTrigger asChild>
-						<button type="button" className={styles.userAvatarButton} aria-label={`Open user menu for ${user.name}`} title={user.name}>
-							<SignalAvatar className={styles.userAvatar} size="sm" src={user.gravatarUrl} referrerPolicy="no-referrer" aria-hidden="true" />
-						</button>
-					</PopoverTrigger>
-				</div>
-
-				<PopoverPortal>
-					<PopoverContent className={styles.userPopover} align="center" side="top" sideOffset={10} collisionPadding={8}>
-						{content}
-					</PopoverContent>
-				</PopoverPortal>
-			</PopoverRoot>
-		</>
+			<PopoverPortal>
+				<PopoverContent className={styles.userPopover} align={collapsed ? "center" : "start"} side="top" sideOffset={10} collisionPadding={8}>
+					{content}
+				</PopoverContent>
+			</PopoverPortal>
+		</PopoverRoot>
 	);
 }
 

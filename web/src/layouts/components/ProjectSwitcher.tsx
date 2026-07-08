@@ -3,7 +3,7 @@ import { pathForProjectSwitch } from "@/routes/routePaths";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { appFeatures } from "@/shared/config/features";
 import { classNames } from "@/shared/utils/classNames";
-import { Button, PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger, Select } from "@netstamp/ui";
+import { Select } from "@netstamp/ui";
 import { FolderOpen, FolderPlus } from "@phosphor-icons/react";
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -25,17 +25,24 @@ function createProjectOptionLabel() {
 	);
 }
 
+function projectOptionLabel(name: string) {
+	return (
+		<span className={styles.projectOptionLabel}>
+			<FolderOpen className={styles.projectOptionIcon} size={18} weight="bold" aria-hidden="true" />
+			<span className={styles.projectOptionName}>{name}</span>
+		</span>
+	);
+}
+
 export function ProjectSwitcher({ collapsed = false, variant = "sidebar" }: ProjectSwitcherProps) {
 	const { projectRef, projectsQuery, setSelectedProjectRef } = useCurrentProject();
 	const location = useLocation();
 	const navigate = useNavigate();
 	const [createModalOpen, setCreateModalOpen] = useState(false);
-	const [compactOpen, setCompactOpen] = useState(false);
 	const projects = projectsQuery.data?.projects ?? [];
 
 	function navigateAfterProjectChange(nextProjectRef: string) {
 		const nextPath = pathForProjectSwitch(location.pathname, nextProjectRef);
-		setCompactOpen(false);
 
 		if (nextPath) {
 			navigate(nextPath);
@@ -48,13 +55,11 @@ export function ProjectSwitcher({ collapsed = false, variant = "sidebar" }: Proj
 				return;
 			}
 
-			setCompactOpen(false);
 			setCreateModalOpen(true);
 			return;
 		}
 
 		setSelectedProjectRef(value);
-		setCompactOpen(false);
 		navigateAfterProjectChange(value);
 	}
 
@@ -62,9 +67,9 @@ export function ProjectSwitcher({ collapsed = false, variant = "sidebar" }: Proj
 		<>
 			<div className={classNames(styles.root, collapsed && styles.collapsed, variant === "drawer" && styles.drawer)}>
 				<div className={styles.projectSelect}>
-					<label className={styles.projectSelectField}>
-						<span>project</span>
+					<div className={styles.projectSelectField}>
 						<Select
+							aria-label="Select project"
 							variant="compact"
 							frameClassName={styles.projectFrame}
 							menuClassName={styles.projectMenu}
@@ -75,66 +80,16 @@ export function ProjectSwitcher({ collapsed = false, variant = "sidebar" }: Proj
 							{projects.length ? (
 								projects.map(project => (
 									<option key={project.id} value={project.slug || project.id}>
-										{project.name}
+										{projectOptionLabel(project.name)}
 									</option>
 								))
 							) : (
-								<option value="">No project</option>
+								<option value="">{projectOptionLabel("No project")}</option>
 							)}
 							{appFeatures.projectCreation ? <option value={CREATE_PROJECT_VALUE}>{createProjectOptionLabel()}</option> : null}
 						</Select>
-					</label>
-				</div>
-				<PopoverRoot open={compactOpen} onOpenChange={setCompactOpen}>
-					<div className={styles.projectCompact}>
-						<PopoverTrigger asChild>
-							<button type="button" className={styles.projectCompactButton} aria-label="Select project">
-								<FolderOpen size={18} weight="bold" aria-hidden="true" />
-							</button>
-						</PopoverTrigger>
 					</div>
-					<PopoverPortal>
-						<PopoverContent className={styles.projectPopover} align="start" side="right" sideOffset={10} collisionPadding={8}>
-							<label className={styles.projectSelectField}>
-								<span>project</span>
-								<Select
-									variant="compact"
-									frameClassName={styles.projectFrame}
-									menuClassName={styles.projectMenu}
-									className={styles.projectControl}
-									value={projectRef || ""}
-									onChange={event => selectProject(event.currentTarget.value)}
-								>
-									{projects.length ? (
-										projects.map(project => (
-											<option key={project.id} value={project.slug || project.id}>
-												{project.name}
-											</option>
-										))
-									) : (
-										<option value="">No project</option>
-									)}
-									{appFeatures.projectCreation ? <option value={CREATE_PROJECT_VALUE}>{createProjectOptionLabel()}</option> : null}
-								</Select>
-							</label>
-							{appFeatures.projectCreation ? (
-								<Button
-									className={styles.projectPopoverCreate}
-									type="button"
-									variant="ghost"
-									size="sm"
-									onClick={() => {
-										setCompactOpen(false);
-										setCreateModalOpen(true);
-									}}
-								>
-									<FolderPlus size={16} weight="bold" aria-hidden="true" />
-									Create new project
-								</Button>
-							) : null}
-						</PopoverContent>
-					</PopoverPortal>
-				</PopoverRoot>
+				</div>
 			</div>
 			{createModalOpen && appFeatures.projectCreation ? <CreateProjectModal onClose={() => setCreateModalOpen(false)} onCreatedProject={navigateAfterProjectChange} /> : null}
 		</>

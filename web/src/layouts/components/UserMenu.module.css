@@ -33,6 +33,7 @@
 .userCard {
 	width: 100%;
 	display: grid;
+	appearance: none;
 	padding: 0.5rem 0.25rem;
 	border: 0;
 	color: var(--ns-text-subtle);
@@ -45,14 +46,18 @@
 }
 
 .userCard:hover,
-.userCard[data-state="open"] {
+.userCard:active,
+.userCard[data-state="open"],
+.userCard[data-state="open"]:hover {
 	color: var(--ns-text);
 	background: transparent;
+	box-shadow: none;
 }
 
 .userCard:focus-visible {
 	color: var(--ns-text);
 	background: transparent;
+	box-shadow: none;
 	outline: var(--ns-focus-outline);
 	outline-offset: var(--ns-focus-outline-offset);
 }
@@ -64,37 +69,14 @@
 	min-width: 0;
 }
 
-.userMenu {
-	position: relative;
-	display: none;
-	justify-self: start;
-}
-
-.userAvatarButton {
-	position: relative;
-	display: inline-grid;
-	place-items: center;
-	padding: 0;
-	border: 0;
-	color: var(--ns-text);
-	background: transparent;
-	cursor: pointer;
-	line-height: 0;
-}
-
-.userAvatarButton:focus-visible {
-	outline: var(--ns-focus-outline);
-	outline-offset: 0.25rem;
-}
-
 .userAvatar {
 	transition:
 		box-shadow var(--ns-transition),
 		filter var(--ns-transition);
 }
 
-.userAvatarButton:hover .userAvatar,
-.userAvatarButton[data-state="open"] .userAvatar {
+.userCard:hover .userAvatar,
+.userCard[data-state="open"] .userAvatar {
 	--ns-frame-color: var(--ns-border-strong);
 	filter: brightness(1.04);
 	box-shadow: none;
@@ -172,30 +154,44 @@
 	color: var(--ns-primary);
 }
 
-.userMenuCollapsed {
-	display: inline-flex;
+.userCardCollapsed {
 	justify-self: center;
-	margin-bottom: 2rem;
+	width: 2.75rem;
+	height: 2.75rem;
+	min-height: 2.75rem;
+	padding: 0;
 }
 
-.userCardCollapsed {
+.userCardCollapsed .userProfile {
+	justify-content: center;
+	gap: 0;
+}
+
+.userCardCollapsed .userMeta {
 	display: none;
 }
 
 @media (max-width: 58rem) {
-	.userMenu {
-		display: inline-flex;
+	.userCard {
 		justify-self: center;
-		margin-bottom: 2rem;
+		width: 2.75rem;
+		height: 2.75rem;
+		min-height: 2.75rem;
+		padding: 0;
 	}
 
-	.userCard {
+	.userProfile {
+		justify-content: center;
+		gap: 0;
+	}
+
+	.userMeta {
 		display: none;
 	}
 }
 
 @media (max-width: 38rem) {
-	.userMenu {
+	.userCard {
 		display: none;
 	}
 }

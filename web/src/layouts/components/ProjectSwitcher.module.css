@@ -10,22 +10,14 @@
 }
 
 .projectSelect {
+	width: 100%;
 	display: grid;
-	gap: 0.5rem;
 }
 
 .projectSelectField {
 	display: grid;
-	gap: 0.45rem;
-}
-
-.projectSelectField > span:first-child {
-	color: var(--ns-text-subtle);
-	font-family: var(--ns-font-sans);
-	font-size: 0.75rem;
-	font-weight: 650;
-	letter-spacing: 0;
-	text-transform: none;
+	gap: 0;
+	min-width: 0;
 }
 
 .projectFrame {
@@ -34,6 +26,7 @@
 	--ns-frame-border-width: 0;
 	--ns-select-arrow: var(--project-menu-muted);
 	display: block;
+	width: 100%;
 }
 
 .projectFrame:hover,
@@ -51,97 +44,52 @@
 }
 
 .projectControl {
-	min-height: 2.5rem;
-	padding: 0.5rem 2.25rem 0.5rem 0.75rem;
-	color: var(--ns-text);
-	background: var(--project-menu-bg);
+	min-height: 2.625rem;
+	padding: 0.625rem 2.25rem 0.625rem 0.75rem;
+	color: var(--ns-text-subtle);
+	background: transparent;
 	font-family: var(--ns-font-sans);
 	font-size: 0.875rem;
+	font-weight: 600;
 }
 
 .projectFrame:hover .projectControl,
 .projectFrame:focus-within .projectControl,
 .projectFrame[data-open="true"] .projectControl {
+	color: var(--ns-text);
 	background: var(--project-menu-hover-bg);
 }
 
-.projectControl option {
-	color: var(--project-menu-text);
-	background: var(--project-menu-bg);
+.projectFrame:hover .projectOptionIcon,
+.projectFrame:focus-within .projectOptionIcon {
+	color: var(--ns-primary-hover);
 }
 
+.projectFrame[data-open="true"] .projectOptionIcon {
+	color: var(--ns-primary);
+}
+
+.projectOptionLabel,
 .projectCreateOption {
 	display: inline-flex;
 	align-items: center;
-	gap: 0.5rem;
+	gap: 0.625rem;
 	min-width: 0;
 }
 
+.projectOptionIcon,
 .projectCreateOption svg {
 	flex: 0 0 auto;
 	color: var(--project-menu-muted);
+	transition: color var(--ns-transition);
 }
 
+.projectOptionName,
 .projectCreateOption span {
 	min-width: 0;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
-}
-
-.projectCompact {
-	display: none;
-	place-items: center;
-	width: 100%;
-}
-
-.projectCompactButton {
-	display: inline-grid;
-	place-items: center;
-	width: 2.75rem;
-	min-height: 2.75rem;
-	padding: 0;
-	border: 0;
-	color: var(--ns-text-subtle);
-	background: transparent;
-	cursor: pointer;
-	transition:
-		color var(--ns-transition),
-		background var(--ns-transition);
-}
-
-.projectCompactButton:hover,
-.projectCompactButton:focus-visible {
-	color: var(--ns-primary-hover);
-	background: var(--project-menu-hover-bg);
-}
-
-.projectCompactButton[data-state="open"] {
-	color: var(--ns-primary);
-	background: var(--project-menu-active-bg);
-}
-
-.projectCompactButton:focus-visible {
-	outline: none;
-	outline-offset: 0;
-}
-
-.projectPopover {
-	--project-menu-bg: #17191d;
-	--project-menu-hover-bg: #20242a;
-	--project-menu-active-bg: #111418;
-	--project-menu-text: rgba(255, 255, 255, 0.82);
-	--project-menu-muted: rgba(255, 255, 255, 0.58);
-
-	--ns-frame-radius: var(--ns-radius-lg);
-	z-index: 1000;
-	width: min(18rem, calc(100vw - 1rem));
-	padding: 0.875rem;
-	border: 0;
-	color: var(--ns-text-subtle);
-	background: var(--project-menu-bg);
-	font-family: var(--ns-font-sans);
-	font-size: 0.8125rem;
 }
 
 .projectMenu {
@@ -152,7 +100,7 @@
 	--project-menu-muted: rgba(255, 255, 255, 0.58);
 	--ns-frame-color: transparent;
 
-	width: var(--radix-select-trigger-width);
+	width: max(var(--radix-select-trigger-width), 13rem);
 	border: 0;
 	color: var(--project-menu-muted);
 	background: var(--project-menu-bg);
@@ -165,65 +113,127 @@
 }
 
 .projectMenu :global([data-state="checked"]) {
-	color: var(--project-menu-text);
-	background: var(--project-menu-active-bg);
-}
-
-.projectPopoverCreate {
-	justify-content: flex-start;
-	width: 100%;
-	margin-top: 0.75rem;
-	border: 0;
-	color: var(--project-menu-muted);
+	color: var(--ns-primary);
 	background: transparent;
 }
 
-.projectPopoverCreate:hover,
-.projectPopoverCreate:focus-visible {
-	color: var(--project-menu-text);
+.projectMenu :global([data-state="checked"][data-highlighted]) {
 	background: var(--project-menu-hover-bg);
-	outline: none;
 }
 
-.collapsed .projectSelect {
+.projectMenu :global([data-state="checked"])::after {
 	display: none;
+}
+
+.projectMenu :global([data-highlighted]) .projectOptionIcon,
+.projectMenu :global([data-state="checked"]) .projectOptionIcon,
+.projectMenu :global([data-highlighted]) .projectCreateOption svg {
+	color: currentColor;
 }
 
 .collapsed.root {
 	place-items: center;
 }
 
-.collapsed .projectCompact {
-	display: grid;
+.collapsed .projectSelect {
+	width: 2.75rem;
+	justify-self: center;
+}
+
+.collapsed .projectFrame,
+.collapsed .projectControl {
+	width: 2.75rem;
+}
+
+.collapsed .projectControl {
+	justify-content: center;
+	height: 2.75rem;
+	min-height: 2.75rem;
+	padding: 0;
+}
+
+.collapsed .projectControl::after {
+	display: none;
+}
+
+.collapsed .projectOptionLabel {
+	justify-content: center;
+	gap: 0;
+}
+
+.collapsed .projectOptionName {
+	display: none;
 }
 
 @media (max-width: 58rem) {
+	.root:not(.drawer) {
+		place-items: center;
+	}
+
 	.root:not(.drawer) .projectSelect {
+		width: 2.75rem;
+		justify-self: center;
+	}
+
+	.root:not(.drawer) .projectFrame,
+	.root:not(.drawer) .projectControl {
+		width: 2.75rem;
+	}
+
+	.root:not(.drawer) .projectControl {
+		justify-content: center;
+		height: 2.75rem;
+		min-height: 2.75rem;
+		padding: 0;
+	}
+
+	.root:not(.drawer) .projectControl::after {
 		display: none;
 	}
 
-	.root:not(.drawer) .projectCompact {
-		display: grid;
+	.root:not(.drawer) .projectOptionLabel {
+		justify-content: center;
+		gap: 0;
 	}
 
-	.projectFrame :is(select, button) {
-		min-height: 2.5rem;
-		padding: 0.5rem;
-		font-size: 0.75rem;
+	.root:not(.drawer) .projectOptionName {
+		display: none;
 	}
 }
 
 @media (max-width: 38rem) {
-	.root:not(.drawer) .projectSelect,
-	.root:not(.drawer) .projectCompact {
+	.root:not(.drawer) {
 		display: none;
 	}
 
-	.drawer .projectSelect {
+	.drawer {
 		display: grid;
+		place-items: stretch;
 	}
 
-	.drawer .projectCompact {
-		display: none;
+	.drawer .projectSelect,
+	.drawer .projectFrame,
+	.drawer .projectControl {
+		width: 100%;
+	}
+
+	.drawer .projectControl {
+		justify-content: flex-start;
+		height: auto;
+		min-height: 2.625rem;
+		padding: 0.625rem 2.25rem 0.625rem 0.75rem;
+	}
+
+	.drawer .projectControl::after {
+		display: block;
+	}
+
+	.drawer .projectOptionLabel {
+		justify-content: flex-start;
+		gap: 0.625rem;
+	}
+
+	.drawer .projectOptionName {
+		display: inline;
 	}
 }
