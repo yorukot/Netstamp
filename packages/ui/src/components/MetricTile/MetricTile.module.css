@@ -4,6 +4,7 @@
 	align-content: start;
 	min-width: 0;
 	min-height: 7rem;
+	background: #131518;
 }
 
 .header {
@@ -38,7 +39,7 @@
 .value {
 	min-width: 0;
 	overflow-wrap: anywhere;
-	color: var(--ns-text);
+	color: #ffffff;
 	font-family: var(--ns-font-display);
 	font-size: clamp(1.75rem, 3vw, 2.5rem);
 	font-weight: 900;

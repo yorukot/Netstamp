@@ -3,6 +3,7 @@
 	align-content: start;
 	gap: 0.75rem;
 	min-height: 8rem;
+	background: #131518;
 }
 
 .corner {
@@ -40,11 +41,11 @@
 }
 
 .value {
-	color: var(--ns-text);
-	font-family: var(--ns-font-sans);
-	font-size: clamp(1.9rem, 3vw, 2.5rem);
+	color: #ffffff;
+	font-family: var(--ns-font-display);
+	font-size: clamp(2rem, 4vw, 3rem);
 	font-weight: 700;
-	line-height: 1;
+	line-height: 0.95;
 }
 
 .description {

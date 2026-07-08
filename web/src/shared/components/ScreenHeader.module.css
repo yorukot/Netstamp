@@ -3,7 +3,7 @@
 	align-items: flex-start;
 	justify-content: space-between;
 	gap: 1rem;
-	margin-bottom: 1.25rem;
+	margin-bottom: 0;
 }
 
 .titleBlock {
@@ -37,12 +37,12 @@
 .header h1 {
 	max-width: 60rem;
 	margin: 0;
-	color: var(--ns-text);
-	font-family: var(--ns-font-sans);
-	font-size: clamp(1.875rem, 3vw, 2.5rem);
+	color: #ffffff;
+	font-family: var(--ns-font-display);
+	font-size: clamp(2rem, 5vw, 3rem);
 	font-weight: 700;
 	letter-spacing: 0;
-	line-height: 1.1;
+	line-height: 1;
 }
 
 .actions {

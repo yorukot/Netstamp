@@ -24,7 +24,12 @@ export function Panel({ as: Comp = "section", tone = "glass", eyebrow, title, su
 				<div className={styles.header}>
 					<div className={styles.copy}>
 						{eyebrow ? <span className={styles.eyebrow}>{eyebrow}</span> : null}
-						{title ? <h3>{title}</h3> : null}
+						{title ? (
+							<div className={styles.titleRow}>
+								<span className={styles.marker} aria-hidden="true" />
+								<h3>{title}</h3>
+							</div>
+						) : null}
 						{summary ? <p>{summary}</p> : null}
 					</div>
 					{actions ? <div className={styles.actions}>{actions}</div> : null}

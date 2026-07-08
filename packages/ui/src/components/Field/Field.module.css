@@ -5,7 +5,7 @@
 }
 
 .label {
-	color: var(--ns-text-muted);
+	color: rgba(255, 255, 255, 0.66);
 	font-family: var(--ns-font-sans);
 	font-size: 0.8125rem;
 	font-weight: 650;
@@ -16,7 +16,7 @@
 
 .controlFrame {
 	--ns-frame-radius: var(--ns-radius-sm);
-	--ns-frame-color: var(--ns-border);
+	--ns-frame-color: #ffffff1a;
 	display: block;
 	width: 100%;
 	min-width: 0;
@@ -33,7 +33,7 @@
 }
 
 .controlFrame:hover:not(:focus-within) {
-	--ns-frame-color: var(--ns-border-strong);
+	--ns-frame-color: #4b515b;
 }
 
 .controlFrame[data-invalid="true"] {
@@ -46,8 +46,8 @@
 	min-height: 2.75rem;
 	border: 0;
 	padding: 0.75rem 0.875rem;
-	color: var(--ns-text);
-	background: var(--ns-surface);
+	color: #ffffff;
+	background: #00080f;
 	box-shadow: none;
 	font-family: var(--ns-font-sans);
 	font-size: 0.875rem;
@@ -76,7 +76,7 @@
 }
 
 .control::placeholder {
-	color: var(--ns-text-low);
+	color: rgba(255, 255, 255, 0.38);
 }
 
 .control:focus {
@@ -131,9 +131,9 @@
 	align-items: center;
 	justify-content: space-between;
 	padding-right: 2.75rem;
-	color: var(--ns-text);
+	color: #ffffff;
 	color-scheme: inherit;
-	background: var(--ns-surface);
+	background: #00080f;
 	cursor: pointer;
 	text-align: left;
 	user-select: none;
@@ -161,7 +161,7 @@
 
 .compactControl.select {
 	padding-right: 2rem;
-	background: var(--ns-surface-raised);
+	background: #131518;
 }
 
 .compactControl.select::after {
@@ -205,8 +205,8 @@
 	border-radius: var(--ns-radius-md);
 	overflow: hidden;
 	padding: 0.25rem;
-	color: var(--ns-text);
-	background: var(--ns-surface);
+	color: #ffffff;
+	background: #131518;
 	box-shadow: none;
 }
 
@@ -233,8 +233,8 @@
 	align-items: center;
 	min-height: 2.5rem;
 	padding: 0.625rem 2rem 0.625rem 0.75rem;
-	border-bottom: 1px solid var(--ns-border-faint);
-	color: var(--ns-text-muted);
+	border-bottom: 1px solid #ffffff1a;
+	color: rgba(255, 255, 255, 0.66);
 	cursor: pointer;
 	outline: none;
 	transition:
@@ -262,13 +262,13 @@
 }
 
 .selectOption[data-highlighted] {
-	color: var(--ns-text);
-	background: var(--ns-bg-subtle);
+	color: #ffffff;
+	background: #00080f;
 }
 
 .selectOption[data-state="checked"] {
-	color: var(--ns-primary-active);
-	background: var(--ns-primary-muted);
+	color: #fb923c;
+	background: rgba(251, 146, 60, 0.13);
 }
 
 .selectOption[data-state="checked"]::after {
@@ -276,7 +276,7 @@
 }
 
 .selectOption[data-disabled] {
-	color: var(--ns-text-low);
+	color: rgba(255, 255, 255, 0.38);
 	cursor: not-allowed;
 	opacity: 0.52;
 }
@@ -303,8 +303,8 @@
 	-webkit-appearance: none;
 	color: var(--ns-primary-hover);
 	vertical-align: -0.125rem;
-	background: var(--ns-surface);
-	border: 1px solid var(--ns-border);
+	background: #00080f;
+	border: 1px solid #ffffff1a;
 	border-radius: var(--ns-radius-xs);
 	box-shadow: none;
 	cursor: pointer;
@@ -328,7 +328,7 @@
 }
 
 .checkbox:hover:not(:disabled) {
-	border-color: var(--ns-border-strong);
+	border-color: #4b515b;
 	box-shadow: none;
 }
 
@@ -367,7 +367,7 @@
 }
 
 .helper {
-	color: var(--ns-text-low);
+	color: rgba(255, 255, 255, 0.44);
 }
 
 .error {

@@ -1,8 +1,8 @@
 .frame {
-	--ns-frame-color: var(--ns-border);
-	--ns-frame-radius: var(--ns-radius-lg);
+	--ns-frame-color: #ffffff1a;
+	--ns-frame-radius: 0;
 	width: 100%;
-	background: var(--ns-surface);
+	background: #131518;
 	box-shadow: none;
 }
 
@@ -12,15 +12,15 @@
 	justify-content: space-between;
 	gap: 1rem;
 	padding: 0.75rem 1rem;
-	border-bottom: 1px solid var(--ns-border-faint);
-	background: var(--ns-surface-raised);
+	border-bottom: 1px solid #ffffff1a;
+	background: #00080f;
 }
 
 .batchLabel {
 	display: grid;
 	gap: 0.15rem;
 	min-width: 0;
-	color: var(--ns-text);
+	color: #ffffff;
 	font-family: var(--ns-font-sans);
 	font-size: 0.8125rem;
 	font-weight: 650;
@@ -30,7 +30,7 @@
 .batchLabel span {
 	min-width: 0;
 	overflow: hidden;
-	color: var(--ns-text-low);
+	color: rgba(255, 255, 255, 0.44);
 	font-size: 0.75rem;
 	text-overflow: ellipsis;
 	white-space: nowrap;
@@ -55,7 +55,7 @@
 	width: 100%;
 	min-width: var(--ns-data-table-min-width, 48rem);
 	border-collapse: collapse;
-	color: var(--ns-text-muted);
+	color: rgba(255, 255, 255, 0.66);
 	font-family: var(--ns-font-sans);
 	font-size: 0.8125rem;
 }
@@ -65,9 +65,9 @@
 	top: 0;
 	z-index: 1;
 	padding: 0.75rem 1rem;
-	color: var(--ns-text-subtle);
-	background: var(--ns-surface-raised);
-	border-bottom: 1px solid var(--ns-border);
+	color: rgba(255, 255, 255, 0.58);
+	background: #00080f;
+	border-bottom: 1px solid #ffffff1a;
 	font-size: 0.75rem;
 	font-weight: 700;
 	letter-spacing: 0;
@@ -104,7 +104,7 @@
 
 .sortIndicator {
 	flex: 0 0 auto;
-	color: var(--ns-text-low);
+	color: rgba(255, 255, 255, 0.38);
 	font-size: 0.625rem;
 	font-weight: 700;
 	letter-spacing: 0;
@@ -118,7 +118,7 @@
 
 .table td {
 	padding: 0.875rem 1rem;
-	border-bottom: 1px solid var(--ns-border-faint);
+	border-bottom: 1px solid #ffffff1a;
 	white-space: nowrap;
 }
 
@@ -129,8 +129,8 @@
 }
 
 .table tbody tr:hover {
-	color: var(--ns-text);
-	background: var(--ns-bg-subtle);
+	color: #ffffff;
+	background: #00080f;
 }
 
 .interactive {
@@ -138,8 +138,8 @@
 }
 
 .interactive:focus-visible {
-	color: var(--ns-text);
-	background: var(--ns-bg-subtle);
+	color: #ffffff;
+	background: #00080f;
 	outline: var(--ns-focus-outline);
 	outline-offset: -2px;
 }
@@ -149,8 +149,8 @@
 }
 
 .selected {
-	color: var(--ns-text);
-	background: var(--ns-primary-muted);
+	color: #ffffff;
+	background: rgba(251, 146, 60, 0.13);
 }
 
 .selectionHeader,
@@ -176,7 +176,7 @@
 
 .empty {
 	padding: 2rem;
-	color: var(--ns-text-low);
+	color: rgba(255, 255, 255, 0.44);
 	text-align: center;
 }
 

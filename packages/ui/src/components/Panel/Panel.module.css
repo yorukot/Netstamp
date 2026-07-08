@@ -1,7 +1,11 @@
 .panel {
+	--ns-frame-color: #4b515b;
+
 	display: grid;
 	gap: 1rem;
 	min-width: 0;
+	border-style: dashed;
+	background: #000000;
 }
 
 .header {
@@ -18,14 +22,28 @@
 	min-width: 0;
 }
 
+.titleRow {
+	display: flex;
+	align-items: baseline;
+	gap: 0.75rem;
+	min-width: 0;
+}
+
+.marker {
+	flex: 0 0 auto;
+	width: 0.625rem;
+	height: 0.625rem;
+	background: #fb923c;
+}
+
 .header h3 {
 	margin: 0;
-	color: var(--ns-text);
-	font-family: var(--ns-font-sans);
-	font-size: 1rem;
-	font-weight: 750;
+	color: #ffffff;
+	font-family: var(--ns-font-display);
+	font-size: clamp(1.35rem, 2vw, 1.75rem);
+	font-weight: 400;
 	letter-spacing: 0;
-	line-height: 1.25;
+	line-height: 1.05;
 }
 
 .eyebrow {
@@ -48,6 +66,10 @@
 
 .body {
 	min-width: 0;
+	border: 1px solid #ffffff1a;
+	background: #131518;
+	padding: 1rem;
+	color: #ffffff;
 }
 
 .body > :where(p) {
