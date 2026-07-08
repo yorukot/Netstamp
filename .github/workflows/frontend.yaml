@@ -71,6 +71,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Check frontend style rules
+        run: pnpm check:frontend-style
+
       - name: Lint
         run: pnpm --filter @netstamp/web lint
 

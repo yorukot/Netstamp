@@ -8,6 +8,7 @@
 		"build:storybook": "pnpm --filter @netstamp/ui build:storybook",
 		"build:ui": "pnpm --filter @netstamp/ui build",
 		"build:web": "pnpm --filter @netstamp/web build",
+		"check:frontend-style": "node scripts/check-frontend-style.mjs",
 		"dev:docs": "pnpm --filter @netstamp/docs dev",
 		"dev:server": "just backend-dev",
 		"dev:storybook": "pnpm --filter @netstamp/ui storybook",

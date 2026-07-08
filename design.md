@@ -1,6 +1,6 @@
 # Netstamp Design System
 
-> Category: network observability and developer infrastructure. Direction: spec-documentation product UI for the authenticated web app, public homepage, docs, Storybook, and API reference. The system is light-default, high-contrast, restrained, orange-led, and built from explicit tokens, dense information surfaces, and practical network telemetry.
+> Category: network observability and developer infrastructure. Direction: spec-documentation product UI for the authenticated web app, public homepage, docs, Storybook, and API reference. The system is dark-default, high-contrast, restrained, orange-led, and built from explicit tokens, dense information surfaces, and practical network telemetry.
 
 This file is the source of truth for Netstamp visual design. Treat it as an implementation spec, not mood guidance. Every shared primitive, app route, docs page, Storybook story, and API explorer surface should be traceable back to the foundations below.
 
@@ -34,7 +34,8 @@ The target visual language is "spec-docs":
 
 Core traits:
 
-- Dark default, with matching light mode.
+- Dark default, with matching light mode for app, docs, Storybook, and OpenAPI surfaces that support theme switching.
+- The public homepage is a single unified dark product design. It should not expose a light/dark split or theme-toggle behavior.
 - Warm orange primary color, tuned for Netstamp rather than inherited unchanged from another brand.
 - Neutral ink, graphite, white, and restrained cool gray foundations. Public chrome uses the Sui-style black-green tone `#131518`.
 - Square or nearly-square frames. Core controls use zero radius.
@@ -45,6 +46,8 @@ Core traits:
 ## 2. Token Contract
 
 Use `--ns-*` tokens from `packages/ui/src/styles/tokens.css`. Do not create new local color systems in docs, Storybook, or web routes.
+
+Implementation CSS, TSX, and Astro should not add raw color literals. Raw color values are allowed in `tokens.css`, generated or static brand assets, browser metadata such as `theme-color`, vendor bridge overrides that map third-party variables back to Netstamp tokens, test fixtures, and canvas/WebGL scene data that cannot consume CSS variables directly. New UI code should express color through semantic token roles such as `--ns-bg`, `--ns-surface`, `--ns-text`, `--ns-primary`, `--ns-secondary`, `--ns-success`, `--ns-warning`, `--ns-critical`, and border/focus tokens.
 
 ### Typography Tokens
 
@@ -157,7 +160,7 @@ Reference palette extraction is based on the local image and SVG assets currentl
 - Brand SVG literals: `#090b10`, `#0b0f16`, `#11151d`, `#ea6a1a`, `#fb923c`, `#fff7ed`, `#f8fafc`.
 - Network map SVG literals: `#2563eb`, `#38bdf8`, `#77736b`, `#c4ccd9`.
 
-Implementation decision: public body uses `#f4f5f7` in light mode and `#000000` in dark mode. Public floating navigation and dark chrome use `#131518` with white text. The blue-black colors present in the old screenshot (`#0d1624`, `#151f2e`, `#1b283a`) are not default background tokens.
+Implementation decision: root defaults to the dark palette, with `:root` and `:root[data-theme="dark"]` sharing the same values. Public body uses `#000000` by default and `#f4f5f7` only in explicit light mode. Public floating navigation and dark chrome use `#131518` with white text. The public homepage is locked to the unified dark design and uses the dark product screenshot as the canonical screenshot asset.
 
 ### Compatibility Aliases
 
@@ -172,7 +175,7 @@ Implementation decision: public body uses `#f4f5f7` in light mode and `#000000` 
 - `--ns-cut-*`: `0`, legacy only.
 - `--ns-shadow-sm`, `--ns-shadow-md`, `--ns-shadow-glow`: `none`.
 - `--ns-transition`: `180ms cubic-bezier(0.2, 0.8, 0.2, 1)`.
-- Focus uses `--ns-focus-outline`, usually `2px solid var(--ns-primary-active)`.
+- Keyboard focus uses `--ns-focus-outline`, usually `2px solid var(--ns-primary-active)`.
 
 If a surface needs hierarchy, use border strength, surface tone, section spacing, and structured headers before shadows or radius.
 
@@ -241,7 +244,7 @@ The API explorer is a dense controller and reference manual. The public `/openap
 Storybook is the living design-system spec.
 
 - Every exported primitive must have stories.
-- Every major primitive needs light and dark examples through the toolbar `data-theme` path.
+- Every major primitive needs default dark and light examples through the toolbar `data-theme` path.
 - Stories should include usage, states, sizes, tones, invalid/disabled/loading variants, and dense composition examples.
 - Overview stories should document tokens, surface families, typography, and patterns.
 - Avoid one-off demo art. Use Netstamp telemetry and API language.
@@ -349,8 +352,8 @@ Terminal blocks represent commands, snippets, logs, and responses.
 Navigation is quiet and precise.
 
 - Public homepage/docs navigation follows the Sui-style structure: a fixed floating top bar over the page, not a sticky header and not a full-width strip attached to the viewport edge. Logo stays on the left, primary nav text links sit centered, and the right CTA is `Login`.
-- Public nav text links are plain text, not buttons: no border, no hover background, `#ffffff` text, `400` font weight, and hover/active changes text color only.
-- Public floating nav background is `--ns-chrome-bg` (`#131518`) with `--ns-chrome-text` (`#ffffff`).
+- Public nav text links are plain text, not buttons: no border, no hover background, `--ns-chrome-text` text, `400` font weight, and hover/active changes text color only.
+- Public floating nav background is `--ns-chrome-bg` with `--ns-chrome-text`.
 - Authenticated web app navigation stays on the left, but the sidebar itself is a floating rail inside the app canvas rather than a full-height wall attached to the viewport edge.
 - Active items use orange leading marker or frame.
 - Secondary links use blue only when they are real links or secondary actions.
@@ -374,7 +377,7 @@ Spacing:
 
 - Page stack gap: `1.25rem`.
 - Grid gap: `1rem`.
-- Compact panel padding: `0.875rem`.
+- Compact panel padding: `1rem`.
 - Standard panel padding: `1.25rem`.
 - Rich docs/landing section padding: `clamp(2rem, 5vw, 5rem)`.
 
@@ -387,6 +390,9 @@ Breakpoints:
 
 Rules:
 
+- Use `rem` units on a `0.25rem` spacing and sizing grid for layout, gaps, padding, margins, control dimensions, and breakpoints.
+- Use `px` only for borders, dividers, outlines, hairlines, visually-hidden helpers, and unavoidable asset or canvas coordinates.
+- Typographic sizes may use intermediate rem values when they are part of an intentional type scale, but compact UI spacing should stay on the quarter-rem grid.
 - Use CSS Grid for page skeletons and table-like product layouts.
 - Use Flexbox for action rows, metadata, toolbars, and compact controls.
 - Avoid cards inside cards unless the inner item is a repeated row/cell.
@@ -421,7 +427,10 @@ Approved motifs:
 Accessibility is part of the visual system.
 
 - Use semantic landmarks: `nav`, `main`, `section`, `article`, `aside`, `table`, `header`, `footer`.
-- Use visible `:focus-visible` outlines.
+- Use visible `:focus-visible` outlines for keyboard focus.
+- Use `:has(:focus-visible)` when a wrapper frame needs to display keyboard focus for a nested native control.
+- Do not use broad `:focus` or `:focus-within` rings that make pointer and mouse focus look like keyboard focus.
+- Do not suppress focus with `outline: none` or `outline: 0` unless an equivalent visible `:focus-visible` state is present.
 - Do not rely on color alone for state.
 - Keep touch targets near `2rem-2.75rem` or larger.
 - Use `100svh` for full-height shells.
@@ -439,6 +448,7 @@ Accessibility is part of the visual system.
 - Prefer one CSS module per component or route section.
 - Avoid broad new global stylesheets.
 - Use `--ns-*` tokens for colors, fonts, borders, state, focus, and transitions.
+- Use the same dark-default root `data-theme` behavior in the app, docs, Storybook, and OpenAPI surfaces. The public homepage locks that path to the unified dark design.
 - Use `@netstamp/brand` assets for brand marks and favicon.
 - Use actual product screenshots or product-like panels on the homepage.
 - Use icons from the existing icon systems. Do not add decorative emoji icons.
@@ -463,8 +473,9 @@ Do not add:
 Before shipping a frontend change, verify:
 
 - `tokens.css` matches the token values and roles in this file.
+- The default root and `:root[data-theme="dark"]` use the same dark token values.
 - The root `data-theme` path works in app, docs, and Storybook.
-- Light and dark mode use the same layout and component structure.
+- Light and dark mode use the same layout and component structure where theme switching is supported.
 - Orange is the primary interaction color.
 - Blue is secondary/reference/data.
 - Semantic colors are reserved for semantic state.

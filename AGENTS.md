@@ -7,7 +7,7 @@ Netstamp is a pnpm workspace with a Go backend and React/Vite frontend. Use this
 - Backend, database, migrations, logging, or API work: read `server/AGENTS.md`.
 - API contract or OpenAPI generation work: read `api/AGENTS.md`.
 - Web app, shared UI package, client styling, or browser behavior work: read `web/AGENTS.md`.
-- Visual design, layout, product UI, or styling direction work: read `DESIGN.md`.
+- Visual design, layout, product UI, or styling direction work: read `design.md`.
 - Full icon list at `icons.txt`
 
 Only proceed from root guidance when the task is clearly limited to workspace metadata, documentation, deployment files, or cross-project maintenance.
@@ -29,6 +29,7 @@ Only proceed from root guidance when the task is clearly limited to workspace me
 - `just web-dev` or `pnpm dev:web`: start the Vite web app.
 - `just docs-dev` or `pnpm dev:docs`: start the documentation site.
 - `pnpm dev:storybook`: start Storybook for `@netstamp/ui` components.
+- `pnpm check:frontend-style` or `just frontend-style-check`: enforce frontend token, focus-visible, and px-unit guardrails for docs, web, and shared UI.
 - `pnpm generate:openapi`: regenerate `docs/public/openapi.json` from TypeSpec, copy the backend embedded OpenAPI artifact, and refresh `web/src/shared/api/openapi.d.ts` from that contract.
 - `just build`: build backend, web, and docs.
 - `just test`: run available tests, currently backend tests.

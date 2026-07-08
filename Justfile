@@ -29,7 +29,7 @@ format:
 build: api-build docs-build web-build backend-build
 
 # Lint all available targets.
-lint: web-lint backend-lint
+lint: frontend-style-check web-lint backend-lint
 
 # Run all available tests.
 test: backend-test
@@ -88,6 +88,10 @@ web-build:
 # Lint the web app.
 web-lint:
     pnpm --filter {{ web_filter }} lint
+
+# Check frontend token and focus style rules.
+frontend-style-check:
+    pnpm check:frontend-style
 
 # Preview the built web app.
 web-preview:
