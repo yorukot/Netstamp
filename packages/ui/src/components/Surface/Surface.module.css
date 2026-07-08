@@ -5,22 +5,22 @@
 }
 
 .glass {
-	--ns-frame-color: var(--ns-border);
+	--ns-frame-color: transparent;
 	background: var(--ns-surface);
 }
 
 .matte {
-	--ns-frame-color: var(--ns-border);
+	--ns-frame-color: transparent;
 	background: var(--ns-surface-raised);
 }
 
 .deep {
-	--ns-frame-color: var(--ns-border-faint);
+	--ns-frame-color: transparent;
 	background: var(--ns-surface-deep);
 }
 
 .flat {
-	--ns-frame-color: var(--ns-slate-line);
+	--ns-frame-color: transparent;
 	background: var(--ns-surface-raised);
 }
 

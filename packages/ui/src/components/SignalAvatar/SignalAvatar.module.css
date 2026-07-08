@@ -1,5 +1,5 @@
 .avatar {
-	--ns-frame-color: var(--ns-border);
+	--ns-frame-color: transparent;
 	--ns-frame-radius: var(--ns-radius-md);
 	display: block;
 	flex: 0 0 auto;

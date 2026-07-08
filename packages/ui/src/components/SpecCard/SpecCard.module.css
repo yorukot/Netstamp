@@ -9,7 +9,7 @@
 }
 
 .card:hover {
-	--ns-frame-color: var(--ns-border-strong);
+	background: var(--ns-container-bg-hover);
 }
 
 .card:focus-visible {
@@ -64,7 +64,6 @@
 	place-items: center;
 	width: 2rem;
 	height: 2rem;
-	border: 1px solid var(--ns-border-faint);
 	color: var(--ns-primary-hover);
 	background: var(--ns-primary-muted);
 }

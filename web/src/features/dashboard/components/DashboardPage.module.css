@@ -102,7 +102,6 @@
 	display: grid;
 	gap: 0.25rem;
 	width: min(22rem, calc(100% - 2rem));
-	border: 1px solid var(--ns-border-faint);
 	background: var(--ns-glass-dark);
 	padding: 1rem;
 	pointer-events: none;
@@ -186,10 +185,10 @@
 	display: inline-flex;
 	align-items: center;
 	min-height: 1.75rem;
-	border: 1px solid var(--ns-border);
+	border: 1px solid var(--ns-border-faint);
 	padding: 0 0.75rem;
 	color: var(--ns-text-muted);
-	background: var(--ns-surface);
+	background: var(--ns-bg-subtle);
 	font-family: var(--ns-font-code);
 	font-size: 0.6875rem;
 	line-height: 1;
@@ -198,11 +197,13 @@
 .statusOnline {
 	border-color: color-mix(in srgb, var(--ns-success) 50%, transparent);
 	color: var(--ns-success);
+	background: color-mix(in srgb, var(--ns-success) 8%, var(--ns-bg-subtle));
 }
 
 .statusOffline {
 	border-color: color-mix(in srgb, var(--ns-critical) 52%, transparent);
 	color: var(--ns-critical);
+	background: color-mix(in srgb, var(--ns-critical) 10%, var(--ns-bg-subtle));
 }
 
 @media (max-width: 76rem) {

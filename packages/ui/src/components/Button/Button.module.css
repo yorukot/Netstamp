@@ -60,34 +60,34 @@
 }
 
 .primary {
-	--ns-frame-color: var(--ns-primary);
+	--ns-frame-color: transparent;
 	background: var(--ns-primary);
 	color: var(--ns-text-on-accent);
 	box-shadow: none;
 }
 
 .primary:hover {
-	--ns-frame-color: var(--ns-primary-hover);
+	--ns-frame-color: transparent;
 	background: var(--ns-primary-hover);
 	color: var(--ns-text-on-accent);
 	box-shadow: none;
 }
 
 .primary:active {
-	--ns-frame-color: var(--ns-primary-active);
+	--ns-frame-color: transparent;
 	background: var(--ns-primary-active);
 	color: var(--ns-text-on-accent);
 }
 
 .secondary {
-	--ns-frame-color: var(--ns-secondary-border);
+	--ns-frame-color: transparent;
 	background: var(--ns-secondary-muted);
 	color: var(--ns-secondary);
 	box-shadow: none;
 }
 
 .secondary:hover {
-	--ns-frame-color: var(--ns-secondary-border);
+	--ns-frame-color: transparent;
 	color: var(--ns-secondary-hover);
 	background: var(--ns-secondary-subtle);
 }

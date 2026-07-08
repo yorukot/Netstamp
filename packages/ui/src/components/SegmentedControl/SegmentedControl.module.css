@@ -3,8 +3,8 @@
 	align-items: center;
 	max-width: 100%;
 	min-width: 0;
-	padding: 0.1875rem;
-	border: 1px solid var(--ns-border);
+	gap: 0.125rem;
+	padding: 0.25rem;
 	background: var(--ns-control-bg);
 }
 
@@ -13,7 +13,7 @@
 	align-items: center;
 	justify-content: center;
 	min-width: 0;
-	border: 1px solid transparent;
+	border: 0;
 	color: var(--ns-text-subtle);
 	background: transparent;
 	font-weight: 650;
@@ -29,19 +29,16 @@
 }
 
 .option:hover:not(:disabled) {
-	border-color: var(--ns-border);
 	color: var(--ns-text);
 	background: var(--ns-control-bg-hover);
 }
 
 .option:focus-visible {
-	border-color: transparent;
 	outline: var(--ns-focus-outline);
 	outline-offset: var(--ns-focus-outline-offset);
 }
 
 .option[data-active="true"] {
-	border-color: var(--ns-primary-border);
 	color: var(--ns-text);
 	background: var(--ns-primary-muted);
 }

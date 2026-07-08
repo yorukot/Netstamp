@@ -3,11 +3,9 @@
 	align-items: center;
 	gap: 0.5rem;
 	width: fit-content;
-	--ns-frame-color: var(--ns-border-faint);
-	border: 1px solid var(--ns-frame-color);
 	padding: 0.25rem 0.5rem;
 	color: var(--ns-text-muted);
-	background: var(--ns-surface);
+	background: var(--ns-glass-light);
 	font-family: var(--ns-font-code);
 	font-size: 0.75rem;
 	font-weight: 650;
@@ -30,30 +28,25 @@
 
 .accent {
 	color: var(--ns-primary-hover);
-	--ns-frame-color: color-mix(in srgb, var(--ns-primary) 28%, transparent);
 	background: var(--ns-primary-subtle);
 }
 
 .success {
 	color: var(--ns-success);
-	--ns-frame-color: color-mix(in srgb, var(--ns-success) 28%, transparent);
 	background: color-mix(in srgb, var(--ns-success) 8%, transparent);
 }
 
 .warning {
 	color: var(--ns-warning);
-	--ns-frame-color: color-mix(in srgb, var(--ns-warning) 30%, transparent);
 	background: color-mix(in srgb, var(--ns-warning) 8%, transparent);
 }
 
 .critical {
 	color: var(--ns-critical);
-	--ns-frame-color: color-mix(in srgb, var(--ns-critical) 34%, transparent);
 	background: color-mix(in srgb, var(--ns-critical) 10%, transparent);
 }
 
 .muted {
 	color: var(--ns-text-low);
-	--ns-frame-color: var(--ns-border-faint);
 	background: var(--ns-bg-subtle);
 }

@@ -1,5 +1,5 @@
 .frame {
-	--ns-frame-color: var(--ns-border-faint);
+	--ns-frame-color: transparent;
 	--ns-frame-radius: 0;
 	width: 100%;
 	background: var(--ns-container-bg);

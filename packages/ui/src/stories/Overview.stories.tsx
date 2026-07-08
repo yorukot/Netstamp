@@ -1,49 +1,53 @@
 import netstampLogo from "@netstamp/brand/assets/netstamp-logo-light.svg";
-import netstampMark from "@netstamp/brand/assets/netstamp-mark-light.svg";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import {
-	Badge,
-	Button,
-	Checkbox,
-	DataTable,
-	FieldLabel,
-	GlobalFooter,
-	Input,
-	MetricCard,
-	PageShell,
-	Panel,
-	SelectField,
-	SignalAvatar,
-	Surface,
-	Terminal,
-	TextAreaField,
-	TextField,
-	type DataColumn
-} from "../index";
+import { Badge, CodePreview, DataTable, FieldLabel, GlobalFooter, Input, KeyValueRow, MetricTile, Panel, SelectField, SpecLabel, Terminal, TextAreaField, TextField, type DataColumn } from "../index";
 
 interface ProbeRow {
 	probe: string;
-	status: string;
-	latency: string;
+	region: string;
+	status: "healthy" | "degraded" | "failed";
+	p95: string;
+	loss: string;
 }
 
 const rows: ProbeRow[] = [
-	{ probe: "ams-edge-01", status: "online", latency: "42ms" },
-	{ probe: "tpe-lab-02", status: "degraded", latency: "118ms" },
-	{ probe: "sfo-core-03", status: "online", latency: "64ms" }
+	{ probe: "ams-edge-01", region: "eu-west", status: "healthy", p95: "42ms", loss: "0.00%" },
+	{ probe: "tpe-lab-02", region: "ap-east", status: "degraded", p95: "118ms", loss: "0.12%" },
+	{ probe: "sfo-core-03", region: "us-west", status: "healthy", p95: "64ms", loss: "0.01%" },
+	{ probe: "sin-route-04", region: "ap-south", status: "failed", p95: "--", loss: "100%" }
 ];
 
+const statusTone: Record<ProbeRow["status"], "success" | "warning" | "critical"> = {
+	degraded: "warning",
+	failed: "critical",
+	healthy: "success"
+};
+
 const columns: DataColumn<ProbeRow>[] = [
-	{ key: "probe", label: "Probe" },
-	{ key: "status", label: "Status" },
-	{ key: "latency", label: "Latency" }
+	{ key: "probe", label: "Probe", sortable: true },
+	{ key: "region", label: "Region" },
+	{
+		key: "status",
+		label: "Status",
+		render: row => <Badge tone={statusTone[row.status]}>{row.status}</Badge>
+	},
+	{ key: "p95", label: "p95" },
+	{ key: "loss", label: "Loss" }
 ];
 
 const storyShortcuts = [
-	{ label: "Buttons", href: "./?path=/story/components-button--playground" },
-	{ label: "Surfaces", href: "./?path=/story/components-surface--playground" },
-	{ label: "Fields", href: "./?path=/story/forms-textfield--default" },
-	{ label: "Data", href: "./?path=/story/components-datatable--default" }
+	{ label: "Primitives", href: "./?path=/story/components-button--playground" },
+	{ label: "Forms", href: "./?path=/story/forms-textfield--default" },
+	{ label: "Data", href: "./?path=/story/components-datatable--default" },
+	{ label: "Patterns", href: "./?path=/story/patterns-operational-workspace--dashboard-spec" }
+] as const;
+
+const componentGroups = [
+	["Actions", "Button, IconButton, ActionRow, DisclosureToggle"],
+	["Forms", "TextField, TextAreaField, SelectField, SearchableSelect, Checkbox"],
+	["Surfaces", "Panel, Surface, MetricCard, MetricTile, SpecCard"],
+	["Data", "DataTable, KeyValueRow, Badge, SpecLabel, Terminal, CodePreview"],
+	["Layout", "PageShell, Drawer, Dialog, Tabs, SegmentedControl, GlobalFooter"]
 ] as const;
 
 const meta = {
@@ -58,18 +62,13 @@ type Story = StoryObj<typeof meta>;
 
 export const Overview: Story = {
 	render: () => (
-		<div className="storybook-page">
-			<header className="storybook-hero storybook-hero--entrance">
-				<div className="storybook-hero-copy">
+		<div className="storybook-page storybook-dashboard-page">
+			<header className="storybook-dashboard-hero">
+				<div className="storybook-dashboard-hero-copy">
 					<img src={netstampLogo} alt="Netstamp" className="storybook-logo" />
-					<p className="storybook-kicker">Netstamp UI storyboard</p>
-					<h1>Shared UI, in one pass.</h1>
-					<span className="storybook-hero-lede">A compact map of the @netstamp/ui primitives used across the app, docs, API explorer, and Storybook.</span>
-					<ul className="storybook-hero-points">
-						<li>Token roles: orange primary actions, blue reference data, semantic health states.</li>
-						<li>Surface rules: square frames, flat panels, no decorative gradients or shadows.</li>
-						<li>Core patterns: controls, forms, telemetry cards, tables, terminals, and shell framing.</li>
-					</ul>
+					<SpecLabel tone="primary">Shared UI system</SpecLabel>
+					<h1>Dashboard-grade primitives for Netstamp.</h1>
+					<p>The library should feel like the product dashboard: dark by default, dense, technical, mostly borderless, and strict about when a frame is allowed to appear.</p>
 					<nav className="storybook-shortcuts" aria-label="Story shortcuts">
 						{storyShortcuts.map(shortcut => (
 							<a key={shortcut.label} href={shortcut.href} target="_top">
@@ -80,95 +79,57 @@ export const Overview: Story = {
 				</div>
 			</header>
 
-			<section className="storybook-section">
-				<div className="storybook-section-header">
-					<span>Actions</span>
-					<h2>Buttons and badges</h2>
-				</div>
-				<div className="storybook-inline-grid">
-					<Button>Primary</Button>
-					<Button variant="secondary">Secondary</Button>
-					<Button variant="outline">Outline</Button>
-					<Button variant="ghost">Ghost</Button>
-					<Button variant="danger">Danger</Button>
-					<Badge tone="accent">Accent</Badge>
-					<Badge tone="success">Success</Badge>
-					<Badge tone="warning">Warning</Badge>
-					<Badge tone="critical">Critical</Badge>
-				</div>
-			</section>
-
-			<section className="storybook-section">
-				<div className="storybook-section-header">
-					<span>Surfaces</span>
-					<h2>Panels, cards, and shells</h2>
-				</div>
-				<div className="storybook-card-grid">
-					<MetricCard label="p95 latency" value="42ms" detail="healthy" tone="success" />
-					<MetricCard label="packet loss" value="0.08%" detail="watch" tone="warning" />
-					<Surface tone="accent" frameSize="lg" padding="lg">
-						<strong>Accent surface</strong>
-						<p>Used for high-intensity blocks and landing page visual anchors.</p>
-					</Surface>
-				</div>
-				<Panel title="Operational summary">
-					<p>Panel composes Surface with a header and action slot.</p>
+			<section className="storybook-dashboard-layout" aria-label="Design system overview">
+				<Panel className="storybook-dashboard-overview" title="Surface contract" padded={false} bodyClassName="storybook-dashboard-metrics">
+					<MetricTile label="Default borders" value="off" detail="quiet" tone="muted" description="Neutral cards and tags use tone first." />
+					<MetricTile label="Section frame" value="dashed" detail="panel" tone="accent" description="Dashboard sections keep the dashed outer boundary." />
+					<MetricTile label="State marks" value="explicit" detail="semantic" tone="success" description="Only meaningful state gets colored markers." />
+					<MetricTile label="Focus" value="visible" detail="keyboard" tone="neutral" description="Keyboard focus stays clear without mouse outlines." />
 				</Panel>
-			</section>
 
-			<section className="storybook-section">
-				<div className="storybook-section-header">
-					<span>Forms</span>
-					<h2>Fields</h2>
-				</div>
-				<div className="storybook-form-grid">
-					<TextField label="Probe name" defaultValue="tpe-lab-02" helper="Visible in route and probe tables." />
-					<SelectField
-						label="Interval"
-						defaultValue="30s"
-						options={[
-							{ value: "10s", label: "10 seconds" },
-							{ value: "30s", label: "30 seconds" },
-							{ value: "60s", label: "60 seconds" }
-						]}
-					/>
-					<TextAreaField label="Notes" defaultValue="Measure DNS and ICMP from this probe." />
-					<label className="storybook-checkbox-row">
-						<Checkbox defaultChecked />
-						<FieldLabel>Enable alerts</FieldLabel>
-					</label>
-					<label className="storybook-compact-field">
-						<FieldLabel>Compact input</FieldLabel>
-						<Input variant="compact" defaultValue="trace-window" />
-					</label>
-				</div>
-			</section>
+				<Panel title="Component map" bodyClassName="storybook-key-list">
+					{componentGroups.map(([label, value]) => (
+						<KeyValueRow key={label} label={label} value={value} />
+					))}
+				</Panel>
 
-			<section className="storybook-section">
-				<div className="storybook-section-header">
-					<span>Data</span>
-					<h2>Table and terminal</h2>
-				</div>
-				<DataTable columns={columns} rows={rows} ariaLabel="Probe latency examples" getRowKey={row => row.probe} />
-				<Terminal title="netstamp probe" meta="dry run">
-					netstamp probe run --check ping --target 1.1.1.1
-				</Terminal>
-			</section>
+				<Panel className="storybook-dashboard-data" title="Telemetry table" summary="Badges, rows, and headers use fills and dividers instead of every cell carrying a frame." padded={false}>
+					<DataTable columns={columns} rows={rows} ariaLabel="Probe latency examples" getRowKey={row => row.probe} density="compact" minWidth="42rem" />
+				</Panel>
 
-			<section className="storybook-section">
-				<div className="storybook-section-header">
-					<span>Identity</span>
-					<h2>Avatars and page shell</h2>
-				</div>
-				<div className="storybook-identity-row">
-					<SignalAvatar src={netstampMark} alt="Netstamp mark" size="sm" />
-					<SignalAvatar src={netstampMark} alt="Netstamp mark" size="md" />
-					<SignalAvatar src={netstampMark} alt="Netstamp mark" size="lg" />
-				</div>
-				<PageShell as="div" variant="constellation" className="storybook-shell-preview">
-					<strong>PageShell preview</strong>
-					<p>Background utilities match the service app visual language.</p>
-				</PageShell>
+				<Panel title="Control stack" summary="Inputs still keep a quiet one-pixel affordance; hover and keyboard focus change color, not thickness.">
+					<div className="storybook-form-grid">
+						<TextField label="Probe name" defaultValue="tpe-lab-02" helper="Visible in route and probe tables." />
+						<SelectField
+							label="Interval"
+							defaultValue="30s"
+							options={[
+								{ value: "10s", label: "10 seconds" },
+								{ value: "30s", label: "30 seconds" },
+								{ value: "60s", label: "60 seconds" }
+							]}
+						/>
+						<TextAreaField label="Notes" defaultValue="Measure DNS and ICMP from this probe." />
+						<label className="storybook-compact-field">
+							<FieldLabel>Compact token</FieldLabel>
+							<Input variant="compact" defaultValue="trace-window" />
+						</label>
+					</div>
+				</Panel>
+
+				<Panel title="Operator surfaces" summary="Deep surfaces are separated by tone and header structure, not decorative frames.">
+					<div className="storybook-operator-grid">
+						<CodePreview title="component rule" meta="css">
+							{`badge {
+	border: 0;
+	background: var(--ns-primary-muted);
+}`}
+						</CodePreview>
+						<Terminal title="netstamp probe" meta="dry run">
+							netstamp probe run --check ping --target 1.1.1.1
+						</Terminal>
+					</div>
+				</Panel>
 			</section>
 
 			<GlobalFooter />

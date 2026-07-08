@@ -15,7 +15,7 @@
 
 .controlFrame {
 	--ns-frame-radius: var(--ns-radius-sm);
-	--ns-frame-color: var(--ns-border);
+	--ns-frame-color: var(--ns-border-faint);
 	display: block;
 	width: 100%;
 	min-width: 0;
@@ -108,7 +108,7 @@
 
 .selectFrame[data-open="true"] {
 	--ns-select-arrow: var(--ns-text-muted);
-	--ns-frame-color: var(--ns-border-strong);
+	--ns-frame-color: var(--ns-border);
 	box-shadow: none;
 }
 
@@ -194,7 +194,7 @@
 }
 
 .selectMenu {
-	--ns-frame-color: var(--ns-border-strong);
+	--ns-frame-color: var(--ns-border);
 	position: fixed;
 	z-index: 1000;
 	width: var(--radix-select-trigger-width);
@@ -302,7 +302,7 @@
 	color: var(--ns-primary-hover);
 	vertical-align: -0.125rem;
 	background: var(--ns-control-bg);
-	border: 1px solid var(--ns-border);
+	border: 1px solid var(--ns-border-faint);
 	border-radius: var(--ns-radius-xs);
 	box-shadow: none;
 	cursor: pointer;

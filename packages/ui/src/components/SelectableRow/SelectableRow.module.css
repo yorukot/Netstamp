@@ -5,7 +5,7 @@
 	align-items: center;
 	width: 100%;
 	min-width: 0;
-	border: 1px solid transparent;
+	border: 0;
 	color: var(--ns-text-muted);
 	background: transparent;
 	font: inherit;
@@ -14,18 +14,15 @@
 	cursor: pointer;
 	transition:
 		background-color var(--ns-transition),
-		border-color var(--ns-transition),
 		color var(--ns-transition);
 }
 
 .row:hover:not(.disabled) {
-	border-color: var(--ns-border);
 	color: var(--ns-text);
 	background: var(--ns-bg-subtle);
 }
 
 .row:focus-visible {
-	border-color: transparent;
 	outline: var(--ns-focus-outline);
 	outline-offset: var(--ns-focus-outline-offset);
 }
@@ -96,28 +93,24 @@
 
 .active.primary,
 .primary:active {
-	border-color: var(--ns-primary-border);
 	color: var(--ns-text);
 	background: var(--ns-primary-muted);
 }
 
 .active.secondary,
 .secondary:active {
-	border-color: var(--ns-secondary-border);
 	color: var(--ns-text);
 	background: var(--ns-secondary-muted);
 }
 
 .active.neutral,
 .neutral:active {
-	border-color: var(--ns-border-strong);
 	color: var(--ns-text);
 	background: var(--ns-surface-raised);
 }
 
 .active.danger,
 .danger:active {
-	border-color: color-mix(in srgb, var(--ns-critical) 46%, transparent);
 	color: var(--ns-critical);
 	background: color-mix(in srgb, var(--ns-critical) 8%, transparent);
 }

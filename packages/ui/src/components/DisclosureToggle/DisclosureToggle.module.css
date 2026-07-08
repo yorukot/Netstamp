@@ -3,7 +3,7 @@
 	display: inline-grid;
 	flex: 0 0 auto;
 	place-items: center;
-	border: 1px solid var(--ns-border);
+	border: 0;
 	color: var(--ns-text-subtle);
 	background: var(--ns-control-bg);
 	cursor: pointer;
@@ -14,13 +14,11 @@
 }
 
 .toggle:hover {
-	border-color: var(--ns-primary-border);
 	color: var(--ns-primary-hover);
 	background: var(--ns-primary-muted);
 }
 
 .toggle:focus-visible {
-	border-color: transparent;
 	outline: var(--ns-focus-outline);
 	outline-offset: var(--ns-focus-outline-offset);
 }
@@ -58,7 +56,6 @@
 }
 
 .open {
-	border-color: var(--ns-primary-border);
 	color: var(--ns-primary-active);
 	background: var(--ns-primary-muted);
 }

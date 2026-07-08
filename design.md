@@ -39,7 +39,9 @@ Core traits:
 - Warm orange primary color, tuned for Netstamp rather than inherited unchanged from another brand.
 - Neutral ink, graphite, white, and restrained cool gray foundations. Public chrome uses the Sui-style black-green tone `#131518`.
 - Square or nearly-square frames. Core controls use zero radius.
-- Minimal shadows. If depth is needed, use borders, surface contrast, and spatial grouping first.
+- Minimal shadows. If depth is needed, use surface contrast, spatial grouping, and restrained dividers before reaching for shadows.
+- Borders are used sparingly. Default cards, tags, badges, rows, and neutral surfaces should rely on tone, spacing, typography, and state fills before drawing a visible frame.
+- Visible borders are reserved for specific jobs: dashed section boundaries, table/list row dividers, form/control affordance, selected or critical state marking, diagnostic decorations such as the dashboard Probe Registry state chip, and separators inside a single section.
 - Gradients are not part of the product UI. Use flat token colors.
 - Richness comes from layout, data, typography, state, and component completeness, not decoration.
 
@@ -259,18 +261,20 @@ Storybook is the living design-system spec.
 
 ### Surface
 
-`Surface` is the base framed container.
+`Surface` is the base neutral container.
 
 Required behavior:
 
-- Square frame.
+- Square geometry.
 - Tokenized tone: `glass`, `matte`, `deep`, `flat`, `accent`, `danger`.
+- `glass`, `matte`, `deep`, and `flat` do not draw a visible border by default. They use surface tone and spacing for hierarchy.
+- `accent` and `danger` may draw a visible border because they mark selected, promotional, or destructive content.
 - No decorative shadow.
 - Focusable surfaces must expose visible focus outlines.
 
 Tone intent:
 
-- `glass`: legacy name; render as a flat dashboard surface with neutral border.
+- `glass`: legacy name; render as a flat dashboard surface without a routine frame.
 - `matte`: lower-contrast nested surface.
 - `deep`: code, topology, maps, terminals, response previews.
 - `flat`: quiet low-emphasis surface.
@@ -283,7 +287,9 @@ Tone intent:
 
 - Header supports eyebrow, title, summary, actions.
 - Body supports compact content without nested decorative cards.
-- Separator uses `--ns-border-faint`.
+- Outer section boundary uses a dashed border. This is the primary frame language for dashboard sections.
+- Panel body does not draw its own default frame. Use dividers inside the body only when separating rows, table headers, footers, or unrelated zones within the same section.
+- Separators use `--ns-border-faint`.
 - Actions should align right on desktop and wrap cleanly on mobile.
 
 ### Button
@@ -313,6 +319,8 @@ Badges communicate category or state.
 
 - Tones: `neutral`, `accent`, `success`, `warning`, `critical`, `muted`.
 - Optional dot is square.
+- Badges are label chips, not small framed cards. They should not draw a visible border by default.
+- Semantic badges use a quiet tinted background plus readable text. Use a bordered treatment only when a specific feature needs a deliberate diagnostic marker, such as the dashboard Probe Registry state chip.
 - State badges include readable labels; color alone is not enough.
 
 ### Fields And Selects
