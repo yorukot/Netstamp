@@ -1,10 +1,7 @@
-.panel {
-	min-width: 0;
-}
-
 .listStack {
 	display: grid;
 	gap: 1rem;
+	min-width: 0;
 }
 
 .filters {

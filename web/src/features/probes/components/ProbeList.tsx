@@ -1,6 +1,6 @@
 import { formatProbeHeartbeat } from "@/features/probes/api/probeAdapters";
 import type { Probe, ProbeStatus } from "@/features/probes/data/probes";
-import { Badge, DataTable, FilterGrid, Panel, PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger, SelectField, TextField, type BadgeTone, type DataColumn } from "@netstamp/ui";
+import { Badge, DataTable, FilterGrid, PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger, SelectField, TextField, type BadgeTone, type DataColumn } from "@netstamp/ui";
 import { useEffect, useState, type MouseEvent } from "react";
 import styles from "./ProbeList.module.css";
 import type { ProbeSort } from "./types";
@@ -108,26 +108,24 @@ interface ProbeListProps {
 
 export function ProbeList({ probes, selectedId, search, sortKey, onSearchChange, onSortChange, onSelect }: ProbeListProps) {
 	return (
-		<Panel className={styles.panel} tone="glass" title="Probe list" aria-label="Probe list">
-			<div className={styles.listStack}>
-				<FilterGrid className={styles.filters}>
-					<TextField label="Search" placeholder="probe name, location, provider, label" value={search} onChange={event => onSearchChange(event.currentTarget.value)} />
-					<SelectField label="Sort" value={sortKey} options={sortOptions} onChange={event => onSortChange(event.currentTarget.value as ProbeSort)} />
-				</FilterGrid>
+		<div className={styles.listStack}>
+			<FilterGrid className={styles.filters}>
+				<TextField label="Search" placeholder="probe name, location, provider, label" value={search} onChange={event => onSearchChange(event.currentTarget.value)} />
+				<SelectField label="Sort" value={sortKey} options={sortOptions} onChange={event => onSortChange(event.currentTarget.value as ProbeSort)} />
+			</FilterGrid>
 
-				<DataTable
-					ariaLabel="Probes"
-					columns={probeColumns}
-					rows={probes}
-					density="compact"
-					minWidth="62rem"
-					maxHeight="min(28rem, 46svh)"
-					getRowKey={probe => probe.id}
-					selectedKey={selectedId}
-					onRowClick={probe => onSelect(probe.id)}
-					emptyLabel="No probes found"
-				/>
-			</div>
-		</Panel>
+			<DataTable
+				ariaLabel="Probes"
+				columns={probeColumns}
+				rows={probes}
+				density="compact"
+				minWidth="62rem"
+				maxHeight="min(28rem, 46svh)"
+				getRowKey={probe => probe.id}
+				selectedKey={selectedId}
+				onRowClick={probe => onSelect(probe.id)}
+				emptyLabel="No probes found"
+			/>
+		</div>
 	);
 }

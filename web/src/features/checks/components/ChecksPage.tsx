@@ -37,7 +37,7 @@ import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { pushErrorToast, pushToast } from "@/shared/toast/toastStore";
 import { classNames } from "@/shared/utils/classNames";
-import { ActionRow, Badge, Button, Checkbox, FieldLabel, FilterGrid, IconButton, Panel, SelectField, TextAreaField, TextField } from "@netstamp/ui";
+import { ActionRow, Badge, Button, Checkbox, FieldLabel, FilterGrid, IconButton, SelectField, TextAreaField, TextField } from "@netstamp/ui";
 import { Trash } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
@@ -526,45 +526,43 @@ export function ChecksPage() {
 			<ScreenHeader title="Checks" actions={<Button onClick={startNewCheck}>New check</Button>} />
 
 			<div className={styles.checkEditorGrid}>
-				<Panel tone="glass" title="Definitions">
-					<div className={styles.checkListStack}>
-						<FilterGrid className={styles.checkListFilters}>
-							<TextField label="Search" placeholder="check name, target, description" value={checkSearch} onChange={event => updateCheckSearchParam("q", event.currentTarget.value)} />
-							<SelectField
-								label="Type"
-								value={checkTypeFilter}
-								onChange={event => updateCheckSearchParam("type", event.currentTarget.value)}
-								options={[
-									{ value: "all", label: "All types" },
-									{ value: "ping", label: "Ping" },
-									{ value: "tcp", label: "TCP" },
-									{ value: "traceroute", label: "Traceroute" }
-								]}
-							/>
-						</FilterGrid>
-						<ChecksTable
-							actionDisabled={checkActionPending}
-							batchDeleteDisabled={!selectedCheckRows.length}
-							batchDeletePending={batchDeleteCheckMutation.isPending}
-							checks={checkRows}
-							onDeleteCheck={check => void deleteCheck(check)}
-							onDeleteSelectedChecks={() => void deleteSelectedChecks()}
-							onDuplicateCheck={duplicateCheck}
-							onOpenCheck={selectCheck}
-							onRowSelectionChange={setRowSelection}
-							rowSelection={rowSelection}
-							search={checkSearch}
-							selectedKey={isCreating ? "__new__" : selectedId}
-							selectedSummary={
-								<>
-									<strong>{selectedCheckRows.length} selected</strong>
-									<span>{selectedCheckSummary()}</span>
-								</>
-							}
-							typeFilter={checkTypeFilter}
+				<div className={styles.checkListStack}>
+					<FilterGrid className={styles.checkListFilters}>
+						<TextField label="Search" placeholder="check name, target, description" value={checkSearch} onChange={event => updateCheckSearchParam("q", event.currentTarget.value)} />
+						<SelectField
+							label="Type"
+							value={checkTypeFilter}
+							onChange={event => updateCheckSearchParam("type", event.currentTarget.value)}
+							options={[
+								{ value: "all", label: "All types" },
+								{ value: "ping", label: "Ping" },
+								{ value: "tcp", label: "TCP" },
+								{ value: "traceroute", label: "Traceroute" }
+							]}
 						/>
-					</div>
-				</Panel>
+					</FilterGrid>
+					<ChecksTable
+						actionDisabled={checkActionPending}
+						batchDeleteDisabled={!selectedCheckRows.length}
+						batchDeletePending={batchDeleteCheckMutation.isPending}
+						checks={checkRows}
+						onDeleteCheck={check => void deleteCheck(check)}
+						onDeleteSelectedChecks={() => void deleteSelectedChecks()}
+						onDuplicateCheck={duplicateCheck}
+						onOpenCheck={selectCheck}
+						onRowSelectionChange={setRowSelection}
+						rowSelection={rowSelection}
+						search={checkSearch}
+						selectedKey={isCreating ? "__new__" : selectedId}
+						selectedSummary={
+							<>
+								<strong>{selectedCheckRows.length} selected</strong>
+								<span>{selectedCheckSummary()}</span>
+							</>
+						}
+						typeFilter={checkTypeFilter}
+					/>
+				</div>
 
 				{isEditorOpen ? (
 					<EditorDrawer open title={isCreating ? "New check" : selectedCheck?.name || "Check"} ariaLabel="Check editor" onClose={closeEditor}>
