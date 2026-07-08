@@ -474,7 +474,7 @@
 }
 
 .storybook-overlay[data-state="open"] {
-	animation: storybookOverlayFadeIn 200ms ease-out both;
+	animation: storybookOverlayFadeIn 300ms ease-out both;
 }
 
 .storybook-overlay[data-state="closed"] {
@@ -500,7 +500,7 @@
 }
 
 .storybook-dialog[data-state="open"] {
-	animation: storybookDialogFadeInFromBottom 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+	animation: storybookDialogFadeInFromBottom 300ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
 .storybook-dialog[data-state="closed"] {

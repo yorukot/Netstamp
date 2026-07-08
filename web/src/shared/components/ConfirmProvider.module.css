@@ -9,7 +9,7 @@
 	backdrop-filter: blur(0.875rem);
 	-webkit-backdrop-filter: blur(0.875rem);
 	isolation: isolate;
-	animation: overlayFadeIn 200ms ease-out both;
+	animation: overlayFadeIn 300ms ease-out both;
 }
 
 .overlay[data-closing="true"] {
@@ -48,7 +48,7 @@
 	opacity: 1;
 	transform: translateY(0);
 	transform-origin: center;
-	animation: dialogFadeInFromBottom 220ms 70ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+	animation: dialogFadeInFromBottom 300ms 70ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
 .dialog[data-tone="danger"] {
