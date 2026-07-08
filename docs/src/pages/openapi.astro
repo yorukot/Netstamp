@@ -113,6 +113,15 @@ const scalarCustomCss = String.raw`
 	background: var(--ns-bg-subtle);
 }
 
+.scalar-app .t-doc__sidebar {
+	position: sticky !important;
+	top: var(--scalar-custom-header-height) !important;
+	align-self: start;
+	height: calc(100svh - var(--scalar-custom-header-height)) !important;
+	max-height: calc(100svh - var(--scalar-custom-header-height)) !important;
+	overflow-y: auto;
+}
+
 .scalar-app .t-doc__sidebar > div:first-child {
 	position: sticky;
 	top: 0;
@@ -150,7 +159,7 @@ const scalarCustomCss = String.raw`
 	display: none;
 }
 
-.scalar-app.z-overlay {
+.scalar-app.z-overlay:not(:has(.scalar-client--open)) {
 	display: none !important;
 }
 
