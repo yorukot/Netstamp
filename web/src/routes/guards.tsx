@@ -82,10 +82,7 @@ export function OnboardingRoute() {
 }
 
 export function DashboardRoute() {
-	const { projectRef } = useCurrentProject();
-	const navigate = useRouteNavigate(projectRef);
-
-	return lazyRoute(<DashboardPage navigate={navigate} />);
+	return lazyRoute(<DashboardPage />);
 }
 
 export function ProtectedAppShell() {

@@ -1,20 +1,13 @@
 import { mapApiChecks } from "@/features/checks/api/checkAdapters";
 import { mapApiProbes } from "@/features/probes/api/probeAdapters";
-import { type Navigate } from "@/routes/routeTypes";
 import { projectQueries } from "@/shared/api/queries";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { NetworkMap } from "@/shared/components/NetworkMap";
 import { PageStack } from "@/shared/components/PageStack";
 import { classNames } from "@/shared/utils/classNames";
-import { Button } from "@netstamp/ui";
-import { Plus } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import styles from "./DashboardPage.module.css";
-
-interface DashboardPageProps {
-	navigate: Navigate;
-}
 
 const dashboardFleetFitPadding = { top: 44, right: 48, bottom: 56, left: 48 };
 const dashboardFleetMaxZoom = 5.4;
@@ -27,7 +20,7 @@ function percentage(part: number, total: number) {
 	return `${Math.round((part / total) * 100)}%`;
 }
 
-export function DashboardPage({ navigate }: DashboardPageProps) {
+export function DashboardPage() {
 	const { projectRef } = useCurrentProject();
 	const [selectedProbeId, setSelectedProbeId] = useState("");
 	const probesQuery = useQuery({
@@ -51,7 +44,6 @@ export function DashboardPage({ navigate }: DashboardPageProps) {
 	const activeProbe = probes.find(probe => probe.id === activeProbeId) ?? positionedProbes[0] ?? probes[0] ?? null;
 	const visibleProbes = probes.slice(0, 6);
 	const visibleChecks = checks.slice(0, 6);
-	const syncing = probesQuery.isPending || checksQuery.isPending;
 	const checkTypeSummary = Array.from(
 		checks.reduce((summary, check) => {
 			summary.set(check.type, (summary.get(check.type) ?? 0) + 1);
@@ -69,23 +61,14 @@ export function DashboardPage({ navigate }: DashboardPageProps) {
 		<PageStack className={styles.dashboard}>
 			<header className={styles.dashboardHeader}>
 				<div className={styles.titleBlock}>
-					<span className={styles.kicker}>netstamp / {projectRef || "project"}</span>
 					<h1>Dashboard</h1>
-				</div>
-
-				<div className={styles.headerActions}>
-					<span className={styles.syncState}>{syncing ? "syncing" : "live"}</span>
-					<Button className={styles.newProbeButton} onClick={() => navigate("newProbe")}>
-						<Plus size={17} weight="bold" aria-hidden="true" />
-						New Probe
-					</Button>
 				</div>
 			</header>
 
 			<div className={styles.sections}>
 				<section className={classNames(styles.section, styles.overviewSection)} aria-labelledby="dashboard-fleet-title">
 					<header className={styles.sectionHeader}>
-						<span>01</span>
+						<span className={styles.sectionMarker} aria-hidden="true" />
 						<h2 id="dashboard-fleet-title">Fleet</h2>
 					</header>
 					<div className={classNames(styles.content, styles.metricsContent)}>
@@ -101,7 +84,7 @@ export function DashboardPage({ navigate }: DashboardPageProps) {
 
 				<section className={classNames(styles.section, styles.mapSection)} aria-labelledby="dashboard-map-title">
 					<header className={styles.sectionHeader}>
-						<span>02</span>
+						<span className={styles.sectionMarker} aria-hidden="true" />
 						<h2 id="dashboard-map-title">Network Map</h2>
 					</header>
 					<div className={classNames(styles.content, styles.mapContent)}>
@@ -125,7 +108,7 @@ export function DashboardPage({ navigate }: DashboardPageProps) {
 
 				<section className={classNames(styles.section, styles.registrySection)} aria-labelledby="dashboard-registry-title">
 					<header className={styles.sectionHeader}>
-						<span>03</span>
+						<span className={styles.sectionMarker} aria-hidden="true" />
 						<h2 id="dashboard-registry-title">Probe Registry</h2>
 					</header>
 					<div className={classNames(styles.content, styles.listContent)}>
@@ -149,7 +132,7 @@ export function DashboardPage({ navigate }: DashboardPageProps) {
 
 				<section className={classNames(styles.section, styles.checksSection)} aria-labelledby="dashboard-checks-title">
 					<header className={styles.sectionHeader}>
-						<span>04</span>
+						<span className={styles.sectionMarker} aria-hidden="true" />
 						<h2 id="dashboard-checks-title">Checks Ledger</h2>
 					</header>
 					<div className={classNames(styles.content, styles.tableContent)}>
