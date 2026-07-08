@@ -24,12 +24,12 @@
 }
 
 .pageCell span {
-	color: var(--ns-text-subtle);
+	color: rgba(255, 255, 255, 0.58);
 	font-size: 0.76rem;
 }
 
 .mono {
-	color: var(--ns-text-muted);
+	color: rgba(255, 255, 255, 0.76);
 	font-size: 0.78rem;
 }
 
@@ -49,15 +49,21 @@
 	flex-wrap: wrap;
 	align-items: center;
 	gap: 0.5rem 0.8rem;
-	color: var(--ns-text-subtle);
+	color: rgba(255, 255, 255, 0.58);
 	font-size: 0.78rem;
 }
 
+.detailMeta > span {
+	padding: 0.35rem 0.5rem;
+	border: 1px solid #ffffff1a;
+	background: #00080f;
+}
+
 .emptyDetail {
-	border: 1px solid var(--ns-border);
-	background: var(--ns-surface-raised);
-	color: var(--ns-text-muted);
 	padding: 1rem;
+	border: 1px solid #ffffff1a;
+	color: rgba(255, 255, 255, 0.76);
+	background: #00080f;
 }
 
 .layout svg {

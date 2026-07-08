@@ -1,7 +1,7 @@
 .frame {
-	--role-color: var(--ns-metal);
+	--role-color: rgba(255, 255, 255, 0.76);
 	--ns-frame-color: var(--ns-border-faint);
-	--role-bg: color-mix(in srgb, var(--ns-metal) 8%, transparent);
+	--role-bg: #00080f;
 	position: relative;
 	display: inline-grid;
 	width: max-content;
@@ -37,8 +37,8 @@
 	font-family: var(--ns-font-mono);
 	font-size: 0.75rem;
 	font-weight: 800;
-	letter-spacing: 0.07em;
-	text-transform: uppercase;
+	letter-spacing: 0;
+	text-transform: none;
 	outline: none;
 	appearance: none;
 }
@@ -53,7 +53,7 @@
 }
 
 .member {
-	--role-color: var(--ns-metal);
+	--role-color: rgba(255, 255, 255, 0.76);
 	--ns-frame-color: var(--ns-border-faint);
-	--role-bg: color-mix(in srgb, var(--ns-metal) 8%, transparent);
+	--role-bg: #00080f;
 }

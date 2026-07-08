@@ -15,6 +15,9 @@
 	gap: 1rem;
 	align-items: center;
 	margin-bottom: 1rem;
+	padding: 0.875rem;
+	border: 1px solid #ffffff1a;
+	background: #00080f;
 }
 
 .profilePreview h3,
@@ -24,14 +27,14 @@
 
 .profilePreview h3 {
 	margin-top: 0.75rem;
-	color: var(--ns-text);
-	font-family: var(--ns-font-sans);
-	font-size: 1.25rem;
-	font-weight: 700;
+	color: #ffffff;
+	font-family: var(--ns-font-display);
+	font-size: 1.5rem;
+	font-weight: 400;
 }
 
 .profilePreview p {
-	color: var(--ns-text-low);
+	color: rgba(255, 255, 255, 0.44);
 	font-family: var(--ns-font-mono);
 	font-size: 0.75rem;
 }

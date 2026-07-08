@@ -4,10 +4,10 @@
 }
 
 .empty {
-	border: 1px solid var(--ns-border);
-	background: var(--ns-surface-raised);
-	color: var(--ns-text-muted);
 	padding: 1rem;
+	border: 1px solid #ffffff1a;
+	color: rgba(255, 255, 255, 0.76);
+	background: #00080f;
 }
 
 .node {
@@ -20,14 +20,14 @@
 	align-items: flex-start;
 	justify-content: space-between;
 	gap: 1rem;
-	border: 1px solid var(--ns-border);
-	background: var(--ns-surface);
 	padding: 0.85rem;
+	border: 1px solid #ffffff1a;
+	background: #00080f;
 }
 
 .node[data-kind="folder"] > .nodeMain {
-	background: var(--ns-surface-raised);
-	border-color: var(--ns-secondary-border);
+	border-color: #4b515b;
+	background: #131518;
 }
 
 .nodeCopy {
@@ -45,6 +45,7 @@
 
 .nodeTitle strong {
 	overflow: hidden;
+	color: #ffffff;
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
@@ -53,8 +54,14 @@
 	display: flex;
 	flex-wrap: wrap;
 	gap: 0.45rem 0.75rem;
-	color: var(--ns-text-subtle);
+	color: rgba(255, 255, 255, 0.58);
 	font: 0.78rem/1.4 var(--ns-font-mono);
+}
+
+.nodeMeta span {
+	padding: 0.25rem 0.4rem;
+	border: 1px solid #ffffff1a;
+	background: #000000;
 }
 
 .nodeActions {
@@ -74,7 +81,7 @@
 	gap: 0.55rem;
 	margin-left: 1.25rem;
 	padding-left: 0.85rem;
-	border-left: 1px solid var(--ns-border);
+	border-left: 1px dashed #4b515b;
 }
 
 @media (max-width: 42rem) {

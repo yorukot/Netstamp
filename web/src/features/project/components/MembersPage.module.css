@@ -13,12 +13,12 @@
 }
 
 .stackedCell strong {
-	color: var(--ns-text);
+	color: #ffffff;
 	font-size: 0.75rem;
 }
 
 .stackedCell span {
-	color: var(--ns-text-low);
+	color: rgba(255, 255, 255, 0.44);
 	font-size: 0.6875rem;
 }
 
@@ -36,13 +36,12 @@
 }
 
 .memberAvatarFallback {
-	--ns-frame-color: color-mix(in srgb, var(--ns-primary) 50%, transparent);
 	display: grid;
 	place-items: center;
 	flex: 0 0 auto;
-	border: 1px solid var(--ns-frame-color);
-	background: var(--ns-primary-muted);
-	color: var(--ns-primary);
+	border: 1px solid rgba(251, 146, 60, 0.5);
+	background: rgba(251, 146, 60, 0.13);
+	color: #fb923c;
 	font-family: var(--ns-font-mono);
 	font-size: 0.75rem;
 	font-weight: 800;
@@ -51,7 +50,7 @@
 .memberName {
 	min-width: 0;
 	overflow: hidden;
-	color: var(--ns-text);
+	color: #ffffff;
 	font-weight: 700;
 	text-overflow: ellipsis;
 	white-space: nowrap;

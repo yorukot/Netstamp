@@ -16,20 +16,22 @@
 	display: grid;
 	gap: 0.875rem;
 	align-content: start;
+	--ns-frame-color: rgba(255, 95, 87, 0.42);
+	background: rgba(255, 95, 87, 0.08);
 }
 
 .dangerZoneGrid h3 {
 	margin: 0;
-	color: var(--ns-text);
-	font-family: var(--ns-font-sans);
-	font-size: 1.15rem;
-	font-weight: 700;
+	color: #ffffff;
+	font-family: var(--ns-font-display);
+	font-size: 1.35rem;
+	font-weight: 400;
 	line-height: 1.25;
 }
 
 .warningCopy {
 	margin: 0;
-	color: var(--ns-text-subtle);
+	color: rgba(255, 255, 255, 0.58);
 	font-size: 0.875rem;
 	line-height: 1.6;
 }
