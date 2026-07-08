@@ -1,5 +1,5 @@
 .userPopover {
-	--user-menu-bg: var(--ns-chrome-bg);
+	--user-menu-bg: var(--ns-chrome-menu-bg);
 	--user-menu-hover-bg: var(--ns-chrome-hover);
 	--user-menu-text: var(--ns-chrome-text);
 	--user-menu-muted: var(--ns-chrome-text-muted);
@@ -15,7 +15,7 @@
 }
 
 .mobileDrawerUserPanel {
-	--user-menu-bg: var(--ns-chrome-bg);
+	--user-menu-bg: var(--ns-chrome-menu-bg);
 	--user-menu-hover-bg: var(--ns-chrome-hover);
 	--user-menu-text: var(--ns-chrome-text);
 	--user-menu-muted: var(--ns-chrome-text-muted);

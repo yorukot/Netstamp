@@ -1,5 +1,5 @@
 .root {
-	--project-menu-bg: var(--ns-chrome-bg);
+	--project-menu-bg: var(--ns-chrome-menu-bg);
 	--project-menu-hover-bg: var(--ns-chrome-hover);
 	--project-menu-active-bg: var(--ns-surface-raised);
 	--project-menu-text: var(--ns-chrome-text);
@@ -34,11 +34,17 @@
 	--ns-select-arrow: var(--project-menu-text);
 }
 
-.projectFrame:has(.projectControl:focus-visible),
-.projectFrame[data-open="true"] {
+.projectFrame:has(.projectControl:focus-visible) {
 	--ns-frame-color: transparent;
 	--ns-select-arrow: var(--project-menu-text);
 	outline: var(--ns-focus-outline);
+	outline-offset: var(--ns-focus-outline-offset);
+}
+
+.projectFrame[data-open="true"] {
+	--ns-frame-color: transparent;
+	--ns-select-arrow: var(--project-menu-text);
+	outline: 2px solid transparent;
 	outline-offset: var(--ns-focus-outline-offset);
 }
 
@@ -92,7 +98,7 @@
 }
 
 .projectMenu {
-	--project-menu-bg: var(--ns-chrome-bg);
+	--project-menu-bg: var(--ns-chrome-menu-bg);
 	--project-menu-hover-bg: var(--ns-chrome-hover);
 	--project-menu-active-bg: var(--ns-surface-raised);
 	--project-menu-text: var(--ns-chrome-text);

@@ -54,6 +54,7 @@
 	--ns-chrome-text-muted: rgba(255, 255, 255, 0.72);
 	--ns-chrome-border: rgba(255, 255, 255, 0.14);
 	--ns-chrome-hover: rgba(255, 255, 255, 0.1);
+	--ns-chrome-menu-bg: #343940;
 
 	--ns-text: #f8fafc;
 	--ns-text-muted: #d8dce8;
@@ -110,6 +111,7 @@
 	--ns-chrome-text-muted: rgba(255, 255, 255, 0.72);
 	--ns-chrome-border: rgba(255, 255, 255, 0.14);
 	--ns-chrome-hover: rgba(255, 255, 255, 0.1);
+	--ns-chrome-menu-bg: #343940;
 
 	--ns-text: #172033;
 	--ns-text-muted: #405168;
