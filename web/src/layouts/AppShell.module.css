@@ -42,7 +42,7 @@
 	flex-direction: column;
 	justify-content: space-between;
 	gap: 2rem;
-	padding: 2rem;
+	padding: 4rem 2rem 2rem;
 }
 
 .contentBody {
@@ -84,7 +84,7 @@
 	}
 
 	.content {
-		padding: 0.75rem 1rem 0 0;
+		padding: 2.5rem 1rem 0 0;
 	}
 
 	.demoBanner {
@@ -103,6 +103,6 @@
 	}
 
 	.content {
-		padding: 0 0.75rem;
+		padding: 1.5rem 0.75rem 0;
 	}
 }
