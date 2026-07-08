@@ -425,7 +425,7 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 								</label>
 
 								<Button variant="plain" className={styles.tuiButton} type="submit" disabled={acceptingInvites}>
-									{acceptingInvites ? "[ accepting invites... ]" : "[ continue ]"}
+									{acceptingInvites ? "[ accepting invites… ]" : "[ continue ]"}
 								</Button>
 							</form>
 						</>
@@ -505,7 +505,7 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 										</div>
 
 										<Button variant="plain" className={styles.tuiButton} type="submit" disabled={submitting || creatingProject}>
-											{submitting || creatingProject ? "[ creating project... ]" : "[ create project ]"}
+											{submitting || creatingProject ? "[ creating project… ]" : "[ create project ]"}
 										</Button>
 									</div>
 								) : null}

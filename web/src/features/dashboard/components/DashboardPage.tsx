@@ -2,10 +2,10 @@ import { mapApiChecks } from "@/features/checks/api/checkAdapters";
 import { mapApiProbes } from "@/features/probes/api/probeAdapters";
 import { projectQueries } from "@/shared/api/queries";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
-import { NetworkMap } from "@/shared/components/NetworkMap";
 import { PageStack } from "@/shared/components/PageStack";
 import { classNames } from "@/shared/utils/classNames";
-import { Panel } from "@netstamp/ui";
+import { NetworkMap } from "@/shared/visualizations/NetworkMap";
+import { EmptyState, MetricTile, Panel } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import styles from "./DashboardPage.module.css";
@@ -52,11 +52,11 @@ export function DashboardPage() {
 		}, new Map<string, number>())
 	);
 	const metrics = [
-		{ label: "Probes Online", value: `${onlineProbes}/${probes.length}`, meta: `${offlineProbes} offline` },
-		{ label: "Map Coverage", value: percentage(positionedProbes.length, probes.length), meta: `${positionedProbes.length} located` },
-		{ label: "Active Checks", value: String(activeChecks), meta: checkTypeSummary.map(([type, count]) => `${count} ${type}`).join(" / ") || "none" },
-		{ label: "Draining", value: String(drainingProbes), meta: "maintenance" }
-	];
+		{ label: "Probes Online", value: `${onlineProbes}/${probes.length}`, detail: "online", tone: "success", meta: `${offlineProbes} offline` },
+		{ label: "Map Coverage", value: percentage(positionedProbes.length, probes.length), detail: "coverage", tone: "accent", meta: `${positionedProbes.length} located` },
+		{ label: "Active Checks", value: String(activeChecks), detail: "checks", tone: "neutral", meta: checkTypeSummary.map(([type, count]) => `${count} ${type}`).join(" / ") || "none" },
+		{ label: "Draining", value: String(drainingProbes), detail: "maintenance", tone: "warning", meta: "maintenance" }
+	] as const;
 
 	return (
 		<PageStack className={styles.dashboard}>
@@ -69,11 +69,7 @@ export function DashboardPage() {
 			<div className={styles.sections}>
 				<Panel className={styles.overviewSection} title="Fleet" padded={false} bodyClassName={styles.metricsContent}>
 					{metrics.map(metric => (
-						<article className={styles.metricTile} key={metric.label}>
-							<span>{metric.label}</span>
-							<strong>{metric.value}</strong>
-							<small>{metric.meta}</small>
-						</article>
+						<MetricTile className={styles.metricTile} key={metric.label} label={metric.label} value={metric.value} description={metric.meta} detail={metric.detail} tone={metric.tone} />
 					))}
 				</Panel>
 
@@ -109,7 +105,7 @@ export function DashboardPage() {
 							))}
 						</ul>
 					) : (
-						<div className={styles.emptyState}>No probes registered.</div>
+						<EmptyState title="No probes registered" description="Create a probe to start collecting fleet telemetry." />
 					)}
 				</Panel>
 
@@ -126,7 +122,7 @@ export function DashboardPage() {
 							))}
 						</div>
 					) : (
-						<div className={styles.emptyState}>No checks configured.</div>
+						<EmptyState title="No checks configured" description="Create a check to start measuring targets from your probes." />
 					)}
 				</Panel>
 			</div>

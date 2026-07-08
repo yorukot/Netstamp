@@ -229,23 +229,23 @@
 	display: block;
 	min-width: 0;
 	height: 2.5rem;
-	border: 1px solid rgba(15, 23, 42, 0.08);
+	border: 1px solid var(--ns-border-faint);
 }
 
 .dailyStatusBarOperational {
-	background: #20bf6b;
+	background: var(--ns-success);
 }
 
 .dailyStatusBarDegraded {
-	background: #f0b429;
+	background: var(--ns-warning);
 }
 
 .dailyStatusBarDown {
-	background: #df3f40;
+	background: var(--ns-critical);
 }
 
 .dailyStatusBarUnknown {
-	background: #94a3b8;
+	background: var(--ns-metal);
 }
 
 .dailyStatusMeta {

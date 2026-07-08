@@ -37,9 +37,12 @@ export function AppShell() {
 
 	return (
 		<div className={classNames(styles.shell, sidebarCollapsed && styles.shellCollapsed)}>
+			<a className={styles.skipLink} href="#app-content">
+				Skip to content
+			</a>
 			<Sidebar user={session.user} collapsed={sidebarCollapsed} onToggleCollapsed={() => setSidebarCollapsed(collapsed => !collapsed)} onLogout={logout} />
 
-			<main className={styles.content}>
+			<main id="app-content" className={styles.content}>
 				<div className={styles.contentBody}>
 					{demoMode ? (
 						<div className={styles.demoBanner} role="status">

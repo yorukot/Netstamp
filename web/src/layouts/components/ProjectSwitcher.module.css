@@ -1,9 +1,9 @@
 .root {
-	--project-menu-bg: #17191d;
-	--project-menu-hover-bg: #20242a;
-	--project-menu-active-bg: #111418;
-	--project-menu-text: rgba(255, 255, 255, 0.82);
-	--project-menu-muted: rgba(255, 255, 255, 0.58);
+	--project-menu-bg: var(--ns-chrome-bg);
+	--project-menu-hover-bg: var(--ns-chrome-hover);
+	--project-menu-active-bg: var(--ns-surface-raised);
+	--project-menu-text: var(--ns-chrome-text);
+	--project-menu-muted: var(--ns-chrome-text-muted);
 
 	display: grid;
 	min-width: 0;
@@ -29,23 +29,22 @@
 	width: 100%;
 }
 
-.projectFrame:hover,
-.projectFrame:focus-within {
+.projectFrame:hover {
 	--ns-frame-color: transparent;
 	--ns-select-arrow: var(--project-menu-text);
 }
 
-.projectFrame:focus-within,
+.projectFrame:has(.projectControl:focus-visible),
 .projectFrame[data-open="true"] {
 	--ns-frame-color: transparent;
 	--ns-select-arrow: var(--project-menu-text);
-	outline: none;
-	outline-offset: 0;
+	outline: var(--ns-focus-outline);
+	outline-offset: var(--ns-focus-outline-offset);
 }
 
 .projectControl {
-	min-height: 2.625rem;
-	padding: 0.625rem 2.25rem 0.625rem 0.75rem;
+	min-height: 2.75rem;
+	padding: 0.75rem 2.25rem 0.75rem 0.75rem;
 	color: var(--ns-text-subtle);
 	background: transparent;
 	font-family: var(--ns-font-sans);
@@ -54,14 +53,14 @@
 }
 
 .projectFrame:hover .projectControl,
-.projectFrame:focus-within .projectControl,
+.projectFrame:has(.projectControl:focus-visible) .projectControl,
 .projectFrame[data-open="true"] .projectControl {
 	color: var(--ns-text);
 	background: var(--project-menu-hover-bg);
 }
 
 .projectFrame:hover .projectOptionIcon,
-.projectFrame:focus-within .projectOptionIcon {
+.projectFrame:has(.projectControl:focus-visible) .projectOptionIcon {
 	color: var(--ns-primary-hover);
 }
 
@@ -93,11 +92,11 @@
 }
 
 .projectMenu {
-	--project-menu-bg: #17191d;
-	--project-menu-hover-bg: #20242a;
-	--project-menu-active-bg: #111418;
-	--project-menu-text: rgba(255, 255, 255, 0.82);
-	--project-menu-muted: rgba(255, 255, 255, 0.58);
+	--project-menu-bg: var(--ns-chrome-bg);
+	--project-menu-hover-bg: var(--ns-chrome-hover);
+	--project-menu-active-bg: var(--ns-surface-raised);
+	--project-menu-text: var(--ns-chrome-text);
+	--project-menu-muted: var(--ns-chrome-text-muted);
 	--ns-frame-color: transparent;
 
 	width: max(var(--radix-select-trigger-width), 13rem);
@@ -220,8 +219,8 @@
 	.drawer .projectControl {
 		justify-content: flex-start;
 		height: auto;
-		min-height: 2.625rem;
-		padding: 0.625rem 2.25rem 0.625rem 0.75rem;
+		min-height: 2.75rem;
+		padding: 0.75rem 2.25rem 0.75rem 0.75rem;
 	}
 
 	.drawer .projectControl::after {

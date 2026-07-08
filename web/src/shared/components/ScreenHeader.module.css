@@ -15,7 +15,7 @@
 .backLink {
 	display: inline-flex;
 	align-items: center;
-	gap: 0.45rem;
+	gap: 0.5rem;
 	width: fit-content;
 	color: var(--ns-primary-hover);
 	font-family: var(--ns-font-sans);
@@ -37,7 +37,7 @@
 .header h1 {
 	max-width: 60rem;
 	margin: 0;
-	color: #ffffff;
+	color: var(--ns-text);
 	font-family: var(--ns-font-display);
 	font-size: clamp(2rem, 5vw, 3rem);
 	font-weight: 700;

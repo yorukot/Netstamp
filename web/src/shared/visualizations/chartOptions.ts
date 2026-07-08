@@ -1,11 +1,4 @@
-import { chartAxisLabel, chartMutedTextStyle, chartTooltipTextStyle } from "./chartTheme";
-
-const splitLine = { lineStyle: { color: "rgba(148,163,184,0.18)" } };
-const chartPrimary = "#EA6A1A";
-const chartPrimaryBrush = "rgba(234, 106, 26, 0.12)";
-const chartPrimaryBrushBorder = "rgba(234, 106, 26, 0.72)";
-const chartSecondary = "#2563EB";
-const chartWarning = "#B7791F";
+import { chartAxisLabel, chartMutedTextStyle, chartTheme, chartTooltipTextStyle, type ChartTheme } from "./chartTheme";
 
 export type ChartOption = Record<string, unknown>;
 export { barChartOption, lineChartOption } from "./basicChartOptions";
@@ -303,63 +296,68 @@ function lossBandData(points: PingSeriesPoint[]) {
 	});
 }
 
-function lossBandColor(lossPercent: number) {
+function lossBandColor(lossPercent: number, theme: ChartTheme) {
 	if (lossPercent >= 50) {
-		return "rgba(201, 54, 44, 0.2)";
+		return theme.criticalBandStrong;
 	}
 
 	if (lossPercent >= 20) {
-		return "rgba(201, 54, 44, 0.14)";
+		return theme.criticalBand;
 	}
 
 	if (lossPercent >= 5) {
-		return "rgba(183, 121, 31, 0.12)";
+		return theme.warningBand;
 	}
 
-	return "rgba(183, 121, 31, 0.12)";
+	return theme.warningBand;
 }
 
-const dataZoomToolbox = {
-	show: true,
-	left: -1000,
-	top: -1000,
-	itemSize: 0,
-	itemGap: 0,
-	feature: {
-		dataZoom: {
-			show: true,
-			xAxisIndex: [0],
-			yAxisIndex: false,
-			filterMode: "none",
-			brushStyle: {
-				color: chartPrimaryBrush,
-				borderColor: chartPrimaryBrushBorder,
-				borderWidth: 1
+function dataZoomToolbox(theme: ChartTheme) {
+	return {
+		show: true,
+		left: -1000,
+		top: -1000,
+		itemSize: 0,
+		itemGap: 0,
+		feature: {
+			dataZoom: {
+				show: true,
+				xAxisIndex: [0],
+				yAxisIndex: false,
+				filterMode: "none",
+				brushStyle: {
+					color: theme.primaryBrush,
+					borderColor: theme.primaryBrushBorder,
+					borderWidth: 1
+				}
 			}
 		}
-	}
-};
+	};
+}
 
 function multiSeriesChartOption(lines: InsightMultiSeriesLine[], axisName: string, unit: string): ChartOption {
+	const theme = chartTheme();
+	const splitLine = { lineStyle: { color: theme.splitLine } };
+
 	return {
 		backgroundColor: "transparent",
 		color: lines.map(line => line.color),
 		tooltip: {
 			trigger: "axis",
-			backgroundColor: "rgba(255,255,255,0.98)",
-			borderColor: "rgba(100,116,139,0.24)",
+			backgroundColor: theme.tooltipBackground,
+			borderColor: theme.tooltipBorder,
 			textStyle: chartTooltipTextStyle(11),
 			formatter: multiSeriesTooltipFormatter(unit)
 		},
 		grid: { top: 18, right: 44, bottom: 30, left: 48 },
-		toolbox: dataZoomToolbox,
+		toolbox: dataZoomToolbox(theme),
 		xAxis: {
 			type: "time",
 			axisLabel: {
 				...chartAxisLabel(),
 				formatter: (value: number) => timestampLabel(value)
 			},
-			axisLine: { lineStyle: { color: "rgba(148,163,184,0.16)" } },
+			axisLine: { lineStyle: { color: theme.axisLine } },
 			axisTick: { show: false }
 		},
 		yAxis: [
@@ -386,39 +384,40 @@ function multiSeriesChartOption(lines: InsightMultiSeriesLine[], axisName: strin
 	};
 }
 
-function lossBandRenderItem(params: CustomRenderParams, api: CustomRenderApi) {
-	const lossPercent = Number(api.value(1));
-	const timeStartMs = Number(api.value(2));
-	const timeEndMs = Number(api.value(3));
-	const coordSys = params.coordSys;
+function lossBandRenderItem(theme: ChartTheme) {
+	return (params: CustomRenderParams, api: CustomRenderApi) => {
+		const lossPercent = Number(api.value(1));
+		const timeStartMs = Number(api.value(2));
+		const timeEndMs = Number(api.value(3));
+		const coordSys = params.coordSys;
 
-	if (!coordSys || ![lossPercent, timeStartMs, timeEndMs].every(Number.isFinite) || lossPercent <= 0) {
-		return undefined;
-	}
-
-	const start = api.coord([timeStartMs, 0]);
-	const end = api.coord([timeEndMs, 0]);
-	const x = Math.min(start[0], end[0]);
-	const width = Math.max(1, Math.abs(end[0] - start[0]));
-
-	return {
-		type: "rect",
-		shape: {
-			x,
-			y: coordSys.y,
-			width,
-			height: coordSys.height
-		},
-		style: {
-			fill: lossBandColor(lossPercent)
+		if (!coordSys || ![lossPercent, timeStartMs, timeEndMs].every(Number.isFinite) || lossPercent <= 0) {
+			return undefined;
 		}
+
+		const start = api.coord([timeStartMs, 0]);
+		const end = api.coord([timeEndMs, 0]);
+		const x = Math.min(start[0], end[0]);
+		const width = Math.max(1, Math.abs(end[0] - start[0]));
+
+		return {
+			type: "rect",
+			shape: {
+				x,
+				y: coordSys.y,
+				width,
+				height: coordSys.height
+			},
+			style: {
+				fill: lossBandColor(lossPercent, theme)
+			}
+		};
 	};
 }
 
-export const insightSeriesPalette = [chartPrimary, chartSecondary, "#0891B2", "#0F766E", "#64748B", "#94A3B8", "#1D4ED8", "#0EA5E9", "#475569", "#334155"];
-
 export function insightSeriesColor(index: number) {
-	return insightSeriesPalette[index % insightSeriesPalette.length];
+	const palette = chartTheme().seriesPalette;
+	return palette[index % palette.length];
 }
 
 export function multiPingInsightChartOption(lines: InsightMultiSeriesLine[]): ChartOption {
@@ -430,16 +429,18 @@ export function multiTcpInsightChartOption(lines: InsightMultiSeriesLine[]): Cha
 }
 
 export function pingInsightChartOption(data: PingSeriesChartData): ChartOption {
+	const theme = chartTheme();
+	const splitLine = { lineStyle: { color: theme.splitLine } };
 	const lossBands = lossBandData(data.lossPercent);
 	const rttAxisBounds = pingRttAxisBounds(data);
 
 	return {
 		backgroundColor: "transparent",
-		color: [chartPrimary, chartWarning, "#C9362C"],
+		color: [theme.primary, theme.warning, theme.critical],
 		tooltip: {
 			trigger: "axis",
-			backgroundColor: "rgba(255,255,255,0.98)",
-			borderColor: "rgba(100,116,139,0.24)",
+			backgroundColor: theme.tooltipBackground,
+			borderColor: theme.tooltipBorder,
 			textStyle: chartTooltipTextStyle(11),
 			formatter: pingTooltipFormatter
 		},
@@ -453,33 +454,14 @@ export function pingInsightChartOption(data: PingSeriesChartData): ChartOption {
 		},
 		grid: { top: 34, right: 44, bottom: 30, left: 48 },
 		// Toolbox dataZoom must be mounted for ECharts' select brush to work.
-		toolbox: {
-			show: true,
-			left: -1000,
-			top: -1000,
-			itemSize: 0,
-			itemGap: 0,
-			feature: {
-				dataZoom: {
-					show: true,
-					xAxisIndex: [0],
-					yAxisIndex: false,
-					filterMode: "none",
-					brushStyle: {
-						color: chartPrimaryBrush,
-						borderColor: chartPrimaryBrushBorder,
-						borderWidth: 1
-					}
-				}
-			}
-		},
+		toolbox: dataZoomToolbox(theme),
 		xAxis: {
 			type: "time",
 			axisLabel: {
 				...chartAxisLabel(),
 				formatter: (value: number) => timestampLabel(value)
 			},
-			axisLine: { lineStyle: { color: "rgba(148,163,184,0.16)" } },
+			axisLine: { lineStyle: { color: theme.axisLine } },
 			axisTick: { show: false }
 		},
 		yAxis: [
@@ -499,7 +481,7 @@ export function pingInsightChartOption(data: PingSeriesChartData): ChartOption {
 				name: "loss",
 				type: "custom",
 				coordinateSystem: "cartesian2d",
-				renderItem: lossBandRenderItem,
+				renderItem: lossBandRenderItem(theme),
 				data: lossBands,
 				clip: true,
 				encode: { x: 0, tooltip: 1 },
@@ -522,7 +504,7 @@ export function pingInsightChartOption(data: PingSeriesChartData): ChartOption {
 				data: pingSpreadData(data, "range"),
 				showSymbol: false,
 				lineStyle: { opacity: 0 },
-				areaStyle: { color: "rgba(196,204,217,0.08)" },
+				areaStyle: { color: theme.spreadFill },
 				silent: true
 			},
 			{
@@ -531,7 +513,7 @@ export function pingInsightChartOption(data: PingSeriesChartData): ChartOption {
 				data: pingSeriesData(data.latencyAvg),
 				showSymbol: false,
 				smooth: true,
-				lineStyle: { width: 2.25, color: chartPrimary },
+				lineStyle: { width: 2.25, color: theme.primary },
 				z: 8
 			}
 		]
@@ -539,16 +521,18 @@ export function pingInsightChartOption(data: PingSeriesChartData): ChartOption {
 }
 
 export function tcpInsightChartOption(data: TcpSeriesChartData): ChartOption {
+	const theme = chartTheme();
+	const splitLine = { lineStyle: { color: theme.splitLine } };
 	const failureBands = lossBandData(data.failurePercent);
 	const connectAxisBounds = tcpConnectAxisBounds(data);
 
 	return {
 		backgroundColor: "transparent",
-		color: [chartPrimary, chartWarning, "#C9362C"],
+		color: [theme.primary, theme.warning, theme.critical],
 		tooltip: {
 			trigger: "axis",
-			backgroundColor: "rgba(255,255,255,0.98)",
-			borderColor: "rgba(100,116,139,0.24)",
+			backgroundColor: theme.tooltipBackground,
+			borderColor: theme.tooltipBorder,
 			textStyle: chartTooltipTextStyle(11),
 			formatter: tcpTooltipFormatter
 		},
@@ -561,33 +545,14 @@ export function tcpInsightChartOption(data: TcpSeriesChartData): ChartOption {
 			itemHeight: 6
 		},
 		grid: { top: 34, right: 44, bottom: 30, left: 48 },
-		toolbox: {
-			show: true,
-			left: -1000,
-			top: -1000,
-			itemSize: 0,
-			itemGap: 0,
-			feature: {
-				dataZoom: {
-					show: true,
-					xAxisIndex: [0],
-					yAxisIndex: false,
-					filterMode: "none",
-					brushStyle: {
-						color: chartPrimaryBrush,
-						borderColor: chartPrimaryBrushBorder,
-						borderWidth: 1
-					}
-				}
-			}
-		},
+		toolbox: dataZoomToolbox(theme),
 		xAxis: {
 			type: "time",
 			axisLabel: {
 				...chartAxisLabel(),
 				formatter: (value: number) => timestampLabel(value)
 			},
-			axisLine: { lineStyle: { color: "rgba(148,163,184,0.16)" } },
+			axisLine: { lineStyle: { color: theme.axisLine } },
 			axisTick: { show: false }
 		},
 		yAxis: [
@@ -607,7 +572,7 @@ export function tcpInsightChartOption(data: TcpSeriesChartData): ChartOption {
 				name: "failure",
 				type: "custom",
 				coordinateSystem: "cartesian2d",
-				renderItem: lossBandRenderItem,
+				renderItem: lossBandRenderItem(theme),
 				data: failureBands,
 				clip: true,
 				encode: { x: 0, tooltip: 1 },
@@ -630,7 +595,7 @@ export function tcpInsightChartOption(data: TcpSeriesChartData): ChartOption {
 				data: tcpSpreadData(data, "range"),
 				showSymbol: false,
 				lineStyle: { opacity: 0 },
-				areaStyle: { color: "rgba(196,204,217,0.08)" },
+				areaStyle: { color: theme.spreadFill },
 				silent: true
 			},
 			{
@@ -639,7 +604,7 @@ export function tcpInsightChartOption(data: TcpSeriesChartData): ChartOption {
 				data: pingSeriesData(data.connectAvg),
 				showSymbol: false,
 				smooth: true,
-				lineStyle: { width: 2.25, color: chartPrimary },
+				lineStyle: { width: 2.25, color: theme.primary },
 				z: 8
 			}
 		]

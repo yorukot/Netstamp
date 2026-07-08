@@ -89,7 +89,6 @@
 	stroke: transparent;
 	stroke-linecap: round;
 	stroke-width: 1rem;
-	outline: none;
 	pointer-events: stroke;
 }
 
@@ -111,7 +110,8 @@
 }
 
 .topologyNode:focus-visible {
-	outline: none;
+	outline: var(--ns-focus-outline);
+	outline-offset: 0.125rem;
 }
 
 .topologyNode:focus-visible .topologyNodeDot {

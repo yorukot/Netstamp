@@ -107,17 +107,6 @@
 	justify-content: flex-end;
 }
 
-.emptyAction {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 0.75rem;
-	align-items: center;
-	justify-content: center;
-	min-height: 7rem;
-	color: var(--ns-text-low);
-	font-family: var(--ns-font-sans);
-}
-
 .detailStack,
 .drawerForm,
 .formGrid {
@@ -142,35 +131,7 @@
 
 .keyValueGrid {
 	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: 0.75rem;
-}
-
-.keyValue {
-	display: grid;
-	gap: 0.25rem;
-	min-width: 0;
-	padding: 0.75rem;
-	border: 1px solid var(--ns-border-faint);
-	background: var(--ns-surface-raised);
-}
-
-.keyValue span {
-	color: var(--ns-text-low);
-	font-family: var(--ns-font-sans);
-	font-size: 0.75rem;
-	font-weight: 650;
-}
-
-.keyValue strong {
-	min-width: 0;
-	overflow: hidden;
-	color: var(--ns-text);
-	font-family: var(--ns-font-mono);
-	font-size: 0.8125rem;
-	font-weight: 700;
-	text-overflow: ellipsis;
-	white-space: nowrap;
+	gap: 0;
 }
 
 .twoColumns,
@@ -264,63 +225,8 @@
 	gap: 0.75rem;
 }
 
-.notificationTypeOption,
-.notificationTypeSummary {
-	--ns-frame-color: var(--ns-border);
-	display: grid;
-	grid-template-columns: auto minmax(0, 1fr);
-	gap: 0.875rem;
-	align-items: center;
-	padding: 1rem;
-	border: 1px solid var(--ns-frame-color);
-	color: var(--ns-text-muted);
-	background: var(--ns-surface-raised);
-	font-family: var(--ns-font-sans);
-}
-
-.notificationTypeOption {
-	width: 100%;
-	text-align: left;
-	cursor: pointer;
-	transition:
-		background var(--ns-transition),
-		border-color var(--ns-transition),
-		color var(--ns-transition);
-}
-
 .notificationTypeIcon {
 	color: var(--ns-primary-active);
-}
-
-.notificationTypeText {
-	display: grid;
-	gap: 0.35rem;
-	min-width: 0;
-}
-
-.notificationTypeText > strong {
-	color: var(--ns-text);
-	font-size: 0.9375rem;
-	font-weight: 750;
-	line-height: 1.2;
-}
-
-.notificationTypeText > span {
-	color: var(--ns-text-low);
-	font-size: 0.8125rem;
-	line-height: 1.45;
-}
-
-.notificationTypeOption:hover {
-	--ns-frame-color: var(--ns-primary-border);
-	background: var(--ns-primary-muted);
-}
-
-.notificationTypeOption:focus-visible {
-	--ns-frame-color: transparent;
-	background: var(--ns-primary-muted);
-	outline: var(--ns-focus-outline);
-	outline-offset: var(--ns-focus-outline-offset);
 }
 
 .previewSentence {

@@ -1,7 +1,7 @@
 .frame {
-	--role-color: rgba(255, 255, 255, 0.76);
+	--role-color: var(--ns-text-muted);
 	--ns-frame-color: var(--ns-border-faint);
-	--role-bg: #00080f;
+	--role-bg: var(--ns-surface);
 	position: relative;
 	display: inline-grid;
 	width: max-content;
@@ -22,7 +22,7 @@
 	transform: translateY(-65%) rotate(45deg);
 }
 
-.frame:focus-within {
+.frame:has(.select:focus-visible) {
 	--ns-frame-color: transparent;
 	outline: var(--ns-focus-outline);
 	outline-offset: var(--ns-focus-outline-offset);
@@ -53,7 +53,7 @@
 }
 
 .member {
-	--role-color: rgba(255, 255, 255, 0.76);
+	--role-color: var(--ns-text-muted);
 	--ns-frame-color: var(--ns-border-faint);
-	--role-bg: #00080f;
+	--role-bg: var(--ns-surface);
 }

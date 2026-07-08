@@ -1,12 +1,12 @@
 .userPopover {
-	--user-menu-bg: #17191d;
-	--user-menu-hover-bg: #20242a;
-	--user-menu-text: rgba(255, 255, 255, 0.82);
-	--user-menu-muted: rgba(255, 255, 255, 0.62);
+	--user-menu-bg: var(--ns-chrome-bg);
+	--user-menu-hover-bg: var(--ns-chrome-hover);
+	--user-menu-text: var(--ns-chrome-text);
+	--user-menu-muted: var(--ns-chrome-text-muted);
 
 	z-index: 1000;
 	width: min(11rem, calc(100vw - 1rem));
-	padding: 0.35rem;
+	padding: 0.25rem;
 	border: 0;
 	color: var(--ns-text-subtle);
 	background: var(--user-menu-bg);
@@ -15,10 +15,10 @@
 }
 
 .mobileDrawerUserPanel {
-	--user-menu-bg: #17191d;
-	--user-menu-hover-bg: #20242a;
-	--user-menu-text: rgba(255, 255, 255, 0.82);
-	--user-menu-muted: rgba(255, 255, 255, 0.62);
+	--user-menu-bg: var(--ns-chrome-bg);
+	--user-menu-hover-bg: var(--ns-chrome-hover);
+	--user-menu-text: var(--ns-chrome-text);
+	--user-menu-muted: var(--ns-chrome-text-muted);
 
 	width: 100%;
 	display: grid;
@@ -117,10 +117,10 @@
 	display: flex;
 	align-items: center;
 	justify-content: flex-start;
-	gap: 0.625rem;
+	gap: 0.5rem;
 	width: 100%;
 	min-height: 2.25rem;
-	padding: 0.5rem 0.625rem;
+	padding: 0.5rem 0.75rem;
 	border: 0;
 	color: var(--user-menu-muted);
 	background: transparent;
@@ -144,8 +144,8 @@
 .userPopoverAction:focus-visible {
 	color: var(--user-menu-text);
 	background: var(--user-menu-hover-bg);
-	outline: none;
-	outline-offset: 0;
+	outline: var(--ns-focus-outline);
+	outline-offset: var(--ns-focus-outline-offset);
 }
 
 .userPopoverAction svg {

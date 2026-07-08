@@ -1,6 +1,6 @@
 import { formatCoordinate, type ProbeCoordinates } from "@/features/probes/data/probeLocation";
-import { NetworkMap, type NetworkMapMarker } from "@/shared/components/NetworkMap";
 import { classNames } from "@/shared/utils/classNames";
+import { NetworkMap, type NetworkMapMarker } from "@/shared/visualizations/NetworkMap";
 import styles from "./LocationPreviewMap.module.css";
 
 interface LocationPreviewMapProps {

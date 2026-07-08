@@ -4,7 +4,7 @@
 	display: grid;
 	align-content: start;
 	gap: 1rem;
-	color: #ffffff;
+	color: var(--ns-text);
 }
 
 .dashboardHeader {
@@ -22,7 +22,7 @@
 
 .titleBlock h1 {
 	margin: 0;
-	color: #ffffff;
+	color: var(--ns-text);
 	font-family: var(--ns-font-display);
 	font-size: clamp(2rem, 5vw, 3rem);
 	font-weight: 700;
@@ -55,44 +55,20 @@
 }
 
 .metricTile {
-	display: grid;
-	align-content: start;
-	gap: 0.75rem;
 	min-height: 10rem;
-	padding: 1.25rem;
-	border-right: 1px solid #ffffff1a;
-	background: #131518;
+	border: 0;
+	border-right: 1px solid var(--ns-border-faint);
 }
 
 .metricTile:last-child {
 	border-right: 0;
 }
 
-.metricTile span,
-.metricTile small {
-	min-width: 0;
-	color: rgba(255, 255, 255, 0.58);
-	font-size: 0.8125rem;
-	line-height: 1.35;
-}
-
-.metricTile span {
-	font-weight: 700;
-}
-
-.metricTile strong {
-	color: #ffffff;
-	font-family: var(--ns-font-display);
-	font-size: clamp(2rem, 4vw, 3rem);
-	font-weight: 700;
-	line-height: 0.95;
-}
-
 .mapContent {
 	position: relative;
 	min-height: 34rem;
 	overflow: hidden;
-	background: #00080f;
+	background: var(--ns-surface-deep);
 }
 
 .worldMap {
@@ -101,7 +77,7 @@
 	height: 100%;
 	min-height: 34rem;
 	border: 0;
-	background: #00080f;
+	background: var(--ns-surface-deep);
 }
 
 :root[data-theme="light"] .worldMap :global(.maplibregl-ctrl button) {
@@ -116,15 +92,15 @@
 	display: grid;
 	gap: 0.25rem;
 	width: min(22rem, calc(100% - 2rem));
-	border: 1px solid #ffffff1a;
-	background: rgba(19, 21, 24, 0.92);
-	padding: 0.875rem 1rem;
+	border: 1px solid var(--ns-border-faint);
+	background: var(--ns-glass-dark);
+	padding: 1rem;
 	pointer-events: none;
 }
 
 .mapReadout span,
 .mapReadout small {
-	color: rgba(255, 255, 255, 0.58);
+	color: var(--ns-chrome-text-muted);
 	font-size: 0.75rem;
 	line-height: 1.35;
 }
@@ -136,7 +112,7 @@
 .mapReadout strong {
 	min-width: 0;
 	overflow: hidden;
-	color: #ffffff;
+	color: var(--ns-chrome-text);
 	font-size: 1rem;
 	font-weight: 700;
 	line-height: 1.2;
@@ -166,7 +142,7 @@
 	align-items: center;
 	min-height: 4.75rem;
 	padding: 1rem;
-	border-bottom: 1px solid #ffffff1a;
+	border-bottom: 1px solid var(--ns-border-faint);
 }
 
 .entityList li:last-child {
@@ -188,13 +164,13 @@
 }
 
 .entityList strong {
-	color: #ffffff;
+	color: var(--ns-text);
 	font-size: 0.9375rem;
 	line-height: 1.2;
 }
 
 .entityList span {
-	color: rgba(255, 255, 255, 0.58);
+	color: var(--ns-text-muted);
 	font-size: 0.8125rem;
 	line-height: 1.35;
 }
@@ -203,33 +179,23 @@
 	display: inline-flex;
 	align-items: center;
 	min-height: 1.75rem;
-	border: 1px solid #4b515b;
-	padding: 0 0.625rem;
-	color: rgba(255, 255, 255, 0.68);
-	background: #00080f;
+	border: 1px solid var(--ns-border);
+	padding: 0 0.75rem;
+	color: var(--ns-text-muted);
+	background: var(--ns-surface);
 	font-family: var(--ns-font-mono);
 	font-size: 0.6875rem;
 	line-height: 1;
 }
 
 .statusOnline {
-	border-color: rgba(52, 199, 123, 0.5);
-	color: #34c77b;
+	border-color: color-mix(in srgb, var(--ns-success) 50%, transparent);
+	color: var(--ns-success);
 }
 
 .statusOffline {
-	border-color: rgba(255, 107, 99, 0.52);
-	color: #ff6b63;
-}
-
-.emptyState {
-	display: grid;
-	place-items: center;
-	min-height: 12rem;
-	padding: 1rem;
-	color: rgba(255, 255, 255, 0.58);
-	font-size: 0.875rem;
-	text-align: center;
+	border-color: color-mix(in srgb, var(--ns-critical) 52%, transparent);
+	color: var(--ns-critical);
 }
 
 .checkRows {
@@ -243,7 +209,7 @@
 	align-items: center;
 	min-height: 4rem;
 	padding: 1rem;
-	border-bottom: 1px solid #ffffff1a;
+	border-bottom: 1px solid var(--ns-border-faint);
 }
 
 .checkRow:last-child {
@@ -259,13 +225,13 @@
 }
 
 .checkRow strong {
-	color: #ffffff;
+	color: var(--ns-text);
 	font-size: 0.9375rem;
 	line-height: 1.2;
 }
 
 .checkRow span {
-	color: rgba(255, 255, 255, 0.62);
+	color: var(--ns-text-muted);
 	font-family: var(--ns-font-mono);
 	font-size: 0.75rem;
 	line-height: 1.35;
@@ -281,7 +247,7 @@
 	}
 
 	.metricTile:nth-child(n + 3) {
-		border-top: 1px solid #ffffff1a;
+		border-top: 1px solid var(--ns-border-faint);
 	}
 
 	.mapSection,
@@ -306,7 +272,7 @@
 	.metricTile {
 		min-height: 8.5rem;
 		border-right: 0;
-		border-top: 1px solid #ffffff1a;
+		border-top: 1px solid var(--ns-border-faint);
 	}
 
 	.metricTile:first-child {

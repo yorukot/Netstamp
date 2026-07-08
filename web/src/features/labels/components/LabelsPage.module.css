@@ -52,12 +52,12 @@
 }
 
 .errorNotice {
-	--ns-frame-color: rgba(255, 95, 87, 0.34);
+	--ns-frame-color: color-mix(in srgb, var(--ns-critical) 34%, transparent);
 	margin: 0;
 	padding: 0.75rem 0.875rem;
 	border: 1px solid var(--ns-frame-color);
 	color: var(--ns-critical);
-	background: rgba(255, 95, 87, 0.08);
+	background: color-mix(in srgb, var(--ns-critical) 8%, transparent);
 	font-family: var(--ns-font-sans);
 	font-size: 0.8125rem;
 	line-height: 1.5;
@@ -70,17 +70,17 @@
 }
 
 .usagePanel > div {
-	--ns-frame-color: #ffffff1a;
+	--ns-frame-color: var(--ns-border-faint);
 	display: grid;
 	gap: 0.5rem;
 	min-width: 0;
 	padding: 0.875rem;
 	border: 1px solid var(--ns-frame-color);
-	background: #00080f;
+	background: var(--ns-surface);
 }
 
 .usagePanel span {
-	color: rgba(255, 255, 255, 0.44);
+	color: var(--ns-text-low);
 	font-family: var(--ns-font-sans);
 	font-size: 0.8125rem;
 	font-weight: 650;
@@ -89,7 +89,7 @@
 }
 
 .usagePanel strong {
-	color: #ffffff;
+	color: var(--ns-text);
 	font-family: var(--ns-font-sans);
 	font-size: 2rem;
 	font-weight: 700;
@@ -100,7 +100,7 @@
 	min-width: 0;
 	margin: 0;
 	overflow: hidden;
-	color: rgba(255, 255, 255, 0.58);
+	color: var(--ns-text-subtle);
 	font-size: 0.8125rem;
 	line-height: 1.5;
 	text-overflow: ellipsis;

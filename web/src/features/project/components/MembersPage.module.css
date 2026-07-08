@@ -13,12 +13,12 @@
 }
 
 .stackedCell strong {
-	color: #ffffff;
+	color: var(--ns-text);
 	font-size: 0.75rem;
 }
 
 .stackedCell span {
-	color: rgba(255, 255, 255, 0.44);
+	color: var(--ns-text-low);
 	font-size: 0.6875rem;
 }
 
@@ -39,9 +39,9 @@
 	display: grid;
 	place-items: center;
 	flex: 0 0 auto;
-	border: 1px solid rgba(251, 146, 60, 0.5);
-	background: rgba(251, 146, 60, 0.13);
-	color: #fb923c;
+	border: 1px solid var(--ns-primary-border);
+	background: var(--ns-primary-muted);
+	color: var(--ns-primary);
 	font-family: var(--ns-font-mono);
 	font-size: 0.75rem;
 	font-weight: 800;
@@ -50,7 +50,7 @@
 .memberName {
 	min-width: 0;
 	overflow: hidden;
-	color: #ffffff;
+	color: var(--ns-text);
 	font-weight: 700;
 	text-overflow: ellipsis;
 	white-space: nowrap;

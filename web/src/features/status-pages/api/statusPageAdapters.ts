@@ -1,10 +1,7 @@
 import type { ApiPublicStatusElement, ApiPublicStatusPublicElement, ApiSeries, PublicStatusState } from "@/shared/api/types";
 import type { ChartOption } from "@/shared/visualizations/chartOptions";
-import { chartAxisLabel, chartTooltipTextStyle } from "@/shared/visualizations/chartTheme";
+import { chartAxisLabel, chartTheme, chartTooltipTextStyle } from "@/shared/visualizations/chartTheme";
 import type { BadgeTone } from "@netstamp/ui";
-
-const chartColors = ["#EA6A1A", "#2563EB", "#30A46C", "#B7791F", "#64748B", "#9A3412"];
-const splitLine = { lineStyle: { color: "rgba(148,163,184,0.18)" } };
 
 export interface ElementTreeNode extends ApiPublicStatusElement {
 	children: ElementTreeNode[];
@@ -183,14 +180,16 @@ function tooltipTimestamp(value: unknown) {
 
 export function publicStatusChartOption(element: ApiPublicStatusPublicElement): ChartOption {
 	const series = element.chart?.series ?? [];
+	const theme = chartTheme();
+	const splitLine = { lineStyle: { color: theme.splitLine } };
 
 	return {
 		backgroundColor: "transparent",
-		color: chartColors,
+		color: theme.seriesPalette,
 		tooltip: {
 			trigger: "axis",
-			backgroundColor: "rgba(255,255,255,0.98)",
-			borderColor: "rgba(100,116,139,0.24)",
+			backgroundColor: theme.tooltipBackground,
+			borderColor: theme.tooltipBorder,
 			textStyle: chartTooltipTextStyle(),
 			formatter: (params: unknown) => {
 				const items = (Array.isArray(params) ? params : [params]) as Array<{ marker?: string; seriesName?: string; value?: unknown }>;
@@ -207,7 +206,7 @@ export function publicStatusChartOption(element: ApiPublicStatusPublicElement): 
 			}
 		},
 		grid: { top: 12, right: 14, bottom: 24, left: 42 },
-		xAxis: { type: "time", axisLabel: chartAxisLabel(), axisTick: { show: false }, axisLine: { lineStyle: { color: "rgba(148,163,184,0.16)" } } },
+		xAxis: { type: "time", axisLabel: chartAxisLabel(), axisTick: { show: false }, axisLine: { lineStyle: { color: theme.axisLine } } },
 		yAxis: { type: "value", axisLabel: chartAxisLabel(), splitLine, axisTick: { show: false }, axisLine: { show: false } },
 		series: series.map(item => ({
 			name: seriesDisplayName(item),

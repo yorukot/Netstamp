@@ -101,7 +101,7 @@ export function ScopeSelect({
 				options={searchableOptions}
 				value={value}
 				placeholder={placeholder}
-				searchPlaceholder={`Search ${label.toLowerCase()}`}
+				searchPlaceholder={`Search ${label.toLowerCase()}…`}
 				emptyLabel={`No ${label.toLowerCase()} match this search.`}
 				disabled={disabled}
 				onValueChange={onChange}
@@ -140,6 +140,7 @@ export function AssignmentMultiSelect({
 
 		return matches.slice(0, 50);
 	}, [normalizedQuery, options]);
+	const activeOptionId = open && filteredOptions[activeIndex] ? `${listboxId}-option-${activeIndex}` : undefined;
 	const selectedSummary = selectedOptions.length
 		? selectedOptions.length > 2
 			? `${selectedOptions[0]?.label}, ${selectedOptions[1]?.label}, +${selectedOptions.length - 2}`
@@ -276,7 +277,9 @@ export function AssignmentMultiSelect({
 							placeholder={selectedOptions.length ? selectedSummary : placeholder}
 							role="combobox"
 							aria-expanded={open}
+							aria-haspopup="listbox"
 							aria-controls={open ? listboxId : undefined}
+							aria-activedescendant={activeOptionId}
 							aria-autocomplete="list"
 							autoComplete="off"
 							onFocus={openPopover}
@@ -324,6 +327,7 @@ export function AssignmentMultiSelect({
 
 								return (
 									<button
+										id={`${listboxId}-option-${index}`}
 										type="button"
 										role="option"
 										aria-selected={selected}

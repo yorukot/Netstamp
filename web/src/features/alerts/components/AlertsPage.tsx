@@ -17,7 +17,7 @@ import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { pushErrorToast, pushToast } from "@/shared/toast/toastStore";
 import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
-import { Badge, Button, DataTable, LoadingState, Panel, SelectField, Tabs, TextAreaField, TextField, type BadgeTone, type DataColumn } from "@netstamp/ui";
+import { Badge, Button, DataTable, EmptyState, KeyValueRow, LoadingState, Panel, SelectableRow, SelectField, Tabs, TextAreaField, TextField, type BadgeTone, type DataColumn } from "@netstamp/ui";
 import { DiscordLogo, EnvelopeSimple, SlackLogo, TelegramLogo, WebhooksLogo } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState, type FormEvent } from "react";
@@ -536,7 +536,14 @@ export function AlertsPage() {
 							) : rules.length ? (
 								"No alert rules match this view"
 							) : (
-								<EmptyAction label="No alert rules yet" action="Create rule" onClick={() => setRuleEditor({ mode: "create" })} />
+								<EmptyState
+									title="No alert rules yet"
+									action={
+										<Button type="button" size="sm" variant="secondary" onClick={() => setRuleEditor({ mode: "create" })}>
+											Create rule
+										</Button>
+									}
+								/>
 							)
 						}
 					/>
@@ -579,7 +586,14 @@ export function AlertsPage() {
 							) : notifications.length ? (
 								"No notifications match this view"
 							) : (
-								<EmptyAction label="No notifications yet" action="Add notification" onClick={() => setNotificationEditor({ mode: "create" })} />
+								<EmptyState
+									title="No notifications yet"
+									action={
+										<Button type="button" size="sm" variant="secondary" onClick={() => setNotificationEditor({ mode: "create" })}>
+											Add notification
+										</Button>
+									}
+								/>
 							)
 						}
 					/>
@@ -654,17 +668,6 @@ function SummaryCard({ label, value, tone, detail }: { label: string; value: num
 	);
 }
 
-function EmptyAction({ label, action, onClick }: { label: string; action: string; onClick: () => void }) {
-	return (
-		<div className={styles.emptyAction}>
-			<span>{label}</span>
-			<Button type="button" size="sm" variant="secondary" onClick={onClick}>
-				{action}
-			</Button>
-		</div>
-	);
-}
-
 function IncidentDetailDrawer({ incident, isLoading, error, onClose }: { incident: ApiAlertIncident | null; isLoading: boolean; error: unknown; onClose: () => void }) {
 	return (
 		<EditorDrawer open title="Incident detail" ariaLabel="Incident detail" backLabel="back to incidents" onClose={onClose}>
@@ -677,27 +680,27 @@ function IncidentDetailDrawer({ incident, isLoading, error, onClose }: { inciden
 					<Panel tone="matte" title="What happened">
 						<p className={styles.detailLead}>{formatIncidentReason(incident)}</p>
 						<div className={styles.keyValueGrid}>
-							<KeyValue label="Probe" value={formatIncidentProbe(incident)} />
-							<KeyValue label="Check" value={formatIncidentCheck(incident)} />
-							<KeyValue label="Target" value={incidentCheckTarget(incident)} />
-							<KeyValue label="State" value={incident.lastEvaluationState} />
-							<KeyValue label="Value" value={typeof incident.lastValue === "number" ? formatThreshold(incident.lastSummary.metric, Number(incident.lastValue.toFixed(2))) : "-"} />
-							<KeyValue label="Rule" value={shortID(incident.ruleId)} />
+							<KeyValueRow label="Probe" value={formatIncidentProbe(incident)} />
+							<KeyValueRow label="Check" value={formatIncidentCheck(incident)} />
+							<KeyValueRow label="Target" value={incidentCheckTarget(incident)} />
+							<KeyValueRow label="State" value={incident.lastEvaluationState} />
+							<KeyValueRow label="Value" value={typeof incident.lastValue === "number" ? formatThreshold(incident.lastSummary.metric, Number(incident.lastValue.toFixed(2))) : "-"} />
+							<KeyValueRow label="Rule" value={shortID(incident.ruleId)} />
 						</div>
 					</Panel>
 					<Panel tone="matte" title="Timeline">
 						<div className={styles.keyValueGrid}>
-							<KeyValue label="Opened" value={formatDateTime(incident.openedAt)} />
-							<KeyValue label="Resolved" value={formatDateTime(incident.resolvedAt)} />
-							<KeyValue label="Last checked" value={formatDateTime(incident.lastEvaluatedAt)} />
-							<KeyValue label="Last triggered" value={formatDateTime(incident.lastTriggeredAt)} />
+							<KeyValueRow label="Opened" value={formatDateTime(incident.openedAt)} />
+							<KeyValueRow label="Resolved" value={formatDateTime(incident.resolvedAt)} />
+							<KeyValueRow label="Last checked" value={formatDateTime(incident.lastEvaluatedAt)} />
+							<KeyValueRow label="Last triggered" value={formatDateTime(incident.lastTriggeredAt)} />
 						</div>
 					</Panel>
 					<Panel tone="matte" title="Notifications">
 						<div className={styles.keyValueGrid}>
-							<KeyValue label="Last sent" value={formatDateTime(incident.lastNotificationSentAt)} />
-							<KeyValue label="Next eligible" value={formatDateTime(incident.nextNotificationEligibleAt)} />
-							<KeyValue label="Suppressed" value={String(incident.suppressedNotificationCount)} />
+							<KeyValueRow label="Last sent" value={formatDateTime(incident.lastNotificationSentAt)} />
+							<KeyValueRow label="Next eligible" value={formatDateTime(incident.nextNotificationEligibleAt)} />
+							<KeyValueRow label="Suppressed" value={String(incident.suppressedNotificationCount)} />
 						</div>
 					</Panel>
 				</div>
@@ -893,13 +896,14 @@ function NotificationEditorDrawer({
 			<EditorDrawer open title={title} ariaLabel={title} backLabel="back to notifications" onClose={onClose}>
 				<div className={styles.notificationTypeGrid}>
 					{notificationTypeOptions.map(option => (
-						<button type="button" className={styles.notificationTypeOption} key={option.value} onClick={() => chooseType(option.value)}>
-							<NotificationTypeIcon type={option.value} />
-							<span className={styles.notificationTypeText}>
-								<strong>{option.label}</strong>
-								<span>{option.detail}</span>
-							</span>
-						</button>
+						<SelectableRow
+							key={option.value}
+							type="button"
+							leading={<NotificationTypeIcon type={option.value} />}
+							title={option.label}
+							description={option.detail}
+							onClick={() => chooseType(option.value)}
+						/>
 					))}
 				</div>
 			</EditorDrawer>
@@ -910,13 +914,7 @@ function NotificationEditorDrawer({
 		<EditorDrawer open title={title} ariaLabel={title} backLabel="back to notifications" onClose={onClose}>
 			<form className={styles.drawerForm} onSubmit={handleSubmit}>
 				<Panel tone="matte" title="Notification type">
-					<div className={styles.notificationTypeSummary}>
-						<NotificationTypeIcon type={selectedType.value} />
-						<span className={styles.notificationTypeText}>
-							<strong>{selectedType.label}</strong>
-							<span>{selectedType.detail}</span>
-						</span>
-					</div>
+					<SelectableRow as="div" leading={<NotificationTypeIcon type={selectedType.value} />} title={selectedType.label} description={selectedType.detail} />
 				</Panel>
 				<Panel tone="matte" title={`${notificationTypeLabel(form.type)} settings`}>
 					<div className={styles.formGrid}>
@@ -985,14 +983,5 @@ function NotificationEditorDrawer({
 				</div>
 			</form>
 		</EditorDrawer>
-	);
-}
-
-function KeyValue({ label, value }: { label: string; value: string }) {
-	return (
-		<div className={styles.keyValue}>
-			<span>{label}</span>
-			<strong>{value}</strong>
-		</div>
 	);
 }

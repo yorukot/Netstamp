@@ -69,7 +69,8 @@
 	background: transparent;
 	border: 0;
 	cursor: pointer;
-	outline: none;
+	outline: 2px solid transparent;
+	outline-offset: 0.125rem;
 	transform: translate(-50%, -50%);
 }
 
@@ -112,6 +113,10 @@
 	height: 0.9rem;
 	background: var(--ns-text);
 	box-shadow: none;
+}
+
+.timelinePoint:focus-visible {
+	outline: var(--ns-focus-outline);
 }
 
 .timelinePointLabel {

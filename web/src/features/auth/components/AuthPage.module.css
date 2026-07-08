@@ -18,12 +18,12 @@
 }
 
 :root[data-theme="light"] .authShell {
-	--auth-page-bg: #f6f7f9;
-	--auth-pane-bg: #ffffff;
-	--auth-visual-bg: #0b0b0b;
+	--auth-page-bg: var(--ns-bg);
+	--auth-pane-bg: var(--ns-surface);
+	--auth-visual-bg: var(--ns-chrome-bg);
 	--auth-map-opacity: 0.84;
-	--auth-visual-overlay: rgba(0, 0, 0, 0.18);
-	--auth-quote-bg: rgba(255, 255, 255, 0.92);
+	--auth-visual-overlay: var(--ns-overlay-scrim);
+	--auth-quote-bg: color-mix(in srgb, var(--ns-surface) 92%, transparent);
 	--auth-quote-text: var(--ns-text-muted);
 }
 
@@ -32,8 +32,8 @@
 	--auth-pane-bg: var(--ns-bg);
 	--auth-visual-bg: var(--ns-surface-deep);
 	--auth-map-opacity: 0.9;
-	--auth-visual-overlay: rgba(0, 0, 0, 0.24);
-	--auth-quote-bg: rgba(11, 11, 11, 0.88);
+	--auth-visual-overlay: var(--ns-overlay-scrim);
+	--auth-quote-bg: color-mix(in srgb, var(--ns-surface) 88%, transparent);
 	--auth-quote-text: var(--ns-text-muted);
 }
 

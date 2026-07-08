@@ -44,13 +44,13 @@
 }
 
 .checkNameCell strong {
-	color: #ffffff;
+	color: var(--ns-text);
 	font-size: 0.8125rem;
 	font-weight: 800;
 }
 
 .checkNameCell span {
-	color: rgba(255, 255, 255, 0.44);
+	color: var(--ns-text-low);
 	font-size: 0.75rem;
 }
 
@@ -91,12 +91,12 @@
 
 .probeSummary {
 	--ns-frame-radius: var(--ns-radius-md);
-	--ns-frame-color: #ffffff1a;
+	--ns-frame-color: var(--ns-border-faint);
 	min-height: 2.75rem;
 	padding: 0.75rem 0.875rem;
 	border: 1px solid var(--ns-frame-color);
-	color: #ffffff;
-	background: #00080f;
+	color: var(--ns-text);
+	background: var(--ns-surface);
 	font-family: var(--ns-font-sans);
 	font-size: 0.875rem;
 }
@@ -113,22 +113,22 @@
 
 .selectorRule {
 	--ns-frame-radius: var(--ns-radius-md);
-	--ns-frame-color: #ffffff1a;
+	--ns-frame-color: var(--ns-border-faint);
 	display: grid;
 	grid-template-columns: auto minmax(7rem, 0.9fr) minmax(7rem, 0.8fr) minmax(8rem, 1fr) 2.75rem;
 	gap: 0.75rem;
 	align-items: end;
 	padding: 0.75rem 1rem 0.75rem 0.75rem;
 	border: 1px solid var(--ns-frame-color);
-	background: #00080f;
+	background: var(--ns-surface);
 }
 
 .selectorNegation {
 	display: inline-flex;
-	gap: 0.45rem;
+	gap: 0.5rem;
 	align-items: center;
 	min-height: 2.5rem;
-	color: rgba(255, 255, 255, 0.44);
+	color: var(--ns-text-low);
 	font-family: var(--ns-font-sans);
 	font-size: 0.8125rem;
 	font-weight: 650;
@@ -138,9 +138,9 @@
 .selectorExistsValue {
 	min-height: 2.5rem;
 	padding: 0.7rem 0.75rem;
-	border: 1px solid #ffffff1a;
-	color: rgba(255, 255, 255, 0.44);
-	background: #00080f;
+	border: 1px solid var(--ns-border-faint);
+	color: var(--ns-text-low);
+	background: var(--ns-surface);
 	font-family: var(--ns-font-sans);
 	font-size: 0.8125rem;
 }
@@ -169,20 +169,20 @@
 
 .selectorOption {
 	--ns-frame-radius: var(--ns-radius-md);
-	--ns-frame-color: #ffffff1a;
+	--ns-frame-color: var(--ns-border-faint);
 	display: grid;
 	grid-template-columns: auto minmax(0, 0.72fr) minmax(0, 1fr);
-	gap: 0.55rem;
+	gap: 0.5rem;
 	align-items: center;
 	min-width: 0;
 	padding: 0.625rem;
-	background: #00080f;
+	background: var(--ns-surface);
 	cursor: pointer;
 }
 
 .selectorOption:hover {
-	--ns-frame-color: #4b515b;
-	background: #131518;
+	--ns-frame-color: var(--ns-border-strong);
+	background: var(--ns-surface-raised);
 }
 
 .selectorOption span,
@@ -196,18 +196,18 @@
 }
 
 .selectorOption span {
-	color: rgba(255, 255, 255, 0.44);
+	color: var(--ns-text-low);
 	font-weight: 700;
 }
 
 .selectorOption strong {
-	color: #ffffff;
+	color: var(--ns-text);
 	font-weight: 800;
 }
 
 .selectorNotice {
 	margin: 0;
-	color: rgba(255, 255, 255, 0.44);
+	color: var(--ns-text-low);
 	font-size: 0.8125rem;
 	line-height: 1.5;
 }

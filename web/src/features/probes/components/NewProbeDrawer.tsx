@@ -42,7 +42,7 @@ async function writeClipboardText(value: string) {
 	textarea.value = value;
 	textarea.setAttribute("readonly", "");
 	textarea.style.position = "fixed";
-	textarea.style.left = "-9999px";
+	textarea.style.left = "-100vw";
 	document.body.appendChild(textarea);
 	textarea.select();
 	document.execCommand("copy");
