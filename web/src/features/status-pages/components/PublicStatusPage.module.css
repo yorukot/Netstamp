@@ -22,7 +22,7 @@
 
 .brand {
 	color: var(--ns-text-subtle);
-	font: 0.78rem/1 var(--ns-font-mono);
+	font: 0.78rem/1 var(--ns-font-code);
 	text-transform: uppercase;
 	letter-spacing: 0;
 }
@@ -41,7 +41,8 @@
 
 .headerCopy h1 {
 	margin: 0;
-	font: 2.4rem/1.05 var(--ns-font-display);
+	font-size: 2.4rem;
+	line-height: 1.05;
 }
 
 .headerCopy p,
@@ -60,7 +61,7 @@
 	border: 1px solid var(--ns-border);
 	background: var(--ns-surface-raised);
 	padding: 0.75rem;
-	font-family: var(--ns-font-mono);
+	font-family: var(--ns-font-code);
 }
 
 .generated span {
@@ -105,14 +106,14 @@
 	flex-wrap: wrap;
 	gap: 0.45rem 0.8rem;
 	color: var(--ns-text-subtle);
-	font: 0.78rem/1.4 var(--ns-font-mono);
+	font: 0.78rem/1.4 var(--ns-font-code);
 }
 
 .incidentSummary {
 	display: grid;
 	justify-items: end;
 	gap: 0.2rem;
-	font-family: var(--ns-font-mono);
+	font-family: var(--ns-font-code);
 }
 
 .incidentSummary span {
@@ -197,12 +198,12 @@
 
 .metric span {
 	color: var(--ns-text-subtle);
-	font: 0.72rem/1 var(--ns-font-mono);
+	font: 0.72rem/1 var(--ns-font-code);
 	text-transform: uppercase;
 }
 
 .metric strong {
-	font: 1rem/1 var(--ns-font-mono);
+	font: 1rem/1 var(--ns-font-code);
 }
 
 .publicAssignmentRows {
@@ -252,7 +253,7 @@
 	display: flex;
 	justify-content: space-between;
 	color: var(--ns-text-subtle);
-	font: 0.72rem/1.4 var(--ns-font-mono);
+	font: 0.72rem/1.4 var(--ns-font-code);
 }
 
 .dailyStatusPlaceholder {
@@ -260,7 +261,7 @@
 	display: grid;
 	place-items: center;
 	color: var(--ns-text-subtle);
-	font: 0.78rem/1.4 var(--ns-font-mono);
+	font: 0.78rem/1.4 var(--ns-font-code);
 }
 
 .publicAssignmentRow {
@@ -293,7 +294,7 @@
 .publicAssignmentCopy span,
 .publicAssignmentMetrics {
 	color: var(--ns-text-subtle);
-	font: 0.78rem/1.4 var(--ns-font-mono);
+	font: 0.78rem/1.4 var(--ns-font-code);
 }
 
 .publicAssignmentStatus {
@@ -325,7 +326,7 @@
 	display: grid;
 	place-items: center;
 	color: var(--ns-text-subtle);
-	font: 0.78rem/1.4 var(--ns-font-mono);
+	font: 0.78rem/1.4 var(--ns-font-code);
 }
 
 @media (max-width: 46rem) {

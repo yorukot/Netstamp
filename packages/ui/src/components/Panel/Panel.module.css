@@ -57,7 +57,6 @@
 .header h2 {
 	margin: 0;
 	color: var(--ns-text);
-	font-family: var(--ns-font-display);
 	font-size: clamp(1.35rem, 2vw, 1.75rem);
 	letter-spacing: 0;
 	line-height: 1.05;
@@ -65,7 +64,7 @@
 
 .eyebrow {
 	color: var(--ns-text-low);
-	font-family: var(--ns-font-mono);
+	font-family: var(--ns-font-code);
 	font-size: 0.6875rem;
 	font-weight: 800;
 	letter-spacing: 0.08em;

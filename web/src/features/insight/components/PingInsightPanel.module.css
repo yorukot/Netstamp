@@ -25,7 +25,6 @@
 .summaryCell small,
 .chartMeta,
 .emptyState {
-	font-family: var(--ns-font-sans);
 }
 
 .summaryCell span {
@@ -37,7 +36,6 @@
 
 .summaryCell strong {
 	color: var(--ns-text);
-	font-family: var(--ns-font-sans);
 	font-size: clamp(1.35rem, 2.4vw, 2rem);
 	font-weight: 700;
 	line-height: 1.1;

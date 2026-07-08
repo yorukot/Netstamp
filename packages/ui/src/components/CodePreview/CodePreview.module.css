@@ -29,7 +29,7 @@
 .copy span {
 	min-width: 0;
 	overflow: hidden;
-	font-family: var(--ns-font-mono);
+	font-family: var(--ns-font-code);
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
@@ -61,7 +61,7 @@
 	padding: 1rem;
 	overflow: auto;
 	color: var(--ns-text-muted);
-	font-family: var(--ns-font-mono);
+	font-family: var(--ns-font-code);
 	font-size: 0.8125rem;
 	line-height: 1.75;
 	white-space: pre;

@@ -15,7 +15,7 @@
 	border-bottom: 1px solid var(--ns-border-faint);
 	background: var(--ns-surface-raised);
 	color: var(--ns-text-low);
-	font-family: var(--ns-font-mono);
+	font-family: var(--ns-font-code);
 	font-size: 0.6875rem;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
@@ -56,7 +56,7 @@
 	padding: 1rem;
 	overflow: auto;
 	color: var(--ns-text-muted);
-	font-family: var(--ns-font-mono);
+	font-family: var(--ns-font-code);
 	font-size: 0.8125rem;
 	line-height: 1.8;
 	white-space: pre-wrap;

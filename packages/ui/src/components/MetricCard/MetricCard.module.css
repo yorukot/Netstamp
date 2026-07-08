@@ -22,7 +22,6 @@
 .trend {
 	min-width: 0;
 	color: var(--ns-text-subtle);
-	font-family: var(--ns-font-sans);
 	font-size: 0.8125rem;
 	font-weight: 650;
 	letter-spacing: 0;
@@ -42,7 +41,7 @@
 
 .value {
 	color: var(--ns-text);
-	font-family: var(--ns-font-display);
+	font-family: var(--ns-font-title);
 	font-size: clamp(2rem, 4vw, 3rem);
 	font-weight: 700;
 	line-height: 0.95;

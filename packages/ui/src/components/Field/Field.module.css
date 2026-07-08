@@ -6,7 +6,6 @@
 
 .label {
 	color: var(--ns-text-muted);
-	font-family: var(--ns-font-sans);
 	font-size: 0.8125rem;
 	font-weight: 650;
 	letter-spacing: 0;
@@ -49,7 +48,6 @@
 	color: var(--ns-text);
 	background: var(--ns-control-bg);
 	box-shadow: none;
-	font-family: var(--ns-font-sans);
 	font-size: 0.875rem;
 	outline: none;
 	transition:
@@ -60,7 +58,7 @@
 .compactControl {
 	min-height: 2rem;
 	padding: 0.25rem 0.75rem;
-	font-family: var(--ns-font-mono);
+	font-family: var(--ns-font-code);
 	font-size: 0.75rem;
 	line-height: 1;
 }
@@ -218,7 +216,7 @@
 .compactMenu {
 	max-height: min(15rem, calc(100svh - 1rem));
 	padding: 0.25rem;
-	font-family: var(--ns-font-mono);
+	font-family: var(--ns-font-code);
 	font-size: 0.75rem;
 }
 
@@ -361,7 +359,6 @@
 
 .helper,
 .error {
-	font-family: var(--ns-font-sans);
 	font-size: 0.75rem;
 	line-height: 1.5;
 }

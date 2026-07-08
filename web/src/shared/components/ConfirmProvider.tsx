@@ -196,7 +196,9 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
 								<div className={styles.header}>
 									<span>{eyebrow}</span>
 									<AlertDialogTitle asChild>
-										<strong id={titleId}>{state.options.title}</strong>
+										<strong id={titleId} className="ns-title">
+											{state.options.title}
+										</strong>
 									</AlertDialogTitle>
 								</div>
 								{message ? (

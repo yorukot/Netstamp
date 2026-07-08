@@ -55,7 +55,7 @@
 	flex-wrap: wrap;
 	gap: 0.5rem 0.75rem;
 	color: var(--ns-text-subtle);
-	font: 0.78rem/1.4 var(--ns-font-mono);
+	font: 0.78rem/1.4 var(--ns-font-code);
 }
 
 .nodeMeta span {

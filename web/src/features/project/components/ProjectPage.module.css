@@ -23,7 +23,6 @@
 .dangerZoneGrid h3 {
 	margin: 0;
 	color: var(--ns-text);
-	font-family: var(--ns-font-display);
 	font-size: 1.35rem;
 	font-weight: 400;
 	line-height: 1.25;

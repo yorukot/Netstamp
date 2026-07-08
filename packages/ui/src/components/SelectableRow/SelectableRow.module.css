@@ -70,7 +70,6 @@
 
 .title {
 	color: inherit;
-	font-family: var(--ns-font-sans);
 	font-size: 0.875rem;
 	font-weight: 700;
 	line-height: 1.2;
@@ -82,14 +81,13 @@
 
 .description {
 	color: var(--ns-text-low);
-	font-family: var(--ns-font-sans);
 	font-size: 0.75rem;
 	line-height: 1.35;
 }
 
 .meta {
 	color: var(--ns-text-low);
-	font-family: var(--ns-font-mono);
+	font-family: var(--ns-font-code);
 	font-size: 0.6875rem;
 	font-weight: 800;
 	letter-spacing: 0.06em;

@@ -20,7 +20,7 @@
 .pageCell span,
 .mono,
 .detailMeta {
-	font-family: var(--ns-font-mono);
+	font-family: var(--ns-font-code);
 }
 
 .pageCell span {

@@ -38,7 +38,7 @@
 .consoleBar strong {
 	margin-left: 0.25rem;
 	color: var(--ns-primary-hover);
-	font-family: var(--ns-font-mono);
+	font-family: var(--ns-font-code);
 	font-size: 0.75rem;
 	font-weight: 700;
 	letter-spacing: 0.08em;
@@ -52,7 +52,7 @@
 	overflow: hidden;
 	padding: 0 1.25rem;
 	color: var(--ns-text-muted);
-	font-family: var(--ns-font-mono);
+	font-family: var(--ns-font-code);
 	transform: scaleY(0);
 	transform-origin: top;
 	opacity: 0;
@@ -216,7 +216,7 @@
 	border: 1px solid var(--ns-primary-border);
 	color: var(--ns-primary-hover);
 	background: var(--ns-primary-muted);
-	font-family: var(--ns-font-mono);
+	font-family: var(--ns-font-code);
 	font-weight: 800;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;

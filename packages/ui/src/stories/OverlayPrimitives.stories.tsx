@@ -54,7 +54,7 @@ export const Dialog: Story = {
 				<DialogPortal>
 					<DialogOverlay className="storybook-overlay" />
 					<DialogContent className="storybook-dialog">
-						<DialogTitle className="storybook-overlay-title">Probe maintenance window</DialogTitle>
+						<DialogTitle className="ns-title storybook-overlay-title">Probe maintenance window</DialogTitle>
 						<DialogDescription className="storybook-overlay-description">Confirm the maintenance note before muting probe alerts for the selected route.</DialogDescription>
 						<Panel tone="matte" title="Affected probe" className="storybook-overlay-panel">
 							<p>tpe-edge-01 / ICMP, DNS, TCP route checks</p>
@@ -88,7 +88,7 @@ export const AlertDialog: Story = {
 				<AlertDialogPortal>
 					<AlertDialogOverlay className="storybook-overlay" />
 					<AlertDialogContent className="storybook-dialog">
-						<AlertDialogTitle className="storybook-overlay-title">Delete HTTP check?</AlertDialogTitle>
+						<AlertDialogTitle className="ns-title storybook-overlay-title">Delete HTTP check?</AlertDialogTitle>
 						<AlertDialogDescription className="storybook-overlay-description">This removes the check configuration and stops new measurements for api.netstamp.local.</AlertDialogDescription>
 						<div className="storybook-overlay-actions">
 							<AlertDialogCancel asChild>

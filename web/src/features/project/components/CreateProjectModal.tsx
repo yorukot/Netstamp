@@ -124,7 +124,9 @@ export function CreateProjectModal({ onClose, onCreatedProject }: CreateProjectM
 							<div className={styles.header}>
 								<span>Project registry</span>
 								<DialogTitle asChild>
-									<strong id={titleId}>Create project</strong>
+									<strong id={titleId} className="ns-title">
+										Create project
+									</strong>
 								</DialogTitle>
 								<DialogDescription asChild>
 									<p id={descriptionId}>Add a workspace for probes, checks, and members.</p>

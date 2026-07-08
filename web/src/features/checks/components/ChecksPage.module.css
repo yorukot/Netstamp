@@ -97,7 +97,6 @@
 	border: 1px solid var(--ns-frame-color);
 	color: var(--ns-text);
 	background: var(--ns-surface);
-	font-family: var(--ns-font-sans);
 	font-size: 0.875rem;
 }
 
@@ -129,7 +128,6 @@
 	align-items: center;
 	min-height: 2.5rem;
 	color: var(--ns-text-low);
-	font-family: var(--ns-font-sans);
 	font-size: 0.8125rem;
 	font-weight: 650;
 	text-transform: none;
@@ -141,7 +139,6 @@
 	border: 1px solid var(--ns-border-faint);
 	color: var(--ns-text-low);
 	background: var(--ns-surface);
-	font-family: var(--ns-font-sans);
 	font-size: 0.8125rem;
 }
 
@@ -191,7 +188,6 @@
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
-	font-family: var(--ns-font-sans);
 	font-size: 0.8125rem;
 }
 

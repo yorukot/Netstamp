@@ -17,7 +17,7 @@
 
 .meta span {
 	color: var(--ns-text-low);
-	font-family: var(--ns-font-mono);
+	font-family: var(--ns-font-code);
 	font-size: 0.6875rem;
 	font-weight: 800;
 	letter-spacing: 0.12em;
@@ -26,7 +26,7 @@
 
 .meta strong {
 	color: var(--ns-text);
-	font-family: var(--ns-font-mono);
+	font-family: var(--ns-font-code);
 	font-size: 0.8125rem;
 	line-height: 1.45;
 	overflow-wrap: anywhere;
@@ -39,7 +39,7 @@
 	border: 1px solid var(--ns-border-faint);
 	color: var(--ns-primary-hover);
 	background: var(--ns-glass-light);
-	font-family: var(--ns-font-mono);
+	font-family: var(--ns-font-code);
 	font-size: 0.75rem;
 	font-weight: 800;
 	overflow-wrap: anywhere;

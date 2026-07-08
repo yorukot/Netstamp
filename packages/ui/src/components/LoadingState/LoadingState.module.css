@@ -21,7 +21,6 @@
 	display: grid;
 	gap: 0.3rem;
 	max-width: 28rem;
-	font-family: var(--ns-font-sans);
 }
 
 .loadingCopy strong {

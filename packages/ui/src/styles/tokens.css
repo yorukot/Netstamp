@@ -11,6 +11,10 @@
 	--ns-font-sans: "TASAOrbiter", "TASA Orbiter", sans-serif;
 	--ns-font-display: "TASAExplorer", "TASA Explorer", sans-serif;
 	--ns-font-mono: "JetBrainsMono", "JetBrains Mono", monospace;
+	/* Semantic roles: titles use Explorer, body text uses Orbiter, code uses JetBrains Mono. */
+	--ns-font-body: var(--ns-font-sans);
+	--ns-font-title: var(--ns-font-display);
+	--ns-font-code: var(--ns-font-mono);
 
 	--ns-radius-xs: 0;
 	--ns-radius-sm: 0;
@@ -36,7 +40,7 @@
 	--ns-control-bg-raised: color-mix(in srgb, var(--ns-surface-raised) 88%, var(--ns-border-strong));
 	--ns-control-bg-hover: color-mix(in srgb, var(--ns-surface-raised) 82%, var(--ns-border-strong));
 
-	font: 16px/1.5 var(--ns-font-sans);
+	font: 16px/1.5 var(--ns-font-body);
 	color: var(--ns-text);
 	background: var(--ns-bg);
 	font-synthesis: none;
@@ -181,8 +185,26 @@ body {
 	background: var(--ns-bg);
 }
 
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.ns-title {
+	font-family: var(--ns-font-title);
+}
+
 h2 {
 	font-weight: 600;
+}
+
+code,
+kbd,
+pre,
+samp,
+.ns-code {
+	font-family: var(--ns-font-code);
 }
 
 button,

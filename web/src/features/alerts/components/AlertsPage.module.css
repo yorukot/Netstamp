@@ -16,7 +16,6 @@
 .summaryValue {
 	display: block;
 	color: var(--ns-text);
-	font-family: var(--ns-font-sans);
 	font-size: 2rem;
 	font-weight: 750;
 	line-height: 1;
@@ -78,7 +77,7 @@
 	min-width: 0;
 	overflow: hidden;
 	color: var(--ns-text-subtle);
-	font-family: var(--ns-font-mono);
+	font-family: var(--ns-font-code);
 	font-size: 0.75rem;
 	text-overflow: ellipsis;
 	white-space: nowrap;
@@ -89,7 +88,7 @@
 	display: inline-block;
 	max-width: 18rem;
 	overflow: hidden;
-	font-family: var(--ns-font-mono);
+	font-family: var(--ns-font-code);
 	font-size: 0.75rem;
 	text-overflow: ellipsis;
 	vertical-align: bottom;
@@ -123,7 +122,6 @@
 .detailLead {
 	margin: 0 0 1rem;
 	color: var(--ns-text);
-	font-family: var(--ns-font-sans);
 	font-size: 1rem;
 	font-weight: 700;
 	line-height: 1.4;
@@ -158,7 +156,6 @@
 
 .advancedTiming summary {
 	color: var(--ns-text-muted);
-	font-family: var(--ns-font-sans);
 	font-size: 0.8125rem;
 	font-weight: 700;
 	cursor: pointer;
@@ -176,7 +173,6 @@
 
 .notificationPickerLabel {
 	color: var(--ns-text-subtle);
-	font-family: var(--ns-font-sans);
 	font-size: 0.8125rem;
 	font-weight: 700;
 	line-height: 1.2;
@@ -191,7 +187,6 @@
 	border: 1px solid var(--ns-border-faint);
 	color: var(--ns-text-muted);
 	background: var(--ns-surface-raised);
-	font-family: var(--ns-font-sans);
 	font-size: 0.8125rem;
 	font-weight: 650;
 }
@@ -205,7 +200,6 @@
 	border: 1px solid var(--ns-border-faint);
 	color: var(--ns-text-low);
 	background: var(--ns-surface-raised);
-	font-family: var(--ns-font-sans);
 	font-size: 0.8125rem;
 }
 
@@ -215,7 +209,6 @@
 	border: 1px solid color-mix(in srgb, var(--ns-warning) 42%, transparent);
 	color: var(--ns-text-muted);
 	background: color-mix(in srgb, var(--ns-warning) 10%, transparent);
-	font-family: var(--ns-font-sans);
 	font-size: 0.875rem;
 	line-height: 1.5;
 }
@@ -234,7 +227,6 @@
 	border: 1px solid var(--ns-primary-border);
 	color: var(--ns-text-muted);
 	background: var(--ns-primary-muted);
-	font-family: var(--ns-font-sans);
 	font-size: 0.875rem;
 	line-height: 1.5;
 }

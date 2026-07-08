@@ -190,7 +190,6 @@
 	border: 0;
 	color: var(--ns-text-subtle);
 	background: transparent;
-	font-family: var(--ns-font-sans);
 	font-size: 0.875rem;
 	font-weight: 600;
 	letter-spacing: 0;
@@ -243,7 +242,6 @@
 	border: 0;
 	color: var(--ns-text-subtle);
 	background: transparent;
-	font-family: var(--ns-font-sans);
 	font-size: 0.875rem;
 	font-weight: 600;
 	letter-spacing: 0;

@@ -118,7 +118,7 @@
 	border: 1px solid color-mix(in srgb, var(--ns-primary) 42%, transparent);
 	background: var(--ns-primary-muted);
 	color: var(--ns-text);
-	font-family: var(--ns-font-mono);
+	font-family: var(--ns-font-code);
 	font-size: 0.72rem;
 	font-weight: 800;
 	letter-spacing: 0.08em;
@@ -162,7 +162,7 @@
 .storybook-specimen > span {
 	margin: 0;
 	color: var(--ns-text-low);
-	font-family: var(--ns-font-mono);
+	font-family: var(--ns-font-code);
 	font-size: 0.68rem;
 	font-weight: 800;
 	letter-spacing: 0.12em;
@@ -172,7 +172,6 @@
 .storybook-hero h1,
 .storybook-section-header h2 {
 	margin: 0;
-	font-family: var(--ns-font-display);
 	font-size: clamp(1.5rem, 4vw, 4.8rem);
 	line-height: 1;
 	letter-spacing: 0;
@@ -180,7 +179,6 @@
 
 .storybook-specimen h3 {
 	margin: 0;
-	font-family: var(--ns-font-display);
 	font-size: clamp(1.25rem, 2vw, 2rem);
 	line-height: 1;
 	letter-spacing: 0;
@@ -259,13 +257,13 @@
 
 .storybook-token-card code {
 	color: var(--ns-text-muted);
-	font-family: var(--ns-font-mono);
+	font-family: var(--ns-font-code);
 	font-size: 0.75rem;
 }
 
 .storybook-token-card small {
 	color: var(--ns-text-low);
-	font-family: var(--ns-font-mono);
+	font-family: var(--ns-font-code);
 	font-size: 0.6875rem;
 }
 
@@ -285,7 +283,7 @@
 	display: block;
 	margin-top: 0.5rem;
 	color: var(--ns-text);
-	font-family: var(--ns-font-display);
+	font-family: var(--ns-font-title);
 	font-size: clamp(2rem, 5vw, 4rem);
 	letter-spacing: 0;
 	line-height: 0.95;
@@ -299,7 +297,6 @@
 
 .storybook-type-sans {
 	color: var(--ns-text-muted);
-	font-family: var(--ns-font-sans);
 	font-size: 1rem;
 	line-height: 1.65;
 }
@@ -307,7 +304,7 @@
 .storybook-type-mono {
 	overflow: auto;
 	color: var(--ns-primary-hover);
-	font-family: var(--ns-font-mono);
+	font-family: var(--ns-font-code);
 	font-size: 0.875rem;
 }
 
@@ -373,7 +370,7 @@
 }
 
 .storybook-code {
-	font-family: var(--ns-font-mono);
+	font-family: var(--ns-font-code);
 	font-size: 0.8rem;
 	color: var(--ns-primary-hover);
 }
@@ -404,7 +401,6 @@
 
 .storybook-overlay-title {
 	margin: 0;
-	font-family: var(--ns-font-display);
 	font-size: clamp(1.25rem, 4vw, 2rem);
 	line-height: 1;
 }
@@ -483,7 +479,7 @@
 	padding: 0.75rem;
 	border: 1px solid var(--ns-border);
 	background: var(--ns-surface);
-	font-family: var(--ns-font-mono);
+	font-family: var(--ns-font-code);
 	font-size: 0.78rem;
 	font-weight: 800;
 }
@@ -496,7 +492,7 @@
 }
 
 .storybook-popover strong {
-	font-family: var(--ns-font-display);
+	font-family: var(--ns-font-title);
 	font-size: 1.2rem;
 	line-height: 1;
 }

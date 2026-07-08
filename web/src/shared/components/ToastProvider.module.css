@@ -33,7 +33,6 @@
 
 .toast strong {
 	color: var(--ns-text);
-	font-family: var(--ns-font-sans);
 	font-size: 0.875rem;
 	font-weight: 700;
 	letter-spacing: 0;

@@ -10,7 +10,6 @@
 	gap: 0.75rem;
 	justify-content: flex-end;
 	color: var(--ns-text-low);
-	font-family: var(--ns-font-sans);
 	font-size: 0.75rem;
 	font-weight: 650;
 	line-height: 1;
@@ -138,7 +137,6 @@
 	width: max-content;
 	max-width: 7.5rem;
 	color: var(--ns-text-low);
-	font-family: var(--ns-font-sans);
 	font-size: 0.6875rem;
 	line-height: 1.2;
 	text-align: center;
@@ -213,7 +211,6 @@
 	border: 1px solid color-mix(in srgb, var(--ns-topology-detail-color) 62%, transparent);
 	background: var(--ns-surface);
 	color: var(--ns-text-muted);
-	font-family: var(--ns-font-sans);
 	font-size: 0.6875rem;
 	line-height: 1.35;
 	pointer-events: none;

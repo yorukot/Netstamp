@@ -6,7 +6,7 @@
 
 .segmentLabel {
 	color: var(--ns-text-low);
-	font-family: var(--ns-font-mono);
+	font-family: var(--ns-font-code);
 	font-size: 0.6875rem;
 	font-weight: 800;
 	line-height: 1;
@@ -24,7 +24,7 @@
 	border: 1px solid var(--ns-frame-color);
 	color: var(--ns-text-muted);
 	background: var(--ns-primary-muted);
-	font-family: var(--ns-font-mono);
+	font-family: var(--ns-font-code);
 }
 
 .focusChip[data-invalid="true"] {
@@ -53,7 +53,7 @@
 	color: var(--ns-primary-hover);
 	background: transparent;
 	border: 0;
-	font-family: var(--ns-font-mono);
+	font-family: var(--ns-font-code);
 	font-size: 0.6875rem;
 	font-weight: 900;
 	text-transform: uppercase;
@@ -113,7 +113,7 @@
 	color: var(--ns-text);
 	background: transparent;
 	border: 0;
-	font-family: var(--ns-font-mono);
+	font-family: var(--ns-font-code);
 	font-size: 0.8125rem;
 	font-weight: 800;
 	outline: none;
@@ -137,7 +137,7 @@
 	background: var(--ns-primary-muted);
 	border: 1px solid color-mix(in srgb, var(--ns-primary) 32%, transparent);
 	border-radius: var(--ns-radius-sm);
-	font-family: var(--ns-font-mono);
+	font-family: var(--ns-font-code);
 	font-size: 0.6875rem;
 	font-weight: 900;
 	line-height: 1;
@@ -156,7 +156,7 @@
 	color: var(--ns-primary-hover);
 	background: transparent;
 	border: 0;
-	font-family: var(--ns-font-mono);
+	font-family: var(--ns-font-code);
 	font-size: 0.6875rem;
 	font-weight: 900;
 	text-transform: uppercase;
@@ -227,7 +227,7 @@
 	color: var(--ns-text-subtle);
 	background: transparent;
 	border: 1px solid transparent;
-	font-family: var(--ns-font-mono);
+	font-family: var(--ns-font-code);
 	text-align: left;
 	cursor: pointer;
 }
@@ -286,7 +286,7 @@
 
 .assignmentEmpty {
 	padding: 0.85rem;
-	font-family: var(--ns-font-mono);
+	font-family: var(--ns-font-code);
 	text-align: center;
 }
 
@@ -319,7 +319,7 @@
 	color: var(--ns-text);
 	background: var(--ns-control-bg);
 	box-shadow: none;
-	font-family: var(--ns-font-mono);
+	font-family: var(--ns-font-code);
 	font-size: 0.875rem;
 	font-weight: 800;
 	line-height: 1.1;
@@ -368,7 +368,6 @@
 .timeSection h4 {
 	margin: 0;
 	color: var(--ns-text-low);
-	font-family: var(--ns-font-mono);
 	font-size: 0.6875rem;
 	font-weight: 900;
 	letter-spacing: 0.08em;
@@ -389,7 +388,7 @@
 	border: 1px solid var(--ns-frame-color);
 	color: var(--ns-text-subtle);
 	background: var(--ns-surface-deep);
-	font-family: var(--ns-font-mono);
+	font-family: var(--ns-font-code);
 	font-size: 0.75rem;
 	font-weight: 800;
 	cursor: pointer;
@@ -479,7 +478,6 @@
 .focusChip span,
 .timeSection h4 {
 	color: var(--ns-text-subtle);
-	font-family: var(--ns-font-sans);
 	font-size: 0.8125rem;
 	font-weight: 650;
 	letter-spacing: 0;
@@ -505,7 +503,6 @@
 .assignmentOverflow,
 .assignmentToken button,
 .assignmentClear {
-	font-family: var(--ns-font-sans);
 	font-weight: 600;
 	letter-spacing: 0;
 	text-transform: none;

@@ -6,7 +6,7 @@
 	max-width: 100%;
 	min-width: 0;
 	color: var(--ns-text-low);
-	font-family: var(--ns-font-mono);
+	font-family: var(--ns-font-code);
 	font-weight: 800;
 	letter-spacing: 0.08em;
 	line-height: 1.15;

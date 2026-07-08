@@ -26,7 +26,7 @@ export function SpecCard<T extends ElementType = "article">({ as, tone = "glass"
 			<div className={styles.header}>
 				<div className={styles.copy}>
 					{eyebrow ? <span className={styles.eyebrow}>{eyebrow}</span> : null}
-					<strong className={styles.title}>{title}</strong>
+					<strong className={["ns-title", styles.title].join(" ")}>{title}</strong>
 				</div>
 				{icon ? <span className={styles.icon}>{icon}</span> : null}
 			</div>

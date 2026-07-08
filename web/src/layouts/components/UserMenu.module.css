@@ -10,7 +10,6 @@
 	border: 0;
 	color: var(--ns-text-subtle);
 	background: var(--user-menu-bg);
-	font-family: var(--ns-font-sans);
 	font-size: 0.8125rem;
 }
 
@@ -26,7 +25,6 @@
 	border: 0;
 	color: var(--ns-text-subtle);
 	background: transparent;
-	font-family: var(--ns-font-sans);
 	font-size: 0.8125rem;
 }
 
@@ -41,7 +39,6 @@
 	color: var(--ns-chrome-text-muted);
 	background: transparent;
 	cursor: pointer;
-	font-family: var(--ns-font-sans);
 	font-size: 0.8125rem;
 	text-align: left;
 	transition:
@@ -134,7 +131,6 @@
 	color: var(--user-menu-muted);
 	background: transparent;
 	cursor: pointer;
-	font-family: var(--ns-font-sans);
 	font-size: 0.8125rem;
 	font-weight: 650;
 	line-height: 1.2;

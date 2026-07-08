@@ -35,7 +35,6 @@
 
 .stepItem span,
 .stepItem small {
-	font-family: var(--ns-font-sans);
 	font-size: 0.75rem;
 	font-weight: 650;
 	letter-spacing: 0;
@@ -44,7 +43,6 @@
 
 .stepItem strong {
 	color: var(--ns-text-muted);
-	font-family: var(--ns-font-sans);
 	font-size: 1rem;
 	line-height: 1.2;
 }
@@ -115,7 +113,6 @@
 .stepCopy h3 {
 	margin: 0;
 	color: var(--ns-text);
-	font-family: var(--ns-font-sans);
 	font-size: clamp(1.25rem, 3vw, 1.5rem);
 	font-weight: 700;
 	line-height: 1.2;
@@ -216,7 +213,6 @@
 
 .tokenLine span {
 	color: var(--ns-text-low);
-	font-family: var(--ns-font-sans);
 	font-size: 0.8125rem;
 	font-weight: 650;
 	letter-spacing: 0;
@@ -225,7 +221,7 @@
 
 .tokenLine strong {
 	color: var(--ns-primary-hover);
-	font-family: var(--ns-font-mono);
+	font-family: var(--ns-font-code);
 	font-size: 0.95rem;
 	font-weight: 800;
 	overflow-wrap: anywhere;
@@ -244,7 +240,6 @@
 
 .detectCard strong {
 	color: var(--ns-text);
-	font-family: var(--ns-font-sans);
 	font-size: 1.25rem;
 	font-weight: 700;
 	line-height: 1.2;

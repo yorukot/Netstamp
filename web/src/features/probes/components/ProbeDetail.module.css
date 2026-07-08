@@ -26,7 +26,6 @@
 	gap: 0.25rem;
 	min-width: 0;
 	color: var(--ns-text);
-	font-family: var(--ns-font-mono);
 	font-size: 0.8125rem;
 	font-weight: 800;
 	letter-spacing: 0.04em;
@@ -83,7 +82,7 @@
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
-	font-family: var(--ns-font-mono);
+	font-family: var(--ns-font-code);
 	font-size: 0.75rem;
 }
 
@@ -191,7 +190,7 @@
 .serviceCommandPanel > span,
 .secretPanel > span {
 	color: var(--ns-text-low);
-	font-family: var(--ns-font-mono);
+	font-family: var(--ns-font-code);
 	font-size: 0.7rem;
 	font-weight: 800;
 	letter-spacing: 0.08em;
@@ -200,7 +199,7 @@
 
 .secretPanel > code {
 	color: var(--ns-primary);
-	font-family: var(--ns-font-mono);
+	font-family: var(--ns-font-code);
 	font-size: 0.75rem;
 	font-weight: 800;
 	overflow-wrap: anywhere;
@@ -217,7 +216,7 @@
 	min-height: 2rem;
 	padding: 0.42rem 0.75rem;
 	background: var(--ns-surface-raised);
-	font-family: var(--ns-font-mono);
+	font-family: var(--ns-font-code);
 	font-size: 0.8125rem;
 	font-weight: 700;
 	letter-spacing: 0.12em;

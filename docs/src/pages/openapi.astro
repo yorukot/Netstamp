@@ -22,8 +22,8 @@ const scalarCustomCss = String.raw`
 .references-layout,
 .light-mode,
 .dark-mode {
-	--scalar-font: var(--ns-font-sans);
-	--scalar-font-code: var(--ns-font-mono);
+	--scalar-font: var(--ns-font-body);
+	--scalar-font-code: var(--ns-font-code);
 	--scalar-font-normal: 400;
 	--scalar-font-medium: 650;
 	--scalar-font-bold: 800;
@@ -92,7 +92,6 @@ const scalarCustomCss = String.raw`
 	min-height: calc(100svh - 5.75rem);
 	color: var(--ns-text);
 	background: var(--ns-bg);
-	font-family: var(--ns-font-sans);
 }
 
 .scalar-app .references-layout,
@@ -159,7 +158,7 @@ const scalarCustomCss = String.raw`
 .scalar-app .scalar-code-block,
 .scalar-app pre,
 .scalar-app code {
-	font-family: var(--ns-font-mono);
+	font-family: var(--ns-font-code);
 }
 
 .scalar-app .scalar-code-block,
@@ -262,7 +261,7 @@ const scalarConfiguration = {
 
 	.scalarReferenceMount :global([data-scalar-client]:empty)::before {
 		content: "Loading API reference";
-		font-family: var(--ns-font-mono);
+		font-family: var(--ns-font-code);
 		font-size: 0.75rem;
 		font-weight: 800;
 		letter-spacing: 0.08em;

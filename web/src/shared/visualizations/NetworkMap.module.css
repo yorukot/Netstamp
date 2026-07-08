@@ -62,7 +62,7 @@
 .map :global(.maplibregl-ctrl-attrib) {
 	color: var(--ns-text-low);
 	background: var(--ns-glass-dark);
-	font-family: var(--ns-font-mono);
+	font-family: var(--ns-font-code);
 	font-size: 0.5625rem;
 }
 
@@ -94,7 +94,6 @@
 	color: var(--ns-text);
 	background: var(--ns-glass-dark);
 	border: 1px solid var(--ns-border);
-	font-family: var(--ns-font-sans);
 	font-size: 0.6875rem;
 	font-weight: 700;
 	letter-spacing: 0;

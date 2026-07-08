@@ -11,7 +11,6 @@
 
 .label {
 	color: var(--ns-text-low);
-	font-family: var(--ns-font-sans);
 	font-size: 0.8125rem;
 	font-weight: 650;
 	letter-spacing: 0;
@@ -20,7 +19,7 @@
 
 .value {
 	color: var(--ns-text);
-	font-family: var(--ns-font-mono);
+	font-family: var(--ns-font-code);
 	font-size: 0.8125rem;
 	font-weight: 700;
 }

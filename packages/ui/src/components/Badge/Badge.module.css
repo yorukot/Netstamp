@@ -8,7 +8,7 @@
 	padding: 0.25rem 0.5rem;
 	color: var(--ns-text-muted);
 	background: var(--ns-surface);
-	font-family: var(--ns-font-mono);
+	font-family: var(--ns-font-code);
 	font-size: 0.75rem;
 	font-weight: 650;
 	letter-spacing: 0;

@@ -48,7 +48,7 @@ export function SelectableRow<T extends ElementType = "button">({
 		<Comp className={classes} {...rowProps}>
 			{leading ? <span className={styles.leading}>{leading}</span> : null}
 			<span className={styles.copy}>
-				<span className={styles.title}>{title}</span>
+				<span className={["ns-title", styles.title].join(" ")}>{title}</span>
 				{description ? <span className={styles.description}>{description}</span> : null}
 			</span>
 			{meta ? <span className={styles.meta}>{meta}</span> : null}

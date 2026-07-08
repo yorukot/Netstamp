@@ -8,7 +8,8 @@
 	background: color-mix(in srgb, var(--ns-critical) 8%, var(--ns-surface));
 	color: var(--ns-critical);
 	padding: 0.75rem;
-	font: 0.85rem/1.4 var(--ns-font-sans);
+	font-size: 0.85rem;
+	line-height: 1.4;
 }
 
 .checkboxRow {
@@ -16,5 +17,6 @@
 	align-items: center;
 	gap: 0.65rem;
 	color: var(--ns-text);
-	font: 0.9rem/1.4 var(--ns-font-sans);
+	font-size: 0.9rem;
+	line-height: 1.4;
 }

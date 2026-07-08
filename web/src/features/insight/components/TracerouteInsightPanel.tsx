@@ -130,7 +130,7 @@ export function TracerouteInsightPanel({
 					<div className={styles.traceTimeline}>
 						<div className={styles.traceTimelineHeader}>
 							<span>Run timeline</span>
-							<strong>{totalRuns} runs in window</strong>
+							<strong className="ns-title">{totalRuns} runs in window</strong>
 						</div>
 						<RunTimeline
 							points={timelinePoints}
