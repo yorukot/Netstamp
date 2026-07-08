@@ -16,7 +16,7 @@ export function ProbePageHeader({ view, projectRef, onViewChange, overlay = fals
 	return (
 		<header className={classNames(styles.header, overlay && styles.overlay)}>
 			<div className={styles.titleArea}>
-				<h1>Probe</h1>
+				<h1>Probes</h1>
 				<SegmentedControl
 					className={styles.viewActions}
 					size="sm"

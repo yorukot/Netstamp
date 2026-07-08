@@ -14,12 +14,12 @@
 
 .header h1 {
 	margin: 0;
-	color: var(--ns-text);
-	font-family: var(--ns-font-sans);
-	font-size: clamp(1.875rem, 3vw, 2.5rem);
+	color: #ffffff;
+	font-family: var(--ns-font-display);
+	font-size: clamp(2rem, 5vw, 3rem);
 	font-weight: 700;
 	letter-spacing: 0;
-	line-height: 1.1;
+	line-height: 1;
 }
 
 .viewActions,
@@ -72,6 +72,6 @@
 	.overlay {
 		position: relative;
 		padding: 1rem;
-		background: color-mix(in srgb, var(--ns-bg) 78%, transparent);
+		background: rgba(0, 0, 0, 0.78);
 	}
 }
