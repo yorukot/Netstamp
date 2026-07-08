@@ -215,8 +215,21 @@ textarea {
 }
 
 button,
-select {
+select,
+summary,
+a[href],
+[role="button"],
+[role="menuitem"],
+[role="option"],
+[data-radix-collection-item] {
 	cursor: pointer;
+}
+
+button:disabled,
+select:disabled,
+[aria-disabled="true"],
+[data-disabled] {
+	cursor: not-allowed;
 }
 
 a {
