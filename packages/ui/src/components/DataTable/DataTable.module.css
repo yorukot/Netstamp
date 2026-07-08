@@ -1,6 +1,7 @@
 .frame {
 	--ns-frame-color: transparent;
 	--ns-frame-radius: 0;
+	--ns-data-table-divider: color-mix(in srgb, var(--ns-border) 64%, transparent);
 	width: 100%;
 	background: var(--ns-container-bg);
 	box-shadow: none;
@@ -12,7 +13,7 @@
 	justify-content: space-between;
 	gap: 1rem;
 	padding: 0.75rem 1rem;
-	border-bottom: 1px solid var(--ns-border-faint);
+	border-bottom: 1px solid var(--ns-data-table-divider);
 	background: var(--ns-container-bg-raised);
 }
 
@@ -65,7 +66,7 @@
 	padding: 0.75rem 1rem;
 	color: var(--ns-text-subtle);
 	background: var(--ns-container-bg-raised);
-	border-bottom: 1px solid var(--ns-border-faint);
+	border-bottom: 1px solid var(--ns-data-table-divider);
 	font-size: 0.75rem;
 	font-weight: 700;
 	letter-spacing: 0;
@@ -116,8 +117,11 @@
 
 .table td {
 	padding: 0.75rem 1rem;
-	border-bottom: 1px solid var(--ns-border-faint);
 	white-space: nowrap;
+}
+
+.table tbody tr + tr td {
+	border-top: 1px solid var(--ns-data-table-divider);
 }
 
 .table tbody tr {
@@ -140,10 +144,6 @@
 	background: var(--ns-container-bg-hover);
 	outline: var(--ns-focus-outline);
 	outline-offset: -2px;
-}
-
-.table tbody tr:last-child td {
-	border-bottom: 0;
 }
 
 .selected {
