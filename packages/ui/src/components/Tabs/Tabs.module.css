@@ -54,9 +54,11 @@
 	outline-offset: var(--ns-focus-outline-offset);
 }
 
-.tab[data-active="true"] {
+.tab[data-active="true"],
+.tab[data-active="true"]:hover:not(:disabled),
+.tab[data-active="true"]:focus-visible {
 	color: var(--ns-text);
-	background: var(--ns-primary-muted);
+	background: transparent;
 }
 
 .tab[data-active="true"]::after {
