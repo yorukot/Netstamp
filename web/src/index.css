@@ -1,12 +1,1 @@
 @import "@netstamp/ui/styles";
-
-#root {
-	min-height: 100vh;
-	min-height: 100svh;
-}
-
-:root[data-theme] *,
-:root[data-theme] *::before,
-:root[data-theme] *::after {
-	box-shadow: none !important;
-}
