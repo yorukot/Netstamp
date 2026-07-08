@@ -5,6 +5,7 @@ import { hasEnabledTrackers, normalizeTrackerConfig } from "@netstamp/ui/trackin
 const trackerConfig = normalizeTrackerConfig({
 	googleTagId: import.meta.env.PUBLIC_NETSTAMP_GOOGLE_TAG_ID || import.meta.env.PUBLIC_NETSTAMP_GA_MEASUREMENT_ID,
 	clarityProjectId: import.meta.env.PUBLIC_NETSTAMP_CLARITY_PROJECT_ID,
+	metaPixelId: import.meta.env.PUBLIC_NETSTAMP_META_PIXEL_ID || import.meta.env.PUBLIC_NETSTAMP_FACEBOOK_PIXEL_ID,
 	posthogKey: import.meta.env.PUBLIC_NETSTAMP_POSTHOG_KEY,
 	posthogHost: import.meta.env.PUBLIC_NETSTAMP_POSTHOG_HOST,
 	plausibleDomain: import.meta.env.PUBLIC_NETSTAMP_PLAUSIBLE_DOMAIN,

@@ -33,6 +33,7 @@ The web app and docs site can load optional browser trackers at build time. Use 
 | `GA_MEASUREMENT_ID`          | Google Analytics GA4 measurement ID                       | empty                               |
 | `GOOGLE_TAG_ID`              | Generic Google tag ID, used before `GA_MEASUREMENT_ID`    | empty                               |
 | `CLARITY_PROJECT_ID`         | Microsoft Clarity project ID                              | empty                               |
+| `META_PIXEL_ID`              | Meta Pixel ID                                             | empty                               |
 | `POSTHOG_KEY`                | PostHog project API key                                   | empty                               |
 | `POSTHOG_HOST`               | PostHog API host                                          | `https://us.i.posthog.com`          |
 | `PLAUSIBLE_DOMAIN`           | Plausible site domain                                     | empty                               |
@@ -42,7 +43,7 @@ The web app and docs site can load optional browser trackers at build time. Use 
 | `TRACKING_CONSENT_MODE`      | `regional`, `always`, or `never` consent gating           | `regional`                          |
 | `TRACKING_CONSENT_COUNTRIES` | Comma-separated ISO country codes that require consent    | EEA, UK, and Switzerland            |
 
-When any tracker ID is set, `regional` mode asks for consent only in configured countries. If the visitor country cannot be resolved, the banner is shown before trackers load. Country resolution checks `window.NETSTAMP_VISITOR_COUNTRY`, `<html data-netstamp-country>`, `<meta name="netstamp-visitor-country">`, then Cloudflare `/cdn-cgi/trace`.
+When any tracker ID is set, `regional` mode asks for consent only in configured countries. If the visitor country cannot be resolved, the banner is shown before trackers load. Country resolution checks `window.NETSTAMP_VISITOR_COUNTRY`, `<html data-netstamp-country>`, `<meta name="netstamp-visitor-country">`, then Cloudflare `/cdn-cgi/trace`. `FACEBOOK_PIXEL_ID` is also accepted as an alias for `META_PIXEL_ID` when an existing deployment already uses Facebook naming.
 
 ## Demo Access Controls
 

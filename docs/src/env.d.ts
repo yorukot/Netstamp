@@ -8,6 +8,8 @@ declare global {
 		readonly PUBLIC_NETSTAMP_GA_MEASUREMENT_ID?: string;
 		readonly PUBLIC_NETSTAMP_GOOGLE_TAG_ID?: string;
 		readonly PUBLIC_NETSTAMP_CLARITY_PROJECT_ID?: string;
+		readonly PUBLIC_NETSTAMP_META_PIXEL_ID?: string;
+		readonly PUBLIC_NETSTAMP_FACEBOOK_PIXEL_ID?: string;
 		readonly PUBLIC_NETSTAMP_POSTHOG_KEY?: string;
 		readonly PUBLIC_NETSTAMP_POSTHOG_HOST?: string;
 		readonly PUBLIC_NETSTAMP_PLAUSIBLE_DOMAIN?: string;

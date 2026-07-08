@@ -45,6 +45,8 @@ export interface RawTrackerConfig {
 	googleTagId?: string;
 	gaMeasurementId?: string;
 	clarityProjectId?: string;
+	metaPixelId?: string;
+	facebookPixelId?: string;
 	posthogKey?: string;
 	posthogHost?: string;
 	plausibleDomain?: string;
@@ -59,6 +61,7 @@ export interface RawTrackerConfig {
 export interface TrackerConfig {
 	googleTagId?: string;
 	clarityProjectId?: string;
+	metaPixelId?: string;
 	posthogKey?: string;
 	posthogHost: string;
 	plausibleDomain?: string;
@@ -98,17 +101,38 @@ interface PostHogQueue extends Array<unknown> {
 	toString: (stub?: unknown) => string;
 }
 
+interface MetaPixelQueue {
+	(...args: unknown[]): void;
+	callMethod?: (...args: unknown[]) => void;
+	queue?: unknown[][];
+	push?: MetaPixelQueue;
+	loaded?: boolean;
+	version?: string;
+	disablePushState?: boolean;
+}
+
+interface PlausibleTracker {
+	(...args: unknown[]): void;
+	init?: (options: Record<string, unknown>) => void;
+	o?: Record<string, unknown>;
+	q?: unknown[][];
+}
+
+type UmamiPayload = Record<string, unknown>;
+
 interface UmamiTracker {
-	track?: (...args: unknown[]) => void;
+	track?: (payload?: string | UmamiPayload | ((props: UmamiPayload) => UmamiPayload), data?: UmamiPayload) => void;
 }
 
 declare global {
 	interface Window {
 		NETSTAMP_VISITOR_COUNTRY?: string;
+		_fbq?: MetaPixelQueue;
 		clarity?: ClarityQueue;
 		dataLayer?: unknown[][];
+		fbq?: MetaPixelQueue;
 		gtag?: (...args: unknown[]) => void;
-		plausible?: (...args: unknown[]) => void;
+		plausible?: PlausibleTracker;
 		posthog?: PostHogQueue;
 		umami?: UmamiTracker;
 	}
@@ -124,6 +148,7 @@ export function normalizeTrackerConfig(raw: RawTrackerConfig): TrackerConfig {
 	return {
 		googleTagId: cleanValue(raw.googleTagId) ?? cleanValue(raw.gaMeasurementId),
 		clarityProjectId: cleanValue(raw.clarityProjectId),
+		metaPixelId: cleanValue(raw.metaPixelId) ?? cleanValue(raw.facebookPixelId),
 		posthogKey: cleanValue(raw.posthogKey),
 		posthogHost: cleanValue(raw.posthogHost) ?? DEFAULT_POSTHOG_HOST,
 		plausibleDomain: cleanValue(raw.plausibleDomain),
@@ -137,7 +162,7 @@ export function normalizeTrackerConfig(raw: RawTrackerConfig): TrackerConfig {
 }
 
 export function hasEnabledTrackers(config: TrackerConfig): boolean {
-	return Boolean(config.googleTagId || config.clarityProjectId || config.posthogKey || config.plausibleDomain || config.umamiWebsiteId);
+	return Boolean(config.googleTagId || config.clarityProjectId || config.metaPixelId || config.posthogKey || config.plausibleDomain || config.umamiWebsiteId);
 }
 
 export function readTrackingConsent(config: TrackerConfig): TrackingConsentState | null {
@@ -244,6 +269,10 @@ export async function loadConfiguredTrackers(config: TrackerConfig): Promise<voi
 		loads.push(loadClarity(config.clarityProjectId));
 	}
 
+	if (config.metaPixelId) {
+		loads.push(loadMetaPixel(config.metaPixelId));
+	}
+
 	if (config.posthogKey) {
 		loads.push(loadPostHog(config.posthogKey, config.posthogHost));
 	}
@@ -274,8 +303,33 @@ export function trackConfiguredPageView(config: TrackerConfig, page: TrackingPag
 
 	if (config.posthogKey && window.posthog?.capture) {
 		window.posthog.capture("$pageview", {
-			$current_url: page.location
+			$current_url: page.location,
+			page_path: page.path,
+			page_title: page.title
 		});
+	}
+
+	if (config.metaPixelId && window.fbq) {
+		window.fbq("track", "PageView", {
+			page_location: page.location,
+			page_path: page.path,
+			page_title: page.title
+		});
+	}
+
+	if (config.plausibleDomain && window.plausible) {
+		window.plausible("pageview", {
+			url: page.location
+		});
+	}
+
+	if (config.umamiWebsiteId && window.umami?.track) {
+		window.umami.track(props => ({
+			...props,
+			website: config.umamiWebsiteId,
+			url: page.path,
+			title: page.title
+		}));
 	}
 }
 
@@ -350,6 +404,18 @@ function loadClarity(projectId: string): Promise<void> {
 	return loadScript(scriptId("clarity", projectId), `https://www.clarity.ms/tag/${encodeURIComponent(projectId)}`, { async: true });
 }
 
+function loadMetaPixel(pixelId: string): Promise<void> {
+	const trackerKey = `meta-pixel:${pixelId}`;
+
+	if (loadedTrackers.has(trackerKey)) {
+		return Promise.resolve();
+	}
+
+	loadedTrackers.add(trackerKey);
+	installMetaPixelStub()?.("init", pixelId);
+	return loadScript(scriptId("meta-pixel", pixelId), "https://connect.facebook.net/en_US/fbevents.js", { async: true });
+}
+
 function loadPostHog(projectKey: string, apiHost: string): Promise<void> {
 	const safeApiHost = resolveHttpUrl(apiHost);
 
@@ -381,6 +447,10 @@ function loadPlausible(domain: string, scriptUrl: string): Promise<void> {
 	}
 
 	loadedTrackers.add(trackerKey);
+	installPlausibleStub()?.init?.({
+		autoCapturePageviews: false
+	});
+
 	return loadScript(scriptId("plausible", domain), scriptUrl, {
 		defer: true,
 		dataset: {
@@ -400,9 +470,72 @@ function loadUmami(websiteId: string, scriptUrl: string): Promise<void> {
 	return loadScript(scriptId("umami", websiteId), scriptUrl, {
 		defer: true,
 		dataset: {
+			autoTrack: "false",
 			websiteId
 		}
 	});
+}
+
+function installMetaPixelStub(): MetaPixelQueue | null {
+	if (!isBrowser()) {
+		return null;
+	}
+
+	if (window.fbq?.loaded) {
+		return window.fbq;
+	}
+
+	const fbq =
+		window.fbq ??
+		(function fbq(...args: unknown[]) {
+			const target = window.fbq;
+
+			if (target?.callMethod) {
+				target.callMethod(...args);
+				return;
+			}
+
+			if (target) {
+				target.queue = target.queue ?? [];
+				target.queue.push(args);
+			}
+		} as MetaPixelQueue);
+
+	window.fbq = fbq;
+	window._fbq = fbq;
+	fbq.push = fbq;
+	fbq.loaded = true;
+	fbq.version = "2.0";
+	fbq.disablePushState = true;
+	fbq.queue = fbq.queue ?? [];
+
+	return fbq;
+}
+
+function installPlausibleStub(): PlausibleTracker | null {
+	if (!isBrowser()) {
+		return null;
+	}
+
+	const plausible =
+		window.plausible ??
+		(function plausible(...args: unknown[]) {
+			const target = window.plausible;
+
+			if (target) {
+				target.q = target.q ?? [];
+				target.q.push(args);
+			}
+		} as PlausibleTracker);
+
+	window.plausible = plausible;
+	plausible.init =
+		plausible.init ??
+		((options: Record<string, unknown>) => {
+			plausible.o = options || {};
+		});
+
+	return plausible;
 }
 
 function installPostHogStub(): PostHogQueue | null {
