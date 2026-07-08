@@ -44,7 +44,6 @@ export function DashboardPage() {
 	const activeProbeId = positionedProbes.some(probe => probe.id === selectedProbeId) ? selectedProbeId : (positionedProbes[0]?.id ?? "");
 	const activeProbe = probes.find(probe => probe.id === activeProbeId) ?? positionedProbes[0] ?? probes[0] ?? null;
 	const visibleProbes = probes.slice(0, 6);
-	const visibleChecks = checks.slice(0, 6);
 	const checkTypeSummary = Array.from(
 		checks.reduce((summary, check) => {
 			summary.set(check.type, (summary.get(check.type) ?? 0) + 1);
@@ -106,23 +105,6 @@ export function DashboardPage() {
 						</ul>
 					) : (
 						<EmptyState title="No probes registered" description="Create a probe to start collecting fleet telemetry." />
-					)}
-				</Panel>
-
-				<Panel className={styles.checksSection} title="Checks Ledger" padded={false} bodyClassName={styles.tableContent}>
-					{visibleChecks.length ? (
-						<div className={styles.checkRows}>
-							{visibleChecks.map(check => (
-								<div className={styles.checkRow} key={check.id}>
-									<strong>{check.name}</strong>
-									<span>{check.type}</span>
-									<span>{check.target}</span>
-									<span>{check.interval}</span>
-								</div>
-							))}
-						</div>
-					) : (
-						<EmptyState title="No checks configured" description="Create a check to start measuring targets from your probes." />
 					)}
 				</Panel>
 			</div>

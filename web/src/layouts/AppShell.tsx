@@ -43,16 +43,20 @@ export function AppShell() {
 			<Sidebar user={session.user} collapsed={sidebarCollapsed} onToggleCollapsed={() => setSidebarCollapsed(collapsed => !collapsed)} onLogout={logout} />
 
 			<main id="app-content" className={styles.content}>
-				<div className={styles.contentBody}>
-					{demoMode ? (
-						<div className={styles.demoBanner} role="status">
-							<strong>Demo mode</strong>
-							<span>Read-only access. Mutating requests are blocked; you can only view project data.</span>
-						</div>
-					) : null}
-					<Outlet />
+				<div className={styles.contentMain}>
+					<div className={styles.contentBody}>
+						{demoMode ? (
+							<div className={styles.demoBanner} role="status">
+								<strong>Demo mode</strong>
+								<span>Read-only access. Mutating requests are blocked; you can only view project data.</span>
+							</div>
+						) : null}
+						<Outlet />
+					</div>
 				</div>
-				<GlobalFooter />
+				<div className={styles.footerSlot}>
+					<GlobalFooter />
+				</div>
 			</main>
 		</div>
 	);
