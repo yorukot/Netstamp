@@ -65,9 +65,6 @@ importers:
       astro:
         specifier: ^7.0.2
         version: 7.0.2(@astrojs/markdown-remark@7.2.0)(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)(jiti@2.7.0)(rollup@4.60.4)(yaml@2.9.0)
-      fuse.js:
-        specifier: ^7.4.2
-        version: 7.4.2
       react:
         specifier: ^19.2.7
         version: 19.2.7
@@ -77,9 +74,6 @@ importers:
       remark-directive:
         specifier: ^4.0.0
         version: 4.0.0
-      three:
-        specifier: ^0.185.0
-        version: 0.185.0
     devDependencies:
       '@types/react':
         specifier: ^19.2.17
@@ -2932,10 +2926,6 @@ packages:
   function-bind@1.1.2:
     resolution: {integrity: sha512-7XHNxH7qX9xG5mIwxkhumTox/MIRNcOgDrxWsMt2pAr23WHp6MrRlN7FBSFpCpr+oVO0F744iUgR82nJMfG2SA==}
 
-  fuse.js@7.4.2:
-    resolution: {integrity: sha512-LVbzjD4WA6UP5B1UnP8wuaXJiLnqMdM/E4fiJXTJ5haJ5b/MBNsK29h2fm6swEoQaVQjvYFWKLE2RanyZIoRVQ==}
-    engines: {node: '>=10'}
-
   gensync@1.0.0-beta.2:
     resolution: {integrity: sha512-3hN7NaskYvMDLQY55gnW3NQ+mesEAepTqlg+VEbj7zzqEMBVNhzcGYYeqFo/TlYz6eQiFcp1HcsCZO+nGgS8zg==}
     engines: {node: '>=6.9.0'}
@@ -4109,9 +4099,6 @@ packages:
 
   temporal-spec@0.3.1:
     resolution: {integrity: sha512-B4TUhezh9knfSIMwt7RVggApDRJZo73uZdj8AacL2mZ8RP5KtLianh2MXxL06GN9ESYiIsiuoLQhgVfwe55Yhw==}
-
-  three@0.185.0:
-    resolution: {integrity: sha512-+yRrcRO2iZa8uzvNNl0d7cL4huhgKgBvVJ0njcTe8xFqZ6DMAFZdCKDP91SEAuj25bNAj7k1QQdf+srZywVK6w==}
 
   tiny-inflate@1.0.3:
     resolution: {integrity: sha512-pkY1fj1cKHb2seWDy0B16HeWyczlJA9/WW3u3c4z/NiWDsO3DOU5D7nhTLE9CF0yXv/QZFY7sEJmj24dK+Rrqw==}
@@ -7085,8 +7072,6 @@ snapshots:
 
   function-bind@1.1.2: {}
 
-  fuse.js@7.4.2: {}
-
   gensync@1.0.0-beta.2: {}
 
   get-caller-file@2.0.5: {}
@@ -8773,8 +8758,6 @@ snapshots:
       temporal-spec: 0.3.1
 
   temporal-spec@0.3.1: {}
-
-  three@0.185.0: {}
 
   tiny-inflate@1.0.3: {}
 

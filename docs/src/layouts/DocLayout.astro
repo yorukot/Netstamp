@@ -1,8 +1,7 @@
 ---
 import Icon from "../components/icons/Icon.astro";
+import PageActions from "../components/docs/PageActions.astro";
 import SearchBox from "../components/docs/SearchBox.astro";
-import chatGptLogoUrl from "../assets/logos/ChatGPT.svg?url";
-import claudeLogoUrl from "../assets/logos/Claude.svg?url";
 import { docsNav, docsPages, githubBaseUrl } from "../data/docs";
 import { absoluteUrl, createBreadcrumbSchema, createTechArticleSchema, resolveSiteUrl, type HeadEntry } from "../lib/seo";
 import BaseLayout from "./BaseLayout.astro";
@@ -212,51 +211,7 @@ const visibleBreadcrumbs =
 
 		<aside class="docsToc" aria-label="On this page">
 			<div class="docsTocInner">
-				<div class="docsPageActions" data-docs-page-actions>
-					<Button className="docsPageActionsToggle" variant="ghost" size="sm" type="button" data-docs-page-actions-toggle aria-expanded="false" aria-controls="docs-page-actions-menu">
-						<Icon name="copy" size={16} />
-						<span data-docs-action-label>Copy page</span>
-						<Icon name="caret" size={12} />
-					</Button>
-					<div class="docsPageActionsMenu" id="docs-page-actions-menu" data-docs-page-actions-menu role="menu" hidden>
-						<button class="docsPageActionItem" type="button" role="menuitem" data-docs-copy-page>
-							<span class="docsPageActionIcon" aria-hidden="true">
-								<Icon name="copy" size={18} />
-							</span>
-							<span class="docsPageActionCopy">
-								<strong data-docs-action-label>Copy page</strong>
-								<small>Copy the page as Markdown for LLMs</small>
-							</span>
-						</button>
-						<button class="docsPageActionItem" type="button" role="menuitem" data-docs-view-markdown>
-							<span class="docsPageActionIcon" aria-hidden="true">
-								<Icon name="fileText" size={18} />
-							</span>
-							<span class="docsPageActionCopy">
-								<strong>View as Markdown</strong>
-								<small>View this page as plain text</small>
-							</span>
-						</button>
-						<a class="docsPageActionItem" href={chatGptUrl} target="_blank" rel="noreferrer" role="menuitem">
-							<span class="docsPageActionIcon" aria-hidden="true">
-								<img class="docsPageActionLogo docsPageActionLogoChatGpt" src={chatGptLogoUrl} alt="" loading="lazy" />
-							</span>
-							<span class="docsPageActionCopy">
-								<strong>Open in ChatGPT</strong>
-								<small>Ask questions about this page</small>
-							</span>
-						</a>
-						<a class="docsPageActionItem" href={claudeUrl} target="_blank" rel="noreferrer" role="menuitem">
-							<span class="docsPageActionIcon" aria-hidden="true">
-								<img class="docsPageActionLogo" src={claudeLogoUrl} alt="" loading="lazy" />
-							</span>
-							<span class="docsPageActionCopy">
-								<strong>Open in Claude</strong>
-								<small>Ask questions about this page</small>
-							</span>
-						</a>
-					</div>
-				</div>
+				<PageActions chatGptUrl={chatGptUrl} claudeUrl={claudeUrl} />
 				{
 					headings.length ? (
 						<nav data-docs-toc>
@@ -597,7 +552,7 @@ const visibleBreadcrumbs =
 		.docPagerLink:hover {
 			border-color: var(--ns-primary-border);
 			color: var(--ns-primary-hover);
-			transform: translateY(-1px);
+			transform: translateY(-0.0625rem);
 		}
 
 		.docPagerLink.disabled {
@@ -791,9 +746,9 @@ const visibleBreadcrumbs =
 			display: inline-flex;
 			align-items: center;
 			justify-content: flex-start;
-			gap: 0.35rem;
+			gap: 0.5rem;
 			min-height: 1.75rem;
-			padding: 0.2rem 0.3rem;
+			padding: 0.25rem 0.5rem;
 			color: var(--ns-text-subtle);
 			background: transparent;
 			font-family: var(--ns-font-sans);
@@ -839,19 +794,19 @@ const visibleBreadcrumbs =
 			border: 1px solid color-mix(in srgb, var(--ns-border) 78%, transparent);
 			border-radius: var(--ns-radius-sm);
 			background: color-mix(in srgb, var(--ns-surface) 92%, var(--ns-bg-subtle));
-			backdrop-filter: blur(16px) saturate(0.92);
+			backdrop-filter: blur(1rem) saturate(0.92);
 			box-shadow: none;
-			-webkit-backdrop-filter: blur(16px) saturate(0.92);
+			-webkit-backdrop-filter: blur(1rem) saturate(0.92);
 		}
 
 		.docsToc .docsPageActionItem {
 			display: grid;
 			grid-template-columns: 1.25rem minmax(0, 1fr);
 			align-items: center;
-			gap: 0.65rem;
+			gap: 0.75rem;
 			width: 100%;
 			min-height: 0;
-			padding: 0.55rem 0.6rem;
+			padding: 0.5rem 0.75rem;
 			color: var(--ns-text-muted);
 			border: 0;
 			border-top: 1px solid var(--ns-border-faint);
@@ -873,7 +828,11 @@ const visibleBreadcrumbs =
 		.docsToc .docsPageActionItem:focus-visible {
 			color: var(--ns-text);
 			background: var(--ns-primary-muted);
-			outline: 0;
+		}
+
+		.docsToc .docsPageActionItem:focus-visible {
+			outline: var(--ns-focus-outline);
+			outline-offset: var(--ns-focus-outline-offset);
 		}
 
 		.docsPageActionIcon {
@@ -897,7 +856,7 @@ const visibleBreadcrumbs =
 
 		.docsPageActionCopy {
 			display: grid;
-			gap: 0.1rem;
+			gap: 0.25rem;
 			min-width: 0;
 		}
 

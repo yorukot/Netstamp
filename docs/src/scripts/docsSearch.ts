@@ -48,6 +48,7 @@ function initDocsSearch() {
 
 	const trigger = root.querySelector("[data-search-open]");
 	const dialog = root.querySelector("[data-search-dialog]");
+	const panel = root.querySelector(".docsSearchPanel");
 	const input = root.querySelector("[data-search-input]");
 	const results = root.querySelector("[data-search-results]");
 	const closeButtons = root.querySelectorAll("[data-search-close]");
@@ -67,6 +68,14 @@ function initDocsSearch() {
 
 	function resultLinks() {
 		return Array.from(results?.querySelectorAll("[data-search-result]") ?? []).filter((element): element is HTMLAnchorElement => element instanceof HTMLAnchorElement);
+	}
+
+	function focusablePanelElements() {
+		if (!(panel instanceof HTMLElement)) return [];
+
+		return Array.from(panel.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])')).filter(
+			element => !element.hidden && element.offsetParent !== null
+		);
 	}
 
 	function focusResult(index: number) {
@@ -147,7 +156,6 @@ function initDocsSearch() {
 
 			link.className = "docsSearchResult";
 			link.href = entry.href;
-			link.setAttribute("role", "option");
 			link.setAttribute("data-search-result", "");
 			title.textContent = entry.title;
 			description.textContent = entry.description;
@@ -212,6 +220,32 @@ function initDocsSearch() {
 		}
 	}
 
+	function handleDialogKeydown(event: KeyboardEvent) {
+		if (event.key !== "Tab" || !dialog || (dialog as HTMLElement).hidden) {
+			return;
+		}
+
+		const focusable = focusablePanelElements();
+		const first = focusable[0];
+		const last = focusable[focusable.length - 1];
+
+		if (!first || !last) {
+			event.preventDefault();
+			return;
+		}
+
+		if (event.shiftKey && document.activeElement === first) {
+			event.preventDefault();
+			last.focus();
+			return;
+		}
+
+		if (!event.shiftKey && document.activeElement === last) {
+			event.preventDefault();
+			first.focus();
+		}
+	}
+
 	function handleKeydown(event: KeyboardEvent) {
 		if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
 			event.preventDefault();
@@ -229,6 +263,7 @@ function initDocsSearch() {
 	input?.addEventListener("input", handleInput);
 	input?.addEventListener("keydown", handleSearchKeydown);
 	results?.addEventListener("keydown", handleResultsKeydown);
+	dialog?.addEventListener("keydown", handleDialogKeydown);
 	document.addEventListener("keydown", handleKeydown);
 
 	cleanupSearch = () => {
@@ -238,6 +273,7 @@ function initDocsSearch() {
 		input?.removeEventListener("input", handleInput);
 		input?.removeEventListener("keydown", handleSearchKeydown);
 		results?.removeEventListener("keydown", handleResultsKeydown);
+		dialog?.removeEventListener("keydown", handleDialogKeydown);
 		document.removeEventListener("keydown", handleKeydown);
 		document.documentElement.classList.remove("docsSearchOpen");
 		cleanupSearch = () => {};

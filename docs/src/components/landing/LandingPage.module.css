@@ -103,7 +103,7 @@
 	align-items: center;
 	justify-content: space-between;
 	gap: 1rem;
-	padding: 0.75rem 0.875rem;
+	padding: 0.75rem 1rem;
 	border-bottom: 1px solid var(--ns-border-faint);
 	background: var(--ns-surface-raised);
 }
@@ -115,18 +115,6 @@
 	aspect-ratio: 3 / 2;
 	object-fit: cover;
 	object-position: top left;
-}
-
-.productShot .dashboardShotDark {
-	display: none;
-}
-
-:global(:root[data-theme="dark"]) .productShot .dashboardShotLight {
-	display: none;
-}
-
-:global(:root[data-theme="dark"]) .productShot .dashboardShotDark {
-	display: block;
 }
 
 .telemetryStrip {
@@ -176,7 +164,7 @@
 
 .pointList {
 	display: grid;
-	gap: 0.45rem;
+	gap: 0.5rem;
 	margin: 0;
 	padding: 0;
 	list-style: none;
@@ -195,8 +183,8 @@
 .pointList li::before {
 	content: "";
 	flex: 0 0 auto;
-	width: 0.45rem;
-	height: 0.45rem;
+	width: 0.5rem;
+	height: 0.5rem;
 	background: var(--ns-primary);
 }
 
@@ -374,6 +362,6 @@
 	}
 
 	.routeNode {
-		font-size: 0.65rem;
+		font-size: 0.75rem;
 	}
 }

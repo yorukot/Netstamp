@@ -1,5 +1,5 @@
 ---
-import HomepageRedesign from "../components/landing/HomepageRedesign.astro";
+import { LandingPage } from "../components/landing/LandingPage";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { absoluteUrl, createBreadcrumbSchema, createSoftwareApplicationSchema, resolveSiteUrl } from "../lib/seo";
 
@@ -8,6 +8,6 @@ const imageUrl = absoluteUrl("/og.png", siteUrl);
 const schema = [createBreadcrumbSchema([{ name: "Netstamp", url: siteUrl }]), createSoftwareApplicationSchema(siteUrl, imageUrl)];
 ---
 
-<BaseLayout title="Netstamp - Trace every path" description="Open-source network observability from probes you control." canonicalPath="/" schema={schema}>
-	<HomepageRedesign />
+<BaseLayout title="Netstamp - Trace every path" description="Open-source network observability from probes you control." canonicalPath="/" schema={schema} fixedTheme="dark">
+	<LandingPage />
 </BaseLayout>

@@ -1,6 +1,5 @@
 import { Badge, Button, CodePreview, GlobalFooter, KeyValueRow, MetricTile, SpecCard, SpecLabel, Surface } from "@netstamp/ui";
 import dashboardDark from "../../assets/homepage-dashboard-dark.png?url";
-import dashboardLight from "../../assets/homepage-dashboard-light.png?url";
 import { appUrl } from "../../lib/publicUrls";
 import styles from "./LandingPage.module.css";
 
@@ -65,7 +64,7 @@ function classNames(...classes: Array<string | false | null | undefined>) {
 export function LandingPage({ appHref = appUrl("/register") }: LandingPageProps) {
 	return (
 		<div className={styles.landing}>
-			<main>
+			<main id="content">
 				<section className={styles.hero}>
 					<div className={styles.heroCopy}>
 						<SpecLabel tone="primary">Open-source network observability</SpecLabel>
@@ -97,8 +96,7 @@ export function LandingPage({ appHref = appUrl("/register") }: LandingPageProps)
 							<SpecLabel>Product snapshot</SpecLabel>
 							<Badge tone="success">live dashboard</Badge>
 						</div>
-						<img className={styles.dashboardShotLight} src={dashboardLight} alt="" width="1440" height="960" loading="eager" decoding="async" aria-hidden="true" />
-						<img className={styles.dashboardShotDark} src={dashboardDark} alt="" width="1440" height="960" loading="eager" decoding="async" aria-hidden="true" />
+						<img src={dashboardDark} alt="" width="1440" height="960" loading="eager" decoding="async" aria-hidden="true" />
 					</figure>
 				</section>
 

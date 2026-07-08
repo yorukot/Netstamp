@@ -1,0 +1,59 @@
+---
+import chatGptLogoUrl from "../../assets/logos/ChatGPT.svg?url";
+import claudeLogoUrl from "../../assets/logos/Claude.svg?url";
+import Icon from "../icons/Icon.astro";
+import { Button } from "@netstamp/ui";
+
+interface Props {
+	chatGptUrl: string;
+	claudeUrl: string;
+}
+
+const { chatGptUrl, claudeUrl } = Astro.props;
+---
+
+<div class="docsPageActions" data-docs-page-actions>
+	<Button className="docsPageActionsToggle" variant="ghost" size="sm" type="button" data-docs-page-actions-toggle aria-expanded="false" aria-controls="docs-page-actions-menu">
+		<Icon name="copy" size={16} />
+		<span data-docs-action-label>Copy page</span>
+		<Icon name="caret" size={12} />
+	</Button>
+	<div class="docsPageActionsMenu" id="docs-page-actions-menu" data-docs-page-actions-menu hidden>
+		<button class="docsPageActionItem" type="button" data-docs-copy-page>
+			<span class="docsPageActionIcon" aria-hidden="true">
+				<Icon name="copy" size={18} />
+			</span>
+			<span class="docsPageActionCopy">
+				<strong data-docs-action-label>Copy page</strong>
+				<small>Copy the page as Markdown for LLMs</small>
+			</span>
+		</button>
+		<button class="docsPageActionItem" type="button" data-docs-view-markdown>
+			<span class="docsPageActionIcon" aria-hidden="true">
+				<Icon name="fileText" size={18} />
+			</span>
+			<span class="docsPageActionCopy">
+				<strong>View as Markdown</strong>
+				<small>View this page as plain text</small>
+			</span>
+		</button>
+		<a class="docsPageActionItem" href={chatGptUrl} target="_blank" rel="noreferrer">
+			<span class="docsPageActionIcon" aria-hidden="true">
+				<img class="docsPageActionLogo docsPageActionLogoChatGpt" src={chatGptLogoUrl} alt="" loading="lazy" />
+			</span>
+			<span class="docsPageActionCopy">
+				<strong>Open in ChatGPT</strong>
+				<small>Ask questions about this page</small>
+			</span>
+		</a>
+		<a class="docsPageActionItem" href={claudeUrl} target="_blank" rel="noreferrer">
+			<span class="docsPageActionIcon" aria-hidden="true">
+				<img class="docsPageActionLogo" src={claudeLogoUrl} alt="" loading="lazy" />
+			</span>
+			<span class="docsPageActionCopy">
+				<strong>Open in Claude</strong>
+				<small>Ask questions about this page</small>
+			</span>
+		</a>
+	</div>
+</div>

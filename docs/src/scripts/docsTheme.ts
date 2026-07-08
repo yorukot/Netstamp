@@ -2,10 +2,9 @@ type Theme = "light" | "dark";
 
 const themeStorageKey = "netstamp:theme";
 const eventBoundKey = "__netstampThemeEventsBound";
-const mediaBoundKey = "__netstampThemeMediaBound";
+const defaultTheme: Theme = "dark";
 type ThemeWindow = Window & {
 	[eventBoundKey]?: boolean;
-	[mediaBoundKey]?: boolean;
 };
 
 function isTheme(theme: string | null | undefined): theme is Theme {
@@ -21,6 +20,11 @@ function readStoredTheme(): Theme | null {
 	}
 }
 
+function readLockedTheme(): Theme | null {
+	const lockedTheme = document.documentElement.dataset.themeLocked;
+	return isTheme(lockedTheme) ? lockedTheme : null;
+}
+
 function writeStoredTheme(theme: Theme) {
 	try {
 		window.localStorage.setItem(themeStorageKey, theme);
@@ -29,12 +33,8 @@ function writeStoredTheme(theme: Theme) {
 	}
 }
 
-function readSystemTheme(): Theme {
-	return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-}
-
 function resolveTheme(): Theme {
-	return readStoredTheme() ?? readSystemTheme();
+	return readLockedTheme() ?? readStoredTheme() ?? defaultTheme;
 }
 
 function readAppliedTheme(): Theme {
@@ -69,8 +69,15 @@ export function applyTheme(theme: Theme = resolveTheme()) {
 }
 
 export function setupThemeToggle() {
+	const lockedTheme = readLockedTheme();
+
 	document.querySelectorAll<HTMLElement>("[data-theme-toggle]").forEach(themeToggle => {
 		syncThemeToggle(themeToggle, readAppliedTheme());
+		if (lockedTheme) {
+			themeToggle.hidden = true;
+			return;
+		}
+		themeToggle.hidden = false;
 		if (themeToggle.dataset.themeBound === "true") return;
 
 		themeToggle.dataset.themeBound = "true";
@@ -88,27 +95,7 @@ function initDocsTheme() {
 	setupThemeToggle();
 }
 
-function bindSystemThemeSync() {
-	const themeWindow = window as ThemeWindow;
-	if (themeWindow[mediaBoundKey]) return;
-
-	const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-	const handleSystemThemeChange = () => {
-		if (readStoredTheme() === null) {
-			applyTheme();
-		}
-	};
-
-	if ("addEventListener" in mediaQuery) {
-		mediaQuery.addEventListener("change", handleSystemThemeChange);
-	} else {
-		mediaQuery.addListener(handleSystemThemeChange);
-	}
-	themeWindow[mediaBoundKey] = true;
-}
-
 initDocsTheme();
-bindSystemThemeSync();
 
 const themeWindow = window as ThemeWindow;
 if (!themeWindow[eventBoundKey]) {

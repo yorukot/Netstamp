@@ -11,6 +11,7 @@ interface Props {
 	description?: string;
 	nav?: boolean;
 	bodyClass?: string;
+	fixedTheme?: "dark" | "light";
 	head?: HeadEntry[];
 	canonicalPath?: string;
 	ogType?: "article" | "website";
@@ -23,6 +24,7 @@ const {
 	description = "Open-source network observability from probes you control.",
 	nav = true,
 	bodyClass,
+	fixedTheme,
 	head = [],
 	canonicalPath,
 	ogType = "website",
@@ -38,7 +40,7 @@ const schemaGraph = createSchemaGraph({ title, description, pageUrl: canonicalUr
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme-locked={fixedTheme}>
 	<head>
 		<meta charset="utf-8" />
 		<link rel="icon" type="image/svg+xml" href={faviconUrl} />
@@ -48,15 +50,17 @@ const schemaGraph = createSchemaGraph({ title, description, pageUrl: canonicalUr
 			(() => {
 				const storageKey = "netstamp:theme";
 				const isTheme = theme => theme === "light" || theme === "dark";
-				const systemTheme = () => (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+				const defaultTheme = "dark";
+
+				const lockedTheme = document.documentElement.dataset.themeLocked;
 
 				try {
 					const storedTheme = window.localStorage.getItem(storageKey);
-					const theme = isTheme(storedTheme) ? storedTheme : systemTheme();
+					const theme = isTheme(lockedTheme) ? lockedTheme : isTheme(storedTheme) ? storedTheme : defaultTheme;
 					document.documentElement.classList.toggle("dark", theme === "dark");
 					document.documentElement.dataset.theme = theme;
 				} catch {
-					const theme = systemTheme();
+					const theme = isTheme(lockedTheme) ? lockedTheme : defaultTheme;
 					document.documentElement.classList.toggle("dark", theme === "dark");
 					document.documentElement.dataset.theme = theme;
 				}
@@ -82,6 +86,7 @@ const schemaGraph = createSchemaGraph({ title, description, pageUrl: canonicalUr
 		<script>
 			import "../scripts/registerIcons";
 		</script>
+		<a class="skipLink" href="#content">Skip to content</a>
 		{nav ? <TopNav /> : null}
 		<slot />
 		<TrackingConsent />
@@ -90,3 +95,27 @@ const schemaGraph = createSchemaGraph({ title, description, pageUrl: canonicalUr
 		</script>
 	</body>
 </html>
+
+<style is:global>
+	.skipLink {
+		position: fixed;
+		top: 1rem;
+		left: 1rem;
+		z-index: 1000;
+		padding: 0.75rem 1rem;
+		border: 1px solid var(--ns-border);
+		color: var(--ns-text-on-accent);
+		background: var(--ns-primary);
+		font-weight: 700;
+		line-height: 1;
+		text-decoration: none;
+		transform: translateY(-200%);
+		transition: transform var(--ns-transition);
+	}
+
+	.skipLink:focus-visible {
+		outline: var(--ns-focus-outline);
+		outline-offset: var(--ns-focus-outline-offset);
+		transform: translateY(0);
+	}
+</style>

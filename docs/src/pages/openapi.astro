@@ -70,7 +70,7 @@ const scalarCustomCss = String.raw`
 	--scalar-header-border-color: var(--ns-border);
 	--scalar-header-color-1: var(--ns-text);
 	--scalar-header-color-2: var(--ns-text-subtle);
-	--scalar-header-height: 0px;
+	--scalar-header-height: 0;
 	--scalar-custom-header-height: 5.75rem;
 	--scalar-sidebar-background-1: var(--ns-bg-subtle);
 	--scalar-sidebar-border-color: var(--ns-border);
@@ -235,7 +235,7 @@ const scalarConfiguration = {
 ---
 
 <BaseLayout title={title} description={description} canonicalPath="/openapi/" schema={schema}>
-	<main class="openapiPage">
+	<main id="content" class="openapiPage">
 		<div class="scalarReferenceMount">
 			<ScalarComponent renderMode="client" configuration={scalarConfiguration} />
 		</div>
