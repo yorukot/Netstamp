@@ -25,7 +25,8 @@
 	--ns-shadow-sm: none;
 	--ns-shadow-md: none;
 	--ns-shadow-glow: none;
-	--ns-focus-outline: 2px solid var(--ns-primary-active);
+	--ns-focus-ring: color-mix(in srgb, var(--ns-border-strong) 78%, var(--ns-text-subtle));
+	--ns-focus-outline: 2px solid var(--ns-focus-ring);
 	--ns-focus-outline-offset: 2px;
 	--ns-transition: 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
 	--ns-container-bg: var(--ns-surface-raised);

@@ -11,7 +11,7 @@
 
 .frame:hover:not([data-disabled="true"]),
 .frame[data-open="true"] {
-	border-color: var(--ns-primary-border);
+	border-color: var(--ns-border-strong);
 }
 
 .frame:has(.trigger:focus-visible) {
@@ -63,7 +63,7 @@
 }
 
 .frame[data-open="true"] .trigger::after {
-	border-color: var(--ns-primary-active);
+	border-color: var(--ns-text-muted);
 	transform: translateY(-35%) rotate(225deg);
 }
 
@@ -116,7 +116,7 @@
 	z-index: 1000;
 	width: var(--radix-popover-trigger-width);
 	max-height: min(22rem, calc(100svh - 1rem));
-	border: 1px solid var(--ns-primary-border);
+	border: 1px solid var(--ns-border-strong);
 	overflow: hidden;
 	padding: 0.25rem;
 	color: var(--ns-text);

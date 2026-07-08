@@ -111,8 +111,8 @@
 }
 
 .selectFrame[data-open="true"] {
-	--ns-select-arrow: var(--ns-primary-active);
-	--ns-frame-color: var(--ns-primary-active);
+	--ns-select-arrow: var(--ns-text-muted);
+	--ns-frame-color: var(--ns-border-strong);
 	box-shadow: none;
 }
 
@@ -198,7 +198,7 @@
 }
 
 .selectMenu {
-	--ns-frame-color: var(--ns-primary-border);
+	--ns-frame-color: var(--ns-border-strong);
 	position: fixed;
 	z-index: 1000;
 	width: var(--radix-select-trigger-width);

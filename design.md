@@ -181,7 +181,7 @@ Implementation decision: root defaults to the dark palette, with `:root` and `:r
 - `--ns-cut-*`: `0`, legacy only.
 - `--ns-shadow-sm`, `--ns-shadow-md`, `--ns-shadow-glow`: `none`.
 - `--ns-transition`: `180ms cubic-bezier(0.2, 0.8, 0.2, 1)`.
-- Keyboard focus uses `--ns-focus-outline`, usually `2px solid var(--ns-primary-active)`.
+- Keyboard focus uses `--ns-focus-outline`, a neutral high-contrast ring. Do not use large orange outlines for routine input, select, dropdown, or menu focus.
 
 If a surface needs hierarchy, use border strength, surface tone, section spacing, and structured headers before shadows or radius.
 
