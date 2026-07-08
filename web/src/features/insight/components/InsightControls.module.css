@@ -87,13 +87,13 @@
 	padding: 0.25rem 0.5rem;
 	overflow: hidden;
 	border: 1px solid var(--ns-frame-color);
-	background: var(--ns-surface);
+	background: var(--ns-control-bg);
 	box-shadow: none;
 	cursor: text;
 }
 
 .assignmentControl[data-open="true"] {
-	--ns-frame-color: var(--ns-primary-border);
+	--ns-frame-color: var(--ns-border-strong);
 }
 
 .assignmentControl:has(input:focus-visible),
@@ -216,7 +216,7 @@
 	overflow: auto;
 	padding: 0.35rem;
 	border: 1px solid var(--ns-frame-color);
-	background: var(--ns-surface);
+	background: var(--ns-control-bg);
 	box-shadow: none;
 }
 
@@ -274,7 +274,7 @@
 .assignmentOption[data-selected="true"],
 .assignmentOption[data-state="checked"] {
 	background: var(--ns-primary-subtle);
-	border-color: color-mix(in srgb, var(--ns-primary) 50%, transparent);
+	border-color: var(--ns-border);
 }
 
 .assignmentOption[data-selected="true"]::after,
@@ -319,7 +319,7 @@
 	padding: 0.75rem 1rem;
 	border: 1px solid var(--ns-frame-color);
 	color: var(--ns-text);
-	background: var(--ns-surface);
+	background: var(--ns-control-bg);
 	box-shadow: none;
 	font-family: var(--ns-font-mono);
 	font-size: 0.875rem;
@@ -360,7 +360,7 @@
 	overflow: auto;
 	padding: 1rem;
 	border: 1px solid var(--ns-frame-color);
-	background: var(--ns-surface);
+	background: var(--ns-control-bg);
 	box-shadow: none;
 }
 
@@ -401,7 +401,7 @@
 
 .timePreset:hover,
 .timePreset[data-selected="true"] {
-	--ns-frame-color: color-mix(in srgb, var(--ns-primary) 50%, transparent);
+	--ns-frame-color: var(--ns-border);
 	color: var(--ns-text);
 	background: var(--ns-primary-muted);
 }
@@ -558,7 +558,7 @@
 .assignmentOption[data-selected="true"],
 .assignmentOption[data-state="checked"] {
 	background: var(--ns-primary-muted);
-	border-color: var(--ns-primary-border);
+	border-color: var(--ns-border);
 }
 
 .assignmentOption:focus-visible:is([data-selected="true"], [data-state="checked"]) {
