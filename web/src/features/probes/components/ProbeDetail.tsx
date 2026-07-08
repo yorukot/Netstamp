@@ -507,7 +507,7 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 					<span>Probe service command</span>
 					<Terminal
 						title={`${selectedServiceCommand.label.toLowerCase()} command`}
-						meta={
+						actions={
 							<Button
 								type="button"
 								variant="ghost"
@@ -534,7 +534,7 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 					<p>Rewrite the systemd service environment with the rotated credential.</p>
 					<Terminal
 						title="update command"
-						meta={
+						actions={
 							<Button
 								type="button"
 								variant="ghost"

@@ -83,7 +83,15 @@ export const CodePreviews: Story = {
 					{`curl -fsSL https://netstamp.dev/install.sh | sh
 netstamp probe join --controller https://api.netstamp.dev --token ns_probe_***`}
 				</CodePreview>
-				<CodePreview title="api request" meta="curl">
+				<CodePreview
+					title="api request"
+					meta="curl"
+					actions={
+						<Button type="button" size="sm" variant="ghost">
+							Copy
+						</Button>
+					}
+				>
 					{`curl -H "Authorization: Bearer $NETSTAMP_TOKEN" \\
   https://api.netstamp.dev/v1/projects/edge/checks`}
 				</CodePreview>

@@ -45,9 +45,20 @@
 }
 
 .bar em {
-	margin-left: auto;
 	color: var(--ns-primary-hover);
 	font-style: normal;
+}
+
+.bar em:last-child {
+	margin-left: auto;
+}
+
+.actions {
+	display: inline-flex;
+	flex: 0 0 auto;
+	align-items: center;
+	gap: 0.5rem;
+	margin-left: auto;
 }
 
 .terminal {

@@ -1,6 +1,23 @@
 import netstampLogo from "@netstamp/brand/assets/netstamp-logo-light.svg";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { Badge, CodePreview, DataTable, FieldLabel, GlobalFooter, Input, KeyValueRow, MetricTile, Panel, SelectField, SpecLabel, Terminal, TextAreaField, TextField, type DataColumn } from "../index";
+import {
+	Badge,
+	Button,
+	CodePreview,
+	DataTable,
+	FieldLabel,
+	GlobalFooter,
+	Input,
+	KeyValueRow,
+	MetricTile,
+	Panel,
+	SelectField,
+	SpecLabel,
+	Terminal,
+	TextAreaField,
+	TextField,
+	type DataColumn
+} from "../index";
 
 interface ProbeRow {
 	probe: string;
@@ -119,13 +136,29 @@ export const Overview: Story = {
 
 				<Panel title="Operator surfaces" summary="Deep surfaces are separated by tone and header structure, not decorative frames.">
 					<div className="storybook-operator-grid">
-						<CodePreview title="component rule" meta="css">
+						<CodePreview
+							title="component rule"
+							meta="css"
+							actions={
+								<Button type="button" size="sm" variant="ghost">
+									Copy
+								</Button>
+							}
+						>
 							{`badge {
 	border: 0;
 	background: var(--ns-primary-muted);
 }`}
 						</CodePreview>
-						<Terminal title="netstamp probe" meta="dry run">
+						<Terminal
+							title="netstamp probe"
+							meta="shell"
+							actions={
+								<Button type="button" size="sm" variant="ghost">
+									Copy
+								</Button>
+							}
+						>
 							netstamp probe run --check ping --target 1.1.1.1
 						</Terminal>
 					</div>

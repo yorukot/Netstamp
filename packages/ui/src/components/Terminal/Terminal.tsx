@@ -4,9 +4,10 @@ import styles from "./Terminal.module.css";
 export interface TerminalProps extends Omit<ComponentPropsWithoutRef<"pre">, "title"> {
 	title?: ReactNode;
 	meta?: ReactNode;
+	actions?: ReactNode;
 }
 
-export function Terminal({ title = "controller shell", meta, className, children, ...props }: TerminalProps) {
+export function Terminal({ title = "controller shell", meta, actions, className, children, ...props }: TerminalProps) {
 	const classes = [styles.terminal, className].filter(Boolean).join(" ");
 
 	return (
@@ -17,6 +18,7 @@ export function Terminal({ title = "controller shell", meta, className, children
 				<span aria-hidden="true" />
 				<strong>{title}</strong>
 				{meta ? <em>{meta}</em> : null}
+				{actions ? <div className={styles.actions}>{actions}</div> : null}
 			</div>
 			<pre className={classes} {...props}>
 				<code>{children}</code>

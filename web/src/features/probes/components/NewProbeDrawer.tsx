@@ -352,7 +352,7 @@ export function NewProbeDrawer() {
 							<Terminal
 								title="install command"
 								className={styles.installCommand}
-								meta={
+								actions={
 									<Button
 										type="button"
 										variant="ghost"

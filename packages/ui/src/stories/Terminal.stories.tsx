@@ -1,12 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { Terminal } from "../index";
+import { Button, Terminal } from "../index";
 
 const meta = {
 	title: "Components/Terminal",
 	component: Terminal,
 	args: {
 		children: "netstamp probe run --check ping --target 1.1.1.1",
-		meta: "dry run",
+		meta: "shell",
 		title: "netstamp probe"
 	},
 	parameters: {
@@ -21,7 +21,14 @@ export const Playground: Story = {
 	render: args => (
 		<div className="storybook-canvas">
 			<div className="storybook-demo">
-				<Terminal {...args} />
+				<Terminal
+					{...args}
+					actions={
+						<Button type="button" size="sm" variant="ghost">
+							Copy
+						</Button>
+					}
+				/>
 			</div>
 		</div>
 	)
@@ -31,7 +38,15 @@ export const LongOutput: Story = {
 	render: () => (
 		<div className="storybook-canvas">
 			<div className="storybook-demo">
-				<Terminal title="trace" meta="live">
+				<Terminal
+					title="trace"
+					meta="terminal"
+					actions={
+						<Button type="button" size="sm" variant="ghost">
+							Copy
+						</Button>
+					}
+				>
 					{`$ netstamp trace cloudflare.com --region tpe\nresolve cloudflare.com -> 104.16.132.229\nicmp p50=31ms p95=42ms loss=0.00%\nhttp 200 edge=TPE cache=HIT`}
 				</Terminal>
 			</div>

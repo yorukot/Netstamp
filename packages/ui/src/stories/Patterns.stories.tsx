@@ -64,7 +64,15 @@ export const DashboardSpec: Story = {
 						<Panel eyebrow="Checks" title="Network checks" summary="Primary actions stay orange; dense data stays neutral until state changes." actions={<Button size="sm">Create check</Button>}>
 							<DataTable columns={columns} rows={rows} getRowKey={row => row.id} minWidth="42rem" ariaLabel="Workspace check state" density="compact" />
 						</Panel>
-						<CodePreview title="latest route diff" meta="trace">
+						<CodePreview
+							title="latest route diff"
+							meta="trace"
+							actions={
+								<Button type="button" size="sm" variant="ghost">
+									Copy
+								</Button>
+							}
+						>
 							{`hop 04 changed: 203.69.35.1 -> 203.69.35.9
 p95 latency +42ms
 path hash b94c.22f9.changed`}
