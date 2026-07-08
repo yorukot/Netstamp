@@ -38,7 +38,8 @@
 	outline-offset: var(--ns-focus-outline-offset);
 }
 
-.option[data-active="true"] {
+.option[data-active="true"],
+.option[data-active="true"]:hover:not(:disabled) {
 	color: var(--ns-text);
 	background: var(--ns-primary-muted);
 }
