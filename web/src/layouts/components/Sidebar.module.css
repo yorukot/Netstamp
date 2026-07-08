@@ -26,7 +26,7 @@
 .brandRow {
 	display: grid;
 	grid-template-columns: minmax(0, 1fr) auto;
-	gap: 0.5rem;
+	gap: 0.375rem;
 	align-items: center;
 	min-width: 0;
 }
@@ -36,24 +36,21 @@
 	align-items: center;
 	gap: 0.75rem;
 	width: 100%;
-	padding: 0.625rem 0.75rem;
-	border: 1px solid transparent;
+	min-height: 2.75rem;
+	padding: 0.625rem 0.25rem;
+	border: 0;
 	border-radius: 0;
 	color: var(--ns-text);
 	background: transparent;
 	text-decoration: none;
-	transition:
-		background var(--ns-transition),
-		border-color var(--ns-transition);
+	transition: background var(--ns-transition);
 }
 
 .brand:hover {
-	border-color: #ffffff1a;
 	background: #131518;
 }
 
 .brand:focus-visible {
-	border-color: transparent;
 	background: var(--ns-bg-subtle);
 	outline: var(--ns-focus-outline);
 	outline-offset: var(--ns-focus-outline-offset);
@@ -67,6 +64,58 @@
 
 .brandLogoMark {
 	display: none;
+}
+
+.brandToggle {
+	display: inline-grid;
+	place-items: center;
+	width: 2.5rem;
+	min-height: 2.5rem;
+	padding: 0;
+	border: 0;
+	color: var(--ns-text-low);
+	background: transparent;
+	cursor: pointer;
+	transition:
+		color var(--ns-transition),
+		background var(--ns-transition);
+}
+
+.brandToggle:hover,
+.brandToggle:focus-visible {
+	color: var(--ns-primary);
+	background: #131518;
+}
+
+.brandToggle:focus-visible {
+	outline: var(--ns-focus-outline);
+	outline-offset: var(--ns-focus-outline-offset);
+}
+
+.brandToggleCollapsed {
+	display: none;
+	width: 2.75rem;
+	min-height: 2.75rem;
+}
+
+.brandToggleCollapsed .brandLogoMark {
+	display: block;
+	width: 2.25rem;
+	height: auto;
+}
+
+.brandToggleArrow {
+	display: none;
+}
+
+.brandToggleCollapsed:hover .brandLogoMark,
+.brandToggleCollapsed:focus-visible .brandLogoMark {
+	display: none;
+}
+
+.brandToggleCollapsed:hover .brandToggleArrow,
+.brandToggleCollapsed:focus-visible .brandToggleArrow {
+	display: block;
 }
 
 .mobileMenuButton {
@@ -170,64 +219,6 @@
 	background: var(--ns-primary-muted);
 }
 
-.sidebarToggle {
-	position: absolute;
-	top: 50%;
-	right: -1.0625rem;
-	z-index: 30;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 2rem;
-	height: 3rem;
-	padding: 0;
-	border: 0;
-	color: var(--ns-text-low);
-	background: transparent;
-	cursor: pointer;
-	opacity: 1;
-	transform: translateY(-50%);
-	transition: color var(--ns-transition);
-}
-
-.sidebarToggleFrame {
-	--ns-frame-radius: var(--ns-radius-sm);
-	--ns-frame-color: var(--ns-border);
-	display: inline-grid;
-	place-items: center;
-	width: 2rem;
-	min-height: 2rem;
-	padding: 0;
-	border: 1px solid var(--ns-frame-color);
-	background: #00080f;
-	transition:
-		color var(--ns-transition),
-		background var(--ns-transition),
-		border-color var(--ns-transition);
-}
-
-.sidebarToggle:hover,
-.sidebarToggle:focus-visible {
-	opacity: 1;
-}
-
-.sidebarToggle:focus-visible {
-	outline: none;
-}
-
-.sidebarToggle:hover .sidebarToggleFrame,
-.sidebarToggle:focus-visible .sidebarToggleFrame {
-	--ns-frame-color: var(--ns-border-strong);
-	color: var(--ns-text);
-	background: #131518;
-}
-
-.sidebarToggle:focus-visible .sidebarToggleFrame {
-	--ns-frame-color: transparent;
-	outline: var(--ns-focus-outline);
-	outline-offset: var(--ns-focus-outline-offset);
-}
-
 .nav {
 	display: grid;
 	align-content: start;
@@ -235,17 +226,13 @@
 }
 
 .nav a {
-	--ns-frame-radius: var(--ns-radius-md);
-	--ns-frame-color: transparent;
 	display: flex;
 	align-items: center;
 	gap: 0.625rem;
 	width: 100%;
 	min-height: 2.625rem;
 	padding: 0.625rem 0.75rem;
-	border: 1px solid var(--ns-frame-color);
-	border-left-width: 3px;
-	border-left-color: transparent;
+	border: 0;
 	color: var(--ns-text-subtle);
 	background: transparent;
 	font-family: var(--ns-font-sans);
@@ -257,8 +244,7 @@
 	text-transform: none;
 	transition:
 		color var(--ns-transition),
-		background var(--ns-transition),
-		border-color var(--ns-transition);
+		background var(--ns-transition);
 }
 
 .navIcon {
@@ -276,13 +262,11 @@
 }
 
 .nav a:hover {
-	--ns-frame-color: var(--ns-border);
 	color: var(--ns-text);
 	background: #131518;
 }
 
 .nav a:focus-visible {
-	--ns-frame-color: transparent;
 	color: var(--ns-text);
 	background: #131518;
 	outline: var(--ns-focus-outline);
@@ -291,18 +275,16 @@
 
 .nav a:hover .navIcon,
 .nav a:focus-visible .navIcon {
-	color: var(--ns-text-subtle);
+	color: var(--ns-primary);
 }
 
 .nav a.active {
-	--ns-frame-color: var(--ns-primary-border);
-	border-left-color: var(--ns-primary);
 	color: var(--ns-text);
 	background: #131518;
 }
 
 .nav a.active .navIcon {
-	color: var(--ns-primary-active);
+	color: var(--ns-primary);
 }
 
 .collapsed .sidebarScroll {
@@ -315,23 +297,17 @@
 	justify-items: center;
 }
 
-.collapsed .brand {
-	justify-content: center;
-	padding-inline: 0.375rem;
-	overflow: hidden;
+.collapsed .brand,
+.collapsed .brandToggleExpanded {
+	display: none;
 }
 
-.collapsed .sidebarToggle {
-	padding: 0;
+.collapsed .brandToggleCollapsed {
+	display: inline-grid;
 }
 
 .collapsed .brandLogoFull {
 	display: none;
-}
-
-.collapsed .brandLogoMark {
-	display: block;
-	width: 2.75rem;
 }
 
 .collapsed .nav a {
@@ -341,15 +317,8 @@
 	height: 2.75rem;
 	min-height: 2.75rem;
 	padding: 0;
-	border-left-width: 1px;
-	border-left-color: transparent;
 	font-size: 0.75rem;
 	text-align: center;
-}
-
-.collapsed .nav a.active {
-	--ns-frame-color: var(--ns-primary-border);
-	border-left-color: transparent;
 }
 
 .collapsed .navLabel {
@@ -379,7 +348,8 @@
 		justify-items: center;
 	}
 
-	.sidebarToggle {
+	.brandToggleExpanded,
+	.brandToggleCollapsed {
 		display: none;
 	}
 
@@ -399,15 +369,8 @@
 		height: 2.75rem;
 		min-height: 2.75rem;
 		padding: 0;
-		border-left-width: 1px;
-		border-left-color: transparent;
 		font-size: 0.75rem;
 		text-align: center;
-	}
-
-	.nav a.active {
-		--ns-frame-color: var(--ns-primary-border);
-		border-left-color: transparent;
 	}
 
 	.navLabel {
@@ -508,6 +471,7 @@
 	}
 
 	.collapsed .brand {
+		display: flex;
 		justify-content: flex-start;
 		overflow: visible;
 	}

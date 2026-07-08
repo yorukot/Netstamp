@@ -1,5 +1,5 @@
 .root {
-	display: block;
+	display: grid;
 	min-width: 0;
 }
 
@@ -74,38 +74,34 @@
 
 .projectCompact {
 	display: none;
-	justify-self: center;
+	place-items: center;
+	width: 100%;
 }
 
 .projectCompactButton {
-	--ns-frame-radius: var(--ns-radius-md);
-	--ns-frame-color: var(--ns-border);
 	display: inline-grid;
 	place-items: center;
 	width: 2.75rem;
 	min-height: 2.75rem;
 	padding: 0;
-	border: 1px solid var(--ns-frame-color);
+	border: 0;
 	color: var(--ns-text-subtle);
-	background: var(--ns-surface);
+	background: transparent;
 	cursor: pointer;
 	transition:
 		color var(--ns-transition),
-		background var(--ns-transition),
-		border-color var(--ns-transition);
+		background var(--ns-transition);
 }
 
 .projectCompactButton:hover,
 .projectCompactButton[data-state="open"] {
-	--ns-frame-color: var(--ns-border-strong);
-	color: var(--ns-text);
-	background: var(--ns-bg-subtle);
+	color: var(--ns-primary);
+	background: #131518;
 }
 
 .projectCompactButton:focus-visible {
-	--ns-frame-color: transparent;
-	color: var(--ns-text);
-	background: var(--ns-bg-subtle);
+	color: var(--ns-primary);
+	background: #131518;
 	outline: var(--ns-focus-outline);
 	outline-offset: var(--ns-focus-outline-offset);
 }
@@ -133,8 +129,12 @@
 	display: none;
 }
 
+.collapsed.root {
+	place-items: center;
+}
+
 .collapsed .projectCompact {
-	display: inline-grid;
+	display: grid;
 }
 
 @media (max-width: 58rem) {
@@ -143,7 +143,7 @@
 	}
 
 	.root:not(.drawer) .projectCompact {
-		display: inline-grid;
+		display: grid;
 	}
 
 	.projectFrame :is(select, button) {

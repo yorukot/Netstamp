@@ -23,8 +23,6 @@ interface SidebarProps {
 export function Sidebar({ collapsed, user, onToggleCollapsed, onLogout }: SidebarProps) {
 	const { projectRef } = useCurrentProject();
 	const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-	const ToggleIcon = collapsed ? CaretRight : CaretLeft;
-	const toggleLabel = collapsed ? "Expand sidebar" : "Collapse sidebar";
 	const MobileMenuIcon = mobileMenuOpen ? X : List;
 	const visibleSidebarItems = sidebarItems.filter(item => !item.systemAdminOnly || user.isSystemAdmin);
 
@@ -40,6 +38,13 @@ export function Sidebar({ collapsed, user, onToggleCollapsed, onLogout }: Sideba
 						<img className={classNames(styles.brandLogo, styles.brandLogoFull)} src={netstampLogo} alt="Netstamp" />
 						<img className={classNames(styles.brandLogo, styles.brandLogoMark)} src={netstampMark} alt="" aria-hidden="true" />
 					</Link>
+					<button type="button" className={classNames(styles.brandToggle, styles.brandToggleExpanded)} aria-label="Collapse sidebar" onClick={onToggleCollapsed}>
+						<CaretLeft size={17} weight="bold" aria-hidden="true" />
+					</button>
+					<button type="button" className={classNames(styles.brandToggle, styles.brandToggleCollapsed)} aria-label="Expand sidebar" onClick={onToggleCollapsed}>
+						<img className={classNames(styles.brandLogo, styles.brandLogoMark)} src={netstampMark} alt="" aria-hidden="true" />
+						<CaretRight className={styles.brandToggleArrow} size={18} weight="bold" aria-hidden="true" />
+					</button>
 					<button
 						type="button"
 						className={styles.mobileMenuButton}
@@ -75,12 +80,6 @@ export function Sidebar({ collapsed, user, onToggleCollapsed, onLogout }: Sideba
 
 				<UserMenu user={user} collapsed={collapsed} onLogout={onLogout} />
 			</div>
-
-			<button type="button" className={styles.sidebarToggle} aria-label={toggleLabel} onClick={onToggleCollapsed}>
-				<span className={styles.sidebarToggleFrame}>
-					<ToggleIcon size={16} weight="bold" aria-hidden="true" />
-				</span>
-			</button>
 
 			<EditorDrawer
 				open={mobileMenuOpen}

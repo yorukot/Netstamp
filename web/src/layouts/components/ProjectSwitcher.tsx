@@ -87,7 +87,7 @@ export function ProjectSwitcher({ collapsed = false, variant = "sidebar" }: Proj
 						</PopoverTrigger>
 					</div>
 					<PopoverPortal>
-						<PopoverContent className={styles.projectPopover} align="center" side="right" sideOffset={10} collisionPadding={8}>
+						<PopoverContent className={styles.projectPopover} align="start" side="right" sideOffset={10} collisionPadding={8}>
 							<label className={styles.projectSelectField}>
 								<span>project</span>
 								<Select variant="compact" frameClassName={styles.projectFrame} className={styles.projectControl} value={projectRef || ""} onChange={event => selectProject(event.currentTarget.value)}>
