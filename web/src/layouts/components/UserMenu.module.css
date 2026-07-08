@@ -1,15 +1,25 @@
 .userPopover {
+	--user-menu-bg: #17191d;
+	--user-menu-hover-bg: #20242a;
+	--user-menu-text: rgba(255, 255, 255, 0.82);
+	--user-menu-muted: rgba(255, 255, 255, 0.62);
+
 	z-index: 1000;
 	width: min(11rem, calc(100vw - 1rem));
 	padding: 0.35rem;
 	border: 0;
 	color: var(--ns-text-subtle);
-	background: #000000;
+	background: var(--user-menu-bg);
 	font-family: var(--ns-font-sans);
 	font-size: 0.8125rem;
 }
 
 .mobileDrawerUserPanel {
+	--user-menu-bg: #17191d;
+	--user-menu-hover-bg: #20242a;
+	--user-menu-text: rgba(255, 255, 255, 0.82);
+	--user-menu-muted: rgba(255, 255, 255, 0.62);
+
 	width: 100%;
 	display: grid;
 	padding: 0;
@@ -130,7 +140,7 @@
 	min-height: 2.25rem;
 	padding: 0.5rem 0.625rem;
 	border: 0;
-	color: var(--ns-text-subtle);
+	color: var(--user-menu-muted);
 	background: transparent;
 	cursor: pointer;
 	font-family: var(--ns-font-sans);
@@ -145,15 +155,15 @@
 }
 
 .userPopoverAction:hover {
-	color: var(--ns-text);
-	background: #131518;
+	color: var(--user-menu-text);
+	background: var(--user-menu-hover-bg);
 }
 
 .userPopoverAction:focus-visible {
-	color: var(--ns-text);
-	background: #131518;
-	outline: var(--ns-focus-outline);
-	outline-offset: var(--ns-focus-outline-offset);
+	color: var(--user-menu-text);
+	background: var(--user-menu-hover-bg);
+	outline: none;
+	outline-offset: 0;
 }
 
 .userPopoverAction svg {

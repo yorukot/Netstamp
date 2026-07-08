@@ -39,6 +39,7 @@ export interface SelectProps extends ComponentPropsWithoutRef<"select"> {
 	variant?: Exclude<ControlVariant, "bare">;
 	invalid?: boolean;
 	frameClassName?: string;
+	menuClassName?: string;
 }
 
 interface SelectOption {
@@ -133,6 +134,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
 		variant = "default",
 		invalid,
 		frameClassName,
+		menuClassName,
 		className,
 		children,
 		id,
@@ -175,7 +177,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
 	const radixSelectedValue = selectedOption?.radixValue ?? "";
 	const classes = [styles.control, styles.select, styles[`${variant}Control`], className].filter(Boolean).join(" ");
 	const frameClasses = ["ns-frame", styles.controlFrame, styles.selectFrame, styles[`${variant}Frame`], frameClassName].filter(Boolean).join(" ");
-	const menuClasses = [styles.selectMenu, styles[`${variant}Menu`]].filter(Boolean).join(" ");
+	const menuClasses = [styles.selectMenu, styles[`${variant}Menu`], menuClassName].filter(Boolean).join(" ");
 
 	function setSelectNode(node: HTMLSelectElement | null) {
 		selectRef.current = node;

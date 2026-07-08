@@ -1,4 +1,10 @@
 .root {
+	--project-menu-bg: #17191d;
+	--project-menu-hover-bg: #20242a;
+	--project-menu-active-bg: #111418;
+	--project-menu-text: rgba(255, 255, 255, 0.82);
+	--project-menu-muted: rgba(255, 255, 255, 0.58);
+
 	display: grid;
 	min-width: 0;
 }
@@ -24,33 +30,44 @@
 
 .projectFrame {
 	--ns-frame-radius: var(--ns-radius-md);
-	--ns-frame-color: var(--ns-border);
+	--ns-frame-color: transparent;
+	--ns-frame-border-width: 0;
+	--ns-select-arrow: var(--project-menu-muted);
 	display: block;
 }
 
 .projectFrame:hover,
 .projectFrame:focus-within {
-	--ns-frame-color: var(--ns-border-strong);
+	--ns-frame-color: transparent;
+	--ns-select-arrow: var(--project-menu-text);
 }
 
-.projectFrame:focus-within {
+.projectFrame:focus-within,
+.projectFrame[data-open="true"] {
 	--ns-frame-color: transparent;
-	outline: var(--ns-focus-outline);
-	outline-offset: var(--ns-focus-outline-offset);
+	--ns-select-arrow: var(--project-menu-text);
+	outline: none;
+	outline-offset: 0;
 }
 
 .projectControl {
 	min-height: 2.5rem;
 	padding: 0.5rem 2.25rem 0.5rem 0.75rem;
 	color: var(--ns-text);
-	background: var(--ns-surface-raised);
+	background: var(--project-menu-bg);
 	font-family: var(--ns-font-sans);
 	font-size: 0.875rem;
 }
 
+.projectFrame:hover .projectControl,
+.projectFrame:focus-within .projectControl,
+.projectFrame[data-open="true"] .projectControl {
+	background: var(--project-menu-hover-bg);
+}
+
 .projectControl option {
-	color: var(--ns-text);
-	background: var(--ns-surface);
+	color: var(--project-menu-text);
+	background: var(--project-menu-bg);
 }
 
 .projectCreateOption {
@@ -62,7 +79,7 @@
 
 .projectCreateOption svg {
 	flex: 0 0 auto;
-	color: var(--ns-primary-active);
+	color: var(--project-menu-muted);
 }
 
 .projectCreateOption span {
@@ -94,35 +111,78 @@
 }
 
 .projectCompactButton:hover,
+.projectCompactButton:focus-visible {
+	color: var(--ns-primary-hover);
+	background: var(--project-menu-hover-bg);
+}
+
 .projectCompactButton[data-state="open"] {
 	color: var(--ns-primary);
-	background: #131518;
+	background: var(--project-menu-active-bg);
 }
 
 .projectCompactButton:focus-visible {
-	color: var(--ns-primary);
-	background: #131518;
-	outline: var(--ns-focus-outline);
-	outline-offset: var(--ns-focus-outline-offset);
+	outline: none;
+	outline-offset: 0;
 }
 
 .projectPopover {
+	--project-menu-bg: #17191d;
+	--project-menu-hover-bg: #20242a;
+	--project-menu-active-bg: #111418;
+	--project-menu-text: rgba(255, 255, 255, 0.82);
+	--project-menu-muted: rgba(255, 255, 255, 0.58);
+
 	--ns-frame-radius: var(--ns-radius-lg);
-	--ns-frame-color: var(--ns-border);
 	z-index: 1000;
 	width: min(18rem, calc(100vw - 1rem));
 	padding: 0.875rem;
-	border: 1px solid var(--ns-frame-color);
+	border: 0;
 	color: var(--ns-text-subtle);
-	background: var(--ns-surface);
+	background: var(--project-menu-bg);
 	font-family: var(--ns-font-sans);
 	font-size: 0.8125rem;
+}
+
+.projectMenu {
+	--project-menu-bg: #17191d;
+	--project-menu-hover-bg: #20242a;
+	--project-menu-active-bg: #111418;
+	--project-menu-text: rgba(255, 255, 255, 0.82);
+	--project-menu-muted: rgba(255, 255, 255, 0.58);
+	--ns-frame-color: transparent;
+
+	width: var(--radix-select-trigger-width);
+	border: 0;
+	color: var(--project-menu-muted);
+	background: var(--project-menu-bg);
+	box-shadow: none;
+}
+
+.projectMenu :global([data-highlighted]) {
+	color: var(--project-menu-text);
+	background: var(--project-menu-hover-bg);
+}
+
+.projectMenu :global([data-state="checked"]) {
+	color: var(--project-menu-text);
+	background: var(--project-menu-active-bg);
 }
 
 .projectPopoverCreate {
 	justify-content: flex-start;
 	width: 100%;
 	margin-top: 0.75rem;
+	border: 0;
+	color: var(--project-menu-muted);
+	background: transparent;
+}
+
+.projectPopoverCreate:hover,
+.projectPopoverCreate:focus-visible {
+	color: var(--project-menu-text);
+	background: var(--project-menu-hover-bg);
+	outline: none;
 }
 
 .collapsed .projectSelect {

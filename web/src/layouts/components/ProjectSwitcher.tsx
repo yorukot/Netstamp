@@ -64,7 +64,14 @@ export function ProjectSwitcher({ collapsed = false, variant = "sidebar" }: Proj
 				<div className={styles.projectSelect}>
 					<label className={styles.projectSelectField}>
 						<span>project</span>
-						<Select variant="compact" frameClassName={styles.projectFrame} className={styles.projectControl} value={projectRef || ""} onChange={event => selectProject(event.currentTarget.value)}>
+						<Select
+							variant="compact"
+							frameClassName={styles.projectFrame}
+							menuClassName={styles.projectMenu}
+							className={styles.projectControl}
+							value={projectRef || ""}
+							onChange={event => selectProject(event.currentTarget.value)}
+						>
 							{projects.length ? (
 								projects.map(project => (
 									<option key={project.id} value={project.slug || project.id}>
@@ -90,7 +97,14 @@ export function ProjectSwitcher({ collapsed = false, variant = "sidebar" }: Proj
 						<PopoverContent className={styles.projectPopover} align="start" side="right" sideOffset={10} collisionPadding={8}>
 							<label className={styles.projectSelectField}>
 								<span>project</span>
-								<Select variant="compact" frameClassName={styles.projectFrame} className={styles.projectControl} value={projectRef || ""} onChange={event => selectProject(event.currentTarget.value)}>
+								<Select
+									variant="compact"
+									frameClassName={styles.projectFrame}
+									menuClassName={styles.projectMenu}
+									className={styles.projectControl}
+									value={projectRef || ""}
+									onChange={event => selectProject(event.currentTarget.value)}
+								>
 									{projects.length ? (
 										projects.map(project => (
 											<option key={project.id} value={project.slug || project.id}>
