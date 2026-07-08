@@ -20,6 +20,14 @@ export interface DrawerProps extends Omit<ComponentPropsWithoutRef<typeof Dialog
 	onOpenChange: (open: boolean) => void;
 }
 
+function CloseIcon() {
+	return (
+		<svg className={styles.closeIcon} viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+			<path d="M3.76 3.05 8 7.29l4.24-4.24.71.71L8.71 8l4.24 4.24-.71.71L8 8.71l-4.24 4.24-.71-.71L7.29 8 3.05 3.76z" fill="currentColor" />
+		</svg>
+	);
+}
+
 export function Drawer({
 	open,
 	title,
@@ -49,8 +57,8 @@ export function Drawer({
 						<div className={styles.actions}>
 							{actions}
 							<DialogPrimitive.Close asChild>
-								<Button type="button" variant="outline" size="sm">
-									{closeLabel}
+								<Button className={styles.closeButton} type="button" variant="outline" size="sm" aria-label={closeLabel} title={closeLabel}>
+									<CloseIcon />
 								</Button>
 							</DialogPrimitive.Close>
 						</div>

@@ -46,3 +46,7 @@
 	font-size: 0.85rem;
 	line-height: 1.5;
 }
+
+.toastClose {
+	align-self: start;
+}

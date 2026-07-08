@@ -1,6 +1,6 @@
 import { dismissToast, subscribeToasts, type ToastMessage } from "@/shared/toast/toastStore";
-import { Button } from "@netstamp/ui";
 import { useEffect, useState } from "react";
+import { CloseButton } from "./CloseButton";
 import styles from "./ToastProvider.module.css";
 
 export function ToastProvider() {
@@ -20,9 +20,7 @@ export function ToastProvider() {
 						<strong>{message.title}</strong>
 						<p>{message.message}</p>
 					</div>
-					<Button variant="ghost" size="sm" onClick={() => dismissToast(message.id)}>
-						Close
-					</Button>
+					<CloseButton className={styles.toastClose} ariaLabel="Close notification" onClick={() => dismissToast(message.id)} />
 				</div>
 			))}
 		</div>
