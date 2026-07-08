@@ -52,12 +52,12 @@ const discordHref = "https://discord.gg/9mdkf6dyTy";
 		left: clamp(1rem, 4vw, 3rem);
 		z-index: 40;
 		display: grid;
-		grid-template-columns: auto minmax(0, 1fr) auto;
+		grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
 		align-items: center;
 		justify-content: stretch;
 		gap: 1rem;
 		min-height: 4rem;
-		padding: 0.5rem 0.75rem 0.5rem 1rem;
+		padding: 0.5rem 0.75rem;
 		border: 0;
 		color: var(--ns-chrome-text);
 		background: var(--ns-chrome-bg);
@@ -81,6 +81,10 @@ const discordHref = "https://discord.gg/9mdkf6dyTy";
 		display: flex;
 		align-items: center;
 		gap: 0.75rem;
+	}
+
+	.siteNavPrimary {
+		justify-self: start;
 	}
 
 	.siteNavLinks {
