@@ -11,7 +11,7 @@ const demoHref = "https://demo.netstamp.dev";
 const discordHref = "https://discord.gg/9mdkf6dyTy";
 ---
 
-<nav class="siteNav" aria-label="Primary navigation">
+<nav class:list={["siteNav", isHome && "siteNavHome"]} aria-label="Primary navigation">
 	<div class="siteNavPrimary">
 		<a class="siteBrand" href="/" aria-label="Netstamp home">
 			<img class="siteBrandLogo siteBrandLogoLight" src={netstampLogoLight} alt="" aria-hidden="true" />
@@ -61,6 +61,10 @@ const discordHref = "https://discord.gg/9mdkf6dyTy";
 		border: 1px solid color-mix(in srgb, var(--ns-chrome-text) 22%, transparent);
 		color: var(--ns-chrome-text);
 		background: var(--ns-chrome-bg);
+	}
+
+	.siteNavHome {
+		border: 0;
 	}
 
 	.siteBrand {
