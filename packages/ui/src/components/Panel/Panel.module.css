@@ -1,6 +1,6 @@
 .panel {
-	--ns-panel-frame: var(--ns-border);
-	--ns-panel-bg: var(--ns-surface);
+	--ns-panel-frame: var(--ns-border-strong);
+	--ns-panel-bg: var(--ns-bg);
 	--ns-panel-body-bg: var(--ns-surface-raised);
 	--ns-panel-marker: var(--ns-primary);
 	display: grid;
@@ -8,13 +8,13 @@
 	gap: 1rem;
 	min-width: 0;
 	padding: 1rem;
-	border: 1px solid var(--ns-panel-frame);
+	border: 1px dashed var(--ns-panel-frame);
 	background: var(--ns-panel-bg);
 	color: var(--ns-text);
 }
 
 .panel[data-tone="matte"] {
-	--ns-panel-frame: var(--ns-border-faint);
+	--ns-panel-frame: var(--ns-border);
 	--ns-panel-bg: var(--ns-bg-subtle);
 	--ns-panel-body-bg: var(--ns-surface);
 }
@@ -47,8 +47,8 @@
 
 .marker {
 	flex: 0 0 auto;
-	width: 0.5rem;
-	height: 0.5rem;
+	width: 0.625rem;
+	height: 0.625rem;
 	background: var(--ns-panel-marker);
 }
 
