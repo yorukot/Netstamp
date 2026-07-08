@@ -302,6 +302,7 @@
 .collapsed .brandRow {
 	grid-template-columns: 1fr;
 	justify-items: center;
+	min-height: 3.5rem;
 }
 
 .collapsed .brand,
@@ -315,6 +316,10 @@
 
 .collapsed .brandLogoFull {
 	display: none;
+}
+
+.collapsed .brandToggleCollapsed .brandLogoMark {
+	width: 2.5rem;
 }
 
 .collapsed .nav a {
