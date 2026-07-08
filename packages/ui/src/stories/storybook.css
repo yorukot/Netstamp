@@ -469,6 +469,16 @@
 	inset: 0;
 	z-index: 40;
 	background: var(--ns-overlay-scrim);
+	backdrop-filter: blur(0.875rem);
+	-webkit-backdrop-filter: blur(0.875rem);
+}
+
+.storybook-overlay[data-state="open"] {
+	animation: storybookOverlayFadeIn 200ms ease-out both;
+}
+
+.storybook-overlay[data-state="closed"] {
+	animation: storybookOverlayFadeOut 180ms ease-in both;
 }
 
 .storybook-dialog {
@@ -485,7 +495,16 @@
 	border: 1px solid var(--ns-border);
 	background: var(--ns-surface);
 	color: var(--ns-text);
+	opacity: 1;
 	transform: translate(-50%, -50%);
+}
+
+.storybook-dialog[data-state="open"] {
+	animation: storybookDialogFadeInFromBottom 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.storybook-dialog[data-state="closed"] {
+	animation: storybookDialogFadeOutToBottom 160ms ease-in both;
 }
 
 .storybook-overlay-title {
@@ -584,6 +603,62 @@
 	font-family: var(--ns-font-title);
 	font-size: 1.2rem;
 	line-height: 1;
+}
+
+@keyframes storybookOverlayFadeIn {
+	from {
+		background: transparent;
+		backdrop-filter: blur(0);
+		-webkit-backdrop-filter: blur(0);
+	}
+	to {
+		background: var(--ns-overlay-scrim);
+		backdrop-filter: blur(0.875rem);
+		-webkit-backdrop-filter: blur(0.875rem);
+	}
+}
+
+@keyframes storybookOverlayFadeOut {
+	from {
+		background: var(--ns-overlay-scrim);
+		backdrop-filter: blur(0.875rem);
+		-webkit-backdrop-filter: blur(0.875rem);
+	}
+	to {
+		background: transparent;
+		backdrop-filter: blur(0);
+		-webkit-backdrop-filter: blur(0);
+	}
+}
+
+@keyframes storybookDialogFadeInFromBottom {
+	from {
+		opacity: 0;
+		transform: translate(-50%, calc(-50% + 1rem));
+	}
+	to {
+		opacity: 1;
+		transform: translate(-50%, -50%);
+	}
+}
+
+@keyframes storybookDialogFadeOutToBottom {
+	from {
+		opacity: 1;
+		transform: translate(-50%, -50%);
+	}
+	to {
+		opacity: 0;
+		transform: translate(-50%, calc(-50% + 0.75rem));
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.storybook-overlay,
+	.storybook-dialog {
+		animation-duration: 1ms;
+		animation-delay: 0ms;
+	}
 }
 
 @media (max-width: 60rem) {

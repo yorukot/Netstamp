@@ -5,14 +5,16 @@
 	display: grid;
 	place-items: center;
 	padding: 1rem;
-	background: color-mix(in srgb, var(--ns-bg) 0%, transparent);
+	background: var(--ns-overlay-scrim);
+	backdrop-filter: blur(0.875rem);
+	-webkit-backdrop-filter: blur(0.875rem);
 	isolation: isolate;
-	animation: overlayDim 180ms ease-out both;
+	animation: overlayFadeIn 200ms ease-out both;
 }
 
 .overlay[data-closing="true"] {
 	pointer-events: none;
-	animation: overlayClear 220ms ease-in both;
+	animation: overlayFadeOut 220ms ease-in both;
 }
 
 .axis {
@@ -43,10 +45,10 @@
 	border: 1px solid var(--ns-frame-color);
 	color: var(--ns-text);
 	background: var(--ns-surface);
-	opacity: 0;
-	transform: translateY(0.375rem) scale(0.98);
+	opacity: 1;
+	transform: translateY(0);
 	transform-origin: center;
-	animation: dialogUnfold 180ms 80ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+	animation: dialogFadeInFromBottom 220ms 70ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
 .dialog[data-tone="danger"] {
@@ -54,7 +56,7 @@
 }
 
 .overlay[data-closing="true"] .dialog {
-	animation: dialogFold 160ms ease-in both;
+	animation: dialogFadeOutToBottom 160ms ease-in both;
 }
 
 .header {
@@ -114,21 +116,29 @@
 	gap: 0.75rem;
 }
 
-@keyframes overlayDim {
+@keyframes overlayFadeIn {
 	from {
-		background: color-mix(in srgb, var(--ns-bg) 0%, transparent);
+		background: transparent;
+		backdrop-filter: blur(0);
+		-webkit-backdrop-filter: blur(0);
 	}
 	to {
-		background: color-mix(in srgb, var(--ns-bg) 62%, transparent);
+		background: var(--ns-overlay-scrim);
+		backdrop-filter: blur(0.875rem);
+		-webkit-backdrop-filter: blur(0.875rem);
 	}
 }
 
-@keyframes overlayClear {
+@keyframes overlayFadeOut {
 	from {
-		background: color-mix(in srgb, var(--ns-bg) 62%, transparent);
+		background: var(--ns-overlay-scrim);
+		backdrop-filter: blur(0.875rem);
+		-webkit-backdrop-filter: blur(0.875rem);
 	}
 	to {
-		background: color-mix(in srgb, var(--ns-bg) 0%, transparent);
+		background: transparent;
+		backdrop-filter: blur(0);
+		-webkit-backdrop-filter: blur(0);
 	}
 }
 
@@ -168,25 +178,25 @@
 	}
 }
 
-@keyframes dialogUnfold {
+@keyframes dialogFadeInFromBottom {
 	from {
 		opacity: 0;
-		transform: translateY(0.375rem) scale(0.98);
+		transform: translateY(1rem);
 	}
 	to {
 		opacity: 1;
-		transform: translateY(0) scale(1);
+		transform: translateY(0);
 	}
 }
 
-@keyframes dialogFold {
+@keyframes dialogFadeOutToBottom {
 	from {
 		opacity: 1;
-		transform: translateY(0) scale(1);
+		transform: translateY(0);
 	}
 	to {
 		opacity: 0;
-		transform: translateY(0.25rem) scale(0.98);
+		transform: translateY(0.75rem);
 	}
 }
 
