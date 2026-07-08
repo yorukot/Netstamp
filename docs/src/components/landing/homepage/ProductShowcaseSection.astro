@@ -40,7 +40,7 @@ const items = [
 <section id="green-dot" class="showcase" aria-labelledby="green-dot-title">
 	<header>
 		<h2 id="green-dot-title">A green dot is not enough.</h2>
-		<p>Netstamp let you see the real status, finding the real problem.</p>
+		<p>Netstamp lets you see the real status and find the real problem.</p>
 	</header>
 	<div class="showcase-grid">
 		<div class="feature-gallery" aria-label="Netstamp evidence gallery">
@@ -83,7 +83,7 @@ const items = [
 	header p {
 		max-width: 42rem;
 		margin: 2rem 0 0;
-		color: var(--ns-text-muted);
+		color: color-mix(in srgb, var(--ns-bg) 76%, var(--ns-chrome-text));
 		font-size: 1.2rem;
 		line-height: 1.55;
 	}
@@ -106,21 +106,16 @@ const items = [
 	article {
 		display: grid;
 		align-content: start;
+		gap: 0.65rem;
 		min-height: 8.75rem;
 		padding: 1rem;
-		border: 1px solid var(--ns-bg);
-		background: var(--ns-chrome-text);
-	}
-
-	article::before {
-		content: "";
-		width: 0.7rem;
-		height: 0.7rem;
-		margin-bottom: 0.85rem;
-		background: var(--ns-primary-active);
+		background: color-mix(in srgb, var(--ns-chrome-text) 92%, var(--ns-bg-subtle));
 	}
 
 	h3 {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.6rem;
 		margin: 0;
 		font-family: var(--ns-font-mono);
 		font-size: 0.88rem;
@@ -129,9 +124,17 @@ const items = [
 		text-transform: uppercase;
 	}
 
+	h3::before {
+		content: "";
+		flex: 0 0 auto;
+		width: 0.7rem;
+		height: 0.7rem;
+		background: var(--ns-primary-active);
+	}
+
 	article p {
-		margin: 0.65rem 0 0;
-		color: color-mix(in srgb, var(--ns-bg) 64%, var(--ns-chrome-text));
+		margin: 0;
+		color: color-mix(in srgb, var(--ns-bg) 68%, var(--ns-chrome-text));
 		font-size: 0.9rem;
 		line-height: 1.45;
 	}
