@@ -1,7 +1,7 @@
 import { glob } from "astro/loaders";
 import { defineCollection, z } from "astro:content";
 
-const icon = z.enum(["activity", "api", "bolt", "book", "code", "compass", "cube", "database", "deployment", "key", "map", "route", "server", "shield", "terminal", "users", "wrench"]);
+const icon = z.enum(["activity", "api", "bolt", "book", "code", "codeBlock", "compass", "cube", "database", "deployment", "key", "map", "route", "server", "shield", "users", "wrench"]);
 
 const docs = defineCollection({
 	loader: glob({ pattern: "**/*.mdx", base: "./src/content/docs" }),

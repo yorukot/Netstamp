@@ -1,23 +1,6 @@
 import netstampLogo from "@netstamp/brand/assets/netstamp-logo-light.svg";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import {
-	Badge,
-	Button,
-	CodePreview,
-	DataTable,
-	FieldLabel,
-	GlobalFooter,
-	Input,
-	KeyValueRow,
-	MetricTile,
-	Panel,
-	SelectField,
-	SpecLabel,
-	Terminal,
-	TextAreaField,
-	TextField,
-	type DataColumn
-} from "../index";
+import { Badge, CodeBlock, DataTable, FieldLabel, GlobalFooter, Input, KeyValueRow, MetricTile, Panel, SelectField, SpecLabel, TextAreaField, TextField, type DataColumn } from "../index";
 
 interface ProbeRow {
 	probe: string;
@@ -63,7 +46,7 @@ const componentGroups = [
 	["Actions", "Button, IconButton, ActionRow, DisclosureToggle"],
 	["Forms", "TextField, TextAreaField, SelectField, SearchableSelect, Checkbox"],
 	["Surfaces", "Panel, Surface, MetricCard, MetricTile, SpecCard"],
-	["Data", "DataTable, KeyValueRow, Badge, SpecLabel, Terminal, CodePreview"],
+	["Data", "DataTable, KeyValueRow, Badge, SpecLabel, CodeBlock"],
 	["Layout", "PageShell, Drawer, Dialog, Tabs, SegmentedControl, GlobalFooter"]
 ] as const;
 
@@ -136,31 +119,15 @@ export const Overview: Story = {
 
 				<Panel title="Operator surfaces" summary="Deep surfaces are separated by tone and header structure, not decorative frames.">
 					<div className="storybook-operator-grid">
-						<CodePreview
-							title="component rule"
-							meta="css"
-							actions={
-								<Button type="button" size="sm" variant="ghost">
-									Copy
-								</Button>
-							}
-						>
+						<CodeBlock title="component rule" meta="css">
 							{`badge {
 	border: 0;
 	background: var(--ns-primary-muted);
 }`}
-						</CodePreview>
-						<Terminal
-							title="netstamp probe"
-							meta="shell"
-							actions={
-								<Button type="button" size="sm" variant="ghost">
-									Copy
-								</Button>
-							}
-						>
+						</CodeBlock>
+						<CodeBlock title="netstamp probe" meta="shell">
 							netstamp probe run --check ping --target 1.1.1.1
-						</Terminal>
+						</CodeBlock>
 					</div>
 				</Panel>
 			</section>

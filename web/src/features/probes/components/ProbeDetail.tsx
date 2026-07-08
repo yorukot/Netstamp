@@ -18,7 +18,7 @@ import { useConfirm } from "@/shared/components/confirmContext";
 import type { AssignedRow } from "@/shared/domain/assignments";
 import { pushErrorToast } from "@/shared/toast/toastStore";
 import { classNames } from "@/shared/utils/classNames";
-import { Badge, Button, Checkbox, DataTable, FieldLabel, SegmentedControl, Surface, Terminal, TextField, type DataColumn } from "@netstamp/ui";
+import { Badge, Button, Checkbox, CodeBlock, DataTable, FieldLabel, SegmentedControl, Surface, TextField, type DataColumn } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { LocationPreviewMap } from "./LocationPreviewMap";
@@ -67,23 +67,6 @@ function sortLabels(left: ApiLabel, right: ApiLabel) {
 	return left.key.localeCompare(right.key) || left.value.localeCompare(right.value);
 }
 
-async function writeClipboardText(value: string) {
-	if (navigator.clipboard?.writeText) {
-		await navigator.clipboard.writeText(value);
-		return;
-	}
-
-	const textarea = document.createElement("textarea");
-	textarea.value = value;
-	textarea.setAttribute("readonly", "");
-	textarea.style.position = "fixed";
-	textarea.style.left = "-100vw";
-	document.body.appendChild(textarea);
-	textarea.select();
-	document.execCommand("copy");
-	textarea.remove();
-}
-
 interface ProbeDetailProps {
 	probe: Probe;
 	assignedRows: AssignedRow[];
@@ -128,8 +111,6 @@ interface ProbeDetailContentProps {
 
 function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floating = false, projectRef, onClose, onDeleted }: ProbeDetailContentProps) {
 	const confirm = useConfirm();
-	const copyTimeoutRef = useRef<number | null>(null);
-	const serviceCopyTimeoutRef = useRef<number | null>(null);
 	const [probeName, setProbeName] = useState(activeProbe.name);
 	const [coordinateInputMode, setCoordinateInputMode] = useState<CoordinateInputMode>("search");
 	const [locationSearch, setLocationSearch] = useState(activeProbe.location === "-" ? "" : activeProbe.location);
@@ -139,9 +120,7 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 	const [geocodeStatus, setGeocodeStatus] = useState<GeocodeStatus>("idle");
 	const [geocodeError, setGeocodeError] = useState("");
 	const [rotatedSecret, setRotatedSecret] = useState("");
-	const [secretCommandCopied, setSecretCommandCopied] = useState(false);
 	const [serviceCommandMode, setServiceCommandMode] = useState<ProbeServiceCommandMode | null>(null);
-	const [serviceCommandCopied, setServiceCommandCopied] = useState(false);
 	const [savingProbe, setSavingProbe] = useState(false);
 	const [selectedLabelIds, setSelectedLabelIds] = useState(() => activeApiProbe?.labels.map(label => label.id) ?? []);
 	const geocodeAbortRef = useRef<AbortController | null>(null);
@@ -186,12 +165,6 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 
 	useEffect(() => {
 		return () => {
-			if (copyTimeoutRef.current) {
-				window.clearTimeout(copyTimeoutRef.current);
-			}
-			if (serviceCopyTimeoutRef.current) {
-				window.clearTimeout(serviceCopyTimeoutRef.current);
-			}
 			geocodeAbortRef.current?.abort();
 		};
 	}, []);
@@ -229,7 +202,6 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 
 	function updateServiceCommandMode(nextMode: ProbeServiceCommandMode) {
 		setServiceCommandMode(nextMode);
-		setServiceCommandCopied(false);
 	}
 
 	function toggleLabel(labelId: string, checked: boolean) {
@@ -318,54 +290,6 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 		} finally {
 			setSavingProbe(false);
 		}
-	}
-
-	async function copyRotatedSecretCommand() {
-		if (!rotatedSecretCommand) {
-			return;
-		}
-
-		try {
-			await writeClipboardText(rotatedSecretCommand);
-		} catch {
-			setSecretCommandCopied(false);
-			return;
-		}
-
-		setSecretCommandCopied(true);
-
-		if (copyTimeoutRef.current) {
-			window.clearTimeout(copyTimeoutRef.current);
-		}
-
-		copyTimeoutRef.current = window.setTimeout(() => {
-			setSecretCommandCopied(false);
-			copyTimeoutRef.current = null;
-		}, 1800);
-	}
-
-	async function copyServiceCommand() {
-		if (!serviceCommand) {
-			return;
-		}
-
-		try {
-			await writeClipboardText(serviceCommand);
-		} catch {
-			setServiceCommandCopied(false);
-			return;
-		}
-
-		setServiceCommandCopied(true);
-
-		if (serviceCopyTimeoutRef.current) {
-			window.clearTimeout(serviceCopyTimeoutRef.current);
-		}
-
-		serviceCopyTimeoutRef.current = window.setTimeout(() => {
-			setServiceCommandCopied(false);
-			serviceCopyTimeoutRef.current = null;
-		}, 1800);
 	}
 
 	return (
@@ -483,7 +407,6 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 						rotateSecretMutation.mutate(activeProbe.id, {
 							onSuccess: data => {
 								setRotatedSecret(data.secret);
-								setSecretCommandCopied(false);
 							}
 						})
 					}
@@ -505,25 +428,9 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 			{serviceCommandMode && selectedServiceCommand ? (
 				<div className={styles.serviceCommandPanel}>
 					<span>Probe service command</span>
-					<Terminal
-						title={`${selectedServiceCommand.label.toLowerCase()} command`}
-						actions={
-							<Button
-								type="button"
-								variant="ghost"
-								size="sm"
-								disabled={!serviceCommand}
-								aria-label={serviceCommandCopied ? "Service command copied" : "Copy service command to clipboard"}
-								title={serviceCommandCopied ? "Service command copied" : "Copy service command to clipboard"}
-								aria-live="polite"
-								onClick={() => void copyServiceCommand()}
-							>
-								{serviceCommandCopied ? "Copied" : "Copy to clipboard"}
-							</Button>
-						}
-					>
+					<CodeBlock title={`${selectedServiceCommand.label.toLowerCase()} command`} copyDisabled={!serviceCommand}>
 						{serviceCommand}
-					</Terminal>
+					</CodeBlock>
 				</div>
 			) : null}
 
@@ -532,25 +439,9 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 					<span>New probe secret</span>
 					<code>{rotatedSecret}</code>
 					<p>Rewrite the systemd service environment with the rotated credential.</p>
-					<Terminal
-						title="update command"
-						actions={
-							<Button
-								type="button"
-								variant="ghost"
-								size="sm"
-								disabled={!rotatedSecretCommand}
-								aria-label={secretCommandCopied ? "Secret update command copied" : "Copy secret update command to clipboard"}
-								title={secretCommandCopied ? "Secret update command copied" : "Copy secret update command to clipboard"}
-								aria-live="polite"
-								onClick={() => void copyRotatedSecretCommand()}
-							>
-								{secretCommandCopied ? "Copied" : "Copy to clipboard"}
-							</Button>
-						}
-					>
+					<CodeBlock title="update command" copyDisabled={!rotatedSecretCommand}>
 						{rotatedSecretCommand}
-					</Terminal>
+					</CodeBlock>
 				</div>
 			) : null}
 

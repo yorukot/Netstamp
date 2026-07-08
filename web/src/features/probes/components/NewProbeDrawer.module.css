@@ -175,13 +175,6 @@
 	align-items: center;
 }
 
-.copyCommandButton {
-	min-height: 1.65rem;
-	padding: 0.25rem 0.55rem;
-	font-size: 0.625rem;
-	white-space: nowrap;
-}
-
 .installCommand {
 	min-height: 9.5rem;
 	max-height: min(18rem, 34dvh);

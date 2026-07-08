@@ -108,13 +108,13 @@ function remarkCallouts() {
 	};
 }
 
-function remarkTerminalCodeBlocks() {
+function remarkCodeBlocks() {
 	return tree => {
 		function createAttribute(name, value) {
 			return { type: "mdxJsxAttribute", name, value };
 		}
 
-		function createTerminalBlock(node) {
+		function createCodeBlock(node) {
 			const attributes = [createAttribute("title", node.lang || "code")];
 
 			if (node.meta) {
@@ -123,7 +123,7 @@ function remarkTerminalCodeBlocks() {
 
 			return {
 				type: "mdxJsxFlowElement",
-				name: "Terminal",
+				name: "CodeBlock",
 				attributes,
 				children: [{ type: "text", value: node.value }]
 			};
@@ -136,7 +136,7 @@ function remarkTerminalCodeBlocks() {
 				const child = children[index];
 
 				if (child.type === "code") {
-					children[index] = createTerminalBlock(child);
+					children[index] = createCodeBlock(child);
 					continue;
 				}
 
@@ -153,7 +153,7 @@ export default defineConfig({
 	site,
 	output: "static",
 	markdown: {
-		processor: unified({ remarkPlugins: [remarkDirective, remarkCallouts, remarkTerminalCodeBlocks] })
+		processor: unified({ remarkPlugins: [remarkDirective, remarkCallouts, remarkCodeBlocks] })
 	},
 	integrations: [react(), mdx()]
 });

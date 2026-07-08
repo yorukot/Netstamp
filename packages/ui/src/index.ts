@@ -7,8 +7,8 @@ export { BodyCopy } from "./components/BodyCopy/BodyCopy";
 export type { BodyCopyProps } from "./components/BodyCopy/BodyCopy";
 export { Button } from "./components/Button/Button";
 export type { ButtonProps, ButtonSize, ButtonVariant } from "./components/Button/Button";
-export { CodePreview } from "./components/CodePreview/CodePreview";
-export type { CodePreviewProps } from "./components/CodePreview/CodePreview";
+export { CodeBlock } from "./components/CodeBlock/CodeBlock";
+export type { CodeBlockProps } from "./components/CodeBlock/CodeBlock";
 export { DataTable } from "./components/DataTable/DataTable";
 export type { DataColumn, DataTableProps, DataTableSortDirection, DataTableSortState } from "./components/DataTable/DataTable";
 export {
@@ -117,5 +117,3 @@ export { Surface } from "./components/Surface/Surface";
 export type { SurfaceFrameSize, SurfacePadding, SurfaceProps, SurfaceTone } from "./components/Surface/Surface";
 export { Tabs } from "./components/Tabs/Tabs";
 export type { TabItem, TabsProps, TabsSize } from "./components/Tabs/Tabs";
-export { Terminal } from "./components/Terminal/Terminal";
-export type { TerminalProps } from "./components/Terminal/Terminal";

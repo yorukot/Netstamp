@@ -1,6 +1,6 @@
 ---
 import { getCollection, render } from "astro:content";
-import { Terminal } from "@netstamp/ui";
+import { CodeBlock } from "@netstamp/ui";
 import DocLayout from "../../layouts/DocLayout.astro";
 
 const entries = await getCollection("docs", entry => !entry.data.draft);
@@ -15,5 +15,5 @@ const editPath = `docs/src/content/docs/${entry.id.endsWith(".mdx") ? entry.id :
 ---
 
 <DocLayout title={entry.data.title} description={entry.data.description} headings={headings} editPath={editPath} head={entry.data.head}>
-	<Content components={{ Terminal }} />
+	<Content components={{ CodeBlock }} />
 </DocLayout>

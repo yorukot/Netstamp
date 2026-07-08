@@ -197,7 +197,7 @@ The authenticated app is the densest surface.
 - Sidebar: brand, project switcher, navigation, user menu.
 - Main content: compact page stack, screen header, panels, data tables, metric rows, maps, timelines, charts, drawers.
 - Route titles are large but not theatrical.
-- Repeated data should use tables, key-value grids, timeline rows, terminal blocks, or compact panels.
+- Repeated data should use tables, key-value grids, timeline rows, code blocks, or compact panels.
 - Wide technical data can scroll horizontally.
 
 ### Public Homepage
@@ -276,7 +276,7 @@ Tone intent:
 
 - `glass`: legacy name; render as a flat dashboard surface without a routine frame.
 - `matte`: lower-contrast nested surface.
-- `deep`: code, topology, maps, terminals, response previews.
+- `deep`: code, topology, maps, code blocks, response previews.
 - `flat`: quiet low-emphasis surface.
 - `accent`: important CTA or selected product block.
 - `danger`: destructive or critical state block.
@@ -351,13 +351,14 @@ Metric cards summarize current state.
 - Values may use display or mono depending on meaning.
 - Cards align heights in grids.
 
-### Terminal And Code
+### Code Blocks
 
-Terminal blocks represent commands, snippets, logs, and responses.
+CodeBlock represents commands, snippets, logs, and responses.
 
 - Deep surface.
 - Mono text.
 - Optional simple top bar.
+- Copy action on the right side of the top bar.
 - Horizontal scrolling for long lines.
 - Orange for primary command prompt or active marker, blue for secondary reference.
 

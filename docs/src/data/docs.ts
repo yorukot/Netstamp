@@ -1,6 +1,6 @@
 import { getCollection, type CollectionEntry } from "astro:content";
 
-export type DocIcon = "activity" | "api" | "bolt" | "book" | "code" | "compass" | "cube" | "database" | "deployment" | "key" | "map" | "route" | "server" | "shield" | "terminal" | "users" | "wrench";
+export type DocIcon = "activity" | "api" | "bolt" | "book" | "code" | "codeBlock" | "compass" | "cube" | "database" | "deployment" | "key" | "map" | "route" | "server" | "shield" | "users" | "wrench";
 
 export interface DocNavItem {
 	title: string;
@@ -35,6 +35,7 @@ const docIconNames = new Set<DocIcon>([
 	"bolt",
 	"book",
 	"code",
+	"codeBlock",
 	"compass",
 	"cube",
 	"database",
@@ -44,7 +45,6 @@ const docIconNames = new Set<DocIcon>([
 	"route",
 	"server",
 	"shield",
-	"terminal",
 	"users",
 	"wrench"
 ]);

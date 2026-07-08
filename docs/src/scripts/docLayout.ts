@@ -89,6 +89,38 @@ function initDocLayout() {
 		textarea.remove();
 	}
 
+	function flashCodeCopyLabel(button: HTMLElement, label: string) {
+		const labelTarget = button.querySelector<HTMLElement>("[data-ns-code-copy-label]") ?? button;
+		const original = labelTarget.textContent ?? "";
+		labelTarget.textContent = label;
+		window.setTimeout(() => {
+			labelTarget.textContent = original;
+		}, 1400);
+	}
+
+	const codeCopyButtons = Array.from(document.querySelectorAll("[data-ns-code-copy]")).filter((button): button is HTMLButtonElement => button instanceof HTMLButtonElement);
+
+	for (const button of codeCopyButtons) {
+		const handleCodeCopy = async () => {
+			if (button.disabled) {
+				return;
+			}
+
+			const block = button.closest("[data-ns-code-block]");
+			const code = block?.querySelector("code")?.textContent ?? "";
+
+			if (!code) {
+				return;
+			}
+
+			await copyText(code);
+			flashCodeCopyLabel(button, button.dataset.copiedLabel || "Copied");
+		};
+
+		button.addEventListener("click", handleCodeCopy);
+		cleanupTasks.push(() => button.removeEventListener("click", handleCodeCopy));
+	}
+
 	function openPlainTextDocument(text: string) {
 		const title = `${plainTextFromElement(".docTitle") || document.title} Markdown`;
 		const openedWindow = window.open("", "_blank");

@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { Button, CodePreview, KeyValueRow, SpecLabel, Surface } from "../index";
+import { CodeBlock, KeyValueRow, SpecLabel, Surface } from "../index";
 
 const defaultTokens = [
 	["Canvas", "--ns-bg", "#000000"],
@@ -115,20 +115,12 @@ export const ImplementationRules: Story = {
 						<KeyValueRow label="state" value="semantic" meta="health only" tone="success" />
 					</Surface>
 				</div>
-				<CodePreview
-					title="focus contract"
-					meta="css"
-					actions={
-						<Button type="button" size="sm" variant="ghost">
-							Copy
-						</Button>
-					}
-				>
+				<CodeBlock title="focus contract" meta="css">
 					{`:focus-visible {
 	outline: var(--ns-focus-outline);
 	outline-offset: var(--ns-focus-outline-offset);
 }`}
-				</CodePreview>
+				</CodeBlock>
 			</section>
 		</div>
 	)

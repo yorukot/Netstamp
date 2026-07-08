@@ -1,17 +1,20 @@
-.shell {
+.block {
 	--ns-frame-color: transparent;
 	display: grid;
 	grid-template-rows: auto minmax(0, auto);
 	min-width: 0;
+	overflow: hidden;
 	background: var(--ns-surface-deep);
 	box-shadow: none;
 }
 
-.bar {
+.header {
 	display: flex;
 	align-items: center;
-	gap: 0.5rem;
-	padding: 0.5rem 1rem;
+	justify-content: space-between;
+	gap: 0.75rem;
+	min-width: 0;
+	padding: 0.5rem 0.75rem 0.5rem 1rem;
 	border-bottom: 1px solid var(--ns-border-faint);
 	background: var(--ns-surface-raised);
 	color: var(--ns-text-low);
@@ -21,36 +24,30 @@
 	text-transform: uppercase;
 }
 
-.bar span {
-	width: 0.625rem;
-	height: 0.625rem;
-	background: var(--ns-text-low);
+.copy {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.5rem;
+	min-width: 0;
 }
 
-.bar span:nth-child(1) {
-	background: var(--ns-critical);
+.copy strong,
+.copy span {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
-.bar span:nth-child(2) {
-	background: var(--ns-warning);
-}
-
-.bar span:nth-child(3) {
-	background: var(--ns-success);
-}
-
-.bar strong {
+.copy strong {
 	color: var(--ns-text-muted);
-	font-weight: 700;
+	font-weight: 800;
 }
 
-.bar em {
+.copy span {
 	color: var(--ns-primary-hover);
-	font-style: normal;
-}
-
-.bar em:last-child {
-	margin-left: auto;
+	font-weight: 700;
 }
 
 .actions {
@@ -61,7 +58,7 @@
 	margin-left: auto;
 }
 
-.terminal {
+.code {
 	min-width: 0;
 	margin: 0;
 	padding: 1rem;
@@ -69,11 +66,11 @@
 	color: var(--ns-text-muted);
 	font-family: var(--ns-font-code);
 	font-size: 0.8125rem;
-	line-height: 1.8;
-	white-space: pre-wrap;
+	line-height: 1.75;
+	white-space: pre;
 }
 
-.terminal code {
+.code code {
 	color: inherit;
 	font: inherit;
 }

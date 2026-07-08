@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { Button, CodePreview, DisclosureToggle, EmptyState, KeyValueRow, MetricTile, SelectableRow, SpecCard, SpecLabel } from "../index";
+import { Button, CodeBlock, DisclosureToggle, EmptyState, KeyValueRow, MetricTile, SelectableRow, SpecCard, SpecLabel } from "../index";
 
 const meta = {
 	title: "Components/Spec primitives",
@@ -67,34 +67,18 @@ export const CardsMetricsAndRows: Story = {
 	)
 };
 
-export const CodePreviews: Story = {
+export const CodeBlocks: Story = {
 	render: () => (
 		<div className="storybook-canvas">
 			<div className="storybook-demo">
-				<CodePreview
-					title="install probe"
-					meta="shell"
-					actions={
-						<Button size="sm" variant="secondary">
-							Copy
-						</Button>
-					}
-				>
+				<CodeBlock title="install probe" meta="shell">
 					{`curl -fsSL https://netstamp.dev/install.sh | sh
 netstamp probe join --controller https://api.netstamp.dev --token ns_probe_***`}
-				</CodePreview>
-				<CodePreview
-					title="api request"
-					meta="curl"
-					actions={
-						<Button type="button" size="sm" variant="ghost">
-							Copy
-						</Button>
-					}
-				>
+				</CodeBlock>
+				<CodeBlock title="api request" meta="curl">
 					{`curl -H "Authorization: Bearer $NETSTAMP_TOKEN" \\
   https://api.netstamp.dev/v1/projects/edge/checks`}
-				</CodePreview>
+				</CodeBlock>
 			</div>
 		</div>
 	)

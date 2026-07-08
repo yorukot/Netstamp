@@ -14,7 +14,7 @@ import { projectQueries } from "@/shared/api/queries";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { EditorDrawer } from "@/shared/components/EditorDrawer";
 import { classNames } from "@/shared/utils/classNames";
-import { Badge, Button, SegmentedControl, Terminal, TextField } from "@netstamp/ui";
+import { Badge, Button, CodeBlock, SegmentedControl, TextField } from "@netstamp/ui";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
@@ -32,32 +32,13 @@ const coordinateModeOptions: Array<{ value: CoordinateInputMode; label: string }
 	{ value: "manual", label: "Manual coordinates" }
 ];
 
-async function writeClipboardText(value: string) {
-	if (navigator.clipboard?.writeText) {
-		await navigator.clipboard.writeText(value);
-		return;
-	}
-
-	const textarea = document.createElement("textarea");
-	textarea.value = value;
-	textarea.setAttribute("readonly", "");
-	textarea.style.position = "fixed";
-	textarea.style.left = "-100vw";
-	document.body.appendChild(textarea);
-	textarea.select();
-	document.execCommand("copy");
-	textarea.remove();
-}
-
 export function NewProbeDrawer() {
 	const navigate = useNavigate();
 	const { projectRef } = useCurrentProject();
 	const queryClient = useQueryClient();
-	const copyTimeoutRef = useRef<number | null>(null);
 	const geocodeAbortRef = useRef<AbortController | null>(null);
 	const [currentStep, setCurrentStep] = useState(0);
 	const [installStatus, setInstallStatus] = useState<"idle" | "detecting">("idle");
-	const [installCommandCopied, setInstallCommandCopied] = useState(false);
 	const [probeName, setProbeName] = useState("");
 	const [coordinateInputMode, setCoordinateInputMode] = useState<CoordinateInputMode>("search");
 	const [locationSearch, setLocationSearch] = useState("");
@@ -101,9 +82,6 @@ export function NewProbeDrawer() {
 
 	useEffect(() => {
 		return () => {
-			if (copyTimeoutRef.current) {
-				window.clearTimeout(copyTimeoutRef.current);
-			}
 			geocodeAbortRef.current?.abort();
 		};
 	}, []);
@@ -168,30 +146,6 @@ export function NewProbeDrawer() {
 	function startInstallDetection() {
 		setInstallStatus("detecting");
 		setCurrentStep(1);
-	}
-
-	async function copyInstallCommand() {
-		if (!installCommand) {
-			return;
-		}
-
-		try {
-			await writeClipboardText(installCommand);
-		} catch {
-			setInstallCommandCopied(false);
-			return;
-		}
-
-		setInstallCommandCopied(true);
-
-		if (copyTimeoutRef.current) {
-			window.clearTimeout(copyTimeoutRef.current);
-		}
-
-		copyTimeoutRef.current = window.setTimeout(() => {
-			setInstallCommandCopied(false);
-			copyTimeoutRef.current = null;
-		}, 1800);
 	}
 
 	async function searchLocation() {
@@ -349,27 +303,9 @@ export function NewProbeDrawer() {
 								<span>Registration token</span>
 								<strong>{registrationSecret || "-"}</strong>
 							</div>
-							<Terminal
-								title="install command"
-								className={styles.installCommand}
-								actions={
-									<Button
-										type="button"
-										variant="ghost"
-										size="sm"
-										className={styles.copyCommandButton}
-										disabled={!installCommand}
-										aria-label={installCommandCopied ? "Install command copied" : "Copy install command to clipboard"}
-										title={installCommandCopied ? "Install command copied" : "Copy install command to clipboard"}
-										aria-live="polite"
-										onClick={() => void copyInstallCommand()}
-									>
-										{installCommandCopied ? "Copied" : "Copy"}
-									</Button>
-								}
-							>
+							<CodeBlock title="install command" className={styles.installCommand} copyDisabled={!installCommand}>
 								{installCommand}
-							</Terminal>
+							</CodeBlock>
 							<div className={styles.assetLinks}>
 								<Button asChild variant="outline" size="sm">
 									<a href={installerUrl}>Installer</a>
