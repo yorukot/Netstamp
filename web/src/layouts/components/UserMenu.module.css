@@ -5,7 +5,7 @@
 	--user-menu-muted: var(--ns-chrome-text-muted);
 
 	z-index: 1000;
-	width: min(11rem, calc(100vw - 1rem));
+	width: min(max(var(--radix-popover-trigger-width, 11rem), 11rem), calc(100vw - 1rem));
 	padding: 0.25rem;
 	border: 0;
 	color: var(--ns-text-subtle);
