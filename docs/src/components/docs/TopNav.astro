@@ -58,7 +58,7 @@ const discordHref = "https://discord.gg/9mdkf6dyTy";
 		gap: 1rem;
 		min-height: 4rem;
 		padding: 0.5rem 0.75rem 0.5rem 1rem;
-		border: 1px solid var(--ns-chrome-border);
+		border: 1px solid color-mix(in srgb, var(--ns-chrome-text) 22%, transparent);
 		color: var(--ns-chrome-text);
 		background: var(--ns-chrome-bg);
 	}
@@ -191,9 +191,9 @@ const discordHref = "https://discord.gg/9mdkf6dyTy";
 
 	.siteNavLogin:hover,
 	.siteNavLogin:active {
-		border-color: var(--ns-bg);
+		border-color: color-mix(in srgb, var(--ns-chrome-text) 84%, var(--ns-primary));
 		color: var(--ns-chrome-bg);
-		background: var(--ns-bg);
+		background: color-mix(in srgb, var(--ns-chrome-text) 84%, var(--ns-primary));
 	}
 
 	.siteNavLogin:focus-visible {
