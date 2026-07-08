@@ -169,6 +169,12 @@ Implementation decision: root defaults to the dark palette, with `:root` and `:r
 - `.ns-grid-shell` and `.ns-grid-shell--constellation` are compatibility classes. They must render as plain token backgrounds.
 - `.ns-cut-frame` is a compatibility class. It must render as a standard square frame, with no clipped corners.
 
+### Nested Container And Control Tokens
+
+- `--ns-container-bg`, `--ns-container-bg-raised`, and `--ns-container-bg-hover` are semantic aliases for nested framed content such as tables, list shells, and embedded containers.
+- `--ns-control-bg`, `--ns-control-bg-raised`, and `--ns-control-bg-hover` are semantic aliases for input, select, searchable select, checkbox, and similar control surfaces.
+- By default these aliases resolve to raised neutral surfaces instead of black canvas surfaces. Framed primitives such as `Panel` may override them locally so table and form controls inside panels do not fall back to black `--ns-surface` backgrounds.
+
 ### Radius, Shadow, And Motion
 
 - `--ns-radius-*`: `0` for app and docs core UI.

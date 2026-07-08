@@ -5,7 +5,7 @@
 	min-width: 0;
 	padding: 0.1875rem;
 	border: 1px solid var(--ns-border);
-	background: var(--ns-surface);
+	background: var(--ns-control-bg);
 }
 
 .option {
@@ -32,7 +32,7 @@
 .option:hover:not(:disabled) {
 	border-color: var(--ns-border);
 	color: var(--ns-text);
-	background: var(--ns-bg-subtle);
+	background: var(--ns-control-bg-hover);
 }
 
 .option:focus-visible {

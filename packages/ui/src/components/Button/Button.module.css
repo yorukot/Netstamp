@@ -99,14 +99,14 @@
 
 .outline {
 	--ns-frame-color: var(--ns-border);
-	background: var(--ns-surface);
+	background: var(--ns-control-bg);
 	color: var(--ns-text-muted);
 }
 
 .outline:hover {
 	--ns-frame-color: var(--ns-border-strong);
 	color: var(--ns-text);
-	background: var(--ns-surface-raised);
+	background: var(--ns-control-bg-raised);
 }
 
 .outline:active {

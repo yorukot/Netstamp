@@ -2,7 +2,7 @@
 	--ns-frame-color: var(--ns-border-faint);
 	--ns-frame-radius: 0;
 	width: 100%;
-	background: var(--ns-surface);
+	background: var(--ns-container-bg);
 	box-shadow: none;
 }
 
@@ -13,7 +13,7 @@
 	gap: 1rem;
 	padding: 0.75rem 1rem;
 	border-bottom: 1px solid var(--ns-border-faint);
-	background: var(--ns-surface-raised);
+	background: var(--ns-container-bg-raised);
 }
 
 .batchLabel {
@@ -66,7 +66,7 @@
 	z-index: 1;
 	padding: 0.75rem 1rem;
 	color: var(--ns-text-subtle);
-	background: var(--ns-surface-raised);
+	background: var(--ns-container-bg-raised);
 	border-bottom: 1px solid var(--ns-border-faint);
 	font-size: 0.75rem;
 	font-weight: 700;
@@ -130,7 +130,7 @@
 
 .table tbody tr:hover {
 	color: var(--ns-text);
-	background: var(--ns-bg-subtle);
+	background: var(--ns-container-bg-hover);
 }
 
 .interactive {
@@ -139,7 +139,7 @@
 
 .interactive:focus-visible {
 	color: var(--ns-text);
-	background: var(--ns-bg-subtle);
+	background: var(--ns-container-bg-hover);
 	outline: var(--ns-focus-outline);
 	outline-offset: -2px;
 }

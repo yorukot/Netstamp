@@ -49,7 +49,7 @@
 	border: 0;
 	padding: 0.75rem 1rem;
 	color: var(--ns-text);
-	background: var(--ns-surface);
+	background: var(--ns-control-bg);
 	box-shadow: none;
 	font-family: var(--ns-font-sans);
 	font-size: 0.875rem;
@@ -135,7 +135,7 @@
 	padding-right: 2.75rem;
 	color: var(--ns-text);
 	color-scheme: inherit;
-	background: var(--ns-surface);
+	background: var(--ns-control-bg);
 	cursor: pointer;
 	text-align: left;
 	user-select: none;
@@ -163,7 +163,7 @@
 
 .compactControl.select {
 	padding-right: 2rem;
-	background: var(--ns-surface-raised);
+	background: var(--ns-control-bg-raised);
 }
 
 .compactControl.select::after {
@@ -208,7 +208,7 @@
 	overflow: hidden;
 	padding: 0.25rem;
 	color: var(--ns-text);
-	background: var(--ns-surface);
+	background: var(--ns-control-bg);
 	box-shadow: none;
 }
 
@@ -265,7 +265,7 @@
 
 .selectOption[data-highlighted] {
 	color: var(--ns-text);
-	background: var(--ns-bg-subtle);
+	background: var(--ns-control-bg-hover);
 }
 
 .selectOption[data-state="checked"] {
@@ -305,7 +305,7 @@
 	-webkit-appearance: none;
 	color: var(--ns-primary-hover);
 	vertical-align: -0.125rem;
-	background: var(--ns-surface);
+	background: var(--ns-control-bg);
 	border: 1px solid var(--ns-border);
 	border-radius: var(--ns-radius-xs);
 	box-shadow: none;

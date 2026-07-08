@@ -2,6 +2,8 @@
 	--ns-panel-frame: var(--ns-border-strong);
 	--ns-panel-bg: var(--ns-bg);
 	--ns-panel-body-bg: var(--ns-surface-raised);
+	--ns-panel-nested-bg: color-mix(in srgb, var(--ns-panel-body-bg) 86%, var(--ns-border-strong));
+	--ns-panel-nested-bg-raised: color-mix(in srgb, var(--ns-panel-nested-bg) 88%, var(--ns-border-strong));
 	--ns-panel-marker: var(--ns-primary);
 	display: grid;
 	align-content: start;
@@ -16,7 +18,7 @@
 .panel[data-tone="matte"] {
 	--ns-panel-frame: var(--ns-border);
 	--ns-panel-bg: var(--ns-bg-subtle);
-	--ns-panel-body-bg: var(--ns-surface);
+	--ns-panel-body-bg: color-mix(in srgb, var(--ns-bg-subtle) 86%, var(--ns-border-strong));
 }
 
 .panel[data-tone="deep"] {
@@ -81,6 +83,12 @@
 }
 
 .body {
+	--ns-container-bg: var(--ns-panel-nested-bg);
+	--ns-container-bg-raised: var(--ns-panel-nested-bg-raised);
+	--ns-container-bg-hover: var(--ns-panel-nested-bg-raised);
+	--ns-control-bg: var(--ns-panel-nested-bg);
+	--ns-control-bg-raised: var(--ns-panel-nested-bg-raised);
+	--ns-control-bg-hover: var(--ns-panel-nested-bg-raised);
 	min-width: 0;
 	border: 1px solid var(--ns-border-faint);
 	background: var(--ns-panel-body-bg);

@@ -5,7 +5,7 @@
 	place-items: center;
 	border: 1px solid var(--ns-border);
 	color: var(--ns-text-subtle);
-	background: var(--ns-surface);
+	background: var(--ns-control-bg);
 	cursor: pointer;
 	transition:
 		background-color var(--ns-transition),

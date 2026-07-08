@@ -3,7 +3,7 @@
 	width: 100%;
 	min-width: 0;
 	border: 1px solid var(--ns-border);
-	background: var(--ns-surface);
+	background: var(--ns-control-bg);
 	transition:
 		border-color var(--ns-transition),
 		outline-color var(--ns-transition);
@@ -120,14 +120,14 @@
 	overflow: hidden;
 	padding: 0.25rem;
 	color: var(--ns-text);
-	background: var(--ns-surface);
+	background: var(--ns-control-bg);
 	box-shadow: none;
 }
 
 .search {
 	display: block;
 	border: 1px solid var(--ns-border);
-	background: var(--ns-surface-raised);
+	background: var(--ns-control-bg-raised);
 }
 
 .search:has(input:focus-visible) {
@@ -185,7 +185,7 @@
 
 .option[data-active="true"] {
 	color: var(--ns-text);
-	background: var(--ns-bg-subtle);
+	background: var(--ns-control-bg-hover);
 	outline: none;
 }
 
