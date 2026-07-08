@@ -1,19 +1,19 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { CodePreview, KeyValueRow, SpecLabel, Surface } from "../index";
 
-const lightTokens = [
-	["Canvas", "--ns-bg", "#f3f7fb"],
-	["Surface", "--ns-surface", "#ffffff"],
-	["Raised", "--ns-surface-raised", "#f8fbff"],
-	["Deep", "--ns-surface-deep", "#e0e7e9"],
-	["Text", "--ns-text", "#172033"],
-	["Muted text", "--ns-text-muted", "#405168"],
-	["Primary orange", "--ns-primary", "#ea6a1a"],
-	["Secondary blue", "--ns-secondary", "#2563eb"],
-	["Success", "--ns-success", "#168a45"],
-	["Warning", "--ns-warning", "#b7791f"],
-	["Critical", "--ns-critical", "#c9362c"],
-	["Border", "--ns-border", "#d8e1ec"]
+const defaultTokens = [
+	["Canvas", "--ns-bg", "#000000"],
+	["Surface", "--ns-surface", "#070707"],
+	["Raised", "--ns-surface-raised", "#131518"],
+	["Deep", "--ns-surface-deep", "#000000"],
+	["Text", "--ns-text", "#f8fafc"],
+	["Muted text", "--ns-text-muted", "#d8dce8"],
+	["Primary orange", "--ns-primary", "#fb923c"],
+	["Secondary blue", "--ns-secondary", "#38bdf8"],
+	["Success", "--ns-success", "#34c77b"],
+	["Warning", "--ns-warning", "#facc15"],
+	["Critical", "--ns-critical", "#ff6b63"],
+	["Border", "--ns-border", "#2d3035"]
 ] as const;
 
 const typeRows = [
@@ -42,7 +42,7 @@ export const ColorRoles: Story = {
 					<p>Use orange for primary interaction, blue for secondary/reference data, and semantic colors only for state.</p>
 				</div>
 				<div className="storybook-token-grid">
-					{lightTokens.map(([label, token, value]) => (
+					{defaultTokens.map(([label, token, value]) => (
 						<Surface key={token} tone="glass" frameSize="lg" padding="sm" className="storybook-token-card">
 							<span className="storybook-swatch" style={{ background: `var(${token})` }} />
 							<strong>{label}</strong>

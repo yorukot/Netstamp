@@ -50,7 +50,6 @@
 	border-color: var(--ns-border);
 	color: var(--ns-text);
 	background: var(--ns-bg-subtle);
-	outline: none;
 }
 
 .tab:focus-visible {

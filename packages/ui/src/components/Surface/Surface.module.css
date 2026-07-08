@@ -57,8 +57,8 @@
 }
 
 .paddingSm {
-	--ns-surface-padding-x: 0.875rem;
-	--ns-surface-padding-y: 0.875rem;
+	--ns-surface-padding-x: 1rem;
+	--ns-surface-padding-y: 1rem;
 	padding: var(--ns-surface-padding-y) var(--ns-surface-padding-x);
 }
 
@@ -69,8 +69,8 @@
 }
 
 .paddingLg {
-	--ns-surface-padding-x: 1.35rem;
-	--ns-surface-padding-y: 1.35rem;
+	--ns-surface-padding-x: 1.5rem;
+	--ns-surface-padding-y: 1.5rem;
 	padding: var(--ns-surface-padding-y) var(--ns-surface-padding-x);
 }
 

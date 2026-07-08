@@ -15,25 +15,6 @@
 
 .drawer {
 	--ns-drawer-width: 42rem;
-	--ns-bg: #000000;
-	--ns-bg-subtle: #131518;
-	--ns-surface: #131518;
-	--ns-surface-raised: #131518;
-	--ns-surface-deep: #00080f;
-	--ns-text: #ffffff;
-	--ns-text-muted: rgba(255, 255, 255, 0.76);
-	--ns-text-subtle: rgba(255, 255, 255, 0.58);
-	--ns-text-low: rgba(255, 255, 255, 0.38);
-	--ns-text-on-accent: #000000;
-	--ns-border: #ffffff1a;
-	--ns-border-strong: #4b515b;
-	--ns-border-faint: #ffffff1a;
-	--ns-primary: #fb923c;
-	--ns-primary-hover: #fdba74;
-	--ns-primary-active: #f97316;
-	--ns-primary-muted: rgba(251, 146, 60, 0.13);
-	--ns-primary-subtle: rgba(251, 146, 60, 0.2);
-	--ns-primary-border: rgba(251, 146, 60, 0.44);
 
 	position: fixed;
 	top: 0;
@@ -49,8 +30,14 @@
 	padding: 1.25rem;
 	border-color: var(--ns-border);
 	color: var(--ns-text);
-	background: #000000;
-	outline: none;
+	background: var(--ns-bg);
+	outline: 2px solid transparent;
+	outline-offset: calc(-1 * var(--ns-focus-outline-offset));
+}
+
+.drawer:focus-visible {
+	outline: var(--ns-focus-outline);
+	outline-offset: calc(-1 * var(--ns-focus-outline-offset));
 }
 
 .drawer[data-side="right"] {
@@ -112,7 +99,7 @@
 .backButton {
 	display: inline-flex;
 	align-items: center;
-	gap: 0.45rem;
+	gap: 0.5rem;
 	width: fit-content;
 	padding: 0;
 	border: 0;
@@ -134,7 +121,6 @@
 .backButton:hover,
 .backButton:focus-visible {
 	color: var(--ns-primary);
-	outline: none;
 }
 
 .backButton:focus-visible {
@@ -145,7 +131,7 @@
 .title {
 	margin: 0;
 	overflow: hidden;
-	color: #ffffff;
+	color: var(--ns-text);
 	font-family: var(--ns-font-display);
 	font-size: clamp(1.75rem, 4vw, 2.4rem);
 	font-weight: 400;

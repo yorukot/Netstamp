@@ -396,13 +396,43 @@ export interface TextFieldProps extends ComponentPropsWithoutRef<"input"> {
 	error?: ReactNode;
 }
 
+function fieldNameFromLabel(label: ReactNode) {
+	const text = textFromReactNode(label)
+		.toLowerCase()
+		.trim()
+		.replace(/[^a-z0-9]+/g, "-")
+		.replace(/^-+|-+$/g, "");
+
+	return text || undefined;
+}
+
+function defaultInputAutoComplete(type: ComponentPropsWithoutRef<"input">["type"]) {
+	switch (type) {
+		case "email":
+			return "email";
+		case "search":
+		case "datetime-local":
+		case "number":
+		case "password":
+			return "off";
+		case "tel":
+			return "tel";
+		case "url":
+			return "url";
+		default:
+			return "off";
+	}
+}
+
 export function TextField({ label, helper, error, className, ...props }: TextFieldProps) {
 	const generatedId = useId();
 	const id = props.id || generatedId;
+	const name = props.name ?? fieldNameFromLabel(label);
+	const autoComplete = props.autoComplete ?? defaultInputAutoComplete(props.type);
 
 	return (
 		<FieldShell id={id} label={label} helper={helper} error={error}>
-			<Input id={id} className={className} invalid={Boolean(error)} {...props} />
+			<Input id={id} name={name} autoComplete={autoComplete} className={className} invalid={Boolean(error)} {...props} />
 		</FieldShell>
 	);
 }
@@ -416,12 +446,14 @@ export interface TextAreaFieldProps extends ComponentPropsWithoutRef<"textarea">
 export function TextAreaField({ label, helper, error, className, ...props }: TextAreaFieldProps) {
 	const generatedId = useId();
 	const id = props.id || generatedId;
+	const name = props.name ?? fieldNameFromLabel(label);
+	const autoComplete = props.autoComplete ?? "off";
 	const classes = [styles.control, styles.area, className].filter(Boolean).join(" ");
 
 	return (
 		<FieldShell id={id} label={label} helper={helper} error={error}>
 			<span className={["ns-frame", styles.controlFrame].join(" ")} data-invalid={Boolean(error)}>
-				<textarea id={id} className={classes} aria-invalid={Boolean(error)} {...props} />
+				<textarea id={id} name={name} autoComplete={autoComplete} className={classes} aria-invalid={Boolean(error)} {...props} />
 			</span>
 		</FieldShell>
 	);
@@ -443,10 +475,11 @@ export interface SelectFieldProps extends ComponentPropsWithoutRef<"select"> {
 export function SelectField({ label, helper, error, options, className, ...props }: SelectFieldProps) {
 	const generatedId = useId();
 	const id = props.id || generatedId;
+	const name = props.name ?? fieldNameFromLabel(label);
 
 	return (
 		<FieldShell id={id} label={label} helper={helper} error={error}>
-			<Select id={id} className={className} invalid={Boolean(error)} {...props}>
+			<Select id={id} name={name} className={className} invalid={Boolean(error)} {...props}>
 				{options.map(option => (
 					<option key={option.value} value={option.value} disabled={option.disabled}>
 						{option.label}

@@ -1,13 +1,13 @@
 .badge {
 	display: inline-flex;
 	align-items: center;
-	gap: 0.4rem;
+	gap: 0.5rem;
 	width: fit-content;
-	--ns-frame-color: #ffffff1a;
+	--ns-frame-color: var(--ns-border-faint);
 	border: 1px solid var(--ns-frame-color);
-	padding: 0.25rem 0.55rem;
-	color: rgba(255, 255, 255, 0.66);
-	background: #00080f;
+	padding: 0.25rem 0.5rem;
+	color: var(--ns-text-muted);
+	background: var(--ns-surface);
 	font-family: var(--ns-font-mono);
 	font-size: 0.75rem;
 	font-weight: 650;
@@ -18,14 +18,14 @@
 }
 
 .dot {
-	width: 0.45rem;
-	height: 0.45rem;
+	width: 0.5rem;
+	height: 0.5rem;
 	background: currentcolor;
 	box-shadow: none;
 }
 
 .neutral {
-	color: rgba(255, 255, 255, 0.66);
+	color: var(--ns-text-muted);
 }
 
 .accent {
@@ -53,7 +53,7 @@
 }
 
 .muted {
-	color: rgba(255, 255, 255, 0.44);
-	--ns-frame-color: #ffffff1a;
-	background: #131518;
+	color: var(--ns-text-low);
+	--ns-frame-color: var(--ns-border-faint);
+	background: var(--ns-bg-subtle);
 }

@@ -58,7 +58,7 @@ export function SearchableSelect({
 	value,
 	onValueChange,
 	placeholder = "Select",
-	searchPlaceholder = "Search",
+	searchPlaceholder = "Search…",
 	emptyLabel = "No matches",
 	invalid,
 	disabled,
@@ -216,7 +216,11 @@ export function SearchableSelect({
 							ref={inputRef}
 							value={query}
 							placeholder={searchPlaceholder}
+							role="combobox"
+							autoComplete="off"
+							aria-autocomplete="list"
 							aria-controls={listboxId}
+							aria-expanded={open}
 							aria-activedescendant={activeOptionIndex >= 0 ? `${generatedId}-option-${activeOptionIndex}` : undefined}
 							onChange={event => setQuery(event.currentTarget.value)}
 							onKeyDown={handleInputKeyDown}

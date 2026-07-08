@@ -16,7 +16,7 @@ const withTheme: Decorator = (Story, context) => {
 const preview: Preview = {
 	globalTypes: {
 		colorMode: {
-			defaultValue: "light",
+			defaultValue: "dark",
 			description: "Switch Netstamp design tokens between light and dark mode.",
 			name: "Theme",
 			toolbar: {
@@ -33,12 +33,12 @@ const preview: Preview = {
 	decorators: [withTheme],
 	parameters: {
 		backgrounds: {
-			default: "light",
+			default: "dark",
 			options: {
-				light: { name: "Light canvas", value: "#f3f7fb" },
+				light: { name: "Light canvas", value: "#f4f5f7" },
 				lightPanel: { name: "Light panel", value: "#ffffff" },
-				dark: { name: "Dark canvas", value: "#0b0b0b" },
-				darkPanel: { name: "Dark panel", value: "#111111" }
+				dark: { name: "Dark canvas", value: "#000000" },
+				darkPanel: { name: "Dark panel", value: "#070707" }
 			}
 		},
 		controls: {

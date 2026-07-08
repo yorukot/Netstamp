@@ -1,12 +1,28 @@
 .panel {
+	--ns-panel-frame: var(--ns-border);
+	--ns-panel-bg: var(--ns-surface);
+	--ns-panel-body-bg: var(--ns-surface-raised);
+	--ns-panel-marker: var(--ns-primary);
 	display: grid;
 	align-content: start;
 	gap: 1rem;
 	min-width: 0;
 	padding: 1rem;
-	border: 1px dashed #4b515b;
-	background: #000000;
-	color: #ffffff;
+	border: 1px solid var(--ns-panel-frame);
+	background: var(--ns-panel-bg);
+	color: var(--ns-text);
+}
+
+.panel[data-tone="matte"] {
+	--ns-panel-frame: var(--ns-border-faint);
+	--ns-panel-bg: var(--ns-bg-subtle);
+	--ns-panel-body-bg: var(--ns-surface);
+}
+
+.panel[data-tone="deep"] {
+	--ns-panel-frame: var(--ns-border-strong);
+	--ns-panel-bg: var(--ns-surface-deep);
+	--ns-panel-body-bg: var(--ns-surface-raised);
 }
 
 .header {
@@ -31,14 +47,14 @@
 
 .marker {
 	flex: 0 0 auto;
-	width: 0.625rem;
-	height: 0.625rem;
-	background: #fb923c;
+	width: 0.5rem;
+	height: 0.5rem;
+	background: var(--ns-panel-marker);
 }
 
 .header h2 {
 	margin: 0;
-	color: #ffffff;
+	color: var(--ns-text);
 	font-family: var(--ns-font-display);
 	font-size: clamp(1.35rem, 2vw, 1.75rem);
 	font-weight: 400;
@@ -66,9 +82,9 @@
 
 .body {
 	min-width: 0;
-	border: 1px solid #ffffff1a;
-	background: #131518;
-	color: #ffffff;
+	border: 1px solid var(--ns-border-faint);
+	background: var(--ns-panel-body-bg);
+	color: var(--ns-text);
 }
 
 .body[data-padded="true"] {

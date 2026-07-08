@@ -5,7 +5,7 @@
 }
 
 .label {
-	color: rgba(255, 255, 255, 0.66);
+	color: var(--ns-text-muted);
 	font-family: var(--ns-font-sans);
 	font-size: 0.8125rem;
 	font-weight: 650;
@@ -16,7 +16,7 @@
 
 .controlFrame {
 	--ns-frame-radius: var(--ns-radius-sm);
-	--ns-frame-color: #ffffff1a;
+	--ns-frame-color: var(--ns-border);
 	display: block;
 	width: 100%;
 	min-width: 0;
@@ -25,15 +25,17 @@
 		box-shadow var(--ns-transition);
 }
 
-.controlFrame:focus-within {
+.controlFrame:has(.control:focus-visible),
+.controlFrame:has(.select:focus-visible),
+.controlFrame:has(.checkbox:focus-visible) {
 	--ns-frame-color: transparent;
 	outline: var(--ns-focus-outline);
 	outline-offset: var(--ns-focus-outline-offset);
 	box-shadow: none;
 }
 
-.controlFrame:hover:not(:focus-within) {
-	--ns-frame-color: #4b515b;
+.controlFrame:hover:not(:has(.control:focus-visible)):not(:has(.select:focus-visible)):not(:has(.checkbox:focus-visible)) {
+	--ns-frame-color: var(--ns-border-strong);
 }
 
 .controlFrame[data-invalid="true"] {
@@ -45,9 +47,9 @@
 	width: 100%;
 	min-height: 2.75rem;
 	border: 0;
-	padding: 0.75rem 0.875rem;
-	color: #ffffff;
-	background: #00080f;
+	padding: 0.75rem 1rem;
+	color: var(--ns-text);
+	background: var(--ns-surface);
 	box-shadow: none;
 	font-family: var(--ns-font-sans);
 	font-size: 0.875rem;
@@ -59,7 +61,7 @@
 
 .compactControl {
 	min-height: 2rem;
-	padding: 0.35rem 0.75rem;
+	padding: 0.25rem 0.75rem;
 	font-family: var(--ns-font-mono);
 	font-size: 0.75rem;
 	line-height: 1;
@@ -76,16 +78,16 @@
 }
 
 .control::placeholder {
-	color: rgba(255, 255, 255, 0.38);
+	color: var(--ns-text-low);
 }
 
-.control:focus {
+.control:focus-visible {
 	box-shadow: none;
 }
 
 .bareControl:focus-visible {
 	outline: var(--ns-focus-outline);
-	outline-offset: 0.15rem;
+	outline-offset: var(--ns-focus-outline-offset);
 }
 
 .control[aria-invalid="true"] {
@@ -131,9 +133,9 @@
 	align-items: center;
 	justify-content: space-between;
 	padding-right: 2.75rem;
-	color: #ffffff;
+	color: var(--ns-text);
 	color-scheme: inherit;
-	background: #00080f;
+	background: var(--ns-surface);
 	cursor: pointer;
 	text-align: left;
 	user-select: none;
@@ -144,8 +146,8 @@
 	position: absolute;
 	top: 50%;
 	right: 1rem;
-	width: 0.46rem;
-	height: 0.46rem;
+	width: 0.5rem;
+	height: 0.5rem;
 	border: solid var(--ns-select-arrow, var(--ns-primary-hover));
 	border-width: 0 1.5px 1.5px 0;
 	transform: translateY(-65%) rotate(45deg);
@@ -161,13 +163,13 @@
 
 .compactControl.select {
 	padding-right: 2rem;
-	background: #131518;
+	background: var(--ns-surface-raised);
 }
 
 .compactControl.select::after {
-	right: 0.8rem;
-	width: 0.38rem;
-	height: 0.38rem;
+	right: 0.75rem;
+	width: 0.5rem;
+	height: 0.5rem;
 	border-width: 0 1px 1px 0;
 }
 
@@ -205,8 +207,8 @@
 	border-radius: var(--ns-radius-md);
 	overflow: hidden;
 	padding: 0.25rem;
-	color: #ffffff;
-	background: #131518;
+	color: var(--ns-text);
+	background: var(--ns-surface);
 	box-shadow: none;
 }
 
@@ -217,14 +219,14 @@
 
 .compactMenu {
 	max-height: min(15rem, calc(100svh - 1rem));
-	padding: 0.1875rem;
+	padding: 0.25rem;
 	font-family: var(--ns-font-mono);
 	font-size: 0.75rem;
 }
 
 .compactMenu .selectOption {
 	min-height: 2rem;
-	padding: 0.5rem 1.75rem 0.5rem 0.625rem;
+	padding: 0.5rem 1.75rem 0.5rem 0.5rem;
 }
 
 .selectOption {
@@ -232,9 +234,9 @@
 	display: flex;
 	align-items: center;
 	min-height: 2.5rem;
-	padding: 0.625rem 2rem 0.625rem 0.75rem;
-	border-bottom: 1px solid #ffffff1a;
-	color: rgba(255, 255, 255, 0.66);
+	padding: 0.5rem 2rem 0.5rem 0.75rem;
+	border-bottom: 1px solid var(--ns-border-faint);
+	color: var(--ns-text-muted);
 	cursor: pointer;
 	outline: none;
 	transition:
@@ -262,13 +264,13 @@
 }
 
 .selectOption[data-highlighted] {
-	color: #ffffff;
-	background: #00080f;
+	color: var(--ns-text);
+	background: var(--ns-bg-subtle);
 }
 
 .selectOption[data-state="checked"] {
-	color: #fb923c;
-	background: rgba(251, 146, 60, 0.13);
+	color: var(--ns-primary-active);
+	background: var(--ns-primary-muted);
 }
 
 .selectOption[data-state="checked"]::after {
@@ -276,7 +278,7 @@
 }
 
 .selectOption[data-disabled] {
-	color: rgba(255, 255, 255, 0.38);
+	color: var(--ns-text-low);
 	cursor: not-allowed;
 	opacity: 0.52;
 }
@@ -303,8 +305,8 @@
 	-webkit-appearance: none;
 	color: var(--ns-primary-hover);
 	vertical-align: -0.125rem;
-	background: #00080f;
-	border: 1px solid #ffffff1a;
+	background: var(--ns-surface);
+	border: 1px solid var(--ns-border);
 	border-radius: var(--ns-radius-xs);
 	box-shadow: none;
 	cursor: pointer;
@@ -318,8 +320,8 @@
 
 .checkbox::before {
 	content: "";
-	width: 0.625rem;
-	height: 0.625rem;
+	width: 0.5rem;
+	height: 0.5rem;
 	background: currentColor;
 	clip-path: polygon(14% 44%, 0 58%, 38% 96%, 100% 20%, 84% 6%, 36% 64%);
 	transform: scale(0);
@@ -328,7 +330,7 @@
 }
 
 .checkbox:hover:not(:disabled) {
-	border-color: #4b515b;
+	border-color: var(--ns-border-strong);
 	box-shadow: none;
 }
 
@@ -367,7 +369,7 @@
 }
 
 .helper {
-	color: rgba(255, 255, 255, 0.44);
+	color: var(--ns-text-low);
 }
 
 .error {

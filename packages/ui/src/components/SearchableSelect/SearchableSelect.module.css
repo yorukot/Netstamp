@@ -14,7 +14,7 @@
 	border-color: var(--ns-primary-border);
 }
 
-.frame:focus-within {
+.frame:has(.trigger:focus-visible) {
 	border-color: transparent;
 	outline: var(--ns-focus-outline);
 	outline-offset: var(--ns-focus-outline-offset);
@@ -51,8 +51,8 @@
 	position: absolute;
 	top: 50%;
 	right: 1rem;
-	width: 0.46rem;
-	height: 0.46rem;
+	width: 0.5rem;
+	height: 0.5rem;
 	border: solid var(--ns-primary-hover);
 	border-width: 0 1.5px 1.5px 0;
 	transform: translateY(-65%) rotate(45deg);
@@ -102,13 +102,13 @@
 
 .trigger.md {
 	min-height: 2.75rem;
-	padding: 0.75rem 2.75rem 0.75rem 0.875rem;
+	padding: 0.75rem 2.75rem 0.75rem 1rem;
 }
 
 .trigger.sm::after {
-	right: 0.8rem;
-	width: 0.38rem;
-	height: 0.38rem;
+	right: 0.75rem;
+	width: 0.5rem;
+	height: 0.5rem;
 	border-width: 0 1px 1px 0;
 }
 
@@ -130,7 +130,7 @@
 	background: var(--ns-surface-raised);
 }
 
-.search:focus-within {
+.search:has(input:focus-visible) {
 	border-color: transparent;
 	outline: var(--ns-focus-outline);
 	outline-offset: var(--ns-focus-outline-offset);
@@ -140,7 +140,7 @@
 	width: 100%;
 	min-height: 2.25rem;
 	border: 0;
-	padding: 0.5rem 0.625rem;
+	padding: 0.5rem 0.75rem;
 	color: var(--ns-text);
 	background: transparent;
 	font: inherit;
@@ -160,13 +160,13 @@
 
 .option {
 	display: grid;
-	gap: 0.2rem;
+	gap: 0.25rem;
 	width: 100%;
 	min-width: 0;
 	min-height: 2.5rem;
 	border: 0;
 	border-bottom: 1px solid var(--ns-border-faint);
-	padding: 0.625rem 0.75rem;
+	padding: 0.5rem 0.75rem;
 	color: var(--ns-text-muted);
 	background: transparent;
 	font-family: var(--ns-font-sans);

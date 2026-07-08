@@ -77,6 +77,8 @@ export { DisclosureToggle } from "./components/DisclosureToggle/DisclosureToggle
 export type { DisclosureToggleProps, DisclosureToggleSize } from "./components/DisclosureToggle/DisclosureToggle";
 export { Drawer } from "./components/Drawer/Drawer";
 export type { DrawerProps, DrawerSide, DrawerSize } from "./components/Drawer/Drawer";
+export { EmptyState } from "./components/EmptyState/EmptyState";
+export type { EmptyStateProps } from "./components/EmptyState/EmptyState";
 export { Checkbox, FieldLabel, Input, Select, SelectField, TextAreaField, TextField } from "./components/Field/Field";
 export type { CheckboxProps, ControlVariant, FieldLabelProps, InputProps, SelectFieldOption, SelectFieldProps, SelectProps, TextAreaFieldProps, TextFieldProps } from "./components/Field/Field";
 export { FilterGrid } from "./components/FilterGrid/FilterGrid";

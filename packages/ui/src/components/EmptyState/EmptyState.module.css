@@ -1,0 +1,35 @@
+.emptyState {
+	display: grid;
+	place-items: center;
+	align-content: center;
+	gap: 0.5rem;
+	min-width: 0;
+	min-height: 12rem;
+	padding: 1rem;
+	color: var(--ns-text-muted);
+	font-family: var(--ns-font-sans);
+	text-align: center;
+}
+
+.emptyState strong {
+	color: var(--ns-text);
+	font-size: 0.9375rem;
+	font-weight: 750;
+	line-height: 1.25;
+}
+
+.emptyState p {
+	max-width: 32rem;
+	margin: 0;
+	color: var(--ns-text-muted);
+	font-size: 0.875rem;
+	line-height: 1.5;
+}
+
+.action {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 0.5rem;
+	padding-top: 0.5rem;
+}

@@ -38,13 +38,13 @@
 
 .sm {
 	font-size: 0.75rem;
-	padding: 0.375rem 0.75rem;
+	padding: 0.25rem 0.75rem;
 	min-height: 2rem;
 }
 
 .md {
 	font-size: 0.8125rem;
-	padding: 0.625rem 1rem;
+	padding: 0.5rem 1rem;
 	min-height: 2.5rem;
 }
 
@@ -61,36 +61,36 @@
 }
 
 .primary {
-	--ns-frame-color: #fb923c;
-	background: #fb923c;
-	color: #000000;
+	--ns-frame-color: var(--ns-primary);
+	background: var(--ns-primary);
+	color: var(--ns-text-on-accent);
 	box-shadow: none;
 }
 
 .primary:hover {
-	--ns-frame-color: #fdba74;
-	background: #fdba74;
-	color: #000000;
+	--ns-frame-color: var(--ns-primary-hover);
+	background: var(--ns-primary-hover);
+	color: var(--ns-text-on-accent);
 	box-shadow: none;
 }
 
 .primary:active {
-	--ns-frame-color: #f97316;
-	background: #f97316;
-	color: #000000;
+	--ns-frame-color: var(--ns-primary-active);
+	background: var(--ns-primary-active);
+	color: var(--ns-text-on-accent);
 }
 
 .secondary {
-	--ns-frame-color: #4b515b;
-	background: #00080f;
-	color: rgba(255, 255, 255, 0.72);
+	--ns-frame-color: var(--ns-secondary-border);
+	background: var(--ns-secondary-muted);
+	color: var(--ns-secondary);
 	box-shadow: none;
 }
 
 .secondary:hover {
-	--ns-frame-color: #ffffff1a;
-	color: #ffffff;
-	background: #131518;
+	--ns-frame-color: var(--ns-secondary-border);
+	color: var(--ns-secondary-hover);
+	background: var(--ns-secondary-subtle);
 }
 
 .secondary:active {
@@ -98,15 +98,15 @@
 }
 
 .outline {
-	--ns-frame-color: #ffffff1a;
-	background: #00080f;
-	color: rgba(255, 255, 255, 0.66);
+	--ns-frame-color: var(--ns-border);
+	background: var(--ns-surface);
+	color: var(--ns-text-muted);
 }
 
 .outline:hover {
-	--ns-frame-color: #4b515b;
-	color: #ffffff;
-	background: #131518;
+	--ns-frame-color: var(--ns-border-strong);
+	color: var(--ns-text);
+	background: var(--ns-surface-raised);
 }
 
 .outline:active {
@@ -115,17 +115,17 @@
 
 .ghost {
 	background: transparent;
-	color: rgba(255, 255, 255, 0.66);
+	color: var(--ns-text-muted);
 	border-color: transparent;
 }
 
 .ghost:hover {
-	color: #ffffff;
-	background: #131518;
+	color: var(--ns-text);
+	background: var(--ns-bg-subtle);
 }
 
 .ghost:active {
-	background: #00080f;
+	background: var(--ns-primary-muted);
 }
 
 .danger {

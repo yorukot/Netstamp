@@ -448,9 +448,14 @@
 	gap: 0.6rem;
 	min-height: 2.25rem;
 	padding: 0 0.65rem;
-	outline: none;
+	outline: 2px solid transparent;
+	outline-offset: var(--ns-focus-outline-offset);
 	color: var(--ns-text);
 	font-size: 0.85rem;
+}
+
+.storybook-menu-item:focus-visible {
+	outline: var(--ns-focus-outline);
 }
 
 .storybook-menu-item[data-highlighted] {

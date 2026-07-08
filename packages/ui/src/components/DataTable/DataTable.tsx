@@ -220,7 +220,6 @@ export function DataTable<Row extends object>({
 									<tr
 										key={rowKey}
 										className={[selected && styles.selected, interactive && styles.interactive].filter(Boolean).join(" ") || undefined}
-										role={interactive ? "button" : undefined}
 										aria-label={interactive ? (getRowAriaLabel?.(row, index) ?? `Select row ${rowKey}`) : undefined}
 										aria-selected={selected || rowChecked || undefined}
 										tabIndex={interactive ? 0 : undefined}

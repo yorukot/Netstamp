@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { Button, CodePreview, DisclosureToggle, KeyValueRow, MetricTile, SelectableRow, SpecCard, SpecLabel } from "../index";
+import { Button, CodePreview, DisclosureToggle, EmptyState, KeyValueRow, MetricTile, SelectableRow, SpecCard, SpecLabel } from "../index";
 
 const meta = {
 	title: "Components/Spec primitives",
@@ -61,6 +61,7 @@ export const CardsMetricsAndRows: Story = {
 					<KeyValueRow label="heartbeat" value="2026-06-26 18:42:10 UTC" meta="fresh" tone="success" />
 					<KeyValueRow label="route hash" value="b94c.22f9.changed" meta="diff" tone="warning" />
 				</div>
+				<EmptyState title="No checks configured" description="Create a check to start collecting probe measurements." action={<Button size="sm">Create check</Button>} />
 			</div>
 		</div>
 	)
