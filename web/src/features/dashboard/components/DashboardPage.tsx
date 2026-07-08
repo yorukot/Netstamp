@@ -5,6 +5,7 @@ import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { NetworkMap } from "@/shared/components/NetworkMap";
 import { PageStack } from "@/shared/components/PageStack";
 import { classNames } from "@/shared/utils/classNames";
+import { Panel } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import styles from "./DashboardPage.module.css";
@@ -66,92 +67,68 @@ export function DashboardPage() {
 			</header>
 
 			<div className={styles.sections}>
-				<section className={classNames(styles.section, styles.overviewSection)} aria-labelledby="dashboard-fleet-title">
-					<header className={styles.sectionHeader}>
-						<span className={styles.sectionMarker} aria-hidden="true" />
-						<h2 id="dashboard-fleet-title">Fleet</h2>
-					</header>
-					<div className={classNames(styles.content, styles.metricsContent)}>
-						{metrics.map(metric => (
-							<article className={styles.metricTile} key={metric.label}>
-								<span>{metric.label}</span>
-								<strong>{metric.value}</strong>
-								<small>{metric.meta}</small>
-							</article>
-						))}
-					</div>
-				</section>
+				<Panel className={styles.overviewSection} title="Fleet" padded={false} bodyClassName={styles.metricsContent}>
+					{metrics.map(metric => (
+						<article className={styles.metricTile} key={metric.label}>
+							<span>{metric.label}</span>
+							<strong>{metric.value}</strong>
+							<small>{metric.meta}</small>
+						</article>
+					))}
+				</Panel>
 
-				<section className={classNames(styles.section, styles.mapSection)} aria-labelledby="dashboard-map-title">
-					<header className={styles.sectionHeader}>
-						<span className={styles.sectionMarker} aria-hidden="true" />
-						<h2 id="dashboard-map-title">Network Map</h2>
-					</header>
-					<div className={classNames(styles.content, styles.mapContent)}>
-						<NetworkMap
-							probes={probes}
-							selectedId={activeProbeId}
-							onSelect={setSelectedProbeId}
-							mode="fleet"
-							theme="dark"
-							fleetFitPadding={dashboardFleetFitPadding}
-							fleetMaxZoom={dashboardFleetMaxZoom}
-							className={styles.worldMap}
-						/>
-						<div className={styles.mapReadout}>
-							<span>selected probe</span>
-							<strong>{activeProbe?.name ?? "No probe"}</strong>
-							<small>{activeProbe?.location ?? "coordinates unavailable"}</small>
-						</div>
+				<Panel className={styles.mapSection} title="Network Map" padded={false} bodyClassName={styles.mapContent}>
+					<NetworkMap
+						probes={probes}
+						selectedId={activeProbeId}
+						onSelect={setSelectedProbeId}
+						mode="fleet"
+						theme="dark"
+						fleetFitPadding={dashboardFleetFitPadding}
+						fleetMaxZoom={dashboardFleetMaxZoom}
+						className={styles.worldMap}
+					/>
+					<div className={styles.mapReadout}>
+						<span>selected probe</span>
+						<strong>{activeProbe?.name ?? "No probe"}</strong>
+						<small>{activeProbe?.location ?? "coordinates unavailable"}</small>
 					</div>
-				</section>
+				</Panel>
 
-				<section className={classNames(styles.section, styles.registrySection)} aria-labelledby="dashboard-registry-title">
-					<header className={styles.sectionHeader}>
-						<span className={styles.sectionMarker} aria-hidden="true" />
-						<h2 id="dashboard-registry-title">Probe Registry</h2>
-					</header>
-					<div className={classNames(styles.content, styles.listContent)}>
-						{visibleProbes.length ? (
-							<ul className={styles.entityList}>
-								{visibleProbes.map(probe => (
-									<li key={probe.id}>
-										<div>
-											<strong>{probe.name}</strong>
-											<span>{probe.location}</span>
-										</div>
-										<span className={classNames(styles.status, probe.status === "Online" && styles.statusOnline, probe.status === "Offline" && styles.statusOffline)}>{probe.status}</span>
-									</li>
-								))}
-							</ul>
-						) : (
-							<div className={styles.emptyState}>No probes registered.</div>
-						)}
-					</div>
-				</section>
-
-				<section className={classNames(styles.section, styles.checksSection)} aria-labelledby="dashboard-checks-title">
-					<header className={styles.sectionHeader}>
-						<span className={styles.sectionMarker} aria-hidden="true" />
-						<h2 id="dashboard-checks-title">Checks Ledger</h2>
-					</header>
-					<div className={classNames(styles.content, styles.tableContent)}>
-						{visibleChecks.length ? (
-							<div className={styles.checkRows}>
-								{visibleChecks.map(check => (
-									<div className={styles.checkRow} key={check.id}>
-										<strong>{check.name}</strong>
-										<span>{check.type}</span>
-										<span>{check.target}</span>
-										<span>{check.interval}</span>
+				<Panel className={styles.registrySection} title="Probe Registry" padded={false} bodyClassName={styles.listContent}>
+					{visibleProbes.length ? (
+						<ul className={styles.entityList}>
+							{visibleProbes.map(probe => (
+								<li key={probe.id}>
+									<div>
+										<strong>{probe.name}</strong>
+										<span>{probe.location}</span>
 									</div>
-								))}
-							</div>
-						) : (
-							<div className={styles.emptyState}>No checks configured.</div>
-						)}
-					</div>
-				</section>
+									<span className={classNames(styles.status, probe.status === "Online" && styles.statusOnline, probe.status === "Offline" && styles.statusOffline)}>{probe.status}</span>
+								</li>
+							))}
+						</ul>
+					) : (
+						<div className={styles.emptyState}>No probes registered.</div>
+					)}
+				</Panel>
+
+				<Panel className={styles.checksSection} title="Checks Ledger" padded={false} bodyClassName={styles.tableContent}>
+					{visibleChecks.length ? (
+						<div className={styles.checkRows}>
+							{visibleChecks.map(check => (
+								<div className={styles.checkRow} key={check.id}>
+									<strong>{check.name}</strong>
+									<span>{check.type}</span>
+									<span>{check.target}</span>
+									<span>{check.interval}</span>
+								</div>
+							))}
+						</div>
+					) : (
+						<div className={styles.emptyState}>No checks configured.</div>
+					)}
+				</Panel>
 			</div>
 		</PageStack>
 	);

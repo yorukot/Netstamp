@@ -1,11 +1,12 @@
 .panel {
-	--ns-frame-color: #4b515b;
-
 	display: grid;
+	align-content: start;
 	gap: 1rem;
 	min-width: 0;
-	border-style: dashed;
+	padding: 1rem;
+	border: 1px dashed #4b515b;
 	background: #000000;
+	color: #ffffff;
 }
 
 .header {
@@ -13,7 +14,6 @@
 	align-items: flex-start;
 	justify-content: space-between;
 	gap: 1rem;
-	padding-bottom: 0.25rem;
 }
 
 .copy {
@@ -36,7 +36,7 @@
 	background: #fb923c;
 }
 
-.header h3 {
+.header h2 {
 	margin: 0;
 	color: #ffffff;
 	font-family: var(--ns-font-display);
@@ -68,8 +68,15 @@
 	min-width: 0;
 	border: 1px solid #ffffff1a;
 	background: #131518;
-	padding: 1rem;
 	color: #ffffff;
+}
+
+.body[data-padded="true"] {
+	padding: 1rem;
+}
+
+.body[data-padded="false"] {
+	padding: 0;
 }
 
 .body > :where(p) {
@@ -99,6 +106,10 @@
 }
 
 @media (max-width: 48rem) {
+	.panel {
+		padding: 0.75rem;
+	}
+
 	.header {
 		display: grid;
 	}
