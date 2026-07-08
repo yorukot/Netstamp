@@ -43,8 +43,8 @@ func (s *Service) CreatePage(ctx context.Context, input CreatePageInput) (domain
 	if err != nil {
 		return domainpublic.Page{}, err
 	}
-	if err := s.requireProjectWriteForFlow(ctx, flow, project.ID, input.CurrentUserID); err != nil {
-		return domainpublic.Page{}, err
+	if permissionErr := s.requireProjectWriteForFlow(ctx, flow, project.ID, input.CurrentUserID); permissionErr != nil {
+		return domainpublic.Page{}, permissionErr
 	}
 	page, err := normalizeCreatePageInput(project.ID, input)
 	if err != nil {
@@ -69,8 +69,8 @@ func (s *Service) UpdatePage(ctx context.Context, input UpdatePageInput) (domain
 	if err != nil {
 		return domainpublic.Page{}, err
 	}
-	if err := s.requireProjectWriteForFlow(ctx, flow, project.ID, input.CurrentUserID); err != nil {
-		return domainpublic.Page{}, err
+	if permissionErr := s.requireProjectWriteForFlow(ctx, flow, project.ID, input.CurrentUserID); permissionErr != nil {
+		return domainpublic.Page{}, permissionErr
 	}
 	page, err := normalizeUpdatePageInput(project.ID, input)
 	if err != nil {
@@ -96,8 +96,8 @@ func (s *Service) DeletePage(ctx context.Context, input DeletePageInput) error {
 	if err != nil {
 		return err
 	}
-	if err := s.requireProjectWriteForFlow(ctx, flow, project.ID, input.CurrentUserID); err != nil {
-		return err
+	if permissionErr := s.requireProjectWriteForFlow(ctx, flow, project.ID, input.CurrentUserID); permissionErr != nil {
+		return permissionErr
 	}
 	pageID, err := domainpublic.VNPageID(input.PageID)
 	if err != nil {
@@ -151,8 +151,8 @@ func (s *Service) DeleteElement(ctx context.Context, input DeleteElementInput) e
 	if err != nil {
 		return err
 	}
-	if err := s.requireProjectWriteForFlow(ctx, flow, project.ID, input.CurrentUserID); err != nil {
-		return err
+	if permissionErr := s.requireProjectWriteForFlow(ctx, flow, project.ID, input.CurrentUserID); permissionErr != nil {
+		return permissionErr
 	}
 	pageID, err := domainpublic.VNPageID(input.PageID)
 	if err != nil {
@@ -215,8 +215,8 @@ func (s *Service) saveElement(
 	if err != nil {
 		return domainpublic.Element{}, err
 	}
-	if err := s.requireProjectWriteForFlow(ctx, flow, project.ID, userID); err != nil {
-		return domainpublic.Element{}, err
+	if permissionErr := s.requireProjectWriteForFlow(ctx, flow, project.ID, userID); permissionErr != nil {
+		return domainpublic.Element{}, permissionErr
 	}
 	element, err := normalize(project.ID)
 	if err != nil {

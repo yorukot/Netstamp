@@ -182,44 +182,47 @@ func (f *alertFlow) record(outcome AlertOutcome, reason AlertReason, err error) 
 	})
 }
 
+var alertEventNames = map[AlertAction]struct {
+	success AlertEventName
+	failure AlertEventName
+}{
+	AlertActionCreateRule: {
+		success: AlertEventCreateRuleSuccess,
+		failure: AlertEventCreateRuleFailure,
+	},
+	AlertActionUpdateRule: {
+		success: AlertEventUpdateRuleSuccess,
+		failure: AlertEventUpdateRuleFailure,
+	},
+	AlertActionDeleteRule: {
+		success: AlertEventDeleteRuleSuccess,
+		failure: AlertEventDeleteRuleFailure,
+	},
+	AlertActionCreateNotification: {
+		success: AlertEventCreateNotificationSuccess,
+		failure: AlertEventCreateNotificationFailure,
+	},
+	AlertActionUpdateNotification: {
+		success: AlertEventUpdateNotificationSuccess,
+		failure: AlertEventUpdateNotificationFailure,
+	},
+	AlertActionDeleteNotification: {
+		success: AlertEventDeleteNotificationSuccess,
+		failure: AlertEventDeleteNotificationFailure,
+	},
+	AlertActionTestNotification: {
+		success: AlertEventTestNotificationSuccess,
+		failure: AlertEventTestNotificationFailure,
+	},
+}
+
 func alertEventName(action AlertAction, outcome AlertOutcome) AlertEventName {
-	switch action {
-	case AlertActionCreateRule:
-		if outcome == AlertOutcomeSuccess {
-			return AlertEventCreateRuleSuccess
-		}
-		return AlertEventCreateRuleFailure
-	case AlertActionUpdateRule:
-		if outcome == AlertOutcomeSuccess {
-			return AlertEventUpdateRuleSuccess
-		}
-		return AlertEventUpdateRuleFailure
-	case AlertActionDeleteRule:
-		if outcome == AlertOutcomeSuccess {
-			return AlertEventDeleteRuleSuccess
-		}
-		return AlertEventDeleteRuleFailure
-	case AlertActionCreateNotification:
-		if outcome == AlertOutcomeSuccess {
-			return AlertEventCreateNotificationSuccess
-		}
-		return AlertEventCreateNotificationFailure
-	case AlertActionUpdateNotification:
-		if outcome == AlertOutcomeSuccess {
-			return AlertEventUpdateNotificationSuccess
-		}
-		return AlertEventUpdateNotificationFailure
-	case AlertActionDeleteNotification:
-		if outcome == AlertOutcomeSuccess {
-			return AlertEventDeleteNotificationSuccess
-		}
-		return AlertEventDeleteNotificationFailure
-	case AlertActionTestNotification:
-		if outcome == AlertOutcomeSuccess {
-			return AlertEventTestNotificationSuccess
-		}
-		return AlertEventTestNotificationFailure
-	default:
+	names, ok := alertEventNames[action]
+	if !ok {
 		return AlertEventName("alert.unknown." + string(outcome))
 	}
+	if outcome == AlertOutcomeSuccess {
+		return names.success
+	}
+	return names.failure
 }

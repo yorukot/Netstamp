@@ -3,51 +3,20 @@ package alert
 import (
 	"context"
 
-	"go.opentelemetry.io/otel/trace"
-
 	domainalert "github.com/yorukot/netstamp/internal/domain/alert"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 )
 
 func (s *Service) ListRules(ctx context.Context, input ListRulesInput) ([]domainalert.Rule, error) {
-	ctx, span := alertTracer.Start(ctx, "alert.rule.list", trace.WithAttributes(
-		attrAlertAction.String(string(AlertActionListRules)),
-		attrProjectRef.String(input.ProjectRef),
-	))
-	defer span.End()
-
-	project, err := s.loadProject(ctx, input.ProjectRef, input.CurrentUserID)
-	if err != nil {
-		return nil, recordAlertQueryFailure(span, AlertReasonProjectLookupFailed, err)
-	}
-	span.SetAttributes(attrProjectID.String(project.ID))
-	rules, err := s.repo.ListRules(ctx, project.ID, input.Status, input.CheckType)
-	if err != nil {
-		return nil, recordAlertQueryFailure(span, AlertReasonRuleListFailed, err)
-	}
-	span.SetAttributes(attrAlertOutcome.String(string(AlertOutcomeSuccess)))
-	return rules, nil
+	return getAlertList(ctx, s, "alert.rule.list", AlertActionListRules, input.ProjectRef, input.CurrentUserID, AlertReasonRuleListFailed, func(ctx context.Context, projectID string) ([]domainalert.Rule, error) {
+		return s.repo.ListRules(ctx, projectID, input.Status, input.CheckType)
+	})
 }
 
 func (s *Service) GetRule(ctx context.Context, input GetRuleInput) (domainalert.Rule, error) {
-	ctx, span := alertTracer.Start(ctx, "alert.rule.get", trace.WithAttributes(
-		attrAlertAction.String(string(AlertActionGetRule)),
-		attrProjectRef.String(input.ProjectRef),
-		attrAlertRuleID.String(input.RuleID),
-	))
-	defer span.End()
-
-	project, err := s.loadProject(ctx, input.ProjectRef, input.CurrentUserID)
-	if err != nil {
-		return domainalert.Rule{}, recordAlertQueryFailure(span, AlertReasonProjectLookupFailed, err)
-	}
-	span.SetAttributes(attrProjectID.String(project.ID))
-	rule, err := s.repo.GetRule(ctx, project.ID, input.RuleID)
-	if err != nil {
-		return domainalert.Rule{}, recordAlertQueryFailure(span, AlertReasonRuleLookupFailed, err)
-	}
-	span.SetAttributes(attrAlertOutcome.String(string(AlertOutcomeSuccess)))
-	return rule, nil
+	return getAlertResource(ctx, s, "alert.rule.get", AlertActionGetRule, input.ProjectRef, input.CurrentUserID, attrAlertRuleID.String(input.RuleID), AlertReasonRuleLookupFailed, func(ctx context.Context, projectID string) (domainalert.Rule, error) {
+		return s.repo.GetRule(ctx, projectID, input.RuleID)
+	})
 }
 
 func (s *Service) CreateRule(ctx context.Context, input CreateRuleInput) (domainalert.Rule, error) {

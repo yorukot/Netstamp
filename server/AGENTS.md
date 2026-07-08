@@ -69,7 +69,7 @@ Current package classification:
 - Command features: `auth`, `project`, `label`, `check`, `probe`, `proberuntime`, `assignment`, `user`, `alert`, and the mutating public status page/element use cases in `publicstatus`.
 - Query features: `result/latest`, `result/ping`, `result/tcp`, `result/traceroute`, and the public read use cases in `publicstatus`.
 - Orchestrators and workers: `alerteval`, `notification`, and assignment refresh worker behavior.
-- Shared application support: `validation`, `tx`, `pingquery`, `tcpquery`, `result/shared`, and the thin `result` compatibility facade.
+- Shared application support: `validation`, `tx`, `workerloop`, `pingquery`, `tcpquery`, `result/shared`, and the thin `result` compatibility facade.
 
 ## Cross-Feature Repository Reuse
 

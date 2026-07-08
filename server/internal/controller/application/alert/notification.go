@@ -5,50 +5,19 @@ import (
 	"encoding/json"
 	"time"
 
-	"go.opentelemetry.io/otel/trace"
-
 	domainalert "github.com/yorukot/netstamp/internal/domain/alert"
 )
 
 func (s *Service) ListNotifications(ctx context.Context, input ListNotificationsInput) ([]domainalert.Notification, error) {
-	ctx, span := alertTracer.Start(ctx, "alert.notification.list", trace.WithAttributes(
-		attrAlertAction.String(string(AlertActionListNotifications)),
-		attrProjectRef.String(input.ProjectRef),
-	))
-	defer span.End()
-
-	project, err := s.loadProject(ctx, input.ProjectRef, input.CurrentUserID)
-	if err != nil {
-		return nil, recordAlertQueryFailure(span, AlertReasonProjectLookupFailed, err)
-	}
-	span.SetAttributes(attrProjectID.String(project.ID))
-	notifications, err := s.repo.ListNotifications(ctx, project.ID, input.Type)
-	if err != nil {
-		return nil, recordAlertQueryFailure(span, AlertReasonNotificationListFailed, err)
-	}
-	span.SetAttributes(attrAlertOutcome.String(string(AlertOutcomeSuccess)))
-	return notifications, nil
+	return getAlertList(ctx, s, "alert.notification.list", AlertActionListNotifications, input.ProjectRef, input.CurrentUserID, AlertReasonNotificationListFailed, func(ctx context.Context, projectID string) ([]domainalert.Notification, error) {
+		return s.repo.ListNotifications(ctx, projectID, input.Type)
+	})
 }
 
 func (s *Service) GetNotification(ctx context.Context, input GetNotificationInput) (domainalert.Notification, error) {
-	ctx, span := alertTracer.Start(ctx, "alert.notification.get", trace.WithAttributes(
-		attrAlertAction.String(string(AlertActionGetNotification)),
-		attrProjectRef.String(input.ProjectRef),
-		attrAlertNotificationID.String(input.NotificationID),
-	))
-	defer span.End()
-
-	project, err := s.loadProject(ctx, input.ProjectRef, input.CurrentUserID)
-	if err != nil {
-		return domainalert.Notification{}, recordAlertQueryFailure(span, AlertReasonProjectLookupFailed, err)
-	}
-	span.SetAttributes(attrProjectID.String(project.ID))
-	notification, err := s.repo.GetNotification(ctx, project.ID, input.NotificationID)
-	if err != nil {
-		return domainalert.Notification{}, recordAlertQueryFailure(span, AlertReasonNotificationLookupFailed, err)
-	}
-	span.SetAttributes(attrAlertOutcome.String(string(AlertOutcomeSuccess)))
-	return notification, nil
+	return getAlertResource(ctx, s, "alert.notification.get", AlertActionGetNotification, input.ProjectRef, input.CurrentUserID, attrAlertNotificationID.String(input.NotificationID), AlertReasonNotificationLookupFailed, func(ctx context.Context, projectID string) (domainalert.Notification, error) {
+		return s.repo.GetNotification(ctx, projectID, input.NotificationID)
+	})
 }
 
 func (s *Service) CreateNotification(ctx context.Context, input CreateNotificationInput) (domainalert.Notification, error) {

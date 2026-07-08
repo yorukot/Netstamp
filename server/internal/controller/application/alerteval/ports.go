@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"time"
 
-	appproberuntime "github.com/yorukot/netstamp/internal/controller/application/proberuntime"
 	apptx "github.com/yorukot/netstamp/internal/controller/application/tx"
 	domainalert "github.com/yorukot/netstamp/internal/domain/alert"
 	"github.com/yorukot/netstamp/internal/domain/alertcondition"
@@ -26,8 +25,6 @@ type Repository interface {
 }
 
 type Transactor = apptx.Transactor
-
-type ChangedAssignment = appproberuntime.ChangedAssignmentInput
 
 type EventRecorder interface {
 	RecordAlertEvalEvent(ctx context.Context, event AlertEvalEvent)

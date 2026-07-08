@@ -129,22 +129,24 @@ func (s *Service) evaluateRule(ctx context.Context, input appproberuntime.Change
 		flow.setIncidentID(active.ID)
 	}
 
-	switch evaluation.State {
-	case alertcondition.EvaluationStateFiring:
-		if err := s.handleFiringEvaluation(ctx, flow, input, rule, evaluation, summaryJSON, active, activeErr == nil, now); err != nil {
-			return err
-		}
-	case alertcondition.EvaluationStateClear:
-		if err := s.handleClearEvaluation(ctx, flow, input, rule, evaluation, summaryJSON, active, activeErr == nil, now); err != nil {
-			return err
-		}
-	case alertcondition.EvaluationStateInsufficientSamples, alertcondition.EvaluationStateNoData:
-		if err := s.handleInsufficientEvaluation(ctx, flow, active, activeErr == nil, evaluation, summaryJSON, now); err != nil {
-			return err
-		}
+	if err := s.handleEvaluationState(ctx, flow, input, rule, evaluation, summaryJSON, active, activeErr == nil, now); err != nil {
+		return err
 	}
 	flow.success()
 	return nil
+}
+
+func (s *Service) handleEvaluationState(ctx context.Context, flow *alertEvalFlow, input appproberuntime.ChangedAssignmentInput, rule domainalert.Rule, evaluation alertcondition.Evaluation, summaryJSON []byte, active domainalert.Incident, hasActive bool, now time.Time) error {
+	switch evaluation.State {
+	case alertcondition.EvaluationStateFiring:
+		return s.handleFiringEvaluation(ctx, flow, input, rule, evaluation, summaryJSON, active, hasActive, now)
+	case alertcondition.EvaluationStateClear:
+		return s.handleClearEvaluation(ctx, flow, input, rule, evaluation, summaryJSON, active, hasActive, now)
+	case alertcondition.EvaluationStateInsufficientSamples, alertcondition.EvaluationStateNoData:
+		return s.handleInsufficientEvaluation(ctx, flow, active, hasActive, evaluation, summaryJSON, now)
+	default:
+		return nil
+	}
 }
 
 func (s *Service) handleFiringEvaluation(ctx context.Context, flow *alertEvalFlow, input appproberuntime.ChangedAssignmentInput, rule domainalert.Rule, evaluation alertcondition.Evaluation, summaryJSON []byte, active domainalert.Incident, hasActive bool, now time.Time) error {
@@ -156,7 +158,11 @@ func (s *Service) handleFiringEvaluation(ctx context.Context, flow *alertEvalFlo
 		flow.setIncidentID(incident.ID)
 		return nil
 	}
-	if s.inReopenCooldown(ctx, flow, rule, input, now) {
+	inCooldown, err := s.inReopenCooldown(ctx, flow, rule, input, now)
+	if err != nil {
+		return err
+	}
+	if inCooldown {
 		return nil
 	}
 	return s.tx.WithinTx(ctx, func(ctx context.Context) error {
@@ -209,15 +215,15 @@ func (s *Service) handleInsufficientEvaluation(ctx context.Context, flow *alertE
 	return nil
 }
 
-func (s *Service) inReopenCooldown(ctx context.Context, flow *alertEvalFlow, rule domainalert.Rule, input appproberuntime.ChangedAssignmentInput, now time.Time) bool {
+func (s *Service) inReopenCooldown(ctx context.Context, flow *alertEvalFlow, rule domainalert.Rule, input appproberuntime.ChangedAssignmentInput, now time.Time) (bool, error) {
 	if rule.CooldownSeconds <= 0 {
-		return false
+		return false, nil
 	}
 	_, err := s.repo.GetRecentResolvedIncident(ctx, rule.ID, input.ProbeID, input.CheckID, now.Add(-time.Duration(rule.CooldownSeconds)*time.Second))
 	if err != nil && !errors.Is(err, domainalert.ErrIncidentNotFound) {
-		flow.recordFailure(AlertEvalEventRuleEvaluateFailure, AlertEvalReasonIncidentLookupFailed, err)
+		return false, flow.failure(AlertEvalEventRuleEvaluateFailure, AlertEvalReasonIncidentLookupFailed, err)
 	}
-	return err == nil
+	return err == nil, nil
 }
 
 func (s *Service) enqueueNotifications(ctx context.Context, flow *alertEvalFlow, rule domainalert.Rule, incident domainalert.Incident, evaluation alertcondition.Evaluation, eventType string, at time.Time) error {

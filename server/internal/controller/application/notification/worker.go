@@ -7,6 +7,7 @@ import (
 
 	"go.uber.org/zap"
 
+	"github.com/yorukot/netstamp/internal/controller/application/workerloop"
 	domainalert "github.com/yorukot/netstamp/internal/domain/alert"
 )
 
@@ -48,34 +49,13 @@ func NewWorker(repo Repository, sender NotificationSender, cfg WorkerConfig) *Wo
 }
 
 func (w *Worker) Run(ctx context.Context) error {
-	if !w.cfg.Enabled {
-		<-ctx.Done()
-		return nil
-	}
-	ticker := time.NewTicker(w.cfg.Interval)
-	defer ticker.Stop()
-
-	for {
-		if err := w.RunOnce(ctx); err != nil {
-			w.log.Error("background_worker_run_failed",
-				zap.String("worker.name", "notification_outbox"),
-				zap.String("worker.operation", "run_once"),
-				zap.Error(err),
-			)
-			// Keep the worker alive; individual job errors are persisted in the outbox.
-			select {
-			case <-ctx.Done():
-				return nil
-			case <-ticker.C:
-			}
-			continue
-		}
-		select {
-		case <-ctx.Done():
-			return nil
-		case <-ticker.C:
-		}
-	}
+	return workerloop.Run(ctx, w.cfg.Enabled, w.cfg.Interval, w.RunOnce, func(err error) {
+		w.log.Error("background_worker_run_failed",
+			zap.String("worker.name", "notification_outbox"),
+			zap.String("worker.operation", "run_once"),
+			zap.Error(err),
+		)
+	})
 }
 
 func (w *Worker) RunOnce(ctx context.Context) error {

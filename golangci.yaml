@@ -165,7 +165,7 @@ linters:
           - contextcheck
 
       # Audit event recorders intentionally stay explicit per feature.
-      - path: "internal/controller/logger/(assignment|check|label|probe)_events\\.go"
+      - path: "internal/controller/logger/(alerteval|alert|assignment|check|label|probe|publicstatus)_events\\.go"
         linters:
           - dupl
 
