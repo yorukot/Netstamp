@@ -31,32 +31,41 @@
 }
 
 .userCard {
+	--user-card-hover-bg: var(--ns-chrome-hover);
+	--user-card-open-bg: color-mix(in srgb, var(--ns-chrome-hover) 72%, transparent);
 	width: 100%;
 	display: grid;
 	appearance: none;
 	padding: 0.5rem 0.25rem;
 	border: 0;
-	color: var(--ns-text-subtle);
+	color: var(--ns-chrome-text-muted);
 	background: transparent;
 	cursor: pointer;
 	font-family: var(--ns-font-sans);
 	font-size: 0.8125rem;
 	text-align: left;
-	transition: color var(--ns-transition);
+	transition:
+		color var(--ns-transition),
+		background var(--ns-transition);
 }
 
-.userCard:hover,
+.userCard:hover {
+	color: var(--ns-chrome-text);
+	background: var(--user-card-hover-bg);
+	box-shadow: none;
+}
+
 .userCard:active,
 .userCard[data-state="open"],
 .userCard[data-state="open"]:hover {
-	color: var(--ns-text);
-	background: transparent;
+	color: var(--ns-chrome-text);
+	background: var(--user-card-open-bg);
 	box-shadow: none;
 }
 
 .userCard:focus-visible {
-	color: var(--ns-text);
-	background: transparent;
+	color: var(--ns-chrome-text);
+	background: var(--user-card-hover-bg);
 	box-shadow: none;
 	outline: var(--ns-focus-outline);
 	outline-offset: var(--ns-focus-outline-offset);
@@ -97,13 +106,13 @@
 }
 
 .userMeta strong {
-	color: var(--ns-text);
+	color: var(--ns-chrome-text);
 	font-size: 0.875rem;
 	font-weight: 650;
 }
 
 .userMeta span {
-	color: var(--ns-text-low);
+	color: var(--ns-chrome-text-muted);
 	font-size: 0.75rem;
 	text-transform: none;
 }
