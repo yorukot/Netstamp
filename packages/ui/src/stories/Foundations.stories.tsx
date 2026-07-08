@@ -17,9 +17,9 @@ const defaultTokens = [
 ] as const;
 
 const typeRows = [
-	["Display", "--ns-font-display", "Route titles, hero statements, large values"],
-	["Sans", "--ns-font-sans", "Body, labels, controls, navigation, table cells"],
-	["Mono", "--ns-font-mono", "Code, paths, timestamps, methods, technical metadata"]
+	["Display", "TASA Explorer", "--ns-font-display", "Route titles, hero statements, large values"],
+	["Sans", "TASA Orbiter", "--ns-font-sans", "Body, labels, controls, navigation, table cells"],
+	["Mono", "JetBrains Mono", "--ns-font-mono", "Code, paths, timestamps, methods, technical metadata"]
 ] as const;
 
 const meta = {
@@ -69,21 +69,24 @@ export const Typography: Story = {
 					<div className="storybook-type-specimen">
 						<div>
 							<SpecLabel>Display</SpecLabel>
+							<code className="storybook-type-token">TASA Explorer / --ns-font-display</code>
 							<strong className="storybook-type-display">Network state at controller scale.</strong>
 						</div>
 						<div>
 							<SpecLabel>Sans</SpecLabel>
+							<code className="storybook-type-token">TASA Orbiter / --ns-font-sans</code>
 							<p className="storybook-type-sans">Dense operational interfaces use sans text for labels, buttons, tables, and prose.</p>
 						</div>
 						<div>
 							<SpecLabel>Mono</SpecLabel>
+							<code className="storybook-type-token">JetBrains Mono / --ns-font-mono</code>
 							<code className="storybook-type-mono">GET /api/v1/projects/:projectRef/checks</code>
 						</div>
 					</div>
 				</Surface>
 				<div className="storybook-demo">
-					{typeRows.map(([label, token, usage]) => (
-						<KeyValueRow key={token} label={label} value={token} meta={usage} />
+					{typeRows.map(([label, fontName, token, usage]) => (
+						<KeyValueRow key={token} label={label} value={`${fontName} / ${token}`} meta={usage} />
 					))}
 				</div>
 			</section>
