@@ -1,3 +1,4 @@
+import { ArrowsDownUpIcon, SortAscendingIcon, SortDescendingIcon } from "@phosphor-icons/react";
 import type { CSSProperties, KeyboardEvent, MouseEvent, ReactNode } from "react";
 import { useMemo, useState } from "react";
 import { Checkbox } from "../Field/Field";
@@ -196,8 +197,8 @@ export function DataTable<Row extends object>({
 									{column.sortable ? (
 										<button type="button" className={styles.sortButton} onClick={() => toggleSort(column)}>
 											<span>{column.label}</span>
-											<span className={styles.sortIndicator} aria-hidden="true">
-												{sortIndicator(activeSort, column)}
+											<span className={[styles.sortIndicator, activeSort?.key === column.key && styles.sortIndicatorActive].filter(Boolean).join(" ")} aria-hidden="true">
+												<SortIndicator sort={activeSort} column={column} />
 											</span>
 										</button>
 									) : (
@@ -337,10 +338,14 @@ function ariaSortValue<Row extends object>(sort: DataTableSortState | null | und
 	return sort.direction === "asc" ? "ascending" : "descending";
 }
 
-function sortIndicator<Row extends object>(sort: DataTableSortState | null | undefined, column: DataColumn<Row>) {
+function SortIndicator<Row extends object>({ sort, column }: { sort: DataTableSortState | null | undefined; column: DataColumn<Row> }) {
 	if (sort?.key !== column.key) {
-		return "sort";
+		return <ArrowsDownUpIcon size={14} weight="bold" focusable="false" />;
 	}
 
-	return sort.direction;
+	if (sort.direction === "asc") {
+		return <SortAscendingIcon size={14} weight="bold" focusable="false" />;
+	}
+
+	return <SortDescendingIcon size={14} weight="bold" focusable="false" />;
 }
