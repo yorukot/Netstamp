@@ -54,15 +54,10 @@
 	text-align: left;
 }
 
-.userManagementActions {
+.userToolbar {
 	display: grid;
-	grid-template-columns: minmax(16rem, 28rem) auto;
-	gap: 1rem;
-	align-items: end;
-}
-
-.userManagementActions > * {
-	min-width: 0;
+	grid-template-columns: minmax(16rem, 28rem);
+	margin-bottom: 1rem;
 }
 
 .fileInput {
@@ -120,8 +115,7 @@
 		justify-content: flex-start;
 	}
 
-	.userManagementActions {
+	.userToolbar {
 		grid-template-columns: 1fr;
-		justify-items: start;
 	}
 }

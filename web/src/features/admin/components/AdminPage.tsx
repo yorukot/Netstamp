@@ -530,12 +530,8 @@ export function AdminPage() {
 			<Panel
 				tone="glass"
 				title="User management"
-				actions={
-					<div className={styles.userManagementActions}>
-						<TextField label="Search" type="search" placeholder="name, email, status, access" value={userSearch} onChange={event => setUserSearch(event.currentTarget.value)} />
-						{usersQuery.isFetching ? <Badge tone="neutral">Syncing</Badge> : <Badge tone="neutral">{userCountLabel}</Badge>}
-					</div>
-				}
+				actions={usersQuery.isFetching ? <Badge tone="neutral">Syncing</Badge> : <Badge tone="neutral">{userCountLabel}</Badge>}
+				bodySurface="transparent"
 				padded={false}
 			>
 				{usersQuery.isLoading ? (
@@ -545,18 +541,23 @@ export function AdminPage() {
 						<BodyCopy>{requestErrorMessage(usersQuery.error, "Could not load users.")}</BodyCopy>
 					</div>
 				) : (
-					<DataTable<ApiManagedUser>
-						ariaLabel="Managed users"
-						columns={userColumns}
-						rows={filteredUserRows}
-						density="compact"
-						minWidth="72rem"
-						emptyLabel={userSearch.trim() ? "No users match this search" : "No users"}
-						getRowKey={user => user.id}
-						rowActions={userRowActions}
-						rowActionsClassName={styles.userActionsCell}
-						rowActionsHeaderClassName={styles.userActionsHeader}
-					/>
+					<>
+						<div className={styles.userToolbar}>
+							<TextField label="Search" type="search" placeholder="name, email, status, access" value={userSearch} onChange={event => setUserSearch(event.currentTarget.value)} />
+						</div>
+						<DataTable<ApiManagedUser>
+							ariaLabel="Managed users"
+							columns={userColumns}
+							rows={filteredUserRows}
+							density="compact"
+							minWidth="72rem"
+							emptyLabel={userSearch.trim() ? "No users match this search" : "No users"}
+							getRowKey={user => user.id}
+							rowActions={userRowActions}
+							rowActionsClassName={styles.userActionsCell}
+							rowActionsHeaderClassName={styles.userActionsHeader}
+						/>
+					</>
 				)}
 			</Panel>
 		</PageStack>

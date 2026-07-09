@@ -2,6 +2,7 @@ import type { ComponentPropsWithoutRef, ElementType, ReactNode } from "react";
 import styles from "./Panel.module.css";
 
 export type PanelTone = "glass" | "matte" | "deep";
+export type PanelBodySurface = "default" | "transparent";
 
 export interface PanelProps extends Omit<ComponentPropsWithoutRef<"section">, "title"> {
 	as?: ElementType;
@@ -12,10 +13,25 @@ export interface PanelProps extends Omit<ComponentPropsWithoutRef<"section">, "t
 	actions?: ReactNode;
 	footer?: ReactNode;
 	padded?: boolean;
+	bodySurface?: PanelBodySurface;
 	bodyClassName?: string;
 }
 
-export function Panel({ as: Comp = "section", tone = "glass", eyebrow, title, summary, actions, footer, padded = true, className, bodyClassName, children, ...props }: PanelProps) {
+export function Panel({
+	as: Comp = "section",
+	tone = "glass",
+	eyebrow,
+	title,
+	summary,
+	actions,
+	footer,
+	padded = true,
+	bodySurface = "default",
+	className,
+	bodyClassName,
+	children,
+	...props
+}: PanelProps) {
 	const classes = [styles.panel, className].filter(Boolean).join(" ");
 	const bodyClasses = [styles.body, bodyClassName].filter(Boolean).join(" ");
 
@@ -37,7 +53,7 @@ export function Panel({ as: Comp = "section", tone = "glass", eyebrow, title, su
 				</div>
 			) : null}
 			{children ? (
-				<div className={bodyClasses} data-padded={padded}>
+				<div className={bodyClasses} data-padded={padded} data-surface={bodySurface}>
 					{children}
 				</div>
 			) : null}
