@@ -317,7 +317,7 @@ export function MembersPage() {
 			<ScreenHeader title="Members" />
 
 			{canManageMembers ? (
-				<Panel tone="glass" title="Invite member">
+				<Panel tone="glass" title="Invite Members" summary={`${inviteRows.length} pending invites`}>
 					<div className={styles.formGridThree}>
 						<TextField label="Email" value={memberEmail} onChange={event => setMemberEmail(event.currentTarget.value)} />
 						<SelectField
@@ -334,11 +334,6 @@ export function MembersPage() {
 							{createInviteMutation.isPending ? "Sending" : "Send invite"}
 						</Button>
 					</div>
-				</Panel>
-			) : null}
-
-			{canManageMembers ? (
-				<Panel tone="glass" title={`${inviteRows.length} pending invites`}>
 					<DataTable
 						columns={inviteColumns}
 						rows={inviteRows}
@@ -350,7 +345,7 @@ export function MembersPage() {
 				</Panel>
 			) : null}
 
-			<Panel tone="glass" title="Member access">
+			<Panel tone="glass" title="Member Access">
 				<DataTable columns={memberColumns} rows={memberRows} getRowKey={row => row.id} />
 			</Panel>
 		</PageStack>
