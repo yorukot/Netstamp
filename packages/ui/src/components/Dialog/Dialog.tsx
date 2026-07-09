@@ -2,7 +2,12 @@ import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
 import * as PopoverPrimitive from "@radix-ui/react-popover";
-import type { ComponentPropsWithoutRef } from "react";
+import { forwardRef, type ComponentPropsWithoutRef, type ComponentRef } from "react";
+import styles from "./Dialog.module.css";
+
+function classNames(...values: Array<string | false | null | undefined>) {
+	return values.filter(Boolean).join(" ");
+}
 
 export const DialogRoot = DialogPrimitive.Root;
 export const DialogTrigger = DialogPrimitive.Trigger;
@@ -45,7 +50,9 @@ export type AlertDialogCancelProps = ComponentPropsWithoutRef<typeof AlertDialog
 export const DropdownMenuRoot = DropdownMenuPrimitive.Root;
 export const DropdownMenuTrigger = DropdownMenuPrimitive.Trigger;
 export const DropdownMenuPortal = DropdownMenuPrimitive.Portal;
-export const DropdownMenuContent = DropdownMenuPrimitive.Content;
+export const DropdownMenuContent = forwardRef<ComponentRef<typeof DropdownMenuPrimitive.Content>, DropdownMenuContentProps>(function DropdownMenuContent({ className, ...props }, ref) {
+	return <DropdownMenuPrimitive.Content ref={ref} className={classNames(styles.dropdownMenuContent, className)} {...props} />;
+});
 export const DropdownMenuItem = DropdownMenuPrimitive.Item;
 export const DropdownMenuCheckboxItem = DropdownMenuPrimitive.CheckboxItem;
 
@@ -60,7 +67,9 @@ export const PopoverRoot = PopoverPrimitive.Root;
 export const PopoverTrigger = PopoverPrimitive.Trigger;
 export const PopoverAnchor = PopoverPrimitive.Anchor;
 export const PopoverPortal = PopoverPrimitive.Portal;
-export const PopoverContent = PopoverPrimitive.Content;
+export const PopoverContent = forwardRef<ComponentRef<typeof PopoverPrimitive.Content>, PopoverContentProps>(function PopoverContent({ className, ...props }, ref) {
+	return <PopoverPrimitive.Content ref={ref} className={classNames(styles.popoverContent, className)} {...props} />;
+});
 export const PopoverClose = PopoverPrimitive.Close;
 
 export type PopoverRootProps = ComponentPropsWithoutRef<typeof PopoverPrimitive.Root>;

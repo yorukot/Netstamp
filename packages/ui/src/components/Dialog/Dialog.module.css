@@ -1,0 +1,81 @@
+.dropdownMenuContent,
+.popoverContent {
+	--ns-overlay-motion-enter-x: 0rem;
+	--ns-overlay-motion-enter-y: -0.25rem;
+	--ns-overlay-motion-exit-x: 0rem;
+	--ns-overlay-motion-exit-y: -0.125rem;
+
+	transform-origin: center top;
+	will-change: opacity, transform;
+}
+
+.dropdownMenuContent {
+	transform-origin: var(--radix-dropdown-menu-content-transform-origin, center top);
+}
+
+.popoverContent {
+	transform-origin: var(--radix-popover-content-transform-origin, center top);
+}
+
+.dropdownMenuContent[data-side="top"],
+.popoverContent[data-side="top"] {
+	--ns-overlay-motion-enter-y: 0.25rem;
+	--ns-overlay-motion-exit-y: 0.125rem;
+}
+
+.dropdownMenuContent[data-side="left"],
+.popoverContent[data-side="left"] {
+	--ns-overlay-motion-enter-x: 0.25rem;
+	--ns-overlay-motion-enter-y: 0rem;
+	--ns-overlay-motion-exit-x: 0.125rem;
+	--ns-overlay-motion-exit-y: 0rem;
+}
+
+.dropdownMenuContent[data-side="right"],
+.popoverContent[data-side="right"] {
+	--ns-overlay-motion-enter-x: -0.25rem;
+	--ns-overlay-motion-enter-y: 0rem;
+	--ns-overlay-motion-exit-x: -0.125rem;
+	--ns-overlay-motion-exit-y: 0rem;
+}
+
+.dropdownMenuContent[data-state="open"],
+.popoverContent[data-state="open"] {
+	animation: overlayContentIn 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.dropdownMenuContent[data-state="closed"],
+.popoverContent[data-state="closed"] {
+	animation: overlayContentOut 140ms ease-in both;
+}
+
+@keyframes overlayContentIn {
+	from {
+		opacity: 0;
+		transform: translate3d(var(--ns-overlay-motion-enter-x), var(--ns-overlay-motion-enter-y), 0) scale(0.98);
+	}
+
+	to {
+		opacity: 1;
+		transform: translate3d(0, 0, 0) scale(1);
+	}
+}
+
+@keyframes overlayContentOut {
+	from {
+		opacity: 1;
+		transform: translate3d(0, 0, 0) scale(1);
+	}
+
+	to {
+		opacity: 0;
+		transform: translate3d(var(--ns-overlay-motion-exit-x), var(--ns-overlay-motion-exit-y), 0) scale(0.98);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.dropdownMenuContent[data-state],
+	.popoverContent[data-state] {
+		animation-duration: 0.01ms;
+	}
+}
