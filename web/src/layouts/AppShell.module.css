@@ -46,11 +46,13 @@
 .contentMain {
 	--app-content-padding-top: 4rem;
 	--app-content-padding-bottom: 2rem;
+	--app-content-padding-inline-start: 2rem;
+	--app-content-padding-inline-end: 2rem;
 	--app-content-padding-block: calc(var(--app-content-padding-top) + var(--app-content-padding-bottom));
 	flex: 1 0 auto;
 	min-height: 0;
 	display: flex;
-	padding: var(--app-content-padding-top) 2rem var(--app-content-padding-bottom);
+	padding: var(--app-content-padding-top) var(--app-content-padding-inline-end) var(--app-content-padding-bottom) var(--app-content-padding-inline-start);
 }
 
 .contentBody {
@@ -103,7 +105,8 @@
 	.contentMain {
 		--app-content-padding-top: 2.5rem;
 		--app-content-padding-bottom: 2rem;
-		padding: var(--app-content-padding-top) 1rem var(--app-content-padding-bottom) 0;
+		--app-content-padding-inline-start: 0;
+		--app-content-padding-inline-end: 1rem;
 	}
 
 	.demoBanner {
@@ -124,6 +127,7 @@
 	.contentMain {
 		--app-content-padding-top: 1.5rem;
 		--app-content-padding-bottom: 1.5rem;
-		padding: var(--app-content-padding-top) 0.75rem var(--app-content-padding-bottom);
+		--app-content-padding-inline-start: 0.75rem;
+		--app-content-padding-inline-end: 0.75rem;
 	}
 }

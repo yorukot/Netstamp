@@ -5,8 +5,10 @@
 }
 
 .mapScreen {
-	min-height: calc(100svh - 4.5rem);
-	margin: -3rem -1.5rem -1.5rem;
+	min-height: 0;
+	height: calc(100svh - var(--app-footer-min-height, 3.25rem));
+	margin: calc(-1 * var(--app-content-padding-top, 4rem)) calc(-1 * var(--app-content-padding-inline-end, 2rem)) calc(-1 * var(--app-content-padding-bottom, 2rem))
+		calc(-1 * var(--app-content-padding-inline-start, 2rem));
 	overflow: hidden;
 }
 
@@ -19,7 +21,8 @@
 
 .mapView {
 	position: relative;
-	min-height: inherit;
+	min-height: 0;
+	height: 100%;
 	overflow: hidden;
 	background: var(--ns-surface-deep);
 }
@@ -32,25 +35,4 @@
 	min-height: 100%;
 	border: 0;
 	clip-path: none;
-}
-
-@media (max-width: 58rem) {
-	.mapScreen {
-		min-height: calc(100svh - 2.5rem);
-		margin: -1.5rem -1rem -1rem;
-	}
-}
-
-@media (max-width: 38rem) {
-	.mapView {
-		display: grid;
-		min-height: auto;
-		padding-bottom: 1rem;
-	}
-
-	.fullMap {
-		position: relative;
-		min-height: 28rem;
-		height: 28rem;
-	}
 }
