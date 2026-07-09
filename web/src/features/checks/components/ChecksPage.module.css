@@ -49,6 +49,26 @@
 	white-space: nowrap;
 }
 
+.checkTypeBadge {
+	color: var(--ns-check-type-text, var(--ns-text-muted));
+	background: var(--ns-check-type-bg, var(--ns-glass-light));
+}
+
+.checkTypePing {
+	--ns-check-type-text: var(--ns-primary-hover);
+	--ns-check-type-bg: var(--ns-primary-subtle);
+}
+
+.checkTypeTcp {
+	--ns-check-type-text: var(--ns-secondary);
+	--ns-check-type-bg: var(--ns-secondary-subtle);
+}
+
+.checkTypeTraceroute {
+	--ns-check-type-text: var(--ns-warning);
+	--ns-check-type-bg: color-mix(in srgb, var(--ns-warning) 10%, transparent);
+}
+
 .descriptionHint {
 	position: relative;
 	display: inline-flex;

@@ -34,6 +34,12 @@ const typeFilterLabels: Record<Exclude<CheckTypeFilter, "all">, CheckDefinition[
 	traceroute: "Traceroute"
 };
 
+const checkTypeBadgeClasses: Record<CheckDefinition["type"], string> = {
+	Ping: styles.checkTypePing,
+	TCP: styles.checkTypeTcp,
+	Traceroute: styles.checkTypeTraceroute
+};
+
 function intervalValue(value: string) {
 	const parsed = Number.parseInt(value, 10);
 	return Number.isFinite(parsed) ? parsed : 0;
@@ -93,6 +99,10 @@ function CheckDescriptionHint({ check }: { check: CheckDefinition }) {
 	);
 }
 
+function CheckTypeBadge({ type }: { type: CheckDefinition["type"] }) {
+	return <Badge className={classNames(styles.checkTypeBadge, checkTypeBadgeClasses[type])}>{type}</Badge>;
+}
+
 export function ChecksTable({
 	actionDisabled,
 	batchDeleteDisabled,
@@ -128,7 +138,7 @@ export function ChecksTable({
 				key: "type",
 				label: "Type",
 				sortable: true,
-				render: check => <Badge tone="accent">{check.type}</Badge>
+				render: check => <CheckTypeBadge type={check.type} />
 			},
 			{
 				key: "target",
