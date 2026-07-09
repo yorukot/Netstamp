@@ -5,7 +5,6 @@ const config: StorybookConfig = {
 	addons: [],
 	features: {
 		actions: true,
-		backgrounds: true,
 		controls: true,
 		highlight: true,
 		measure: true,

@@ -32,15 +32,6 @@ const preview: Preview = {
 	},
 	decorators: [withTheme],
 	parameters: {
-		backgrounds: {
-			default: "dark",
-			options: {
-				light: { name: "Light canvas", value: "#f4f5f7" },
-				lightPanel: { name: "Light panel", value: "#ffffff" },
-				dark: { name: "Dark canvas", value: "#000000" },
-				darkPanel: { name: "Dark panel", value: "#070707" }
-			}
-		},
 		controls: {
 			expanded: true,
 			matchers: {
