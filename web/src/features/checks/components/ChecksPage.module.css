@@ -171,13 +171,12 @@
 }
 
 .checkEditForm {
-	display: flex;
-	flex-wrap: wrap;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	align-items: start;
 	margin-bottom: 1rem;
 }
 
 .checkEditForm > * {
-	flex: 1 1 14rem;
 	min-width: 0;
 }
 
@@ -314,6 +313,10 @@
 }
 
 @media (max-width: 58rem) {
+	.checkEditForm {
+		grid-template-columns: 1fr;
+	}
+
 	.selectorRule {
 		grid-template-columns: 1fr;
 		align-items: stretch;
