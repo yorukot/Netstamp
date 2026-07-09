@@ -17,15 +17,140 @@
 	--ns-filter-grid-mobile-template: 1fr;
 }
 
-.labelPair {
+.editorForm {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 1rem;
+}
+
+.groupedTableFrame {
+	--ns-frame-color: transparent;
+	--ns-frame-radius: 0;
+	--ns-label-table-divider: color-mix(in srgb, var(--ns-border) 64%, transparent);
+	width: 100%;
+	background: var(--ns-container-bg);
+}
+
+.groupedTableScroller {
+	width: 100%;
+	min-width: 0;
+	overflow: auto;
+}
+
+.groupedTable {
+	width: 100%;
+	min-width: 58rem;
+	border-collapse: collapse;
+	color: var(--ns-text-muted);
+	font-size: 0.8125rem;
+}
+
+.groupedTable thead th {
+	position: sticky;
+	top: 0;
+	z-index: 2;
+	padding: 0.75rem 1rem;
+	border-bottom: 1px solid var(--ns-label-table-divider);
+	color: var(--ns-text-subtle);
+	background: var(--ns-container-bg-raised);
+	font-size: 0.75rem;
+	font-weight: 700;
+	letter-spacing: 0;
+	text-align: left;
+	text-transform: none;
+	white-space: nowrap;
+}
+
+.groupedTable td {
+	padding: 0.75rem 1rem;
+	border-top: 1px solid var(--ns-label-table-divider);
+	vertical-align: top;
+	white-space: nowrap;
+}
+
+.groupedTable .groupHeaderCell {
+	position: static;
+	z-index: 1;
+	padding: 0;
+	border-top: 1px solid var(--ns-label-table-divider);
+	border-bottom: 1px solid var(--ns-label-table-divider);
+	background: var(--ns-container-bg-raised);
+}
+
+.groupRow {
+	color: var(--ns-text);
+}
+
+.groupHeader {
+	display: flex;
+	gap: 1rem;
+	align-items: center;
+	justify-content: space-between;
+	min-width: 0;
+	padding: 0.75rem 1rem;
+}
+
+.groupHeading {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 0.5rem;
-	align-items: center;
+	gap: 0.5rem 0.75rem;
+	align-items: baseline;
 	min-width: 0;
 }
 
-.labelPair strong {
+.groupHeading strong {
+	min-width: 0;
+	overflow: hidden;
+	color: var(--ns-text);
+	font-family: var(--ns-font-code);
+	font-size: 0.875rem;
+	font-weight: 800;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.groupHeading span {
+	color: var(--ns-text-low);
+	font-size: 0.75rem;
+	font-weight: 650;
+}
+
+.addValueIcon {
+	width: 0.875rem;
+	height: 0.875rem;
+}
+
+.labelValueRow {
+	cursor: pointer;
+	transition:
+		background var(--ns-transition),
+		color var(--ns-transition);
+}
+
+.labelValueRow:hover {
+	color: var(--ns-text);
+	background: var(--ns-container-bg-hover);
+}
+
+.labelValueRow:focus-visible {
+	color: var(--ns-text);
+	background: var(--ns-container-bg-hover);
+	outline: var(--ns-focus-outline);
+	outline-offset: -2px;
+}
+
+.selectedLabelValueRow {
+	color: var(--ns-text);
+	background: var(--ns-primary-muted);
+}
+
+.valueCell {
+	display: grid;
+	gap: 0.25rem;
+	min-width: 0;
+}
+
+.valueCell strong {
 	min-width: 0;
 	overflow: hidden;
 	color: var(--ns-text);
@@ -36,15 +161,53 @@
 	white-space: nowrap;
 }
 
-.usageCell {
-	display: inline-flex;
-	align-items: center;
+.valueCell span {
+	min-width: 0;
+	overflow: hidden;
+	color: var(--ns-text-low);
+	font-family: var(--ns-font-code);
+	font-size: 0.6875rem;
+	font-weight: 650;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
-.editorForm {
-	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: 1rem;
+.usageSummary {
+	display: flex;
+	gap: 0.5rem;
+	align-items: center;
+	min-width: 0;
+	max-width: 18rem;
+}
+
+.usageNames,
+.emptyUsage {
+	min-width: 0;
+	overflow: hidden;
+	font-size: 0.75rem;
+	font-weight: 650;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.usageNames {
+	color: var(--ns-text-muted);
+}
+
+.emptyUsage {
+	color: var(--ns-text-low);
+}
+
+.updatedCell {
+	color: var(--ns-text-low);
+	font-family: var(--ns-font-code);
+	font-size: 0.75rem;
+}
+
+.emptyState {
+	padding: 2rem;
+	color: var(--ns-text-low);
+	text-align: center;
 }
 
 .editorActions {

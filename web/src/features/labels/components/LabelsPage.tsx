@@ -9,9 +9,10 @@ import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { UnsavedChangesBar } from "@/shared/components/UnsavedChangesBar";
 import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
-import { Badge, Button, DataTable, FilterGrid, Panel, SelectField, TextField, type DataColumn } from "@netstamp/ui";
+import { Badge, Button, FilterGrid, Panel, SelectField, TextField } from "@netstamp/ui";
+import { PlusIcon } from "@phosphor-icons/react/dist/csr/Plus";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { type KeyboardEvent, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import styles from "./LabelsPage.module.css";
 
@@ -30,6 +31,13 @@ interface LabelRow {
 	checkCount: number;
 	probeNames: string[];
 	checkNames: string[];
+}
+
+interface LabelGroup {
+	key: string;
+	rows: LabelRow[];
+	probeCount: number;
+	checkCount: number;
 }
 
 type LabelEditorMode = "idle" | "create";
@@ -84,6 +92,63 @@ function usageNames(names: string[]) {
 	}
 
 	return names.slice(0, 3).join(", ") + (names.length > 3 ? ` +${names.length - 3}` : "");
+}
+
+function countLabel(count: number, singular: string) {
+	return `${count} ${singular}${count === 1 ? "" : "s"}`;
+}
+
+function renderUsage(count: number, names: string[], tone: "accent" | "success") {
+	const summary = usageNames(names);
+
+	return (
+		<div className={styles.usageSummary} title={summary}>
+			<Badge tone={count ? tone : "muted"} dot={false}>
+				{count}
+			</Badge>
+			<span className={count ? styles.usageNames : styles.emptyUsage}>{summary}</span>
+		</div>
+	);
+}
+
+function buildLabelGroups(rows: LabelRow[]) {
+	const groupDrafts = new Map<
+		string,
+		{
+			key: string;
+			rows: LabelRow[];
+			probeNames: Set<string>;
+			checkNames: Set<string>;
+		}
+	>();
+
+	for (const row of rows) {
+		const draft = groupDrafts.get(row.key) ?? {
+			key: row.key,
+			rows: [],
+			probeNames: new Set<string>(),
+			checkNames: new Set<string>()
+		};
+
+		draft.rows.push(row);
+		for (const name of row.probeNames) {
+			draft.probeNames.add(name);
+		}
+		for (const name of row.checkNames) {
+			draft.checkNames.add(name);
+		}
+
+		groupDrafts.set(row.key, draft);
+	}
+
+	return Array.from(groupDrafts.values())
+		.map<LabelGroup>(draft => ({
+			key: draft.key,
+			rows: draft.rows.sort((left, right) => left.value.localeCompare(right.value)),
+			probeCount: draft.probeNames.size,
+			checkCount: draft.checkNames.size
+		}))
+		.sort((left, right) => left.key.localeCompare(right.key));
 }
 
 export function LabelsPage() {
@@ -142,11 +207,13 @@ export function LabelsPage() {
 
 		return rows.filter(row => {
 			const matchesKey = keyFilter === "all" || row.key === keyFilter;
-			const matchesSearch = !query || row.key.toLowerCase().includes(query) || row.value.toLowerCase().includes(query) || row.token.toLowerCase().includes(query);
+			const matchesSearch = !query || [row.key, row.value, row.token, ...row.probeNames, ...row.checkNames].some(value => value.toLowerCase().includes(query));
 
 			return matchesKey && matchesSearch;
 		});
 	}, [keyFilter, rows, search]);
+	const labelGroups = useMemo(() => buildLabelGroups(filteredRows), [filteredRows]);
+	const allLabelGroups = useMemo(() => buildLabelGroups(rows), [rows]);
 	const selectedLabel = labels.find(label => label.id === labelId) ?? null;
 	const selectedRow = rows.find(row => row.id === labelId) ?? null;
 	const isCreating = editorMode === "create";
@@ -161,56 +228,7 @@ export function LabelsPage() {
 		projectRef && activeDraftKey.trim() && activeDraftValue.trim() && (!selectedLabel || selectedLabel.key !== activeDraftKey.trim() || selectedLabel.value !== activeDraftValue.trim())
 	);
 	const emptyLabel = projectRef ? (labelsQuery.isLoading ? "Loading labels" : "No labels match this view") : "Select a project to manage labels";
-	const columns: DataColumn<LabelRow>[] = [
-		{
-			key: "label",
-			label: "Label",
-			render: row => (
-				<div className={styles.labelPair}>
-					<Badge tone="accent" dot={false}>
-						{row.key}
-					</Badge>
-					<strong>{row.value}</strong>
-				</div>
-			)
-		},
-		{
-			key: "probeCount",
-			label: "Probes",
-			render: row => (
-				<span className={styles.usageCell} title={usageNames(row.probeNames)}>
-					<Badge tone={row.probeCount ? "success" : "muted"}>{row.probeCount}</Badge>
-				</span>
-			)
-		},
-		{
-			key: "checkCount",
-			label: "Checks",
-			render: row => (
-				<span className={styles.usageCell} title={usageNames(row.checkNames)}>
-					<Badge tone={row.checkCount ? "accent" : "muted"}>{row.checkCount}</Badge>
-				</span>
-			)
-		},
-		{ key: "updatedAt", label: "Updated" },
-		{
-			key: "delete",
-			label: "Delete",
-			render: row => (
-				<Button
-					variant="danger"
-					size="sm"
-					disabled={deleteLabelMutation.isPending}
-					onClick={event => {
-						event.stopPropagation();
-						void deleteLabel(row);
-					}}
-				>
-					Delete
-				</Button>
-			)
-		}
-	];
+	const labelPanelTitle = search.trim() || keyFilter !== "all" ? `${labelGroups.length} keys / ${filteredRows.length} labels` : `${allLabelGroups.length} keys / ${rows.length} labels`;
 
 	useEffect(() => {
 		if (!projectRef || !labelId || labelsQuery.isPending || labelsQuery.isError || selectedLabel) {
@@ -248,14 +266,23 @@ export function LabelsPage() {
 		navigate(pathForLabelDetail(projectRef, row.id));
 	}
 
-	function startNewLabel() {
+	function startNewLabel(prefillKey = "") {
 		setEditorMode("create");
 		setDraftLabelId("__new__");
-		setDraftKey("");
+		setDraftKey(prefillKey);
 		setDraftValue("");
 		saveLabelMutation.reset();
 		deleteLabelMutation.reset();
 		navigate(pathForRoute("labels", { projectRef }));
+	}
+
+	function openLabelFromKeyboard(event: KeyboardEvent<HTMLTableRowElement>, row: LabelRow) {
+		if (event.key !== "Enter" && event.key !== " ") {
+			return;
+		}
+
+		event.preventDefault();
+		selectLabel(row);
 	}
 
 	function closeEditor() {
@@ -331,25 +358,84 @@ export function LabelsPage() {
 
 	return (
 		<PageStack>
-			<ScreenHeader title="Labels" actions={<Button onClick={startNewLabel}>New label</Button>} />
+			<ScreenHeader title="Labels" actions={<Button onClick={() => startNewLabel()}>New label</Button>} />
 
 			<div className={styles.labelsGrid}>
-				<Panel tone="glass" title={`${rows.length} labels`}>
+				<Panel tone="glass" title={labelPanelTitle}>
 					<div className={styles.listStack}>
 						<FilterGrid className={styles.filters}>
 							<TextField label="Search" placeholder="region:tokyo, provider, edge" value={search} disabled={!projectRef} onChange={event => setSearch(event.currentTarget.value)} />
 							<SelectField label="Key" value={keyFilter} disabled={!projectRef} options={keyOptions} onChange={event => setKeyFilter(event.currentTarget.value)} />
 						</FilterGrid>
-						<DataTable
-							ariaLabel="Project labels"
-							columns={columns}
-							rows={filteredRows}
-							getRowKey={row => row.id}
-							getRowAriaLabel={row => `Open label ${row.token}`}
-							selectedKey={isCreating ? undefined : labelId}
-							onRowClick={selectLabel}
-							emptyLabel={emptyLabel}
-						/>
+						<div className={["ns-frame", styles.groupedTableFrame].join(" ")}>
+							<div className={["ns-scrollbar", styles.groupedTableScroller].join(" ")}>
+								<table className={styles.groupedTable} aria-label="Project labels grouped by key">
+									<thead>
+										<tr>
+											<th>Value</th>
+											<th>Probes</th>
+											<th>Checks</th>
+											<th>Updated</th>
+										</tr>
+									</thead>
+									{labelGroups.length ? (
+										labelGroups.map(group => (
+											<tbody key={group.key}>
+												<tr className={styles.groupRow}>
+													<th className={styles.groupHeaderCell} scope="rowgroup" colSpan={4}>
+														<div className={styles.groupHeader}>
+															<div className={styles.groupHeading}>
+																<strong translate="no">{group.key}</strong>
+																<span>
+																	{countLabel(group.rows.length, "value")} · {countLabel(group.probeCount, "probe")} · {countLabel(group.checkCount, "check")}
+																</span>
+															</div>
+															<Button type="button" variant="secondary" size="sm" onClick={() => startNewLabel(group.key)}>
+																<PlusIcon className={styles.addValueIcon} size={14} weight="bold" aria-hidden="true" focusable="false" />
+																Add value
+															</Button>
+														</div>
+													</th>
+												</tr>
+												{group.rows.map(row => {
+													const selected = !isCreating && labelId === row.id;
+
+													return (
+														<tr
+															key={row.id}
+															className={[styles.labelValueRow, selected && styles.selectedLabelValueRow].filter(Boolean).join(" ")}
+															aria-label={`Open label ${row.token}`}
+															aria-selected={selected || undefined}
+															tabIndex={0}
+															onClick={() => selectLabel(row)}
+															onKeyDown={event => openLabelFromKeyboard(event, row)}
+														>
+															<td>
+																<div className={styles.valueCell}>
+																	<strong translate="no">{row.value}</strong>
+																	<span translate="no">{row.token}</span>
+																</div>
+															</td>
+															<td>{renderUsage(row.probeCount, row.probeNames, "success")}</td>
+															<td>{renderUsage(row.checkCount, row.checkNames, "accent")}</td>
+															<td className={styles.updatedCell}>{row.updatedAt}</td>
+														</tr>
+													);
+												})}
+											</tbody>
+										))
+									) : (
+										<tbody>
+											<tr>
+												<td className={styles.emptyState} colSpan={4}>
+													{emptyLabel}
+												</td>
+											</tr>
+										</tbody>
+									)}
+								</table>
+							</div>
+						</div>
 					</div>
 				</Panel>
 
