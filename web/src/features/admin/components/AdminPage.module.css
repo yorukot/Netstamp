@@ -83,6 +83,10 @@
 	color: var(--ns-text);
 }
 
+.checkboxRow > input[type="checkbox"] {
+	margin-top: 0.25rem;
+}
+
 .checkboxRow strong,
 .checkboxRow small {
 	display: block;
