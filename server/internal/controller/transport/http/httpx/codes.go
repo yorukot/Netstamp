@@ -8,12 +8,12 @@ const (
 const (
 	CodeAuthMissingSession                = "AUTH_MISSING_SESSION"
 	CodeAuthInvalidSession                = "AUTH_INVALID_SESSION"
-	CodeAuthInvalidCredentials            = "AUTH_INVALID_CREDENTIALS"
+	CodeAuthInvalidCredentials            = "AUTH_INVALID_CREDENTIALS" // #nosec G101 -- public problem code, not credential material.
 	CodeAuthEmailVerificationRequired     = "AUTH_EMAIL_VERIFICATION_REQUIRED"
 	CodeAuthRegistrationDisabled          = "AUTH_REGISTRATION_DISABLED"
 	CodeAuthEmailVerificationUnavailable  = "AUTH_EMAIL_VERIFICATION_UNAVAILABLE"
 	CodeAuthPasswordResetUnavailable      = "AUTH_PASSWORD_RESET_UNAVAILABLE"
-	CodeAuthEmailVerificationTokenInvalid = "AUTH_EMAIL_VERIFICATION_TOKEN_INVALID"
+	CodeAuthEmailVerificationTokenInvalid = "AUTH_EMAIL_VERIFICATION_TOKEN_INVALID" // #nosec G101 -- public problem code, not token material.
 	CodeAuthPasswordResetTokenInvalid     = "AUTH_PASSWORD_RESET_TOKEN_INVALID"
 )
 
@@ -48,7 +48,7 @@ const (
 
 const (
 	CodeProbeNotFound               = "PROBE_NOT_FOUND"
-	CodeProbeCredentialInvalid      = "PROBE_CREDENTIAL_INVALID"
+	CodeProbeCredentialInvalid      = "PROBE_CREDENTIAL_INVALID" // #nosec G101 -- public problem code, not credential material.
 	CodeProbeDisabled               = "PROBE_DISABLED"
 	CodeProbeRuntimeAuthUnavailable = "PROBE_RUNTIME_AUTH_UNAVAILABLE"
 )
