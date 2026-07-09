@@ -102,6 +102,7 @@ export function ChecksPage() {
 	const [draftCheckId, setDraftCheckId] = useState("");
 	const [checkName, setCheckName] = useState("");
 	const [target, setTarget] = useState("");
+	const [description, setDescription] = useState("");
 	const [checkType, setCheckType] = useState<CheckType>("Ping");
 	const [interval, setInterval] = useState("30s");
 	const [selectedProbes, setSelectedProbes] = useState<string[]>([]);
@@ -125,6 +126,7 @@ export function ChecksPage() {
 	const hasSelectedDraft = Boolean(selectedCheck && draftCheckId === selectedCheck.id);
 	const activeCheckName = isCreating || hasSelectedDraft ? checkName : selectedCheck?.name || "";
 	const activeTarget = isCreating || hasSelectedDraft ? target : selectedCheck?.target || "";
+	const activeDescription = isCreating || hasSelectedDraft ? description : selectedCheck?.description || "";
 	const activeCheckType = isCreating || hasSelectedDraft ? checkType : selectedCheck?.type || checkType;
 	const activeInterval = isCreating || hasSelectedDraft ? interval : selectedCheck?.interval || "30s";
 	const activePingConfig = isCreating || hasSelectedDraft ? pingConfig : pingConfigFormStateFromApi(selectedApiCheck);
@@ -156,6 +158,7 @@ export function ChecksPage() {
 	function resetEditorState() {
 		setCheckName("");
 		setTarget("");
+		setDescription("");
 		setCheckType("Ping");
 		setInterval("30s");
 		setSelectedProbes([]);
@@ -185,6 +188,7 @@ export function ChecksPage() {
 		setDraftCheckId(check.id);
 		setCheckName(check.name);
 		setTarget(check.target);
+		setDescription(check.description);
 		setCheckType(check.type);
 		setInterval(check.interval);
 		setSelectedProbes([]);
@@ -352,6 +356,7 @@ export function ChecksPage() {
 		setDraftCheckId(data.check.id);
 		setCheckName(data.check.name);
 		setTarget(data.check.target);
+		setDescription(data.check.description || "");
 		setCheckType(checkTypeFromApi(data.check.type));
 		setInterval(`${data.check.intervalSeconds}s`);
 		setSelectedProbes([]);
@@ -394,6 +399,7 @@ export function ChecksPage() {
 		setDraftCheckId("__new__");
 		setCheckName(body.name);
 		setTarget(body.target);
+		setDescription(body.description || "");
 		setCheckType(checkTypeFromApi(body.type));
 		setInterval(`${body.intervalSeconds}s`);
 		setSelectorState(copiedSelectorState);
@@ -515,6 +521,7 @@ export function ChecksPage() {
 		}
 
 		const type = activeCheckType === "Traceroute" ? "traceroute" : activeCheckType === "TCP" ? "tcp" : "ping";
+		const normalizedDescription = activeDescription.trim();
 		let body: CreateCheckInput;
 
 		try {
@@ -527,6 +534,11 @@ export function ChecksPage() {
 			};
 			if (isCreating) {
 				Object.assign(body, copiedCheckFields);
+			}
+			if (normalizedDescription) {
+				body.description = normalizedDescription;
+			} else {
+				delete body.description;
 			}
 			if (type === "traceroute") {
 				body.tracerouteConfig = buildTracerouteConfigPayload(activeTracerouteConfig);
@@ -651,6 +663,18 @@ export function ChecksPage() {
 								onPingConfigChange={updatePingConfig}
 								onTCPConfigChange={updateTCPConfig}
 								onTracerouteConfigChange={updateTracerouteConfig}
+							/>
+							<TextAreaField
+								label="Description"
+								rows={4}
+								maxLength={1024}
+								className={styles.descriptionArea}
+								value={activeDescription}
+								disabled={!selectedCheck && !isCreating}
+								onChange={event => {
+									prepareSelectedCheckEdit();
+									setDescription(event.currentTarget.value);
+								}}
 							/>
 
 							<div className={styles.probeMultiSelect}>

@@ -1,7 +1,8 @@
 import type { CheckDefinition } from "@/features/checks/data/checks";
 import { classNames } from "@/shared/utils/classNames";
-import { Badge, Button, DataTable, IconButton, type DataColumn } from "@netstamp/ui";
+import { Badge, Button, DataTable, IconButton, PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger, type DataColumn } from "@netstamp/ui";
 import { CopyIcon } from "@phosphor-icons/react/dist/csr/Copy";
+import { InfoIcon } from "@phosphor-icons/react/dist/csr/Info";
 import { PencilSimpleIcon } from "@phosphor-icons/react/dist/csr/PencilSimple";
 import { TrashIcon } from "@phosphor-icons/react/dist/csr/Trash";
 import { useMemo, type MouseEvent, type ReactNode } from "react";
@@ -62,6 +63,36 @@ function keysToRowSelection(keys: string[]): CheckRowSelectionState {
 	return Object.fromEntries(keys.map(key => [key, true]));
 }
 
+function stopRowSelection(event: MouseEvent) {
+	event.stopPropagation();
+}
+
+function CheckDescriptionHint({ check }: { check: CheckDefinition }) {
+	if (!check.description) {
+		return null;
+	}
+
+	return (
+		<PopoverRoot>
+			<span className={styles.descriptionHint}>
+				<PopoverTrigger asChild>
+					<button type="button" className={styles.descriptionTrigger} aria-label={`Show ${check.name} description`} onClick={stopRowSelection}>
+						<InfoIcon size={13} weight="bold" aria-hidden="true" focusable="false" />
+					</button>
+				</PopoverTrigger>
+				<span className={styles.descriptionHoverCard} aria-hidden="true">
+					{check.description}
+				</span>
+			</span>
+			<PopoverPortal>
+				<PopoverContent className={styles.descriptionPopover} align="start" side="top" sideOffset={8} collisionPadding={8} onClick={stopRowSelection}>
+					{check.description}
+				</PopoverContent>
+			</PopoverPortal>
+		</PopoverRoot>
+	);
+}
+
 export function ChecksTable({
 	actionDisabled,
 	batchDeleteDisabled,
@@ -89,7 +120,7 @@ export function ChecksTable({
 				render: check => (
 					<div className={styles.checkNameCell}>
 						<strong>{check.name}</strong>
-						<span>{check.description || check.status}</span>
+						<CheckDescriptionHint check={check} />
 					</div>
 				)
 			},
@@ -162,7 +193,7 @@ export function ChecksTable({
 
 function IconAction({ children, danger, disabled, label, onClick }: { children: ReactNode; danger?: boolean; disabled?: boolean; label: string; onClick: () => void }) {
 	function handleClick(event: MouseEvent<HTMLButtonElement>) {
-		event.stopPropagation();
+		stopRowSelection(event);
 		onClick();
 	}
 

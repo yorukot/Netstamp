@@ -65,7 +65,6 @@ export function mapApiCheck(check: ApiCheck, assigned = 0): CheckDefinition {
 		name: check.name,
 		type,
 		target: check.target,
-		status: "Configured",
 		interval: formatInterval(check.intervalSeconds),
 		latest: "-",
 		assigned,

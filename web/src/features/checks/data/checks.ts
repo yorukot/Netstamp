@@ -7,7 +7,6 @@ export interface CheckDefinition {
 	name: string;
 	type: CheckType;
 	target: string;
-	status: string;
 	interval: string;
 	latest: string;
 	assigned: number;

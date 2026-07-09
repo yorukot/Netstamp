@@ -156,7 +156,6 @@ function fallbackCheck(assignment: ApiProjectAssignment): CheckDefinition {
 		name: assignment.check?.name || target,
 		type,
 		target,
-		status: "Configured",
 		interval: assignment.check ? formatInterval(assignment.check.intervalSeconds) : "-",
 		latest: "-",
 		assigned: 0,

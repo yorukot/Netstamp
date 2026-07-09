@@ -29,30 +29,86 @@
 }
 
 .checkNameCell {
-	display: grid;
-	gap: 0.25rem;
-	min-width: 0;
-}
-
-.checkNameCell strong,
-.checkNameCell span {
-	display: block;
+	display: inline-flex;
+	gap: 0.375rem;
+	align-items: center;
 	min-width: 0;
 	max-width: 18rem;
+	line-height: 1.2;
+}
+
+.checkNameCell strong {
+	display: block;
+	flex: 1 1 auto;
+	min-width: 0;
 	overflow: hidden;
+	color: var(--ns-text);
+	font-size: 0.8125rem;
+	font-weight: 750;
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
 
-.checkNameCell strong {
-	color: var(--ns-text);
-	font-size: 0.8125rem;
-	font-weight: 800;
+.descriptionHint {
+	position: relative;
+	display: inline-flex;
+	flex: 0 0 auto;
+	align-items: center;
 }
 
-.checkNameCell span {
+.descriptionTrigger {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.25rem;
+	height: 1.25rem;
+	border: 0;
+	padding: 0;
 	color: var(--ns-text-low);
+	background: transparent;
+	cursor: pointer;
+	transition:
+		color var(--ns-transition),
+		background var(--ns-transition);
+}
+
+.descriptionTrigger:hover,
+.descriptionTrigger:focus-visible {
+	color: var(--ns-primary-hover);
+	background: var(--ns-primary-muted);
+}
+
+.descriptionTrigger:focus-visible {
+	outline: var(--ns-focus-outline);
+	outline-offset: var(--ns-focus-outline-offset);
+}
+
+.descriptionHoverCard,
+.descriptionPopover {
+	--ns-frame-radius: var(--ns-radius-md);
+	--ns-frame-color: var(--ns-border-faint);
+	z-index: 1000;
+	width: min(22rem, calc(100vw - 1.5rem));
+	padding: 0.625rem 0.75rem;
+	border: 1px solid var(--ns-frame-color);
+	color: var(--ns-text-muted);
+	background: var(--ns-surface-raised);
 	font-size: 0.75rem;
+	font-weight: 600;
+	line-height: 1.45;
+	white-space: normal;
+}
+
+.descriptionHoverCard {
+	position: absolute;
+	top: calc(100% + 0.4rem);
+	left: 0;
+	display: none;
+	pointer-events: none;
+}
+
+.descriptionHint:hover .descriptionHoverCard {
+	display: block;
 }
 
 .rowActions {
@@ -64,8 +120,9 @@
 
 .iconAction {
 	--ns-frame-color: transparent;
-	width: 2rem;
-	min-height: 2rem;
+	width: 1.75rem;
+	min-width: 1.75rem;
+	min-height: 1.75rem;
 	padding: 0;
 }
 
@@ -77,6 +134,10 @@
 .probeMultiSelect {
 	display: grid;
 	gap: 1rem;
+}
+
+.descriptionArea {
+	min-height: 5.5rem;
 }
 
 .checkEditForm {
