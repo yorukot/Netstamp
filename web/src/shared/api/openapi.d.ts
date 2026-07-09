@@ -2818,11 +2818,14 @@ export interface components {
 		};
 		/**
 		 * @example {
+		 *       "code": "VALIDATION_FAILED",
 		 *       "title": "Unprocessable Entity",
 		 *       "status": 422,
 		 *       "detail": "invalid project input",
+		 *       "requestId": "req_01J00000000000000000000000",
 		 *       "errors": [
 		 *         {
+		 *           "code": "VALUE_TOO_SHORT",
 		 *           "message": "must be at least 1 character",
 		 *           "location": "body.name",
 		 *           "value": ""
@@ -2836,22 +2839,84 @@ export interface components {
 			 * @default about:blank
 			 */
 			type: string;
+			/**
+			 * @description Stable machine-readable problem code. Clients should branch on this field instead of title or detail.
+			 * @enum {string}
+			 */
+			code?:
+				| "BAD_REQUEST"
+				| "UNAUTHORIZED"
+				| "FORBIDDEN"
+				| "NOT_FOUND"
+				| "CONFLICT"
+				| "RATE_LIMITED"
+				| "VALIDATION_FAILED"
+				| "INTERNAL_ERROR"
+				| "SERVICE_UNAVAILABLE"
+				| "METHOD_NOT_ALLOWED"
+				| "ROUTE_NOT_FOUND"
+				| "READ_ONLY"
+				| "AUTH_MISSING_SESSION"
+				| "AUTH_INVALID_SESSION"
+				| "AUTH_INVALID_CREDENTIALS"
+				| "AUTH_EMAIL_VERIFICATION_REQUIRED"
+				| "AUTH_REGISTRATION_DISABLED"
+				| "AUTH_EMAIL_VERIFICATION_UNAVAILABLE"
+				| "AUTH_PASSWORD_RESET_UNAVAILABLE"
+				| "AUTH_EMAIL_VERIFICATION_TOKEN_INVALID"
+				| "AUTH_PASSWORD_RESET_TOKEN_INVALID"
+				| "USER_NOT_FOUND"
+				| "EMAIL_ALREADY_EXISTS"
+				| "LAST_SYSTEM_ADMIN"
+				| "SYSTEM_ADMIN_REQUIRED"
+				| "SELF_SYSTEM_ADMIN_ACTION"
+				| "INVALID_ADMIN_DATA_IMPORT"
+				| "PROJECT_ROLE_REQUIRED"
+				| "PROJECT_NOT_FOUND"
+				| "PROJECT_SLUG_ALREADY_EXISTS"
+				| "PROJECT_MEMBER_NOT_FOUND"
+				| "PROJECT_MEMBER_ALREADY_EXISTS"
+				| "PROJECT_INVITE_NOT_FOUND"
+				| "PROJECT_INVITE_ALREADY_EXISTS"
+				| "PROJECT_LAST_OWNER"
+				| "LABEL_NOT_FOUND"
+				| "LABEL_ALREADY_EXISTS"
+				| "CHECK_NOT_FOUND"
+				| "PROBE_NOT_FOUND"
+				| "PROBE_CREDENTIAL_INVALID"
+				| "PROBE_DISABLED"
+				| "PROBE_RUNTIME_AUTH_UNAVAILABLE"
+				| "ALERT_RULE_NOT_FOUND"
+				| "ALERT_INCIDENT_NOT_FOUND"
+				| "ALERT_NOTIFICATION_NOT_FOUND"
+				| "PUBLIC_STATUS_PAGE_NOT_FOUND"
+				| "PUBLIC_STATUS_ELEMENT_NOT_FOUND"
+				| "PUBLIC_STATUS_SLUG_ALREADY_EXISTS"
+				| "AGENT_BINARY_NOT_FOUND"
+				| "AGENT_BINARY_UNAVAILABLE";
 			title?: string;
 			/** Format: int32 */
 			status?: number;
 			detail?: string;
 			/** Format: uri */
 			instance?: string;
+			requestId?: string;
 			errors?: components["schemas"]["ProblemErrorDetail"][];
 		};
 		/**
 		 * @example {
+		 *       "code": "REQUIRED",
 		 *       "message": "expected required property name to be present",
 		 *       "location": "body.name",
 		 *       "value": ""
 		 *     }
 		 */
 		ProblemErrorDetail: {
+			/**
+			 * @description Stable machine-readable code for this field or sub-error.
+			 * @enum {string}
+			 */
+			code?: "INVALID_VALUE" | "INVALID_FORMAT" | "INVALID_ENUM" | "REQUIRED" | "VALUE_TOO_SHORT" | "VALUE_TOO_LONG" | "VALUE_TOO_SMALL" | "VALUE_TOO_LARGE";
 			/** @description Human-readable explanation for this field or sub-error. */
 			message?: string;
 			/** @description Path-like location such as body.name, query.probeId, or path.ref. */
