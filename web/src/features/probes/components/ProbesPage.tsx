@@ -16,7 +16,7 @@ import { ProbeList } from "./ProbeList";
 import { ProbePageHeader } from "./ProbePageHeader";
 import styles from "./ProbesPage.module.css";
 import { filterProbes } from "./probeUtils";
-import type { ProbeSort, ProbeView } from "./types";
+import type { ProbeView } from "./types";
 
 export function ProbesPage() {
 	const { projectRef } = useCurrentProject();
@@ -42,10 +42,9 @@ export function ProbesPage() {
 	const checks = checksQuery.data || [];
 	const [view, setView] = useState<ProbeView>("grid");
 	const [search, setSearch] = useState("");
-	const [sortKey, setSortKey] = useState<ProbeSort>("heartbeat");
 	const selectedProbe = probes.find(probe => probe.id === probeId) || null;
 	const selectedProbeId = selectedProbe?.id || "";
-	const visibleProbes = filterProbes(probes, search, sortKey);
+	const visibleProbes = filterProbes(probes, search);
 	const assignedRows: AssignedRow[] = mapApiAssignments(assignmentsQuery.data, probes, checks);
 
 	useEffect(() => {
@@ -78,7 +77,7 @@ export function ProbesPage() {
 				<>
 					<ProbePageHeader view={view} projectRef={projectRef} onViewChange={setView} />
 					<div className={styles.gridLayout}>
-						<ProbeList probes={visibleProbes} selectedId={selectedProbeId} search={search} sortKey={sortKey} onSearchChange={setSearch} onSortChange={setSortKey} onSelect={selectProbe} />
+						<ProbeList probes={visibleProbes} selectedId={selectedProbeId} search={search} onSearchChange={setSearch} onSelect={selectProbe} />
 					</div>
 				</>
 			) : (

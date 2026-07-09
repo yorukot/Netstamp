@@ -5,8 +5,8 @@
 }
 
 .filters {
-	--ns-filter-grid-template: minmax(14rem, 1fr) minmax(11rem, 0.38fr);
-	--ns-filter-grid-tablet-template: repeat(2, minmax(0, 1fr));
+	--ns-filter-grid-template: minmax(14rem, 1fr);
+	--ns-filter-grid-tablet-template: 1fr;
 	--ns-filter-grid-mobile-template: 1fr;
 }
 

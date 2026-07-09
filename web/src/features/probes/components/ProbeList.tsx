@@ -1,19 +1,19 @@
 import { formatProbeHeartbeat } from "@/features/probes/api/probeAdapters";
 import type { Probe, ProbeStatus } from "@/features/probes/data/probes";
-import { Badge, DataTable, FilterGrid, PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger, SelectField, TextField, type BadgeTone, type DataColumn } from "@netstamp/ui";
+import { Badge, DataTable, FilterGrid, PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger, TextField, type BadgeTone, type DataColumn } from "@netstamp/ui";
 import { useEffect, useState, type MouseEvent } from "react";
 import styles from "./ProbeList.module.css";
-import type { ProbeSort } from "./types";
 
 const statusTones: Record<ProbeStatus, BadgeTone> = {
 	Online: "success",
 	Draining: "warning",
 	Offline: "critical"
 };
-const sortOptions: Array<{ value: ProbeSort; label: string }> = [
-	{ value: "heartbeat", label: "Last heartbeat" },
-	{ value: "name", label: "Probe name" }
-];
+const statusSortRank: Record<ProbeStatus, number> = {
+	Online: 0,
+	Draining: 1,
+	Offline: 2
+};
 const visibleLabelCount = 2;
 
 function stopRowSelection(event: MouseEvent) {
@@ -82,36 +82,41 @@ function HeartbeatValue({ timestamp }: { timestamp: number | null }) {
 }
 
 const probeColumns: DataColumn<Probe>[] = [
-	{ key: "name", label: "Probe name" },
-	{ key: "status", label: "Status", render: probe => <Badge tone={statusTones[probe.status]}>{probe.status}</Badge> },
-	{ key: "location", label: "Location" },
-	{ key: "publicIp", label: "Public IP" },
-	{ key: "ipFamily", label: "Support IP Family" },
-	{ key: "lastHeartbeat", label: "Last heartbeat", render: probe => <HeartbeatValue timestamp={probe.lastHeartbeatAt} /> },
+	{ key: "name", label: "Probe name", sortable: true },
+	{ key: "status", label: "Status", sortable: true, sortValue: probe => statusSortRank[probe.status], render: probe => <Badge tone={statusTones[probe.status]}>{probe.status}</Badge> },
+	{ key: "location", label: "Location", sortable: true },
+	{ key: "publicIp", label: "Public IP", sortable: true },
+	{ key: "ipFamily", label: "Support IP Family", sortable: true },
+	{
+		key: "lastHeartbeat",
+		label: "Last heartbeat",
+		sortable: true,
+		sortValue: probe => probe.lastHeartbeatAt ?? Number.NEGATIVE_INFINITY,
+		render: probe => <HeartbeatValue timestamp={probe.lastHeartbeatAt} />
+	},
 	{
 		key: "labelTokens",
 		label: "Labels",
+		sortable: true,
+		sortValue: probe => probe.labelTokens.join(" "),
 		render: probe => <ProbeLabels labels={probe.labelTokens} />
 	},
-	{ key: "version", label: "Version" }
+	{ key: "version", label: "Version", sortable: true }
 ];
 
 interface ProbeListProps {
 	probes: Probe[];
 	selectedId: string;
 	search: string;
-	sortKey: ProbeSort;
 	onSearchChange: (value: string) => void;
-	onSortChange: (value: ProbeSort) => void;
 	onSelect: (probeId: string) => void;
 }
 
-export function ProbeList({ probes, selectedId, search, sortKey, onSearchChange, onSortChange, onSelect }: ProbeListProps) {
+export function ProbeList({ probes, selectedId, search, onSearchChange, onSelect }: ProbeListProps) {
 	return (
 		<div className={styles.listStack}>
 			<FilterGrid className={styles.filters}>
 				<TextField label="Search" placeholder="probe name, location, provider, label" value={search} onChange={event => onSearchChange(event.currentTarget.value)} />
-				<SelectField label="Sort" value={sortKey} options={sortOptions} onChange={event => onSortChange(event.currentTarget.value as ProbeSort)} />
 			</FilterGrid>
 
 			<DataTable
@@ -121,6 +126,7 @@ export function ProbeList({ probes, selectedId, search, sortKey, onSearchChange,
 				density="compact"
 				minWidth="62rem"
 				maxHeight="min(28rem, 46svh)"
+				defaultSort={{ key: "lastHeartbeat", direction: "desc" }}
 				getRowKey={probe => probe.id}
 				selectedKey={selectedId}
 				onRowClick={probe => onSelect(probe.id)}
