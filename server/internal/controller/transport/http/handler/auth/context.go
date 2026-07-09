@@ -14,6 +14,7 @@ func invalidAuthInputError(err error) error {
 	details := make([]httpx.ErrorDetail, 0, len(fieldErrors))
 	for _, fieldErr := range fieldErrors {
 		details = append(details, httpx.ErrorDetail{
+			Code:     fieldErr.Code,
 			Message:  fieldErr.Message,
 			Location: authErrorLocation(fieldErr.Field),
 			Value:    fieldErr.Value,

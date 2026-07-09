@@ -174,20 +174,20 @@ func (h *Handler) handleAgentBinary(asset agentBinaryAsset) http.HandlerFunc {
 		info, err := os.Stat(binaryPath)
 		if err != nil {
 			if errors.Is(err, os.ErrNotExist) {
-				httpx.WriteProblem(w, r, httpx.NotFound("agent binary not found"))
+				httpx.WriteProblem(w, r, httpx.NotFoundCode(httpx.CodeAgentBinaryNotFound, "agent binary not found"))
 				return
 			}
-			httpx.WriteProblem(w, r, httpx.ServiceUnavailable("agent binary unavailable"))
+			httpx.WriteProblem(w, r, httpx.ServiceUnavailableCode(httpx.CodeAgentBinaryUnavailable, "agent binary unavailable"))
 			return
 		}
 		if info.IsDir() {
-			httpx.WriteProblem(w, r, httpx.NotFound("agent binary not found"))
+			httpx.WriteProblem(w, r, httpx.NotFoundCode(httpx.CodeAgentBinaryNotFound, "agent binary not found"))
 			return
 		}
 
 		file, err := os.Open(binaryPath)
 		if err != nil {
-			httpx.WriteProblem(w, r, httpx.ServiceUnavailable("agent binary unavailable"))
+			httpx.WriteProblem(w, r, httpx.ServiceUnavailableCode(httpx.CodeAgentBinaryUnavailable, "agent binary unavailable"))
 			return
 		}
 		defer file.Close()

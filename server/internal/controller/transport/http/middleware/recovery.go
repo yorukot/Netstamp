@@ -8,6 +8,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/yorukot/netstamp/internal/controller/logger"
+	"github.com/yorukot/netstamp/internal/controller/transport/http/httpx"
 )
 
 func ZapRecoverer(root *zap.Logger) func(http.Handler) http.Handler {
@@ -38,7 +39,7 @@ func ZapRecoverer(root *zap.Logger) func(http.Handler) http.Handler {
 
 					root.Error("http_panic_recovered", fields...)
 
-					http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+					httpx.WriteProblem(w, r, httpx.InternalServerError("Internal Server Error"))
 				}
 			}(requestCtx)
 

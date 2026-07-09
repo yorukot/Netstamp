@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	appauth "github.com/yorukot/netstamp/internal/controller/application/auth"
+	"github.com/yorukot/netstamp/internal/controller/transport/http/httpx"
 	"github.com/yorukot/netstamp/internal/domain/identity"
 )
 
@@ -22,13 +23,13 @@ func RequireAuth(verifier appauth.TokenVerifier) func(http.Handler) http.Handler
 
 			token, ok := sessionCookie(r)
 			if !ok {
-				WriteProblem(w, r, http.StatusUnauthorized, "missing auth cookie")
+				WriteProblemCode(w, r, http.StatusUnauthorized, httpx.CodeAuthMissingSession, "missing auth cookie")
 				return
 			}
 
 			claims, err := verifier.VerifyAccessToken(r.Context(), token)
 			if err != nil {
-				WriteProblem(w, r, http.StatusUnauthorized, "invalid auth cookie")
+				WriteProblemCode(w, r, http.StatusUnauthorized, httpx.CodeAuthInvalidSession, "invalid auth cookie")
 				return
 			}
 

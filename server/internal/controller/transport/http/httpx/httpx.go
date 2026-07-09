@@ -13,6 +13,7 @@ import (
 
 type Error struct {
 	Status  int
+	Code    string
 	Detail  string
 	Details []ErrorDetail
 }
@@ -22,54 +23,148 @@ func (e *Error) Error() string {
 }
 
 type ErrorDetail struct {
+	Code     string `json:"code,omitempty"`
 	Message  string `json:"message,omitempty"`
 	Location string `json:"location,omitempty"`
 	Value    any    `json:"value,omitempty"`
 }
 
 type ProblemDetails struct {
-	Type     string        `json:"type,omitempty"`
-	Title    string        `json:"title,omitempty"`
-	Status   int           `json:"status,omitempty"`
-	Detail   string        `json:"detail,omitempty"`
-	Instance string        `json:"instance,omitempty"`
-	Errors   []ErrorDetail `json:"errors,omitempty"`
+	Type      string        `json:"type,omitempty"`
+	Code      string        `json:"code,omitempty"`
+	Title     string        `json:"title,omitempty"`
+	Status    int           `json:"status,omitempty"`
+	Detail    string        `json:"detail,omitempty"`
+	Instance  string        `json:"instance,omitempty"`
+	RequestID string        `json:"requestId,omitempty"`
+	Errors    []ErrorDetail `json:"errors,omitempty"`
 }
+
+const (
+	CodeBadRequest         = "BAD_REQUEST"
+	CodeUnauthorized       = "UNAUTHORIZED"
+	CodeForbidden          = "FORBIDDEN"
+	CodeNotFound           = "NOT_FOUND"
+	CodeConflict           = "CONFLICT"
+	CodeRateLimited        = "RATE_LIMITED"
+	CodeValidationFailed   = "VALIDATION_FAILED"
+	CodeInternalError      = "INTERNAL_ERROR"
+	CodeServiceUnavailable = "SERVICE_UNAVAILABLE"
+	CodeMethodNotAllowed   = "METHOD_NOT_ALLOWED"
+)
+
+const (
+	FieldCodeInvalidValue  = "INVALID_VALUE"
+	FieldCodeInvalidFormat = "INVALID_FORMAT"
+	FieldCodeInvalidEnum   = "INVALID_ENUM"
+	FieldCodeRequired      = "REQUIRED"
+	FieldCodeValueTooShort = "VALUE_TOO_SHORT"
+	FieldCodeValueTooLong  = "VALUE_TOO_LONG"
+	FieldCodeValueTooSmall = "VALUE_TOO_SMALL"
+	FieldCodeValueTooLarge = "VALUE_TOO_LARGE"
+)
 
 func BadRequest(detail string) error {
 	return NewError(http.StatusBadRequest, detail)
+}
+
+func BadRequestCode(code, detail string) error {
+	return NewErrorCode(http.StatusBadRequest, code, detail)
 }
 
 func Unauthorized(detail string) error {
 	return NewError(http.StatusUnauthorized, detail)
 }
 
+func UnauthorizedCode(code, detail string) error {
+	return NewErrorCode(http.StatusUnauthorized, code, detail)
+}
+
 func Forbidden(detail string) error {
 	return NewError(http.StatusForbidden, detail)
+}
+
+func ForbiddenCode(code, detail string) error {
+	return NewErrorCode(http.StatusForbidden, code, detail)
 }
 
 func NotFound(detail string) error {
 	return NewError(http.StatusNotFound, detail)
 }
 
+func NotFoundCode(code, detail string) error {
+	return NewErrorCode(http.StatusNotFound, code, detail)
+}
+
 func Conflict(detail string) error {
 	return NewError(http.StatusConflict, detail)
 }
 
+func ConflictCode(code, detail string) error {
+	return NewErrorCode(http.StatusConflict, code, detail)
+}
+
 func UnprocessableEntity(detail string, details ...ErrorDetail) error {
-	return &Error{Status: http.StatusUnprocessableEntity, Detail: detail, Details: details}
+	return UnprocessableEntityCode(CodeValidationFailed, detail, details...)
+}
+
+func UnprocessableEntityCode(code, detail string, details ...ErrorDetail) error {
+	return &Error{Status: http.StatusUnprocessableEntity, Code: codeOrDefault(code, http.StatusUnprocessableEntity), Detail: detail, Details: details}
 }
 
 func InternalServerError(detail string) error {
 	return NewError(http.StatusInternalServerError, detail)
 }
 
+func InternalServerErrorCode(code, detail string) error {
+	return NewErrorCode(http.StatusInternalServerError, code, detail)
+}
+
 func ServiceUnavailable(detail string) error {
 	return NewError(http.StatusServiceUnavailable, detail)
 }
 
+func ServiceUnavailableCode(code, detail string) error {
+	return NewErrorCode(http.StatusServiceUnavailable, code, detail)
+}
+
 func NewError(status int, detail string) error {
-	return &Error{Status: status, Detail: detail}
+	return NewErrorCode(status, "", detail)
+}
+
+func NewErrorCode(status int, code, detail string) error {
+	return &Error{Status: status, Code: codeOrDefault(code, status), Detail: detail}
+}
+
+func codeOrDefault(code string, status int) string {
+	if code != "" {
+		return code
+	}
+	switch status {
+	case http.StatusBadRequest:
+		return CodeBadRequest
+	case http.StatusUnauthorized:
+		return CodeUnauthorized
+	case http.StatusForbidden:
+		return CodeForbidden
+	case http.StatusNotFound:
+		return CodeNotFound
+	case http.StatusMethodNotAllowed:
+		return CodeMethodNotAllowed
+	case http.StatusConflict:
+		return CodeConflict
+	case http.StatusTooManyRequests:
+		return CodeRateLimited
+	case http.StatusUnprocessableEntity:
+		return CodeValidationFailed
+	case http.StatusServiceUnavailable:
+		return CodeServiceUnavailable
+	default:
+		if status >= http.StatusInternalServerError {
+			return CodeInternalError
+		}
+		return CodeBadRequest
+	}
 }
 
 func DecodeJSON(r *http.Request, value any) error {
@@ -106,23 +201,28 @@ func WriteNoContent(w http.ResponseWriter) {
 
 func WriteProblem(w http.ResponseWriter, r *http.Request, err error) {
 	status := http.StatusInternalServerError
+	code := CodeInternalError
 	detail := http.StatusText(status)
 	var httpErr *Error
 	if errors.As(err, &httpErr) {
 		status = httpErr.Status
+		code = codeOrDefault(httpErr.Code, status)
 		detail = httpErr.Detail
 	}
 
-	if requestID := chimw.GetReqID(r.Context()); requestID != "" {
+	requestID := chimw.GetReqID(r.Context())
+	if requestID != "" {
 		w.Header().Set("X-Request-ID", requestID)
 	}
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(status)
 
 	body := ProblemDetails{
-		Status: status,
-		Title:  http.StatusText(status),
-		Detail: detail,
+		Code:      code,
+		Status:    status,
+		Title:     http.StatusText(status),
+		Detail:    detail,
+		RequestID: requestID,
 	}
 	if httpErr != nil && len(httpErr.Details) > 0 {
 		body.Errors = httpErr.Details

@@ -84,7 +84,7 @@ func (h *Handler) handleUpdateSettings(w http.ResponseWriter, r *http.Request) {
 func currentUserID(r *http.Request) (string, error) {
 	claims, ok := httpmiddleware.AccessTokenClaimsFromContext(r.Context())
 	if !ok || claims.Subject == "" {
-		return "", httpx.Unauthorized("missing auth session")
+		return "", httpx.UnauthorizedCode(httpx.CodeAuthMissingSession, "missing auth session")
 	}
 	return claims.Subject, nil
 }
@@ -92,15 +92,15 @@ func currentUserID(r *http.Request) (string, error) {
 func mapAdminError(err error, fallback string) error {
 	switch {
 	case errors.Is(err, appadmin.ErrForbidden):
-		return httpx.Forbidden("system administrator access is required")
+		return httpx.ForbiddenCode(httpx.CodeSystemAdminRequired, "system administrator access is required")
 	case errors.Is(err, identity.ErrUserNotFound), errors.Is(err, appadmin.ErrSystemAdminNotFound):
-		return httpx.NotFound("user not found")
+		return httpx.NotFoundCode(httpx.CodeUserNotFound, "user not found")
 	case errors.Is(err, appadmin.ErrLastSystemAdmin):
-		return httpx.Conflict("system must keep at least one administrator")
+		return httpx.ConflictCode(httpx.CodeLastSystemAdmin, "system must keep at least one administrator")
 	case errors.Is(err, appadmin.ErrSelfSystemAdminRemoval), errors.Is(err, appadmin.ErrSelfAccountDisable):
-		return httpx.Conflict("system administrator cannot remove or disable self")
+		return httpx.ConflictCode(httpx.CodeSelfSystemAdminAction, "system administrator cannot remove or disable self")
 	case errors.Is(err, appadmin.ErrDataImportInvalid):
-		return httpx.UnprocessableEntity("invalid admin data import")
+		return httpx.UnprocessableEntityCode(httpx.CodeInvalidAdminDataImport, "invalid admin data import")
 	case errors.Is(err, appadmin.ErrInvalidInput):
 		return invalidAdminInputError(err)
 	default:
@@ -117,6 +117,7 @@ func invalidAdminInputError(err error) error {
 	details := make([]httpx.ErrorDetail, 0, len(fieldErrors))
 	for _, fieldErr := range fieldErrors {
 		details = append(details, httpx.ErrorDetail{
+			Code:     fieldErr.Code,
 			Message:  fieldErr.Message,
 			Location: adminErrorLocation(fieldErr.Field),
 			Value:    fieldErr.Value,

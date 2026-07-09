@@ -16,7 +16,7 @@ import (
 func currentUserID(ctx context.Context) (string, error) {
 	claims, ok := httpmiddleware.AccessTokenClaimsFromContext(ctx)
 	if !ok || claims.Subject == "" {
-		return "", httpx.Unauthorized("missing auth cookie")
+		return "", httpx.UnauthorizedCode(httpx.CodeAuthMissingSession, "missing auth cookie")
 	}
 
 	return claims.Subject, nil
@@ -44,6 +44,7 @@ func invalidResultInputError(err error) error {
 	details := make([]httpx.ErrorDetail, 0, len(fieldErrors))
 	for _, fieldErr := range fieldErrors {
 		details = append(details, httpx.ErrorDetail{
+			Code:     fieldErr.Code,
 			Message:  fieldErr.Message,
 			Location: resultErrorLocation(fieldErr.Field),
 			Value:    fieldErr.Value,

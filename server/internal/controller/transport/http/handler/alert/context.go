@@ -16,7 +16,7 @@ import (
 func currentUserID(r *http.Request) (string, error) {
 	claims, ok := httpmiddleware.AccessTokenClaimsFromContext(r.Context())
 	if !ok || claims.Subject == "" {
-		return "", httpx.Unauthorized("missing auth cookie")
+		return "", httpx.UnauthorizedCode(httpx.CodeAuthMissingSession, "missing auth cookie")
 	}
 	return claims.Subject, nil
 }
@@ -40,7 +40,7 @@ func mapAlertError(err error, fallback string) error {
 
 	switch {
 	case errors.Is(err, appalert.ErrForbidden):
-		return httpx.Forbidden("current user does not have the required project role for alerts")
+		return httpx.ForbiddenCode(httpx.CodeProjectRoleRequired, "current user does not have the required project role for alerts")
 	case errors.Is(err, appalert.ErrInvalidInput),
 		errors.Is(err, domainalert.ErrInvalidInput),
 		errors.Is(err, alertcondition.ErrInvalidCondition),

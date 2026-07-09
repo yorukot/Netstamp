@@ -1,6 +1,10 @@
 package middleware
 
-import "net/http"
+import (
+	"net/http"
+
+	"github.com/yorukot/netstamp/internal/controller/transport/http/httpx"
+)
 
 func ReadOnly(allowedUnsafePaths ...string) func(http.Handler) http.Handler {
 	allowedUnsafe := make(map[string]struct{}, len(allowedUnsafePaths))
@@ -21,7 +25,7 @@ func ReadOnly(allowedUnsafePaths ...string) func(http.Handler) http.Handler {
 				}
 			}
 
-			WriteProblem(w, r, http.StatusForbidden, "demo is read-only")
+			WriteProblemCode(w, r, http.StatusForbidden, httpx.CodeReadOnly, "demo is read-only")
 		})
 	}
 }

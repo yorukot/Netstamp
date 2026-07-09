@@ -54,6 +54,9 @@ func TestCreateProjectReturnsConflictProblemForSlugConflict(t *testing.T) {
 	if body.Status != http.StatusConflict {
 		t.Fatalf("expected problem status 409, got %d", body.Status)
 	}
+	if body.Code != httpx.CodeProjectSlugAlreadyExists {
+		t.Fatalf("expected slug conflict code, got %q", body.Code)
+	}
 	if body.Detail != "project slug already exists" {
 		t.Fatalf("expected slug conflict detail, got %q", body.Detail)
 	}
@@ -64,11 +67,12 @@ func TestMapProjectErrorUsesSpecificNotFoundDetails(t *testing.T) {
 		name   string
 		err    error
 		detail string
+		code   string
 	}{
-		{name: "project", err: domainproject.ErrProjectNotFound, detail: "project not found"},
-		{name: "member", err: domainproject.ErrMemberNotFound, detail: "project member not found"},
-		{name: "invite", err: domainproject.ErrInviteNotFound, detail: "project invite not found"},
-		{name: "user", err: identity.ErrUserNotFound, detail: "user not found"},
+		{name: "project", err: domainproject.ErrProjectNotFound, detail: "project not found", code: httpx.CodeProjectNotFound},
+		{name: "member", err: domainproject.ErrMemberNotFound, detail: "project member not found", code: httpx.CodeProjectMemberNotFound},
+		{name: "invite", err: domainproject.ErrInviteNotFound, detail: "project invite not found", code: httpx.CodeProjectInviteNotFound},
+		{name: "user", err: identity.ErrUserNotFound, detail: "user not found", code: httpx.CodeUserNotFound},
 	}
 
 	for _, test := range tests {
@@ -84,6 +88,9 @@ func TestMapProjectErrorUsesSpecificNotFoundDetails(t *testing.T) {
 			}
 			if httpErr.Detail != test.detail {
 				t.Fatalf("expected detail %q, got %q", test.detail, httpErr.Detail)
+			}
+			if httpErr.Code != test.code {
+				t.Fatalf("expected code %q, got %q", test.code, httpErr.Code)
 			}
 		})
 	}

@@ -44,7 +44,7 @@ func runtimeAuthFromContext(ctx context.Context) (appproberuntime.RuntimeAuthInp
 func requireRuntimeAuthInput(ctx context.Context) (appproberuntime.RuntimeAuthInput, error) {
 	auth, ok := runtimeAuthFromContext(ctx)
 	if !ok {
-		return appproberuntime.RuntimeAuthInput{}, httpx.InternalServerError("probe runtime auth unavailable")
+		return appproberuntime.RuntimeAuthInput{}, httpx.InternalServerErrorCode(httpx.CodeProbeRuntimeAuthUnavailable, "probe runtime auth unavailable")
 	}
 
 	return auth, nil
@@ -63,17 +63,17 @@ func writeRuntimeProblem(w http.ResponseWriter, r *http.Request, status int, det
 	if status == http.StatusUnauthorized {
 		w.Header().Set("WWW-Authenticate", "Probe")
 	}
-	httpx.WriteProblem(w, r, httpx.NewError(status, detail))
+	httpx.WriteProblem(w, r, httpx.NewErrorCode(status, httpx.CodeProbeCredentialInvalid, detail))
 }
 
 func mapRuntimeError(err error, fallback string) error {
 	switch {
 	case errors.Is(err, domainprobe.ErrInvalidCredential):
-		return httpx.Unauthorized("invalid probe credential")
+		return httpx.UnauthorizedCode(httpx.CodeProbeCredentialInvalid, "invalid probe credential")
 	case errors.Is(err, domainprobe.ErrProbeDisabled):
-		return httpx.Forbidden("probe disabled")
+		return httpx.ForbiddenCode(httpx.CodeProbeDisabled, "probe disabled")
 	case errors.Is(err, domainprobe.ErrProbeNotFound):
-		return httpx.NotFound("probe not found")
+		return httpx.NotFoundCode(httpx.CodeProbeNotFound, "probe not found")
 	case errors.Is(err, appproberuntime.ErrInvalidInput):
 		return invalidRuntimeInputError(err)
 	case errors.Is(err, domainping.ErrInvalidResult), errors.Is(err, domaintraceroute.ErrInvalidResult):
@@ -92,6 +92,7 @@ func invalidRuntimeInputError(err error) error {
 	details := make([]httpx.ErrorDetail, 0, len(fieldErrors))
 	for _, fieldErr := range fieldErrors {
 		details = append(details, httpx.ErrorDetail{
+			Code:     fieldErr.Code,
 			Message:  fieldErr.Message,
 			Location: runtimeErrorLocation(fieldErr.Field),
 			Value:    fieldErr.Value,

@@ -39,6 +39,12 @@ func TestWriteProblemWritesProblemJSON(t *testing.T) {
 	if body.Status != http.StatusTeapot || body.Title != http.StatusText(http.StatusTeapot) || body.Detail != "short and stout" {
 		t.Fatalf("unexpected problem body: %#v", body)
 	}
+	if body.Code != httpx.CodeBadRequest {
+		t.Fatalf("expected default bad request code for 418, got %q", body.Code)
+	}
+	if body.RequestID != "request-1" {
+		t.Fatalf("expected request id in body, got %q", body.RequestID)
+	}
 }
 
 func TestWriteProblemOmitsMissingRequestID(t *testing.T) {
@@ -83,8 +89,15 @@ func TestZapRecovererRecoversPanicAndLogsRequestFields(t *testing.T) {
 	if res.Code != http.StatusInternalServerError {
 		t.Fatalf("expected status 500, got %d", res.Code)
 	}
-	if res.Body.String() != "Internal Server Error\n" {
-		t.Fatalf("expected default internal server error body, got %q", res.Body.String())
+	if got := res.Header().Get("Content-Type"); got != "application/problem+json" {
+		t.Fatalf("expected problem content type, got %q", got)
+	}
+	var body httpx.ProblemDetails
+	if err := json.NewDecoder(res.Body).Decode(&body); err != nil {
+		t.Fatalf("decode problem body: %v", err)
+	}
+	if body.Code != httpx.CodeInternalError || body.Status != http.StatusInternalServerError || body.RequestID != "request-2" {
+		t.Fatalf("unexpected problem body: %#v", body)
 	}
 
 	logs := observed.FilterMessage("http_panic_recovered").All()

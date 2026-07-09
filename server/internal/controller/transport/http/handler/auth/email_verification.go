@@ -23,7 +23,7 @@ func (h *Handler) requestEmailVerification(ctx context.Context, r *http.Request,
 		case errors.Is(err, appauth.ErrInvalidInput):
 			return invalidAuthInputError(err)
 		case errors.Is(err, appauth.ErrEmailVerificationUnavailable):
-			return httpx.ServiceUnavailable("email verification is unavailable")
+			return httpx.ServiceUnavailableCode(httpx.CodeAuthEmailVerificationUnavailable, "email verification is unavailable")
 		default:
 			return httpx.InternalServerError("email verification failed")
 		}
@@ -45,9 +45,9 @@ func (h *Handler) confirmEmailVerification(ctx context.Context, input *confirmEm
 		case errors.Is(err, appauth.ErrInvalidInput):
 			return invalidAuthInputError(err)
 		case errors.Is(err, appauth.ErrEmailVerificationTokenInvalid):
-			return httpx.Unauthorized("invalid or expired email verification token")
+			return httpx.UnauthorizedCode(httpx.CodeAuthEmailVerificationTokenInvalid, "invalid or expired email verification token")
 		case errors.Is(err, appauth.ErrEmailVerificationUnavailable):
-			return httpx.ServiceUnavailable("email verification is unavailable")
+			return httpx.ServiceUnavailableCode(httpx.CodeAuthEmailVerificationUnavailable, "email verification is unavailable")
 		default:
 			return httpx.InternalServerError("email verification failed")
 		}

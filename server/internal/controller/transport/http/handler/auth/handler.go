@@ -154,7 +154,7 @@ func (h *Handler) handleConfirmEmailVerification(w http.ResponseWriter, r *http.
 
 func (h *Handler) handleAcceptedEmailAction(w http.ResponseWriter, r *http.Request, email, rateLimitDetail string, action func(context.Context) error) {
 	if h.resetLimiter != nil && !h.resetLimiter.Allow(r.Context(), resetLimiterClientKey(r), email) {
-		httpx.WriteProblem(w, r, httpx.NewError(http.StatusTooManyRequests, rateLimitDetail))
+		httpx.WriteProblem(w, r, httpx.NewErrorCode(http.StatusTooManyRequests, httpx.CodeRateLimited, rateLimitDetail))
 		return
 	}
 	if err := action(r.Context()); err != nil {

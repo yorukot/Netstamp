@@ -12,7 +12,7 @@ func writeNotFound(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	httpx.WriteProblem(w, r, httpx.NotFound("route not found"))
+	httpx.WriteProblem(w, r, httpx.NotFoundCode(httpx.CodeRouteNotFound, "route not found"))
 }
 
 func writeMethodNotAllowed(w http.ResponseWriter, r *http.Request) {
@@ -20,7 +20,7 @@ func writeMethodNotAllowed(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "405 method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	httpx.WriteProblem(w, r, httpx.NewError(http.StatusMethodNotAllowed, "method not allowed"))
+	httpx.WriteProblem(w, r, httpx.NewErrorCode(http.StatusMethodNotAllowed, httpx.CodeMethodNotAllowed, "method not allowed"))
 }
 
 func wantsHTML(r *http.Request) bool {

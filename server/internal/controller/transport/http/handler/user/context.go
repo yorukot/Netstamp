@@ -14,7 +14,7 @@ import (
 func currentUserID(ctx context.Context) (string, error) {
 	claims, ok := httpmiddleware.AccessTokenClaimsFromContext(ctx)
 	if !ok || claims.Subject == "" {
-		return "", httpx.Unauthorized("missing auth cookie")
+		return "", httpx.UnauthorizedCode(httpx.CodeAuthMissingSession, "missing auth cookie")
 	}
 
 	return claims.Subject, nil
@@ -23,13 +23,13 @@ func currentUserID(ctx context.Context) (string, error) {
 func mapUserError(err error, fallback string) error {
 	switch {
 	case errors.Is(err, identity.ErrUserNotFound):
-		return httpx.Unauthorized("invalid session")
+		return httpx.UnauthorizedCode(httpx.CodeAuthInvalidSession, "invalid session")
 	case errors.Is(err, appuser.ErrCredentialsInvalid):
-		return httpx.Unauthorized("credentials invalid")
+		return httpx.UnauthorizedCode(httpx.CodeAuthInvalidCredentials, "credentials invalid")
 	case errors.Is(err, identity.ErrEmailAlreadyExists):
-		return httpx.Conflict("email already exists")
+		return httpx.ConflictCode(httpx.CodeEmailAlreadyExists, "email already exists")
 	case errors.Is(err, appuser.ErrLastSystemAdmin):
-		return httpx.Conflict("system must keep at least one administrator")
+		return httpx.ConflictCode(httpx.CodeLastSystemAdmin, "system must keep at least one administrator")
 	case errors.Is(err, appuser.ErrInvalidInput):
 		return invalidUserInputError(err)
 	default:
@@ -46,6 +46,7 @@ func invalidUserInputError(err error) error {
 	details := make([]httpx.ErrorDetail, 0, len(fieldErrors))
 	for _, fieldErr := range fieldErrors {
 		details = append(details, httpx.ErrorDetail{
+			Code:     fieldErr.Code,
 			Message:  fieldErr.Message,
 			Location: userErrorLocation(fieldErr.Field),
 			Value:    fieldErr.Value,

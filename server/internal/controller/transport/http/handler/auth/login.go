@@ -27,9 +27,9 @@ func (h *Handler) login(ctx context.Context, input *loginInput) (*loginOutput, e
 	if err != nil {
 		switch {
 		case errors.Is(err, appauth.ErrCredentialsInvalid), errors.Is(err, appauth.ErrInvalidInput):
-			return nil, httpx.Unauthorized("invalid email or password")
+			return nil, httpx.UnauthorizedCode(httpx.CodeAuthInvalidCredentials, "invalid email or password")
 		case errors.Is(err, appauth.ErrEmailVerificationRequired):
-			return nil, httpx.Forbidden("email verification is required")
+			return nil, httpx.ForbiddenCode(httpx.CodeAuthEmailVerificationRequired, "email verification is required")
 		default:
 			return nil, httpx.InternalServerError("login failed")
 		}

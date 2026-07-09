@@ -16,7 +16,7 @@ func (h *Handler) me(ctx context.Context, _ *meInput) (*meOutput, error) {
 	user, err := h.service.GetCurrentUser(ctx, claims.Subject)
 	if err != nil {
 		if errors.Is(err, identity.ErrUserNotFound) || errors.Is(err, appauth.ErrAccountDisabled) {
-			return nil, httpx.Unauthorized("invalid session")
+			return nil, httpx.UnauthorizedCode(httpx.CodeAuthInvalidSession, "invalid session")
 		}
 		return nil, httpx.InternalServerError("failed to fetch user")
 	}

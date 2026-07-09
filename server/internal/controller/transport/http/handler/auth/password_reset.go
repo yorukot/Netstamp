@@ -24,7 +24,7 @@ func (h *Handler) requestPasswordReset(ctx context.Context, r *http.Request, inp
 		case errors.Is(err, appauth.ErrInvalidInput):
 			return invalidAuthInputError(err)
 		case errors.Is(err, appauth.ErrResetUnavailable):
-			return httpx.ServiceUnavailable("password reset is unavailable")
+			return httpx.ServiceUnavailableCode(httpx.CodeAuthPasswordResetUnavailable, "password reset is unavailable")
 		default:
 			return httpx.InternalServerError("password reset failed")
 		}
@@ -47,9 +47,9 @@ func (h *Handler) confirmPasswordReset(ctx context.Context, input *confirmPasswo
 		case errors.Is(err, appauth.ErrInvalidInput):
 			return invalidAuthInputError(err)
 		case errors.Is(err, appauth.ErrResetTokenInvalid):
-			return httpx.Unauthorized("invalid or expired password reset token")
+			return httpx.UnauthorizedCode(httpx.CodeAuthPasswordResetTokenInvalid, "invalid or expired password reset token")
 		case errors.Is(err, appauth.ErrResetUnavailable):
-			return httpx.ServiceUnavailable("password reset is unavailable")
+			return httpx.ServiceUnavailableCode(httpx.CodeAuthPasswordResetUnavailable, "password reset is unavailable")
 		default:
 			return httpx.InternalServerError("password reset failed")
 		}

@@ -15,7 +15,7 @@ import (
 func currentUserID(ctx context.Context) (string, error) {
 	claims, ok := httpmiddleware.AccessTokenClaimsFromContext(ctx)
 	if !ok || claims.Subject == "" {
-		return "", httpx.Unauthorized("missing auth cookie")
+		return "", httpx.UnauthorizedCode(httpx.CodeAuthMissingSession, "missing auth cookie")
 	}
 	return claims.Subject, nil
 }
@@ -27,9 +27,9 @@ func mapPublicStatusError(err error, fallback string) error {
 
 	switch {
 	case errors.Is(err, apppublic.ErrForbidden):
-		return httpx.Forbidden("current user does not have the required project role for public status")
+		return httpx.ForbiddenCode(httpx.CodeProjectRoleRequired, "current user does not have the required project role for public status")
 	case errors.Is(err, domainpublic.ErrSlugAlreadyExist):
-		return httpx.Conflict("public status page slug already exists")
+		return httpx.ConflictCode(httpx.CodePublicStatusSlugAlreadyExists, "public status page slug already exists")
 	case errors.Is(err, apppublic.ErrInvalidInput), errors.Is(err, domainpublic.ErrInvalidInput):
 		return invalidPublicStatusInputError(err)
 	default:
@@ -45,6 +45,7 @@ func invalidPublicStatusInputError(err error) error {
 	details := make([]httpx.ErrorDetail, 0, len(fieldErrors))
 	for _, fieldErr := range fieldErrors {
 		details = append(details, httpx.ErrorDetail{
+			Code:     fieldErr.Code,
 			Message:  fieldErr.Message,
 			Location: publicStatusErrorLocation(fieldErr.Field),
 			Value:    fieldErr.Value,

@@ -15,7 +15,7 @@ import (
 func currentUserID(ctx context.Context) (string, error) {
 	claims, ok := httpmiddleware.AccessTokenClaimsFromContext(ctx)
 	if !ok || claims.Subject == "" {
-		return "", httpx.Unauthorized("missing auth cookie")
+		return "", httpx.UnauthorizedCode(httpx.CodeAuthMissingSession, "missing auth cookie")
 	}
 
 	return claims.Subject, nil
@@ -28,15 +28,15 @@ func mapProjectError(err error, fallback string) error {
 
 	switch {
 	case errors.Is(err, appproject.ErrForbidden):
-		return httpx.Forbidden("current user does not have the required project role")
+		return httpx.ForbiddenCode(httpx.CodeProjectRoleRequired, "current user does not have the required project role")
 	case errors.Is(err, domainproject.ErrProjectSlugAlreadyExists):
-		return httpx.Conflict("project slug already exists")
+		return httpx.ConflictCode(httpx.CodeProjectSlugAlreadyExists, "project slug already exists")
 	case errors.Is(err, domainproject.ErrMemberAlreadyExists):
-		return httpx.Conflict("project member already exists")
+		return httpx.ConflictCode(httpx.CodeProjectMemberAlreadyExists, "project member already exists")
 	case errors.Is(err, domainproject.ErrInviteAlreadyExists):
-		return httpx.Conflict("project invite already exists")
+		return httpx.ConflictCode(httpx.CodeProjectInviteAlreadyExists, "project invite already exists")
 	case errors.Is(err, appproject.ErrLastOwner):
-		return httpx.Conflict("project must keep an owner")
+		return httpx.ConflictCode(httpx.CodeProjectLastOwner, "project must keep an owner")
 	case errors.Is(err, appproject.ErrInvalidInput):
 		return invalidProjectInputError(err)
 	default:
@@ -53,6 +53,7 @@ func invalidProjectInputError(err error) error {
 	details := make([]httpx.ErrorDetail, 0, len(fieldErrors))
 	for _, fieldErr := range fieldErrors {
 		details = append(details, httpx.ErrorDetail{
+			Code:     fieldErr.Code,
 			Message:  fieldErr.Message,
 			Location: projectErrorLocation(fieldErr.Field),
 			Value:    fieldErr.Value,

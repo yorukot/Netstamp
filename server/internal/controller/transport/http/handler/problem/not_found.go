@@ -16,29 +16,29 @@ import (
 func NotFound(err error) (bool, error) {
 	switch {
 	case errors.Is(err, domainproject.ErrProjectNotFound):
-		return true, httpx.NotFound("project not found")
+		return true, httpx.NotFoundCode(httpx.CodeProjectNotFound, "project not found")
 	case errors.Is(err, domainproject.ErrMemberNotFound):
-		return true, httpx.NotFound("project member not found")
+		return true, httpx.NotFoundCode(httpx.CodeProjectMemberNotFound, "project member not found")
 	case errors.Is(err, domainproject.ErrInviteNotFound):
-		return true, httpx.NotFound("project invite not found")
+		return true, httpx.NotFoundCode(httpx.CodeProjectInviteNotFound, "project invite not found")
 	case errors.Is(err, identity.ErrUserNotFound):
-		return true, httpx.NotFound("user not found")
+		return true, httpx.NotFoundCode(httpx.CodeUserNotFound, "user not found")
 	case errors.Is(err, label.ErrLabelNotFound):
-		return true, httpx.NotFound("label not found")
+		return true, httpx.NotFoundCode(httpx.CodeLabelNotFound, "label not found")
 	case errors.Is(err, domaincheck.ErrCheckNotFound):
-		return true, httpx.NotFound("check not found")
+		return true, httpx.NotFoundCode(httpx.CodeCheckNotFound, "check not found")
 	case errors.Is(err, domainprobe.ErrProbeNotFound):
-		return true, httpx.NotFound("probe not found")
+		return true, httpx.NotFoundCode(httpx.CodeProbeNotFound, "probe not found")
 	case errors.Is(err, domainalert.ErrRuleNotFound):
-		return true, httpx.NotFound("alert rule not found")
+		return true, httpx.NotFoundCode(httpx.CodeAlertRuleNotFound, "alert rule not found")
 	case errors.Is(err, domainalert.ErrIncidentNotFound):
-		return true, httpx.NotFound("alert incident not found")
+		return true, httpx.NotFoundCode(httpx.CodeAlertIncidentNotFound, "alert incident not found")
 	case errors.Is(err, domainalert.ErrNotificationNotFound):
-		return true, httpx.NotFound("alert notification not found")
+		return true, httpx.NotFoundCode(httpx.CodeAlertNotificationNotFound, "alert notification not found")
 	case errors.Is(err, domainpublic.ErrPageNotFound):
-		return true, httpx.NotFound("public status page not found")
+		return true, httpx.NotFoundCode(httpx.CodePublicStatusPageNotFound, "public status page not found")
 	case errors.Is(err, domainpublic.ErrElementNotFound):
-		return true, httpx.NotFound("public status page element not found")
+		return true, httpx.NotFoundCode(httpx.CodePublicStatusElementNotFound, "public status page element not found")
 	default:
 		return false, nil
 	}
