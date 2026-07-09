@@ -7,7 +7,7 @@ import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { pushToast } from "@/shared/toast/toastStore";
 import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
-import { ActionRow, Badge, BodyCopy, Button, Checkbox, DataTable, FilterGrid, LoadingState, Panel, SelectField, TextField, type DataColumn } from "@netstamp/ui";
+import { ActionRow, Badge, BodyCopy, Button, Checkbox, DataTable, LoadingState, Panel, SelectField, TextField, type DataColumn } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
 import type { ChangeEvent, FormEvent } from "react";
 import { useMemo, useRef, useState } from "react";
@@ -527,7 +527,17 @@ export function AdminPage() {
 				<BodyCopy>Exports include account, project, probe, check, alert, public status, result, and system setting data. Imported backups replace existing managed data.</BodyCopy>
 			</Panel>
 
-			<Panel tone="glass" title="User management" actions={usersQuery.isFetching ? <Badge tone="neutral">Syncing</Badge> : <Badge tone="neutral">{userCountLabel}</Badge>} padded={false}>
+			<Panel
+				tone="glass"
+				title="User management"
+				actions={
+					<div className={styles.userManagementActions}>
+						<TextField label="Search" type="search" placeholder="name, email, status, access" value={userSearch} onChange={event => setUserSearch(event.currentTarget.value)} />
+						{usersQuery.isFetching ? <Badge tone="neutral">Syncing</Badge> : <Badge tone="neutral">{userCountLabel}</Badge>}
+					</div>
+				}
+				padded={false}
+			>
 				{usersQuery.isLoading ? (
 					<LoadingState label="Loading users" />
 				) : usersQuery.isError ? (
@@ -535,25 +545,18 @@ export function AdminPage() {
 						<BodyCopy>{requestErrorMessage(usersQuery.error, "Could not load users.")}</BodyCopy>
 					</div>
 				) : (
-					<>
-						<div className={styles.userToolbar}>
-							<FilterGrid className={styles.userFilters}>
-								<TextField label="Search" type="search" placeholder="name, email, status, access" value={userSearch} onChange={event => setUserSearch(event.currentTarget.value)} />
-							</FilterGrid>
-						</div>
-						<DataTable<ApiManagedUser>
-							ariaLabel="Managed users"
-							columns={userColumns}
-							rows={filteredUserRows}
-							density="compact"
-							minWidth="72rem"
-							emptyLabel={userSearch.trim() ? "No users match this search" : "No users"}
-							getRowKey={user => user.id}
-							rowActions={userRowActions}
-							rowActionsClassName={styles.userActionsCell}
-							rowActionsHeaderClassName={styles.userActionsHeader}
-						/>
-					</>
+					<DataTable<ApiManagedUser>
+						ariaLabel="Managed users"
+						columns={userColumns}
+						rows={filteredUserRows}
+						density="compact"
+						minWidth="72rem"
+						emptyLabel={userSearch.trim() ? "No users match this search" : "No users"}
+						getRowKey={user => user.id}
+						rowActions={userRowActions}
+						rowActionsClassName={styles.userActionsCell}
+						rowActionsHeaderClassName={styles.userActionsHeader}
+					/>
 				)}
 			</Panel>
 		</PageStack>

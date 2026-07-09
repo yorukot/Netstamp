@@ -54,14 +54,15 @@
 	text-align: left;
 }
 
-.userToolbar {
-	padding: 1rem;
+.userManagementActions {
+	display: grid;
+	grid-template-columns: minmax(16rem, 28rem) auto;
+	gap: 1rem;
+	align-items: end;
 }
 
-.userFilters {
-	--ns-filter-grid-template: minmax(16rem, 28rem);
-	--ns-filter-grid-tablet-template: minmax(14rem, 1fr);
-	--ns-filter-grid-mobile-template: 1fr;
+.userManagementActions > * {
+	min-width: 0;
 }
 
 .fileInput {
@@ -117,5 +118,10 @@
 	.toolActions,
 	.userActions {
 		justify-content: flex-start;
+	}
+
+	.userManagementActions {
+		grid-template-columns: 1fr;
+		justify-items: start;
 	}
 }
