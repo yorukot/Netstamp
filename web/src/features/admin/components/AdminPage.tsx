@@ -7,7 +7,7 @@ import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { pushToast } from "@/shared/toast/toastStore";
 import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
-import { ActionRow, Badge, BodyCopy, Button, Checkbox, DataTable, LoadingState, Panel, SelectField, TextField, type DataColumn } from "@netstamp/ui";
+import { ActionRow, Badge, BodyCopy, Button, Checkbox, DataTable, FilterGrid, LoadingState, Panel, SelectField, TextField, type DataColumn } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
 import type { ChangeEvent, FormEvent } from "react";
 import { useMemo, useRef, useState } from "react";
@@ -99,6 +99,24 @@ function downloadAdminDataExport(data: ApiAdminDataExport) {
 	URL.revokeObjectURL(href);
 }
 
+function managedUserSearchText(user: ApiManagedUser) {
+	const status = user.disabledAt ? "disabled inactive deactivated" : "active enabled";
+	const access = user.isSystemAdmin ? "system admin administrator" : "user member";
+	const verification = user.emailVerified ? "verified" : "unverified";
+
+	return [user.displayName, user.email, status, access, verification, formatTimestamp(user.updatedAt), user.disabledAt ? formatTimestamp(user.disabledAt) : ""].join(" ").toLowerCase();
+}
+
+function filterManagedUsers(users: ApiManagedUser[], search: string) {
+	const needle = search.trim().toLowerCase();
+
+	if (!needle) {
+		return users;
+	}
+
+	return users.filter(user => managedUserSearchText(user).includes(needle));
+}
+
 export function AdminPage() {
 	const { session } = useSession();
 	const confirm = useConfirm();
@@ -112,6 +130,7 @@ export function AdminPage() {
 	const exportDataMutation = useExportAdminDataMutation();
 	const importDataMutation = useImportAdminDataMutation();
 	const loadedSettings = settingsQuery.data?.settings;
+	const [userSearch, setUserSearch] = useState("");
 	const serverForm = useMemo(() => {
 		if (!loadedSettings) {
 			return defaultForm;
@@ -120,7 +139,9 @@ export function AdminPage() {
 	}, [loadedSettings]);
 	const [editedForm, setEditedForm] = useState<AdminFormState | null>(null);
 	const form = editedForm ?? serverForm;
-	const userRows = usersQuery.data?.users ?? [];
+	const userRows = useMemo(() => usersQuery.data?.users ?? [], [usersQuery.data?.users]);
+	const filteredUserRows = useMemo(() => filterManagedUsers(userRows, userSearch), [userRows, userSearch]);
+	const userCountLabel = userSearch.trim() ? `${filteredUserRows.length}/${userRows.length} users` : `${userRows.length} users`;
 	const activeAdminCount = userRows.filter(user => user.isSystemAdmin && !user.disabledAt).length;
 
 	const smtpPasswordLabel = useMemo(() => {
@@ -506,7 +527,7 @@ export function AdminPage() {
 				<BodyCopy>Exports include account, project, probe, check, alert, public status, result, and system setting data. Imported backups replace existing managed data.</BodyCopy>
 			</Panel>
 
-			<Panel tone="glass" title="User management" actions={usersQuery.isFetching ? <Badge tone="neutral">Syncing</Badge> : <Badge tone="neutral">{userRows.length} users</Badge>} padded={false}>
+			<Panel tone="glass" title="User management" actions={usersQuery.isFetching ? <Badge tone="neutral">Syncing</Badge> : <Badge tone="neutral">{userCountLabel}</Badge>} padded={false}>
 				{usersQuery.isLoading ? (
 					<LoadingState label="Loading users" />
 				) : usersQuery.isError ? (
@@ -514,16 +535,23 @@ export function AdminPage() {
 						<BodyCopy>{requestErrorMessage(usersQuery.error, "Could not load users.")}</BodyCopy>
 					</div>
 				) : (
-					<DataTable<ApiManagedUser>
-						ariaLabel="Managed users"
-						columns={userColumns}
-						rows={userRows}
-						density="compact"
-						minWidth="64rem"
-						emptyLabel="No users"
-						getRowKey={user => user.id}
-						rowActions={userRowActions}
-					/>
+					<>
+						<div className={styles.userToolbar}>
+							<FilterGrid className={styles.userFilters}>
+								<TextField label="Search" type="search" placeholder="name, email, status, access" value={userSearch} onChange={event => setUserSearch(event.currentTarget.value)} />
+							</FilterGrid>
+						</div>
+						<DataTable<ApiManagedUser>
+							ariaLabel="Managed users"
+							columns={userColumns}
+							rows={filteredUserRows}
+							density="compact"
+							minWidth="72rem"
+							emptyLabel={userSearch.trim() ? "No users match this search" : "No users"}
+							getRowKey={user => user.id}
+							rowActions={userRowActions}
+						/>
+					</>
 				)}
 			</Panel>
 		</PageStack>

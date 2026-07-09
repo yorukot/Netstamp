@@ -34,9 +34,30 @@
 .toolActions,
 .userActions {
 	display: flex;
-	flex-wrap: wrap;
 	gap: 0.5rem;
 	justify-content: flex-end;
+}
+
+.toolActions {
+	flex-wrap: wrap;
+}
+
+.userActions {
+	flex-wrap: nowrap;
+	align-items: center;
+	white-space: nowrap;
+}
+
+.userToolbar {
+	padding: 1rem;
+	border-bottom: 1px solid var(--ns-border-faint);
+	background: var(--ns-container-bg-raised);
+}
+
+.userFilters {
+	--ns-filter-grid-template: minmax(16rem, 28rem);
+	--ns-filter-grid-tablet-template: minmax(14rem, 1fr);
+	--ns-filter-grid-mobile-template: 1fr;
 }
 
 .fileInput {
