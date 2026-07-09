@@ -26,6 +26,9 @@ FROM projects
 JOIN project_members
     ON project_members.project_id = projects.id
     AND project_members.user_id = $1
+JOIN users
+    ON users.id = project_members.user_id
+    AND users.disabled_at IS NULL
 WHERE projects.deleted_at IS NULL
 ORDER BY projects.created_at DESC, projects.id DESC;
 
@@ -35,6 +38,9 @@ FROM projects
 JOIN project_members
     ON project_members.project_id = projects.id
     AND project_members.user_id = $2
+JOIN users
+    ON users.id = project_members.user_id
+    AND users.disabled_at IS NULL
 WHERE projects.id = $1
   AND projects.deleted_at IS NULL;
 
@@ -44,6 +50,9 @@ FROM projects
 JOIN project_members
     ON project_members.project_id = projects.id
     AND project_members.user_id = $2
+JOIN users
+    ON users.id = project_members.user_id
+    AND users.disabled_at IS NULL
 WHERE projects.slug = $1
   AND projects.deleted_at IS NULL;
 
@@ -51,8 +60,10 @@ WHERE projects.slug = $1
 SELECT project_members.role
 FROM project_members
 JOIN projects ON projects.id = project_members.project_id
+JOIN users ON users.id = project_members.user_id
 WHERE project_members.project_id = $1
   AND project_members.user_id = $2
+  AND users.disabled_at IS NULL
   AND projects.deleted_at IS NULL;
 
 -- name: UpdateProject :one
@@ -83,6 +94,7 @@ FROM project_members
 JOIN projects ON projects.id = project_members.project_id
 JOIN users ON users.id = project_members.user_id
 WHERE project_members.project_id = $1
+  AND users.disabled_at IS NULL
   AND projects.deleted_at IS NULL
 ORDER BY project_members.created_at ASC, project_members.id ASC;
 
@@ -100,6 +112,7 @@ JOIN projects ON projects.id = project_members.project_id
 JOIN users ON users.id = project_members.user_id
 WHERE project_members.project_id = $1
   AND project_members.user_id = $2
+  AND users.disabled_at IS NULL
   AND projects.deleted_at IS NULL;
 
 -- name: UpdateProjectMemberRole :one
@@ -119,7 +132,8 @@ SELECT updated.id,
        users.email AS user_email,
        users.display_name AS user_display_name
 FROM updated
-JOIN users ON users.id = updated.user_id;
+JOIN users ON users.id = updated.user_id
+WHERE users.disabled_at IS NULL;
 
 -- name: DeleteProjectMember :one
 DELETE FROM project_members
@@ -130,5 +144,7 @@ RETURNING id;
 -- name: CountActiveProjectOwners :one
 SELECT count(*)::int4
 FROM project_members
+JOIN users ON users.id = project_members.user_id
 WHERE project_id = $1
-  AND role = 'owner';
+  AND role = 'owner'
+  AND users.disabled_at IS NULL;

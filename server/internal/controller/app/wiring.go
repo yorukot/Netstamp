@@ -172,7 +172,7 @@ func buildControllerServices(cfg config.Config, log *zap.Logger, dbPool *pgxpool
 			TLSMode:        cfg.Alerting.SMTP.TLSMode,
 			TimeoutSeconds: appadmin.DurationSeconds(cfg.Alerting.SMTP.Timeout),
 		},
-	})
+	}, passwordHasher)
 	smtpProvider := adminSMTPProvider{service: adminSvc}
 	notificationSender := notify.NewDynamicSender(cfg.Alerting.NotificationHTTPTimeout, smtpProvider)
 
@@ -186,6 +186,7 @@ func buildControllerServices(cfg config.Config, log *zap.Logger, dbPool *pgxpool
 	})
 
 	userSvc := appuser.NewService(userRepo, passwordHasher, userEvents)
+	userSvc.ConfigureSystemAdmin(systemRepo)
 	projectSvc := appproject.NewService(projectRepo, userRepo, projectEvents)
 	alertSvc := appalert.NewService(alertRepo, projectRepo, alertEvents, notificationSender)
 	assignmentSvc := appassignment.NewService(assignmentRepo, projectRepo, assignmentEvents, dbTx)
@@ -215,7 +216,7 @@ func buildControllerServices(cfg config.Config, log *zap.Logger, dbPool *pgxpool
 
 	return controllerServices{
 		authService:         authSvc,
-		authVerifier:        tokenIssuer,
+		authVerifier:        accountStatusTokenVerifier{inner: tokenIssuer, users: userRepo},
 		adminService:        adminSvc,
 		userService:         userSvc,
 		alertService:        alertSvc,

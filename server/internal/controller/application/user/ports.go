@@ -11,6 +11,11 @@ type Repository interface {
 	UpdateUserDisplayName(ctx context.Context, input identity.User) (identity.User, error)
 	UpdateUserEmail(ctx context.Context, input identity.User) (identity.User, error)
 	UpdateUserPasswordHash(ctx context.Context, input identity.User) (identity.User, error)
+	DisableUser(ctx context.Context, userID string) (identity.User, error)
+}
+
+type SystemAdminRepository interface {
+	CountActiveSystemAdmins(ctx context.Context) (int64, error)
 }
 
 type PasswordHasher interface {
@@ -31,6 +36,8 @@ const (
 	UserEventChangeEmailFailure    UserEventName = "user.email.change.failure"
 	UserEventChangePasswordSuccess UserEventName = "user.password.change.success"
 	UserEventChangePasswordFailure UserEventName = "user.password.change.failure"
+	UserEventDeactivateSuccess     UserEventName = "user.deactivate.success"
+	UserEventDeactivateFailure     UserEventName = "user.deactivate.failure"
 )
 
 type UserEventAction string
@@ -39,6 +46,7 @@ const (
 	UserActionUpdateProfile  UserEventAction = "profile.update"
 	UserActionChangeEmail    UserEventAction = "email.change"
 	UserActionChangePassword UserEventAction = "password.change"
+	UserActionDeactivate     UserEventAction = "deactivate"
 )
 
 type UserEventOutcome string

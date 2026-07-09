@@ -4,6 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -17,10 +20,50 @@ import (
 
 type Repository struct {
 	queries *sqlc.Queries
+	pool    *pgxpool.Pool
 }
 
 func NewRepository(pool *pgxpool.Pool) *Repository {
-	return &Repository{queries: sqlc.New(pool)}
+	return &Repository{queries: sqlc.New(pool), pool: pool}
+}
+
+const dataExportFormat = "netstamp.admin.data.v1"
+
+var dataExportTables = []string{
+	"users",
+	"projects",
+	"project_members",
+	"project_invites",
+	"probes",
+	"probe_credentials",
+	"probe_statuses",
+	"checks",
+	"ping_check_configs",
+	"tcp_check_configs",
+	"traceroute_check_configs",
+	"labels",
+	"check_labels",
+	"probe_labels",
+	"probe_check_assignments",
+	"ping_results",
+	"tcp_results",
+	"traceroute_results",
+	"traceroute_result_hops",
+	"traceroute_sampled_runs_1m",
+	"notifications",
+	"alert_rules",
+	"alert_notifications",
+	"alert_incidents",
+	"notification_outbox",
+	"public_status_pages",
+	"public_status_page_elements",
+	"public_status_page_element_assignments",
+	"assignment_refresh_jobs",
+	"password_reset_tokens",
+	"email_verification_tokens",
+	"system_user_roles",
+	"system_settings",
+	"system_setting_audit_events",
 }
 
 func (r *Repository) IsSystemAdmin(ctx context.Context, userIDValue string) (bool, error) {
@@ -43,6 +86,18 @@ func (r *Repository) ListSystemAdmins(ctx context.Context) ([]domainsystem.Admin
 	return admins, nil
 }
 
+func (r *Repository) ListManagedUsers(ctx context.Context) ([]domainsystem.ManagedUser, error) {
+	rows, err := postgres.Queries(ctx, r.queries).ListManagedUsers(ctx)
+	if err != nil {
+		return nil, err
+	}
+	users := make([]domainsystem.ManagedUser, 0, len(rows))
+	for _, row := range rows {
+		users = append(users, mapManagedUser(row))
+	}
+	return users, nil
+}
+
 func (r *Repository) GrantSystemAdminByEmail(ctx context.Context, email string) (domainsystem.AdminUser, error) {
 	row, err := postgres.Queries(ctx, r.queries).GrantSystemAdminByEmail(ctx, email)
 	if err != nil {
@@ -52,6 +107,21 @@ func (r *Repository) GrantSystemAdminByEmail(ctx context.Context, email string) 
 		return domainsystem.AdminUser{}, err
 	}
 	return mapGrantedSystemAdmin(row), nil
+}
+
+func (r *Repository) GrantSystemAdminByUserID(ctx context.Context, userIDValue string) (domainsystem.ManagedUser, error) {
+	userID, err := postgres.ParseUUID(userIDValue, identity.ErrUserNotFound)
+	if err != nil {
+		return domainsystem.ManagedUser{}, err
+	}
+	row, err := postgres.Queries(ctx, r.queries).GrantSystemAdminByUserID(ctx, userID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domainsystem.ManagedUser{}, identity.ErrUserNotFound
+		}
+		return domainsystem.ManagedUser{}, err
+	}
+	return mapGrantedManagedUser(row), nil
 }
 
 func (r *Repository) RevokeSystemAdminIfNotLast(ctx context.Context, userIDValue string) (domainsystem.AdminRevokeResult, error) {
@@ -68,6 +138,116 @@ func (r *Repository) RevokeSystemAdminIfNotLast(ctx context.Context, userIDValue
 		TargetWasAdmin: row.TargetWasAdmin,
 		Revoked:        row.Revoked,
 	}, nil
+}
+
+func (r *Repository) CountActiveSystemAdmins(ctx context.Context) (int64, error) {
+	return postgres.Queries(ctx, r.queries).CountActiveSystemAdmins(ctx)
+}
+
+func (r *Repository) SetManagedUserDisabledAt(ctx context.Context, userIDValue string, disabled bool) (domainsystem.ManagedUser, error) {
+	userID, err := postgres.ParseUUID(userIDValue, identity.ErrUserNotFound)
+	if err != nil {
+		return domainsystem.ManagedUser{}, err
+	}
+	var disabledAt *time.Time
+	if disabled {
+		now := time.Now().UTC()
+		disabledAt = &now
+	}
+	row, err := postgres.Queries(ctx, r.queries).SetManagedUserDisabledAt(ctx, sqlc.SetManagedUserDisabledAtParams{
+		ID:         userID,
+		DisabledAt: disabledAt,
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domainsystem.ManagedUser{}, identity.ErrUserNotFound
+		}
+		return domainsystem.ManagedUser{}, err
+	}
+	return mapDisabledManagedUser(row), nil
+}
+
+func (r *Repository) SetManagedUserPasswordHash(ctx context.Context, userIDValue, passwordHash string) (domainsystem.ManagedUser, error) {
+	userID, err := postgres.ParseUUID(userIDValue, identity.ErrUserNotFound)
+	if err != nil {
+		return domainsystem.ManagedUser{}, err
+	}
+	row, err := postgres.Queries(ctx, r.queries).SetManagedUserPasswordHash(ctx, sqlc.SetManagedUserPasswordHashParams{
+		ID:           userID,
+		PasswordHash: passwordHash,
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domainsystem.ManagedUser{}, identity.ErrUserNotFound
+		}
+		return domainsystem.ManagedUser{}, err
+	}
+	return mapPasswordManagedUser(row), nil
+}
+
+func (r *Repository) ExportData(ctx context.Context) (domainsystem.DataExport, error) {
+	tables := make(map[string][]domainsystem.RawDataRow, len(dataExportTables))
+	for _, table := range dataExportTables {
+		rows, err := r.exportTable(ctx, table)
+		if err != nil {
+			return domainsystem.DataExport{}, err
+		}
+		tables[table] = rows
+	}
+	return domainsystem.DataExport{
+		Format:     dataExportFormat,
+		ExportedAt: time.Now().UTC(),
+		Tables:     tables,
+	}, nil
+}
+
+func (r *Repository) ImportData(ctx context.Context, export domainsystem.DataExport) (domainsystem.DataImportResult, error) {
+	if export.Format != dataExportFormat {
+		return domainsystem.DataImportResult{}, domainsystem.ErrDataImportInvalid
+	}
+	allowed := make(map[string]struct{}, len(dataExportTables))
+	for _, table := range dataExportTables {
+		allowed[table] = struct{}{}
+		if _, ok := export.Tables[table]; !ok {
+			return domainsystem.DataImportResult{}, domainsystem.ErrDataImportInvalid
+		}
+	}
+	for table := range export.Tables {
+		if _, ok := allowed[table]; !ok {
+			return domainsystem.DataImportResult{}, domainsystem.ErrDataImportInvalid
+		}
+	}
+
+	var result domainsystem.DataImportResult
+	err := pgx.BeginFunc(ctx, r.pool, func(tx pgx.Tx) error {
+		if _, err := tx.Exec(ctx, truncateDataExportTablesSQL()); err != nil {
+			return err
+		}
+		for _, table := range dataExportTables {
+			rows := export.Tables[table]
+			result.ImportedTables++
+			result.ImportedRows += len(rows)
+			if len(rows) == 0 {
+				continue
+			}
+			payload, err := json.Marshal(rows)
+			if err != nil {
+				return domainsystem.ErrDataImportInvalid
+			}
+			if !json.Valid(payload) {
+				return domainsystem.ErrDataImportInvalid
+			}
+			if _, err := tx.Exec(ctx, importTableSQL(table), payload); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return domainsystem.DataImportResult{}, err
+	}
+	result.Format = dataExportFormat
+	return result, nil
 }
 
 func (r *Repository) GrantFirstSystemAdminIfNone(ctx context.Context, userIDValue string) (bool, error) {
@@ -136,6 +316,7 @@ func mapListSystemAdmin(row sqlc.ListSystemAdminsRow) domainsystem.AdminUser {
 		Email:           row.Email,
 		DisplayName:     row.DisplayName,
 		EmailVerifiedAt: row.EmailVerifiedAt,
+		DisabledAt:      row.DisabledAt,
 		CreatedAt:       row.CreatedAt,
 		UpdatedAt:       row.UpdatedAt,
 		GrantedAt:       row.GrantedAt,
@@ -148,6 +329,63 @@ func mapGrantedSystemAdmin(row sqlc.GrantSystemAdminByEmailRow) domainsystem.Adm
 		Email:           row.Email,
 		DisplayName:     row.DisplayName,
 		EmailVerifiedAt: row.EmailVerifiedAt,
+		DisabledAt:      row.DisabledAt,
+		CreatedAt:       row.CreatedAt,
+		UpdatedAt:       row.UpdatedAt,
+		GrantedAt:       row.GrantedAt,
+	}
+}
+
+func mapManagedUser(row sqlc.ListManagedUsersRow) domainsystem.ManagedUser {
+	return domainsystem.ManagedUser{
+		ID:              row.ID.String(),
+		Email:           row.Email,
+		DisplayName:     row.DisplayName,
+		EmailVerifiedAt: row.EmailVerifiedAt,
+		DisabledAt:      row.DisabledAt,
+		IsSystemAdmin:   row.IsSystemAdmin,
+		CreatedAt:       row.CreatedAt,
+		UpdatedAt:       row.UpdatedAt,
+		GrantedAt:       row.GrantedAt,
+	}
+}
+
+func mapGrantedManagedUser(row sqlc.GrantSystemAdminByUserIDRow) domainsystem.ManagedUser {
+	return domainsystem.ManagedUser{
+		ID:              row.ID.String(),
+		Email:           row.Email,
+		DisplayName:     row.DisplayName,
+		EmailVerifiedAt: row.EmailVerifiedAt,
+		DisabledAt:      row.DisabledAt,
+		IsSystemAdmin:   row.IsSystemAdmin,
+		CreatedAt:       row.CreatedAt,
+		UpdatedAt:       row.UpdatedAt,
+		GrantedAt:       &row.GrantedAt,
+	}
+}
+
+func mapDisabledManagedUser(row sqlc.SetManagedUserDisabledAtRow) domainsystem.ManagedUser {
+	return domainsystem.ManagedUser{
+		ID:              row.ID.String(),
+		Email:           row.Email,
+		DisplayName:     row.DisplayName,
+		EmailVerifiedAt: row.EmailVerifiedAt,
+		DisabledAt:      row.DisabledAt,
+		IsSystemAdmin:   row.IsSystemAdmin,
+		CreatedAt:       row.CreatedAt,
+		UpdatedAt:       row.UpdatedAt,
+		GrantedAt:       row.GrantedAt,
+	}
+}
+
+func mapPasswordManagedUser(row sqlc.SetManagedUserPasswordHashRow) domainsystem.ManagedUser {
+	return domainsystem.ManagedUser{
+		ID:              row.ID.String(),
+		Email:           row.Email,
+		DisplayName:     row.DisplayName,
+		EmailVerifiedAt: row.EmailVerifiedAt,
+		DisabledAt:      row.DisabledAt,
+		IsSystemAdmin:   row.IsSystemAdmin,
 		CreatedAt:       row.CreatedAt,
 		UpdatedAt:       row.UpdatedAt,
 		GrantedAt:       row.GrantedAt,
@@ -176,4 +414,45 @@ func mapSetting(row sqlc.SystemSetting) domainsystem.Setting {
 		CreatedAt:           row.CreatedAt,
 		UpdatedAt:           row.UpdatedAt,
 	}
+}
+
+func (r *Repository) exportTable(ctx context.Context, table string) ([]domainsystem.RawDataRow, error) {
+	var raw []byte
+	query := fmt.Sprintf(
+		"SELECT COALESCE(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM (SELECT * FROM %s) AS t",
+		quoteTable(table),
+	)
+	if err := r.pool.QueryRow(ctx, query).Scan(&raw); err != nil {
+		return nil, err
+	}
+
+	var rows []json.RawMessage
+	if err := json.Unmarshal(raw, &rows); err != nil {
+		return nil, err
+	}
+	out := make([]domainsystem.RawDataRow, 0, len(rows))
+	for _, row := range rows {
+		if !json.Valid(row) {
+			return nil, domainsystem.ErrDataImportInvalid
+		}
+		out = append(out, domainsystem.RawDataRow(append([]byte(nil), row...)))
+	}
+	return out, nil
+}
+
+func truncateDataExportTablesSQL() string {
+	quoted := make([]string, 0, len(dataExportTables))
+	for _, table := range dataExportTables {
+		quoted = append(quoted, quoteTable(table))
+	}
+	return "TRUNCATE TABLE " + strings.Join(quoted, ", ") + " RESTART IDENTITY CASCADE"
+}
+
+func importTableSQL(table string) string {
+	quoted := quoteTable(table)
+	return fmt.Sprintf("INSERT INTO %s SELECT * FROM jsonb_populate_recordset(NULL::%s, $1::jsonb)", quoted, quoted)
+}
+
+func quoteTable(table string) string {
+	return pgx.Identifier{"public", table}.Sanitize()
 }

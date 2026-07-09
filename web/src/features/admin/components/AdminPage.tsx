@@ -1,16 +1,16 @@
 import { useSession } from "@/features/auth/session/SessionContext";
-import { useGrantSystemAdminMutation, useRevokeSystemAdminMutation, useUpdateAdminSettingsMutation } from "@/shared/api/mutations";
+import { useExportAdminDataMutation, useImportAdminDataMutation, useSetManagedUserPasswordMutation, useUpdateAdminSettingsMutation, useUpdateManagedUserMutation } from "@/shared/api/mutations";
 import { adminQueries } from "@/shared/api/queries";
-import type { ApiAdminSettings, ApiSystemAdminUser } from "@/shared/api/types";
-import { useConfirm } from "@/shared/components/confirmContext";
+import type { ApiAdminDataExport, ApiAdminSettings, ApiManagedUser } from "@/shared/api/types";
+import { useConfirm, usePromptDialog } from "@/shared/components/confirmContext";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { pushToast } from "@/shared/toast/toastStore";
 import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
 import { ActionRow, Badge, BodyCopy, Button, Checkbox, DataTable, LoadingState, Panel, SelectField, TextField, type DataColumn } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
-import type { FormEvent } from "react";
-import { useMemo, useState } from "react";
+import type { ChangeEvent, FormEvent } from "react";
+import { useMemo, useRef, useState } from "react";
 import styles from "./AdminPage.module.css";
 
 interface AdminFormState {
@@ -65,7 +65,10 @@ function numberValue(value: string, fallback: number) {
 	return Number.isFinite(parsed) ? parsed : fallback;
 }
 
-function formatTimestamp(value: string) {
+function formatTimestamp(value: string | undefined) {
+	if (!value) {
+		return "";
+	}
 	const date = new Date(value);
 	if (Number.isNaN(date.valueOf())) {
 		return value;
@@ -76,14 +79,38 @@ function formatTimestamp(value: string) {
 	}).format(date);
 }
 
+function isAdminDataExport(value: unknown): value is ApiAdminDataExport {
+	if (!value || typeof value !== "object") {
+		return false;
+	}
+	const candidate = value as Partial<ApiAdminDataExport>;
+	return typeof candidate.format === "string" && typeof candidate.exportedAt === "string" && Boolean(candidate.tables) && typeof candidate.tables === "object";
+}
+
+function downloadAdminDataExport(data: ApiAdminDataExport) {
+	const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+	const href = URL.createObjectURL(blob);
+	const link = document.createElement("a");
+	link.href = href;
+	link.download = `netstamp-data-export-${new Date().toISOString().slice(0, 10)}.json`;
+	document.body.append(link);
+	link.click();
+	link.remove();
+	URL.revokeObjectURL(href);
+}
+
 export function AdminPage() {
 	const { session } = useSession();
 	const confirm = useConfirm();
+	const prompt = usePromptDialog();
+	const importInputRef = useRef<HTMLInputElement | null>(null);
 	const settingsQuery = useQuery({ ...adminQueries.settings(), enabled: Boolean(session?.user.isSystemAdmin) });
-	const adminsQuery = useQuery({ ...adminQueries.systemAdmins(), enabled: Boolean(session?.user.isSystemAdmin) });
+	const usersQuery = useQuery({ ...adminQueries.users(), enabled: Boolean(session?.user.isSystemAdmin) });
 	const updateSettingsMutation = useUpdateAdminSettingsMutation();
-	const grantSystemAdminMutation = useGrantSystemAdminMutation();
-	const revokeSystemAdminMutation = useRevokeSystemAdminMutation();
+	const updateManagedUserMutation = useUpdateManagedUserMutation();
+	const setManagedUserPasswordMutation = useSetManagedUserPasswordMutation();
+	const exportDataMutation = useExportAdminDataMutation();
+	const importDataMutation = useImportAdminDataMutation();
 	const loadedSettings = settingsQuery.data?.settings;
 	const serverForm = useMemo(() => {
 		if (!loadedSettings) {
@@ -92,9 +119,9 @@ export function AdminPage() {
 		return formFromSettings(loadedSettings);
 	}, [loadedSettings]);
 	const [editedForm, setEditedForm] = useState<AdminFormState | null>(null);
-	const [grantEmail, setGrantEmail] = useState("");
 	const form = editedForm ?? serverForm;
-	const adminRows = adminsQuery.data?.admins ?? [];
+	const userRows = usersQuery.data?.users ?? [];
+	const activeAdminCount = userRows.filter(user => user.isSystemAdmin && !user.disabledAt).length;
 
 	const smtpPasswordLabel = useMemo(() => {
 		if (!settingsQuery.data?.settings.smtp.passwordSet) {
@@ -102,33 +129,53 @@ export function AdminPage() {
 		}
 		return "A password is stored. Leave blank to keep it unchanged.";
 	}, [settingsQuery.data?.settings.smtp.passwordSet]);
-	const systemAdminColumns = useMemo<DataColumn<ApiSystemAdminUser>[]>(
+
+	const userColumns = useMemo<DataColumn<ApiManagedUser>[]>(
 		() => [
 			{
 				key: "user",
 				label: "User",
-				render: admin => (
+				render: user => (
 					<span className={styles.adminCell}>
-						<strong className={styles.adminName}>{admin.displayName}</strong>
-						<span className={styles.adminMeta}>{admin.email}</span>
+						<strong className={styles.adminName}>{user.displayName}</strong>
+						<span className={styles.adminMeta}>{user.email}</span>
 					</span>
 				),
 				sortable: true,
-				sortValue: admin => admin.email
+				sortValue: user => user.email
+			},
+			{
+				key: "status",
+				label: "Status",
+				render: user => (
+					<span className={styles.adminCell}>
+						<Badge tone={user.disabledAt ? "critical" : "success"}>{user.disabledAt ? "Disabled" : "Active"}</Badge>
+						{user.disabledAt ? <span className={styles.adminMeta}>{formatTimestamp(user.disabledAt)}</span> : null}
+					</span>
+				),
+				sortable: true,
+				sortValue: user => (user.disabledAt ? 0 : 1)
+			},
+			{
+				key: "access",
+				label: "Access",
+				render: user => <Badge tone={user.isSystemAdmin ? "accent" : "neutral"}>{user.isSystemAdmin ? "System admin" : "User"}</Badge>,
+				sortable: true,
+				sortValue: user => (user.isSystemAdmin ? 1 : 0)
 			},
 			{
 				key: "email",
 				label: "Email",
-				render: admin => <Badge tone={admin.emailVerified ? "success" : "warning"}>{admin.emailVerified ? "Verified" : "Unverified"}</Badge>,
+				render: user => <Badge tone={user.emailVerified ? "success" : "warning"}>{user.emailVerified ? "Verified" : "Unverified"}</Badge>,
 				sortable: true,
-				sortValue: admin => (admin.emailVerified ? 1 : 0)
+				sortValue: user => (user.emailVerified ? 1 : 0)
 			},
 			{
-				key: "grantedAt",
-				label: "Granted",
-				render: admin => <span className={styles.adminMeta}>{formatTimestamp(admin.grantedAt)}</span>,
+				key: "updatedAt",
+				label: "Updated",
+				render: user => <span className={styles.adminMeta}>{formatTimestamp(user.updatedAt)}</span>,
 				sortable: true,
-				sortValue: admin => admin.grantedAt
+				sortValue: user => user.updatedAt
 			}
 		],
 		[]
@@ -141,13 +188,14 @@ export function AdminPage() {
 	if (!session.user.isSystemAdmin) {
 		return (
 			<PageStack>
-				<ScreenHeader title="Admin" />
+				<ScreenHeader title="System Settings" />
 				<Panel tone="deep" title="System administrator access required">
 					<BodyCopy>This page is limited to users with global administrator access.</BodyCopy>
 				</Panel>
 			</PageStack>
 		);
 	}
+	const currentUserID = session.user.id;
 
 	function update<K extends keyof AdminFormState>(key: K, value: AdminFormState[K]) {
 		setEditedForm(current => ({ ...(current ?? serverForm), [key]: value }));
@@ -184,80 +232,169 @@ export function AdminPage() {
 		);
 	}
 
-	function handleGrantSystemAdmin(event: FormEvent<HTMLFormElement>) {
-		event.preventDefault();
-		grantSystemAdminMutation.mutate(
-			{ email: grantEmail },
+	async function toggleDisabled(user: ApiManagedUser) {
+		const nextDisabled = !user.disabledAt;
+		if (nextDisabled) {
+			const accepted = await confirm({
+				title: "Disable account",
+				message: `${user.email} will no longer be able to sign in or access protected routes. A system administrator can re-enable this account later.`,
+				confirmLabel: "Disable",
+				tone: "danger"
+			});
+			if (!accepted) {
+				return;
+			}
+		}
+
+		updateManagedUserMutation.mutate(
+			{ userId: user.id, body: { disabled: nextDisabled } },
 			{
 				onSuccess: data => {
-					setGrantEmail("");
-					pushToast({ title: "System admin granted", message: `${data.admin.email} can now manage instance settings.`, tone: "success" });
+					pushToast({
+						title: data.user.disabledAt ? "Account disabled" : "Account enabled",
+						message: `${data.user.email} was updated.`,
+						tone: "success"
+					});
 				},
 				onError: error => {
-					pushToast({ title: "Grant failed", message: requestErrorMessage(error, "Could not grant system admin access."), tone: "critical" });
+					pushToast({ title: "User update failed", message: requestErrorMessage(error, "Could not update account status."), tone: "critical" });
 				}
 			}
 		);
 	}
 
-	async function handleRevokeSystemAdmin(admin: ApiSystemAdminUser) {
+	async function toggleSystemAdmin(user: ApiManagedUser) {
+		const nextAdmin = !user.isSystemAdmin;
+		if (!nextAdmin) {
+			const accepted = await confirm({
+				title: "Revoke system admin",
+				message: `${user.email} will lose access to instance-level system settings. Project memberships are not changed.`,
+				confirmLabel: "Revoke",
+				tone: "danger"
+			});
+			if (!accepted) {
+				return;
+			}
+		}
+
+		updateManagedUserMutation.mutate(
+			{ userId: user.id, body: { systemAdmin: nextAdmin } },
+			{
+				onSuccess: data => {
+					pushToast({
+						title: data.user.isSystemAdmin ? "System admin granted" : "System admin revoked",
+						message: `${data.user.email} was updated.`,
+						tone: "success"
+					});
+				},
+				onError: error => {
+					pushToast({ title: "Permission update failed", message: requestErrorMessage(error, "Could not update user permissions."), tone: "critical" });
+				}
+			}
+		);
+	}
+
+	async function setPassword(user: ApiManagedUser) {
+		const password = await prompt({
+			title: "Set user password",
+			message: `Set a new password for ${user.email}.`,
+			inputLabel: "New password",
+			inputType: "password",
+			confirmLabel: "Set password",
+			validate: value => (value.length < 8 ? "Password must be at least 8 characters." : null)
+		});
+		if (!password) {
+			return;
+		}
+
+		setManagedUserPasswordMutation.mutate(
+			{ userId: user.id, body: { password } },
+			{
+				onSuccess: data => {
+					pushToast({ title: "Password updated", message: `${data.user.email} can use the new password.`, tone: "success" });
+				},
+				onError: error => {
+					pushToast({ title: "Password update failed", message: requestErrorMessage(error, "Could not update user password."), tone: "critical" });
+				}
+			}
+		);
+	}
+
+	function exportData() {
+		exportDataMutation.mutate(undefined, {
+			onSuccess: data => {
+				downloadAdminDataExport(data);
+				pushToast({ title: "Data exported", message: "A JSON backup was downloaded.", tone: "success" });
+			},
+			onError: error => {
+				pushToast({ title: "Export failed", message: requestErrorMessage(error, "Could not export admin data."), tone: "critical" });
+			}
+		});
+	}
+
+	async function importData(event: ChangeEvent<HTMLInputElement>) {
+		const file = event.currentTarget.files?.[0];
+		event.currentTarget.value = "";
+		if (!file) {
+			return;
+		}
+
+		let parsed: unknown;
+		try {
+			parsed = JSON.parse(await file.text());
+		} catch {
+			pushToast({ title: "Import failed", message: "The selected file is not valid JSON.", tone: "critical" });
+			return;
+		}
+		if (!isAdminDataExport(parsed)) {
+			pushToast({ title: "Import failed", message: "The selected file is not a Netstamp data export.", tone: "critical" });
+			return;
+		}
+
 		const accepted = await confirm({
-			title: "Revoke system admin",
-			message: `${admin.email} will lose access to instance-level admin settings. Project memberships are not changed.`,
-			confirmLabel: "Revoke",
+			title: "Import data",
+			message: "Existing managed data will be replaced by this backup.",
+			confirmLabel: "Import",
 			tone: "danger"
 		});
 		if (!accepted) {
 			return;
 		}
 
-		revokeSystemAdminMutation.mutate(admin.id, {
-			onSuccess: () => {
-				pushToast({ title: "System admin revoked", message: `${admin.email} no longer has instance admin access.`, tone: "success" });
+		importDataMutation.mutate(parsed, {
+			onSuccess: data => {
+				pushToast({ title: "Data imported", message: `${data.result.importedRows} rows were imported.`, tone: "success" });
 			},
 			onError: error => {
-				pushToast({ title: "Revoke failed", message: requestErrorMessage(error, "Could not revoke system admin access."), tone: "critical" });
+				pushToast({ title: "Import failed", message: requestErrorMessage(error, "Could not import admin data."), tone: "critical" });
 			}
 		});
 	}
 
+	function userRowActions(user: ApiManagedUser) {
+		const isSelf = user.id === currentUserID;
+		const lastActiveAdmin = user.isSystemAdmin && !user.disabledAt && activeAdminCount <= 1;
+		const updatingUser = updateManagedUserMutation.isPending && updateManagedUserMutation.variables?.userId === user.id;
+		const settingPassword = setManagedUserPasswordMutation.isPending && setManagedUserPasswordMutation.variables?.userId === user.id;
+
+		return (
+			<div className={styles.userActions}>
+				<Button type="button" size="sm" variant={user.disabledAt ? "outline" : "danger"} disabled={isSelf || lastActiveAdmin || updatingUser} onClick={() => void toggleDisabled(user)}>
+					{user.disabledAt ? "Enable" : "Disable"}
+				</Button>
+				<Button type="button" size="sm" variant="ghost" disabled={(isSelf && user.isSystemAdmin) || lastActiveAdmin || updatingUser} onClick={() => void toggleSystemAdmin(user)}>
+					{user.isSystemAdmin ? "Revoke admin" : "Grant admin"}
+				</Button>
+				<Button type="button" size="sm" variant="outline" disabled={settingPassword} onClick={() => void setPassword(user)}>
+					{settingPassword ? "Setting" : "Set password"}
+				</Button>
+			</div>
+		);
+	}
+
 	return (
 		<PageStack>
-			<ScreenHeader title="Admin" actions={settingsQuery.data?.settings.smtp.configured ? <Badge tone="success">SMTP configured</Badge> : <Badge tone="warning">SMTP disabled</Badge>} />
-
-			<Panel tone="glass" title="System administrators" summary="System admin access manages instance settings and other system admins. It does not grant project membership or project permissions.">
-				<form className={styles.grantForm} onSubmit={handleGrantSystemAdmin}>
-					<TextField label="User email" type="email" value={grantEmail} placeholder="admin@example.com" onChange={event => setGrantEmail(event.currentTarget.value)} />
-					<Button type="submit" disabled={!grantEmail.trim() || grantSystemAdminMutation.isPending}>
-						{grantSystemAdminMutation.isPending ? "Granting" : "Grant system admin"}
-					</Button>
-				</form>
-
-				{adminsQuery.isLoading ? (
-					<LoadingState label="Loading system admins" />
-				) : adminsQuery.isError ? (
-					<BodyCopy>{requestErrorMessage(adminsQuery.error, "Could not load system admins.")}</BodyCopy>
-				) : (
-					<DataTable<ApiSystemAdminUser>
-						ariaLabel="System administrators"
-						columns={systemAdminColumns}
-						rows={adminRows}
-						density="compact"
-						minWidth="44rem"
-						emptyLabel="No system administrators"
-						getRowKey={admin => admin.id}
-						rowActions={admin => {
-							const isSelf = admin.id === session.user.id;
-							const isLastAdmin = adminRows.length <= 1;
-							return (
-								<Button type="button" size="sm" variant="danger" disabled={isSelf || isLastAdmin || revokeSystemAdminMutation.isPending} onClick={() => handleRevokeSystemAdmin(admin)}>
-									Revoke
-								</Button>
-							);
-						}}
-					/>
-				)}
-			</Panel>
+			<ScreenHeader title="System Settings" actions={settingsQuery.data?.settings.smtp.configured ? <Badge tone="success">SMTP configured</Badge> : <Badge tone="warning">SMTP disabled</Badge>} />
 
 			{settingsQuery.isLoading ? (
 				<LoadingState label="Loading admin settings" />
@@ -350,6 +487,45 @@ export function AdminPage() {
 					</ActionRow>
 				</form>
 			)}
+
+			<Panel
+				tone="glass"
+				title="Data tools"
+				actions={
+					<div className={styles.toolActions}>
+						<Button type="button" variant="outline" disabled={exportDataMutation.isPending} onClick={exportData}>
+							{exportDataMutation.isPending ? "Exporting" : "Export data"}
+						</Button>
+						<Button type="button" variant="danger" disabled={importDataMutation.isPending} onClick={() => importInputRef.current?.click()}>
+							{importDataMutation.isPending ? "Importing" : "Import data"}
+						</Button>
+						<input ref={importInputRef} className={styles.fileInput} type="file" accept="application/json,.json" onChange={event => void importData(event)} />
+					</div>
+				}
+			>
+				<BodyCopy>Exports include account, project, probe, check, alert, public status, result, and system setting data. Imported backups replace existing managed data.</BodyCopy>
+			</Panel>
+
+			<Panel tone="glass" title="User management" actions={usersQuery.isFetching ? <Badge tone="neutral">Syncing</Badge> : <Badge tone="neutral">{userRows.length} users</Badge>} padded={false}>
+				{usersQuery.isLoading ? (
+					<LoadingState label="Loading users" />
+				) : usersQuery.isError ? (
+					<div className={styles.tableMessage}>
+						<BodyCopy>{requestErrorMessage(usersQuery.error, "Could not load users.")}</BodyCopy>
+					</div>
+				) : (
+					<DataTable<ApiManagedUser>
+						ariaLabel="Managed users"
+						columns={userColumns}
+						rows={userRows}
+						density="compact"
+						minWidth="64rem"
+						emptyLabel="No users"
+						getRowKey={user => user.id}
+						rowActions={userRowActions}
+					/>
+				)}
+			</Panel>
 		</PageStack>
 	);
 }

@@ -15,7 +15,15 @@ import (
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (email, password_hash, display_name, email_verified_at)
 VALUES ($1, $2, $3, $4)
-RETURNING id, email, password_hash, display_name, email_verified_at, false::boolean AS is_system_admin, created_at, updated_at
+RETURNING id,
+          email,
+          password_hash,
+          display_name,
+          email_verified_at,
+          disabled_at,
+          false::boolean AS is_system_admin,
+          created_at,
+          updated_at
 `
 
 type CreateUserParams struct {
@@ -31,6 +39,7 @@ type CreateUserRow struct {
 	PasswordHash    string     `json:"password_hash"`
 	DisplayName     string     `json:"display_name"`
 	EmailVerifiedAt *time.Time `json:"email_verified_at"`
+	DisabledAt      *time.Time `json:"disabled_at"`
 	IsSystemAdmin   bool       `json:"is_system_admin"`
 	CreatedAt       time.Time  `json:"created_at"`
 	UpdatedAt       time.Time  `json:"updated_at"`
@@ -50,6 +59,61 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateU
 		&i.PasswordHash,
 		&i.DisplayName,
 		&i.EmailVerifiedAt,
+		&i.DisabledAt,
+		&i.IsSystemAdmin,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const disableUser = `-- name: DisableUser :one
+UPDATE users
+SET disabled_at = COALESCE(disabled_at, $1)
+WHERE id = $2
+RETURNING id,
+          email,
+          password_hash,
+          display_name,
+          email_verified_at,
+          disabled_at,
+          EXISTS (
+              SELECT 1
+              FROM system_user_roles
+              WHERE system_user_roles.user_id = users.id
+                AND system_user_roles.role = 'admin'
+          ) AS is_system_admin,
+          created_at,
+          updated_at
+`
+
+type DisableUserParams struct {
+	DisabledAt *time.Time `json:"disabled_at"`
+	ID         uuid.UUID  `json:"id"`
+}
+
+type DisableUserRow struct {
+	ID              uuid.UUID  `json:"id"`
+	Email           string     `json:"email"`
+	PasswordHash    string     `json:"password_hash"`
+	DisplayName     string     `json:"display_name"`
+	EmailVerifiedAt *time.Time `json:"email_verified_at"`
+	DisabledAt      *time.Time `json:"disabled_at"`
+	IsSystemAdmin   bool       `json:"is_system_admin"`
+	CreatedAt       time.Time  `json:"created_at"`
+	UpdatedAt       time.Time  `json:"updated_at"`
+}
+
+func (q *Queries) DisableUser(ctx context.Context, arg DisableUserParams) (DisableUserRow, error) {
+	row := q.db.QueryRow(ctx, disableUser, arg.DisabledAt, arg.ID)
+	var i DisableUserRow
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.PasswordHash,
+		&i.DisplayName,
+		&i.EmailVerifiedAt,
+		&i.DisabledAt,
 		&i.IsSystemAdmin,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -63,6 +127,7 @@ SELECT id,
        password_hash,
        display_name,
        email_verified_at,
+       disabled_at,
        EXISTS (
            SELECT 1
            FROM system_user_roles
@@ -81,6 +146,7 @@ type GetUserByEmailRow struct {
 	PasswordHash    string     `json:"password_hash"`
 	DisplayName     string     `json:"display_name"`
 	EmailVerifiedAt *time.Time `json:"email_verified_at"`
+	DisabledAt      *time.Time `json:"disabled_at"`
 	IsSystemAdmin   bool       `json:"is_system_admin"`
 	CreatedAt       time.Time  `json:"created_at"`
 	UpdatedAt       time.Time  `json:"updated_at"`
@@ -95,6 +161,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEm
 		&i.PasswordHash,
 		&i.DisplayName,
 		&i.EmailVerifiedAt,
+		&i.DisabledAt,
 		&i.IsSystemAdmin,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -108,6 +175,7 @@ SELECT id,
        password_hash,
        display_name,
        email_verified_at,
+       disabled_at,
        EXISTS (
            SELECT 1
            FROM system_user_roles
@@ -126,6 +194,7 @@ type GetUserByIDRow struct {
 	PasswordHash    string     `json:"password_hash"`
 	DisplayName     string     `json:"display_name"`
 	EmailVerifiedAt *time.Time `json:"email_verified_at"`
+	DisabledAt      *time.Time `json:"disabled_at"`
 	IsSystemAdmin   bool       `json:"is_system_admin"`
 	CreatedAt       time.Time  `json:"created_at"`
 	UpdatedAt       time.Time  `json:"updated_at"`
@@ -140,6 +209,7 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (GetUserByIDRow
 		&i.PasswordHash,
 		&i.DisplayName,
 		&i.EmailVerifiedAt,
+		&i.DisabledAt,
 		&i.IsSystemAdmin,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -156,6 +226,7 @@ RETURNING id,
           password_hash,
           display_name,
           email_verified_at,
+          disabled_at,
           EXISTS (
               SELECT 1
               FROM system_user_roles
@@ -177,6 +248,7 @@ type MarkUserEmailVerifiedRow struct {
 	PasswordHash    string     `json:"password_hash"`
 	DisplayName     string     `json:"display_name"`
 	EmailVerifiedAt *time.Time `json:"email_verified_at"`
+	DisabledAt      *time.Time `json:"disabled_at"`
 	IsSystemAdmin   bool       `json:"is_system_admin"`
 	CreatedAt       time.Time  `json:"created_at"`
 	UpdatedAt       time.Time  `json:"updated_at"`
@@ -191,6 +263,7 @@ func (q *Queries) MarkUserEmailVerified(ctx context.Context, arg MarkUserEmailVe
 		&i.PasswordHash,
 		&i.DisplayName,
 		&i.EmailVerifiedAt,
+		&i.DisabledAt,
 		&i.IsSystemAdmin,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -207,6 +280,7 @@ RETURNING id,
           password_hash,
           display_name,
           email_verified_at,
+          disabled_at,
           EXISTS (
               SELECT 1
               FROM system_user_roles
@@ -228,6 +302,7 @@ type UpdateUserDisplayNameRow struct {
 	PasswordHash    string     `json:"password_hash"`
 	DisplayName     string     `json:"display_name"`
 	EmailVerifiedAt *time.Time `json:"email_verified_at"`
+	DisabledAt      *time.Time `json:"disabled_at"`
 	IsSystemAdmin   bool       `json:"is_system_admin"`
 	CreatedAt       time.Time  `json:"created_at"`
 	UpdatedAt       time.Time  `json:"updated_at"`
@@ -242,6 +317,7 @@ func (q *Queries) UpdateUserDisplayName(ctx context.Context, arg UpdateUserDispl
 		&i.PasswordHash,
 		&i.DisplayName,
 		&i.EmailVerifiedAt,
+		&i.DisabledAt,
 		&i.IsSystemAdmin,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -258,6 +334,7 @@ RETURNING id,
           password_hash,
           display_name,
           email_verified_at,
+          disabled_at,
           EXISTS (
               SELECT 1
               FROM system_user_roles
@@ -279,6 +356,7 @@ type UpdateUserEmailRow struct {
 	PasswordHash    string     `json:"password_hash"`
 	DisplayName     string     `json:"display_name"`
 	EmailVerifiedAt *time.Time `json:"email_verified_at"`
+	DisabledAt      *time.Time `json:"disabled_at"`
 	IsSystemAdmin   bool       `json:"is_system_admin"`
 	CreatedAt       time.Time  `json:"created_at"`
 	UpdatedAt       time.Time  `json:"updated_at"`
@@ -293,6 +371,7 @@ func (q *Queries) UpdateUserEmail(ctx context.Context, arg UpdateUserEmailParams
 		&i.PasswordHash,
 		&i.DisplayName,
 		&i.EmailVerifiedAt,
+		&i.DisabledAt,
 		&i.IsSystemAdmin,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -309,6 +388,7 @@ RETURNING id,
           password_hash,
           display_name,
           email_verified_at,
+          disabled_at,
           EXISTS (
               SELECT 1
               FROM system_user_roles
@@ -330,6 +410,7 @@ type UpdateUserPasswordHashRow struct {
 	PasswordHash    string     `json:"password_hash"`
 	DisplayName     string     `json:"display_name"`
 	EmailVerifiedAt *time.Time `json:"email_verified_at"`
+	DisabledAt      *time.Time `json:"disabled_at"`
 	IsSystemAdmin   bool       `json:"is_system_admin"`
 	CreatedAt       time.Time  `json:"created_at"`
 	UpdatedAt       time.Time  `json:"updated_at"`
@@ -344,6 +425,7 @@ func (q *Queries) UpdateUserPasswordHash(ctx context.Context, arg UpdateUserPass
 		&i.PasswordHash,
 		&i.DisplayName,
 		&i.EmailVerifiedAt,
+		&i.DisabledAt,
 		&i.IsSystemAdmin,
 		&i.CreatedAt,
 		&i.UpdatedAt,

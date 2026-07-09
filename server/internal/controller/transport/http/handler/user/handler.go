@@ -30,6 +30,7 @@ func (h *Handler) RegisterRoutes(api chi.Router) {
 		r.Patch("/users/me", h.handleUpdateCurrentUser)
 		r.Post("/users/me/email-change", h.handleChangeCurrentUserEmail)
 		r.Post("/users/me/password-change", h.handleChangeCurrentUserPassword)
+		r.Post("/users/me/deactivation", h.handleDeactivateCurrentUser)
 	})
 }
 
@@ -60,6 +61,14 @@ func (h *Handler) handleChangeCurrentUserPassword(w http.ResponseWriter, r *http
 		return
 	}
 	if err := h.changeCurrentUserPassword(r.Context(), &changeCurrentUserPasswordInput{Body: body}); err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	httpx.WriteNoContent(w)
+}
+
+func (h *Handler) handleDeactivateCurrentUser(w http.ResponseWriter, r *http.Request) {
+	if err := h.deactivateCurrentUser(r.Context()); err != nil {
 		httpx.WriteProblem(w, r, err)
 		return
 	}

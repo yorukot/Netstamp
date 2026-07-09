@@ -28,6 +28,8 @@ func mapUserError(err error, fallback string) error {
 		return httpx.Unauthorized("credentials invalid")
 	case errors.Is(err, identity.ErrEmailAlreadyExists):
 		return httpx.Conflict("email already exists")
+	case errors.Is(err, appuser.ErrLastSystemAdmin):
+		return httpx.Conflict("system must keep at least one administrator")
 	case errors.Is(err, appuser.ErrInvalidInput):
 		return invalidUserInputError(err)
 	default:

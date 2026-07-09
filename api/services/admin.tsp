@@ -22,7 +22,14 @@ interface AdminService {
 	@doc("Grant instance-level administrator access to an existing user by email. This does not add the user to any project.")
 	@post
 	@route("/system-admins")
-	grantSystemAdmin(@body body: GrantSystemAdminRequest): CreatedJson<SystemAdminResponse> | BadRequestProblem | UnauthorizedProblem | ForbiddenProblem | NotFoundProblem | UnprocessableEntityProblem | InternalServerProblem;
+	grantSystemAdmin(@body body: GrantSystemAdminRequest):
+		| CreatedJson<SystemAdminResponse>
+		| BadRequestProblem
+		| UnauthorizedProblem
+		| ForbiddenProblem
+		| NotFoundProblem
+		| UnprocessableEntityProblem
+		| InternalServerProblem;
 
 	@operationId("revokeSystemAdmin")
 	@summary("Revoke system administrator")
@@ -30,6 +37,56 @@ interface AdminService {
 	@delete
 	@route("/system-admins/{user_id}")
 	revokeSystemAdmin(...UserIdPathParam): NoContent | UnauthorizedProblem | ForbiddenProblem | NotFoundProblem | ConflictProblem | InternalServerProblem;
+
+	@operationId("listManagedUsers")
+	@summary("List managed users")
+	@doc("Return all users visible to system administrators, including disabled accounts.")
+	@get
+	@route("/users")
+	listManagedUsers(): OkJson<ManagedUsersResponse> | UnauthorizedProblem | ForbiddenProblem | InternalServerProblem;
+
+	@operationId("updateManagedUser")
+	@summary("Update managed user")
+	@doc("Disable or re-enable a user account and grant or revoke instance-level administrator access.")
+	@patch
+	@route("/users/{user_id}")
+	updateManagedUser(...UserIdPathParam, @body body: UpdateManagedUserRequest):
+		| OkJson<ManagedUserResponse>
+		| BadRequestProblem
+		| UnauthorizedProblem
+		| ForbiddenProblem
+		| NotFoundProblem
+		| ConflictProblem
+		| UnprocessableEntityProblem
+		| InternalServerProblem;
+
+	@operationId("setManagedUserPassword")
+	@summary("Set managed user password")
+	@doc("Replace a user's password with a system administrator supplied value.")
+	@post
+	@route("/users/{user_id}/password")
+	setManagedUserPassword(...UserIdPathParam, @body body: SetManagedUserPasswordRequest):
+		| OkJson<ManagedUserResponse>
+		| BadRequestProblem
+		| UnauthorizedProblem
+		| ForbiddenProblem
+		| NotFoundProblem
+		| UnprocessableEntityProblem
+		| InternalServerProblem;
+
+	@operationId("exportAdminData")
+	@summary("Export admin data")
+	@doc("Export Netstamp application data as a JSON backup. The export includes sensitive account and credential material such as password hashes and stored secrets.")
+	@get
+	@route("/data-export")
+	exportAdminData(): OkJson<AdminDataExport> | UnauthorizedProblem | ForbiddenProblem | InternalServerProblem;
+
+	@operationId("importAdminData")
+	@summary("Import admin data")
+	@doc("Import a JSON backup produced by exportAdminData. Existing application data in the managed tables is replaced.")
+	@post
+	@route("/data-import")
+	importAdminData(@body body: AdminDataExport): OkJson<AdminDataImportResponse> | BadRequestProblem | UnauthorizedProblem | ForbiddenProblem | UnprocessableEntityProblem | InternalServerProblem;
 
 	@operationId("getAdminSettings")
 	@summary("Get admin settings")
@@ -43,5 +100,11 @@ interface AdminService {
 	@doc("Update instance-level settings. Only global administrators can call this operation. SMTP passwords are write-only.")
 	@patch
 	@route("/settings")
-	updateAdminSettings(@body body: UpdateAdminSettingsRequest): OkJson<AdminSettingsResponse> | BadRequestProblem | UnauthorizedProblem | ForbiddenProblem | UnprocessableEntityProblem | InternalServerProblem;
+	updateAdminSettings(@body body: UpdateAdminSettingsRequest):
+		| OkJson<AdminSettingsResponse>
+		| BadRequestProblem
+		| UnauthorizedProblem
+		| ForbiddenProblem
+		| UnprocessableEntityProblem
+		| InternalServerProblem;
 }

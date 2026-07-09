@@ -1,15 +1,31 @@
 package system
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 type AdminUser struct {
 	ID              string
 	Email           string
 	DisplayName     string
 	EmailVerifiedAt *time.Time
+	DisabledAt      *time.Time
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
 	GrantedAt       time.Time
+}
+
+type ManagedUser struct {
+	ID              string
+	Email           string
+	DisplayName     string
+	EmailVerifiedAt *time.Time
+	DisabledAt      *time.Time
+	IsSystemAdmin   bool
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+	GrantedAt       *time.Time
 }
 
 type AdminRevokeResult struct {
@@ -17,3 +33,17 @@ type AdminRevokeResult struct {
 	TargetWasAdmin bool
 	Revoked        bool
 }
+
+type DataExport struct {
+	Format     string
+	ExportedAt time.Time
+	Tables     map[string][]RawDataRow
+}
+
+type DataImportResult struct {
+	Format         string
+	ImportedTables int
+	ImportedRows   int
+}
+
+type RawDataRow = json.RawMessage

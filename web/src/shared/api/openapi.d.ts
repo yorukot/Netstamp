@@ -21,6 +21,46 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	"/admin/data-export": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Export admin data
+		 * @description Export Netstamp application data as a JSON backup. The export includes sensitive account and credential material such as password hashes and stored secrets.
+		 */
+		get: operations["exportAdminData"];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	"/admin/data-import": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * Import admin data
+		 * @description Import a JSON backup produced by exportAdminData. Existing application data in the managed tables is replaced.
+		 */
+		post: operations["importAdminData"];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	"/admin/settings": {
 		parameters: {
 			query?: never;
@@ -84,6 +124,66 @@ export interface paths {
 		 * @description Revoke instance-level administrator access from a user. The current administrator cannot revoke themselves, and the system must keep at least one administrator.
 		 */
 		delete: operations["revokeSystemAdmin"];
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	"/admin/users": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * List managed users
+		 * @description Return all users visible to system administrators, including disabled accounts.
+		 */
+		get: operations["listManagedUsers"];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	"/admin/users/{user_id}": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		/**
+		 * Update managed user
+		 * @description Disable or re-enable a user account and grant or revoke instance-level administrator access.
+		 */
+		patch: operations["updateManagedUser"];
+		trace?: never;
+	};
+	"/admin/users/{user_id}/password": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * Set managed user password
+		 * @description Replace a user's password with a system administrator supplied value.
+		 */
+		post: operations["setManagedUserPassword"];
+		delete?: never;
 		options?: never;
 		head?: never;
 		patch?: never;
@@ -1136,6 +1236,26 @@ export interface paths {
 		patch: operations["updateCurrentUser"];
 		trace?: never;
 	};
+	"/users/me/deactivation": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * Deactivate current user
+		 * @description Disable the authenticated user's account. Disabled accounts cannot sign in or access protected routes until a system administrator re-enables them.
+		 */
+		post: operations["deactivateCurrentUser"];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	"/users/me/email-change": {
 		parameters: {
 			query?: never;
@@ -1188,6 +1308,38 @@ export interface components {
 		APIStatusResponse: {
 			/** @enum {string} */
 			message: "Netstamp API is running";
+		};
+		/**
+		 * @example {
+		 *       "format": "netstamp.admin.data.v1",
+		 *       "exportedAt": "2026-07-08T12:00:00Z",
+		 *       "tables": {}
+		 *     }
+		 */
+		AdminDataExport: {
+			format: string;
+			/** Format: date-time */
+			exportedAt: string;
+			tables: Record<string, never>;
+		};
+		/**
+		 * @example {
+		 *       "result": {
+		 *         "format": "netstamp.admin.data.v1",
+		 *         "importedTables": 34,
+		 *         "importedRows": 128
+		 *       }
+		 *     }
+		 */
+		AdminDataImportResponse: {
+			result: components["schemas"]["AdminDataImportResult"];
+		};
+		AdminDataImportResult: {
+			format: string;
+			/** Format: int32 */
+			importedTables: number;
+			/** Format: int32 */
+			importedRows: number;
 		};
 		/**
 		 * @example {
@@ -2167,6 +2319,77 @@ export interface components {
 			 * @description Plain-text password to verify. It is never returned by the API.
 			 */
 			password: string;
+		};
+		/**
+		 * @example {
+		 *       "id": "11111111-1111-1111-1111-111111111111",
+		 *       "email": "operator@example.com",
+		 *       "displayName": "Jane Operator",
+		 *       "emailVerified": true,
+		 *       "isSystemAdmin": false,
+		 *       "createdAt": "2026-07-08T12:00:00Z",
+		 *       "updatedAt": "2026-07-08T12:00:00Z"
+		 *     }
+		 */
+		ManagedUser: {
+			/** @description User UUID. */
+			id: components["schemas"]["uuid"];
+			/** @description Normalized email address used to sign in. */
+			email: components["schemas"]["email"];
+			/** @description Name shown in the app. */
+			displayName: string;
+			/** @description Whether the sign-in email address has been verified. */
+			emailVerified: boolean;
+			/**
+			 * Format: date-time
+			 * @description When the user account was disabled. Omitted for active users.
+			 */
+			disabledAt?: string;
+			/** @description Whether the user has instance-level administrator access. */
+			isSystemAdmin: boolean;
+			/** Format: date-time */
+			createdAt: string;
+			/** Format: date-time */
+			updatedAt: string;
+			/**
+			 * Format: date-time
+			 * @description When the user received instance-level administrator access.
+			 */
+			grantedAt?: string;
+		};
+		/**
+		 * @example {
+		 *       "user": {
+		 *         "id": "11111111-1111-1111-1111-111111111111",
+		 *         "email": "operator@example.com",
+		 *         "displayName": "Jane Operator",
+		 *         "emailVerified": true,
+		 *         "isSystemAdmin": false,
+		 *         "createdAt": "2026-07-08T12:00:00Z",
+		 *         "updatedAt": "2026-07-08T12:00:00Z"
+		 *       }
+		 *     }
+		 */
+		ManagedUserResponse: {
+			user: components["schemas"]["ManagedUser"];
+		};
+		/**
+		 * @example {
+		 *       "users": [
+		 *         {
+		 *           "id": "11111111-1111-1111-1111-111111111111",
+		 *           "email": "operator@example.com",
+		 *           "displayName": "Jane Operator",
+		 *           "emailVerified": true,
+		 *           "isSystemAdmin": false,
+		 *           "createdAt": "2026-07-08T12:00:00Z",
+		 *           "updatedAt": "2026-07-08T12:00:00Z"
+		 *         }
+		 *       ]
+		 *     }
+		 */
+		ManagedUsersResponse: {
+			users: components["schemas"]["ManagedUser"][];
 		};
 		/**
 		 * @example {
@@ -3360,6 +3583,18 @@ export interface components {
 		};
 		/**
 		 * @example {
+		 *       "password": "correct-horse-battery-staple"
+		 *     }
+		 */
+		SetManagedUserPasswordRequest: {
+			/**
+			 * Format: password
+			 * @description New password. It is stored only as an Argon2id hash.
+			 */
+			password: string;
+		};
+		/**
+		 * @example {
 		 *       "url": "https://hooks.slack.com/services/T000/B000/token"
 		 *     }
 		 */
@@ -4106,6 +4341,19 @@ export interface components {
 			value?: string;
 		};
 		/**
+		 * @description Patch payload. At least one field should be provided.
+		 * @example {
+		 *       "disabled": true,
+		 *       "systemAdmin": false
+		 *     }
+		 */
+		UpdateManagedUserRequest: {
+			/** @description Disable or re-enable the account. Disabled accounts cannot sign in or access protected routes. */
+			disabled?: boolean;
+			/** @description Grant or revoke instance-level administrator access. */
+			systemAdmin?: boolean;
+		};
+		/**
 		 * @description Full replacement patch for a notification in the current beta API.
 		 * @example {
 		 *       "name": "Incident webhook",
@@ -4333,6 +4581,122 @@ export interface operations {
 				};
 				content: {
 					"application/json": components["schemas"]["APIStatusResponse"];
+				};
+			};
+		};
+	};
+	exportAdminData: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["AdminDataExport"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is forbidden. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	importAdminData: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				"application/json": components["schemas"]["AdminDataExport"];
+			};
+		};
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["AdminDataImportResponse"];
+				};
+			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is forbidden. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
 		};
@@ -4625,6 +4989,222 @@ export interface operations {
 			};
 			/** @description The request conflicts with the current state of the server. */
 			409: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	listManagedUsers: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["ManagedUsersResponse"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is forbidden. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	updateManagedUser: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				user_id: components["parameters"]["UserIdPathParam"];
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				"application/json": components["schemas"]["UpdateManagedUserRequest"];
+			};
+		};
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["ManagedUserResponse"];
+				};
+			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is forbidden. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The request conflicts with the current state of the server. */
+			409: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	setManagedUserPassword: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				user_id: components["parameters"]["UserIdPathParam"];
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				"application/json": components["schemas"]["SetManagedUserPasswordRequest"];
+			};
+		};
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["ManagedUserResponse"];
+				};
+			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is forbidden. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
 				headers: {
 					[name: string]: unknown;
 				};
@@ -10111,6 +10691,51 @@ export interface operations {
 			};
 			/** @description Client error */
 			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	deactivateCurrentUser: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description There is no content to send for this request, but the headers may be useful. */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The request conflicts with the current state of the server. */
+			409: {
 				headers: {
 					[name: string]: unknown;
 				};

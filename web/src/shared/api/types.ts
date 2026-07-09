@@ -4,6 +4,11 @@ export type ApiCheck = components["schemas"]["Check"];
 export type ApiAlertIncident = components["schemas"]["AlertIncident"];
 export type ApiAlertRule = components["schemas"]["AlertRule"];
 export type ApiAdminSettings = components["schemas"]["AdminSettings"];
+export type ApiAdminDataExport = Omit<components["schemas"]["AdminDataExport"], "tables"> & {
+	tables: Record<string, unknown[]>;
+};
+export type ApiAdminDataImportResponse = components["schemas"]["AdminDataImportResponse"];
+export type ApiManagedUser = components["schemas"]["ManagedUser"];
 export type ApiSystemAdminUser = components["schemas"]["SystemAdminUser"];
 export type ApiLabel = components["schemas"]["Label"];
 export type ApiLatestResult = components["schemas"]["LatestResult"];
@@ -77,6 +82,8 @@ export type TracerouteTopologyNode = components["schemas"]["TracerouteTopologyNo
 export type UpdateCheckInput = components["schemas"]["UpdateCheckRequest"];
 export type UpdateAlertRuleInput = components["schemas"]["UpdateAlertRuleRequest"];
 export type UpdateAdminSettingsInput = components["schemas"]["UpdateAdminSettingsRequest"];
+export type UpdateManagedUserInput = components["schemas"]["UpdateManagedUserRequest"];
+export type SetManagedUserPasswordInput = components["schemas"]["SetManagedUserPasswordRequest"];
 export type UpdateCurrentUserInput = components["schemas"]["UpdateCurrentUserRequest"];
 export type UpdateLabelInput = components["schemas"]["UpdateLabelRequest"];
 export type UpdateNotificationInput = components["schemas"]["UpdateNotificationRequest"];

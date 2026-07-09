@@ -8,9 +8,10 @@ import (
 )
 
 type Service struct {
-	repo   Repository
-	hasher PasswordHasher
-	events EventRecorder
+	repo        Repository
+	systemAdmin SystemAdminRepository
+	hasher      PasswordHasher
+	events      EventRecorder
 }
 
 func NewService(repo Repository, hasher PasswordHasher, events EventRecorder) *Service {
@@ -19,6 +20,10 @@ func NewService(repo Repository, hasher PasswordHasher, events EventRecorder) *S
 		hasher: hasher,
 		events: events,
 	}
+}
+
+func (s *Service) ConfigureSystemAdmin(repo SystemAdminRepository) {
+	s.systemAdmin = repo
 }
 
 func (s *Service) UpdateCurrentUser(ctx context.Context, input UpdateCurrentUserInput) (UserOutput, error) {
@@ -109,6 +114,40 @@ func (s *Service) ChangeCurrentUserPassword(ctx context.Context, input ChangeCur
 	}
 	flow.setUser(user)
 	flow.success(UserEventChangePasswordSuccess)
+
+	return nil
+}
+
+func (s *Service) DeactivateCurrentUser(ctx context.Context, input DeactivateCurrentUserInput) error {
+	ctx, flow := s.startUserFlow(ctx, "user.deactivate", UserActionDeactivate, input.CurrentUserID)
+	defer flow.end()
+
+	input, err := normalizeDeactivateCurrentUserInput(input)
+	if err != nil {
+		return flow.businessFailure(UserEventDeactivateFailure, UserReasonInvalidInput, err)
+	}
+
+	current, err := s.repo.GetUserByID(ctx, input.CurrentUserID)
+	if err != nil {
+		return flow.lookupFailure(UserEventDeactivateFailure, err)
+	}
+	flow.setUser(current)
+	if current.IsSystemAdmin && current.DisabledAt == nil && s.systemAdmin != nil {
+		activeAdmins, countErr := s.systemAdmin.CountActiveSystemAdmins(ctx)
+		if countErr != nil {
+			return flow.technicalFailure(UserEventDeactivateFailure, UserReasonUserLookupFailed, countErr)
+		}
+		if activeAdmins <= 1 {
+			return flow.businessFailure(UserEventDeactivateFailure, UserReasonInvalidInput, ErrLastSystemAdmin)
+		}
+	}
+
+	user, err := s.repo.DisableUser(ctx, input.CurrentUserID)
+	if err != nil {
+		return flow.updateFailure(UserEventDeactivateFailure, err)
+	}
+	flow.setUser(user)
+	flow.success(UserEventDeactivateSuccess)
 
 	return nil
 }

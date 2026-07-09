@@ -5,4 +5,5 @@ import "errors"
 var (
 	ErrInvalidInput       = errors.New("user input invalid")
 	ErrCredentialsInvalid = errors.New("credentials invalid")
+	ErrLastSystemAdmin    = errors.New("system must keep an administrator")
 )

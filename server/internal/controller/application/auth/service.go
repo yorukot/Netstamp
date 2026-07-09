@@ -212,6 +212,10 @@ func (s *Service) Login(ctx context.Context, input LoginInput) (AuthAccessResult
 	}
 	flow.setUser(user)
 
+	if user.DisabledAt != nil {
+		return AuthAccessResult{}, flow.businessFailure(AuthEventLoginFailure, AuthReasonAccountDisabled, ErrCredentialsInvalid)
+	}
+
 	err = s.comparePassword(ctx, input.Password, user.PasswordHash)
 	if err != nil {
 		return AuthAccessResult{}, flow.businessFailure(AuthEventLoginFailure, AuthReasonCredentialsInvalid, ErrCredentialsInvalid)
@@ -253,6 +257,10 @@ func (s *Service) RequestPasswordReset(ctx context.Context, input RequestPasswor
 		return nil
 	}
 	flow.setUser(user)
+	if user.DisabledAt != nil {
+		flow.success(AuthEventResetRequestSuccess)
+		return nil
+	}
 
 	rawToken, err := s.resetTokens.Generate(ctx)
 	if err != nil {
@@ -565,6 +573,9 @@ func (s *Service) GetCurrentUser(ctx context.Context, userID string) (identity.U
 	if err != nil {
 		recordSpanError(span, err, AuthReasonUserLookupFailed)
 		return identity.User{}, err
+	}
+	if user.DisabledAt != nil {
+		return identity.User{}, ErrAccountDisabled
 	}
 
 	return user, nil

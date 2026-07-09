@@ -146,6 +146,27 @@ func (r *UserRepository) UpdateUserPasswordHash(ctx context.Context, input ident
 	return mapUpdateUserPasswordHash(row), nil
 }
 
+func (r *UserRepository) DisableUser(ctx context.Context, userIDValue string) (identity.User, error) {
+	ctx, span := postgres.StartUserDBSpan(ctx, pguserTracer, "postgres.users.disable", "UPDATE", "DISABLE user")
+	defer span.End()
+
+	userID, err := postgres.ParseUUID(userIDValue, identity.ErrUserNotFound)
+	if err != nil {
+		return identity.User{}, err
+	}
+
+	now := time.Now().UTC()
+	row, err := postgres.Queries(ctx, r.queries).DisableUser(ctx, sqlc.DisableUserParams{
+		ID:         userID,
+		DisabledAt: &now,
+	})
+	if err != nil {
+		return identity.User{}, r.mapUpdateError(span, err)
+	}
+
+	return mapDisableUser(row), nil
+}
+
 //nolint:dupl // Password reset and email verification tokens intentionally keep parallel repository flows.
 func (r *UserRepository) CreatePasswordResetToken(ctx context.Context, input identity.PasswordResetToken) (identity.PasswordResetToken, error) {
 	ctx, span := postgres.StartUserDBSpan(ctx, pguserTracer, "postgres.password_reset_tokens.insert", "INSERT", "INSERT password reset token")
@@ -342,40 +363,45 @@ func (r *UserRepository) mapUpdateError(span trace.Span, err error) error {
 }
 
 func mapCreateUser(row sqlc.CreateUserRow) identity.User {
-	return mapUserFields(row.ID, row.Email, row.PasswordHash, row.DisplayName, row.EmailVerifiedAt, row.IsSystemAdmin, row.CreatedAt, row.UpdatedAt)
+	return mapUserFields(row.ID, row.Email, row.PasswordHash, row.DisplayName, row.EmailVerifiedAt, row.DisabledAt, row.IsSystemAdmin, row.CreatedAt, row.UpdatedAt)
 }
 
 func mapGetUserByID(row sqlc.GetUserByIDRow) identity.User {
-	return mapUserFields(row.ID, row.Email, row.PasswordHash, row.DisplayName, row.EmailVerifiedAt, row.IsSystemAdmin, row.CreatedAt, row.UpdatedAt)
+	return mapUserFields(row.ID, row.Email, row.PasswordHash, row.DisplayName, row.EmailVerifiedAt, row.DisabledAt, row.IsSystemAdmin, row.CreatedAt, row.UpdatedAt)
 }
 
 func mapGetUserByEmail(row sqlc.GetUserByEmailRow) identity.User {
-	return mapUserFields(row.ID, row.Email, row.PasswordHash, row.DisplayName, row.EmailVerifiedAt, row.IsSystemAdmin, row.CreatedAt, row.UpdatedAt)
+	return mapUserFields(row.ID, row.Email, row.PasswordHash, row.DisplayName, row.EmailVerifiedAt, row.DisabledAt, row.IsSystemAdmin, row.CreatedAt, row.UpdatedAt)
 }
 
 func mapUpdateUserDisplayName(row sqlc.UpdateUserDisplayNameRow) identity.User {
-	return mapUserFields(row.ID, row.Email, row.PasswordHash, row.DisplayName, row.EmailVerifiedAt, row.IsSystemAdmin, row.CreatedAt, row.UpdatedAt)
+	return mapUserFields(row.ID, row.Email, row.PasswordHash, row.DisplayName, row.EmailVerifiedAt, row.DisabledAt, row.IsSystemAdmin, row.CreatedAt, row.UpdatedAt)
 }
 
 func mapUpdateUserEmail(row sqlc.UpdateUserEmailRow) identity.User {
-	return mapUserFields(row.ID, row.Email, row.PasswordHash, row.DisplayName, row.EmailVerifiedAt, row.IsSystemAdmin, row.CreatedAt, row.UpdatedAt)
+	return mapUserFields(row.ID, row.Email, row.PasswordHash, row.DisplayName, row.EmailVerifiedAt, row.DisabledAt, row.IsSystemAdmin, row.CreatedAt, row.UpdatedAt)
 }
 
 func mapUpdateUserPasswordHash(row sqlc.UpdateUserPasswordHashRow) identity.User {
-	return mapUserFields(row.ID, row.Email, row.PasswordHash, row.DisplayName, row.EmailVerifiedAt, row.IsSystemAdmin, row.CreatedAt, row.UpdatedAt)
+	return mapUserFields(row.ID, row.Email, row.PasswordHash, row.DisplayName, row.EmailVerifiedAt, row.DisabledAt, row.IsSystemAdmin, row.CreatedAt, row.UpdatedAt)
 }
 
 func mapMarkUserEmailVerified(row sqlc.MarkUserEmailVerifiedRow) identity.User {
-	return mapUserFields(row.ID, row.Email, row.PasswordHash, row.DisplayName, row.EmailVerifiedAt, row.IsSystemAdmin, row.CreatedAt, row.UpdatedAt)
+	return mapUserFields(row.ID, row.Email, row.PasswordHash, row.DisplayName, row.EmailVerifiedAt, row.DisabledAt, row.IsSystemAdmin, row.CreatedAt, row.UpdatedAt)
 }
 
-func mapUserFields(id uuid.UUID, email, passwordHash, displayName string, emailVerifiedAt *time.Time, isSystemAdmin bool, createdAt, updatedAt time.Time) identity.User {
+func mapDisableUser(row sqlc.DisableUserRow) identity.User {
+	return mapUserFields(row.ID, row.Email, row.PasswordHash, row.DisplayName, row.EmailVerifiedAt, row.DisabledAt, row.IsSystemAdmin, row.CreatedAt, row.UpdatedAt)
+}
+
+func mapUserFields(id uuid.UUID, email, passwordHash, displayName string, emailVerifiedAt, disabledAt *time.Time, isSystemAdmin bool, createdAt, updatedAt time.Time) identity.User {
 	return identity.User{
 		ID:              id.String(),
 		Email:           email,
 		DisplayName:     displayName,
 		PasswordHash:    passwordHash,
 		EmailVerifiedAt: emailVerifiedAt,
+		DisabledAt:      disabledAt,
 		IsSystemAdmin:   isSystemAdmin,
 		CreatedAt:       createdAt,
 		UpdatedAt:       updatedAt,

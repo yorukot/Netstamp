@@ -19,6 +19,11 @@ export function changeCurrentUserPassword(body: ChangeCurrentUserPasswordInput) 
 	return readEmptyApiResponse(apiClient.POST("/users/me/password-change", { body }));
 }
 
+export function deactivateCurrentUser() {
+	requireWritableAccess();
+	return readEmptyApiResponse(apiClient.POST("/users/me/deactivation"));
+}
+
 export function useUpdateCurrentUserMutation() {
 	const queryClient = useQueryClient();
 
@@ -44,5 +49,16 @@ export function useChangeCurrentUserEmailMutation() {
 export function useChangeCurrentUserPasswordMutation() {
 	return useMutation({
 		mutationFn: changeCurrentUserPassword
+	});
+}
+
+export function useDeactivateCurrentUserMutation() {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: deactivateCurrentUser,
+		onSuccess: () => {
+			queryClient.clear();
+		}
 	});
 }

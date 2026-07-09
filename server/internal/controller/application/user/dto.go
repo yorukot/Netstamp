@@ -19,6 +19,10 @@ type ChangeCurrentUserPasswordInput struct {
 	NewPassword     string
 }
 
+type DeactivateCurrentUserInput struct {
+	CurrentUserID string
+}
+
 type UserOutput struct {
 	User identity.User
 }

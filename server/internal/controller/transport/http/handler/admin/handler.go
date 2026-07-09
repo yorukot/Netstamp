@@ -30,6 +30,11 @@ func (h *Handler) RegisterRoutes(api chi.Router) {
 		r.Get("/admin/system-admins", h.handleListSystemAdmins)
 		r.Post("/admin/system-admins", h.handleGrantSystemAdmin)
 		r.Delete("/admin/system-admins/{user_id}", h.handleRevokeSystemAdmin)
+		r.Get("/admin/users", h.handleListManagedUsers)
+		r.Patch("/admin/users/{user_id}", h.handleUpdateManagedUser)
+		r.Post("/admin/users/{user_id}/password", h.handleSetManagedUserPassword)
+		r.Get("/admin/data-export", h.handleExportData)
+		r.Post("/admin/data-import", h.handleImportData)
 		r.Get("/admin/settings", h.handleGetSettings)
 		r.Patch("/admin/settings", h.handleUpdateSettings)
 	})
@@ -89,11 +94,13 @@ func mapAdminError(err error, fallback string) error {
 	case errors.Is(err, appadmin.ErrForbidden):
 		return httpx.Forbidden("system administrator access is required")
 	case errors.Is(err, identity.ErrUserNotFound), errors.Is(err, appadmin.ErrSystemAdminNotFound):
-		return httpx.NotFound("system administrator not found")
+		return httpx.NotFound("user not found")
 	case errors.Is(err, appadmin.ErrLastSystemAdmin):
 		return httpx.Conflict("system must keep at least one administrator")
-	case errors.Is(err, appadmin.ErrSelfSystemAdminRemoval):
-		return httpx.Conflict("system administrator cannot remove self")
+	case errors.Is(err, appadmin.ErrSelfSystemAdminRemoval), errors.Is(err, appadmin.ErrSelfAccountDisable):
+		return httpx.Conflict("system administrator cannot remove or disable self")
+	case errors.Is(err, appadmin.ErrDataImportInvalid):
+		return httpx.UnprocessableEntity("invalid admin data import")
 	case errors.Is(err, appadmin.ErrInvalidInput):
 		return invalidAdminInputError(err)
 	default:
@@ -125,6 +132,8 @@ func adminErrorLocation(field string) string {
 		return "path.user_id"
 	case "email":
 		return "body.email"
+	case "password":
+		return "body.password"
 	case "currentUserId":
 		return "session.user.id"
 	default:

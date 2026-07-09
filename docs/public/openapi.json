@@ -92,6 +92,148 @@
 				"tags": ["System"]
 			}
 		},
+		"/admin/data-export": {
+			"get": {
+				"operationId": "exportAdminData",
+				"summary": "Export admin data",
+				"description": "Export Netstamp application data as a JSON backup. The export includes sensitive account and credential material such as password hashes and stored secrets.",
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/AdminDataExport"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Admin"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/admin/data-import": {
+			"post": {
+				"operationId": "importAdminData",
+				"summary": "Import admin data",
+				"description": "Import a JSON backup produced by exportAdminData. Existing application data in the managed tables is replaced.",
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/AdminDataImportResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Admin"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/AdminDataExport"
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
 		"/admin/settings": {
 			"get": {
 				"operationId": "getAdminSettings",
@@ -448,6 +590,272 @@
 					}
 				},
 				"tags": ["Admin"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/admin/users": {
+			"get": {
+				"operationId": "listManagedUsers",
+				"summary": "List managed users",
+				"description": "Return all users visible to system administrators, including disabled accounts.",
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ManagedUsersResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Admin"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/admin/users/{user_id}": {
+			"patch": {
+				"operationId": "updateManagedUser",
+				"summary": "Update managed user",
+				"description": "Disable or re-enable a user account and grant or revoke instance-level administrator access.",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/UserIdPathParam"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ManagedUserResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "The request conflicts with the current state of the server.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Admin"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/UpdateManagedUserRequest"
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/admin/users/{user_id}/password": {
+			"post": {
+				"operationId": "setManagedUserPassword",
+				"summary": "Set managed user password",
+				"description": "Replace a user's password with a system administrator supplied value.",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/UserIdPathParam"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ManagedUserResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Admin"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/SetManagedUserPasswordRequest"
+							}
+						}
+					}
+				},
 				"security": [
 					{
 						"SessionCookieAuth": []
@@ -7024,6 +7432,55 @@
 				]
 			}
 		},
+		"/users/me/deactivation": {
+			"post": {
+				"operationId": "deactivateCurrentUser",
+				"summary": "Deactivate current user",
+				"description": "Disable the authenticated user's account. Disabled accounts cannot sign in or access protected routes until a system administrator re-enables them.",
+				"parameters": [],
+				"responses": {
+					"204": {
+						"description": "There is no content to send for this request, but the headers may be useful. "
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "The request conflicts with the current state of the server.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Users"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
 		"/users/me/email-change": {
 			"post": {
 				"operationId": "changeCurrentUserEmail",
@@ -7823,6 +8280,65 @@
 						"message": "Netstamp API is running"
 					}
 				]
+			},
+			"AdminDataExport": {
+				"type": "object",
+				"required": ["format", "exportedAt", "tables"],
+				"properties": {
+					"format": {
+						"type": "string"
+					},
+					"exportedAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"tables": {
+						"type": "object",
+						"unevaluatedProperties": {}
+					}
+				},
+				"examples": [
+					{
+						"format": "netstamp.admin.data.v1",
+						"exportedAt": "2026-07-08T12:00:00Z",
+						"tables": {}
+					}
+				]
+			},
+			"AdminDataImportResponse": {
+				"type": "object",
+				"required": ["result"],
+				"properties": {
+					"result": {
+						"$ref": "#/components/schemas/AdminDataImportResult"
+					}
+				},
+				"examples": [
+					{
+						"result": {
+							"format": "netstamp.admin.data.v1",
+							"importedTables": 34,
+							"importedRows": 128
+						}
+					}
+				]
+			},
+			"AdminDataImportResult": {
+				"type": "object",
+				"required": ["format", "importedTables", "importedRows"],
+				"properties": {
+					"format": {
+						"type": "string"
+					},
+					"importedTables": {
+						"type": "integer",
+						"format": "int32"
+					},
+					"importedRows": {
+						"type": "integer",
+						"format": "int32"
+					}
+				}
 			},
 			"AdminSMTPSettings": {
 				"type": "object",
@@ -9511,6 +10027,120 @@
 					{
 						"email": "user@example.com",
 						"password": "correct-horse-battery-staple"
+					}
+				]
+			},
+			"ManagedUser": {
+				"type": "object",
+				"required": ["id", "email", "displayName", "emailVerified", "isSystemAdmin", "createdAt", "updatedAt"],
+				"properties": {
+					"id": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/uuid"
+							}
+						],
+						"description": "User UUID."
+					},
+					"email": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/email"
+							}
+						],
+						"description": "Normalized email address used to sign in."
+					},
+					"displayName": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 64,
+						"description": "Name shown in the app."
+					},
+					"emailVerified": {
+						"type": "boolean",
+						"description": "Whether the sign-in email address has been verified."
+					},
+					"disabledAt": {
+						"type": "string",
+						"format": "date-time",
+						"description": "When the user account was disabled. Omitted for active users."
+					},
+					"isSystemAdmin": {
+						"type": "boolean",
+						"description": "Whether the user has instance-level administrator access."
+					},
+					"createdAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"updatedAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"grantedAt": {
+						"type": "string",
+						"format": "date-time",
+						"description": "When the user received instance-level administrator access."
+					}
+				},
+				"examples": [
+					{
+						"id": "11111111-1111-1111-1111-111111111111",
+						"email": "operator@example.com",
+						"displayName": "Jane Operator",
+						"emailVerified": true,
+						"isSystemAdmin": false,
+						"createdAt": "2026-07-08T12:00:00Z",
+						"updatedAt": "2026-07-08T12:00:00Z"
+					}
+				]
+			},
+			"ManagedUserResponse": {
+				"type": "object",
+				"required": ["user"],
+				"properties": {
+					"user": {
+						"$ref": "#/components/schemas/ManagedUser"
+					}
+				},
+				"examples": [
+					{
+						"user": {
+							"id": "11111111-1111-1111-1111-111111111111",
+							"email": "operator@example.com",
+							"displayName": "Jane Operator",
+							"emailVerified": true,
+							"isSystemAdmin": false,
+							"createdAt": "2026-07-08T12:00:00Z",
+							"updatedAt": "2026-07-08T12:00:00Z"
+						}
+					}
+				]
+			},
+			"ManagedUsersResponse": {
+				"type": "object",
+				"required": ["users"],
+				"properties": {
+					"users": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/ManagedUser"
+						}
+					}
+				},
+				"examples": [
+					{
+						"users": [
+							{
+								"id": "11111111-1111-1111-1111-111111111111",
+								"email": "operator@example.com",
+								"displayName": "Jane Operator",
+								"emailVerified": true,
+								"isSystemAdmin": false,
+								"createdAt": "2026-07-08T12:00:00Z",
+								"updatedAt": "2026-07-08T12:00:00Z"
+							}
+						]
 					}
 				]
 			},
@@ -11752,6 +12382,24 @@
 					}
 				]
 			},
+			"SetManagedUserPasswordRequest": {
+				"type": "object",
+				"required": ["password"],
+				"properties": {
+					"password": {
+						"type": "string",
+						"minLength": 8,
+						"maxLength": 128,
+						"format": "password",
+						"description": "New password. It is stored only as an Argon2id hash."
+					}
+				},
+				"examples": [
+					{
+						"password": "correct-horse-battery-staple"
+					}
+				]
+			},
 			"SlackNotificationConfig": {
 				"type": "object",
 				"required": ["url"],
@@ -13079,6 +13727,26 @@
 					{
 						"key": "metro",
 						"value": "tokyo"
+					}
+				]
+			},
+			"UpdateManagedUserRequest": {
+				"type": "object",
+				"properties": {
+					"disabled": {
+						"type": "boolean",
+						"description": "Disable or re-enable the account. Disabled accounts cannot sign in or access protected routes."
+					},
+					"systemAdmin": {
+						"type": "boolean",
+						"description": "Grant or revoke instance-level administrator access."
+					}
+				},
+				"description": "Patch payload. At least one field should be provided.",
+				"examples": [
+					{
+						"disabled": true,
+						"systemAdmin": false
 					}
 				]
 			},

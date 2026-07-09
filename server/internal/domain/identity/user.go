@@ -13,6 +13,7 @@ type User struct {
 	DisplayName     string     `json:"displayName"`
 	PasswordHash    string     `json:"-"`
 	EmailVerifiedAt *time.Time `json:"emailVerifiedAt,omitempty"`
+	DisabledAt      *time.Time `json:"disabledAt,omitempty"`
 	IsSystemAdmin   bool       `json:"isSystemAdmin"`
 	CreatedAt       time.Time  `json:"createdAt"`
 	UpdatedAt       time.Time  `json:"updatedAt"`

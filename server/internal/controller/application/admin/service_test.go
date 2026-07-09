@@ -233,10 +233,18 @@ type fakeAdminRepository struct {
 	admins             map[string]bool
 	settings           map[string]StoredSetting
 	systemAdmins       []SystemAdmin
+	managedUsers       []ManagedUser
 	systemAdminByEmail map[string]SystemAdmin
+	systemAdminByID    map[string]ManagedUser
 	revokeResult       SystemAdminRevokeResult
+	activeAdminCount   int64
 	grantedEmail       string
+	grantedUserID      string
 	revokedUserID      string
+	disabledUserID     string
+	disabledValue      bool
+	passwordUserID     string
+	passwordHash       string
 	auditActions       []string
 	auditKeys          []string
 }
@@ -249,6 +257,10 @@ func (r *fakeAdminRepository) ListSystemAdmins(context.Context) ([]SystemAdmin, 
 	return append([]SystemAdmin(nil), r.systemAdmins...), nil
 }
 
+func (r *fakeAdminRepository) ListManagedUsers(context.Context) ([]ManagedUser, error) {
+	return append([]ManagedUser(nil), r.managedUsers...), nil
+}
+
 func (r *fakeAdminRepository) GrantSystemAdminByEmail(_ context.Context, email string) (SystemAdmin, error) {
 	r.grantedEmail = email
 	admin, ok := r.systemAdminByEmail[email]
@@ -258,9 +270,61 @@ func (r *fakeAdminRepository) GrantSystemAdminByEmail(_ context.Context, email s
 	return admin, nil
 }
 
+func (r *fakeAdminRepository) GrantSystemAdminByUserID(_ context.Context, userID string) (ManagedUser, error) {
+	r.grantedUserID = userID
+	user, ok := r.systemAdminByID[userID]
+	if !ok {
+		return ManagedUser{}, errors.New("not found")
+	}
+	return user, nil
+}
+
 func (r *fakeAdminRepository) RevokeSystemAdminIfNotLast(_ context.Context, userID string) (SystemAdminRevokeResult, error) {
 	r.revokedUserID = userID
 	return r.revokeResult, nil
+}
+
+func (r *fakeAdminRepository) CountActiveSystemAdmins(context.Context) (int64, error) {
+	if r.activeAdminCount == 0 {
+		return int64(len(r.admins)), nil
+	}
+	return r.activeAdminCount, nil
+}
+
+func (r *fakeAdminRepository) SetManagedUserDisabledAt(_ context.Context, userID string, disabled bool) (ManagedUser, error) {
+	r.disabledUserID = userID
+	r.disabledValue = disabled
+	for _, user := range r.managedUsers {
+		if user.ID == userID {
+			if disabled {
+				now := time.Now().UTC()
+				user.DisabledAt = &now
+			} else {
+				user.DisabledAt = nil
+			}
+			return user, nil
+		}
+	}
+	return ManagedUser{}, errors.New("not found")
+}
+
+func (r *fakeAdminRepository) SetManagedUserPasswordHash(_ context.Context, userID, passwordHash string) (ManagedUser, error) {
+	r.passwordUserID = userID
+	r.passwordHash = passwordHash
+	for _, user := range r.managedUsers {
+		if user.ID == userID {
+			return user, nil
+		}
+	}
+	return ManagedUser{}, errors.New("not found")
+}
+
+func (r *fakeAdminRepository) ExportData(context.Context) (DataExport, error) {
+	return DataExport{Format: "netstamp.admin.data.v1"}, nil
+}
+
+func (r *fakeAdminRepository) ImportData(context.Context, DataExport) (DataImportResult, error) {
+	return DataImportResult{}, nil
 }
 
 func (r *fakeAdminRepository) ListSystemSettings(context.Context) ([]StoredSetting, error) {

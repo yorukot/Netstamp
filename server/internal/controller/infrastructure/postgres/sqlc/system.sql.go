@@ -12,6 +12,21 @@ import (
 	"github.com/google/uuid"
 )
 
+const countActiveSystemAdmins = `-- name: CountActiveSystemAdmins :one
+SELECT count(*)::bigint
+FROM system_user_roles
+JOIN users ON users.id = system_user_roles.user_id
+WHERE system_user_roles.role = 'admin'
+  AND users.disabled_at IS NULL
+`
+
+func (q *Queries) CountActiveSystemAdmins(ctx context.Context) (int64, error) {
+	row := q.db.QueryRow(ctx, countActiveSystemAdmins)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const createSystemSettingAuditEvent = `-- name: CreateSystemSettingAuditEvent :exec
 INSERT INTO system_setting_audit_events (key, action, updated_by_user_id)
 VALUES ($1, $2, $3)
@@ -60,6 +75,7 @@ WITH target AS (
            email,
            display_name,
            email_verified_at,
+           disabled_at,
            created_at,
            updated_at
     FROM users
@@ -77,6 +93,7 @@ SELECT target.id,
        target.email,
        target.display_name,
        target.email_verified_at,
+       target.disabled_at,
        target.created_at,
        target.updated_at,
        system_user_roles.created_at AS granted_at
@@ -91,6 +108,7 @@ type GrantSystemAdminByEmailRow struct {
 	Email           string     `json:"email"`
 	DisplayName     string     `json:"display_name"`
 	EmailVerifiedAt *time.Time `json:"email_verified_at"`
+	DisabledAt      *time.Time `json:"disabled_at"`
 	CreatedAt       time.Time  `json:"created_at"`
 	UpdatedAt       time.Time  `json:"updated_at"`
 	GrantedAt       time.Time  `json:"granted_at"`
@@ -104,8 +122,73 @@ func (q *Queries) GrantSystemAdminByEmail(ctx context.Context, email string) (Gr
 		&i.Email,
 		&i.DisplayName,
 		&i.EmailVerifiedAt,
+		&i.DisabledAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.GrantedAt,
+	)
+	return i, err
+}
+
+const grantSystemAdminByUserID = `-- name: GrantSystemAdminByUserID :one
+WITH target AS (
+    SELECT id,
+           email,
+           display_name,
+           email_verified_at,
+           disabled_at,
+           created_at,
+           updated_at
+    FROM users
+    WHERE id = $1
+),
+upserted AS (
+    INSERT INTO system_user_roles (user_id, role)
+    SELECT id, 'admin'
+    FROM target
+    ON CONFLICT (user_id) DO UPDATE
+    SET role = EXCLUDED.role
+    RETURNING user_id
+)
+SELECT target.id,
+       target.email,
+       target.display_name,
+       target.email_verified_at,
+       target.disabled_at,
+       target.created_at,
+       target.updated_at,
+       true::boolean AS is_system_admin,
+       system_user_roles.created_at AS granted_at
+FROM target
+JOIN upserted ON upserted.user_id = target.id
+JOIN system_user_roles ON system_user_roles.user_id = target.id
+WHERE system_user_roles.role = 'admin'
+`
+
+type GrantSystemAdminByUserIDRow struct {
+	ID              uuid.UUID  `json:"id"`
+	Email           string     `json:"email"`
+	DisplayName     string     `json:"display_name"`
+	EmailVerifiedAt *time.Time `json:"email_verified_at"`
+	DisabledAt      *time.Time `json:"disabled_at"`
+	CreatedAt       time.Time  `json:"created_at"`
+	UpdatedAt       time.Time  `json:"updated_at"`
+	IsSystemAdmin   bool       `json:"is_system_admin"`
+	GrantedAt       time.Time  `json:"granted_at"`
+}
+
+func (q *Queries) GrantSystemAdminByUserID(ctx context.Context, id uuid.UUID) (GrantSystemAdminByUserIDRow, error) {
+	row := q.db.QueryRow(ctx, grantSystemAdminByUserID, id)
+	var i GrantSystemAdminByUserIDRow
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.DisplayName,
+		&i.EmailVerifiedAt,
+		&i.DisabledAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.IsSystemAdmin,
 		&i.GrantedAt,
 	)
 	return i, err
@@ -115,8 +198,10 @@ const isSystemAdmin = `-- name: IsSystemAdmin :one
 SELECT EXISTS (
     SELECT 1
     FROM system_user_roles
+    JOIN users ON users.id = system_user_roles.user_id
     WHERE user_id = $1
       AND role = 'admin'
+      AND users.disabled_at IS NULL
 ) AS is_system_admin
 `
 
@@ -127,17 +212,78 @@ func (q *Queries) IsSystemAdmin(ctx context.Context, userID uuid.UUID) (bool, er
 	return is_system_admin, err
 }
 
+const listManagedUsers = `-- name: ListManagedUsers :many
+SELECT users.id,
+       users.email,
+       users.display_name,
+       users.email_verified_at,
+       users.disabled_at,
+       users.created_at,
+       users.updated_at,
+       (system_user_roles.user_id IS NOT NULL)::boolean AS is_system_admin,
+       system_user_roles.created_at AS granted_at
+FROM users
+LEFT JOIN system_user_roles
+       ON system_user_roles.user_id = users.id
+      AND system_user_roles.role = 'admin'
+ORDER BY users.disabled_at IS NULL DESC, users.created_at ASC, users.email ASC
+`
+
+type ListManagedUsersRow struct {
+	ID              uuid.UUID  `json:"id"`
+	Email           string     `json:"email"`
+	DisplayName     string     `json:"display_name"`
+	EmailVerifiedAt *time.Time `json:"email_verified_at"`
+	DisabledAt      *time.Time `json:"disabled_at"`
+	CreatedAt       time.Time  `json:"created_at"`
+	UpdatedAt       time.Time  `json:"updated_at"`
+	IsSystemAdmin   bool       `json:"is_system_admin"`
+	GrantedAt       *time.Time `json:"granted_at"`
+}
+
+func (q *Queries) ListManagedUsers(ctx context.Context) ([]ListManagedUsersRow, error) {
+	rows, err := q.db.Query(ctx, listManagedUsers)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListManagedUsersRow
+	for rows.Next() {
+		var i ListManagedUsersRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Email,
+			&i.DisplayName,
+			&i.EmailVerifiedAt,
+			&i.DisabledAt,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.IsSystemAdmin,
+			&i.GrantedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listSystemAdmins = `-- name: ListSystemAdmins :many
 SELECT users.id,
        users.email,
        users.display_name,
        users.email_verified_at,
+       users.disabled_at,
        users.created_at,
        users.updated_at,
        system_user_roles.created_at AS granted_at
 FROM system_user_roles
 JOIN users ON users.id = system_user_roles.user_id
 WHERE system_user_roles.role = 'admin'
+  AND users.disabled_at IS NULL
 ORDER BY system_user_roles.created_at ASC, users.email ASC
 `
 
@@ -146,6 +292,7 @@ type ListSystemAdminsRow struct {
 	Email           string     `json:"email"`
 	DisplayName     string     `json:"display_name"`
 	EmailVerifiedAt *time.Time `json:"email_verified_at"`
+	DisabledAt      *time.Time `json:"disabled_at"`
 	CreatedAt       time.Time  `json:"created_at"`
 	UpdatedAt       time.Time  `json:"updated_at"`
 	GrantedAt       time.Time  `json:"granted_at"`
@@ -165,6 +312,7 @@ func (q *Queries) ListSystemAdmins(ctx context.Context) ([]ListSystemAdminsRow, 
 			&i.Email,
 			&i.DisplayName,
 			&i.EmailVerifiedAt,
+			&i.DisabledAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.GrantedAt,
@@ -227,12 +375,18 @@ WITH lock AS (
 ),
 admin_count AS (
     SELECT count(*)::bigint AS total
-    FROM system_user_roles, lock
+    FROM system_user_roles
+    JOIN users ON users.id = system_user_roles.user_id,
+         lock
     WHERE role = 'admin'
+      AND users.disabled_at IS NULL
 ),
 target AS (
-    SELECT system_user_roles.user_id
-    FROM system_user_roles, lock
+    SELECT system_user_roles.user_id,
+           users.disabled_at
+    FROM system_user_roles
+    JOIN users ON users.id = system_user_roles.user_id,
+         lock
     WHERE system_user_roles.user_id = $1
       AND system_user_roles.role = 'admin'
 ),
@@ -240,7 +394,10 @@ deleted AS (
     DELETE FROM system_user_roles
     WHERE system_user_roles.user_id = $1
       AND system_user_roles.role = 'admin'
-      AND (SELECT total FROM admin_count) > 1
+      AND (
+          (SELECT disabled_at FROM target) IS NOT NULL
+          OR (SELECT total FROM admin_count) > 1
+      )
     RETURNING user_id
 )
 SELECT (SELECT total FROM admin_count) AS admin_count,
@@ -258,6 +415,130 @@ func (q *Queries) RevokeSystemAdminIfNotLast(ctx context.Context, userID uuid.UU
 	row := q.db.QueryRow(ctx, revokeSystemAdminIfNotLast, userID)
 	var i RevokeSystemAdminIfNotLastRow
 	err := row.Scan(&i.AdminCount, &i.TargetWasAdmin, &i.Revoked)
+	return i, err
+}
+
+const setManagedUserDisabledAt = `-- name: SetManagedUserDisabledAt :one
+WITH updated AS (
+    UPDATE users
+    SET disabled_at = $1
+    WHERE id = $2
+    RETURNING id,
+              email,
+              display_name,
+              email_verified_at,
+              disabled_at,
+              created_at,
+              updated_at
+)
+SELECT updated.id,
+       updated.email,
+       updated.display_name,
+       updated.email_verified_at,
+       updated.disabled_at,
+       updated.created_at,
+       updated.updated_at,
+       (system_user_roles.user_id IS NOT NULL)::boolean AS is_system_admin,
+       system_user_roles.created_at AS granted_at
+FROM updated
+LEFT JOIN system_user_roles
+       ON system_user_roles.user_id = updated.id
+      AND system_user_roles.role = 'admin'
+`
+
+type SetManagedUserDisabledAtParams struct {
+	DisabledAt *time.Time `json:"disabled_at"`
+	ID         uuid.UUID  `json:"id"`
+}
+
+type SetManagedUserDisabledAtRow struct {
+	ID              uuid.UUID  `json:"id"`
+	Email           string     `json:"email"`
+	DisplayName     string     `json:"display_name"`
+	EmailVerifiedAt *time.Time `json:"email_verified_at"`
+	DisabledAt      *time.Time `json:"disabled_at"`
+	CreatedAt       time.Time  `json:"created_at"`
+	UpdatedAt       time.Time  `json:"updated_at"`
+	IsSystemAdmin   bool       `json:"is_system_admin"`
+	GrantedAt       *time.Time `json:"granted_at"`
+}
+
+func (q *Queries) SetManagedUserDisabledAt(ctx context.Context, arg SetManagedUserDisabledAtParams) (SetManagedUserDisabledAtRow, error) {
+	row := q.db.QueryRow(ctx, setManagedUserDisabledAt, arg.DisabledAt, arg.ID)
+	var i SetManagedUserDisabledAtRow
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.DisplayName,
+		&i.EmailVerifiedAt,
+		&i.DisabledAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.IsSystemAdmin,
+		&i.GrantedAt,
+	)
+	return i, err
+}
+
+const setManagedUserPasswordHash = `-- name: SetManagedUserPasswordHash :one
+WITH updated AS (
+    UPDATE users
+    SET password_hash = $2
+    WHERE id = $1
+    RETURNING id,
+              email,
+              display_name,
+              email_verified_at,
+              disabled_at,
+              created_at,
+              updated_at
+)
+SELECT updated.id,
+       updated.email,
+       updated.display_name,
+       updated.email_verified_at,
+       updated.disabled_at,
+       updated.created_at,
+       updated.updated_at,
+       (system_user_roles.user_id IS NOT NULL)::boolean AS is_system_admin,
+       system_user_roles.created_at AS granted_at
+FROM updated
+LEFT JOIN system_user_roles
+       ON system_user_roles.user_id = updated.id
+      AND system_user_roles.role = 'admin'
+`
+
+type SetManagedUserPasswordHashParams struct {
+	ID           uuid.UUID `json:"id"`
+	PasswordHash string    `json:"password_hash"`
+}
+
+type SetManagedUserPasswordHashRow struct {
+	ID              uuid.UUID  `json:"id"`
+	Email           string     `json:"email"`
+	DisplayName     string     `json:"display_name"`
+	EmailVerifiedAt *time.Time `json:"email_verified_at"`
+	DisabledAt      *time.Time `json:"disabled_at"`
+	CreatedAt       time.Time  `json:"created_at"`
+	UpdatedAt       time.Time  `json:"updated_at"`
+	IsSystemAdmin   bool       `json:"is_system_admin"`
+	GrantedAt       *time.Time `json:"granted_at"`
+}
+
+func (q *Queries) SetManagedUserPasswordHash(ctx context.Context, arg SetManagedUserPasswordHashParams) (SetManagedUserPasswordHashRow, error) {
+	row := q.db.QueryRow(ctx, setManagedUserPasswordHash, arg.ID, arg.PasswordHash)
+	var i SetManagedUserPasswordHashRow
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.DisplayName,
+		&i.EmailVerifiedAt,
+		&i.DisabledAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.IsSystemAdmin,
+		&i.GrantedAt,
+	)
 	return i, err
 }
 

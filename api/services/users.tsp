@@ -36,4 +36,11 @@ interface UserService {
 	@post
 	@route("/me/password-change")
 	changeCurrentUserPassword(@body body: ChangeCurrentUserPasswordRequest): NoContent | BadRequestProblem | UnauthorizedProblem | UnprocessableEntityProblem | InternalServerProblem;
+
+	@operationId("deactivateCurrentUser")
+	@summary("Deactivate current user")
+	@doc("Disable the authenticated user's account. Disabled accounts cannot sign in or access protected routes until a system administrator re-enables them.")
+	@post
+	@route("/me/deactivation")
+	deactivateCurrentUser(): NoContent | UnauthorizedProblem | ConflictProblem | InternalServerProblem;
 }

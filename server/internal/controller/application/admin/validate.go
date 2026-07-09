@@ -28,6 +28,10 @@ const (
 
 	auditActionGrantSystemAdmin  = "grant_system_admin"
 	auditActionRevokeSystemAdmin = "revoke_system_admin"
+	auditActionDisableUser       = "disable_user"
+	auditActionEnableUser        = "enable_user"
+	auditActionSetPassword       = "set_user_password"
+	auditActionDataImport        = "data_import"
 	auditActionUpdate            = "update"
 )
 
@@ -150,8 +154,82 @@ func normalizeRevokeSystemAdminInput(input RevokeSystemAdminInput) (RevokeSystem
 	return RevokeSystemAdminInput{}, collector.Err(ErrInvalidInput)
 }
 
+func normalizeListManagedUsersInput(input ListManagedUsersInput) (ListManagedUsersInput, error) {
+	currentUserID, currentUserErr := identity.VNUserID(input.CurrentUserID)
+	if currentUserErr == nil {
+		return ListManagedUsersInput{CurrentUserID: currentUserID}, nil
+	}
+
+	collector := appvalidation.Collector{}
+	collector.AddError("currentUserId", currentUserErr, input.CurrentUserID)
+	return ListManagedUsersInput{}, collector.Err(ErrInvalidInput)
+}
+
+func normalizeUpdateManagedUserInput(input UpdateManagedUserInput) (UpdateManagedUserInput, error) {
+	currentUserID, currentUserErr := identity.VNUserID(input.CurrentUserID)
+	userID, userErr := identity.VNUserID(input.UserID)
+	if currentUserErr == nil && userErr == nil {
+		input.CurrentUserID = currentUserID
+		input.UserID = userID
+		return input, nil
+	}
+
+	collector := appvalidation.Collector{}
+	collector.AddError("currentUserId", currentUserErr, input.CurrentUserID)
+	collector.AddError("userId", userErr, input.UserID)
+	return UpdateManagedUserInput{}, collector.Err(ErrInvalidInput)
+}
+
+func normalizeSetManagedUserPasswordInput(input SetManagedUserPasswordInput) (SetManagedUserPasswordInput, error) {
+	currentUserID, currentUserErr := identity.VNUserID(input.CurrentUserID)
+	userID, userErr := identity.VNUserID(input.UserID)
+	password, passwordErr := identity.VNUserPassword(input.Password)
+	if currentUserErr == nil && userErr == nil && passwordErr == nil {
+		return SetManagedUserPasswordInput{
+			CurrentUserID: currentUserID,
+			UserID:        userID,
+			Password:      password,
+		}, nil
+	}
+
+	collector := appvalidation.Collector{}
+	collector.AddError("currentUserId", currentUserErr, input.CurrentUserID)
+	collector.AddError("userId", userErr, input.UserID)
+	collector.AddError("password", passwordErr, input.Password)
+	return SetManagedUserPasswordInput{}, collector.Err(ErrInvalidInput)
+}
+
+func normalizeExportDataInput(input ExportDataInput) (ExportDataInput, error) {
+	currentUserID, currentUserErr := identity.VNUserID(input.CurrentUserID)
+	if currentUserErr == nil {
+		return ExportDataInput{CurrentUserID: currentUserID}, nil
+	}
+
+	collector := appvalidation.Collector{}
+	collector.AddError("currentUserId", currentUserErr, input.CurrentUserID)
+	return ExportDataInput{}, collector.Err(ErrInvalidInput)
+}
+
+func normalizeImportDataInput(input ImportDataInput) (ImportDataInput, error) {
+	currentUserID, currentUserErr := identity.VNUserID(input.CurrentUserID)
+	if currentUserErr != nil {
+		collector := appvalidation.Collector{}
+		collector.AddError("currentUserId", currentUserErr, input.CurrentUserID)
+		return ImportDataInput{}, collector.Err(ErrInvalidInput)
+	}
+	if strings.TrimSpace(input.Export.Format) == "" || input.Export.Tables == nil {
+		return ImportDataInput{}, ErrDataImportInvalid
+	}
+	input.CurrentUserID = currentUserID
+	return input, nil
+}
+
 func systemAdminAuditKey(admin domainsystem.AdminUser) string {
 	return "system_admin:" + admin.ID
+}
+
+func managedUserAuditKey(user ManagedUser) string {
+	return "user:" + user.ID
 }
 
 func validateSMTPFrom(value string) error {

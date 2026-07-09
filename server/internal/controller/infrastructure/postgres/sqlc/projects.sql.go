@@ -15,8 +15,10 @@ import (
 const countActiveProjectOwners = `-- name: CountActiveProjectOwners :one
 SELECT count(*)::int4
 FROM project_members
+JOIN users ON users.id = project_members.user_id
 WHERE project_id = $1
   AND role = 'owner'
+  AND users.disabled_at IS NULL
 `
 
 func (q *Queries) CountActiveProjectOwners(ctx context.Context, projectID uuid.UUID) (int32, error) {
@@ -137,6 +139,7 @@ JOIN projects ON projects.id = project_members.project_id
 JOIN users ON users.id = project_members.user_id
 WHERE project_members.project_id = $1
   AND project_members.user_id = $2
+  AND users.disabled_at IS NULL
   AND projects.deleted_at IS NULL
 `
 
@@ -176,8 +179,10 @@ const getActiveProjectMemberRole = `-- name: GetActiveProjectMemberRole :one
 SELECT project_members.role
 FROM project_members
 JOIN projects ON projects.id = project_members.project_id
+JOIN users ON users.id = project_members.user_id
 WHERE project_members.project_id = $1
   AND project_members.user_id = $2
+  AND users.disabled_at IS NULL
   AND projects.deleted_at IS NULL
 `
 
@@ -199,6 +204,9 @@ FROM projects
 JOIN project_members
     ON project_members.project_id = projects.id
     AND project_members.user_id = $2
+JOIN users
+    ON users.id = project_members.user_id
+    AND users.disabled_at IS NULL
 WHERE projects.slug = $1
   AND projects.deleted_at IS NULL
 `
@@ -229,6 +237,9 @@ FROM projects
 JOIN project_members
     ON project_members.project_id = projects.id
     AND project_members.user_id = $2
+JOIN users
+    ON users.id = project_members.user_id
+    AND users.disabled_at IS NULL
 WHERE projects.id = $1
   AND projects.deleted_at IS NULL
 `
@@ -266,6 +277,7 @@ FROM project_members
 JOIN projects ON projects.id = project_members.project_id
 JOIN users ON users.id = project_members.user_id
 WHERE project_members.project_id = $1
+  AND users.disabled_at IS NULL
   AND projects.deleted_at IS NULL
 ORDER BY project_members.created_at ASC, project_members.id ASC
 `
@@ -316,6 +328,9 @@ FROM projects
 JOIN project_members
     ON project_members.project_id = projects.id
     AND project_members.user_id = $1
+JOIN users
+    ON users.id = project_members.user_id
+    AND users.disabled_at IS NULL
 WHERE projects.deleted_at IS NULL
 ORDER BY projects.created_at DESC, projects.id DESC
 `
@@ -411,6 +426,7 @@ SELECT updated.id,
        users.display_name AS user_display_name
 FROM updated
 JOIN users ON users.id = updated.user_id
+WHERE users.disabled_at IS NULL
 `
 
 type UpdateProjectMemberRoleParams struct {

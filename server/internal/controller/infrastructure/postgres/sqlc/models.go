@@ -1384,4 +1384,5 @@ type User struct {
 	CreatedAt       time.Time  `json:"created_at"`
 	UpdatedAt       time.Time  `json:"updated_at"`
 	EmailVerifiedAt *time.Time `json:"email_verified_at"`
+	DisabledAt      *time.Time `json:"disabled_at"`
 }

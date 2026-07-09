@@ -5,15 +5,18 @@ import (
 	"encoding/json"
 	"errors"
 	"time"
+
+	"github.com/yorukot/netstamp/internal/domain/identity"
 )
 
 type Service struct {
 	repo     Repository
 	cipher   SecretCipher
+	hasher   PasswordHasher
 	defaults Defaults
 }
 
-func NewService(repo Repository, cipher SecretCipher, defaults Defaults) *Service {
+func NewService(repo Repository, cipher SecretCipher, defaults Defaults, hashers ...PasswordHasher) *Service {
 	if defaults.SMTP.Port == 0 {
 		defaults.SMTP.Port = 587
 	}
@@ -24,7 +27,11 @@ func NewService(repo Repository, cipher SecretCipher, defaults Defaults) *Servic
 		defaults.SMTP.TimeoutSeconds = 10
 	}
 	defaults.SMTP.PasswordSet = defaults.SMTP.Password != ""
-	return &Service{repo: repo, cipher: cipher, defaults: defaults}
+	var hasher PasswordHasher
+	if len(hashers) > 0 {
+		hasher = hashers[0]
+	}
+	return &Service{repo: repo, cipher: cipher, hasher: hasher, defaults: defaults}
 }
 
 func (s *Service) GetSettings(ctx context.Context, input GetSettingsInput) (Settings, error) {
@@ -39,6 +46,17 @@ func (s *Service) ListSystemAdmins(ctx context.Context, input ListSystemAdminsIn
 		return nil, err
 	}
 	return s.repo.ListSystemAdmins(ctx)
+}
+
+func (s *Service) ListManagedUsers(ctx context.Context, input ListManagedUsersInput) ([]ManagedUser, error) {
+	input, err := normalizeListManagedUsersInput(input)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.requireSystemAdmin(ctx, input.CurrentUserID); err != nil {
+		return nil, err
+	}
+	return s.repo.ListManagedUsers(ctx)
 }
 
 func (s *Service) GrantSystemAdmin(ctx context.Context, input GrantSystemAdminInput) (SystemAdmin, error) {
@@ -59,6 +77,135 @@ func (s *Service) GrantSystemAdmin(ctx context.Context, input GrantSystemAdminIn
 	}
 
 	return admin, nil
+}
+
+func (s *Service) UpdateManagedUser(ctx context.Context, input UpdateManagedUserInput) (ManagedUser, error) {
+	input, err := normalizeUpdateManagedUserInput(input)
+	if err != nil {
+		return ManagedUser{}, err
+	}
+	if requireErr := s.requireSystemAdmin(ctx, input.CurrentUserID); requireErr != nil {
+		return ManagedUser{}, requireErr
+	}
+
+	var user ManagedUser
+	var loaded bool
+	if input.SystemAdmin != nil {
+		if *input.SystemAdmin {
+			user, err = s.repo.GrantSystemAdminByUserID(ctx, input.UserID)
+			if err != nil {
+				return ManagedUser{}, err
+			}
+			loaded = true
+			if auditErr := s.repo.CreateSystemSettingAuditEvent(ctx, managedUserAuditKey(user), auditActionGrantSystemAdmin, &input.CurrentUserID); auditErr != nil {
+				return ManagedUser{}, auditErr
+			}
+		} else {
+			if input.CurrentUserID == input.UserID {
+				return ManagedUser{}, ErrSelfSystemAdminRemoval
+			}
+			result, revokeErr := s.repo.RevokeSystemAdminIfNotLast(ctx, input.UserID)
+			if revokeErr != nil {
+				return ManagedUser{}, revokeErr
+			}
+			if !result.TargetWasAdmin {
+				return ManagedUser{}, ErrSystemAdminNotFound
+			}
+			if !result.Revoked && result.AdminCount <= 1 {
+				return ManagedUser{}, ErrLastSystemAdmin
+			}
+			if !result.Revoked {
+				return ManagedUser{}, ErrSystemAdminNotFound
+			}
+			if auditErr := s.repo.CreateSystemSettingAuditEvent(ctx, "user:"+input.UserID, auditActionRevokeSystemAdmin, &input.CurrentUserID); auditErr != nil {
+				return ManagedUser{}, auditErr
+			}
+		}
+	}
+
+	if input.Disabled != nil {
+		if *input.Disabled {
+			if input.CurrentUserID == input.UserID {
+				return ManagedUser{}, ErrSelfAccountDisable
+			}
+			if !loaded {
+				users, listErr := s.repo.ListManagedUsers(ctx)
+				if listErr != nil {
+					return ManagedUser{}, listErr
+				}
+				for _, candidate := range users {
+					if candidate.ID == input.UserID {
+						user = candidate
+						loaded = true
+						break
+					}
+				}
+			}
+			if loaded && user.IsSystemAdmin && user.DisabledAt == nil {
+				count, countErr := s.repo.CountActiveSystemAdmins(ctx)
+				if countErr != nil {
+					return ManagedUser{}, countErr
+				}
+				if count <= 1 {
+					return ManagedUser{}, ErrLastSystemAdmin
+				}
+			}
+		}
+
+		user, err = s.repo.SetManagedUserDisabledAt(ctx, input.UserID, *input.Disabled)
+		if err != nil {
+			return ManagedUser{}, err
+		}
+		action := auditActionEnableUser
+		if *input.Disabled {
+			action = auditActionDisableUser
+		}
+		if auditErr := s.repo.CreateSystemSettingAuditEvent(ctx, managedUserAuditKey(user), action, &input.CurrentUserID); auditErr != nil {
+			return ManagedUser{}, auditErr
+		}
+		loaded = true
+	}
+
+	if !loaded {
+		users, listErr := s.repo.ListManagedUsers(ctx)
+		if listErr != nil {
+			return ManagedUser{}, listErr
+		}
+		for _, candidate := range users {
+			if candidate.ID == input.UserID {
+				return candidate, nil
+			}
+		}
+		return ManagedUser{}, identity.ErrUserNotFound
+	}
+
+	return user, nil
+}
+
+func (s *Service) SetManagedUserPassword(ctx context.Context, input SetManagedUserPasswordInput) (ManagedUser, error) {
+	input, err := normalizeSetManagedUserPasswordInput(input)
+	if err != nil {
+		return ManagedUser{}, err
+	}
+	if requireErr := s.requireSystemAdmin(ctx, input.CurrentUserID); requireErr != nil {
+		return ManagedUser{}, requireErr
+	}
+	if s.hasher == nil {
+		return ManagedUser{}, ErrInvalidInput
+	}
+
+	passwordHash, err := s.hasher.Hash(ctx, input.Password)
+	if err != nil {
+		return ManagedUser{}, err
+	}
+	user, err := s.repo.SetManagedUserPasswordHash(ctx, input.UserID, passwordHash)
+	if err != nil {
+		return ManagedUser{}, err
+	}
+	if auditErr := s.repo.CreateSystemSettingAuditEvent(ctx, managedUserAuditKey(user), auditActionSetPassword, &input.CurrentUserID); auditErr != nil {
+		return ManagedUser{}, auditErr
+	}
+	return user, nil
 }
 
 func (s *Service) RevokeSystemAdmin(ctx context.Context, input RevokeSystemAdminInput) error {
@@ -89,6 +236,35 @@ func (s *Service) RevokeSystemAdmin(ctx context.Context, input RevokeSystemAdmin
 
 	admin := SystemAdmin{ID: input.UserID}
 	return s.repo.CreateSystemSettingAuditEvent(ctx, systemAdminAuditKey(admin), auditActionRevokeSystemAdmin, &input.CurrentUserID)
+}
+
+func (s *Service) ExportData(ctx context.Context, input ExportDataInput) (DataExport, error) {
+	input, err := normalizeExportDataInput(input)
+	if err != nil {
+		return DataExport{}, err
+	}
+	if err := s.requireSystemAdmin(ctx, input.CurrentUserID); err != nil {
+		return DataExport{}, err
+	}
+	return s.repo.ExportData(ctx)
+}
+
+func (s *Service) ImportData(ctx context.Context, input ImportDataInput) (DataImportResult, error) {
+	input, err := normalizeImportDataInput(input)
+	if err != nil {
+		return DataImportResult{}, err
+	}
+	if err := s.requireSystemAdmin(ctx, input.CurrentUserID); err != nil {
+		return DataImportResult{}, err
+	}
+	result, err := s.repo.ImportData(ctx, input.Export)
+	if err != nil {
+		return DataImportResult{}, err
+	}
+	if auditErr := s.repo.CreateSystemSettingAuditEvent(ctx, "data_import", auditActionDataImport, &input.CurrentUserID); auditErr != nil {
+		return DataImportResult{}, auditErr
+	}
+	return result, nil
 }
 
 func (s *Service) UpdateSettings(ctx context.Context, input UpdateSettingsInput) (Settings, error) {

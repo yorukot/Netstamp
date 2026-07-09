@@ -4,6 +4,7 @@ import {
 	useAcceptProjectInviteMutation,
 	useChangeCurrentUserEmailMutation,
 	useChangeCurrentUserPasswordMutation,
+	useDeactivateCurrentUserMutation,
 	useRejectProjectInviteMutation,
 	useUpdateCurrentUserMutation
 } from "@/shared/api/mutations";
@@ -12,8 +13,10 @@ import type { ApiProjectInvite } from "@/shared/api/types";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
+import { useConfirm } from "@/shared/components/confirmContext";
 import { appFeatures, demoMode } from "@/shared/config/features";
 import { pushToast } from "@/shared/toast/toastStore";
+import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
 import { ActionRow, Badge, BodyCopy, Button, DataTable, Panel, SignalAvatar, TextField, type DataColumn } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
 import type { FormEvent } from "react";
@@ -46,9 +49,11 @@ export function SettingsPage() {
 	const { session } = useSession();
 	const { setSelectedProjectRef } = useCurrentProject();
 	const navigate = useNavigate();
+	const confirm = useConfirm();
 	const updateUserMutation = useUpdateCurrentUserMutation();
 	const changeEmailMutation = useChangeCurrentUserEmailMutation();
 	const changePasswordMutation = useChangeCurrentUserPasswordMutation();
+	const deactivateUserMutation = useDeactivateCurrentUserMutation();
 	const acceptInviteMutation = useAcceptProjectInviteMutation();
 	const rejectInviteMutation = useRejectProjectInviteMutation();
 	const invitesQuery = useQuery(projectQueries.currentUserInvites());
@@ -118,6 +123,32 @@ export function SettingsPage() {
 					message: `${data.invite.project.name} was removed from pending invitations.`,
 					tone: "success"
 				});
+			}
+		});
+	}
+
+	async function deactivateAccount() {
+		if (demoMode) {
+			return;
+		}
+
+		const accepted = await confirm({
+			title: "Deactivate account",
+			message: "Your account will be disabled and you will not be able to sign in until a system administrator re-enables it.",
+			confirmLabel: "Deactivate",
+			tone: "danger"
+		});
+		if (!accepted) {
+			return;
+		}
+
+		deactivateUserMutation.mutate(undefined, {
+			onSuccess: () => {
+				pushToast({ title: "Account deactivated", message: "A system administrator can re-enable it later.", tone: "success" });
+				navigate(pathForRoute("login"));
+			},
+			onError: error => {
+				pushToast({ title: "Deactivation failed", message: requestErrorMessage(error, "Could not deactivate your account."), tone: "critical" });
 			}
 		});
 	}
@@ -236,6 +267,15 @@ export function SettingsPage() {
 					</Panel>
 				</div>
 			) : null}
+
+			<Panel tone="deep" title="Deactivate account">
+				<BodyCopy>Disabled accounts cannot sign in or access protected routes. A system administrator can re-enable the account.</BodyCopy>
+				<ActionRow>
+					<Button type="button" variant="danger" disabled={demoMode || deactivateUserMutation.isPending} onClick={() => void deactivateAccount()}>
+						{deactivateUserMutation.isPending ? "Deactivating" : "Deactivate account"}
+					</Button>
+				</ActionRow>
+			</Panel>
 		</PageStack>
 	);
 }

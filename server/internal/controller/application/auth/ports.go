@@ -125,6 +125,7 @@ const (
 	AuthReasonEmailVerificationTokenInvalid      AuthEventReason = "email_verification_token_invalid"         //nolint:gosec // Event reason names are not credentials.
 	AuthReasonEmailVerificationMailerFailed      AuthEventReason = "email_verification_mail_failed"
 	AuthReasonEmailVerificationFailed            AuthEventReason = "email_verification_failed"
+	AuthReasonAccountDisabled                    AuthEventReason = "account_disabled"
 	AuthReasonUserCreateFailed                   AuthEventReason = "user_create_failed"
 	AuthReasonUserLookupFailed                   AuthEventReason = "user_lookup_failed"
 	AuthReasonAccessTokenIssueFail               AuthEventReason = "access_token_issue_failed"

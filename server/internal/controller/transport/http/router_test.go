@@ -62,9 +62,15 @@ func TestNewRouterServesOpenAPIWithoutRuntimeServices(t *testing.T) {
 	assertOpenAPIOperation(t, spec, http.MethodPatch, "/users/me", "updateCurrentUser")
 	assertOpenAPIOperation(t, spec, http.MethodPost, "/users/me/email-change", "changeCurrentUserEmail")
 	assertOpenAPIOperation(t, spec, http.MethodPost, "/users/me/password-change", "changeCurrentUserPassword")
+	assertOpenAPIOperation(t, spec, http.MethodPost, "/users/me/deactivation", "deactivateCurrentUser")
 	assertOpenAPIOperation(t, spec, http.MethodGet, "/admin/system-admins", "listSystemAdmins")
 	assertOpenAPIOperation(t, spec, http.MethodPost, "/admin/system-admins", "grantSystemAdmin")
 	assertOpenAPIOperation(t, spec, http.MethodDelete, "/admin/system-admins/{user_id}", "revokeSystemAdmin")
+	assertOpenAPIOperation(t, spec, http.MethodGet, "/admin/users", "listManagedUsers")
+	assertOpenAPIOperation(t, spec, http.MethodPatch, "/admin/users/{user_id}", "updateManagedUser")
+	assertOpenAPIOperation(t, spec, http.MethodPost, "/admin/users/{user_id}/password", "setManagedUserPassword")
+	assertOpenAPIOperation(t, spec, http.MethodGet, "/admin/data-export", "exportAdminData")
+	assertOpenAPIOperation(t, spec, http.MethodPost, "/admin/data-import", "importAdminData")
 	assertOpenAPIOperation(t, spec, http.MethodGet, "/admin/settings", "getAdminSettings")
 	assertOpenAPIOperation(t, spec, http.MethodPatch, "/admin/settings", "updateAdminSettings")
 	assertOpenAPISessionCookieAuth(t, spec)
@@ -226,9 +232,15 @@ func TestNewRouterProtectedRoutesRequireSessionCookie(t *testing.T) {
 		{method: http.MethodPatch, path: "/api/v1/users/me"},
 		{method: http.MethodPost, path: "/api/v1/users/me/email-change"},
 		{method: http.MethodPost, path: "/api/v1/users/me/password-change"},
+		{method: http.MethodPost, path: "/api/v1/users/me/deactivation"},
 		{method: http.MethodGet, path: "/api/v1/admin/system-admins"},
 		{method: http.MethodPost, path: "/api/v1/admin/system-admins"},
 		{method: http.MethodDelete, path: "/api/v1/admin/system-admins/user-1"},
+		{method: http.MethodGet, path: "/api/v1/admin/users"},
+		{method: http.MethodPatch, path: "/api/v1/admin/users/user-1"},
+		{method: http.MethodPost, path: "/api/v1/admin/users/user-1/password"},
+		{method: http.MethodGet, path: "/api/v1/admin/data-export"},
+		{method: http.MethodPost, path: "/api/v1/admin/data-import"},
 		{method: http.MethodGet, path: "/api/v1/admin/settings"},
 		{method: http.MethodPatch, path: "/api/v1/admin/settings"},
 		{method: http.MethodPost, path: "/api/v1/projects/vector-ix/selector-previews"},
@@ -360,6 +372,10 @@ func TestNewRouterDemoModeBlocksUnsafeRequests(t *testing.T) {
 	}{
 		{method: http.MethodPost, path: "/api/v1/auth/register"},
 		{method: http.MethodPatch, path: "/api/v1/users/me"},
+		{method: http.MethodPost, path: "/api/v1/users/me/deactivation"},
+		{method: http.MethodPatch, path: "/api/v1/admin/users/user-1"},
+		{method: http.MethodPost, path: "/api/v1/admin/users/user-1/password"},
+		{method: http.MethodPost, path: "/api/v1/admin/data-import"},
 		{method: http.MethodPost, path: "/api/v1/projects"},
 		{method: http.MethodDelete, path: "/api/v1/projects/vector-ix/members/user-1"},
 		{method: http.MethodPost, path: "/api/v1/runtime/probes/probe-1/results"},

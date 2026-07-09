@@ -86,3 +86,14 @@ func normalizeChangeCurrentUserPasswordInput(input ChangeCurrentUserPasswordInpu
 		NewPassword:     newPassword,
 	}, nil
 }
+
+func normalizeDeactivateCurrentUserInput(input DeactivateCurrentUserInput) (DeactivateCurrentUserInput, error) {
+	userID, err := identity.VNUserID(input.CurrentUserID)
+	if err == nil {
+		return DeactivateCurrentUserInput{CurrentUserID: userID}, nil
+	}
+
+	var validation appvalidation.Collector
+	validation.AddError("currentUserId", err, input.CurrentUserID)
+	return DeactivateCurrentUserInput{}, validation.Err(ErrInvalidInput)
+}

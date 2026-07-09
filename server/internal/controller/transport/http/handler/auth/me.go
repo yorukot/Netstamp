@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	appauth "github.com/yorukot/netstamp/internal/controller/application/auth"
 	"github.com/yorukot/netstamp/internal/controller/transport/http/httpx"
 	httpmiddleware "github.com/yorukot/netstamp/internal/controller/transport/http/middleware"
 	"github.com/yorukot/netstamp/internal/domain/identity"
@@ -14,7 +15,7 @@ func (h *Handler) me(ctx context.Context, _ *meInput) (*meOutput, error) {
 
 	user, err := h.service.GetCurrentUser(ctx, claims.Subject)
 	if err != nil {
-		if errors.Is(err, identity.ErrUserNotFound) {
+		if errors.Is(err, identity.ErrUserNotFound) || errors.Is(err, appauth.ErrAccountDisabled) {
 			return nil, httpx.Unauthorized("invalid session")
 		}
 		return nil, httpx.InternalServerError("failed to fetch user")
