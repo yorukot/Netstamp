@@ -121,6 +121,10 @@
 	outline: 1px solid color-mix(in srgb, var(--ns-bg) 82%, transparent);
 }
 
+.marker[data-status="offline"] .markerSquare {
+	background: var(--ns-critical);
+}
+
 .marker[data-mode="detail"] .markerSquare {
 	width: 1rem;
 	height: 1rem;

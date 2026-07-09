@@ -9,6 +9,7 @@ export interface NetworkMapMarker {
 	id: string;
 	name: string;
 	coordinates?: [number, number];
+	status?: string;
 }
 
 interface NetworkMapProps {
@@ -79,6 +80,12 @@ function updateMarkerElement(element: HTMLButtonElement, probe: NetworkMapMarker
 	element.dataset.mode = mode;
 	element.dataset.clickable = String(clickable);
 	element.setAttribute("aria-label", `Select probe ${probe.name}`);
+
+	if (probe.status) {
+		element.dataset.status = probe.status.toLowerCase();
+	} else {
+		delete element.dataset.status;
+	}
 
 	const label = element.querySelector<HTMLElement>("[data-marker-label]");
 
