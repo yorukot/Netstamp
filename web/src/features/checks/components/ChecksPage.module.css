@@ -93,7 +93,8 @@
 }
 
 .descriptionTrigger:hover,
-.descriptionTrigger:focus-visible {
+.descriptionTrigger:focus-visible,
+.descriptionTriggerOpen {
 	color: var(--ns-primary-hover);
 	background: var(--ns-primary-muted);
 }
@@ -134,7 +135,7 @@
 		visibility 0ms linear 220ms;
 }
 
-.descriptionHint:hover .descriptionHoverCard {
+.descriptionHint:not([data-popover-open="true"]):hover .descriptionHoverCard {
 	visibility: visible;
 	opacity: 1;
 	transform: translate3d(0, 0, 0) scale(1);

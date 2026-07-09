@@ -5,7 +5,7 @@ import { CopyIcon } from "@phosphor-icons/react/dist/csr/Copy";
 import { InfoIcon } from "@phosphor-icons/react/dist/csr/Info";
 import { PencilSimpleIcon } from "@phosphor-icons/react/dist/csr/PencilSimple";
 import { TrashIcon } from "@phosphor-icons/react/dist/csr/Trash";
-import { useMemo, type MouseEvent, type ReactNode } from "react";
+import { useMemo, useState, type MouseEvent, type ReactNode } from "react";
 import styles from "./ChecksPage.module.css";
 
 export type CheckTypeFilter = "all" | "ping" | "tcp" | "traceroute";
@@ -73,26 +73,34 @@ function stopRowSelection(event: MouseEvent) {
 	event.stopPropagation();
 }
 
+function tooltipDescription(description: string) {
+	return description.replace(/\s*\r?\n\s*/g, " ").trim();
+}
+
 function CheckDescriptionHint({ check }: { check: CheckDefinition }) {
+	const [open, setOpen] = useState(false);
+
 	if (!check.description) {
 		return null;
 	}
 
+	const description = tooltipDescription(check.description);
+
 	return (
-		<PopoverRoot>
-			<span className={styles.descriptionHint}>
+		<PopoverRoot open={open} onOpenChange={setOpen}>
+			<span className={styles.descriptionHint} data-popover-open={open || undefined}>
 				<PopoverTrigger asChild>
-					<button type="button" className={styles.descriptionTrigger} aria-label={`Show ${check.name} description`} onClick={stopRowSelection}>
+					<button type="button" className={classNames(styles.descriptionTrigger, open && styles.descriptionTriggerOpen)} aria-label={`Show ${check.name} description`} onClick={stopRowSelection}>
 						<InfoIcon size={13} weight="bold" aria-hidden="true" focusable="false" />
 					</button>
 				</PopoverTrigger>
 				<span className={styles.descriptionHoverCard} aria-hidden="true">
-					{check.description}
+					{description}
 				</span>
 			</span>
 			<PopoverPortal>
 				<PopoverContent className={styles.descriptionPopover} align="start" side="top" sideOffset={8} collisionPadding={8} onClick={stopRowSelection}>
-					{check.description}
+					{description}
 				</PopoverContent>
 			</PopoverPortal>
 		</PopoverRoot>
