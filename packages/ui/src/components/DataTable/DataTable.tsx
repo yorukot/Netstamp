@@ -44,6 +44,8 @@ export interface DataTableProps<Row extends object = Record<string, unknown>> {
 	onSortChange?: (sort: DataTableSortState | null) => void;
 	rowActions?: (row: Row, index: number) => ReactNode;
 	rowActionsLabel?: ReactNode;
+	rowActionsClassName?: string;
+	rowActionsHeaderClassName?: string;
 	batchLabel?: ReactNode;
 	batchActions?: ReactNode;
 	emptyLabel?: ReactNode;
@@ -75,6 +77,8 @@ export function DataTable<Row extends object>({
 	onSortChange,
 	rowActions,
 	rowActionsLabel = "Actions",
+	rowActionsClassName,
+	rowActionsHeaderClassName,
 	batchLabel,
 	batchActions,
 	emptyLabel = "No results"
@@ -208,7 +212,7 @@ export function DataTable<Row extends object>({
 									)}
 								</th>
 							))}
-							{rowActions ? <th className={styles.actionsHeader}>{rowActionsLabel}</th> : null}
+							{rowActions ? <th className={[styles.actionsHeader, rowActionsHeaderClassName].filter(Boolean).join(" ")}>{rowActionsLabel}</th> : null}
 						</tr>
 					</thead>
 					<tbody>
@@ -244,7 +248,7 @@ export function DataTable<Row extends object>({
 											</td>
 										))}
 										{rowActions ? (
-											<td className={styles.actionsCell} onClick={stopRowAction}>
+											<td className={[styles.actionsCell, rowActionsClassName].filter(Boolean).join(" ")} onClick={stopRowAction}>
 												{rowActions(row, index)}
 											</td>
 										) : null}

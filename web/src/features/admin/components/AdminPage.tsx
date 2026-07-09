@@ -550,6 +550,8 @@ export function AdminPage() {
 							emptyLabel={userSearch.trim() ? "No users match this search" : "No users"}
 							getRowKey={user => user.id}
 							rowActions={userRowActions}
+							rowActionsClassName={styles.userActionsCell}
+							rowActionsHeaderClassName={styles.userActionsHeader}
 						/>
 					</>
 				)}

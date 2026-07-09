@@ -45,7 +45,13 @@
 .userActions {
 	flex-wrap: nowrap;
 	align-items: center;
+	justify-content: flex-start;
 	white-space: nowrap;
+}
+
+.userActionsHeader,
+.userActionsCell {
+	text-align: left;
 }
 
 .userToolbar {
