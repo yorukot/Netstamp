@@ -1,6 +1,6 @@
 import type { CheckDefinition } from "@/features/checks/data/checks";
 import { classNames } from "@/shared/utils/classNames";
-import { Badge, Button, DataTable, IconButton, PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger, type DataColumn } from "@netstamp/ui";
+import { Badge, Button, DataTable, IconButton, PopoverAnchor, PopoverContent, PopoverPortal, PopoverRoot, type DataColumn } from "@netstamp/ui";
 import { CopyIcon } from "@phosphor-icons/react/dist/csr/Copy";
 import { InfoIcon } from "@phosphor-icons/react/dist/csr/Info";
 import { PencilSimpleIcon } from "@phosphor-icons/react/dist/csr/PencilSimple";
@@ -78,7 +78,9 @@ function tooltipDescription(description: string) {
 }
 
 function CheckDescriptionHint({ check }: { check: CheckDefinition }) {
-	const [open, setOpen] = useState(false);
+	const [hovered, setHovered] = useState(false);
+	const [pinned, setPinned] = useState(false);
+	const open = hovered || pinned;
 
 	if (!check.description) {
 		return null;
@@ -86,20 +88,42 @@ function CheckDescriptionHint({ check }: { check: CheckDefinition }) {
 
 	const description = tooltipDescription(check.description);
 
+	function handleOpenChange(nextOpen: boolean) {
+		if (!nextOpen) {
+			setHovered(false);
+			setPinned(false);
+		}
+	}
+
+	function handleTriggerClick(event: MouseEvent<HTMLButtonElement>) {
+		stopRowSelection(event);
+
+		if (pinned) {
+			setHovered(false);
+			setPinned(false);
+			return;
+		}
+
+		setPinned(true);
+	}
+
 	return (
-		<PopoverRoot open={open} onOpenChange={setOpen}>
-			<span className={styles.descriptionHint} data-popover-open={open || undefined}>
-				<PopoverTrigger asChild>
-					<button type="button" className={classNames(styles.descriptionTrigger, open && styles.descriptionTriggerOpen)} aria-label={`Show ${check.name} description`} onClick={stopRowSelection}>
+		<PopoverRoot open={open} onOpenChange={handleOpenChange}>
+			<PopoverAnchor asChild>
+				<span className={styles.descriptionHint} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)} onFocus={() => setHovered(true)} onBlur={() => setHovered(false)}>
+					<button
+						type="button"
+						className={classNames(styles.descriptionTrigger, open && styles.descriptionTriggerOpen)}
+						aria-label={`Show ${check.name} description`}
+						aria-expanded={open}
+						onClick={handleTriggerClick}
+					>
 						<InfoIcon size={13} weight="bold" aria-hidden="true" focusable="false" />
 					</button>
-				</PopoverTrigger>
-				<span className={styles.descriptionHoverCard} aria-hidden="true">
-					{description}
 				</span>
-			</span>
+			</PopoverAnchor>
 			<PopoverPortal>
-				<PopoverContent className={styles.descriptionPopover} align="start" side="top" sideOffset={8} collisionPadding={8} onClick={stopRowSelection}>
+				<PopoverContent className={styles.descriptionPopover} align="start" side="top" sideOffset={8} collisionPadding={8} onClick={stopRowSelection} onOpenAutoFocus={event => event.preventDefault()}>
 					{description}
 				</PopoverContent>
 			</PopoverPortal>
