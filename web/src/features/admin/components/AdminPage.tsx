@@ -426,7 +426,7 @@ export function AdminPage() {
 			) : (
 				<form className={styles.form} onSubmit={handleSubmit}>
 					<div className={styles.grid}>
-						<Panel tone="glass" title="Instance access">
+						<Panel tone="glass" title="Instance access" bodyClassName={styles.instanceAccessOptions}>
 							<label className={styles.checkboxRow}>
 								<Checkbox checked={form.registrationEnabled} onChange={event => update("registrationEnabled", event.currentTarget.checked)} />
 								<span>
