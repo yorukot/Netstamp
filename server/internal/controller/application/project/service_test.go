@@ -136,6 +136,32 @@ func TestAcceptInviteResolvesInviteForCurrentUser(t *testing.T) {
 	}
 }
 
+func TestCancelInviteRequiresManageMembersAndResolvesPendingInvite(t *testing.T) {
+	repo := newProjectServiceRepository()
+	repo.members[testCurrentUserID] = domainproject.Member{
+		ID:        "55555555-5555-5555-5555-555555555555",
+		ProjectID: testProjectID,
+		UserID:    testCurrentUserID,
+		Role:      domainproject.RoleAdmin,
+	}
+	service := NewService(repo, nil, &recordingProjectEventRecorder{})
+
+	invite, err := service.CancelInvite(context.Background(), CancelInviteInput{
+		CurrentUserID: testCurrentUserID,
+		ProjectRef:    "project",
+		InviteID:      testInviteID,
+	})
+	if err != nil {
+		t.Fatalf("expected invite cancel to succeed: %v", err)
+	}
+	if invite.Status != domainproject.InviteStatusRejected {
+		t.Fatalf("expected rejected invite, got %q", invite.Status)
+	}
+	if repo.canceledInviteID != testInviteID || repo.canceledProjectID != testProjectID {
+		t.Fatalf("expected cancel call for project %q invite %q, got project %q invite %q", testProjectID, testInviteID, repo.canceledProjectID, repo.canceledInviteID)
+	}
+}
+
 func TestRemoveMemberAllowsNonOwnerSelfLeave(t *testing.T) {
 	repo := newProjectServiceRepository()
 	repo.members[testCurrentUserID] = domainproject.Member{
@@ -204,6 +230,8 @@ type projectServiceRepository struct {
 	acceptedUserID     string
 	rejectedInviteID   string
 	rejectedUserID     string
+	canceledProjectID  string
+	canceledInviteID   string
 	getMemberRoleCalls int
 	countOwnersCalls   int
 }
@@ -310,6 +338,19 @@ func (r *projectServiceRepository) ListUserInvites(context.Context, string) ([]d
 	}
 
 	return []domainproject.Invite{r.createdInvite}, nil
+}
+
+func (r *projectServiceRepository) CancelInvite(_ context.Context, projectID, inviteID string) (domainproject.Invite, error) {
+	r.canceledProjectID = projectID
+	r.canceledInviteID = inviteID
+
+	return r.hydrateInvite(domainproject.Invite{
+		ID:              inviteID,
+		ProjectID:       projectID,
+		InvitedUserID:   testMemberUserID,
+		InvitedByUserID: testCurrentUserID,
+		Role:            domainproject.RoleViewer,
+	}, domainproject.InviteStatusRejected), nil
 }
 
 func (r *projectServiceRepository) AcceptInvite(_ context.Context, inviteID, userID string) (domainproject.Invite, error) {

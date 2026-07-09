@@ -113,6 +113,28 @@ func normalizeResolveInviteInput(input ResolveInviteInput) (ResolveInviteInput, 
 	}, nil
 }
 
+func normalizeCancelInviteInput(input CancelInviteInput) (CancelInviteInput, error) {
+	var validation appvalidation.Collector
+
+	projectRef, err := domainproject.VNProjectRef(input.ProjectRef)
+	if err != nil {
+		validation.AddError("projectRef", err, input.ProjectRef)
+	}
+	inviteID, err := domainproject.VNProjectInviteID(input.InviteID)
+	if err != nil {
+		validation.AddError("inviteId", err, input.InviteID)
+	}
+	if err := validation.Err(ErrInvalidInput); err != nil {
+		return CancelInviteInput{}, err
+	}
+
+	return CancelInviteInput{
+		CurrentUserID: input.CurrentUserID,
+		ProjectRef:    projectRef,
+		InviteID:      inviteID,
+	}, nil
+}
+
 func normalizeUpdateMemberRoleInput(input UpdateMemberRoleInput) (UpdateMemberRoleInput, error) {
 	projectRef, userID, role, err := normalizeMemberRoleFields(input.ProjectRef, input.UserID, input.Role, "memberUserId")
 	if err != nil {

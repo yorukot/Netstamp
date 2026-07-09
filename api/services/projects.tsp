@@ -111,6 +111,18 @@ interface ProjectInviteService {
 		| ConflictProblem
 		| UnprocessableEntityProblem
 		| InternalServerProblem;
+
+	@operationId("cancelProjectInvite")
+	@summary("Cancel project invite")
+	@delete
+	@route("/{invite_id}")
+	cancelProjectInvite(...ProjectRefParam, ...ProjectInviteIdPathParam):
+		| NoContent
+		| UnauthorizedProblem
+		| ForbiddenProblem
+		| NotFoundProblem
+		| UnprocessableEntityProblem
+		| InternalServerProblem;
 }
 
 @tag("Project Invites")

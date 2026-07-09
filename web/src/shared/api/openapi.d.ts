@@ -690,6 +690,23 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	"/projects/{ref}/invites/{invite_id}": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		post?: never;
+		/** Cancel project invite */
+		delete: operations["cancelProjectInvite"];
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	"/projects/{ref}/labels": {
 		parameters: {
 			query?: never;
@@ -7764,6 +7781,72 @@ export interface operations {
 			};
 			/** @description The request conflicts with the current state of the server. */
 			409: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	cancelProjectInvite: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				ref: components["parameters"]["ProjectRefParam"];
+				invite_id: components["parameters"]["ProjectInviteIdPathParam"];
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description There is no content to send for this request, but the headers may be useful. */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is forbidden. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
 				headers: {
 					[name: string]: unknown;
 				};

@@ -95,6 +95,89 @@ func (q *Queries) AcceptPendingProjectInvite(ctx context.Context, arg AcceptPend
 	return i, err
 }
 
+const cancelPendingProjectInvite = `-- name: CancelPendingProjectInvite :one
+WITH updated AS (
+    UPDATE project_invites
+    SET status = 'rejected',
+        resolved_at = now()
+    WHERE project_invites.id = $1
+      AND project_invites.project_id = $2
+      AND project_invites.status = 'pending'
+      AND EXISTS (
+          SELECT 1
+          FROM projects
+          WHERE projects.id = project_invites.project_id
+            AND projects.deleted_at IS NULL
+      )
+    RETURNING id, project_id, invited_user_id, invited_by_user_id, role, status, created_at, updated_at, resolved_at
+)
+SELECT updated.id,
+       updated.project_id,
+       updated.invited_user_id,
+       updated.invited_by_user_id,
+       updated.role,
+       updated.status,
+       updated.created_at,
+       updated.updated_at,
+       updated.resolved_at,
+       projects.name AS project_name,
+       projects.slug AS project_slug,
+       invited_user.email AS invited_user_email,
+       invited_user.display_name AS invited_user_display_name,
+       inviter.email AS invited_by_user_email,
+       inviter.display_name AS invited_by_user_display_name
+FROM updated
+JOIN projects ON projects.id = updated.project_id
+JOIN users AS invited_user ON invited_user.id = updated.invited_user_id
+JOIN users AS inviter ON inviter.id = updated.invited_by_user_id
+`
+
+type CancelPendingProjectInviteParams struct {
+	ID        uuid.UUID `json:"id"`
+	ProjectID uuid.UUID `json:"project_id"`
+}
+
+type CancelPendingProjectInviteRow struct {
+	ID                       uuid.UUID           `json:"id"`
+	ProjectID                uuid.UUID           `json:"project_id"`
+	InvitedUserID            uuid.UUID           `json:"invited_user_id"`
+	InvitedByUserID          uuid.UUID           `json:"invited_by_user_id"`
+	Role                     ProjectMemberRole   `json:"role"`
+	Status                   ProjectInviteStatus `json:"status"`
+	CreatedAt                time.Time           `json:"created_at"`
+	UpdatedAt                time.Time           `json:"updated_at"`
+	ResolvedAt               *time.Time          `json:"resolved_at"`
+	ProjectName              string              `json:"project_name"`
+	ProjectSlug              string              `json:"project_slug"`
+	InvitedUserEmail         string              `json:"invited_user_email"`
+	InvitedUserDisplayName   string              `json:"invited_user_display_name"`
+	InvitedByUserEmail       string              `json:"invited_by_user_email"`
+	InvitedByUserDisplayName string              `json:"invited_by_user_display_name"`
+}
+
+func (q *Queries) CancelPendingProjectInvite(ctx context.Context, arg CancelPendingProjectInviteParams) (CancelPendingProjectInviteRow, error) {
+	row := q.db.QueryRow(ctx, cancelPendingProjectInvite, arg.ID, arg.ProjectID)
+	var i CancelPendingProjectInviteRow
+	err := row.Scan(
+		&i.ID,
+		&i.ProjectID,
+		&i.InvitedUserID,
+		&i.InvitedByUserID,
+		&i.Role,
+		&i.Status,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.ResolvedAt,
+		&i.ProjectName,
+		&i.ProjectSlug,
+		&i.InvitedUserEmail,
+		&i.InvitedUserDisplayName,
+		&i.InvitedByUserEmail,
+		&i.InvitedByUserDisplayName,
+	)
+	return i, err
+}
+
 const createProjectInvite = `-- name: CreateProjectInvite :one
 WITH inserted AS (
     INSERT INTO project_invites (project_id, invited_user_id, invited_by_user_id, role)

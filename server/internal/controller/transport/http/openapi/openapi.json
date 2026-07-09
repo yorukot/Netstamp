@@ -3888,6 +3888,81 @@
 				]
 			}
 		},
+		"/projects/{ref}/invites/{invite_id}": {
+			"delete": {
+				"operationId": "cancelProjectInvite",
+				"summary": "Cancel project invite",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					},
+					{
+						"$ref": "#/components/parameters/ProjectInviteIdPathParam"
+					}
+				],
+				"responses": {
+					"204": {
+						"description": "There is no content to send for this request, but the headers may be useful. "
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Project Invites"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
 		"/projects/{ref}/labels": {
 			"get": {
 				"operationId": "listProjectLabels",

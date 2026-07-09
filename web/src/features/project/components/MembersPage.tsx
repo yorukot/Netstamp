@@ -1,5 +1,5 @@
 import { useSession } from "@/features/auth/session/SessionContext";
-import { useCreateProjectInviteMutation, useRemoveProjectMemberMutation, useUpdateProjectMemberRoleMutation } from "@/shared/api/mutations";
+import { useCancelProjectInviteMutation, useCreateProjectInviteMutation, useRemoveProjectMemberMutation, useUpdateProjectMemberRoleMutation } from "@/shared/api/mutations";
 import { projectQueries } from "@/shared/api/queries";
 import type { ApiProjectInvite, ProjectMemberRole } from "@/shared/api/types";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
@@ -111,6 +111,7 @@ export function MembersPage() {
 	const { projectRef } = useCurrentProject();
 	const { session } = useSession();
 	const createInviteMutation = useCreateProjectInviteMutation(projectRef);
+	const cancelInviteMutation = useCancelProjectInviteMutation(projectRef);
 	const removeMemberMutation = useRemoveProjectMemberMutation(projectRef);
 	const updateMemberRoleMutation = useUpdateProjectMemberRoleMutation(projectRef);
 	const [memberEmail, setMemberEmail] = useState("");
@@ -176,6 +177,18 @@ export function MembersPage() {
 				}
 			}
 		);
+	}
+
+	function cancelInvite(row: InviteRow) {
+		cancelInviteMutation.mutate(row.id, {
+			onSuccess: () => {
+				pushToast({
+					title: "Invite canceled",
+					message: `${row.email} no longer has a pending invite.`,
+					tone: "success"
+				});
+			}
+		});
 	}
 
 	const memberRows: MemberRow[] = members
@@ -283,7 +296,20 @@ export function MembersPage() {
 		{ key: "role", label: "Role", render: row => <Badge tone="accent">{roleLabel(row.role)}</Badge> },
 		{ key: "invitedBy", label: "Invited by" },
 		{ key: "createdAt", label: "Sent" },
-		{ key: "status", label: "Status", render: row => <Badge tone="warning">{roleLabel(row.status)}</Badge> }
+		{ key: "status", label: "Status", render: row => <Badge tone="warning">{roleLabel(row.status)}</Badge> },
+		{
+			key: "actions",
+			label: "Actions",
+			render: row => {
+				const canceling = cancelInviteMutation.isPending && cancelInviteMutation.variables === row.id;
+
+				return (
+					<Button variant="danger" size="sm" disabled={cancelInviteMutation.isPending} onClick={() => cancelInvite(row)}>
+						{canceling ? "Canceling" : "Cancel"}
+					</Button>
+				);
+			}
+		}
 	];
 
 	return (

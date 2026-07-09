@@ -384,6 +384,28 @@ func (r *ProjectRepository) ListUserInvites(ctx context.Context, userIDValue str
 	return invites, nil
 }
 
+func (r *ProjectRepository) CancelInvite(ctx context.Context, projectIDValue, inviteIDValue string) (domainproject.Invite, error) {
+	ctx, span := postgres.StartDBSpan(ctx, pgprojectTracer, "project_invites", "postgres.project_invites.cancel", "UPDATE", "CANCEL pending project invite")
+	defer span.End()
+
+	projectID, inviteID, err := parseProjectAndInviteIDs(projectIDValue, inviteIDValue)
+	if err != nil {
+		return domainproject.Invite{}, err
+	}
+
+	row, err := queryProjectRow(span, domainproject.ErrInviteNotFound, func() (sqlc.CancelPendingProjectInviteRow, error) {
+		return r.queries.CancelPendingProjectInvite(ctx, sqlc.CancelPendingProjectInviteParams{
+			ID:        inviteID,
+			ProjectID: projectID,
+		})
+	})
+	if err != nil {
+		return domainproject.Invite{}, err
+	}
+
+	return mapCancelInvite(row), nil
+}
+
 func (r *ProjectRepository) AcceptInvite(ctx context.Context, inviteIDValue, userIDValue string) (domainproject.Invite, error) {
 	ctx, span := postgres.StartDBSpan(ctx, pgprojectTracer, "project_invites", "postgres.project_invites.accept", "UPDATE", "ACCEPT pending project invite")
 	defer span.End()
@@ -505,4 +527,17 @@ func parseInviteAndUserIDs(inviteIDValue, userIDValue string) (uuid.UUID, uuid.U
 	}
 
 	return inviteID, userID, nil
+}
+
+func parseProjectAndInviteIDs(projectIDValue, inviteIDValue string) (uuid.UUID, uuid.UUID, error) {
+	projectID, err := postgres.ParseUUID(projectIDValue, domainproject.ErrProjectNotFound)
+	if err != nil {
+		return uuid.Nil, uuid.Nil, err
+	}
+	inviteID, err := postgres.ParseUUID(inviteIDValue, domainproject.ErrInviteNotFound)
+	if err != nil {
+		return uuid.Nil, uuid.Nil, err
+	}
+
+	return projectID, inviteID, nil
 }

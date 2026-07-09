@@ -46,6 +46,12 @@ type ListProjectInvitesInput struct {
 	ProjectRef    string
 }
 
+type CancelInviteInput struct {
+	CurrentUserID string
+	ProjectRef    string
+	InviteID      string
+}
+
 type ListUserInvitesInput struct {
 	CurrentUserID string
 }

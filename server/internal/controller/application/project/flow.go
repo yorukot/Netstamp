@@ -249,6 +249,19 @@ func (f *projectFlow) inviteResolveFailure(event ProjectEventName, err error) er
 	}
 }
 
+func (f *projectFlow) inviteCancelFailure(err error) error {
+	switch {
+	case errors.Is(err, domainproject.ErrInviteNotFound):
+		return f.businessFailure(ProjectEventCancelInviteFailure, ProjectReasonInviteNotFound, err)
+	case errors.Is(err, domainproject.ErrProjectNotFound):
+		return f.businessFailure(ProjectEventCancelInviteFailure, ProjectReasonProjectNotFound, err)
+	case errors.Is(err, identity.ErrUserNotFound):
+		return f.businessFailure(ProjectEventCancelInviteFailure, ProjectReasonUserNotFound, err)
+	default:
+		return f.technicalFailure(ProjectEventCancelInviteFailure, ProjectReasonInviteCancelFailed, err)
+	}
+}
+
 func (f *projectFlow) memberLookupFailure(event ProjectEventName, err error) error {
 	if errors.Is(err, domainproject.ErrMemberNotFound) {
 		return f.businessFailure(event, ProjectReasonMemberNotFound, err)

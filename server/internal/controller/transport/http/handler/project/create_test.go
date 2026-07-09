@@ -141,6 +141,10 @@ func (r *projectHandlerRepository) ListUserInvites(context.Context, string) ([]d
 	return nil, nil
 }
 
+func (r *projectHandlerRepository) CancelInvite(context.Context, string, string) (domainproject.Invite, error) {
+	return domainproject.Invite{}, nil
+}
+
 func (r *projectHandlerRepository) AcceptInvite(context.Context, string, string) (domainproject.Invite, error) {
 	return domainproject.Invite{}, nil
 }

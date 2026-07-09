@@ -133,6 +133,26 @@ func mapRejectInvite(row sqlc.RejectPendingProjectInviteRow) domainproject.Invit
 	)
 }
 
+func mapCancelInvite(row sqlc.CancelPendingProjectInviteRow) domainproject.Invite {
+	return mapInviteFields(
+		row.ID,
+		row.ProjectID,
+		row.InvitedUserID,
+		row.InvitedByUserID,
+		row.Role,
+		row.Status,
+		row.CreatedAt,
+		row.UpdatedAt,
+		row.ResolvedAt,
+		row.ProjectName,
+		row.ProjectSlug,
+		row.InvitedUserEmail,
+		row.InvitedUserDisplayName,
+		row.InvitedByUserEmail,
+		row.InvitedByUserDisplayName,
+	)
+}
+
 func mapMemberFields(
 	id uuid.UUID,
 	projectID uuid.UUID,

@@ -19,6 +19,11 @@ export function createProjectInvite(ref: string, body: CreateProjectInviteInput)
 	return readApiData(apiClient.POST("/projects/{ref}/invites", { params: { path: { ref } }, body }));
 }
 
+export function cancelProjectInvite(ref: string, inviteId: string) {
+	requireWritableAccess();
+	return readEmptyApiResponse(apiClient.DELETE("/projects/{ref}/invites/{invite_id}", { params: { path: { ref, invite_id: inviteId } } }));
+}
+
 export function removeProjectMember(ref: string, userId: string) {
 	requireWritableAccess();
 	return readEmptyApiResponse(apiClient.DELETE("/projects/{ref}/members/{user_id}", { params: { path: { ref, user_id: userId } } }));
@@ -58,6 +63,21 @@ export function useCreateProjectInviteForRefMutation(options?: AppMutationOption
 		...mutationToastOptions(options),
 		mutationFn: ({ projectRef, body }: { projectRef: string; body: CreateProjectInviteInput }) => createProjectInvite(projectRef, body),
 		onSuccess: (data, variables) => cacheCreatedProjectInvite(queryClient, variables.projectRef, data)
+	});
+}
+
+export function useCancelProjectInviteMutation(projectRef: string | null | undefined) {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: (inviteId: string) => cancelProjectInvite(requireProjectRef(projectRef), inviteId),
+		onSuccess: (_data, inviteId) => {
+			const ref = requireProjectRef(projectRef);
+			queryClient.setQueryData<ProjectInvitesCache | undefined>(apiQueryKeys.projects.invites(ref), data =>
+				data ? { ...data, invites: data.invites.filter(invite => invite.id !== inviteId) } : data
+			);
+			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.currentUserInvites() });
+		}
 	});
 }
 

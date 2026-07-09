@@ -250,6 +250,36 @@ func (s *Service) ListProjectInvites(ctx context.Context, input ListProjectInvit
 	return invites, nil
 }
 
+func (s *Service) CancelInvite(ctx context.Context, input CancelInviteInput) (domainproject.Invite, error) {
+	ctx, flow := s.startProjectFlow(ctx, "project.invite.cancel", ProjectActionCancelInvite, input.CurrentUserID)
+	defer flow.end()
+	flow.setInviteID(input.InviteID)
+
+	input, err := normalizeCancelInviteInput(input)
+	if err != nil {
+		return domainproject.Invite{}, flow.businessFailure(ProjectEventCancelInviteFailure, ProjectReasonInvalidInput, err)
+	}
+	flow.setInviteID(input.InviteID)
+
+	project, err := s.loadProjectForUser(ctx, flow, input.ProjectRef, input.CurrentUserID, ProjectEventCancelInviteFailure)
+	if err != nil {
+		return domainproject.Invite{}, err
+	}
+	_, err = s.requireRole(ctx, flow, project.ID, input.CurrentUserID, ProjectEventCancelInviteFailure, domainproject.ActionManageMembers)
+	if err != nil {
+		return domainproject.Invite{}, err
+	}
+
+	invite, err := s.repo.CancelInvite(ctx, project.ID, input.InviteID)
+	if err != nil {
+		return domainproject.Invite{}, flow.inviteCancelFailure(err)
+	}
+	flow.setInvite(invite)
+	flow.success(ProjectEventCancelInviteSuccess)
+
+	return invite, nil
+}
+
 func (s *Service) ListUserInvites(ctx context.Context, input ListUserInvitesInput) ([]domainproject.Invite, error) {
 	ctx, flow := s.startProjectFlow(ctx, "project.invites.list_user", ProjectActionListUserInvites, input.CurrentUserID)
 	defer flow.end()

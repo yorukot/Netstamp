@@ -37,6 +37,7 @@ func (h *Handler) RegisterRoutes(api chi.Router) {
 		r.Delete("/projects/{ref}/members/{user_id}", h.handleRemoveMember)
 		r.Post("/projects/{ref}/invites", h.handleCreateInvite)
 		r.Get("/projects/{ref}/invites", h.handleListProjectInvites)
+		r.Delete("/projects/{ref}/invites/{invite_id}", h.handleCancelInvite)
 		r.Get("/me/project-invites", h.handleListUserInvites)
 		r.Post("/me/project-invites/{invite_id}/accept", h.handleAcceptInvite)
 		r.Post("/me/project-invites/{invite_id}/reject", h.handleRejectInvite)

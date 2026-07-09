@@ -21,6 +21,7 @@ type Repository interface {
 	CountOwners(ctx context.Context, projectID string) (int, error)
 	CreateInvite(ctx context.Context, input domainproject.Invite) (domainproject.Invite, error)
 	ListProjectInvites(ctx context.Context, projectID string) ([]domainproject.Invite, error)
+	CancelInvite(ctx context.Context, projectID, inviteID string) (domainproject.Invite, error)
 	ListUserInvites(ctx context.Context, userID string) ([]domainproject.Invite, error)
 	AcceptInvite(ctx context.Context, inviteID, userID string) (domainproject.Invite, error)
 	RejectInvite(ctx context.Context, inviteID, userID string) (domainproject.Invite, error)
@@ -52,6 +53,8 @@ const (
 	ProjectEventCreateInviteSuccess     ProjectEventName = "project.invite.create.success"
 	ProjectEventCreateInviteFailure     ProjectEventName = "project.invite.create.failure"
 	ProjectEventListInvitesFailure      ProjectEventName = "project.invites.list.failure"
+	ProjectEventCancelInviteSuccess     ProjectEventName = "project.invite.cancel.success"
+	ProjectEventCancelInviteFailure     ProjectEventName = "project.invite.cancel.failure"
 	ProjectEventListUserInvitesFailure  ProjectEventName = "project.invites.list_user.failure"
 	ProjectEventAcceptInviteSuccess     ProjectEventName = "project.invite.accept.success"
 	ProjectEventAcceptInviteFailure     ProjectEventName = "project.invite.accept.failure"
@@ -72,6 +75,7 @@ const (
 	ProjectActionRemoveMember     ProjectEventAction = "remove_member"
 	ProjectActionCreateInvite     ProjectEventAction = "create_invite"
 	ProjectActionListInvites      ProjectEventAction = "list_invites"
+	ProjectActionCancelInvite     ProjectEventAction = "cancel_invite"
 	ProjectActionListUserInvites  ProjectEventAction = "list_user_invites"
 	ProjectActionAcceptInvite     ProjectEventAction = "accept_invite"
 	ProjectActionRejectInvite     ProjectEventAction = "reject_invite"
@@ -112,6 +116,7 @@ const (
 	ProjectReasonOwnerCountFailed       ProjectEventReason = "owner_count_failed"
 	ProjectReasonInvitesListFailed      ProjectEventReason = "invites_list_failed"
 	ProjectReasonInviteCreateFailed     ProjectEventReason = "invite_create_failed"
+	ProjectReasonInviteCancelFailed     ProjectEventReason = "invite_cancel_failed"
 	ProjectReasonInviteResolveFailed    ProjectEventReason = "invite_resolve_failed"
 )
 
