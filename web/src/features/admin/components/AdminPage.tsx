@@ -118,6 +118,10 @@ function filterManagedUsers(users: ApiManagedUser[], search: string) {
 	return users.filter(user => managedUserSearchText(user).includes(needle));
 }
 
+function sameValue(left: unknown, right: unknown) {
+	return JSON.stringify(left) === JSON.stringify(right);
+}
+
 export function AdminPage() {
 	const { session } = useSession();
 	const confirm = useConfirm();
@@ -140,7 +144,7 @@ export function AdminPage() {
 	}, [loadedSettings]);
 	const [editedForm, setEditedForm] = useState<AdminFormState | null>(null);
 	const form = editedForm ?? serverForm;
-	const hasAdminSettingsChanges = Boolean(editedForm);
+	const hasAdminSettingsChanges = Boolean(editedForm && !sameValue(editedForm, serverForm));
 	const userRows = useMemo(() => usersQuery.data?.users ?? [], [usersQuery.data?.users]);
 	const filteredUserRows = useMemo(() => filterManagedUsers(userRows, userSearch), [userRows, userSearch]);
 	const userCountLabel = userSearch.trim() ? `${filteredUserRows.length}/${userRows.length} users` : `${userRows.length} users`;
