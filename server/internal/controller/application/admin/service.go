@@ -91,95 +91,134 @@ func (s *Service) UpdateManagedUser(ctx context.Context, input UpdateManagedUser
 	var user ManagedUser
 	var loaded bool
 	if input.SystemAdmin != nil {
-		if *input.SystemAdmin {
-			user, err = s.repo.GrantSystemAdminByUserID(ctx, input.UserID)
-			if err != nil {
-				return ManagedUser{}, err
-			}
-			loaded = true
-			if auditErr := s.repo.CreateSystemSettingAuditEvent(ctx, managedUserAuditKey(user), auditActionGrantSystemAdmin, &input.CurrentUserID); auditErr != nil {
-				return ManagedUser{}, auditErr
-			}
-		} else {
-			if input.CurrentUserID == input.UserID {
-				return ManagedUser{}, ErrSelfSystemAdminRemoval
-			}
-			result, revokeErr := s.repo.RevokeSystemAdminIfNotLast(ctx, input.UserID)
-			if revokeErr != nil {
-				return ManagedUser{}, revokeErr
-			}
-			if !result.TargetWasAdmin {
-				return ManagedUser{}, ErrSystemAdminNotFound
-			}
-			if !result.Revoked && result.AdminCount <= 1 {
-				return ManagedUser{}, ErrLastSystemAdmin
-			}
-			if !result.Revoked {
-				return ManagedUser{}, ErrSystemAdminNotFound
-			}
-			if auditErr := s.repo.CreateSystemSettingAuditEvent(ctx, "user:"+input.UserID, auditActionRevokeSystemAdmin, &input.CurrentUserID); auditErr != nil {
-				return ManagedUser{}, auditErr
-			}
+		user, loaded, err = s.updateManagedUserAdmin(ctx, input)
+		if err != nil {
+			return ManagedUser{}, err
 		}
 	}
 
 	if input.Disabled != nil {
-		if *input.Disabled {
-			if input.CurrentUserID == input.UserID {
-				return ManagedUser{}, ErrSelfAccountDisable
-			}
-			if !loaded {
-				users, listErr := s.repo.ListManagedUsers(ctx)
-				if listErr != nil {
-					return ManagedUser{}, listErr
-				}
-				for _, candidate := range users {
-					if candidate.ID == input.UserID {
-						user = candidate
-						loaded = true
-						break
-					}
-				}
-			}
-			if loaded && user.IsSystemAdmin && user.DisabledAt == nil {
-				count, countErr := s.repo.CountActiveSystemAdmins(ctx)
-				if countErr != nil {
-					return ManagedUser{}, countErr
-				}
-				if count <= 1 {
-					return ManagedUser{}, ErrLastSystemAdmin
-				}
-			}
-		}
-
-		user, err = s.repo.SetManagedUserDisabledAt(ctx, input.UserID, *input.Disabled)
+		user, err = s.updateManagedUserDisabled(ctx, input, user, loaded)
 		if err != nil {
 			return ManagedUser{}, err
-		}
-		action := auditActionEnableUser
-		if *input.Disabled {
-			action = auditActionDisableUser
-		}
-		if auditErr := s.repo.CreateSystemSettingAuditEvent(ctx, managedUserAuditKey(user), action, &input.CurrentUserID); auditErr != nil {
-			return ManagedUser{}, auditErr
 		}
 		loaded = true
 	}
 
 	if !loaded {
-		users, listErr := s.repo.ListManagedUsers(ctx)
-		if listErr != nil {
-			return ManagedUser{}, listErr
-		}
-		for _, candidate := range users {
-			if candidate.ID == input.UserID {
-				return candidate, nil
-			}
-		}
-		return ManagedUser{}, identity.ErrUserNotFound
+		return s.getManagedUser(ctx, input.UserID)
 	}
 
 	return user, nil
+}
+
+func (s *Service) updateManagedUserAdmin(ctx context.Context, input UpdateManagedUserInput) (ManagedUser, bool, error) {
+	if *input.SystemAdmin {
+		user, err := s.repo.GrantSystemAdminByUserID(ctx, input.UserID)
+		if err != nil {
+			return ManagedUser{}, false, err
+		}
+		err = s.repo.CreateSystemSettingAuditEvent(ctx, managedUserAuditKey(user), auditActionGrantSystemAdmin, &input.CurrentUserID)
+		return user, true, err
+	}
+
+	if err := s.revokeManagedUserAdmin(ctx, input); err != nil {
+		return ManagedUser{}, false, err
+	}
+	return ManagedUser{}, false, nil
+}
+
+func (s *Service) revokeManagedUserAdmin(ctx context.Context, input UpdateManagedUserInput) error {
+	if input.CurrentUserID == input.UserID {
+		return ErrSelfSystemAdminRemoval
+	}
+	result, err := s.repo.RevokeSystemAdminIfNotLast(ctx, input.UserID)
+	if err != nil {
+		return err
+	}
+	if err := validateSystemAdminRevokeResult(result); err != nil {
+		return err
+	}
+	return s.repo.CreateSystemSettingAuditEvent(ctx, "user:"+input.UserID, auditActionRevokeSystemAdmin, &input.CurrentUserID)
+}
+
+func validateSystemAdminRevokeResult(result SystemAdminRevokeResult) error {
+	if !result.TargetWasAdmin {
+		return ErrSystemAdminNotFound
+	}
+	if !result.Revoked && result.AdminCount <= 1 {
+		return ErrLastSystemAdmin
+	}
+	if !result.Revoked {
+		return ErrSystemAdminNotFound
+	}
+	return nil
+}
+
+func (s *Service) updateManagedUserDisabled(ctx context.Context, input UpdateManagedUserInput, current ManagedUser, loaded bool) (ManagedUser, error) {
+	if err := s.ensureManagedUserCanSetDisabled(ctx, input, current, loaded); err != nil {
+		return ManagedUser{}, err
+	}
+
+	user, err := s.repo.SetManagedUserDisabledAt(ctx, input.UserID, *input.Disabled)
+	if err != nil {
+		return ManagedUser{}, err
+	}
+	action := managedUserDisabledAuditAction(*input.Disabled)
+	if err := s.repo.CreateSystemSettingAuditEvent(ctx, managedUserAuditKey(user), action, &input.CurrentUserID); err != nil {
+		return ManagedUser{}, err
+	}
+	return user, nil
+}
+
+func (s *Service) ensureManagedUserCanSetDisabled(ctx context.Context, input UpdateManagedUserInput, current ManagedUser, loaded bool) error {
+	if !*input.Disabled {
+		return nil
+	}
+	if input.CurrentUserID == input.UserID {
+		return ErrSelfAccountDisable
+	}
+
+	user := current
+	var err error
+	if !loaded {
+		user, err = s.getManagedUser(ctx, input.UserID)
+		if err != nil {
+			return err
+		}
+	}
+	if !user.IsSystemAdmin || user.DisabledAt != nil {
+		return nil
+	}
+
+	count, err := s.repo.CountActiveSystemAdmins(ctx)
+	if err != nil {
+		return err
+	}
+	if count <= 1 {
+		return ErrLastSystemAdmin
+	}
+	return nil
+}
+
+func managedUserDisabledAuditAction(disabled bool) string {
+	if disabled {
+		return auditActionDisableUser
+	}
+	return auditActionEnableUser
+}
+
+func (s *Service) getManagedUser(ctx context.Context, userID string) (ManagedUser, error) {
+	users, err := s.repo.ListManagedUsers(ctx)
+	if err != nil {
+		return ManagedUser{}, err
+	}
+	for _, candidate := range users {
+		if candidate.ID == userID {
+			return candidate, nil
+		}
+	}
+	return ManagedUser{}, identity.ErrUserNotFound
 }
 
 func (s *Service) SetManagedUserPassword(ctx context.Context, input SetManagedUserPasswordInput) (ManagedUser, error) {
@@ -243,8 +282,8 @@ func (s *Service) ExportData(ctx context.Context, input ExportDataInput) (DataEx
 	if err != nil {
 		return DataExport{}, err
 	}
-	if err := s.requireSystemAdmin(ctx, input.CurrentUserID); err != nil {
-		return DataExport{}, err
+	if requireErr := s.requireSystemAdmin(ctx, input.CurrentUserID); requireErr != nil {
+		return DataExport{}, requireErr
 	}
 	return s.repo.ExportData(ctx)
 }
@@ -254,8 +293,8 @@ func (s *Service) ImportData(ctx context.Context, input ImportDataInput) (DataIm
 	if err != nil {
 		return DataImportResult{}, err
 	}
-	if err := s.requireSystemAdmin(ctx, input.CurrentUserID); err != nil {
-		return DataImportResult{}, err
+	if requireErr := s.requireSystemAdmin(ctx, input.CurrentUserID); requireErr != nil {
+		return DataImportResult{}, requireErr
 	}
 	result, err := s.repo.ImportData(ctx, input.Export)
 	if err != nil {

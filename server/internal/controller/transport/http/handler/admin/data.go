@@ -101,7 +101,7 @@ func cloneRawTables(input map[string][]domainsystem.RawDataRow) map[string][]dom
 	for table, rows := range input {
 		output[table] = make([]domainsystem.RawDataRow, 0, len(rows))
 		for _, row := range rows {
-			output[table] = append(output[table], domainsystem.RawDataRow(append(json.RawMessage(nil), row...)))
+			output[table] = append(output[table], append(json.RawMessage(nil), row...))
 		}
 	}
 	return output
