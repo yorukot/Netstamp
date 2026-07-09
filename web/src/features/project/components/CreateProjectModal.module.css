@@ -1,29 +1,6 @@
-.overlay {
-	position: fixed;
-	inset: 0;
-	z-index: 120;
-	display: grid;
-	place-items: center;
-	padding: 1rem;
-	background: color-mix(in srgb, var(--ns-bg) 64%, transparent);
-	isolation: isolate;
-}
-
-.lineTop,
-.lineBottom {
-	display: none;
-}
-
 .dialog {
-	--ns-frame-radius: var(--ns-radius-lg);
-	--ns-frame-color: var(--ns-border);
-	display: grid;
-	gap: 1rem;
-	width: min(34rem, 100%);
-	padding: 1rem;
-	border: 1px solid var(--ns-frame-color);
-	color: var(--ns-text);
-	background: var(--ns-surface);
+	--ns-dialog-padding: 1rem;
+	--ns-dialog-width: 34rem;
 }
 
 .header {

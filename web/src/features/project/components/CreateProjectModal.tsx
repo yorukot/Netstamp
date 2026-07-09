@@ -116,9 +116,7 @@ export function CreateProjectModal({ onClose, onCreatedProject }: CreateProjectM
 			}}
 		>
 			<DialogPortal>
-				<DialogOverlay className={styles.overlay} onMouseDown={closeModal}>
-					<div className={styles.lineTop} aria-hidden="true" />
-					<div className={styles.lineBottom} aria-hidden="true" />
+				<DialogOverlay onMouseDown={closeModal}>
 					<DialogContent asChild aria-describedby={descriptionId}>
 						<section className={styles.dialog} onMouseDown={event => event.stopPropagation()}>
 							<div className={styles.header}>

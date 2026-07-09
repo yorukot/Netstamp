@@ -13,7 +13,7 @@ import {
 } from "./confirmContext";
 import styles from "./ConfirmProvider.module.css";
 
-const closeDurationMs = 260;
+const closeDurationMs = 180;
 
 interface BaseDialogState {
 	closing: boolean;
@@ -187,10 +187,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
 		state && typeof document !== "undefined" ? (
 			<AlertDialogRoot open={Boolean(state)} onOpenChange={handleOpenChange}>
 				<AlertDialogPortal>
-					<AlertDialogOverlay className={styles.overlay} data-closing={state.closing} onMouseDown={cancelDialog}>
-						<div className={styles.axis} aria-hidden="true" />
-						<div className={styles.curtainTop} aria-hidden="true" />
-						<div className={styles.curtainBottom} aria-hidden="true" />
+					<AlertDialogOverlay data-closing={state.closing} onMouseDown={cancelDialog}>
 						<AlertDialogContent asChild aria-describedby={message ? messageId : undefined}>
 							<form className={styles.dialog} data-tone={tone} onSubmit={submitDialog} onMouseDown={event => event.stopPropagation()}>
 								<div className={styles.header}>

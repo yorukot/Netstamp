@@ -1,3 +1,62 @@
+.dialogOverlay {
+	position: fixed;
+	inset: 0;
+	z-index: 120;
+	background: var(--ns-overlay-scrim);
+	backdrop-filter: blur(0.875rem);
+	-webkit-backdrop-filter: blur(0.875rem);
+}
+
+.dialogOverlay[data-state="open"] {
+	animation: dialogOverlayFadeIn 300ms ease-out both;
+}
+
+.dialogOverlay[data-state="closed"] {
+	animation: dialogOverlayFadeOut 180ms ease-in both;
+}
+
+.dialogOverlay[data-closing="true"] {
+	pointer-events: none;
+	animation: dialogOverlayFadeOut 180ms ease-in both;
+}
+
+.dialogOverlay[data-closing="true"] .dialogContent {
+	animation: dialogContentFadeOutToBottom 160ms ease-in both;
+}
+
+.dialogContent {
+	position: fixed;
+	top: 50%;
+	left: 50%;
+	z-index: 121;
+	display: grid;
+	gap: 1rem;
+	width: min(calc(100vw - 2rem), var(--ns-dialog-width, 34rem));
+	max-height: calc(100svh - 2rem);
+	overflow: auto;
+	padding: var(--ns-dialog-padding, 1.25rem);
+	border: 1px solid var(--ns-dialog-border, var(--ns-border));
+	color: var(--ns-text);
+	background: var(--ns-surface);
+	opacity: 1;
+	outline: 2px solid transparent;
+	outline-offset: calc(-1 * var(--ns-focus-outline-offset));
+	transform: translate(-50%, -50%);
+}
+
+.dialogContent:focus-visible {
+	outline: var(--ns-focus-outline);
+	outline-offset: calc(-1 * var(--ns-focus-outline-offset));
+}
+
+.dialogContent[data-state="open"] {
+	animation: dialogContentFadeInFromBottom 300ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.dialogContent[data-state="closed"] {
+	animation: dialogContentFadeOutToBottom 160ms ease-in both;
+}
+
 .dropdownMenuContent,
 .popoverContent {
 	--ns-overlay-motion-enter-x: 0rem;
@@ -49,6 +108,58 @@
 	animation: overlayContentOut 140ms ease-in both;
 }
 
+@keyframes dialogOverlayFadeIn {
+	from {
+		background: transparent;
+		backdrop-filter: blur(0);
+		-webkit-backdrop-filter: blur(0);
+	}
+
+	to {
+		background: var(--ns-overlay-scrim);
+		backdrop-filter: blur(0.875rem);
+		-webkit-backdrop-filter: blur(0.875rem);
+	}
+}
+
+@keyframes dialogOverlayFadeOut {
+	from {
+		background: var(--ns-overlay-scrim);
+		backdrop-filter: blur(0.875rem);
+		-webkit-backdrop-filter: blur(0.875rem);
+	}
+
+	to {
+		background: transparent;
+		backdrop-filter: blur(0);
+		-webkit-backdrop-filter: blur(0);
+	}
+}
+
+@keyframes dialogContentFadeInFromBottom {
+	from {
+		opacity: 0;
+		transform: translate(-50%, calc(-50% + 1rem));
+	}
+
+	to {
+		opacity: 1;
+		transform: translate(-50%, -50%);
+	}
+}
+
+@keyframes dialogContentFadeOutToBottom {
+	from {
+		opacity: 1;
+		transform: translate(-50%, -50%);
+	}
+
+	to {
+		opacity: 0;
+		transform: translate(-50%, calc(-50% + 0.75rem));
+	}
+}
+
 @keyframes overlayContentIn {
 	from {
 		opacity: 0;
@@ -74,6 +185,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+	.dialogOverlay[data-state],
+	.dialogOverlay[data-closing="true"],
+	.dialogOverlay[data-closing="true"] .dialogContent,
+	.dialogContent[data-state],
 	.dropdownMenuContent[data-state],
 	.popoverContent[data-state] {
 		animation-duration: 0.01ms;

@@ -465,7 +465,7 @@ export function LabelsPage() {
 				}}
 			>
 				<DialogPortal>
-					<DialogOverlay className={styles.popupOverlay} onMouseDown={closeEditor}>
+					<DialogOverlay onMouseDown={closeEditor}>
 						<DialogContent asChild>
 							<form className={styles.popup} onSubmit={submitLabel} onMouseDown={event => event.stopPropagation()}>
 								<div className={styles.popupHeader}>

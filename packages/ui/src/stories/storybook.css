@@ -469,49 +469,6 @@
 	color: var(--ns-primary-hover);
 }
 
-.storybook-overlay {
-	position: fixed;
-	inset: 0;
-	z-index: 40;
-	background: var(--ns-overlay-scrim);
-	backdrop-filter: blur(0.875rem);
-	-webkit-backdrop-filter: blur(0.875rem);
-}
-
-.storybook-overlay[data-state="open"] {
-	animation: storybookOverlayFadeIn 300ms ease-out both;
-}
-
-.storybook-overlay[data-state="closed"] {
-	animation: storybookOverlayFadeOut 180ms ease-in both;
-}
-
-.storybook-dialog {
-	position: fixed;
-	top: 50%;
-	left: 50%;
-	z-index: 50;
-	display: grid;
-	gap: 1rem;
-	width: min(calc(100vw - 2rem), 34rem);
-	max-height: calc(100svh - 2rem);
-	overflow: auto;
-	padding: 1.25rem;
-	border: 1px solid var(--ns-border);
-	background: var(--ns-surface);
-	color: var(--ns-text);
-	opacity: 1;
-	transform: translate(-50%, -50%);
-}
-
-.storybook-dialog[data-state="open"] {
-	animation: storybookDialogFadeInFromBottom 300ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
-}
-
-.storybook-dialog[data-state="closed"] {
-	animation: storybookDialogFadeOutToBottom 160ms ease-in both;
-}
-
 .storybook-overlay-title {
 	margin: 0;
 	font-size: clamp(1.25rem, 4vw, 2rem);
@@ -608,62 +565,6 @@
 	font-family: var(--ns-font-title);
 	font-size: 1.2rem;
 	line-height: 1;
-}
-
-@keyframes storybookOverlayFadeIn {
-	from {
-		background: transparent;
-		backdrop-filter: blur(0);
-		-webkit-backdrop-filter: blur(0);
-	}
-	to {
-		background: var(--ns-overlay-scrim);
-		backdrop-filter: blur(0.875rem);
-		-webkit-backdrop-filter: blur(0.875rem);
-	}
-}
-
-@keyframes storybookOverlayFadeOut {
-	from {
-		background: var(--ns-overlay-scrim);
-		backdrop-filter: blur(0.875rem);
-		-webkit-backdrop-filter: blur(0.875rem);
-	}
-	to {
-		background: transparent;
-		backdrop-filter: blur(0);
-		-webkit-backdrop-filter: blur(0);
-	}
-}
-
-@keyframes storybookDialogFadeInFromBottom {
-	from {
-		opacity: 0;
-		transform: translate(-50%, calc(-50% + 1rem));
-	}
-	to {
-		opacity: 1;
-		transform: translate(-50%, -50%);
-	}
-}
-
-@keyframes storybookDialogFadeOutToBottom {
-	from {
-		opacity: 1;
-		transform: translate(-50%, -50%);
-	}
-	to {
-		opacity: 0;
-		transform: translate(-50%, calc(-50% + 0.75rem));
-	}
-}
-
-@media (prefers-reduced-motion: reduce) {
-	.storybook-overlay,
-	.storybook-dialog {
-		animation-duration: 1ms;
-		animation-delay: 0ms;
-	}
 }
 
 @media (max-width: 60rem) {

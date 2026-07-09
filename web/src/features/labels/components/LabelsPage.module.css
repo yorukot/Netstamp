@@ -201,43 +201,9 @@
 	line-height: 1.5;
 }
 
-.popupOverlay {
-	position: fixed;
-	inset: 0;
-	z-index: 120;
-	display: grid;
-	place-items: center;
-	padding: 1rem;
-	background: color-mix(in srgb, var(--ns-bg) 64%, transparent);
-}
-
-.popupOverlay[data-state="open"] {
-	animation: labelPopupOverlayIn 180ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
-}
-
-.popupOverlay[data-state="closed"] {
-	animation: labelPopupOverlayOut 140ms ease-in both;
-}
-
 .popup {
-	--ns-frame-radius: var(--ns-radius-lg);
-	--ns-frame-color: var(--ns-border);
-	display: grid;
-	gap: 1rem;
-	width: min(26rem, 100%);
-	padding: 1rem;
-	border: 1px solid var(--ns-frame-color);
-	color: var(--ns-text);
-	background: var(--ns-surface);
-	will-change: opacity, transform;
-}
-
-.popup[data-state="open"] {
-	animation: labelPopupIn 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
-}
-
-.popup[data-state="closed"] {
-	animation: labelPopupOut 140ms ease-in both;
+	--ns-dialog-padding: 1rem;
+	--ns-dialog-width: 26rem;
 }
 
 .popupHeader {
@@ -274,57 +240,6 @@
 	gap: 0.75rem;
 	align-items: center;
 	justify-content: flex-end;
-}
-
-@keyframes labelPopupOverlayIn {
-	from {
-		opacity: 0;
-	}
-
-	to {
-		opacity: 1;
-	}
-}
-
-@keyframes labelPopupOverlayOut {
-	from {
-		opacity: 1;
-	}
-
-	to {
-		opacity: 0;
-	}
-}
-
-@keyframes labelPopupIn {
-	from {
-		opacity: 0;
-		transform: translate3d(0, 0.25rem, 0) scale(0.98);
-	}
-
-	to {
-		opacity: 1;
-		transform: translate3d(0, 0, 0) scale(1);
-	}
-}
-
-@keyframes labelPopupOut {
-	from {
-		opacity: 1;
-		transform: translate3d(0, 0, 0) scale(1);
-	}
-
-	to {
-		opacity: 0;
-		transform: translate3d(0, 0.125rem, 0) scale(0.98);
-	}
-}
-
-@media (prefers-reduced-motion: reduce) {
-	.popupOverlay[data-state],
-	.popup[data-state] {
-		animation-duration: 0.01ms;
-	}
 }
 
 @media (max-width: 58rem) {

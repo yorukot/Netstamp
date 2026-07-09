@@ -52,8 +52,8 @@ export const Dialog: Story = {
 					<Button type="button">Open dialog</Button>
 				</DialogTrigger>
 				<DialogPortal>
-					<DialogOverlay className="storybook-overlay" />
-					<DialogContent className="storybook-dialog">
+					<DialogOverlay />
+					<DialogContent>
 						<DialogTitle className="ns-title storybook-overlay-title">Probe maintenance window</DialogTitle>
 						<DialogDescription className="storybook-overlay-description">Confirm the maintenance note before muting probe alerts for the selected route.</DialogDescription>
 						<Panel tone="matte" title="Affected probe" className="storybook-overlay-panel">
@@ -86,8 +86,8 @@ export const AlertDialog: Story = {
 					</Button>
 				</AlertDialogTrigger>
 				<AlertDialogPortal>
-					<AlertDialogOverlay className="storybook-overlay" />
-					<AlertDialogContent className="storybook-dialog">
+					<AlertDialogOverlay />
+					<AlertDialogContent>
 						<AlertDialogTitle className="ns-title storybook-overlay-title">Delete HTTP check?</AlertDialogTitle>
 						<AlertDialogDescription className="storybook-overlay-description">This removes the check configuration and stops new measurements for api.netstamp.local.</AlertDialogDescription>
 						<div className="storybook-overlay-actions">

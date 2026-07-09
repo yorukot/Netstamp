@@ -12,8 +12,6 @@ function classNames(...values: Array<string | false | null | undefined>) {
 export const DialogRoot = DialogPrimitive.Root;
 export const DialogTrigger = DialogPrimitive.Trigger;
 export const DialogPortal = DialogPrimitive.Portal;
-export const DialogOverlay = DialogPrimitive.Overlay;
-export const DialogContent = DialogPrimitive.Content;
 export const DialogTitle = DialogPrimitive.Title;
 export const DialogDescription = DialogPrimitive.Description;
 export const DialogClose = DialogPrimitive.Close;
@@ -27,11 +25,17 @@ export type DialogTitleProps = ComponentPropsWithoutRef<typeof DialogPrimitive.T
 export type DialogDescriptionProps = ComponentPropsWithoutRef<typeof DialogPrimitive.Description>;
 export type DialogCloseProps = ComponentPropsWithoutRef<typeof DialogPrimitive.Close>;
 
+export const DialogOverlay = forwardRef<ComponentRef<typeof DialogPrimitive.Overlay>, DialogOverlayProps>(function DialogOverlay({ className, ...props }, ref) {
+	return <DialogPrimitive.Overlay ref={ref} className={classNames(styles.dialogOverlay, className)} {...props} />;
+});
+
+export const DialogContent = forwardRef<ComponentRef<typeof DialogPrimitive.Content>, DialogContentProps>(function DialogContent({ className, ...props }, ref) {
+	return <DialogPrimitive.Content ref={ref} className={classNames(styles.dialogContent, className)} {...props} />;
+});
+
 export const AlertDialogRoot = AlertDialogPrimitive.Root;
 export const AlertDialogTrigger = AlertDialogPrimitive.Trigger;
 export const AlertDialogPortal = AlertDialogPrimitive.Portal;
-export const AlertDialogOverlay = AlertDialogPrimitive.Overlay;
-export const AlertDialogContent = AlertDialogPrimitive.Content;
 export const AlertDialogTitle = AlertDialogPrimitive.Title;
 export const AlertDialogDescription = AlertDialogPrimitive.Description;
 export const AlertDialogAction = AlertDialogPrimitive.Action;
@@ -46,6 +50,14 @@ export type AlertDialogTitleProps = ComponentPropsWithoutRef<typeof AlertDialogP
 export type AlertDialogDescriptionProps = ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Description>;
 export type AlertDialogActionProps = ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Action>;
 export type AlertDialogCancelProps = ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Cancel>;
+
+export const AlertDialogOverlay = forwardRef<ComponentRef<typeof AlertDialogPrimitive.Overlay>, AlertDialogOverlayProps>(function AlertDialogOverlay({ className, ...props }, ref) {
+	return <AlertDialogPrimitive.Overlay ref={ref} className={classNames(styles.dialogOverlay, className)} {...props} />;
+});
+
+export const AlertDialogContent = forwardRef<ComponentRef<typeof AlertDialogPrimitive.Content>, AlertDialogContentProps>(function AlertDialogContent({ className, ...props }, ref) {
+	return <AlertDialogPrimitive.Content ref={ref} className={classNames(styles.dialogContent, className)} {...props} />;
+});
 
 export const DropdownMenuRoot = DropdownMenuPrimitive.Root;
 export const DropdownMenuTrigger = DropdownMenuPrimitive.Trigger;
