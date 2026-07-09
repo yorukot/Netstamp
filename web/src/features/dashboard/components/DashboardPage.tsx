@@ -61,7 +61,7 @@ export function DashboardPage() {
 		<PageStack className={styles.dashboard}>
 			<header className={styles.dashboardHeader}>
 				<div className={styles.titleBlock}>
-					<h1>Dashboard</h1>
+					<h1>Overview</h1>
 				</div>
 			</header>
 

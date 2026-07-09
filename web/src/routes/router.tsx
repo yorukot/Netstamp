@@ -11,7 +11,7 @@ export const router = createBrowserRouter([
 	{
 		element: <RouteFrame />,
 		children: [
-			{ path: pathForRoute("landing"), handle: pageTitleHandle("Dashboard"), element: <RouterNavigate to={pathForRoute("dashboard")} replace /> },
+			{ path: pathForRoute("landing"), handle: pageTitleHandle("Overview"), element: <RouterNavigate to={pathForRoute("dashboard")} replace /> },
 			{ path: pathForRoute("login"), handle: pageTitleHandle("Login"), element: <AuthRoute mode="login" /> },
 			{ path: pathForRoute("register"), handle: pageTitleHandle("Sign Up"), element: <AuthRoute mode="register" /> },
 			{ path: pathForRoute("forgotPassword"), handle: pageTitleHandle("Forgot Password"), element: <PasswordResetRoute mode="forgot" /> },
@@ -22,7 +22,7 @@ export const router = createBrowserRouter([
 			{
 				element: <ProtectedAppShell />,
 				children: [
-					{ path: "dashboard", handle: pageTitleHandle("Dashboard"), element: <DefaultProjectRedirect route="dashboard" /> },
+					{ path: "dashboard", handle: pageTitleHandle("Overview"), element: <DefaultProjectRedirect route="dashboard" /> },
 					{
 						path: "probes",
 						handle: pageTitleHandle("Probes"),
@@ -53,13 +53,13 @@ export const router = createBrowserRouter([
 					{ path: "status-pages", handle: pageTitleHandle("Status Pages"), element: <DefaultProjectRedirect route="statusPages" /> },
 					{ path: "members", handle: pageTitleHandle("Members"), element: <DefaultProjectRedirect route="members" /> },
 					{ path: "project", handle: pageTitleHandle("Project Settings"), element: <DefaultProjectRedirect route="projectSettings" /> },
-					{ path: "projects", handle: pageTitleHandle("Dashboard"), element: <DefaultProjectRedirect route="dashboard" /> },
+					{ path: "projects", handle: pageTitleHandle("Overview"), element: <DefaultProjectRedirect route="dashboard" /> },
 					{
 						path: "projects/:projectRef",
 						element: <ProjectRouteBoundary />,
 						children: [
-							{ index: true, handle: pageTitleHandle("Dashboard"), element: <RouterNavigate to={projectRoutePath("dashboard")} replace /> },
-							{ path: projectRoutePath("dashboard"), handle: pageTitleHandle("Dashboard"), element: <DashboardRoute /> },
+							{ index: true, handle: pageTitleHandle("Overview"), element: <RouterNavigate to={projectRoutePath("dashboard")} replace /> },
+							{ path: projectRoutePath("dashboard"), handle: pageTitleHandle("Overview"), element: <DashboardRoute /> },
 							{
 								path: projectRoutePath("probes"),
 								handle: pageTitleHandle("Probes"),

@@ -19,7 +19,7 @@ export interface SidebarItem {
 }
 
 export const sidebarItems: SidebarItem[] = [
-	{ label: "Dashboard", route: "dashboard", icon: GaugeIcon },
+	{ label: "Overview", route: "dashboard", icon: GaugeIcon },
 	{ label: "Probes", route: "probes", icon: BroadcastIcon },
 	{ label: "Checks", route: "checks", icon: CheckCircleIcon },
 	{ label: "Alerts", route: "alerts", icon: BellRingingIcon },
