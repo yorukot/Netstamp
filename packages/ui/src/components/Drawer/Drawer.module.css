@@ -15,7 +15,7 @@
 
 .drawer {
 	--ns-drawer-width: 42rem;
-	--ns-drawer-top-offset: 0.5rem;
+	--ns-drawer-top-offset: 1.5rem;
 
 	position: fixed;
 	top: 0;
@@ -210,8 +210,6 @@
 
 @media (max-width: 38rem) {
 	.drawer {
-		--ns-drawer-top-offset: 0.5rem;
-
 		width: 100vw;
 		padding: calc(1rem + var(--ns-drawer-top-offset)) 1rem 1rem;
 	}
