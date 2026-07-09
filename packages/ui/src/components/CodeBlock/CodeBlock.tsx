@@ -75,6 +75,11 @@ export function CodeBlock({ title = "code block", meta, actions, copyable = true
 		<div className={["ns-frame", styles.block].join(" ")} data-ns-code-block>
 			{title || meta || actions || copyable ? (
 				<div className={styles.header}>
+					<span className={styles.windowControls} aria-hidden="true">
+						<span className={styles.windowControl} />
+						<span className={styles.windowControl} />
+						<span className={styles.windowControl} />
+					</span>
 					<div className={styles.copy}>
 						{title ? <strong>{title}</strong> : null}
 						{meta ? <span>{meta}</span> : null}
