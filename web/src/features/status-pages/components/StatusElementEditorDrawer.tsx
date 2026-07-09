@@ -1,7 +1,8 @@
 import { checkTypeLabel, rootFolderOptions } from "@/features/status-pages/api/statusPageAdapters";
 import type { ApiProjectAssignment, ApiPublicStatusElement, CreatePublicStatusElementInput, PublicStatusChartRange, PublicStatusElementChartMode, PublicStatusElementKind } from "@/shared/api/types";
 import { EditorDrawer } from "@/shared/components/EditorDrawer";
-import { Badge, Button, Checkbox, SelectField, TextAreaField, TextField } from "@netstamp/ui";
+import { UnsavedChangesBar } from "@/shared/components/UnsavedChangesBar";
+import { Badge, Checkbox, SelectField, TextAreaField, TextField } from "@netstamp/ui";
 import { useMemo, useState, type FormEvent } from "react";
 import styles from "./StatusElementEditorDrawer.module.css";
 
@@ -80,6 +81,10 @@ function initialState(element?: ApiPublicStatusElement | null): StatusElementFor
 	};
 }
 
+function sameValue(left: unknown, right: unknown) {
+	return JSON.stringify(left) === JSON.stringify(right);
+}
+
 function publicAssignmentOption(assignment: ApiProjectAssignment): PublicAssignmentOption | null {
 	if (!assignment.check || !assignment.probe) {
 		return null;
@@ -128,7 +133,8 @@ function probeOptions(assignments: PublicAssignmentOption[]) {
 }
 
 export function StatusElementEditorDrawer({ open, element, elements, assignments, saving, onClose, onSubmit }: StatusElementEditorDrawerProps) {
-	const [form, setForm] = useState<StatusElementFormInput>(() => initialState(element));
+	const initialForm = useMemo(() => initialState(element), [element]);
+	const [form, setForm] = useState<StatusElementFormInput>(() => initialForm);
 	const [error, setError] = useState("");
 	const [checkFilter, setCheckFilter] = useState(element?.checkId ?? "");
 	const [probeFilter, setProbeFilter] = useState("");
@@ -164,6 +170,7 @@ export function StatusElementEditorDrawer({ open, element, elements, assignments
 	const parentOptions = [{ value: "", label: "Root" }, ...availableParents];
 	const isFolder = form.kind === "folder";
 	const selectionMode = form.assignmentSelectionMode ?? "all_check";
+	const hasChanges = !sameValue(form, initialForm);
 
 	function update<K extends keyof StatusElementFormInput>(key: K, value: StatusElementFormInput[K]) {
 		setForm(current => ({ ...current, [key]: value }));
@@ -201,6 +208,11 @@ export function StatusElementEditorDrawer({ open, element, elements, assignments
 		});
 	}
 
+	function resetForm() {
+		setForm(initialForm);
+		setError("");
+	}
+
 	function handleSubmit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 		const title = form.title.trim();
@@ -235,17 +247,7 @@ export function StatusElementEditorDrawer({ open, element, elements, assignments
 	}
 
 	return (
-		<EditorDrawer
-			open={open}
-			title={isEditing ? "Edit Element" : "New Element"}
-			ariaLabel={isEditing ? "Edit status page element" : "Create status page element"}
-			onClose={onClose}
-			actions={
-				<Button type="submit" form="status-element-editor-form" disabled={saving}>
-					{saving ? "Saving" : "Save"}
-				</Button>
-			}
-		>
+		<EditorDrawer open={open} title={isEditing ? "Edit Element" : "New Element"} ariaLabel={isEditing ? "Edit status page element" : "Create status page element"} onClose={onClose}>
 			<form id="status-element-editor-form" className={styles.form} onSubmit={handleSubmit}>
 				{error ? <div className={styles.formError}>{error}</div> : null}
 				<SelectField label="Element type" value={form.kind} disabled={isEditing} options={kindOptions} onChange={event => handleKindChange(event.currentTarget.value as PublicStatusElementKind)} />
@@ -307,6 +309,7 @@ export function StatusElementEditorDrawer({ open, element, elements, assignments
 					options={chartRangeOptions}
 					onChange={event => update("chartRange", (event.currentTarget.value || undefined) as PublicStatusChartRange | undefined)}
 				/>
+				<UnsavedChangesBar show={hasChanges} saveType="submit" saving={saving} onReset={resetForm} />
 			</form>
 		</EditorDrawer>
 	);

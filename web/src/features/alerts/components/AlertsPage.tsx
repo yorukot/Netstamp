@@ -15,6 +15,7 @@ import { useConfirm } from "@/shared/components/confirmContext";
 import { EditorDrawer } from "@/shared/components/EditorDrawer";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
+import { UnsavedChangesBar } from "@/shared/components/UnsavedChangesBar";
 import { pushErrorToast, pushToast } from "@/shared/toast/toastStore";
 import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
 import { Badge, Button, DataTable, EmptyState, KeyValueRow, LoadingState, Panel, SelectableRow, SelectField, Tabs, TextAreaField, TextField, type BadgeTone, type DataColumn } from "@netstamp/ui";
@@ -112,6 +113,10 @@ function NotificationTypeIcon({ type }: { type: NotificationType }) {
 
 function tableState(label: string, detail: string) {
 	return <LoadingState label={label} detail={detail} size="compact" />;
+}
+
+function sameValue(left: unknown, right: unknown) {
+	return JSON.stringify(left) === JSON.stringify(right);
 }
 
 export function AlertsPage() {
@@ -728,12 +733,14 @@ function RuleEditorDrawer({
 	onClose: () => void;
 	onSubmit: (form: RuleFormState) => Promise<void>;
 }) {
-	const [form, setForm] = useState<RuleFormState>(() => (editor.mode === "edit" && editor.rule ? ruleFormFromRule(editor.rule) : defaultRuleForm()));
+	const initialForm = useMemo(() => (editor.mode === "edit" && editor.rule ? ruleFormFromRule(editor.rule) : defaultRuleForm()), [editor.mode, editor.rule]);
+	const [form, setForm] = useState<RuleFormState>(() => initialForm);
 	const metricSelectOptions = useMemo(() => metricOptionsForForm(form), [form]);
 	const title = editor.mode === "edit" ? "Edit rule" : "Create rule";
 	const checkTypeSupported = supportsAlertMetrics(form.checkType);
 	const numberValidation = validateRuleNumbers(form);
 	const numberError = ruleNumberError(numberValidation);
+	const hasRuleChanges = !sameValue(form, initialForm);
 
 	function updateForm(patch: Partial<RuleFormState>) {
 		setForm(current => ({ ...current, ...patch }));
@@ -855,10 +862,14 @@ function RuleEditorDrawer({
 					<Button type="button" variant="ghost" disabled={isPending} onClick={onClose}>
 						Cancel
 					</Button>
-					<Button type="submit" disabled={isPending || !form.name.trim() || !checkTypeSupported || Boolean(numberError)}>
-						{editor.mode === "edit" ? "Save rule" : "Create rule"}
-					</Button>
 				</div>
+				<UnsavedChangesBar
+					show={hasRuleChanges}
+					saveType="submit"
+					saving={isPending}
+					disabled={!form.name.trim() || !checkTypeSupported || Boolean(numberError)}
+					onReset={() => setForm(initialForm)}
+				/>
 			</form>
 		</EditorDrawer>
 	);
@@ -876,10 +887,15 @@ function NotificationEditorDrawer({
 	onSubmit: (form: NotificationFormState) => Promise<void>;
 }) {
 	const isEditing = editor.mode === "edit";
-	const [form, setForm] = useState<NotificationFormState>(() => (editor.mode === "edit" && editor.notification ? notificationFormFromNotification(editor.notification) : defaultNotificationForm()));
+	const initialForm = useMemo(
+		() => (editor.mode === "edit" && editor.notification ? notificationFormFromNotification(editor.notification) : defaultNotificationForm()),
+		[editor.mode, editor.notification]
+	);
+	const [form, setForm] = useState<NotificationFormState>(() => initialForm);
 	const [step, setStep] = useState<NotificationEditorStep>(isEditing ? "detail" : "type");
 	const selectedType = notificationTypeOption(form.type);
 	const title = isEditing ? "Edit notification" : "Add notification";
+	const hasNotificationChanges = !sameValue(form, initialForm);
 
 	function updateForm(patch: Partial<NotificationFormState>) {
 		setForm(current => ({ ...current, ...patch }));
@@ -981,10 +997,8 @@ function NotificationEditorDrawer({
 					<Button type="button" variant="ghost" disabled={isPending} onClick={onClose}>
 						Cancel
 					</Button>
-					<Button type="submit" disabled={isPending || !notificationFormReady(form)}>
-						{editor.mode === "edit" ? "Save notification" : "Add notification"}
-					</Button>
 				</div>
+				<UnsavedChangesBar show={hasNotificationChanges} saveType="submit" saving={isPending} disabled={!notificationFormReady(form)} onReset={() => setForm(initialForm)} />
 			</form>
 		</EditorDrawer>
 	);

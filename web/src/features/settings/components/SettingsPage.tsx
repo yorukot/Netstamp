@@ -13,20 +13,16 @@ import type { ApiProjectInvite } from "@/shared/api/types";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
+import { UnsavedChangesBar } from "@/shared/components/UnsavedChangesBar";
 import { useConfirm } from "@/shared/components/confirmContext";
 import { appFeatures, demoMode } from "@/shared/config/features";
 import { pushToast } from "@/shared/toast/toastStore";
 import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
 import { ActionRow, Badge, BodyCopy, Button, DataTable, Panel, SignalAvatar, TextField, type DataColumn } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
-import type { FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import styles from "./SettingsPage.module.css";
-
-function formValue(form: HTMLFormElement, name: string) {
-	const value = new FormData(form).get(name);
-	return typeof value === "string" ? value.trim() : "";
-}
 
 interface InviteRow {
 	id: string;
@@ -36,6 +32,42 @@ interface InviteRow {
 	createdAt: string;
 	source: ApiProjectInvite;
 }
+
+interface IdentityFormState {
+	userId: string;
+	displayName: string;
+}
+
+interface EmailFormState {
+	userId: string;
+	newEmail: string;
+	password: string;
+}
+
+interface PasswordFormState {
+	userId: string;
+	currentPassword: string;
+	newPassword: string;
+	confirmPassword: string;
+}
+
+const emptyIdentityForm: IdentityFormState = {
+	userId: "",
+	displayName: ""
+};
+
+const emptyEmailForm: EmailFormState = {
+	userId: "",
+	newEmail: "",
+	password: ""
+};
+
+const emptyPasswordForm: PasswordFormState = {
+	userId: "",
+	currentPassword: "",
+	newPassword: "",
+	confirmPassword: ""
+};
 
 function formatDateTime(value: string) {
 	return new Date(value).toLocaleString();
@@ -57,16 +89,32 @@ export function SettingsPage() {
 	const acceptInviteMutation = useAcceptProjectInviteMutation();
 	const rejectInviteMutation = useRejectProjectInviteMutation();
 	const invitesQuery = useQuery(projectQueries.currentUserInvites());
+	const [identityForm, setIdentityForm] = useState<IdentityFormState>(emptyIdentityForm);
+	const [emailForm, setEmailForm] = useState<EmailFormState>(emptyEmailForm);
+	const [passwordForm, setPasswordForm] = useState<PasswordFormState>(emptyPasswordForm);
 
 	if (!session) {
 		return null;
 	}
 
 	const { user } = session;
+	const activeIdentityForm = identityForm.userId === user.id ? identityForm : { userId: user.id, displayName: user.name };
+	const activeEmailForm = emailForm.userId === user.id ? emailForm : { ...emptyEmailForm, userId: user.id };
+	const activePasswordForm = passwordForm.userId === user.id ? passwordForm : { ...emptyPasswordForm, userId: user.id };
+	const hasIdentityChanges = activeIdentityForm.displayName !== user.name;
+	const hasEmailChanges = Boolean(activeEmailForm.newEmail || activeEmailForm.password);
+	const hasPasswordChanges = Boolean(activePasswordForm.currentPassword || activePasswordForm.newPassword || activePasswordForm.confirmPassword);
 
 	function handleIdentitySubmit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
-		updateUserMutation.mutate({ displayName: formValue(event.currentTarget, "name") });
+		updateUserMutation.mutate(
+			{ displayName: activeIdentityForm.displayName.trim() },
+			{
+				onSuccess: data => {
+					setIdentityForm({ userId: data.user.id, displayName: data.user.displayName });
+				}
+			}
+		);
 	}
 
 	function handleEmailSubmit(event: FormEvent<HTMLFormElement>) {
@@ -75,10 +123,17 @@ export function SettingsPage() {
 			return;
 		}
 
-		changeEmailMutation.mutate({
-			newEmail: formValue(event.currentTarget, "new-email"),
-			password: formValue(event.currentTarget, "email-password")
-		});
+		changeEmailMutation.mutate(
+			{
+				newEmail: activeEmailForm.newEmail.trim(),
+				password: activeEmailForm.password.trim()
+			},
+			{
+				onSuccess: data => {
+					setEmailForm({ ...emptyEmailForm, userId: data.user.id });
+				}
+			}
+		);
 	}
 
 	function handlePasswordSubmit(event: FormEvent<HTMLFormElement>) {
@@ -87,17 +142,24 @@ export function SettingsPage() {
 			return;
 		}
 
-		const newPassword = formValue(event.currentTarget, "new-password");
+		const newPassword = activePasswordForm.newPassword.trim();
 
-		if (newPassword !== formValue(event.currentTarget, "confirm-password")) {
+		if (newPassword !== activePasswordForm.confirmPassword.trim()) {
 			pushToast({ title: "Password mismatch", message: "New passwords do not match.", tone: "critical" });
 			return;
 		}
 
-		changePasswordMutation.mutate({
-			currentPassword: formValue(event.currentTarget, "current-password"),
-			newPassword
-		});
+		changePasswordMutation.mutate(
+			{
+				currentPassword: activePasswordForm.currentPassword.trim(),
+				newPassword
+			},
+			{
+				onSuccess: () => {
+					setPasswordForm({ ...emptyPasswordForm, userId: user.id });
+				}
+			}
+		);
 	}
 
 	function acceptInvite(invite: ApiProjectInvite) {
@@ -213,15 +275,17 @@ export function SettingsPage() {
 			<div className={styles.settingsGrid}>
 				<Panel tone="glass" title="Profile">
 					<form id="identity-settings" className={styles.settingsForm} onSubmit={handleIdentitySubmit}>
-						<TextField label="Display name" name="name" defaultValue={user.name} disabled={demoMode} />
+						<TextField
+							label="Display name"
+							name="name"
+							value={activeIdentityForm.displayName}
+							disabled={demoMode}
+							onChange={event => setIdentityForm({ userId: user.id, displayName: event.currentTarget.value })}
+						/>
 						{demoMode ? (
 							<BodyCopy>Profile changes are disabled for demo access.</BodyCopy>
 						) : (
-							<ActionRow>
-								<Button type="submit" disabled={updateUserMutation.isPending}>
-									{updateUserMutation.isPending ? "Saving" : "Save identity"}
-								</Button>
-							</ActionRow>
+							<UnsavedChangesBar show={hasIdentityChanges} saveType="submit" saving={updateUserMutation.isPending} onReset={() => setIdentityForm({ userId: user.id, displayName: user.name })} />
 						)}
 					</form>
 				</Panel>
@@ -242,27 +306,69 @@ export function SettingsPage() {
 				<div className={styles.settingsGrid}>
 					<Panel tone="glass" title="Change email">
 						<form className={styles.settingsForm} onSubmit={handleEmailSubmit}>
-							<TextField label="Current email" name="current-email" type="email" defaultValue={user.email} />
-							<TextField label="New email" name="new-email" type="email" placeholder="operator@example.com" />
-							<TextField label="Confirm password" name="email-password" type="password" autoComplete="current-password" />
-							<ActionRow>
-								<Button type="submit" disabled={changeEmailMutation.isPending}>
-									{changeEmailMutation.isPending ? "Updating" : "Update email"}
-								</Button>
-							</ActionRow>
+							<TextField label="Current email" name="current-email" type="email" value={user.email} disabled />
+							<TextField
+								label="New email"
+								name="new-email"
+								type="email"
+								placeholder="operator@example.com"
+								value={activeEmailForm.newEmail}
+								onChange={event => setEmailForm(current => ({ ...current, userId: user.id, newEmail: event.currentTarget.value }))}
+							/>
+							<TextField
+								label="Confirm password"
+								name="email-password"
+								type="password"
+								autoComplete="current-password"
+								value={activeEmailForm.password}
+								onChange={event => setEmailForm(current => ({ ...current, userId: user.id, password: event.currentTarget.value }))}
+							/>
+							<UnsavedChangesBar
+								show={hasEmailChanges}
+								saveType="submit"
+								saving={changeEmailMutation.isPending}
+								savingLabel="Updating"
+								disabled={!appFeatures.userCredentialChanges}
+								onReset={() => setEmailForm({ ...emptyEmailForm, userId: user.id })}
+							/>
 						</form>
 					</Panel>
 
 					<Panel tone="glass" title="Change password">
 						<form className={styles.settingsForm} onSubmit={handlePasswordSubmit}>
-							<TextField label="Current password" name="current-password" type="password" autoComplete="current-password" />
-							<TextField label="New password" name="new-password" type="password" autoComplete="new-password" />
-							<TextField label="Confirm new password" name="confirm-password" type="password" autoComplete="new-password" helper="Use at least 12 characters for production accounts." />
-							<ActionRow>
-								<Button type="submit" disabled={changePasswordMutation.isPending}>
-									{changePasswordMutation.isPending ? "Changing" : "Change password"}
-								</Button>
-							</ActionRow>
+							<TextField
+								label="Current password"
+								name="current-password"
+								type="password"
+								autoComplete="current-password"
+								value={activePasswordForm.currentPassword}
+								onChange={event => setPasswordForm(current => ({ ...current, userId: user.id, currentPassword: event.currentTarget.value }))}
+							/>
+							<TextField
+								label="New password"
+								name="new-password"
+								type="password"
+								autoComplete="new-password"
+								value={activePasswordForm.newPassword}
+								onChange={event => setPasswordForm(current => ({ ...current, userId: user.id, newPassword: event.currentTarget.value }))}
+							/>
+							<TextField
+								label="Confirm new password"
+								name="confirm-password"
+								type="password"
+								autoComplete="new-password"
+								helper="Use at least 12 characters for production accounts."
+								value={activePasswordForm.confirmPassword}
+								onChange={event => setPasswordForm(current => ({ ...current, userId: user.id, confirmPassword: event.currentTarget.value }))}
+							/>
+							<UnsavedChangesBar
+								show={hasPasswordChanges}
+								saveType="submit"
+								saving={changePasswordMutation.isPending}
+								savingLabel="Changing"
+								disabled={!appFeatures.userCredentialChanges}
+								onReset={() => setPasswordForm({ ...emptyPasswordForm, userId: user.id })}
+							/>
 						</form>
 					</Panel>
 				</div>

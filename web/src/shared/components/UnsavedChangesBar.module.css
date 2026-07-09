@@ -1,0 +1,57 @@
+.bar {
+	position: sticky;
+	bottom: 0;
+	z-index: 20;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.75rem;
+	align-items: center;
+	justify-content: space-between;
+	margin-top: 0.25rem;
+	padding: 0.75rem 0.875rem;
+	border: 1px solid color-mix(in srgb, var(--ns-warning) 44%, var(--ns-border));
+	color: var(--ns-text);
+	background: color-mix(in srgb, var(--ns-warning) 10%, var(--ns-surface-raised));
+}
+
+.message {
+	min-width: min(16rem, 100%);
+	color: var(--ns-text);
+	font-size: 0.875rem;
+	font-weight: 750;
+	line-height: 1.35;
+}
+
+.actions {
+	display: flex;
+	flex: 0 0 auto;
+	flex-wrap: wrap;
+	gap: 0.75rem;
+	align-items: center;
+	justify-content: flex-end;
+	margin-left: auto;
+}
+
+.resetButton {
+	color: var(--ns-text-muted);
+	font-size: 0.8125rem;
+	font-weight: 750;
+}
+
+.resetButton:hover,
+.resetButton:active {
+	color: var(--ns-text);
+}
+
+@media (max-width: 44rem) {
+	.bar,
+	.actions {
+		display: grid;
+		justify-content: stretch;
+	}
+
+	.actions {
+		width: 100%;
+		margin-left: 0;
+	}
+}

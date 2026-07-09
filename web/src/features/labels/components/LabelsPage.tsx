@@ -7,8 +7,9 @@ import { useConfirm } from "@/shared/components/confirmContext";
 import { EditorDrawer } from "@/shared/components/EditorDrawer";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
+import { UnsavedChangesBar } from "@/shared/components/UnsavedChangesBar";
 import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
-import { ActionRow, Badge, Button, DataTable, FilterGrid, Panel, SelectField, TextField, type DataColumn } from "@netstamp/ui";
+import { Badge, Button, DataTable, FilterGrid, Panel, SelectField, TextField, type DataColumn } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -155,6 +156,7 @@ export function LabelsPage() {
 	const activeDraftKey = isCreating || hasSelectedDraft ? draftKey : (selectedLabel?.key ?? "");
 	const activeDraftValue = isCreating || hasSelectedDraft ? draftValue : (selectedLabel?.value ?? "");
 	const mutationError = saveLabelMutation.error ?? deleteLabelMutation.error;
+	const hasLabelChanges = isCreating ? Boolean(activeDraftKey || activeDraftValue) : Boolean(selectedLabel && (selectedLabel.key !== activeDraftKey || selectedLabel.value !== activeDraftValue));
 	const canSave = Boolean(
 		projectRef && activeDraftKey.trim() && activeDraftValue.trim() && (!selectedLabel || selectedLabel.key !== activeDraftKey.trim() || selectedLabel.value !== activeDraftValue.trim())
 	);
@@ -291,6 +293,21 @@ export function LabelsPage() {
 		);
 	}
 
+	function resetLabelDraft() {
+		saveLabelMutation.reset();
+
+		if (isCreating || !selectedLabel) {
+			setDraftLabelId("__new__");
+			setDraftKey("");
+			setDraftValue("");
+			return;
+		}
+
+		setDraftLabelId(selectedLabel.id);
+		setDraftKey(selectedLabel.key);
+		setDraftValue(selectedLabel.value);
+	}
+
 	async function deleteLabel(row: LabelRow) {
 		const confirmed = await confirm({
 			title: `Delete ${row.token}?`,
@@ -346,17 +363,13 @@ export function LabelsPage() {
 
 							{mutationError ? <p className={styles.errorNotice}>{requestErrorMessage(mutationError, "Label operation failed.")}</p> : null}
 
-							<ActionRow className={styles.editorActions}>
-								<Button disabled={!canSave || saveLabelMutation.isPending} onClick={saveLabel}>
-									{saveLabelMutation.isPending ? "Saving" : isEditing ? "Save label" : "Create label"}
-								</Button>
-								<Button variant="secondary" disabled={!projectRef} onClick={startNewLabel}>
-									Reset
-								</Button>
+							<UnsavedChangesBar show={hasLabelChanges} saving={saveLabelMutation.isPending} disabled={!canSave} onReset={resetLabelDraft} onSave={saveLabel} />
+
+							<div className={styles.editorActions}>
 								<Button variant="danger" disabled={!selectedRow || deleteLabelMutation.isPending} onClick={() => selectedRow && void deleteLabel(selectedRow)}>
 									{deleteLabelMutation.isPending ? "Deleting" : "Delete selected"}
 								</Button>
-							</ActionRow>
+							</div>
 
 							<div className={styles.usagePanel}>
 								<div>

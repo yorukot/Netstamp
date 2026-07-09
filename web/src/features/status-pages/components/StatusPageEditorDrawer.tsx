@@ -1,7 +1,8 @@
 import type { ApiPublicStatusPage, CreatePublicStatusPageInput, PublicStatusChartMode, PublicStatusChartRange } from "@/shared/api/types";
 import { EditorDrawer } from "@/shared/components/EditorDrawer";
-import { Button, Checkbox, SelectField, TextAreaField, TextField } from "@netstamp/ui";
-import { useState, type FormEvent } from "react";
+import { UnsavedChangesBar } from "@/shared/components/UnsavedChangesBar";
+import { Checkbox, SelectField, TextAreaField, TextField } from "@netstamp/ui";
+import { useMemo, useState, type FormEvent } from "react";
 import styles from "./StatusPageEditorDrawer.module.css";
 
 type StatusPageFormInput = CreatePublicStatusPageInput;
@@ -45,10 +46,16 @@ function initialState(page?: ApiPublicStatusPage | null): StatusPageFormInput {
 	};
 }
 
+function sameValue(left: unknown, right: unknown) {
+	return JSON.stringify(left) === JSON.stringify(right);
+}
+
 export function StatusPageEditorDrawer({ open, page, saving, onClose, onSubmit }: StatusPageEditorDrawerProps) {
-	const [form, setForm] = useState<StatusPageFormInput>(() => initialState(page));
+	const initialForm = useMemo(() => initialState(page), [page]);
+	const [form, setForm] = useState<StatusPageFormInput>(() => initialForm);
 	const [error, setError] = useState("");
 	const isEditing = Boolean(page);
+	const hasChanges = !sameValue(form, initialForm);
 
 	function update<K extends keyof StatusPageFormInput>(key: K, value: StatusPageFormInput[K]) {
 		setForm(current => ({ ...current, [key]: value }));
@@ -60,6 +67,11 @@ export function StatusPageEditorDrawer({ open, page, saving, onClose, onSubmit }
 			title: value,
 			slug: isEditing || current.slug ? current.slug : defaultSlug(value)
 		}));
+	}
+
+	function resetForm() {
+		setForm(initialForm);
+		setError("");
 	}
 
 	function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -87,17 +99,7 @@ export function StatusPageEditorDrawer({ open, page, saving, onClose, onSubmit }
 	}
 
 	return (
-		<EditorDrawer
-			open={open}
-			title={isEditing ? "Edit Status Page" : "New Status Page"}
-			ariaLabel={isEditing ? "Edit status page" : "Create status page"}
-			onClose={onClose}
-			actions={
-				<Button type="submit" form="status-page-editor-form" disabled={saving}>
-					{saving ? "Saving" : "Save"}
-				</Button>
-			}
-		>
+		<EditorDrawer open={open} title={isEditing ? "Edit Status Page" : "New Status Page"} ariaLabel={isEditing ? "Edit status page" : "Create status page"} onClose={onClose}>
 			<form id="status-page-editor-form" className={styles.form} onSubmit={handleSubmit}>
 				{error ? <div className={styles.formError}>{error}</div> : null}
 				<TextField label="Title" value={form.title} maxLength={128} onChange={event => handleTitleChange(event.currentTarget.value)} />
@@ -119,6 +121,7 @@ export function StatusPageEditorDrawer({ open, page, saving, onClose, onSubmit }
 					options={chartRangeOptions}
 					onChange={event => update("defaultChartRange", event.currentTarget.value as PublicStatusChartRange)}
 				/>
+				<UnsavedChangesBar show={hasChanges} saveType="submit" saving={saving} onReset={resetForm} />
 			</form>
 		</EditorDrawer>
 	);

@@ -15,6 +15,7 @@ import { projectQueries } from "@/shared/api/queries";
 import type { ApiLabel, ApiProbe } from "@/shared/api/types";
 import { CloseButton } from "@/shared/components/CloseButton";
 import { useConfirm } from "@/shared/components/confirmContext";
+import { UnsavedChangesBar } from "@/shared/components/UnsavedChangesBar";
 import type { AssignedRow } from "@/shared/domain/assignments";
 import { pushErrorToast } from "@/shared/toast/toastStore";
 import { classNames } from "@/shared/utils/classNames";
@@ -65,6 +66,15 @@ function labelToken(label: Pick<ApiLabel, "key" | "value">) {
 
 function sortLabels(left: ApiLabel, right: ApiLabel) {
 	return left.key.localeCompare(right.key) || left.value.localeCompare(right.value);
+}
+
+function sameStringSet(left: string[], right: string[]) {
+	if (left.length !== right.length) {
+		return false;
+	}
+
+	const rightSet = new Set(right);
+	return left.every(value => rightSet.has(value));
 }
 
 interface ProbeDetailProps {
@@ -133,6 +143,10 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 	});
 	const probeAssignments = assignedRows.filter(row => row.probe === activeProbe.name);
 	const detailRows = expandAssignedRows(probeAssignments);
+	const initialLocationName = activeProbe.location === "-" ? "" : activeProbe.location;
+	const initialLatitudeInput = initialLatitude(activeProbe);
+	const initialLongitudeInput = initialLongitude(activeProbe);
+	const initialLabelIds = useMemo(() => activeApiProbe?.labels.map(label => label.id) ?? [], [activeApiProbe?.labels]);
 	const rotatedSecretCommand = rotatedSecret ? probeSecretUpdateCommand({ probeId: activeProbe.id, probeSecret: rotatedSecret }) : "";
 	const selectedServiceCommand = serviceCommandMode ? serviceCommandOptions.find(option => option.value === serviceCommandMode) : null;
 	const serviceCommand = serviceCommandMode ? probeServiceCommand(serviceCommandMode) : "";
@@ -149,6 +163,14 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 	const canSearchLocation = coordinateInputMode === "search" && locationSearch.trim().length > 0 && geocodeStatus !== "searching";
 	const locationInputInvalid = coordinateInputMode === "manual" && Boolean(latitudeInput.trim() || longitudeInput.trim()) && !manualCoordinatesReady;
 	const previewLocationName = locationName.trim() || "Manual coordinates";
+	const hasProbeChanges = Boolean(
+		activeApiProbe &&
+		(probeName !== activeProbe.name ||
+			locationName !== initialLocationName ||
+			latitudeInput !== initialLatitudeInput ||
+			longitudeInput !== initialLongitudeInput ||
+			!sameStringSet(selectedLabelIds, initialLabelIds))
+	);
 	const labelOptions = useMemo(() => {
 		const labelsById = new Map<string, ApiLabel>();
 
@@ -212,6 +234,20 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 
 			return current.filter(currentLabelId => currentLabelId !== labelId);
 		});
+	}
+
+	function resetProbeDraft() {
+		geocodeAbortRef.current?.abort();
+		geocodeAbortRef.current = null;
+		setProbeName(activeProbe.name);
+		setCoordinateInputMode("search");
+		setLocationSearch(initialLocationName);
+		setLocationName(initialLocationName);
+		setLatitudeInput(initialLatitudeInput);
+		setLongitudeInput(initialLongitudeInput);
+		setGeocodeStatus("idle");
+		setGeocodeError("");
+		setSelectedLabelIds(initialLabelIds);
 	}
 
 	async function searchLocation() {
@@ -412,13 +448,15 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 				</div>
 			</div>
 
+			<UnsavedChangesBar
+				show={hasProbeChanges}
+				saving={updateProbeMutation.isPending || savingProbe}
+				disabled={!projectRef || !activeApiProbe || !probeName || locationInputInvalid || geocodeStatus === "searching"}
+				onReset={resetProbeDraft}
+				onSave={() => void saveProbe()}
+			/>
+
 			<div className={styles.actions}>
-				<Button
-					disabled={!projectRef || !activeApiProbe || updateProbeMutation.isPending || savingProbe || !probeName || locationInputInvalid || geocodeStatus === "searching"}
-					onClick={() => void saveProbe()}
-				>
-					{updateProbeMutation.isPending || savingProbe ? "Saving" : "Save probe"}
-				</Button>
 				<Button variant="outline" disabled={!projectRef || rotateSecretMutation.isPending} onClick={() => void rotateSecret()}>
 					{rotateSecretMutation.isPending ? "Rotating" : "Rotate secret"}
 				</Button>

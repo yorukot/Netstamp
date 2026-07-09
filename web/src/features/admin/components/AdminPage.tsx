@@ -5,9 +5,10 @@ import type { ApiAdminDataExport, ApiAdminSettings, ApiManagedUser } from "@/sha
 import { useConfirm, usePromptDialog } from "@/shared/components/confirmContext";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
+import { UnsavedChangesBar } from "@/shared/components/UnsavedChangesBar";
 import { pushToast } from "@/shared/toast/toastStore";
 import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
-import { ActionRow, Badge, BodyCopy, Button, Checkbox, DataTable, LoadingState, Panel, SelectField, TextField, type DataColumn } from "@netstamp/ui";
+import { Badge, BodyCopy, Button, Checkbox, DataTable, LoadingState, Panel, SelectField, TextField, type DataColumn } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
 import type { ChangeEvent, FormEvent } from "react";
 import { useMemo, useRef, useState } from "react";
@@ -139,6 +140,7 @@ export function AdminPage() {
 	}, [loadedSettings]);
 	const [editedForm, setEditedForm] = useState<AdminFormState | null>(null);
 	const form = editedForm ?? serverForm;
+	const hasAdminSettingsChanges = Boolean(editedForm);
 	const userRows = useMemo(() => usersQuery.data?.users ?? [], [usersQuery.data?.users]);
 	const filteredUserRows = useMemo(() => filterManagedUsers(userRows, userSearch), [userRows, userSearch]);
 	const userCountLabel = userSearch.trim() ? `${filteredUserRows.length}/${userRows.length} users` : `${userRows.length} users`;
@@ -501,11 +503,7 @@ export function AdminPage() {
 						</label>
 					</Panel>
 
-					<ActionRow>
-						<Button type="submit" disabled={updateSettingsMutation.isPending}>
-							{updateSettingsMutation.isPending ? "Saving" : "Save admin settings"}
-						</Button>
-					</ActionRow>
+					<UnsavedChangesBar show={hasAdminSettingsChanges} saveType="submit" saving={updateSettingsMutation.isPending} onReset={() => setEditedForm(null)} />
 				</form>
 			)}
 

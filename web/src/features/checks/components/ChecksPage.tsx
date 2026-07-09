@@ -35,6 +35,7 @@ import { useConfirm } from "@/shared/components/confirmContext";
 import { EditorDrawer } from "@/shared/components/EditorDrawer";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
+import { UnsavedChangesBar } from "@/shared/components/UnsavedChangesBar";
 import { pushErrorToast, pushToast } from "@/shared/toast/toastStore";
 import { classNames } from "@/shared/utils/classNames";
 import { ActionRow, Badge, Button, Checkbox, FieldLabel, FilterGrid, IconButton, SelectField, TextAreaField, TextField } from "@netstamp/ui";
@@ -61,6 +62,24 @@ import {
 	type SelectorRule,
 	type SelectorState
 } from "./selectorState";
+
+function comparableSelectorState(state: SelectorState) {
+	return {
+		mode: state.mode,
+		advancedText: state.advancedText,
+		rules: state.rules.map(rule => ({
+			key: rule.key,
+			op: rule.op,
+			value: rule.value,
+			values: rule.values,
+			negated: rule.negated
+		}))
+	};
+}
+
+function sameValue(left: unknown, right: unknown) {
+	return JSON.stringify(left) === JSON.stringify(right);
+}
 
 export function ChecksPage() {
 	const { projectRef } = useCurrentProject();
@@ -144,6 +163,25 @@ export function ChecksPage() {
 				: firstConfigValidationError(activePingValidation);
 	const activeFormError = activeIntervalValidation.error || activeConfigError;
 	const activeSelectorState = isCreating || hasSelectedDraft ? selectorState : selectorStateFromApi(selectedApiCheck?.selector);
+	const baselineSelectorState = selectorStateFromApi(selectedApiCheck?.selector);
+	const baselinePingConfig = pingConfigFormStateFromApi(selectedApiCheck);
+	const baselineTCPConfig = tcpConfigFormStateFromApi(selectedApiCheck);
+	const baselineTracerouteConfig = tracerouteConfigFormStateFromApi(selectedApiCheck);
+	const canSaveActiveCheck = Boolean((selectedCheck || isCreating) && projectRef && activeCheckName && activeTarget && !activeFormError);
+	const hasCheckChanges = Boolean(
+		!isCreating &&
+		selectedCheck &&
+		hasSelectedDraft &&
+		(activeCheckName !== selectedCheck.name ||
+			activeTarget !== selectedCheck.target ||
+			activeDescription !== selectedCheck.description ||
+			activeInterval !== selectedCheck.interval ||
+			activeCheckType !== selectedCheck.type ||
+			!sameValue(activePingConfig, baselinePingConfig) ||
+			!sameValue(activeTCPConfig, baselineTCPConfig) ||
+			!sameValue(activeTracerouteConfig, baselineTracerouteConfig) ||
+			!sameValue(comparableSelectorState(activeSelectorState), comparableSelectorState(baselineSelectorState)))
+	);
 	const assignedProbeNames = (assignmentsQuery.data ?? [])
 		.filter(assignment => assignment.checkId === selectedListCheck?.id)
 		.map(assignment => assignment.probe?.name || probes.find(probe => probe.id === assignment.probeId)?.name || assignment.probeId);
@@ -196,6 +234,14 @@ export function ChecksPage() {
 		setPingConfig(pingConfigFormStateFromApi(apiCheck));
 		setTCPConfig(tcpConfigFormStateFromApi(apiCheck));
 		setTracerouteConfig(tracerouteConfigFormStateFromApi(apiCheck));
+	}
+
+	function resetSelectedCheckDraft() {
+		if (!selectedCheck) {
+			return;
+		}
+
+		loadCheckDraft(selectedCheck, selectedApiCheck);
 	}
 
 	function selectCheck(check: CheckDefinition) {
@@ -756,13 +802,16 @@ export function ChecksPage() {
 								</div>
 							</div>
 
+							{isCreating ? (
+								<ActionRow>
+									<Button disabled={!canSaveActiveCheck || saveCheckMutation.isPending} onClick={saveSelectedCheck}>
+										{saveCheckMutation.isPending ? "Saving" : "Create check"}
+									</Button>
+								</ActionRow>
+							) : (
+								<UnsavedChangesBar show={hasCheckChanges} saving={saveCheckMutation.isPending} disabled={!canSaveActiveCheck} onReset={resetSelectedCheckDraft} onSave={saveSelectedCheck} />
+							)}
 							<ActionRow>
-								<Button
-									disabled={(!selectedCheck && !isCreating) || !projectRef || !activeCheckName || !activeTarget || Boolean(activeFormError) || saveCheckMutation.isPending}
-									onClick={saveSelectedCheck}
-								>
-									{saveCheckMutation.isPending ? "Saving" : isCreating ? "Create check" : "Save check"}
-								</Button>
 								<Button variant="danger" disabled={!selectedCheck || checkActionPending} onClick={() => void deleteSelectedCheck()}>
 									{deleteCheckMutation.isPending ? "Deleting" : "Delete check"}
 								</Button>

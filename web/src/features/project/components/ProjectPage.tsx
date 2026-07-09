@@ -6,6 +6,7 @@ import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { useConfirm } from "@/shared/components/confirmContext";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
+import { UnsavedChangesBar } from "@/shared/components/UnsavedChangesBar";
 import { Button, Panel, Surface, TextField } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
@@ -35,6 +36,7 @@ export function ProjectPage() {
 	const activeProjectDraft = projectDraft.projectId === activeProjectId ? projectDraft : null;
 	const activeProjectName = activeProjectDraft?.name ?? project?.name ?? "";
 	const activeProjectSlug = activeProjectDraft?.slug ?? project?.slug ?? "";
+	const hasProjectChanges = Boolean(project && (activeProjectName !== project.name || activeProjectSlug !== project.slug));
 	const currentUserId = session?.user.id ?? "";
 	const members = membersQuery.data?.members ?? [];
 	const currentMember = members.find(member => member.userId === currentUserId);
@@ -55,6 +57,28 @@ export function ProjectPage() {
 			name: current.projectId === activeProjectId ? current.name : null,
 			slug
 		}));
+	}
+
+	function resetProjectDraft() {
+		setProjectDraft({ projectId: activeProjectId, name: null, slug: null });
+	}
+
+	function saveProjectSettings() {
+		if (!projectRef) {
+			return;
+		}
+
+		updateProjectMutation.mutate(
+			{ name: activeProjectName, slug: activeProjectSlug },
+			{
+				onSuccess: data => {
+					const nextProjectRef = data.project.slug || data.project.id;
+					setProjectDraft({ projectId: data.project.id, name: null, slug: null });
+					setSelectedProjectRef(nextProjectRef);
+					navigate(pathForRoute("projectSettings", { projectRef: nextProjectRef }), { replace: true });
+				}
+			}
+		);
 	}
 
 	async function deleteCurrentProject() {
@@ -114,24 +138,7 @@ export function ProjectPage() {
 					<TextField label="Project name" value={activeProjectName} disabled={!projectRef} onChange={event => updateProjectNameDraft(event.currentTarget.value)} />
 					<TextField label="Slug" value={activeProjectSlug} disabled={!projectRef} onChange={event => updateProjectSlugDraft(event.currentTarget.value)} />
 				</div>
-				<Button
-					disabled={!projectRef || updateProjectMutation.isPending}
-					onClick={() =>
-						updateProjectMutation.mutate(
-							{ name: activeProjectName, slug: activeProjectSlug },
-							{
-								onSuccess: data => {
-									const nextProjectRef = data.project.slug || data.project.id;
-									setProjectDraft({ projectId: data.project.id, name: null, slug: null });
-									setSelectedProjectRef(nextProjectRef);
-									navigate(pathForRoute("projectSettings", { projectRef: nextProjectRef }), { replace: true });
-								}
-							}
-						)
-					}
-				>
-					{updateProjectMutation.isPending ? "Saving" : "Save changes"}
-				</Button>
+				<UnsavedChangesBar show={hasProjectChanges} saving={updateProjectMutation.isPending} disabled={!projectRef} onReset={resetProjectDraft} onSave={saveProjectSettings} />
 			</Panel>
 
 			<Panel tone="deep" title="Dangerous project actions">
