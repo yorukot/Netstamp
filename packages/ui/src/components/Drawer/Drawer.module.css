@@ -15,6 +15,7 @@
 
 .drawer {
 	--ns-drawer-width: 42rem;
+	--ns-drawer-top-offset: 0.5rem;
 
 	position: fixed;
 	top: 0;
@@ -27,7 +28,7 @@
 	min-height: 0;
 	overflow: hidden;
 	overscroll-behavior: contain;
-	padding: 1.25rem;
+	padding: calc(1.25rem + var(--ns-drawer-top-offset)) 1.25rem 1.25rem;
 	border-color: var(--ns-border);
 	color: var(--ns-text);
 	background: var(--ns-bg);
@@ -129,6 +130,7 @@
 	width: 2rem;
 	min-width: 2rem;
 	padding: 0;
+	transform: translateY(calc(-1 * var(--ns-drawer-top-offset)));
 }
 
 .closeIcon {
@@ -208,8 +210,10 @@
 
 @media (max-width: 38rem) {
 	.drawer {
+		--ns-drawer-top-offset: 0.5rem;
+
 		width: 100vw;
-		padding: 1rem;
+		padding: calc(1rem + var(--ns-drawer-top-offset)) 1rem 1rem;
 	}
 
 	.header {
