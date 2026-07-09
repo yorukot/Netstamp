@@ -4,15 +4,13 @@ import { projectQueries } from "@/shared/api/queries";
 import type { ApiCheck, ApiLabel, ApiProbe } from "@/shared/api/types";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { useConfirm } from "@/shared/components/confirmContext";
-import { EditorDrawer } from "@/shared/components/EditorDrawer";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
-import { UnsavedChangesBar } from "@/shared/components/UnsavedChangesBar";
 import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
-import { Badge, Button, FilterGrid, Panel, SelectField, TextField } from "@netstamp/ui";
+import { Badge, Button, DialogContent, DialogOverlay, DialogPortal, DialogRoot, DialogTitle, FilterGrid, SelectField, TextField } from "@netstamp/ui";
 import { PlusIcon } from "@phosphor-icons/react/dist/csr/Plus";
 import { useQuery } from "@tanstack/react-query";
-import { type KeyboardEvent, useEffect, useMemo, useState } from "react";
+import { type FormEvent, type KeyboardEvent, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import styles from "./LabelsPage.module.css";
 
@@ -58,6 +56,19 @@ function formatUpdatedAt(value: string) {
 
 function labelToken(label: Pick<ApiLabel, "key" | "value">) {
 	return `${label.key}:${label.value}`;
+}
+
+function parseLabelToken(value: string) {
+	const separatorIndex = value.indexOf(":");
+
+	if (separatorIndex < 0) {
+		return null;
+	}
+
+	const key = value.slice(0, separatorIndex).trim();
+	const labelValue = value.slice(separatorIndex + 1).trim();
+
+	return key && labelValue ? { key, value: labelValue } : null;
 }
 
 function sortedUnique(values: string[]) {
@@ -177,6 +188,7 @@ export function LabelsPage() {
 	const [draftLabelId, setDraftLabelId] = useState("");
 	const [draftKey, setDraftKey] = useState("");
 	const [draftValue, setDraftValue] = useState("");
+	const [draftToken, setDraftToken] = useState("");
 	const [search, setSearch] = useState("");
 	const [keyFilter, setKeyFilter] = useState("all");
 	const usageByLabelID = useMemo(() => buildUsage(labels, probes, checks), [labels, probes, checks]);
@@ -213,22 +225,27 @@ export function LabelsPage() {
 		});
 	}, [keyFilter, rows, search]);
 	const labelGroups = useMemo(() => buildLabelGroups(filteredRows), [filteredRows]);
-	const allLabelGroups = useMemo(() => buildLabelGroups(rows), [rows]);
 	const selectedLabel = labels.find(label => label.id === labelId) ?? null;
 	const selectedRow = rows.find(row => row.id === labelId) ?? null;
 	const isCreating = editorMode === "create";
 	const isEditing = !isCreating && Boolean(selectedLabel);
 	const isEditorOpen = isCreating || isEditing;
 	const hasSelectedDraft = Boolean(selectedLabel && draftLabelId === selectedLabel.id);
+	const isCreatingToken = isCreating && !draftKey.trim();
+	const parsedDraftToken = isCreatingToken ? parseLabelToken(draftToken) : null;
 	const activeDraftKey = isCreating || hasSelectedDraft ? draftKey : (selectedLabel?.key ?? "");
 	const activeDraftValue = isCreating || hasSelectedDraft ? draftValue : (selectedLabel?.value ?? "");
 	const mutationError = saveLabelMutation.error ?? deleteLabelMutation.error;
-	const hasLabelChanges = isCreating ? Boolean(activeDraftKey || activeDraftValue) : Boolean(selectedLabel && (selectedLabel.key !== activeDraftKey || selectedLabel.value !== activeDraftValue));
-	const canSave = Boolean(
-		projectRef && activeDraftKey.trim() && activeDraftValue.trim() && (!selectedLabel || selectedLabel.key !== activeDraftKey.trim() || selectedLabel.value !== activeDraftValue.trim())
-	);
+	const canSave = isCreatingToken
+		? Boolean(projectRef && parsedDraftToken)
+		: Boolean(projectRef && activeDraftKey.trim() && activeDraftValue.trim() && (isCreating || !selectedLabel || selectedLabel.value !== activeDraftValue.trim()));
 	const emptyLabel = projectRef ? (labelsQuery.isLoading ? "Loading labels" : "No labels match this view") : "Select a project to manage labels";
-	const labelPanelTitle = search.trim() || keyFilter !== "all" ? `${labelGroups.length} keys / ${filteredRows.length} labels` : `${allLabelGroups.length} keys / ${rows.length} labels`;
+	const editorTitle = isCreatingToken ? "New label" : isCreating ? `Add ${activeDraftKey} value` : selectedLabel ? `Edit ${selectedLabel.key}` : "Label";
+	const editorInputLabel = isCreatingToken ? "Label" : "Value";
+	const editorInputValue = isCreatingToken ? draftToken : activeDraftValue;
+	const editorInputPlaceholder = isCreatingToken ? "region:tokyo" : "tokyo";
+	const editorSubmitLabel = saveLabelMutation.isPending ? "Saving" : isEditing ? "Save value" : isCreatingToken ? "Create label" : "Add value";
+	const editorKey = isCreatingToken ? "" : activeDraftKey;
 
 	useEffect(() => {
 		if (!projectRef || !labelId || labelsQuery.isPending || labelsQuery.isError || selectedLabel) {
@@ -246,11 +263,6 @@ export function LabelsPage() {
 		setDraftLabelId(selectedLabel.id);
 		setDraftKey(selectedLabel.key);
 		setDraftValue(selectedLabel.value);
-	}
-
-	function updateDraftKey(value: string) {
-		prepareSelectedLabelEdit();
-		setDraftKey(value);
 	}
 
 	function updateDraftValue(value: string) {
@@ -271,6 +283,7 @@ export function LabelsPage() {
 		setDraftLabelId("__new__");
 		setDraftKey(prefillKey);
 		setDraftValue("");
+		setDraftToken("");
 		saveLabelMutation.reset();
 		deleteLabelMutation.reset();
 		navigate(pathForRoute("labels", { projectRef }));
@@ -290,9 +303,24 @@ export function LabelsPage() {
 		setDraftLabelId("");
 		setDraftKey("");
 		setDraftValue("");
+		setDraftToken("");
 		saveLabelMutation.reset();
 		deleteLabelMutation.reset();
 		navigate(pathForRoute("labels", { projectRef }));
+	}
+
+	function updateEditorInput(value: string) {
+		if (isCreatingToken) {
+			setDraftToken(value);
+			return;
+		}
+
+		updateDraftValue(value);
+	}
+
+	function submitLabel(event: FormEvent) {
+		event.preventDefault();
+		saveLabel();
 	}
 
 	function saveLabel() {
@@ -300,46 +328,39 @@ export function LabelsPage() {
 			return;
 		}
 
+		const body = isCreatingToken
+			? {
+					key: parsedDraftToken?.key ?? "",
+					value: parsedDraftToken?.value ?? ""
+				}
+			: {
+					key: activeDraftKey.trim(),
+					value: activeDraftValue.trim()
+				};
+
 		saveLabelMutation.mutate(
 			{
 				labelId: selectedLabel?.id,
-				body: {
-					key: activeDraftKey.trim(),
-					value: activeDraftValue.trim()
-				}
+				body
 			},
 			{
-				onSuccess: data => {
+				onSuccess: () => {
 					setEditorMode("idle");
-					setDraftLabelId(data.label.id);
-					setDraftKey(data.label.key);
-					setDraftValue(data.label.value);
-					navigate(pathForLabelDetail(projectRef, data.label.id));
+					setDraftLabelId("");
+					setDraftKey("");
+					setDraftValue("");
+					setDraftToken("");
+					navigate(pathForRoute("labels", { projectRef }));
 				}
 			}
 		);
 	}
 
-	function resetLabelDraft() {
-		saveLabelMutation.reset();
-
-		if (isCreating || !selectedLabel) {
-			setDraftLabelId("__new__");
-			setDraftKey("");
-			setDraftValue("");
-			return;
-		}
-
-		setDraftLabelId(selectedLabel.id);
-		setDraftKey(selectedLabel.key);
-		setDraftValue(selectedLabel.value);
-	}
-
 	async function deleteLabel(row: LabelRow) {
 		const confirmed = await confirm({
-			title: `Delete ${row.token}?`,
-			message: "This removes the label from future probe and check matching, then refreshes project assignments.",
-			confirmLabel: "Delete label",
+			title: `Delete ${row.value}?`,
+			message: `This removes the value from ${row.key} and refreshes matching assignments.`,
+			confirmLabel: "Delete value",
 			tone: "danger"
 		});
 
@@ -360,119 +381,131 @@ export function LabelsPage() {
 		<PageStack>
 			<ScreenHeader title="Labels" actions={<Button onClick={() => startNewLabel()}>New label</Button>} />
 
-			<div className={styles.labelsGrid}>
-				<Panel tone="glass" title={labelPanelTitle}>
-					<div className={styles.listStack}>
-						<FilterGrid className={styles.filters}>
-							<TextField label="Search" placeholder="region:tokyo, provider, edge" value={search} disabled={!projectRef} onChange={event => setSearch(event.currentTarget.value)} />
-							<SelectField label="Key" value={keyFilter} disabled={!projectRef} options={keyOptions} onChange={event => setKeyFilter(event.currentTarget.value)} />
-						</FilterGrid>
-						<div className={["ns-frame", styles.groupedTableFrame].join(" ")}>
-							<div className={["ns-scrollbar", styles.groupedTableScroller].join(" ")}>
-								<table className={styles.groupedTable} aria-label="Project labels grouped by key">
-									<thead>
-										<tr>
-											<th>Value</th>
-											<th>Probes</th>
-											<th>Checks</th>
-											<th>Updated</th>
+			<div className={styles.listStack}>
+				<FilterGrid className={styles.filters}>
+					<TextField label="Search" placeholder="region:tokyo, provider, edge" value={search} disabled={!projectRef} onChange={event => setSearch(event.currentTarget.value)} />
+					<SelectField label="Key" value={keyFilter} disabled={!projectRef} options={keyOptions} onChange={event => setKeyFilter(event.currentTarget.value)} />
+				</FilterGrid>
+				<div className={["ns-frame", styles.groupedTableFrame].join(" ")}>
+					<div className={["ns-scrollbar", styles.groupedTableScroller].join(" ")}>
+						<table className={styles.groupedTable} aria-label="Project labels grouped by key">
+							<thead>
+								<tr>
+									<th>Value</th>
+									<th>Probes</th>
+									<th>Checks</th>
+									<th>Updated</th>
+								</tr>
+							</thead>
+							{labelGroups.length ? (
+								labelGroups.map(group => (
+									<tbody key={group.key}>
+										<tr className={styles.groupRow}>
+											<th className={styles.groupHeaderCell} scope="rowgroup" colSpan={4}>
+												<div className={styles.groupHeader}>
+													<div className={styles.groupHeading}>
+														<strong translate="no">{group.key}</strong>
+														<span>
+															{countLabel(group.rows.length, "value")} · {countLabel(group.probeCount, "probe")} · {countLabel(group.checkCount, "check")}
+														</span>
+													</div>
+													<Button type="button" variant="secondary" size="sm" onClick={() => startNewLabel(group.key)}>
+														<PlusIcon className={styles.addValueIcon} size={14} weight="bold" aria-hidden="true" focusable="false" />
+														Add value
+													</Button>
+												</div>
+											</th>
 										</tr>
-									</thead>
-									{labelGroups.length ? (
-										labelGroups.map(group => (
-											<tbody key={group.key}>
-												<tr className={styles.groupRow}>
-													<th className={styles.groupHeaderCell} scope="rowgroup" colSpan={4}>
-														<div className={styles.groupHeader}>
-															<div className={styles.groupHeading}>
-																<strong translate="no">{group.key}</strong>
-																<span>
-																	{countLabel(group.rows.length, "value")} · {countLabel(group.probeCount, "probe")} · {countLabel(group.checkCount, "check")}
-																</span>
-															</div>
-															<Button type="button" variant="secondary" size="sm" onClick={() => startNewLabel(group.key)}>
-																<PlusIcon className={styles.addValueIcon} size={14} weight="bold" aria-hidden="true" focusable="false" />
-																Add value
-															</Button>
+										{group.rows.map(row => {
+											const selected = !isCreating && labelId === row.id;
+
+											return (
+												<tr
+													key={row.id}
+													className={[styles.labelValueRow, selected && styles.selectedLabelValueRow].filter(Boolean).join(" ")}
+													aria-label={`Open ${row.key} value ${row.value}`}
+													aria-selected={selected || undefined}
+													tabIndex={0}
+													onClick={() => selectLabel(row)}
+													onKeyDown={event => openLabelFromKeyboard(event, row)}
+												>
+													<td>
+														<div className={styles.valueCell}>
+															<strong translate="no">{row.value}</strong>
 														</div>
-													</th>
+													</td>
+													<td>{renderUsage(row.probeCount, row.probeNames, "success")}</td>
+													<td>{renderUsage(row.checkCount, row.checkNames, "accent")}</td>
+													<td className={styles.updatedCell}>{row.updatedAt}</td>
 												</tr>
-												{group.rows.map(row => {
-													const selected = !isCreating && labelId === row.id;
-
-													return (
-														<tr
-															key={row.id}
-															className={[styles.labelValueRow, selected && styles.selectedLabelValueRow].filter(Boolean).join(" ")}
-															aria-label={`Open label ${row.token}`}
-															aria-selected={selected || undefined}
-															tabIndex={0}
-															onClick={() => selectLabel(row)}
-															onKeyDown={event => openLabelFromKeyboard(event, row)}
-														>
-															<td>
-																<div className={styles.valueCell}>
-																	<strong translate="no">{row.value}</strong>
-																	<span translate="no">{row.token}</span>
-																</div>
-															</td>
-															<td>{renderUsage(row.probeCount, row.probeNames, "success")}</td>
-															<td>{renderUsage(row.checkCount, row.checkNames, "accent")}</td>
-															<td className={styles.updatedCell}>{row.updatedAt}</td>
-														</tr>
-													);
-												})}
-											</tbody>
-										))
-									) : (
-										<tbody>
-											<tr>
-												<td className={styles.emptyState} colSpan={4}>
-													{emptyLabel}
-												</td>
-											</tr>
-										</tbody>
-									)}
-								</table>
-							</div>
-						</div>
+											);
+										})}
+									</tbody>
+								))
+							) : (
+								<tbody>
+									<tr>
+										<td className={styles.emptyState} colSpan={4}>
+											{emptyLabel}
+										</td>
+									</tr>
+								</tbody>
+							)}
+						</table>
 					</div>
-				</Panel>
-
-				{isEditorOpen ? (
-					<EditorDrawer open title={isEditing ? selectedRow?.token || "Label" : "New label"} ariaLabel="Label editor" onClose={closeEditor}>
-						<div className={styles.editorStack}>
-							<div className={styles.editorForm}>
-								<TextField label="Key" placeholder="region" value={activeDraftKey} disabled={!projectRef} onChange={event => updateDraftKey(event.currentTarget.value)} />
-								<TextField label="Value" placeholder="tokyo" value={activeDraftValue} disabled={!projectRef} onChange={event => updateDraftValue(event.currentTarget.value)} />
-							</div>
-
-							{mutationError ? <p className={styles.errorNotice}>{requestErrorMessage(mutationError, "Label operation failed.")}</p> : null}
-
-							<UnsavedChangesBar show={hasLabelChanges} saving={saveLabelMutation.isPending} disabled={!canSave} onReset={resetLabelDraft} onSave={saveLabel} />
-
-							<div className={styles.editorActions}>
-								<Button variant="danger" disabled={!selectedRow || deleteLabelMutation.isPending} onClick={() => selectedRow && void deleteLabel(selectedRow)}>
-									{deleteLabelMutation.isPending ? "Deleting" : "Delete selected"}
-								</Button>
-							</div>
-
-							<div className={styles.usagePanel}>
-								<div>
-									<span>Probe usage</span>
-									<strong>{selectedRow?.probeCount ?? 0}</strong>
-									<p>{usageNames(selectedRow?.probeNames ?? [])}</p>
-								</div>
-								<div>
-									<span>Check usage</span>
-									<strong>{selectedRow?.checkCount ?? 0}</strong>
-									<p>{usageNames(selectedRow?.checkNames ?? [])}</p>
-								</div>
-							</div>
-						</div>
-					</EditorDrawer>
-				) : null}
+				</div>
 			</div>
+
+			<DialogRoot
+				open={isEditorOpen}
+				onOpenChange={open => {
+					if (!open) {
+						closeEditor();
+					}
+				}}
+			>
+				<DialogPortal>
+					<DialogOverlay className={styles.popupOverlay} onMouseDown={closeEditor}>
+						<DialogContent asChild>
+							<form className={styles.popup} onSubmit={submitLabel} onMouseDown={event => event.stopPropagation()}>
+								<div className={styles.popupHeader}>
+									<DialogTitle asChild>
+										<strong>{editorTitle}</strong>
+									</DialogTitle>
+									{editorKey ? <Badge tone="accent">{editorKey}</Badge> : null}
+								</div>
+
+								<TextField
+									label={editorInputLabel}
+									placeholder={editorInputPlaceholder}
+									value={editorInputValue}
+									disabled={!projectRef || saveLabelMutation.isPending}
+									onChange={event => updateEditorInput(event.currentTarget.value)}
+									autoFocus
+								/>
+
+								{mutationError ? <p className={styles.errorNotice}>{requestErrorMessage(mutationError, "Label operation failed.")}</p> : null}
+
+								<div className={styles.popupActions}>
+									{selectedRow ? (
+										<Button type="button" variant="danger" disabled={deleteLabelMutation.isPending || saveLabelMutation.isPending} onClick={() => void deleteLabel(selectedRow)}>
+											{deleteLabelMutation.isPending ? "Deleting" : "Delete value"}
+										</Button>
+									) : null}
+									<div className={styles.primaryActions}>
+										<Button type="button" variant="ghost" disabled={saveLabelMutation.isPending || deleteLabelMutation.isPending} onClick={closeEditor}>
+											Cancel
+										</Button>
+										<Button type="submit" disabled={!canSave || saveLabelMutation.isPending || deleteLabelMutation.isPending}>
+											{editorSubmitLabel}
+										</Button>
+									</div>
+								</div>
+							</form>
+						</DialogContent>
+					</DialogOverlay>
+				</DialogPortal>
+			</DialogRoot>
 		</PageStack>
 	);
 }
