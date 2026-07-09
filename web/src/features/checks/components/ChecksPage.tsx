@@ -109,6 +109,7 @@ export function ChecksPage() {
 	const [pingConfig, setPingConfig] = useState<PingConfigFormState>(defaultPingConfigFormState);
 	const [tcpConfig, setTCPConfig] = useState<TCPConfigFormState>(defaultTCPConfigFormState);
 	const [tracerouteConfig, setTracerouteConfig] = useState<TracerouteConfigFormState>(defaultTracerouteConfigFormState);
+	const [copiedCheckFields, setCopiedCheckFields] = useState<Pick<CreateCheckInput, "description" | "labelIds">>({});
 	const isCreating = editorMode === "create";
 	const selectedId = isCreating ? "__new__" : checkId;
 	const selectedListCheck = isCreating ? null : checkRows.find(check => check.id === checkId) || null;
@@ -162,6 +163,7 @@ export function ChecksPage() {
 		setPingConfig(defaultPingConfigFormState);
 		setTCPConfig(defaultTCPConfigFormState);
 		setTracerouteConfig(defaultTracerouteConfigFormState);
+		setCopiedCheckFields({});
 		setDraftCheckId("");
 	}
 
@@ -339,6 +341,12 @@ export function ChecksPage() {
 		return checksQuery.data?.checks.find(check => check.id === checkId) || null;
 	}
 
+	function assignedProbeNamesFor(checkId: string) {
+		return (assignmentsQuery.data ?? [])
+			.filter(assignment => assignment.checkId === checkId)
+			.map(assignment => assignment.probe?.name || probes.find(probe => probe.id === assignment.probeId)?.name || assignment.probeId);
+	}
+
 	function handleSavedCheck(data: { check: ApiCheck }) {
 		setEditorMode("idle");
 		setDraftCheckId(data.check.id);
@@ -378,7 +386,25 @@ export function ChecksPage() {
 			return;
 		}
 
-		createCheckMutation.mutate(duplicateCheckInput(apiCheck), { onSuccess: handleSavedCheck });
+		const body = duplicateCheckInput(apiCheck);
+		const copiedSelectorState = selectorStateFromApi(body.selector);
+
+		navigate(pathWithSearch(pathForRoute("checks", { projectRef }), searchParamString));
+		setEditorMode("create");
+		setDraftCheckId("__new__");
+		setCheckName(body.name);
+		setTarget(body.target);
+		setCheckType(checkTypeFromApi(body.type));
+		setInterval(`${body.intervalSeconds}s`);
+		setSelectorState(copiedSelectorState);
+		setSelectedProbes(copiedSelectorState.mode === "advanced" ? assignedProbeNamesFor(check.id) : []);
+		setPingConfig(pingConfigFormStateFromApi(apiCheck));
+		setTCPConfig(tcpConfigFormStateFromApi(apiCheck));
+		setTracerouteConfig(tracerouteConfigFormStateFromApi(apiCheck));
+		setCopiedCheckFields({
+			...(body.description ? { description: body.description } : {}),
+			...(body.labelIds?.length ? { labelIds: body.labelIds } : {})
+		});
 	}
 
 	async function deleteCheck(check: CheckDefinition) {
@@ -499,6 +525,9 @@ export function ChecksPage() {
 				target: activeTarget,
 				type
 			};
+			if (isCreating) {
+				Object.assign(body, copiedCheckFields);
+			}
 			if (type === "traceroute") {
 				body.tracerouteConfig = buildTracerouteConfigPayload(activeTracerouteConfig);
 			} else if (type === "tcp") {
