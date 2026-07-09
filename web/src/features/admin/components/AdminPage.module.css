@@ -56,8 +56,6 @@
 
 .userToolbar {
 	padding: 1rem;
-	border-bottom: 1px solid var(--ns-border-faint);
-	background: var(--ns-container-bg-raised);
 }
 
 .userFilters {
