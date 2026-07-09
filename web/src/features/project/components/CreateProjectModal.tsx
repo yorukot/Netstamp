@@ -3,6 +3,7 @@ import { apiQueryKeys } from "@/shared/api/queryKeys";
 import type { ApiProject } from "@/shared/api/types";
 import { useProjectSelection } from "@/shared/api/useCurrentProject";
 import { pushErrorToast, pushToast } from "@/shared/toast/toastStore";
+import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
 import { Button, DialogContent, DialogDescription, DialogOverlay, DialogPortal, DialogRoot, DialogTitle, TextField } from "@netstamp/ui";
 import { useQueryClient } from "@tanstack/react-query";
 import type { FormEvent } from "react";
@@ -98,7 +99,7 @@ export function CreateProjectModal({ onClose, onCreatedProject }: CreateProjectM
 			});
 			onClose();
 		} catch (error) {
-			pushErrorToast(error instanceof Error ? error.message : "Project could not be created.");
+			pushErrorToast(requestErrorMessage(error, "Project could not be created."));
 		}
 	}
 

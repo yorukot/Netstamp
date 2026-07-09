@@ -19,6 +19,7 @@ import { UnsavedChangesBar } from "@/shared/components/UnsavedChangesBar";
 import type { AssignedRow } from "@/shared/domain/assignments";
 import { pushErrorToast } from "@/shared/toast/toastStore";
 import { classNames } from "@/shared/utils/classNames";
+import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
 import { Badge, Button, Checkbox, CodeBlock, DataTable, FieldLabel, SegmentedControl, Spinner, TextField, type DataColumn } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -341,7 +342,7 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 				body
 			});
 		} catch (error) {
-			pushErrorToast(error instanceof Error ? error.message : "Probe could not be saved.");
+			pushErrorToast(requestErrorMessage(error, "Probe could not be saved."));
 		} finally {
 			setSavingProbe(false);
 		}

@@ -2,6 +2,7 @@ import createClient from "openapi-fetch";
 import type { components, paths } from "./openapi";
 
 export type ApiProblem = components["schemas"]["ProblemDetails"];
+export type ApiErrorCode = NonNullable<ApiProblem["code"]>;
 
 export class ApiError extends Error {
 	readonly problem?: ApiProblem;
@@ -28,6 +29,19 @@ export function apiUrl<TPath extends keyof paths & string>(path: TPath) {
 
 export function absoluteApiUrl<TPath extends keyof paths & string>(path: TPath) {
 	return new URL(apiUrl(path), window.location.origin).toString();
+}
+
+export function apiProblemCode(error: unknown): ApiErrorCode | undefined {
+	if (error instanceof ApiError) {
+		return error.problem?.code;
+	}
+
+	return apiProblemFromError(error)?.code;
+}
+
+export function hasApiProblemCode(error: unknown, ...codes: ApiErrorCode[]) {
+	const code = apiProblemCode(error);
+	return code !== undefined && codes.includes(code);
 }
 
 interface ApiResult<TData> {

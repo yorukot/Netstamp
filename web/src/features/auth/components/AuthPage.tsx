@@ -1,7 +1,7 @@
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { pathForRoute } from "@/routes/routePaths";
 import type { Navigate } from "@/routes/routeTypes";
-import { ApiError } from "@/shared/api/client";
+import { hasApiProblemCode } from "@/shared/api/client";
 import { useCreateEmailVerificationMutation } from "@/shared/api/mutations";
 import { appFeatures, demoCredentials, demoMode } from "@/shared/config/features";
 import { pushErrorToast, pushToast } from "@/shared/toast/toastStore";
@@ -90,7 +90,7 @@ export function AuthPage({ mode = "login", navigate }: AuthPageProps) {
 			await login(payload);
 			navigate("dashboard");
 		} catch (error) {
-			if (error instanceof ApiError && error.status === 403) {
+			if (hasApiProblemCode(error, "AUTH_EMAIL_VERIFICATION_REQUIRED")) {
 				setVerificationEmail(email);
 			}
 			return;

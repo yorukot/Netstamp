@@ -1,7 +1,7 @@
 import { pushErrorToast } from "@/shared/toast/toastStore";
 import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
 import { MutationCache, QueryCache, QueryClient } from "@tanstack/react-query";
-import { ApiError } from "./client";
+import { hasApiProblemCode } from "./client";
 
 interface MutationErrorMeta {
 	suppressGlobalErrorToast?: boolean;
@@ -23,7 +23,7 @@ export const queryClient = new QueryClient({
 	}),
 	queryCache: new QueryCache({
 		onError: (error, query) => {
-			if (error instanceof ApiError && error.status === 401 && query.queryKey[0] === "auth") {
+			if (query.queryKey[0] === "auth" && hasApiProblemCode(error, "AUTH_MISSING_SESSION", "AUTH_INVALID_SESSION")) {
 				return;
 			}
 

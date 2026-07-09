@@ -1,12 +1,13 @@
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { type Navigate } from "@/routes/routeTypes";
-import { ApiError } from "@/shared/api/client";
+import { apiProblemCode } from "@/shared/api/client";
 import { useAcceptProjectInviteMutation, useCreateProjectInviteForRefMutation, useCreateProjectMutation } from "@/shared/api/mutations";
 import { projectQueries } from "@/shared/api/queries";
 import type { ApiProjectInvite } from "@/shared/api/types";
 import { useProjectSelection } from "@/shared/api/useCurrentProject";
 import { appFeatures } from "@/shared/config/features";
 import { pushErrorToast } from "@/shared/toast/toastStore";
+import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
 import { Button, Input, PageShell, Spinner } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
 import type { FormEvent, KeyboardEvent as ReactKeyboardEvent } from "react";
@@ -58,7 +59,7 @@ function randomSlugToken(length: number) {
 }
 
 function isProjectSlugConflict(error: unknown) {
-	return error instanceof ApiError && error.status === 409 && /project slug already exists/i.test(error.message);
+	return apiProblemCode(error) === "PROJECT_SLUG_ALREADY_EXISTS";
 }
 
 function projectRefFromInvite(invite: ApiProjectInvite) {
@@ -300,7 +301,7 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 			setActiveStep(0);
 			setTypedText("");
 		} catch (error) {
-			pushErrorToast(error instanceof Error ? error.message : "Project invite could not be accepted.");
+			pushErrorToast(requestErrorMessage(error, "Project invite could not be accepted."));
 		}
 	}
 
@@ -347,7 +348,7 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 
 			pushErrorToast("Project slug is already in use. Try a different project name.");
 		} catch (error) {
-			pushErrorToast(error instanceof Error ? error.message : "Project could not be created.");
+			pushErrorToast(requestErrorMessage(error, "Project could not be created."));
 		} finally {
 			setCreatingProject(false);
 		}

@@ -1,5 +1,5 @@
 import { checkTypeLabel, formatDateTime, formatMetric, publicStatusChartOption, severityTone, statusLabel, statusTone } from "@/features/status-pages/api/statusPageAdapters";
-import { ApiError } from "@/shared/api/client";
+import { hasApiProblemCode } from "@/shared/api/client";
 import { publicStatusQueries } from "@/shared/api/queries";
 import type {
 	ApiPublicStatusElementChartResponse,
@@ -49,7 +49,7 @@ export function PublicStatusPage() {
 	}
 
 	if (summaryQuery.error || !summaryQuery.data) {
-		const notFound = summaryQuery.error instanceof ApiError && summaryQuery.error.status === 404;
+		const notFound = hasApiProblemCode(summaryQuery.error, "PUBLIC_STATUS_PAGE_NOT_FOUND");
 		return (
 			<main className={styles.page}>
 				<div className={styles.shell}>
