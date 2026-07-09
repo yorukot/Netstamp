@@ -183,7 +183,7 @@ Implementation decision: root defaults to the dark palette, with `:root` and `:r
 - `--ns-cut-*`: `0`, legacy only.
 - `--ns-shadow-sm`, `--ns-shadow-md`, `--ns-shadow-glow`: `none`.
 - `--ns-transition`: `180ms cubic-bezier(0.2, 0.8, 0.2, 1)`.
-- Newly appearing stateful elements should enter with elegant, smooth motion instead of popping into place. Use short opacity plus transform animations modeled on popovers and dialogs: `220ms` to `300ms`, `cubic-bezier(0.2, 0.8, 0.2, 1)`, and small translation distances.
+- Newly appearing and disappearing stateful elements should enter and exit with elegant, smooth motion instead of popping into or out of place. Use short opacity plus transform animations modeled on popovers and dialogs: `220ms` to `300ms` for enter, `140ms` to `180ms` for exit, `cubic-bezier(0.2, 0.8, 0.2, 1)` for enter, and small translation distances.
 - Bottom-anchored or sticky state bars should use a fade-in-from-bottom treatment. Popovers and anchored menus should move from their trigger side. Avoid bouncy, elastic, overshooting, or decorative motion.
 - Motion must clarify state and continuity: unsaved-change bars, dialogs, drawers, menus, popovers, search panels, inline success/error notices, and newly mounted workflow panels should animate in when they appear.
 - Do not animate routine hover feedback with large movement. Keep hover/focus transitions restrained to color, border, and subtle surface changes.
