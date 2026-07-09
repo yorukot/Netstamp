@@ -29,7 +29,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input({ v
 	const frameClasses = ["ns-frame", styles.controlFrame, styles[`${variant}Frame`], frameClassName].filter(Boolean).join(" ");
 
 	return (
-		<span className={frameClasses} data-invalid={Boolean(ariaInvalid)}>
+		<span className={frameClasses} data-invalid={Boolean(ariaInvalid)} data-disabled={props.disabled || undefined}>
 			<input ref={ref} className={classes} aria-invalid={booleanAria(ariaInvalid)} {...props} />
 		</span>
 	);
@@ -256,7 +256,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
 
 	if (multiple) {
 		return (
-			<span className={frameClasses} data-invalid={Boolean(ariaInvalid)} data-disabled={Boolean(disabled)}>
+			<span className={frameClasses} data-invalid={Boolean(ariaInvalid)} data-disabled={disabled || undefined}>
 				<select
 					ref={setSelectNode}
 					className={classes}
@@ -277,7 +277,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
 	return (
 		<RadixSelect.Root value={radixSelectedValue} open={open} onOpenChange={setOpen} onValueChange={commitValue} disabled={disabled}>
 			<span className={styles.selectRoot}>
-				<span className={frameClasses} data-invalid={Boolean(ariaInvalid)} data-disabled={Boolean(disabled)} data-open={open}>
+				<span className={frameClasses} data-invalid={Boolean(ariaInvalid)} data-disabled={disabled || undefined} data-open={open}>
 					<RadixSelect.Trigger
 						id={triggerId}
 						ref={triggerRef}
@@ -452,7 +452,7 @@ export function TextAreaField({ label, helper, error, className, ...props }: Tex
 
 	return (
 		<FieldShell id={id} label={label} helper={helper} error={error}>
-			<span className={["ns-frame", styles.controlFrame].join(" ")} data-invalid={Boolean(error)}>
+			<span className={["ns-frame", styles.controlFrame].join(" ")} data-invalid={Boolean(error)} data-disabled={props.disabled || undefined}>
 				<textarea id={id} name={name} autoComplete={autoComplete} className={classes} aria-invalid={Boolean(error)} {...props} />
 			</span>
 		</FieldShell>

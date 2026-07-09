@@ -41,3 +41,17 @@ export const Error: Story = {
 		</div>
 	)
 };
+
+export const Disabled: Story = {
+	args: {
+		disabled: true,
+		helper: "Disabled text areas match the shared disabled field treatment."
+	},
+	render: args => (
+		<div className="storybook-canvas">
+			<div className="storybook-demo storybook-demo--narrow">
+				<TextAreaField {...args} />
+			</div>
+		</div>
+	)
+};

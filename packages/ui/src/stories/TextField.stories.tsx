@@ -42,3 +42,18 @@ export const Error: Story = {
 		</div>
 	)
 };
+
+export const Disabled: Story = {
+	args: {
+		defaultValue: "demo-probe",
+		disabled: true,
+		helper: "Disabled fields use the same subdued treatment as selects."
+	},
+	render: args => (
+		<div className="storybook-canvas">
+			<div className="storybook-demo storybook-demo--narrow">
+				<TextField {...args} />
+			</div>
+		</div>
+	)
+};

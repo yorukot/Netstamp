@@ -226,7 +226,9 @@ a[href],
 }
 
 button:disabled,
+input:disabled,
 select:disabled,
+textarea:disabled,
 [aria-disabled="true"],
 [data-disabled] {
 	cursor: not-allowed;

@@ -31,13 +31,19 @@
 	box-shadow: none;
 }
 
-.controlFrame:hover:not(:has(.control:focus-visible)):not(:has(.select:focus-visible)):not(:has(.checkbox:focus-visible)) {
+.controlFrame:hover:not([data-disabled="true"]):not(:has(.control:focus-visible)):not(:has(.select:focus-visible)):not(:has(.checkbox:focus-visible)) {
 	--ns-frame-color: var(--ns-border-strong);
 }
 
 .controlFrame[data-invalid="true"] {
 	--ns-frame-color: color-mix(in srgb, var(--ns-critical) 64%, transparent);
 	box-shadow: none;
+}
+
+.controlFrame[data-disabled="true"] {
+	--ns-select-arrow: var(--ns-text-low);
+	cursor: not-allowed;
+	opacity: 0.58;
 }
 
 .control {
@@ -81,9 +87,20 @@
 	box-shadow: none;
 }
 
+.control:disabled {
+	color: var(--ns-text);
+	-webkit-text-fill-color: var(--ns-text);
+	background: var(--ns-control-bg);
+	cursor: not-allowed;
+}
+
 .bareControl:focus-visible {
 	outline: var(--ns-focus-outline);
 	outline-offset: var(--ns-focus-outline-offset);
+}
+
+.bareControl:disabled {
+	opacity: 0.58;
 }
 
 .control[aria-invalid="true"] {
@@ -118,8 +135,6 @@
 
 .selectFrame[data-disabled="true"] {
 	--ns-select-arrow: var(--ns-text-low);
-	cursor: not-allowed;
-	opacity: 0.58;
 }
 
 .select {
