@@ -7,7 +7,7 @@ import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { pushToast } from "@/shared/toast/toastStore";
 import { createGravatarUrl } from "@/shared/utils/gravatar";
-import { Badge, Button, DataTable, Panel, SelectField, SignalAvatar, TextField, type DataColumn } from "@netstamp/ui";
+import { Badge, Button, DataTable, Panel, SelectField, SignalAvatar, Spinner, TextField, type DataColumn } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import styles from "./MembersPage.module.css";
@@ -339,7 +339,7 @@ export function MembersPage() {
 						rows={inviteRows}
 						density="compact"
 						minWidth="46rem"
-						emptyLabel={invitesQuery.isLoading ? "Loading pending invites" : "No pending invites"}
+						emptyLabel={invitesQuery.isLoading ? <Spinner label="Loading pending invites" layout="compact" size="lg" /> : "No pending invites"}
 						getRowKey={row => row.id}
 					/>
 				</Panel>

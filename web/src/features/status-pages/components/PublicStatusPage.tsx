@@ -10,7 +10,7 @@ import type {
 	ApiPublicStatusSummaryResponse
 } from "@/shared/api/types";
 import { ChartPanel } from "@/shared/visualizations/ChartPanel";
-import { Badge, LoadingState, Panel, type BadgeTone } from "@netstamp/ui";
+import { Badge, Panel, Spinner, type BadgeTone } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
@@ -42,7 +42,7 @@ export function PublicStatusPage() {
 		return (
 			<main className={styles.page}>
 				<div className={styles.shell}>
-					<LoadingState label="Loading status page" detail="Fetching the current public status snapshot." />
+					<Spinner label="Loading status page" layout="panel" size="lg" />
 				</div>
 			</main>
 		);
@@ -93,7 +93,7 @@ function IncidentSection({ incidents, isLoading, hasError }: { incidents: Public
 		return (
 			<section className={styles.incidents} aria-label="Incidents">
 				<Panel tone="deep" title="Open incidents">
-					<LoadingState label="Loading incidents" detail="Fetching active public incidents." />
+					<Spinner label="Loading incidents" layout="compact" size="lg" />
 				</Panel>
 			</section>
 		);
@@ -154,7 +154,7 @@ function ElementSection({ slug, elements, isLoading, hasError }: { slug: string;
 	if (isLoading) {
 		return (
 			<section className={styles.elements} aria-label="Status checks">
-				<LoadingState label="Loading status checks" detail="Fetching current public check status." />
+				<Spinner label="Loading status checks" layout="panel" size="lg" />
 			</section>
 		);
 	}
@@ -238,7 +238,11 @@ function LazyPublicElementDailyStatus({ slug, element }: { slug: string; element
 
 	return (
 		<div ref={ref} className={styles.dailyStatus}>
-			{dailyStatusQuery.isPending || (dailyStatusQuery.isFetching && !dailyStatusQuery.data) ? <div className={styles.dailyStatusPlaceholder}>Loading 30 days</div> : null}
+			{dailyStatusQuery.isPending || (dailyStatusQuery.isFetching && !dailyStatusQuery.data) ? (
+				<div className={styles.dailyStatusPlaceholder}>
+					<Spinner label="Loading 30 days" size="sm" />
+				</div>
+			) : null}
 			{dailyStatusQuery.error ? <div className={styles.dailyStatusPlaceholder}>Daily status unavailable</div> : null}
 			{days.length ? (
 				<>
@@ -269,7 +273,11 @@ function LazyPublicElementChart({ slug, element }: { slug: string; element: ApiP
 
 	return (
 		<div ref={ref} className={styles.chartSlot}>
-			{chartQuery.isPending || (chartQuery.isFetching && !chartQuery.data) ? <div className={styles.chartPlaceholder}>Loading chart</div> : null}
+			{chartQuery.isPending || (chartQuery.isFetching && !chartQuery.data) ? (
+				<div className={styles.chartPlaceholder}>
+					<Spinner label="Loading chart" size="lg" />
+				</div>
+			) : null}
 			{chartQuery.error ? <div className={styles.chartPlaceholder}>Chart unavailable</div> : null}
 			{chart?.series.length ? <ChartPanel className={styles.chart} option={publicStatusChartOption({ ...element, chart })} height="12rem" /> : null}
 		</div>

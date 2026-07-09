@@ -7,7 +7,7 @@ import { useConfirm } from "@/shared/components/confirmContext";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
-import { Badge, Button, DialogContent, DialogOverlay, DialogPortal, DialogRoot, DialogTitle, FilterGrid, SelectField, TextField } from "@netstamp/ui";
+import { Badge, Button, DialogContent, DialogOverlay, DialogPortal, DialogRoot, DialogTitle, FilterGrid, SelectField, Spinner, TextField } from "@netstamp/ui";
 import { PlusIcon } from "@phosphor-icons/react/dist/csr/Plus";
 import { useQuery } from "@tanstack/react-query";
 import { type FormEvent, type KeyboardEvent, useEffect, useMemo, useState } from "react";
@@ -239,7 +239,7 @@ export function LabelsPage() {
 	const canSave = isCreatingToken
 		? Boolean(projectRef && parsedDraftToken)
 		: Boolean(projectRef && activeDraftKey.trim() && activeDraftValue.trim() && (isCreating || !selectedLabel || selectedLabel.value !== activeDraftValue.trim()));
-	const emptyLabel = projectRef ? (labelsQuery.isLoading ? "Loading labels" : "No labels match this view") : "Select a project to manage labels";
+	const emptyLabel = projectRef ? labelsQuery.isLoading ? <Spinner label="Loading labels" layout="compact" size="lg" /> : "No labels match this view" : "Select a project to manage labels";
 	const editorTitle = isCreatingToken ? "New label" : isCreating ? `Add ${activeDraftKey} value` : selectedLabel ? `Edit ${selectedLabel.key}` : "Label";
 	const editorInputLabel = isCreatingToken ? "Label" : "Value";
 	const editorInputValue = isCreatingToken ? draftToken : activeDraftValue;

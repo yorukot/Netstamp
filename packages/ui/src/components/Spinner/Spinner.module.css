@@ -2,8 +2,8 @@
 	position: relative;
 	display: inline-grid;
 	place-items: center;
-	width: var(--ns-spinner-track-width);
-	height: var(--ns-spinner-track-height);
+	min-width: var(--ns-spinner-track-width);
+	min-height: var(--ns-spinner-track-height);
 	color: var(--ns-primary);
 }
 
@@ -34,10 +34,29 @@
 	position: relative;
 	display: block;
 	box-sizing: border-box;
-	width: 100%;
-	height: 100%;
+	width: var(--ns-spinner-track-width);
+	height: var(--ns-spinner-track-height);
 	overflow: hidden;
 	background: color-mix(in srgb, var(--ns-primary) 18%, var(--ns-surface-raised));
+}
+
+.layoutcompact,
+.layoutpanel,
+.layoutpage {
+	display: grid;
+	width: 100%;
+}
+
+.layoutcompact {
+	min-height: 8rem;
+}
+
+.layoutpanel {
+	min-height: 18rem;
+}
+
+.layoutpage {
+	min-height: 100svh;
 }
 
 .mark::before {

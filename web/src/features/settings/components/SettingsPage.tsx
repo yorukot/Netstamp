@@ -18,7 +18,7 @@ import { useConfirm } from "@/shared/components/confirmContext";
 import { appFeatures, demoMode } from "@/shared/config/features";
 import { pushToast } from "@/shared/toast/toastStore";
 import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
-import { ActionRow, Badge, BodyCopy, Button, DataTable, Panel, SignalAvatar, TextField, type DataColumn } from "@netstamp/ui";
+import { ActionRow, Badge, BodyCopy, Button, DataTable, Panel, SignalAvatar, Spinner, TextField, type DataColumn } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
@@ -267,7 +267,7 @@ export function SettingsPage() {
 					rows={inviteRows}
 					density="compact"
 					minWidth="46rem"
-					emptyLabel={invitesQuery.isLoading ? "Loading project invitations" : "No pending project invitations"}
+					emptyLabel={invitesQuery.isLoading ? <Spinner label="Loading project invitations" layout="compact" size="lg" /> : "No pending project invitations"}
 					getRowKey={row => row.id}
 				/>
 			</Panel>

@@ -6,7 +6,7 @@ import { formatCount } from "@/shared/utils/insightFormatters";
 import { hasPingSeriesChartData, pingSeriesChartData } from "@/shared/utils/pingInsightData";
 import { ChartPanel } from "@/shared/visualizations/ChartPanel";
 import { insightSeriesColor, multiPingInsightChartOption, multiTcpInsightChartOption, type InsightMultiSeriesLine } from "@/shared/visualizations/chartOptions";
-import { LoadingState, Panel } from "@netstamp/ui";
+import { Panel, Spinner } from "@netstamp/ui";
 import { useQueries } from "@tanstack/react-query";
 import styles from "./MultiSeriesInsightPanel.module.css";
 
@@ -89,7 +89,7 @@ function SeriesPanel({
 			) : (
 				<>
 					{isLoading || isFetching ? (
-						<LoadingState label={`Loading ${unitLabel} series`} detail="Syncing result points for the selected assignments and time range." />
+						<Spinner label={`Loading ${unitLabel} series`} layout="panel" size="lg" />
 					) : (
 						<div className={styles.emptyState}>No {unitLabel} series points were recorded for the selected assignments in this time range.</div>
 					)}

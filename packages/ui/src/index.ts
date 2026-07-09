@@ -89,8 +89,6 @@ export { IconButton } from "./components/IconButton/IconButton";
 export type { IconButtonProps } from "./components/IconButton/IconButton";
 export { KeyValueRow } from "./components/KeyValueRow/KeyValueRow";
 export type { KeyValueRowProps, KeyValueRowTone } from "./components/KeyValueRow/KeyValueRow";
-export { LoadingState } from "./components/LoadingState/LoadingState";
-export type { LoadingStateProps } from "./components/LoadingState/LoadingState";
 export { MetricCard } from "./components/MetricCard/MetricCard";
 export type { MetricCardProps } from "./components/MetricCard/MetricCard";
 export { MetricTile } from "./components/MetricTile/MetricTile";
@@ -112,7 +110,7 @@ export type { SpecCardProps, SpecCardTone } from "./components/SpecCard/SpecCard
 export { SpecLabel } from "./components/SpecLabel/SpecLabel";
 export type { SpecLabelProps, SpecLabelSize, SpecLabelTone } from "./components/SpecLabel/SpecLabel";
 export { Spinner } from "./components/Spinner/Spinner";
-export type { SpinnerProps, SpinnerSize } from "./components/Spinner/Spinner";
+export type { SpinnerLayout, SpinnerProps, SpinnerSize } from "./components/Spinner/Spinner";
 export { Surface } from "./components/Surface/Surface";
 export type { SurfaceFrameSize, SurfacePadding, SurfaceProps, SurfaceTone } from "./components/Surface/Surface";
 export { Tabs } from "./components/Tabs/Tabs";

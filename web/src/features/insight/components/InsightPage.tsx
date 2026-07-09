@@ -28,7 +28,7 @@ import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { formatCount } from "@/shared/utils/insightFormatters";
-import { BodyCopy, Button, FilterGrid, LoadingState, Panel, SelectField } from "@netstamp/ui";
+import { BodyCopy, Button, FilterGrid, Panel, SelectField, Spinner } from "@netstamp/ui";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -621,8 +621,8 @@ export function InsightPage() {
 			</Panel>
 
 			{isSelectionLoading && !pairs.length ? (
-				<Panel tone="deep" title="Loading active paths">
-					<LoadingState label="Loading active paths" detail="Fetching probe-check assignments for this project." size="compact" />
+				<Panel tone="deep" title="Active paths">
+					<Spinner label="Loading active paths" layout="compact" size="lg" />
 				</Panel>
 			) : !pairs.length ? (
 				<Panel tone="deep" title="No active paths">

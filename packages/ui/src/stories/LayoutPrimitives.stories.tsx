@@ -1,6 +1,6 @@
 import { XIcon } from "@phosphor-icons/react/dist/csr/X";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { ActionRow, BodyCopy, Button, FilterGrid, IconButton, Input, LoadingState, Select } from "../index";
+import { ActionRow, BodyCopy, Button, FilterGrid, IconButton, Input, Select, Spinner } from "../index";
 
 const meta: Meta = {
 	title: "Components/Layout Primitives"
@@ -32,7 +32,7 @@ export const Overview: Story = {
 					<XIcon size={15} weight="bold" aria-hidden="true" focusable="false" />
 				</IconButton>
 			</ActionRow>
-			<LoadingState size="compact" label="Loading panel" detail="Fetching the latest probe data." />
+			<Spinner label="Loading panel" layout="compact" size="lg" />
 		</div>
 	)
 };

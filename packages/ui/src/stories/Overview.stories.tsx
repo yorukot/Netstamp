@@ -47,7 +47,7 @@ const componentGroups = [
 	["Forms", "TextField, TextAreaField, SelectField, SearchableSelect, Checkbox"],
 	["Surfaces", "Panel, Surface, MetricCard, MetricTile, SpecCard"],
 	["Data", "DataTable, KeyValueRow, Badge, SpecLabel, CodeBlock"],
-	["Feedback", "Toast, Spinner, LoadingState, EmptyState"],
+	["Feedback", "Toast, Spinner, EmptyState"],
 	["Layout", "PageShell, Drawer, Dialog, Tabs, SegmentedControl, GlobalFooter"]
 ] as const;
 

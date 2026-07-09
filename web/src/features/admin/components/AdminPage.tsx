@@ -8,7 +8,7 @@ import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { UnsavedChangesBar } from "@/shared/components/UnsavedChangesBar";
 import { pushToast } from "@/shared/toast/toastStore";
 import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
-import { Badge, BodyCopy, Button, Checkbox, DataTable, LoadingState, Panel, SelectField, TextField, type DataColumn } from "@netstamp/ui";
+import { Badge, BodyCopy, Button, Checkbox, DataTable, Panel, SelectField, Spinner, TextField, type DataColumn } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
 import type { ChangeEvent, FormEvent } from "react";
 import { useMemo, useRef, useState } from "react";
@@ -424,7 +424,7 @@ export function AdminPage() {
 			<ScreenHeader title="System Settings" actions={settingsQuery.data?.settings.smtp.configured ? <Badge tone="success">SMTP configured</Badge> : <Badge tone="warning">SMTP disabled</Badge>} />
 
 			{settingsQuery.isLoading ? (
-				<LoadingState label="Loading admin settings" />
+				<Spinner label="Loading admin settings" layout="panel" size="lg" />
 			) : settingsQuery.isError ? (
 				<Panel tone="deep" title="Admin settings unavailable">
 					<BodyCopy>{requestErrorMessage(settingsQuery.error, "Could not load admin settings.")}</BodyCopy>
@@ -537,7 +537,7 @@ export function AdminPage() {
 				padded={false}
 			>
 				{usersQuery.isLoading ? (
-					<LoadingState label="Loading users" />
+					<Spinner label="Loading users" layout="panel" size="lg" />
 				) : usersQuery.isError ? (
 					<div className={styles.tableMessage}>
 						<BodyCopy>{requestErrorMessage(usersQuery.error, "Could not load users.")}</BodyCopy>

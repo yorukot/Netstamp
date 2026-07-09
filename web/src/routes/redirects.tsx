@@ -1,13 +1,18 @@
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
+import { Spinner } from "@netstamp/ui";
 import { Navigate as RouterNavigate, useParams } from "react-router-dom";
 import { pathForCheckDetail, pathForLabelDetail, pathForProbeDetail, pathForRoute } from "./routePaths";
 import type { ProjectAppRoute } from "./routeTypes";
+
+function redirectSpinner() {
+	return <Spinner label="Loading project" layout="page" size="lg" />;
+}
 
 export function DefaultProjectRedirect({ route = "dashboard" }: { route?: ProjectAppRoute }) {
 	const { projectRef, projectsQuery } = useCurrentProject();
 
 	if (projectsQuery.isPending) {
-		return null;
+		return redirectSpinner();
 	}
 
 	if (!projectRef) {
@@ -22,7 +27,7 @@ export function LegacyProbeDetailRedirect() {
 	const { projectRef, projectsQuery } = useCurrentProject();
 
 	if (projectsQuery.isPending) {
-		return null;
+		return redirectSpinner();
 	}
 
 	if (!projectRef) {
@@ -37,7 +42,7 @@ export function LegacyLabelDetailRedirect() {
 	const { projectRef, projectsQuery } = useCurrentProject();
 
 	if (projectsQuery.isPending) {
-		return null;
+		return redirectSpinner();
 	}
 
 	if (!projectRef) {
@@ -52,7 +57,7 @@ export function LegacyCheckDetailRedirect() {
 	const { projectRef, projectsQuery } = useCurrentProject();
 
 	if (projectsQuery.isPending) {
-		return null;
+		return redirectSpinner();
 	}
 
 	if (!projectRef) {

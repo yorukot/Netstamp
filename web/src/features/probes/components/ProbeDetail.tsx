@@ -19,7 +19,7 @@ import { UnsavedChangesBar } from "@/shared/components/UnsavedChangesBar";
 import type { AssignedRow } from "@/shared/domain/assignments";
 import { pushErrorToast } from "@/shared/toast/toastStore";
 import { classNames } from "@/shared/utils/classNames";
-import { Badge, Button, Checkbox, CodeBlock, DataTable, FieldLabel, SegmentedControl, TextField, type DataColumn } from "@netstamp/ui";
+import { Badge, Button, Checkbox, CodeBlock, DataTable, FieldLabel, SegmentedControl, Spinner, TextField, type DataColumn } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { LocationPreviewMap } from "./LocationPreviewMap";
@@ -373,8 +373,10 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 							</label>
 						))}
 					</div>
+				) : labelsQuery.isLoading ? (
+					<Spinner label="Loading labels" layout="compact" size="md" />
 				) : (
-					<p className={styles.labelNotice}>{labelsQuery.isLoading ? "Loading labels." : "No project labels available."}</p>
+					<p className={styles.labelNotice}>No project labels available.</p>
 				)}
 			</div>
 

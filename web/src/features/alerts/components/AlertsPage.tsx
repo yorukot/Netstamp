@@ -18,7 +18,7 @@ import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { UnsavedChangesBar } from "@/shared/components/UnsavedChangesBar";
 import { pushErrorToast, pushToast } from "@/shared/toast/toastStore";
 import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
-import { Badge, Button, DataTable, EmptyState, KeyValueRow, LoadingState, Panel, SelectableRow, SelectField, Tabs, TextAreaField, TextField, type BadgeTone, type DataColumn } from "@netstamp/ui";
+import { Badge, BodyCopy, Button, DataTable, EmptyState, KeyValueRow, Panel, SelectableRow, SelectField, Spinner, Tabs, TextAreaField, TextField, type BadgeTone, type DataColumn } from "@netstamp/ui";
 import { DiscordLogoIcon } from "@phosphor-icons/react/dist/csr/DiscordLogo";
 import { EnvelopeSimpleIcon } from "@phosphor-icons/react/dist/csr/EnvelopeSimple";
 import { SlackLogoIcon } from "@phosphor-icons/react/dist/csr/SlackLogo";
@@ -111,8 +111,8 @@ function NotificationTypeIcon({ type }: { type: NotificationType }) {
 	}
 }
 
-function tableState(label: string, detail: string) {
-	return <LoadingState label={label} detail={detail} size="compact" />;
+function tableSpinner(label: string) {
+	return <Spinner label={label} layout="compact" size="lg" />;
 }
 
 function sameValue(left: unknown, right: unknown) {
@@ -507,13 +507,7 @@ export function AlertsPage() {
 						getRowAriaLabel={incident => `Open incident ${shortID(incident.id)}`}
 						onRowClick={selectIncident}
 						selectedKey={incidentId || undefined}
-						emptyLabel={
-							incidentsQuery.isLoading
-								? tableState("Loading incidents", "Fetching current alert incidents for this project.")
-								: incidentStatus === "open"
-									? "No open incidents"
-									: "No incidents match this view"
-						}
+						emptyLabel={incidentsQuery.isLoading ? tableSpinner("Loading incidents") : incidentStatus === "open" ? "No open incidents" : "No incidents match this view"}
 					/>
 				</Panel>
 			) : null}
@@ -541,7 +535,7 @@ export function AlertsPage() {
 						selectedKey={ruleEditor?.rule?.id}
 						emptyLabel={
 							rulesQuery.isLoading ? (
-								tableState("Loading alert rules", "Fetching rule conditions and notification targets.")
+								tableSpinner("Loading alert rules")
 							) : rules.length ? (
 								"No alert rules match this view"
 							) : (
@@ -591,7 +585,7 @@ export function AlertsPage() {
 						selectedKey={notificationEditor?.notification?.id}
 						emptyLabel={
 							notificationsQuery.isLoading ? (
-								tableState("Loading notifications", "Fetching notifications.")
+								tableSpinner("Loading notifications")
 							) : notifications.length ? (
 								"No notifications match this view"
 							) : (
@@ -713,8 +707,10 @@ function IncidentDetailDrawer({ incident, isLoading, error, onClose }: { inciden
 						</div>
 					</Panel>
 				</div>
+			) : isLoading ? (
+				<Spinner label="Loading incident" layout="compact" size="lg" />
 			) : (
-				<LoadingState label={isLoading ? "Loading incident" : "Incident unavailable"} detail={error ? requestErrorMessage(error) : "Fetching incident detail for this project."} size="compact" />
+				<BodyCopy>{error ? requestErrorMessage(error) : "Incident unavailable."}</BodyCopy>
 			)}
 		</EditorDrawer>
 	);

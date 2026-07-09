@@ -15,7 +15,7 @@ import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { useConfirm } from "@/shared/components/confirmContext";
 import { pushErrorToast, pushToast } from "@/shared/toast/toastStore";
 import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
-import { ActionRow, Badge, Button, DataTable, LoadingState, Panel, type DataColumn } from "@netstamp/ui";
+import { ActionRow, Badge, Button, DataTable, Panel, Spinner, type DataColumn } from "@netstamp/ui";
 import { PlusIcon } from "@phosphor-icons/react/dist/csr/Plus";
 import { TrashIcon } from "@phosphor-icons/react/dist/csr/Trash";
 import { useQuery } from "@tanstack/react-query";
@@ -209,7 +209,7 @@ export function StatusPagesPage() {
 			<div className={styles.layout}>
 				<Panel title="Pages" actions={pagesQuery.isFetching ? <Badge tone="neutral">Syncing</Badge> : null} padded={false}>
 					{pagesQuery.isPending ? (
-						<LoadingState label="Loading status pages" detail="Fetching project public status pages." />
+						<Spinner label="Loading status pages" layout="panel" size="lg" />
 					) : (
 						<DataTable
 							columns={pageColumns}
@@ -267,7 +267,7 @@ export function StatusPagesPage() {
 								<span>{chartRangeLabel(selectedPage.defaultChartRange)}</span>
 							</div>
 							{detailQuery.isPending ? (
-								<LoadingState label="Loading elements" detail="Fetching ordered public status elements." />
+								<Spinner label="Loading elements" layout="panel" size="lg" />
 							) : (
 								<StatusElementTree nodes={elementTree} onDelete={deleteElement} onEdit={element => setElementEditor({ mode: "edit", element })} />
 							)}

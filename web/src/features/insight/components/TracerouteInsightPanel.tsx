@@ -7,7 +7,7 @@ import { formatMs, formatPercent } from "@/shared/utils/insightFormatters";
 import { LatencyRail } from "@/shared/visualizations/LatencyRail";
 import { RouteTopologyMap, type RouteTopologyEdge, type RouteTopologyNode } from "@/shared/visualizations/RouteTopologyMap";
 import { RunTimeline } from "@/shared/visualizations/RunTimeline";
-import { Badge, BodyCopy, DataTable, LoadingState, Panel, type DataColumn } from "@netstamp/ui";
+import { Badge, BodyCopy, DataTable, Panel, Spinner, type DataColumn } from "@netstamp/ui";
 import styles from "./TracerouteInsightPanel.module.css";
 
 function hopColumns(maxRtt: number): DataColumn<HopDiagnostic>[] {
@@ -96,8 +96,8 @@ export function TracerouteInsightPanel({
 
 	if (isRouteLoading && !runs.length && !timelinePoints.length) {
 		return (
-			<Panel tone="deep" title="Loading route">
-				<LoadingState label="Loading route" detail="Fetching traceroute runs, hops, and route timeline for this probe-target pair." />
+			<Panel tone="deep" title="Route">
+				<Spinner label="Loading route" layout="panel" size="lg" />
 			</Panel>
 		);
 	}
@@ -137,13 +137,7 @@ export function TracerouteInsightPanel({
 							selectedPointId={selectedRun?.startedAt}
 							selectedValueLabel={selectedTimelineValueLabel(selectedRun, timelinePoints)}
 							timeRangeBounds={timeRangeBounds}
-							emptyState={
-								isRouteLoading ? (
-									<LoadingState label="Loading traceroute timeline" detail="Building run buckets for the selected time range." size="compact" />
-								) : (
-									<BodyCopy>No traceroute runs in this time range.</BodyCopy>
-								)
-							}
+							emptyState={isRouteLoading ? <Spinner label="Loading traceroute timeline" layout="compact" size="lg" /> : <BodyCopy>No traceroute runs in this time range.</BodyCopy>}
 							onSelectPoint={handleSelectTimelinePoint}
 							onSelectTimeRange={onSelectTimeWindow}
 						/>
@@ -156,7 +150,7 @@ export function TracerouteInsightPanel({
 					{hasTopology ? (
 						<RouteTopologyMap nodes={topologyNodes} edges={topologyEdges} />
 					) : isTopologyLoading ? (
-						<LoadingState label="Loading topology" detail="Aggregating traceroute hops into the route graph." />
+						<Spinner label="Loading topology" layout="panel" size="lg" />
 					) : (
 						<BodyCopy>Topology data is unavailable for the selected filters; hop rows still show the latest run.</BodyCopy>
 					)}

@@ -1,5 +1,5 @@
 import { RouteTopologyMap, type RouteTopologyEdge, type RouteTopologyNode } from "@/shared/visualizations/RouteTopologyMap";
-import { BodyCopy, LoadingState, Panel } from "@netstamp/ui";
+import { BodyCopy, Panel, Spinner } from "@netstamp/ui";
 
 interface GroupTopologyPanelProps {
 	title: string;
@@ -16,7 +16,7 @@ export function GroupTopologyPanel({ title, nodes, edges, isLoading }: GroupTopo
 			{hasTopology ? (
 				<RouteTopologyMap nodes={nodes} edges={edges} />
 			) : isLoading ? (
-				<LoadingState label="Loading route graph" detail="Aggregating traceroute hops across the selected scope." />
+				<Spinner label="Loading route graph" layout="panel" size="lg" />
 			) : (
 				<BodyCopy>No traceroute topology is available for the selected scope and time range.</BodyCopy>
 			)}

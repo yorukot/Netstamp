@@ -7,7 +7,7 @@ import type { ApiProjectInvite } from "@/shared/api/types";
 import { useProjectSelection } from "@/shared/api/useCurrentProject";
 import { appFeatures } from "@/shared/config/features";
 import { pushErrorToast } from "@/shared/toast/toastStore";
-import { Button, Input, PageShell } from "@netstamp/ui";
+import { Button, Input, PageShell, Spinner } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
 import type { FormEvent, KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -354,7 +354,11 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 	}
 
 	if (loading || pendingInvitesQuery.isPending) {
-		return null;
+		return (
+			<PageShell variant="constellation" center className={styles.shell}>
+				<Spinner label="Loading onboarding" layout="panel" size="lg" />
+			</PageShell>
+		);
 	}
 
 	if (!appFeatures.projectCreation && !shouldAskCreateProject) {

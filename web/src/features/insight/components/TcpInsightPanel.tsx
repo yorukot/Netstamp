@@ -5,7 +5,7 @@ import type { TcpInsightResponse, TcpSeriesResponse } from "@/shared/api/types";
 import { formatCount } from "@/shared/utils/insightFormatters";
 import { ChartPanel } from "@/shared/visualizations/ChartPanel";
 import { tcpInsightChartOption } from "@/shared/visualizations/chartOptions";
-import { BodyCopy, LoadingState, Panel } from "@netstamp/ui";
+import { BodyCopy, Panel, Spinner } from "@netstamp/ui";
 import styles from "./PingInsightPanel.module.css";
 
 interface TcpInsightPanelProps {
@@ -30,8 +30,8 @@ export function TcpInsightPanel({ selectedProbe, selectedTarget, insightData, se
 
 	if ((isInsightLoading || isSeriesLoading || isFetching) && !insightData && !seriesData) {
 		return (
-			<Panel tone="deep" title="Loading TCP insight">
-				<LoadingState label="Loading TCP insight" detail="Fetching connect latency, failures, and sample windows for this probe-target pair." />
+			<Panel tone="deep" title="TCP insight">
+				<Spinner label="Loading TCP insight" layout="panel" size="lg" />
 			</Panel>
 		);
 	}
@@ -64,7 +64,7 @@ export function TcpInsightPanel({ selectedProbe, selectedTarget, insightData, se
 				{hasChartData ? (
 					<ChartPanel option={tcpInsightChartOption(chartData)} height="27rem" onTimeRangeSelect={onSelectTimeWindow} timeRangeBounds={queryWindow} />
 				) : isSeriesLoading || isFetching ? (
-					<LoadingState label="Loading TCP series" detail="Syncing result points for the selected time range." />
+					<Spinner label="Loading TCP series" layout="panel" size="lg" />
 				) : (
 					<div className={styles.emptyState}>No TCP series points were recorded for this probe-target pair in the selected time range.</div>
 				)}

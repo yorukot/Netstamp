@@ -3,6 +3,7 @@ import { AppShell } from "@/layouts/AppShell";
 import { projectQueries } from "@/shared/api/queries";
 import { useCurrentProject, useProjectSelection } from "@/shared/api/useCurrentProject";
 import { appFeatures } from "@/shared/config/features";
+import { Spinner } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { Outlet, Navigate as RouterNavigate, useLocation, useParams } from "react-router-dom";
@@ -16,12 +17,16 @@ interface AuthRouteProps {
 	mode: "login" | "register";
 }
 
+function routeSpinner(label: string) {
+	return <Spinner label={label} layout="page" size="lg" />;
+}
+
 export function AuthRoute({ mode }: AuthRouteProps) {
 	const { loading, session } = useSession();
 	const navigate = useRouteNavigate();
 
 	if (loading) {
-		return null;
+		return routeSpinner("Loading session");
 	}
 
 	if (session) {
@@ -40,7 +45,7 @@ export function PasswordResetRoute({ mode }: { mode: "forgot" | "reset" }) {
 	const navigate = useRouteNavigate();
 
 	if (loading) {
-		return null;
+		return routeSpinner("Loading session");
 	}
 
 	if (session) {
@@ -55,7 +60,7 @@ export function EmailVerificationRoute() {
 	const navigate = useRouteNavigate();
 
 	if (loading) {
-		return null;
+		return routeSpinner("Loading session");
 	}
 
 	if (session) {
@@ -71,7 +76,7 @@ export function OnboardingRoute() {
 	const navigate = useRouteNavigate();
 
 	if (loading) {
-		return null;
+		return routeSpinner("Loading session");
 	}
 
 	if (!session) {
@@ -90,7 +95,7 @@ export function ProtectedAppShell() {
 	const location = useLocation();
 
 	if (loading) {
-		return null;
+		return routeSpinner("Loading session");
 	}
 
 	if (!session) {
@@ -104,7 +109,7 @@ function ProjectAppShell() {
 	const { projectRef, projectsQuery } = useCurrentProject();
 
 	if (projectsQuery.isPending) {
-		return null;
+		return routeSpinner("Loading projects");
 	}
 
 	if (projectsQuery.isSuccess && !projectRef) {
@@ -132,7 +137,7 @@ export function ProjectRouteBoundary() {
 	}
 
 	if (projectsQuery.isPending) {
-		return null;
+		return routeSpinner("Loading projects");
 	}
 
 	if (projectsQuery.isSuccess && !matchedProject) {
@@ -147,7 +152,7 @@ export function ProjectRouteBoundary() {
 	}
 
 	if (selectedProjectRef !== projectRef) {
-		return null;
+		return routeSpinner("Loading project");
 	}
 
 	return <Outlet />;
