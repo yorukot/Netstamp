@@ -117,3 +117,5 @@ export { Surface } from "./components/Surface/Surface";
 export type { SurfaceFrameSize, SurfacePadding, SurfaceProps, SurfaceTone } from "./components/Surface/Surface";
 export { Tabs } from "./components/Tabs/Tabs";
 export type { TabItem, TabsProps, TabsSize } from "./components/Tabs/Tabs";
+export { Toast, ToastClose, ToastDescription, ToastTitle, ToastViewport } from "./components/Toast/Toast";
+export type { ToastCloseProps, ToastDescriptionProps, ToastProps, ToastTitleProps, ToastTone, ToastViewportProps } from "./components/Toast/Toast";

@@ -1,4 +1,5 @@
-export type ToastTone = "critical" | "success";
+import type { ToastTone } from "@netstamp/ui";
+export type { ToastTone } from "@netstamp/ui";
 
 export interface ToastMessage {
 	id: string;

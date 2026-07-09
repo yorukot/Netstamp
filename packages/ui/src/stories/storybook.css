@@ -235,6 +235,11 @@
 	width: min(100%, 78rem);
 }
 
+.storybook-toast-viewport {
+	position: static;
+	width: min(100%, 30rem);
+}
+
 .storybook-specimen {
 	padding: clamp(1rem, 2.5vw, 1.5rem);
 	background: var(--ns-glass-light);

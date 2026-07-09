@@ -1,7 +1,6 @@
 import { dismissToast, subscribeToasts, type ToastMessage } from "@/shared/toast/toastStore";
+import { Toast, ToastClose, ToastDescription, ToastTitle, ToastViewport } from "@netstamp/ui";
 import { useEffect, useState } from "react";
-import { CloseButton } from "./CloseButton";
-import styles from "./ToastProvider.module.css";
 
 export function ToastProvider() {
 	const [messages, setMessages] = useState<ToastMessage[]>([]);
@@ -13,16 +12,16 @@ export function ToastProvider() {
 	}
 
 	return (
-		<div className={styles.viewport} role="region" aria-label="Notifications">
+		<ToastViewport>
 			{messages.map(message => (
-				<div className={styles.toast} data-tone={message.tone} role="status" key={message.id}>
+				<Toast tone={message.tone} key={message.id}>
 					<div>
-						<strong>{message.title}</strong>
-						<p>{message.message}</p>
+						<ToastTitle>{message.title}</ToastTitle>
+						<ToastDescription>{message.message}</ToastDescription>
 					</div>
-					<CloseButton className={styles.toastClose} ariaLabel="Close notification" onClick={() => dismissToast(message.id)} />
-				</div>
+					<ToastClose ariaLabel="Close notification" onClick={() => dismissToast(message.id)} />
+				</Toast>
 			))}
-		</div>
+		</ToastViewport>
 	);
 }
