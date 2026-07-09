@@ -18,7 +18,7 @@ import { useConfirm } from "@/shared/components/confirmContext";
 import type { AssignedRow } from "@/shared/domain/assignments";
 import { pushErrorToast } from "@/shared/toast/toastStore";
 import { classNames } from "@/shared/utils/classNames";
-import { Badge, Button, Checkbox, CodeBlock, DataTable, FieldLabel, SegmentedControl, Surface, TextField, type DataColumn } from "@netstamp/ui";
+import { Badge, Button, Checkbox, CodeBlock, DataTable, FieldLabel, SegmentedControl, TextField, type DataColumn } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { LocationPreviewMap } from "./LocationPreviewMap";
@@ -312,7 +312,7 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 	}
 
 	return (
-		<Surface as="section" tone="matte" frameSize="lg" padding="lg" className={classNames(styles.card, floating && styles.floating)} aria-label="Probe detail">
+		<section className={classNames(styles.card, floating && styles.floating)} aria-label="Probe detail">
 			<div className={styles.header}>
 				<strong className="ns-title">
 					{activeProbe.name}
@@ -463,6 +463,6 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 				maxHeight="11.75rem"
 				getRowKey={(row, index) => `${row.probe}-${row.check}-${index}`}
 			/>
-		</Surface>
+		</section>
 	);
 }
