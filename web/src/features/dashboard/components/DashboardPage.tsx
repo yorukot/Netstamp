@@ -1,17 +1,22 @@
 import { mapApiChecks } from "@/features/checks/api/checkAdapters";
 import { mapApiProbes } from "@/features/probes/api/probeAdapters";
+import type { ProbeStatus } from "@/features/probes/data/probes";
 import { projectQueries } from "@/shared/api/queries";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { PageStack } from "@/shared/components/PageStack";
-import { classNames } from "@/shared/utils/classNames";
 import { NetworkMap } from "@/shared/visualizations/NetworkMap";
-import { EmptyState, MetricTile, Panel } from "@netstamp/ui";
+import { Badge, EmptyState, MetricTile, Panel, type BadgeTone } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import styles from "./DashboardPage.module.css";
 
 const dashboardFleetFitPadding = { top: 44, right: 48, bottom: 56, left: 48 };
 const dashboardFleetMaxZoom = 5.4;
+const probeStatusTones: Record<ProbeStatus, BadgeTone> = {
+	Online: "success",
+	Draining: "warning",
+	Offline: "critical"
+};
 
 function percentage(part: number, total: number) {
 	if (!total) {
@@ -99,9 +104,9 @@ export function DashboardPage() {
 								<li key={probe.id}>
 									<div>
 										<strong>{probe.name}</strong>
-										<span>{probe.location}</span>
+										<span className={styles.probeLocation}>{probe.location}</span>
 									</div>
-									<span className={classNames(styles.status, probe.status === "Online" && styles.statusOnline, probe.status === "Offline" && styles.statusOffline)}>{probe.status}</span>
+									<Badge tone={probeStatusTones[probe.status]}>{probe.status}</Badge>
 								</li>
 							))}
 						</ul>

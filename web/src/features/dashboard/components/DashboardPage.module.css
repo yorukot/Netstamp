@@ -162,7 +162,7 @@
 }
 
 .entityList strong,
-.entityList span {
+.probeLocation {
 	min-width: 0;
 	overflow: hidden;
 	text-overflow: ellipsis;
@@ -175,35 +175,10 @@
 	line-height: 1.2;
 }
 
-.entityList span {
+.probeLocation {
 	color: var(--ns-text-muted);
 	font-size: 0.8125rem;
 	line-height: 1.35;
-}
-
-.status {
-	display: inline-flex;
-	align-items: center;
-	min-height: 1.75rem;
-	border: 1px solid var(--ns-border-faint);
-	padding: 0 0.75rem;
-	color: var(--ns-text-muted);
-	background: var(--ns-bg-subtle);
-	font-family: var(--ns-font-code);
-	font-size: 0.6875rem;
-	line-height: 1;
-}
-
-.statusOnline {
-	border-color: color-mix(in srgb, var(--ns-success) 50%, transparent);
-	color: var(--ns-success);
-	background: color-mix(in srgb, var(--ns-success) 8%, var(--ns-bg-subtle));
-}
-
-.statusOffline {
-	border-color: color-mix(in srgb, var(--ns-critical) 52%, transparent);
-	color: var(--ns-critical);
-	background: color-mix(in srgb, var(--ns-critical) 10%, var(--ns-bg-subtle));
 }
 
 @media (max-width: 76rem) {
