@@ -6,11 +6,11 @@ import (
 
 	appprobe "github.com/yorukot/netstamp/internal/controller/application/probe"
 	appvalidation "github.com/yorukot/netstamp/internal/controller/application/validation"
+	handlerproblem "github.com/yorukot/netstamp/internal/controller/transport/http/handler/problem"
 	"github.com/yorukot/netstamp/internal/controller/transport/http/httpx"
 	httpmiddleware "github.com/yorukot/netstamp/internal/controller/transport/http/middleware"
 	"github.com/yorukot/netstamp/internal/domain/label"
 	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
-	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 )
 
 func currentUserID(ctx context.Context) (string, error) {
@@ -23,11 +23,13 @@ func currentUserID(ctx context.Context) (string, error) {
 }
 
 func mapProbeError(err error, fallback string) error {
+	if mapped, ok := handlerproblem.NotFound(err); ok {
+		return mapped
+	}
+
 	switch {
-	case errors.Is(err, domainproject.ErrProjectNotFound), errors.Is(err, domainproject.ErrMemberNotFound), errors.Is(err, label.ErrLabelNotFound), errors.Is(err, domainprobe.ErrProbeNotFound):
-		return httpx.NotFound("not found")
 	case errors.Is(err, appprobe.ErrForbidden):
-		return httpx.Forbidden("forbidden")
+		return httpx.Forbidden("current user does not have the required project role for probes")
 	case errors.Is(err, appprobe.ErrInvalidInput), errors.Is(err, label.ErrInvalidInput), errors.Is(err, domainprobe.ErrInvalidInput):
 		return invalidProbeInputError(err)
 	default:

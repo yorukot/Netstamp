@@ -6,12 +6,11 @@ import (
 
 	appresult "github.com/yorukot/netstamp/internal/controller/application/result"
 	appvalidation "github.com/yorukot/netstamp/internal/controller/application/validation"
+	handlerproblem "github.com/yorukot/netstamp/internal/controller/transport/http/handler/problem"
 	"github.com/yorukot/netstamp/internal/controller/transport/http/httpx"
 	httpmiddleware "github.com/yorukot/netstamp/internal/controller/transport/http/middleware"
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
-	"github.com/yorukot/netstamp/internal/domain/identity"
 	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
-	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 )
 
 func currentUserID(ctx context.Context) (string, error) {
@@ -24,9 +23,11 @@ func currentUserID(ctx context.Context) (string, error) {
 }
 
 func mapResultError(err error, fallback string) error {
+	if mapped, ok := handlerproblem.NotFound(err); ok {
+		return mapped
+	}
+
 	switch {
-	case errors.Is(err, domainproject.ErrProjectNotFound), errors.Is(err, domainproject.ErrMemberNotFound), errors.Is(err, identity.ErrUserNotFound), errors.Is(err, domainprobe.ErrProbeNotFound), errors.Is(err, domaincheck.ErrCheckNotFound):
-		return httpx.NotFound("not found")
 	case errors.Is(err, appresult.ErrInvalidInput), errors.Is(err, domainprobe.ErrInvalidInput), errors.Is(err, domaincheck.ErrInvalidInput):
 		return invalidResultInputError(err)
 	default:

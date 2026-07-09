@@ -5,13 +5,12 @@ import (
 	"net/http"
 
 	appalert "github.com/yorukot/netstamp/internal/controller/application/alert"
+	handlerproblem "github.com/yorukot/netstamp/internal/controller/transport/http/handler/problem"
 	"github.com/yorukot/netstamp/internal/controller/transport/http/httpx"
 	httpmiddleware "github.com/yorukot/netstamp/internal/controller/transport/http/middleware"
 	domainalert "github.com/yorukot/netstamp/internal/domain/alert"
 	"github.com/yorukot/netstamp/internal/domain/alertcondition"
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
-	"github.com/yorukot/netstamp/internal/domain/identity"
-	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 )
 
 func currentUserID(r *http.Request) (string, error) {
@@ -35,16 +34,13 @@ func writeJSONOrProblem(w http.ResponseWriter, r *http.Request, status int, body
 }
 
 func mapAlertError(err error, fallback string) error {
+	if mapped, ok := handlerproblem.NotFound(err); ok {
+		return mapped
+	}
+
 	switch {
-	case errors.Is(err, domainproject.ErrProjectNotFound),
-		errors.Is(err, domainproject.ErrMemberNotFound),
-		errors.Is(err, identity.ErrUserNotFound),
-		errors.Is(err, domainalert.ErrRuleNotFound),
-		errors.Is(err, domainalert.ErrIncidentNotFound),
-		errors.Is(err, domainalert.ErrNotificationNotFound):
-		return httpx.NotFound("not found")
 	case errors.Is(err, appalert.ErrForbidden):
-		return httpx.Forbidden("forbidden")
+		return httpx.Forbidden("current user does not have the required project role for alerts")
 	case errors.Is(err, appalert.ErrInvalidInput),
 		errors.Is(err, domainalert.ErrInvalidInput),
 		errors.Is(err, alertcondition.ErrInvalidCondition),

@@ -6,9 +6,9 @@ import (
 
 	appproject "github.com/yorukot/netstamp/internal/controller/application/project"
 	appvalidation "github.com/yorukot/netstamp/internal/controller/application/validation"
+	handlerproblem "github.com/yorukot/netstamp/internal/controller/transport/http/handler/problem"
 	"github.com/yorukot/netstamp/internal/controller/transport/http/httpx"
 	httpmiddleware "github.com/yorukot/netstamp/internal/controller/transport/http/middleware"
-	"github.com/yorukot/netstamp/internal/domain/identity"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 )
 
@@ -22,17 +22,13 @@ func currentUserID(ctx context.Context) (string, error) {
 }
 
 func mapProjectError(err error, fallback string) error {
+	if mapped, ok := handlerproblem.NotFound(err); ok {
+		return mapped
+	}
+
 	switch {
-	case errors.Is(err, domainproject.ErrProjectNotFound):
-		return httpx.NotFound("project not found")
-	case errors.Is(err, domainproject.ErrMemberNotFound):
-		return httpx.NotFound("project member not found")
-	case errors.Is(err, domainproject.ErrInviteNotFound):
-		return httpx.NotFound("project invite not found")
-	case errors.Is(err, identity.ErrUserNotFound):
-		return httpx.NotFound("user not found")
 	case errors.Is(err, appproject.ErrForbidden):
-		return httpx.Forbidden("forbidden")
+		return httpx.Forbidden("current user does not have the required project role")
 	case errors.Is(err, domainproject.ErrProjectSlugAlreadyExists):
 		return httpx.Conflict("project slug already exists")
 	case errors.Is(err, domainproject.ErrMemberAlreadyExists):

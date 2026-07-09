@@ -7,12 +7,11 @@ import (
 
 	appcheck "github.com/yorukot/netstamp/internal/controller/application/check"
 	appvalidation "github.com/yorukot/netstamp/internal/controller/application/validation"
+	handlerproblem "github.com/yorukot/netstamp/internal/controller/transport/http/handler/problem"
 	"github.com/yorukot/netstamp/internal/controller/transport/http/httpx"
 	httpmiddleware "github.com/yorukot/netstamp/internal/controller/transport/http/middleware"
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
-	"github.com/yorukot/netstamp/internal/domain/identity"
 	"github.com/yorukot/netstamp/internal/domain/label"
-	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 )
 
 func currentUserID(ctx context.Context) (string, error) {
@@ -25,11 +24,13 @@ func currentUserID(ctx context.Context) (string, error) {
 }
 
 func mapCheckError(err error, fallback string) error {
+	if mapped, ok := handlerproblem.NotFound(err); ok {
+		return mapped
+	}
+
 	switch {
-	case errors.Is(err, domainproject.ErrProjectNotFound), errors.Is(err, domainproject.ErrMemberNotFound), errors.Is(err, identity.ErrUserNotFound), errors.Is(err, domaincheck.ErrCheckNotFound), errors.Is(err, label.ErrLabelNotFound):
-		return httpx.NotFound("not found")
 	case errors.Is(err, appcheck.ErrForbidden):
-		return httpx.Forbidden("forbidden")
+		return httpx.Forbidden("current user does not have the required project role for checks")
 	case errors.Is(err, appcheck.ErrInvalidInput), errors.Is(err, domaincheck.ErrInvalidInput), errors.Is(err, label.ErrInvalidInput):
 		return invalidCheckInputError(err)
 	default:

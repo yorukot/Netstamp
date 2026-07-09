@@ -6,11 +6,10 @@ import (
 
 	applabel "github.com/yorukot/netstamp/internal/controller/application/label"
 	appvalidation "github.com/yorukot/netstamp/internal/controller/application/validation"
+	handlerproblem "github.com/yorukot/netstamp/internal/controller/transport/http/handler/problem"
 	"github.com/yorukot/netstamp/internal/controller/transport/http/httpx"
 	httpmiddleware "github.com/yorukot/netstamp/internal/controller/transport/http/middleware"
-	"github.com/yorukot/netstamp/internal/domain/identity"
 	"github.com/yorukot/netstamp/internal/domain/label"
-	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 )
 
 func currentUserID(ctx context.Context) (string, error) {
@@ -23,11 +22,13 @@ func currentUserID(ctx context.Context) (string, error) {
 }
 
 func mapLabelError(err error, fallback string) error {
+	if mapped, ok := handlerproblem.NotFound(err); ok {
+		return mapped
+	}
+
 	switch {
-	case errors.Is(err, domainproject.ErrProjectNotFound), errors.Is(err, identity.ErrUserNotFound), errors.Is(err, label.ErrLabelNotFound):
-		return httpx.NotFound("not found")
 	case errors.Is(err, applabel.ErrForbidden):
-		return httpx.Forbidden("forbidden")
+		return httpx.Forbidden("current user does not have the required project role for labels")
 	case errors.Is(err, label.ErrLabelAlreadyExists):
 		return httpx.Conflict("label already exists")
 	case errors.Is(err, applabel.ErrInvalidInput), errors.Is(err, label.ErrInvalidInput):
