@@ -313,14 +313,14 @@ func (r *ProjectRepository) CreateInvite(ctx context.Context, input domainprojec
 	ctx, span := postgres.StartDBSpan(ctx, pgprojectTracer, "project_invites", "postgres.project_invites.insert", "INSERT", "INSERT project invite")
 	defer span.End()
 
-	projectID, invitedUserID, invitedByUserID, err := parseProjectInviteUserIDs(input.ProjectID, input.InvitedUserID, input.InvitedByUserID)
+	projectID, invitedByUserID, err := parseProjectAndUserIDs(input.ProjectID, input.InvitedByUserID)
 	if err != nil {
 		return domainproject.Invite{}, err
 	}
 
 	row, err := r.queries.CreateProjectInvite(ctx, sqlc.CreateProjectInviteParams{
 		ProjectID:       projectID,
-		InvitedUserID:   invitedUserID,
+		InvitedEmail:    input.InvitedEmail,
 		InvitedByUserID: invitedByUserID,
 		Role:            sqlc.ProjectMemberRole(input.Role),
 	})
@@ -421,7 +421,7 @@ func (r *ProjectRepository) AcceptInvite(ctx context.Context, inviteIDValue, use
 
 		row, acceptErr := q.AcceptPendingProjectInvite(ctx, sqlc.AcceptPendingProjectInviteParams{
 			ID:            inviteID,
-			InvitedUserID: userID,
+			CurrentUserID: userID,
 		})
 		if acceptErr != nil {
 			if errors.Is(acceptErr, pgx.ErrNoRows) {
@@ -433,7 +433,7 @@ func (r *ProjectRepository) AcceptInvite(ctx context.Context, inviteIDValue, use
 
 		if _, memberErr := q.CreateProjectMember(ctx, sqlc.CreateProjectMemberParams{
 			ProjectID: row.ProjectID,
-			UserID:    row.InvitedUserID,
+			UserID:    userID,
 			Role:      row.Role,
 		}); memberErr != nil {
 			_, mapped := mapCreateProjectMemberError(memberErr)
@@ -462,7 +462,7 @@ func (r *ProjectRepository) RejectInvite(ctx context.Context, inviteIDValue, use
 	row, err := queryProjectRow(span, domainproject.ErrInviteNotFound, func() (sqlc.RejectPendingProjectInviteRow, error) {
 		return r.queries.RejectPendingProjectInvite(ctx, sqlc.RejectPendingProjectInviteParams{
 			ID:            inviteID,
-			InvitedUserID: userID,
+			CurrentUserID: userID,
 		})
 	})
 	if err != nil {
@@ -497,23 +497,6 @@ func parseProjectAndUserIDs(projectIDValue, userIDValue string) (uuid.UUID, uuid
 	}
 
 	return projectID, userID, nil
-}
-
-func parseProjectInviteUserIDs(projectIDValue, invitedUserIDValue, invitedByUserIDValue string) (uuid.UUID, uuid.UUID, uuid.UUID, error) {
-	projectID, err := postgres.ParseUUID(projectIDValue, domainproject.ErrProjectNotFound)
-	if err != nil {
-		return uuid.Nil, uuid.Nil, uuid.Nil, err
-	}
-	invitedUserID, err := postgres.ParseUUID(invitedUserIDValue, identity.ErrUserNotFound)
-	if err != nil {
-		return uuid.Nil, uuid.Nil, uuid.Nil, err
-	}
-	invitedByUserID, err := postgres.ParseUUID(invitedByUserIDValue, identity.ErrUserNotFound)
-	if err != nil {
-		return uuid.Nil, uuid.Nil, uuid.Nil, err
-	}
-
-	return projectID, invitedUserID, invitedByUserID, nil
 }
 
 func parseInviteAndUserIDs(inviteIDValue, userIDValue string) (uuid.UUID, uuid.UUID, error) {

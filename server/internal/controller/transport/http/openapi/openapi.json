@@ -11102,13 +11102,16 @@
 			},
 			"ProjectInvite": {
 				"type": "object",
-				"required": ["id", "projectId", "invitedUserId", "invitedByUserId", "role", "status", "project", "invitedUser", "invitedByUser", "createdAt", "updatedAt"],
+				"required": ["id", "projectId", "invitedEmail", "invitedByUserId", "role", "status", "project", "invitedUser", "invitedByUser", "createdAt", "updatedAt"],
 				"properties": {
 					"id": {
 						"$ref": "#/components/schemas/uuid"
 					},
 					"projectId": {
 						"$ref": "#/components/schemas/uuid"
+					},
+					"invitedEmail": {
+						"$ref": "#/components/schemas/email"
 					},
 					"invitedUserId": {
 						"$ref": "#/components/schemas/uuid"
@@ -11128,7 +11131,7 @@
 						"$ref": "#/components/schemas/ProjectInviteProject"
 					},
 					"invitedUser": {
-						"$ref": "#/components/schemas/ProjectMemberUser"
+						"$ref": "#/components/schemas/ProjectInviteUser"
 					},
 					"invitedByUser": {
 						"$ref": "#/components/schemas/ProjectMemberUser"
@@ -11150,6 +11153,7 @@
 					{
 						"id": "77777777-7777-7777-7777-777777777777",
 						"projectId": "22222222-2222-2222-2222-222222222222",
+						"invitedEmail": "member@example.com",
 						"invitedUserId": "33333333-3333-3333-3333-333333333333",
 						"invitedByUserId": "11111111-1111-1111-1111-111111111111",
 						"role": "viewer",
@@ -11191,6 +11195,7 @@
 							{
 								"id": "77777777-7777-7777-7777-777777777777",
 								"projectId": "22222222-2222-2222-2222-222222222222",
+								"invitedEmail": "member@example.com",
 								"invitedUserId": "33333333-3333-3333-3333-333333333333",
 								"invitedByUserId": "11111111-1111-1111-1111-111111111111",
 								"role": "viewer",
@@ -11257,6 +11262,7 @@
 						"invite": {
 							"id": "77777777-7777-7777-7777-777777777777",
 							"projectId": "22222222-2222-2222-2222-222222222222",
+							"invitedEmail": "member@example.com",
 							"invitedUserId": "33333333-3333-3333-3333-333333333333",
 							"invitedByUserId": "11111111-1111-1111-1111-111111111111",
 							"role": "viewer",
@@ -11279,6 +11285,29 @@
 							"createdAt": "2026-05-24T10:00:00Z",
 							"updatedAt": "2026-05-24T10:00:00Z"
 						}
+					}
+				]
+			},
+			"ProjectInviteUser": {
+				"type": "object",
+				"required": ["email"],
+				"properties": {
+					"id": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"email": {
+						"$ref": "#/components/schemas/email"
+					},
+					"displayName": {
+						"type": "string",
+						"maxLength": 64
+					}
+				},
+				"examples": [
+					{
+						"id": "33333333-3333-3333-3333-333333333333",
+						"email": "member@example.com",
+						"displayName": "Pat Chen"
 					}
 				]
 			},

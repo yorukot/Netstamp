@@ -34,7 +34,8 @@ func mapCreateProjectMemberError(err error) (bool, error) {
 }
 
 func mapCreateProjectInviteError(err error) (bool, error) {
-	if postgres.IsUniqueViolation(err, "uq_project_invites_pending_project_user") {
+	if postgres.IsUniqueViolation(err, "uq_project_invites_pending_project_email") ||
+		postgres.IsUniqueViolation(err, "uq_project_invites_pending_project_user") {
 		return true, fmt.Errorf("project invite already exists: %w", domainproject.ErrInviteAlreadyExists)
 	}
 	if postgres.IsForeignKeyViolation(err, "project_invites_project_id_fkey") {

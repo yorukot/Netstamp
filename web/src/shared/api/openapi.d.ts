@@ -2920,6 +2920,7 @@ export interface components {
 		 * @example {
 		 *       "id": "77777777-7777-7777-7777-777777777777",
 		 *       "projectId": "22222222-2222-2222-2222-222222222222",
+		 *       "invitedEmail": "member@example.com",
 		 *       "invitedUserId": "33333333-3333-3333-3333-333333333333",
 		 *       "invitedByUserId": "11111111-1111-1111-1111-111111111111",
 		 *       "role": "viewer",
@@ -2946,14 +2947,15 @@ export interface components {
 		ProjectInvite: {
 			id: components["schemas"]["uuid"];
 			projectId: components["schemas"]["uuid"];
-			invitedUserId: components["schemas"]["uuid"];
+			invitedEmail: components["schemas"]["email"];
+			invitedUserId?: components["schemas"]["uuid"];
 			invitedByUserId: components["schemas"]["uuid"];
 			/** @enum {string} */
 			role: "admin" | "editor" | "viewer";
 			/** @enum {string} */
 			status: "pending" | "accepted" | "rejected";
 			project: components["schemas"]["ProjectInviteProject"];
-			invitedUser: components["schemas"]["ProjectMemberUser"];
+			invitedUser: components["schemas"]["ProjectInviteUser"];
 			invitedByUser: components["schemas"]["ProjectMemberUser"];
 			/** Format: date-time */
 			createdAt: string;
@@ -2968,6 +2970,7 @@ export interface components {
 		 *         {
 		 *           "id": "77777777-7777-7777-7777-777777777777",
 		 *           "projectId": "22222222-2222-2222-2222-222222222222",
+		 *           "invitedEmail": "member@example.com",
 		 *           "invitedUserId": "33333333-3333-3333-3333-333333333333",
 		 *           "invitedByUserId": "11111111-1111-1111-1111-111111111111",
 		 *           "role": "viewer",
@@ -3013,6 +3016,7 @@ export interface components {
 		 *       "invite": {
 		 *         "id": "77777777-7777-7777-7777-777777777777",
 		 *         "projectId": "22222222-2222-2222-2222-222222222222",
+		 *         "invitedEmail": "member@example.com",
 		 *         "invitedUserId": "33333333-3333-3333-3333-333333333333",
 		 *         "invitedByUserId": "11111111-1111-1111-1111-111111111111",
 		 *         "role": "viewer",
@@ -3039,6 +3043,18 @@ export interface components {
 		 */
 		ProjectInviteResponse: {
 			invite: components["schemas"]["ProjectInvite"];
+		};
+		/**
+		 * @example {
+		 *       "id": "33333333-3333-3333-3333-333333333333",
+		 *       "email": "member@example.com",
+		 *       "displayName": "Pat Chen"
+		 *     }
+		 */
+		ProjectInviteUser: {
+			id?: components["schemas"]["uuid"];
+			email: components["schemas"]["email"];
+			displayName?: string;
 		};
 		/**
 		 * @example {

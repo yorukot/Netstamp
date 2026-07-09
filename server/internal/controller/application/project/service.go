@@ -194,23 +194,31 @@ func (s *Service) CreateInvite(ctx context.Context, input CreateInviteInput) (do
 		return domainproject.Invite{}, flow.businessFailure(ProjectEventCreateInviteFailure, ProjectReasonForbidden, ErrForbidden)
 	}
 
+	invitedUserID := ""
 	user, err := s.getUserByEmail(ctx, input.Email)
-	if err != nil {
+	switch {
+	case err == nil:
+		invitedUserID = user.ID
+		flow.setTargetUser(user.ID)
+	case errors.Is(err, identity.ErrUserNotFound):
+	default:
 		return domainproject.Invite{}, flow.inviteCreateFailure(err)
 	}
-	flow.setTargetUser(user.ID)
 
-	_, memberErr := s.repo.GetMember(ctx, project.ID, user.ID)
-	if memberErr == nil {
-		return domainproject.Invite{}, flow.inviteCreateFailure(domainproject.ErrMemberAlreadyExists)
-	}
-	if !errors.Is(memberErr, domainproject.ErrMemberNotFound) {
-		return domainproject.Invite{}, flow.memberLookupFailure(ProjectEventCreateInviteFailure, memberErr)
+	if invitedUserID != "" {
+		_, memberErr := s.repo.GetMember(ctx, project.ID, invitedUserID)
+		if memberErr == nil {
+			return domainproject.Invite{}, flow.inviteCreateFailure(domainproject.ErrMemberAlreadyExists)
+		}
+		if !errors.Is(memberErr, domainproject.ErrMemberNotFound) {
+			return domainproject.Invite{}, flow.memberLookupFailure(ProjectEventCreateInviteFailure, memberErr)
+		}
 	}
 
 	invite, err := s.repo.CreateInvite(ctx, domainproject.Invite{
 		ProjectID:       project.ID,
-		InvitedUserID:   user.ID,
+		InvitedEmail:    input.Email,
+		InvitedUserID:   invitedUserID,
 		InvitedByUserID: input.CurrentUserID,
 		Role:            input.Role,
 	})

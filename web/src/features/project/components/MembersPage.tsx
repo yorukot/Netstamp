@@ -171,7 +171,7 @@ export function MembersPage() {
 					setMemberEmail("");
 					pushToast({
 						title: "Invite sent",
-						message: `${data.invite.invitedUser.email} can now accept access to ${data.invite.project.name}.`,
+						message: `${data.invite.invitedEmail} can now accept access to ${data.invite.project.name}.`,
 						tone: "success"
 					});
 				}
@@ -214,8 +214,8 @@ export function MembersPage() {
 		});
 	const inviteRows: InviteRow[] = (invitesQuery.data?.invites ?? []).map((invite: ApiProjectInvite) => ({
 		id: invite.id,
-		name: invite.invitedUser.displayName,
-		email: invite.invitedUser.email,
+		name: invite.invitedUser.displayName || invite.invitedEmail,
+		email: invite.invitedEmail,
 		role: invite.role,
 		invitedBy: invite.invitedByUser.displayName,
 		createdAt: formatDateTime(invite.createdAt),

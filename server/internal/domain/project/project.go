@@ -121,15 +121,22 @@ type MemberUser struct {
 	DisplayName string `json:"displayName"`
 }
 
+type InviteUser struct {
+	ID          string `json:"id,omitempty"`
+	Email       string `json:"email"`
+	DisplayName string `json:"displayName,omitempty"`
+}
+
 type Invite struct {
 	ID              string        `json:"id"`
 	ProjectID       string        `json:"projectId"`
-	InvitedUserID   string        `json:"invitedUserId"`
+	InvitedEmail    string        `json:"invitedEmail"`
+	InvitedUserID   string        `json:"invitedUserId,omitempty"`
 	InvitedByUserID string        `json:"invitedByUserId"`
 	Role            Role          `json:"role"`
 	Status          InviteStatus  `json:"status"`
 	Project         InviteProject `json:"project"`
-	InvitedUser     MemberUser    `json:"invitedUser"`
+	InvitedUser     InviteUser    `json:"invitedUser"`
 	InvitedByUser   MemberUser    `json:"invitedByUser"`
 	CreatedAt       time.Time     `json:"createdAt"`
 	UpdatedAt       time.Time     `json:"updatedAt"`

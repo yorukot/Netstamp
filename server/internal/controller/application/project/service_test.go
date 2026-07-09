@@ -47,6 +47,40 @@ func TestCreateInviteCreatesPendingInvite(t *testing.T) {
 	if repo.createdInvite.InvitedUserID != testMemberUserID {
 		t.Fatalf("expected invite target %q, got %q", testMemberUserID, repo.createdInvite.InvitedUserID)
 	}
+	if repo.createdInvite.InvitedEmail != "member@example.com" {
+		t.Fatalf("expected invited email %q, got %q", "member@example.com", repo.createdInvite.InvitedEmail)
+	}
+}
+
+func TestCreateInviteAllowsUnknownEmail(t *testing.T) {
+	repo := newProjectServiceRepository()
+	repo.members[testCurrentUserID] = domainproject.Member{
+		ID:        "55555555-5555-5555-5555-555555555555",
+		ProjectID: testProjectID,
+		UserID:    testCurrentUserID,
+		Role:      domainproject.RoleOwner,
+	}
+	users := &projectServiceUserLookup{err: identity.ErrUserNotFound}
+	service := NewService(repo, users, &recordingProjectEventRecorder{})
+
+	invite, err := service.CreateInvite(context.Background(), CreateInviteInput{
+		CurrentUserID: testCurrentUserID,
+		ProjectRef:    "project",
+		Email:         "new.member@example.com",
+		Role:          domainproject.RoleViewer,
+	})
+	if err != nil {
+		t.Fatalf("expected invite creation to succeed: %v", err)
+	}
+	if invite.Status != domainproject.InviteStatusPending {
+		t.Fatalf("expected pending invite, got %q", invite.Status)
+	}
+	if repo.createdInvite.InvitedEmail != "new.member@example.com" {
+		t.Fatalf("expected invited email %q, got %q", "new.member@example.com", repo.createdInvite.InvitedEmail)
+	}
+	if repo.createdInvite.InvitedUserID != "" {
+		t.Fatalf("expected unknown invite to have no user ID, got %q", repo.createdInvite.InvitedUserID)
+	}
 }
 
 func TestCreateInviteRejectsExistingMember(t *testing.T) {
@@ -390,14 +424,17 @@ func (r *projectServiceRepository) hydrateInvite(input domainproject.Invite, sta
 	if invite.Status == "" {
 		invite.Status = status
 	}
+	if invite.InvitedEmail == "" {
+		invite.InvitedEmail = "member@example.com"
+	}
 	invite.Project = domainproject.InviteProject{
 		ID:   invite.ProjectID,
 		Name: r.project.Name,
 		Slug: r.project.Slug,
 	}
-	invite.InvitedUser = domainproject.MemberUser{
+	invite.InvitedUser = domainproject.InviteUser{
 		ID:          invite.InvitedUserID,
-		Email:       "member@example.com",
+		Email:       invite.InvitedEmail,
 		DisplayName: "Member",
 	}
 	invite.InvitedByUser = domainproject.MemberUser{

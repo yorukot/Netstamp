@@ -37,6 +37,7 @@ func mapCreateInvite(row sqlc.CreateProjectInviteRow) domainproject.Invite {
 	return mapInviteFields(
 		row.ID,
 		row.ProjectID,
+		row.InvitedEmail,
 		row.InvitedUserID,
 		row.InvitedByUserID,
 		row.Role,
@@ -57,6 +58,7 @@ func mapListProjectInvite(row sqlc.ListPendingProjectInvitesRow) domainproject.I
 	return mapInviteFields(
 		row.ID,
 		row.ProjectID,
+		row.InvitedEmail,
 		row.InvitedUserID,
 		row.InvitedByUserID,
 		row.Role,
@@ -77,6 +79,7 @@ func mapListUserInvite(row sqlc.ListPendingProjectInvitesForUserRow) domainproje
 	return mapInviteFields(
 		row.ID,
 		row.ProjectID,
+		row.InvitedEmail,
 		row.InvitedUserID,
 		row.InvitedByUserID,
 		row.Role,
@@ -97,6 +100,7 @@ func mapAcceptInvite(row sqlc.AcceptPendingProjectInviteRow) domainproject.Invit
 	return mapInviteFields(
 		row.ID,
 		row.ProjectID,
+		row.InvitedEmail,
 		row.InvitedUserID,
 		row.InvitedByUserID,
 		row.Role,
@@ -117,6 +121,7 @@ func mapRejectInvite(row sqlc.RejectPendingProjectInviteRow) domainproject.Invit
 	return mapInviteFields(
 		row.ID,
 		row.ProjectID,
+		row.InvitedEmail,
 		row.InvitedUserID,
 		row.InvitedByUserID,
 		row.Role,
@@ -137,6 +142,7 @@ func mapCancelInvite(row sqlc.CancelPendingProjectInviteRow) domainproject.Invit
 	return mapInviteFields(
 		row.ID,
 		row.ProjectID,
+		row.InvitedEmail,
 		row.InvitedUserID,
 		row.InvitedByUserID,
 		row.Role,
@@ -181,7 +187,8 @@ func mapMemberFields(
 func mapInviteFields(
 	id uuid.UUID,
 	projectID uuid.UUID,
-	invitedUserID uuid.UUID,
+	invitedEmail string,
+	invitedUserID *uuid.UUID,
 	invitedByUserID uuid.UUID,
 	role sqlc.ProjectMemberRole,
 	status sqlc.ProjectInviteStatus,
@@ -195,10 +202,16 @@ func mapInviteFields(
 	invitedByUserEmail string,
 	invitedByUserDisplayName string,
 ) domainproject.Invite {
+	invitedUserIDValue := optionalUUIDString(invitedUserID)
+	if invitedEmail == "" {
+		invitedEmail = invitedUserEmail
+	}
+
 	return domainproject.Invite{
 		ID:              id.String(),
 		ProjectID:       projectID.String(),
-		InvitedUserID:   invitedUserID.String(),
+		InvitedEmail:    invitedEmail,
+		InvitedUserID:   invitedUserIDValue,
 		InvitedByUserID: invitedByUserID.String(),
 		Role:            domainproject.Role(role),
 		Status:          domainproject.InviteStatus(status),
@@ -207,8 +220,8 @@ func mapInviteFields(
 			Name: projectName,
 			Slug: projectSlug,
 		},
-		InvitedUser: domainproject.MemberUser{
-			ID:          invitedUserID.String(),
+		InvitedUser: domainproject.InviteUser{
+			ID:          invitedUserIDValue,
 			Email:       invitedUserEmail,
 			DisplayName: invitedUserDisplayName,
 		},
@@ -221,4 +234,12 @@ func mapInviteFields(
 		UpdatedAt:  updatedAt,
 		ResolvedAt: resolvedAt,
 	}
+}
+
+func optionalUUIDString(id *uuid.UUID) string {
+	if id == nil {
+		return ""
+	}
+
+	return id.String()
 }

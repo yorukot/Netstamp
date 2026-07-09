@@ -71,7 +71,9 @@ func (f *projectFlow) setProjectSlug(slug string) {
 func (f *projectFlow) setInvite(invite domainproject.Invite) {
 	f.setInviteID(invite.ID)
 	f.setProjectID(invite.ProjectID)
-	f.setTargetUser(invite.InvitedUserID)
+	if invite.InvitedUserID != "" {
+		f.setTargetUser(invite.InvitedUserID)
+	}
 	f.setRole(invite.Role)
 	f.setInviteStatus(invite.Status)
 }

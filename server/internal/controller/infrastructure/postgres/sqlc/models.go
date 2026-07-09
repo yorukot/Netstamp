@@ -1187,13 +1187,14 @@ type Project struct {
 type ProjectInvite struct {
 	ID              uuid.UUID           `json:"id"`
 	ProjectID       uuid.UUID           `json:"project_id"`
-	InvitedUserID   uuid.UUID           `json:"invited_user_id"`
+	InvitedUserID   *uuid.UUID          `json:"invited_user_id"`
 	InvitedByUserID uuid.UUID           `json:"invited_by_user_id"`
 	Role            ProjectMemberRole   `json:"role"`
 	Status          ProjectInviteStatus `json:"status"`
 	CreatedAt       time.Time           `json:"created_at"`
 	UpdatedAt       time.Time           `json:"updated_at"`
 	ResolvedAt      *time.Time          `json:"resolved_at"`
+	InvitedEmail    string              `json:"invited_email"`
 }
 
 type ProjectMember struct {

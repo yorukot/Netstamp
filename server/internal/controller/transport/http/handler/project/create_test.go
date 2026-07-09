@@ -3,6 +3,7 @@ package project
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -55,6 +56,36 @@ func TestCreateProjectReturnsConflictProblemForSlugConflict(t *testing.T) {
 	}
 	if body.Detail != "project slug already exists" {
 		t.Fatalf("expected slug conflict detail, got %q", body.Detail)
+	}
+}
+
+func TestMapProjectErrorUsesSpecificNotFoundDetails(t *testing.T) {
+	tests := []struct {
+		name   string
+		err    error
+		detail string
+	}{
+		{name: "project", err: domainproject.ErrProjectNotFound, detail: "project not found"},
+		{name: "member", err: domainproject.ErrMemberNotFound, detail: "project member not found"},
+		{name: "invite", err: domainproject.ErrInviteNotFound, detail: "project invite not found"},
+		{name: "user", err: identity.ErrUserNotFound, detail: "user not found"},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			err := mapProjectError(test.err, "fallback")
+
+			var httpErr *httpx.Error
+			if !errors.As(err, &httpErr) {
+				t.Fatalf("expected http error, got %T", err)
+			}
+			if httpErr.Status != http.StatusNotFound {
+				t.Fatalf("expected status 404, got %d", httpErr.Status)
+			}
+			if httpErr.Detail != test.detail {
+				t.Fatalf("expected detail %q, got %q", test.detail, httpErr.Detail)
+			}
+		})
 	}
 }
 

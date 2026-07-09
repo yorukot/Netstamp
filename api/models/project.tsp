@@ -71,6 +71,15 @@ model ProjectMemberUser {
 	displayName: string;
 }
 
+@example(#{ id: "33333333-3333-3333-3333-333333333333", email: "member@example.com", displayName: "Pat Chen" })
+model ProjectInviteUser {
+	id?: uuid;
+	email: email;
+
+	@maxLength(64)
+	displayName?: string;
+}
+
 @example(#{
 	id: "55555555-5555-5555-5555-555555555555",
 	projectId: "22222222-2222-2222-2222-222222222222",
@@ -139,6 +148,7 @@ model ProjectInviteProject {
 @example(#{
 	id: "77777777-7777-7777-7777-777777777777",
 	projectId: "22222222-2222-2222-2222-222222222222",
+	invitedEmail: "member@example.com",
 	invitedUserId: "33333333-3333-3333-3333-333333333333",
 	invitedByUserId: "11111111-1111-1111-1111-111111111111",
 	role: "viewer",
@@ -152,12 +162,13 @@ model ProjectInviteProject {
 model ProjectInvite {
 	id: uuid;
 	projectId: uuid;
-	invitedUserId: uuid;
+	invitedEmail: email;
+	invitedUserId?: uuid;
 	invitedByUserId: uuid;
 	role: AssignableProjectRole;
 	status: ProjectInviteStatus;
 	project: ProjectInviteProject;
-	invitedUser: ProjectMemberUser;
+	invitedUser: ProjectInviteUser;
 	invitedByUser: ProjectMemberUser;
 	createdAt: utcDateTime;
 	updatedAt: utcDateTime;
@@ -168,6 +179,7 @@ model ProjectInvite {
 	invite: #{
 		id: "77777777-7777-7777-7777-777777777777",
 		projectId: "22222222-2222-2222-2222-222222222222",
+		invitedEmail: "member@example.com",
 		invitedUserId: "33333333-3333-3333-3333-333333333333",
 		invitedByUserId: "11111111-1111-1111-1111-111111111111",
 		role: "viewer",
@@ -188,6 +200,7 @@ model ProjectInviteResponse {
 		#{
 			id: "77777777-7777-7777-7777-777777777777",
 			projectId: "22222222-2222-2222-2222-222222222222",
+			invitedEmail: "member@example.com",
 			invitedUserId: "33333333-3333-3333-3333-333333333333",
 			invitedByUserId: "11111111-1111-1111-1111-111111111111",
 			role: "viewer",

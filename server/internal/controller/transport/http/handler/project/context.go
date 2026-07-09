@@ -23,8 +23,14 @@ func currentUserID(ctx context.Context) (string, error) {
 
 func mapProjectError(err error, fallback string) error {
 	switch {
-	case errors.Is(err, domainproject.ErrProjectNotFound), errors.Is(err, domainproject.ErrMemberNotFound), errors.Is(err, domainproject.ErrInviteNotFound), errors.Is(err, identity.ErrUserNotFound):
-		return httpx.NotFound("not found")
+	case errors.Is(err, domainproject.ErrProjectNotFound):
+		return httpx.NotFound("project not found")
+	case errors.Is(err, domainproject.ErrMemberNotFound):
+		return httpx.NotFound("project member not found")
+	case errors.Is(err, domainproject.ErrInviteNotFound):
+		return httpx.NotFound("project invite not found")
+	case errors.Is(err, identity.ErrUserNotFound):
+		return httpx.NotFound("user not found")
 	case errors.Is(err, appproject.ErrForbidden):
 		return httpx.Forbidden("forbidden")
 	case errors.Is(err, domainproject.ErrProjectSlugAlreadyExists):

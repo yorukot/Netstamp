@@ -16,9 +16,14 @@ const acceptPendingProjectInvite = `-- name: AcceptPendingProjectInvite :one
 WITH updated AS (
     UPDATE project_invites
     SET status = 'accepted',
+        invited_user_id = $2::uuid,
         resolved_at = now()
     WHERE project_invites.id = $1
-      AND project_invites.invited_user_id = $2
+      AND project_invites.invited_email = (
+          SELECT users.email
+          FROM users
+          WHERE users.id = $2::uuid
+      )
       AND project_invites.status = 'pending'
       AND EXISTS (
           SELECT 1
@@ -26,10 +31,11 @@ WITH updated AS (
           WHERE projects.id = project_invites.project_id
             AND projects.deleted_at IS NULL
       )
-    RETURNING id, project_id, invited_user_id, invited_by_user_id, role, status, created_at, updated_at, resolved_at
+    RETURNING id, project_id, invited_email, invited_user_id, invited_by_user_id, role, status, created_at, updated_at, resolved_at
 )
 SELECT updated.id,
        updated.project_id,
+       updated.invited_email,
        updated.invited_user_id,
        updated.invited_by_user_id,
        updated.role,
@@ -39,25 +45,26 @@ SELECT updated.id,
        updated.resolved_at,
        projects.name AS project_name,
        projects.slug AS project_slug,
-       invited_user.email AS invited_user_email,
-       invited_user.display_name AS invited_user_display_name,
+       updated.invited_email::text AS invited_user_email,
+       COALESCE(invited_user.display_name, '') AS invited_user_display_name,
        inviter.email AS invited_by_user_email,
        inviter.display_name AS invited_by_user_display_name
 FROM updated
 JOIN projects ON projects.id = updated.project_id
-JOIN users AS invited_user ON invited_user.id = updated.invited_user_id
+LEFT JOIN users AS invited_user ON invited_user.id = updated.invited_user_id
 JOIN users AS inviter ON inviter.id = updated.invited_by_user_id
 `
 
 type AcceptPendingProjectInviteParams struct {
 	ID            uuid.UUID `json:"id"`
-	InvitedUserID uuid.UUID `json:"invited_user_id"`
+	CurrentUserID uuid.UUID `json:"current_user_id"`
 }
 
 type AcceptPendingProjectInviteRow struct {
 	ID                       uuid.UUID           `json:"id"`
 	ProjectID                uuid.UUID           `json:"project_id"`
-	InvitedUserID            uuid.UUID           `json:"invited_user_id"`
+	InvitedEmail             string              `json:"invited_email"`
+	InvitedUserID            *uuid.UUID          `json:"invited_user_id"`
 	InvitedByUserID          uuid.UUID           `json:"invited_by_user_id"`
 	Role                     ProjectMemberRole   `json:"role"`
 	Status                   ProjectInviteStatus `json:"status"`
@@ -73,11 +80,12 @@ type AcceptPendingProjectInviteRow struct {
 }
 
 func (q *Queries) AcceptPendingProjectInvite(ctx context.Context, arg AcceptPendingProjectInviteParams) (AcceptPendingProjectInviteRow, error) {
-	row := q.db.QueryRow(ctx, acceptPendingProjectInvite, arg.ID, arg.InvitedUserID)
+	row := q.db.QueryRow(ctx, acceptPendingProjectInvite, arg.ID, arg.CurrentUserID)
 	var i AcceptPendingProjectInviteRow
 	err := row.Scan(
 		&i.ID,
 		&i.ProjectID,
+		&i.InvitedEmail,
 		&i.InvitedUserID,
 		&i.InvitedByUserID,
 		&i.Role,
@@ -109,10 +117,11 @@ WITH updated AS (
           WHERE projects.id = project_invites.project_id
             AND projects.deleted_at IS NULL
       )
-    RETURNING id, project_id, invited_user_id, invited_by_user_id, role, status, created_at, updated_at, resolved_at
+    RETURNING id, project_id, invited_email, invited_user_id, invited_by_user_id, role, status, created_at, updated_at, resolved_at
 )
 SELECT updated.id,
        updated.project_id,
+       updated.invited_email,
        updated.invited_user_id,
        updated.invited_by_user_id,
        updated.role,
@@ -122,13 +131,13 @@ SELECT updated.id,
        updated.resolved_at,
        projects.name AS project_name,
        projects.slug AS project_slug,
-       invited_user.email AS invited_user_email,
-       invited_user.display_name AS invited_user_display_name,
+       updated.invited_email::text AS invited_user_email,
+       COALESCE(invited_user.display_name, '') AS invited_user_display_name,
        inviter.email AS invited_by_user_email,
        inviter.display_name AS invited_by_user_display_name
 FROM updated
 JOIN projects ON projects.id = updated.project_id
-JOIN users AS invited_user ON invited_user.id = updated.invited_user_id
+LEFT JOIN users AS invited_user ON invited_user.id = updated.invited_user_id
 JOIN users AS inviter ON inviter.id = updated.invited_by_user_id
 `
 
@@ -140,7 +149,8 @@ type CancelPendingProjectInviteParams struct {
 type CancelPendingProjectInviteRow struct {
 	ID                       uuid.UUID           `json:"id"`
 	ProjectID                uuid.UUID           `json:"project_id"`
-	InvitedUserID            uuid.UUID           `json:"invited_user_id"`
+	InvitedEmail             string              `json:"invited_email"`
+	InvitedUserID            *uuid.UUID          `json:"invited_user_id"`
 	InvitedByUserID          uuid.UUID           `json:"invited_by_user_id"`
 	Role                     ProjectMemberRole   `json:"role"`
 	Status                   ProjectInviteStatus `json:"status"`
@@ -161,6 +171,7 @@ func (q *Queries) CancelPendingProjectInvite(ctx context.Context, arg CancelPend
 	err := row.Scan(
 		&i.ID,
 		&i.ProjectID,
+		&i.InvitedEmail,
 		&i.InvitedUserID,
 		&i.InvitedByUserID,
 		&i.Role,
@@ -179,19 +190,28 @@ func (q *Queries) CancelPendingProjectInvite(ctx context.Context, arg CancelPend
 }
 
 const createProjectInvite = `-- name: CreateProjectInvite :one
-WITH inserted AS (
-    INSERT INTO project_invites (project_id, invited_user_id, invited_by_user_id, role)
-    SELECT $1, $2, $3, $4
+WITH invited_user AS (
+    SELECT users.id, users.email, users.display_name
+    FROM users
+    WHERE users.email = $1
+),
+inserted AS (
+    INSERT INTO project_invites (project_id, invited_email, invited_user_id, invited_by_user_id, role)
+    SELECT $2, $1, invited_user.id, $3, $4
+    FROM (SELECT 1) AS seed
+    LEFT JOIN invited_user ON true
     WHERE NOT EXISTS (
         SELECT 1
         FROM project_members
-        WHERE project_members.project_id = $1
-          AND project_members.user_id = $2
+        JOIN users AS member_user ON member_user.id = project_members.user_id
+        WHERE project_members.project_id = $2
+          AND member_user.email = $1
     )
-    RETURNING id, project_id, invited_user_id, invited_by_user_id, role, status, created_at, updated_at, resolved_at
+    RETURNING id, project_id, invited_email, invited_user_id, invited_by_user_id, role, status, created_at, updated_at, resolved_at
 )
 SELECT inserted.id,
        inserted.project_id,
+       inserted.invited_email,
        inserted.invited_user_id,
        inserted.invited_by_user_id,
        inserted.role,
@@ -201,19 +221,19 @@ SELECT inserted.id,
        inserted.resolved_at,
        projects.name AS project_name,
        projects.slug AS project_slug,
-       invited_user.email AS invited_user_email,
-       invited_user.display_name AS invited_user_display_name,
+       inserted.invited_email::text AS invited_user_email,
+       COALESCE(invited_user.display_name, '') AS invited_user_display_name,
        inviter.email AS invited_by_user_email,
        inviter.display_name AS invited_by_user_display_name
 FROM inserted
 JOIN projects ON projects.id = inserted.project_id
-JOIN users AS invited_user ON invited_user.id = inserted.invited_user_id
+LEFT JOIN users AS invited_user ON invited_user.id = inserted.invited_user_id
 JOIN users AS inviter ON inviter.id = inserted.invited_by_user_id
 `
 
 type CreateProjectInviteParams struct {
+	InvitedEmail    string            `json:"invited_email"`
 	ProjectID       uuid.UUID         `json:"project_id"`
-	InvitedUserID   uuid.UUID         `json:"invited_user_id"`
 	InvitedByUserID uuid.UUID         `json:"invited_by_user_id"`
 	Role            ProjectMemberRole `json:"role"`
 }
@@ -221,7 +241,8 @@ type CreateProjectInviteParams struct {
 type CreateProjectInviteRow struct {
 	ID                       uuid.UUID           `json:"id"`
 	ProjectID                uuid.UUID           `json:"project_id"`
-	InvitedUserID            uuid.UUID           `json:"invited_user_id"`
+	InvitedEmail             string              `json:"invited_email"`
+	InvitedUserID            *uuid.UUID          `json:"invited_user_id"`
 	InvitedByUserID          uuid.UUID           `json:"invited_by_user_id"`
 	Role                     ProjectMemberRole   `json:"role"`
 	Status                   ProjectInviteStatus `json:"status"`
@@ -238,8 +259,8 @@ type CreateProjectInviteRow struct {
 
 func (q *Queries) CreateProjectInvite(ctx context.Context, arg CreateProjectInviteParams) (CreateProjectInviteRow, error) {
 	row := q.db.QueryRow(ctx, createProjectInvite,
+		arg.InvitedEmail,
 		arg.ProjectID,
-		arg.InvitedUserID,
 		arg.InvitedByUserID,
 		arg.Role,
 	)
@@ -247,6 +268,7 @@ func (q *Queries) CreateProjectInvite(ctx context.Context, arg CreateProjectInvi
 	err := row.Scan(
 		&i.ID,
 		&i.ProjectID,
+		&i.InvitedEmail,
 		&i.InvitedUserID,
 		&i.InvitedByUserID,
 		&i.Role,
@@ -267,6 +289,7 @@ func (q *Queries) CreateProjectInvite(ctx context.Context, arg CreateProjectInvi
 const listPendingProjectInvites = `-- name: ListPendingProjectInvites :many
 SELECT project_invites.id,
        project_invites.project_id,
+       project_invites.invited_email,
        project_invites.invited_user_id,
        project_invites.invited_by_user_id,
        project_invites.role,
@@ -276,13 +299,13 @@ SELECT project_invites.id,
        project_invites.resolved_at,
        projects.name AS project_name,
        projects.slug AS project_slug,
-       invited_user.email AS invited_user_email,
-       invited_user.display_name AS invited_user_display_name,
+       project_invites.invited_email::text AS invited_user_email,
+       COALESCE(invited_user.display_name, '') AS invited_user_display_name,
        inviter.email AS invited_by_user_email,
        inviter.display_name AS invited_by_user_display_name
 FROM project_invites
 JOIN projects ON projects.id = project_invites.project_id
-JOIN users AS invited_user ON invited_user.id = project_invites.invited_user_id
+LEFT JOIN users AS invited_user ON invited_user.id = project_invites.invited_user_id
 JOIN users AS inviter ON inviter.id = project_invites.invited_by_user_id
 WHERE project_invites.project_id = $1
   AND project_invites.status = 'pending'
@@ -293,7 +316,8 @@ ORDER BY project_invites.created_at ASC, project_invites.id ASC
 type ListPendingProjectInvitesRow struct {
 	ID                       uuid.UUID           `json:"id"`
 	ProjectID                uuid.UUID           `json:"project_id"`
-	InvitedUserID            uuid.UUID           `json:"invited_user_id"`
+	InvitedEmail             string              `json:"invited_email"`
+	InvitedUserID            *uuid.UUID          `json:"invited_user_id"`
 	InvitedByUserID          uuid.UUID           `json:"invited_by_user_id"`
 	Role                     ProjectMemberRole   `json:"role"`
 	Status                   ProjectInviteStatus `json:"status"`
@@ -320,6 +344,7 @@ func (q *Queries) ListPendingProjectInvites(ctx context.Context, projectID uuid.
 		if err := rows.Scan(
 			&i.ID,
 			&i.ProjectID,
+			&i.InvitedEmail,
 			&i.InvitedUserID,
 			&i.InvitedByUserID,
 			&i.Role,
@@ -347,6 +372,7 @@ func (q *Queries) ListPendingProjectInvites(ctx context.Context, projectID uuid.
 const listPendingProjectInvitesForUser = `-- name: ListPendingProjectInvitesForUser :many
 SELECT project_invites.id,
        project_invites.project_id,
+       project_invites.invited_email,
        project_invites.invited_user_id,
        project_invites.invited_by_user_id,
        project_invites.role,
@@ -356,15 +382,16 @@ SELECT project_invites.id,
        project_invites.resolved_at,
        projects.name AS project_name,
        projects.slug AS project_slug,
-       invited_user.email AS invited_user_email,
-       invited_user.display_name AS invited_user_display_name,
+       project_invites.invited_email::text AS invited_user_email,
+       COALESCE(invited_user.display_name, '') AS invited_user_display_name,
        inviter.email AS invited_by_user_email,
        inviter.display_name AS invited_by_user_display_name
 FROM project_invites
 JOIN projects ON projects.id = project_invites.project_id
-JOIN users AS invited_user ON invited_user.id = project_invites.invited_user_id
+JOIN users AS current_account ON current_account.id = $1
+LEFT JOIN users AS invited_user ON invited_user.id = project_invites.invited_user_id
 JOIN users AS inviter ON inviter.id = project_invites.invited_by_user_id
-WHERE project_invites.invited_user_id = $1
+WHERE project_invites.invited_email = current_account.email
   AND project_invites.status = 'pending'
   AND projects.deleted_at IS NULL
 ORDER BY project_invites.created_at DESC, project_invites.id DESC
@@ -373,7 +400,8 @@ ORDER BY project_invites.created_at DESC, project_invites.id DESC
 type ListPendingProjectInvitesForUserRow struct {
 	ID                       uuid.UUID           `json:"id"`
 	ProjectID                uuid.UUID           `json:"project_id"`
-	InvitedUserID            uuid.UUID           `json:"invited_user_id"`
+	InvitedEmail             string              `json:"invited_email"`
+	InvitedUserID            *uuid.UUID          `json:"invited_user_id"`
 	InvitedByUserID          uuid.UUID           `json:"invited_by_user_id"`
 	Role                     ProjectMemberRole   `json:"role"`
 	Status                   ProjectInviteStatus `json:"status"`
@@ -388,8 +416,8 @@ type ListPendingProjectInvitesForUserRow struct {
 	InvitedByUserDisplayName string              `json:"invited_by_user_display_name"`
 }
 
-func (q *Queries) ListPendingProjectInvitesForUser(ctx context.Context, invitedUserID uuid.UUID) ([]ListPendingProjectInvitesForUserRow, error) {
-	rows, err := q.db.Query(ctx, listPendingProjectInvitesForUser, invitedUserID)
+func (q *Queries) ListPendingProjectInvitesForUser(ctx context.Context, id uuid.UUID) ([]ListPendingProjectInvitesForUserRow, error) {
+	rows, err := q.db.Query(ctx, listPendingProjectInvitesForUser, id)
 	if err != nil {
 		return nil, err
 	}
@@ -400,6 +428,7 @@ func (q *Queries) ListPendingProjectInvitesForUser(ctx context.Context, invitedU
 		if err := rows.Scan(
 			&i.ID,
 			&i.ProjectID,
+			&i.InvitedEmail,
 			&i.InvitedUserID,
 			&i.InvitedByUserID,
 			&i.Role,
@@ -430,7 +459,11 @@ WITH updated AS (
     SET status = 'rejected',
         resolved_at = now()
     WHERE project_invites.id = $1
-      AND project_invites.invited_user_id = $2
+      AND project_invites.invited_email = (
+          SELECT users.email
+          FROM users
+          WHERE users.id = $2::uuid
+      )
       AND project_invites.status = 'pending'
       AND EXISTS (
           SELECT 1
@@ -438,10 +471,11 @@ WITH updated AS (
           WHERE projects.id = project_invites.project_id
             AND projects.deleted_at IS NULL
       )
-    RETURNING id, project_id, invited_user_id, invited_by_user_id, role, status, created_at, updated_at, resolved_at
+    RETURNING id, project_id, invited_email, invited_user_id, invited_by_user_id, role, status, created_at, updated_at, resolved_at
 )
 SELECT updated.id,
        updated.project_id,
+       updated.invited_email,
        updated.invited_user_id,
        updated.invited_by_user_id,
        updated.role,
@@ -451,25 +485,26 @@ SELECT updated.id,
        updated.resolved_at,
        projects.name AS project_name,
        projects.slug AS project_slug,
-       invited_user.email AS invited_user_email,
-       invited_user.display_name AS invited_user_display_name,
+       updated.invited_email::text AS invited_user_email,
+       COALESCE(invited_user.display_name, '') AS invited_user_display_name,
        inviter.email AS invited_by_user_email,
        inviter.display_name AS invited_by_user_display_name
 FROM updated
 JOIN projects ON projects.id = updated.project_id
-JOIN users AS invited_user ON invited_user.id = updated.invited_user_id
+LEFT JOIN users AS invited_user ON invited_user.id = updated.invited_user_id
 JOIN users AS inviter ON inviter.id = updated.invited_by_user_id
 `
 
 type RejectPendingProjectInviteParams struct {
 	ID            uuid.UUID `json:"id"`
-	InvitedUserID uuid.UUID `json:"invited_user_id"`
+	CurrentUserID uuid.UUID `json:"current_user_id"`
 }
 
 type RejectPendingProjectInviteRow struct {
 	ID                       uuid.UUID           `json:"id"`
 	ProjectID                uuid.UUID           `json:"project_id"`
-	InvitedUserID            uuid.UUID           `json:"invited_user_id"`
+	InvitedEmail             string              `json:"invited_email"`
+	InvitedUserID            *uuid.UUID          `json:"invited_user_id"`
 	InvitedByUserID          uuid.UUID           `json:"invited_by_user_id"`
 	Role                     ProjectMemberRole   `json:"role"`
 	Status                   ProjectInviteStatus `json:"status"`
@@ -485,11 +520,12 @@ type RejectPendingProjectInviteRow struct {
 }
 
 func (q *Queries) RejectPendingProjectInvite(ctx context.Context, arg RejectPendingProjectInviteParams) (RejectPendingProjectInviteRow, error) {
-	row := q.db.QueryRow(ctx, rejectPendingProjectInvite, arg.ID, arg.InvitedUserID)
+	row := q.db.QueryRow(ctx, rejectPendingProjectInvite, arg.ID, arg.CurrentUserID)
 	var i RejectPendingProjectInviteRow
 	err := row.Scan(
 		&i.ID,
 		&i.ProjectID,
+		&i.InvitedEmail,
 		&i.InvitedUserID,
 		&i.InvitedByUserID,
 		&i.Role,
