@@ -1171,6 +1171,7 @@ type ProbeStatus struct {
 	As           *string      `json:"as"`
 	Addrs        []netip.Addr `json:"addrs"`
 	UpdatedAt    time.Time    `json:"updated_at"`
+	OnlineSince  *time.Time   `json:"online_since"`
 }
 
 type Project struct {

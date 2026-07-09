@@ -163,15 +163,17 @@ type Credential struct {
 }
 
 type Status struct {
-	ProbeID      string       `json:"probeId"`
-	State        State        `json:"state"`
-	LastSeenAt   *time.Time   `json:"lastSeenAt"`
-	AgentVersion *string      `json:"agentVersion"`
-	PublicV4     *netip.Addr  `json:"publicV4"`
-	PublicV6     *netip.Addr  `json:"publicV6"`
-	AS           *string      `json:"as"`
-	Addrs        []netip.Addr `json:"addrs"`
-	UpdatedAt    time.Time    `json:"updatedAt"`
+	ProbeID       string       `json:"probeId"`
+	State         State        `json:"state"`
+	LastSeenAt    *time.Time   `json:"lastSeenAt"`
+	OnlineSince   *time.Time   `json:"onlineSince"`
+	UptimeSeconds *int64       `json:"uptimeSeconds"`
+	AgentVersion  *string      `json:"agentVersion"`
+	PublicV4      *netip.Addr  `json:"publicV4"`
+	PublicV6      *netip.Addr  `json:"publicV6"`
+	AS            *string      `json:"as"`
+	Addrs         []netip.Addr `json:"addrs"`
+	UpdatedAt     time.Time    `json:"updatedAt"`
 }
 
 type IPFamilyCapabilities struct {
@@ -213,15 +215,17 @@ func VNProbeStatus(status Status) (Status, error) {
 	}
 
 	return Status{
-		ProbeID:      probeID,
-		State:        state,
-		LastSeenAt:   status.LastSeenAt,
-		AgentVersion: agentVersion,
-		PublicV4:     publicV4,
-		PublicV6:     publicV6,
-		AS:           as,
-		Addrs:        addrs,
-		UpdatedAt:    status.UpdatedAt,
+		ProbeID:       probeID,
+		State:         state,
+		LastSeenAt:    status.LastSeenAt,
+		OnlineSince:   status.OnlineSince,
+		UptimeSeconds: status.UptimeSeconds,
+		AgentVersion:  agentVersion,
+		PublicV4:      publicV4,
+		PublicV6:      publicV6,
+		AS:            as,
+		Addrs:         addrs,
+		UpdatedAt:     status.UpdatedAt,
 	}, nil
 }
 

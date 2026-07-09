@@ -32,6 +32,31 @@ export function formatProbeHeartbeat(timestamp: number | null, now = Date.now())
 	return `${elapsedHours}h ago`;
 }
 
+export function formatProbeUptime(seconds: number | null | undefined) {
+	if (seconds === null || seconds === undefined || !Number.isFinite(seconds) || seconds < 0) {
+		return "-";
+	}
+
+	const wholeSeconds = Math.floor(seconds);
+	const days = Math.floor(wholeSeconds / 86400);
+	const hours = Math.floor((wholeSeconds % 86400) / 3600);
+	const minutes = Math.floor((wholeSeconds % 3600) / 60);
+
+	if (days > 0) {
+		return `${days}d ${hours}h`;
+	}
+
+	if (hours > 0) {
+		return `${hours}h ${minutes}m`;
+	}
+
+	if (minutes > 0) {
+		return `${minutes}m`;
+	}
+
+	return `${wholeSeconds}s`;
+}
+
 function mapProbeStatus(probe: ApiProbe): ProbeStatus {
 	const state = probe.status?.state?.toLowerCase() ?? "offline";
 
@@ -78,7 +103,7 @@ export function mapApiProbe(probe: ApiProbe, index: number): Probe {
 		lastHeartbeatAt,
 		labelTokens,
 		version: status?.agentVersion || "-",
-		uptime: "-",
+		uptime: formatProbeUptime(status?.uptimeSeconds),
 		cpu: "-",
 		memory: "-",
 		queue: probe.enabled ? "accepting jobs" : "disabled",

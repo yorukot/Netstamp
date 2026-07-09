@@ -107,7 +107,7 @@ func (q *Queries) CreateProbeLabel(ctx context.Context, arg CreateProbeLabelPara
 const createProbeStatus = `-- name: CreateProbeStatus :one
 INSERT INTO probe_statuses (probe_id, status)
 VALUES ($1, $2)
-RETURNING probe_id, status, last_seen_at, agent_version, public_v4, public_v6, "as", addrs, updated_at
+RETURNING probe_id, status, last_seen_at, online_since, agent_version, public_v4, public_v6, "as", addrs, updated_at
 `
 
 type CreateProbeStatusParams struct {
@@ -115,13 +115,27 @@ type CreateProbeStatusParams struct {
 	Status  ProbeState `json:"status"`
 }
 
-func (q *Queries) CreateProbeStatus(ctx context.Context, arg CreateProbeStatusParams) (ProbeStatus, error) {
+type CreateProbeStatusRow struct {
+	ProbeID      uuid.UUID    `json:"probe_id"`
+	Status       ProbeState   `json:"status"`
+	LastSeenAt   *time.Time   `json:"last_seen_at"`
+	OnlineSince  *time.Time   `json:"online_since"`
+	AgentVersion *string      `json:"agent_version"`
+	PublicV4     *netip.Addr  `json:"public_v4"`
+	PublicV6     *netip.Addr  `json:"public_v6"`
+	As           *string      `json:"as"`
+	Addrs        []netip.Addr `json:"addrs"`
+	UpdatedAt    time.Time    `json:"updated_at"`
+}
+
+func (q *Queries) CreateProbeStatus(ctx context.Context, arg CreateProbeStatusParams) (CreateProbeStatusRow, error) {
 	row := q.db.QueryRow(ctx, createProbeStatus, arg.ProbeID, arg.Status)
-	var i ProbeStatus
+	var i CreateProbeStatusRow
 	err := row.Scan(
 		&i.ProbeID,
 		&i.Status,
 		&i.LastSeenAt,
+		&i.OnlineSince,
 		&i.AgentVersion,
 		&i.PublicV4,
 		&i.PublicV6,
@@ -233,6 +247,7 @@ SELECT probes.internal_id,
            ELSE probe_statuses.status
        END)::probe_state AS status,
        probe_statuses.last_seen_at AS status_last_seen_at,
+       probe_statuses.online_since AS status_online_since,
        probe_statuses.agent_version AS status_agent_version,
        probe_statuses.public_v4 AS status_public_v4,
        probe_statuses.public_v6 AS status_public_v6,
@@ -281,6 +296,7 @@ type GetActiveProbeRowsForProjectRow struct {
 	DeletedAt          *time.Time   `json:"deleted_at"`
 	Status             ProbeState   `json:"status"`
 	StatusLastSeenAt   *time.Time   `json:"status_last_seen_at"`
+	StatusOnlineSince  *time.Time   `json:"status_online_since"`
 	StatusAgentVersion *string      `json:"status_agent_version"`
 	StatusPublicV4     *netip.Addr  `json:"status_public_v4"`
 	StatusPublicV6     *netip.Addr  `json:"status_public_v6"`
@@ -318,6 +334,7 @@ func (q *Queries) GetActiveProbeRowsForProject(ctx context.Context, arg GetActiv
 			&i.DeletedAt,
 			&i.Status,
 			&i.StatusLastSeenAt,
+			&i.StatusOnlineSince,
 			&i.StatusAgentVersion,
 			&i.StatusPublicV4,
 			&i.StatusPublicV6,
@@ -666,6 +683,7 @@ SELECT probes.internal_id,
            ELSE probe_statuses.status
        END)::probe_state AS status,
        probe_statuses.last_seen_at AS status_last_seen_at,
+       probe_statuses.online_since AS status_online_since,
        probe_statuses.agent_version AS status_agent_version,
        probe_statuses.public_v4 AS status_public_v4,
        probe_statuses.public_v6 AS status_public_v6,
@@ -710,6 +728,7 @@ type ListActiveProbesForProjectRow struct {
 	DeletedAt          *time.Time   `json:"deleted_at"`
 	Status             ProbeState   `json:"status"`
 	StatusLastSeenAt   *time.Time   `json:"status_last_seen_at"`
+	StatusOnlineSince  *time.Time   `json:"status_online_since"`
 	StatusAgentVersion *string      `json:"status_agent_version"`
 	StatusPublicV4     *netip.Addr  `json:"status_public_v4"`
 	StatusPublicV6     *netip.Addr  `json:"status_public_v6"`
@@ -747,6 +766,7 @@ func (q *Queries) ListActiveProbesForProject(ctx context.Context, projectID uuid
 			&i.DeletedAt,
 			&i.Status,
 			&i.StatusLastSeenAt,
+			&i.StatusOnlineSince,
 			&i.StatusAgentVersion,
 			&i.StatusPublicV4,
 			&i.StatusPublicV6,
@@ -924,7 +944,7 @@ SET public_v4 = CASE WHEN $1::boolean THEN $2::inet ELSE public_v4 END,
     public_v6 = CASE WHEN $3::boolean THEN $4::inet ELSE public_v6 END,
     updated_at = now()
 WHERE probe_id = $5
-RETURNING probe_id, status, last_seen_at, agent_version, public_v4, public_v6, "as", addrs, updated_at
+RETURNING probe_id, status, last_seen_at, online_since, agent_version, public_v4, public_v6, "as", addrs, updated_at
 `
 
 type UpdateProbeIPFamilyCapabilitiesParams struct {
@@ -935,7 +955,20 @@ type UpdateProbeIPFamilyCapabilitiesParams struct {
 	ProbeID  uuid.UUID   `json:"probe_id"`
 }
 
-func (q *Queries) UpdateProbeIPFamilyCapabilities(ctx context.Context, arg UpdateProbeIPFamilyCapabilitiesParams) (ProbeStatus, error) {
+type UpdateProbeIPFamilyCapabilitiesRow struct {
+	ProbeID      uuid.UUID    `json:"probe_id"`
+	Status       ProbeState   `json:"status"`
+	LastSeenAt   *time.Time   `json:"last_seen_at"`
+	OnlineSince  *time.Time   `json:"online_since"`
+	AgentVersion *string      `json:"agent_version"`
+	PublicV4     *netip.Addr  `json:"public_v4"`
+	PublicV6     *netip.Addr  `json:"public_v6"`
+	As           *string      `json:"as"`
+	Addrs        []netip.Addr `json:"addrs"`
+	UpdatedAt    time.Time    `json:"updated_at"`
+}
+
+func (q *Queries) UpdateProbeIPFamilyCapabilities(ctx context.Context, arg UpdateProbeIPFamilyCapabilitiesParams) (UpdateProbeIPFamilyCapabilitiesRow, error) {
 	row := q.db.QueryRow(ctx, updateProbeIPFamilyCapabilities,
 		arg.UpdateV4,
 		arg.PublicV4,
@@ -943,11 +976,12 @@ func (q *Queries) UpdateProbeIPFamilyCapabilities(ctx context.Context, arg Updat
 		arg.PublicV6,
 		arg.ProbeID,
 	)
-	var i ProbeStatus
+	var i UpdateProbeIPFamilyCapabilitiesRow
 	err := row.Scan(
 		&i.ProbeID,
 		&i.Status,
 		&i.LastSeenAt,
+		&i.OnlineSince,
 		&i.AgentVersion,
 		&i.PublicV4,
 		&i.PublicV6,
@@ -962,11 +996,22 @@ const updateProbeStatus = `-- name: UpdateProbeStatus :one
 UPDATE probe_statuses
 SET status = $2,
     last_seen_at = now(),
+    online_since = CASE
+        WHEN $2 = 'online'::probe_state
+            AND (
+                last_seen_at IS NULL
+                OR last_seen_at < now() - interval '35 seconds'
+                OR online_since IS NULL
+                OR status <> 'online'::probe_state
+            ) THEN now()
+        WHEN $2 = 'online'::probe_state THEN online_since
+        ELSE NULL
+    END,
     agent_version = $3,
     addrs = $4,
     updated_at = now()
 WHERE probe_id = $1
-RETURNING probe_id, status, last_seen_at, agent_version, public_v4, public_v6, "as", addrs, updated_at
+RETURNING probe_id, status, last_seen_at, online_since, agent_version, public_v4, public_v6, "as", addrs, updated_at
 `
 
 type UpdateProbeStatusParams struct {
@@ -976,18 +1021,32 @@ type UpdateProbeStatusParams struct {
 	Addrs        []netip.Addr `json:"addrs"`
 }
 
-func (q *Queries) UpdateProbeStatus(ctx context.Context, arg UpdateProbeStatusParams) (ProbeStatus, error) {
+type UpdateProbeStatusRow struct {
+	ProbeID      uuid.UUID    `json:"probe_id"`
+	Status       ProbeState   `json:"status"`
+	LastSeenAt   *time.Time   `json:"last_seen_at"`
+	OnlineSince  *time.Time   `json:"online_since"`
+	AgentVersion *string      `json:"agent_version"`
+	PublicV4     *netip.Addr  `json:"public_v4"`
+	PublicV6     *netip.Addr  `json:"public_v6"`
+	As           *string      `json:"as"`
+	Addrs        []netip.Addr `json:"addrs"`
+	UpdatedAt    time.Time    `json:"updated_at"`
+}
+
+func (q *Queries) UpdateProbeStatus(ctx context.Context, arg UpdateProbeStatusParams) (UpdateProbeStatusRow, error) {
 	row := q.db.QueryRow(ctx, updateProbeStatus,
 		arg.ProbeID,
 		arg.Status,
 		arg.AgentVersion,
 		arg.Addrs,
 	)
-	var i ProbeStatus
+	var i UpdateProbeStatusRow
 	err := row.Scan(
 		&i.ProbeID,
 		&i.Status,
 		&i.LastSeenAt,
+		&i.OnlineSince,
 		&i.AgentVersion,
 		&i.PublicV4,
 		&i.PublicV6,

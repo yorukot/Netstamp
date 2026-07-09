@@ -2,13 +2,72 @@ package pgprobe
 
 import (
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/sqlc"
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
 	domainnetwork "github.com/yorukot/netstamp/internal/domain/network"
+	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
 )
+
+func TestMapProbeStatusFieldsCalculatesOnlineUptime(t *testing.T) {
+	onlineSince := time.Now().Add(-2 * time.Minute)
+
+	status := mapProbeStatusFields(
+		uuid.MustParse("22222222-2222-2222-2222-222222222222"),
+		sqlc.ProbeStateOnline,
+		nil,
+		&onlineSince,
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+		time.Now(),
+	)
+
+	if status.State != domainprobe.StateOnline {
+		t.Fatalf("expected online state, got %q", status.State)
+	}
+	if status.OnlineSince == nil || !status.OnlineSince.Equal(onlineSince) {
+		t.Fatalf("expected online since to be preserved, got %#v", status.OnlineSince)
+	}
+	if status.UptimeSeconds == nil {
+		t.Fatal("expected uptime seconds")
+	}
+	if *status.UptimeSeconds < 119 || *status.UptimeSeconds > 121 {
+		t.Fatalf("expected uptime around 120 seconds, got %d", *status.UptimeSeconds)
+	}
+}
+
+func TestMapProbeStatusFieldsOmitsOfflineUptime(t *testing.T) {
+	onlineSince := time.Now().Add(-2 * time.Minute)
+
+	status := mapProbeStatusFields(
+		uuid.MustParse("22222222-2222-2222-2222-222222222222"),
+		sqlc.ProbeStateOffline,
+		nil,
+		&onlineSince,
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+		time.Now(),
+	)
+
+	if status.State != domainprobe.StateOffline {
+		t.Fatalf("expected offline state, got %q", status.State)
+	}
+	if status.OnlineSince != nil {
+		t.Fatalf("expected offline status to omit online since, got %#v", status.OnlineSince)
+	}
+	if status.UptimeSeconds != nil {
+		t.Fatalf("expected offline status to omit uptime, got %#v", status.UptimeSeconds)
+	}
+}
 
 func TestMapAssignmentIncludesCheckNameAndTCPConfig(t *testing.T) {
 	port := int32(8443)

@@ -70,7 +70,7 @@ func (r *ProbeRepository) UpdateProbeStatus(ctx context.Context, input domainpro
 		return domainprobe.Status{}, err
 	}
 
-	return mapProbeStatus(row), nil
+	return mapUpdateProbeStatus(row), nil
 }
 
 func (r *ProbeRepository) UpdateProbeIPFamilyCapabilities(ctx context.Context, input domainprobe.IPFamilyCapabilities) (domainprobe.Status, error) {
@@ -95,7 +95,7 @@ func (r *ProbeRepository) UpdateProbeIPFamilyCapabilities(ctx context.Context, i
 		return domainprobe.Status{}, err
 	}
 
-	return mapProbeStatus(row), nil
+	return mapUpdateProbeIPFamilyStatus(row), nil
 }
 
 func (r *ProbeRepository) ListAssignments(ctx context.Context, probeID string) ([]domainassignment.Assignment, error) {
@@ -211,7 +211,7 @@ func (r *ProbeRepository) CreateProbe(ctx context.Context, input domainprobe.Pro
 			}
 		}
 
-		status := mapProbeStatus(statusRow)
+		status := mapCreateProbeStatus(statusRow)
 		created = mapCreateProbeRow(row)
 		created.Status = &status
 		return nil

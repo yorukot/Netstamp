@@ -11,7 +11,7 @@ RETURNING probe_id, secret_hash, created_at, last_rotated_at;
 -- name: CreateProbeStatus :one
 INSERT INTO probe_statuses (probe_id, status)
 VALUES ($1, $2)
-RETURNING probe_id, status, last_seen_at, agent_version, public_v4, public_v6, "as", addrs, updated_at;
+RETURNING probe_id, status, last_seen_at, online_since, agent_version, public_v4, public_v6, "as", addrs, updated_at;
 
 -- name: CreateProbeLabel :exec
 INSERT INTO probe_labels (project_id, probe_id, label_id)
@@ -34,6 +34,7 @@ SELECT probes.internal_id,
            ELSE probe_statuses.status
        END)::probe_state AS status,
        probe_statuses.last_seen_at AS status_last_seen_at,
+       probe_statuses.online_since AS status_online_since,
        probe_statuses.agent_version AS status_agent_version,
        probe_statuses.public_v4 AS status_public_v4,
        probe_statuses.public_v6 AS status_public_v6,
@@ -81,6 +82,7 @@ SELECT probes.internal_id,
            ELSE probe_statuses.status
        END)::probe_state AS status,
        probe_statuses.last_seen_at AS status_last_seen_at,
+       probe_statuses.online_since AS status_online_since,
        probe_statuses.agent_version AS status_agent_version,
        probe_statuses.public_v4 AS status_public_v4,
        probe_statuses.public_v6 AS status_public_v6,
@@ -200,11 +202,22 @@ WHERE probes.id = $1
 UPDATE probe_statuses
 SET status = $2,
     last_seen_at = now(),
+    online_since = CASE
+        WHEN $2 = 'online'::probe_state
+            AND (
+                last_seen_at IS NULL
+                OR last_seen_at < now() - interval '35 seconds'
+                OR online_since IS NULL
+                OR status <> 'online'::probe_state
+            ) THEN now()
+        WHEN $2 = 'online'::probe_state THEN online_since
+        ELSE NULL
+    END,
     agent_version = $3,
     addrs = $4,
     updated_at = now()
 WHERE probe_id = $1
-RETURNING probe_id, status, last_seen_at, agent_version, public_v4, public_v6, "as", addrs, updated_at;
+RETURNING probe_id, status, last_seen_at, online_since, agent_version, public_v4, public_v6, "as", addrs, updated_at;
 
 -- name: UpdateProbeIPFamilyCapabilities :one
 UPDATE probe_statuses
@@ -212,7 +225,7 @@ SET public_v4 = CASE WHEN sqlc.arg(update_v4)::boolean THEN sqlc.narg(public_v4)
     public_v6 = CASE WHEN sqlc.arg(update_v6)::boolean THEN sqlc.narg(public_v6)::inet ELSE public_v6 END,
     updated_at = now()
 WHERE probe_id = sqlc.arg(probe_id)
-RETURNING probe_id, status, last_seen_at, agent_version, public_v4, public_v6, "as", addrs, updated_at;
+RETURNING probe_id, status, last_seen_at, online_since, agent_version, public_v4, public_v6, "as", addrs, updated_at;
 
 -- name: ListActiveAssignmentsForProbe :many
 SELECT probe_check_assignments.id AS assignment_id,

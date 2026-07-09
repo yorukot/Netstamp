@@ -10768,6 +10768,8 @@
 							"probeId": "33333333-3333-3333-3333-333333333333",
 							"state": "online",
 							"lastSeenAt": "2026-05-13T10:00:00Z",
+							"onlineSince": "2026-05-13T09:45:00Z",
+							"uptimeSeconds": 900,
 							"updatedAt": "2026-05-13T10:00:00Z"
 						},
 						"createdAt": "2026-05-13T10:00:00Z",
@@ -10870,6 +10872,14 @@
 						"type": "string",
 						"format": "date-time"
 					},
+					"onlineSince": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"uptimeSeconds": {
+						"type": "integer",
+						"format": "int64"
+					},
 					"agentVersion": {
 						"type": "string"
 					},
@@ -10905,6 +10915,8 @@
 						"probeId": "33333333-3333-3333-3333-333333333333",
 						"state": "online",
 						"lastSeenAt": "2026-05-13T10:00:00Z",
+						"onlineSince": "2026-05-13T09:45:00Z",
+						"uptimeSeconds": 900,
 						"agentVersion": "netstamp-probe/0.1.0",
 						"publicV4": "203.0.113.10",
 						"publicV6": "2001:db8::10",

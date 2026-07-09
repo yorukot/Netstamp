@@ -6,6 +6,8 @@ alias ProbeState = "online" | "offline";
 	probeId: "33333333-3333-3333-3333-333333333333",
 	state: "online",
 	lastSeenAt: utcDateTime.fromISO("2026-05-13T10:00:00Z"),
+	onlineSince: utcDateTime.fromISO("2026-05-13T09:45:00Z"),
+	uptimeSeconds: 900,
 	agentVersion: "netstamp-probe/0.1.0",
 	publicV4: "203.0.113.10",
 	publicV6: "2001:db8::10",
@@ -17,6 +19,8 @@ model ProbeStatus {
 	probeId: uuid;
 	state: ProbeState;
 	lastSeenAt?: utcDateTime;
+	onlineSince?: utcDateTime;
+	uptimeSeconds?: int64;
 	agentVersion?: string;
 	publicV4?: ipv4Address;
 	publicV6?: ipv6Address;
@@ -34,7 +38,7 @@ model ProbeStatus {
 	latitude: 35.6762,
 	longitude: 139.6503,
 	labels: #[],
-	status: #{ probeId: "33333333-3333-3333-3333-333333333333", state: "online", lastSeenAt: utcDateTime.fromISO("2026-05-13T10:00:00Z"), updatedAt: utcDateTime.fromISO("2026-05-13T10:00:00Z") },
+	status: #{ probeId: "33333333-3333-3333-3333-333333333333", state: "online", lastSeenAt: utcDateTime.fromISO("2026-05-13T10:00:00Z"), onlineSince: utcDateTime.fromISO("2026-05-13T09:45:00Z"), uptimeSeconds: 900, updatedAt: utcDateTime.fromISO("2026-05-13T10:00:00Z") },
 	createdAt: utcDateTime.fromISO("2026-05-13T10:00:00Z"),
 	updatedAt: utcDateTime.fromISO("2026-05-13T10:00:00Z"),
 })

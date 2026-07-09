@@ -2697,6 +2697,8 @@ export interface components {
 		 *         "probeId": "33333333-3333-3333-3333-333333333333",
 		 *         "state": "online",
 		 *         "lastSeenAt": "2026-05-13T10:00:00Z",
+		 *         "onlineSince": "2026-05-13T09:45:00Z",
+		 *         "uptimeSeconds": 900,
 		 *         "updatedAt": "2026-05-13T10:00:00Z"
 		 *       },
 		 *       "createdAt": "2026-05-13T10:00:00Z",
@@ -2784,6 +2786,8 @@ export interface components {
 		 *       "probeId": "33333333-3333-3333-3333-333333333333",
 		 *       "state": "online",
 		 *       "lastSeenAt": "2026-05-13T10:00:00Z",
+		 *       "onlineSince": "2026-05-13T09:45:00Z",
+		 *       "uptimeSeconds": 900,
 		 *       "agentVersion": "netstamp-probe/0.1.0",
 		 *       "publicV4": "203.0.113.10",
 		 *       "publicV6": "2001:db8::10",
@@ -2800,6 +2804,10 @@ export interface components {
 			state: "online" | "offline";
 			/** Format: date-time */
 			lastSeenAt?: string;
+			/** Format: date-time */
+			onlineSince?: string;
+			/** Format: int64 */
+			uptimeSeconds?: number;
 			agentVersion?: string;
 			publicV4?: components["schemas"]["ipv4Address"];
 			publicV6?: components["schemas"]["ipv6Address"];

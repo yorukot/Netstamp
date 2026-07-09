@@ -138,46 +138,134 @@ func mapProbeCredential(row sqlc.GetActiveProbeCredentialRow) domainprobe.Creden
 	}
 }
 
-func mapProbeStatus(row sqlc.ProbeStatus) domainprobe.Status {
-	return domainprobe.Status{
-		ProbeID:      row.ProbeID.String(),
-		State:        domainprobe.State(row.Status),
-		LastSeenAt:   row.LastSeenAt,
-		AgentVersion: row.AgentVersion,
-		PublicV4:     cloneAddr(row.PublicV4),
-		PublicV6:     cloneAddr(row.PublicV6),
-		AS:           row.As,
-		Addrs:        append([]netip.Addr(nil), row.Addrs...),
-		UpdatedAt:    row.UpdatedAt,
-	}
+func mapCreateProbeStatus(row sqlc.CreateProbeStatusRow) domainprobe.Status {
+	return mapProbeStatusFields(
+		row.ProbeID,
+		row.Status,
+		row.LastSeenAt,
+		row.OnlineSince,
+		row.AgentVersion,
+		row.PublicV4,
+		row.PublicV6,
+		row.As,
+		row.Addrs,
+		row.UpdatedAt,
+	)
+}
+
+func mapUpdateProbeStatus(row sqlc.UpdateProbeStatusRow) domainprobe.Status {
+	return mapProbeStatusFields(
+		row.ProbeID,
+		row.Status,
+		row.LastSeenAt,
+		row.OnlineSince,
+		row.AgentVersion,
+		row.PublicV4,
+		row.PublicV6,
+		row.As,
+		row.Addrs,
+		row.UpdatedAt,
+	)
+}
+
+func mapUpdateProbeIPFamilyStatus(row sqlc.UpdateProbeIPFamilyCapabilitiesRow) domainprobe.Status {
+	return mapProbeStatusFields(
+		row.ProbeID,
+		row.Status,
+		row.LastSeenAt,
+		row.OnlineSince,
+		row.AgentVersion,
+		row.PublicV4,
+		row.PublicV6,
+		row.As,
+		row.Addrs,
+		row.UpdatedAt,
+	)
 }
 
 func mapListProbeStatus(row sqlc.ListActiveProbesForProjectRow) *domainprobe.Status {
-	return &domainprobe.Status{
-		ProbeID:      row.ID.String(),
-		State:        domainprobe.State(row.Status),
-		LastSeenAt:   row.StatusLastSeenAt,
-		AgentVersion: row.StatusAgentVersion,
-		PublicV4:     cloneAddr(row.StatusPublicV4),
-		PublicV6:     cloneAddr(row.StatusPublicV6),
-		AS:           row.StatusAs,
-		Addrs:        append([]netip.Addr(nil), row.StatusAddrs...),
-		UpdatedAt:    timeValue(row.StatusUpdatedAt),
-	}
+	status := mapProbeStatusFields(
+		row.ID,
+		row.Status,
+		row.StatusLastSeenAt,
+		row.StatusOnlineSince,
+		row.StatusAgentVersion,
+		row.StatusPublicV4,
+		row.StatusPublicV6,
+		row.StatusAs,
+		row.StatusAddrs,
+		timeValue(row.StatusUpdatedAt),
+	)
+
+	return &status
 }
 
 func mapGetProbeStatus(row sqlc.GetActiveProbeRowsForProjectRow) *domainprobe.Status {
-	return &domainprobe.Status{
-		ProbeID:      row.ID.String(),
-		State:        domainprobe.State(row.Status),
-		LastSeenAt:   row.StatusLastSeenAt,
-		AgentVersion: row.StatusAgentVersion,
-		PublicV4:     cloneAddr(row.StatusPublicV4),
-		PublicV6:     cloneAddr(row.StatusPublicV6),
-		AS:           row.StatusAs,
-		Addrs:        append([]netip.Addr(nil), row.StatusAddrs...),
-		UpdatedAt:    timeValue(row.StatusUpdatedAt),
+	status := mapProbeStatusFields(
+		row.ID,
+		row.Status,
+		row.StatusLastSeenAt,
+		row.StatusOnlineSince,
+		row.StatusAgentVersion,
+		row.StatusPublicV4,
+		row.StatusPublicV6,
+		row.StatusAs,
+		row.StatusAddrs,
+		timeValue(row.StatusUpdatedAt),
+	)
+
+	return &status
+}
+
+func mapProbeStatusFields(
+	probeID uuid.UUID,
+	state sqlc.ProbeState,
+	lastSeenAt *time.Time,
+	onlineSince *time.Time,
+	agentVersion *string,
+	publicV4 *netip.Addr,
+	publicV6 *netip.Addr,
+	as *string,
+	addrs []netip.Addr,
+	updatedAt time.Time,
+) domainprobe.Status {
+	domainState := domainprobe.State(state)
+	activeOnlineSince := onlineSinceForState(domainState, onlineSince)
+
+	return domainprobe.Status{
+		ProbeID:       probeID.String(),
+		State:         domainState,
+		LastSeenAt:    lastSeenAt,
+		OnlineSince:   activeOnlineSince,
+		UptimeSeconds: uptimeSecondsFromOnlineSince(activeOnlineSince),
+		AgentVersion:  agentVersion,
+		PublicV4:      cloneAddr(publicV4),
+		PublicV6:      cloneAddr(publicV6),
+		AS:            as,
+		Addrs:         append([]netip.Addr(nil), addrs...),
+		UpdatedAt:     updatedAt,
 	}
+}
+
+func onlineSinceForState(state domainprobe.State, onlineSince *time.Time) *time.Time {
+	if state != domainprobe.StateOnline || onlineSince == nil {
+		return nil
+	}
+
+	return onlineSince
+}
+
+func uptimeSecondsFromOnlineSince(onlineSince *time.Time) *int64 {
+	if onlineSince == nil {
+		return nil
+	}
+
+	seconds := int64(time.Since(*onlineSince).Seconds())
+	if seconds < 0 {
+		seconds = 0
+	}
+
+	return &seconds
 }
 
 func mapListProbeLabel(row sqlc.ListActiveProbesForProjectRow) (domainlabel.Label, bool) {
