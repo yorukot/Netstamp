@@ -3,7 +3,10 @@ import { pathForRoute } from "@/routes/routePaths";
 import { useTheme } from "@/shared/theme/useTheme";
 import { classNames } from "@/shared/utils/classNames";
 import { PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger, SignalAvatar } from "@netstamp/ui";
-import { GearSix, MoonStars, SignOut, Sun } from "@phosphor-icons/react";
+import { GearSixIcon } from "@phosphor-icons/react/dist/csr/GearSix";
+import { MoonStarsIcon } from "@phosphor-icons/react/dist/csr/MoonStars";
+import { SignOutIcon } from "@phosphor-icons/react/dist/csr/SignOut";
+import { SunIcon } from "@phosphor-icons/react/dist/csr/Sun";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import styles from "./UserMenu.module.css";
@@ -75,7 +78,7 @@ export function UserMenuPanel({ onLogout, className, onClose }: UserMenuPanelPro
 
 function UserMenuContent({ onClose, onLogout }: { onClose: () => void; onLogout: () => void }) {
 	const { theme, toggleTheme } = useTheme();
-	const ThemeIcon = theme === "dark" ? Sun : MoonStars;
+	const ThemeIcon = theme === "dark" ? SunIcon : MoonStarsIcon;
 	const themeToggleLabel = theme === "dark" ? "Switch to light mode" : "Switch to dark mode";
 
 	function switchTheme() {
@@ -86,15 +89,15 @@ function UserMenuContent({ onClose, onLogout }: { onClose: () => void; onLogout:
 	return (
 		<div className={styles.userPopoverActions}>
 			<Link className={styles.userPopoverAction} to={pathForRoute("accountSettings")} onClick={onClose}>
-				<GearSix size={18} weight="bold" aria-hidden="true" />
+				<GearSixIcon size={18} weight="bold" aria-hidden="true" focusable="false" />
 				<span>Settings</span>
 			</Link>
 			<button type="button" className={styles.userPopoverAction} aria-label={themeToggleLabel} title={themeToggleLabel} aria-pressed={theme === "light"} onClick={switchTheme}>
-				<ThemeIcon size={18} weight="bold" aria-hidden="true" />
+				<ThemeIcon size={18} weight="bold" aria-hidden="true" focusable="false" />
 				<span>{theme === "dark" ? "Light mode" : "Dark mode"}</span>
 			</button>
 			<Link className={styles.userPopoverAction} to={pathForRoute("login")} onClick={onLogout}>
-				<SignOut size={18} weight="bold" aria-hidden="true" />
+				<SignOutIcon size={18} weight="bold" aria-hidden="true" focusable="false" />
 				<span>Logout</span>
 			</Link>
 		</div>

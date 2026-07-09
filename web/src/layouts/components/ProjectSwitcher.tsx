@@ -4,7 +4,8 @@ import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { appFeatures } from "@/shared/config/features";
 import { classNames } from "@/shared/utils/classNames";
 import { Select } from "@netstamp/ui";
-import { FolderOpen, FolderPlus } from "@phosphor-icons/react";
+import { FolderOpenIcon } from "@phosphor-icons/react/dist/csr/FolderOpen";
+import { FolderPlusIcon } from "@phosphor-icons/react/dist/csr/FolderPlus";
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import styles from "./ProjectSwitcher.module.css";
@@ -19,7 +20,7 @@ interface ProjectSwitcherProps {
 function createProjectOptionLabel() {
 	return (
 		<span className={styles.projectCreateOption}>
-			<FolderPlus size={17} weight="bold" aria-hidden="true" />
+			<FolderPlusIcon size={17} weight="bold" aria-hidden="true" focusable="false" />
 			<span>Create new project</span>
 		</span>
 	);
@@ -28,7 +29,7 @@ function createProjectOptionLabel() {
 function projectOptionLabel(name: string) {
 	return (
 		<span className={styles.projectOptionLabel}>
-			<FolderOpen className={styles.projectOptionIcon} size={18} weight="bold" aria-hidden="true" />
+			<FolderOpenIcon className={styles.projectOptionIcon} size={18} weight="bold" aria-hidden="true" focusable="false" />
 			<span className={styles.projectOptionName}>{name}</span>
 		</span>
 	);

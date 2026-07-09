@@ -12,17 +12,20 @@ Read the root `AGENTS.md`, `web/AGENTS.md`, and `design.md` before changing comp
 - Feature-only workflows stay in `web/src/features/<feature>/components` until at least two surfaces need the same pattern.
 - Export every public primitive from `src/index.ts`.
 - Add or update Storybook stories for public primitives, including light/dark examples and key states such as disabled, invalid, loading, selected, empty, keyboard focus, and dense usage.
+- Use Phosphor icons for common interface glyphs instead of local SVG icon components or text glyphs. Import each React icon from `@phosphor-icons/react/dist/csr/<IconName>` using the `*Icon` export so shared primitives do not pull the full icon package during development.
 
 ## Styling
 
 - `src/styles/tokens.css` is the only shared token source. Component CSS should consume `--ns-*` tokens and should not define local raw color systems.
 - Do not redefine the root `--ns-*` theme set inside a component. Add a semantic token to `tokens.css` instead when a reusable role is missing.
 - Use `rem` units on a `0.25rem` grid for spacing, sizing, control dimensions, and breakpoints. Use `px` only for borders, dividers, outlines, hairlines, visually-hidden helpers, and unavoidable asset or canvas coordinates.
+- Icons should inherit `currentColor` from tokenized component states. Avoid raw `color` props in TSX and prefer CSS classes or rem-compatible size values for new icon dimensions.
 - Core frames are square by default. Shadows, glows, gradients, and decorative glass effects are not part of the shared primitive system.
 
 ## Accessibility
 
 - Icon-only controls must require an accessible label at the type level when practical.
+- Decorative icons must use `aria-hidden="true"` and `focusable="false"`, and should not carry duplicate accessible text through `alt`.
 - Custom keyboard focus styling must use `:focus-visible` or `:has(:focus-visible)`. Do not use broad `:focus` or `:focus-within` rings that show keyboard focus styling on normal mouse interaction.
 - Do not use `outline: none` or `outline: 0` without an equivalent visible keyboard focus style.
 - Dialog, popover, select, combobox, menu, tab, and table interactions should use Radix or follow the corresponding WAI-ARIA keyboard pattern.

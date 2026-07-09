@@ -1,7 +1,8 @@
 import { chartModeLabel, chartRangeLabel, checkTypeLabel, type ElementTreeNode } from "@/features/status-pages/api/statusPageAdapters";
 import type { ApiPublicStatusElement } from "@/shared/api/types";
 import { Badge, Button } from "@netstamp/ui";
-import { PencilSimple, Trash } from "@phosphor-icons/react";
+import { PencilSimpleIcon } from "@phosphor-icons/react/dist/csr/PencilSimple";
+import { TrashIcon } from "@phosphor-icons/react/dist/csr/Trash";
 import styles from "./StatusElementTree.module.css";
 
 interface StatusElementTreeProps {
@@ -58,11 +59,11 @@ function ElementNode({ node, onEdit, onDelete }: ElementNodeProps) {
 				</div>
 				<div className={styles.nodeActions}>
 					<Button type="button" variant="ghost" size="sm" onClick={() => onEdit(node)}>
-						<PencilSimple aria-hidden="true" />
+						<PencilSimpleIcon aria-hidden="true" focusable="false" />
 						Edit
 					</Button>
 					<Button type="button" variant="ghost" size="sm" onClick={() => onDelete(node)}>
-						<Trash aria-hidden="true" />
+						<TrashIcon aria-hidden="true" focusable="false" />
 						Delete
 					</Button>
 				</div>

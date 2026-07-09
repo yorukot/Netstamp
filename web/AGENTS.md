@@ -23,6 +23,21 @@
 - Custom keyboard focus styling must use `:focus-visible` or `:has(:focus-visible)`. Pointer and mouse focus must not show unexpected keyboard focus rings or border changes, and `outline: none` or `outline: 0` needs an equivalent visible keyboard focus state.
 - Dialogs, menus, popovers, search overlays, and drawers should use `@netstamp/ui` Radix-based primitives or implement equivalent focus management, keyboard navigation, escape handling, and labelled semantics.
 
+## Icons
+
+- Use Phosphor for interface icons when the set contains a matching glyph. Do not add hand-written SVG icon components or text glyphs for common controls such as close, sort, copy, settings, menu, or social icons. Data visualizations, charts, topology maps, brand assets, and generated artwork may still use custom SVG or canvas.
+- In React client code for `web` and `packages/ui`, import each icon from its CSR subpath and use the `*Icon` export:
+
+```tsx
+import { BellSimpleIcon } from "@phosphor-icons/react/dist/csr/BellSimple";
+```
+
+- Do not import runtime icons from the main `@phosphor-icons/react` module and do not use wildcard icon imports. If a route needs the Phosphor icon type, import it as a type from `@phosphor-icons/react/dist/lib/types`.
+- Let icons inherit `currentColor` from the component state by default. Avoid raw `color` props in TSX; set color through tokenized CSS on the parent or icon class.
+- Prefer tokenized CSS dimensions or rem-compatible `size` strings for new icon usage. Keep icon sizing aligned with the 0.25rem grid unless the icon is inside an existing primitive with fixed visual metrics.
+- Decorative icons must use `aria-hidden="true"` and `focusable="false"` and should not set `alt`. Icon-only interactive controls still need an accessible label through the owning button or component API.
+- Docs Astro files should use registered Phosphor webcomponents from `docs/src/scripts/registerIcons.ts`. Add one explicit webcomponent import per new icon and set `focusable="false"` on decorative `<ph-*>` elements.
+
 ## Commands
 
 - `pnpm --filter @netstamp/web typecheck`: run TypeScript checks.

@@ -1,7 +1,9 @@
 import type { CheckDefinition } from "@/features/checks/data/checks";
 import { classNames } from "@/shared/utils/classNames";
 import { Badge, Button, DataTable, IconButton, type DataColumn } from "@netstamp/ui";
-import { Copy, PencilSimple, Trash } from "@phosphor-icons/react";
+import { CopyIcon } from "@phosphor-icons/react/dist/csr/Copy";
+import { PencilSimpleIcon } from "@phosphor-icons/react/dist/csr/PencilSimple";
+import { TrashIcon } from "@phosphor-icons/react/dist/csr/Trash";
 import { useMemo, type MouseEvent, type ReactNode } from "react";
 import styles from "./ChecksPage.module.css";
 
@@ -143,13 +145,13 @@ export function ChecksTable({
 			rowActions={check => (
 				<div className={styles.rowActions}>
 					<IconAction label={`Open ${check.name}`} onClick={() => onOpenCheck(check)} disabled={actionDisabled}>
-						<PencilSimple size={15} weight="bold" aria-hidden="true" focusable="false" />
+						<PencilSimpleIcon size={15} weight="bold" aria-hidden="true" focusable="false" />
 					</IconAction>
 					<IconAction label={`Duplicate ${check.name}`} onClick={() => onDuplicateCheck(check)} disabled={actionDisabled}>
-						<Copy size={15} weight="bold" aria-hidden="true" focusable="false" />
+						<CopyIcon size={15} weight="bold" aria-hidden="true" focusable="false" />
 					</IconAction>
 					<IconAction label={`Delete ${check.name}`} onClick={() => onDeleteCheck(check)} disabled={actionDisabled} danger>
-						<Trash size={15} weight="bold" aria-hidden="true" focusable="false" />
+						<TrashIcon size={15} weight="bold" aria-hidden="true" focusable="false" />
 					</IconAction>
 				</div>
 			)}

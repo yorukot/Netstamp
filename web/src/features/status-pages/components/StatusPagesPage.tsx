@@ -16,7 +16,8 @@ import { useConfirm } from "@/shared/components/confirmContext";
 import { pushErrorToast, pushToast } from "@/shared/toast/toastStore";
 import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
 import { ActionRow, Badge, Button, DataTable, LoadingState, Panel, type DataColumn } from "@netstamp/ui";
-import { Plus, Trash } from "@phosphor-icons/react";
+import { PlusIcon } from "@phosphor-icons/react/dist/csr/Plus";
+import { TrashIcon } from "@phosphor-icons/react/dist/csr/Trash";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { StatusElementEditorDrawer } from "./StatusElementEditorDrawer";
@@ -246,11 +247,11 @@ export function StatusPagesPage() {
 									</a>
 								</Button>
 								<Button type="button" variant="outline" size="sm" onClick={() => setElementEditor({ mode: "create" })}>
-									<Plus aria-hidden="true" />
+									<PlusIcon aria-hidden="true" focusable="false" />
 									Add Element
 								</Button>
 								<Button type="button" variant="danger" size="sm" onClick={() => deleteSelectedPage(selectedPage)}>
-									<Trash aria-hidden="true" />
+									<TrashIcon aria-hidden="true" focusable="false" />
 									Delete Page
 								</Button>
 							</ActionRow>

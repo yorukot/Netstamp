@@ -3,7 +3,8 @@ import type { AssignmentSelectOption, InsightRefreshInterval, InsightRelativeRan
 import { classNames } from "@/shared/utils/classNames";
 import { relativeTimeOptions, relativeTimeRangeDurations } from "@/shared/utils/timeRanges";
 import { Button, PopoverAnchor, PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger, SearchableSelect, SelectField, TextField, SegmentedControl as UiSegmentedControl } from "@netstamp/ui";
-import { CaretDown, X } from "@phosphor-icons/react";
+import { CaretDownIcon } from "@phosphor-icons/react/dist/csr/CaretDown";
+import { XIcon } from "@phosphor-icons/react/dist/csr/X";
 import { useId, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from "react";
 import styles from "./InsightControls.module.css";
 
@@ -264,7 +265,7 @@ export function AssignmentMultiSelect({
 										clearValue(option.value);
 									}}
 								>
-									<X className={styles.tokenIcon} size={12} weight="bold" aria-hidden="true" focusable="false" />
+									<XIcon className={styles.tokenIcon} size={12} weight="bold" aria-hidden="true" focusable="false" />
 								</button>
 							</span>
 						))}
@@ -424,7 +425,7 @@ export function InsightTimeControl({
 					<PopoverTrigger asChild>
 						<button id={timeButtonId} type="button" className={styles.timeTrigger} aria-controls={`${timeButtonId}-panel`}>
 							<span>{displayInsightTimeRange(timeMode, timeRange, timeWindow)}</span>
-							<CaretDown className={styles.controlIcon} size={18} weight="bold" aria-hidden="true" focusable="false" />
+							<CaretDownIcon className={styles.controlIcon} size={18} weight="bold" aria-hidden="true" focusable="false" />
 						</button>
 					</PopoverTrigger>
 					<Button type="button" variant="outline" size="sm" className={styles.refreshButton} onClick={onRefresh}>

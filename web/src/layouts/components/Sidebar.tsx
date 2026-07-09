@@ -6,7 +6,10 @@ import { EditorDrawer } from "@/shared/components/EditorDrawer";
 import { classNames } from "@/shared/utils/classNames";
 import netstampLogo from "@netstamp/brand/assets/netstamp-logo-light.svg";
 import netstampMark from "@netstamp/brand/assets/netstamp-mark-light.svg";
-import { CaretLeft, CaretRight, List, X } from "@phosphor-icons/react";
+import { CaretLeftIcon } from "@phosphor-icons/react/dist/csr/CaretLeft";
+import { CaretRightIcon } from "@phosphor-icons/react/dist/csr/CaretRight";
+import { ListIcon } from "@phosphor-icons/react/dist/csr/List";
+import { XIcon } from "@phosphor-icons/react/dist/csr/X";
 import { useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { ProjectSwitcher } from "./ProjectSwitcher";
@@ -23,7 +26,7 @@ interface SidebarProps {
 export function Sidebar({ collapsed, user, onToggleCollapsed, onLogout }: SidebarProps) {
 	const { projectRef } = useCurrentProject();
 	const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-	const MobileMenuIcon = mobileMenuOpen ? X : List;
+	const MobileMenuIcon = mobileMenuOpen ? XIcon : ListIcon;
 	const visibleSidebarItems = sidebarItems.filter(item => !item.systemAdminOnly || user.isSystemAdmin);
 
 	function closeMobileMenu() {
@@ -39,11 +42,11 @@ export function Sidebar({ collapsed, user, onToggleCollapsed, onLogout }: Sideba
 						<img className={classNames(styles.brandLogo, styles.brandLogoMark)} src={netstampMark} alt="" aria-hidden="true" />
 					</Link>
 					<button type="button" className={classNames(styles.brandToggle, styles.brandToggleExpanded)} aria-label="Collapse sidebar" onClick={onToggleCollapsed}>
-						<CaretLeft size={17} weight="bold" aria-hidden="true" />
+						<CaretLeftIcon size={17} weight="bold" aria-hidden="true" focusable="false" />
 					</button>
 					<button type="button" className={classNames(styles.brandToggle, styles.brandToggleCollapsed)} aria-label="Expand sidebar" onClick={onToggleCollapsed}>
 						<img className={classNames(styles.brandLogo, styles.brandLogoMark)} src={netstampMark} alt="" aria-hidden="true" />
-						<CaretRight className={styles.brandToggleArrow} size={18} weight="bold" aria-hidden="true" />
+						<CaretRightIcon className={styles.brandToggleArrow} size={18} weight="bold" aria-hidden="true" focusable="false" />
 					</button>
 					<button
 						type="button"
@@ -52,7 +55,7 @@ export function Sidebar({ collapsed, user, onToggleCollapsed, onLogout }: Sideba
 						aria-expanded={mobileMenuOpen}
 						onClick={() => setMobileMenuOpen(open => !open)}
 					>
-						<MobileMenuIcon size={20} weight="bold" aria-hidden="true" />
+						<MobileMenuIcon size={20} weight="bold" aria-hidden="true" focusable="false" />
 					</button>
 				</div>
 
@@ -71,7 +74,7 @@ export function Sidebar({ collapsed, user, onToggleCollapsed, onLogout }: Sideba
 								title={item.label}
 								onClick={closeMobileMenu}
 							>
-								<ItemIcon className={styles.navIcon} size={18} weight="bold" aria-hidden="true" />
+								<ItemIcon className={styles.navIcon} size={18} weight="bold" aria-hidden="true" focusable="false" />
 								<span className={styles.navLabel}>{item.label}</span>
 							</NavLink>
 						);
@@ -103,7 +106,7 @@ export function Sidebar({ collapsed, user, onToggleCollapsed, onLogout }: Sideba
 								className={({ isActive }) => classNames(styles.mobileDrawerNavLink, isActive && styles.active)}
 								onClick={closeMobileMenu}
 							>
-								<ItemIcon className={styles.navIcon} size={20} weight="bold" aria-hidden="true" />
+								<ItemIcon className={styles.navIcon} size={20} weight="bold" aria-hidden="true" focusable="false" />
 								<span>{item.label}</span>
 							</NavLink>
 						);

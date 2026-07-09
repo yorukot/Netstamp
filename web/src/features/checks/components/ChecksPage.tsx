@@ -38,7 +38,7 @@ import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { pushErrorToast, pushToast } from "@/shared/toast/toastStore";
 import { classNames } from "@/shared/utils/classNames";
 import { ActionRow, Badge, Button, Checkbox, FieldLabel, FilterGrid, IconButton, SelectField, TextAreaField, TextField } from "@netstamp/ui";
-import { Trash } from "@phosphor-icons/react";
+import { TrashIcon } from "@phosphor-icons/react/dist/csr/Trash";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
@@ -671,7 +671,7 @@ export function ChecksPage() {
 															danger
 															onClick={() => removeSelectorRule(rule.id)}
 														>
-															<Trash size={15} weight="bold" aria-hidden="true" focusable="false" />
+															<TrashIcon size={15} weight="bold" aria-hidden="true" focusable="false" />
 														</IconButton>
 													</div>
 												);

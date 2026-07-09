@@ -1,4 +1,4 @@
-import { X } from "@phosphor-icons/react";
+import { XIcon } from "@phosphor-icons/react/dist/csr/X";
 import type { ComponentPropsWithoutRef } from "react";
 import styles from "./CloseButton.module.css";
 
@@ -11,7 +11,7 @@ export function CloseButton({ ariaLabel = "Close panel", className, title, type 
 
 	return (
 		<button type={type} className={classes} aria-label={ariaLabel} title={title ?? ariaLabel} {...props}>
-			<X size={16} weight="bold" aria-hidden="true" focusable="false" />
+			<XIcon size={16} weight="bold" aria-hidden="true" focusable="false" />
 		</button>
 	);
 }

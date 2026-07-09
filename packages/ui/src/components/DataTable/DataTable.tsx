@@ -1,4 +1,6 @@
-import { ArrowsDownUpIcon, SortAscendingIcon, SortDescendingIcon } from "@phosphor-icons/react";
+import { ArrowsDownUpIcon } from "@phosphor-icons/react/dist/csr/ArrowsDownUp";
+import { SortAscendingIcon } from "@phosphor-icons/react/dist/csr/SortAscending";
+import { SortDescendingIcon } from "@phosphor-icons/react/dist/csr/SortDescending";
 import type { CSSProperties, KeyboardEvent, MouseEvent, ReactNode } from "react";
 import { useMemo, useState } from "react";
 import { Checkbox } from "../Field/Field";

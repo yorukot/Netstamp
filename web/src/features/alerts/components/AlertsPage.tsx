@@ -18,7 +18,11 @@ import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { pushErrorToast, pushToast } from "@/shared/toast/toastStore";
 import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
 import { Badge, Button, DataTable, EmptyState, KeyValueRow, LoadingState, Panel, SelectableRow, SelectField, Tabs, TextAreaField, TextField, type BadgeTone, type DataColumn } from "@netstamp/ui";
-import { DiscordLogo, EnvelopeSimple, SlackLogo, TelegramLogo, WebhooksLogo } from "@phosphor-icons/react";
+import { DiscordLogoIcon } from "@phosphor-icons/react/dist/csr/DiscordLogo";
+import { EnvelopeSimpleIcon } from "@phosphor-icons/react/dist/csr/EnvelopeSimple";
+import { SlackLogoIcon } from "@phosphor-icons/react/dist/csr/SlackLogo";
+import { TelegramLogoIcon } from "@phosphor-icons/react/dist/csr/TelegramLogo";
+import { WebhooksLogoIcon } from "@phosphor-icons/react/dist/csr/WebhooksLogo";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState, type FormEvent } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
@@ -93,16 +97,16 @@ import styles from "./AlertsPage.module.css";
 function NotificationTypeIcon({ type }: { type: NotificationType }) {
 	switch (type) {
 		case "slack":
-			return <SlackLogo className={styles.notificationTypeIcon} size={28} weight="bold" aria-hidden="true" />;
+			return <SlackLogoIcon className={styles.notificationTypeIcon} size={28} weight="bold" aria-hidden="true" focusable="false" />;
 		case "discord":
-			return <DiscordLogo className={styles.notificationTypeIcon} size={28} weight="bold" aria-hidden="true" />;
+			return <DiscordLogoIcon className={styles.notificationTypeIcon} size={28} weight="bold" aria-hidden="true" focusable="false" />;
 		case "telegram":
-			return <TelegramLogo className={styles.notificationTypeIcon} size={28} weight="bold" aria-hidden="true" />;
+			return <TelegramLogoIcon className={styles.notificationTypeIcon} size={28} weight="bold" aria-hidden="true" focusable="false" />;
 		case "email":
-			return <EnvelopeSimple className={styles.notificationTypeIcon} size={28} weight="bold" aria-hidden="true" />;
+			return <EnvelopeSimpleIcon className={styles.notificationTypeIcon} size={28} weight="bold" aria-hidden="true" focusable="false" />;
 		case "webhook":
 		default:
-			return <WebhooksLogo className={styles.notificationTypeIcon} size={28} weight="bold" aria-hidden="true" />;
+			return <WebhooksLogoIcon className={styles.notificationTypeIcon} size={28} weight="bold" aria-hidden="true" focusable="false" />;
 	}
 }
 

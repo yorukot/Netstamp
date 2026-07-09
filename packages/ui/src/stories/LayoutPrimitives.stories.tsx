@@ -1,3 +1,4 @@
+import { XIcon } from "@phosphor-icons/react/dist/csr/X";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { ActionRow, BodyCopy, Button, FilterGrid, IconButton, Input, LoadingState, Select } from "../index";
 
@@ -28,7 +29,7 @@ export const Overview: Story = {
 				<Button>Save</Button>
 				<Button variant="ghost">Cancel</Button>
 				<IconButton aria-label="Delete" danger>
-					<span aria-hidden="true">x</span>
+					<XIcon size={15} weight="bold" aria-hidden="true" focusable="false" />
 				</IconButton>
 			</ActionRow>
 			<LoadingState size="compact" label="Loading panel" detail="Fetching the latest probe data." />

@@ -1,3 +1,4 @@
+import { XIcon } from "@phosphor-icons/react/dist/csr/X";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
 import { Button } from "../Button/Button";
@@ -19,14 +20,6 @@ export interface DrawerProps extends Omit<ComponentPropsWithoutRef<typeof Dialog
 	onOpenChange: (open: boolean) => void;
 }
 
-function CloseIcon() {
-	return (
-		<svg className={styles.closeIcon} viewBox="0 0 16 16" aria-hidden="true" focusable="false">
-			<path d="M3.76 3.05 8 7.29l4.24-4.24.71.71L8.71 8l4.24 4.24-.71.71L8 8.71l-4.24 4.24-.71-.71L7.29 8 3.05 3.76z" fill="currentColor" />
-		</svg>
-	);
-}
-
 export function Drawer({ open, title, description, actions, closeLabel = "Close", children, side = "right", size = "md", className, contentClassName, onOpenChange, ...props }: DrawerProps) {
 	return (
 		<DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
@@ -42,7 +35,7 @@ export function Drawer({ open, title, description, actions, closeLabel = "Close"
 							{actions}
 							<DialogPrimitive.Close asChild>
 								<Button className={styles.closeButton} type="button" variant="outline" size="sm" aria-label={closeLabel} title={closeLabel}>
-									<CloseIcon />
+									<XIcon className={styles.closeIcon} size={16} weight="bold" aria-hidden="true" focusable="false" />
 								</Button>
 							</DialogPrimitive.Close>
 						</div>
