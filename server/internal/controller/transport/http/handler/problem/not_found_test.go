@@ -37,7 +37,7 @@ func TestNotFoundMapsDomainErrorsToSpecificDetails(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			err, ok := NotFound(test.err)
+			ok, err := NotFound(test.err)
 			if !ok {
 				t.Fatal("expected not-found mapping")
 			}
@@ -57,7 +57,7 @@ func TestNotFoundMapsDomainErrorsToSpecificDetails(t *testing.T) {
 }
 
 func TestNotFoundIgnoresUnmappedErrors(t *testing.T) {
-	err, ok := NotFound(errors.New("other failure"))
+	ok, err := NotFound(errors.New("other failure"))
 	if ok {
 		t.Fatalf("expected no mapping, got %v", err)
 	}

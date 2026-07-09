@@ -21,7 +21,7 @@ func currentUserID(ctx context.Context) (string, error) {
 }
 
 func mapPublicStatusError(err error, fallback string) error {
-	if mapped, ok := handlerproblem.NotFound(err); ok {
+	if ok, mapped := handlerproblem.NotFound(err); ok {
 		return mapped
 	}
 

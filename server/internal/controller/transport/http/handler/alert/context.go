@@ -34,7 +34,7 @@ func writeJSONOrProblem(w http.ResponseWriter, r *http.Request, status int, body
 }
 
 func mapAlertError(err error, fallback string) error {
-	if mapped, ok := handlerproblem.NotFound(err); ok {
+	if ok, mapped := handlerproblem.NotFound(err); ok {
 		return mapped
 	}
 
