@@ -1,29 +1,54 @@
 .spinner {
+	position: relative;
 	display: inline-grid;
 	place-items: center;
-	width: var(--ns-spinner-size);
-	height: var(--ns-spinner-size);
+	width: var(--ns-spinner-track-width);
+	height: var(--ns-spinner-track-height);
 	color: var(--ns-primary);
 }
 
 .sm {
-	--ns-spinner-size: 1rem;
+	--ns-spinner-track-width: 3rem;
+	--ns-spinner-track-height: 1rem;
+	--ns-spinner-thumb-width: 0.75rem;
+	--ns-spinner-padding: 0.25rem;
 }
 
 .md {
-	--ns-spinner-size: 1.5rem;
+	--ns-spinner-track-width: 4rem;
+	--ns-spinner-track-height: 1.25rem;
+	--ns-spinner-thumb-width: 1rem;
+	--ns-spinner-padding: 0.25rem;
 }
 
 .lg {
-	--ns-spinner-size: 2rem;
+	--ns-spinner-track-width: 5rem;
+	--ns-spinner-track-height: 1.5rem;
+	--ns-spinner-thumb-width: 1.25rem;
+	--ns-spinner-padding: 0.25rem;
 }
 
 .mark {
+	--ns-spinner-travel: calc(var(--ns-spinner-track-width) - var(--ns-spinner-thumb-width) - var(--ns-spinner-padding) - var(--ns-spinner-padding));
+
+	position: relative;
+	display: block;
+	box-sizing: border-box;
 	width: 100%;
 	height: 100%;
-	border: 2px solid color-mix(in srgb, currentcolor 24%, transparent);
-	border-top-color: currentcolor;
-	animation: spinnerRotate 760ms linear infinite;
+	overflow: hidden;
+	background: color-mix(in srgb, var(--ns-primary) 18%, var(--ns-surface-raised));
+}
+
+.mark::before {
+	position: absolute;
+	top: var(--ns-spinner-padding);
+	left: var(--ns-spinner-padding);
+	width: var(--ns-spinner-thumb-width);
+	height: calc(100% - var(--ns-spinner-padding) - var(--ns-spinner-padding));
+	background: currentcolor;
+	animation: spinnerPush 1000ms linear infinite;
+	content: "";
 }
 
 .label {
@@ -36,15 +61,19 @@
 	white-space: nowrap;
 }
 
-@keyframes spinnerRotate {
-	to {
-		transform: rotate(360deg);
+@keyframes spinnerPush {
+	0%,
+	100% {
+		transform: translate3d(0, 0, 0);
+	}
+
+	50% {
+		transform: translate3d(var(--ns-spinner-travel), 0, 0);
 	}
 }
 
 @media (prefers-reduced-motion: reduce) {
-	.mark {
+	.mark::before {
 		animation: none;
-		border-color: currentcolor;
 	}
 }
