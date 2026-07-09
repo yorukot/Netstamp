@@ -267,6 +267,25 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 		deleteProbeMutation.mutate(activeProbe.id, { onSuccess: () => onDeleted?.() });
 	}
 
+	async function rotateSecret() {
+		const confirmed = await confirm({
+			title: `Rotate secret for ${activeProbe.name}?`,
+			message: "This invalidates the current probe credential. Keep the new secret and update the probe service before closing this panel.",
+			confirmLabel: "Rotate secret",
+			tone: "danger"
+		});
+
+		if (!confirmed) {
+			return;
+		}
+
+		rotateSecretMutation.mutate(activeProbe.id, {
+			onSuccess: data => {
+				setRotatedSecret(data.secret);
+			}
+		});
+	}
+
 	async function saveProbe() {
 		if (!projectRef || !activeApiProbe || !probeName.trim()) {
 			return;
@@ -400,17 +419,7 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 				>
 					{updateProbeMutation.isPending || savingProbe ? "Saving" : "Save probe"}
 				</Button>
-				<Button
-					variant="outline"
-					disabled={!projectRef || rotateSecretMutation.isPending}
-					onClick={() =>
-						rotateSecretMutation.mutate(activeProbe.id, {
-							onSuccess: data => {
-								setRotatedSecret(data.secret);
-							}
-						})
-					}
-				>
+				<Button variant="outline" disabled={!projectRef || rotateSecretMutation.isPending} onClick={() => void rotateSecret()}>
 					{rotateSecretMutation.isPending ? "Rotating" : "Rotate secret"}
 				</Button>
 				<SegmentedControl
