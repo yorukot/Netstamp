@@ -123,7 +123,6 @@ export function ProbeList({ probes, selectedId, search, onSearchChange, onSelect
 				ariaLabel="Probes"
 				columns={probeColumns}
 				rows={probes}
-				density="compact"
 				minWidth="62rem"
 				maxHeight="min(28rem, 46svh)"
 				defaultSort={{ key: "lastHeartbeat", direction: "desc" }}
