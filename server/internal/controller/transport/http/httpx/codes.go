@@ -8,6 +8,7 @@ const (
 const (
 	CodeAuthMissingSession                = "AUTH_MISSING_SESSION"
 	CodeAuthInvalidSession                = "AUTH_INVALID_SESSION"
+	CodeAuthInvalidCSRF                   = "AUTH_INVALID_CSRF"
 	CodeAuthInvalidCredentials            = "AUTH_INVALID_CREDENTIALS" // #nosec G101 -- public problem code, not credential material.
 	CodeAuthEmailVerificationRequired     = "AUTH_EMAIL_VERIFICATION_REQUIRED"
 	CodeAuthRegistrationDisabled          = "AUTH_REGISTRATION_DISABLED"

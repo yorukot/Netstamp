@@ -863,6 +863,52 @@
 				]
 			}
 		},
+		"/auth/csrf": {
+			"get": {
+				"operationId": "getCSRFToken",
+				"summary": "Get CSRF token",
+				"description": "Rotate and return the synchronizer CSRF token for the current authenticated session.",
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/CSRFTokenResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Auth"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
 		"/auth/email-verifications": {
 			"post": {
 				"operationId": "createEmailVerification",
@@ -1092,7 +1138,7 @@
 			"post": {
 				"operationId": "logoutUser",
 				"summary": "Logout user",
-				"description": "Clear the HTTP-only session cookie.",
+				"description": "Revoke the server-side session and clear the HTTP-only session cookie.",
 				"parameters": [],
 				"responses": {
 					"204": {
@@ -1114,7 +1160,7 @@
 			"get": {
 				"operationId": "getCurrentUser",
 				"summary": "Get current user",
-				"description": "Return the user identity embedded in a valid session cookie.",
+				"description": "Return the user identity associated with a valid session cookie.",
 				"parameters": [],
 				"responses": {
 					"200": {
@@ -9125,6 +9171,22 @@
 					}
 				]
 			},
+			"CSRFTokenResponse": {
+				"type": "object",
+				"required": ["csrfToken"],
+				"properties": {
+					"csrfToken": {
+						"type": "string",
+						"format": "password",
+						"description": "One-time readable CSRF token to send in X-CSRF-Token for state-changing session-authenticated requests."
+					}
+				},
+				"examples": [
+					{
+						"csrfToken": "YNo5Uoj64VqK5jCht8h17GO8sHJIY0ScDNef7X99w7k"
+					}
+				]
+			},
 			"ChangeCurrentUserEmailRequest": {
 				"type": "object",
 				"required": ["newEmail", "password"],
@@ -10951,6 +11013,7 @@
 							"READ_ONLY",
 							"AUTH_MISSING_SESSION",
 							"AUTH_INVALID_SESSION",
+							"AUTH_INVALID_CSRF",
 							"AUTH_INVALID_CREDENTIALS",
 							"AUTH_EMAIL_VERIFICATION_REQUIRED",
 							"AUTH_REGISTRATION_DISABLED",
@@ -14233,7 +14296,7 @@
 			"SessionCookieAuth": {
 				"type": "apiKey",
 				"in": "cookie",
-				"name": "netstamp_session"
+				"name": "__Host-netstamp_session"
 			},
 			"ProbeAuth": {
 				"type": "apiKey",

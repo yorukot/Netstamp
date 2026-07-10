@@ -12,12 +12,11 @@ import (
 )
 
 func currentUserID(ctx context.Context) (string, error) {
-	claims, ok := httpmiddleware.AccessTokenClaimsFromContext(ctx)
-	if !ok || claims.Subject == "" {
+	userID, ok := httpmiddleware.CurrentUserIDFromContext(ctx)
+	if !ok {
 		return "", httpx.UnauthorizedCode(httpx.CodeAuthMissingSession, "missing auth cookie")
 	}
-
-	return claims.Subject, nil
+	return userID, nil
 }
 
 func mapUserError(err error, fallback string) error {

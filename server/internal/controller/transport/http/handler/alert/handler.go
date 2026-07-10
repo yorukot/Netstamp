@@ -12,7 +12,8 @@ import (
 
 type Handler struct {
 	service      *appalert.Service
-	verifier     appauth.TokenVerifier
+	verifier     appauth.SessionManager
+	cookieName   string
 	smtpSettings SMTPStatusProvider
 }
 
@@ -20,8 +21,8 @@ type SMTPStatusProvider interface {
 	SMTPConfigured(ctx context.Context) bool
 }
 
-func NewHandler(service *appalert.Service, verifier appauth.TokenVerifier, smtpSettings SMTPStatusProvider) *Handler {
-	return &Handler{service: service, verifier: verifier, smtpSettings: smtpSettings}
+func NewHandler(service *appalert.Service, verifier appauth.SessionManager, cookieName string, smtpSettings SMTPStatusProvider) *Handler {
+	return &Handler{service: service, verifier: verifier, cookieName: cookieName, smtpSettings: smtpSettings}
 }
 
 func (h *Handler) emailSMTPConfigured(ctx context.Context) bool {
@@ -30,7 +31,7 @@ func (h *Handler) emailSMTPConfigured(ctx context.Context) bool {
 
 func (h *Handler) RegisterRoutes(api chi.Router) {
 	api.Group(func(r chi.Router) {
-		r.Use(httpmiddleware.RequireAuth(h.verifier))
+		r.Use(httpmiddleware.RequireAuth(h.verifier, h.cookieName))
 
 		r.Get("/projects/{ref}/alerts/rules", h.handleListRules)
 		r.Post("/projects/{ref}/alerts/rules", h.handleCreateRule)

@@ -14,11 +14,11 @@ import (
 )
 
 func currentUserID(r *http.Request) (string, error) {
-	claims, ok := httpmiddleware.AccessTokenClaimsFromContext(r.Context())
-	if !ok || claims.Subject == "" {
+	userID, ok := httpmiddleware.CurrentUserIDFromContext(r.Context())
+	if !ok {
 		return "", httpx.UnauthorizedCode(httpx.CodeAuthMissingSession, "missing auth cookie")
 	}
-	return claims.Subject, nil
+	return userID, nil
 }
 
 func projectInput(r *http.Request, userID string) appalert.ProjectInput {

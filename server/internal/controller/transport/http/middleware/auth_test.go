@@ -44,11 +44,11 @@ func TestRequireAuthIgnoresBearerHeader(t *testing.T) {
 	}
 }
 
-func TestRequireAuthRejectsInvalidAccessToken(t *testing.T) {
-	verifier := &recordingTokenVerifier{err: appauth.ErrAccessTokenInvalid}
+func TestRequireAuthRejectsInvalidSession(t *testing.T) {
+	verifier := &recordingTokenVerifier{err: appauth.ErrSessionInvalid}
 	router := registerClaimsRoute(t, verifier)
 
-	res := performAuthTestRequest(router, http.MethodGet, "/me", "Cookie", SessionCookieName+"=bad-token")
+	res := performAuthTestRequest(router, http.MethodGet, "/me", "Cookie", LocalSessionCookieName+"=bad-token")
 
 	if res.Code != http.StatusUnauthorized {
 		t.Fatalf("expected status 401, got %d", res.Code)
@@ -60,14 +60,14 @@ func TestRequireAuthRejectsInvalidAccessToken(t *testing.T) {
 
 func TestRequireAuthStoresClaimsInContext(t *testing.T) {
 	verifier := &recordingTokenVerifier{
-		claims: identity.AccessTokenClaims{
-			Subject: "user-1",
-			Email:   "user@example.com",
+		claims: identity.SessionClaims{
+			SessionID: "session-1",
+			UserID:    "user-1",
 		},
 	}
 	router := registerClaimsRoute(t, verifier)
 
-	res := performAuthTestRequest(router, http.MethodGet, "/me", "Cookie", SessionCookieName+"=good-token")
+	res := performAuthTestRequest(router, http.MethodGet, "/me", "Cookie", LocalSessionCookieName+"=good-token")
 
 	if res.Code != http.StatusOK {
 		t.Fatalf("expected status 200, got %d", res.Code)
@@ -77,24 +77,24 @@ func TestRequireAuthStoresClaimsInContext(t *testing.T) {
 	}
 }
 
-func registerClaimsRoute(t *testing.T, verifier appauth.TokenVerifier) http.Handler {
+func registerClaimsRoute(t *testing.T, verifier appauth.SessionManager) http.Handler {
 	t.Helper()
 
 	router := chi.NewRouter()
-	router.With(RequireAuth(verifier)).Get("/me", func(w http.ResponseWriter, r *http.Request) {
-		claims, ok := AccessTokenClaimsFromContext(r.Context())
+	router.With(RequireAuth(verifier, LocalSessionCookieName)).Get("/me", func(w http.ResponseWriter, r *http.Request) {
+		claims, ok := SessionClaimsFromContext(r.Context())
 		if !ok {
 			http.Error(w, "missing claims", http.StatusInternalServerError)
 			return
 		}
-		if claims.Subject == "" || claims.Email == "" {
+		if claims.SessionID == "" || claims.UserID == "" {
 			http.Error(w, "empty claims", http.StatusInternalServerError)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(claimsRouteBody{
-			Subject: claims.Subject,
-			Email:   claims.Email,
+			SessionID: claims.SessionID,
+			UserID:    claims.UserID,
 		})
 	})
 	return router
@@ -111,20 +111,40 @@ func performAuthTestRequest(router http.Handler, method, path string, headers ..
 }
 
 type claimsRouteBody struct {
-	Subject string `json:"subject"`
-	Email   string `json:"email"`
+	SessionID string `json:"sessionId"`
+	UserID    string `json:"userId"`
 }
 
 type recordingTokenVerifier struct {
-	claims   identity.AccessTokenClaims
+	claims   identity.SessionClaims
 	err      error
 	gotToken string
 }
 
-func (v *recordingTokenVerifier) VerifyAccessToken(_ context.Context, value string) (identity.AccessTokenClaims, error) {
+func (v *recordingTokenVerifier) VerifySession(_ context.Context, value string) (identity.SessionClaims, error) {
 	v.gotToken = value
 	if v.err != nil {
-		return identity.AccessTokenClaims{}, v.err
+		return identity.SessionClaims{}, v.err
 	}
 	return v.claims, nil
+}
+
+func (v *recordingTokenVerifier) CreateSession(context.Context, appauth.CreateSessionInput) (identity.CreatedSession, error) {
+	return identity.CreatedSession{}, nil
+}
+
+func (v *recordingTokenVerifier) CreateCSRFToken(context.Context, string) (string, error) {
+	return "", nil
+}
+
+func (v *recordingTokenVerifier) VerifyCSRFToken(context.Context, string, string) error {
+	return nil
+}
+
+func (v *recordingTokenVerifier) RevokeSession(context.Context, string, string) error {
+	return nil
+}
+
+func (v *recordingTokenVerifier) RevokeUserSessions(context.Context, string, string) error {
+	return nil
 }

@@ -50,7 +50,7 @@ model Selector {
 model SessionCookieAuth {
 	type: AuthType.apiKey;
 	in: ApiKeyLocation.cookie;
-	name: "netstamp_session";
+	name: "__Host-netstamp_session";
 }
 
 @doc("Probe runtime credential header. Send the full value as Authorization: Probe <secret>.")
@@ -75,6 +75,7 @@ alias ErrorCode =
 	"READ_ONLY" |
 	"AUTH_MISSING_SESSION" |
 	"AUTH_INVALID_SESSION" |
+	"AUTH_INVALID_CSRF" |
 	"AUTH_INVALID_CREDENTIALS" |
 	"AUTH_EMAIL_VERIFICATION_REQUIRED" |
 	"AUTH_REGISTRATION_DISABLED" |

@@ -19,6 +19,10 @@ type Repository interface {
 	CreateSystemSettingAuditEvent(ctx context.Context, key, action string, updatedByUserID *string) error
 }
 
+type SessionRepository interface {
+	RevokeUserSessions(ctx context.Context, userID, reason string) error
+}
+
 type SecretCipher interface {
 	Encrypt(plaintext string) (ciphertext, nonce []byte, err error)
 	Decrypt(ciphertext, nonce []byte) (string, error)

@@ -994,6 +994,19 @@ type AssignmentRefreshJob struct {
 	UpdatedAt     time.Time                   `json:"updated_at"`
 }
 
+type AuthSession struct {
+	ID                uuid.UUID  `json:"id"`
+	UserID            uuid.UUID  `json:"user_id"`
+	TokenHash         []byte     `json:"token_hash"`
+	CsrfTokenHash     []byte     `json:"csrf_token_hash"`
+	CreatedAt         time.Time  `json:"created_at"`
+	LastUsedAt        time.Time  `json:"last_used_at"`
+	IdleExpiresAt     time.Time  `json:"idle_expires_at"`
+	AbsoluteExpiresAt time.Time  `json:"absolute_expires_at"`
+	RevokedAt         *time.Time `json:"revoked_at"`
+	RevokedReason     *string    `json:"revoked_reason"`
+}
+
 type Check struct {
 	ID              uuid.UUID  `json:"id"`
 	InternalID      int64      `json:"internal_id"`

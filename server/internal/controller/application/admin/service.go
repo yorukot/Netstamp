@@ -11,6 +11,7 @@ import (
 
 type Service struct {
 	repo     Repository
+	sessions SessionRepository
 	cipher   SecretCipher
 	hasher   PasswordHasher
 	defaults Defaults
@@ -32,6 +33,10 @@ func NewService(repo Repository, cipher SecretCipher, defaults Defaults, hashers
 		hasher = hashers[0]
 	}
 	return &Service{repo: repo, cipher: cipher, hasher: hasher, defaults: defaults}
+}
+
+func (s *Service) ConfigureSessions(repo SessionRepository) {
+	s.sessions = repo
 }
 
 func (s *Service) GetSettings(ctx context.Context, input GetSettingsInput) (Settings, error) {
@@ -75,6 +80,11 @@ func (s *Service) GrantSystemAdmin(ctx context.Context, input GrantSystemAdminIn
 	if err := s.repo.CreateSystemSettingAuditEvent(ctx, systemAdminAuditKey(admin), auditActionGrantSystemAdmin, &input.CurrentUserID); err != nil {
 		return SystemAdmin{}, err
 	}
+	if s.sessions != nil {
+		if err := s.sessions.RevokeUserSessions(ctx, admin.ID, "system_admin_granted"); err != nil {
+			return SystemAdmin{}, err
+		}
+	}
 
 	return admin, nil
 }
@@ -114,18 +124,25 @@ func (s *Service) UpdateManagedUser(ctx context.Context, input UpdateManagedUser
 
 func (s *Service) updateManagedUserAdmin(ctx context.Context, input UpdateManagedUserInput) (ManagedUser, bool, error) {
 	if *input.SystemAdmin {
-		user, err := s.repo.GrantSystemAdminByUserID(ctx, input.UserID)
-		if err != nil {
-			return ManagedUser{}, false, err
-		}
-		err = s.repo.CreateSystemSettingAuditEvent(ctx, managedUserAuditKey(user), auditActionGrantSystemAdmin, &input.CurrentUserID)
-		return user, true, err
+		user, err := s.grantManagedUserAdmin(ctx, input)
+		return user, err == nil, err
 	}
 
 	if err := s.revokeManagedUserAdmin(ctx, input); err != nil {
 		return ManagedUser{}, false, err
 	}
 	return ManagedUser{}, false, nil
+}
+
+func (s *Service) grantManagedUserAdmin(ctx context.Context, input UpdateManagedUserInput) (ManagedUser, error) {
+	user, err := s.repo.GrantSystemAdminByUserID(ctx, input.UserID)
+	if err != nil {
+		return ManagedUser{}, err
+	}
+	if err := s.repo.CreateSystemSettingAuditEvent(ctx, managedUserAuditKey(user), auditActionGrantSystemAdmin, &input.CurrentUserID); err != nil {
+		return ManagedUser{}, err
+	}
+	return user, s.revokeSessionsForUser(ctx, input.UserID, "system_admin_granted")
 }
 
 func (s *Service) revokeManagedUserAdmin(ctx context.Context, input UpdateManagedUserInput) error {
@@ -139,7 +156,17 @@ func (s *Service) revokeManagedUserAdmin(ctx context.Context, input UpdateManage
 	if err := validateSystemAdminRevokeResult(result); err != nil {
 		return err
 	}
-	return s.repo.CreateSystemSettingAuditEvent(ctx, "user:"+input.UserID, auditActionRevokeSystemAdmin, &input.CurrentUserID)
+	if err := s.repo.CreateSystemSettingAuditEvent(ctx, "user:"+input.UserID, auditActionRevokeSystemAdmin, &input.CurrentUserID); err != nil {
+		return err
+	}
+	return s.revokeSessionsForUser(ctx, input.UserID, "system_admin_revoked")
+}
+
+func (s *Service) revokeSessionsForUser(ctx context.Context, userID, reason string) error {
+	if s.sessions == nil {
+		return nil
+	}
+	return s.sessions.RevokeUserSessions(ctx, userID, reason)
 }
 
 func validateSystemAdminRevokeResult(result SystemAdminRevokeResult) error {
@@ -167,6 +194,11 @@ func (s *Service) updateManagedUserDisabled(ctx context.Context, input UpdateMan
 	action := managedUserDisabledAuditAction(*input.Disabled)
 	if err := s.repo.CreateSystemSettingAuditEvent(ctx, managedUserAuditKey(user), action, &input.CurrentUserID); err != nil {
 		return ManagedUser{}, err
+	}
+	if *input.Disabled && s.sessions != nil {
+		if err := s.sessions.RevokeUserSessions(ctx, input.UserID, "account_disabled"); err != nil {
+			return ManagedUser{}, err
+		}
 	}
 	return user, nil
 }
@@ -244,6 +276,11 @@ func (s *Service) SetManagedUserPassword(ctx context.Context, input SetManagedUs
 	if auditErr := s.repo.CreateSystemSettingAuditEvent(ctx, managedUserAuditKey(user), auditActionSetPassword, &input.CurrentUserID); auditErr != nil {
 		return ManagedUser{}, auditErr
 	}
+	if s.sessions != nil {
+		if err := s.sessions.RevokeUserSessions(ctx, input.UserID, "admin_password_set"); err != nil {
+			return ManagedUser{}, err
+		}
+	}
 	return user, nil
 }
 
@@ -274,7 +311,13 @@ func (s *Service) RevokeSystemAdmin(ctx context.Context, input RevokeSystemAdmin
 	}
 
 	admin := SystemAdmin{ID: input.UserID}
-	return s.repo.CreateSystemSettingAuditEvent(ctx, systemAdminAuditKey(admin), auditActionRevokeSystemAdmin, &input.CurrentUserID)
+	if err := s.repo.CreateSystemSettingAuditEvent(ctx, systemAdminAuditKey(admin), auditActionRevokeSystemAdmin, &input.CurrentUserID); err != nil {
+		return err
+	}
+	if s.sessions != nil {
+		return s.sessions.RevokeUserSessions(ctx, input.UserID, "system_admin_revoked")
+	}
+	return nil
 }
 
 func (s *Service) ExportData(ctx context.Context, input ExportDataInput) (DataExport, error) {

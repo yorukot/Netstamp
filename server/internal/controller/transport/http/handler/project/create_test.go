@@ -28,11 +28,11 @@ func TestCreateProjectReturnsConflictProblemForSlugConflict(t *testing.T) {
 		&projectHandlerEventRecorder{},
 	)
 	NewHandler(service, &projectHandlerTokenVerifier{
-		claims: identity.AccessTokenClaims{
-			Subject: projectHandlerTestUserID,
-			Email:   "user@example.com",
+		claims: identity.SessionClaims{
+			SessionID: "session-1",
+			UserID:    projectHandlerTestUserID,
 		},
-	}).RegisterRoutes(router)
+	}, "netstamp_session").RegisterRoutes(router)
 
 	req := httptest.NewRequest(http.MethodPost, "/projects", strings.NewReader(`{"name":"Project","slug":"project"}`))
 	req.Header.Set("Content-Type", "application/json")
@@ -97,14 +97,34 @@ func TestMapProjectErrorUsesSpecificNotFoundDetails(t *testing.T) {
 }
 
 type projectHandlerTokenVerifier struct {
-	claims identity.AccessTokenClaims
+	claims identity.SessionClaims
 }
 
-func (v *projectHandlerTokenVerifier) VerifyAccessToken(context.Context, string) (identity.AccessTokenClaims, error) {
+func (v *projectHandlerTokenVerifier) VerifySession(context.Context, string) (identity.SessionClaims, error) {
 	return v.claims, nil
 }
 
-var _ appauth.TokenVerifier = (*projectHandlerTokenVerifier)(nil)
+func (v *projectHandlerTokenVerifier) CreateSession(context.Context, appauth.CreateSessionInput) (identity.CreatedSession, error) {
+	return identity.CreatedSession{}, nil
+}
+
+func (v *projectHandlerTokenVerifier) CreateCSRFToken(context.Context, string) (string, error) {
+	return "", nil
+}
+
+func (v *projectHandlerTokenVerifier) VerifyCSRFToken(context.Context, string, string) error {
+	return nil
+}
+
+func (v *projectHandlerTokenVerifier) RevokeSession(context.Context, string, string) error {
+	return nil
+}
+
+func (v *projectHandlerTokenVerifier) RevokeUserSessions(context.Context, string, string) error {
+	return nil
+}
+
+var _ appauth.SessionManager = (*projectHandlerTokenVerifier)(nil)
 
 type projectHandlerEventRecorder struct{}
 

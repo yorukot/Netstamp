@@ -24,11 +24,11 @@ func TestMeReturnsAuthenticatedUser(t *testing.T) {
 		EmailVerifiedAt: &verifiedAt,
 	}
 	NewHandler(appauth.NewService(&staticUserRepository{user: user}, nil, nil, nil), &staticTokenVerifier{
-		claims: identity.AccessTokenClaims{
-			Subject: user.ID,
-			Email:   user.Email,
+		claims: identity.SessionClaims{
+			SessionID: "session-1",
+			UserID:    user.ID,
 		},
-	}, nil, false, true).RegisterRoutes(router)
+	}, nil, "netstamp_session", false, true).RegisterRoutes(router)
 
 	req := httptest.NewRequest(http.MethodGet, "/auth/me", http.NoBody)
 	req.Header.Set("Cookie", "netstamp_session=valid-token")
@@ -58,11 +58,31 @@ func TestMeReturnsAuthenticatedUser(t *testing.T) {
 }
 
 type staticTokenVerifier struct {
-	claims identity.AccessTokenClaims
+	claims identity.SessionClaims
 }
 
-func (v *staticTokenVerifier) VerifyAccessToken(context.Context, string) (identity.AccessTokenClaims, error) {
+func (v *staticTokenVerifier) VerifySession(context.Context, string) (identity.SessionClaims, error) {
 	return v.claims, nil
+}
+
+func (v *staticTokenVerifier) CreateSession(context.Context, appauth.CreateSessionInput) (identity.CreatedSession, error) {
+	return identity.CreatedSession{}, nil
+}
+
+func (v *staticTokenVerifier) CreateCSRFToken(context.Context, string) (string, error) {
+	return "", nil
+}
+
+func (v *staticTokenVerifier) VerifyCSRFToken(context.Context, string, string) error {
+	return nil
+}
+
+func (v *staticTokenVerifier) RevokeSession(context.Context, string, string) error {
+	return nil
+}
+
+func (v *staticTokenVerifier) RevokeUserSessions(context.Context, string, string) error {
+	return nil
 }
 
 type staticUserRepository struct {

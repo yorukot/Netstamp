@@ -9,12 +9,13 @@ import (
 )
 
 type Handler struct {
-	service  *apppublic.Service
-	verifier appauth.TokenVerifier
+	service    *apppublic.Service
+	verifier   appauth.SessionManager
+	cookieName string
 }
 
-func NewHandler(service *apppublic.Service, verifier appauth.TokenVerifier) *Handler {
-	return &Handler{service: service, verifier: verifier}
+func NewHandler(service *apppublic.Service, verifier appauth.SessionManager, cookieName string) *Handler {
+	return &Handler{service: service, verifier: verifier, cookieName: cookieName}
 }
 
 func (h *Handler) RegisterRoutes(api chi.Router) {
@@ -25,7 +26,7 @@ func (h *Handler) RegisterRoutes(api chi.Router) {
 	api.Get("/public/status-pages/{slug}/elements/{element_id}/daily-status", h.handleGetPublicStatusElementDailyStatus)
 
 	api.Group(func(r chi.Router) {
-		r.Use(httpmiddleware.RequireAuth(h.verifier))
+		r.Use(httpmiddleware.RequireAuth(h.verifier, h.cookieName))
 
 		r.Get("/projects/{ref}/status-pages", h.handleListPages)
 		r.Post("/projects/{ref}/status-pages", h.handleCreatePage)

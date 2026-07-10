@@ -30,8 +30,8 @@ func TestRegisterWithEmailVerificationCreatesTokenAndRequiresVerification(t *tes
 	if !result.EmailVerificationRequired {
 		t.Fatal("expected email verification requirement")
 	}
-	if result.AccessToken != "" {
-		t.Fatalf("expected no access token before verification, got %q", result.AccessToken)
+	if result.SessionToken != "" {
+		t.Fatalf("expected no session token before verification, got %q", result.SessionToken)
 	}
 	if len(verifications.created) != 1 {
 		t.Fatalf("expected one verification token, got %d", len(verifications.created))
@@ -72,8 +72,8 @@ func TestRegisterFirstSystemAdminBypassesEmailVerificationLockout(t *testing.T) 
 	if !result.IsSystemAdmin {
 		t.Fatal("expected first system admin grant")
 	}
-	if result.AccessToken != "issued-token" {
-		t.Fatalf("expected issued access token, got %q", result.AccessToken)
+	if result.SessionToken != "issued-session-token" {
+		t.Fatalf("expected issued session token, got %q", result.SessionToken)
 	}
 	if verifications.verifiedUserID != "11111111-1111-1111-1111-111111111111" {
 		t.Fatalf("expected user email to be marked verified, got %q", verifications.verifiedUserID)
@@ -127,8 +127,8 @@ func TestLoginAllowsUnverifiedEmailWhenVerificationIsDisabled(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Login returned error: %v", err)
 	}
-	if result.AccessToken != "issued-token" {
-		t.Fatalf("expected issued token, got %q", result.AccessToken)
+	if result.SessionToken != "issued-session-token" {
+		t.Fatalf("expected issued session token, got %q", result.SessionToken)
 	}
 	if result.EmailVerified {
 		t.Fatal("expected result to preserve unverified email state")
@@ -174,7 +174,7 @@ func TestConfirmEmailVerificationRejectsInvalidToken(t *testing.T) {
 }
 
 func newEmailVerificationTestService(users *emailVerificationUserRepo, verifications *emailVerificationRepo, mailer *emailVerificationMailer) *Service {
-	service := NewService(users, emailVerificationHasher{}, emailVerificationTokenIssuer{}, nil)
+	service := NewService(users, emailVerificationHasher{}, emailVerificationSessionManager{}, nil)
 	service.now = func() time.Time { return time.Date(2026, 7, 7, 12, 0, 0, 0, time.UTC) }
 	service.ConfigureEmailVerification(verifications, emailVerificationTokenManager{}, mailer, EmailVerificationConfig{TokenTTL: 24 * time.Hour})
 	return service
@@ -277,13 +277,33 @@ func (emailVerificationHasher) Compare(context.Context, string, string) error {
 	return nil
 }
 
-type emailVerificationTokenIssuer struct{}
+type emailVerificationSessionManager struct{}
 
-func (emailVerificationTokenIssuer) IssueAccessToken(context.Context, identity.AccessTokenClaims) (identity.IssuedToken, error) {
-	return identity.IssuedToken{
-		Value:     "issued-token",
+func (emailVerificationSessionManager) CreateSession(context.Context, CreateSessionInput) (identity.CreatedSession, error) {
+	return identity.CreatedSession{
+		RawToken:  "issued-session-token",
 		ExpiresIn: 3600,
 	}, nil
+}
+
+func (emailVerificationSessionManager) VerifySession(context.Context, string) (identity.SessionClaims, error) {
+	return identity.SessionClaims{}, nil
+}
+
+func (emailVerificationSessionManager) CreateCSRFToken(context.Context, string) (string, error) {
+	return "csrf-token", nil
+}
+
+func (emailVerificationSessionManager) VerifyCSRFToken(context.Context, string, string) error {
+	return nil
+}
+
+func (emailVerificationSessionManager) RevokeSession(context.Context, string, string) error {
+	return nil
+}
+
+func (emailVerificationSessionManager) RevokeUserSessions(context.Context, string, string) error {
+	return nil
 }
 
 type emailVerificationSystemAdminRepo struct {

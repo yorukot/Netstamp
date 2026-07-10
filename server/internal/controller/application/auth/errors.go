@@ -10,7 +10,7 @@ var (
 	// the error and return an appropriate response.
 	ErrInvalidInput                  = errors.New("auth input invalid")
 	ErrCredentialsInvalid            = errors.New("credentials invalid")
-	ErrAccessTokenInvalid            = errors.New("access token invalid")
+	ErrSessionInvalid                = errors.New("session invalid")
 	ErrAccountDisabled               = errors.New("account disabled")
 	ErrResetTokenInvalid             = errors.New("password reset token invalid")
 	ErrResetUnavailable              = errors.New("password reset unavailable")

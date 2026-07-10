@@ -14,19 +14,21 @@ import (
 
 type Handler struct {
 	service             *appauth.Service
-	verifier            appauth.TokenVerifier
+	verifier            appauth.SessionManager
 	settings            *appadmin.Service
+	cookieName          string
 	cookieSecure        bool
 	registrationEnabled bool
 	publicWebBaseURL    string
 	resetLimiter        *PasswordResetRateLimiter
 }
 
-func NewHandler(service *appauth.Service, verifier appauth.TokenVerifier, settings *appadmin.Service, cookieSecure, registrationEnabled bool) *Handler {
+func NewHandler(service *appauth.Service, verifier appauth.SessionManager, settings *appadmin.Service, cookieName string, cookieSecure, registrationEnabled bool) *Handler {
 	return &Handler{
 		service:             service,
 		verifier:            verifier,
 		settings:            settings,
+		cookieName:          cookieName,
 		cookieSecure:        cookieSecure,
 		registrationEnabled: registrationEnabled,
 	}
@@ -47,8 +49,9 @@ func (h *Handler) RegisterRoutes(api chi.Router) {
 	api.Post("/auth/email-verifications", h.handleRequestEmailVerification)
 	api.Patch("/auth/email-verifications", h.handleConfirmEmailVerification)
 	api.Group(func(r chi.Router) {
-		r.Use(httpmiddleware.RequireAuth(h.verifier))
+		r.Use(httpmiddleware.RequireAuth(h.verifier, h.cookieName))
 
+		r.Get("/auth/csrf", h.handleCSRF)
 		r.Get("/auth/me", h.handleMe)
 	})
 }
@@ -110,13 +113,26 @@ func (h *Handler) handleLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) handleLogout(w http.ResponseWriter, r *http.Request) {
-	output, err := h.logout(r.Context(), &logoutInput{})
+	rawSessionToken := ""
+	if cookie, err := r.Cookie(h.cookieName); err == nil {
+		rawSessionToken = cookie.Value
+	}
+	output, err := h.logout(r.Context(), &logoutInput{RawSessionToken: rawSessionToken})
 	if err != nil {
 		httpx.WriteProblem(w, r, err)
 		return
 	}
 	http.SetCookie(w, &output.SetCookie)
 	httpx.WriteNoContent(w)
+}
+
+func (h *Handler) handleCSRF(w http.ResponseWriter, r *http.Request) {
+	output, err := h.csrf(r.Context(), &csrfInput{})
+	if err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, output.Body)
 }
 
 func (h *Handler) handleMe(w http.ResponseWriter, r *http.Request) {

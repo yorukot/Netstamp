@@ -36,7 +36,7 @@ func (h *Handler) login(ctx context.Context, input *loginInput) (*loginOutput, e
 	}
 
 	return &loginOutput{
-		SetCookie: newSessionCookie(result.AccessToken, result.ExpiresIn, h.cookieSecure),
+		SetCookie: newSessionCookie(h.cookieName, result.SessionToken, result.ExpiresIn, h.cookieSecure),
 		Body: loginOutputBody{
 			User: userResponse{
 				ID:            result.UserID,

@@ -14,6 +14,7 @@ import (
 	chimw "github.com/go-chi/chi/v5/middleware"
 	"go.opentelemetry.io/otel/trace"
 
+	appauth "github.com/yorukot/netstamp/internal/controller/application/auth"
 	"github.com/yorukot/netstamp/internal/domain/identity"
 )
 
@@ -116,7 +117,7 @@ func assertOpenAPISessionCookieAuth(t *testing.T, spec openAPISnapshot) {
 	if !ok {
 		t.Fatal("expected SessionCookieAuth security scheme")
 	}
-	if scheme.Type != "apiKey" || scheme.In != "cookie" || scheme.Name != "netstamp_session" {
+	if scheme.Type != "apiKey" || scheme.In != "cookie" || scheme.Name != "__Host-netstamp_session" {
 		t.Fatalf("unexpected session cookie security scheme: %#v", scheme)
 	}
 
@@ -320,10 +321,15 @@ func TestNewRouterPublicRoutesBypassAuthGroups(t *testing.T) {
 		{method: http.MethodPost, path: "/api/v1/auth/logout", status: http.StatusNoContent},
 	} {
 		t.Run(route.method+" "+route.path, func(t *testing.T) {
-			recorder := performRouterRequest(Dependencies{
+			dep := Dependencies{
 				APIVersion:     "v1",
+				AuthVerifier:   staticRouterTokenVerifier{},
 				RequestTimeout: time.Second,
-			}, route.method, route.path)
+			}
+			recorder := performRouterRequest(dep, route.method, route.path)
+			if route.path == "/api/v1/auth/logout" {
+				recorder = performCSRFAuthenticatedRouterRequest(dep, route.method, route.path)
+			}
 
 			if recorder.Code != route.status {
 				t.Fatalf("expected status %d, got %d", route.status, recorder.Code)
@@ -335,6 +341,7 @@ func TestNewRouterPublicRoutesBypassAuthGroups(t *testing.T) {
 func TestNewRouterDemoModeAllowsReadAndAuthSessionRoutes(t *testing.T) {
 	dep := Dependencies{
 		APIVersion:     "v1",
+		AuthVerifier:   staticRouterTokenVerifier{},
 		DemoMode:       true,
 		RequestTimeout: time.Second,
 	}
@@ -351,6 +358,9 @@ func TestNewRouterDemoModeAllowsReadAndAuthSessionRoutes(t *testing.T) {
 	} {
 		t.Run(route.name, func(t *testing.T) {
 			recorder := performRouterRequest(dep, route.method, route.path)
+			if route.path == "/api/v1/auth/logout" {
+				recorder = performCSRFAuthenticatedRouterRequest(dep, route.method, route.path)
+			}
 
 			if recorder.Code != route.status {
 				t.Fatalf("expected status %d, got %d", route.status, recorder.Code)
@@ -752,6 +762,17 @@ func performRouterRequestWithHeaders(dep Dependencies, method, path string, head
 	return recorder
 }
 
+func performCSRFAuthenticatedRouterRequest(dep Dependencies, method, path string) *httptest.ResponseRecorder {
+	return performRouterRequestWithHeaders(dep, method, path, map[string]string{
+		"Cookie":       LocalSessionCookieNameForTest() + "=valid-token",
+		"X-CSRF-Token": "csrf-token",
+	})
+}
+
+func LocalSessionCookieNameForTest() string {
+	return "netstamp_session"
+}
+
 func writeTestWebDir(t *testing.T) string {
 	t.Helper()
 
@@ -772,11 +793,28 @@ func writeTestWebDir(t *testing.T) string {
 
 type staticRouterTokenVerifier struct{}
 
-func (staticRouterTokenVerifier) VerifyAccessToken(context.Context, string) (identity.AccessTokenClaims, error) {
-	return identity.AccessTokenClaims{
-		Subject: "user-1",
-		Email:   "user@example.com",
-	}, nil
+func (staticRouterTokenVerifier) CreateSession(context.Context, appauth.CreateSessionInput) (identity.CreatedSession, error) {
+	return identity.CreatedSession{}, nil
+}
+
+func (staticRouterTokenVerifier) VerifySession(context.Context, string) (identity.SessionClaims, error) {
+	return identity.SessionClaims{SessionID: "session-1", UserID: "user-1"}, nil
+}
+
+func (staticRouterTokenVerifier) CreateCSRFToken(context.Context, string) (string, error) {
+	return "csrf-token", nil
+}
+
+func (staticRouterTokenVerifier) VerifyCSRFToken(context.Context, string, string) error {
+	return nil
+}
+
+func (staticRouterTokenVerifier) RevokeSession(context.Context, string, string) error {
+	return nil
+}
+
+func (staticRouterTokenVerifier) RevokeUserSessions(context.Context, string, string) error {
+	return nil
 }
 
 func assertOpenAPIOperation(t *testing.T, spec openAPISnapshot, method, path, operationID string) {

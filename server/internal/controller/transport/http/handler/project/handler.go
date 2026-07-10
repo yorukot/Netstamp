@@ -12,20 +12,22 @@ import (
 )
 
 type Handler struct {
-	service  *appproject.Service
-	verifier appauth.TokenVerifier
+	service    *appproject.Service
+	verifier   appauth.SessionManager
+	cookieName string
 }
 
-func NewHandler(service *appproject.Service, verifier appauth.TokenVerifier) *Handler {
+func NewHandler(service *appproject.Service, verifier appauth.SessionManager, cookieName string) *Handler {
 	return &Handler{
-		service:  service,
-		verifier: verifier,
+		service:    service,
+		verifier:   verifier,
+		cookieName: cookieName,
 	}
 }
 
 func (h *Handler) RegisterRoutes(api chi.Router) {
 	api.Group(func(r chi.Router) {
-		r.Use(httpmiddleware.RequireAuth(h.verifier))
+		r.Use(httpmiddleware.RequireAuth(h.verifier, h.cookieName))
 
 		r.Post("/projects", h.handleCreateProject)
 		r.Get("/projects", h.handleListProjects)

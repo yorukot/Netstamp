@@ -36,6 +36,7 @@ import (
 	appuser "github.com/yorukot/netstamp/internal/controller/application/user"
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/postgres"
 	pgassignment "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/assignment"
+	pgauthsession "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/authsession"
 	pgcheck "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/check"
 	pglabel "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/label"
 	pgping "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/ping"
@@ -224,7 +225,13 @@ func newTestRouter(pool *pgxpool.Pool) http.Handler {
 	tracerouteRepo := pgtraceroute.NewTracerouteRepository(pool)
 	resultRepo := pgresult.NewResultRepository(pool)
 	assignmentRepo := pgassignment.NewAssignmentRepository(pool)
-	tokenIssuer := security.NewJWTIssuer("e2e-jwt-secret", time.Hour)
+	authSessionRepo := pgauthsession.NewRepository(pool)
+	sessionManager := security.NewSessionManager(authSessionRepo, security.SessionConfig{
+		HashKey:       "e2e-session-hash-key",
+		IdleTTL:       time.Hour,
+		AbsoluteTTL:   24 * time.Hour,
+		TouchInterval: 5 * time.Minute,
+	})
 	events := noopEvents{}
 	assignmentSvc := appassignment.NewService(assignmentRepo, projectRepo, events)
 	passwordHasher := security.NewArgon2idPasswordHasher(security.Argon2idConfig{
@@ -233,14 +240,17 @@ func newTestRouter(pool *pgxpool.Pool) http.Handler {
 		Parallelism: 1,
 	})
 
-	authSvc := appauth.NewService(userRepo, passwordHasher, tokenIssuer, events)
+	authSvc := appauth.NewService(userRepo, passwordHasher, sessionManager, events)
+	userSvc := appuser.NewService(userRepo, passwordHasher, events)
+	userSvc.ConfigureSessions(sessionManager)
 
 	return httpserver.NewRouter(httpserver.Dependencies{
 		Log:               zap.NewNop(),
 		APIVersion:        "v1",
 		AuthService:       authSvc,
-		AuthVerifier:      tokenIssuer,
-		UserService:       appuser.NewService(userRepo, passwordHasher, events),
+		AuthVerifier:      sessionManager,
+		AuthCookieName:    httpmiddleware.LocalSessionCookieName,
+		UserService:       userSvc,
 		AssignmentService: assignmentSvc,
 		CheckService:      appcheck.NewService(checkRepo, projectRepo, labelRepo, assignmentSvc, events),
 		LabelService:      applabel.NewService(labelRepo, projectRepo, events, assignmentSvc),
@@ -294,6 +304,7 @@ func (s *apiSuite) doJSON(t *testing.T, method, path string, body any, headers m
 
 func (s *apiSuite) do(t *testing.T, method, path string, body any, headers map[string]string, wantStatus int) *http.Response {
 	t.Helper()
+	headers = s.withCSRFHeader(t, method, headers)
 
 	var reader io.Reader = http.NoBody
 	if body != nil {
@@ -326,6 +337,48 @@ func (s *apiSuite) do(t *testing.T, method, path string, body any, headers map[s
 		t.Fatalf("expected %s %s status %d, got %d: %s", method, path, wantStatus, res.StatusCode, strings.TrimSpace(string(responseBody)))
 	}
 	return res
+}
+
+func (s *apiSuite) withCSRFHeader(t *testing.T, method string, headers map[string]string) map[string]string {
+	t.Helper()
+	if method == http.MethodGet || method == http.MethodHead || method == http.MethodOptions {
+		return headers
+	}
+	if headers == nil || headers["Cookie"] == "" || headers["X-CSRF-Token"] != "" {
+		return headers
+	}
+
+	req, err := http.NewRequest(http.MethodGet, s.baseURL+"/api/v1/auth/csrf", http.NoBody)
+	if err != nil {
+		t.Fatalf("create csrf request: %v", err)
+	}
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Cookie", headers["Cookie"])
+	res, err := s.client.Do(req)
+	if err != nil {
+		t.Fatalf("send csrf request: %v", err)
+	}
+	defer func() {
+		if err := res.Body.Close(); err != nil {
+			t.Errorf("close csrf response body: %v", err)
+		}
+	}()
+	if res.StatusCode != http.StatusOK {
+		responseBody, _ := io.ReadAll(res.Body)
+		t.Fatalf("expected csrf status 200, got %d: %s", res.StatusCode, strings.TrimSpace(string(responseBody)))
+	}
+	var body struct {
+		CSRFToken string `json:"csrfToken"`
+	}
+	if err := json.NewDecoder(res.Body).Decode(&body); err != nil {
+		t.Fatalf("decode csrf response: %v", err)
+	}
+	next := make(map[string]string, len(headers)+1)
+	for key, value := range headers {
+		next[key] = value
+	}
+	next["X-CSRF-Token"] = body.CSRFToken
+	return next
 }
 
 func authCookieHeaders(cookie *http.Cookie) map[string]string {

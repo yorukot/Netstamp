@@ -15,17 +15,18 @@ import (
 )
 
 type Handler struct {
-	service  *appadmin.Service
-	verifier appauth.TokenVerifier
+	service    *appadmin.Service
+	verifier   appauth.SessionManager
+	cookieName string
 }
 
-func NewHandler(service *appadmin.Service, verifier appauth.TokenVerifier) *Handler {
-	return &Handler{service: service, verifier: verifier}
+func NewHandler(service *appadmin.Service, verifier appauth.SessionManager, cookieName string) *Handler {
+	return &Handler{service: service, verifier: verifier, cookieName: cookieName}
 }
 
 func (h *Handler) RegisterRoutes(api chi.Router) {
 	api.Group(func(r chi.Router) {
-		r.Use(httpmiddleware.RequireAuth(h.verifier))
+		r.Use(httpmiddleware.RequireAuth(h.verifier, h.cookieName))
 
 		r.Get("/admin/system-admins", h.handleListSystemAdmins)
 		r.Post("/admin/system-admins", h.handleGrantSystemAdmin)
@@ -82,11 +83,11 @@ func (h *Handler) handleUpdateSettings(w http.ResponseWriter, r *http.Request) {
 }
 
 func currentUserID(r *http.Request) (string, error) {
-	claims, ok := httpmiddleware.AccessTokenClaimsFromContext(r.Context())
-	if !ok || claims.Subject == "" {
+	userID, ok := httpmiddleware.CurrentUserIDFromContext(r.Context())
+	if !ok {
 		return "", httpx.UnauthorizedCode(httpx.CodeAuthMissingSession, "missing auth session")
 	}
-	return claims.Subject, nil
+	return userID, nil
 }
 
 func mapAdminError(err error, fallback string) error {

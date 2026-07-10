@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiClient, readApiData, readEmptyApiResponse } from "../client";
+import { apiClient, clearCSRFToken, readApiData, readEmptyApiResponse } from "../client";
 import { apiQueryKeys } from "../queryKeys";
 import type { ConfirmEmailVerificationInput, ConfirmPasswordResetInput, CreateEmailVerificationInput, CreatePasswordResetInput, LoginInput, RegisterInput } from "../types";
 import { requireWritableAccess } from "./shared";
@@ -93,6 +93,7 @@ export function useLogoutMutation() {
 	return useMutation({
 		mutationFn: logoutUser,
 		onSettled: () => {
+			clearCSRFToken();
 			queryClient.removeQueries({ queryKey: apiQueryKeys.auth.all });
 			queryClient.removeQueries({ queryKey: apiQueryKeys.projects.all });
 		}

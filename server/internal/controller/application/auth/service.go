@@ -14,7 +14,7 @@ type Service struct {
 	users                   UserRepository
 	systemAdmin             SystemAdminRepository
 	hasher                  PasswordHasher
-	tokens                  TokenIssuer
+	sessions                SessionManager
 	events                  SecurityEventRecorder
 	resets                  PasswordResetRepository
 	resetTokens             PasswordResetTokenManager
@@ -28,7 +28,7 @@ type Service struct {
 	now                     func() time.Time
 }
 
-func NewService(users UserRepository, hasher PasswordHasher, tokens TokenIssuer, events SecurityEventRecorder, transactors ...apptx.Transactor) *Service {
+func NewService(users UserRepository, hasher PasswordHasher, sessions SessionManager, events SecurityEventRecorder, transactors ...apptx.Transactor) *Service {
 	tx := apptx.Transactor(apptx.NoopTransactor{})
 	if len(transactors) > 0 && transactors[0] != nil {
 		tx = transactors[0]
@@ -37,7 +37,7 @@ func NewService(users UserRepository, hasher PasswordHasher, tokens TokenIssuer,
 	return &Service{
 		users:                   users,
 		hasher:                  hasher,
-		tokens:                  tokens,
+		sessions:                sessions,
 		events:                  events,
 		resetConfig:             PasswordResetConfig{TokenTTL: 30 * time.Minute},
 		emailVerificationConfig: EmailVerificationConfig{TokenTTL: 24 * time.Hour},
@@ -112,9 +112,9 @@ func (s *Service) Register(ctx context.Context, input RegisterInput) (AuthAccess
 		}, nil
 	}
 
-	result, err := s.issueAccessResult(ctx, user)
+	result, err := s.createAccessResult(ctx, user)
 	if err != nil {
-		return AuthAccessResult{}, flow.technicalFailure(AuthEventTokenIssueFailure, AuthReasonAccessTokenIssueFail, err)
+		return AuthAccessResult{}, flow.technicalFailure(AuthEventSessionCreateFailure, AuthReasonSessionCreateFail, err)
 	}
 
 	flow.success(AuthEventRegisterSuccess)
@@ -224,9 +224,9 @@ func (s *Service) Login(ctx context.Context, input LoginInput) (AuthAccessResult
 		return AuthAccessResult{}, flow.businessFailure(AuthEventLoginFailure, AuthReasonEmailVerificationRequired, ErrEmailVerificationRequired)
 	}
 
-	result, err := s.issueAccessResult(ctx, user)
+	result, err := s.createAccessResult(ctx, user)
 	if err != nil {
-		return AuthAccessResult{}, flow.technicalFailure(AuthEventTokenIssueFailure, AuthReasonAccessTokenIssueFail, err)
+		return AuthAccessResult{}, flow.technicalFailure(AuthEventSessionCreateFailure, AuthReasonSessionCreateFail, err)
 	}
 
 	flow.success(AuthEventLoginSuccess)
@@ -334,6 +334,11 @@ func (s *Service) ConfirmPasswordReset(ctx context.Context, input ConfirmPasswor
 		}
 		if markErr := s.resets.MarkPasswordResetTokenUsed(ctx, token.ID, now); markErr != nil {
 			return markErr
+		}
+		if s.sessions != nil {
+			if revokeErr := s.sessions.RevokeUserSessions(ctx, token.UserID, "password_reset"); revokeErr != nil {
+				return revokeErr
+			}
 		}
 		user = updated
 		return nil
@@ -444,16 +449,20 @@ func emailVerificationURL(baseURL, token string) string {
 	return baseURL + "/verify-email?" + values.Encode()
 }
 
-func (s *Service) issueAccessResult(ctx context.Context, user identity.User) (AuthAccessResult, error) {
-	ctx, span := authTracer.Start(ctx, "auth.issue_access_token")
+func (s *Service) createAccessResult(ctx context.Context, user identity.User) (AuthAccessResult, error) {
+	ctx, span := authTracer.Start(ctx, "auth.create_session")
 	defer span.End()
 
-	token, err := s.tokens.IssueAccessToken(ctx, identity.AccessTokenClaims{
-		Subject: user.ID,
-		Email:   user.Email,
+	if s.sessions == nil {
+		return AuthAccessResult{}, ErrSessionInvalid
+	}
+
+	session, err := s.sessions.CreateSession(ctx, CreateSessionInput{
+		UserID: user.ID,
+		Now:    s.now(),
 	})
 	if err != nil {
-		recordSpanError(span, err, AuthReasonAccessTokenIssueFail)
+		recordSpanError(span, err, AuthReasonSessionCreateFail)
 		return AuthAccessResult{}, err
 	}
 
@@ -463,8 +472,8 @@ func (s *Service) issueAccessResult(ctx context.Context, user identity.User) (Au
 		DisplayName:   user.DisplayName,
 		EmailVerified: user.EmailVerifiedAt != nil,
 		IsSystemAdmin: user.IsSystemAdmin,
-		AccessToken:   token.Value,
-		ExpiresIn:     token.ExpiresIn,
+		SessionToken:  session.RawToken,
+		ExpiresIn:     session.ExpiresIn,
 	}, nil
 }
 
@@ -564,7 +573,7 @@ func (s *Service) getUserByEmail(ctx context.Context, email string) (identity.Us
 }
 
 // GetCurrentUser fetches the live user record from the database using the
-// stable user id embedded as the access token subject.
+// stable user id associated with the verified server-side session.
 func (s *Service) GetCurrentUser(ctx context.Context, userID string) (identity.User, error) {
 	ctx, span := authTracer.Start(ctx, "auth.get_current_user")
 	defer span.End()

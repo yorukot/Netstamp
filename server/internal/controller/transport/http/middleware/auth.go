@@ -9,11 +9,15 @@ import (
 	"github.com/yorukot/netstamp/internal/domain/identity"
 )
 
-const SessionCookieName = "netstamp_session"
+const (
+	LocalSessionCookieName      = "netstamp_session"
+	ProductionSessionCookieName = "__Host-netstamp_session"
+	SessionCookieName           = LocalSessionCookieName
+)
 
-type accessTokenClaimsContextKey struct{}
+type sessionClaimsContextKey struct{}
 
-func RequireAuth(verifier appauth.TokenVerifier) func(http.Handler) http.Handler {
+func RequireAuth(verifier appauth.SessionManager, cookieName string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if verifier == nil {
@@ -21,34 +25,39 @@ func RequireAuth(verifier appauth.TokenVerifier) func(http.Handler) http.Handler
 				return
 			}
 
-			token, ok := sessionCookie(r)
+			token, ok := sessionCookie(r, cookieName)
 			if !ok {
 				WriteProblemCode(w, r, http.StatusUnauthorized, httpx.CodeAuthMissingSession, "missing auth cookie")
 				return
 			}
 
-			claims, err := verifier.VerifyAccessToken(r.Context(), token)
+			claims, err := verifier.VerifySession(r.Context(), token)
 			if err != nil {
 				WriteProblemCode(w, r, http.StatusUnauthorized, httpx.CodeAuthInvalidSession, "invalid auth cookie")
 				return
 			}
 
-			next.ServeHTTP(w, r.WithContext(WithAccessTokenClaims(r.Context(), claims)))
+			next.ServeHTTP(w, r.WithContext(WithSessionClaims(r.Context(), claims)))
 		})
 	}
 }
 
-func WithAccessTokenClaims(ctx context.Context, claims identity.AccessTokenClaims) context.Context {
-	return context.WithValue(ctx, accessTokenClaimsContextKey{}, claims)
+func WithSessionClaims(ctx context.Context, claims identity.SessionClaims) context.Context {
+	return context.WithValue(ctx, sessionClaimsContextKey{}, claims)
 }
 
-func AccessTokenClaimsFromContext(ctx context.Context) (identity.AccessTokenClaims, bool) {
-	claims, ok := ctx.Value(accessTokenClaimsContextKey{}).(identity.AccessTokenClaims)
+func SessionClaimsFromContext(ctx context.Context) (identity.SessionClaims, bool) {
+	claims, ok := ctx.Value(sessionClaimsContextKey{}).(identity.SessionClaims)
 	return claims, ok
 }
 
-func sessionCookie(r *http.Request) (string, bool) {
-	cookie, err := r.Cookie(SessionCookieName)
+func CurrentUserIDFromContext(ctx context.Context) (string, bool) {
+	claims, ok := SessionClaimsFromContext(ctx)
+	return claims.UserID, ok && claims.UserID != ""
+}
+
+func sessionCookie(r *http.Request, cookieName string) (string, bool) {
+	cookie, err := r.Cookie(cookieName)
 	if err != nil || cookie.Value == "" {
 		return "", false
 	}

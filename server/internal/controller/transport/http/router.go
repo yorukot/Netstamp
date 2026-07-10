@@ -51,8 +51,9 @@ type Dependencies struct {
 	PublicWebBaseURL            string
 	WebDir                      string
 	AuthService                 *appauth.Service
-	AuthVerifier                appauth.TokenVerifier
+	AuthVerifier                appauth.SessionManager
 	AdminService                *appadmin.Service
+	AuthCookieName              string
 	AuthCookieSecure            bool
 	AuthRegistrationDisabled    bool
 	AuthPasswordResetRateWindow time.Duration
@@ -91,6 +92,7 @@ func NewRouter(dep Dependencies) http.Handler {
 
 func newAPIRouter(dep Dependencies) http.Handler {
 	r := chi.NewRouter()
+	dep.AuthCookieName = effectiveAuthCookieName(dep.AuthCookieName)
 	r.Use(chimw.RequestID)
 	r.Use(clientip.Middleware(dep.TrustedProxies))
 	r.Use(chimw.StripSlashes)
@@ -109,6 +111,13 @@ func newAPIRouter(dep Dependencies) http.Handler {
 				basePath+"/auth/logout",
 			))
 		}
+		apiRouter.Use(httpmiddleware.CSRF(httpmiddleware.CSRFConfig{
+			Verifier:         dep.AuthVerifier,
+			CookieName:       dep.AuthCookieName,
+			BasePath:         basePath,
+			BackendBaseURL:   dep.BackendBaseURL,
+			PublicWebBaseURL: dep.PublicWebBaseURL,
+		}))
 		registerAPIRoutes(apiRouter, dep)
 	})
 
@@ -139,24 +148,31 @@ func registerAPIRoutes(api chi.Router, dep Dependencies) {
 	}
 	installHandler.RegisterRoutes(api)
 
-	authhttp.NewHandler(dep.AuthService, dep.AuthVerifier, dep.AdminService, dep.AuthCookieSecure, !dep.AuthRegistrationDisabled).
+	authhttp.NewHandler(dep.AuthService, dep.AuthVerifier, dep.AdminService, dep.AuthCookieName, dep.AuthCookieSecure, !dep.AuthRegistrationDisabled).
 		ConfigurePasswordReset(dep.PublicWebBaseURL, authhttp.NewPasswordResetRateLimiter(authhttp.PasswordResetRateLimitConfig{
 			Window:     dep.AuthPasswordResetRateWindow,
 			IPLimit:    dep.AuthPasswordResetIPLimit,
 			EmailLimit: dep.AuthPasswordResetEmailLimit,
 		})).
 		RegisterRoutes(api)
-	adminhttp.NewHandler(dep.AdminService, dep.AuthVerifier).RegisterRoutes(api)
-	userhttp.NewHandler(dep.UserService, dep.AuthVerifier).RegisterRoutes(api)
-	projecthttp.NewHandler(dep.ProjectService, dep.AuthVerifier).RegisterRoutes(api)
-	alerthttp.NewHandler(dep.AlertService, dep.AuthVerifier, dep.AdminService).RegisterRoutes(api)
-	assignmenthttp.NewHandler(dep.AssignmentService, dep.AuthVerifier).RegisterRoutes(api)
-	labelhttp.NewHandler(dep.LabelService, dep.AuthVerifier).RegisterRoutes(api)
-	checkhttp.NewHandler(dep.CheckService, dep.AuthVerifier).RegisterRoutes(api)
-	probehttp.NewHandler(dep.ProbeService, dep.AuthVerifier).RegisterRoutes(api)
-	publicstatushttp.NewHandler(dep.PublicStatusService, dep.AuthVerifier).RegisterRoutes(api)
-	resulthttp.NewHandler(dep.ResultService, dep.AuthVerifier).RegisterRoutes(api)
+	adminhttp.NewHandler(dep.AdminService, dep.AuthVerifier, dep.AuthCookieName).RegisterRoutes(api)
+	userhttp.NewHandler(dep.UserService, dep.AuthVerifier, dep.AuthCookieName).RegisterRoutes(api)
+	projecthttp.NewHandler(dep.ProjectService, dep.AuthVerifier, dep.AuthCookieName).RegisterRoutes(api)
+	alerthttp.NewHandler(dep.AlertService, dep.AuthVerifier, dep.AuthCookieName, dep.AdminService).RegisterRoutes(api)
+	assignmenthttp.NewHandler(dep.AssignmentService, dep.AuthVerifier, dep.AuthCookieName).RegisterRoutes(api)
+	labelhttp.NewHandler(dep.LabelService, dep.AuthVerifier, dep.AuthCookieName).RegisterRoutes(api)
+	checkhttp.NewHandler(dep.CheckService, dep.AuthVerifier, dep.AuthCookieName).RegisterRoutes(api)
+	probehttp.NewHandler(dep.ProbeService, dep.AuthVerifier, dep.AuthCookieName).RegisterRoutes(api)
+	publicstatushttp.NewHandler(dep.PublicStatusService, dep.AuthVerifier, dep.AuthCookieName).RegisterRoutes(api)
+	resulthttp.NewHandler(dep.ResultService, dep.AuthVerifier, dep.AuthCookieName).RegisterRoutes(api)
 	proberuntimehttp.NewHandler(dep.ProbeRuntime).RegisterRoutes(api)
+}
+
+func effectiveAuthCookieName(name string) string {
+	if strings.TrimSpace(name) != "" {
+		return name
+	}
+	return httpmiddleware.LocalSessionCookieName
 }
 
 func registerOpenAPIRoutes(api chi.Router, dep Dependencies) {

@@ -1,0 +1,204 @@
+package authsession
+
+import (
+	"context"
+	"errors"
+	"time"
+
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"go.opentelemetry.io/otel"
+
+	"github.com/yorukot/netstamp/internal/controller/infrastructure/postgres"
+	"github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/sqlc"
+	"github.com/yorukot/netstamp/internal/domain/identity"
+)
+
+var authSessionTracer = otel.Tracer("github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/authsession")
+
+type Repository struct {
+	queries *sqlc.Queries
+}
+
+func NewRepository(pool *pgxpool.Pool) *Repository {
+	return &Repository{queries: sqlc.New(pool)}
+}
+
+func (r *Repository) CreateSession(ctx context.Context, input identity.AuthSession) (identity.AuthSession, error) {
+	ctx, span := postgres.StartUserDBSpan(ctx, authSessionTracer, "postgres.auth_sessions.insert", "INSERT", "INSERT auth_sessions")
+	defer span.End()
+
+	userID, err := postgres.ParseUUID(input.UserID, identity.ErrUserNotFound)
+	if err != nil {
+		return identity.AuthSession{}, err
+	}
+
+	row, err := postgres.Queries(ctx, r.queries).CreateAuthSession(ctx, sqlc.CreateAuthSessionParams{
+		UserID:            userID,
+		TokenHash:         input.TokenHash,
+		CsrfTokenHash:     input.CSRFTokenHash,
+		CreatedAt:         input.CreatedAt,
+		LastUsedAt:        input.LastUsedAt,
+		IdleExpiresAt:     input.IdleExpiresAt,
+		AbsoluteExpiresAt: input.AbsoluteExpiresAt,
+	})
+	if err != nil {
+		postgres.RecordDBSpanError(span, err)
+		return identity.AuthSession{}, err
+	}
+
+	return mapAuthSession(row), nil
+}
+
+func (r *Repository) GetActiveSessionByTokenHash(ctx context.Context, tokenHash []byte, now time.Time) (identity.AuthSession, error) {
+	ctx, span := postgres.StartUserDBSpan(ctx, authSessionTracer, "postgres.auth_sessions.select_active_by_hash", "SELECT", "SELECT active auth_session")
+	defer span.End()
+
+	row, err := postgres.Queries(ctx, r.queries).GetActiveAuthSessionByTokenHash(ctx, sqlc.GetActiveAuthSessionByTokenHashParams{
+		TokenHash: tokenHash,
+		NowAt:     now,
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return identity.AuthSession{}, identity.ErrSessionNotFound
+		}
+		postgres.RecordDBSpanError(span, err)
+		return identity.AuthSession{}, err
+	}
+
+	return mapAuthSession(row), nil
+}
+
+func (r *Repository) GetActiveSessionByID(ctx context.Context, sessionID string, now time.Time) (identity.AuthSession, error) {
+	ctx, span := postgres.StartUserDBSpan(ctx, authSessionTracer, "postgres.auth_sessions.select_active_by_id", "SELECT", "SELECT active auth_session")
+	defer span.End()
+
+	id, err := postgres.ParseUUID(sessionID, identity.ErrSessionNotFound)
+	if err != nil {
+		return identity.AuthSession{}, err
+	}
+
+	row, err := postgres.Queries(ctx, r.queries).GetActiveAuthSessionByID(ctx, sqlc.GetActiveAuthSessionByIDParams{
+		ID:    id,
+		NowAt: now,
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return identity.AuthSession{}, identity.ErrSessionNotFound
+		}
+		postgres.RecordDBSpanError(span, err)
+		return identity.AuthSession{}, err
+	}
+
+	return mapAuthSession(row), nil
+}
+
+func (r *Repository) UpdateCSRFTokenHash(ctx context.Context, sessionID string, csrfTokenHash []byte, now time.Time) error {
+	ctx, span := postgres.StartUserDBSpan(ctx, authSessionTracer, "postgres.auth_sessions.update_csrf", "UPDATE", "UPDATE auth_session csrf")
+	defer span.End()
+
+	id, err := postgres.ParseUUID(sessionID, identity.ErrSessionNotFound)
+	if err != nil {
+		return err
+	}
+
+	if err := postgres.Queries(ctx, r.queries).UpdateAuthSessionCSRFTokenHash(ctx, sqlc.UpdateAuthSessionCSRFTokenHashParams{
+		ID:            id,
+		CsrfTokenHash: csrfTokenHash,
+		NowAt:         now,
+	}); err != nil {
+		postgres.RecordDBSpanError(span, err)
+		return err
+	}
+	return nil
+}
+
+func (r *Repository) TouchSession(ctx context.Context, sessionID string, lastUsedAt, idleExpiresAt time.Time) error {
+	ctx, span := postgres.StartUserDBSpan(ctx, authSessionTracer, "postgres.auth_sessions.touch", "UPDATE", "UPDATE auth_session touch")
+	defer span.End()
+
+	id, err := postgres.ParseUUID(sessionID, identity.ErrSessionNotFound)
+	if err != nil {
+		return err
+	}
+
+	if err := postgres.Queries(ctx, r.queries).TouchAuthSession(ctx, sqlc.TouchAuthSessionParams{
+		ID:            id,
+		LastUsedAt:    lastUsedAt,
+		IdleExpiresAt: idleExpiresAt,
+	}); err != nil {
+		postgres.RecordDBSpanError(span, err)
+		return err
+	}
+	return nil
+}
+
+func (r *Repository) RevokeSessionByTokenHash(ctx context.Context, tokenHash []byte, revokedAt time.Time, reason string) error {
+	ctx, span := postgres.StartUserDBSpan(ctx, authSessionTracer, "postgres.auth_sessions.revoke_by_hash", "UPDATE", "UPDATE auth_session revoke")
+	defer span.End()
+
+	if err := postgres.Queries(ctx, r.queries).RevokeAuthSessionByTokenHash(ctx, sqlc.RevokeAuthSessionByTokenHashParams{
+		TokenHash:     tokenHash,
+		RevokedAt:     &revokedAt,
+		RevokedReason: &reason,
+	}); err != nil {
+		postgres.RecordDBSpanError(span, err)
+		return err
+	}
+	return nil
+}
+
+func (r *Repository) RevokeSessionByID(ctx context.Context, sessionID string, revokedAt time.Time, reason string) error {
+	ctx, span := postgres.StartUserDBSpan(ctx, authSessionTracer, "postgres.auth_sessions.revoke_by_id", "UPDATE", "UPDATE auth_session revoke")
+	defer span.End()
+
+	id, err := postgres.ParseUUID(sessionID, identity.ErrSessionNotFound)
+	if err != nil {
+		return err
+	}
+
+	if err := postgres.Queries(ctx, r.queries).RevokeAuthSessionByID(ctx, sqlc.RevokeAuthSessionByIDParams{
+		ID:            id,
+		RevokedAt:     &revokedAt,
+		RevokedReason: &reason,
+	}); err != nil {
+		postgres.RecordDBSpanError(span, err)
+		return err
+	}
+	return nil
+}
+
+func (r *Repository) RevokeSessionsForUser(ctx context.Context, userIDValue string, revokedAt time.Time, reason string) error {
+	ctx, span := postgres.StartUserDBSpan(ctx, authSessionTracer, "postgres.auth_sessions.revoke_for_user", "UPDATE", "UPDATE user auth_sessions revoke")
+	defer span.End()
+
+	userID, err := postgres.ParseUUID(userIDValue, identity.ErrUserNotFound)
+	if err != nil {
+		return err
+	}
+
+	if err := postgres.Queries(ctx, r.queries).RevokeAuthSessionsForUser(ctx, sqlc.RevokeAuthSessionsForUserParams{
+		UserID:        userID,
+		RevokedAt:     &revokedAt,
+		RevokedReason: &reason,
+	}); err != nil {
+		postgres.RecordDBSpanError(span, err)
+		return err
+	}
+	return nil
+}
+
+func mapAuthSession(row sqlc.AuthSession) identity.AuthSession {
+	return identity.AuthSession{
+		ID:                row.ID.String(),
+		UserID:            row.UserID.String(),
+		TokenHash:         row.TokenHash,
+		CSRFTokenHash:     row.CsrfTokenHash,
+		CreatedAt:         row.CreatedAt,
+		LastUsedAt:        row.LastUsedAt,
+		IdleExpiresAt:     row.IdleExpiresAt,
+		AbsoluteExpiresAt: row.AbsoluteExpiresAt,
+		RevokedAt:         row.RevokedAt,
+		RevokedReason:     row.RevokedReason,
+	}
+}

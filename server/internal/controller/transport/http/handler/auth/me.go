@@ -11,9 +11,9 @@ import (
 )
 
 func (h *Handler) me(ctx context.Context, _ *meInput) (*meOutput, error) {
-	claims, _ := httpmiddleware.AccessTokenClaimsFromContext(ctx)
+	userID, _ := httpmiddleware.CurrentUserIDFromContext(ctx)
 
-	user, err := h.service.GetCurrentUser(ctx, claims.Subject)
+	user, err := h.service.GetCurrentUser(ctx, userID)
 	if err != nil {
 		if errors.Is(err, identity.ErrUserNotFound) || errors.Is(err, appauth.ErrAccountDisabled) {
 			return nil, httpx.UnauthorizedCode(httpx.CodeAuthInvalidSession, "invalid session")

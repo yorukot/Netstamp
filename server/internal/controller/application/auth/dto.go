@@ -43,6 +43,11 @@ type EmailVerificationConfig struct {
 	TokenTTL time.Duration
 }
 
+type CreateSessionInput struct {
+	UserID string
+	Now    time.Time
+}
+
 type AuthAccessResult struct {
 	UserID                    string
 	Email                     string
@@ -50,6 +55,6 @@ type AuthAccessResult struct {
 	EmailVerified             bool
 	IsSystemAdmin             bool
 	EmailVerificationRequired bool
-	AccessToken               string
+	SessionToken              string
 	ExpiresIn                 int
 }

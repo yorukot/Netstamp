@@ -100,3 +100,10 @@ model CurrentUserResponse {
 	authenticated: true;
 	user: User;
 }
+
+@example(#{ csrfToken: "YNo5Uoj64VqK5jCht8h17GO8sHJIY0ScDNef7X99w7k" })
+model CSRFTokenResponse {
+	@secret
+	@doc("One-time readable CSRF token to send in X-CSRF-Token for state-changing session-authenticated requests.")
+	csrfToken: string;
+}

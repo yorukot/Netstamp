@@ -56,7 +56,7 @@ func (h *Handler) register(ctx context.Context, r *http.Request, input *register
 
 	return &registerOutput{
 		Status:    http.StatusCreated,
-		SetCookie: sessionCookiePtr(newSessionCookie(result.AccessToken, result.ExpiresIn, h.cookieSecure)),
+		SetCookie: sessionCookiePtr(newSessionCookie(h.cookieName, result.SessionToken, result.ExpiresIn, h.cookieSecure)),
 		Body: registerOutputBody{
 			User: userResponse{
 				ID:            result.UserID,

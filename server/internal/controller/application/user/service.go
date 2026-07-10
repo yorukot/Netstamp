@@ -10,6 +10,7 @@ import (
 type Service struct {
 	repo        Repository
 	systemAdmin SystemAdminRepository
+	sessions    SessionRepository
 	hasher      PasswordHasher
 	events      EventRecorder
 }
@@ -24,6 +25,10 @@ func NewService(repo Repository, hasher PasswordHasher, events EventRecorder) *S
 
 func (s *Service) ConfigureSystemAdmin(repo SystemAdminRepository) {
 	s.systemAdmin = repo
+}
+
+func (s *Service) ConfigureSessions(repo SessionRepository) {
+	s.sessions = repo
 }
 
 func (s *Service) UpdateCurrentUser(ctx context.Context, input UpdateCurrentUserInput) (UserOutput, error) {
@@ -112,6 +117,11 @@ func (s *Service) ChangeCurrentUserPassword(ctx context.Context, input ChangeCur
 	if err != nil {
 		return flow.updateFailure(UserEventChangePasswordFailure, err)
 	}
+	if s.sessions != nil {
+		if err := s.sessions.RevokeUserSessions(ctx, input.CurrentUserID, "password_change"); err != nil {
+			return flow.updateFailure(UserEventChangePasswordFailure, err)
+		}
+	}
 	flow.setUser(user)
 	flow.success(UserEventChangePasswordSuccess)
 
@@ -145,6 +155,11 @@ func (s *Service) DeactivateCurrentUser(ctx context.Context, input DeactivateCur
 	user, err := s.repo.DisableUser(ctx, input.CurrentUserID)
 	if err != nil {
 		return flow.updateFailure(UserEventDeactivateFailure, err)
+	}
+	if s.sessions != nil {
+		if err := s.sessions.RevokeUserSessions(ctx, input.CurrentUserID, "account_deactivated"); err != nil {
+			return flow.updateFailure(UserEventDeactivateFailure, err)
+		}
 	}
 	flow.setUser(user)
 	flow.success(UserEventDeactivateSuccess)

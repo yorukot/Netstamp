@@ -29,6 +29,7 @@ import (
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/postgres"
 	pgalert "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/alert"
 	pgassignment "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/assignment"
+	pgauthsession "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/authsession"
 	pgcheck "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/check"
 	pglabel "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/label"
 	pgping "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/ping"
@@ -43,13 +44,14 @@ import (
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/security"
 	"github.com/yorukot/netstamp/internal/controller/logger"
 	httpserver "github.com/yorukot/netstamp/internal/controller/transport/http"
+	httpmiddleware "github.com/yorukot/netstamp/internal/controller/transport/http/middleware"
 	obmetrics "github.com/yorukot/netstamp/internal/platform/observability/metrics"
 	"github.com/yorukot/netstamp/internal/platform/observability/tracing"
 )
 
 type controllerServices struct {
 	authService         *appauth.Service
-	authVerifier        appauth.TokenVerifier
+	authVerifier        appauth.SessionManager
 	adminService        *appadmin.Service
 	userService         *appuser.Service
 	alertService        *appalert.Service
@@ -124,6 +126,7 @@ func (p adminSMTPProvider) SMTPConfig(ctx context.Context) (notify.SMTPConfig, e
 func buildControllerServices(cfg config.Config, log *zap.Logger, dbPool *pgxpool.Pool) (controllerServices, error) {
 	dbTx := postgres.NewTransactor(dbPool)
 	userRepo := pguser.NewUserRepository(dbPool)
+	authSessionRepo := pgauthsession.NewRepository(dbPool)
 	systemRepo := pgsystem.NewRepository(dbPool)
 	projectRepo := pgproject.NewProjectRepository(dbPool)
 	alertRepo := pgalert.NewRepository(dbPool)
@@ -142,7 +145,12 @@ func buildControllerServices(cfg config.Config, log *zap.Logger, dbPool *pgxpool
 		Iterations:  cfg.Auth.Argon2idIterations,
 		Parallelism: cfg.Auth.Argon2idParallelism,
 	})
-	tokenIssuer := security.NewJWTIssuer(cfg.Auth.JWTSecret, cfg.Auth.AccessTokenTTL)
+	sessionManager := security.NewSessionManager(authSessionRepo, security.SessionConfig{
+		HashKey:       cfg.Auth.SessionHashKey,
+		IdleTTL:       cfg.Auth.SessionIdleTTL,
+		AbsoluteTTL:   cfg.Auth.SessionAbsoluteTTL,
+		TouchInterval: cfg.Auth.SessionTouchInterval,
+	})
 	authEvents := logger.NewAuthEventRecorder(log, cfg.LogPseudonymKey)
 	userEvents := logger.NewUserEventRecorder(log, cfg.LogPseudonymKey)
 	projectEvents := logger.NewProjectEventRecorder(log)
@@ -173,10 +181,11 @@ func buildControllerServices(cfg config.Config, log *zap.Logger, dbPool *pgxpool
 			TimeoutSeconds: appadmin.DurationSeconds(cfg.Alerting.SMTP.Timeout),
 		},
 	}, passwordHasher)
+	adminSvc.ConfigureSessions(sessionManager)
 	smtpProvider := adminSMTPProvider{service: adminSvc}
 	notificationSender := notify.NewDynamicSender(cfg.Alerting.NotificationHTTPTimeout, smtpProvider)
 
-	authSvc := appauth.NewService(userRepo, passwordHasher, tokenIssuer, authEvents, dbTx)
+	authSvc := appauth.NewService(userRepo, passwordHasher, sessionManager, authEvents, dbTx)
 	authSvc.ConfigureSystemAdmin(systemRepo)
 	authSvc.ConfigurePasswordReset(userRepo, security.NewPasswordResetTokenManager(), notify.NewDynamicPasswordResetMailer(smtpProvider), appauth.PasswordResetConfig{
 		TokenTTL: cfg.Auth.PasswordResetTokenTTL,
@@ -187,6 +196,7 @@ func buildControllerServices(cfg config.Config, log *zap.Logger, dbPool *pgxpool
 
 	userSvc := appuser.NewService(userRepo, passwordHasher, userEvents)
 	userSvc.ConfigureSystemAdmin(systemRepo)
+	userSvc.ConfigureSessions(sessionManager)
 	projectSvc := appproject.NewService(projectRepo, userRepo, projectEvents)
 	alertSvc := appalert.NewService(alertRepo, projectRepo, alertEvents, notificationSender)
 	assignmentSvc := appassignment.NewService(assignmentRepo, projectRepo, assignmentEvents, dbTx)
@@ -216,7 +226,7 @@ func buildControllerServices(cfg config.Config, log *zap.Logger, dbPool *pgxpool
 
 	return controllerServices{
 		authService:         authSvc,
-		authVerifier:        accountStatusTokenVerifier{inner: tokenIssuer, users: userRepo},
+		authVerifier:        sessionManager,
 		adminService:        adminSvc,
 		userService:         userSvc,
 		alertService:        alertSvc,
@@ -248,7 +258,8 @@ func buildHTTPHandler(cfg config.Config, log *zap.Logger, dbPool *pgxpool.Pool, 
 		AuthService:                 services.authService,
 		AuthVerifier:                services.authVerifier,
 		AdminService:                services.adminService,
-		AuthCookieSecure:            cfg.Env != "local",
+		AuthCookieName:              authCookieName(cfg),
+		AuthCookieSecure:            authCookieSecure(cfg),
 		AuthRegistrationDisabled:    !cfg.Auth.RegistrationEnabled,
 		AuthPasswordResetRateWindow: cfg.Auth.PasswordResetRateWindow,
 		AuthPasswordResetIPLimit:    cfg.Auth.PasswordResetIPLimit,
@@ -268,4 +279,15 @@ func buildHTTPHandler(cfg config.Config, log *zap.Logger, dbPool *pgxpool.Pool, 
 		MetricsHandler:              metricsProvider.Handler(),
 		TrustedProxies:              trustedProxies,
 	}), nil
+}
+
+func authCookieSecure(cfg config.Config) bool {
+	return cfg.Env != "local"
+}
+
+func authCookieName(cfg config.Config) string {
+	if authCookieSecure(cfg) {
+		return httpmiddleware.ProductionSessionCookieName
+	}
+	return httpmiddleware.LocalSessionCookieName
 }

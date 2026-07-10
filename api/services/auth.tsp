@@ -53,14 +53,22 @@ interface AuthService {
 
 	@operationId("logoutUser")
 	@summary("Logout user")
-	@doc("Clear the HTTP-only session cookie.")
+	@doc("Revoke the server-side session and clear the HTTP-only session cookie.")
 	@post
 	@route("/logout")
 	logoutUser(): SessionNoContent;
 
+	@operationId("getCSRFToken")
+	@summary("Get CSRF token")
+	@doc("Rotate and return the synchronizer CSRF token for the current authenticated session.")
+	@useAuth(SessionCookieAuth)
+	@get
+	@route("/csrf")
+	getCSRFToken(): OkJson<CSRFTokenResponse> | UnauthorizedProblem | InternalServerProblem;
+
 	@operationId("getCurrentUser")
 	@summary("Get current user")
-	@doc("Return the user identity embedded in a valid session cookie.")
+	@doc("Return the user identity associated with a valid session cookie.")
 	@useAuth(SessionCookieAuth)
 	@get
 	@route("/me")

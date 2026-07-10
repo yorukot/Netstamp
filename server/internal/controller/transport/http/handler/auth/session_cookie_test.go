@@ -18,7 +18,7 @@ import (
 
 func TestLoginSetsSessionCookieAndReturnsUserOnly(t *testing.T) {
 	router := chi.NewRouter()
-	NewHandler(newAuthTestService(), nil, nil, true, true).RegisterRoutes(router)
+	NewHandler(newAuthTestService(), nil, nil, "netstamp_session", true, true).RegisterRoutes(router)
 
 	res := performJSONRequest(router, http.MethodPost, "/auth/login", `{"email":"user@example.com","password":"correct-horse-battery-staple"}`)
 
@@ -31,7 +31,7 @@ func TestLoginSetsSessionCookieAndReturnsUserOnly(t *testing.T) {
 
 func TestRegisterSetsSessionCookieAndReturnsUserOnly(t *testing.T) {
 	router := chi.NewRouter()
-	NewHandler(newAuthTestService(), nil, nil, false, true).RegisterRoutes(router)
+	NewHandler(newAuthTestService(), nil, nil, "netstamp_session", false, true).RegisterRoutes(router)
 
 	res := performJSONRequest(router, http.MethodPost, "/auth/register", `{"email":"new@example.com","displayName":"New User","password":"correct-horse-battery-staple"}`)
 
@@ -44,7 +44,7 @@ func TestRegisterSetsSessionCookieAndReturnsUserOnly(t *testing.T) {
 
 func TestRegisterReturnsForbiddenWhenRegistrationDisabled(t *testing.T) {
 	router := chi.NewRouter()
-	NewHandler(newAuthTestService(), nil, nil, false, false).RegisterRoutes(router)
+	NewHandler(newAuthTestService(), nil, nil, "netstamp_session", false, false).RegisterRoutes(router)
 
 	res := performJSONRequest(router, http.MethodPost, "/auth/register", `{"email":"new@example.com","displayName":"New User","password":"correct-horse-battery-staple"}`)
 
@@ -63,7 +63,7 @@ func TestRegisterReturnsForbiddenWhenRegistrationDisabled(t *testing.T) {
 
 func TestLogoutExpiresSessionCookie(t *testing.T) {
 	router := chi.NewRouter()
-	NewHandler(nil, nil, nil, true, true).RegisterRoutes(router)
+	NewHandler(nil, nil, nil, "netstamp_session", true, true).RegisterRoutes(router)
 
 	res := performJSONRequest(router, http.MethodPost, "/auth/logout", "")
 
@@ -83,8 +83,8 @@ func TestLogoutExpiresSessionCookie(t *testing.T) {
 	if !cookie.Secure {
 		t.Fatal("expected secure cookie")
 	}
-	if cookie.SameSite != http.SameSiteLaxMode {
-		t.Fatalf("expected SameSite=Lax, got %v", cookie.SameSite)
+	if cookie.SameSite != http.SameSiteStrictMode {
+		t.Fatalf("expected SameSite=Strict, got %v", cookie.SameSite)
 	}
 }
 
@@ -115,8 +115,12 @@ func assertSessionCookie(t *testing.T, res *http.Response, value string, secure 
 	if !cookie.HttpOnly {
 		t.Fatal("expected HttpOnly cookie")
 	}
-	if cookie.SameSite != http.SameSiteLaxMode {
-		t.Fatalf("expected SameSite=Lax, got %v", cookie.SameSite)
+	expectedSameSite := http.SameSiteStrictMode
+	if !secure {
+		expectedSameSite = http.SameSiteLaxMode
+	}
+	if cookie.SameSite != expectedSameSite {
+		t.Fatalf("expected SameSite=%v, got %v", expectedSameSite, cookie.SameSite)
 	}
 }
 
@@ -158,7 +162,7 @@ func newAuthTestService() *appauth.Service {
 		PasswordHash:    "hashed-password",
 		EmailVerifiedAt: &verifiedAt,
 	}
-	return appauth.NewService(&authTestUserRepository{user: user}, authTestPasswordHasher{}, authTestTokenIssuer{}, authTestEvents{})
+	return appauth.NewService(&authTestUserRepository{user: user}, authTestPasswordHasher{}, authTestSessionManager{}, authTestEvents{})
 }
 
 type authTestUserRepository struct {
@@ -192,13 +196,33 @@ func (authTestPasswordHasher) Compare(context.Context, string, string) error {
 	return nil
 }
 
-type authTestTokenIssuer struct{}
+type authTestSessionManager struct{}
 
-func (authTestTokenIssuer) IssueAccessToken(context.Context, identity.AccessTokenClaims) (identity.IssuedToken, error) {
-	return identity.IssuedToken{
-		Value:     "issued-token",
+func (authTestSessionManager) CreateSession(context.Context, appauth.CreateSessionInput) (identity.CreatedSession, error) {
+	return identity.CreatedSession{
+		RawToken:  "issued-token",
 		ExpiresIn: 3600,
 	}, nil
+}
+
+func (authTestSessionManager) VerifySession(context.Context, string) (identity.SessionClaims, error) {
+	return identity.SessionClaims{}, nil
+}
+
+func (authTestSessionManager) CreateCSRFToken(context.Context, string) (string, error) {
+	return "", nil
+}
+
+func (authTestSessionManager) VerifyCSRFToken(context.Context, string, string) error {
+	return nil
+}
+
+func (authTestSessionManager) RevokeSession(context.Context, string, string) error {
+	return nil
+}
+
+func (authTestSessionManager) RevokeUserSessions(context.Context, string, string) error {
+	return nil
 }
 
 type authTestEvents struct{}

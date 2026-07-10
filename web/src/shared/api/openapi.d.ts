@@ -189,6 +189,26 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	"/auth/csrf": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Get CSRF token
+		 * @description Rotate and return the synchronizer CSRF token for the current authenticated session.
+		 */
+		get: operations["getCSRFToken"];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	"/auth/email-verifications": {
 		parameters: {
 			query?: never;
@@ -244,7 +264,7 @@ export interface paths {
 		put?: never;
 		/**
 		 * Logout user
-		 * @description Clear the HTTP-only session cookie.
+		 * @description Revoke the server-side session and clear the HTTP-only session cookie.
 		 */
 		post: operations["logoutUser"];
 		delete?: never;
@@ -262,7 +282,7 @@ export interface paths {
 		};
 		/**
 		 * Get current user
-		 * @description Return the user identity embedded in a valid session cookie.
+		 * @description Return the user identity associated with a valid session cookie.
 		 */
 		get: operations["getCurrentUser"];
 		put?: never;
@@ -1778,6 +1798,18 @@ export interface components {
 		};
 		/**
 		 * @example {
+		 *       "csrfToken": "YNo5Uoj64VqK5jCht8h17GO8sHJIY0ScDNef7X99w7k"
+		 *     }
+		 */
+		CSRFTokenResponse: {
+			/**
+			 * Format: password
+			 * @description One-time readable CSRF token to send in X-CSRF-Token for state-changing session-authenticated requests.
+			 */
+			csrfToken: string;
+		};
+		/**
+		 * @example {
 		 *       "newEmail": "jane.operator@example.com",
 		 *       "password": "correct-horse-battery-staple"
 		 *     }
@@ -2858,6 +2890,7 @@ export interface components {
 				| "READ_ONLY"
 				| "AUTH_MISSING_SESSION"
 				| "AUTH_INVALID_SESSION"
+				| "AUTH_INVALID_CSRF"
 				| "AUTH_INVALID_CREDENTIALS"
 				| "AUTH_EMAIL_VERIFICATION_REQUIRED"
 				| "AUTH_REGISTRATION_DISABLED"
@@ -5311,6 +5344,44 @@ export interface operations {
 			};
 			/** @description Client error */
 			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	getCSRFToken: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["CSRFTokenResponse"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
 				headers: {
 					[name: string]: unknown;
 				};

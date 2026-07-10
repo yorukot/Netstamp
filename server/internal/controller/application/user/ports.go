@@ -18,6 +18,10 @@ type SystemAdminRepository interface {
 	CountActiveSystemAdmins(ctx context.Context) (int64, error)
 }
 
+type SessionRepository interface {
+	RevokeUserSessions(ctx context.Context, userID, reason string) error
+}
+
 type PasswordHasher interface {
 	Hash(ctx context.Context, password string) (string, error)
 	Compare(ctx context.Context, password, passwordHash string) error

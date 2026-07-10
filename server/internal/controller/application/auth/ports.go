@@ -38,12 +38,13 @@ type PasswordHasher interface {
 	Compare(ctx context.Context, password, passwordHash string) error
 }
 
-type TokenIssuer interface {
-	IssueAccessToken(ctx context.Context, input identity.AccessTokenClaims) (identity.IssuedToken, error)
-}
-
-type TokenVerifier interface {
-	VerifyAccessToken(ctx context.Context, value string) (identity.AccessTokenClaims, error)
+type SessionManager interface {
+	CreateSession(ctx context.Context, input CreateSessionInput) (identity.CreatedSession, error)
+	VerifySession(ctx context.Context, rawToken string) (identity.SessionClaims, error)
+	CreateCSRFToken(ctx context.Context, sessionID string) (string, error)
+	VerifyCSRFToken(ctx context.Context, sessionID, rawToken string) error
+	RevokeSession(ctx context.Context, rawToken, reason string) error
+	RevokeUserSessions(ctx context.Context, userID, reason string) error
 }
 
 type PasswordResetTokenManager interface {
@@ -76,7 +77,7 @@ const (
 	AuthEventRegisterFailure                 AuthEventName = "auth.register.failure"
 	AuthEventLoginSuccess                    AuthEventName = "auth.login.success"
 	AuthEventLoginFailure                    AuthEventName = "auth.login.failure"
-	AuthEventTokenIssueFailure               AuthEventName = "auth.token.issue.failure" //nolint:gosec // Event names are not credentials.
+	AuthEventSessionCreateFailure            AuthEventName = "auth.session.create.failure"
 	AuthEventResetRequestSuccess             AuthEventName = "auth.password_reset.request.success"
 	AuthEventResetRequestFailure             AuthEventName = "auth.password_reset.request.failure"
 	AuthEventResetConfirmSuccess             AuthEventName = "auth.password_reset.confirm.success"
@@ -128,7 +129,7 @@ const (
 	AuthReasonAccountDisabled                    AuthEventReason = "account_disabled"
 	AuthReasonUserCreateFailed                   AuthEventReason = "user_create_failed"
 	AuthReasonUserLookupFailed                   AuthEventReason = "user_lookup_failed"
-	AuthReasonAccessTokenIssueFail               AuthEventReason = "access_token_issue_failed"
+	AuthReasonSessionCreateFail                  AuthEventReason = "session_create_failed"
 )
 
 type AuthEvent struct {

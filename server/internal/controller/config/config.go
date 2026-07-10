@@ -43,8 +43,10 @@ const (
 	keyDBMinConns                          = "DB_MIN_CONNS"
 	keyDBMaxConnLifetime                   = "DB_MAX_CONN_LIFETIME"
 	keyDBMaxConnIdleTime                   = "DB_MAX_CONN_IDLE_TIME"
-	keyAuthJWTSecret                       = "AUTH_JWT_SECRET"       //nolint:gosec // This is the env key name, not the secret value.
-	keyAuthAccessTokenTTL                  = "AUTH_ACCESS_TOKEN_TTL" //nolint:gosec // This is a token TTL env key, not a credential.
+	keyAuthSessionHashKey                  = "AUTH_SESSION_HASH_KEY"
+	keyAuthSessionIdleTTL                  = "AUTH_SESSION_IDLE_TTL"
+	keyAuthSessionAbsoluteTTL              = "AUTH_SESSION_ABSOLUTE_TTL"
+	keyAuthSessionTouchInterval            = "AUTH_SESSION_TOUCH_INTERVAL"
 	keyAuthRegistrationEnabled             = "AUTH_REGISTRATION_ENABLED"
 	keyAuthPasswordResetTokenTTL           = "AUTH_PASSWORD_RESET_TOKEN_TTL"
 	keyAuthPasswordResetRateWindow         = "AUTH_PASSWORD_RESET_RATE_LIMIT_WINDOW"
@@ -103,8 +105,10 @@ var defaultSettings = map[string]any{
 	keyDBMinConns:                          int32(0),
 	keyDBMaxConnLifetime:                   time.Hour,
 	keyDBMaxConnIdleTime:                   30 * time.Minute,
-	keyAuthJWTSecret:                       "local-development-jwt-secret-change-before-production",
-	keyAuthAccessTokenTTL:                  12 * time.Hour,
+	keyAuthSessionHashKey:                  "local-development-session-hash-key-change-before-production",
+	keyAuthSessionIdleTTL:                  12 * time.Hour,
+	keyAuthSessionAbsoluteTTL:              7 * 24 * time.Hour,
+	keyAuthSessionTouchInterval:            5 * time.Minute,
 	keyAuthRegistrationEnabled:             true,
 	keyAuthPasswordResetTokenTTL:           30 * time.Minute,
 	keyAuthPasswordResetRateWindow:         time.Hour,
@@ -178,8 +182,10 @@ type DatabaseConfig struct {
 }
 
 type AuthConfig struct {
-	JWTSecret               string        `mapstructure:"AUTH_JWT_SECRET"`
-	AccessTokenTTL          time.Duration `mapstructure:"AUTH_ACCESS_TOKEN_TTL"`
+	SessionHashKey          string        `mapstructure:"AUTH_SESSION_HASH_KEY"`
+	SessionIdleTTL          time.Duration `mapstructure:"AUTH_SESSION_IDLE_TTL"`
+	SessionAbsoluteTTL      time.Duration `mapstructure:"AUTH_SESSION_ABSOLUTE_TTL"`
+	SessionTouchInterval    time.Duration `mapstructure:"AUTH_SESSION_TOUCH_INTERVAL"`
 	RegistrationEnabled     bool          `mapstructure:"AUTH_REGISTRATION_ENABLED"`
 	PasswordResetTokenTTL   time.Duration `mapstructure:"AUTH_PASSWORD_RESET_TOKEN_TTL"`
 	PasswordResetRateWindow time.Duration `mapstructure:"AUTH_PASSWORD_RESET_RATE_LIMIT_WINDOW"`
@@ -310,8 +316,13 @@ func validate(cfg Config) []error {
 	errs = append(errs, validatePositiveDuration(keyDBMaxConnIdleTime, cfg.Database.MaxConnIdleTime)...)
 
 	// Auth settings
-	errs = append(errs, validateRequiredString(keyAuthJWTSecret, cfg.Auth.JWTSecret)...)
-	errs = append(errs, validatePositiveDuration(keyAuthAccessTokenTTL, cfg.Auth.AccessTokenTTL)...)
+	errs = append(errs, validateRequiredString(keyAuthSessionHashKey, cfg.Auth.SessionHashKey)...)
+	errs = append(errs, validatePositiveDuration(keyAuthSessionIdleTTL, cfg.Auth.SessionIdleTTL)...)
+	errs = append(errs, validatePositiveDuration(keyAuthSessionAbsoluteTTL, cfg.Auth.SessionAbsoluteTTL)...)
+	errs = append(errs, validatePositiveDuration(keyAuthSessionTouchInterval, cfg.Auth.SessionTouchInterval)...)
+	if cfg.Auth.SessionAbsoluteTTL < cfg.Auth.SessionIdleTTL {
+		errs = append(errs, errors.New("AUTH_SESSION_ABSOLUTE_TTL must not be less than AUTH_SESSION_IDLE_TTL"))
+	}
 	errs = append(errs, validatePositiveDuration(keyAuthPasswordResetTokenTTL, cfg.Auth.PasswordResetTokenTTL)...)
 	errs = append(errs, validatePositiveDuration(keyAuthPasswordResetRateWindow, cfg.Auth.PasswordResetRateWindow)...)
 	if cfg.Auth.PasswordResetIPLimit <= 0 {
