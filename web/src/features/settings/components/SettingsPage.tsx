@@ -1,15 +1,18 @@
 import { useSession } from "@/features/auth/session/SessionContext";
 import { pathForRoute } from "@/routes/routePaths";
+import { clearCSRFToken } from "@/shared/api/client";
 import {
 	useAcceptProjectInviteMutation,
 	useChangeCurrentUserEmailMutation,
 	useChangeCurrentUserPasswordMutation,
 	useDeactivateCurrentUserMutation,
 	useRejectProjectInviteMutation,
+	useRevokeAuthSessionMutation,
 	useUpdateCurrentUserMutation
 } from "@/shared/api/mutations";
-import { projectQueries } from "@/shared/api/queries";
-import type { ApiProjectInvite } from "@/shared/api/types";
+import { authQueries, projectQueries } from "@/shared/api/queries";
+import { apiQueryKeys } from "@/shared/api/queryKeys";
+import type { ApiAuthSession, ApiProjectInvite } from "@/shared/api/types";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
@@ -19,7 +22,8 @@ import { appFeatures, demoMode } from "@/shared/config/features";
 import { pushToast } from "@/shared/toast/toastStore";
 import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
 import { ActionRow, Badge, BodyCopy, Button, DataTable, Panel, SignalAvatar, Spinner, TextField, type DataColumn } from "@netstamp/ui";
-import { useQuery } from "@tanstack/react-query";
+import { SignOutIcon } from "@phosphor-icons/react/dist/csr/SignOut";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import styles from "./SettingsPage.module.css";
@@ -73,12 +77,19 @@ function formatDateTime(value: string) {
 	return new Date(value).toLocaleString();
 }
 
+function effectiveSessionExpiry(authSession: ApiAuthSession) {
+	const idleExpiry = new Date(authSession.idleExpiresAt).valueOf();
+	const absoluteExpiry = new Date(authSession.absoluteExpiresAt).valueOf();
+	return new Date(Math.min(idleExpiry, absoluteExpiry)).toISOString();
+}
+
 function roleLabel(role: string) {
 	return role.charAt(0).toUpperCase() + role.slice(1);
 }
 
 export function SettingsPage() {
 	const { session } = useSession();
+	const queryClient = useQueryClient();
 	const { setSelectedProjectRef } = useCurrentProject();
 	const navigate = useNavigate();
 	const confirm = useConfirm();
@@ -88,7 +99,9 @@ export function SettingsPage() {
 	const deactivateUserMutation = useDeactivateCurrentUserMutation();
 	const acceptInviteMutation = useAcceptProjectInviteMutation();
 	const rejectInviteMutation = useRejectProjectInviteMutation();
+	const revokeSessionMutation = useRevokeAuthSessionMutation();
 	const invitesQuery = useQuery(projectQueries.currentUserInvites());
+	const sessionsQuery = useQuery({ ...authQueries.sessions(), enabled: Boolean(session) });
 	const [identityForm, setIdentityForm] = useState<IdentityFormState>(emptyIdentityForm);
 	const [emailForm, setEmailForm] = useState<EmailFormState>(emptyEmailForm);
 	const [passwordForm, setPasswordForm] = useState<PasswordFormState>(emptyPasswordForm);
@@ -215,6 +228,39 @@ export function SettingsPage() {
 		});
 	}
 
+	async function revokeSession(authSession: ApiAuthSession) {
+		if (demoMode) {
+			return;
+		}
+
+		const accepted = await confirm({
+			title: authSession.isCurrent ? "Sign out this session" : "Revoke session",
+			message: authSession.isCurrent ? "This is your current session. You will be signed out on this device." : "This device will lose access immediately. Other active sessions will stay signed in.",
+			confirmLabel: authSession.isCurrent ? "Sign out" : "Revoke",
+			tone: "danger"
+		});
+		if (!accepted) {
+			return;
+		}
+
+		revokeSessionMutation.mutate(authSession.id, {
+			onSuccess: () => {
+				if (authSession.isCurrent) {
+					clearCSRFToken();
+					queryClient.removeQueries({ queryKey: apiQueryKeys.auth.all });
+					queryClient.removeQueries({ queryKey: apiQueryKeys.projects.all });
+					pushToast({ title: "Signed out", message: "The current session was revoked.", tone: "success" });
+					navigate(pathForRoute("login"));
+					return;
+				}
+				pushToast({ title: "Session revoked", message: "The selected session can no longer access Netstamp.", tone: "success" });
+			},
+			onError: error => {
+				pushToast({ title: "Revoke failed", message: requestErrorMessage(error, "Could not revoke the selected session."), tone: "critical" });
+			}
+		});
+	}
+
 	const inviteRows: InviteRow[] = (invitesQuery.data?.invites ?? []).map(invite => ({
 		id: invite.id,
 		project: invite.project.name,
@@ -256,10 +302,63 @@ export function SettingsPage() {
 			}
 		}
 	];
+	const activeSessions = sessionsQuery.data?.sessions ?? [];
+	const sessionColumns: DataColumn<ApiAuthSession>[] = [
+		{
+			key: "client",
+			label: "Client",
+			render: authSession => (
+				<div className={styles.sessionClient}>
+					<div className={styles.sessionState}>
+						<strong>{authSession.isCurrent ? "Current session" : "Authenticated session"}</strong>
+						{authSession.isCurrent ? <Badge tone="success">Current</Badge> : null}
+					</div>
+					<span className={styles.sessionAgent}>{authSession.userAgent || "User-Agent unavailable for this session"}</span>
+				</div>
+			)
+		},
+		{ key: "lastUsedAt", label: "Last active", render: authSession => <span className={styles.sessionTime}>{formatDateTime(authSession.lastUsedAt)}</span> },
+		{ key: "createdAt", label: "Signed in", render: authSession => <span className={styles.sessionTime}>{formatDateTime(authSession.createdAt)}</span> },
+		{ key: "absoluteExpiresAt", label: "Expires", render: authSession => <span className={styles.sessionTime}>{formatDateTime(effectiveSessionExpiry(authSession))}</span> }
+	];
 
 	return (
 		<PageStack>
 			<ScreenHeader title="Account" />
+
+			<Panel
+				tone="glass"
+				title={`${activeSessions.length} active ${activeSessions.length === 1 ? "session" : "sessions"}`}
+				summary="Review the clients authenticated with your account and revoke access you no longer recognize."
+			>
+				<DataTable
+					columns={sessionColumns}
+					rows={activeSessions}
+					density="compact"
+					minWidth="64rem"
+					ariaLabel="Active auth sessions"
+					getRowKey={authSession => authSession.id}
+					emptyLabel={
+						sessionsQuery.isLoading ? <Spinner label="Loading active sessions" layout="compact" size="lg" /> : sessionsQuery.isError ? "Active sessions could not be loaded" : "No active sessions"
+					}
+					rowActions={authSession => {
+						const revoking = revokeSessionMutation.isPending && revokeSessionMutation.variables === authSession.id;
+						return (
+							<Button
+								type="button"
+								variant="danger"
+								size="sm"
+								disabled={demoMode || revokeSessionMutation.isPending}
+								aria-label={authSession.isCurrent ? "Revoke current session" : `Revoke session signed in ${formatDateTime(authSession.createdAt)}`}
+								onClick={() => void revokeSession(authSession)}
+							>
+								<SignOutIcon aria-hidden="true" focusable="false" />
+								{revoking ? "Revoking" : authSession.isCurrent ? "Sign out" : "Revoke"}
+							</Button>
+						);
+					}}
+				/>
+			</Panel>
 
 			<Panel tone="glass" title={`${inviteRows.length} pending project invites`}>
 				<DataTable

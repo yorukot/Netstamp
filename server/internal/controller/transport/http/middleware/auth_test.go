@@ -145,6 +145,14 @@ func (v *recordingTokenVerifier) RevokeSession(context.Context, string, string) 
 	return nil
 }
 
+func (v *recordingTokenVerifier) ListUserSessions(context.Context, string) ([]identity.AuthSession, error) {
+	return nil, nil
+}
+
+func (v *recordingTokenVerifier) RevokeUserSession(context.Context, string, string, string) error {
+	return nil
+}
+
 func (v *recordingTokenVerifier) RevokeUserSessions(context.Context, string, string) error {
 	return nil
 }

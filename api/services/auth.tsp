@@ -73,4 +73,20 @@ interface AuthService {
 	@get
 	@route("/me")
 	getCurrentUser(): OkJson<CurrentUserResponse> | UnauthorizedProblem | InternalServerProblem;
+
+	@operationId("listAuthSessions")
+	@summary("List auth sessions")
+	@doc("Return the active server-side sessions owned by the current user, including the captured User-Agent and whether each session is current.")
+	@useAuth(SessionCookieAuth)
+	@get
+	@route("/sessions")
+	listAuthSessions(): OkJson<AuthSessionsResponse> | UnauthorizedProblem | InternalServerProblem;
+
+	@operationId("revokeAuthSession")
+	@summary("Revoke auth session")
+	@doc("Revoke an active server-side session owned by the current user. Revoking the current session also clears its session cookie.")
+	@useAuth(SessionCookieAuth)
+	@delete
+	@route("/sessions/{session_id}")
+	revokeAuthSession(...AuthSessionIdPathParam): OptionalSessionNoContent | UnauthorizedProblem | NotFoundProblem | InternalServerProblem;
 }

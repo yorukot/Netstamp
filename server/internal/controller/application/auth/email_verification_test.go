@@ -302,6 +302,14 @@ func (emailVerificationSessionManager) RevokeSession(context.Context, string, st
 	return nil
 }
 
+func (emailVerificationSessionManager) ListUserSessions(context.Context, string) ([]identity.AuthSession, error) {
+	return nil, nil
+}
+
+func (emailVerificationSessionManager) RevokeUserSession(context.Context, string, string, string) error {
+	return nil
+}
+
 func (emailVerificationSessionManager) RevokeUserSessions(context.Context, string, string) error {
 	return nil
 }

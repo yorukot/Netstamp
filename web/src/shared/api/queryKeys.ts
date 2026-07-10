@@ -6,7 +6,8 @@ export const apiQueryKeys = {
 	},
 	auth: {
 		all: ["auth"] as const,
-		me: () => [...apiQueryKeys.auth.all, "me"] as const
+		me: () => [...apiQueryKeys.auth.all, "me"] as const,
+		sessions: () => [...apiQueryKeys.auth.all, "sessions"] as const
 	},
 	admin: {
 		all: ["admin"] as const,

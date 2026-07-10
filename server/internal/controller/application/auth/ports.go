@@ -44,6 +44,8 @@ type SessionManager interface {
 	CreateCSRFToken(ctx context.Context, sessionID string) (string, error)
 	VerifyCSRFToken(ctx context.Context, sessionID, rawToken string) error
 	RevokeSession(ctx context.Context, rawToken, reason string) error
+	ListUserSessions(ctx context.Context, userID string) ([]identity.AuthSession, error)
+	RevokeUserSession(ctx context.Context, userID, sessionID, reason string) error
 	RevokeUserSessions(ctx context.Context, userID, reason string) error
 }
 
@@ -130,6 +132,8 @@ const (
 	AuthReasonUserCreateFailed                   AuthEventReason = "user_create_failed"
 	AuthReasonUserLookupFailed                   AuthEventReason = "user_lookup_failed"
 	AuthReasonSessionCreateFail                  AuthEventReason = "session_create_failed"
+	AuthReasonSessionListFail                    AuthEventReason = "session_list_failed"
+	AuthReasonSessionRevokeFail                  AuthEventReason = "session_revoke_failed"
 )
 
 type AuthEvent struct {

@@ -1005,6 +1005,7 @@ type AuthSession struct {
 	AbsoluteExpiresAt time.Time  `json:"absolute_expires_at"`
 	RevokedAt         *time.Time `json:"revoked_at"`
 	RevokedReason     *string    `json:"revoked_reason"`
+	UserAgent         string     `json:"user_agent"`
 }
 
 type Check struct {

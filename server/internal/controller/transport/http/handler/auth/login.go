@@ -9,7 +9,7 @@ import (
 	"github.com/yorukot/netstamp/internal/controller/transport/http/httpx"
 )
 
-func (h *Handler) login(ctx context.Context, input *loginInput) (*loginOutput, error) {
+func (h *Handler) login(ctx context.Context, r *http.Request, input *loginInput) (*loginOutput, error) {
 	emailVerificationRequired := false
 	if h.settings != nil {
 		settings, err := h.settings.EffectiveSettings(ctx)
@@ -22,6 +22,7 @@ func (h *Handler) login(ctx context.Context, input *loginInput) (*loginOutput, e
 	result, err := h.service.Login(ctx, appauth.LoginInput{
 		Email:                    input.Body.Email,
 		Password:                 input.Body.Password,
+		UserAgent:                r.UserAgent(),
 		RequireEmailVerification: emailVerificationRequired,
 	})
 	if err != nil {

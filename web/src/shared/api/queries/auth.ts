@@ -9,5 +9,10 @@ export const authQueries = {
 			queryFn: ({ signal }) => readApiData(apiClient.GET("/auth/me", { signal })),
 			retry: false,
 			staleTime: 5 * 60 * 1000
+		}),
+	sessions: () =>
+		queryOptions({
+			queryKey: apiQueryKeys.auth.sessions(),
+			queryFn: ({ signal }) => readApiData(apiClient.GET("/auth/sessions", { signal }))
 		})
 };

@@ -60,6 +60,8 @@ func TestNewRouterServesOpenAPIWithoutRuntimeServices(t *testing.T) {
 	assertOpenAPIOperation(t, spec, http.MethodPost, "/auth/login", "loginUser")
 	assertOpenAPIOperation(t, spec, http.MethodPost, "/auth/logout", "logoutUser")
 	assertOpenAPIOperation(t, spec, http.MethodGet, "/auth/me", "getCurrentUser")
+	assertOpenAPIOperation(t, spec, http.MethodGet, "/auth/sessions", "listAuthSessions")
+	assertOpenAPIOperation(t, spec, http.MethodDelete, "/auth/sessions/{session_id}", "revokeAuthSession")
 	assertOpenAPIOperation(t, spec, http.MethodPatch, "/users/me", "updateCurrentUser")
 	assertOpenAPIOperation(t, spec, http.MethodPost, "/users/me/email-change", "changeCurrentUserEmail")
 	assertOpenAPIOperation(t, spec, http.MethodPost, "/users/me/password-change", "changeCurrentUserPassword")
@@ -810,6 +812,14 @@ func (staticRouterTokenVerifier) VerifyCSRFToken(context.Context, string, string
 }
 
 func (staticRouterTokenVerifier) RevokeSession(context.Context, string, string) error {
+	return nil
+}
+
+func (staticRouterTokenVerifier) ListUserSessions(context.Context, string) ([]identity.AuthSession, error) {
+	return nil, nil
+}
+
+func (staticRouterTokenVerifier) RevokeUserSession(context.Context, string, string, string) error {
 	return nil
 }
 

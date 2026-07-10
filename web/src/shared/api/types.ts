@@ -4,6 +4,7 @@ export type ApiCheck = components["schemas"]["Check"];
 export type ApiAlertIncident = components["schemas"]["AlertIncident"];
 export type ApiAlertRule = components["schemas"]["AlertRule"];
 export type ApiAdminSettings = components["schemas"]["AdminSettings"];
+export type ApiAuthSession = components["schemas"]["AuthSession"];
 export type ApiAdminDataExport = Omit<components["schemas"]["AdminDataExport"], "tables"> & {
 	tables: Record<string, unknown[]>;
 };

@@ -337,6 +337,46 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	"/auth/sessions": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * List auth sessions
+		 * @description Return the active server-side sessions owned by the current user, including the captured User-Agent and whether each session is current.
+		 */
+		get: operations["listAuthSessions"];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	"/auth/sessions/{session_id}": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		post?: never;
+		/**
+		 * Revoke auth session
+		 * @description Revoke an active server-side session owned by the current user. Revoking the current session also clears its session cookie.
+		 */
+		delete: operations["revokeAuthSession"];
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	"/healthz": {
 		parameters: {
 			query?: never;
@@ -1784,6 +1824,51 @@ export interface components {
 		};
 		/**
 		 * @example {
+		 *       "id": "22222222-2222-2222-2222-222222222222",
+		 *       "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/140.0 Safari/537.36",
+		 *       "createdAt": "2026-07-10T08:00:00Z",
+		 *       "lastUsedAt": "2026-07-10T09:15:00Z",
+		 *       "idleExpiresAt": "2026-07-17T09:15:00Z",
+		 *       "absoluteExpiresAt": "2026-08-09T08:00:00Z",
+		 *       "isCurrent": true
+		 *     }
+		 */
+		AuthSession: {
+			/** @description Server-side auth session UUID. */
+			id: components["schemas"]["uuid"];
+			/** @description User-Agent captured when the session was created. Empty for sessions created before User-Agent tracking was enabled. */
+			userAgent: string;
+			/** Format: date-time */
+			createdAt: string;
+			/** Format: date-time */
+			lastUsedAt: string;
+			/** Format: date-time */
+			idleExpiresAt: string;
+			/** Format: date-time */
+			absoluteExpiresAt: string;
+			/** @description Whether this is the session authenticating the current request. */
+			isCurrent: boolean;
+		};
+		/**
+		 * @example {
+		 *       "sessions": [
+		 *         {
+		 *           "id": "22222222-2222-2222-2222-222222222222",
+		 *           "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/140.0 Safari/537.36",
+		 *           "createdAt": "2026-07-10T08:00:00Z",
+		 *           "lastUsedAt": "2026-07-10T09:15:00Z",
+		 *           "idleExpiresAt": "2026-07-17T09:15:00Z",
+		 *           "absoluteExpiresAt": "2026-08-09T08:00:00Z",
+		 *           "isCurrent": true
+		 *         }
+		 *       ]
+		 *     }
+		 */
+		AuthSessionsResponse: {
+			sessions: components["schemas"]["AuthSession"][];
+		};
+		/**
+		 * @example {
 		 *       "user": {
 		 *         "id": "11111111-1111-1111-1111-111111111111",
 		 *         "email": "user@example.com",
@@ -2898,6 +2983,7 @@ export interface components {
 				| "AUTH_PASSWORD_RESET_UNAVAILABLE"
 				| "AUTH_EMAIL_VERIFICATION_TOKEN_INVALID"
 				| "AUTH_PASSWORD_RESET_TOKEN_INVALID"
+				| "AUTH_SESSION_NOT_FOUND"
 				| "USER_NOT_FOUND"
 				| "EMAIL_ALREADY_EXISTS"
 				| "LAST_SYSTEM_ADMIN"
@@ -4641,6 +4727,8 @@ export interface components {
 		AlertRuleIdPathParam: components["schemas"]["uuid"];
 		"AlertRuleListQuery.checkType": "ping" | "tcp" | "traceroute";
 		"AlertRuleListQuery.status": "enabled" | "disabled";
+		/** @description Auth session UUID. */
+		AuthSessionIdPathParam: components["schemas"]["uuid"];
 		CheckIdPathParam: components["schemas"]["uuid"];
 		LabelIdPathParam: components["schemas"]["uuid"];
 		"LatestResultsQuery.checkId": components["schemas"]["uuid"];
@@ -5856,6 +5944,93 @@ export interface operations {
 			};
 			/** @description Service unavailable. */
 			503: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	listAuthSessions: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["AuthSessionsResponse"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	revokeAuthSession: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description Auth session UUID. */
+				session_id: components["parameters"]["AuthSessionIdPathParam"];
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description There is no content to send for this request, but the headers may be useful. */
+			204: {
+				headers: {
+					"Set-Cookie"?: string;
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
 				headers: {
 					[name: string]: unknown;
 				};

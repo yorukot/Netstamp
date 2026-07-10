@@ -81,6 +81,14 @@ func (v *staticTokenVerifier) RevokeSession(context.Context, string, string) err
 	return nil
 }
 
+func (v *staticTokenVerifier) ListUserSessions(context.Context, string) ([]identity.AuthSession, error) {
+	return nil, nil
+}
+
+func (v *staticTokenVerifier) RevokeUserSession(context.Context, string, string, string) error {
+	return nil
+}
+
 func (v *staticTokenVerifier) RevokeUserSessions(context.Context, string, string) error {
 	return nil
 }

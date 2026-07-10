@@ -1447,6 +1447,113 @@
 				}
 			}
 		},
+		"/auth/sessions": {
+			"get": {
+				"operationId": "listAuthSessions",
+				"summary": "List auth sessions",
+				"description": "Return the active server-side sessions owned by the current user, including the captured User-Agent and whether each session is current.",
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/AuthSessionsResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Auth"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/auth/sessions/{session_id}": {
+			"delete": {
+				"operationId": "revokeAuthSession",
+				"summary": "Revoke auth session",
+				"description": "Revoke an active server-side session owned by the current user. Revoking the current session also clears its session cookie.",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/AuthSessionIdPathParam"
+					}
+				],
+				"responses": {
+					"204": {
+						"description": "There is no content to send for this request, but the headers may be useful. ",
+						"headers": {
+							"Set-Cookie": {
+								"required": false,
+								"schema": {
+									"type": "string"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Auth"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
 		"/healthz": {
 			"get": {
 				"operationId": "getHealth",
@@ -7819,6 +7926,15 @@
 				},
 				"explode": false
 			},
+			"AuthSessionIdPathParam": {
+				"name": "session_id",
+				"in": "path",
+				"required": true,
+				"description": "Auth session UUID.",
+				"schema": {
+					"$ref": "#/components/schemas/uuid"
+				}
+			},
 			"CheckIdPathParam": {
 				"name": "check_id",
 				"in": "path",
@@ -9148,6 +9264,83 @@
 								"timeoutMs": 3000
 							}
 						}
+					}
+				]
+			},
+			"AuthSession": {
+				"type": "object",
+				"required": ["id", "userAgent", "createdAt", "lastUsedAt", "idleExpiresAt", "absoluteExpiresAt", "isCurrent"],
+				"properties": {
+					"id": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/uuid"
+							}
+						],
+						"description": "Server-side auth session UUID."
+					},
+					"userAgent": {
+						"type": "string",
+						"maxLength": 512,
+						"description": "User-Agent captured when the session was created. Empty for sessions created before User-Agent tracking was enabled."
+					},
+					"createdAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"lastUsedAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"idleExpiresAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"absoluteExpiresAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"isCurrent": {
+						"type": "boolean",
+						"description": "Whether this is the session authenticating the current request."
+					}
+				},
+				"examples": [
+					{
+						"id": "22222222-2222-2222-2222-222222222222",
+						"userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/140.0 Safari/537.36",
+						"createdAt": "2026-07-10T08:00:00Z",
+						"lastUsedAt": "2026-07-10T09:15:00Z",
+						"idleExpiresAt": "2026-07-17T09:15:00Z",
+						"absoluteExpiresAt": "2026-08-09T08:00:00Z",
+						"isCurrent": true
+					}
+				]
+			},
+			"AuthSessionsResponse": {
+				"type": "object",
+				"required": ["sessions"],
+				"properties": {
+					"sessions": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/AuthSession"
+						}
+					}
+				},
+				"examples": [
+					{
+						"sessions": [
+							{
+								"id": "22222222-2222-2222-2222-222222222222",
+								"userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/140.0 Safari/537.36",
+								"createdAt": "2026-07-10T08:00:00Z",
+								"lastUsedAt": "2026-07-10T09:15:00Z",
+								"idleExpiresAt": "2026-07-17T09:15:00Z",
+								"absoluteExpiresAt": "2026-08-09T08:00:00Z",
+								"isCurrent": true
+							}
+						]
 					}
 				]
 			},
@@ -11021,6 +11214,7 @@
 							"AUTH_PASSWORD_RESET_UNAVAILABLE",
 							"AUTH_EMAIL_VERIFICATION_TOKEN_INVALID",
 							"AUTH_PASSWORD_RESET_TOKEN_INVALID",
+							"AUTH_SESSION_NOT_FOUND",
 							"USER_NOT_FOUND",
 							"EMAIL_ALREADY_EXISTS",
 							"LAST_SYSTEM_ADMIN",

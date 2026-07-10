@@ -30,6 +30,8 @@ type SessionRepository interface {
 	UpdateCSRFTokenHash(ctx context.Context, sessionID string, csrfTokenHash []byte, now time.Time) error
 	TouchSession(ctx context.Context, sessionID string, lastUsedAt, idleExpiresAt time.Time) error
 	RevokeSessionByTokenHash(ctx context.Context, tokenHash []byte, revokedAt time.Time, reason string) error
+	ListActiveSessionsForUser(ctx context.Context, userID string, now time.Time) ([]identity.AuthSession, error)
+	RevokeSessionByIDForUser(ctx context.Context, userID, sessionID string, revokedAt time.Time, reason string) error
 	RevokeSessionsForUser(ctx context.Context, userID string, revokedAt time.Time, reason string) error
 }
 
@@ -82,6 +84,7 @@ func (m *SessionManager) CreateSession(ctx context.Context, input appauth.Create
 		UserID:            input.UserID,
 		TokenHash:         m.hash(rawToken),
 		CSRFTokenHash:     m.hash(rawCSRFToken),
+		UserAgent:         input.UserAgent,
 		CreatedAt:         now,
 		LastUsedAt:        now,
 		IdleExpiresAt:     idleExpiresAt,
@@ -161,6 +164,23 @@ func (m *SessionManager) RevokeSession(ctx context.Context, rawToken, reason str
 		reason = "logout"
 	}
 	return m.repo.RevokeSessionByTokenHash(ctx, m.hash(rawToken), m.now(), reason)
+}
+
+func (m *SessionManager) ListUserSessions(ctx context.Context, userID string) ([]identity.AuthSession, error) {
+	if userID == "" {
+		return nil, appauth.ErrSessionInvalid
+	}
+	return m.repo.ListActiveSessionsForUser(ctx, userID, m.now())
+}
+
+func (m *SessionManager) RevokeUserSession(ctx context.Context, userID, sessionID, reason string) error {
+	if userID == "" || sessionID == "" {
+		return identity.ErrSessionNotFound
+	}
+	if reason == "" {
+		reason = "user_revoked"
+	}
+	return m.repo.RevokeSessionByIDForUser(ctx, userID, sessionID, m.now(), reason)
 }
 
 func (m *SessionManager) RevokeUserSessions(ctx context.Context, userID, reason string) error {

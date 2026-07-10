@@ -16,6 +16,7 @@ const (
 	CodeAuthPasswordResetUnavailable      = "AUTH_PASSWORD_RESET_UNAVAILABLE"
 	CodeAuthEmailVerificationTokenInvalid = "AUTH_EMAIL_VERIFICATION_TOKEN_INVALID" // #nosec G101 -- public problem code, not token material.
 	CodeAuthPasswordResetTokenInvalid     = "AUTH_PASSWORD_RESET_TOKEN_INVALID"
+	CodeAuthSessionNotFound               = "AUTH_SESSION_NOT_FOUND"
 )
 
 const (

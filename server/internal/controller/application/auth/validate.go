@@ -8,6 +8,8 @@ import (
 	"github.com/yorukot/netstamp/internal/domain/identity"
 )
 
+const maxSessionUserAgentRunes = 512
+
 func normalizeRegisterInput(input RegisterInput) (RegisterInput, error) {
 	var validation appvalidation.Collector
 
@@ -43,6 +45,7 @@ func normalizeRegisterInput(input RegisterInput) (RegisterInput, error) {
 		DisplayName:              displayName,
 		Password:                 password,
 		Email:                    email,
+		UserAgent:                normalizeSessionUserAgent(input.UserAgent),
 		RequireEmailVerification: input.RequireEmailVerification,
 		EmailVerificationBaseURL: emailVerificationBaseURL,
 	}, nil
@@ -66,8 +69,18 @@ func normalizeLoginInput(input LoginInput) (LoginInput, error) {
 	return LoginInput{
 		Email:                    email,
 		Password:                 password,
+		UserAgent:                normalizeSessionUserAgent(input.UserAgent),
 		RequireEmailVerification: input.RequireEmailVerification,
 	}, nil
+}
+
+func normalizeSessionUserAgent(value string) string {
+	value = strings.TrimSpace(value)
+	runes := []rune(value)
+	if len(runes) > maxSessionUserAgentRunes {
+		return string(runes[:maxSessionUserAgentRunes])
+	}
+	return value
 }
 
 func normalizeRequestPasswordResetInput(input RequestPasswordResetInput) (RequestPasswordResetInput, error) {

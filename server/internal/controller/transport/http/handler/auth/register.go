@@ -29,6 +29,7 @@ func (h *Handler) register(ctx context.Context, r *http.Request, input *register
 		Email:                    input.Body.Email,
 		DisplayName:              input.Body.DisplayName,
 		Password:                 input.Body.Password,
+		UserAgent:                r.UserAgent(),
 		RequireEmailVerification: emailVerificationRequired,
 		EmailVerificationBaseURL: h.resetBaseURL(r),
 	})

@@ -12,6 +12,15 @@ export function logoutUser() {
 	return readEmptyApiResponse(apiClient.POST("/auth/logout"));
 }
 
+export function revokeAuthSession(sessionId: string) {
+	requireWritableAccess();
+	return readEmptyApiResponse(
+		apiClient.DELETE("/auth/sessions/{session_id}", {
+			params: { path: { session_id: sessionId } }
+		})
+	);
+}
+
 export function registerUser(body: RegisterInput) {
 	requireWritableAccess();
 	return readApiData(apiClient.POST("/auth/register", { body }));
@@ -96,6 +105,17 @@ export function useLogoutMutation() {
 			clearCSRFToken();
 			queryClient.removeQueries({ queryKey: apiQueryKeys.auth.all });
 			queryClient.removeQueries({ queryKey: apiQueryKeys.projects.all });
+		}
+	});
+}
+
+export function useRevokeAuthSessionMutation() {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: revokeAuthSession,
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: apiQueryKeys.auth.sessions() });
 		}
 	});
 }

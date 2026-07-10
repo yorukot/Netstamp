@@ -29,6 +29,33 @@ func TestLoginSetsSessionCookieAndReturnsUserOnly(t *testing.T) {
 	assertAuthBodyHasOnlyUser(t, res)
 }
 
+func TestLoginCapturesUserAgentForSession(t *testing.T) {
+	manager := &recordingCreateSessionManager{}
+	verifiedAt := time.Now().UTC()
+	service := appauth.NewService(&authTestUserRepository{user: identity.User{
+		ID:              "11111111-1111-1111-1111-111111111111",
+		Email:           "user@example.com",
+		DisplayName:     "User",
+		PasswordHash:    "hashed-password",
+		EmailVerifiedAt: &verifiedAt,
+	}}, authTestPasswordHasher{}, manager, authTestEvents{})
+	router := chi.NewRouter()
+	NewHandler(service, manager, nil, "netstamp_session", true, true).RegisterRoutes(router)
+
+	req := httptest.NewRequest(http.MethodPost, "/auth/login", strings.NewReader(`{"email":"user@example.com","password":"correct-horse-battery-staple"}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", "Netstamp Test Browser/1.0")
+	res := httptest.NewRecorder()
+	router.ServeHTTP(res, req)
+
+	if res.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", res.Code)
+	}
+	if manager.input.UserAgent != "Netstamp Test Browser/1.0" {
+		t.Fatalf("expected captured user agent, got %q", manager.input.UserAgent)
+	}
+}
+
 func TestRegisterSetsSessionCookieAndReturnsUserOnly(t *testing.T) {
 	router := chi.NewRouter()
 	NewHandler(newAuthTestService(), nil, nil, "netstamp_session", false, true).RegisterRoutes(router)
@@ -221,8 +248,26 @@ func (authTestSessionManager) RevokeSession(context.Context, string, string) err
 	return nil
 }
 
+func (authTestSessionManager) ListUserSessions(context.Context, string) ([]identity.AuthSession, error) {
+	return nil, nil
+}
+
+func (authTestSessionManager) RevokeUserSession(context.Context, string, string, string) error {
+	return nil
+}
+
 func (authTestSessionManager) RevokeUserSessions(context.Context, string, string) error {
 	return nil
+}
+
+type recordingCreateSessionManager struct {
+	authTestSessionManager
+	input appauth.CreateSessionInput
+}
+
+func (m *recordingCreateSessionManager) CreateSession(_ context.Context, input appauth.CreateSessionInput) (identity.CreatedSession, error) {
+	m.input = input
+	return identity.CreatedSession{RawToken: "issued-token", ExpiresIn: 3600}, nil
 }
 
 type authTestEvents struct{}

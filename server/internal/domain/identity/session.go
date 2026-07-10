@@ -7,6 +7,7 @@ type AuthSession struct {
 	UserID            string
 	TokenHash         []byte
 	CSRFTokenHash     []byte
+	UserAgent         string
 	CreatedAt         time.Time
 	LastUsedAt        time.Time
 	IdleExpiresAt     time.Time

@@ -112,7 +112,7 @@ func (s *Service) Register(ctx context.Context, input RegisterInput) (AuthAccess
 		}, nil
 	}
 
-	result, err := s.createAccessResult(ctx, user)
+	result, err := s.createAccessResult(ctx, user, input.UserAgent)
 	if err != nil {
 		return AuthAccessResult{}, flow.technicalFailure(AuthEventSessionCreateFailure, AuthReasonSessionCreateFail, err)
 	}
@@ -224,7 +224,7 @@ func (s *Service) Login(ctx context.Context, input LoginInput) (AuthAccessResult
 		return AuthAccessResult{}, flow.businessFailure(AuthEventLoginFailure, AuthReasonEmailVerificationRequired, ErrEmailVerificationRequired)
 	}
 
-	result, err := s.createAccessResult(ctx, user)
+	result, err := s.createAccessResult(ctx, user, input.UserAgent)
 	if err != nil {
 		return AuthAccessResult{}, flow.technicalFailure(AuthEventSessionCreateFailure, AuthReasonSessionCreateFail, err)
 	}
@@ -449,7 +449,7 @@ func emailVerificationURL(baseURL, token string) string {
 	return baseURL + "/verify-email?" + values.Encode()
 }
 
-func (s *Service) createAccessResult(ctx context.Context, user identity.User) (AuthAccessResult, error) {
+func (s *Service) createAccessResult(ctx context.Context, user identity.User, userAgent string) (AuthAccessResult, error) {
 	ctx, span := authTracer.Start(ctx, "auth.create_session")
 	defer span.End()
 
@@ -458,8 +458,9 @@ func (s *Service) createAccessResult(ctx context.Context, user identity.User) (A
 	}
 
 	session, err := s.sessions.CreateSession(ctx, CreateSessionInput{
-		UserID: user.ID,
-		Now:    s.now(),
+		UserID:    user.ID,
+		UserAgent: userAgent,
+		Now:       s.now(),
 	})
 	if err != nil {
 		recordSpanError(span, err, AuthReasonSessionCreateFail)
@@ -475,6 +476,52 @@ func (s *Service) createAccessResult(ctx context.Context, user identity.User) (A
 		SessionToken:  session.RawToken,
 		ExpiresIn:     session.ExpiresIn,
 	}, nil
+}
+
+func (s *Service) ListSessions(ctx context.Context, userID, currentSessionID string) ([]SessionResult, error) {
+	ctx, span := authTracer.Start(ctx, "auth.list_sessions")
+	defer span.End()
+
+	if s.sessions == nil || userID == "" || currentSessionID == "" {
+		return nil, ErrSessionInvalid
+	}
+
+	sessions, err := s.sessions.ListUserSessions(ctx, userID)
+	if err != nil {
+		recordSpanError(span, err, AuthReasonSessionListFail)
+		return nil, err
+	}
+
+	results := make([]SessionResult, 0, len(sessions))
+	for _, session := range sessions {
+		results = append(results, SessionResult{
+			ID:                session.ID,
+			UserAgent:         session.UserAgent,
+			CreatedAt:         session.CreatedAt,
+			LastUsedAt:        session.LastUsedAt,
+			IdleExpiresAt:     session.IdleExpiresAt,
+			AbsoluteExpiresAt: session.AbsoluteExpiresAt,
+			IsCurrent:         session.ID == currentSessionID,
+		})
+	}
+
+	return results, nil
+}
+
+func (s *Service) RevokeSessionByID(ctx context.Context, userID, sessionID string) error {
+	ctx, span := authTracer.Start(ctx, "auth.revoke_session")
+	defer span.End()
+
+	if s.sessions == nil || userID == "" || sessionID == "" {
+		return identity.ErrSessionNotFound
+	}
+	if err := s.sessions.RevokeUserSession(ctx, userID, sessionID, "user_revoked"); err != nil {
+		if !errors.Is(err, identity.ErrSessionNotFound) {
+			recordSpanError(span, err, AuthReasonSessionRevokeFail)
+		}
+		return err
+	}
+	return nil
 }
 
 func (s *Service) hashPassword(ctx context.Context, password string) (string, error) {

@@ -120,6 +120,14 @@ func (v *projectHandlerTokenVerifier) RevokeSession(context.Context, string, str
 	return nil
 }
 
+func (v *projectHandlerTokenVerifier) ListUserSessions(context.Context, string) ([]identity.AuthSession, error) {
+	return nil, nil
+}
+
+func (v *projectHandlerTokenVerifier) RevokeUserSession(context.Context, string, string, string) error {
+	return nil
+}
+
 func (v *projectHandlerTokenVerifier) RevokeUserSessions(context.Context, string, string) error {
 	return nil
 }

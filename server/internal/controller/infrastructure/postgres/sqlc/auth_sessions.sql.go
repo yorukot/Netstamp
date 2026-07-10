@@ -20,7 +20,8 @@ INSERT INTO auth_sessions (
     created_at,
     last_used_at,
     idle_expires_at,
-    absolute_expires_at
+    absolute_expires_at,
+    user_agent
 )
 VALUES (
     $1,
@@ -29,7 +30,8 @@ VALUES (
     $4,
     $5,
     $6,
-    $7
+    $7,
+    $8
 )
 RETURNING id,
           user_id,
@@ -40,7 +42,8 @@ RETURNING id,
           idle_expires_at,
           absolute_expires_at,
           revoked_at,
-          revoked_reason
+          revoked_reason,
+          user_agent
 `
 
 type CreateAuthSessionParams struct {
@@ -51,6 +54,7 @@ type CreateAuthSessionParams struct {
 	LastUsedAt        time.Time `json:"last_used_at"`
 	IdleExpiresAt     time.Time `json:"idle_expires_at"`
 	AbsoluteExpiresAt time.Time `json:"absolute_expires_at"`
+	UserAgent         string    `json:"user_agent"`
 }
 
 func (q *Queries) CreateAuthSession(ctx context.Context, arg CreateAuthSessionParams) (AuthSession, error) {
@@ -62,6 +66,7 @@ func (q *Queries) CreateAuthSession(ctx context.Context, arg CreateAuthSessionPa
 		arg.LastUsedAt,
 		arg.IdleExpiresAt,
 		arg.AbsoluteExpiresAt,
+		arg.UserAgent,
 	)
 	var i AuthSession
 	err := row.Scan(
@@ -75,6 +80,7 @@ func (q *Queries) CreateAuthSession(ctx context.Context, arg CreateAuthSessionPa
 		&i.AbsoluteExpiresAt,
 		&i.RevokedAt,
 		&i.RevokedReason,
+		&i.UserAgent,
 	)
 	return i, err
 }
@@ -89,7 +95,8 @@ SELECT auth_sessions.id,
        auth_sessions.idle_expires_at,
        auth_sessions.absolute_expires_at,
        auth_sessions.revoked_at,
-       auth_sessions.revoked_reason
+       auth_sessions.revoked_reason,
+       auth_sessions.user_agent
 FROM auth_sessions
 JOIN users ON users.id = auth_sessions.user_id
 WHERE auth_sessions.id = $1
@@ -118,6 +125,7 @@ func (q *Queries) GetActiveAuthSessionByID(ctx context.Context, arg GetActiveAut
 		&i.AbsoluteExpiresAt,
 		&i.RevokedAt,
 		&i.RevokedReason,
+		&i.UserAgent,
 	)
 	return i, err
 }
@@ -132,7 +140,8 @@ SELECT auth_sessions.id,
        auth_sessions.idle_expires_at,
        auth_sessions.absolute_expires_at,
        auth_sessions.revoked_at,
-       auth_sessions.revoked_reason
+       auth_sessions.revoked_reason,
+       auth_sessions.user_agent
 FROM auth_sessions
 JOIN users ON users.id = auth_sessions.user_id
 WHERE auth_sessions.token_hash = $1
@@ -161,27 +170,99 @@ func (q *Queries) GetActiveAuthSessionByTokenHash(ctx context.Context, arg GetAc
 		&i.AbsoluteExpiresAt,
 		&i.RevokedAt,
 		&i.RevokedReason,
+		&i.UserAgent,
 	)
 	return i, err
 }
 
-const revokeAuthSessionByID = `-- name: RevokeAuthSessionByID :exec
+const listActiveAuthSessionsForUser = `-- name: ListActiveAuthSessionsForUser :many
+SELECT auth_sessions.id,
+       auth_sessions.user_id,
+       auth_sessions.token_hash,
+       auth_sessions.csrf_token_hash,
+       auth_sessions.created_at,
+       auth_sessions.last_used_at,
+       auth_sessions.idle_expires_at,
+       auth_sessions.absolute_expires_at,
+       auth_sessions.revoked_at,
+       auth_sessions.revoked_reason,
+       auth_sessions.user_agent
+FROM auth_sessions
+JOIN users ON users.id = auth_sessions.user_id
+WHERE auth_sessions.user_id = $1
+  AND auth_sessions.revoked_at IS NULL
+  AND auth_sessions.idle_expires_at > $2
+  AND auth_sessions.absolute_expires_at > $2
+  AND users.disabled_at IS NULL
+ORDER BY auth_sessions.last_used_at DESC, auth_sessions.created_at DESC
+`
+
+type ListActiveAuthSessionsForUserParams struct {
+	UserID uuid.UUID `json:"user_id"`
+	NowAt  time.Time `json:"now_at"`
+}
+
+func (q *Queries) ListActiveAuthSessionsForUser(ctx context.Context, arg ListActiveAuthSessionsForUserParams) ([]AuthSession, error) {
+	rows, err := q.db.Query(ctx, listActiveAuthSessionsForUser, arg.UserID, arg.NowAt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []AuthSession
+	for rows.Next() {
+		var i AuthSession
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.TokenHash,
+			&i.CsrfTokenHash,
+			&i.CreatedAt,
+			&i.LastUsedAt,
+			&i.IdleExpiresAt,
+			&i.AbsoluteExpiresAt,
+			&i.RevokedAt,
+			&i.RevokedReason,
+			&i.UserAgent,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const revokeAuthSessionByIDForUser = `-- name: RevokeAuthSessionByIDForUser :one
 UPDATE auth_sessions
 SET revoked_at = $1,
     revoked_reason = $2
 WHERE id = $3
+  AND user_id = $4
   AND revoked_at IS NULL
+  AND idle_expires_at > $1
+  AND absolute_expires_at > $1
+RETURNING id
 `
 
-type RevokeAuthSessionByIDParams struct {
+type RevokeAuthSessionByIDForUserParams struct {
 	RevokedAt     *time.Time `json:"revoked_at"`
 	RevokedReason *string    `json:"revoked_reason"`
 	ID            uuid.UUID  `json:"id"`
+	UserID        uuid.UUID  `json:"user_id"`
 }
 
-func (q *Queries) RevokeAuthSessionByID(ctx context.Context, arg RevokeAuthSessionByIDParams) error {
-	_, err := q.db.Exec(ctx, revokeAuthSessionByID, arg.RevokedAt, arg.RevokedReason, arg.ID)
-	return err
+func (q *Queries) RevokeAuthSessionByIDForUser(ctx context.Context, arg RevokeAuthSessionByIDForUserParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, revokeAuthSessionByIDForUser,
+		arg.RevokedAt,
+		arg.RevokedReason,
+		arg.ID,
+		arg.UserID,
+	)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
 }
 
 const revokeAuthSessionByTokenHash = `-- name: RevokeAuthSessionByTokenHash :exec

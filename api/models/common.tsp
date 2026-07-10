@@ -83,6 +83,7 @@ alias ErrorCode =
 	"AUTH_PASSWORD_RESET_UNAVAILABLE" |
 	"AUTH_EMAIL_VERIFICATION_TOKEN_INVALID" |
 	"AUTH_PASSWORD_RESET_TOKEN_INVALID" |
+	"AUTH_SESSION_NOT_FOUND" |
 	"USER_NOT_FOUND" |
 	"EMAIL_ALREADY_EXISTS" |
 	"LAST_SYSTEM_ADMIN" |
@@ -205,6 +206,13 @@ model SessionNoContent {
 
 	@header("Set-Cookie")
 	setCookie: string;
+}
+
+model OptionalSessionNoContent {
+	...NoContentResponse;
+
+	@header("Set-Cookie")
+	setCookie?: string;
 }
 
 model BadRequestProblem {

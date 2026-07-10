@@ -1,3 +1,7 @@
+import "@typespec/http";
+
+using Http;
+
 namespace Netstamp;
 
 @example(#{ id: "11111111-1111-1111-1111-111111111111", email: "user@example.com", displayName: "Jane Doe", emailVerified: true, isSystemAdmin: true })
@@ -18,6 +22,55 @@ model User {
 
 	@doc("Whether the user has instance-level administrator access.")
 	isSystemAdmin: boolean;
+}
+
+model AuthSessionIdPathParam {
+	@path
+	@doc("Auth session UUID.")
+	session_id: uuid;
+}
+
+@example(#{
+	id: "22222222-2222-2222-2222-222222222222",
+	userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/140.0 Safari/537.36",
+	createdAt: utcDateTime.fromISO("2026-07-10T08:00:00Z"),
+	lastUsedAt: utcDateTime.fromISO("2026-07-10T09:15:00Z"),
+	idleExpiresAt: utcDateTime.fromISO("2026-07-17T09:15:00Z"),
+	absoluteExpiresAt: utcDateTime.fromISO("2026-08-09T08:00:00Z"),
+	isCurrent: true,
+})
+model AuthSession {
+	@doc("Server-side auth session UUID.")
+	id: uuid;
+
+	@maxLength(512)
+	@doc("User-Agent captured when the session was created. Empty for sessions created before User-Agent tracking was enabled.")
+	userAgent: string;
+
+	createdAt: utcDateTime;
+	lastUsedAt: utcDateTime;
+	idleExpiresAt: utcDateTime;
+	absoluteExpiresAt: utcDateTime;
+
+	@doc("Whether this is the session authenticating the current request.")
+	isCurrent: boolean;
+}
+
+@example(#{
+	sessions: #[
+		#{
+			id: "22222222-2222-2222-2222-222222222222",
+			userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/140.0 Safari/537.36",
+			createdAt: utcDateTime.fromISO("2026-07-10T08:00:00Z"),
+			lastUsedAt: utcDateTime.fromISO("2026-07-10T09:15:00Z"),
+			idleExpiresAt: utcDateTime.fromISO("2026-07-17T09:15:00Z"),
+			absoluteExpiresAt: utcDateTime.fromISO("2026-08-09T08:00:00Z"),
+			isCurrent: true,
+		}
+	],
+})
+model AuthSessionsResponse {
+	sessions: AuthSession[];
 }
 
 @example(#{ email: "user@example.com", displayName: "Jane Doe", password: "correct-horse-battery-staple" })

@@ -53,6 +53,8 @@ func (h *Handler) RegisterRoutes(api chi.Router) {
 
 		r.Get("/auth/csrf", h.handleCSRF)
 		r.Get("/auth/me", h.handleMe)
+		r.Get("/auth/sessions", h.handleListSessions)
+		r.Delete("/auth/sessions/{session_id}", h.handleRevokeSession)
 	})
 }
 
@@ -103,7 +105,7 @@ func (h *Handler) handleLogin(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteProblem(w, r, err)
 		return
 	}
-	output, err := h.login(r.Context(), &loginInput{Body: body})
+	output, err := h.login(r.Context(), r, &loginInput{Body: body})
 	if err != nil {
 		httpx.WriteProblem(w, r, err)
 		return
@@ -142,6 +144,27 @@ func (h *Handler) handleMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpx.WriteJSON(w, http.StatusOK, output.Body)
+}
+
+func (h *Handler) handleListSessions(w http.ResponseWriter, r *http.Request) {
+	output, err := h.listSessions(r.Context(), &listSessionsInput{})
+	if err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, output.Body)
+}
+
+func (h *Handler) handleRevokeSession(w http.ResponseWriter, r *http.Request) {
+	output, err := h.revokeSession(r.Context(), &revokeSessionInput{SessionID: httpx.Path(r, "session_id")})
+	if err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	if output.SetCookie != nil {
+		http.SetCookie(w, output.SetCookie)
+	}
+	httpx.WriteNoContent(w)
 }
 
 func (h *Handler) handleRequestEmailVerification(w http.ResponseWriter, r *http.Request) {

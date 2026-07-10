@@ -37,6 +37,7 @@ func (r *Repository) CreateSession(ctx context.Context, input identity.AuthSessi
 		UserID:            userID,
 		TokenHash:         input.TokenHash,
 		CsrfTokenHash:     input.CSRFTokenHash,
+		UserAgent:         input.UserAgent,
 		CreatedAt:         input.CreatedAt,
 		LastUsedAt:        input.LastUsedAt,
 		IdleExpiresAt:     input.IdleExpiresAt,
@@ -148,20 +149,53 @@ func (r *Repository) RevokeSessionByTokenHash(ctx context.Context, tokenHash []b
 	return nil
 }
 
-func (r *Repository) RevokeSessionByID(ctx context.Context, sessionID string, revokedAt time.Time, reason string) error {
-	ctx, span := postgres.StartUserDBSpan(ctx, authSessionTracer, "postgres.auth_sessions.revoke_by_id", "UPDATE", "UPDATE auth_session revoke")
+func (r *Repository) ListActiveSessionsForUser(ctx context.Context, userIDValue string, now time.Time) ([]identity.AuthSession, error) {
+	ctx, span := postgres.StartUserDBSpan(ctx, authSessionTracer, "postgres.auth_sessions.list_active_for_user", "SELECT", "SELECT active user auth_sessions")
 	defer span.End()
 
+	userID, err := postgres.ParseUUID(userIDValue, identity.ErrUserNotFound)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := postgres.Queries(ctx, r.queries).ListActiveAuthSessionsForUser(ctx, sqlc.ListActiveAuthSessionsForUserParams{
+		UserID: userID,
+		NowAt:  now,
+	})
+	if err != nil {
+		postgres.RecordDBSpanError(span, err)
+		return nil, err
+	}
+
+	sessions := make([]identity.AuthSession, 0, len(rows))
+	for _, row := range rows {
+		sessions = append(sessions, mapAuthSession(row))
+	}
+	return sessions, nil
+}
+
+func (r *Repository) RevokeSessionByIDForUser(ctx context.Context, userIDValue, sessionID string, revokedAt time.Time, reason string) error {
+	ctx, span := postgres.StartUserDBSpan(ctx, authSessionTracer, "postgres.auth_sessions.revoke_by_id_for_user", "UPDATE", "UPDATE user auth_session revoke")
+	defer span.End()
+
+	userID, err := postgres.ParseUUID(userIDValue, identity.ErrUserNotFound)
+	if err != nil {
+		return err
+	}
 	id, err := postgres.ParseUUID(sessionID, identity.ErrSessionNotFound)
 	if err != nil {
 		return err
 	}
 
-	if err := postgres.Queries(ctx, r.queries).RevokeAuthSessionByID(ctx, sqlc.RevokeAuthSessionByIDParams{
+	if _, err := postgres.Queries(ctx, r.queries).RevokeAuthSessionByIDForUser(ctx, sqlc.RevokeAuthSessionByIDForUserParams{
 		ID:            id,
+		UserID:        userID,
 		RevokedAt:     &revokedAt,
 		RevokedReason: &reason,
 	}); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return identity.ErrSessionNotFound
+		}
 		postgres.RecordDBSpanError(span, err)
 		return err
 	}
@@ -194,6 +228,7 @@ func mapAuthSession(row sqlc.AuthSession) identity.AuthSession {
 		UserID:            row.UserID.String(),
 		TokenHash:         row.TokenHash,
 		CSRFTokenHash:     row.CsrfTokenHash,
+		UserAgent:         row.UserAgent,
 		CreatedAt:         row.CreatedAt,
 		LastUsedAt:        row.LastUsedAt,
 		IdleExpiresAt:     row.IdleExpiresAt,
