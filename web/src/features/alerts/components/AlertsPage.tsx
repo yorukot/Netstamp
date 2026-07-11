@@ -795,7 +795,7 @@ function RuleEditorDrawer({
 							</div>
 						</div>
 					) : (
-						<p className={styles.unsupportedNotice}>Traceroute alert rules are not available yet because the controller API only exposes alert metrics for ping and TCP checks.</p>
+						<p className={styles.unsupportedNotice}>Traceroute alert rules are not available yet because the controller API exposes alert metrics for ping, TCP, and HTTP checks.</p>
 					)}
 				</Panel>
 				<Panel tone="matte" title="Notify">

@@ -3,6 +3,7 @@ import type { ApiCheck, CreateCheckInput } from "@/shared/api/types";
 export type PingConfigPayload = NonNullable<CreateCheckInput["pingConfig"]>;
 export type TCPConfigPayload = NonNullable<CreateCheckInput["tcpConfig"]>;
 export type TracerouteConfigPayload = NonNullable<CreateCheckInput["tracerouteConfig"]>;
+export type HTTPConfigPayload = NonNullable<CreateCheckInput["httpConfig"]>;
 export type IPFamilyFormValue = "" | NonNullable<PingConfigPayload["ipFamily"]>;
 export type TracerouteProtocolFormValue = NonNullable<TracerouteConfigPayload["protocol"]>;
 
@@ -29,6 +30,25 @@ export interface TCPConfigFormState {
 	ipFamily: IPFamilyFormValue;
 }
 
+export type HTTPStatusClass = "1xx" | "2xx" | "3xx" | "4xx" | "5xx";
+export interface HTTPHeaderFormState {
+	id: string;
+	name: string;
+	value: string;
+}
+export interface HTTPConfigFormState {
+	method: NonNullable<HTTPConfigPayload["method"]>;
+	headers: HTTPHeaderFormState[];
+	body: string;
+	timeoutMs: string;
+	ipFamily: IPFamilyFormValue;
+	followRedirects: boolean;
+	skipTlsVerify: boolean;
+	statusClasses: HTTPStatusClass[];
+	statusCodes: string;
+	bodyContains: string;
+}
+
 export interface NumericConfigValidation {
 	value: number;
 	error: string;
@@ -37,6 +57,13 @@ export interface NumericConfigValidation {
 export type PingConfigValidation = Record<keyof Pick<PingConfigFormState, "packetCount" | "packetSizeBytes" | "timeoutMs">, NumericConfigValidation>;
 export type TCPConfigValidation = Record<keyof Pick<TCPConfigFormState, "port" | "timeoutMs">, NumericConfigValidation>;
 export type TracerouteConfigValidation = Record<keyof Pick<TracerouteConfigFormState, "maxHops" | "timeoutMs" | "queriesPerHop" | "packetSizeBytes" | "port">, NumericConfigValidation>;
+export interface HTTPConfigValidation {
+	timeout: NumericConfigValidation;
+	codes: number[];
+	statusError: string;
+	bodyError: string;
+	error: string;
+}
 
 export interface CheckConfigValidation {
 	ping: PingConfigValidation;
@@ -65,6 +92,19 @@ export const defaultTCPConfigFormState: TCPConfigFormState = {
 	port: "443",
 	timeoutMs: "3000",
 	ipFamily: ""
+};
+
+export const defaultHTTPConfigFormState: HTTPConfigFormState = {
+	method: "GET",
+	headers: [],
+	body: "",
+	timeoutMs: "10000",
+	ipFamily: "",
+	followRedirects: true,
+	skipTlsVerify: false,
+	statusClasses: ["2xx", "3xx"],
+	statusCodes: "",
+	bodyContains: ""
 };
 
 function validateIntegerField(label: string, value: string, options: { min: number; max?: number }): NumericConfigValidation {
@@ -159,6 +199,62 @@ export function tracerouteConfigFormStateFromApi(check: Pick<ApiCheck, "tracerou
 	};
 }
 
+export function httpConfigFormStateFromApi(check: Pick<ApiCheck, "httpConfig"> | null | undefined): HTTPConfigFormState {
+	const config = check?.httpConfig;
+	const statuses = config?.expectedStatuses ?? [];
+	return {
+		method: config?.method ?? "GET",
+		headers: (config?.headers ?? []).map((header, index) => ({ id: `header-${index}-${header.name}`, ...header })),
+		body: config?.body ?? "",
+		timeoutMs: String(config?.timeoutMs ?? 10000),
+		ipFamily: config?.ipFamily ?? "",
+		followRedirects: config?.followRedirects ?? true,
+		skipTlsVerify: config?.skipTlsVerify ?? false,
+		statusClasses: statuses.filter((status): status is Extract<(typeof statuses)[number], { kind: "class" }> => status.kind === "class").map(status => status.class),
+		statusCodes: statuses
+			.filter((status): status is Extract<(typeof statuses)[number], { kind: "code" }> => status.kind === "code")
+			.map(status => status.code)
+			.join(", "),
+		bodyContains: config?.bodyContains ?? ""
+	};
+}
+
+export function validateHTTPConfig(state: HTTPConfigFormState): HTTPConfigValidation {
+	const timeout = validateIntegerField("Timeout ms", state.timeoutMs, { min: 1, max: 60000 });
+	const codes: number[] = [];
+	let statusError = "";
+	for (const value of state.statusCodes
+		.split(",")
+		.map(value => value.trim())
+		.filter(Boolean)) {
+		if (!/^\d{3}$/.test(value) || Number(value) < 100 || Number(value) > 599) {
+			statusError = "Status codes must be between 100 and 599.";
+			break;
+		}
+		codes.push(Number(value));
+	}
+	if (!statusError && state.statusClasses.length === 0 && codes.length === 0) statusError = "Select at least one expected status.";
+	const bodyError = (state.method === "GET" || state.method === "HEAD") && state.body ? `${state.method} requests cannot include a body.` : "";
+	return { timeout, codes: Array.from(new Set(codes)).sort((a, b) => a - b), statusError, bodyError, error: timeout.error || statusError || bodyError };
+}
+
+export function buildHTTPConfigPayload(state: HTTPConfigFormState): HTTPConfigPayload {
+	const validation = validateHTTPConfig(state);
+	if (validation.error) throw new Error(validation.error);
+	const payload: HTTPConfigPayload = {
+		method: state.method,
+		headers: state.headers.filter(header => header.name.trim()).map(({ name, value }) => ({ name: name.trim(), value })),
+		timeoutMs: validation.timeout.value,
+		followRedirects: state.followRedirects,
+		skipTlsVerify: state.skipTlsVerify,
+		expectedStatuses: [...state.statusClasses.map(statusClass => ({ kind: "class" as const, class: statusClass })), ...validation.codes.map(code => ({ kind: "code" as const, code }))]
+	};
+	payload.ipFamily = state.ipFamily || null;
+	if (state.method !== "GET" && state.method !== "HEAD") payload.body = state.body;
+	payload.bodyContains = state.bodyContains;
+	return payload;
+}
+
 export function buildPingConfigPayload(state: PingConfigFormState): PingConfigPayload {
 	const validation = validatePingConfig(state);
 	const validationError = firstConfigValidationError(validation);
@@ -246,6 +342,14 @@ export function checkConfigSummaryFields(check: ApiCheck): Array<[label: string,
 			["Port", config.port],
 			["Timeout", `${config.timeoutMs}ms`],
 			["IP family", config.ipFamily || "Auto"]
+		];
+	}
+	if (check.type === "http") {
+		const config = httpConfigFormStateFromApi(check);
+		return [
+			["Method", config.method],
+			["Expected", [...config.statusClasses, config.statusCodes].filter(Boolean).join(", ")],
+			["Timeout", `${config.timeoutMs}ms`]
 		];
 	}
 

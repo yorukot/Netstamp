@@ -1,5 +1,6 @@
 import { mapApiChecks } from "@/features/checks/api/checkAdapters";
 import { GroupTopologyPanel } from "@/features/insight/components/GroupTopologyPanel";
+import { HttpInsightPanel } from "@/features/insight/components/HttpInsightPanel";
 import { AssignmentMultiSelect, FocusChip, InsightTimeControl, ScopeSelect, SegmentedControl } from "@/features/insight/components/InsightControls";
 import { MultiSeriesInsightPanel } from "@/features/insight/components/MultiSeriesInsightPanel";
 import { PingInsightPanel } from "@/features/insight/components/PingInsightPanel";
@@ -23,7 +24,7 @@ import { type InsightCheckTypeFilter, type InsightPair, type InsightRefreshInter
 import { mapApiProbes } from "@/features/probes/api/probeAdapters";
 import { projectQueries } from "@/shared/api/queries";
 import { apiQueryKeys } from "@/shared/api/queryKeys";
-import { type PingInsightResponse, type PingSeriesResponse, type TcpInsightResponse, type TcpSeriesResponse } from "@/shared/api/types";
+import { type HttpInsightResponse, type HttpSeriesResponse, type PingInsightResponse, type PingSeriesResponse, type TcpInsightResponse, type TcpSeriesResponse } from "@/shared/api/types";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
@@ -40,12 +41,16 @@ function InsightPairDetail({
 	pingSeriesData,
 	tcpInsightData,
 	tcpSeriesData,
+	httpInsightData,
+	httpSeriesData,
 	isPingInsightLoading,
 	isPingSeriesLoading,
 	isPingFetching,
 	isTCPInsightLoading,
 	isTCPSeriesLoading,
 	isTCPFetching,
+	isHTTPLoading,
+	isHTTPFetching,
 	onSelectTimeWindow
 }: {
 	pair: InsightPair | null;
@@ -53,12 +58,16 @@ function InsightPairDetail({
 	pingSeriesData: PingSeriesResponse | undefined;
 	tcpInsightData: TcpInsightResponse | undefined;
 	tcpSeriesData: TcpSeriesResponse | undefined;
+	httpInsightData: HttpInsightResponse | undefined;
+	httpSeriesData: HttpSeriesResponse | undefined;
 	isPingInsightLoading: boolean;
 	isPingSeriesLoading: boolean;
 	isPingFetching: boolean;
 	isTCPInsightLoading: boolean;
 	isTCPSeriesLoading: boolean;
 	isTCPFetching: boolean;
+	isHTTPLoading: boolean;
+	isHTTPFetching: boolean;
 	onSelectTimeWindow: (timeWindow: TimeWindow) => void;
 }) {
 	if (!pair) {
@@ -79,6 +88,19 @@ function InsightPairDetail({
 				isInsightLoading={isTCPInsightLoading}
 				isSeriesLoading={isTCPSeriesLoading}
 				isFetching={isTCPFetching}
+				onSelectTimeWindow={onSelectTimeWindow}
+			/>
+		);
+	}
+	if (pair.check.type === "HTTP") {
+		return (
+			<HttpInsightPanel
+				selectedProbe={pair.probe}
+				selectedTarget={pair.check}
+				insightData={httpInsightData}
+				seriesData={httpSeriesData}
+				isLoading={isHTTPLoading}
+				isFetching={isHTTPFetching}
 				onSelectTimeWindow={onSelectTimeWindow}
 			/>
 		);
@@ -203,6 +225,14 @@ export function InsightPage() {
 	const tcpSeriesQuery = useQuery({
 		...projectQueries.tcpSeries(projectRef || "", exactPair?.probeId || "", exactPair?.checkId || "", resultWindowFilters),
 		enabled: Boolean(canQueryPairDetail && exactPair?.check.type === "TCP")
+	});
+	const httpInsightQuery = useQuery({
+		...projectQueries.httpInsight(projectRef || "", exactPair?.probeId || "", exactPair?.checkId || "", resultWindowFilters),
+		enabled: Boolean(canQueryPairDetail && exactPair?.check.type === "HTTP")
+	});
+	const httpSeriesQuery = useQuery({
+		...projectQueries.httpSeries(projectRef || "", exactPair?.probeId || "", exactPair?.checkId || "", resultWindowFilters),
+		enabled: Boolean(canQueryPairDetail && exactPair?.check.type === "HTTP")
 	});
 	const tracerouteInsightQuery = useQuery({
 		...projectQueries.tracerouteInsight(projectRef || "", exactPair?.probeId || "", exactPair?.checkId || "", resultWindowFilters),
@@ -461,12 +491,16 @@ export function InsightPage() {
 			pingSeriesData={pingSeriesQuery.data}
 			tcpInsightData={tcpInsightQuery.data}
 			tcpSeriesData={tcpSeriesQuery.data}
+			httpInsightData={httpInsightQuery.data}
+			httpSeriesData={httpSeriesQuery.data}
 			isPingInsightLoading={pingInsightQuery.isLoading}
 			isPingSeriesLoading={pingSeriesQuery.isLoading}
 			isPingFetching={pingInsightQuery.isFetching || pingSeriesQuery.isFetching}
 			isTCPInsightLoading={tcpInsightQuery.isLoading}
 			isTCPSeriesLoading={tcpSeriesQuery.isLoading}
 			isTCPFetching={tcpInsightQuery.isFetching || tcpSeriesQuery.isFetching}
+			isHTTPLoading={httpInsightQuery.isLoading || httpSeriesQuery.isLoading}
+			isHTTPFetching={httpInsightQuery.isFetching || httpSeriesQuery.isFetching}
 			onSelectTimeWindow={applyAbsoluteWindow}
 		/>
 	);

@@ -428,6 +428,10 @@ export function multiTcpInsightChartOption(lines: InsightMultiSeriesLine[]): Cha
 	return multiSeriesChartOption(lines, "connect ms", "ms");
 }
 
+export function multiHttpInsightChartOption(lines: InsightMultiSeriesLine[]): ChartOption {
+	return multiSeriesChartOption(lines, "total ms", "ms");
+}
+
 export function pingInsightChartOption(data: PingSeriesChartData): ChartOption {
 	const theme = chartTheme();
 	const splitLine = { lineStyle: { color: theme.splitLine } };

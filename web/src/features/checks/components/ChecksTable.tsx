@@ -8,7 +8,7 @@ import { TrashIcon } from "@phosphor-icons/react/dist/csr/Trash";
 import { useMemo, useState, type MouseEvent, type ReactNode } from "react";
 import styles from "./ChecksPage.module.css";
 
-export type CheckTypeFilter = "all" | "ping" | "tcp" | "traceroute";
+export type CheckTypeFilter = "all" | "ping" | "tcp" | "traceroute" | "http";
 export type CheckRowSelectionState = Record<string, boolean>;
 
 interface ChecksTableProps {
@@ -31,13 +31,15 @@ interface ChecksTableProps {
 const typeFilterLabels: Record<Exclude<CheckTypeFilter, "all">, CheckDefinition["type"]> = {
 	ping: "Ping",
 	tcp: "TCP",
-	traceroute: "Traceroute"
+	traceroute: "Traceroute",
+	http: "HTTP"
 };
 
 const checkTypeBadgeClasses: Record<CheckDefinition["type"], string> = {
 	Ping: styles.checkTypePing,
 	TCP: styles.checkTypeTcp,
-	Traceroute: styles.checkTypeTraceroute
+	Traceroute: styles.checkTypeTraceroute,
+	HTTP: styles.checkTypeHttp
 };
 
 function intervalValue(value: string) {

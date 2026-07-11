@@ -400,10 +400,15 @@ function AssignmentMetrics({ assignment }: { assignment: PublicAssignment }) {
 					{ label: "Latency", value: formatMetric(assignment.metrics?.latencyAvgMs, "ms") },
 					{ label: "Loss", value: formatMetric(assignment.metrics?.lossPercent, "%") }
 				]
-			: [
-					{ label: "Connect", value: formatMetric(assignment.metrics?.connectAvgMs, "ms") },
-					{ label: "Failure", value: formatMetric(assignment.metrics?.failurePercent, "%") }
-				];
+			: assignment.type === "http"
+				? [
+						{ label: "Total", value: formatMetric(assignment.metrics?.latencyAvgMs, "ms") },
+						{ label: "Failure", value: formatMetric(assignment.metrics?.failurePercent, "%") }
+					]
+				: [
+						{ label: "Connect", value: formatMetric(assignment.metrics?.connectAvgMs, "ms") },
+						{ label: "Failure", value: formatMetric(assignment.metrics?.failurePercent, "%") }
+					];
 
 	return (
 		<div className={styles.publicAssignmentMetrics}>
@@ -418,7 +423,7 @@ function AssignmentMetrics({ assignment }: { assignment: PublicAssignment }) {
 
 function Metrics({ element }: { element: ApiPublicStatusPublicElement }) {
 	const metrics = [
-		{ label: "Latency", value: formatMetric(element.metrics?.latencyAvgMs, "ms") },
+		{ label: element.type === "http" ? "Total" : "Latency", value: formatMetric(element.metrics?.latencyAvgMs, "ms") },
 		{ label: "Loss", value: formatMetric(element.metrics?.lossPercent, "%") },
 		{ label: "Connect", value: formatMetric(element.metrics?.connectAvgMs, "ms") },
 		{ label: "Failure", value: formatMetric(element.metrics?.failurePercent, "%") }

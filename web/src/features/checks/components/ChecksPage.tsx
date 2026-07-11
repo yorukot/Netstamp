@@ -1,18 +1,23 @@
 import { mapApiCheck, mapApiChecksWithAssignments, parseIntervalSeconds, validateIntervalSeconds } from "@/features/checks/api/checkAdapters";
 import {
+	buildHTTPConfigPayload,
 	buildPingConfigPayload,
 	buildTCPConfigPayload,
 	buildTracerouteConfigPayload,
+	defaultHTTPConfigFormState,
 	defaultPingConfigFormState,
 	defaultTCPConfigFormState,
 	defaultTracerouteConfigFormState,
 	firstConfigValidationError,
+	httpConfigFormStateFromApi,
 	pingConfigFormStateFromApi,
 	tcpConfigFormStateFromApi,
 	tracerouteConfigFormStateFromApi,
+	validateHTTPConfig,
 	validatePingConfig,
 	validateTCPConfig,
 	validateTracerouteConfig,
+	type HTTPConfigFormState,
 	type PingConfigFormState,
 	type TCPConfigFormState,
 	type TracerouteConfigFormState
@@ -129,6 +134,7 @@ export function ChecksPage() {
 	const [pingConfig, setPingConfig] = useState<PingConfigFormState>(defaultPingConfigFormState);
 	const [tcpConfig, setTCPConfig] = useState<TCPConfigFormState>(defaultTCPConfigFormState);
 	const [tracerouteConfig, setTracerouteConfig] = useState<TracerouteConfigFormState>(defaultTracerouteConfigFormState);
+	const [httpConfig, setHTTPConfig] = useState<HTTPConfigFormState>(defaultHTTPConfigFormState);
 	const [copiedCheckFields, setCopiedCheckFields] = useState<Pick<CreateCheckInput, "description" | "labelIds">>({});
 	const isCreating = editorMode === "create";
 	const selectedId = isCreating ? "__new__" : checkId;
@@ -138,6 +144,7 @@ export function ChecksPage() {
 		...projectQueries.checkDetail(projectRef || "", selectedListCheck?.id || ""),
 		enabled: Boolean(projectRef && selectedListCheck && !isCreating)
 	});
+	const canManageChecks = checkDetailQuery.data?.canManageChecks ?? checksQuery.data?.canManageChecks ?? false;
 	const selectedApiCheck = isCreating ? null : checkDetailQuery.data?.check || selectedListApiCheck;
 	const selectedAssignmentCount = (assignmentsQuery.data ?? []).filter(assignment => assignment.checkId === selectedListCheck?.id).length;
 	const selectedCheck = isCreating ? null : selectedApiCheck ? mapApiCheck(selectedApiCheck, selectedAssignmentCount) : selectedListCheck;
@@ -151,23 +158,28 @@ export function ChecksPage() {
 	const activePingConfig = isCreating || hasSelectedDraft ? pingConfig : pingConfigFormStateFromApi(selectedApiCheck);
 	const activeTCPConfig = isCreating || hasSelectedDraft ? tcpConfig : tcpConfigFormStateFromApi(selectedApiCheck);
 	const activeTracerouteConfig = isCreating || hasSelectedDraft ? tracerouteConfig : tracerouteConfigFormStateFromApi(selectedApiCheck);
+	const activeHTTPConfig = isCreating || hasSelectedDraft ? httpConfig : httpConfigFormStateFromApi(selectedApiCheck);
 	const activeIntervalValidation = validateIntervalSeconds(activeInterval);
 	const activePingValidation = validatePingConfig(activePingConfig);
 	const activeTCPValidation = validateTCPConfig(activeTCPConfig);
 	const activeTracerouteValidation = validateTracerouteConfig(activeTracerouteConfig);
+	const activeHTTPValidation = validateHTTPConfig(activeHTTPConfig);
 	const activeConfigError =
-		activeCheckType === "Traceroute"
-			? firstConfigValidationError(activeTracerouteConfig.protocol === "udp" ? activeTracerouteValidation : { ...activeTracerouteValidation, port: { value: 1, error: "" } })
-			: activeCheckType === "TCP"
-				? firstConfigValidationError(activeTCPValidation)
-				: firstConfigValidationError(activePingValidation);
+		activeCheckType === "HTTP"
+			? activeHTTPValidation.error
+			: activeCheckType === "Traceroute"
+				? firstConfigValidationError(activeTracerouteConfig.protocol === "udp" ? activeTracerouteValidation : { ...activeTracerouteValidation, port: { value: 1, error: "" } })
+				: activeCheckType === "TCP"
+					? firstConfigValidationError(activeTCPValidation)
+					: firstConfigValidationError(activePingValidation);
 	const activeFormError = activeIntervalValidation.error || activeConfigError;
 	const activeSelectorState = isCreating || hasSelectedDraft ? selectorState : selectorStateFromApi(selectedApiCheck?.selector);
 	const baselineSelectorState = selectorStateFromApi(selectedApiCheck?.selector);
 	const baselinePingConfig = pingConfigFormStateFromApi(selectedApiCheck);
 	const baselineTCPConfig = tcpConfigFormStateFromApi(selectedApiCheck);
 	const baselineTracerouteConfig = tracerouteConfigFormStateFromApi(selectedApiCheck);
-	const canSaveActiveCheck = Boolean((selectedCheck || isCreating) && projectRef && activeCheckName && activeTarget && !activeFormError);
+	const baselineHTTPConfig = httpConfigFormStateFromApi(selectedApiCheck);
+	const canSaveActiveCheck = Boolean(canManageChecks && (selectedCheck || isCreating) && projectRef && activeCheckName && activeTarget && !activeFormError);
 	const hasCheckChanges = Boolean(
 		!isCreating &&
 		selectedCheck &&
@@ -180,6 +192,7 @@ export function ChecksPage() {
 			!sameValue(activePingConfig, baselinePingConfig) ||
 			!sameValue(activeTCPConfig, baselineTCPConfig) ||
 			!sameValue(activeTracerouteConfig, baselineTracerouteConfig) ||
+			!sameValue(activeHTTPConfig, baselineHTTPConfig) ||
 			!sameValue(comparableSelectorState(activeSelectorState), comparableSelectorState(baselineSelectorState)))
 	);
 	const assignedProbeNames = (assignmentsQuery.data ?? [])
@@ -204,6 +217,7 @@ export function ChecksPage() {
 		setPingConfig(defaultPingConfigFormState);
 		setTCPConfig(defaultTCPConfigFormState);
 		setTracerouteConfig(defaultTracerouteConfigFormState);
+		setHTTPConfig(defaultHTTPConfigFormState);
 		setCopiedCheckFields({});
 		setDraftCheckId("");
 	}
@@ -215,6 +229,9 @@ export function ChecksPage() {
 	}
 
 	function startNewCheck() {
+		if (!canManageChecks) {
+			return;
+		}
 		navigate(pathWithSearch(pathForRoute("checks", { projectRef }), searchParamString));
 		setEditorMode("create");
 		resetEditorState();
@@ -234,6 +251,7 @@ export function ChecksPage() {
 		setPingConfig(pingConfigFormStateFromApi(apiCheck));
 		setTCPConfig(tcpConfigFormStateFromApi(apiCheck));
 		setTracerouteConfig(tracerouteConfigFormStateFromApi(apiCheck));
+		setHTTPConfig(httpConfigFormStateFromApi(apiCheck));
 	}
 
 	function resetSelectedCheckDraft() {
@@ -261,7 +279,7 @@ export function ChecksPage() {
 	}, [checkId, checkRows, checksQuery.isError, checksQuery.isPending, navigate, projectRef, searchParamString]);
 
 	function prepareSelectedCheckEdit() {
-		if (isCreating || !selectedCheck || hasSelectedDraft) {
+		if (!canManageChecks || isCreating || !selectedCheck || hasSelectedDraft) {
 			return;
 		}
 
@@ -281,6 +299,11 @@ export function ChecksPage() {
 	function updateTracerouteConfig(patch: Partial<TracerouteConfigFormState>) {
 		prepareSelectedCheckEdit();
 		setTracerouteConfig(current => ({ ...current, ...patch }));
+	}
+
+	function updateHTTPConfig(patch: Partial<HTTPConfigFormState>) {
+		prepareSelectedCheckEdit();
+		setHTTPConfig(current => ({ ...current, ...patch }));
 	}
 
 	function selectorDraftBase(current: SelectorState) {
@@ -410,6 +433,7 @@ export function ChecksPage() {
 		setPingConfig(pingConfigFormStateFromApi(data.check));
 		setTCPConfig(tcpConfigFormStateFromApi(data.check));
 		setTracerouteConfig(tracerouteConfigFormStateFromApi(data.check));
+		setHTTPConfig(httpConfigFormStateFromApi(data.check));
 		navigate(pathWithSearch(pathForCheckDetail(projectRef, data.check.id), searchParamString));
 	}
 
@@ -453,6 +477,7 @@ export function ChecksPage() {
 		setPingConfig(pingConfigFormStateFromApi(apiCheck));
 		setTCPConfig(tcpConfigFormStateFromApi(apiCheck));
 		setTracerouteConfig(tracerouteConfigFormStateFromApi(apiCheck));
+		setHTTPConfig(httpConfigFormStateFromApi(apiCheck));
 		setCopiedCheckFields({
 			...(body.description ? { description: body.description } : {}),
 			...(body.labelIds?.length ? { labelIds: body.labelIds } : {})
@@ -566,7 +591,7 @@ export function ChecksPage() {
 			return;
 		}
 
-		const type = activeCheckType === "Traceroute" ? "traceroute" : activeCheckType === "TCP" ? "tcp" : "ping";
+		const type = activeCheckType === "HTTP" ? "http" : activeCheckType === "Traceroute" ? "traceroute" : activeCheckType === "TCP" ? "tcp" : "ping";
 		const normalizedDescription = activeDescription.trim();
 		let body: CreateCheckInput;
 
@@ -586,7 +611,9 @@ export function ChecksPage() {
 			} else {
 				delete body.description;
 			}
-			if (type === "traceroute") {
+			if (type === "http") {
+				body.httpConfig = buildHTTPConfigPayload(activeHTTPConfig);
+			} else if (type === "traceroute") {
 				body.tracerouteConfig = buildTracerouteConfigPayload(activeTracerouteConfig);
 			} else if (type === "tcp") {
 				body.tcpConfig = buildTCPConfigPayload(activeTCPConfig);
@@ -610,7 +637,14 @@ export function ChecksPage() {
 
 	return (
 		<PageStack>
-			<ScreenHeader title="Checks" actions={<Button onClick={startNewCheck}>New check</Button>} />
+			<ScreenHeader
+				title="Checks"
+				actions={
+					<Button disabled={!canManageChecks} onClick={startNewCheck}>
+						New check
+					</Button>
+				}
+			/>
 
 			<div className={styles.checkEditorGrid}>
 				<div className={styles.checkListStack}>
@@ -624,12 +658,13 @@ export function ChecksPage() {
 								{ value: "all", label: "All types" },
 								{ value: "ping", label: "Ping" },
 								{ value: "tcp", label: "TCP" },
-								{ value: "traceroute", label: "Traceroute" }
+								{ value: "traceroute", label: "Traceroute" },
+								{ value: "http", label: "HTTP / HTTPS" }
 							]}
 						/>
 					</FilterGrid>
 					<ChecksTable
-						actionDisabled={checkActionPending}
+						actionDisabled={checkActionPending || !canManageChecks}
 						batchDeleteDisabled={!selectedCheckRows.length}
 						batchDeletePending={batchDeleteCheckMutation.isPending}
 						checks={checkRows}
@@ -658,7 +693,7 @@ export function ChecksPage() {
 								<TextField
 									label="Check name"
 									value={activeCheckName}
-									disabled={!selectedCheck && !isCreating}
+									disabled={!canManageChecks || (!selectedCheck && !isCreating)}
 									onChange={event => {
 										prepareSelectedCheckEdit();
 										setCheckName(event.currentTarget.value);
@@ -667,7 +702,7 @@ export function ChecksPage() {
 								<TextField
 									label="Target"
 									value={activeTarget}
-									disabled={!selectedCheck && !isCreating}
+									disabled={!canManageChecks || (!selectedCheck && !isCreating)}
 									onChange={event => {
 										prepareSelectedCheckEdit();
 										setTarget(event.currentTarget.value);
@@ -676,18 +711,20 @@ export function ChecksPage() {
 								<SelectField
 									label="Check type"
 									value={activeCheckType}
-									disabled={!isCreating}
+									disabled={!canManageChecks || !isCreating}
 									onChange={event => setCheckType(event.currentTarget.value as CheckType)}
 									options={[
 										{ value: "Ping", label: "Ping" },
 										{ value: "TCP", label: "TCP" },
-										{ value: "Traceroute", label: "Traceroute" }
+										{ value: "Traceroute", label: "Traceroute" },
+										{ value: "HTTP", label: "HTTP / HTTPS" }
 									]}
 								/>
 								<TextField
 									label="Interval"
 									value={activeInterval}
 									inputMode="numeric"
+									disabled={!canManageChecks || (!selectedCheck && !isCreating)}
 									helper="Whole seconds, for example 30s."
 									error={activeIntervalValidation.error || undefined}
 									onChange={event => {
@@ -699,16 +736,19 @@ export function ChecksPage() {
 
 							<CheckConfigFields
 								checkType={activeCheckType}
-								disabled={!selectedCheck && !isCreating}
+								disabled={!canManageChecks || (!selectedCheck && !isCreating)}
 								pingConfig={activePingConfig}
 								pingValidation={activePingValidation}
 								tcpConfig={activeTCPConfig}
 								tcpValidation={activeTCPValidation}
 								tracerouteConfig={activeTracerouteConfig}
 								tracerouteValidation={activeTracerouteValidation}
+								httpConfig={activeHTTPConfig}
+								httpValidation={activeHTTPValidation}
 								onPingConfigChange={updatePingConfig}
 								onTCPConfigChange={updateTCPConfig}
 								onTracerouteConfigChange={updateTracerouteConfig}
+								onHTTPConfigChange={updateHTTPConfig}
 							/>
 							<TextAreaField
 								label="Description"
@@ -716,7 +756,7 @@ export function ChecksPage() {
 								maxLength={1024}
 								className={styles.descriptionArea}
 								value={activeDescription}
-								disabled={!selectedCheck && !isCreating}
+								disabled={!canManageChecks || (!selectedCheck && !isCreating)}
 								onChange={event => {
 									prepareSelectedCheckEdit();
 									setDescription(event.currentTarget.value);
@@ -726,12 +766,19 @@ export function ChecksPage() {
 							<div className={styles.probeMultiSelect}>
 								<FieldLabel>Probe selector</FieldLabel>
 								<div className={styles.selectorBuilder}>
-									<SelectField label="Match mode" value={activeSelectorState.mode} onChange={event => setSelectorMode(event.currentTarget.value as SelectorMode)} options={selectorModeOptions} />
+									<SelectField
+										label="Match mode"
+										value={activeSelectorState.mode}
+										disabled={!canManageChecks}
+										onChange={event => setSelectorMode(event.currentTarget.value as SelectorMode)}
+										options={selectorModeOptions}
+									/>
 									{activeSelectorState.mode === "advanced" ? (
 										<TextAreaField
 											label="Selector JSON"
 											rows={8}
 											value={activeSelectorState.advancedText}
+											disabled={!canManageChecks}
 											onChange={event => updateAdvancedSelectorText(event.currentTarget.value)}
 											spellCheck={false}
 										/>
@@ -744,21 +791,31 @@ export function ChecksPage() {
 												return (
 													<div className={styles.selectorRule} key={rule.id}>
 														<label className={styles.selectorNegation}>
-															<Checkbox checked={rule.negated} onChange={event => updateSelectorRule(rule.id, { negated: event.currentTarget.checked })} />
+															<Checkbox checked={rule.negated} disabled={!canManageChecks} onChange={event => updateSelectorRule(rule.id, { negated: event.currentTarget.checked })} />
 															<span>not</span>
 														</label>
-														<TextField label={`Rule ${index + 1} key`} value={rule.key} onChange={event => updateSelectorRuleKey(rule.id, event.currentTarget.value)} autoComplete="off" />
+														<TextField
+															label={`Rule ${index + 1} key`}
+															value={rule.key}
+															disabled={!canManageChecks}
+															onChange={event => updateSelectorRuleKey(rule.id, event.currentTarget.value)}
+															autoComplete="off"
+														/>
 														<SelectField
 															label="Operator"
 															value={rule.op}
+															disabled={!canManageChecks}
 															onChange={event => updateSelectorRule(rule.id, { op: event.currentTarget.value as SelectorLabelOp })}
 															options={selectorOpOptions}
 														/>
-														{rule.op === "eq" ? <TextField label="Value" value={rule.value} onChange={event => updateSelectorRule(rule.id, { value: event.currentTarget.value })} /> : null}
+														{rule.op === "eq" ? (
+															<TextField label="Value" value={rule.value} disabled={!canManageChecks} onChange={event => updateSelectorRule(rule.id, { value: event.currentTarget.value })} />
+														) : null}
 														{rule.op === "in" ? (
 															<TextField
 																label="Values"
 																value={rule.values}
+																disabled={!canManageChecks}
 																helper={valuesForKey.length ? valuesForKey.join(", ") : undefined}
 																onChange={event => updateSelectorRule(rule.id, { values: event.currentTarget.value })}
 															/>
@@ -768,6 +825,7 @@ export function ChecksPage() {
 															className={classNames(styles.iconAction, styles.iconActionDanger, styles.selectorRuleRemove)}
 															aria-label={`Remove selector rule ${index + 1}`}
 															danger
+															disabled={!canManageChecks}
 															onClick={() => removeSelectorRule(rule.id)}
 														>
 															<TrashIcon size={15} weight="bold" aria-hidden="true" focusable="false" />
@@ -780,14 +838,14 @@ export function ChecksPage() {
 									{activeSelectorState.mode === "all-probes" ? <p className={styles.selectorNotice}>Matches every active probe.</p> : null}
 									{activeSelectorState.mode !== "advanced" ? (
 										<ActionRow>
-											<Button type="button" variant="secondary" onClick={addSelectorRule}>
+											<Button type="button" variant="secondary" disabled={!canManageChecks} onClick={addSelectorRule}>
 												Add rule
 											</Button>
 										</ActionRow>
 									) : null}
 								</div>
 								<ActionRow>
-									<Button type="button" variant="secondary" disabled={!projectRef || selectorPreviewMutation.isPending} onClick={previewSelector}>
+									<Button type="button" variant="secondary" disabled={!canManageChecks || !projectRef || selectorPreviewMutation.isPending} onClick={previewSelector}>
 										{selectorPreviewMutation.isPending ? "Previewing" : "Preview selector"}
 									</Button>
 									<Badge tone="accent">{activeSelectedProbes.length} matched</Badge>
@@ -812,7 +870,7 @@ export function ChecksPage() {
 								<UnsavedChangesBar show={hasCheckChanges} saving={saveCheckMutation.isPending} disabled={!canSaveActiveCheck} onReset={resetSelectedCheckDraft} onSave={saveSelectedCheck} />
 							)}
 							<ActionRow>
-								<Button variant="danger" disabled={!selectedCheck || checkActionPending} onClick={() => void deleteSelectedCheck()}>
+								<Button variant="danger" disabled={!canManageChecks || !selectedCheck || checkActionPending} onClick={() => void deleteSelectedCheck()}>
 									{deleteCheckMutation.isPending ? "Deleting" : "Delete check"}
 								</Button>
 							</ActionRow>

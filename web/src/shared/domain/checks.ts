@@ -1,1 +1,1 @@
-export type CheckType = "Ping" | "TCP" | "Traceroute";
+export type CheckType = "Ping" | "TCP" | "Traceroute" | "HTTP";

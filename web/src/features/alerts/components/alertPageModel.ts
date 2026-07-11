@@ -98,7 +98,8 @@ export const ruleCheckTypeOptions: Array<{ value: RuleCheckTypeFilter; label: st
 	{ value: "all", label: "Any type" },
 	{ value: "ping", label: "Ping" },
 	{ value: "tcp", label: "TCP" },
-	{ value: "traceroute", label: "Traceroute" }
+	{ value: "traceroute", label: "Traceroute" },
+	{ value: "http", label: "HTTP" }
 ];
 
 export const notificationStatusOptions: Array<{ value: NotificationStatusFilter; label: string }> = [
@@ -119,7 +120,8 @@ export const notificationFilterTypeOptions: Array<{ value: NotificationTypeFilte
 export const checkTypeOptions: Array<{ value: CheckType; label: string; disabled?: boolean }> = [
 	{ value: "ping", label: "Ping" },
 	{ value: "tcp", label: "TCP" },
-	{ value: "traceroute", label: "Traceroute (alerts not available)", disabled: true }
+	{ value: "traceroute", label: "Traceroute (alerts not available)", disabled: true },
+	{ value: "http", label: "HTTP / HTTPS" }
 ];
 
 export const metricOptions: Record<CheckType, Array<{ value: AlertMetric; label: string; unit?: string }>> = {
@@ -134,6 +136,15 @@ export const metricOptions: Record<CheckType, Array<{ value: AlertMetric; label:
 		{ value: "tcp.average_connect_ms", label: "TCP average connect", unit: "ms" },
 		{ value: "tcp.max_connect_ms", label: "TCP max connect", unit: "ms" },
 		{ value: "tcp.success_rate", label: "TCP success rate", unit: "%" }
+	],
+	http: [
+		{ value: "http.failure_percent", label: "HTTP failure percent", unit: "%" },
+		{ value: "http.average_total_ms", label: "HTTP average total", unit: "ms" },
+		{ value: "http.max_total_ms", label: "HTTP max total", unit: "ms" },
+		{ value: "http.average_ttfb_ms", label: "HTTP average TTFB", unit: "ms" },
+		{ value: "http.max_ttfb_ms", label: "HTTP max TTFB", unit: "ms" },
+		{ value: "http.success_rate", label: "HTTP success rate", unit: "%" },
+		{ value: "http.certificate_days_remaining", label: "Certificate days remaining", unit: "days" }
 	],
 	traceroute: []
 };

@@ -22,7 +22,8 @@ export const checkTypeOptions: Array<{ value: InsightCheckTypeFilter; label: str
 	{ value: "all", label: "All" },
 	{ value: "ping", label: "Ping" },
 	{ value: "tcp", label: "TCP" },
-	{ value: "traceroute", label: "Traceroute" }
+	{ value: "traceroute", label: "Traceroute" },
+	{ value: "http", label: "HTTP / HTTPS" }
 ];
 
 export const groupByOptions: Array<{ value: InsightGroupBy; label: string }> = [
@@ -39,7 +40,7 @@ function isInsightRefreshInterval(value: string | null): value is InsightRefresh
 }
 
 function isInsightCheckTypeFilter(value: string | null): value is InsightCheckTypeFilter {
-	return value === "all" || value === "ping" || value === "tcp" || value === "traceroute";
+	return value === "all" || value === "ping" || value === "tcp" || value === "traceroute" || value === "http";
 }
 
 function isInsightGroupBy(value: string | null): value is InsightGroupBy {
@@ -96,6 +97,8 @@ function checkTypeFromApi(value: string | undefined): CheckDefinition["type"] {
 			return "TCP";
 		case "traceroute":
 			return "Traceroute";
+		case "http":
+			return "HTTP";
 		default:
 			return "Ping";
 	}
@@ -105,6 +108,7 @@ function pairCheckType(pair: InsightPair): Exclude<InsightCheckTypeFilter, "all"
 	if (pair.check.type === "TCP") {
 		return "tcp";
 	}
+	if (pair.check.type === "HTTP") return "http";
 
 	return pair.check.type === "Traceroute" ? "traceroute" : "ping";
 }
@@ -113,6 +117,7 @@ export function checkTypeFilterFromCheck(check: CheckDefinition): Exclude<Insigh
 	if (check.type === "TCP") {
 		return "tcp";
 	}
+	if (check.type === "HTTP") return "http";
 
 	return check.type === "Traceroute" ? "traceroute" : "ping";
 }

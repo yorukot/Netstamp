@@ -26,7 +26,7 @@ interface PublicAssignmentOption {
 	id: string;
 	checkId: string;
 	checkName: string;
-	checkType: "ping" | "tcp";
+	checkType: "ping" | "tcp" | "http";
 	target: string;
 	probeId: string;
 	probeName: string;
@@ -89,7 +89,7 @@ function publicAssignmentOption(assignment: ApiProjectAssignment): PublicAssignm
 	if (!assignment.check || !assignment.probe) {
 		return null;
 	}
-	if (assignment.check.type !== "ping" && assignment.check.type !== "tcp") {
+	if (assignment.check.type !== "ping" && assignment.check.type !== "tcp" && assignment.check.type !== "http") {
 		return null;
 	}
 	return {

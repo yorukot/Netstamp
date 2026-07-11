@@ -48,6 +48,8 @@ export function severityTone(severity: string | undefined): BadgeTone {
 
 export function checkTypeLabel(type: string | undefined) {
 	switch (type) {
+		case "http":
+			return "HTTP";
 		case "tcp":
 			return "TCP";
 		case "traceroute":

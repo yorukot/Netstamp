@@ -4,6 +4,9 @@ import { apiQueryKeys } from "../queryKeys";
 import type {
 	AlertIncidentFilters,
 	AlertRuleFilters,
+	HttpInsightFilters,
+	HttpSeriesFilters,
+	HttpSeriesResponse,
 	LatestResultsFilters,
 	PingInsightFilters,
 	PingSeriesFilters,
@@ -22,6 +25,7 @@ import type {
 
 const defaultPingSeries = "latency_avg,latency_min,latency_max,loss_percent";
 const defaultTCPSeries = "connect_avg,connect_min,connect_max,failure_percent";
+const defaultHTTPSeries = "dns_avg,connect_avg,tls_avg,ttfb_avg,total_avg,failure_percent";
 
 export const projectQueries = {
 	list: () =>
@@ -166,6 +170,21 @@ export const projectQueries = {
 						signal
 					})
 				) as Promise<TcpSeriesResponse>,
+			staleTime: 30 * 1000
+		}),
+	httpInsight: (ref: string, probeId: string, checkId: string, filters: HttpInsightFilters = {}) =>
+		queryOptions({
+			queryKey: apiQueryKeys.projects.httpInsight(ref, probeId, checkId, filters),
+			queryFn: ({ signal }) => readApiData(apiClient.GET("/projects/{ref}/results/http/insight", { params: { path: { ref }, query: { probeId, checkId, maxDataPoints: 600, ...filters } }, signal })),
+			staleTime: 30 * 1000
+		}),
+	httpSeries: (ref: string, probeId: string, checkId: string, filters: HttpSeriesFilters = {}) =>
+		queryOptions({
+			queryKey: apiQueryKeys.projects.httpSeries(ref, probeId, checkId, filters),
+			queryFn: ({ signal }) =>
+				readApiData(
+					apiClient.GET("/projects/{ref}/results/http/series", { params: { path: { ref }, query: { probeId, checkId, series: defaultHTTPSeries, maxDataPoints: 600, ...filters } }, signal })
+				) as Promise<HttpSeriesResponse>,
 			staleTime: 30 * 1000
 		}),
 	probes: (ref: string) =>

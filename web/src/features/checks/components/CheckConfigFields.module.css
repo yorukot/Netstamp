@@ -9,3 +9,37 @@
 	grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
 	gap: 1rem;
 }
+
+.statusClassGrid {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem 1rem;
+	min-height: 2.5rem;
+	align-items: center;
+}
+.checkboxLabel {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	color: var(--ns-text-muted);
+}
+.fullWidth {
+	grid-column: 1 / -1;
+}
+.headerList {
+	display: grid;
+	gap: 0.5rem;
+	margin-top: 0.5rem;
+}
+.headerRow {
+	display: grid;
+	grid-template-columns: minmax(8rem, 0.8fr) minmax(12rem, 1.5fr) auto;
+	gap: 0.5rem;
+	align-items: end;
+}
+
+@media (max-width: 48rem) {
+	.headerRow {
+		grid-template-columns: 1fr;
+	}
+}

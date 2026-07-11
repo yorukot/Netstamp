@@ -4,6 +4,8 @@ import type { ApiCheck, ApiProjectAssignment } from "@/shared/api/types";
 
 function mapCheckType(type: string): CheckType {
 	switch (type.toLowerCase()) {
+		case "http":
+			return "HTTP";
 		case "tcp":
 			return "TCP";
 		case "traceroute":

@@ -3,7 +3,7 @@ import type { Probe } from "@/features/probes/data/probes";
 import type { RelativeTimeRange, TimeWindow as SharedTimeWindow } from "@/shared/utils/timeRanges";
 import type { BadgeTone } from "@netstamp/ui";
 
-export type InsightCheckTypeFilter = "all" | "ping" | "tcp" | "traceroute";
+export type InsightCheckTypeFilter = "all" | "ping" | "tcp" | "traceroute" | "http";
 export type InsightGroupBy = "check" | "probe";
 export type InsightRefreshInterval = "off" | "10s" | "30s" | "1m" | "5m";
 export type InsightRelativeRange = RelativeTimeRange;

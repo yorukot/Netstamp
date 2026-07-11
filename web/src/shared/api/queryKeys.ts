@@ -49,6 +49,8 @@ export const apiQueryKeys = {
 		pingSeries: (ref: string, probeId: string, checkId: string, filters: object = {}) => [...apiQueryKeys.projects.detail(ref), "results", "ping", "series", probeId, checkId, filters] as const,
 		tcpInsight: (ref: string, probeId: string, checkId: string, filters: object = {}) => [...apiQueryKeys.projects.detail(ref), "results", "tcp", "insight", probeId, checkId, filters] as const,
 		tcpSeries: (ref: string, probeId: string, checkId: string, filters: object = {}) => [...apiQueryKeys.projects.detail(ref), "results", "tcp", "series", probeId, checkId, filters] as const,
+		httpInsight: (ref: string, probeId: string, checkId: string, filters: object = {}) => [...apiQueryKeys.projects.detail(ref), "results", "http", "insight", probeId, checkId, filters] as const,
+		httpSeries: (ref: string, probeId: string, checkId: string, filters: object = {}) => [...apiQueryKeys.projects.detail(ref), "results", "http", "series", probeId, checkId, filters] as const,
 		probes: (ref: string) => [...apiQueryKeys.projects.detail(ref), "probes"] as const,
 		probeDetail: (ref: string, probeId: string) => [...apiQueryKeys.projects.probes(ref), probeId] as const,
 		tracerouteInsight: (ref: string, probeId: string, checkId: string, filters: object = {}) =>

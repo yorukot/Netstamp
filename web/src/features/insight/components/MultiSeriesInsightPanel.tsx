@@ -1,11 +1,11 @@
 import { hasTcpSeriesChartData, tcpSeriesChartData } from "@/features/insight/data/tcpInsightData";
 import type { InsightPair, TimeWindow } from "@/features/insight/insightTypes";
 import { projectQueries } from "@/shared/api/queries";
-import type { PingSeriesResponse, TcpSeriesResponse } from "@/shared/api/types";
+import type { HttpSeriesResponse, PingSeriesResponse, TcpSeriesResponse } from "@/shared/api/types";
 import { formatCount } from "@/shared/utils/insightFormatters";
 import { hasPingSeriesChartData, pingSeriesChartData } from "@/shared/utils/pingInsightData";
 import { ChartPanel } from "@/shared/visualizations/ChartPanel";
-import { insightSeriesColor, multiPingInsightChartOption, multiTcpInsightChartOption, type InsightMultiSeriesLine } from "@/shared/visualizations/chartOptions";
+import { insightSeriesColor, multiHttpInsightChartOption, multiPingInsightChartOption, multiTcpInsightChartOption, type InsightMultiSeriesLine } from "@/shared/visualizations/chartOptions";
 import { Panel, Spinner } from "@netstamp/ui";
 import { useQueries } from "@tanstack/react-query";
 import styles from "./MultiSeriesInsightPanel.module.css";
@@ -29,7 +29,7 @@ function pairMeta(pair: InsightPair) {
 	return `${pair.check.name} · ${pair.probe.location}`;
 }
 
-function queryWindow(data: Array<PingSeriesResponse | TcpSeriesResponse | undefined>, fallback: TimeWindow) {
+function queryWindow(data: Array<PingSeriesResponse | TcpSeriesResponse | HttpSeriesResponse | undefined>, fallback: TimeWindow) {
 	const meta = data.find(item => item?.meta)?.meta;
 	return meta ? { from: meta.from, to: meta.to } : fallback;
 }
@@ -102,6 +102,7 @@ function SeriesPanel({
 export function MultiSeriesInsightPanel({ projectRef, pairs, filters, onSelectTimeWindow }: MultiSeriesInsightPanelProps) {
 	const pingPairs = pairs.filter(pair => pair.check.type === "Ping");
 	const tcpPairs = pairs.filter(pair => pair.check.type === "TCP");
+	const httpPairs = pairs.filter(pair => pair.check.type === "HTTP");
 	const pingSeriesQueries = useQueries({
 		queries: pingPairs.map(pair => ({
 			...projectQueries.pingSeries(projectRef || "", pair.probeId, pair.checkId, filters),
@@ -114,6 +115,7 @@ export function MultiSeriesInsightPanel({ projectRef, pairs, filters, onSelectTi
 			enabled: Boolean(projectRef)
 		}))
 	});
+	const httpSeriesQueries = useQueries({ queries: httpPairs.map(pair => ({ ...projectQueries.httpSeries(projectRef || "", pair.probeId, pair.checkId, filters), enabled: Boolean(projectRef) })) });
 	const pingLines: LegendLine[] = pingPairs.map((pair, index) => {
 		const data = pingSeriesChartData(pingSeriesQueries[index]?.data);
 
@@ -136,10 +138,19 @@ export function MultiSeriesInsightPanel({ projectRef, pairs, filters, onSelectTi
 			points: data.connectAvg
 		};
 	});
+	const httpLines: LegendLine[] = httpPairs.map((pair, index) => ({
+		id: pair.key,
+		name: pairLabel(pair),
+		meta: pairMeta(pair),
+		color: insightSeriesColor(index),
+		points: httpSeriesQueries[index]?.data?.series.total_avg?.points ?? []
+	}));
 	const hasPingData = pingSeriesQueries.some(query => hasPingSeriesChartData(pingSeriesChartData(query.data)));
 	const hasTcpData = tcpSeriesQueries.some(query => hasTcpSeriesChartData(tcpSeriesChartData(query.data)));
+	const hasHTTPData = httpLines.some(line => line.points.length > 0);
 	const pingTotalPoints = pingSeriesQueries.reduce((total, query) => total + (query.data?.meta.totalPoints ?? 0), 0);
 	const tcpTotalPoints = tcpSeriesQueries.reduce((total, query) => total + (query.data?.meta.totalPoints ?? 0), 0);
+	const httpTotalPoints = httpSeriesQueries.reduce((total, query) => total + (query.data?.meta.totalPoints ?? 0), 0);
 	const pingWindow = queryWindow(
 		pingSeriesQueries.map(query => query.data),
 		filters
@@ -148,8 +159,12 @@ export function MultiSeriesInsightPanel({ projectRef, pairs, filters, onSelectTi
 		tcpSeriesQueries.map(query => query.data),
 		filters
 	);
+	const httpWindow = queryWindow(
+		httpSeriesQueries.map(query => query.data),
+		filters
+	);
 
-	if (!pingPairs.length && !tcpPairs.length) {
+	if (!pingPairs.length && !tcpPairs.length && !httpPairs.length) {
 		return null;
 	}
 
@@ -180,6 +195,20 @@ export function MultiSeriesInsightPanel({ projectRef, pairs, filters, onSelectTi
 					lines={tcpLines}
 					option={multiTcpInsightChartOption(tcpLines)}
 					filters={tcpWindow}
+					onSelectTimeWindow={onSelectTimeWindow}
+				/>
+			) : null}
+			{httpPairs.length ? (
+				<SeriesPanel
+					title={`HTTP series (${formatCount(httpPairs.length)} assignments)`}
+					unitLabel="HTTP"
+					totalPoints={httpTotalPoints}
+					isLoading={httpSeriesQueries.some(query => query.isLoading)}
+					isFetching={httpSeriesQueries.some(query => query.isFetching)}
+					hasData={hasHTTPData}
+					lines={httpLines}
+					option={multiHttpInsightChartOption(httpLines)}
+					filters={httpWindow}
 					onSelectTimeWindow={onSelectTimeWindow}
 				/>
 			) : null}

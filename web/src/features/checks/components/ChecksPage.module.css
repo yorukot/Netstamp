@@ -69,6 +69,11 @@
 	--ns-check-type-bg: color-mix(in srgb, var(--ns-warning) 10%, transparent);
 }
 
+.checkTypeHttp {
+	color: var(--ns-warning);
+	background: var(--ns-primary-muted);
+}
+
 .descriptionHint {
 	position: relative;
 	display: inline-flex;

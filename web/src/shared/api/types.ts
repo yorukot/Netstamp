@@ -75,6 +75,12 @@ export type TcpSeriesParameter = components["parameters"]["TcpSeriesQuery.series
 export type TcpSeriesResponse = Omit<components["schemas"]["TcpSeriesResponse"], "series"> & {
 	series: Partial<Record<TcpSeriesKey, ApiSeries>> & Record<string, ApiSeries | undefined>;
 };
+export type HttpInsightResponse = components["schemas"]["HttpInsightResponse"];
+export type HttpSeriesKey = "dns_avg" | "connect_avg" | "tls_avg" | "ttfb_avg" | "total_avg" | "failure_percent";
+export type HttpSeriesParameter = components["parameters"]["HttpSeriesQuery.series"];
+export type HttpSeriesResponse = Omit<components["schemas"]["HttpSeriesResponse"], "series"> & {
+	series: Partial<Record<HttpSeriesKey, ApiSeries>> & Record<string, ApiSeries | undefined>;
+};
 export type TracerouteHop = components["schemas"]["TracerouteHop"];
 export type TracerouteInsightResponse = components["schemas"]["TracerouteInsightResponse"];
 export type TracerouteResult = components["schemas"]["TracerouteResult"];
@@ -107,7 +113,7 @@ export interface ProjectAssignmentFilters {
 
 export interface AlertRuleFilters {
 	status?: "enabled" | "disabled";
-	checkType?: "ping" | "tcp" | "traceroute";
+	checkType?: "ping" | "tcp" | "traceroute" | "http";
 }
 
 export interface AlertIncidentFilters {
@@ -144,6 +150,18 @@ export interface TcpSeriesFilters {
 	from?: number;
 	to?: number;
 	series?: TcpSeriesParameter;
+	maxDataPoints?: number;
+}
+
+export interface HttpInsightFilters {
+	from?: number;
+	to?: number;
+	maxDataPoints?: number;
+}
+export interface HttpSeriesFilters {
+	from?: number;
+	to?: number;
+	series?: HttpSeriesParameter;
 	maxDataPoints?: number;
 }
 
