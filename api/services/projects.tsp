@@ -91,13 +91,7 @@ interface ProjectInviteService {
 	@operationId("listProjectInvites")
 	@summary("List pending project invites")
 	@get
-	listProjectInvites(...ProjectRefParam):
-		| OkJson<ProjectInviteListResponse>
-		| UnauthorizedProblem
-		| ForbiddenProblem
-		| NotFoundProblem
-		| UnprocessableEntityProblem
-		| InternalServerProblem;
+	listProjectInvites(...ProjectRefParam): OkJson<ProjectInviteListResponse> | UnauthorizedProblem | ForbiddenProblem | NotFoundProblem | UnprocessableEntityProblem | InternalServerProblem;
 
 	@operationId("createProjectInvite")
 	@summary("Create project invite")
@@ -116,13 +110,7 @@ interface ProjectInviteService {
 	@summary("Cancel project invite")
 	@delete
 	@route("/{invite_id}")
-	cancelProjectInvite(...ProjectRefParam, ...ProjectInviteIdPathParam):
-		| NoContent
-		| UnauthorizedProblem
-		| ForbiddenProblem
-		| NotFoundProblem
-		| UnprocessableEntityProblem
-		| InternalServerProblem;
+	cancelProjectInvite(...ProjectRefParam, ...ProjectInviteIdPathParam): NoContent | UnauthorizedProblem | ForbiddenProblem | NotFoundProblem | UnprocessableEntityProblem | InternalServerProblem;
 }
 
 @tag("Project Invites")
@@ -138,22 +126,11 @@ interface CurrentUserProjectInviteService {
 	@summary("Accept project invite")
 	@post
 	@route("/{invite_id}/accept")
-	acceptProjectInvite(...ProjectInviteIdPathParam):
-		| OkJson<ProjectInviteResponse>
-		| UnauthorizedProblem
-		| NotFoundProblem
-		| ConflictProblem
-		| UnprocessableEntityProblem
-		| InternalServerProblem;
+	acceptProjectInvite(...ProjectInviteIdPathParam): OkJson<ProjectInviteResponse> | UnauthorizedProblem | NotFoundProblem | ConflictProblem | UnprocessableEntityProblem | InternalServerProblem;
 
 	@operationId("rejectProjectInvite")
 	@summary("Reject project invite")
 	@post
 	@route("/{invite_id}/reject")
-	rejectProjectInvite(...ProjectInviteIdPathParam):
-		| OkJson<ProjectInviteResponse>
-		| UnauthorizedProblem
-		| NotFoundProblem
-		| UnprocessableEntityProblem
-		| InternalServerProblem;
+	rejectProjectInvite(...ProjectInviteIdPathParam): OkJson<ProjectInviteResponse> | UnauthorizedProblem | NotFoundProblem | UnprocessableEntityProblem | InternalServerProblem;
 }

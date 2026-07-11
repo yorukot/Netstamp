@@ -14,7 +14,14 @@ interface AuthService {
 	@doc("Create a user account with a normalized email address, display name, and password. When email verification is disabled, sets an HTTP-only session cookie for immediate API access. When email verification is required, sends a verification email and returns 202 without a session cookie.")
 	@post
 	@route("/register")
-	registerUser(@body body: RegisterUserRequest): SessionCreatedJson<AuthUserResponse> | AcceptedJson<RegisterEmailVerificationRequiredResponse> | BadRequestProblem | UnprocessableEntityProblem | ConflictProblem | ServiceUnavailableProblem | InternalServerProblem;
+	registerUser(@body body: RegisterUserRequest):
+		| SessionCreatedJson<AuthUserResponse>
+		| AcceptedJson<RegisterEmailVerificationRequiredResponse>
+		| BadRequestProblem
+		| UnprocessableEntityProblem
+		| ConflictProblem
+		| ServiceUnavailableProblem
+		| InternalServerProblem;
 
 	@operationId("loginUser")
 	@summary("Login user")
@@ -42,14 +49,26 @@ interface AuthService {
 	@doc("Create or resend an email verification link. The response does not reveal whether the email exists.")
 	@post
 	@route("/email-verifications")
-	createEmailVerification(@body body: CreateEmailVerificationRequest): Accepted | BadRequestProblem | UnprocessableEntityProblem | TooManyRequestsProblem | ServiceUnavailableProblem | InternalServerProblem;
+	createEmailVerification(@body body: CreateEmailVerificationRequest):
+		| Accepted
+		| BadRequestProblem
+		| UnprocessableEntityProblem
+		| TooManyRequestsProblem
+		| ServiceUnavailableProblem
+		| InternalServerProblem;
 
 	@operationId("confirmEmailVerification")
 	@summary("Confirm email verification")
 	@doc("Consume a one-time email verification token and mark the account email as verified.")
 	@patch
 	@route("/email-verifications")
-	confirmEmailVerification(@body body: ConfirmEmailVerificationRequest): NoContent | BadRequestProblem | UnauthorizedProblem | UnprocessableEntityProblem | ServiceUnavailableProblem | InternalServerProblem;
+	confirmEmailVerification(@body body: ConfirmEmailVerificationRequest):
+		| NoContent
+		| BadRequestProblem
+		| UnauthorizedProblem
+		| UnprocessableEntityProblem
+		| ServiceUnavailableProblem
+		| InternalServerProblem;
 
 	@operationId("logoutUser")
 	@summary("Logout user")

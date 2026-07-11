@@ -892,6 +892,40 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	"/projects/{ref}/results/http/insight": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** Query project HTTP result insight */
+		get: operations["queryProjectHttpResultInsight"];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	"/projects/{ref}/results/http/series": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** Query project HTTP result series */
+		get: operations["queryProjectHttpResultSeries"];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	"/projects/{ref}/results/latest": {
 		parameters: {
 			query?: never;
@@ -1508,7 +1542,22 @@ export interface components {
 			/** @enum {string} */
 			type: "metric_threshold";
 			/** @enum {string} */
-			metric: "ping.loss_percent" | "ping.average_rtt_ms" | "ping.max_rtt_ms" | "ping.success_rate" | "tcp.failure_percent" | "tcp.average_connect_ms" | "tcp.max_connect_ms" | "tcp.success_rate";
+			metric:
+				| "ping.loss_percent"
+				| "ping.average_rtt_ms"
+				| "ping.max_rtt_ms"
+				| "ping.success_rate"
+				| "tcp.failure_percent"
+				| "tcp.average_connect_ms"
+				| "tcp.max_connect_ms"
+				| "tcp.success_rate"
+				| "http.failure_percent"
+				| "http.average_total_ms"
+				| "http.max_total_ms"
+				| "http.average_ttfb_ms"
+				| "http.max_ttfb_ms"
+				| "http.success_rate"
+				| "http.certificate_days_remaining";
 			/** @enum {string} */
 			operator: "gt" | "gte" | "lt" | "lte" | "eq";
 			/** Format: double */
@@ -1536,7 +1585,22 @@ export interface components {
 			/** @enum {string} */
 			state: "firing" | "clear" | "insufficient_samples" | "no_data";
 			/** @enum {string} */
-			metric: "ping.loss_percent" | "ping.average_rtt_ms" | "ping.max_rtt_ms" | "ping.success_rate" | "tcp.failure_percent" | "tcp.average_connect_ms" | "tcp.max_connect_ms" | "tcp.success_rate";
+			metric:
+				| "ping.loss_percent"
+				| "ping.average_rtt_ms"
+				| "ping.max_rtt_ms"
+				| "ping.success_rate"
+				| "tcp.failure_percent"
+				| "tcp.average_connect_ms"
+				| "tcp.max_connect_ms"
+				| "tcp.success_rate"
+				| "http.failure_percent"
+				| "http.average_total_ms"
+				| "http.max_total_ms"
+				| "http.average_ttfb_ms"
+				| "http.max_ttfb_ms"
+				| "http.success_rate"
+				| "http.certificate_days_remaining";
 			/** @enum {string} */
 			operator?: "gt" | "gte" | "lt" | "lte" | "eq";
 			/** Format: double */
@@ -1597,7 +1661,7 @@ export interface components {
 			probe: components["schemas"]["AlertIncidentProbeSummary"];
 			check: components["schemas"]["AlertIncidentCheckSummary"];
 			/** @enum {string} */
-			checkType: "ping" | "tcp" | "traceroute";
+			checkType: "ping" | "tcp" | "traceroute" | "http";
 			/** @enum {string} */
 			status: "open" | "acknowledged" | "resolved";
 			/** @enum {string} */
@@ -1638,8 +1702,8 @@ export interface components {
 			id: components["schemas"]["uuid"];
 			name: string;
 			/** @enum {string} */
-			type: "ping" | "tcp" | "traceroute";
-			target: string;
+			type: "ping" | "tcp" | "traceroute" | "http";
+			target: components["schemas"]["CheckTarget"];
 		};
 		/**
 		 * @example {
@@ -1786,7 +1850,7 @@ export interface components {
 		 */
 		AlertRuleScope: {
 			/** @enum {string} */
-			checkType: "ping" | "tcp" | "traceroute";
+			checkType: "ping" | "tcp" | "traceroute" | "http";
 			probeId?: components["schemas"]["uuid"];
 			checkId?: components["schemas"]["uuid"];
 		};
@@ -1967,8 +2031,8 @@ export interface components {
 			projectId: components["schemas"]["uuid"];
 			name: string;
 			/** @enum {string} */
-			type: "ping" | "tcp" | "traceroute";
-			target: string;
+			type: "ping" | "tcp" | "traceroute" | "http";
+			target: components["schemas"]["CheckTarget"];
 			selector?: components["schemas"]["Selector"];
 			description?: string;
 			/** Format: int32 */
@@ -1981,6 +2045,7 @@ export interface components {
 			pingConfig?: components["schemas"]["PingConfig"];
 			tcpConfig?: components["schemas"]["TcpConfig"];
 			tracerouteConfig?: components["schemas"]["TracerouteConfig"];
+			httpConfig?: components["schemas"]["HttpConfig"];
 		};
 		/**
 		 * @example {
@@ -2009,11 +2074,13 @@ export interface components {
 		 *             "ipFamily": "inet"
 		 *           }
 		 *         }
-		 *       ]
+		 *       ],
+		 *       "canManageChecks": true
 		 *     }
 		 */
 		CheckListResponse: {
 			checks: components["schemas"]["Check"][];
+			canManageChecks: boolean;
 		};
 		/**
 		 * @example {
@@ -2041,12 +2108,15 @@ export interface components {
 		 *           "timeoutMs": 3000,
 		 *           "ipFamily": "inet"
 		 *         }
-		 *       }
+		 *       },
+		 *       "canManageChecks": true
 		 *     }
 		 */
 		CheckResponse: {
 			check: components["schemas"]["Check"];
+			canManageChecks: boolean;
 		};
+		CheckTarget: string;
 		/**
 		 * @example {
 		 *       "token": "YNo5Uoj64VqK5jCht8h17GO8sHJIY0ScDNef7X99w7k"
@@ -2143,8 +2213,8 @@ export interface components {
 		CreateCheckRequest: {
 			name: string;
 			/** @enum {string} */
-			type: "ping" | "tcp" | "traceroute";
-			target: string;
+			type: "ping" | "tcp" | "traceroute" | "http";
+			target: components["schemas"]["CheckTarget"];
 			selector?: components["schemas"]["Selector"];
 			description?: string;
 			/** Format: int32 */
@@ -2153,6 +2223,7 @@ export interface components {
 			pingConfig?: components["schemas"]["PingConfigPatch"];
 			tcpConfig?: components["schemas"]["TcpConfigPatch"];
 			tracerouteConfig?: components["schemas"]["TracerouteConfigPatch"];
+			httpConfig?: components["schemas"]["HttpConfigPatch"];
 		};
 		/**
 		 * @example {
@@ -2354,6 +2425,211 @@ export interface components {
 		};
 		/**
 		 * @example {
+		 *       "method": "GET",
+		 *       "headers": [],
+		 *       "timeoutMs": 10000,
+		 *       "followRedirects": true,
+		 *       "skipTlsVerify": false,
+		 *       "expectedStatuses": [
+		 *         {
+		 *           "kind": "class",
+		 *           "class": "2xx"
+		 *         },
+		 *         {
+		 *           "kind": "class",
+		 *           "class": "3xx"
+		 *         }
+		 *       ],
+		 *       "sensitiveFieldsRedacted": false
+		 *     }
+		 */
+		HttpConfig: {
+			/** @enum {string} */
+			method: "GET" | "HEAD" | "POST" | "PUT" | "PATCH" | "DELETE" | "OPTIONS";
+			headers: components["schemas"]["HttpHeader"][];
+			body?: string;
+			/** Format: int32 */
+			timeoutMs: number;
+			/** @enum {string} */
+			ipFamily?: "inet" | "inet6";
+			followRedirects: boolean;
+			skipTlsVerify: boolean;
+			expectedStatuses: components["schemas"]["HttpStatusSelector"][];
+			bodyContains?: string;
+			/** @description True when request headers, request body, response assertion, and URL query values were removed because the caller cannot manage checks. */
+			sensitiveFieldsRedacted?: boolean;
+		};
+		HttpConfigPatch: {
+			/** @enum {string} */
+			method?: "GET" | "HEAD" | "POST" | "PUT" | "PATCH" | "DELETE" | "OPTIONS";
+			headers?: components["schemas"]["HttpHeader"][];
+			body?: string;
+			/** Format: int32 */
+			timeoutMs?: number;
+			ipFamily?: ("inet" | "inet6") | null;
+			followRedirects?: boolean;
+			skipTlsVerify?: boolean;
+			expectedStatuses?: components["schemas"]["HttpStatusSelector"][];
+			bodyContains?: string;
+		};
+		HttpHeader: {
+			name: string;
+			value: string;
+		};
+		/**
+		 * @example {
+		 *       "summary": {
+		 *         "averageTotalMs": 125,
+		 *         "maxTotalMs": 420,
+		 *         "averageTtfbMs": 40,
+		 *         "maxTtfbMs": 200,
+		 *         "failurePercent": 1.4,
+		 *         "successRate": 98.6,
+		 *         "certificateDaysRemaining": 120,
+		 *         "samples": 487
+		 *       },
+		 *       "meta": {
+		 *         "from": 1778662800000,
+		 *         "to": 1778749200000,
+		 *         "maxDataPoints": 600,
+		 *         "source": "aggregate",
+		 *         "resolution": "1m",
+		 *         "totalPoints": 487
+		 *       }
+		 *     }
+		 */
+		HttpInsightResponse: {
+			summary: components["schemas"]["HttpInsightSummary"];
+			meta: components["schemas"]["PingSeriesQueryMetadata"];
+		};
+		HttpInsightSummary: {
+			/** Format: double */
+			averageTotalMs?: number;
+			/** Format: double */
+			maxTotalMs?: number;
+			/** Format: double */
+			averageTtfbMs?: number;
+			/** Format: double */
+			maxTtfbMs?: number;
+			/** Format: double */
+			failurePercent?: number;
+			/** Format: double */
+			successRate?: number;
+			/** Format: double */
+			certificateDaysRemaining?: number;
+			/** Format: int64 */
+			samples: number;
+		};
+		/**
+		 * @example {
+		 *       "startedAt": "2026-05-13T10:00:00Z",
+		 *       "finishedAt": "2026-05-13T10:00:00.125Z",
+		 *       "durationMs": 125,
+		 *       "status": "successful",
+		 *       "dnsDurationMs": 5,
+		 *       "connectDurationMs": 20,
+		 *       "tlsDurationMs": 35,
+		 *       "ttfbDurationMs": 40,
+		 *       "resolvedIp": "93.184.216.34",
+		 *       "ipFamily": "inet",
+		 *       "statusCode": 200,
+		 *       "finalUrl": "https://example.com/health",
+		 *       "redirectCount": 0,
+		 *       "responseBytes": 128,
+		 *       "responseTruncated": false,
+		 *       "bodyMatched": true,
+		 *       "tlsVersion": "TLS 1.3",
+		 *       "tlsCipherSuite": "TLS_AES_128_GCM_SHA256",
+		 *       "certificateNotAfter": "2027-05-13T00:00:00Z"
+		 *     }
+		 */
+		HttpResult: {
+			/** Format: date-time */
+			startedAt: string;
+			/** Format: date-time */
+			finishedAt: string;
+			/** Format: int32 */
+			durationMs: number;
+			/** @enum {string} */
+			status: "successful" | "timeout" | "error";
+			/** Format: double */
+			dnsDurationMs?: number;
+			/** Format: double */
+			connectDurationMs?: number;
+			/** Format: double */
+			tlsDurationMs?: number;
+			/** Format: double */
+			ttfbDurationMs?: number;
+			resolvedIp?: components["schemas"]["ipv4Address"] | components["schemas"]["ipv6Address"];
+			/** @enum {string} */
+			ipFamily?: "inet" | "inet6";
+			/** Format: int32 */
+			statusCode?: number;
+			/** Format: uri */
+			finalUrl?: string;
+			/** Format: int32 */
+			redirectCount: number;
+			/** Format: int64 */
+			responseBytes?: number;
+			responseTruncated: boolean;
+			bodyMatched?: boolean;
+			tlsVersion?: string;
+			tlsCipherSuite?: string;
+			/** Format: date-time */
+			certificateNotBefore?: string;
+			/** Format: date-time */
+			certificateNotAfter?: string;
+			errorCode?: string;
+			errorMessage?: string;
+		};
+		/**
+		 * @example {
+		 *       "series": {
+		 *         "total_avg": {
+		 *           "name": "total_avg",
+		 *           "labels": {
+		 *             "probeId": "33333333-3333-3333-3333-333333333333",
+		 *             "checkId": "44444444-4444-4444-4444-444444444444",
+		 *             "checkType": "http"
+		 *           },
+		 *           "unit": "ms",
+		 *           "points": [
+		 *             [
+		 *               1778666400000,
+		 *               125
+		 *             ]
+		 *           ]
+		 *         }
+		 *       },
+		 *       "meta": {
+		 *         "from": 1778662800000,
+		 *         "to": 1778749200000,
+		 *         "maxDataPoints": 600,
+		 *         "source": "raw",
+		 *         "resolution": "bucket",
+		 *         "totalPoints": 487
+		 *       }
+		 *     }
+		 */
+		HttpSeriesResponse: {
+			series: Record<string, never>;
+			meta: components["schemas"]["PingSeriesQueryMetadata"];
+		};
+		HttpStatusClassSelector: {
+			/** @enum {string} */
+			kind: "class";
+			/** @enum {string} */
+			class: "1xx" | "2xx" | "3xx" | "4xx" | "5xx";
+		};
+		HttpStatusCodeSelector: {
+			/** @enum {string} */
+			kind: "code";
+			/** Format: int32 */
+			code: number;
+		};
+		HttpStatusSelector: components["schemas"]["HttpStatusCodeSelector"] | components["schemas"]["HttpStatusClassSelector"];
+		/**
+		 * @example {
 		 *       "id": "66666666-6666-6666-6666-666666666666",
 		 *       "projectId": "22222222-2222-2222-2222-222222222222",
 		 *       "key": "region",
@@ -2415,7 +2691,7 @@ export interface components {
 		 */
 		LatestResult: {
 			/** @enum {string} */
-			type: "ping" | "tcp" | "traceroute";
+			type: "ping" | "tcp" | "traceroute" | "http";
 			probeId: components["schemas"]["uuid"];
 			checkId: components["schemas"]["uuid"];
 			/** Format: date-time */
@@ -3388,7 +3664,7 @@ export interface components {
 			chartRange?: "24h" | "7d" | "30d";
 			checkName?: string;
 			/** @enum {string} */
-			checkType?: "ping" | "tcp" | "traceroute";
+			checkType?: "ping" | "tcp" | "traceroute" | "http";
 			checkTarget?: string;
 			/** Format: int32 */
 			checkIntervalSeconds?: number;
@@ -3506,8 +3782,8 @@ export interface components {
 			checkId: components["schemas"]["uuid"];
 			checkTitle: string;
 			/** @enum {string} */
-			type: "ping" | "tcp" | "traceroute";
-			target: string;
+			type: "ping" | "tcp" | "traceroute" | "http";
+			target: components["schemas"]["CheckTarget"];
 			probeId: components["schemas"]["uuid"];
 			probeName: string;
 			probeLocationName?: string;
@@ -3525,7 +3801,7 @@ export interface components {
 			title: string;
 			description?: string;
 			/** @enum {string} */
-			type?: "ping" | "tcp" | "traceroute";
+			type?: "ping" | "tcp" | "traceroute" | "http";
 			target?: string;
 			/** @enum {string} */
 			status: "operational" | "degraded" | "down" | "unknown";
@@ -3662,10 +3938,11 @@ export interface components {
 		RuntimeResultGroup: {
 			checkId: components["schemas"]["uuid"];
 			/** @enum {string} */
-			type: "ping" | "tcp" | "traceroute";
+			type: "ping" | "tcp" | "traceroute" | "http";
 			ping?: components["schemas"]["PingResult"][];
 			tcp?: components["schemas"]["TcpResult"][];
 			traceroute?: components["schemas"]["TracerouteResult"][];
+			http?: components["schemas"]["HttpResult"][];
 		};
 		/**
 		 * @example {
@@ -4533,8 +4810,8 @@ export interface components {
 		UpdateCheckRequest: {
 			name?: string;
 			/** @enum {string} */
-			type?: "ping" | "tcp" | "traceroute";
-			target?: string;
+			type?: "ping" | "tcp" | "traceroute" | "http";
+			target?: components["schemas"]["CheckTarget"];
 			selector?: components["schemas"]["Selector"];
 			description?: string;
 			/** Format: int32 */
@@ -4542,6 +4819,7 @@ export interface components {
 			pingConfig?: components["schemas"]["PingConfigPatch"];
 			tcpConfig?: components["schemas"]["TcpConfigPatch"];
 			tracerouteConfig?: components["schemas"]["TracerouteConfigPatch"];
+			httpConfig?: components["schemas"]["HttpConfigPatch"];
 			labelIds?: components["schemas"]["uuid"][];
 		};
 		/**
@@ -4725,15 +5003,26 @@ export interface components {
 		"AlertIncidentListQuery.limit": number;
 		"AlertIncidentListQuery.status": "open" | "acknowledged" | "resolved";
 		AlertRuleIdPathParam: components["schemas"]["uuid"];
-		"AlertRuleListQuery.checkType": "ping" | "tcp" | "traceroute";
+		"AlertRuleListQuery.checkType": "ping" | "tcp" | "traceroute" | "http";
 		"AlertRuleListQuery.status": "enabled" | "disabled";
 		/** @description Auth session UUID. */
 		AuthSessionIdPathParam: components["schemas"]["uuid"];
 		CheckIdPathParam: components["schemas"]["uuid"];
+		"HttpInsightQuery.checkId": components["schemas"]["uuid"];
+		"HttpInsightQuery.from": number;
+		"HttpInsightQuery.maxDataPoints": number;
+		"HttpInsightQuery.probeId": components["schemas"]["uuid"];
+		"HttpInsightQuery.to": number;
+		"HttpSeriesQuery.checkId": components["schemas"]["uuid"];
+		"HttpSeriesQuery.from": number;
+		"HttpSeriesQuery.maxDataPoints": number;
+		"HttpSeriesQuery.probeId": components["schemas"]["uuid"];
+		"HttpSeriesQuery.series": string;
+		"HttpSeriesQuery.to": number;
 		LabelIdPathParam: components["schemas"]["uuid"];
 		"LatestResultsQuery.checkId": components["schemas"]["uuid"];
 		"LatestResultsQuery.probeId": components["schemas"]["uuid"];
-		"LatestResultsQuery.type": "ping" | "tcp" | "traceroute";
+		"LatestResultsQuery.type": "ping" | "tcp" | "traceroute" | "http";
 		NotificationIdPathParam: components["schemas"]["uuid"];
 		"PingInsightQuery.checkId": components["schemas"]["uuid"];
 		"PingInsightQuery.from": number;
@@ -9111,6 +9400,153 @@ export interface operations {
 			};
 			/** @description Access is forbidden. */
 			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	queryProjectHttpResultInsight: {
+		parameters: {
+			query: {
+				probeId: components["parameters"]["HttpInsightQuery.probeId"];
+				checkId: components["parameters"]["HttpInsightQuery.checkId"];
+				from?: components["parameters"]["HttpInsightQuery.from"];
+				to?: components["parameters"]["HttpInsightQuery.to"];
+				maxDataPoints?: components["parameters"]["HttpInsightQuery.maxDataPoints"];
+			};
+			header?: never;
+			path: {
+				ref: components["parameters"]["ProjectRefParam"];
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["HttpInsightResponse"];
+				};
+			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	queryProjectHttpResultSeries: {
+		parameters: {
+			query: {
+				probeId: components["parameters"]["HttpSeriesQuery.probeId"];
+				checkId: components["parameters"]["HttpSeriesQuery.checkId"];
+				from?: components["parameters"]["HttpSeriesQuery.from"];
+				to?: components["parameters"]["HttpSeriesQuery.to"];
+				series?: components["parameters"]["HttpSeriesQuery.series"];
+				maxDataPoints?: components["parameters"]["HttpSeriesQuery.maxDataPoints"];
+			};
+			header?: never;
+			path: {
+				ref: components["parameters"]["ProjectRefParam"];
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["HttpSeriesResponse"];
+				};
+			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
 				headers: {
 					[name: string]: unknown;
 				};

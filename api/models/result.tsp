@@ -6,6 +6,7 @@ namespace Netstamp;
 
 alias PingSeriesKey = "latency_avg" | "latency_min" | "latency_max" | "loss_percent";
 alias TcpSeriesKey = "connect_avg" | "connect_min" | "connect_max" | "failure_percent";
+alias HttpSeriesKey = "dns_avg" | "connect_avg" | "tls_avg" | "ttfb_avg" | "total_avg" | "failure_percent";
 alias LatestResultStatus = "successful" | "timeout" | "error" | "partial";
 alias SeriesResolution = "raw" | "bucket" | "1m";
 alias SeriesSource = "raw" | "aggregate";
@@ -92,6 +93,74 @@ model TcpResult {
 
 	resolvedIp?: ipAddress;
 	ipFamily?: IPFamily;
+	errorCode?: string;
+	errorMessage?: string;
+}
+
+@example(#{
+	startedAt: utcDateTime.fromISO("2026-05-13T10:00:00Z"),
+	finishedAt: utcDateTime.fromISO("2026-05-13T10:00:00.125Z"),
+	durationMs: 125,
+	status: "successful",
+	dnsDurationMs: 5,
+	connectDurationMs: 20,
+	tlsDurationMs: 35,
+	ttfbDurationMs: 40,
+	resolvedIp: "93.184.216.34",
+	ipFamily: "inet",
+	statusCode: 200,
+	finalUrl: "https://example.com/health",
+	redirectCount: 0,
+	responseBytes: 128,
+	responseTruncated: false,
+	bodyMatched: true,
+	tlsVersion: "TLS 1.3",
+	tlsCipherSuite: "TLS_AES_128_GCM_SHA256",
+	certificateNotAfter: utcDateTime.fromISO("2027-05-13T00:00:00Z"),
+})
+model HttpResult {
+	startedAt: utcDateTime;
+	finishedAt: utcDateTime;
+
+	@minValue(0)
+	durationMs: int32;
+
+	status: HttpStatus;
+
+	@minValue(0)
+	dnsDurationMs?: float64;
+
+	@minValue(0)
+	connectDurationMs?: float64;
+
+	@minValue(0)
+	tlsDurationMs?: float64;
+
+	@minValue(0)
+	ttfbDurationMs?: float64;
+
+	resolvedIp?: ipAddress;
+	ipFamily?: IPFamily;
+
+	@minValue(100)
+	@maxValue(599)
+	statusCode?: int32;
+
+	finalUrl?: url;
+
+	@minValue(0)
+	@maxValue(10)
+	redirectCount: int32;
+
+	@minValue(0)
+	responseBytes?: int64;
+
+	responseTruncated: boolean;
+	bodyMatched?: boolean;
+	tlsVersion?: string;
+	tlsCipherSuite?: string;
+	certificateNotBefore?: utcDateTime;
+	certificateNotAfter?: utcDateTime;
 	errorCode?: string;
 	errorMessage?: string;
 }
@@ -206,6 +275,7 @@ model RuntimeResultGroup {
 	ping?: PingResult[];
 	tcp?: TcpResult[];
 	traceroute?: TracerouteResult[];
+	http?: HttpResult[];
 }
 
 @example(#{
@@ -282,7 +352,7 @@ model PingSeriesQueryMetadata {
 			labels: #{ probeId: "33333333-3333-3333-3333-333333333333", checkId: "44444444-4444-4444-4444-444444444444", checkType: "ping" },
 			unit: "ms",
 			points: #[#[1778666400000, 12.3]],
-		}
+		},
 	},
 	meta: #{ from: 1778662800000, to: 1778749200000, maxDataPoints: 600, source: "raw", resolution: "bucket", totalPoints: 487 },
 })
@@ -298,7 +368,7 @@ model PingSeriesResponse {
 			labels: #{ probeId: "33333333-3333-3333-3333-333333333333", checkId: "44444444-4444-4444-4444-444444444444", checkType: "tcp" },
 			unit: "ms",
 			points: #[#[1778666400000, 12.3]],
-		}
+		},
 	},
 	meta: #{ from: 1778662800000, to: 1778749200000, maxDataPoints: 600, source: "raw", resolution: "bucket", totalPoints: 487 },
 })
@@ -308,12 +378,22 @@ model TcpSeriesResponse {
 }
 
 @example(#{
-	averageRttMs: 12.3,
-	maxRttMs: 42.5,
-	lossPercent: 1.4,
-	successRate: 98.6,
-	samples: 1920,
+	series: #{
+		total_avg: #{
+			name: "total_avg",
+			labels: #{ probeId: "33333333-3333-3333-3333-333333333333", checkId: "44444444-4444-4444-4444-444444444444", checkType: "http" },
+			unit: "ms",
+			points: #[#[1778666400000, 125.0]],
+		},
+	},
+	meta: #{ from: 1778662800000, to: 1778749200000, maxDataPoints: 600, source: "raw", resolution: "bucket", totalPoints: 487 },
 })
+model HttpSeriesResponse {
+	series: Record<Series>;
+	meta: PingSeriesQueryMetadata;
+}
+
+@example(#{ averageRttMs: 12.3, maxRttMs: 42.5, lossPercent: 1.4, successRate: 98.6, samples: 1920 })
 model PingInsightSummary {
 	@minValue(0)
 	averageRttMs?: float64;
@@ -342,13 +422,7 @@ model PingInsightResponse {
 	meta: PingSeriesQueryMetadata;
 }
 
-@example(#{
-	averageConnectMs: 12.3,
-	maxConnectMs: 42.5,
-	failurePercent: 1.4,
-	successRate: 98.6,
-	samples: 487,
-})
+@example(#{ averageConnectMs: 12.3, maxConnectMs: 42.5, failurePercent: 1.4, successRate: 98.6, samples: 487 })
 model TcpInsightSummary {
 	@minValue(0)
 	averageConnectMs?: float64;
@@ -374,6 +448,26 @@ model TcpInsightSummary {
 })
 model TcpInsightResponse {
 	summary: TcpInsightSummary;
+	meta: PingSeriesQueryMetadata;
+}
+
+model HttpInsightSummary {
+	@minValue(0) averageTotalMs?: float64;
+	@minValue(0) maxTotalMs?: float64;
+	@minValue(0) averageTtfbMs?: float64;
+	@minValue(0) maxTtfbMs?: float64;
+	@minValue(0) @maxValue(100) failurePercent?: float64;
+	@minValue(0) @maxValue(100) successRate?: float64;
+	certificateDaysRemaining?: float64;
+	@minValue(0) samples: int64;
+}
+
+@example(#{
+	summary: #{ averageTotalMs: 125, maxTotalMs: 420, averageTtfbMs: 40, maxTtfbMs: 200, failurePercent: 1.4, successRate: 98.6, certificateDaysRemaining: 120, samples: 487 },
+	meta: #{ from: 1778662800000, to: 1778749200000, maxDataPoints: 600, source: "aggregate", resolution: "1m", totalPoints: 487 },
+})
+model HttpInsightResponse {
+	summary: HttpInsightSummary;
 	meta: PingSeriesQueryMetadata;
 }
 
@@ -613,10 +707,7 @@ model RuntimeIPFamilyCapabilitiesRequest {
 	families?: IPFamily[];
 }
 
-@example(#{
-	serverTime: utcDateTime.fromISO("2026-05-13T10:00:00Z"),
-	minimumSupportedAgentVersion: "0.1.0",
-})
+@example(#{ serverTime: utcDateTime.fromISO("2026-05-13T10:00:00Z"), minimumSupportedAgentVersion: "0.1.0" })
 model RuntimeHelloResponse {
 	serverTime: utcDateTime;
 	minimumSupportedAgentVersion: string;
@@ -632,10 +723,7 @@ model RuntimeIPFamilyCapabilitiesResponse {
 	serverTime: utcDateTime;
 }
 
-@example(#{
-	serverTime: utcDateTime.fromISO("2026-05-13T10:00:00Z"),
-	assignments: #[],
-})
+@example(#{ serverTime: utcDateTime.fromISO("2026-05-13T10:00:00Z"), assignments: #[] })
 model RuntimeAssignmentsResponse {
 	serverTime: utcDateTime;
 	assignments: Assignment[];

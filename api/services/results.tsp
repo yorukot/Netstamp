@@ -96,6 +96,31 @@ model TcpInsightQuery {
 	maxDataPoints?: int32 = 600;
 }
 
+model HttpSeriesQuery {
+	@query probeId: uuid;
+	@query checkId: uuid;
+	@query @minValue(1) from?: int64;
+	@query @minValue(1) to?: int64;
+	@query series?: string = "dns_avg,connect_avg,tls_avg,ttfb_avg,total_avg,failure_percent";
+
+	@query
+	@minValue(1)
+	@maxValue(2000)
+	maxDataPoints?: int32 = 600;
+}
+
+model HttpInsightQuery {
+	@query probeId: uuid;
+	@query checkId: uuid;
+	@query @minValue(1) from?: int64;
+	@query @minValue(1) to?: int64;
+
+	@query
+	@minValue(1)
+	@maxValue(2000)
+	maxDataPoints?: int32 = 600;
+}
+
 model TracerouteRunsQuery {
 	@query
 	probeId: uuid;
@@ -222,6 +247,30 @@ interface ResultService {
 	@route("/tcp/insight")
 	queryProjectTcpResultInsight(...ProjectRefParam, ...TcpInsightQuery):
 		| OkJson<TcpInsightResponse>
+		| BadRequestProblem
+		| UnauthorizedProblem
+		| NotFoundProblem
+		| UnprocessableEntityProblem
+		| InternalServerProblem;
+
+	@operationId("queryProjectHttpResultSeries")
+	@summary("Query project HTTP result series")
+	@get
+	@route("/http/series")
+	queryProjectHttpResultSeries(...ProjectRefParam, ...HttpSeriesQuery):
+		| OkJson<HttpSeriesResponse>
+		| BadRequestProblem
+		| UnauthorizedProblem
+		| NotFoundProblem
+		| UnprocessableEntityProblem
+		| InternalServerProblem;
+
+	@operationId("queryProjectHttpResultInsight")
+	@summary("Query project HTTP result insight")
+	@get
+	@route("/http/insight")
+	queryProjectHttpResultInsight(...ProjectRefParam, ...HttpInsightQuery):
+		| OkJson<HttpInsightResponse>
 		| BadRequestProblem
 		| UnauthorizedProblem
 		| NotFoundProblem

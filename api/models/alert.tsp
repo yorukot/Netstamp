@@ -17,7 +17,14 @@ alias AlertConditionMetric =
 	| "tcp.failure_percent"
 	| "tcp.average_connect_ms"
 	| "tcp.max_connect_ms"
-	| "tcp.success_rate";
+	| "tcp.success_rate"
+	| "http.failure_percent"
+	| "http.average_total_ms"
+	| "http.max_total_ms"
+	| "http.average_ttfb_ms"
+	| "http.max_ttfb_ms"
+	| "http.success_rate"
+	| "http.certificate_days_remaining";
 alias AlertConditionOperator = "gt" | "gte" | "lt" | "lte" | "eq";
 alias NotificationType = "webhook" | "slack" | "discord" | "telegram" | "email";
 
@@ -217,10 +224,7 @@ model AlertIncidentCheckSummary {
 	name: string;
 
 	type: CheckType;
-
-	@minLength(1)
-	@maxLength(128)
-	target: string;
+	target: CheckTarget;
 }
 
 @example(#{

@@ -128,7 +128,7 @@ model PublicStatusPublicAssignment {
 	checkId: uuid;
 	checkTitle: string;
 	type: CheckType;
-	target: string;
+	target: CheckTarget;
 	probeId: uuid;
 	probeName: string;
 	probeLocationName?: string;

@@ -1,11 +1,103 @@
 namespace Netstamp;
 
-alias CheckType = "ping" | "tcp" | "traceroute";
+alias CheckType = "ping" | "tcp" | "traceroute" | "http";
 alias IPFamily = "inet" | "inet6";
 alias PingStatus = "successful" | "timeout" | "error";
 alias TcpStatus = "successful" | "timeout" | "error";
 alias TracerouteProtocol = "icmp" | "udp";
 alias TracerouteStatus = "successful" | "timeout" | "error" | "partial";
+alias HttpMethod = "GET" | "HEAD" | "POST" | "PUT" | "PATCH" | "DELETE" | "OPTIONS";
+alias HttpStatusClass = "1xx" | "2xx" | "3xx" | "4xx" | "5xx";
+alias HttpStatus = "successful" | "timeout" | "error";
+
+@minLength(1)
+@maxLength(2048)
+scalar CheckTarget extends string;
+
+model HttpHeader {
+	@minLength(1)
+	name: string;
+
+	value: string;
+}
+
+model HttpStatusCodeSelector {
+	kind: "code";
+
+	@minValue(100)
+	@maxValue(599)
+	code: int32;
+}
+
+model HttpStatusClassSelector {
+	kind: "class";
+	class: HttpStatusClass;
+}
+
+union HttpStatusSelector {
+	code: HttpStatusCodeSelector,
+	statusClass: HttpStatusClassSelector,
+}
+
+@example(#{
+	method: "GET",
+	headers: #[],
+	timeoutMs: 10000,
+	followRedirects: true,
+	skipTlsVerify: false,
+	expectedStatuses: #[#{ kind: "class", class: "2xx" }, #{ kind: "class", class: "3xx" }],
+	sensitiveFieldsRedacted: false,
+})
+model HttpConfig {
+	method: HttpMethod;
+
+	@maxItems(50)
+	headers: HttpHeader[];
+
+	@maxLength(65536)
+	body?: string;
+
+	@minValue(1)
+	@maxValue(60000)
+	timeoutMs: int32;
+
+	ipFamily?: IPFamily;
+	followRedirects: boolean;
+	skipTlsVerify: boolean;
+
+	@minItems(1)
+	expectedStatuses: HttpStatusSelector[];
+
+	@maxLength(1024)
+	bodyContains?: string;
+
+	@doc("True when request headers, request body, response assertion, and URL query values were removed because the caller cannot manage checks.")
+	sensitiveFieldsRedacted?: boolean;
+}
+
+model HttpConfigPatch {
+	method?: HttpMethod;
+
+	@maxItems(50)
+	headers?: HttpHeader[];
+
+	@maxLength(65536)
+	body?: string;
+
+	@minValue(1)
+	@maxValue(60000)
+	timeoutMs?: int32;
+
+	ipFamily?: IPFamily | null;
+	followRedirects?: boolean;
+	skipTlsVerify?: boolean;
+
+	@minItems(1)
+	expectedStatuses?: HttpStatusSelector[];
+
+	@maxLength(1024)
+	bodyContains?: string;
+}
 
 @example(#{ packetCount: 4, packetSizeBytes: 56, timeoutMs: 3000, ipFamily: "inet" })
 model PingConfig {
@@ -147,11 +239,7 @@ model Check {
 	name: string;
 
 	type: CheckType;
-
-	@minLength(1)
-	@maxLength(128)
-	target: string;
-
+	target: CheckTarget;
 	selector?: Selector;
 
 	@minLength(1)
@@ -167,6 +255,7 @@ model Check {
 	pingConfig?: PingConfig;
 	tcpConfig?: TcpConfig;
 	tracerouteConfig?: TracerouteConfig;
+	httpConfig?: HttpConfig;
 }
 
 @example(#{
@@ -184,9 +273,11 @@ model Check {
 		updatedAt: utcDateTime.fromISO("2026-05-13T10:00:00Z"),
 		pingConfig: #{ packetCount: 4, packetSizeBytes: 56, timeoutMs: 3000, ipFamily: "inet" },
 	},
+	canManageChecks: true,
 })
 model CheckResponse {
 	check: Check;
+	canManageChecks: boolean;
 }
 
 @example(#{
@@ -205,9 +296,11 @@ model CheckResponse {
 			pingConfig: #{ packetCount: 4, packetSizeBytes: 56, timeoutMs: 3000, ipFamily: "inet" },
 		}
 	],
+	canManageChecks: true,
 })
 model CheckListResponse {
 	checks: Check[];
+	canManageChecks: boolean;
 }
 
 @example(#{
@@ -226,11 +319,7 @@ model CreateCheckRequest {
 	name: string;
 
 	type: CheckType;
-
-	@minLength(1)
-	@maxLength(128)
-	target: string;
-
+	target: CheckTarget;
 	selector?: Selector;
 
 	@minLength(1)
@@ -244,6 +333,7 @@ model CreateCheckRequest {
 	pingConfig?: PingConfigPatch;
 	tcpConfig?: TcpConfigPatch;
 	tracerouteConfig?: TracerouteConfigPatch;
+	httpConfig?: HttpConfigPatch;
 }
 
 @example(#{ name: "api-latency", target: "api.netstamp.io", intervalSeconds: 60, labelIds: #["66666666-6666-6666-6666-666666666666"], pingConfig: #{ timeoutMs: 5000 } })
@@ -254,11 +344,7 @@ model UpdateCheckRequest {
 	name?: string;
 
 	type?: CheckType;
-
-	@minLength(1)
-	@maxLength(128)
-	target?: string;
-
+	target?: CheckTarget;
 	selector?: Selector;
 
 	@minLength(1)
@@ -271,5 +357,6 @@ model UpdateCheckRequest {
 	pingConfig?: PingConfigPatch;
 	tcpConfig?: TcpConfigPatch;
 	tracerouteConfig?: TracerouteConfigPatch;
+	httpConfig?: HttpConfigPatch;
 	labelIds?: uuid[];
 }

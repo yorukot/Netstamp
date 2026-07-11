@@ -38,7 +38,14 @@ model ProbeStatus {
 	latitude: 35.6762,
 	longitude: 139.6503,
 	labels: #[],
-	status: #{ probeId: "33333333-3333-3333-3333-333333333333", state: "online", lastSeenAt: utcDateTime.fromISO("2026-05-13T10:00:00Z"), onlineSince: utcDateTime.fromISO("2026-05-13T09:45:00Z"), uptimeSeconds: 900, updatedAt: utcDateTime.fromISO("2026-05-13T10:00:00Z") },
+	status: #{
+		probeId: "33333333-3333-3333-3333-333333333333",
+		state: "online",
+		lastSeenAt: utcDateTime.fromISO("2026-05-13T10:00:00Z"),
+		onlineSince: utcDateTime.fromISO("2026-05-13T09:45:00Z"),
+		uptimeSeconds: 900,
+		updatedAt: utcDateTime.fromISO("2026-05-13T10:00:00Z"),
+	},
 	createdAt: utcDateTime.fromISO("2026-05-13T10:00:00Z"),
 	updatedAt: utcDateTime.fromISO("2026-05-13T10:00:00Z"),
 })
