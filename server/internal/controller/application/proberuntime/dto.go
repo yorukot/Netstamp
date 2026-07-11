@@ -53,6 +53,7 @@ type RuntimeResultGroupInput struct {
 	Ping       []PingResultInput
 	TCP        []TCPResultInput
 	Traceroute []TracerouteResultInput
+	HTTP       []HTTPResultInput
 }
 
 type PingResultInput struct {
@@ -85,6 +86,31 @@ type TCPResultInput struct {
 	IPFamily          *string
 	ErrorCode         *string
 	ErrorMessage      *string
+}
+
+type HTTPResultInput struct {
+	StartedAt            time.Time
+	FinishedAt           time.Time
+	DurationMs           int32
+	Status               string
+	DNSDurationMs        *float64
+	ConnectDurationMs    *float64
+	TLSDurationMs        *float64
+	TTFBDurationMs       *float64
+	ResolvedIP           *netip.Addr
+	IPFamily             *string
+	StatusCode           *int32
+	FinalURL             *string
+	RedirectCount        int32
+	ResponseBytes        *int64
+	ResponseTruncated    bool
+	BodyMatched          *bool
+	TLSVersion           *string
+	TLSCipherSuite       *string
+	CertificateNotBefore *time.Time
+	CertificateNotAfter  *time.Time
+	ErrorCode            *string
+	ErrorMessage         *string
 }
 
 type SubmitResultsOutput struct {

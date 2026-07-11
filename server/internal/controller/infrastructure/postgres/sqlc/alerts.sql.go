@@ -636,6 +636,57 @@ func (q *Queries) GetAlertRule(ctx context.Context, arg GetAlertRuleParams) (Ale
 	return i, err
 }
 
+const getHTTPAlertMetricSummary = `-- name: GetHTTPAlertMetricSummary :one
+SELECT count(*) FILTER (
+           WHERE CASE
+               WHEN $1::text IN ('http.average_ttfb_ms', 'http.max_ttfb_ms') THEN ttfb_duration_ms IS NOT NULL
+               WHEN $1::text = 'http.certificate_days_remaining' THEN certificate_not_after IS NOT NULL
+               ELSE true
+           END
+       )::bigint AS samples,
+       coalesce(CASE $1::text
+           WHEN 'http.failure_percent' THEN (100.0 * count(*) FILTER (WHERE status IN ('timeout', 'error')) / NULLIF(count(*), 0))::double precision
+           WHEN 'http.success_rate' THEN (100.0 * count(*) FILTER (WHERE status = 'successful') / NULLIF(count(*), 0))::double precision
+           WHEN 'http.average_total_ms' THEN avg(duration_ms)::double precision
+           WHEN 'http.max_total_ms' THEN max(duration_ms)::double precision
+           WHEN 'http.average_ttfb_ms' THEN avg(ttfb_duration_ms)::double precision
+           WHEN 'http.max_ttfb_ms' THEN max(ttfb_duration_ms)::double precision
+           WHEN 'http.certificate_days_remaining' THEN min(extract(epoch FROM (certificate_not_after - now())) / 86400.0)::double precision
+           ELSE NULL::double precision
+       END, 0)::double precision AS value
+FROM http_results
+WHERE probe_id = $2
+  AND check_id = $3
+  AND started_at >= $4
+  AND started_at < $5
+`
+
+type GetHTTPAlertMetricSummaryParams struct {
+	Metric         string    `json:"metric"`
+	ProbeStorageID int64     `json:"probe_storage_id"`
+	CheckStorageID int64     `json:"check_storage_id"`
+	StartedAtFrom  time.Time `json:"started_at_from"`
+	StartedAtTo    time.Time `json:"started_at_to"`
+}
+
+type GetHTTPAlertMetricSummaryRow struct {
+	Samples int64   `json:"samples"`
+	Value   float64 `json:"value"`
+}
+
+func (q *Queries) GetHTTPAlertMetricSummary(ctx context.Context, arg GetHTTPAlertMetricSummaryParams) (GetHTTPAlertMetricSummaryRow, error) {
+	row := q.db.QueryRow(ctx, getHTTPAlertMetricSummary,
+		arg.Metric,
+		arg.ProbeStorageID,
+		arg.CheckStorageID,
+		arg.StartedAtFrom,
+		arg.StartedAtTo,
+	)
+	var i GetHTTPAlertMetricSummaryRow
+	err := row.Scan(&i.Samples, &i.Value)
+	return i, err
+}
+
 const getNotification = `-- name: GetNotification :one
 SELECT id,
        project_id,

@@ -8,6 +8,7 @@ import (
 
 	"github.com/yorukot/netstamp/internal/agent/scheduling"
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
+	domainhttp "github.com/yorukot/netstamp/internal/domain/httpcheck"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domaintcp "github.com/yorukot/netstamp/internal/domain/tcp"
 	domaintraceroute "github.com/yorukot/netstamp/internal/domain/traceroute"
@@ -19,6 +20,7 @@ type ResultEnvelope struct {
 	Ping       domainping.Result
 	TCP        domaintcp.Result
 	Traceroute domaintraceroute.Result
+	HTTP       domainhttp.Result
 }
 
 type PingExecutor interface {
@@ -33,6 +35,10 @@ type TracerouteExecutor interface {
 	Execute(ctx context.Context, req scheduling.RunRequest) ResultEnvelope
 }
 
+type HTTPExecutor interface {
+	Execute(ctx context.Context, req scheduling.RunRequest) ResultEnvelope
+}
+
 type WorkerPool struct {
 	maxWorkers int
 	queue      <-chan scheduling.RunRequest
@@ -40,6 +46,7 @@ type WorkerPool struct {
 	ping       PingExecutor
 	tcp        TCPExecutor
 	traceroute TracerouteExecutor
+	http       HTTPExecutor
 	log        *slog.Logger
 	metrics    WorkerMetrics
 }
@@ -50,7 +57,7 @@ type WorkerMetrics interface {
 	ObserveExecutorDuration(checkType string, duration time.Duration)
 }
 
-func NewWorkerPool(maxWorkers int, queue <-chan scheduling.RunRequest, results *ResultQueue, ping PingExecutor, tcp TCPExecutor, traceroute TracerouteExecutor, log *slog.Logger, metrics WorkerMetrics) *WorkerPool {
+func NewWorkerPool(maxWorkers int, queue <-chan scheduling.RunRequest, results *ResultQueue, ping PingExecutor, tcp TCPExecutor, traceroute TracerouteExecutor, httpExecutor HTTPExecutor, log *slog.Logger, metrics WorkerMetrics) *WorkerPool {
 	return &WorkerPool{
 		maxWorkers: maxWorkers,
 		queue:      queue,
@@ -58,6 +65,7 @@ func NewWorkerPool(maxWorkers int, queue <-chan scheduling.RunRequest, results *
 		ping:       ping,
 		tcp:        tcp,
 		traceroute: traceroute,
+		http:       httpExecutor,
 		log:        log,
 		metrics:    metrics,
 	}
@@ -133,6 +141,14 @@ func (p *WorkerPool) runOne(ctx context.Context, workerID int, req scheduling.Ru
 		defer done()
 		result := p.traceroute.Execute(ctx, req)
 		p.results.Enqueue(result)
+	case domaincheck.TypeHTTP:
+		if req.Check.HTTPConfig == nil || p.http == nil {
+			p.log.Warn("skipped http occurrence without config or executor", "worker_id", workerID, "assignment_id", req.AssignmentID, "check_id", req.Check.ID)
+			return
+		}
+		done := p.startExecutor(domaincheck.TypeHTTP)
+		defer done()
+		p.results.Enqueue(p.http.Execute(ctx, req))
 	default:
 		p.log.Warn("skipped unsupported check type", "worker_id", workerID, "assignment_id", req.AssignmentID, "check_id", req.Check.ID, "check_type", req.Check.Type)
 	}

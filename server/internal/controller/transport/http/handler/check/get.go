@@ -12,7 +12,7 @@ func (h *Handler) getCheck(ctx context.Context, input *getCheckInput) (*checkOut
 		return nil, err
 	}
 
-	check, err := h.service.GetCheck(ctx, appcheck.GetCheckInput{
+	output, err := h.service.GetCheck(ctx, appcheck.GetCheckInput{
 		CurrentUserID: currentUserID,
 		ProjectRef:    input.Ref,
 		CheckID:       input.CheckID,
@@ -21,7 +21,7 @@ func (h *Handler) getCheck(ctx context.Context, input *getCheckInput) (*checkOut
 		return nil, mapCheckError(err, "get check failed")
 	}
 
-	return &checkOutput{Body: checkOutputBody{Check: check}}, nil
+	return newCheckOutput(output.Check, output.CanManageChecks), nil
 }
 
 type getCheckInput struct {

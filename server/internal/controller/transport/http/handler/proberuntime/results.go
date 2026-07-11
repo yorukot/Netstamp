@@ -40,6 +40,7 @@ type runtimeResultGroupBody struct {
 	Ping       []pingResultBody              `json:"ping,omitempty"`
 	TCP        []runtimeTCPResultBody        `json:"tcp,omitempty"`
 	Traceroute []runtimeTracerouteResultBody `json:"traceroute,omitempty"`
+	HTTP       []runtimeHTTPResultBody       `json:"http,omitempty"`
 }
 
 type pingResultBody struct {
@@ -72,6 +73,31 @@ type runtimeTCPResultBody struct {
 	IPFamily          *string     `json:"ipFamily,omitempty"`
 	ErrorCode         *string     `json:"errorCode,omitempty"`
 	ErrorMessage      *string     `json:"errorMessage,omitempty"`
+}
+
+type runtimeHTTPResultBody struct {
+	StartedAt            time.Time   `json:"startedAt"`
+	FinishedAt           time.Time   `json:"finishedAt"`
+	DurationMs           int32       `json:"durationMs"`
+	Status               string      `json:"status"`
+	DNSDurationMs        *float64    `json:"dnsDurationMs,omitempty"`
+	ConnectDurationMs    *float64    `json:"connectDurationMs,omitempty"`
+	TLSDurationMs        *float64    `json:"tlsDurationMs,omitempty"`
+	TTFBDurationMs       *float64    `json:"ttfbDurationMs,omitempty"`
+	ResolvedIP           *netip.Addr `json:"resolvedIp,omitempty"`
+	IPFamily             *string     `json:"ipFamily,omitempty"`
+	StatusCode           *int32      `json:"statusCode,omitempty"`
+	FinalURL             *string     `json:"finalUrl,omitempty"`
+	RedirectCount        int32       `json:"redirectCount"`
+	ResponseBytes        *int64      `json:"responseBytes,omitempty"`
+	ResponseTruncated    bool        `json:"responseTruncated"`
+	BodyMatched          *bool       `json:"bodyMatched,omitempty"`
+	TLSVersion           *string     `json:"tlsVersion,omitempty"`
+	TLSCipherSuite       *string     `json:"tlsCipherSuite,omitempty"`
+	CertificateNotBefore *time.Time  `json:"certificateNotBefore,omitempty"`
+	CertificateNotAfter  *time.Time  `json:"certificateNotAfter,omitempty"`
+	ErrorCode            *string     `json:"errorCode,omitempty"`
+	ErrorMessage         *string     `json:"errorMessage,omitempty"`
 }
 
 type runtimeTracerouteResultBody struct {
@@ -123,6 +149,7 @@ func newSubmitResultsInput(auth appproberuntime.RuntimeAuthInput, body submitRes
 			Ping:       newPingResultInputs(group.Ping),
 			TCP:        newTCPResultInputs(group.TCP),
 			Traceroute: newTracerouteResultInputs(group.Traceroute),
+			HTTP:       newHTTPResultInputs(group.HTTP),
 		})
 	}
 
@@ -130,6 +157,24 @@ func newSubmitResultsInput(auth appproberuntime.RuntimeAuthInput, body submitRes
 		RuntimeAuthInput: auth,
 		Results:          results,
 	}
+}
+
+func newHTTPResultInputs(values []runtimeHTTPResultBody) []appproberuntime.HTTPResultInput {
+	results := make([]appproberuntime.HTTPResultInput, 0, len(values))
+	for _, value := range values {
+		results = append(results, appproberuntime.HTTPResultInput{
+			StartedAt: value.StartedAt, FinishedAt: value.FinishedAt, DurationMs: value.DurationMs,
+			Status: value.Status, DNSDurationMs: value.DNSDurationMs, ConnectDurationMs: value.ConnectDurationMs,
+			TLSDurationMs: value.TLSDurationMs, TTFBDurationMs: value.TTFBDurationMs,
+			ResolvedIP: cloneAddr(value.ResolvedIP), IPFamily: value.IPFamily, StatusCode: value.StatusCode,
+			FinalURL: value.FinalURL, RedirectCount: value.RedirectCount, ResponseBytes: value.ResponseBytes,
+			ResponseTruncated: value.ResponseTruncated, BodyMatched: value.BodyMatched,
+			TLSVersion: value.TLSVersion, TLSCipherSuite: value.TLSCipherSuite,
+			CertificateNotBefore: value.CertificateNotBefore, CertificateNotAfter: value.CertificateNotAfter,
+			ErrorCode: value.ErrorCode, ErrorMessage: value.ErrorMessage,
+		})
+	}
+	return results
 }
 
 func newTCPResultInputs(values []runtimeTCPResultBody) []appproberuntime.TCPResultInput {

@@ -23,7 +23,7 @@ func TestWorkerRunsTracerouteExecutor(t *testing.T) {
 			Status: domaintraceroute.StatusSuccessful,
 		},
 	}}
-	pool := NewWorkerPool(1, nil, queue, nil, nil, executor, discardWorkerLogger(), nil)
+	pool := NewWorkerPool(1, nil, queue, nil, nil, executor, nil, discardWorkerLogger(), nil)
 
 	pool.runOne(context.Background(), 1, scheduling.RunRequest{
 		Check: domaincheck.Check{
@@ -53,7 +53,7 @@ func TestWorkerRunsTCPExecutor(t *testing.T) {
 			Status: domaintcp.StatusSuccessful,
 		},
 	}}
-	pool := NewWorkerPool(1, nil, queue, nil, executor, nil, discardWorkerLogger(), nil)
+	pool := NewWorkerPool(1, nil, queue, nil, executor, nil, nil, discardWorkerLogger(), nil)
 
 	pool.runOne(context.Background(), 1, scheduling.RunRequest{
 		Check: domaincheck.Check{

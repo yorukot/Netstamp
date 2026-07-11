@@ -18,6 +18,16 @@ SELECT checks.internal_id,
        tcp_check_configs.port AS tcp_port,
        tcp_check_configs.timeout_ms AS tcp_timeout_ms,
        tcp_check_configs.ip_family AS tcp_ip_family,
+       http_check_configs.method AS http_method,
+       http_check_configs.headers AS http_headers,
+       http_check_configs.body AS http_body,
+       http_check_configs.timeout_ms AS http_timeout_ms,
+       http_check_configs.ip_family AS http_ip_family,
+       http_check_configs.follow_redirects AS http_follow_redirects,
+       http_check_configs.skip_tls_verify AS http_skip_tls_verify,
+       http_check_configs.expected_status_codes AS http_expected_status_codes,
+       http_check_configs.expected_status_classes AS http_expected_status_classes,
+       http_check_configs.body_contains AS http_body_contains,
        traceroute_check_configs.protocol AS traceroute_protocol,
        traceroute_check_configs.max_hops AS traceroute_max_hops,
        traceroute_check_configs.timeout_ms AS traceroute_timeout_ms,
@@ -28,6 +38,7 @@ SELECT checks.internal_id,
 FROM checks
 LEFT JOIN ping_check_configs ON ping_check_configs.check_id = checks.id
 LEFT JOIN tcp_check_configs ON tcp_check_configs.check_id = checks.id
+LEFT JOIN http_check_configs ON http_check_configs.check_id = checks.id
 LEFT JOIN traceroute_check_configs ON traceroute_check_configs.check_id = checks.id
 WHERE checks.project_id = $1
   AND checks.deleted_at IS NULL
@@ -53,6 +64,16 @@ SELECT checks.internal_id,
        tcp_check_configs.port AS tcp_port,
        tcp_check_configs.timeout_ms AS tcp_timeout_ms,
        tcp_check_configs.ip_family AS tcp_ip_family,
+       http_check_configs.method AS http_method,
+       http_check_configs.headers AS http_headers,
+       http_check_configs.body AS http_body,
+       http_check_configs.timeout_ms AS http_timeout_ms,
+       http_check_configs.ip_family AS http_ip_family,
+       http_check_configs.follow_redirects AS http_follow_redirects,
+       http_check_configs.skip_tls_verify AS http_skip_tls_verify,
+       http_check_configs.expected_status_codes AS http_expected_status_codes,
+       http_check_configs.expected_status_classes AS http_expected_status_classes,
+       http_check_configs.body_contains AS http_body_contains,
        traceroute_check_configs.protocol AS traceroute_protocol,
        traceroute_check_configs.max_hops AS traceroute_max_hops,
        traceroute_check_configs.timeout_ms AS traceroute_timeout_ms,
@@ -63,6 +84,7 @@ SELECT checks.internal_id,
 FROM checks
 LEFT JOIN ping_check_configs ON ping_check_configs.check_id = checks.id
 LEFT JOIN tcp_check_configs ON tcp_check_configs.check_id = checks.id
+LEFT JOIN http_check_configs ON http_check_configs.check_id = checks.id
 LEFT JOIN traceroute_check_configs ON traceroute_check_configs.check_id = checks.id
 WHERE checks.project_id = $1
   AND checks.id = $2
@@ -120,6 +142,36 @@ SET port = $2,
     ip_family = $4
 WHERE check_id = $1
 RETURNING check_id, port, timeout_ms, ip_family;
+
+-- name: CreateHTTPCheckConfig :one
+INSERT INTO http_check_configs (
+    check_id, method, headers, body, timeout_ms, ip_family, follow_redirects,
+    skip_tls_verify, expected_status_codes, expected_status_classes, body_contains
+)
+VALUES (
+    sqlc.arg(check_id), sqlc.arg(method), sqlc.arg(headers)::jsonb, sqlc.narg(body),
+    sqlc.arg(timeout_ms), sqlc.narg(ip_family), sqlc.arg(follow_redirects),
+    sqlc.arg(skip_tls_verify), sqlc.arg(expected_status_codes),
+    sqlc.arg(expected_status_classes), sqlc.narg(body_contains)
+)
+RETURNING check_id, method, headers, body, timeout_ms, ip_family, follow_redirects,
+          skip_tls_verify, expected_status_codes, expected_status_classes, body_contains;
+
+-- name: UpdateHTTPCheckConfig :one
+UPDATE http_check_configs
+SET method = sqlc.arg(method),
+    headers = sqlc.arg(headers)::jsonb,
+    body = sqlc.narg(body),
+    timeout_ms = sqlc.arg(timeout_ms),
+    ip_family = sqlc.narg(ip_family),
+    follow_redirects = sqlc.arg(follow_redirects),
+    skip_tls_verify = sqlc.arg(skip_tls_verify),
+    expected_status_codes = sqlc.arg(expected_status_codes),
+    expected_status_classes = sqlc.arg(expected_status_classes),
+    body_contains = sqlc.narg(body_contains)
+WHERE check_id = sqlc.arg(check_id)
+RETURNING check_id, method, headers, body, timeout_ms, ip_family, follow_redirects,
+          skip_tls_verify, expected_status_codes, expected_status_classes, body_contains;
 
 -- name: CreateTracerouteCheckConfig :one
 INSERT INTO traceroute_check_configs (check_id, protocol, max_hops, timeout_ms, queries_per_hop, packet_size_bytes, port, ip_family)

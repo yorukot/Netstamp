@@ -101,6 +101,7 @@ type queryInsightInput struct {
 type (
 	queryPingInsightInput = queryInsightInput
 	queryTCPInsightInput  = queryInsightInput
+	queryHTTPInsightInput = queryInsightInput
 )
 
 type queryInsightOutput[B any] struct {
@@ -115,8 +116,10 @@ type queryInsightBody[S any] struct {
 type (
 	queryPingInsightOutput = queryInsightOutput[queryPingInsightBody]
 	queryTCPInsightOutput  = queryInsightOutput[queryTCPInsightBody]
+	queryHTTPInsightOutput = queryInsightOutput[queryHTTPInsightBody]
 	queryPingInsightBody   = queryInsightBody[pingInsightSummaryBody]
 	queryTCPInsightBody    = queryInsightBody[tcpInsightSummaryBody]
+	queryHTTPInsightBody   = queryInsightBody[httpInsightSummaryBody]
 )
 
 func newQueryInsightBody[S any](summary S, meta appresult.QueryMetadata) queryInsightBody[S] {
@@ -132,6 +135,10 @@ func (h *Handler) queryPingInsight(ctx context.Context, input *queryPingInsightI
 
 func (h *Handler) queryTCPInsight(ctx context.Context, input *queryTCPInsightInput) (*queryTCPInsightOutput, error) {
 	return queryInsight(ctx, input, newQueryInsightServiceInput[appresult.QueryTCPInsightInput], h.service.QueryTCPInsight, newQueryTCPInsightBody, "query tcp insight failed")
+}
+
+func (h *Handler) queryHTTPInsight(ctx context.Context, input *queryHTTPInsightInput) (*queryHTTPInsightOutput, error) {
+	return queryInsight(ctx, input, newQueryInsightServiceInput[appresult.QueryHTTPInsightInput], h.service.QueryHTTPInsight, newQueryHTTPInsightBody, "query http insight failed")
 }
 
 type queryInsightServiceInput interface {

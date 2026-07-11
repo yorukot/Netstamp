@@ -25,13 +25,14 @@ func (h *Handler) updateCheck(ctx context.Context, input *updateCheckInput) (*ch
 		PingConfig:       input.Body.PingConfig.appInput(),
 		TCPConfig:        input.Body.TCPConfig.appInput(),
 		TracerouteConfig: input.Body.TracerouteConfig.appInput(),
+		HTTPConfig:       input.Body.HTTPConfig.appInput(),
 		LabelIDs:         input.Body.LabelIDs,
 	})
 	if err != nil {
 		return nil, mapCheckError(err, "update check failed")
 	}
 
-	return &checkOutput{Body: checkOutputBody{Check: check}}, nil
+	return newCheckOutput(check, true), nil
 }
 
 type updateCheckInput struct {
@@ -50,5 +51,6 @@ type updateCheckInputBody struct {
 	PingConfig       *checkPingConfigInput       `json:"pingConfig,omitempty"`
 	TCPConfig        *checkTCPConfigInput        `json:"tcpConfig,omitempty"`
 	TracerouteConfig *checkTracerouteConfigInput `json:"tracerouteConfig,omitempty"`
+	HTTPConfig       *checkHTTPConfigInput       `json:"httpConfig,omitempty"`
 	LabelIDs         *[]string                   `json:"labelIds,omitempty"`
 }

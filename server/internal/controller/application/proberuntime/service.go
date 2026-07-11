@@ -6,6 +6,7 @@ import (
 
 	domainassignment "github.com/yorukot/netstamp/internal/domain/assignment"
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
+	domainhttp "github.com/yorukot/netstamp/internal/domain/httpcheck"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
 	domaintcp "github.com/yorukot/netstamp/internal/domain/tcp"
@@ -16,6 +17,7 @@ type Service struct {
 	probes         ProbeRepository
 	pings          PingResultRepository
 	tcps           TCPResultRepository
+	httpResults    HTTPResultRepository
 	traceroutes    TracerouteResultRepository
 	secretVerifier SecretVerifier
 	events         EventRecorder
@@ -31,10 +33,15 @@ func NewService(probes ProbeRepository, pings PingResultRepository, traceroutes 
 }
 
 func NewServiceWithTCP(probes ProbeRepository, pings PingResultRepository, tcps TCPResultRepository, traceroutes TracerouteResultRepository, secretVerifier SecretVerifier, events EventRecorder) *Service {
+	return NewServiceWithResults(probes, pings, tcps, nil, traceroutes, secretVerifier, events)
+}
+
+func NewServiceWithResults(probes ProbeRepository, pings PingResultRepository, tcps TCPResultRepository, httpResults HTTPResultRepository, traceroutes TracerouteResultRepository, secretVerifier SecretVerifier, events EventRecorder) *Service {
 	return &Service{
 		probes:         probes,
 		pings:          pings,
 		tcps:           tcps,
+		httpResults:    httpResults,
 		traceroutes:    traceroutes,
 		secretVerifier: secretVerifier,
 		events:         events,
@@ -139,12 +146,12 @@ func (s *Service) SubmitResults(ctx context.Context, input SubmitResultsInput) (
 	if err != nil {
 		return SubmitResultsOutput{}, flow.assignmentLookupFailure(ProbeRuntimeEventSubmitResultsFailure, err)
 	}
-	pingResults, tcpResults, tracerouteResults, err := collectResultWrites(normalized, assignmentsByCheckID(assignments))
+	pingResults, tcpResults, httpResults, tracerouteResults, err := collectResultWrites(normalized, assignmentsByCheckID(assignments))
 	if err != nil {
 		return SubmitResultsOutput{}, flow.businessFailure(ProbeRuntimeEventSubmitResultsFailure, ProbeRuntimeReasonInvalidInput, err)
 	}
 
-	changed, err := s.writeSubmittedResults(ctx, flow, assignments, pingResults, tcpResults, tracerouteResults)
+	changed, err := s.writeSubmittedResults(ctx, flow, assignments, pingResults, tcpResults, httpResults, tracerouteResults)
 	if err != nil {
 		return SubmitResultsOutput{}, err
 	}
@@ -158,7 +165,7 @@ func (s *Service) SubmitResults(ctx context.Context, input SubmitResultsInput) (
 	return SubmitResultsOutput{Accepted: normalized.accepted, ServerTime: time.Now().UTC()}, nil
 }
 
-func (s *Service) writeSubmittedResults(ctx context.Context, flow *runtimeFlow, assignments []domainassignment.Assignment, pingResults []domainping.ResultStorageInput, tcpResults []domaintcp.ResultStorageInput, tracerouteResults []domaintraceroute.ResultStorageInput) ([]ChangedAssignmentInput, error) {
+func (s *Service) writeSubmittedResults(ctx context.Context, flow *runtimeFlow, assignments []domainassignment.Assignment, pingResults []domainping.ResultStorageInput, tcpResults []domaintcp.ResultStorageInput, httpResults []domainhttp.ResultStorageInput, tracerouteResults []domaintraceroute.ResultStorageInput) ([]ChangedAssignmentInput, error) {
 	var changed []ChangedAssignmentInput
 	if len(pingResults) > 0 {
 		if s.pings == nil {
@@ -168,7 +175,7 @@ func (s *Service) writeSubmittedResults(ctx context.Context, flow *runtimeFlow, 
 		if err != nil {
 			return nil, flow.resultWriteFailure(ProbeRuntimeEventSubmitResultsFailure, err)
 		}
-		changed = appendChangedAssignments(changed, inserted, nil, assignments)
+		changed = appendChangedAssignments(changed, inserted, nil, nil, assignments)
 	}
 	if len(tcpResults) > 0 {
 		if s.tcps == nil {
@@ -178,7 +185,17 @@ func (s *Service) writeSubmittedResults(ctx context.Context, flow *runtimeFlow, 
 		if err != nil {
 			return nil, flow.resultWriteFailure(ProbeRuntimeEventSubmitResultsFailure, err)
 		}
-		changed = appendChangedAssignments(changed, nil, inserted, assignments)
+		changed = appendChangedAssignments(changed, nil, inserted, nil, assignments)
+	}
+	if len(httpResults) > 0 {
+		if s.httpResults == nil {
+			return nil, flow.resultWriteFailure(ProbeRuntimeEventSubmitResultsFailure, errHTTPRepositoryMissing)
+		}
+		inserted, err := s.httpResults.CreateHTTPResults(ctx, httpResults)
+		if err != nil {
+			return nil, flow.resultWriteFailure(ProbeRuntimeEventSubmitResultsFailure, err)
+		}
+		changed = appendChangedAssignments(changed, nil, nil, inserted, assignments)
 	}
 	if len(tracerouteResults) > 0 {
 		if s.traceroutes == nil {
@@ -191,7 +208,7 @@ func (s *Service) writeSubmittedResults(ctx context.Context, flow *runtimeFlow, 
 	return changed, nil
 }
 
-func appendChangedAssignments(changed []ChangedAssignmentInput, pingResults []domainping.ResultStorageInput, tcpResults []domaintcp.ResultStorageInput, assignments []domainassignment.Assignment) []ChangedAssignmentInput {
+func appendChangedAssignments(changed []ChangedAssignmentInput, pingResults []domainping.ResultStorageInput, tcpResults []domaintcp.ResultStorageInput, httpResults []domainhttp.ResultStorageInput, assignments []domainassignment.Assignment) []ChangedAssignmentInput {
 	seen := map[string]struct{}{}
 	for _, item := range changed {
 		seen[item.CheckType+"|"+item.ProjectID+"|"+item.ProbeID+"|"+item.CheckID] = struct{}{}
@@ -200,6 +217,9 @@ func appendChangedAssignments(changed []ChangedAssignmentInput, pingResults []do
 		changed = appendChangedAssignmentForStorage(changed, seen, assignments, result.ProbeStorageID, result.CheckStorageID)
 	}
 	for _, result := range tcpResults {
+		changed = appendChangedAssignmentForStorage(changed, seen, assignments, result.ProbeStorageID, result.CheckStorageID)
+	}
+	for _, result := range httpResults {
 		changed = appendChangedAssignmentForStorage(changed, seen, assignments, result.ProbeStorageID, result.CheckStorageID)
 	}
 	return changed
@@ -218,6 +238,10 @@ func appendChangedAssignmentForStorage(changed []ChangedAssignmentInput, seen ma
 		if assignment.Probe != nil {
 			probeName = assignment.Probe.Name
 		}
+		checkTarget := assignment.Check.Target
+		if assignment.Check.Type == domaincheck.TypeHTTP {
+			checkTarget = domainhttp.RedactTarget(checkTarget)
+		}
 		seen[key] = struct{}{}
 		return append(changed, ChangedAssignmentInput{
 			ProjectID:      assignment.ProjectID,
@@ -226,7 +250,7 @@ func appendChangedAssignmentForStorage(changed []ChangedAssignmentInput, seen ma
 			CheckID:        assignment.CheckID,
 			CheckName:      assignment.Check.Name,
 			CheckType:      string(assignment.Check.Type),
-			CheckTarget:    assignment.Check.Target,
+			CheckTarget:    checkTarget,
 			ProbeStorageID: assignment.ProbeStorageID,
 			CheckStorageID: assignment.CheckStorageID,
 		})
@@ -234,17 +258,18 @@ func appendChangedAssignmentForStorage(changed []ChangedAssignmentInput, seen ma
 	return changed
 }
 
-func collectResultWrites(normalized normalizedSubmitResultsInput, assignmentByCheckID map[string]domainassignment.Assignment) ([]domainping.ResultStorageInput, []domaintcp.ResultStorageInput, []domaintraceroute.ResultStorageInput, error) {
+func collectResultWrites(normalized normalizedSubmitResultsInput, assignmentByCheckID map[string]domainassignment.Assignment) ([]domainping.ResultStorageInput, []domaintcp.ResultStorageInput, []domainhttp.ResultStorageInput, []domaintraceroute.ResultStorageInput, error) {
 	pingResults := make([]domainping.ResultStorageInput, 0, normalized.accepted)
 	tcpResults := make([]domaintcp.ResultStorageInput, 0, normalized.accepted)
+	httpResults := make([]domainhttp.ResultStorageInput, 0, normalized.accepted)
 	tracerouteResults := make([]domaintraceroute.ResultStorageInput, 0, normalized.accepted)
 	for _, group := range normalized.groups {
 		assignment, ok := assignmentByCheckID[group.checkID]
 		if !ok {
-			return nil, nil, nil, invalidRuntimeField(resultGroupField(group.index, "checkId"), "check is not an active assignment for this probe", group.checkID)
+			return nil, nil, nil, nil, invalidRuntimeField(resultGroupField(group.index, "checkId"), "check is not an active assignment for this probe", group.checkID)
 		}
 		if assignment.Check == nil || assignment.Check.Type != group.checkType {
-			return nil, nil, nil, invalidRuntimeField(resultGroupField(group.index, "type"), "does not match assigned check type", string(group.checkType))
+			return nil, nil, nil, nil, invalidRuntimeField(resultGroupField(group.index, "type"), "does not match assigned check type", string(group.checkType))
 		}
 
 		switch group.checkType {
@@ -254,12 +279,23 @@ func collectResultWrites(normalized normalizedSubmitResultsInput, assignmentByCh
 			tcpResults = appendTCPStorageIDs(tcpResults, group.tcp, assignment)
 		case domaincheck.TypeTraceroute:
 			tracerouteResults = appendTracerouteStorageIDs(tracerouteResults, group.traceroute, assignment)
+		case domaincheck.TypeHTTP:
+			httpResults = appendHTTPStorageIDs(httpResults, group.http, assignment)
 		default:
-			return nil, nil, nil, invalidRuntimeField(resultGroupField(group.index, "type"), "unsupported result type", string(group.checkType))
+			return nil, nil, nil, nil, invalidRuntimeField(resultGroupField(group.index, "type"), "unsupported result type", string(group.checkType))
 		}
 	}
 
-	return pingResults, tcpResults, tracerouteResults, nil
+	return pingResults, tcpResults, httpResults, tracerouteResults, nil
+}
+
+func appendHTTPStorageIDs(results, inputs []domainhttp.ResultStorageInput, assignment domainassignment.Assignment) []domainhttp.ResultStorageInput {
+	for _, result := range inputs {
+		result.ProbeStorageID = assignment.ProbeStorageID
+		result.CheckStorageID = assignment.CheckStorageID
+		results = append(results, result)
+	}
+	return results
 }
 
 func appendPingStorageIDs(results, inputs []domainping.ResultStorageInput, assignment domainassignment.Assignment) []domainping.ResultStorageInput {

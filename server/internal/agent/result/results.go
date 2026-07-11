@@ -11,6 +11,7 @@ import (
 	"github.com/yorukot/netstamp/internal/agent/retry"
 	agentworker "github.com/yorukot/netstamp/internal/agent/worker"
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
+	domainhttp "github.com/yorukot/netstamp/internal/domain/httpcheck"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domaintcp "github.com/yorukot/netstamp/internal/domain/tcp"
 	domaintraceroute "github.com/yorukot/netstamp/internal/domain/traceroute"
@@ -159,6 +160,8 @@ func groupResults(batch []agentworker.ResultEnvelope) []httpclient.RuntimeResult
 			values.tcp = append(values.tcp, tcpResultBody(result.TCP))
 		case domaincheck.TypeTraceroute:
 			values.traceroute = append(values.traceroute, tracerouteResultBody(result.Traceroute))
+		case domaincheck.TypeHTTP:
+			values.http = append(values.http, httpResultBody(result.HTTP))
 		}
 		groups[key] = values
 	}
@@ -172,6 +175,7 @@ func groupResults(batch []agentworker.ResultEnvelope) []httpclient.RuntimeResult
 			Ping:       values.ping,
 			TCP:        values.tcp,
 			Traceroute: values.traceroute,
+			HTTP:       values.http,
 		})
 	}
 
@@ -182,6 +186,7 @@ type runtimeResultGroupValues struct {
 	ping       []httpclient.PingResultBody
 	tcp        []httpclient.TCPResultBody
 	traceroute []httpclient.TracerouteResultBody
+	http       []httpclient.HTTPResultBody
 }
 
 type resultGroupKey struct {
@@ -197,6 +202,20 @@ func pingResultBody(result domainping.Result) httpclient.PingResultBody {
 
 func tcpResultBody(result domaintcp.Result) httpclient.TCPResultBody {
 	return httpclient.TCPResultBody(result)
+}
+
+func httpResultBody(result domainhttp.Result) httpclient.HTTPResultBody {
+	return httpclient.HTTPResultBody{
+		StartedAt: result.StartedAt, FinishedAt: result.FinishedAt, DurationMs: result.DurationMs,
+		Status: result.Status, DNSDurationMs: result.DNSDurationMs, ConnectDurationMs: result.ConnectDurationMs,
+		TLSDurationMs: result.TLSDurationMs, TTFBDurationMs: result.TTFBDurationMs,
+		ResolvedIP: result.ResolvedIP, IPFamily: result.IPFamily, StatusCode: result.StatusCode,
+		FinalURL: result.FinalURL, RedirectCount: result.RedirectCount, ResponseBytes: result.ResponseBytes,
+		ResponseTruncated: result.ResponseTruncated, BodyMatched: result.BodyMatched,
+		TLSVersion: result.TLSVersion, TLSCipherSuite: result.TLSCipherSuite,
+		CertificateNotBefore: result.CertificateNotBefore, CertificateNotAfter: result.CertificateNotAfter,
+		ErrorCode: result.ErrorCode, ErrorMessage: result.ErrorMessage,
+	}
 }
 
 func tracerouteResultBody(result domaintraceroute.Result) httpclient.TracerouteResultBody {

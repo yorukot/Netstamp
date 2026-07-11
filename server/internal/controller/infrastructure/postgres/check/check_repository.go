@@ -2,6 +2,7 @@ package pgcheck
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 
 	"github.com/google/uuid"
@@ -12,6 +13,7 @@ import (
 	pglabel "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/label"
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/sqlc"
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
+	domainhttp "github.com/yorukot/netstamp/internal/domain/httpcheck"
 	domainlabel "github.com/yorukot/netstamp/internal/domain/label"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
@@ -48,7 +50,11 @@ func (r *CheckRepository) ListChecks(ctx context.Context, projectIDValue string)
 
 	checks := make([]domaincheck.Check, 0, len(rows))
 	for _, row := range rows {
-		check := mapListCheck(row)
+		check, mapErr := mapListCheck(row)
+		if mapErr != nil {
+			postgres.RecordDBSpanError(span, mapErr)
+			return nil, mapErr
+		}
 		check.Labels, err = r.listLabelsForCheck(ctx, r.queries, row.ProjectID, row.ID)
 		if err != nil {
 			postgres.RecordDBSpanError(span, err)
@@ -81,7 +87,11 @@ func (r *CheckRepository) GetCheck(ctx context.Context, projectIDValue, checkIDV
 		return domaincheck.Check{}, err
 	}
 
-	check := mapGetCheck(row)
+	check, err := mapGetCheck(row)
+	if err != nil {
+		postgres.RecordDBSpanError(span, err)
+		return domaincheck.Check{}, err
+	}
 	check.Labels, err = r.listLabelsForCheck(ctx, r.queries, projectID, checkID)
 	if err != nil {
 		postgres.RecordDBSpanError(span, err)
@@ -264,9 +274,46 @@ func (r *CheckRepository) writeCheckConfig(ctx context.Context, q *sqlc.Queries,
 		return r.writeTCPCheckConfig(ctx, q, row, input.TCPConfig, mode)
 	case domaincheck.TypeTraceroute:
 		return r.writeTracerouteCheckConfig(ctx, q, row, input.TracerouteConfig, mode)
+	case domaincheck.TypeHTTP:
+		return r.writeHTTPCheckConfig(ctx, q, row, input.HTTPConfig, mode)
 	default:
 		return domaincheck.Check{}, domaincheck.ErrInvalidInput
 	}
+}
+
+func (r *CheckRepository) writeHTTPCheckConfig(ctx context.Context, q *sqlc.Queries, row sqlc.Check, config *domainhttp.Config, mode checkConfigWriteMode) (domaincheck.Check, error) {
+	if config == nil {
+		return domaincheck.Check{}, domaincheck.ErrInvalidInput
+	}
+	headers, err := json.Marshal(config.Headers)
+	if err != nil {
+		return domaincheck.Check{}, err
+	}
+	params := sqlc.CreateHTTPCheckConfigParams{
+		CheckID: row.ID, Method: sqlc.HttpMethod(config.Method), Headers: headers,
+		Body: config.Body, TimeoutMs: config.TimeoutMs, IpFamily: sqlcIPFamily(config.IPFamily),
+		FollowRedirects: config.FollowRedirects, SkipTlsVerify: config.SkipTLSVerify,
+		ExpectedStatusCodes:   config.ExpectedStatusCodes,
+		ExpectedStatusClasses: config.ExpectedStatusClasses, BodyContains: config.BodyContains,
+	}
+	if mode == checkConfigWriteCreate {
+		stored, createErr := q.CreateHTTPCheckConfig(ctx, params)
+		if createErr != nil {
+			return domaincheck.Check{}, createErr
+		}
+		return mapStoredHTTPCheck(row, stored)
+	}
+	stored, err := q.UpdateHTTPCheckConfig(ctx, sqlc.UpdateHTTPCheckConfigParams{
+		Method: params.Method, Headers: params.Headers, Body: params.Body, TimeoutMs: params.TimeoutMs,
+		IpFamily: params.IpFamily, FollowRedirects: params.FollowRedirects,
+		SkipTlsVerify: params.SkipTlsVerify, ExpectedStatusCodes: params.ExpectedStatusCodes,
+		ExpectedStatusClasses: params.ExpectedStatusClasses, BodyContains: params.BodyContains,
+		CheckID: params.CheckID,
+	})
+	if err != nil {
+		return domaincheck.Check{}, err
+	}
+	return mapStoredHTTPCheck(row, stored)
 }
 
 func (r *CheckRepository) writePingCheckConfig(ctx context.Context, q *sqlc.Queries, row sqlc.Check, config *domainping.Config, mode checkConfigWriteMode) (domaincheck.Check, error) {

@@ -26,6 +26,26 @@ const (
 	testCheckStoreID = int64(202)
 )
 
+func TestAppendChangedAssignmentRedactsHTTPQuery(t *testing.T) {
+	assignments := []domainassignment.Assignment{{
+		ProjectID:      testProjectID,
+		ProbeID:        testProbeID,
+		CheckID:        testCheckID,
+		ProbeStorageID: testProbeStoreID,
+		CheckStorageID: testCheckStoreID,
+		Check: &domaincheck.Check{
+			ID:     testCheckID,
+			Type:   domaincheck.TypeHTTP,
+			Target: "https://example.com/health?token=secret",
+		},
+	}}
+
+	changed := appendChangedAssignmentForStorage(nil, map[string]struct{}{}, assignments, testProbeStoreID, testCheckStoreID)
+	if len(changed) != 1 || changed[0].CheckTarget != "https://example.com/health" {
+		t.Fatalf("expected query-free HTTP alert target, got %#v", changed)
+	}
+}
+
 func TestHelloRejectsInvalidSecret(t *testing.T) {
 	probes := &fakeProbeRepository{}
 	recorder := &recordingProbeRuntimeEventRecorder{}

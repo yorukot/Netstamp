@@ -282,6 +282,7 @@ const (
 	CheckTypePing       CheckType = "ping"
 	CheckTypeTraceroute CheckType = "traceroute"
 	CheckTypeTcp        CheckType = "tcp"
+	CheckTypeHttp       CheckType = "http"
 )
 
 func (e *CheckType) Scan(src interface{}) error {
@@ -317,6 +318,96 @@ func (ns NullCheckType) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.CheckType), nil
+}
+
+type HttpMethod string
+
+const (
+	HttpMethodGET     HttpMethod = "GET"
+	HttpMethodHEAD    HttpMethod = "HEAD"
+	HttpMethodPOST    HttpMethod = "POST"
+	HttpMethodPUT     HttpMethod = "PUT"
+	HttpMethodPATCH   HttpMethod = "PATCH"
+	HttpMethodDELETE  HttpMethod = "DELETE"
+	HttpMethodOPTIONS HttpMethod = "OPTIONS"
+)
+
+func (e *HttpMethod) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = HttpMethod(s)
+	case string:
+		*e = HttpMethod(s)
+	default:
+		return fmt.Errorf("unsupported scan type for HttpMethod: %T", src)
+	}
+	return nil
+}
+
+type NullHttpMethod struct {
+	HttpMethod HttpMethod `json:"http_method"`
+	Valid      bool       `json:"valid"` // Valid is true if HttpMethod is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullHttpMethod) Scan(value interface{}) error {
+	if value == nil {
+		ns.HttpMethod, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.HttpMethod.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullHttpMethod) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.HttpMethod), nil
+}
+
+type HttpStatus string
+
+const (
+	HttpStatusSuccessful HttpStatus = "successful"
+	HttpStatusTimeout    HttpStatus = "timeout"
+	HttpStatusError      HttpStatus = "error"
+)
+
+func (e *HttpStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = HttpStatus(s)
+	case string:
+		*e = HttpStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for HttpStatus: %T", src)
+	}
+	return nil
+}
+
+type NullHttpStatus struct {
+	HttpStatus HttpStatus `json:"http_status"`
+	Valid      bool       `json:"valid"` // Valid is true if HttpStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullHttpStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.HttpStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.HttpStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullHttpStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.HttpStatus), nil
 }
 
 type IpFamily string
@@ -1036,6 +1127,80 @@ type EmailVerificationToken struct {
 	ExpiresAt time.Time  `json:"expires_at"`
 	UsedAt    *time.Time `json:"used_at"`
 	CreatedAt time.Time  `json:"created_at"`
+}
+
+type HttpCheckConfig struct {
+	CheckID               uuid.UUID  `json:"check_id"`
+	Method                HttpMethod `json:"method"`
+	Headers               []byte     `json:"headers"`
+	Body                  *string    `json:"body"`
+	TimeoutMs             int32      `json:"timeout_ms"`
+	IpFamily              *IpFamily  `json:"ip_family"`
+	FollowRedirects       bool       `json:"follow_redirects"`
+	SkipTlsVerify         bool       `json:"skip_tls_verify"`
+	ExpectedStatusCodes   []int32    `json:"expected_status_codes"`
+	ExpectedStatusClasses []int32    `json:"expected_status_classes"`
+	BodyContains          *string    `json:"body_contains"`
+}
+
+type HttpResult struct {
+	ProbeID              int64       `json:"probe_id"`
+	CheckID              int64       `json:"check_id"`
+	StartedAt            time.Time   `json:"started_at"`
+	FinishedAt           time.Time   `json:"finished_at"`
+	DurationMs           int32       `json:"duration_ms"`
+	Status               HttpStatus  `json:"status"`
+	DnsDurationMs        *float64    `json:"dns_duration_ms"`
+	ConnectDurationMs    *float64    `json:"connect_duration_ms"`
+	TlsDurationMs        *float64    `json:"tls_duration_ms"`
+	TtfbDurationMs       *float64    `json:"ttfb_duration_ms"`
+	ResolvedIp           *netip.Addr `json:"resolved_ip"`
+	IpFamily             *IpFamily   `json:"ip_family"`
+	StatusCode           *int32      `json:"status_code"`
+	FinalUrl             *string     `json:"final_url"`
+	RedirectCount        int32       `json:"redirect_count"`
+	ResponseBytes        *int64      `json:"response_bytes"`
+	ResponseTruncated    bool        `json:"response_truncated"`
+	BodyMatched          *bool       `json:"body_matched"`
+	TlsVersion           *string     `json:"tls_version"`
+	TlsCipherSuite       *string     `json:"tls_cipher_suite"`
+	CertificateNotBefore *time.Time  `json:"certificate_not_before"`
+	CertificateNotAfter  *time.Time  `json:"certificate_not_after"`
+	ErrorCode            *string     `json:"error_code"`
+	ErrorMessage         *string     `json:"error_message"`
+}
+
+type HttpResultRollups1m struct {
+	Bucket                 interface{} `json:"bucket"`
+	ProbeID                int64       `json:"probe_id"`
+	CheckID                int64       `json:"check_id"`
+	ResultCount            int64       `json:"result_count"`
+	SuccessfulCount        int64       `json:"successful_count"`
+	TimeoutCount           int64       `json:"timeout_count"`
+	ErrorCount             int64       `json:"error_count"`
+	DurationSumMs          float64     `json:"duration_sum_ms"`
+	DurationCount          int64       `json:"duration_count"`
+	DurationMinMs          float64     `json:"duration_min_ms"`
+	DurationMaxMs          float64     `json:"duration_max_ms"`
+	DnsDurationSumMs       float64     `json:"dns_duration_sum_ms"`
+	DnsDurationCount       int64       `json:"dns_duration_count"`
+	DnsDurationMinMs       float64     `json:"dns_duration_min_ms"`
+	DnsDurationMaxMs       float64     `json:"dns_duration_max_ms"`
+	ConnectDurationSumMs   float64     `json:"connect_duration_sum_ms"`
+	ConnectDurationCount   int64       `json:"connect_duration_count"`
+	ConnectDurationMinMs   float64     `json:"connect_duration_min_ms"`
+	ConnectDurationMaxMs   float64     `json:"connect_duration_max_ms"`
+	TlsDurationSumMs       float64     `json:"tls_duration_sum_ms"`
+	TlsDurationCount       int64       `json:"tls_duration_count"`
+	TlsDurationMinMs       float64     `json:"tls_duration_min_ms"`
+	TlsDurationMaxMs       float64     `json:"tls_duration_max_ms"`
+	TtfbDurationSumMs      float64     `json:"ttfb_duration_sum_ms"`
+	TtfbDurationCount      int64       `json:"ttfb_duration_count"`
+	TtfbDurationMinMs      float64     `json:"ttfb_duration_min_ms"`
+	TtfbDurationMaxMs      float64     `json:"ttfb_duration_max_ms"`
+	ResponseBytesSum       float64     `json:"response_bytes_sum"`
+	ResponseBytesCount     int64       `json:"response_bytes_count"`
+	CertificateNotAfterMin interface{} `json:"certificate_not_after_min"`
 }
 
 type Label struct {

@@ -3,6 +3,7 @@ package publicstatus
 import (
 	"context"
 
+	domainhttp "github.com/yorukot/netstamp/internal/domain/httpcheck"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 	domainpublic "github.com/yorukot/netstamp/internal/domain/publicstatus"
@@ -47,6 +48,11 @@ type PingSeriesRepository interface {
 type TCPSeriesRepository interface {
 	CountTCPSeriesPoints(ctx context.Context, input domaintcp.SeriesPointCountQuery) (int64, error)
 	ListTCPSeries(ctx context.Context, input domaintcp.SeriesReadQuery) (map[string]domaintcp.SeriesData, error)
+}
+
+type HTTPSeriesRepository interface {
+	CountHTTPSeriesPoints(ctx context.Context, input domainhttp.SeriesPointCountQuery) (int64, error)
+	ListHTTPSeries(ctx context.Context, input domainhttp.SeriesReadQuery) (map[string]domainhttp.SeriesData, error)
 }
 
 type PublicStatusAction string

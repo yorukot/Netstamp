@@ -8,6 +8,7 @@ import (
 
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/sqlc"
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
+	domainhttp "github.com/yorukot/netstamp/internal/domain/httpcheck"
 	domainpublic "github.com/yorukot/netstamp/internal/domain/publicstatus"
 )
 
@@ -91,13 +92,13 @@ func mapListElement(row sqlc.ListPublicStatusPageElementsRow) domainpublic.Eleme
 		CreatedAt:               row.CreatedAt,
 		UpdatedAt:               row.UpdatedAt,
 		CheckName:               row.CheckName,
-		CheckTarget:             row.CheckTarget,
 		CheckDescription:        row.CheckDescription,
 		CheckIntervalSeconds:    row.CheckIntervalSeconds,
 	}
 	if row.CheckType != nil {
 		checkType := domaincheck.Type(*row.CheckType)
 		element.CheckType = &checkType
+		element.CheckTarget = publicOptionalCheckTarget(checkType, row.CheckTarget)
 	}
 	return element
 }
@@ -168,7 +169,7 @@ func mapAssignmentFields(
 		CheckID:           checkID.String(),
 		CheckName:         checkName,
 		CheckType:         domaincheck.Type(checkType),
-		CheckTarget:       checkTarget,
+		CheckTarget:       publicCheckTarget(domaincheck.Type(checkType), checkTarget),
 		IntervalSeconds:   intervalSeconds,
 		ProbeID:           probeID.String(),
 		ProbeName:         probeName,
@@ -180,6 +181,21 @@ func mapAssignmentFields(
 		ConnectAvgMs:      connectAvgMs,
 		FailurePercent:    failurePercent,
 	}
+}
+
+func publicOptionalCheckTarget(checkType domaincheck.Type, target *string) *string {
+	if target == nil {
+		return nil
+	}
+	redacted := publicCheckTarget(checkType, *target)
+	return &redacted
+}
+
+func publicCheckTarget(checkType domaincheck.Type, target string) string {
+	if checkType == domaincheck.TypeHTTP {
+		return domainhttp.RedactTarget(target)
+	}
+	return target
 }
 
 func mapIncident(row sqlc.ListPublicStatusIncidentsRow) domainpublic.Incident {

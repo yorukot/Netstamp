@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
+	domainhttp "github.com/yorukot/netstamp/internal/domain/httpcheck"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domaintcp "github.com/yorukot/netstamp/internal/domain/tcp"
 	domaintraceroute "github.com/yorukot/netstamp/internal/domain/traceroute"
@@ -20,6 +21,16 @@ type GetCheckInput struct {
 	CheckID       string
 }
 
+type ListChecksOutput struct {
+	Checks          []domaincheck.Check
+	CanManageChecks bool
+}
+
+type GetCheckOutput struct {
+	Check           domaincheck.Check
+	CanManageChecks bool
+}
+
 type CreateCheckInput struct {
 	CurrentUserID   string
 	ProjectRef      string
@@ -34,6 +45,7 @@ type CreateCheckInput struct {
 	PingConfig       *PingConfigInput
 	TCPConfig        *TCPConfigInput
 	TracerouteConfig *TracerouteConfigInput
+	HTTPConfig       *HTTPConfigInput
 }
 
 type UpdateCheckInput struct {
@@ -49,6 +61,7 @@ type UpdateCheckInput struct {
 	PingConfig       *PingConfigInput
 	TCPConfig        *TCPConfigInput
 	TracerouteConfig *TracerouteConfigInput
+	HTTPConfig       *HTTPConfigInput
 	LabelIDs         *[]string
 }
 
@@ -75,6 +88,25 @@ type TCPConfigInput struct {
 	IPFamily  *string
 }
 
+type HTTPStatusSelectorInput struct {
+	Kind  string
+	Code  *int32
+	Class *string
+}
+
+type HTTPConfigInput struct {
+	Method           *string
+	Headers          *[]domainhttp.Header
+	Body             *string
+	TimeoutMs        *int32
+	IPFamily         *string
+	IPFamilySet      bool
+	FollowRedirects  *bool
+	SkipTLSVerify    *bool
+	ExpectedStatuses *[]HTTPStatusSelectorInput
+	BodyContains     *string
+}
+
 type normalizedCreateCheckInput struct {
 	projectRef       string
 	name             string
@@ -86,6 +118,7 @@ type normalizedCreateCheckInput struct {
 	pingConfig       *domainping.Config
 	tcpConfig        *domaintcp.Config
 	tracerouteConfig *domaintraceroute.Config
+	httpConfig       *domainhttp.Config
 	labelIDs         []string
 }
 
@@ -101,6 +134,7 @@ type normalizedUpdateCheckInput struct {
 	pingConfig       updatePingConfigPatch
 	tcpConfig        updateTCPConfigPatch
 	tracerouteConfig updateTracerouteConfigPatch
+	httpConfig       updateHTTPConfigPatch
 	replaceLabels    bool
 	labelIDs         []string
 }

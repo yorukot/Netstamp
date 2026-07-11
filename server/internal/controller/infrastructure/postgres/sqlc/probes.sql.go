@@ -380,6 +380,16 @@ SELECT probe_check_assignments.id AS assignment_id,
        tcp_check_configs.port AS tcp_port,
        tcp_check_configs.timeout_ms AS tcp_timeout_ms,
        tcp_check_configs.ip_family AS tcp_ip_family,
+       http_check_configs.method AS http_method,
+       http_check_configs.headers AS http_headers,
+       http_check_configs.body AS http_body,
+       http_check_configs.timeout_ms AS http_timeout_ms,
+       http_check_configs.ip_family AS http_ip_family,
+       http_check_configs.follow_redirects AS http_follow_redirects,
+       http_check_configs.skip_tls_verify AS http_skip_tls_verify,
+       http_check_configs.expected_status_codes AS http_expected_status_codes,
+       http_check_configs.expected_status_classes AS http_expected_status_classes,
+       http_check_configs.body_contains AS http_body_contains,
        traceroute_check_configs.protocol AS traceroute_protocol,
        traceroute_check_configs.max_hops AS traceroute_max_hops,
        traceroute_check_configs.timeout_ms AS traceroute_timeout_ms,
@@ -396,6 +406,7 @@ JOIN checks
     AND checks.id = probe_check_assignments.check_id
 LEFT JOIN ping_check_configs ON ping_check_configs.check_id = checks.id
 LEFT JOIN tcp_check_configs ON tcp_check_configs.check_id = checks.id
+LEFT JOIN http_check_configs ON http_check_configs.check_id = checks.id
 LEFT JOIN traceroute_check_configs ON traceroute_check_configs.check_id = checks.id
 WHERE probe_check_assignments.probe_id = $1
   AND probe_check_assignments.deleted_at IS NULL
@@ -427,6 +438,16 @@ type ListActiveAssignmentsForProbeRow struct {
 	TcpPort                   *int32              `json:"tcp_port"`
 	TcpTimeoutMs              *int32              `json:"tcp_timeout_ms"`
 	TcpIpFamily               *IpFamily           `json:"tcp_ip_family"`
+	HttpMethod                *HttpMethod         `json:"http_method"`
+	HttpHeaders               []byte              `json:"http_headers"`
+	HttpBody                  *string             `json:"http_body"`
+	HttpTimeoutMs             *int32              `json:"http_timeout_ms"`
+	HttpIpFamily              *IpFamily           `json:"http_ip_family"`
+	HttpFollowRedirects       *bool               `json:"http_follow_redirects"`
+	HttpSkipTlsVerify         *bool               `json:"http_skip_tls_verify"`
+	HttpExpectedStatusCodes   []int32             `json:"http_expected_status_codes"`
+	HttpExpectedStatusClasses []int32             `json:"http_expected_status_classes"`
+	HttpBodyContains          *string             `json:"http_body_contains"`
 	TracerouteProtocol        *TracerouteProtocol `json:"traceroute_protocol"`
 	TracerouteMaxHops         *int32              `json:"traceroute_max_hops"`
 	TracerouteTimeoutMs       *int32              `json:"traceroute_timeout_ms"`
@@ -466,6 +487,16 @@ func (q *Queries) ListActiveAssignmentsForProbe(ctx context.Context, probeID uui
 			&i.TcpPort,
 			&i.TcpTimeoutMs,
 			&i.TcpIpFamily,
+			&i.HttpMethod,
+			&i.HttpHeaders,
+			&i.HttpBody,
+			&i.HttpTimeoutMs,
+			&i.HttpIpFamily,
+			&i.HttpFollowRedirects,
+			&i.HttpSkipTlsVerify,
+			&i.HttpExpectedStatusCodes,
+			&i.HttpExpectedStatusClasses,
+			&i.HttpBodyContains,
 			&i.TracerouteProtocol,
 			&i.TracerouteMaxHops,
 			&i.TracerouteTimeoutMs,
@@ -505,6 +536,16 @@ SELECT probe_check_assignments.id AS assignment_id,
        tcp_check_configs.port AS tcp_port,
        tcp_check_configs.timeout_ms AS tcp_timeout_ms,
        tcp_check_configs.ip_family AS tcp_ip_family,
+       http_check_configs.method AS http_method,
+       http_check_configs.headers AS http_headers,
+       http_check_configs.body AS http_body,
+       http_check_configs.timeout_ms AS http_timeout_ms,
+       http_check_configs.ip_family AS http_ip_family,
+       http_check_configs.follow_redirects AS http_follow_redirects,
+       http_check_configs.skip_tls_verify AS http_skip_tls_verify,
+       http_check_configs.expected_status_codes AS http_expected_status_codes,
+       http_check_configs.expected_status_classes AS http_expected_status_classes,
+       http_check_configs.body_contains AS http_body_contains,
        traceroute_check_configs.protocol AS traceroute_protocol,
        traceroute_check_configs.max_hops AS traceroute_max_hops,
        traceroute_check_configs.timeout_ms AS traceroute_timeout_ms,
@@ -521,6 +562,7 @@ JOIN checks
     AND checks.id = probe_check_assignments.check_id
 LEFT JOIN ping_check_configs ON ping_check_configs.check_id = checks.id
 LEFT JOIN tcp_check_configs ON tcp_check_configs.check_id = checks.id
+LEFT JOIN http_check_configs ON http_check_configs.check_id = checks.id
 LEFT JOIN traceroute_check_configs ON traceroute_check_configs.check_id = checks.id
 WHERE probe_check_assignments.probe_id = $1
   AND probe_check_assignments.check_id = ANY($2::uuid[])
@@ -558,6 +600,16 @@ type ListActiveAssignmentsForProbeChecksRow struct {
 	TcpPort                   *int32              `json:"tcp_port"`
 	TcpTimeoutMs              *int32              `json:"tcp_timeout_ms"`
 	TcpIpFamily               *IpFamily           `json:"tcp_ip_family"`
+	HttpMethod                *HttpMethod         `json:"http_method"`
+	HttpHeaders               []byte              `json:"http_headers"`
+	HttpBody                  *string             `json:"http_body"`
+	HttpTimeoutMs             *int32              `json:"http_timeout_ms"`
+	HttpIpFamily              *IpFamily           `json:"http_ip_family"`
+	HttpFollowRedirects       *bool               `json:"http_follow_redirects"`
+	HttpSkipTlsVerify         *bool               `json:"http_skip_tls_verify"`
+	HttpExpectedStatusCodes   []int32             `json:"http_expected_status_codes"`
+	HttpExpectedStatusClasses []int32             `json:"http_expected_status_classes"`
+	HttpBodyContains          *string             `json:"http_body_contains"`
 	TracerouteProtocol        *TracerouteProtocol `json:"traceroute_protocol"`
 	TracerouteMaxHops         *int32              `json:"traceroute_max_hops"`
 	TracerouteTimeoutMs       *int32              `json:"traceroute_timeout_ms"`
@@ -597,6 +649,16 @@ func (q *Queries) ListActiveAssignmentsForProbeChecks(ctx context.Context, arg L
 			&i.TcpPort,
 			&i.TcpTimeoutMs,
 			&i.TcpIpFamily,
+			&i.HttpMethod,
+			&i.HttpHeaders,
+			&i.HttpBody,
+			&i.HttpTimeoutMs,
+			&i.HttpIpFamily,
+			&i.HttpFollowRedirects,
+			&i.HttpSkipTlsVerify,
+			&i.HttpExpectedStatusCodes,
+			&i.HttpExpectedStatusClasses,
+			&i.HttpBodyContains,
 			&i.TracerouteProtocol,
 			&i.TracerouteMaxHops,
 			&i.TracerouteTimeoutMs,

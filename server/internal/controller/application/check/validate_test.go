@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	appvalidation "github.com/yorukot/netstamp/internal/controller/application/validation"
+	domainhttp "github.com/yorukot/netstamp/internal/domain/httpcheck"
+	domainnetwork "github.com/yorukot/netstamp/internal/domain/network"
 )
 
 func TestNormalizeCreateCheckInputReturnsAllFieldErrors(t *testing.T) {
@@ -29,6 +31,7 @@ func TestNormalizeCreateCheckInputReturnsAllFieldErrors(t *testing.T) {
 			IPFamily:        &ipFamily,
 		},
 		TracerouteConfig: &TracerouteConfigInput{},
+		HTTPConfig:       &HTTPConfigInput{},
 	})
 
 	assertValidationFields(t, err, []string{
@@ -38,6 +41,7 @@ func TestNormalizeCreateCheckInputReturnsAllFieldErrors(t *testing.T) {
 		"description",
 		"intervalSeconds",
 		"tracerouteConfig",
+		"httpConfig",
 		"packetCount",
 		"packetSizeBytes",
 		"timeoutMs",
@@ -88,6 +92,60 @@ func TestNormalizeUpdateCheckInputReturnsAllFieldErrors(t *testing.T) {
 		"tracerouteConfig.protocol",
 		"labelIds",
 	})
+}
+
+func TestApplyHTTPConfigPatchClearsBodyContains(t *testing.T) {
+	bodyContains := "ready"
+	config := domainhttp.DefaultConfig()
+	config.BodyContains = &bodyContains
+	empty := ""
+
+	patch, err := normalizeUpdateHTTPConfig(&HTTPConfigInput{BodyContains: &empty})
+	if err != nil {
+		t.Fatalf("normalize HTTP patch: %v", err)
+	}
+	applyHTTPConfigPatch(&config, patch)
+
+	if config.BodyContains != nil {
+		t.Fatalf("expected response body assertion to be cleared, got %q", *config.BodyContains)
+	}
+}
+
+func TestApplyHTTPConfigPatchChangingToBodylessMethodClearsBody(t *testing.T) {
+	for _, method := range []string{"GET", "HEAD"} {
+		t.Run(method, func(t *testing.T) {
+			body := "payload"
+			config := domainhttp.DefaultConfig()
+			config.Method = domainhttp.MethodPost
+			config.Body = &body
+
+			patch, err := normalizeUpdateHTTPConfig(&HTTPConfigInput{Method: &method})
+			if err != nil {
+				t.Fatalf("normalize HTTP patch: %v", err)
+			}
+			applyHTTPConfigPatch(&config, patch)
+
+			if config.Body != nil {
+				t.Fatalf("expected %s request body to be cleared, got %q", method, *config.Body)
+			}
+		})
+	}
+}
+
+func TestApplyHTTPConfigPatchClearsIPFamily(t *testing.T) {
+	family := domainnetwork.IPFamilyInet
+	config := domainhttp.DefaultConfig()
+	config.IPFamily = &family
+
+	patch, err := normalizeUpdateHTTPConfig(&HTTPConfigInput{IPFamilySet: true})
+	if err != nil {
+		t.Fatalf("normalize HTTP patch: %v", err)
+	}
+	applyHTTPConfigPatch(&config, patch)
+
+	if config.IPFamily != nil {
+		t.Fatalf("expected IP family to be cleared, got %q", *config.IPFamily)
+	}
 }
 
 func assertValidationFields(t *testing.T, err error, wantFields []string) {

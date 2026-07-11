@@ -5,9 +5,11 @@ import (
 	"sort"
 	"time"
 
+	"github.com/yorukot/netstamp/internal/controller/application/httpquery"
 	"github.com/yorukot/netstamp/internal/controller/application/pingquery"
 	"github.com/yorukot/netstamp/internal/controller/application/tcpquery"
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
+	domainhttp "github.com/yorukot/netstamp/internal/domain/httpcheck"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domainpublic "github.com/yorukot/netstamp/internal/domain/publicstatus"
 	domaintcp "github.com/yorukot/netstamp/internal/domain/tcp"
@@ -24,12 +26,23 @@ func (s *Service) chartForElement(ctx context.Context, page domainpublic.Page, a
 			series = append(series, s.pingChartSeries(ctx, page.ProjectID, assignment, assignment.CheckID, from, now)...)
 		case domaincheck.TypeTCP:
 			series = append(series, s.tcpChartSeries(ctx, page.ProjectID, assignment, assignment.CheckID, from, now)...)
+		case domaincheck.TypeHTTP:
+			series = append(series, s.httpChartSeries(ctx, page.ProjectID, assignment, assignment.CheckID, from, now)...)
 		}
 	}
 	if len(series) == 0 {
 		return nil
 	}
 	return &domainpublic.Chart{Range: chartRange, Series: series}
+}
+
+func (s *Service) httpChartSeries(ctx context.Context, projectID string, assignment domainpublic.Assignment, checkID string, from, to time.Time) []domainpublic.Series {
+	if s.httpResults == nil {
+		return nil
+	}
+	scope := newChartSeriesScope(projectID, assignment, checkID, from, to)
+	reader := httpChartReader{repo: s.httpResults}
+	return readChartSeries(ctx, scope, reader.count, reader.list, reader.series)
 }
 
 func chartFrom(now time.Time, chartRange domainpublic.ChartRange) time.Time {
@@ -131,6 +144,26 @@ func (r pingChartReader) series(values map[string]domainping.SeriesData, scope c
 
 type tcpChartReader struct {
 	repo TCPSeriesRepository
+}
+
+type httpChartReader struct{ repo HTTPSeriesRepository }
+
+func (r httpChartReader) count(ctx context.Context, scope chartSeriesScope) (int64, error) {
+	return r.repo.CountHTTPSeriesPoints(ctx, domainhttp.SeriesPointCountQuery{ProjectID: scope.projectID, ProbeID: scope.probeID, CheckID: scope.checkID, From: scope.from, To: scope.to})
+}
+
+func (r httpChartReader) list(ctx context.Context, scope chartSeriesScope, rawPoints int64) (map[string]domainhttp.SeriesData, error) {
+	plan := httpquery.SelectReadPlan(rawPoints, scope.from, scope.to, publicMaxDataPoints)
+	return r.repo.ListHTTPSeries(ctx, domainhttp.SeriesReadQuery{ProjectID: scope.projectID, ProbeID: scope.probeID, CheckID: scope.checkID, From: scope.from, To: scope.to, Series: []string{"total_avg"}, MaxDataPoints: publicMaxDataPoints, Mode: plan.Mode})
+}
+
+func (r httpChartReader) series(values map[string]domainhttp.SeriesData, scope chartSeriesScope) []domainpublic.Series {
+	data := values["total_avg"]
+	points := make([]domainpublic.SeriesPoint, 0, len(data.Points))
+	for _, point := range data.Points {
+		points = append(points, domainpublic.SeriesPoint{TimestampMs: point.Timestamp.UTC().UnixMilli(), Value: point.Value})
+	}
+	return []domainpublic.Series{{Name: "total_avg", Labels: map[string]string{"checkId": scope.checkID, "checkName": scope.checkName, "checkType": "http", "probeName": scope.probeName}, Unit: "ms", Points: points}}
 }
 
 func (r tcpChartReader) count(ctx context.Context, scope chartSeriesScope) (int64, error) {

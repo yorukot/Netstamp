@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net"
+	"net/netip"
 	"syscall"
 	"testing"
 	"time"
@@ -80,6 +81,26 @@ func TestTCPExecutorConnectsToLocalListener(t *testing.T) {
 	}
 }
 
+func TestTCPExecutorPreservesHostnameForAddressFallback(t *testing.T) {
+	var gotNetwork, gotAddress string
+	executor := &TCPExecutor{dial: func(_ context.Context, network, address string) (net.Conn, error) {
+		gotNetwork, gotAddress = network, address
+		return newRemoteAddrTestConn(netip.MustParseAddr("2001:db8::20"), 8443), nil
+	}}
+	config := domaintcp.Config{Port: 8443, TimeoutMs: 1000}
+
+	resolved, _, err := executor.run(context.Background(), "service.example", config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if gotNetwork != "tcp" || gotAddress != "service.example:8443" {
+		t.Fatalf("expected hostname dial with automatic family fallback, got %q %q", gotNetwork, gotAddress)
+	}
+	if resolved.addr != netip.MustParseAddr("2001:db8::20") || resolved.ipFamily != domainnetwork.IPFamilyInet6 {
+		t.Fatalf("expected connected remote address, got %#v", resolved)
+	}
+}
+
 func TestTCPExecutorMissingConfigReturnsErrorResult(t *testing.T) {
 	startedAt := time.Date(2026, 5, 15, 12, 0, 0, 0, time.UTC)
 	executor := NewTCPExecutor()
@@ -134,4 +155,22 @@ func TestTCPExecutorInvalidPortReturnsErrorResult(t *testing.T) {
 	if got.ErrorCode == nil || *got.ErrorCode != "invalid_tcp_config" {
 		t.Fatalf("expected invalid_tcp_config, got %#v", got.ErrorCode)
 	}
+}
+
+type remoteAddrTestConn struct {
+	net.Conn
+	remote net.Addr
+}
+
+func newRemoteAddrTestConn(addr netip.Addr, port uint16) net.Conn {
+	conn, peer := net.Pipe()
+	_ = peer.Close()
+	return &remoteAddrTestConn{
+		Conn:   conn,
+		remote: net.TCPAddrFromAddrPort(netip.AddrPortFrom(addr, port)),
+	}
+}
+
+func (conn *remoteAddrTestConn) RemoteAddr() net.Addr {
+	return conn.remote
 }

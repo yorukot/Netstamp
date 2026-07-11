@@ -14,7 +14,11 @@ import (
 	domaintcp "github.com/yorukot/netstamp/internal/domain/tcp"
 )
 
-type TCPExecutor struct{}
+type tcpDialFunc func(context.Context, string, string) (net.Conn, error)
+
+type TCPExecutor struct {
+	dial tcpDialFunc
+}
 
 type tcpExecutionError struct {
 	status  domaintcp.Status
@@ -23,7 +27,7 @@ type tcpExecutionError struct {
 }
 
 func NewTCPExecutor() *TCPExecutor {
-	return &TCPExecutor{}
+	return &TCPExecutor{dial: defaultTCPDial}
 }
 
 func (e *TCPExecutor) Execute(ctx context.Context, req scheduling.RunRequest) agentworker.ResultEnvelope {
@@ -66,25 +70,16 @@ func (e *TCPExecutor) run(ctx context.Context, target string, config domaintcp.C
 		deadline = ctxDeadline
 	}
 
-	resolveCtx, cancel := context.WithDeadline(ctx, deadline)
-	defer cancel()
-	resolved, err := resolvePingTarget(resolveCtx, target, config.IPFamily)
-	if err != nil {
-		if ctxErr := contextTCPExecutionError(resolveCtx); ctxErr != nil {
-			return pingTarget{}, nil, ctxErr
-		}
-		return pingTarget{}, nil, newTCPExecutionError(domaintcp.StatusError, "resolve_failed", err.Error())
-	}
-	if !time.Now().Before(deadline) {
-		return resolved, nil, newTCPExecutionError(domaintcp.StatusTimeout, "tcp_timeout", "connection timed out")
-	}
-
 	dialCtx, dialCancel := context.WithDeadline(ctx, deadline)
 	defer dialCancel()
-	dialer := net.Dialer{Timeout: time.Until(deadline)}
+	dial := e.dial
+	if dial == nil {
+		dial = defaultTCPDial
+	}
 	connectStartedAt := time.Now()
-	conn, err := dialer.DialContext(dialCtx, tcpNetwork(resolved.ipFamily), net.JoinHostPort(resolved.addr.String(), strconv.Itoa(int(config.Port))))
+	conn, err := dial(dialCtx, tcpNetworkForFamily(config.IPFamily), net.JoinHostPort(target, strconv.Itoa(int(config.Port))))
 	connectDurationMs := durationMs(time.Since(connectStartedAt))
+	resolved := pingTargetFromConn(conn)
 	if conn != nil {
 		_ = conn.Close()
 	}
@@ -95,10 +90,40 @@ func (e *TCPExecutor) run(ctx context.Context, target string, config domaintcp.C
 		if isTimeout(err) {
 			return resolved, &connectDurationMs, newTCPExecutionError(domaintcp.StatusTimeout, "tcp_timeout", err.Error())
 		}
+		var dnsErr *net.DNSError
+		if errors.As(err, &dnsErr) {
+			return resolved, &connectDurationMs, newTCPExecutionError(domaintcp.StatusError, "resolve_failed", err.Error())
+		}
 		return resolved, &connectDurationMs, newTCPExecutionError(domaintcp.StatusError, "tcp_connect_failed", err.Error())
 	}
 
 	return resolved, &connectDurationMs, nil
+}
+
+func defaultTCPDial(ctx context.Context, network, address string) (net.Conn, error) {
+	return (&net.Dialer{}).DialContext(ctx, network, address)
+}
+
+func tcpNetworkForFamily(ipFamily *domainnetwork.IPFamily) string {
+	if ipFamily == nil {
+		return "tcp"
+	}
+	return tcpNetwork(*ipFamily)
+}
+
+func pingTargetFromConn(conn net.Conn) pingTarget {
+	if conn == nil {
+		return pingTarget{}
+	}
+	tcpAddr, ok := conn.RemoteAddr().(*net.TCPAddr)
+	if !ok {
+		return pingTarget{}
+	}
+	addr := tcpAddr.AddrPort().Addr().Unmap()
+	if !addr.IsValid() {
+		return pingTarget{}
+	}
+	return pingTarget{addr: addr, ipFamily: ipFamilyForAddr(addr)}
 }
 
 func tcpNetwork(ipFamily domainnetwork.IPFamily) string {

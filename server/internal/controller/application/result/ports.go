@@ -3,11 +3,13 @@ package result
 import (
 	"context"
 
+	apphttp "github.com/yorukot/netstamp/internal/controller/application/result/httpcheck"
 	"github.com/yorukot/netstamp/internal/controller/application/result/latest"
 	"github.com/yorukot/netstamp/internal/controller/application/result/ping"
 	resultshared "github.com/yorukot/netstamp/internal/controller/application/result/shared"
 	"github.com/yorukot/netstamp/internal/controller/application/result/tcp"
 	"github.com/yorukot/netstamp/internal/controller/application/result/traceroute"
+	domainhttp "github.com/yorukot/netstamp/internal/domain/httpcheck"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domainresult "github.com/yorukot/netstamp/internal/domain/result"
 	domaintcp "github.com/yorukot/netstamp/internal/domain/tcp"
@@ -24,6 +26,12 @@ type TCPInsightRepository interface {
 	CountTCPSeriesPoints(ctx context.Context, input domaintcp.SeriesPointCountQuery) (int64, error)
 	ListTCPSeries(ctx context.Context, input domaintcp.SeriesReadQuery) (map[string]domaintcp.SeriesData, error)
 	GetTCPInsightSummary(ctx context.Context, input domaintcp.InsightSummaryQuery) (domaintcp.InsightSummary, error)
+}
+
+type HTTPInsightRepository interface {
+	CountHTTPSeriesPoints(ctx context.Context, input domainhttp.SeriesPointCountQuery) (int64, error)
+	ListHTTPSeries(ctx context.Context, input domainhttp.SeriesReadQuery) (map[string]domainhttp.SeriesData, error)
+	GetHTTPInsightSummary(ctx context.Context, input domainhttp.InsightSummaryQuery) (domainhttp.InsightSummary, error)
 }
 
 type TracerouteRunsRepository interface {
@@ -43,6 +51,7 @@ type ProjectAccess interface {
 var (
 	_ ping.SeriesRepository     = PingSeriesRepository(nil)
 	_ tcp.InsightRepository     = TCPInsightRepository(nil)
+	_ apphttp.Repository        = HTTPInsightRepository(nil)
 	_ traceroute.RunsRepository = TracerouteRunsRepository(nil)
 	_ latest.Repository         = LatestRepository(nil)
 )

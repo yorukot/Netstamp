@@ -5,6 +5,7 @@ import (
 
 	apptx "github.com/yorukot/netstamp/internal/controller/application/tx"
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
+	domainhttp "github.com/yorukot/netstamp/internal/domain/httpcheck"
 	domainlabel "github.com/yorukot/netstamp/internal/domain/label"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domainproject "github.com/yorukot/netstamp/internal/domain/project"
@@ -37,51 +38,59 @@ func NewService(repo Repository, projectAccess ProjectAccess, labelAccess LabelA
 	}
 }
 
-func (s *Service) ListChecks(ctx context.Context, input ListChecksInput) ([]domaincheck.Check, error) {
+func (s *Service) ListChecks(ctx context.Context, input ListChecksInput) (ListChecksOutput, error) {
 	ctx, flow := s.startCheckFlow(ctx, "check.list", CheckActionList, input.CurrentUserID)
 	defer flow.end()
 
 	input, err := normalizeListChecksInput(input)
 	if err != nil {
-		return nil, flow.businessFailure(CheckEventListFailure, CheckReasonInvalidInput, err)
+		return ListChecksOutput{}, flow.businessFailure(CheckEventListFailure, CheckReasonInvalidInput, err)
 	}
 	flow.setProjectRef(input.ProjectRef)
 
 	project, err := s.loadProject(ctx, flow, input.ProjectRef, input.CurrentUserID, CheckEventListFailure)
 	if err != nil {
-		return nil, err
+		return ListChecksOutput{}, err
+	}
+	canManageChecks, err := s.canManageChecks(ctx, project.ID, input.CurrentUserID)
+	if err != nil {
+		return ListChecksOutput{}, flow.roleLookupFailure(CheckEventListFailure, err)
 	}
 
 	checks, err := s.repo.ListChecks(ctx, project.ID)
 	if err != nil {
-		return nil, flow.technicalFailure(CheckEventListFailure, CheckReasonCheckListFailed, err)
+		return ListChecksOutput{}, flow.technicalFailure(CheckEventListFailure, CheckReasonCheckListFailed, err)
 	}
 
-	return checks, nil
+	return ListChecksOutput{Checks: checks, CanManageChecks: canManageChecks}, nil
 }
 
-func (s *Service) GetCheck(ctx context.Context, input GetCheckInput) (domaincheck.Check, error) {
+func (s *Service) GetCheck(ctx context.Context, input GetCheckInput) (GetCheckOutput, error) {
 	ctx, flow := s.startCheckFlow(ctx, "check.get", CheckActionGet, input.CurrentUserID)
 	defer flow.end()
 
 	input, err := normalizeTargetCheckInput(input)
 	if err != nil {
-		return domaincheck.Check{}, flow.businessFailure(CheckEventGetFailure, CheckReasonInvalidInput, err)
+		return GetCheckOutput{}, flow.businessFailure(CheckEventGetFailure, CheckReasonInvalidInput, err)
 	}
 	flow.setProjectRef(input.ProjectRef)
 	flow.setCheckID(input.CheckID)
 
 	project, err := s.loadProject(ctx, flow, input.ProjectRef, input.CurrentUserID, CheckEventGetFailure)
 	if err != nil {
-		return domaincheck.Check{}, err
+		return GetCheckOutput{}, err
+	}
+	canManageChecks, err := s.canManageChecks(ctx, project.ID, input.CurrentUserID)
+	if err != nil {
+		return GetCheckOutput{}, flow.roleLookupFailure(CheckEventGetFailure, err)
 	}
 
 	check, err := s.repo.GetCheck(ctx, project.ID, input.CheckID)
 	if err != nil {
-		return domaincheck.Check{}, flow.checkLookupFailure(CheckEventGetFailure, err)
+		return GetCheckOutput{}, flow.checkLookupFailure(CheckEventGetFailure, err)
 	}
 
-	return check, nil
+	return GetCheckOutput{Check: check, CanManageChecks: canManageChecks}, nil
 }
 
 func (s *Service) CreateCheck(ctx context.Context, input CreateCheckInput) (domaincheck.Check, error) {
@@ -119,6 +128,7 @@ func (s *Service) CreateCheck(ctx context.Context, input CreateCheckInput) (doma
 		PingConfig:       normalized.pingConfig,
 		TCPConfig:        normalized.tcpConfig,
 		TracerouteConfig: normalized.tracerouteConfig,
+		HTTPConfig:       normalized.httpConfig,
 	}
 	var check domaincheck.Check
 	writeStage := "create"
@@ -235,9 +245,14 @@ func buildUpdatedCheck(projectID string, current domaincheck.Check, normalized n
 		return domaincheck.Check{}, err
 	}
 
-	pingConfig, tcpConfig, tracerouteConfig, err := mergedTypeConfigs(current, normalized)
+	pingConfig, tcpConfig, tracerouteConfig, httpConfig, err := mergedTypeConfigs(current, normalized)
 	if err != nil {
 		return domaincheck.Check{}, err
+	}
+
+	target, err := domaincheck.VNCheckTargetForType(checkType, mergedString(current.Target, normalized.target))
+	if err != nil {
+		return domaincheck.Check{}, invalidCheckField("target", err.Error(), normalized.target)
 	}
 
 	return domaincheck.Check{
@@ -245,13 +260,14 @@ func buildUpdatedCheck(projectID string, current domaincheck.Check, normalized n
 		ID:               normalized.checkID,
 		Name:             mergedString(current.Name, normalized.name),
 		Type:             checkType,
-		Target:           mergedString(current.Target, normalized.target),
+		Target:           target,
 		Selector:         updatedSelector,
 		Description:      mergedDescription(current.Description, normalized.description),
 		IntervalSeconds:  mergedInt32(current.IntervalSeconds, normalized.intervalSeconds),
 		PingConfig:       pingConfig,
 		TCPConfig:        tcpConfig,
 		TracerouteConfig: tracerouteConfig,
+		HTTPConfig:       httpConfig,
 	}, nil
 }
 
@@ -321,26 +337,47 @@ func mergedTracerouteConfig(current *domaintraceroute.Config, normalized normali
 	return &config
 }
 
-func mergedTypeConfigs(current domaincheck.Check, normalized normalizedUpdateCheckInput) (*domainping.Config, *domaintcp.Config, *domaintraceroute.Config, error) {
+func mergedHTTPConfig(current *domainhttp.Config, normalized normalizedUpdateCheckInput) (*domainhttp.Config, error) {
+	config := domainhttp.DefaultConfig()
+	if current != nil {
+		config = *current
+		config.Headers = append([]domainhttp.Header(nil), current.Headers...)
+		config.ExpectedStatusCodes = append([]int32(nil), current.ExpectedStatusCodes...)
+		config.ExpectedStatusClasses = append([]int32(nil), current.ExpectedStatusClasses...)
+	}
+	applyHTTPConfigPatch(&config, normalized.httpConfig)
+	if _, err := domainhttp.VNBody(config.Method, config.Body); err != nil {
+		return nil, invalidCheckField("httpConfig.body", err.Error(), config.Body)
+	}
+	return &config, nil
+}
+
+func mergedTypeConfigs(current domaincheck.Check, normalized normalizedUpdateCheckInput) (*domainping.Config, *domaintcp.Config, *domaintraceroute.Config, *domainhttp.Config, error) {
 	if normalized.pingConfig.hasChanges() && current.Type != domaincheck.TypePing {
-		return nil, nil, nil, invalidCheckField("pingConfig", "must be omitted for non-ping checks", nil)
+		return nil, nil, nil, nil, invalidCheckField("pingConfig", "must be omitted for non-ping checks", nil)
 	}
 	if normalized.tcpConfig.hasChanges() && current.Type != domaincheck.TypeTCP {
-		return nil, nil, nil, invalidCheckField("tcpConfig", "must be omitted for non-tcp checks", nil)
+		return nil, nil, nil, nil, invalidCheckField("tcpConfig", "must be omitted for non-tcp checks", nil)
 	}
 	if normalized.tracerouteConfig.hasChanges() && current.Type != domaincheck.TypeTraceroute {
-		return nil, nil, nil, invalidCheckField("tracerouteConfig", "must be omitted for non-traceroute checks", nil)
+		return nil, nil, nil, nil, invalidCheckField("tracerouteConfig", "must be omitted for non-traceroute checks", nil)
+	}
+	if normalized.httpConfig.hasChanges() && current.Type != domaincheck.TypeHTTP {
+		return nil, nil, nil, nil, invalidCheckField("httpConfig", "must be omitted for non-http checks", nil)
 	}
 
 	switch current.Type {
 	case domaincheck.TypePing:
-		return mergedPingConfig(current.PingConfig, normalized), nil, nil, nil
+		return mergedPingConfig(current.PingConfig, normalized), nil, nil, nil, nil
 	case domaincheck.TypeTCP:
-		return nil, mergedTCPConfig(current.TCPConfig, normalized), nil, nil
+		return nil, mergedTCPConfig(current.TCPConfig, normalized), nil, nil, nil
 	case domaincheck.TypeTraceroute:
-		return nil, nil, mergedTracerouteConfig(current.TracerouteConfig, normalized), nil
+		return nil, nil, mergedTracerouteConfig(current.TracerouteConfig, normalized), nil, nil
+	case domaincheck.TypeHTTP:
+		config, err := mergedHTTPConfig(current.HTTPConfig, normalized)
+		return nil, nil, nil, config, err
 	default:
-		return nil, nil, nil, domaincheck.ErrInvalidInput
+		return nil, nil, nil, nil, domaincheck.ErrInvalidInput
 	}
 }
 
@@ -423,13 +460,22 @@ func (s *Service) loadProject(ctx context.Context, flow *checkFlow, projectRef, 
 }
 
 func (s *Service) requireAction(ctx context.Context, flow *checkFlow, projectID, userID string, failureEvent CheckEventName) error {
-	role, err := s.projectAccess.GetMemberRole(ctx, projectID, userID)
+	allowed, err := s.canManageChecks(ctx, projectID, userID)
 	if err != nil {
 		return flow.roleLookupFailure(failureEvent, err)
 	}
-	if !domainproject.Can(role, domainproject.ActionManageChecks) {
+	if !allowed {
 		return flow.businessFailure(failureEvent, CheckReasonForbidden, ErrForbidden)
 	}
 
 	return nil
+}
+
+func (s *Service) canManageChecks(ctx context.Context, projectID, userID string) (bool, error) {
+	role, err := s.projectAccess.GetMemberRole(ctx, projectID, userID)
+	if err != nil {
+		return false, err
+	}
+
+	return domainproject.Can(role, domainproject.ActionManageChecks), nil
 }

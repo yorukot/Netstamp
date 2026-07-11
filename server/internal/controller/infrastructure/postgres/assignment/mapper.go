@@ -2,6 +2,7 @@ package pgassignment
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -10,6 +11,7 @@ import (
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/sqlc"
 	domainassignment "github.com/yorukot/netstamp/internal/domain/assignment"
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
+	domainhttp "github.com/yorukot/netstamp/internal/domain/httpcheck"
 	domainlabel "github.com/yorukot/netstamp/internal/domain/label"
 	domainnetwork "github.com/yorukot/netstamp/internal/domain/network"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
@@ -118,7 +120,10 @@ func listCheckCandidates(rows []sqlc.ListActiveChecksForProjectRow) ([]domainass
 		if err != nil {
 			return nil, err
 		}
-		check := listCheck(row)
+		check, err := listCheck(row)
+		if err != nil {
+			return nil, err
+		}
 		candidates = append(candidates, domainassignment.CheckAssignmentCandidate{
 			Check:           check,
 			Selector:        selector,
@@ -134,7 +139,10 @@ func checkCandidate(row sqlc.GetActiveCheckForProjectRow) (domainassignment.Chec
 	if err != nil {
 		return domainassignment.CheckAssignmentCandidate{}, err
 	}
-	check := getCheck(row)
+	check, err := getCheck(row)
+	if err != nil {
+		return domainassignment.CheckAssignmentCandidate{}, err
+	}
 	return domainassignment.CheckAssignmentCandidate{
 		Check:           check,
 		Selector:        selector,
@@ -144,7 +152,7 @@ func checkCandidate(row sqlc.GetActiveCheckForProjectRow) (domainassignment.Chec
 }
 
 //nolint:dupl // sqlc generates distinct row types with the same check columns.
-func listCheck(row sqlc.ListActiveChecksForProjectRow) domaincheck.Check {
+func listCheck(row sqlc.ListActiveChecksForProjectRow) (domaincheck.Check, error) {
 	return newCheck(row.ID, row.ProjectID, row.Name, row.CheckType, row.Target, row.Selector, row.Description, row.IntervalSeconds, row.CreatedAt, row.UpdatedAt, row.DeletedAt, checkConfigs{
 		pingPacketCount:         row.PingPacketCount,
 		pingPacketSizeBytes:     row.PingPacketSizeBytes,
@@ -153,6 +161,16 @@ func listCheck(row sqlc.ListActiveChecksForProjectRow) domaincheck.Check {
 		tcpPort:                 row.TcpPort,
 		tcpTimeoutMs:            row.TcpTimeoutMs,
 		tcpIPFamily:             row.TcpIpFamily,
+		httpMethod:              row.HttpMethod,
+		httpHeaders:             row.HttpHeaders,
+		httpBody:                row.HttpBody,
+		httpTimeoutMs:           row.HttpTimeoutMs,
+		httpIPFamily:            row.HttpIpFamily,
+		httpFollowRedirects:     row.HttpFollowRedirects,
+		httpSkipTLSVerify:       row.HttpSkipTlsVerify,
+		httpExpectedCodes:       row.HttpExpectedStatusCodes,
+		httpExpectedClasses:     row.HttpExpectedStatusClasses,
+		httpBodyContains:        row.HttpBodyContains,
 		tracerouteProtocol:      row.TracerouteProtocol,
 		tracerouteMaxHops:       row.TracerouteMaxHops,
 		tracerouteTimeoutMs:     row.TracerouteTimeoutMs,
@@ -164,7 +182,7 @@ func listCheck(row sqlc.ListActiveChecksForProjectRow) domaincheck.Check {
 }
 
 //nolint:dupl // sqlc generates distinct row types with the same check columns.
-func getCheck(row sqlc.GetActiveCheckForProjectRow) domaincheck.Check {
+func getCheck(row sqlc.GetActiveCheckForProjectRow) (domaincheck.Check, error) {
 	return newCheck(row.ID, row.ProjectID, row.Name, row.CheckType, row.Target, row.Selector, row.Description, row.IntervalSeconds, row.CreatedAt, row.UpdatedAt, row.DeletedAt, checkConfigs{
 		pingPacketCount:         row.PingPacketCount,
 		pingPacketSizeBytes:     row.PingPacketSizeBytes,
@@ -173,6 +191,16 @@ func getCheck(row sqlc.GetActiveCheckForProjectRow) domaincheck.Check {
 		tcpPort:                 row.TcpPort,
 		tcpTimeoutMs:            row.TcpTimeoutMs,
 		tcpIPFamily:             row.TcpIpFamily,
+		httpMethod:              row.HttpMethod,
+		httpHeaders:             row.HttpHeaders,
+		httpBody:                row.HttpBody,
+		httpTimeoutMs:           row.HttpTimeoutMs,
+		httpIPFamily:            row.HttpIpFamily,
+		httpFollowRedirects:     row.HttpFollowRedirects,
+		httpSkipTLSVerify:       row.HttpSkipTlsVerify,
+		httpExpectedCodes:       row.HttpExpectedStatusCodes,
+		httpExpectedClasses:     row.HttpExpectedStatusClasses,
+		httpBodyContains:        row.HttpBodyContains,
 		tracerouteProtocol:      row.TracerouteProtocol,
 		tracerouteMaxHops:       row.TracerouteMaxHops,
 		tracerouteTimeoutMs:     row.TracerouteTimeoutMs,
@@ -191,6 +219,16 @@ type checkConfigs struct {
 	tcpPort                 *int32
 	tcpTimeoutMs            *int32
 	tcpIPFamily             *sqlc.IpFamily
+	httpMethod              *sqlc.HttpMethod
+	httpHeaders             []byte
+	httpBody                *string
+	httpTimeoutMs           *int32
+	httpIPFamily            *sqlc.IpFamily
+	httpFollowRedirects     *bool
+	httpSkipTLSVerify       *bool
+	httpExpectedCodes       []int32
+	httpExpectedClasses     []int32
+	httpBodyContains        *string
 	tracerouteProtocol      *sqlc.TracerouteProtocol
 	tracerouteMaxHops       *int32
 	tracerouteTimeoutMs     *int32
@@ -200,7 +238,11 @@ type checkConfigs struct {
 	tracerouteIPFamily      *sqlc.IpFamily
 }
 
-func newCheck(id, projectID uuid.UUID, name string, checkType sqlc.CheckType, target string, selector []byte, description *string, intervalSeconds int32, createdAt, updatedAt time.Time, deletedAt *time.Time, configs checkConfigs) domaincheck.Check {
+func newCheck(id, projectID uuid.UUID, name string, checkType sqlc.CheckType, target string, selector []byte, description *string, intervalSeconds int32, createdAt, updatedAt time.Time, deletedAt *time.Time, configs checkConfigs) (domaincheck.Check, error) {
+	httpConfig, err := mapOptionalHTTPConfig(configs.httpMethod, configs.httpHeaders, configs.httpBody, configs.httpTimeoutMs, configs.httpIPFamily, configs.httpFollowRedirects, configs.httpSkipTLSVerify, configs.httpExpectedCodes, configs.httpExpectedClasses, configs.httpBodyContains)
+	if err != nil {
+		return domaincheck.Check{}, err
+	}
 	return domaincheck.Check{
 		ID:               id.String(),
 		ProjectID:        projectID.String(),
@@ -215,8 +257,9 @@ func newCheck(id, projectID uuid.UUID, name string, checkType sqlc.CheckType, ta
 		DeletedAt:        deletedAt,
 		PingConfig:       mapOptionalPingConfig(configs.pingPacketCount, configs.pingPacketSizeBytes, configs.pingTimeoutMs, configs.pingIPFamily),
 		TCPConfig:        mapOptionalTCPConfig(configs.tcpPort, configs.tcpTimeoutMs, configs.tcpIPFamily),
+		HTTPConfig:       httpConfig,
 		TracerouteConfig: mapOptionalTracerouteConfig(configs.tracerouteProtocol, configs.tracerouteMaxHops, configs.tracerouteTimeoutMs, configs.tracerouteQueriesPerHop, configs.traceroutePacketSize, configs.traceroutePort, configs.tracerouteIPFamily),
-	}
+	}, nil
 }
 
 func matchingProbeIDs(selector domainselector.Selector, probes []activeProbeLabels) []uuid.UUID {
@@ -234,6 +277,11 @@ func mapProjectAssignments(rows []sqlc.ListProjectAssignmentsRow) []domainassign
 	assignments := make([]domainassignment.Assignment, 0, len(rows))
 	for _, row := range rows {
 		latitude, longitude := coordinatesFromPoint(row.ProbeLocation)
+		checkType := domaincheck.Type(row.CheckType)
+		target := row.Target
+		if checkType == domaincheck.TypeHTTP {
+			target = domainhttp.RedactTarget(target)
+		}
 		assignments = append(assignments, domainassignment.Assignment{
 			ID:              row.AssignmentID.String(),
 			ProjectID:       row.ProjectID.String(),
@@ -260,8 +308,8 @@ func mapProjectAssignments(rows []sqlc.ListProjectAssignmentsRow) []domainassign
 				ID:               row.CheckID.String(),
 				ProjectID:        row.ProjectID.String(),
 				Name:             row.CheckName,
-				Type:             domaincheck.Type(row.CheckType),
-				Target:           row.Target,
+				Type:             checkType,
+				Target:           target,
 				Selector:         cloneRawMessage(row.Selector),
 				Description:      row.Description,
 				IntervalSeconds:  row.IntervalSeconds,
@@ -403,6 +451,22 @@ func mapOptionalTCPConfig(port, timeoutMs *int32, ipFamily *sqlc.IpFamily) *doma
 		TimeoutMs: *timeoutMs,
 		IPFamily:  mapIPFamily(ipFamily),
 	}
+}
+
+func mapOptionalHTTPConfig(method *sqlc.HttpMethod, headers []byte, body *string, timeoutMs *int32, family *sqlc.IpFamily, followRedirects, skipTLSVerify *bool, codes, classes []int32, bodyContains *string) (*domainhttp.Config, error) {
+	if method == nil || timeoutMs == nil || followRedirects == nil || skipTLSVerify == nil {
+		return nil, nil //nolint:nilnil // Nil means this joined row has no HTTP config.
+	}
+	var values []domainhttp.Header
+	if err := json.Unmarshal(headers, &values); err != nil {
+		return nil, fmt.Errorf("decode HTTP check headers: %w", err)
+	}
+	return &domainhttp.Config{
+		Method: domainhttp.Method(*method), Headers: values, Body: body, TimeoutMs: *timeoutMs,
+		IPFamily: mapIPFamily(family), FollowRedirects: *followRedirects,
+		SkipTLSVerify: *skipTLSVerify, ExpectedStatusCodes: append([]int32(nil), codes...),
+		ExpectedStatusClasses: append([]int32(nil), classes...), BodyContains: bodyContains,
+	}, nil
 }
 
 func mapOptionalTracerouteConfig(

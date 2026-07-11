@@ -1,6 +1,7 @@
 package result
 
 import (
+	apphttp "github.com/yorukot/netstamp/internal/controller/application/result/httpcheck"
 	"github.com/yorukot/netstamp/internal/controller/application/result/latest"
 	"github.com/yorukot/netstamp/internal/controller/application/result/ping"
 	resultshared "github.com/yorukot/netstamp/internal/controller/application/result/shared"
@@ -30,6 +31,8 @@ type (
 	QueryPingInsightInput        = ping.QueryInsightInput
 	QueryTCPSeriesInput          = tcp.QuerySeriesInput
 	QueryTCPInsightInput         = tcp.QueryInsightInput
+	QueryHTTPSeriesInput         = apphttp.QuerySeriesInput
+	QueryHTTPInsightInput        = apphttp.QueryInsightInput
 	QueryTracerouteRunsInput     = traceroute.QueryRunsInput
 	QueryTracerouteInsightInput  = traceroute.QueryInsightInput
 	QueryTracerouteTopologyInput = traceroute.QueryTopologyInput
@@ -41,6 +44,8 @@ type (
 	PingInsightOutput        = ping.InsightOutput
 	TCPSeriesOutput          = tcp.SeriesOutput
 	TCPInsightOutput         = tcp.InsightOutput
+	HTTPSeriesOutput         = apphttp.SeriesOutput
+	HTTPInsightOutput        = apphttp.InsightOutput
 	TracerouteRunsOutput     = traceroute.RunsOutput
 	TracerouteInsightOutput  = traceroute.InsightOutput
 	TracerouteTopologyOutput = traceroute.TopologyOutput
@@ -65,6 +70,9 @@ type (
 	SeriesPoint                     = ping.SeriesPoint
 	PingInsightSummary              = ping.InsightSummary
 	TCPInsightSummary               = tcp.InsightSummary
+	HTTPSeries                      = apphttp.Series
+	HTTPSeriesPoint                 = apphttp.SeriesPoint
+	HTTPInsightSummary              = apphttp.InsightSummary
 	QueryMetadata                   = resultshared.QueryMetadata
 	TracerouteRunsQueryMetadata     = traceroute.RunsQueryMetadata
 	TracerouteInsightQueryMetadata  = traceroute.InsightQueryMetadata

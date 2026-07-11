@@ -80,6 +80,66 @@ func (q *Queries) CreateCheckLabel(ctx context.Context, arg CreateCheckLabelPara
 	return err
 }
 
+const createHTTPCheckConfig = `-- name: CreateHTTPCheckConfig :one
+INSERT INTO http_check_configs (
+    check_id, method, headers, body, timeout_ms, ip_family, follow_redirects,
+    skip_tls_verify, expected_status_codes, expected_status_classes, body_contains
+)
+VALUES (
+    $1, $2, $3::jsonb, $4,
+    $5, $6, $7,
+    $8, $9,
+    $10, $11
+)
+RETURNING check_id, method, headers, body, timeout_ms, ip_family, follow_redirects,
+          skip_tls_verify, expected_status_codes, expected_status_classes, body_contains
+`
+
+type CreateHTTPCheckConfigParams struct {
+	CheckID               uuid.UUID  `json:"check_id"`
+	Method                HttpMethod `json:"method"`
+	Headers               []byte     `json:"headers"`
+	Body                  *string    `json:"body"`
+	TimeoutMs             int32      `json:"timeout_ms"`
+	IpFamily              *IpFamily  `json:"ip_family"`
+	FollowRedirects       bool       `json:"follow_redirects"`
+	SkipTlsVerify         bool       `json:"skip_tls_verify"`
+	ExpectedStatusCodes   []int32    `json:"expected_status_codes"`
+	ExpectedStatusClasses []int32    `json:"expected_status_classes"`
+	BodyContains          *string    `json:"body_contains"`
+}
+
+func (q *Queries) CreateHTTPCheckConfig(ctx context.Context, arg CreateHTTPCheckConfigParams) (HttpCheckConfig, error) {
+	row := q.db.QueryRow(ctx, createHTTPCheckConfig,
+		arg.CheckID,
+		arg.Method,
+		arg.Headers,
+		arg.Body,
+		arg.TimeoutMs,
+		arg.IpFamily,
+		arg.FollowRedirects,
+		arg.SkipTlsVerify,
+		arg.ExpectedStatusCodes,
+		arg.ExpectedStatusClasses,
+		arg.BodyContains,
+	)
+	var i HttpCheckConfig
+	err := row.Scan(
+		&i.CheckID,
+		&i.Method,
+		&i.Headers,
+		&i.Body,
+		&i.TimeoutMs,
+		&i.IpFamily,
+		&i.FollowRedirects,
+		&i.SkipTlsVerify,
+		&i.ExpectedStatusCodes,
+		&i.ExpectedStatusClasses,
+		&i.BodyContains,
+	)
+	return i, err
+}
+
 const createPingCheckConfig = `-- name: CreatePingCheckConfig :one
 INSERT INTO ping_check_configs (check_id, packet_count, packet_size_bytes, timeout_ms, ip_family)
 VALUES ($1, $2, $3, $4, $5)
@@ -292,6 +352,16 @@ SELECT checks.internal_id,
        tcp_check_configs.port AS tcp_port,
        tcp_check_configs.timeout_ms AS tcp_timeout_ms,
        tcp_check_configs.ip_family AS tcp_ip_family,
+       http_check_configs.method AS http_method,
+       http_check_configs.headers AS http_headers,
+       http_check_configs.body AS http_body,
+       http_check_configs.timeout_ms AS http_timeout_ms,
+       http_check_configs.ip_family AS http_ip_family,
+       http_check_configs.follow_redirects AS http_follow_redirects,
+       http_check_configs.skip_tls_verify AS http_skip_tls_verify,
+       http_check_configs.expected_status_codes AS http_expected_status_codes,
+       http_check_configs.expected_status_classes AS http_expected_status_classes,
+       http_check_configs.body_contains AS http_body_contains,
        traceroute_check_configs.protocol AS traceroute_protocol,
        traceroute_check_configs.max_hops AS traceroute_max_hops,
        traceroute_check_configs.timeout_ms AS traceroute_timeout_ms,
@@ -302,6 +372,7 @@ SELECT checks.internal_id,
 FROM checks
 LEFT JOIN ping_check_configs ON ping_check_configs.check_id = checks.id
 LEFT JOIN tcp_check_configs ON tcp_check_configs.check_id = checks.id
+LEFT JOIN http_check_configs ON http_check_configs.check_id = checks.id
 LEFT JOIN traceroute_check_configs ON traceroute_check_configs.check_id = checks.id
 WHERE checks.project_id = $1
   AND checks.id = $2
@@ -333,6 +404,16 @@ type GetActiveCheckForProjectRow struct {
 	TcpPort                   *int32              `json:"tcp_port"`
 	TcpTimeoutMs              *int32              `json:"tcp_timeout_ms"`
 	TcpIpFamily               *IpFamily           `json:"tcp_ip_family"`
+	HttpMethod                *HttpMethod         `json:"http_method"`
+	HttpHeaders               []byte              `json:"http_headers"`
+	HttpBody                  *string             `json:"http_body"`
+	HttpTimeoutMs             *int32              `json:"http_timeout_ms"`
+	HttpIpFamily              *IpFamily           `json:"http_ip_family"`
+	HttpFollowRedirects       *bool               `json:"http_follow_redirects"`
+	HttpSkipTlsVerify         *bool               `json:"http_skip_tls_verify"`
+	HttpExpectedStatusCodes   []int32             `json:"http_expected_status_codes"`
+	HttpExpectedStatusClasses []int32             `json:"http_expected_status_classes"`
+	HttpBodyContains          *string             `json:"http_body_contains"`
 	TracerouteProtocol        *TracerouteProtocol `json:"traceroute_protocol"`
 	TracerouteMaxHops         *int32              `json:"traceroute_max_hops"`
 	TracerouteTimeoutMs       *int32              `json:"traceroute_timeout_ms"`
@@ -365,6 +446,16 @@ func (q *Queries) GetActiveCheckForProject(ctx context.Context, arg GetActiveChe
 		&i.TcpPort,
 		&i.TcpTimeoutMs,
 		&i.TcpIpFamily,
+		&i.HttpMethod,
+		&i.HttpHeaders,
+		&i.HttpBody,
+		&i.HttpTimeoutMs,
+		&i.HttpIpFamily,
+		&i.HttpFollowRedirects,
+		&i.HttpSkipTlsVerify,
+		&i.HttpExpectedStatusCodes,
+		&i.HttpExpectedStatusClasses,
+		&i.HttpBodyContains,
 		&i.TracerouteProtocol,
 		&i.TracerouteMaxHops,
 		&i.TracerouteTimeoutMs,
@@ -396,6 +487,16 @@ SELECT checks.internal_id,
        tcp_check_configs.port AS tcp_port,
        tcp_check_configs.timeout_ms AS tcp_timeout_ms,
        tcp_check_configs.ip_family AS tcp_ip_family,
+       http_check_configs.method AS http_method,
+       http_check_configs.headers AS http_headers,
+       http_check_configs.body AS http_body,
+       http_check_configs.timeout_ms AS http_timeout_ms,
+       http_check_configs.ip_family AS http_ip_family,
+       http_check_configs.follow_redirects AS http_follow_redirects,
+       http_check_configs.skip_tls_verify AS http_skip_tls_verify,
+       http_check_configs.expected_status_codes AS http_expected_status_codes,
+       http_check_configs.expected_status_classes AS http_expected_status_classes,
+       http_check_configs.body_contains AS http_body_contains,
        traceroute_check_configs.protocol AS traceroute_protocol,
        traceroute_check_configs.max_hops AS traceroute_max_hops,
        traceroute_check_configs.timeout_ms AS traceroute_timeout_ms,
@@ -406,6 +507,7 @@ SELECT checks.internal_id,
 FROM checks
 LEFT JOIN ping_check_configs ON ping_check_configs.check_id = checks.id
 LEFT JOIN tcp_check_configs ON tcp_check_configs.check_id = checks.id
+LEFT JOIN http_check_configs ON http_check_configs.check_id = checks.id
 LEFT JOIN traceroute_check_configs ON traceroute_check_configs.check_id = checks.id
 WHERE checks.project_id = $1
   AND checks.deleted_at IS NULL
@@ -432,6 +534,16 @@ type ListActiveChecksForProjectRow struct {
 	TcpPort                   *int32              `json:"tcp_port"`
 	TcpTimeoutMs              *int32              `json:"tcp_timeout_ms"`
 	TcpIpFamily               *IpFamily           `json:"tcp_ip_family"`
+	HttpMethod                *HttpMethod         `json:"http_method"`
+	HttpHeaders               []byte              `json:"http_headers"`
+	HttpBody                  *string             `json:"http_body"`
+	HttpTimeoutMs             *int32              `json:"http_timeout_ms"`
+	HttpIpFamily              *IpFamily           `json:"http_ip_family"`
+	HttpFollowRedirects       *bool               `json:"http_follow_redirects"`
+	HttpSkipTlsVerify         *bool               `json:"http_skip_tls_verify"`
+	HttpExpectedStatusCodes   []int32             `json:"http_expected_status_codes"`
+	HttpExpectedStatusClasses []int32             `json:"http_expected_status_classes"`
+	HttpBodyContains          *string             `json:"http_body_contains"`
 	TracerouteProtocol        *TracerouteProtocol `json:"traceroute_protocol"`
 	TracerouteMaxHops         *int32              `json:"traceroute_max_hops"`
 	TracerouteTimeoutMs       *int32              `json:"traceroute_timeout_ms"`
@@ -470,6 +582,16 @@ func (q *Queries) ListActiveChecksForProject(ctx context.Context, projectID uuid
 			&i.TcpPort,
 			&i.TcpTimeoutMs,
 			&i.TcpIpFamily,
+			&i.HttpMethod,
+			&i.HttpHeaders,
+			&i.HttpBody,
+			&i.HttpTimeoutMs,
+			&i.HttpIpFamily,
+			&i.HttpFollowRedirects,
+			&i.HttpSkipTlsVerify,
+			&i.HttpExpectedStatusCodes,
+			&i.HttpExpectedStatusClasses,
+			&i.HttpBodyContains,
 			&i.TracerouteProtocol,
 			&i.TracerouteMaxHops,
 			&i.TracerouteTimeoutMs,
@@ -689,6 +811,68 @@ func (q *Queries) UpdateCheck(ctx context.Context, arg UpdateCheckParams) (Check
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+	)
+	return i, err
+}
+
+const updateHTTPCheckConfig = `-- name: UpdateHTTPCheckConfig :one
+UPDATE http_check_configs
+SET method = $1,
+    headers = $2::jsonb,
+    body = $3,
+    timeout_ms = $4,
+    ip_family = $5,
+    follow_redirects = $6,
+    skip_tls_verify = $7,
+    expected_status_codes = $8,
+    expected_status_classes = $9,
+    body_contains = $10
+WHERE check_id = $11
+RETURNING check_id, method, headers, body, timeout_ms, ip_family, follow_redirects,
+          skip_tls_verify, expected_status_codes, expected_status_classes, body_contains
+`
+
+type UpdateHTTPCheckConfigParams struct {
+	Method                HttpMethod `json:"method"`
+	Headers               []byte     `json:"headers"`
+	Body                  *string    `json:"body"`
+	TimeoutMs             int32      `json:"timeout_ms"`
+	IpFamily              *IpFamily  `json:"ip_family"`
+	FollowRedirects       bool       `json:"follow_redirects"`
+	SkipTlsVerify         bool       `json:"skip_tls_verify"`
+	ExpectedStatusCodes   []int32    `json:"expected_status_codes"`
+	ExpectedStatusClasses []int32    `json:"expected_status_classes"`
+	BodyContains          *string    `json:"body_contains"`
+	CheckID               uuid.UUID  `json:"check_id"`
+}
+
+func (q *Queries) UpdateHTTPCheckConfig(ctx context.Context, arg UpdateHTTPCheckConfigParams) (HttpCheckConfig, error) {
+	row := q.db.QueryRow(ctx, updateHTTPCheckConfig,
+		arg.Method,
+		arg.Headers,
+		arg.Body,
+		arg.TimeoutMs,
+		arg.IpFamily,
+		arg.FollowRedirects,
+		arg.SkipTlsVerify,
+		arg.ExpectedStatusCodes,
+		arg.ExpectedStatusClasses,
+		arg.BodyContains,
+		arg.CheckID,
+	)
+	var i HttpCheckConfig
+	err := row.Scan(
+		&i.CheckID,
+		&i.Method,
+		&i.Headers,
+		&i.Body,
+		&i.TimeoutMs,
+		&i.IpFamily,
+		&i.FollowRedirects,
+		&i.SkipTlsVerify,
+		&i.ExpectedStatusCodes,
+		&i.ExpectedStatusClasses,
+		&i.BodyContains,
 	)
 	return i, err
 }

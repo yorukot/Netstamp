@@ -8,6 +8,7 @@ import (
 
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/sqlc"
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
+	domainhttp "github.com/yorukot/netstamp/internal/domain/httpcheck"
 	domainnetwork "github.com/yorukot/netstamp/internal/domain/network"
 	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
 )
@@ -74,7 +75,7 @@ func TestMapAssignmentIncludesCheckNameAndTCPConfig(t *testing.T) {
 	timeoutMs := int32(1200)
 	ipFamily := sqlc.IpFamilyInet6
 
-	assignment := mapAssignment(sqlc.ListActiveAssignmentsForProbeRow{
+	assignment, err := mapAssignment(sqlc.ListActiveAssignmentsForProbeRow{
 		AssignmentID:    uuid.MustParse("0ac05ca4-0df0-445a-ac33-ed46e9595ccc"),
 		ProjectID:       uuid.MustParse("11111111-1111-1111-1111-111111111111"),
 		ProbeID:         uuid.MustParse("22222222-2222-2222-2222-222222222222"),
@@ -92,6 +93,9 @@ func TestMapAssignmentIncludesCheckNameAndTCPConfig(t *testing.T) {
 		TcpTimeoutMs:    &timeoutMs,
 		TcpIpFamily:     &ipFamily,
 	})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if assignment.Check == nil {
 		t.Fatal("expected mapped assignment check")
@@ -116,8 +120,52 @@ func TestMapAssignmentIncludesCheckNameAndTCPConfig(t *testing.T) {
 	}
 }
 
+func TestMapAssignmentIncludesFullHTTPRuntimeConfig(t *testing.T) {
+	method := sqlc.HttpMethodPOST
+	timeoutMs := int32(2500)
+	followRedirects := true
+	skipTLSVerify := true
+	body := `{"probe":"secret"}`
+	bodyContains := "healthy"
+
+	assignment, err := mapAssignment(sqlc.ListActiveAssignmentsForProbeRow{
+		AssignmentID:              uuid.MustParse("0ac05ca4-0df0-445a-ac33-ed46e9595ccc"),
+		ProjectID:                 uuid.MustParse("11111111-1111-1111-1111-111111111111"),
+		ProbeID:                   uuid.MustParse("22222222-2222-2222-2222-222222222222"),
+		CheckID:                   uuid.MustParse("5880599f-5539-4466-848b-d57b9c7e1d4c"),
+		CheckName:                 "Authenticated health",
+		ProbeInternalID:           10,
+		CheckInternalID:           20,
+		CheckType:                 sqlc.CheckTypeHttp,
+		Target:                    "https://example.com/health?token=secret",
+		IntervalSeconds:           30,
+		HttpMethod:                &method,
+		HttpHeaders:               []byte(`[{"name":"Authorization","value":"Bearer secret"}]`),
+		HttpBody:                  &body,
+		HttpTimeoutMs:             &timeoutMs,
+		HttpFollowRedirects:       &followRedirects,
+		HttpSkipTlsVerify:         &skipTLSVerify,
+		HttpExpectedStatusCodes:   []int32{204},
+		HttpExpectedStatusClasses: []int32{2},
+		HttpBodyContains:          &bodyContains,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if assignment.Check == nil || assignment.Check.HTTPConfig == nil {
+		t.Fatalf("expected HTTP runtime config, got %#v", assignment.Check)
+	}
+	config := assignment.Check.HTTPConfig
+	if config.Method != domainhttp.MethodPost || config.Body == nil || *config.Body != body || len(config.Headers) != 1 {
+		t.Fatalf("expected full HTTP secrets for probe runtime, got %#v", config)
+	}
+	if config.Headers[0].Value != "Bearer secret" || config.BodyContains == nil || *config.BodyContains != bodyContains {
+		t.Fatalf("expected complete HTTP assertions, got %#v", config)
+	}
+}
+
 func TestMapAssignmentForProbeChecksIncludesProbeName(t *testing.T) {
-	assignment := mapAssignmentForProbeChecks(sqlc.ListActiveAssignmentsForProbeChecksRow{
+	assignment, err := mapAssignmentForProbeChecks(sqlc.ListActiveAssignmentsForProbeChecksRow{
 		AssignmentID:    uuid.MustParse("0ac05ca4-0df0-445a-ac33-ed46e9595ccc"),
 		ProjectID:       uuid.MustParse("11111111-1111-1111-1111-111111111111"),
 		ProbeID:         uuid.MustParse("22222222-2222-2222-2222-222222222222"),
@@ -132,6 +180,9 @@ func TestMapAssignmentForProbeChecksIncludesProbeName(t *testing.T) {
 		Target:          "example.com",
 		IntervalSeconds: 30,
 	})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if assignment.Probe == nil {
 		t.Fatal("expected mapped assignment probe")

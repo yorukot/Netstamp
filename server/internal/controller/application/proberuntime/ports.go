@@ -4,6 +4,7 @@ import (
 	"context"
 
 	domainassignment "github.com/yorukot/netstamp/internal/domain/assignment"
+	domainhttp "github.com/yorukot/netstamp/internal/domain/httpcheck"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
 	domaintcp "github.com/yorukot/netstamp/internal/domain/tcp"
@@ -36,6 +37,10 @@ type PingResultRepository interface {
 
 type TCPResultRepository interface {
 	CreateTCPResults(ctx context.Context, inputs []domaintcp.ResultStorageInput) ([]domaintcp.ResultStorageInput, error)
+}
+
+type HTTPResultRepository interface {
+	CreateHTTPResults(ctx context.Context, inputs []domainhttp.ResultStorageInput) ([]domainhttp.ResultStorageInput, error)
 }
 
 type TracerouteResultRepository interface {

@@ -115,7 +115,12 @@ func (r *ProbeRepository) ListAssignments(ctx context.Context, probeID string) (
 
 	assignments := make([]domainassignment.Assignment, 0, len(rows))
 	for _, row := range rows {
-		assignments = append(assignments, mapAssignment(row))
+		assignment, mapErr := mapAssignment(row)
+		if mapErr != nil {
+			postgres.RecordDBSpanError(span, mapErr)
+			return nil, mapErr
+		}
+		assignments = append(assignments, assignment)
 	}
 
 	return assignments, nil
@@ -148,7 +153,12 @@ func (r *ProbeRepository) ListActiveAssignmentsForProbeChecks(ctx context.Contex
 
 	assignments := make([]domainassignment.Assignment, 0, len(rows))
 	for _, row := range rows {
-		assignments = append(assignments, mapAssignmentForProbeChecks(row))
+		assignment, mapErr := mapAssignmentForProbeChecks(row)
+		if mapErr != nil {
+			postgres.RecordDBSpanError(span, mapErr)
+			return nil, mapErr
+		}
+		assignments = append(assignments, assignment)
 	}
 
 	return assignments, nil

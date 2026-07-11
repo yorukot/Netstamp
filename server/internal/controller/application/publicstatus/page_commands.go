@@ -257,7 +257,7 @@ func (s *Service) validateAssignmentGroupScope(ctx context.Context, element doma
 			return err
 		}
 		if !ok {
-			return invalidField("checkId", "check must be an active ping or tcp check", *element.CheckID)
+			return invalidField("checkId", "check must be an active ping, tcp, or http check", *element.CheckID)
 		}
 	case domainpublic.AssignmentSelectionModeSelectedAssignments:
 		count, err := s.repo.CountAssignableAssignments(ctx, element.ProjectID, element.AssignmentIDs)
@@ -265,7 +265,7 @@ func (s *Service) validateAssignmentGroupScope(ctx context.Context, element doma
 			return err
 		}
 		if count != int64(len(element.AssignmentIDs)) {
-			return invalidField("assignmentIds", "assignments must be active ping or tcp assignments in this project", element.AssignmentIDs)
+			return invalidField("assignmentIds", "assignments must be active ping, tcp, or http assignments in this project", element.AssignmentIDs)
 		}
 	}
 	return nil

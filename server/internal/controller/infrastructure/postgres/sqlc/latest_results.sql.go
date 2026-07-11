@@ -62,6 +62,17 @@ JOIN LATERAL (
     )
     UNION ALL
     (
+        SELECT http_results.started_at,
+               http_results.status::text AS status
+        FROM http_results
+        WHERE active_assignments.result_type = 'http'
+          AND http_results.probe_id = active_assignments.probe_storage_id
+          AND http_results.check_id = active_assignments.check_storage_id
+        ORDER BY http_results.started_at DESC
+        LIMIT 1
+    )
+    UNION ALL
+    (
         SELECT tcp_results.started_at,
                tcp_results.status::text AS status
         FROM tcp_results

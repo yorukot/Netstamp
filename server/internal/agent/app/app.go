@@ -59,8 +59,9 @@ func New(config agentconfig.Config, log *slog.Logger) *App {
 	tcpExecutor := executor.NewTCPExecutor()
 	// TracerouteExecutor is responsible for executing traceroute checks
 	tracerouteExecutor := executor.NewTracerouteExecutor()
+	httpExecutor := executor.NewHTTPExecutor()
 	// WorkerPool is responsible for managing worker execution
-	workerPool := agentworker.NewWorkerPool(config.MaxWorkers.Value, workerQueue, resultQueue, pingExecutor, tcpExecutor, tracerouteExecutor, log, metrics)
+	workerPool := agentworker.NewWorkerPool(config.MaxWorkers.Value, workerQueue, resultQueue, pingExecutor, tcpExecutor, tracerouteExecutor, httpExecutor, log, metrics)
 
 	// AssignmentStore is responsible for storing and managing assignments
 	assignmentStore := scheduling.NewAssignmentStore(config.ProbeID, config.AssignmentTTL.Value, log)

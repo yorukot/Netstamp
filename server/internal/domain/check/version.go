@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 
+	domainhttp "github.com/yorukot/netstamp/internal/domain/httpcheck"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domaintcp "github.com/yorukot/netstamp/internal/domain/tcp"
 	domaintraceroute "github.com/yorukot/netstamp/internal/domain/traceroute"
@@ -18,6 +19,7 @@ func (c Check) Hash() string {
 		PingConfig       *domainping.Config       `json:"pingConfig"`
 		TCPConfig        *domaintcp.Config        `json:"tcpConfig"`
 		TracerouteConfig *domaintraceroute.Config `json:"tracerouteConfig"`
+		HTTPConfig       *domainhttp.Config       `json:"httpConfig"`
 	}{
 		Type:             c.Type,
 		Target:           c.Target,
@@ -25,6 +27,7 @@ func (c Check) Hash() string {
 		PingConfig:       nil,
 		TCPConfig:        nil,
 		TracerouteConfig: nil,
+		HTTPConfig:       nil,
 	}
 
 	if c.PingConfig != nil {
@@ -35,6 +38,9 @@ func (c Check) Hash() string {
 	}
 	if c.TracerouteConfig != nil {
 		payload.TracerouteConfig = c.TracerouteConfig
+	}
+	if c.HTTPConfig != nil {
+		payload.HTTPConfig = c.HTTPConfig
 	}
 
 	return hashJSON(payload)

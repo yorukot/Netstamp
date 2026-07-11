@@ -9,6 +9,7 @@ import (
 	domainalert "github.com/yorukot/netstamp/internal/domain/alert"
 	"github.com/yorukot/netstamp/internal/domain/alertcondition"
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
+	domainhttp "github.com/yorukot/netstamp/internal/domain/httpcheck"
 )
 
 func mapRule(row sqlc.AlertRule, notificationIDs []string) domainalert.Rule {
@@ -137,11 +138,15 @@ func addIncidentSummaries(
 	checkType sqlc.CheckType,
 	checkTarget string,
 ) {
+	domainCheckType := domaincheck.Type(checkType)
+	if domainCheckType == domaincheck.TypeHTTP {
+		checkTarget = domainhttp.RedactTarget(checkTarget)
+	}
 	incident.Probe = &domainalert.IncidentProbeSummary{ID: probeID.String(), Name: probeName}
 	incident.Check = &domainalert.IncidentCheckSummary{
 		ID:     checkID.String(),
 		Name:   checkName,
-		Type:   domaincheck.Type(checkType),
+		Type:   domainCheckType,
 		Target: checkTarget,
 	}
 }

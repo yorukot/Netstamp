@@ -4,7 +4,6 @@ import (
 	"context"
 
 	appassignment "github.com/yorukot/netstamp/internal/controller/application/assignment"
-	domainassignment "github.com/yorukot/netstamp/internal/domain/assignment"
 )
 
 func (h *Handler) listProjectAssignments(ctx context.Context, input *listProjectAssignmentsInput) (*listProjectAssignmentsOutput, error) {
@@ -24,7 +23,7 @@ func (h *Handler) listProjectAssignments(ctx context.Context, input *listProject
 	}
 
 	return &listProjectAssignmentsOutput{Body: listProjectAssignmentsOutputBody{
-		Assignments: output.Assignments,
+		Assignments: newProjectAssignmentBodies(output.Assignments),
 	}}, nil
 }
 
@@ -39,5 +38,5 @@ type listProjectAssignmentsOutput struct {
 }
 
 type listProjectAssignmentsOutputBody struct {
-	Assignments []domainassignment.Assignment `json:"assignments"`
+	Assignments []projectAssignmentBody `json:"assignments"`
 }

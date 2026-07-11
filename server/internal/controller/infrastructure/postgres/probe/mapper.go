@@ -1,6 +1,8 @@
 package pgprobe
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/netip"
 	"time"
 
@@ -10,6 +12,7 @@ import (
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/sqlc"
 	domainassignment "github.com/yorukot/netstamp/internal/domain/assignment"
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
+	domainhttp "github.com/yorukot/netstamp/internal/domain/httpcheck"
 	domainlabel "github.com/yorukot/netstamp/internal/domain/label"
 	domainnetwork "github.com/yorukot/netstamp/internal/domain/network"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
@@ -300,7 +303,22 @@ func mapGetProbeLabel(row sqlc.GetActiveProbeRowsForProjectRow) (domainlabel.Lab
 	}, true
 }
 
-func mapAssignment(row sqlc.ListActiveAssignmentsForProbeRow) domainassignment.Assignment {
+func mapAssignment(row sqlc.ListActiveAssignmentsForProbeRow) (domainassignment.Assignment, error) {
+	httpConfig, err := mapOptionalHTTPConfig(
+		row.HttpMethod,
+		row.HttpHeaders,
+		row.HttpBody,
+		row.HttpTimeoutMs,
+		row.HttpIpFamily,
+		row.HttpFollowRedirects,
+		row.HttpSkipTlsVerify,
+		row.HttpExpectedStatusCodes,
+		row.HttpExpectedStatusClasses,
+		row.HttpBodyContains,
+	)
+	if err != nil {
+		return domainassignment.Assignment{}, err
+	}
 	return domainassignment.Assignment{
 		ID:              row.AssignmentID.String(),
 		ProjectID:       row.ProjectID.String(),
@@ -319,6 +337,7 @@ func mapAssignment(row sqlc.ListActiveAssignmentsForProbeRow) domainassignment.A
 			IntervalSeconds: row.IntervalSeconds,
 			PingConfig:      mapOptionalPingConfig(row.PingPacketCount, row.PingPacketSizeBytes, row.PingTimeoutMs, row.PingIpFamily),
 			TCPConfig:       mapOptionalTCPConfig(row.TcpPort, row.TcpTimeoutMs, row.TcpIpFamily),
+			HTTPConfig:      httpConfig,
 			TracerouteConfig: mapOptionalTracerouteConfig(
 				row.TracerouteProtocol,
 				row.TracerouteMaxHops,
@@ -329,17 +348,20 @@ func mapAssignment(row sqlc.ListActiveAssignmentsForProbeRow) domainassignment.A
 				row.TracerouteIpFamily,
 			),
 		},
-	}
+	}, nil
 }
 
-func mapAssignmentForProbeChecks(row sqlc.ListActiveAssignmentsForProbeChecksRow) domainassignment.Assignment {
-	assignment := mapAssignment(sqlc.ListActiveAssignmentsForProbeRow(row))
+func mapAssignmentForProbeChecks(row sqlc.ListActiveAssignmentsForProbeChecksRow) (domainassignment.Assignment, error) {
+	assignment, err := mapAssignment(sqlc.ListActiveAssignmentsForProbeRow(row))
+	if err != nil {
+		return domainassignment.Assignment{}, err
+	}
 	assignment.Probe = &domainprobe.Probe{
 		ID:        row.ProbeID.String(),
 		ProjectID: row.ProjectID.String(),
 		Name:      row.ProbeName,
 	}
-	return assignment
+	return assignment, nil
 }
 
 func mapOptionalPingConfig(packetCount, packetSizeBytes, timeoutMs *int32, ipFamily *sqlc.IpFamily) *domainping.Config {
@@ -365,6 +387,22 @@ func mapOptionalTCPConfig(port, timeoutMs *int32, ipFamily *sqlc.IpFamily) *doma
 		TimeoutMs: *timeoutMs,
 		IPFamily:  mapIPFamily(ipFamily),
 	}
+}
+
+func mapOptionalHTTPConfig(method *sqlc.HttpMethod, headers []byte, body *string, timeoutMs *int32, ipFamily *sqlc.IpFamily, followRedirects, skipTLSVerify *bool, codes, classes []int32, bodyContains *string) (*domainhttp.Config, error) {
+	if method == nil || timeoutMs == nil || followRedirects == nil || skipTLSVerify == nil {
+		return nil, nil //nolint:nilnil // Nil means this joined row has no HTTP config.
+	}
+	var values []domainhttp.Header
+	if err := json.Unmarshal(headers, &values); err != nil {
+		return nil, fmt.Errorf("decode HTTP check headers: %w", err)
+	}
+	return &domainhttp.Config{
+		Method: domainhttp.Method(*method), Headers: values, Body: body, TimeoutMs: *timeoutMs,
+		IPFamily: mapIPFamily(ipFamily), FollowRedirects: *followRedirects,
+		SkipTLSVerify: *skipTLSVerify, ExpectedStatusCodes: append([]int32(nil), codes...),
+		ExpectedStatusClasses: append([]int32(nil), classes...), BodyContains: bodyContains,
+	}, nil
 }
 
 func mapOptionalTracerouteConfig(

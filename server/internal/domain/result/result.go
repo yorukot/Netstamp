@@ -8,6 +8,7 @@ const (
 	LatestResultTypePing       LatestResultType = "ping"
 	LatestResultTypeTCP        LatestResultType = "tcp"
 	LatestResultTypeTraceroute LatestResultType = "traceroute"
+	LatestResultTypeHTTP       LatestResultType = "http"
 )
 
 type LatestResult struct {

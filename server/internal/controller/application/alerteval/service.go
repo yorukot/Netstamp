@@ -80,7 +80,7 @@ func (s *Service) evaluateAssignment(ctx context.Context, input appproberuntime.
 	if err != nil {
 		return flow.failure(AlertEvalEventAssignmentEvaluateFailure, AlertEvalReasonInvalidCheckType, err)
 	}
-	if checkType != domaincheck.TypePing && checkType != domaincheck.TypeTCP {
+	if checkType != domaincheck.TypePing && checkType != domaincheck.TypeTCP && checkType != domaincheck.TypeHTTP {
 		flow.success()
 		return nil
 	}

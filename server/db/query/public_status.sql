@@ -233,7 +233,7 @@ JOIN checks
   ON checks.project_id = probe_check_assignments.project_id
  AND checks.id = probe_check_assignments.check_id
  AND checks.deleted_at IS NULL
- AND checks.check_type IN ('ping', 'tcp');
+ AND checks.check_type IN ('ping', 'tcp', 'http');
 
 -- name: GetPublicStatusAssignableCheck :one
 SELECT id,
@@ -242,7 +242,7 @@ FROM checks
 WHERE project_id = sqlc.arg(project_id)
   AND id = sqlc.arg(check_id)
   AND deleted_at IS NULL
-  AND check_type IN ('ping', 'tcp');
+  AND check_type IN ('ping', 'tcp', 'http');
 
 -- name: CountPublicStatusAssignableAssignments :one
 SELECT count(DISTINCT probe_check_assignments.id)::bigint
@@ -251,7 +251,7 @@ JOIN checks
   ON checks.project_id = probe_check_assignments.project_id
  AND checks.id = probe_check_assignments.check_id
  AND checks.deleted_at IS NULL
- AND checks.check_type IN ('ping', 'tcp')
+ AND checks.check_type IN ('ping', 'tcp', 'http')
 WHERE probe_check_assignments.project_id = sqlc.arg(project_id)
   AND probe_check_assignments.deleted_at IS NULL
   AND probe_check_assignments.id = ANY(sqlc.arg(assignment_ids)::uuid[]);
@@ -316,8 +316,23 @@ LEFT JOIN LATERAL (
           AND tcp_results.probe_id = probes.internal_id
           AND tcp_results.check_id = checks.internal_id
         ORDER BY tcp_results.started_at DESC
-	    LIMIT 1
-	)
+        LIMIT 1
+    )
+    UNION ALL
+    (
+        SELECT http_results.started_at,
+               http_results.status::text AS status,
+               http_results.duration_ms::double precision AS latency_avg_ms,
+               NULL::double precision AS loss_percent,
+               NULL::double precision AS connect_avg_ms,
+               CASE WHEN http_results.status = 'successful' THEN 0::double precision ELSE 100::double precision END AS failure_percent
+        FROM http_results
+        WHERE checks.check_type = 'http'
+          AND http_results.probe_id = probes.internal_id
+          AND http_results.check_id = checks.internal_id
+        ORDER BY http_results.started_at DESC
+        LIMIT 1
+    )
 ) latest ON TRUE
 WHERE public_status_page_assignment_scope.public_page_id = sqlc.arg(public_page_id)
 ORDER BY public_status_page_assignment_scope.element_id ASC,
@@ -379,6 +394,21 @@ LEFT JOIN LATERAL (
           AND tcp_results.probe_id = probes.internal_id
           AND tcp_results.check_id = checks.internal_id
         ORDER BY tcp_results.started_at DESC
+        LIMIT 1
+    )
+    UNION ALL
+    (
+        SELECT http_results.started_at,
+               http_results.status::text AS status,
+               http_results.duration_ms::double precision AS latency_avg_ms,
+               NULL::double precision AS loss_percent,
+               NULL::double precision AS connect_avg_ms,
+               CASE WHEN http_results.status = 'successful' THEN 0::double precision ELSE 100::double precision END AS failure_percent
+        FROM http_results
+        WHERE checks.check_type = 'http'
+          AND http_results.probe_id = probes.internal_id
+          AND http_results.check_id = checks.internal_id
+        ORDER BY http_results.started_at DESC
         LIMIT 1
     )
 ) latest ON TRUE

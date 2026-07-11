@@ -4,7 +4,6 @@ import (
 	"context"
 
 	appcheck "github.com/yorukot/netstamp/internal/controller/application/check"
-	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
 )
 
 func (h *Handler) listChecks(ctx context.Context, input *listChecksInput) (*listChecksOutput, error) {
@@ -13,7 +12,7 @@ func (h *Handler) listChecks(ctx context.Context, input *listChecksInput) (*list
 		return nil, err
 	}
 
-	checks, err := h.service.ListChecks(ctx, appcheck.ListChecksInput{
+	output, err := h.service.ListChecks(ctx, appcheck.ListChecksInput{
 		CurrentUserID: currentUserID,
 		ProjectRef:    input.Ref,
 	})
@@ -21,7 +20,15 @@ func (h *Handler) listChecks(ctx context.Context, input *listChecksInput) (*list
 		return nil, mapCheckError(err, "list checks failed")
 	}
 
-	return &listChecksOutput{Body: listChecksOutputBody{Checks: checks}}, nil
+	checks := make([]checkBody, 0, len(output.Checks))
+	for _, check := range output.Checks {
+		checks = append(checks, newCheckBody(check, output.CanManageChecks))
+	}
+
+	return &listChecksOutput{Body: listChecksOutputBody{
+		Checks:          checks,
+		CanManageChecks: output.CanManageChecks,
+	}}, nil
 }
 
 type listChecksInput struct {
@@ -33,5 +40,6 @@ type listChecksOutput struct {
 }
 
 type listChecksOutputBody struct {
-	Checks []domaincheck.Check `json:"checks"`
+	Checks          []checkBody `json:"checks"`
+	CanManageChecks bool        `json:"canManageChecks"`
 }

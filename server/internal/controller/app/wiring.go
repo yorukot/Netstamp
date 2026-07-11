@@ -31,6 +31,7 @@ import (
 	pgassignment "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/assignment"
 	pgauthsession "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/authsession"
 	pgcheck "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/check"
+	pghttpcheck "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/httpcheck"
 	pglabel "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/label"
 	pgping "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/ping"
 	pgprobe "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/probe"
@@ -136,6 +137,7 @@ func buildControllerServices(cfg config.Config, log *zap.Logger, dbPool *pgxpool
 	checkRepo := pgcheck.NewCheckRepository(dbPool)
 	pingRepo := pgping.NewPingRepository(dbPool)
 	tcpRepo := pgtcp.NewTCPRepository(dbPool)
+	httpRepo := pghttpcheck.NewRepository(dbPool)
 	tracerouteRepo := pgtraceroute.NewTracerouteRepository(dbPool)
 	resultRepo := pgresult.NewResultRepository(dbPool)
 	publicStatusRepo := pgpublicstatus.NewRepository(dbPool)
@@ -204,11 +206,12 @@ func buildControllerServices(cfg config.Config, log *zap.Logger, dbPool *pgxpool
 	checkSvc := appcheck.NewService(checkRepo, projectRepo, labelRepo, assignmentSvc, checkEvents, dbTx)
 	probeSvc := appprobe.NewService(probeRepo, projectRepo, labelRepo, assignmentSvc, security.NewProbeSecretGenerator(), probeEvents, dbTx)
 	publicStatusSvc := apppublicstatus.NewService(publicStatusRepo, projectRepo, publicStatusEvents, pingRepo, tcpRepo)
-	probeRuntimeSvc := appproberuntime.NewServiceWithTCP(probeRepo, pingRepo, tcpRepo, tracerouteRepo, security.NewProbeSecretVerifier(), probeRuntimeEvents)
+	publicStatusSvc.ConfigureHTTP(httpRepo)
+	probeRuntimeSvc := appproberuntime.NewServiceWithResults(probeRepo, pingRepo, tcpRepo, httpRepo, tracerouteRepo, security.NewProbeSecretVerifier(), probeRuntimeEvents)
 	alertEvalSvc := appalerteval.NewServiceWithEvents(alertRepo, cfg.Alerting.EvaluationEnabled, cfg.HTTP.BackendBaseURL, alertEvalEvents, dbTx)
 	alertEvalSvc.ConfigureBackendBaseURLProvider(adminSvc)
 	probeRuntimeSvc.SetAlertEvaluator(alertEvalSvc)
-	resultSvc := appresult.NewService(pingRepo, tcpRepo, tracerouteRepo, resultRepo, projectRepo)
+	resultSvc := appresult.NewServiceWithHTTP(pingRepo, tcpRepo, httpRepo, tracerouteRepo, resultRepo, projectRepo)
 	assignmentWorker := appassignment.NewWorker(assignmentRepo, appassignment.WorkerConfig{
 		Enabled:      cfg.AssignmentRefresh.WorkerEnabled,
 		Interval:     cfg.AssignmentRefresh.WorkerInterval,

@@ -26,12 +26,13 @@ func (h *Handler) createCheck(ctx context.Context, input *createCheckInput) (*ch
 		PingConfig:       input.Body.PingConfig.appInput(),
 		TCPConfig:        input.Body.TCPConfig.appInput(),
 		TracerouteConfig: input.Body.TracerouteConfig.appInput(),
+		HTTPConfig:       input.Body.HTTPConfig.appInput(),
 	})
 	if err != nil {
 		return nil, mapCheckError(err, "create check failed")
 	}
 
-	return &checkOutput{Body: checkOutputBody{Check: check}}, nil
+	return newCheckOutput(check, true), nil
 }
 
 type createCheckInput struct {
@@ -51,4 +52,5 @@ type createCheckInputBody struct {
 	PingConfig       *checkPingConfigInput       `json:"pingConfig,omitempty"`
 	TCPConfig        *checkTCPConfigInput        `json:"tcpConfig,omitempty"`
 	TracerouteConfig *checkTracerouteConfigInput `json:"tracerouteConfig,omitempty"`
+	HTTPConfig       *checkHTTPConfigInput       `json:"httpConfig,omitempty"`
 }

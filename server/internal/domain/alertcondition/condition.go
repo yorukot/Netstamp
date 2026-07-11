@@ -34,6 +34,13 @@ const (
 	MetricTCPAverageConnMs = "tcp.average_connect_ms"
 	MetricTCPMaxConnMs     = "tcp.max_connect_ms"
 	MetricTCPSuccessRate   = "tcp.success_rate"
+	MetricHTTPFailurePct   = "http.failure_percent"
+	MetricHTTPAverageTotal = "http.average_total_ms"
+	MetricHTTPMaxTotal     = "http.max_total_ms"
+	MetricHTTPAverageTTFB  = "http.average_ttfb_ms"
+	MetricHTTPMaxTTFB      = "http.max_ttfb_ms"
+	MetricHTTPSuccessRate  = "http.success_rate"
+	MetricHTTPCertDays     = "http.certificate_days_remaining"
 )
 
 type Condition struct {
@@ -171,6 +178,8 @@ func CompatibleWithCheckType(metric string, checkType domaincheck.Type) bool {
 		return strings.HasPrefix(metric, "ping.")
 	case domaincheck.TypeTCP:
 		return strings.HasPrefix(metric, "tcp.")
+	case domaincheck.TypeHTTP:
+		return strings.HasPrefix(metric, "http.")
 	default:
 		return false
 	}
@@ -180,6 +189,9 @@ func IsSupportedMetric(metric string) bool {
 	switch metric {
 	case MetricPingLossPercent, MetricPingAverageRTTMs, MetricPingMaxRTTMs, MetricPingSuccessRate,
 		MetricTCPFailurePct, MetricTCPAverageConnMs, MetricTCPMaxConnMs, MetricTCPSuccessRate:
+		return true
+	case MetricHTTPFailurePct, MetricHTTPAverageTotal, MetricHTTPMaxTotal, MetricHTTPAverageTTFB,
+		MetricHTTPMaxTTFB, MetricHTTPSuccessRate, MetricHTTPCertDays:
 		return true
 	default:
 		return false

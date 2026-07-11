@@ -6,6 +6,7 @@ import (
 
 	domainassignment "github.com/yorukot/netstamp/internal/domain/assignment"
 	domaincheck "github.com/yorukot/netstamp/internal/domain/check"
+	domainhttp "github.com/yorukot/netstamp/internal/domain/httpcheck"
 	domainnetwork "github.com/yorukot/netstamp/internal/domain/network"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domaintcp "github.com/yorukot/netstamp/internal/domain/tcp"
@@ -52,6 +53,7 @@ type RuntimeResultGroup struct {
 	Ping       []PingResultBody       `json:"ping,omitempty"`
 	TCP        []TCPResultBody        `json:"tcp,omitempty"`
 	Traceroute []TracerouteResultBody `json:"traceroute,omitempty"`
+	HTTP       []HTTPResultBody       `json:"http,omitempty"`
 }
 
 type PingResultBody struct {
@@ -84,6 +86,31 @@ type TCPResultBody struct {
 	IPFamily          *domainnetwork.IPFamily `json:"ipFamily,omitempty"`
 	ErrorCode         *string                 `json:"errorCode,omitempty"`
 	ErrorMessage      *string                 `json:"errorMessage,omitempty"`
+}
+
+type HTTPResultBody struct {
+	StartedAt            time.Time               `json:"startedAt"`
+	FinishedAt           time.Time               `json:"finishedAt"`
+	DurationMs           int32                   `json:"durationMs"`
+	Status               domainhttp.Status       `json:"status"`
+	DNSDurationMs        *float64                `json:"dnsDurationMs,omitempty"`
+	ConnectDurationMs    *float64                `json:"connectDurationMs,omitempty"`
+	TLSDurationMs        *float64                `json:"tlsDurationMs,omitempty"`
+	TTFBDurationMs       *float64                `json:"ttfbDurationMs,omitempty"`
+	ResolvedIP           *netip.Addr             `json:"resolvedIp,omitempty"`
+	IPFamily             *domainnetwork.IPFamily `json:"ipFamily,omitempty"`
+	StatusCode           *int32                  `json:"statusCode,omitempty"`
+	FinalURL             *string                 `json:"finalUrl,omitempty"`
+	RedirectCount        int32                   `json:"redirectCount"`
+	ResponseBytes        *int64                  `json:"responseBytes,omitempty"`
+	ResponseTruncated    bool                    `json:"responseTruncated"`
+	BodyMatched          *bool                   `json:"bodyMatched,omitempty"`
+	TLSVersion           *string                 `json:"tlsVersion,omitempty"`
+	TLSCipherSuite       *string                 `json:"tlsCipherSuite,omitempty"`
+	CertificateNotBefore *time.Time              `json:"certificateNotBefore,omitempty"`
+	CertificateNotAfter  *time.Time              `json:"certificateNotAfter,omitempty"`
+	ErrorCode            *string                 `json:"errorCode,omitempty"`
+	ErrorMessage         *string                 `json:"errorMessage,omitempty"`
 }
 
 type SubmitResultsResponse struct {

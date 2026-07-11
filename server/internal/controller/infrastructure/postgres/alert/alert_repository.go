@@ -327,6 +327,12 @@ func (r *Repository) GetMetricSummary(ctx context.Context, metric string, probeS
 			return alertcondition.MetricSummary{}, err
 		}
 		return alertcondition.MetricSummary{Metric: metric, WindowStart: from.UTC(), WindowEnd: to.UTC(), Samples: row.Samples, Value: row.Value, HasValue: row.Samples > 0}, nil
+	case alertcondition.CompatibleWithCheckType(metric, domaincheck.TypeHTTP):
+		row, err := r.queries.GetHTTPAlertMetricSummary(ctx, sqlc.GetHTTPAlertMetricSummaryParams{Metric: metric, ProbeStorageID: probeStorageID, CheckStorageID: checkStorageID, StartedAtFrom: from.UTC(), StartedAtTo: to.UTC()})
+		if err != nil {
+			return alertcondition.MetricSummary{}, err
+		}
+		return alertcondition.MetricSummary{Metric: metric, WindowStart: from.UTC(), WindowEnd: to.UTC(), Samples: row.Samples, Value: row.Value, HasValue: row.Samples > 0}, nil
 	default:
 		return alertcondition.MetricSummary{}, fmt.Errorf("unsupported metric: %s", metric)
 	}

@@ -34,6 +34,8 @@ func (h *Handler) RegisterRoutes(api chi.Router) {
 		r.Get("/projects/{ref}/results/latest", h.handleQueryLatestResults)
 		r.Get("/projects/{ref}/results/tcp/series", h.handleQueryTCPSeries)
 		r.Get("/projects/{ref}/results/tcp/insight", h.handleQueryTCPInsight)
+		r.Get("/projects/{ref}/results/http/series", h.handleQueryHTTPSeries)
+		r.Get("/projects/{ref}/results/http/insight", h.handleQueryHTTPInsight)
 		r.Get("/projects/{ref}/results/traceroute/runs", h.handleQueryTracerouteRuns)
 		r.Get("/projects/{ref}/results/traceroute/insight", h.handleQueryTracerouteInsight)
 		r.Get("/projects/{ref}/results/traceroute/topology", h.handleQueryTracerouteTopology)
@@ -103,6 +105,34 @@ func (h *Handler) handleQueryTCPInsight(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	output, err := h.queryTCPInsight(r.Context(), input)
+	if err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, output.Body)
+}
+
+func (h *Handler) handleQueryHTTPSeries(w http.ResponseWriter, r *http.Request) {
+	input, err := newQueryHTTPSeriesInput(r)
+	if err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	output, err := h.queryHTTPSeries(r.Context(), input)
+	if err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, output.Body)
+}
+
+func (h *Handler) handleQueryHTTPInsight(w http.ResponseWriter, r *http.Request) {
+	input, err := newQueryHTTPInsightInput(r)
+	if err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	output, err := h.queryHTTPInsight(r.Context(), input)
 	if err != nil {
 		httpx.WriteProblem(w, r, err)
 		return
@@ -215,6 +245,18 @@ func newQueryLatestResultsInput(r *http.Request) (*queryLatestResultsInput, erro
 
 func newQueryTCPInsightInput(r *http.Request) (*queryTCPInsightInput, error) {
 	return newQueryInsightInput(r)
+}
+
+func newQueryHTTPInsightInput(r *http.Request) (*queryHTTPInsightInput, error) {
+	return newQueryInsightInput(r)
+}
+
+func newQueryHTTPSeriesInput(r *http.Request) (*queryHTTPSeriesInput, error) {
+	base, err := newQueryTCPSeriesInput(r)
+	if err != nil {
+		return nil, err
+	}
+	return &queryHTTPSeriesInput{Ref: base.Ref, ProbeID: base.ProbeID, CheckID: base.CheckID, From: base.From, To: base.To, Series: base.Series, MaxDataPoints: base.MaxDataPoints}, nil
 }
 
 func newQueryInsightInput(r *http.Request) (*queryInsightInput, error) {

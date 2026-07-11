@@ -8,6 +8,7 @@ import (
 
 	"github.com/yorukot/spvalidator"
 
+	domainhttp "github.com/yorukot/netstamp/internal/domain/httpcheck"
 	domainlabel "github.com/yorukot/netstamp/internal/domain/label"
 	domainping "github.com/yorukot/netstamp/internal/domain/ping"
 	domaintcp "github.com/yorukot/netstamp/internal/domain/tcp"
@@ -25,6 +26,7 @@ const (
 	TypePing       Type = "ping"
 	TypeTCP        Type = "tcp"
 	TypeTraceroute Type = "traceroute"
+	TypeHTTP       Type = "http"
 )
 
 type Check struct {
@@ -45,6 +47,7 @@ type Check struct {
 	PingConfig       *domainping.Config       `json:"pingConfig,omitempty"`
 	TCPConfig        *domaintcp.Config        `json:"tcpConfig,omitempty"`
 	TracerouteConfig *domaintraceroute.Config `json:"tracerouteConfig,omitempty"`
+	HTTPConfig       *domainhttp.Config       `json:"httpConfig,omitempty"`
 }
 
 func (c Check) IntervalTime() time.Duration {
@@ -91,9 +94,18 @@ func VNCheckType(t Type) (Type, error) {
 		return TypeTCP, nil
 	case TypeTraceroute:
 		return TypeTraceroute, nil
+	case TypeHTTP:
+		return TypeHTTP, nil
 	default:
 		return "", errors.New("invalid check type")
 	}
+}
+
+func VNCheckTargetForType(checkType Type, target string) (string, error) {
+	if checkType == TypeHTTP {
+		return domainhttp.VNTarget(target)
+	}
+	return VNCheckTarget(target)
 }
 
 func VNCheckTarget(target string) (string, error) {

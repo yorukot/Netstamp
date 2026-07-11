@@ -508,6 +508,30 @@ WHERE probe_id = sqlc.arg(probe_storage_id)
   AND started_at >= sqlc.arg(started_at_from)
   AND started_at < sqlc.arg(started_at_to);
 
+-- name: GetHTTPAlertMetricSummary :one
+SELECT count(*) FILTER (
+           WHERE CASE
+               WHEN sqlc.arg(metric)::text IN ('http.average_ttfb_ms', 'http.max_ttfb_ms') THEN ttfb_duration_ms IS NOT NULL
+               WHEN sqlc.arg(metric)::text = 'http.certificate_days_remaining' THEN certificate_not_after IS NOT NULL
+               ELSE true
+           END
+       )::bigint AS samples,
+       coalesce(CASE sqlc.arg(metric)::text
+           WHEN 'http.failure_percent' THEN (100.0 * count(*) FILTER (WHERE status IN ('timeout', 'error')) / NULLIF(count(*), 0))::double precision
+           WHEN 'http.success_rate' THEN (100.0 * count(*) FILTER (WHERE status = 'successful') / NULLIF(count(*), 0))::double precision
+           WHEN 'http.average_total_ms' THEN avg(duration_ms)::double precision
+           WHEN 'http.max_total_ms' THEN max(duration_ms)::double precision
+           WHEN 'http.average_ttfb_ms' THEN avg(ttfb_duration_ms)::double precision
+           WHEN 'http.max_ttfb_ms' THEN max(ttfb_duration_ms)::double precision
+           WHEN 'http.certificate_days_remaining' THEN min(extract(epoch FROM (certificate_not_after - now())) / 86400.0)::double precision
+           ELSE NULL::double precision
+       END, 0)::double precision AS value
+FROM http_results
+WHERE probe_id = sqlc.arg(probe_storage_id)
+  AND check_id = sqlc.arg(check_storage_id)
+  AND started_at >= sqlc.arg(started_at_from)
+  AND started_at < sqlc.arg(started_at_to);
+
 -- name: EnqueueNotificationOutbox :one
 INSERT INTO notification_outbox (
     project_id,

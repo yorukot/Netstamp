@@ -408,6 +408,8 @@ func assignmentMetricsBody(assignment domainpublic.Assignment) *metricsBody {
 		return &metricsBody{LatencyAvgMs: assignment.LatencyAvgMs, LossPercent: &lossPercent}
 	case "tcp":
 		return &metricsBody{ConnectAvgMs: assignment.ConnectAvgMs, FailurePercent: assignment.FailurePercent}
+	case "http":
+		return &metricsBody{LatencyAvgMs: assignment.LatencyAvgMs, FailurePercent: assignment.FailurePercent}
 	default:
 		return nil
 	}

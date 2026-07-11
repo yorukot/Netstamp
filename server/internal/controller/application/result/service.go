@@ -3,6 +3,7 @@ package result
 import (
 	"context"
 
+	apphttp "github.com/yorukot/netstamp/internal/controller/application/result/httpcheck"
 	"github.com/yorukot/netstamp/internal/controller/application/result/latest"
 	"github.com/yorukot/netstamp/internal/controller/application/result/ping"
 	"github.com/yorukot/netstamp/internal/controller/application/result/tcp"
@@ -14,15 +15,29 @@ type Service struct {
 	tcps          *tcp.Service
 	traceroutes   *traceroute.Service
 	latestResults *latest.Service
+	httpResults   *apphttp.Service
 }
 
 func NewService(pings PingSeriesRepository, tcps TCPInsightRepository, traceroutes TracerouteRunsRepository, latestResults LatestRepository, projectAccess ProjectAccess) *Service {
+	return NewServiceWithHTTP(pings, tcps, nil, traceroutes, latestResults, projectAccess)
+}
+
+func NewServiceWithHTTP(pings PingSeriesRepository, tcps TCPInsightRepository, httpResults HTTPInsightRepository, traceroutes TracerouteRunsRepository, latestResults LatestRepository, projectAccess ProjectAccess) *Service {
 	return &Service{
 		pings:         ping.NewService(pings, projectAccess),
 		tcps:          tcp.NewService(tcps, projectAccess),
 		traceroutes:   traceroute.NewService(traceroutes, projectAccess),
 		latestResults: latest.NewService(latestResults, projectAccess),
+		httpResults:   apphttp.NewService(httpResults, projectAccess),
 	}
+}
+
+func (s *Service) QueryHTTPSeries(ctx context.Context, input QueryHTTPSeriesInput) (HTTPSeriesOutput, error) {
+	return s.httpResults.QuerySeries(ctx, input)
+}
+
+func (s *Service) QueryHTTPInsight(ctx context.Context, input QueryHTTPInsightInput) (HTTPInsightOutput, error) {
+	return s.httpResults.QueryInsight(ctx, input)
 }
 
 func (s *Service) QueryPingSeries(ctx context.Context, input QueryPingSeriesInput) (PingSeriesOutput, error) {
