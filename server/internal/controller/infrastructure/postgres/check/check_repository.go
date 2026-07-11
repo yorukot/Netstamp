@@ -285,16 +285,9 @@ func (r *CheckRepository) writeHTTPCheckConfig(ctx context.Context, q *sqlc.Quer
 	if config == nil {
 		return domaincheck.Check{}, domaincheck.ErrInvalidInput
 	}
-	headers, err := json.Marshal(config.Headers)
+	params, err := newHTTPCheckConfigParams(row.ID, *config)
 	if err != nil {
 		return domaincheck.Check{}, err
-	}
-	params := sqlc.CreateHTTPCheckConfigParams{
-		CheckID: row.ID, Method: sqlc.HttpMethod(config.Method), Headers: headers,
-		Body: config.Body, TimeoutMs: config.TimeoutMs, IpFamily: sqlcIPFamily(config.IPFamily),
-		FollowRedirects: config.FollowRedirects, SkipTlsVerify: config.SkipTLSVerify,
-		ExpectedStatusCodes:   config.ExpectedStatusCodes,
-		ExpectedStatusClasses: config.ExpectedStatusClasses, BodyContains: config.BodyContains,
 	}
 	if mode == checkConfigWriteCreate {
 		stored, createErr := q.CreateHTTPCheckConfig(ctx, params)
@@ -314,6 +307,27 @@ func (r *CheckRepository) writeHTTPCheckConfig(ctx context.Context, q *sqlc.Quer
 		return domaincheck.Check{}, err
 	}
 	return mapStoredHTTPCheck(row, stored)
+}
+
+func newHTTPCheckConfigParams(checkID uuid.UUID, config domainhttp.Config) (sqlc.CreateHTTPCheckConfigParams, error) {
+	headers, err := json.Marshal(nonNilSlice(config.Headers))
+	if err != nil {
+		return sqlc.CreateHTTPCheckConfigParams{}, err
+	}
+	return sqlc.CreateHTTPCheckConfigParams{
+		CheckID: checkID, Method: sqlc.HttpMethod(config.Method), Headers: headers,
+		Body: config.Body, TimeoutMs: config.TimeoutMs, IpFamily: sqlcIPFamily(config.IPFamily),
+		FollowRedirects: config.FollowRedirects, SkipTlsVerify: config.SkipTLSVerify,
+		ExpectedStatusCodes:   nonNilSlice(config.ExpectedStatusCodes),
+		ExpectedStatusClasses: nonNilSlice(config.ExpectedStatusClasses), BodyContains: config.BodyContains,
+	}, nil
+}
+
+func nonNilSlice[T any](values []T) []T {
+	if values == nil {
+		return []T{}
+	}
+	return values
 }
 
 func (r *CheckRepository) writePingCheckConfig(ctx context.Context, q *sqlc.Queries, row sqlc.Check, config *domainping.Config, mode checkConfigWriteMode) (domaincheck.Check, error) {
