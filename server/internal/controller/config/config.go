@@ -106,7 +106,7 @@ var defaultSettings = map[string]any{
 	keyDBMaxConnLifetime:                   time.Hour,
 	keyDBMaxConnIdleTime:                   30 * time.Minute,
 	keyAuthSessionHashKey:                  "local-development-session-hash-key-change-before-production",
-	keyAuthSessionIdleTTL:                  12 * time.Hour,
+	keyAuthSessionIdleTTL:                  24 * time.Hour,
 	keyAuthSessionAbsoluteTTL:              7 * 24 * time.Hour,
 	keyAuthSessionTouchInterval:            5 * time.Minute,
 	keyAuthRegistrationEnabled:             true,

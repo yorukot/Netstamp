@@ -481,7 +481,7 @@ func validConfig() Config {
 		},
 		Auth: AuthConfig{
 			SessionHashKey:       "local-development-session-hash-key-change-before-production",
-			SessionIdleTTL:       12 * time.Hour,
+			SessionIdleTTL:       24 * time.Hour,
 			SessionAbsoluteTTL:   7 * 24 * time.Hour,
 			SessionTouchInterval: 5 * time.Minute,
 			RegistrationEnabled:  true,
