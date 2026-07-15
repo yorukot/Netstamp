@@ -43,7 +43,7 @@ const storyShortcuts = [
 ] as const;
 
 const componentGroups = [
-	["Actions", "Button, IconButton, ActionRow, DisclosureToggle"],
+	["Actions", "Button, IconButton, ActionRow, DangerAction, DisclosureToggle"],
 	["Forms", "TextField, TextAreaField, SelectField, SearchableSelect, Checkbox"],
 	["Surfaces", "Panel, Surface, MetricCard, MetricTile, SpecCard"],
 	["Data", "DataTable, KeyValueRow, Badge, SpecLabel, CodeBlock"],

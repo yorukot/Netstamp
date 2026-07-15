@@ -9,6 +9,8 @@ export { Button } from "./components/Button/Button";
 export type { ButtonProps, ButtonSize, ButtonVariant } from "./components/Button/Button";
 export { CodeBlock } from "./components/CodeBlock/CodeBlock";
 export type { CodeBlockProps } from "./components/CodeBlock/CodeBlock";
+export { DangerAction } from "./components/DangerAction/DangerAction";
+export type { DangerActionProps } from "./components/DangerAction/DangerAction";
 export { DataTable } from "./components/DataTable/DataTable";
 export type { DataColumn, DataTableProps, DataTableSortDirection, DataTableSortState } from "./components/DataTable/DataTable";
 export {

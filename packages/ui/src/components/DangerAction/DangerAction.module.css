@@ -1,0 +1,57 @@
+.action {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: center;
+	gap: 1.5rem;
+	min-height: 7rem;
+	padding: 1.25rem;
+	border-inline-start: 0.0625rem solid var(--ns-critical);
+	background: color-mix(in srgb, var(--ns-critical) 5%, var(--ns-container-bg));
+}
+
+.copy {
+	display: grid;
+	gap: 0.375rem;
+	min-width: 0;
+}
+
+.copy h3,
+.copy p {
+	margin: 0;
+}
+
+.copy h3 {
+	color: var(--ns-text);
+	font-size: 1rem;
+	font-weight: 700;
+	line-height: 1.25;
+}
+
+.copy p {
+	max-width: 56rem;
+	color: var(--ns-text-muted);
+	font-size: 0.875rem;
+	line-height: 1.5;
+}
+
+.control {
+	display: flex;
+	justify-content: flex-end;
+}
+
+.control > :where(button, a) {
+	min-width: 10rem;
+}
+
+@media (max-width: 58rem) {
+	.action {
+		grid-template-columns: 1fr;
+		gap: 1rem;
+		padding: 1rem;
+	}
+
+	.control,
+	.control > :where(button, a) {
+		width: 100%;
+	}
+}
