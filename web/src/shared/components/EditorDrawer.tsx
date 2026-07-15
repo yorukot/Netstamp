@@ -1,4 +1,4 @@
-import { Drawer } from "@netstamp/ui";
+import { Drawer, type DrawerSide } from "@netstamp/ui";
 import type { ReactNode } from "react";
 
 interface EditorDrawerProps {
@@ -9,10 +9,11 @@ interface EditorDrawerProps {
 	children: ReactNode;
 	className?: string;
 	contentClassName?: string;
+	side?: DrawerSide;
 	onClose: () => void;
 }
 
-export function EditorDrawer({ open, title, ariaLabel, actions, children, className, contentClassName, onClose }: EditorDrawerProps) {
+export function EditorDrawer({ open, title, ariaLabel, actions, children, className, contentClassName, side, onClose }: EditorDrawerProps) {
 	return (
 		<Drawer
 			open={open}
@@ -21,6 +22,7 @@ export function EditorDrawer({ open, title, ariaLabel, actions, children, classN
 			actions={actions}
 			className={className}
 			contentClassName={contentClassName}
+			side={side}
 			onOpenChange={nextOpen => {
 				if (!nextOpen) {
 					onClose();

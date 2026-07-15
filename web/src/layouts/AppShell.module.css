@@ -102,7 +102,11 @@
 
 @media (max-width: 58rem) {
 	.shell {
-		--app-sidebar-width: 6.5rem;
+		--app-sidebar-width: 11.5rem;
+	}
+
+	.shellCollapsed {
+		--app-sidebar-width: 4.75rem;
 	}
 
 	.contentMain {

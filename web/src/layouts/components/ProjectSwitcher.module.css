@@ -165,42 +165,6 @@
 	display: none;
 }
 
-@media (max-width: 58rem) {
-	.root:not(.drawer) {
-		place-items: center;
-	}
-
-	.root:not(.drawer) .projectSelect {
-		width: 2.75rem;
-		justify-self: center;
-	}
-
-	.root:not(.drawer) .projectFrame,
-	.root:not(.drawer) .projectControl {
-		width: 2.75rem;
-	}
-
-	.root:not(.drawer) .projectControl {
-		justify-content: center;
-		height: 2.75rem;
-		min-height: 2.75rem;
-		padding: 0;
-	}
-
-	.root:not(.drawer) .projectControl::after {
-		display: none;
-	}
-
-	.root:not(.drawer) .projectOptionLabel {
-		justify-content: center;
-		gap: 0;
-	}
-
-	.root:not(.drawer) .projectOptionName {
-		display: none;
-	}
-}
-
 @media (max-width: 38rem) {
 	.root:not(.drawer) {
 		display: none;

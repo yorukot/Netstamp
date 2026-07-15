@@ -37,6 +37,15 @@ export function Sidebar({ collapsed, user, onToggleCollapsed, onLogout }: Sideba
 		<aside className={classNames(styles.sidebar, collapsed && styles.collapsed)}>
 			<div className={classNames("ns-scrollbar", styles.sidebarScroll)}>
 				<div className={styles.brandRow}>
+					<button
+						type="button"
+						className={styles.mobileMenuButton}
+						aria-label={mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+						aria-expanded={mobileMenuOpen}
+						onClick={() => setMobileMenuOpen(open => !open)}
+					>
+						<MobileMenuIcon size={20} weight="bold" aria-hidden="true" focusable="false" />
+					</button>
 					<Link className={styles.brand} to={pathForRoute("dashboard", { projectRef })} onClick={closeMobileMenu}>
 						<img className={classNames(styles.brandLogo, styles.brandLogoFull)} src={netstampLogo} alt="Netstamp" />
 						<img className={classNames(styles.brandLogo, styles.brandLogoMark)} src={netstampMark} alt="" aria-hidden="true" />
@@ -47,15 +56,6 @@ export function Sidebar({ collapsed, user, onToggleCollapsed, onLogout }: Sideba
 					<button type="button" className={classNames(styles.brandToggle, styles.brandToggleCollapsed)} aria-label="Expand sidebar" onClick={onToggleCollapsed}>
 						<img className={classNames(styles.brandLogo, styles.brandLogoMark)} src={netstampMark} alt="" aria-hidden="true" />
 						<CaretRightIcon className={styles.brandToggleArrow} size={18} weight="bold" aria-hidden="true" focusable="false" />
-					</button>
-					<button
-						type="button"
-						className={styles.mobileMenuButton}
-						aria-label={mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
-						aria-expanded={mobileMenuOpen}
-						onClick={() => setMobileMenuOpen(open => !open)}
-					>
-						<MobileMenuIcon size={20} weight="bold" aria-hidden="true" focusable="false" />
 					</button>
 				</div>
 
@@ -88,6 +88,7 @@ export function Sidebar({ collapsed, user, onToggleCollapsed, onLogout }: Sideba
 				open={mobileMenuOpen}
 				title="Menu"
 				ariaLabel="Primary navigation menu"
+				side="left"
 				className={styles.mobileNavDrawer}
 				contentClassName={styles.mobileNavDrawerContent}
 				onClose={closeMobileMenu}
