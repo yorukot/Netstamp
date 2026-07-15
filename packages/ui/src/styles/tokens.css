@@ -33,6 +33,14 @@
 	--ns-focus-outline: 2px solid var(--ns-focus-ring);
 	--ns-focus-outline-offset: 2px;
 	--ns-transition: 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+	--ns-z-sticky: 10;
+	--ns-z-navigation: 20;
+	--ns-z-banner: 30;
+	--ns-z-overlay-backdrop: 100;
+	--ns-z-overlay-content: 110;
+	--ns-z-popover: 120;
+	--ns-z-toast: 130;
+	--ns-z-skip-link: 140;
 	--ns-container-bg: var(--ns-surface-raised);
 	--ns-container-bg-raised: color-mix(in srgb, var(--ns-surface-raised) 88%, var(--ns-border-strong));
 	--ns-container-bg-hover: color-mix(in srgb, var(--ns-surface-raised) 82%, var(--ns-border-strong));

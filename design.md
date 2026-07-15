@@ -177,6 +177,21 @@ Implementation decision: root defaults to the dark palette, with `:root` and `:r
 - `--ns-control-bg`, `--ns-control-bg-raised`, and `--ns-control-bg-hover` are semantic aliases for input, select, searchable select, checkbox, and similar control surfaces.
 - By default these aliases resolve to raised neutral surfaces instead of black canvas surfaces. Framed primitives such as `Panel` may override them locally so table and form controls inside panels do not fall back to black `--ns-surface` backgrounds.
 
+### Stacking Layers
+
+Cross-component stacking must use the shared `--ns-z-*` tokens. Do not assign arbitrary two-, three-, or four-digit `z-index` values in component or page styles.
+
+- `--ns-z-sticky`: sticky table headers, state bars, and page-local pinned controls.
+- `--ns-z-navigation`: application sidebars and public navigation.
+- `--ns-z-banner`: tracking consent and other persistent viewport banners.
+- `--ns-z-overlay-backdrop`: dialog, drawer, and search backdrops.
+- `--ns-z-overlay-content`: dialog, drawer, and search panels.
+- `--ns-z-popover`: select menus, dropdown menus, popovers, and hover cards, including controls opened from inside an overlay.
+- `--ns-z-toast`: transient notifications. Toasts remain visible above overlays and their popovers.
+- `--ns-z-skip-link`: focused skip links, which remain the top accessibility layer.
+
+Small `z-index` values from `-2` through `8` are reserved for layers internal to one component, visualization, or isolated stacking context. They must not be used to coordinate unrelated components. Decorative negative layers stay inside their owning isolated section.
+
 ### Radius, Shadow, And Motion
 
 - `--ns-radius-*`: `0` for app and docs core UI.
