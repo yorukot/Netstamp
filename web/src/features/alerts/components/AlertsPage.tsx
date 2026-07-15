@@ -960,6 +960,7 @@ function NotificationEditorDrawer({
 						) : form.type === "email" ? (
 							<TextAreaField
 								label="Recipients"
+								helper="Add one or more email addresses. Separate multiple recipients with commas, semicolons, or new lines."
 								value={form.emailTo}
 								onChange={event => updateForm({ emailTo: event.currentTarget.value })}
 								placeholder="ops@example.com, sre@example.com"
