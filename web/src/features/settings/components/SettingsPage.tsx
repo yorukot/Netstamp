@@ -7,6 +7,7 @@ import {
 	useChangeCurrentUserPasswordMutation,
 	useDeactivateCurrentUserMutation,
 	useRejectProjectInviteMutation,
+	useRevokeAllAuthSessionsMutation,
 	useRevokeAuthSessionMutation,
 	useUpdateCurrentUserMutation
 } from "@/shared/api/mutations";
@@ -121,6 +122,7 @@ export function SettingsPage() {
 	const deactivateUserMutation = useDeactivateCurrentUserMutation();
 	const acceptInviteMutation = useAcceptProjectInviteMutation();
 	const rejectInviteMutation = useRejectProjectInviteMutation();
+	const revokeAllSessionsMutation = useRevokeAllAuthSessionsMutation();
 	const revokeSessionMutation = useRevokeAuthSessionMutation();
 	const invitesQuery = useQuery(projectQueries.currentUserInvites());
 	const sessionsQuery = useQuery({ ...authQueries.sessions(), enabled: Boolean(session) });
@@ -338,6 +340,31 @@ export function SettingsPage() {
 		});
 	}
 
+	async function revokeAllSessions() {
+		if (demoMode) {
+			return;
+		}
+
+		const accepted = await confirm({
+			title: "Log out all sessions?",
+			message: "Every device signed in to this account, including this one, will lose access immediately.",
+			confirmLabel: "Log out all",
+			tone: "danger"
+		});
+		if (!accepted) {
+			return;
+		}
+
+		revokeAllSessionsMutation.mutate(undefined, {
+			onSuccess: () => {
+				pushToast({ title: "Logged out everywhere", message: "All sessions for this account have been revoked.", tone: "success" });
+			},
+			onError: error => {
+				pushToast({ title: "Log out failed", message: requestErrorMessage(error, "Could not revoke all sessions."), tone: "critical" });
+			}
+		});
+	}
+
 	const inviteRows: InviteRow[] = (invitesQuery.data?.invites ?? []).map(invite => ({
 		id: invite.id,
 		project: invite.project.name,
@@ -456,7 +483,19 @@ export function SettingsPage() {
 				</div>
 			</Panel>
 
-			<Panel tone="glass" title="Active sessions" summary="Review the clients authenticated with your account and revoke access you no longer recognize." padded={false} bodySurface="transparent">
+			<Panel
+				tone="glass"
+				title="Active sessions"
+				summary="Review the clients authenticated with your account and revoke access you no longer recognize."
+				actions={
+					<Button type="button" variant="danger" size="sm" disabled={demoMode || revokeAllSessionsMutation.isPending} onClick={() => void revokeAllSessions()}>
+						<SignOutIcon aria-hidden="true" focusable="false" />
+						{revokeAllSessionsMutation.isPending ? "Logging out" : "Log out all"}
+					</Button>
+				}
+				padded={false}
+				bodySurface="transparent"
+			>
 				<DataTable
 					columns={sessionColumns}
 					rows={activeSessions}

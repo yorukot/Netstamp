@@ -1,8 +1,15 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { apiClient, clearCSRFToken, readApiData, readEmptyApiResponse } from "../client";
 import { apiQueryKeys } from "../queryKeys";
 import type { ConfirmEmailVerificationInput, ConfirmPasswordResetInput, CreateEmailVerificationInput, CreatePasswordResetInput, LoginInput, RegisterInput } from "../types";
 import { requireWritableAccess } from "./shared";
+
+function clearAuthenticatedClientState(queryClient: QueryClient) {
+	clearCSRFToken();
+	queryClient.setQueryData(apiQueryKeys.auth.me(), null);
+	queryClient.removeQueries({ queryKey: apiQueryKeys.auth.sessions() });
+	queryClient.removeQueries({ queryKey: apiQueryKeys.projects.all });
+}
 
 export function loginUser(body: LoginInput) {
 	return readApiData(apiClient.POST("/auth/login", { body }));
@@ -19,6 +26,11 @@ export function revokeAuthSession(sessionId: string) {
 			params: { path: { session_id: sessionId } }
 		})
 	);
+}
+
+export function revokeAllAuthSessions() {
+	requireWritableAccess();
+	return readEmptyApiResponse(apiClient.DELETE("/auth/sessions"));
 }
 
 export function registerUser(body: RegisterInput) {
@@ -102,9 +114,7 @@ export function useLogoutMutation() {
 	return useMutation({
 		mutationFn: logoutUser,
 		onSuccess: () => {
-			clearCSRFToken();
-			queryClient.removeQueries({ queryKey: apiQueryKeys.auth.all });
-			queryClient.removeQueries({ queryKey: apiQueryKeys.projects.all });
+			clearAuthenticatedClientState(queryClient);
 		}
 	});
 }
@@ -116,6 +126,17 @@ export function useRevokeAuthSessionMutation() {
 		mutationFn: revokeAuthSession,
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: apiQueryKeys.auth.sessions() });
+		}
+	});
+}
+
+export function useRevokeAllAuthSessionsMutation() {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: revokeAllAuthSessions,
+		onSuccess: () => {
+			clearAuthenticatedClientState(queryClient);
 		}
 	});
 }
