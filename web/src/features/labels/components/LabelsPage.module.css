@@ -68,6 +68,10 @@
 	background: var(--ns-container-bg-raised);
 }
 
+.groupedTable tbody + tbody .groupHeaderCell {
+	border-top: 0.25rem solid var(--ns-bg);
+}
+
 .groupRow {
 	color: var(--ns-text);
 }
