@@ -101,7 +101,7 @@ export function useLogoutMutation() {
 
 	return useMutation({
 		mutationFn: logoutUser,
-		onSettled: () => {
+		onSuccess: () => {
 			clearCSRFToken();
 			queryClient.removeQueries({ queryKey: apiQueryKeys.auth.all });
 			queryClient.removeQueries({ queryKey: apiQueryKeys.projects.all });

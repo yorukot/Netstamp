@@ -96,10 +96,10 @@ function UserMenuContent({ onClose, onLogout }: { onClose: () => void; onLogout:
 				<ThemeIcon size={18} weight="bold" aria-hidden="true" focusable="false" />
 				<span>{theme === "dark" ? "Light mode" : "Dark mode"}</span>
 			</button>
-			<Link className={styles.userPopoverAction} to={pathForRoute("login")} onClick={onLogout}>
+			<button type="button" className={styles.userPopoverAction} onClick={onLogout}>
 				<SignOutIcon size={18} weight="bold" aria-hidden="true" focusable="false" />
 				<span>Logout</span>
-			</Link>
+			</button>
 		</div>
 	);
 }
