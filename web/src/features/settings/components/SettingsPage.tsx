@@ -208,9 +208,11 @@ export function SettingsPage() {
 		}
 
 		const accepted = await confirm({
-			title: "Deactivate account",
+			title: "Deactivate this account?",
 			message: "Your account will be disabled and you will not be able to sign in until a system administrator re-enables it.",
 			confirmLabel: "Deactivate",
+			confirmationText: user.email,
+			confirmationLabel: "Account email",
 			tone: "danger"
 		});
 		if (!accepted) {
