@@ -129,7 +129,7 @@
 	width: 2rem;
 	min-width: 2rem;
 	padding: 0;
-	transform: translateY(calc(-1 * var(--ns-drawer-top-offset)));
+	translate: 0 calc(-1 * var(--ns-drawer-top-offset));
 }
 
 .closeIcon {
