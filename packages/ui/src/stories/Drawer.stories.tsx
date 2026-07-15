@@ -38,21 +38,23 @@ export const Playground: Story = {
 				<Button type="button" onClick={() => setOpen(true)}>
 					Open drawer
 				</Button>
-				<Drawer {...args} open={open} onOpenChange={setOpen}>
-					<div className="storybook-demo">
-						<TextField label="Probe name" defaultValue="probe-tpe-01" />
-						<SelectField
-							label="Region"
-							defaultValue="apac"
-							options={[
-								{ value: "apac", label: "APAC" },
-								{ value: "emea", label: "EMEA" },
-								{ value: "amer", label: "AMER" }
-							]}
-						/>
-						<TextAreaField label="Notes" defaultValue="Taipei edge measurement node." />
-					</div>
-				</Drawer>
+				{open ? (
+					<Drawer {...args} open onOpenChange={setOpen}>
+						<div className="storybook-demo">
+							<TextField label="Probe name" defaultValue="probe-tpe-01" />
+							<SelectField
+								label="Region"
+								defaultValue="apac"
+								options={[
+									{ value: "apac", label: "APAC" },
+									{ value: "emea", label: "EMEA" },
+									{ value: "amer", label: "AMER" }
+								]}
+							/>
+							<TextAreaField label="Notes" defaultValue="Taipei edge measurement node." />
+						</div>
+					</Drawer>
+				) : null}
 			</div>
 		);
 	}

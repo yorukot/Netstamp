@@ -1,6 +1,6 @@
 import { XIcon } from "@phosphor-icons/react/dist/csr/X";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import type { ComponentPropsWithoutRef, ReactNode } from "react";
+import { useState, type ComponentPropsWithoutRef, type ReactNode } from "react";
 import { Button } from "../Button/Button";
 import { wasOverlayPointerDownHandled } from "../overlayInteractions";
 import styles from "./Drawer.module.css";
@@ -33,17 +33,41 @@ export function Drawer({
 	className,
 	contentClassName,
 	onOpenChange,
+	onAnimationEnd,
 	onPointerDownOutside,
 	...props
 }: DrawerProps) {
+	const [closeRequested, setCloseRequested] = useState(false);
+	const renderedOpen = open && !closeRequested;
+
+	function handleOpenChange(nextOpen: boolean) {
+		if (!nextOpen) {
+			setCloseRequested(true);
+			return;
+		}
+
+		setCloseRequested(false);
+		onOpenChange(true);
+	}
+
 	return (
-		<DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
+		<DialogPrimitive.Root open={renderedOpen} onOpenChange={handleOpenChange}>
 			<DialogPrimitive.Portal>
 				<DialogPrimitive.Overlay className={styles.overlay} />
 				<DialogPrimitive.Content
 					className={[styles.drawer, className].filter(Boolean).join(" ")}
 					data-side={side}
 					data-size={size}
+					onAnimationEnd={event => {
+						onAnimationEnd?.(event);
+
+						if (!closeRequested || event.target !== event.currentTarget || event.currentTarget.dataset.state !== "closed") {
+							return;
+						}
+
+						setCloseRequested(false);
+						onOpenChange(false);
+					}}
 					onPointerDownOutside={event => {
 						onPointerDownOutside?.(event);
 
