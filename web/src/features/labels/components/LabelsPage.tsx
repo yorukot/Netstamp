@@ -10,7 +10,7 @@ import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
 import { Badge, Button, DialogContent, DialogOverlay, DialogPortal, DialogRoot, DialogTitle, FilterGrid, SelectField, Spinner, TextField } from "@netstamp/ui";
 import { PlusIcon } from "@phosphor-icons/react/dist/csr/Plus";
 import { useQuery } from "@tanstack/react-query";
-import { type FormEvent, type KeyboardEvent, useEffect, useMemo, useState } from "react";
+import { type AnimationEvent, type FormEvent, type KeyboardEvent, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import styles from "./LabelsPage.module.css";
 
@@ -185,6 +185,7 @@ export function LabelsPage() {
 	const probes = probesQuery.data?.probes ?? emptyProbes;
 	const checks = checksQuery.data?.checks ?? emptyChecks;
 	const [editorMode, setEditorMode] = useState<LabelEditorMode>("idle");
+	const [isEditorClosing, setIsEditorClosing] = useState(false);
 	const [draftLabelId, setDraftLabelId] = useState("");
 	const [draftKey, setDraftKey] = useState("");
 	const [draftValue, setDraftValue] = useState("");
@@ -229,7 +230,7 @@ export function LabelsPage() {
 	const selectedRow = rows.find(row => row.id === labelId) ?? null;
 	const isCreating = editorMode === "create";
 	const isEditing = !isCreating && Boolean(selectedLabel);
-	const isEditorOpen = isCreating || isEditing;
+	const isEditorOpen = (isCreating || isEditing) && !isEditorClosing;
 	const hasSelectedDraft = Boolean(selectedLabel && draftLabelId === selectedLabel.id);
 	const isCreatingToken = isCreating && !draftKey.trim();
 	const parsedDraftToken = isCreatingToken ? parseLabelToken(draftToken) : null;
@@ -272,6 +273,7 @@ export function LabelsPage() {
 
 	function selectLabel(row: LabelRow) {
 		setEditorMode("idle");
+		setIsEditorClosing(false);
 		setDraftLabelId("");
 		saveLabelMutation.reset();
 		deleteLabelMutation.reset();
@@ -280,6 +282,7 @@ export function LabelsPage() {
 
 	function startNewLabel(prefillKey = "") {
 		setEditorMode("create");
+		setIsEditorClosing(false);
 		setDraftLabelId("__new__");
 		setDraftKey(prefillKey);
 		setDraftValue("");
@@ -299,7 +302,16 @@ export function LabelsPage() {
 	}
 
 	function closeEditor() {
+		setIsEditorClosing(true);
+	}
+
+	function finishClosingEditor(event: AnimationEvent<HTMLFormElement>) {
+		if (event.target !== event.currentTarget || event.currentTarget.dataset.state !== "closed") {
+			return;
+		}
+
 		setEditorMode("idle");
+		setIsEditorClosing(false);
 		setDraftLabelId("");
 		setDraftKey("");
 		setDraftValue("");
@@ -345,12 +357,7 @@ export function LabelsPage() {
 			},
 			{
 				onSuccess: () => {
-					setEditorMode("idle");
-					setDraftLabelId("");
-					setDraftKey("");
-					setDraftValue("");
-					setDraftToken("");
-					navigate(pathForRoute("labels", { projectRef }));
+					closeEditor();
 				}
 			}
 		);
@@ -467,7 +474,7 @@ export function LabelsPage() {
 				<DialogPortal>
 					<DialogOverlay onMouseDown={closeEditor}>
 						<DialogContent asChild>
-							<form className={styles.popup} onSubmit={submitLabel} onMouseDown={event => event.stopPropagation()}>
+							<form className={styles.popup} onSubmit={submitLabel} onMouseDown={event => event.stopPropagation()} onAnimationEnd={finishClosingEditor}>
 								<div className={styles.popupHeader}>
 									<DialogTitle asChild>
 										<strong>{editorTitle}</strong>
