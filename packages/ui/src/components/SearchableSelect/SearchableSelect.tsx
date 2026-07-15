@@ -1,6 +1,7 @@
 import * as PopoverPrimitive from "@radix-ui/react-popover";
 import type { ComponentPropsWithoutRef, KeyboardEvent, ReactNode } from "react";
 import { Children, isValidElement, useEffect, useId, useMemo, useRef, useState } from "react";
+import { markOverlayPointerDownHandled } from "../overlayInteractions";
 import styles from "./SearchableSelect.module.css";
 
 export type SearchableSelectSize = "sm" | "md";
@@ -201,6 +202,7 @@ export function SearchableSelect({
 					align="start"
 					sideOffset={8}
 					collisionPadding={8}
+					onPointerDownOutside={markOverlayPointerDownHandled}
 					onOpenAutoFocus={event => {
 						event.preventDefault();
 						window.requestAnimationFrame(() => inputRef.current?.focus());

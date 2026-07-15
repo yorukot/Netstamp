@@ -2,6 +2,7 @@ import { XIcon } from "@phosphor-icons/react/dist/csr/X";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
 import { Button } from "../Button/Button";
+import { wasOverlayPointerDownHandled } from "../overlayInteractions";
 import styles from "./Drawer.module.css";
 
 export type DrawerSide = "left" | "right";
@@ -20,12 +21,38 @@ export interface DrawerProps extends Omit<ComponentPropsWithoutRef<typeof Dialog
 	onOpenChange: (open: boolean) => void;
 }
 
-export function Drawer({ open, title, description, actions, closeLabel = "Close", children, side = "right", size = "md", className, contentClassName, onOpenChange, ...props }: DrawerProps) {
+export function Drawer({
+	open,
+	title,
+	description,
+	actions,
+	closeLabel = "Close",
+	children,
+	side = "right",
+	size = "md",
+	className,
+	contentClassName,
+	onOpenChange,
+	onPointerDownOutside,
+	...props
+}: DrawerProps) {
 	return (
 		<DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
 			<DialogPrimitive.Portal>
 				<DialogPrimitive.Overlay className={styles.overlay} />
-				<DialogPrimitive.Content className={[styles.drawer, className].filter(Boolean).join(" ")} data-side={side} data-size={size} {...props}>
+				<DialogPrimitive.Content
+					className={[styles.drawer, className].filter(Boolean).join(" ")}
+					data-side={side}
+					data-size={size}
+					onPointerDownOutside={event => {
+						onPointerDownOutside?.(event);
+
+						if (wasOverlayPointerDownHandled(event)) {
+							event.preventDefault();
+						}
+					}}
+					{...props}
+				>
 					<header className={styles.header}>
 						<div className={styles.copy}>
 							<DialogPrimitive.Title className={styles.title}>{title}</DialogPrimitive.Title>

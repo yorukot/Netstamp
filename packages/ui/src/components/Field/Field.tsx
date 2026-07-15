@@ -4,6 +4,7 @@ import * as Label from "@radix-ui/react-label";
 import * as RadixSelect from "@radix-ui/react-select";
 import type { ChangeEvent, ComponentPropsWithoutRef, ReactElement, KeyboardEvent as ReactKeyboardEvent, ReactNode } from "react";
 import { Children, Fragment, cloneElement, forwardRef, isValidElement, useEffect, useId, useMemo, useRef, useState } from "react";
+import { markOverlayPointerDownHandled } from "../overlayInteractions";
 import styles from "./Field.module.css";
 
 export type ControlVariant = "default" | "compact" | "bare";
@@ -311,7 +312,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
 					))}
 				</select>
 				<RadixSelect.Portal>
-					<RadixSelect.Content className={menuClasses} position="popper" sideOffset={8} collisionPadding={8}>
+					<RadixSelect.Content className={menuClasses} position="popper" sideOffset={8} collisionPadding={8} onPointerDownOutside={markOverlayPointerDownHandled}>
 						<RadixSelect.Viewport className={styles.selectViewport}>
 							{options.map((option, index) => (
 								<RadixSelect.Item key={`${option.value}-${index}`} className={styles.selectOption} value={option.radixValue} disabled={option.disabled}>
