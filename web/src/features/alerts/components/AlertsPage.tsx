@@ -680,7 +680,7 @@ function IncidentDetailDrawer({ incident, isLoading, error, onClose }: { inciden
 						<Badge tone={incidentTone(incident.status)}>{incident.status}</Badge>
 						<Badge tone={severityTone(incident.severity)}>{incident.severity}</Badge>
 					</div>
-					<Panel tone="matte" title="What happened">
+					<Panel tone="deep" title="What happened">
 						<p className={styles.detailLead}>{formatIncidentReason(incident)}</p>
 						<div className={styles.keyValueGrid}>
 							<KeyValueRow label="Probe" value={formatIncidentProbe(incident)} />
@@ -691,7 +691,7 @@ function IncidentDetailDrawer({ incident, isLoading, error, onClose }: { inciden
 							<KeyValueRow label="Rule" value={shortID(incident.ruleId)} />
 						</div>
 					</Panel>
-					<Panel tone="matte" title="Timeline">
+					<Panel tone="deep" title="Timeline">
 						<div className={styles.keyValueGrid}>
 							<KeyValueRow label="Opened" value={formatDateTime(incident.openedAt)} />
 							<KeyValueRow label="Resolved" value={formatDateTime(incident.resolvedAt)} />
@@ -699,7 +699,7 @@ function IncidentDetailDrawer({ incident, isLoading, error, onClose }: { inciden
 							<KeyValueRow label="Last triggered" value={formatDateTime(incident.lastTriggeredAt)} />
 						</div>
 					</Panel>
-					<Panel tone="matte" title="Notifications">
+					<Panel tone="deep" title="Notifications">
 						<div className={styles.keyValueGrid}>
 							<KeyValueRow label="Last sent" value={formatDateTime(incident.lastNotificationSentAt)} />
 							<KeyValueRow label="Next eligible" value={formatDateTime(incident.nextNotificationEligibleAt)} />
@@ -764,7 +764,7 @@ function RuleEditorDrawer({
 	return (
 		<EditorDrawer open title={title} ariaLabel={title} onClose={onClose}>
 			<form className={styles.drawerForm} onSubmit={handleSubmit}>
-				<Panel tone="matte" title="Target">
+				<Panel tone="deep" title="Target">
 					<div className={styles.formGrid}>
 						<TextField label="Name" value={form.name} onChange={event => updateForm({ name: event.currentTarget.value })} maxLength={128} required />
 						<TextAreaField label="Description" value={form.description} onChange={event => updateForm({ description: event.currentTarget.value })} rows={3} />
@@ -778,7 +778,7 @@ function RuleEditorDrawer({
 						</div>
 					</div>
 				</Panel>
-				<Panel tone="matte" title="Condition">
+				<Panel tone="deep" title="Condition">
 					{checkTypeSupported ? (
 						<div className={styles.formGrid}>
 							<SelectField label="Metric" value={form.metric} options={metricSelectOptions} onChange={event => updateForm({ metric: event.currentTarget.value as AlertMetric })} />
@@ -798,7 +798,7 @@ function RuleEditorDrawer({
 						<p className={styles.unsupportedNotice}>Traceroute alert rules are not available yet because the controller API exposes alert metrics for ping, TCP, and HTTP checks.</p>
 					)}
 				</Panel>
-				<Panel tone="matte" title="Notify">
+				<Panel tone="deep" title="Notify">
 					<div className={styles.formGrid}>
 						<div className={styles.twoColumns}>
 							<SelectField label="Severity" value={form.severity} options={severityOptions} onChange={event => updateForm({ severity: event.currentTarget.value as AlertSeverity })} />
@@ -929,10 +929,10 @@ function NotificationEditorDrawer({
 	return (
 		<EditorDrawer open title={title} ariaLabel={title} onClose={onClose}>
 			<form className={styles.drawerForm} onSubmit={handleSubmit}>
-				<Panel tone="matte" title="Notification type">
+				<Panel tone="deep" title="Notification type">
 					<SelectableRow as="div" leading={<NotificationTypeIcon type={selectedType.value} />} title={selectedType.label} description={selectedType.detail} />
 				</Panel>
-				<Panel tone="matte" title={`${notificationTypeLabel(form.type)} settings`}>
+				<Panel tone="deep" title={`${notificationTypeLabel(form.type)} settings`}>
 					<div className={styles.formGrid}>
 						<TextField label="Name" value={form.name} onChange={event => updateForm({ name: event.currentTarget.value })} maxLength={128} required />
 						{form.type === "telegram" ? (
