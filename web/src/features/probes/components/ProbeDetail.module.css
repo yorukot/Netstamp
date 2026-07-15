@@ -52,48 +52,142 @@
 	min-width: 0;
 }
 
-.labelGrid {
+.labelPicker {
 	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
-	gap: 0.625rem;
-}
-
-.labelOption {
-	--ns-frame-color: var(--ns-border-faint);
-	display: grid;
-	grid-template-columns: auto minmax(0, 0.72fr) minmax(0, 1fr);
-	gap: 0.5rem;
-	align-items: center;
+	grid-template-columns: minmax(9rem, 0.9fr) minmax(11rem, 1.1fr);
+	height: clamp(13rem, 32svh, 19rem);
 	min-width: 0;
-	padding: 0.625rem;
-	border: 1px solid var(--ns-frame-color);
+	min-height: 0;
+	overflow: hidden;
+	border: 1px solid var(--ns-border-faint);
 	background: var(--ns-surface);
-	cursor: pointer;
 }
 
-.labelOption:hover {
-	--ns-frame-color: var(--ns-primary-border);
+.labelKeyList,
+.labelValueList {
+	min-width: 0;
+	min-height: 0;
+	overflow-x: hidden;
+	overflow-y: auto;
+}
+
+.labelKeyList {
+	padding: 0.25rem;
+	border-right: 1px solid var(--ns-border-faint);
+}
+
+.labelKeyOption {
+	display: grid;
+	gap: 0.25rem;
+	width: 100%;
+	min-width: 0;
+	padding: 0.75rem;
+	border: 0;
+	color: inherit;
+	background: transparent;
+	cursor: pointer;
+	text-align: left;
+	transition:
+		color var(--ns-transition),
+		background var(--ns-transition);
+}
+
+.labelKeyOption:hover {
+	background: var(--ns-control-bg-hover);
+}
+
+.labelKeyOption[data-active] {
 	background: var(--ns-primary-muted);
 }
 
-.labelOption span,
-.labelOption strong {
+.labelKeyOption:focus-visible {
+	outline: var(--ns-focus-outline);
+	outline-offset: calc(-1 * var(--ns-focus-outline-offset));
+}
+
+.labelKeyName,
+.labelKeySummary,
+.labelValueHeader,
+.labelValueOption span {
 	min-width: 0;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
 	font-family: var(--ns-font-code);
 	font-size: 0.75rem;
 }
 
-.labelOption span {
-	color: var(--ns-text-low);
-	font-weight: 700;
-}
-
-.labelOption strong {
+.labelKeyName {
 	color: var(--ns-text);
 	font-weight: 800;
+	line-height: 1.35;
+	overflow-wrap: anywhere;
+}
+
+.labelKeySummary {
+	color: var(--ns-text-subtle);
+	font-weight: 600;
+	line-height: 1.4;
+	overflow-wrap: anywhere;
+}
+
+.labelValuePanel {
+	display: grid;
+	grid-template-rows: auto minmax(0, 1fr);
+	min-width: 0;
+	min-height: 0;
+}
+
+.labelValueHeader {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 0.75rem;
+	padding: 0.75rem;
+	border-bottom: 1px solid var(--ns-border-faint);
+}
+
+.labelValueHeader strong {
+	min-width: 0;
+	color: var(--ns-text);
+	font-weight: 800;
+	overflow-wrap: anywhere;
+}
+
+.labelValueHeader span {
+	flex: 0 0 auto;
+	color: var(--ns-text-low);
+}
+
+.labelValueList {
+	padding: 0.25rem;
+}
+
+.labelValueOption {
+	display: flex;
+	gap: 0.625rem;
+	align-items: center;
+	min-width: 0;
+	padding: 0.625rem 0.75rem;
+	color: var(--ns-text-muted);
+	background: transparent;
+	cursor: pointer;
+	transition:
+		color var(--ns-transition),
+		background var(--ns-transition);
+}
+
+.labelValueOption:hover {
+	color: var(--ns-text);
+	background: var(--ns-control-bg-hover);
+}
+
+.labelValueOption[data-selected] {
+	color: var(--ns-text);
+	background: var(--ns-primary-muted);
+}
+
+.labelValueOption span {
+	font-weight: 700;
+	line-height: 1.4;
+	overflow-wrap: anywhere;
 }
 
 .labelNotice {
@@ -248,6 +342,16 @@
 }
 
 @media (max-width: 42rem) {
+	.labelPicker {
+		grid-template-columns: minmax(7rem, 0.85fr) minmax(8rem, 1.15fr);
+	}
+
+	.labelKeyOption,
+	.labelValueHeader,
+	.labelValueOption {
+		padding: 0.625rem;
+	}
+
 	.locationSearch,
 	.coordinateGrid {
 		grid-template-columns: 1fr;

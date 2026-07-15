@@ -78,6 +78,74 @@ function sameStringSet(left: string[], right: string[]) {
 	return left.every(value => rightSet.has(value));
 }
 
+interface ProbeLabelGroup {
+	key: string;
+	labels: ApiLabel[];
+}
+
+function groupProbeLabels(labels: ApiLabel[]): ProbeLabelGroup[] {
+	const groups = new Map<string, ApiLabel[]>();
+
+	for (const label of labels) {
+		const values = groups.get(label.key);
+		if (values) {
+			values.push(label);
+		} else {
+			groups.set(label.key, [label]);
+		}
+	}
+
+	return Array.from(groups, ([key, groupedLabels]) => ({ key, labels: groupedLabels }));
+}
+
+function ProbeLabelPicker({ labels, selectedLabelSet, onToggle }: { labels: ApiLabel[]; selectedLabelSet: Set<string>; onToggle: (labelId: string, checked: boolean) => void }) {
+	const groups = useMemo(() => groupProbeLabels(labels), [labels]);
+	const [requestedKey, setRequestedKey] = useState(() => groups.find(group => group.labels.some(label => selectedLabelSet.has(label.id)))?.key ?? groups[0]?.key ?? "");
+	const activeGroup = groups.find(group => group.key === requestedKey) ?? groups[0];
+
+	if (!activeGroup) {
+		return null;
+	}
+
+	return (
+		<div className={styles.labelPicker}>
+			<div className={["ns-scrollbar", styles.labelKeyList].join(" ")} role="group" aria-label="Label keys">
+				{groups.map(group => {
+					const selectedValues = group.labels.filter(label => selectedLabelSet.has(label.id)).map(label => label.value);
+					const selectedSummary = selectedValues.length ? selectedValues.join(", ") : "No values selected";
+					const active = group.key === activeGroup.key;
+
+					return (
+						<button key={group.key} type="button" className={styles.labelKeyOption} aria-pressed={active} data-active={active || undefined} onClick={() => setRequestedKey(group.key)}>
+							<span className={styles.labelKeyName}>{group.key}</span>
+							<span className={styles.labelKeySummary}>{selectedSummary}</span>
+						</button>
+					);
+				})}
+			</div>
+
+			<section className={styles.labelValuePanel} aria-label={`${activeGroup.key} label values`}>
+				<header className={styles.labelValueHeader}>
+					<strong>{activeGroup.key}</strong>
+					<span>{activeGroup.labels.filter(label => selectedLabelSet.has(label.id)).length} selected</span>
+				</header>
+				<div className={["ns-scrollbar", styles.labelValueList].join(" ")} role="group" aria-label={`Select ${activeGroup.key} values`}>
+					{activeGroup.labels.map(label => {
+						const selected = selectedLabelSet.has(label.id);
+
+						return (
+							<label className={styles.labelValueOption} data-selected={selected || undefined} title={labelToken(label)} key={label.id}>
+								<Checkbox checked={selected} onChange={event => onToggle(label.id, event.currentTarget.checked)} />
+								<span>{label.value}</span>
+							</label>
+						);
+					})}
+				</div>
+			</section>
+		</div>
+	);
+}
+
 interface ProbeDetailProps {
 	probe: Probe;
 	assignedRows: AssignedRow[];
@@ -367,15 +435,7 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 			<div className={styles.labelEditor}>
 				<FieldLabel>Labels</FieldLabel>
 				{labelOptions.length ? (
-					<div className={styles.labelGrid}>
-						{labelOptions.map(label => (
-							<label className={styles.labelOption} title={labelToken(label)} key={label.id}>
-								<Checkbox checked={selectedLabelSet.has(label.id)} onChange={event => toggleLabel(label.id, event.currentTarget.checked)} />
-								<span>{label.key}</span>
-								<strong>{label.value}</strong>
-							</label>
-						))}
-					</div>
+					<ProbeLabelPicker labels={labelOptions} selectedLabelSet={selectedLabelSet} onToggle={toggleLabel} />
 				) : labelsQuery.isLoading ? (
 					<Spinner label="Loading labels" layout="compact" size="md" />
 				) : (
