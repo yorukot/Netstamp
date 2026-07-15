@@ -125,10 +125,6 @@ function ProbeLabelPicker({ labels, selectedLabelSet, onToggle }: { labels: ApiL
 			</div>
 
 			<section className={styles.labelValuePanel} aria-label={`${activeGroup.key} label values`}>
-				<header className={styles.labelValueHeader}>
-					<strong>{activeGroup.key}</strong>
-					<span>{activeGroup.labels.filter(label => selectedLabelSet.has(label.id)).length} selected</span>
-				</header>
 				<div className={["ns-scrollbar", styles.labelValueList].join(" ")} role="group" aria-label={`Select ${activeGroup.key} values`}>
 					{activeGroup.labels.map(label => {
 						const selected = selectedLabelSet.has(label.id);
