@@ -3,15 +3,17 @@ import styles from "./Spinner.module.css";
 
 export type SpinnerSize = "sm" | "md" | "lg";
 export type SpinnerLayout = "inline" | "compact" | "panel" | "page";
+export type SpinnerVariant = "minimal" | "signal";
 
 export interface SpinnerProps extends ComponentPropsWithoutRef<"span"> {
 	label?: string;
 	layout?: SpinnerLayout;
 	size?: SpinnerSize;
+	variant?: SpinnerVariant;
 }
 
-export function Spinner({ label = "Loading", layout = "inline", size = "md", className, ...props }: SpinnerProps) {
-	const classes = [styles.spinner, styles[size], styles[`layout${layout}`], className].filter(Boolean).join(" ");
+export function Spinner({ label = "Loading", layout = "inline", size = "md", variant = "minimal", className, ...props }: SpinnerProps) {
+	const classes = [styles.spinner, styles[size], styles[`layout${layout}`], styles[`variant${variant}`], className].filter(Boolean).join(" ");
 
 	return (
 		<span className={classes} role="status" aria-label={label} {...props}>

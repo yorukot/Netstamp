@@ -2,12 +2,14 @@
 	position: relative;
 	display: inline-grid;
 	place-items: center;
-	min-width: var(--ns-spinner-track-width);
-	min-height: var(--ns-spinner-track-height);
+	min-width: var(--ns-spinner-size);
+	min-height: var(--ns-spinner-size);
 	color: var(--ns-primary);
+	vertical-align: middle;
 }
 
 .sm {
+	--ns-spinner-size: 1rem;
 	--ns-spinner-track-width: 3rem;
 	--ns-spinner-track-height: 1rem;
 	--ns-spinner-thumb-width: 0.75rem;
@@ -15,6 +17,7 @@
 }
 
 .md {
+	--ns-spinner-size: 1.25rem;
 	--ns-spinner-track-width: 4rem;
 	--ns-spinner-track-height: 1.25rem;
 	--ns-spinner-thumb-width: 1rem;
@@ -22,6 +25,7 @@
 }
 
 .lg {
+	--ns-spinner-size: 1.5rem;
 	--ns-spinner-track-width: 5rem;
 	--ns-spinner-track-height: 1.5rem;
 	--ns-spinner-thumb-width: 1.25rem;
@@ -29,11 +33,28 @@
 }
 
 .mark {
-	--ns-spinner-travel: calc(var(--ns-spinner-track-width) - var(--ns-spinner-thumb-width) - var(--ns-spinner-padding) - var(--ns-spinner-padding));
-
-	position: relative;
 	display: block;
 	box-sizing: border-box;
+	position: relative;
+}
+
+.variantminimal .mark {
+	width: var(--ns-spinner-size);
+	height: var(--ns-spinner-size);
+	border: 2px solid var(--ns-primary-muted);
+	border-top-color: currentcolor;
+	border-radius: 50%;
+	animation: spinnerRotate 720ms linear infinite;
+}
+
+.variantsignal {
+	min-width: var(--ns-spinner-track-width);
+	min-height: var(--ns-spinner-track-height);
+}
+
+.variantsignal .mark {
+	--ns-spinner-travel: calc(var(--ns-spinner-track-width) - var(--ns-spinner-thumb-width) - var(--ns-spinner-padding) - var(--ns-spinner-padding));
+
 	width: var(--ns-spinner-track-width);
 	height: var(--ns-spinner-track-height);
 	overflow: hidden;
@@ -59,7 +80,7 @@
 	min-height: 100svh;
 }
 
-.mark::before {
+.variantsignal .mark::before {
 	position: absolute;
 	top: var(--ns-spinner-padding);
 	left: var(--ns-spinner-padding);
@@ -80,6 +101,12 @@
 	white-space: nowrap;
 }
 
+@keyframes spinnerRotate {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
 @keyframes spinnerPush {
 	0%,
 	100% {
@@ -92,7 +119,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-	.mark::before {
+	.variantminimal .mark,
+	.variantsignal .mark::before {
 		animation: none;
 	}
 }
