@@ -345,7 +345,7 @@ export function MembersPage() {
 				</Panel>
 			) : null}
 
-			<Panel tone="glass" title="Member Access">
+			<Panel tone="glass" title="Member Access" padded={false} bodySurface="transparent">
 				<DataTable columns={memberColumns} rows={memberRows} getRowKey={row => row.id} />
 			</Panel>
 		</PageStack>
