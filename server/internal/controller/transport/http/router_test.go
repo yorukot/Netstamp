@@ -61,6 +61,7 @@ func TestNewRouterServesOpenAPIWithoutRuntimeServices(t *testing.T) {
 	assertOpenAPIOperation(t, spec, http.MethodPost, "/auth/logout", "logoutUser")
 	assertOpenAPIOperation(t, spec, http.MethodGet, "/auth/me", "getCurrentUser")
 	assertOpenAPIOperation(t, spec, http.MethodGet, "/auth/sessions", "listAuthSessions")
+	assertOpenAPIOperation(t, spec, http.MethodDelete, "/auth/sessions", "revokeAllAuthSessions")
 	assertOpenAPIOperation(t, spec, http.MethodDelete, "/auth/sessions/{session_id}", "revokeAuthSession")
 	assertOpenAPIOperation(t, spec, http.MethodPatch, "/users/me", "updateCurrentUser")
 	assertOpenAPIOperation(t, spec, http.MethodPost, "/users/me/email-change", "changeCurrentUserEmail")
@@ -232,6 +233,9 @@ func TestNewRouterProtectedRoutesRequireSessionCookie(t *testing.T) {
 		path   string
 	}{
 		{method: http.MethodGet, path: "/api/v1/auth/me"},
+		{method: http.MethodGet, path: "/api/v1/auth/sessions"},
+		{method: http.MethodDelete, path: "/api/v1/auth/sessions"},
+		{method: http.MethodDelete, path: "/api/v1/auth/sessions/session-1"},
 		{method: http.MethodPatch, path: "/api/v1/users/me"},
 		{method: http.MethodPost, path: "/api/v1/users/me/email-change"},
 		{method: http.MethodPost, path: "/api/v1/users/me/password-change"},
@@ -383,6 +387,7 @@ func TestNewRouterDemoModeBlocksUnsafeRequests(t *testing.T) {
 		path   string
 	}{
 		{method: http.MethodPost, path: "/api/v1/auth/register"},
+		{method: http.MethodDelete, path: "/api/v1/auth/sessions"},
 		{method: http.MethodPatch, path: "/api/v1/users/me"},
 		{method: http.MethodPost, path: "/api/v1/users/me/deactivation"},
 		{method: http.MethodPatch, path: "/api/v1/admin/users/user-1"},

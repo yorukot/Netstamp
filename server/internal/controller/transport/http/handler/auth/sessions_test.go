@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -100,6 +101,42 @@ func TestRevokeSessionReturnsNotFound(t *testing.T) {
 	}
 }
 
+func TestRevokeAllSessionsUsesAuthenticatedUserAndClearsCookie(t *testing.T) {
+	manager := &sessionRegistryTestManager{claims: identity.SessionClaims{
+		SessionID: "22222222-2222-2222-2222-222222222222",
+		UserID:    "11111111-1111-1111-1111-111111111111",
+	}}
+
+	res := performSessionRegistryRequest(sessionRegistryTestRouter(manager), http.MethodDelete, "/auth/sessions")
+
+	if res.Code != http.StatusNoContent {
+		t.Fatalf("expected status 204, got %d", res.Code)
+	}
+	if manager.revokeAllUserID != manager.claims.UserID || manager.revokeAllReason != "user_logout_all" {
+		t.Fatalf("unexpected revoke-all arguments: user=%q reason=%q", manager.revokeAllUserID, manager.revokeAllReason)
+	}
+	cookies := res.Result().Cookies()
+	if len(cookies) != 1 || cookies[0].Name != "netstamp_session" || cookies[0].MaxAge != -1 {
+		t.Fatalf("expected expired current-session cookie, got %#v", cookies)
+	}
+}
+
+func TestRevokeAllSessionsReturnsInternalError(t *testing.T) {
+	manager := &sessionRegistryTestManager{
+		claims:       identity.SessionClaims{SessionID: "22222222-2222-2222-2222-222222222222", UserID: "11111111-1111-1111-1111-111111111111"},
+		revokeAllErr: errors.New("database unavailable"),
+	}
+
+	res := performSessionRegistryRequest(sessionRegistryTestRouter(manager), http.MethodDelete, "/auth/sessions")
+
+	if res.Code != http.StatusInternalServerError {
+		t.Fatalf("expected status 500, got %d", res.Code)
+	}
+	if len(res.Result().Cookies()) != 0 {
+		t.Fatalf("expected failed revoke-all to preserve cookie, got %#v", res.Result().Cookies())
+	}
+}
+
 func sessionRegistryTestRouter(manager *sessionRegistryTestManager) http.Handler {
 	router := chi.NewRouter()
 	service := appauth.NewService(nil, nil, manager, nil)
@@ -122,6 +159,9 @@ type sessionRegistryTestManager struct {
 	revokeUserID    string
 	revokeSessionID string
 	revokeErr       error
+	revokeAllUserID string
+	revokeAllReason string
+	revokeAllErr    error
 }
 
 func (m *sessionRegistryTestManager) CreateSession(context.Context, appauth.CreateSessionInput) (identity.CreatedSession, error) {
@@ -155,8 +195,10 @@ func (m *sessionRegistryTestManager) RevokeUserSession(_ context.Context, userID
 	return m.revokeErr
 }
 
-func (m *sessionRegistryTestManager) RevokeUserSessions(context.Context, string, string) error {
-	return nil
+func (m *sessionRegistryTestManager) RevokeUserSessions(_ context.Context, userID, reason string) error {
+	m.revokeAllUserID = userID
+	m.revokeAllReason = reason
+	return m.revokeAllErr
 }
 
 var _ appauth.SessionManager = (*sessionRegistryTestManager)(nil)

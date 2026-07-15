@@ -54,6 +54,7 @@ func (h *Handler) RegisterRoutes(api chi.Router) {
 		r.Get("/auth/csrf", h.handleCSRF)
 		r.Get("/auth/me", h.handleMe)
 		r.Get("/auth/sessions", h.handleListSessions)
+		r.Delete("/auth/sessions", h.handleRevokeAllSessions)
 		r.Delete("/auth/sessions/{session_id}", h.handleRevokeSession)
 	})
 }
@@ -164,6 +165,16 @@ func (h *Handler) handleRevokeSession(w http.ResponseWriter, r *http.Request) {
 	if output.SetCookie != nil {
 		http.SetCookie(w, output.SetCookie)
 	}
+	httpx.WriteNoContent(w)
+}
+
+func (h *Handler) handleRevokeAllSessions(w http.ResponseWriter, r *http.Request) {
+	output, err := h.revokeAllSessions(r.Context(), &revokeAllSessionsInput{})
+	if err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	http.SetCookie(w, &output.SetCookie)
 	httpx.WriteNoContent(w)
 }
 

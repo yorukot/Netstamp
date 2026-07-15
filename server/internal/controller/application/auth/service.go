@@ -524,6 +524,20 @@ func (s *Service) RevokeSessionByID(ctx context.Context, userID, sessionID strin
 	return nil
 }
 
+func (s *Service) RevokeAllSessions(ctx context.Context, userID string) error {
+	ctx, span := authTracer.Start(ctx, "auth.revoke_all_sessions")
+	defer span.End()
+
+	if s.sessions == nil || userID == "" {
+		return ErrSessionInvalid
+	}
+	if err := s.sessions.RevokeUserSessions(ctx, userID, "user_logout_all"); err != nil {
+		recordSpanError(span, err, AuthReasonSessionRevokeFail)
+		return err
+	}
+	return nil
+}
+
 func (s *Service) hashPassword(ctx context.Context, password string) (string, error) {
 	_, span := authTracer.Start(ctx, "auth.password_hash")
 	defer span.End()

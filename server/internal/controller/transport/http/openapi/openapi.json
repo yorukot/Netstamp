@@ -1491,6 +1491,51 @@
 						"SessionCookieAuth": []
 					}
 				]
+			},
+			"delete": {
+				"operationId": "revokeAllAuthSessions",
+				"summary": "Revoke all auth sessions",
+				"description": "Revoke every active server-side session owned by the current user, including the current session, and clear the current session cookie.",
+				"parameters": [],
+				"responses": {
+					"204": {
+						"description": "There is no content to send for this request, but the headers may be useful. ",
+						"headers": {
+							"Set-Cookie": {
+								"required": true,
+								"schema": {
+									"type": "string"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Auth"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
 			}
 		},
 		"/auth/sessions/{session_id}": {

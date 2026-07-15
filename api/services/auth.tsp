@@ -101,6 +101,14 @@ interface AuthService {
 	@route("/sessions")
 	listAuthSessions(): OkJson<AuthSessionsResponse> | UnauthorizedProblem | InternalServerProblem;
 
+	@operationId("revokeAllAuthSessions")
+	@summary("Revoke all auth sessions")
+	@doc("Revoke every active server-side session owned by the current user, including the current session, and clear the current session cookie.")
+	@useAuth(SessionCookieAuth)
+	@delete
+	@route("/sessions")
+	revokeAllAuthSessions(): SessionNoContent | UnauthorizedProblem | InternalServerProblem;
+
 	@operationId("revokeAuthSession")
 	@summary("Revoke auth session")
 	@doc("Revoke an active server-side session owned by the current user. Revoking the current session also clears its session cookie.")

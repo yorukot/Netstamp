@@ -351,7 +351,11 @@ export interface paths {
 		get: operations["listAuthSessions"];
 		put?: never;
 		post?: never;
-		delete?: never;
+		/**
+		 * Revoke all auth sessions
+		 * @description Revoke every active server-side session owned by the current user, including the current session, and clear the current session cookie.
+		 */
+		delete: operations["revokeAllAuthSessions"];
 		options?: never;
 		head?: never;
 		patch?: never;
@@ -6259,6 +6263,43 @@ export interface operations {
 				content: {
 					"application/json": components["schemas"]["AuthSessionsResponse"];
 				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	revokeAllAuthSessions: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description There is no content to send for this request, but the headers may be useful. */
+			204: {
+				headers: {
+					"Set-Cookie": string;
+					[name: string]: unknown;
+				};
+				content?: never;
 			};
 			/** @description Access is unauthorized. */
 			401: {

@@ -59,6 +59,19 @@ func (h *Handler) revokeSession(ctx context.Context, input *revokeSessionInput) 
 	return output, nil
 }
 
+func (h *Handler) revokeAllSessions(ctx context.Context, _ *revokeAllSessionsInput) (*revokeAllSessionsOutput, error) {
+	claims, ok := httpmiddleware.SessionClaimsFromContext(ctx)
+	if !ok || claims.UserID == "" || claims.SessionID == "" {
+		return nil, httpx.UnauthorizedCode(httpx.CodeAuthMissingSession, "missing auth cookie")
+	}
+
+	if err := h.service.RevokeAllSessions(ctx, claims.UserID); err != nil {
+		return nil, httpx.InternalServerError("failed to revoke sessions")
+	}
+
+	return &revokeAllSessionsOutput{SetCookie: expiredSessionCookie(h.cookieName, h.cookieSecure)}, nil
+}
+
 type listSessionsInput struct{}
 
 type listSessionsOutput struct {
@@ -85,4 +98,10 @@ type revokeSessionInput struct {
 
 type revokeSessionOutput struct {
 	SetCookie *http.Cookie
+}
+
+type revokeAllSessionsInput struct{}
+
+type revokeAllSessionsOutput struct {
+	SetCookie http.Cookie
 }
