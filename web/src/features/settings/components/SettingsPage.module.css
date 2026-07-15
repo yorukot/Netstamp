@@ -1,40 +1,92 @@
-.settingsGrid {
-	display: grid;
-	grid-template-columns: minmax(0, 1.2fr) minmax(22rem, 0.8fr);
-	gap: 1rem;
-}
-
 .settingsForm {
 	display: grid;
 	gap: 1rem;
+	max-width: 36rem;
 }
 
-.profilePreview {
+.profileLayout {
+	display: grid;
+	gap: 1.25rem;
+}
+
+.profileIdentity {
 	display: grid;
 	grid-template-columns: auto minmax(0, 1fr);
 	gap: 1rem;
 	align-items: center;
-	margin-bottom: 1rem;
-	padding: 0.875rem;
-	border: 1px solid var(--ns-border-faint);
-	background: var(--ns-surface);
+	max-width: 36rem;
+	padding-bottom: 1.25rem;
+	border-bottom: 1px solid var(--ns-border-faint);
 }
 
-.profilePreview h3,
-.profilePreview p {
-	margin: 0;
+.profileIdentityCopy {
+	display: grid;
+	gap: 0.25rem;
+	min-width: 0;
 }
 
-.profilePreview h3 {
-	margin-top: 0.75rem;
+.profileIdentityCopy strong {
 	color: var(--ns-text);
-	font-size: 1.5rem;
+	font-size: 1.125rem;
+	line-height: 1.25;
 }
 
-.profilePreview p {
+.profileIdentityCopy span {
+	overflow: hidden;
 	color: var(--ns-text-low);
 	font-family: var(--ns-font-code);
 	font-size: 0.75rem;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.credentialActions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.75rem;
+	padding-top: 1.25rem;
+	border-top: 1px solid var(--ns-border-faint);
+}
+
+.credentialDialog {
+	--ns-dialog-padding: 1rem;
+	--ns-dialog-width: 34rem;
+
+	display: grid;
+	gap: 1rem;
+}
+
+.dialogHeader {
+	display: grid;
+	gap: 0.5rem;
+}
+
+.dialogHeader > span {
+	color: var(--ns-text-subtle);
+	font-size: 0.8125rem;
+	font-weight: 650;
+}
+
+.dialogHeader > strong {
+	color: var(--ns-text);
+	font-size: clamp(1.25rem, 4vw, 1.5rem);
+	font-weight: 700;
+	line-height: 1.2;
+}
+
+.dialogHeader > p {
+	max-width: 28rem;
+	margin: 0;
+	color: var(--ns-text-muted);
+	font-size: 0.95rem;
+	line-height: 1.55;
+}
+
+.dialogActions {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	gap: 0.75rem;
 }
 
 .inviteActions {
@@ -71,8 +123,14 @@
 	font-family: var(--ns-font-code);
 }
 
-@media (max-width: 78rem) {
-	.settingsGrid {
-		grid-template-columns: 1fr;
+@media (max-width: 36rem) {
+	.credentialActions,
+	.dialogActions {
+		display: grid;
+	}
+
+	.credentialActions > button,
+	.dialogActions > button {
+		width: 100%;
 	}
 }

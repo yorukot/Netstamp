@@ -21,10 +21,30 @@ import { useConfirm } from "@/shared/components/confirmContext";
 import { appFeatures, demoMode } from "@/shared/config/features";
 import { pushToast } from "@/shared/toast/toastStore";
 import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
-import { ActionRow, Badge, BodyCopy, Button, DataTable, Panel, SignalAvatar, Spinner, TextField, type DataColumn } from "@netstamp/ui";
+import {
+	Badge,
+	BodyCopy,
+	Button,
+	DangerAction,
+	DataTable,
+	DialogContent,
+	DialogDescription,
+	DialogOverlay,
+	DialogPortal,
+	DialogRoot,
+	DialogTitle,
+	Panel,
+	SignalAvatar,
+	Spinner,
+	TextField,
+	type DataColumn
+} from "@netstamp/ui";
+import { EnvelopeSimpleIcon } from "@phosphor-icons/react/dist/csr/EnvelopeSimple";
+import { KeyIcon } from "@phosphor-icons/react/dist/csr/Key";
 import { SignOutIcon } from "@phosphor-icons/react/dist/csr/SignOut";
+import { UserMinusIcon } from "@phosphor-icons/react/dist/csr/UserMinus";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState, type FormEvent } from "react";
+import { useId, useState, type AnimationEvent, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import styles from "./SettingsPage.module.css";
 
@@ -54,6 +74,8 @@ interface PasswordFormState {
 	newPassword: string;
 	confirmPassword: string;
 }
+
+type CredentialDialog = "email" | "password";
 
 const emptyIdentityForm: IdentityFormState = {
 	userId: "",
@@ -102,9 +124,12 @@ export function SettingsPage() {
 	const revokeSessionMutation = useRevokeAuthSessionMutation();
 	const invitesQuery = useQuery(projectQueries.currentUserInvites());
 	const sessionsQuery = useQuery({ ...authQueries.sessions(), enabled: Boolean(session) });
+	const credentialDialogDescriptionId = useId();
 	const [identityForm, setIdentityForm] = useState<IdentityFormState>(emptyIdentityForm);
 	const [emailForm, setEmailForm] = useState<EmailFormState>(emptyEmailForm);
 	const [passwordForm, setPasswordForm] = useState<PasswordFormState>(emptyPasswordForm);
+	const [credentialDialog, setCredentialDialog] = useState<CredentialDialog | null>(null);
+	const [isCredentialDialogDismissed, setIsCredentialDialogDismissed] = useState(false);
 
 	if (!session) {
 		return null;
@@ -115,8 +140,12 @@ export function SettingsPage() {
 	const activeEmailForm = emailForm.userId === user.id ? emailForm : { ...emptyEmailForm, userId: user.id };
 	const activePasswordForm = passwordForm.userId === user.id ? passwordForm : { ...emptyPasswordForm, userId: user.id };
 	const hasIdentityChanges = activeIdentityForm.displayName !== user.name;
-	const hasEmailChanges = Boolean(activeEmailForm.newEmail || activeEmailForm.password);
-	const hasPasswordChanges = Boolean(activePasswordForm.currentPassword || activePasswordForm.newPassword || activePasswordForm.confirmPassword);
+	const isCredentialDialogOpen = credentialDialog !== null && !isCredentialDialogDismissed;
+	const isCredentialMutationPending = changeEmailMutation.isPending || changePasswordMutation.isPending;
+	const canChangeEmail = Boolean(activeEmailForm.newEmail.trim() && activeEmailForm.password.trim() && !changeEmailMutation.isPending);
+	const canChangePassword = Boolean(
+		activePasswordForm.currentPassword.trim() && activePasswordForm.newPassword.trim() && activePasswordForm.confirmPassword.trim() && !changePasswordMutation.isPending
+	);
 
 	function handleIdentitySubmit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
@@ -142,8 +171,9 @@ export function SettingsPage() {
 				password: activeEmailForm.password.trim()
 			},
 			{
-				onSuccess: data => {
-					setEmailForm({ ...emptyEmailForm, userId: data.user.id });
+				onSuccess: () => {
+					setIsCredentialDialogDismissed(true);
+					pushToast({ title: "Email changed", message: "Your sign-in email and Gravatar source have been updated.", tone: "success" });
 				}
 			}
 		);
@@ -169,10 +199,55 @@ export function SettingsPage() {
 			},
 			{
 				onSuccess: () => {
-					setPasswordForm({ ...emptyPasswordForm, userId: user.id });
+					setIsCredentialDialogDismissed(true);
+					pushToast({ title: "Password changed", message: "Your new password is ready for future sign-ins.", tone: "success" });
 				}
 			}
 		);
+	}
+
+	function openCredentialDialog(dialog: CredentialDialog) {
+		if (dialog === "email") {
+			setEmailForm({ ...emptyEmailForm, userId: user.id });
+			changeEmailMutation.reset();
+		} else {
+			setPasswordForm({ ...emptyPasswordForm, userId: user.id });
+			changePasswordMutation.reset();
+		}
+
+		setCredentialDialog(dialog);
+		setIsCredentialDialogDismissed(false);
+	}
+
+	function closeCredentialDialog() {
+		if (isCredentialMutationPending) {
+			return;
+		}
+
+		setIsCredentialDialogDismissed(true);
+	}
+
+	function finishCredentialDialogClose(event: AnimationEvent<HTMLFormElement>) {
+		if (event.target !== event.currentTarget || event.currentTarget.dataset.state !== "closed") {
+			return;
+		}
+
+		if (credentialDialog === "email") {
+			setEmailForm({ ...emptyEmailForm, userId: user.id });
+		} else if (credentialDialog === "password") {
+			setPasswordForm({ ...emptyPasswordForm, userId: user.id });
+		}
+
+		setCredentialDialog(null);
+		setIsCredentialDialogDismissed(false);
+	}
+
+	function updateEmailForm(field: "newEmail" | "password", value: string) {
+		setEmailForm(current => ({ ...current, userId: user.id, [field]: value }));
+	}
+
+	function updatePasswordForm(field: "currentPassword" | "newPassword" | "confirmPassword", value: string) {
+		setPasswordForm(current => ({ ...current, userId: user.id, [field]: value }));
 	}
 
 	function acceptInvite(invite: ApiProjectInvite) {
@@ -328,11 +403,60 @@ export function SettingsPage() {
 		<PageStack>
 			<ScreenHeader title="Account" />
 
-			<Panel
-				tone="glass"
-				title={`${activeSessions.length} active ${activeSessions.length === 1 ? "session" : "sessions"}`}
-				summary="Review the clients authenticated with your account and revoke access you no longer recognize."
-			>
+			<Panel tone="glass" title="Pending invites" padded={false} bodySurface="transparent">
+				<DataTable
+					columns={inviteColumns}
+					rows={inviteRows}
+					density="compact"
+					minWidth="46rem"
+					emptyLabel={invitesQuery.isLoading ? <Spinner label="Loading project invitations" layout="compact" size="lg" /> : "No pending project invitations"}
+					getRowKey={row => row.id}
+				/>
+			</Panel>
+
+			<Panel tone="glass" title="Profile">
+				<div className={styles.profileLayout}>
+					<div className={styles.profileIdentity}>
+						<SignalAvatar size="lg" src={user.gravatarUrl} referrerPolicy="no-referrer" aria-hidden="true" />
+						<div className={styles.profileIdentityCopy}>
+							<strong>{user.name}</strong>
+							<span>{user.email}</span>
+						</div>
+					</div>
+
+					<form id="identity-settings" className={styles.settingsForm} onSubmit={handleIdentitySubmit}>
+						<TextField
+							label="Display Name"
+							name="name"
+							value={activeIdentityForm.displayName}
+							disabled={demoMode}
+							onChange={event => setIdentityForm({ userId: user.id, displayName: event.currentTarget.value })}
+						/>
+						{demoMode ? (
+							<BodyCopy>Profile changes are disabled for demo access.</BodyCopy>
+						) : (
+							<UnsavedChangesBar show={hasIdentityChanges} saveType="submit" saving={updateUserMutation.isPending} onReset={() => setIdentityForm({ userId: user.id, displayName: user.name })} />
+						)}
+					</form>
+
+					<BodyCopy>Your avatar comes from Gravatar and is generated from your account email.</BodyCopy>
+
+					{appFeatures.userCredentialChanges ? (
+						<div className={styles.credentialActions}>
+							<Button type="button" variant="outline" disabled={demoMode} onClick={() => openCredentialDialog("email")}>
+								<EnvelopeSimpleIcon size="1rem" weight="bold" aria-hidden="true" focusable="false" />
+								Change Email
+							</Button>
+							<Button type="button" variant="outline" disabled={demoMode} onClick={() => openCredentialDialog("password")}>
+								<KeyIcon size="1rem" weight="bold" aria-hidden="true" focusable="false" />
+								Change Password
+							</Button>
+						</div>
+					) : null}
+				</div>
+			</Panel>
+
+			<Panel tone="glass" title="Active sessions" summary="Review the clients authenticated with your account and revoke access you no longer recognize." padded={false} bodySurface="transparent">
 				<DataTable
 					columns={sessionColumns}
 					rows={activeSessions}
@@ -362,127 +486,126 @@ export function SettingsPage() {
 				/>
 			</Panel>
 
-			<Panel tone="glass" title={`${inviteRows.length} pending project invites`}>
-				<DataTable
-					columns={inviteColumns}
-					rows={inviteRows}
-					density="compact"
-					minWidth="46rem"
-					emptyLabel={invitesQuery.isLoading ? <Spinner label="Loading project invitations" layout="compact" size="lg" /> : "No pending project invitations"}
-					getRowKey={row => row.id}
+			<Panel tone="deep" title="Dangerous account actions" padded={false} bodySurface="transparent">
+				<DangerAction
+					title="Deactivate account"
+					description="Disable sign-in and protected route access until a system administrator re-enables the account."
+					descriptionId="deactivate-account-description"
+					action={
+						<Button type="button" variant="danger" disabled={demoMode || deactivateUserMutation.isPending} aria-describedby="deactivate-account-description" onClick={() => void deactivateAccount()}>
+							<UserMinusIcon size="1rem" weight="bold" aria-hidden="true" focusable="false" />
+							{deactivateUserMutation.isPending ? "Deactivating" : "Deactivate account"}
+						</Button>
+					}
 				/>
 			</Panel>
 
-			<div className={styles.settingsGrid}>
-				<Panel tone="glass" title="Profile">
-					<form id="identity-settings" className={styles.settingsForm} onSubmit={handleIdentitySubmit}>
-						<TextField
-							label="Display name"
-							name="name"
-							value={activeIdentityForm.displayName}
-							disabled={demoMode}
-							onChange={event => setIdentityForm({ userId: user.id, displayName: event.currentTarget.value })}
-						/>
-						{demoMode ? (
-							<BodyCopy>Profile changes are disabled for demo access.</BodyCopy>
-						) : (
-							<UnsavedChangesBar show={hasIdentityChanges} saveType="submit" saving={updateUserMutation.isPending} onReset={() => setIdentityForm({ userId: user.id, displayName: user.name })} />
-						)}
-					</form>
-				</Panel>
+			{credentialDialog ? (
+				<DialogRoot
+					open={isCredentialDialogOpen}
+					onOpenChange={open => {
+						if (!open) {
+							closeCredentialDialog();
+						}
+					}}
+				>
+					<DialogPortal>
+						<DialogOverlay onMouseDown={closeCredentialDialog}>
+							<DialogContent asChild aria-describedby={credentialDialogDescriptionId}>
+								<form
+									className={styles.credentialDialog}
+									onSubmit={credentialDialog === "email" ? handleEmailSubmit : handlePasswordSubmit}
+									onMouseDown={event => event.stopPropagation()}
+									onAnimationEnd={finishCredentialDialogClose}
+								>
+									<div className={styles.dialogHeader}>
+										<span>Account credentials</span>
+										<DialogTitle asChild>
+											<strong>{credentialDialog === "email" ? "Change Email" : "Change Password"}</strong>
+										</DialogTitle>
+										<DialogDescription asChild>
+											<p id={credentialDialogDescriptionId}>
+												{credentialDialog === "email" ? "Update the email used to sign in and generate your Gravatar." : "Replace the password used to sign in to your account."}
+											</p>
+										</DialogDescription>
+									</div>
 
-				<Panel tone="deep" title="Gravatar signal preview">
-					<div className={styles.profilePreview}>
-						<SignalAvatar size="lg" src={user.gravatarUrl} referrerPolicy="no-referrer" aria-hidden="true" />
-						<div>
-							<h3>{user.name}</h3>
-							<p>{user.email}</p>
-						</div>
-					</div>
-					<BodyCopy>The avatar is pulled using your email from Gravatar.</BodyCopy>
-				</Panel>
-			</div>
+									{credentialDialog === "email" ? (
+										<>
+											<TextField label="Current Email" name="current-email" type="email" value={user.email} disabled />
+											<TextField
+												label="New Email"
+												name="new-email"
+												type="email"
+												placeholder="operator@example.com"
+												value={activeEmailForm.newEmail}
+												disabled={changeEmailMutation.isPending}
+												onChange={event => updateEmailForm("newEmail", event.currentTarget.value)}
+												autoFocus
+												required
+											/>
+											<TextField
+												label="Confirm Password"
+												name="email-password"
+												type="password"
+												autoComplete="current-password"
+												value={activeEmailForm.password}
+												disabled={changeEmailMutation.isPending}
+												onChange={event => updateEmailForm("password", event.currentTarget.value)}
+												required
+											/>
+										</>
+									) : (
+										<>
+											<TextField
+												label="Current Password"
+												name="current-password"
+												type="password"
+												autoComplete="current-password"
+												value={activePasswordForm.currentPassword}
+												disabled={changePasswordMutation.isPending}
+												onChange={event => updatePasswordForm("currentPassword", event.currentTarget.value)}
+												autoFocus
+												required
+											/>
+											<TextField
+												label="New Password"
+												name="new-password"
+												type="password"
+												autoComplete="new-password"
+												value={activePasswordForm.newPassword}
+												disabled={changePasswordMutation.isPending}
+												onChange={event => updatePasswordForm("newPassword", event.currentTarget.value)}
+												required
+											/>
+											<TextField
+												label="Confirm New Password"
+												name="confirm-password"
+												type="password"
+												autoComplete="new-password"
+												helper="Use at least 12 characters for production accounts."
+												value={activePasswordForm.confirmPassword}
+												disabled={changePasswordMutation.isPending}
+												onChange={event => updatePasswordForm("confirmPassword", event.currentTarget.value)}
+												required
+											/>
+										</>
+									)}
 
-			{appFeatures.userCredentialChanges ? (
-				<div className={styles.settingsGrid}>
-					<Panel tone="glass" title="Change email">
-						<form className={styles.settingsForm} onSubmit={handleEmailSubmit}>
-							<TextField label="Current email" name="current-email" type="email" value={user.email} disabled />
-							<TextField
-								label="New email"
-								name="new-email"
-								type="email"
-								placeholder="operator@example.com"
-								value={activeEmailForm.newEmail}
-								onChange={event => setEmailForm(current => ({ ...current, userId: user.id, newEmail: event.currentTarget.value }))}
-							/>
-							<TextField
-								label="Confirm password"
-								name="email-password"
-								type="password"
-								autoComplete="current-password"
-								value={activeEmailForm.password}
-								onChange={event => setEmailForm(current => ({ ...current, userId: user.id, password: event.currentTarget.value }))}
-							/>
-							<UnsavedChangesBar
-								show={hasEmailChanges}
-								saveType="submit"
-								saving={changeEmailMutation.isPending}
-								savingLabel="Updating"
-								disabled={!appFeatures.userCredentialChanges}
-								onReset={() => setEmailForm({ ...emptyEmailForm, userId: user.id })}
-							/>
-						</form>
-					</Panel>
-
-					<Panel tone="glass" title="Change password">
-						<form className={styles.settingsForm} onSubmit={handlePasswordSubmit}>
-							<TextField
-								label="Current password"
-								name="current-password"
-								type="password"
-								autoComplete="current-password"
-								value={activePasswordForm.currentPassword}
-								onChange={event => setPasswordForm(current => ({ ...current, userId: user.id, currentPassword: event.currentTarget.value }))}
-							/>
-							<TextField
-								label="New password"
-								name="new-password"
-								type="password"
-								autoComplete="new-password"
-								value={activePasswordForm.newPassword}
-								onChange={event => setPasswordForm(current => ({ ...current, userId: user.id, newPassword: event.currentTarget.value }))}
-							/>
-							<TextField
-								label="Confirm new password"
-								name="confirm-password"
-								type="password"
-								autoComplete="new-password"
-								helper="Use at least 12 characters for production accounts."
-								value={activePasswordForm.confirmPassword}
-								onChange={event => setPasswordForm(current => ({ ...current, userId: user.id, confirmPassword: event.currentTarget.value }))}
-							/>
-							<UnsavedChangesBar
-								show={hasPasswordChanges}
-								saveType="submit"
-								saving={changePasswordMutation.isPending}
-								savingLabel="Changing"
-								disabled={!appFeatures.userCredentialChanges}
-								onReset={() => setPasswordForm({ ...emptyPasswordForm, userId: user.id })}
-							/>
-						</form>
-					</Panel>
-				</div>
+									<div className={styles.dialogActions}>
+										<Button type="button" variant="ghost" disabled={isCredentialMutationPending} onClick={closeCredentialDialog}>
+											Cancel
+										</Button>
+										<Button type="submit" disabled={credentialDialog === "email" ? !canChangeEmail : !canChangePassword}>
+											{credentialDialog === "email" ? (changeEmailMutation.isPending ? "Updating" : "Change Email") : changePasswordMutation.isPending ? "Changing" : "Change Password"}
+										</Button>
+									</div>
+								</form>
+							</DialogContent>
+						</DialogOverlay>
+					</DialogPortal>
+				</DialogRoot>
 			) : null}
-
-			<Panel tone="deep" title="Deactivate account">
-				<BodyCopy>Disabled accounts cannot sign in or access protected routes. A system administrator can re-enable the account.</BodyCopy>
-				<ActionRow>
-					<Button type="button" variant="danger" disabled={demoMode || deactivateUserMutation.isPending} onClick={() => void deactivateAccount()}>
-						{deactivateUserMutation.isPending ? "Deactivating" : "Deactivate account"}
-					</Button>
-				</ActionRow>
-			</Panel>
 		</PageStack>
 	);
 }
