@@ -1,11 +1,14 @@
 .shell {
+	--app-sidebar-width: 15rem;
+
 	min-height: 100vh;
 	min-height: 100svh;
 	display: grid;
-	grid-template-columns: 15rem minmax(0, 1fr);
+	grid-template-columns: var(--app-sidebar-width) minmax(0, 1fr);
 	align-items: start;
 	color: var(--ns-text);
 	background: var(--ns-bg);
+	transition: grid-template-columns var(--ns-transition);
 }
 
 .skipLink {
@@ -31,7 +34,7 @@
 }
 
 .shellCollapsed {
-	grid-template-columns: auto minmax(0, 1fr);
+	--app-sidebar-width: 4.75rem;
 }
 
 .content {
@@ -99,13 +102,13 @@
 
 @media (max-width: 58rem) {
 	.shell {
-		grid-template-columns: 6.5rem minmax(0, 1fr);
+		--app-sidebar-width: 6.5rem;
 	}
 
 	.contentMain {
 		--app-content-padding-top: 2.5rem;
 		--app-content-padding-bottom: 2rem;
-		--app-content-padding-inline-start: 0;
+		--app-content-padding-inline-start: 1rem;
 		--app-content-padding-inline-end: 1rem;
 	}
 
@@ -129,5 +132,11 @@
 		--app-content-padding-bottom: 1.5rem;
 		--app-content-padding-inline-start: 0.75rem;
 		--app-content-padding-inline-end: 0.75rem;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.shell {
+		transition: none;
 	}
 }
