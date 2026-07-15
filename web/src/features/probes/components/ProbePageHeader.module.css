@@ -39,7 +39,7 @@
 	top: 0;
 	left: 0;
 	right: 0;
-	padding: 3rem 1.5rem 0;
+	padding: var(--app-content-padding-top, 4rem) var(--app-content-padding-inline-end, 2rem) 0 var(--app-content-padding-inline-start, 2rem);
 	pointer-events: none;
 }
 
@@ -57,10 +57,6 @@
 	.primaryActions {
 		justify-content: flex-start;
 	}
-
-	.overlay {
-		padding: 1.5rem 1rem 0;
-	}
 }
 
 @media (max-width: 38rem) {
@@ -70,7 +66,7 @@
 
 	.overlay {
 		position: relative;
-		padding: 1rem;
+		padding: var(--app-content-padding-top, 1.5rem) var(--app-content-padding-inline-end, 0.75rem) 1rem var(--app-content-padding-inline-start, 0.75rem);
 		background: var(--ns-overlay-scrim);
 	}
 }
