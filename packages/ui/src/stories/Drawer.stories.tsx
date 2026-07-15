@@ -29,6 +29,22 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+const drawerFields = (
+	<div className="storybook-demo">
+		<TextField label="Probe name" defaultValue="probe-tpe-01" />
+		<SelectField
+			label="Region"
+			defaultValue="apac"
+			options={[
+				{ value: "apac", label: "APAC" },
+				{ value: "emea", label: "EMEA" },
+				{ value: "amer", label: "AMER" }
+			]}
+		/>
+		<TextAreaField label="Notes" defaultValue="Taipei edge measurement node." />
+	</div>
+);
+
 export const Playground: Story = {
 	render: function Render(args) {
 		const [open, setOpen] = useState(false);
@@ -40,21 +56,26 @@ export const Playground: Story = {
 				</Button>
 				{open ? (
 					<Drawer {...args} open onOpenChange={setOpen}>
-						<div className="storybook-demo">
-							<TextField label="Probe name" defaultValue="probe-tpe-01" />
-							<SelectField
-								label="Region"
-								defaultValue="apac"
-								options={[
-									{ value: "apac", label: "APAC" },
-									{ value: "emea", label: "EMEA" },
-									{ value: "amer", label: "AMER" }
-								]}
-							/>
-							<TextAreaField label="Notes" defaultValue="Taipei edge measurement node." />
-						</div>
+						{drawerFields}
 					</Drawer>
 				) : null}
+			</div>
+		);
+	}
+};
+
+export const PersistentMount: Story = {
+	render: function Render(args) {
+		const [open, setOpen] = useState(false);
+
+		return (
+			<div className="storybook-canvas">
+				<Button type="button" onClick={() => setOpen(true)}>
+					Open drawer
+				</Button>
+				<Drawer {...args} open={open} onOpenChange={setOpen}>
+					{drawerFields}
+				</Drawer>
 			</div>
 		);
 	}

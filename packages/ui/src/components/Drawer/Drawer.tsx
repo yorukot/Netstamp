@@ -1,6 +1,6 @@
 import { XIcon } from "@phosphor-icons/react/dist/csr/X";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { useState, type ComponentPropsWithoutRef, type ReactNode } from "react";
+import { useEffect, useState, type ComponentPropsWithoutRef, type ReactNode } from "react";
 import { Button } from "../Button/Button";
 import { wasOverlayPointerDownHandled } from "../overlayInteractions";
 import styles from "./Drawer.module.css";
@@ -40,6 +40,12 @@ export function Drawer({
 	const [closeRequested, setCloseRequested] = useState(false);
 	const renderedOpen = open && !closeRequested;
 
+	useEffect(() => {
+		if (!open) {
+			setCloseRequested(false);
+		}
+	}, [open]);
+
 	function handleOpenChange(nextOpen: boolean) {
 		if (!nextOpen) {
 			setCloseRequested(true);
@@ -65,7 +71,6 @@ export function Drawer({
 							return;
 						}
 
-						setCloseRequested(false);
 						onOpenChange(false);
 					}}
 					onPointerDownOutside={event => {
