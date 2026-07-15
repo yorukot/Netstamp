@@ -306,6 +306,14 @@
 	white-space: nowrap;
 }
 
+label:has(.checkbox:not(:disabled)) {
+	cursor: pointer;
+}
+
+label:has(.checkbox:disabled) {
+	cursor: not-allowed;
+}
+
 .checkbox {
 	width: 1rem;
 	height: 1rem;
