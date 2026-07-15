@@ -123,6 +123,10 @@
 	font-family: var(--ns-font-code);
 }
 
+.sessionActions {
+	align-self: flex-end;
+}
+
 @media (max-width: 36rem) {
 	.credentialActions,
 	.dialogActions {

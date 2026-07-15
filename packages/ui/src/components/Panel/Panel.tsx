@@ -11,6 +11,7 @@ export interface PanelProps extends Omit<ComponentPropsWithoutRef<"section">, "t
 	title?: ReactNode;
 	summary?: ReactNode;
 	actions?: ReactNode;
+	actionsClassName?: string;
 	footer?: ReactNode;
 	padded?: boolean;
 	bodySurface?: PanelBodySurface;
@@ -24,6 +25,7 @@ export function Panel({
 	title,
 	summary,
 	actions,
+	actionsClassName,
 	footer,
 	padded = true,
 	bodySurface = "default",
@@ -34,6 +36,7 @@ export function Panel({
 }: PanelProps) {
 	const classes = [styles.panel, className].filter(Boolean).join(" ");
 	const bodyClasses = [styles.body, bodyClassName].filter(Boolean).join(" ");
+	const actionClasses = [styles.actions, actionsClassName].filter(Boolean).join(" ");
 
 	return (
 		<Comp className={classes} data-tone={tone} {...props}>
@@ -49,7 +52,7 @@ export function Panel({
 						) : null}
 						{summary ? <p>{summary}</p> : null}
 					</div>
-					{actions ? <div className={styles.actions}>{actions}</div> : null}
+					{actions ? <div className={actionClasses}>{actions}</div> : null}
 				</div>
 			) : null}
 			{children ? (
