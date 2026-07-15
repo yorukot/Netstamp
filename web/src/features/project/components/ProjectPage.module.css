@@ -8,6 +8,7 @@
 
 .dangerActionList {
 	display: grid;
+	gap: 1rem;
 }
 
 .dangerAction {
@@ -19,10 +20,6 @@
 	padding: 1.25rem;
 	border-inline-start: 0.0625rem solid var(--ns-critical);
 	background: color-mix(in srgb, var(--ns-critical) 5%, var(--ns-container-bg));
-}
-
-.dangerAction + .dangerAction {
-	border-top: 1px solid var(--ns-border-faint);
 }
 
 .dangerActionCopy {

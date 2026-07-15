@@ -293,7 +293,9 @@ Tone intent:
 - Header supports eyebrow, title, summary, actions.
 - Body supports compact content without nested decorative cards.
 - Outer section boundary uses a dashed border. This is the primary frame language for dashboard sections.
-- Panel body does not draw its own default frame. Use dividers inside the body only when separating rows, table headers, footers, or unrelated zones within the same section.
+- The default panel body surface is a neutral raised container. Use it for grouped content that combines headings, descriptive copy, forms, or mixed controls. This is the expected treatment for most panels.
+- When the body contains only a table, one standalone element, or a homogeneous list of items, use a transparent body surface so the table or items sit directly inside the dashed outer section. Do not add an intermediate gray container; the table, row, or item may own its semantic background.
+- Panel body does not draw its own default frame. Use dividers inside the body only when separating rows, table headers, footers, or unrelated zones within the same grouped section.
 - Separators use `--ns-border-faint`.
 - Actions should align right on desktop and wrap cleanly on mobile.
 

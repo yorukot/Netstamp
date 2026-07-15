@@ -143,7 +143,7 @@ export function ProjectPage() {
 				<UnsavedChangesBar show={hasProjectChanges} saving={updateProjectMutation.isPending} disabled={!projectRef} onReset={resetProjectDraft} onSave={saveProjectSettings} />
 			</Panel>
 
-			<Panel tone="deep" title="Dangerous project actions">
+			<Panel tone="deep" title="Dangerous project actions" padded={false} bodySurface="transparent">
 				<div className={styles.dangerActionList}>
 					<article className={styles.dangerAction}>
 						<div className={styles.dangerActionCopy}>
