@@ -185,7 +185,7 @@ export function LabelsPage() {
 	const probes = probesQuery.data?.probes ?? emptyProbes;
 	const checks = checksQuery.data?.checks ?? emptyChecks;
 	const [editorMode, setEditorMode] = useState<LabelEditorMode>("idle");
-	const [isEditorClosing, setIsEditorClosing] = useState(false);
+	const [isEditorDismissed, setIsEditorDismissed] = useState(false);
 	const [draftLabelId, setDraftLabelId] = useState("");
 	const [draftKey, setDraftKey] = useState("");
 	const [draftValue, setDraftValue] = useState("");
@@ -230,7 +230,7 @@ export function LabelsPage() {
 	const selectedRow = rows.find(row => row.id === labelId) ?? null;
 	const isCreating = editorMode === "create";
 	const isEditing = !isCreating && Boolean(selectedLabel);
-	const isEditorOpen = (isCreating || isEditing) && !isEditorClosing;
+	const isEditorOpen = (isCreating || isEditing) && !isEditorDismissed;
 	const hasSelectedDraft = Boolean(selectedLabel && draftLabelId === selectedLabel.id);
 	const isCreatingToken = isCreating && !draftKey.trim();
 	const parsedDraftToken = isCreatingToken ? parseLabelToken(draftToken) : null;
@@ -273,7 +273,7 @@ export function LabelsPage() {
 
 	function selectLabel(row: LabelRow) {
 		setEditorMode("idle");
-		setIsEditorClosing(false);
+		setIsEditorDismissed(false);
 		setDraftLabelId("");
 		saveLabelMutation.reset();
 		deleteLabelMutation.reset();
@@ -282,7 +282,7 @@ export function LabelsPage() {
 
 	function startNewLabel(prefillKey = "") {
 		setEditorMode("create");
-		setIsEditorClosing(false);
+		setIsEditorDismissed(false);
 		setDraftLabelId("__new__");
 		setDraftKey(prefillKey);
 		setDraftValue("");
@@ -302,7 +302,7 @@ export function LabelsPage() {
 	}
 
 	function closeEditor() {
-		setIsEditorClosing(true);
+		setIsEditorDismissed(true);
 	}
 
 	function finishClosingEditor(event: AnimationEvent<HTMLFormElement>) {
@@ -311,14 +311,13 @@ export function LabelsPage() {
 		}
 
 		setEditorMode("idle");
-		setIsEditorClosing(false);
 		setDraftLabelId("");
 		setDraftKey("");
 		setDraftValue("");
 		setDraftToken("");
 		saveLabelMutation.reset();
 		deleteLabelMutation.reset();
-		navigate(pathForRoute("labels", { projectRef }));
+		navigate(pathForRoute("labels", { projectRef }), { replace: true });
 	}
 
 	function updateEditorInput(value: string) {
