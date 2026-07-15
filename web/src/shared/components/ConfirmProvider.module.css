@@ -1,3 +1,7 @@
+.overlay {
+	z-index: var(--ns-z-popover);
+}
+
 .dialog {
 	--ns-dialog-padding: 1rem;
 	--ns-dialog-width: 31rem;
@@ -32,6 +36,46 @@
 	color: var(--ns-text-muted);
 	font-size: 0.95rem;
 	line-height: 1.55;
+}
+
+.confirmation {
+	display: grid;
+	gap: 0.75rem;
+}
+
+.confirmationPrompt {
+	margin: 0;
+	color: var(--ns-text-muted);
+	font-size: 0.95rem;
+	line-height: 1.55;
+}
+
+.confirmationText {
+	appearance: none;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	color: var(--ns-primary-hover);
+	background: transparent;
+	font-family: var(--ns-font-mono);
+	font-size: 0.9em;
+	font-weight: 650;
+	letter-spacing: 0;
+	line-height: inherit;
+	cursor: pointer;
+	text-decoration: none;
+	text-underline-offset: 0.18em;
+	transition: color var(--ns-transition);
+}
+
+.confirmationText:hover {
+	color: var(--ns-primary);
+	text-decoration: underline;
+}
+
+.confirmationText:focus-visible {
+	outline: var(--ns-focus-outline);
+	outline-offset: var(--ns-focus-outline-offset);
 }
 
 .field {

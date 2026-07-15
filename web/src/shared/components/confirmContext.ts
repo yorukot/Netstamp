@@ -5,6 +5,8 @@ export interface ConfirmOptions {
 	message?: ReactNode;
 	confirmLabel?: ReactNode;
 	cancelLabel?: ReactNode;
+	confirmationText?: string;
+	confirmationLabel?: ReactNode;
 	tone?: "danger" | "default";
 }
 

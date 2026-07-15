@@ -291,9 +291,11 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 
 	async function deleteProbe() {
 		const confirmed = await confirm({
-			title: `Delete ${activeProbe.name}?`,
+			title: "Delete this probe?",
 			message: "This removes the probe from the fleet and stops future check assignments for it.",
 			confirmLabel: "Delete probe",
+			confirmationText: activeProbe.name,
+			confirmationLabel: "Probe name",
 			tone: "danger"
 		});
 

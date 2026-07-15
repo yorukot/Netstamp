@@ -89,9 +89,11 @@ export function ProjectPage() {
 		}
 
 		const confirmed = await confirm({
-			title: `Delete ${project.name}?`,
+			title: "Delete this project?",
 			message: "This deletes the project, disables future assignments, and revokes all probe registration tokens.",
 			confirmLabel: "Delete project",
+			confirmationText: project.name,
+			confirmationLabel: "Project name",
 			tone: "danger"
 		});
 

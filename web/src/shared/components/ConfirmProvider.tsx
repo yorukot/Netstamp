@@ -21,6 +21,7 @@ interface BaseDialogState {
 
 interface ConfirmState extends BaseDialogState {
 	kind: "confirm";
+	inputValue: string;
 	options: ConfirmOptions;
 }
 
@@ -43,10 +44,12 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
 	const [state, setState] = useState<DialogState | null>(null);
 	const resolverRef = useRef<((result: DialogResult) => void) | null>(null);
 	const closeTimeoutRef = useRef<number | null>(null);
+	const confirmationInputRef = useRef<HTMLInputElement | null>(null);
 	const titleId = useId();
 	const messageId = useId();
 	const inputId = useId();
 	const inputErrorId = useId();
+	const confirmationPromptId = useId();
 
 	const clearCloseTimer = useCallback(() => {
 		if (closeTimeoutRef.current) {
@@ -76,7 +79,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
 			return Promise.resolve(false);
 		}
 
-		setState({ kind: "confirm", options, closing: false });
+		setState({ kind: "confirm", options, closing: false, inputValue: "" });
 
 		return new Promise(resolve => {
 			resolverRef.current = result => resolve(result === true);
@@ -150,6 +153,10 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
 		setState(current => (current?.kind === "prompt" ? { ...current, inputValue: value, inputError: undefined } : current));
 	}
 
+	function updateConfirmationValue(value: string) {
+		setState(current => (current?.kind === "confirm" ? { ...current, inputValue: value } : current));
+	}
+
 	function submitDialog(event: FormEvent) {
 		event.preventDefault();
 
@@ -169,6 +176,10 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
 			return;
 		}
 
+		if (state.kind === "confirm" && state.options.confirmationText !== undefined && state.inputValue !== state.options.confirmationText) {
+			return;
+		}
+
 		close(state.kind === "confirm");
 	}
 
@@ -182,13 +193,26 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
 	const tone = state?.options.tone ?? "default";
 	const eyebrow = state ? dialogEyebrow(state) : "";
 	const confirmLabel = state?.options.confirmLabel ?? (state?.kind === "alert" ? "OK" : "Confirm");
+	const confirmationText = state?.kind === "confirm" ? state.options.confirmationText : undefined;
+	const confirmationRequired = confirmationText !== undefined;
+	const confirmationMatches = !confirmationRequired || (state?.kind === "confirm" && state.inputValue === confirmationText);
+	const descriptionIds = [message ? messageId : "", confirmationRequired ? confirmationPromptId : ""].filter(Boolean).join(" ") || undefined;
 
 	const dialog =
 		state && typeof document !== "undefined" ? (
 			<AlertDialogRoot open={Boolean(state)} onOpenChange={handleOpenChange}>
 				<AlertDialogPortal>
-					<AlertDialogOverlay data-closing={state.closing} onMouseDown={cancelDialog}>
-						<AlertDialogContent asChild aria-describedby={message ? messageId : undefined}>
+					<AlertDialogOverlay className={styles.overlay} data-closing={state.closing} onMouseDown={cancelDialog}>
+						<AlertDialogContent
+							asChild
+							aria-describedby={descriptionIds}
+							onOpenAutoFocus={event => {
+								if (confirmationRequired) {
+									event.preventDefault();
+									confirmationInputRef.current?.focus();
+								}
+							}}
+						>
 							<form className={styles.dialog} data-tone={tone} onSubmit={submitDialog} onMouseDown={event => event.stopPropagation()}>
 								<div className={styles.header}>
 									<span>{eyebrow}</span>
@@ -204,6 +228,31 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
 											{message}
 										</p>
 									</AlertDialogDescription>
+								) : null}
+								{state.kind === "confirm" && confirmationText !== undefined ? (
+									<div className={styles.confirmation}>
+										<p id={confirmationPromptId} className={styles.confirmationPrompt}>
+											Type{" "}
+											<button className={styles.confirmationText} type="button" title="Fill the confirmation input" onClick={() => updateConfirmationValue(confirmationText)}>
+												{confirmationText}
+											</button>{" "}
+											to confirm.
+										</p>
+										<div className={styles.field}>
+											<label htmlFor={inputId}>{state.options.confirmationLabel ?? "Name"}</label>
+											<Input
+												ref={confirmationInputRef}
+												id={inputId}
+												type="text"
+												value={state.inputValue}
+												aria-describedby={confirmationPromptId}
+												autoComplete="off"
+												autoFocus
+												spellCheck={false}
+												onChange={event => updateConfirmationValue(event.currentTarget.value)}
+											/>
+										</div>
+									</div>
 								) : null}
 								{state.kind === "prompt" ? (
 									<div className={styles.field}>
@@ -227,11 +276,11 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
 								) : null}
 								<div className={styles.actions}>
 									{state.kind !== "alert" ? (
-										<Button type="button" variant="ghost" onClick={cancelDialog} autoFocus={state.kind === "confirm"}>
+										<Button type="button" variant="ghost" onClick={cancelDialog} autoFocus={state.kind === "confirm" && !confirmationRequired}>
 											{state.options.cancelLabel ?? "Cancel"}
 										</Button>
 									) : null}
-									<Button type="submit" variant={tone === "danger" ? "danger" : "primary"} autoFocus={state.kind === "alert"}>
+									<Button type="submit" variant={tone === "danger" ? "danger" : "primary"} disabled={!confirmationMatches} autoFocus={state.kind === "alert"}>
 										{confirmLabel}
 									</Button>
 								</div>
