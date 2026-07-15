@@ -128,15 +128,21 @@
 }
 
 .danger {
-	--ns-frame-color: color-mix(in srgb, var(--ns-critical) 42%, transparent);
-	background: color-mix(in srgb, var(--ns-critical) 8%, var(--ns-surface));
-	color: var(--ns-critical);
+	--ns-frame-color: transparent;
+	background: var(--ns-critical);
+	color: var(--ns-text-on-accent);
+	box-shadow: none;
 }
 
 .danger:hover {
-	--ns-frame-color: color-mix(in srgb, var(--ns-critical) 74%, transparent);
-	background: color-mix(in srgb, var(--ns-critical) 16%, transparent);
+	--ns-frame-color: transparent;
+	background: color-mix(in srgb, var(--ns-critical) 84%, var(--ns-text));
+	color: var(--ns-text-on-accent);
 	box-shadow: none;
+}
+
+.danger:active {
+	background: color-mix(in srgb, var(--ns-critical) 72%, var(--ns-text));
 }
 
 .plain {

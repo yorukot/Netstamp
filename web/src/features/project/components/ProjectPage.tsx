@@ -7,7 +7,9 @@ import { useConfirm } from "@/shared/components/confirmContext";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { UnsavedChangesBar } from "@/shared/components/UnsavedChangesBar";
-import { Button, Panel, Surface, TextField } from "@netstamp/ui";
+import { Button, Panel, TextField } from "@netstamp/ui";
+import { SignOutIcon } from "@phosphor-icons/react/dist/csr/SignOut";
+import { TrashIcon } from "@phosphor-icons/react/dist/csr/Trash";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -142,23 +144,37 @@ export function ProjectPage() {
 			</Panel>
 
 			<Panel tone="deep" title="Dangerous project actions">
-				<div className={styles.dangerZoneGrid}>
-					<Surface as="article" tone="danger" frameSize="md" padding="md">
-						<h3>Delete project</h3>
-						<p className={styles.warningCopy}>Delete this project, disable future assignments, and revoke all probe registration tokens.</p>
-						<Button variant="danger" disabled={!projectRef || deleteProjectMutation.isPending} onClick={() => void deleteCurrentProject()}>
+				<div className={styles.dangerActionList}>
+					<article className={styles.dangerAction}>
+						<div className={styles.dangerActionCopy}>
+							<h3>Delete project</h3>
+							<p id="delete-project-description" className={styles.warningCopy}>
+								Delete this project, disable future assignments, and revoke all probe registration tokens.
+							</p>
+						</div>
+						<Button
+							className={styles.dangerButton}
+							variant="danger"
+							disabled={!projectRef || deleteProjectMutation.isPending}
+							aria-describedby="delete-project-description"
+							onClick={() => void deleteCurrentProject()}
+						>
+							<TrashIcon size="1rem" weight="bold" aria-hidden="true" focusable="false" />
 							{deleteProjectMutation.isPending ? "Deleting" : "Delete project"}
 						</Button>
-					</Surface>
-					<Surface as="article" tone="danger" frameSize="md" padding="md">
-						<h3>Leave project</h3>
-						<p className={styles.warningCopy}>
-							{isCurrentOwner ? "Owners cannot leave a project while they hold the owner role." : "Leave this project and remove your access to its probes, checks, alerts, and measurements."}
-						</p>
-						<Button variant="outline" disabled={!canLeaveProject} onClick={() => void leaveCurrentProject()}>
+					</article>
+					<article className={styles.dangerAction}>
+						<div className={styles.dangerActionCopy}>
+							<h3>Leave project</h3>
+							<p id="leave-project-description" className={styles.warningCopy}>
+								{isCurrentOwner ? "Owners cannot leave a project while they hold the owner role." : "Leave this project and remove your access to its probes, checks, alerts, and measurements."}
+							</p>
+						</div>
+						<Button className={styles.dangerButton} variant="danger" disabled={!canLeaveProject} aria-describedby="leave-project-description" onClick={() => void leaveCurrentProject()}>
+							<SignOutIcon size="1rem" weight="bold" aria-hidden="true" focusable="false" />
 							{removeMemberMutation.isPending ? "Leaving" : "Leave project"}
 						</Button>
-					</Surface>
+					</article>
 				</div>
 			</Panel>
 		</PageStack>
