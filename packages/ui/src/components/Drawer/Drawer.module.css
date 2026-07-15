@@ -1,7 +1,7 @@
 .overlay {
 	position: fixed;
 	inset: 0;
-	z-index: 50;
+	z-index: var(--ns-z-overlay-backdrop);
 	background: var(--ns-overlay-scrim);
 }
 
@@ -20,7 +20,7 @@
 	position: fixed;
 	top: 0;
 	bottom: 0;
-	z-index: 51;
+	z-index: var(--ns-z-overlay-content);
 	display: grid;
 	grid-template-rows: auto minmax(0, 1fr);
 	width: min(var(--ns-drawer-width), 100vw);

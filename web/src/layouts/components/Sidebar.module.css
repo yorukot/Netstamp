@@ -4,7 +4,7 @@
 
 	position: sticky;
 	top: 0;
-	z-index: 20;
+	z-index: var(--ns-z-navigation);
 	height: 100svh;
 	min-width: 0;
 	min-height: 0;

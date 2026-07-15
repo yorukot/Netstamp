@@ -9,6 +9,7 @@ const filePattern = /\.(astro|css|js|jsx|mjs|ts|tsx)$/;
 const rawColorPattern = /#[0-9a-fA-F]{3,8}\b|rgba?\(/g;
 const focusPattern = /outline:\s*(?:none|0)\b|:focus(?!-visible)|:focus-within/g;
 const pxPattern = /-?\d+(?:\.\d+)?px\b/g;
+const globalZIndexPattern = /\bz-index\s*:\s*[1-9]\d+\s*;/g;
 
 const rawColorAllowlist = new Map([
 	["docs/src/lib/seo.ts", "browser theme-color metadata requires a concrete color"],
@@ -128,10 +129,12 @@ const files = scanRoots.flatMap(walk);
 const rawColorIssues = files.flatMap(file => collectMatches(file, rawColorPattern, rawColorAllowlist));
 const focusIssues = files.flatMap(file => collectMatches(file, focusPattern, focusAllowlist));
 const pxIssues = files.flatMap(collectPxIssues);
+const globalZIndexIssues = files.flatMap(file => collectMatches(file, globalZIndexPattern, new Map()));
 const issues = [
 	...rawColorIssues.map(issue => ({ ...issue, type: "raw color" })),
 	...focusIssues.map(issue => ({ ...issue, type: "focus selector" })),
-	...pxIssues.map(issue => ({ ...issue, type: "px unit" }))
+	...pxIssues.map(issue => ({ ...issue, type: "px unit" })),
+	...globalZIndexIssues.map(issue => ({ ...issue, type: "raw global z-index" }))
 ];
 
 if (issues.length > 0) {
@@ -140,7 +143,9 @@ if (issues.length > 0) {
 		console.error(`${issue.relative}:${issue.line}: ${issue.type}: ${issue.excerpt}`);
 	}
 	console.error("");
-	console.error("Use --ns-* tokens for implementation colors and :focus-visible / :has(:focus-visible) for keyboard focus. Add an allowlist entry only for documented non-CSS-variable surfaces.");
+	console.error(
+		"Use --ns-* tokens for implementation colors and global stacking, and :focus-visible / :has(:focus-visible) for keyboard focus. Add an allowlist entry only for documented non-CSS-variable surfaces."
+	);
 	process.exit(1);
 }
 

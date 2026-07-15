@@ -110,7 +110,7 @@
 }
 
 .menu {
-	z-index: 1000;
+	z-index: var(--ns-z-popover);
 	width: var(--radix-popover-trigger-width);
 	max-height: min(22rem, calc(100svh - 1rem));
 	border: 1px solid var(--ns-border);

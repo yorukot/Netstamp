@@ -494,7 +494,7 @@
 
 .storybook-menu,
 .storybook-popover {
-	z-index: 50;
+	z-index: var(--ns-z-popover);
 	border: 1px solid var(--ns-border);
 	background: var(--ns-surface);
 	color: var(--ns-text);

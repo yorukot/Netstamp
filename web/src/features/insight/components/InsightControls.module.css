@@ -206,7 +206,7 @@
 
 .assignmentPopover {
 	--ns-frame-color: var(--ns-border-strong);
-	z-index: 1000;
+	z-index: var(--ns-z-popover);
 	display: grid;
 	gap: 0.25rem;
 	width: min(max(var(--radix-dropdown-menu-trigger-width, var(--radix-popover-trigger-width, 32.5rem)), 32.5rem), calc(100vw - 1rem));
@@ -348,7 +348,7 @@
 
 .timePopover {
 	--ns-frame-color: var(--ns-border-strong);
-	z-index: 1000;
+	z-index: var(--ns-z-popover);
 	display: grid;
 	gap: 1rem;
 	width: min(max(var(--radix-popover-trigger-width), 28.75rem), calc(100vw - 1rem));

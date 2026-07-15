@@ -3,7 +3,7 @@
 	position: fixed;
 	right: max(1rem, env(safe-area-inset-right));
 	bottom: max(1rem, env(safe-area-inset-bottom));
-	z-index: 120;
+	z-index: var(--ns-z-banner);
 	display: grid;
 	grid-template-columns: minmax(0, 1fr) auto;
 	gap: 1rem;

@@ -4,7 +4,7 @@
 	--user-menu-text: var(--ns-chrome-text);
 	--user-menu-muted: var(--ns-chrome-text-muted);
 
-	z-index: 1000;
+	z-index: var(--ns-z-popover);
 	width: min(max(var(--radix-popover-trigger-width, 11rem), 11rem), calc(100vw - 1rem));
 	padding: 0.25rem;
 	border: 0;

@@ -65,7 +65,7 @@ const dataJson = JSON.stringify(docsSearchIndex);
 	}
 
 	:global(.docsSearchOpen .docsSidebar) {
-		z-index: 90;
+		z-index: var(--ns-z-overlay-content);
 	}
 
 	:global(.docsSearchTrigger) {
@@ -131,7 +131,7 @@ const dataJson = JSON.stringify(docsSearchIndex);
 	.docsSearchOverlay {
 		position: fixed;
 		inset: 0;
-		z-index: 80;
+		z-index: var(--ns-z-overlay-backdrop);
 		display: grid;
 		place-items: start center;
 		padding: clamp(5rem, 12vh, 8rem) 1rem 1rem;

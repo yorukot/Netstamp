@@ -211,7 +211,7 @@
 .selectMenu {
 	--ns-frame-color: var(--ns-border);
 	position: fixed;
-	z-index: 1000;
+	z-index: var(--ns-z-popover);
 	width: var(--radix-select-trigger-width);
 	max-height: min(18rem, calc(100svh - 1rem));
 	border: 1px solid var(--ns-frame-color);

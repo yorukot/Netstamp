@@ -70,7 +70,7 @@
 .labelPopover {
 	--ns-frame-radius: var(--ns-radius-lg);
 	--ns-frame-color: var(--ns-border-faint);
-	z-index: 1000;
+	z-index: var(--ns-z-popover);
 	width: min(24rem, calc(100vw - 1.5rem));
 	padding: 0.6rem;
 	border: 1px solid var(--ns-frame-color);

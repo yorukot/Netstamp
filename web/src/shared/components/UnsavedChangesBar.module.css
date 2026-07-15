@@ -1,7 +1,7 @@
 .bar {
 	position: sticky;
 	bottom: 0;
-	z-index: 20;
+	z-index: var(--ns-z-sticky);
 	display: flex;
 	flex-wrap: wrap;
 	gap: 0.75rem;

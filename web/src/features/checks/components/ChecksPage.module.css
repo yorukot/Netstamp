@@ -112,7 +112,7 @@
 .descriptionPopover {
 	--ns-frame-radius: var(--ns-radius-md);
 	--ns-frame-color: var(--ns-border-faint);
-	z-index: 1000;
+	z-index: var(--ns-z-popover);
 	width: max-content;
 	max-width: min(22rem, calc(100vw - 1.5rem));
 	padding: 0.625rem 0.75rem;

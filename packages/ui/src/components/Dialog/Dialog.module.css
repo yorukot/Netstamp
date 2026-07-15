@@ -1,7 +1,7 @@
 .dialogOverlay {
 	position: fixed;
 	inset: 0;
-	z-index: 120;
+	z-index: var(--ns-z-overlay-backdrop);
 	background: var(--ns-overlay-scrim);
 	backdrop-filter: blur(0.875rem);
 	-webkit-backdrop-filter: blur(0.875rem);
@@ -28,7 +28,7 @@
 	position: fixed;
 	top: 50%;
 	left: 50%;
-	z-index: 121;
+	z-index: var(--ns-z-overlay-content);
 	display: grid;
 	gap: 1rem;
 	width: min(calc(100vw - 2rem), var(--ns-dialog-width, 34rem));
@@ -64,6 +64,7 @@
 	--ns-overlay-motion-exit-x: 0rem;
 	--ns-overlay-motion-exit-y: -0.125rem;
 
+	z-index: var(--ns-z-popover);
 	transform-origin: center top;
 	will-change: opacity, transform;
 }
