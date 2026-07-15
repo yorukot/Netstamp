@@ -854,11 +854,6 @@ function RuleEditorDrawer({
 					</div>
 				</Panel>
 				{checkTypeSupported && !numberError ? <div className={styles.previewSentence}>{rulePreview(form, notifications, numberValidation)}</div> : null}
-				<div className={styles.drawerActions}>
-					<Button type="button" variant="ghost" disabled={isPending} onClick={onClose}>
-						Cancel
-					</Button>
-				</div>
 				<UnsavedChangesBar
 					show={hasRuleChanges}
 					saveType="submit"
@@ -985,16 +980,13 @@ function NotificationEditorDrawer({
 						<SelectField label="Status" value={form.enabled} options={enabledOptions} onChange={event => updateForm({ enabled: event.currentTarget.value })} />
 					</div>
 				</Panel>
-				<div className={styles.drawerActions}>
-					{!isEditing ? (
+				{!isEditing ? (
+					<div className={styles.drawerActions}>
 						<Button type="button" variant="ghost" disabled={isPending} onClick={() => setStep("type")}>
 							Change type
 						</Button>
-					) : null}
-					<Button type="button" variant="ghost" disabled={isPending} onClick={onClose}>
-						Cancel
-					</Button>
-				</div>
+					</div>
+				) : null}
 				<UnsavedChangesBar show={hasNotificationChanges} saveType="submit" saving={isPending} disabled={!notificationFormReady(form)} onReset={() => setForm(initialForm)} />
 			</form>
 		</EditorDrawer>
