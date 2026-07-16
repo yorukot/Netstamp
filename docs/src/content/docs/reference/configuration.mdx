@@ -94,19 +94,42 @@ Keep `AUTH_API_TOKEN_HASH_KEY` secret and stable across restarts and restores. C
 
 ### Authentication And SSO
 
-Passwords are optional account credentials. Password hashes are stored separately from users, while external identities use the provider's stable issuer and subject pair. An OIDC email matching an existing account is not linked automatically; the signed-in user must explicitly connect that identity from account settings.
+Passwords are optional account credentials. Password hashes are stored separately from users, while external identities use the provider, issuer, and stable subject tuple. Matching email addresses never merge accounts automatically; a signed-in user must explicitly connect another identity from account settings.
 
-| Variable                             | Purpose                                                   | Default          |
-| ------------------------------------ | --------------------------------------------------------- | ---------------- |
-| `AUTH_SUDO_TTL`                      | Recent-authentication window for sensitive operations     | `5m`             |
-| `AUTH_OIDC_ENABLED`                  | Enables generic OpenID Connect login and identity linking | `false`          |
-| `AUTH_OIDC_ISSUER_URL`               | OIDC issuer used for discovery and token verification     | empty            |
-| `AUTH_OIDC_CLIENT_ID`                | Registered OIDC client ID                                 | empty            |
-| `AUTH_OIDC_CLIENT_SECRET`            | Registered OIDC client secret                             | empty            |
-| `AUTH_OIDC_DISPLAY_NAME`             | Provider label shown in login and account settings        | `Single sign-on` |
-| `AUTH_OIDC_JIT_PROVISIONING_ENABLED` | Creates new users after verified-email OIDC login         | `false`          |
+| Variable                               | Purpose                                                       | Default          |
+| -------------------------------------- | ------------------------------------------------------------- | ---------------- |
+| `AUTH_SUDO_TTL`                        | Recent-authentication window for sensitive operations         | `5m`             |
+| `AUTH_EXTERNAL_FLOW_TTL`               | Lifetime of a single-use provider authorization flow          | `10m`            |
+| `AUTH_GOOGLE_ENABLED`                  | Enables Google OpenID Connect                                 | `false`          |
+| `AUTH_GOOGLE_CLIENT_ID`                | Google OAuth web client ID                                    | empty            |
+| `AUTH_GOOGLE_CLIENT_SECRET`            | Google OAuth web client secret                                | empty            |
+| `AUTH_GOOGLE_DISPLAY_NAME`             | Google provider label shown in the UI                         | `Google`         |
+| `AUTH_GOOGLE_JIT_PROVISIONING_ENABLED` | Creates users from verified Google email claims               | `false`          |
+| `AUTH_GOOGLE_ALLOWED_HOSTED_DOMAINS`   | Optional comma-separated Google Workspace `hd` allowlist      | empty            |
+| `AUTH_GITHUB_ENABLED`                  | Enables GitHub OAuth login                                    | `false`          |
+| `AUTH_GITHUB_CLIENT_ID`                | GitHub OAuth App client ID                                    | empty            |
+| `AUTH_GITHUB_CLIENT_SECRET`            | GitHub OAuth App client secret                                | empty            |
+| `AUTH_GITHUB_DISPLAY_NAME`             | GitHub provider label shown in the UI                         | `GitHub`         |
+| `AUTH_GITHUB_JIT_PROVISIONING_ENABLED` | Creates users from a primary, verified GitHub email           | `false`          |
+| `AUTH_GITHUB_ALLOW_SIGNUP`             | Allows GitHub account creation from the authorization screen  | `true`           |
+| `AUTH_OIDC_ENABLED`                    | Enables a generic OpenID Connect provider                     | `false`          |
+| `AUTH_OIDC_ISSUER_URL`                 | Generic OIDC issuer used for discovery and token verification | empty            |
+| `AUTH_OIDC_CLIENT_ID`                  | Generic OIDC client ID                                        | empty            |
+| `AUTH_OIDC_CLIENT_SECRET`              | Generic OIDC client secret                                    | empty            |
+| `AUTH_OIDC_DISPLAY_NAME`               | Generic OIDC provider label                                   | `Single sign-on` |
+| `AUTH_OIDC_JIT_PROVISIONING_ENABLED`   | Creates users after verified-email generic OIDC login         | `false`          |
 
-When OIDC is enabled, `BACKEND_BASE_URL` must be the public controller origin. Register `${BACKEND_BASE_URL}/api/${API_VERSION}/auth/oidc/callback` as the provider callback. Sudo reauthentication requests force a fresh provider login and require a recent `auth_time` claim. OIDC flows use state, nonce, PKCE, a browser-bound HTTP-only cookie, single-use database records, and a ten-minute expiry.
+Any enabled external provider requires `BACKEND_BASE_URL` to be the public controller origin. Register these exact callback URLs with the corresponding provider:
+
+- Google: `${BACKEND_BASE_URL}/api/${API_VERSION}/auth/external/google/callback`
+- GitHub: `${BACKEND_BASE_URL}/api/${API_VERSION}/auth/external/github/callback`
+- Generic OIDC: `${BACKEND_BASE_URL}/api/${API_VERSION}/auth/external/oidc/callback`
+
+Create a Google OAuth client with application type **Web application** and add the Google callback as an authorized redirect URI. `AUTH_GOOGLE_ALLOWED_HOSTED_DOMAINS` is enforced against the signed `hd` claim; it is not an email-suffix check. Google sudo requests ask for `auth_time` and are accepted only when that provider timestamp is recent enough for `AUTH_SUDO_TTL`.
+
+Create a GitHub **OAuth App** and set its authorization callback URL to the GitHub callback above. Netstamp requests only profile and email scopes, uses the numeric GitHub user ID as the stable subject, selects a primary verified email for JIT provisioning, and discards the callback access token after reading `/user` and `/user/emails`. GitHub OAuth has no equivalent trusted `auth_time`, so GitHub is not a sudo method. A new GitHub-only account may set its first local password from the same GitHub session during the external-flow window; all other sensitive operations still require password or Google/generic OIDC sudo.
+
+All external flows use state, PKCE S256, a browser-bound HTTP-only cookie, a single-use database record, and the configured flow expiry. OIDC providers additionally use nonce and verified ID tokens. Provider codes, access tokens, refresh tokens, and client secrets are never stored in auth sessions or identity records.
 
 ## Database Image
 

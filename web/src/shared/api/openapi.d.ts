@@ -1596,7 +1596,7 @@ export interface paths {
 		get?: never;
 		/**
 		 * Set current user password
-		 * @description Create or replace the current user's local password after recent authentication.
+		 * @description Create or replace the current user's local password after recent authentication. A passwordless GitHub account may set its first password from the same GitHub-authenticated session during the external authorization flow window; this exception does not grant sudo for other operations.
 		 */
 		put: operations["setCurrentUserPassword"];
 		post?: never;
