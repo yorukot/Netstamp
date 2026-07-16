@@ -151,6 +151,8 @@ export function SettingsPage() {
 	const isCredentialMutationPending = changeEmailMutation.isPending || changePasswordMutation.isPending;
 	const canChangeEmail = Boolean(activeEmailForm.newEmail.trim() && !changeEmailMutation.isPending);
 	const canChangePassword = Boolean(activePasswordForm.newPassword.trim() && activePasswordForm.confirmPassword.trim() && !changePasswordMutation.isPending);
+	const hasPassword = Boolean(authenticationMethodsQuery.data?.hasPassword);
+	const passwordActionLabel = hasPassword ? "Change Password" : "Set Password";
 
 	function handleIdentitySubmit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
@@ -477,9 +479,9 @@ export function SettingsPage() {
 								<EnvelopeSimpleIcon size="1rem" weight="bold" aria-hidden="true" focusable="false" />
 								Change Email
 							</Button>
-							<Button type="button" variant="outline" disabled={demoMode} onClick={() => void requireSudo(() => openCredentialDialog("password"))}>
+							<Button type="button" variant="outline" disabled={demoMode} onClick={() => (hasPassword ? void requireSudo(() => openCredentialDialog("password")) : openCredentialDialog("password"))}>
 								<KeyIcon size="1rem" weight="bold" aria-hidden="true" focusable="false" />
-								Change Password
+								{passwordActionLabel}
 							</Button>
 						</div>
 					) : null}
@@ -615,11 +617,15 @@ export function SettingsPage() {
 									<div className={styles.dialogHeader}>
 										<span>Account credentials</span>
 										<DialogTitle asChild>
-											<strong>{credentialDialog === "email" ? "Change Email" : "Change Password"}</strong>
+											<strong>{credentialDialog === "email" ? "Change Email" : passwordActionLabel}</strong>
 										</DialogTitle>
 										<DialogDescription asChild>
 											<p id={credentialDialogDescriptionId}>
-												{credentialDialog === "email" ? "Update the email used to sign in and generate your Gravatar." : "Replace the password used to sign in to your account."}
+												{credentialDialog === "email"
+													? "Update the email used to sign in and generate your Gravatar."
+													: hasPassword
+														? "Replace the password used to sign in to your account."
+														: "Add a local password so this account can confirm sensitive changes."}
 											</p>
 										</DialogDescription>
 									</div>
@@ -671,7 +677,7 @@ export function SettingsPage() {
 											Cancel
 										</Button>
 										<Button type="submit" disabled={credentialDialog === "email" ? !canChangeEmail : !canChangePassword}>
-											{credentialDialog === "email" ? (changeEmailMutation.isPending ? "Updating" : "Change Email") : changePasswordMutation.isPending ? "Changing" : "Change Password"}
+											{credentialDialog === "email" ? (changeEmailMutation.isPending ? "Updating" : "Change Email") : changePasswordMutation.isPending ? "Saving" : passwordActionLabel}
 										</Button>
 									</div>
 								</form>

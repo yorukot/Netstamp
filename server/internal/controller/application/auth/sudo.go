@@ -2,9 +2,48 @@ package auth
 
 import (
 	"context"
+	"errors"
 
 	"github.com/yorukot/netstamp/internal/domain/identity"
 )
+
+func (s *Service) AuthorizePasswordChange(ctx context.Context, userID, sessionID string) error {
+	if userID == "" || sessionID == "" || s.recentAuth == nil {
+		return ErrSessionInvalid
+	}
+	user, err := s.users.GetUserByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+	if user.HasPassword {
+		return s.RequireSudo(ctx, sessionID)
+	}
+	if s.externalAuthRepo == nil {
+		return ErrSudoRequired
+	}
+	session, err := s.recentAuth.GetSession(ctx, sessionID)
+	if err != nil {
+		return err
+	}
+	if session.UserID != userID || session.AuthenticationMethod != identity.AuthenticationMethodGitHub || session.IdentityID == nil {
+		return ErrSudoRequired
+	}
+	linked, err := s.externalAuthRepo.GetUserIdentityByIDForUser(ctx, *session.IdentityID, userID)
+	if err != nil {
+		if errors.Is(err, identity.ErrIdentityNotFound) {
+			return ErrSudoRequired
+		}
+		return err
+	}
+	if linked.Provider != identity.AuthenticationMethodGitHub {
+		return ErrSudoRequired
+	}
+	now := s.now()
+	if session.CreatedAt.IsZero() || session.CreatedAt.After(now.Add(s.externalAuthConfig.AuthTimeSkew)) || now.Sub(session.CreatedAt) > s.externalAuthConfig.FlowTTL {
+		return ErrSudoRequired
+	}
+	return nil
+}
 
 func (s *Service) SudoStatus(ctx context.Context, userID, sessionID string) (SudoStatusResult, error) {
 	if s.recentAuth == nil {

@@ -49,6 +49,32 @@ func TestStartExternalAuthRejectsGitHubSudo(t *testing.T) {
 	}
 }
 
+func TestAuthorizePasswordChangeAllowsOnlyRecentGitHubBootstrap(t *testing.T) {
+	now := time.Date(2026, time.July, 16, 10, 0, 0, 0, time.UTC)
+	userID := "11111111-1111-1111-1111-111111111111"
+	identityID := "33333333-3333-3333-3333-333333333333"
+	sessionID := "22222222-2222-2222-2222-222222222222"
+	users := &externalAuthUserRepositoryFake{userByID: identity.User{ID: userID, HasPassword: false}}
+	repo := &externalAuthRepositoryFake{linkedIdentity: identity.UserIdentity{ID: identityID, UserID: userID, Provider: identity.AuthenticationMethodGitHub}}
+	recent := &recentAuthenticationFake{session: identity.AuthSession{
+		ID: sessionID, UserID: userID, IdentityID: &identityID, AuthenticationMethod: identity.AuthenticationMethodGitHub, CreatedAt: now.Add(-time.Minute),
+	}}
+	service := NewService(users, passwordResetHasher{}, nil, nil)
+	service.now = func() time.Time { return now }
+	service.recentAuth = recent
+	service.ConfigureExternalAuth(repo, &externalAuthTokenManagerFake{}, ExternalAuthConfig{FlowTTL: 10 * time.Minute, AuthTimeSkew: time.Minute}, ExternalProviderRegistration{
+		Config: ExternalProviderConfig{ID: identity.AuthenticationMethodGitHub}, Client: &externalAuthClientFake{},
+	})
+
+	if err := service.AuthorizePasswordChange(context.Background(), userID, sessionID); err != nil {
+		t.Fatalf("authorize recent GitHub password bootstrap: %v", err)
+	}
+	recent.session.CreatedAt = now.Add(-11 * time.Minute)
+	if err := service.AuthorizePasswordChange(context.Background(), userID, sessionID); !errors.Is(err, ErrSudoRequired) {
+		t.Fatalf("expected an old GitHub session to require sudo, got %v", err)
+	}
+}
+
 func TestCompleteExternalAuthDoesNotAutoLinkExistingEmail(t *testing.T) {
 	now := time.Date(2026, time.July, 16, 10, 0, 0, 0, time.UTC)
 	users := &externalAuthUserRepositoryFake{userByEmail: identity.User{
@@ -141,6 +167,7 @@ func newExternalAuthTestService(repo *externalAuthRepositoryFake, client Externa
 }
 
 type externalAuthUserRepositoryFake struct {
+	userByID    identity.User
 	userByEmail identity.User
 	emailErr    error
 }
@@ -148,8 +175,11 @@ type externalAuthUserRepositoryFake struct {
 func (*externalAuthUserRepositoryFake) CreateUser(context.Context, identity.User) (identity.User, error) {
 	return identity.User{}, nil
 }
-func (*externalAuthUserRepositoryFake) GetUserByID(context.Context, string) (identity.User, error) {
-	return identity.User{}, identity.ErrUserNotFound
+func (r *externalAuthUserRepositoryFake) GetUserByID(context.Context, string) (identity.User, error) {
+	if r.userByID.ID == "" {
+		return identity.User{}, identity.ErrUserNotFound
+	}
+	return r.userByID, nil
 }
 func (r *externalAuthUserRepositoryFake) GetUserByEmail(context.Context, string) (identity.User, error) {
 	if r.emailErr != nil {
@@ -185,8 +215,11 @@ func (r *externalAuthRepositoryFake) GetUserIdentityByIssuerSubject(context.Cont
 	}
 	return r.linkedIdentity, nil
 }
-func (*externalAuthRepositoryFake) GetUserIdentityByIDForUser(context.Context, string, string) (identity.UserIdentity, error) {
-	return identity.UserIdentity{}, identity.ErrIdentityNotFound
+func (r *externalAuthRepositoryFake) GetUserIdentityByIDForUser(context.Context, string, string) (identity.UserIdentity, error) {
+	if r.linkedIdentity.ID == "" {
+		return identity.UserIdentity{}, identity.ErrIdentityNotFound
+	}
+	return r.linkedIdentity, nil
 }
 func (*externalAuthRepositoryFake) ListUserIdentities(context.Context, string) ([]identity.UserIdentity, error) {
 	return nil, nil
