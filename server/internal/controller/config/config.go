@@ -44,6 +44,7 @@ const (
 	keyDBMaxConnLifetime                   = "DB_MAX_CONN_LIFETIME"
 	keyDBMaxConnIdleTime                   = "DB_MAX_CONN_IDLE_TIME"
 	keyAuthSessionHashKey                  = "AUTH_SESSION_HASH_KEY"
+	keyAuthAPITokenHashKey                 = "AUTH_API_TOKEN_HASH_KEY" //nolint:gosec // This is a configuration key name, not credential material.
 	keyAuthSessionIdleTTL                  = "AUTH_SESSION_IDLE_TTL"
 	keyAuthSessionAbsoluteTTL              = "AUTH_SESSION_ABSOLUTE_TTL"
 	keyAuthSessionTouchInterval            = "AUTH_SESSION_TOUCH_INTERVAL"
@@ -106,6 +107,7 @@ var defaultSettings = map[string]any{
 	keyDBMaxConnLifetime:                   time.Hour,
 	keyDBMaxConnIdleTime:                   30 * time.Minute,
 	keyAuthSessionHashKey:                  "local-development-session-hash-key-change-before-production",
+	keyAuthAPITokenHashKey:                 "local-development-api-token-hash-key-change-before-production",
 	keyAuthSessionIdleTTL:                  24 * time.Hour,
 	keyAuthSessionAbsoluteTTL:              7 * 24 * time.Hour,
 	keyAuthSessionTouchInterval:            5 * time.Minute,
@@ -183,6 +185,7 @@ type DatabaseConfig struct {
 
 type AuthConfig struct {
 	SessionHashKey          string        `mapstructure:"AUTH_SESSION_HASH_KEY"`
+	APITokenHashKey         string        `mapstructure:"AUTH_API_TOKEN_HASH_KEY"`
 	SessionIdleTTL          time.Duration `mapstructure:"AUTH_SESSION_IDLE_TTL"`
 	SessionAbsoluteTTL      time.Duration `mapstructure:"AUTH_SESSION_ABSOLUTE_TTL"`
 	SessionTouchInterval    time.Duration `mapstructure:"AUTH_SESSION_TOUCH_INTERVAL"`
@@ -317,6 +320,7 @@ func validate(cfg Config) []error {
 
 	// Auth settings
 	errs = append(errs, validateRequiredString(keyAuthSessionHashKey, cfg.Auth.SessionHashKey)...)
+	errs = append(errs, validateRequiredString(keyAuthAPITokenHashKey, cfg.Auth.APITokenHashKey)...)
 	errs = append(errs, validatePositiveDuration(keyAuthSessionIdleTTL, cfg.Auth.SessionIdleTTL)...)
 	errs = append(errs, validatePositiveDuration(keyAuthSessionAbsoluteTTL, cfg.Auth.SessionAbsoluteTTL)...)
 	errs = append(errs, validatePositiveDuration(keyAuthSessionTouchInterval, cfg.Auth.SessionTouchInterval)...)

@@ -27,10 +27,14 @@ func NewRepository(pool *pgxpool.Pool) *Repository {
 	return &Repository{queries: sqlc.New(pool), pool: pool}
 }
 
-const dataExportFormat = "netstamp.admin.data.v1"
+const (
+	dataExportFormat       = "netstamp.admin.data.v2"
+	legacyDataExportFormat = "netstamp.admin.data.v1"
+)
 
 var dataExportTables = []string{
 	"users",
+	"api_tokens",
 	"projects",
 	"project_members",
 	"project_invites",
@@ -202,26 +206,15 @@ func (r *Repository) ExportData(ctx context.Context) (domainsystem.DataExport, e
 }
 
 func (r *Repository) ImportData(ctx context.Context, export domainsystem.DataExport) (domainsystem.DataImportResult, error) {
-	if export.Format != dataExportFormat {
-		return domainsystem.DataImportResult{}, domainsystem.ErrDataImportInvalid
-	}
-	allowed := make(map[string]struct{}, len(dataExportTables))
-	for _, table := range dataExportTables {
-		allowed[table] = struct{}{}
-		if _, ok := export.Tables[table]; !ok {
-			return domainsystem.DataImportResult{}, domainsystem.ErrDataImportInvalid
-		}
-	}
-	for table := range export.Tables {
-		if _, ok := allowed[table]; !ok {
-			return domainsystem.DataImportResult{}, domainsystem.ErrDataImportInvalid
-		}
+	export, err := normalizeDataImport(export)
+	if err != nil {
+		return domainsystem.DataImportResult{}, err
 	}
 
 	var result domainsystem.DataImportResult
-	err := pgx.BeginFunc(ctx, r.pool, func(tx pgx.Tx) error {
-		if _, err := tx.Exec(ctx, truncateDataExportTablesSQL()); err != nil {
-			return err
+	err = pgx.BeginFunc(ctx, r.pool, func(tx pgx.Tx) error {
+		if _, truncateErr := tx.Exec(ctx, truncateDataExportTablesSQL()); truncateErr != nil {
+			return truncateErr
 		}
 		for _, table := range dataExportTables {
 			rows := export.Tables[table]
@@ -230,15 +223,15 @@ func (r *Repository) ImportData(ctx context.Context, export domainsystem.DataExp
 			if len(rows) == 0 {
 				continue
 			}
-			payload, err := json.Marshal(rows)
-			if err != nil {
+			payload, marshalErr := json.Marshal(rows)
+			if marshalErr != nil {
 				return domainsystem.ErrDataImportInvalid
 			}
 			if !json.Valid(payload) {
 				return domainsystem.ErrDataImportInvalid
 			}
-			if _, err := tx.Exec(ctx, importTableSQL(table), payload); err != nil {
-				return err
+			if _, importErr := tx.Exec(ctx, importTableSQL(table), payload); importErr != nil {
+				return importErr
 			}
 		}
 		return nil
@@ -248,6 +241,33 @@ func (r *Repository) ImportData(ctx context.Context, export domainsystem.DataExp
 	}
 	result.Format = dataExportFormat
 	return result, nil
+}
+
+func normalizeDataImport(export domainsystem.DataExport) (domainsystem.DataExport, error) {
+	if export.Format != dataExportFormat && export.Format != legacyDataExportFormat {
+		return domainsystem.DataExport{}, domainsystem.ErrDataImportInvalid
+	}
+	if export.Format == legacyDataExportFormat {
+		if export.Tables == nil {
+			return domainsystem.DataExport{}, domainsystem.ErrDataImportInvalid
+		}
+		if _, exists := export.Tables["api_tokens"]; !exists {
+			export.Tables["api_tokens"] = []domainsystem.RawDataRow{}
+		}
+	}
+	allowed := make(map[string]struct{}, len(dataExportTables))
+	for _, table := range dataExportTables {
+		allowed[table] = struct{}{}
+		if _, ok := export.Tables[table]; !ok {
+			return domainsystem.DataExport{}, domainsystem.ErrDataImportInvalid
+		}
+	}
+	for table := range export.Tables {
+		if _, ok := allowed[table]; !ok {
+			return domainsystem.DataExport{}, domainsystem.ErrDataImportInvalid
+		}
+	}
+	return export, nil
 }
 
 func (r *Repository) GrantFirstSystemAdminIfNone(ctx context.Context, userIDValue string) (bool, error) {

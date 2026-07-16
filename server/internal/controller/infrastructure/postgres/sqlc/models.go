@@ -1066,6 +1066,20 @@ type AlertRule struct {
 	DeletedAt        *time.Time      `json:"deleted_at"`
 }
 
+type ApiToken struct {
+	ID            uuid.UUID  `json:"id"`
+	UserID        uuid.UUID  `json:"user_id"`
+	Name          string     `json:"name"`
+	TokenHash     []byte     `json:"token_hash"`
+	TokenHint     string     `json:"token_hint"`
+	Scopes        []string   `json:"scopes"`
+	CreatedAt     time.Time  `json:"created_at"`
+	LastUsedAt    *time.Time `json:"last_used_at"`
+	ExpiresAt     time.Time  `json:"expires_at"`
+	RevokedAt     *time.Time `json:"revoked_at"`
+	RevokedReason *string    `json:"revoked_reason"`
+}
+
 type AssignmentRefreshJob struct {
 	ID            uuid.UUID                   `json:"id"`
 	ProjectID     uuid.UUID                   `json:"project_id"`
