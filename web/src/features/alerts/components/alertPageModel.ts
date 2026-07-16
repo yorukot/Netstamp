@@ -39,6 +39,7 @@ export interface RuleFormState {
 	threshold: string;
 	windowSeconds: string;
 	minSamples: string;
+	triggerAfterMinutes: string;
 	cooldownSeconds: string;
 	selectedNotificationIds: string[];
 }
@@ -68,6 +69,7 @@ export interface RuleNumberValidation {
 	threshold: NumericFieldValidation;
 	windowSeconds: NumericFieldValidation;
 	minSamples: NumericFieldValidation;
+	triggerAfterMinutes: NumericFieldValidation;
 	cooldownSeconds: NumericFieldValidation;
 }
 
@@ -464,6 +466,7 @@ export function defaultRuleForm(): RuleFormState {
 		threshold: "10",
 		windowSeconds: "300",
 		minSamples: "3",
+		triggerAfterMinutes: "1",
 		cooldownSeconds: "900",
 		selectedNotificationIds: []
 	};
@@ -485,6 +488,7 @@ export function ruleFormFromRule(rule: ApiAlertRule): RuleFormState {
 		threshold: String(rule.condition.threshold),
 		windowSeconds: String(rule.condition.windowSeconds),
 		minSamples: String(rule.condition.minSamples),
+		triggerAfterMinutes: String(rule.triggerAfterSeconds / 60),
 		cooldownSeconds: String(rule.cooldownSeconds),
 		selectedNotificationIds: rule.notificationIds
 	};
@@ -547,12 +551,13 @@ export function validateRuleNumbers(form: RuleFormState): RuleNumberValidation {
 		threshold: validateNumericField("Threshold", form.threshold, { min: 0 }),
 		windowSeconds: validateNumericField("Window seconds", form.windowSeconds, { integer: true, min: 60, max: 86400 }),
 		minSamples: validateNumericField("Min samples", form.minSamples, { integer: true, min: 1, max: 10000 }),
+		triggerAfterMinutes: validateNumericField("Trigger after", form.triggerAfterMinutes, { integer: true, min: 1, max: 1440 }),
 		cooldownSeconds: validateNumericField("Cooldown", form.cooldownSeconds, { integer: true, min: 60, max: 86400 })
 	};
 }
 
 export function ruleNumberError(validation: RuleNumberValidation) {
-	return validation.threshold.error || validation.windowSeconds.error || validation.minSamples.error || validation.cooldownSeconds.error;
+	return validation.threshold.error || validation.windowSeconds.error || validation.minSamples.error || validation.triggerAfterMinutes.error || validation.cooldownSeconds.error;
 }
 
 export function rulePayload(form: RuleFormState): CreateAlertRuleInput | UpdateAlertRuleInput {
@@ -584,6 +589,7 @@ export function rulePayload(form: RuleFormState): CreateAlertRuleInput | UpdateA
 			windowSeconds: numbers.windowSeconds.value,
 			minSamples: numbers.minSamples.value
 		},
+		triggerAfterSeconds: numbers.triggerAfterMinutes.value * 60,
 		cooldownSeconds: numbers.cooldownSeconds.value,
 		notificationIds: form.selectedNotificationIds
 	};
@@ -626,7 +632,7 @@ export function rulePreview(form: RuleFormState, notifications: ApiNotification[
 	const threshold = formatThreshold(form.metric, form.threshold || "0");
 	const notification = form.selectedNotificationIds.length ? form.selectedNotificationIds.map(notificationID => notificationNameByID(notifications, notificationID)).join(", ") : "no notification";
 
-	return `Create a ${form.severity} incident when ${metric} ${operatorPhrases[form.operator]} ${threshold} for ${formatDuration(numbers.windowSeconds.value)}. Notify ${notification}, then wait ${formatDuration(numbers.cooldownSeconds.value)} before repeating.`;
+	return `Create a ${form.severity} incident when ${metric} ${operatorPhrases[form.operator]} ${threshold}, evaluated over ${formatDuration(numbers.windowSeconds.value)}, remains firing for ${formatDuration(numbers.triggerAfterMinutes.value * 60)}. Notify ${notification}, then wait ${formatDuration(numbers.cooldownSeconds.value)} before repeating.`;
 }
 
 export function stopTableAction(event: MouseEvent<HTMLButtonElement>) {

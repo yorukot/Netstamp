@@ -235,6 +235,11 @@ export function AlertsPage() {
 			render: rule => <span className={styles.monoCell}>{formatAlertCondition(rule.condition)}</span>
 		},
 		{
+			key: "triggerAfter",
+			label: "Trigger after",
+			render: rule => formatDuration(rule.triggerAfterSeconds)
+		},
+		{
 			key: "notify",
 			label: "Notify",
 			render: rule => <span className={styles.urlCell}>{notificationLabel(rule, notifications)}</span>
@@ -793,6 +798,17 @@ function RuleEditorDrawer({
 									required
 								/>
 							</div>
+							<TextField
+								label="Trigger after (minutes)"
+								helper="The condition must remain firing for this long before an incident opens."
+								value={form.triggerAfterMinutes}
+								onChange={event => updateForm({ triggerAfterMinutes: event.currentTarget.value })}
+								inputMode="numeric"
+								min={1}
+								max={1440}
+								error={numberValidation.triggerAfterMinutes.error || undefined}
+								required
+							/>
 						</div>
 					) : (
 						<p className={styles.unsupportedNotice}>Traceroute alert rules are not available yet because the controller API exposes alert metrics for ping, TCP, and HTTP checks.</p>
