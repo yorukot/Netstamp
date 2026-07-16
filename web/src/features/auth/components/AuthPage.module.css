@@ -108,6 +108,16 @@
 	gap: 1.125rem;
 }
 
+.providerButtons {
+	display: grid;
+	gap: 0.75rem;
+	margin-bottom: 1rem;
+}
+
+.providerButton {
+	width: 100%;
+}
+
 .passwordFieldGroup {
 	display: grid;
 	gap: 0.625rem;

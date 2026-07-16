@@ -1,12 +1,14 @@
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { pathForRoute } from "@/routes/routePaths";
 import type { Navigate } from "@/routes/routeTypes";
-import { absoluteApiUrl, hasApiProblemCode } from "@/shared/api/client";
+import { absoluteExternalAuthStartUrl, hasApiProblemCode } from "@/shared/api/client";
 import { useCreateEmailVerificationMutation } from "@/shared/api/mutations";
 import { authQueries } from "@/shared/api/queries";
 import { appFeatures, demoCredentials, demoMode } from "@/shared/config/features";
 import { pushErrorToast, pushToast } from "@/shared/toast/toastStore";
 import { Button, TextField } from "@netstamp/ui";
+import { GithubLogoIcon } from "@phosphor-icons/react/dist/csr/GithubLogo";
+import { GoogleLogoIcon } from "@phosphor-icons/react/dist/csr/GoogleLogo";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
@@ -32,11 +34,14 @@ export function AuthPage({ mode = "login", navigate }: AuthPageProps) {
 	const [verificationEmail, setVerificationEmail] = useState("");
 	const heading = isRegister ? "Sign Up" : "Login";
 	const showDemoCredentials = demoMode && Boolean(demoCredentials);
-	const oidc = methodsQuery.data?.oidc;
-	const oidcError = new URLSearchParams(window.location.search).get("oidc_error");
+	const providers = methodsQuery.data?.providers ?? [];
+	const callbackQuery = new URLSearchParams(window.location.search);
+	const authError = callbackQuery.get("auth_error") || callbackQuery.get("oidc_error");
+	const authProvider = callbackQuery.get("auth_provider");
+	const failedProviderName = providers.find(provider => provider.id === authProvider)?.displayName || "External sign-in";
 
-	function startOIDCLogin() {
-		const url = new URL(absoluteApiUrl("/auth/oidc/start"));
+	function startExternalLogin(provider: string) {
+		const url = new URL(absoluteExternalAuthStartUrl(provider));
 		url.searchParams.set("intent", "login");
 		url.searchParams.set("returnTo", "/");
 		window.location.assign(url.toString());
@@ -130,12 +135,18 @@ export function AuthPage({ mode = "login", navigate }: AuthPageProps) {
 
 	return (
 		<AuthLayout title={heading} helmetTitle={isRegister ? "Sign Up" : "Login"}>
-			{!isRegister && oidc?.enabled ? (
-				<Button type="button" variant="outline" size="lg" className={styles.submitButton} onClick={startOIDCLogin}>
-					Continue with {oidc.displayName}
-				</Button>
+			{!isRegister && providers.length ? (
+				<div className={styles.providerButtons}>
+					{providers.map(provider => (
+						<Button key={provider.id} type="button" variant="outline" size="lg" className={styles.providerButton} onClick={() => startExternalLogin(provider.id)}>
+							{provider.id === "google" ? <GoogleLogoIcon size="1.25rem" weight="bold" aria-hidden="true" focusable="false" /> : null}
+							{provider.id === "github" ? <GithubLogoIcon size="1.25rem" weight="bold" aria-hidden="true" focusable="false" /> : null}
+							Continue with {provider.displayName}
+						</Button>
+					))}
+				</div>
 			) : null}
-			{!isRegister && oidcError ? <div className={styles.notice}>Single sign-on could not be completed. Try again or use another sign-in method.</div> : null}
+			{!isRegister && authError ? <div className={styles.notice}>{failedProviderName} could not be completed. Try again or use another sign-in method.</div> : null}
 			<form className={styles.form} onSubmit={handleSubmit}>
 				{isRegister ? <TextField label="Display Name" name="displayName" type="text" autoComplete="name" /> : null}
 				<TextField

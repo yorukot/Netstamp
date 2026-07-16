@@ -1,4 +1,4 @@
-import { absoluteApiUrl } from "@/shared/api/client";
+import { absoluteExternalAuthStartUrl } from "@/shared/api/client";
 import { usePasswordSudoMutation } from "@/shared/api/mutations";
 import { authQueries } from "@/shared/api/queries";
 import { usePromptDialog } from "@/shared/components/confirmContext";
@@ -31,8 +31,9 @@ export function useRequireSudo(returnTo?: string) {
 				action();
 				return true;
 			}
-			if (status.methods.includes("oidc")) {
-				const url = new URL(absoluteApiUrl("/auth/oidc/start"));
+			const externalProvider = status.methods.find(method => method !== "password");
+			if (externalProvider) {
+				const url = new URL(absoluteExternalAuthStartUrl(externalProvider));
 				url.searchParams.set("intent", "sudo");
 				url.searchParams.set("returnTo", returnTo ?? window.location.pathname);
 				window.location.assign(url.toString());

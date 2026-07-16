@@ -1,7 +1,7 @@
 import { useRequireSudo } from "@/features/auth/hooks/useRequireSudo";
 import { useSession } from "@/features/auth/session/SessionContext";
 import { pathForRoute } from "@/routes/routePaths";
-import { absoluteApiUrl, clearCSRFToken } from "@/shared/api/client";
+import { absoluteExternalAuthStartUrl, clearCSRFToken } from "@/shared/api/client";
 import {
 	useAcceptProjectInviteMutation,
 	useChangeCurrentUserEmailMutation,
@@ -408,6 +408,8 @@ export function SettingsPage() {
 		}
 	];
 	const activeSessions = sessionsQuery.data?.sessions ?? [];
+	const configuredProviders = authMethodsQuery.data?.providers ?? [];
+	const connectedProviders = new Set((authenticationMethodsQuery.data?.identities ?? []).map(identity => identity.provider));
 	const sessionColumns: DataColumn<ApiAuthSession>[] = [
 		{
 			key: "client",
@@ -532,30 +534,36 @@ export function SettingsPage() {
 					<Badge tone={authenticationMethodsQuery.data?.hasPassword ? "success" : "muted"}>Password {authenticationMethodsQuery.data?.hasPassword ? "configured" : "not configured"}</Badge>
 					{authenticationMethodsQuery.data?.identities.map(identity => (
 						<div key={identity.id} className={styles.profileIdentityCopy}>
-							<strong>{identity.displayName || identity.email || "OIDC identity"}</strong>
-							<span>{identity.issuer}</span>
+							<strong>
+								{configuredProviders.find(provider => provider.id === identity.provider)?.displayName || identity.provider}:{" "}
+								{identity.displayName || identity.username || identity.email || "External identity"}
+							</strong>
+							<span>{identity.username ? `@${identity.username}` : identity.email || identity.issuer}</span>
 							<Button type="button" size="sm" variant="danger" disabled={removeIdentityMutation.isPending} onClick={() => void requireSudo(() => removeIdentityMutation.mutate(identity.id))}>
 								Disconnect
 							</Button>
 						</div>
 					))}
-					{authMethodsQuery.data?.oidc.enabled ? (
-						<Button
-							type="button"
-							size="sm"
-							variant="outline"
-							onClick={() =>
-								void requireSudo(() => {
-									const url = new URL(absoluteApiUrl("/auth/oidc/start"));
-									url.searchParams.set("intent", "link");
-									url.searchParams.set("returnTo", "/settings");
-									window.location.assign(url.toString());
-								})
-							}
-						>
-							Connect {authMethodsQuery.data.oidc.displayName}
-						</Button>
-					) : null}
+					{configuredProviders
+						.filter(provider => !connectedProviders.has(provider.id))
+						.map(provider => (
+							<Button
+								key={provider.id}
+								type="button"
+								size="sm"
+								variant="outline"
+								onClick={() =>
+									void requireSudo(() => {
+										const url = new URL(absoluteExternalAuthStartUrl(provider.id));
+										url.searchParams.set("intent", "link");
+										url.searchParams.set("returnTo", "/settings");
+										window.location.assign(url.toString());
+									})
+								}
+							>
+								Connect {provider.displayName}
+							</Button>
+						))}
 					{authenticationMethodsQuery.data?.hasPassword && authenticationMethodsQuery.data.identities.length ? (
 						<Button type="button" size="sm" variant="danger" disabled={removePasswordMutation.isPending} onClick={() => void requireSudo(() => removePasswordMutation.mutate())}>
 							Remove password

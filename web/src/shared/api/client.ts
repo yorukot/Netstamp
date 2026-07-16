@@ -54,6 +54,11 @@ export function absoluteApiUrl<TPath extends keyof paths & string>(path: TPath) 
 	return new URL(apiUrl(path), window.location.origin).toString();
 }
 
+export function absoluteExternalAuthStartUrl(provider: string) {
+	const base = apiBaseUrl.replace(/\/$/, "");
+	return new URL(`${base}/auth/external/${encodeURIComponent(provider)}/start`, window.location.origin).toString();
+}
+
 export function clearCSRFToken() {
 	csrfToken = null;
 }
