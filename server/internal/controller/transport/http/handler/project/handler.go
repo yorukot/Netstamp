@@ -9,31 +9,41 @@ import (
 	appproject "github.com/yorukot/netstamp/internal/controller/application/project"
 	"github.com/yorukot/netstamp/internal/controller/transport/http/httpx"
 	httpmiddleware "github.com/yorukot/netstamp/internal/controller/transport/http/middleware"
+	"github.com/yorukot/netstamp/internal/domain/identity"
 )
 
 type Handler struct {
-	service    *appproject.Service
-	verifier   appauth.SessionManager
-	cookieName string
+	service       *appproject.Service
+	verifier      appauth.SessionManager
+	cookieName    string
+	tokenVerifier httpmiddleware.APITokenVerifier
 }
 
-func NewHandler(service *appproject.Service, verifier appauth.SessionManager, cookieName string) *Handler {
+func NewHandler(service *appproject.Service, verifier appauth.SessionManager, cookieName string, tokenVerifiers ...httpmiddleware.APITokenVerifier) *Handler {
+	var tokenVerifier httpmiddleware.APITokenVerifier
+	if len(tokenVerifiers) > 0 {
+		tokenVerifier = tokenVerifiers[0]
+	}
 	return &Handler{
-		service:    service,
-		verifier:   verifier,
-		cookieName: cookieName,
+		service:       service,
+		verifier:      verifier,
+		cookieName:    cookieName,
+		tokenVerifier: tokenVerifier,
 	}
 }
 
 func (h *Handler) RegisterRoutes(api chi.Router) {
 	api.Group(func(r chi.Router) {
-		r.Use(httpmiddleware.RequireAuth(h.verifier, h.cookieName))
+		r.Use(httpmiddleware.RequireUserAuth(h.verifier, h.tokenVerifier, h.cookieName))
 
-		r.Post("/projects", h.handleCreateProject)
-		r.Get("/projects", h.handleListProjects)
-		r.Get("/projects/{ref}", h.handleGetProject)
-		r.Patch("/projects/{ref}", h.handleUpdateProject)
-		r.Delete("/projects/{ref}", h.handleDeleteProject)
+		r.With(httpmiddleware.RequireScope(identity.ScopeProjectsWrite)).Post("/projects", h.handleCreateProject)
+		r.With(httpmiddleware.RequireScope(identity.ScopeProjectsRead)).Get("/projects", h.handleListProjects)
+		r.With(httpmiddleware.RequireScope(identity.ScopeProjectsRead)).Get("/projects/{ref}", h.handleGetProject)
+		r.With(httpmiddleware.RequireScope(identity.ScopeProjectsWrite)).Patch("/projects/{ref}", h.handleUpdateProject)
+		r.With(httpmiddleware.RequireScope(identity.ScopeProjectsWrite)).Delete("/projects/{ref}", h.handleDeleteProject)
+	})
+	api.Group(func(r chi.Router) {
+		r.Use(httpmiddleware.RequireAuth(h.verifier, h.cookieName))
 		r.Get("/projects/{ref}/members", h.handleListMembers)
 		r.Patch("/projects/{ref}/members/{user_id}", h.handleUpdateMemberRole)
 		r.Delete("/projects/{ref}/members/{user_id}", h.handleRemoveMember)

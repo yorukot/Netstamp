@@ -22,7 +22,7 @@ type CSRFConfig struct {
 func CSRF(cfg CSRFConfig) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if csrfSafeMethod(r.Method) || csrfSkippedPath(r.URL.Path, cfg.BasePath) {
+			if csrfSafeMethod(r.Method) || csrfSkippedPath(r.URL.Path, cfg.BasePath) || bearerAuthorization(r) {
 				next.ServeHTTP(w, r)
 				return
 			}
@@ -53,6 +53,11 @@ func CSRF(cfg CSRFConfig) func(http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+func bearerAuthorization(r *http.Request) bool {
+	_, ok := bearerToken(strings.TrimSpace(r.Header.Get("Authorization")))
+	return ok
 }
 
 func csrfSafeMethod(method string) bool {

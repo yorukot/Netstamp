@@ -13,6 +13,7 @@ import (
 	appadmin "github.com/yorukot/netstamp/internal/controller/application/admin"
 	appalert "github.com/yorukot/netstamp/internal/controller/application/alert"
 	appalerteval "github.com/yorukot/netstamp/internal/controller/application/alerteval"
+	appapitoken "github.com/yorukot/netstamp/internal/controller/application/apitoken"
 	appassignment "github.com/yorukot/netstamp/internal/controller/application/assignment"
 	appauth "github.com/yorukot/netstamp/internal/controller/application/auth"
 	appcheck "github.com/yorukot/netstamp/internal/controller/application/check"
@@ -28,6 +29,7 @@ import (
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/notify"
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/postgres"
 	pgalert "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/alert"
+	pgapitoken "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/apitoken"
 	pgassignment "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/assignment"
 	pgauthsession "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/authsession"
 	pgcheck "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/check"
@@ -53,6 +55,7 @@ import (
 type controllerServices struct {
 	authService         *appauth.Service
 	authVerifier        appauth.SessionManager
+	apiTokenService     *appapitoken.Service
 	adminService        *appadmin.Service
 	userService         *appuser.Service
 	alertService        *appalert.Service
@@ -128,6 +131,7 @@ func buildControllerServices(cfg config.Config, log *zap.Logger, dbPool *pgxpool
 	dbTx := postgres.NewTransactor(dbPool)
 	userRepo := pguser.NewUserRepository(dbPool)
 	authSessionRepo := pgauthsession.NewRepository(dbPool)
+	apiTokenRepo := pgapitoken.NewRepository(dbPool)
 	systemRepo := pgsystem.NewRepository(dbPool)
 	projectRepo := pgproject.NewProjectRepository(dbPool)
 	alertRepo := pgalert.NewRepository(dbPool)
@@ -153,7 +157,9 @@ func buildControllerServices(cfg config.Config, log *zap.Logger, dbPool *pgxpool
 		AbsoluteTTL:   cfg.Auth.SessionAbsoluteTTL,
 		TouchInterval: cfg.Auth.SessionTouchInterval,
 	})
+	apiTokenManager := security.NewAPITokenManager(cfg.Auth.APITokenHashKey)
 	authEvents := logger.NewAuthEventRecorder(log, cfg.LogPseudonymKey)
+	apiTokenEvents := logger.NewAPITokenEventRecorder(log)
 	userEvents := logger.NewUserEventRecorder(log, cfg.LogPseudonymKey)
 	projectEvents := logger.NewProjectEventRecorder(log)
 	alertEvents := logger.NewAlertEventRecorder(log)
@@ -197,6 +203,10 @@ func buildControllerServices(cfg config.Config, log *zap.Logger, dbPool *pgxpool
 	})
 
 	userSvc := appuser.NewService(userRepo, passwordHasher, userEvents)
+	apiTokenSvc := appapitoken.NewService(apiTokenRepo, userRepo, passwordHasher, apiTokenManager, apiTokenEvents)
+	authSvc.ConfigureAPITokens(apiTokenSvc)
+	adminSvc.ConfigureAPITokens(apiTokenSvc)
+	userSvc.ConfigureAPITokens(apiTokenSvc)
 	userSvc.ConfigureSystemAdmin(systemRepo)
 	userSvc.ConfigureSessions(sessionManager)
 	projectSvc := appproject.NewService(projectRepo, userRepo, projectEvents)
@@ -230,6 +240,7 @@ func buildControllerServices(cfg config.Config, log *zap.Logger, dbPool *pgxpool
 	return controllerServices{
 		authService:         authSvc,
 		authVerifier:        sessionManager,
+		apiTokenService:     apiTokenSvc,
 		adminService:        adminSvc,
 		userService:         userSvc,
 		alertService:        alertSvc,
@@ -260,6 +271,8 @@ func buildHTTPHandler(cfg config.Config, log *zap.Logger, dbPool *pgxpool.Pool, 
 		WebDir:                      cfg.HTTP.WebDir,
 		AuthService:                 services.authService,
 		AuthVerifier:                services.authVerifier,
+		APITokenService:             services.apiTokenService,
+		APITokenVerifier:            services.apiTokenService,
 		AdminService:                services.adminService,
 		AuthCookieName:              authCookieName(cfg),
 		AuthCookieSecure:            authCookieSecure(cfg),

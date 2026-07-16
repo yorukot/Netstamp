@@ -9,31 +9,38 @@ import (
 	appcheck "github.com/yorukot/netstamp/internal/controller/application/check"
 	"github.com/yorukot/netstamp/internal/controller/transport/http/httpx"
 	httpmiddleware "github.com/yorukot/netstamp/internal/controller/transport/http/middleware"
+	"github.com/yorukot/netstamp/internal/domain/identity"
 )
 
 type Handler struct {
-	service    *appcheck.Service
-	verifier   appauth.SessionManager
-	cookieName string
+	service       *appcheck.Service
+	verifier      appauth.SessionManager
+	cookieName    string
+	tokenVerifier httpmiddleware.APITokenVerifier
 }
 
-func NewHandler(service *appcheck.Service, verifier appauth.SessionManager, cookieName string) *Handler {
+func NewHandler(service *appcheck.Service, verifier appauth.SessionManager, cookieName string, tokenVerifiers ...httpmiddleware.APITokenVerifier) *Handler {
+	var tokenVerifier httpmiddleware.APITokenVerifier
+	if len(tokenVerifiers) > 0 {
+		tokenVerifier = tokenVerifiers[0]
+	}
 	return &Handler{
-		service:    service,
-		verifier:   verifier,
-		cookieName: cookieName,
+		service:       service,
+		verifier:      verifier,
+		cookieName:    cookieName,
+		tokenVerifier: tokenVerifier,
 	}
 }
 
 func (h *Handler) RegisterRoutes(api chi.Router) {
 	api.Group(func(r chi.Router) {
-		r.Use(httpmiddleware.RequireAuth(h.verifier, h.cookieName))
+		r.Use(httpmiddleware.RequireUserAuth(h.verifier, h.tokenVerifier, h.cookieName))
 
-		r.Get("/projects/{ref}/checks", h.handleListChecks)
-		r.Post("/projects/{ref}/checks", h.handleCreateCheck)
-		r.Get("/projects/{ref}/checks/{check_id}", h.handleGetCheck)
-		r.Patch("/projects/{ref}/checks/{check_id}", h.handleUpdateCheck)
-		r.Delete("/projects/{ref}/checks/{check_id}", h.handleDeleteCheck)
+		r.With(httpmiddleware.RequireScope(identity.ScopeChecksRead)).Get("/projects/{ref}/checks", h.handleListChecks)
+		r.With(httpmiddleware.RequireScope(identity.ScopeChecksWrite)).Post("/projects/{ref}/checks", h.handleCreateCheck)
+		r.With(httpmiddleware.RequireScope(identity.ScopeChecksRead)).Get("/projects/{ref}/checks/{check_id}", h.handleGetCheck)
+		r.With(httpmiddleware.RequireScope(identity.ScopeChecksWrite)).Patch("/projects/{ref}/checks/{check_id}", h.handleUpdateCheck)
+		r.With(httpmiddleware.RequireScope(identity.ScopeChecksWrite)).Delete("/projects/{ref}/checks/{check_id}", h.handleDeleteCheck)
 	})
 }
 

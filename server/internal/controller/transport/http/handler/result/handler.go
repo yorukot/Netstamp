@@ -9,25 +9,33 @@ import (
 	appresult "github.com/yorukot/netstamp/internal/controller/application/result"
 	"github.com/yorukot/netstamp/internal/controller/transport/http/httpx"
 	httpmiddleware "github.com/yorukot/netstamp/internal/controller/transport/http/middleware"
+	"github.com/yorukot/netstamp/internal/domain/identity"
 )
 
 type Handler struct {
-	service    *appresult.Service
-	verifier   appauth.SessionManager
-	cookieName string
+	service       *appresult.Service
+	verifier      appauth.SessionManager
+	cookieName    string
+	tokenVerifier httpmiddleware.APITokenVerifier
 }
 
-func NewHandler(service *appresult.Service, verifier appauth.SessionManager, cookieName string) *Handler {
+func NewHandler(service *appresult.Service, verifier appauth.SessionManager, cookieName string, tokenVerifiers ...httpmiddleware.APITokenVerifier) *Handler {
+	var tokenVerifier httpmiddleware.APITokenVerifier
+	if len(tokenVerifiers) > 0 {
+		tokenVerifier = tokenVerifiers[0]
+	}
 	return &Handler{
-		service:    service,
-		verifier:   verifier,
-		cookieName: cookieName,
+		service:       service,
+		verifier:      verifier,
+		cookieName:    cookieName,
+		tokenVerifier: tokenVerifier,
 	}
 }
 
 func (h *Handler) RegisterRoutes(api chi.Router) {
 	api.Group(func(r chi.Router) {
-		r.Use(httpmiddleware.RequireAuth(h.verifier, h.cookieName))
+		r.Use(httpmiddleware.RequireUserAuth(h.verifier, h.tokenVerifier, h.cookieName))
+		r.Use(httpmiddleware.RequireScope(identity.ScopeResultsRead))
 
 		r.Get("/projects/{ref}/results/ping/series", h.handleQueryPingSeries)
 		r.Get("/projects/{ref}/results/ping/insight", h.handleQueryPingInsight)

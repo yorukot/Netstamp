@@ -9,30 +9,37 @@ import (
 	applabel "github.com/yorukot/netstamp/internal/controller/application/label"
 	"github.com/yorukot/netstamp/internal/controller/transport/http/httpx"
 	httpmiddleware "github.com/yorukot/netstamp/internal/controller/transport/http/middleware"
+	"github.com/yorukot/netstamp/internal/domain/identity"
 )
 
 type Handler struct {
-	service    *applabel.Service
-	verifier   appauth.SessionManager
-	cookieName string
+	service       *applabel.Service
+	verifier      appauth.SessionManager
+	cookieName    string
+	tokenVerifier httpmiddleware.APITokenVerifier
 }
 
-func NewHandler(service *applabel.Service, verifier appauth.SessionManager, cookieName string) *Handler {
+func NewHandler(service *applabel.Service, verifier appauth.SessionManager, cookieName string, tokenVerifiers ...httpmiddleware.APITokenVerifier) *Handler {
+	var tokenVerifier httpmiddleware.APITokenVerifier
+	if len(tokenVerifiers) > 0 {
+		tokenVerifier = tokenVerifiers[0]
+	}
 	return &Handler{
-		service:    service,
-		verifier:   verifier,
-		cookieName: cookieName,
+		service:       service,
+		verifier:      verifier,
+		cookieName:    cookieName,
+		tokenVerifier: tokenVerifier,
 	}
 }
 
 func (h *Handler) RegisterRoutes(api chi.Router) {
 	api.Group(func(r chi.Router) {
-		r.Use(httpmiddleware.RequireAuth(h.verifier, h.cookieName))
+		r.Use(httpmiddleware.RequireUserAuth(h.verifier, h.tokenVerifier, h.cookieName))
 
-		r.Get("/projects/{ref}/labels", h.handleListLabels)
-		r.Post("/projects/{ref}/labels", h.handleCreateLabel)
-		r.Patch("/projects/{ref}/labels/{label_id}", h.handleUpdateLabel)
-		r.Delete("/projects/{ref}/labels/{label_id}", h.handleDeleteLabel)
+		r.With(httpmiddleware.RequireScope(identity.ScopeLabelsRead)).Get("/projects/{ref}/labels", h.handleListLabels)
+		r.With(httpmiddleware.RequireScope(identity.ScopeLabelsWrite)).Post("/projects/{ref}/labels", h.handleCreateLabel)
+		r.With(httpmiddleware.RequireScope(identity.ScopeLabelsWrite)).Patch("/projects/{ref}/labels/{label_id}", h.handleUpdateLabel)
+		r.With(httpmiddleware.RequireScope(identity.ScopeLabelsWrite)).Delete("/projects/{ref}/labels/{label_id}", h.handleDeleteLabel)
 	})
 }
 

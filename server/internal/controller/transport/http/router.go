@@ -14,6 +14,7 @@ import (
 
 	appadmin "github.com/yorukot/netstamp/internal/controller/application/admin"
 	appalert "github.com/yorukot/netstamp/internal/controller/application/alert"
+	appapitoken "github.com/yorukot/netstamp/internal/controller/application/apitoken"
 	appassignment "github.com/yorukot/netstamp/internal/controller/application/assignment"
 	appauth "github.com/yorukot/netstamp/internal/controller/application/auth"
 	appcheck "github.com/yorukot/netstamp/internal/controller/application/check"
@@ -52,6 +53,8 @@ type Dependencies struct {
 	WebDir                      string
 	AuthService                 *appauth.Service
 	AuthVerifier                appauth.SessionManager
+	APITokenService             *appapitoken.Service
+	APITokenVerifier            httpmiddleware.APITokenVerifier
 	AdminService                *appadmin.Service
 	AuthCookieName              string
 	AuthCookieSecure            bool
@@ -149,6 +152,7 @@ func registerAPIRoutes(api chi.Router, dep Dependencies) {
 	installHandler.RegisterRoutes(api)
 
 	authhttp.NewHandler(dep.AuthService, dep.AuthVerifier, dep.AdminService, dep.AuthCookieName, dep.AuthCookieSecure, !dep.AuthRegistrationDisabled).
+		ConfigureAPITokens(dep.APITokenService).
 		ConfigurePasswordReset(dep.PublicWebBaseURL, authhttp.NewPasswordResetRateLimiter(authhttp.PasswordResetRateLimitConfig{
 			Window:     dep.AuthPasswordResetRateWindow,
 			IPLimit:    dep.AuthPasswordResetIPLimit,
@@ -157,14 +161,14 @@ func registerAPIRoutes(api chi.Router, dep Dependencies) {
 		RegisterRoutes(api)
 	adminhttp.NewHandler(dep.AdminService, dep.AuthVerifier, dep.AuthCookieName).RegisterRoutes(api)
 	userhttp.NewHandler(dep.UserService, dep.AuthVerifier, dep.AuthCookieName).RegisterRoutes(api)
-	projecthttp.NewHandler(dep.ProjectService, dep.AuthVerifier, dep.AuthCookieName).RegisterRoutes(api)
-	alerthttp.NewHandler(dep.AlertService, dep.AuthVerifier, dep.AuthCookieName, dep.AdminService).RegisterRoutes(api)
-	assignmenthttp.NewHandler(dep.AssignmentService, dep.AuthVerifier, dep.AuthCookieName).RegisterRoutes(api)
-	labelhttp.NewHandler(dep.LabelService, dep.AuthVerifier, dep.AuthCookieName).RegisterRoutes(api)
-	checkhttp.NewHandler(dep.CheckService, dep.AuthVerifier, dep.AuthCookieName).RegisterRoutes(api)
-	probehttp.NewHandler(dep.ProbeService, dep.AuthVerifier, dep.AuthCookieName).RegisterRoutes(api)
-	publicstatushttp.NewHandler(dep.PublicStatusService, dep.AuthVerifier, dep.AuthCookieName).RegisterRoutes(api)
-	resulthttp.NewHandler(dep.ResultService, dep.AuthVerifier, dep.AuthCookieName).RegisterRoutes(api)
+	projecthttp.NewHandler(dep.ProjectService, dep.AuthVerifier, dep.AuthCookieName, dep.APITokenVerifier).RegisterRoutes(api)
+	alerthttp.NewHandler(dep.AlertService, dep.AuthVerifier, dep.AuthCookieName, dep.AdminService, dep.APITokenVerifier).RegisterRoutes(api)
+	assignmenthttp.NewHandler(dep.AssignmentService, dep.AuthVerifier, dep.AuthCookieName, dep.APITokenVerifier).RegisterRoutes(api)
+	labelhttp.NewHandler(dep.LabelService, dep.AuthVerifier, dep.AuthCookieName, dep.APITokenVerifier).RegisterRoutes(api)
+	checkhttp.NewHandler(dep.CheckService, dep.AuthVerifier, dep.AuthCookieName, dep.APITokenVerifier).RegisterRoutes(api)
+	probehttp.NewHandler(dep.ProbeService, dep.AuthVerifier, dep.AuthCookieName, dep.APITokenVerifier).RegisterRoutes(api)
+	publicstatushttp.NewHandler(dep.PublicStatusService, dep.AuthVerifier, dep.AuthCookieName, dep.APITokenVerifier).RegisterRoutes(api)
+	resulthttp.NewHandler(dep.ResultService, dep.AuthVerifier, dep.AuthCookieName, dep.APITokenVerifier).RegisterRoutes(api)
 	proberuntimehttp.NewHandler(dep.ProbeRuntime).RegisterRoutes(api)
 }
 

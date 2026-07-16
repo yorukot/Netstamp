@@ -3,12 +3,14 @@ package middleware
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/go-chi/chi/v5"
 
+	appapitoken "github.com/yorukot/netstamp/internal/controller/application/apitoken"
 	appauth "github.com/yorukot/netstamp/internal/controller/application/auth"
 	"github.com/yorukot/netstamp/internal/domain/identity"
 )
@@ -77,6 +79,107 @@ func TestRequireAuthStoresClaimsInContext(t *testing.T) {
 	}
 }
 
+func TestRequireUserAuthUsesBearerWithoutFallingBackToCookie(t *testing.T) {
+	sessions := &recordingTokenVerifier{claims: identity.SessionClaims{SessionID: "session-1", UserID: "session-user"}}
+	tokens := &recordingAPITokenVerifier{principal: appapitoken.Principal{
+		TokenID: "token-1",
+		UserID:  "token-user",
+		Scopes:  []identity.APITokenScope{identity.ScopeProjectsRead},
+	}}
+	router := chi.NewRouter()
+	router.With(RequireUserAuth(sessions, tokens, LocalSessionCookieName), RequireScope(identity.ScopeProjectsRead)).Get("/projects", func(w http.ResponseWriter, r *http.Request) {
+		userID, ok := CurrentUserIDFromContext(r.Context())
+		if !ok || userID != "token-user" {
+			http.Error(w, "unexpected principal", http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	res := performAuthTestRequest(router, http.MethodGet, "/projects",
+		"Authorization", "bearer api-secret",
+		"Cookie", LocalSessionCookieName+"=valid-session",
+	)
+
+	if res.Code != http.StatusNoContent {
+		t.Fatalf("expected status 204, got %d", res.Code)
+	}
+	if tokens.gotToken != "api-secret" {
+		t.Fatalf("expected API token verifier input, got %q", tokens.gotToken)
+	}
+	if sessions.gotToken != "" {
+		t.Fatalf("Bearer authentication must not fall back to the session cookie, got %q", sessions.gotToken)
+	}
+}
+
+func TestRequireUserAuthDoesNotFallBackAfterInvalidBearer(t *testing.T) {
+	sessions := &recordingTokenVerifier{claims: identity.SessionClaims{SessionID: "session-1", UserID: "session-user"}}
+	tokens := &recordingAPITokenVerifier{err: errors.New("invalid token")}
+	router := chi.NewRouter()
+	router.With(RequireUserAuth(sessions, tokens, LocalSessionCookieName)).Get("/projects", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	res := performAuthTestRequest(router, http.MethodGet, "/projects",
+		"Authorization", "Bearer invalid",
+		"Cookie", LocalSessionCookieName+"=valid-session",
+	)
+
+	if res.Code != http.StatusUnauthorized {
+		t.Fatalf("expected status 401, got %d", res.Code)
+	}
+	if got := res.Header().Get("WWW-Authenticate"); got != `Bearer realm="netstamp"` {
+		t.Fatalf("unexpected WWW-Authenticate header %q", got)
+	}
+	if sessions.gotToken != "" {
+		t.Fatalf("invalid Bearer credentials must not fall back to the session cookie, got %q", sessions.gotToken)
+	}
+}
+
+func TestRequireScopeRejectsMissingTokenScopeButAllowsSession(t *testing.T) {
+	t.Run("api token", func(t *testing.T) {
+		tokens := &recordingAPITokenVerifier{principal: appapitoken.Principal{
+			TokenID: "token-1",
+			UserID:  "user-1",
+			Scopes:  []identity.APITokenScope{identity.ScopeChecksRead},
+		}}
+		router := chi.NewRouter()
+		router.With(RequireUserAuth(nil, tokens, LocalSessionCookieName), RequireScope(identity.ScopeProjectsRead)).Get("/projects", func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusNoContent)
+		})
+
+		res := performAuthTestRequest(router, http.MethodGet, "/projects", "Authorization", "Bearer api-secret")
+		if res.Code != http.StatusForbidden {
+			t.Fatalf("expected status 403, got %d", res.Code)
+		}
+	})
+
+	t.Run("session", func(t *testing.T) {
+		sessions := &recordingTokenVerifier{claims: identity.SessionClaims{SessionID: "session-1", UserID: "user-1"}}
+		router := chi.NewRouter()
+		router.With(RequireUserAuth(sessions, nil, LocalSessionCookieName), RequireScope(identity.ScopeProjectsRead)).Get("/projects", func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusNoContent)
+		})
+
+		res := performAuthTestRequest(router, http.MethodGet, "/projects", "Cookie", LocalSessionCookieName+"=valid-session")
+		if res.Code != http.StatusNoContent {
+			t.Fatalf("expected status 204, got %d", res.Code)
+		}
+	})
+}
+
+func TestBearerAuthorizationUsesCaseInsensitiveScheme(t *testing.T) {
+	req := httptest.NewRequest(http.MethodPost, "/projects", http.NoBody)
+	req.Header.Set("Authorization", "bearer api-secret")
+	if !bearerAuthorization(req) {
+		t.Fatal("expected lowercase Bearer scheme to bypass session CSRF validation")
+	}
+	req.Header.Set("Authorization", "Basic credentials")
+	if bearerAuthorization(req) {
+		t.Fatal("non-Bearer authorization must not bypass session CSRF validation")
+	}
+}
+
 func registerClaimsRoute(t *testing.T, verifier appauth.SessionManager) http.Handler {
 	t.Helper()
 
@@ -119,6 +222,17 @@ type recordingTokenVerifier struct {
 	claims   identity.SessionClaims
 	err      error
 	gotToken string
+}
+
+type recordingAPITokenVerifier struct {
+	principal appapitoken.Principal
+	err       error
+	gotToken  string
+}
+
+func (v *recordingAPITokenVerifier) Verify(_ context.Context, rawToken string) (appapitoken.Principal, error) {
+	v.gotToken = rawToken
+	return v.principal, v.err
 }
 
 func (v *recordingTokenVerifier) VerifySession(_ context.Context, value string) (identity.SessionClaims, error) {

@@ -9,32 +9,39 @@ import (
 	appprobe "github.com/yorukot/netstamp/internal/controller/application/probe"
 	"github.com/yorukot/netstamp/internal/controller/transport/http/httpx"
 	httpmiddleware "github.com/yorukot/netstamp/internal/controller/transport/http/middleware"
+	"github.com/yorukot/netstamp/internal/domain/identity"
 )
 
 type Handler struct {
-	service    *appprobe.Service
-	verifier   appauth.SessionManager
-	cookieName string
+	service       *appprobe.Service
+	verifier      appauth.SessionManager
+	cookieName    string
+	tokenVerifier httpmiddleware.APITokenVerifier
 }
 
-func NewHandler(service *appprobe.Service, verifier appauth.SessionManager, cookieName string) *Handler {
+func NewHandler(service *appprobe.Service, verifier appauth.SessionManager, cookieName string, tokenVerifiers ...httpmiddleware.APITokenVerifier) *Handler {
+	var tokenVerifier httpmiddleware.APITokenVerifier
+	if len(tokenVerifiers) > 0 {
+		tokenVerifier = tokenVerifiers[0]
+	}
 	return &Handler{
-		service:    service,
-		verifier:   verifier,
-		cookieName: cookieName,
+		service:       service,
+		verifier:      verifier,
+		cookieName:    cookieName,
+		tokenVerifier: tokenVerifier,
 	}
 }
 
 func (h *Handler) RegisterRoutes(api chi.Router) {
 	api.Group(func(r chi.Router) {
-		r.Use(httpmiddleware.RequireAuth(h.verifier, h.cookieName))
+		r.Use(httpmiddleware.RequireUserAuth(h.verifier, h.tokenVerifier, h.cookieName))
 
-		r.Get("/projects/{ref}/probes", h.handleListProbes)
-		r.Post("/projects/{ref}/probes", h.handleCreateProbe)
-		r.Get("/projects/{ref}/probes/{probe_id}", h.handleGetProbe)
-		r.Patch("/projects/{ref}/probes/{probe_id}", h.handleUpdateProbe)
-		r.Delete("/projects/{ref}/probes/{probe_id}", h.handleDeleteProbe)
-		r.Post("/projects/{ref}/probes/{probe_id}/secret-rotations", h.handleRotateSecret)
+		r.With(httpmiddleware.RequireScope(identity.ScopeProbesRead)).Get("/projects/{ref}/probes", h.handleListProbes)
+		r.With(httpmiddleware.RequireScope(identity.ScopeProbesWrite)).Post("/projects/{ref}/probes", h.handleCreateProbe)
+		r.With(httpmiddleware.RequireScope(identity.ScopeProbesRead)).Get("/projects/{ref}/probes/{probe_id}", h.handleGetProbe)
+		r.With(httpmiddleware.RequireScope(identity.ScopeProbesWrite)).Patch("/projects/{ref}/probes/{probe_id}", h.handleUpdateProbe)
+		r.With(httpmiddleware.RequireScope(identity.ScopeProbesWrite)).Delete("/projects/{ref}/probes/{probe_id}", h.handleDeleteProbe)
+		r.With(httpmiddleware.RequireScope(identity.ScopeProbesWrite)).Post("/projects/{ref}/probes/{probe_id}/secret-rotations", h.handleRotateSecret)
 	})
 }
 

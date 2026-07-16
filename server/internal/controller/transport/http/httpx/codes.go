@@ -17,6 +17,10 @@ const (
 	CodeAuthEmailVerificationTokenInvalid = "AUTH_EMAIL_VERIFICATION_TOKEN_INVALID" // #nosec G101 -- public problem code, not token material.
 	CodeAuthPasswordResetTokenInvalid     = "AUTH_PASSWORD_RESET_TOKEN_INVALID"
 	CodeAuthSessionNotFound               = "AUTH_SESSION_NOT_FOUND"
+	CodeAuthInvalidAPIToken               = "AUTH_INVALID_API_TOKEN" // #nosec G101 -- public problem code, not a credential.
+	CodeAuthInsufficientScope             = "AUTH_INSUFFICIENT_SCOPE"
+	CodeAPITokenNotFound                  = "API_TOKEN_NOT_FOUND"     // #nosec G101 -- public problem code, not a credential.
+	CodeAPITokenLimitReached              = "API_TOKEN_LIMIT_REACHED" // #nosec G101 -- public problem code, not credential material.
 )
 
 const (

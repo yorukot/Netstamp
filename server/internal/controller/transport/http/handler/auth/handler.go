@@ -7,6 +7,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	appadmin "github.com/yorukot/netstamp/internal/controller/application/admin"
+	appapitoken "github.com/yorukot/netstamp/internal/controller/application/apitoken"
 	appauth "github.com/yorukot/netstamp/internal/controller/application/auth"
 	"github.com/yorukot/netstamp/internal/controller/transport/http/httpx"
 	httpmiddleware "github.com/yorukot/netstamp/internal/controller/transport/http/middleware"
@@ -21,6 +22,12 @@ type Handler struct {
 	registrationEnabled bool
 	publicWebBaseURL    string
 	resetLimiter        *PasswordResetRateLimiter
+	apiTokens           *appapitoken.Service
+}
+
+func (h *Handler) ConfigureAPITokens(service *appapitoken.Service) *Handler {
+	h.apiTokens = service
+	return h
 }
 
 func NewHandler(service *appauth.Service, verifier appauth.SessionManager, settings *appadmin.Service, cookieName string, cookieSecure, registrationEnabled bool) *Handler {
@@ -56,6 +63,11 @@ func (h *Handler) RegisterRoutes(api chi.Router) {
 		r.Get("/auth/sessions", h.handleListSessions)
 		r.Delete("/auth/sessions", h.handleRevokeAllSessions)
 		r.Delete("/auth/sessions/{session_id}", h.handleRevokeSession)
+		if h.apiTokens != nil {
+			r.Get("/auth/api-tokens", h.handleListAPITokens)
+			r.Post("/auth/api-tokens", h.handleCreateAPIToken)
+			r.Delete("/auth/api-tokens/{token_id}", h.handleRevokeAPIToken)
+		}
 	})
 }
 
