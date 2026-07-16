@@ -95,8 +95,8 @@ func (c *OIDCClient) Exchange(ctx context.Context, code, pkceVerifier, nonce str
 		AuthTime      int64  `json:"auth_time"`
 		HostedDomain  string `json:"hd"`
 	}
-	if err := idToken.Claims(&claims); err != nil {
-		return appauth.ExternalIdentityClaims{}, err
+	if claimsErr := idToken.Claims(&claims); claimsErr != nil {
+		return appauth.ExternalIdentityClaims{}, claimsErr
 	}
 	if claims.Nonce != nonce {
 		return appauth.ExternalIdentityClaims{}, errors.New("oidc nonce mismatch")

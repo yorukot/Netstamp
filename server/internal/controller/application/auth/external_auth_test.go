@@ -198,12 +198,14 @@ type externalAuthUserRepositoryFake struct {
 func (*externalAuthUserRepositoryFake) CreateUser(context.Context, identity.User) (identity.User, error) {
 	return identity.User{}, nil
 }
+
 func (r *externalAuthUserRepositoryFake) GetUserByID(context.Context, string) (identity.User, error) {
 	if r.userByID.ID == "" {
 		return identity.User{}, identity.ErrUserNotFound
 	}
 	return r.userByID, nil
 }
+
 func (r *externalAuthUserRepositoryFake) GetUserByEmail(context.Context, string) (identity.User, error) {
 	if r.emailErr != nil {
 		return identity.User{}, r.emailErr
@@ -213,6 +215,7 @@ func (r *externalAuthUserRepositoryFake) GetUserByEmail(context.Context, string)
 	}
 	return r.userByEmail, nil
 }
+
 func (*externalAuthUserRepositoryFake) UpdateUserPasswordHash(context.Context, identity.User) (identity.User, error) {
 	return identity.User{}, nil
 }
@@ -230,34 +233,42 @@ func (r *externalAuthRepositoryFake) CreateExternalAuthUser(context.Context, str
 	r.createUserCalls++
 	return identity.User{}, identity.UserIdentity{}, nil
 }
+
 func (*externalAuthRepositoryFake) CreateUserIdentity(_ context.Context, input identity.UserIdentity) (identity.UserIdentity, error) {
 	return input, nil
 }
+
 func (r *externalAuthRepositoryFake) GetUserIdentityByIssuerSubject(context.Context, string, string, string) (identity.UserIdentity, error) {
 	if r.identityErr != nil {
 		return identity.UserIdentity{}, r.identityErr
 	}
 	return r.linkedIdentity, nil
 }
+
 func (r *externalAuthRepositoryFake) GetUserIdentityByIDForUser(context.Context, string, string) (identity.UserIdentity, error) {
 	if r.linkedIdentity.ID == "" {
 		return identity.UserIdentity{}, identity.ErrIdentityNotFound
 	}
 	return r.linkedIdentity, nil
 }
+
 func (r *externalAuthRepositoryFake) ListUserIdentities(context.Context, string) ([]identity.UserIdentity, error) {
 	return r.identities, nil
 }
+
 func (*externalAuthRepositoryFake) TouchUserIdentityLogin(_ context.Context, input identity.UserIdentity, _ time.Time) (identity.UserIdentity, error) {
 	return input, nil
 }
+
 func (r *externalAuthRepositoryFake) CreateExternalAuthFlow(_ context.Context, input identity.ExternalAuthFlow) (identity.ExternalAuthFlow, error) {
 	r.createdFlow = input
 	return input, nil
 }
+
 func (r *externalAuthRepositoryFake) ConsumeExternalAuthFlow(context.Context, string, []byte, []byte, time.Time) (identity.ExternalAuthFlow, error) {
 	return r.flow, nil
 }
+
 func (*externalAuthRepositoryFake) DeleteExpiredExternalAuthFlows(context.Context, time.Time) error {
 	return nil
 }
@@ -272,6 +283,7 @@ func (c *externalAuthClientFake) AuthorizationURL(_ context.Context, _, _, _, in
 	c.intent = intent
 	return c.authorizationURL, nil
 }
+
 func (c *externalAuthClientFake) Exchange(context.Context, string, string, string) (ExternalIdentityClaims, error) {
 	return c.claims, nil
 }
@@ -299,10 +311,12 @@ type recentAuthenticationFake struct {
 func (*recentAuthenticationFake) SudoStatus(context.Context, string) (identity.SudoStatus, error) {
 	return identity.SudoStatus{Active: true}, nil
 }
+
 func (r *recentAuthenticationFake) ElevateSession(context.Context, string, string, *string, time.Time) error {
 	r.elevated = true
 	return nil
 }
+
 func (r *recentAuthenticationFake) GetSession(context.Context, string) (identity.AuthSession, error) {
 	return r.session, nil
 }

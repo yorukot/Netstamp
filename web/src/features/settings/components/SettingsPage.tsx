@@ -151,7 +151,7 @@ export function SettingsPage() {
 	const isCredentialMutationPending = changeEmailMutation.isPending || changePasswordMutation.isPending;
 	const canChangeEmail = Boolean(activeEmailForm.newEmail.trim() && !changeEmailMutation.isPending);
 	const canChangePassword = Boolean(activePasswordForm.newPassword.trim() && activePasswordForm.confirmPassword.trim() && !changePasswordMutation.isPending);
-	const hasPassword = Boolean(authenticationMethodsQuery.data?.hasPassword);
+	const hasPassword = authenticationMethodsQuery.data?.hasPassword ?? user.hasPassword;
 	const passwordActionLabel = hasPassword ? "Change Password" : "Set Password";
 
 	function handleIdentitySubmit(event: FormEvent<HTMLFormElement>) {

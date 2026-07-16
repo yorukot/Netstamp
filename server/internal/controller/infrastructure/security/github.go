@@ -17,10 +17,13 @@ import (
 )
 
 const (
-	githubIssuer     = "https://github.com"
-	githubAPIBaseURL = "https://api.github.com"
-	githubAPIVersion = "2026-03-10"
-	githubMaxBody    = 1 << 20
+	githubIssuer        = "https://github.com"
+	githubAPIBaseURL    = "https://api.github.com"
+	githubAPIVersion    = "2026-03-10"
+	githubMaxBody       = 1 << 20
+	githubAuthURL       = "https://github.com/login/oauth/authorize"
+	githubTokenURL      = "https://github.com/login/oauth/access_token" //nolint:gosec // Public OAuth endpoint, not credential material.
+	githubVersionHeader = "X-Github-Api-Version"
 )
 
 type GitHubOAuthClientConfig struct {
@@ -43,8 +46,8 @@ func NewGitHubOAuthClient(cfg GitHubOAuthClientConfig) *GitHubOAuthClient {
 			ClientID: cfg.ClientID, ClientSecret: cfg.ClientSecret, RedirectURL: cfg.RedirectURL,
 			Scopes: []string{"read:user", "user:email"},
 			Endpoint: oauth2.Endpoint{
-				AuthURL:  "https://github.com/login/oauth/authorize",
-				TokenURL: "https://github.com/login/oauth/access_token", //nolint:gosec // Public OAuth endpoint, not credential material.
+				AuthURL:  githubAuthURL,
+				TokenURL: githubTokenURL,
 			},
 		},
 		httpClient:  &http.Client{Timeout: 10 * time.Second},
@@ -53,7 +56,7 @@ func NewGitHubOAuthClient(cfg GitHubOAuthClientConfig) *GitHubOAuthClient {
 	}
 }
 
-func (c *GitHubOAuthClient) AuthorizationURL(_ context.Context, state, _ string, pkceVerifier, intent string) (string, error) {
+func (c *GitHubOAuthClient) AuthorizationURL(_ context.Context, state, _, pkceVerifier, intent string) (string, error) {
 	options := []oauth2.AuthCodeOption{
 		oauth2.SetAuthURLParam("code_challenge", pkceChallenge(pkceVerifier)),
 		oauth2.SetAuthURLParam("code_challenge_method", "S256"),
@@ -114,13 +117,13 @@ func (c *GitHubOAuthClient) Exchange(ctx context.Context, code, pkceVerifier, _ 
 }
 
 func (c *GitHubOAuthClient) getJSON(ctx context.Context, accessToken, path string, target any) error {
-	request, err := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimRight(c.apiBaseURL, "/")+path, nil)
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimRight(c.apiBaseURL, "/")+path, http.NoBody)
 	if err != nil {
 		return err
 	}
 	request.Header.Set("Accept", "application/vnd.github+json")
 	request.Header.Set("Authorization", "Bearer "+accessToken)
-	request.Header.Set("X-GitHub-Api-Version", githubAPIVersion)
+	request.Header.Set(githubVersionHeader, githubAPIVersion)
 	request.Header.Set("User-Agent", "netstamp")
 	response, err := c.httpClient.Do(request)
 	if err != nil {
@@ -128,7 +131,6 @@ func (c *GitHubOAuthClient) getJSON(ctx context.Context, accessToken, path strin
 	}
 	defer response.Body.Close()
 	if response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusMultipleChoices {
-		_, _ = io.Copy(io.Discard, io.LimitReader(response.Body, githubMaxBody))
 		return fmt.Errorf("github API returned status %d", response.StatusCode)
 	}
 	decoder := json.NewDecoder(io.LimitReader(response.Body, githubMaxBody))

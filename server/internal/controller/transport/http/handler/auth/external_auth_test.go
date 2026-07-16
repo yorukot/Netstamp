@@ -25,7 +25,7 @@ func TestAuthMethodsReturnsLowerCamelProviderMetadata(t *testing.T) {
 	)
 	handler := NewHandler(service, nil, nil, "netstamp_session", false, true)
 	recorder := httptest.NewRecorder()
-	handler.handleAuthMethods(recorder, httptest.NewRequest(http.MethodGet, "/auth/methods", nil))
+	handler.handleAuthMethods(recorder, httptest.NewRequest(http.MethodGet, "/auth/methods", http.NoBody))
 
 	if recorder.Code != http.StatusOK {
 		t.Fatalf("expected auth methods status 200, got %d", recorder.Code)

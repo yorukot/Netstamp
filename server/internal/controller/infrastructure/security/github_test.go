@@ -89,7 +89,7 @@ func (r *githubRoundTripper) RoundTrip(request *http.Request) (*http.Response, e
 		response.Body = io.NopCloser(strings.NewReader(`{"access_token":"callback-only-token","token_type":"bearer","scope":"read:user,user:email"}`))
 	case "api.github.com/user":
 		r.apiCalls++
-		if request.Header.Get("Authorization") != "Bearer callback-only-token" || request.Header.Get("X-GitHub-Api-Version") != githubAPIVersion {
+		if request.Header.Get("Authorization") != "Bearer callback-only-token" || request.Header.Get(githubVersionHeader) != githubAPIVersion {
 			response.StatusCode = http.StatusUnauthorized
 		}
 		response.Body = io.NopCloser(strings.NewReader(`{"id":1234567,"login":"octocat","name":"The Octocat","avatar_url":"https://avatars.githubusercontent.com/u/1234567"}`))

@@ -57,8 +57,8 @@ func (s *Service) StartExternalAuth(ctx context.Context, input StartExternalAuth
 		return StartExternalAuthResult{}, err
 	}
 	now := s.now()
-	if err := s.externalAuthRepo.DeleteExpiredExternalAuthFlows(ctx, now); err != nil {
-		return StartExternalAuthResult{}, err
+	if deleteErr := s.externalAuthRepo.DeleteExpiredExternalAuthFlows(ctx, now); deleteErr != nil {
+		return StartExternalAuthResult{}, deleteErr
 	}
 	expiresAt := now.Add(s.externalAuthConfig.FlowTTL)
 	_, err = s.externalAuthRepo.CreateExternalAuthFlow(ctx, identity.ExternalAuthFlow{
@@ -160,12 +160,23 @@ func (s *Service) CompleteExternalAuth(ctx context.Context, input CompleteExtern
 	if err != nil || claims.Issuer == "" || claims.Subject == "" {
 		return CompleteExternalAuthResult{}, ErrExternalAuthCallbackInvalid
 	}
+	return s.completeExternalAuthIntent(ctx, provider, flow, claims, input.UserAgent, now)
+}
+
+func (s *Service) completeExternalAuthIntent(
+	ctx context.Context,
+	provider configuredExternalProvider,
+	flow identity.ExternalAuthFlow,
+	claims ExternalIdentityClaims,
+	userAgent string,
+	now time.Time,
+) (CompleteExternalAuthResult, error) {
 	result := CompleteExternalAuthResult{Intent: flow.Intent, ReturnTo: flow.ReturnTo}
 	switch flow.Intent {
 	case ExternalAuthIntentLogin:
-		access, loginErr := s.completeExternalAuthLogin(ctx, provider, claims, input.UserAgent, now)
+		access, loginErr := s.completeExternalAuthLogin(ctx, provider, claims, userAgent, now)
 		if loginErr != nil {
-			return CompleteExternalAuthResult{}, loginErr
+			return result, loginErr
 		}
 		result.Access = &access
 		return result, nil
@@ -174,7 +185,7 @@ func (s *Service) CompleteExternalAuth(ctx context.Context, input CompleteExtern
 	case ExternalAuthIntentLink:
 		return result, s.completeExternalAuthLink(ctx, provider, flow, claims, now)
 	default:
-		return CompleteExternalAuthResult{}, ErrExternalAuthCallbackInvalid
+		return result, ErrExternalAuthCallbackInvalid
 	}
 }
 

@@ -386,33 +386,7 @@ func validate(cfg Config) []error {
 	errs = append(errs, validatePositiveDuration(keyAuthSessionTouchInterval, cfg.Auth.SessionTouchInterval)...)
 	errs = append(errs, validatePositiveDuration(keyAuthSudoTTL, cfg.Auth.SudoTTL)...)
 	errs = append(errs, validatePositiveDuration(keyAuthExternalFlowTTL, cfg.Auth.ExternalFlowTTL)...)
-	if cfg.Auth.OIDCEnabled {
-		errs = append(errs, validateRequiredString(keyAuthOIDCIssuerURL, cfg.Auth.OIDCIssuerURL)...)
-		errs = append(errs, validateOptionalHTTPURL(keyAuthOIDCIssuerURL, cfg.Auth.OIDCIssuerURL)...)
-		errs = append(errs, validateRequiredString(keyAuthOIDCClientID, cfg.Auth.OIDCClientID)...)
-		errs = append(errs, validateRequiredString(keyAuthOIDCClientSecret, cfg.Auth.OIDCClientSecret)...)
-		errs = append(errs, validateRequiredString(keyAuthOIDCDisplayName, cfg.Auth.OIDCDisplayName)...)
-		if strings.TrimSpace(cfg.HTTP.BackendBaseURL) == "" {
-			errs = append(errs, errors.New("BACKEND_BASE_URL is required when AUTH_OIDC_ENABLED is true"))
-		}
-	}
-	if cfg.Auth.GoogleEnabled {
-		errs = append(errs, validateRequiredString(keyAuthGoogleClientID, cfg.Auth.GoogleClientID)...)
-		errs = append(errs, validateRequiredString(keyAuthGoogleClientSecret, cfg.Auth.GoogleClientSecret)...)
-		errs = append(errs, validateRequiredString(keyAuthGoogleDisplayName, cfg.Auth.GoogleDisplayName)...)
-		errs = append(errs, validateHostedDomains(keyAuthGoogleAllowedHostedDomains, cfg.Auth.GoogleHostedDomains)...)
-		if strings.TrimSpace(cfg.HTTP.BackendBaseURL) == "" {
-			errs = append(errs, errors.New("BACKEND_BASE_URL is required when AUTH_GOOGLE_ENABLED is true"))
-		}
-	}
-	if cfg.Auth.GitHubEnabled {
-		errs = append(errs, validateRequiredString(keyAuthGitHubClientID, cfg.Auth.GitHubClientID)...)
-		errs = append(errs, validateRequiredString(keyAuthGitHubClientSecret, cfg.Auth.GitHubClientSecret)...)
-		errs = append(errs, validateRequiredString(keyAuthGitHubDisplayName, cfg.Auth.GitHubDisplayName)...)
-		if strings.TrimSpace(cfg.HTTP.BackendBaseURL) == "" {
-			errs = append(errs, errors.New("BACKEND_BASE_URL is required when AUTH_GITHUB_ENABLED is true"))
-		}
-	}
+	errs = append(errs, validateExternalAuth(cfg)...)
 	if cfg.Auth.SessionAbsoluteTTL < cfg.Auth.SessionIdleTTL {
 		errs = append(errs, errors.New("AUTH_SESSION_ABSOLUTE_TTL must not be less than AUTH_SESSION_IDLE_TTL"))
 	}
@@ -445,6 +419,38 @@ func validate(cfg Config) []error {
 		errs = append(errs, errors.New("NOTIFICATION_WORKER_BATCH_SIZE must be greater than 0"))
 	}
 
+	return errs
+}
+
+func validateExternalAuth(cfg Config) []error {
+	var errs []error
+	if cfg.Auth.OIDCEnabled {
+		errs = append(errs, validateRequiredString(keyAuthOIDCIssuerURL, cfg.Auth.OIDCIssuerURL)...)
+		errs = append(errs, validateOptionalHTTPURL(keyAuthOIDCIssuerURL, cfg.Auth.OIDCIssuerURL)...)
+		errs = append(errs, validateRequiredString(keyAuthOIDCClientID, cfg.Auth.OIDCClientID)...)
+		errs = append(errs, validateRequiredString(keyAuthOIDCClientSecret, cfg.Auth.OIDCClientSecret)...)
+		errs = append(errs, validateRequiredString(keyAuthOIDCDisplayName, cfg.Auth.OIDCDisplayName)...)
+		if strings.TrimSpace(cfg.HTTP.BackendBaseURL) == "" {
+			errs = append(errs, errors.New("BACKEND_BASE_URL is required when AUTH_OIDC_ENABLED is true"))
+		}
+	}
+	if cfg.Auth.GoogleEnabled {
+		errs = append(errs, validateRequiredString(keyAuthGoogleClientID, cfg.Auth.GoogleClientID)...)
+		errs = append(errs, validateRequiredString(keyAuthGoogleClientSecret, cfg.Auth.GoogleClientSecret)...)
+		errs = append(errs, validateRequiredString(keyAuthGoogleDisplayName, cfg.Auth.GoogleDisplayName)...)
+		errs = append(errs, validateHostedDomains(keyAuthGoogleAllowedHostedDomains, cfg.Auth.GoogleHostedDomains)...)
+		if strings.TrimSpace(cfg.HTTP.BackendBaseURL) == "" {
+			errs = append(errs, errors.New("BACKEND_BASE_URL is required when AUTH_GOOGLE_ENABLED is true"))
+		}
+	}
+	if cfg.Auth.GitHubEnabled {
+		errs = append(errs, validateRequiredString(keyAuthGitHubClientID, cfg.Auth.GitHubClientID)...)
+		errs = append(errs, validateRequiredString(keyAuthGitHubClientSecret, cfg.Auth.GitHubClientSecret)...)
+		errs = append(errs, validateRequiredString(keyAuthGitHubDisplayName, cfg.Auth.GitHubDisplayName)...)
+		if strings.TrimSpace(cfg.HTTP.BackendBaseURL) == "" {
+			errs = append(errs, errors.New("BACKEND_BASE_URL is required when AUTH_GITHUB_ENABLED is true"))
+		}
+	}
 	return errs
 }
 

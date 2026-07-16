@@ -18,6 +18,10 @@ func (s *Service) AuthorizePasswordChange(ctx context.Context, userID, sessionID
 	if user.HasPassword {
 		return s.RequireSudo(ctx, sessionID)
 	}
+	return s.authorizePasswordBootstrap(ctx, userID, sessionID)
+}
+
+func (s *Service) authorizePasswordBootstrap(ctx context.Context, userID, sessionID string) error {
 	if s.externalAuthRepo == nil {
 		return ErrSudoRequired
 	}

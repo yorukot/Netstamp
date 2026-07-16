@@ -15,7 +15,7 @@ ALTER TABLE auth_sessions
     ADD CONSTRAINT auth_sessions_authentication_method_valid CHECK (authentication_method IN ('password', 'google', 'github', 'oidc'));
 
 UPDATE auth_sessions
-SET sudo_eligible = authentication_method = 'password';
+SET sudo_eligible = (authentication_method = 'password');
 
 ALTER TABLE oidc_auth_flows RENAME TO external_auth_flows;
 ALTER TABLE external_auth_flows
@@ -41,7 +41,9 @@ ALTER TABLE external_auth_flows
 ALTER INDEX ix_oidc_auth_flows_expires_at RENAME TO ix_external_auth_flows_expires_at;
 
 ALTER TABLE external_auth_flows
-    ADD COLUMN provider text NOT NULL DEFAULT 'oidc',
+    ADD COLUMN provider text NOT NULL DEFAULT 'oidc';
+
+ALTER TABLE external_auth_flows
     ALTER COLUMN provider DROP DEFAULT,
     ADD CONSTRAINT external_auth_flows_provider_valid CHECK (provider IN ('google', 'github', 'oidc'));
 
