@@ -3,17 +3,20 @@ package identity
 import "time"
 
 type AuthSession struct {
-	ID                string
-	UserID            string
-	TokenHash         []byte
-	CSRFTokenHash     []byte
-	UserAgent         string
-	CreatedAt         time.Time
-	LastUsedAt        time.Time
-	IdleExpiresAt     time.Time
-	AbsoluteExpiresAt time.Time
-	RevokedAt         *time.Time
-	RevokedReason     *string
+	ID                   string
+	UserID               string
+	TokenHash            []byte
+	CSRFTokenHash        []byte
+	UserAgent            string
+	AuthenticatedAt      time.Time
+	AuthenticationMethod string
+	IdentityID           *string
+	CreatedAt            time.Time
+	LastUsedAt           time.Time
+	IdleExpiresAt        time.Time
+	AbsoluteExpiresAt    time.Time
+	RevokedAt            *time.Time
+	RevokedReason        *string
 }
 
 type CreatedSession struct {
@@ -27,4 +30,9 @@ type CreatedSession struct {
 type SessionClaims struct {
 	SessionID string
 	UserID    string
+}
+
+type SudoStatus struct {
+	Active    bool
+	ExpiresAt time.Time
 }

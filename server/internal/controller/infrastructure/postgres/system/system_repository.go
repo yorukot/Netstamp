@@ -28,12 +28,15 @@ func NewRepository(pool *pgxpool.Pool) *Repository {
 }
 
 const (
-	dataExportFormat       = "netstamp.admin.data.v2"
-	legacyDataExportFormat = "netstamp.admin.data.v1"
+	dataExportFormat         = "netstamp.admin.data.v3"
+	legacyDataExportFormatV2 = "netstamp.admin.data.v2"
+	legacyDataExportFormatV1 = "netstamp.admin.data.v1"
 )
 
 var dataExportTables = []string{
 	"users",
+	"password_credentials",
+	"user_identities",
 	"api_tokens",
 	"projects",
 	"project_members",
@@ -177,7 +180,7 @@ func (r *Repository) SetManagedUserPasswordHash(ctx context.Context, userIDValue
 		return domainsystem.ManagedUser{}, err
 	}
 	row, err := postgres.Queries(ctx, r.queries).SetManagedUserPasswordHash(ctx, sqlc.SetManagedUserPasswordHashParams{
-		ID:           userID,
+		UserID:       userID,
 		PasswordHash: passwordHash,
 	})
 	if err != nil {
@@ -187,6 +190,21 @@ func (r *Repository) SetManagedUserPasswordHash(ctx context.Context, userIDValue
 		return domainsystem.ManagedUser{}, err
 	}
 	return mapPasswordManagedUser(row), nil
+}
+
+func (r *Repository) ClearManagedUserPassword(ctx context.Context, userIDValue string) (domainsystem.ManagedUser, error) {
+	userID, err := postgres.ParseUUID(userIDValue, identity.ErrUserNotFound)
+	if err != nil {
+		return domainsystem.ManagedUser{}, err
+	}
+	row, err := postgres.Queries(ctx, r.queries).ClearManagedUserPassword(ctx, userID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return domainsystem.ManagedUser{}, identity.ErrUserNotFound
+	}
+	if err != nil {
+		return domainsystem.ManagedUser{}, err
+	}
+	return mapClearPasswordManagedUser(row), nil
 }
 
 func (r *Repository) ExportData(ctx context.Context) (domainsystem.DataExport, error) {
@@ -244,15 +262,20 @@ func (r *Repository) ImportData(ctx context.Context, export domainsystem.DataExp
 }
 
 func normalizeDataImport(export domainsystem.DataExport) (domainsystem.DataExport, error) {
-	if export.Format != dataExportFormat && export.Format != legacyDataExportFormat {
+	if export.Format != dataExportFormat && export.Format != legacyDataExportFormatV2 && export.Format != legacyDataExportFormatV1 {
 		return domainsystem.DataExport{}, domainsystem.ErrDataImportInvalid
 	}
-	if export.Format == legacyDataExportFormat {
+	if export.Format == legacyDataExportFormatV1 {
 		if export.Tables == nil {
 			return domainsystem.DataExport{}, domainsystem.ErrDataImportInvalid
 		}
 		if _, exists := export.Tables["api_tokens"]; !exists {
 			export.Tables["api_tokens"] = []domainsystem.RawDataRow{}
+		}
+	}
+	if export.Format == legacyDataExportFormatV1 || export.Format == legacyDataExportFormatV2 {
+		if err := upgradeLegacyUserCredentials(&export); err != nil {
+			return domainsystem.DataExport{}, domainsystem.ErrDataImportInvalid
 		}
 	}
 	allowed := make(map[string]struct{}, len(dataExportTables))
@@ -268,6 +291,46 @@ func normalizeDataImport(export domainsystem.DataExport) (domainsystem.DataExpor
 		}
 	}
 	return export, nil
+}
+
+func upgradeLegacyUserCredentials(export *domainsystem.DataExport) error {
+	users, ok := export.Tables["users"]
+	if !ok {
+		return domainsystem.ErrDataImportInvalid
+	}
+	credentials := make([]domainsystem.RawDataRow, 0, len(users))
+	upgradedUsers := make([]domainsystem.RawDataRow, 0, len(users))
+	for _, raw := range users {
+		var row map[string]json.RawMessage
+		if err := json.Unmarshal(raw, &row); err != nil {
+			return domainsystem.ErrDataImportInvalid
+		}
+		id, idOK := row["id"]
+		passwordHash, hashOK := row["password_hash"]
+		createdAt, createdOK := row["created_at"]
+		updatedAt, updatedOK := row["updated_at"]
+		if !idOK || !hashOK || !createdOK || !updatedOK {
+			return domainsystem.ErrDataImportInvalid
+		}
+		credential, err := json.Marshal(map[string]json.RawMessage{
+			"user_id": id, "password_hash": passwordHash, "created_at": createdAt, "updated_at": updatedAt,
+		})
+		if err != nil {
+			return domainsystem.ErrDataImportInvalid
+		}
+		delete(row, "password_hash")
+		upgraded, err := json.Marshal(row)
+		if err != nil {
+			return domainsystem.ErrDataImportInvalid
+		}
+		credentials = append(credentials, credential)
+		upgradedUsers = append(upgradedUsers, upgraded)
+	}
+	export.Tables["users"] = upgradedUsers
+	export.Tables["password_credentials"] = credentials
+	export.Tables["user_identities"] = []domainsystem.RawDataRow{}
+	export.Format = dataExportFormat
+	return nil
 }
 
 func (r *Repository) GrantFirstSystemAdminIfNone(ctx context.Context, userIDValue string) (bool, error) {
@@ -367,6 +430,7 @@ func mapManagedUser(row sqlc.ListManagedUsersRow) domainsystem.ManagedUser {
 		CreatedAt:       row.CreatedAt,
 		UpdatedAt:       row.UpdatedAt,
 		GrantedAt:       row.GrantedAt,
+		HasPassword:     row.HasPassword,
 	}
 }
 
@@ -381,6 +445,7 @@ func mapGrantedManagedUser(row sqlc.GrantSystemAdminByUserIDRow) domainsystem.Ma
 		CreatedAt:       row.CreatedAt,
 		UpdatedAt:       row.UpdatedAt,
 		GrantedAt:       &row.GrantedAt,
+		HasPassword:     row.HasPassword,
 	}
 }
 
@@ -395,6 +460,7 @@ func mapDisabledManagedUser(row sqlc.SetManagedUserDisabledAtRow) domainsystem.M
 		CreatedAt:       row.CreatedAt,
 		UpdatedAt:       row.UpdatedAt,
 		GrantedAt:       row.GrantedAt,
+		HasPassword:     row.HasPassword,
 	}
 }
 
@@ -409,7 +475,12 @@ func mapPasswordManagedUser(row sqlc.SetManagedUserPasswordHashRow) domainsystem
 		CreatedAt:       row.CreatedAt,
 		UpdatedAt:       row.UpdatedAt,
 		GrantedAt:       row.GrantedAt,
+		HasPassword:     row.HasPassword,
 	}
+}
+
+func mapClearPasswordManagedUser(row sqlc.ClearManagedUserPasswordRow) domainsystem.ManagedUser {
+	return domainsystem.ManagedUser{ID: row.ID.String(), Email: row.Email, DisplayName: row.DisplayName, EmailVerifiedAt: row.EmailVerifiedAt, DisabledAt: row.DisabledAt, IsSystemAdmin: row.IsSystemAdmin, CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt, GrantedAt: row.GrantedAt, HasPassword: row.HasPassword}
 }
 
 func mapSetting(row sqlc.SystemSetting) domainsystem.Setting {

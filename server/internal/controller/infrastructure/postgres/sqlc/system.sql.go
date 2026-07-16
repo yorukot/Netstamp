@@ -12,6 +12,61 @@ import (
 	"github.com/google/uuid"
 )
 
+const clearManagedUserPassword = `-- name: ClearManagedUserPassword :one
+WITH deleted AS (
+    DELETE FROM password_credentials
+    WHERE password_credentials.user_id = $1
+      AND EXISTS (SELECT 1 FROM user_identities WHERE user_identities.user_id = password_credentials.user_id)
+    RETURNING user_id
+)
+SELECT users.id,
+       users.email,
+       users.display_name,
+       users.email_verified_at,
+       users.disabled_at,
+       users.created_at,
+       users.updated_at,
+       false::boolean AS has_password,
+       (system_user_roles.user_id IS NOT NULL)::boolean AS is_system_admin,
+       system_user_roles.created_at AS granted_at
+FROM users
+JOIN deleted ON deleted.user_id = users.id
+LEFT JOIN system_user_roles
+       ON system_user_roles.user_id = users.id
+      AND system_user_roles.role = 'admin'
+`
+
+type ClearManagedUserPasswordRow struct {
+	ID              uuid.UUID  `json:"id"`
+	Email           string     `json:"email"`
+	DisplayName     string     `json:"display_name"`
+	EmailVerifiedAt *time.Time `json:"email_verified_at"`
+	DisabledAt      *time.Time `json:"disabled_at"`
+	CreatedAt       time.Time  `json:"created_at"`
+	UpdatedAt       time.Time  `json:"updated_at"`
+	HasPassword     bool       `json:"has_password"`
+	IsSystemAdmin   bool       `json:"is_system_admin"`
+	GrantedAt       *time.Time `json:"granted_at"`
+}
+
+func (q *Queries) ClearManagedUserPassword(ctx context.Context, id uuid.UUID) (ClearManagedUserPasswordRow, error) {
+	row := q.db.QueryRow(ctx, clearManagedUserPassword, id)
+	var i ClearManagedUserPasswordRow
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.DisplayName,
+		&i.EmailVerifiedAt,
+		&i.DisabledAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.HasPassword,
+		&i.IsSystemAdmin,
+		&i.GrantedAt,
+	)
+	return i, err
+}
+
 const countActiveSystemAdmins = `-- name: CountActiveSystemAdmins :one
 SELECT count(*)::bigint
 FROM system_user_roles
@@ -157,6 +212,7 @@ SELECT target.id,
        target.disabled_at,
        target.created_at,
        target.updated_at,
+       EXISTS(SELECT 1 FROM password_credentials WHERE user_id = target.id)::boolean AS has_password,
        true::boolean AS is_system_admin,
        system_user_roles.created_at AS granted_at
 FROM target
@@ -173,6 +229,7 @@ type GrantSystemAdminByUserIDRow struct {
 	DisabledAt      *time.Time `json:"disabled_at"`
 	CreatedAt       time.Time  `json:"created_at"`
 	UpdatedAt       time.Time  `json:"updated_at"`
+	HasPassword     bool       `json:"has_password"`
 	IsSystemAdmin   bool       `json:"is_system_admin"`
 	GrantedAt       time.Time  `json:"granted_at"`
 }
@@ -188,6 +245,7 @@ func (q *Queries) GrantSystemAdminByUserID(ctx context.Context, id uuid.UUID) (G
 		&i.DisabledAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.HasPassword,
 		&i.IsSystemAdmin,
 		&i.GrantedAt,
 	)
@@ -220,12 +278,14 @@ SELECT users.id,
        users.disabled_at,
        users.created_at,
        users.updated_at,
+       (password_credentials.user_id IS NOT NULL)::boolean AS has_password,
        (system_user_roles.user_id IS NOT NULL)::boolean AS is_system_admin,
        system_user_roles.created_at AS granted_at
 FROM users
 LEFT JOIN system_user_roles
        ON system_user_roles.user_id = users.id
       AND system_user_roles.role = 'admin'
+LEFT JOIN password_credentials ON password_credentials.user_id = users.id
 ORDER BY users.disabled_at IS NULL DESC, users.created_at ASC, users.email ASC
 `
 
@@ -237,6 +297,7 @@ type ListManagedUsersRow struct {
 	DisabledAt      *time.Time `json:"disabled_at"`
 	CreatedAt       time.Time  `json:"created_at"`
 	UpdatedAt       time.Time  `json:"updated_at"`
+	HasPassword     bool       `json:"has_password"`
 	IsSystemAdmin   bool       `json:"is_system_admin"`
 	GrantedAt       *time.Time `json:"granted_at"`
 }
@@ -258,6 +319,7 @@ func (q *Queries) ListManagedUsers(ctx context.Context) ([]ListManagedUsersRow, 
 			&i.DisabledAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.HasPassword,
 			&i.IsSystemAdmin,
 			&i.GrantedAt,
 		); err != nil {
@@ -438,6 +500,7 @@ SELECT updated.id,
        updated.disabled_at,
        updated.created_at,
        updated.updated_at,
+       EXISTS(SELECT 1 FROM password_credentials WHERE user_id = updated.id)::boolean AS has_password,
        (system_user_roles.user_id IS NOT NULL)::boolean AS is_system_admin,
        system_user_roles.created_at AS granted_at
 FROM updated
@@ -459,6 +522,7 @@ type SetManagedUserDisabledAtRow struct {
 	DisabledAt      *time.Time `json:"disabled_at"`
 	CreatedAt       time.Time  `json:"created_at"`
 	UpdatedAt       time.Time  `json:"updated_at"`
+	HasPassword     bool       `json:"has_password"`
 	IsSystemAdmin   bool       `json:"is_system_admin"`
 	GrantedAt       *time.Time `json:"granted_at"`
 }
@@ -474,6 +538,7 @@ func (q *Queries) SetManagedUserDisabledAt(ctx context.Context, arg SetManagedUs
 		&i.DisabledAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.HasPassword,
 		&i.IsSystemAdmin,
 		&i.GrantedAt,
 	)
@@ -481,36 +546,34 @@ func (q *Queries) SetManagedUserDisabledAt(ctx context.Context, arg SetManagedUs
 }
 
 const setManagedUserPasswordHash = `-- name: SetManagedUserPasswordHash :one
-WITH updated AS (
-    UPDATE users
-    SET password_hash = $2
-    WHERE id = $1
-    RETURNING id,
-              email,
-              display_name,
-              email_verified_at,
-              disabled_at,
-              created_at,
-              updated_at
+WITH credential AS (
+    INSERT INTO password_credentials (user_id, password_hash)
+    SELECT users.id, $1
+    FROM users
+    WHERE users.id = $2
+    ON CONFLICT (user_id) DO UPDATE SET password_hash = EXCLUDED.password_hash
+    RETURNING user_id
 )
-SELECT updated.id,
-       updated.email,
-       updated.display_name,
-       updated.email_verified_at,
-       updated.disabled_at,
-       updated.created_at,
-       updated.updated_at,
+SELECT users.id,
+       users.email,
+       users.display_name,
+       users.email_verified_at,
+       users.disabled_at,
+       users.created_at,
+       users.updated_at,
+       true::boolean AS has_password,
        (system_user_roles.user_id IS NOT NULL)::boolean AS is_system_admin,
        system_user_roles.created_at AS granted_at
-FROM updated
+FROM users
+JOIN credential ON credential.user_id = users.id
 LEFT JOIN system_user_roles
-       ON system_user_roles.user_id = updated.id
+       ON system_user_roles.user_id = users.id
       AND system_user_roles.role = 'admin'
 `
 
 type SetManagedUserPasswordHashParams struct {
-	ID           uuid.UUID `json:"id"`
 	PasswordHash string    `json:"password_hash"`
+	UserID       uuid.UUID `json:"user_id"`
 }
 
 type SetManagedUserPasswordHashRow struct {
@@ -521,12 +584,13 @@ type SetManagedUserPasswordHashRow struct {
 	DisabledAt      *time.Time `json:"disabled_at"`
 	CreatedAt       time.Time  `json:"created_at"`
 	UpdatedAt       time.Time  `json:"updated_at"`
+	HasPassword     bool       `json:"has_password"`
 	IsSystemAdmin   bool       `json:"is_system_admin"`
 	GrantedAt       *time.Time `json:"granted_at"`
 }
 
 func (q *Queries) SetManagedUserPasswordHash(ctx context.Context, arg SetManagedUserPasswordHashParams) (SetManagedUserPasswordHashRow, error) {
-	row := q.db.QueryRow(ctx, setManagedUserPasswordHash, arg.ID, arg.PasswordHash)
+	row := q.db.QueryRow(ctx, setManagedUserPasswordHash, arg.PasswordHash, arg.UserID)
 	var i SetManagedUserPasswordHashRow
 	err := row.Scan(
 		&i.ID,
@@ -536,6 +600,7 @@ func (q *Queries) SetManagedUserPasswordHash(ctx context.Context, arg SetManaged
 		&i.DisabledAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.HasPassword,
 		&i.IsSystemAdmin,
 		&i.GrantedAt,
 	)

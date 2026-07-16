@@ -7,7 +7,10 @@ INSERT INTO auth_sessions (
     last_used_at,
     idle_expires_at,
     absolute_expires_at,
-    user_agent
+    user_agent,
+    authenticated_at,
+    authentication_method,
+    identity_id
 )
 VALUES (
     sqlc.arg(user_id),
@@ -17,7 +20,10 @@ VALUES (
     sqlc.arg(last_used_at),
     sqlc.arg(idle_expires_at),
     sqlc.arg(absolute_expires_at),
-    sqlc.arg(user_agent)
+    sqlc.arg(user_agent),
+    sqlc.arg(authenticated_at),
+    sqlc.arg(authentication_method),
+    sqlc.narg(identity_id)
 )
 RETURNING id,
           user_id,
@@ -29,7 +35,10 @@ RETURNING id,
           absolute_expires_at,
           revoked_at,
           revoked_reason,
-          user_agent;
+          user_agent,
+          authenticated_at,
+          authentication_method,
+          identity_id;
 
 -- name: GetActiveAuthSessionByTokenHash :one
 SELECT auth_sessions.id,
@@ -42,7 +51,10 @@ SELECT auth_sessions.id,
        auth_sessions.absolute_expires_at,
        auth_sessions.revoked_at,
        auth_sessions.revoked_reason,
-       auth_sessions.user_agent
+       auth_sessions.user_agent,
+       auth_sessions.authenticated_at,
+       auth_sessions.authentication_method,
+       auth_sessions.identity_id
 FROM auth_sessions
 JOIN users ON users.id = auth_sessions.user_id
 WHERE auth_sessions.token_hash = sqlc.arg(token_hash)
@@ -62,7 +74,10 @@ SELECT auth_sessions.id,
        auth_sessions.absolute_expires_at,
        auth_sessions.revoked_at,
        auth_sessions.revoked_reason,
-       auth_sessions.user_agent
+       auth_sessions.user_agent,
+       auth_sessions.authenticated_at,
+       auth_sessions.authentication_method,
+       auth_sessions.identity_id
 FROM auth_sessions
 JOIN users ON users.id = auth_sessions.user_id
 WHERE auth_sessions.id = sqlc.arg(id)
@@ -87,6 +102,16 @@ WHERE id = sqlc.arg(id)
   AND revoked_at IS NULL
   AND absolute_expires_at > sqlc.arg(last_used_at);
 
+-- name: UpdateAuthSessionAuthentication :execrows
+UPDATE auth_sessions
+SET authenticated_at = sqlc.arg(authenticated_at),
+    authentication_method = sqlc.arg(authentication_method),
+    identity_id = sqlc.narg(identity_id)
+WHERE id = sqlc.arg(id)
+  AND revoked_at IS NULL
+  AND idle_expires_at > sqlc.arg(authenticated_at)
+  AND absolute_expires_at > sqlc.arg(authenticated_at);
+
 -- name: RevokeAuthSessionByTokenHash :exec
 UPDATE auth_sessions
 SET revoked_at = sqlc.arg(revoked_at),
@@ -105,7 +130,10 @@ SELECT auth_sessions.id,
        auth_sessions.absolute_expires_at,
        auth_sessions.revoked_at,
        auth_sessions.revoked_reason,
-       auth_sessions.user_agent
+       auth_sessions.user_agent,
+       auth_sessions.authenticated_at,
+       auth_sessions.authentication_method,
+       auth_sessions.identity_id
 FROM auth_sessions
 JOIN users ON users.id = auth_sessions.user_id
 WHERE auth_sessions.user_id = sqlc.arg(user_id)
@@ -131,4 +159,12 @@ UPDATE auth_sessions
 SET revoked_at = sqlc.arg(revoked_at),
     revoked_reason = sqlc.arg(revoked_reason)
 WHERE user_id = sqlc.arg(user_id)
+  AND revoked_at IS NULL;
+
+-- name: RevokeAuthSessionsForUserExcept :exec
+UPDATE auth_sessions
+SET revoked_at = sqlc.arg(revoked_at),
+    revoked_reason = sqlc.arg(revoked_reason)
+WHERE user_id = sqlc.arg(user_id)
+  AND id <> sqlc.arg(excluded_session_id)
   AND revoked_at IS NULL;

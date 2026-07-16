@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.opentelemetry.io/otel"
@@ -34,14 +35,17 @@ func (r *Repository) CreateSession(ctx context.Context, input identity.AuthSessi
 	}
 
 	row, err := postgres.Queries(ctx, r.queries).CreateAuthSession(ctx, sqlc.CreateAuthSessionParams{
-		UserID:            userID,
-		TokenHash:         input.TokenHash,
-		CsrfTokenHash:     input.CSRFTokenHash,
-		UserAgent:         input.UserAgent,
-		CreatedAt:         input.CreatedAt,
-		LastUsedAt:        input.LastUsedAt,
-		IdleExpiresAt:     input.IdleExpiresAt,
-		AbsoluteExpiresAt: input.AbsoluteExpiresAt,
+		UserID:               userID,
+		TokenHash:            input.TokenHash,
+		CsrfTokenHash:        input.CSRFTokenHash,
+		UserAgent:            input.UserAgent,
+		CreatedAt:            input.CreatedAt,
+		LastUsedAt:           input.LastUsedAt,
+		IdleExpiresAt:        input.IdleExpiresAt,
+		AbsoluteExpiresAt:    input.AbsoluteExpiresAt,
+		AuthenticatedAt:      input.AuthenticatedAt,
+		AuthenticationMethod: input.AuthenticationMethod,
+		IdentityID:           parseOptionalUUID(input.IdentityID),
 	})
 	if err != nil {
 		postgres.RecordDBSpanError(span, err)
@@ -49,6 +53,26 @@ func (r *Repository) CreateSession(ctx context.Context, input identity.AuthSessi
 	}
 
 	return mapAuthSession(row), nil
+}
+
+func (r *Repository) UpdateSessionAuthentication(ctx context.Context, sessionID string, authenticatedAt time.Time, method string, identityID *string) error {
+	id, err := postgres.ParseUUID(sessionID, identity.ErrSessionNotFound)
+	if err != nil {
+		return err
+	}
+	rows, err := postgres.Queries(ctx, r.queries).UpdateAuthSessionAuthentication(ctx, sqlc.UpdateAuthSessionAuthenticationParams{
+		ID:                   id,
+		AuthenticatedAt:      authenticatedAt,
+		AuthenticationMethod: method,
+		IdentityID:           parseOptionalUUID(identityID),
+	})
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return identity.ErrSessionNotFound
+	}
+	return nil
 }
 
 func (r *Repository) GetActiveSessionByTokenHash(ctx context.Context, tokenHash []byte, now time.Time) (identity.AuthSession, error) {
@@ -222,18 +246,51 @@ func (r *Repository) RevokeSessionsForUser(ctx context.Context, userIDValue stri
 	return nil
 }
 
-func mapAuthSession(row sqlc.AuthSession) identity.AuthSession {
-	return identity.AuthSession{
-		ID:                row.ID.String(),
-		UserID:            row.UserID.String(),
-		TokenHash:         row.TokenHash,
-		CSRFTokenHash:     row.CsrfTokenHash,
-		UserAgent:         row.UserAgent,
-		CreatedAt:         row.CreatedAt,
-		LastUsedAt:        row.LastUsedAt,
-		IdleExpiresAt:     row.IdleExpiresAt,
-		AbsoluteExpiresAt: row.AbsoluteExpiresAt,
-		RevokedAt:         row.RevokedAt,
-		RevokedReason:     row.RevokedReason,
+func (r *Repository) RevokeSessionsForUserExcept(ctx context.Context, userIDValue, sessionIDValue string, revokedAt time.Time, reason string) error {
+	userID, err := postgres.ParseUUID(userIDValue, identity.ErrUserNotFound)
+	if err != nil {
+		return err
 	}
+	sessionID, err := postgres.ParseUUID(sessionIDValue, identity.ErrSessionNotFound)
+	if err != nil {
+		return err
+	}
+	return postgres.Queries(ctx, r.queries).RevokeAuthSessionsForUserExcept(ctx, sqlc.RevokeAuthSessionsForUserExceptParams{
+		UserID: userID, ExcludedSessionID: sessionID, RevokedAt: &revokedAt, RevokedReason: &reason,
+	})
+}
+
+func mapAuthSession(row sqlc.AuthSession) identity.AuthSession {
+	var identityID *string
+	if row.IdentityID != nil {
+		value := row.IdentityID.String()
+		identityID = &value
+	}
+	return identity.AuthSession{
+		ID:                   row.ID.String(),
+		UserID:               row.UserID.String(),
+		TokenHash:            row.TokenHash,
+		CSRFTokenHash:        row.CsrfTokenHash,
+		UserAgent:            row.UserAgent,
+		AuthenticatedAt:      row.AuthenticatedAt,
+		AuthenticationMethod: row.AuthenticationMethod,
+		IdentityID:           identityID,
+		CreatedAt:            row.CreatedAt,
+		LastUsedAt:           row.LastUsedAt,
+		IdleExpiresAt:        row.IdleExpiresAt,
+		AbsoluteExpiresAt:    row.AbsoluteExpiresAt,
+		RevokedAt:            row.RevokedAt,
+		RevokedReason:        row.RevokedReason,
+	}
+}
+
+func parseOptionalUUID(value *string) *uuid.UUID {
+	if value == nil || *value == "" {
+		return nil
+	}
+	parsed, err := uuid.Parse(*value)
+	if err != nil {
+		return nil
+	}
+	return &parsed
 }

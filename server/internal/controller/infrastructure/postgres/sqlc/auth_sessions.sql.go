@@ -21,7 +21,10 @@ INSERT INTO auth_sessions (
     last_used_at,
     idle_expires_at,
     absolute_expires_at,
-    user_agent
+    user_agent,
+    authenticated_at,
+    authentication_method,
+    identity_id
 )
 VALUES (
     $1,
@@ -31,7 +34,10 @@ VALUES (
     $5,
     $6,
     $7,
-    $8
+    $8,
+    $9,
+    $10,
+    $11
 )
 RETURNING id,
           user_id,
@@ -43,18 +49,24 @@ RETURNING id,
           absolute_expires_at,
           revoked_at,
           revoked_reason,
-          user_agent
+          user_agent,
+          authenticated_at,
+          authentication_method,
+          identity_id
 `
 
 type CreateAuthSessionParams struct {
-	UserID            uuid.UUID `json:"user_id"`
-	TokenHash         []byte    `json:"token_hash"`
-	CsrfTokenHash     []byte    `json:"csrf_token_hash"`
-	CreatedAt         time.Time `json:"created_at"`
-	LastUsedAt        time.Time `json:"last_used_at"`
-	IdleExpiresAt     time.Time `json:"idle_expires_at"`
-	AbsoluteExpiresAt time.Time `json:"absolute_expires_at"`
-	UserAgent         string    `json:"user_agent"`
+	UserID               uuid.UUID  `json:"user_id"`
+	TokenHash            []byte     `json:"token_hash"`
+	CsrfTokenHash        []byte     `json:"csrf_token_hash"`
+	CreatedAt            time.Time  `json:"created_at"`
+	LastUsedAt           time.Time  `json:"last_used_at"`
+	IdleExpiresAt        time.Time  `json:"idle_expires_at"`
+	AbsoluteExpiresAt    time.Time  `json:"absolute_expires_at"`
+	UserAgent            string     `json:"user_agent"`
+	AuthenticatedAt      time.Time  `json:"authenticated_at"`
+	AuthenticationMethod string     `json:"authentication_method"`
+	IdentityID           *uuid.UUID `json:"identity_id"`
 }
 
 func (q *Queries) CreateAuthSession(ctx context.Context, arg CreateAuthSessionParams) (AuthSession, error) {
@@ -67,6 +79,9 @@ func (q *Queries) CreateAuthSession(ctx context.Context, arg CreateAuthSessionPa
 		arg.IdleExpiresAt,
 		arg.AbsoluteExpiresAt,
 		arg.UserAgent,
+		arg.AuthenticatedAt,
+		arg.AuthenticationMethod,
+		arg.IdentityID,
 	)
 	var i AuthSession
 	err := row.Scan(
@@ -81,6 +96,9 @@ func (q *Queries) CreateAuthSession(ctx context.Context, arg CreateAuthSessionPa
 		&i.RevokedAt,
 		&i.RevokedReason,
 		&i.UserAgent,
+		&i.AuthenticatedAt,
+		&i.AuthenticationMethod,
+		&i.IdentityID,
 	)
 	return i, err
 }
@@ -96,7 +114,10 @@ SELECT auth_sessions.id,
        auth_sessions.absolute_expires_at,
        auth_sessions.revoked_at,
        auth_sessions.revoked_reason,
-       auth_sessions.user_agent
+       auth_sessions.user_agent,
+       auth_sessions.authenticated_at,
+       auth_sessions.authentication_method,
+       auth_sessions.identity_id
 FROM auth_sessions
 JOIN users ON users.id = auth_sessions.user_id
 WHERE auth_sessions.id = $1
@@ -126,6 +147,9 @@ func (q *Queries) GetActiveAuthSessionByID(ctx context.Context, arg GetActiveAut
 		&i.RevokedAt,
 		&i.RevokedReason,
 		&i.UserAgent,
+		&i.AuthenticatedAt,
+		&i.AuthenticationMethod,
+		&i.IdentityID,
 	)
 	return i, err
 }
@@ -141,7 +165,10 @@ SELECT auth_sessions.id,
        auth_sessions.absolute_expires_at,
        auth_sessions.revoked_at,
        auth_sessions.revoked_reason,
-       auth_sessions.user_agent
+       auth_sessions.user_agent,
+       auth_sessions.authenticated_at,
+       auth_sessions.authentication_method,
+       auth_sessions.identity_id
 FROM auth_sessions
 JOIN users ON users.id = auth_sessions.user_id
 WHERE auth_sessions.token_hash = $1
@@ -171,6 +198,9 @@ func (q *Queries) GetActiveAuthSessionByTokenHash(ctx context.Context, arg GetAc
 		&i.RevokedAt,
 		&i.RevokedReason,
 		&i.UserAgent,
+		&i.AuthenticatedAt,
+		&i.AuthenticationMethod,
+		&i.IdentityID,
 	)
 	return i, err
 }
@@ -186,7 +216,10 @@ SELECT auth_sessions.id,
        auth_sessions.absolute_expires_at,
        auth_sessions.revoked_at,
        auth_sessions.revoked_reason,
-       auth_sessions.user_agent
+       auth_sessions.user_agent,
+       auth_sessions.authenticated_at,
+       auth_sessions.authentication_method,
+       auth_sessions.identity_id
 FROM auth_sessions
 JOIN users ON users.id = auth_sessions.user_id
 WHERE auth_sessions.user_id = $1
@@ -223,6 +256,9 @@ func (q *Queries) ListActiveAuthSessionsForUser(ctx context.Context, arg ListAct
 			&i.RevokedAt,
 			&i.RevokedReason,
 			&i.UserAgent,
+			&i.AuthenticatedAt,
+			&i.AuthenticationMethod,
+			&i.IdentityID,
 		); err != nil {
 			return nil, err
 		}
@@ -303,6 +339,32 @@ func (q *Queries) RevokeAuthSessionsForUser(ctx context.Context, arg RevokeAuthS
 	return err
 }
 
+const revokeAuthSessionsForUserExcept = `-- name: RevokeAuthSessionsForUserExcept :exec
+UPDATE auth_sessions
+SET revoked_at = $1,
+    revoked_reason = $2
+WHERE user_id = $3
+  AND id <> $4
+  AND revoked_at IS NULL
+`
+
+type RevokeAuthSessionsForUserExceptParams struct {
+	RevokedAt         *time.Time `json:"revoked_at"`
+	RevokedReason     *string    `json:"revoked_reason"`
+	UserID            uuid.UUID  `json:"user_id"`
+	ExcludedSessionID uuid.UUID  `json:"excluded_session_id"`
+}
+
+func (q *Queries) RevokeAuthSessionsForUserExcept(ctx context.Context, arg RevokeAuthSessionsForUserExceptParams) error {
+	_, err := q.db.Exec(ctx, revokeAuthSessionsForUserExcept,
+		arg.RevokedAt,
+		arg.RevokedReason,
+		arg.UserID,
+		arg.ExcludedSessionID,
+	)
+	return err
+}
+
 const touchAuthSession = `-- name: TouchAuthSession :exec
 UPDATE auth_sessions
 SET last_used_at = $1,
@@ -321,6 +383,37 @@ type TouchAuthSessionParams struct {
 func (q *Queries) TouchAuthSession(ctx context.Context, arg TouchAuthSessionParams) error {
 	_, err := q.db.Exec(ctx, touchAuthSession, arg.LastUsedAt, arg.IdleExpiresAt, arg.ID)
 	return err
+}
+
+const updateAuthSessionAuthentication = `-- name: UpdateAuthSessionAuthentication :execrows
+UPDATE auth_sessions
+SET authenticated_at = $1,
+    authentication_method = $2,
+    identity_id = $3
+WHERE id = $4
+  AND revoked_at IS NULL
+  AND idle_expires_at > $1
+  AND absolute_expires_at > $1
+`
+
+type UpdateAuthSessionAuthenticationParams struct {
+	AuthenticatedAt      time.Time  `json:"authenticated_at"`
+	AuthenticationMethod string     `json:"authentication_method"`
+	IdentityID           *uuid.UUID `json:"identity_id"`
+	ID                   uuid.UUID  `json:"id"`
+}
+
+func (q *Queries) UpdateAuthSessionAuthentication(ctx context.Context, arg UpdateAuthSessionAuthenticationParams) (int64, error) {
+	result, err := q.db.Exec(ctx, updateAuthSessionAuthentication,
+		arg.AuthenticatedAt,
+		arg.AuthenticationMethod,
+		arg.IdentityID,
+		arg.ID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const updateAuthSessionCSRFTokenHash = `-- name: UpdateAuthSessionCSRFTokenHash :exec

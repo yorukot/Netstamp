@@ -31,12 +31,14 @@ SELECT users.id,
        users.disabled_at,
        users.created_at,
        users.updated_at,
+       (password_credentials.user_id IS NOT NULL)::boolean AS has_password,
        (system_user_roles.user_id IS NOT NULL)::boolean AS is_system_admin,
        system_user_roles.created_at AS granted_at
 FROM users
 LEFT JOIN system_user_roles
        ON system_user_roles.user_id = users.id
       AND system_user_roles.role = 'admin'
+LEFT JOIN password_credentials ON password_credentials.user_id = users.id
 ORDER BY users.disabled_at IS NULL DESC, users.created_at ASC, users.email ASC;
 
 -- name: GrantSystemAdminByEmail :one
@@ -99,6 +101,7 @@ SELECT target.id,
        target.disabled_at,
        target.created_at,
        target.updated_at,
+       EXISTS(SELECT 1 FROM password_credentials WHERE user_id = target.id)::boolean AS has_password,
        true::boolean AS is_system_admin,
        system_user_roles.created_at AS granted_at
 FROM target
@@ -168,6 +171,7 @@ SELECT updated.id,
        updated.disabled_at,
        updated.created_at,
        updated.updated_at,
+       EXISTS(SELECT 1 FROM password_credentials WHERE user_id = updated.id)::boolean AS has_password,
        (system_user_roles.user_id IS NOT NULL)::boolean AS is_system_admin,
        system_user_roles.created_at AS granted_at
 FROM updated
@@ -176,30 +180,51 @@ LEFT JOIN system_user_roles
       AND system_user_roles.role = 'admin';
 
 -- name: SetManagedUserPasswordHash :one
-WITH updated AS (
-    UPDATE users
-    SET password_hash = $2
-    WHERE id = $1
-    RETURNING id,
-              email,
-              display_name,
-              email_verified_at,
-              disabled_at,
-              created_at,
-              updated_at
+WITH credential AS (
+    INSERT INTO password_credentials (user_id, password_hash)
+    SELECT users.id, sqlc.arg(password_hash)
+    FROM users
+    WHERE users.id = sqlc.arg(user_id)
+    ON CONFLICT (user_id) DO UPDATE SET password_hash = EXCLUDED.password_hash
+    RETURNING user_id
 )
-SELECT updated.id,
-       updated.email,
-       updated.display_name,
-       updated.email_verified_at,
-       updated.disabled_at,
-       updated.created_at,
-       updated.updated_at,
+SELECT users.id,
+       users.email,
+       users.display_name,
+       users.email_verified_at,
+       users.disabled_at,
+       users.created_at,
+       users.updated_at,
+       true::boolean AS has_password,
        (system_user_roles.user_id IS NOT NULL)::boolean AS is_system_admin,
        system_user_roles.created_at AS granted_at
-FROM updated
+FROM users
+JOIN credential ON credential.user_id = users.id
 LEFT JOIN system_user_roles
-       ON system_user_roles.user_id = updated.id
+       ON system_user_roles.user_id = users.id
+      AND system_user_roles.role = 'admin';
+
+-- name: ClearManagedUserPassword :one
+WITH deleted AS (
+    DELETE FROM password_credentials
+    WHERE password_credentials.user_id = sqlc.arg(id)
+      AND EXISTS (SELECT 1 FROM user_identities WHERE user_identities.user_id = password_credentials.user_id)
+    RETURNING user_id
+)
+SELECT users.id,
+       users.email,
+       users.display_name,
+       users.email_verified_at,
+       users.disabled_at,
+       users.created_at,
+       users.updated_at,
+       false::boolean AS has_password,
+       (system_user_roles.user_id IS NOT NULL)::boolean AS is_system_admin,
+       system_user_roles.created_at AS granted_at
+FROM users
+JOIN deleted ON deleted.user_id = users.id
+LEFT JOIN system_user_roles
+       ON system_user_roles.user_id = users.id
       AND system_user_roles.role = 'admin';
 
 -- name: GrantFirstSystemAdminIfNone :one

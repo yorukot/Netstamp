@@ -1109,17 +1109,20 @@ type AssignmentRefreshJob struct {
 }
 
 type AuthSession struct {
-	ID                uuid.UUID  `json:"id"`
-	UserID            uuid.UUID  `json:"user_id"`
-	TokenHash         []byte     `json:"token_hash"`
-	CsrfTokenHash     []byte     `json:"csrf_token_hash"`
-	CreatedAt         time.Time  `json:"created_at"`
-	LastUsedAt        time.Time  `json:"last_used_at"`
-	IdleExpiresAt     time.Time  `json:"idle_expires_at"`
-	AbsoluteExpiresAt time.Time  `json:"absolute_expires_at"`
-	RevokedAt         *time.Time `json:"revoked_at"`
-	RevokedReason     *string    `json:"revoked_reason"`
-	UserAgent         string     `json:"user_agent"`
+	ID                   uuid.UUID  `json:"id"`
+	UserID               uuid.UUID  `json:"user_id"`
+	TokenHash            []byte     `json:"token_hash"`
+	CsrfTokenHash        []byte     `json:"csrf_token_hash"`
+	CreatedAt            time.Time  `json:"created_at"`
+	LastUsedAt           time.Time  `json:"last_used_at"`
+	IdleExpiresAt        time.Time  `json:"idle_expires_at"`
+	AbsoluteExpiresAt    time.Time  `json:"absolute_expires_at"`
+	RevokedAt            *time.Time `json:"revoked_at"`
+	RevokedReason        *string    `json:"revoked_reason"`
+	UserAgent            string     `json:"user_agent"`
+	AuthenticatedAt      time.Time  `json:"authenticated_at"`
+	AuthenticationMethod string     `json:"authentication_method"`
+	IdentityID           *uuid.UUID `json:"identity_id"`
 }
 
 type Check struct {
@@ -1270,6 +1273,27 @@ type NotificationOutbox struct {
 	DedupeKey        string                   `json:"dedupe_key"`
 	CreatedAt        time.Time                `json:"created_at"`
 	UpdatedAt        time.Time                `json:"updated_at"`
+}
+
+type OidcAuthFlow struct {
+	ID               uuid.UUID  `json:"id"`
+	StateHash        []byte     `json:"state_hash"`
+	BrowserTokenHash []byte     `json:"browser_token_hash"`
+	Nonce            string     `json:"nonce"`
+	PkceVerifier     string     `json:"pkce_verifier"`
+	Intent           string     `json:"intent"`
+	SessionID        *uuid.UUID `json:"session_id"`
+	ReturnTo         string     `json:"return_to"`
+	CreatedAt        time.Time  `json:"created_at"`
+	ExpiresAt        time.Time  `json:"expires_at"`
+	UsedAt           *time.Time `json:"used_at"`
+}
+
+type PasswordCredential struct {
+	UserID       uuid.UUID `json:"user_id"`
+	PasswordHash string    `json:"password_hash"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
 }
 
 type PasswordResetToken struct {
@@ -1583,10 +1607,23 @@ type TracerouteSampledRuns1m struct {
 type User struct {
 	ID              uuid.UUID  `json:"id"`
 	Email           string     `json:"email"`
-	PasswordHash    string     `json:"password_hash"`
 	DisplayName     string     `json:"display_name"`
 	CreatedAt       time.Time  `json:"created_at"`
 	UpdatedAt       time.Time  `json:"updated_at"`
 	EmailVerifiedAt *time.Time `json:"email_verified_at"`
 	DisabledAt      *time.Time `json:"disabled_at"`
+}
+
+type UserIdentity struct {
+	ID            uuid.UUID  `json:"id"`
+	UserID        uuid.UUID  `json:"user_id"`
+	Provider      string     `json:"provider"`
+	Issuer        string     `json:"issuer"`
+	Subject       string     `json:"subject"`
+	Email         *string    `json:"email"`
+	EmailVerified bool       `json:"email_verified"`
+	DisplayName   *string    `json:"display_name"`
+	CreatedAt     time.Time  `json:"created_at"`
+	UpdatedAt     time.Time  `json:"updated_at"`
+	LastLoginAt   *time.Time `json:"last_login_at"`
 }

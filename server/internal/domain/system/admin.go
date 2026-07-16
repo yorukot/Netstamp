@@ -26,6 +26,7 @@ type ManagedUser struct {
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
 	GrantedAt       *time.Time
+	HasPassword     bool
 }
 
 type AdminRevokeResult struct {
