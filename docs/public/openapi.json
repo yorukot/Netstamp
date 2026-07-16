@@ -9869,7 +9869,7 @@
 			},
 			"AlertRule": {
 				"type": "object",
-				"required": ["id", "name", "enabled", "severity", "scope", "condition", "cooldownSeconds", "notificationIds", "createdAt", "updatedAt"],
+				"required": ["id", "name", "enabled", "severity", "scope", "condition", "triggerAfterSeconds", "cooldownSeconds", "notificationIds", "createdAt", "updatedAt"],
 				"properties": {
 					"id": {
 						"$ref": "#/components/schemas/uuid"
@@ -9896,6 +9896,13 @@
 					},
 					"condition": {
 						"$ref": "#/components/schemas/AlertCondition"
+					},
+					"triggerAfterSeconds": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 60,
+						"maximum": 86400,
+						"description": "How long the condition must remain firing before an incident opens. Values must represent whole minutes."
 					},
 					"cooldownSeconds": {
 						"type": "integer",
@@ -9938,6 +9945,7 @@
 							"windowSeconds": 300,
 							"minSamples": 3
 						},
+						"triggerAfterSeconds": 60,
 						"cooldownSeconds": 900,
 						"notificationIds": ["88888888-8888-8888-8888-888888888888"],
 						"createdAt": "2026-06-14T09:00:00Z",
@@ -9988,6 +9996,7 @@
 								"windowSeconds": 300,
 								"minSamples": 3
 							},
+							"triggerAfterSeconds": 60,
 							"cooldownSeconds": 900,
 							"notificationIds": [],
 							"createdAt": "2026-06-14T09:00:00Z",
@@ -10551,6 +10560,14 @@
 					"condition": {
 						"$ref": "#/components/schemas/AlertCondition"
 					},
+					"triggerAfterSeconds": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 60,
+						"maximum": 86400,
+						"description": "How long the condition must remain firing before an incident opens. Values must represent whole minutes.",
+						"default": 60
+					},
 					"cooldownSeconds": {
 						"type": "integer",
 						"format": "int32",
@@ -10582,6 +10599,7 @@
 							"windowSeconds": 300,
 							"minSamples": 3
 						},
+						"triggerAfterSeconds": 60,
 						"cooldownSeconds": 900,
 						"notificationIds": ["88888888-8888-8888-8888-888888888888"]
 					}
@@ -15342,6 +15360,14 @@
 					"condition": {
 						"$ref": "#/components/schemas/AlertCondition"
 					},
+					"triggerAfterSeconds": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 60,
+						"maximum": 86400,
+						"description": "How long the condition must remain firing before an incident opens. Values must represent whole minutes.",
+						"default": 60
+					},
 					"cooldownSeconds": {
 						"type": "integer",
 						"format": "int32",
@@ -15374,6 +15400,7 @@
 							"windowSeconds": 300,
 							"minSamples": 3
 						},
+						"triggerAfterSeconds": 60,
 						"cooldownSeconds": 900,
 						"notificationIds": ["88888888-8888-8888-8888-888888888888"]
 					}

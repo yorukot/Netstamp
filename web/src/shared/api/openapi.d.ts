@@ -1852,6 +1852,7 @@ export interface components {
 		 *         "windowSeconds": 300,
 		 *         "minSamples": 3
 		 *       },
+		 *       "triggerAfterSeconds": 60,
 		 *       "cooldownSeconds": 900,
 		 *       "notificationIds": [
 		 *         "88888888-8888-8888-8888-888888888888"
@@ -1869,6 +1870,11 @@ export interface components {
 			severity: "info" | "warning" | "critical";
 			scope: components["schemas"]["AlertRuleScope"];
 			condition: components["schemas"]["AlertCondition"];
+			/**
+			 * Format: int32
+			 * @description How long the condition must remain firing before an incident opens. Values must represent whole minutes.
+			 */
+			triggerAfterSeconds: number;
 			/** Format: int32 */
 			cooldownSeconds: number;
 			notificationIds: components["schemas"]["uuid"][];
@@ -1903,6 +1909,7 @@ export interface components {
 		 *           "windowSeconds": 300,
 		 *           "minSamples": 3
 		 *         },
+		 *         "triggerAfterSeconds": 60,
 		 *         "cooldownSeconds": 900,
 		 *         "notificationIds": [],
 		 *         "createdAt": "2026-06-14T09:00:00Z",
@@ -2263,6 +2270,7 @@ export interface components {
 		 *         "windowSeconds": 300,
 		 *         "minSamples": 3
 		 *       },
+		 *       "triggerAfterSeconds": 60,
 		 *       "cooldownSeconds": 900,
 		 *       "notificationIds": [
 		 *         "88888888-8888-8888-8888-888888888888"
@@ -2277,6 +2285,12 @@ export interface components {
 			severity: "info" | "warning" | "critical";
 			scope: components["schemas"]["AlertRuleScope"];
 			condition: components["schemas"]["AlertCondition"];
+			/**
+			 * Format: int32
+			 * @description How long the condition must remain firing before an incident opens. Values must represent whole minutes.
+			 * @default 60
+			 */
+			triggerAfterSeconds: number;
 			/**
 			 * Format: int32
 			 * @default 900
@@ -4875,6 +4889,7 @@ export interface components {
 		 *         "windowSeconds": 300,
 		 *         "minSamples": 3
 		 *       },
+		 *       "triggerAfterSeconds": 60,
 		 *       "cooldownSeconds": 900,
 		 *       "notificationIds": [
 		 *         "88888888-8888-8888-8888-888888888888"
@@ -4889,6 +4904,12 @@ export interface components {
 			severity: "info" | "warning" | "critical";
 			scope: components["schemas"]["AlertRuleScope"];
 			condition: components["schemas"]["AlertCondition"];
+			/**
+			 * Format: int32
+			 * @description How long the condition must remain firing before an incident opens. Values must represent whole minutes.
+			 * @default 60
+			 */
+			triggerAfterSeconds: number;
 			/**
 			 * Format: int32
 			 * @default 900

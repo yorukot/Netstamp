@@ -94,6 +94,7 @@ model AlertCondition {
 	severity: "critical",
 	scope: #{ checkType: "ping", probeId: "33333333-3333-3333-3333-333333333333", checkId: "44444444-4444-4444-4444-444444444444" },
 	condition: #{ type: "metric_threshold", metric: "ping.loss_percent", operator: "gte", threshold: 10, windowSeconds: 300, minSamples: 3 },
+	triggerAfterSeconds: 60,
 	cooldownSeconds: 900,
 	notificationIds: #["88888888-8888-8888-8888-888888888888"],
 	createdAt: utcDateTime.fromISO("2026-06-14T09:00:00Z"),
@@ -115,6 +116,11 @@ model AlertRule {
 	scope: AlertRuleScope;
 	condition: AlertCondition;
 
+	@doc("How long the condition must remain firing before an incident opens. Values must represent whole minutes.")
+	@minValue(60)
+	@maxValue(86400)
+	triggerAfterSeconds: int32;
+
 	@minValue(60)
 	@maxValue(86400)
 	cooldownSeconds: int32;
@@ -132,6 +138,7 @@ model AlertRule {
 		severity: "critical",
 		scope: #{ checkType: "ping" },
 		condition: #{ type: "metric_threshold", metric: "ping.loss_percent", operator: "gte", threshold: 10, windowSeconds: 300, minSamples: 3 },
+		triggerAfterSeconds: 60,
 		cooldownSeconds: 900,
 		notificationIds: #[],
 		createdAt: utcDateTime.fromISO("2026-06-14T09:00:00Z"),
@@ -154,6 +161,7 @@ model AlertRuleListResponse {
 	severity: "critical",
 	scope: #{ checkType: "ping" },
 	condition: #{ type: "metric_threshold", metric: "ping.loss_percent", operator: "gte", threshold: 10, windowSeconds: 300, minSamples: 3 },
+	triggerAfterSeconds: 60,
 	cooldownSeconds: 900,
 	notificationIds: #["88888888-8888-8888-8888-888888888888"],
 })
@@ -170,6 +178,11 @@ model CreateAlertRuleRequest {
 	severity: AlertSeverity;
 	scope: AlertRuleScope;
 	condition: AlertCondition;
+
+	@doc("How long the condition must remain firing before an incident opens. Values must represent whole minutes.")
+	@minValue(60)
+	@maxValue(86400)
+	triggerAfterSeconds?: int32 = 60;
 
 	@minValue(60)
 	@maxValue(86400)
