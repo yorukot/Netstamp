@@ -15,6 +15,7 @@ type Service struct {
 	systemAdmin             SystemAdminRepository
 	hasher                  PasswordHasher
 	sessions                SessionManager
+	apiTokens               APITokenRevoker
 	events                  SecurityEventRecorder
 	resets                  PasswordResetRepository
 	resetTokens             PasswordResetTokenManager
@@ -59,6 +60,8 @@ func (s *Service) ConfigurePasswordReset(resets PasswordResetRepository, tokens 
 func (s *Service) ConfigureSystemAdmin(repo SystemAdminRepository) {
 	s.systemAdmin = repo
 }
+
+func (s *Service) ConfigureAPITokens(revoker APITokenRevoker) { s.apiTokens = revoker }
 
 func (s *Service) ConfigureEmailVerification(verifications EmailVerificationRepository, tokens EmailVerificationTokenManager, mailer EmailVerificationMailer, cfg EmailVerificationConfig) {
 	s.emailVerifications = verifications
@@ -337,6 +340,11 @@ func (s *Service) ConfirmPasswordReset(ctx context.Context, input ConfirmPasswor
 		}
 		if s.sessions != nil {
 			if revokeErr := s.sessions.RevokeUserSessions(ctx, token.UserID, "password_reset"); revokeErr != nil {
+				return revokeErr
+			}
+		}
+		if s.apiTokens != nil {
+			if revokeErr := s.apiTokens.RevokeUserTokens(ctx, token.UserID, "password_reset"); revokeErr != nil {
 				return revokeErr
 			}
 		}

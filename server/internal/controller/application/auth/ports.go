@@ -49,6 +49,10 @@ type SessionManager interface {
 	RevokeUserSessions(ctx context.Context, userID, reason string) error
 }
 
+type APITokenRevoker interface {
+	RevokeUserTokens(ctx context.Context, userID, reason string) error
+}
+
 type PasswordResetTokenManager interface {
 	Generate(ctx context.Context) (string, error)
 	Hash(value string) string

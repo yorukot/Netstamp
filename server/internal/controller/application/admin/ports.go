@@ -23,6 +23,10 @@ type SessionRepository interface {
 	RevokeUserSessions(ctx context.Context, userID, reason string) error
 }
 
+type APITokenRevoker interface {
+	RevokeUserTokens(ctx context.Context, userID, reason string) error
+}
+
 type SecretCipher interface {
 	Encrypt(plaintext string) (ciphertext, nonce []byte, err error)
 	Decrypt(ciphertext, nonce []byte) (string, error)

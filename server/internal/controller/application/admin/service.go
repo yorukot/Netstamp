@@ -10,11 +10,12 @@ import (
 )
 
 type Service struct {
-	repo     Repository
-	sessions SessionRepository
-	cipher   SecretCipher
-	hasher   PasswordHasher
-	defaults Defaults
+	repo      Repository
+	sessions  SessionRepository
+	apiTokens APITokenRevoker
+	cipher    SecretCipher
+	hasher    PasswordHasher
+	defaults  Defaults
 }
 
 func NewService(repo Repository, cipher SecretCipher, defaults Defaults, hashers ...PasswordHasher) *Service {
@@ -38,6 +39,8 @@ func NewService(repo Repository, cipher SecretCipher, defaults Defaults, hashers
 func (s *Service) ConfigureSessions(repo SessionRepository) {
 	s.sessions = repo
 }
+
+func (s *Service) ConfigureAPITokens(revoker APITokenRevoker) { s.apiTokens = revoker }
 
 func (s *Service) GetSettings(ctx context.Context, input GetSettingsInput) (Settings, error) {
 	if err := s.requireSystemAdmin(ctx, input.CurrentUserID); err != nil {
@@ -200,6 +203,11 @@ func (s *Service) updateManagedUserDisabled(ctx context.Context, input UpdateMan
 			return ManagedUser{}, err
 		}
 	}
+	if *input.Disabled && s.apiTokens != nil {
+		if err := s.apiTokens.RevokeUserTokens(ctx, input.UserID, "account_disabled"); err != nil {
+			return ManagedUser{}, err
+		}
+	}
 	return user, nil
 }
 
@@ -278,6 +286,11 @@ func (s *Service) SetManagedUserPassword(ctx context.Context, input SetManagedUs
 	}
 	if s.sessions != nil {
 		if err := s.sessions.RevokeUserSessions(ctx, input.UserID, "admin_password_set"); err != nil {
+			return ManagedUser{}, err
+		}
+	}
+	if s.apiTokens != nil {
+		if err := s.apiTokens.RevokeUserTokens(ctx, input.UserID, "admin_password_set"); err != nil {
 			return ManagedUser{}, err
 		}
 	}

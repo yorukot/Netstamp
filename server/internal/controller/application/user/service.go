@@ -11,6 +11,7 @@ type Service struct {
 	repo        Repository
 	systemAdmin SystemAdminRepository
 	sessions    SessionRepository
+	apiTokens   APITokenRevoker
 	hasher      PasswordHasher
 	events      EventRecorder
 }
@@ -30,6 +31,8 @@ func (s *Service) ConfigureSystemAdmin(repo SystemAdminRepository) {
 func (s *Service) ConfigureSessions(repo SessionRepository) {
 	s.sessions = repo
 }
+
+func (s *Service) ConfigureAPITokens(revoker APITokenRevoker) { s.apiTokens = revoker }
 
 func (s *Service) UpdateCurrentUser(ctx context.Context, input UpdateCurrentUserInput) (UserOutput, error) {
 	ctx, flow := s.startUserFlow(ctx, "user.profile.update", UserActionUpdateProfile, input.CurrentUserID)
@@ -122,6 +125,11 @@ func (s *Service) ChangeCurrentUserPassword(ctx context.Context, input ChangeCur
 			return flow.updateFailure(UserEventChangePasswordFailure, err)
 		}
 	}
+	if s.apiTokens != nil {
+		if err := s.apiTokens.RevokeUserTokens(ctx, input.CurrentUserID, "password_change"); err != nil {
+			return flow.updateFailure(UserEventChangePasswordFailure, err)
+		}
+	}
 	flow.setUser(user)
 	flow.success(UserEventChangePasswordSuccess)
 
@@ -158,6 +166,11 @@ func (s *Service) DeactivateCurrentUser(ctx context.Context, input DeactivateCur
 	}
 	if s.sessions != nil {
 		if err := s.sessions.RevokeUserSessions(ctx, input.CurrentUserID, "account_deactivated"); err != nil {
+			return flow.updateFailure(UserEventDeactivateFailure, err)
+		}
+	}
+	if s.apiTokens != nil {
+		if err := s.apiTokens.RevokeUserTokens(ctx, input.CurrentUserID, "account_deactivated"); err != nil {
 			return flow.updateFailure(UserEventDeactivateFailure, err)
 		}
 	}
