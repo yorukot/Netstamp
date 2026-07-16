@@ -92,6 +92,22 @@ Backend source lives in `server/`. The docs API explorer reads `docs/public/open
 
 Keep `AUTH_API_TOKEN_HASH_KEY` secret and stable across restarts and restores. Changing it intentionally invalidates every existing personal access token. A data backup can contain hashed token rows, but restored tokens work only when the controller uses the same hash key.
 
+### Authentication And SSO
+
+Passwords are optional account credentials. Password hashes are stored separately from users, while external identities use the provider's stable issuer and subject pair. An OIDC email matching an existing account is not linked automatically; the signed-in user must explicitly connect that identity from account settings.
+
+| Variable                             | Purpose                                                   | Default          |
+| ------------------------------------ | --------------------------------------------------------- | ---------------- |
+| `AUTH_SUDO_TTL`                      | Recent-authentication window for sensitive operations     | `5m`             |
+| `AUTH_OIDC_ENABLED`                  | Enables generic OpenID Connect login and identity linking | `false`          |
+| `AUTH_OIDC_ISSUER_URL`               | OIDC issuer used for discovery and token verification     | empty            |
+| `AUTH_OIDC_CLIENT_ID`                | Registered OIDC client ID                                 | empty            |
+| `AUTH_OIDC_CLIENT_SECRET`            | Registered OIDC client secret                             | empty            |
+| `AUTH_OIDC_DISPLAY_NAME`             | Provider label shown in login and account settings        | `Single sign-on` |
+| `AUTH_OIDC_JIT_PROVISIONING_ENABLED` | Creates new users after verified-email OIDC login         | `false`          |
+
+When OIDC is enabled, `BACKEND_BASE_URL` must be the public controller origin. Register `${BACKEND_BASE_URL}/api/${API_VERSION}/auth/oidc/callback` as the provider callback. Sudo reauthentication requests force a fresh provider login and require a recent `auth_time` claim. OIDC flows use state, nonce, PKCE, a browser-bound HTTP-only cookie, single-use database records, and a ten-minute expiry.
+
 ## Database Image
 
 Docker Compose uses `TIMESCALEDB_IMAGE` for the PostgreSQL/TimescaleDB service and defaults it to the lightweight `timescale/timescaledb:latest-pg16` image.
