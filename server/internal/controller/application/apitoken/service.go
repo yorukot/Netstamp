@@ -12,15 +12,13 @@ const touchInterval = 5 * time.Minute
 
 type Service struct {
 	repo   Repository
-	users  UserRepository
-	hasher PasswordHasher
 	tokens TokenManager
 	events EventRecorder
 	now    func() time.Time
 }
 
-func NewService(repo Repository, users UserRepository, hasher PasswordHasher, tokens TokenManager, events EventRecorder) *Service {
-	return &Service{repo: repo, users: users, hasher: hasher, tokens: tokens, events: events, now: func() time.Time { return time.Now().UTC() }}
+func NewService(repo Repository, tokens TokenManager, events EventRecorder) *Service {
+	return &Service{repo: repo, tokens: tokens, events: events, now: func() time.Time { return time.Now().UTC() }}
 }
 
 func (s *Service) Create(ctx context.Context, input CreateInput) (CreateOutput, error) {
@@ -31,15 +29,6 @@ func (s *Service) Create(ctx context.Context, input CreateInput) (CreateOutput, 
 	if err != nil {
 		flow.record("api_token.create.failure", "failure", "invalid_input", "", err)
 		return CreateOutput{}, err
-	}
-	user, err := s.users.GetUserByID(ctx, normalized.CurrentUserID)
-	if err != nil {
-		flow.record("api_token.create.failure", "failure", "user_lookup_failed", "", err)
-		return CreateOutput{}, err
-	}
-	if compareErr := s.hasher.Compare(ctx, normalized.CurrentPassword, user.PasswordHash); compareErr != nil {
-		flow.record("api_token.create.failure", "failure", "credentials_invalid", "", nil)
-		return CreateOutput{}, ErrCredentialsInvalid
 	}
 	raw, hint, err := s.tokens.Generate()
 	if err != nil {

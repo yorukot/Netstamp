@@ -48,7 +48,14 @@ const (
 	keyAuthSessionIdleTTL                  = "AUTH_SESSION_IDLE_TTL"
 	keyAuthSessionAbsoluteTTL              = "AUTH_SESSION_ABSOLUTE_TTL"
 	keyAuthSessionTouchInterval            = "AUTH_SESSION_TOUCH_INTERVAL"
+	keyAuthSudoTTL                         = "AUTH_SUDO_TTL"
 	keyAuthRegistrationEnabled             = "AUTH_REGISTRATION_ENABLED"
+	keyAuthOIDCEnabled                     = "AUTH_OIDC_ENABLED"
+	keyAuthOIDCIssuerURL                   = "AUTH_OIDC_ISSUER_URL"
+	keyAuthOIDCClientID                    = "AUTH_OIDC_CLIENT_ID"
+	keyAuthOIDCClientSecret                = "AUTH_OIDC_CLIENT_SECRET" //nolint:gosec // This is a configuration key name, not credential material.
+	keyAuthOIDCDisplayName                 = "AUTH_OIDC_DISPLAY_NAME"
+	keyAuthOIDCJITEnabled                  = "AUTH_OIDC_JIT_PROVISIONING_ENABLED"
 	keyAuthPasswordResetTokenTTL           = "AUTH_PASSWORD_RESET_TOKEN_TTL"
 	keyAuthPasswordResetRateWindow         = "AUTH_PASSWORD_RESET_RATE_LIMIT_WINDOW"
 	keyAuthPasswordResetIPLimit            = "AUTH_PASSWORD_RESET_IP_LIMIT"
@@ -111,7 +118,14 @@ var defaultSettings = map[string]any{
 	keyAuthSessionIdleTTL:                  24 * time.Hour,
 	keyAuthSessionAbsoluteTTL:              7 * 24 * time.Hour,
 	keyAuthSessionTouchInterval:            5 * time.Minute,
+	keyAuthSudoTTL:                         5 * time.Minute,
 	keyAuthRegistrationEnabled:             true,
+	keyAuthOIDCEnabled:                     false,
+	keyAuthOIDCIssuerURL:                   "",
+	keyAuthOIDCClientID:                    "",
+	keyAuthOIDCClientSecret:                "",
+	keyAuthOIDCDisplayName:                 "Single sign-on",
+	keyAuthOIDCJITEnabled:                  false,
 	keyAuthPasswordResetTokenTTL:           30 * time.Minute,
 	keyAuthPasswordResetRateWindow:         time.Hour,
 	keyAuthPasswordResetIPLimit:            int32(10),
@@ -189,7 +203,14 @@ type AuthConfig struct {
 	SessionIdleTTL          time.Duration `mapstructure:"AUTH_SESSION_IDLE_TTL"`
 	SessionAbsoluteTTL      time.Duration `mapstructure:"AUTH_SESSION_ABSOLUTE_TTL"`
 	SessionTouchInterval    time.Duration `mapstructure:"AUTH_SESSION_TOUCH_INTERVAL"`
+	SudoTTL                 time.Duration `mapstructure:"AUTH_SUDO_TTL"`
 	RegistrationEnabled     bool          `mapstructure:"AUTH_REGISTRATION_ENABLED"`
+	OIDCEnabled             bool          `mapstructure:"AUTH_OIDC_ENABLED"`
+	OIDCIssuerURL           string        `mapstructure:"AUTH_OIDC_ISSUER_URL"`
+	OIDCClientID            string        `mapstructure:"AUTH_OIDC_CLIENT_ID"`
+	OIDCClientSecret        string        `mapstructure:"AUTH_OIDC_CLIENT_SECRET"`
+	OIDCDisplayName         string        `mapstructure:"AUTH_OIDC_DISPLAY_NAME"`
+	OIDCJITEnabled          bool          `mapstructure:"AUTH_OIDC_JIT_PROVISIONING_ENABLED"`
 	PasswordResetTokenTTL   time.Duration `mapstructure:"AUTH_PASSWORD_RESET_TOKEN_TTL"`
 	PasswordResetRateWindow time.Duration `mapstructure:"AUTH_PASSWORD_RESET_RATE_LIMIT_WINDOW"`
 	PasswordResetIPLimit    int32         `mapstructure:"AUTH_PASSWORD_RESET_IP_LIMIT"`
@@ -324,6 +345,17 @@ func validate(cfg Config) []error {
 	errs = append(errs, validatePositiveDuration(keyAuthSessionIdleTTL, cfg.Auth.SessionIdleTTL)...)
 	errs = append(errs, validatePositiveDuration(keyAuthSessionAbsoluteTTL, cfg.Auth.SessionAbsoluteTTL)...)
 	errs = append(errs, validatePositiveDuration(keyAuthSessionTouchInterval, cfg.Auth.SessionTouchInterval)...)
+	errs = append(errs, validatePositiveDuration(keyAuthSudoTTL, cfg.Auth.SudoTTL)...)
+	if cfg.Auth.OIDCEnabled {
+		errs = append(errs, validateRequiredString(keyAuthOIDCIssuerURL, cfg.Auth.OIDCIssuerURL)...)
+		errs = append(errs, validateOptionalHTTPURL(keyAuthOIDCIssuerURL, cfg.Auth.OIDCIssuerURL)...)
+		errs = append(errs, validateRequiredString(keyAuthOIDCClientID, cfg.Auth.OIDCClientID)...)
+		errs = append(errs, validateRequiredString(keyAuthOIDCClientSecret, cfg.Auth.OIDCClientSecret)...)
+		errs = append(errs, validateRequiredString(keyAuthOIDCDisplayName, cfg.Auth.OIDCDisplayName)...)
+		if strings.TrimSpace(cfg.HTTP.BackendBaseURL) == "" {
+			errs = append(errs, errors.New("BACKEND_BASE_URL is required when AUTH_OIDC_ENABLED is true"))
+		}
+	}
 	if cfg.Auth.SessionAbsoluteTTL < cfg.Auth.SessionIdleTTL {
 		errs = append(errs, errors.New("AUTH_SESSION_ABSOLUTE_TTL must not be less than AUTH_SESSION_IDLE_TTL"))
 	}

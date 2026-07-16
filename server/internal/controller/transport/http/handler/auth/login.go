@@ -45,6 +45,7 @@ func (h *Handler) login(ctx context.Context, r *http.Request, input *loginInput)
 				DisplayName:   result.DisplayName,
 				EmailVerified: result.EmailVerified,
 				IsSystemAdmin: result.IsSystemAdmin,
+				HasPassword:   result.HasPassword,
 			},
 		},
 	}, nil

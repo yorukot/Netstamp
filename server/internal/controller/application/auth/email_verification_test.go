@@ -94,6 +94,7 @@ func TestLoginRejectsUnverifiedEmail(t *testing.T) {
 			Email:        "user@example.com",
 			DisplayName:  "Jane Doe",
 			PasswordHash: "hashed:correct-horse-battery-staple",
+			HasPassword:  true,
 		},
 	}
 	service := newEmailVerificationTestService(users, &emailVerificationRepo{}, &emailVerificationMailer{})
@@ -116,6 +117,7 @@ func TestLoginAllowsUnverifiedEmailWhenVerificationIsDisabled(t *testing.T) {
 			Email:        "user@example.com",
 			DisplayName:  "Jane Doe",
 			PasswordHash: "hashed:correct-horse-battery-staple",
+			HasPassword:  true,
 		},
 	}
 	service := newEmailVerificationTestService(users, &emailVerificationRepo{}, &emailVerificationMailer{})
@@ -132,6 +134,19 @@ func TestLoginAllowsUnverifiedEmailWhenVerificationIsDisabled(t *testing.T) {
 	}
 	if result.EmailVerified {
 		t.Fatal("expected result to preserve unverified email state")
+	}
+}
+
+func TestLoginRejectsPasswordlessAccount(t *testing.T) {
+	ctx := context.Background()
+	users := &emailVerificationUserRepo{user: identity.User{
+		ID: "11111111-1111-1111-1111-111111111111", Email: "sso@example.com", DisplayName: "SSO User",
+	}}
+	service := newEmailVerificationTestService(users, &emailVerificationRepo{}, &emailVerificationMailer{})
+
+	_, err := service.Login(ctx, LoginInput{Email: "sso@example.com", Password: "irrelevant-password"})
+	if !errors.Is(err, ErrCredentialsInvalid) {
+		t.Fatalf("expected passwordless account to reject password login, got %v", err)
 	}
 }
 

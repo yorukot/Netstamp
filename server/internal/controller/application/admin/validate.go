@@ -31,6 +31,7 @@ const (
 	auditActionDisableUser       = "disable_user"
 	auditActionEnableUser        = "enable_user"
 	auditActionSetPassword       = "set_user_password"
+	auditActionClearPassword     = "clear_user_password"
 	auditActionDataImport        = "data_import"
 	auditActionUpdate            = "update"
 )
@@ -197,6 +198,19 @@ func normalizeSetManagedUserPasswordInput(input SetManagedUserPasswordInput) (Se
 	collector.AddError("userId", userErr, input.UserID)
 	collector.AddError("password", passwordErr, input.Password)
 	return SetManagedUserPasswordInput{}, collector.Err(ErrInvalidInput)
+}
+
+func normalizeClearManagedUserPasswordInput(input ClearManagedUserPasswordInput) (ClearManagedUserPasswordInput, error) {
+	currentUserID, currentUserErr := identity.VNUserID(input.CurrentUserID)
+	userID, userErr := identity.VNUserID(input.UserID)
+	if currentUserErr == nil && userErr == nil {
+		return ClearManagedUserPasswordInput{CurrentUserID: currentUserID, UserID: userID}, nil
+	}
+
+	collector := appvalidation.Collector{}
+	collector.AddError("currentUserId", currentUserErr, input.CurrentUserID)
+	collector.AddError("userId", userErr, input.UserID)
+	return ClearManagedUserPasswordInput{}, collector.Err(ErrInvalidInput)
 }
 
 func normalizeExportDataInput(input ExportDataInput) (ExportDataInput, error) {

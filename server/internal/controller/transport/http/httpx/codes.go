@@ -19,6 +19,12 @@ const (
 	CodeAuthSessionNotFound               = "AUTH_SESSION_NOT_FOUND"
 	CodeAuthInvalidAPIToken               = "AUTH_INVALID_API_TOKEN" // #nosec G101 -- public problem code, not a credential.
 	CodeAuthInsufficientScope             = "AUTH_INSUFFICIENT_SCOPE"
+	CodeAuthSudoRequired                  = "AUTH_SUDO_REQUIRED"
+	CodeAuthOIDCUnavailable               = "AUTH_OIDC_UNAVAILABLE"
+	CodeAuthOIDCCallbackInvalid           = "AUTH_OIDC_CALLBACK_INVALID"
+	CodeAuthIdentityConflict              = "AUTH_IDENTITY_CONFLICT"
+	CodeAuthIdentityNotFound              = "AUTH_IDENTITY_NOT_FOUND"
+	CodeAuthLastCredential                = "AUTH_LAST_CREDENTIAL"    //nolint:gosec // Public problem code, not credential material.
 	CodeAPITokenNotFound                  = "API_TOKEN_NOT_FOUND"     // #nosec G101 -- public problem code, not a credential.
 	CodeAPITokenLimitReached              = "API_TOKEN_LIMIT_REACHED" // #nosec G101 -- public problem code, not credential material.
 )

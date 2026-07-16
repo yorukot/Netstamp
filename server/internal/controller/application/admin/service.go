@@ -10,12 +10,17 @@ import (
 )
 
 type Service struct {
-	repo      Repository
-	sessions  SessionRepository
-	apiTokens APITokenRevoker
-	cipher    SecretCipher
-	hasher    PasswordHasher
-	defaults  Defaults
+	repo        Repository
+	sessions    SessionRepository
+	apiTokens   APITokenRevoker
+	cipher      SecretCipher
+	hasher      PasswordHasher
+	authMethods AuthenticationMethodRepository
+	defaults    Defaults
+}
+
+func (s *Service) ConfigureAuthenticationMethods(repo AuthenticationMethodRepository) {
+	s.authMethods = repo
 }
 
 func NewService(repo Repository, cipher SecretCipher, defaults Defaults, hashers ...PasswordHasher) *Service {
@@ -291,6 +296,45 @@ func (s *Service) SetManagedUserPassword(ctx context.Context, input SetManagedUs
 	}
 	if s.apiTokens != nil {
 		if err := s.apiTokens.RevokeUserTokens(ctx, input.UserID, "admin_password_set"); err != nil {
+			return ManagedUser{}, err
+		}
+	}
+	return user, nil
+}
+
+func (s *Service) ClearManagedUserPassword(ctx context.Context, input ClearManagedUserPasswordInput) (ManagedUser, error) {
+	input, err := normalizeClearManagedUserPasswordInput(input)
+	if err != nil || s.authMethods == nil {
+		return ManagedUser{}, ErrInvalidInput
+	}
+	if requireErr := s.requireSystemAdmin(ctx, input.CurrentUserID); requireErr != nil {
+		return ManagedUser{}, requireErr
+	}
+	_, identityCount, err := s.authMethods.CountUserAuthenticationMethods(ctx, input.UserID)
+	if err != nil {
+		return ManagedUser{}, err
+	}
+	if identityCount == 0 {
+		return ManagedUser{}, identity.ErrLastAuthenticationMethod
+	}
+	repo, ok := s.repo.(ManagedPasswordRepository)
+	if !ok {
+		return ManagedUser{}, ErrInvalidInput
+	}
+	user, err := repo.ClearManagedUserPassword(ctx, input.UserID)
+	if err != nil {
+		return ManagedUser{}, err
+	}
+	if auditErr := s.repo.CreateSystemSettingAuditEvent(ctx, managedUserAuditKey(user), auditActionClearPassword, &input.CurrentUserID); auditErr != nil {
+		return ManagedUser{}, auditErr
+	}
+	if s.sessions != nil {
+		if err := s.sessions.RevokeUserSessions(ctx, input.UserID, "admin_password_cleared"); err != nil {
+			return ManagedUser{}, err
+		}
+	}
+	if s.apiTokens != nil {
+		if err := s.apiTokens.RevokeUserTokens(ctx, input.UserID, "admin_password_cleared"); err != nil {
 			return ManagedUser{}, err
 		}
 	}

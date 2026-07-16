@@ -16,7 +16,7 @@ const (
 func normalizeCreateInput(input CreateInput, now time.Time) (CreateInput, error) {
 	input.CurrentUserID = strings.TrimSpace(input.CurrentUserID)
 	input.Name = strings.TrimSpace(input.Name)
-	if input.CurrentUserID == "" || input.Name == "" || len(input.Name) > 100 || strings.TrimSpace(input.CurrentPassword) == "" {
+	if input.CurrentUserID == "" || input.Name == "" || len(input.Name) > 100 {
 		return CreateInput{}, ErrInvalidInput
 	}
 	if !input.ExpiresAt.After(now) || input.ExpiresAt.After(now.Add(MaxTokenTTL)) {

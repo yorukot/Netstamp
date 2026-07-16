@@ -35,3 +35,11 @@ type SecretCipher interface {
 type PasswordHasher interface {
 	Hash(ctx context.Context, password string) (string, error)
 }
+
+type ManagedPasswordRepository interface {
+	ClearManagedUserPassword(ctx context.Context, userID string) (ManagedUser, error)
+}
+
+type AuthenticationMethodRepository interface {
+	CountUserAuthenticationMethods(ctx context.Context, userID string) (bool, int64, error)
+}

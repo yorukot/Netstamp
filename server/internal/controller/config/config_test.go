@@ -67,6 +67,12 @@ func TestLoadDefaults(t *testing.T) {
 	if !cfg.Auth.RegistrationEnabled {
 		t.Fatal("expected registration to be enabled by default")
 	}
+	if cfg.Auth.SudoTTL != 5*time.Minute {
+		t.Fatalf("expected five-minute sudo TTL, got %s", cfg.Auth.SudoTTL)
+	}
+	if cfg.Auth.OIDCEnabled {
+		t.Fatal("expected OIDC to be disabled by default")
+	}
 	if cfg.Alerting.SMTP.Configured() {
 		t.Fatal("expected SMTP to be unconfigured by default")
 	}
@@ -115,6 +121,13 @@ func TestLoadFromEnvironment(t *testing.T) {
 	t.Setenv(keyDatabaseSSLMode, "require")
 	t.Setenv(keyDBMaxConns, "12")
 	t.Setenv(keyAuthRegistrationEnabled, "false")
+	t.Setenv(keyAuthSudoTTL, "4m")
+	t.Setenv(keyAuthOIDCEnabled, "true")
+	t.Setenv(keyAuthOIDCIssuerURL, "https://identity.example.com")
+	t.Setenv(keyAuthOIDCClientID, "netstamp")
+	t.Setenv(keyAuthOIDCClientSecret, "oidc-secret")
+	t.Setenv(keyAuthOIDCDisplayName, "Company SSO")
+	t.Setenv(keyAuthOIDCJITEnabled, "true")
 	t.Setenv(keyOTLPTracesEndpoint, "http://victoria-traces:10428/insert/opentelemetry/v1/traces")
 	t.Setenv(keyAssignmentRefreshWorkerEnabled, "false")
 	t.Setenv(keyAssignmentRefreshWorkerInterval, "7s")
@@ -196,6 +209,15 @@ func TestLoadFromEnvironment(t *testing.T) {
 	}
 	if cfg.Auth.RegistrationEnabled {
 		t.Fatal("expected registration to be disabled from environment")
+	}
+	if cfg.Auth.SudoTTL != 4*time.Minute {
+		t.Fatalf("expected sudo TTL override, got %s", cfg.Auth.SudoTTL)
+	}
+	if !cfg.Auth.OIDCEnabled || !cfg.Auth.OIDCJITEnabled {
+		t.Fatal("expected OIDC and JIT provisioning to be enabled from environment")
+	}
+	if cfg.Auth.OIDCIssuerURL != "https://identity.example.com" || cfg.Auth.OIDCClientID != "netstamp" || cfg.Auth.OIDCDisplayName != "Company SSO" {
+		t.Fatalf("unexpected OIDC configuration: %#v", cfg.Auth)
 	}
 	if cfg.Tracing.OTLPTracesEndpoint != "http://victoria-traces:10428/insert/opentelemetry/v1/traces" {
 		t.Fatalf("expected OTLP traces endpoint override, got %q", cfg.Tracing.OTLPTracesEndpoint)

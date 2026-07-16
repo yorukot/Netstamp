@@ -13,9 +13,9 @@ func (h *Handler) changeCurrentUserPassword(ctx context.Context, input *changeCu
 	}
 
 	err = h.service.ChangeCurrentUserPassword(ctx, appuser.ChangeCurrentUserPasswordInput{
-		CurrentUserID:   currentUserID,
-		CurrentPassword: input.Body.CurrentPassword,
-		NewPassword:     input.Body.NewPassword,
+		CurrentUserID:    currentUserID,
+		CurrentSessionID: currentSessionID(ctx),
+		NewPassword:      input.Body.NewPassword,
 	})
 	if err != nil {
 		return mapUserError(err, "change current user password failed")
@@ -29,6 +29,5 @@ type changeCurrentUserPasswordInput struct {
 }
 
 type changeCurrentUserPasswordInputBody struct {
-	CurrentPassword string `json:"currentPassword,omitempty"`
-	NewPassword     string `json:"newPassword,omitempty"`
+	NewPassword string `json:"newPassword,omitempty"`
 }

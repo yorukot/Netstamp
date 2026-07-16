@@ -13,16 +13,14 @@ func TestCreateStoresOnlyHashedTokenWithNormalizedScopes(t *testing.T) {
 	now := time.Date(2026, 7, 16, 12, 0, 0, 0, time.UTC)
 	repo := &apiTokenTestRepository{}
 	manager := &apiTokenTestManager{raw: "nst_pat_one-time-secret", hint: "e-secret"}
-	hasher := &apiTokenTestPasswordHasher{}
-	service := NewService(repo, apiTokenTestUserRepository{user: identity.User{ID: "user-1", PasswordHash: "stored-hash"}}, hasher, manager, nil)
+	service := NewService(repo, manager, nil)
 	service.now = func() time.Time { return now }
 
 	output, err := service.Create(context.Background(), CreateInput{
-		CurrentUserID:   " user-1 ",
-		Name:            " CI deploy ",
-		Scopes:          []string{string(identity.ScopeLabelsRead), string(identity.ScopeChecksRead)},
-		ExpiresAt:       now.Add(90 * 24 * time.Hour),
-		CurrentPassword: "current-password",
+		CurrentUserID: " user-1 ",
+		Name:          " CI deploy ",
+		Scopes:        []string{string(identity.ScopeLabelsRead), string(identity.ScopeChecksRead)},
+		ExpiresAt:     now.Add(90 * 24 * time.Hour),
 	})
 	if err != nil {
 		t.Fatalf("create token: %v", err)
@@ -42,24 +40,20 @@ func TestCreateStoresOnlyHashedTokenWithNormalizedScopes(t *testing.T) {
 	if repo.maxActive != MaxActiveTokens || !repo.now.Equal(now) {
 		t.Fatalf("expected max %d at %s, got %d at %s", MaxActiveTokens, now, repo.maxActive, repo.now)
 	}
-	if hasher.password != "current-password" || hasher.hash != "stored-hash" {
-		t.Fatalf("unexpected password comparison: password=%q hash=%q", hasher.password, hasher.hash)
-	}
 }
 
 func TestCreateRejectsExpiryPastMaximumBeforeGeneratingToken(t *testing.T) {
 	now := time.Date(2026, 7, 16, 12, 0, 0, 0, time.UTC)
 	repo := &apiTokenTestRepository{}
 	manager := &apiTokenTestManager{raw: "should-not-be-generated", hint: "enerated"}
-	service := NewService(repo, apiTokenTestUserRepository{}, &apiTokenTestPasswordHasher{}, manager, nil)
+	service := NewService(repo, manager, nil)
 	service.now = func() time.Time { return now }
 
 	_, err := service.Create(context.Background(), CreateInput{
-		CurrentUserID:   "user-1",
-		Name:            "too long",
-		Scopes:          []string{string(identity.ScopeProjectsRead)},
-		ExpiresAt:       now.Add(MaxTokenTTL + time.Nanosecond),
-		CurrentPassword: "current-password",
+		CurrentUserID: "user-1",
+		Name:          "too long",
+		Scopes:        []string{string(identity.ScopeProjectsRead)},
+		ExpiresAt:     now.Add(MaxTokenTTL + time.Nanosecond),
 	})
 	if !errors.Is(err, ErrInvalidInput) {
 		t.Fatalf("expected invalid input, got %v", err)
@@ -69,25 +63,23 @@ func TestCreateRejectsExpiryPastMaximumBeforeGeneratingToken(t *testing.T) {
 	}
 }
 
-func TestCreateRequiresCurrentPassword(t *testing.T) {
-	compareErr := errors.New("password mismatch")
+func TestCreateDoesNotRepeatPasswordVerificationAfterSudo(t *testing.T) {
 	now := time.Date(2026, 7, 16, 12, 0, 0, 0, time.UTC)
 	manager := &apiTokenTestManager{raw: "should-not-be-generated", hint: "enerated"}
-	service := NewService(&apiTokenTestRepository{}, apiTokenTestUserRepository{user: identity.User{PasswordHash: "stored-hash"}}, &apiTokenTestPasswordHasher{err: compareErr}, manager, nil)
+	service := NewService(&apiTokenTestRepository{}, manager, nil)
 	service.now = func() time.Time { return now }
 
 	_, err := service.Create(context.Background(), CreateInput{
-		CurrentUserID:   "user-1",
-		Name:            "CI",
-		Scopes:          []string{string(identity.ScopeProjectsRead)},
-		ExpiresAt:       now.Add(24 * time.Hour),
-		CurrentPassword: "wrong-password",
+		CurrentUserID: "user-1",
+		Name:          "CI",
+		Scopes:        []string{string(identity.ScopeProjectsRead)},
+		ExpiresAt:     now.Add(24 * time.Hour),
 	})
-	if !errors.Is(err, ErrCredentialsInvalid) {
-		t.Fatalf("expected invalid credentials, got %v", err)
+	if err != nil {
+		t.Fatalf("expected token creation after transport sudo check, got %v", err)
 	}
-	if manager.generated {
-		t.Fatal("credentials must be checked before token generation")
+	if !manager.generated {
+		t.Fatal("token should be generated without another password comparison")
 	}
 }
 
@@ -96,7 +88,7 @@ func TestVerifyReturnsPrincipalAndThrottlesLastUsedWrites(t *testing.T) {
 	repo := &apiTokenTestRepository{active: identity.APIToken{
 		ID: "token-1", UserID: "user-1", Scopes: []identity.APITokenScope{identity.ScopeProjectsRead},
 	}}
-	service := NewService(repo, nil, nil, &apiTokenTestManager{}, nil)
+	service := NewService(repo, &apiTokenTestManager{}, nil)
 	service.now = func() time.Time { return now }
 
 	principal, err := service.Verify(context.Background(), "nst_pat_secret")
@@ -125,14 +117,14 @@ func TestVerifyReturnsPrincipalAndThrottlesLastUsedWrites(t *testing.T) {
 
 func TestVerifyDistinguishesUnknownTokenFromRepositoryFailure(t *testing.T) {
 	notFoundRepo := &apiTokenTestRepository{getErr: identity.ErrAPITokenNotFound}
-	service := NewService(notFoundRepo, nil, nil, &apiTokenTestManager{}, nil)
+	service := NewService(notFoundRepo, &apiTokenTestManager{}, nil)
 	if _, err := service.Verify(context.Background(), "unknown"); !errors.Is(err, ErrTokenInvalid) {
 		t.Fatalf("expected invalid token, got %v", err)
 	}
 
 	repositoryErr := errors.New("database unavailable")
 	failingRepo := &apiTokenTestRepository{getErr: repositoryErr}
-	service = NewService(failingRepo, nil, nil, &apiTokenTestManager{}, nil)
+	service = NewService(failingRepo, &apiTokenTestManager{}, nil)
 	if _, err := service.Verify(context.Background(), "unknown"); !errors.Is(err, repositoryErr) {
 		t.Fatalf("expected repository failure, got %v", err)
 	}
@@ -189,27 +181,6 @@ func (r *apiTokenTestRepository) RevokeForUser(context.Context, string, string, 
 
 func (r *apiTokenTestRepository) RevokeForUserAll(context.Context, string, string, time.Time) error {
 	return nil
-}
-
-type apiTokenTestUserRepository struct {
-	user identity.User
-	err  error
-}
-
-func (r apiTokenTestUserRepository) GetUserByID(context.Context, string) (identity.User, error) {
-	return r.user, r.err
-}
-
-type apiTokenTestPasswordHasher struct {
-	password string
-	hash     string
-	err      error
-}
-
-func (h *apiTokenTestPasswordHasher) Compare(_ context.Context, password, hash string) error {
-	h.password = password
-	h.hash = hash
-	return h.err
 }
 
 type apiTokenTestManager struct {

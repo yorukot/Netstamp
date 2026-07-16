@@ -15,7 +15,6 @@ func normalizeUpdateCurrentUserInput(input UpdateCurrentUserInput) (UpdateCurren
 	} else {
 		output.CurrentUserID = userID
 	}
-
 	if input.DisplayName == nil {
 		validation.Add("", "at least one field must be provided", nil)
 		return UpdateCurrentUserInput{}, validation.Err(ErrInvalidInput)
@@ -46,10 +45,6 @@ func normalizeChangeCurrentUserEmailInput(input ChangeCurrentUserEmailInput) (Ch
 	if err != nil {
 		validation.AddError("newEmail", err, input.NewEmail)
 	}
-	password, err := identity.VNUserPassword(input.Password)
-	if err != nil {
-		validation.AddError("password", err, "")
-	}
 	if err := validation.Err(ErrInvalidInput); err != nil {
 		return ChangeCurrentUserEmailInput{}, err
 	}
@@ -57,7 +52,6 @@ func normalizeChangeCurrentUserEmailInput(input ChangeCurrentUserEmailInput) (Ch
 	return ChangeCurrentUserEmailInput{
 		CurrentUserID: userID,
 		NewEmail:      newEmail,
-		Password:      password,
 	}, nil
 }
 
@@ -68,9 +62,9 @@ func normalizeChangeCurrentUserPasswordInput(input ChangeCurrentUserPasswordInpu
 	if err != nil {
 		validation.AddError("currentUserId", err, input.CurrentUserID)
 	}
-	currentPassword, err := identity.VNUserPassword(input.CurrentPassword)
+	sessionID, err := identity.VNUserID(input.CurrentSessionID)
 	if err != nil {
-		validation.AddError("currentPassword", err, "")
+		validation.AddError("currentSessionId", err, input.CurrentSessionID)
 	}
 	newPassword, err := identity.VNUserPassword(input.NewPassword)
 	if err != nil {
@@ -81,9 +75,9 @@ func normalizeChangeCurrentUserPasswordInput(input ChangeCurrentUserPasswordInpu
 	}
 
 	return ChangeCurrentUserPasswordInput{
-		CurrentUserID:   userID,
-		CurrentPassword: currentPassword,
-		NewPassword:     newPassword,
+		CurrentUserID:    userID,
+		CurrentSessionID: sessionID,
+		NewPassword:      newPassword,
 	}, nil
 }
 

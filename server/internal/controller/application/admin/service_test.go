@@ -6,6 +6,8 @@ import (
 	"slices"
 	"testing"
 	"time"
+
+	"github.com/yorukot/netstamp/internal/domain/identity"
 )
 
 const (
@@ -229,24 +231,61 @@ func TestRevokeSystemAdminStoresAuditEvent(t *testing.T) {
 	}
 }
 
+func TestClearManagedUserPasswordRequiresAnotherAuthenticationMethod(t *testing.T) {
+	repo := &fakeAdminRepository{admins: map[string]bool{testAdminUserID: true}}
+	svc := NewService(repo, fakeSecretCipher{}, Defaults{})
+	svc.ConfigureAuthenticationMethods(fakeAuthenticationMethodRepository{identityCount: 0})
+
+	_, err := svc.ClearManagedUserPassword(context.Background(), ClearManagedUserPasswordInput{CurrentUserID: testAdminUserID, UserID: testTargetUserID})
+	if !errors.Is(err, identity.ErrLastAuthenticationMethod) {
+		t.Fatalf("expected last authentication method error, got %v", err)
+	}
+	if repo.clearedPasswordUserID != "" {
+		t.Fatalf("expected password to remain, clear called for %q", repo.clearedPasswordUserID)
+	}
+}
+
+func TestClearManagedUserPasswordAuditsRemoval(t *testing.T) {
+	repo := &fakeAdminRepository{
+		admins: map[string]bool{testAdminUserID: true},
+		managedUsers: []ManagedUser{{
+			ID: testTargetUserID, Email: "person@example.com", DisplayName: "Person", HasPassword: true,
+		}},
+	}
+	svc := NewService(repo, fakeSecretCipher{}, Defaults{})
+	svc.ConfigureAuthenticationMethods(fakeAuthenticationMethodRepository{identityCount: 1})
+
+	user, err := svc.ClearManagedUserPassword(context.Background(), ClearManagedUserPasswordInput{CurrentUserID: testAdminUserID, UserID: testTargetUserID})
+	if err != nil {
+		t.Fatalf("clear managed user password: %v", err)
+	}
+	if user.HasPassword || repo.clearedPasswordUserID != testTargetUserID {
+		t.Fatalf("unexpected cleared user: %#v", user)
+	}
+	if !slices.Contains(repo.auditActions, auditActionClearPassword) {
+		t.Fatalf("expected password removal audit event, got %#v", repo.auditActions)
+	}
+}
+
 type fakeAdminRepository struct {
-	admins             map[string]bool
-	settings           map[string]StoredSetting
-	systemAdmins       []SystemAdmin
-	managedUsers       []ManagedUser
-	systemAdminByEmail map[string]SystemAdmin
-	systemAdminByID    map[string]ManagedUser
-	revokeResult       SystemAdminRevokeResult
-	activeAdminCount   int64
-	grantedEmail       string
-	grantedUserID      string
-	revokedUserID      string
-	disabledUserID     string
-	disabledValue      bool
-	passwordUserID     string
-	passwordHash       string
-	auditActions       []string
-	auditKeys          []string
+	admins                map[string]bool
+	settings              map[string]StoredSetting
+	systemAdmins          []SystemAdmin
+	managedUsers          []ManagedUser
+	systemAdminByEmail    map[string]SystemAdmin
+	systemAdminByID       map[string]ManagedUser
+	revokeResult          SystemAdminRevokeResult
+	activeAdminCount      int64
+	grantedEmail          string
+	grantedUserID         string
+	revokedUserID         string
+	disabledUserID        string
+	disabledValue         bool
+	passwordUserID        string
+	clearedPasswordUserID string
+	passwordHash          string
+	auditActions          []string
+	auditKeys             []string
 }
 
 func (r *fakeAdminRepository) IsSystemAdmin(_ context.Context, userID string) (bool, error) {
@@ -319,6 +358,17 @@ func (r *fakeAdminRepository) SetManagedUserPasswordHash(_ context.Context, user
 	return ManagedUser{}, errors.New("not found")
 }
 
+func (r *fakeAdminRepository) ClearManagedUserPassword(_ context.Context, userID string) (ManagedUser, error) {
+	r.clearedPasswordUserID = userID
+	for _, user := range r.managedUsers {
+		if user.ID == userID {
+			user.HasPassword = false
+			return user, nil
+		}
+	}
+	return ManagedUser{}, errors.New("not found")
+}
+
 func (r *fakeAdminRepository) ExportData(context.Context) (DataExport, error) {
 	return DataExport{Format: "netstamp.admin.data.v1"}, nil
 }
@@ -350,6 +400,15 @@ func (r *fakeAdminRepository) CreateSystemSettingAuditEvent(_ context.Context, k
 }
 
 type fakeSecretCipher struct{}
+
+type fakeAuthenticationMethodRepository struct {
+	hasPassword   bool
+	identityCount int64
+}
+
+func (r fakeAuthenticationMethodRepository) CountUserAuthenticationMethods(context.Context, string) (bool, int64, error) {
+	return r.hasPassword, r.identityCount, nil
+}
 
 func (fakeSecretCipher) Encrypt(plaintext string) ([]byte, []byte, error) {
 	return []byte("encrypted:" + plaintext), []byte("nonce"), nil

@@ -46,6 +46,57 @@ func TestSessionManagerPersistsUserAgentAndScopesManagedSessions(t *testing.T) {
 	}
 }
 
+func TestSessionManagerSudoExpiresAfterFiveMinutes(t *testing.T) {
+	authenticatedAt := time.Date(2026, time.July, 10, 9, 30, 0, 0, time.UTC)
+	repo := &sessionRepositoryRecorder{active: identity.AuthSession{
+		ID:              "22222222-2222-2222-2222-222222222222",
+		UserID:          "11111111-1111-1111-1111-111111111111",
+		AuthenticatedAt: authenticatedAt,
+	}}
+	manager := NewSessionManager(repo, SessionConfig{
+		HashKey: "test-session-hash-key",
+		SudoTTL: 5 * time.Minute,
+	})
+
+	manager.now = func() time.Time { return authenticatedAt.Add(5*time.Minute - time.Nanosecond) }
+	status, err := manager.SudoStatus(context.Background(), repo.active.ID)
+	if err != nil {
+		t.Fatalf("get active sudo status: %v", err)
+	}
+	if !status.Active {
+		t.Fatal("expected recent authentication to remain active before the five-minute boundary")
+	}
+	if want := authenticatedAt.Add(5 * time.Minute); !status.ExpiresAt.Equal(want) {
+		t.Fatalf("expected sudo expiry %s, got %s", want, status.ExpiresAt)
+	}
+
+	manager.now = func() time.Time { return authenticatedAt.Add(5 * time.Minute) }
+	status, err = manager.SudoStatus(context.Background(), repo.active.ID)
+	if err != nil {
+		t.Fatalf("get expired sudo status: %v", err)
+	}
+	if status.Active {
+		t.Fatal("expected recent authentication to expire at the five-minute boundary")
+	}
+}
+
+func TestSessionManagerElevateSessionPersistsAuthenticationMethod(t *testing.T) {
+	repo := &sessionRepositoryRecorder{}
+	manager := NewSessionManager(repo, SessionConfig{HashKey: "test-session-hash-key", SudoTTL: 5 * time.Minute})
+	authenticatedAt := time.Date(2026, time.July, 10, 9, 30, 0, 0, time.UTC)
+	identityID := "33333333-3333-3333-3333-333333333333"
+
+	if err := manager.ElevateSession(context.Background(), "22222222-2222-2222-2222-222222222222", identity.AuthenticationMethodOIDC, &identityID, authenticatedAt); err != nil {
+		t.Fatalf("elevate session: %v", err)
+	}
+	if repo.updatedSessionID != "22222222-2222-2222-2222-222222222222" || repo.updatedMethod != identity.AuthenticationMethodOIDC {
+		t.Fatalf("unexpected authentication update: session=%q method=%q", repo.updatedSessionID, repo.updatedMethod)
+	}
+	if repo.updatedIdentityID == nil || *repo.updatedIdentityID != identityID || !repo.updatedAuthenticatedAt.Equal(authenticatedAt) {
+		t.Fatalf("unexpected authentication metadata: identity=%v authenticatedAt=%s", repo.updatedIdentityID, repo.updatedAuthenticatedAt)
+	}
+}
+
 func createSessionInput(userAgent string, now time.Time) appauth.CreateSessionInput {
 	return appauth.CreateSessionInput{
 		UserID:    "11111111-1111-1111-1111-111111111111",
@@ -55,13 +106,18 @@ func createSessionInput(userAgent string, now time.Time) appauth.CreateSessionIn
 }
 
 type sessionRepositoryRecorder struct {
-	created         identity.AuthSession
-	listed          []identity.AuthSession
-	listUserID      string
-	listNow         time.Time
-	revokeUserID    string
-	revokeSessionID string
-	revokeReason    string
+	created                identity.AuthSession
+	active                 identity.AuthSession
+	listed                 []identity.AuthSession
+	listUserID             string
+	listNow                time.Time
+	revokeUserID           string
+	revokeSessionID        string
+	revokeReason           string
+	updatedSessionID       string
+	updatedAuthenticatedAt time.Time
+	updatedMethod          string
+	updatedIdentityID      *string
 }
 
 func (r *sessionRepositoryRecorder) CreateSession(_ context.Context, input identity.AuthSession) (identity.AuthSession, error) {
@@ -74,8 +130,19 @@ func (*sessionRepositoryRecorder) GetActiveSessionByTokenHash(context.Context, [
 	return identity.AuthSession{}, identity.ErrSessionNotFound
 }
 
-func (*sessionRepositoryRecorder) GetActiveSessionByID(context.Context, string, time.Time) (identity.AuthSession, error) {
-	return identity.AuthSession{}, identity.ErrSessionNotFound
+func (r *sessionRepositoryRecorder) GetActiveSessionByID(_ context.Context, sessionID string, _ time.Time) (identity.AuthSession, error) {
+	if r.active.ID == "" || r.active.ID != sessionID {
+		return identity.AuthSession{}, identity.ErrSessionNotFound
+	}
+	return r.active, nil
+}
+
+func (r *sessionRepositoryRecorder) UpdateSessionAuthentication(_ context.Context, sessionID string, authenticatedAt time.Time, method string, identityID *string) error {
+	r.updatedSessionID = sessionID
+	r.updatedAuthenticatedAt = authenticatedAt
+	r.updatedMethod = method
+	r.updatedIdentityID = identityID
+	return nil
 }
 
 func (*sessionRepositoryRecorder) UpdateCSRFTokenHash(context.Context, string, []byte, time.Time) error {

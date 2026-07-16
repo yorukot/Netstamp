@@ -10,13 +10,17 @@ type UpdateCurrentUserInput struct {
 type ChangeCurrentUserEmailInput struct {
 	CurrentUserID string
 	NewEmail      string
-	Password      string
 }
 
 type ChangeCurrentUserPasswordInput struct {
-	CurrentUserID   string
-	CurrentPassword string
-	NewPassword     string
+	CurrentUserID    string
+	CurrentSessionID string
+	NewPassword      string
+}
+
+type AuthenticationMethodsOutput struct {
+	HasPassword bool
+	Identities  []identity.UserIdentity
 }
 
 type DeactivateCurrentUserInput struct {

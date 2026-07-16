@@ -21,6 +21,7 @@ type SessionConfig struct {
 	IdleTTL       time.Duration
 	AbsoluteTTL   time.Duration
 	TouchInterval time.Duration
+	SudoTTL       time.Duration
 }
 
 type SessionRepository interface {
@@ -35,12 +36,21 @@ type SessionRepository interface {
 	RevokeSessionsForUser(ctx context.Context, userID string, revokedAt time.Time, reason string) error
 }
 
+type RecentAuthenticationRepository interface {
+	UpdateSessionAuthentication(ctx context.Context, sessionID string, authenticatedAt time.Time, method string, identityID *string) error
+}
+
+type OtherSessionRepository interface {
+	RevokeSessionsForUserExcept(ctx context.Context, userID, sessionID string, revokedAt time.Time, reason string) error
+}
+
 type SessionManager struct {
 	repo          SessionRepository
 	hashKey       []byte
 	idleTTL       time.Duration
 	absoluteTTL   time.Duration
 	touchInterval time.Duration
+	sudoTTL       time.Duration
 	now           func() time.Time
 }
 
@@ -51,6 +61,7 @@ func NewSessionManager(repo SessionRepository, cfg SessionConfig) *SessionManage
 		idleTTL:       cfg.IdleTTL,
 		absoluteTTL:   cfg.AbsoluteTTL,
 		touchInterval: cfg.TouchInterval,
+		sudoTTL:       cfg.SudoTTL,
 		now:           func() time.Time { return time.Now().UTC() },
 	}
 }
@@ -81,14 +92,17 @@ func (m *SessionManager) CreateSession(ctx context.Context, input appauth.Create
 	}
 
 	session, err := m.repo.CreateSession(ctx, identity.AuthSession{
-		UserID:            input.UserID,
-		TokenHash:         m.hash(rawToken),
-		CSRFTokenHash:     m.hash(rawCSRFToken),
-		UserAgent:         input.UserAgent,
-		CreatedAt:         now,
-		LastUsedAt:        now,
-		IdleExpiresAt:     idleExpiresAt,
-		AbsoluteExpiresAt: absoluteExpiresAt,
+		UserID:               input.UserID,
+		TokenHash:            m.hash(rawToken),
+		CSRFTokenHash:        m.hash(rawCSRFToken),
+		UserAgent:            input.UserAgent,
+		AuthenticatedAt:      now,
+		AuthenticationMethod: authenticationMethod(input.AuthenticationMethod),
+		IdentityID:           input.IdentityID,
+		CreatedAt:            now,
+		LastUsedAt:           now,
+		IdleExpiresAt:        idleExpiresAt,
+		AbsoluteExpiresAt:    absoluteExpiresAt,
 	})
 	if err != nil {
 		return identity.CreatedSession{}, err
@@ -101,6 +115,49 @@ func (m *SessionManager) CreateSession(ctx context.Context, input appauth.Create
 		ExpiresIn:       int(absoluteExpiresAt.Sub(now).Seconds()),
 		CookieExpiresAt: absoluteExpiresAt,
 	}, nil
+}
+
+func authenticationMethod(method string) string {
+	if method == identity.AuthenticationMethodOIDC {
+		return method
+	}
+	return identity.AuthenticationMethodPassword
+}
+
+func (m *SessionManager) SudoStatus(ctx context.Context, sessionID string) (identity.SudoStatus, error) {
+	session, err := m.activeSessionByID(ctx, sessionID)
+	if err != nil {
+		return identity.SudoStatus{}, err
+	}
+	expiresAt := session.AuthenticatedAt.Add(m.sudoTTL)
+	return identity.SudoStatus{Active: m.now().Before(expiresAt), ExpiresAt: expiresAt}, nil
+}
+
+func (m *SessionManager) GetSession(ctx context.Context, sessionID string) (identity.AuthSession, error) {
+	return m.activeSessionByID(ctx, sessionID)
+}
+
+func (m *SessionManager) ElevateSession(ctx context.Context, sessionID, method string, identityID *string, authenticatedAt time.Time) error {
+	if sessionID == "" || m.sudoTTL <= 0 {
+		return appauth.ErrSessionInvalid
+	}
+	if method != identity.AuthenticationMethodPassword && method != identity.AuthenticationMethodOIDC {
+		return appauth.ErrSessionInvalid
+	}
+	if authenticatedAt.IsZero() {
+		authenticatedAt = m.now()
+	}
+	repo, ok := m.repo.(RecentAuthenticationRepository)
+	if !ok {
+		return appauth.ErrSessionInvalid
+	}
+	if err := repo.UpdateSessionAuthentication(ctx, sessionID, authenticatedAt.UTC(), method, identityID); err != nil {
+		if errors.Is(err, identity.ErrSessionNotFound) {
+			return appauth.ErrSessionInvalid
+		}
+		return err
+	}
+	return nil
 }
 
 func (m *SessionManager) VerifySession(ctx context.Context, rawToken string) (identity.SessionClaims, error) {
@@ -191,6 +248,20 @@ func (m *SessionManager) RevokeUserSessions(ctx context.Context, userID, reason 
 		reason = "security_event"
 	}
 	return m.repo.RevokeSessionsForUser(ctx, userID, m.now(), reason)
+}
+
+func (m *SessionManager) RevokeUserSessionsExcept(ctx context.Context, userID, sessionID, reason string) error {
+	if userID == "" || sessionID == "" {
+		return appauth.ErrSessionInvalid
+	}
+	if reason == "" {
+		reason = "security_event"
+	}
+	repo, ok := m.repo.(OtherSessionRepository)
+	if !ok {
+		return appauth.ErrSessionInvalid
+	}
+	return repo.RevokeSessionsForUserExcept(ctx, userID, sessionID, m.now(), reason)
 }
 
 func (m *SessionManager) activeSession(ctx context.Context, rawToken string) (identity.AuthSession, error) {

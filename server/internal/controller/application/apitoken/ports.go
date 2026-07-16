@@ -16,14 +16,6 @@ type Repository interface {
 	RevokeForUserAll(ctx context.Context, userID, reason string, revokedAt time.Time) error
 }
 
-type UserRepository interface {
-	GetUserByID(ctx context.Context, userID string) (identity.User, error)
-}
-
-type PasswordHasher interface {
-	Compare(ctx context.Context, password, passwordHash string) error
-}
-
 type TokenManager interface {
 	Generate() (rawToken, hint string, err error)
 	Hash(rawToken string) []byte

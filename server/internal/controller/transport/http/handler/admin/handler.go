@@ -18,10 +18,15 @@ type Handler struct {
 	service    *appadmin.Service
 	verifier   appauth.SessionManager
 	cookieName string
+	sudo       *appauth.Service
 }
 
-func NewHandler(service *appadmin.Service, verifier appauth.SessionManager, cookieName string) *Handler {
-	return &Handler{service: service, verifier: verifier, cookieName: cookieName}
+func NewHandler(service *appadmin.Service, verifier appauth.SessionManager, cookieName string, sudoServices ...*appauth.Service) *Handler {
+	handler := &Handler{service: service, verifier: verifier, cookieName: cookieName}
+	if len(sudoServices) > 0 {
+		handler.sudo = sudoServices[0]
+	}
+	return handler
 }
 
 func (h *Handler) RegisterRoutes(api chi.Router) {
@@ -29,15 +34,26 @@ func (h *Handler) RegisterRoutes(api chi.Router) {
 		r.Use(httpmiddleware.RequireAuth(h.verifier, h.cookieName))
 
 		r.Get("/admin/system-admins", h.handleListSystemAdmins)
-		r.Post("/admin/system-admins", h.handleGrantSystemAdmin)
-		r.Delete("/admin/system-admins/{user_id}", h.handleRevokeSystemAdmin)
 		r.Get("/admin/users", h.handleListManagedUsers)
-		r.Patch("/admin/users/{user_id}", h.handleUpdateManagedUser)
-		r.Post("/admin/users/{user_id}/password", h.handleSetManagedUserPassword)
-		r.Get("/admin/data-export", h.handleExportData)
-		r.Post("/admin/data-import", h.handleImportData)
 		r.Get("/admin/settings", h.handleGetSettings)
-		r.Patch("/admin/settings", h.handleUpdateSettings)
+		registerSensitive := func(sensitive chi.Router) {
+			sensitive.Post("/admin/system-admins", h.handleGrantSystemAdmin)
+			sensitive.Delete("/admin/system-admins/{user_id}", h.handleRevokeSystemAdmin)
+			sensitive.Patch("/admin/users/{user_id}", h.handleUpdateManagedUser)
+			sensitive.Post("/admin/users/{user_id}/password", h.handleSetManagedUserPassword)
+			sensitive.Delete("/admin/users/{user_id}/password", h.handleClearManagedUserPassword)
+			sensitive.Get("/admin/data-export", h.handleExportData)
+			sensitive.Post("/admin/data-import", h.handleImportData)
+			sensitive.Patch("/admin/settings", h.handleUpdateSettings)
+		}
+		if h.sudo != nil {
+			r.Group(func(sensitive chi.Router) {
+				sensitive.Use(httpmiddleware.RequireSudo(h.sudo))
+				registerSensitive(sensitive)
+			})
+		} else {
+			registerSensitive(r)
+		}
 	})
 }
 
@@ -98,6 +114,8 @@ func mapAdminError(err error, fallback string) error {
 		return httpx.NotFoundCode(httpx.CodeUserNotFound, "user not found")
 	case errors.Is(err, appadmin.ErrLastSystemAdmin):
 		return httpx.ConflictCode(httpx.CodeLastSystemAdmin, "system must keep at least one administrator")
+	case errors.Is(err, identity.ErrLastAuthenticationMethod):
+		return httpx.ConflictCode(httpx.CodeAuthLastCredential, "account must keep at least one authentication method")
 	case errors.Is(err, appadmin.ErrSelfSystemAdminRemoval), errors.Is(err, appadmin.ErrSelfAccountDisable):
 		return httpx.ConflictCode(httpx.CodeSelfSystemAdminAction, "system administrator cannot remove or disable self")
 	case errors.Is(err, appadmin.ErrDataImportInvalid):

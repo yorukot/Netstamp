@@ -11,7 +11,7 @@ import (
 
 func TestRequestPasswordResetCreatesTokenAndSendsEmail(t *testing.T) {
 	ctx := context.Background()
-	user := identity.User{ID: "11111111-1111-1111-1111-111111111111", Email: "user@example.com", DisplayName: "Jane Doe"}
+	user := identity.User{ID: "11111111-1111-1111-1111-111111111111", Email: "user@example.com", DisplayName: "Jane Doe", HasPassword: true}
 	users := &passwordResetUserRepo{user: user}
 	resets := &passwordResetRepo{}
 	mailer := &passwordResetMailer{}
@@ -61,9 +61,28 @@ func TestRequestPasswordResetDoesNotRevealMissingEmail(t *testing.T) {
 	}
 }
 
+func TestRequestPasswordResetIgnoresPasswordlessAccount(t *testing.T) {
+	ctx := context.Background()
+	user := identity.User{ID: "11111111-1111-1111-1111-111111111111", Email: "sso@example.com", DisplayName: "SSO User"}
+	resets := &passwordResetRepo{}
+	mailer := &passwordResetMailer{}
+	service := newPasswordResetTestService(&passwordResetUserRepo{user: user}, resets, mailer)
+
+	err := service.RequestPasswordReset(ctx, RequestPasswordResetInput{
+		Email:        user.Email,
+		ResetBaseURL: "https://app.example.com",
+	})
+	if err != nil {
+		t.Fatalf("RequestPasswordReset returned error: %v", err)
+	}
+	if len(resets.created) != 0 || len(mailer.sent) != 0 {
+		t.Fatalf("passwordless account should not receive a reset token or email: tokens=%d emails=%d", len(resets.created), len(mailer.sent))
+	}
+}
+
 func TestRequestPasswordResetDoesNotRevealMailerFailure(t *testing.T) {
 	ctx := context.Background()
-	user := identity.User{ID: "11111111-1111-1111-1111-111111111111", Email: "user@example.com", DisplayName: "Jane Doe"}
+	user := identity.User{ID: "11111111-1111-1111-1111-111111111111", Email: "user@example.com", DisplayName: "Jane Doe", HasPassword: true}
 	users := &passwordResetUserRepo{user: user}
 	resets := &passwordResetRepo{}
 	mailer := &passwordResetMailer{err: errors.New("smtp unavailable")}

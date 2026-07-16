@@ -20,6 +20,7 @@ type SystemAdminRepository interface {
 
 type SessionRepository interface {
 	RevokeUserSessions(ctx context.Context, userID, reason string) error
+	RevokeUserSessionsExcept(ctx context.Context, userID, sessionID, reason string) error
 }
 
 type APITokenRevoker interface {
@@ -28,7 +29,13 @@ type APITokenRevoker interface {
 
 type PasswordHasher interface {
 	Hash(ctx context.Context, password string) (string, error)
-	Compare(ctx context.Context, password, passwordHash string) error
+}
+
+type AuthenticationRepository interface {
+	ListUserIdentities(ctx context.Context, userID string) ([]identity.UserIdentity, error)
+	CountUserAuthenticationMethods(ctx context.Context, userID string) (bool, int64, error)
+	DeleteUserIdentity(ctx context.Context, userID, identityID string) error
+	DeleteUserPasswordCredential(ctx context.Context, userID string) (identity.User, error)
 }
 
 type EventRecorder interface {

@@ -65,6 +65,7 @@ func (h *Handler) register(ctx context.Context, r *http.Request, input *register
 				DisplayName:   result.DisplayName,
 				EmailVerified: result.EmailVerified,
 				IsSystemAdmin: result.IsSystemAdmin,
+				HasPassword:   result.HasPassword,
 			},
 		},
 	}, nil

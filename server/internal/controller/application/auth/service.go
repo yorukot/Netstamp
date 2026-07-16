@@ -15,6 +15,7 @@ type Service struct {
 	systemAdmin             SystemAdminRepository
 	hasher                  PasswordHasher
 	sessions                SessionManager
+	recentAuth              RecentAuthenticationManager
 	apiTokens               APITokenRevoker
 	events                  SecurityEventRecorder
 	resets                  PasswordResetRepository
@@ -25,8 +26,25 @@ type Service struct {
 	emailVerificationTokens EmailVerificationTokenManager
 	emailVerificationMailer EmailVerificationMailer
 	emailVerificationConfig EmailVerificationConfig
+	oidcClient              OIDCClient
+	oidcRepo                OIDCRepository
+	oidcTokens              OIDCFlowTokenManager
+	oidcConfig              OIDCConfig
 	tx                      apptx.Transactor
 	now                     func() time.Time
+}
+
+func (s *Service) ConfigureOIDC(repo OIDCRepository, client OIDCClient, tokens OIDCFlowTokenManager, cfg OIDCConfig) {
+	if cfg.FlowTTL <= 0 {
+		cfg.FlowTTL = 10 * time.Minute
+	}
+	if cfg.AuthTimeSkew <= 0 {
+		cfg.AuthTimeSkew = time.Minute
+	}
+	s.oidcClient = client
+	s.oidcRepo = repo
+	s.oidcTokens = tokens
+	s.oidcConfig = cfg
 }
 
 func NewService(users UserRepository, hasher PasswordHasher, sessions SessionManager, events SecurityEventRecorder, transactors ...apptx.Transactor) *Service {
@@ -35,7 +53,7 @@ func NewService(users UserRepository, hasher PasswordHasher, sessions SessionMan
 		tx = transactors[0]
 	}
 
-	return &Service{
+	service := &Service{
 		users:                   users,
 		hasher:                  hasher,
 		sessions:                sessions,
@@ -45,6 +63,10 @@ func NewService(users UserRepository, hasher PasswordHasher, sessions SessionMan
 		tx:                      tx,
 		now:                     func() time.Time { return time.Now().UTC() },
 	}
+	if recentAuth, ok := sessions.(RecentAuthenticationManager); ok {
+		service.recentAuth = recentAuth
+	}
+	return service
 }
 
 func (s *Service) ConfigurePasswordReset(resets PasswordResetRepository, tokens PasswordResetTokenManager, mailer PasswordResetMailer, cfg PasswordResetConfig) {
@@ -219,6 +241,9 @@ func (s *Service) Login(ctx context.Context, input LoginInput) (AuthAccessResult
 		return AuthAccessResult{}, flow.businessFailure(AuthEventLoginFailure, AuthReasonAccountDisabled, ErrCredentialsInvalid)
 	}
 
+	if !user.HasPassword {
+		return AuthAccessResult{}, flow.businessFailure(AuthEventLoginFailure, AuthReasonCredentialsInvalid, ErrCredentialsInvalid)
+	}
 	err = s.comparePassword(ctx, input.Password, user.PasswordHash)
 	if err != nil {
 		return AuthAccessResult{}, flow.businessFailure(AuthEventLoginFailure, AuthReasonCredentialsInvalid, ErrCredentialsInvalid)
@@ -261,6 +286,10 @@ func (s *Service) RequestPasswordReset(ctx context.Context, input RequestPasswor
 	}
 	flow.setUser(user)
 	if user.DisabledAt != nil {
+		flow.success(AuthEventResetRequestSuccess)
+		return nil
+	}
+	if !user.HasPassword {
 		flow.success(AuthEventResetRequestSuccess)
 		return nil
 	}
@@ -458,6 +487,10 @@ func emailVerificationURL(baseURL, token string) string {
 }
 
 func (s *Service) createAccessResult(ctx context.Context, user identity.User, userAgent string) (AuthAccessResult, error) {
+	return s.createAccessResultWithMethod(ctx, user, userAgent, identity.AuthenticationMethodPassword, nil)
+}
+
+func (s *Service) createAccessResultWithMethod(ctx context.Context, user identity.User, userAgent, method string, identityID *string) (AuthAccessResult, error) {
 	ctx, span := authTracer.Start(ctx, "auth.create_session")
 	defer span.End()
 
@@ -466,9 +499,7 @@ func (s *Service) createAccessResult(ctx context.Context, user identity.User, us
 	}
 
 	session, err := s.sessions.CreateSession(ctx, CreateSessionInput{
-		UserID:    user.ID,
-		UserAgent: userAgent,
-		Now:       s.now(),
+		UserID: user.ID, UserAgent: userAgent, Now: s.now(), AuthenticationMethod: method, IdentityID: identityID,
 	})
 	if err != nil {
 		recordSpanError(span, err, AuthReasonSessionCreateFail)
@@ -481,6 +512,7 @@ func (s *Service) createAccessResult(ctx context.Context, user identity.User, us
 		DisplayName:   user.DisplayName,
 		EmailVerified: user.EmailVerifiedAt != nil,
 		IsSystemAdmin: user.IsSystemAdmin,
+		HasPassword:   user.HasPassword,
 		SessionToken:  session.RawToken,
 		ExpiresIn:     session.ExpiresIn,
 	}, nil
@@ -503,13 +535,15 @@ func (s *Service) ListSessions(ctx context.Context, userID, currentSessionID str
 	results := make([]SessionResult, 0, len(sessions))
 	for _, session := range sessions {
 		results = append(results, SessionResult{
-			ID:                session.ID,
-			UserAgent:         session.UserAgent,
-			CreatedAt:         session.CreatedAt,
-			LastUsedAt:        session.LastUsedAt,
-			IdleExpiresAt:     session.IdleExpiresAt,
-			AbsoluteExpiresAt: session.AbsoluteExpiresAt,
-			IsCurrent:         session.ID == currentSessionID,
+			ID:                   session.ID,
+			UserAgent:            session.UserAgent,
+			CreatedAt:            session.CreatedAt,
+			LastUsedAt:           session.LastUsedAt,
+			IdleExpiresAt:        session.IdleExpiresAt,
+			AbsoluteExpiresAt:    session.AbsoluteExpiresAt,
+			AuthenticatedAt:      session.AuthenticatedAt,
+			AuthenticationMethod: session.AuthenticationMethod,
+			IsCurrent:            session.ID == currentSessionID,
 		})
 	}
 

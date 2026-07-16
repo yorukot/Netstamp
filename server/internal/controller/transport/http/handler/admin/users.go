@@ -26,6 +26,7 @@ type managedUserResponseBody struct {
 	CreatedAt     time.Time  `json:"createdAt"`
 	UpdatedAt     time.Time  `json:"updatedAt"`
 	GrantedAt     *time.Time `json:"grantedAt,omitempty"`
+	HasPassword   bool       `json:"hasPassword"`
 }
 
 type updateManagedUserBody struct {
@@ -116,6 +117,24 @@ func (h *Handler) handleSetManagedUserPassword(w http.ResponseWriter, r *http.Re
 	httpx.WriteJSON(w, http.StatusOK, managedUserResponseWrapper{User: managedUserResponse(user)})
 }
 
+func (h *Handler) handleClearManagedUserPassword(w http.ResponseWriter, r *http.Request) {
+	if h.service == nil {
+		httpx.WriteProblem(w, r, httpx.InternalServerError("admin service is unavailable"))
+		return
+	}
+	userID, err := currentUserID(r)
+	if err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	user, err := h.service.ClearManagedUserPassword(r.Context(), appadmin.ClearManagedUserPasswordInput{CurrentUserID: userID, UserID: httpx.Path(r, "user_id")})
+	if err != nil {
+		httpx.WriteProblem(w, r, mapAdminError(err, "clear managed user password failed"))
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, managedUserResponseWrapper{User: managedUserResponse(user)})
+}
+
 func managedUsersResponse(users []appadmin.ManagedUser) managedUsersResponseBody {
 	response := managedUsersResponseBody{Users: make([]managedUserResponseBody, 0, len(users))}
 	for _, user := range users {
@@ -135,5 +154,6 @@ func managedUserResponse(user appadmin.ManagedUser) managedUserResponseBody {
 		CreatedAt:     user.CreatedAt,
 		UpdatedAt:     user.UpdatedAt,
 		GrantedAt:     user.GrantedAt,
+		HasPassword:   user.HasPassword,
 	}
 }

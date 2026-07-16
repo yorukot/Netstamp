@@ -12,10 +12,9 @@ import (
 )
 
 type createAPITokenBody struct {
-	Name            string    `json:"name"`
-	Scopes          []string  `json:"scopes"`
-	ExpiresAt       time.Time `json:"expiresAt"`
-	CurrentPassword string    `json:"currentPassword"`
+	Name      string    `json:"name"`
+	Scopes    []string  `json:"scopes"`
+	ExpiresAt time.Time `json:"expiresAt"`
 }
 
 type apiTokenBody struct {
@@ -48,7 +47,7 @@ func (h *Handler) handleCreateAPIToken(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteProblem(w, r, err)
 		return
 	}
-	output, err := h.apiTokens.Create(r.Context(), appapitoken.CreateInput{CurrentUserID: userID, Name: body.Name, Scopes: body.Scopes, ExpiresAt: body.ExpiresAt, CurrentPassword: body.CurrentPassword})
+	output, err := h.apiTokens.Create(r.Context(), appapitoken.CreateInput{CurrentUserID: userID, Name: body.Name, Scopes: body.Scopes, ExpiresAt: body.ExpiresAt})
 	if err != nil {
 		httpx.WriteProblem(w, r, mapAPITokenError(err))
 		return

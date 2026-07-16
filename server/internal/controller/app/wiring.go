@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -156,6 +157,7 @@ func buildControllerServices(cfg config.Config, log *zap.Logger, dbPool *pgxpool
 		IdleTTL:       cfg.Auth.SessionIdleTTL,
 		AbsoluteTTL:   cfg.Auth.SessionAbsoluteTTL,
 		TouchInterval: cfg.Auth.SessionTouchInterval,
+		SudoTTL:       cfg.Auth.SudoTTL,
 	})
 	apiTokenManager := security.NewAPITokenManager(cfg.Auth.APITokenHashKey)
 	authEvents := logger.NewAuthEventRecorder(log, cfg.LogPseudonymKey)
@@ -190,6 +192,7 @@ func buildControllerServices(cfg config.Config, log *zap.Logger, dbPool *pgxpool
 		},
 	}, passwordHasher)
 	adminSvc.ConfigureSessions(sessionManager)
+	adminSvc.ConfigureAuthenticationMethods(userRepo)
 	smtpProvider := adminSMTPProvider{service: adminSvc}
 	notificationSender := notify.NewDynamicSender(cfg.Alerting.NotificationHTTPTimeout, smtpProvider)
 
@@ -201,12 +204,20 @@ func buildControllerServices(cfg config.Config, log *zap.Logger, dbPool *pgxpool
 	authSvc.ConfigureEmailVerification(userRepo, security.NewPasswordResetTokenManager(), notify.NewDynamicPasswordResetMailer(smtpProvider), appauth.EmailVerificationConfig{
 		TokenTTL: 24 * time.Hour,
 	})
+	authSvc.ConfigureOIDC(userRepo, security.NewOIDCClient(security.OIDCClientConfig{
+		IssuerURL: cfg.Auth.OIDCIssuerURL, ClientID: cfg.Auth.OIDCClientID, ClientSecret: cfg.Auth.OIDCClientSecret,
+		RedirectURL: strings.TrimRight(cfg.HTTP.BackendBaseURL, "/") + "/api/" + cfg.APIVersion + "/auth/oidc/callback",
+	}), security.NewPasswordResetTokenManager(), appauth.OIDCConfig{
+		Enabled: cfg.Auth.OIDCEnabled, DisplayName: cfg.Auth.OIDCDisplayName, JITEnabled: cfg.Auth.OIDCJITEnabled,
+		FlowTTL: 10 * time.Minute, AuthTimeSkew: time.Minute,
+	})
 
 	userSvc := appuser.NewService(userRepo, passwordHasher, userEvents)
-	apiTokenSvc := appapitoken.NewService(apiTokenRepo, userRepo, passwordHasher, apiTokenManager, apiTokenEvents)
+	apiTokenSvc := appapitoken.NewService(apiTokenRepo, apiTokenManager, apiTokenEvents)
 	authSvc.ConfigureAPITokens(apiTokenSvc)
 	adminSvc.ConfigureAPITokens(apiTokenSvc)
 	userSvc.ConfigureAPITokens(apiTokenSvc)
+	userSvc.ConfigureAuthenticationMethods(userRepo)
 	userSvc.ConfigureSystemAdmin(systemRepo)
 	userSvc.ConfigureSessions(sessionManager)
 	projectSvc := appproject.NewService(projectRepo, userRepo, projectEvents)
@@ -277,6 +288,8 @@ func buildHTTPHandler(cfg config.Config, log *zap.Logger, dbPool *pgxpool.Pool, 
 		AuthCookieName:              authCookieName(cfg),
 		AuthCookieSecure:            authCookieSecure(cfg),
 		AuthRegistrationDisabled:    !cfg.Auth.RegistrationEnabled,
+		AuthOIDCEnabled:             cfg.Auth.OIDCEnabled,
+		AuthOIDCDisplayName:         cfg.Auth.OIDCDisplayName,
 		AuthPasswordResetRateWindow: cfg.Auth.PasswordResetRateWindow,
 		AuthPasswordResetIPLimit:    cfg.Auth.PasswordResetIPLimit,
 		AuthPasswordResetEmailLimit: cfg.Auth.PasswordResetEmailLimit,

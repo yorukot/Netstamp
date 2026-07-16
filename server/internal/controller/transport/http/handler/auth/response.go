@@ -6,4 +6,5 @@ type userResponse struct {
 	DisplayName   string `json:"displayName"`
 	EmailVerified bool   `json:"emailVerified"`
 	IsSystemAdmin bool   `json:"isSystemAdmin"`
+	HasPassword   bool   `json:"hasPassword"`
 }

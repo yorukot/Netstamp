@@ -37,6 +37,7 @@ func TestLoginCapturesUserAgentForSession(t *testing.T) {
 		Email:           "user@example.com",
 		DisplayName:     "User",
 		PasswordHash:    "hashed-password",
+		HasPassword:     true,
 		EmailVerifiedAt: &verifiedAt,
 	}}, authTestPasswordHasher{}, manager, authTestEvents{})
 	router := chi.NewRouter()
@@ -187,6 +188,7 @@ func newAuthTestService() *appauth.Service {
 		Email:           "user@example.com",
 		DisplayName:     "User",
 		PasswordHash:    "hashed-password",
+		HasPassword:     true,
 		EmailVerifiedAt: &verifiedAt,
 	}
 	return appauth.NewService(&authTestUserRepository{user: user}, authTestPasswordHasher{}, authTestSessionManager{}, authTestEvents{})

@@ -7,11 +7,10 @@ import (
 )
 
 type CreateInput struct {
-	CurrentUserID   string
-	Name            string
-	Scopes          []string
-	ExpiresAt       time.Time
-	CurrentPassword string
+	CurrentUserID string
+	Name          string
+	Scopes        []string
+	ExpiresAt     time.Time
 }
 
 type CreateOutput struct {

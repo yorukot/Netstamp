@@ -30,6 +30,7 @@ func (h *Handler) me(ctx context.Context, _ *meInput) (*meOutput, error) {
 				DisplayName:   user.DisplayName,
 				EmailVerified: user.EmailVerifiedAt != nil,
 				IsSystemAdmin: user.IsSystemAdmin,
+				HasPassword:   user.HasPassword,
 			},
 		},
 	}, nil

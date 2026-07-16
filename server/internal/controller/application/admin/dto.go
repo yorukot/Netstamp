@@ -74,6 +74,11 @@ type SetManagedUserPasswordInput struct {
 	Password      string
 }
 
+type ClearManagedUserPasswordInput struct {
+	CurrentUserID string
+	UserID        string
+}
+
 type ExportDataInput struct {
 	CurrentUserID string
 }

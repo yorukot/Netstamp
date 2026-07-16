@@ -23,6 +23,14 @@ type Handler struct {
 	publicWebBaseURL    string
 	resetLimiter        *PasswordResetRateLimiter
 	apiTokens           *appapitoken.Service
+	oidcEnabled         bool
+	oidcDisplayName     string
+}
+
+func (h *Handler) ConfigureOIDC(enabled bool, displayName string) *Handler {
+	h.oidcEnabled = enabled
+	h.oidcDisplayName = displayName
+	return h
 }
 
 func (h *Handler) ConfigureAPITokens(service *appapitoken.Service) *Handler {
@@ -50,6 +58,9 @@ func (h *Handler) ConfigurePasswordReset(publicWebBaseURL string, limiter *Passw
 func (h *Handler) RegisterRoutes(api chi.Router) {
 	api.Post("/auth/register", h.handleRegister)
 	api.Post("/auth/login", h.handleLogin)
+	api.Get("/auth/methods", h.handleAuthMethods)
+	api.Get("/auth/oidc/start", h.handleOIDCStart)
+	api.Get("/auth/oidc/callback", h.handleOIDCCallback)
 	api.Post("/auth/logout", h.handleLogout)
 	api.Post("/auth/password-resets", h.handleRequestPasswordReset)
 	api.Patch("/auth/password-resets", h.handleConfirmPasswordReset)
@@ -59,13 +70,15 @@ func (h *Handler) RegisterRoutes(api chi.Router) {
 		r.Use(httpmiddleware.RequireAuth(h.verifier, h.cookieName))
 
 		r.Get("/auth/csrf", h.handleCSRF)
+		r.Get("/auth/sudo", h.handleSudoStatus)
+		r.Post("/auth/sudo/password", h.handlePasswordSudo)
 		r.Get("/auth/me", h.handleMe)
 		r.Get("/auth/sessions", h.handleListSessions)
 		r.Delete("/auth/sessions", h.handleRevokeAllSessions)
 		r.Delete("/auth/sessions/{session_id}", h.handleRevokeSession)
 		if h.apiTokens != nil {
 			r.Get("/auth/api-tokens", h.handleListAPITokens)
-			r.Post("/auth/api-tokens", h.handleCreateAPIToken)
+			r.With(httpmiddleware.RequireSudo(h.service)).Post("/auth/api-tokens", h.handleCreateAPIToken)
 			r.Delete("/auth/api-tokens/{token_id}", h.handleRevokeAPIToken)
 		}
 	})

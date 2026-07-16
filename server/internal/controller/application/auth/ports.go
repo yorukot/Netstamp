@@ -14,6 +14,18 @@ type UserRepository interface {
 	UpdateUserPasswordHash(ctx context.Context, input identity.User) (identity.User, error)
 }
 
+type OIDCRepository interface {
+	CreateOIDCUser(ctx context.Context, email, displayName, issuer, subject string, now time.Time) (identity.User, identity.UserIdentity, error)
+	CreateUserIdentity(ctx context.Context, input identity.UserIdentity) (identity.UserIdentity, error)
+	GetUserIdentityByIssuerSubject(ctx context.Context, issuer, subject string) (identity.UserIdentity, error)
+	GetUserIdentityByIDForUser(ctx context.Context, identityID, userID string) (identity.UserIdentity, error)
+	ListUserIdentities(ctx context.Context, userID string) ([]identity.UserIdentity, error)
+	TouchUserIdentityLogin(ctx context.Context, input identity.UserIdentity, at time.Time) (identity.UserIdentity, error)
+	CreateOIDCAuthFlow(ctx context.Context, input identity.OIDCAuthFlow) (identity.OIDCAuthFlow, error)
+	ConsumeOIDCAuthFlow(ctx context.Context, stateHash, browserTokenHash []byte, now time.Time) (identity.OIDCAuthFlow, error)
+	DeleteExpiredOIDCAuthFlows(ctx context.Context, now time.Time) error
+}
+
 type SystemAdminRepository interface {
 	GrantFirstSystemAdminIfNone(ctx context.Context, userID string) (bool, error)
 }
@@ -47,6 +59,22 @@ type SessionManager interface {
 	ListUserSessions(ctx context.Context, userID string) ([]identity.AuthSession, error)
 	RevokeUserSession(ctx context.Context, userID, sessionID, reason string) error
 	RevokeUserSessions(ctx context.Context, userID, reason string) error
+}
+
+type RecentAuthenticationManager interface {
+	SudoStatus(ctx context.Context, sessionID string) (identity.SudoStatus, error)
+	ElevateSession(ctx context.Context, sessionID, method string, identityID *string, authenticatedAt time.Time) error
+	GetSession(ctx context.Context, sessionID string) (identity.AuthSession, error)
+}
+
+type OIDCClient interface {
+	AuthorizationURL(ctx context.Context, state, nonce, pkceVerifier string, forceReauthentication bool) (string, error)
+	Exchange(ctx context.Context, code, pkceVerifier, nonce string) (OIDCClaims, error)
+}
+
+type OIDCFlowTokenManager interface {
+	Generate(ctx context.Context) (string, error)
+	Hash(value string) string
 }
 
 type APITokenRevoker interface {

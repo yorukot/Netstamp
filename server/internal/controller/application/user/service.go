@@ -14,7 +14,10 @@ type Service struct {
 	apiTokens   APITokenRevoker
 	hasher      PasswordHasher
 	events      EventRecorder
+	authMethods AuthenticationRepository
 }
+
+func (s *Service) ConfigureAuthenticationMethods(repo AuthenticationRepository) { s.authMethods = repo }
 
 func NewService(repo Repository, hasher PasswordHasher, events EventRecorder) *Service {
 	return &Service{
@@ -70,10 +73,6 @@ func (s *Service) ChangeCurrentUserEmail(ctx context.Context, input ChangeCurren
 		return UserOutput{}, flow.lookupFailure(UserEventChangeEmailFailure, err)
 	}
 	flow.setUser(user)
-	if compareErr := s.hasher.Compare(ctx, input.Password, user.PasswordHash); compareErr != nil {
-		return UserOutput{}, flow.businessFailure(UserEventChangeEmailFailure, UserReasonCredentialsInvalid, ErrCredentialsInvalid)
-	}
-
 	user, err = s.repo.UpdateUserEmail(ctx, identity.User{
 		ID:    input.CurrentUserID,
 		Email: input.NewEmail,
@@ -104,10 +103,6 @@ func (s *Service) ChangeCurrentUserPassword(ctx context.Context, input ChangeCur
 		return flow.lookupFailure(UserEventChangePasswordFailure, err)
 	}
 	flow.setUser(user)
-	if compareErr := s.hasher.Compare(ctx, input.CurrentPassword, user.PasswordHash); compareErr != nil {
-		return flow.businessFailure(UserEventChangePasswordFailure, UserReasonCredentialsInvalid, ErrCredentialsInvalid)
-	}
-
 	passwordHash, err := s.hasher.Hash(ctx, input.NewPassword)
 	if err != nil {
 		return flow.technicalFailure(UserEventChangePasswordFailure, UserReasonPasswordHashFailed, err)
@@ -121,7 +116,7 @@ func (s *Service) ChangeCurrentUserPassword(ctx context.Context, input ChangeCur
 		return flow.updateFailure(UserEventChangePasswordFailure, err)
 	}
 	if s.sessions != nil {
-		if err := s.sessions.RevokeUserSessions(ctx, input.CurrentUserID, "password_change"); err != nil {
+		if err := s.sessions.RevokeUserSessionsExcept(ctx, input.CurrentUserID, input.CurrentSessionID, "password_change"); err != nil {
 			return flow.updateFailure(UserEventChangePasswordFailure, err)
 		}
 	}
@@ -133,6 +128,74 @@ func (s *Service) ChangeCurrentUserPassword(ctx context.Context, input ChangeCur
 	flow.setUser(user)
 	flow.success(UserEventChangePasswordSuccess)
 
+	return nil
+}
+
+func (s *Service) ListAuthenticationMethods(ctx context.Context, userID string) (AuthenticationMethodsOutput, error) {
+	if s.authMethods == nil || userID == "" {
+		return AuthenticationMethodsOutput{}, ErrInvalidInput
+	}
+	hasPassword, _, err := s.authMethods.CountUserAuthenticationMethods(ctx, userID)
+	if err != nil {
+		return AuthenticationMethodsOutput{}, err
+	}
+	identities, err := s.authMethods.ListUserIdentities(ctx, userID)
+	if err != nil {
+		return AuthenticationMethodsOutput{}, err
+	}
+	return AuthenticationMethodsOutput{HasPassword: hasPassword, Identities: identities}, nil
+}
+
+func (s *Service) RemoveCurrentUserPassword(ctx context.Context, userID, sessionID string) error {
+	if s.authMethods == nil || userID == "" {
+		return ErrInvalidInput
+	}
+	_, identityCount, err := s.authMethods.CountUserAuthenticationMethods(ctx, userID)
+	if err != nil {
+		return err
+	}
+	if identityCount == 0 {
+		return ErrLastCredential
+	}
+	if _, err := s.authMethods.DeleteUserPasswordCredential(ctx, userID); err != nil {
+		return err
+	}
+	if s.sessions != nil {
+		if err := s.sessions.RevokeUserSessionsExcept(ctx, userID, sessionID, "password_removed"); err != nil {
+			return err
+		}
+	}
+	if s.apiTokens != nil {
+		return s.apiTokens.RevokeUserTokens(ctx, userID, "password_removed")
+	}
+	return nil
+}
+
+func (s *Service) RemoveCurrentUserIdentity(ctx context.Context, userID, sessionID, identityID string) error {
+	if s.authMethods == nil || userID == "" || sessionID == "" || identityID == "" {
+		return ErrInvalidInput
+	}
+	hasPassword, identityCount, err := s.authMethods.CountUserAuthenticationMethods(ctx, userID)
+	if err != nil {
+		return err
+	}
+	if !hasPassword && identityCount <= 1 {
+		return ErrLastCredential
+	}
+	if err := s.authMethods.DeleteUserIdentity(ctx, userID, identityID); err != nil {
+		if errors.Is(err, identity.ErrIdentityNotFound) {
+			return ErrIdentityNotFound
+		}
+		return err
+	}
+	if s.sessions != nil {
+		if err := s.sessions.RevokeUserSessionsExcept(ctx, userID, sessionID, "identity_removed"); err != nil {
+			return err
+		}
+	}
+	if s.apiTokens != nil {
+		return s.apiTokens.RevokeUserTokens(ctx, userID, "identity_removed")
+	}
 	return nil
 }
 

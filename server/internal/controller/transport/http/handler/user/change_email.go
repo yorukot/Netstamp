@@ -15,7 +15,6 @@ func (h *Handler) changeCurrentUserEmail(ctx context.Context, input *changeCurre
 	output, err := h.service.ChangeCurrentUserEmail(ctx, appuser.ChangeCurrentUserEmailInput{
 		CurrentUserID: currentUserID,
 		NewEmail:      input.Body.NewEmail,
-		Password:      input.Body.Password,
 	})
 	if err != nil {
 		return nil, mapUserError(err, "change current user email failed")
@@ -30,5 +29,4 @@ type changeCurrentUserEmailInput struct {
 
 type changeCurrentUserEmailInputBody struct {
 	NewEmail string `json:"newEmail,omitempty"`
-	Password string `json:"password,omitempty"`
 }

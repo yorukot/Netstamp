@@ -40,3 +40,29 @@ func expiredSessionCookie(name string, secure bool) http.Cookie {
 		SameSite: sameSite,
 	}
 }
+
+func newOIDCFlowCookie(name, value string, expiresAt time.Time, secure bool) http.Cookie {
+	return http.Cookie{ //nolint:gosec // Secure is runtime-configured; app bootstrap enables it outside local development.
+		Name:     name,
+		Value:    value,
+		Path:     sessionCookiePath,
+		Expires:  expiresAt,
+		MaxAge:   int(time.Until(expiresAt).Seconds()),
+		Secure:   secure,
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	}
+}
+
+func expiredOIDCFlowCookie(name string, secure bool) http.Cookie {
+	return http.Cookie{ //nolint:gosec // Secure is runtime-configured; app bootstrap enables it outside local development.
+		Name:     name,
+		Value:    "",
+		Path:     sessionCookiePath,
+		Expires:  time.Unix(0, 0).UTC(),
+		MaxAge:   -1,
+		Secure:   secure,
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	}
+}

@@ -25,13 +25,15 @@ func (h *Handler) listSessions(ctx context.Context, _ *listSessionsInput) (*list
 	items := make([]sessionOutputBody, 0, len(sessions))
 	for _, session := range sessions {
 		items = append(items, sessionOutputBody{
-			ID:                session.ID,
-			UserAgent:         session.UserAgent,
-			CreatedAt:         session.CreatedAt,
-			LastUsedAt:        session.LastUsedAt,
-			IdleExpiresAt:     session.IdleExpiresAt,
-			AbsoluteExpiresAt: session.AbsoluteExpiresAt,
-			IsCurrent:         session.IsCurrent,
+			ID:                   session.ID,
+			UserAgent:            session.UserAgent,
+			CreatedAt:            session.CreatedAt,
+			LastUsedAt:           session.LastUsedAt,
+			IdleExpiresAt:        session.IdleExpiresAt,
+			AbsoluteExpiresAt:    session.AbsoluteExpiresAt,
+			AuthenticatedAt:      session.AuthenticatedAt,
+			AuthenticationMethod: session.AuthenticationMethod,
+			IsCurrent:            session.IsCurrent,
 		})
 	}
 
@@ -83,13 +85,15 @@ type listSessionsOutputBody struct {
 }
 
 type sessionOutputBody struct {
-	ID                string    `json:"id"`
-	UserAgent         string    `json:"userAgent"`
-	CreatedAt         time.Time `json:"createdAt"`
-	LastUsedAt        time.Time `json:"lastUsedAt"`
-	IdleExpiresAt     time.Time `json:"idleExpiresAt"`
-	AbsoluteExpiresAt time.Time `json:"absoluteExpiresAt"`
-	IsCurrent         bool      `json:"isCurrent"`
+	ID                   string    `json:"id"`
+	UserAgent            string    `json:"userAgent"`
+	CreatedAt            time.Time `json:"createdAt"`
+	LastUsedAt           time.Time `json:"lastUsedAt"`
+	IdleExpiresAt        time.Time `json:"idleExpiresAt"`
+	AbsoluteExpiresAt    time.Time `json:"absoluteExpiresAt"`
+	AuthenticatedAt      time.Time `json:"authenticatedAt"`
+	AuthenticationMethod string    `json:"authenticationMethod"`
+	IsCurrent            bool      `json:"isCurrent"`
 }
 
 type revokeSessionInput struct {
