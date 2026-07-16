@@ -58,9 +58,24 @@ func TestGitHubExchangeUsesStableIDAndPrimaryVerifiedEmail(t *testing.T) {
 	}
 }
 
+func TestGitHubExchangeDoesNotTrustUnverifiedEmail(t *testing.T) {
+	roundTripper := &githubRoundTripper{emailsResponse: `[{"email":"primary@example.com","primary":true,"verified":false}]`}
+	client := NewGitHubOAuthClient(GitHubOAuthClientConfig{ClientID: "client-id", ClientSecret: "client-secret"})
+	client.httpClient = &http.Client{Transport: roundTripper}
+
+	claims, err := client.Exchange(context.Background(), "authorization-code", "verifier", "")
+	if err != nil {
+		t.Fatalf("exchange GitHub callback: %v", err)
+	}
+	if claims.Email != "" || claims.EmailVerified {
+		t.Fatalf("expected unverified GitHub email to be discarded: %#v", claims)
+	}
+}
+
 type githubRoundTripper struct {
-	sawVerifier bool
-	apiCalls    int
+	sawVerifier    bool
+	apiCalls       int
+	emailsResponse string
 }
 
 func (r *githubRoundTripper) RoundTrip(request *http.Request) (*http.Response, error) {
@@ -80,7 +95,11 @@ func (r *githubRoundTripper) RoundTrip(request *http.Request) (*http.Response, e
 		response.Body = io.NopCloser(strings.NewReader(`{"id":1234567,"login":"octocat","name":"The Octocat","avatar_url":"https://avatars.githubusercontent.com/u/1234567"}`))
 	case "api.github.com/user/emails":
 		r.apiCalls++
-		response.Body = io.NopCloser(strings.NewReader(`[{"email":"other@example.com","primary":false,"verified":true},{"email":"primary@example.com","primary":true,"verified":true}]`))
+		emailsResponse := r.emailsResponse
+		if emailsResponse == "" {
+			emailsResponse = `[{"email":"other@example.com","primary":false,"verified":true},{"email":"primary@example.com","primary":true,"verified":true}]`
+		}
+		response.Body = io.NopCloser(strings.NewReader(emailsResponse))
 	default:
 		response.StatusCode = http.StatusNotFound
 		response.Body = io.NopCloser(strings.NewReader(`{"message":"not found"}`))

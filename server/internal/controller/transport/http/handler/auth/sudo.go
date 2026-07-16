@@ -20,7 +20,9 @@ func (h *Handler) handleSudoStatus(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteProblem(w, r, httpx.InternalServerError("could not inspect recent authentication"))
 		return
 	}
-	httpx.WriteJSON(w, http.StatusOK, result)
+	httpx.WriteJSON(w, http.StatusOK, map[string]any{
+		"active": result.Active, "expiresAt": result.ExpiresAt, "methods": result.Methods,
+	})
 }
 
 func (h *Handler) handlePasswordSudo(w http.ResponseWriter, r *http.Request) {

@@ -91,14 +91,15 @@ func (m *SessionManager) CreateSession(ctx context.Context, input appauth.Create
 		idleExpiresAt = absoluteExpiresAt
 	}
 
+	method := authenticationMethod(input.AuthenticationMethod)
 	session, err := m.repo.CreateSession(ctx, identity.AuthSession{
 		UserID:               input.UserID,
 		TokenHash:            m.hash(rawToken),
 		CSRFTokenHash:        m.hash(rawCSRFToken),
 		UserAgent:            input.UserAgent,
 		AuthenticatedAt:      now,
-		AuthenticationMethod: authenticationMethod(input.AuthenticationMethod),
-		SudoEligible:         input.SudoEligible,
+		AuthenticationMethod: method,
+		SudoEligible:         input.SudoEligible && authenticationMethodSupportsSudo(method),
 		IdentityID:           input.IdentityID,
 		CreatedAt:            now,
 		LastUsedAt:           now,
@@ -133,7 +134,11 @@ func (m *SessionManager) SudoStatus(ctx context.Context, sessionID string) (iden
 		return identity.SudoStatus{}, err
 	}
 	expiresAt := session.AuthenticatedAt.Add(m.sudoTTL)
-	return identity.SudoStatus{Active: session.SudoEligible && m.now().Before(expiresAt), ExpiresAt: expiresAt}, nil
+	return identity.SudoStatus{Active: session.SudoEligible && authenticationMethodSupportsSudo(session.AuthenticationMethod) && m.now().Before(expiresAt), ExpiresAt: expiresAt}, nil
+}
+
+func authenticationMethodSupportsSudo(method string) bool {
+	return method == identity.AuthenticationMethodPassword || method == identity.AuthenticationMethodGoogle || method == identity.AuthenticationMethodOIDC
 }
 
 func (m *SessionManager) GetSession(ctx context.Context, sessionID string) (identity.AuthSession, error) {

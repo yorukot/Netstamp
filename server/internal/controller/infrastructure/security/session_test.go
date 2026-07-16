@@ -49,10 +49,11 @@ func TestSessionManagerPersistsUserAgentAndScopesManagedSessions(t *testing.T) {
 func TestSessionManagerSudoExpiresAfterFiveMinutes(t *testing.T) {
 	authenticatedAt := time.Date(2026, time.July, 10, 9, 30, 0, 0, time.UTC)
 	repo := &sessionRepositoryRecorder{active: identity.AuthSession{
-		ID:              "22222222-2222-2222-2222-222222222222",
-		UserID:          "11111111-1111-1111-1111-111111111111",
-		AuthenticatedAt: authenticatedAt,
-		SudoEligible:    true,
+		ID:                   "22222222-2222-2222-2222-222222222222",
+		UserID:               "11111111-1111-1111-1111-111111111111",
+		AuthenticatedAt:      authenticatedAt,
+		AuthenticationMethod: identity.AuthenticationMethodPassword,
+		SudoEligible:         true,
 	}}
 	manager := NewSessionManager(repo, SessionConfig{
 		HashKey: "test-session-hash-key",
@@ -95,6 +96,24 @@ func TestSessionManagerElevateSessionPersistsAuthenticationMethod(t *testing.T) 
 	}
 	if repo.updatedIdentityID == nil || *repo.updatedIdentityID != identityID || !repo.updatedAuthenticatedAt.Equal(authenticatedAt) {
 		t.Fatalf("unexpected authentication metadata: identity=%v authenticatedAt=%s", repo.updatedIdentityID, repo.updatedAuthenticatedAt)
+	}
+}
+
+func TestSessionManagerNeverTreatsGitHubLoginAsSudoEligible(t *testing.T) {
+	now := time.Date(2026, time.July, 10, 9, 30, 0, 0, time.UTC)
+	repo := &sessionRepositoryRecorder{}
+	manager := NewSessionManager(repo, SessionConfig{HashKey: "test-session-hash-key", IdleTTL: time.Hour, AbsoluteTTL: time.Hour, SudoTTL: 5 * time.Minute})
+	manager.now = func() time.Time { return now }
+	input := createSessionInput("Browser/1.0", now)
+	input.AuthenticationMethod = identity.AuthenticationMethodGitHub
+	input.SudoEligible = true
+
+	created, err := manager.CreateSession(context.Background(), input)
+	if err != nil {
+		t.Fatalf("create GitHub session: %v", err)
+	}
+	if created.Session.SudoEligible {
+		t.Fatal("expected GitHub login to remain ineligible for sudo")
 	}
 }
 

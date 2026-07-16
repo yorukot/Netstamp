@@ -28,7 +28,22 @@ func (s *Service) ExternalProviderMethods() []ExternalProviderMethod {
 			ID: provider.config.ID, DisplayName: provider.config.DisplayName, SudoCapable: provider.config.SudoCapable,
 		})
 	}
-	sort.Slice(methods, func(i, j int) bool { return methods[i].ID < methods[j].ID })
+	order := map[string]int{
+		identity.AuthenticationMethodGoogle: 0,
+		identity.AuthenticationMethodGitHub: 1,
+		identity.AuthenticationMethodOIDC:   2,
+	}
+	sort.Slice(methods, func(i, j int) bool {
+		left, leftKnown := order[methods[i].ID]
+		right, rightKnown := order[methods[j].ID]
+		if leftKnown && rightKnown && left != right {
+			return left < right
+		}
+		if leftKnown != rightKnown {
+			return leftKnown
+		}
+		return methods[i].ID < methods[j].ID
+	})
 	return methods
 }
 

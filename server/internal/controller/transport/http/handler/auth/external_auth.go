@@ -23,8 +23,12 @@ func (h *Handler) handleAuthMethods(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	providers := h.service.ExternalProviderMethods()
+	providerResponses := make([]externalProviderMethodResponse, 0, len(providers))
 	oidc := map[string]any{"enabled": false, "displayName": "Single sign-on"}
 	for _, provider := range providers {
+		providerResponses = append(providerResponses, externalProviderMethodResponse{
+			ID: provider.ID, DisplayName: provider.DisplayName, SudoCapable: provider.SudoCapable,
+		})
 		if provider.ID == identity.AuthenticationMethodOIDC {
 			oidc = map[string]any{"enabled": true, "displayName": provider.DisplayName}
 			break
@@ -32,9 +36,15 @@ func (h *Handler) handleAuthMethods(w http.ResponseWriter, r *http.Request) {
 	}
 	httpx.WriteJSON(w, http.StatusOK, map[string]any{
 		"password":  map[string]any{"enabled": true, "registrationEnabled": registrationEnabled},
-		"providers": providers,
+		"providers": providerResponses,
 		"oidc":      oidc,
 	})
+}
+
+type externalProviderMethodResponse struct {
+	ID          string `json:"id"`
+	DisplayName string `json:"displayName"`
+	SudoCapable bool   `json:"sudoCapable"`
 }
 
 func (h *Handler) handleExternalAuthStart(w http.ResponseWriter, r *http.Request) {

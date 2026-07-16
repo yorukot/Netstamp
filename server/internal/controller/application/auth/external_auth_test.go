@@ -75,6 +75,29 @@ func TestAuthorizePasswordChangeAllowsOnlyRecentGitHubBootstrap(t *testing.T) {
 	}
 }
 
+func TestSudoStatusExcludesGitHubProvider(t *testing.T) {
+	userID := "11111111-1111-1111-1111-111111111111"
+	users := &externalAuthUserRepositoryFake{userByID: identity.User{ID: userID}}
+	repo := &externalAuthRepositoryFake{identities: []identity.UserIdentity{
+		{Provider: identity.AuthenticationMethodGitHub},
+		{Provider: identity.AuthenticationMethodGoogle},
+	}}
+	service := NewService(users, passwordResetHasher{}, nil, nil)
+	service.recentAuth = &recentAuthenticationFake{}
+	service.ConfigureExternalAuth(repo, &externalAuthTokenManagerFake{}, ExternalAuthConfig{},
+		ExternalProviderRegistration{Config: ExternalProviderConfig{ID: identity.AuthenticationMethodGitHub, SudoCapable: false}, Client: &externalAuthClientFake{}},
+		ExternalProviderRegistration{Config: ExternalProviderConfig{ID: identity.AuthenticationMethodGoogle, SudoCapable: true}, Client: &externalAuthClientFake{}},
+	)
+
+	status, err := service.SudoStatus(context.Background(), userID, "session-id")
+	if err != nil {
+		t.Fatalf("get sudo status: %v", err)
+	}
+	if len(status.Methods) != 1 || status.Methods[0] != identity.AuthenticationMethodGoogle {
+		t.Fatalf("expected only Google to be sudo-capable, got %#v", status.Methods)
+	}
+}
+
 func TestCompleteExternalAuthDoesNotAutoLinkExistingEmail(t *testing.T) {
 	now := time.Date(2026, time.July, 16, 10, 0, 0, 0, time.UTC)
 	users := &externalAuthUserRepositoryFake{userByEmail: identity.User{
@@ -198,6 +221,7 @@ type externalAuthRepositoryFake struct {
 	createdFlow     identity.ExternalAuthFlow
 	flow            identity.ExternalAuthFlow
 	linkedIdentity  identity.UserIdentity
+	identities      []identity.UserIdentity
 	identityErr     error
 	createUserCalls int
 }
@@ -221,8 +245,8 @@ func (r *externalAuthRepositoryFake) GetUserIdentityByIDForUser(context.Context,
 	}
 	return r.linkedIdentity, nil
 }
-func (*externalAuthRepositoryFake) ListUserIdentities(context.Context, string) ([]identity.UserIdentity, error) {
-	return nil, nil
+func (r *externalAuthRepositoryFake) ListUserIdentities(context.Context, string) ([]identity.UserIdentity, error) {
+	return r.identities, nil
 }
 func (*externalAuthRepositoryFake) TouchUserIdentityLogin(_ context.Context, input identity.UserIdentity, _ time.Time) (identity.UserIdentity, error) {
 	return input, nil
