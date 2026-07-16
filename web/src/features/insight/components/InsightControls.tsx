@@ -3,6 +3,7 @@ import type { AssignmentSelectOption, InsightRefreshInterval, InsightRelativeRan
 import { classNames } from "@/shared/utils/classNames";
 import { relativeTimeOptions, relativeTimeRangeDurations } from "@/shared/utils/timeRanges";
 import { Button, PopoverAnchor, PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger, SearchableSelect, SelectField, TextField, SegmentedControl as UiSegmentedControl } from "@netstamp/ui";
+import { ArrowClockwiseIcon } from "@phosphor-icons/react/dist/csr/ArrowClockwise";
 import { CaretDownIcon } from "@phosphor-icons/react/dist/csr/CaretDown";
 import { XIcon } from "@phosphor-icons/react/dist/csr/X";
 import { useId, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from "react";
@@ -391,47 +392,40 @@ export function InsightTimeControl({
 	const absoluteFrom = activeAbsoluteDraft.from;
 	const absoluteTo = activeAbsoluteDraft.to;
 	const timeButtonId = useId();
-	const absoluteFromMs = parseDateTimeLocal(absoluteFrom);
-	const absoluteToMs = parseDateTimeLocal(absoluteTo);
-	const canApplyAbsolute = absoluteFromMs !== null && absoluteToMs !== null && absoluteFromMs < absoluteToMs;
 
-	function applyAbsolute() {
-		if (absoluteFromMs === null || absoluteToMs === null || absoluteFromMs >= absoluteToMs) {
-			return;
+	function updateAbsoluteDraft(field: "from" | "to", value: string) {
+		const nextDraft = { ...activeAbsoluteDraft, [field]: value };
+		const nextFrom = parseDateTimeLocal(nextDraft.from);
+		const nextTo = parseDateTimeLocal(nextDraft.to);
+
+		setAbsoluteDraft(nextDraft);
+		if (nextFrom !== null && nextTo !== null && nextFrom < nextTo) {
+			onApplyAbsolute({ from: nextFrom, to: nextTo });
 		}
-
-		onApplyAbsolute({ from: absoluteFromMs, to: absoluteToMs });
-		setOpen(false);
 	}
 
 	function applyNow() {
 		if (timeMode === "relative") {
 			onApplyRelative(timeRange);
-			setOpen(false);
 			return;
 		}
 
 		const duration = Math.max(timeWindow.to - timeWindow.from, timeRangeDurations["15m"]);
 		const to = Date.now();
 		onApplyAbsolute({ from: to - duration, to });
-		setOpen(false);
 	}
 
 	return (
-		<PopoverRoot open={open} onOpenChange={setOpen}>
-			<div className={classNames(styles.timeControlRoot, className)}>
-				<span className={styles.segmentLabel}>Time</span>
-				<div className={styles.timeControls}>
+		<div className={classNames(styles.timeControlRoot, className)}>
+			<PopoverRoot open={open} onOpenChange={setOpen}>
+				<div className={styles.timeField}>
+					<span className={styles.segmentLabel}>Time</span>
 					<PopoverTrigger asChild>
 						<button id={timeButtonId} type="button" className={styles.timeTrigger} aria-controls={`${timeButtonId}-panel`}>
 							<span>{displayInsightTimeRange(timeMode, timeRange, timeWindow)}</span>
 							<CaretDownIcon className={styles.controlIcon} size={18} weight="bold" aria-hidden="true" focusable="false" />
 						</button>
 					</PopoverTrigger>
-					<Button type="button" variant="outline" size="sm" className={styles.refreshButton} onClick={onRefresh}>
-						Refresh
-					</Button>
-					<SelectField label="Refresh" value={refresh} options={refreshOptions} onChange={event => onRefreshChange(event.currentTarget.value as InsightRefreshInterval)} />
 				</div>
 				<PopoverPortal>
 					<PopoverContent
@@ -465,21 +459,22 @@ export function InsightTimeControl({
 						<section className={styles.timeSection}>
 							<h4>Absolute time</h4>
 							<div className={styles.absoluteGrid}>
-								<TextField label="From" type="datetime-local" value={absoluteFrom} onChange={event => setAbsoluteDraft({ ...activeAbsoluteDraft, from: event.currentTarget.value })} />
-								<TextField label="To" type="datetime-local" value={absoluteTo} onChange={event => setAbsoluteDraft({ ...activeAbsoluteDraft, to: event.currentTarget.value })} />
+								<TextField label="From" type="datetime-local" value={absoluteFrom} onChange={event => updateAbsoluteDraft("from", event.currentTarget.value)} />
+								<TextField label="To" type="datetime-local" value={absoluteTo} onChange={event => updateAbsoluteDraft("to", event.currentTarget.value)} />
 							</div>
 							<div className={styles.timeActions}>
 								<Button type="button" variant="outline" size="sm" onClick={applyNow}>
 									Now
 								</Button>
-								<Button type="button" variant="secondary" size="sm" disabled={!canApplyAbsolute} onClick={applyAbsolute}>
-									Apply time range
-								</Button>
 							</div>
 						</section>
 					</PopoverContent>
 				</PopoverPortal>
-			</div>
-		</PopoverRoot>
+			</PopoverRoot>
+			<SelectField label="Refresh" value={refresh} options={refreshOptions} onChange={event => onRefreshChange(event.currentTarget.value as InsightRefreshInterval)} />
+			<Button type="button" variant="outline" className={styles.refreshButton} aria-label="Refresh insight" title="Refresh insight" onClick={onRefresh}>
+				<ArrowClockwiseIcon size="1rem" weight="bold" aria-hidden="true" focusable="false" />
+			</Button>
+		</div>
 	);
 }
