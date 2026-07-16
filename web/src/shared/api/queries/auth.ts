@@ -3,6 +3,12 @@ import { apiClient, readApiData } from "../client";
 import { apiQueryKeys } from "../queryKeys";
 
 export const authQueries = {
+	methods: () =>
+		queryOptions({
+			queryKey: apiQueryKeys.auth.methods(),
+			queryFn: ({ signal }) => readApiData(apiClient.GET("/auth/methods", { signal })),
+			staleTime: 5 * 60 * 1000
+		}),
 	me: () =>
 		queryOptions({
 			queryKey: apiQueryKeys.auth.me(),
@@ -19,5 +25,16 @@ export const authQueries = {
 		queryOptions({
 			queryKey: apiQueryKeys.auth.apiTokens(),
 			queryFn: ({ signal }) => readApiData(apiClient.GET("/auth/api-tokens", { signal }))
+		}),
+	sudo: () =>
+		queryOptions({
+			queryKey: apiQueryKeys.auth.sudo(),
+			queryFn: ({ signal }) => readApiData(apiClient.GET("/auth/sudo", { signal })),
+			staleTime: 15 * 1000
+		}),
+	authenticationMethods: () =>
+		queryOptions({
+			queryKey: apiQueryKeys.auth.authenticationMethods(),
+			queryFn: ({ signal }) => readApiData(apiClient.GET("/users/me/authentication-methods", { signal }))
 		})
 };

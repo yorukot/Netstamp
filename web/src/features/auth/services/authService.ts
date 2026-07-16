@@ -14,6 +14,7 @@ export interface SessionUser {
 	role: string;
 	emailVerified: boolean;
 	isSystemAdmin: boolean;
+	hasPassword: boolean;
 	gravatarUrl: string;
 	onboardingRequired?: boolean;
 }
@@ -38,6 +39,7 @@ export async function mapApiUser(user: UserResponse, options: { onboardingRequir
 		role: user.isSystemAdmin ? "Global admin" : "User",
 		emailVerified: Boolean(user.emailVerified),
 		isSystemAdmin: Boolean(user.isSystemAdmin),
+		hasPassword: Boolean(user.hasPassword),
 		gravatarUrl: await createGravatarUrl(email),
 		onboardingRequired: options.onboardingRequired
 	};

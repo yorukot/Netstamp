@@ -1,11 +1,13 @@
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { pathForRoute } from "@/routes/routePaths";
 import type { Navigate } from "@/routes/routeTypes";
-import { hasApiProblemCode } from "@/shared/api/client";
+import { absoluteApiUrl, hasApiProblemCode } from "@/shared/api/client";
 import { useCreateEmailVerificationMutation } from "@/shared/api/mutations";
+import { authQueries } from "@/shared/api/queries";
 import { appFeatures, demoCredentials, demoMode } from "@/shared/config/features";
 import { pushErrorToast, pushToast } from "@/shared/toast/toastStore";
 import { Button, TextField } from "@netstamp/ui";
+import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { AuthLayout } from "./AuthLayout";
@@ -24,11 +26,21 @@ export function AuthPage({ mode = "login", navigate }: AuthPageProps) {
 	const isRegister = mode === "register";
 	const { submitting, login, register } = useAuth();
 	const createEmailVerification = useCreateEmailVerificationMutation();
+	const methodsQuery = useQuery(authQueries.methods());
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
 	const [verificationEmail, setVerificationEmail] = useState("");
 	const heading = isRegister ? "Sign Up" : "Login";
 	const showDemoCredentials = demoMode && Boolean(demoCredentials);
+	const oidc = methodsQuery.data?.oidc;
+	const oidcError = new URLSearchParams(window.location.search).get("oidc_error");
+
+	function startOIDCLogin() {
+		const url = new URL(absoluteApiUrl("/auth/oidc/start"));
+		url.searchParams.set("intent", "login");
+		url.searchParams.set("returnTo", "/");
+		window.location.assign(url.toString());
+	}
 
 	useEffect(() => {
 		if (!isRegister) {
@@ -118,6 +130,12 @@ export function AuthPage({ mode = "login", navigate }: AuthPageProps) {
 
 	return (
 		<AuthLayout title={heading} helmetTitle={isRegister ? "Sign Up" : "Login"}>
+			{!isRegister && oidc?.enabled ? (
+				<Button type="button" variant="outline" size="lg" className={styles.submitButton} onClick={startOIDCLogin}>
+					Continue with {oidc.displayName}
+				</Button>
+			) : null}
+			{!isRegister && oidcError ? <div className={styles.notice}>Single sign-on could not be completed. Try again or use another sign-in method.</div> : null}
 			<form className={styles.form} onSubmit={handleSubmit}>
 				{isRegister ? <TextField label="Display Name" name="displayName" type="text" autoComplete="name" /> : null}
 				<TextField

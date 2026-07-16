@@ -56,16 +56,15 @@ interface TokenForm {
 	name: string;
 	scopes: ApiTokenScope[];
 	expiryDays: string;
-	currentPassword: string;
 }
 
-const emptyForm: TokenForm = { name: "", scopes: defaultScopes, expiryDays: "90", currentPassword: "" };
+const emptyForm: TokenForm = { name: "", scopes: defaultScopes, expiryDays: "90" };
 
 function formatDateTime(value?: string) {
 	return value ? new Date(value).toLocaleString() : "Never";
 }
 
-export function APITokensPanel() {
+export function APITokensPanel({ requireSudo }: { requireSudo?: (action: () => void) => void }) {
 	const query = useQuery(authQueries.apiTokens());
 	const createMutation = useCreateAPITokenMutation();
 	const revokeMutation = useRevokeAPITokenMutation();
@@ -94,10 +93,17 @@ export function APITokensPanel() {
 	);
 
 	function startCreate() {
-		setForm(emptyForm);
-		setCreatedValue(null);
-		createMutation.reset();
-		setOpen(true);
+		const openDialog = () => {
+			setForm(emptyForm);
+			setCreatedValue(null);
+			createMutation.reset();
+			setOpen(true);
+		};
+		if (requireSudo) {
+			requireSudo(openDialog);
+		} else {
+			openDialog();
+		}
 	}
 
 	function closeDialog() {
@@ -114,11 +120,10 @@ export function APITokensPanel() {
 		event.preventDefault();
 		const expiresAt = new Date(Date.now() + Number(form.expiryDays) * 24 * 60 * 60 * 1000).toISOString();
 		createMutation.mutate(
-			{ name: form.name.trim(), scopes: form.scopes, expiresAt, currentPassword: form.currentPassword },
+			{ name: form.name.trim(), scopes: form.scopes, expiresAt },
 			{
 				onSuccess: response => {
 					setCreatedValue(response.value);
-					setForm(current => ({ ...current, currentPassword: "" }));
 				},
 				onError: error => pushToast({ title: "Token creation failed", message: requestErrorMessage(error, "Could not create the API token."), tone: "critical" })
 			}
@@ -208,19 +213,12 @@ export function APITokensPanel() {
 											</label>
 										))}
 									</fieldset>
-									<TextField
-										label="Current password"
-										type="password"
-										value={form.currentPassword}
-										required
-										onChange={event => setForm(current => ({ ...current, currentPassword: event.currentTarget.value }))}
-									/>
 									<BodyCopy>The token will expire automatically and can be revoked at any time.</BodyCopy>
 									<div className={styles.dialogActions}>
 										<Button type="button" variant="ghost" onClick={closeDialog}>
 											Cancel
 										</Button>
-										<Button type="submit" disabled={!form.name.trim() || !form.currentPassword || form.scopes.length === 0 || createMutation.isPending}>
+										<Button type="submit" disabled={!form.name.trim() || form.scopes.length === 0 || createMutation.isPending}>
 											{createMutation.isPending ? "Creating" : "Create token"}
 										</Button>
 									</div>

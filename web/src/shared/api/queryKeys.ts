@@ -8,7 +8,10 @@ export const apiQueryKeys = {
 		all: ["auth"] as const,
 		me: () => [...apiQueryKeys.auth.all, "me"] as const,
 		sessions: () => [...apiQueryKeys.auth.all, "sessions"] as const,
-		apiTokens: () => [...apiQueryKeys.auth.all, "api-tokens"] as const
+		apiTokens: () => [...apiQueryKeys.auth.all, "api-tokens"] as const,
+		methods: () => [...apiQueryKeys.auth.all, "methods"] as const,
+		sudo: () => [...apiQueryKeys.auth.all, "sudo"] as const,
+		authenticationMethods: () => [...apiQueryKeys.auth.all, "authentication-methods"] as const
 	},
 	admin: {
 		all: ["admin"] as const,

@@ -16,7 +16,17 @@ export function changeCurrentUserEmail(body: ChangeCurrentUserEmailInput) {
 
 export function changeCurrentUserPassword(body: ChangeCurrentUserPasswordInput) {
 	requireWritableAccess();
-	return readEmptyApiResponse(apiClient.POST("/users/me/password-change", { body }));
+	return readEmptyApiResponse(apiClient.PUT("/users/me/password", { body }));
+}
+
+export function removeCurrentUserPassword() {
+	requireWritableAccess();
+	return readEmptyApiResponse(apiClient.DELETE("/users/me/password"));
+}
+
+export function removeCurrentUserIdentity(identityId: string) {
+	requireWritableAccess();
+	return readEmptyApiResponse(apiClient.DELETE("/users/me/identities/{identity_id}", { params: { path: { identity_id: identityId } } }));
 }
 
 export function deactivateCurrentUser() {
@@ -47,9 +57,30 @@ export function useChangeCurrentUserEmailMutation() {
 }
 
 export function useChangeCurrentUserPasswordMutation() {
+	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: changeCurrentUserPassword
+		mutationFn: changeCurrentUserPassword,
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: apiQueryKeys.auth.me() });
+			queryClient.invalidateQueries({ queryKey: apiQueryKeys.auth.authenticationMethods() });
+		}
 	});
+}
+
+export function useRemoveCurrentUserPasswordMutation() {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: removeCurrentUserPassword,
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: apiQueryKeys.auth.me() });
+			queryClient.invalidateQueries({ queryKey: apiQueryKeys.auth.authenticationMethods() });
+		}
+	});
+}
+
+export function useRemoveCurrentUserIdentityMutation() {
+	const queryClient = useQueryClient();
+	return useMutation({ mutationFn: removeCurrentUserIdentity, onSuccess: () => queryClient.invalidateQueries({ queryKey: apiQueryKeys.auth.authenticationMethods() }) });
 }
 
 export function useDeactivateCurrentUserMutation() {

@@ -1,7 +1,16 @@
 import { useMutation, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { apiClient, clearCSRFToken, readApiData, readEmptyApiResponse } from "../client";
 import { apiQueryKeys } from "../queryKeys";
-import type { ConfirmEmailVerificationInput, ConfirmPasswordResetInput, CreateApiTokenInput, CreateEmailVerificationInput, CreatePasswordResetInput, LoginInput, RegisterInput } from "../types";
+import type {
+	ConfirmEmailVerificationInput,
+	ConfirmPasswordResetInput,
+	CreateApiTokenInput,
+	CreateEmailVerificationInput,
+	CreatePasswordResetInput,
+	LoginInput,
+	PasswordSudoInput,
+	RegisterInput
+} from "../types";
 import { requireWritableAccess } from "./shared";
 
 function clearAuthenticatedClientState(queryClient: QueryClient) {
@@ -37,6 +46,11 @@ export function revokeAllAuthSessions() {
 export function createAPIToken(body: CreateApiTokenInput) {
 	requireWritableAccess();
 	return readApiData(apiClient.POST("/auth/api-tokens", { body }));
+}
+
+export function reauthenticatePassword(body: PasswordSudoInput) {
+	requireWritableAccess();
+	return readEmptyApiResponse(apiClient.POST("/auth/sudo/password", { body }));
 }
 
 export function revokeAPIToken(tokenId: string) {
@@ -157,6 +171,14 @@ export function useCreateAPITokenMutation() {
 	return useMutation({
 		mutationFn: createAPIToken,
 		onSuccess: () => queryClient.invalidateQueries({ queryKey: apiQueryKeys.auth.apiTokens() })
+	});
+}
+
+export function usePasswordSudoMutation() {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: reauthenticatePassword,
+		onSuccess: () => queryClient.invalidateQueries({ queryKey: apiQueryKeys.auth.sudo() })
 	});
 }
 

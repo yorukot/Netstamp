@@ -1,5 +1,13 @@
+import { useRequireSudo } from "@/features/auth/hooks/useRequireSudo";
 import { useSession } from "@/features/auth/session/SessionContext";
-import { useExportAdminDataMutation, useImportAdminDataMutation, useSetManagedUserPasswordMutation, useUpdateAdminSettingsMutation, useUpdateManagedUserMutation } from "@/shared/api/mutations";
+import {
+	useClearManagedUserPasswordMutation,
+	useExportAdminDataMutation,
+	useImportAdminDataMutation,
+	useSetManagedUserPasswordMutation,
+	useUpdateAdminSettingsMutation,
+	useUpdateManagedUserMutation
+} from "@/shared/api/mutations";
 import { adminQueries } from "@/shared/api/queries";
 import type { ApiAdminDataExport, ApiAdminSettings, ApiManagedUser } from "@/shared/api/types";
 import { useConfirm, usePromptDialog } from "@/shared/components/confirmContext";
@@ -126,12 +134,14 @@ export function AdminPage() {
 	const { session } = useSession();
 	const confirm = useConfirm();
 	const prompt = usePromptDialog();
+	const requireSudo = useRequireSudo();
 	const importInputRef = useRef<HTMLInputElement | null>(null);
 	const settingsQuery = useQuery({ ...adminQueries.settings(), enabled: Boolean(session?.user.isSystemAdmin) });
 	const usersQuery = useQuery({ ...adminQueries.users(), enabled: Boolean(session?.user.isSystemAdmin) });
 	const updateSettingsMutation = useUpdateAdminSettingsMutation();
 	const updateManagedUserMutation = useUpdateManagedUserMutation();
 	const setManagedUserPasswordMutation = useSetManagedUserPasswordMutation();
+	const clearManagedUserPasswordMutation = useClearManagedUserPasswordMutation();
 	const exportDataMutation = useExportAdminDataMutation();
 	const importDataMutation = useImportAdminDataMutation();
 	const loadedSettings = settingsQuery.data?.settings;
@@ -230,32 +240,34 @@ export function AdminPage() {
 
 	function handleSubmit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
-		updateSettingsMutation.mutate(
-			{
-				registrationEnabled: form.registrationEnabled,
-				emailVerificationRequired: form.emailVerificationRequired,
-				backendBaseUrl: form.backendBaseUrl,
-				publicWebBaseUrl: form.publicWebBaseUrl,
-				smtp: {
-					host: form.smtpHost,
-					port: numberValue(form.smtpPort, 587),
-					username: form.smtpUsername,
-					...(form.smtpPassword ? { password: form.smtpPassword } : {}),
-					clearPassword: form.smtpClearPassword,
-					from: form.smtpFrom,
-					tlsMode: form.smtpTLSMode,
-					timeoutSeconds: numberValue(form.smtpTimeoutSeconds, 10)
-				}
-			},
-			{
-				onSuccess: () => {
-					setEditedForm(null);
-					pushToast({ title: "Admin settings saved", message: "System settings were updated.", tone: "success" });
+		void requireSudo(() =>
+			updateSettingsMutation.mutate(
+				{
+					registrationEnabled: form.registrationEnabled,
+					emailVerificationRequired: form.emailVerificationRequired,
+					backendBaseUrl: form.backendBaseUrl,
+					publicWebBaseUrl: form.publicWebBaseUrl,
+					smtp: {
+						host: form.smtpHost,
+						port: numberValue(form.smtpPort, 587),
+						username: form.smtpUsername,
+						...(form.smtpPassword ? { password: form.smtpPassword } : {}),
+						clearPassword: form.smtpClearPassword,
+						from: form.smtpFrom,
+						tlsMode: form.smtpTLSMode,
+						timeoutSeconds: numberValue(form.smtpTimeoutSeconds, 10)
+					}
 				},
-				onError: error => {
-					pushToast({ title: "Admin settings failed", message: requestErrorMessage(error, "Could not save admin settings."), tone: "critical" });
+				{
+					onSuccess: () => {
+						setEditedForm(null);
+						pushToast({ title: "Admin settings saved", message: "System settings were updated.", tone: "success" });
+					},
+					onError: error => {
+						pushToast({ title: "Admin settings failed", message: requestErrorMessage(error, "Could not save admin settings."), tone: "critical" });
+					}
 				}
-			}
+			)
 		);
 	}
 
@@ -273,20 +285,22 @@ export function AdminPage() {
 			}
 		}
 
-		updateManagedUserMutation.mutate(
-			{ userId: user.id, body: { disabled: nextDisabled } },
-			{
-				onSuccess: data => {
-					pushToast({
-						title: data.user.disabledAt ? "Account disabled" : "Account enabled",
-						message: `${data.user.email} was updated.`,
-						tone: "success"
-					});
-				},
-				onError: error => {
-					pushToast({ title: "User update failed", message: requestErrorMessage(error, "Could not update account status."), tone: "critical" });
+		await requireSudo(() =>
+			updateManagedUserMutation.mutate(
+				{ userId: user.id, body: { disabled: nextDisabled } },
+				{
+					onSuccess: data => {
+						pushToast({
+							title: data.user.disabledAt ? "Account disabled" : "Account enabled",
+							message: `${data.user.email} was updated.`,
+							tone: "success"
+						});
+					},
+					onError: error => {
+						pushToast({ title: "User update failed", message: requestErrorMessage(error, "Could not update account status."), tone: "critical" });
+					}
 				}
-			}
+			)
 		);
 	}
 
@@ -304,20 +318,22 @@ export function AdminPage() {
 			}
 		}
 
-		updateManagedUserMutation.mutate(
-			{ userId: user.id, body: { systemAdmin: nextAdmin } },
-			{
-				onSuccess: data => {
-					pushToast({
-						title: data.user.isSystemAdmin ? "System admin granted" : "System admin revoked",
-						message: `${data.user.email} was updated.`,
-						tone: "success"
-					});
-				},
-				onError: error => {
-					pushToast({ title: "Permission update failed", message: requestErrorMessage(error, "Could not update user permissions."), tone: "critical" });
+		await requireSudo(() =>
+			updateManagedUserMutation.mutate(
+				{ userId: user.id, body: { systemAdmin: nextAdmin } },
+				{
+					onSuccess: data => {
+						pushToast({
+							title: data.user.isSystemAdmin ? "System admin granted" : "System admin revoked",
+							message: `${data.user.email} was updated.`,
+							tone: "success"
+						});
+					},
+					onError: error => {
+						pushToast({ title: "Permission update failed", message: requestErrorMessage(error, "Could not update user permissions."), tone: "critical" });
+					}
 				}
-			}
+			)
 		);
 	}
 
@@ -334,29 +350,54 @@ export function AdminPage() {
 			return;
 		}
 
-		setManagedUserPasswordMutation.mutate(
-			{ userId: user.id, body: { password } },
-			{
+		await requireSudo(() =>
+			setManagedUserPasswordMutation.mutate(
+				{ userId: user.id, body: { password } },
+				{
+					onSuccess: data => {
+						pushToast({ title: "Password updated", message: `${data.user.email} can use the new password.`, tone: "success" });
+					},
+					onError: error => {
+						pushToast({ title: "Password update failed", message: requestErrorMessage(error, "Could not update user password."), tone: "critical" });
+					}
+				}
+			)
+		);
+	}
+
+	async function clearPassword(user: ApiManagedUser) {
+		const accepted = await confirm({
+			title: "Remove user password",
+			message: `${user.email} will only be able to sign in through a linked external identity. This is rejected if password is their last login method.`,
+			confirmLabel: "Remove password",
+			tone: "danger"
+		});
+		if (!accepted) return;
+
+		await requireSudo(() =>
+			clearManagedUserPasswordMutation.mutate(user.id, {
 				onSuccess: data => {
-					pushToast({ title: "Password updated", message: `${data.user.email} can use the new password.`, tone: "success" });
+					pushToast({ title: "Password removed", message: `${data.user.email} must now use single sign-on.`, tone: "success" });
 				},
 				onError: error => {
-					pushToast({ title: "Password update failed", message: requestErrorMessage(error, "Could not update user password."), tone: "critical" });
+					pushToast({ title: "Password removal failed", message: requestErrorMessage(error, "Could not remove the user password."), tone: "critical" });
 				}
-			}
+			})
 		);
 	}
 
 	function exportData() {
-		exportDataMutation.mutate(undefined, {
-			onSuccess: data => {
-				downloadAdminDataExport(data);
-				pushToast({ title: "Data exported", message: "A JSON backup was downloaded.", tone: "success" });
-			},
-			onError: error => {
-				pushToast({ title: "Export failed", message: requestErrorMessage(error, "Could not export admin data."), tone: "critical" });
-			}
-		});
+		void requireSudo(() =>
+			exportDataMutation.mutate(undefined, {
+				onSuccess: data => {
+					downloadAdminDataExport(data);
+					pushToast({ title: "Data exported", message: "A JSON backup was downloaded.", tone: "success" });
+				},
+				onError: error => {
+					pushToast({ title: "Export failed", message: requestErrorMessage(error, "Could not export admin data."), tone: "critical" });
+				}
+			})
+		);
 	}
 
 	async function importData(event: ChangeEvent<HTMLInputElement>) {
@@ -388,14 +429,16 @@ export function AdminPage() {
 			return;
 		}
 
-		importDataMutation.mutate(parsed, {
-			onSuccess: data => {
-				pushToast({ title: "Data imported", message: `${data.result.importedRows} rows were imported.`, tone: "success" });
-			},
-			onError: error => {
-				pushToast({ title: "Import failed", message: requestErrorMessage(error, "Could not import admin data."), tone: "critical" });
-			}
-		});
+		await requireSudo(() =>
+			importDataMutation.mutate(parsed, {
+				onSuccess: data => {
+					pushToast({ title: "Data imported", message: `${data.result.importedRows} rows were imported.`, tone: "success" });
+				},
+				onError: error => {
+					pushToast({ title: "Import failed", message: requestErrorMessage(error, "Could not import admin data."), tone: "critical" });
+				}
+			})
+		);
 	}
 
 	function userRowActions(user: ApiManagedUser) {
@@ -403,6 +446,7 @@ export function AdminPage() {
 		const lastActiveAdmin = user.isSystemAdmin && !user.disabledAt && activeAdminCount <= 1;
 		const updatingUser = updateManagedUserMutation.isPending && updateManagedUserMutation.variables?.userId === user.id;
 		const settingPassword = setManagedUserPasswordMutation.isPending && setManagedUserPasswordMutation.variables?.userId === user.id;
+		const clearingPassword = clearManagedUserPasswordMutation.isPending && clearManagedUserPasswordMutation.variables === user.id;
 
 		return (
 			<div className={styles.userActions}>
@@ -415,6 +459,11 @@ export function AdminPage() {
 				<Button type="button" size="sm" variant="outline" disabled={settingPassword} onClick={() => void setPassword(user)}>
 					{settingPassword ? "Setting" : "Set password"}
 				</Button>
+				{user.hasPassword ? (
+					<Button type="button" size="sm" variant="danger" disabled={clearingPassword} onClick={() => void clearPassword(user)}>
+						{clearingPassword ? "Removing" : "Remove password"}
+					</Button>
+				) : null}
 			</div>
 		);
 	}
@@ -519,7 +568,7 @@ export function AdminPage() {
 						<Button type="button" variant="outline" disabled={exportDataMutation.isPending} onClick={exportData}>
 							{exportDataMutation.isPending ? "Exporting" : "Export data"}
 						</Button>
-						<Button type="button" variant="danger" disabled={importDataMutation.isPending} onClick={() => importInputRef.current?.click()}>
+						<Button type="button" variant="danger" disabled={importDataMutation.isPending} onClick={() => void requireSudo(() => importInputRef.current?.click())}>
 							{importDataMutation.isPending ? "Importing" : "Import data"}
 						</Button>
 						<input ref={importInputRef} className={styles.fileInput} type="file" accept="application/json,.json" onChange={event => void importData(event)} />

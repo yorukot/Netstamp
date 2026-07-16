@@ -1,12 +1,15 @@
+import { useRequireSudo } from "@/features/auth/hooks/useRequireSudo";
 import { useSession } from "@/features/auth/session/SessionContext";
 import { pathForRoute } from "@/routes/routePaths";
-import { clearCSRFToken } from "@/shared/api/client";
+import { absoluteApiUrl, clearCSRFToken } from "@/shared/api/client";
 import {
 	useAcceptProjectInviteMutation,
 	useChangeCurrentUserEmailMutation,
 	useChangeCurrentUserPasswordMutation,
 	useDeactivateCurrentUserMutation,
 	useRejectProjectInviteMutation,
+	useRemoveCurrentUserIdentityMutation,
+	useRemoveCurrentUserPasswordMutation,
 	useRevokeAllAuthSessionsMutation,
 	useRevokeAuthSessionMutation,
 	useUpdateCurrentUserMutation
@@ -67,12 +70,10 @@ interface IdentityFormState {
 interface EmailFormState {
 	userId: string;
 	newEmail: string;
-	password: string;
 }
 
 interface PasswordFormState {
 	userId: string;
-	currentPassword: string;
 	newPassword: string;
 	confirmPassword: string;
 }
@@ -86,13 +87,11 @@ const emptyIdentityForm: IdentityFormState = {
 
 const emptyEmailForm: EmailFormState = {
 	userId: "",
-	newEmail: "",
-	password: ""
+	newEmail: ""
 };
 
 const emptyPasswordForm: PasswordFormState = {
 	userId: "",
-	currentPassword: "",
 	newPassword: "",
 	confirmPassword: ""
 };
@@ -117,6 +116,7 @@ export function SettingsPage() {
 	const { setSelectedProjectRef } = useCurrentProject();
 	const navigate = useNavigate();
 	const confirm = useConfirm();
+	const requireSudo = useRequireSudo("/settings");
 	const updateUserMutation = useUpdateCurrentUserMutation();
 	const changeEmailMutation = useChangeCurrentUserEmailMutation();
 	const changePasswordMutation = useChangeCurrentUserPasswordMutation();
@@ -125,8 +125,12 @@ export function SettingsPage() {
 	const rejectInviteMutation = useRejectProjectInviteMutation();
 	const revokeAllSessionsMutation = useRevokeAllAuthSessionsMutation();
 	const revokeSessionMutation = useRevokeAuthSessionMutation();
+	const removePasswordMutation = useRemoveCurrentUserPasswordMutation();
+	const removeIdentityMutation = useRemoveCurrentUserIdentityMutation();
 	const invitesQuery = useQuery(projectQueries.currentUserInvites());
 	const sessionsQuery = useQuery({ ...authQueries.sessions(), enabled: Boolean(session) });
+	const authenticationMethodsQuery = useQuery({ ...authQueries.authenticationMethods(), enabled: Boolean(session) });
+	const authMethodsQuery = useQuery(authQueries.methods());
 	const credentialDialogDescriptionId = useId();
 	const [identityForm, setIdentityForm] = useState<IdentityFormState>(emptyIdentityForm);
 	const [emailForm, setEmailForm] = useState<EmailFormState>(emptyEmailForm);
@@ -145,10 +149,8 @@ export function SettingsPage() {
 	const hasIdentityChanges = activeIdentityForm.displayName !== user.name;
 	const isCredentialDialogOpen = credentialDialog !== null && !isCredentialDialogDismissed;
 	const isCredentialMutationPending = changeEmailMutation.isPending || changePasswordMutation.isPending;
-	const canChangeEmail = Boolean(activeEmailForm.newEmail.trim() && activeEmailForm.password.trim() && !changeEmailMutation.isPending);
-	const canChangePassword = Boolean(
-		activePasswordForm.currentPassword.trim() && activePasswordForm.newPassword.trim() && activePasswordForm.confirmPassword.trim() && !changePasswordMutation.isPending
-	);
+	const canChangeEmail = Boolean(activeEmailForm.newEmail.trim() && !changeEmailMutation.isPending);
+	const canChangePassword = Boolean(activePasswordForm.newPassword.trim() && activePasswordForm.confirmPassword.trim() && !changePasswordMutation.isPending);
 
 	function handleIdentitySubmit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
@@ -170,8 +172,7 @@ export function SettingsPage() {
 
 		changeEmailMutation.mutate(
 			{
-				newEmail: activeEmailForm.newEmail.trim(),
-				password: activeEmailForm.password.trim()
+				newEmail: activeEmailForm.newEmail.trim()
 			},
 			{
 				onSuccess: () => {
@@ -197,7 +198,6 @@ export function SettingsPage() {
 
 		changePasswordMutation.mutate(
 			{
-				currentPassword: activePasswordForm.currentPassword.trim(),
 				newPassword
 			},
 			{
@@ -245,11 +245,11 @@ export function SettingsPage() {
 		setIsCredentialDialogDismissed(false);
 	}
 
-	function updateEmailForm(field: "newEmail" | "password", value: string) {
+	function updateEmailForm(field: "newEmail", value: string) {
 		setEmailForm(current => ({ ...current, userId: user.id, [field]: value }));
 	}
 
-	function updatePasswordForm(field: "currentPassword" | "newPassword" | "confirmPassword", value: string) {
+	function updatePasswordForm(field: "newPassword" | "confirmPassword", value: string) {
 		setPasswordForm(current => ({ ...current, userId: user.id, [field]: value }));
 	}
 
@@ -471,11 +471,11 @@ export function SettingsPage() {
 
 					{appFeatures.userCredentialChanges ? (
 						<div className={styles.credentialActions}>
-							<Button type="button" variant="outline" disabled={demoMode} onClick={() => openCredentialDialog("email")}>
+							<Button type="button" variant="outline" disabled={demoMode} onClick={() => void requireSudo(() => openCredentialDialog("email"))}>
 								<EnvelopeSimpleIcon size="1rem" weight="bold" aria-hidden="true" focusable="false" />
 								Change Email
 							</Button>
-							<Button type="button" variant="outline" disabled={demoMode} onClick={() => openCredentialDialog("password")}>
+							<Button type="button" variant="outline" disabled={demoMode} onClick={() => void requireSudo(() => openCredentialDialog("password"))}>
 								<KeyIcon size="1rem" weight="bold" aria-hidden="true" focusable="false" />
 								Change Password
 							</Button>
@@ -527,7 +527,44 @@ export function SettingsPage() {
 				/>
 			</Panel>
 
-			<APITokensPanel />
+			<Panel tone="glass" title="Login methods" summary="Manage the credentials and external identities that can access this account.">
+				<div className={styles.credentialActions}>
+					<Badge tone={authenticationMethodsQuery.data?.hasPassword ? "success" : "muted"}>Password {authenticationMethodsQuery.data?.hasPassword ? "configured" : "not configured"}</Badge>
+					{authenticationMethodsQuery.data?.identities.map(identity => (
+						<div key={identity.id} className={styles.profileIdentityCopy}>
+							<strong>{identity.displayName || identity.email || "OIDC identity"}</strong>
+							<span>{identity.issuer}</span>
+							<Button type="button" size="sm" variant="danger" disabled={removeIdentityMutation.isPending} onClick={() => void requireSudo(() => removeIdentityMutation.mutate(identity.id))}>
+								Disconnect
+							</Button>
+						</div>
+					))}
+					{authMethodsQuery.data?.oidc.enabled ? (
+						<Button
+							type="button"
+							size="sm"
+							variant="outline"
+							onClick={() =>
+								void requireSudo(() => {
+									const url = new URL(absoluteApiUrl("/auth/oidc/start"));
+									url.searchParams.set("intent", "link");
+									url.searchParams.set("returnTo", "/settings");
+									window.location.assign(url.toString());
+								})
+							}
+						>
+							Connect {authMethodsQuery.data.oidc.displayName}
+						</Button>
+					) : null}
+					{authenticationMethodsQuery.data?.hasPassword && authenticationMethodsQuery.data.identities.length ? (
+						<Button type="button" size="sm" variant="danger" disabled={removePasswordMutation.isPending} onClick={() => void requireSudo(() => removePasswordMutation.mutate())}>
+							Remove password
+						</Button>
+					) : null}
+				</div>
+			</Panel>
+
+			<APITokensPanel requireSudo={action => void requireSudo(action)} />
 
 			<Panel tone="deep" title="Dangerous account actions" padded={false} bodySurface="transparent">
 				<DangerAction
@@ -535,7 +572,13 @@ export function SettingsPage() {
 					description="Disable sign-in and protected route access until a system administrator re-enables the account."
 					descriptionId="deactivate-account-description"
 					action={
-						<Button type="button" variant="danger" disabled={demoMode || deactivateUserMutation.isPending} aria-describedby="deactivate-account-description" onClick={() => void deactivateAccount()}>
+						<Button
+							type="button"
+							variant="danger"
+							disabled={demoMode || deactivateUserMutation.isPending}
+							aria-describedby="deactivate-account-description"
+							onClick={() => void requireSudo(() => void deactivateAccount())}
+						>
 							<UserMinusIcon size="1rem" weight="bold" aria-hidden="true" focusable="false" />
 							{deactivateUserMutation.isPending ? "Deactivating" : "Deactivate account"}
 						</Button>
@@ -587,36 +630,16 @@ export function SettingsPage() {
 												autoFocus
 												required
 											/>
-											<TextField
-												label="Confirm Password"
-												name="email-password"
-												type="password"
-												autoComplete="current-password"
-												value={activeEmailForm.password}
-												disabled={changeEmailMutation.isPending}
-												onChange={event => updateEmailForm("password", event.currentTarget.value)}
-												required
-											/>
 										</>
 									) : (
 										<>
-											<TextField
-												label="Current Password"
-												name="current-password"
-												type="password"
-												autoComplete="current-password"
-												value={activePasswordForm.currentPassword}
-												disabled={changePasswordMutation.isPending}
-												onChange={event => updatePasswordForm("currentPassword", event.currentTarget.value)}
-												autoFocus
-												required
-											/>
 											<TextField
 												label="New Password"
 												name="new-password"
 												type="password"
 												autoComplete="new-password"
 												value={activePasswordForm.newPassword}
+												autoFocus
 												disabled={changePasswordMutation.isPending}
 												onChange={event => updatePasswordForm("newPassword", event.currentTarget.value)}
 												required

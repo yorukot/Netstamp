@@ -29,6 +29,11 @@ export function setManagedUserPassword(userId: string, body: SetManagedUserPassw
 	return readApiData(apiClient.POST("/admin/users/{user_id}/password", { params: { path: { user_id: userId } }, body }));
 }
 
+export function clearManagedUserPassword(userId: string) {
+	requireWritableAccess();
+	return readApiData(apiClient.DELETE("/admin/users/{user_id}/password", { params: { path: { user_id: userId } } }));
+}
+
 export function exportAdminData() {
 	requireWritableAccess();
 	return readApiData(apiClient.GET("/admin/data-export")) as Promise<ApiAdminDataExport>;
@@ -97,6 +102,18 @@ export function useSetManagedUserPasswordMutation() {
 		mutationFn: ({ userId, body }: { userId: string; body: SetManagedUserPasswordInput }) => setManagedUserPassword(userId, body),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: apiQueryKeys.admin.users() });
+		}
+	});
+}
+
+export function useClearManagedUserPasswordMutation() {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: clearManagedUserPassword,
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: apiQueryKeys.admin.users() });
+			queryClient.invalidateQueries({ queryKey: apiQueryKeys.auth.me() });
 		}
 	});
 }
