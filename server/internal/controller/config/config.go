@@ -50,12 +50,25 @@ const (
 	keyAuthSessionTouchInterval            = "AUTH_SESSION_TOUCH_INTERVAL"
 	keyAuthSudoTTL                         = "AUTH_SUDO_TTL"
 	keyAuthRegistrationEnabled             = "AUTH_REGISTRATION_ENABLED"
+	keyAuthExternalFlowTTL                 = "AUTH_EXTERNAL_FLOW_TTL"
 	keyAuthOIDCEnabled                     = "AUTH_OIDC_ENABLED"
 	keyAuthOIDCIssuerURL                   = "AUTH_OIDC_ISSUER_URL"
 	keyAuthOIDCClientID                    = "AUTH_OIDC_CLIENT_ID"
 	keyAuthOIDCClientSecret                = "AUTH_OIDC_CLIENT_SECRET" //nolint:gosec // This is a configuration key name, not credential material.
 	keyAuthOIDCDisplayName                 = "AUTH_OIDC_DISPLAY_NAME"
 	keyAuthOIDCJITEnabled                  = "AUTH_OIDC_JIT_PROVISIONING_ENABLED"
+	keyAuthGoogleEnabled                   = "AUTH_GOOGLE_ENABLED"
+	keyAuthGoogleClientID                  = "AUTH_GOOGLE_CLIENT_ID"
+	keyAuthGoogleClientSecret              = "AUTH_GOOGLE_CLIENT_SECRET" //nolint:gosec // This is a configuration key name, not credential material.
+	keyAuthGoogleDisplayName               = "AUTH_GOOGLE_DISPLAY_NAME"
+	keyAuthGoogleJITEnabled                = "AUTH_GOOGLE_JIT_PROVISIONING_ENABLED"
+	keyAuthGoogleAllowedHostedDomains      = "AUTH_GOOGLE_ALLOWED_HOSTED_DOMAINS"
+	keyAuthGitHubEnabled                   = "AUTH_GITHUB_ENABLED"
+	keyAuthGitHubClientID                  = "AUTH_GITHUB_CLIENT_ID"
+	keyAuthGitHubClientSecret              = "AUTH_GITHUB_CLIENT_SECRET" //nolint:gosec // This is a configuration key name, not credential material.
+	keyAuthGitHubDisplayName               = "AUTH_GITHUB_DISPLAY_NAME"
+	keyAuthGitHubJITEnabled                = "AUTH_GITHUB_JIT_PROVISIONING_ENABLED"
+	keyAuthGitHubAllowSignup               = "AUTH_GITHUB_ALLOW_SIGNUP"
 	keyAuthPasswordResetTokenTTL           = "AUTH_PASSWORD_RESET_TOKEN_TTL"
 	keyAuthPasswordResetRateWindow         = "AUTH_PASSWORD_RESET_RATE_LIMIT_WINDOW"
 	keyAuthPasswordResetIPLimit            = "AUTH_PASSWORD_RESET_IP_LIMIT"
@@ -120,12 +133,25 @@ var defaultSettings = map[string]any{
 	keyAuthSessionTouchInterval:            5 * time.Minute,
 	keyAuthSudoTTL:                         5 * time.Minute,
 	keyAuthRegistrationEnabled:             true,
+	keyAuthExternalFlowTTL:                 10 * time.Minute,
 	keyAuthOIDCEnabled:                     false,
 	keyAuthOIDCIssuerURL:                   "",
 	keyAuthOIDCClientID:                    "",
 	keyAuthOIDCClientSecret:                "",
 	keyAuthOIDCDisplayName:                 "Single sign-on",
 	keyAuthOIDCJITEnabled:                  false,
+	keyAuthGoogleEnabled:                   false,
+	keyAuthGoogleClientID:                  "",
+	keyAuthGoogleClientSecret:              "",
+	keyAuthGoogleDisplayName:               "Google",
+	keyAuthGoogleJITEnabled:                false,
+	keyAuthGoogleAllowedHostedDomains:      "",
+	keyAuthGitHubEnabled:                   false,
+	keyAuthGitHubClientID:                  "",
+	keyAuthGitHubClientSecret:              "",
+	keyAuthGitHubDisplayName:               "GitHub",
+	keyAuthGitHubJITEnabled:                false,
+	keyAuthGitHubAllowSignup:               true,
 	keyAuthPasswordResetTokenTTL:           30 * time.Minute,
 	keyAuthPasswordResetRateWindow:         time.Hour,
 	keyAuthPasswordResetIPLimit:            int32(10),
@@ -205,12 +231,25 @@ type AuthConfig struct {
 	SessionTouchInterval    time.Duration `mapstructure:"AUTH_SESSION_TOUCH_INTERVAL"`
 	SudoTTL                 time.Duration `mapstructure:"AUTH_SUDO_TTL"`
 	RegistrationEnabled     bool          `mapstructure:"AUTH_REGISTRATION_ENABLED"`
+	ExternalFlowTTL         time.Duration `mapstructure:"AUTH_EXTERNAL_FLOW_TTL"`
 	OIDCEnabled             bool          `mapstructure:"AUTH_OIDC_ENABLED"`
 	OIDCIssuerURL           string        `mapstructure:"AUTH_OIDC_ISSUER_URL"`
 	OIDCClientID            string        `mapstructure:"AUTH_OIDC_CLIENT_ID"`
 	OIDCClientSecret        string        `mapstructure:"AUTH_OIDC_CLIENT_SECRET"`
 	OIDCDisplayName         string        `mapstructure:"AUTH_OIDC_DISPLAY_NAME"`
 	OIDCJITEnabled          bool          `mapstructure:"AUTH_OIDC_JIT_PROVISIONING_ENABLED"`
+	GoogleEnabled           bool          `mapstructure:"AUTH_GOOGLE_ENABLED"`
+	GoogleClientID          string        `mapstructure:"AUTH_GOOGLE_CLIENT_ID"`
+	GoogleClientSecret      string        `mapstructure:"AUTH_GOOGLE_CLIENT_SECRET"`
+	GoogleDisplayName       string        `mapstructure:"AUTH_GOOGLE_DISPLAY_NAME"`
+	GoogleJITEnabled        bool          `mapstructure:"AUTH_GOOGLE_JIT_PROVISIONING_ENABLED"`
+	GoogleHostedDomains     string        `mapstructure:"AUTH_GOOGLE_ALLOWED_HOSTED_DOMAINS"`
+	GitHubEnabled           bool          `mapstructure:"AUTH_GITHUB_ENABLED"`
+	GitHubClientID          string        `mapstructure:"AUTH_GITHUB_CLIENT_ID"`
+	GitHubClientSecret      string        `mapstructure:"AUTH_GITHUB_CLIENT_SECRET"`
+	GitHubDisplayName       string        `mapstructure:"AUTH_GITHUB_DISPLAY_NAME"`
+	GitHubJITEnabled        bool          `mapstructure:"AUTH_GITHUB_JIT_PROVISIONING_ENABLED"`
+	GitHubAllowSignup       bool          `mapstructure:"AUTH_GITHUB_ALLOW_SIGNUP"`
 	PasswordResetTokenTTL   time.Duration `mapstructure:"AUTH_PASSWORD_RESET_TOKEN_TTL"`
 	PasswordResetRateWindow time.Duration `mapstructure:"AUTH_PASSWORD_RESET_RATE_LIMIT_WINDOW"`
 	PasswordResetIPLimit    int32         `mapstructure:"AUTH_PASSWORD_RESET_IP_LIMIT"`
@@ -346,6 +385,7 @@ func validate(cfg Config) []error {
 	errs = append(errs, validatePositiveDuration(keyAuthSessionAbsoluteTTL, cfg.Auth.SessionAbsoluteTTL)...)
 	errs = append(errs, validatePositiveDuration(keyAuthSessionTouchInterval, cfg.Auth.SessionTouchInterval)...)
 	errs = append(errs, validatePositiveDuration(keyAuthSudoTTL, cfg.Auth.SudoTTL)...)
+	errs = append(errs, validatePositiveDuration(keyAuthExternalFlowTTL, cfg.Auth.ExternalFlowTTL)...)
 	if cfg.Auth.OIDCEnabled {
 		errs = append(errs, validateRequiredString(keyAuthOIDCIssuerURL, cfg.Auth.OIDCIssuerURL)...)
 		errs = append(errs, validateOptionalHTTPURL(keyAuthOIDCIssuerURL, cfg.Auth.OIDCIssuerURL)...)
@@ -354,6 +394,23 @@ func validate(cfg Config) []error {
 		errs = append(errs, validateRequiredString(keyAuthOIDCDisplayName, cfg.Auth.OIDCDisplayName)...)
 		if strings.TrimSpace(cfg.HTTP.BackendBaseURL) == "" {
 			errs = append(errs, errors.New("BACKEND_BASE_URL is required when AUTH_OIDC_ENABLED is true"))
+		}
+	}
+	if cfg.Auth.GoogleEnabled {
+		errs = append(errs, validateRequiredString(keyAuthGoogleClientID, cfg.Auth.GoogleClientID)...)
+		errs = append(errs, validateRequiredString(keyAuthGoogleClientSecret, cfg.Auth.GoogleClientSecret)...)
+		errs = append(errs, validateRequiredString(keyAuthGoogleDisplayName, cfg.Auth.GoogleDisplayName)...)
+		errs = append(errs, validateHostedDomains(keyAuthGoogleAllowedHostedDomains, cfg.Auth.GoogleHostedDomains)...)
+		if strings.TrimSpace(cfg.HTTP.BackendBaseURL) == "" {
+			errs = append(errs, errors.New("BACKEND_BASE_URL is required when AUTH_GOOGLE_ENABLED is true"))
+		}
+	}
+	if cfg.Auth.GitHubEnabled {
+		errs = append(errs, validateRequiredString(keyAuthGitHubClientID, cfg.Auth.GitHubClientID)...)
+		errs = append(errs, validateRequiredString(keyAuthGitHubClientSecret, cfg.Auth.GitHubClientSecret)...)
+		errs = append(errs, validateRequiredString(keyAuthGitHubDisplayName, cfg.Auth.GitHubDisplayName)...)
+		if strings.TrimSpace(cfg.HTTP.BackendBaseURL) == "" {
+			errs = append(errs, errors.New("BACKEND_BASE_URL is required when AUTH_GITHUB_ENABLED is true"))
 		}
 	}
 	if cfg.Auth.SessionAbsoluteTTL < cfg.Auth.SessionIdleTTL {

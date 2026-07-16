@@ -73,6 +73,12 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.Auth.OIDCEnabled {
 		t.Fatal("expected OIDC to be disabled by default")
 	}
+	if cfg.Auth.GoogleEnabled || cfg.Auth.GitHubEnabled {
+		t.Fatal("expected Google and GitHub authentication to be disabled by default")
+	}
+	if cfg.Auth.ExternalFlowTTL != 10*time.Minute {
+		t.Fatalf("expected ten-minute external auth flow TTL, got %s", cfg.Auth.ExternalFlowTTL)
+	}
 	if cfg.Alerting.SMTP.Configured() {
 		t.Fatal("expected SMTP to be unconfigured by default")
 	}
@@ -128,6 +134,19 @@ func TestLoadFromEnvironment(t *testing.T) {
 	t.Setenv(keyAuthOIDCClientSecret, "oidc-secret")
 	t.Setenv(keyAuthOIDCDisplayName, "Company SSO")
 	t.Setenv(keyAuthOIDCJITEnabled, "true")
+	t.Setenv(keyAuthExternalFlowTTL, "8m")
+	t.Setenv(keyAuthGoogleEnabled, "true")
+	t.Setenv(keyAuthGoogleClientID, "google-client")
+	t.Setenv(keyAuthGoogleClientSecret, "google-secret")
+	t.Setenv(keyAuthGoogleDisplayName, "Google Workspace")
+	t.Setenv(keyAuthGoogleJITEnabled, "true")
+	t.Setenv(keyAuthGoogleAllowedHostedDomains, "example.com, example.org")
+	t.Setenv(keyAuthGitHubEnabled, "true")
+	t.Setenv(keyAuthGitHubClientID, "github-client")
+	t.Setenv(keyAuthGitHubClientSecret, "github-secret")
+	t.Setenv(keyAuthGitHubDisplayName, "GitHub Enterprise Team")
+	t.Setenv(keyAuthGitHubJITEnabled, "true")
+	t.Setenv(keyAuthGitHubAllowSignup, "false")
 	t.Setenv(keyOTLPTracesEndpoint, "http://victoria-traces:10428/insert/opentelemetry/v1/traces")
 	t.Setenv(keyAssignmentRefreshWorkerEnabled, "false")
 	t.Setenv(keyAssignmentRefreshWorkerInterval, "7s")
@@ -218,6 +237,12 @@ func TestLoadFromEnvironment(t *testing.T) {
 	}
 	if cfg.Auth.OIDCIssuerURL != "https://identity.example.com" || cfg.Auth.OIDCClientID != "netstamp" || cfg.Auth.OIDCDisplayName != "Company SSO" {
 		t.Fatalf("unexpected OIDC configuration: %#v", cfg.Auth)
+	}
+	if cfg.Auth.ExternalFlowTTL != 8*time.Minute || !cfg.Auth.GoogleEnabled || !cfg.Auth.GoogleJITEnabled || cfg.Auth.GoogleHostedDomains != "example.com, example.org" {
+		t.Fatalf("unexpected Google configuration: %#v", cfg.Auth)
+	}
+	if !cfg.Auth.GitHubEnabled || !cfg.Auth.GitHubJITEnabled || cfg.Auth.GitHubAllowSignup || cfg.Auth.GitHubClientID != "github-client" {
+		t.Fatalf("unexpected GitHub configuration: %#v", cfg.Auth)
 	}
 	if cfg.Tracing.OTLPTracesEndpoint != "http://victoria-traces:10428/insert/opentelemetry/v1/traces" {
 		t.Fatalf("expected OTLP traces endpoint override, got %q", cfg.Tracing.OTLPTracesEndpoint)

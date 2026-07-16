@@ -205,7 +205,7 @@ func buildControllerServices(cfg config.Config, log *zap.Logger, dbPool *pgxpool
 	authSvc.ConfigureEmailVerification(userRepo, security.NewPasswordResetTokenManager(), notify.NewDynamicPasswordResetMailer(smtpProvider), appauth.EmailVerificationConfig{
 		TokenTTL: 24 * time.Hour,
 	})
-	externalAuthProviders := make([]appauth.ExternalProviderRegistration, 0, 1)
+	externalAuthProviders := make([]appauth.ExternalProviderRegistration, 0, 3)
 	if cfg.Auth.OIDCEnabled {
 		externalAuthProviders = append(externalAuthProviders, appauth.ExternalProviderRegistration{
 			Config: appauth.ExternalProviderConfig{
@@ -218,8 +218,34 @@ func buildControllerServices(cfg config.Config, log *zap.Logger, dbPool *pgxpool
 			}),
 		})
 	}
+	if cfg.Auth.GoogleEnabled {
+		externalAuthProviders = append(externalAuthProviders, appauth.ExternalProviderRegistration{
+			Config: appauth.ExternalProviderConfig{
+				ID: identity.AuthenticationMethodGoogle, DisplayName: cfg.Auth.GoogleDisplayName,
+				JITEnabled: cfg.Auth.GoogleJITEnabled, SudoCapable: true,
+			},
+			Client: security.NewGoogleOIDCClient(security.GoogleOIDCClientConfig{
+				ClientID: cfg.Auth.GoogleClientID, ClientSecret: cfg.Auth.GoogleClientSecret,
+				RedirectURL:          strings.TrimRight(cfg.HTTP.BackendBaseURL, "/") + "/api/" + cfg.APIVersion + "/auth/external/google/callback",
+				AllowedHostedDomains: strings.Split(cfg.Auth.GoogleHostedDomains, ","),
+			}),
+		})
+	}
+	if cfg.Auth.GitHubEnabled {
+		externalAuthProviders = append(externalAuthProviders, appauth.ExternalProviderRegistration{
+			Config: appauth.ExternalProviderConfig{
+				ID: identity.AuthenticationMethodGitHub, DisplayName: cfg.Auth.GitHubDisplayName,
+				JITEnabled: cfg.Auth.GitHubJITEnabled, SudoCapable: false,
+			},
+			Client: security.NewGitHubOAuthClient(security.GitHubOAuthClientConfig{
+				ClientID: cfg.Auth.GitHubClientID, ClientSecret: cfg.Auth.GitHubClientSecret,
+				RedirectURL: strings.TrimRight(cfg.HTTP.BackendBaseURL, "/") + "/api/" + cfg.APIVersion + "/auth/external/github/callback",
+				AllowSignup: cfg.Auth.GitHubAllowSignup,
+			}),
+		})
+	}
 	authSvc.ConfigureExternalAuth(userRepo, security.NewPasswordResetTokenManager(), appauth.ExternalAuthConfig{
-		FlowTTL: 10 * time.Minute, AuthTimeSkew: time.Minute,
+		FlowTTL: cfg.Auth.ExternalFlowTTL, AuthTimeSkew: time.Minute,
 	}, externalAuthProviders...)
 
 	userSvc := appuser.NewService(userRepo, passwordHasher, userEvents)

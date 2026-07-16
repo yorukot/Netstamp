@@ -153,6 +153,20 @@ func validateTrustedProxyPrefixes(key, value string) []error {
 	return nil
 }
 
+func validateHostedDomains(key, value string) []error {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return nil
+	}
+	for _, part := range strings.Split(trimmed, ",") {
+		domain := strings.TrimSpace(part)
+		if domain == "" || strings.ContainsAny(domain, " /:@?#\\") || strings.HasPrefix(domain, ".") || strings.HasSuffix(domain, ".") {
+			return []error{fmt.Errorf("%s must contain comma-separated domain names", key)}
+		}
+	}
+	return nil
+}
+
 func validateSMTPConfig(cfg SMTPConfig) []error {
 	var errs []error
 	errs = append(errs, validatePort(keySMTPPort, cfg.Port)...)
