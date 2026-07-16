@@ -98,6 +98,7 @@ func (m *SessionManager) CreateSession(ctx context.Context, input appauth.Create
 		UserAgent:            input.UserAgent,
 		AuthenticatedAt:      now,
 		AuthenticationMethod: authenticationMethod(input.AuthenticationMethod),
+		SudoEligible:         input.SudoEligible,
 		IdentityID:           input.IdentityID,
 		CreatedAt:            now,
 		LastUsedAt:           now,
@@ -118,10 +119,12 @@ func (m *SessionManager) CreateSession(ctx context.Context, input appauth.Create
 }
 
 func authenticationMethod(method string) string {
-	if method == identity.AuthenticationMethodOIDC {
+	switch method {
+	case identity.AuthenticationMethodGoogle, identity.AuthenticationMethodGitHub, identity.AuthenticationMethodOIDC:
 		return method
+	default:
+		return identity.AuthenticationMethodPassword
 	}
-	return identity.AuthenticationMethodPassword
 }
 
 func (m *SessionManager) SudoStatus(ctx context.Context, sessionID string) (identity.SudoStatus, error) {
@@ -130,7 +133,7 @@ func (m *SessionManager) SudoStatus(ctx context.Context, sessionID string) (iden
 		return identity.SudoStatus{}, err
 	}
 	expiresAt := session.AuthenticatedAt.Add(m.sudoTTL)
-	return identity.SudoStatus{Active: m.now().Before(expiresAt), ExpiresAt: expiresAt}, nil
+	return identity.SudoStatus{Active: session.SudoEligible && m.now().Before(expiresAt), ExpiresAt: expiresAt}, nil
 }
 
 func (m *SessionManager) GetSession(ctx context.Context, sessionID string) (identity.AuthSession, error) {
@@ -141,7 +144,7 @@ func (m *SessionManager) ElevateSession(ctx context.Context, sessionID, method s
 	if sessionID == "" || m.sudoTTL <= 0 {
 		return appauth.ErrSessionInvalid
 	}
-	if method != identity.AuthenticationMethodPassword && method != identity.AuthenticationMethodOIDC {
+	if method != identity.AuthenticationMethodPassword && method != identity.AuthenticationMethodGoogle && method != identity.AuthenticationMethodOIDC {
 		return appauth.ErrSessionInvalid
 	}
 	if authenticatedAt.IsZero() {

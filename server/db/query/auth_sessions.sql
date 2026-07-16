@@ -10,6 +10,7 @@ INSERT INTO auth_sessions (
     user_agent,
     authenticated_at,
     authentication_method,
+    sudo_eligible,
     identity_id
 )
 VALUES (
@@ -23,6 +24,7 @@ VALUES (
     sqlc.arg(user_agent),
     sqlc.arg(authenticated_at),
     sqlc.arg(authentication_method),
+    sqlc.arg(sudo_eligible),
     sqlc.narg(identity_id)
 )
 RETURNING id,
@@ -38,7 +40,8 @@ RETURNING id,
           user_agent,
           authenticated_at,
           authentication_method,
-          identity_id;
+          identity_id,
+          sudo_eligible;
 
 -- name: GetActiveAuthSessionByTokenHash :one
 SELECT auth_sessions.id,
@@ -54,7 +57,8 @@ SELECT auth_sessions.id,
        auth_sessions.user_agent,
        auth_sessions.authenticated_at,
        auth_sessions.authentication_method,
-       auth_sessions.identity_id
+       auth_sessions.identity_id,
+       auth_sessions.sudo_eligible
 FROM auth_sessions
 JOIN users ON users.id = auth_sessions.user_id
 WHERE auth_sessions.token_hash = sqlc.arg(token_hash)
@@ -77,7 +81,8 @@ SELECT auth_sessions.id,
        auth_sessions.user_agent,
        auth_sessions.authenticated_at,
        auth_sessions.authentication_method,
-       auth_sessions.identity_id
+       auth_sessions.identity_id,
+       auth_sessions.sudo_eligible
 FROM auth_sessions
 JOIN users ON users.id = auth_sessions.user_id
 WHERE auth_sessions.id = sqlc.arg(id)
@@ -106,6 +111,7 @@ WHERE id = sqlc.arg(id)
 UPDATE auth_sessions
 SET authenticated_at = sqlc.arg(authenticated_at),
     authentication_method = sqlc.arg(authentication_method),
+    sudo_eligible = true,
     identity_id = sqlc.narg(identity_id)
 WHERE id = sqlc.arg(id)
   AND revoked_at IS NULL
@@ -133,7 +139,8 @@ SELECT auth_sessions.id,
        auth_sessions.user_agent,
        auth_sessions.authenticated_at,
        auth_sessions.authentication_method,
-       auth_sessions.identity_id
+       auth_sessions.identity_id,
+       auth_sessions.sudo_eligible
 FROM auth_sessions
 JOIN users ON users.id = auth_sessions.user_id
 WHERE auth_sessions.user_id = sqlc.arg(user_id)

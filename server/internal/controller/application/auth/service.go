@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/url"
+	"strings"
 	"time"
 
 	apptx "github.com/yorukot/netstamp/internal/controller/application/tx"
@@ -26,25 +27,38 @@ type Service struct {
 	emailVerificationTokens EmailVerificationTokenManager
 	emailVerificationMailer EmailVerificationMailer
 	emailVerificationConfig EmailVerificationConfig
-	oidcClient              OIDCClient
-	oidcRepo                OIDCRepository
-	oidcTokens              OIDCFlowTokenManager
-	oidcConfig              OIDCConfig
+	externalAuthRepo        ExternalAuthRepository
+	externalAuthTokens      ExternalAuthFlowTokenManager
+	externalAuthConfig      ExternalAuthConfig
+	externalProviders       map[string]configuredExternalProvider
 	tx                      apptx.Transactor
 	now                     func() time.Time
 }
 
-func (s *Service) ConfigureOIDC(repo OIDCRepository, client OIDCClient, tokens OIDCFlowTokenManager, cfg OIDCConfig) {
+type configuredExternalProvider struct {
+	config ExternalProviderConfig
+	client ExternalAuthClient
+}
+
+func (s *Service) ConfigureExternalAuth(repo ExternalAuthRepository, tokens ExternalAuthFlowTokenManager, cfg ExternalAuthConfig, providers ...ExternalProviderRegistration) {
 	if cfg.FlowTTL <= 0 {
 		cfg.FlowTTL = 10 * time.Minute
 	}
 	if cfg.AuthTimeSkew <= 0 {
 		cfg.AuthTimeSkew = time.Minute
 	}
-	s.oidcClient = client
-	s.oidcRepo = repo
-	s.oidcTokens = tokens
-	s.oidcConfig = cfg
+	s.externalAuthRepo = repo
+	s.externalAuthTokens = tokens
+	s.externalAuthConfig = cfg
+	s.externalProviders = make(map[string]configuredExternalProvider, len(providers))
+	for _, provider := range providers {
+		id := strings.ToLower(strings.TrimSpace(provider.Config.ID))
+		if id == "" || provider.Client == nil {
+			continue
+		}
+		provider.Config.ID = id
+		s.externalProviders[id] = configuredExternalProvider{config: provider.Config, client: provider.Client}
+	}
 }
 
 func NewService(users UserRepository, hasher PasswordHasher, sessions SessionManager, events SecurityEventRecorder, transactors ...apptx.Transactor) *Service {
@@ -60,6 +74,7 @@ func NewService(users UserRepository, hasher PasswordHasher, sessions SessionMan
 		events:                  events,
 		resetConfig:             PasswordResetConfig{TokenTTL: 30 * time.Minute},
 		emailVerificationConfig: EmailVerificationConfig{TokenTTL: 24 * time.Hour},
+		externalProviders:       make(map[string]configuredExternalProvider),
 		tx:                      tx,
 		now:                     func() time.Time { return time.Now().UTC() },
 	}
@@ -487,10 +502,10 @@ func emailVerificationURL(baseURL, token string) string {
 }
 
 func (s *Service) createAccessResult(ctx context.Context, user identity.User, userAgent string) (AuthAccessResult, error) {
-	return s.createAccessResultWithMethod(ctx, user, userAgent, identity.AuthenticationMethodPassword, nil)
+	return s.createAccessResultWithMethod(ctx, user, userAgent, identity.AuthenticationMethodPassword, true, nil)
 }
 
-func (s *Service) createAccessResultWithMethod(ctx context.Context, user identity.User, userAgent, method string, identityID *string) (AuthAccessResult, error) {
+func (s *Service) createAccessResultWithMethod(ctx context.Context, user identity.User, userAgent, method string, sudoEligible bool, identityID *string) (AuthAccessResult, error) {
 	ctx, span := authTracer.Start(ctx, "auth.create_session")
 	defer span.End()
 
@@ -499,7 +514,7 @@ func (s *Service) createAccessResultWithMethod(ctx context.Context, user identit
 	}
 
 	session, err := s.sessions.CreateSession(ctx, CreateSessionInput{
-		UserID: user.ID, UserAgent: userAgent, Now: s.now(), AuthenticationMethod: method, IdentityID: identityID,
+		UserID: user.ID, UserAgent: userAgent, Now: s.now(), AuthenticationMethod: method, SudoEligible: sudoEligible, IdentityID: identityID,
 	})
 	if err != nil {
 		recordSpanError(span, err, AuthReasonSessionCreateFail)

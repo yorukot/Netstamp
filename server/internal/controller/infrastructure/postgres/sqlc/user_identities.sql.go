@@ -12,25 +12,32 @@ import (
 	"github.com/google/uuid"
 )
 
-const consumeOIDCAuthFlow = `-- name: ConsumeOIDCAuthFlow :one
-UPDATE oidc_auth_flows
+const consumeExternalAuthFlow = `-- name: ConsumeExternalAuthFlow :one
+UPDATE external_auth_flows
 SET used_at = $1
-WHERE state_hash = $2
-  AND browser_token_hash = $3
+WHERE provider = $2
+  AND state_hash = $3
+  AND browser_token_hash = $4
   AND used_at IS NULL
   AND expires_at > $1
-RETURNING id, state_hash, browser_token_hash, nonce, pkce_verifier, intent, session_id, return_to, created_at, expires_at, used_at
+RETURNING id, state_hash, browser_token_hash, nonce, pkce_verifier, intent, session_id, return_to, created_at, expires_at, used_at, provider
 `
 
-type ConsumeOIDCAuthFlowParams struct {
+type ConsumeExternalAuthFlowParams struct {
 	UsedAt           *time.Time `json:"used_at"`
+	Provider         string     `json:"provider"`
 	StateHash        []byte     `json:"state_hash"`
 	BrowserTokenHash []byte     `json:"browser_token_hash"`
 }
 
-func (q *Queries) ConsumeOIDCAuthFlow(ctx context.Context, arg ConsumeOIDCAuthFlowParams) (OidcAuthFlow, error) {
-	row := q.db.QueryRow(ctx, consumeOIDCAuthFlow, arg.UsedAt, arg.StateHash, arg.BrowserTokenHash)
-	var i OidcAuthFlow
+func (q *Queries) ConsumeExternalAuthFlow(ctx context.Context, arg ConsumeExternalAuthFlowParams) (ExternalAuthFlow, error) {
+	row := q.db.QueryRow(ctx, consumeExternalAuthFlow,
+		arg.UsedAt,
+		arg.Provider,
+		arg.StateHash,
+		arg.BrowserTokenHash,
+	)
+	var i ExternalAuthFlow
 	err := row.Scan(
 		&i.ID,
 		&i.StateHash,
@@ -43,6 +50,7 @@ func (q *Queries) ConsumeOIDCAuthFlow(ctx context.Context, arg ConsumeOIDCAuthFl
 		&i.CreatedAt,
 		&i.ExpiresAt,
 		&i.UsedAt,
+		&i.Provider,
 	)
 	return i, err
 }
@@ -70,18 +78,19 @@ func (q *Queries) CountUserAuthenticationMethods(ctx context.Context, targetUser
 	return i, err
 }
 
-const createOIDCAuthFlow = `-- name: CreateOIDCAuthFlow :one
-INSERT INTO oidc_auth_flows (
-    state_hash, browser_token_hash, nonce, pkce_verifier, intent, session_id, return_to, created_at, expires_at
+const createExternalAuthFlow = `-- name: CreateExternalAuthFlow :one
+INSERT INTO external_auth_flows (
+    provider, state_hash, browser_token_hash, nonce, pkce_verifier, intent, session_id, return_to, created_at, expires_at
 )
 VALUES (
-    $1, $2, $3, $4,
-    $5, $6, $7, $8, $9
+    $1, $2, $3, $4, $5,
+    $6, $7, $8, $9, $10
 )
-RETURNING id, state_hash, browser_token_hash, nonce, pkce_verifier, intent, session_id, return_to, created_at, expires_at, used_at
+RETURNING id, state_hash, browser_token_hash, nonce, pkce_verifier, intent, session_id, return_to, created_at, expires_at, used_at, provider
 `
 
-type CreateOIDCAuthFlowParams struct {
+type CreateExternalAuthFlowParams struct {
+	Provider         string     `json:"provider"`
 	StateHash        []byte     `json:"state_hash"`
 	BrowserTokenHash []byte     `json:"browser_token_hash"`
 	Nonce            string     `json:"nonce"`
@@ -93,8 +102,9 @@ type CreateOIDCAuthFlowParams struct {
 	ExpiresAt        time.Time  `json:"expires_at"`
 }
 
-func (q *Queries) CreateOIDCAuthFlow(ctx context.Context, arg CreateOIDCAuthFlowParams) (OidcAuthFlow, error) {
-	row := q.db.QueryRow(ctx, createOIDCAuthFlow,
+func (q *Queries) CreateExternalAuthFlow(ctx context.Context, arg CreateExternalAuthFlowParams) (ExternalAuthFlow, error) {
+	row := q.db.QueryRow(ctx, createExternalAuthFlow,
+		arg.Provider,
 		arg.StateHash,
 		arg.BrowserTokenHash,
 		arg.Nonce,
@@ -105,7 +115,7 @@ func (q *Queries) CreateOIDCAuthFlow(ctx context.Context, arg CreateOIDCAuthFlow
 		arg.CreatedAt,
 		arg.ExpiresAt,
 	)
-	var i OidcAuthFlow
+	var i ExternalAuthFlow
 	err := row.Scan(
 		&i.ID,
 		&i.StateHash,
@@ -118,23 +128,24 @@ func (q *Queries) CreateOIDCAuthFlow(ctx context.Context, arg CreateOIDCAuthFlow
 		&i.CreatedAt,
 		&i.ExpiresAt,
 		&i.UsedAt,
+		&i.Provider,
 	)
 	return i, err
 }
 
-const createOIDCUser = `-- name: CreateOIDCUser :one
+const createExternalAuthUser = `-- name: CreateExternalAuthUser :one
 WITH created_user AS (
     INSERT INTO users (email, display_name, email_verified_at)
     VALUES ($1, $2, $3)
     RETURNING id, email, display_name, created_at, updated_at, email_verified_at, disabled_at
 ), created_identity AS (
     INSERT INTO user_identities (
-        user_id, provider, issuer, subject, email, email_verified, display_name, created_at, last_login_at
+        user_id, provider, issuer, subject, email, email_verified, display_name, username, avatar_url, created_at, last_login_at
     )
-    SELECT id, 'oidc', $4, $5, $1, true,
-           $2, $6, $6
+    SELECT id, $4, $5, $6, $1, true,
+           $2, $7, $8, $9, $9
     FROM created_user
-    RETURNING id, user_id, provider, issuer, subject, email, email_verified, display_name, created_at, updated_at, last_login_at
+    RETURNING id, user_id, provider, issuer, subject, email, email_verified, display_name, created_at, updated_at, last_login_at, username, avatar_url
 )
 SELECT created_user.id,
        created_user.email,
@@ -148,16 +159,19 @@ FROM created_user
 CROSS JOIN created_identity
 `
 
-type CreateOIDCUserParams struct {
+type CreateExternalAuthUserParams struct {
 	Email           string     `json:"email"`
 	DisplayName     string     `json:"display_name"`
 	EmailVerifiedAt *time.Time `json:"email_verified_at"`
+	Provider        string     `json:"provider"`
 	Issuer          string     `json:"issuer"`
 	Subject         string     `json:"subject"`
+	Username        *string    `json:"username"`
+	AvatarUrl       *string    `json:"avatar_url"`
 	CreatedAt       time.Time  `json:"created_at"`
 }
 
-type CreateOIDCUserRow struct {
+type CreateExternalAuthUserRow struct {
 	ID              uuid.UUID  `json:"id"`
 	Email           string     `json:"email"`
 	DisplayName     string     `json:"display_name"`
@@ -168,16 +182,19 @@ type CreateOIDCUserRow struct {
 	IdentityID      uuid.UUID  `json:"identity_id"`
 }
 
-func (q *Queries) CreateOIDCUser(ctx context.Context, arg CreateOIDCUserParams) (CreateOIDCUserRow, error) {
-	row := q.db.QueryRow(ctx, createOIDCUser,
+func (q *Queries) CreateExternalAuthUser(ctx context.Context, arg CreateExternalAuthUserParams) (CreateExternalAuthUserRow, error) {
+	row := q.db.QueryRow(ctx, createExternalAuthUser,
 		arg.Email,
 		arg.DisplayName,
 		arg.EmailVerifiedAt,
+		arg.Provider,
 		arg.Issuer,
 		arg.Subject,
+		arg.Username,
+		arg.AvatarUrl,
 		arg.CreatedAt,
 	)
-	var i CreateOIDCUserRow
+	var i CreateExternalAuthUserRow
 	err := row.Scan(
 		&i.ID,
 		&i.Email,
@@ -193,14 +210,14 @@ func (q *Queries) CreateOIDCUser(ctx context.Context, arg CreateOIDCUserParams) 
 
 const createUserIdentity = `-- name: CreateUserIdentity :one
 INSERT INTO user_identities (
-    user_id, provider, issuer, subject, email, email_verified, display_name, created_at, last_login_at
+    user_id, provider, issuer, subject, email, email_verified, display_name, username, avatar_url, created_at, last_login_at
 )
 VALUES (
     $1, $2, $3, $4,
-    $5, $6, $7,
-    $8, $9
+    $5, $6, $7, $8, $9,
+    $10, $11
 )
-RETURNING id, user_id, provider, issuer, subject, email, email_verified, display_name, created_at, updated_at, last_login_at
+RETURNING id, user_id, provider, issuer, subject, email, email_verified, display_name, created_at, updated_at, last_login_at, username, avatar_url
 `
 
 type CreateUserIdentityParams struct {
@@ -211,6 +228,8 @@ type CreateUserIdentityParams struct {
 	Email         *string    `json:"email"`
 	EmailVerified bool       `json:"email_verified"`
 	DisplayName   *string    `json:"display_name"`
+	Username      *string    `json:"username"`
+	AvatarUrl     *string    `json:"avatar_url"`
 	CreatedAt     time.Time  `json:"created_at"`
 	LastLoginAt   *time.Time `json:"last_login_at"`
 }
@@ -224,6 +243,8 @@ func (q *Queries) CreateUserIdentity(ctx context.Context, arg CreateUserIdentity
 		arg.Email,
 		arg.EmailVerified,
 		arg.DisplayName,
+		arg.Username,
+		arg.AvatarUrl,
 		arg.CreatedAt,
 		arg.LastLoginAt,
 	)
@@ -240,18 +261,20 @@ func (q *Queries) CreateUserIdentity(ctx context.Context, arg CreateUserIdentity
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.LastLoginAt,
+		&i.Username,
+		&i.AvatarUrl,
 	)
 	return i, err
 }
 
-const deleteExpiredOIDCAuthFlows = `-- name: DeleteExpiredOIDCAuthFlows :exec
-DELETE FROM oidc_auth_flows
+const deleteExpiredExternalAuthFlows = `-- name: DeleteExpiredExternalAuthFlows :exec
+DELETE FROM external_auth_flows
 WHERE expires_at <= $1
    OR used_at IS NOT NULL
 `
 
-func (q *Queries) DeleteExpiredOIDCAuthFlows(ctx context.Context, nowAt time.Time) error {
-	_, err := q.db.Exec(ctx, deleteExpiredOIDCAuthFlows, nowAt)
+func (q *Queries) DeleteExpiredExternalAuthFlows(ctx context.Context, nowAt time.Time) error {
+	_, err := q.db.Exec(ctx, deleteExpiredExternalAuthFlows, nowAt)
 	return err
 }
 
@@ -282,7 +305,7 @@ func (q *Queries) DeleteUserIdentityForUser(ctx context.Context, arg DeleteUserI
 }
 
 const getUserIdentityByIDForUser = `-- name: GetUserIdentityByIDForUser :one
-SELECT id, user_id, provider, issuer, subject, email, email_verified, display_name, created_at, updated_at, last_login_at
+SELECT id, user_id, provider, issuer, subject, email, email_verified, display_name, created_at, updated_at, last_login_at, username, avatar_url
 FROM user_identities
 WHERE id = $1
   AND user_id = $2
@@ -308,24 +331,28 @@ func (q *Queries) GetUserIdentityByIDForUser(ctx context.Context, arg GetUserIde
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.LastLoginAt,
+		&i.Username,
+		&i.AvatarUrl,
 	)
 	return i, err
 }
 
 const getUserIdentityByIssuerSubject = `-- name: GetUserIdentityByIssuerSubject :one
-SELECT id, user_id, provider, issuer, subject, email, email_verified, display_name, created_at, updated_at, last_login_at
+SELECT id, user_id, provider, issuer, subject, email, email_verified, display_name, created_at, updated_at, last_login_at, username, avatar_url
 FROM user_identities
-WHERE issuer = $1
-  AND subject = $2
+WHERE provider = $1
+  AND issuer = $2
+  AND subject = $3
 `
 
 type GetUserIdentityByIssuerSubjectParams struct {
-	Issuer  string `json:"issuer"`
-	Subject string `json:"subject"`
+	Provider string `json:"provider"`
+	Issuer   string `json:"issuer"`
+	Subject  string `json:"subject"`
 }
 
 func (q *Queries) GetUserIdentityByIssuerSubject(ctx context.Context, arg GetUserIdentityByIssuerSubjectParams) (UserIdentity, error) {
-	row := q.db.QueryRow(ctx, getUserIdentityByIssuerSubject, arg.Issuer, arg.Subject)
+	row := q.db.QueryRow(ctx, getUserIdentityByIssuerSubject, arg.Provider, arg.Issuer, arg.Subject)
 	var i UserIdentity
 	err := row.Scan(
 		&i.ID,
@@ -339,12 +366,14 @@ func (q *Queries) GetUserIdentityByIssuerSubject(ctx context.Context, arg GetUse
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.LastLoginAt,
+		&i.Username,
+		&i.AvatarUrl,
 	)
 	return i, err
 }
 
 const listUserIdentities = `-- name: ListUserIdentities :many
-SELECT id, user_id, provider, issuer, subject, email, email_verified, display_name, created_at, updated_at, last_login_at
+SELECT id, user_id, provider, issuer, subject, email, email_verified, display_name, created_at, updated_at, last_login_at, username, avatar_url
 FROM user_identities
 WHERE user_id = $1
 ORDER BY created_at ASC
@@ -371,6 +400,8 @@ func (q *Queries) ListUserIdentities(ctx context.Context, userID uuid.UUID) ([]U
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.LastLoginAt,
+			&i.Username,
+			&i.AvatarUrl,
 		); err != nil {
 			return nil, err
 		}
@@ -387,15 +418,19 @@ UPDATE user_identities
 SET email = $1,
     email_verified = $2,
     display_name = $3,
-    last_login_at = $4
-WHERE id = $5
-RETURNING id, user_id, provider, issuer, subject, email, email_verified, display_name, created_at, updated_at, last_login_at
+    username = $4,
+    avatar_url = $5,
+    last_login_at = $6
+WHERE id = $7
+RETURNING id, user_id, provider, issuer, subject, email, email_verified, display_name, created_at, updated_at, last_login_at, username, avatar_url
 `
 
 type TouchUserIdentityLoginParams struct {
 	Email         *string    `json:"email"`
 	EmailVerified bool       `json:"email_verified"`
 	DisplayName   *string    `json:"display_name"`
+	Username      *string    `json:"username"`
+	AvatarUrl     *string    `json:"avatar_url"`
 	LastLoginAt   *time.Time `json:"last_login_at"`
 	ID            uuid.UUID  `json:"id"`
 }
@@ -405,6 +440,8 @@ func (q *Queries) TouchUserIdentityLogin(ctx context.Context, arg TouchUserIdent
 		arg.Email,
 		arg.EmailVerified,
 		arg.DisplayName,
+		arg.Username,
+		arg.AvatarUrl,
 		arg.LastLoginAt,
 		arg.ID,
 	)
@@ -421,6 +458,8 @@ func (q *Queries) TouchUserIdentityLogin(ctx context.Context, arg TouchUserIdent
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.LastLoginAt,
+		&i.Username,
+		&i.AvatarUrl,
 	)
 	return i, err
 }

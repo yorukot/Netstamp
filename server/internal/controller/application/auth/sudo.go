@@ -18,17 +18,22 @@ func (s *Service) SudoStatus(ctx context.Context, userID, sessionID string) (Sud
 	if err != nil {
 		return SudoStatusResult{}, err
 	}
-	methods := make([]string, 0, 2)
+	methods := make([]string, 0, 3)
 	if user.HasPassword {
 		methods = append(methods, identity.AuthenticationMethodPassword)
 	}
-	if s.oidcRepo != nil {
-		identities, err := s.oidcRepo.ListUserIdentities(ctx, userID)
+	if s.externalAuthRepo != nil {
+		identities, err := s.externalAuthRepo.ListUserIdentities(ctx, userID)
 		if err != nil {
 			return SudoStatusResult{}, err
 		}
-		if len(identities) > 0 && s.oidcConfig.Enabled {
-			methods = append(methods, identity.AuthenticationMethodOIDC)
+		seen := make(map[string]bool)
+		for _, linked := range identities {
+			provider, enabled := s.externalProviders[linked.Provider]
+			if enabled && provider.config.SudoCapable && !seen[linked.Provider] {
+				methods = append(methods, linked.Provider)
+				seen[linked.Provider] = true
+			}
 		}
 	}
 	return SudoStatusResult{Active: status.Active, ExpiresAt: status.ExpiresAt, Methods: methods}, nil

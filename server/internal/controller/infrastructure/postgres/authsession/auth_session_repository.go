@@ -45,6 +45,7 @@ func (r *Repository) CreateSession(ctx context.Context, input identity.AuthSessi
 		AbsoluteExpiresAt:    input.AbsoluteExpiresAt,
 		AuthenticatedAt:      input.AuthenticatedAt,
 		AuthenticationMethod: input.AuthenticationMethod,
+		SudoEligible:         input.SudoEligible,
 		IdentityID:           parseOptionalUUID(input.IdentityID),
 	})
 	if err != nil {
@@ -274,6 +275,7 @@ func mapAuthSession(row sqlc.AuthSession) identity.AuthSession {
 		UserAgent:            row.UserAgent,
 		AuthenticatedAt:      row.AuthenticatedAt,
 		AuthenticationMethod: row.AuthenticationMethod,
+		SudoEligible:         row.SudoEligible,
 		IdentityID:           identityID,
 		CreatedAt:            row.CreatedAt,
 		LastUsedAt:           row.LastUsedAt,

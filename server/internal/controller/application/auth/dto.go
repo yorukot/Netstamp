@@ -45,43 +45,62 @@ type EmailVerificationConfig struct {
 	TokenTTL time.Duration
 }
 
-type OIDCConfig struct {
-	Enabled      bool
-	DisplayName  string
-	JITEnabled   bool
+type ExternalAuthConfig struct {
 	FlowTTL      time.Duration
 	AuthTimeSkew time.Duration
 }
 
-type OIDCClaims struct {
+type ExternalProviderConfig struct {
+	ID          string
+	DisplayName string
+	JITEnabled  bool
+	SudoCapable bool
+}
+
+type ExternalProviderRegistration struct {
+	Config ExternalProviderConfig
+	Client ExternalAuthClient
+}
+
+type ExternalProviderMethod struct {
+	ID          string
+	DisplayName string
+	SudoCapable bool
+}
+
+type ExternalIdentityClaims struct {
 	Issuer        string
 	Subject       string
 	Email         string
 	EmailVerified bool
 	DisplayName   string
+	Username      string
+	AvatarURL     string
 	AuthTime      time.Time
 }
 
-type StartOIDCInput struct {
+type StartExternalAuthInput struct {
+	Provider  string
 	Intent    string
 	SessionID string
 	ReturnTo  string
 }
 
-type StartOIDCResult struct {
+type StartExternalAuthResult struct {
 	AuthorizationURL string
 	BrowserToken     string
 	ExpiresAt        time.Time
 }
 
-type CompleteOIDCInput struct {
+type CompleteExternalAuthInput struct {
+	Provider     string
 	Code         string
 	State        string
 	BrowserToken string
 	UserAgent    string
 }
 
-type CompleteOIDCResult struct {
+type CompleteExternalAuthResult struct {
 	Intent   string
 	ReturnTo string
 	Access   *AuthAccessResult
@@ -98,6 +117,7 @@ type CreateSessionInput struct {
 	UserAgent            string
 	Now                  time.Time
 	AuthenticationMethod string
+	SudoEligible         bool
 	IdentityID           *string
 }
 

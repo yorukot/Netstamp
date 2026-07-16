@@ -52,6 +52,7 @@ func TestSessionManagerSudoExpiresAfterFiveMinutes(t *testing.T) {
 		ID:              "22222222-2222-2222-2222-222222222222",
 		UserID:          "11111111-1111-1111-1111-111111111111",
 		AuthenticatedAt: authenticatedAt,
+		SudoEligible:    true,
 	}}
 	manager := NewSessionManager(repo, SessionConfig{
 		HashKey: "test-session-hash-key",

@@ -32,7 +32,7 @@ func NewOIDCClient(cfg OIDCClientConfig) *OIDCClient {
 	return &OIDCClient{cfg: cfg}
 }
 
-func (c *OIDCClient) AuthorizationURL(ctx context.Context, state, nonce, pkceVerifier string, forceReauthentication bool) (string, error) {
+func (c *OIDCClient) AuthorizationURL(ctx context.Context, state, nonce, pkceVerifier, intent string) (string, error) {
 	config, err := c.config(ctx)
 	if err != nil {
 		return "", err
@@ -42,24 +42,24 @@ func (c *OIDCClient) AuthorizationURL(ctx context.Context, state, nonce, pkceVer
 		oauth2.SetAuthURLParam("code_challenge", pkceChallenge(pkceVerifier)),
 		oauth2.SetAuthURLParam("code_challenge_method", "S256"),
 	}
-	if forceReauthentication {
+	if intent != appauth.ExternalAuthIntentLogin {
 		options = append(options, oauth2.SetAuthURLParam("prompt", "login"), oauth2.SetAuthURLParam("max_age", "0"))
 	}
 	return config.AuthCodeURL(state, options...), nil
 }
 
-func (c *OIDCClient) Exchange(ctx context.Context, code, pkceVerifier, nonce string) (appauth.OIDCClaims, error) {
+func (c *OIDCClient) Exchange(ctx context.Context, code, pkceVerifier, nonce string) (appauth.ExternalIdentityClaims, error) {
 	config, err := c.config(ctx)
 	if err != nil {
-		return appauth.OIDCClaims{}, err
+		return appauth.ExternalIdentityClaims{}, err
 	}
 	token, err := config.Exchange(ctx, code, oauth2.SetAuthURLParam("code_verifier", pkceVerifier))
 	if err != nil {
-		return appauth.OIDCClaims{}, err
+		return appauth.ExternalIdentityClaims{}, err
 	}
 	rawIDToken, ok := token.Extra("id_token").(string)
 	if !ok || rawIDToken == "" {
-		return appauth.OIDCClaims{}, errors.New("oidc response missing id token")
+		return appauth.ExternalIdentityClaims{}, errors.New("oidc response missing id token")
 	}
 
 	c.mu.Lock()
@@ -67,7 +67,7 @@ func (c *OIDCClient) Exchange(ctx context.Context, code, pkceVerifier, nonce str
 	c.mu.Unlock()
 	idToken, err := provider.Verifier(&oidc.Config{ClientID: c.cfg.ClientID}).Verify(ctx, rawIDToken)
 	if err != nil {
-		return appauth.OIDCClaims{}, err
+		return appauth.ExternalIdentityClaims{}, err
 	}
 	var claims struct {
 		Issuer        string `json:"iss"`
@@ -80,10 +80,10 @@ func (c *OIDCClient) Exchange(ctx context.Context, code, pkceVerifier, nonce str
 		AuthTime      int64  `json:"auth_time"`
 	}
 	if err := idToken.Claims(&claims); err != nil {
-		return appauth.OIDCClaims{}, err
+		return appauth.ExternalIdentityClaims{}, err
 	}
 	if claims.Nonce != nonce {
-		return appauth.OIDCClaims{}, errors.New("oidc nonce mismatch")
+		return appauth.ExternalIdentityClaims{}, errors.New("oidc nonce mismatch")
 	}
 	displayName := claims.Name
 	if displayName == "" {
@@ -93,7 +93,7 @@ func (c *OIDCClient) Exchange(ctx context.Context, code, pkceVerifier, nonce str
 	if claims.AuthTime > 0 {
 		authTime = time.Unix(claims.AuthTime, 0).UTC()
 	}
-	return appauth.OIDCClaims{
+	return appauth.ExternalIdentityClaims{
 		Issuer: idToken.Issuer, Subject: idToken.Subject, Email: claims.Email,
 		EmailVerified: claims.EmailVerified, DisplayName: displayName, AuthTime: authTime,
 	}, nil

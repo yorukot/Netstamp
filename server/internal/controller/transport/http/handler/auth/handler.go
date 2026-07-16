@@ -23,14 +23,6 @@ type Handler struct {
 	publicWebBaseURL    string
 	resetLimiter        *PasswordResetRateLimiter
 	apiTokens           *appapitoken.Service
-	oidcEnabled         bool
-	oidcDisplayName     string
-}
-
-func (h *Handler) ConfigureOIDC(enabled bool, displayName string) *Handler {
-	h.oidcEnabled = enabled
-	h.oidcDisplayName = displayName
-	return h
 }
 
 func (h *Handler) ConfigureAPITokens(service *appapitoken.Service) *Handler {
@@ -61,6 +53,8 @@ func (h *Handler) RegisterRoutes(api chi.Router) {
 	api.Get("/auth/methods", h.handleAuthMethods)
 	api.Get("/auth/oidc/start", h.handleOIDCStart)
 	api.Get("/auth/oidc/callback", h.handleOIDCCallback)
+	api.Get("/auth/external/{provider}/start", h.handleExternalAuthStart)
+	api.Get("/auth/external/{provider}/callback", h.handleExternalAuthCallback)
 	api.Post("/auth/logout", h.handleLogout)
 	api.Post("/auth/password-resets", h.handleRequestPasswordReset)
 	api.Patch("/auth/password-resets", h.handleConfirmPasswordReset)

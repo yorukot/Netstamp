@@ -1,10 +1,10 @@
 -- name: CreateUserIdentity :one
 INSERT INTO user_identities (
-    user_id, provider, issuer, subject, email, email_verified, display_name, created_at, last_login_at
+    user_id, provider, issuer, subject, email, email_verified, display_name, username, avatar_url, created_at, last_login_at
 )
 VALUES (
     sqlc.arg(user_id), sqlc.arg(provider), sqlc.arg(issuer), sqlc.arg(subject),
-    sqlc.narg(email), sqlc.arg(email_verified), sqlc.narg(display_name),
+    sqlc.narg(email), sqlc.arg(email_verified), sqlc.narg(display_name), sqlc.narg(username), sqlc.narg(avatar_url),
     sqlc.arg(created_at), sqlc.narg(last_login_at)
 )
 RETURNING *;
@@ -12,7 +12,8 @@ RETURNING *;
 -- name: GetUserIdentityByIssuerSubject :one
 SELECT *
 FROM user_identities
-WHERE issuer = sqlc.arg(issuer)
+WHERE provider = sqlc.arg(provider)
+  AND issuer = sqlc.arg(issuer)
   AND subject = sqlc.arg(subject);
 
 -- name: GetUserIdentityByIDForUser :one
@@ -32,6 +33,8 @@ UPDATE user_identities
 SET email = sqlc.narg(email),
     email_verified = sqlc.arg(email_verified),
     display_name = sqlc.narg(display_name),
+    username = sqlc.narg(username),
+    avatar_url = sqlc.narg(avatar_url),
     last_login_at = sqlc.arg(last_login_at)
 WHERE id = sqlc.arg(id)
 RETURNING *;
@@ -59,17 +62,17 @@ LEFT JOIN user_identities ON user_identities.user_id = users.id
 WHERE users.id = sqlc.arg(target_user_id)
 GROUP BY users.id;
 
--- name: CreateOIDCUser :one
+-- name: CreateExternalAuthUser :one
 WITH created_user AS (
     INSERT INTO users (email, display_name, email_verified_at)
     VALUES (sqlc.arg(email), sqlc.arg(display_name), sqlc.arg(email_verified_at))
     RETURNING *
 ), created_identity AS (
     INSERT INTO user_identities (
-        user_id, provider, issuer, subject, email, email_verified, display_name, created_at, last_login_at
+        user_id, provider, issuer, subject, email, email_verified, display_name, username, avatar_url, created_at, last_login_at
     )
-    SELECT id, 'oidc', sqlc.arg(issuer), sqlc.arg(subject), sqlc.arg(email), true,
-           sqlc.arg(display_name), sqlc.arg(created_at), sqlc.arg(created_at)
+    SELECT id, sqlc.arg(provider), sqlc.arg(issuer), sqlc.arg(subject), sqlc.arg(email), true,
+           sqlc.arg(display_name), sqlc.narg(username), sqlc.narg(avatar_url), sqlc.arg(created_at), sqlc.arg(created_at)
     FROM created_user
     RETURNING *
 )
@@ -84,26 +87,27 @@ SELECT created_user.id,
 FROM created_user
 CROSS JOIN created_identity;
 
--- name: CreateOIDCAuthFlow :one
-INSERT INTO oidc_auth_flows (
-    state_hash, browser_token_hash, nonce, pkce_verifier, intent, session_id, return_to, created_at, expires_at
+-- name: CreateExternalAuthFlow :one
+INSERT INTO external_auth_flows (
+    provider, state_hash, browser_token_hash, nonce, pkce_verifier, intent, session_id, return_to, created_at, expires_at
 )
 VALUES (
-    sqlc.arg(state_hash), sqlc.arg(browser_token_hash), sqlc.arg(nonce), sqlc.arg(pkce_verifier),
+    sqlc.arg(provider), sqlc.arg(state_hash), sqlc.arg(browser_token_hash), sqlc.arg(nonce), sqlc.arg(pkce_verifier),
     sqlc.arg(intent), sqlc.narg(session_id), sqlc.arg(return_to), sqlc.arg(created_at), sqlc.arg(expires_at)
 )
 RETURNING *;
 
--- name: ConsumeOIDCAuthFlow :one
-UPDATE oidc_auth_flows
+-- name: ConsumeExternalAuthFlow :one
+UPDATE external_auth_flows
 SET used_at = sqlc.arg(used_at)
-WHERE state_hash = sqlc.arg(state_hash)
+WHERE provider = sqlc.arg(provider)
+  AND state_hash = sqlc.arg(state_hash)
   AND browser_token_hash = sqlc.arg(browser_token_hash)
   AND used_at IS NULL
   AND expires_at > sqlc.arg(used_at)
 RETURNING *;
 
--- name: DeleteExpiredOIDCAuthFlows :exec
-DELETE FROM oidc_auth_flows
+-- name: DeleteExpiredExternalAuthFlows :exec
+DELETE FROM external_auth_flows
 WHERE expires_at <= sqlc.arg(now_at)
    OR used_at IS NOT NULL;

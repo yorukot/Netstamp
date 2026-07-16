@@ -10,6 +10,7 @@ type AuthSession struct {
 	UserAgent            string
 	AuthenticatedAt      time.Time
 	AuthenticationMethod string
+	SudoEligible         bool
 	IdentityID           *string
 	CreatedAt            time.Time
 	LastUsedAt           time.Time

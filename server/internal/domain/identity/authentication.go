@@ -4,6 +4,8 @@ import "time"
 
 const (
 	AuthenticationMethodPassword = "password"
+	AuthenticationMethodGoogle   = "google"
+	AuthenticationMethodGitHub   = "github"
 	AuthenticationMethodOIDC     = "oidc"
 )
 
@@ -16,13 +18,16 @@ type UserIdentity struct {
 	Email         *string
 	EmailVerified bool
 	DisplayName   *string
+	Username      *string
+	AvatarURL     *string
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 	LastLoginAt   *time.Time
 }
 
-type OIDCAuthFlow struct {
+type ExternalAuthFlow struct {
 	ID               string
+	Provider         string
 	StateHash        []byte
 	BrowserTokenHash []byte
 	Nonce            string

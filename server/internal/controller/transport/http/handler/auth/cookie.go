@@ -41,7 +41,7 @@ func expiredSessionCookie(name string, secure bool) http.Cookie {
 	}
 }
 
-func newOIDCFlowCookie(name, value string, expiresAt time.Time, secure bool) http.Cookie {
+func newExternalAuthFlowCookie(name, value string, expiresAt time.Time, secure bool) http.Cookie {
 	return http.Cookie{ //nolint:gosec // Secure is runtime-configured; app bootstrap enables it outside local development.
 		Name:     name,
 		Value:    value,
@@ -54,7 +54,7 @@ func newOIDCFlowCookie(name, value string, expiresAt time.Time, secure bool) htt
 	}
 }
 
-func expiredOIDCFlowCookie(name string, secure bool) http.Cookie {
+func expiredExternalAuthFlowCookie(name string, secure bool) http.Cookie {
 	return http.Cookie{ //nolint:gosec // Secure is runtime-configured; app bootstrap enables it outside local development.
 		Name:     name,
 		Value:    "",

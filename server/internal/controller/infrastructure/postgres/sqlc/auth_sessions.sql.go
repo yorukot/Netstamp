@@ -24,6 +24,7 @@ INSERT INTO auth_sessions (
     user_agent,
     authenticated_at,
     authentication_method,
+    sudo_eligible,
     identity_id
 )
 VALUES (
@@ -37,7 +38,8 @@ VALUES (
     $8,
     $9,
     $10,
-    $11
+    $11,
+    $12
 )
 RETURNING id,
           user_id,
@@ -52,7 +54,8 @@ RETURNING id,
           user_agent,
           authenticated_at,
           authentication_method,
-          identity_id
+          identity_id,
+          sudo_eligible
 `
 
 type CreateAuthSessionParams struct {
@@ -66,6 +69,7 @@ type CreateAuthSessionParams struct {
 	UserAgent            string     `json:"user_agent"`
 	AuthenticatedAt      time.Time  `json:"authenticated_at"`
 	AuthenticationMethod string     `json:"authentication_method"`
+	SudoEligible         bool       `json:"sudo_eligible"`
 	IdentityID           *uuid.UUID `json:"identity_id"`
 }
 
@@ -81,6 +85,7 @@ func (q *Queries) CreateAuthSession(ctx context.Context, arg CreateAuthSessionPa
 		arg.UserAgent,
 		arg.AuthenticatedAt,
 		arg.AuthenticationMethod,
+		arg.SudoEligible,
 		arg.IdentityID,
 	)
 	var i AuthSession
@@ -99,6 +104,7 @@ func (q *Queries) CreateAuthSession(ctx context.Context, arg CreateAuthSessionPa
 		&i.AuthenticatedAt,
 		&i.AuthenticationMethod,
 		&i.IdentityID,
+		&i.SudoEligible,
 	)
 	return i, err
 }
@@ -117,7 +123,8 @@ SELECT auth_sessions.id,
        auth_sessions.user_agent,
        auth_sessions.authenticated_at,
        auth_sessions.authentication_method,
-       auth_sessions.identity_id
+       auth_sessions.identity_id,
+       auth_sessions.sudo_eligible
 FROM auth_sessions
 JOIN users ON users.id = auth_sessions.user_id
 WHERE auth_sessions.id = $1
@@ -150,6 +157,7 @@ func (q *Queries) GetActiveAuthSessionByID(ctx context.Context, arg GetActiveAut
 		&i.AuthenticatedAt,
 		&i.AuthenticationMethod,
 		&i.IdentityID,
+		&i.SudoEligible,
 	)
 	return i, err
 }
@@ -168,7 +176,8 @@ SELECT auth_sessions.id,
        auth_sessions.user_agent,
        auth_sessions.authenticated_at,
        auth_sessions.authentication_method,
-       auth_sessions.identity_id
+       auth_sessions.identity_id,
+       auth_sessions.sudo_eligible
 FROM auth_sessions
 JOIN users ON users.id = auth_sessions.user_id
 WHERE auth_sessions.token_hash = $1
@@ -201,6 +210,7 @@ func (q *Queries) GetActiveAuthSessionByTokenHash(ctx context.Context, arg GetAc
 		&i.AuthenticatedAt,
 		&i.AuthenticationMethod,
 		&i.IdentityID,
+		&i.SudoEligible,
 	)
 	return i, err
 }
@@ -219,7 +229,8 @@ SELECT auth_sessions.id,
        auth_sessions.user_agent,
        auth_sessions.authenticated_at,
        auth_sessions.authentication_method,
-       auth_sessions.identity_id
+       auth_sessions.identity_id,
+       auth_sessions.sudo_eligible
 FROM auth_sessions
 JOIN users ON users.id = auth_sessions.user_id
 WHERE auth_sessions.user_id = $1
@@ -259,6 +270,7 @@ func (q *Queries) ListActiveAuthSessionsForUser(ctx context.Context, arg ListAct
 			&i.AuthenticatedAt,
 			&i.AuthenticationMethod,
 			&i.IdentityID,
+			&i.SudoEligible,
 		); err != nil {
 			return nil, err
 		}
@@ -389,6 +401,7 @@ const updateAuthSessionAuthentication = `-- name: UpdateAuthSessionAuthenticatio
 UPDATE auth_sessions
 SET authenticated_at = $1,
     authentication_method = $2,
+    sudo_eligible = true,
     identity_id = $3
 WHERE id = $4
   AND revoked_at IS NULL

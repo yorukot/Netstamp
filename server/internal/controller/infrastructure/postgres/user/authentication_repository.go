@@ -21,10 +21,11 @@ func (r *UserRepository) CreateUserIdentity(ctx context.Context, input identity.
 	row, err := postgres.Queries(ctx, r.queries).CreateUserIdentity(ctx, sqlc.CreateUserIdentityParams{
 		UserID: userID, Provider: input.Provider, Issuer: input.Issuer, Subject: input.Subject,
 		Email: input.Email, EmailVerified: input.EmailVerified, DisplayName: input.DisplayName,
+		Username: input.Username, AvatarUrl: input.AvatarURL,
 		CreatedAt: input.CreatedAt, LastLoginAt: input.LastLoginAt,
 	})
 	if err != nil {
-		if postgres.IsUniqueViolation(err, "uq_user_identities_issuer_subject") || postgres.IsUniqueViolation(err, "uq_user_identities_user_issuer") {
+		if postgres.IsUniqueViolation(err, "uq_user_identities_provider_issuer_subject") || postgres.IsUniqueViolation(err, "uq_user_identities_user_provider_issuer") {
 			return identity.UserIdentity{}, identity.ErrIdentityConflict
 		}
 		return identity.UserIdentity{}, err
@@ -32,8 +33,8 @@ func (r *UserRepository) CreateUserIdentity(ctx context.Context, input identity.
 	return mapUserIdentity(row), nil
 }
 
-func (r *UserRepository) GetUserIdentityByIssuerSubject(ctx context.Context, issuer, subject string) (identity.UserIdentity, error) {
-	row, err := postgres.Queries(ctx, r.queries).GetUserIdentityByIssuerSubject(ctx, sqlc.GetUserIdentityByIssuerSubjectParams{Issuer: issuer, Subject: subject})
+func (r *UserRepository) GetUserIdentityByIssuerSubject(ctx context.Context, provider, issuer, subject string) (identity.UserIdentity, error) {
+	row, err := postgres.Queries(ctx, r.queries).GetUserIdentityByIssuerSubject(ctx, sqlc.GetUserIdentityByIssuerSubjectParams{Provider: provider, Issuer: issuer, Subject: subject})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return identity.UserIdentity{}, identity.ErrIdentityNotFound
 	}
@@ -84,7 +85,8 @@ func (r *UserRepository) TouchUserIdentityLogin(ctx context.Context, input ident
 		return identity.UserIdentity{}, err
 	}
 	row, err := postgres.Queries(ctx, r.queries).TouchUserIdentityLogin(ctx, sqlc.TouchUserIdentityLoginParams{
-		ID: id, Email: input.Email, EmailVerified: input.EmailVerified, DisplayName: input.DisplayName, LastLoginAt: &at,
+		ID: id, Email: input.Email, EmailVerified: input.EmailVerified, DisplayName: input.DisplayName,
+		Username: input.Username, AvatarUrl: input.AvatarURL, LastLoginAt: &at,
 	})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return identity.UserIdentity{}, identity.ErrIdentityNotFound
@@ -123,15 +125,17 @@ func (r *UserRepository) CountUserAuthenticationMethods(ctx context.Context, use
 	return row.HasPassword, row.IdentityCount, err
 }
 
-func (r *UserRepository) CreateOIDCUser(ctx context.Context, email, displayName, issuer, subject string, now time.Time) (identity.User, identity.UserIdentity, error) {
-	row, err := postgres.Queries(ctx, r.queries).CreateOIDCUser(ctx, sqlc.CreateOIDCUserParams{
-		Email: email, DisplayName: displayName, EmailVerifiedAt: &now, Issuer: issuer, Subject: subject, CreatedAt: now,
+func (r *UserRepository) CreateExternalAuthUser(ctx context.Context, email, displayName string, externalIdentity identity.UserIdentity, now time.Time) (identity.User, identity.UserIdentity, error) {
+	row, err := postgres.Queries(ctx, r.queries).CreateExternalAuthUser(ctx, sqlc.CreateExternalAuthUserParams{
+		Email: email, DisplayName: displayName, EmailVerifiedAt: &now, Provider: externalIdentity.Provider,
+		Issuer: externalIdentity.Issuer, Subject: externalIdentity.Subject, Username: externalIdentity.Username,
+		AvatarUrl: externalIdentity.AvatarURL, CreatedAt: now,
 	})
 	if err != nil {
 		if postgres.IsUniqueViolation(err, "uq_users_email") {
 			return identity.User{}, identity.UserIdentity{}, identity.ErrEmailAlreadyExists
 		}
-		if postgres.IsUniqueViolation(err, "uq_user_identities_issuer_subject") {
+		if postgres.IsUniqueViolation(err, "uq_user_identities_provider_issuer_subject") {
 			return identity.User{}, identity.UserIdentity{}, identity.ErrIdentityConflict
 		}
 		return identity.User{}, identity.UserIdentity{}, err
@@ -141,50 +145,50 @@ func (r *UserRepository) CreateOIDCUser(ctx context.Context, email, displayName,
 	return user, identityValue, err
 }
 
-func (r *UserRepository) CreateOIDCAuthFlow(ctx context.Context, input identity.OIDCAuthFlow) (identity.OIDCAuthFlow, error) {
+func (r *UserRepository) CreateExternalAuthFlow(ctx context.Context, input identity.ExternalAuthFlow) (identity.ExternalAuthFlow, error) {
 	var sessionID *uuid.UUID
 	if input.SessionID != nil {
 		parsed, err := uuid.Parse(*input.SessionID)
 		if err != nil {
-			return identity.OIDCAuthFlow{}, identity.ErrSessionNotFound
+			return identity.ExternalAuthFlow{}, identity.ErrSessionNotFound
 		}
 		sessionID = &parsed
 	}
-	row, err := postgres.Queries(ctx, r.queries).CreateOIDCAuthFlow(ctx, sqlc.CreateOIDCAuthFlowParams{
-		StateHash: input.StateHash, BrowserTokenHash: input.BrowserTokenHash, Nonce: input.Nonce,
+	row, err := postgres.Queries(ctx, r.queries).CreateExternalAuthFlow(ctx, sqlc.CreateExternalAuthFlowParams{
+		Provider: input.Provider, StateHash: input.StateHash, BrowserTokenHash: input.BrowserTokenHash, Nonce: input.Nonce,
 		PkceVerifier: input.PKCEVerifier, Intent: input.Intent, SessionID: sessionID,
 		ReturnTo: input.ReturnTo, CreatedAt: input.CreatedAt, ExpiresAt: input.ExpiresAt,
 	})
 	if err != nil {
-		return identity.OIDCAuthFlow{}, err
+		return identity.ExternalAuthFlow{}, err
 	}
-	return mapOIDCAuthFlow(row), nil
+	return mapExternalAuthFlow(row), nil
 }
 
-func (r *UserRepository) ConsumeOIDCAuthFlow(ctx context.Context, stateHash, browserTokenHash []byte, now time.Time) (identity.OIDCAuthFlow, error) {
-	row, err := postgres.Queries(ctx, r.queries).ConsumeOIDCAuthFlow(ctx, sqlc.ConsumeOIDCAuthFlowParams{StateHash: stateHash, BrowserTokenHash: browserTokenHash, UsedAt: &now})
+func (r *UserRepository) ConsumeExternalAuthFlow(ctx context.Context, provider string, stateHash, browserTokenHash []byte, now time.Time) (identity.ExternalAuthFlow, error) {
+	row, err := postgres.Queries(ctx, r.queries).ConsumeExternalAuthFlow(ctx, sqlc.ConsumeExternalAuthFlowParams{Provider: provider, StateHash: stateHash, BrowserTokenHash: browserTokenHash, UsedAt: &now})
 	if errors.Is(err, pgx.ErrNoRows) {
-		return identity.OIDCAuthFlow{}, identity.ErrOIDCFlowNotFound
+		return identity.ExternalAuthFlow{}, identity.ErrOIDCFlowNotFound
 	}
 	if err != nil {
-		return identity.OIDCAuthFlow{}, err
+		return identity.ExternalAuthFlow{}, err
 	}
-	return mapOIDCAuthFlow(row), nil
+	return mapExternalAuthFlow(row), nil
 }
 
-func (r *UserRepository) DeleteExpiredOIDCAuthFlows(ctx context.Context, now time.Time) error {
-	return postgres.Queries(ctx, r.queries).DeleteExpiredOIDCAuthFlows(ctx, now)
+func (r *UserRepository) DeleteExpiredExternalAuthFlows(ctx context.Context, now time.Time) error {
+	return postgres.Queries(ctx, r.queries).DeleteExpiredExternalAuthFlows(ctx, now)
 }
 
 func mapUserIdentity(row sqlc.UserIdentity) identity.UserIdentity {
-	return identity.UserIdentity{ID: row.ID.String(), UserID: row.UserID.String(), Provider: row.Provider, Issuer: row.Issuer, Subject: row.Subject, Email: row.Email, EmailVerified: row.EmailVerified, DisplayName: row.DisplayName, CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt, LastLoginAt: row.LastLoginAt}
+	return identity.UserIdentity{ID: row.ID.String(), UserID: row.UserID.String(), Provider: row.Provider, Issuer: row.Issuer, Subject: row.Subject, Email: row.Email, EmailVerified: row.EmailVerified, DisplayName: row.DisplayName, Username: row.Username, AvatarURL: row.AvatarUrl, CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt, LastLoginAt: row.LastLoginAt}
 }
 
-func mapOIDCAuthFlow(row sqlc.OidcAuthFlow) identity.OIDCAuthFlow {
+func mapExternalAuthFlow(row sqlc.ExternalAuthFlow) identity.ExternalAuthFlow {
 	var sessionID *string
 	if row.SessionID != nil {
 		value := row.SessionID.String()
 		sessionID = &value
 	}
-	return identity.OIDCAuthFlow{ID: row.ID.String(), StateHash: row.StateHash, BrowserTokenHash: row.BrowserTokenHash, Nonce: row.Nonce, PKCEVerifier: row.PkceVerifier, Intent: row.Intent, SessionID: sessionID, ReturnTo: row.ReturnTo, CreatedAt: row.CreatedAt, ExpiresAt: row.ExpiresAt, UsedAt: row.UsedAt}
+	return identity.ExternalAuthFlow{ID: row.ID.String(), Provider: row.Provider, StateHash: row.StateHash, BrowserTokenHash: row.BrowserTokenHash, Nonce: row.Nonce, PKCEVerifier: row.PkceVerifier, Intent: row.Intent, SessionID: sessionID, ReturnTo: row.ReturnTo, CreatedAt: row.CreatedAt, ExpiresAt: row.ExpiresAt, UsedAt: row.UsedAt}
 }

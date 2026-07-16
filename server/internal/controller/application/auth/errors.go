@@ -18,9 +18,12 @@ var (
 	ErrEmailVerificationTokenInvalid = errors.New("email verification token invalid")
 	ErrEmailVerificationUnavailable  = errors.New("email verification unavailable")
 	ErrSudoRequired                  = errors.New("recent authentication required")
-	ErrOIDCUnavailable               = errors.New("oidc unavailable")
-	ErrOIDCCallbackInvalid           = errors.New("oidc callback invalid")
+	ErrExternalAuthUnavailable       = errors.New("external authentication unavailable")
+	ErrExternalAuthCallbackInvalid   = errors.New("external authentication callback invalid")
+	ErrExternalAuthSudoUnsupported   = errors.New("external authentication does not support sudo")
+	ErrOIDCUnavailable               = ErrExternalAuthUnavailable
+	ErrOIDCCallbackInvalid           = ErrExternalAuthCallbackInvalid
 	ErrIdentityConflict              = errors.New("identity conflict")
 	ErrIdentityNotFound              = errors.New("identity not found")
-	ErrJITProvisioningDisabled       = errors.New("oidc jit provisioning disabled")
+	ErrJITProvisioningDisabled       = errors.New("external authentication jit provisioning disabled")
 )

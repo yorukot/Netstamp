@@ -1123,6 +1123,7 @@ type AuthSession struct {
 	AuthenticatedAt      time.Time  `json:"authenticated_at"`
 	AuthenticationMethod string     `json:"authentication_method"`
 	IdentityID           *uuid.UUID `json:"identity_id"`
+	SudoEligible         bool       `json:"sudo_eligible"`
 }
 
 type Check struct {
@@ -1153,6 +1154,21 @@ type EmailVerificationToken struct {
 	ExpiresAt time.Time  `json:"expires_at"`
 	UsedAt    *time.Time `json:"used_at"`
 	CreatedAt time.Time  `json:"created_at"`
+}
+
+type ExternalAuthFlow struct {
+	ID               uuid.UUID  `json:"id"`
+	StateHash        []byte     `json:"state_hash"`
+	BrowserTokenHash []byte     `json:"browser_token_hash"`
+	Nonce            string     `json:"nonce"`
+	PkceVerifier     string     `json:"pkce_verifier"`
+	Intent           string     `json:"intent"`
+	SessionID        *uuid.UUID `json:"session_id"`
+	ReturnTo         string     `json:"return_to"`
+	CreatedAt        time.Time  `json:"created_at"`
+	ExpiresAt        time.Time  `json:"expires_at"`
+	UsedAt           *time.Time `json:"used_at"`
+	Provider         string     `json:"provider"`
 }
 
 type HttpCheckConfig struct {
@@ -1273,20 +1289,6 @@ type NotificationOutbox struct {
 	DedupeKey        string                   `json:"dedupe_key"`
 	CreatedAt        time.Time                `json:"created_at"`
 	UpdatedAt        time.Time                `json:"updated_at"`
-}
-
-type OidcAuthFlow struct {
-	ID               uuid.UUID  `json:"id"`
-	StateHash        []byte     `json:"state_hash"`
-	BrowserTokenHash []byte     `json:"browser_token_hash"`
-	Nonce            string     `json:"nonce"`
-	PkceVerifier     string     `json:"pkce_verifier"`
-	Intent           string     `json:"intent"`
-	SessionID        *uuid.UUID `json:"session_id"`
-	ReturnTo         string     `json:"return_to"`
-	CreatedAt        time.Time  `json:"created_at"`
-	ExpiresAt        time.Time  `json:"expires_at"`
-	UsedAt           *time.Time `json:"used_at"`
 }
 
 type PasswordCredential struct {
@@ -1626,4 +1628,6 @@ type UserIdentity struct {
 	CreatedAt     time.Time  `json:"created_at"`
 	UpdatedAt     time.Time  `json:"updated_at"`
 	LastLoginAt   *time.Time `json:"last_login_at"`
+	Username      *string    `json:"username"`
+	AvatarUrl     *string    `json:"avatar_url"`
 }

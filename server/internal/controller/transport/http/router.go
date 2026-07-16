@@ -59,8 +59,6 @@ type Dependencies struct {
 	AuthCookieName              string
 	AuthCookieSecure            bool
 	AuthRegistrationDisabled    bool
-	AuthOIDCEnabled             bool
-	AuthOIDCDisplayName         string
 	AuthPasswordResetRateWindow time.Duration
 	AuthPasswordResetIPLimit    int32
 	AuthPasswordResetEmailLimit int32
@@ -155,7 +153,6 @@ func registerAPIRoutes(api chi.Router, dep Dependencies) {
 
 	authhttp.NewHandler(dep.AuthService, dep.AuthVerifier, dep.AdminService, dep.AuthCookieName, dep.AuthCookieSecure, !dep.AuthRegistrationDisabled).
 		ConfigureAPITokens(dep.APITokenService).
-		ConfigureOIDC(dep.AuthOIDCEnabled, dep.AuthOIDCDisplayName).
 		ConfigurePasswordReset(dep.PublicWebBaseURL, authhttp.NewPasswordResetRateLimiter(authhttp.PasswordResetRateLimitConfig{
 			Window:     dep.AuthPasswordResetRateWindow,
 			IPLimit:    dep.AuthPasswordResetIPLimit,

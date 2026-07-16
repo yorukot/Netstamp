@@ -49,6 +49,7 @@ import (
 	"github.com/yorukot/netstamp/internal/controller/logger"
 	httpserver "github.com/yorukot/netstamp/internal/controller/transport/http"
 	httpmiddleware "github.com/yorukot/netstamp/internal/controller/transport/http/middleware"
+	"github.com/yorukot/netstamp/internal/domain/identity"
 	obmetrics "github.com/yorukot/netstamp/internal/platform/observability/metrics"
 	"github.com/yorukot/netstamp/internal/platform/observability/tracing"
 )
@@ -204,13 +205,22 @@ func buildControllerServices(cfg config.Config, log *zap.Logger, dbPool *pgxpool
 	authSvc.ConfigureEmailVerification(userRepo, security.NewPasswordResetTokenManager(), notify.NewDynamicPasswordResetMailer(smtpProvider), appauth.EmailVerificationConfig{
 		TokenTTL: 24 * time.Hour,
 	})
-	authSvc.ConfigureOIDC(userRepo, security.NewOIDCClient(security.OIDCClientConfig{
-		IssuerURL: cfg.Auth.OIDCIssuerURL, ClientID: cfg.Auth.OIDCClientID, ClientSecret: cfg.Auth.OIDCClientSecret,
-		RedirectURL: strings.TrimRight(cfg.HTTP.BackendBaseURL, "/") + "/api/" + cfg.APIVersion + "/auth/oidc/callback",
-	}), security.NewPasswordResetTokenManager(), appauth.OIDCConfig{
-		Enabled: cfg.Auth.OIDCEnabled, DisplayName: cfg.Auth.OIDCDisplayName, JITEnabled: cfg.Auth.OIDCJITEnabled,
+	externalAuthProviders := make([]appauth.ExternalProviderRegistration, 0, 1)
+	if cfg.Auth.OIDCEnabled {
+		externalAuthProviders = append(externalAuthProviders, appauth.ExternalProviderRegistration{
+			Config: appauth.ExternalProviderConfig{
+				ID: identity.AuthenticationMethodOIDC, DisplayName: cfg.Auth.OIDCDisplayName,
+				JITEnabled: cfg.Auth.OIDCJITEnabled, SudoCapable: true,
+			},
+			Client: security.NewOIDCClient(security.OIDCClientConfig{
+				IssuerURL: cfg.Auth.OIDCIssuerURL, ClientID: cfg.Auth.OIDCClientID, ClientSecret: cfg.Auth.OIDCClientSecret,
+				RedirectURL: strings.TrimRight(cfg.HTTP.BackendBaseURL, "/") + "/api/" + cfg.APIVersion + "/auth/external/oidc/callback",
+			}),
+		})
+	}
+	authSvc.ConfigureExternalAuth(userRepo, security.NewPasswordResetTokenManager(), appauth.ExternalAuthConfig{
 		FlowTTL: 10 * time.Minute, AuthTimeSkew: time.Minute,
-	})
+	}, externalAuthProviders...)
 
 	userSvc := appuser.NewService(userRepo, passwordHasher, userEvents)
 	apiTokenSvc := appapitoken.NewService(apiTokenRepo, apiTokenManager, apiTokenEvents)
@@ -288,8 +298,6 @@ func buildHTTPHandler(cfg config.Config, log *zap.Logger, dbPool *pgxpool.Pool, 
 		AuthCookieName:              authCookieName(cfg),
 		AuthCookieSecure:            authCookieSecure(cfg),
 		AuthRegistrationDisabled:    !cfg.Auth.RegistrationEnabled,
-		AuthOIDCEnabled:             cfg.Auth.OIDCEnabled,
-		AuthOIDCDisplayName:         cfg.Auth.OIDCDisplayName,
 		AuthPasswordResetRateWindow: cfg.Auth.PasswordResetRateWindow,
 		AuthPasswordResetIPLimit:    cfg.Auth.PasswordResetIPLimit,
 		AuthPasswordResetEmailLimit: cfg.Auth.PasswordResetEmailLimit,
