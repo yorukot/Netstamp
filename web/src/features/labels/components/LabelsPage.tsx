@@ -38,7 +38,7 @@ interface LabelGroup {
 	checkCount: number;
 }
 
-type LabelEditorMode = "idle" | "create";
+type LabelEditorMode = "idle" | "create" | "addValue";
 
 const emptyLabels: ApiLabel[] = [];
 const emptyProbes: ApiProbe[] = [];
@@ -56,19 +56,6 @@ function formatUpdatedAt(value: string) {
 
 function labelToken(label: Pick<ApiLabel, "key" | "value">) {
 	return `${label.key}:${label.value}`;
-}
-
-function parseLabelToken(value: string) {
-	const separatorIndex = value.indexOf(":");
-
-	if (separatorIndex < 0) {
-		return null;
-	}
-
-	const key = value.slice(0, separatorIndex).trim();
-	const labelValue = value.slice(separatorIndex + 1).trim();
-
-	return key && labelValue ? { key, value: labelValue } : null;
 }
 
 function sortedUnique(values: string[]) {
@@ -189,7 +176,6 @@ export function LabelsPage() {
 	const [draftLabelId, setDraftLabelId] = useState("");
 	const [draftKey, setDraftKey] = useState("");
 	const [draftValue, setDraftValue] = useState("");
-	const [draftToken, setDraftToken] = useState("");
 	const [search, setSearch] = useState("");
 	const [keyFilter, setKeyFilter] = useState("all");
 	const usageByLabelID = useMemo(() => buildUsage(labels, probes, checks), [labels, probes, checks]);
@@ -228,25 +214,19 @@ export function LabelsPage() {
 	const labelGroups = useMemo(() => buildLabelGroups(filteredRows), [filteredRows]);
 	const selectedLabel = labels.find(label => label.id === labelId) ?? null;
 	const selectedRow = rows.find(row => row.id === labelId) ?? null;
-	const isCreating = editorMode === "create";
+	const isNewLabel = editorMode === "create";
+	const isAddingValue = editorMode === "addValue";
+	const isCreating = isNewLabel || isAddingValue;
 	const isEditing = !isCreating && Boolean(selectedLabel);
 	const isEditorOpen = (isCreating || isEditing) && !isEditorDismissed;
 	const hasSelectedDraft = Boolean(selectedLabel && draftLabelId === selectedLabel.id);
-	const isCreatingToken = isCreating && !draftKey.trim();
-	const parsedDraftToken = isCreatingToken ? parseLabelToken(draftToken) : null;
 	const activeDraftKey = isCreating || hasSelectedDraft ? draftKey : (selectedLabel?.key ?? "");
 	const activeDraftValue = isCreating || hasSelectedDraft ? draftValue : (selectedLabel?.value ?? "");
 	const mutationError = saveLabelMutation.error ?? deleteLabelMutation.error;
-	const canSave = isCreatingToken
-		? Boolean(projectRef && parsedDraftToken)
-		: Boolean(projectRef && activeDraftKey.trim() && activeDraftValue.trim() && (isCreating || !selectedLabel || selectedLabel.value !== activeDraftValue.trim()));
+	const canSave = Boolean(projectRef && activeDraftKey.trim() && activeDraftValue.trim() && (isCreating || (selectedLabel && selectedLabel.value !== activeDraftValue.trim())));
 	const emptyLabel = projectRef ? labelsQuery.isLoading ? <Spinner label="Loading labels" layout="compact" size="lg" /> : "No labels match this view" : "Select a project to manage labels";
-	const editorTitle = isCreatingToken ? "New label" : isCreating ? `Add ${activeDraftKey} value` : selectedLabel ? `Edit ${selectedLabel.key}` : "Label";
-	const editorInputLabel = isCreatingToken ? "Label" : "Value";
-	const editorInputValue = isCreatingToken ? draftToken : activeDraftValue;
-	const editorInputPlaceholder = isCreatingToken ? "region:tokyo" : "tokyo";
-	const editorSubmitLabel = saveLabelMutation.isPending ? "Saving" : isEditing ? "Save value" : isCreatingToken ? "Create label" : "Add value";
-	const editorKey = isCreatingToken ? "" : activeDraftKey;
+	const editorTitle = isNewLabel ? "New label" : isAddingValue ? `Add ${activeDraftKey} value` : selectedLabel ? `Edit ${selectedLabel.key}` : "Label";
+	const editorSubmitLabel = saveLabelMutation.isPending ? "Saving" : isEditing ? "Save value" : isNewLabel ? "Create label" : "Add value";
 
 	useEffect(() => {
 		if (!projectRef || !labelId || labelsQuery.isPending || labelsQuery.isError || selectedLabel) {
@@ -281,12 +261,11 @@ export function LabelsPage() {
 	}
 
 	function startNewLabel(prefillKey = "") {
-		setEditorMode("create");
+		setEditorMode(prefillKey ? "addValue" : "create");
 		setIsEditorDismissed(false);
 		setDraftLabelId("__new__");
 		setDraftKey(prefillKey);
 		setDraftValue("");
-		setDraftToken("");
 		saveLabelMutation.reset();
 		deleteLabelMutation.reset();
 		navigate(pathForRoute("labels", { projectRef }));
@@ -314,19 +293,9 @@ export function LabelsPage() {
 		setDraftLabelId("");
 		setDraftKey("");
 		setDraftValue("");
-		setDraftToken("");
 		saveLabelMutation.reset();
 		deleteLabelMutation.reset();
 		navigate(pathForRoute("labels", { projectRef }), { replace: true });
-	}
-
-	function updateEditorInput(value: string) {
-		if (isCreatingToken) {
-			setDraftToken(value);
-			return;
-		}
-
-		updateDraftValue(value);
 	}
 
 	function submitLabel(event: FormEvent) {
@@ -339,19 +308,14 @@ export function LabelsPage() {
 			return;
 		}
 
-		const body = isCreatingToken
-			? {
-					key: parsedDraftToken?.key ?? "",
-					value: parsedDraftToken?.value ?? ""
-				}
-			: {
-					key: activeDraftKey.trim(),
-					value: activeDraftValue.trim()
-				};
+		const body = {
+			key: activeDraftKey.trim(),
+			value: activeDraftValue.trim()
+		};
 
 		saveLabelMutation.mutate(
 			{
-				labelId: selectedLabel?.id,
+				labelId: isCreating ? undefined : selectedLabel?.id,
 				body
 			},
 			{
@@ -478,16 +442,27 @@ export function LabelsPage() {
 									<DialogTitle asChild>
 										<strong>{editorTitle}</strong>
 									</DialogTitle>
-									{editorKey ? <Badge tone="accent">{editorKey}</Badge> : null}
 								</div>
 
 								<TextField
-									label={editorInputLabel}
-									placeholder={editorInputPlaceholder}
-									value={editorInputValue}
+									label="Key"
+									placeholder="region"
+									value={activeDraftKey}
 									disabled={!projectRef || saveLabelMutation.isPending}
-									onChange={event => updateEditorInput(event.currentTarget.value)}
-									autoFocus
+									readOnly={!isNewLabel}
+									required
+									onChange={event => setDraftKey(event.currentTarget.value)}
+									autoFocus={isNewLabel}
+								/>
+
+								<TextField
+									label="Value"
+									placeholder="tokyo"
+									value={activeDraftValue}
+									disabled={!projectRef || saveLabelMutation.isPending}
+									required
+									onChange={event => updateDraftValue(event.currentTarget.value)}
+									autoFocus={!isNewLabel}
 								/>
 
 								{mutationError ? <p className={styles.errorNotice}>{requestErrorMessage(mutationError, "Label operation failed.")}</p> : null}
