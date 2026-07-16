@@ -1,312 +1,19 @@
-.segmentField {
-	display: grid;
-	gap: 0.45rem;
-	min-width: 0;
-}
-
-.segmentLabel {
-	color: var(--ns-text-low);
-	font-family: var(--ns-font-code);
-	font-size: 0.6875rem;
-	font-weight: 800;
-	line-height: 1;
-	text-transform: uppercase;
-}
-
-.focusChip {
-	--ns-frame-color: color-mix(in srgb, var(--ns-primary) 42%, transparent);
-	display: grid;
-	grid-template-columns: auto minmax(4rem, auto) auto;
-	gap: 0.625rem;
-	align-items: center;
-	max-width: 100%;
-	padding: 0.5rem 0.6rem;
-	border: 1px solid var(--ns-frame-color);
-	color: var(--ns-text-muted);
-	background: var(--ns-primary-muted);
-	font-family: var(--ns-font-code);
-}
-
-.focusChip[data-invalid="true"] {
-	--ns-frame-color: color-mix(in srgb, var(--ns-critical) 56%, transparent);
-	background: color-mix(in srgb, var(--ns-critical) 12%, transparent);
-}
-
-.focusChip span {
-	color: var(--ns-text-low);
-	font-size: 0.6875rem;
-	font-weight: 800;
-	text-transform: uppercase;
-}
-
-.focusChip strong {
-	min-width: 0;
-	overflow: hidden;
-	color: var(--ns-text);
-	font-size: 0.75rem;
-	font-weight: 800;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-.focusChip button {
-	color: var(--ns-primary-hover);
-	background: transparent;
-	border: 0;
-	font-family: var(--ns-font-code);
-	font-size: 0.6875rem;
-	font-weight: 900;
-	text-transform: uppercase;
-	cursor: pointer;
-}
-
-.focusChip button:hover {
-	color: var(--ns-text);
-}
-
-.focusChip button:focus-visible {
-	color: var(--ns-text);
-	outline: var(--ns-focus-outline);
-	outline-offset: 0.15rem;
-}
-
-.assignmentField {
-	display: grid;
-	gap: 0.45rem;
-	min-width: 0;
-}
-
-.assignmentControl {
-	--ns-frame-color: var(--ns-border);
-	display: flex;
-	gap: 0.25rem;
-	align-items: center;
-	width: 100%;
-	min-width: 0;
-	min-height: 2.75rem;
-	padding: 0.25rem 0.5rem;
-	overflow: hidden;
-	border: 1px solid var(--ns-frame-color);
-	background: var(--ns-control-bg);
-	box-shadow: none;
-	cursor: text;
-}
-
-.assignmentControl[data-open="true"] {
-	--ns-frame-color: var(--ns-border-strong);
-}
-
-.assignmentControl:has(input:focus-visible),
-.assignmentControl:has(button:focus-visible) {
-	--ns-frame-color: var(--ns-focus-ring);
-}
-
-.assignmentControl[data-disabled="true"] {
-	cursor: not-allowed;
-	opacity: 0.62;
-}
-
-.assignmentControl input {
-	flex: 1 1 7rem;
-	min-width: 5rem;
-	height: 1.8rem;
-	color: var(--ns-text);
-	background: transparent;
-	border: 0;
-	font-family: var(--ns-font-code);
-	font-size: 0.8125rem;
-	font-weight: 800;
-	outline: none;
-}
-
-.assignmentControl input::placeholder {
-	color: var(--ns-text-low);
-	opacity: 1;
-}
-
-.assignmentToken,
-.assignmentOverflow {
-	display: inline-flex;
-	flex: 0 1 auto;
-	gap: 0.25rem;
-	align-items: center;
-	max-width: min(13rem, 35%);
-	min-width: 0;
-	padding: 0.25rem 0.5rem;
-	color: var(--ns-text);
-	background: var(--ns-primary-muted);
-	border: 1px solid color-mix(in srgb, var(--ns-primary) 32%, transparent);
-	border-radius: var(--ns-radius-sm);
-	font-family: var(--ns-font-code);
-	font-size: 0.6875rem;
-	font-weight: 900;
-	line-height: 1;
-	text-transform: uppercase;
-}
-
-.assignmentToken span {
-	min-width: 0;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-.assignmentToken button,
-.assignmentClear {
-	color: var(--ns-primary-hover);
-	background: transparent;
-	border: 0;
-	font-family: var(--ns-font-code);
-	font-size: 0.6875rem;
-	font-weight: 900;
-	text-transform: uppercase;
-	cursor: pointer;
-}
-
-.assignmentToken button:focus-visible,
-.assignmentClear:focus-visible {
-	color: var(--ns-text);
-	outline: var(--ns-focus-outline);
-	outline-offset: 0.125rem;
-}
-
-.assignmentToken button {
-	display: inline-grid;
-	flex: 0 0 auto;
-	place-items: center;
-	width: 0.875rem;
-	height: 0.875rem;
-	padding: 0;
-	line-height: 0;
-}
-
-.assignmentToken button:hover,
-.assignmentClear:hover {
-	color: var(--ns-text);
-}
-
-.assignmentToken button:focus-visible,
-.assignmentClear:focus-visible {
-	color: var(--ns-text);
-	outline: var(--ns-focus-outline);
-	outline-offset: 0.15rem;
-}
-
-.assignmentOverflow {
-	flex: 0 0 auto;
-	color: var(--ns-text-muted);
-	background: color-mix(in srgb, var(--ns-metal) 8%, transparent);
-	border-color: var(--ns-border-faint);
-}
-
-.assignmentClear {
-	flex: 0 0 auto;
-	padding: 0.35rem 0.45rem;
-}
-
-.assignmentPopover {
-	--ns-frame-color: var(--ns-border-strong);
-	z-index: var(--ns-z-popover);
-	display: grid;
-	gap: 0.25rem;
-	width: min(max(var(--radix-dropdown-menu-trigger-width, var(--radix-popover-trigger-width, 32.5rem)), 32.5rem), calc(100vw - 1rem));
-	max-height: min(22.5rem, var(--radix-dropdown-menu-content-available-height, var(--radix-popover-content-available-height, 22.5rem)));
-	overflow: auto;
-	padding: 0.35rem;
-	border: 1px solid var(--ns-frame-color);
-	background: var(--ns-control-bg);
-	box-shadow: none;
-}
-
-.assignmentOption {
-	display: grid;
-	gap: 0.2rem;
-	width: 100%;
-	min-height: 2.75rem;
-	padding: 0.55rem 0.65rem;
+.controlLabel {
 	color: var(--ns-text-subtle);
-	background: transparent;
-	border: 1px solid transparent;
-	font-family: var(--ns-font-code);
-	text-align: left;
-	cursor: pointer;
-}
-
-.assignmentOption strong,
-.assignmentOption span {
-	min-width: 0;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-.assignmentOption strong {
-	color: var(--ns-text);
 	font-size: 0.8125rem;
-	font-weight: 900;
+	font-weight: 650;
+	line-height: 1;
 }
 
-.assignmentOption span,
-.assignmentEmpty {
-	color: var(--ns-text-low);
-	font-size: 0.6875rem;
-	font-weight: 800;
-}
-
-.assignmentOption:hover,
-.assignmentOption[data-active="true"],
-.assignmentOption[data-highlighted] {
-	color: var(--ns-text);
-	background: var(--ns-primary-muted);
-	border-color: color-mix(in srgb, var(--ns-primary) 30%, transparent);
-}
-
-.assignmentOption:focus-visible {
-	color: var(--ns-text);
-	background: var(--ns-primary-muted);
-	border-color: transparent;
-	outline: var(--ns-focus-outline);
-	outline-offset: var(--ns-focus-outline-offset);
-}
-
-.assignmentOption[data-selected="true"],
-.assignmentOption[data-state="checked"] {
-	background: var(--ns-primary-subtle);
-	border-color: var(--ns-border);
-}
-
-.assignmentOption[data-selected="true"]::after,
-.assignmentOption[data-state="checked"]::after {
-	color: var(--ns-primary-hover);
-	content: "selected";
-	font-size: 0.625rem;
-	font-weight: 900;
-	text-transform: uppercase;
-}
-
-.assignmentEmpty {
-	padding: 0.85rem;
-	font-family: var(--ns-font-code);
-	text-align: center;
-}
-
-.timeControlRoot {
-	position: relative;
-	display: grid;
-	grid-template-columns: minmax(13rem, 1fr) minmax(7rem, 0.35fr) 2.75rem;
-	gap: 0.625rem;
-	align-items: end;
-	min-width: 0;
-}
-
+.scopeField,
 .timeField {
 	display: grid;
-	gap: 0.45rem;
+	gap: 0.5rem;
 	min-width: 0;
 }
 
+.scopeTrigger,
 .timeTrigger {
-	--ns-frame-color: var(--ns-border);
 	display: grid;
 	grid-template-columns: minmax(0, 1fr) auto;
 	gap: 0.75rem;
@@ -315,31 +22,273 @@
 	min-width: 0;
 	min-height: 2.75rem;
 	padding: 0.75rem 1rem;
-	border: 1px solid var(--ns-frame-color);
+	border: 1px solid var(--ns-border-faint);
 	color: var(--ns-text);
 	background: var(--ns-control-bg);
-	box-shadow: none;
 	font-family: var(--ns-font-code);
 	font-size: 0.875rem;
-	font-weight: 800;
-	line-height: 1.1;
+	font-weight: 650;
+	line-height: 1;
 	text-align: left;
 	cursor: pointer;
+	transition:
+		border-color var(--ns-transition),
+		background var(--ns-transition);
 }
 
-.timeTrigger span {
+.scopeTrigger > span,
+.timeTrigger > span {
 	min-width: 0;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
 
-.timeTrigger:hover {
-	--ns-frame-color: var(--ns-border-strong);
+.scopeTrigger:hover:not(:disabled),
+.scopeTrigger[data-state="open"],
+.timeTrigger:hover,
+.timeTrigger[data-state="open"] {
+	border-color: var(--ns-border-strong);
 }
 
+.scopeTrigger:focus-visible,
 .timeTrigger:focus-visible {
-	--ns-frame-color: var(--ns-focus-ring);
+	border-color: transparent;
+	outline: var(--ns-focus-outline);
+	outline-offset: var(--ns-focus-outline-offset);
+}
+
+.scopeTrigger:disabled {
+	cursor: not-allowed;
+	opacity: 0.58;
+}
+
+.scopeTrigger[data-placeholder="true"] {
+	color: var(--ns-text-low);
+}
+
+.controlIcon {
+	display: block;
+	color: var(--ns-primary-hover);
+	pointer-events: none;
+}
+
+.scopeTrigger[data-state="open"] .controlIcon,
+.timeTrigger[data-state="open"] .controlIcon {
+	transform: rotate(180deg);
+}
+
+.scopePopover,
+.timePopover {
+	z-index: var(--ns-z-popover);
+	border: 1px solid var(--ns-border);
+	color: var(--ns-text);
+	background: var(--ns-control-bg);
+	box-shadow: none;
+}
+
+.scopePopover {
+	width: min(max(var(--radix-popover-trigger-width), 42rem), calc(100vw - 1rem));
+	max-height: min(28rem, calc(100svh - 1rem));
+	overflow: hidden;
+	padding: 0.25rem;
+}
+
+.scopePopoverHeader {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	gap: 0.25rem;
+	align-items: center;
+	padding: 0.25rem 0.25rem 0.5rem;
+	border-bottom: 1px solid var(--ns-border-faint);
+}
+
+.scopeSearch {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr);
+	gap: 0.5rem;
+	align-items: center;
+	min-width: 0;
+	min-height: 2.25rem;
+	padding: 0 0.75rem;
+	border: 1px solid var(--ns-border-faint);
+	color: var(--ns-text-low);
+	background: var(--ns-control-bg-raised);
+}
+
+.scopeSearch:has(input:focus-visible) {
+	border-color: var(--ns-focus-ring);
+}
+
+.scopeSearch input {
+	width: 100%;
+	min-width: 0;
+	min-height: 2.25rem;
+	padding: 0;
+	border: 0;
+	color: var(--ns-text);
+	background: transparent;
+	font: inherit;
+	outline: none;
+}
+
+.scopeSearch input::placeholder {
+	color: var(--ns-text-low);
+}
+
+.scopePopoverBody {
+	display: grid;
+	grid-template-columns: minmax(9rem, 0.35fr) minmax(0, 1fr);
+	min-height: 18rem;
+	max-height: min(22rem, calc(100svh - 5rem));
+}
+
+.scopeCategories {
+	display: grid;
+	align-content: start;
+	min-width: 0;
+	padding: 0.25rem;
+	border-right: 1px solid var(--ns-border-faint);
+	background: var(--ns-control-bg-raised);
+}
+
+.scopeCategories button {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	gap: 0.5rem;
+	align-items: center;
+	width: 100%;
+	min-width: 0;
+	min-height: 2.5rem;
+	padding: 0.5rem 0.75rem;
+	border: 0;
+	border-bottom: 1px solid var(--ns-border-faint);
+	color: var(--ns-text-muted);
+	background: transparent;
+	font-size: 0.8125rem;
+	text-align: left;
+	cursor: pointer;
+}
+
+.scopeCategories button:last-child {
+	border-bottom: 0;
+}
+
+.scopeCategories button:hover,
+.scopeCategories button[data-selected="true"] {
+	color: var(--ns-text);
+	background: var(--ns-control-bg-hover);
+}
+
+.scopeCategories button[data-selected="true"] {
+	color: var(--ns-primary-active);
+	background: var(--ns-primary-muted);
+}
+
+.scopeCategories button:focus-visible {
+	outline: var(--ns-focus-outline);
+	outline-offset: calc(-1 * var(--ns-focus-outline-offset));
+}
+
+.scopeCategories button span {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.scopeCategories button small {
+	color: var(--ns-text-low);
+	font-family: var(--ns-font-code);
+	font-size: 0.6875rem;
+}
+
+.scopeOptionPane {
+	min-width: 0;
+	overflow: hidden;
+}
+
+.scopeOptionList {
+	max-height: min(22rem, calc(100svh - 5rem));
+	overflow: auto;
+}
+
+.scopeOption {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr);
+	gap: 0.75rem;
+	align-items: center;
+	min-height: 3.25rem;
+	padding: 0.5rem 0.75rem;
+	border-bottom: 1px solid var(--ns-border-faint);
+	color: var(--ns-text-muted);
+	background: transparent;
+	cursor: pointer;
+	transition:
+		color var(--ns-transition),
+		background var(--ns-transition);
+}
+
+.scopeOption:last-child {
+	border-bottom: 0;
+}
+
+.scopeOption:hover {
+	color: var(--ns-text);
+	background: var(--ns-control-bg-hover);
+}
+
+.scopeOption[data-selected="true"] {
+	color: var(--ns-text);
+	background: var(--ns-primary-muted);
+}
+
+.scopeOption:has(input:focus-visible) {
+	outline: var(--ns-focus-outline);
+	outline-offset: calc(-1 * var(--ns-focus-outline-offset));
+}
+
+.scopeOption > span {
+	display: grid;
+	gap: 0.25rem;
+	min-width: 0;
+}
+
+.scopeOption strong,
+.scopeOption small {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.scopeOption strong {
+	color: inherit;
+	font-size: 0.8125rem;
+	font-weight: 650;
+}
+
+.scopeOption small {
+	color: var(--ns-text-low);
+	font-family: var(--ns-font-code);
+	font-size: 0.6875rem;
+}
+
+.scopeEmpty {
+	padding: 1rem;
+	color: var(--ns-text-low);
+	font-size: 0.8125rem;
+	line-height: 1.5;
+	text-align: center;
+}
+
+.timeControlRoot {
+	position: relative;
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(6rem, 0.35fr) 2.75rem;
+	gap: 0.5rem;
+	align-items: end;
+	min-width: 0;
 }
 
 .refreshButton {
@@ -349,66 +298,71 @@
 }
 
 .timePopover {
-	--ns-frame-color: var(--ns-border-strong);
-	z-index: var(--ns-z-popover);
 	display: grid;
-	gap: 1rem;
-	width: min(max(var(--radix-popover-trigger-width), 28.75rem), calc(100vw - 1rem));
-	max-height: min(32rem, var(--radix-popover-content-available-height));
+	width: min(max(var(--radix-popover-trigger-width), 30rem), calc(100vw - 1rem));
+	max-height: min(32rem, calc(100svh - 1rem));
 	overflow: auto;
-	padding: 1rem;
-	border: 1px solid var(--ns-frame-color);
-	background: var(--ns-control-bg);
-	box-shadow: none;
+	padding: 0.25rem;
 }
 
 .timeSection {
 	display: grid;
 	gap: 0.75rem;
+	padding: 0.75rem;
+}
+
+.timeSection + .timeSection {
+	border-top: 1px solid var(--ns-border-faint);
 }
 
 .timeSection h4 {
 	margin: 0;
-	color: var(--ns-text-low);
-	font-size: 0.6875rem;
-	font-weight: 900;
-	letter-spacing: 0.08em;
+	color: var(--ns-text-subtle);
+	font-size: 0.8125rem;
+	font-weight: 650;
 	line-height: 1;
-	text-transform: uppercase;
 }
 
 .timePresetGrid {
 	display: grid;
 	grid-template-columns: repeat(3, minmax(0, 1fr));
-	gap: 0.5rem;
 }
 
 .timePreset {
-	--ns-frame-color: var(--ns-border-faint);
 	min-height: 2.5rem;
-	padding: 0.55rem 0.7rem;
-	border: 1px solid var(--ns-frame-color);
-	color: var(--ns-text-subtle);
-	background: var(--ns-surface-deep);
-	font-family: var(--ns-font-code);
+	padding: 0.5rem 0.75rem;
+	border: 0;
+	border-right: 1px solid var(--ns-border-faint);
+	border-bottom: 1px solid var(--ns-border-faint);
+	color: var(--ns-text-muted);
+	background: transparent;
 	font-size: 0.75rem;
-	font-weight: 800;
+	font-weight: 650;
 	cursor: pointer;
+}
+
+.timePreset:nth-child(3n) {
+	border-right: 0;
+}
+
+.timePreset:nth-last-child(-n + 3) {
+	border-bottom: 0;
 }
 
 .timePreset:hover,
 .timePreset[data-selected="true"] {
-	--ns-frame-color: var(--ns-border);
 	color: var(--ns-text);
+	background: var(--ns-control-bg-hover);
+}
+
+.timePreset[data-selected="true"] {
+	color: var(--ns-primary-active);
 	background: var(--ns-primary-muted);
 }
 
 .timePreset:focus-visible {
-	--ns-frame-color: transparent;
-	color: var(--ns-text);
-	background: var(--ns-primary-muted);
 	outline: var(--ns-focus-outline);
-	outline-offset: var(--ns-focus-outline-offset);
+	outline-offset: calc(-1 * var(--ns-focus-outline-offset));
 }
 
 .absoluteGrid {
@@ -419,157 +373,30 @@
 
 .timeActions {
 	display: flex;
-	flex-wrap: wrap;
-	gap: 0.625rem;
 	justify-content: flex-end;
+	padding-top: 0.25rem;
 }
 
 @media (max-width: 44rem) {
-	.focusChip {
-		grid-template-columns: 1fr auto;
-		width: 100%;
+	.scopePopover {
+		width: calc(100vw - 1rem);
 	}
 
-	.focusChip span {
-		grid-column: 1 / -1;
-	}
-
-	.timeControlRoot {
-		grid-template-columns: 1fr;
-	}
-
-	.refreshButton {
-		width: 100%;
+	.scopePopoverBody {
+		grid-template-columns: minmax(7.5rem, 0.4fr) minmax(0, 1fr);
 	}
 
 	.timePopover {
-		width: min(100%, calc(100vw - 2rem));
+		width: calc(100vw - 1rem);
 	}
+}
 
-	.timePresetGrid,
-	.absoluteGrid {
+@media (max-width: 32rem) {
+	.scopePopoverHeader {
 		grid-template-columns: 1fr;
 	}
 
-	.assignmentControl {
-		flex-wrap: wrap;
+	.absoluteGrid {
+		grid-template-columns: 1fr;
 	}
-
-	.assignmentToken {
-		max-width: calc(50% - 0.25rem);
-	}
-}
-
-.controlIcon,
-.tokenIcon {
-	display: block;
-	flex: 0 0 auto;
-	color: var(--ns-primary-hover);
-	pointer-events: none;
-}
-
-.controlIcon {
-	align-self: center;
-	justify-self: center;
-	width: 1rem;
-	height: 1rem;
-}
-
-.tokenIcon {
-	width: 0.75rem;
-	height: 0.75rem;
-}
-
-.segmentLabel,
-.focusChip span,
-.timeSection h4 {
-	color: var(--ns-text-subtle);
-	font-size: 0.8125rem;
-	font-weight: 650;
-	letter-spacing: 0;
-	text-transform: none;
-}
-
-.assignmentControl,
-.timeTrigger,
-.timePreset,
-.focusChip {
-	--ns-frame-radius: var(--ns-radius-md);
-	box-shadow: none;
-}
-
-.assignmentControl input,
-.assignmentOption,
-.assignmentEmpty,
-.timeTrigger,
-.timePreset,
-.focusChip,
-.focusChip button,
-.assignmentToken,
-.assignmentOverflow,
-.assignmentToken button,
-.assignmentClear {
-	font-weight: 600;
-	letter-spacing: 0;
-	text-transform: none;
-}
-
-.focusChip {
-	--ns-frame-color: var(--ns-border);
-	background: var(--ns-surface-raised);
-}
-
-.focusChip button,
-.assignmentToken button,
-.assignmentClear {
-	color: var(--ns-text-subtle);
-}
-
-.assignmentToken,
-.assignmentOverflow {
-	border-radius: var(--ns-radius-sm);
-	clip-path: none;
-	text-transform: none;
-}
-
-.assignmentPopover,
-.timePopover {
-	--ns-frame-radius: var(--ns-radius-lg);
-	--ns-frame-color: var(--ns-border);
-	background: var(--ns-surface);
-	box-shadow: none;
-}
-
-.assignmentOption:hover,
-.assignmentOption[data-active="true"],
-.assignmentOption[data-highlighted] {
-	background: var(--ns-bg-subtle);
-	border-color: var(--ns-border);
-}
-
-.assignmentOption:focus-visible {
-	background: var(--ns-bg-subtle);
-	border-color: transparent;
-	outline: var(--ns-focus-outline);
-	outline-offset: var(--ns-focus-outline-offset);
-}
-
-.assignmentOption[data-selected="true"],
-.assignmentOption[data-state="checked"] {
-	background: var(--ns-primary-muted);
-	border-color: var(--ns-border);
-}
-
-.assignmentOption:focus-visible:is([data-selected="true"], [data-state="checked"]) {
-	border-color: transparent;
-}
-
-.assignmentOption[data-selected="true"]::after,
-.assignmentOption[data-state="checked"]::after {
-	color: var(--ns-primary-active);
-	text-transform: none;
-}
-
-.timePreset {
-	background: var(--ns-surface-raised);
 }

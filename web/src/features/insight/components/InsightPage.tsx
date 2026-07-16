@@ -1,26 +1,13 @@
 import { mapApiChecks } from "@/features/checks/api/checkAdapters";
 import { GroupTopologyPanel } from "@/features/insight/components/GroupTopologyPanel";
 import { HttpInsightPanel } from "@/features/insight/components/HttpInsightPanel";
-import { AssignmentMultiSelect, FocusChip, InsightTimeControl, ScopeSelect, SegmentedControl } from "@/features/insight/components/InsightControls";
+import { CheckScopeSelect, InsightTimeControl, ProbeScopeSelect } from "@/features/insight/components/InsightControls";
 import { MultiSeriesInsightPanel } from "@/features/insight/components/MultiSeriesInsightPanel";
 import { PingInsightPanel } from "@/features/insight/components/PingInsightPanel";
 import { TcpInsightPanel } from "@/features/insight/components/TcpInsightPanel";
 import { TracerouteInsightPanel } from "@/features/insight/components/TracerouteInsightPanel";
-import {
-	assignmentSelectOption,
-	buildInsightPairs,
-	checkTypeFilterFromCheck,
-	checkTypeOptions,
-	groupByOptions,
-	matchesCheckType,
-	pairKey,
-	parseInsightUrlState,
-	refreshDurations,
-	scopePairs,
-	uniqueCheckOptions,
-	uniqueProbeOptions
-} from "@/features/insight/insightPageState";
-import { type InsightCheckTypeFilter, type InsightPair, type InsightRefreshInterval, type InsightRelativeRange, type TimeWindow } from "@/features/insight/insightTypes";
+import { buildInsightPairs, parseInsightUrlState, refreshDurations } from "@/features/insight/insightPageState";
+import { type InsightPair, type InsightRefreshInterval, type InsightRelativeRange, type TimeWindow } from "@/features/insight/insightTypes";
 import { mapApiProbes } from "@/features/probes/api/probeAdapters";
 import { projectQueries } from "@/shared/api/queries";
 import { apiQueryKeys } from "@/shared/api/queryKeys";
@@ -29,7 +16,8 @@ import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { formatCount } from "@/shared/utils/insightFormatters";
-import { BodyCopy, Button, FilterGrid, Panel, SelectField, Spinner } from "@netstamp/ui";
+import { BodyCopy, Button, Panel, Spinner } from "@netstamp/ui";
+import { ArrowRightIcon } from "@phosphor-icons/react/dist/csr/ArrowRight";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -148,59 +136,70 @@ export function InsightPage() {
 	const pairs = useMemo(() => buildInsightPairs(assignments, probes, checks), [assignments, checks, probes]);
 	const isSelectionLoading = Boolean(projectRef) && (assignmentsQuery.isLoading || probesQuery.isLoading || checksQuery.isLoading);
 	const pairsByKey = useMemo(() => new Map(pairs.map(pair => [pair.key, pair])), [pairs]);
-	const knownProbeIds = useMemo(() => new Set([...probes.map(probe => probe.id), ...pairs.map(pair => pair.probeId)]), [pairs, probes]);
-	const knownCheckIds = useMemo(() => new Set([...checks.map(check => check.id), ...pairs.map(pair => pair.checkId)]), [checks, pairs]);
+	const selectableProbes = useMemo(() => {
+		const options = new Map(probes.map(probe => [probe.id, probe]));
+		pairs.forEach(pair => options.set(pair.probeId, options.get(pair.probeId) ?? pair.probe));
+		return Array.from(options.values()).sort((a, b) => a.name.localeCompare(b.name));
+	}, [pairs, probes]);
+	const selectableChecks = useMemo(() => {
+		const options = new Map(checks.map(check => [check.id, check]));
+		pairs.forEach(pair => options.set(pair.checkId, options.get(pair.checkId) ?? pair.check));
+		return Array.from(options.values()).sort((a, b) => a.name.localeCompare(b.name) || a.target.localeCompare(b.target));
+	}, [checks, pairs]);
+	const knownProbeIds = useMemo(() => new Set(selectableProbes.map(probe => probe.id)), [selectableProbes]);
+	const knownCheckIds = useMemo(() => new Set(selectableChecks.map(check => check.id)), [selectableChecks]);
 	const timeWindow = urlState.timeWindow;
 	const timeMode = urlState.timeMode;
 	const timeRange = urlState.timeRange;
 	const refresh = urlState.refresh;
-	const checkType = urlState.checkType;
-	const groupBy = urlState.groupBy;
-	const hasAssignmentSelection = urlState.assignmentKeys.length > 0;
-	const hasProbeFocus = Boolean(urlState.probeId);
-	const hasCheckFocus = Boolean(urlState.checkId);
-	const hasInvalidProbeFocus = hasProbeFocus && !isSelectionLoading && !knownProbeIds.has(urlState.probeId);
-	const hasInvalidCheckFocus = hasCheckFocus && !isSelectionLoading && !knownCheckIds.has(urlState.checkId);
-	const requestedAssignmentKeys = useMemo(
-		() => (hasAssignmentSelection ? urlState.assignmentKeys : urlState.probeId && urlState.checkId ? [pairKey(urlState.probeId, urlState.checkId)] : []),
-		[hasAssignmentSelection, urlState.assignmentKeys, urlState.checkId, urlState.probeId]
+	const legacySelectedPairs = useMemo(() => urlState.assignmentKeys.map(key => pairsByKey.get(key)).filter((pair): pair is InsightPair => Boolean(pair)), [pairsByKey, urlState.assignmentKeys]);
+	const requestedProbeIds = useMemo(
+		() => (urlState.probeIds.length ? urlState.probeIds : Array.from(new Set(legacySelectedPairs.map(pair => pair.probeId)))),
+		[legacySelectedPairs, urlState.probeIds]
 	);
-	const unknownAssignmentKeys = requestedAssignmentKeys.filter(key => !pairsByKey.has(key));
-	const hasInvalidAssignmentFocus = requestedAssignmentKeys.length > 0 && !isSelectionLoading && unknownAssignmentKeys.length > 0;
+	const requestedCheckIds = useMemo(
+		() => (urlState.checkIds.length ? urlState.checkIds : Array.from(new Set(legacySelectedPairs.map(pair => pair.checkId)))),
+		[legacySelectedPairs, urlState.checkIds]
+	);
+	const unknownProbeIds = requestedProbeIds.filter(id => !knownProbeIds.has(id));
+	const unknownCheckIds = requestedCheckIds.filter(id => !knownCheckIds.has(id));
+	const unknownAssignmentKeys = urlState.assignmentKeys.filter(key => !pairsByKey.has(key));
+	const hasInvalidProbeFocus = !isSelectionLoading && unknownProbeIds.length > 0;
+	const hasInvalidCheckFocus = !isSelectionLoading && unknownCheckIds.length > 0;
+	const hasInvalidAssignmentFocus = !isSelectionLoading && unknownAssignmentKeys.length > 0;
 	const hasInvalidFocus = hasInvalidProbeFocus || hasInvalidCheckFocus || hasInvalidAssignmentFocus;
-	const activeProbeId = hasInvalidProbeFocus ? "" : urlState.probeId;
-	const activeCheckId = hasInvalidCheckFocus ? "" : urlState.checkId;
+	const activeProbeIds = useMemo(() => requestedProbeIds.filter(id => knownProbeIds.has(id)), [knownProbeIds, requestedProbeIds]);
+	const activeCheckIds = useMemo(() => requestedCheckIds.filter(id => knownCheckIds.has(id)), [knownCheckIds, requestedCheckIds]);
+	const activeProbeIdSet = useMemo(() => new Set(activeProbeIds), [activeProbeIds]);
+	const activeCheckIdSet = useMemo(() => new Set(activeCheckIds), [activeCheckIds]);
+	const usesLegacyAssignmentScope = !urlState.probeIds.length && !urlState.checkIds.length && urlState.assignmentKeys.length > 0;
 	const resultWindowFilters = useMemo(() => ({ from: timeWindow.from, to: timeWindow.to }), [timeWindow.from, timeWindow.to]);
-	const typeFilteredPairs = useMemo(() => pairs.filter(pair => matchesCheckType(pair, checkType)), [checkType, pairs]);
-	const typeFilteredChecks = useMemo(() => checks.filter(check => checkType === "all" || checkTypeFilterFromCheck(check) === checkType), [checkType, checks]);
-	const selectedPairKeys = useMemo(
+	const availableCheckIds = useMemo(
+		() => new Set(pairs.filter(pair => !activeProbeIds.length || activeProbeIdSet.has(pair.probeId)).map(pair => pair.checkId)),
+		[activeProbeIdSet, activeProbeIds.length, pairs]
+	);
+	const availableChecks = useMemo(() => selectableChecks.filter(check => availableCheckIds.has(check.id)), [availableCheckIds, selectableChecks]);
+	const hasResultScope = activeProbeIds.length > 0 || activeCheckIds.length > 0;
+	const selectedPairs = useMemo(
 		() =>
-			requestedAssignmentKeys.filter(key => {
-				const pair = pairsByKey.get(key);
-				return pair ? matchesCheckType(pair, checkType) && (!activeProbeId || pair.probeId === activeProbeId) && (!activeCheckId || pair.checkId === activeCheckId) : false;
-			}),
-		[activeCheckId, activeProbeId, checkType, pairsByKey, requestedAssignmentKeys]
+			hasResultScope && !hasInvalidFocus
+				? usesLegacyAssignmentScope
+					? legacySelectedPairs
+					: pairs.filter(pair => (!activeProbeIds.length || activeProbeIdSet.has(pair.probeId)) && (!activeCheckIds.length || activeCheckIdSet.has(pair.checkId)))
+				: [],
+		[activeCheckIdSet, activeCheckIds.length, activeProbeIdSet, activeProbeIds.length, hasInvalidFocus, hasResultScope, legacySelectedPairs, pairs, usesLegacyAssignmentScope]
 	);
-	const selectedPairs = useMemo(() => selectedPairKeys.map(key => pairsByKey.get(key)).filter((pair): pair is InsightPair => Boolean(pair)), [pairsByKey, selectedPairKeys]);
-	const legacyScopedPairs = useMemo(() => (hasInvalidFocus ? [] : scopePairs(pairs, checkType, activeProbeId, activeCheckId)), [activeCheckId, activeProbeId, checkType, hasInvalidFocus, pairs]);
-	const hasResultScope = selectedPairKeys.length > 0 || Boolean(activeProbeId || activeCheckId);
-	const scopedPairs = useMemo(() => (hasResultScope ? (selectedPairs.length ? selectedPairs : legacyScopedPairs) : []), [hasResultScope, legacyScopedPairs, selectedPairs]);
-	const exactPair = selectedPairs.length === 1 ? selectedPairs[0] : activeProbeId && activeCheckId && scopedPairs.length === 1 ? scopedPairs[0] : null;
-	const selectedProbe = exactPair?.probe ?? (activeProbeId ? scopedPairs.find(pair => pair.probeId === activeProbeId)?.probe || probes.find(probe => probe.id === activeProbeId) || null : null);
-	const selectedCheck = exactPair?.check ?? (activeCheckId ? scopedPairs.find(pair => pair.checkId === activeCheckId)?.check || checks.find(check => check.id === activeCheckId) || null : null);
-	const scopeOptions = useMemo(
-		() => (groupBy === "check" ? uniqueCheckOptions(typeFilteredChecks, typeFilteredPairs) : uniqueProbeOptions(probes, typeFilteredPairs)),
-		[groupBy, probes, typeFilteredChecks, typeFilteredPairs]
-	);
-	const assignmentOptions = useMemo(() => legacyScopedPairs.map(pair => assignmentSelectOption(pair)), [legacyScopedPairs]);
+	const exactPair = selectedPairs.length === 1 ? selectedPairs[0] : null;
+	const selectedProbe = activeProbeIds.length === 1 ? (selectableProbes.find(probe => probe.id === activeProbeIds[0]) ?? null) : null;
+	const selectedCheck = activeCheckIds.length === 1 ? (selectableChecks.find(check => check.id === activeCheckIds[0]) ?? null) : null;
 	const canQueryPairDetail = Boolean(projectRef && exactPair);
 	const canQueryTracerouteDetail = Boolean(canQueryPairDetail && exactPair?.check.type === "Traceroute");
-	const topologyProbeId = activeProbeId;
-	const topologyCheckId = activeCheckId;
-	const topologyProbe = topologyProbeId ? legacyScopedPairs.find(pair => pair.probeId === topologyProbeId)?.probe || probes.find(probe => probe.id === topologyProbeId) || null : null;
-	const topologyCheck = topologyCheckId ? legacyScopedPairs.find(pair => pair.checkId === topologyCheckId)?.check || checks.find(check => check.id === topologyCheckId) || null : null;
+	const topologyProbeId = activeProbeIds.length === 1 ? activeProbeIds[0] : "";
+	const topologyCheckId = activeCheckIds.length === 1 ? activeCheckIds[0] : "";
+	const topologyProbe = topologyProbeId ? (selectableProbes.find(probe => probe.id === topologyProbeId) ?? null) : null;
+	const topologyCheck = topologyCheckId ? (selectableChecks.find(check => check.id === topologyCheckId) ?? null) : null;
 	const hasTopologyScope = Boolean(topologyProbeId || topologyCheckId);
-	const canQueryTracerouteGroup = Boolean(projectRef && hasResultScope && hasTopologyScope && scopedPairs.some(pair => pair.check.type === "Traceroute") && !hasInvalidFocus);
+	const canQueryTracerouteGroup = Boolean(projectRef && hasResultScope && hasTopologyScope && selectedPairs.some(pair => pair.check.type === "Traceroute") && !hasInvalidFocus);
 	const tracerouteTopologyFilters = useMemo(
 		() => ({
 			...(topologyProbeId ? { probeId: topologyProbeId } : {}),
@@ -283,16 +282,10 @@ export function InsightPage() {
 			setParam("refresh", refresh);
 		}
 
-		if (!urlState.hasValidCheckType) {
-			setParam("type", checkType);
-		}
-
-		if (!urlState.hasValidGroupBy) {
-			setParam("groupBy", groupBy);
-		}
-
 		deleteParam("mode");
 		deleteParam("view");
+		deleteParam("type");
+		deleteParam("groupBy");
 
 		if (urlState.assignmentKeys.length) {
 			const normalizedAssignmentKeys = Array.from(new Set(urlState.assignmentKeys));
@@ -311,9 +304,7 @@ export function InsightPage() {
 			setSearchParams(next, { replace: true });
 		}
 	}, [
-		checkType,
 		exactPair,
-		groupBy,
 		projectRef,
 		refresh,
 		searchParamString,
@@ -323,8 +314,6 @@ export function InsightPage() {
 		timeWindow.from,
 		timeWindow.to,
 		urlState.assignmentKeys,
-		urlState.hasValidCheckType,
-		urlState.hasValidGroupBy,
 		urlState.hasValidRefresh,
 		urlState.hasValidTimeMode,
 		urlState.hasValidTimeWindow
@@ -403,69 +392,47 @@ export function InsightPage() {
 		});
 	}
 
-	function writeAssignmentParams(next: URLSearchParams, keys: string[]) {
-		next.delete("assignment");
-		keys.forEach(key => next.append("assignment", key));
+	function writeSelectionParams(next: URLSearchParams, key: "probeId" | "checkId", values: string[]) {
+		next.delete(key);
+		values.forEach(value => next.append(key, value));
 	}
 
-	function selectAssignments(keys: string[]) {
-		updateSearchParams(next => {
-			writeAssignmentParams(next, keys);
-			next.delete("runStartedAt");
-		});
-	}
+	function selectProbeScope(probeIds: string[]) {
+		const nextProbeIds = Array.from(new Set(probeIds));
+		const nextProbeIdSet = new Set(nextProbeIds);
+		const allowedCheckIds = new Set(pairs.filter(pair => !nextProbeIds.length || nextProbeIdSet.has(pair.probeId)).map(pair => pair.checkId));
+		const nextCheckIds = nextProbeIds.length ? activeCheckIds.filter(checkId => allowedCheckIds.has(checkId)) : activeCheckIds;
 
-	function selectGroupScope(value: string) {
 		updateSearchParams(next => {
+			writeSelectionParams(next, "probeId", nextProbeIds);
+			writeSelectionParams(next, "checkId", nextCheckIds);
 			next.delete("assignment");
 			next.delete("runStartedAt");
-
-			if (groupBy === "check") {
-				next.delete("probeId");
-				if (value) {
-					next.set("checkId", value);
-				} else {
-					next.delete("checkId");
-				}
-				return;
-			}
-
-			next.delete("checkId");
-			if (value) {
-				next.set("probeId", value);
-			} else {
-				next.delete("probeId");
-			}
 		});
 	}
 
-	function clearProbeFocus() {
+	function selectCheckScope(checkIds: string[]) {
 		updateSearchParams(next => {
-			next.delete("probeId");
-			next.delete("runStartedAt");
-		});
-	}
-
-	function clearCheckFocus() {
-		updateSearchParams(next => {
-			next.delete("checkId");
+			writeSelectionParams(next, "checkId", Array.from(new Set(checkIds)));
+			next.delete("assignment");
 			next.delete("runStartedAt");
 		});
 	}
 
 	function resetScope() {
 		updateSearchParams(next => {
-			next.set("type", "all");
-			next.set("groupBy", "check");
 			next.delete("assignment");
 			next.delete("probeId");
 			next.delete("checkId");
+			next.delete("type");
+			next.delete("groupBy");
 			next.delete("runStartedAt");
 		});
 	}
 
-	const scopeTitle =
-		selectedPairs.length > 1
+	const scopeTitle = hasInvalidFocus
+		? "Invalid scope"
+		: selectedPairs.length > 1
 			? `${formatCount(selectedPairs.length)} selected assignments`
 			: exactPair
 				? `${exactPair.probe.name} -> ${exactPair.check.target}`
@@ -475,7 +442,9 @@ export function InsightPage() {
 						? selectedProbe.name
 						: selectedCheck
 							? selectedCheck.target
-							: "Select scope";
+							: hasResultScope
+								? "No active assignment"
+								: "Select scope";
 	const groupTopologyTitle =
 		topologyProbe && topologyCheck
 			? `${topologyProbe.name} -> ${topologyCheck.target} route graph`
@@ -543,12 +512,19 @@ export function InsightPage() {
 				tone="glass"
 				title={scopeTitle}
 				actions={
-					<Button variant="outline" size="sm" onClick={resetScope}>
+					<Button variant="outline" size="sm" disabled={!hasResultScope && !hasInvalidFocus} onClick={resetScope}>
 						Reset scope
 					</Button>
 				}
 			>
-				<FilterGrid className={styles.scopeBar}>
+				<div className={styles.scopeControls}>
+					<div className={styles.scopeSelectionRow}>
+						<ProbeScopeSelect probes={selectableProbes} selectedValues={activeProbeIds} disabled={isSelectionLoading || !selectableProbes.length} onChange={selectProbeScope} />
+						<span className={styles.scopeArrow} aria-hidden="true">
+							<ArrowRightIcon size="1.25rem" weight="bold" focusable="false" />
+						</span>
+						<CheckScopeSelect checks={availableChecks} selectedValues={activeCheckIds} disabled={isSelectionLoading || !activeProbeIds.length || !availableChecks.length} onChange={selectCheckScope} />
+					</div>
 					<InsightTimeControl
 						className={styles.scopeTimeControl}
 						timeMode={timeMode}
@@ -560,97 +536,6 @@ export function InsightPage() {
 						onRefresh={refreshInsight}
 						onRefreshChange={updateRefresh}
 					/>
-					<SelectField
-						label="Type"
-						value={checkType}
-						options={checkTypeOptions}
-						onChange={event => {
-							const nextType = event.currentTarget.value as InsightCheckTypeFilter;
-
-							updateSearchParams(next => {
-								next.set("type", nextType);
-								next.delete("runStartedAt");
-								if (selectedPairKeys.length) {
-									const nextKeys = selectedPairKeys.filter(key => {
-										const pair = pairsByKey.get(key);
-										return pair ? matchesCheckType(pair, nextType) : false;
-									});
-									writeAssignmentParams(next, nextKeys);
-								}
-								if (nextType !== "all" && selectedCheck && checkTypeFilterFromCheck(selectedCheck) !== nextType) {
-									next.delete("checkId");
-								}
-							});
-						}}
-					/>
-					<SegmentedControl
-						label="Group"
-						value={groupBy}
-						options={groupByOptions}
-						onChange={nextGroupBy => {
-							updateSearchParams(next => {
-								next.set("groupBy", nextGroupBy);
-								next.delete("assignment");
-								next.delete("runStartedAt");
-								if (nextGroupBy === "check") {
-									next.delete("probeId");
-								} else {
-									next.delete("checkId");
-								}
-							});
-						}}
-					/>
-				</FilterGrid>
-				<div className={styles.scopeSelectorRow}>
-					<ScopeSelect
-						label={groupBy === "check" ? "Check" : "Probe"}
-						placeholder={groupBy === "check" ? "Select check" : "Select probe"}
-						options={scopeOptions}
-						value={groupBy === "check" ? activeCheckId : activeProbeId}
-						disabled={isSelectionLoading || !scopeOptions.length}
-						onChange={selectGroupScope}
-					/>
-				</div>
-				<div className={styles.assignmentSelectorRow}>
-					<AssignmentMultiSelect
-						label="Assignments"
-						placeholder="Type probe, check, target, label, or location"
-						options={assignmentOptions}
-						selectedValues={selectedPairKeys}
-						disabled={isSelectionLoading || !assignmentOptions.length}
-						onChange={selectAssignments}
-					/>
-				</div>
-				<div className={styles.focusChips} aria-label="Active Insight scope">
-					{hasInvalidAssignmentFocus ? (
-						<FocusChip
-							label="Assignment"
-							value={unknownAssignmentKeys.length === 1 ? `Unknown assignment ${unknownAssignmentKeys[0]}` : `${formatCount(unknownAssignmentKeys.length)} unknown assignments`}
-							invalid
-							onClear={() => selectAssignments([])}
-						/>
-					) : null}
-					{hasInvalidProbeFocus ? (
-						<FocusChip
-							label="Probe"
-							value={hasInvalidProbeFocus ? `Unknown probe ${urlState.probeId}` : selectedProbe?.name || urlState.probeId}
-							invalid={hasInvalidProbeFocus}
-							onClear={clearProbeFocus}
-						/>
-					) : null}
-					{hasInvalidCheckFocus ? (
-						<FocusChip
-							label="Check"
-							value={hasInvalidCheckFocus ? `Unknown check ${urlState.checkId}` : selectedCheck?.target || urlState.checkId}
-							invalid={hasInvalidCheckFocus}
-							onClear={clearCheckFocus}
-						/>
-					) : null}
-					{!hasResultScope && !hasInvalidFocus ? <span className={styles.scopeHint}>Select a check, probe, or assignment to inspect results.</span> : null}
-					{!selectedPairKeys.length && (activeProbeId || activeCheckId) && !hasInvalidFocus ? (
-						<span className={styles.scopeHint}>{formatCount(legacyScopedPairs.length)} assignments available in this scope.</span>
-					) : null}
-					{selectedPairKeys.length ? <span className={styles.scopeHint}>{formatCount(selectedPairKeys.length)} assignments selected.</span> : null}
 				</div>
 			</Panel>
 
@@ -664,7 +549,7 @@ export function InsightPage() {
 				</Panel>
 			) : hasInvalidFocus ? (
 				<Panel tone="deep" title="The shared scope is no longer valid">
-					<BodyCopy>Clear the unknown probe or check chip to return to active assignments.</BodyCopy>
+					<BodyCopy>Reset the scope to return to active probes and checks.</BodyCopy>
 				</Panel>
 			) : !hasResultScope ? null : (
 				<>

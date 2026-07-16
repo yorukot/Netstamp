@@ -66,6 +66,8 @@ export function parseInsightUrlState(searchParams: URLSearchParams, now: number)
 	const timeRange: InsightRelativeRange = hasValidTimeRange ? rawTimeRange : (legacyRelativeRange ?? "24h");
 	const timeWindow = timeMode === "relative" ? timeWindowForRange(timeRange, now) : hasValidTimeWindow ? { from, to } : timeWindowForRange("24h", now);
 	const assignmentKeys = Array.from(new Set(searchParams.getAll("assignment").filter(value => value.includes(":"))));
+	const probeIds = Array.from(new Set(searchParams.getAll("probeId").filter(Boolean)));
+	const checkIds = Array.from(new Set(searchParams.getAll("checkId").filter(Boolean)));
 
 	return {
 		checkType: hasValidCheckType ? rawCheckType : "all",
@@ -81,8 +83,10 @@ export function parseInsightUrlState(searchParams: URLSearchParams, now: number)
 		refresh: hasValidRefresh ? rawRefresh : "off",
 		hasValidRefresh,
 		assignmentKeys,
-		probeId: searchParams.get("probeId") || "",
-		checkId: searchParams.get("checkId") || "",
+		probeIds,
+		checkIds,
+		probeId: probeIds[0] || "",
+		checkId: checkIds[0] || "",
 		runStartedAt: searchParams.get("runStartedAt") || ""
 	};
 }
