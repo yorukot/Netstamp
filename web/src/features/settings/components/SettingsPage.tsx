@@ -47,6 +47,7 @@ import { UserMinusIcon } from "@phosphor-icons/react/dist/csr/UserMinus";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useId, useState, type AnimationEvent, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
+import { APITokensPanel } from "./APITokensPanel";
 import styles from "./SettingsPage.module.css";
 
 interface InviteRow {
@@ -525,6 +526,8 @@ export function SettingsPage() {
 					}}
 				/>
 			</Panel>
+
+			<APITokensPanel />
 
 			<Panel tone="deep" title="Dangerous account actions" padded={false} bodySurface="transparent">
 				<DangerAction

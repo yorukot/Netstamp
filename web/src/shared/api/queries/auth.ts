@@ -14,5 +14,10 @@ export const authQueries = {
 		queryOptions({
 			queryKey: apiQueryKeys.auth.sessions(),
 			queryFn: ({ signal }) => readApiData(apiClient.GET("/auth/sessions", { signal }))
+		}),
+	apiTokens: () =>
+		queryOptions({
+			queryKey: apiQueryKeys.auth.apiTokens(),
+			queryFn: ({ signal }) => readApiData(apiClient.GET("/auth/api-tokens", { signal }))
 		})
 };

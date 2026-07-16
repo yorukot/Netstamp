@@ -1,13 +1,14 @@
 import { useMutation, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { apiClient, clearCSRFToken, readApiData, readEmptyApiResponse } from "../client";
 import { apiQueryKeys } from "../queryKeys";
-import type { ConfirmEmailVerificationInput, ConfirmPasswordResetInput, CreateEmailVerificationInput, CreatePasswordResetInput, LoginInput, RegisterInput } from "../types";
+import type { ConfirmEmailVerificationInput, ConfirmPasswordResetInput, CreateApiTokenInput, CreateEmailVerificationInput, CreatePasswordResetInput, LoginInput, RegisterInput } from "../types";
 import { requireWritableAccess } from "./shared";
 
 function clearAuthenticatedClientState(queryClient: QueryClient) {
 	clearCSRFToken();
 	queryClient.setQueryData(apiQueryKeys.auth.me(), null);
 	queryClient.removeQueries({ queryKey: apiQueryKeys.auth.sessions() });
+	queryClient.removeQueries({ queryKey: apiQueryKeys.auth.apiTokens() });
 	queryClient.removeQueries({ queryKey: apiQueryKeys.projects.all });
 }
 
@@ -31,6 +32,16 @@ export function revokeAuthSession(sessionId: string) {
 export function revokeAllAuthSessions() {
 	requireWritableAccess();
 	return readEmptyApiResponse(apiClient.DELETE("/auth/sessions"));
+}
+
+export function createAPIToken(body: CreateApiTokenInput) {
+	requireWritableAccess();
+	return readApiData(apiClient.POST("/auth/api-tokens", { body }));
+}
+
+export function revokeAPIToken(tokenId: string) {
+	requireWritableAccess();
+	return readEmptyApiResponse(apiClient.DELETE("/auth/api-tokens/{token_id}", { params: { path: { token_id: tokenId } } }));
 }
 
 export function registerUser(body: RegisterInput) {
@@ -138,5 +149,21 @@ export function useRevokeAllAuthSessionsMutation() {
 		onSuccess: () => {
 			clearAuthenticatedClientState(queryClient);
 		}
+	});
+}
+
+export function useCreateAPITokenMutation() {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: createAPIToken,
+		onSuccess: () => queryClient.invalidateQueries({ queryKey: apiQueryKeys.auth.apiTokens() })
+	});
+}
+
+export function useRevokeAPITokenMutation() {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: revokeAPIToken,
+		onSuccess: () => queryClient.invalidateQueries({ queryKey: apiQueryKeys.auth.apiTokens() })
 	});
 }

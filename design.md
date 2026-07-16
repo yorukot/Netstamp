@@ -219,6 +219,7 @@ The authenticated app is the densest surface.
 - Route titles are large but not theatrical.
 - Repeated data should use tables, key-value grids, timeline rows, code blocks, or compact panels.
 - Wide technical data can scroll horizontally.
+- Account API-token management uses a compact metadata table, a scoped creation dialog, and a one-time deep-surface CodeBlock for the secret and curl example. Plaintext tokens never reappear after the result dialog closes.
 
 ### Public Homepage
 
