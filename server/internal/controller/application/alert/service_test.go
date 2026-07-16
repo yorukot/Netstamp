@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
+	"strconv"
 	"testing"
 
 	domainalert "github.com/yorukot/netstamp/internal/domain/alert"
@@ -290,8 +290,7 @@ func TestServiceCreateRuleRejectsInvalidTriggerAfterSeconds(t *testing.T) {
 	t.Parallel()
 
 	for _, value := range []int32{30, 90, 86460} {
-		value := value
-		t.Run(fmt.Sprintf("%d", value), func(t *testing.T) {
+		t.Run(strconv.Itoa(int(value)), func(t *testing.T) {
 			t.Parallel()
 
 			repo := &fakeAlertRepository{}
