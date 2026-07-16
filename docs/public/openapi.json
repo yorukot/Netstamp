@@ -59,6 +59,10 @@
 			"description": "Authenticated user profile, email, and password management."
 		},
 		{
+			"name": "API Tokens",
+			"description": "Personal access tokens for server-to-server project API access."
+		},
+		{
 			"name": "Auth",
 			"description": "User registration, login, logout, and current-session access."
 		},
@@ -856,6 +860,187 @@
 						}
 					}
 				},
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/auth/api-tokens": {
+			"get": {
+				"operationId": "listAPITokens",
+				"summary": "List personal API tokens",
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/APITokenListResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["API Tokens"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			},
+			"post": {
+				"operationId": "createAPIToken",
+				"summary": "Create personal API token",
+				"description": "Create a scoped personal access token. The plaintext value is returned once in this response.",
+				"parameters": [],
+				"responses": {
+					"201": {
+						"description": "The request has succeeded and a new resource has been created as a result.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/CreateAPITokenResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "The request conflicts with the current state of the server.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["API Tokens"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/CreateAPITokenRequest"
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/auth/api-tokens/{token_id}": {
+			"delete": {
+				"operationId": "revokeAPIToken",
+				"summary": "Revoke personal API token",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/APITokenIdPathParam"
+					}
+				],
+				"responses": {
+					"204": {
+						"description": "There is no content to send for this request, but the headers may be useful. "
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["API Tokens"],
 				"security": [
 					{
 						"SessionCookieAuth": []
@@ -2043,6 +2228,9 @@
 				"security": [
 					{
 						"SessionCookieAuth": []
+					},
+					{
+						"PersonalAccessTokenAuth": []
 					}
 				]
 			},
@@ -2086,6 +2274,9 @@
 				"security": [
 					{
 						"SessionCookieAuth": []
+					},
+					{
+						"PersonalAccessTokenAuth": []
 					}
 				]
 			}
@@ -2155,6 +2346,9 @@
 				"security": [
 					{
 						"SessionCookieAuth": []
+					},
+					{
+						"PersonalAccessTokenAuth": []
 					}
 				]
 			},
@@ -2262,6 +2456,9 @@
 				"security": [
 					{
 						"SessionCookieAuth": []
+					},
+					{
+						"PersonalAccessTokenAuth": []
 					}
 				]
 			},
@@ -2332,6 +2529,9 @@
 				"security": [
 					{
 						"SessionCookieAuth": []
+					},
+					{
+						"PersonalAccessTokenAuth": []
 					}
 				]
 			}
@@ -2417,6 +2617,9 @@
 				"security": [
 					{
 						"SessionCookieAuth": []
+					},
+					{
+						"PersonalAccessTokenAuth": []
 					}
 				]
 			}
@@ -2489,6 +2692,9 @@
 				"security": [
 					{
 						"SessionCookieAuth": []
+					},
+					{
+						"PersonalAccessTokenAuth": []
 					}
 				]
 			}
@@ -2558,6 +2764,9 @@
 				"security": [
 					{
 						"SessionCookieAuth": []
+					},
+					{
+						"PersonalAccessTokenAuth": []
 					}
 				]
 			},
@@ -2655,6 +2864,9 @@
 				"security": [
 					{
 						"SessionCookieAuth": []
+					},
+					{
+						"PersonalAccessTokenAuth": []
 					}
 				]
 			}
@@ -2727,6 +2939,9 @@
 				"security": [
 					{
 						"SessionCookieAuth": []
+					},
+					{
+						"PersonalAccessTokenAuth": []
 					}
 				]
 			},
@@ -2827,6 +3042,9 @@
 				"security": [
 					{
 						"SessionCookieAuth": []
+					},
+					{
+						"PersonalAccessTokenAuth": []
 					}
 				]
 			},
@@ -2900,6 +3118,9 @@
 				"security": [
 					{
 						"SessionCookieAuth": []
+					},
+					{
+						"PersonalAccessTokenAuth": []
 					}
 				]
 			}
@@ -2982,6 +3203,9 @@
 				"security": [
 					{
 						"SessionCookieAuth": []
+					},
+					{
+						"PersonalAccessTokenAuth": []
 					}
 				]
 			}
@@ -3067,6 +3291,9 @@
 				"security": [
 					{
 						"SessionCookieAuth": []
+					},
+					{
+						"PersonalAccessTokenAuth": []
 					}
 				]
 			},
@@ -3164,6 +3391,9 @@
 				"security": [
 					{
 						"SessionCookieAuth": []
+					},
+					{
+						"PersonalAccessTokenAuth": []
 					}
 				]
 			}
@@ -3236,6 +3466,9 @@
 				"security": [
 					{
 						"SessionCookieAuth": []
+					},
+					{
+						"PersonalAccessTokenAuth": []
 					}
 				]
 			},
@@ -3336,6 +3569,9 @@
 				"security": [
 					{
 						"SessionCookieAuth": []
+					},
+					{
+						"PersonalAccessTokenAuth": []
 					}
 				]
 			},
@@ -3409,6 +3645,9 @@
 				"security": [
 					{
 						"SessionCookieAuth": []
+					},
+					{
+						"PersonalAccessTokenAuth": []
 					}
 				]
 			}
@@ -3485,6 +3724,9 @@
 				"security": [
 					{
 						"SessionCookieAuth": []
+					},
+					{
+						"PersonalAccessTokenAuth": []
 					}
 				]
 			}
@@ -3554,6 +3796,9 @@
 				"security": [
 					{
 						"SessionCookieAuth": []
+					},
+					{
+						"PersonalAccessTokenAuth": []
 					}
 				]
 			},
@@ -3651,6 +3896,9 @@
 				"security": [
 					{
 						"SessionCookieAuth": []
+					},
+					{
+						"PersonalAccessTokenAuth": []
 					}
 				]
 			}
@@ -3723,6 +3971,9 @@
 				"security": [
 					{
 						"SessionCookieAuth": []
+					},
+					{
+						"PersonalAccessTokenAuth": []
 					}
 				]
 			},
@@ -3823,6 +4074,9 @@
 				"security": [
 					{
 						"SessionCookieAuth": []
+					},
+					{
+						"PersonalAccessTokenAuth": []
 					}
 				]
 			},
@@ -3896,6 +4150,9 @@
 				"security": [
 					{
 						"SessionCookieAuth": []
+					},
+					{
+						"PersonalAccessTokenAuth": []
 					}
 				]
 			}
@@ -4226,6 +4483,9 @@
 				"security": [
 					{
 						"SessionCookieAuth": []
+					},
+					{
+						"PersonalAccessTokenAuth": []
 					}
 				]
 			},
@@ -4333,6 +4593,9 @@
 				"security": [
 					{
 						"SessionCookieAuth": []
+					},
+					{
+						"PersonalAccessTokenAuth": []
 					}
 				]
 			}
@@ -4445,6 +4708,9 @@
 				"security": [
 					{
 						"SessionCookieAuth": []
+					},
+					{
+						"PersonalAccessTokenAuth": []
 					}
 				]
 			},
@@ -4518,6 +4784,9 @@
 				"security": [
 					{
 						"SessionCookieAuth": []
+					},
+					{
+						"PersonalAccessTokenAuth": []
 					}
 				]
 			}
@@ -4851,6 +5120,9 @@
 				"security": [
 					{
 						"SessionCookieAuth": []
+					},
+					{
+						"PersonalAccessTokenAuth": []
 					}
 				]
 			},
@@ -4948,6 +5220,9 @@
 				"security": [
 					{
 						"SessionCookieAuth": []
+					},
+					{
+						"PersonalAccessTokenAuth": []
 					}
 				]
 			}
@@ -5020,6 +5295,9 @@
 				"security": [
 					{
 						"SessionCookieAuth": []
+					},
+					{
+						"PersonalAccessTokenAuth": []
 					}
 				]
 			},
@@ -5120,6 +5398,9 @@
 				"security": [
 					{
 						"SessionCookieAuth": []
+					},
+					{
+						"PersonalAccessTokenAuth": []
 					}
 				]
 			},
@@ -5193,6 +5474,9 @@
 				"security": [
 					{
 						"SessionCookieAuth": []
+					},
+					{
+						"PersonalAccessTokenAuth": []
 					}
 				]
 			}
@@ -5275,6 +5559,9 @@
 				"security": [
 					{
 						"SessionCookieAuth": []
+					},
+					{
+						"PersonalAccessTokenAuth": []
 					}
 				]
 			}
@@ -5369,6 +5656,9 @@
 				"security": [
 					{
 						"SessionCookieAuth": []
+					},
+					{
+						"PersonalAccessTokenAuth": []
 					}
 				]
 			}
@@ -5466,6 +5756,9 @@
 				"security": [
 					{
 						"SessionCookieAuth": []
+					},
+					{
+						"PersonalAccessTokenAuth": []
 					}
 				]
 			}
@@ -5555,6 +5848,9 @@
 				"security": [
 					{
 						"SessionCookieAuth": []
+					},
+					{
+						"PersonalAccessTokenAuth": []
 					}
 				]
 			}
@@ -5649,6 +5945,9 @@
 				"security": [
 					{
 						"SessionCookieAuth": []
+					},
+					{
+						"PersonalAccessTokenAuth": []
 					}
 				]
 			}
@@ -5746,6 +6045,9 @@
 				"security": [
 					{
 						"SessionCookieAuth": []
+					},
+					{
+						"PersonalAccessTokenAuth": []
 					}
 				]
 			}
@@ -5840,6 +6142,9 @@
 				"security": [
 					{
 						"SessionCookieAuth": []
+					},
+					{
+						"PersonalAccessTokenAuth": []
 					}
 				]
 			}
@@ -5937,6 +6242,9 @@
 				"security": [
 					{
 						"SessionCookieAuth": []
+					},
+					{
+						"PersonalAccessTokenAuth": []
 					}
 				]
 			}
@@ -6031,6 +6339,9 @@
 				"security": [
 					{
 						"SessionCookieAuth": []
+					},
+					{
+						"PersonalAccessTokenAuth": []
 					}
 				]
 			}
@@ -6128,6 +6439,9 @@
 				"security": [
 					{
 						"SessionCookieAuth": []
+					},
+					{
+						"PersonalAccessTokenAuth": []
 					}
 				]
 			}
@@ -6222,6 +6536,9 @@
 				"security": [
 					{
 						"SessionCookieAuth": []
+					},
+					{
+						"PersonalAccessTokenAuth": []
 					}
 				]
 			}
@@ -6312,6 +6629,9 @@
 				"security": [
 					{
 						"SessionCookieAuth": []
+					},
+					{
+						"PersonalAccessTokenAuth": []
 					}
 				]
 			}
@@ -6381,6 +6701,9 @@
 				"security": [
 					{
 						"SessionCookieAuth": []
+					},
+					{
+						"PersonalAccessTokenAuth": []
 					}
 				]
 			},
@@ -6488,6 +6811,9 @@
 				"security": [
 					{
 						"SessionCookieAuth": []
+					},
+					{
+						"PersonalAccessTokenAuth": []
 					}
 				]
 			}
@@ -6560,6 +6886,9 @@
 				"security": [
 					{
 						"SessionCookieAuth": []
+					},
+					{
+						"PersonalAccessTokenAuth": []
 					}
 				]
 			},
@@ -6670,6 +6999,9 @@
 				"security": [
 					{
 						"SessionCookieAuth": []
+					},
+					{
+						"PersonalAccessTokenAuth": []
 					}
 				]
 			},
@@ -6743,6 +7075,9 @@
 				"security": [
 					{
 						"SessionCookieAuth": []
+					},
+					{
+						"PersonalAccessTokenAuth": []
 					}
 				]
 			}
@@ -6845,6 +7180,9 @@
 				"security": [
 					{
 						"SessionCookieAuth": []
+					},
+					{
+						"PersonalAccessTokenAuth": []
 					}
 				]
 			}
@@ -6950,6 +7288,9 @@
 				"security": [
 					{
 						"SessionCookieAuth": []
+					},
+					{
+						"PersonalAccessTokenAuth": []
 					}
 				]
 			},
@@ -7026,6 +7367,9 @@
 				"security": [
 					{
 						"SessionCookieAuth": []
+					},
+					{
+						"PersonalAccessTokenAuth": []
 					}
 				]
 			}
@@ -8103,6 +8447,14 @@
 	},
 	"components": {
 		"parameters": {
+			"APITokenIdPathParam": {
+				"name": "token_id",
+				"in": "path",
+				"required": true,
+				"schema": {
+					"$ref": "#/components/schemas/uuid"
+				}
+			},
 			"AlertIncidentIdPathParam": {
 				"name": "incident_id",
 				"in": "path",
@@ -8870,6 +9222,72 @@
 					}
 				]
 			},
+			"APIToken": {
+				"type": "object",
+				"required": ["id", "name", "tokenHint", "scopes", "createdAt", "expiresAt"],
+				"properties": {
+					"id": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"name": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 100
+					},
+					"tokenHint": {
+						"type": "string",
+						"minLength": 8,
+						"maxLength": 8
+					},
+					"scopes": {
+						"type": "array",
+						"items": {
+							"type": "string",
+							"enum": [
+								"projects:read",
+								"projects:write",
+								"probes:read",
+								"probes:write",
+								"checks:read",
+								"checks:write",
+								"labels:read",
+								"labels:write",
+								"assignments:read",
+								"results:read",
+								"alerts:read",
+								"alerts:write",
+								"status_pages:read",
+								"status_pages:write"
+							]
+						},
+						"minItems": 1
+					},
+					"createdAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"lastUsedAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"expiresAt": {
+						"type": "string",
+						"format": "date-time"
+					}
+				}
+			},
+			"APITokenListResponse": {
+				"type": "object",
+				"required": ["tokens"],
+				"properties": {
+					"tokens": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/APIToken"
+						}
+					}
+				}
+			},
 			"AdminDataExport": {
 				"type": "object",
 				"required": ["format", "exportedAt", "tables"],
@@ -8888,7 +9306,7 @@
 				},
 				"examples": [
 					{
-						"format": "netstamp.admin.data.v1",
+						"format": "netstamp.admin.data.v2",
 						"exportedAt": "2026-07-08T12:00:00Z",
 						"tables": {}
 					}
@@ -8905,8 +9323,8 @@
 				"examples": [
 					{
 						"result": {
-							"format": "netstamp.admin.data.v1",
-							"importedTables": 34,
+							"format": "netstamp.admin.data.v2",
+							"importedTables": 35,
 							"importedRows": 128
 						}
 					}
@@ -10050,6 +10468,61 @@
 						"newPassword": "correct-horse-battery-staple"
 					}
 				]
+			},
+			"CreateAPITokenRequest": {
+				"type": "object",
+				"required": ["name", "scopes", "expiresAt", "currentPassword"],
+				"properties": {
+					"name": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 100
+					},
+					"scopes": {
+						"type": "array",
+						"items": {
+							"type": "string",
+							"enum": [
+								"projects:read",
+								"projects:write",
+								"probes:read",
+								"probes:write",
+								"checks:read",
+								"checks:write",
+								"labels:read",
+								"labels:write",
+								"assignments:read",
+								"results:read",
+								"alerts:read",
+								"alerts:write",
+								"status_pages:read",
+								"status_pages:write"
+							]
+						},
+						"minItems": 1
+					},
+					"expiresAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"currentPassword": {
+						"type": "string",
+						"minLength": 1
+					}
+				}
+			},
+			"CreateAPITokenResponse": {
+				"type": "object",
+				"required": ["token", "value"],
+				"properties": {
+					"token": {
+						"$ref": "#/components/schemas/APIToken"
+					},
+					"value": {
+						"type": "string",
+						"description": "One-time plaintext token. This value is never returned again."
+					}
+				}
 			},
 			"CreateAlertRuleRequest": {
 				"type": "object",
@@ -12038,6 +12511,10 @@
 							"AUTH_EMAIL_VERIFICATION_TOKEN_INVALID",
 							"AUTH_PASSWORD_RESET_TOKEN_INVALID",
 							"AUTH_SESSION_NOT_FOUND",
+							"AUTH_INVALID_API_TOKEN",
+							"AUTH_INSUFFICIENT_SCOPE",
+							"API_TOKEN_NOT_FOUND",
+							"API_TOKEN_LIMIT_REACHED",
 							"USER_NOT_FOUND",
 							"EMAIL_ALREADY_EXISTS",
 							"LAST_SYSTEM_ADMIN",
@@ -15321,6 +15798,11 @@
 				"type": "apiKey",
 				"in": "cookie",
 				"name": "__Host-netstamp_session"
+			},
+			"PersonalAccessTokenAuth": {
+				"type": "http",
+				"scheme": "bearer",
+				"description": "Personal access token. Send the full value as Authorization: Bearer nst_pat_<secret>."
 			},
 			"ProbeAuth": {
 				"type": "apiKey",

@@ -7,7 +7,7 @@ using OpenAPI;
 namespace Netstamp;
 
 @tag("Assignments")
-@useAuth(SessionCookieAuth)
+@useAuth(UserOrTokenAuth)
 @route("/projects/{ref}")
 interface AssignmentService {
 	@operationId("previewProjectSelector")

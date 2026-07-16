@@ -7,7 +7,7 @@ using OpenAPI;
 namespace Netstamp;
 
 @tag("Probes")
-@useAuth(SessionCookieAuth)
+@useAuth(UserOrTokenAuth)
 @route("/projects/{ref}/probes")
 interface ProbeService {
 	@operationId("listProjectProbes")

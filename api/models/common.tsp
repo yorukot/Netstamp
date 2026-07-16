@@ -60,6 +60,14 @@ model ProbeAuth {
 	name: "Authorization";
 }
 
+@doc("Personal access token. Send the full value as Authorization: Bearer nst_pat_<secret>.")
+model PersonalAccessTokenAuth {
+	type: AuthType.http;
+	scheme: "bearer";
+}
+
+alias UserOrTokenAuth = SessionCookieAuth | PersonalAccessTokenAuth;
+
 alias ErrorCode =
 	| "BAD_REQUEST"
 	| "UNAUTHORIZED"
@@ -84,6 +92,10 @@ alias ErrorCode =
 	| "AUTH_EMAIL_VERIFICATION_TOKEN_INVALID"
 	| "AUTH_PASSWORD_RESET_TOKEN_INVALID"
 	| "AUTH_SESSION_NOT_FOUND"
+	| "AUTH_INVALID_API_TOKEN"
+	| "AUTH_INSUFFICIENT_SCOPE"
+	| "API_TOKEN_NOT_FOUND"
+	| "API_TOKEN_LIMIT_REACHED"
 	| "USER_NOT_FOUND"
 	| "EMAIL_ALREADY_EXISTS"
 	| "LAST_SYSTEM_ADMIN"

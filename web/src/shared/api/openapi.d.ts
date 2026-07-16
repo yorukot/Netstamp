@@ -189,6 +189,44 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	"/auth/api-tokens": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** List personal API tokens */
+		get: operations["listAPITokens"];
+		put?: never;
+		/**
+		 * Create personal API token
+		 * @description Create a scoped personal access token. The plaintext value is returned once in this response.
+		 */
+		post: operations["createAPIToken"];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	"/auth/api-tokens/{token_id}": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		post?: never;
+		/** Revoke personal API token */
+		delete: operations["revokeAPIToken"];
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	"/auth/csrf": {
 		parameters: {
 			query?: never;
@@ -1424,9 +1462,39 @@ export interface components {
 			/** @enum {string} */
 			message: "Netstamp API is running";
 		};
+		APIToken: {
+			id: components["schemas"]["uuid"];
+			name: string;
+			tokenHint: string;
+			scopes: (
+				| "projects:read"
+				| "projects:write"
+				| "probes:read"
+				| "probes:write"
+				| "checks:read"
+				| "checks:write"
+				| "labels:read"
+				| "labels:write"
+				| "assignments:read"
+				| "results:read"
+				| "alerts:read"
+				| "alerts:write"
+				| "status_pages:read"
+				| "status_pages:write"
+			)[];
+			/** Format: date-time */
+			createdAt: string;
+			/** Format: date-time */
+			lastUsedAt?: string;
+			/** Format: date-time */
+			expiresAt: string;
+		};
+		APITokenListResponse: {
+			tokens: components["schemas"]["APIToken"][];
+		};
 		/**
 		 * @example {
-		 *       "format": "netstamp.admin.data.v1",
+		 *       "format": "netstamp.admin.data.v2",
 		 *       "exportedAt": "2026-07-08T12:00:00Z",
 		 *       "tables": {}
 		 *     }
@@ -1440,8 +1508,8 @@ export interface components {
 		/**
 		 * @example {
 		 *       "result": {
-		 *         "format": "netstamp.admin.data.v1",
-		 *         "importedTables": 34,
+		 *         "format": "netstamp.admin.data.v2",
+		 *         "importedTables": 35,
 		 *         "importedRows": 128
 		 *       }
 		 *     }
@@ -2150,6 +2218,33 @@ export interface components {
 			 * @description New password. It is stored only as an Argon2id hash.
 			 */
 			newPassword: string;
+		};
+		CreateAPITokenRequest: {
+			name: string;
+			scopes: (
+				| "projects:read"
+				| "projects:write"
+				| "probes:read"
+				| "probes:write"
+				| "checks:read"
+				| "checks:write"
+				| "labels:read"
+				| "labels:write"
+				| "assignments:read"
+				| "results:read"
+				| "alerts:read"
+				| "alerts:write"
+				| "status_pages:read"
+				| "status_pages:write"
+			)[];
+			/** Format: date-time */
+			expiresAt: string;
+			currentPassword: string;
+		};
+		CreateAPITokenResponse: {
+			token: components["schemas"]["APIToken"];
+			/** @description One-time plaintext token. This value is never returned again. */
+			value: string;
 		};
 		/**
 		 * @example {
@@ -3264,6 +3359,10 @@ export interface components {
 				| "AUTH_EMAIL_VERIFICATION_TOKEN_INVALID"
 				| "AUTH_PASSWORD_RESET_TOKEN_INVALID"
 				| "AUTH_SESSION_NOT_FOUND"
+				| "AUTH_INVALID_API_TOKEN"
+				| "AUTH_INSUFFICIENT_SCOPE"
+				| "API_TOKEN_NOT_FOUND"
+				| "API_TOKEN_LIMIT_REACHED"
 				| "USER_NOT_FOUND"
 				| "EMAIL_ALREADY_EXISTS"
 				| "LAST_SYSTEM_ADMIN"
@@ -5003,6 +5102,7 @@ export interface components {
 	};
 	responses: never;
 	parameters: {
+		APITokenIdPathParam: components["schemas"]["uuid"];
 		AlertIncidentIdPathParam: components["schemas"]["uuid"];
 		"AlertIncidentListQuery.limit": number;
 		"AlertIncidentListQuery.status": "open" | "acknowledged" | "resolved";
@@ -5725,6 +5825,160 @@ export interface operations {
 			};
 			/** @description Client error */
 			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	listAPITokens: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["APITokenListResponse"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	createAPIToken: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				"application/json": components["schemas"]["CreateAPITokenRequest"];
+			};
+		};
+		responses: {
+			/** @description The request has succeeded and a new resource has been created as a result. */
+			201: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["CreateAPITokenResponse"];
+				};
+			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The request conflicts with the current state of the server. */
+			409: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	revokeAPIToken: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				token_id: components["parameters"]["APITokenIdPathParam"];
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description There is no content to send for this request, but the headers may be useful. */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
 				headers: {
 					[name: string]: unknown;
 				};

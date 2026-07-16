@@ -7,7 +7,7 @@ using OpenAPI;
 namespace Netstamp;
 
 @tag("Checks")
-@useAuth(SessionCookieAuth)
+@useAuth(UserOrTokenAuth)
 @route("/projects/{ref}/checks")
 interface CheckService {
 	@operationId("listProjectChecks")

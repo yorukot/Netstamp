@@ -189,7 +189,7 @@ model TracerouteTopologyQuery {
 }
 
 @tag("Results")
-@useAuth(SessionCookieAuth)
+@useAuth(UserOrTokenAuth)
 @route("/projects/{ref}/results")
 interface ResultService {
 	@operationId("queryProjectPingResultSeries")

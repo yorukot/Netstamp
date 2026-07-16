@@ -7,7 +7,7 @@ using OpenAPI;
 namespace Netstamp;
 
 @tag("Projects")
-@useAuth(SessionCookieAuth)
+@useAuth(UserOrTokenAuth)
 @route("/projects")
 interface ProjectService {
 	@operationId("createProject")

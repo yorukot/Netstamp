@@ -4,6 +4,7 @@ import "@typespec/openapi";
 import "./models/common.tsp";
 import "./models/admin.tsp";
 import "./models/auth.tsp";
+import "./models/api-token.tsp";
 import "./models/user.tsp";
 import "./models/project.tsp";
 import "./models/label.tsp";
@@ -17,6 +18,7 @@ import "./models/public-status.tsp";
 import "./services/system.tsp";
 import "./services/admin.tsp";
 import "./services/auth.tsp";
+import "./services/api-tokens.tsp";
 import "./services/users.tsp";
 import "./services/projects.tsp";
 import "./services/labels.tsp";
@@ -39,6 +41,7 @@ using OpenAPI;
 @tagMetadata("System", #{ description: "Controller status and readiness endpoints." })
 @tagMetadata("Admin", #{ description: "Instance-level administrator settings and bootstrap state." })
 @tagMetadata("Auth", #{ description: "User registration, login, logout, and current-session access." })
+@tagMetadata("API Tokens", #{ description: "Personal access tokens for server-to-server project API access." })
 @tagMetadata("Users", #{ description: "Authenticated user profile, email, and password management." })
 @tagMetadata("Projects", #{ description: "Authenticated project lifecycle operations." })
 @tagMetadata("Project Members", #{ description: "Project membership and role management." })

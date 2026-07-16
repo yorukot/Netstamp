@@ -7,7 +7,7 @@ using OpenAPI;
 namespace Netstamp;
 
 @tag("Public Status Pages")
-@useAuth(SessionCookieAuth)
+@useAuth(UserOrTokenAuth)
 @route("/projects/{ref}/status-pages")
 interface ProjectPublicStatusPageService {
 	@operationId("listProjectPublicStatusPages")
