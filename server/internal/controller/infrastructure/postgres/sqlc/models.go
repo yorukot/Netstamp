@@ -1047,23 +1047,32 @@ type AlertNotification struct {
 }
 
 type AlertRule struct {
-	ID               uuid.UUID       `json:"id"`
-	ProjectID        uuid.UUID       `json:"project_id"`
-	Name             string          `json:"name"`
-	Description      *string         `json:"description"`
-	Status           AlertRuleStatus `json:"status"`
-	Severity         AlertSeverity   `json:"severity"`
-	CheckType        CheckType       `json:"check_type"`
-	ProbeID          *uuid.UUID      `json:"probe_id"`
-	CheckID          *uuid.UUID      `json:"check_id"`
-	ProbeSelector    []byte          `json:"probe_selector"`
-	Condition        []byte          `json:"condition"`
-	ConditionVersion string          `json:"condition_version"`
-	CooldownSeconds  int32           `json:"cooldown_seconds"`
-	CreatedByUserID  uuid.UUID       `json:"created_by_user_id"`
-	CreatedAt        time.Time       `json:"created_at"`
-	UpdatedAt        time.Time       `json:"updated_at"`
-	DeletedAt        *time.Time      `json:"deleted_at"`
+	ID                  uuid.UUID       `json:"id"`
+	ProjectID           uuid.UUID       `json:"project_id"`
+	Name                string          `json:"name"`
+	Description         *string         `json:"description"`
+	Status              AlertRuleStatus `json:"status"`
+	Severity            AlertSeverity   `json:"severity"`
+	CheckType           CheckType       `json:"check_type"`
+	ProbeID             *uuid.UUID      `json:"probe_id"`
+	CheckID             *uuid.UUID      `json:"check_id"`
+	ProbeSelector       []byte          `json:"probe_selector"`
+	Condition           []byte          `json:"condition"`
+	ConditionVersion    string          `json:"condition_version"`
+	CooldownSeconds     int32           `json:"cooldown_seconds"`
+	CreatedByUserID     uuid.UUID       `json:"created_by_user_id"`
+	CreatedAt           time.Time       `json:"created_at"`
+	UpdatedAt           time.Time       `json:"updated_at"`
+	DeletedAt           *time.Time      `json:"deleted_at"`
+	TriggerAfterSeconds int32           `json:"trigger_after_seconds"`
+}
+
+type AlertRulePendingEvaluation struct {
+	ProjectID   uuid.UUID `json:"project_id"`
+	RuleID      uuid.UUID `json:"rule_id"`
+	ProbeID     uuid.UUID `json:"probe_id"`
+	CheckID     uuid.UUID `json:"check_id"`
+	FiringSince time.Time `json:"firing_since"`
 }
 
 type ApiToken struct {

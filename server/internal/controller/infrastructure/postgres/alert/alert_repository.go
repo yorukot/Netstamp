@@ -135,6 +135,9 @@ func (r *Repository) UpdateRule(ctx context.Context, input domainalert.Rule) (do
 		if err != nil {
 			return mapNoRows(err, domainalert.ErrRuleNotFound)
 		}
+		if err := q.DeleteAlertPendingEvaluationsForRule(ctx, sqlc.DeleteAlertPendingEvaluationsForRuleParams{ProjectID: row.ProjectID, RuleID: row.ID}); err != nil {
+			return err
+		}
 		if err := q.ReplaceAlertNotifications(ctx, sqlc.ReplaceAlertNotificationsParams{ProjectID: row.ProjectID, RuleID: row.ID}); err != nil {
 			return err
 		}
@@ -169,7 +172,16 @@ func (r *Repository) DeleteRule(ctx context.Context, projectID, ruleID string) e
 	if err != nil {
 		return err
 	}
-	rows, err := r.queries.SoftDeleteAlertRule(ctx, sqlc.SoftDeleteAlertRuleParams{ProjectID: projectUUID, ID: ruleUUID})
+	var rows int64
+	err = r.tx.InTx(ctx, func(ctx context.Context, tx pgx.Tx) error {
+		q := r.queries.WithTx(tx)
+		var deleteErr error
+		rows, deleteErr = q.SoftDeleteAlertRule(ctx, sqlc.SoftDeleteAlertRuleParams{ProjectID: projectUUID, ID: ruleUUID})
+		if deleteErr != nil || rows == 0 {
+			return deleteErr
+		}
+		return q.DeleteAlertPendingEvaluationsForRule(ctx, sqlc.DeleteAlertPendingEvaluationsForRuleParams{ProjectID: projectUUID, RuleID: ruleUUID})
+	})
 	if err != nil {
 		postgres.RecordDBSpanError(span, err)
 		return err
@@ -336,6 +348,48 @@ func (r *Repository) GetMetricSummary(ctx context.Context, metric string, probeS
 	default:
 		return alertcondition.MetricSummary{}, fmt.Errorf("unsupported metric: %s", metric)
 	}
+}
+
+func (r *Repository) StartOrGetPendingEvaluation(ctx context.Context, projectID, ruleID, probeID, checkID string, firingSince time.Time) (time.Time, error) {
+	ctx, span := postgres.StartDBSpan(ctx, pgalertTracer, "alert_rule_pending_evaluations", "postgres.alert_rule_pending_evaluations.upsert", "INSERT", "UPSERT alert pending evaluation")
+	defer span.End()
+
+	projectUUID, ruleUUID, probeUUID, checkUUID, err := parsePendingEvaluationIDs(projectID, ruleID, probeID, checkID)
+	if err != nil {
+		return time.Time{}, err
+	}
+	startedAt, err := postgres.Queries(ctx, r.queries).StartOrGetAlertPendingEvaluation(ctx, sqlc.StartOrGetAlertPendingEvaluationParams{
+		ProjectID:   projectUUID,
+		RuleID:      ruleUUID,
+		ProbeID:     probeUUID,
+		CheckID:     checkUUID,
+		FiringSince: firingSince.UTC(),
+	})
+	if err != nil {
+		postgres.RecordDBSpanError(span, err)
+		return time.Time{}, err
+	}
+	return startedAt.UTC(), nil
+}
+
+func (r *Repository) ClearPendingEvaluation(ctx context.Context, projectID, ruleID, probeID, checkID string) error {
+	ctx, span := postgres.StartDBSpan(ctx, pgalertTracer, "alert_rule_pending_evaluations", "postgres.alert_rule_pending_evaluations.delete", "DELETE", "DELETE alert pending evaluation")
+	defer span.End()
+
+	projectUUID, ruleUUID, probeUUID, checkUUID, err := parsePendingEvaluationIDs(projectID, ruleID, probeID, checkID)
+	if err != nil {
+		return err
+	}
+	_, err = postgres.Queries(ctx, r.queries).DeleteAlertPendingEvaluation(ctx, sqlc.DeleteAlertPendingEvaluationParams{
+		ProjectID: projectUUID,
+		RuleID:    ruleUUID,
+		ProbeID:   probeUUID,
+		CheckID:   checkUUID,
+	})
+	if err != nil {
+		postgres.RecordDBSpanError(span, err)
+	}
+	return err
 }
 
 func (r *Repository) GetActiveIncident(ctx context.Context, ruleID, probeID, checkID string) (domainalert.Incident, error) {
@@ -571,19 +625,20 @@ func createRuleParams(input domainalert.Rule) (sqlc.CreateAlertRuleParams, error
 		return sqlc.CreateAlertRuleParams{}, err
 	}
 	return sqlc.CreateAlertRuleParams{
-		ProjectID:        projectUUID,
-		Name:             input.Name,
-		Description:      input.Description,
-		Status:           sqlcRuleStatus(input.Status),
-		Severity:         sqlcSeverity(input.Severity),
-		CheckType:        sqlcCheckType(input.CheckType),
-		ProbeID:          optionalUUID(input.ProbeID),
-		CheckID:          optionalUUID(input.CheckID),
-		ProbeSelector:    input.ProbeSelector,
-		Condition:        input.ConditionJSON,
-		ConditionVersion: input.ConditionVersion,
-		CooldownSeconds:  input.CooldownSeconds,
-		CreatedByUserID:  createdByUUID,
+		ProjectID:           projectUUID,
+		Name:                input.Name,
+		Description:         input.Description,
+		Status:              sqlcRuleStatus(input.Status),
+		Severity:            sqlcSeverity(input.Severity),
+		CheckType:           sqlcCheckType(input.CheckType),
+		ProbeID:             optionalUUID(input.ProbeID),
+		CheckID:             optionalUUID(input.CheckID),
+		ProbeSelector:       input.ProbeSelector,
+		Condition:           input.ConditionJSON,
+		ConditionVersion:    input.ConditionVersion,
+		TriggerAfterSeconds: input.TriggerAfterSeconds,
+		CooldownSeconds:     input.CooldownSeconds,
+		CreatedByUserID:     createdByUUID,
 	}, nil
 }
 
@@ -593,19 +648,20 @@ func updateRuleParams(input domainalert.Rule) (sqlc.UpdateAlertRuleParams, error
 		return sqlc.UpdateAlertRuleParams{}, err
 	}
 	return sqlc.UpdateAlertRuleParams{
-		ProjectID:        projectUUID,
-		ID:               ruleUUID,
-		Name:             input.Name,
-		Description:      input.Description,
-		Status:           sqlcRuleStatus(input.Status),
-		Severity:         sqlcSeverity(input.Severity),
-		CheckType:        sqlcCheckType(input.CheckType),
-		ProbeID:          optionalUUID(input.ProbeID),
-		CheckID:          optionalUUID(input.CheckID),
-		ProbeSelector:    input.ProbeSelector,
-		Condition:        input.ConditionJSON,
-		ConditionVersion: input.ConditionVersion,
-		CooldownSeconds:  input.CooldownSeconds,
+		ProjectID:           projectUUID,
+		ID:                  ruleUUID,
+		Name:                input.Name,
+		Description:         input.Description,
+		Status:              sqlcRuleStatus(input.Status),
+		Severity:            sqlcSeverity(input.Severity),
+		CheckType:           sqlcCheckType(input.CheckType),
+		ProbeID:             optionalUUID(input.ProbeID),
+		CheckID:             optionalUUID(input.CheckID),
+		ProbeSelector:       input.ProbeSelector,
+		Condition:           input.ConditionJSON,
+		ConditionVersion:    input.ConditionVersion,
+		TriggerAfterSeconds: input.TriggerAfterSeconds,
+		CooldownSeconds:     input.CooldownSeconds,
 	}, nil
 }
 
@@ -746,6 +802,22 @@ func parseRuleTargetIDs(ruleID, probeID, checkID string) (uuid.UUID, uuid.UUID, 
 		return uuid.Nil, uuid.Nil, uuid.Nil, uuid.Nil, err
 	}
 	return uuid.Nil, ruleUUID, probeUUID, checkUUID, nil
+}
+
+func parsePendingEvaluationIDs(projectID, ruleID, probeID, checkID string) (uuid.UUID, uuid.UUID, uuid.UUID, uuid.UUID, error) {
+	projectUUID, ruleUUID, err := parseProjectScopedID(projectID, ruleID, domainalert.ErrRuleNotFound)
+	if err != nil {
+		return uuid.Nil, uuid.Nil, uuid.Nil, uuid.Nil, err
+	}
+	probeUUID, err := postgres.ParseUUID(probeID, domainalert.ErrInvalidInput)
+	if err != nil {
+		return uuid.Nil, uuid.Nil, uuid.Nil, uuid.Nil, err
+	}
+	checkUUID, err := postgres.ParseUUID(checkID, domainalert.ErrInvalidInput)
+	if err != nil {
+		return uuid.Nil, uuid.Nil, uuid.Nil, uuid.Nil, err
+	}
+	return projectUUID, ruleUUID, probeUUID, checkUUID, nil
 }
 
 func parseTransitionIDs(input domainalert.IncidentTransitionInput) (uuid.UUID, uuid.UUID, uuid.UUID, uuid.UUID, error) {

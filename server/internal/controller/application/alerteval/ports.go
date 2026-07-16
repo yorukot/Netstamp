@@ -14,6 +14,8 @@ import (
 type Repository interface {
 	ListEnabledRulesForAssignment(ctx context.Context, projectID, probeID, checkID string, checkType domaincheck.Type) ([]domainalert.Rule, error)
 	GetMetricSummary(ctx context.Context, metric string, probeStorageID, checkStorageID int64, from, to time.Time) (alertcondition.MetricSummary, error)
+	StartOrGetPendingEvaluation(ctx context.Context, projectID, ruleID, probeID, checkID string, firingSince time.Time) (time.Time, error)
+	ClearPendingEvaluation(ctx context.Context, projectID, ruleID, probeID, checkID string) error
 	GetActiveIncident(ctx context.Context, ruleID, probeID, checkID string) (domainalert.Incident, error)
 	GetRecentResolvedIncident(ctx context.Context, ruleID, probeID, checkID string, resolvedAfter time.Time) (domainalert.Incident, error)
 	CreateIncident(ctx context.Context, input domainalert.IncidentTransitionInput) (domainalert.Incident, error)
@@ -60,6 +62,7 @@ const (
 	AlertEvalReasonRuleEvaluateFailed       AlertEvalReason = "rule_evaluate_failed"
 	AlertEvalReasonMetricSummaryFailed      AlertEvalReason = "metric_summary_failed"
 	AlertEvalReasonEvaluationSummaryFailed  AlertEvalReason = "evaluation_summary_failed"
+	AlertEvalReasonPendingTransitionFailed  AlertEvalReason = "pending_transition_failed"
 	AlertEvalReasonIncidentLookupFailed     AlertEvalReason = "incident_lookup_failed"
 	AlertEvalReasonIncidentTransitionFailed AlertEvalReason = "incident_transition_failed"
 	AlertEvalReasonNotificationListFailed   AlertEvalReason = "notification_list_failed"

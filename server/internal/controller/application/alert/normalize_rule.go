@@ -16,7 +16,7 @@ func normalizeCreateRule(projectID string, input CreateRuleInput) (domainalert.R
 	if input.Enabled {
 		status = domainalert.RuleStatusEnabled
 	}
-	return normalizeRule(domainalert.Rule{ProjectID: projectID, CreatedByUserID: input.CurrentUserID, Status: status}, input.Name, input.Description, input.Severity, input.CheckType, input.ProbeID, input.CheckID, input.Condition, input.CooldownSeconds, input.NotificationIDs)
+	return normalizeRule(domainalert.Rule{ProjectID: projectID, CreatedByUserID: input.CurrentUserID, Status: status}, input.Name, input.Description, input.Severity, input.CheckType, input.ProbeID, input.CheckID, input.Condition, input.TriggerAfterSeconds, input.CooldownSeconds, input.NotificationIDs)
 }
 
 func normalizeUpdateRule(projectID string, input UpdateRuleInput) (domainalert.Rule, error) {
@@ -25,10 +25,10 @@ func normalizeUpdateRule(projectID string, input UpdateRuleInput) (domainalert.R
 		status = domainalert.RuleStatusEnabled
 	}
 	base := domainalert.Rule{ProjectID: projectID, ID: input.RuleID, CreatedByUserID: input.CurrentUserID, Status: status}
-	return normalizeRule(base, input.Name, input.Description, input.Severity, input.CheckType, input.ProbeID, input.CheckID, input.Condition, input.CooldownSeconds, input.NotificationIDs)
+	return normalizeRule(base, input.Name, input.Description, input.Severity, input.CheckType, input.ProbeID, input.CheckID, input.Condition, input.TriggerAfterSeconds, input.CooldownSeconds, input.NotificationIDs)
 }
 
-func normalizeRule(base domainalert.Rule, name string, description *string, severity domainalert.Severity, checkType domaincheck.Type, probeID, checkID *string, condition alertcondition.Condition, cooldownSeconds int32, notificationIDs []string) (domainalert.Rule, error) {
+func normalizeRule(base domainalert.Rule, name string, description *string, severity domainalert.Severity, checkType domaincheck.Type, probeID, checkID *string, condition alertcondition.Condition, triggerAfterSeconds, cooldownSeconds int32, notificationIDs []string) (domainalert.Rule, error) {
 	var err error
 	base.Name, err = domainalert.VNRuleName(name)
 	if err != nil {
@@ -58,6 +58,10 @@ func normalizeRule(base domainalert.Rule, name string, description *string, seve
 		return domainalert.Rule{}, fmt.Errorf("%w: %w", ErrInvalidInput, err)
 	}
 	base.ConditionVersion = "metric_threshold.v1"
+	base.TriggerAfterSeconds, err = domainalert.VNTriggerAfterSeconds(triggerAfterSeconds)
+	if err != nil {
+		return domainalert.Rule{}, fmt.Errorf("%w: %w", ErrInvalidInput, err)
+	}
 	base.CooldownSeconds, err = domainalert.VNCooldownSeconds(cooldownSeconds)
 	if err != nil {
 		return domainalert.Rule{}, fmt.Errorf("%w: %w", ErrInvalidInput, err)

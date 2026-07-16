@@ -12,17 +12,18 @@ import (
 )
 
 type ruleResponseBody struct {
-	ID              string                   `json:"id"`
-	Name            string                   `json:"name"`
-	Description     *string                  `json:"description,omitempty"`
-	Enabled         bool                     `json:"enabled"`
-	Severity        domainalert.Severity     `json:"severity"`
-	Scope           ruleScopeResponseBody    `json:"scope"`
-	Condition       alertcondition.Condition `json:"condition"`
-	CooldownSeconds int32                    `json:"cooldownSeconds"`
-	NotificationIDs []string                 `json:"notificationIds"`
-	CreatedAt       time.Time                `json:"createdAt"`
-	UpdatedAt       time.Time                `json:"updatedAt"`
+	ID                  string                   `json:"id"`
+	Name                string                   `json:"name"`
+	Description         *string                  `json:"description,omitempty"`
+	Enabled             bool                     `json:"enabled"`
+	Severity            domainalert.Severity     `json:"severity"`
+	Scope               ruleScopeResponseBody    `json:"scope"`
+	Condition           alertcondition.Condition `json:"condition"`
+	TriggerAfterSeconds int32                    `json:"triggerAfterSeconds"`
+	CooldownSeconds     int32                    `json:"cooldownSeconds"`
+	NotificationIDs     []string                 `json:"notificationIds"`
+	CreatedAt           time.Time                `json:"createdAt"`
+	UpdatedAt           time.Time                `json:"updatedAt"`
 }
 
 type ruleScopeResponseBody struct {
@@ -115,11 +116,12 @@ func ruleResponse(rule domainalert.Rule) ruleResponseBody {
 			ProbeID:   rule.ProbeID,
 			CheckID:   rule.CheckID,
 		},
-		Condition:       rule.Condition,
-		CooldownSeconds: rule.CooldownSeconds,
-		NotificationIDs: rule.NotificationIDs,
-		CreatedAt:       rule.CreatedAt,
-		UpdatedAt:       rule.UpdatedAt,
+		Condition:           rule.Condition,
+		TriggerAfterSeconds: rule.TriggerAfterSeconds,
+		CooldownSeconds:     rule.CooldownSeconds,
+		NotificationIDs:     rule.NotificationIDs,
+		CreatedAt:           rule.CreatedAt,
+		UpdatedAt:           rule.UpdatedAt,
 	}
 }
 

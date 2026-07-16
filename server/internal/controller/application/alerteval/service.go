@@ -151,11 +151,25 @@ func (s *Service) handleEvaluationState(ctx context.Context, flow *alertEvalFlow
 
 func (s *Service) handleFiringEvaluation(ctx context.Context, flow *alertEvalFlow, input appproberuntime.ChangedAssignmentInput, rule domainalert.Rule, evaluation alertcondition.Evaluation, summaryJSON []byte, active domainalert.Incident, hasActive bool, now time.Time) error {
 	if hasActive {
+		if err := s.clearPendingEvaluation(ctx, flow, input, rule); err != nil {
+			return err
+		}
 		incident, err := s.repo.UpdateIncidentTriggered(ctx, active.ID, evaluation, summaryJSON, now)
 		if err != nil {
 			return flow.failure(AlertEvalEventRuleEvaluateFailure, AlertEvalReasonIncidentTransitionFailed, err)
 		}
 		flow.setIncidentID(incident.ID)
+		return nil
+	}
+	firingSince, err := s.repo.StartOrGetPendingEvaluation(ctx, rule.ProjectID, rule.ID, input.ProbeID, input.CheckID, now)
+	if err != nil {
+		return flow.failure(AlertEvalEventRuleEvaluateFailure, AlertEvalReasonPendingTransitionFailed, err)
+	}
+	triggerAfterSeconds := rule.TriggerAfterSeconds
+	if triggerAfterSeconds <= 0 {
+		triggerAfterSeconds = domainalert.DefaultTriggerAfterSeconds
+	}
+	if now.Before(firingSince.Add(time.Duration(triggerAfterSeconds) * time.Second)) {
 		return nil
 	}
 	inCooldown, err := s.inReopenCooldown(ctx, flow, rule, input, now)
@@ -184,15 +198,21 @@ func (s *Service) handleFiringEvaluation(ctx context.Context, flow *alertEvalFlo
 		}
 		created = incidentWithAssignmentContext(created, input)
 		flow.setIncidentID(created.ID)
+		if err := s.clearPendingEvaluation(ctx, flow, input, rule); err != nil {
+			return err
+		}
 		return s.enqueueNotifications(ctx, flow, rule, created, evaluation, EventIncidentOpened, now)
 	})
 }
 
 func (s *Service) handleClearEvaluation(ctx context.Context, flow *alertEvalFlow, input appproberuntime.ChangedAssignmentInput, rule domainalert.Rule, evaluation alertcondition.Evaluation, summaryJSON []byte, active domainalert.Incident, hasActive bool, now time.Time) error {
 	if !hasActive {
-		return nil
+		return s.clearPendingEvaluation(ctx, flow, input, rule)
 	}
 	return s.tx.WithinTx(ctx, func(ctx context.Context) error {
+		if err := s.clearPendingEvaluation(ctx, flow, input, rule); err != nil {
+			return err
+		}
 		incident, err := s.repo.ResolveIncident(ctx, active.ID, summaryJSON, now)
 		if err != nil {
 			return flow.failure(AlertEvalEventRuleEvaluateFailure, AlertEvalReasonIncidentTransitionFailed, err)
@@ -201,6 +221,13 @@ func (s *Service) handleClearEvaluation(ctx context.Context, flow *alertEvalFlow
 		flow.setIncidentID(incident.ID)
 		return s.enqueueNotifications(ctx, flow, rule, incident, evaluation, EventIncidentResolved, now)
 	})
+}
+
+func (s *Service) clearPendingEvaluation(ctx context.Context, flow *alertEvalFlow, input appproberuntime.ChangedAssignmentInput, rule domainalert.Rule) error {
+	if err := s.repo.ClearPendingEvaluation(ctx, rule.ProjectID, rule.ID, input.ProbeID, input.CheckID); err != nil {
+		return flow.failure(AlertEvalEventRuleEvaluateFailure, AlertEvalReasonPendingTransitionFailed, err)
+	}
+	return nil
 }
 
 func (s *Service) handleInsufficientEvaluation(ctx context.Context, flow *alertEvalFlow, active domainalert.Incident, hasActive bool, evaluation alertcondition.Evaluation, summaryJSON []byte, now time.Time) error {

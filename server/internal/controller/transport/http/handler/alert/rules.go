@@ -104,14 +104,15 @@ func (h *Handler) handleDeleteRule(w http.ResponseWriter, r *http.Request) {
 }
 
 type ruleBody struct {
-	Name            string                   `json:"name"`
-	Description     *string                  `json:"description"`
-	Enabled         bool                     `json:"enabled"`
-	Severity        domainalert.Severity     `json:"severity"`
-	Scope           ruleScopeBody            `json:"scope"`
-	Condition       alertcondition.Condition `json:"condition"`
-	CooldownSeconds int32                    `json:"cooldownSeconds"`
-	NotificationIDs []string                 `json:"notificationIds"`
+	Name                string                   `json:"name"`
+	Description         *string                  `json:"description"`
+	Enabled             bool                     `json:"enabled"`
+	Severity            domainalert.Severity     `json:"severity"`
+	Scope               ruleScopeBody            `json:"scope"`
+	Condition           alertcondition.Condition `json:"condition"`
+	TriggerAfterSeconds int32                    `json:"triggerAfterSeconds"`
+	CooldownSeconds     int32                    `json:"cooldownSeconds"`
+	NotificationIDs     []string                 `json:"notificationIds"`
 }
 
 type ruleScopeBody struct {
@@ -122,33 +123,35 @@ type ruleScopeBody struct {
 
 func (b ruleBody) createInput(project appalert.ProjectInput) appalert.CreateRuleInput {
 	return appalert.CreateRuleInput{
-		ProjectInput:    project,
-		Name:            b.Name,
-		Description:     b.Description,
-		Enabled:         b.Enabled,
-		Severity:        b.Severity,
-		CheckType:       b.Scope.CheckType,
-		ProbeID:         b.Scope.ProbeID,
-		CheckID:         b.Scope.CheckID,
-		Condition:       b.Condition,
-		CooldownSeconds: b.CooldownSeconds,
-		NotificationIDs: b.NotificationIDs,
+		ProjectInput:        project,
+		Name:                b.Name,
+		Description:         b.Description,
+		Enabled:             b.Enabled,
+		Severity:            b.Severity,
+		CheckType:           b.Scope.CheckType,
+		ProbeID:             b.Scope.ProbeID,
+		CheckID:             b.Scope.CheckID,
+		Condition:           b.Condition,
+		TriggerAfterSeconds: b.TriggerAfterSeconds,
+		CooldownSeconds:     b.CooldownSeconds,
+		NotificationIDs:     b.NotificationIDs,
 	}
 }
 
 func (b ruleBody) updateInput(project appalert.ProjectInput, ruleID string) appalert.UpdateRuleInput {
 	return appalert.UpdateRuleInput{
-		ProjectInput:    project,
-		RuleID:          ruleID,
-		Name:            b.Name,
-		Description:     b.Description,
-		Enabled:         b.Enabled,
-		Severity:        b.Severity,
-		CheckType:       b.Scope.CheckType,
-		ProbeID:         b.Scope.ProbeID,
-		CheckID:         b.Scope.CheckID,
-		Condition:       b.Condition,
-		CooldownSeconds: b.CooldownSeconds,
-		NotificationIDs: b.NotificationIDs,
+		ProjectInput:        project,
+		RuleID:              ruleID,
+		Name:                b.Name,
+		Description:         b.Description,
+		Enabled:             b.Enabled,
+		Severity:            b.Severity,
+		CheckType:           b.Scope.CheckType,
+		ProbeID:             b.Scope.ProbeID,
+		CheckID:             b.Scope.CheckID,
+		Condition:           b.Condition,
+		TriggerAfterSeconds: b.TriggerAfterSeconds,
+		CooldownSeconds:     b.CooldownSeconds,
+		NotificationIDs:     b.NotificationIDs,
 	}
 }

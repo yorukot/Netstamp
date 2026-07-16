@@ -15,7 +15,8 @@ SELECT alert_rules.id,
        alert_rules.created_by_user_id,
        alert_rules.created_at,
        alert_rules.updated_at,
-       alert_rules.deleted_at
+       alert_rules.deleted_at,
+       alert_rules.trigger_after_seconds
 FROM alert_rules
 WHERE alert_rules.project_id = sqlc.arg(project_id)
   AND alert_rules.deleted_at IS NULL
@@ -46,7 +47,8 @@ SELECT alert_rules.id,
        alert_rules.created_by_user_id,
        alert_rules.created_at,
        alert_rules.updated_at,
-       alert_rules.deleted_at
+       alert_rules.deleted_at,
+       alert_rules.trigger_after_seconds
 FROM alert_rules
 WHERE alert_rules.project_id = sqlc.arg(project_id)
   AND alert_rules.id = sqlc.arg(id)
@@ -65,6 +67,7 @@ INSERT INTO alert_rules (
     probe_selector,
     condition,
     condition_version,
+    trigger_after_seconds,
     cooldown_seconds,
     created_by_user_id
 )
@@ -80,10 +83,11 @@ VALUES (
     sqlc.arg(probe_selector)::jsonb,
     sqlc.arg(condition)::jsonb,
     sqlc.arg(condition_version),
+    sqlc.arg(trigger_after_seconds),
     sqlc.arg(cooldown_seconds),
     sqlc.arg(created_by_user_id)
 )
-RETURNING id, project_id, name, description, status, severity, check_type, probe_id, check_id, probe_selector, condition, condition_version, cooldown_seconds, created_by_user_id, created_at, updated_at, deleted_at;
+RETURNING id, project_id, name, description, status, severity, check_type, probe_id, check_id, probe_selector, condition, condition_version, cooldown_seconds, created_by_user_id, created_at, updated_at, deleted_at, trigger_after_seconds;
 
 -- name: UpdateAlertRule :one
 UPDATE alert_rules
@@ -97,11 +101,12 @@ SET name = sqlc.arg(name),
     probe_selector = sqlc.arg(probe_selector)::jsonb,
     condition = sqlc.arg(condition)::jsonb,
     condition_version = sqlc.arg(condition_version),
+    trigger_after_seconds = sqlc.arg(trigger_after_seconds),
     cooldown_seconds = sqlc.arg(cooldown_seconds)
 WHERE project_id = sqlc.arg(project_id)
   AND id = sqlc.arg(id)
   AND deleted_at IS NULL
-RETURNING id, project_id, name, description, status, severity, check_type, probe_id, check_id, probe_selector, condition, condition_version, cooldown_seconds, created_by_user_id, created_at, updated_at, deleted_at;
+RETURNING id, project_id, name, description, status, severity, check_type, probe_id, check_id, probe_selector, condition, condition_version, cooldown_seconds, created_by_user_id, created_at, updated_at, deleted_at, trigger_after_seconds;
 
 -- name: SoftDeleteAlertRule :execrows
 UPDATE alert_rules
@@ -312,7 +317,8 @@ SELECT alert_rules.id,
        alert_rules.created_by_user_id,
        alert_rules.created_at,
        alert_rules.updated_at,
-       alert_rules.deleted_at
+       alert_rules.deleted_at,
+       alert_rules.trigger_after_seconds
 FROM alert_rules
 WHERE alert_rules.project_id = sqlc.arg(project_id)
   AND alert_rules.check_type = sqlc.arg(check_type)
@@ -321,6 +327,37 @@ WHERE alert_rules.project_id = sqlc.arg(project_id)
   AND (alert_rules.probe_id IS NULL OR alert_rules.probe_id = sqlc.arg(probe_id))
   AND (alert_rules.check_id IS NULL OR alert_rules.check_id = sqlc.arg(check_id))
 ORDER BY alert_rules.created_at ASC, alert_rules.id ASC;
+
+-- name: StartOrGetAlertPendingEvaluation :one
+INSERT INTO alert_rule_pending_evaluations (
+    project_id,
+    rule_id,
+    probe_id,
+    check_id,
+    firing_since
+)
+VALUES (
+    sqlc.arg(project_id),
+    sqlc.arg(rule_id),
+    sqlc.arg(probe_id),
+    sqlc.arg(check_id),
+    sqlc.arg(firing_since)
+)
+ON CONFLICT (rule_id, probe_id, check_id) DO UPDATE
+SET firing_since = alert_rule_pending_evaluations.firing_since
+RETURNING firing_since;
+
+-- name: DeleteAlertPendingEvaluation :execrows
+DELETE FROM alert_rule_pending_evaluations
+WHERE project_id = sqlc.arg(project_id)
+  AND rule_id = sqlc.arg(rule_id)
+  AND probe_id = sqlc.arg(probe_id)
+  AND check_id = sqlc.arg(check_id);
+
+-- name: DeleteAlertPendingEvaluationsForRule :exec
+DELETE FROM alert_rule_pending_evaluations
+WHERE project_id = sqlc.arg(project_id)
+  AND rule_id = sqlc.arg(rule_id);
 
 -- name: GetActiveAlertIncident :one
 SELECT id,

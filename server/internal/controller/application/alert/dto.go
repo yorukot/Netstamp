@@ -26,31 +26,33 @@ type GetRuleInput struct {
 
 type CreateRuleInput struct {
 	ProjectInput
-	Name            string
-	Description     *string
-	Enabled         bool
-	Severity        domainalert.Severity
-	CheckType       domaincheck.Type
-	ProbeID         *string
-	CheckID         *string
-	Condition       alertcondition.Condition
-	CooldownSeconds int32
-	NotificationIDs []string
+	Name                string
+	Description         *string
+	Enabled             bool
+	Severity            domainalert.Severity
+	CheckType           domaincheck.Type
+	ProbeID             *string
+	CheckID             *string
+	Condition           alertcondition.Condition
+	TriggerAfterSeconds int32
+	CooldownSeconds     int32
+	NotificationIDs     []string
 }
 
 type UpdateRuleInput struct {
 	ProjectInput
-	RuleID          string
-	Name            string
-	Description     *string
-	Enabled         bool
-	Severity        domainalert.Severity
-	CheckType       domaincheck.Type
-	ProbeID         *string
-	CheckID         *string
-	Condition       alertcondition.Condition
-	CooldownSeconds int32
-	NotificationIDs []string
+	RuleID              string
+	Name                string
+	Description         *string
+	Enabled             bool
+	Severity            domainalert.Severity
+	CheckType           domaincheck.Type
+	ProbeID             *string
+	CheckID             *string
+	Condition           alertcondition.Condition
+	TriggerAfterSeconds int32
+	CooldownSeconds     int32
+	NotificationIDs     []string
 }
 
 type DeleteRuleInput struct {

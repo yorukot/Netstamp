@@ -64,27 +64,31 @@ const (
 	OutboxStatusDiscarded OutboxStatus = "discarded"
 )
 
-const DefaultCooldownSeconds int32 = 900
+const (
+	DefaultTriggerAfterSeconds int32 = 60
+	DefaultCooldownSeconds     int32 = 900
+)
 
 type Rule struct {
-	ID               string
-	ProjectID        string
-	Name             string
-	Description      *string
-	Status           RuleStatus
-	Severity         Severity
-	CheckType        domaincheck.Type
-	ProbeID          *string
-	CheckID          *string
-	ProbeSelector    json.RawMessage
-	Condition        alertcondition.Condition
-	ConditionJSON    json.RawMessage
-	ConditionVersion string
-	CooldownSeconds  int32
-	NotificationIDs  []string
-	CreatedByUserID  string
-	CreatedAt        time.Time
-	UpdatedAt        time.Time
+	ID                  string
+	ProjectID           string
+	Name                string
+	Description         *string
+	Status              RuleStatus
+	Severity            Severity
+	CheckType           domaincheck.Type
+	ProbeID             *string
+	CheckID             *string
+	ProbeSelector       json.RawMessage
+	Condition           alertcondition.Condition
+	ConditionJSON       json.RawMessage
+	ConditionVersion    string
+	TriggerAfterSeconds int32
+	CooldownSeconds     int32
+	NotificationIDs     []string
+	CreatedByUserID     string
+	CreatedAt           time.Time
+	UpdatedAt           time.Time
 }
 
 type Incident struct {
@@ -267,6 +271,22 @@ func VNCooldownSeconds(value int32) (int32, error) {
 	}
 	if err := spvalidator.Max(value, int32(86400)); err != nil {
 		return 0, err
+	}
+	return value, nil
+}
+
+func VNTriggerAfterSeconds(value int32) (int32, error) {
+	if value == 0 {
+		value = DefaultTriggerAfterSeconds
+	}
+	if err := spvalidator.Min(value, int32(60)); err != nil {
+		return 0, err
+	}
+	if err := spvalidator.Max(value, int32(86400)); err != nil {
+		return 0, err
+	}
+	if value%60 != 0 {
+		return 0, errors.New("alert trigger duration must use whole minutes")
 	}
 	return value, nil
 }

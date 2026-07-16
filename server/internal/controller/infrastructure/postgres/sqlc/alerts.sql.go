@@ -222,6 +222,7 @@ INSERT INTO alert_rules (
     probe_selector,
     condition,
     condition_version,
+    trigger_after_seconds,
     cooldown_seconds,
     created_by_user_id
 )
@@ -238,25 +239,27 @@ VALUES (
     $10::jsonb,
     $11,
     $12,
-    $13
+    $13,
+    $14
 )
-RETURNING id, project_id, name, description, status, severity, check_type, probe_id, check_id, probe_selector, condition, condition_version, cooldown_seconds, created_by_user_id, created_at, updated_at, deleted_at
+RETURNING id, project_id, name, description, status, severity, check_type, probe_id, check_id, probe_selector, condition, condition_version, cooldown_seconds, created_by_user_id, created_at, updated_at, deleted_at, trigger_after_seconds
 `
 
 type CreateAlertRuleParams struct {
-	ProjectID        uuid.UUID       `json:"project_id"`
-	Name             string          `json:"name"`
-	Description      *string         `json:"description"`
-	Status           AlertRuleStatus `json:"status"`
-	Severity         AlertSeverity   `json:"severity"`
-	CheckType        CheckType       `json:"check_type"`
-	ProbeID          *uuid.UUID      `json:"probe_id"`
-	CheckID          *uuid.UUID      `json:"check_id"`
-	ProbeSelector    []byte          `json:"probe_selector"`
-	Condition        []byte          `json:"condition"`
-	ConditionVersion string          `json:"condition_version"`
-	CooldownSeconds  int32           `json:"cooldown_seconds"`
-	CreatedByUserID  uuid.UUID       `json:"created_by_user_id"`
+	ProjectID           uuid.UUID       `json:"project_id"`
+	Name                string          `json:"name"`
+	Description         *string         `json:"description"`
+	Status              AlertRuleStatus `json:"status"`
+	Severity            AlertSeverity   `json:"severity"`
+	CheckType           CheckType       `json:"check_type"`
+	ProbeID             *uuid.UUID      `json:"probe_id"`
+	CheckID             *uuid.UUID      `json:"check_id"`
+	ProbeSelector       []byte          `json:"probe_selector"`
+	Condition           []byte          `json:"condition"`
+	ConditionVersion    string          `json:"condition_version"`
+	TriggerAfterSeconds int32           `json:"trigger_after_seconds"`
+	CooldownSeconds     int32           `json:"cooldown_seconds"`
+	CreatedByUserID     uuid.UUID       `json:"created_by_user_id"`
 }
 
 func (q *Queries) CreateAlertRule(ctx context.Context, arg CreateAlertRuleParams) (AlertRule, error) {
@@ -272,6 +275,7 @@ func (q *Queries) CreateAlertRule(ctx context.Context, arg CreateAlertRuleParams
 		arg.ProbeSelector,
 		arg.Condition,
 		arg.ConditionVersion,
+		arg.TriggerAfterSeconds,
 		arg.CooldownSeconds,
 		arg.CreatedByUserID,
 	)
@@ -294,6 +298,7 @@ func (q *Queries) CreateAlertRule(ctx context.Context, arg CreateAlertRuleParams
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.TriggerAfterSeconds,
 	)
 	return i, err
 }
@@ -350,6 +355,50 @@ func (q *Queries) CreateNotification(ctx context.Context, arg CreateNotification
 		&i.DeletedAt,
 	)
 	return i, err
+}
+
+const deleteAlertPendingEvaluation = `-- name: DeleteAlertPendingEvaluation :execrows
+DELETE FROM alert_rule_pending_evaluations
+WHERE project_id = $1
+  AND rule_id = $2
+  AND probe_id = $3
+  AND check_id = $4
+`
+
+type DeleteAlertPendingEvaluationParams struct {
+	ProjectID uuid.UUID `json:"project_id"`
+	RuleID    uuid.UUID `json:"rule_id"`
+	ProbeID   uuid.UUID `json:"probe_id"`
+	CheckID   uuid.UUID `json:"check_id"`
+}
+
+func (q *Queries) DeleteAlertPendingEvaluation(ctx context.Context, arg DeleteAlertPendingEvaluationParams) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteAlertPendingEvaluation,
+		arg.ProjectID,
+		arg.RuleID,
+		arg.ProbeID,
+		arg.CheckID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const deleteAlertPendingEvaluationsForRule = `-- name: DeleteAlertPendingEvaluationsForRule :exec
+DELETE FROM alert_rule_pending_evaluations
+WHERE project_id = $1
+  AND rule_id = $2
+`
+
+type DeleteAlertPendingEvaluationsForRuleParams struct {
+	ProjectID uuid.UUID `json:"project_id"`
+	RuleID    uuid.UUID `json:"rule_id"`
+}
+
+func (q *Queries) DeleteAlertPendingEvaluationsForRule(ctx context.Context, arg DeleteAlertPendingEvaluationsForRuleParams) error {
+	_, err := q.db.Exec(ctx, deleteAlertPendingEvaluationsForRule, arg.ProjectID, arg.RuleID)
+	return err
 }
 
 const enqueueNotificationOutbox = `-- name: EnqueueNotificationOutbox :one
@@ -599,7 +648,8 @@ SELECT alert_rules.id,
        alert_rules.created_by_user_id,
        alert_rules.created_at,
        alert_rules.updated_at,
-       alert_rules.deleted_at
+       alert_rules.deleted_at,
+       alert_rules.trigger_after_seconds
 FROM alert_rules
 WHERE alert_rules.project_id = $1
   AND alert_rules.id = $2
@@ -632,6 +682,7 @@ func (q *Queries) GetAlertRule(ctx context.Context, arg GetAlertRuleParams) (Ale
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.TriggerAfterSeconds,
 	)
 	return i, err
 }
@@ -1110,7 +1161,8 @@ SELECT alert_rules.id,
        alert_rules.created_by_user_id,
        alert_rules.created_at,
        alert_rules.updated_at,
-       alert_rules.deleted_at
+       alert_rules.deleted_at,
+       alert_rules.trigger_after_seconds
 FROM alert_rules
 WHERE alert_rules.project_id = $1
   AND alert_rules.deleted_at IS NULL
@@ -1158,6 +1210,7 @@ func (q *Queries) ListAlertRules(ctx context.Context, arg ListAlertRulesParams) 
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.DeletedAt,
+			&i.TriggerAfterSeconds,
 		); err != nil {
 			return nil, err
 		}
@@ -1186,7 +1239,8 @@ SELECT alert_rules.id,
        alert_rules.created_by_user_id,
        alert_rules.created_at,
        alert_rules.updated_at,
-       alert_rules.deleted_at
+       alert_rules.deleted_at,
+       alert_rules.trigger_after_seconds
 FROM alert_rules
 WHERE alert_rules.project_id = $1
   AND alert_rules.check_type = $2
@@ -1236,6 +1290,7 @@ func (q *Queries) ListEnabledAlertRulesForAssignment(ctx context.Context, arg Li
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.DeletedAt,
+			&i.TriggerAfterSeconds,
 		); err != nil {
 			return nil, err
 		}
@@ -1598,6 +1653,47 @@ func (q *Queries) SoftDeleteNotification(ctx context.Context, arg SoftDeleteNoti
 	return result.RowsAffected(), nil
 }
 
+const startOrGetAlertPendingEvaluation = `-- name: StartOrGetAlertPendingEvaluation :one
+INSERT INTO alert_rule_pending_evaluations (
+    project_id,
+    rule_id,
+    probe_id,
+    check_id,
+    firing_since
+)
+VALUES (
+    $1,
+    $2,
+    $3,
+    $4,
+    $5
+)
+ON CONFLICT (rule_id, probe_id, check_id) DO UPDATE
+SET firing_since = alert_rule_pending_evaluations.firing_since
+RETURNING firing_since
+`
+
+type StartOrGetAlertPendingEvaluationParams struct {
+	ProjectID   uuid.UUID `json:"project_id"`
+	RuleID      uuid.UUID `json:"rule_id"`
+	ProbeID     uuid.UUID `json:"probe_id"`
+	CheckID     uuid.UUID `json:"check_id"`
+	FiringSince time.Time `json:"firing_since"`
+}
+
+func (q *Queries) StartOrGetAlertPendingEvaluation(ctx context.Context, arg StartOrGetAlertPendingEvaluationParams) (time.Time, error) {
+	row := q.db.QueryRow(ctx, startOrGetAlertPendingEvaluation,
+		arg.ProjectID,
+		arg.RuleID,
+		arg.ProbeID,
+		arg.CheckID,
+		arg.FiringSince,
+	)
+	var firing_since time.Time
+	err := row.Scan(&firing_since)
+	return firing_since, err
+}
+
 const updateActiveAlertIncidentInsufficient = `-- name: UpdateActiveAlertIncidentInsufficient :one
 UPDATE alert_incidents
 SET last_evaluation_state = $1,
@@ -1738,27 +1834,29 @@ SET name = $1,
     probe_selector = $8::jsonb,
     condition = $9::jsonb,
     condition_version = $10,
-    cooldown_seconds = $11
-WHERE project_id = $12
-  AND id = $13
+    trigger_after_seconds = $11,
+    cooldown_seconds = $12
+WHERE project_id = $13
+  AND id = $14
   AND deleted_at IS NULL
-RETURNING id, project_id, name, description, status, severity, check_type, probe_id, check_id, probe_selector, condition, condition_version, cooldown_seconds, created_by_user_id, created_at, updated_at, deleted_at
+RETURNING id, project_id, name, description, status, severity, check_type, probe_id, check_id, probe_selector, condition, condition_version, cooldown_seconds, created_by_user_id, created_at, updated_at, deleted_at, trigger_after_seconds
 `
 
 type UpdateAlertRuleParams struct {
-	Name             string          `json:"name"`
-	Description      *string         `json:"description"`
-	Status           AlertRuleStatus `json:"status"`
-	Severity         AlertSeverity   `json:"severity"`
-	CheckType        CheckType       `json:"check_type"`
-	ProbeID          *uuid.UUID      `json:"probe_id"`
-	CheckID          *uuid.UUID      `json:"check_id"`
-	ProbeSelector    []byte          `json:"probe_selector"`
-	Condition        []byte          `json:"condition"`
-	ConditionVersion string          `json:"condition_version"`
-	CooldownSeconds  int32           `json:"cooldown_seconds"`
-	ProjectID        uuid.UUID       `json:"project_id"`
-	ID               uuid.UUID       `json:"id"`
+	Name                string          `json:"name"`
+	Description         *string         `json:"description"`
+	Status              AlertRuleStatus `json:"status"`
+	Severity            AlertSeverity   `json:"severity"`
+	CheckType           CheckType       `json:"check_type"`
+	ProbeID             *uuid.UUID      `json:"probe_id"`
+	CheckID             *uuid.UUID      `json:"check_id"`
+	ProbeSelector       []byte          `json:"probe_selector"`
+	Condition           []byte          `json:"condition"`
+	ConditionVersion    string          `json:"condition_version"`
+	TriggerAfterSeconds int32           `json:"trigger_after_seconds"`
+	CooldownSeconds     int32           `json:"cooldown_seconds"`
+	ProjectID           uuid.UUID       `json:"project_id"`
+	ID                  uuid.UUID       `json:"id"`
 }
 
 func (q *Queries) UpdateAlertRule(ctx context.Context, arg UpdateAlertRuleParams) (AlertRule, error) {
@@ -1773,6 +1871,7 @@ func (q *Queries) UpdateAlertRule(ctx context.Context, arg UpdateAlertRuleParams
 		arg.ProbeSelector,
 		arg.Condition,
 		arg.ConditionVersion,
+		arg.TriggerAfterSeconds,
 		arg.CooldownSeconds,
 		arg.ProjectID,
 		arg.ID,
@@ -1796,6 +1895,7 @@ func (q *Queries) UpdateAlertRule(ctx context.Context, arg UpdateAlertRuleParams
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.TriggerAfterSeconds,
 	)
 	return i, err
 }

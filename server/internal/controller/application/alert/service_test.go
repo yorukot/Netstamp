@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"testing"
 
 	domainalert "github.com/yorukot/netstamp/internal/domain/alert"
@@ -267,6 +268,49 @@ func TestServiceCreateRuleRejectsUnsupportedTracerouteCheckType(t *testing.T) {
 	}
 }
 
+func TestServiceCreateRuleDefaultsTriggerAfterSeconds(t *testing.T) {
+	t.Parallel()
+
+	repo := &fakeAlertRepository{}
+	access := &fakeAlertProjectAccess{role: domainproject.RoleAdmin}
+	service := NewService(repo, access, nil, nil)
+	input := validCreateRuleInput()
+	input.TriggerAfterSeconds = 0
+
+	created, err := service.CreateRule(context.Background(), input)
+	if err != nil {
+		t.Fatalf("create rule returned error: %v", err)
+	}
+	if created.TriggerAfterSeconds != domainalert.DefaultTriggerAfterSeconds {
+		t.Fatalf("trigger after seconds = %d, want %d", created.TriggerAfterSeconds, domainalert.DefaultTriggerAfterSeconds)
+	}
+}
+
+func TestServiceCreateRuleRejectsInvalidTriggerAfterSeconds(t *testing.T) {
+	t.Parallel()
+
+	for _, value := range []int32{30, 90, 86460} {
+		value := value
+		t.Run(fmt.Sprintf("%d", value), func(t *testing.T) {
+			t.Parallel()
+
+			repo := &fakeAlertRepository{}
+			access := &fakeAlertProjectAccess{role: domainproject.RoleAdmin}
+			service := NewService(repo, access, nil, nil)
+			input := validCreateRuleInput()
+			input.TriggerAfterSeconds = value
+
+			_, err := service.CreateRule(context.Background(), input)
+			if !errors.Is(err, ErrInvalidInput) {
+				t.Fatalf("error = %v, want ErrInvalidInput", err)
+			}
+			if repo.writeCalls != 0 {
+				t.Fatalf("repo write calls = %d, want 0", repo.writeCalls)
+			}
+		})
+	}
+}
+
 func TestServiceTestNotificationUnavailableReturnsStructuredResult(t *testing.T) {
 	t.Parallel()
 
@@ -310,32 +354,34 @@ func testProjectInput() ProjectInput {
 
 func validCreateRuleInput() CreateRuleInput {
 	return CreateRuleInput{
-		ProjectInput:    testProjectInput(),
-		Name:            "High packet loss",
-		Enabled:         true,
-		Severity:        domainalert.SeverityWarning,
-		CheckType:       domaincheck.TypePing,
-		Condition:       validPingCondition(),
-		CooldownSeconds: domainalert.DefaultCooldownSeconds,
-		NotificationIDs: nil,
+		ProjectInput:        testProjectInput(),
+		Name:                "High packet loss",
+		Enabled:             true,
+		Severity:            domainalert.SeverityWarning,
+		CheckType:           domaincheck.TypePing,
+		Condition:           validPingCondition(),
+		TriggerAfterSeconds: domainalert.DefaultTriggerAfterSeconds,
+		CooldownSeconds:     domainalert.DefaultCooldownSeconds,
+		NotificationIDs:     nil,
 	}
 }
 
 func validUpdateRuleInput() UpdateRuleInput {
 	input := validCreateRuleInput()
 	return UpdateRuleInput{
-		ProjectInput:    input.ProjectInput,
-		RuleID:          testRuleID,
-		Name:            input.Name,
-		Description:     input.Description,
-		Enabled:         input.Enabled,
-		Severity:        input.Severity,
-		CheckType:       input.CheckType,
-		ProbeID:         input.ProbeID,
-		CheckID:         input.CheckID,
-		Condition:       input.Condition,
-		CooldownSeconds: input.CooldownSeconds,
-		NotificationIDs: input.NotificationIDs,
+		ProjectInput:        input.ProjectInput,
+		RuleID:              testRuleID,
+		Name:                input.Name,
+		Description:         input.Description,
+		Enabled:             input.Enabled,
+		Severity:            input.Severity,
+		CheckType:           input.CheckType,
+		ProbeID:             input.ProbeID,
+		CheckID:             input.CheckID,
+		Condition:           input.Condition,
+		TriggerAfterSeconds: input.TriggerAfterSeconds,
+		CooldownSeconds:     input.CooldownSeconds,
+		NotificationIDs:     input.NotificationIDs,
 	}
 }
 
