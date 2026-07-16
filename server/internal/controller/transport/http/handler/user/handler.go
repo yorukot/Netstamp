@@ -66,7 +66,11 @@ func (h *Handler) handleAuthenticationMethods(w http.ResponseWriter, r *http.Req
 	}
 	identities := make([]map[string]any, 0, len(output.Identities))
 	for _, item := range output.Identities {
-		identities = append(identities, map[string]any{"id": item.ID, "provider": item.Provider, "issuer": item.Issuer, "email": item.Email, "emailVerified": item.EmailVerified, "displayName": item.DisplayName, "createdAt": item.CreatedAt, "lastLoginAt": item.LastLoginAt})
+		identities = append(identities, map[string]any{
+			"id": item.ID, "provider": item.Provider, "issuer": item.Issuer, "email": item.Email,
+			"emailVerified": item.EmailVerified, "displayName": item.DisplayName, "username": item.Username,
+			"avatarUrl": item.AvatarURL, "createdAt": item.CreatedAt, "lastLoginAt": item.LastLoginAt,
+		})
 	}
 	httpx.WriteJSON(w, http.StatusOK, map[string]any{"hasPassword": output.HasPassword, "identities": identities})
 }

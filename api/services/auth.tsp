@@ -26,6 +26,19 @@ interface AuthService {
 	@get
 	@route("/oidc/callback")
 	completeOIDC(...OIDCCallbackQuery): Found;
+
+	@operationId("startExternalAuthentication")
+	@summary("Start external authentication")
+	@doc("Start a provider-bound Google, GitHub, or generic OIDC authorization flow using state, PKCE, and a browser-bound flow cookie.")
+	@get
+	@route("/external/{provider}/start")
+	startExternalAuthentication(...ExternalAuthProviderPath, ...ExternalAuthStartQuery): Found | BadRequestProblem | UnauthorizedProblem | ForbiddenProblem | ServiceUnavailableProblem;
+
+	@operationId("completeExternalAuthentication")
+	@summary("Complete external authentication")
+	@get
+	@route("/external/{provider}/callback")
+	completeExternalAuthentication(...ExternalAuthProviderPath, ...ExternalAuthCallbackQuery): Found;
 	@operationId("registerUser")
 	@summary("Register user")
 	@doc("Create a user account with a normalized email address, display name, and password. When email verification is disabled, sets an HTTP-only session cookie for immediate API access. When email verification is required, sends a verification email and returns 202 without a session cookie.")

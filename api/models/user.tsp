@@ -30,11 +30,13 @@ model ChangeCurrentUserPasswordRequest {
 
 model ExternalIdentity {
 	id: uuid;
-	provider: "oidc";
+	provider: "google" | "github" | "oidc";
 	issuer: string;
 	email?: email;
 	emailVerified: boolean;
 	displayName?: string;
+	username?: string;
+	avatarUrl?: url;
 	createdAt: utcDateTime;
 	lastLoginAt?: utcDateTime;
 }

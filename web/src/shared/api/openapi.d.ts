@@ -272,6 +272,43 @@ export interface paths {
 		patch: operations["confirmEmailVerification"];
 		trace?: never;
 	};
+	"/auth/external/{provider}/callback": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** Complete external authentication */
+		get: operations["completeExternalAuthentication"];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	"/auth/external/{provider}/start": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Start external authentication
+		 * @description Start a provider-bound Google, GitHub, or generic OIDC authorization flow using state, PKCE, and a browser-bound flow cookie.
+		 */
+		get: operations["startExternalAuthentication"];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	"/auth/login": {
 		parameters: {
 			query?: never;
@@ -2089,8 +2126,23 @@ export interface components {
 			check?: components["schemas"]["Check"];
 			probe?: components["schemas"]["Probe"];
 		};
+		/**
+		 * @example {
+		 *       "id": "google",
+		 *       "displayName": "Google",
+		 *       "sudoCapable": true
+		 *     }
+		 */
+		AuthExternalProviderMethod: {
+			/** @enum {string} */
+			id: "google" | "github" | "oidc";
+			displayName: string;
+			sudoCapable: boolean;
+		};
 		AuthMethodsResponse: {
 			password: components["schemas"]["AuthPasswordMethod"];
+			providers: components["schemas"]["AuthExternalProviderMethod"][];
+			/** @description Deprecated generic OIDC method metadata. Use providers instead. */
 			oidc: components["schemas"]["AuthOIDCMethod"];
 		};
 		AuthOIDCMethod: {
@@ -2130,7 +2182,7 @@ export interface components {
 			/** Format: date-time */
 			authenticatedAt: string;
 			/** @enum {string} */
-			authenticationMethod: "password" | "oidc";
+			authenticationMethod: "password" | "google" | "github" | "oidc";
 			/** @description Whether this is the session authenticating the current request. */
 			isCurrent: boolean;
 		};
@@ -2658,11 +2710,14 @@ export interface components {
 		ExternalIdentity: {
 			id: components["schemas"]["uuid"];
 			/** @enum {string} */
-			provider: "oidc";
+			provider: "google" | "github" | "oidc";
 			issuer: string;
 			email?: components["schemas"]["email"];
 			emailVerified: boolean;
 			displayName?: string;
+			username?: string;
+			/** Format: uri */
+			avatarUrl?: string;
 			/** Format: date-time */
 			createdAt: string;
 			/** Format: date-time */
@@ -4425,7 +4480,7 @@ export interface components {
 			active: boolean;
 			/** Format: date-time */
 			expiresAt: string;
-			methods: ("password" | "oidc")[];
+			methods: ("password" | "google" | "github" | "oidc")[];
 		};
 		/**
 		 * @example {
@@ -5306,6 +5361,11 @@ export interface components {
 		/** @description Auth session UUID. */
 		AuthSessionIdPathParam: components["schemas"]["uuid"];
 		CheckIdPathParam: components["schemas"]["uuid"];
+		"ExternalAuthCallbackQuery.code": string;
+		"ExternalAuthCallbackQuery.state": string;
+		ExternalAuthProviderPath: "google" | "github" | "oidc";
+		"ExternalAuthStartQuery.intent": "login" | "sudo" | "link";
+		"ExternalAuthStartQuery.returnTo": string;
 		"HttpInsightQuery.checkId": components["schemas"]["uuid"];
 		"HttpInsightQuery.from": number;
 		"HttpInsightQuery.maxDataPoints": number;
@@ -6426,6 +6486,92 @@ export interface operations {
 			};
 			/** @description Server error */
 			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Service unavailable. */
+			503: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	completeExternalAuthentication: {
+		parameters: {
+			query: {
+				code: components["parameters"]["ExternalAuthCallbackQuery.code"];
+				state: components["parameters"]["ExternalAuthCallbackQuery.state"];
+			};
+			header?: never;
+			path: {
+				provider: components["parameters"]["ExternalAuthProviderPath"];
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Redirection */
+			302: {
+				headers: {
+					location: string;
+					"Set-Cookie"?: string;
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+		};
+	};
+	startExternalAuthentication: {
+		parameters: {
+			query?: {
+				intent?: components["parameters"]["ExternalAuthStartQuery.intent"];
+				returnTo?: components["parameters"]["ExternalAuthStartQuery.returnTo"];
+			};
+			header?: never;
+			path: {
+				provider: components["parameters"]["ExternalAuthProviderPath"];
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Redirection */
+			302: {
+				headers: {
+					location: string;
+					"Set-Cookie"?: string;
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is forbidden. */
+			403: {
 				headers: {
 					[name: string]: unknown;
 				};

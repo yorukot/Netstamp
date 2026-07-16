@@ -1327,6 +1327,121 @@
 				}
 			}
 		},
+		"/auth/external/{provider}/callback": {
+			"get": {
+				"operationId": "completeExternalAuthentication",
+				"summary": "Complete external authentication",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ExternalAuthProviderPath"
+					},
+					{
+						"$ref": "#/components/parameters/ExternalAuthCallbackQuery.code"
+					},
+					{
+						"$ref": "#/components/parameters/ExternalAuthCallbackQuery.state"
+					}
+				],
+				"responses": {
+					"302": {
+						"description": "Redirection",
+						"headers": {
+							"location": {
+								"required": true,
+								"schema": {
+									"type": "string"
+								}
+							},
+							"Set-Cookie": {
+								"required": false,
+								"schema": {
+									"type": "string"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Auth"]
+			}
+		},
+		"/auth/external/{provider}/start": {
+			"get": {
+				"operationId": "startExternalAuthentication",
+				"summary": "Start external authentication",
+				"description": "Start a provider-bound Google, GitHub, or generic OIDC authorization flow using state, PKCE, and a browser-bound flow cookie.",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ExternalAuthProviderPath"
+					},
+					{
+						"$ref": "#/components/parameters/ExternalAuthStartQuery.intent"
+					},
+					{
+						"$ref": "#/components/parameters/ExternalAuthStartQuery.returnTo"
+					}
+				],
+				"responses": {
+					"302": {
+						"description": "Redirection",
+						"headers": {
+							"location": {
+								"required": true,
+								"schema": {
+									"type": "string"
+								}
+							},
+							"Set-Cookie": {
+								"required": false,
+								"schema": {
+									"type": "string"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"503": {
+						"description": "Service unavailable.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Auth"]
+			}
+		},
 		"/auth/login": {
 			"post": {
 				"operationId": "loginUser",
@@ -9073,6 +9188,52 @@
 					"$ref": "#/components/schemas/uuid"
 				}
 			},
+			"ExternalAuthCallbackQuery.code": {
+				"name": "code",
+				"in": "query",
+				"required": true,
+				"schema": {
+					"type": "string"
+				},
+				"explode": false
+			},
+			"ExternalAuthCallbackQuery.state": {
+				"name": "state",
+				"in": "query",
+				"required": true,
+				"schema": {
+					"type": "string"
+				},
+				"explode": false
+			},
+			"ExternalAuthProviderPath": {
+				"name": "provider",
+				"in": "path",
+				"required": true,
+				"schema": {
+					"type": "string",
+					"enum": ["google", "github", "oidc"]
+				}
+			},
+			"ExternalAuthStartQuery.intent": {
+				"name": "intent",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"enum": ["login", "sudo", "link"]
+				},
+				"explode": false
+			},
+			"ExternalAuthStartQuery.returnTo": {
+				"name": "returnTo",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string"
+				},
+				"explode": false
+			},
 			"HttpInsightQuery.checkId": {
 				"name": "checkId",
 				"in": "query",
@@ -10663,15 +10824,49 @@
 					}
 				]
 			},
+			"AuthExternalProviderMethod": {
+				"type": "object",
+				"required": ["id", "displayName", "sudoCapable"],
+				"properties": {
+					"id": {
+						"type": "string",
+						"enum": ["google", "github", "oidc"]
+					},
+					"displayName": {
+						"type": "string"
+					},
+					"sudoCapable": {
+						"type": "boolean"
+					}
+				},
+				"examples": [
+					{
+						"id": "google",
+						"displayName": "Google",
+						"sudoCapable": true
+					}
+				]
+			},
 			"AuthMethodsResponse": {
 				"type": "object",
-				"required": ["password", "oidc"],
+				"required": ["password", "providers", "oidc"],
 				"properties": {
 					"password": {
 						"$ref": "#/components/schemas/AuthPasswordMethod"
 					},
+					"providers": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/AuthExternalProviderMethod"
+						}
+					},
 					"oidc": {
-						"$ref": "#/components/schemas/AuthOIDCMethod"
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/AuthOIDCMethod"
+							}
+						],
+						"description": "Deprecated generic OIDC method metadata. Use providers instead."
 					}
 				}
 			},
@@ -10738,7 +10933,7 @@
 					},
 					"authenticationMethod": {
 						"type": "string",
-						"enum": ["password", "oidc"]
+						"enum": ["password", "google", "github", "oidc"]
 					},
 					"isCurrent": {
 						"type": "boolean",
@@ -11683,7 +11878,7 @@
 					},
 					"provider": {
 						"type": "string",
-						"enum": ["oidc"]
+						"enum": ["google", "github", "oidc"]
 					},
 					"issuer": {
 						"type": "string"
@@ -11696,6 +11891,13 @@
 					},
 					"displayName": {
 						"type": "string"
+					},
+					"username": {
+						"type": "string"
+					},
+					"avatarUrl": {
+						"type": "string",
+						"format": "uri"
 					},
 					"createdAt": {
 						"type": "string",
@@ -14940,7 +15142,7 @@
 						"type": "array",
 						"items": {
 							"type": "string",
-							"enum": ["password", "oidc"]
+							"enum": ["password", "google", "github", "oidc"]
 						}
 					}
 				}

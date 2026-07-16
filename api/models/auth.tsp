@@ -57,7 +57,7 @@ model AuthSession {
 	idleExpiresAt: utcDateTime;
 	absoluteExpiresAt: utcDateTime;
 	authenticatedAt: utcDateTime;
-	authenticationMethod: "password" | "oidc";
+	authenticationMethod: "password" | "google" | "github" | "oidc";
 
 	@doc("Whether this is the session authenticating the current request.")
 	isCurrent: boolean;
@@ -183,15 +183,25 @@ model AuthOIDCMethod {
 	displayName: string;
 }
 
+@example(#{ id: "google", displayName: "Google", sudoCapable: true })
+model AuthExternalProviderMethod {
+	id: "google" | "github" | "oidc";
+	displayName: string;
+	sudoCapable: boolean;
+}
+
 model AuthMethodsResponse {
 	password: AuthPasswordMethod;
+	providers: AuthExternalProviderMethod[];
+
+	@doc("Deprecated generic OIDC method metadata. Use providers instead.")
 	oidc: AuthOIDCMethod;
 }
 
 model SudoStatusResponse {
 	active: boolean;
 	expiresAt: utcDateTime;
-	methods: ("password" | "oidc")[];
+	methods: ("password" | "google" | "github" | "oidc")[];
 }
 
 model PasswordSudoRequest {
@@ -207,6 +217,21 @@ model OIDCStartQuery {
 }
 
 model OIDCCallbackQuery {
+	@query code: string;
+	@query state: string;
+}
+
+model ExternalAuthProviderPath {
+	@path
+	provider: "google" | "github" | "oidc";
+}
+
+model ExternalAuthStartQuery {
+	@query intent?: "login" | "sudo" | "link";
+	@query returnTo?: string;
+}
+
+model ExternalAuthCallbackQuery {
 	@query code: string;
 	@query state: string;
 }
