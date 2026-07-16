@@ -23,6 +23,7 @@ interface APITokenService {
 		| CreatedJson<CreateAPITokenResponse>
 		| BadRequestProblem
 		| UnauthorizedProblem
+		| ForbiddenProblem
 		| ConflictProblem
 		| UnprocessableEntityProblem
 		| InternalServerProblem;

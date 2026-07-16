@@ -74,6 +74,12 @@ interface AdminService {
 		| UnprocessableEntityProblem
 		| InternalServerProblem;
 
+	@operationId("clearManagedUserPassword")
+	@summary("Clear managed user password")
+	@delete
+	@route("/users/{user_id}/password")
+	clearManagedUserPassword(...UserIdPathParam): OkJson<ManagedUserResponse> | UnauthorizedProblem | ForbiddenProblem | ConflictProblem | NotFoundProblem | InternalServerProblem;
+
 	@operationId("exportAdminData")
 	@summary("Export admin data")
 	@doc("Export Netstamp application data as a JSON backup. The export includes sensitive account and credential material such as password hashes and stored secrets.")

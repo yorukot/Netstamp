@@ -9,6 +9,23 @@ namespace Netstamp;
 @tag("Auth")
 @route("/auth")
 interface AuthService {
+	@operationId("getAuthMethods")
+	@summary("Get authentication methods")
+	@get
+	@route("/methods")
+	getAuthMethods(): OkJson<AuthMethodsResponse> | InternalServerProblem;
+
+	@operationId("startOIDC")
+	@summary("Start OIDC authentication")
+	@get
+	@route("/oidc/start")
+	startOIDC(...OIDCStartQuery): Found | BadRequestProblem | UnauthorizedProblem | ForbiddenProblem | ServiceUnavailableProblem;
+
+	@operationId("completeOIDC")
+	@summary("Complete OIDC authentication")
+	@get
+	@route("/oidc/callback")
+	completeOIDC(...OIDCCallbackQuery): Found;
 	@operationId("registerUser")
 	@summary("Register user")
 	@doc("Create a user account with a normalized email address, display name, and password. When email verification is disabled, sets an HTTP-only session cookie for immediate API access. When email verification is required, sends a verification email and returns 202 without a session cookie.")
@@ -84,6 +101,20 @@ interface AuthService {
 	@get
 	@route("/csrf")
 	getCSRFToken(): OkJson<CSRFTokenResponse> | UnauthorizedProblem | InternalServerProblem;
+
+	@operationId("getSudoStatus")
+	@summary("Get recent authentication status")
+	@useAuth(SessionCookieAuth)
+	@get
+	@route("/sudo")
+	getSudoStatus(): OkJson<SudoStatusResponse> | UnauthorizedProblem | InternalServerProblem;
+
+	@operationId("reauthenticatePassword")
+	@summary("Reauthenticate with password")
+	@useAuth(SessionCookieAuth)
+	@post
+	@route("/sudo/password")
+	reauthenticatePassword(@body body: PasswordSudoRequest): NoContent | BadRequestProblem | UnauthorizedProblem | UnprocessableEntityProblem | InternalServerProblem;
 
 	@operationId("getCurrentUser")
 	@summary("Get current user")

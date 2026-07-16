@@ -1,3 +1,7 @@
+import "@typespec/http";
+
+using Http;
+
 namespace Netstamp;
 
 @example(#{ displayName: "Jane Operator" })
@@ -9,29 +13,37 @@ model UpdateCurrentUserRequest {
 	displayName?: string;
 }
 
-@example(#{ newEmail: "jane.operator@example.com", password: "correct-horse-battery-staple" })
+@example(#{ newEmail: "jane.operator@example.com" })
 model ChangeCurrentUserEmailRequest {
 	@doc("New normalized email address to use for sign-in.")
 	newEmail: email;
-
-	@secret
-	@minLength(8)
-	@maxLength(128)
-	@doc("Current password used to confirm this sensitive account change.")
-	password: string;
 }
 
-@example(#{ currentPassword: "correct-horse-battery-staple", newPassword: "new-correct-horse-battery-staple" })
+@example(#{ newPassword: "new-correct-horse-battery-staple" })
 model ChangeCurrentUserPasswordRequest {
-	@secret
-	@minLength(8)
-	@maxLength(128)
-	@doc("Current password to verify before changing credentials.")
-	currentPassword: string;
-
 	@secret
 	@minLength(8)
 	@maxLength(128)
 	@doc("New password. It is stored only as an Argon2id hash.")
 	newPassword: string;
+}
+
+model ExternalIdentity {
+	id: uuid;
+	provider: "oidc";
+	issuer: string;
+	email?: email;
+	emailVerified: boolean;
+	displayName?: string;
+	createdAt: utcDateTime;
+	lastLoginAt?: utcDateTime;
+}
+
+model AuthenticationMethodsResponse {
+	hasPassword: boolean;
+	identities: ExternalIdentity[];
+}
+
+model IdentityIdPathParam {
+	@path("identity_id") identityId: uuid;
 }

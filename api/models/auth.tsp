@@ -4,7 +4,7 @@ using Http;
 
 namespace Netstamp;
 
-@example(#{ id: "11111111-1111-1111-1111-111111111111", email: "user@example.com", displayName: "Jane Doe", emailVerified: true, isSystemAdmin: true })
+@example(#{ id: "11111111-1111-1111-1111-111111111111", email: "user@example.com", displayName: "Jane Doe", emailVerified: true, isSystemAdmin: true, hasPassword: true })
 model User {
 	@doc("User UUID.")
 	id: uuid;
@@ -22,6 +22,9 @@ model User {
 
 	@doc("Whether the user has instance-level administrator access.")
 	isSystemAdmin: boolean;
+
+	@doc("Whether the account has a local password credential.")
+	hasPassword: boolean;
 }
 
 model AuthSessionIdPathParam {
@@ -37,6 +40,8 @@ model AuthSessionIdPathParam {
 	lastUsedAt: utcDateTime.fromISO("2026-07-10T09:15:00Z"),
 	idleExpiresAt: utcDateTime.fromISO("2026-07-17T09:15:00Z"),
 	absoluteExpiresAt: utcDateTime.fromISO("2026-08-09T08:00:00Z"),
+	authenticatedAt: utcDateTime.fromISO("2026-07-10T08:00:00Z"),
+	authenticationMethod: "password",
 	isCurrent: true,
 })
 model AuthSession {
@@ -51,6 +56,8 @@ model AuthSession {
 	lastUsedAt: utcDateTime;
 	idleExpiresAt: utcDateTime;
 	absoluteExpiresAt: utcDateTime;
+	authenticatedAt: utcDateTime;
+	authenticationMethod: "password" | "oidc";
 
 	@doc("Whether this is the session authenticating the current request.")
 	isCurrent: boolean;
@@ -65,6 +72,8 @@ model AuthSession {
 			lastUsedAt: utcDateTime.fromISO("2026-07-10T09:15:00Z"),
 			idleExpiresAt: utcDateTime.fromISO("2026-07-17T09:15:00Z"),
 			absoluteExpiresAt: utcDateTime.fromISO("2026-08-09T08:00:00Z"),
+			authenticatedAt: utcDateTime.fromISO("2026-07-10T08:00:00Z"),
+			authenticationMethod: "password",
 			isCurrent: true,
 		}
 	],
@@ -143,12 +152,15 @@ model RegisterEmailVerificationRequiredResponse {
 	emailVerificationRequired: true;
 }
 
-@example(#{ user: #{ id: "11111111-1111-1111-1111-111111111111", email: "user@example.com", displayName: "Jane Doe", emailVerified: true, isSystemAdmin: true } })
+@example(#{ user: #{ id: "11111111-1111-1111-1111-111111111111", email: "user@example.com", displayName: "Jane Doe", emailVerified: true, isSystemAdmin: true, hasPassword: true } })
 model AuthUserResponse {
 	user: User;
 }
 
-@example(#{ authenticated: true, user: #{ id: "11111111-1111-1111-1111-111111111111", email: "user@example.com", displayName: "Jane Doe", emailVerified: true, isSystemAdmin: true } })
+@example(#{
+	authenticated: true,
+	user: #{ id: "11111111-1111-1111-1111-111111111111", email: "user@example.com", displayName: "Jane Doe", emailVerified: true, isSystemAdmin: true, hasPassword: true },
+})
 model CurrentUserResponse {
 	authenticated: true;
 	user: User;
@@ -159,4 +171,42 @@ model CSRFTokenResponse {
 	@secret
 	@doc("One-time readable CSRF token to send in X-CSRF-Token for state-changing session-authenticated requests.")
 	csrfToken: string;
+}
+
+model AuthPasswordMethod {
+	enabled: boolean;
+	registrationEnabled: boolean;
+}
+
+model AuthOIDCMethod {
+	enabled: boolean;
+	displayName: string;
+}
+
+model AuthMethodsResponse {
+	password: AuthPasswordMethod;
+	oidc: AuthOIDCMethod;
+}
+
+model SudoStatusResponse {
+	active: boolean;
+	expiresAt: utcDateTime;
+	methods: ("password" | "oidc")[];
+}
+
+model PasswordSudoRequest {
+	@secret
+	@minLength(8)
+	@maxLength(128)
+	password: string;
+}
+
+model OIDCStartQuery {
+	@query intent?: "login" | "sudo" | "link";
+	@query returnTo?: string;
+}
+
+model OIDCCallbackQuery {
+	@query code: string;
+	@query state: string;
 }

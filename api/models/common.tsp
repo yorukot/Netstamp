@@ -94,6 +94,12 @@ alias ErrorCode =
 	| "AUTH_SESSION_NOT_FOUND"
 	| "AUTH_INVALID_API_TOKEN"
 	| "AUTH_INSUFFICIENT_SCOPE"
+	| "AUTH_SUDO_REQUIRED"
+	| "AUTH_OIDC_UNAVAILABLE"
+	| "AUTH_OIDC_CALLBACK_INVALID"
+	| "AUTH_IDENTITY_CONFLICT"
+	| "AUTH_IDENTITY_NOT_FOUND"
+	| "AUTH_LAST_CREDENTIAL"
 	| "API_TOKEN_NOT_FOUND"
 	| "API_TOKEN_LIMIT_REACHED"
 	| "USER_NOT_FOUND"
@@ -223,6 +229,12 @@ model OptionalSessionNoContent {
 
 	@header("Set-Cookie")
 	setCookie?: string;
+}
+
+model Found {
+	...Response<302>;
+	@header location: string;
+	@header("Set-Cookie") setCookie?: string;
 }
 
 model BadRequestProblem {

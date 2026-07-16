@@ -183,7 +183,8 @@ export interface paths {
 		 * @description Replace a user's password with a system administrator supplied value.
 		 */
 		post: operations["setManagedUserPassword"];
-		delete?: never;
+		/** Clear managed user password */
+		delete: operations["clearManagedUserPassword"];
 		options?: never;
 		head?: never;
 		patch?: never;
@@ -331,6 +332,57 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	"/auth/methods": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** Get authentication methods */
+		get: operations["getAuthMethods"];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	"/auth/oidc/callback": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** Complete OIDC authentication */
+		get: operations["completeOIDC"];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	"/auth/oidc/start": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** Start OIDC authentication */
+		get: operations["startOIDC"];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	"/auth/password-resets": {
 		parameters: {
 			query?: never;
@@ -414,6 +466,40 @@ export interface paths {
 		 * @description Revoke an active server-side session owned by the current user. Revoking the current session also clears its session cookie.
 		 */
 		delete: operations["revokeAuthSession"];
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	"/auth/sudo": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** Get recent authentication status */
+		get: operations["getSudoStatus"];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	"/auth/sudo/password": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/** Reauthenticate with password */
+		post: operations["reauthenticatePassword"];
+		delete?: never;
 		options?: never;
 		head?: never;
 		patch?: never;
@@ -1389,6 +1475,23 @@ export interface paths {
 		patch: operations["updateCurrentUser"];
 		trace?: never;
 	};
+	"/users/me/authentication-methods": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** List current user authentication methods */
+		get: operations["listCurrentUserAuthenticationMethods"];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	"/users/me/deactivation": {
 		parameters: {
 			query?: never;
@@ -1420,7 +1523,7 @@ export interface paths {
 		put?: never;
 		/**
 		 * Change current user email
-		 * @description Change the sign-in email for the current user after confirming the current password.
+		 * @description Change the sign-in email after recent authentication.
 		 */
 		post: operations["changeCurrentUserEmail"];
 		delete?: never;
@@ -1429,7 +1532,7 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
-	"/users/me/password-change": {
+	"/users/me/identities/{identity_id}": {
 		parameters: {
 			query?: never;
 			header?: never;
@@ -1438,12 +1541,33 @@ export interface paths {
 		};
 		get?: never;
 		put?: never;
+		post?: never;
+		/** Remove current user identity */
+		delete: operations["removeCurrentUserIdentity"];
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	"/users/me/password": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
 		/**
-		 * Change current user password
-		 * @description Change the current user's password after verifying the existing password.
+		 * Set current user password
+		 * @description Create or replace the current user's local password after recent authentication.
 		 */
-		post: operations["changeCurrentUserPassword"];
-		delete?: never;
+		put: operations["setCurrentUserPassword"];
+		post?: never;
+		/**
+		 * Remove current user password
+		 * @description Remove the local password when another authentication identity remains.
+		 */
+		delete: operations["removeCurrentUserPassword"];
 		options?: never;
 		head?: never;
 		patch?: never;
@@ -1494,7 +1618,7 @@ export interface components {
 		};
 		/**
 		 * @example {
-		 *       "format": "netstamp.admin.data.v2",
+		 *       "format": "netstamp.admin.data.v3",
 		 *       "exportedAt": "2026-07-08T12:00:00Z",
 		 *       "tables": {}
 		 *     }
@@ -1508,8 +1632,8 @@ export interface components {
 		/**
 		 * @example {
 		 *       "result": {
-		 *         "format": "netstamp.admin.data.v2",
-		 *         "importedTables": 35,
+		 *         "format": "netstamp.admin.data.v3",
+		 *         "importedTables": 37,
 		 *         "importedRows": 128
 		 *       }
 		 *     }
@@ -1965,6 +2089,18 @@ export interface components {
 			check?: components["schemas"]["Check"];
 			probe?: components["schemas"]["Probe"];
 		};
+		AuthMethodsResponse: {
+			password: components["schemas"]["AuthPasswordMethod"];
+			oidc: components["schemas"]["AuthOIDCMethod"];
+		};
+		AuthOIDCMethod: {
+			enabled: boolean;
+			displayName: string;
+		};
+		AuthPasswordMethod: {
+			enabled: boolean;
+			registrationEnabled: boolean;
+		};
 		/**
 		 * @example {
 		 *       "id": "22222222-2222-2222-2222-222222222222",
@@ -1973,6 +2109,8 @@ export interface components {
 		 *       "lastUsedAt": "2026-07-10T09:15:00Z",
 		 *       "idleExpiresAt": "2026-07-17T09:15:00Z",
 		 *       "absoluteExpiresAt": "2026-08-09T08:00:00Z",
+		 *       "authenticatedAt": "2026-07-10T08:00:00Z",
+		 *       "authenticationMethod": "password",
 		 *       "isCurrent": true
 		 *     }
 		 */
@@ -1989,6 +2127,10 @@ export interface components {
 			idleExpiresAt: string;
 			/** Format: date-time */
 			absoluteExpiresAt: string;
+			/** Format: date-time */
+			authenticatedAt: string;
+			/** @enum {string} */
+			authenticationMethod: "password" | "oidc";
 			/** @description Whether this is the session authenticating the current request. */
 			isCurrent: boolean;
 		};
@@ -2002,6 +2144,8 @@ export interface components {
 		 *           "lastUsedAt": "2026-07-10T09:15:00Z",
 		 *           "idleExpiresAt": "2026-07-17T09:15:00Z",
 		 *           "absoluteExpiresAt": "2026-08-09T08:00:00Z",
+		 *           "authenticatedAt": "2026-07-10T08:00:00Z",
+		 *           "authenticationMethod": "password",
 		 *           "isCurrent": true
 		 *         }
 		 *       ]
@@ -2017,12 +2161,17 @@ export interface components {
 		 *         "email": "user@example.com",
 		 *         "displayName": "Jane Doe",
 		 *         "emailVerified": true,
-		 *         "isSystemAdmin": true
+		 *         "isSystemAdmin": true,
+		 *         "hasPassword": true
 		 *       }
 		 *     }
 		 */
 		AuthUserResponse: {
 			user: components["schemas"]["User"];
+		};
+		AuthenticationMethodsResponse: {
+			hasPassword: boolean;
+			identities: components["schemas"]["ExternalIdentity"][];
 		};
 		/**
 		 * @example {
@@ -2038,31 +2187,19 @@ export interface components {
 		};
 		/**
 		 * @example {
-		 *       "newEmail": "jane.operator@example.com",
-		 *       "password": "correct-horse-battery-staple"
+		 *       "newEmail": "jane.operator@example.com"
 		 *     }
 		 */
 		ChangeCurrentUserEmailRequest: {
 			/** @description New normalized email address to use for sign-in. */
 			newEmail: components["schemas"]["email"];
-			/**
-			 * Format: password
-			 * @description Current password used to confirm this sensitive account change.
-			 */
-			password: string;
 		};
 		/**
 		 * @example {
-		 *       "currentPassword": "correct-horse-battery-staple",
 		 *       "newPassword": "new-correct-horse-battery-staple"
 		 *     }
 		 */
 		ChangeCurrentUserPasswordRequest: {
-			/**
-			 * Format: password
-			 * @description Current password to verify before changing credentials.
-			 */
-			currentPassword: string;
 			/**
 			 * Format: password
 			 * @description New password. It is stored only as an Argon2id hash.
@@ -2246,7 +2383,6 @@ export interface components {
 			)[];
 			/** Format: date-time */
 			expiresAt: string;
-			currentPassword: string;
 		};
 		CreateAPITokenResponse: {
 			token: components["schemas"]["APIToken"];
@@ -2477,7 +2613,8 @@ export interface components {
 		 *         "email": "user@example.com",
 		 *         "displayName": "Jane Doe",
 		 *         "emailVerified": true,
-		 *         "isSystemAdmin": true
+		 *         "isSystemAdmin": true,
+		 *         "hasPassword": true
 		 *       }
 		 *     }
 		 */
@@ -2517,6 +2654,19 @@ export interface components {
 		EmailNotificationResponseConfig: {
 			to: components["schemas"]["email"][];
 			smtpConfigured: boolean;
+		};
+		ExternalIdentity: {
+			id: components["schemas"]["uuid"];
+			/** @enum {string} */
+			provider: "oidc";
+			issuer: string;
+			email?: components["schemas"]["email"];
+			emailVerified: boolean;
+			displayName?: string;
+			/** Format: date-time */
+			createdAt: string;
+			/** Format: date-time */
+			lastLoginAt?: string;
 		};
 		/**
 		 * @example {
@@ -2850,6 +3000,7 @@ export interface components {
 		 *       "displayName": "Jane Operator",
 		 *       "emailVerified": true,
 		 *       "isSystemAdmin": false,
+		 *       "hasPassword": true,
 		 *       "createdAt": "2026-07-08T12:00:00Z",
 		 *       "updatedAt": "2026-07-08T12:00:00Z"
 		 *     }
@@ -2870,6 +3021,7 @@ export interface components {
 			disabledAt?: string;
 			/** @description Whether the user has instance-level administrator access. */
 			isSystemAdmin: boolean;
+			hasPassword: boolean;
 			/** Format: date-time */
 			createdAt: string;
 			/** Format: date-time */
@@ -2888,6 +3040,7 @@ export interface components {
 		 *         "displayName": "Jane Operator",
 		 *         "emailVerified": true,
 		 *         "isSystemAdmin": false,
+		 *         "hasPassword": true,
 		 *         "createdAt": "2026-07-08T12:00:00Z",
 		 *         "updatedAt": "2026-07-08T12:00:00Z"
 		 *       }
@@ -2905,6 +3058,7 @@ export interface components {
 		 *           "displayName": "Jane Operator",
 		 *           "emailVerified": true,
 		 *           "isSystemAdmin": false,
+		 *           "hasPassword": true,
 		 *           "createdAt": "2026-07-08T12:00:00Z",
 		 *           "updatedAt": "2026-07-08T12:00:00Z"
 		 *         }
@@ -2995,6 +3149,10 @@ export interface components {
 			kind?: string;
 			code?: string;
 			message?: string;
+		};
+		PasswordSudoRequest: {
+			/** Format: password */
+			password: string;
 		};
 		/**
 		 * @example {
@@ -3375,6 +3533,12 @@ export interface components {
 				| "AUTH_SESSION_NOT_FOUND"
 				| "AUTH_INVALID_API_TOKEN"
 				| "AUTH_INSUFFICIENT_SCOPE"
+				| "AUTH_SUDO_REQUIRED"
+				| "AUTH_OIDC_UNAVAILABLE"
+				| "AUTH_OIDC_CALLBACK_INVALID"
+				| "AUTH_IDENTITY_CONFLICT"
+				| "AUTH_IDENTITY_NOT_FOUND"
+				| "AUTH_LAST_CREDENTIAL"
 				| "API_TOKEN_NOT_FOUND"
 				| "API_TOKEN_LIMIT_REACHED"
 				| "USER_NOT_FOUND"
@@ -4257,6 +4421,12 @@ export interface components {
 			/** Format: date-time */
 			serverTime: string;
 		};
+		SudoStatusResponse: {
+			active: boolean;
+			/** Format: date-time */
+			expiresAt: string;
+			methods: ("password" | "oidc")[];
+		};
 		/**
 		 * @example {
 		 *       "admin": {
@@ -5088,7 +5258,8 @@ export interface components {
 		 *       "email": "user@example.com",
 		 *       "displayName": "Jane Doe",
 		 *       "emailVerified": true,
-		 *       "isSystemAdmin": true
+		 *       "isSystemAdmin": true,
+		 *       "hasPassword": true
 		 *     }
 		 */
 		User: {
@@ -5102,6 +5273,8 @@ export interface components {
 			emailVerified: boolean;
 			/** @description Whether the user has instance-level administrator access. */
 			isSystemAdmin: boolean;
+			/** @description Whether the account has a local password credential. */
+			hasPassword: boolean;
 		};
 		/**
 		 * @example {
@@ -5144,11 +5317,16 @@ export interface components {
 		"HttpSeriesQuery.probeId": components["schemas"]["uuid"];
 		"HttpSeriesQuery.series": string;
 		"HttpSeriesQuery.to": number;
+		IdentityIdPathParam: components["schemas"]["uuid"];
 		LabelIdPathParam: components["schemas"]["uuid"];
 		"LatestResultsQuery.checkId": components["schemas"]["uuid"];
 		"LatestResultsQuery.probeId": components["schemas"]["uuid"];
 		"LatestResultsQuery.type": "ping" | "tcp" | "traceroute" | "http";
 		NotificationIdPathParam: components["schemas"]["uuid"];
+		"OIDCCallbackQuery.code": string;
+		"OIDCCallbackQuery.state": string;
+		"OIDCStartQuery.intent": "login" | "sudo" | "link";
+		"OIDCStartQuery.returnTo": string;
 		"PingInsightQuery.checkId": components["schemas"]["uuid"];
 		"PingInsightQuery.from": number;
 		"PingInsightQuery.maxDataPoints": number;
@@ -5864,6 +6042,73 @@ export interface operations {
 			};
 		};
 	};
+	clearManagedUserPassword: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				user_id: components["parameters"]["UserIdPathParam"];
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["ManagedUserResponse"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is forbidden. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The request conflicts with the current state of the server. */
+			409: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
 	listAPITokens: {
 		parameters: {
 			query?: never;
@@ -5935,6 +6180,15 @@ export interface operations {
 			};
 			/** @description Access is unauthorized. */
 			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is forbidden. */
+			403: {
 				headers: {
 					[name: string]: unknown;
 				};
@@ -6308,6 +6562,117 @@ export interface operations {
 			};
 		};
 	};
+	getAuthMethods: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["AuthMethodsResponse"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	completeOIDC: {
+		parameters: {
+			query: {
+				code: components["parameters"]["OIDCCallbackQuery.code"];
+				state: components["parameters"]["OIDCCallbackQuery.state"];
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Redirection */
+			302: {
+				headers: {
+					location: string;
+					"Set-Cookie"?: string;
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+		};
+	};
+	startOIDC: {
+		parameters: {
+			query?: {
+				intent?: components["parameters"]["OIDCStartQuery.intent"];
+				returnTo?: components["parameters"]["OIDCStartQuery.returnTo"];
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Redirection */
+			302: {
+				headers: {
+					location: string;
+					"Set-Cookie"?: string;
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is forbidden. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Service unavailable. */
+			503: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
 	createPasswordReset: {
 		parameters: {
 			query?: never;
@@ -6627,6 +6992,102 @@ export interface operations {
 			};
 			/** @description The server cannot find the requested resource. */
 			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	getSudoStatus: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["SudoStatusResponse"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	reauthenticatePassword: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				"application/json": components["schemas"]["PasswordSudoRequest"];
+			};
+		};
+		responses: {
+			/** @description There is no content to send for this request, but the headers may be useful. */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
 				headers: {
 					[name: string]: unknown;
 				};
@@ -11879,6 +12340,44 @@ export interface operations {
 			};
 		};
 	};
+	listCurrentUserAuthenticationMethods: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["AuthenticationMethodsResponse"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
 	deactivateCurrentUser: {
 		parameters: {
 			query?: never;
@@ -11897,6 +12396,15 @@ export interface operations {
 			};
 			/** @description Access is unauthorized. */
 			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is forbidden. */
+			403: {
 				headers: {
 					[name: string]: unknown;
 				};
@@ -11964,6 +12472,15 @@ export interface operations {
 					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
+			/** @description Access is forbidden. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
 			/** @description The request conflicts with the current state of the server. */
 			409: {
 				headers: {
@@ -11993,7 +12510,72 @@ export interface operations {
 			};
 		};
 	};
-	changeCurrentUserPassword: {
+	removeCurrentUserIdentity: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				identity_id: components["parameters"]["IdentityIdPathParam"];
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description There is no content to send for this request, but the headers may be useful. */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is forbidden. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The request conflicts with the current state of the server. */
+			409: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	setCurrentUserPassword: {
 		parameters: {
 			query?: never;
 			header?: never;
@@ -12031,8 +12613,71 @@ export interface operations {
 					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
+			/** @description Access is forbidden. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
 			/** @description Client error */
 			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	removeCurrentUserPassword: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description There is no content to send for this request, but the headers may be useful. */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is forbidden. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The request conflicts with the current state of the server. */
+			409: {
 				headers: {
 					[name: string]: unknown;
 				};

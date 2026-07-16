@@ -865,6 +865,83 @@
 						"SessionCookieAuth": []
 					}
 				]
+			},
+			"delete": {
+				"operationId": "clearManagedUserPassword",
+				"summary": "Clear managed user password",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/UserIdPathParam"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ManagedUserResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "The request conflicts with the current state of the server.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Admin"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
 			}
 		},
 		"/auth/api-tokens": {
@@ -939,6 +1016,16 @@
 					},
 					"401": {
 						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -1387,6 +1474,144 @@
 				]
 			}
 		},
+		"/auth/methods": {
+			"get": {
+				"operationId": "getAuthMethods",
+				"summary": "Get authentication methods",
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/AuthMethodsResponse"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Auth"]
+			}
+		},
+		"/auth/oidc/callback": {
+			"get": {
+				"operationId": "completeOIDC",
+				"summary": "Complete OIDC authentication",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/OIDCCallbackQuery.code"
+					},
+					{
+						"$ref": "#/components/parameters/OIDCCallbackQuery.state"
+					}
+				],
+				"responses": {
+					"302": {
+						"description": "Redirection",
+						"headers": {
+							"location": {
+								"required": true,
+								"schema": {
+									"type": "string"
+								}
+							},
+							"Set-Cookie": {
+								"required": false,
+								"schema": {
+									"type": "string"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Auth"]
+			}
+		},
+		"/auth/oidc/start": {
+			"get": {
+				"operationId": "startOIDC",
+				"summary": "Start OIDC authentication",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/OIDCStartQuery.intent"
+					},
+					{
+						"$ref": "#/components/parameters/OIDCStartQuery.returnTo"
+					}
+				],
+				"responses": {
+					"302": {
+						"description": "Redirection",
+						"headers": {
+							"location": {
+								"required": true,
+								"schema": {
+									"type": "string"
+								}
+							},
+							"Set-Cookie": {
+								"required": false,
+								"schema": {
+									"type": "string"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"503": {
+						"description": "Service unavailable.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Auth"]
+			}
+		},
 		"/auth/password-resets": {
 			"post": {
 				"operationId": "createPasswordReset",
@@ -1777,6 +2002,119 @@
 					}
 				},
 				"tags": ["Auth"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/auth/sudo": {
+			"get": {
+				"operationId": "getSudoStatus",
+				"summary": "Get recent authentication status",
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/SudoStatusResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Auth"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/auth/sudo/password": {
+			"post": {
+				"operationId": "reauthenticatePassword",
+				"summary": "Reauthenticate with password",
+				"parameters": [],
+				"responses": {
+					"204": {
+						"description": "There is no content to send for this request, but the headers may be useful. "
+					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Auth"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/PasswordSudoRequest"
+							}
+						}
+					}
+				},
 				"security": [
 					{
 						"SessionCookieAuth": []
@@ -8240,6 +8578,51 @@
 				]
 			}
 		},
+		"/users/me/authentication-methods": {
+			"get": {
+				"operationId": "listCurrentUserAuthenticationMethods",
+				"summary": "List current user authentication methods",
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/AuthenticationMethodsResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Users"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
 		"/users/me/deactivation": {
 			"post": {
 				"operationId": "deactivateCurrentUser",
@@ -8252,6 +8635,16 @@
 					},
 					"401": {
 						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -8293,7 +8686,7 @@
 			"post": {
 				"operationId": "changeCurrentUserEmail",
 				"summary": "Change current user email",
-				"description": "Change the sign-in email for the current user after confirming the current password.",
+				"description": "Change the sign-in email after recent authentication.",
 				"parameters": [],
 				"responses": {
 					"200": {
@@ -8318,6 +8711,16 @@
 					},
 					"401": {
 						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -8375,11 +8778,83 @@
 				]
 			}
 		},
-		"/users/me/password-change": {
-			"post": {
-				"operationId": "changeCurrentUserPassword",
-				"summary": "Change current user password",
-				"description": "Change the current user's password after verifying the existing password.",
+		"/users/me/identities/{identity_id}": {
+			"delete": {
+				"operationId": "removeCurrentUserIdentity",
+				"summary": "Remove current user identity",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/IdentityIdPathParam"
+					}
+				],
+				"responses": {
+					"204": {
+						"description": "There is no content to send for this request, but the headers may be useful. "
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "The request conflicts with the current state of the server.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Users"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/users/me/password": {
+			"put": {
+				"operationId": "setCurrentUserPassword",
+				"summary": "Set current user password",
+				"description": "Create or replace the current user's local password after recent authentication.",
 				"parameters": [],
 				"responses": {
 					"204": {
@@ -8397,6 +8872,16 @@
 					},
 					"401": {
 						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -8437,6 +8922,63 @@
 						}
 					}
 				},
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			},
+			"delete": {
+				"operationId": "removeCurrentUserPassword",
+				"summary": "Remove current user password",
+				"description": "Remove the local password when another authentication identity remains.",
+				"parameters": [],
+				"responses": {
+					"204": {
+						"description": "There is no content to send for this request, but the headers may be useful. "
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "The request conflicts with the current state of the server.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Users"],
 				"security": [
 					{
 						"SessionCookieAuth": []
@@ -8647,6 +9189,14 @@
 				},
 				"explode": false
 			},
+			"IdentityIdPathParam": {
+				"name": "identity_id",
+				"in": "path",
+				"required": true,
+				"schema": {
+					"$ref": "#/components/schemas/uuid"
+				}
+			},
 			"LabelIdPathParam": {
 				"name": "label_id",
 				"in": "path",
@@ -8690,6 +9240,43 @@
 				"schema": {
 					"$ref": "#/components/schemas/uuid"
 				}
+			},
+			"OIDCCallbackQuery.code": {
+				"name": "code",
+				"in": "query",
+				"required": true,
+				"schema": {
+					"type": "string"
+				},
+				"explode": false
+			},
+			"OIDCCallbackQuery.state": {
+				"name": "state",
+				"in": "query",
+				"required": true,
+				"schema": {
+					"type": "string"
+				},
+				"explode": false
+			},
+			"OIDCStartQuery.intent": {
+				"name": "intent",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"enum": ["login", "sudo", "link"]
+				},
+				"explode": false
+			},
+			"OIDCStartQuery.returnTo": {
+				"name": "returnTo",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string"
+				},
+				"explode": false
 			},
 			"PingInsightQuery.checkId": {
 				"name": "checkId",
@@ -9306,7 +9893,7 @@
 				},
 				"examples": [
 					{
-						"format": "netstamp.admin.data.v2",
+						"format": "netstamp.admin.data.v3",
 						"exportedAt": "2026-07-08T12:00:00Z",
 						"tables": {}
 					}
@@ -9323,8 +9910,8 @@
 				"examples": [
 					{
 						"result": {
-							"format": "netstamp.admin.data.v2",
-							"importedTables": 35,
+							"format": "netstamp.admin.data.v3",
+							"importedTables": 37,
 							"importedRows": 128
 						}
 					}
@@ -10076,9 +10663,45 @@
 					}
 				]
 			},
+			"AuthMethodsResponse": {
+				"type": "object",
+				"required": ["password", "oidc"],
+				"properties": {
+					"password": {
+						"$ref": "#/components/schemas/AuthPasswordMethod"
+					},
+					"oidc": {
+						"$ref": "#/components/schemas/AuthOIDCMethod"
+					}
+				}
+			},
+			"AuthOIDCMethod": {
+				"type": "object",
+				"required": ["enabled", "displayName"],
+				"properties": {
+					"enabled": {
+						"type": "boolean"
+					},
+					"displayName": {
+						"type": "string"
+					}
+				}
+			},
+			"AuthPasswordMethod": {
+				"type": "object",
+				"required": ["enabled", "registrationEnabled"],
+				"properties": {
+					"enabled": {
+						"type": "boolean"
+					},
+					"registrationEnabled": {
+						"type": "boolean"
+					}
+				}
+			},
 			"AuthSession": {
 				"type": "object",
-				"required": ["id", "userAgent", "createdAt", "lastUsedAt", "idleExpiresAt", "absoluteExpiresAt", "isCurrent"],
+				"required": ["id", "userAgent", "createdAt", "lastUsedAt", "idleExpiresAt", "absoluteExpiresAt", "authenticatedAt", "authenticationMethod", "isCurrent"],
 				"properties": {
 					"id": {
 						"allOf": [
@@ -10109,6 +10732,14 @@
 						"type": "string",
 						"format": "date-time"
 					},
+					"authenticatedAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"authenticationMethod": {
+						"type": "string",
+						"enum": ["password", "oidc"]
+					},
 					"isCurrent": {
 						"type": "boolean",
 						"description": "Whether this is the session authenticating the current request."
@@ -10122,6 +10753,8 @@
 						"lastUsedAt": "2026-07-10T09:15:00Z",
 						"idleExpiresAt": "2026-07-17T09:15:00Z",
 						"absoluteExpiresAt": "2026-08-09T08:00:00Z",
+						"authenticatedAt": "2026-07-10T08:00:00Z",
+						"authenticationMethod": "password",
 						"isCurrent": true
 					}
 				]
@@ -10147,6 +10780,8 @@
 								"lastUsedAt": "2026-07-10T09:15:00Z",
 								"idleExpiresAt": "2026-07-17T09:15:00Z",
 								"absoluteExpiresAt": "2026-08-09T08:00:00Z",
+								"authenticatedAt": "2026-07-10T08:00:00Z",
+								"authenticationMethod": "password",
 								"isCurrent": true
 							}
 						]
@@ -10168,10 +10803,26 @@
 							"email": "user@example.com",
 							"displayName": "Jane Doe",
 							"emailVerified": true,
-							"isSystemAdmin": true
+							"isSystemAdmin": true,
+							"hasPassword": true
 						}
 					}
 				]
+			},
+			"AuthenticationMethodsResponse": {
+				"type": "object",
+				"required": ["hasPassword", "identities"],
+				"properties": {
+					"hasPassword": {
+						"type": "boolean"
+					},
+					"identities": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/ExternalIdentity"
+						}
+					}
+				}
 			},
 			"CSRFTokenResponse": {
 				"type": "object",
@@ -10191,7 +10842,7 @@
 			},
 			"ChangeCurrentUserEmailRequest": {
 				"type": "object",
-				"required": ["newEmail", "password"],
+				"required": ["newEmail"],
 				"properties": {
 					"newEmail": {
 						"allOf": [
@@ -10200,33 +10851,18 @@
 							}
 						],
 						"description": "New normalized email address to use for sign-in."
-					},
-					"password": {
-						"type": "string",
-						"minLength": 8,
-						"maxLength": 128,
-						"format": "password",
-						"description": "Current password used to confirm this sensitive account change."
 					}
 				},
 				"examples": [
 					{
-						"newEmail": "jane.operator@example.com",
-						"password": "correct-horse-battery-staple"
+						"newEmail": "jane.operator@example.com"
 					}
 				]
 			},
 			"ChangeCurrentUserPasswordRequest": {
 				"type": "object",
-				"required": ["currentPassword", "newPassword"],
+				"required": ["newPassword"],
 				"properties": {
-					"currentPassword": {
-						"type": "string",
-						"minLength": 8,
-						"maxLength": 128,
-						"format": "password",
-						"description": "Current password to verify before changing credentials."
-					},
 					"newPassword": {
 						"type": "string",
 						"minLength": 8,
@@ -10237,7 +10873,6 @@
 				},
 				"examples": [
 					{
-						"currentPassword": "correct-horse-battery-staple",
 						"newPassword": "new-correct-horse-battery-staple"
 					}
 				]
@@ -10480,7 +11115,7 @@
 			},
 			"CreateAPITokenRequest": {
 				"type": "object",
-				"required": ["name", "scopes", "expiresAt", "currentPassword"],
+				"required": ["name", "scopes", "expiresAt"],
 				"properties": {
 					"name": {
 						"type": "string",
@@ -10513,10 +11148,6 @@
 					"expiresAt": {
 						"type": "string",
 						"format": "date-time"
-					},
-					"currentPassword": {
-						"type": "string",
-						"minLength": 1
 					}
 				}
 			},
@@ -10980,7 +11611,8 @@
 							"email": "user@example.com",
 							"displayName": "Jane Doe",
 							"emailVerified": true,
-							"isSystemAdmin": true
+							"isSystemAdmin": true,
+							"hasPassword": true
 						}
 					}
 				]
@@ -11041,6 +11673,39 @@
 						"smtpConfigured": true
 					}
 				]
+			},
+			"ExternalIdentity": {
+				"type": "object",
+				"required": ["id", "provider", "issuer", "emailVerified", "createdAt"],
+				"properties": {
+					"id": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"provider": {
+						"type": "string",
+						"enum": ["oidc"]
+					},
+					"issuer": {
+						"type": "string"
+					},
+					"email": {
+						"$ref": "#/components/schemas/email"
+					},
+					"emailVerified": {
+						"type": "boolean"
+					},
+					"displayName": {
+						"type": "string"
+					},
+					"createdAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"lastLoginAt": {
+						"type": "string",
+						"format": "date-time"
+					}
+				}
 			},
 			"GrantSystemAdminRequest": {
 				"type": "object",
@@ -11676,7 +12341,7 @@
 			},
 			"ManagedUser": {
 				"type": "object",
-				"required": ["id", "email", "displayName", "emailVerified", "isSystemAdmin", "createdAt", "updatedAt"],
+				"required": ["id", "email", "displayName", "emailVerified", "isSystemAdmin", "hasPassword", "createdAt", "updatedAt"],
 				"properties": {
 					"id": {
 						"allOf": [
@@ -11713,6 +12378,9 @@
 						"type": "boolean",
 						"description": "Whether the user has instance-level administrator access."
 					},
+					"hasPassword": {
+						"type": "boolean"
+					},
 					"createdAt": {
 						"type": "string",
 						"format": "date-time"
@@ -11734,6 +12402,7 @@
 						"displayName": "Jane Operator",
 						"emailVerified": true,
 						"isSystemAdmin": false,
+						"hasPassword": true,
 						"createdAt": "2026-07-08T12:00:00Z",
 						"updatedAt": "2026-07-08T12:00:00Z"
 					}
@@ -11755,6 +12424,7 @@
 							"displayName": "Jane Operator",
 							"emailVerified": true,
 							"isSystemAdmin": false,
+							"hasPassword": true,
 							"createdAt": "2026-07-08T12:00:00Z",
 							"updatedAt": "2026-07-08T12:00:00Z"
 						}
@@ -11781,6 +12451,7 @@
 								"displayName": "Jane Operator",
 								"emailVerified": true,
 								"isSystemAdmin": false,
+								"hasPassword": true,
 								"createdAt": "2026-07-08T12:00:00Z",
 								"updatedAt": "2026-07-08T12:00:00Z"
 							}
@@ -11935,6 +12606,18 @@
 						"message": "Test notification delivered."
 					}
 				]
+			},
+			"PasswordSudoRequest": {
+				"type": "object",
+				"required": ["password"],
+				"properties": {
+					"password": {
+						"type": "string",
+						"minLength": 8,
+						"maxLength": 128,
+						"format": "password"
+					}
+				}
 			},
 			"PingConfig": {
 				"type": "object",
@@ -12531,6 +13214,12 @@
 							"AUTH_SESSION_NOT_FOUND",
 							"AUTH_INVALID_API_TOKEN",
 							"AUTH_INSUFFICIENT_SCOPE",
+							"AUTH_SUDO_REQUIRED",
+							"AUTH_OIDC_UNAVAILABLE",
+							"AUTH_OIDC_CALLBACK_INVALID",
+							"AUTH_IDENTITY_CONFLICT",
+							"AUTH_IDENTITY_NOT_FOUND",
+							"AUTH_LAST_CREDENTIAL",
 							"API_TOKEN_NOT_FOUND",
 							"API_TOKEN_LIMIT_REACHED",
 							"USER_NOT_FOUND",
@@ -14236,6 +14925,26 @@
 					}
 				]
 			},
+			"SudoStatusResponse": {
+				"type": "object",
+				"required": ["active", "expiresAt", "methods"],
+				"properties": {
+					"active": {
+						"type": "boolean"
+					},
+					"expiresAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"methods": {
+						"type": "array",
+						"items": {
+							"type": "string",
+							"enum": ["password", "oidc"]
+						}
+					}
+				}
+			},
 			"SystemAdminResponse": {
 				"type": "object",
 				"required": ["admin"],
@@ -15745,7 +16454,7 @@
 			},
 			"User": {
 				"type": "object",
-				"required": ["id", "email", "displayName", "emailVerified", "isSystemAdmin"],
+				"required": ["id", "email", "displayName", "emailVerified", "isSystemAdmin", "hasPassword"],
 				"properties": {
 					"id": {
 						"allOf": [
@@ -15776,6 +16485,10 @@
 					"isSystemAdmin": {
 						"type": "boolean",
 						"description": "Whether the user has instance-level administrator access."
+					},
+					"hasPassword": {
+						"type": "boolean",
+						"description": "Whether the account has a local password credential."
 					}
 				},
 				"examples": [
@@ -15784,7 +16497,8 @@
 						"email": "user@example.com",
 						"displayName": "Jane Doe",
 						"emailVerified": true,
-						"isSystemAdmin": true
+						"isSystemAdmin": true,
+						"hasPassword": true
 					}
 				]
 			},

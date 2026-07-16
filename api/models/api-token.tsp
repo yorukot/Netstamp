@@ -34,7 +34,6 @@ model CreateAPITokenRequest {
 	@minLength(1) @maxLength(100) name: string;
 	@minItems(1) scopes: APITokenScope[];
 	expiresAt: utcDateTime;
-	@minLength(1) currentPassword: string;
 }
 
 model CreateAPITokenResponse {

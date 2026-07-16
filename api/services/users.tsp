@@ -19,28 +19,48 @@ interface UserService {
 
 	@operationId("changeCurrentUserEmail")
 	@summary("Change current user email")
-	@doc("Change the sign-in email for the current user after confirming the current password.")
+	@doc("Change the sign-in email after recent authentication.")
 	@post
 	@route("/me/email-change")
 	changeCurrentUserEmail(@body body: ChangeCurrentUserEmailRequest):
 		| OkJson<AuthUserResponse>
 		| BadRequestProblem
 		| UnauthorizedProblem
+		| ForbiddenProblem
 		| ConflictProblem
 		| UnprocessableEntityProblem
 		| InternalServerProblem;
 
-	@operationId("changeCurrentUserPassword")
-	@summary("Change current user password")
-	@doc("Change the current user's password after verifying the existing password.")
-	@post
-	@route("/me/password-change")
-	changeCurrentUserPassword(@body body: ChangeCurrentUserPasswordRequest): NoContent | BadRequestProblem | UnauthorizedProblem | UnprocessableEntityProblem | InternalServerProblem;
+	@operationId("setCurrentUserPassword")
+	@summary("Set current user password")
+	@doc("Create or replace the current user's local password after recent authentication.")
+	@put
+	@route("/me/password")
+	changeCurrentUserPassword(@body body: ChangeCurrentUserPasswordRequest): NoContent | BadRequestProblem | UnauthorizedProblem | ForbiddenProblem | UnprocessableEntityProblem | InternalServerProblem;
+
+	@operationId("removeCurrentUserPassword")
+	@summary("Remove current user password")
+	@doc("Remove the local password when another authentication identity remains.")
+	@delete
+	@route("/me/password")
+	removeCurrentUserPassword(): NoContent | UnauthorizedProblem | ForbiddenProblem | ConflictProblem | InternalServerProblem;
+
+	@operationId("listCurrentUserAuthenticationMethods")
+	@summary("List current user authentication methods")
+	@get
+	@route("/me/authentication-methods")
+	listCurrentUserAuthenticationMethods(): OkJson<AuthenticationMethodsResponse> | UnauthorizedProblem | InternalServerProblem;
+
+	@operationId("removeCurrentUserIdentity")
+	@summary("Remove current user identity")
+	@delete
+	@route("/me/identities/{identity_id}")
+	removeCurrentUserIdentity(...IdentityIdPathParam): NoContent | UnauthorizedProblem | ForbiddenProblem | NotFoundProblem | ConflictProblem | InternalServerProblem;
 
 	@operationId("deactivateCurrentUser")
 	@summary("Deactivate current user")
 	@doc("Disable the authenticated user's account. Disabled accounts cannot sign in or access protected routes until a system administrator re-enables them.")
 	@post
 	@route("/me/deactivation")
-	deactivateCurrentUser(): NoContent | UnauthorizedProblem | ConflictProblem | InternalServerProblem;
+	deactivateCurrentUser(): NoContent | UnauthorizedProblem | ForbiddenProblem | ConflictProblem | InternalServerProblem;
 }

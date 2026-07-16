@@ -48,6 +48,7 @@ model SystemAdminsResponse {
 	displayName: "Jane Operator",
 	emailVerified: true,
 	isSystemAdmin: false,
+	hasPassword: true,
 	createdAt: utcDateTime.fromISO("2026-07-08T12:00:00Z"),
 	updatedAt: utcDateTime.fromISO("2026-07-08T12:00:00Z"),
 })
@@ -72,6 +73,7 @@ model ManagedUser {
 	@doc("Whether the user has instance-level administrator access.")
 	isSystemAdmin: boolean;
 
+	hasPassword: boolean;
 	createdAt: utcDateTime;
 	updatedAt: utcDateTime;
 
@@ -87,6 +89,7 @@ model ManagedUser {
 			displayName: "Jane Operator",
 			emailVerified: true,
 			isSystemAdmin: false,
+			hasPassword: true,
 			createdAt: utcDateTime.fromISO("2026-07-08T12:00:00Z"),
 			updatedAt: utcDateTime.fromISO("2026-07-08T12:00:00Z"),
 		}
@@ -103,6 +106,7 @@ model ManagedUsersResponse {
 		displayName: "Jane Operator",
 		emailVerified: true,
 		isSystemAdmin: false,
+		hasPassword: true,
 		createdAt: utcDateTime.fromISO("2026-07-08T12:00:00Z"),
 		updatedAt: utcDateTime.fromISO("2026-07-08T12:00:00Z"),
 	},
@@ -130,14 +134,14 @@ model SetManagedUserPasswordRequest {
 	password: string;
 }
 
-@example(#{ format: "netstamp.admin.data.v2", exportedAt: utcDateTime.fromISO("2026-07-08T12:00:00Z"), tables: #{} })
+@example(#{ format: "netstamp.admin.data.v3", exportedAt: utcDateTime.fromISO("2026-07-08T12:00:00Z"), tables: #{} })
 model AdminDataExport {
 	format: string;
 	exportedAt: utcDateTime;
 	tables: Record<unknown>;
 }
 
-@example(#{ result: #{ format: "netstamp.admin.data.v2", importedTables: 35, importedRows: 128 } })
+@example(#{ result: #{ format: "netstamp.admin.data.v3", importedTables: 37, importedRows: 128 } })
 model AdminDataImportResponse {
 	result: AdminDataImportResult;
 }
