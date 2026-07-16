@@ -49,10 +49,11 @@ When any tracker ID is set, `regional` mode asks for consent only in configured 
 
 Self-hosted demo deployments can reuse real data while blocking writes. These backend settings are enforced at runtime:
 
-| Variable                    | Purpose                                                    | Default |
-| --------------------------- | ---------------------------------------------------------- | ------- |
-| `DEMO_MODE`                 | Blocks unsafe API methods except login and logout          | `false` |
-| `AUTH_REGISTRATION_ENABLED` | Allows `POST /auth/register` when demo mode is not enabled | `true`  |
+| Variable                    | Purpose                                                    | Default                      |
+| --------------------------- | ---------------------------------------------------------- | ---------------------------- |
+| `DEMO_MODE`                 | Blocks unsafe API methods except login and logout          | `false`                      |
+| `AUTH_REGISTRATION_ENABLED` | Allows `POST /auth/register` when demo mode is not enabled | `true`                       |
+| `AUTH_API_TOKEN_HASH_KEY`   | HMAC key for personal access token hashes                  | local-only development value |
 
 Set `DEMO_MODE=true` for a public demo instance. `AUTH_REGISTRATION_ENABLED=false` is still useful for clarity, but demo mode blocks registration and all other unsafe API requests before they reach feature handlers. Keep a separate normal deployment pointed at the same database if operators still need full access.
 
@@ -87,7 +88,9 @@ The observability compose stack serves Grafana on its own host.
 
 ## Backend And API Assets
 
-Backend source lives in `server/`. The docs API explorer reads `docs/public/openapi.json`, which should be regenerated from the TypeSpec contract when API behavior changes. Non-production backend environments also expose Scalar docs at `/api/v1/docs`; production does not register that runtime docs route or `/api/v1/openapi.json`.
+Backend source lives in `server/`. The docs API explorer reads `docs/public/openapi.json`, which should be regenerated from the TypeSpec contract when API behavior changes. Controller environments also expose Scalar docs at `/api/v1/docs` and the schema at `/api/v1/openapi.json`.
+
+Keep `AUTH_API_TOKEN_HASH_KEY` secret and stable across restarts and restores. Changing it intentionally invalidates every existing personal access token. A data backup can contain hashed token rows, but restored tokens work only when the controller uses the same hash key.
 
 ## Database Image
 

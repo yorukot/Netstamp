@@ -4,7 +4,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 import { absoluteUrl, createApiReferenceSchema, createBreadcrumbSchema, resolveSiteUrl } from "../lib/seo";
 
 const title = "OpenAPI - Netstamp";
-const description = "Browse the generated backend OpenAPI contract and send test requests from the browser.";
+const description = "Browse the generated backend OpenAPI contract, authentication schemes, request bodies, and response models.";
 const siteUrl = resolveSiteUrl(Astro.site);
 const pageUrl = absoluteUrl("/openapi/", siteUrl);
 const schema = [

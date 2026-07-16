@@ -46,6 +46,8 @@ docker compose up -d
 
 Use an external reverse proxy for public HTTPS deployments.
 
+The reverse proxy must preserve the `Authorization` header for personal access tokens. Netstamp does not enable CORS for PAT endpoints; use curl, CI, CLI tools, or backend services rather than shipping a token in browser JavaScript.
+
 ## Verification
 
 Run a docs build before publishing changes that touch MDX, navigation, shared UI Storybook output, or Astro layout code. Run `pnpm generate:openapi` before that build when backend API routes or schemas change.

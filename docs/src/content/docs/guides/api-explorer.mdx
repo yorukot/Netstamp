@@ -21,11 +21,11 @@ Open [`/openapi/`](/openapi/) from the docs nav. The public page renders the gen
 
 Use it to verify request bodies, response schemas, and route paths before writing additional guides.
 
-Backend non-production environments also expose runtime Scalar API docs at `/api/v1/docs`. That page loads `/api/v1/openapi.json` from the same controller process. Production does not register either backend runtime docs route.
+Controller environments expose runtime Scalar API docs at `/api/v1/docs` and the matching schema at `/api/v1/openapi.json`. The runtime page is same-origin with the API and can send a personal Bearer token; the public docs explorer remains a reference surface and does not require cross-origin API access.
 
 ## Authenticated Routes
 
-Authenticated routes still need a valid session cookie when the backend enforces one. The explorer can describe the shape of the request, but it does not bypass application auth.
+Project API routes accept either a valid session cookie or a scoped personal access token. Account, member, invite, and administrator operations remain session-only. See [API Tokens](/docs/guides/api-tokens/) for the Bearer workflow.
 
 :::warning Do not manually edit `docs/public/openapi.json` for route changes. Regenerate it from TypeSpec so docs, web API types, and runtime schema stay together. :::
 

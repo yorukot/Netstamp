@@ -1,0 +1,50 @@
+---
+title: API Tokens
+description: Create scoped personal access tokens for curl, CI, CLI tools, and backend integrations.
+icon: key
+navOrder: 25
+head:
+  - tag: title
+    content: API Tokens | Netstamp Docs
+---
+
+## Create A Token
+
+Open **Account → API tokens**, choose a descriptive name, expiration, and only the scopes the integration needs. Confirm the action with your current password.
+
+The plaintext token is shown once. Store it in a secret manager or protected environment variable before closing the dialog. Netstamp stores only a keyed hash and cannot reveal the token again.
+
+## Call The API
+
+Send the token as a Bearer credential. Use the controller's public HTTPS origin and the versioned `/api/v1` base path.
+
+```bash
+export NETSTAMP_API_TOKEN='nst_pat_...'
+
+curl \
+  -H "Authorization: Bearer $NETSTAMP_API_TOKEN" \
+  -H "Accept: application/json" \
+  https://controller.example.com/api/v1/projects
+```
+
+PAT requests do not use browser cookies or CSRF tokens. The first release is intended for server-to-server clients and does not enable cross-origin browser access.
+
+## Scope And Project Access
+
+Token scopes and the owner's current project role both apply. A `checks:write` token still cannot update a check when its owner has only the project viewer role. Removing the owner from a project or lowering the owner's role takes effect on the next request.
+
+Available scopes cover projects, probes, checks, labels, assignments, results, alerts, and status pages. Account security, project members, invites, token management, and system administration remain session-only.
+
+## Expiration And Rotation
+
+Tokens expire after 7, 30, 90, or 365 days. For zero-downtime rotation, create a replacement, update the integration, verify it, and then revoke the old token.
+
+Password changes, password resets, administrator password resets, and account deactivation revoke all personal API tokens. Logging out browser sessions does not revoke them.
+
+:::warning Never place a token in a URL, frontend bundle, Git repository, chat message, or shell history. If a token may have leaked, revoke it immediately. :::
+
+## Errors And Observability
+
+Invalid, expired, revoked, or disabled-account credentials return `401 AUTH_INVALID_API_TOKEN`. Missing scopes return `403 AUTH_INSUFFICIENT_SCOPE`; project role failures continue to return the existing project authorization problem.
+
+Netstamp exports aggregate PAT authentication and request metrics without token or user identifiers. Apply traffic limits at the reverse proxy or API gateway when exposing a controller publicly.
