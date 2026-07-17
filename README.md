@@ -67,6 +67,10 @@ http://localhost:3000
 
 Before exposing Netstamp publicly, edit `.env`, replace every `change-me` value, set `APP_ENV=production`, pin `NETSTAMP_VERSION` to a release tag, and put Netstamp behind HTTPS with your reverse proxy of choice.
 
+## Contributing
+
+Read [`CONTRIBUTING.md`](./CONTRIBUTING.md) for development setup, branch and commit conventions, validation commands, and pull request requirements.
+
 ## License
 
 Netstamp is licensed under the [Apache License 2.0](./LICENSE).
